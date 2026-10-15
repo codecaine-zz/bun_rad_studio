@@ -76,6 +76,8 @@ const GLOBALS = [
 ] as const;
 const saved = new Map<string, PropertyDescriptor | undefined>();
 let server: ReturnType<typeof startFileManagerServer>;
+/** What the page asked the (recording) clipboard to hold: no test ever touches the real one. */
+const clip: { text?: string; image?: { file: string; mime: string } } = {};
 let doc: any;
 let win: any;
 let toolbarModule: any;
@@ -123,7 +125,7 @@ beforeAll(async () => {
   mock.module("../resources/file_manager/ui/terminal.js", () => ({
     terminalAvailable: () => true, typeInTerminal: () => true, showTerminal() {}, hideTerminal() {}, toggleTerminal() {}, isTerminalOpen: () => false, wireTerminal() {},
   }));
-  server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir, platform: "linux" } });
+  server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir, platform: "linux", clipboard: { writeText: (t) => { clip.text = t; return true; }, writeImage: async (file, mime) => { clip.image = { file, mime }; return true; } } } });
   const base = `http://127.0.0.1:${server.port}`;
   const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8").replace(/__FM_TOKEN__/g, "ui-token").replace(/__FM_PLATFORM__/g, "linux").replace(/__FM_START__/g, "").replace(/__FM_NONCE__/g, "n");
   const dom = new JSDOM(html, { url: `${base}/`, pretendToBeVisual: true });
@@ -1052,5 +1054,218 @@ describe("the Dual view's right pane has the same options as the left one", () =
     await until(() => !!$("#dual-list .row .type-badge"), "the warning mark in the right list", 8000);
     expect($("#dual-list .row.has-verdict .type-badge").getAttribute("aria-label")).toBeTruthy();
     await openOnRight(other);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// Quick Look (Space) and "copy to the clipboard" in the right-click menu
+// ---------------------------------------------------------------------------------------------------------------
+
+describe("Quick Look and copy to the clipboard", () => {
+  const qdir = join(home, "qlook");
+  const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
+  const names = () => rowNames("#list");
+  const select = (name: string) => rowOf("#list", name).dispatchEvent(new win.MouseEvent("click", { bubbles: true }));
+  const open = (): any => $(".ql");
+  const title = () => $(".ql-title")?.textContent;
+  const space = () => key($("#list"), " ");
+  const menuLabels = () => [...doc.querySelectorAll(".menu [role=menuitem]")].map((i: any) => i.textContent.replace(/\s+/g, " ").trim());
+  const rightClick = async (name: string) => {
+    rowOf("#list", name).dispatchEvent(new win.MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 50, clientY: 50 }));
+    await sleep(100);
+  };
+  const waitFor = async (test: () => boolean, ms = 3000) => {
+    for (let i = 0; i < ms / 40 && !test(); i++) await sleep(40);
+    expect(test()).toBe(true);
+  };
+
+  beforeAll(async () => {
+    mkdirSync(join(qdir, "g-folder"), { recursive: true });
+    writeFileSync(join(qdir, "a-picture.png"), PNG);
+    writeFileSync(join(qdir, "b-song.mp3"), Buffer.alloc(500, 1));
+    writeFileSync(join(qdir, "c-movie.mp4"), Buffer.alloc(500, 2));
+    writeFileSync(join(qdir, "d-people.csv"), 'name,city\nAda,"London, UK"\n"Sam ""the man""",Austin\n');
+    writeFileSync(join(qdir, "e-notes.txt"), "line one\nline two\n");
+    writeFileSync(join(qdir, "f-blob.bin"), Buffer.from([0, 1, 2, 3, 0, 0, 255, 254]));
+    // jsdom can't play or load media; Quick Look only needs the element and its attributes.
+    win.HTMLMediaElement.prototype.pause = () => {};
+    win.HTMLMediaElement.prototype.load = () => {};
+    win.HTMLMediaElement.prototype.play = () => Promise.resolve();
+    alt(1);
+    await sleep(300);
+    const nav = await import("../resources/file_manager/ui/nav.js");
+    await nav.goTo(qdir);
+    await waitFor(() => names().includes("e-notes.txt"), 6000);
+  });
+
+  afterAll(async () => {
+    if (open()) key(doc.activeElement ?? doc.body, "Escape");
+    const nav = await import("../resources/file_manager/ui/nav.js");
+    await nav.goTo(home);
+    await sleep(200);
+  });
+
+  test("Space opens Quick Look on the selected file and Space again closes it, putting focus back", async () => {
+    select("e-notes.txt");
+    $("#list").focus();
+    const ev = space();
+    expect(ev.defaultPrevented).toBe(true);
+    await waitFor(() => !!open() && !!$(".ql-text"));
+    expect(open().getAttribute("role")).toBe("dialog");
+    expect(open().getAttribute("aria-modal")).toBe("true");
+    expect(title()).toBe("e-notes.txt");
+    expect($(".ql-text").textContent).toContain("line one");
+    key(doc.activeElement, " ");
+    expect(open()).toBeNull();
+    expect(doc.activeElement.id).toBe("list");
+  });
+
+  test("each kind of file gets the right viewer, and sound starts playing by itself", async () => {
+    const shows = async (name: string, selector: string) => {
+      select(name);
+      $("#list").focus();
+      space();
+      await waitFor(() => !!$(`.ql ${selector}`));
+      if (name === "b-song.mp3") {
+        expect($(".ql audio").getAttribute("src")).toContain("/api/raw?path=");
+        expect($(".ql audio").hasAttribute("autoplay")).toBe(true);
+      }
+      key(doc.activeElement, "Escape");
+      expect(open()).toBeNull();
+    };
+    await shows("a-picture.png", "img.ql-image");
+    await shows("b-song.mp3", "audio[controls]");
+    await shows("c-movie.mp4", "video[controls]");
+    await shows("d-people.csv", "table.ql-table");
+    await shows("f-blob.bin", ".ql-card");
+    await shows("g-folder", ".ql-card");
+  });
+
+  test("a CSV is drawn as a table with its header and quoted cells right", async () => {
+    select("d-people.csv");
+    $("#list").focus();
+    space();
+    await waitFor(() => !!$(".ql table"));
+    expect([...doc.querySelectorAll(".ql th")].map((e: any) => e.textContent)).toEqual(["name", "city"]);
+    expect([...doc.querySelectorAll(".ql td")].map((e: any) => e.textContent)).toEqual(["Ada", "London, UK", 'Sam "the man"', "Austin"]);
+    key(doc.activeElement, "Escape");
+  });
+
+  test("arrow keys move through the list and its selection, stop at the ends; Home and End jump", async () => {
+    const all = names();
+    const mid = all.indexOf("b-song.mp3");
+    expect(mid).toBeGreaterThan(0);
+    select("b-song.mp3");
+    $("#list").focus();
+    space();
+    await waitFor(() => !!open());
+    expect($(".ql-count").textContent).toBe(`${mid + 1} of ${all.length}`);
+    const k = (name: string) => key(doc.activeElement, name);
+    k("ArrowRight");
+    expect(title()).toBe(all[mid + 1]);
+    expect(rowOf("#list", all[mid + 1]!).getAttribute("aria-selected")).toBe("true");
+    k("ArrowLeft");
+    k("ArrowDown");
+    k("ArrowUp");
+    expect(title()).toBe(all[mid]);
+    k("End");
+    expect(title()).toBe(all.at(-1));
+    k("ArrowRight");
+    expect(title()).toBe(all.at(-1));
+    k("Home");
+    expect(title()).toBe(all[0]);
+    k("ArrowLeft");
+    expect(title()).toBe(all[0]);
+    k("Escape");
+    expect(open()).toBeNull();
+    expect(rowOf("#list", all[0]!).getAttribute("aria-selected")).toBe("true");
+  });
+
+  test("while it is open the list underneath gets no keys (no typing to find, no delete)", async () => {
+    select("e-notes.txt");
+    $("#list").focus();
+    space();
+    await waitFor(() => !!open());
+    key(doc.activeElement, "Delete");
+    key(doc.activeElement, "a");
+    expect(title()).toBe("e-notes.txt");
+    expect(names()).toContain("e-notes.txt");
+    key(doc.activeElement, "Escape");
+  });
+
+  test("a click outside, or the Close button, closes it", async () => {
+    select("e-notes.txt");
+    $("#list").focus();
+    space();
+    await waitFor(() => !!open());
+    $(".ql-backdrop").dispatchEvent(new win.MouseEvent("click", { bubbles: true }));
+    expect(open()).toBeNull();
+    space();
+    await waitFor(() => !!open());
+    [...doc.querySelectorAll(".ql button")].find((b: any) => b.textContent === "Close").click();
+    expect(open()).toBeNull();
+  });
+
+  test("the right-click menu offers Quick Look, Copy image for pictures and Copy text for text files, and they reach the clipboard", async () => {
+    select("a-picture.png");
+    await rightClick("a-picture.png");
+    expect(menuLabels().some((l: string) => l.includes("Quick Look") && l.includes("Space"))).toBe(true);
+    expect(menuLabels().some((l: string) => l.includes("Copy image to clipboard"))).toBe(true);
+    expect(menuLabels().some((l: string) => l.includes("Copy text to clipboard"))).toBe(false);
+    [...doc.querySelectorAll(".menu [role=menuitem]")].find((i: any) => i.textContent.includes("Copy image to clipboard")).click();
+    await waitFor(() => !!clip.image);
+    expect(clip.image).toEqual({ file: join(qdir, "a-picture.png"), mime: "image/png" });
+
+    select("e-notes.txt");
+    await rightClick("e-notes.txt");
+    expect(menuLabels().some((l: string) => l.includes("Copy text to clipboard"))).toBe(true);
+    expect(menuLabels().some((l: string) => l.includes("Copy image to clipboard"))).toBe(false);
+    [...doc.querySelectorAll(".menu [role=menuitem]")].find((i: any) => i.textContent.includes("Copy text to clipboard")).click();
+    await waitFor(() => clip.text !== undefined);
+    expect(clip.text).toBe("line one\nline two\n");
+  });
+
+  test("a folder, a binary file and a two-item selection get neither copy item", async () => {
+    select("g-folder");
+    await rightClick("g-folder");
+    expect(menuLabels().filter((l: string) => /to clipboard/.test(l))).toEqual([]);
+    key(doc.activeElement, "Escape");
+    select("f-blob.bin");
+    await rightClick("f-blob.bin");
+    expect(menuLabels().filter((l: string) => /to clipboard/.test(l))).toEqual([]);
+    key(doc.activeElement, "Escape");
+    select("a-picture.png");
+    rowOf("#list", "e-notes.txt").dispatchEvent(new win.MouseEvent("click", { bubbles: true, ctrlKey: true }));
+    await rightClick("e-notes.txt");
+    expect(menuLabels().filter((l: string) => /to clipboard/.test(l))).toEqual([]);
+    key(doc.activeElement, "Escape");
+  });
+
+  test("Quick Look has a Copy button that follows the file in view", async () => {
+    clip.text = undefined;
+    select("e-notes.txt");
+    $("#list").focus();
+    space();
+    await waitFor(() => !!$(".ql-text"));
+    const btn = () => [...doc.querySelectorAll(".ql-head button")].find((b: any) => /^Copy/.test(b.textContent)) as any;
+    expect(btn().hidden).toBe(false);
+    expect(btn().textContent).toBe("Copy text");
+    btn().click();
+    await waitFor(() => clip.text !== undefined);
+    expect(clip.text as string | undefined).toBe("line one\nline two\n");
+    key(doc.activeElement, "End");
+    await waitFor(() => !$(".ql-text"));
+    expect(btn().hidden).toBe(true);
+    key(doc.activeElement, "Escape");
+  });
+
+  test("with nothing selected and nothing focused, Space doesn't open an empty window", async () => {
+    const state = (await import("../resources/file_manager/ui/state.js")).state;
+    state.selection.clear();
+    ((await import("../resources/file_manager/ui/pane.js")).activePane() as any).focusKey = null;
+    $("#list").focus();
+    space();
+    await sleep(150);
+    expect(open()).toBeNull();
   });
 });

@@ -396,6 +396,8 @@ body.dragging .row:not(.is-folder) { cursor: no-drop; }
 /* Embedded apps (calculator, timer) */
 .power-pane.embed-pane { padding: 0; gap: 0; }
 .embed-note { padding: 0.35rem 0.8rem; flex: 1 1 auto; margin: 0; }
+/* Straight inside the pane (calculator, timer) the note must not share the height with the app below it. */
+.embed-pane > .embed-note { flex: none; }
 .embed-bar { flex: none; align-items: center; gap: 0.6rem; padding-right: 0.8rem; }
 .embed-frame { flex: 1 1 auto; width: 100%; min-height: 0; border: 0; background: var(--bg); }
 .embed-frame:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -595,3 +597,43 @@ body.dragging .row:not(.is-folder) { cursor: no-drop; }
 .setup-off { opacity: 0.55; }
 .setup-managers { display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 0.4rem 0; }
 .tool-setup-title { margin: 0 0 0.3rem; font-size: 1rem; }
+
+/* Copy, move and rename: tray extras and the activity list */
+.task-buttons .btn:focus-visible, .oph-entry summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.task[data-state="cancelled"] { border-color: var(--warn, var(--border)); }
+.oph-list { display: flex; flex-direction: column; gap: 0.5rem; max-height: 55vh; overflow-y: auto; }
+.oph-entry { border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.4rem 0.7rem; }
+.oph-entry[data-state="failed"], .oph-entry[data-state="interrupted"] { border-color: var(--danger); }
+.oph-entry summary { cursor: pointer; font-weight: 600; overflow-wrap: anywhere; }
+.oph-meta { margin: 0.2rem 0; color: var(--muted); font-size: 0.85rem; overflow-wrap: anywhere; }
+.oph-items { margin: 0.2rem 0 0; padding-left: 1.1rem; font-size: 0.85rem; overflow-wrap: anywhere; }
+
+/* Quick Look (Space) */
+.ql-backdrop { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, 0.55); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.ql { width: min(70rem, 100%); height: min(86vh, 52rem); background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 0.8rem; box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; overflow: hidden; outline: none; }
+.ql-head { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--border); }
+.ql-icon { font-size: 1.6rem; }
+.ql-headtext { flex: 1; min-width: 0; }
+.ql-title { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ql-sub, .ql-count, .ql-note, .ql-foot { color: var(--muted); font-size: 0.85rem; }
+.ql-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ql-body { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: auto; background: var(--panel); }
+.ql-image { max-width: 100%; max-height: 100%; object-fit: contain; }
+.ql-video { width: 100%; height: 100%; background: #000; }
+.ql-doc { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; height: 100%; min-height: 0; padding: 0.6rem; box-sizing: border-box; }
+.ql-doc .ql-image { flex: 1 1 auto; min-height: 0; background: #fff; box-shadow: 0 0.3rem 1.2rem rgba(0, 0, 0, 0.35); }
+.ql-card { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding: 1.5rem; max-width: 34rem; text-align: center; }
+.ql-card h3 { overflow-wrap: anywhere; }
+.ql-bigicon { font-size: 5rem; line-height: 1; }
+.ql-facts { display: grid; grid-template-columns: auto 1fr; gap: 0.2rem 1rem; text-align: left; font-size: 0.92rem; }
+.ql-facts dt { color: var(--muted); }
+.ql-audio { width: min(30rem, 90%); }
+.ql-textwrap, .ql-tablewrap { align-self: stretch; width: 100%; overflow: auto; padding: 0.8rem 1rem; }
+.ql-text { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.88rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ql-table { border-collapse: collapse; font-size: 0.9rem; }
+.ql-table th, .ql-table td { border: 1px solid var(--border); padding: 0.25rem 0.6rem; text-align: left; white-space: nowrap; }
+.ql-table th { background: var(--bg); position: sticky; top: 0; }
+.ql-loading { color: var(--muted); }
+.ql-foot { padding: 0.4rem 0.9rem; border-top: 1px solid var(--border); text-align: center; }
+.ql-text:focus-visible, .ql-tablewrap:focus-visible, .ql audio:focus-visible, .ql video:focus-visible, .ql-head .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) { .ql { animation: qlIn 0.12s ease-out; } @keyframes qlIn { from { transform: scale(0.97); opacity: 0.4; } to { transform: scale(1); opacity: 1; } } }

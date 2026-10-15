@@ -7,6 +7,7 @@ import { showFavoritesMenu } from "./favorites.js";
 import { showToolsDialog } from "./tools.js";
 import { togglePower } from "./power.js";
 import { lockSelection } from "./vault.js";
+import { showOperationHistory } from "./opHistory.js";
 import { $, clear, h } from "./dom.js";
 import { showMenu, toast } from "./menus.js";
 import { canGoUpIn, clearSearch, goBack, goForward, goTo, goUpIn, refresh, runSearch } from "./nav.js";
@@ -52,6 +53,7 @@ function buttonSpecs() {
     ],
     [
       { id: "undo", icon: "↶", label: "Undo", tip: `Undo the last action (${mod()}Z)`, run: ops.undo, enabled: () => state.undoStack.length > 0 },
+      { id: "activity", icon: "🕘", label: "Activity", tip: "See what was copied, moved or renamed, and what did not finish", run: showOperationHistory, enabled: () => true },
     ],
     [
       { id: "view", icon: "▦", label: "View", tip: "Change how files are shown and sorted", run: (btn) => showMenu(viewMenuItems(), { anchor: btn, label: "View" }), enabled: () => true, menu: true },

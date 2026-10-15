@@ -18,6 +18,8 @@ import { showOpenWith } from "./openwith.js";
 import { folderServeItems, serveMenuItems } from "./serveActions.js";
 import { showToolsDialog } from "./tools.js";
 import { extensionOf } from "./util.js";
+import { openQuickLook } from "./quicklook.js";
+import { canCopyImage, canCopyText, copyImageFile, copyTextFile } from "./clipfile.js";
 import { canLock, canUnlock, lockEntries, unlockEntries } from "./vault.js";
 import { permissionItems } from "./permsQuick.js";
 import { databaseStudioItems, moreToolsItem } from "./toolLauncher.js";
@@ -80,6 +82,7 @@ function entryItems(entries) {
   const convertible = entries.length > 0;
   return [
     one ? { label: "Open", icon: e.isDir ? "📂" : "📄", shortcut: "Enter", action: () => ops.openEntry(e) } : null,
+    one ? { label: "Quick Look", icon: "👁️", shortcut: "Space", tip: "Look at a picture, play a sound or video, read a text file or see a document here, without opening another program.", action: () => openQuickLook(e) } : null,
     one && searching ? { label: "Open containing folder", icon: "📁", action: () => ops.goToContaining(e) } : null,
     one && !e.isDir && looksLikeText(e.name) ? { label: "Edit in Code editor", icon: "📝", shortcut: `${mod()}E`, action: () => openInCode(e.path) } : null,
     one && !e.isDir && looksLikeText(e.name) ? { label: "Open in your editor", icon: "🧑‍💻", tip: "Open this file in the code editor chosen in Settings (VS Code, Sublime Text, WebStorm or IntelliJ IDEA).", action: () => openInEditor(e) } : null,
@@ -101,6 +104,8 @@ function entryItems(entries) {
     { separator: true },
     { label: "Cut", icon: "✂️", shortcut: `${mod()}X`, action: ops.cutSelection },
     { label: "Copy", icon: "📋", shortcut: `${mod()}C`, action: ops.copySelection },
+    one && canCopyImage(e) ? { label: "Copy image to clipboard", icon: "🖼️", tip: "Put the picture itself on the clipboard, to paste into a document, a chat or an image editor. (Copy, above, copies the file so you can paste it into a folder.)", action: () => copyImageFile(e) } : null,
+    one && canCopyText(e) ? { label: "Copy text to clipboard", icon: "📝", tip: "Put what is written in this file on the clipboard, to paste into a document or chat. (Copy, above, copies the file so you can paste it into a folder.)", action: () => copyTextFile(e) } : null,
     one && e.isDir ? { label: "Paste into this folder", icon: "📥", disabled: !clip, shortcut: "", action: () => ops.pasteInto(e.path) } : null,
     { label: "Duplicate", icon: "➕", shortcut: `${mod()}D`, disabled: searching, action: ops.duplicateSelection },
     ...otherPaneItems(),

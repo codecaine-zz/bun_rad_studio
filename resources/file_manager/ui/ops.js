@@ -255,8 +255,12 @@ export async function duplicateSelection() {
   await transferInto(currentPath(), items.map((e) => e.path), "copy");
 }
 
+/** Jobs this page started, so that when one ends the page knows where to look and what Undo should do. */
+const pendingTransfers = new Map();
+
 /**
- * Copies or moves `sources` into `dest`, asking what to do about name clashes. Resolves true when something was done.
+ * Copies or moves `sources` into `dest`, asking what to do about name clashes. The work runs in the tasks tray (so the
+ * rest of the window stays usable); what happens when it ends is in `onFileOpDone`. Resolves true when it was started.
  * `pane` is the list the person is working in (it loses its selection and shows the new items when they land in it).
  */
 export async function transferInto(dest, sources, mode, pane = activePane()) {
@@ -268,27 +272,39 @@ export async function transferInto(dest, sources, mode, pane = activePane()) {
       policy = await chooseConflict({ conflicts, verb });
       if (!policy) return false;
     }
-    const res = await busy(() => call(mode, { sources, dest, policy }));
-    const { done, failed } = tally(res.results);
-    const worked = done.filter((d) => d.status === "done");
-    const skipped = done.length - worked.length;
-    if (worked.length) {
-      const label = `${mode === "copy" ? "copy" : "move"} of ${plural(worked.length, "item")}`;
-      const undoer = () => undoTransfer(mode, worked);
-      pushUndo(label, undoer);
-      toast(`${mode === "copy" ? "Copied" : "Moved"} ${plural(worked.length, "item")}${skipped ? ` (${skipped} skipped)` : ""}.`, { kind: "success", action: { label: "Undo", run: undo } });
-    } else if (!failed.length) {
-      toast(mode === "move" ? "Those items are already in this folder." : "Nothing was copied.");
-    }
-    await refresh({ keepSelection: false, pane });
-    if (worked.length && currentPath(pane) === dest) selectKeys(worked.map((w) => w.destination), pane);
-    await reportFailures(failed, mode === "copy" ? "copied" : "moved");
-    return worked.length > 0;
+    const { job } = await call("fileops/start", { mode, sources, dest, policy });
+    pendingTransfers.set(job.id, { mode, dest, pane });
+    emit("job-started", job);
+    announce(`${verb} started: ${plural(sources.length, "item")}. Progress is in the task list.`);
+    return true;
   } catch (err) {
     fail(err);
     return false;
   }
 }
+
+/** A copy or move from the queue ended (finished, partly failed or cancelled): refresh, offer Undo for what was done, say what was not. */
+async function onFileOpDone(job) {
+  if (job.kind === "rename") return refresh({ keepSelection: false });
+  const mine = pendingTransfers.get(job.id);
+  pendingTransfers.delete(job.id);
+  const mode = job.kind;
+  const worked = job.steps.filter((s) => s.state === "done" && s.item?.destination).map((s) => ({ source: s.item.source, destination: s.item.destination, replaced: s.item.replacedTrashId ? { trashId: s.item.replacedTrashId } : null }));
+  if (worked.length) {
+    pushUndo(`${mode} of ${plural(worked.length, "item")}`, () => undoTransfer(mode, worked));
+    const skipped = job.steps.filter((s) => s.state === "skipped" && s.skipReason === "policy").length;
+    const problems = job.failed + job.steps.filter((s) => s.skipReason === "cancelled").length;
+    const text = `${mode === "copy" ? "Copied" : "Moved"} ${plural(worked.length, "item")}${skipped ? ` (${skipped} skipped)` : ""}${problems ? `. ${plural(problems, "item")} did not finish: see the task list` : ""}.`;
+    toast(text, { kind: problems ? "info" : "success", action: { label: "Undo", run: undo } });
+  } else if (!job.failed && job.state !== "cancelled") {
+    toast(mode === "move" ? "Those items are already in this folder." : "Nothing was copied.");
+  }
+  const pane = mine?.pane ?? activePane();
+  await refresh({ keepSelection: false, pane });
+  if (mine && worked.length && currentPath(pane) === mine.dest) selectKeys(worked.map((w) => w.destination), pane);
+}
+
+on("fileop-done", (job) => { onFileOpDone(job).catch((err) => fail(err)); });
 
 async function undoTransfer(mode, worked) {
   if (mode === "copy") {

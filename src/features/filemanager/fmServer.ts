@@ -44,6 +44,10 @@ import type { HostedPeer, HostedSession } from "../../simplegui_host";
 import { dbState } from "./fmDbState";
 import { watchOperations } from "./fmWatchOps";
 import { listFolder, listPlaces, previewFile, propertiesOf, searchFolder } from "./fmList";
+import { clipboardOperations } from "./fmClipboardOps";
+import { startRenames, startTransfer } from "./fmFileOps";
+import { MEDIA_MIME, fileResponse, thumbnailFor } from "./fmQuickLook";
+import { clearHistory, loadHistory } from "./fmOpHistory";
 import { bulkRename, copyItems, findConflicts, makeFile, makeFolder, moveItems, relocate, renameItem } from "./fmOps";
 import { makeSqliteFile } from "./fmNewSqlite";
 import { overview, previewConvert, startConvert, startInstall, openToolWebsite } from "./fmBatch";
@@ -59,7 +63,7 @@ import { createZip, extractZip } from "./fmZip";
 export const APP_ID = "file_manager_studio";
 /** The product name: the window title, the page title and the health answer. */
 export const APP_NAME = "Codecaine File Manager";
-export const APP_VERSION = "1.0.0";
+export const APP_VERSION = "1.1.0";
 export const MAX_BODY_BYTES = 1024 * 1024;
 const MAX_RAW_BYTES = 100 * 1024 * 1024;
 
@@ -87,6 +91,7 @@ const CSP = [
   "script-src 'self'",
   "style-src 'self'",
   "img-src 'self' data:",
+  "media-src 'self'",
   "font-src 'self'",
   "connect-src 'self'",
   "base-uri 'none'",
@@ -140,11 +145,11 @@ export const EMBEDDED_APPS: Record<string, EmbeddedApp> = {
   },
   timer: {
     dir: "interval_timer",
-    script: ["https://cdnjs.cloudflare.com", "https://www.youtube.com", "https://s.ytimg.com"],
+    script: ["https://cdnjs.cloudflare.com"],
     style: ["https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
     font: ["https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
     img: ["https://img.youtube.com", "https://i.ytimg.com"],
-    frame: ["https://www.youtube.com", "https://www.youtube-nocookie.com"],
+    frame: [],
     connect: ["https://cdnjs.cloudflare.com"],
     hideCss: ".hub-return-btn{display:none!important}",
   },
@@ -334,6 +339,22 @@ const operations: Record<string, Handler> = {
   async "jobs/cancel"(ctx, b) {
     return { cancelled: ctx.jobs.cancel(String(b.id ?? "")) };
   },
+  async "fileops/start"(ctx, b) {
+    if (b.mode === "rename") return { job: await startRenames(ctx, b.items) };
+    if (b.mode !== "copy" && b.mode !== "move") throw new FmError("BAD_REQUEST", "Choose copy, move or rename.");
+    return { job: await startTransfer(ctx, b.mode, b.sources, b.dest, b.policy) };
+  },
+  async "jobs/retry"(ctx, b) {
+    const job = ctx.jobs.retry(String(b.id ?? ""));
+    if (!job) throw new FmError("NOTHING_TO_RETRY", "There is nothing left to retry in that operation.");
+    return { job };
+  },
+  async "fileops/history"(ctx) {
+    return { entries: (await loadHistory(ctx, new Set(ctx.jobs.list().map((j) => j.id)))).reverse() };
+  },
+  async "fileops/history/clear"(ctx) {
+    return { removed: await clearHistory(ctx) };
+  },
   async "jobs/clear"(ctx) {
     return { removed: ctx.jobs.clearFinished() };
   },
@@ -356,7 +377,7 @@ const operations: Record<string, Handler> = {
 // The power tools (Find, Watch, Crypto, IP info, Network) bring their own operations.
 Object.assign(operations, aboutOperations, themeOperations, checkOperations, openWithOperations, findOperations, watchOperations, cryptoOperations, ipOperations, netOperations, sdOperations, codeOperations, vaultOperations, devOperations, infoOperations, serveOperations, dataCompareOperations, editorOperations, permsOperations);
 
-Object.assign(operations, secretsOperations, databaseOperations, graveyardOperations, subdomainOperations);
+Object.assign(operations, secretsOperations, databaseOperations, graveyardOperations, subdomainOperations, clipboardOperations);
 
 // The window's size and position preference (window/get, window/set, window/reset).
 Object.assign(operations, windowOperations);
@@ -590,13 +611,26 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
         if (req.method === "GET" && path === "/api/raw") {
           if (!tokenMatches(url.searchParams.get("token"), token)) return json(401, { ok: false, error: { code: "NO_TOKEN", message: "Not allowed." } });
           const file = absolutePath(ctx, url.searchParams.get("path"));
-          const ext = extensionOf(pathApi(ctx).basename(file));
-          const mime = RAW_MIME[ext];
-          if (!mime || classify(pathApi(ctx).basename(file), false).preview !== "image") return json(415, { ok: false, error: { code: "NOT_AN_IMAGE", message: "Only pictures can be previewed this way." } });
+          const name = pathApi(ctx).basename(file);
+          const ext = extensionOf(name);
+          const preview = { "Content-Security-Policy": "sandbox; default-src 'none'", "Cache-Control": "private, max-age=30" };
+          const thumb = url.searchParams.get("thumb") === "1";
+          const media = MEDIA_MIME[ext];
+          const picture = RAW_MIME[ext] && classify(name, false).preview === "image" ? RAW_MIME[ext] : undefined;
+          // Only what a preview can show is served, and that is decided by the name before the disk is touched.
+          if (!thumb && !media && !picture) return json(415, { ok: false, error: { code: "CANT_PREVIEW", message: "That kind of file can't be previewed this way." } });
           const st = await fsp.stat(file);
           if (!st.isFile()) return json(400, { ok: false, error: { code: "NOT_A_FILE", message: "That isn't a file." } });
+          // A picture of a document that only the system's Quick Look can draw (macOS).
+          if (thumb) {
+            const png = await thumbnailFor(ctx, file);
+            if (!png) return json(404, { ok: false, error: { code: "NO_THUMBNAIL", message: "This computer can't draw a preview of that file." } });
+            return new Response(Bun.file(png), { headers: secureHeaders({ "Content-Type": "image/png", ...preview }) });
+          }
+          // Sound and video: streamed in pieces, so playing starts at once and seeking works.
+          if (media) return fileResponse(req, file, st.size, secureHeaders({ "Content-Type": media, ...preview }));
           if (st.size > MAX_RAW_BYTES) return json(413, { ok: false, error: { code: "TOO_BIG", message: "That picture is too big to preview." } });
-          return new Response(Bun.file(file), { headers: secureHeaders({ "Content-Type": mime, "Content-Security-Policy": "sandbox; default-src 'none'", "Cache-Control": "private, max-age=30" }) });
+          return new Response(Bun.file(file), { headers: secureHeaders({ "Content-Type": picture!, ...preview }) });
         }
 
         if (req.method === "POST" && path.startsWith("/api/")) {

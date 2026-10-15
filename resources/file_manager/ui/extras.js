@@ -163,6 +163,7 @@ function shortcuts() {
   const del = state.platform === "darwin" ? "⌘⌫" : "Delete";
   return [
     ["Open the selected item", "Enter  or  double-click"],
+    ["Quick Look: see a picture, play a sound or video, read a text file or document without opening it (arrows move to the next one)", "Space"],
     ["Go up one folder", "Backspace  or  Alt+↑"],
     ["Back / Forward", "Alt+←  /  Alt+→"],
     ["Copy / Cut / Paste", `${m}C  /  ${m}X  /  ${m}V`],

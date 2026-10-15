@@ -143,7 +143,8 @@ export async function findConflicts(ctx: FmContext, sourcesInput: unknown, destI
   return { conflicts };
 }
 
-async function resolveTarget(ctx: FmContext, source: string, destDir: string, policy: Policy, copying: boolean): Promise<{ target: string | null; replaced?: { path: string; trashId: string } }> {
+/** Where an item goes in `destDir` under the chosen policy; null when it is to be left alone. Replace sends the old item to the Recycle Bin first. */
+export async function resolveTarget(ctx: FmContext, source: string, destDir: string, policy: Policy, copying: boolean): Promise<{ target: string | null; replaced?: { path: string; trashId: string } }> {
   const p = pathApi(ctx);
   const base = p.basename(source);
   const sameFolder = p.dirname(source) === destDir;

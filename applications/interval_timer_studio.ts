@@ -5,7 +5,7 @@
  * Features:
  * - High-intensity interval timer with customizable work/rest cycles
  * - Keith Baar isometric tendon training protocols & animated execution guides
- * - Tone.js audio cues, YouTube playlist integration & motivational soundtrack sync
+ * - Tone.js audio cues, links to the @codecaine workout music on YouTube (opens in your browser)
  */
 
 import { injectHelp } from "../src/shared/helpTips";

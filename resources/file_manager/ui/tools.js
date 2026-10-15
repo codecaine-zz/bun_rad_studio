@@ -11,7 +11,7 @@ import { selectKeys, selectedEntries } from "./selection.js";
 import { emit, on } from "./state.js";
 import { startSetup } from "./toolsetup.js";
 import { terminalAvailable, typeInTerminal } from "./terminal.js";
-import { plural } from "./util.js";
+import { formatSize, plural } from "./util.js";
 import { renderChooser } from "./convert.js";
 import { extensionsOf } from "./convertdata.js";
 import { buildDestination, buildOptions, optionsIntro, renderPreview } from "./convertopts.js";
@@ -227,8 +227,37 @@ let timer = 0;
 
 const isActive = (job) => job.state === "running" || job.state === "waiting";
 
+const FILE_OPS = ["copy", "move", "rename"];
+export const isFileOp = (job) => FILE_OPS.includes(job.kind);
+
+/** Items that did not run because of Cancel, and items that were stopped part-way. */
+const unfinished = (job) => job.steps.filter((s) => s.state === "skipped" && s.skipReason === "cancelled").length;
+
+function fileOpProgress(job) {
+  const p = job.progress;
+  const items = `${job.done + job.failed + job.skipped} of ${plural(job.total, "item")}`;
+  if (p.measuring) return "Measuring what to do…";
+  if (p.bytesTotal !== null && job.kind !== "rename") return `${items}  ·  ${formatSize(p.bytesDone)} of ${formatSize(p.bytesTotal)}`;
+  if (job.kind === "rename") return items;
+  return `${items}  ·  ${formatSize(p.bytesDone)} so far (the total size can't be measured)`;
+}
+
+function fileOpStatus(job) {
+  const verb = job.kind === "copy" ? "copied" : job.kind === "move" ? "moved" : "renamed";
+  const parts = [];
+  if (job.done) parts.push(`${job.done} ${verb}`);
+  if (job.skipped - unfinished(job) > 0) parts.push(`${job.skipped - unfinished(job)} left alone`);
+  if (job.failed) parts.push(`${job.failed} failed`);
+  if (unfinished(job)) parts.push(`${unfinished(job)} not finished`);
+  const summary = parts.join(", ") || "nothing to do";
+  if (job.state === "cancelled") return `Cancelled: ${summary}. Finished items stay ${verb}; the rest were not changed.`;
+  if (job.state === "failed") return `${summary[0].toUpperCase()}${summary.slice(1)}. The items that failed are listed below.`;
+  return `Done: ${summary}.`;
+}
+
 function statusText(job) {
   if (job.state === "waiting") return "Waiting for its turn…";
+  if (isFileOp(job)) return job.state === "running" ? `${job.current ? `${job.current}  ·  ` : ""}${fileOpProgress(job)}` : fileOpStatus(job);
   if (job.state === "running") return `${job.current ? `${job.current}  ·  ` : ""}${job.done + job.failed} of ${job.total} done`;
   if (job.state === "cancelled") return `Cancelled. ${job.done} of ${job.total} were finished.`;
   if (job.state === "failed") return `${job.failed} of ${job.total} didn't work${job.done ? `; ${job.done} did` : ""}.`;
@@ -245,10 +274,20 @@ function buildCard(job) {
     h("ul", { class: "task-notes" }),
     h("pre", { class: "task-log", hidden: true }),
     h("div", { class: "task-buttons" },
+      h("button", { type: "button", class: "btn task-retry", title: "Run again only the items that did not finish", onclick: () => retry(card.__job) }, "Retry unfinished"),
       h("button", { type: "button", class: "btn task-cancel", onclick: () => call("jobs/cancel", { id: job.id }).then(poll).catch(() => {}) }, "Cancel"),
       h("button", { type: "button", class: "btn task-show", onclick: () => showResults(card.__job) }, "Show the new files"),
       h("button", { type: "button", class: "btn task-dismiss", onclick: () => { dismissed.add(job.id); card.remove(); cards.delete(job.id); } }, "Dismiss")));
   return card;
+}
+
+async function retry(job) {
+  try {
+    const { job: again } = await call("jobs/retry", { id: job.id });
+    trackJob(again);
+  } catch (err) {
+    toast(err instanceof ApiError ? err.message : "That could not be retried.", { kind: "error" });
+  }
 }
 
 function updateCard(card, job) {
@@ -258,12 +297,21 @@ function updateCard(card, job) {
   card.querySelector(".task-title").textContent = job.title;
   const progress = card.querySelector(".task-progress");
   progress.hidden = !active;
-  progress.max = Math.max(1, job.total);
-  progress.value = job.done + job.failed;
+  progress.setAttribute("aria-label", `Progress: ${job.title}`);
+  if (isFileOp(job) && job.state === "running" && (job.progress.measuring || (job.progress.bytesTotal === null && job.kind !== "rename"))) {
+    // The total can't be measured: an empty bar means "working", not "0%".
+    progress.removeAttribute("value");
+  } else if (isFileOp(job) && job.progress.bytesTotal) {
+    progress.max = job.progress.bytesTotal;
+    progress.value = job.progress.bytesDone;
+  } else {
+    progress.max = Math.max(1, job.total);
+    progress.value = job.done + job.failed + (job.skipped || 0);
+  }
   card.querySelector(".task-status").textContent = statusText(job);
   const problems = card.querySelector(".task-problems");
-  const bad = job.steps.filter((s) => s.state === "failed");
-  problems.replaceChildren(...[...bad.slice(0, 4).map((s) => h("li", {}, `${s.label}: ${s.message}`)), ...(bad.length > 4 ? [h("li", {}, `…and ${bad.length - 4} more.`)] : [])]);
+  const bad = job.steps.filter((s) => s.state === "failed" || (isFileOp(job) && s.skipReason === "cancelled" && s.item?.destination && s.message));
+  problems.replaceChildren(...[...bad.slice(0, 4).map((s) => h("li", {}, isFileOp(job) ? `${s.item?.source ?? s.label}: ${s.message}` : `${s.label}: ${s.message}`)), ...(bad.length > 4 ? [h("li", {}, `…and ${bad.length - 4} more.`)] : [])]);
   // What a converter could not keep exactly (for example nested data that was flattened) is told after a step is done.
   const notes = [...new Set(job.steps.filter((s) => s.state === "done" && s.message).map((s) => s.message))];
   card.querySelector(".task-notes").replaceChildren(...notes.slice(0, 3).map((n) => h("li", {}, n)));
@@ -272,6 +320,8 @@ function updateCard(card, job) {
   log.hidden = !showLog;
   if (showLog) log.textContent = job.log;
   card.querySelector(".task-cancel").hidden = !active;
+  const canRetry = !active && job.retryable && !job.retriedBy && job.steps.some((s) => s.state === "failed" || (s.state === "skipped" && s.skipReason === "cancelled"));
+  card.querySelector(".task-retry").hidden = !canRetry;
   card.querySelector(".task-show").hidden = active || !job.outputs.length || job.kind !== "convert";
   card.querySelector(".task-dismiss").hidden = active;
 }
@@ -289,6 +339,10 @@ function parentOfPath(path) {
 
 function finished(job) {
   announce(`${job.title}. ${statusText(job)}`);
+  if (isFileOp(job)) {
+    emit("fileop-done", job);
+    return;
+  }
   if (job.kind === "graveyard") {
     emit("grave-job-done", job);
     const why = job.steps.find((s) => s.state === "failed")?.message;
@@ -309,7 +363,7 @@ function finished(job) {
 function render(jobs) {
   const tray = $("#tasks");
   const now = Date.now();
-  const visible = jobs.filter((j) => !dismissed.has(j.id) && (isActive(j) || (j.finishedAt && now - j.finishedAt < 10 * 60 * 1000)));
+  const visible = jobs.filter((j) => !dismissed.has(j.id) && (isActive(j) || (isFileOp(j) && j.state !== "done" && !j.retriedBy) || (j.finishedAt && now - j.finishedAt < 10 * 60 * 1000)));
   for (const job of visible) {
     let card = cards.get(job.id);
     if (!card) {
@@ -337,7 +391,8 @@ async function poll() {
     return;
   }
   render(jobs);
-  if (jobs.some(isActive)) timer = setTimeout(poll, 700);
+  // Copies, moves and renames are usually quick: look again soon so the new items show up without a visible lag.
+  if (jobs.some(isActive)) timer = setTimeout(poll, jobs.some((j) => isActive(j) && isFileOp(j)) ? 120 : 700);
 }
 
 /** Starts showing a job that was just started. */

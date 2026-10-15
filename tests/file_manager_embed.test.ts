@@ -65,7 +65,9 @@ describe("embedded apps", () => {
 
   test("each app may reach only the sites it needs", () => {
     expect(EMBEDDED_APPS.calc!.script).toEqual(["https://cdn.jsdelivr.net"]);
-    expect(EMBEDDED_APPS.timer!.frame).toContain("https://www.youtube.com");
+    // The timer only links to YouTube; nothing from YouTube runs or is framed inside it.
+    expect(EMBEDDED_APPS.timer!.frame).toEqual([]);
+    expect(EMBEDDED_APPS.timer!.script.join(" ")).not.toContain("youtube");
     for (const app of Object.values(EMBEDDED_APPS)) for (const list of [app.script, app.style, app.font, app.img, app.frame, app.connect]) for (const origin of list) expect(origin).toMatch(/^https:\/\/[a-z0-9.-]+$/);
   });
 

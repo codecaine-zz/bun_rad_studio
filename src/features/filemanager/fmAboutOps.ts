@@ -28,7 +28,7 @@ export const ABOUT_LINKS: readonly AboutLink[] = [
 
 const GITHUB_RELEASES_URL = "https://github.com/codecaine-zz/bun_rad_studio/releases";
 const PLATFORM_NAMES: Record<string, string> = { darwin: "macOS", win32: "Windows", linux: "Linux" };
-const ASSET_IDS: Record<string, string> = {
+const ASSET_IDS: Record<string, Record<"arm64" | "x64", string>> = {
   darwin: { arm64: "macos-arm64", x64: "macos-x64" },
   win32: { arm64: "windows-arm64", x64: "windows-x64" },
   linux: { arm64: "linux-arm64", x64: "linux-x64" },
@@ -64,7 +64,7 @@ export function assetIdForPlatform(platform: string, arch: string): string | nul
   const archName = arch === "arm64" ? "arm64" : arch === "x64" ? "x64" : null;
   if (!archName) return null;
   const byPlatform = ASSET_IDS[platform];
-  return byPlatform ? byPlatform[archName as keyof typeof byPlatform] ?? null : null;
+  return byPlatform ? byPlatform[archName] ?? null : null;
 }
 
 export function compareVersions(a: string, b: string): number {
@@ -96,7 +96,7 @@ export async function checkForUpdates(ctx: FmContext): Promise<UpdateCheck> {
     if (!response.ok) {
       return { currentVersion, latestVersion: null, hasUpdate: false, releaseUrl: GITHUB_RELEASES_URL, assetUrl: null, assetName: null, canAutoUpdate: false, checkedAt: now, error: `GitHub responded with ${response.status}.` };
     }
-    const release = await response.json();
+    const release = (await response.json()) as { tag_name?: unknown; html_url?: unknown } | null;
     const latestVersion = typeof release?.tag_name === "string" ? normalizeVersion(release.tag_name) : null;
     const releaseUrl = typeof release?.html_url === "string" ? release.html_url : GITHUB_RELEASES_URL;
     const asset = release && typeof release === "object" ? releaseAssetForPlatform(release, ctx.platform, process.arch) : null;

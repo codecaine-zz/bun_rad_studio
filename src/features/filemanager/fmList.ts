@@ -6,6 +6,7 @@ import * as fs from "fs";
 import { promises as fsp } from "fs";
 import * as nodePath from "path";
 import { absolutePath, assertFolder, pathApi, tick, type FmContext } from "./fmCore";
+import { mediaKindOf, thumbnailsAvailable, wantsThumbnail } from "./fmQuickLook";
 import { FmError, classify, describeFsError, isHiddenName, systemFileManagerName } from "./fmPaths";
 
 export interface Entry {
@@ -369,6 +370,10 @@ export const PREVIEW_BYTES = 64 * 1024;
 export type Preview =
   | { type: "text"; text: string; truncated: boolean; size: number }
   | { type: "image"; size: number }
+  /** Sound or video the page can play itself (streamed from /api/raw). */
+  | { type: "audio" | "video"; size: number }
+  /** A document the system can draw a picture of (macOS Quick Look): /api/raw?thumb=1. */
+  | { type: "thumb"; size: number }
   | { type: "binary"; size: number }
   | { type: "none"; size: number };
 
@@ -378,6 +383,9 @@ export async function previewFile(ctx: FmContext, input: unknown): Promise<Previ
   if (st.isDirectory()) return { type: "none", size: 0 };
   const kind = classify(nodePath.basename(path), false);
   if (kind.preview === "image") return { type: "image", size: st.size };
+  const media = mediaKindOf(nodePath.basename(path));
+  if (media) return { type: media, size: st.size };
+  if (wantsThumbnail(nodePath.basename(path)) && thumbnailsAvailable(ctx)) return { type: "thumb", size: st.size };
   if (st.size === 0) return { type: "text", text: "", truncated: false, size: 0 };
   const handle = await fsp.open(path, "r");
   try {

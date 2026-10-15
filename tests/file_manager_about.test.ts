@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { ABOUT_LINKS } from "../src/features/filemanager/fmAboutOps";
-import { startFileManagerServer } from "../src/features/filemanager/fmServer";
+import { APP_VERSION, startFileManagerServer } from "../src/features/filemanager/fmServer";
 import { JSDOM } from "jsdom";
 
 // Page tests share the page modules in one process, and api.js keeps the first token it sees: every page test uses this one.
@@ -136,7 +136,7 @@ describe("the Support window in the page", () => {
   test("the About window shows the app, Bun's version and build, and the system, with a Copy button", async () => {
     await about.showAbout();
     const line = doc.querySelector(".modal-backdrop .about-versionline");
-    expect(line.textContent).toBe(`Codecaine File Manager 1.0.0 · Bun ${Bun.version} (${Bun.revision.slice(0, 8)}) · ${{ darwin: "macOS", win32: "Windows", linux: "Linux" }[process.platform as string]} ${process.arch}`);
+    expect(line.textContent).toBe(`Codecaine File Manager ${APP_VERSION} · Bun ${Bun.version} (${Bun.revision.slice(0, 8)}) · ${{ darwin: "macOS", win32: "Windows", linux: "Linux" }[process.platform as string]} ${process.arch}`);
     expect(line.getAttribute("title")).toMatch(/version of Bun/);
     expect(doc.querySelector(".modal-backdrop").textContent).not.toMatch(/\bnull\b|\bundefined\b/);
     button("Copy").click();

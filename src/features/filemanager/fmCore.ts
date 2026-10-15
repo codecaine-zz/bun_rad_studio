@@ -8,6 +8,8 @@ import { homedir } from "os";
 import * as nodePath from "path";
 import { defaultEditorHooks } from "./fmEditorHooks";
 import { createJobHub, type JobHub } from "./fmJobs";
+import { historyHooks } from "./fmOpHistory";
+import { defaultClipboard, type ClipboardHooks } from "./fmClipboard";
 import { FmError, isSameOrInside, platformName, protectedReason, type Platform } from "./fmPaths";
 import type { DatabasesHooks } from "./fmDbHooks";
 import type { SecretsHooks } from "./fmSecretsHooks";
@@ -48,6 +50,8 @@ export interface FmContext {
   graveyardHooks?: Partial<GraveyardHooks>;
   /** Test replacements for the Subdomains tool's fetch, DNS, HTTP and TCP calls, clock and program start. */
   subdomains?: Partial<SubdomainsHooks>;
+  /** Putting text and pictures on the system clipboard. Replaceable so tests never touch the real one. */
+  clipboard: ClipboardHooks;
   /** Background work: conversions and installs. */
   jobs: JobHub;
   /** Cleanup that must run when the server stops (watchers, child processes, timers). Add with `ctx.disposers.push(fn)`. */
@@ -69,6 +73,7 @@ export interface FmContextOptions {
   graveyardDir?: string;
   graveyardHooks?: Partial<GraveyardHooks>;
   subdomains?: Partial<SubdomainsHooks>;
+  clipboard?: Partial<ClipboardHooks>;
 }
 
 export function createContext(options: FmContextOptions = {}): FmContext {
@@ -83,7 +88,8 @@ export function createContext(options: FmContextOptions = {}): FmContext {
     launch: options.launch ?? defaultLaunch,
     toolDirs: options.toolDirs,
     editor: { ...defaultEditorHooks({ platform, home, toolDirs: options.toolDirs }), ...options.editor },
-    jobs: createJobHub(),
+    clipboard: { ...defaultClipboard(), ...options.clipboard },
+    jobs: createJobHub(2, historyHooks({ dataDir })),
     secrets: options.secrets,
     databases: options.databases,
     graveyardDir: options.graveyardDir ? nodePath.resolve(options.graveyardDir) : undefined,

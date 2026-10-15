@@ -8,6 +8,7 @@ import { showHelp, showProperties, showSettings } from "./extras.js";
 import { showMoreInfo } from "./fileinfo.js";
 import { openPower } from "./power.js";
 import { menuIsOpen } from "./menus.js";
+import { openQuickLook, quickLookIsOpen } from "./quicklook.js";
 import { canGoUpIn, clearSearch, goBack, goForward, goUpIn, refresh, saveSettings } from "./nav.js";
 import * as ops from "./ops.js";
 import { clearSelection, focusIndex, focusedIndex, selectAll, selectedEntries, toggleKey } from "./selection.js";
@@ -88,7 +89,7 @@ function editInCode() {
 
 export function wireKeys() {
   document.addEventListener("keydown", (e) => {
-    if (e.defaultPrevented || menuIsOpen() || document.querySelector(".modal-backdrop") || isRenaming()) return;
+    if (e.defaultPrevented || menuIsOpen() || document.querySelector(".modal-backdrop") || quickLookIsOpen() || isRenaming()) return;
     const target = e.target;
     const typing = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement;
     if (typing) return;
@@ -141,7 +142,7 @@ export function wireKeys() {
     }
     if (key === "ContextMenu" || (e.shiftKey && key === "F10")) { stop(); return showMenuForSelection(); }
     if (key === " " && mod && activePane().focusKey) { stop(); return toggleKey(activePane().focusKey); }
-    if (key === " ") return stop();
+    if (key === " ") { stop(); return openQuickLook(); }
 
     // Changing things
     if (mod && !e.shiftKey && !e.altKey && lower === "c") { stop(); return ops.copySelection(); }

@@ -39,6 +39,7 @@ Everything the project reads or writes on your computer, sorted by how much it m
 | Other games' progress | The browser storage inside the studio's window (a fallback keeps it in memory if storage is blocked) | Your progress | the game pages | n/a |
 | File Manager settings | `~/.bun_rad_studio/file_manager.json` (mode 0600): favorites, recent folders, view, sort, theme, text size, last folder | Your preferences | File Manager | outside the repository |
 | File Manager Recycle Bin | `~/.bun_rad_studio/file_manager_trash/` (`items/<id>/` plus `index.json`). The app's own bin, **not** the operating system's; items from other disks are copied in | Your work until you empty the bin | File Manager | outside the repository |
+| File Manager operation history | `~/.bun_rad_studio/file_operations.json` (mode 0600, versioned): the newest 200 copies, moves and renames with paths, counts and messages; never file contents | A log you can clear (Activity → Clear the list) | File Manager | outside the repository |
 | Files edited in Code Studio | The workspace folder it was started in (`process.cwd()` unless a folder is given) | Your work | Code Studio (`/api/fs/*`) | depends |
 | Files moved by Rip Studio | `$GRAVEYARD`, else `~/.local/share/rip/graveyard` | **Your work** (files you "deleted") | Rip Studio | outside the repository |
 | Environment Vault output | The path you choose | Your work, possibly sensitive | Environment Vault | n/a |

@@ -55,8 +55,6 @@
     
     <!-- Tone.js Audio Engine -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-    <!-- YouTube IFrame Player API -->
-    <script src="https://www.youtube.com/iframe_api"></script>
 
     <style>
         :root {
@@ -8151,6 +8149,9 @@
                 padding-bottom: 4px;
             }
         }
+            .playlist-track-item { text-decoration: none; color: inherit; }
+        .playlist-track-item:focus-visible, .docked-music-pill:focus-visible { outline: 2px solid #c084fc; outline-offset: 2px; }
+        .track-thumb-icon { display: flex; align-items: center; justify-content: center; color: #f87171; font-size: 1.3rem; }
     </style>
 </head>
 <body>
@@ -8201,6 +8202,11 @@
             <!-- Routine Music & Audio Splits Companion -->
             <button type="button" id="header-music-btn" class="action-icon-btn" title="Routine Music & Audio Companion (BPM & Splits)" onclick="toggleMusicCompanion()">
                 <i class="fas fa-music" style="color:#a855f7;"></i>
+            </button>
+
+            <!-- Timer Toolkit: stopwatch, countdown, Pomodoro, EMOM, rounds, AMRAP, kitchen timers, chess clock -->
+            <button type="button" id="header-toolkit-btn" class="action-icon-btn" title="Timer Toolkit: stopwatch, countdown, Pomodoro, EMOM, rounds, AMRAP, kitchen timers, chess clock (T)" aria-label="Open the timer toolkit" onclick="openTimerToolkit()">
+                <i class="fas fa-stopwatch" style="color:#34d399;"></i>
             </button>
 
             <!-- Plain English Science Translator (Everyday Language & Metaphors) -->
@@ -8604,56 +8610,26 @@
                         </a>
                     </div>
 
-                    <!-- Responsive YouTube Embed Player Screen -->
-                    <div class="codecaine-embed-wrapper">
-                        <iframe id="codecaine-yt-player-frame" 
-                            src="https://www.youtube-nocookie.com/embed/DevI7G5bh3A?enablejsapi=1&list=PLLrJYAtW5i7A&rel=0&modestbranding=1" 
-                            title="@codecaine Original Workout &amp; Mindset Music" 
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                            allowfullscreen>
-                        </iframe>
-                    </div>
-
-                    <!-- Now Playing HUD Deck -->
+                    <!-- Links only: YouTube does not play inside the app window, and a hidden player would cost memory and battery. -->
                     <div class="codecaine-now-playing-hud">
                         <div class="now-playing-top-row">
                             <div class="now-playing-meta">
                                 <div class="now-playing-label">
-                                    <span class="equalizer-wave" id="music-equalizer-wave">
-                                        <span class="eq-bar"></span>
-                                        <span class="eq-bar"></span>
-                                        <span class="eq-bar"></span>
-                                        <span class="eq-bar"></span>
-                                    </span>
-                                    <span id="music-status-text">Now Playing</span>
+                                    <span>Opens in your web browser</span>
                                     <span style="color:var(--text-tertiary);">•</span>
-                                    <span id="music-current-index-label" style="color:#d8b4fe;">Track 1 of 25</span>
+                                    <span id="music-current-index-label" style="color:#d8b4fe;">Pick a mix below</span>
                                 </div>
-                                <div class="now-playing-title" id="music-current-title">The Architecture of Self Mastery Over 3 Hours of Game</div>
                                 <div class="now-playing-sub">
-                                    <span class="track-duration-pill" id="music-current-duration">3:14:23</span>
-                                    <span id="music-current-desc">High-level mindset, self-improvement, and intense physical conditioning.</span>
+                                    <span>No player runs inside the timer, so it stays light. Start the music in your browser, then come back and start your workout.</span>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Tactile Controls Row -->
                         <div class="player-controls-row">
                             <div class="player-btn-group">
-                                <button type="button" class="player-btn" id="player-btn-prev" onclick="playPrevCodeCaineTrack()" title="Previous Track">
-                                    <i class="fas fa-backward-step"></i>
-                                </button>
-                                <button type="button" class="player-btn play-pause-btn" id="player-btn-toggle" onclick="toggleCodeCainePlay()" title="Play / Pause">
-                                    <i class="fas fa-play" id="player-play-icon"></i>
-                                </button>
-                                <button type="button" class="player-btn" id="player-btn-next" onclick="playNextCodeCaineTrack()" title="Next Track">
-                                    <i class="fas fa-forward-step"></i>
-                                </button>
-                                <button type="button" class="player-btn" id="player-btn-shuffle" onclick="shuffleCodeCaineTrack()" title="Shuffle Track">
+                                <button type="button" class="player-btn" id="player-btn-shuffle" onclick="openRandomCodeCaineTrack()" title="Open a random mix on YouTube" aria-label="Open a random mix on YouTube">
                                     <i class="fas fa-shuffle"></i>
                                 </button>
                             </div>
-
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <span style="font-size:0.7rem; color:var(--text-tertiary); font-weight:700;">PRODUCED BY</span>
                                 <a href="https://www.youtube.com/@codecaine" target="_blank" rel="noopener noreferrer" style="font-size:0.74rem; font-weight:800; color:#38bdf8; text-decoration:none;">@codecaine</a>
@@ -14288,9 +14264,6 @@
             if (typeof renderPlaylistTracks === 'function') {
                 renderPlaylistTracks();
             }
-            if (typeof updatePlayerUIState === 'function') {
-                updatePlayerUIState();
-            }
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
             if (colPrimary) colPrimary.scrollTop = 0;
@@ -16636,10 +16609,10 @@
         ];
     }
 
-    let currentTrackIndex = 0;
-    let isCodeCainePlaying = false;
     let currentPlaylistCategory = 'all';
-    let ytMusicPlayer = null;
+    const CODECAINE_LIST_ID = 'PLLrJYAtW5i7A';
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const trackUrl = (id) => 'https://www.youtube.com/watch?v=' + encodeURIComponent(id) + '&list=' + CODECAINE_LIST_ID;
 
     // Dynamic Playlist Auto-Sync with YouTube
     async function syncCodecainePlaylistWithYouTube() {
@@ -16662,8 +16635,6 @@
                 updateCategoryPillCounts();
                 const badge = document.getElementById('music-track-count-badge');
                 if (badge) badge.textContent = `${CODECAINE_PLAYLIST.length} Albums • 25+ Hrs`;
-                updatePlayerUIState();
-                
                 if (syncText) syncText.textContent = `Updated (${data.count})`;
                 setTimeout(() => {
                     if (syncText) syncText.textContent = 'Sync';
@@ -16701,163 +16672,13 @@
         }
     }
 
-    // YouTube API global callback
-    window.onYouTubeIframeAPIReady = function() {
-        try {
-            ytMusicPlayer = new YT.Player('codecaine-yt-player-frame', {
-                events: {
-                    'onReady': onYtMusicReady,
-                    'onStateChange': onYtMusicStateChange
-                }
-            });
-        } catch(e) {
-            console.warn('YT Player init warning:', e);
-        }
-    };
-
-    function onYtMusicReady(event) {
-        // Player ready
-    }
-
-    function onYtMusicStateChange(event) {
-        if (event.data === 1) { // Playing
-            isCodeCainePlaying = true;
-            updatePlayerUIState();
-        } else if (event.data === 2) { // Paused
-            isCodeCainePlaying = false;
-            updatePlayerUIState();
-        } else if (event.data === 0) { // Ended
-            playNextCodeCaineTrack();
-        }
-    }
-
-    function updateIframeSrc(videoId, autoplay = 1) {
-        const frame = document.getElementById('codecaine-yt-player-frame');
-        if (frame) {
-            frame.src = 'https://www.youtube-nocookie.com/embed/' + videoId + '?enablejsapi=1&autoplay=' + autoplay + '&list=PLLrJYAtW5i7A&rel=0&modestbranding=1';
-        }
-    }
-
-    function playCodeCaineTrack(index) {
-        if (index < 0 || index >= CODECAINE_PLAYLIST.length) return;
-        currentTrackIndex = index;
-        const track = CODECAINE_PLAYLIST[index];
-
-        if (ytMusicPlayer && typeof ytMusicPlayer.loadVideoById === 'function') {
-            try {
-                ytMusicPlayer.loadVideoById({
-                    videoId: track.id,
-                    startSeconds: 0
-                });
-                ytMusicPlayer.playVideo();
-            } catch(e) {
-                updateIframeSrc(track.id, 1);
-            }
-        } else {
-            updateIframeSrc(track.id, 1);
-        }
-
-        isCodeCainePlaying = true;
-        updatePlayerUIState();
-        renderPlaylistTracks();
-
-        // Scroll active item smoothly into view
-        setTimeout(() => {
-            const activeItem = document.getElementById('track-item-' + index);
-            if (activeItem) {
-                activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-        }, 120);
-    }
-
-    function toggleCodeCainePlay() {
-        if (ytMusicPlayer && typeof ytMusicPlayer.getPlayerState === 'function') {
-            try {
-                const state = ytMusicPlayer.getPlayerState();
-                if (state === 1) { // Currently Playing
-                    ytMusicPlayer.pauseVideo();
-                    isCodeCainePlaying = false;
-                } else {
-                    ytMusicPlayer.playVideo();
-                    isCodeCainePlaying = true;
-                }
-            } catch(e) {
-                fallbackToggle();
-            }
-        } else {
-            fallbackToggle();
-        }
-        updatePlayerUIState();
-    }
-
-    function fallbackToggle() {
-        isCodeCainePlaying = !isCodeCainePlaying;
-        const track = CODECAINE_PLAYLIST[currentTrackIndex];
-        updateIframeSrc(track.id, isCodeCainePlaying ? 1 : 0);
-    }
-
-    function playNextCodeCaineTrack() {
-        let nextIndex = (currentTrackIndex + 1) % CODECAINE_PLAYLIST.length;
-        playCodeCaineTrack(nextIndex);
-    }
-
-    function playPrevCodeCaineTrack() {
-        let prevIndex = (currentTrackIndex - 1 + CODECAINE_PLAYLIST.length) % CODECAINE_PLAYLIST.length;
-        playCodeCaineTrack(prevIndex);
-    }
-
-    function shuffleCodeCaineTrack() {
-        let rand = Math.floor(Math.random() * CODECAINE_PLAYLIST.length);
-        if (rand === currentTrackIndex) rand = (rand + 1) % CODECAINE_PLAYLIST.length;
-        playCodeCaineTrack(rand);
-    }
-
-    function updatePlayerUIState() {
-        const track = CODECAINE_PLAYLIST[currentTrackIndex];
-        if (!track) return;
-
-        // Update Deck Labels
-        const titleEl = document.getElementById('music-current-title');
-        const durEl = document.getElementById('music-current-duration');
-        const descEl = document.getElementById('music-current-desc');
-        const indexEl = document.getElementById('music-current-index-label');
-        const eqWave = document.getElementById('music-equalizer-wave');
-        const playIcon = document.getElementById('player-play-icon');
-        const statusText = document.getElementById('music-status-text');
-
-        if (titleEl) titleEl.textContent = track.title;
-        if (durEl) durEl.textContent = track.duration;
-        if (descEl) descEl.textContent = track.desc;
-        if (indexEl) indexEl.textContent = 'Track ' + (currentTrackIndex + 1) + ' of ' + CODECAINE_PLAYLIST.length;
-
-        if (statusText) statusText.textContent = isCodeCainePlaying ? 'Now Playing' : 'Paused';
-        if (eqWave) {
-            if (isCodeCainePlaying) eqWave.classList.add('playing');
-            else eqWave.classList.remove('playing');
-        }
-
-        if (playIcon) {
-            playIcon.className = isCodeCainePlaying ? 'fas fa-pause' : 'fas fa-play';
-        }
-
-        // Update Docked Mini Player Pill
-        const dockedTitle = document.getElementById('docked-music-title');
-        const dockedPlayIcon = document.getElementById('docked-play-icon');
-        const dockedIcon = document.getElementById('docked-music-icon');
-        if (dockedTitle) dockedTitle.textContent = track.title + ' (' + track.duration + ')';
-        if (dockedPlayIcon) {
-            dockedPlayIcon.className = isCodeCainePlaying ? 'fas fa-pause' : 'fas fa-play';
-        }
-        if (dockedIcon) {
-            dockedIcon.style.animation = isCodeCainePlaying ? 'pulseGlow 1.5s infinite' : 'none';
-        }
-
-        // Highlight Active Track Item in List
-        document.querySelectorAll('.playlist-track-item').forEach(item => {
-            item.classList.remove('is-active-track');
-        });
-        const activeTrackEl = document.getElementById('track-item-' + currentTrackIndex);
-        if (activeTrackEl) activeTrackEl.classList.add('is-active-track');
+    // Opens a random mix on YouTube in the browser (the timer itself never plays video or audio from YouTube).
+    function openRandomCodeCaineTrack() {
+        if (!CODECAINE_PLAYLIST.length) return;
+        const track = CODECAINE_PLAYLIST[Math.floor(Math.random() * CODECAINE_PLAYLIST.length)];
+        const label = document.getElementById('music-current-index-label');
+        if (label) label.textContent = 'Opened: ' + track.title;
+        window.open(trackUrl(track.id), '_blank', 'noopener,noreferrer');
     }
 
     function renderPlaylistTracks() {
@@ -16883,31 +16704,24 @@
         }
 
         if (filtered.length === 0) {
-            container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-tertiary); font-size:0.8rem;"><i class="fas fa-music" style="margin-bottom:6px; font-size:1.2rem; color:#a855f7;"></i><div>No albums matched "' + query + '". Try another keyword!</div></div>';
+            container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-tertiary); font-size:0.8rem;"><i class="fas fa-music" style="margin-bottom:6px; font-size:1.2rem; color:#a855f7;"></i><div>No albums matched "' + esc(query) + '". Try another keyword!</div></div>';
             return;
         }
 
         container.innerHTML = filtered.map(t => {
             const originalIndex = CODECAINE_PLAYLIST.findIndex(p => p.id === t.id);
-            const isActive = originalIndex === currentTrackIndex;
             const displayIndex = String(originalIndex + 1).padStart(2, '0');
-
-            return '<div class="playlist-track-item ' + (isActive ? 'is-active-track' : '') + '" id="track-item-' + originalIndex + '" onclick="playCodeCaineTrack(' + originalIndex + ')" title="Play ' + t.title + '">' +
-                '<div class="track-index-num">' + (isActive ? '<i class="fas fa-volume-high" style="color:#c084fc;"></i>' : displayIndex) + '</div>' +
-                '<div class="track-thumb-box">' +
-                    '<img src="https://img.youtube.com/vi/' + t.id + '/mqdefault.jpg" alt="' + t.title + '" class="track-thumb-img" loading="lazy">' +
-                    '<div class="track-thumb-overlay">' +
-                        '<i class="fas ' + (isActive && isCodeCainePlaying ? 'fa-pause' : 'fa-play') + '"></i>' +
-                    '</div>' +
-                '</div>' +
+            return '<a class="playlist-track-item" id="track-item-' + originalIndex + '" href="' + esc(trackUrl(t.id)) + '" target="_blank" rel="noopener noreferrer" title="Open on YouTube: ' + esc(t.title) + '">' +
+                '<div class="track-index-num">' + displayIndex + '</div>' +
+                '<div class="track-thumb-box track-thumb-icon"><i class="fab fa-youtube" aria-hidden="true"></i></div>' +
                 '<div class="track-info-col">' +
-                    '<div class="track-title-text">' + t.title + '</div>' +
+                    '<div class="track-title-text">' + esc(t.title) + '</div>' +
                     '<div class="track-meta-row">' +
-                        '<span class="track-duration-pill"><i class="far fa-clock"></i> ' + t.duration + '</span>' +
-                        '<span class="track-genre-pill">' + t.badge + '</span>' +
+                        '<span class="track-duration-pill"><i class="far fa-clock"></i> ' + esc(t.duration) + '</span>' +
+                        '<span class="track-genre-pill">' + esc(t.badge) + '</span>' +
                     '</div>' +
                 '</div>' +
-            '</div>';
+            '</a>';
         }).join('');
     }
 
@@ -16941,7 +16755,6 @@
     // Initialize Codecaine Music Player UI
     renderPlaylistTracks();
     updateCategoryPillCounts();
-    updatePlayerUIState();
 </script>
 
 <!-- Quick Access Jump to Top Button (Viewport Floating for Mobile/Tablet) -->
@@ -16951,19 +16764,11 @@
 </button>
 
 <!-- Persistent Docked Floating Mini Music Pill -->
-<div class="docked-music-pill" id="docked-music-pill" onclick="openAndScrollMusicCompanion()" title="Click to Expand @codecaine Music Player">
+<div class="docked-music-pill" id="docked-music-pill" onclick="openAndScrollMusicCompanion()" title="Show the workout music links" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openAndScrollMusicCompanion();}">
     <i class="fas fa-music docked-music-icon" id="docked-music-icon"></i>
     <div class="docked-music-text">
-        <div class="docked-music-title" id="docked-music-title">The Architecture of Self Mastery Over 3 Hours of Game (3:14:23)</div>
-        <div class="docked-music-sub" id="docked-music-sub">@codecaine Music • Tap to Open Player</div>
-    </div>
-    <div class="docked-music-actions" onclick="event.stopPropagation()">
-        <button type="button" class="docked-action-btn" onclick="toggleCodeCainePlay()" title="Play / Pause">
-            <i class="fas fa-play" id="docked-play-icon"></i>
-        </button>
-        <button type="button" class="docked-action-btn" onclick="playNextCodeCaineTrack()" title="Next Track">
-            <i class="fas fa-forward-step"></i>
-        </button>
+        <div class="docked-music-title" id="docked-music-title">Workout music</div>
+        <div class="docked-music-sub" id="docked-music-sub">@codecaine mixes • Tap for YouTube links</div>
     </div>
 </div>
 
@@ -16973,6 +16778,920 @@
     <span>@codecaine</span>
     <span class="float-yt-tag">PRO EVIDENCE</span>
 </a>
+
+<!-- ============================================================================================================
+     TIMER TOOLKIT: stopwatch, countdown, Pomodoro, EMOM, rounds (Tabata / boxing / HIIT), AMRAP, kitchen timers and a
+     chess clock. Self-contained: it does not touch the interval timer above. Timing uses absolute timestamps, so a
+     busy or throttled window never makes a timer drift. Settings, saved presets and the activity log live in this
+     browser's localStorage only. The logic between the ULT-PURE markers has no page dependencies and is unit-tested
+     (tests/interval_timer_toolkit.test.ts).
+     ============================================================================================================ -->
+<style>
+    .ult-overlay { position: fixed; inset: 0; z-index: 2147483000; background: rgba(3, 5, 10, 0.82); display: flex; align-items: center; justify-content: center; padding: 12px; }
+    .ult-overlay[hidden] { display: none; }
+    .ult-panel { width: min(960px, 100%); max-height: 100%; overflow-y: auto; background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-highlight); border-radius: 18px; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px; outline: none; }
+    .ult-panel:fullscreen { width: 100%; max-height: none; border-radius: 0; }
+    .ult-head { display: flex; align-items: center; gap: 8px; }
+    .ult-head h2 { flex: 1; font-size: 1.15rem; font-weight: 800; letter-spacing: 0.02em; }
+    .ult-btn { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-highlight); border-radius: 10px; padding: 8px 14px; font: inherit; font-weight: 700; cursor: pointer; min-height: 40px; }
+    .ult-btn:hover { background: var(--bg-card-hover); }
+    .ult-btn.primary { background: var(--color-idle); border-color: transparent; }
+    .ult-btn.danger { border-color: #ef4444; color: #fca5a5; }
+    .ult-btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+    .ult-overlay button:focus-visible, .ult-overlay input:focus-visible, .ult-overlay select:focus-visible, .ult-overlay summary:focus-visible { outline: 3px solid #c084fc; outline-offset: 2px; }
+    .ult-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+    .ult-tab { background: transparent; color: var(--text-secondary); border: 1px solid var(--border-subtle); border-radius: 999px; padding: 7px 13px; font: inherit; font-weight: 700; cursor: pointer; }
+    .ult-tab[aria-selected="true"] { background: var(--color-idle); color: #fff; border-color: transparent; }
+    .ult-tab .ult-dot { color: #10b981; margin-left: 4px; }
+    .ult-stage { border-radius: 16px; padding: 18px 12px; text-align: center; background: var(--bg-card); border: 2px solid var(--color-idle); transition: border-color 0.2s, background-color 0.2s; }
+    .ult-stage[data-kind="work"] { border-color: var(--color-work); }
+    .ult-stage[data-kind="rest"], .ult-stage[data-kind="long"] { border-color: var(--color-rest); }
+    .ult-stage[data-kind="prep"] { border-color: var(--color-warmup); }
+    .ult-stage[data-kind="cool"] { border-color: var(--color-neuro); }
+    .ult-stage[data-kind="done"] { border-color: var(--color-finished); }
+    .ult-stage.ult-flash { animation: ultFlash 0.6s ease-out; }
+    @keyframes ultFlash { from { background: rgba(255, 255, 255, 0.28); } to { background: var(--bg-card); } }
+    @media (prefers-reduced-motion: reduce) { .ult-stage.ult-flash { animation: none; } .ult-stage { transition: none; } }
+    .ult-phase { font-size: 1.1rem; font-weight: 800; color: var(--text-secondary); min-height: 1.5em; overflow-wrap: anywhere; }
+    .ult-time { font-size: clamp(3rem, 12vw, 6.5rem); font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1.05; }
+    .ult-sub { color: var(--text-secondary); font-size: 0.9rem; }
+    .ult-bar { height: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 99px; overflow: hidden; margin: 10px auto 0; max-width: 560px; }
+    .ult-bar > div { height: 100%; width: 0; background: var(--color-idle); }
+    .ult-controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .ult-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+    .ult-field { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: var(--text-secondary); font-weight: 700; }
+    .ult-field input, .ult-field select, .ult-select { background: var(--bg-base); color: var(--text-primary); border: 1px solid var(--border-highlight); border-radius: 8px; padding: 8px 10px; font: inherit; min-height: 40px; width: 100%; }
+    .ult-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .ult-chip { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 0.82rem; cursor: pointer; }
+    .ult-chip:hover { background: var(--bg-card-hover); }
+    .ult-note { color: var(--text-secondary); font-size: 0.82rem; overflow-wrap: anywhere; }
+    .ult-error { color: #fca5a5; font-size: 0.85rem; min-height: 1.2em; }
+    .ult-laps { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 0.92rem; }
+    .ult-laps th, .ult-laps td { padding: 5px 8px; text-align: right; border-bottom: 1px solid var(--border-subtle); }
+    .ult-laps th:first-child, .ult-laps td:first-child { text-align: left; }
+    .ult-laps .best { color: #34d399; font-weight: 800; }
+    .ult-laps .worst { color: #f87171; font-weight: 800; }
+    .ult-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+    .ult-card { background: var(--bg-card); border: 2px solid var(--border-highlight); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+    .ult-card[data-state="running"] { border-color: var(--color-work); }
+    .ult-card[data-state="done"] { border-color: var(--color-finished); }
+    .ult-card .t { font-size: 2rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+    .ult-chess { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .ult-pad { min-height: 150px; border-radius: 16px; border: 3px solid var(--border-highlight); background: var(--bg-card); color: var(--text-primary); font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+    .ult-pad[data-active="true"] { border-color: var(--color-work); background: rgba(255, 87, 34, 0.14); }
+    .ult-pad[data-flag="true"] { border-color: #ef4444; background: rgba(239, 68, 68, 0.25); }
+    .ult-pad .t { font-size: clamp(2.2rem, 8vw, 4rem); font-weight: 900; font-variant-numeric: tabular-nums; }
+    .ult-settings { border: 1px solid var(--border-subtle); border-radius: 12px; padding: 10px 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px 16px; }
+    .ult-settings[hidden] { display: none; }
+    .ult-check { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+    .ult-check input { width: 20px; height: 20px; }
+    .ult-log summary { cursor: pointer; font-weight: 700; }
+    .ult-log ul { margin: 6px 0 0; padding-left: 18px; font-size: 0.85rem; color: var(--text-secondary); }
+    .ult-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    #header-toolkit-btn.active { box-shadow: 0 0 0 2px #10b981 inset; }
+</style>
+
+<div id="ult-overlay" class="ult-overlay" hidden>
+    <div class="ult-panel" id="ult-panel" role="dialog" aria-modal="true" aria-labelledby="ult-title" tabindex="-1">
+        <div class="ult-head">
+            <h2 id="ult-title">Timer Toolkit</h2>
+            <button type="button" class="ult-btn" data-act="settings" aria-expanded="false" aria-controls="ult-settings">Settings</button>
+            <button type="button" class="ult-btn" data-act="fullscreen" aria-label="Toggle full screen">Full screen</button>
+            <button type="button" class="ult-btn" data-act="close" aria-label="Close the timer toolkit">Close</button>
+        </div>
+        <div class="ult-settings" id="ult-settings" hidden></div>
+        <div class="ult-tabs" id="ult-tabs" role="tablist" aria-label="Timer types"></div>
+        <div id="ult-body" role="tabpanel" aria-live="off"></div>
+        <details class="ult-log" id="ult-log"><summary id="ult-log-summary">Activity log</summary><div id="ult-log-body"></div></details>
+        <p class="ult-note" id="ult-keys"></p>
+        <div class="ult-sr" id="ult-live" aria-live="polite" aria-atomic="true"></div>
+    </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ULT-PURE-START */
+const ULT_MAX_PHASES = 2000;
+
+function ultClamp(n, min, max, def) {
+    n = Number(n);
+    if (!Number.isFinite(n)) n = def;
+    return Math.min(max, Math.max(min, Math.round(n)));
+}
+
+/** m:ss or h:mm:ss. Countdowns round up (so 0.2 s left still reads 00:01); `hundredths` is for stopwatches and rounds down. */
+function ultFmt(ms, hundredths) {
+    ms = Math.max(0, ms);
+    const total = hundredths ? Math.floor(ms / 1000) : Math.ceil(ms / 1000);
+    const h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60), s = total % 60;
+    const pad = (n) => String(n).padStart(2, '0');
+    const base = h > 0 ? h + ':' + pad(m) + ':' + pad(s) : pad(m) + ':' + pad(s);
+    return hundredths ? base + '.' + pad(Math.floor((ms % 1000) / 10)) : base;
+}
+
+function ultEsc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+const num = (id, label, def, min, max) => ({ id, label, def, min, max, type: 'number' });
+
+const MODES = {
+    countdown: {
+        label: 'Countdown', kind: 'sequence',
+        fields: [num('h', 'Hours', 0, 0, 99), num('m', 'Minutes', 10, 0, 999), num('s', 'Seconds', 0, 0, 59), num('bell', 'Bell every N minutes (0 = off)', 0, 0, 600), { id: 'name', label: 'Label (optional)', def: '', type: 'text' }],
+        quick: [['1 min', { h: 0, m: 1, s: 0 }], ['3 min tea', { h: 0, m: 3, s: 0 }], ['5 min', { h: 0, m: 5, s: 0 }], ['10 min', { h: 0, m: 10, s: 0 }], ['20 min nap', { h: 0, m: 20, s: 0 }], ['Meditate 20, bell every 5', { h: 0, m: 20, s: 0, bell: 5 }], ['1 hour', { h: 1, m: 0, s: 0 }]],
+        build(v) {
+            const sec = v.h * 3600 + v.m * 60 + v.s;
+            return sec > 0 ? [{ label: v.name || 'Countdown', sec, kind: 'work', bellEvery: v.bell * 60 }] : [];
+        },
+    },
+    pomodoro: {
+        label: 'Pomodoro', kind: 'sequence',
+        fields: [num('work', 'Focus (min)', 25, 1, 240), num('short', 'Short break (min)', 5, 0, 120), num('long', 'Long break (min)', 15, 0, 240), num('every', 'Long break after N focus sessions', 4, 1, 20), num('sessions', 'Focus sessions', 4, 1, 50)],
+        quick: [['Classic 25/5/15', { work: 25, short: 5, long: 15, every: 4, sessions: 4 }], ['Short 15/3', { work: 15, short: 3, long: 10, every: 4, sessions: 4 }], ['Deep work 50/10', { work: 50, short: 10, long: 30, every: 3, sessions: 3 }], ['52/17', { work: 52, short: 17, long: 17, every: 1, sessions: 4 }]],
+        build(v) {
+            const out = [];
+            for (let i = 1; i <= v.sessions; i++) {
+                out.push({ label: 'Focus ' + i + ' of ' + v.sessions, sec: v.work * 60, kind: 'work' });
+                if (i < v.sessions) {
+                    const long = i % v.every === 0;
+                    const sec = (long ? v.long : v.short) * 60;
+                    if (sec > 0) out.push({ label: long ? 'Long break' : 'Short break', sec, kind: long ? 'long' : 'rest' });
+                }
+            }
+            return out;
+        },
+    },
+    emom: {
+        label: 'EMOM', kind: 'sequence',
+        fields: [num('rounds', 'Rounds', 10, 1, 200), num('every', 'Every (seconds)', 60, 5, 3600)],
+        quick: [['EMOM 10', { rounds: 10, every: 60 }], ['EMOM 20', { rounds: 20, every: 60 }], ['E2MOM x 8', { rounds: 8, every: 120 }], ['Every 90 s x 8', { rounds: 8, every: 90 }]],
+        build(v) {
+            const out = [];
+            for (let i = 1; i <= v.rounds; i++) out.push({ label: 'Round ' + i + ' of ' + v.rounds, sec: v.every, kind: 'work' });
+            return out;
+        },
+    },
+    rounds: {
+        label: 'Rounds', kind: 'sequence',
+        fields: [num('prep', 'Get ready (s)', 10, 0, 600), num('work', 'Work (s)', 30, 1, 3600), num('rest', 'Rest (s)', 15, 0, 3600), num('rounds', 'Rounds', 8, 1, 200), num('sets', 'Sets', 1, 1, 50), num('setRest', 'Rest between sets (s)', 60, 0, 3600), num('cool', 'Cool down (s)', 0, 0, 3600)],
+        quick: [['Tabata 20/10 x 8', { prep: 10, work: 20, rest: 10, rounds: 8, sets: 1, setRest: 60, cool: 0 }], ['Boxing 3:00/1:00 x 12', { prep: 10, work: 180, rest: 60, rounds: 12, sets: 1, setRest: 0, cool: 0 }], ['HIIT 40/20 x 10', { prep: 10, work: 40, rest: 20, rounds: 10, sets: 1, setRest: 0, cool: 0 }], ['Sprints 30/90 x 6', { prep: 10, work: 30, rest: 90, rounds: 6, sets: 1, setRest: 0, cool: 0 }], ['Yoga holds 45/15 x 12', { prep: 10, work: 45, rest: 15, rounds: 12, sets: 1, setRest: 0, cool: 0 }]],
+        build(v) {
+            const out = [];
+            if (v.prep > 0) out.push({ label: 'Get ready', sec: v.prep, kind: 'prep' });
+            for (let s = 1; s <= v.sets; s++) {
+                for (let r = 1; r <= v.rounds; r++) {
+                    out.push({ label: (v.sets > 1 ? 'Set ' + s + ' · ' : '') + 'Work ' + r + ' of ' + v.rounds, sec: v.work, kind: 'work' });
+                    if (r < v.rounds && v.rest > 0) out.push({ label: 'Rest', sec: v.rest, kind: 'rest' });
+                }
+                if (s < v.sets && v.setRest > 0) out.push({ label: 'Rest between sets', sec: v.setRest, kind: 'long' });
+            }
+            if (v.cool > 0) out.push({ label: 'Cool down', sec: v.cool, kind: 'cool' });
+            return out;
+        },
+    },
+    amrap: {
+        label: 'AMRAP', kind: 'sequence', counter: true,
+        fields: [num('minutes', 'Minutes', 12, 1, 240), { id: 'name', label: 'Workout name (optional)', def: '', type: 'text' }],
+        quick: [['10 min', { minutes: 10 }], ['12 min', { minutes: 12 }], ['15 min', { minutes: 15 }], ['20 min', { minutes: 20 }]],
+        build(v) { return [{ label: v.name || 'As many rounds as possible', sec: v.minutes * 60, kind: 'work' }]; },
+    },
+    stopwatch: { label: 'Stopwatch', kind: 'stopwatch', fields: [], quick: [] },
+    multi: { label: 'Kitchen / multi', kind: 'multi', fields: [], quick: [] },
+    chess: {
+        label: 'Chess clock', kind: 'chess',
+        fields: [num('base', 'Minutes per side', 10, 1, 180), num('inc', 'Increment per move (s)', 5, 0, 300)],
+        quick: [['Bullet 1+0', { base: 1, inc: 0 }], ['Blitz 3+2', { base: 3, inc: 2 }], ['Blitz 5+0', { base: 5, inc: 0 }], ['Rapid 10+5', { base: 10, inc: 5 }], ['Rapid 15+10', { base: 15, inc: 10 }], ['Classical 30+0', { base: 30, inc: 0 }]],
+    },
+};
+const MODE_ORDER = ['stopwatch', 'countdown', 'pomodoro', 'emom', 'rounds', 'amrap', 'multi', 'chess'];
+
+function ultDefaults(modeId) {
+    const v = {};
+    for (const f of MODES[modeId].fields) v[f.id] = f.def;
+    return v;
+}
+
+/** Keeps only known fields, numbers inside their limits and text short and trimmed. */
+function ultNormalize(modeId, raw) {
+    const src = raw && typeof raw === 'object' ? raw : {};
+    const v = {};
+    for (const f of MODES[modeId].fields) {
+        v[f.id] = f.type === 'text' ? String(src[f.id] == null ? f.def : src[f.id]).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 40) : ultClamp(src[f.id], f.min, f.max, f.def);
+    }
+    return v;
+}
+
+/** The list of phases for a sequence timer, or an error sentence. Nothing here touches the page. */
+function ultBuild(modeId, raw) {
+    const mode = MODES[modeId];
+    if (!mode || mode.kind !== 'sequence') return { phases: [], error: 'Not a sequence timer.' };
+    const values = ultNormalize(modeId, raw);
+    const phases = mode.build(values).filter((p) => p.sec > 0);
+    if (!phases.length) return { phases, values, error: 'Set a time greater than zero.' };
+    if (phases.length > ULT_MAX_PHASES) return { phases: [], values, error: 'That makes more than ' + ULT_MAX_PHASES + ' steps. Use fewer rounds or sets.' };
+    return { phases, values, error: '' };
+}
+
+/**
+ * Runs a list of phases using absolute timestamps from `clock()` (milliseconds). The end of each phase is the previous end
+ * plus its length, so late ticks never add drift, and several phases that passed during a stall are skipped in one tick.
+ * `hooks`: phase(phase, index, first), second(secondsLeft, phase), done(), state().
+ */
+class UltRunner {
+    constructor(phases, hooks, clock) {
+        this.phases = phases;
+        this.hooks = hooks || {};
+        this.clock = clock;
+        this.totalMs = phases.reduce((a, p) => a + p.sec * 1000, 0);
+        this.reset();
+    }
+    reset() {
+        this.idx = 0;
+        this.remaining = this.phases[0].sec * 1000;
+        this.endAt = 0;
+        this.running = false;
+        this.started = false;
+        this.finished = false;
+        this.lastSec = null;
+    }
+    get phase() { return this.phases[Math.min(this.idx, this.phases.length - 1)]; }
+    left() { return this.finished ? 0 : this.running ? Math.max(0, this.endAt - this.clock()) : this.remaining; }
+    elapsed() {
+        if (this.finished) return this.totalMs;
+        let sum = 0;
+        for (let i = 0; i < this.idx; i++) sum += this.phases[i].sec * 1000;
+        return sum + this.phase.sec * 1000 - this.left();
+    }
+    start() {
+        if (this.running || this.finished) return;
+        this.running = true;
+        this.endAt = this.clock() + this.remaining;
+        if (!this.started) {
+            this.started = true;
+            if (this.hooks.phase) this.hooks.phase(this.phase, 0, true);
+        }
+        if (this.hooks.state) this.hooks.state();
+    }
+    pause() {
+        if (!this.running) return;
+        this.remaining = Math.max(0, this.endAt - this.clock());
+        this.running = false;
+        if (this.hooks.state) this.hooks.state();
+    }
+    toggle() { if (this.running) this.pause(); else this.start(); }
+    tick() {
+        if (!this.running) return;
+        const now = this.clock();
+        const before = this.idx;
+        while (now >= this.endAt) {
+            if (this.idx >= this.phases.length - 1) { this.finish(); return; }
+            this.idx++;
+            this.endAt += this.phases[this.idx].sec * 1000;
+        }
+        if (this.idx !== before) {
+            this.lastSec = null;
+            if (this.hooks.phase) this.hooks.phase(this.phase, this.idx, false);
+        }
+        const secLeft = Math.ceil((this.endAt - now) / 1000);
+        if (secLeft !== this.lastSec) {
+            this.lastSec = secLeft;
+            if (this.hooks.second) this.hooks.second(secLeft, this.phase);
+        }
+    }
+    finish() {
+        this.running = false;
+        this.finished = true;
+        this.remaining = 0;
+        this.idx = this.phases.length - 1;
+        if (this.hooks.done) this.hooks.done();
+        if (this.hooks.state) this.hooks.state();
+    }
+    /** Jumps to the next phase (finishing after the last one). */
+    next() {
+        if (this.finished) return;
+        if (!this.started) { this.started = true; }
+        if (this.idx >= this.phases.length - 1) { this.finish(); return; }
+        this.idx++;
+        this.lastSec = null;
+        this.remaining = this.phases[this.idx].sec * 1000;
+        if (this.running) this.endAt = this.clock() + this.remaining;
+        if (this.hooks.phase) this.hooks.phase(this.phase, this.idx, false);
+        if (this.hooks.state) this.hooks.state();
+    }
+    /** Restarts the current phase, or goes to the previous one when the current one has just begun. */
+    prev() {
+        if (this.finished) return;
+        const intoPhase = this.phase.sec * 1000 - this.left();
+        if (intoPhase <= 3000 && this.idx > 0) this.idx--;
+        this.lastSec = null;
+        this.remaining = this.phase.sec * 1000;
+        if (this.running) this.endAt = this.clock() + this.remaining;
+        if (this.hooks.phase) this.hooks.phase(this.phase, this.idx, false);
+        if (this.hooks.state) this.hooks.state();
+    }
+}
+
+class UltStopwatch {
+    constructor(clock) { this.clock = clock; this.reset(); }
+    reset() { this.acc = 0; this.startAt = null; this.laps = []; }
+    get running() { return this.startAt !== null; }
+    elapsed() { return this.acc + (this.startAt === null ? 0 : this.clock() - this.startAt); }
+    start() { if (!this.running) this.startAt = this.clock(); }
+    pause() { if (this.running) { this.acc = this.elapsed(); this.startAt = null; } }
+    lap() {
+        const total = this.elapsed();
+        if (!this.running || total <= 0) return null;
+        const prev = this.laps.length ? this.laps[this.laps.length - 1].total : 0;
+        const lap = { n: this.laps.length + 1, split: total - prev, total };
+        this.laps.push(lap);
+        return lap;
+    }
+    /** Indexes of the fastest and slowest laps (only when there are at least two). */
+    extremes() {
+        if (this.laps.length < 2) return { best: -1, worst: -1 };
+        let best = 0, worst = 0;
+        this.laps.forEach((l, i) => { if (l.split < this.laps[best].split) best = i; if (l.split > this.laps[worst].split) worst = i; });
+        return { best, worst };
+    }
+    toCsv() {
+        return ['lap,split,total'].concat(this.laps.map((l) => l.n + ',' + ultFmt(l.split, true) + ',' + ultFmt(l.total, true))).join('\n');
+    }
+}
+
+class UltChess {
+    constructor(baseMin, incSec, clock) { this.base = baseMin * 60000; this.inc = incSec * 1000; this.clock = clock; this.reset(); }
+    reset() { this.t = [this.base, this.base]; this.active = null; this.since = null; this.moves = [0, 0]; this.flagged = null; }
+    get running() { return this.active !== null && this.since !== null; }
+    get started() { return this.moves[0] + this.moves[1] > 0 || this.active !== null; }
+    left(i) { return Math.max(0, this.t[i] - (this.active === i && this.since !== null ? this.clock() - this.since : 0)); }
+    /** Side `i` has made its move. The first press starts the opponent's clock; later presses only count for the side to move. */
+    press(i) {
+        if (this.flagged !== null || (i !== 0 && i !== 1)) return false;
+        if (this.active === null) {
+            this.moves[i]++;
+            this.active = 1 - i;
+            this.since = this.clock();
+            return true;
+        }
+        if (i !== this.active || this.since === null) return false;
+        this.t[i] = this.left(i) + this.inc;
+        this.moves[i]++;
+        this.active = 1 - i;
+        this.since = this.clock();
+        return true;
+    }
+    pause() { if (this.running) { this.t[this.active] = this.left(this.active); this.since = null; } }
+    resume() { if (this.active !== null && this.since === null && this.flagged === null) this.since = this.clock(); }
+    tick() {
+        if (this.running && this.left(this.active) <= 0) {
+            this.flagged = this.active;
+            this.t[this.active] = 0;
+            this.active = null;
+            this.since = null;
+            return true;
+        }
+        return false;
+    }
+}
+/* ULT-PURE-END */
+
+const clock = () => performance.now();
+const $ = (s, r = document) => r.querySelector(s);
+const store = {
+    get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage full or blocked: the toolkit still works for this session */ } },
+};
+const KEYS = { settings: 'ult_toolkit_settings_v1', presets: 'ult_toolkit_presets_v1', log: 'ult_toolkit_log_v1' };
+
+const settings = Object.assign({ sound: true, volume: 0.6, voice: false, vibrate: true, keepAwake: true, finalBeeps: 3, mode: 'countdown', values: {} }, store.get(KEYS.settings, {}));
+settings.volume = Math.min(1, Math.max(0, Number(settings.volume) || 0));
+settings.finalBeeps = ultClamp(settings.finalBeeps, 0, 10, 3);
+if (!MODES[settings.mode]) settings.mode = 'countdown';
+if (!settings.values || typeof settings.values !== 'object') settings.values = {};
+let presets = store.get(KEYS.presets, {});
+if (!presets || typeof presets !== 'object' || Array.isArray(presets)) presets = {};
+let log = store.get(KEYS.log, []);
+if (!Array.isArray(log)) log = [];
+const saveSettings = () => store.set(KEYS.settings, settings);
+
+const values = {};
+for (const id of MODE_ORDER) values[id] = ultNormalize(id, settings.values[id]);
+
+const ui = { open: false, mode: settings.mode, settingsOpen: false, opener: null };
+const runners = {};
+const buildErrors = {};
+let amrapCount = 0;
+const sw = new UltStopwatch(clock);
+let chess = null;
+let multi = [];
+let multiSeq = 0;
+
+/* ---- cues: sound, voice, vibration -------------------------------------------------------------------------- */
+let ac = null;
+function beep(freq, ms, vol) {
+    if (!settings.sound || settings.volume <= 0) return;
+    try {
+        ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+        if (ac.state === 'suspended') ac.resume();
+        const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime, peak = Math.max(0.0002, settings.volume * (vol || 1) * 0.4);
+        o.type = 'sine';
+        o.frequency.value = freq;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(peak, t + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
+        o.connect(g);
+        g.connect(ac.destination);
+        o.start(t);
+        o.stop(t + ms / 1000 + 0.03);
+    } catch (e) { /* no audio device: silent */ }
+}
+function speak(text) {
+    if (!settings.voice || !('speechSynthesis' in window) || !text) return;
+    try { window.speechSynthesis.cancel(); window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)); } catch (e) { /* no voice available */ }
+}
+function buzz(pattern) { if (settings.vibrate && navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) { /* not supported */ } } }
+const cue = {
+    tick: () => beep(880, 110, 0.8),
+    go: () => { beep(1320, 320); buzz(80); },
+    rest: () => { beep(520, 320); buzz(80); },
+    bell: () => { beep(660, 900); buzz([120, 60, 120]); },
+    done: () => { beep(988, 170); setTimeout(() => beep(988, 170), 230); setTimeout(() => beep(1318, 520), 460); buzz([200, 100, 200, 100, 300]); },
+};
+function announce(text) { const el = $('#ult-live'); if (el) el.textContent = text; }
+function flash() { const st = $('#ult-stage'); if (st) { st.classList.remove('ult-flash'); void st.offsetWidth; st.classList.add('ult-flash'); } }
+
+/* ---- activity log ------------------------------------------------------------------------------------------- */
+function logRun(mode, label, seconds, extra) {
+    log.push({ at: new Date().toISOString(), mode, label: String(label || '').slice(0, 60), seconds: Math.round(seconds), extra: extra || '' });
+    log = log.slice(-200);
+    store.set(KEYS.log, log);
+    renderLog();
+}
+function renderLog() {
+    const today = new Date().toDateString();
+    const todays = log.filter((e) => new Date(e.at).toDateString() === today);
+    const mins = Math.round(todays.reduce((a, e) => a + e.seconds, 0) / 60);
+    $('#ult-log-summary').textContent = 'Activity log: ' + todays.length + ' timer' + (todays.length === 1 ? '' : 's') + ' today, ' + mins + ' min';
+    const items = log.slice(-15).reverse().map((e) => '<li>' + ultEsc(new Date(e.at).toLocaleString()) + ' · ' + ultEsc(MODES[e.mode] ? MODES[e.mode].label : e.mode) + ' · ' + ultEsc(e.label) + ' · ' + ultFmt(e.seconds * 1000) + (e.extra ? ' · ' + ultEsc(e.extra) : '') + '</li>').join('');
+    $('#ult-log-body').innerHTML = (items ? '<ul>' + items + '</ul>' : '<p class="ult-note">Nothing yet. Finished timers are listed here (kept in this browser only).</p>') +
+        '<div class="ult-row" style="margin-top:8px"><button type="button" class="ult-btn" data-act="log-copy"' + (log.length ? '' : ' disabled') + '>Copy as CSV</button><button type="button" class="ult-btn danger" data-act="log-clear"' + (log.length ? '' : ' disabled') + '>Clear the log</button></div>';
+}
+function logCsv() {
+    const q = (s) => '"' + String(s).replace(/"/g, '""') + '"';
+    return ['time,timer,label,seconds,notes'].concat(log.map((e) => [q(e.at), q(e.mode), q(e.label), e.seconds, q(e.extra)].join(','))).join('\n');
+}
+async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) {
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            const ok = document.execCommand('copy');
+            ta.remove();
+            return ok;
+        } catch (e2) { return false; }
+    }
+}
+
+/* ---- sequence timers (countdown, Pomodoro, EMOM, rounds, AMRAP) ---------------------------------------------- */
+function hooksFor(modeId) {
+    return {
+        phase(phase, idx, first) {
+            if (phase.kind === 'work' || phase.kind === 'prep' || first) cue.go(); else cue.rest();
+            speak(phase.label);
+            announce(phase.label);
+            flash();
+        },
+        second(secLeft, phase) {
+            if (settings.finalBeeps > 0 && secLeft > 0 && secLeft <= settings.finalBeeps && phase.sec > settings.finalBeeps) cue.tick();
+            if (phase.bellEvery) {
+                const into = phase.sec - secLeft;
+                if (into > 0 && into % phase.bellEvery === 0 && secLeft > 0) { cue.bell(); announce('Bell'); }
+            }
+            if (phase.sec > 150 && secLeft === 60) { speak('One minute left'); announce('One minute left'); }
+        },
+        done() {
+            const r = runners[modeId];
+            cue.done();
+            speak('Finished');
+            announce(MODES[modeId].label + ' finished');
+            flash();
+            const label = (r && r.phases.length === 1 ? r.phases[0].label : MODES[modeId].label);
+            logRun(modeId, label, r ? r.totalMs / 1000 : 0, modeId === 'amrap' ? amrapCount + ' rounds' : '');
+        },
+        state() { reschedule(); if (ui.open && ui.mode === modeId) updateControls(); syncTabs(); },
+    };
+}
+function ensureRunner(modeId) {
+    if (runners[modeId]) return runners[modeId];
+    const built = ultBuild(modeId, values[modeId]);
+    buildErrors[modeId] = built.error;
+    if (built.error) return null;
+    runners[modeId] = new UltRunner(built.phases, hooksFor(modeId), clock);
+    return runners[modeId];
+}
+const isLocked = (modeId) => { const r = runners[modeId]; return !!r && r.started && !r.finished; };
+
+/* ---- multi timers ------------------------------------------------------------------------------------------- */
+function addMulti(name, sec) {
+    sec = ultClamp(sec, 1, 99 * 3600, 60);
+    const id = ++multiSeq;
+    const label = String(name || '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 40) || 'Timer ' + id;
+    const item = { id, label, sec, runner: null };
+    item.runner = new UltRunner([{ label, sec, kind: 'work' }], {
+        phase() { cue.go(); },
+        second(secLeft, phase) { if (settings.finalBeeps > 0 && secLeft > 0 && secLeft <= settings.finalBeeps && phase.sec > settings.finalBeeps) cue.tick(); },
+        done() { cue.done(); speak(label + ' is done'); announce(label + ' is done'); logRun('multi', label, sec); },
+        state() { reschedule(); syncTabs(); if (ui.open && ui.mode === 'multi') updateMultiCards(); },
+    }, clock);
+    multi.push(item);
+    item.runner.start();
+}
+
+/* ---- scheduling, wake lock, window title -------------------------------------------------------------------- */
+const baseTitle = document.title;
+let timerHandle = 0;
+let wakeLock = null;
+const anyRunning = () => sw.running || (chess && chess.running) || multi.some((m) => m.runner.running) || MODE_ORDER.some((id) => runners[id] && runners[id].running);
+
+function tickAll() {
+    for (const id of MODE_ORDER) if (runners[id]) runners[id].tick();
+    for (const m of multi) m.runner.tick();
+    if (chess && chess.tick()) { cue.done(); announce('Time is up for ' + (chess.flagged === 0 ? 'player 1' : 'player 2')); logRun('chess', 'Game', 0, 'flag fell: player ' + (chess.flagged + 1)); if (ui.open && ui.mode === 'chess') render(); }
+    if (ui.open) updateLive();
+    updateTitle();
+}
+function reschedule() {
+    const run = anyRunning();
+    const ms = ui.open && !document.hidden ? 100 : 250;
+    if (timerHandle && timerHandle.ms !== ms) { clearInterval(timerHandle.id); timerHandle = 0; }
+    if (run && !timerHandle) timerHandle = { id: setInterval(tickAll, ms), ms };
+    if (!run && timerHandle) { clearInterval(timerHandle.id); timerHandle = 0; }
+    const btn = $('#header-toolkit-btn');
+    if (btn) btn.classList.toggle('active', run);
+    syncWakeLock(run);
+    updateTitle();
+}
+async function syncWakeLock(run) {
+    try {
+        if (run && settings.keepAwake && 'wakeLock' in navigator && !wakeLock && !document.hidden) {
+            wakeLock = await navigator.wakeLock.request('screen');
+            wakeLock.addEventListener('release', () => { wakeLock = null; });
+        } else if ((!run || !settings.keepAwake) && wakeLock) {
+            const w = wakeLock; wakeLock = null; await w.release();
+        }
+    } catch (e) { wakeLock = null; }
+}
+function primaryText() {
+    const cur = ui.mode;
+    if (cur === 'stopwatch' && sw.running) return ultFmt(sw.elapsed(), false);
+    if (runners[cur] && runners[cur].running) return ultFmt(runners[cur].left()) + ' ' + runners[cur].phase.label;
+    for (const id of MODE_ORDER) if (runners[id] && runners[id].running) return ultFmt(runners[id].left()) + ' ' + runners[id].phase.label;
+    const m = multi.find((x) => x.runner.running);
+    if (m) return ultFmt(m.runner.left()) + ' ' + m.label;
+    if (sw.running) return ultFmt(sw.elapsed());
+    return '';
+}
+function updateTitle() { const t = primaryText(); document.title = t ? '\u23F1 ' + t : baseTitle; }
+
+/* ---- rendering ----------------------------------------------------------------------------------------------- */
+function fieldHtml(modeId) {
+    const locked = modeId === 'chess' ? !!(chess && chess.started) : isLocked(modeId);
+    return '<div class="ult-form">' + MODES[modeId].fields.map((f) =>
+        '<label class="ult-field"><span>' + ultEsc(f.label) + '</span><input data-field="' + f.id + '" ' + (f.type === 'text' ? 'type="text" maxlength="40"' : 'type="number" inputmode="numeric" min="' + f.min + '" max="' + f.max + '" step="1"') + ' value="' + ultEsc(values[modeId][f.id]) + '"' + (locked ? ' disabled' : '') + '></label>').join('') + '</div>' +
+        (locked ? '<p class="ult-note">Reset the timer to change these settings.</p>' : '');
+}
+function quickHtml(modeId) {
+    const q = MODES[modeId].quick;
+    if (!q.length) return '';
+    const locked = modeId === 'chess' ? !!(chess && chess.started) : isLocked(modeId);
+    return '<div class="ult-row" role="group" aria-label="Quick setups">' + q.map((x, i) => '<button type="button" class="ult-chip" data-act="quick" data-i="' + i + '"' + (locked ? ' disabled' : '') + '>' + ultEsc(x[0]) + '</button>').join('') + '</div>';
+}
+function presetsHtml(modeId) {
+    if (!MODES[modeId].fields.length) return '';
+    const list = Array.isArray(presets[modeId]) ? presets[modeId] : [];
+    return '<div class="ult-row"><label class="ult-field" style="flex:1;min-width:160px"><span>My saved setups</span><select id="ult-preset" class="ult-select" aria-label="Load a saved setup"><option value="">' + (list.length ? 'Choose one…' : 'None saved yet') + '</option>' + list.map((p, i) => '<option value="' + i + '">' + ultEsc(p.name) + '</option>').join('') + '</select></label>' +
+        '<button type="button" class="ult-btn" data-act="preset-load">Load</button><button type="button" class="ult-btn danger" data-act="preset-delete">Delete</button>' +
+        '<label class="ult-field" style="min-width:150px"><span>Save current as</span><input id="ult-preset-name" type="text" maxlength="30" placeholder="Name"></label><button type="button" class="ult-btn" data-act="preset-save">Save</button></div>';
+}
+function controlsHtml(modeId) {
+    const mode = MODES[modeId];
+    if (mode.kind === 'stopwatch') return '<div class="ult-controls"><button type="button" class="ult-btn primary" data-act="toggle" id="ult-toggle"></button><button type="button" class="ult-btn" data-act="lap" id="ult-lap">Lap (L)</button><button type="button" class="ult-btn" data-act="reset">Reset (R)</button><button type="button" class="ult-btn" data-act="sw-save">Save to log</button></div>';
+    if (mode.kind === 'chess') return '<div class="ult-controls"><button type="button" class="ult-btn" data-act="toggle" id="ult-toggle"></button><button type="button" class="ult-btn" data-act="reset">New game (R)</button></div>';
+    if (mode.kind === 'multi') return '';
+    return '<div class="ult-controls"><button type="button" class="ult-btn" data-act="prev" id="ult-prev" aria-label="Previous step (P)">Back (P)</button><button type="button" class="ult-btn primary" data-act="toggle" id="ult-toggle"></button><button type="button" class="ult-btn" data-act="next" id="ult-next" aria-label="Next step (N)">Next (N)</button><button type="button" class="ult-btn" data-act="reset">Reset (R)</button></div>';
+}
+function lapsHtml() {
+    if (!sw.laps.length) return '<p class="ult-note">Press Lap (L) while the stopwatch runs to record splits.</p>';
+    const ex = sw.extremes();
+    return '<table class="ult-laps"><caption class="ult-sr">Laps</caption><thead><tr><th scope="col">Lap</th><th scope="col">Split</th><th scope="col">Total</th></tr></thead><tbody>' +
+        sw.laps.slice().reverse().map((l) => { const i = l.n - 1; const c = i === ex.best ? ' class="best"' : i === ex.worst ? ' class="worst"' : ''; return '<tr><td>' + l.n + (i === ex.best ? ' (fastest)' : i === ex.worst ? ' (slowest)' : '') + '</td><td' + c + '>' + ultFmt(l.split, true) + '</td><td>' + ultFmt(l.total, true) + '</td></tr>'; }).join('') + '</tbody></table>' +
+        '<div class="ult-row" style="margin-top:6px"><button type="button" class="ult-btn" data-act="laps-copy">Copy laps</button></div>';
+}
+function stageHtml() {
+    return '<div class="ult-stage" id="ult-stage" data-kind="idle"><div class="ult-phase" id="ult-phase"></div><div class="ult-time" id="ult-time" role="timer" aria-live="off"></div><div class="ult-sub" id="ult-sub"></div><div class="ult-bar" aria-hidden="true"><div id="ult-barfill"></div></div></div>';
+}
+function multiHtml() {
+    const quick = [['Tea 3:00', 'Tea', 180], ['Eggs 10:00', 'Eggs', 600], ['Pasta 9:00', 'Pasta', 540], ['Rice 18:00', 'Rice', 1080], ['Laundry 45:00', 'Laundry', 2700], ['Plank 1:00', 'Plank', 60]];
+    return '<form class="ult-row" id="ult-multi-form"><label class="ult-field" style="flex:1;min-width:140px"><span>Name</span><input id="ult-multi-name" type="text" maxlength="40" placeholder="e.g. Pizza"></label>' +
+        '<label class="ult-field" style="width:90px"><span>Minutes</span><input id="ult-multi-min" type="number" min="0" max="5999" value="10"></label>' +
+        '<label class="ult-field" style="width:90px"><span>Seconds</span><input id="ult-multi-sec" type="number" min="0" max="59" value="0"></label>' +
+        '<button type="submit" class="ult-btn primary" style="align-self:flex-end">Start timer</button></form>' +
+        '<div class="ult-row" role="group" aria-label="Quick kitchen timers">' + quick.map((q, i) => '<button type="button" class="ult-chip" data-act="multi-quick" data-i="' + i + '">' + ultEsc(q[0]) + '</button>').join('') + '</div>' +
+        '<div class="ult-cards" id="ult-cards" style="margin-top:10px">' + (multi.length ? multi.map(cardHtml).join('') : '<p class="ult-note">No timers yet. Start as many as you like: they run at the same time and each one announces itself when it is done.</p>') + '</div>';
+}
+function cardHtml(m) {
+    return '<div class="ult-card" id="ult-multi-' + m.id + '" data-state="idle"><strong>' + ultEsc(m.label) + '</strong><div class="t" id="ult-multi-t-' + m.id + '"></div><div class="ult-row"><button type="button" class="ult-btn" data-act="multi-toggle" data-id="' + m.id + '" id="ult-multi-b-' + m.id + '"></button><button type="button" class="ult-btn" data-act="multi-reset" data-id="' + m.id + '">Reset</button><button type="button" class="ult-btn danger" data-act="multi-remove" data-id="' + m.id + '" aria-label="Remove ' + ultEsc(m.label) + '">Remove</button></div></div>';
+}
+function chessHtml() {
+    const pad = (i) => '<button type="button" class="ult-pad" id="ult-pad-' + i + '" data-act="chess-press" data-i="' + i + '" aria-label="Player ' + (i + 1) + ' clock. Press when you have moved."><span>Player ' + (i + 1) + '</span><span class="t" id="ult-chess-t-' + i + '"></span><span class="ult-note" id="ult-chess-m-' + i + '"></span></button>';
+    return '<div class="ult-chess">' + pad(0) + pad(1) + '</div><p class="ult-note">Press your own side after you move. The first press starts your opponent’s clock. Keys: ← for player 1, → for player 2, Space to pause.</p>';
+}
+
+function renderTabs() {
+    $('#ult-tabs').innerHTML = MODE_ORDER.map((id, i) => '<button type="button" role="tab" class="ult-tab" id="ult-tab-' + id + '" data-act="mode" data-mode="' + id + '" aria-selected="' + (id === ui.mode) + '" tabindex="' + (id === ui.mode ? 0 : -1) + '" aria-controls="ult-body" title="Shortcut: ' + (i + 1) + '">' + ultEsc(MODES[id].label) + '<span class="ult-dot" aria-hidden="true"></span></button>').join('');
+    syncTabs();
+}
+function modeRunning(id) {
+    if (id === 'stopwatch') return sw.running;
+    if (id === 'chess') return !!(chess && chess.running);
+    if (id === 'multi') return multi.some((m) => m.runner.running);
+    return !!(runners[id] && runners[id].running);
+}
+function syncTabs() { for (const id of MODE_ORDER) { const d = $('#ult-tab-' + id + ' .ult-dot'); if (d) d.textContent = modeRunning(id) ? '\u25CF' : ''; const t = $('#ult-tab-' + id); if (t) t.setAttribute('aria-label', MODES[id].label + (modeRunning(id) ? ', running' : '')); } }
+
+function render() {
+    const id = ui.mode, mode = MODES[id];
+    renderTabs();
+    let html = '';
+    if (mode.kind === 'sequence') {
+        ensureRunner(id);
+        html = stageHtml() + controlsHtml(id) + (mode.counter ? '<div class="ult-row" style="justify-content:center"><span>Rounds completed: <strong id="ult-amrap" aria-live="polite">' + amrapCount + '</strong></span><button type="button" class="ult-btn" data-act="amrap-plus">+1 round (L)</button><button type="button" class="ult-btn" data-act="amrap-minus" aria-label="Remove one round">−1</button></div>' : '') +
+            '<p class="ult-error" id="ult-error" role="alert"></p>' + quickHtml(id) + fieldHtml(id) + presetsHtml(id);
+    } else if (mode.kind === 'stopwatch') {
+        html = stageHtml() + controlsHtml(id) + '<div id="ult-laps">' + lapsHtml() + '</div>';
+    } else if (mode.kind === 'multi') {
+        html = multiHtml();
+    } else {
+        if (!chess) chess = new UltChess(values.chess.base, values.chess.inc, clock);
+        html = chessHtml() + controlsHtml(id) + quickHtml(id) + fieldHtml(id) + presetsHtml(id);
+    }
+    $('#ult-body').innerHTML = html;
+    $('#ult-keys').textContent = keysHelp(mode.kind);
+    updateControls();
+    updateLive();
+}
+function keysHelp(kind) {
+    const common = 'Keys: 1–8 switch timer, Esc closes, T opens this toolkit from the main page.';
+    if (kind === 'sequence') return 'Keys: Space start/pause, R reset, N next step, P back. ' + common;
+    if (kind === 'stopwatch') return 'Keys: Space start/pause, L lap, R reset. ' + common;
+    if (kind === 'chess') return 'Keys: ← player 1 moved, → player 2 moved, Space pause/resume, R new game. ' + common;
+    return common;
+}
+
+function stageKind(r) { return r.finished ? 'done' : r.started ? r.phase.kind : 'idle'; }
+function updateControls() {
+    const id = ui.mode, mode = MODES[id], t = $('#ult-toggle');
+    if (mode.kind === 'sequence') {
+        const r = runners[id];
+        const err = $('#ult-error');
+        if (err) err.textContent = buildErrors[id] || '';
+        if (t) { t.disabled = !r || r.finished; t.textContent = !r ? 'Start' : r.running ? 'Pause (Space)' : r.started ? 'Resume (Space)' : 'Start (Space)'; }
+        for (const b of ['#ult-prev', '#ult-next']) { const el = $(b); if (el) el.disabled = !r || r.finished || !r.started; }
+    } else if (mode.kind === 'stopwatch' && t) {
+        t.textContent = sw.running ? 'Pause (Space)' : sw.elapsed() > 0 ? 'Resume (Space)' : 'Start (Space)';
+        const lap = $('#ult-lap'); if (lap) lap.disabled = !sw.running;
+    } else if (mode.kind === 'chess' && t) {
+        t.textContent = chess.running ? 'Pause (Space)' : 'Resume (Space)';
+        t.disabled = chess.active === null || chess.flagged !== null;
+    }
+}
+function updateMultiCards() {
+    for (const m of multi) {
+        const r = m.runner, card = $('#ult-multi-' + m.id);
+        if (!card) continue;
+        card.dataset.state = r.finished ? 'done' : r.running ? 'running' : 'idle';
+        $('#ult-multi-t-' + m.id).textContent = r.finished ? 'Done' : ultFmt(r.left());
+        $('#ult-multi-b-' + m.id).textContent = r.finished ? 'Again' : r.running ? 'Pause' : 'Start';
+    }
+}
+function updateLive() {
+    const id = ui.mode, mode = MODES[id], time = $('#ult-time'), stage = $('#ult-stage');
+    if (mode.kind === 'sequence') {
+        const r = runners[id];
+        if (!r) { if (time) time.textContent = '--:--'; return; }
+        const left = r.left(), phase = r.phase;
+        stage.dataset.kind = stageKind(r);
+        $('#ult-phase').textContent = r.finished ? 'Finished' : r.started ? phase.label : 'Ready';
+        time.textContent = ultFmt(r.finished ? 0 : r.started ? left : r.phases[0].sec * 1000);
+        $('#ult-sub').textContent = (r.started ? 'Step ' + (r.idx + 1) + ' of ' + r.phases.length + ' · ' : r.phases.length + ' step' + (r.phases.length === 1 ? '' : 's') + ' · ') + ultFmt(r.totalMs - r.elapsed()) + ' left of ' + ultFmt(r.totalMs);
+        $('#ult-barfill').style.width = (r.totalMs ? Math.min(100, (r.elapsed() / r.totalMs) * 100) : 0) + '%';
+        time.setAttribute('aria-label', 'Time left ' + ultFmt(left));
+    } else if (mode.kind === 'stopwatch') {
+        stage.dataset.kind = sw.running ? 'work' : 'idle';
+        $('#ult-phase').textContent = sw.running ? 'Running' : sw.elapsed() > 0 ? 'Paused' : 'Ready';
+        time.textContent = ultFmt(sw.elapsed(), true);
+        $('#ult-sub').textContent = sw.laps.length + ' lap' + (sw.laps.length === 1 ? '' : 's');
+        $('#ult-barfill').style.width = '0';
+    } else if (mode.kind === 'multi') {
+        updateMultiCards();
+    } else if (chess) {
+        for (const i of [0, 1]) {
+            const pad = $('#ult-pad-' + i);
+            if (!pad) continue;
+            $('#ult-chess-t-' + i).textContent = ultFmt(chess.left(i), chess.left(i) < 10000 ? true : false);
+            $('#ult-chess-m-' + i).textContent = chess.moves[i] + ' move' + (chess.moves[i] === 1 ? '' : 's') + (chess.flagged === i ? ' · TIME UP' : '');
+            pad.dataset.active = String(chess.active === i && chess.since !== null);
+            pad.dataset.flag = String(chess.flagged === i);
+        }
+    }
+}
+function renderSettings() {
+    const box = $('#ult-settings');
+    const check = (k, label) => '<label class="ult-check"><input type="checkbox" data-setting="' + k + '"' + (settings[k] ? ' checked' : '') + '> ' + label + '</label>';
+    box.innerHTML = check('sound', 'Beeps and bells') + check('voice', 'Speak step names aloud') + check('vibrate', 'Vibrate on phase changes (if the device can)') + check('keepAwake', 'Keep the screen awake while a timer runs') +
+        '<label class="ult-field"><span>Volume</span><input type="range" min="0" max="1" step="0.05" value="' + settings.volume + '" data-setting="volume" aria-label="Volume"></label>' +
+        '<label class="ult-field"><span>Beep in the last N seconds</span><select data-setting="finalBeeps">' + [0, 3, 5, 10].map((n) => '<option value="' + n + '"' + (settings.finalBeeps === n ? ' selected' : '') + '>' + (n ? n + ' seconds' : 'No countdown beeps') + '</option>').join('') + '</select></label>' +
+        '<div class="ult-row"><button type="button" class="ult-btn" data-act="test-sound">Test sound</button></div>';
+}
+
+/* ---- opening, closing, keyboard ----------------------------------------------------------------------------- */
+function open(modeId) {
+    if (modeId && MODES[modeId]) ui.mode = modeId;
+    ui.opener = document.activeElement;
+    ui.open = true;
+    $('#ult-overlay').hidden = false;
+    renderSettings();
+    renderLog();
+    render();
+    reschedule();
+    $('#ult-panel').focus();
+}
+function close() {
+    if (document.fullscreenElement) { try { document.exitFullscreen(); } catch (e) { /* ignore */ } }
+    ui.open = false;
+    $('#ult-overlay').hidden = true;
+    reschedule();
+    if (ui.opener && ui.opener.focus) ui.opener.focus();
+}
+function switchMode(id) {
+    if (!MODES[id]) return;
+    ui.mode = id; settings.mode = id; saveSettings();
+    render();
+    const tab = $('#ult-tab-' + id);
+    if (tab && document.activeElement && document.activeElement.getAttribute('role') === 'tab') tab.focus();
+}
+function currentToggle() {
+    const id = ui.mode, kind = MODES[id].kind;
+    if (kind === 'sequence') { const r = ensureRunner(id); if (r) r.toggle(); else updateControls(); }
+    else if (kind === 'stopwatch') { if (sw.running) sw.pause(); else sw.start(); updateControls(); reschedule(); syncTabs(); }
+    else if (kind === 'chess') { if (chess.running) chess.pause(); else chess.resume(); updateControls(); reschedule(); syncTabs(); }
+    updateLive();
+}
+function currentReset() {
+    const id = ui.mode, kind = MODES[id].kind;
+    if (kind === 'sequence') { if (runners[id]) runners[id].reset(); runners[id] = null; if (id === 'amrap') amrapCount = 0; }
+    else if (kind === 'stopwatch') sw.reset();
+    else if (kind === 'chess') chess = new UltChess(values.chess.base, values.chess.inc, clock);
+    render(); reschedule();
+}
+function addAmrap(delta) { const r = runners.amrap; if (!r || !r.started || r.finished) return; amrapCount = Math.max(0, amrapCount + delta); const el = $('#ult-amrap'); if (el) el.textContent = String(amrapCount); if (delta > 0) cue.tick(); }
+function doLap() { const lap = sw.lap(); if (!lap) return; $('#ult-laps').innerHTML = lapsHtml(); announce('Lap ' + lap.n + ' ' + ultFmt(lap.split, true)); cue.tick(); }
+
+document.addEventListener('keydown', (e) => {
+    const t = e.target, tag = t && t.tagName;
+    const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable);
+    if (!ui.open) {
+        // T opens the toolkit from the main page (never while typing, and never with a modifier key held).
+        if (e.code === 'KeyT' && !typing && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) { e.preventDefault(); open(); }
+        return;
+    }
+    // While the toolkit is open it owns the keyboard: the main page's own shortcuts (Space, R, S, F) must not also fire.
+    e.stopPropagation();
+    if (e.code === 'Escape') { e.preventDefault(); close(); return; }
+    if (e.code === 'Tab') {
+        const items = [...$('#ult-panel').querySelectorAll('button, input, select, summary, [tabindex="0"]')].filter((el) => !el.disabled && el.offsetParent !== null);
+        if (!items.length) return;
+        const first = items[0], last = items[items.length - 1];
+        if (e.shiftKey && (document.activeElement === first || document.activeElement === $('#ult-panel'))) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        return;
+    }
+    if (tag === 'BUTTON' && t.getAttribute('role') === 'tab' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight' || e.code === 'Home' || e.code === 'End')) {
+        e.preventDefault();
+        const i = MODE_ORDER.indexOf(ui.mode);
+        const next = e.code === 'Home' ? 0 : e.code === 'End' ? MODE_ORDER.length - 1 : (i + (e.code === 'ArrowRight' ? 1 : -1) + MODE_ORDER.length) % MODE_ORDER.length;
+        switchMode(MODE_ORDER[next]);
+        return;
+    }
+    if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
+    const digit = /^Digit([1-8])$/.exec(e.code);
+    if (digit) { e.preventDefault(); switchMode(MODE_ORDER[Number(digit[1]) - 1]); return; }
+    const kind = MODES[ui.mode].kind;
+    // Space and Enter belong to a focused button (they press it); everywhere else Space starts and pauses.
+    if (e.code === 'Space' && tag !== 'BUTTON' && tag !== 'SUMMARY') { e.preventDefault(); currentToggle(); return; }
+    if (e.code === 'KeyR') { e.preventDefault(); currentReset(); return; }
+    if (kind === 'sequence') {
+        if (e.code === 'KeyN' && runners[ui.mode]) { e.preventDefault(); runners[ui.mode].next(); }
+        else if (e.code === 'KeyP' && runners[ui.mode]) { e.preventDefault(); runners[ui.mode].prev(); }
+        else if (e.code === 'KeyL' && ui.mode === 'amrap') { e.preventDefault(); addAmrap(1); }
+    } else if (kind === 'stopwatch' && e.code === 'KeyL') { e.preventDefault(); doLap(); }
+    else if (kind === 'chess' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) { e.preventDefault(); pressChess(e.code === 'ArrowLeft' ? 0 : 1); }
+}, true);
+
+function pressChess(i) {
+    if (!chess.press(i)) return;
+    cue.tick();
+    updateControls(); updateLive(); reschedule(); syncTabs();
+}
+function savePreset() {
+    const id = ui.mode, input = $('#ult-preset-name');
+    const name = (input && input.value || '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 30);
+    if (!name) { announce('Type a name for the setup first.'); if (input) input.focus(); return; }
+    const list = (Array.isArray(presets[id]) ? presets[id] : []).filter((p) => p.name !== name);
+    list.push({ name, values: Object.assign({}, values[id]) });
+    presets[id] = list.slice(-20);
+    store.set(KEYS.presets, presets);
+    render();
+    announce('Saved ' + name);
+}
+function applyValues(id, raw) {
+    values[id] = ultNormalize(id, raw);
+    settings.values[id] = values[id]; saveSettings();
+    if (id === 'chess') chess = new UltChess(values.chess.base, values.chess.inc, clock);
+    else { runners[id] = null; if (id === 'amrap') amrapCount = 0; }
+    render(); reschedule();
+}
+
+$('#ult-overlay').addEventListener('click', (e) => {
+    if (e.target === $('#ult-overlay')) { close(); return; }
+    const el = e.target.closest('[data-act]');
+    if (!el || el.disabled) return;
+    const act = el.dataset.act, id = ui.mode;
+    switch (act) {
+        case 'close': close(); break;
+        case 'mode': switchMode(el.dataset.mode); break;
+        case 'settings': ui.settingsOpen = !ui.settingsOpen; $('#ult-settings').hidden = !ui.settingsOpen; el.setAttribute('aria-expanded', String(ui.settingsOpen)); break;
+        case 'fullscreen': { const p = $('#ult-panel'); try { if (document.fullscreenElement) document.exitFullscreen(); else if (p.requestFullscreen) p.requestFullscreen(); } catch (err) { announce('Full screen is not available here.'); } break; }
+        case 'toggle': currentToggle(); break;
+        case 'reset': currentReset(); break;
+        case 'next': if (runners[id]) runners[id].next(); break;
+        case 'prev': if (runners[id]) runners[id].prev(); break;
+        case 'lap': doLap(); break;
+        case 'sw-save': if (sw.elapsed() > 0) { logRun('stopwatch', 'Stopwatch', sw.elapsed() / 1000, sw.laps.length + ' laps'); announce('Saved to the log'); } break;
+        case 'laps-copy': copyText(sw.toCsv()).then((ok) => announce(ok ? 'Laps copied' : 'Could not copy')); break;
+        case 'amrap-plus': addAmrap(1); break;
+        case 'amrap-minus': addAmrap(-1); break;
+        case 'quick': applyValues(id, Object.assign({}, ultDefaults(id), MODES[id].quick[Number(el.dataset.i)][1])); break;
+        case 'preset-load': { const sel = $('#ult-preset'); const p = sel && presets[id] && presets[id][Number(sel.value)]; if (p) applyValues(id, p.values); break; }
+        case 'preset-delete': { const sel = $('#ult-preset'); if (sel && sel.value !== '' && presets[id]) { presets[id].splice(Number(sel.value), 1); store.set(KEYS.presets, presets); render(); } break; }
+        case 'preset-save': savePreset(); break;
+        case 'multi-quick': { const q = [['Tea', 180], ['Eggs', 600], ['Pasta', 540], ['Rice', 1080], ['Laundry', 2700], ['Plank', 60]][Number(el.dataset.i)]; addMulti(q[0], q[1]); render(); reschedule(); break; }
+        case 'multi-toggle': { const m = multi.find((x) => x.id === Number(el.dataset.id)); if (m) { if (m.runner.finished) m.runner.reset(); m.runner.toggle(); } break; }
+        case 'multi-reset': { const m = multi.find((x) => x.id === Number(el.dataset.id)); if (m) { m.runner.reset(); updateMultiCards(); reschedule(); } break; }
+        case 'multi-remove': multi = multi.filter((x) => x.id !== Number(el.dataset.id)); render(); reschedule(); break;
+        case 'chess-press': pressChess(Number(el.dataset.i)); break;
+        case 'log-copy': copyText(logCsv()).then((ok) => announce(ok ? 'Log copied as CSV' : 'Could not copy')); break;
+        case 'log-clear': log = []; store.set(KEYS.log, log); renderLog(); break;
+        case 'test-sound': cue.go(); setTimeout(cue.done, 500); break;
+    }
+});
+$('#ult-overlay').addEventListener('change', (e) => {
+    const f = e.target.dataset && e.target.dataset.field;
+    const s = e.target.dataset && e.target.dataset.setting;
+    if (f) {
+        const id = ui.mode;
+        values[id] = ultNormalize(id, Object.assign({}, values[id], { [f]: e.target.type === 'number' ? e.target.value : e.target.value }));
+        settings.values[id] = values[id]; saveSettings();
+        e.target.value = values[id][f];
+        if (id === 'chess') chess = new UltChess(values.chess.base, values.chess.inc, clock);
+        else { runners[id] = null; ensureRunner(id); }
+        updateControls(); updateLive();
+    } else if (s) {
+        settings[s] = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'range' ? Number(e.target.value) : Number(e.target.value);
+        saveSettings();
+        reschedule();
+    }
+});
+$('#ult-overlay').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (e.target.id !== 'ult-multi-form') return;
+    const min = ultClamp($('#ult-multi-min').value, 0, 5999, 0), sec = ultClamp($('#ult-multi-sec').value, 0, 59, 0);
+    if (min * 60 + sec <= 0) { announce('Set a time greater than zero.'); return; }
+    addMulti($('#ult-multi-name').value, min * 60 + sec);
+    render(); reschedule();
+    $('#ult-multi-name').focus();
+});
+document.addEventListener('visibilitychange', () => { reschedule(); if (!document.hidden && anyRunning()) tickAll(); });
+document.addEventListener('fullscreenchange', () => { const b = $('#ult-panel [data-act="fullscreen"]'); if (b) b.textContent = document.fullscreenElement ? 'Exit full screen' : 'Full screen'; });
+
+window.openTimerToolkit = open;
+window.UltTimerToolkit = { open, close };
+})();
+</script>
 
 </body>
 </html>
