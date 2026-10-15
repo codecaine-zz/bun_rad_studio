@@ -290,4 +290,6 @@ export function renderHome() {
 export function wireHome() {
   const refresh = () => built && state.workspace === "home" && fillSections();
   for (const ev of ["places", "settings", "clipboard", "undo"]) on(ev, refresh);
+  // The database shortcuts arrive a moment after Home is drawn, and follow the "open in" choice in Settings.
+  for (const ev of ["db-shortcuts", "settings"]) on(ev, () => built && state.workspace === "home" && fillTiles());
 }

@@ -2472,7 +2472,10 @@ ${MACRO_STYLE}
     // ---------------------------------------------------------------------------------------------
     // Fullscreen Support & Browser Auto-Fullscreen
     // ---------------------------------------------------------------------------------------------
+    // Inside the File Manager the studio sits in a frame: browser full screen would be left with Esc, which the studio needs.
+    const insideFrame = window.parent !== window;
     window.doToggleFullscreen = function() {
+      if (insideFrame) return;
       if (typeof window.toggleFullscreen === "function") {
         try { window.toggleFullscreen(); return; } catch(e) {}
       }
@@ -2514,7 +2517,7 @@ ${MACRO_STYLE}
     // If accessed via external browser tab, automatically enter fullscreen on first user interaction
     let autoFullscreenAttempted = false;
     function attemptBrowserFullscreen() {
-      if (autoFullscreenAttempted) return;
+      if (autoFullscreenAttempted || insideFrame) return;
       autoFullscreenAttempted = true;
       if (!window.toggleFullscreen && !document.fullscreenElement && !document.webkitFullscreenElement && (document.fullscreenEnabled || document.webkitFullscreenEnabled)) {
         if (document.documentElement.requestFullscreen) {

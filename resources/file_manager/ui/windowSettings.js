@@ -8,7 +8,7 @@ import { bridge, buildReport, hasDesktopWindow, pageMetrics, untilSettled } from
 export const WINDOW_MODES = [
   ["fill", "Fill the screen (default)", "The window opens as large as the screen allows, keeping the menu bar and the Dock (or task bar) in view."],
   ["remember", "Remember my window", "The window opens with the size and position you last left it at."],
-  ["fullscreen", "True full screen", "The window uses the computer's full-screen mode. On a Mac it gets its own desktop: press Esc or Ctrl+Cmd+F to leave it."],
+  ["fullscreen", "True full screen", "The window uses the computer's full-screen mode. On a Mac it gets its own desktop: press Ctrl+Cmd+F, or choose another window mode here, to leave it. Esc does not leave full screen, so it keeps working inside the tools."],
 ];
 
 /** "Saved: 1280 × 820 at 120, 80", with what else is remembered. */

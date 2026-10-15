@@ -7,6 +7,7 @@ import { renderEffective } from "./dbEffective.js";
 import { renderTestResult, showEditor } from "./dbEditor.js";
 import { showEngineSettings } from "./dbSettings.js";
 import { db, engineInfo, environmentBadge, errorText, loadOverview, passwordWords, selectedProfile, summaryOf, studiosFor } from "./dbState.js";
+import { openShortcut } from "./dbShortcuts.js";
 import { openStudio } from "./dbStudio.js";
 import { toast } from "./menus.js";
 import { emit } from "./state.js";
@@ -48,6 +49,10 @@ export function renderDetail(box) {
 
   const openBtn = h("button", { type: "button", class: "pw-btn primary", title: `Open ${info.studioName} for this connection, here in the tab`, disabled: !info.studioAvailable }, `Open in ${info.studioName}`);
   openBtn.addEventListener("click", () => openStudio({ profileId: p.id }));
+  const windowBtn = h("button", { type: "button", class: "pw-btn", title: `Open ${info.studioName} for this connection as its own desktop window (Shift+Enter in the list uses the choice in Settings)`, disabled: !info.studioAvailable }, "Open in a window");
+  windowBtn.addEventListener("click", () => openShortcut(p, "window"));
+  const browserBtn = h("button", { type: "button", class: "pw-btn", title: `Open ${info.studioName} for this connection in your web browser`, disabled: !info.studioAvailable }, "Open in my browser");
+  browserBtn.addEventListener("click", () => openShortcut(p, "browser"));
   const testBtn = h("button", { type: "button", class: "pw-btn", title: "Try to connect now (10 seconds at most; nothing is changed)" }, "Test connection");
   testBtn.addEventListener("click", async () => {
     testBtn.disabled = true;
@@ -68,7 +73,7 @@ export function renderDetail(box) {
     emit("db-overview");
   };
   const buttons = h("div", { class: "pw-row db-actions" },
-    openBtn, testBtn,
+    openBtn, windowBtn, browserBtn, testBtn,
     act("Edit…", "Change this connection", async () => { if (await showEditor({ profile: p })) await changed(); }),
     act("Duplicate…", "Make a copy of this connection", async () => {
       const choice = await chooseCopy(p);

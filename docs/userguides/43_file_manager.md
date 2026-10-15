@@ -72,7 +72,7 @@ If the window was saved on a monitor that is no longer connected, or is bigger t
 |---|---|
 | **Fill the screen (default)** | The window fills the screen's usable area |
 | **Remember my window** | The window opens with the size and position you last left it at. This is chosen for you the moment you change the window. Choosing it yourself, when nothing is remembered yet, remembers the window as it is now |
-| **True full screen** | The computer's full-screen mode. On a Mac the window gets its own desktop; press **Esc** or **Ctrl+⌘+F** to leave it |
+| **True full screen** | The computer's full-screen mode. On a Mac the window gets its own desktop; leave it with **Ctrl+⌘+F** or by choosing another mode here. **Esc never leaves full screen**, so it keeps its own jobs inside the tools (closing a dialog, cancelling a query). The database studios inside the File Manager don't use the browser's full screen either |
 
 Picking a choice applies it to the open window straight away. Under the choices Settings shows what is saved in plain words (for example *Saved: 1280 × 820 at 120, 80*), and two buttons:
 
@@ -448,7 +448,9 @@ A blank field in a connection falls back down this list. A password never falls 
 
 **Production and read-only.** The studios have **no read-only mode**, so a connection marked *Production* or *Read-only* asks before a studio opens ("you could change or delete data in it. Open it anyway?") and keeps a warning banner above the studio. For a real read-only session use a database account that can only read.
 
-**SQLite files.** In the file list, a file whose first bytes really are SQLite's header (not just one named `.db`) gets **Open in SQLite Studio** and **Add as database connection** in its right-click menu, and **Open with…** offers *SQLite Studio (built in)* (you can choose it for a file type; the default way of opening a file is not changed).
+**Shortcuts.** Every saved connection also has two quick buttons in its details, **Open in a window** (its own desktop window, nothing inside the File Manager) and **Open in my browser** (the studio runs in the background and your browser is pointed at it; it stops when the File Manager closes). The Home page shows a tile for your favourite and most recently used connections that opens it with one click, and **Shift+Enter** on a connection in the list does the same. Which of the two the tiles and Shift+Enter use is **Settings → Database shortcuts open in** (their own window, the default, or my web browser). Production and read-only connections still ask first. Showing the tiles never reads your keychain, and a Redis connection with a password can only be opened in the browser (its window takes the address on the command line).
+
+**SQLite files.** In the file list, a file whose first bytes really are SQLite's header (not just one named `.db`) gets **Open in SQLite Studio** (in the tab), **Open in SQLite Studio in its own window**, **Open in SQLite Studio in my browser** and **Add as database connection** in its right-click menu, and **Open with…** offers *SQLite Studio (built in)* (you can choose it for a file type; the default way of opening a file is not changed).
 
 **Limits.** Redis Studio shows every key, ignores a key prefix and cannot be made read-only; MySQL and PostgreSQL Studio only switch TLS on or off (a CA file and "don't check the certificate" apply to *Test connection* only); MySQL Studio needs a database name (without one it opens `my_app_dev`); SQLite *read-only* mode applies to *Test connection* only. Pages in a studio that open a new browser window (printing a report, for example) are blocked by the frame. Studios are the same programs you start from the launcher: in a release folder they are looked for beside the File Manager, and in the one-app-per-download Mac packages in the other `.app` folders next to it (this lookup is tested with stand-in folder layouts, not yet with the real downloads).
 

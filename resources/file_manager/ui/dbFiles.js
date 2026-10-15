@@ -1,9 +1,10 @@
-// Databases in the file list: a real SQLite file (its first bytes say so, not just its name) gets "Open in SQLite Studio"
-// and "Add as database connection", and a `.env` file gets "Import database settings…". Also registers SQLite Studio
+// Databases in the file list: a real SQLite file (its first bytes say so, not just its name) gets "Open in SQLite Studio" (in the tab, in
+// its own window or in the web browser) and "Add as database connection", and a `.env` file gets "Import database settings…". Also registers SQLite Studio
 // as a built-in program for Open with…, so a person can choose it for a file type; the default way to open is untouched.
 import { call } from "./api.js";
 import { showEditor } from "./dbEditor.js";
 import { showEnvFileImport } from "./dbImport.js";
+import { openTarget } from "./dbShortcuts.js";
 import { toast } from "./menus.js";
 import { registerOpener } from "./openwith.js";
 import { openPower } from "./power.js";
@@ -64,6 +65,8 @@ export function sqliteMenuItems(entries) {
   const e = entries[0];
   return [
     { label: "Open in SQLite Studio", icon: "🪶", tip: "Open this database in SQLite Studio, inside the Databases tool.", action: () => openInSqliteStudio(e.path) },
+    { label: "Open in SQLite Studio in its own window", icon: "🪟", tip: "Open this database in SQLite Studio as a separate desktop window.", action: () => openTarget({ engine: "sqlite", path: e.path }, { name: baseName(e.path, state.sep), mode: "window" }) },
+    { label: "Open in SQLite Studio in my browser", icon: "🌐", tip: "Open this database in SQLite Studio in your web browser. The studio runs here and stops when the File Manager closes.", action: () => openTarget({ engine: "sqlite", path: e.path }, { name: baseName(e.path, state.sep), mode: "browser" }) },
     { label: "Add as database connection", icon: "🗄️", tip: "Save this file as a connection in the Databases tool.", action: () => addConnection(e) },
   ];
 }

@@ -286,6 +286,25 @@ describe("running studios (real child processes standing in for the studios)", (
     expect((await failing.api("db/studio/window", { profileId: fid })).json.error.code).toBe("OPEN_FAILED");
   });
 
+  test("db/shortcuts lists the saved connections without a password, and a SQLite file can be opened in a window by its path", async () => {
+    const calls: Array<{ command: string[] }> = [];
+    const c = computer({ hooks: { spawnWindow: async (command) => (calls.push({ command }), { ok: true }) } });
+    const file = join(c.dir, "s.sqlite");
+    new Database(file).run("create table t(x)");
+    await c.ok("db/profile/save", { profile: { engine: "mysql", name: "shop", host: "h", database: "shop", favorite: true }, password: "pw-for-shortcut-1" });
+    const list = (await c.ok("db/shortcuts")).shortcuts;
+    expect(list.map((s: any) => [s.name, s.label, s.studioAvailable])).toEqual([["shop", "MySQL / MariaDB", true]]);
+    expect(JSON.stringify(list)).not.toContain("pw-for-shortcut-1");
+    await c.ok("db/studio/window", { engine: "sqlite", path: file });
+    expect(calls[0]!.command.slice(-2)).toEqual([FAKE_STUDIO, file]);
+    const none = computer({ hooks: { studioCommand: () => null } });
+    await none.ok("db/profile/save", { profile: { engine: "sqlite", name: "x", sqliteMode: "memory" } });
+    expect((await none.ok("db/shortcuts")).shortcuts[0].studioAvailable).toBe(false);
+    expect((await c.ok("settings")).settings.dbShortcut).toBe("window");
+    expect((await c.ok("settings", { set: { dbShortcut: "browser" } })).settings.dbShortcut).toBe("browser");
+    expect((await c.ok("settings", { set: { dbShortcut: "nonsense" } })).settings.dbShortcut).toBe("window");
+  });
+
   test("'Open in my browser' opens only the address of a running studio of ours", async () => {
     const launched: string[][] = [];
     const c = computer({ hooks: {} });
@@ -322,6 +341,9 @@ describe("the frame a studio is shown in (the page's policy for it)", () => {
     expect(html).not.toContain("<script");
     expect(html).toContain("&lt;script&gt;");
     expect(html).not.toContain("allow-top-navigation");
+    // Esc leaves a browser full screen, and the studios use Esc themselves: the frame never gets full screen
+    expect(html).toContain('allow="clipboard-write"');
+    expect(html).not.toContain("fullscreen");
     expect(html).not.toContain("allow-popups");
     expect(STUDIO_SANDBOX.split(" ").sort()).toEqual(["allow-downloads", "allow-forms", "allow-modals", "allow-same-origin", "allow-scripts"]);
     // not on the File Manager's own address, not for unknown or stopped studios, never with a token in the way

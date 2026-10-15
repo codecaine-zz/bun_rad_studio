@@ -10,8 +10,8 @@ import type { StudioManager } from "./fmDbStudios";
 const escapeAttr = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 /** The sandbox flags a studio needs, each for a reason (the studios are full web apps). */
-/** What the studio page may ask the browser for: copying results, and full screen (the studios offer a full-screen view). Nothing else. */
-export const STUDIO_ALLOW = "clipboard-write; fullscreen";
+/** What the studio page may ask the browser for: copying results. Not full screen: leaving a browser full screen takes the Esc key, which the studios use for their own things. */
+export const STUDIO_ALLOW = "clipboard-write";
 
 export const STUDIO_SANDBOX = "allow-scripts allow-same-origin allow-forms allow-modals allow-downloads";
 

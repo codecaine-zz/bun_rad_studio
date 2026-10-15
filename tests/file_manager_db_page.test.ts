@@ -646,7 +646,7 @@ describe("databases in the file list", () => {
     emit("view");
     await until(() => files.isSqliteFile(state.entries[0]), "the real file to be recognised");
     await sleep(150);
-    expect(files.sqliteMenuItems([state.entries[0]]).map((i: any) => i.label)).toEqual(["Open in SQLite Studio", "Add as database connection"]);
+    expect(files.sqliteMenuItems([state.entries[0]]).map((i: any) => i.label)).toEqual(["Open in SQLite Studio", "Open in SQLite Studio in its own window", "Open in SQLite Studio in my browser", "Add as database connection"]);
     expect(files.sqliteMenuItems([state.entries[1]])).toEqual([]);
     expect(files.sqliteMenuItems([state.entries[2]])).toEqual([]);
     expect(files.sqliteMenuItems([state.entries[0], state.entries[1]])).toEqual([]);
@@ -692,6 +692,74 @@ describe("databases in the file list", () => {
     await done;
     expect((await call("db/overview")).profiles.some((p: any) => p.host === "pg.project.example" && p.hasPassword)).toBe(true);
     expect(readFileSync(file, "utf8")).toContain(`PG_PASSWORD=${PW}`);
+  });
+});
+
+describe("shortcuts that open a database in a window or the browser", () => {
+  const launched: string[][] = [];
+  test("a SQLite file can be opened in its own window or in the browser from the right-click menu", async () => {
+    (server.context as { launch: unknown }).launch = async (command: string, args: string[]) => void launched.push([command, ...args]);
+    const real = join(root, "real.sqlite");
+    const { state, emit } = await import("../resources/file_manager/ui/state.js");
+    (state as any).entries = [{ name: "real.sqlite", path: real, isDir: false, size: 100, mtimeMs: 1 }];
+    emit("view");
+    await until(() => files.isSqliteFile(state.entries[0]), "the real file to be recognised");
+    const items = files.sqliteMenuItems([state.entries[0]]);
+    const before = windows.length;
+    await items.find((i: any) => i.label.endsWith("its own window")).action();
+    await until(() => windows.length === before + 1, "the window request");
+    expect(windows.at(-1)!.command.at(-1)).toBe(real);
+    expect(toasts()).toContain("real.sqlite is opening in its own window");
+    await items.find((i: any) => i.label.endsWith("my browser")).action();
+    await until(() => launched.length === 1, "the browser to be asked for");
+    expect(launched[0]!.join(" ")).toMatch(/http:\/\/127\.0\.0\.1:\d+\//);
+    expect(toasts()).toContain("real.sqlite is opening in your web browser");
+    await call("db/studio/list").then((r: any) => Promise.all(r.studios.map((s: any) => call("db/studio/stop", { id: s.id }))));
+  });
+
+  test("saved connections become Home tiles that open the way Settings says, and the Databases tool has the same two buttons", async () => {
+    const sc = await import("../resources/file_manager/ui/dbShortcuts.js");
+    const { listHomeTiles } = await import("../resources/file_manager/ui/home.js");
+    const { state } = await import("../resources/file_manager/ui/state.js");
+    const saved = (await call("db/profile/save", { profile: { engine: "sqlite", name: "Quick people", path: join(root, "real.sqlite"), favorite: true } })).profile;
+    sc.resetShortcuts();
+    await sc.loadShortcuts();
+    const tile = () => listHomeTiles().find((t: any) => t.id === `db-shortcut-${saved.id}`);
+    expect(tile()?.title).toBe("Quick people");
+    expect(tile()!.cta).toBe("Open window →");
+    expect(tile()!.text).toContain("its own window");
+    expect(JSON.stringify(listHomeTiles())).not.toContain(PW);
+    const before = windows.length;
+    await tile()!.run();
+    await until(() => windows.length === before + 1, "the window from the tile");
+    (state.settings as any).dbShortcut = "browser";
+    expect(tile()!.cta).toBe("Open in browser →");
+    const launches = launched.length;
+    await tile()!.run();
+    await until(() => launched.length === launches + 1, "the browser from the tile");
+    expect(windows.length).toBe(before + 1);
+    (state.settings as any).dbShortcut = "window";
+    await openTab();
+    await selectRow("Quick people");
+    expect(btn("Open in a window")?.title).toContain("own desktop window");
+    expect(btn("Open in my browser")?.title).toContain("web browser");
+    await call("db/studio/list").then((r: any) => Promise.all(r.studios.map((s: any) => call("db/studio/stop", { id: s.id }))));
+  });
+
+  test("a production connection still asks first, and Cancel opens nothing", async () => {
+    const sc = await import("../resources/file_manager/ui/dbShortcuts.js");
+    const prod = (await call("db/profile/save", { profile: { engine: "sqlite", name: "Prod shortcut", sqliteMode: "memory", environment: "production" } })).profile;
+    const before = windows.length;
+    const pending = sc.openShortcut(prod, "window");
+    await until(() => top()?.querySelector(".dialog-title")?.textContent === "This is a production connection", "the question");
+    click(btn("Cancel", top()));
+    expect(await pending).toBe(false);
+    expect(windows.length).toBe(before);
+    const again = sc.openShortcut(prod, "window");
+    await until(() => top()?.querySelector(".dialog-title")?.textContent === "This is a production connection", "the question again");
+    click(btn("Open anyway", top()));
+    expect(await again).toBe(true);
+    expect(windows.length).toBe(before + 1);
   });
 });
 

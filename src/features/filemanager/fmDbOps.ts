@@ -42,6 +42,20 @@ export const databaseOperations: Record<string, FmHandler> = {
     };
   },
 
+  /**
+   * The saved connections for quick-open buttons (Home, the Databases tab): no keychain is read, so showing them never asks
+   * for anything, and no password is in the answer. `windowReady` says whether the studio can run in its own window.
+   */
+  async "db/shortcuts"(ctx) {
+    const st = dbState(ctx);
+    return {
+      shortcuts: st.store.listPlain().map((p) => {
+        const info = ENGINES[p.engine];
+        return { ...p, label: info.label, icon: info.icon, studioName: info.studioName, studioAvailable: Boolean(st.hooks.studioCommand(p.engine)) };
+      }),
+    };
+  },
+
   async "db/profile/save"(ctx, b) {
     const st = dbState(ctx);
     if (!isObject(b.profile)) throw new FmError("BAD_REQUEST", "There is no connection to save.");

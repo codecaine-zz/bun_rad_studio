@@ -291,6 +291,7 @@ export function showSettings() {
       choice("Colours", "theme", [["auto", "Match my computer"], ["light", "Light"], ["dark", "Dark"]]),
       choice("When the File Manager starts, show", "startWith", [["files", "My files"], ["home", "The Home page"], ["last", "The view I used last time"]]),
       choice("When I press Delete, use", "deleteTo", [["bin", "The File Manager's Recycle Bin"], ["graveyard", "The Rip graveyard"]], undefined, "Where the Delete key and the Delete button send things. The Recycle Bin is only for this app; the Rip graveyard is shared with Rip Studio. Both can be undone."),
+      choice("Database shortcuts open in", "dbShortcut", [["window", "Their own window"], ["browser", "My web browser"]], undefined, "Where the quick-open buttons for saved database connections (on the Home page, and Shift+Enter in the Databases tool) show the studio."),
       h("p", { class: "hint" }, "The Recycle Bin belongs to this app only. The Rip graveyard is shared with Rip Studio and the bun run cli:rip command, and is found in Find & more → Graveyard. Both can be undone."),
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Text size"), h("span", { class: "range-row" }, size, sizeValue)),
       toggle("Show hidden files and folders", "showHidden"),

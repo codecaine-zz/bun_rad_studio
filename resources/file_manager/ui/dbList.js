@@ -23,8 +23,8 @@ export function groupedProfiles(filter = "") {
   return [...groups.entries()].sort(([a], [b]) => (a === NO_FOLDER ? 1 : b === NO_FOLDER ? -1 : a.localeCompare(b, undefined, { sensitivity: "base" })));
 }
 
-/** Draws the list into `box`. `open(profile)` runs for Enter and double-click. */
-export function renderList(box, { filter = "", open }) {
+/** Draws the list into `box`. `open(profile)` runs for Enter and double-click; `shortcut(profile)` for Shift+Enter (its own window or the browser). */
+export function renderList(box, { filter = "", open, shortcut }) {
   clear(box);
   const groups = groupedProfiles(filter);
   if (!db.profiles.length) {
@@ -74,7 +74,9 @@ export function renderList(box, { filter = "", open }) {
     else if (e.key === "End") next = rows.length - 1;
     else if (e.key === "Enter" && at >= 0) {
       e.preventDefault();
-      open?.(db.profiles.find((p) => p.id === rows[at].dataset.id));
+      const chosen = db.profiles.find((p) => p.id === rows[at].dataset.id);
+      if (e.shiftKey) shortcut?.(chosen);
+      else open?.(chosen);
       return;
     } else return;
     e.preventDefault();

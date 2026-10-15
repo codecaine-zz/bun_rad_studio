@@ -154,7 +154,7 @@ function paint(pane) {
   parts.message.hidden = !note;
   parts.message.textContent = note ?? "";
   if (live && !pane.frame) {
-    const frame = h("iframe", { class: "db-studio-frame", title: info.title, src: embeddedUrl(`dbstudio/${info.id}`), referrerpolicy: "no-referrer", loading: "eager", allow: "clipboard-write; fullscreen", sandbox: STUDIO_SANDBOX });
+    const frame = h("iframe", { class: "db-studio-frame", title: info.title, src: embeddedUrl(`dbstudio/${info.id}`), referrerpolicy: "no-referrer", loading: "eager", allow: "clipboard-write", sandbox: STUDIO_SANDBOX });
     pane.frame = frame;
     clear(pane.frameBox);
     pane.frameBox.append(frame);

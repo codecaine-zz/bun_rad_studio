@@ -3822,7 +3822,10 @@ function buildPostgresHtml(): string {
     // ---------------------------------------------------------------------------------------------
     // Fullscreen Support & Browser Auto-Fullscreen
     // ---------------------------------------------------------------------------------------------
+    // Inside the File Manager the studio sits in a frame: browser full screen would be left with Esc, which the studio needs.
+    const insideFrame = window.parent !== window;
     window.doToggleFullscreen = function() {
+      if (insideFrame) return;
       if (typeof window.toggleFullscreen === "function") {
         try { window.toggleFullscreen(); return; } catch(e) {}
       }

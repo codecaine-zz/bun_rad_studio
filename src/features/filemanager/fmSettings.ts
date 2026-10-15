@@ -46,6 +46,8 @@ export interface Settings {
   serveOptions: { kind: "auto" | "static" | "php"; liveReload: boolean; openBrowser: boolean };
   /** Where Delete sends things: the File Manager's own Recycle Bin, or the Rip graveyard (shared with the `rip` tools). */
   deleteTo: "bin" | "graveyard";
+  /** Where the quick-open buttons for saved database connections show the studio: its own desktop window, or the web browser. */
+  dbShortcut: "window" | "browser";
 }
 
 export const WORKSPACES = ["files", "home", "tools", "split", "dual"] as const;
@@ -83,6 +85,7 @@ export const DEFAULT_SETTINGS: Settings = {
   editor: "default",
   serveOptions: { kind: "auto", liveReload: true, openBrowser: true },
   deleteTo: "bin",
+  dbShortcut: "window",
 };
 
 export const MAX_FAVORITES = 100;
@@ -144,6 +147,7 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     editor: oneOf(r.editor, ["default", "vscode", "subl", "webstorm", "idea"], DEFAULT_SETTINGS.editor),
     serveOptions: sanitizeServeOptions(r.serveOptions),
     deleteTo: oneOf(r.deleteTo, ["bin", "graveyard"], DEFAULT_SETTINGS.deleteTo),
+    dbShortcut: oneOf(r.dbShortcut, ["window", "browser"], DEFAULT_SETTINGS.dbShortcut),
   };
 }
 

@@ -8,6 +8,7 @@ import { renderDetail } from "./dbDetail.js";
 import { showEditor } from "./dbEditor.js";
 import { showEnvFileImport, showEnvImport, showPasteUrl } from "./dbImport.js";
 import { renderList } from "./dbList.js";
+import { openShortcut } from "./dbShortcuts.js";
 import { db, loadOverview, profileById } from "./dbState.js";
 import { hideStudios, mountStudioArea, openStudio, openStudios, showStudioById } from "./dbStudio.js";
 import { showMenu } from "./menus.js";
@@ -39,7 +40,7 @@ function mount(root) {
   root.append(toolbar, keychain, found, detectBox, strip, main, studios);
   mountStudioArea(studios);
 
-  const drawList = () => renderList(listBox, { filter, open: (p) => openStudio({ profileId: p.id }) });
+  const drawList = () => renderList(listBox, { filter, open: (p) => openStudio({ profileId: p.id }), shortcut: (p) => openShortcut(p) });
 
   const choose = async (profile) => {
     if (!profile) return;
