@@ -63,6 +63,9 @@ describe(`Focus mode on the ${ENGINE} studio (jsdom against the real server)`, (
 
   test("Alt+Enter toggles focus, never Esc; double-click on a header toggles; the shortcut is listed", async () => {
     const s = await openStudio(BASE, { table: "wide" });
+    // The studio's own one-time "go full screen on the first key or click" (outside the File Manager) is not focus mode: let it fire first
+    s.key("Shift", {}, s.w);
+    await sleep(50);
     const fs0 = s.fullscreen.length;
     let ev = s.key("Enter", { altKey: true }, s.w);
     assert.ok(ev.defaultPrevented);
