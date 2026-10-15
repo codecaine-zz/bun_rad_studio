@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { createContext, type FmContext } from "../src/features/filemanager/fmCore";
@@ -650,8 +650,9 @@ describe.skipIf(!posix)("Undo", () => {
     const d = tree();
     const r = (await apply(ctx, { paths: [d], change: { set: { file: 0o600, dir: 0o700 }, recursive: { scope: "all" } }, confirmed: true })).result;
     chmodSync(join(d, "a.txt"), 0o640); // changed again by someone else
-    unlinkSync(join(d, "run.sh"));
-    put(join(d, "run.sh"), 0o666); // same name, a different file
+    // same name, a different file: made while the old one still exists, so it can't get the old one's inode number
+    put(join(d, "run.sh.new"), 0o666);
+    renameSync(join(d, "run.sh.new"), join(d, "run.sh"));
     rmSync(join(d, "sub", "deep", "d.txt")); // gone
     const u = ((await permsOperations["perms/undo"]!(ctx, { undo: r.undo.id })) as any).result;
     expect(u.skippedCount).toBe(3);

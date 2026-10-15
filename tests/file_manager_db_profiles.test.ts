@@ -359,9 +359,12 @@ for (const [engine, envName] of [["mysql", "TEST_MYSQL_URL"], ["postgres", "TEST
       expect(good.ok, JSON.stringify(good)).toBe(true);
       expect(good.version).toBeTruthy();
       const wrong = (await c.ok("db/test", { profile, password: "definitely-wrong-password" })).result;
-      expect(wrong.ok).toBe(false);
-      expect(wrong.code).toBe("AUTH_FAILED");
       expect(JSON.stringify(wrong)).not.toContain("definitely-wrong-password");
+      // A throwaway server started without a password accepts any (Redis then ignores the password it was given).
+      if (u.password) {
+        expect(wrong.ok).toBe(false);
+        expect(wrong.code).toBe("AUTH_FAILED");
+      }
     });
   });
 }

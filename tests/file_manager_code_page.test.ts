@@ -406,7 +406,7 @@ describe("the Code tab in a browser-like page", () => {
       expect(readFileSync(helloPath(), "utf8")).not.toContain("auto one");
       await until(() => readFileSync(helloPath(), "utf8").includes("auto one"), "the autosave");
       await until(() => status("saved") === "Autosaved", "the status line to say Autosaved");
-      expect(code.codeHasUnsaved()).toBe(false);
+      await until(() => !code.codeHasUnsaved(), "the editor to count it as saved");
     });
 
     test("typing again restarts the wait, and leaving the editor saves at once", async () => {
