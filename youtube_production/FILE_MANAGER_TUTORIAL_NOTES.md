@@ -1,26 +1,26 @@
-# Codecaine File Manager: the complete, step-by-step guide (87:05)
+# Codecaine File Manager: the complete, step-by-step guide (1:27:05)
 
 ## YouTube title
 
-Codecaine File Manager: Terminal + Files Together, Image & Media Studios, Every Tool, Themes and Databases (complete guide)
+Codecaine File Manager Full Tutorial: Terminal, Media Studios, 180 Themes & Databases
 
 ## YouTube description (copy and paste)
 
 ```text
-A calm, complete, step-by-step guide to the Codecaine File Manager from Bun RAD Studio, made so anyone can follow along. Every button is shown and explained in real time, on a throwaway folder of sample files.
+The complete, step-by-step guide to the Codecaine File Manager: a free, open-source, keyboard-friendly file manager for macOS, Windows and Linux, with its own terminal, picture and media studios, developer tools, 180 themes and full SQLite and MySQL studios built in. Every click is shown in real time, on a throwaway folder of sample files, so you can follow along at your own pace.
 
-What you will learn:
-- The basics: the window, getting around, views, selecting, copying and moving with the task panel (progress, Cancel, Retry), name clashes, the Recycle Bin and Undo, Quick Look.
-- Work faster with the terminal: the file list follows the terminal when you cd, "Go to this folder" and "Open terminal here" move the terminal to your files, and "Insert paths in Terminal" types safely quoted paths of the selected files and folders for you. "Copy paths for Terminal" does the same for any other terminal app. On Windows it follows PowerShell, the Command Prompt and WSL, writing each path the way that shell needs (C:\Users becomes /mnt/c/Users in WSL).
-- Every tool: Convert, Find and bulk rename, Review, Compare, Projects, Actions, QR codes, the code editor, Replace across files with preview and Undo, the Dev tab (code stats, Git, TODO), Watch, Serve, Crypto, Secrets, Env, IP info, Network, Subdomains, Downloads, Calculator, Timer, API, Bundler and the Graveyard.
-- Edit pictures, songs and videos: dozens of one-click edits (black and white, round pictures, sepia, shapes, GIFs), the Image Studio and Media Studio with live sliders, hold to compare, trim, speed, fades and quick recipes, saved presets applied to many files at once, Recent files, and pictures, songs and videos that open right inside the File Manager on Enter.
-- Make it yours: 180 themes with an effects filter (special effects or plain colours), futuristic and rare-system looks (BeOS, OS/2 Warp, Palm OS, Zune…), the theme editor with panel opacity, glass blur, glow, corners, borders and scanlines, ⌘⇧T and Right Option + T to open themes, Right Option + ] / [ to flip through them, Right Option + / for full screen (Esc never leaves it), Command+Q to quit (with an option to only close with the close button), and editable keyboard shortcuts.
-- The database studios: complete SQLite Studio and MySQL Studio walkthroughs.
+⬇️ Download (free): https://github.com/codecaine-zz/bun_rad_studio/releases/latest
+⭐ Source code: https://github.com/codecaine-zz/bun_rad_studio
 
-Free and open source: https://github.com/codecaine-zz/bun_rad_studio
-Download: https://github.com/codecaine-zz/bun_rad_studio/releases/latest
+WHAT YOU WILL LEARN
+📁 The basics: the window, getting around, views, selecting, copy and move with progress, Cancel and Retry, name clashes, the Recycle Bin, Undo and Quick Look.
+⌨️ Terminal + files together: the file list follows your cd, "Open terminal here", and selected files and folders typed into the terminal as safely quoted paths. On Windows it works with PowerShell, the Command Prompt, Git Bash and WSL (C:\Users becomes /mnt/c/Users), no external terminal needed.
+🧰 Every tool: Convert, Find and bulk rename, Review, Compare, Projects, Actions, QR codes, the code editor, Replace across files with Undo, the Dev tab (code stats, Git, TODOs), Watch, Serve, Crypto, Secrets, Env, Network, Downloads, Calculator, Timer, API, Bundler and the Graveyard.
+🎬 Pictures, songs and videos: one-click edits, the Image Studio and Media Studio with live sliders, trim, speed and fades, presets for many files at once, and a built-in viewer and player that opens on Enter.
+🎨 Make it yours: 180 themes, with glass, glow and motion effects, futuristic looks and rare classic systems (BeOS, OS/2 Warp, Palm OS, Zune and more), an effects filter, your own themes with panel opacity and blur, ⌘⇧T to open themes, and every keyboard shortcut changeable.
+🗄️ Databases: complete SQLite Studio and MySQL Studio walkthroughs, from browsing and editing rows to the visual query designer, macros, imports and backups.
 
-Chapters
+CHAPTERS
 0:00 Welcome
 0:51 The window, piece by piece
 5:06 Getting around
@@ -54,28 +54,30 @@ Chapters
 57:21 SQLite: Saving and testing a connection
 58:47 SQLite: A sample database in one click
 59:24 SQLite: SQLite Studio inside the File Manager
-60:41 SQLite: Browsing a table
-61:55 SQLite: Add, edit and delete rows without SQL
-63:01 SQLite: Designing tables visually
-64:01 SQLite: The SQL editor
-65:21 SQLite: The visual query designer
-66:29 SQLite: Building and running a macro
-67:40 SQLite: Inspect, tune and maintain
-68:34 SQLite: Export and one-click backup
-69:15 SQLite: Import with staging, from the file list
-70:43 SQLite: Production connections and shortcuts
-71:20 MySQL: Find the connection and save it
-72:52 MySQL: Test it, see where every value comes from
-74:26 MySQL: Open MySQL Studio inside the window
-75:36 MySQL: The studio's own connection workbench
-76:35 MySQL: The data grid: browse, filter, total and edit rows
-78:07 MySQL: The S Q L editor, presets, and one-click backup
-79:25 MySQL: Design queries and schemas visually
-81:04 MySQL: Live activity, locks, plans and maintenance
-82:47 MySQL: Automate it: build and run a macro
-83:49 MySQL: Load a CSV file with staging, from the file list
-85:35 MySQL: Back to the File Manager: stop, shortcuts and safety
-86:26 That is the tour
+1:00:41 SQLite: Browsing a table
+1:01:55 SQLite: Add, edit and delete rows without SQL
+1:03:01 SQLite: Designing tables visually
+1:04:01 SQLite: The SQL editor
+1:05:21 SQLite: The visual query designer
+1:06:29 SQLite: Building and running a macro
+1:07:40 SQLite: Inspect, tune and maintain
+1:08:34 SQLite: Export and one-click backup
+1:09:15 SQLite: Import with staging, from the file list
+1:10:43 SQLite: Production connections and shortcuts
+1:11:20 MySQL: Find the connection and save it
+1:12:52 MySQL: Test it, see where every value comes from
+1:14:26 MySQL: Open MySQL Studio inside the window
+1:15:36 MySQL: The studio's own connection workbench
+1:16:35 MySQL: The data grid: browse, filter, total and edit rows
+1:18:07 MySQL: The S Q L editor, presets, and one-click backup
+1:19:25 MySQL: Design queries and schemas visually
+1:21:04 MySQL: Live activity, locks, plans and maintenance
+1:22:47 MySQL: Automate it: build and run a macro
+1:23:49 MySQL: Load a CSV file with staging, from the file list
+1:25:35 MySQL: Back to the File Manager: stop, shortcuts and safety
+1:26:26 That is the tour
+
+#FileManager #OpenSource #Tutorial
 ```
 
 ## Notes

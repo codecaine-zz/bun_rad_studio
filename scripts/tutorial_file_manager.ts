@@ -103,26 +103,28 @@ function notesText(marks: Array<{ at: number; title: string }>, total: number): 
 
 ## YouTube title
 
-Codecaine File Manager: Terminal + Files Together, Image & Media Studios, Every Tool, Themes and Databases (complete guide)
+Codecaine File Manager Full Tutorial: Terminal, Media Studios, 180 Themes & Databases
 
 ## YouTube description (copy and paste)
 
 \`\`\`text
-A calm, complete, step-by-step guide to the Codecaine File Manager from Bun RAD Studio, made so anyone can follow along. Every button is shown and explained in real time, on a throwaway folder of sample files.
+The complete, step-by-step guide to the Codecaine File Manager: a free, open-source, keyboard-friendly file manager for macOS, Windows and Linux, with its own terminal, picture and media studios, developer tools, 180 themes and full SQLite and MySQL studios built in. Every click is shown in real time, on a throwaway folder of sample files, so you can follow along at your own pace.
 
-What you will learn:
-- The basics: the window, getting around, views, selecting, copying and moving with the task panel (progress, Cancel, Retry), name clashes, the Recycle Bin and Undo, Quick Look.
-- Work faster with the terminal: the file list follows the terminal when you cd, "Go to this folder" and "Open terminal here" move the terminal to your files, and "Insert paths in Terminal" types safely quoted paths of the selected files and folders for you. "Copy paths for Terminal" does the same for any other terminal app. On Windows it follows PowerShell, the Command Prompt and WSL, writing each path the way that shell needs (C:\\Users becomes /mnt/c/Users in WSL).
-- Every tool: Convert, Find and bulk rename, Review, Compare, Projects, Actions, QR codes, the code editor, Replace across files with preview and Undo, the Dev tab (code stats, Git, TODO), Watch, Serve, Crypto, Secrets, Env, IP info, Network, Subdomains, Downloads, Calculator, Timer, API, Bundler and the Graveyard.
-- Edit pictures, songs and videos: dozens of one-click edits (black and white, round pictures, sepia, shapes, GIFs), the Image Studio and Media Studio with live sliders, hold to compare, trim, speed, fades and quick recipes, saved presets applied to many files at once, Recent files, and pictures, songs and videos that open right inside the File Manager on Enter.
-- Make it yours: 180 themes with an effects filter (special effects or plain colours), futuristic and rare-system looks (BeOS, OS/2 Warp, Palm OS, Zune…), the theme editor with panel opacity, glass blur, glow, corners, borders and scanlines, ⌘⇧T and Right Option + T to open themes, Right Option + ] / [ to flip through them, Right Option + / for full screen (Esc never leaves it), Command+Q to quit (with an option to only close with the close button), and editable keyboard shortcuts.
-- The database studios: complete SQLite Studio and MySQL Studio walkthroughs.
+⬇️ Download (free): ${REPO}/releases/latest
+⭐ Source code: ${REPO}
 
-Free and open source: ${REPO}
-Download: ${REPO}/releases/latest
+WHAT YOU WILL LEARN
+📁 The basics: the window, getting around, views, selecting, copy and move with progress, Cancel and Retry, name clashes, the Recycle Bin, Undo and Quick Look.
+⌨️ Terminal + files together: the file list follows your cd, "Open terminal here", and selected files and folders typed into the terminal as safely quoted paths. On Windows it works with PowerShell, the Command Prompt, Git Bash and WSL (C:\\Users becomes /mnt/c/Users), no external terminal needed.
+🧰 Every tool: Convert, Find and bulk rename, Review, Compare, Projects, Actions, QR codes, the code editor, Replace across files with Undo, the Dev tab (code stats, Git, TODOs), Watch, Serve, Crypto, Secrets, Env, Network, Downloads, Calculator, Timer, API, Bundler and the Graveyard.
+🎬 Pictures, songs and videos: one-click edits, the Image Studio and Media Studio with live sliders, trim, speed and fades, presets for many files at once, and a built-in viewer and player that opens on Enter.
+🎨 Make it yours: 180 themes, with glass, glow and motion effects, futuristic looks and rare classic systems (BeOS, OS/2 Warp, Palm OS, Zune and more), an effects filter, your own themes with panel opacity and blur, ⌘⇧T to open themes, and every keyboard shortcut changeable.
+🗄️ Databases: complete SQLite Studio and MySQL Studio walkthroughs, from browsing and editing rows to the visual query designer, macros, imports and backups.
 
-Chapters
+CHAPTERS
 ${chaptersText}
+
+#FileManager #OpenSource #Tutorial
 \`\`\`
 
 ## Notes

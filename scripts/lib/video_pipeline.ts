@@ -198,4 +198,8 @@ export function screenshotHtml(html: string, png: string, workDir: string): void
   if (!existsSync(png)) throw new Error(`could not render ${png}`);
 }
 
-export const fmtTime = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
+/** m:ss, or h:mm:ss from an hour on (the form YouTube needs to turn description times into chapters). */
+export const fmtTime = (sec: number) => {
+  const s = Math.floor(sec), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = String(s % 60).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
+};
