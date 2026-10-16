@@ -38,7 +38,7 @@ cd bun_rad_studio
 bun install
 ```
 
-*What it does:* downloads the three libraries the project needs (`jsdom`, `systeminformation`, `webview-bun`) plus development tools, into a folder called `node_modules`. It also runs a small script (`postinstall`) that does nothing on macOS and Linux and, on Windows, copies a WebView2 helper file.
+*What it does:* downloads the libraries the project needs (`systeminformation`, `webview-bun`, and `prettier` and `sql-formatter` for the code editors' Format command) plus development tools (such as `jsdom`), into a folder called `node_modules`. It also runs a small script (`postinstall`) that does nothing on macOS and Linux and, on Windows, copies a WebView2 helper file.
 *Expected result:* ends with a line like `46 packages installed`, including `+ webview-bun@2.4.0`.
 *Common failures:* see [When something fails](#when-something-fails).
 
