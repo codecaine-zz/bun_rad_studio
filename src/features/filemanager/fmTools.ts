@@ -537,7 +537,7 @@ export function installPlan(platform: FmContext["platform"], tool: ToolId, manag
       ["pacman", ["sudo", "pacman", "-S", "--needed", "--noconfirm", ...pkgs("pacman")]],
     ];
     for (const [id, argv] of systemManagers) {
-      if (managers[id] && pkgs(id).length) return { ...base, method: id, argv, display: display(argv), auto: false, note: `Your system's package manager needs your administrator password, so run this in a terminal.${big}` };
+      if (managers[id] && pkgs(id).length) return { ...base, method: id, argv, display: display(argv), auto: false, note: `Your system's package manager needs your administrator password, so run this in the Terminal ("Type it in the Terminal" below puts it there; press Enter and type your password).${big}` };
     }
     if (def.brewCask && !managers.apt && !managers.dnf && !managers.pacman) return noPackage();
   }
@@ -547,6 +547,6 @@ export function installPlan(platform: FmContext["platform"], tool: ToolId, manag
     ...base,
     display: `brew install ${cask}${def.brew}`,
     note: "Homebrew is a free tool that installs programs like this with one command.",
-    missingManager: { id: "brew", name: "Homebrew", url: "https://brew.sh", command: HOMEBREW_INSTALL_COMMAND, note: platform === "darwin" ? "Paste the command in the Terminal app. It asks for your password once. Then come back and press Check again." : "Paste the command in a terminal. Then come back and press Check again." },
+    missingManager: { id: "brew", name: "Homebrew", url: "https://brew.sh", command: HOMEBREW_INSTALL_COMMAND, note: platform === "darwin" ? "Press \"Type it in the Terminal\", then Enter in the Terminal below. It asks for your password once. Then come back and press Check again." : "Press \"Type it in the Terminal\", then Enter in the Terminal below. Then come back and press Check again." },
   };
 }

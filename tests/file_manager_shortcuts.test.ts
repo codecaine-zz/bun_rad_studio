@@ -252,3 +252,18 @@ describe("a Mac keyboard on Windows or Linux (its Delete key sends Backspace)", 
     }
   });
 });
+
+describe("Only close the window with its close button", () => {
+  test("the setting is saved, validated and off by default", async () => {
+    expect(DEFAULT_SETTINGS.shortcutsCantClose).toBe(false);
+    const root = mkdtempSync(join(tmpdir(), "fm-close-"));
+    try {
+      const ctx = createContext({ home: join(root, "home"), dataDir: join(root, "data"), platform: "darwin" });
+      expect((await updateSettings(ctx, { shortcutsCantClose: true })).shortcutsCantClose).toBe(true);
+      expect((await loadSettings(ctx)).shortcutsCantClose).toBe(true);
+      expect((await updateSettings(ctx, { shortcutsCantClose: 1 })).shortcutsCantClose).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});

@@ -5,7 +5,7 @@
  */
 import { SIMPLEGUI_THEMES, type SimpleGUITheme } from "../../simplegui";
 import { FX_THEME_KEYS, fxCssVars, fxRootAttrs, glassReport, type ThemeFx } from "../../shared/fxThemes";
-import { OS_THEME_KEYS } from "../../shared/osThemes";
+import { OS_THEME_KEYS, RARE_OS_THEME_KEYS } from "../../shared/osThemes";
 import { buildSemanticPalette, contrastRatio, overridesForTheme, parseColor, toHex } from "../../shared/themeSemantic";
 import { FmError } from "./fmPaths";
 import type { FmContext, FmHandler } from "./fmCore";
@@ -13,7 +13,7 @@ import { deleteCustom, exportTheme, isCustomKey, loadCustom, parseShared, saveCu
 
 type RGB = [number, number, number];
 
-export type ThemeGroup = "My themes" | "Futuristic" | "Linux" | "Windows" | "macOS" | "Editors and classics";
+export type ThemeGroup = "My themes" | "Futuristic" | "Linux" | "Windows" | "macOS" | "Rare and beloved systems" | "Editors and classics";
 
 export interface ThemeSummary {
   key: string;
@@ -23,6 +23,8 @@ export interface ThemeSummary {
   group: ThemeGroup;
   /** Background, panel, accent and text, for the little preview. */
   swatch: [string, string, string, string];
+  /** True when the theme has special effects (glass, glow, motion, texture), not just colours. */
+  hasEffects: boolean;
 }
 
 export interface ThemeVars {
@@ -136,6 +138,7 @@ const MAC = /mac ?os|macos|sonoma|ventura|sequoia|tahoe|monterey|big sur|yosemit
 
 function groupOf(key: string, theme: SimpleGUITheme): ThemeGroup {
   if (FX_THEME_KEYS.includes(key)) return "Futuristic";
+  if (RARE_OS_THEME_KEYS.includes(key)) return "Rare and beloved systems";
   if (OS_THEME_KEYS.includes(key) || /linux|gnome|kde|distro|desktop/i.test(theme.description)) {
     if (MAC.test(theme.name)) return "macOS";
     if (WINDOWS.test(theme.name)) return "Windows";
@@ -186,7 +189,7 @@ function build(): Map<string, Entry> {
     const v = themeVars(theme).vars;
     out.set(key, {
       theme,
-      summary: { key, name: theme.name, description: theme.description ?? "", dark: theme.is_dark, group: groupOf(key, theme), swatch: [v.bg!, v.panel!, v.accent!, v.text!] },
+      summary: { key, name: theme.name, description: theme.description ?? "", dark: theme.is_dark, group: groupOf(key, theme), swatch: [v.bg!, v.panel!, v.accent!, v.text!], hasEffects: !!theme.fx },
     });
   }
   return out;
@@ -199,7 +202,7 @@ export const listThemes = (): ThemeSummary[] => [...entries().values()].map((e) 
 function summaryOf(key: string, theme: SimpleGUITheme, group: ThemeGroup): ThemeSummary & ThemeVars {
   const computed = themeVars(theme);
   const v = computed.vars;
-  return { key, name: theme.name, description: theme.description ?? "", dark: theme.is_dark, group, swatch: [v.bg!, v.panel!, v.accent!, v.text!], ...computed };
+  return { key, name: theme.name, description: theme.description ?? "", dark: theme.is_dark, group, swatch: [v.bg!, v.panel!, v.accent!, v.text!], hasEffects: !!theme.fx, ...computed };
 }
 
 export function getThemeColours(key: unknown): (ThemeSummary & ThemeVars) | null {

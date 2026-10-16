@@ -67,6 +67,25 @@ export const ending: Chapter[] = [
         },
       },
       {
+        cap: "Try themes with the arrow keys",
+        say: "You can browse themes from the keyboard too. In the gallery, press the down arrow to step into the cards, then use the arrow keys to move around. Each theme is shown on the whole window as you land on it, so you can try a dozen in seconds. Press Enter to keep one, or Escape to go back to the theme you had.",
+        act: async (d) => {
+          await d.click("#tool-themes", { pause: 1200 });
+          await d.menu("All themes", { pause: 1400 });
+          await d.waitFor(".theme-card", 6000);
+          await d.key("ArrowDown", "↓");
+          await d.wait(700);
+          await d.key("ArrowDown", "↓");
+          await d.wait(1600);
+          for (const k of ["ArrowRight", "ArrowRight", "ArrowDown", "ArrowLeft", "ArrowDown"]) {
+            await d.key(k, k === "ArrowRight" ? "→" : k === "ArrowLeft" ? "←" : "↓");
+            await d.wait(1700);
+          }
+          await d.key("Escape", "Esc");
+          await d.wait(1500);
+        },
+      },
+      {
         cap: "Create or edit a theme",
         say: "Now let's make our own. In the gallery, I press Create or edit a theme. It starts from the theme I am using, Ember Grid, so its effects are already switched on. Every colour can be changed, with a colour picker or a hex code. And below the colours, glass, glow and motion.",
         act: async (d) => {
@@ -180,7 +199,7 @@ export const ending: Chapter[] = [
     steps: [
       {
         cap: "Thank you for watching",
-        say: "And that is the whole tour. You have seen how to find your way around, copy and move safely, and preview anything. How the terminal and your files follow each other, so you never type a long path again. Every tool in the toolbox. Themes that are truly yours. And the database studios. Everything is safe by default. Deleting goes to the Recycle Bin, nothing is overwritten silently, and big changes are shown to you first. The guides are in the docs folder, and you can press F1 inside the app at any time. Thank you so much for watching.",
+        say: "And that is the whole tour. You have seen how to find your way around, copy and move safely, and preview anything. How the terminal and your files follow each other, so you never type a long path again. Every tool in the toolbox. The Image and Media Studios, with presets for many files at once. Themes that are truly yours. And the database studios. Everything is safe by default. Deleting goes to the Recycle Bin, nothing is overwritten silently, and big changes are shown to you first. The guides are in the docs folder, and you can press F1 inside the app at any time. Thank you so much for watching.",
       },
     ],
   },

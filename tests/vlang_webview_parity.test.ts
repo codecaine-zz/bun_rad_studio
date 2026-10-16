@@ -142,7 +142,7 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         'sequoia_dark',
         'tahoe_glass',
     ];
-    // The futuristic set (src/shared/fxThemes.ts): the same precedent as the OS versions above, 76 + 45 + 12 = 133.
+    // The futuristic set (src/shared/fxThemes.ts): the same precedent as the OS versions above, 76 + 45 + 22 + 35 = 178.
     const FUTURISTIC_THEMES = [
         'cyberpunk_hologram',
         'neon_hud',
@@ -156,12 +156,60 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         'neo_tokyo_day',
         'aurora_glass',
         'plasma_violet',
+        'prism_reactor',
+        'orbital_ice',
+        'ember_grid',
+        'synthwave_sunset',
+        'matrix_rain',
+        'amber_phosphor',
+        'midnight_glass',
+        'abyss_bloom',
+        'cosmic_nebula',
+        'obsidian_gold',
+        'crimson_eclipse',
+        'acid_reactor',
+        'polar_night',
+        'emerald_grove',
+        'brass_engine',
+        'focus_glow',
+        'neon_max',
+        'vaporwave_dream',
+        'frosted_glass',
+        'sakura_glass',
+        'pearl_hologram',
+        'rose_gold',
+        'daylight_hud',
     ];
-    const EXPECTED_76_THEMES = [...BASE_76_THEMES, ...OS_VERSION_THEMES, ...FUTURISTIC_THEMES].sort((a, b) => a.localeCompare(b));
+    // Rare and beloved systems (RARE_OS_THEME_KEYS in src/shared/osThemes.ts).
+    const RARE_OS_THEMES = [
+        'beos_r5',
+        'haiku_os',
+        'os2_warp',
+        'solaris_cde',
+        'irix_indigo_magic',
+        'atari_tos_gem',
+        'risc_os',
+        'qnx_photon',
+        'symbian_s60',
+        'palm_os',
+        'palm_webos',
+        'windows_phone_metro',
+        'zune_desktop',
+        'android_holo',
+        'windows_longhorn',
+        'ubuntu_human',
+        'plan9_acme',
+        'serenity_os',
+        'kde3_keramik',
+        'redhat_bluecurve',
+        'windows_media_center',
+        'window_maker',
+    ];
+    const EXPECTED_76_THEMES = [...BASE_76_THEMES, ...OS_VERSION_THEMES, ...RARE_OS_THEMES, ...FUTURISTIC_THEMES].sort((a, b) => a.localeCompare(b));
 
-    it("1. getThemeNames() and getThemes() return all 133 canonical themes sorted alphabetically", () => {
+    it("1. getThemeNames() and getThemes() return all 178 canonical themes sorted alphabetically", () => {
         const names = getThemeNames();
-        expect(names.length).toBe(133);
+        expect(names.length).toBe(178);
         expect(names).toEqual(EXPECTED_76_THEMES);
 
         const namesSnake = get_theme_names();
@@ -182,7 +230,7 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         expect(isSorted(listThemes())).toBe(true);
     });
 
-    it("2. getTheme() resolves every one of the 133 themes with valid palettes", () => {
+    it("2. getTheme() resolves every one of the 178 themes with valid palettes", () => {
         for (const name of EXPECTED_76_THEMES) {
             const theme = getTheme(name);
             expect(theme).toBeDefined();
@@ -375,7 +423,7 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         const selRef = win.addThemeSelector("dd_theme", "Theme:");
         const items = selRef.spec.items || [];
         const labels = selRef.spec.item_labels || {};
-        expect(items.length).toBeGreaterThanOrEqual(133);
+        expect(items.length).toBeGreaterThanOrEqual(178);
 
         const displayNames = items.map((k: string) => labels[k] || k);
         const sortedDisplayNames = [...displayNames].sort((a: string, b: string) =>
@@ -403,17 +451,17 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         const sortedListThemes = [...listThemesArr].sort((a, b) => a.localeCompare(b));
         expect(listThemesArr).toEqual(sortedListThemes);
 
-        // 4. Demo 25 theme dropdown has exactly 133 unique themes with zero duplicates
+        // 4. Demo 25 theme dropdown has exactly 178 unique themes with zero duplicates
         const demo25Win = createVlangShowcase();
         const demo25Html = demo25Win.getHtml();
         const themeMatch = demo25Html.match(/<select[^>]*id="dd_theme_selector"[^>]*>([\s\S]*?)<\/select>/);
         expect(themeMatch).toBeTruthy();
         const demo25Options = [...themeMatch![1]!.matchAll(/<option[^>]*value="([^"]*)"[^>]*>([^<]*)<\/option>/g)].map(x => ({ val: x[1], text: x[2] }));
-        expect(demo25Options.length).toBe(133);
+        expect(demo25Options.length).toBe(178);
         const uniqueValues = new Set(demo25Options.map(o => o.val));
         const uniqueTexts = new Set(demo25Options.map(o => o.text));
-        expect(uniqueValues.size).toBe(133);
-        expect(uniqueTexts.size).toBe(133);
+        expect(uniqueValues.size).toBe(178);
+        expect(uniqueTexts.size).toBe(178);
     });
 });
 

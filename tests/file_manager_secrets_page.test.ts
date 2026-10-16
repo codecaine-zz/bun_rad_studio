@@ -102,7 +102,7 @@ const chooseMenu = async (anchorText: string, itemText: string) => {
 const op = async (name: string, body: Record<string, any> = {}) => (await secretsOperations[name]!(server.context, body)) as any;
 
 beforeAll(async () => {
-  mock.module("../resources/file_manager/ui/terminal.js", () => ({
+  mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalShell: () => "posix", terminalWsl: () => ({}),
     terminalAvailable: () => true, typeInTerminal: () => true, showTerminal() {}, hideTerminal() {}, toggleTerminal() {}, wireTerminal() {}, isTerminalOpen: () => false,
   }));
   mkdirSync(home, { recursive: true });

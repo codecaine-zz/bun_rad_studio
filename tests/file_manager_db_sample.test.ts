@@ -48,7 +48,7 @@ const call = async (op: string, body: Record<string, unknown> = {}) => {
 };
 
 beforeAll(async () => {
-  mock.module("../resources/file_manager/ui/terminal.js", () => ({
+  mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalShell: () => "posix", terminalWsl: () => ({}),
     terminalAvailable: () => true, typeInTerminal: () => true, showTerminal() {}, hideTerminal() {}, toggleTerminal() {}, wireTerminal() {}, isTerminalOpen: () => false,
   }));
   for (const d of [home, target]) mkdirSync(d, { recursive: true });

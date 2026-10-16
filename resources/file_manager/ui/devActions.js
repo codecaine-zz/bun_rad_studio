@@ -1,13 +1,13 @@
 // What the Dev tool can do with a result: show it in the file list, open it in the Code editor, type a command into
 // the Terminal, or move a folder to the Recycle Bin. Each one is started by a click and says what it did.
 import { call } from "./api.js";
-import { quoteArg, shellFor } from "./codeRun.js";
+import { commandInFolder } from "./codeRun.js";
 import { confirmBox, messageBox } from "./dialogs.js";
 import { toast } from "./menus.js";
 import { goTo } from "./nav.js";
 import { openPower } from "./power.js";
 import { state } from "./state.js";
-import { terminalAvailable, typeInTerminal } from "./terminal.js";
+import { terminalAvailable, terminalShell, terminalWsl, typeInTerminal } from "./terminal.js";
 import { parentOf } from "./util.js";
 import { errorText } from "./devCore.js";
 
@@ -34,10 +34,10 @@ export function openInCodeAt(path, line = 1) {
 
 /** Asks first, then types the command into the Terminal and presses Enter, like the Code editor's Run presets. */
 export async function runInTerminal(folder, commandText, display = commandText) {
-  const shell = shellFor(state.platform);
-  const dir = quoteArg(folder, shell);
-  if (dir.error || /[\r\n\0]/.test(commandText)) return void (await messageBox("This command can't be sent", dir.error ?? "It has a line break in it."));
-  const line = shell === "powershell" ? `Set-Location -LiteralPath ${dir.text}; if ($?) { ${commandText} }` : `cd ${dir.text} && ${commandText}`;
+  // Written for the shell the Terminal is in now: PowerShell, the Command Prompt, WSL or Git Bash on Windows.
+  const run = commandInFolder(folder, commandText, terminalShell(), terminalWsl());
+  if (run.error || /[\r\n\0]/.test(commandText)) return void (await messageBox("This command can't be sent", run.error ?? "It has a line break in it."));
+  const line = run.text;
   if (!terminalAvailable()) return void (await messageBox("The Terminal isn't available on this system", `Run this in your system's terminal: ${line}`));
   const ok = await confirmBox({ title: "Run this in the Terminal?", message: `The project's own script will run on your computer: "${display}".`, details: [line], confirmLabel: "Run it" });
   if (!ok) return;

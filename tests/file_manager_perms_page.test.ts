@@ -89,7 +89,7 @@ function tree() {
 
 beforeAll(async () => {
   mkdirSync(home, { recursive: true });
-  mock.module("../resources/file_manager/ui/terminal.js", () => ({
+  mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalShell: () => "posix", terminalWsl: () => ({}),
     terminalAvailable: () => false, typeInTerminal: () => false, showTerminal() {}, hideTerminal() {}, toggleTerminal() {}, wireTerminal() {}, isTerminalOpen: () => false,
   }));
   const server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir: join(root, "data") } });

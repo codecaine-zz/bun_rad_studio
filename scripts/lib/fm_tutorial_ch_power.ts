@@ -96,7 +96,7 @@ export const power: Chapter[] = [
       },
       {
         cap: "Copy paths for Terminal: for any other terminal app",
-        say: "And if you use a different terminal app, like Terminal, iTerm, or PowerShell on Windows, right click and choose Copy paths for Terminal instead. The same quoted paths go to the clipboard, ready to paste after any command.",
+        say: "And if you use a different terminal app, like Terminal or iTerm, right click and choose Copy paths for Terminal instead. The same quoted paths go to the clipboard, ready to paste after any command. On Windows, there is one for PowerShell, one for the Command Prompt, and one for W S L. In W S L, a path like C, Users, becomes slash mount, slash c, slash Users, so Linux understands it. And the built in terminal knows which of these shells you are in, all by itself.",
         act: async (d) => {
           await d.click("#tool-up", { pause: 1200 });
           await d.row("docs", "click", { pause: 600 });

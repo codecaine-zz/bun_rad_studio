@@ -21,7 +21,7 @@ export async function themeMenuItems() {
   }
   items.push(
     { separator: true },
-    { label: "All themes…", icon: "🎨", tip: "Look through more than a hundred colour themes: dark, light, futuristic, Linux, Windows, macOS and editor favourites.", action: () => emit("theme-picker") },
+    { label: "All themes…", icon: "🎨", tip: "Look through more than 170 themes: dark, light, futuristic special effects, Linux, Windows, macOS, rare classic systems and editor favourites.", action: () => emit("theme-picker") },
     { label: "Make my own theme…", icon: "✏️", tip: "Make a theme, or start from one and change its colours.", action: () => emit("theme-editor", {}) },
   );
   return items;

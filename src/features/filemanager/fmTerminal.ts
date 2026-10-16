@@ -69,13 +69,13 @@ export async function shellFolder(platform: FmContext["platform"], pid: number):
   return path;
 }
 
-export type WindowsShell = "powershell" | "wsl" | "cmd";
+export type WindowsShell = "powershell" | "wsl" | "cmd" | "gitbash";
 /** What a WSL prompt tells about its distro: its name, and where Windows drives are mounted (usually /mnt/). */
 export interface WslInfo { distro: string; driveRoot: string }
 
 export interface TerminalSession {
   readonly pid: number;
-  /** Last filesystem folder reported by PowerShell, the Command Prompt or an integrated WSL prompt. */
+  /** Last filesystem folder reported by PowerShell (5 or 7), the Command Prompt, WSL or Git Bash. */
   readonly cwd?: string;
   readonly shell?: WindowsShell;
   readonly wsl?: WslInfo | null;
@@ -108,8 +108,9 @@ function readWslInfo(encoded: string | undefined): WslInfo | null {
 /**
  * Removes our prompt metadata without losing other terminal output, even across pipe chunk boundaries. The prompts
  * report the folder they are in:
- *   PowerShell      ESC ]777;file-manager-cwd;<base64 path> BEL
+ *   PowerShell      ESC ]777;file-manager-cwd;<base64 path> BEL   (Windows PowerShell and PowerShell 7)
  *   WSL (Bash)      ESC ]777;file-manager-cwd;<base64 Windows path>;wsl;<base64 "distro\ndrive root"> BEL
+ *   Git Bash        ESC ]777;file-manager-cwd;<base64 Windows path>;gitbash BEL
  *   Command Prompt  ESC ]777;file-manager-cwd-cmd;<path> ESC \   (cmd's PROMPT can't make base64 or a BEL)
  */
 export function windowsTerminalOutput(onData: (text: string) => void, onFolder: (path: string, shell: WindowsShell, wsl?: WslInfo | null) => void) {
@@ -121,10 +122,11 @@ export function windowsTerminalOutput(onData: (text: string) => void, onFolder: 
       return;
     }
     const [encoded = "", kind, meta] = body.split(";");
-    if (!BASE64.test(encoded) || (kind !== undefined && kind !== "wsl")) return;
+    if (!BASE64.test(encoded) || (kind !== undefined && kind !== "wsl" && kind !== "gitbash")) return;
     const path = Buffer.from(encoded, "base64").toString("utf8");
     if (path.length > 4096 || /[\x00-\x1f\x7f]/.test(path) || !WINDOWS_PATH.test(path)) return;
     if (kind === "wsl") onFolder(path, "wsl", readWslInfo(meta));
+    else if (kind === "gitbash") onFolder(path, "gitbash");
     else onFolder(path, "powershell");
   };
   return {

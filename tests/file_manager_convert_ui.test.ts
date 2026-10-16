@@ -59,7 +59,7 @@ beforeAll(async () => {
   Object.defineProperty(g, "fetch", { value: (u: any, o: any) => realFetch(typeof u === "string" && u.startsWith("/") ? base + u : u, o), configurable: true, writable: true });
   doc = dom.window.document;
   // The terminal needs the xterm library, which only a real browser can load; nothing here uses the terminal.
-  mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalAvailable: () => false, typeInTerminal: () => false }));
+  mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalShell: () => "posix", terminalWsl: () => ({}), terminalAvailable: () => false, typeInTerminal: () => false }));
   stateMod = await import("../resources/file_manager/ui/state.js");
   tools = await import("../resources/file_manager/ui/tools.js");
 });

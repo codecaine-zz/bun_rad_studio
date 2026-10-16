@@ -125,7 +125,7 @@ beforeAll(async () => {
     seenWelcome: true, startWith: "last", workspace: "split", splitSide: "bottom", splitSize: 35, sidebarCollapsed: true, splitTool: "timer", activeTool: "net", lastPath: home,
     favorites: [dest], recents: [{ path: join(home, "a.txt"), at: new Date().toISOString() }],
   }));
-  mock.module("../resources/file_manager/ui/terminal.js", () => ({
+  mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalShell: () => "posix", terminalWsl: () => ({}),
     terminalAvailable: () => true, typeInTerminal: () => true, showTerminal() {}, hideTerminal() {}, toggleTerminal() {}, isTerminalOpen: () => false, wireTerminal() {},
   }));
   server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir, platform: "linux", launch: async (command, args) => void launched.push({ command, args }), editor: { which: (n: string) => (n === "code" ? "/usr/bin/code" : null), open: (path: string, options: any) => void editorStarts.push({ path, options }) }, clipboard: { writeText: (t) => { clip.text = t; return true; }, writeImage: async (file, mime) => { clip.image = { file, mime }; return true; } } } });
@@ -1499,7 +1499,7 @@ describe("Quick Look and copy to the clipboard", () => {
       expect(launched).toEqual([]);
     });
 
-    test("with 'The program my computer uses' chosen, it is handed to the computer; pictures always are", async () => {
+    test("with 'The program my computer uses' chosen, it is handed to the computer", async () => {
       const ops = await import("../resources/file_manager/ui/ops.js");
       await setting("system");
       launched.length = 0;
@@ -1509,10 +1509,34 @@ describe("Quick Look and copy to the clipboard", () => {
       expect(launched[0]!.args).toContain(join(qdir, "e-notes.txt"));
       expect(editorStarts).toEqual([]);
       await setting("builtin");
+    });
+
+    test("pictures, sound and video open in the File Manager's viewer by default; Quick Look's Open or the setting hands them to the computer", async () => {
+      const ops = await import("../resources/file_manager/ui/ops.js");
+      const nav = await import("../resources/file_manager/ui/nav.js");
+      for (const n of ["a.png", "b.JPG", "c.webp", "d.svg", "e.mp3", "f.flac", "g.mp4", "h.mov", "i.gif"]) expect(ops.mediaOpensInManager(entry(n)), n).toBe(true);
+      for (const n of ["doc.pdf", "notes.txt", "archive.zip", "noext", "photo.psd"]) expect(ops.mediaOpensInManager(entry(n)), n).toBe(false);
+      expect(ops.mediaOpensInManager({ ...entry("x.mp4"), isDir: true })).toBe(false);
+      expect(ops.mediaOpensInManager(entry("x.png", { program: true }))).toBe(false);
       launched.length = 0;
       await ops.openEntry(entry("a-picture.png"));
+      await waitFor(() => !!open());
+      expect(open().textContent).toContain("a-picture.png");
+      expect(launched).toEqual([]);
+      key(doc.activeElement ?? doc.body, "Enter"); // Quick Look's own Open still uses the computer's program
       await waitFor(() => launched.length === 1);
       expect(launched[0]!.args).toContain(join(qdir, "a-picture.png"));
+      expect(open()).toBeFalsy();
+      await nav.saveSettings({ mediaOpensIn: "system" });
+      await savedWhen("mediaOpensIn", "system");
+      expect(ops.mediaOpensInManager(entry("b-song.mp3"))).toBe(false);
+      launched.length = 0;
+      await ops.openEntry(entry("b-song.mp3"));
+      await waitFor(() => launched.length === 1);
+      expect(launched[0]!.args).toContain(join(qdir, "b-song.mp3"));
+      expect(open()).toBeFalsy();
+      await nav.saveSettings({ mediaOpensIn: "manager" });
+      await savedWhen("mediaOpensIn", "manager");
     });
 
     test("Settings has the choice, saved as soon as it changes", async () => {
@@ -1528,6 +1552,15 @@ describe("Quick Look and copy to the clipboard", () => {
       select.value = "builtin";
       select.dispatchEvent(new win.Event("change", { bubbles: true }));
       await savedWhen("textOpensIn", "builtin");
+      const media = doc.querySelector("select[aria-label='Open pictures, sound and video with']");
+      expect([...media.options].map((o: any) => o.value)).toEqual(["manager", "system"]);
+      expect(media.value).toBe("manager");
+      media.value = "system";
+      media.dispatchEvent(new win.Event("change", { bubbles: true }));
+      await savedWhen("mediaOpensIn", "system");
+      media.value = "manager";
+      media.dispatchEvent(new win.Event("change", { bubbles: true }));
+      await savedWhen("mediaOpensIn", "manager");
       key(doc.activeElement ?? doc.body, "Escape");
     });
   });
@@ -1806,7 +1839,7 @@ describe("the Themes button in the ribbon", () => {
 
   test("the shortcut for the gallery can be set in the shortcuts dialog and starts with none", async () => {
     const { keysOf } = await import("../resources/file_manager/ui/keymap.js");
-    expect(keysOf("app.themes")).toEqual([]);
+    expect(keysOf("app.themes")).toEqual(["Mod+Shift+T"]);
   });
 });
 

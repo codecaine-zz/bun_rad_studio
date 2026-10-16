@@ -103,7 +103,7 @@ function notesText(marks: Array<{ at: number; title: string }>, total: number): 
 
 ## YouTube title
 
-Codecaine File Manager: Terminal + Files Together, Every Tool, Themes and Databases (complete guide)
+Codecaine File Manager: Terminal + Files Together, Image & Media Studios, Every Tool, Themes and Databases (complete guide)
 
 ## YouTube description (copy and paste)
 
@@ -112,8 +112,9 @@ A calm, complete, step-by-step guide to the Codecaine File Manager from Bun RAD 
 
 What you will learn:
 - The basics: the window, getting around, views, selecting, copying and moving with the task panel (progress, Cancel, Retry), name clashes, the Recycle Bin and Undo, Quick Look.
-- Work faster with the terminal: the file list follows the terminal when you cd, "Go to this folder" and "Open terminal here" move the terminal to your files, and "Insert paths in Terminal" types safely quoted paths of the selected files and folders for you. "Copy paths for Terminal" does the same for any other terminal app.
+- Work faster with the terminal: the file list follows the terminal when you cd, "Go to this folder" and "Open terminal here" move the terminal to your files, and "Insert paths in Terminal" types safely quoted paths of the selected files and folders for you. "Copy paths for Terminal" does the same for any other terminal app. On Windows it follows PowerShell, the Command Prompt and WSL, writing each path the way that shell needs (C:\\Users becomes /mnt/c/Users in WSL).
 - Every tool: Convert, Find and bulk rename, Review, Compare, Projects, Actions, QR codes, the code editor, Replace across files with preview and Undo, the Dev tab (code stats, Git, TODO), Watch, Serve, Crypto, Secrets, Env, IP info, Network, Subdomains, Downloads, Calculator, Timer, API, Bundler and the Graveyard.
+- Edit pictures, songs and videos: dozens of one-click edits (black and white, round pictures, sepia, shapes, GIFs), the Image Studio and Media Studio with live sliders, hold to compare, trim, speed, fades and quick recipes, saved presets applied to many files at once, and Recent files that open right inside the File Manager.
 - Make it yours: futuristic themes, the theme editor with panel opacity, glass blur, glow, corners, borders and scanlines, Right Option + ] / [ to flip through themes, Right Option + / for full screen (Esc never leaves it), Command+Q to quit, and editable keyboard shortcuts.
 - The database studios: complete SQLite Studio and MySQL Studio walkthroughs.
 

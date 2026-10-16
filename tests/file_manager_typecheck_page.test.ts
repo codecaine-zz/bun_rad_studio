@@ -62,7 +62,7 @@ beforeAll(async () => {
   writeFileSync(join(files, "report.pdf.exe"), winProgram());
   for (let i = 0; i < 620; i++) writeFileSync(join(big, `f${String(i).padStart(3, "0")}.pdf`), winProgram());
   // The terminal needs a library the page loads from /vendor/, which a plain import can't reach.
-  mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalAvailable: () => false, typeInTerminal: () => false, showTerminal() {}, hideTerminal() {}, toggleTerminal() {}, wireTerminal() {}, isTerminalOpen: () => false }));
+  mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalShell: () => "posix", terminalWsl: () => ({}), terminalAvailable: () => false, typeInTerminal: () => false, showTerminal() {}, hideTerminal() {}, toggleTerminal() {}, wireTerminal() {}, isTerminalOpen: () => false }));
   server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir: join(root, "data"), launch: async (command, args) => void launched.push({ command, args }) } });
   const base = `http://127.0.0.1:${server.port}`;
   const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8").replace(/__FM_TOKEN__/g, "ui-token").replace(/__FM_PLATFORM__/g, process.platform === "darwin" ? "darwin" : "linux").replace(/__FM_NONCE__/g, "n").replace(/__FM_START__/g, "");
@@ -241,8 +241,8 @@ describe("opening", () => {
 
   test("a notice or a clean file opens without any question", async () => {
     launched.length = 0;
-    await ops.openEntry(entry("scan.jpg"));
-    await ops.openEntry(entry("clean.png"));
+    await ops.openEntry(entry("scan.jpg"), { viewer: false }); // the guard is about handing a file to the computer's program
+    await ops.openEntry(entry("clean.png"), { viewer: false });
     expect(launched.length).toBe(2);
     expect(doc.querySelector(".modal-backdrop")).toBeNull();
   });

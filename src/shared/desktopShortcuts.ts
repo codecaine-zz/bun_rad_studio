@@ -33,6 +33,7 @@ interface DesktopShortcutWindow {
     closeApp?: () => unknown;
     closeWindow?: () => unknown;
     cycleAppTheme?: (direction: number) => unknown;
+    openAppThemes?: () => unknown;
     doToggleFullscreen?: () => unknown;
 }
 
@@ -82,6 +83,20 @@ function desktopShortcutsClient() {
         throw new Error("This app has no switchable themes.");
     };
 
+    // Right Option + T: the app's own theme gallery, or else focus its theme list so the arrow keys pick one.
+    const openThemes = () => {
+        if (typeof host.openAppThemes === "function") return host.openAppThemes();
+        const selector = document.querySelector(
+            'select[id*="theme" i], select[name*="theme" i], select[data-theme-selector]',
+        ) as (ThemeControl & { focus?: () => void; showPicker?: () => void }) | null;
+        if (selector && !selector.disabled) {
+            selector.focus?.();
+            try { selector.showPicker?.(); } catch { /* showPicker needs a user gesture in some engines; focus is enough */ }
+            return;
+        }
+        throw new Error("This app has no theme list.");
+    };
+
     window.addEventListener("blur", () => { rightOption = false; });
     window.addEventListener("keyup", (event) => {
         if (event.code === "AltRight" || !event.altKey) rightOption = false;
@@ -113,6 +128,9 @@ function desktopShortcutsClient() {
         } else if (event.code === "BracketLeft" || event.code === "BracketRight") {
             consume(event);
             if (!event.repeat) run(() => cycleTheme(event.code === "BracketRight" ? 1 : -1));
+        } else if (event.code === "KeyT") {
+            consume(event);
+            if (!event.repeat) run(openThemes);
         }
     }, true);
 

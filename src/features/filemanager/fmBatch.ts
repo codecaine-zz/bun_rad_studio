@@ -51,7 +51,7 @@ export function startInstall(ctx: FmContext, tools: unknown): JobView {
   for (const id of [...new Set(wanted)]) {
     if (resolveTool(ctx, id)) continue;
     const plan = installPlan(ctx.platform, id, managers);
-    if (!plan.auto || !plan.argv) throw new FmError("MANUAL_INSTALL", plan.missingManager ? `${plan.missingManager.name} isn't installed, so ${TOOLS[id].name} can't be installed from here. ${plan.missingManager.note}` : `${TOOLS[id].name} needs your administrator password, so install it in a terminal: ${plan.display}`);
+    if (!plan.auto || !plan.argv) throw new FmError("MANUAL_INSTALL", plan.missingManager ? `${plan.missingManager.name} isn't installed, so ${TOOLS[id].name} can't be installed from here. ${plan.missingManager.note}` : `${TOOLS[id].name} needs your administrator password, so install it in the built-in Terminal (the ⌨️ Terminal button, or Ctrl+\`): ${plan.display}`);
     steps.push({
       label: `Installing ${TOOLS[id].name} (${plan.display})`,
       argv: plan.argv,

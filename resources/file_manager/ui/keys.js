@@ -48,7 +48,12 @@ function openFocused() {
   const focused = entries.find((e) => e.path === pane.focusKey) ?? selectedEntries()[0];
   if (!focused) return;
   const selected = selectedEntries();
-  if (selected.length > 1 && selected.every((e) => !e.isDir) && selected.length <= 5) selected.forEach((e) => ops.openEntry(e));
+  if (selected.length > 1 && selected.every((e) => !e.isDir) && selected.length <= 5) {
+    // Several pictures or videos open in one viewer (the arrow keys move between them) instead of replacing each other.
+    const viewable = selected.filter((e) => ops.mediaOpensInManager(e));
+    selected.filter((e) => !viewable.includes(e)).forEach((e) => ops.openEntry(e));
+    if (viewable.length) ops.openEntry(viewable.includes(focused) ? focused : viewable[0]);
+  }
   else ops.openEntry(focused);
 }
 
@@ -86,6 +91,10 @@ function navigate(e, key) {
 /** Closes the window, but first asks when the Code editor has changes that aren't saved. */
 let closing = false;
 async function closeWindow() {
+  if (state.settings.shortcutsCantClose) {
+    toast("Shortcut keys can't close this window (Settings → “Only close the window with its close button”). Use the window's close button.");
+    return;
+  }
   if (closing) return;
   closing = true;
   try {

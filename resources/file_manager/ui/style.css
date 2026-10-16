@@ -569,6 +569,8 @@ body.dragging .row:not(.is-folder) { cursor: no-drop; }
 .theme-card[aria-pressed="true"] .theme-name::after { content: " ✓"; }
 .theme-name { font-weight: 600; overflow-wrap: anywhere; }
 .theme-kind { color: var(--muted); font-size: 0.8rem; }
+.theme-fx-badge { color: var(--accent); font-size: 0.8rem; font-weight: 600; }
+.theme-plain-badge { color: var(--muted); font-size: 0.75rem; }
 .theme-swatch { display: grid; grid-template-columns: 2fr 2fr 1fr 1fr; height: 1.6rem; border-radius: 0.35rem; overflow: hidden; border: 1px solid var(--border); }
 .theme-swatch-default { display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--text); font-weight: 700; }
 

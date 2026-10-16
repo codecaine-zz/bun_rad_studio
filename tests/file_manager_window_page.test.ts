@@ -62,7 +62,7 @@ function removeDesktop() {
 const called = (name: string) => calls.filter((c) => c[0] === name);
 
 beforeAll(async () => {
-  mock.module("../resources/file_manager/ui/terminal.js", () => ({
+  mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalShell: () => "posix", terminalWsl: () => ({}),
     terminalAvailable: () => false,
     typeInTerminal: () => false,
     showTerminal() {}, hideTerminal() {}, toggleTerminal() {}, wireTerminal() {}, isTerminalOpen: () => false,

@@ -14,6 +14,7 @@ import { bulkRenameDialog } from "./extras.js";
 import { buryItems } from "./graveBury.js";
 import { activePane, currentPath, inTrash, isFolderView } from "./pane.js";
 import { selectKeys, selectedEntries } from "./selection.js";
+import { AUDIO_EXTS, VIDEO_EXTS } from "./mediacore.js";
 import { emit, on, state } from "./state.js";
 import { announceVerdict, askOpenAnyway, skipMismatchGuard } from "./typecheck.js";
 import { baseName, parentOf, plural } from "./util.js";
@@ -104,6 +105,17 @@ export function textOpensInEditor(entry) {
   return !entry.isDir && !entry.program && state.settings.textOpensIn !== "system" && isKnownTextName(entry.name);
 }
 
+// Pictures the File Manager's viewer can show itself (the same list the server previews as pictures).
+const VIEWABLE_PICTURES = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "ico", "avif"]);
+
+/** Pictures, sound and video open in the File Manager's own viewer and player, unless Settings says "the program my computer uses". */
+export function mediaOpensInManager(entry) {
+  if (entry.isDir || entry.program || state.settings.mediaOpensIn === "system") return false;
+  const dot = entry.name.lastIndexOf(".");
+  const ext = dot > 0 ? entry.name.slice(dot + 1).toLowerCase() : "";
+  return VIEWABLE_PICTURES.has(ext) || AUDIO_EXTS.has(ext) || VIDEO_EXTS.has(ext);
+}
+
 const LOOK_INSIDE_MAX = 2 * 1024 * 1024;
 
 /**
@@ -122,7 +134,8 @@ async function isPlainTextInside(entry) {
   }
 }
 
-export async function openEntry(entry) {
+/** `viewer: false` (Quick Look's own Open) always hands pictures, sound and video to the computer's program. */
+export async function openEntry(entry, { viewer = true } = {}) {
   if (inTrash()) return toast("Items in the Recycle Bin can't be opened. Restore one first (right-click, then Restore).");
   if (entry.isDir) return goToIn(activePane(), entry.path);
   if (isLocked(entry)) return unlockEntries([entry]);
@@ -130,6 +143,11 @@ export async function openEntry(entry) {
     rememberRecent(entry.path);
     if (state.settings.textOpensIn === "editor") return openInEditor(entry);
     return openInCode(entry.path);
+  }
+  if (viewer && mediaOpensInManager(entry)) {
+    rememberRecent(entry.path);
+    // Quick Look imports this module, so it listens for the request instead of being imported here.
+    return emit("quicklook-open", entry);
   }
   await openFile(entry.path, false);
 }

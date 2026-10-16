@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { SimpleWindow, SIMPLEGUI_THEMES, getSemanticColors, getTheme, getThemeKeys } from "../src/simplegui";
 import { SEMANTIC_KINDS, contrastRatio, normalizeKind, parseColor } from "../src/shared/themeSemantic";
-import { OS_THEMES } from "../src/shared/osThemes";
+import { OS_THEMES, RARE_OS_THEME_KEYS } from "../src/shared/osThemes";
 
 // Aliases share a record's colours, so each distinct theme is checked once.
 function distinctThemes(): { key: string; name: string }[] {
@@ -121,7 +121,10 @@ describe("Linux, Windows and macOS themes", () => {
 
     test("every promised distribution and OS version exists", () => {
         for (const k of need) expect(SIMPLEGUI_THEMES[k], k).toBeDefined();
-        expect(Object.keys(OS_THEMES).length).toBe(45);
+        // 45 Linux, Windows and macOS versions plus 22 rare and beloved systems (BeOS, OS/2, CDE, Palm, Zune...).
+        for (const k of RARE_OS_THEME_KEYS) expect(OS_THEMES[k], k).toBeDefined();
+        expect(RARE_OS_THEME_KEYS.length).toBe(22);
+        expect(Object.keys(OS_THEMES).length).toBe(67);
     });
 
     test("each new theme is readable: text, button label and card", () => {

@@ -75,7 +75,7 @@ beforeAll(async () => {
   writeFileSync(join(work, "LICENSE"), "MIT License\n\nCopyright (c) someone\n");
   writeFileSync(join(work, "big.ts"), big);
   writeFileSync(join(work, "program.bin"), Buffer.from([0, 1, 2, 3, 0, 0, 255, 0]));
-  mock.module("../resources/file_manager/ui/terminal.js", () => ({
+  mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalShell: () => "posix", terminalWsl: () => ({}),
     terminalAvailable: () => true,
     typeInTerminal: (text: string) => (typedInTerminal.push(text), true),
     showTerminal() {},

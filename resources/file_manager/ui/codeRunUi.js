@@ -5,7 +5,7 @@ import { call, ApiError } from "./api.js";
 import { h } from "./dom.js";
 import { confirmBox, messageBox, openDialog } from "./dialogs.js";
 import { showMenu, toast } from "./menus.js";
-import { terminalAvailable, typeInTerminal } from "./terminal.js";
+import { terminalAvailable, terminalShell, terminalWsl, typeInTerminal } from "./terminal.js";
 import { state } from "./state.js";
 import { formatDate } from "./util.js";
 import { buildRunSequence, copyName, suggestionsFor } from "./codeLogic.js";
@@ -21,7 +21,8 @@ export function createRunUi({ getWorkspace }) {
   async function varsFor(doc) {
     const dir = doc.path.slice(0, Math.max(doc.path.lastIndexOf("/"), doc.path.lastIndexOf("\\")));
     if (!roots.has(dir)) roots.set(dir, await projectRoot(doc.path).catch(() => ""));
-    return { path: doc.path, workspace: getWorkspace(), root: roots.get(dir), platform: state.platform };
+    // Written for the shell the Terminal is in now (PowerShell, the Command Prompt, WSL or Git Bash on Windows).
+    return { path: doc.path, workspace: getWorkspace(), root: roots.get(dir), platform: state.platform, shell: terminalShell(), wsl: terminalWsl() };
   }
 
   async function copyCommand(line) {

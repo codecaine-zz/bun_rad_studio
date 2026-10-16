@@ -31,9 +31,9 @@ describe("the theme table", () => {
     expect(list.length).toBeGreaterThanOrEqual(130);
     for (const t of list) {
       expect(t.swatch.every((c) => /^#[0-9a-f]{6}$/.test(c)), t.key).toBe(true);
-      expect(["Futuristic", "Linux", "Windows", "macOS", "Editors and classics"]).toContain(t.group);
+      expect(["Futuristic", "Linux", "Windows", "macOS", "Editors and classics", "Rare and beloved systems"]).toContain(t.group);
     }
-    for (const g of ["Futuristic", "Linux", "Windows", "macOS", "Editors and classics"]) expect(list.some((t) => t.group === g), g).toBe(true);
+    for (const g of ["Futuristic", "Linux", "Windows", "macOS", "Editors and classics", "Rare and beloved systems"]) expect(list.some((t) => t.group === g), g).toBe(true);
     expect(list.some((t) => t.dark)).toBe(true);
     expect(list.some((t) => !t.dark)).toBe(true);
   });
@@ -45,6 +45,14 @@ describe("the theme table", () => {
     expect(by("Windows 95")).toBe("Windows");
     expect(by("macOS Sonoma Dark")).toBe("macOS");
     expect(by("Dracula")).toBe("Editors and classics");
+  });
+
+  test("rare systems have their own group, and every theme says whether it has special effects", () => {
+    const by = (key: string) => listThemes().find((t) => t.key === key);
+    for (const k of ["beos_r5", "os2_warp", "solaris_cde", "palm_os", "zune_desktop"]) expect(by(k)?.group, k).toBe("Rare and beloved systems");
+    for (const k of ["synthwave_sunset", "matrix_rain", "frosted_glass", "focus_glow", "prism_reactor"]) expect(by(k)?.hasEffects, k).toBe(true);
+    for (const k of ["dracula", "win95", "beos_r5"]) expect(by(k)?.hasEffects, k).toBe(false);
+    expect(listThemes().filter((t) => t.hasEffects).length).toBeGreaterThanOrEqual(35);
   });
 
   test("every theme gives every variable the page uses, and all of them are readable", () => {
@@ -198,6 +206,29 @@ describe("the theme gallery in the page", () => {
     expect(kinds.every((k: string) => k === "Light" || k === "Light or dark")).toBe(true);
     mode.value = "all";
     mode.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
+    await sleep(250);
+  });
+
+  test("the effects menu shows only effects themes or only plain ones, and each card says which it is", async () => {
+    const fx = doc.querySelector('.theme-tools select[aria-label^="Show themes with or without"]');
+    expect(fx).toBeTruthy();
+    expect(doc.querySelectorAll(".theme-fx-badge").length).toBeGreaterThanOrEqual(35);
+    expect(doc.querySelectorAll(".theme-plain-badge").length).toBeGreaterThan(100);
+    fx.value = "fx";
+    fx.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
+    await sleep(250);
+    const cards = [...doc.querySelectorAll(".theme-card")];
+    expect(cards.length).toBeGreaterThanOrEqual(35);
+    expect(cards.every((c: any) => c.querySelector(".theme-fx-badge"))).toBe(true);
+    expect(doc.querySelector('.dialog [role="status"]')?.textContent ?? doc.body.textContent).toMatch(/with special effects/);
+    fx.value = "plain";
+    fx.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
+    await sleep(250);
+    const plain = [...doc.querySelectorAll(".theme-card")];
+    expect(plain.some((c: any) => c.querySelector(".theme-fx-badge"))).toBe(false);
+    expect(plain.some((c: any) => c.querySelector(".theme-plain-badge"))).toBe(true);
+    fx.value = "any";
+    fx.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
     await sleep(250);
   });
 

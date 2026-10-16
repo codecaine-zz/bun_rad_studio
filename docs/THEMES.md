@@ -1,4 +1,4 @@
-# 🎨 Bun RAD Studio — Complete Theme Visual Gallery (138 Themes)
+# 🎨 Bun RAD Studio — Complete Theme Visual Gallery (178 Themes)
 
 <a id="top"></a>
 Welcome to the **Bun RAD Studio & SimpleGUI Visual Theme Gallery**. Every theme below is built directly into the framework with pixel-perfect color harmony, curated typography, WCAG-tested high contrast, and custom styling for all 30+ desktop RAD controls.
@@ -27,7 +27,8 @@ Welcome to the **Bun RAD Studio & SimpleGUI Visual Theme Gallery**. Every theme 
 - [🐧 Linux Distributions & Desktop Environments (28 Themes)](#os-linux)
 - [🪟 Windows Versions (11 Themes)](#os-windows)
 - [🍎 macOS Versions (7 Themes)](#os-macos)
-- [🌌 Futuristic Themes with glass, glow and motion (15 Themes)](#fx-themes)
+- [💾 Rare & Beloved Systems (22 Themes)](#os-rare)
+- [🌌 Futuristic Themes with glass, glow and motion (35 Themes)](#fx-themes)
 - [🚦 Status colours: danger, warning, success, info](#status-colours)
 - [⚡ Quick Reference Index Table (the first 76 Themes)](#quick-reference-index)
 - [💻 How to Use Any Theme in SimpleGUI Code](#-how-to-use-any-theme-in-simplegui-code)
@@ -1414,6 +1415,194 @@ Try one live: `bun run demo:themes mac_os_9`
 
 ---
 
+<a id="os-rare"></a>
+## 💾 Rare & Beloved Systems (22 Themes)
+
+Desktops and devices many people loved but may never have seen: BeOS and Haiku, OS/2 Warp, Solaris CDE, SGI IRIX, Atari GEM, RISC OS, QNX Photon, Symbian, Palm OS and webOS, Windows Phone, Zune, Android Holo, Longhorn, Media Center, Plan 9 Acme, SerenityOS, KDE 3 Keramik, Bluecurve, Ubuntu Human and Window Maker.
+
+| Theme Key | Display Name | Mode | Primary Accent | Secondary | Canvas | Card | Text | Screenshot |
+|---|---|---|---|---|---|---|---|---|
+| `beos_r5` | **BeOS R5** | ☀️ Light | `#ffcb00` | `#336699` | `#dcdcdc` | `#ececec` | `#000000` | [🖼️](../screenshots/themes/beos_r5.png) |
+| `haiku_os` | **Haiku OS** | ☀️ Light | `#f5c400` | `#3366bb` | `#eeeeee` | `#f9f9f9` | `#1a1a1a` | [🖼️](../screenshots/themes/haiku_os.png) |
+| `os2_warp` | **OS/2 Warp 4** | ☀️ Light | `#000080` | `#008080` | `#c6c6c6` | `#d4d0c8` | `#000000` | [🖼️](../screenshots/themes/os2_warp.png) |
+| `solaris_cde` | **Solaris CDE** | ☀️ Light | `#4b4b7a` | `#5f7f7c` | `#aeb2c3` | `#c3c6d4` | `#000000` | [🖼️](../screenshots/themes/solaris_cde.png) |
+| `irix_indigo_magic` | **SGI IRIX Indigo Magic** | ☀️ Light | `#5b3fa0` | `#3c7d8c` | `#c2c4d0` | `#d5d7e0` | `#111111` | [🖼️](../screenshots/themes/irix_indigo_magic.png) |
+| `atari_tos_gem` | **Atari TOS GEM** | ☀️ Light | `#0b3d91` | `#1b5e20` | `#4caf50` | `#ffffff` | `#000000` | [🖼️](../screenshots/themes/atari_tos_gem.png) |
+| `risc_os` | **RISC OS** | ☀️ Light | `#2648a8` | `#8a6d00` | `#c8c8c8` | `#fffbe0` | `#000000` | [🖼️](../screenshots/themes/risc_os.png) |
+| `qnx_photon` | **QNX Photon** | 🌙 Dark | `#7fb4ff` | `#f0b429` | `#2f3b4c` | `#3b4a5e` | `#eef2f7` | [🖼️](../screenshots/themes/qnx_photon.png) |
+| `symbian_s60` | **Symbian S60** | 🌙 Dark | `#4fb3ff` | `#ffb000` | `#0b2a4a` | `#12385f` | `#eaf3ff` | [🖼️](../screenshots/themes/symbian_s60.png) |
+| `palm_os` | **Palm OS** | ☀️ Light | `#1f3a93` | `#5b6b3a` | `#c6d1b0` | `#d8e0c6` | `#1a1f12` | [🖼️](../screenshots/themes/palm_os.png) |
+| `palm_webos` | **Palm webOS** | 🌙 Dark | `#6fb1e8` | `#ff9a33` | `#1c1c1c` | `#2a2a2a` | `#f2f2f2` | [🖼️](../screenshots/themes/palm_webos.png) |
+| `windows_phone_metro` | **Windows Phone Metro** | 🌙 Dark | `#1ba1e2` | `#f09609` | `#000000` | `#1f1f1f` | `#ffffff` | [🖼️](../screenshots/themes/windows_phone_metro.png) |
+| `zune_desktop` | **Zune Desktop** | 🌙 Dark | `#ff4fa8` | `#f58220` | `#121212` | `#1f1f1f` | `#f5f5f5` | [🖼️](../screenshots/themes/zune_desktop.png) |
+| `android_holo` | **Android Holo** | 🌙 Dark | `#33b5e5` | `#99cc00` | `#101214` | `#1b1e21` | `#e8e8e8` | [🖼️](../screenshots/themes/android_holo.png) |
+| `windows_longhorn` | **Windows Longhorn Plex** | 🌙 Dark | `#6ec6ff` | `#9bd35a` | `#0f1a24` | `#18283a` | `#e6eef5` | [🖼️](../screenshots/themes/windows_longhorn.png) |
+| `ubuntu_human` | **Ubuntu Human (2006)** | ☀️ Light | `#a3521a` | `#7b5427` | `#efebe7` | `#f9f7f5` | `#2e2a26` | [🖼️](../screenshots/themes/ubuntu_human.png) |
+| `plan9_acme` | **Plan 9 Acme** | ☀️ Light | `#2f5f9a` | `#6b6b2e` | `#ffffea` | `#eaffff` | `#000000` | [🖼️](../screenshots/themes/plan9_acme.png) |
+| `serenity_os` | **SerenityOS** | ☀️ Light | `#3b5fa0` | `#b3601a` | `#e3dfdb` | `#f5f3f1` | `#000000` | [🖼️](../screenshots/themes/serenity_os.png) |
+| `kde3_keramik` | **KDE 3 Keramik** | ☀️ Light | `#3a6fb0` | `#b07818` | `#eaeef3` | `#ffffff` | `#10151c` | [🖼️](../screenshots/themes/kde3_keramik.png) |
+| `redhat_bluecurve` | **Red Hat Bluecurve** | ☀️ Light | `#3b5a8f` | `#b3262f` | `#dcdfe4` | `#f2f3f5` | `#1b1b1b` | [🖼️](../screenshots/themes/redhat_bluecurve.png) |
+| `windows_media_center` | **Windows Media Center** | 🌙 Dark | `#3ac3ff` | `#9bd94a` | `#04254f` | `#0a3a74` | `#ffffff` | [🖼️](../screenshots/themes/windows_media_center.png) |
+| `window_maker` | **Window Maker** | 🌙 Dark | `#c8c8ff` | `#bdbdbd` | `#505075` | `#3c3c56` | `#f0f0f0` | [🖼️](../screenshots/themes/window_maker.png) |
+
+Try one live: `bun run demo:themes beos_r5`
+
+<a id="theme-beos_r5"></a>
+### BeOS R5 (`beos_r5`)
+
+> BeOS R5 (1999), the beloved media OS: yellow window tabs, soft gray panels and the blue Deskbar
+
+![BeOS R5 Showcase](../screenshots/themes/beos_r5.png)
+
+<a id="theme-haiku_os"></a>
+### Haiku OS (`haiku_os`)
+
+> Haiku, the open-source heir to BeOS: bright gray surfaces, golden window tabs and calm blue highlights
+
+![Haiku OS Showcase](../screenshots/themes/haiku_os.png)
+
+<a id="theme-os2_warp"></a>
+### OS/2 Warp 4 (`os2_warp`)
+
+> IBM OS/2 Warp 4 (1996): the Workplace Shell with gray 3D panels, navy title bars and teal accents
+
+![OS/2 Warp 4 Showcase](../screenshots/themes/os2_warp.png)
+
+<a id="theme-solaris_cde"></a>
+### Solaris CDE (`solaris_cde`)
+
+> The Common Desktop Environment on Sun Solaris: slate lavender panels, indigo and teal, from 1990s Unix workstations
+
+![Solaris CDE Showcase](../screenshots/themes/solaris_cde.png)
+
+<a id="theme-irix_indigo_magic"></a>
+### SGI IRIX Indigo Magic (`irix_indigo_magic`)
+
+> Silicon Graphics IRIX Indigo Magic desktop: cool gray-blue panels and SGI purple, from the workstations behind 90s film effects
+
+![SGI IRIX Indigo Magic Showcase](../screenshots/themes/irix_indigo_magic.png)
+
+<a id="theme-atari_tos_gem"></a>
+### Atari TOS GEM (`atari_tos_gem`)
+
+> Atari ST TOS with GEM (1985): the green desktop, crisp white windows and solid black outlines
+
+![Atari TOS GEM Showcase](../screenshots/themes/atari_tos_gem.png)
+
+<a id="theme-risc_os"></a>
+### RISC OS (`risc_os`)
+
+> Acorn RISC OS from the Archimedes: light gray desk, cream windows and the three-button Iconbar blue
+
+![RISC OS Showcase](../screenshots/themes/risc_os.png)
+
+<a id="theme-qnx_photon"></a>
+### QNX Photon (`qnx_photon`)
+
+> QNX Photon microGUI: the real-time OS desktop with steel blue panels and amber highlights
+
+![QNX Photon Showcase](../screenshots/themes/qnx_photon.png)
+
+<a id="theme-symbian_s60"></a>
+### Symbian S60 (`symbian_s60`)
+
+> Nokia Symbian S60 phones: deep blue gradients, bright blue selection and amber softkey accents
+
+![Symbian S60 Showcase](../screenshots/themes/symbian_s60.png)
+
+<a id="theme-palm_os"></a>
+### Palm OS (`palm_os`)
+
+> Palm OS handhelds: the greenish LCD screen, dark ink text and the navy title tab
+
+![Palm OS Showcase](../screenshots/themes/palm_os.png)
+
+<a id="theme-palm_webos"></a>
+### Palm webOS (`palm_webos`)
+
+> Palm webOS: dark card-based multitasking with soft blue and orange, the ancestor of modern phone gestures
+
+![Palm webOS Showcase](../screenshots/themes/palm_webos.png)
+
+<a id="theme-windows_phone_metro"></a>
+### Windows Phone Metro (`windows_phone_metro`)
+
+> Windows Phone 7 Metro: pure black, bold white type and the cyan live-tile accent
+
+![Windows Phone Metro Showcase](../screenshots/themes/windows_phone_metro.png)
+
+<a id="theme-zune_desktop"></a>
+### Zune Desktop (`zune_desktop`)
+
+> The Zune music software: near-black with the magenta and orange Zune gradient
+
+![Zune Desktop Showcase](../screenshots/themes/zune_desktop.png)
+
+<a id="theme-android_holo"></a>
+### Android Holo (`android_holo`)
+
+> Android 4 Holo (Ice Cream Sandwich): dark slate with the Holo blue and green highlights
+
+![Android Holo Showcase](../screenshots/themes/android_holo.png)
+
+<a id="theme-windows_longhorn"></a>
+### Windows Longhorn Plex (`windows_longhorn`)
+
+> The unreleased Windows Longhorn Plex theme: dark slate glass with sky blue and lime accents
+
+![Windows Longhorn Plex Showcase](../screenshots/themes/windows_longhorn.png)
+
+<a id="theme-ubuntu_human"></a>
+### Ubuntu Human (2006) (`ubuntu_human`)
+
+> Early Ubuntu's Human theme: warm brown and orange 'Linux for human beings' desktop
+
+![Ubuntu Human (2006) Showcase](../screenshots/themes/ubuntu_human.png)
+
+<a id="theme-plan9_acme"></a>
+### Plan 9 Acme (`plan9_acme`)
+
+> Plan 9 from Bell Labs and the Acme editor: pale yellow text areas, pale cyan tag bars and olive scrollbars
+
+![Plan 9 Acme Showcase](../screenshots/themes/plan9_acme.png)
+
+<a id="theme-serenity_os"></a>
+### SerenityOS (`serenity_os`)
+
+> SerenityOS: a love letter to late-90s desktops, with beige panels and blue gradient titles
+
+![SerenityOS Showcase](../screenshots/themes/serenity_os.png)
+
+<a id="theme-kde3_keramik"></a>
+### KDE 3 Keramik (`kde3_keramik`)
+
+> KDE 3 Keramik: rounded, glossy light blue widgets from the early-2000s Konqueror days
+
+![KDE 3 Keramik Showcase](../screenshots/themes/kde3_keramik.png)
+
+<a id="theme-redhat_bluecurve"></a>
+### Red Hat Bluecurve (`redhat_bluecurve`)
+
+> Red Hat Bluecurve: the unified GNOME and KDE look of Red Hat Linux 8 and 9
+
+![Red Hat Bluecurve Showcase](../screenshots/themes/redhat_bluecurve.png)
+
+<a id="theme-windows_media_center"></a>
+### Windows Media Center (`windows_media_center`)
+
+> Windows Media Center: the ten-foot living room UI in deep blue with bright cyan focus
+
+![Windows Media Center Showcase](../screenshots/themes/windows_media_center.png)
+
+<a id="theme-window_maker"></a>
+### Window Maker (`window_maker`)
+
+> Window Maker: the NeXTSTEP-style X11 window manager with its dock, tiles and purple-gray desktop
+
+![Window Maker Showcase](../screenshots/themes/window_maker.png)
+
+---
+
 <a id="status-colours"></a>
 ## 🚦 Status colours: danger, warning, success, info
 
@@ -1448,9 +1637,9 @@ In CSS they are variables that follow the theme, including after a live theme sw
 <!-- Generated by scripts/build_os_theme_docs.ts. Edit src/shared/fxThemes.ts, not this block. -->
 
 <a id="fx-themes"></a>
-## 🌌 Futuristic Themes (15 Themes)
+## 🌌 Futuristic Themes (35 Themes)
 
-Glass surfaces, edge glow, a slow living backdrop and a motion layer (button bloom, floating labels, sliding tab pill, tilting cards). Every theme here carries an `fx` descriptor; the other 121 themes render exactly as before. Body text on glass is checked at 4.5:1 over both a black and a white backdrop, and the effects respect `prefers-reduced-motion`, `prefers-contrast` and forced colours. Guide: [fx-themes developer guide](developer/fx-themes.md).
+Glass surfaces, edge glow, a slow living backdrop and a motion layer (button bloom, floating labels, sliding tab pill, tilting cards). Every theme here carries an `fx` descriptor; the other 143 themes render exactly as before. Body text on glass is checked at 4.5:1 over both a black and a white backdrop, and the effects respect `prefers-reduced-motion`, `prefers-contrast` and forced colours. Guide: [fx-themes developer guide](developer/fx-themes.md).
 
 | Theme Key | Display Name | Mode | Primary Accent | Secondary | Canvas | Card | Text | Glow | Glass | Motion | Border | Screenshot |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -1469,6 +1658,26 @@ Glass surfaces, edge glow, a slow living backdrop and a motion layer (button blo
 | `neo_tokyo_day` | **Neo-Tokyo Day** | ☀️ Light | `#b3135f` | `#00796b` | `#f1effa` | `#ffffff` | `#1c1a33` | soft | 0.35 | spring | gradient | [view](#theme-neo_tokyo_day) |
 | `aurora_glass` | **Aurora Glass** | 🌙 Dark | `#5ef2d0` | `#7aa8ff` | `#07131c` | `#0f202b` | `#e6fbf7` | soft | 0.62 | spring | gradient | [view](#theme-aurora_glass) |
 | `plasma_violet` | **Plasma Violet** | 🌙 Dark | `#d28bff` | `#ff6b9d` | `#0d0716` | `#1a1028` | `#f3e9ff` | neon | 0.45 | spring | gradient | [view](#theme-plasma_violet) |
+| `synthwave_sunset` | **Synthwave Sunset** | 🌙 Dark | `#ff7edb` | `#72f1b8` | `#1a0b2e` | `#261447` | `#fdf0ff` | neon | 0.45 | snappy | gradient | [view](#theme-synthwave_sunset) |
+| `matrix_rain` | **Matrix Rain** | 🌙 Dark | `#39ff6a` | `#00c8a0` | `#020a04` | `#071a0c` | `#c8ffd4` | neon | 0.3 | snappy | flat | [view](#theme-matrix_rain) |
+| `amber_phosphor` | **Amber Phosphor** | 🌙 Dark | `#ffb000` | `#ff8a2a` | `#0e0800` | `#1c1104` | `#ffe2b0` | soft | 0.2 | calm | flat | [view](#theme-amber_phosphor) |
+| `midnight_glass` | **Midnight Glass** | 🌙 Dark | `#8ab4ff` | `#c4a1ff` | `#0b0f1a` | `#161c2e` | `#eef2ff` | soft | 0.8 | spring | gradient | [view](#theme-midnight_glass) |
+| `abyss_bloom` | **Abyss Bloom** | 🌙 Dark | `#3cf0ff` | `#b06bff` | `#020b12` | `#08202c` | `#dff9ff` | soft | 0.6 | calm | gradient | [view](#theme-abyss_bloom) |
+| `cosmic_nebula` | **Cosmic Nebula** | 🌙 Dark | `#ff9ef5` | `#7cc4ff` | `#0a0614` | `#170f2a` | `#f1e9ff` | neon | 0.55 | spring | gradient | [view](#theme-cosmic_nebula) |
+| `obsidian_gold` | **Obsidian Gold** | 🌙 Dark | `#e6c068` | `#d39a62` | `#0c0a07` | `#1a160f` | `#f7efdc` | soft | 0.35 | calm | metal | [view](#theme-obsidian_gold) |
+| `crimson_eclipse` | **Crimson Eclipse** | 🌙 Dark | `#ff5c6c` | `#ff9a3d` | `#0e0405` | `#1e0a0d` | `#ffe6e8` | neon | 0.35 | snappy | gradient | [view](#theme-crimson_eclipse) |
+| `acid_reactor` | **Acid Reactor** | 🌙 Dark | `#b6ff3b` | `#3bffd0` | `#070a02` | `#121a06` | `#f2ffd8` | neon | 0.35 | snappy | gradient | [view](#theme-acid_reactor) |
+| `polar_night` | **Polar Night** | 🌙 Dark | `#8fe3ff` | `#b9c7ff` | `#07101a` | `#0f1d2b` | `#e8f6ff` | soft | 0.65 | calm | metal | [view](#theme-polar_night) |
+| `emerald_grove` | **Emerald Grove** | 🌙 Dark | `#4ff0a0` | `#c3f56a` | `#04100b` | `#0b2019` | `#e3fff1` | soft | 0.5 | calm | gradient | [view](#theme-emerald_grove) |
+| `brass_engine` | **Brass Engine** | 🌙 Dark | `#e0a85a` | `#d48a5c` | `#140e08` | `#22180f` | `#f5e6cc` | soft | 0.25 | calm | metal | [view](#theme-brass_engine) |
+| `focus_glow` | **Focus Glow** | 🌙 Dark | `#7fb2ff` | `#a8c7fa` | `#111318` | `#1b1e24` | `#e8eaed` | soft | 0.3 | calm | flat | [view](#theme-focus_glow) |
+| `neon_max` | **Neon Max** | 🌙 Dark | `#00ffff` | `#ff4dff` | `#000000` | `#0a0a0a` | `#ffffff` | neon | 0 | snappy | gradient | [view](#theme-neon_max) |
+| `vaporwave_dream` | **Vaporwave Dream** | 🌙 Dark | `#ff9de2` | `#8ef6e4` | `#2a1b3d` | `#36244f` | `#fbe9ff` | soft | 0.45 | spring | gradient | [view](#theme-vaporwave_dream) |
+| `frosted_glass` | **Frosted Glass** | ☀️ Light | `#2457c5` | `#7a4fc4` | `#eef2f8` | `#ffffff` | `#18202e` | soft | 0.7 | spring | gradient | [view](#theme-frosted_glass) |
+| `sakura_glass` | **Sakura Glass** | ☀️ Light | `#b0245e` | `#6b4fa8` | `#fbf0f4` | `#ffffff` | `#2d1a24` | soft | 0.6 | calm | gradient | [view](#theme-sakura_glass) |
+| `pearl_hologram` | **Pearl Hologram** | ☀️ Light | `#6a3fd1` | `#00808a` | `#f2f0fa` | `#fbfaff` | `#1f1c33` | soft | 0.55 | spring | gradient | [view](#theme-pearl_hologram) |
+| `rose_gold` | **Rose Gold** | ☀️ Light | `#9c4a3a` | `#8a5a78` | `#f8efea` | `#fffaf7` | `#2b1c18` | soft | 0.45 | calm | metal | [view](#theme-rose_gold) |
+| `daylight_hud` | **Daylight HUD** | ☀️ Light | `#0b6e5f` | `#8a2d6b` | `#eef5f3` | `#ffffff` | `#0f2420` | soft | 0.3 | snappy | gradient | [view](#theme-daylight_hud) |
 
 Try one live: `bun run demo:themes prism_reactor`
 
@@ -1606,6 +1815,186 @@ Try one live: `bun run demo:themes prism_reactor`
 - **fx**: glow neon (#d28bff + #ff6b9d), blur 14px, glass 0.45, radius pill, border gradient, motion spring, sheen, ambient backdrop
 
 ![Plasma Violet Showcase](../screenshots/themes/plasma_violet.png)
+
+<a id="theme-synthwave_sunset"></a>
+### Synthwave Sunset (`synthwave_sunset`)
+
+> Outrun nights: a purple sky, hot pink neon and mint edges with scanlines, chromatic headings and a drifting sunset glow
+
+- **fx**: glow neon (#ff7edb + #72f1b8), blur 14px, glass 0.45, radius soft, border gradient, motion snappy, scanlines, sheen, chromatic headings, ambient backdrop
+
+![Synthwave Sunset Showcase](../screenshots/themes/synthwave_sunset.png)
+
+<a id="theme-matrix_rain"></a>
+### Matrix Rain (`matrix_rain`)
+
+> A green phosphor terminal: square corners, bright code-green glow, scanlines and film grain over pitch black
+
+- **fx**: glow neon (#39ff6a + #00c8a0), blur 6px, glass 0.3, radius sharp, border flat, motion snappy, scanlines, grain, chromatic headings
+
+![Matrix Rain Showcase](../screenshots/themes/matrix_rain.png)
+
+<a id="theme-amber_phosphor"></a>
+### Amber Phosphor (`amber_phosphor`)
+
+> A warm amber monitor from the 1980s: soft phosphor glow, scanlines and grain, sharp edges and calm motion
+
+- **fx**: glow soft (#ffb000 + #ff8a2a), blur 4px, glass 0.2, radius sharp, border flat, motion calm, scanlines, grain
+
+![Amber Phosphor Showcase](../screenshots/themes/amber_phosphor.png)
+
+<a id="theme-midnight_glass"></a>
+### Midnight Glass (`midnight_glass`)
+
+> Pure glassmorphism at night: heavy frosted blur, very clear panels, periwinkle light and a slow drifting glow
+
+- **fx**: glow soft (#8ab4ff + #c4a1ff), blur 30px, glass 0.8, radius round, border gradient, motion spring, sheen, noise, ambient backdrop
+
+![Midnight Glass Showcase](../screenshots/themes/midnight_glass.png)
+
+<a id="theme-abyss_bloom"></a>
+### Abyss Bloom (`abyss_bloom`)
+
+> Bioluminescent deep sea: cyan and violet creatures glowing through dark water glass, with a slow living backdrop
+
+- **fx**: glow soft (#3cf0ff + #b06bff), blur 22px, glass 0.6, radius round, border gradient, motion calm, sheen, ambient backdrop
+
+![Abyss Bloom Showcase](../screenshots/themes/abyss_bloom.png)
+
+<a id="theme-cosmic_nebula"></a>
+### Cosmic Nebula (`cosmic_nebula`)
+
+> A pink and blue galaxy: star-grain texture, neon nebula glow, chromatic headings and pill-shaped controls
+
+- **fx**: glow neon (#ff9ef5 + #7cc4ff), blur 18px, glass 0.55, radius pill, border gradient, motion spring, grain, sheen, chromatic headings, ambient backdrop
+
+![Cosmic Nebula Showcase](../screenshots/themes/cosmic_nebula.png)
+
+<a id="theme-obsidian_gold"></a>
+### Obsidian Gold (`obsidian_gold`)
+
+> Luxury black and gold: polished metal borders, a slow gold sheen, soft warm glow and calm motion
+
+- **fx**: glow soft (#e6c068 + #d39a62), blur 12px, glass 0.35, radius soft, border metal, motion calm, sheen, noise
+
+![Obsidian Gold Showcase](../screenshots/themes/obsidian_gold.png)
+
+<a id="theme-crimson_eclipse"></a>
+### Crimson Eclipse (`crimson_eclipse`)
+
+> A blood moon: red and ember neon over black, sharp edges, grain and a dark drifting glow
+
+- **fx**: glow neon (#ff5c6c + #ff9a3d), blur 10px, glass 0.35, radius sharp, border gradient, motion snappy, grain, ambient backdrop
+
+![Crimson Eclipse Showcase](../screenshots/themes/crimson_eclipse.png)
+
+<a id="theme-acid_reactor"></a>
+### Acid Reactor (`acid_reactor`)
+
+> Toxic lime and aqua neon: a hazard-lab console with scanlines, chromatic headings and fast controls
+
+- **fx**: glow neon (#b6ff3b + #3bffd0), blur 8px, glass 0.35, radius sharp, border gradient, motion snappy, scanlines, chromatic headings
+
+![Acid Reactor Showcase](../screenshots/themes/acid_reactor.png)
+
+<a id="theme-polar_night"></a>
+### Polar Night (`polar_night`)
+
+> Arctic night: icy frosted glass, metal borders, a cold blue glow and a slow drifting aurora
+
+- **fx**: glow soft (#8fe3ff + #b9c7ff), blur 24px, glass 0.65, radius soft, border metal, motion calm, sheen, ambient backdrop
+
+![Polar Night Showcase](../screenshots/themes/polar_night.png)
+
+<a id="theme-emerald_grove"></a>
+### Emerald Grove (`emerald_grove`)
+
+> A glowing forest at night: emerald and lime light, soft textured glass, round corners and gentle motion
+
+- **fx**: glow soft (#4ff0a0 + #c3f56a), blur 16px, glass 0.5, radius round, border gradient, motion calm, noise, ambient backdrop
+
+![Emerald Grove Showcase](../screenshots/themes/emerald_grove.png)
+
+<a id="theme-brass_engine"></a>
+### Brass Engine (`brass_engine`)
+
+> Steampunk brass and copper: metal borders, film grain, a soft furnace glow and steady, calm motion
+
+- **fx**: glow soft (#e0a85a + #d48a5c), blur 6px, glass 0.25, radius sharp, border metal, motion calm, grain, sheen
+
+![Brass Engine Showcase](../screenshots/themes/brass_engine.png)
+
+<a id="theme-focus_glow"></a>
+### Focus Glow (`focus_glow`)
+
+> Effects for people who want them quiet: a faint blue glow and light glass, with no moving light, texture or sheen
+
+- **fx**: glow soft (#7fb2ff + #a8c7fa), blur 10px, glass 0.3, radius soft, border flat, motion calm
+
+![Focus Glow Showcase](../screenshots/themes/focus_glow.png)
+
+<a id="theme-neon_max"></a>
+### Neon Max (`neon_max`)
+
+> Maximum contrast neon: white text on pure black with full-strength cyan and magenta glow and instant motion
+
+- **fx**: glow neon (#00ffff + #ff4dff), blur 0px, glass 0, radius sharp, border gradient, motion snappy
+
+![Neon Max Showcase](../screenshots/themes/neon_max.png)
+
+<a id="theme-vaporwave_dream"></a>
+### Vaporwave Dream (`vaporwave_dream`)
+
+> A 90s vaporwave mall: pastel pink and aqua neon on purple, pill controls, grain, scanlines and a dreamy glow
+
+- **fx**: glow soft (#ff9de2 + #8ef6e4), blur 14px, glass 0.45, radius pill, border gradient, motion spring, scanlines, grain, sheen, ambient backdrop
+
+![Vaporwave Dream Showcase](../screenshots/themes/vaporwave_dream.png)
+
+<a id="theme-frosted_glass"></a>
+### Frosted Glass (`frosted_glass`)
+
+> Bright glassmorphism: clear frosted white panels, heavy blur, a blue and violet glow and a soft moving light
+
+- **fx**: glow soft (#2457c5 + #7a4fc4), blur 28px, glass 0.7, radius round, border gradient, motion spring, sheen, ambient backdrop
+
+![Frosted Glass Showcase](../screenshots/themes/frosted_glass.png)
+
+<a id="theme-sakura_glass"></a>
+### Sakura Glass (`sakura_glass`)
+
+> Cherry blossom light: pink frosted glass, a soft petal glow, round corners and a calm drifting light
+
+- **fx**: glow soft (#b0245e + #6b4fa8), blur 20px, glass 0.6, radius round, border gradient, motion calm, sheen, ambient backdrop
+
+![Sakura Glass Showcase](../screenshots/themes/sakura_glass.png)
+
+<a id="theme-pearl_hologram"></a>
+### Pearl Hologram (`pearl_hologram`)
+
+> Iridescent pearl: a light holographic theme with violet and teal shimmer, pill controls and a moving sheen
+
+- **fx**: glow soft (#6a3fd1 + #00808a), blur 18px, glass 0.55, radius pill, border gradient, motion spring, sheen, ambient backdrop
+
+![Pearl Hologram Showcase](../screenshots/themes/pearl_hologram.png)
+
+<a id="theme-rose_gold"></a>
+### Rose Gold (`rose_gold`)
+
+> Soft rose gold: warm light glass, polished metal borders, a gentle sheen and calm motion
+
+- **fx**: glow soft (#9c4a3a + #c08a6a), blur 14px, glass 0.45, radius soft, border metal, motion calm, sheen, noise
+
+![Rose Gold Showcase](../screenshots/themes/rose_gold.png)
+
+<a id="theme-daylight_hud"></a>
+### Daylight HUD (`daylight_hud`)
+
+> A light tactical display: sharp corners, crisp teal edge light, faint scanlines and fast motion
+
+- **fx**: glow soft (#0b6e5f + #8a2d6b), blur 8px, glass 0.3, radius sharp, border gradient, motion snappy, scanlines
+
+![Daylight HUD Showcase](../screenshots/themes/daylight_hud.png)
 
 <a id="fx-states"></a>
 ### Interaction states

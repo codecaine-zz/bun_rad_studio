@@ -43,6 +43,8 @@ export interface Settings {
   typeWarnings: boolean;
   /** Windows and Linux only: the key a Mac keyboard calls Delete sends Backspace, so Backspace deletes instead of going up a folder. */
   backspaceDeletes: boolean;
+  /** Desktop app: Ctrl/Cmd+Q and Ctrl/Cmd+W don't close the window, only its close button does. */
+  shortcutsCantClose: boolean;
   /** The code editor "Open in editor" starts: "default" uses $VISUAL / $EDITOR, or the first known editor found. */
   editor: "default" | "vscode" | "subl" | "webstorm" | "idea";
   /** The Serve tool's remembered form choices. The network (LAN) option is never remembered. */
@@ -54,9 +56,14 @@ export interface Settings {
   /**
    * Where plain text and source files open when you double-click them, press Enter or choose Open: the File Manager's own
    * Code editor ("builtin", the default), the editor chosen in `editor` ("editor"), or the program the computer normally
-   * uses for them ("system"). Programs, pictures, documents and everything else always use the computer's own program.
+   * uses for them ("system"). Programs, documents and everything else use the computer's own program.
    */
   textOpensIn: "builtin" | "editor" | "system";
+  /**
+   * Where pictures, sound and video open on double-click, Enter or Open: the File Manager's own viewer and player
+   * ("manager", the default) or the program the computer normally uses for them ("system").
+   */
+  mediaOpensIn: "manager" | "system";
   /**
    * Keyboard shortcuts the person changed: action id -> shortcuts ("Mod+Alt+T"; an empty list switches the action off).
    * Actions that aren't listed keep their defaults. Changes that are invalid or would clash with another action are
@@ -106,11 +113,13 @@ export const DEFAULT_SETTINGS: Settings = {
   dualPath: "",
   typeWarnings: true,
   backspaceDeletes: false,
+  shortcutsCantClose: false,
   editor: "default",
   serveOptions: { kind: "auto", liveReload: true, openBrowser: true },
   deleteTo: "bin",
   dbShortcut: "window",
   textOpensIn: "builtin",
+  mediaOpensIn: "manager",
   shortcuts: {},
   studioPresets: { image: [], media: [] },
 };
@@ -174,11 +183,13 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     dualPath: isPath(r.dualPath) ? p.resolve(r.dualPath) : "",
     typeWarnings: typeof r.typeWarnings === "boolean" ? r.typeWarnings : DEFAULT_SETTINGS.typeWarnings,
     backspaceDeletes: typeof r.backspaceDeletes === "boolean" ? r.backspaceDeletes : DEFAULT_SETTINGS.backspaceDeletes,
+    shortcutsCantClose: typeof r.shortcutsCantClose === "boolean" ? r.shortcutsCantClose : DEFAULT_SETTINGS.shortcutsCantClose,
     editor: oneOf(r.editor, ["default", "vscode", "subl", "webstorm", "idea"], DEFAULT_SETTINGS.editor),
     serveOptions: sanitizeServeOptions(r.serveOptions),
     deleteTo: oneOf(r.deleteTo, ["bin", "graveyard"], DEFAULT_SETTINGS.deleteTo),
     dbShortcut: oneOf(r.dbShortcut, ["window", "browser"], DEFAULT_SETTINGS.dbShortcut),
     textOpensIn: oneOf(r.textOpensIn, ["builtin", "editor", "system"], DEFAULT_SETTINGS.textOpensIn),
+    mediaOpensIn: oneOf(r.mediaOpensIn, ["manager", "system"], DEFAULT_SETTINGS.mediaOpensIn),
     shortcuts: sanitizeOverrides(r.shortcuts, ctx.platform) as Record<string, string[]>,
     studioPresets: sanitizeStudioPresets(r.studioPresets),
   };

@@ -85,7 +85,7 @@ beforeAll(async () => {
   git(repo, ["commit", "-q", "-m", "first commit"]);
   git(repo, ["remote", "add", "origin", "https://user:hunter2secret@example.com/x/y.git"]);
 
-  mock.module("../resources/file_manager/ui/terminal.js", () => ({
+  mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalShell: () => "posix", terminalWsl: () => ({}),
     terminalAvailable: () => true,
     typeInTerminal: (text: string) => (typedInTerminal.push(text), true),
     showTerminal() {},
@@ -324,12 +324,12 @@ describe("the Dev tab in a browser-like page", () => {
     expect(run.getAttribute("title")).toContain("bun run dev");
     await click(run, 100);
     expect(typedInTerminal).toEqual([]); // nothing is typed before the person agrees
-    expect(doc.querySelector(".modal-backdrop").textContent).toContain(`cd ${work} && bun run dev`);
+    expect(doc.querySelector(".modal-backdrop").textContent).toContain(`cd -- '${work}' && bun run dev`);
     await click(dialogButton("Cancel"), 50);
     expect(typedInTerminal).toEqual([]);
     await click(scripts[1].querySelector("button"), 100);
     await click(dialogButton("Run it"), 100);
-    expect(typedInTerminal).toEqual([`cd ${work} && bun run test\r`]);
+    expect(typedInTerminal).toEqual([`cd -- '${work}' && bun run test\r`]);
     expect(panel().querySelector(".dev-proj-files")).toBeTruthy();
   });
 

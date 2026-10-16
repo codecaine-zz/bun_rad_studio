@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { createContext } from "../src/features/filemanager/fmCore";
@@ -169,6 +169,54 @@ describe("terminal helpers", () => {
     const sh = readFileSync(new URL("../resources/file_manager/windows-terminal-wsl.sh", import.meta.url), "utf8");
     expect(sh).toContain("WSL_DISTRO_NAME");
     expect(sh).toContain("file-manager-cwd;%s;wsl;%s");
+  });
+
+  test("Git Bash prompts report their folder, and PowerShell 7 uses the PowerShell marker", () => {
+    const seen: [string, string][] = [];
+    let output = "";
+    const parser = windowsTerminalOutput((s) => output += s, (p, shell) => seen.push([p, shell]));
+    const b64 = (text: string) => Buffer.from(text, "utf8").toString("base64");
+    parser.write(`a\x1b]777;file-manager-cwd;${b64("C:\\Users\\me")};gitbash\x07b\x1b]777;file-manager-cwd;${b64("D:\\x")}\x07`);
+    parser.write(`\x1b]777;file-manager-cwd;${b64("C:\\y")};zsh\x07`);
+    parser.flush();
+    expect(output).toBe("ab");
+    expect(seen).toEqual([["C:\\Users\\me", "gitbash"], ["D:\\x", "powershell"]]);
+  });
+
+  test("every shell started inside the Windows terminal stays in it and reports where it is", () => {
+    const read = (name: string) => readFileSync(new URL(`../resources/file_manager/${name}`, import.meta.url), "utf8");
+    const ps = read("windows-terminal-shell.ps1");
+    for (const name of ["powershell", "powershell.exe", "pwsh", "pwsh.exe", "bash", "bash.exe", "git-bash", "git-bash.exe", "wsl", "wsl.exe"]) {
+      expect(ps).toContain(`function global:${name} {`);
+    }
+    expect(ps).toContain("doskey.exe') /exename=cmd.exe /macrofile=cmd-macros.txt");
+    const bridge = read("windows-terminal.ps1");
+    for (const name of ["'wsl', 'wsl.exe'", "'powershell', 'powershell.exe'", "'pwsh', 'pwsh.exe'", "'bash', 'bash.exe'", "'git-bash', 'git-bash.exe'"]) expect(bridge).toContain(name);
+    expect(bridge).toContain("Remove-Item -LiteralPath $helpers -Recurse -Force");
+    expect(bridge).toContain("$env:CHERE_INVOKING = '1'");
+    // Nothing here starts a separate terminal window.
+    for (const text of [ps, bridge]) expect(text).not.toMatch(/\bwt(\.exe)?\b|Start-Process|\bstart\s+""|mintty/i);
+  });
+
+  (posix ? test : test.skip)("the Git Bash start-up file reports the folder before each prompt and keeps the exit status", () => {
+    const dir = mkdtempSync(join(tmpdir(), "fm-gitbash-"));
+    try {
+      const bin = join(dir, "bin");
+      mkdirSync(bin);
+      writeFileSync(join(bin, "cygpath"), "#!/bin/sh\nprintf 'C:\\\\Users\\\\me\\\\it'\\''s here'\n");
+      Bun.spawnSync(["chmod", "+x", join(bin, "cygpath")]);
+      const rc = join(import.meta.dir, "..", "resources", "file_manager", "windows-terminal-gitbash.sh");
+      const proc = Bun.spawnSync(["bash", "--norc", "-c", `HOME=${JSON.stringify(dir)}; set -- ; . ${JSON.stringify(rc)}; false; __file_manager_cwd; echo " status=$?"; echo "pc=$PROMPT_COMMAND"`], {
+        env: { PATH: `${bin}:${process.env.PATH}`, HOME: dir },
+      });
+      const out = proc.stdout.toString();
+      const encoded = /\x1b\]777;file-manager-cwd;([A-Za-z0-9+/=]+);gitbash\x07/.exec(out)?.[1];
+      expect(Buffer.from(encoded ?? "", "base64").toString("utf8")).toBe("C:\\Users\\me\\it's here");
+      expect(out).toContain(" status=1");
+      expect(out).toMatch(/pc=__file_manager_cwd/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   test("Windows, macOS and Linux support terminals", () => {

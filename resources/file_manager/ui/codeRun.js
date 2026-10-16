@@ -25,10 +25,11 @@ export const hasControlChars = (text) => CONTROL.test(text);
  * Quotes one value for a shell, only when it needs it (so plain paths stay readable). Returns { text } or { error }.
  * posix: 'single quotes' with ' written as '\''. powershell: 'single quotes' with ' (and curly quotes) doubled.
  * cmd: "double quotes"; values holding a " or a % are refused, because cmd can't protect them.
+ * `always` quotes even plain values.
  */
-export function quoteArg(value, shell = "posix") {
+export function quoteArg(value, shell = "posix", always = false) {
   if (hasControlChars(value)) return { error: "This path has a line break or another hidden control character in it, so it won't be sent to the terminal." };
-  if (value !== "" && (SAFE[shell] ?? SAFE.posix).test(value) && !(shell === "posix" && value.startsWith("~"))) return { text: value };
+  if (!always && value !== "" && (SAFE[shell] ?? SAFE.posix).test(value) && !(shell === "posix" && value.startsWith("~"))) return { text: value };
   if (shell === "powershell") return { text: `'${value.replace(/['\u2018\u2019\u201a\u201b]/g, (m) => m + m)}'` };
   if (shell === "cmd") {
     if (value.includes('"') || value.includes("%")) return { error: 'This path has a " or a % in it, which the Windows command prompt can\'t handle safely.' };
@@ -56,12 +57,55 @@ export function windowsToWsl(path, wsl = {}) {
   return null;
 }
 
-/** The shells a path can be written for: "posix", "powershell", "cmd" (Command Prompt) and "wsl" (Bash in WSL). */
-export const TERMINAL_SHELLS = ["posix", "powershell", "cmd", "wsl"];
+/**
+ * A Windows path as Git Bash (MSYS) sees it: `C:\Users\me` becomes /c/Users/me and `\\server\share` becomes
+ * //server/share. Anything else only has its backslashes turned around.
+ */
+export function windowsToGitBash(path) {
+  const drive = /^([A-Za-z]):(?:[\\/](.*))?$/.exec(path);
+  if (drive) {
+    const rest = (drive[2] ?? "").replace(/\\/g, "/").replace(/\/+$/, "");
+    return `/${drive[1].toLowerCase()}${rest ? `/${rest}` : ""}`;
+  }
+  return path.replace(/\\/g, "/");
+}
 
 /**
- * Shell arguments only: no command, no Enter, and no terminal control characters. For "wsl" the Windows paths are
- * turned into Linux ones (`wsl` may carry the distro's name and drive root, as the terminal reports them).
+ * The shells a path can be written for: "posix", "powershell" (Windows PowerShell and PowerShell 7), "cmd" (Command
+ * Prompt), "wsl" (Bash in WSL) and "gitbash" (Git Bash).
+ */
+export const TERMINAL_SHELLS = ["posix", "powershell", "cmd", "wsl", "gitbash"];
+
+/**
+ * One path, always quoted, written the way `shell` needs it. For "wsl" a Windows path becomes a Linux one (`wsl` may
+ * carry the distro's name and drive root, as the terminal reports them), or `wslpath` works it out when only it can.
+ * @returns {{ text: string, error?: never } | { error: string, text?: never }}
+ */
+export function terminalPath(path, shell = "posix", wsl = {}) {
+  if (shell === "wsl") {
+    const linux = windowsToWsl(path, wsl);
+    const arg = quoteArg(linux ?? path, "posix", true);
+    if (arg.error) return arg;
+    return { text: linux ? arg.text : `"$(wslpath -u ${arg.text})"` };
+  }
+  if (shell === "gitbash") return quoteArg(windowsToGitBash(path), "posix", true);
+  return quoteArg(path, TERMINAL_SHELLS.includes(shell) ? shell : "posix", true);
+}
+
+/**
+ * The line that runs `command` in `folder` for `shell`, and only when moving there worked. No Enter at the end.
+ * @returns {{ text: string } | { error: string }}
+ */
+export function commandInFolder(folder, command, shell = "posix", wsl = {}) {
+  const dir = terminalPath(folder, shell, wsl);
+  if (dir.error) return dir;
+  if (shell === "cmd") return { text: `cd /d ${dir.text} && ${command}` };
+  if (shell === "powershell") return { text: `Set-Location -LiteralPath ${dir.text}; if ($?) { ${command} }` };
+  return { text: `cd -- ${dir.text} && ${command}` };
+}
+
+/**
+ * Shell arguments only, each one always quoted: no command, no Enter, and no terminal control characters.
  * @returns {{ text: string, error?: never } | { error: string, text?: never }}
  */
 export function quotePathsForTerminal(paths, shell = "posix", wsl = {}) {
@@ -69,14 +113,7 @@ export function quotePathsForTerminal(paths, shell = "posix", wsl = {}) {
   const quoted = [];
   for (const path of paths) {
     if (typeof path !== "string" || !path || /[\x00-\x1f\x7f-\x9f]/.test(path)) return { error: "A selected path has a hidden control character, so it can't be pasted into a terminal safely." };
-    if (shell === "wsl") {
-      const linux = windowsToWsl(path, wsl);
-      const arg = quoteArg(linux ?? path, "posix");
-      if (arg.error) return arg;
-      quoted.push(linux ? arg.text : `"$(wslpath -u ${arg.text})"`);
-      continue;
-    }
-    const arg = quoteArg(path, TERMINAL_SHELLS.includes(shell) ? shell : "posix");
+    const arg = terminalPath(path, shell, wsl);
     if (arg.error) return arg;
     quoted.push(arg.text);
   }
@@ -92,10 +129,11 @@ export function pathParts(path, platform) {
 }
 
 /**
- * Fills in a command's placeholders. `vars` = { path, workspace, root, platform }. {{ and }} stand for { and }.
+ * Fills in a command's placeholders. `vars` = { path, workspace, root, platform, shell?, wsl? }; in WSL and Git Bash
+ * the path placeholders become the paths that shell sees. {{ and }} stand for { and }.
  * Anything like ${HOME} or {a,b} is left alone. @returns {{ command: string } | { error: string }}
  */
-export function expandCommand(template, vars, shell = shellFor(vars.platform)) {
+export function expandCommand(template, vars, shell = vars.shell ?? shellFor(vars.platform)) {
   const parts = pathParts(vars.path ?? "", vars.platform);
   const values = { file: vars.path ?? "", name: parts.name, stem: parts.stem, ext: parts.ext, dir: parts.dir, workspace: vars.workspace ?? "", root: vars.root ?? "" };
   const why = {
@@ -112,7 +150,8 @@ export function expandCommand(template, vars, shell = shellFor(vars.platform)) {
       const word = end > 0 ? template.slice(i + 1, end) : "";
       if (end > 0 && word in values && template[i - 1] !== "$") {
         if (values[word] === "") return { error: why[word] ?? `{${word}} has nothing to fill in.` };
-        const q = quoteArg(values[word], shell);
+        const isPath = word === "file" || word === "dir" || word === "workspace" || word === "root";
+        const q = isPath && (shell === "wsl" || shell === "gitbash") ? terminalPath(values[word], shell, vars.wsl) : quoteArg(values[word], shell === "wsl" || shell === "gitbash" ? "posix" : shell);
         if (q.error) return { error: q.error };
         out += q.text;
         i = end;
@@ -125,7 +164,7 @@ export function expandCommand(template, vars, shell = shellFor(vars.platform)) {
 
 /**
  * The exact text to send to the terminal for a preset: go to its working folder (and stop if that fails), run the
- * command, press Enter. `vars` = { path, workspace, root, platform }.
+ * command, press Enter. `vars` = { path, workspace, root, platform, shell?, wsl? } (shell: the terminal's current one).
  * @returns {{ send: string, line: string, dir: string } | { error: string }}
  */
 export function buildRunSequence(preset, vars) {
@@ -137,9 +176,9 @@ export function buildRunSequence(preset, vars) {
   const parts = pathParts(vars.path, vars.platform);
   const dir = preset.cwd === "workspace" ? vars.workspace : preset.cwd === "root" ? vars.root : parts.dir;
   if (!dir) return { error: preset.cwd === "root" ? "No project folder was found above this file, so the command can't run \"in the project folder\". Pick another working folder." : "No folder is open in the Explorer, so the command can't run in it. Pick another working folder." };
-  const q = quoteArg(dir, shell);
-  if (q.error) return { error: q.error };
-  const line = shell === "cmd" ? `cd /d ${q.text} && ${expanded.command}` : shell === "powershell" ? `Set-Location -LiteralPath ${q.text}; if ($?) { ${expanded.command} }` : `cd ${q.text} && ${expanded.command}`;
+  const run = shell === "posix" ? (() => { const q = quoteArg(dir, shell); return q.error ? q : { text: `cd ${q.text} && ${expanded.command}` }; })() : commandInFolder(dir, expanded.command, shell, vars.wsl);
+  if (run.error) return { error: run.error };
+  const line = run.text;
   if (hasControlChars(line)) return { error: "That command has a line break in it, so it won't be sent to the terminal." };
   return { send: `${line}\r`, line, dir };
 }

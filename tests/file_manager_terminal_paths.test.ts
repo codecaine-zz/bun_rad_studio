@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "fs";
-import { quoteArg, quotePathsForTerminal, shellFor, windowsToWsl } from "../resources/file_manager/ui/codeRun.js";
+import { buildRunSequence, commandInFolder, quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl } from "../resources/file_manager/ui/codeRun.js";
 
 describe("selected paths for a terminal", () => {
   test("multiple files and folders become separate shell arguments, never a command", () => {
     const paths = ["/tmp/a file.txt", "/tmp/a folder", "/tmp/plain"];
     const result = quotePathsForTerminal(paths);
-    expect(result).toEqual({ text: "'/tmp/a file.txt' '/tmp/a folder' /tmp/plain " });
+    expect(result).toEqual({ text: "'/tmp/a file.txt' '/tmp/a folder' '/tmp/plain' " });
     expect(result.text).not.toMatch(/[\r\n]/);
   });
 
@@ -23,7 +23,7 @@ describe("selected paths for a terminal", () => {
 
   test("PowerShell paths preserve apostrophes; WSL gets Linux paths, and wslpath only when it can't be worked out", () => {
     expect(quotePathsForTerminal(["C:\\my folder\\it's.txt"], "powershell")).toEqual({ text: "'C:\\my folder\\it''s.txt' " });
-    expect(quotePathsForTerminal(["C:\\my folder\\file.txt", "D:\\data"], "wsl")).toEqual({ text: "'/mnt/c/my folder/file.txt' /mnt/d/data " });
+    expect(quotePathsForTerminal(["C:\\my folder\\file.txt", "D:\\data"], "wsl")).toEqual({ text: "'/mnt/c/my folder/file.txt' '/mnt/d/data' " });
     expect(quotePathsForTerminal(["\\\\wsl.localhost\\Ubuntu\\home\\me\\it's"], "wsl", { distro: "Ubuntu", driveRoot: "/mnt/" })).toEqual({ text: "'/home/me/it'\\''s' " });
     expect(quotePathsForTerminal(["\\\\server\\share\\a b"], "wsl")).toEqual({ text: '"$(wslpath -u \'\\\\server\\share\\a b\')" ' });
   });
@@ -44,8 +44,33 @@ describe("selected paths for a terminal", () => {
     expect(windowsToWsl("relative\\path")).toBeNull();
   });
 
+  test("Git Bash gets /c/... paths, always quoted", () => {
+    expect(windowsToGitBash("C:\\")).toBe("/c");
+    expect(windowsToGitBash("D:\\My Files\\")).toBe("/d/My Files");
+    expect(windowsToGitBash("\\\\server\\share\\a")).toBe("//server/share/a");
+    expect(quotePathsForTerminal(["C:\\Users\\me\\it's.txt", "E:\\data"], "gitbash")).toEqual({ text: "'/c/Users/me/it'\\''s.txt' '/e/data' " });
+  });
+
+  test("a command runs in a folder the way each shell needs, and only when moving there worked", () => {
+    expect(commandInFolder("C:\\a b", "npm test", "powershell")).toEqual({ text: "Set-Location -LiteralPath 'C:\\a b'; if ($?) { npm test }" });
+    expect(commandInFolder("C:\\a b", "npm test", "cmd")).toEqual({ text: 'cd /d "C:\\a b" && npm test' });
+    expect(commandInFolder("C:\\a b", "npm test", "wsl")).toEqual({ text: "cd -- '/mnt/c/a b' && npm test" });
+    expect(commandInFolder("\\\\nas\\x", "ls", "wsl")).toEqual({ text: "cd -- \"$(wslpath -u '\\\\nas\\x')\" && ls" });
+    expect(commandInFolder("C:\\a b", "npm test", "gitbash")).toEqual({ text: "cd -- '/c/a b' && npm test" });
+    expect("error" in commandInFolder("C:\\100%", "dir", "cmd")).toBe(true);
+  });
+
+  test("Run presets follow the terminal's shell on Windows, path placeholders included", () => {
+    const vars = { path: "C:\\proj\\src\\a b.ts", workspace: "C:\\proj", root: "C:\\proj", platform: "win32" };
+    const preset = { command: "bun run {file} --name {name}", cwd: "root" };
+    expect((buildRunSequence(preset, vars) as any).line).toBe("Set-Location -LiteralPath 'C:\\proj'; if ($?) { bun run 'C:\\proj\\src\\a b.ts' --name 'a b.ts' }");
+    expect((buildRunSequence(preset, { ...vars, shell: "cmd" }) as any).line).toBe('cd /d "C:\\proj" && bun run "C:\\proj\\src\\a b.ts" --name "a b.ts"');
+    expect((buildRunSequence(preset, { ...vars, shell: "wsl", wsl: { distro: "Ubuntu", driveRoot: "/mnt/" } }) as any).line).toBe("cd -- '/mnt/c/proj' && bun run '/mnt/c/proj/src/a b.ts' --name 'a b.ts'");
+    expect((buildRunSequence(preset, { ...vars, shell: "gitbash" }) as any).line).toBe("cd -- '/c/proj' && bun run '/c/proj/src/a b.ts' --name 'a b.ts'");
+  });
+
   test("Command Prompt paths use double quotes and refuse what cmd can't protect", () => {
-    expect(quotePathsForTerminal(["C:\\Program Files\\a & b", "C:\\plain"], "cmd")).toEqual({ text: '"C:\\Program Files\\a & b" C:\\plain ' });
+    expect(quotePathsForTerminal(["C:\\Program Files\\a & b", "C:\\plain"], "cmd")).toEqual({ text: '"C:\\Program Files\\a & b" "C:\\plain" ' });
     expect(quotePathsForTerminal(["C:\\100%"], "cmd").error).toBeTruthy();
     expect(quotePathsForTerminal(["C:\\say \"hi\""], "cmd").error).toBeTruthy();
     expect(quotePathsForTerminal(["C:\\x"], "nonsense")).toEqual({ text: "'C:\\x' " });
@@ -87,14 +112,14 @@ describe("selected paths for a terminal", () => {
       .replace(/^import .*;\r?$/gm, "").replace(/^export /gm, "");
     const insert = new Function("deps", `
       const { $, Terminal, FitAddon, ResizeObserver, WebSocket, window, requestAnimationFrame,
-        quoteArg, quotePathsForTerminal, shellFor, windowsToWsl, state, terminalUrl, emit, toast } = deps;
+        quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl, state, terminalUrl, emit, toast } = deps;
       ${source}
       return insertPaths;
     `)({
       $: () => element, Terminal: FakeTerminal, FitAddon: FakeFit,
       ResizeObserver: class { observe() {} }, WebSocket: FakeSocket,
       window: { innerHeight: 1000 }, requestAnimationFrame: () => 0,
-      quoteArg, quotePathsForTerminal, shellFor, windowsToWsl,
+      quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl,
       state: { platform: "darwin", settings: { textSize: 100 }, location: { kind: "folder", path: "/tmp" } },
       terminalUrl: () => "ws://test", emit() {}, toast: (message: string) => notices.push(message),
     }) as (paths: string[]) => Promise<void>;
@@ -104,7 +129,7 @@ describe("selected paths for a terminal", () => {
     sockets[0]!.readyState = FakeSocket.OPEN;
     sockets[0]!.dispatchEvent(new Event("open"));
     await pending;
-    expect(sockets[0]!.sent.map((text) => JSON.parse(text))).toEqual([{ type: "input", data: "'/tmp/a file' /tmp/folder " }]);
+    expect(sockets[0]!.sent.map((text) => JSON.parse(text))).toEqual([{ type: "input", data: "'/tmp/a file' '/tmp/folder' " }]);
     expect(notices).toEqual(["Paths inserted. Add a command or press Enter when you're ready."]);
   });
 
@@ -117,6 +142,7 @@ describe("selected paths for a terminal", () => {
     expect(folderCommand("\\\\wsl.localhost\\Ubuntu\\home\\me", "wsl", { distro: "Ubuntu" })).toBe("\x15cd -- /home/me\r");
     expect(folderCommand("\\\\nas\\share", "wsl")).toBe("\x15cd -- \"$(wslpath -u '\\\\nas\\share')\"\r");
     expect(folderCommand("/tmp/a b", "posix")).toBe("\x15cd -- '/tmp/a b'\r");
+    expect(folderCommand("C:\\My Docs", "gitbash")).toBe("\x15cd -- '/c/My Docs'\r");
   });
 
   test("on Windows, inserted paths follow the shell the terminal reports: PowerShell, Command Prompt or WSL", async () => {
@@ -137,11 +163,11 @@ describe("selected paths for a terminal", () => {
     report({ shell: "powershell" });
     await insertPaths(paths);
     expect(ws.sent.map((text) => JSON.parse(text).data)).toEqual([
-      "'C:\\Users\\me\\a file.txt' \\\\wsl.localhost\\Ubuntu\\home\\me ",
-      '"C:\\Users\\me\\a file.txt" \\\\wsl.localhost\\Ubuntu\\home\\me ',
-      "'/mnt/c/Users/me/a file.txt' /home/me ",
+      "'C:\\Users\\me\\a file.txt' '\\\\wsl.localhost\\Ubuntu\\home\\me' ",
+      '"C:\\Users\\me\\a file.txt" "\\\\wsl.localhost\\Ubuntu\\home\\me" ',
+      "'/mnt/c/Users/me/a file.txt' '/home/me' ",
       "'/c/Users/me/a file.txt' \"$(wslpath -u '\\\\wsl.localhost\\Ubuntu\\home\\me')\" ",
-      "'C:\\Users\\me\\a file.txt' \\\\wsl.localhost\\Ubuntu\\home\\me ",
+      "'C:\\Users\\me\\a file.txt' '\\\\wsl.localhost\\Ubuntu\\home\\me' ",
     ]);
     expect(notices.every((n) => n.startsWith("Paths inserted"))).toBe(true);
   });
@@ -181,14 +207,14 @@ function loadTerminal(platform: string) {
     .replace(/^import .*;\r?$/gm, "").replace(/^export /gm, "");
   const api = new Function("deps", `
     const { $, Terminal, FitAddon, ResizeObserver, WebSocket, window, requestAnimationFrame,
-      quoteArg, quotePathsForTerminal, shellFor, windowsToWsl, state, terminalUrl, emit, toast } = deps;
+      quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl, state, terminalUrl, emit, toast } = deps;
     ${source}
     return { insertPaths, folderCommand };
   `)({
     $: () => element, Terminal: FakeTerminal, FitAddon: FakeFit,
     ResizeObserver: class { observe() {} }, WebSocket: FakeSocket,
     window: { innerHeight: 1000 }, requestAnimationFrame: () => 0,
-    quoteArg, quotePathsForTerminal, shellFor, windowsToWsl,
+    quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl,
     state: { platform, settings: { textSize: 100 }, location: { kind: "folder", path: platform === "win32" ? "C:\\" : "/tmp" } },
     terminalUrl: () => "ws://test", emit() {}, toast: (message: string) => notices.push(message),
   }) as { insertPaths: (paths: string[]) => Promise<void>; folderCommand: (folder: string, shell: string, wsl?: object) => string | null };

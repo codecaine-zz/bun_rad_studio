@@ -50,7 +50,7 @@ export const ACTIONS = [
   f("app.help", "Window", "Help", ["F1", "Mod+/"]),
   { id: "dual.copy", scope: "dual", group: "Dual view", label: "Copy to the other side", keys: ["F5", "Mod+Alt+C"] },
   { id: "dual.move", scope: "dual", group: "Dual view", label: "Move to the other side", keys: ["F6", "Mod+Alt+M"] },
-  f("app.themes", "Window", "Choose a theme (all themes)", []),
+  f("app.themes", "Window", "Choose a theme (all themes)", ["Mod+Shift+T"]),
   { id: "terminal.toggle", scope: "global", group: "Window", label: "Show or hide the terminal", keys: ["Ctrl+`"] },
   { id: "terminal.here", scope: "global", group: "Window", label: "Open the terminal in the selected folder (or this one)", keys: ["Mod+Alt+T"] },
   c("undo", "Undo"), c("redo", "Redo"), c("save", "Save"), c("saveAs", "Save as…"), c("saveAll", "Save all"), c("newFile", "New file"), c("closeTab", "Close the tab"),

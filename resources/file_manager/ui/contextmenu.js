@@ -200,11 +200,12 @@ function studioMenuItems(entries) {
 /** Copy paths for an outside terminal. Windows has three kinds, each quoting (and spelling) paths its own way. */
 function terminalCopyItems(entries) {
   if (state.platform !== "win32") {
-    return [{ label: "Copy paths for Terminal", icon: "📋", tip: "Copy shell-quoted paths to paste after a command in another terminal window.", action: () => copyTerminalPaths(entries, "posix") }];
+    return [{ label: "Copy paths for Terminal", icon: "📋", tip: "Copy quoted paths to paste after a command in a terminal (the built-in Terminal or any other).", action: () => copyTerminalPaths(entries, "posix") }];
   }
   return [
     { label: "Copy paths for PowerShell", icon: "📋", tip: "Copy quoted paths to paste after a command in PowerShell (also inside Windows Terminal).", action: () => copyTerminalPaths(entries, "powershell") },
     { label: "Copy paths for Command Prompt", icon: "📋", tip: "Copy quoted paths to paste after a command in the Command Prompt (cmd).", action: () => copyTerminalPaths(entries, "cmd") },
-    { label: "Copy paths for WSL (Linux)", icon: "🐧", tip: "Copy the paths as Linux sees them (C:\\Users becomes /mnt/c/Users) to paste in a WSL Bash window.", action: () => copyTerminalPaths(entries, "wsl") },
+    { label: "Copy paths for WSL (Linux)", icon: "🐧", tip: "Copy the paths as Linux sees them (C:\\Users becomes /mnt/c/Users) to paste in WSL Bash.", action: () => copyTerminalPaths(entries, "wsl") },
+    { label: "Copy paths for Git Bash", icon: "📋", tip: "Copy the paths as Git Bash sees them (C:\\Users becomes /c/Users) to paste in Git Bash.", action: () => copyTerminalPaths(entries, "gitbash") },
   ];
 }

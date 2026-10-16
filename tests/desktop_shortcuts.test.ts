@@ -133,6 +133,27 @@ test("the shared client is idempotent and prefers an app's theme bridge", () => 
     p.close();
 });
 
+test("Right Option+T opens the app's theme gallery once, or focuses its theme list", () => {
+    const p = page();
+    let opened = 0;
+    Object.assign(p.window, { openAppThemes: () => { opened++; } });
+    expect(p.option("KeyT", { key: "\u2020" }).defaultPrevented).toBe(true);
+    p.press("KeyT", { altKey: true, repeat: true });
+    expect(opened).toBe(1);
+    p.press("AltRight", { key: "Alt", altKey: false }, undefined, "keyup");
+    p.press("AltLeft", { key: "Alt", altKey: true });
+    p.press("KeyT", { altKey: true });
+    expect(opened).toBe(1);
+    p.close();
+
+    const q = page();
+    q.window.document.body.insertAdjacentHTML("beforeend", '<select id="theme-selector"><option value="dark">Dark</option></select>');
+    q.option("KeyT");
+    expect(q.window.document.activeElement?.id).toBe("theme-selector");
+    expect(q.errors).toHaveLength(0);
+    q.close();
+});
+
 test("File Manager's closeApp bridge is supported", () => {
     const p = page();
     Reflect.deleteProperty(p.window, "quitApp");

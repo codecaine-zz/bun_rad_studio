@@ -3,7 +3,7 @@
 import { FitAddon } from "/vendor/addon-fit.mjs";
 import { Terminal } from "/vendor/xterm.mjs";
 import { terminalUrl } from "./api.js";
-import { quoteArg, quotePathsForTerminal, shellFor, windowsToWsl } from "./codeRun.js";
+import { quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl } from "./codeRun.js";
 import { $ } from "./dom.js";
 import { hintOf, labelOf, matchesAction } from "./keymap.js";
 import { toast } from "./menus.js";
@@ -110,7 +110,7 @@ function connect(folder) {
     }
     if (m.type === "output" && typeof m.data === "string") term.write(m.data);
     else if (m.type === "cwd" && typeof m.path === "string") {
-      activeShell = ["powershell", "cmd", "wsl"].includes(m.shell) ? m.shell : shellFor(state.platform);
+      activeShell = ["powershell", "cmd", "wsl", "gitbash"].includes(m.shell) ? m.shell : shellFor(state.platform);
       wslInfo = m.shell === "wsl" && m.wsl && typeof m.wsl === "object" ? m.wsl : {};
       followShell(m.path);
     } else if (m.type === "exit") {
@@ -136,14 +136,19 @@ function restart(folder = targetFolder()) {
   term.focus();
 }
 
-/** The shell the terminal is typing into now: on Windows PowerShell, the Command Prompt or WSL (Bash); elsewhere POSIX. */
-function terminalShell() {
+/** The shell the terminal is typing into now: on Windows PowerShell, the Command Prompt, WSL (Bash) or Git Bash; elsewhere POSIX. */
+export function terminalShell() {
   return state.platform === "win32" ? activeShell || "powershell" : "posix";
+}
+
+/** What the WSL prompt reported about its distro ({ distro, driveRoot }), or {} outside WSL. */
+export function terminalWsl() {
+  return terminalShell() === "wsl" ? wslInfo : {};
 }
 
 /**
  * The keystrokes that move `shell` to `folder`, or null when the name can't be typed safely there.
- * Escape clears the line in PowerShell and the Command Prompt; Ctrl+U clears it in Bash and other POSIX shells.
+ * Escape clears the line in PowerShell and the Command Prompt; Ctrl+U clears it in Bash (WSL, Git Bash) and other POSIX shells.
  */
 export function folderCommand(folder, shell, wsl = {}) {
   if (shell === "wsl") {
@@ -151,6 +156,10 @@ export function folderCommand(folder, shell, wsl = {}) {
     const quoted = quoteArg(linux ?? folder, "posix");
     if (quoted.error) return null;
     return linux ? `\x15cd -- ${quoted.text}\r` : `\x15cd -- "$(wslpath -u ${quoted.text})"\r`;
+  }
+  if (shell === "gitbash") {
+    const quoted = quoteArg(windowsToGitBash(folder), "posix");
+    return quoted.error ? null : `\x15cd -- ${quoted.text}\r`;
   }
   const quoted = quoteArg(folder, shell);
   if (quoted.error) return null;

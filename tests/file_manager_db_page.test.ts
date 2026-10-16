@@ -96,7 +96,7 @@ const reopen = async (opts?: Record<string, unknown>) => {
 };
 
 beforeAll(async () => {
-  mock.module("../resources/file_manager/ui/terminal.js", () => ({
+  mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalShell: () => "posix", terminalWsl: () => ({}),
     terminalAvailable: () => true, typeInTerminal: () => true, showTerminal() {}, hideTerminal() {}, toggleTerminal() {}, wireTerminal() {}, isTerminalOpen: () => false,
   }));
   for (const d of [home, start, install]) mkdirSync(d, { recursive: true });

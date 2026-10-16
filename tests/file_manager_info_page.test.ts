@@ -70,7 +70,7 @@ const loaded = () => waitFor(() => q(".fi[data-state=ready]"), 8000, "the detail
 
 beforeAll(async () => {
   // The terminal needs a library that only the real page can load.
-  mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalAvailable: () => false, typeInTerminal: () => false, showTerminal() {}, isTerminalOpen: () => false, hideTerminal() {}, toggleTerminal() {}, wireTerminal() {} }));
+  mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalShell: () => "posix", terminalWsl: () => ({}), terminalAvailable: () => false, typeInTerminal: () => false, showTerminal() {}, isTerminalOpen: () => false, hideTerminal() {}, toggleTerminal() {}, wireTerminal() {} }));
   saved.set("ResizeObserver", Object.getOwnPropertyDescriptor(globalThis, "ResizeObserver"));
   Object.defineProperty(globalThis, "ResizeObserver", { value: class { observe() {} disconnect() {} unobserve() {} }, configurable: true, writable: true });
   for (const d of [pics, join(home, "tree", "sub")]) mkdirSync(d, { recursive: true });

@@ -4,9 +4,9 @@
 //   bun run scripts/build_os_theme_docs.ts --check   exit 1 if the block is out of date
 import { readFileSync, writeFileSync } from "fs";
 import { join } from "path";
-import { OS_THEMES } from "../src/shared/osThemes";
+import { OS_THEMES, RARE_OS_THEME_KEYS } from "../src/shared/osThemes";
 import { FX_THEMES } from "../src/shared/fxThemes";
-import { getSemanticColors } from "../src/simplegui";
+import { getSemanticColors, getThemeNames } from "../src/simplegui";
 
 export const START = "<!-- os-themes:start -->";
 export const END = "<!-- os-themes:end -->";
@@ -27,9 +27,10 @@ export function groups(): Group[] {
     const windows = ["win31", "win98", "win2000", "winxp_luna", "vista_aero", "win7_aero", "win8_metro", "win10_dark", "win10_light", "windows_terminal", "windows_high_contrast"];
     const mac = ["mac_os_9", "snow_leopard", "yosemite", "big_sur", "monterey_light", "sequoia_dark", "tahoe_glass"];
     return [
-        { id: "os-linux", title: "🐧 Linux Distributions & Desktop Environments", intro: "One theme per major distribution, desktop environment and popular GTK theme, built from each project's own colours.", keys: keys.filter((k) => !windows.includes(k) && !mac.includes(k)) },
+        { id: "os-linux", title: "🐧 Linux Distributions & Desktop Environments", intro: "One theme per major distribution, desktop environment and popular GTK theme, built from each project's own colours.", keys: keys.filter((k) => !windows.includes(k) && !mac.includes(k) && !RARE_OS_THEME_KEYS.includes(k)) },
         { id: "os-windows", title: "🪟 Windows Versions", intro: "Windows 3.1 through Windows 11, plus the Windows Terminal and High Contrast schemes.", keys: windows },
         { id: "os-macos", title: "🍎 macOS Versions", intro: "Mac OS 9 Platinum through macOS Tahoe.", keys: mac },
+        { id: "os-rare", title: "💾 Rare & Beloved Systems", intro: "Desktops and devices many people loved but may never have seen: BeOS and Haiku, OS/2 Warp, Solaris CDE, SGI IRIX, Atari GEM, RISC OS, QNX Photon, Symbian, Palm OS and webOS, Windows Phone, Zune, Android Holo, Longhorn, Media Center, Plan 9 Acme, SerenityOS, KDE 3 Keramik, Bluecurve, Ubuntu Human and Window Maker.", keys: RARE_OS_THEME_KEYS },
     ];
 }
 
@@ -94,7 +95,7 @@ export function buildFxBlock(): string {
         '<a id="fx-themes"></a>',
         `## 🌌 Futuristic Themes (${entries.length} Themes)`,
         "",
-        "Glass surfaces, edge glow, a slow living backdrop and a motion layer (button bloom, floating labels, sliding tab pill, tilting cards). Every theme here carries an `fx` descriptor; the other 121 themes render exactly as before. Body text on glass is checked at 4.5:1 over both a black and a white backdrop, and the effects respect `prefers-reduced-motion`, `prefers-contrast` and forced colours. Guide: [fx-themes developer guide](developer/fx-themes.md).",
+        `Glass surfaces, edge glow, a slow living backdrop and a motion layer (button bloom, floating labels, sliding tab pill, tilting cards). Every theme here carries an \`fx\` descriptor; the other ${getThemeNames().length - entries.length} themes render exactly as before. Body text on glass is checked at 4.5:1 over both a black and a white backdrop, and the effects respect \`prefers-reduced-motion\`, \`prefers-contrast\` and forced colours. Guide: [fx-themes developer guide](developer/fx-themes.md).`,
         "",
         "| Theme Key | Display Name | Mode | Primary Accent | Secondary | Canvas | Card | Text | Glow | Glass | Motion | Border | Screenshot |",
         "|---|---|---|---|---|---|---|---|---|---|---|---|---|",

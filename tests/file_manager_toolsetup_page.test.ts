@@ -50,7 +50,7 @@ function computer(platform: "darwin" | "linux" | "win32", programs: string[]) {
 }
 
 beforeAll(async () => {
-  mock.module("../resources/file_manager/ui/terminal.js", () => ({
+  mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalShell: () => "posix", terminalWsl: () => ({}),
     terminalAvailable: () => true,
     typeInTerminal: (text: string) => { typed.push(text); return true; },
     showTerminal() {}, hideTerminal() {}, toggleTerminal() {}, wireTerminal() {}, isTerminalOpen: () => false,

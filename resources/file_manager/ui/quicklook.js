@@ -26,7 +26,7 @@ import { isStudioPicture } from "./imageStudio.js";
 import { isStudioMedia } from "./mediaStudio.js";
 import { extensionOf, formatDate, formatSize, plural } from "./util.js";
 
-const DEFAULT_FOOT = "Space or Esc closes  ·  ← → show the next or previous item  ·  Enter opens it";
+const DEFAULT_FOOT = "Space or Esc closes  ·  ← → show the next or previous item  ·  Enter opens it in another program";
 
 /** The open Quick Look, or null. */
 let ql = null;
@@ -173,7 +173,7 @@ function mountPlayer(entry, mine) {
   if (mine !== ql.seq) return;
   ql.player = createPlayer({ entries: ql.entries, start: entry, subtitleEntries: ql.entries, announce, onTrack: (e) => followTrack(e) });
   ql.body.replaceChildren(ql.player.root);
-  ql.foot.textContent = "Space plays or pauses  ·  ← → seek  ·  ↑ ↓ volume  ·  N and B next and previous  ·  E equaliser  ·  Q queue  ·  Esc closes  ·  Enter opens it";
+  ql.foot.textContent = "Space plays or pauses  ·  ← → seek  ·  ↑ ↓ volume  ·  N and B next and previous  ·  E equaliser  ·  Q queue  ·  Esc closes  ·  Enter opens it in another program";
 }
 
 /** The player moved to another track by itself (the queue, shuffle, repeat): keep the window's header and selection in step. */
@@ -233,7 +233,7 @@ function step(delta) {
 function openCurrent() {
   const entry = ql.entries[ql.index];
   closeQuickLook();
-  if (entry) openEntry(entry);
+  if (entry) openEntry(entry, { viewer: false });
 }
 
 function onKey(e) {
@@ -322,7 +322,7 @@ export function openQuickLook(entry = null, pane = activePane()) {
   const dialog = h("div", { class: "ql", role: "dialog", "aria-modal": "true", "aria-label": "Quick Look", tabindex: "-1" },
     h("div", { class: "ql-head" }, icon, h("div", { class: "ql-headtext" }, title, sub), count,
       copyBtn, convertBtn, editBtn, studioBtn,
-      h("button", { type: "button", class: "btn", title: "Open it with the program chosen in Settings, or the one your computer uses for it (Enter)", onclick: () => openCurrent() }, "Open"),
+      h("button", { type: "button", class: "btn", title: "Open it with the program chosen in Settings, or the one your computer uses for it (Enter). Pictures, sound and video go to your computer's program from here.", onclick: () => openCurrent() }, "Open"),
       moreBtn,
       h("button", { type: "button", class: "btn", "aria-label": "Close Quick Look", title: "Close (Space or Esc)", onclick: () => closeQuickLook() }, "Close")),
     body,

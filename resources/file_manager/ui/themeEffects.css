@@ -1,4 +1,5 @@
-/* Effects stay on small chrome surfaces, never on file rows, code or terminal text. */
+/* Effects shape the window's chrome: the living light behind it, glass panels, glowing edges and overlays. Text sits on
+   panels whose opacity the server raised until it reads well; the terminal and code editor stay solid. */
 :root[data-fx] :is(.btn, .prop-input, .theme-card, .dialog) {
   border-radius: var(--fx-radius-md);
 }
@@ -60,3 +61,68 @@
 @media (prefers-reduced-motion: reduce) {
   :root[data-fx] :is(.btn, .theme-card) { transition: none; transform: none; }
 }
+
+/* ---- The whole window ---------------------------------------------------------------------------------------- */
+/* A living light behind everything. It shows through the file list and, softened, through the glass panels. */
+:root[data-fx][data-fx-ambient="on"] body::before {
+  content: ""; position: fixed; inset: -20%; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(42% 48% at 20% 25%, color-mix(in srgb, var(--fx-glow-color) 30%, transparent), transparent 70%),
+    radial-gradient(40% 45% at 80% 80%, color-mix(in srgb, var(--fx-glow-color-2) 28%, transparent), transparent 70%),
+    radial-gradient(30% 32% at 65% 18%, color-mix(in srgb, var(--fx-glow-color) 16%, transparent), transparent 70%);
+}
+:root[data-fx] :is(#main, #list-wrap, #list, #dual-pane, #home, #stage, #body) { background-color: transparent; }
+
+/* Glass panels: see-through by the theme's panel opacity. No backdrop-filter here: it would make each panel the
+   containing block for fixed children (menus, the full-window player), and only the soft light is behind them. */
+:root[data-fx] :is(#sidebar, #info, #status, #list-head, #toolbar-row, #addressbar) {
+  background-color: var(--fx-glass-bg);
+  border-color: var(--fx-glass-border);
+}
+:root[data-fx] #power-panel { background-color: var(--fx-glass-bg); }
+
+/* Glow: the edges between panels, dialogs, the selection and the button under the pointer. */
+:root[data-fx]:not([data-fx-glow="none"]) :is(#toolbar-row, #sidebar, #info, #status) { box-shadow: var(--fx-glow-soft); }
+:root[data-fx]:not([data-fx-glow="none"]) .dialog { box-shadow: var(--fx-shadow-3, var(--shadow)), var(--fx-glow-med); }
+:root[data-fx]:not([data-fx-glow="none"]) :is(.row.selected, .side-item.active, .tool[aria-pressed="true"]) { box-shadow: var(--fx-glow-soft); }
+:root[data-fx]:not([data-fx-glow="none"]) :is(.tool, .btn):hover { box-shadow: var(--fx-glow-med); }
+:root[data-fx] :is(.row, .side-item, .tool, .dialog, #toolbar-row) { border-radius: var(--fx-radius-sm); }
+:root[data-fx] .dialog { border-radius: var(--fx-radius-lg); }
+
+/* Gradient and metal borders on the main panels. */
+:root[data-fx]:is([data-fx-border="gradient"], [data-fx-border="metal"]) #toolbar-row { border-bottom: 1px solid transparent; border-image: var(--fx-border-gradient) 1; }
+:root[data-fx]:is([data-fx-border="gradient"], [data-fx-border="metal"]) #status { border-top: 1px solid transparent; border-image: var(--fx-border-gradient) 1; }
+:root[data-fx]:is([data-fx-border="gradient"], [data-fx-border="metal"]) .dialog { border: 1px solid transparent; background: linear-gradient(var(--fx-glass-bg-strong), var(--fx-glass-bg-strong)) padding-box, var(--fx-border-gradient) border-box; }
+
+/* Scanlines and film grain over the whole window, faint enough to read through. */
+:root[data-fx][data-fx-scan="on"] body::after,
+:root[data-fx][data-fx-grain="on"] body::after {
+  content: ""; position: fixed; inset: 0; z-index: 1400; pointer-events: none;
+}
+:root[data-fx][data-fx-scan="on"] body::after {
+  background-image: repeating-linear-gradient(0deg, color-mix(in srgb, var(--fx-glow-color) 7%, transparent) 0 1px, transparent 1px 3px);
+}
+:root[data-fx][data-fx-grain="on"]:not([data-fx-scan="on"]) body::after { background-image: var(--fx-noise); opacity: 0.5; }
+:root[data-fx][data-fx-scan="on"][data-fx-grain="on"] body::after {
+  background-image: repeating-linear-gradient(0deg, color-mix(in srgb, var(--fx-glow-color) 7%, transparent) 0 1px, transparent 1px 3px), var(--fx-noise);
+}
+:root[data-fx][data-fx-ca="on"] :is(.dialog h2, .dialog-title, #crumbs [aria-current]) { text-shadow: -0.6px 0 var(--fx-ca-1), 0.6px 0 var(--fx-ca-2); }
+:root[data-fx][data-fx-sheen="on"] #toolbar-row { position: relative; }
+:root[data-fx][data-fx-sheen="on"] #toolbar-row::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.6;
+  background: var(--fx-sheen) no-repeat; background-size: 50% 100%; background-position: -100% 0;
+}
+
+/* Motion: the light drifts slowly, the sheen sweeps across the ribbon, and buttons lift a little. */
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-fx="on"][data-fx-ambient="on"] body::before { animation: fm-fx-drift calc(var(--fx-dur-ambient) * 3) ease-in-out infinite alternate; }
+  :root[data-fx="on"][data-fx-sheen="on"] #toolbar-row::after { animation: fm-fx-sweep calc(var(--fx-dur-ambient) * 2) ease-in-out infinite; }
+  :root[data-fx="on"] .tool { transition: transform var(--fx-dur-fast) var(--fx-ease), box-shadow var(--fx-dur-fast) var(--fx-ease); }
+  :root[data-fx="on"]:not([data-fx-motion="none"]) .tool:hover { transform: translateY(-1px); }
+}
+@keyframes fm-fx-drift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(4%, 3%, 0) scale(1.08); }
+  100% { transform: translate3d(-3%, 5%, 0) scale(1.03); }
+}
+@keyframes fm-fx-sweep { 0% { background-position: -100% 0; } 60%, 100% { background-position: 200% 0; } }

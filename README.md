@@ -67,7 +67,7 @@ Downloaded a release instead? Run `./bin/file-manager-studio`. Everything below 
 | 🪦 **Graveyard** | Bury files with Rip (Alt+Delete), browse, restore or delete them for good. |
 | 🔭 **Subdomains** | Passive subdomain discovery from several sources, with safe, opt-in DNS, HTTP and port checks. |
 | 🧑‍💻 **For developers** | A terminal that opens in the folder you are looking at, a Code editor, code statistics (Dev tab), a live server and PHP server, Find, Replace, Watch, Network, IP info, Crypto (UUID v7 and more) and Bun's own built-in utilities. |
-| 🎨 **135 themes** | The 133 named themes of the SimpleGUI apps plus *Default Dark* and *Default Light*, including futuristic themes with a motion layer, a theme editor, and a **Themes** button in the ribbon. |
+| 🎨 **180 themes** | The 178 named themes of the SimpleGUI apps plus *Default Dark* and *Default Light*, including futuristic themes with a motion layer, a theme editor, and a **Themes** button in the ribbon. |
 | ℹ️ **Know your files** | Warns when a file isn't what its name says, and shows image and file details and metadata. |
 
 > Built with care but not independently audited. Read [what was and was not verified](docs/userguides/43_file_manager.md#what-was-verified-and-what-was-not) before trusting it with anything you cannot replace.
@@ -230,7 +230,7 @@ What was verified (macOS and Linux ARM) and what was not (Intel, Windows), plus 
   - [🖼️ Native Window Management & Placement API](#native-window-management--placement-api)
   - [🗄️ MS Access & Delphi Data-Aware RAD Controls](#ms-access--delphi-data-aware-rad-controls)
   - [🎨 70+ Modern UI & RAD Controls](#70-modern-ui--rad-controls)
-  - [🎨 Built-in Desktop Form Themes & Visual Gallery (133 Themes)](#built-in-desktop-form-themes--visual-gallery-133-themes)
+  - [🎨 Built-in Desktop Form Themes & Visual Gallery (178 Themes)](#built-in-desktop-form-themes--visual-gallery-178-themes)
   - [🛠️ High-Level Backend & Client Helper Utilities](#high-level-backend--client-helper-utilities)
   - [⚡ Auto-Generated Code & Multi-Target Exporters](#auto-generated-code--multi-target-exporters)
 - [📦 Compile binaries for every platform](#build-binaries-for-every-platform)
@@ -280,7 +280,7 @@ What was verified (macOS and Linux ARM) and what was not (Intel, Windows), plus 
 
 ### 🖼️ Native Window Management & Placement API
 
-- **Native Fullscreen Mode & Startup**: Studios supporting fullscreen startup default to `{ fullscreen: true }`, with automatic CoreGraphics/Win32 screen resolution auto-fitting (`(0,0)` origin) and a promise-aware verification loop. Press **Right Option + /** to toggle native fullscreen, or use the app's fullscreen button. **Esc never exits fullscreen**; it remains available to dialogs, editors and games. **Right Option + ] / [** cycles forward/backward through the themes available in the app. **Cmd + Q** quits a Mac desktop app even while typing or using a dialog.
+- **Native Fullscreen Mode & Startup**: Studios supporting fullscreen startup default to `{ fullscreen: true }`, with automatic CoreGraphics/Win32 screen resolution auto-fitting (`(0,0)` origin) and a promise-aware verification loop. Press **Right Option + /** to toggle native fullscreen, or use the app's fullscreen button. **Esc never exits fullscreen**; it remains available to dialogs, editors and games. **Right Option + ] / [** cycles forward/backward through the themes available in the app, and **Right Option + T** opens the app's theme gallery (or focuses its theme list). **Cmd + Q** quits a Mac desktop app even while typing or using a dialog.
 - **Smart Minimize & Hide**: Press **<kbd>Cmd</kbd> + <kbd>M</kbd>** / **<kbd>Ctrl</kbd> + <kbd>M</kbd>** to minimize the window. If the application is in a native macOS fullscreen space, it automatically exits fullscreen before miniaturizing to the Dock. Press **<kbd>Cmd</kbd> + <kbd>H</kbd>** / **<kbd>Ctrl</kbd> + <kbd>H</kbd>** to hide the application window (`[NSApp hide:]`).
 - **Stay On Top (Window Pinning)**: Click `📌 Pin: ON / OFF`, press **<kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd>** / **<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd>**, or call `setAlwaysOnTop(true)` to float the application window above all other desktop applications (`NSFloatingWindowLevel`).
 - **Window Placement & Centering API**: Position application windows anywhere on screen using `setWindowPosition(pos)`, press **<kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd>** / **<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd>** to center, or use the `📍 Position` toolbar dropdown across 9 screen presets (`"center"`, `"upper_left"`, `"upper_right"`, `"top_center"`, `"bottom_left"`, `"bottom_right"`, `"bottom_center"`, `"center_left"`, `"center_right"`).
@@ -305,15 +305,15 @@ What was verified (macOS and Linux ARM) and what was not (Intel, Windows), plus 
 - **Containers & Layout**: Group Box Panels, Data Tables, and Horizontal Dividers.
 - **Form Presets & Templates**: Includes pre-built templates for Customer Registration, Auth Login, Executive Analytics Dashboard, User Profile, Data CRUD Manager, Help Desk Support Tickets, REST API Tester, Media Player, and E-Commerce Checkout.
 
-<a id="built-in-desktop-form-themes--visual-gallery-133-themes"></a>
+<a id="built-in-desktop-form-themes--visual-gallery-178-themes"></a>
 
-### 🎨 Built-in Desktop Form Themes & Visual Gallery (133 Themes)
+### 🎨 Built-in Desktop Form Themes & Visual Gallery (178 Themes)
 
-Bun RAD Studio and SimpleGUI feature **133 named built-in desktop UI themes** (the File Manager and the theme pickers list 135: these 133 plus *Default Dark* and *Default Light*) covering signature developer aesthetics, modern operating system environments (macOS Sonoma, Windows 11 Fluent Acrylic & Mica, Ubuntu Yaru, GNOME Libadwaita, Linux Mint Cinnamon, System76 Pop!\_OS, Fedora Workstation), popular syntax themes (Monokai Pro, Tokyo Night, One Dark Pro, Gruvbox, Rosé Pine, Everforest, Kanagawa, Dracula, Nord, Catppuccin), and authentic nostalgic retro platforms (Windows 95, Commodore 64, Amiga, Macintosh System 7, Game Boy, Matrix Phosphor, Amber CRT, Synthwave '84, NeXTSTEP, Mac OS X Aqua, Hot Dog Stand, PlayStation 1994).
+Bun RAD Studio and SimpleGUI feature **178 named built-in desktop UI themes** (the File Manager and the theme pickers list 180: these 178 plus *Default Dark* and *Default Light*) covering signature developer aesthetics, modern operating system environments (macOS Sonoma, Windows 11 Fluent Acrylic & Mica, Ubuntu Yaru, GNOME Libadwaita, Linux Mint Cinnamon, System76 Pop!\_OS, Fedora Workstation), popular syntax themes (Monokai Pro, Tokyo Night, One Dark Pro, Gruvbox, Rosé Pine, Everforest, Kanagawa, Dracula, Nord, Catppuccin), and authentic nostalgic retro platforms (Windows 95, Commodore 64, Amiga, Macintosh System 7, Game Boy, Matrix Phosphor, Amber CRT, Synthwave '84, NeXTSTEP, Mac OS X Aqua, Hot Dog Stand, PlayStation 1994), rare and beloved systems (BeOS, OS/2 Warp, Solaris CDE, SGI IRIX, Palm OS, Zune, Windows Phone and more), and 35 futuristic special-effects themes with glass, glow and motion.
 
 > [!TIP]
 > ### 🖼️ Complete Visual Gallery & Theme Catalog in `docs/THEMES.md`
-> **Instead of listing all 133 themes and screenshots here, the complete visual catalog, side-by-side screenshots, color hex codes, and quick launch commands are thoroughly documented in:**
+> **Instead of listing all 178 themes and screenshots here, the complete visual catalog, side-by-side screenshots, color hex codes, and quick launch commands are thoroughly documented in:**
 > 👉 **[🖼️ View the Complete Theme Visual Gallery in docs/THEMES.md](docs/THEMES.md)**
 
 Every theme automatically harmonizes:
@@ -341,9 +341,9 @@ bun run demos/23_all_themes_all_controls_showcase.ts gruvbox_dark
 bun run demos/23_all_themes_all_controls_showcase.ts ubuntu_dark
 ```
 
-#### 🎨 Built-in Theme Categories Overview (133 Themes)
+#### 🎨 Built-in Theme Categories Overview (178 Themes)
 
-> The categories below add up to 117 of the 133 themes. The complete list is in [docs/THEMES.md](docs/THEMES.md).
+> The categories below add up to 117 of the 178 themes. The complete list is in [docs/THEMES.md](docs/THEMES.md).
 
 | Category | Count | Highlight Themes | Vibe & Aesthetic |
 | :--- | :---: | :--- | :--- |
@@ -1102,6 +1102,7 @@ win.run();
 | **F5**                                                 | Launch Live App Preview Window                            |
 | **Right Option + /**                                   | Toggle native fullscreen in desktop apps                 |
 | **Right Option + ]** / **Right Option + [**             | Next / previous available app theme (wraps around)        |
+| **Right Option + T**                                   | Open the theme gallery (or focus the app's theme list)    |
 | **⌘ + F** / **Ctrl + F** / **Fn + F** / **F11**        | Toggle Native Borderless Fullscreen Mode                  |
 | **⌘ + M** / **Ctrl + M** / **Alt + M**                 | Minimize Application Window (auto-exits fullscreen space) |
 | **⌘ + H** / **Ctrl + H**                               | Hide Application Window (`[NSApp hide:]`)                 |

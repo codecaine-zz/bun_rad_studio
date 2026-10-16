@@ -96,7 +96,7 @@ export async function currentThemeName() {
   }
 }
 
-const GROUP_ORDER = ["My themes", "Futuristic", "Editors and classics", "Linux", "Windows", "macOS"];
+const GROUP_ORDER = ["My themes", "Futuristic", "Editors and classics", "Linux", "Windows", "macOS", "Rare and beloved systems"];
 
 function swatch(theme) {
   const bar = h("span", { class: "theme-swatch", "aria-hidden": "true" }, theme.swatch.map(() => h("span", {})));
@@ -160,7 +160,10 @@ export async function cycleTheme(direction) {
   }
 }
 
-if (typeof window !== "undefined") window.cycleAppTheme = cycleTheme;
+if (typeof window !== "undefined") {
+  window.cycleAppTheme = cycleTheme;
+  window.openAppThemes = () => showThemePicker();
+}
 
 const choose = chooseTheme;
 
@@ -176,43 +179,106 @@ export async function showThemePicker() {
   const search = h("input", { type: "search", class: "prop-input", placeholder: "Search themes", "aria-label": "Search themes", title: "Type part of a theme's name, like dark, nord or windows." });
   const mode = h("select", { class: "prop-input", "aria-label": "Show light or dark themes", title: "Show only light themes, only dark ones, or both." },
     [["all", "Light and dark"], ["light", "Light only"], ["dark", "Dark only"]].map(([v, l]) => h("option", { value: v }, l)));
+  const fxFilter = h("select", { class: "prop-input", "aria-label": "Show themes with or without special effects", title: "Special effects are glass panels, glow, moving light, scanlines and grain. Plain themes change only the colours." },
+    [["any", "With or without effects"], ["fx", "✨ Special effects only"], ["plain", "Plain colours only"]].map(([v, l]) => h("option", { value: v }, l)));
   const list = h("div", { class: "theme-list" });
   const count = h("p", { class: "hint", role: "status" });
 
   const card = (t) => {
     const on = state.settings.palette === t.key;
-    const b = h("button", { type: "button", class: "theme-card", "aria-pressed": String(on), title: `${t.name}: ${t.description}`, onclick: async () => { await choose(t.key); draw(); } },
-      swatch(t), h("span", { class: "theme-name" }, t.name), h("span", { class: "theme-kind" }, t.dark ? "Dark" : "Light"));
+    const b = h("button", { type: "button", class: "theme-card", "data-key": t.key, "aria-pressed": String(on), title: `${t.name}: ${t.description}`, onclick: () => pick(t.key) },
+      swatch(t), h("span", { class: "theme-name" }, t.name), h("span", { class: "theme-kind" }, t.dark ? "Dark" : "Light"),
+      t.hasEffects ? h("span", { class: "theme-fx-badge", title: "This theme has special effects: glass, glow, motion and texture." }, "✨ Effects") : h("span", { class: "theme-plain-badge" }, "Colours only"));
     return b;
   };
   const defaultCard = () => {
     const on = !state.settings.palette;
-    return h("button", { type: "button", class: "theme-card", "aria-pressed": String(on), title: "The standard colours: they follow your computer's light or dark setting, or the Colours choice in Settings.", onclick: async () => { await choose(""); draw(); } },
+    return h("button", { type: "button", class: "theme-card", "data-key": "", "aria-pressed": String(on), title: "The standard colours: they follow your computer's light or dark setting, or the Colours choice in Settings.", onclick: () => pick("") },
       h("span", { class: "theme-swatch theme-swatch-default", "aria-hidden": "true" }, "Aa"), h("span", { class: "theme-name" }, "Standard"), h("span", { class: "theme-kind" }, "Light or dark"));
   };
 
   function draw() {
     const q = search.value.trim().toLowerCase();
     const m = mode.value;
-    const shown = themes.filter((t) => (m === "all" || (m === "dark") === t.dark) && (!q || `${t.name} ${t.group} ${t.key} ${t.description}`.toLowerCase().includes(q)));
+    const fx = fxFilter.value;
+    const shown = themes.filter((t) => (m === "all" || (m === "dark") === t.dark) && (fx === "any" || (fx === "fx") === !!t.hasEffects)
+      && (!q || `${t.name} ${t.group} ${t.key} ${t.description} ${t.hasEffects ? "effects special effects fx glow glass motion" : "plain"}`.toLowerCase().includes(q)));
     const sections = [];
-    if (!q && m === "all") sections.push(h("section", {}, h("h3", {}, "Default"), h("div", { class: "theme-grid" }, defaultCard())));
+    if (!q && m === "all" && fx !== "fx") sections.push(h("section", {}, h("h3", {}, "Default"), h("div", { class: "theme-grid" }, defaultCard())));
     for (const group of GROUP_ORDER) {
       const inGroup = shown.filter((t) => t.group === group);
       if (inGroup.length) sections.push(h("section", {}, h("h3", {}, `${group} (${inGroup.length})`), h("div", { class: "theme-grid" }, inGroup.map(card))));
     }
     list.replaceChildren(...(sections.length ? sections : [h("p", { class: "hint" }, "No theme matches. Try a shorter word.")]));
-    count.textContent = `${shown.length} of ${themes.length} themes`;
+    const withFx = shown.filter((t) => t.hasEffects).length;
+    count.textContent = `${shown.length} of ${themes.length} themes · ${withFx} with special effects ✨, ${shown.length - withFx} plain colours`;
   }
+  // Keyboard: the arrow keys, Home and End move between cards and show each theme straight away (not saved yet).
+  // Enter or Space keeps the focused theme, Done keeps the one on show, and Escape goes back to the saved theme.
+  let previewKey = null;
+  const cards = () => [...list.querySelectorAll(".theme-card")];
+  const preview = debounce((key) => { if (previewKey === key) applyPalette(key); }, 60);
+  async function pick(key) {
+    previewKey = null;
+    await choose(key);
+    draw();
+    cards().find((c) => (c.dataset.key ?? "") === key)?.focus({ preventScroll: true });
+  }
+  list.addEventListener("focusin", (e) => {
+    const c = e.target.closest?.(".theme-card");
+    if (!c) return;
+    const key = c.dataset.key ?? "";
+    if (key === (state.settings.palette || "") && previewKey === null) return;
+    previewKey = key;
+    preview(key);
+  });
+  const step = (from, key) => {
+    const all = cards();
+    const i = all.indexOf(from);
+    if (key === "Home") return all[0];
+    if (key === "End") return all.at(-1);
+    if (key === "ArrowLeft") return all[Math.max(0, i - 1)];
+    if (key === "ArrowRight") return all[Math.min(all.length - 1, i + 1)];
+    // Up and Down: the nearest card in the row above or below, across group headings too.
+    const r = from.getBoundingClientRect();
+    const x = r.left + r.width / 2;
+    const down = key === "ArrowDown";
+    const rows = all.map((c) => [c, c.getBoundingClientRect()]).filter(([, b]) => (down ? b.top > r.top + 4 : b.top < r.top - 4));
+    if (!rows.length) return from;
+    const rowTop = down ? Math.min(...rows.map(([, b]) => b.top)) : Math.max(...rows.map(([, b]) => b.top));
+    const row = rows.filter(([, b]) => Math.abs(b.top - rowTop) < 4);
+    return row.reduce((best, cur) => (Math.abs(cur[1].left + cur[1].width / 2 - x) < Math.abs(best[1].left + best[1].width / 2 - x) ? cur : best))[0];
+  };
+  list.addEventListener("keydown", (e) => {
+    const from = e.target.closest?.(".theme-card");
+    if (!from || e.altKey || e.ctrlKey || e.metaKey || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(e.key)) return;
+    e.preventDefault();
+    step(from, e.key)?.focus();
+  });
+  const enterCards = (e) => {
+    if (e.key !== "ArrowDown" || e.altKey || e.ctrlKey || e.metaKey) return;
+    e.preventDefault();
+    (list.querySelector('.theme-card[aria-pressed="true"]') ?? cards()[0])?.focus();
+  };
+  search.addEventListener("keydown", enterCards);
+
   search.addEventListener("input", debounce(draw, 120));
   mode.addEventListener("change", draw);
+  fxFilter.addEventListener("change", draw);
   draw();
   const dialog = openDialog({
     title: "Themes",
     wide: true,
-    body: [h("div", { class: "theme-tools" }, search, mode, h("button", { type: "button", class: "btn", title: "Make your own theme, or start from one of these and change its colours.", onclick: () => { dialog.close(); emit("theme-editor", { from: state.settings.palette || "" }); } }, "Create or edit a theme…")), count, list, h("p", { class: "hint" }, "A theme applies as soon as you click it, and is remembered. The colours of every theme are checked so text stays readable.")],
+    body: [h("div", { class: "theme-tools" }, search, mode, fxFilter, h("button", { type: "button", class: "btn", title: "Make your own theme, or start from one of these and change its colours.", onclick: () => { dialog.close(); emit("theme-editor", { from: state.settings.palette || "" }); } }, "Create or edit a theme…")), count, list, h("p", { class: "hint" }, "A theme applies as soon as you click it, and is remembered. Or use the arrow keys to try themes as you move: Enter or Done keeps one, Escape goes back. Themes marked ✨ Effects add glass, glow and motion; the effects menu lets you show only them, or only plain colour themes. The colours of every theme are checked so text stays readable.")],
     buttons: [{ label: "Done", primary: true, value: true }],
     initialFocus: search,
+  });
+  dialog.result.then(async (value) => {
+    const key = previewKey;
+    previewKey = null;
+    if (key === null) return;
+    if (value === true) await choose(key);
+    else await applyPalette(state.settings.palette || "");
   });
 }
 

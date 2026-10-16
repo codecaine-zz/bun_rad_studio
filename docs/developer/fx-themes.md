@@ -8,7 +8,7 @@ The short version: a theme with an `fx` descriptor gets the layer; a theme witho
 
 | File | What it holds |
 |---|---|
-| `src/shared/fxThemes.ts` | The 15 themes, the `ThemeFx` descriptor, `fxCssVars()` (descriptor to `--fx-*` variables), `findFxTheme()`, `glassReport()`, `syntaxPalette()` |
+| `src/shared/fxThemes.ts` | The 35 themes, the `ThemeFx` descriptor, `fxCssVars()` (descriptor to `--fx-*` variables), `findFxTheme()`, `glassReport()`, `syntaxPalette()` |
 | `src/shared/fxCss.ts` | `fxCss()`: the one CSS string every fx page and the Designer share |
 | `src/shared/fxSelectors.ts` | The selector groups (buttons, cards, panels, inputs, magnets, tab strips, modals, rows) used by both the CSS and the pointer script |
 | `src/shared/fxPointer.ts` | The pointer script as a source string, plus `installFxPointer(window)` for tests |
@@ -70,7 +70,7 @@ Helpers exported from `simplegui.ts` (each with a snake_case alias): `getThemeFx
 
 File Manager's theme editor exposes opacity, blur, glow colours/intensity, border strength/style, corners, animation feel and decorative effects. Its optional `fx` field uses the same `ThemeFx` descriptor and survives save, import and export; old colour-only themes stay unchanged. Numeric ranges, enum values and hex colours are validated before producing CSS. Glass stays on small chrome surfaces, never file rows, code or terminal text; opacity is raised to protect readable body and muted text. Reduced-motion preferences disable movement, and browsers without backdrop blur use solid panels.
 
-The new showcase presets are `prism_reactor` (cyan/magenta glass), `orbital_ice` (bright frosted instrumentation), and `ember_grid` (amber tactical controls). Try `bun run demo:themes prism_reactor`, or choose them in File Manager or the Visual Designer.
+Twenty more presets cover the common styles: `synthwave_sunset`, `matrix_rain`, `amber_phosphor`, `midnight_glass`, `abyss_bloom`, `cosmic_nebula`, `obsidian_gold`, `crimson_eclipse`, `acid_reactor`, `polar_night`, `emerald_grove`, `brass_engine`, `focus_glow` (quiet effects, no motion or texture), `neon_max` (maximum contrast), `vaporwave_dream`, and the light `frosted_glass`, `sakura_glass`, `pearl_hologram`, `rose_gold` and `daylight_hud`. The new showcase presets are `prism_reactor` (cyan/magenta glass), `orbital_ice` (bright frosted instrumentation), and `ember_grid` (amber tactical controls). Try `bun run demo:themes prism_reactor`, or choose them in File Manager or the Visual Designer.
 
 ### Opt an existing theme in
 

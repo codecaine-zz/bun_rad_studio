@@ -52,7 +52,7 @@ export function registerHomeTiles() {
   });
   registerHomeTile({ id: "openwith", order: 70, icon: "🧩", title: "Open with…", text: "Choose which program opens a kind of file, and add your own programs. Select a file first.", run: () => { toFiles(); return showOpenWith(); } });
   registerHomeTile({ id: "bin", order: 80, icon: "🗑️", title: "Recycle Bin", text: "See what you deleted, put things back, or empty the bin.", run: () => { toFiles(); return showTrash(); } });
-  registerHomeTile({ id: "themes", order: 88, icon: "🎨", title: "Themes", text: "Change how the whole window looks: over a hundred dark, light, futuristic, Linux, Windows and macOS themes.", run: showThemePicker });
+  registerHomeTile({ id: "themes", order: 88, icon: "🎨", title: "Themes", text: "Change how the whole window looks: over 170 dark, light, special-effects, Linux, Windows, macOS and rare classic-system themes.", run: showThemePicker });
   registerHomeTile({ id: "settings", order: 90, icon: "⚙️", title: "Settings", text: "Colours, text size, hidden files and what to show when this app starts.", run: showSettings });
   registerHomeTile({ id: "donate", order: 98, icon: "💙", title: "Support the project", text: "Say thanks with an optional PayPal donation: scan the QR code or open the link.", run: showDonate });
   registerHomeTile({ id: "tutorials", order: 96, icon: "📚", title: "Markdown tutorials", text: "Learn Markdown, the plain-text format for README files and notes, with lessons and examples. Opens in your web browser.", run: () => openAboutLink("tutorials") });
