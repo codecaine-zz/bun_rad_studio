@@ -4,11 +4,11 @@ import type { Chapter } from "./fm_tutorial_types";
 export const basics: Chapter[] = [
   {
     id: "00_intro", chapter: "WELCOME", title: "Welcome", kind: "card",
-    card: { kicker: "A calm, complete tour", title: "Codecaine File Manager", lines: ["Every button explained", "Nothing skipped", "Safe sample files"] },
+    card: { kicker: "A calm, complete tour", title: "Codecaine File Manager", lines: ["Every button explained", "Terminal + files, working together", "Every tool, themes and databases"] },
     steps: [
       {
         cap: "Welcome",
-        say: "Welcome. In this video we are going to take our time, and look at the Codecaine File Manager one piece at a time. There is no rush. We will press every button together, and I will say what it does before we press it. By the end, you will know how to browse, copy, move, rename, search, preview and protect your files with confidence. Everything you see happens on a folder of sample files, so nothing real is touched. You do not have to remember all of it. Pause whenever you like, and follow along on your own computer. Let's begin.",
+        say: "Welcome. In this video, we are going to take our time, and learn the Codecaine File Manager one piece at a time. There is no rush. We will press every button together, and I will tell you what it does before we press it. First, the basics. Browsing, copying, moving, renaming, searching and previewing your files. Then, the part that makes you really fast. The terminal and your files, following each other, so you never type a long folder path again. After that, every tool in the toolbox, themes you can make your own, and two complete database walkthroughs. Everything happens on a folder of sample files, so nothing real is touched. Pause whenever you like, and follow along on your own computer. Let's begin.",
       },
     ],
   },

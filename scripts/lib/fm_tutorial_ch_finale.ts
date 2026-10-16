@@ -1,6 +1,6 @@
 import type { Chapter } from "./fm_tutorial_types";
 
-/** Chapters 16 to 19: QR codes, the code editor, your own look and feel, and the goodbye. */
+/** Chapters 16 and 17: QR codes and the code editor. */
 export const finale: Chapter[] = [
   {
     id: "16_qr", chapter: "QR CODES", title: "Make and read QR codes", blurb: "Links, Wi-Fi, contacts, and reading a code from a picture",
@@ -63,57 +63,6 @@ export const finale: Chapter[] = [
           if (await d.eval(`!!document.querySelector('.code-zen')`)) await d.key("Escape", "Esc");
           await d.wait(800);
         },
-      },
-    ],
-  },
-
-  {
-    id: "18_yours", chapter: "YOUR WAY", title: "Make it yours: themes, shortcuts and the terminal", blurb: "135 themes, editable keyboard shortcuts, and a terminal in the current folder",
-    path: "<HOME>/Projects/shop-app",
-    steps: [
-      {
-        cap: "The Themes button",
-        say: "The Themes button in the ribbon changes the colours of the whole app, without going into Settings. It shows your most recent themes first, then all one hundred and thirty five, and a theme editor so you can make your own.",
-        act: async (d) => { await d.click("#tool-themes", { pause: 1800 }); await d.hover(".menu", 2500); },
-      },
-      {
-        cap: "Pick a theme",
-        say: "I choose All themes, and a gallery opens, with a little preview of each one. I click one, and the whole window changes at once. Futuristic themes even have a gentle motion layer.",
-        act: async (d) => {
-          await d.click(".menu .menu-item >> All themes", { pause: 1800 });
-          await d.waitFor(".theme-card", 6000);
-          await d.hover(".theme-card:nth-child(5)", 1500);
-          await d.click(".theme-card:nth-child(14)", { pause: 2200 });
-          await d.key("Escape", "Esc");
-          await d.wait(1500);
-        },
-      },
-      {
-        cap: "Every keyboard shortcut can be changed",
-        say: "Every keyboard shortcut can be changed. In the Help window, press Change keyboard shortcuts. Pick an action, press the keys you want, and it is saved. The app will not let two actions share the same keys. If you try, it tells you which action already has them.",
-        act: async (d) => { await d.key("F1", "F1"); await d.waitFor(".dialog", 6000); await d.hover(".dialog", 2200); await d.click(".dialog .btn >> Change keyboard shortcuts", { pause: 1800 }).catch(() => {}); await d.hover(".dialog", 2500); },
-      },
-      {
-        cap: "The terminal, one click away",
-        say: "And the terminal. The button in the status bar opens it in the folder you are looking at. Control Alt T does the same, and so does Open terminal here, in the right click menu. It is a real shell, so it can do anything you can do, and the panel says so.",
-        act: async (d) => {
-          while (await d.eval(`!!document.querySelector('.modal-backdrop')`)) { await d.key("Escape", "Esc"); await d.wait(400); }
-          await d.click("#status-terminal", { pause: 2200 });
-          await d.type("ls", 120);
-          await d.key("Enter", "Enter");
-          await d.wait(1800);
-        },
-      },
-    ],
-  },
-
-  {
-    id: "19_outro", chapter: "THE END", title: "That is the tour", kind: "card",
-    card: { kicker: "Free and open source", title: "Thank you for watching", lines: ["Download: github.com/codecaine-zz/bun_rad_studio", "Every guide is in the docs folder", "Press F1 inside the app any time"] },
-    steps: [
-      {
-        cap: "Thank you for watching",
-        say: "That was the whole tour. Everything is safe by default. Deleting goes to the Recycle Bin. Nothing is overwritten silently. Big changes are shown to you first, and checked again when they run. The guides are in the docs folder, and press F1 inside the app at any time. Thank you for watching.",
       },
     ],
   },

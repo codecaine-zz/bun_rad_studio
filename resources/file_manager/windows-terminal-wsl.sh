@@ -8,13 +8,15 @@ fi
 exec "$SHELL" --rcfile /dev/fd/3 -i 3<<'BASHRC' </dev/tty
 if [ -r "$HOME/.bashrc" ]; then . "$HOME/.bashrc"; fi
 __file_manager_cwd() {
-    local status=$? folder encoded
+    local status=$? folder encoded meta
     folder=$(wslpath -w -- "$PWD") || {
         printf 'File Manager could not translate the WSL folder: %s\n' "$PWD" >&2
         return "$status"
     }
     encoded=$(printf '%s' "$folder" | base64 -w0) || return "$status"
-    printf '\033]777;file-manager-cwd;%s;wsl\007' "$encoded"
+    # The distro and where Windows drives are mounted let pasted Windows paths become Linux ones.
+    meta=$(printf '%s\n%s' "${WSL_DISTRO_NAME:-}" "$(wslpath -u 'C:\' 2>/dev/null | sed 's#c/*$##')" | base64 -w0) || meta=
+    printf '\033]777;file-manager-cwd;%s;wsl;%s\007' "$encoded" "$meta"
     return "$status"
 }
 PROMPT_COMMAND+=(__file_manager_cwd)

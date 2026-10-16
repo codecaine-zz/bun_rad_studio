@@ -32,6 +32,8 @@ import "./vault.js";
 import "./secrets.js";
 import "./calc.js";
 import "./qr.js";
+import "./imageStudio.js";
+import "./mediaStudio.js";
 import "./compare.js";
 import "./projects.js";
 import "./actions.js";

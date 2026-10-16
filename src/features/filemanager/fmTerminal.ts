@@ -69,11 +69,16 @@ export async function shellFolder(platform: FmContext["platform"], pid: number):
   return path;
 }
 
+export type WindowsShell = "powershell" | "wsl" | "cmd";
+/** What a WSL prompt tells about its distro: its name, and where Windows drives are mounted (usually /mnt/). */
+export interface WslInfo { distro: string; driveRoot: string }
+
 export interface TerminalSession {
   readonly pid: number;
-  /** Last filesystem folder reported by PowerShell or an integrated WSL prompt. */
+  /** Last filesystem folder reported by PowerShell, the Command Prompt or an integrated WSL prompt. */
   readonly cwd?: string;
-  readonly shell?: "powershell" | "wsl";
+  readonly shell?: WindowsShell;
+  readonly wsl?: WslInfo | null;
   write(data: string): void;
   resize(cols: number, rows: number): void;
   /** Ends the shell: hangs up first, and forces it to stop if it ignores that. */
@@ -88,10 +93,40 @@ export interface OpenTerminalOptions {
   onExit: (code: number | null) => void;
 }
 
-/** Removes our prompt metadata without losing other terminal output, even across pipe chunk boundaries. */
-export function windowsTerminalOutput(onData: (text: string) => void, onFolder: (path: string, shell: "powershell" | "wsl") => void) {
-  const prefix = "\x1b]777;file-manager-cwd;";
+const WINDOWS_PATH = /^(?:[A-Za-z]:\\|\\\\[^\\]+\\[^\\]+)/;
+const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+
+/** The distro details a WSL prompt sends ("name\ndrive root", base64), or null when they don't look right. */
+function readWslInfo(encoded: string | undefined): WslInfo | null {
+  if (!encoded || encoded.length > 1024 || !BASE64.test(encoded)) return null;
+  const [distro = "", driveRoot = ""] = Buffer.from(encoded, "base64").toString("utf8").split("\n");
+  if (distro && !/^[A-Za-z0-9._-]{1,64}$/.test(distro)) return null;
+  if (driveRoot && (!/^\/(?:[^\x00-\x1f\x7f]*\/)?$/.test(driveRoot) || driveRoot.length > 256)) return null;
+  return { distro, driveRoot: driveRoot || "/mnt/" };
+}
+
+/**
+ * Removes our prompt metadata without losing other terminal output, even across pipe chunk boundaries. The prompts
+ * report the folder they are in:
+ *   PowerShell      ESC ]777;file-manager-cwd;<base64 path> BEL
+ *   WSL (Bash)      ESC ]777;file-manager-cwd;<base64 Windows path>;wsl;<base64 "distro\ndrive root"> BEL
+ *   Command Prompt  ESC ]777;file-manager-cwd-cmd;<path> ESC \   (cmd's PROMPT can't make base64 or a BEL)
+ */
+export function windowsTerminalOutput(onData: (text: string) => void, onFolder: (path: string, shell: WindowsShell, wsl?: WslInfo | null) => void) {
+  const prefix = "\x1b]777;file-manager-cwd";
   let pending = "";
+  const report = (body: string, cmd: boolean) => {
+    if (cmd) {
+      if (body.length <= 4096 && !/[\x00-\x1f\x7f]/.test(body) && WINDOWS_PATH.test(body)) onFolder(body, "cmd");
+      return;
+    }
+    const [encoded = "", kind, meta] = body.split(";");
+    if (!BASE64.test(encoded) || (kind !== undefined && kind !== "wsl")) return;
+    const path = Buffer.from(encoded, "base64").toString("utf8");
+    if (path.length > 4096 || /[\x00-\x1f\x7f]/.test(path) || !WINDOWS_PATH.test(path)) return;
+    if (kind === "wsl") onFolder(path, "wsl", readWslInfo(meta));
+    else onFolder(path, "powershell");
+  };
   return {
     write(text: string) {
       pending += text;
@@ -106,21 +141,28 @@ export function windowsTerminalOutput(onData: (text: string) => void, onFolder: 
           return;
         }
         if (start > 0) { onData(pending.slice(0, start)); pending = pending.slice(start); }
-        const end = pending.indexOf("\x07", prefix.length);
+        const after = pending.slice(prefix.length);
+        const cmd = after.startsWith("-cmd;");
+        if (!cmd && !after.startsWith(";")) {
+          // Not decided yet (wait for more), or not ours (pass it on).
+          if ("-cmd;".startsWith(after) && after.length < 5) return;
+          onData(prefix);
+          pending = after;
+          continue;
+        }
+        const bodyAt = prefix.length + (cmd ? 5 : 1);
+        const bel = pending.indexOf("\x07", bodyAt);
+        const st = pending.indexOf("\x1b\\", bodyAt);
+        const end = bel >= 0 && (st < 0 || bel < st) ? bel : st;
         if (end < 0) {
           if (pending.length <= 32768) return;
           onData(pending);
           pending = "";
           return;
         }
-        const payload = pending.slice(prefix.length, end);
-        const wsl = payload.endsWith(";wsl");
-        const encoded = wsl ? payload.slice(0, -4) : payload;
-        pending = pending.slice(end + 1);
-        if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded)) continue;
-        const path = Buffer.from(encoded, "base64").toString("utf8");
-        if (path.length > 4096 || /[\x00-\x1f\x7f]/.test(path) || !/^(?:[A-Za-z]:\\|\\\\[^\\]+\\[^\\]+)/.test(path)) continue;
-        onFolder(path, wsl ? "wsl" : "powershell");
+        const body = pending.slice(bodyAt, end);
+        pending = pending.slice(end + (end === bel ? 1 : 2));
+        report(body, cmd);
       }
     },
     flush() { if (pending) onData(pending); pending = ""; },
@@ -136,9 +178,11 @@ function openWindowsTerminal(ctx: FmContext, options: OpenTerminalOptions): Term
   ], { cwd: options.cwd, env: childEnv(ctx), stdin: "pipe", stdout: "pipe", stderr: "pipe" });
   let closed = false;
   let cwd = realpathSync.native(options.cwd);
-  let activeShell: "powershell" | "wsl" = "powershell";
-  const outputParser = windowsTerminalOutput(options.onData, (path, shell) => {
+  let activeShell: WindowsShell = "powershell";
+  let wslInfo: WslInfo | null = null;
+  const outputParser = windowsTerminalOutput(options.onData, (path, shell, wsl) => {
     activeShell = shell;
+    wslInfo = shell === "wsl" ? wsl ?? null : null;
     try {
       if (statSync(path).isDirectory()) cwd = realpathSync.native(path);
     } catch (error) {
@@ -186,6 +230,7 @@ function openWindowsTerminal(ctx: FmContext, options: OpenTerminalOptions): Term
     pid: proc.pid,
     get cwd() { return cwd; },
     get shell() { return activeShell; },
+    get wsl() { return wslInfo; },
     write: (data) => send(`I:${Buffer.from(data, "utf8").toString("base64")}`),
     resize: (cols, rows) => send(`R:${cols}:${rows}`),
     close() {

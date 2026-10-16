@@ -63,6 +63,14 @@ export interface Settings {
    * dropped here, so the file can never hold two actions on one key (see ui/shortcuts.js for the rules).
    */
   shortcuts: Record<string, string[]>;
+  /** Looks saved in the Image Studio and the Media Studio, to use again on one file or on many at once. */
+  studioPresets: { image: StudioPreset[]; media: StudioPreset[] };
+}
+
+export interface StudioPreset {
+  name: string;
+  /** Studio option id -> value. The studio and the conversion job check them again when they are used. */
+  options: Record<string, string | number | boolean>;
 }
 
 export const WORKSPACES = ["files", "home", "tools", "split", "dual"] as const;
@@ -104,11 +112,14 @@ export const DEFAULT_SETTINGS: Settings = {
   dbShortcut: "window",
   textOpensIn: "builtin",
   shortcuts: {},
+  studioPresets: { image: [], media: [] },
 };
 
 export const MAX_FAVORITES = 100;
 export const MAX_FAVORITE_NAME = 60;
 export const MAX_RECENTS = 30;
+export const MAX_STUDIO_PRESETS = 50;
+export const MAX_PRESET_NAME = 40;
 
 const oneOf = <T extends string>(value: unknown, allowed: readonly T[], fallback: T): T => (allowed.includes(value as T) ? (value as T) : fallback);
 
@@ -169,7 +180,33 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     dbShortcut: oneOf(r.dbShortcut, ["window", "browser"], DEFAULT_SETTINGS.dbShortcut),
     textOpensIn: oneOf(r.textOpensIn, ["builtin", "editor", "system"], DEFAULT_SETTINGS.textOpensIn),
     shortcuts: sanitizeOverrides(r.shortcuts, ctx.platform) as Record<string, string[]>,
+    studioPresets: sanitizeStudioPresets(r.studioPresets),
   };
+}
+
+function sanitizePresetList(raw: unknown): StudioPreset[] {
+  const out: StudioPreset[] = [];
+  for (const item of Array.isArray(raw) ? raw : []) {
+    if (out.length >= MAX_STUDIO_PRESETS || !item || typeof item !== "object") continue;
+    const x = item as { name?: unknown; options?: unknown };
+    // eslint-disable-next-line no-control-regex
+    const name = typeof x.name === "string" ? x.name.replace(/[\x00-\x1f\x7f]/g, " ").trim().slice(0, MAX_PRESET_NAME) : "";
+    if (!name || out.some((p) => p.name.toLowerCase() === name.toLowerCase())) continue;
+    const options: StudioPreset["options"] = {};
+    const rawOpts = x.options && typeof x.options === "object" && !Array.isArray(x.options) ? (x.options as Record<string, unknown>) : {};
+    for (const [k, v] of Object.entries(rawOpts).slice(0, 60)) {
+      if (!/^[a-zA-Z][a-zA-Z0-9]{0,23}$/.test(k)) continue;
+      if (typeof v === "boolean" || (typeof v === "number" && Number.isFinite(v))) options[k] = v;
+      else if (typeof v === "string" && v.length <= 60 && !v.includes("\0")) options[k] = v;
+    }
+    out.push({ name, options });
+  }
+  return out;
+}
+
+function sanitizeStudioPresets(raw: unknown): Settings["studioPresets"] {
+  const r = (raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {}) as Record<string, unknown>;
+  return { image: sanitizePresetList(r.image), media: sanitizePresetList(r.media) };
 }
 
 function sanitizeServeOptions(raw: unknown): Settings["serveOptions"] {

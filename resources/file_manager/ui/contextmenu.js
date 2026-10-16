@@ -1,4 +1,6 @@
 // Right-click menus and the View menu items (shared by the toolbar, the menus and the keyboard).
+import { isStudioPicture } from "./imageStudio.js";
+import { isStudioMedia } from "./mediaStudio.js";
 import { showMenu } from "./menus.js";
 import { clearSearch, refresh, saveSettings } from "./nav.js";
 import * as ops from "./ops.js";
@@ -85,6 +87,7 @@ function entryItems(entries) {
     one ? { label: "Open", icon: e.isDir ? "📂" : "📄", shortcut: "Enter", action: () => ops.openEntry(e) } : null,
     one ? { label: "Quick Look", icon: "👁️", shortcut: "Space", tip: "Look at a picture, play a sound or video, read a text file or see a document here, without opening another program.", action: () => openQuickLook(e) } : null,
     one && searching ? { label: "Open containing folder", icon: "📁", action: () => ops.goToContaining(e) } : null,
+    ...studioMenuItems(entries),
     one && !e.isDir && e.kind === "image" ? { label: "Read QR code", icon: "🔳", tip: "Look for a QR code in this picture and show what it says.", action: () => openPower("qr", { read: e.path, name: e.name }) } : null,
     one && !e.isDir && looksLikeText(e.name) && e.size <= 20000 ? { label: "Make a QR code from this text", icon: "🔳", tip: "Put the text of this file in a QR code (up to a few thousand characters).", action: () => openPower("qr", { makeFromFile: e.path }) } : null,
     one && !e.isDir && looksLikeText(e.name) ? { label: "Edit in Code editor", icon: "📝", shortcut: labelOf("file.editInCode"), action: () => openInCode(e.path) } : null,
@@ -109,7 +112,7 @@ function entryItems(entries) {
     { separator: true },
     { label: "Cut", icon: "✂️", shortcut: labelOf("file.cut"), action: ops.cutSelection },
     { label: "Copy", icon: "📋", shortcut: labelOf("file.copy"), action: ops.copySelection },
-    { label: "Copy paths for Terminal", icon: "📋", tip: "Copy shell-quoted paths to paste after a command in an external terminal (PowerShell on Windows).", action: () => copyTerminalPaths(entries) },
+    ...terminalCopyItems(entries),
     one && canCopyImage(e) ? { label: "Copy image to clipboard", icon: "🖼️", tip: "Put the picture itself on the clipboard, to paste into a document, a chat or an image editor. (Copy, above, copies the file so you can paste it into a folder.)", action: () => copyImageFile(e) } : null,
     one && canCopyText(e) ? { label: "Copy text to clipboard", icon: "📝", tip: "Put what is written in this file on the clipboard, to paste into a document or chat. (Copy, above, copies the file so you can paste it into a folder.)", action: () => copyTextFile(e) } : null,
     one && e.isDir ? { label: "Paste into this folder", icon: "📥", disabled: !clip, shortcut: "", action: () => ops.pasteInto(e.path) } : null,
@@ -182,4 +185,26 @@ export function backgroundItems() {
 
 export function showBackgroundMenu(point) {
   showMenu(backgroundItems(), { ...point, label: "Folder actions" });
+}
+
+/** "Edit in Image Studio" / "Edit in Media Studio": one file opens to edit; several open the studio to apply one look to all. */
+function studioMenuItems(entries) {
+  const pics = entries.filter((x) => !x.isDir && isStudioPicture(x.name)).map((x) => x.path);
+  const media = entries.filter((x) => !x.isDir && isStudioMedia(x.name)).map((x) => x.path);
+  return [
+    pics.length ? { label: pics.length > 1 ? `Edit ${pics.length} pictures in Image Studio` : "Edit in Image Studio", icon: "🎨", tip: pics.length > 1 ? "Choose a look (or a saved preset) once and apply it to every selected picture; each gets its own new copy." : "Change the light, colour and shape of this picture with sliders, then save a copy.", action: () => openPower("imagestudio", { paths: pics }) } : null,
+    media.length ? { label: media.length > 1 ? `Edit ${media.length} files in Media Studio` : "Edit in Media Studio", icon: "🎬", tip: media.length > 1 ? "Choose the settings (or a saved preset) once and apply them to every selected song or video; each gets its own new copy." : "Trim, speed up, fade and clean up this song, recording or video, then save a copy.", action: () => openPower("mediastudio", { paths: media }) } : null,
+  ];
+}
+
+/** Copy paths for an outside terminal. Windows has three kinds, each quoting (and spelling) paths its own way. */
+function terminalCopyItems(entries) {
+  if (state.platform !== "win32") {
+    return [{ label: "Copy paths for Terminal", icon: "📋", tip: "Copy shell-quoted paths to paste after a command in another terminal window.", action: () => copyTerminalPaths(entries, "posix") }];
+  }
+  return [
+    { label: "Copy paths for PowerShell", icon: "📋", tip: "Copy quoted paths to paste after a command in PowerShell (also inside Windows Terminal).", action: () => copyTerminalPaths(entries, "powershell") },
+    { label: "Copy paths for Command Prompt", icon: "📋", tip: "Copy quoted paths to paste after a command in the Command Prompt (cmd).", action: () => copyTerminalPaths(entries, "cmd") },
+    { label: "Copy paths for WSL (Linux)", icon: "🐧", tip: "Copy the paths as Linux sees them (C:\\Users becomes /mnt/c/Users) to paste in a WSL Bash window.", action: () => copyTerminalPaths(entries, "wsl") },
+  ];
 }

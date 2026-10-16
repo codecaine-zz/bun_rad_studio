@@ -144,6 +144,7 @@ async function runStep(d: Do, step: Step, spokenSeconds: number): Promise<void> 
 
 async function recordChapter(ch: Chapter) {
   console.log(`\n● ${ch.id}  ${ch.title}`);
+  if (ch.kind === "external") { console.log("  (joined from another tutorial when building)"); return; }
   if (ch.kind === "card") { writeTimeline(ch, null, ch.steps.map((s, i) => ({ start: 0, end: spoken(ch, i).seconds + 0.5, cap: s.cap })), 0); return; }
   const world = S.seedWorld();
   ch.setup?.(world);
@@ -253,6 +254,25 @@ function chapterCard(ch: Chapter, n: number, of: number): string {
   return out;
 }
 
+/** The content segments of another finished tutorial, in its own order, without its intro, outro and title cards. */
+function externalSegments(ch: Chapter): Array<{ file: string; title: string }> {
+  const dir = join(PROD, ch.external!.dir);
+  const listFile = join(dir, "segments", "list.txt");
+  if (!existsSync(listFile)) throw new Error(`${ch.id}: ${listFile} is missing; build that tutorial first`);
+  const files = [...readFileSync(listFile, "utf8").matchAll(/^file '(.+)'$/gm)].map((m) => m[1]!);
+  const parts = files.flatMap((file) => {
+    const id = file.split("/").pop()!.replace(/\.mp4$/, "");
+    if (id.endsWith("_card")) return [];
+    const tlFile = join(dir, "timelines", `${id}.json`);
+    const tl = existsSync(tlFile) ? JSON.parse(readFileSync(tlFile, "utf8")) as Timeline : null;
+    if (!tl || !tl.clip) return []; // a spoken title card (the intro or the outro)
+    if (!existsSync(file)) throw new Error(`${ch.id}: ${file} is missing; rebuild ${ch.external!.dir}`);
+    return [{ file, title: tl.title }];
+  });
+  if (!parts.length) throw new Error(`${ch.id}: no segments found in ${dir}`);
+  return parts;
+}
+
 function assemble() {
   mkdirSync(SEG, { recursive: true });
   const list: string[] = [];
@@ -260,6 +280,19 @@ function assemble() {
   let at = 0;
   const numbered = chapters.filter((c) => c.kind !== "card");
   for (const ch of chapters) {
+    if (ch.kind === "external") {
+      const parts = externalSegments(ch);
+      list.push(`file '${chapterCard(ch, numbered.indexOf(ch) + 1, numbered.length)}'`);
+      parts.forEach((p, i) => {
+        // The first part's chapter mark starts at the title card, like every other chapter.
+        marks.push({ at, title: `${ch.external!.label}: ${p.title}` });
+        if (i === 0) at += 3.5;
+        list.push(`file '${p.file}'`);
+        at += durationOf(p.file);
+      });
+      console.log(`  ✓ ${ch.id}  ${fmtTime(at)}  (${parts.length} parts from ${ch.external!.dir})`);
+      continue;
+    }
     const tlFile = join(TIMELINES, `${ch.id}.json`);
     if (!existsSync(tlFile)) throw new Error(`chapter ${ch.id} has not been recorded`);
     const tl: Timeline = JSON.parse(readFileSync(tlFile, "utf8"));

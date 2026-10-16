@@ -508,15 +508,18 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           let busy = false;
           let alive = true;
           let lastShell = session.shell;
+          let lastWsl = JSON.stringify(session.wsl ?? null);
           const check = async () => {
             if (busy || !alive) return;
             busy = true;
             try {
               const now = session.cwd ?? await shellFolder(ctx.platform, session.pid);
-              if (alive && now && (now !== last || session.shell !== lastShell)) {
+              const wsl = JSON.stringify(session.wsl ?? null);
+              if (alive && now && (now !== last || session.shell !== lastShell || wsl !== lastWsl)) {
                 last = now;
                 lastShell = session.shell;
-                send({ type: "cwd", path: now, shell: lastShell });
+                lastWsl = wsl;
+                send({ type: "cwd", path: now, shell: lastShell, ...(session.wsl ? { wsl: session.wsl } : {}) });
               }
             } finally {
               busy = false;

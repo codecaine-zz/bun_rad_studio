@@ -6,13 +6,13 @@
 import { optNum, optStr, parseTime, type OptionValues } from "./fmConvOptions";
 import { choiceOpt, exts, numberOpt, textOpt, timeOpt, toggleOpt, type BuildContext, type ConvDef, type Engine, type Need } from "./fmConvTypes";
 
-const IMG_IN = exts("jpg jpeg png gif webp bmp tif tiff heic heif avif ico svg");
-const IMG_RASTER = exts("jpg jpeg png gif webp bmp tif tiff heic heif avif ico");
+export const IMG_IN = exts("jpg jpeg png gif webp bmp tif tiff heic heif avif ico svg");
+export const IMG_RASTER = exts("jpg jpeg png gif webp bmp tif tiff heic heif avif ico");
 export const VID_IN = exts("mp4 mov mkv avi webm m4v wmv flv mpg mpeg 3gp ts");
-const AUD_IN = exts("mp3 wav flac aac m4a ogg opus wma aiff aif");
+export const AUD_IN = exts("mp3 wav flac aac m4a ogg opus wma aiff aif");
 export const SUB_IN = exts("srt vtt ass ssa");
 
-const extOfPath = (p: string) => p.split(".").pop()!.toLowerCase();
+export const extOfPath = (p: string) => p.split(".").pop()!.toLowerCase();
 
 // ---------------------------------------------------------------------------------------------------------------
 // Pictures: ImageMagick
@@ -24,14 +24,14 @@ const IM_READ: Record<string, string> = { heic: "read-heic", heif: "read-heic", 
 /** The capabilities for opening this kind of file and (optionally) writing the output kind. */
 export const imNeeds = (write?: string) => (ext: string): Need => [write, IM_READ[ext]].filter((x): x is string => !!x);
 
-const FIRST_FRAME = ["-delete", "1--1"];
+export const FIRST_FRAME = ["-delete", "1--1"];
 const FLATTEN = ["-background", "white", "-alpha", "remove", "-alpha", "off"];
 
-const im = (argv: (c: BuildContext) => string[], write?: string, extra: Partial<Engine> = {}): Engine => ({ tool: "imagemagick", stage: true, needs: imNeeds(write), argv, ...extra });
+export const im = (argv: (c: BuildContext) => string[], write?: string, extra: Partial<Engine> = {}): Engine => ({ tool: "imagemagick", stage: true, needs: imNeeds(write), argv, ...extra });
 /** input, middle arguments, output */
-const imSimple = (middle: string[]) => (c: BuildContext) => [c.inputs[0]!, ...middle, c.output];
+export const imSimple = (middle: string[]) => (c: BuildContext) => [c.inputs[0]!, ...middle, c.output];
 
-const pic = (id: string, label: string, hint: string, out: string | ConvDef["out"], suffix: string, engines: Engine[], extra: Partial<ConvDef> = {}): ConvDef => ({
+export const pic = (id: string, label: string, hint: string, out: string | ConvDef["out"], suffix: string, engines: Engine[], extra: Partial<ConvDef> = {}): ConvDef => ({
   id, label, hint, group: "Pictures", inputs: IMG_IN, out, suffix, mode: "each", engines, ...extra,
 });
 
@@ -46,7 +46,7 @@ export const SOCIAL_SIZES: Array<[string, string, number, number]> = [
   ["avatar", "Profile picture (400 × 400)", 400, 400],
 ];
 
-const GRAVITY: Array<[string, string]> = [["SouthEast", "Bottom right"], ["SouthWest", "Bottom left"], ["NorthEast", "Top right"], ["NorthWest", "Top left"], ["Center", "Middle"], ["South", "Bottom middle"], ["North", "Top middle"]];
+export const GRAVITY: Array<[string, string]> = [["SouthEast", "Bottom right"], ["SouthWest", "Bottom left"], ["NorthEast", "Top right"], ["NorthWest", "Top left"], ["Center", "Middle"], ["South", "Bottom middle"], ["North", "Top middle"]];
 
 const FRAME_OPTIONS = [numberOpt("delay", "Time for each picture", "", 40, 5000, 500, "milliseconds", 10), numberOpt("width", "Width", "Pictures wider than this are shrunk.", 100, 2000, 640, "pixels", 10)];
 
@@ -115,7 +115,7 @@ export const PICTURE_DEFS: ConvDef[] = [
   pic("img-flip-h", "Mirror left to right", "Flip the picture like a mirror.", "", "mirrored", [im(imSimple([...FIRST_FRAME, "-flop"]))]),
   pic("img-flip-v", "Flip top to bottom", "Turn the picture over vertically.", "", "flipped", [im(imSimple([...FIRST_FRAME, "-flip"]))]),
   pic("img-autoorient", "Turn upright (use the camera's rotation)", "Fixes pictures that show sideways because of how the phone was held.", "", "upright", [im(imSimple([...FIRST_FRAME, "-auto-orient"]))]),
-  pic("img-gray", "Black and white", "Remove the colour.", "", "black and white", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-colorspace", "Gray"]))]),
+  pic("img-gray", "Black and white (greyscale)", "Remove the colour: shades of grey only.", "", "black and white", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-colorspace", "Gray"]))], { keywords: "grey gray greyscale grayscale monochrome mono bw" }),
   pic("img-srgb", "Convert colours to sRGB", "Makes colours look right on screens and the web (fixes printer-style CMYK pictures).", "", "sRGB", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-colorspace", "sRGB", "-strip"]))], { keywords: "cmyk colour color profile" }),
   pic("img-strip", "Remove location and camera info", "A copy without the hidden details (where and when it was taken, the camera).", "", "private", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-strip"]))], { keywords: "metadata exif privacy gps" }),
   pic("img-watermark", "Add a text watermark", "Writes a short text on each picture.", "", "watermarked", [im((c) => {
@@ -144,16 +144,16 @@ export const PICTURE_DEFS: ConvDef[] = [
 // Video: ffmpeg
 // ---------------------------------------------------------------------------------------------------------------
 
-const BASE = ["-nostdin", "-hide_banner", "-loglevel", "error", "-n"];
+export const BASE = ["-nostdin", "-hide_banner", "-loglevel", "error", "-n"];
 /** A complete ffmpeg command: global options, then `pre` (before the input), the input, `mid` (after it), the output. */
 export const ff = (c: BuildContext, pre: string[], mid: string[]): string[] => [...BASE, ...pre, "-i", `file:${c.inputs[0]}`, ...mid, `file:${c.output}`];
-const ffEngine = (argv: (c: BuildContext) => string[], needs?: Need | ((ext: string, o: OptionValues) => Need), extra: Partial<Engine> = {}): Engine => ({ tool: "ffmpeg", needs, argv, ...extra });
+export const ffEngine = (argv: (c: BuildContext) => string[], needs?: Need | ((ext: string, o: OptionValues) => Need), extra: Partial<Engine> = {}): Engine => ({ tool: "ffmpeg", needs, argv, ...extra });
 
-const H264 = ["-c:v", "libx264", "-pix_fmt", "yuv420p"];
-const AAC = (rate: string) => ["-c:a", "aac", "-b:a", rate];
-const FASTSTART = ["-movflags", "+faststart"];
+export const H264 = ["-c:v", "libx264", "-pix_fmt", "yuv420p"];
+export const AAC = (rate: string) => ["-c:a", "aac", "-b:a", rate];
+export const FASTSTART = ["-movflags", "+faststart"];
 
-const vid = (id: string, label: string, hint: string, out: string | ConvDef["out"], suffix: string, engines: Engine[], extra: Partial<ConvDef> = {}): ConvDef => ({
+export const vid = (id: string, label: string, hint: string, out: string | ConvDef["out"], suffix: string, engines: Engine[], extra: Partial<ConvDef> = {}): ConvDef => ({
   id, label, hint, group: "Video", inputs: VID_IN, out, suffix, mode: "each", engines, ...extra,
 });
 
@@ -360,12 +360,12 @@ export const VIDEO_DEFS: ConvDef[] = [
 // Sound: ffmpeg
 // ---------------------------------------------------------------------------------------------------------------
 
-const snd = (id: string, label: string, hint: string, out: string | ConvDef["out"], suffix: string, engines: Engine[], extra: Partial<ConvDef> = {}): ConvDef => ({
+export const snd = (id: string, label: string, hint: string, out: string | ConvDef["out"], suffix: string, engines: Engine[], extra: Partial<ConvDef> = {}): ConvDef => ({
   id, label, hint, group: "Sound", inputs: AUD_IN, out, suffix, mode: "each", engines, ...extra,
 });
 
 /** Settings for a sound that is written in its own format again. */
-const sameCodec = (ext: string): string[] => (ext === "mp3" ? ["-c:a", "libmp3lame", "-b:a", "192k"] : ext === "m4a" || ext === "aac" ? ["-c:a", "aac", "-b:a", "192k"] : ext === "ogg" ? ["-c:a", "libvorbis", "-b:a", "192k"] : ext === "opus" ? ["-c:a", "libopus", "-b:a", "160k"] : []);
+export const sameCodec = (ext: string): string[] => (ext === "mp3" ? ["-c:a", "libmp3lame", "-b:a", "192k"] : ext === "m4a" || ext === "aac" ? ["-c:a", "aac", "-b:a", "192k"] : ext === "ogg" ? ["-c:a", "libvorbis", "-b:a", "192k"] : ext === "opus" ? ["-c:a", "libopus", "-b:a", "160k"] : []);
 
 export const SOUND_DEFS: ConvDef[] = [
   snd("aud-mp3", "Convert to MP3", "Plays everywhere.", "mp3", "converted", [ffEngine((c) => ff(c, [], ["-vn", "-c:a", "libmp3lame", "-q:a", "2"]), "mp3")], { rejectSame: true }),

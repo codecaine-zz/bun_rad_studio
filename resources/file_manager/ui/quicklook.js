@@ -19,8 +19,11 @@ import { showOpenWith } from "./openwith.js";
 import { showToolsDialog } from "./tools.js";
 import { activePane } from "./pane.js";
 import { focusIndex, selectedEntries } from "./selection.js";
-import { inTrash } from "./state.js";
+import { inTrash, on } from "./state.js";
 import { parseTable } from "./quicklookTable.js";
+import { openPower } from "./power.js";
+import { isStudioPicture } from "./imageStudio.js";
+import { isStudioMedia } from "./mediaStudio.js";
 import { extensionOf, formatDate, formatSize, plural } from "./util.js";
 
 const DEFAULT_FOOT = "Space or Esc closes  ·  ← → show the next or previous item  ·  Enter opens it";
@@ -75,6 +78,7 @@ function setActions(entry) {
   const text = !entry.isDir && isKnownTextName(entry.name);
   ql.convertBtn.hidden = entry.isDir;
   ql.editBtn.hidden = !text;
+  ql.studioBtn.hidden = entry.isDir || !(isStudioPicture(entry.name) || isStudioMedia(entry.name));
 }
 
 function setSub(text) {
@@ -241,7 +245,13 @@ function onKey(e) {
   const isArrow = e.key.startsWith("Arrow");
   // While Quick Look is open it owns the keyboard: nothing reaches the file list underneath.
   if (e.ctrlKey || e.metaKey || e.altKey) { if (!e.metaKey && !e.ctrlKey) e.stopPropagation(); return; }
-  if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); return closeQuickLook(); }
+  if (e.key === "Escape") {
+    e.stopPropagation();
+    e.preventDefault();
+    // A player filling the window steps back first; the next Esc closes Quick Look.
+    if (ql.player?.leaveFill?.()) return;
+    return closeQuickLook();
+  }
   if (e.key === "Tab") {
     e.stopPropagation();
     e.preventDefault();
@@ -270,6 +280,12 @@ function onKey(e) {
   if (e.key === "End") return show(ql.entries.length - 1);
 }
 
+// ops.openPath asks for a look by event (it sits below this module).
+on("quicklook-open", (entry) => {
+  closeQuickLook();
+  openQuickLook(entry);
+});
+
 /** Opens Quick Look on `entry` (default: the focused or first selected item of the active list). */
 export function openQuickLook(entry = null, pane = activePane()) {
   if (ql) return closeQuickLook();
@@ -290,6 +306,7 @@ export function openQuickLook(entry = null, pane = activePane()) {
   const thenClose = (fn) => () => { const e = current(); if (!e) return; closeQuickLook(); fn(e); };
   const convertBtn = h("button", { type: "button", class: "btn", hidden: true, title: "Turn this file into another format, or make a smaller or changed copy (Convert and process)", onclick: thenClose(() => showToolsDialog()) }, "Convert…");
   const editBtn = h("button", { type: "button", class: "btn", hidden: true, title: "Edit it in the built-in Code editor", onclick: thenClose((e) => openInCode(e.path)) }, "Edit");
+  const studioBtn = h("button", { type: "button", class: "btn", hidden: true, id: "ql-studio", title: "Change it with sliders in the Image Studio or the Media Studio, then save a copy", onclick: thenClose((e) => openPower(isStudioPicture(e.name) ? "imagestudio" : "mediastudio", { path: e.path })) }, "Edit in Studio");
   const moreBtn = h("button", { type: "button", class: "btn", "aria-haspopup": "menu", title: "More things to do with this file", onclick: () => {
     const e = current();
     if (!e) return;
@@ -304,14 +321,14 @@ export function openQuickLook(entry = null, pane = activePane()) {
   } }, "More ▾");
   const dialog = h("div", { class: "ql", role: "dialog", "aria-modal": "true", "aria-label": "Quick Look", tabindex: "-1" },
     h("div", { class: "ql-head" }, icon, h("div", { class: "ql-headtext" }, title, sub), count,
-      copyBtn, convertBtn, editBtn,
+      copyBtn, convertBtn, editBtn, studioBtn,
       h("button", { type: "button", class: "btn", title: "Open it with the program chosen in Settings, or the one your computer uses for it (Enter)", onclick: () => openCurrent() }, "Open"),
       moreBtn,
       h("button", { type: "button", class: "btn", "aria-label": "Close Quick Look", title: "Close (Space or Esc)", onclick: () => closeQuickLook() }, "Close")),
     body,
     foot);
   const backdrop = h("div", { class: "ql-backdrop", onclick: (ev) => { if (ev.target === backdrop) closeQuickLook(); } }, dialog);
-  ql = { backdrop, dialog, body, icon, title, sub, count, foot, copyBtn, convertBtn, editBtn, player: null, copyAction: null, entries, index, pane, seq: 0, opener: document.activeElement };
+  ql = { backdrop, dialog, body, icon, title, sub, count, foot, copyBtn, convertBtn, editBtn, studioBtn, player: null, copyAction: null, entries, index, pane, seq: 0, opener: document.activeElement };
   $("#overlay").append(backdrop);
   document.addEventListener("keydown", onKey, true);
   dialog.focus();

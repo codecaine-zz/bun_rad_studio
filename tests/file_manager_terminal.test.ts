@@ -120,6 +120,57 @@ describe("terminal helpers", () => {
     expect(folders).toEqual([]);
   });
 
+  test("WSL prompts may add their distro and drive root, and bad details are ignored", () => {
+    const folder = Buffer.from("\\\\wsl.localhost\\Ubuntu\\home\\me").toString("base64");
+    const seen: unknown[] = [];
+    const parser = windowsTerminalOutput(() => {}, (p, shell, wsl) => seen.push([p, shell, wsl]));
+    const meta = (text: string) => Buffer.from(text).toString("base64");
+    parser.write(`\x1b]777;file-manager-cwd;${folder};wsl;${meta("Ubuntu\n/mnt/")}\x07`);
+    parser.write(`\x1b]777;file-manager-cwd;${folder};wsl;${meta("Ubuntu-22.04\n")}\x07`);
+    parser.write(`\x1b]777;file-manager-cwd;${folder};wsl;${meta("bad name\n/mnt/")}\x07`);
+    parser.write(`\x1b]777;file-manager-cwd;${folder};wsl;${meta("Ubuntu\nrelative/")}\x07`);
+    parser.write(`\x1b]777;file-manager-cwd;${folder};wsl;not base64!\x07`);
+    const path = "\\\\wsl.localhost\\Ubuntu\\home\\me";
+    expect(seen).toEqual([
+      [path, "wsl", { distro: "Ubuntu", driveRoot: "/mnt/" }],
+      [path, "wsl", { distro: "Ubuntu-22.04", driveRoot: "/mnt/" }],
+      [path, "wsl", null], [path, "wsl", null], [path, "wsl", null],
+    ]);
+  });
+
+  test("a Command Prompt started in the terminal reports its folder through its PROMPT", () => {
+    const path = "C:\\Program Files\\a & b; c";
+    const marker = `\x1b]777;file-manager-cwd-cmd;${path}\x1b\\`;
+    const text = `before${marker}C:\\Program Files>`;
+    for (let cut = 0; cut <= text.length; cut++) {
+      let output = "";
+      const seen: [string, string][] = [];
+      const parser = windowsTerminalOutput((s) => output += s, (p, shell) => seen.push([p, shell]));
+      parser.write(text.slice(0, cut));
+      parser.write(text.slice(cut));
+      parser.flush();
+      expect(output).toBe("beforeC:\\Program Files>");
+      expect(seen).toEqual([[path, "cmd"]]);
+    }
+    const seen: string[] = [];
+    const parser = windowsTerminalOutput(() => {}, (p) => seen.push(p));
+    parser.write("\x1b]777;file-manager-cwd-cmd;relative\x1b\\\x1b]777;file-manager-cwd-cmd;C:\\a\tb\x1b\\");
+    expect(seen).toEqual([]);
+    let out = "";
+    const other = windowsTerminalOutput((s) => out += s, () => {});
+    other.write("\x1b]777;file-manager-cwdX;hello\x07");
+    other.flush();
+    expect(out).toBe("\x1b]777;file-manager-cwdX;hello\x07");
+  });
+
+  test("the Windows shell script makes the Command Prompt and WSL report where they are", () => {
+    const ps = readFileSync(new URL("../resources/file_manager/windows-terminal-shell.ps1", import.meta.url), "utf8");
+    expect(ps).toContain("$env:PROMPT = '$E]777;file-manager-cwd-cmd;$P$E\\$P$G'");
+    const sh = readFileSync(new URL("../resources/file_manager/windows-terminal-wsl.sh", import.meta.url), "utf8");
+    expect(sh).toContain("WSL_DISTRO_NAME");
+    expect(sh).toContain("file-manager-cwd;%s;wsl;%s");
+  });
+
   test("Windows, macOS and Linux support terminals", () => {
     expect(terminalSupported("darwin")).toBe(true);
     expect(terminalSupported("linux")).toBe(true);

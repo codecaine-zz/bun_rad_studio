@@ -27,8 +27,9 @@ export async function copyFileUrls(entries) {
 
 }
 
-export async function copyTerminalPaths(entries) {
-  const quoted = quotePathsForTerminal(entries.map((entry) => entry.path), shellFor(state.platform));
+/** Copies the paths quoted for `shell` ("posix", "powershell", "cmd" or "wsl"; the usual shell of this computer when left out). */
+export async function copyTerminalPaths(entries, shell = shellFor(state.platform)) {
+  const quoted = quotePathsForTerminal(entries.map((entry) => entry.path), shell);
   if (quoted.error) return toast(quoted.error, { kind: "error" });
   try {
     const result = await call("copytext", { text: quoted.text });

@@ -140,9 +140,10 @@ function rememberRecent(path) {
 }
 
 /**
- * Opens an item known only by its path (Recent, Favorites). It is looked up first, so it is opened exactly as the same item
- * in the file list would be: the built-in Code editor for text (even a file with no extension, like LICENSE), a folder in
- * the file list, a locked file asks for the vault key. A path that is gone says so.
+ * Opens an item known only by its path (Recent, Favorites), always inside the File Manager: a folder in the file list,
+ * text in the built-in Code editor (even a file with no extension, like LICENSE), a locked file asks for the vault key,
+ * and any other file is shown selected in its folder with Quick Look on it (pictures, sound, video, PDFs and documents
+ * preview there; its Open button still hands it to another program when wanted). A path that is gone says so.
  */
 export async function openPath(path) {
   let entry;
@@ -151,7 +152,13 @@ export async function openPath(path) {
   } catch (err) {
     return fail(err);
   }
-  return openEntry(entry);
+  if (entry.isDir || isLocked(entry) || textOpensInEditor(entry) || (await isPlainTextInside(entry))) return openEntry(entry);
+  const parent = parentOf(entry.path, state.sep);
+  if (!parent) return openEntry(entry);
+  await goTo(parent, { select: entry.path });
+  rememberRecent(entry.path);
+  // Quick Look imports this module, so it listens for the request instead of being imported here.
+  emit("quicklook-open", entry);
 }
 
 async function openFile(path, confirmed, mismatchOk = false) {

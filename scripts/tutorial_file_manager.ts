@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 /**
- * The Codecaine File Manager, explained slowly and completely (a calm, step-by-step tutorial in the style of the old
- * "show every click" training videos).
+ * The Codecaine File Manager, explained slowly and completely: the basics, the terminal and the file list working together,
+ * every tool, themes, and the SQLite and MySQL studios (joined from their own tutorials). A calm, step-by-step tutorial in
+ * the style of the old "show every click" training videos.
  *
  *   bun scripts/tutorial_file_manager.ts list                  the chapters
  *   bun scripts/tutorial_file_manager.ts audio [--shard i/n]   write (or reuse) the narration for every step
@@ -23,13 +24,14 @@ import { FM_HOME, chapters, type Chapter, type World } from "./lib/fm_tutorial_s
 
 export type { Do };
 const ROOT = process.cwd();
-const RATE = "+8%";
-const GAP = 0.4;
+const RATE = "+3%";
+const GAP = 0.45;
 const VIEW_H = 972;
 const ROOT_DIR = "/tmp/fmv";
 const HOME = FM_HOME;
 const DATA = `${ROOT_DIR}/data`;
 const GRAVE = `${ROOT_DIR}/grave`;
+const ZDOT = `${ROOT_DIR}/zdot`;
 const FM_PORT = 51666;
 const CDP_PORT = 9344;
 
@@ -44,6 +46,12 @@ function seedWorld(): World {
   for (let i = 1; i <= 8; i++) {
     sh([FFMPEG, "-y", "-f", "lavfi", "-i", `testsrc2=size=1280x800:rate=1`, "-frames:v", "1", "-vf", `hue=h=${i * 40},drawtext=text='Photo ${i}':fontcolor=white:fontsize=96:x=(w-text_w)/2:y=(h-text_h)/2`, join(HOME, "Documents", "Trip", `IMG_${String(i).padStart(4, "0")}.jpg`)], { quiet: true });
   }
+  // A picture, a song and a short video for Convert, the Image and Media Studios and Recent.
+  const media = join(HOME, "Media");
+  mkdirSync(media, { recursive: true });
+  sh([FFMPEG, "-y", "-f", "lavfi", "-i", "gradients=s=1600x1000:c0=0xff7e5f:c1=0xfeb47b:c2=0x6a3093:n=3:type=radial:x0=800:y0=700:x1=1600:y1=0", "-frames:v", "1", "-vf", "drawtext=text='Golden hour':fontsize=120:fontcolor=white@0.9:x=(w-text_w)/2:y=h*0.72", join(media, "sunset.jpg")], { quiet: true });
+  sh([FFMPEG, "-y", "-f", "lavfi", "-i", "aevalsrc=0.16*sin(2*PI*220*t)*(1+0.3*sin(2*PI*0.5*t))+0.1*sin(2*PI*277.2*t)+0.08*sin(2*PI*329.6*t):d=24", "-af", "afade=t=in:d=1,afade=t=out:st=22:d=2", "-c:a", "libmp3lame", "-b:a", "160k", join(media, "morning-song.mp3")], { quiet: true });
+  sh([FFMPEG, "-y", "-f", "lavfi", "-i", "mandelbrot=size=1280x720:rate=25", "-f", "lavfi", "-i", "aevalsrc=0.15*sin(2*PI*220*t)*(1+0.3*sin(2*PI*0.5*t))+0.1*sin(2*PI*330*t):d=12", "-t", "12", "-c:v", "libx264", "-crf", "28", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", join(media, "city-clip.mp4")], { quiet: true });
   put("Documents/Trip/itinerary.txt", "Day 1  Arrive, check in\nDay 2  Old town walking tour\nDay 3  Boat trip\nDay 4  Fly home\n");
   put("Documents/Trip/packing-list.md", "# Packing list\n\n- Passport\n- Charger\n- Camera\n- Sunscreen\n");
   // A file that already exists in the Backup folder with different contents: the same-name conflict example.
@@ -55,6 +63,9 @@ function seedWorld(): World {
   truncateSync(big, 12 * 1024 * 1024 * 1024);
   mkdirSync(join(HOME, "Desktop", "Archive"), { recursive: true });
   mkdirSync(join(HOME, "Desktop", "Copies"), { recursive: true });
+  // The terminal's shell reads this instead of the real ~/.zshrc: a short, clean prompt and no history written anywhere real.
+  mkdirSync(ZDOT, { recursive: true });
+  writeFileSync(join(ZDOT, ".zshrc"), `HISTFILE=${ZDOT}/.history\nPROMPT='%F{cyan}%1~%f %F{magenta}❯%f '\nRPROMPT=''\n`);
   return { home: HOME, data: DATA, put, big };
 }
 
@@ -72,7 +83,7 @@ class Env {
     await sleep(500);
     const path = ch.path ?? `${HOME}/Projects/shop-app`;
     this.fm = Bun.spawn([process.execPath, join(ROOT, "applications", "file_manager_studio.ts"), "--server", "--port", String(FM_PORT), "--home", HOME, "--data-dir", DATA, "--path", path],
-      { cwd: "/tmp", stdout: "ignore", stderr: "ignore", env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", GRAVEYARD: GRAVE } });
+      { cwd: "/tmp", stdout: "ignore", stderr: "ignore", env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", GRAVEYARD: GRAVE, SHELL: "/bin/zsh", ZDOTDIR: ZDOT } });
     for (let i = 0; i < 80; i++) { try { if ((await fetch(`http://127.0.0.1:${FM_PORT}/`)).ok) break; } catch {} await sleep(250); }
     await this.c.goto(`http://127.0.0.1:${FM_PORT}/`);
     if (!ch.welcome) {
@@ -88,16 +99,23 @@ class Env {
 function notesText(marks: Array<{ at: number; title: string }>, total: number): string {
   const REPO = "https://github.com/codecaine-zz/bun_rad_studio";
   const chaptersText = marks.map((m, i) => `${fmtTime(i === 0 ? 0 : m.at)} ${m.title}`).join("\n");
-  return `# Codecaine File Manager: the complete, slow walkthrough (${fmtTime(total)})
+  return `# Codecaine File Manager: the complete, step-by-step guide (${fmtTime(total)})
 
 ## YouTube title
 
-The Codecaine File Manager, Explained Step by Step (every button, nothing skipped)
+Codecaine File Manager: Terminal + Files Together, Every Tool, Themes and Databases (complete guide)
 
 ## YouTube description (copy and paste)
 
 \`\`\`text
-A calm, complete, step-by-step tour of the Codecaine File Manager from Bun RAD Studio. Every button is shown and explained in real time, on a throwaway folder of sample files: the window and toolbar, getting around, the views, choosing files, copying and moving with the task panel (progress, Cancel, Retry) and name clashes, the Recycle Bin and Undo, Quick Look, converting files, Find and bulk rename, reviewing changes before they happen, comparing two folders, saved Projects and Actions, QR codes, the built-in code editor with its text conversions, then themes, keyboard shortcuts and the terminal.
+A calm, complete, step-by-step guide to the Codecaine File Manager from Bun RAD Studio, made so anyone can follow along. Every button is shown and explained in real time, on a throwaway folder of sample files.
+
+What you will learn:
+- The basics: the window, getting around, views, selecting, copying and moving with the task panel (progress, Cancel, Retry), name clashes, the Recycle Bin and Undo, Quick Look.
+- Work faster with the terminal: the file list follows the terminal when you cd, "Go to this folder" and "Open terminal here" move the terminal to your files, and "Insert paths in Terminal" types safely quoted paths of the selected files and folders for you. "Copy paths for Terminal" does the same for any other terminal app.
+- Every tool: Convert, Find and bulk rename, Review, Compare, Projects, Actions, QR codes, the code editor, Replace across files with preview and Undo, the Dev tab (code stats, Git, TODO), Watch, Serve, Crypto, Secrets, Env, IP info, Network, Subdomains, Downloads, Calculator, Timer, API, Bundler and the Graveyard.
+- Make it yours: futuristic themes, the theme editor with panel opacity, glass blur, glow, corners, borders and scanlines, Right Option + ] / [ to flip through themes, Right Option + / for full screen (Esc never leaves it), Command+Q to quit, and editable keyboard shortcuts.
+- The database studios: complete SQLite Studio and MySQL Studio walkthroughs.
 
 Free and open source: ${REPO}
 Download: ${REPO}/releases/latest
@@ -108,10 +126,12 @@ ${chaptersText}
 
 ## Notes
 
-- Recorded from the real program in headless Chrome with a visible cursor; nothing is faked. Each chapter starts from a fresh throwaway world in /tmp, so no real file or setting appears.
+- Recorded from the real program in headless Chrome with a visible cursor; nothing is faked. Each chapter starts from a fresh throwaway world in /tmp, so no real file or setting appears. The terminal uses a throwaway shell profile.
+- The SQLite and MySQL chapters are the recorded chapters of \`sqlite_studio_tutorial\` and \`mysql_studio_tutorial\`, joined in without their own intro and outro (build those first).
+- The desktop-only keys (Right Option + ] / [ / /, Command+Q) are shown on screen; the theme change is the real one.
 - The picture is 1920x972 above its own caption strip, so the captions never cover the program.
-- Narration: Edge neural voice (${EDGE_VOICE}, female) at ${RATE} speed with ${GAP}s between sentences.
-- Rebuild: \`bun scripts/tutorial_file_manager.ts all\` (needs Google Chrome, ffmpeg-full from Homebrew and the internet for the voice). Re-record one chapter: \`... record 04_copy\` then \`... build\`.
+- Narration: Edge neural voice (${EDGE_VOICE}, female) at ${RATE} speed with ${GAP}s between sentences, cleaned up with a gentle compressor and loudness normalised to -16 LUFS.
+- Rebuild: \`bun scripts/tutorial_file_manager.ts all\` (needs Google Chrome, ffmpeg-full from Homebrew and the internet for the voice). Re-record one chapter: \`... record 18_terminal\` then \`... build\`.
 `;
 }
 

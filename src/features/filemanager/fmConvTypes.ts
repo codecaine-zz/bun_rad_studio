@@ -113,6 +113,8 @@ export interface ConvDef {
   makes?: string;
   /** Plain-language note shown with the action (what is lost, what is slow). */
   note?: string;
+  /** Not listed in the Convert window; started by another part of the page (the Image and Media Studios). */
+  hidden?: boolean;
 }
 
 /** The lower-case extension of a file name without the dot ("a.tar.gz" gives "tar.gz"). */

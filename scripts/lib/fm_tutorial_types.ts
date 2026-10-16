@@ -27,8 +27,13 @@ export interface Chapter {
   /** The chapter's title (also the YouTube chapter name). */
   title: string;
   blurb?: string;
-  kind?: "live" | "card";
+  kind?: "live" | "card" | "external";
   card?: { kicker: string; title: string; lines: string[] };
+  /**
+   * For kind "external": the finished segments of another tutorial (youtube_production/<dir>/segments) are joined in
+   * after this chapter's title card, without their own intro, outro and title cards. `label` prefixes their chapter names.
+   */
+  external?: { dir: string; label: string };
   /** The folder the File Manager opens on (default: the shop-app sample project). */
   path?: string;
   /** Leave the first-run welcome window open (the first chapter shows it). */

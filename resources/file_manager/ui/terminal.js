@@ -3,7 +3,7 @@
 import { FitAddon } from "/vendor/addon-fit.mjs";
 import { Terminal } from "/vendor/xterm.mjs";
 import { terminalUrl } from "./api.js";
-import { quoteArg, quotePathsForTerminal, shellFor } from "./codeRun.js";
+import { quoteArg, quotePathsForTerminal, shellFor, windowsToWsl } from "./codeRun.js";
 import { $ } from "./dom.js";
 import { hintOf, labelOf, matchesAction } from "./keymap.js";
 import { toast } from "./menus.js";
@@ -27,6 +27,8 @@ let ended = false;
 let startedIn = "";
 let fitQueued = false;
 let activeShell = "";
+/** The WSL distro's name and drive root, as its prompt reported them (empty until then). */
+let wslInfo = {};
 
 /** The folder the buttons act on: the one folder selected in the list, otherwise the folder on screen. */
 function targetFolder() {
@@ -91,6 +93,7 @@ function connect(folder) {
   }
   ended = false;
   activeShell = shellFor(state.platform);
+  wslInfo = {};
   startedIn = folder;
   setTitle();
   term.reset();
@@ -107,7 +110,8 @@ function connect(folder) {
     }
     if (m.type === "output" && typeof m.data === "string") term.write(m.data);
     else if (m.type === "cwd" && typeof m.path === "string") {
-      activeShell = m.shell ?? "posix";
+      activeShell = ["powershell", "cmd", "wsl"].includes(m.shell) ? m.shell : shellFor(state.platform);
+      wslInfo = m.shell === "wsl" && m.wsl && typeof m.wsl === "object" ? m.wsl : {};
       followShell(m.path);
     } else if (m.type === "exit") {
       ended = true;
@@ -132,22 +136,39 @@ function restart(folder = targetFolder()) {
   term.focus();
 }
 
+/** The shell the terminal is typing into now: on Windows PowerShell, the Command Prompt or WSL (Bash); elsewhere POSIX. */
+function terminalShell() {
+  return state.platform === "win32" ? activeShell || "powershell" : "posix";
+}
+
+/**
+ * The keystrokes that move `shell` to `folder`, or null when the name can't be typed safely there.
+ * Escape clears the line in PowerShell and the Command Prompt; Ctrl+U clears it in Bash and other POSIX shells.
+ */
+export function folderCommand(folder, shell, wsl = {}) {
+  if (shell === "wsl") {
+    const linux = windowsToWsl(folder, wsl);
+    const quoted = quoteArg(linux ?? folder, "posix");
+    if (quoted.error) return null;
+    return linux ? `\x15cd -- ${quoted.text}\r` : `\x15cd -- "$(wslpath -u ${quoted.text})"\r`;
+  }
+  const quoted = quoteArg(folder, shell);
+  if (quoted.error) return null;
+  if (shell === "cmd") return `\x1bcd /d ${quoted.text}\r`;
+  if (shell === "powershell") return `\x1bSet-Location -LiteralPath ${quoted.text}\r`;
+  return `\x15cd -- ${quoted.text}\r`;
+}
+
 /** Moves the running shell to the selected folder (or the one on screen). Always sends the move: the shell may have been used since. */
 function goToFolder(folder = targetFolder()) {
   if (!term || ended) return restart(folder);
   // A name with line breaks or other control characters can't be typed safely, so a new shell is started there instead.
   if (/[\x00-\x1f\x7f]/.test(folder)) return restart(folder);
-  const wsl = state.platform === "win32" && activeShell === "wsl";
-  const quoted = quoteArg(folder, wsl ? "posix" : shellFor(state.platform));
-  if (quoted.error) return restart(folder);
+  const command = folderCommand(folder, terminalShell(), wslInfo);
+  if (!command) return restart(folder);
   startedIn = folder;
   setTitle();
-  // Escape clears PowerShell's line; Ctrl+U clears a POSIX shell's line.
-  send({ type: "input", data: wsl
-    ? `\x15cd -- "$(wslpath -u ${quoted.text})"\r`
-    : state.platform === "win32"
-    ? `\x1bSet-Location -LiteralPath ${quoted.text}\r`
-    : `\x15cd -- ${quoted.text}\r` });
+  send({ type: "input", data: command });
   term.focus();
 }
 
@@ -266,7 +287,7 @@ function openHere(path) {
 
 export async function insertPaths(paths) {
   if (!terminalAvailable()) return toast("The terminal isn't supported on this system.", { kind: "error" });
-  const checked = quotePathsForTerminal(paths, shellFor(state.platform));
+  const checked = quotePathsForTerminal(paths, terminalShell(), wslInfo);
   if (checked.error) return toast(checked.error, { kind: "error" });
   showTerminal();
   if (ended) restart(currentFolder());
@@ -290,7 +311,7 @@ export async function insertPaths(paths) {
       });
     }
     if (socket !== ws || ws.readyState !== WebSocket.OPEN || ended) throw new Error("The terminal connection was lost.");
-    const quoted = quotePathsForTerminal(paths, activeShell === "wsl" ? "wsl" : shellFor(state.platform));
+    const quoted = quotePathsForTerminal(paths, terminalShell(), wslInfo);
     if (quoted.error) throw new Error(quoted.error);
     sendInput(quoted.text);
     toast("Paths inserted. Add a command or press Enter when you're ready.", { kind: "info" });

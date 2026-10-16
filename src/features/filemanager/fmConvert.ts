@@ -220,6 +220,7 @@ export async function overview(ctx: FmContext, paths: unknown) {
   const p = pathApi(ctx);
   const actions: ActionInfo[] = [];
   for (const def of CATALOG) {
+    if (def.hidden) continue;
     const accepted = [...sel.files.filter((f) => defAccepts(def, p.basename(f))), ...(def.dirs ? sel.dirs : [])];
     const minFiles = def.mode === "all" ? def.minFiles ?? 1 : 1;
     if (!accepted.length || (def.mode === "all" && accepted.length < minFiles)) continue;

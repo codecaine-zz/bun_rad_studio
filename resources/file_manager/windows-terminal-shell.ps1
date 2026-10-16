@@ -7,6 +7,8 @@ function global:prompt {
     }
     & $global:FileManagerOriginalPrompt
 }
+# A Command Prompt started from here (cmd, cmd.exe) reports its folder too, so pasted paths use cmd's quoting.
+$env:PROMPT = '$E]777;file-manager-cwd-cmd;$P$E\$P$G'
 
 $global:FileManagerWslBootstrap = '__FILE_MANAGER_WSL_BOOTSTRAP__'
 function global:Invoke-FileManagerWsl {

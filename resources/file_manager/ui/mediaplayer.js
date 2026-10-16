@@ -85,6 +85,8 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
   const media = h("video", { class: "mp-media", playsinline: true, preload: "metadata", "aria-label": "Player" });
   media.volume = prefs.volume;
   media.muted = prefs.muted;
+  let level = prefs.volume;
+  let silent = prefs.muted;
   media.defaultPlaybackRate = media.playbackRate = prefs.rate;
 
   let entry = list[queue.index] ?? start;
@@ -119,7 +121,7 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
   const playBtn = btn("mp-play", "Play (Space)", "▶", () => toggle());
   const nextBtn = btn("", "Next (N)", "⏭", () => next(false));
   const repeatBtn = btn("", "Repeat", "🔁", () => setRepeat(queue.cycleRepeat()));
-  const muteBtn = btn("", "Mute (M)", "🔊", () => { media.muted = !media.muted; });
+  const muteBtn = btn("", "Mute (M)", "🔊", () => setMuted(!silent));
   const volume = h("input", { type: "range", class: "mp-volume", min: "0", max: "100", value: String(Math.round(prefs.volume * 100)), "aria-label": "Volume" });
   const speed = h("select", { class: "mp-select", "aria-label": "Speed ([ and ])", title: "Speed ([ slower, ] faster)" }, ...SPEEDS.map((s) => h("option", { value: String(s), selected: s === prefs.rate }, `${s}×`)));
   const abBtn = btn("", "A–B loop (A)", "A–B", () => cycleLoop());
@@ -165,11 +167,12 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     repeatBtn.classList.toggle("is-on", queue.repeat !== "off");
     repeatBtn.setAttribute("aria-label", `Repeat: ${queue.repeat === "off" ? "off" : queue.repeat === "all" ? "all" : "this one"}`);
     repeatBtn.title = repeatBtn.getAttribute("aria-label");
-    muteBtn.textContent = media.muted || media.volume === 0 ? "🔇" : media.volume < 0.4 ? "🔉" : "🔊";
+    muteBtn.textContent = silent || level === 0 ? "🔇" : level < 0.4 ? "🔉" : "🔊";
+    muteBtn.setAttribute("aria-pressed", String(silent));
     abBtn.classList.toggle("is-on", loop.a !== null);
     abBtn.textContent = loop.a === null ? "A–B" : loop.b === null ? "A→" : "A⇄B";
     prevBtn.disabled = nextBtn.disabled = list.length < 2 && queue.repeat === "off";
-    pipBtn.hidden = !isVideo() || !document.pictureInPictureEnabled;
+    pipBtn.hidden = !isVideo() || !canPip();
     fsBtn.hidden = !isVideo();
   }
 
@@ -212,8 +215,10 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
       analyser.smoothingTimeConstant = 0.78;
-      [source, ...filters, analyser, ctx.destination].reduce((a, b) => (a.connect(b), b));
-      graph = { ctx, analyser, filters };
+      const out = ctx.createGain();
+      [source, ...filters, analyser, out, ctx.destination].reduce((a, b) => (a.connect(b), b));
+      graph = { ctx, analyser, filters, out };
+      applyLevel();
       applyEq();
     } catch { graph = null; }
     return graph;
@@ -378,7 +383,25 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     refreshButtons(); drawAb();
   }
   function seekBy(sec) { if (Number.isFinite(media.duration)) media.currentTime = Math.max(0, Math.min(media.duration, media.currentTime + sec)); }
-  function setVolume(v) { media.volume = Math.max(0, Math.min(1, v)); if (media.volume > 0) media.muted = false; }
+  /**
+   * Volume and mute. Once the sound goes through the audio graph (spectrum and equaliser), some engines (WebKit, which
+   * the desktop window uses) ignore the element's own volume and mute, so the graph's last gain does both and the
+   * element stays at full volume; without a graph the element does it.
+   */
+  function applyLevel() {
+    if (graph) {
+      media.volume = 1;
+      media.muted = false;
+      graph.out.gain.value = silent ? 0 : level;
+    } else {
+      media.volume = level;
+      media.muted = silent;
+    }
+    volume.value = String(Math.round((silent ? 0 : level) * 100));
+    prefs.volume = level; prefs.muted = silent; save(); refreshButtons();
+  }
+  function setVolume(v) { level = Math.max(0, Math.min(1, v)); if (level > 0) silent = false; applyLevel(); }
+  function setMuted(on) { silent = on; applyLevel(); say(on ? "Muted" : "Sound on"); }
   function setRate(r) { media.playbackRate = r; prefs.rate = r; speed.value = String(r); save(); say(`Speed ${r}`); }
   function togglePanel(which) {
     const panel = which === "eq" ? eqPanel : queuePanel;
@@ -388,11 +411,41 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     root.classList.toggle("has-panel", !eqPanel.hidden || !queuePanel.hidden);
     if (which === "eq" && !panel.hidden) ensureGraph().then(applyEq);
   }
-  function fullscreen() {
-    try { if (document.fullscreenElement) document.exitFullscreen(); else stage.requestFullscreen?.(); } catch { /* not available */ }
+  /**
+   * Full screen: the real thing where the engine allows it; otherwise (the desktop window's WebKit view has element
+   * full screen switched off) the player fills the whole window, controls included. F, the button or Esc leaves it.
+   */
+  const fsElement = () => document.fullscreenElement ?? document.webkitFullscreenElement ?? null;
+  function setFill(on) {
+    root.classList.toggle("mp-fill", on);
+    fsBtn.setAttribute("aria-pressed", String(on));
+    fsBtn.title = on ? "Leave full screen (F or Esc)" : "Full screen (F)";
+    say(on ? "Full screen" : "Full screen off");
   }
+  async function fullscreen() {
+    if (root.classList.contains("mp-fill")) return setFill(false);
+    if (fsElement()) {
+      try { await (document.exitFullscreen ?? document.webkitExitFullscreen)?.call(document); } catch { /* already out */ }
+      return;
+    }
+    try {
+      if (stage.requestFullscreen && document.fullscreenEnabled) return await stage.requestFullscreen();
+      if (stage.webkitRequestFullscreen && document.webkitFullscreenEnabled) return stage.webkitRequestFullscreen();
+    } catch { /* refused: fill the window instead */ }
+    setFill(true);
+  }
+  /** Picture in picture: the standard way, or WebKit's presentation mode (Safari and the desktop window). */
+  const webkitPip = () => typeof media.webkitSupportsPresentationMode === "function" && media.webkitSupportsPresentationMode("picture-in-picture");
+  const canPip = () => (!!document.pictureInPictureEnabled && typeof media.requestPictureInPicture === "function") || webkitPip();
   async function pip() {
-    try { if (document.pictureInPictureElement) await document.exitPictureInPicture(); else await media.requestPictureInPicture(); } catch { showMessage("Picture in picture isn't available for this video."); }
+    try {
+      if (document.pictureInPictureEnabled && typeof media.requestPictureInPicture === "function") {
+        if (document.pictureInPictureElement) await document.exitPictureInPicture(); else await media.requestPictureInPicture();
+        return;
+      }
+      if (webkitPip()) return media.webkitSetPresentationMode(media.webkitPresentationMode === "picture-in-picture" ? "inline" : "picture-in-picture");
+    } catch { /* refused: say so below */ }
+    showMessage("Picture in picture isn't available for this video.");
   }
 
   // --- computer media keys and the lock screen ---------------------------------------------------------------
@@ -417,10 +470,6 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
   media.addEventListener("play", () => { refreshButtons(); startViz(); });
   media.addEventListener("pause", refreshButtons);
   media.addEventListener("ended", () => next(true));
-  media.addEventListener("volumechange", () => {
-    volume.value = String(Math.round((media.muted ? 0 : media.volume) * 100));
-    prefs.volume = media.volume; prefs.muted = media.muted; save(); refreshButtons();
-  });
   media.addEventListener("error", () => {
     showMessage(`The built-in player can't play “${entry.name}”. Its format or codec may not be supported on this computer. Press Enter to open it in another program.`);
     refreshButtons();
@@ -446,9 +495,9 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     if (k === " " || lower === "k") toggle();
     else if (k === "ArrowRight") seekBy(e.shiftKey ? 30 : 5);
     else if (k === "ArrowLeft") seekBy(e.shiftKey ? -30 : -5);
-    else if (k === "ArrowUp") setVolume(media.volume + 0.05);
-    else if (k === "ArrowDown") setVolume(media.volume - 0.05);
-    else if (lower === "m") media.muted = !media.muted;
+    else if (k === "ArrowUp") setVolume(level + 0.05);
+    else if (k === "ArrowDown") setVolume(level - 0.05);
+    else if (lower === "m") setMuted(!silent);
     else if (lower === "n" || k === "PageDown") next(false);
     else if (lower === "b" || k === "PageUp") previous();
     else if (k === "Home") media.currentTime = 0;
@@ -473,8 +522,9 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     destroyed = true;
     cancelAnimationFrame(raf);
     document.removeEventListener("visibilitychange", startViz);
-    try { if (document.pictureInPictureElement === media) document.exitPictureInPicture(); } catch { /* already out */ }
-    try { if (document.fullscreenElement) document.exitFullscreen(); } catch { /* already out */ }
+    try { if (document.pictureInPictureElement === media) document.exitPictureInPicture().catch(() => {}); } catch { /* already out */ }
+    try { if (media.webkitPresentationMode === "picture-in-picture") media.webkitSetPresentationMode("inline"); } catch { /* already out */ }
+    try { if (fsElement()) Promise.resolve((document.exitFullscreen ?? document.webkitExitFullscreen)?.call(document)).catch(() => {}); } catch { /* already out */ }
     media.pause();
     clearTracks();
     media.removeAttribute("src");
@@ -496,6 +546,8 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     root,
     handleKey,
     destroy,
+    /** Leaves the "fill the window" full screen. Returns true when it was on (so Esc did something). */
+    leaveFill() { if (!root.classList.contains("mp-fill")) return false; setFill(false); return true; },
     /** The entry the player is on now. */
     current: () => entry,
     /** Starts another file that is in the queue (when Quick Look is asked to show it). Returns false when it isn't. */

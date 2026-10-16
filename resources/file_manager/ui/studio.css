@@ -1,0 +1,56 @@
+/* The Image Studio and the Media Studio. Shared pieces start with .st-, Image Studio ones with .ist-, Media Studio ones with .mst-. */
+.st-wrap { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.st-head { display: flex; flex-direction: column; gap: 2px; }
+.st-title { margin: 0; font-size: 1.15em; }
+.st-file-label { color: var(--muted); font-size: 0.85em; }
+.st-file-name { overflow-wrap: anywhere; }
+.st-path { flex: 1 1 14rem; }
+.st-filecard { padding: 6px 10px; }
+.st-head { flex-direction: row; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+.st-presets { gap: 6px; }
+.st-preset { border-radius: 999px; padding: 4px 12px; font-size: 0.9em; }
+.st-body { display: grid; gap: 12px; grid-template-columns: minmax(0, 1.25fr) minmax(16rem, 1fr); align-items: start; }
+@container power (max-width: 760px) { .st-body { grid-template-columns: minmax(0, 1fr); } }
+.st-preview { display: flex; flex-direction: column; gap: 8px; min-width: 0; position: sticky; top: 0; }
+.st-panels { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.st-group[hidden] { display: none; }
+.st-controls { display: flex; flex-direction: column; gap: 6px; }
+.st-slider, .st-select { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr) 4.5rem; align-items: center; gap: 8px; font-size: 0.9em; }
+.st-select { grid-template-columns: 8.5rem minmax(0, 1fr); }
+.st-slider[hidden], .st-select[hidden], .st-toggle[hidden] { display: none; }
+.st-slider input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+.st-select select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 4px 6px; min-width: 0; }
+.st-slider-label { color: var(--text); }
+.st-value { font-variant-numeric: tabular-nums; color: var(--muted); text-align: right; font-size: 0.9em; }
+.st-toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.9em; }
+.st-toggle input { width: 1rem; height: 1rem; accent-color: var(--accent); }
+
+.ist-stage { display: flex; align-items: center; justify-content: center; min-height: 16rem; max-height: 62vh; padding: 12px; border: 1px solid var(--border); border-radius: 10px;
+  background: repeating-conic-gradient(color-mix(in srgb, var(--panel) 85%, var(--text)) 0 25%, var(--panel) 0 50%) 0 0 / 18px 18px; overflow: hidden; }
+.ist-empty { text-align: center; max-width: 26rem; }
+.ist-empty[hidden], .ist-frame[hidden] { display: none; }
+.ist-frame { position: relative; max-width: 100%; max-height: calc(62vh - 24px); overflow: hidden; display: flex; align-items: center; justify-content: center; line-height: 0; }
+.ist-img { display: block; max-width: 100%; max-height: calc(62vh - 24px); transition: filter 0.12s, transform 0.2s; user-select: none; }
+.ist-frame.ist-shaped { height: min(calc(62vh - 24px), 100%); }
+.ist-frame.ist-shaped .ist-img { width: 100%; height: 100%; max-width: none; max-height: none; object-fit: cover; }
+.ist-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 45%, rgb(0 0 0 / 0.65) 100%); }
+.ist-vignette[hidden] { display: none; }
+.ist-frame.ist-original { border-radius: 0 !important; outline: none !important; aspect-ratio: auto !important; }
+.ist-frame.ist-original .ist-img { filter: none !important; transform: none !important; }
+.ist-frame.ist-original .ist-vignette { display: none; }
+
+.mst-player { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--border); border-radius: 10px; background: #000; overflow: hidden; }
+.mst-player:empty { display: none; }
+.mst-player:not(.mst-is-video) { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 35%, var(--panel)), var(--panel)); padding: 18px 12px; }
+.mst-note-art { font-size: 3.5rem; line-height: 1; filter: drop-shadow(0 4px 12px rgb(0 0 0 / 0.35)); }
+.mst-audio { width: 100%; }
+.mst-video { display: block; width: 100%; max-height: 52vh; background: #000; transition: filter 0.12s, transform 0.2s; }
+.mst-player.mst-shaped { max-height: 52vh; margin: 0 auto; }
+.mst-player.mst-shaped .mst-video { height: 100%; object-fit: cover; }
+.mst-time { width: 7rem; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; }
+.mst-time-label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; }
+.mst-length { font-variant-numeric: tabular-nums; }
+.st-presetbar { gap: 6px; }
+.st-presetbar select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; min-width: 12rem; max-width: 100%; }
+.st-bulk { border-style: dashed; }
+.st-bulk-count { overflow-wrap: anywhere; }

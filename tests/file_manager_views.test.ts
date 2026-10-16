@@ -1394,12 +1394,12 @@ describe("Quick Look and copy to the clipboard", () => {
     await waitFor(() => !!doc.querySelector(".modal-backdrop"));
     key(doc.activeElement, "Escape");
     await waitFor(() => !doc.querySelector(".modal-backdrop"));
-    // A picture has no Edit; a folder has no Convert.
+    // A picture has Edit in Studio instead of Edit; a folder has no Convert.
     select("a-picture.png");
     $("#list").focus();
     space();
     await waitFor(() => !!$(".ql-image"));
-    expect(shown()).toEqual(["Copy picture", "Convert…", "Open", "More ▾", "Close"]);
+    expect(shown()).toEqual(["Copy picture", "Convert…", "Edit in Studio", "Open", "More ▾", "Close"]);
     key(doc.activeElement, "Escape");
     select("g-folder");
     $("#list").focus();

@@ -167,10 +167,10 @@ export const toolsAndSafety: Chapter[] = [
         act: async (d) => {
           await d.click("#power-tab-compare", { pause: 1400 });
           await d.click("#compare-left", { pause: 500 });
-          await d.eval(`document.querySelector('#compare-left').select()`);
+          await d.eval(`(() => { const e = document.querySelector('#compare-left'); e.value = ''; e.dispatchEvent(new Event('input', { bubbles: true })); })()`);
           await d.type(`${d.world.home}/Desktop/Site-v1`, 35);
           await d.click("#compare-right", { pause: 500 });
-          await d.eval(`document.querySelector('#compare-right').select()`);
+          await d.eval(`(() => { const e = document.querySelector('#compare-right'); e.value = ''; e.dispatchEvent(new Event('input', { bubbles: true })); })()`);
           await d.type(`${d.world.home}/Desktop/Site-v2`, 35);
         },
       },

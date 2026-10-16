@@ -684,6 +684,10 @@ body.dragging .row:not(.is-folder) { cursor: no-drop; }
 .mp-qsize { color: #9ca3af; font-size: 0.75rem; }
 .mp-btn:focus-visible, .mp-select:focus-visible, .mp-qitem:focus-visible, .mp input:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
 .mp-stage:fullscreen { background: #000; }
+/* Full screen where the engine has no element full screen (the desktop window): the player fills the whole window. */
+.mp.mp-fill { position: fixed; inset: 0; z-index: 2147483000; background: #000; }
+/* Ancestors must not trap the fixed player inside them. */
+:has(.mp.mp-fill) { transform: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; filter: none !important; contain: none !important; }
 @media (max-width: 760px) { .mp.has-panel { grid-template-columns: 1fr; } .mp-panel { grid-column: 1; grid-row: auto; max-height: 40%; } }
 
 /* Keyboard shortcuts dialog and the terminal button in the status bar */

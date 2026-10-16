@@ -38,17 +38,47 @@ export function quoteArg(value, shell = "posix") {
 }
 
 /**
- * Shell arguments only: no command, no Enter, and no terminal control characters.
+ * A Windows path as WSL sees it, or null when only `wslpath` can tell (another computer's share, another distro).
+ * `C:\Users\me` becomes /mnt/c/Users/me (or below the drive root the distro reported), and a distro's own files
+ * (\\wsl.localhost\Ubuntu\home\me or \\wsl$\Ubuntu\home\me) become /home/me.
+ */
+export function windowsToWsl(path, wsl = {}) {
+  const root = typeof wsl.driveRoot === "string" && /^\/(?:[^\0\n]*\/)?$/.test(wsl.driveRoot) ? wsl.driveRoot : "/mnt/";
+  const drive = /^([A-Za-z]):(?:[\\/](.*))?$/.exec(path);
+  if (drive) {
+    const rest = (drive[2] ?? "").replace(/\\/g, "/").replace(/\/+$/, "");
+    return `${root}${drive[1].toLowerCase()}${rest ? `/${rest}` : ""}`;
+  }
+  const own = /^\\\\(?:wsl\$|wsl\.localhost)\\([^\\]+)(\\.*)?$/i.exec(path);
+  if (own && (!wsl.distro || own[1].toLowerCase() === String(wsl.distro).toLowerCase())) {
+    return (own[2] ?? "\\").replace(/\\/g, "/").replace(/(.)\/+$/, "$1");
+  }
+  return null;
+}
+
+/** The shells a path can be written for: "posix", "powershell", "cmd" (Command Prompt) and "wsl" (Bash in WSL). */
+export const TERMINAL_SHELLS = ["posix", "powershell", "cmd", "wsl"];
+
+/**
+ * Shell arguments only: no command, no Enter, and no terminal control characters. For "wsl" the Windows paths are
+ * turned into Linux ones (`wsl` may carry the distro's name and drive root, as the terminal reports them).
  * @returns {{ text: string, error?: never } | { error: string, text?: never }}
  */
-export function quotePathsForTerminal(paths, shell = "posix") {
+export function quotePathsForTerminal(paths, shell = "posix", wsl = {}) {
   if (!Array.isArray(paths) || !paths.length) return { error: "Select one or more files or folders first." };
   const quoted = [];
   for (const path of paths) {
     if (typeof path !== "string" || !path || /[\x00-\x1f\x7f-\x9f]/.test(path)) return { error: "A selected path has a hidden control character, so it can't be pasted into a terminal safely." };
-    const arg = quoteArg(path, shell === "wsl" ? "posix" : shell);
+    if (shell === "wsl") {
+      const linux = windowsToWsl(path, wsl);
+      const arg = quoteArg(linux ?? path, "posix");
+      if (arg.error) return arg;
+      quoted.push(linux ? arg.text : `"$(wslpath -u ${arg.text})"`);
+      continue;
+    }
+    const arg = quoteArg(path, TERMINAL_SHELLS.includes(shell) ? shell : "posix");
     if (arg.error) return arg;
-    quoted.push(shell === "wsl" ? `"$(wslpath -u ${arg.text})"` : arg.text);
+    quoted.push(arg.text);
   }
   return { text: quoted.join(" ") + " " };
 }
