@@ -280,11 +280,52 @@ describe("the Code tab in a browser-like page", () => {
     } else expect(fmt.message).toContain("isn't installed");
     button("Tools").click();
     await sleep(50);
-    [...doc.querySelectorAll("[role=menuitem]")].find((e: any) => e.textContent.includes("Format document")).click();
+    [...doc.querySelectorAll("[role=menuitem]")].find((e: any) => e.textContent.includes("prettify document")).click();
     await sleep(2500);
     expect(toasts().join(" | ")).toMatch(/v fmt|isn't installed/);
     expect(ta.value).toBe("fn main( {\n");
   });
+
+  test("Format / prettify and Minify lay out and squeeze a JavaScript file through the server; Undo brings it back", async () => {
+    writeFileSync(join(work, "messy.js"), "const a={b:1,c:[1,2,3]};\nfunction f(x){return x+1}\n");
+    await openFile("messy.js");
+    const ta = active();
+    const original = ta.value;
+    const menu = async (label: string) => {
+      button("Tools").click();
+      await sleep(50);
+      [...doc.querySelectorAll("[role=menuitem]")].find((e: any) => e.textContent.includes(label)).click();
+    };
+    await menu("prettify document");
+    await until(() => ta.value !== original, "the formatted text");
+    expect(ta.value).toBe("const a = { b: 1, c: [1, 2, 3] };\nfunction f(x) {\n  return x + 1;\n}\n");
+    expect(toasts().join(" | ")).toContain("Formatted with Prettier");
+    await menu("Minify");
+    await until(() => !ta.value.includes("\n"), "the minified text");
+    expect(ta.value).toBe("const a={b:1,c:[1,2,3]};function f(x){return x+1}");
+    press(ta, "z", { ctrlKey: true });
+    await sleep(100);
+    expect(ta.value).toBe("const a = { b: 1, c: [1, 2, 3] };\nfunction f(x) {\n  return x + 1;\n}\n");
+  });
+
+  test("a mistake is explained with its place and the text is not touched; a language with no formatter is only tidied, honestly", async () => {
+    writeFileSync(join(work, "broken.js"), "const a = {");
+    await openFile("broken.js");
+    let ta = active();
+    button("Tools").click();
+    await sleep(50);
+    [...doc.querySelectorAll("[role=menuitem]")].find((e: any) => e.textContent.includes("prettify document")).click();
+    await until(() => toasts().some((t) => /line 1/.test(t)), "the error toast");
+    expect(ta.value).toBe("const a = {");
+    writeFileSync(join(work, "tidy.rb"), "puts 1   \n\n\n\n\nputs 2");
+    await openFile("tidy.rb");
+    ta = active();
+    button("Tools").click();
+    await sleep(50);
+    [...doc.querySelectorAll("[role=menuitem]")].find((e: any) => e.textContent.includes("prettify document")).click();
+    await until(() => ta.value === "puts 1\n\n\nputs 2\n", "the tidied text");
+    expect(toasts().join(" | ")).toContain("Only whitespace was tidied");
+  }, 20000);
 
   test("a Run preset types its command into the terminal only when Run is clicked", async () => {
     const ta = active();

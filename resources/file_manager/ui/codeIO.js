@@ -45,5 +45,8 @@ export const movePresets = (from, to) => call("code/presets/move", { from, to })
 export const exportPresets = async () => (await call("code/presets/export", {})).data;
 export const importPresets = (data, mode) => call("code/presets/import", { data, mode });
 
+/** Prettifies or minifies code on the server: { formatted, text, engine, basic?, message? } or { formatted: false, problem: { message, line?, col? } }. */
+export const prettifyCode = (body) => call("code/prettify", body);
+
 /** Formats V source with `v fmt` on the server: { available, formatted, text | problem | message }. */
 export const formatV = (text) => call("code/format", { tool: "v", text });

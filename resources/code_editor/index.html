@@ -2220,7 +2220,7 @@
               <span class="menu-shortcut">Shift+Alt+A</span>
             </div>
             <div class="menu-row" data-action="format-doc">
-              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Format Document</span></div>
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Format / Prettify Document</span></div>
               <span class="menu-shortcut">Shift+Alt+F</span>
             </div>
             <div class="menu-divider"></div>
@@ -2513,7 +2513,7 @@
               <span class="menu-shortcut">Shift+Alt+F</span>
             </div>
             <div class="menu-row" data-action="minify-code">
-              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Minify JSON / Code</span></div>
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Minify (JavaScript, JSON, CSS)</span></div>
               <span class="menu-shortcut"></span>
             </div>
             <div class="menu-divider"></div>
@@ -3408,7 +3408,7 @@ Welcome to **NovaCode Studio Pro**, the premier developer-focused code and text 
 | **Global Search** | Multi-file workspace search | \`Ctrl+Shift+F\` |
 | **Live Split Preview** | Markdown, HTML Sandbox, JSON Tree | \`Ctrl+\\\` |
 | **Developer Drawer** | Terminal runner, Regex sandbox, Diff | \`Ctrl+\`\` |
-| **Document Formatting** | Prettify JSON, JS/TS, Python | \`Shift+Alt+F\` |
+| **Document Formatting** | Prettify JS/TS/JSX, JSON, CSS/SCSS, HTML, Vue, Markdown, YAML, SQL (built in); Python, Go, Rust, C/C++, Java, shell with the formatter you have installed. Minify JS, JSON, CSS | \`Shift+Alt+F\` |
 | **Line Operations** | Move, duplicate, comment, delete | \`Alt+Up/Down\`, \`Ctrl+/\` |
 | **Zen Mode** | Distraction-free full window | \`F11\` |
 
@@ -5603,6 +5603,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         { label: "Redo Edit", action: performRedo, category: "Edit", shortcut: "Ctrl+Shift+Z" },
         { label: "Clipboard Ring History", action: openClipboardModal, category: "Edit", shortcut: "Ctrl+Shift+V" },
         { label: "Prettify / Format Document", action: formatDocument, category: "Edit", shortcut: "Shift+Alt+F" },
+        { label: "Minify Document (JavaScript, JSON, CSS)", action: minifyCode, category: "Edit" },
         { label: "Toggle Line Comment", action: toggleComment, category: "Edit", shortcut: "Ctrl+/" },
         { label: "Move Line Up", action: () => moveLine("up"), category: "Edit", shortcut: "Alt+Up" },
         { label: "Move Line Down", action: () => moveLine("down"), category: "Edit", shortcut: "Alt+Down" },
@@ -5768,11 +5769,50 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       // ------------------------------------------------------------------------
       // Developer Transformations
       // ------------------------------------------------------------------------
-      function formatDocument() {
+      // Asks the app's server (Prettier, sql-formatter, or the language's own formatter) to lay out or shrink the open file.
+      async function prettifyWithServer(mode) {
         const currentFile = state.files.find((f) => f.path === state.activeFilePath);
         if (!currentFile) return;
+        const before = els.textarea.value;
+        const word = mode === "minify" ? "Minifying" : "Formatting";
+        flashStatusBar(word + "...");
+        let r;
+        try {
+          const res = await fetch("/api/prettify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mode, text: before, path: currentFile.path, tabWidth: typeof state.indentMode === "number" ? state.indentMode : 2, useTabs: state.indentMode === "\t" || state.indentMode === "tab" }),
+          });
+          r = await res.json();
+        } catch (err) {
+          return false;
+        }
+        if (!r.ok) {
+          const e = r.error || { message: word + " didn't work." };
+          alert(e.message + (e.line ? " (line " + e.line + ", column " + (e.col || 1) + ")" : ""));
+          return true;
+        }
+        if (els.textarea.value !== before) {
+          flashStatusBar("The text changed while it was being worked on, so nothing was replaced.");
+          return true;
+        }
+        if (r.text === before) {
+          flashStatusBar(mode === "minify" ? "Already as small as it gets." : "Nothing needed changing.");
+          return true;
+        }
         pushUndoSnapshot(currentFile, true);
+        els.textarea.value = r.text;
+        handleTextChange();
+        flashStatusBar(r.basic ? r.message : (mode === "minify" ? "Minified with " : "Formatted with ") + r.engine + " (Shift+Alt+F)");
+        return true;
+      }
 
+      async function formatDocument() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (!currentFile) return;
+        if (await prettifyWithServer("prettify")) return;
+        // The server could not be reached: keep the old, simple behaviour.
+        pushUndoSnapshot(currentFile, true);
         const ext = currentFile.path.split(".").pop().toLowerCase();
         if (ext === "json") {
           prettifyJson();
@@ -5781,7 +5821,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           const cleaned = lines.map((l) => l.replace(/\s+$/, "")).join("\n");
           els.textarea.value = cleaned;
           handleTextChange();
-          flashStatusBar("Document formatted (Shift+Alt+F)");
+          flashStatusBar("Whitespace tidied (the formatter could not be reached).");
         }
       }
 
@@ -6889,29 +6929,12 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         flashStatusBar(`Downloaded ${currentFile.name}`);
       }
 
-      function minifyCode() {
+      async function minifyCode() {
+        if (await prettifyWithServer("minify")) return;
+        // The server could not be reached: JSON can still be minified here; code is never squashed blindly.
         const currentFile = state.files.find((f) => f.path === state.activeFilePath);
-        const text = els.textarea.value;
-        if (currentFile && currentFile.lang === "json") {
-          try {
-            const parsed = JSON.parse(text);
-            els.textarea.value = JSON.stringify(parsed);
-            handleTextChange();
-            flashStatusBar("JSON Minified");
-            return;
-          } catch (e) {
-            flashStatusBar("Cannot minify invalid JSON");
-            return;
-          }
-        }
-        const minified = text
-          .split("\n")
-          .map((l) => l.trim())
-          .filter((l) => l.length > 0)
-          .join(" ");
-        els.textarea.value = minified;
-        handleTextChange();
-        flashStatusBar("Code Minified");
+        if (currentFile && currentFile.lang === "json") return minifyJson();
+        flashStatusBar("Minify needs the app's formatter, which could not be reached.");
       }
 
       function transformBase64(encode = true) {

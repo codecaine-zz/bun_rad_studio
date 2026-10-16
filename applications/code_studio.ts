@@ -17,6 +17,7 @@
  */
 
 import { injectHelp } from "../src/shared/helpTips";
+import { minify as minifyCode, prettify as prettifyCode } from "../src/shared/code_prettify";
 import { SizeHint, Webview } from "webview-bun";
 import { resolve, join, relative, dirname, isAbsolute, sep } from "path";
 import { guardLocalRequest } from "../src/localGuard";
@@ -534,6 +535,20 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
       }
 
       // API: Execute Shell Command
+      // API: Prettify or minify the text of the open file (Prettier, sql-formatter, or the language's own formatter when installed)
+      if (pathname === "/api/prettify" && req.method === "POST") {
+        try {
+          const body = await req.json() as { mode?: string; text?: string; path?: string; lang?: string; tabWidth?: number; useTabs?: boolean };
+          if (typeof body?.text !== "string") {
+            return Response.json({ ok: false, error: { message: "There is no text to format." } }, { status: 400, headers: corsHeaders });
+          }
+          const input = { text: body.text, path: typeof body.path === "string" ? body.path : undefined, lang: typeof body.lang === "string" ? body.lang : undefined, tabWidth: typeof body.tabWidth === "number" ? body.tabWidth : undefined, useTabs: body.useTabs === true };
+          return Response.json(body.mode === "minify" ? await minifyCode(input) : await prettifyCode(input), { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ ok: false, error: { message: err?.message || String(err) } }, { status: 500, headers: corsHeaders });
+        }
+      }
+
       if (pathname === "/api/exec" && req.method === "POST") {
         try {
           const body = await req.json() as { command?: string; cwd?: string };

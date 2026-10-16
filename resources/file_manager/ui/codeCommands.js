@@ -6,6 +6,7 @@ import { TRANSFORMS, convertText } from "./textConvert.js";
 import { keysOf } from "./keymap.js";
 import { state } from "./state.js";
 import { formatWithV } from "./codeVFormat.js";
+import { prettifyDoc } from "./codePrettify.js";
 
 export const THEME_CHOICES = [["auto", "Follow the File Manager (light or dark)"], ["dracula", "Dracula"], ["github", "GitHub"], ["monokai", "Monokai"], ["nordic", "Nordic"], ["onedark", "One Dark"], ["solarized", "Solarized"]];
 
@@ -105,8 +106,8 @@ export function createCommands(app) {
   add("Text tools", "urlEncode", "URL-encode the selection", text((t, s, e) => urlEncode(t, s, e)), { tip: "Turn spaces and symbols into %20 style codes." });
   add("Text tools", "urlDecode", "URL-decode the selection", text((t, s, e) => urlDecode(t, s, e)), { tip: "Turn %20 style codes back into text." });
   const formatLocal = formatNow(false);
-  add("Text tools", "format", "Format document", () => (app.doc()?.lang === "v" ? formatWithV(app) : formatLocal()), { tip: "Tidy this file: JSON, CSS, HTML, XML and C-style code such as JavaScript. V files are formatted by v fmt." });
-  add("Text tools", "minify", "Minify (JSON or CSS)", formatNow(true), { tip: "Squeeze JSON or CSS onto as few characters as possible." });
+  add("Text tools", "format", "Format / prettify document", () => (app.doc()?.lang === "v" ? formatWithV(app) : prettifyDoc(app, "prettify", formatLocal)), { tip: "Lay out the whole file neatly. Built in: JavaScript, TypeScript, JSX, JSON, CSS, SCSS, Less, HTML, Vue, Markdown, YAML, GraphQL, SQL and XML. Python, Go, Rust, C, C++, Java, C# and shell use the formatter you have installed (ruff or black, gofmt, rustfmt, clang-format, shfmt); without one only whitespace is tidied. V files use v fmt." });
+  add("Text tools", "minify", "Minify (JavaScript, JSON or CSS)", () => prettifyDoc(app, "minify", formatNow(true)), { tip: "Squeeze JavaScript, JSON or CSS onto as few characters as possible (comments are removed). Undo brings the original back." });
   add("Text tools", "tabsToSpaces", "Convert indentation to spaces", text((t) => convertIndent(t, "spaces", app.doc().indent.size ?? app.settings.tabSize)), { tip: "Replace tab characters at the start of lines with spaces." });
   add("Text tools", "spacesToTabs", "Convert indentation to tabs", text((t) => convertIndent(t, "tabs", app.doc().indent.size ?? app.settings.tabSize)), { tip: "Replace groups of spaces at the start of lines with tabs." });
   add("Text tools", "regexSandbox", "Regex sandbox…", () => app.regexSandbox(), { tip: "Try a regular expression on sample text." });

@@ -347,7 +347,7 @@ function mount(root) {
   const toolbar = h("div", { class: "code-toolbar", role: "toolbar", "aria-label": "Editor commands" },
     ...Object.entries(MENUS).map(([name, ids]) => menuButton(name, ids)), themeMenu,
     h("span", { class: "code-sep" }),
-    quick("💾 Save", "Save this file (Ctrl/Cmd+S)", () => commands.run("save")), quick("🔎 Find", "Find in this file (Ctrl/Cmd+F)", () => commands.run("find")), quick("🔤 Convert", "Change the case, clean up, encode or extract: about seventy text conversions for the selection or the whole file", () => commands.run("convertText")),
+    quick("💾 Save", "Save this file (Ctrl/Cmd+S)", () => commands.run("save")), quick("🔎 Find", "Find in this file (Ctrl/Cmd+F)", () => commands.run("find")), quick("✨ Format", "Format / prettify the whole file (Alt+Shift+F). Minify is in the Tools menu.", () => commands.run("format")), quick("🔤 Convert", "Change the case, clean up, encode or extract: about seventy text conversions for the selection or the whole file", () => commands.run("convertText")),
     runButtons,
     h("span", { class: "code-grow" }),
     quick("👁 Preview", "Show a preview next to the text (Markdown and HTML)", () => commands.run("preview")), quick("⛶ Zen", "Hide everything except the text (press again to come back)", () => commands.run("zen")));

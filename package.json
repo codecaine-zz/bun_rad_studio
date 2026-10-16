@@ -5,7 +5,10 @@
   "type": "module",
   "private": true,
   "license": "MIT",
-  "funding": { "type": "paypal", "url": "https://paypal.me/codecaine81" },
+  "funding": {
+    "type": "paypal",
+    "url": "https://paypal.me/codecaine81"
+  },
   "scripts": {
     "postinstall": "bun run scripts/fix_windows_webview_runtime.ts",
     "build": "bun run scripts/build.ts lib",
@@ -221,6 +224,8 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "prettier": "^3.9.10",
+    "sql-formatter": "^15.9.0",
     "systeminformation": "^5.33.12",
     "webview-bun": "^2.4.0"
   }

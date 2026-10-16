@@ -28,6 +28,7 @@ export const KEYMAP = {
   moveDown: ["Alt+ArrowDown"],
   duplicate: ["Mod+D", "Shift+Alt+ArrowDown"],
   duplicateUp: ["Shift+Alt+ArrowUp"],
+  format: ["Alt+Shift+F"],
   deleteLine: ["Mod+Shift+K"],
   joinLines: ["Mod+J"],
   selectLine: ["Mod+L"],
