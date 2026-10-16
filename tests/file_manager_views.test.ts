@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, mock, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { basename, join } from "path";
 import { JSDOM } from "jsdom";
@@ -10,7 +10,7 @@ import { DEFAULT_SETTINGS, loadSettings, sanitizeSettings, updateSettings } from
 // Part 1: the saved settings behind the views. Part 2: the real page (main.js, with the terminal replaced by a stub
 // because it needs a shell and the xterm library) run in a fake browser against the real server.
 
-const root = mkdtempSync(join(tmpdir(), "fm-views-"));
+const root = realpathSync(mkdtempSync(join(tmpdir(), "fm-views-")));
 const home = join(root, "home");
 const dataDir = join(root, "data");
 const dest = join(home, "dest");
@@ -138,6 +138,7 @@ let chrome: any;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const $ = (sel: string): any => doc.querySelector(sel);
 const app = (): any => doc.getElementById("app");
+const MODIFIER = process.platform === "darwin" ? { metaKey: true } : { ctrlKey: true };
 const ws = () => app().dataset.workspace;
 const shown = (sel: string) => !$(sel).hidden;
 const key = (target: any, k: string, extra: Record<string, unknown> = {}) => {
@@ -311,7 +312,7 @@ describe("the view switcher", () => {
     alt(1);
     // Ctrl+1..3 still change the list view, and Alt with Ctrl/Shift/Meta is left alone
     key(doc.body, "5", { altKey: true, shiftKey: true, code: "Digit5" });
-    key(doc.body, "5", { altKey: true, ctrlKey: true, code: "Digit5" });
+    key(doc.body, "5", { altKey: true, ...MODIFIER, code: "Digit5" });
     expect(ws()).toBe("files");
     await sleep(50);
   });
@@ -1004,8 +1005,8 @@ describe("the Dual view's right pane has the same options as the left one", () =
     expect(folder.rightLabels).toEqual(folder.leftLabels);
     expect(folder.rightLabels).toContain("Paste into this folder");
     const many = await sameMenu(
-      () => { click("#list", "one.txt"); click("#list", "two.txt", { ctrlKey: true }); rightClick(byName("#list", "two.txt")); },
-      () => { click("#dual-list", "one.txt"); click("#dual-list", "two.txt", { ctrlKey: true }); rightClick(byName("#dual-list", "two.txt")); },
+      () => { click("#list", "one.txt"); click("#list", "two.txt", MODIFIER); rightClick(byName("#list", "two.txt")); },
+      () => { click("#dual-list", "one.txt"); click("#dual-list", "two.txt", MODIFIER); rightClick(byName("#dual-list", "two.txt")); },
       "two files",
     );
     expect(many.rightLabels).toEqual(many.leftLabels);
@@ -1019,7 +1020,7 @@ describe("the Dual view's right pane has the same options as the left one", () =
     focusList("list");
     click("#list", "one.txt");
     focusList("dual-list");
-    key($("#dual-list"), "a", { ctrlKey: true });
+    key($("#dual-list"), "a", MODIFIER);
     expect($$("#dual-list .row.selected").length).toBe(rowNames("#dual-list").length);
     expect($$("#list .row.selected").map((r: any) => r.dataset.key)).toEqual([join(work, "one.txt")]);
     key($("#dual-list"), "Escape");
@@ -1049,7 +1050,7 @@ describe("the Dual view's right pane has the same options as the left one", () =
     expect(existsSync(join(other, "renamed.txt"))).toBe(true);
     expect(existsSync(join(other, "only-right.txt"))).toBe(false);
     expect(byName("#dual-list", "renamed.txt").classList.contains("selected")).toBe(true);
-    key($("#dual-list"), "z", { ctrlKey: true });
+    key($("#dual-list"), "z", MODIFIER);
     await until(() => existsSync(join(other, "only-right.txt")), "undo of the rename");
   });
 
@@ -1074,9 +1075,9 @@ describe("the Dual view's right pane has the same options as the left one", () =
     await until(() => rowNames("#list").includes("left-only.txt"), "the new file in the left list");
     focusList("list");
     click("#list", "left-only.txt");
-    key($("#list"), "c", { ctrlKey: true });
+    key($("#list"), "c", MODIFIER);
     focusList("dual-list");
-    key($("#dual-list"), "v", { ctrlKey: true });
+    key($("#dual-list"), "v", MODIFIER);
     await until(() => rowNames("#dual-list").includes("left-only.txt"), "the pasted file");
     expect(existsSync(join(other, "left-only.txt"))).toBe(true);
     expect(existsSync(join(work, "left-only.txt"))).toBe(true);
@@ -1322,7 +1323,7 @@ describe("Quick Look and copy to the clipboard", () => {
     expect(menuLabels().filter((l: string) => /to clipboard/.test(l))).toEqual([]);
     key(doc.activeElement, "Escape");
     select("a-picture.png");
-    rowOf("#list", "e-notes.txt").dispatchEvent(new win.MouseEvent("click", { bubbles: true, ctrlKey: true }));
+    rowOf("#list", "e-notes.txt").dispatchEvent(new win.MouseEvent("click", { bubbles: true, ...MODIFIER }));
     await rightClick("e-notes.txt");
     expect(menuLabels().filter((l: string) => /to clipboard/.test(l))).toEqual([]);
     key(doc.activeElement, "Escape");
@@ -2226,7 +2227,8 @@ describe("the review dialog, Compare, Projects and duplicate cleanup", () => {
     key($("#list"), "Backspace");
     await waitFor(() => here() === join(lab, "bs"));
     expect(here()).toBe(join(lab, "bs"));
-    expect(toasts()).toContain("Delete key is Backspace");
+    if (process.platform === "darwin") expect(toasts()).not.toContain("Delete key is Backspace");
+    else expect(toasts()).toContain("Delete key is Backspace");
     expect(existsSync(f)).toBe(true);
     // the setting: Backspace moves the selected file to the Recycle Bin and stays in the folder
     await nav.saveSettings({ backspaceDeletes: true });

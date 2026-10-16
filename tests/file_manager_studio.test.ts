@@ -115,7 +115,7 @@ test("the compiled download launcher records hidden startup failures and preserv
     const build = Bun.spawnSync([process.execPath, "build", "--compile", `--outfile=${exe}`, stub]);
     expect(build.exitCode, build.stderr.toString()).toBe(0);
     writeFileSync(join(dir, "app", "file-manager-studio.js"), 'console.log("fixture started"); console.error("fixture failure"); process.exitCode = 17;');
-    const env = { ...process.env, HOME: dir, USERPROFILE: dir, BUN_BE_BUN: undefined };
+    const env = { ...process.env, HOME: dir, USERPROFILE: dir, BUN_BE_BUN: undefined, FM_START_NO_DIALOG: "1" };
     const run = Bun.spawnSync([exe], { env });
     expect(run.exitCode).toBe(17);
     const log = join(dir, ".bun_rad_studio", "file-manager-startup.log");

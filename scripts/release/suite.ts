@@ -195,7 +195,7 @@ fi
 mkdir -p "$BIN" "$APPS"
 for f in "$ROOT"/bin/*; do ln -sf "$f" "$BIN/$(basename "$f")"; done
 chmod +x "$ROOT/runtime/bun" "$ROOT"/bin/*
-ESCAPED_ROOT="$(printf '%s' "$ROOT" | sed 's/\\\\/\\\\\\\\/g; s/"/\\\\"/g; s/\\\`/\\\\\\\`/g; s/\\$/\\\\$/g; s/%/%%/g')"
+ESCAPED_ROOT="$(printf '%s' "$ROOT" | sed 's/\\\\/\\\\\\\\/g; s/"/\\\\"/g; s/[\`]/\\\\\\\`/g; s/\\$/\\\\$/g; s/%/%%/g')"
 ${guiNames.length ? `for name in ${guiNames.map(shQuote).join(" ")}; do
   icon="$ROOT/share/icons/$name.png"
   case "$name" in

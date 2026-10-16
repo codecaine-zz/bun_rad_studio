@@ -13,6 +13,12 @@ All notable changes. Version 1.4.1 is the tenth release (1.0.0, 1.1.0, 1.2.0, 1.
 
 - **File Manager theme shortcut help.** The fixed Option/Alt + `[` and `]` shortcuts for cycling through all themes are now shown in the shortcut list.
 
+### Fixed
+
+- **Linux desktop shortcuts in standalone and full-suite downloads.** Installers no longer insert a stray backtick before executable paths on GNU/Linux. Rerun `sh install.sh` from the extracted folder to repair an existing menu entry.
+- **Standalone File Manager startup diagnostics.** Launchers preserve the application's exit code and consistently write errors to `~/.bun_rad_studio/file-manager-startup.log`.
+- **CI regression fixtures.** File Manager tests account for macOS Command shortcuts and canonical temporary paths, and Showcase checks each app's image without assuming a fixed featured-image count.
+
 ## 1.4.0 (16 October 2026)
 
 ### Fixed (Windows binary refresh, 17 October 2026)

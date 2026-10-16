@@ -6,6 +6,7 @@ import {
   mkdtempSync,
   readFileSync,
   readlinkSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from "fs";
@@ -114,7 +115,7 @@ describe.skipIf(process.platform === "win32")("all Linux suite desktop apps", ()
       expect(result.exitCode, result.stderr.toString()).toBe(0);
       const profile = readFileSync(f.profile, "utf8");
       expect(profile).toContain(
-        `profile bun-rad-studio "${f.root}/runtime/bun" flags=(unconfined)`,
+        `profile bun-rad-studio "${realpathSync(f.root)}/runtime/bun" flags=(unconfined)`,
       );
       expect(profile).toContain("  userns,");
       expect(profile).not.toContain("*");
@@ -143,6 +144,9 @@ describe.skipIf(process.platform === "win32")("all Linux suite desktop apps", ()
         "runtime/bun",
       );
       expect(f.run([]).exitCode).toBe(0);
+      expect(
+        readFileSync(join(f.home, ".local/share/applications/bun-rad-studio-calculator-studio.desktop"), "utf8"),
+      ).toContain(`Exec="${realpathSync(f.root)}/bin/calculator-studio"\n`);
       expect(f.run(["--uninstall"]).exitCode).toBe(0);
       expect(existsSync(f.commands)).toBe(false);
     });
@@ -172,7 +176,7 @@ describe.skipIf(process.platform === "win32")("File Manager Linux release instal
     expect(Bun.spawnSync(["sh", "-n", f.script]).exitCode).toBe(0);
     expect(f.run([]).exitCode).toBe(0);
     const link = join(f.home, ".local/bin/codecaine-file-manager");
-    expect(readlinkSync(link)).toBe(join(f.root, "codecaine-file-manager"));
+    expect(readlinkSync(link)).toBe(realpathSync(join(f.root, "codecaine-file-manager")));
     expect(
       readFileSync(
         join(
@@ -182,6 +186,9 @@ describe.skipIf(process.platform === "win32")("File Manager Linux release instal
         "utf8",
       ),
     ).toContain("Terminal=false");
+    expect(
+      readFileSync(join(f.home, ".local/share/applications/codecaine-file-manager.desktop"), "utf8"),
+    ).toContain(`Exec="${realpathSync(f.root)}/codecaine-file-manager"\n`);
     expect(f.run(["--uninstall"]).exitCode).toBe(0);
     expect(existsSync(link)).toBe(false);
     expect(existsSync(f.commands)).toBe(false);
@@ -195,7 +202,7 @@ describe.skipIf(process.platform === "win32")("File Manager Linux release instal
     expect(profile).toBe(`abi <abi/4.0>,
 include <tunables/global>
 
-profile codecaine-file-manager "${f.root}/codecaine-file-manager" flags=(unconfined) {
+profile codecaine-file-manager "${realpathSync(f.root)}/codecaine-file-manager" flags=(unconfined) {
   userns,
 }
 `);

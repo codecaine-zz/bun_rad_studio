@@ -16,10 +16,10 @@ describe("SHOWCASE.md, the picture-led page for promoting the applications", () 
     const images = [...new Set([...text.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].map((m) => m[1]!))];
     expect(images.length).toBeGreaterThan(60);
     for (const image of images) expect(existsSync(join(ROOT, image)), image).toBe(true);
-    const headings = text.match(/^### /gm)?.length ?? 0;
-    // The File Manager's four pictures are also shown in its featured block; each application heading has its own picture.
-    const featured = images.filter((i) => /file_manager_studio_(convert|terminal|responsive)\.png$/.test(i)).length;
-    expect(images.length - featured).toBe(headings);
+    for (const section of text.split(/^### /m).slice(1)) {
+      const title = section.split("\n")[0]!;
+      expect(section, `${title} has no picture`).toMatch(/!\[[^\]]*\]\([^)]+\)/);
+    }
   });
 
   test("shows each distinct application window once, so a screenshot added later cannot be silently left out", () => {

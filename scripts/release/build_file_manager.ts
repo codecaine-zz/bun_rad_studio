@@ -75,7 +75,7 @@ import { dirname, join } from "path";
 
 const dir = dirname(process.execPath);
 let logFile: string | undefined;
-async function fail(error: unknown): Promise<never> {
+async function fail(error: unknown, exitCode = 1): Promise<never> {
   const message = String(error instanceof Error ? error.stack || error.message : error);
   const help = process.platform === "win32"
     ? "Install Microsoft Edge WebView2 and the Microsoft Visual C++ 2015-2022 x64 Redistributable (also on ARM). Keep app, lib and resources next to the exe."
@@ -83,7 +83,7 @@ async function fail(error: unknown): Promise<never> {
   const text = "${APP_TITLE} could not start.\\n\\n" + message + "\\n\\n" + help + (logFile ? "\\n\\nStartup log: " + logFile : "");
   console.error(text);
   if (logFile) appendFileSync(logFile, "\\n" + text + "\\n");
-  if (!process.argv.includes("--server") && !process.argv.includes("-s")) {
+  if (process.env.FM_START_NO_DIALOG !== "1" && !process.argv.includes("--server") && !process.argv.includes("-s")) {
     let command: string[] | undefined;
     if (process.platform === "win32") {
       command = ["powershell.exe", "-NoProfile", "-Command", "Add-Type -AssemblyName System.Windows.Forms; [void][System.Windows.Forms.MessageBox]::Show($env:FM_START_ERROR, '${APP_TITLE}')"];
@@ -96,13 +96,13 @@ async function fail(error: unknown): Promise<never> {
       if (code !== 0) console.error("Could not show the startup error dialog (exit " + code + ").");
     }
   }
-  process.exit(1);
+  process.exit(exitCode);
 }
 
 async function start() {
-const logs = join(homedir(), ".bun_rad_studio", "logs");
+const logs = join(homedir(), ".bun_rad_studio");
 mkdirSync(logs, { recursive: true });
-logFile = join(logs, "file-manager-" + process.pid + ".log");
+logFile = join(logs, "file-manager-startup.log");
 writeFileSync(logFile, "Executable: " + process.execPath + "\\nPlatform: " + process.platform + " " + process.arch + "\\n");
 const lib = process.platform === "win32" ? "libwebview.dll" : process.platform === "darwin" ? "libwebview.dylib" : \`libwebview-\${process.arch}.so\`;
 const env: Record<string, string> = { ...(process.env as Record<string, string>), BUN_BE_BUN: "1" };
@@ -148,7 +148,7 @@ async function copy(stream: ReadableStream<Uint8Array>, output: NodeJS.WriteStre
   }
 }
 const [code] = await Promise.all([child.exited, copy(child.stdout, process.stdout), copy(child.stderr, process.stderr)]);
-if (code !== 0) throw new Error("The application exited with code " + code + ". See the startup log for the original error.");
+if (code !== 0) await fail(new Error("${APP_TITLE} exited with " + code + "."), code);
 }
 try { await start(); } catch (error) { await fail(error); }
 `;
@@ -180,7 +180,7 @@ export function readmeFor(d: Download): string {
     L.push("", "Ubuntu 24.04+ sandbox fix:", "  If startup logs say 'bwrap: setting up uid map: Permission denied' or", "  'Failed to fully launch dbus-proxy', run:", "    sh install.sh --apparmor", "  Enter your sudo password in the terminal. This installs an AppArmor profile", "  for this executable only; AppArmor and WebKit's sandbox stay enabled.", "  Keep the folder in its final location; rerun that command after moving it.", "  Remove the menu entry, link and profile with: sh install.sh --uninstall --apparmor");
   }
   L.push("", "If the native window is unavailable, the File Manager opens in your default browser instead.");
-  L.push("", "Startup logs: ~/.bun_rad_studio/logs/file-manager-<pid>.log (on Windows: %USERPROFILE%\\.bun_rad_studio\\logs).");
+  L.push("", "Startup logs: ~/.bun_rad_studio/file-manager-startup.log (on Windows: %USERPROFILE%\\.bun_rad_studio\\file-manager-startup.log).");
   L.push("", "Licence: MIT (see LICENSE). The source code is at https://github.com/codecaine-zz/bun_rad_studio", "");
   return L.join(d.os === "windows" ? "\r\n" : "\n");
 }
@@ -201,7 +201,7 @@ fi
 mkdir -p "$BIN" "$APPS"
 chmod +x "$ROOT/codecaine-file-manager"
 ln -sf "$ROOT/codecaine-file-manager" "$BIN/codecaine-file-manager"
-ESCAPED_ROOT="$(printf '%s' "$ROOT" | sed 's/\\\\/\\\\\\\\/g; s/"/\\\\"/g; s/\\\`/\\\\\\\`/g; s/\\$/\\\\$/g; s/%/%%/g')"
+ESCAPED_ROOT="$(printf '%s' "$ROOT" | sed 's/\\\\/\\\\\\\\/g; s/"/\\\\"/g; s/[\`]/\\\\\\\`/g; s/\\$/\\\\$/g; s/%/%%/g')"
 cat > "$APPS/codecaine-file-manager.desktop" <<EOF
 [Desktop Entry]
 Type=Application
