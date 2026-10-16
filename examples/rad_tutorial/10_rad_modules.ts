@@ -1,4 +1,5 @@
-// RAD tutorial 10: the rad utility modules. Run it with:  bun run examples/rad_tutorial/10_rad_modules.ts
+// RAD tutorial 10: the rad utility modules.
+// Run it with:  bun run examples/rad_tutorial/10_rad_modules.ts
 import { rad } from "../../src/features/rad/index.ts";
 
 // Text and data

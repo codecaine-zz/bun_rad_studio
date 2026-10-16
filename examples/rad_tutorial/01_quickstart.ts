@@ -1,4 +1,5 @@
-// RAD tutorial 1: a window, a card, two fields and a button. Run it with:  bun run examples/rad_tutorial/01_quickstart.ts
+// RAD tutorial 1: a window, a card, two fields and a button.
+// Run it with:  bun run examples/rad_tutorial/01_quickstart.ts
 import { newSimpleWindow, type SimpleWindow } from "../../src/simplegui";
 
 export function createQuickstart(): SimpleWindow {

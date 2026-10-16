@@ -1,11 +1,12 @@
-// RAD tutorial 7: a small finished app. A form, a table, a search box, a confirm dialog and a SQLite file.
+// RAD tutorial 7: a small finished app (form, table, search, confirm dialog, SQLite).
 // Run it with:  bun run examples/rad_tutorial/07_contacts.ts
 import { newSimpleWindow, type SimpleWindow } from "../../src/simplegui";
 import { rad } from "../../src/features/rad/index.ts";
 
 export function createContacts(dbPath = ":memory:"): SimpleWindow {
   const db = rad.sqliteutils.openDb(dbPath);
-  rad.sqliteutils.execSql(db, "CREATE TABLE IF NOT EXISTS contacts (id INTEGER PRIMARY KEY, name TEXT, email TEXT)");
+  rad.sqliteutils.execSql(db, "CREATE TABLE IF NOT EXISTS contacts " +
+    "(id INTEGER PRIMARY KEY, name TEXT, email TEXT)");
   if (!rad.sqliteutils.queryValue(db, "SELECT COUNT(*) FROM contacts")) {
     rad.sqliteutils.insertRow(db, "contacts", { name: "Ada Lovelace", email: "ada@example.com" });
     rad.sqliteutils.insertRow(db, "contacts", { name: "Alan Turing", email: "alan@example.com" });
@@ -14,14 +15,17 @@ export function createContacts(dbPath = ":memory:"): SimpleWindow {
   const win = newSimpleWindow("Contacts", 940, 640, { theme: "apple_dark" });
   const show = (w: SimpleWindow) => {
     const like = `%${w.getText("txtFilter")}%`;
-    const rows = rad.sqliteutils.queryAll<any>(db, "SELECT id, name, email FROM contacts WHERE name LIKE ? ORDER BY name", [like]);
+    const sql = "SELECT id, name, email FROM contacts WHERE name LIKE ? ORDER BY name";
+    const rows = rad.sqliteutils.queryAll<any>(db, sql, [like]);
     w.setTableRows("tblContacts", rows.map((r) => [String(r.id), r.name, r.email]));
     w.setStatusBarText(`${rows.length} contacts`);
   };
 
   win.addHeading("📇 Contacts", "SQLite, a table and four handlers");
   win.addSearchInput("Filter by name...", (w) => show(w)).id("txtFilter").width(320);
-  win.addTable("tblContacts", ["Id", "Name", "Email"], [], (w, id) => w.setState("picked", String(id)));
+  win.addTable("tblContacts", ["Id", "Name", "Email"], [], (w, id) => {
+    w.setState("picked", String(id));
+  });
 
   win.beginCard("Add a contact");
   win.addFormField("Name:", "txtName", "");

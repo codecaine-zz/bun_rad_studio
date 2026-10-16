@@ -1,4 +1,5 @@
-// RAD tutorial 4: state that controls follow. Run it with:  bun run examples/rad_tutorial/04_state.ts
+// RAD tutorial 4: state that controls follow.
+// Run it with:  bun run examples/rad_tutorial/04_state.ts
 import { newSimpleWindow, type SimpleWindow } from "../../src/simplegui";
 
 export function createState(): SimpleWindow {

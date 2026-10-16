@@ -1,4 +1,5 @@
-// RAD tutorial 5: menus, toolbars, dialogs, timers and busy states. Run it with:  bun run examples/rad_tutorial/05_dialogs_menus.ts
+// RAD tutorial 5: menus, toolbars, dialogs, timers and busy states.
+// Run it with:  bun run examples/rad_tutorial/05_dialogs_menus.ts
 import { newSimpleWindow, type SimpleWindow } from "../../src/simplegui";
 
 export function createDialogsMenus(): SimpleWindow {
@@ -14,7 +15,9 @@ export function createDialogsMenus(): SimpleWindow {
   win.onClick("mainBar", (w, action) => w.setStatusBarText(`Toolbar: ${action}`));
 
   win.addLabel("⏰ --:--:--").id("lblClock").font(26, "#38bdf8", "700");
-  win.addTimer(1000, (w) => w.setText("lblClock", `⏰ ${new Date().toLocaleTimeString()}`), { id: "clock" });
+  win.addTimer(1000, (w) => {
+    w.setText("lblClock", `⏰ ${new Date().toLocaleTimeString()}`);
+  }, { id: "clock" });
 
   win.beginRow();
   win.addButton("ℹ️ Info", (w) => w.info("Saved!", "Your profile was saved."));

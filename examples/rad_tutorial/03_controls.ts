@@ -1,4 +1,5 @@
-// RAD tutorial 3: forms, lists and dashboard controls. Run it with:  bun run examples/rad_tutorial/03_controls.ts
+// RAD tutorial 3: forms, lists and dashboard controls.
+// Run it with:  bun run examples/rad_tutorial/03_controls.ts
 import { newSimpleWindow, type SimpleWindow } from "../../src/simplegui";
 
 export function createControls(): SimpleWindow {

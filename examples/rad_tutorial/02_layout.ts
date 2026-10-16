@@ -1,4 +1,5 @@
-// RAD tutorial 2: the layout tools. Run it with:  bun run examples/rad_tutorial/02_layout.ts
+// RAD tutorial 2: the layout tools.
+// Run it with:  bun run examples/rad_tutorial/02_layout.ts
 import { newSimpleWindow, type SimpleWindow } from "../../src/simplegui";
 
 export function createLayout(): SimpleWindow {
