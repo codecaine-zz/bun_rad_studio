@@ -5,7 +5,7 @@ import { newSimpleWindow, type SimpleWindow } from "../../src/simplegui";
 export function createControls(): SimpleWindow {
   const win = newSimpleWindow("Controls", 1000, 760, { theme: "catppuccin" });
 
-  win.addHeading("Controls", "Form fields, tables and a little dashboard");
+  win.addHeading("Controls", "Form fields, a table and two meters");
 
   win.beginGrid(2, 16);
   win.beginCard("📝 Form");
@@ -18,7 +18,6 @@ export function createControls(): SimpleWindow {
   win.beginCard("📊 Live numbers");
   win.addCircularProgress("cprCpu", 72);
   win.addGauge("ggeDisk", "Disk usage", 64);
-  win.addSparkline("spkMem", [10, 25, 40, 35, 60, 55, 80], 30);
   win.endCard();
   win.endGrid();
 

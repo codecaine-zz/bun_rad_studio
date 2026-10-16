@@ -1,4 +1,4 @@
-# SimpleGUI visual designer: build a desktop app without code (12:52)
+# SimpleGUI visual designer: build a desktop app without code (10:55)
 
 ## YouTube title
 
@@ -14,18 +14,18 @@ Docs: https://github.com/codecaine-zz/bun_rad_studio/blob/main/docs/SIMPLEGUI_AP
 
 Chapters
 0:00 Welcome
-0:40 A tour of the designer
-2:22 Build a login form by clicking
-3:55 Size, colour, position and style
-5:25 Align, distribute and snap
-6:24 Make it do something: events
-7:29 The code the designer writes
-8:23 Run it, and make it beautiful
-9:26 Templates, audit, shortcuts and the database wizard
-10:26 Export, import and automatic drafts
-11:13 The same ideas, written by hand
-11:49 Running the code
-12:30 That is the tour
+0:33 A tour of the designer
+1:58 Build a login form by clicking
+3:21 Size, colour, position and style
+4:38 Align, distribute and snap
+5:28 Make it do something: events
+6:23 The code the designer writes
+7:09 Run it, and make it beautiful
+8:02 Templates, audit, shortcuts and the database wizard
+8:52 Export, import and automatic drafts
+9:32 The same ideas, written by hand
+10:01 Running the code
+10:37 That is the tour
 ```
 
 ## Notes
