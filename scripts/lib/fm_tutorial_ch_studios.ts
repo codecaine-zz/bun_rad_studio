@@ -256,7 +256,7 @@ export const studios: Chapter[] = [
   },
 
   {
-    id: "21f_recent", chapter: "RECENT", title: "Recent files open right here", blurb: "Back to what you were working on, without leaving the File Manager",
+    id: "21f_recent", chapter: "RECENT", title: "Recent files and media open right here", blurb: "Back to what you were working on, and pictures, songs and videos open in the File Manager by default",
     path: "<HOME>/Media",
     before: async (d) => {
       const home = d.world.home;
@@ -283,6 +283,37 @@ export const studios: Chapter[] = [
           await d.hover(".mp", 4500).catch(() => {});
           await d.key("Escape", "Esc");
           await d.wait(1200);
+        },
+      },
+      {
+        cap: "Enter or double-click: they open right here",
+        say: "It is the same in the file list. Press Enter, or double-click, on a picture, a song or a video, and it opens here, in the File Manager's own viewer and player. Press Enter inside the viewer when you do want another program, or right-click and choose Open with.",
+        act: async (d) => {
+          await d.click("#list .row[data-key$='sunset.jpg']", { pause: 1200 });
+          await d.key("Enter", "Enter");
+          await d.wait(2600);
+          await d.key("Escape", "Esc");
+          await d.wait(900);
+          await d.click("#list .row[data-key$='morning-song.mp3']", { pause: 1000 });
+          await d.key("Enter", "Enter");
+          await d.wait(3200);
+          await d.key("Escape", "Esc");
+          await d.wait(1000);
+        },
+      },
+      {
+        cap: "Settings: open media with another program",
+        say: "Prefer your own photo viewer or music player? In Settings, Open pictures, sound and video with lets you choose the program your computer uses instead. It stays that way until you change it back.",
+        act: async (d) => {
+          await d.key("Meta+,", "⌘+,");
+          await d.wait(900);
+          if (!(await d.eval<boolean>(`!!document.querySelector('.modal-backdrop')`))) await d.eval(`import('/ui/extras.js').then((m) => m.showSettings())`);
+          await d.wait(1000);
+          const sel = ".dialog select[aria-label='Open pictures, sound and video with']";
+          await d.eval(`document.querySelector(${JSON.stringify(sel)})?.scrollIntoView({ block: 'center' })`);
+          await d.hover(sel, 3200).catch(() => {});
+          await d.key("Escape", "Esc");
+          await d.wait(900);
         },
       },
     ],

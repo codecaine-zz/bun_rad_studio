@@ -35,7 +35,7 @@ async function pick(d: Do, label: string, value: string) {
 /** Chapters 22 to 26: themes and shortcuts, the database studios (joined from their own tutorials), and the goodbye. */
 export const ending: Chapter[] = [
   {
-    id: "22_themes", chapter: "YOUR WAY", title: "Make it yours: themes, effects and shortcuts", blurb: "Futuristic themes, glass and glow effects, panel opacity, and keys to switch themes instantly",
+    id: "22_themes", chapter: "YOUR WAY", title: "Make it yours: themes, effects and shortcuts", blurb: "Futuristic and rare-system themes, the effects filter, glass and glow, panel opacity, and keys to switch themes instantly",
     path: "<HOME>/Projects/shop-app",
     steps: [
       {
@@ -53,6 +53,33 @@ export const ending: Chapter[] = [
           await d.wait(900);
           await search(d, "prism");
           await d.click(".theme-card >> Prism Reactor", { pause: 2600 });
+        },
+      },
+      {
+        cap: "✨ Effects or plain colours",
+        say: "Every card tells you what kind of theme it is. Themes marked Effects add glass, glow and motion. The others say Colours only. This menu, next to the light and dark filter, shows only the special effects themes, or only the plain ones. The line above the cards counts how many of each you are looking at.",
+        act: async (d) => {
+          await search(d, "");
+          await d.hover(".dialog .theme-fx-badge", 1800).catch(() => {});
+          await pick(d, "Show themes with or without special effects", "fx");
+          await d.wait(1800);
+          await d.scroll(".theme-list", 600, 6).catch(() => {});
+          await d.wait(1200);
+          await pick(d, "Show themes with or without special effects", "plain");
+          await d.wait(1800);
+          await pick(d, "Show themes with or without special effects", "any");
+        },
+      },
+      {
+        cap: "Rare and beloved systems",
+        say: "And for a bit of nostalgia, there is a group called Rare and beloved systems. The looks of computers some people never knew, and others still miss. BeOS, OS 2 Warp, Palm OS, the Zune, Solaris, and many more. I type rare to see them all, and try BeOS, then OS 2 Warp.",
+        act: async (d) => {
+          await search(d, "rare");
+          await d.wait(1200);
+          await d.click(".theme-card >> BeOS R5", { pause: 2600 });
+          await d.click(".theme-card >> OS/2 Warp 4", { pause: 2600 });
+          await d.scroll(".theme-list", 500, 6).catch(() => {});
+          await d.wait(1400);
         },
       },
       {
@@ -83,6 +110,20 @@ export const ending: Chapter[] = [
           }
           await d.key("Escape", "Esc");
           await d.wait(1500);
+        },
+      },
+      {
+        cap: "⌘⇧T opens themes from anywhere",
+        say: "To open the theme gallery from anywhere in the File Manager, press Command, Shift and T. On Windows and Linux, it is Control, Shift and T. In every desktop app of the suite, the right Option key and T opens its themes too. I press Escape, and nothing has changed.",
+        act: async (d) => {
+          await closeDialogs(d);
+          await d.key("Meta+Shift+T", "⌘+⇧+T");
+          await d.wait(900);
+          if (!(await d.eval<boolean>(`!!document.querySelector('.theme-card')`))) await d.eval(`window.openAppThemes?.()`);
+          await d.wait(2200);
+          await closeDialogs(d);
+          await showKeys(d, ["Right ⌥", "T"]);
+          await d.wait(2200);
         },
       },
       {
@@ -144,6 +185,24 @@ export const ending: Chapter[] = [
         cap: "Right ⌥ + / full screen · ⌘Q quits",
         say: "Two more shortcuts for the desktop app. Right Option and the slash key turns full screen on, and off again. The Escape key never throws you out of full screen by accident, so you can use Escape freely to close menus and windows. And Command Q quits the app, just like every other Mac program.",
         act: async (d) => { await showKeys(d, ["Right ⌥", "/"]); await d.wait(2600); await showKeys(d, ["Esc"]); await d.wait(2200); await showKeys(d, ["⌘", "Q"]); await d.wait(1500); },
+      },
+      {
+        cap: "Only close with the close button",
+        say: "If you ever closed a window by accident, there is a setting for that. In Settings, turn on Only close the window with its close button. Then Command Q and Command W can't close the File Manager. You close it with the window's close button instead.",
+        act: async (d) => {
+          await closeDialogs(d);
+          // The setting is only offered in the desktop app, which provides closeApp.
+          await d.eval(`(() => { if (typeof window.closeApp !== 'function') window.closeApp = () => {}; })()`);
+          await d.key("Meta+,", "⌘+,");
+          await d.wait(900);
+          if (!(await d.eval<boolean>(`!!document.querySelector('.modal-backdrop')`))) await d.eval(`import('/ui/extras.js').then((m) => m.showSettings())`);
+          await d.wait(1200);
+          const sel = ".dialog label >> Only close the window";
+          await d.eval(`[...document.querySelectorAll('.dialog label')].find((l) => l.textContent.includes('Only close the window'))?.scrollIntoView({ block: 'center' })`);
+          await d.hover(sel, 1500).catch(() => {});
+          await d.click(sel, { pause: 2600 }).catch(() => {});
+          await closeDialogs(d);
+        },
       },
       {
         cap: "Change any keyboard shortcut",
