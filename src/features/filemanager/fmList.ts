@@ -80,6 +80,17 @@ export interface Listing {
   truncated: boolean;
 }
 
+/** The listing entry for one item (what the file list would show for it), for opening a path from Recent or Favorites. */
+export async function entryFor(ctx: FmContext, input: unknown): Promise<Entry> {
+  const full = absolutePath(ctx, input);
+  const p = pathApi(ctx);
+  const name = p.basename(full);
+  const dir = p.dirname(full);
+  const entry = name && dir !== full ? await toEntry(ctx, dir, name, p) : null;
+  if (!entry) throw new FmError("NOT_FOUND", `"${name || full}" isn't there any more. It may have been moved, renamed or deleted.`);
+  return entry;
+}
+
 export async function listFolder(ctx: FmContext, input: unknown, options: { showHidden?: boolean } = {}): Promise<Listing> {
   const dir = absolutePath(ctx, input);
   const p = pathApi(ctx);

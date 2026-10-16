@@ -47,7 +47,7 @@ import { downloadOperations } from "./fmDownloadOps";
 import type { HostedPeer, HostedSession } from "../../simplegui_host";
 import { dbState } from "./fmDbState";
 import { watchOperations } from "./fmWatchOps";
-import { listFolder, listPlaces, previewFile, propertiesOf, searchFolder } from "./fmList";
+import { entryFor, listFolder, listPlaces, previewFile, propertiesOf, searchFolder } from "./fmList";
 import { clipboardOperations } from "./fmClipboardOps";
 import { qrOperations } from "./fmQr";
 import { startRenames, startTransfer } from "./fmFileOps";
@@ -292,6 +292,14 @@ const operations: Record<string, Handler> = {
   },
   async search(ctx, b) {
     return await searchFolder(ctx, b.path, b.query, { showHidden: b.showHidden === true, kind: typeof b.kind === "string" ? b.kind : undefined });
+  },
+  async "recent/add"(ctx, b) {
+    const entry = await entryFor(ctx, b.path);
+    if (entry.isDir) throw new FmError("BAD_REQUEST", "Only files are listed under Recent.");
+    return { settings: await addRecent(ctx, entry.path) };
+  },
+  async entry(ctx, b) {
+    return { entry: await entryFor(ctx, b.path) };
   },
   async preview(ctx, b) {
     return { preview: await previewFile(ctx, b.path) };

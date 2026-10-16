@@ -11,6 +11,7 @@ import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 const GLOBALS = ["document", "window", "Node", "Event", "HTMLElement", "HTMLInputElement", "HTMLTextAreaElement", "navigator", "location", "fetch", "requestAnimationFrame", "cancelAnimationFrame", "ResizeObserver", "getComputedStyle", "InputEvent", "KeyboardEvent", "MouseEvent"] as const;
 const saved = new Map<string, PropertyDescriptor | undefined>();
 const typedInTerminal: string[] = [];
+const launched: Array<{ command: string; args: string[] }> = [];
 
 const root = mkdtempSync(join(tmpdir(), "fm-code-ui-"));
 const home = join(root, "home");
@@ -71,6 +72,7 @@ beforeAll(async () => {
   writeFileSync(join(work, "hello.v"), 'module main\n\nfn main() {\n\tprintln("hi")\n}\n');
   writeFileSync(join(work, "a.ts"), "const items = [1, 2, 3];\nfunction total(list: number[]) {\n  return list.length;\n}\n");
   writeFileSync(join(work, "notes.txt"), "one\ntwo\n");
+  writeFileSync(join(work, "LICENSE"), "MIT License\n\nCopyright (c) someone\n");
   writeFileSync(join(work, "big.ts"), big);
   writeFileSync(join(work, "program.bin"), Buffer.from([0, 1, 2, 3, 0, 0, 255, 0]));
   mock.module("../resources/file_manager/ui/terminal.js", () => ({
@@ -79,7 +81,7 @@ beforeAll(async () => {
     showTerminal() {},
     isTerminalOpen: () => false,
   }));
-  server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir: join(root, "data") } });
+  server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir: join(root, "data"), launch: async (command, args) => void launched.push({ command, args }) } });
   const base = `http://127.0.0.1:${server.port}`;
   const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8").replace(/__FM_TOKEN__/g, "ui-token").replace(/__FM_PLATFORM__/g, process.platform);
   const dom = new JSDOM(html, { url: `${base}/`, pretendToBeVisual: true });
@@ -595,5 +597,25 @@ describe("opening a text file from the file list", () => {
     input.dispatchEvent(new win.KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
     await sleep(150);
     expect(Buffer.from(active().value.trim(), "base64").toString("utf8")).toMatch(/one\ntwo/);
+  });
+});
+
+describe("Recent in the Places list opens things the way the file list does", () => {
+  test("a file with no extension (LICENSE) opens in the built-in editor, not in another program, and is listed under Recent", async () => {
+    const ops = await import("../resources/file_manager/ui/ops.js");
+    const before = launched.length;
+    await ops.openPath(join(work, "LICENSE"));
+    await until(() => tabNames().includes("LICENSE"), "the LICENSE tab");
+    expect(launched.length).toBe(before);
+    expect(active().value).toContain("MIT License");
+    await until(async () => (await call("settings")).settings.recents[0]?.path === join(work, "LICENSE"), "LICENSE under Recent");
+  }, 20000);
+
+  test("a Recent item that is gone says so and opens nothing", async () => {
+    const ops = await import("../resources/file_manager/ui/ops.js");
+    const before = launched.length;
+    await ops.openPath(join(work, "deleted-long-ago.txt"));
+    await until(() => toasts().some((t) => t.includes("isn't there any more")), "the toast");
+    expect(launched.length).toBe(before);
   });
 });

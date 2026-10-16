@@ -127,10 +127,31 @@ export async function openEntry(entry) {
   if (entry.isDir) return goToIn(activePane(), entry.path);
   if (isLocked(entry)) return unlockEntries([entry]);
   if (textOpensInEditor(entry) || (await isPlainTextInside(entry))) {
+    rememberRecent(entry.path);
     if (state.settings.textOpensIn === "editor") return openInEditor(entry);
     return openInCode(entry.path);
   }
   await openFile(entry.path, false);
+}
+
+/** Files opened in the built-in editor are listed under Recent too (the ones opened by another program already are). */
+function rememberRecent(path) {
+  call("recent/add", { path }).then((r) => { state.settings = r.settings; emit("settings", {}); }).catch(() => {});
+}
+
+/**
+ * Opens an item known only by its path (Recent, Favorites). It is looked up first, so it is opened exactly as the same item
+ * in the file list would be: the built-in Code editor for text (even a file with no extension, like LICENSE), a folder in
+ * the file list, a locked file asks for the vault key. A path that is gone says so.
+ */
+export async function openPath(path) {
+  let entry;
+  try {
+    entry = (await call("entry", { path })).entry;
+  } catch (err) {
+    return fail(err);
+  }
+  return openEntry(entry);
 }
 
 async function openFile(path, confirmed, mismatchOk = false) {

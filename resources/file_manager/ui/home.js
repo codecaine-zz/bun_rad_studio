@@ -139,7 +139,7 @@ function recent() {
   const items = state.settings.recents.slice(0, 8);
   const content = items.length
     ? h("ul", { class: "home-list" }, items.map((r) => placeButton({
-      icon: "🕘", label: baseName(r.path, state.sep), title: r.path, onClick: () => ops.openEntry({ path: r.path, name: baseName(r.path, state.sep), isDir: false }),
+      icon: "🕘", label: baseName(r.path, state.sep), title: r.path, onClick: () => ops.openPath(r.path),
       extra: h("span", { class: "hp-note" }, parentOf(r.path, state.sep) ?? ""),
     })))
     : h("p", { class: "hint" }, "Files you open will be listed here, so you can get back to them quickly.");

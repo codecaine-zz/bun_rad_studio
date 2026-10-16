@@ -45,7 +45,7 @@ export function renderSidebar() {
   const drives = state.drives.map((d) => sideItem({
     icon: d.icon, label: d.name, title: d.path, active: same(d.path) || (!placeMatch && activeDrive?.path === d.path && !inTrash()), dropPath: d.path, onClick: () => goTo(d.path), extra: driveSpace(d),
   }));
-  const recent = state.settings.recents.slice(0, 6).map((r) => sideItem({ icon: "🕘", label: baseName(r.path, state.sep), title: r.path, onClick: () => ops.openEntry({ path: r.path, name: baseName(r.path, state.sep), isDir: false }) }));
+  const recent = state.settings.recents.slice(0, 6).map((r) => sideItem({ icon: "🕘", label: baseName(r.path, state.sep), title: r.path, onClick: () => ops.openPath(r.path) }));
   const bin = sideItem({
     icon: "🗑️", label: "Recycle Bin", title: state.trashCount ? `${plural(state.trashCount, "deleted item")}` : "Empty", active: inTrash(), trash: true, badge: state.trashCount || null,
     ariaLabel: state.trashCount ? `Recycle Bin, ${plural(state.trashCount, "item")}` : "Recycle Bin, empty", onClick: () => showTrash(),

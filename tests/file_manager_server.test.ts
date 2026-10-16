@@ -142,7 +142,7 @@ describe("who may call the API", () => {
   });
 
   test("every documented operation exists", () => {
-    for (const op of ["places", "list", "props", "mkdir", "newfile", "rename", "relocate", "conflicts", "copy", "move", "trash", "trash/list", "trash/restore", "trash/delete", "delete", "search", "preview", "open", "reveal", "zip", "unzip", "bulkrename", "settings", "typedpath", "copytext"]) {
+    for (const op of ["places", "list", "props", "entry", "recent/add", "mkdir", "newfile", "rename", "relocate", "conflicts", "copy", "move", "trash", "trash/list", "trash/restore", "trash/delete", "delete", "search", "preview", "open", "reveal", "zip", "unzip", "bulkrename", "settings", "typedpath", "copytext"]) {
       expect(API_OPERATIONS).toContain(op);
     }
   });
@@ -260,6 +260,34 @@ describe("the API works end to end", () => {
     const r = await api("trash", { paths: [join(work, "ghost.txt"), join(work, "real.txt")] });
     expect(r.json.results[0]).toMatchObject({ ok: false, code: "ENOENT" });
     expect(r.json.results[1].ok).toBe(true);
+  });
+});
+
+describe("opening an item known only by its path (Recent)", () => {
+  test("entry gives the same facts the file list shows, so Recent can open it the same way", async () => {
+    writeFileSync(join(work, "LICENSE"), "MIT License\n\nCopyright (c) someone\n");
+    mkdirSync(join(work, "sub"), { recursive: true });
+    const file = (await api("entry", { path: join(work, "LICENSE") })).json.entry;
+    expect(file).toMatchObject({ name: "LICENSE", path: join(work, "LICENSE"), isDir: false });
+    expect(file.size).toBeGreaterThan(0);
+    const folder = (await api("entry", { path: join(work, "sub") })).json.entry;
+    expect(folder).toMatchObject({ name: "sub", isDir: true });
+  });
+
+  test("a path that is gone says so, and a relative one is refused", async () => {
+    const gone = await api("entry", { path: join(work, "not-here.txt") });
+    expect(gone.json.ok).toBe(false);
+    expect(gone.json.error.message).toContain("isn't there any more");
+    expect((await api("entry", { path: "relative/file.txt" })).json.ok).toBe(false);
+  });
+
+  test("recent/add lists a file under Recent without opening it in another program, and refuses a folder", async () => {
+    const before = launched.length;
+    const r = await api("recent/add", { path: join(work, "LICENSE") });
+    expect(r.json.settings.recents[0].path).toBe(join(work, "LICENSE"));
+    expect(launched.length).toBe(before);
+    expect((await api("recent/add", { path: join(work, "sub") })).json.ok).toBe(false);
+    expect((await api("recent/add", { path: join(work, "not-here.txt") })).json.ok).toBe(false);
   });
 });
 
