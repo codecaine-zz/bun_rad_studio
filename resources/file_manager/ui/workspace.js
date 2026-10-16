@@ -94,6 +94,8 @@ function toolFor(view) {
 /**
  * Switches the view. `tool`/`opts` (for Tools and Split) say which tool tab to show and what to tell it;
  * `focus: true` moves the keyboard to the new view; `save: false` is for restoring at start-up.
+ * @param {string} view
+ * @param {{ tool?: string, opts?: Record<string, unknown>, focus?: boolean, save?: boolean }} [options]
  */
 export function setWorkspace(view, { tool, opts, focus = false, save = true } = {}) {
   if (!VIEWS.some((v) => v.id === view)) return;
