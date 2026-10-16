@@ -1,6 +1,16 @@
 # Changelog
 
-All notable changes. Version 1.3.0 is the sixth release (1.0.0, 1.1.0, 1.2.0, 1.2.1 and 1.2.2 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.3.1 is the seventh release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2 and 1.3.0 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+
+## 1.3.1 (16 October 2026)
+
+### Fixed
+
+- **File Manager: no more silent native-window startup failure.** A failed window creation is detected instead of reporting success and exiting. Packaged native libraries load only when a window is needed, so missing desktop dependencies no longer prevent server mode or browser fallback from starting. The fallback now invokes the default browser, and standalone Windows/Linux downloads save startup output and errors to `~/.bun_rad_studio/file-manager-startup.log` (`%USERPROFILE%` on Windows). Windows instructions now include the native DLL's Visual C++ x64 runtime dependency. [Startup and troubleshooting](docs/userguides/43_file_manager.md#start-it).
+
+### Verification
+
+- Linux ARM64 File Manager: rebuilt archive tested in a Linux container with a visible X11 window, HTTP responses, missing-native-library browser-opener invocation, no-display fallback, and headless mode without the native library. Windows executables were cross-compiled but not run on Windows; the new regression tests also exercise a compiled host launcher and persistent error logging.
 
 ## 1.3.0 (16 October 2026)
 

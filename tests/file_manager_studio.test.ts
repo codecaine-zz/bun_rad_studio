@@ -1,7 +1,9 @@
 import { expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join, resolve } from "path";
+import { bundleApps } from "../scripts/release/suite";
+import { LAUNCHER_STUB } from "../scripts/release/build_file_manager";
 
 const script = resolve(import.meta.dir, "../applications/file_manager_studio.ts");
 
@@ -32,3 +34,78 @@ test("the server process started by the window stops when the window's process i
     rmSync(dir, { recursive: true, force: true });
   }
 }, 20000);
+
+test("the packaged File Manager serves and opens a browser when the native library is missing", async () => {
+  if (process.platform === "win32") return;
+  const dir = mkdtempSync(join(tmpdir(), "fm-no-webview-"));
+  let child: ReturnType<typeof Bun.spawn> | undefined;
+  try {
+    const bundles = await bundleApps([{ name: "file-manager-studio", entry: "applications/file_manager_studio.ts", kind: "gui" }], dir, 1);
+    expect(bundles.failed).toEqual([]);
+    const app = join(dir, "apps", "file-manager-studio.js");
+    const urlFile = join(dir, "opened-url");
+    const bin = join(dir, "bin");
+    mkdirSync(bin);
+    writeFileSync(join(bin, process.platform === "darwin" ? "open" : "xdg-open"), '#!/bin/sh\nprintf "%s" "$1" > "$FM_TEST_URL"\n', { mode: 0o755 });
+    const env = { ...process.env, WEBVIEW_PATH: join(dir, "missing-native-library"), PATH: `${bin}:${process.env.PATH}`, FM_TEST_URL: urlFile };
+    const server = Bun.spawn([process.execPath, app, "--server", "--home", dir, "--data-dir", dir], { env, stdout: "pipe", stderr: "pipe" });
+    child = server;
+    const reader = server.stdout.getReader();
+    let output = "";
+    while (!/READY:\d+/.test(output)) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      output += new TextDecoder().decode(value);
+    }
+    reader.releaseLock();
+    expect(output).toMatch(/READY:\d+/);
+    child.kill();
+    await child.exited;
+
+    const desktop = Bun.spawn([process.execPath, app, "--home", dir, "--data-dir", dir], { env, stdout: "pipe", stderr: "pipe" });
+    child = desktop;
+    for (let i = 0; i < 150 && !existsSync(urlFile); i++) await Bun.sleep(100);
+    expect(existsSync(urlFile)).toBe(true);
+    const url = readFileSync(urlFile, "utf8");
+    expect(url).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/$/);
+    const response = await fetch(url);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("Codecaine File Manager");
+    child.kill();
+    await child.exited;
+    const errors = await new Response(desktop.stderr).text();
+    expect(errors).toContain("The desktop window isn't available");
+    expect(errors).toContain("Opening the File Manager in your browser");
+  } finally {
+    child?.kill();
+    if (child) await child.exited;
+    rmSync(dir, { recursive: true, force: true });
+  }
+}, 30000);
+
+test("the compiled download launcher records hidden startup failures and preserves server output", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "fm-launcher-"));
+  try {
+    mkdirSync(join(dir, "app"));
+    mkdirSync(join(dir, "resources"));
+    const stub = join(dir, "launcher.ts");
+    writeFileSync(stub, LAUNCHER_STUB);
+    const exe = join(dir, process.platform === "win32" ? "launcher.exe" : "launcher");
+    const build = Bun.spawnSync([process.execPath, "build", "--compile", `--outfile=${exe}`, stub]);
+    expect(build.exitCode, build.stderr.toString()).toBe(0);
+    writeFileSync(join(dir, "app", "file-manager-studio.js"), 'console.log("fixture started"); console.error("fixture failure"); process.exitCode = 17;');
+    const env = { ...process.env, HOME: dir, USERPROFILE: dir, BUN_BE_BUN: undefined };
+    const run = Bun.spawnSync([exe], { env });
+    expect(run.exitCode).toBe(17);
+    const log = join(dir, ".bun_rad_studio", "file-manager-startup.log");
+    expect(readFileSync(log, "utf8")).toContain("fixture started");
+    expect(readFileSync(log, "utf8")).toContain("fixture failure");
+    expect(readFileSync(log, "utf8")).toContain("File Manager exited with 17");
+    const server = Bun.spawnSync([exe, "--server"], { env });
+    expect(server.exitCode).toBe(17);
+    expect(server.stdout.toString()).toContain("fixture started");
+    expect(server.stderr.toString()).toContain("fixture failure");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}, 120000);

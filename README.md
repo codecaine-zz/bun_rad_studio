@@ -201,7 +201,7 @@ sh install.sh                      # optional: put everything on your PATH and i
 | macOS | Nothing. For downloaded files run `xattr -dr com.apple.quarantine .` once (the apps are signed ad hoc, not notarized) |
 | Linux (glibc) | GTK 4 and WebKitGTK 6.0 for the desktop apps: `sudo apt install libgtk-4-1 libwebkitgtk-6.0-4` (Debian/Ubuntu 24.04+), `sudo dnf install gtk4 webkitgtk6.0` (Fedora) |
 | Alpine / musl | `apk add libstdc++ libgcc` (command-line tools only) |
-| Windows | The Microsoft WebView2 runtime (already part of Windows 11) |
+| Windows | The Microsoft WebView2 runtime (already part of Windows 11) and [Microsoft Visual C++ 2015-2022 Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe) for the native window |
 
 **One app as a single-file executable** (any Bun target, cross-compiled from any computer): Bun can also embed a program and its runtime into one file, for example the command-line tools:
 
@@ -420,10 +420,10 @@ Programmatically interact with and control form state from Bun TypeScript or cli
 | [Bun](https://bun.sh) | The tests and builds in this repository were run with Bun 1.4.2. Older versions were not tried, so the minimum version is not claimed. |
 | `bun install` | Installs the dependencies in `package.json`, including the native window library (`webview-bun`). |
 | macOS | Nothing else. |
-| Windows | The Microsoft WebView2 runtime (part of Windows 11). See the Windows runtime note below. |
+| Windows | The Microsoft WebView2 runtime (part of Windows 11) and Microsoft Visual C++ 2015-2022 Redistributable (x64). See the Windows runtime note below. |
 | Linux | GTK 4 and WebKitGTK 6.0 (`libgtk-4-1` and `libwebkitgtk-6.0-4` on Debian and Ubuntu 24.04+). Older distributions that only have WebKitGTK 4.x were not tried. |
 
-**To run a download (packaged runtime)**: Bun is already inside the download, so you do not install it. The desktop apps need what the table under *Using a download* (above) lists (nothing on macOS; GTK 4 + WebKitGTK 6.0 on Linux; WebView2 on Windows); the command-line tools need nothing but, on Alpine, `libstdc++` and `libgcc`. The File Manager's *Convert and process* tool uses helper programs (ffmpeg, ImageMagick, pandoc and so on) that it offers to install the first time you need them; they are not part of a download.
+**To run a download (packaged runtime)**: Bun is already inside the download, so you do not install it. The desktop apps need what the table under *Using a download* (above) lists (nothing on macOS; GTK 4 + WebKitGTK 6.0 on Linux; WebView2 + Visual C++ x64 runtime on Windows); the command-line tools need nothing but, on Alpine, `libstdc++` and `libgcc`. The File Manager opens in the default browser if its native window is unavailable; standalone Windows/Linux downloads save startup errors in `~/.bun_rad_studio/file-manager-startup.log` (`%USERPROFILE%` on Windows). The File Manager's *Convert and process* tool uses helper programs (ffmpeg, ImageMagick, pandoc and so on) that it offers to install the first time you need them; they are not part of a download.
 
 #### Which platforms have been tested
 

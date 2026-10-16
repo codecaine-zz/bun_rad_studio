@@ -68,7 +68,7 @@ function targetOf(d: Download): Target {
 
 /** The program at the root of the Windows and Linux folders: it starts itself as the bundled Bun runtime running the app. */
 export const LAUNCHER_STUB = `// ${APP_TITLE} launcher. Started by a double-click; runs app/${MAIN}.js with this same executable acting as Bun.
-import { existsSync, mkdirSync, rmSync, symlinkSync } from "fs";
+import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, rmSync, symlinkSync } from "fs";
 import { homedir } from "os";
 import { dirname, join } from "path";
 
@@ -87,18 +87,38 @@ if (process.platform !== "win32") {
     rmSync(join(work, "resources"), { force: true });
     symlinkSync(join(dir, "resources"), join(work, "resources"));
     cwd = work;
-  } catch {
+  } catch (err) {
+    console.warn("Could not prepare the writable resource folder; using the extracted folder instead:", err);
     cwd = dir;
   }
 }
 
 const script = join(dir, "app", "${MAIN}.js");
-if (!existsSync(script)) {
-  console.error("Missing " + script + ". Unpack the whole zip and keep its files together.");
-  process.exit(1);
+const logDir = join(homedir(), ".bun_rad_studio");
+mkdirSync(logDir, { recursive: true });
+const logFile = join(logDir, "file-manager-startup.log");
+const log = openSync(logFile, "a", 0o600);
+appendFileSync(log, "\\nFile Manager startup: " + new Date().toISOString() + " " + process.platform + "/" + process.arch + "\\n");
+const serverOnly = process.argv.includes("--server") || process.argv.includes("-s");
+try {
+  if (!existsSync(script)) {
+    throw new Error("Missing " + script + ". Unpack the whole zip and keep its files together.");
+  }
+  const child = Bun.spawn([process.execPath, script, ...process.argv.slice(2)], { cwd, env, stdio: ["inherit", serverOnly ? "inherit" : log, serverOnly ? "inherit" : log] });
+  const code = await child.exited;
+  if (code !== 0) {
+    const message = "File Manager exited with " + code + ". See " + logFile;
+    appendFileSync(log, message + "\\n");
+    console.error(message);
+  }
+  process.exitCode = code;
+} catch (err) {
+  appendFileSync(log, String(err) + "\\n");
+  console.error("Could not start the File Manager. See " + logFile, err);
+  process.exitCode = 1;
+} finally {
+  closeSync(log);
 }
-const child = Bun.spawn([process.execPath, script, ...process.argv.slice(2)], { cwd, env, stdio: ["inherit", "inherit", "inherit"] });
-process.exit(await child.exited);
 `;
 
 async function compileLauncher(d: Download, outFile: string, icoFile: string | null): Promise<void> {
@@ -120,11 +140,14 @@ function readmeFor(d: Download): string {
   if (d.os === "windows") {
     L.push(`Start it: double-click "${APP_TITLE}.exe".`, "", "It needs the Microsoft WebView2 runtime (already part of Windows 11):", "  https://developer.microsoft.com/microsoft-edge/webview2/", "");
     L.push("Windows SmartScreen may say the app is unrecognised the first time. Choose More info > Run anyway.", "Keep the folders next to the .exe (app, lib, resources): the program reads them.");
+    L.push("", "The native window also needs Microsoft Visual C++ 2015-2022 Redistributable (x64):", "  https://aka.ms/vs/17/release/vc_redist.x64.exe");
     if (d.arch === "arm64") L.push("", "This is the 64-bit Intel/AMD build; Windows on ARM runs it through its own emulation. It works the same, a little slower to start.");
   } else if (d.os === "linux") {
     L.push("Start it:", "  ./codecaine-file-manager", "", "Add it to your applications menu and your PATH:", "  sh install.sh        (undo with: sh install.sh --uninstall)", "", "It needs GTK 4 and WebKitGTK 6.0:", "  Debian/Ubuntu 24.04+:  sudo apt install libgtk-4-1 libwebkitgtk-6.0-4", "  Fedora:                sudo dnf install gtk4 webkitgtk6.0", "");
     L.push("Headless (no window, open the address it prints in a browser):", "  ./codecaine-file-manager --server");
   }
+  L.push("", "If the native window is unavailable, the File Manager opens in your default browser instead.",
+    "Startup details and errors: " + (d.os === "windows" ? "%USERPROFILE%\\\\.bun_rad_studio\\\\file-manager-startup.log" : "~/.bun_rad_studio/file-manager-startup.log") + ".");
   L.push("", "Licence: MIT (see LICENSE). The source code is at https://github.com/codecaine-zz/bun_rad_studio", "");
   return L.join(d.os === "windows" ? "\r\n" : "\n");
 }

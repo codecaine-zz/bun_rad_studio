@@ -25,6 +25,7 @@ import { APP_NAME, startFileManagerServer, type FileManagerServerOptions } from 
 import { openManagedWindow } from "../src/features/filemanager/fmWindowControl";
 import { resetWindowPrefs, windowDataDir } from "../src/features/filemanager/fmWindow";
 import { createWindowNative } from "../src/windowNative";
+import { openCommand } from "../src/features/filemanager/fmOpen";
 
 export interface FileManagerStudioOptions extends FileManagerServerOptions {
   /** A one-off window size (--width / --height): used as is, and not remembered. */
@@ -101,10 +102,13 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
       process.on("SIGTERM", stop);
       let port = 0;
       try {
-        child = Bun.spawn(serverCommand(options), { stdout: "pipe", stderr: "ignore" });
+        child = Bun.spawn(serverCommand(options), { stdout: "pipe", stderr: "inherit" });
         port = await readyPort(child.stdout as ReadableStream<Uint8Array>, 8000);
-      } catch {}
+      } catch (err) {
+        console.warn("Could not start the background File Manager server:", err);
+      }
       if (!port) {
+        console.warn("The background server did not become ready; starting the File Manager server in this process.");
         try { child?.kill(); } catch {}
         child = undefined;
         app.server = startFileManagerServer({ port: options.port ?? 0, host: "127.0.0.1", context: options.context, startPath: options.startPath });
@@ -120,6 +124,7 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
         const managed = openManagedWindow({
           createWindow: (size) => {
             const w = new Webview(false, { ...size, hint: SizeHint.NONE });
+            if (!w.unsafeHandle) throw new Error("the native window could not be created (check the desktop session and web view runtime)");
             w.title = title;
             return w;
           },
@@ -137,7 +142,17 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
         webview.run();
         stop();
       } catch (err: any) {
-        console.warn(`The desktop window isn't available (${err?.message || err}). The File Manager is running in your browser at: ${app.url}`);
+        console.warn(`The desktop window isn't available (${err?.message || err}). Opening the File Manager in your browser at: ${app.url}`);
+        if (process.platform === "linux") console.warn("For a native window, install GTK 4 and WebKitGTK 6.0 and run inside a graphical desktop session.");
+        if (process.platform === "win32") console.warn("For a native window, install Microsoft Edge WebView2 and the Microsoft Visual C++ 2015-2022 Redistributable (x64).");
+        const cmd = openCommand(process.platform === "win32" ? "win32" : process.platform === "darwin" ? "darwin" : "linux", app.url);
+        try {
+          const browser = Bun.spawn([cmd.command, ...cmd.args], { stdout: "ignore", stderr: "inherit" });
+          const code = await browser.exited;
+          if (code !== 0) console.error(`Could not open the browser (${cmd.command} exited with ${code}). Open ${app.url} manually.`);
+        } catch (openError) {
+          console.error(`Could not open the browser. Open ${app.url} manually.`, openError);
+        }
         await new Promise(() => {});
       }
     },

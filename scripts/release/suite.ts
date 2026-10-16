@@ -51,7 +51,15 @@ export function webviewPlugin(kind: SourceApp["kind"]): import("bun").BunPlugin 
         const file = 'process.platform === "win32" ? "libwebview.dll" : process.platform === "darwin" ? "libwebview.dylib" : `libwebview-${process.arch}.so`';
         const patched = source.replace(/let lib_file;[\s\S]*?(?=export const lib = dlopen)/, `import { join as __join } from "node:path";\nconst lib_file = { default: process.env.WEBVIEW_PATH || __join(import.meta.dir, "..", "lib", ${file}) };\n\n`);
         if (patched === source) throw new Error("webview-bun's loader changed; update webviewPlugin in scripts/release/suite.ts");
-        return { contents: patched, loader: "ts" };
+        // Server mode and browser-hosted tools must start even when native desktop dependencies are missing.
+        const lazy = patched.replace("export const lib = dlopen(", "const loadLibrary = () => dlopen(");
+        return { contents: `${lazy}
+let nativeLibrary: ReturnType<typeof loadLibrary> | undefined;
+export const lib = {
+  get symbols() { return (nativeLibrary ??= loadLibrary()).symbols; },
+  close() { nativeLibrary?.close(); },
+};
+`, loader: "ts" };
       });
     },
   };
@@ -179,7 +187,7 @@ export function readme(target: Target, guiNames: string[], cliNames: string[]): 
   if (target.os === "macos") lines.push("macOS may ask you to allow the downloaded files the first time:", "  xattr -dr com.apple.quarantine .", "  (or open System Settings > Privacy & Security and choose Open Anyway)", "");
   if (target.os === "linux" && target.variant === "musl") lines.push("Alpine needs the C++ runtime for Bun:", "  apk add libstdc++ libgcc", "");
   if (target.os === "linux" && target.gui) lines.push("The desktop apps need GTK 4 and WebKitGTK 6.0:", "  Debian/Ubuntu 24.04+:  sudo apt install libgtk-4-1 libwebkitgtk-6.0-4", "  Fedora:                sudo dnf install gtk4 webkitgtk6.0", "");
-  if (target.os === "windows" && target.gui) lines.push("The desktop apps need the Microsoft WebView2 runtime (already on Windows 11):", "  https://developer.microsoft.com/microsoft-edge/webview2/", "");
+  if (target.os === "windows" && target.gui) lines.push("The desktop apps need the Microsoft WebView2 runtime (already on Windows 11):", "  https://developer.microsoft.com/microsoft-edge/webview2/", "", "They also need Microsoft Visual C++ 2015-2022 Redistributable (x64):", "  https://aka.ms/vs/17/release/vc_redist.x64.exe", "");
   lines.push("Every file in this download is also in the source repository. Licence: MIT (see LICENSE).", "");
   return lines.join(sh ? "\n" : "\r\n");
 }

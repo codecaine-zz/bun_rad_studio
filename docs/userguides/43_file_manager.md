@@ -43,6 +43,14 @@ Added on 14 October 2026; the record of what was checked is [D-045](../documenta
 
 ## Start it
 
+For a release download, extract the **whole archive** before opening `Codecaine File Manager.exe` (Windows) or `codecaine-file-manager` (Linux); keep `app`, `lib` and `resources` next to it. On Linux, run `sh install.sh` to add an applications-menu entry if your file browser does not launch executable files on double-click.
+
+The native window needs **Microsoft Edge WebView2 and Microsoft Visual C++ 2015-2022 Redistributable (x64)** on Windows (including the ARM download, which uses x64 emulation), or **GTK 4 and WebKitGTK 6.0** on Linux (`sudo apt install libgtk-4-1 libwebkitgtk-6.0-4 xdg-utils` on Ubuntu 24.04+). When the native window cannot be created, the File Manager opens in the default browser instead. `--server` does not require the native window libraries.
+
+If a double-click shows nothing, check the startup log: `%USERPROFILE%\.bun_rad_studio\file-manager-startup.log` on Windows or `~/.bun_rad_studio/file-manager-startup.log` on Linux. To see server output in a terminal, run `& ".\Codecaine File Manager.exe" --server` in PowerShell or `./codecaine-file-manager --server` on Linux.
+
+From source:
+
 ```bash
 bun run app:files                    # open the window
 bun run app:files --path ~/Pictures  # open it at a folder

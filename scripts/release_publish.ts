@@ -67,14 +67,15 @@ export function notes(files: Array<{ name: string; bytes: number }>, repo: strin
     const f = files.filter((x) => KIND(x.name) === "fm" && pred(x.name));
     return f.length ? `| ${label} | ${f.map((x) => `[${platformOf(x.name).split("-").slice(1).join(" ")} (${mb(x.bytes)})](${url(x.name)})`).join(" · ")} |` : null;
   };
-  const L: string[] = [`# Bun RAD Studio v${VERSION}`, "", "**No programming needed.** Download, unzip, open. Nothing to install or compile.", ""];
+  const L: string[] = [`# Bun RAD Studio v${VERSION}`, "", "**No programming needed.** Download, unzip, open. Bun is included; no source checkout or compilation needed. Native-window system requirements are listed below.", ""];
   if (whatsNew.length) L.push(`## ✨ What's new in v${VERSION}`, "", ...whatsNew.map((w) => `- ${w}`), "", "The full list is in the [changelog](https://github.com/" + repo + "/blob/main/CHANGELOG.md).", "");
   L.push("## ⭐ Codecaine File Manager", "", "A fast, private file manager for developers: two folders side by side, a code editor, database studios (SQLite, MySQL, PostgreSQL, Redis), an encrypted password vault, a live web server, **a download manager that splits files over several connections and resumes them**, an API client, a project bundler, an `.env` editor, and more.", "");
   L.push("| Your computer | Download |", "|---|---|");
   for (const r of [row("🍎 **Mac**", (n) => n.includes("-macos-")), row("🪟 **Windows**", (n) => n.includes("-windows-")), row("🐧 **Linux**", (n) => n.includes("-linux-"))]) if (r) L.push(r);
   L.push("", "- **Mac:** `arm64` = Apple silicon (M1 and newer); `x64` = Intel. Unzip, drag the app to Applications, right-click it → **Open** the first time.",
-    "- **Windows:** `x64` for most PCs; `arm64` for Windows on ARM (Snapdragon X, Surface Pro X); `baseline` only for processors from before 2013. Unzip the whole folder and double-click **Codecaine File Manager.exe**. Needs the WebView2 runtime (already part of Windows 11).",
-    "- **Linux:** `x64` (Intel/AMD) or `arm64` (Raspberry Pi 4/5 64-bit, servers); run `./codecaine-file-manager` or `sh install.sh` for a menu entry. Needs GTK 4 and WebKitGTK 6.0.", "");
+    "- **Windows:** `x64` for most PCs; `arm64` for Windows on ARM (Snapdragon X, Surface Pro X, using x64 emulation for the File Manager); `baseline` only for processors from before 2013. Unzip the whole folder and double-click **Codecaine File Manager.exe**. The native window needs WebView2 (already part of Windows 11) and [Microsoft Visual C++ 2015-2022 Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe).",
+    "- **Linux:** `x64` (Intel/AMD) or `arm64` (Raspberry Pi 4/5 64-bit, servers); run `./codecaine-file-manager` or `sh install.sh` for a menu entry. The native window needs GTK 4 and WebKitGTK 6.0.",
+    "- **File Manager startup:** if the native window is unavailable, the File Manager opens in your default browser. Standalone Windows/Linux downloads record startup errors in `%USERPROFILE%\\.bun_rad_studio\\file-manager-startup.log` (Windows) or `~/.bun_rad_studio/file-manager-startup.log` (Linux).", "");
   const apps = files.filter((f) => KIND(f.name) === "apps");
   const suite = files.filter((f) => KIND(f.name) === "suite");
   if (apps.length) {
@@ -92,7 +93,7 @@ export function notes(files: Array<{ name: string; bytes: number }>, repo: strin
   }
   L.push("## ✅ Check your download", "", "`SHA256SUMS.txt` lists a checksum for every file: `shasum -a 256 -c SHA256SUMS.txt --ignore-missing`.", "",
     "## ℹ️ Good to know", "", "- The apps are **not signed with an Apple or Microsoft developer certificate**, so the first launch shows a security prompt (Mac: right-click → Open; Windows: *More info → Run anyway*). They run entirely on your computer: no account, nothing is sent anywhere.",
-    "- The Windows and Linux downloads were cross-compiled on a Mac and have not been run on those systems by the author yet. If something doesn't start, please open an issue and say which download and which system.",
+    "- Downloads are cross-compiled on a Mac. Linux ARM64 File Manager startup was checked in a Linux container with a virtual X11 display, including browser-opener fallback and headless mode. Windows and Linux x64 startup have not been verified on those systems. If something doesn't start, please open an issue and include the download name, system and startup log.",
     `- Prefer the source? \`git clone https://github.com/${repo}\` then \`bun install\` and \`bun run app:files\`.`, "");
   return L.join("\n");
 }
