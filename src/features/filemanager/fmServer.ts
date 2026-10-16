@@ -68,7 +68,7 @@ import { createZip, extractZip } from "./fmZip";
 export const APP_ID = "file_manager_studio";
 /** The product name: the window title, the page title and the health answer. */
 export const APP_NAME = "Codecaine File Manager";
-export const APP_VERSION = "1.2.0";
+export const APP_VERSION = "1.2.1";
 export const MAX_BODY_BYTES = 1024 * 1024;
 const MAX_RAW_BYTES = 100 * 1024 * 1024;
 

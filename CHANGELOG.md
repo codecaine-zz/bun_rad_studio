@@ -1,8 +1,8 @@
 # Changelog
 
-All notable changes. Version 1.2.0 is the third release (1.0.0 and 1.1.0 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.2.1 is the fourth release (1.0.0, 1.1.0 and 1.2.0 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
 
-## Unreleased
+## 1.2.1 (15 October 2026)
 
 ### Fixed
 
