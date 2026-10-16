@@ -76,3 +76,5 @@ youtube_production/*.mp4
 youtube_production/file_manager_tutorial/
 youtube_production/designer_tutorial/
 youtube_production/rad_tutorial/
+youtube_production/sqlite_studio_tutorial/
+youtube_production/mysql_studio_tutorial/
