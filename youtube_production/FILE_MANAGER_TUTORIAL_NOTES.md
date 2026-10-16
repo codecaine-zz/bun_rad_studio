@@ -7,7 +7,7 @@ The Codecaine File Manager, Explained Step by Step (every button, nothing skippe
 ## YouTube description (copy and paste)
 
 ```text
-A calm, complete, step-by-step tour of the Codecaine File Manager from Bun RAD Studio. Every button is shown and explained in real time, on a throwaway folder of sample files: browsing, selecting, copying and moving with the task panel (progress, Cancel, Retry), name conflicts, the activity history, rename and bulk rename, the Recycle Bin and Undo, zip files, search, the code editor, hashes and encryption, the Dev tab, the calculator and the new Timer Toolkit, the built-in terminal, themes and settings.
+A calm, complete, step-by-step tour of the Codecaine File Manager from Bun RAD Studio. Every button is shown and explained in real time, on a throwaway folder of sample files: the window and toolbar, getting around, the views, choosing files, copying and moving with the task panel (progress, Cancel, Retry) and name clashes, the Recycle Bin and Undo, Quick Look, converting files, Find and bulk rename, reviewing changes before they happen, comparing two folders, saved Projects and Actions, QR codes, the built-in code editor with its text conversions, then themes, keyboard shortcuts and the terminal.
 
 Free and open source: https://github.com/codecaine-zz/bun_rad_studio
 Download: https://github.com/codecaine-zz/bun_rad_studio/releases/latest
