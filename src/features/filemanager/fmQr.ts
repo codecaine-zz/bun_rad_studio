@@ -4,6 +4,7 @@
  *   qr/copy-image  {data}                                      -> {copied: true}  a PNG, as base64, goes on the clipboard as a picture
  *   png/save, png/copy  the same two, under names for any picture made in the page (a frame of an animated GIF)
  *   qr/open-url    {url}                                       -> {opened}        a web address read from a code, in the system browser
+ *   link/open      {url}                                       -> {opened}        a link clicked inside an embedded app (timer, calculator): same checks
  * Saving never replaces a file: if the name is taken a free one ("qr-code (2).png") is used. The bytes are checked here, so a
  * request can't write anything but a real PNG, an SVG or plain text, and the name can't leave the chosen folder.
  */
@@ -131,6 +132,10 @@ export const qrOperations: Record<string, FmHandler> = {
     return await copyQrImage(ctx, b.data);
   },
   async "qr/open-url"(ctx, b) {
+    return await openQrUrl(ctx, b.url);
+  },
+  // The same checks, for a link clicked inside an embedded app (see the link bridge in fmServer.ts).
+  async "link/open"(ctx, b) {
     return await openQrUrl(ctx, b.url);
   },
 };

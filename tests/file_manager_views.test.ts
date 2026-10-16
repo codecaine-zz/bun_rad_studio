@@ -2156,3 +2156,29 @@ describe("the review dialog, Compare, Projects and duplicate cleanup", () => {
     await nav.saveSettings({ backspaceDeletes: false });
   });
 });
+
+describe("links inside the embedded timer", () => {
+  test("a link clicked in the timer's frame opens in the system browser; messages from anywhere else are ignored", async () => {
+    const embed = await import("../resources/file_manager/ui/embed.js");
+    const host = doc.createElement("div");
+    doc.body.append(host);
+    embed.mountEmbedded(host, { id: "timer", title: "Interval Timer", note: "test" });
+    const frame = host.querySelector("iframe") as any;
+    const origin = new URL(frame.src).origin;
+    const send = (data: unknown, o = origin, source = frame.contentWindow) => win.dispatchEvent(new win.MessageEvent("message", { data, origin: o, source }));
+    launched.length = 0;
+    send({ fmOpenLink: "https://www.youtube.com/@codecaine" });
+    for (let i = 0; i < 40 && !launched.length; i++) await sleep(50);
+    expect(launched.length).toBe(1);
+    expect(launched[0]!.args.join(" ")).toContain("https://www.youtube.com/@codecaine");
+    launched.length = 0;
+    send({ fmOpenLink: "https://evil.example/" }, "http://evil.example:80");
+    send({ fmOpenLink: "https://evil.example/" }, origin, win);
+    send({ somethingElse: "https://evil.example/" });
+    send({ fmOpenLink: "file:///etc/passwd" });
+    send({ fmOpenLink: "javascript:alert(1)" });
+    await sleep(400);
+    expect(launched).toEqual([]);
+    host.remove();
+  });
+});

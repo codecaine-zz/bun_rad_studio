@@ -181,6 +181,17 @@ function embeddedCsp(app: EmbeddedApp, host: string): string {
   ].join("; ");
 }
 
+/**
+ * Links to other sites inside an embedded app (the timer's YouTube and music links) can't open from a frame in the desktop
+ * window: a native window has no tab to open them in. The app sends the address up to the File Manager page instead, which
+ * asks the server to open it in the system browser. Only the address is sent (never anything secret), and the page checks
+ * it again before opening it.
+ */
+const LINK_BRIDGE = `<script>(function(){var send=function(u){try{parent.postMessage({fmOpenLink:String(u)},"*")}catch(e){}};` +
+  `var abs=function(u){try{var x=new URL(u,location.href);return(x.protocol==="http:"||x.protocol==="https:")&&x.origin!==location.origin?x.href:null}catch(e){return null}};` +
+  `document.addEventListener("click",function(e){var a=e.target&&e.target.closest&&e.target.closest("a[href]");if(!a||e.defaultPrevented||e.button>1)return;var u=abs(a.getAttribute("href"));if(u){e.preventDefault();send(u)}},true);` +
+  `window.open=function(u){var x=u&&abs(u);if(x)send(x);return null}})();</script>`;
+
 const EMBED_TYPES: Record<string, string> = { html: "text/html; charset=utf-8", js: "text/javascript; charset=utf-8", css: "text/css; charset=utf-8", svg: "image/svg+xml", json: "application/json; charset=utf-8", png: "image/png", gif: "image/gif", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", woff2: "font/woff2", mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg" };
 
 /** A WebSocket that carries one hosted tool's page <-> program messages (see fmHostedStudios.ts). */
@@ -455,7 +466,7 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
       }
       const html = readFileSync(file, "utf8");
       const at = html.lastIndexOf("</head>");
-      const tweak = `<style>${app.hideCss}</style>`;
+      const tweak = `<style>${app.hideCss}</style>${LINK_BRIDGE}`;
       return new Response(at >= 0 ? html.slice(0, at) + tweak + html.slice(at) : html + tweak, { headers });
     }
     return new Response(Bun.file(file), { headers });

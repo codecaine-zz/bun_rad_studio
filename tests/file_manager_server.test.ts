@@ -142,7 +142,7 @@ describe("who may call the API", () => {
   });
 
   test("every documented operation exists", () => {
-    for (const op of ["places", "list", "props", "entry", "recent/add", "mkdir", "newfile", "rename", "relocate", "conflicts", "copy", "move", "trash", "trash/list", "trash/restore", "trash/delete", "delete", "search", "preview", "open", "reveal", "zip", "unzip", "bulkrename", "settings", "typedpath", "copytext"]) {
+    for (const op of ["places", "list", "props", "entry", "recent/add", "link/open", "mkdir", "newfile", "rename", "relocate", "conflicts", "copy", "move", "trash", "trash/list", "trash/restore", "trash/delete", "delete", "search", "preview", "open", "reveal", "zip", "unzip", "bulkrename", "settings", "typedpath", "copytext"]) {
       expect(API_OPERATIONS).toContain(op);
     }
   });
@@ -288,6 +288,19 @@ describe("opening an item known only by its path (Recent)", () => {
     expect(launched.length).toBe(before);
     expect((await api("recent/add", { path: join(work, "sub") })).json.ok).toBe(false);
     expect((await api("recent/add", { path: join(work, "not-here.txt") })).json.ok).toBe(false);
+  });
+});
+
+describe("links clicked inside an embedded app (link/open)", () => {
+  test("a web address is opened in the system browser; anything else is refused", async () => {
+    const before = launched.length;
+    const r = await api("link/open", { url: "https://www.youtube.com/@codecaine" });
+    expect(r.json.opened).toBe("https://www.youtube.com/@codecaine");
+    expect(launched.length).toBe(before + 1);
+    for (const url of ["file:///etc/passwd", "javascript:alert(1)", "ftp://x.example/", "https://user:pw@x.example/", "https://x.example/a b", "", 5]) {
+      expect((await api("link/open", { url })).json.ok, String(url)).toBe(false);
+    }
+    expect(launched.length).toBe(before + 1);
   });
 });
 

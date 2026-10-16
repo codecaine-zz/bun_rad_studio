@@ -58,6 +58,8 @@ describe("embedded apps", () => {
       expect(csp).toContain("connect-src 'self'");
       const html = await res.text();
       expect(html).toContain("display:none!important");
+      // Links to other sites are sent up to the File Manager page, which opens them in the system browser.
+      expect(html).toContain("fmOpenLink");
       expect(html.length).toBeGreaterThan(50_000);
       expect(html).not.toContain(TOKEN);
     }
