@@ -1,8 +1,8 @@
 # Changelog
 
-All notable changes. Version 1.1.0 is the second release (1.0.0 was the first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.2.0 is the third release (1.0.0 and 1.1.0 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
 
-## Unreleased
+## 1.2.0 (15 October 2026)
 
 ### Added
 
@@ -12,6 +12,8 @@ All notable changes. Version 1.1.0 is the second release (1.0.0 was the first); 
 - **File Manager: Actions (Actions tab).** Saved recipes made of Convert & process steps, with settings, an output folder and a conflict rule. "Prepare images for a website" is built in. Everything is checked before it runs, results are copied to the output folder only after every step worked, originals are never changed, and a failure names the step and files. Also `bun run files:actions`. Custom command steps are kept but disabled. (`fmActions.ts`, `scripts/file_actions.ts`; `tests/file_manager_actions.test.ts`)
 - **File Manager: clean up duplicate files.** In Dev, Disk and files, tick the extra copies (one copy of each file always stays) and send them to the Recycle Bin through the review window.
 - **README and guide audit.** Counts fixed to what the launcher reports (66 apps, 79 command-line tools, 27 demos), the 133-versus-135 themes difference explained, a platform table labelled tested, partially tested or untested with its evidence, development versus packaged requirements separated, an "implemented, and not yet" list, a "Which tool should I use?" guide for the overlapping tools, and an unbacked claim that compiled Linux desktop apps need no WebKit removed.
+
+- **Tutorial videos and RAD examples.** A step-by-step video engine (`scripts/lib/step_video.ts`) drives the real program in headless Chrome with narration and a caption strip that never covers the picture. `bun scripts/tutorial_file_manager.ts` and `bun scripts/tutorial_designer.ts` make the File Manager and visual-designer tutorials (default voice: Edge neural "Ava", female). `examples/rad_tutorial/` holds seven small runnable SimpleGUI apps (window, layout, controls, state, dialogs and menus, themes, a SQLite contacts app) and two scripts for the rad modules and system tools.
 
 ### Fixed
 

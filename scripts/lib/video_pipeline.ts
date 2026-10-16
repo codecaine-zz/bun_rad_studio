@@ -1,7 +1,7 @@
 // Shared pieces for building a narrated video from scenes: the voice (Gemini TTS when a key is set, Edge neural
 // otherwise, with a cache so rebuilds never pay twice), title cards, the on-screen title bar, and final assembly.
 import { createHash } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 
 export const FFMPEG = "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg";
@@ -9,10 +9,13 @@ export const FFPROBE = "/opt/homebrew/opt/ffmpeg-full/bin/ffprobe";
 export const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const UVX = "/Users/codecaine/.local/bin/uvx";
 
-export const GEMINI_KEY = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? "";
+// TTS_ENGINE=edge (what the tutorial scripts set) ignores any Gemini key, so a video is never narrated by two voices.
+export const GEMINI_KEY = process.env.TTS_ENGINE === "edge" ? "" : (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? "");
 export const GEMINI_MODEL = process.env.GEMINI_TTS_MODEL ?? "gemini-2.5-flash-preview-tts";
+/** Speed-up applied to a Gemini narration afterwards (1 = as spoken). Gemini voices read slowly, so the default is a little faster. */
+export const TTS_TEMPO = Number(process.env.TTS_TEMPO ?? "1.12");
 export const GEMINI_VOICE = process.env.GEMINI_TTS_VOICE ?? "Kore";
-export const EDGE_VOICE = "en-US-AndrewMultilingualNeural";
+export const EDGE_VOICE = process.env.EDGE_TTS_VOICE ?? "en-US-AndrewMultilingualNeural";
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -65,7 +68,7 @@ async function gemini(text: string, out: string): Promise<boolean> {
   if (!GEMINI_KEY) return false;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
   const body = {
-    contents: [{ parts: [{ text: `Read this as a warm, natural, conversational YouTube tutorial narrator, with relaxed pacing and clear pauses between sentences:\n\n${text}` }] }],
+    contents: [{ parts: [{ text: `Read this as a friendly, upbeat, clear YouTube tutorial narrator at a brisk, energetic conversational pace (never drawn out), with only short natural pauses between sentences:\n\n${text}` }] }],
     generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: GEMINI_VOICE } } } },
   };
   for (let attempt = 0; attempt < 8; attempt++) {
@@ -82,8 +85,13 @@ async function gemini(text: string, out: string): Promise<boolean> {
       if (!b64) continue;
       const pcm = out.replace(/\.mp3$/, ".pcm");
       await Bun.write(pcm, Buffer.from(b64, "base64"));
-      sh([FFMPEG, "-y", "-f", "s16le", "-ar", "24000", "-ac", "1", "-i", pcm, "-c:a", "libmp3lame", "-q:a", "2", out]);
-      return existsSync(out);
+      // ffmpeg's mp3 encoder now and then fails on a perfectly good file; the same input works when tried again.
+      for (let t = 0; t < 4; t++) {
+        const r = Bun.spawnSync([FFMPEG, "-y", "-f", "s16le", "-ar", "24000", "-ac", "1", "-i", pcm, "-c:a", "libmp3lame", "-q:a", "2", out], { stdout: "ignore", stderr: "ignore" });
+        if (r.exitCode === 0 && existsSync(out)) return true;
+        await sleep(500);
+      }
+      continue;
     } catch (e) {
       console.warn(`    ⚠ Gemini TTS: ${e}`);
       await sleep(2000);
@@ -126,15 +134,28 @@ export async function narrate(id: string, narration: string, audioDir: string, o
   const final = join(audioDir, `narration_${id}.mp3`);
   const keyFile = `${raw}.key`;
   const text = spokenText(narration);
-  const key = createHash("sha1").update(`${GEMINI_KEY ? `gemini:${GEMINI_MODEL}:${GEMINI_VOICE}` : `edge:${EDGE_VOICE}${rate === "-4%" && gap === 0.42 ? "" : `:${rate}:${gap}`}`}|${text}`).digest("hex");
+  const key = createHash("sha1").update(`${GEMINI_KEY ? `gemini:${GEMINI_MODEL}:${GEMINI_VOICE}:${TTS_TEMPO}:brisk` : `edge:${EDGE_VOICE}${rate === "-4%" && gap === 0.42 ? "" : `:${rate}:${gap}`}`}|${text}`).digest("hex");
   const cached = existsSync(raw) && existsSync(final) && existsSync(keyFile) && readFileSync(keyFile, "utf8") === key;
   if (!cached) {
     if (!(await gemini(text, raw))) {
+      // A narrator that changes voice half way through a video is worse than a stopped build, so a chosen voice can forbid the fallback.
+      if (GEMINI_KEY && process.env.TTS_STRICT === "1") throw new Error(`Gemini voice ${GEMINI_VOICE} failed for ${id}; not falling back to Edge (TTS_STRICT=1). Re-run "audio" later: finished scenes are cached.`);
       const work = join(audioDir, `_edge_${id}`);
       mkdirSync(work, { recursive: true });
       edge(text, raw, work, rate, gap);
     }
-    sh([FFMPEG, "-y", "-i", raw, "-af", "highpass=f=70,acompressor=threshold=-20dB:ratio=2:attack=20:release=250,loudnorm=I=-16:TP=-1.5:LRA=11,adelay=350|350,apad=pad_dur=0.75", "-ar", "48000", final]);
+    // Speeding up in the same ffmpeg run as the encoder can make some clips fail, so it is a step of its own.
+    let source = raw;
+    if (GEMINI_KEY && TTS_TEMPO !== 1) {
+      source = `${raw}.tempo.wav`;
+      sh([FFMPEG, "-y", "-i", raw, "-af", `atempo=${TTS_TEMPO}`, "-ar", "24000", source], { quiet: true });
+    }
+    // The filters write plain audio first: ffmpeg's mp3 encoder rejects some filtered clips when fed straight from the chain.
+    const polished = `${raw}.polished.wav`;
+    sh([FFMPEG, "-y", "-i", source, "-af", "highpass=f=70,acompressor=threshold=-20dB:ratio=2:attack=20:release=250,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000,adelay=350|350,apad=pad_dur=0.75", "-ar", "48000", polished], { quiet: true });
+    sh([FFMPEG, "-y", "-i", polished, "-c:a", "libmp3lame", "-q:a", "2", final]);
+    rmSync(polished, { force: true });
+    if (source !== raw) rmSync(source, { force: true });
     writeFileSync(keyFile, key);
   }
   return final;
