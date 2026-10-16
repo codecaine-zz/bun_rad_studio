@@ -1,6 +1,14 @@
 # Changelog
 
-All notable changes. Version 1.2.2 is the fifth release (1.0.0, 1.1.0, 1.2.0 and 1.2.1 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.3.0 is the sixth release (1.0.0, 1.1.0, 1.2.0, 1.2.1 and 1.2.2 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+
+## 1.3.0 (16 October 2026)
+
+### Added
+
+- **Redis Studio: edit hash, list, set and sorted-set keys.** 💾 Save Changes now writes every changed hash value, list element, set member and sorted-set score or member (before, it only saved String keys). Each row has a Delete button, and ＋ Add Field, ＋ Push Element, ＋ Add Member and ＋ Add Ranked Item work (they used to do nothing). New route `/api/key/element`. (`tests/redis_studio_enhancements.test.ts`)
+- **File Manager: a Databases button in the toolbar** (next to Find & more), and Databases is now a group of its own in the Find & more tab strip instead of the last tab.
+- **File Manager: Redis on this computer is found automatically.** A Redis answering at `127.0.0.1:6379` (a Homebrew install) is saved as a connection once, with a message, when no Redis settings exist yet; a deleted one is not added again. One `PING`, no password tried; `BUN_RAD_FM_LOCAL_REDIS=off` turns it off. (`tests/file_manager_db_localredis.test.ts`)
 
 ## 1.2.2 (15 October 2026)
 

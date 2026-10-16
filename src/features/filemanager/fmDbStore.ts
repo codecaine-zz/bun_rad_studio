@@ -41,7 +41,7 @@ export type DbProfile = ConnectionProfile | RedisProfile;
 
 export interface ProfileMeta {
   /** How the profile came to be. */
-  source: "manual" | "environment" | "dotenv" | "envfile" | "url";
+  source: "manual" | "environment" | "dotenv" | "envfile" | "url" | "local";
   /** Environment variable names it was made from (names only). */
   variables?: string[];
   slot?: string;
@@ -222,7 +222,7 @@ export class DbStore {
       if (Array.isArray(raw.dismissed)) base.dismissed = raw.dismissed.filter((x: unknown) => typeof x === "string" && /^[a-z]+:[0-9a-f]{16}$/.test(x)).slice(0, 200);
       if (raw.meta && typeof raw.meta === "object") {
         for (const [id, m] of Object.entries(raw.meta as Record<string, any>)) {
-          if (m && typeof m === "object" && ["manual", "environment", "dotenv", "envfile", "url"].includes(m.source)) {
+          if (m && typeof m === "object" && ["manual", "environment", "dotenv", "envfile", "url", "local"].includes(m.source)) {
             base.meta[id] = { source: m.source, variables: Array.isArray(m.variables) ? m.variables.filter((v: unknown) => typeof v === "string").slice(0, 40) : undefined, slot: typeof m.slot === "string" ? m.slot : undefined, fingerprint: typeof m.fingerprint === "string" ? m.fingerprint : undefined, savedAt: String(m.savedAt ?? "") };
           }
         }

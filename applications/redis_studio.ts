@@ -1694,7 +1694,7 @@ function buildRedisHtml(): string {
                 \${entries.map(([f, v]) => \`
                   <tr>
                     <td style="color: var(--accent-cyan); font-weight: 600;"><span style="background: rgba(6,182,212,0.1); padding: 2px 6px; border-radius: 4px;">\${escapeHtml(f)}</span></td>
-                    <td><input type="text" value="\${escapeHtml(v)}" class="hash-field-input" data-field="\${escapeHtml(f)}" style="width: 100%; background: transparent; border: 1px solid transparent; color: #fff; font-family: var(--font-mono); font-size: 12px;" /></td>
+                    <td><input type="text" value="\${escapeHtml(v)}" class="hash-field-input" data-field="\${escapeHtml(f)}" style="width: 100%; background: transparent; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; color: #fff; font-family: var(--font-mono); font-size: 12px;" /></td>
                     <td><button class="btn btn-danger" style="font-size: 10px; padding: 2px 6px;" data-field="\${escapeHtml(f)}" onclick="deleteHashField(this.dataset.field)">Delete</button></td>
                   </tr>
                 \`).join('')}
@@ -1711,13 +1711,14 @@ function buildRedisHtml(): string {
               <button class="btn btn-cyan" style="font-size: 11px;" onclick="pushListItem()">＋ Push Element</button>
             </div>
             <table class="pro-table">
-              <thead><tr><th style="width: 70px;">Index</th><th>Element Value</th><th style="width: 90px;">Length</th></tr></thead>
+              <thead><tr><th style="width: 70px;">Index</th><th>Element Value</th><th style="width: 90px;">Length</th><th style="width: 70px;">Action</th></tr></thead>
               <tbody>
                 \${items.map((it, idx) => \`
                   <tr>
                     <td style="color: var(--text-dim); font-weight: 700;">[\${idx}]</td>
-                    <td style="color: #fff;">\${escapeHtml(it)}</td>
+                    <td><input type="text" value="\${escapeHtml(it)}" class="list-item-input" data-idx="\${idx}" style="width: 100%; background: transparent; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; color: #fff; font-family: var(--font-mono); font-size: 12px;" /></td>
                     <td style="color: var(--text-dim);">\${(String(it) || '').length} chars</td>
+                    <td><button class="btn btn-danger" style="font-size: 10px; padding: 2px 6px;" data-idx="\${idx}" onclick="removeListItem(Number(this.dataset.idx))">Delete</button></td>
                   </tr>
                 \`).join('')}
               </tbody>
@@ -1733,12 +1734,13 @@ function buildRedisHtml(): string {
               <button class="btn btn-cyan" style="font-size: 11px;" onclick="addSetMember()">＋ Add Member</button>
             </div>
             <table class="pro-table">
-              <thead><tr><th style="width: 50px;">#</th><th>Unique Member Value</th></tr></thead>
+              <thead><tr><th style="width: 50px;">#</th><th>Unique Member Value</th><th style="width: 70px;">Action</th></tr></thead>
               <tbody>
                 \${members.map((m, idx) => \`
                   <tr>
                     <td style="color: var(--text-dim);">\${idx + 1}</td>
-                    <td style="color: #fff;">\${escapeHtml(m)}</td>
+                    <td><input type="text" value="\${escapeHtml(m)}" class="set-member-input" data-idx="\${idx}" style="width: 100%; background: transparent; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; color: #fff; font-family: var(--font-mono); font-size: 12px;" /></td>
+                    <td><button class="btn btn-danger" style="font-size: 10px; padding: 2px 6px;" data-idx="\${idx}" onclick="removeSetMember(Number(this.dataset.idx))">Delete</button></td>
                   </tr>
                 \`).join('')}
               </tbody>
@@ -1754,15 +1756,16 @@ function buildRedisHtml(): string {
               <button class="btn btn-cyan" style="font-size: 11px;" onclick="addZsetMember()">＋ Add Ranked Item</button>
             </div>
             <table class="pro-table">
-              <thead><tr><th style="width: 60px;">Rank</th><th style="width: 120px;">Score</th><th>Member Name</th></tr></thead>
+              <thead><tr><th style="width: 60px;">Rank</th><th style="width: 120px;">Score</th><th>Member Name</th><th style="width: 70px;">Action</th></tr></thead>
               <tbody>
                 \${items.map((it, idx) => {
                   const rankClass = idx === 0 ? 'rank-1' : idx === 1 ? 'rank-2' : idx === 2 ? 'rank-3' : 'rank-other';
                   return \`
                     <tr>
                       <td><span class="rank-pill \${rankClass}">\${idx + 1}</span></td>
-                      <td style="color: var(--accent-amber); font-weight: 700;">\${Number(it.score).toLocaleString()}</td>
-                      <td style="color: #fff; font-weight: 600;">\${escapeHtml(it.member)}</td>
+                      <td><input type="number" step="any" value="\${Number(it.score)}" class="zset-score-input" data-idx="\${idx}" style="width: 100%; background: transparent; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; color: var(--accent-amber); font-family: var(--font-mono); font-size: 12px; font-weight: 700;" /></td>
+                      <td><input type="text" value="\${escapeHtml(it.member)}" class="zset-member-input" data-idx="\${idx}" style="width: 100%; background: transparent; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; color: #fff; font-family: var(--font-mono); font-size: 12px; font-weight: 600;" /></td>
+                      <td><button class="btn btn-danger" style="font-size: 10px; padding: 2px 6px;" data-idx="\${idx}" onclick="removeZsetMember(Number(this.dataset.idx))">Delete</button></td>
                     </tr>
                   \`;
                 }).join('')}
@@ -1974,7 +1977,137 @@ function buildRedisHtml(): string {
         } else {
           alert('Error: ' + result.error);
         }
+        return;
       }
+
+      const edits = collectElementEdits(activeKeyData);
+      if (edits.length === 0) {
+        alert('No changes to save.');
+        return;
+      }
+      for (const edit of edits) {
+        const result = await postElement(edit);
+        if (!result.success) {
+          alert('Error: ' + (result.error || 'Failed to save changes'));
+          await selectKey(activeKey);
+          return;
+        }
+      }
+      alert('Saved ' + edits.length + ' change' + (edits.length === 1 ? '' : 's') + '.');
+      await selectKey(activeKey);
+      refreshAll();
+    }
+
+    function collectElementEdits(details) {
+      const key = activeKey;
+      const edits = [];
+      const value = details.value;
+      if (details.type === 'hash') {
+        document.querySelectorAll('.hash-field-input').forEach(function (el) {
+          const field = el.dataset.field;
+          if (el.value !== String(value[field] ?? '')) {
+            edits.push({ key, type: 'hash', op: 'update', field, value: el.value });
+          }
+        });
+      } else if (details.type === 'list') {
+        document.querySelectorAll('.list-item-input').forEach(function (el) {
+          const idx = Number(el.dataset.idx);
+          if (el.value !== String(value[idx] ?? '')) {
+            edits.push({ key, type: 'list', op: 'update', index: idx, value: el.value });
+          }
+        });
+      } else if (details.type === 'set') {
+        document.querySelectorAll('.set-member-input').forEach(function (el) {
+          const old = String(value[Number(el.dataset.idx)] ?? '');
+          if (el.value !== old) {
+            edits.push({ key, type: 'set', op: 'update', oldMember: old, value: el.value });
+          }
+        });
+      } else if (details.type === 'zset') {
+        document.querySelectorAll('.zset-score-input').forEach(function (scoreEl) {
+          const idx = Number(scoreEl.dataset.idx);
+          const memberEl = document.querySelector('.zset-member-input[data-idx="' + idx + '"]');
+          const old = value[idx];
+          if (!old || !memberEl) return;
+          if (scoreEl.value !== String(Number(old.score)) || memberEl.value !== String(old.member)) {
+            edits.push({ key, type: 'zset', op: 'update', oldMember: String(old.member), value: memberEl.value, score: Number(scoreEl.value) });
+          }
+        });
+      }
+      return edits;
+    }
+
+    async function postJson(url, payload) {
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        return await res.json();
+      } catch (e) {
+        return { success: false, error: e.message };
+      }
+    }
+
+    function postElement(payload) { return postJson('/api/key/element', payload); }
+
+    async function finishKeyEdit(result, failMsg) {
+      if (!result.success) alert('Error: ' + (result.error || failMsg));
+      await selectKey(activeKey);
+      refreshAll();
+    }
+
+    async function addHashField() {
+      const field = prompt('New field name:');
+      if (field === null || field === '') return;
+      const val = prompt('Value for "' + field + '":', '');
+      if (val === null) return;
+      await finishKeyEdit(await postElement({ key: activeKey, type: 'hash', op: 'update', field, value: val }), 'Failed to add field');
+    }
+
+    async function deleteHashField(field) {
+      if (!confirm('Delete field "' + field + '"?')) return;
+      await finishKeyEdit(await postElement({ key: activeKey, type: 'hash', op: 'remove', field }), 'Failed to delete field');
+    }
+
+    async function pushListItem() {
+      const val = prompt('Value to push to the end of the list:');
+      if (val === null) return;
+      await finishKeyEdit(await postJson('/api/key/set', { key: activeKey, type: 'list', value: val }), 'Failed to push element');
+    }
+
+    async function removeListItem(idx) {
+      if (!confirm('Delete list element [' + idx + ']?')) return;
+      await finishKeyEdit(await postElement({ key: activeKey, type: 'list', op: 'remove', index: idx }), 'Failed to delete element');
+    }
+
+    async function addSetMember() {
+      const val = prompt('New set member:');
+      if (val === null || val === '') return;
+      await finishKeyEdit(await postJson('/api/key/set', { key: activeKey, type: 'set', value: val }), 'Failed to add member');
+    }
+
+    async function removeSetMember(idx) {
+      const member = activeKeyData.value[idx];
+      if (!confirm('Remove member "' + member + '"?')) return;
+      await finishKeyEdit(await postElement({ key: activeKey, type: 'set', op: 'remove', oldMember: String(member) }), 'Failed to remove member');
+    }
+
+    async function addZsetMember() {
+      const member = prompt('New member name:');
+      if (member === null || member === '') return;
+      const scoreText = prompt('Score for "' + member + '":', '0');
+      if (scoreText === null) return;
+      const score = Number(scoreText);
+      if (!Number.isFinite(score)) { alert('Score must be a number'); return; }
+      await finishKeyEdit(await postJson('/api/key/set', { key: activeKey, type: 'zset', value: member, score }), 'Failed to add member');
+    }
+
+    async function removeZsetMember(idx) {
+      const item = activeKeyData.value[idx];
+      if (!confirm('Remove member "' + item.member + '"?')) return;
+      await finishKeyEdit(await postElement({ key: activeKey, type: 'zset', op: 'remove', oldMember: String(item.member) }), 'Failed to remove member');
     }
 
     async function deleteCurrentKey() {

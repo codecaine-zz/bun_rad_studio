@@ -4,6 +4,9 @@ import { join } from "path";
 import { Database } from "bun:sqlite";
 import { dbComputer, type DbComputer } from "./helpers/db_fm";
 
+// A real Redis on this computer must not change what these tests expect to find.
+process.env.BUN_RAD_FM_LOCAL_REDIS = "off";
+
 const PW = "s3cr3t-MARKER-4242";
 const PW2 = "another-MARKER-9999";
 const computers: DbComputer[] = [];

@@ -121,4 +121,42 @@ describeRedis("Redis Studio productivity API (live Redis, DB 14)", () => {
     expect(scripts.length).toBeGreaterThan(0);
     for (const s of scripts) expect(() => new Function(s)).not.toThrow();
   });
+
+  it("defines every handler the key editor buttons call", () => {
+    const html = generateRedisStudioHtml();
+    for (const fn of ["addHashField", "deleteHashField", "pushListItem", "removeListItem", "addSetMember", "removeSetMember", "addZsetMember", "removeZsetMember", "saveKeyChanges"]) {
+      expect(html).toContain(`function ${fn}(`);
+    }
+  });
+
+  it("edits and removes elements of hash, list, set and zset keys", async () => {
+    await post("/api/cli", { command: "HSET el:h a 1 b 2" });
+    await post("/api/cli", { command: "RPUSH el:l x y z" });
+    await post("/api/cli", { command: "SADD el:s m n" });
+    await post("/api/cli", { command: "ZADD el:z 1 one 2 two" });
+    const el = (body: any) => post("/api/key/element", body);
+    const cli = async (command: string) => (await post("/api/cli", { command })).result;
+
+    expect((await el({ key: "el:h", type: "hash", op: "update", field: "a", value: "9" })).success).toBe(true);
+    expect(await cli("HGET el:h a")).toBe("9");
+    expect((await el({ key: "el:h", type: "hash", op: "remove", field: "b" })).success).toBe(true);
+    expect(await cli("HEXISTS el:h b")).toBe(0);
+
+    expect((await el({ key: "el:l", type: "list", op: "update", index: 0, value: "X" })).success).toBe(true);
+    expect((await el({ key: "el:l", type: "list", op: "remove", index: 1 })).success).toBe(true);
+    expect(await cli("LRANGE el:l 0 -1")).toEqual(["X", "z"]);
+
+    expect((await el({ key: "el:s", type: "set", op: "update", oldMember: "m", value: "M" })).success).toBe(true);
+    expect((await el({ key: "el:s", type: "set", op: "remove", oldMember: "n" })).success).toBe(true);
+    expect(await cli("SMEMBERS el:s")).toEqual(["M"]);
+
+    expect((await el({ key: "el:z", type: "zset", op: "update", oldMember: "one", value: "ONE", score: 5 })).success).toBe(true);
+    expect((await el({ key: "el:z", type: "zset", op: "remove", oldMember: "two" })).success).toBe(true);
+    expect(await cli("ZSCORE el:z ONE")).toBe(5);
+    expect(await cli("ZCARD el:z")).toBe(1);
+
+    expect((await el({ key: "el:l", type: "list", op: "update", index: 99, value: "q" })).success).toBe(false);
+    expect((await el({ key: "el:z", type: "zset", op: "update", oldMember: "ONE", score: "abc" })).success).toBe(false);
+    expect((await el({ key: "el:h", type: "stream", op: "remove" })).success).toBe(false);
+  });
 });

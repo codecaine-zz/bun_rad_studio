@@ -20,6 +20,12 @@ Launch: [Desktop GUI: bun run applications/redis_studio.ts [redis-url]]
 | :---: | :---: |
 | ![Redis Studio Desktop](../../screenshots/apps/redis_studio_desktop.png) | ![Redis Studio Responsive](../../screenshots/apps/redis_studio_responsive.png) |
 
+| Edit a value, then Save Changes |
+| :---: |
+| ![Redis Studio with the score of a sorted-set member edited in place, before saving](../../screenshots/apps/redis_studio_editing.png) |
+
+**Connects by itself.** On its own, Redis Studio connects to `redis://127.0.0.1:6379` (the address a Homebrew install of Redis uses; `brew services start redis` starts it), or to `REDIS_URL` / `REDIS_DB` when those are set. From the [File Manager](43_file_manager.md#databases-databases-tab) the Databases tool finds a Redis running at that address and saves it as a connection for you, so there is nothing to type: click 🗄️ **Databases**, then open Redis Studio.
+
 ---
 
 ## 🧭 Element Guide
@@ -32,7 +38,7 @@ Launch: [Desktop GUI: bun run applications/redis_studio.ts [redis-url]]
 - **Auto refresh**: Off / 5s / 10s / 30s re-scan of the key list.
 
 ### 2. Key Editor
-- Select a key to view or edit it with the editor that matches its type. **💾 Save Changes** writes edits.
+- Select a key to view or edit it with the editor that matches its type. **💾 Save Changes** writes edits: the String text, or every changed hash value, list element, set member and sorted-set score/member (edit the cell, then Save). Per-row **Delete** buttons remove one hash field, list element, set member or sorted-set member, and the **＋ Add** buttons (field, element, member, ranked item) prompt for the new value and apply it immediately. Streams, HyperLogLogs and bitmaps have their own tools instead.
 - **📋 Copy Name** copies the key name; **⧉ Duplicate** copies the key (value and TTL) to a new name and refuses to overwrite an existing key.
 - **⏱️ Set TTL**, **✏️ Rename**, **🗑️ Delete** as before.
 

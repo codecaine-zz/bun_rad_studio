@@ -122,7 +122,7 @@ export function renderDetail(box) {
       row("Read-only", p.readOnly ? "Yes: the File Manager asks before opening a studio" : null),
       row("Folder", p.folder),
       row("Tags", p.tags?.length ? h("span", {}, p.tags.map(tag)) : null),
-      row("Made from", p.meta?.source === "environment" ? `Your environment (${(p.meta.variables ?? []).join(", ")})` : p.meta?.source === "dotenv" ? `A .env file (${(p.meta.variables ?? []).join(", ")})` : p.meta?.source === "envfile" ? "A .env file you chose" : null),
+      row("Made from", p.meta?.source === "environment" ? `Your environment (${(p.meta.variables ?? []).join(", ")})` : p.meta?.source === "dotenv" ? `A .env file (${(p.meta.variables ?? []).join(", ")})` : p.meta?.source === "envfile" ? "A .env file you chose" : p.meta?.source === "local" ? "The Redis server running on this computer (found automatically)" : null),
     ),
     running.length ? h("p", { class: "pw-hint" }, `${info.studioName} is open for this connection. `, h("button", { type: "button", class: "pw-btn", onclick: () => emit("db-view", { view: "studio", id: running[0].id }) }, "Show it")) : null,
     buttons,

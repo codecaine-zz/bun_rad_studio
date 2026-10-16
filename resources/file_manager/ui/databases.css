@@ -63,6 +63,7 @@
 
 .db-found { border: 2px solid var(--accent); border-radius: 10px; padding: 10px 12px; background: var(--panel); display: flex; flex-direction: column; gap: 8px; }
 .db-found-title { margin: 0; font-size: 1em; }
+.db-found[hidden] { display: none; }
 .db-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; }
 .db-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--bg); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .db-card-changed { border-color: var(--warn-text); }

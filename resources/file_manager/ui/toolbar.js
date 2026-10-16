@@ -5,7 +5,7 @@ import { attachDropTarget } from "./dnd.js";
 import { showHelp, showSettings } from "./extras.js";
 import { showFavoritesMenu } from "./favorites.js";
 import { showToolsDialog } from "./tools.js";
-import { togglePower } from "./power.js";
+import { openPower, togglePower } from "./power.js";
 import { lockSelection } from "./vault.js";
 import { showOperationHistory } from "./opHistory.js";
 import { $, clear, h } from "./dom.js";
@@ -64,6 +64,7 @@ function buttonSpecs() {
       { id: "lock", icon: "🔒", label: "Lock", tip: "Protect the selected files or folders with a password (encrypt), or unlock a selected .radenc file. A lost password can't be recovered.", run: lockSelection, enabled: () => sel() > 0, hide: inTrash },
       { id: "tools", icon: "🧰", label: "Convert", tip: "Convert, shrink or combine pictures, video, sound and documents, and set up the helper programs", run: showToolsDialog, enabled: () => !inTrash() },
       { id: "power", icon: "🔎", label: "Find & more", get tip() { return `Power tools: advanced find, watch folders and run commands, hashes and encryption, IP lookup and network checks${hintOf("nav.findTool")}`; }, run: () => togglePower(), enabled: () => true, toggle: () => state.powerOpen === true },
+      { id: "databases", icon: "🗄️", label: "Databases", tip: "Open the Databases tool: saved connections and the SQLite, MySQL, PostgreSQL and Redis studios", run: () => openPower("databases"), enabled: () => true },
       { id: "terminal", icon: "⌨️", label: "Terminal", get tip() { return `Show or hide a terminal in this folder${hintOf("terminal.toggle")}`; }, run: () => emit("toggle-terminal"), enabled: () => true, toggle: () => state.terminalOpen },
       { id: "themes", icon: "🎨", label: "Themes", get tip() { return `Change the colours: standard light or dark, themes you used lately, or all of them${hintOf("app.themes")}`; }, run: async (btn) => showMenu(await themeMenuItems(), { anchor: btn, label: "Themes" }), enabled: () => true, menu: true },
       { id: "settings", icon: "⚙️", label: "Settings", tip: "Colours, text size and more", run: showSettings, enabled: () => true },

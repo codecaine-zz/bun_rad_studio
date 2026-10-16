@@ -28,7 +28,10 @@ export async function startQuietDetect() {
     const r = await refreshDetect({ quiet: true });
     if (r.autoSaved?.length) {
       await loadOverview();
-      toast(`Saved ${r.autoSaved.length} database connection${r.autoSaved.length === 1 ? "" : "s"} from your environment to the Databases tool.`, { kind: "info", action: { label: "Open Databases", run: () => openPower("databases") } });
+      const onlyLocal = r.autoSaved.every((x) => x.local);
+      toast(onlyLocal
+        ? "Found Redis running on this computer and added it to the Databases tool."
+        : `Saved ${r.autoSaved.length} database connection${r.autoSaved.length === 1 ? "" : "s"} from your environment to the Databases tool.`, { kind: "info", action: { label: "Open Databases", run: () => openPower("databases") } });
     } else if (r.announce) {
       const n = r.cards.length;
       toast(`Found ${n} database connection${n === 1 ? "" : "s"} in your environment. Open Databases to save ${n === 1 ? "it" : "them"} here.`, { kind: "info", action: { label: "Review", run: () => openPower("databases") } });

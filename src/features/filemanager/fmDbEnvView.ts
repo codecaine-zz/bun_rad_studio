@@ -9,7 +9,7 @@ import { readDotenvFolder, type DotenvFolder } from "./fmDbDotenv";
 import { isAnyConnectionVariable } from "./fmDbModel";
 
 export interface Provenance {
-  kind: "process" | "file";
+  kind: "process" | "file" | "local";
   variable: string;
   /** ".env", ".env.local" ... for a value that came from a file. */
   file?: string;
@@ -105,6 +105,7 @@ export async function buildEnvView(input: EnvViewInput): Promise<EnvView> {
 
 /** "environment variable NAME", or "`.env.local` in the start folder (~/app), variable NAME" and what is special about it. */
 export function provenanceText(p: Provenance): string {
+  if (p.kind === "local") return "the Redis server found running on this computer (the usual address, such as a Homebrew install)";
   if (p.kind === "process") return `environment variable ${p.variable}${p.overrides?.length ? ` (overrides ${p.overrides.join(", ")})` : ""}`;
   if (p.where === "chosen") return `the file you chose (${p.shown}), variable ${p.variable}`;
   const place = p.where === "application" ? "the application folder" : p.where === "install" ? "the install folder" : "the start folder";

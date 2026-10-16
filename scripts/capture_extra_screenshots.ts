@@ -3,6 +3,7 @@
  *
  *   bun run scripts/capture_extra_screenshots.ts                 everything below
  *   bun run scripts/capture_extra_screenshots.ts file_manager    only the File Manager (the pictures in its guide)
+ *   bun run scripts/capture_extra_screenshots.ts redis           Redis Studio on demo keys (only when asked; needs an empty database 14)
  *   bun run scripts/capture_extra_screenshots.ts code_studio snake_studio
  *
  * Three ways of getting a page, depending on the app:
@@ -175,11 +176,20 @@ class Cdp {
     });
   }
   async eval(expression: string): Promise<any> {
-    const r = await this.send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
-    if (r.exceptionDetails) throw new Error(`page error: ${r.exceptionDetails.text} ${r.exceptionDetails.exception?.description ?? ""}`);
-    return r.result?.value;
+    // The page may reload once while it starts (new context), so try again a few times.
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const r = await this.send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
+        if (r.exceptionDetails) throw new Error(`page error: ${r.exceptionDetails.text} ${r.exceptionDetails.exception?.description ?? ""}`);
+        return r.result?.value;
+      } catch (err: any) {
+        if (attempt < 20 && /context was destroyed|Cannot find context/i.test(String(err?.message))) { await sleep(500); continue; }
+        throw err;
+      }
+    }
   }
   async shot(file: string) {
+    await this.eval("document.querySelector('#toasts')?.replaceChildren()");
     const r = await this.send("Page.captureScreenshot", { format: "png" });
     writeFileSync(file, Buffer.from(r.data, "base64"));
   }
@@ -240,13 +250,27 @@ async function captureFileManager() {
     await click("Mountain lake.png", true);
     await click("Beach morning.jpg", true);
     await page.eval("document.querySelector('#tool-tools').click()");
-    await page.eval("new Promise(r => { const t = setInterval(() => { if (document.querySelector('.act-group') || document.querySelector('.tool-block')) { clearInterval(t); r(true); } }, 100); })");
+    await page.eval("new Promise(r => { const t = setInterval(() => { if (document.querySelector('.dialog.wide') && document.querySelector('.dialog.wide').textContent.includes('What do you want to turn')) { clearInterval(t); r(true); } }, 100); })");
     await sleep(1500);
     await page.shot(join(OUT, "file_manager_studio_convert.png"));
     await page.eval("[...document.querySelectorAll('.dialog button')].find(b => b.textContent === 'Close')?.click()");
     await sleep(300);
 
-    // 3. The terminal, started in the folder on screen.
+    // 3. The Databases tool, opened from its own toolbar button. The screenshot machine's own .env files are put aside so
+    // only the Redis found on this computer is left.
+    await page.eval("document.querySelector('#tool-databases').click()");
+    await page.eval("new Promise(r => { const t = setInterval(() => { if (document.querySelector('#power-panel') && !document.querySelector('#power-panel').hidden && document.querySelector('.db-row')) { clearInterval(t); r(true); } }, 100); })");
+    await sleep(800);
+    await page.eval("[...document.querySelectorAll('#power-panel button')].filter(b => b.textContent === 'Not now').forEach(b => b.click())");
+    await sleep(600);
+    await page.eval("document.querySelector('#power-panel .db-row')?.click()");
+    await page.eval("document.querySelector('#toasts')?.replaceChildren()");
+    await sleep(1200);
+    await page.shot(join(OUT, "file_manager_studio_databases.png"));
+    await page.eval("document.querySelector('#tool-power')?.click()");
+    await sleep(500);
+
+    // 4. The terminal, started in the folder on screen.
     await page.eval("document.querySelector('#tool-terminal').click()");
     await sleep(2500);
     await page.eval("document.querySelector('.xterm-helper-textarea')?.focus()");
@@ -256,11 +280,88 @@ async function captureFileManager() {
     await sleep(1200);
     await page.shot(join(OUT, "file_manager_studio_terminal.png"));
     ws.close();
-    console.log("  ✔ file_manager_studio: desktop, responsive, convert and terminal");
+    console.log("  ✔ file_manager_studio: desktop, responsive, convert, databases and terminal");
   } finally {
     chrome.kill();
     server.kill();
     rmSync(join("/tmp", "demo"), { recursive: true, force: true });
+  }
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Redis Studio, on a few demo keys in database 14 of the Redis on this computer
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Shows the hash editor of a live Redis Studio. Only `demo:*` keys are written, and only in an empty database 14; they are deleted again. */
+async function captureRedis() {
+  const { RedisClient } = await import("bun");
+  const { startRedisStudioServer } = await import(join(ROOT, "applications", "redis_studio_server.ts"));
+  const redis = new RedisClient("redis://127.0.0.1:6379");
+  try {
+    await redis.ping();
+  } catch {
+    console.warn("  ! no Redis on 127.0.0.1:6379, so the live Redis Studio picture was skipped (the static one stays)");
+    return;
+  }
+  await redis.send("SELECT", ["14"]);
+  if (Number(await redis.send("DBSIZE", [])) !== 0) {
+    console.warn("  ! database 14 is not empty, so the live Redis Studio picture was skipped");
+    redis.close();
+    return;
+  }
+  const studio = startRedisStudioServer({ port: 0, url: "redis://127.0.0.1:6379", db: 14 });
+  const post = (path: string, body: object) => fetch(`${studio.url}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const cli = (command: string) => post("/api/cli", { command });
+  const debugPort = 9334;
+  let chrome: ReturnType<typeof spawn> | undefined;
+  try {
+    for (const c of [
+      "HSET demo:user:1001 name Ada email ada@example.com plan pro seats 5 country UK",
+      "HSET demo:user:1002 name Grace email grace@example.com plan team seats 12 country US",
+      "RPUSH demo:queue:emails welcome-1001 reset-1002 invoice-1003",
+      "SADD demo:tags redis bun typescript",
+      "ZADD demo:leaders 4200 ada 3900 grace 3100 linus",
+      "SET demo:greeting hello EX 3600",
+    ]) await cli(c);
+
+    chrome = spawn(CHROME, ["--headless=new", "--disable-gpu", "--no-sandbox", "--hide-scrollbars", `--remote-debugging-port=${debugPort}`, `--user-data-dir=${join(work, "redis-profile")}`, "--window-size=1280,860", studio.url], { stdio: "ignore" });
+    let target: any;
+    for (let i = 0; i < 60 && !target; i++) {
+      await sleep(250);
+      try {
+        const list = (await (await fetch(`http://127.0.0.1:${debugPort}/json/list`)).json()) as any[];
+        target = list.find((t) => t.type === "page" && t.url.startsWith("http://127.0.0.1"));
+      } catch { /* Chrome is still starting */ }
+    }
+    if (!target) throw new Error("Chrome's debugging port did not answer.");
+    const ws = new WebSocket(target.webSocketDebuggerUrl);
+    await new Promise((r) => (ws.onopen = r as any));
+    const page = new Cdp(ws);
+    await page.send("Page.enable");
+    const pick = async (key: string) => { await page.eval(`selectKey(${JSON.stringify(key)})`); await sleep(900); };
+    const mark = (cls: string, value: string) => page.eval(`(() => { const el = document.querySelector(${JSON.stringify(cls)}); if (el) { el.value = ${JSON.stringify(value)}; el.dispatchEvent(new Event('input', { bubbles: true })); } })()`);
+
+    await page.size(1280, 860);
+    await sleep(2500);
+    await page.eval("refreshAll()");
+    await sleep(1200);
+    await pick("demo:user:1001");
+    await page.shot(join(OUT, "redis_studio_desktop.png"));
+    await page.size(960, 760);
+    await sleep(600);
+    await page.shot(join(OUT, "redis_studio_responsive.png"));
+    await page.size(1280, 860);
+    await sleep(400);
+    await pick("demo:leaders");
+    await mark('.zset-score-input[data-idx="2"]', "4800");
+    await page.shot(join(OUT, "redis_studio_editing.png"));
+    ws.close();
+    console.log("  ✔ redis_studio: desktop and responsive (hash editor) and editing (sorted set)");
+  } finally {
+    chrome?.kill();
+    await post("/api/keys/delete-pattern", { pattern: "demo:*" }).catch(() => {});
+    studio.close();
+    redis.close();
   }
 }
 
@@ -284,6 +385,10 @@ try {
   if (wants("file_manager") || wants("file_manager_studio")) {
     console.log("[file_manager_studio]");
     await captureFileManager().catch((err) => console.warn(`  ! file_manager_studio failed: ${err?.message ?? err}`));
+  }
+  if (wanted.includes("redis") || wanted.includes("redis_studio")) {
+    console.log("[redis_studio]");
+    await captureRedis().catch((err) => console.warn(`  ! redis_studio failed: ${err?.message ?? err}`));
   }
 } finally {
   rmSync(work, { recursive: true, force: true });

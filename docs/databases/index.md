@@ -55,7 +55,7 @@ A studio started for a connection gets a rebuilt environment: all connection var
 | PostgreSQL | host `PG_HOST`, `POSTGRES_HOST`, `DB_HOST` · port `PG_PORT`, `POSTGRES_PORT`, `DB_PORT` · user `PG_USER`, `POSTGRES_USER`, `DB_USER` · password `PG_PASSWORD`, `POSTGRES_PASSWORD`, `DB_PASSWORD` · database `PG_DATABASE`, `PG_NAME`, `PG_DB`, `POSTGRES_DB`, `DB_NAME` · schema `PG_SCHEMA` · TLS `PG_TLS`, `PG_SSL` · address `PG_URL`, `DATABASE_URL` |
 | Redis | address `REDIS_URL` (with `redis://user:password@host:port`; `rediss://` for TLS), database number `REDIS_DB` |
 
-**Auto-detect and save once, then the variables can be removed.** The Databases tool notices connections in the environment (and in the `.env` files of the application's own folders), shows where each value came from, and saves one with a click; from then on the saved connection is used and the variables are no longer needed. Nothing is edited for you. Details, including how a `.env` that Bun did not load is handled, are in the [File Manager guide](../userguides/43_file_manager.md#databases-databases-tab).
+**Auto-detect and save once, then the variables can be removed.** The Databases tool notices connections in the environment (and in the `.env` files of the application's own folders), shows where each value came from, and saves one with a click; from then on the saved connection is used and the variables are no longer needed. Nothing is edited for you. Details, including how a `.env` that Bun did not load is handled, are in the [File Manager guide](../userguides/43_file_manager.md#databases-databases-tab). A Redis server running at its usual local address (`127.0.0.1:6379`, as a Homebrew install gives you) is found without any variables and saved once for you.
 
 ## Status of each part
 

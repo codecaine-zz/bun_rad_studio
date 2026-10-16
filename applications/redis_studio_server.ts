@@ -567,6 +567,82 @@ export class RedisManager {
     }
   }
 
+  /** Edits or removes one element of a hash, list, set or sorted set. */
+  public async mutateElement(payload: {
+    key: string;
+    type: string;
+    op: "update" | "remove";
+    field?: string;
+    index?: number;
+    member?: string;
+    oldMember?: string;
+    value?: any;
+    score?: number;
+  }): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { key, type, op, field, index, member, oldMember, value, score } = payload;
+      if (!key) throw new Error("Key name is required");
+      if (op !== "update" && op !== "remove") throw new Error(`Unsupported operation: ${op}`);
+      const str = (v: any) => (typeof v === "object" && v !== null ? JSON.stringify(v) : String(v ?? ""));
+      const send = (cmd: string, args: string[]) => this.client.send(cmd, args);
+
+      switch (type) {
+        case "hash": {
+          if (!field) throw new Error("Field name is required");
+          if (op === "remove") await send("HDEL", [key, field]);
+          else await send("HSET", [key, field, str(value)]);
+          break;
+        }
+        case "list": {
+          const idx = Number(index);
+          if (!Number.isInteger(idx) || idx < 0) throw new Error("A valid list index is required");
+          if (op === "update") {
+            await send("LSET", [key, String(idx), str(value)]);
+          } else {
+            // Redis cannot delete by index: tombstone the slot, then remove that one marker.
+            const marker = `__rad_studio_del_${Date.now()}_${Math.random().toString(36).slice(2)}__`;
+            await send("LSET", [key, String(idx), marker]);
+            await send("LREM", [key, "1", marker]);
+          }
+          break;
+        }
+        case "set": {
+          const old = oldMember ?? member;
+          if (old === undefined) throw new Error("Member is required");
+          if (op === "remove") {
+            await send("SREM", [key, String(old)]);
+          } else {
+            const next = str(value);
+            if (next !== String(old)) {
+              await send("SREM", [key, String(old)]);
+              await send("SADD", [key, next]);
+            }
+          }
+          break;
+        }
+        case "zset": {
+          const old = oldMember ?? member;
+          if (old === undefined) throw new Error("Member is required");
+          if (op === "remove") {
+            await send("ZREM", [key, String(old)]);
+          } else {
+            const numScore = Number(score);
+            if (!Number.isFinite(numScore)) throw new Error("Score must be a number");
+            const next = value === undefined ? String(old) : str(value);
+            if (next !== String(old)) await send("ZREM", [key, String(old)]);
+            await send("ZADD", [key, String(numScore), next]);
+          }
+          break;
+        }
+        default:
+          throw new Error(`Element editing is not supported for type: ${type}`);
+      }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
   public async deleteKey(key: string): Promise<{ success: boolean; error?: string }> {
     try {
       await this.client.del(key);
@@ -1100,6 +1176,17 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
         try {
           const body: any = await req.json();
           const result = await manager.setKeyValue(body);
+          return Response.json(result, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // 4b. Edit / remove one element of a hash, list, set or sorted set
+      if (pathname === "/api/key/element" && req.method === "POST") {
+        try {
+          const body: any = await req.json();
+          const result = await manager.mutateElement(body);
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });

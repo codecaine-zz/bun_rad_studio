@@ -12,6 +12,7 @@ import { isObject } from "./fmDbCommon";
 import { detectConnections, publicConnection, type EnvConnection } from "./fmDbDetect";
 import { expandValue, parseDotenv, readDotenvFile } from "./fmDbDotenv";
 import { tilde, provenanceText, type EnvVar, type EnvView } from "./fmDbEnvView";
+import { isLocalDefaultRedis, localRedisConnection, probeLocalRedis } from "./fmDbLocal";
 import { ENGINES, isAnyConnectionVariable, type DbEngine } from "./fmDbModel";
 import { checkSqlitePath, dbState, envView, guarded, profileFingerprint, sameSecret } from "./fmDbState";
 import type { DbProfile, ProfileMeta, PublicDbProfile, RedisProfile } from "./fmDbStore";
@@ -176,8 +177,31 @@ export const detectOperations: Record<string, FmHandler> = {
     if (!settings.detect.auto && !manual) return { enabled: false, autoSave: settings.detect.autoSave, cards: [], files: [], dismissed: 0, announce: false, autoSaved: [] };
     const view = await envView(ctx);
     const conns = await detectConnections(view);
+    const saved = st.store.listPlain();
+    // A Redis server on its usual local address (a Homebrew install) is offered even with no variables set.
+    let local: EnvConnection | null = null;
+    if (!conns.some((c) => c.engine === "redis") && !saved.some((p) => isLocalDefaultRedis(p as any))) {
+      const state = await probeLocalRedis();
+      if (state !== "none") {
+        local = localRedisConnection(state);
+        conns.push(local);
+      }
+    }
     let cards = await annotate(ctx, conns);
-    const autoSaved: Array<{ engine: DbEngine; name: string }> = [];
+    const autoSaved: Array<{ engine: DbEngine; name: string; local?: boolean }> = [];
+    // The first local Redis is saved without a click when the person has no Redis connection yet and has not put it aside.
+    if (local && !manual && local.warnings.length === 0 && !saved.some((p) => p.engine === "redis") && cards.find((c) => c.key === keyOf(local!))?.status === "new") {
+      try {
+        const r = await saveDetected(ctx, local, view, "detected");
+        st.store.setMeta(r.profile.id, { source: "local", slot: local.slot, fingerprint: local.fingerprint, savedAt: new Date().toISOString() });
+        // Remembered, so a connection the person deletes is not quietly added again.
+        st.store.dismiss(keyOf(local));
+        autoSaved.push({ engine: "redis", name: r.profile.name, local: true });
+        cards = await annotate(ctx, conns);
+      } catch {
+        // left as a card
+      }
+    }
     if (settings.detect.autoSave && !manual) {
       for (const card of cards.filter((c) => c.status === "new")) {
         const conn = conns.find((c) => keyOf(c) === card.key)!;
@@ -200,9 +224,16 @@ export const detectOperations: Record<string, FmHandler> = {
     const key = wanted(b);
     if (!key) throw new FmError("BAD_REQUEST", "That isn't a detected connection.");
     const view = await envView(ctx);
-    const conn = (await detectConnections(view)).find((c) => keyOf(c) === key);
+    const found = await detectConnections(view);
+    if (!found.some((c) => c.engine === "redis") && key === keyOf(localRedisConnection("open"))) {
+      const state = await probeLocalRedis();
+      if (state !== "none") found.push(localRedisConnection(state));
+    }
+    const conn = found.find((c) => keyOf(c) === key);
     if (!conn) throw new FmError("NOT_FOUND", "That connection isn't in your environment any more.");
-    return await saveDetected(ctx, conn, view, "detected");
+    const result = await saveDetected(ctx, conn, view, "detected");
+    if (conn.slot === "redis:local-default" && !result.already) dbState(ctx).store.setMeta(result.profile.id, { source: "local", slot: conn.slot, fingerprint: conn.fingerprint, savedAt: new Date().toISOString() });
+    return result;
   },
 
   async "db/detect/dismiss"(ctx, b) {

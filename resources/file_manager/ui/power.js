@@ -7,8 +7,8 @@ import { $, clear, h } from "./dom.js";
 import { emit, state } from "./state.js";
 
 /** The groups the tab strip is arranged in, in this order. A tab can name one with `group`. */
-const GROUPS = [["files", "Files and text"], ["automate", "Automate"], ["security", "Security"], ["network", "Network"], ["handy", "Handy"], ["more", "More"]];
-const DEFAULT_GROUP = { find: "files", compare: "files", projects: "files", sd: "files", code: "files", dev: "files", watch: "automate", actions: "automate", serve: "automate", crypto: "security", vault: "security", ip: "network", net: "network", calc: "handy", timer: "handy", qr: "handy" };
+const GROUPS = [["files", "Files and text"], ["data", "Databases"], ["automate", "Automate"], ["security", "Security"], ["network", "Network"], ["handy", "Handy"], ["more", "More"]];
+const DEFAULT_GROUP = { find: "files", compare: "files", projects: "files", sd: "files", code: "files", dev: "files", databases: "data", watch: "automate", actions: "automate", serve: "automate", crypto: "security", vault: "security", ip: "network", net: "network", calc: "handy", timer: "handy", qr: "handy" };
 
 /** @type {Array<{ id: string, label: string, icon: string, tip: string, group?: string, mount: (root: HTMLElement) => ({ show?: (opts?: any) => void, hide?: () => void } | void) }>} */
 const tabs = [];
