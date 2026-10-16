@@ -33,6 +33,9 @@ type HTMLSelectElement = any;
 type HTMLOptionElement = any;
 type DOMRect = any;
 const REQUIRED: Record<string, boolean> = {
+    prism_reactor: true,
+    orbital_ice: false,
+    ember_grid: true,
     cyberpunk_hologram: true,
     neon_hud: true,
     quantum_obsidian: true,
@@ -476,7 +479,7 @@ describe("fx css: scoping, reduced motion, contrast, forced colours, off", () =>
 // ---------------------------------------------------------------------------------------------------------------------
 
 describe("generated pages", () => {
-    test("pages for themes without fx are byte-identical to the snapshot taken before this layer existed", () => {
+    test("pages for themes without fx match the baseline including the shared desktop keyboard updates", () => {
         const expected = JSON.parse(readFileSync(join(root, "tests", "fixtures", "fx_baseline_hashes.json"), "utf8"));
         const actual = computeBaseline();
         expect(Object.keys(actual)).toEqual(Object.keys(expected));

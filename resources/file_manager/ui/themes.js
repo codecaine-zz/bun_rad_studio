@@ -12,7 +12,14 @@ let applied = [];
 let wanted = "";
 let listCache = null;
 
+function clearEffects() {
+  const root = document.documentElement;
+  for (const attr of [...root.attributes]) if (attr.name.startsWith("data-fx")) root.removeAttribute(attr.name);
+  document.getElementById("fm-theme-effects")?.remove();
+}
+
 function clearPalette() {
+  clearEffects();
   const root = document.documentElement;
   for (const name of applied) root.style.removeProperty(`--${name}`);
   applied = [];
@@ -23,6 +30,7 @@ function clearPalette() {
 
 /** Puts a theme's colour variables on the page. `key` marks which saved theme it is ("preview" while editing). */
 export function paint(theme, key) {
+  clearEffects();
   const root = document.documentElement;
   for (const name of applied) root.style.removeProperty(`--${name}`);
   applied = Object.keys(theme.vars);
@@ -31,6 +39,15 @@ export function paint(theme, key) {
   root.dataset.theme = theme.scheme;
   root.dataset.palette = key;
   wanted = key;
+  if (theme.effects) {
+    const style = document.createElement("style");
+    style.id = "fm-theme-effects";
+    const nonce = document.querySelector('meta[name="fm-nonce"]')?.content;
+    if (nonce) style.setAttribute("nonce", nonce);
+    style.textContent = `:root { ${theme.effects.css} }`;
+    document.head.append(style);
+    for (const [name, value] of Object.entries(theme.effects.attrs)) root.setAttribute(name, value);
+  }
 }
 
 /** Forgets the list of themes, so the next gallery shows themes that were just made or deleted. */
@@ -124,6 +141,26 @@ export async function chooseTheme(key) {
   rememberTheme(key);
   await saveSettings({ palette: key });
 }
+
+let cycling = false;
+export async function cycleTheme(direction) {
+  if (cycling) return;
+  cycling = true;
+  try {
+    const themes = await themeList();
+    const keys = ["", ...themes.map((theme) => theme.key)];
+    const current = keys.indexOf(state.settings.palette || "");
+    const next = current < 0 ? (direction > 0 ? 0 : keys.length - 1)
+      : (current + direction + keys.length) % keys.length;
+    await chooseTheme(keys[next]);
+  } catch (err) {
+    toast(err?.message || "The theme couldn't be changed.", { kind: "error" });
+  } finally {
+    cycling = false;
+  }
+}
+
+if (typeof window !== "undefined") window.cycleAppTheme = cycleTheme;
 
 const choose = chooseTheme;
 

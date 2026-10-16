@@ -34,7 +34,7 @@ async function loadStart(key) {
   if (STANDARD[key]) return { ...structuredClone(STANDARD[key]), base: STANDARD[key].name, editingId: null };
   const r = await call("themes/get", { key });
   const custom = r.custom;
-  return { name: custom ? custom.name : `${r.theme.name} (mine)`, dark: r.source.dark, colors: { ...r.source.colors }, base: custom ? custom.base : r.theme.name, editingId: custom ? custom.id : null };
+  return { name: custom ? custom.name : `${r.theme.name} (mine)`, dark: r.source.dark, colors: { ...r.source.colors }, fx: r.source.fx ? { ...r.source.fx } : undefined, base: custom ? custom.base : r.theme.name, editingId: custom ? custom.id : null };
 }
 
 async function openEditor({ from = "" } = {}) {
@@ -53,6 +53,14 @@ async function openEditor({ from = "" } = {}) {
     start = await loadStart("standard-dark");
   }
   let draft = start;
+  let closed = false;
+  let previewVersion = 0;
+  const defaultEffects = () => ({
+    glow: "soft", glowColor: draft.colors.accent, glowColor2: draft.colors.secondary || draft.colors.accent,
+    blur: 16, glass: 0.4, glowIntensity: 1, borderOpacity: 0.16,
+    grain: "none", scanlines: "none", sheen: false, radius: "soft", border: "flat", motion: "calm",
+    noise: false, chromatic: false, ambient: false,
+  });
 
   // -- the form ----------------------------------------------------------------------------------------------------
   const nameInput = h("input", { type: "text", class: "prop-input", maxlength: "40", "aria-label": "Theme name", title: "The name shown in the theme gallery.", value: draft.name });
@@ -61,6 +69,60 @@ async function openEditor({ from = "" } = {}) {
   const status = h("p", { class: "dialog-error", role: "alert", hidden: true });
   const startSelect = h("select", { class: "prop-input", "aria-label": "Start from", title: "Copy the colours of another theme to work from." });
   const heading = h("p", { class: "hint" });
+  const effectsEnabled = h("input", { type: "checkbox", checked: !!draft.fx, "aria-label": "Enable visual effects" });
+  const effectControls = h("fieldset", { class: "theme-effect-controls" });
+  const effectInputs = new Map();
+  const effectField = (key, label, choices, range) => {
+    const input = choices
+      ? h("select", { class: "prop-input", "aria-label": label }, choices.map((value) => h("option", { value }, value)))
+      : h("input", { type: range ? "range" : "color", min: range?.[0], max: range?.[1], step: range?.[2], "aria-label": label });
+    const output = h("output", {});
+    const read = () => {
+      const fx = draft.fx || defaultEffects();
+      const value = key === "opacity" ? Math.round((1 - fx.glass * 0.6) * 100) : fx[key] ?? defaultEffects()[key];
+      input.value = String(value);
+      output.textContent = range ? `${value}${key === "opacity" ? "%" : key === "blur" ? "px" : ""}` : "";
+    };
+    input.addEventListener("input", () => {
+      if (!draft.fx) return;
+      const value = range ? Number(input.value) : input.value;
+      if (key === "opacity") draft.fx.glass = (100 - Number(value)) / 60;
+      else draft.fx[key] = value;
+      output.textContent = range ? `${value}${key === "opacity" ? "%" : key === "blur" ? "px" : ""}` : "";
+      refresh();
+    });
+    effectInputs.set(key, read);
+    return h("label", {}, h("span", {}, label), input, output);
+  };
+  effectControls.append(
+    effectField("opacity", "Panel opacity", null, [40, 100, 1]),
+    effectField("blur", "Glass blur", null, [0, 32, 1]),
+    effectField("glowIntensity", "Glow intensity", null, [0, 1, 0.05]),
+    effectField("borderOpacity", "Border strength", null, [0, 1, 0.05]),
+    effectField("glow", "Glow style", ["none", "soft", "neon"]),
+    effectField("glowColor", "Glow colour"),
+    effectField("glowColor2", "Secondary glow colour"),
+    effectField("radius", "Corner style", ["sharp", "soft", "round", "pill"]),
+    effectField("border", "Border style", ["flat", "gradient", "metal"]),
+    effectField("motion", "Animation feel", ["calm", "spring", "snappy"]),
+  );
+  const effectFlags = ["ambient", "sheen", "chromatic", "noise"];
+  for (const key of effectFlags) {
+    const input = h("input", { type: "checkbox", "aria-label": `${key} effect` });
+    effectInputs.set(key, () => { input.checked = draft.fx?.[key] ?? false; });
+    input.addEventListener("change", () => { if (draft.fx) { draft.fx[key] = input.checked; refresh(); } });
+    effectControls.append(h("label", { class: "check" }, input, h("span", {}, `${key[0].toUpperCase()}${key.slice(1)}`)));
+  }
+  effectControls.append(
+    effectField("grain", "Film grain", ["none", "subtle"]),
+    effectField("scanlines", "Scanlines", ["none", "subtle"]),
+  );
+  effectsEnabled.addEventListener("change", () => {
+    draft.fx = effectsEnabled.checked ? defaultEffects() : undefined;
+    effectControls.disabled = !draft.fx;
+    for (const read of effectInputs.values()) read();
+    refresh();
+  });
 
   const rows = new Map();
   const field = ([key, label, tip]) => {
@@ -85,6 +147,9 @@ async function openEditor({ from = "" } = {}) {
     draft = next;
     nameInput.value = draft.name;
     darkBox.checked = draft.dark;
+    effectsEnabled.checked = !!draft.fx;
+    effectControls.disabled = !draft.fx;
+    for (const read of effectInputs.values()) read();
     for (const [key, { picker, text }] of rows) {
       const v = draft.colors[key] ?? "";
       text.removeAttribute("aria-invalid");
@@ -95,14 +160,18 @@ async function openEditor({ from = "" } = {}) {
     refresh();
   };
 
-  const draftBody = () => ({ name: nameInput.value, dark: darkBox.checked, base: draft.base ?? "", colors: draft.colors });
+  const draftBody = () => ({ name: nameInput.value, dark: darkBox.checked, base: draft.base ?? "", colors: draft.colors, ...(draft.fx ? { fx: draft.fx } : {}) });
   const refresh = debounce(async () => {
+    if (closed) return;
+    const version = ++previewVersion;
     try {
       const { theme } = await call("themes/preview", { theme: { ...draftBody(), name: nameInput.value.trim() || "Untitled" } });
+      if (closed || version !== previewVersion) return;
       paint(theme, "preview");
       notes.textContent = theme.notes.join(" ");
       status.hidden = true;
     } catch (err) {
+      if (closed || version !== previewVersion) return;
       status.textContent = err instanceof ApiError ? err.message : "That colour can't be shown.";
       status.hidden = false;
     }
@@ -132,6 +201,10 @@ async function openEditor({ from = "" } = {}) {
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Start from"), startSelect),
       h("label", { class: "check" }, darkBox, h("span", {}, "This is a dark theme"))),
     h("div", { class: "theme-fields" }, FIELDS.map(field)),
+    h("h3", {}, "Glass, glow and motion"),
+    h("label", { class: "check" }, effectsEnabled, h("span", {}, "Enable visual effects")),
+    effectControls,
+    h("p", { class: "hint" }, "Opacity affects panels, not text or the native window. The preview raises opacity when needed for readable text. Motion follows your computer's reduced-motion preference."),
     h("div", { class: "theme-sample", "aria-label": "Sample of the colours" },
       h("button", { type: "button", class: "btn primary", tabindex: "-1" }, "Main button"),
       h("button", { type: "button", class: "btn", tabindex: "-1" }, "Button"),
@@ -189,7 +262,7 @@ async function openEditor({ from = "" } = {}) {
   }
 
   async function exportText() {
-    const text = JSON.stringify({ format: EXPORT_FORMAT, version: 1, name: nameInput.value.trim(), dark: darkBox.checked, colors: draft.colors }, null, 2);
+    const text = JSON.stringify({ format: EXPORT_FORMAT, version: 1, ...draftBody(), name: nameInput.value.trim() }, null, 2);
     const box = h("textarea", { class: "prop-input theme-export", readonly: true, rows: "10", "aria-label": "The theme as text", title: "Copy this text and keep it, or send it to someone. Import… turns it back into a theme." }, text);
     const d = openDialog({ title: "Export theme", body: [h("p", {}, "Copy this text to keep or share the theme."), box], buttons: [{ label: "Close", value: false }, { label: "Copy", value: true, primary: true }], initialFocus: box });
     if (await d.result) {
@@ -208,7 +281,7 @@ async function openEditor({ from = "" } = {}) {
     if (!(await d.result)) return;
     try {
       const { theme } = await call("themes/custom/import", { text: box.value });
-      load({ name: theme.name, dark: theme.dark, colors: { ...draft.colors, ...theme.colors }, base: "an imported theme", editingId: null });
+      load({ name: theme.name, dark: theme.dark, colors: { ...draft.colors, ...theme.colors }, fx: theme.fx, base: "an imported theme", editingId: null });
     } catch (err) {
       toast(err instanceof ApiError ? err.message : "That text isn't a theme.", { kind: "error" });
     }
@@ -217,6 +290,7 @@ async function openEditor({ from = "" } = {}) {
   try {
     await run();
   } finally {
+    closed = true;
     // Back to the saved choice: the new theme after Save, otherwise what was chosen before.
     await applyPalette(state.settings.palette || "");
     emit("theme-picker");

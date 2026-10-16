@@ -3,7 +3,7 @@
 import { FitAddon } from "/vendor/addon-fit.mjs";
 import { Terminal } from "/vendor/xterm.mjs";
 import { terminalUrl } from "./api.js";
-import { quoteArg, shellFor } from "./codeRun.js";
+import { quoteArg, quotePathsForTerminal, shellFor } from "./codeRun.js";
 import { $ } from "./dom.js";
 import { hintOf, labelOf, matchesAction } from "./keymap.js";
 import { toast } from "./menus.js";
@@ -90,7 +90,7 @@ function connect(folder) {
     old.close();
   }
   ended = false;
-  activeShell = "";
+  activeShell = shellFor(state.platform);
   startedIn = folder;
   setTitle();
   term.reset();
@@ -107,7 +107,7 @@ function connect(folder) {
     }
     if (m.type === "output" && typeof m.data === "string") term.write(m.data);
     else if (m.type === "cwd" && typeof m.path === "string") {
-      activeShell = m.shell ?? "";
+      activeShell = m.shell ?? "posix";
       followShell(m.path);
     } else if (m.type === "exit") {
       ended = true;
@@ -264,6 +264,41 @@ function openHere(path) {
   goToFolder(folder);
 }
 
+export async function insertPaths(paths) {
+  if (!terminalAvailable()) return toast("The terminal isn't supported on this system.", { kind: "error" });
+  const checked = quotePathsForTerminal(paths, shellFor(state.platform));
+  if (checked.error) return toast(checked.error, { kind: "error" });
+  showTerminal();
+  if (ended) restart(currentFolder());
+  const ws = socket;
+  try {
+    if (!ws) throw new Error("The Terminal couldn't be opened.");
+    if (ws.readyState === WebSocket.CONNECTING) {
+      await new Promise((resolve, reject) => {
+        const cleanup = () => {
+          clearTimeout(timer);
+          ws.removeEventListener("open", ready);
+          ws.removeEventListener("close", failed);
+          ws.removeEventListener("error", failed);
+        };
+        const failed = () => { cleanup(); reject(new Error("The terminal connection was lost.")); };
+        const ready = () => { cleanup(); resolve(); };
+        const timer = setTimeout(() => { cleanup(); reject(new Error("The terminal did not become ready. Try inserting the paths again.")); }, 5000);
+        ws.addEventListener("open", ready);
+        ws.addEventListener("close", failed);
+        ws.addEventListener("error", failed);
+      });
+    }
+    if (socket !== ws || ws.readyState !== WebSocket.OPEN || ended) throw new Error("The terminal connection was lost.");
+    const quoted = quotePathsForTerminal(paths, activeShell === "wsl" ? "wsl" : shellFor(state.platform));
+    if (quoted.error) throw new Error(quoted.error);
+    sendInput(quoted.text);
+    toast("Paths inserted. Add a command or press Enter when you're ready.", { kind: "info" });
+  } catch (err) {
+    toast(err?.message || "The paths couldn't be inserted.", { kind: "error" });
+  }
+}
+
 /** The button in the status bar: visible whenever the window is, pressed while the terminal is open. */
 function wireStatusButton() {
   const button = $("#status-terminal");
@@ -283,6 +318,7 @@ function wireStatusButton() {
 export function wireTerminal() {
   on("toggle-terminal", toggleTerminal);
   on("terminal-here", openHere);
+  on("terminal-insert-paths", (paths) => void insertPaths(paths));
   wireStatusButton();
   on("settings", () => {
     if (!term) return;

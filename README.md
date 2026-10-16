@@ -280,7 +280,7 @@ What was verified (macOS and Linux ARM) and what was not (Intel, Windows), plus 
 
 ### 🖼️ Native Window Management & Placement API
 
-- **Native Fullscreen Mode & Startup**: Every studio application launches in native fullscreen by default (`{ fullscreen: true }`) with automatic CoreGraphics/Win32 screen resolution auto-fitting (`(0,0)` origin) and a promise-aware verification loop. Press **<kbd>Cmd</kbd> + <kbd>F</kbd>** / **<kbd>Ctrl</kbd> + <kbd>F</kbd>** / **<kbd>Fn</kbd> + <kbd>F</kbd>** / **<kbd>F11</kbd>**, or click `⛶ Fullscreen` to toggle native borderless fullscreen mode.
+- **Native Fullscreen Mode & Startup**: Studios supporting fullscreen startup default to `{ fullscreen: true }`, with automatic CoreGraphics/Win32 screen resolution auto-fitting (`(0,0)` origin) and a promise-aware verification loop. Press **Right Option + /** to toggle native fullscreen, or use the app's fullscreen button. **Esc never exits fullscreen**; it remains available to dialogs, editors and games. **Right Option + ] / [** cycles forward/backward through the themes available in the app. **Cmd + Q** quits a Mac desktop app even while typing or using a dialog.
 - **Smart Minimize & Hide**: Press **<kbd>Cmd</kbd> + <kbd>M</kbd>** / **<kbd>Ctrl</kbd> + <kbd>M</kbd>** to minimize the window. If the application is in a native macOS fullscreen space, it automatically exits fullscreen before miniaturizing to the Dock. Press **<kbd>Cmd</kbd> + <kbd>H</kbd>** / **<kbd>Ctrl</kbd> + <kbd>H</kbd>** to hide the application window (`[NSApp hide:]`).
 - **Stay On Top (Window Pinning)**: Click `📌 Pin: ON / OFF`, press **<kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd>** / **<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd>**, or call `setAlwaysOnTop(true)` to float the application window above all other desktop applications (`NSFloatingWindowLevel`).
 - **Window Placement & Centering API**: Position application windows anywhere on screen using `setWindowPosition(pos)`, press **<kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd>** / **<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd>** to center, or use the `📍 Position` toolbar dropdown across 9 screen presets (`"center"`, `"upper_left"`, `"upper_right"`, `"top_center"`, `"bottom_left"`, `"bottom_right"`, `"bottom_center"`, `"center_left"`, `"center_right"`).
@@ -1100,13 +1100,15 @@ win.run();
 | Shortcut                                               | Action                                                    |
 | ------------------------------------------------------ | --------------------------------------------------------- |
 | **F5**                                                 | Launch Live App Preview Window                            |
+| **Right Option + /**                                   | Toggle native fullscreen in desktop apps                 |
+| **Right Option + ]** / **Right Option + [**             | Next / previous available app theme (wraps around)        |
 | **⌘ + F** / **Ctrl + F** / **Fn + F** / **F11**        | Toggle Native Borderless Fullscreen Mode                  |
 | **⌘ + M** / **Ctrl + M** / **Alt + M**                 | Minimize Application Window (auto-exits fullscreen space) |
 | **⌘ + H** / **Ctrl + H**                               | Hide Application Window (`[NSApp hide:]`)                 |
 | **⌘ + Shift + T** / **Ctrl + Shift + T** / **Alt + T** | Toggle Always on Top (Window Pinning)                     |
 | **⌘ + Shift + C** / **Ctrl + Shift + C**               | Center Window on Screen                                   |
 | **⌘ + Q** / **⌘ + W** / **Alt + F4** / **Ctrl + Q**    | Terminate & Quit Application (`process.exit(0)`)          |
-| **Alt + Alt** (Double-tap Alt)                         | Fast Close & Terminate Application                        |
+| **Left Alt + Left Alt** (Double-tap Left Option on Mac) | Fast Close & Terminate Application                        |
 | **Cmd / Ctrl + (+ / - / 0)**                           | Zoom in, Zoom out, Reset zoom (100%)                      |
 | **⌘ + C** / **Ctrl + C**                               | Copy selected control(s) to clipboard buffer              |
 | **⌘ + V** / **Ctrl + V**                               | Paste copied control(s) at cursor position                |
@@ -1119,7 +1121,7 @@ win.run();
 | **Shift + Arrow Keys**                                 | Nudge selected control(s) position by 8px (Grid snap)     |
 | **Space + Mouse Drag**                                 | Pan canvas workspace view                                 |
 | **Cmd / Ctrl + Mouse Wheel**                           | Zoom canvas workspace (50% – 200%)                        |
-| **Escape**                                             | Exit Fullscreen / Deselect controls / Close modals        |
+| **Escape**                                             | Deselect controls / Close modals / Cancel; never exits fullscreen |
 
 ---
 

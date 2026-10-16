@@ -1,4 +1,5 @@
 import { injectHelp } from "./src/shared/helpTips";
+import { DESKTOP_SHORTCUTS_SCRIPT } from "./src/shared/desktopShortcuts";
 import { buildSemanticPalette, normalizeKind, semanticCssVars } from "./src/shared/themeSemantic";
 import { findFxTheme, fxCssVars, fxRootAttrString, normalizeFxMode } from "./src/shared/fxThemes";
 import { fxCss } from "./src/shared/fxCss";
@@ -333,6 +334,7 @@ export interface WindowShortcutOptions {
 
 export function attachWindowShortcuts(wv: Webview, options?: WindowShortcutOptions) {
     let alwaysOnTopState = false;
+    wv.init(DESKTOP_SHORTCUTS_SCRIPT);
 
     // Enable macOS FullScreen Collection Behavior immediately on creation
     if (process.platform === "darwin" && wv?.unsafeWindowHandle) {
@@ -482,6 +484,7 @@ export function attachWindowShortcuts(wv: Webview, options?: WindowShortcutOptio
 
 export function getWindowShortcutsScript(): string {
     return `
+${DESKTOP_SHORTCUTS_SCRIPT}
 (function() {
     // Disable default right-click context menu across desktop windows to prevent inspect/reload from breaking desktop apps
     window.addEventListener("contextmenu", function(e) {
@@ -641,7 +644,7 @@ export function getWindowShortcutsScript(): string {
         if (e.repeat) return;
 
         // 1. Double-tap Alt ("alt+alt") within 450ms to close/quit window
-        if ((e.key === "Alt" || e.code === "AltLeft" || e.code === "AltRight")) {
+        if (e.code !== "AltRight" && (e.key === "Alt" || e.code === "AltLeft")) {
             const now = Date.now();
             if (now - lastAltTime > 50 && now - lastAltTime < 450) {
                 lastAltTime = 0;
@@ -711,19 +714,6 @@ export function getWindowShortcutsScript(): string {
             e.stopPropagation();
             doToggleFullscreen();
             return;
-        }
-
-        // Escape: exit fullscreen if currently in fullscreen
-        if (e.key === "Escape" || code === "Escape") {
-            try {
-                if (document.fullscreenElement || document.webkitFullscreenElement) {
-                    if (document.exitFullscreen) document.exitFullscreen().catch(function() {});
-                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-                }
-                if (typeof window.toggleNativeFullscreen === "function") {
-                    try { window.toggleNativeFullscreen(); } catch(e) {}
-                }
-            } catch(e) {}
         }
 
         // 5. Minimize window: Cmd+M, Ctrl+M, Alt+M
@@ -4466,6 +4456,7 @@ ${controls}
     return false;
   }, { capture: true });
 
+  ${DESKTOP_SHORTCUTS_SCRIPT}
   (function() {
     let lastAltTime = 0;
     let zoomLevel = 1.0;
@@ -4501,7 +4492,7 @@ ${controls}
       }
 
       // 1. Double-tap Alt ("alt+alt") within 450ms to close/quit window
-      if ((e.key === "Alt" || e.code === "AltLeft" || e.code === "AltRight") && !e.repeat) {
+      if (e.code !== "AltRight" && (e.key === "Alt" || e.code === "AltLeft") && !e.repeat) {
         const now = Date.now();
         if (now - lastAltTime > 50 && now - lastAltTime < 450) {
           lastAltTime = 0;

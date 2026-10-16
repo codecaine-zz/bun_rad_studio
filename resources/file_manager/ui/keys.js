@@ -84,9 +84,16 @@ function navigate(e, key) {
 }
 
 /** Closes the window, but first asks when the Code editor has changes that aren't saved. */
+let closing = false;
 async function closeWindow() {
-  if (codeHasUnsaved() && !(await confirmBox({ title: "Close with unsaved changes?", message: "Some files in the Code editor have changes that aren't saved. Closing now loses them.", confirmLabel: "Close anyway", cancelLabel: "Go back", danger: true }))) return;
-  window.closeApp();
+  if (closing) return;
+  closing = true;
+  try {
+    if (codeHasUnsaved() && !(await confirmBox({ title: "Close with unsaved changes?", message: "Some files in the Code editor have changes that aren't saved. Closing now loses them.", confirmLabel: "Close anyway", cancelLabel: "Go back", danger: true }))) return;
+    window.closeApp();
+  } finally {
+    closing = false;
+  }
 }
 
 /** Ctrl/Cmd+E: opens the chosen file (or folder, or the folder on screen) in the Code editor. */
@@ -142,6 +149,7 @@ const IN_PANES = ["nav.findTool", "app.settings", "app.themes"];
 const IN_LISTS = Object.keys(FILE_ACTIONS).filter((id) => !EVERYWHERE.includes(id));
 
 export function wireKeys() {
+  if (typeof window.closeApp === "function") window.quitApp = closeWindow;
   document.addEventListener("keydown", (e) => {
     if (e.defaultPrevented || menuIsOpen() || document.querySelector(".modal-backdrop") || quickLookIsOpen() || isRenaming()) return;
     const target = e.target;

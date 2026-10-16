@@ -4,7 +4,7 @@ import { clearSearch, refresh, saveSettings } from "./nav.js";
 import * as ops from "./ops.js";
 import { canCompareData, showCompareData } from "./datacompare.js";
 import { showProperties } from "./extras.js";
-import { copyFileUrls, openInEditor } from "./fileurl.js";
+import { copyFileUrls, copyTerminalPaths, openInEditor } from "./fileurl.js";
 import { showMoreInfo } from "./fileinfo.js";
 import { selectAll } from "./selection.js";
 import { activePane, currentPath, inTrash, isFolderView, left, right } from "./pane.js";
@@ -91,6 +91,7 @@ function entryItems(entries) {
     one && !e.isDir && looksLikeText(e.name) ? { label: "Open in your editor", icon: "🧑‍💻", tip: "Open this file in the code editor chosen in Settings (VS Code, Sublime Text, WebStorm or IntelliJ IDEA).", action: () => openInEditor(e) } : null,
     canCompareData(entries) ? { label: "Compare data files…", icon: "⚖️", tip: "Compare these two JSON, YAML or TOML files by what they say, ignoring key order and formatting, and list what differs.", action: () => showCompareData(entries) } : null,
     one ? { label: e.isDir ? "Open terminal here" : "Open terminal in this folder", icon: "⌨️", shortcut: labelOf("terminal.here"), tip: "Show the terminal and move it to this folder.", action: () => emit("terminal-here", e.isDir ? e.path : parentOf(e.path, state.sep)) } : null,
+    { label: "Insert paths in Terminal", icon: "⌨️", tip: "Insert the selected files and folders as shell-quoted arguments. Nothing runs until you press Enter.", action: () => emit("terminal-insert-paths", entries.map((entry) => entry.path)) },
     one && e.isDir ? { label: "Open folder in Code editor", icon: "📝", shortcut: labelOf("file.editInCode"), action: () => openFolderInCode(e.path) } : null,
     one && e.isDir ? { label: "Code statistics…", icon: "📊", action: () => openPower("dev", { root: e.path, section: "stats" }) } : null,
     ...serveMenuItems(entries),
@@ -108,6 +109,7 @@ function entryItems(entries) {
     { separator: true },
     { label: "Cut", icon: "✂️", shortcut: labelOf("file.cut"), action: ops.cutSelection },
     { label: "Copy", icon: "📋", shortcut: labelOf("file.copy"), action: ops.copySelection },
+    { label: "Copy paths for Terminal", icon: "📋", tip: "Copy shell-quoted paths to paste after a command in an external terminal (PowerShell on Windows).", action: () => copyTerminalPaths(entries) },
     one && canCopyImage(e) ? { label: "Copy image to clipboard", icon: "🖼️", tip: "Put the picture itself on the clipboard, to paste into a document, a chat or an image editor. (Copy, above, copies the file so you can paste it into a folder.)", action: () => copyImageFile(e) } : null,
     one && canCopyText(e) ? { label: "Copy text to clipboard", icon: "📝", tip: "Put what is written in this file on the clipboard, to paste into a document or chat. (Copy, above, copies the file so you can paste it into a folder.)", action: () => copyTextFile(e) } : null,
     one && e.isDir ? { label: "Paste into this folder", icon: "📥", disabled: !clip, shortcut: "", action: () => ops.pasteInto(e.path) } : null,

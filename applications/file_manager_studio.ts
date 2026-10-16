@@ -26,6 +26,7 @@ import { openManagedWindow } from "../src/features/filemanager/fmWindowControl";
 import { resetWindowPrefs, windowDataDir } from "../src/features/filemanager/fmWindow";
 import { createWindowNative } from "../src/windowNative";
 import { openCommand } from "../src/features/filemanager/fmOpen";
+import { DESKTOP_SHORTCUTS_SCRIPT } from "../src/shared/desktopShortcuts";
 
 export interface FileManagerStudioOptions extends FileManagerServerOptions {
   /** A one-off window size (--width / --height): used as is, and not remembered. */
@@ -135,6 +136,13 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
         });
         const webview = managed.window;
         app.webview = webview;
+        webview.init(DESKTOP_SHORTCUTS_SCRIPT);
+        const native = createWindowNative(webview, () => title);
+        webview.bind("toggleNativeFullscreen", () => {
+          const frame = native.getFrame();
+          if (!frame) throw new Error("The window's fullscreen state could not be read.");
+          if (!native.setFullscreen(!frame.fullscreen)) throw new Error("Fullscreen could not be changed.");
+        });
         // The window has no menu bar, so the page asks for these (Ctrl/Cmd+W and Ctrl/Cmd+Q).
         webview.bind("closeApp", stop);
         webview.navigate(app.url);

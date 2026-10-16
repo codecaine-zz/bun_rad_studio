@@ -8,6 +8,7 @@ import * as nodePath from "path";
 import type { SimpleGUITheme } from "../../simplegui";
 import type { FmContext } from "./fmCore";
 import { FmError } from "./fmPaths";
+import type { ThemeFx } from "../../shared/fxThemes";
 
 export const MAX_CUSTOM_THEMES = 50;
 export const MAX_THEME_NAME = 40;
@@ -25,6 +26,7 @@ export interface ThemeDraft {
   /** The name of the theme it started from, shown for reference only. */
   base: string;
   colors: Partial<Record<ColourKey, string>>;
+  fx?: ThemeFx;
 }
 
 export interface CustomTheme extends ThemeDraft {
@@ -52,7 +54,44 @@ export function validateDraft(input: unknown): ThemeDraft {
     if (typeof v !== "string" || !HEX.test(v.trim())) throw new FmError("BAD_REQUEST", `The ${key} colour must look like #1a2b3c.`);
     colors[key] = v.trim().toLowerCase();
   }
-  return { name, dark: r.dark === true, base: typeof r.base === "string" ? clean(r.base).slice(0, MAX_THEME_NAME) : "", colors };
+  const fx = r.fx === undefined ? undefined : validateEffects(r.fx, colors.accent!);
+  return { name, dark: r.dark === true, base: typeof r.base === "string" ? clean(r.base).slice(0, MAX_THEME_NAME) : "", colors, ...(fx ? { fx } : {}) };
+}
+
+function validateEffects(input: unknown, accent: string): ThemeFx {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new FmError("BAD_REQUEST", "Theme effects must be an object.");
+  const r = input as Record<string, unknown>;
+  const choice = <T extends string>(key: string, choices: readonly T[], fallback: T): T => {
+    if (r[key] === undefined) return fallback;
+    const found = choices.find((value) => value === r[key]);
+    if (!found) throw new FmError("BAD_REQUEST", `Choose a valid ${key} effect.`);
+    return found;
+  };
+  const number = (key: string, max: number, fallback: number): number => {
+    const value = r[key] ?? fallback;
+    if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > max) throw new FmError("BAD_REQUEST", `The ${key} effect must be between 0 and ${max}.`);
+    return value;
+  };
+  const flag = (key: string): boolean => {
+    if (r[key] !== undefined && typeof r[key] !== "boolean") throw new FmError("BAD_REQUEST", `The ${key} effect must be on or off.`);
+    return r[key] === true;
+  };
+  const color = (key: string, fallback: string): string => {
+    const value = r[key] ?? fallback;
+    if (typeof value !== "string" || !HEX.test(value)) throw new FmError("BAD_REQUEST", `The ${key} effect colour must look like #1a2b3c.`);
+    return value.toLowerCase();
+  };
+  return {
+    glow: choice("glow", ["none", "soft", "neon"], "soft"),
+    glowColor: color("glowColor", accent), glowColor2: color("glowColor2", accent),
+    blur: number("blur", 32, 16), glass: number("glass", 1, 0.4),
+    glowIntensity: number("glowIntensity", 1, 1), borderOpacity: number("borderOpacity", 1, 0.16),
+    grain: choice("grain", ["none", "subtle"], "none"), scanlines: choice("scanlines", ["none", "subtle"], "none"),
+    radius: choice("radius", ["sharp", "soft", "round", "pill"], "soft"),
+    border: choice("border", ["flat", "gradient", "metal"], "flat"),
+    motion: choice("motion", ["calm", "spring", "snappy"], "calm"),
+    sheen: flag("sheen"), noise: flag("noise"), chromatic: flag("chromatic"), ambient: flag("ambient"),
+  };
 }
 
 /** The shape the built-in themes have, so one code path makes the page colours for both. */
@@ -71,6 +110,7 @@ export function toSimpleTheme(t: ThemeDraft): SimpleGUITheme {
     description: t.base ? `Your theme, started from ${t.base}` : "Your own theme",
     is_dark: t.dark,
     semantic: Object.keys(semantic).length ? semantic : undefined,
+    fx: t.fx,
   };
 }
 
@@ -138,7 +178,7 @@ export async function deleteCustom(ctx: FmContext, id: unknown): Promise<void> {
 }
 
 /** The text a person can copy to share a theme. */
-export const exportTheme = (t: ThemeDraft): string => JSON.stringify({ format: EXPORT_FORMAT, version: 1, name: t.name, dark: t.dark, colors: t.colors }, null, 2);
+export const exportTheme = (t: ThemeDraft): string => JSON.stringify({ format: EXPORT_FORMAT, version: 1, name: t.name, dark: t.dark, colors: t.colors, ...(t.fx ? { fx: t.fx } : {}) }, null, 2);
 
 /** Reads shared theme text. Accepts the exported form or a bare `{ name, dark, colors }`. */
 export function parseShared(text: unknown): ThemeDraft {

@@ -1,14 +1,14 @@
 # Futuristic themes, effects tokens and the motion layer
 
-This page explains the `fx` layer: twelve futuristic themes plus the tokens, CSS classes and one small pointer script that give any SimpleGUI page and the Visual Designer glass surfaces, edge glow and purposeful motion. It is written for people who add or change themes and controls.
+This page explains the `fx` layer: fifteen futuristic themes plus the tokens, CSS classes and one small pointer script that give any SimpleGUI page and the Visual Designer glass surfaces, edge glow and purposeful motion. It is written for people who add or change themes and controls.
 
-The short version: a theme with an `fx` descriptor gets the layer; a theme without one gets nothing at all. Pages for the other 121 themes are byte-for-byte what they were before (a hash test guards that).
+The short version: a theme with an `fx` descriptor gets the layer; a theme without one gets no effects CSS or attributes. Hash tests guard the plain-theme output, including the shared desktop keyboard shortcuts.
 
 ## Where things live
 
 | File | What it holds |
 |---|---|
-| `src/shared/fxThemes.ts` | The 12 themes, the `ThemeFx` descriptor, `fxCssVars()` (descriptor to `--fx-*` variables), `findFxTheme()`, `glassReport()`, `syntaxPalette()` |
+| `src/shared/fxThemes.ts` | The 15 themes, the `ThemeFx` descriptor, `fxCssVars()` (descriptor to `--fx-*` variables), `findFxTheme()`, `glassReport()`, `syntaxPalette()` |
 | `src/shared/fxCss.ts` | `fxCss()`: the one CSS string every fx page and the Designer share |
 | `src/shared/fxSelectors.ts` | The selector groups (buttons, cards, panels, inputs, magnets, tab strips, modals, rows) used by both the CSS and the pointer script |
 | `src/shared/fxPointer.ts` | The pointer script as a source string, plus `installFxPointer(window)` for tests |
@@ -50,6 +50,8 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
 |---|---|---|
 | `glow` | `none`, `soft`, `neon` | Strength of the `--fx-glow-*` shadow lists |
 | `glowColor`, `glowColor2` | hex | Primary and secondary light colour (rings, bloom, backdrop) |
+| `glowIntensity` | 0 to 1, optional (default 1) | Scales glow alpha without changing focus rings or text opacity |
+| `borderOpacity` | 0 to 1, optional | Overrides the glass border alpha; omitted values keep the original theme style |
 | `blur` | 0 to 32 (px) | Backdrop blur behind glass surfaces |
 | `glass` | 0 to 1 | How translucent surfaces are; the fill is raised until body text passes 4.5:1 over black and over white |
 | `grain` | `none`, `subtle` | Film grain over the page, at most 4% |
@@ -63,6 +65,12 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
 | `ambient` | boolean | Aurora/nebula backdrop that drifts slowly |
 
 Helpers exported from `simplegui.ts` (each with a snake_case alias): `getThemeFx(name)`, `isFxTheme(name)`, `fxCssVars(themeOrName)`, `getSyntaxPalette(name)`.
+
+### Editable effects in File Manager
+
+File Manager's theme editor exposes opacity, blur, glow colours/intensity, border strength/style, corners, animation feel and decorative effects. Its optional `fx` field uses the same `ThemeFx` descriptor and survives save, import and export; old colour-only themes stay unchanged. Numeric ranges, enum values and hex colours are validated before producing CSS. Glass stays on small chrome surfaces, never file rows, code or terminal text; opacity is raised to protect readable body and muted text. Reduced-motion preferences disable movement, and browsers without backdrop blur use solid panels.
+
+The new showcase presets are `prism_reactor` (cyan/magenta glass), `orbital_ice` (bright frosted instrumentation), and `ember_grid` (amber tactical controls). Try `bun run demo:themes prism_reactor`, or choose them in File Manager or the Visual Designer.
 
 ### Opt an existing theme in
 

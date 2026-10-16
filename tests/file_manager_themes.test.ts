@@ -9,6 +9,8 @@ import { sanitizeSettings } from "../src/features/filemanager/fmSettings";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 import { SIMPLEGUI_THEMES } from "../src/simplegui";
 import { contrastRatio } from "../src/shared/themeSemantic";
+import { exportTheme, parseShared, toSimpleTheme, validateDraft } from "../src/features/filemanager/fmThemeStore";
+import { FX_THEMES, fxCssVars, glassReport } from "../src/shared/fxThemes";
 
 // The same pairs tests/file_manager_ui_theme.test.ts demands of the built-in light and dark colours.
 const PAIRS: Array<[string, string, number]> = [
@@ -81,6 +83,36 @@ describe("the saved choice", () => {
     expect(sanitizeSettings({ palette: "nord" }, ctx).palette).toBe("nord");
     for (const bad of ["Nord", "a b", "../x", "x".repeat(61), 5, null, "", "<script>"]) expect(sanitizeSettings({ palette: bad }, ctx).palette).toBe("");
     expect(sanitizeSettings({}, ctx).palette).toBe("");
+  });
+
+  describe("custom theme effects", () => {
+    const draft = { name: "Custom glass", dark: true, colors: { background: "#060918", card: "#101a30", text: "#edf8ff", accent: "#53f4ff" }, fx: FX_THEMES.prism_reactor!.fx! };
+
+    test("effects survive validation, export and import without changing old colour-only themes", () => {
+      const checked = validateDraft(draft);
+      expect(parseShared(exportTheme(checked))).toEqual(checked);
+      expect(toSimpleTheme(checked).fx).toEqual(checked.fx);
+      const { fx, ...old } = draft;
+      expect(validateDraft(old).fx).toBeUndefined();
+      expect(themeVars(toSimpleTheme(validateDraft(old))).effects).toBeUndefined();
+    });
+
+    test("invalid effect values are rejected instead of becoming CSS", () => {
+      for (const bad of [{ blur: 33 }, { glass: -1 }, { glass: "0.5" }, { glow: "bad" }, { radius: "url(x)" }, { glowColor: "red;display:none" }, { glowIntensity: NaN }, { borderOpacity: Infinity }, { ambient: "yes" }]) {
+        expect(() => validateDraft({ ...draft, fx: { ...draft.fx, ...bad } })).toThrow();
+      }
+    });
+
+    test("opacity stays above the contrast floor, and glow intensity can be turned off", () => {
+      const theme = toSimpleTheme(validateDraft({ ...draft, fx: { ...draft.fx, glass: 1, glowIntensity: 0 } }));
+      expect(glassReport({ ...theme, fx: theme.fx! }).worstContrast).toBeGreaterThanOrEqual(4.5);
+      const css = fxCssVars(theme);
+      expect(css.match(/--fx-glow-strong: ([^;]+)/)?.[1]).toContain("rgba(83, 244, 255, 0)");
+      const computed = themeVars(theme);
+      expect(computed.effects!.attrs["data-fx"]).toBe("on");
+      expect(computed.notes.join(" ")).toContain("opacity");
+      expect(computed.effects!.css).not.toContain("NaN");
+    });
   });
 });
 
@@ -202,6 +234,37 @@ describe("the theme gallery in the page", () => {
     expect(doc.documentElement.dataset.palette).toBeUndefined();
     expect(rootVar("bg")).toBe("");
     state.settings.palette = "";
+  });
+
+  test("cycling themes wraps, applies colours and persists the selected theme", async () => {
+    const all = (await api.call("themes/list")).themes;
+    await themes.chooseTheme("");
+    await themes.cycleTheme(1);
+    expect(state.settings.palette).toBe(all[0].key);
+    expect((await api.call("settings")).settings.palette).toBe(all[0].key);
+    await sleep(100);
+    expect(doc.documentElement.dataset.palette).toBe(all[0].key);
+    await themes.cycleTheme(-1);
+    expect(state.settings.palette).toBe("");
+    await themes.cycleTheme(-1);
+    expect(state.settings.palette).toBe(all.at(-1).key);
+    await themes.cycleTheme(1);
+    expect(state.settings.palette).toBe("");
+    expect((await api.call("settings")).settings.palette).toBe("");
+  });
+
+  test("effects are applied with the response nonce, then fully removed by a plain theme or Standard", async () => {
+    await themes.applyPalette("prism_reactor");
+    expect(doc.documentElement.dataset.fx).toBe("on");
+    expect(doc.querySelector("#fm-theme-effects").getAttribute("nonce")).toBe("n");
+    expect(doc.querySelector("#fm-theme-effects").textContent).toContain("--fx-glass-bg");
+    await themes.applyPalette("dracula");
+    expect(doc.documentElement.dataset.fx).toBeUndefined();
+    expect(doc.querySelector("#fm-theme-effects")).toBeNull();
+    await themes.applyPalette("orbital_ice");
+    await themes.applyPalette("");
+    expect(doc.documentElement.dataset.fx).toBeUndefined();
+    expect(doc.querySelector("#fm-theme-effects")).toBeNull();
   });
 });
 
@@ -337,6 +400,15 @@ describe("the theme editor in the page", () => {
     name.value = "My Dracula";
     name.dispatchEvent(new doc.defaultView.Event("input", { bubbles: true }));
     setHex("Accent", "#12ab34");
+    const enabled = doc.querySelector('[aria-label="Enable visual effects"]');
+    enabled.checked = true;
+    enabled.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
+    const opacity = doc.querySelector('[aria-label="Panel opacity"]');
+    opacity.value = "65";
+    opacity.dispatchEvent(new doc.defaultView.Event("input", { bubbles: true }));
+    const blur = doc.querySelector('[aria-label="Glass blur"]');
+    blur.value = "24";
+    blur.dispatchEvent(new doc.defaultView.Event("input", { bubbles: true }));
     await sleep(400);
     editorButton("Save theme").click();
     await sleep(800);
@@ -345,6 +417,10 @@ describe("the theme editor in the page", () => {
     expect(state.settings.palette).toBe(mine.key);
     expect(doc.documentElement.dataset.palette).toBe(mine.key);
     expect(rootVar("accent")).not.toBe("");
+    const savedTheme = await api.call("themes/get", { key: mine.key });
+    expect(savedTheme.source.fx.blur).toBe(24);
+    expect(savedTheme.source.fx.glass).toBeCloseTo(35 / 60);
+    expect(doc.documentElement.dataset.fx).toBe("on");
     closeDialogs();
   });
 
@@ -358,6 +434,7 @@ describe("the theme editor in the page", () => {
     editorButton("Export…").click();
     await sleep(200);
     expect(doc.querySelector("textarea.theme-export").value).toContain("bun-rad-studio-file-manager-theme");
+    expect(JSON.parse(doc.querySelector("textarea.theme-export").value).fx.blur).toBe(24);
     editorButton("Close").click();
     await sleep(300);
     editorButton("Delete theme").click();

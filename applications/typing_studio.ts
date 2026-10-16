@@ -2,6 +2,7 @@ import { SizeHint, Webview } from "webview-bun";
 import { serve } from "bun";
 import { join } from "path";
 import { readFileSync } from "fs";
+import { attachWindowShortcuts } from "../index";
 
 export class TypingStudio {
   private webview: Webview | null = null;
@@ -23,6 +24,7 @@ export class TypingStudio {
         hint: SizeHint.NONE,
       });
       this.webview.title = "CyberType Deluxe — Mavis Edition";
+      attachWindowShortcuts(this.webview, { fullscreen: false });
 
       // Read HTML directly to bypass macOS App Transport Security on localhost
       const htmlPath = join(import.meta.dir, "../resources/typing_studio/index.html");

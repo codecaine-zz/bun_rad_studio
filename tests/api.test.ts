@@ -380,7 +380,7 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
     });
 
     test("6. Cross-Platform Native Window Helpers Validation", () => {
-        const dummyWebview = { unsafeWindowHandle: null, bind: () => {} } as any;
+        const dummyWebview = { unsafeWindowHandle: null, bind: () => {}, init: () => {} } as any;
         expect(() => setAlwaysOnTopNative(dummyWebview, true)).not.toThrow();
         expect(() => toggleFullscreenNative(dummyWebview)).not.toThrow();
         expect(() => setFullscreenNative(dummyWebview, true)).not.toThrow();
@@ -655,4 +655,3 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
     });
 
 });
-

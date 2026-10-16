@@ -4,7 +4,7 @@
  * pair is nudged until it passes the contrast checks that tests/file_manager_themes.test.ts runs on all of them.
  */
 import { SIMPLEGUI_THEMES, type SimpleGUITheme } from "../../simplegui";
-import { FX_THEME_KEYS } from "../../shared/fxThemes";
+import { FX_THEME_KEYS, fxCssVars, fxRootAttrs, glassReport, type ThemeFx } from "../../shared/fxThemes";
 import { OS_THEME_KEYS } from "../../shared/osThemes";
 import { buildSemanticPalette, contrastRatio, overridesForTheme, parseColor, toHex } from "../../shared/themeSemantic";
 import { FmError } from "./fmPaths";
@@ -30,6 +30,7 @@ export interface ThemeVars {
   vars: Record<string, string>;
   /** Plain-words notes about colours that were changed to keep the text readable. */
   notes: string[];
+  effects?: { css: string; attrs: Record<string, string> };
 }
 
 const WHITE: RGB = [255, 255, 255];
@@ -102,10 +103,24 @@ export function themeVars(theme: SimpleGUITheme): ThemeVars {
   if (bg !== asked(theme.background_color, bg) && theme.background_color) notes.push("The window colour was matched to the cards, because no text colour reads well on both.");
   if (text !== asked(theme.font_color, text) && theme.font_color) notes.push("The text colour was adjusted a little so it stays easy to read.");
   if (accent !== asked(theme.accent_color, accent) && theme.accent_color) notes.push("The accent colour was adjusted a little so it stands out from the background.");
+  let effects: ThemeVars["effects"];
+  if (theme.fx) {
+    const safe = { ...theme, background_color: bg, card_background: panel, font_color: text };
+    const report = glassReport({ ...safe, fx: theme.fx });
+    const mutedReport = glassReport({ ...safe, font_color: muted, fx: theme.fx });
+    const opacity = Math.max(report.alpha, mutedReport.alpha);
+    const [r, g, b] = parseColor(panel);
+    effects = {
+      css: fxCssVars(safe) + ` --fx-glass-bg: rgba(${r}, ${g}, ${b}, ${opacity}); --fx-glass-alpha: ${opacity};`,
+      attrs: fxRootAttrs(safe),
+    };
+    if (opacity > report.requestedAlpha) notes.push(`Panel opacity was raised to ${Math.round(opacity * 100)}% to keep text readable.`);
+  }
 
   return {
     scheme: dark ? "dark" : "light",
     notes,
+    ...(effects ? { effects } : {}),
     vars: {
       bg, panel, text, muted, border, accent, "accent-text": accentText, selected, "selected-text": selectedText, hover,
       danger, "danger-bg": dangerBg, "danger-text": dangerText,
@@ -141,6 +156,7 @@ interface Entry {
 export interface ThemeSource {
   dark: boolean;
   colors: Record<string, string>;
+  fx?: ThemeFx;
 }
 
 export function sourceOf(theme: SimpleGUITheme): ThemeSource {
@@ -149,6 +165,7 @@ export function sourceOf(theme: SimpleGUITheme): ThemeSource {
   const sem = buildSemanticPalette({ background: bg, card, isDark: theme.is_dark, overrides: overridesForTheme(theme) });
   return {
     dark: theme.is_dark,
+    ...(theme.fx ? { fx: { ...theme.fx } } : {}),
     colors: {
       background: bg, text: hex(parseColor(theme.font_color)), accent: hex(parseColor(theme.accent_color)),
       secondary: hex(parseColor(theme.secondary_accent ?? theme.accent_color)), card, border: theme.card_border ? hex(parseColor(theme.card_border)) : over(bg, hex(parseColor(theme.font_color)), 0.22),
@@ -194,14 +211,14 @@ export function getThemeColours(key: unknown): (ThemeSummary & ThemeVars) | null
 }
 
 const customSummary = (t: CustomTheme): ThemeSummary => {
-  const { notes: _notes, scheme: _scheme, vars: _vars, ...summary } = summaryOf(t.id, toSimpleTheme(t), "My themes");
+  const { notes: _notes, scheme: _scheme, vars: _vars, effects: _effects, ...summary } = summaryOf(t.id, toSimpleTheme(t), "My themes");
   return summary;
 };
 
 async function resolve(ctx: FmContext, key: unknown): Promise<{ colours: ThemeSummary & ThemeVars; source: ThemeSource; draft?: CustomTheme } | null> {
   if (isCustomKey(key)) {
     const t = (await loadCustom(ctx)).find((x) => x.id === key);
-    return t ? { colours: summaryOf(t.id, toSimpleTheme(t), "My themes"), source: { dark: t.dark, colors: { ...sourceOf(toSimpleTheme(t)).colors, ...t.colors } }, draft: t } : null;
+    return t ? { colours: summaryOf(t.id, toSimpleTheme(t), "My themes"), source: sourceOf(toSimpleTheme(t)), draft: t } : null;
   }
   const colours = getThemeColours(key);
   return colours ? { colours, source: sourceOf(entries().get(key as string)!.theme) } : null;
@@ -241,4 +258,3 @@ export const themeOperations: Record<string, FmHandler> = {
     return { theme: draft };
   },
 };
-

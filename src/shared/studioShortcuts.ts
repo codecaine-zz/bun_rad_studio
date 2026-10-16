@@ -44,6 +44,10 @@ function studioShortcutsClient() {
   add("Everywhere", "Mod+/", "Show this list (F1 works too)");
   add("Everywhere", "Esc", "Close the open dialog, menu or popover (only that one)");
   add("Window", "F11", "Toggle the application window's full screen");
+  add("Window", "Right Option+/", "Toggle the application window's full screen (Esc never leaves it)");
+  add("Window", "Right Option+]", "Next theme");
+  add("Window", "Right Option+[", "Previous theme");
+  add("Window", "Mod+Q", "Quit the desktop app, including from inputs and dialogs");
 
   function dialogOpen() { return !!(window.StudioDialogs && window.StudioDialogs.isOpen && window.StudioDialogs.isOpen()); }
 

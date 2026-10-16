@@ -1,0 +1,62 @@
+/* Effects stay on small chrome surfaces, never on file rows, code or terminal text. */
+:root[data-fx] :is(.btn, .prop-input, .theme-card, .dialog) {
+  border-radius: var(--fx-radius-md);
+}
+:root[data-fx] :is(.dialog, .theme-card, #toolbar, #viewbar) {
+  background-color: var(--fx-glass-solid);
+  border-color: var(--fx-glass-border);
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  :root[data-fx] :is(.dialog, .theme-card, #toolbar, #viewbar) {
+    background-color: var(--fx-glass-bg);
+    -webkit-backdrop-filter: blur(var(--fx-blur-md)) saturate(var(--fx-saturate));
+    backdrop-filter: blur(var(--fx-blur-md)) saturate(var(--fx-saturate));
+  }
+}
+:root[data-fx] .theme-card:hover, :root[data-fx] .btn:hover {
+  box-shadow: var(--fx-glow-med);
+}
+:root[data-fx] :is(button, input, select, textarea):focus-visible {
+  outline: var(--fx-focus-ring);
+  outline-offset: var(--fx-focus-offset);
+}
+:root[data-fx]:is([data-fx-border="gradient"], [data-fx-border="metal"]) .theme-card {
+  border: 1px solid var(--fx-glass-border);
+  border-image: var(--fx-border-gradient) 1;
+}
+:root[data-fx][data-fx-ambient="on"] #viewbar {
+  background-image: radial-gradient(ellipse at top left, var(--fx-ambient-1), transparent 70%), radial-gradient(ellipse at bottom right, var(--fx-ambient-2), transparent 70%);
+}
+:root[data-fx][data-fx-ca="on"] .theme-editor h3 {
+  text-shadow: -0.6px 0 var(--fx-ca-1), 0.6px 0 var(--fx-ca-2);
+}
+:root[data-fx] .theme-sample { position: relative; overflow: hidden; }
+:root[data-fx][data-fx-sheen="on"] .theme-sample::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; background: var(--fx-sheen);
+}
+:root[data-fx][data-fx-noise="on"] .theme-sample { background-image: var(--fx-noise); }
+:root[data-fx][data-fx-grain="on"] #viewbar { background-image: var(--fx-noise); }
+:root[data-fx][data-fx-scan="on"] #toolbar {
+  background-image: repeating-linear-gradient(0deg, color-mix(in srgb, var(--fx-glow-color) 3%, transparent) 0 1px, transparent 1px 3px);
+}
+.theme-effect-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  padding: 12px 0;
+}
+.theme-effect-controls label { display: grid; gap: 4px; }
+.theme-effect-controls input[type="range"] { width: 100%; accent-color: var(--accent); }
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-fx="on"] :is(.btn, .theme-card) {
+    transition: transform var(--fx-dur-fast) var(--fx-ease);
+  }
+  :root[data-fx="on"] .theme-card:hover { transform: translateY(-2px); }
+  :root[data-fx="on"][data-fx-sheen="on"] .theme-sample::after {
+    animation: fm-theme-sheen var(--fx-dur-ambient) ease-in-out infinite alternate;
+  }
+}
+@keyframes fm-theme-sheen { from { transform: translateX(-35%); } to { transform: translateX(35%); } }
+@media (prefers-reduced-motion: reduce) {
+  :root[data-fx] :is(.btn, .theme-card) { transition: none; transform: none; }
+}

@@ -3,6 +3,7 @@ import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { guardLocalRequest } from "../src/localGuard";
 import { findStudioResources } from "../src/studio_resources";
+import { attachWindowShortcuts } from "../index";
 
 // Find available port between 63000-64000 for local assets
 function findAvailablePort(start: number, end: number): number {
@@ -65,6 +66,7 @@ export class TetrisStudio {
 
     const webview = new Webview(true, { width: 1000, height: 800, hint: SizeHint.NONE });
     webview.title = "🧱 Tetris Ultra Deluxe";
+    attachWindowShortcuts(webview, { fullscreen: false, onQuit: () => server.stop(true) });
 
     webview.setHTML(htmlContent);
     webview.run();

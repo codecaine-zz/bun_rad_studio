@@ -1,5 +1,5 @@
 // Page output for themes WITHOUT an `fx` descriptor, hashed. The fixture tests/fixtures/fx_baseline_hashes.json
-// was written before the futuristic theme layer existed, so any change to these pages shows up as a mismatch.
+// excludes fx-only additions. It was refreshed for the intentional shared desktop keyboard changes.
 //   bun run tests/helpers/fx_baseline.ts   prints the current hashes
 import { createHash } from "crypto";
 import { createThemeShowcase } from "../../demos/23_all_themes_all_controls_showcase";

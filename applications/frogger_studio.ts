@@ -3,6 +3,7 @@ import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { guardLocalRequest } from "../src/localGuard";
 import { findStudioResources } from "../src/studio_resources";
+import { attachWindowShortcuts } from "../index";
 
 function findAvailablePort(start: number, end: number): number {
   for (let p = start; p <= end; p++) {
@@ -51,6 +52,7 @@ export class FroggerStudio {
 
     const webview = new Webview(true, { width: 1000, height: 800, hint: SizeHint.NONE });
     webview.title = "🐸 CyberFrog Deluxe";
+    attachWindowShortcuts(webview, { fullscreen: false, onQuit: () => server.stop(true) });
 
     webview.setHTML(htmlContent);
     webview.run();

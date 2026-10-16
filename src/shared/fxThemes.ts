@@ -32,6 +32,10 @@ export interface ThemeFx {
     chromatic?: boolean;
     /** Aurora/nebula backdrop behind the page that drifts slowly. */
     ambient?: boolean;
+    /** Glow strength, 0 to 1. Defaults to 1. */
+    glowIntensity?: number;
+    /** Glass border opacity, 0 to 1. Defaults to the theme's border style. */
+    borderOpacity?: number;
 }
 
 /** The page-level effects switch: Full = "on", Reduced keeps looks but no motion, Off removes everything. */
@@ -46,6 +50,45 @@ type Fx = ThemeFx;
 const T = (t: Omit<SimpleGUITheme, "is_dark"> & { is_dark: boolean; fx: Fx }): SimpleGUITheme => t;
 
 export const FX_THEMES: Record<string, SimpleGUITheme> = {
+    prism_reactor: T({
+        name: "Prism Reactor",
+        short_name: "Prism Reactor",
+        background_color: "#060918",
+        font_color: "#edf8ff",
+        accent_color: "#53f4ff",
+        secondary_accent: "#ff67d8",
+        card_background: "#101a30",
+        card_border: "#59759c",
+        description: "A cyan reactor core in prismatic glass, magenta edge light, soft round panels and a slow holographic atmosphere",
+        is_dark: true,
+        fx: { glow: "neon", glowColor: "#53f4ff", glowColor2: "#ff67d8", glowIntensity: 0.8, blur: 28, glass: 0.8, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", borderOpacity: 0.35, motion: "spring", ambient: true, chromatic: true },
+    }),
+    orbital_ice: T({
+        name: "Orbital Ice",
+        short_name: "Orbital Ice",
+        background_color: "#e8f2fa",
+        font_color: "#132b43",
+        accent_color: "#165ba3",
+        secondary_accent: "#7255a8",
+        card_background: "#f7fbff",
+        card_border: "#64849e",
+        description: "A bright orbital observatory with ice-blue frosted glass, polished metal borders and calm, readable instrumentation",
+        is_dark: false,
+        fx: { glow: "soft", glowColor: "#165ba3", glowColor2: "#7255a8", glowIntensity: 0.45, blur: 24, glass: 0.7, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "metal", borderOpacity: 0.3, motion: "calm", ambient: true },
+    }),
+    ember_grid: T({
+        name: "Ember Grid",
+        short_name: "Ember Grid",
+        background_color: "#100905",
+        font_color: "#fff0dc",
+        accent_color: "#ffb454",
+        secondary_accent: "#ff6178",
+        card_background: "#24150c",
+        card_border: "#98603b",
+        description: "An amber command deck with sharp copper edges, low scanlines, restrained glow and fast tactical controls",
+        is_dark: true,
+        fx: { glow: "neon", glowColor: "#ffb454", glowColor2: "#ff6178", glowIntensity: 0.65, blur: 8, glass: 0.25, grain: "subtle", scanlines: "subtle", sheen: false, radius: "sharp", border: "gradient", borderOpacity: 0.5, motion: "snappy", ambient: true },
+    }),
     cyberpunk_hologram: T({
         name: "Cyberpunk Hologram",
         short_name: "Hologram",
@@ -361,10 +404,12 @@ export function fxCssVars(theme: SimpleGUITheme | undefined | null): string {
     const rad = RADII[fx.radius];
     const mo = MOTION[fx.motion];
     const none = "0 0 0 0 rgba(0, 0, 0, 0)";
+    const intensity = clamp(fx.glowIntensity ?? 1, 0, 1);
+    const glowRgba = (color: string, alpha: number) => rgba(color, alpha * intensity);
     const neon = fx.glow === "neon";
-    const glowSoft = fx.glow === "none" ? none : `0 0 0 1px ${rgba(g1, neon ? 0.35 : 0.22)}, 0 0 ${neon ? 14 : 10}px ${rgba(g1, neon ? 0.38 : 0.22)}`;
-    const glowMed = fx.glow === "none" ? none : `0 0 0 1px ${rgba(g1, neon ? 0.55 : 0.34)}, 0 0 ${neon ? 22 : 16}px ${rgba(g1, neon ? 0.5 : 0.32)}, 0 0 ${neon ? 48 : 32}px ${rgba(g2, neon ? 0.26 : 0.14)}`;
-    const glowStrong = fx.glow === "none" ? none : `0 0 0 1px ${rgba(g1, neon ? 0.8 : 0.5)}, 0 0 ${neon ? 30 : 22}px ${rgba(g1, neon ? 0.68 : 0.42)}, 0 0 ${neon ? 72 : 48}px ${rgba(g2, neon ? 0.4 : 0.2)}`;
+    const glowSoft = fx.glow === "none" ? none : `0 0 0 1px ${glowRgba(g1, neon ? 0.35 : 0.22)}, 0 0 ${neon ? 14 : 10}px ${glowRgba(g1, neon ? 0.38 : 0.22)}`;
+    const glowMed = fx.glow === "none" ? none : `0 0 0 1px ${glowRgba(g1, neon ? 0.55 : 0.34)}, 0 0 ${neon ? 22 : 16}px ${glowRgba(g1, neon ? 0.5 : 0.32)}, 0 0 ${neon ? 48 : 32}px ${glowRgba(g2, neon ? 0.26 : 0.14)}`;
+    const glowStrong = fx.glow === "none" ? none : `0 0 0 1px ${glowRgba(g1, neon ? 0.8 : 0.5)}, 0 0 ${neon ? 30 : 22}px ${glowRgba(g1, neon ? 0.68 : 0.42)}, 0 0 ${neon ? 72 : 48}px ${glowRgba(g2, neon ? 0.4 : 0.2)}`;
     const borderGradient =
         fx.border === "flat"
             ? `linear-gradient(${theme.card_border ?? g1}, ${theme.card_border ?? g1})`
@@ -378,7 +423,8 @@ export function fxCssVars(theme: SimpleGUITheme | undefined | null): string {
         : `linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.7) 50%, transparent 62%)`;
     const focus = focusRingColor({ accent_color: theme.accent_color, background_color: theme.background_color, card_background: card, is_dark: isDark });
     const sh = shadowStack(isDark, g1);
-    const glassBorder = isDark ? `rgba(255, 255, 255, ${fx.border === "metal" ? 0.2 : 0.13})` : `rgba(20, 30, 40, ${fx.border === "metal" ? 0.22 : 0.16})`;
+    const borderAlpha = clamp(fx.borderOpacity ?? (isDark ? (fx.border === "metal" ? 0.2 : 0.13) : (fx.border === "metal" ? 0.22 : 0.16)), 0, 1);
+    const glassBorder = isDark ? `rgba(255, 255, 255, ${borderAlpha})` : `rgba(20, 30, 40, ${borderAlpha})`;
     const vars: Array<[string, string]> = [
         ["--fx-glow-color", g1],
         ["--fx-glow-color-2", g2],

@@ -37,6 +37,22 @@ export function quoteArg(value, shell = "posix") {
   return { text: `'${value.replace(/'/g, `'\\''`)}'` };
 }
 
+/**
+ * Shell arguments only: no command, no Enter, and no terminal control characters.
+ * @returns {{ text: string, error?: never } | { error: string, text?: never }}
+ */
+export function quotePathsForTerminal(paths, shell = "posix") {
+  if (!Array.isArray(paths) || !paths.length) return { error: "Select one or more files or folders first." };
+  const quoted = [];
+  for (const path of paths) {
+    if (typeof path !== "string" || !path || /[\x00-\x1f\x7f-\x9f]/.test(path)) return { error: "A selected path has a hidden control character, so it can't be pasted into a terminal safely." };
+    const arg = quoteArg(path, shell === "wsl" ? "posix" : shell);
+    if (arg.error) return arg;
+    quoted.push(shell === "wsl" ? `"$(wslpath -u ${arg.text})"` : arg.text);
+  }
+  return { text: quoted.join(" ") + " " };
+}
+
 /** Splits a path at the last "/" (or "\" on Windows): { dir, name, stem, ext }. */
 export function pathParts(path, platform) {
   const sepAt = platform === "win32" ? Math.max(path.lastIndexOf("\\"), path.lastIndexOf("/")) : path.lastIndexOf("/");

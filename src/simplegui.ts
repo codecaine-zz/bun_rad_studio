@@ -1,5 +1,6 @@
 import { SizeHint, Webview } from "webview-bun";
 import { injectHelp } from "./shared/helpTips";
+import { DESKTOP_SHORTCUTS_SCRIPT } from "./shared/desktopShortcuts";
 import { OS_THEMES, OS_THEME_KEYS } from "./shared/osThemes";
 import { FX_THEMES, FX_THEME_KEYS, FX_THEME_ALIASES, fxCssVars as buildFxCssVars, fxRootAttrs, normalizeFxMode, syntaxPalette, type FxMode, type SyntaxPalette, type ThemeFx } from "./shared/fxThemes";
 import { fxCss } from "./shared/fxCss";
@@ -1002,6 +1003,26 @@ export class SimpleWindow {
             for (const [l, d] of light) pairs.push(b.is_dark ? [l, d] : [d, l]);
         }
         return pairs;
+    }
+
+    public cycleTheme(direction: 1 | -1 = 1, persist = true): this {
+        const selector = this.controls.find((control) => control.is_theme_selector);
+        const names = new Set<string>();
+        const keys = (selector ? selector.items as string[] : getThemeKeys()).filter((key) => {
+            const name = getTheme(key).name;
+            if (names.has(name)) return false;
+            names.add(name);
+            return true;
+        });
+        if (!keys.length) throw new Error("No themes are available.");
+        const current = keys.findIndex((key) => getTheme(key).name === getTheme(this.theme).name);
+        const next = current < 0 ? (direction > 0 ? 0 : keys.length - 1)
+            : (current + direction + keys.length) % keys.length;
+        const chosen = keys[next]!;
+        this.setTheme(chosen, persist);
+        if (selector) this.setValue(selector.id, chosen);
+        if (persist && this.autoSaveState) this.saveAppFormStateOr();
+        return this;
     }
 
     public setTheme(themeName: string, persist = true): this {
@@ -2329,6 +2350,7 @@ export class SimpleWindow {
         const initialTheme = themeList.includes(this.theme) ? this.theme : (themeList[0] || "midnight");
 
         const ref = this.addDropdown(id, themeList, initialTheme, { item_labels: itemLabels });
+        ref.spec.is_theme_selector = true;
         if (width > 0) {
             ref.width(width);
         }
@@ -5314,6 +5336,7 @@ export class SimpleWindow {
             ${DIALOG_CLIENT_HTML}
             ${UI_CLIENT_HTML}
             <script>
+            ${DESKTOP_SHORTCUTS_SCRIPT}
             (function() {
                 window.onSimpleguiPromptResult = function(reqId, result) {
                     if (window.handlePromptResultIPC) {
@@ -5431,7 +5454,7 @@ export class SimpleWindow {
 
                     if (e.repeat) return;
 
-                    if ((e.key === "Alt" || e.code === "AltLeft" || e.code === "AltRight")) {
+                    if (e.code !== "AltRight" && (e.key === "Alt" || e.code === "AltLeft")) {
                         const now = Date.now();
                         if (now - lastAltTime > 50 && now - lastAltTime < 450) {
                             lastAltTime = 0;
@@ -5479,18 +5502,6 @@ export class SimpleWindow {
                         e.preventDefault();
                         doToggleFullscreen();
                         return;
-                    }
-
-                    if (e.key === "Escape" || e.code === "Escape") {
-                        try {
-                            if (document.fullscreenElement || document.webkitFullscreenElement) {
-                                if (document.exitFullscreen) document.exitFullscreen().catch(function() {});
-                                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-                            }
-                            if (typeof window.toggleNativeFullscreen === "function") {
-                                try { window.toggleNativeFullscreen(); } catch(e) {}
-                            }
-                        } catch(e) {}
                     }
 
                     // 5. Minimize window: Cmd+M, Ctrl+M, Alt+M
@@ -6130,6 +6141,13 @@ export class SimpleWindow {
 
         this.webview.bind("quitApp", () => {
             this.handleClose();
+        });
+
+        this.webview.bind("cycleAppTheme", (direction: number) => {
+            if (direction !== 1 && direction !== -1) throw new Error("Invalid theme cycle direction.");
+            this.cycleTheme(direction);
+            this.toast(`Theme updated to: ${autoShortThemeName(this.theme)}`);
+            return { theme: this.theme };
         });
 
         this.webview.bind("closeWindow", () => {
@@ -11886,4 +11904,3 @@ export const simplegui = {
     SimpleWindow,
     SimpleControlRef
 };
-
