@@ -44,6 +44,8 @@ Maintainers: `bun run release:file-manager`, `bun run release:build -- --mac-app
 | ![Codecaine File Manager with its terminal open](screenshots/apps/file_manager_studio_terminal.png) | ![Codecaine File Manager in a narrow window](screenshots/apps/file_manager_studio_responsive.png) |
 | **Databases, one click away** | **Edit Redis keys in place** |
 | ![The Databases tool with a Redis connection that was found automatically](screenshots/apps/file_manager_studio_databases.png) | ![Redis Studio editing the score of a sorted-set member](screenshots/apps/redis_studio_editing.png) |
+| **Enhanced themes: glass, glow, motion and texture** | |
+| ![The File Manager theme gallery filtered to enhanced themes with special effects](screenshots/apps/file_manager_studio_themes.png) | |
 
 ```bash
 bun run app:files            # open the desktop app

@@ -279,8 +279,17 @@ async function captureFileManager() {
     await page.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
     await sleep(1200);
     await page.shot(join(OUT, "file_manager_studio_terminal.png"));
+
+    // 5. The enhanced theme gallery, narrowed to themes with glass, glow, motion or texture.
+    await page.eval("document.querySelector('#tool-terminal')?.click()");
+    await sleep(300);
+    await page.eval("window.openAppThemes()");
+    await page.eval("new Promise(r => { const t = setInterval(() => { if (document.querySelector('.theme-list .theme-card')) { clearInterval(t); r(true); } }, 100); })");
+    await page.eval("(() => { const f = document.querySelector('[aria-label=\"Show themes with or without special effects\"]'); f.value = 'fx'; f.dispatchEvent(new Event('change', { bubbles: true })); })()");
+    await sleep(600);
+    await page.shot(join(OUT, "file_manager_studio_themes.png"));
     ws.close();
-    console.log("  ✔ file_manager_studio: desktop, responsive, convert, databases and terminal");
+    console.log("  ✔ file_manager_studio: desktop, responsive, convert, databases, terminal and enhanced themes");
   } finally {
     chrome.kill();
     server.kill();

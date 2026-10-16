@@ -30,6 +30,8 @@ An easy, safe file manager for macOS, Windows and Linux. A sidebar and address b
 | ![The File Manager with its terminal open](screenshots/apps/file_manager_studio_terminal.png) | ![The File Manager in a narrow window](screenshots/apps/file_manager_studio_responsive.png) |
 | **Databases, one click away** | **Edit Redis keys in place** |
 | ![The Databases tool with a Redis connection that was found automatically](screenshots/apps/file_manager_studio_databases.png) | ![Redis Studio editing the score of a sorted-set member](screenshots/apps/redis_studio_editing.png) |
+| **Enhanced themes: glass, glow, motion and texture** | |
+| ![The File Manager theme gallery filtered to enhanced themes with special effects](screenshots/apps/file_manager_studio_themes.png) | |
 
 `bun run app:files`  ·  [User guide](docs/userguides/43_file_manager.md)
 

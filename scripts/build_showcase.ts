@@ -139,7 +139,7 @@ export function buildShowcase(): string {
   L.push("");
 
   // Featured
-  const fm = ["desktop", "convert", "terminal", "responsive", "databases"].every((k) => existsSync(join(SHOTS, `file_manager_studio_${k}.png`)));
+  const fm = ["desktop", "convert", "terminal", "responsive", "databases", "themes"].every((k) => existsSync(join(SHOTS, `file_manager_studio_${k}.png`)));
   if (fm) {
     L.push("## Featured: the File Manager");
     L.push("");
@@ -152,6 +152,8 @@ export function buildShowcase(): string {
     L.push("| ![The File Manager with its terminal open](screenshots/apps/file_manager_studio_terminal.png) | ![The File Manager in a narrow window](screenshots/apps/file_manager_studio_responsive.png) |");
     L.push("| **Databases, one click away** | **Edit Redis keys in place** |");
     L.push("| ![The Databases tool with a Redis connection that was found automatically](screenshots/apps/file_manager_studio_databases.png) | ![Redis Studio editing the score of a sorted-set member](screenshots/apps/redis_studio_editing.png) |");
+    L.push("| **Enhanced themes: glass, glow, motion and texture** | |");
+    L.push("| ![The File Manager theme gallery filtered to enhanced themes with special effects](screenshots/apps/file_manager_studio_themes.png) | |");
     L.push("");
     L.push("`bun run app:files`  ·  [User guide](docs/userguides/43_file_manager.md)");
     L.push("");
