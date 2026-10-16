@@ -49,6 +49,8 @@ The native window needs **Microsoft Edge WebView2 and Microsoft Visual C++ 2015-
 
 If a double-click shows nothing, check the startup log: `%USERPROFILE%\.bun_rad_studio\file-manager-startup.log` on Windows or `~/.bun_rad_studio/file-manager-startup.log` on Linux. To see server output in a terminal, run `& ".\Codecaine File Manager.exe" --server` in PowerShell or `./codecaine-file-manager --server` on Linux.
 
+**Ubuntu 24.04+ sandbox permissions:** if the log shows `bwrap: setting up uid map: Permission denied` or `Failed to fully launch dbus-proxy`, Ubuntu's AppArmor user-namespace restriction may be blocking WebKit's sandbox. This native crash happens before browser fallback can run. From the extracted release folder, run `sh install.sh --apparmor` and enter your sudo password in the terminal. The installer validates and loads `/etc/apparmor.d/codecaine-file-manager`, allowing user namespaces for that exact executable path only. It does not disable AppArmor or WebKit's sandbox. Choose a permanent folder first and rerun the command after moving it; one File Manager installation is covered at a time. Paths with AppArmor pattern or quoting characters are rejected rather than granting a broader permission. To remove the profile along with the menu entry and command link, run `sh install.sh --uninstall --apparmor`. Plain installation and uninstallation never require sudo or change AppArmor. Alternatively, use `--server` and open the printed address in your browser without changing system policy.
+
 From source:
 
 ```bash

@@ -55,6 +55,7 @@ export function releaseNotes(rows: Array<{ target: Target; file: string; bytes: 
   L.push("- **Linux:** `linux-x64` (Intel/AMD) or `linux-arm64` (Raspberry Pi, Graviton ...). Alpine uses the `-musl` files (command-line tools only). `-baseline` is for processors from before 2013.", "");
   L.push("Check a download against `SHA256SUMS.txt`: `shasum -a 256 -c SHA256SUMS.txt --ignore-missing`.", "");
   L.push("Desktop apps need a web view on the system: macOS has one built in; Windows needs the WebView2 runtime (part of Windows 11); Linux needs GTK 4 and WebKitGTK 6.0 (`libgtk-4-1 libwebkitgtk-6.0-4`).", "");
+  L.push("Ubuntu 24.04+: if a desktop app crashes with a bwrap / dbus-proxy permission error, run `sh install.sh --apparmor` in the extracted Linux download (sudo required). This grants sandbox user namespaces to that download's shared runtime, covering every desktop app and child studio. AppArmor and WebKit's sandbox stay enabled. Rerun after moving the folder; remove with `sh install.sh --uninstall --apparmor`. Alpine/musl downloads have command-line tools only and do not need this fix.", "");
   return L.join("\n");
 }
 

@@ -26,6 +26,7 @@ import { ICONS_OUT, iconSpecFor, renderPngs } from "./icons";
 import { BUNDLE_DIR, CACHE_DIR, RELEASE_DIR, bundleApps, buildRuntime, logBundleFailures } from "./suite";
 import { buildApp, type MacApp } from "./build_mac_apps";
 import { ROOT, SIDECAR_FILES, TARGETS, VERSION, defaultJobs, listSourceApps, log, mapPool, parseJobs, run, sha256File, webviewLibSource, writeFileAtomic, type SourceApp, type Target } from "./common";
+import { LINUX_SANDBOX_WARNING, linuxSandboxSetup } from "./linuxSandbox";
 
 export const APP_TITLE = "Codecaine File Manager";
 export const OUT_DIR = join(RELEASE_DIR, "file-manager");
@@ -135,7 +136,7 @@ async function compileLauncher(d: Download, outFile: string, icoFile: string | n
   await run([...args, stub]);
 }
 
-function readmeFor(d: Download): string {
+export function readmeFor(d: Download): string {
   const L: string[] = [`${APP_TITLE} ${VERSION}: ${d.label}`, "", d.hint + ".", ""];
   if (d.os === "windows") {
     L.push(`Start it: double-click "${APP_TITLE}.exe".`, "", "It needs the Microsoft WebView2 runtime (already part of Windows 11):", "  https://developer.microsoft.com/microsoft-edge/webview2/", "");
@@ -145,6 +146,7 @@ function readmeFor(d: Download): string {
   } else if (d.os === "linux") {
     L.push("Start it:", "  ./codecaine-file-manager", "", "Add it to your applications menu and your PATH:", "  sh install.sh        (undo with: sh install.sh --uninstall)", "", "It needs GTK 4 and WebKitGTK 6.0:", "  Debian/Ubuntu 24.04+:  sudo apt install libgtk-4-1 libwebkitgtk-6.0-4", "  Fedora:                sudo dnf install gtk4 webkitgtk6.0", "");
     L.push("Headless (no window, open the address it prints in a browser):", "  ./codecaine-file-manager --server");
+    L.push("", "Ubuntu 24.04+ sandbox fix:", "  If startup logs say 'bwrap: setting up uid map: Permission denied' or", "  'Failed to fully launch dbus-proxy', run:", "    sh install.sh --apparmor", "  Enter your sudo password in the terminal. This installs an AppArmor profile", "  for this executable only; AppArmor and WebKit's sandbox stay enabled.", "  Keep the folder in its final location; rerun that command after moving it.", "  Remove the menu entry, link and profile with: sh install.sh --uninstall --apparmor");
   }
   L.push("", "If the native window is unavailable, the File Manager opens in your default browser instead.",
     "Startup details and errors: " + (d.os === "windows" ? "%USERPROFILE%\\\\.bun_rad_studio\\\\file-manager-startup.log" : "~/.bun_rad_studio/file-manager-startup.log") + ".");
@@ -152,14 +154,15 @@ function readmeFor(d: Download): string {
   return L.join(d.os === "windows" ? "\r\n" : "\n");
 }
 
-function linuxInstallScript(): string {
+export function linuxInstallScript(): string {
   return `#!/bin/sh
 # Adds ${APP_TITLE} to your applications menu and links it into ~/.local/bin. Undo it with: sh install.sh --uninstall
 set -e
 ROOT="$(cd "$(dirname "$0")" && pwd -P)"
 BIN="\${HOME}/.local/bin"
 APPS="\${HOME}/.local/share/applications"
-if [ "$1" = "--uninstall" ]; then
+${linuxSandboxSetup("codecaine-file-manager", "codecaine-file-manager")}\
+if [ "$UNINSTALL" = 1 ]; then
   rm -f "$BIN/codecaine-file-manager" "$APPS/codecaine-file-manager.desktop"
   echo "Removed."
   exit 0
@@ -171,12 +174,13 @@ cat > "$APPS/codecaine-file-manager.desktop" <<EOF
 Type=Application
 Name=${APP_TITLE}
 Comment=File manager for developers
-Exec=$ROOT/codecaine-file-manager
+Exec="$ROOT/codecaine-file-manager"
 Icon=$ROOT/codecaine-file-manager.png
 Terminal=false
 Categories=Utility;FileManager;Development;
 EOF
 echo "Installed. Look for \\"${APP_TITLE}\\" in your applications menu, or run: codecaine-file-manager"
+${LINUX_SANDBOX_WARNING}\
 `;
 }
 
@@ -329,7 +333,7 @@ ${card("linux", "Linux", "🐧", "Unzip, run it, or use install.sh for a menu en
 <div class="how">
 <div><h3>macOS: first launch</h3><ol><li>Unzip and drag the app to Applications.</li><li>Right-click it, choose <b>Open</b>, then <b>Open</b> again.</li></ol><p>Or: <code>xattr -dr com.apple.quarantine "/Applications/${APP_TITLE}.app"</code></p></div>
 <div><h3>Windows: first launch</h3><ol><li>Unzip the whole folder (keep the files together).</li><li>Double-click <b>${APP_TITLE}.exe</b>.</li></ol><p>If SmartScreen warns you, choose <b>More info</b> then <b>Run anyway</b>.</p></div>
-<div><h3>Linux: first launch</h3><ol><li><code>unzip</code> the download.</li><li>Run <code>./codecaine-file-manager</code> or <code>sh install.sh</code>.</li></ol><p>Not sure of your CPU? <code>uname -m</code> prints x86_64 or aarch64.</p></div>
+<div><h3>Linux: first launch</h3><ol><li><code>unzip</code> the download.</li><li>Run <code>./codecaine-file-manager</code> or <code>sh install.sh</code>.</li></ol><p>Ubuntu 24.04+: if the window crashes with a bwrap / dbus-proxy permission error, run <code>sh install.sh --apparmor</code> (sudo required). This permits sandbox namespaces for this executable only. Rerun after moving the folder.</p><p>Not sure of your CPU? <code>uname -m</code> prints x86_64 or aarch64.</p></div>
 </div>
 <footer>Check a download: <code>shasum -a 256 -c SHA256SUMS.txt --ignore-missing</code> (the file is next to the zips). Prefer to build it yourself? The source is on <a href="https://github.com/codecaine-zz/bun_rad_studio">GitHub</a>.</footer>
 </main>

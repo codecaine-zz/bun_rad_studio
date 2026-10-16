@@ -6,10 +6,12 @@ All notable changes. Version 1.3.1 is the seventh release (1.0.0, 1.1.0, 1.2.0, 
 
 ### Fixed
 
+- **All Linux desktop downloads: opt-in Ubuntu AppArmor sandbox fix.** `sh install.sh --apparmor` validates and loads an executable-specific user-namespace permission using sudo, fixing WebKit's `bwrap` / `dbus-proxy` startup crash under Ubuntu 24.04+'s namespace restrictions without disabling AppArmor or the WebKit sandbox. Covers every desktop app and child studio through the full suite's shared runtime on ARM64, x64 and x64-baseline, plus the standalone File Manager. CLI-only musl downloads are unchanged. Rerun after moving the folder; `sh install.sh --uninstall --apparmor` removes the profile. [Linux release instructions](docs/developer/releasing.md#linux-sandbox-permissions).
 - **File Manager: no more silent native-window startup failure.** A failed window creation is detected instead of reporting success and exiting. Packaged native libraries load only when a window is needed, so missing desktop dependencies no longer prevent server mode or browser fallback from starting. The fallback now invokes the default browser, and standalone Windows/Linux downloads save startup output and errors to `~/.bun_rad_studio/file-manager-startup.log` (`%USERPROFILE%` on Windows). Windows instructions now include the native DLL's Visual C++ x64 runtime dependency. [Startup and troubleshooting](docs/userguides/43_file_manager.md#start-it).
 
 ### Verification
 
+- The executable-specific AppArmor fix was confirmed working on an Ubuntu 24.04 ARM64 desktop. Installer tests cover all 73 desktop launchers on ARM64, x64 and x64-baseline, including real AppArmor profile syntax validation when the parser is available. This is not a claim that every app's UI was manually tested on those CPUs.
 - Linux ARM64 File Manager: rebuilt archive tested in a Linux container with a visible X11 window, HTTP responses, missing-native-library browser-opener invocation, no-display fallback, and headless mode without the native library. Windows executables were cross-compiled but not run on Windows; the new regression tests also exercise a compiled host launcher and persistent error logging.
 
 ## 1.3.0 (16 October 2026)

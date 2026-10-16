@@ -9,6 +9,7 @@ Commands in this page were run on **14 October 2026** (macOS 26 on Apple silicon
 - [The short version](#the-short-version)
 - [What a release contains](#what-a-release-contains)
 - [Platforms](#platforms)
+- [Linux sandbox permissions](#linux-sandbox-permissions)
 - [Mac apps with icons](#mac-apps-with-icons)
 - [How it works](#how-it-works)
 - [Publishing](#publishing)
@@ -67,6 +68,28 @@ One shared runtime instead of a 60 MB executable per app keeps each platform nea
 32-bit processors are not offered: Bun does not support them. The desktop apps are only offered where the project's window library exists (it has no musl or Windows ARM build).
 
 Pick one platform while testing: `bun run release:build -- --targets linux-arm64,macos-arm64`.
+
+## Linux sandbox permissions
+
+Ubuntu 24.04+ restricts unprivileged user namespaces through AppArmor. Even with GTK 4 and WebKitGTK 6.0 installed, a native window can crash with `bwrap: setting up uid map: Permission denied` / `Failed to fully launch dbus-proxy`. File Manager's JavaScript browser fallback cannot catch that native crash.
+
+Every Linux **desktop** release installer (ARM64, x64 and x64-baseline, suite and standalone File Manager) supports:
+
+```sh
+sh install.sh --apparmor                 # install menu entries, links and sandbox permission (sudo for the profile only)
+sh install.sh --uninstall --apparmor     # unload/delete the profile and remove menu entries and links
+```
+
+The shared generator in `scripts/release/linuxSandbox.ts` validates the exact extracted executable path, generates an AppArmor ABI 4 profile with `flags=(unconfined)` and `userns,`, syntax-checks it before privileged installation, and loads it with `apparmor_parser`. It does **not** turn off AppArmor, change global sysctls, or disable WebKit's sandbox.
+
+- **Full suite:** `/etc/apparmor.d/bun-rad-studio` attaches to that download's `runtime/bun`. Every desktop launcher and child studio uses the same executable, so one profile covers all the apps. CLI tools continue to work without installing a profile.
+- **Standalone File Manager:** `/etc/apparmor.d/codecaine-file-manager` attaches to the downloaded `codecaine-file-manager` executable, including its child database studios.
+- Each profile covers one extracted location at a time. Choose a permanent folder and rerun after moving it. Paths containing AppArmor pattern or quoting characters are refused instead of silently granting a broader permission.
+- Normal installation/uninstallation is still unprivileged; plain uninstall leaves an existing profile alone and prints the removal command. macOS and CLI-only Alpine/musl installers do not offer this Linux-only permission.
+
+`tests/file_manager_linux_install.test.ts` exercises both installers with mocked sudo/parser commands, validates generated profiles with the real parser when available, and checks **every desktop launcher** across all three glibc Linux targets against the profiled runtime. This proves installer/launcher coverage, not that every app's UI has been manually tested on every CPU.
+
+The rebuilt ARM64 suite's Calculator and File Manager, plus the standalone File Manager, also passed native-window startup smoke tests on Ubuntu 24.04 using the already-installed namespace-permitting profile via `aa-exec`; both File Manager servers returned HTTP 200. Newly generated profile syntax was validated, but loading it still requires interactive sudo. Native x64 startup was not tested.
 
 ## Mac apps with icons
 

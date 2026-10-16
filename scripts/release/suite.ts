@@ -11,6 +11,7 @@
 import { chmodSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { ROOT, SIDECAR_FILES, VERSION, defaultJobs, log, mapPool, run, shQuote, webviewLibSource, writeFileAtomic, type SourceApp, type Target } from "./common";
+import { LINUX_SANDBOX_WARNING, linuxSandboxSetup } from "./linuxSandbox";
 
 export const RELEASE_DIR = join(ROOT, "release");
 export const CACHE_DIR = join(RELEASE_DIR, ".cache");
@@ -133,7 +134,8 @@ export function windowsLauncher(app: SourceApp, target: Target): string {
   return `@echo off\r\nsetlocal\r\nset "ROOT=%~dp0.."\r\nset BUN_BE_BUN=1\r\n${lib}${cd}"%ROOT%\\runtime\\bun.exe" "%ROOT%\\${dir}\\${app.name}.js" %*\r\nexit /b %errorlevel%\r\n`;
 }
 
-export function installScript(guiNames: string[]): string {
+export function installScript(guiNames: string[], target?: Target): string {
+  const sandbox = target?.os === "linux" && target.gui && guiNames.length > 0;
   return `#!/bin/sh
 # Installs Bun RAD Studio for the current user: links every app into ~/.local/bin and adds the desktop apps to
 # the applications menu. Run it from the folder you unpacked. Undo it with: sh install.sh --uninstall
@@ -141,7 +143,14 @@ set -e
 ROOT="$(cd "$(dirname "$0")" && pwd -P)"
 BIN="\${HOME}/.local/bin"
 APPS="\${HOME}/.local/share/applications"
-if [ "$1" = "--uninstall" ]; then
+${sandbox ? linuxSandboxSetup("bun-rad-studio", "runtime/bun") : `UNINSTALL=0
+case "\${1:-}" in
+  --uninstall) UNINSTALL=1 ;;
+  "") ;;
+  *) echo "Usage: sh install.sh [--uninstall]" >&2; exit 1 ;;
+esac
+`}\
+if [ "$UNINSTALL" = 1 ]; then
   for f in "$ROOT"/bin/*; do rm -f "$BIN/$(basename "$f")"; done
   rm -f "$APPS"/bun-rad-studio-*.desktop
   echo "Removed the links and menu entries."
@@ -158,13 +167,14 @@ ${guiNames.length ? `for name in ${guiNames.map(shQuote).join(" ")}; do
 Type=Application
 Name=$title
 Comment=Bun RAD Studio
-Exec=$ROOT/bin/$name
+Exec="$ROOT/bin/$name"
 Icon=$icon
 Terminal=false
 Categories=Development;Utility;
 EOF
 done` : ""}
 echo "Installed. Make sure $BIN is on your PATH, then try: ${guiNames[0] ?? "fd-cli"}"
+${sandbox ? LINUX_SANDBOX_WARNING : ""}\
 `;
 }
 
@@ -187,6 +197,7 @@ export function readme(target: Target, guiNames: string[], cliNames: string[]): 
   if (target.os === "macos") lines.push("macOS may ask you to allow the downloaded files the first time:", "  xattr -dr com.apple.quarantine .", "  (or open System Settings > Privacy & Security and choose Open Anyway)", "");
   if (target.os === "linux" && target.variant === "musl") lines.push("Alpine needs the C++ runtime for Bun:", "  apk add libstdc++ libgcc", "");
   if (target.os === "linux" && target.gui) lines.push("The desktop apps need GTK 4 and WebKitGTK 6.0:", "  Debian/Ubuntu 24.04+:  sudo apt install libgtk-4-1 libwebkitgtk-6.0-4", "  Fedora:                sudo dnf install gtk4 webkitgtk6.0", "");
+  if (target.os === "linux" && target.gui) lines.push("Ubuntu 24.04+ may block WebKit's sandbox with a bwrap / dbus-proxy permission error.", "Fix all desktop apps in this download with:", "  sh install.sh --apparmor", "This uses sudo to install /etc/apparmor.d/bun-rad-studio, allowing sandbox user", "namespaces for this download's runtime/bun only. AppArmor and WebKit's sandbox stay enabled.", "All apps and their child studios use that shared runtime; no per-app setup is needed.", "Keep the folder in its final location, and rerun after moving it. One suite installation", "is covered at a time. Command-line tools do not need this permission.", "Remove links, menu entries and the profile with: sh install.sh --uninstall --apparmor", "");
   if (target.os === "windows" && target.gui) lines.push("The desktop apps need the Microsoft WebView2 runtime (already on Windows 11):", "  https://developer.microsoft.com/microsoft-edge/webview2/", "", "They also need Microsoft Visual C++ 2015-2022 Redistributable (x64):", "  https://aka.ms/vs/17/release/vc_redist.x64.exe", "");
   lines.push("Every file in this download is also in the source repository. Licence: MIT (see LICENSE).", "");
   return lines.join(sh ? "\n" : "\r\n");
@@ -240,7 +251,7 @@ export async function stageSuite(target: Target, options: StageOptions, stageRoo
   writeFileSync(join(dir, "VERSION"), `${VERSION}\n`);
   if (existsSync(join(ROOT, "LICENSE"))) cpSync(join(ROOT, "LICENSE"), join(dir, "LICENSE"));
   if (target.os !== "windows") {
-    writeFileSync(join(dir, "install.sh"), installScript(guiNames));
+    writeFileSync(join(dir, "install.sh"), installScript(guiNames, target));
     chmodSync(join(dir, "install.sh"), 0o755);
   }
   return dir;

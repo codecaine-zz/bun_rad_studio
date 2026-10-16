@@ -196,6 +196,8 @@ tar -xzf bun-rad-studio-v<version>-linux-arm64.tar.gz && cd bun-rad-studio-v<ver
 sh install.sh                      # optional: put everything on your PATH and in the Linux applications menu
 ```
 
+**Ubuntu 24.04+ sandbox fix (all Linux desktop apps):** if a native window crashes with `bwrap: setting up uid map: Permission denied` or `Failed to fully launch dbus-proxy`, run `sh install.sh --apparmor` in the extracted download. This uses sudo to validate and load an executable-specific AppArmor user-namespace permission: the suite's shared `runtime/bun` covers every app and child studio; the standalone File Manager download covers its own executable. AppArmor and WebKit's sandbox stay enabled. Rerun after moving the folder; remove with `sh install.sh --uninstall --apparmor`. Normal installation and CLI-only Alpine/musl downloads need no sudo or policy change. See [release installation details](docs/developer/releasing.md#linux-sandbox-permissions).
+
 | Platform | Needs |
 | :--- | :--- |
 | macOS | Nothing. For downloaded files run `xattr -dr com.apple.quarantine .` once (the apps are signed ad hoc, not notarized) |
