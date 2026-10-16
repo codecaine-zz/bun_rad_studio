@@ -142,22 +142,40 @@ function applyFocusMode(on, { save = true } = {}) {
   btn?.setAttribute("aria-pressed", String(on));
   if (btn) btn.title = on ? "Bring back the toolbar and side panels (Esc or Alt+6)" : `Hide the toolbar and side panels so the list or tool has the whole window (${altKey()}6). Press Esc to bring them back.`;
   state.settings.focusMode = on;
+  syncSidebarButton();
   if (save) saveSettings({ focusMode: on }).catch(() => {});
 }
 
 export const focusModeOn = () => app().classList.contains("focus-mode");
 export const toggleFocusMode = () => applyFocusMode(!focusModeOn());
 
+/** The Places button says what is really on screen: the list is hidden while it is collapsed and also while Focus is on. */
+function syncSidebarButton() {
+  const shown = !app().classList.contains("sidebar-collapsed") && !app().classList.contains("focus-mode");
+  const btn = $("#sidebar-toggle");
+  btn?.setAttribute("aria-expanded", String(shown));
+  if (btn) btn.title = `${shown ? "Hide" : "Show"} the list of places on the left (${altKey()}7)`;
+}
+
 function applySidebar(collapsed, { save = true } = {}) {
   app().classList.toggle("sidebar-collapsed", collapsed);
-  const btn = $("#sidebar-toggle");
-  btn?.setAttribute("aria-expanded", String(!collapsed));
-  if (btn) btn.title = `${collapsed ? "Show" : "Hide"} the list of places on the left (${altKey()}7)`;
   state.settings.sidebarCollapsed = collapsed;
+  syncSidebarButton();
   if (save) saveSettings({ sidebarCollapsed: collapsed }).catch(() => {});
 }
 
-export const toggleSidebar = () => applySidebar(!app().classList.contains("sidebar-collapsed"));
+/**
+ * Show or hide the list of places. Focus hides the sidebar too, and Focus is remembered between runs, so a window that starts
+ * in Focus has no Places: asking for Places there leaves Focus and shows the list (both choices are saved).
+ */
+export function toggleSidebar() {
+  if (focusModeOn()) {
+    applyFocusMode(false);
+    applySidebar(false);
+    return;
+  }
+  applySidebar(!app().classList.contains("sidebar-collapsed"));
+}
 
 // ---------------------------------------------------------------------------------------------------------------
 // The divider between the two panes

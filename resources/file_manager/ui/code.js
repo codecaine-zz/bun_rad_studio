@@ -60,6 +60,8 @@ function mount(root) {
   let started = false;
   let zen = false;
   let previewOn = false;
+  // Zen mode hides the toolbar and its Preview button, so the preview has a switch of its own that stays in sight.
+  const zenPreview = h("button", { type: "button", class: "code-zen-preview", "aria-pressed": "false", title: "Show or hide the preview next to the text (Markdown and HTML)", onclick: () => commands.run("preview") }, "👁 Preview");
 
   const editors = h("div", { class: "code-editors" });
   const welcome = h("div", { class: "code-welcome" });
@@ -266,6 +268,7 @@ function mount(root) {
 
   function updatePreview() {
     const d = doc();
+    zenPreview.setAttribute("aria-pressed", String(previewOn));
     preview.hidden = !previewOn || !d;
     if (preview.hidden) return;
     previewExtra.replaceChildren();
@@ -289,6 +292,8 @@ function mount(root) {
     root.className = root.className.replace(/\bcode-theme-\w+/g, "").trim();
     if (s.theme !== "auto") root.classList.add(`code-theme-${s.theme}`);
     root.classList.toggle("code-no-side", !s.explorer || zen);
+    previewOn = s.preview === true;
+    updatePreview();
     explorer.setShowHidden(s.showHidden);
     for (const d of docs.list()) d.editor?.setOptions(optionsFor(d));
     for (const b of themeButtons) b.setAttribute("aria-pressed", String(b.dataset.theme === s.theme));
@@ -322,7 +327,7 @@ function mount(root) {
     },
     isZen: () => zen,
     toggleSide() { setSetting("explorer", !settings().explorer); },
-    togglePreview() { previewOn = !previewOn; updatePreview(); },
+    togglePreview() { setSetting("preview", !previewOn); },
     isPreview: () => previewOn,
     regexSandbox: () => openRegexSandbox(ed() ? ed().getText().slice(0, 5000) : ""),
     convertText: () => openPalette({ title: "Convert text", placeholder: "Type what you want, for example base64, snake, accents, links", empty: "No conversion matches.", items: TRANSFORMS.map((t) => ({ label: t.label, detail: `${t.group} · ${t.tip}`, value: t.id })), onPick: (id) => commands.run(`tx:${id}`) }),
@@ -355,7 +360,8 @@ function mount(root) {
   const centre = h("div", { class: "code-centre" }, tabStrip, banner, findBar.el, h("div", { class: "code-work" }, editors, welcome, preview), status.el);
   // Zen mode hides the toolbar (and its Zen button), so it needs a way out that stays in sight.
   const zenExit = h("button", { type: "button", class: "code-zen-exit", title: `Leave zen mode (Esc or ${shortcutText("zen", state.platform)})`, "aria-label": "Leave zen mode", onclick: () => commands.run("zen") }, "✕ Leave zen mode");
-  root.append(toolbar, h("div", { class: "code-main" }, side, centre), zenExit);
+  const zenBar = h("div", { class: "code-zen-bar" }, zenPreview, zenExit);
+  root.append(toolbar, h("div", { class: "code-main" }, side, centre), zenBar);
   wireTabKeys(tabStrip, (id) => { saveScroll(); docs.activate(id); });
 
   root.addEventListener("keydown", (e) => {

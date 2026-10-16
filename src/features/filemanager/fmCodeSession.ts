@@ -17,12 +17,12 @@ export interface CodeSession {
   root: string;
   tabs: Array<{ path: string; line: number; col: number; scrollTop: number }>;
   active: string;
-  settings: { theme: string; fontSize: number; wrap: boolean; lineNumbers: boolean; minimap: boolean; autosave: boolean; autosaveDelay: number; autosaveOnBlur: boolean; tabSize: number; showHidden: boolean; explorer: boolean; completion: boolean; autoOpen: boolean };
+  settings: { theme: string; fontSize: number; wrap: boolean; lineNumbers: boolean; minimap: boolean; autosave: boolean; autosaveDelay: number; autosaveOnBlur: boolean; tabSize: number; showHidden: boolean; explorer: boolean; preview: boolean; completion: boolean; autoOpen: boolean };
   recents: Array<{ path: string; at: string }>;
   bookmarks: Record<string, number[]>;
 }
 
-export const DEFAULT_SETTINGS: CodeSession["settings"] = { theme: "auto", fontSize: 14, wrap: false, lineNumbers: true, minimap: false, autosave: false, autosaveDelay: 1500, autosaveOnBlur: true, tabSize: 2, showHidden: false, explorer: true, completion: true, autoOpen: true };
+export const DEFAULT_SETTINGS: CodeSession["settings"] = { theme: "auto", fontSize: 14, wrap: false, lineNumbers: true, minimap: false, autosave: false, autosaveDelay: 1500, autosaveOnBlur: true, tabSize: 2, showHidden: false, explorer: true, preview: false, completion: true, autoOpen: true };
 
 const num = (v: unknown, min: number, max: number, fallback: number) => (typeof v === "number" && Number.isFinite(v) ? Math.round(Math.min(max, Math.max(min, v))) : fallback);
 const bool = (v: unknown, fallback: boolean) => (typeof v === "boolean" ? v : fallback);
@@ -72,6 +72,7 @@ export function sanitizeSession(raw: unknown, ctx: FmContext): CodeSession {
       tabSize: num(s.tabSize, 1, 16, d.tabSize),
       showHidden: bool(s.showHidden, d.showHidden),
       explorer: bool(s.explorer, d.explorer),
+      preview: bool(s.preview, d.preview),
       completion: bool(s.completion, d.completion),
       autoOpen: bool(s.autoOpen, d.autoOpen),
     },

@@ -6,6 +6,8 @@ All notable changes. Version 1.2.1 is the fourth release (1.0.0, 1.1.0 and 1.2.0
 
 ### Fixed
 
+- **File Manager: the Places list could not be opened from Focus.** Focus is remembered between runs and hides the Places list, so a window that started in Focus had no Places and the Places button and Alt+7 did nothing. They now leave Focus and show the list, and both choices are saved; the Places button reports what is really on screen. (`tests/file_manager_views.test.ts`)
+- **Code editor: the Preview button was out of reach in zen mode** (the toolbar is hidden there). Zen mode now has its own Preview switch next to "Leave zen mode". Whether the preview is open is also remembered between runs. (`tests/file_manager_code_page.test.ts`, `tests/file_manager_code_ops.test.ts`)
 - **File Manager: Recent (in the Places list and on Home) opened files in other programs instead of the built-in tools.** A Recent item was opened from its path alone, so the file's size and kind were missing: a text file with no extension (LICENSE, NOTICE) was handed to another program, and a folder or a file that had been deleted was not handled at all. Recent now looks the item up first and opens it exactly as the same item in the file list is opened: the built-in Code editor for text, the file list for a folder, the vault prompt for a locked file, and a clear message for a path that is gone. Files opened in the built-in editor are now listed under Recent too (before, only files opened by another program were). New operations `entry` and `recent/add`. (`tests/file_manager_server.test.ts`, `tests/file_manager_code_page.test.ts`)
 
 ## 1.2.0 (15 October 2026)

@@ -438,6 +438,14 @@ describe("code/git", () => {
 });
 
 describe("code/session", () => {
+  test("whether the preview is open is remembered; anything but true or false is ignored", async () => {
+    const { op } = sandbox();
+    expect((await op("code/session")).session.settings.preview).toBe(false);
+    expect((await op("code/session", { set: { settings: { preview: true } } })).session.settings.preview).toBe(true);
+    expect((await op("code/session")).session.settings.preview).toBe(true);
+    expect((await op("code/session", { set: { settings: { preview: "yes" } } })).session.settings.preview).toBe(false);
+  });
+
   test("starts with defaults; saves and returns what was set; keeps unspecified parts", async () => {
     const { op, work, home } = sandbox();
     const first = (await op("code/session")).session;

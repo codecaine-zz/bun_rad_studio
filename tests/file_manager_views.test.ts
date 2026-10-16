@@ -595,6 +595,27 @@ describe("Focus", () => {
     expect(ws()).toBe("files");
   });
 
+  test("Places in Focus: the Places button and Alt+7 leave Focus and show the list, and both choices are saved", async () => {
+    alt(6);
+    expect(app().classList.contains("focus-mode")).toBe(true);
+    expect($("#sidebar-toggle").getAttribute("aria-expanded")).toBe("false");
+    $("#sidebar-toggle").click();
+    expect(app().classList.contains("focus-mode")).toBe(false);
+    expect(app().classList.contains("sidebar-collapsed")).toBe(false);
+    expect($("#sidebar-toggle").getAttribute("aria-expanded")).toBe("true");
+    await sleep(300);
+    expect(await savedSettings()).toMatchObject({ focusMode: false, sidebarCollapsed: false });
+    alt(6);
+    alt(7);
+    expect([app().classList.contains("focus-mode"), app().classList.contains("sidebar-collapsed")]).toEqual([false, false]);
+    alt(7);
+    expect(app().classList.contains("sidebar-collapsed")).toBe(true);
+    alt(7);
+    expect(app().classList.contains("sidebar-collapsed")).toBe(false);
+    await sleep(300);
+    expect(await savedSettings()).toMatchObject({ focusMode: false, sidebarCollapsed: false });
+  });
+
   test("Esc inside the terminal is left to the terminal", () => {
     $("#focus-toggle").click();
     const term = $("#terminal-host");

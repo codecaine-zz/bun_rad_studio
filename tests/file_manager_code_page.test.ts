@@ -329,6 +329,31 @@ describe("the Code tab in a browser-like page", () => {
     expect(toasts().join(" | ")).toContain("Only whitespace was tidied");
   }, 20000);
 
+  test("the preview can be switched on and off in zen mode, where the toolbar's Preview button is hidden", async () => {
+    writeFileSync(join(work, "zen.md"), "# Hello zen\n\nSome *text*\n");
+    await openFile("zen.md");
+    const root = doc.querySelector(".code-root");
+    const zenPreview = doc.querySelector(".code-zen-bar .code-zen-preview");
+    const pane = doc.querySelector(".code-preview-pane");
+    expect(zenPreview).toBeTruthy();
+    expect(pane.hidden).toBe(true);
+    button("⛶ Zen")?.click();
+    await sleep(100);
+    expect(root.classList.contains("code-zen")).toBe(true);
+    zenPreview.click();
+    await sleep(200);
+    expect(pane.hidden).toBe(false);
+    expect(zenPreview.getAttribute("aria-pressed")).toBe("true");
+    expect(pane.textContent).toContain("Hello zen");
+    zenPreview.click();
+    await sleep(100);
+    expect(pane.hidden).toBe(true);
+    expect(zenPreview.getAttribute("aria-pressed")).toBe("false");
+    doc.querySelector(".code-zen-exit").click();
+    await sleep(100);
+    expect(root.classList.contains("code-zen")).toBe(false);
+  }, 20000);
+
   test("a Run preset types its command into the terminal only when Run is clicked", async () => {
     const ta = active();
     ta.setSelectionRange(0, ta.value.length);
