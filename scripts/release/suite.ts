@@ -90,7 +90,18 @@ export async function bundleApps(apps: SourceApp[], outRoot = BUNDLE_DIR, jobs =
         entrypoints: [join(ROOT, app.entry)],
         target: "bun",
         minify: true,
-        plugins: [webviewPlugin(app.kind)],
+        plugins: [webviewPlugin(app.kind), {
+          name: "release-entrypoint",
+          setup(build) {
+            build.onLoad({ filter: /\.[cm]?[jt]sx?$/ }, ({ path }) => {
+              if (path !== join(ROOT, app.entry)) return;
+              // Bun can misidentify UNC entrypoints when the file URL lowercases the server name.
+              const source = readFileSync(path, "utf8").replace(/^#![^\r\n]*(?:\r?\n|$)/, "").replace(/\bimport\.meta\.main\b/g,
+                '(import.meta.main || import.meta.url === __releaseEntryUrl(Bun.main).href)');
+              return { contents: `import { pathToFileURL as __releaseEntryUrl } from "node:url";\n${source}`, loader: path.endsWith(".ts") ? "ts" : "js" };
+            });
+          },
+        }],
         outdir: dir,
         naming: { entry: `${app.name}.js`, asset: "_assets/[name]-[hash].[ext]" },
       });
@@ -153,9 +164,10 @@ ${lib}${work}exec "$ROOT/runtime/bun" "$ROOT/${dir}/${app.name}.js" "$@"
 export function windowsLauncher(app: SourceApp, target: Target): string {
   const lib = app.kind === "gui" && target.webviewLib ? `if not defined WEBVIEW_PATH set "WEBVIEW_PATH=%ROOT%\\lib\\${target.webviewLib}"\r\n` : "";
   const dir = app.kind === "gui" ? "apps" : "cli";
-  const cd = app.kind === "gui" ? `cd /d "%ROOT%"\r\n` : "";
+  const cd = app.kind === "gui" ? `pushd "%ROOT%" || exit /b 1\r\n` : "";
+  const exit = app.kind === "gui" ? `set "EXIT_CODE=%errorlevel%"\r\npopd\r\nexit /b %EXIT_CODE%\r\n` : "exit /b %errorlevel%\r\n";
   const runtime = app.kind === "gui" && target.guiRuntime ? "bun-gui.exe" : "bun.exe";
-  return `@echo off\r\nsetlocal\r\nset "ROOT=%~dp0.."\r\nset BUN_BE_BUN=1\r\n${lib}${cd}"%ROOT%\\runtime\\${runtime}" "%ROOT%\\${dir}\\${app.name}.js" %*\r\nexit /b %errorlevel%\r\n`;
+  return `@echo off\r\nsetlocal\r\nset "ROOT=%~dp0.."\r\nset BUN_BE_BUN=1\r\n${lib}${cd}"%ROOT%\\runtime\\${runtime}" "%ROOT%\\${dir}\\${app.name}.js" %*\r\n${exit}`;
 }
 
 export function installScript(guiNames: string[], target?: Target): string {

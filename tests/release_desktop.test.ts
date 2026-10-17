@@ -1,13 +1,13 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
-import { join } from "path";
+import { join, relative } from "path";
 import { rm } from "fs/promises";
 import { Data, Resource } from "resedit";
 import { ROOT, TARGETS, listSourceApps, zipEntries } from "../scripts/release/common";
 import { WINDOWS_SETUP, desktopInfo, embedWindowsIcon, stageDesktopIcons, windowsDesktopLauncher, windowsInstallCommand, windowsInstallScript, windowsResources } from "../scripts/release/desktop";
-import { DOWNLOADS, LAUNCHER_STUB, MAC_README, downloadPage, linuxInstallScript, readmeFor } from "../scripts/release/build_file_manager";
-import { installScript, windowsLauncher } from "../scripts/release/suite";
+import { DOWNLOADS, LAUNCHER_STUB, MAC_README, WINDOWS_TROUBLESHOOT, downloadPage, linuxInstallScript, readmeFor } from "../scripts/release/build_file_manager";
+import { bundleApps, installScript, windowsLauncher } from "../scripts/release/suite";
 
 const dirs: string[] = [];
 function workspace() {
@@ -56,6 +56,52 @@ describe("matching Mac artwork", () => {
 });
 
 describe("platform launchers", () => {
+  test("release entrypoints start directly but imported entrypoints do not run", async () => {
+    const dir = workspace();
+    const source = join(dir, "entry.ts");
+    writeFileSync(source, '#!/usr/bin/env bun\nif (import.meta.main) console.log("entry started");\n');
+    const bundles = await bundleApps([{ name: "entry", entry: relative(ROOT, source), kind: "cli" }], join(dir, "bundles"), 1);
+    expect(bundles.failed).toEqual([]);
+    const script = join(dir, "bundles", "cli", "entry.js");
+    const direct = Bun.spawnSync([process.execPath, script], { env: { ...process.env, BUN_BE_BUN: "1" } });
+    expect(direct.exitCode, direct.stderr.toString()).toBe(0);
+    expect(direct.stdout.toString().trim()).toBe("entry started");
+    const importer = join(dir, "importer.js");
+    writeFileSync(importer, 'await import("./bundles/cli/entry.js"); console.log("imported only");');
+    const imported = Bun.spawnSync([process.execPath, importer], { env: { ...process.env, BUN_BE_BUN: "1" } });
+    expect(imported.exitCode, imported.stderr.toString()).toBe(0);
+    expect(imported.stdout.toString().trim()).toBe("imported only");
+  });
+
+  test.skipIf(process.platform !== "win32" || !process.env.BUN_RAD_TEST_UNC_DIR)("release entrypoints start from a mixed-case UNC server path", async () => {
+    const dir = workspace();
+    const shared = mkdtempSync(join(process.env.BUN_RAD_TEST_UNC_DIR!, "bun-rad-entry-"));
+    dirs.push(shared);
+    const source = join(dir, "entry.ts");
+    writeFileSync(source, 'if (import.meta.main) console.log("UNC entry started");');
+    const bundles = await bundleApps([{ name: "entry", entry: relative(ROOT, source), kind: "cli" }], dir + "-bundles", 1);
+    dirs.push(dir + "-bundles");
+    expect(bundles.failed).toEqual([]);
+    const script = join(shared, "entry.js");
+    copyFileSync(join(dir + "-bundles", "cli", "entry.js"), script);
+    const launched = Bun.spawnSync([process.execPath, script], { env: { ...process.env, BUN_BE_BUN: "1" } });
+    expect(launched.exitCode, launched.stderr.toString()).toBe(0);
+    expect(launched.stdout.toString().trim()).toBe("UNC entry started");
+  });
+
+  test("Windows console launchers enter UNC directories and preserve the application exit code", () => {
+    const target = TARGETS.find(t => t.id === "windows-arm64")!;
+    const desktop = windowsLauncher({ name: "file-manager-studio", entry: "", kind: "gui" }, target);
+    for (const launcher of [desktop, WINDOWS_TROUBLESHOOT]) {
+      expect(launcher).toContain("pushd");
+      expect(launcher).toContain('set "EXIT_CODE=%errorlevel%"');
+      expect(launcher).toContain("popd");
+      expect(launcher).toContain("exit /b %EXIT_CODE%");
+      expect(launcher).not.toContain("cd /d");
+    }
+    expect(windowsLauncher({ name: "fd-cli", entry: "", kind: "cli" }, target)).not.toContain("pushd");
+  });
+
   test.skipIf(process.platform !== "win32")("Windows ZIP archives round-trip single and multiple literal folder names", async () => {
     const dir = workspace();
     const names = ["one [folder]'s files", "second folder"];

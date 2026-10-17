@@ -4,6 +4,10 @@ All notable changes. Version 1.4.0 is the ninth release (1.0.0, 1.1.0, 1.2.0, 1.
 
 ## 1.4.0 (16 October 2026)
 
+### Fixed (Windows binary refresh, 17 October 2026)
+
+- **Windows shared-folder startup, including ARM under Parallels.** Release entrypoints now recognise UNC paths when Bun lowercases the server name in the file URL. Windows console launchers use `pushd`/`popd` for network paths and preserve application exit codes. All six Windows suite and standalone File Manager downloads were refreshed, including the bundled Find worker. Users of the original downloads should download and extract the refreshed ZIP, or move the entire old extracted folder to the Windows `C:` drive.
+
 ### Fixed (macOS binary refresh, 17 October 2026)
 
 - **Packaged File Manager: Find File can start its worker.** Release builds now bundle the Find worker and its dependencies alongside the app, including in macOS app bundles, so searches do not fail with `ModuleNotFound` after installation or relocation. The macOS downloads were rebuilt for Apple silicon and Intel.

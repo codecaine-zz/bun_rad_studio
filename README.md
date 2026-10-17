@@ -49,6 +49,8 @@ The release includes **the whole suite** (every desktop app and command-line too
 
 New Windows/Linux File Manager builds save startup output in `~/.bun_rad_studio/logs/file-manager-<pid>.log` (`%USERPROFILE%\.bun_rad_studio\logs` on Windows). `--server` starts the File Manager without loading the native window library.
 
+**Windows shared-folder startup:** the original v1.4.0 Windows downloads can silently exit when extracted to a UNC path such as `\\Mac\Home\Downloads` in Parallels. The Windows downloads refreshed on 17 October 2026 fix this; download and extract a fresh ZIP. Alternatively, move the entire old extracted folder onto the Windows `C:` drive and rerun `install.cmd`.
+
 **The whole suite uses the same artwork and application names as the Mac apps:** on Windows, double-click `install.cmd` for Start menu shortcuts (or run `install.ps1 -Desktop` through PowerShell for desktop shortcuts). The shortcuts open without a console and retain errors in `%USERPROFILE%\.bun_rad_studio\logs`. On Linux, `sh install.sh` creates matching application-menu entries. Windows ARM includes native CLI tools plus baseline x64 desktop apps. Keep the extracted folder in place; reinstall shortcuts after moving it. The suite shares one Bun runtime per architecture instead of duplicating it into every program.
 
 Maintainers: `bun run release:file-manager`, `bun run release:build -- --mac-apps` (and `bun run build:mac-apps -- --arch x64 --zip --out release/mac-apps-x64`), then `bun run release:publish` creates the GitHub Release and points the website page (`release/file-manager/index.html`) at it. Add `-- --dry-run` to preview.

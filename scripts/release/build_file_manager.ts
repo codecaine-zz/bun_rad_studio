@@ -29,6 +29,7 @@ import { ROOT, SIDECAR_FILES, TARGETS, VERSION, defaultJobs, listSourceApps, log
 import { LINUX_SANDBOX_WARNING, linuxSandboxSetup } from "./linuxSandbox";
 
 export const APP_TITLE = "Codecaine File Manager";
+export const WINDOWS_TROUBLESHOOT = `@echo off\r\nsetlocal\r\npushd "%~dp0" || exit /b 1\r\nset "BUN_BE_BUN=1"\r\nset "WEBVIEW_PATH=%~dp0lib\\libwebview.dll"\r\n"%~dp0${APP_TITLE}.exe" "%~dp0app\\file-manager-studio.js" %*\r\nset "EXIT_CODE=%errorlevel%"\r\npopd\r\npause\r\nexit /b %EXIT_CODE%\r\n`;
 export const OUT_DIR = join(RELEASE_DIR, "file-manager");
 const STAGE = join(RELEASE_DIR, ".stage-fm");
 const MAIN = "file-manager-studio";
@@ -297,7 +298,7 @@ async function buildFolder(d: Download, assets: Assets): Promise<string> {
     writeFileSync(join(dir, "setup.ps1"), WINDOWS_SETUP);
     writeFileSync(join(dir, "install.cmd"), windowsInstallCommand(false));
   }
-  if (d.os === "windows") writeFileSync(join(dir, "troubleshoot.cmd"), `@echo off\r\ncd /d "%~dp0"\r\nset "BUN_BE_BUN=1"\r\nset "WEBVIEW_PATH=%~dp0lib\\libwebview.dll"\r\n"${APP_TITLE}.exe" "%~dp0app\\${MAIN}.js" %*\r\npause\r\n`);
+  if (d.os === "windows") writeFileSync(join(dir, "troubleshoot.cmd"), WINDOWS_TROUBLESHOOT);
   writeFileSync(join(dir, "VERSION"), `${VERSION}\n`);
   if (d.os === "linux") {
     writeFileSync(join(dir, "troubleshoot.sh"), `#!/bin/sh\nset -eu\ncd "$(dirname "$0")"\nchmod +x codecaine-file-manager\nexec ./codecaine-file-manager "$@"\n`);
