@@ -14,7 +14,7 @@ import {
 export async function capture(argv: string[], env: Record<string, string>, timeoutMs = 8000): Promise<{ code: number | null; text: string }> {
   let proc: ReturnType<typeof Bun.spawn>;
   try {
-    proc = Bun.spawn(argv, { stdin: "ignore", stdout: "pipe", stderr: "pipe", env });
+    proc = Bun.spawn(argv, { stdin: "ignore", stdout: "pipe", stderr: "pipe", env, windowsHide: true });
   } catch {
     return { code: null, text: "" };
   }
@@ -62,7 +62,7 @@ export function detectManagers(ctx: FmContext): Managers {
 export function resolveTool(ctx: FmContext, tool: ToolId, program?: string): string | null {
   const dirs = searchDirs(ctx);
   const names = (program ? [program] : TOOLS[tool].executables).filter((n) => !(ctx.platform === "win32" && tool === "imagemagick" && n === "convert"));
-  return findExecutable(ctx.platform, names, dirs);
+  return findExecutable(ctx.platform, names, dirs, ctx.platform === "win32" && tool === "libreoffice" ? [".com", ".exe", ".cmd", ".bat"] : undefined);
 }
 
 export interface ToolStatus {
@@ -108,7 +108,8 @@ async function probe(ctx: FmContext, id: ToolId, managers: Managers): Promise<To
   const key = fileKey(path);
   let v = versionCache.get(key);
   if (!v) {
-    v = await capture([path, ...def.versionArgs], env, 15000);
+    const args = id === "libreoffice" ? ["--headless", "--nologo", "--nodefault", "--norestore", ...def.versionArgs] : def.versionArgs;
+    v = await capture([path, ...args], env, 15000);
     if (v.code !== null) versionCache.set(key, v);
   }
   if (v.code !== 0 && !v.text.trim()) return base;

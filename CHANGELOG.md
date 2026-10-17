@@ -19,6 +19,7 @@ All notable changes. Version 1.4.2 is the eleventh release (1.0.0, 1.1.0, 1.2.0,
 
 ### Fixed (Windows download refresh)
 
+- **Convert helper checks no longer open terminal windows.** Background version and capability probes hide Windows consoles, and LibreOffice uses headless version checks with its console launcher preferred over the GUI launcher.
 - **Convert: Install all no longer stops on manual-only helpers.** Batch setup includes only helpers supported by the detected winget or Scoop installer, identifies helpers needing manual installation, and keeps installation startup errors visible in the Helper programs window.
 
 ### Verification (Windows release)

@@ -317,6 +317,8 @@ Programs are found on your PATH **and** in the places they install to: Homebrew'
 
 ### One-click setup of the helper programs
 
+Opening Convert checks helper versions in the background without showing Windows console windows. LibreOffice is checked in headless mode, preferring its Windows console launcher (`soffice.com`), so checking it does not open the office interface.
+
 In **Convert & process → Helper programs…** the **One-click setup** box installs everything that is missing in one go.
 
 - **Install everything missing** asks once (it lists the programs, the big downloads and whether a password is needed) and then installs them all.

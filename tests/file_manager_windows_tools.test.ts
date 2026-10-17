@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, spyOn, test } from "bun:test";
 import { copyFileSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -51,6 +51,29 @@ afterAll(async () => {
     expect(tar.installed).toBe(true);
     expect(tar.path).toBe(resolveTool(ctx, "bsdtar"));
   }, 20000);
+
+  test("Convert probes hide consoles and check LibreOffice headlessly through its console launcher", async () => {
+    const bin = join(root, "quiet-probes");
+    mkdirSync(bin);
+    for (const name of ["soffice.exe", "soffice.com"]) writeFileSync(join(bin, name), "fixture");
+    const ctx = createContext({ home, dataDir: join(root, "quiet-data"), toolDirs: [bin] });
+    expect(resolveTool(ctx, "libreoffice")).toBe(join(bin, "soffice.com"));
+    const spawn = Bun.spawn.bind(Bun);
+    const calls: Array<{ argv: string[]; hidden: boolean | undefined }> = [];
+    const intercepted = spyOn(Bun, "spawn").mockImplementation(((argv: string[], options: Bun.Spawn.SpawnOptions<"ignore", "pipe", "pipe">) => {
+      calls.push({ argv, hidden: options.windowsHide });
+      return spawn([process.execPath, "--eval", 'console.log("LibreOffice 25.2.0")'], options);
+    }) as typeof Bun.spawn);
+    try {
+      const status = await toolStatus(ctx);
+      expect(status.tools.find((tool) => tool.id === "libreoffice")).toMatchObject({ installed: true, version: "25.2.0" });
+      expect(calls).toHaveLength(1);
+      expect(calls[0]!.hidden).toBe(true);
+      expect(calls[0]!.argv).toEqual([join(bin, "soffice.com"), "--headless", "--nologo", "--nodefault", "--norestore", "--version"]);
+    } finally {
+      intercepted.mockRestore();
+    }
+  });
 
   const real = createContext({ home: root, dataDir: join(root, "real-data") });
   (resolveTool(real, "ffmpeg") ? test : test.skip)("the installed FFmpeg converts a real WAV into a nonempty MP3", async () => {
