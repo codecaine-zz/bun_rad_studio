@@ -1,6 +1,17 @@
 # Changelog
 
-All notable changes. Version 1.4.0 is the ninth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1 and 1.3.2 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.4.1 is the tenth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2 and 1.4.0 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+
+## 1.4.1 (17 October 2026)
+
+### Added
+
+- **File Manager: local lyrics in Quick Look and More info.** Show embedded MP3, FLAC, Ogg, MP4 and ffprobe lyric tags, matching local `.lrc` and `.txt` files, and video subtitle text. No online lookup or transcription is used.
+- **Free music download bundles.** The Codecaine playlist is available as source audio, full-length MP3s and individual chapter tracks under CC BY 4.0, separately from the MIT application downloads.
+
+### Improved
+
+- **File Manager theme shortcut help.** The fixed Option/Alt + `[` and `]` shortcuts for cycling through all themes are now shown in the shortcut list.
 
 ## 1.4.0 (16 October 2026)
 
