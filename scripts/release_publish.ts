@@ -10,6 +10,7 @@
  *   - Codecaine-File-Manager-v<version>-<platform>.zip      the File Manager, one per OS and processor
  *   - bun-rad-studio-v<version>-<platform>.tar.gz / .zip    the full suite: every app and command-line tool
  *   - bun-rad-studio-v<version>-macos-<arch>-apps-NofM.zip  every app as a double-click Mac .app with its icon
+ *   - bun-rad-studio-v<version>-free-music-*.zip             optional CC BY 4.0 music packs
  *   - SHA256SUMS.txt                                        checksums of all of the above
  * It also rewrites release/file-manager/index.html so its buttons download from the release.
  */
@@ -40,13 +41,14 @@ function collect(): Array<{ path: string; name: string; bytes: number }> {
   };
   take(FM, new RegExp(`^Codecaine-File-Manager-v${VERSION.replace(/\./g, "\\.")}-.*\\.zip$`));
   take(RELEASE, new RegExp(`^bun-rad-studio-v${VERSION.replace(/\./g, "\\.")}-.*\\.(tar\\.gz|zip)$`));
+  take(RELEASE, new RegExp(`^bun-rad-studio-v${VERSION.replace(/\./g, "\\.")}-free-music-(?:source|mp3|songs-mp3)(?:-\\d+of\\d+)?\\.zip$`));
   take(join(RELEASE, "mac-apps"), /-apps(-\d+of\d+)?\.zip$/);
   take(join(RELEASE, "mac-apps-x64"), /-apps(-\d+of\d+)?\.zip$/);
   const seen = new Set<string>();
   return out.filter((f) => (seen.has(f.name) ? false : (seen.add(f.name), true)));
 }
 
-const KIND = (n: string) => (n.startsWith("Codecaine-File-Manager") ? "fm" : /-apps(-\d+of\d+)?\.zip$/.test(n) ? "apps" : "suite");
+const KIND = (n: string) => (n.startsWith("Codecaine-File-Manager") ? "fm" : /-free-music-(?:source|mp3|songs-mp3)(?:-\d+of\d+)?\.zip$/.test(n) ? "music" : /-apps(-\d+of\d+)?\.zip$/.test(n) ? "apps" : "suite");
 const platformOf = (n: string) => /-(macos|windows|linux)-(arm64|x64)(-baseline|-musl)?/.exec(n)?.[0].slice(1) ?? n;
 
 /** The headline of each entry in the newest section of the changelog (the bold words that start the line), for the release notes. */
@@ -95,6 +97,15 @@ export function notes(files: Array<{ name: string; bytes: number }>, repo: strin
     for (const f of suite) L.push(`| ${platformOf(f.name)} | [${f.name}](${url(f.name)}) (${mb(f.bytes)}) |`);
     L.push("", "For **every desktop app in a Linux suite download** (ARM64, x64 and x64-baseline), the Ubuntu 24.04+ bwrap / dbus-proxy fix is `sh install.sh --apparmor` from that suite's folder. Its executable-specific AppArmor profile covers the shared `runtime/bun`, including child studios. Rerun after moving the folder; remove with `sh install.sh --uninstall --apparmor`.", "",
       "Windows: run `install.cmd` to add apps to the Start menu with their Mac artwork and no console window. Linux: `sh install.sh` adds matching names and icons to your applications menu. Keep the extracted folder in place. Windows ARM includes native CLI tools and baseline x64-emulated desktop apps. Alpine/musl downloads hold command-line tools only.", "");
+  }
+  const music = files.filter((f) => KIND(f.name) === "music");
+  if (music.length) {
+    L.push("## 🎵 Free music — CC BY 4.0", "", "These separate music archives contain audio from Codecaine's YouTube playlist. Each archive includes attribution and license details. The music is licensed under Creative Commons Attribution 4.0; it is not covered by the project's MIT license.", "", "| Format | Download |", "|---|---|");
+    for (const [kind, label] of [["source", "Source audio"], ["mp3", "Full-length MP3 (128 kbps)"], ["songs-mp3", "Individual chapter songs (MP3, 128 kbps)"]] as const) {
+      const packs = music.filter((f) => f.name.includes(`-free-music-${kind}`));
+      if (packs.length) L.push(`| ${label} | ${packs.map((f) => `[${f.name}](${url(f.name)}) (${mb(f.bytes)})`).join(" · ")} |`);
+    }
+    L.push("");
   }
   L.push("## ✅ Check your download", "", "`SHA256SUMS.txt` lists a checksum for every file: `shasum -a 256 -c SHA256SUMS.txt --ignore-missing`.", "",
     "## ℹ️ Good to know", "", "- The apps are **not signed with an Apple or Microsoft developer certificate**. Follow the macOS quarantine instructions above; Windows may show *More info → Run anyway*. They run entirely on your computer: no account, nothing is sent anywhere.",

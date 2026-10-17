@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { AUDIO_MIME, VIDEO_MIME } from "../src/features/filemanager/fmQuickLook";
-import { AUDIO_EXTS, EQ_BANDS, EQ_PRESETS, PlayQueue, VIDEO_EXTS, clampGain, formatClock, mediaKindOfName, parseFlac, parseId3, parseMp4Tags, srtToVtt } from "../resources/file_manager/ui/mediacore.js";
+import { AUDIO_EXTS, EQ_BANDS, EQ_PRESETS, PlayQueue, VIDEO_EXTS, clampGain, formatClock, mediaKindOfName, parseFlac, parseId3, parseMp4Tags, parseOggTags, srtToVtt, subtitleText } from "../resources/file_manager/ui/mediacore.js";
 
 const enc = new TextEncoder();
 const cat = (...parts: Array<Uint8Array | number[]>) => Uint8Array.from(parts.flatMap((p) => Array.from(p)));
@@ -48,6 +48,10 @@ describe("clock text and subtitles", () => {
     const already = "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nHi";
     expect(srtToVtt(already)).toBe(already);
   });
+  test("subtitle text drops cue numbers and timestamps for the lyrics panel", () => {
+    expect(subtitleText("WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nFirst line\n\n2\n00:00:03,000 --> 00:00:04,000\nSecond line"))
+      .toBe("First line\n\nSecond line");
+  });
 });
 
 describe("ID3 tags (MP3)", () => {
@@ -73,6 +77,12 @@ describe("ID3 tags (MP3)", () => {
     const f = [...enc.encode("TT2"), (body.length >> 16) & 255, (body.length >> 8) & 255, body.length & 255, ...body];
     const tag = cat(enc.encode("ID3"), [2, 0, 0], sync(f.length), f);
     expect(parseId3(tag)!.title).toBe("Old Song");
+  });
+  test("unsynchronized lyrics preserve line breaks", () => {
+    const lyrics = enc.encode("First line\nSecond line");
+    const body = [3, ...enc.encode("eng"), 0, ...lyrics];
+    const tag = cat(enc.encode("ID3"), [3, 0, 0], sync(frame3("USLT", body).length), frame3("USLT", body));
+    expect(parseId3(tag)!.lyrics).toBe("First line\nSecond line");
   });
   test("no tag, a damaged tag, or an empty one gives null and never throws", () => {
     expect(parseId3(new Uint8Array(0))).toBeNull();
@@ -102,18 +112,30 @@ describe("MP4 / M4A tags", () => {
 describe("FLAC tags", () => {
   const block = (type: number, last: boolean, body: number[]) => [(last ? 0x80 : 0) | type, (body.length >> 16) & 255, (body.length >> 8) & 255, body.length & 255, ...body];
   test("Vorbis comments and the front cover", () => {
-    const comments = ["TITLE=Flac Tone", "ARTIST=Flac Ensemble", "ALBUM=Lossless", "DATE=2026-03-04", "TRACKNUMBER=3", "bad line"].map((c) => enc.encode(c));
+    const comments = ["TITLE=Flac Tone", "ARTIST=Flac Ensemble", "ALBUM=Lossless", "DATE=2026-03-04", "TRACKNUMBER=3", "LYRICS=First verse\nSecond line", "bad line"].map((c) => enc.encode(c));
     const vorbis = [...le32(3), ...enc.encode("bun"), ...le32(comments.length), ...comments.flatMap((c) => [...le32(c.length), ...c])];
     const picture = [...be32(3), ...be32(9), ...enc.encode("image/png"), ...be32(0), ...be32(1), ...be32(1), ...be32(24), ...be32(0), ...be32(PNG.length), ...PNG];
     const file = cat(enc.encode("fLaC"), block(0, false, new Array(34).fill(0)), block(4, false, vorbis), block(6, true, picture));
     const t = parseFlac(file)!;
     expect([t.title, t.artist, t.album, t.year, t.track]).toEqual(["Flac Tone", "Flac Ensemble", "Lossless", "2026", "3"]);
+    expect(t.lyrics).toBe("First verse\nSecond line");
     expect((t as any).cover.mime).toBe("image/png");
     expect(Array.from((t as any).cover.data)).toEqual(Array.from(PNG));
   });
+
   test("not FLAC, or cut short, gives null", () => {
     expect(parseFlac(enc.encode("RIFFxxxx"))).toBeNull();
     expect(parseFlac(cat(enc.encode("fLaC"), [0x84, 0, 0xff, 0xff, 1, 2, 3]))).toBeNull();
+  });
+});
+
+describe("Ogg embedded lyrics", () => {
+  test("Opus comments are read from an OpusTags packet", () => {
+    const vendor = enc.encode("test");
+    const comment = enc.encode("LYRICS=First verse\nSecond line");
+    const le = (n: number) => le32(n);
+    const tags = cat(enc.encode("OpusTags"), le(vendor.length), vendor, le(1), le(comment.length), comment);
+    expect(parseOggTags(tags)!.lyrics).toBe("First verse\nSecond line");
   });
 });
 

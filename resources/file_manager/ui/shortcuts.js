@@ -75,6 +75,7 @@ export const FIXED = [
   { scope: "files", group: "Fixed keys", label: "Close the window", keys: ["Mod+W", "Mod+Q"] },
   { scope: "files", group: "Fixed keys", label: "Help", keys: ["?"] },
   { scope: "global", group: "Fixed keys", label: "Switch the window view (Files, Home, Tools, Split, Dual), Focus, and the list of places", keys: ["Alt+1", "Alt+2", "Alt+3", "Alt+4", "Alt+5", "Alt+6", "Alt+7"] },
+  { scope: "global", group: "Fixed keys", label: "Cycle through all themes (Right Option/Alt)", keys: ["Alt+[", "Alt+]"] },
   { scope: "global", group: "Fixed keys", label: "Copy the section you are in", keys: ["Alt+Shift+C"] },
   { scope: "code", group: "Fixed keys", label: "Leave zen mode, close the suggestion list or the find bar", keys: ["Escape"] },
   { scope: "code", group: "Fixed keys", label: "Cut, copy, paste and select all in the text", keys: ["Mod+C", "Mod+X", "Mod+V", "Mod+A"] },

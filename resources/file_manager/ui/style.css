@@ -679,6 +679,9 @@ body.dragging .row:not(.is-folder) { cursor: no-drop; }
 .mp-band { writing-mode: vertical-lr; direction: rtl; height: 9rem; width: 1.4rem; accent-color: var(--accent); }
 .mp-note { color: #9ca3af; font-size: 0.8rem; }
 .mp-queue { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+.mp-lyrics-panel { display: flex; flex-direction: column; min-height: 0; }
+.mp-lyrics-panel .mp-paneltop { flex: 0 0 auto; }
+.mp-lyrics { flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0; color: inherit; font: inherit; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 .mp-queue li.is-current .mp-qitem { background: var(--accent); color: var(--accent-text); }
 .mp-qitem { width: 100%; display: flex; align-items: center; gap: 0.5rem; background: transparent; color: inherit; border: 0; border-radius: 0.4rem; padding: 0.35rem 0.5rem; text-align: left; cursor: pointer; font: inherit; font-size: 0.86rem; }
 .mp-qitem:hover { background: #1f2937; }

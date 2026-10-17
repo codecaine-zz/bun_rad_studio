@@ -24,6 +24,7 @@ bun run build:mac-apps            # every desktop app as a .app with its own ico
 bun run release:build             # one archive per platform and processor, with checksums and notes, in release/
 bun run release:build -- --mac-apps      # both, with the .app bundles zipped for the release
 bun run build:mac-apps -- --jobs 4       # build four apps at the same time
+bun run release:music            # optional, separate CC BY 4.0 music archives
 ```
 
 **Parallel builds.** The build scripts (`build:mac-apps`, `release:build`, `release:file-manager`) bundle the apps, draw the icons, assemble the `.app` bundles, install and zip, and pack the platforms several at a time. The default is your processor cores minus one (at most 8), so the computer stays usable; `--jobs N` (or `-j N`) sets it, and `-j 1` builds one by one as before. (On a 12-app test, `-j 1` took 10.6 s and `-j 6` 3.6 s, with the same bundles.) `--verify` always starts the apps one at a time because each opens a window, and zipping is limited to 3 at once. The helpers are `mapPool`, `defaultJobs` and `parseJobs` in `scripts/release/common.ts`; each build writes only its own files, the shared `_assets` folders are cleared once at the end, and the shared stub files are written atomically.
@@ -141,8 +142,11 @@ Details that matter:
 
 ```bash
 bun run release:build -- --mac-apps
+bun run release:music # optional: downloads and packages the free music
 gh release create v1.0.0 release/*.tar.gz release/*.zip release/SHA256SUMS.txt -F release/RELEASE_NOTES.md
 ```
+
+The optional `release:music` step needs `yt-dlp`, `ffmpeg`, `zip` and `unzip`. It creates separate source-audio, full-length 128 kbps MP3, and individual chapter-song MP3 archives for the available videos in Codecaine's playlist; unavailable videos are skipped. Chapter timestamps define the song boundaries; a video without chapters is packaged as one track. The music is licensed under CC BY 4.0 and includes attribution details, separate from the suite's MIT license. `release:publish` includes the music archives and links them in the notes when the version-matched ZIPs are present. It does not download or publish music unless the step is explicitly run.
 
 `RELEASE_NOTES.md` is generated: a table of every download with its size and a "which one do I pick" guide. Change the version in `package.json` first; it names every file.
 

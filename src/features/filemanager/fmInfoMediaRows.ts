@@ -26,6 +26,9 @@ export interface MediaInfo {
   bitrate: number | null;
   streams: MediaStream[];
   tags: Record<string, string>;
+  lyrics?: string;
+  lyricsSource?: string;
+  lyricsSources?: Array<{ source: string; text: string }>;
   coverArt: boolean;
   chapters: Array<{ start: number; title: string }>;
   notes: string[];
@@ -89,6 +92,19 @@ export function mediaGroups(m: MediaInfo, size: number): InfoGroup[] {
   for (const [k, v] of Object.entries(m.tags)) if (!used.has(k) && tr.length < 60) tr.add(k, v);
   const tg = tr.group("tags", "Tags", "Information stored in the file: title, artist, album and so on.");
   if (tg) groups.push(tg);
+
+  const lyrics = m.lyricsSources?.length ? m.lyricsSources : m.lyrics ? [{ source: m.lyricsSource || "Embedded lyrics", text: m.lyrics }] : [];
+  if (lyrics.length) {
+    groups.push({
+      id: "lyrics",
+      title: "Lyrics",
+      hint: "Lyrics read from this media file or a matching local lyrics/subtitle file.",
+      rows: lyrics.map(({ source, text }) => ({
+        label: source,
+        value: text.length > 256 * 1024 ? `${text.slice(0, 256 * 1024 - 1)}…` : text,
+      })),
+    });
+  }
 
   const sr = new Rows();
   m.streams.filter((s) => s.type === "subtitle").forEach((s, i) => sr.add(`Subtitle ${i + 1}`, [s.language, s.title, s.codec].filter(Boolean).join(" · ")));

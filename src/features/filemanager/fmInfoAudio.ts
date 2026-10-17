@@ -4,19 +4,24 @@ import { emptyMedia, type MediaInfo } from "./fmInfoMediaRows";
 
 const syncsafe = (b: Uint8Array, o: number) => ((b[o]! & 0x7f) << 21) | ((b[o + 1]! & 0x7f) << 14) | ((b[o + 2]! & 0x7f) << 7) | (b[o + 3]! & 0x7f);
 
-function decodeText(enc: number, data: Uint8Array): string {
+function decodeText(enc: number, data: Uint8Array, max = 500): string {
   const b = Buffer.from(data);
   let s: string;
   if (enc === 1) s = b.length >= 2 && b[0] === 0xff && b[1] === 0xfe ? b.subarray(2).toString("utf16le") : b.length >= 2 && b[0] === 0xfe && b[1] === 0xff ? Buffer.from(b.subarray(2)).swap16().toString("utf16le") : b.toString("utf16le");
   else if (enc === 2) s = Buffer.from(b).swap16().toString("utf16le");
   else if (enc === 3) s = b.toString("utf8");
   else s = b.toString("latin1");
-  return clip(s.replace(/\0+$/, "").replace(/\0/g, " / "), 500).trim();
+  return clip(s.replace(/\0+$/, "").replace(/\0/g, " / "), max).trim();
 }
 
 const ID3_V23: Record<string, string> = { TIT2: "title", TPE1: "artist", TPE2: "album_artist", TALB: "album", TYER: "date", TDRC: "date", TCON: "genre", TRCK: "track", TPOS: "disc", TCOM: "composer", TENC: "encoder", TSSE: "encoder", TCOP: "copyright", TLAN: "language" };
 const ID3_V22: Record<string, string> = { TT2: "title", TP1: "artist", TP2: "album_artist", TAL: "album", TYE: "date", TCO: "genre", TRK: "track", TPA: "disc", TCM: "composer", TEN: "encoder", TCR: "copyright", TLA: "language" };
 const ID3V1_GENRES = ["Blues", "Classic Rock", "Country", "Dance", "Disco", "Funk", "Grunge", "Hip-Hop", "Jazz", "Metal", "New Age", "Oldies", "Other", "Pop", "R&B", "Rap", "Reggae", "Rock", "Techno", "Industrial", "Alternative", "Ska", "Death Metal", "Pranks", "Soundtrack", "Euro-Techno", "Ambient", "Trip-Hop", "Vocal", "Jazz+Funk", "Fusion", "Trance", "Classical", "Instrumental", "Acid", "House", "Game", "Sound Clip", "Gospel", "Noise", "Alt Rock", "Bass", "Soul", "Punk"];
+const textTerminator = (bytes: Uint8Array, from: number, encoding: number): number => {
+  const step = encoding === 1 || encoding === 2 ? 2 : 1;
+  for (let i = from; i + step <= bytes.length; i += step) if (bytes[i] === 0 && (step === 1 || bytes[i + 1] === 0)) return i + step;
+  return bytes.length;
+};
 
 const BITRATES: Record<string, number[]> = {
   "1-1": [0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448],
@@ -48,6 +53,10 @@ export async function parseMp3(src: Source): Promise<MediaInfo> {
       if (fsize <= 0 || p + hdr + fsize > tag.length) break;
       const body = tag.subarray(p + hdr, p + hdr + fsize);
       if (id === "APIC" || id === "PIC") m.coverArt = true;
+      else if ((id === "USLT" || id === "ULT") && fsize <= 256 * 1024 && body.length >= 4 && !m.lyrics) {
+        const afterDescription = textTerminator(body, 4, body[0]!);
+        m.lyrics = decodeText(body[0]!, body.subarray(afterDescription), 256 * 1024);
+      }
       else if (id.startsWith("T") && id !== "TXXX" && id !== "TXX" && fsize <= 65536) {
         const key = (ver === 2 ? ID3_V22 : ID3_V23)[id];
         if (key && !m.tags[key]) m.tags[key] = decodeText(body[0]!, body.subarray(1));
@@ -167,6 +176,10 @@ function vorbisComments(d: Uint8Array, at: number, m: MediaInfo): void {
     if (eq < 1) continue;
     const key = text.slice(0, eq).toLowerCase().replace(/^albumartist$/, "album_artist").replace(/^tracknumber$/, "track").replace(/^discnumber$/, "disc");
     if (key === "metadata_block_picture") { m.coverArt = true; continue; }
+    if (["lyrics", "unsyncedlyrics", "syncedlyrics"].includes(key)) {
+      if (!m.lyrics) m.lyrics = clip(text.slice(eq + 1), 256 * 1024).trim();
+      continue;
+    }
     if (!m.tags[key]) m.tags[key] = clip(text.slice(eq + 1), 500).trim();
   }
 }

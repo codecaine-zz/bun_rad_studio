@@ -1,6 +1,7 @@
 /** `info/media`: sound and video details. ffprobe when installed (full), the built-in readers otherwise (basic). */
-import { absolutePath, type FmContext } from "./fmCore";
-import { fileSource, helperEnv, helperProgram, installHint, openForRead, readBytes, regularFile, runProgram, type InfoGroup } from "./fmInfoCommon";
+import { promises as fsp } from "fs";
+import { absolutePath, pathApi, type FmContext } from "./fmCore";
+import { clip, fileSource, helperEnv, helperProgram, installHint, openForRead, readBytes, regularFile, runProgram, type InfoGroup } from "./fmInfoCommon";
 import { parseFlac, parseMp3, parseOgg, parseWav } from "./fmInfoAudio";
 import { emptyMedia, mediaGroups, type MediaInfo, type MediaStream } from "./fmInfoMediaRows";
 import { parseMatroska, parseMp4 } from "./fmInfoVideo";
@@ -29,7 +30,14 @@ export function fromFfprobe(json: any): MediaInfo {
   m.bitrate = num(f.bit_rate) ?? null;
   for (const [k, v] of Object.entries<any>(f.tags ?? {}).slice(0, 80)) {
     const key = k.toLowerCase().replace(/^album-artist$/, "album_artist");
-    if (typeof v === "string" || typeof v === "number") m.tags[key] = text(v);
+    if (typeof v === "string" || typeof v === "number") {
+      if (["lyrics", "unsyncedlyrics", "syncedlyrics", "uslt"].includes(key)) {
+        if (!m.lyrics) {
+          m.lyrics = clip(v, 256 * 1024).trim();
+          m.lyricsSource = "Embedded lyrics tag";
+        }
+      } else m.tags[key] = text(v);
+    }
   }
   for (const s of (Array.isArray(json?.streams) ? json.streams : []).slice(0, 100)) {
     const type = s.codec_type === "video" || s.codec_type === "audio" || s.codec_type === "subtitle" || s.codec_type === "data" ? (s.codec_type as MediaStream["type"]) : "other";
@@ -60,6 +68,55 @@ async function viaFfprobe(ctx: FmContext, path: string): Promise<MediaInfo | nul
   } catch {
     return null;
   }
+}
+
+function sidecarText(text: string, extension: string): string {
+  const clean = text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
+  if (extension !== "srt" && extension !== "vtt") return clip(clean.trim(), 256 * 1024);
+  return clip(clean.split("\n")
+    .filter((line) => !/^\s*(?:WEBVTT|NOTE(?:\s|$)|STYLE(?:\s|$)|REGION(?:\s|$)|\d+)\s*$/.test(line)
+      && !/^\s*\d{1,2}:\d{2}(?::\d{2})?[.,]\d{3}\s+-->/.test(line))
+    .join("\n").replace(/\n{3,}/g, "\n\n").trim(), 256 * 1024);
+}
+
+async function localLyrics(ctx: FmContext, path: string): Promise<Array<{ text: string; source: string }>> {
+  const p = pathApi(ctx);
+  const stem = p.basename(path, p.extname(path)).toLocaleLowerCase();
+  const dir = p.dirname(path);
+  const names = await fsp.readdir(dir, { withFileTypes: true });
+  const candidates = names.filter((entry) => {
+    if (!entry.isFile()) return false;
+    const name = entry.name.toLocaleLowerCase();
+    const dot = name.lastIndexOf(".");
+    if (dot < 0 || !name.startsWith(`${stem}.`)) return false;
+    return ["lrc", "txt", "srt", "vtt"].includes(name.slice(dot + 1));
+  }).sort((a, b) => {
+    const priority = (name: string) => ({ lrc: 0, txt: 1, srt: 2, vtt: 3 }[name.slice(name.lastIndexOf(".") + 1)] ?? 4);
+    return priority(a.name.toLocaleLowerCase()) - priority(b.name.toLocaleLowerCase()) || a.name.localeCompare(b.name);
+  });
+
+  const lyrics: Array<{ text: string; source: string }> = [];
+  for (const candidate of candidates.slice(0, 10)) {
+    const candidatePath = p.join(dir, candidate.name);
+    let handle;
+    try {
+      handle = await openForRead(candidatePath);
+    } catch (err: any) {
+      if (err?.code === "ENOENT" || err?.code === "ENOTDIR") continue;
+      throw err;
+    }
+    try {
+      const st = await handle.stat();
+      if (st.size > 256 * 1024) continue;
+      const bytes = await readBytes(handle, 0, 256 * 1024);
+      const extension = candidate.name.slice(candidate.name.lastIndexOf(".") + 1).toLowerCase();
+      const text = sidecarText(new TextDecoder().decode(bytes), extension);
+      if (text) lyrics.push({ text, source: `Local file: ${candidate.name}` });
+    } finally {
+      await handle.close();
+    }
+  }
+  return lyrics;
 }
 
 export interface MediaResult {
@@ -93,5 +150,8 @@ export async function mediaInfo(ctx: FmContext, input: unknown): Promise<MediaRe
       await handle.close();
     }
   }
+  const embedded = info.lyrics ? [{ source: info.lyricsSource || "Embedded lyrics", text: info.lyrics }] : [];
+  const sidecars = await localLyrics(ctx, path);
+  info.lyricsSources = [...embedded, ...sidecars];
   return { groups: mediaGroups(info, t.lst.size), source: info.source, helper: { ffprobe: hasProbe, hint }, partial: info.partial, notes: info.notes };
 }

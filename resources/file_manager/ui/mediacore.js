@@ -5,6 +5,7 @@
 export const AUDIO_EXTS = new Set(["mp3", "wav", "m4a", "aac", "flac", "ogg", "oga", "opus", "weba"]);
 export const VIDEO_EXTS = new Set(["mp4", "m4v", "mov", "webm", "ogv"]);
 export const SUBTITLE_EXTS = ["vtt", "srt"];
+export const LYRIC_EXTS = ["lrc", "txt"];
 
 const extOf = (name) => {
   const base = String(name).toLowerCase();
@@ -60,8 +61,8 @@ function terminator(bytes, from, encoding) {
   return [bytes.length, bytes.length];
 }
 
-const emptyTags = () => ({ title: "", artist: "", album: "", year: "", track: "", cover: null });
-const hasAny = (t) => !!(t.title || t.artist || t.album || t.year || t.track || t.cover);
+const emptyTags = () => ({ title: "", artist: "", album: "", year: "", track: "", lyrics: "", cover: null });
+const hasAny = (t) => !!(t.title || t.artist || t.album || t.year || t.track || t.lyrics || t.cover);
 
 /** The tags of an MP3 (ID3v2.2, 2.3 and 2.4) from the start of the file, or null. */
 export function parseId3(bytes) {
@@ -82,12 +83,22 @@ export function parseId3(bytes) {
     pos += hdr + size;
     if (size <= 0 || !body.length) continue;
     const text = () => decodeText(body.subarray(1), body[0]).split("\0")[0].trim();
+    const lyrics = () => {
+      const enc = body[0];
+      const step = enc === 1 || enc === 2 ? 2 : 1;
+      let end = body.length;
+      for (let i = 4; i + step <= body.length; i += step) {
+        if (body[i] === 0 && (step === 1 || body[i + 1] === 0)) { end = i + step; break; }
+      }
+      return decodeText(body.subarray(end), enc).trim().slice(0, 256 * 1024);
+    };
     switch (id) {
       case "TIT2": case "TT2": tags.title = text(); break;
       case "TPE1": case "TP1": tags.artist = text(); break;
       case "TALB": case "TAL": tags.album = text(); break;
       case "TRCK": case "TRK": tags.track = text(); break;
       case "TDRC": case "TYER": case "TYE": tags.year = text().slice(0, 4); break;
+      case "USLT": case "ULT": if (!tags.lyrics && body.length >= 4) tags.lyrics = lyrics(); break;
       case "APIC": case "PIC": {
         if (tags.cover) break;
         const enc = body[0];
@@ -136,6 +147,7 @@ export function parseMp4Tags(moov) {
       else if (type === "\u00a9ART" || type === "aART") tags.artist = tags.artist || text();
       else if (type === "\u00a9alb") tags.album = text();
       else if (type === "\u00a9day") tags.year = text().slice(0, 4);
+      else if (type === "\u00a9lyr") tags.lyrics = text().slice(0, 256 * 1024);
       else if (type === "trkn" && d.bytes.length >= 4) tags.track = String((d.bytes[2] << 8) | d.bytes[3]);
       else if (type === "covr" && !tags.cover) tags.cover = { mime: d.flags === 14 ? "image/png" : "image/jpeg", data: d.bytes.slice() };
     }
@@ -172,6 +184,7 @@ export function parseFlac(bytes) {
         else if (key === "ALBUM") tags.album = value;
         else if (key === "DATE") tags.year = value.slice(0, 4);
         else if (key === "TRACKNUMBER") tags.track = value;
+        else if (["LYRICS", "UNSYNCEDLYRICS", "SYNCEDLYRICS"].includes(key) && !tags.lyrics) tags.lyrics = value.slice(0, 256 * 1024);
       }
     } else if (type === 6 && body.length >= 32 && !tags.cover) {
       const mimeLen = be32(body, 4);
@@ -184,6 +197,49 @@ export function parseFlac(bytes) {
     }
     pos += 4 + len;
     if (last) break;
+  }
+  return hasAny(tags) ? tags : null;
+}
+
+/** Plain lyric/transcript text from SRT or WebVTT; timing lines and cue numbers are omitted. */
+export function subtitleText(text) {
+  return String(text).replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n")
+    .split("\n")
+    .filter((line) => !/^\s*(?:WEBVTT|NOTE(?:\s|$)|STYLE(?:\s|$)|REGION(?:\s|$)|\d+)\s*$/.test(line)
+      && !/^\s*\d{1,2}:\d{2}(?::\d{2})?[.,]\d{3}\s+-->/.test(line))
+    .join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+/** Vorbis/Opus comments from the first Ogg audio packet, including lyrics fields. */
+export function parseOggTags(bytes) {
+  const tags = emptyTags();
+  const find = (needle) => {
+    const signature = new TextEncoder().encode(needle);
+    outer: for (let i = 0; i <= bytes.length - signature.length; i++) {
+      for (let j = 0; j < signature.length; j++) if (bytes[i + j] !== signature[j]) continue outer;
+      return i + signature.length;
+    }
+    return -1;
+  };
+  let at = find("OpusTags");
+  if (at < 0) at = find("\x03vorbis");
+  if (at < 0 || at + 8 > bytes.length) return null;
+  let pos = at;
+  const vendorLength = le32(bytes, pos); pos += 4 + vendorLength;
+  if (pos + 4 > bytes.length) return null;
+  const count = Math.min(le32(bytes, pos), 300); pos += 4;
+  for (let i = 0; i < count && pos + 4 <= bytes.length; i++) {
+    const length = le32(bytes, pos); pos += 4;
+    if (length > 256 * 1024 || pos + length > bytes.length) break;
+    const comment = utf8(bytes.subarray(pos, pos + length)); pos += length;
+    const eq = comment.indexOf("=");
+    if (eq < 1) continue;
+    const key = comment.slice(0, eq).toUpperCase();
+    const value = comment.slice(eq + 1).trim();
+    if (["LYRICS", "UNSYNCEDLYRICS", "SYNCEDLYRICS"].includes(key) && !tags.lyrics) tags.lyrics = value.slice(0, 256 * 1024);
+    else if (key === "TITLE") tags.title = value;
+    else if (key === "ARTIST") tags.artist ||= value;
+    else if (key === "ALBUM") tags.album = value;
   }
   return hasAny(tags) ? tags : null;
 }

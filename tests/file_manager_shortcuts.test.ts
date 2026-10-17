@@ -56,6 +56,16 @@ describe("the table of shortcuts", () => {
     expect(formatShortcut("Mod+Alt+T", "linux")).toBe("Ctrl+Alt+T");
     expect(formatShortcut("Ctrl+`", "darwin")).toBe("⌃`");
   });
+  test("the fixed theme-cycle shortcuts are displayed in both directions", () => {
+    const themes = FIXED.find((x: any) => x.label.includes("all themes"));
+    expect(themes.keys).toEqual(["Alt+[", "Alt+]"]);
+    expect(themes.keys.map((key: string) => formatShortcut(key, "darwin"))).toEqual(["⌥[", "⌥]"]);
+    expect(themes.keys.map((key: string) => formatShortcut(key, "linux"))).toEqual(["Alt+[", "Alt+]"]);
+    for (const platform of PLATFORMS) {
+      expect(checkAssign(action("file.copy"), "Alt+[", defaults(platform), platform)?.reason).toContain("fixed key");
+      expect(checkAssign(action("file.copy"), "Alt+]", defaults(platform), platform)?.reason).toContain("fixed key");
+    }
+  });
 });
 
 describe("matching key presses", () => {

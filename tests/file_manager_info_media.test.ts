@@ -65,6 +65,13 @@ describe("MP3", () => {
     expect((await parseMp3(src(Buffer.concat([t22, mp3(3, {}, { v1: false })])))).tags.title).toBe("Hello");
   });
 
+  test("unsynchronized ID3 lyrics appear as a dedicated lyrics group", async () => {
+    const m = await parseMp3(src(mp3(10, { TIT2: "Song", USLT: "eng\0First verse\nSecond line" })));
+    expect(m.lyrics).toBe("First verse\nSecond line");
+    const group = mediaGroups(m, 5000).find((item) => item.id === "lyrics");
+    expect(group?.rows[0]).toMatchObject({ label: "Embedded lyrics", value: "First verse\nSecond line" });
+  });
+
   test("not-an-MP3 and cut-off files don't throw", async () => {
     expect((await parseMp3(src(Buffer.from("hello world, no audio here")))).partial).toBe(true);
     await parseMp3(src(mp3(5).subarray(0, 30)));
@@ -88,11 +95,12 @@ describe("FLAC and Ogg", () => {
   });
 
   test("Ogg Vorbis and Opus: header facts, tags and the length from the last page", async () => {
-    const v = await parseOgg(src(oggVorbis(7.25, 32000, 1)));
+    const v = await parseOgg(src(oggVorbis(7.25, 32000, 1, ["TITLE=Ogg Song", "ARTIST=Ogg Artist", "LYRICS=Verse one\nVerse two"])));
     expect(v.container).toBe("Ogg Vorbis audio");
     expect(v.streams[0]).toMatchObject({ codec: "Vorbis", channels: 1, sampleRate: 32000, bitrate: 128000 });
     expect(v.durationSec).toBeCloseTo(7.25, 3);
     expect(v.tags).toMatchObject({ title: "Ogg Song", artist: "Ogg Artist" });
+    expect(v.lyrics).toBe("Verse one\nVerse two");
     const o = await parseOgg(src(oggOpus(3)));
     expect(o.container).toBe("Ogg Opus audio");
     expect(o.streams[0]).toMatchObject({ codec: "Opus", channels: 2 });
@@ -214,12 +222,26 @@ describe("the media report", () => {
     await expect(mediaInfo(bare, join(dir, "f.txt"))).rejects.toMatchObject({ code: "NOT_MEDIA" });
     await expect(mediaInfo(bare, dir)).rejects.toMatchObject({ code: "NOT_A_FILE" });
   });
+
+  test("matching local lyric sidecars are included in More Info", async () => {
+    const dir = join(root.dir, "sidecar");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "quiet-song.mp3"), mp3(10));
+    writeFileSync(join(dir, "quiet-song.lrc"), "[00:01.00]First line\n[00:02.00]Second line\n");
+    writeFileSync(join(dir, "quiet-song.txt"), "Alternate lyric source");
+    const result = await mediaInfo(bare, join(dir, "quiet-song.mp3"));
+    const lyrics = result.groups.find((group) => group.id === "lyrics");
+    expect(lyrics?.rows).toEqual([
+      { label: "Local file: quiet-song.lrc", value: "[00:01.00]First line\n[00:02.00]Second line" },
+      { label: "Local file: quiet-song.txt", value: "Alternate lyric source" },
+    ]);
+  });
 });
 
 describe("ffprobe's JSON is turned into the same shape", () => {
   test("streams, format tags, chapters and cover art", () => {
     const m = fromFfprobe({
-      format: { format_long_name: "QuickTime / MOV", duration: "12.5", bit_rate: "800000", tags: { title: "T", ARTIST: "A", "album-artist": "AA" } },
+      format: { format_long_name: "QuickTime / MOV", duration: "12.5", bit_rate: "800000", tags: { title: "T", ARTIST: "A", "album-artist": "AA", LYRICS: "First verse\nSecond line" } },
       streams: [
         { codec_type: "video", codec_name: "h264", codec_long_name: "H.264", width: 1280, height: 720, avg_frame_rate: "30000/1001", pix_fmt: "yuv420p", profile: "High", disposition: { attached_pic: 0 } },
         { codec_type: "video", codec_name: "mjpeg", width: 300, height: 300, disposition: { attached_pic: 1 } },
@@ -230,6 +252,7 @@ describe("ffprobe's JSON is turned into the same shape", () => {
     expect(m.durationSec).toBe(12.5);
     expect(m.bitrate).toBe(800000);
     expect(m.tags).toMatchObject({ title: "T", artist: "A", album_artist: "AA" });
+    expect(m.lyrics).toBe("First verse\nSecond line");
     expect(m.coverArt).toBe(true);
     expect(m.streams[0]!.fps).toBeCloseTo(29.97, 2);
     expect(m.streams[2]).toMatchObject({ channels: 6, layout: "5.1", sampleRate: 48000, language: "eng", title: "Main" });

@@ -4,7 +4,7 @@
 // the audio graph for the equaliser and the spectrum is built once and kept.
 import { rawUrl } from "./api.js";
 import { h } from "./dom.js";
-import { EQ_BANDS, EQ_PRESETS, PlayQueue, clampGain, formatClock, mediaKindOfName, parseFlac, parseId3, parseMp4Tags, srtToVtt, SUBTITLE_EXTS } from "./mediacore.js";
+import { EQ_BANDS, EQ_PRESETS, LYRIC_EXTS, PlayQueue, clampGain, formatClock, mediaKindOfName, parseFlac, parseId3, parseMp4Tags, parseOggTags, srtToVtt, subtitleText, SUBTITLE_EXTS } from "./mediacore.js";
 import { formatSize } from "./util.js";
 
 const PREFS_KEY = "fm_player_v1";
@@ -26,6 +26,7 @@ function loadPrefs() {
       if (Array.isArray(raw.eq) && raw.eq.length === EQ_BANDS.length) d.eq = raw.eq.map(clampGain);
       if (typeof raw.preset === "string") d.preset = raw.preset;
     }
+
   } catch { /* no saved choices: the defaults are fine */ }
   return d;
 }
@@ -44,6 +45,7 @@ export async function readTags(entry) {
   try {
     if (name.endsWith(".mp3")) return parseId3(await fetchRange(entry.path, 0, Math.min(entry.size, MAX_TAG_BYTES) - 1));
     if (name.endsWith(".flac")) return parseFlac(await fetchRange(entry.path, 0, Math.min(entry.size, MAX_TAG_BYTES) - 1));
+    if (/\.(ogg|oga|opus)$/.test(name)) return parseOggTags(await fetchRange(entry.path, 0, Math.min(entry.size, MAX_TAG_BYTES) - 1));
     if (/\.(m4a|mp4|m4v|mov)$/.test(name)) {
       // Walk the top-level boxes by their sizes until the one called "moov" (it is often at the end of a big file).
       let pos = 0;
@@ -99,6 +101,7 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
   let destroyed = false;
   let loadToken = 0;
   let trackUrls = [];
+  let lyricSources = [];
 
   // --- parts ---------------------------------------------------------------------------------------------------
   const art = h("div", { class: "mp-art", "aria-hidden": "true" });
@@ -127,11 +130,13 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
   const abBtn = btn("", "A–B loop (A)", "A–B", () => cycleLoop());
   const eqBtn = btn("", "Equaliser (E)", "🎚", () => togglePanel("eq"));
   const queueBtn = btn("", "Queue (Q)", "☰", () => togglePanel("queue"));
+  const lyricsBtn = btn("", "Show lyrics (L)", "♪", () => togglePanel("lyrics"));
+  lyricsBtn.hidden = true;
   const subSelect = h("select", { class: "mp-select", hidden: true, "aria-label": "Subtitles (C)", title: "Subtitles (C)" });
   const pipBtn = btn("", "Picture in picture", "⧉", () => pip());
   const fsBtn = btn("", "Full screen (F)", "⛶", () => fullscreen());
   const buttons = h("div", { class: "mp-buttons" }, shuffleBtn, prevBtn, playBtn, nextBtn, repeatBtn,
-    h("span", { class: "mp-sep" }), muteBtn, volume, speed, abBtn, eqBtn, queueBtn, subSelect, pipBtn, fsBtn);
+    h("span", { class: "mp-sep" }), muteBtn, volume, speed, abBtn, eqBtn, queueBtn, lyricsBtn, subSelect, pipBtn, fsBtn);
 
   const eqPreset = h("select", { class: "mp-select", "aria-label": "Equaliser preset" }, ...Object.keys(EQ_PRESETS).map((n) => h("option", { value: n }, n)), h("option", { value: "Custom" }, "Custom"));
   const eqOn = h("input", { type: "checkbox", "aria-label": "Equaliser on" });
@@ -142,8 +147,12 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     h("p", { class: "mp-note", id: "mp-eqnote" }, ""));
   const queueList = h("ol", { class: "mp-queue", "aria-label": "Play queue" });
   const queuePanel = h("div", { class: "mp-panel", hidden: true }, queueList);
+  const lyricsSelect = h("select", { class: "mp-select", hidden: true, "aria-label": "Lyrics source" });
+  const lyricsText = h("pre", { class: "mp-lyrics", "aria-label": "Lyrics" });
+  const lyricsPanel = h("div", { class: "mp-panel mp-lyrics-panel", hidden: true },
+    h("div", { class: "mp-paneltop" }, h("strong", {}, "Lyrics"), lyricsSelect), lyricsText);
 
-  const root = h("div", { class: "mp", tabindex: "-1" }, stage, info, seekRow, buttons, eqPanel, queuePanel);
+  const root = h("div", { class: "mp", tabindex: "-1" }, stage, info, seekRow, buttons, eqPanel, queuePanel, lyricsPanel);
 
   // --- helpers -------------------------------------------------------------------------------------------------
   const save = () => savePrefs(prefs);
@@ -291,6 +300,13 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     trackUrls = [];
     subSelect.replaceChildren();
     subSelect.hidden = true;
+    lyricSources = [];
+    lyricsSelect.replaceChildren();
+    lyricsSelect.hidden = true;
+    lyricsText.textContent = "";
+    lyricsBtn.hidden = true;
+    lyricsPanel.hidden = true;
+    root.classList.toggle("has-panel", !eqPanel.hidden || !queuePanel.hidden);
   }
 
   async function loadSubtitles(token) {
@@ -301,7 +317,6 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
       return SUBTITLE_EXTS.some((x) => n.endsWith(`.${x}`)) && n.startsWith(`${base}.`);
     });
     if (!found.length) return;
-    const options = [h("option", { value: "-1" }, "Subtitles: off")];
     for (const [i, sub] of found.entries()) {
       try {
         const res = await fetch(rawUrl(sub.path));
@@ -311,19 +326,62 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
         trackUrls.push(url);
         const label = sub.name.slice(base.length + 1).replace(/\.(srt|vtt)$/i, "") || `Subtitles ${i + 1}`;
         media.append(h("track", { kind: "subtitles", label, src: url, srclang: label.slice(0, 2).toLowerCase() }));
-        options.push(h("option", { value: String(trackUrls.length - 1) }, label));
       } catch { /* a subtitle file that won't load is skipped */ }
     }
-    if (options.length > 1) {
-      subSelect.replaceChildren(...options);
-      subSelect.hidden = false;
-      setSubtitle(-1);
-    }
+    refreshSubtitleOptions();
+    setSubtitle(-1);
+  }
+
+  function refreshSubtitleOptions() {
+    const tracks = [...media.textTracks];
+    subSelect.replaceChildren(
+      h("option", { value: "-1" }, "Subtitles: off"),
+      ...tracks.map((track, i) => h("option", { value: String(i) }, track.label || track.language || `Subtitle ${i + 1}`)),
+    );
+    subSelect.hidden = tracks.length === 0;
+    if (Number(subSelect.value) >= tracks.length) setSubtitle(-1);
   }
 
   function setSubtitle(index) {
     [...media.textTracks].forEach((t, i) => { t.mode = i === index ? "showing" : "disabled"; });
     subSelect.value = String(index);
+  }
+
+  async function loadLyrics(token, embedded) {
+    const add = (label, text) => {
+      const value = String(text ?? "").trim();
+      if (value) lyricSources.push({ label, text: value });
+    };
+    add("Embedded lyrics", embedded);
+    const base = entry.name.replace(/\.[^.]+$/, "").toLowerCase();
+    const allowed = isVideo() ? [...LYRIC_EXTS, ...SUBTITLE_EXTS] : LYRIC_EXTS;
+    const found = subtitleEntries.filter((e) => {
+      const name = e.name.toLowerCase();
+      const ext = name.slice(name.lastIndexOf(".") + 1);
+      return name.startsWith(`${base}.`) && allowed.includes(ext);
+    }).sort((a, b) => a.name.localeCompare(b.name));
+    for (const sidecar of found) {
+      if (sidecar.size > 256 * 1024) {
+        if (token === loadToken && !destroyed) showMessage(`Lyrics file “${sidecar.name}” is larger than the 256 KB display limit.`);
+        continue;
+      }
+      try {
+        const res = await fetch(rawUrl(sidecar.path));
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        if (token !== loadToken || destroyed) return;
+        const ext = sidecar.name.slice(sidecar.name.lastIndexOf(".") + 1).toLowerCase();
+        add(sidecar.name, ext === "srt" || ext === "vtt" ? subtitleText(text) : text);
+      } catch (err) {
+        if (token === loadToken && !destroyed) showMessage(`Couldn't load lyrics file “${sidecar.name}”: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+    if (token !== loadToken || destroyed || !lyricSources.length) return;
+    lyricsSelect.replaceChildren(...lyricSources.map((source, i) => h("option", { value: String(i) }, source.label)));
+    lyricsSelect.hidden = lyricSources.length < 2;
+    lyricsBtn.hidden = false;
+    const first = lyricSources[0];
+    if (first) lyricsText.textContent = first.text;
   }
 
   async function loadEntry(next, autoplay = true) {
@@ -342,10 +400,15 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     say(`Playing ${entry.name}`);
     if (autoplay) play();
     readTags(entry).then(async (t) => {
-      if (token !== loadToken || destroyed || !t) return;
-      tags = t;
-      if (t.cover && t.cover.data.length <= MAX_COVER_BYTES) { try { cover = await dataUrlOf(new Blob([t.cover.data], { type: t.cover.mime })); } catch { cover = ""; } }
-      if (token === loadToken && !destroyed) showInfo();
+      if (token !== loadToken || destroyed) return;
+      if (t) {
+        tags = t;
+        if (t.cover && t.cover.data.length <= MAX_COVER_BYTES) { try { cover = await dataUrlOf(new Blob([t.cover.data], { type: t.cover.mime })); } catch { cover = ""; } }
+        if (token === loadToken && !destroyed) showInfo();
+      }
+      await loadLyrics(token, t?.lyrics);
+    }).catch((err) => {
+      if (token === loadToken && !destroyed) showMessage(`Couldn't read this file's media tags: ${err instanceof Error ? err.message : String(err)}`);
     });
     loadSubtitles(token);
   }
@@ -404,11 +467,13 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
   function setMuted(on) { silent = on; applyLevel(); say(on ? "Muted" : "Sound on"); }
   function setRate(r) { media.playbackRate = r; prefs.rate = r; speed.value = String(r); save(); say(`Speed ${r}`); }
   function togglePanel(which) {
-    const panel = which === "eq" ? eqPanel : queuePanel;
-    const other = which === "eq" ? queuePanel : eqPanel;
-    other.hidden = true;
-    panel.hidden = !panel.hidden;
-    root.classList.toggle("has-panel", !eqPanel.hidden || !queuePanel.hidden);
+    const panels = { eq: eqPanel, queue: queuePanel, lyrics: lyricsPanel };
+    const panel = panels[which];
+    if (!panel) return;
+    const open = panel.hidden;
+    Object.values(panels).forEach((item) => { item.hidden = true; });
+    panel.hidden = !open;
+    root.classList.toggle("has-panel", !panel.hidden);
     if (which === "eq" && !panel.hidden) ensureGraph().then(applyEq);
   }
   /**
@@ -475,12 +540,17 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     refreshButtons();
   });
   media.addEventListener("loadedmetadata", () => {
+    refreshSubtitleOptions();
     if (isVideo() && media.videoWidth) artist.textContent = `${artist.textContent}  ·  ${media.videoWidth} × ${media.videoHeight}`;
   });
   seek.addEventListener("input", () => { if (Number.isFinite(media.duration)) media.currentTime = (Number(seek.value) / 1000) * media.duration; });
   volume.addEventListener("input", () => setVolume(Number(volume.value) / 100));
   speed.addEventListener("change", () => setRate(Number(speed.value)));
   subSelect.addEventListener("change", () => setSubtitle(Number(subSelect.value)));
+  lyricsSelect.addEventListener("change", () => {
+    const source = lyricSources[Number(lyricsSelect.value)];
+    if (source) lyricsText.textContent = source.text;
+  });
   eqOn.addEventListener("change", () => { prefs.eqOn = eqOn.checked; applyEq(); save(); });
   eqPreset.addEventListener("change", () => { if (eqPreset.value !== "Custom") applyPreset(eqPreset.value); });
   stage.addEventListener("click", (e) => { if (isVideo() && e.target === media) toggle(); });
@@ -511,7 +581,8 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     else if (lower === "f" && isVideo()) fullscreen();
     else if (lower === "e") togglePanel("eq");
     else if (lower === "q") togglePanel("queue");
-    else if (lower === "c" && !subSelect.hidden) { const n = Number(subSelect.value) + 1; setSubtitle(n >= trackUrls.length ? -1 : n); }
+    else if (lower === "l" && !lyricsBtn.hidden) togglePanel("lyrics");
+    else if (lower === "c" && !subSelect.hidden) { const n = Number(subSelect.value) + 1; setSubtitle(n >= media.textTracks.length ? -1 : n); }
     else if ((k === "," || k === ".") && isVideo() && media.paused) media.currentTime += k === "." ? 1 / 30 : -1 / 30;
     else return false;
     refreshButtons();
