@@ -40,15 +40,15 @@ function collect(): Array<{ path: string; name: string; bytes: number }> {
     for (const f of readdirSync(dir).sort()) if (re.test(f)) out.push({ path: join(dir, f), name: f, bytes: statSync(join(dir, f)).size });
   };
   take(FM, new RegExp(`^Codecaine-File-Manager-v${VERSION.replace(/\./g, "\\.")}-.*\\.zip$`));
-  take(RELEASE, new RegExp(`^bun-rad-studio-v${VERSION.replace(/\./g, "\\.")}-.*\\.(tar\\.gz|zip)$`));
-  take(RELEASE, new RegExp(`^bun-rad-studio-v${VERSION.replace(/\./g, "\\.")}-free-music-(?:source|mp3|songs-mp3)(?:-\\d+of\\d+)?\\.zip$`));
+  take(RELEASE, new RegExp(`^bun-rad-studio-v${VERSION.replace(/\./g, "\\.")}-(?!free-music-).*\\.(tar\\.gz|zip)$`));
+  take(RELEASE, new RegExp(`^bun-rad-studio-v${VERSION.replace(/\./g, "\\.")}-free-music-(?:lyrics-videos|mp3)(?:-\\d+of\\d+)?\\.zip$`));
   take(join(RELEASE, "mac-apps"), /-apps(-\d+of\d+)?\.zip$/);
   take(join(RELEASE, "mac-apps-x64"), /-apps(-\d+of\d+)?\.zip$/);
   const seen = new Set<string>();
   return out.filter((f) => (seen.has(f.name) ? false : (seen.add(f.name), true)));
 }
 
-const KIND = (n: string) => (n.startsWith("Codecaine-File-Manager") ? "fm" : /-free-music-(?:source|mp3|songs-mp3)(?:-\d+of\d+)?\.zip$/.test(n) ? "music" : /-apps(-\d+of\d+)?\.zip$/.test(n) ? "apps" : "suite");
+const KIND = (n: string) => (n.startsWith("Codecaine-File-Manager") ? "fm" : /-free-music-/.test(n) ? "music" : /-apps(-\d+of\d+)?\.zip$/.test(n) ? "apps" : "suite");
 const platformOf = (n: string) => /-(macos|windows|linux)-(arm64|x64)(-baseline|-musl)?/.exec(n)?.[0].slice(1) ?? n;
 
 /** The headline of each entry in the newest section of the changelog (the bold words that start the line), for the release notes. */
@@ -100,8 +100,8 @@ export function notes(files: Array<{ name: string; bytes: number }>, repo: strin
   }
   const music = files.filter((f) => KIND(f.name) === "music");
   if (music.length) {
-    L.push("## 🎵 Free music — CC BY 4.0", "", "These separate music archives contain audio from Codecaine's YouTube playlist. Each archive includes attribution and license details. The music is licensed under Creative Commons Attribution 4.0; it is not covered by the project's MIT license.", "", "| Format | Download |", "|---|---|");
-    for (const [kind, label] of [["source", "Source audio"], ["mp3", "Full-length MP3 (128 kbps)"], ["songs-mp3", "Individual chapter songs (MP3, 128 kbps)"]] as const) {
+    L.push("## 🎵 Free music — CC BY 4.0", "", "These separate music archives contain Codecaine's original local lyric videos and MP3 songs extracted from those videos, with song-title filenames. No YouTube downloads are used. Each archive includes attribution and license details. The music is licensed under Creative Commons Attribution 4.0; it is not covered by the project's MIT license.", "", "| Format | Download |", "|---|---|");
+    for (const [kind, label] of [["lyrics-videos", "Original lyric videos (MP4/MOV)"], ["mp3", "MP3 songs (128 kbps)"]] as const) {
       const packs = music.filter((f) => f.name.includes(`-free-music-${kind}`));
       if (packs.length) L.push(`| ${label} | ${packs.map((f) => `[${f.name}](${url(f.name)}) (${mb(f.bytes)})`).join(" · ")} |`);
     }

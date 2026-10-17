@@ -144,11 +144,15 @@ Details that matter:
 
 ```bash
 bun run release:build -- --mac-apps
-bun run release:music # optional: downloads and packages the free music
+bun run release:music # optional: packages local lyric videos and extracts MP3 songs
 gh release create v1.0.0 release/*.tar.gz release/*.zip release/SHA256SUMS.txt -F release/RELEASE_NOTES.md
 ```
 
-The optional `release:music` step needs `yt-dlp`, `ffmpeg`, `zip` and `unzip`. It creates separate source-audio, full-length 128 kbps MP3, and individual chapter-song MP3 archives for the available videos in Codecaine's playlist; unavailable videos are skipped. Chapter timestamps define the song boundaries; a video without chapters is packaged as one track. The music is licensed under CC BY 4.0 and includes attribution details, separate from the suite's MIT license. `release:publish` includes the music archives and links them in the notes when the version-matched ZIPs are present. It does not download or publish music unless the step is explicitly run.
+The optional `release:music` step needs `ffmpeg` and `unzip`; it reuses the File Manager's streaming ZIP writer with explicit UTF-8 filenames. Put the original lyric videos directly in the project's `music lyrics/` folder (MP4, MOV, M4V, MKV or WebM). The script uses only those local videos: no YouTube downloads, playlists or chapter splitting. Hidden files, subfolders (including previously extracted audio) and non-video files are ignored. It creates separate `free-music-lyrics-videos` archives with the original video bytes and `free-music-mp3` archives with one 128 kbps MP3 per video. Filenames and MP3 title tags use the original video's filename without its extension; filesystem-invalid characters are removed and repeated filenames get a numeric suffix. Large collections split automatically below GitHub's per-file upload limit. Missing audio or failed conversions stop the build without publishing partial archives. Existing version-matched music ZIPs are not overwritten.
+
+Conversions run in parallel (up to eight jobs, leaving one CPU core free), using the release scripts' shared worker pool. Use `bun run release:music -- --jobs 4` to choose the concurrency (1–64). Filenames are assigned before starting workers so duplicate suffixes do not depend on completion order. Video and MP3 archives are also built concurrently; active work settles before temporary files are removed on failure.
+
+The music retains the release's CC BY 4.0 license and includes attribution details, separate from the suite's MIT license. `release:publish` includes the local lyric-video and MP3 archives and links them in the notes when the version-matched ZIPs are present; legacy `source` and `songs-mp3` playlist archives are excluded. Building does not publish anything.
 
 `RELEASE_NOTES.md` is generated: a table of every download with its size and a "which one do I pick" guide. Change the version in `package.json` first; it names every file.
 

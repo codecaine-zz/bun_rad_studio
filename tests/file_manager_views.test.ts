@@ -193,7 +193,13 @@ beforeAll(async () => {
   Object.defineProperty(g, "WebSocket", { value: class {}, configurable: true, writable: true });
   Object.defineProperty(g, "CSS", { value: { escape: (s: string) => s.replace(/["\\]/g, "\\$&") }, configurable: true, writable: true });
   const realFetch = saved.get("fetch")!.value as typeof fetch;
-  Object.defineProperty(g, "fetch", { value: (u: any, o: any) => realFetch(typeof u === "string" && u.startsWith("/") ? base + u : u, o), configurable: true, writable: true });
+  Object.defineProperty(g, "fetch", { value: (u: any, o: any) => {
+    if (u === "/api/copytext") {
+      clip.text = JSON.parse(o.body).text;
+      return Promise.resolve(Response.json({ ok: true, copied: true }));
+    }
+    return realFetch(typeof u === "string" && u.startsWith("/") ? base + u : u, o);
+  }, configurable: true, writable: true });
   win.Element.prototype.scrollIntoView = () => {};
   Object.defineProperty(win.HTMLElement.prototype, "offsetParent", { get() { return win.document.body; }, configurable: true });
   doc = win.document;
@@ -2302,5 +2308,299 @@ describe("links inside the embedded timer", () => {
     await sleep(400);
     expect(launched).toEqual([]);
     host.remove();
+  });
+});
+
+describe("quiet text boxes and simple editing", () => {
+  const context = (field: HTMLInputElement | HTMLTextAreaElement) => {
+    field.dispatchEvent(new win.MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+  };
+  const menuItem = (label: string): HTMLButtonElement => [...doc.querySelectorAll(".menu-item")].find((b: any) => b.querySelector(".menu-label").textContent === label);
+
+  test("existing, helper-created and late-created inputs disable typing suggestions", async () => {
+    const { h } = await import("../resources/file_manager/ui/dom.js");
+    const created = h("textarea");
+    const late = doc.createElement("input");
+    doc.body.append(created, late);
+    for (const field of [$("#search"), $("#address-input"), created, late]) {
+      field.hidden = false;
+      field.focus();
+      for (const [name, value] of Object.entries({ spellcheck: "false", autocomplete: "off", autocorrect: "off", autocapitalize: "off" })) {
+        expect(field.getAttribute(name)).toBe(value);
+      }
+    }
+    created.remove();
+    late.remove();
+    $("#address-input").hidden = true;
+  });
+
+  test("Ctrl+A and Command+A select text, not files; Clear text notifies input listeners", async () => {
+    const field = doc.createElement("textarea");
+    field.value = "first line\nsecond line";
+    doc.body.append(field);
+    field.focus();
+    const shared = (await import("../resources/file_manager/ui/state.js")).state;
+    const selection = [...shared.selection];
+    for (const modifier of [{ ctrlKey: true }, { metaKey: true }]) {
+      field.setSelectionRange(2, 2);
+      expect(key(field, "a", modifier).defaultPrevented).toBe(true);
+      expect([field.selectionStart, field.selectionEnd]).toEqual([0, field.value.length]);
+      expect([...shared.selection]).toEqual(selection);
+    }
+    let inputs = 0;
+    let changes = 0;
+    field.addEventListener("input", () => inputs++);
+    field.addEventListener("change", () => changes++);
+    context(field);
+    menuItem("Clear text").click();
+    expect(field.value).toBe("");
+    expect(inputs).toBe(1);
+    expect(changes).toBe(1);
+    expect(doc.activeElement).toBe(field);
+    field.remove();
+  });
+
+  test("the editing menu selects, copies, cuts and deletes only the chosen text", async () => {
+    const field = doc.createElement("input");
+    field.value = "alpha beta";
+    doc.body.append(field);
+    field.focus();
+    context(field);
+    menuItem("Select all").click();
+    expect([field.selectionStart, field.selectionEnd]).toEqual([0, 10]);
+    field.setSelectionRange(6, 10);
+    context(field);
+    clip.text = "";
+    menuItem("Copy").click();
+    for (let i = 0; i < 50 && clip.text !== "beta"; i++) await sleep(20);
+    expect(clip.text).toBe("beta");
+    expect(field.value).toBe("alpha beta");
+    context(field);
+    menuItem("Cut").click();
+    for (let i = 0; i < 50 && field.value !== "alpha "; i++) await sleep(20);
+    expect(field.value).toBe("alpha ");
+    field.setSelectionRange(0, 5);
+    context(field);
+    menuItem("Delete selection").click();
+    expect(field.value).toBe(" ");
+    field.remove();
+  });
+
+  test("read-only and disabled inputs cannot be cleared, and passwords cannot be copied through the menu", async () => {
+    const field = doc.createElement("input");
+    field.value = "private";
+    field.readOnly = true;
+    doc.body.append(field);
+    field.focus();
+    field.select();
+    context(field);
+    for (const label of ["Cut", "Paste", "Delete selection", "Clear text"]) expect(menuItem(label).disabled).toBe(true);
+    expect(menuItem("Copy").disabled).toBe(false);
+    (await import("../resources/file_manager/ui/menus.js")).closeMenu();
+    field.readOnly = false;
+    field.type = "password";
+    field.select();
+    context(field);
+    expect(menuItem("Copy").disabled).toBe(true);
+    expect(menuItem("Cut").disabled).toBe(true);
+    (await import("../resources/file_manager/ui/menus.js")).closeMenu();
+    field.disabled = true;
+    context(field);
+    expect($(".menu")).toBeNull();
+    field.remove();
+  });
+
+  test("paste inserts clipboard text and reports denied clipboard access", async () => {
+    const field = doc.createElement("textarea");
+    field.value = "hello world";
+    doc.body.append(field);
+    field.focus();
+    field.setSelectionRange(6, 11);
+    const before = Object.getOwnPropertyDescriptor(win.navigator, "clipboard");
+    Object.defineProperty(win.navigator, "clipboard", { configurable: true, value: { readText: async () => "there" } });
+    try {
+      context(field);
+      menuItem("Paste").click();
+      await sleep(20);
+      expect(field.value).toBe("hello there");
+      Object.defineProperty(win.navigator, "clipboard", { configurable: true, value: { readText: async () => { throw new Error("Denied"); } } });
+      context(field);
+      menuItem("Paste").click();
+      await sleep(20);
+      expect(field.value).toBe("hello there");
+      expect($("#toasts").textContent).toContain("Couldn't read the clipboard");
+    } finally {
+      if (before) Object.defineProperty(win.navigator, "clipboard", before);
+      else Reflect.deleteProperty(win.navigator, "clipboard");
+      field.remove();
+    }
+  });
+
+  test("opening the text menu does not commit an inline rename", async () => {
+    const file = join(home, "rename-menu.txt");
+    writeFileSync(file, "keep");
+    const { emit } = await import("../resources/file_manager/ui/state.js");
+    emit("workspace-go", "files");
+    await (await import("../resources/file_manager/ui/nav.js")).goTo(home);
+    (await import("../resources/file_manager/ui/list.js")).beginRename(file);
+    const field = $(".rename-input");
+    field.value = "not-committed.txt";
+    expect(key(field, "a", { ctrlKey: true }).defaultPrevented).toBe(true);
+    context(field);
+    await sleep(120);
+    expect($(".rename-input")).toBe(field);
+    expect(existsSync(file)).toBe(true);
+    expect(existsSync(join(home, "not-committed.txt"))).toBe(false);
+    menuItem("Select all").click();
+    expect([field.selectionStart, field.selectionEnd]).toEqual([0, field.value.length]);
+    key(field, "Escape");
+    expect($(".rename-input")).toBeNull();
+  });
+
+  test("the terminal's helper textarea keeps native shell shortcuts instead of form editing", () => {
+    const field = doc.createElement("textarea");
+    $("#terminal-host").append(field);
+    field.focus();
+    expect(key(field, "a", { ctrlKey: true }).defaultPrevented).toBe(false);
+    context(field);
+    expect(doc.querySelector('.menu[aria-label="Text editing"]')).toBeNull();
+    field.remove();
+  });
+});
+
+describe("finding tools without scrolling", () => {
+  const tabs = (): string[] => [...doc.querySelectorAll("#power-tabs [role=tab]")].map((t: any) => t.id.replace("power-tab-", ""));
+  const filter = (value: string) => {
+    $("#power-filter").value = value;
+    $("#power-filter").dispatchEvent(new win.Event("input", { bubbles: true }));
+  };
+
+  test("filters immediately by name, description and group, without switching the current app", async () => {
+    const power = await import("../resources/file_manager/ui/power.js");
+    (await import("../resources/file_manager/ui/workspace.js")).setWorkspace("tools", { tool: "calc" });
+    filter("  DoWnLoAd  ");
+    expect(tabs()).toContain("downloads");
+    expect(tabs()).not.toContain("calc");
+    expect(power.activePowerTab()).toBe("calc");
+    expect($("#power-pane-calc").getAttribute("aria-label")).toBe("Calculator");
+    expect($("#power-filter-status").textContent).toContain("found");
+    expect($("#power-tabs").classList.contains("filtered")).toBe(true);
+    expect($("#power-tab-downloads").tabIndex).toBe(0);
+    filter("security");
+    expect(tabs()).toEqual(expect.arrayContaining(["crypto", "secrets"]));
+    filter("speed limit");
+    expect(tabs()).toContain("downloads");
+    filter("zz-no-such-app");
+    expect(tabs()).toEqual([]);
+    expect($("#power-filter-status").textContent).toContain("No tools match");
+    expect(power.activePowerTab()).toBe("calc");
+    expect(key($("#power-filter"), "Enter").defaultPrevented).toBe(true);
+    expect(power.activePowerTab()).toBe("calc");
+  });
+
+  test("Enter opens the first match and arrows navigate only matching apps", async () => {
+    const power = await import("../resources/file_manager/ui/power.js");
+    filter("download");
+    $("#power-filter").focus();
+    key($("#power-filter"), "Enter");
+    expect(power.activePowerTab()).toBe("downloads");
+    expect(doc.activeElement.id).toBe("power-tab-downloads");
+    filter("security");
+    $("#power-filter").focus();
+    key($("#power-filter"), "ArrowDown");
+    const matches = tabs();
+    expect(doc.activeElement.id).toBe(`power-tab-${matches[0]}`);
+    key(doc.activeElement, "ArrowRight");
+    expect(power.activePowerTab()).toBe(matches[1]);
+    key(doc.activeElement, "End");
+    expect(power.activePowerTab()).toBe(matches.at(-1));
+    key(doc.activeElement, "Home");
+    expect(power.activePowerTab()).toBe(matches[0]);
+  });
+
+  test("Clear, Escape and the search input's native clear restore all apps without leaving Tools", async () => {
+    const power = await import("../resources/file_manager/ui/power.js");
+    const total = power.listPowerTabs().length;
+    for (const clear of [
+      () => $("#power-filter-clear").click(),
+      () => key($("#power-filter"), "Escape"),
+      () => { $("#power-filter").value = ""; $("#power-filter").dispatchEvent(new win.Event("search", { bubbles: true })); },
+    ]) {
+      filter("download");
+      $("#power-filter").focus();
+      clear();
+      expect(tabs().length).toBe(total);
+      expect(ws()).toBe("tools");
+      expect($("#power-filter-clear").hidden).toBe(true);
+      expect($("#power-tabs").classList.contains("filtered")).toBe(false);
+    }
+  });
+
+  test("opening a different app from outside the filtered tabs makes its tab visible", async () => {
+    const power = await import("../resources/file_manager/ui/power.js");
+    filter("download");
+    power.openPower("calc");
+    expect($("#power-filter").value).toBe("");
+    expect($("#power-tab-calc").getAttribute("aria-selected")).toBe("true");
+    expect(doc.activeElement.id).toBe("power-tab-calc");
+    (await import("../resources/file_manager/ui/state.js")).emit("workspace-go", "files");
+  });
+});
+
+describe("download folders open inside the File Manager by default", () => {
+  test("paused and finished downloads use Files view, with a separate system-file-manager action", async () => {
+    const { downloadsOf } = await import("../src/features/filemanager/fmDownloadOps");
+    const manager = downloadsOf(server.context);
+    const folder = join(home, "download-ui");
+    mkdirSync(folder, { recursive: true });
+    const item = manager.add([{ url: "https://example.test/file.txt", folder, start: false }])[0]!;
+    const power = await import("../resources/file_manager/ui/power.js");
+    const shared = (await import("../resources/file_manager/ui/state.js")).state;
+    const until = async (check: () => boolean) => {
+      for (let i = 0; i < 100; i++) {
+        if (check()) return;
+        await sleep(30);
+      }
+      throw new Error("Timed out waiting for download UI");
+    };
+    const row = () => doc.querySelector(`.dl-row[data-id="${item.id}"]`);
+    const button = (label: string): HTMLButtonElement => [...row().querySelectorAll("button")].find((b: any) => b.textContent.includes(label));
+    try {
+      power.openPower("downloads");
+      await until(() => !!row());
+      const launches = launched.length;
+      button("Open folder").click();
+      await until(() => ws() === "files" && shared.location.path === folder);
+      expect(launched.length).toBe(launches);
+      expect(shared.selection.size).toBe(0);
+      expect(doc.activeElement.id).toBe("list");
+
+      writeFileSync(item.path, "downloaded");
+      manager.get(item.id)!.state = "done";
+      power.openPower("downloads");
+      await until(() => row().dataset.state === "done");
+      button("Open folder").click();
+      await until(() => ws() === "files" && shared.selection.has(item.path));
+      expect(launched.length).toBe(launches);
+
+      power.openPower("downloads");
+      await until(() => ws() === "tools");
+      button("System file manager").click();
+      await until(() => launched.length > launches);
+      expect(launched.at(-1)!.args.join(" ")).toContain(process.platform === "linux" ? folder : item.path);
+      expect(ws()).toBe("tools");
+
+      manager.get(item.id)!.folder = join(folder, "missing");
+      power.openPower("downloads");
+      await sleep(100);
+      button("Open folder").click();
+      await until(() => $("#toasts").textContent.includes("exist"));
+      expect(ws()).toBe("tools");
+      expect(launched.length).toBe(launches + 1);
+    } finally {
+      await manager.remove(item.id);
+      (await import("../resources/file_manager/ui/state.js")).emit("workspace-go", "files");
+      await (await import("../resources/file_manager/ui/nav.js")).goTo(home);
+    }
   });
 });

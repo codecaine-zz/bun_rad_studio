@@ -3,7 +3,14 @@
 #power-panel[hidden] { display: none; }
 .power-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--border); flex: none; }
 .power-title { font-weight: 600; margin-right: 6px; }
+.power-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--border); flex: none; }
+.power-filter label { font-weight: 600; }
+#power-filter { flex: 1 1 12rem; min-width: 0; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; }
+#power-filter:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+#power-filter-clear[hidden] { display: none; }
 #power-tabs { position: relative; display: flex; align-items: center; gap: 4px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; scroll-behavior: smooth; }
+#power-tabs.filtered { flex-wrap: wrap; overflow-x: visible; max-height: 30vh; overflow-y: auto; }
+#power-tabs.filtered .power-tab .pt-label { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
 #power-tabs::-webkit-scrollbar { display: none; }
 .power-sep { flex: none; width: 1px; align-self: stretch; margin: 4px 4px; background: var(--border); }
 .power-scroll { flex: none; width: 1.9rem; height: 1.9rem; border: 1px solid var(--border); border-radius: 50%; background: var(--bg); color: var(--text); cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0; }

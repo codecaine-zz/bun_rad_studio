@@ -35,7 +35,7 @@
 <link rel="stylesheet" href="/ui/studio.css">
 <link rel="stylesheet" href="/ui/themeEffects.css">
 </head>
-<body>
+<body spellcheck="false" autocorrect="off" autocapitalize="off">
   <a class="skip-link" href="#list">Skip to the files</a>
 
   <div id="app" data-workspace="files">
@@ -92,6 +92,12 @@
     <div id="splitter" role="separator" tabindex="0" hidden></div>
 
     <section id="power-panel" aria-label="Power tools" hidden>
+      <div class="power-filter">
+        <label for="power-filter">Find a tool</label>
+        <input id="power-filter" type="search" placeholder="Filter apps by name or what they do..." aria-controls="power-tabs" aria-describedby="power-filter-status" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
+        <button id="power-filter-clear" type="button" class="pw-btn" title="Clear the tool filter and show all apps" hidden>Clear</button>
+        <span id="power-filter-status" class="pw-status" role="status" aria-live="polite"></span>
+      </div>
       <div class="power-head">
         <button id="power-close" type="button" class="power-close" title="Go back to your files (Alt+1)" aria-label="Back to files"><span aria-hidden="true">←</span> Back to files</button>
         <span class="power-title">Tools</span>
@@ -113,13 +119,16 @@
         <span id="terminal-title" class="term-title">Terminal</span>
         <span class="term-note">A real terminal: things deleted here skip the Recycle Bin and can't be undone.</span>
         <span class="term-actions">
+          <button id="terminal-copy" type="button" class="term-btn" title="Copy selected terminal text (Ctrl+Shift+C or Command+C)" disabled>Copy</button>
+          <button id="terminal-paste" type="button" class="term-btn" title="Paste clipboard text into the terminal">Paste</button>
+          <button id="terminal-select-all" type="button" class="term-btn" title="Select all terminal output, including scrollback (Ctrl+Shift+A or Command+A)">Select all</button>
           <label class="term-follow" title="Follow the terminal's physical folder, resolving symlinks and junctions. This can differ from pwd; compare pwd -P in a POSIX shell. Hover the terminal title for the reported path."><input id="terminal-follow" type="checkbox"> Follow terminal (real path)</label>
           <button id="terminal-cd" type="button" class="term-btn" title="Move the terminal to the folder you selected, or to the folder you are looking at if none is selected">Go to this folder</button>
           <button id="terminal-restart" type="button" class="term-btn" title="End this shell and start a new one in the selected folder, or the folder you are looking at">Restart</button>
           <button id="terminal-close" type="button" class="term-btn term-close" title="Hide the terminal (Ctrl+`). It keeps running." aria-label="Hide the terminal">✕</button>
         </span>
       </div>
-      <div id="terminal-host" class="term-host"></div>
+      <div id="terminal-host" class="term-host" title="Drag to select terminal text. Hold Shift while dragging if a terminal program captures the mouse. Right-click for Copy, Paste and Select all."></div>
     </section>
 
     <footer id="status">

@@ -5,7 +5,8 @@ import { h } from "./dom.js";
 import { ApiError, call } from "./api.js";
 import { confirmBox } from "./dialogs.js";
 import { toast } from "./menus.js";
-import { currentPath } from "./state.js";
+import { currentPath, emit } from "./state.js";
+import { goTo } from "./nav.js";
 import { registerPowerTab } from "./power.js";
 import { formatSize } from "./util.js";
 
@@ -225,7 +226,8 @@ function mount(root) {
     if (item.state === "downloading" || item.state === "probing" || item.state === "queued") b.push(button("⏸ Pause", "Stop for now and keep what is downloaded", () => post("dl/pause", { id: item.id })));
     if (item.state === "paused") b.push(button("▶ Resume", "Continue where it stopped", () => post("dl/resume", { id: item.id }), "primary"));
     if (item.state === "error") b.push(button("↻ Try again", "Start this download again", () => post("dl/resume", { id: item.id }), "primary"));
-    if (item.state === "done" || item.state === "error") b.push(button("📂 Show", "Show the file in your file browser", () => call("dl/reveal", { id: item.id })));
+    b.push(button("📂 Open folder", "Open the download folder in this File Manager", () => openFolder(item.id)));
+    b.push(button("System file manager", "Show the file or folder in your system's file manager in a separate window", () => call("dl/reveal", { id: item.id })));
     if (item.state === "done") b.push(button("🗑 Delete file…", "Delete the downloaded file and remove it from the list", () => removeWithFile(item), "danger"));
     b.push(button("✕ Remove", item.state === "done" ? "Remove it from this list (the file stays)" : "Stop it and delete what was downloaded so far", () => removeEntry(item)));
     r.buttons.replaceChildren(...b);
@@ -233,6 +235,18 @@ function mount(root) {
 
   /** The download as it is right now (the buttons outlive the snapshot they were drawn from). */
   const current = (id) => data.items.find((i) => i.id === id);
+
+  async function openFolder(id) {
+    const item = current(id);
+    if (!item) {
+      toast("That download isn't in the list any more.", { kind: "error" });
+      return;
+    }
+    if (await goTo(item.folder, { select: item.state === "done" ? item.path : null })) {
+      emit("workspace-go", "files");
+      document.getElementById("list")?.focus();
+    }
+  }
 
   async function removeEntry(was) {
     const item = current(was.id) ?? was;

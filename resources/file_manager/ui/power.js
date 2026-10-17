@@ -28,6 +28,14 @@ function orderedTabs() {
   return GROUPS.flatMap(([g]) => tabs.filter((t) => groupOf(t) === g).sort((a, b) => rank(a) - rank(b)));
 }
 
+function matchingTabs() {
+  const words = ($("#power-filter")?.value ?? "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  return orderedTabs().filter((t) => {
+    const text = `${t.label} ${t.tip} ${GROUPS.find(([g]) => g === groupOf(t))?.[1] ?? ""}`.toLowerCase();
+    return words.every((word) => text.includes(word));
+  });
+}
+
 /**
  * Adds a tool to the panel. `mount(root)` runs once, the first time the tab is opened, and may return
  * `{ show(opts), hide() }` hooks that run each time the tab is shown or left.
@@ -84,14 +92,32 @@ function renderTabs() {
   const strip = typeof document === "undefined" ? null : $("#power-tabs");
   if (!strip) return;
   clear(strip);
+  const matches = matchingTabs();
+  const filtering = !!$("#power-filter")?.value.trim();
+  strip.classList.toggle("filtered", filtering);
+  const clearFilter = $("#power-filter-clear");
+  if (clearFilter) clearFilter.hidden = !filtering;
+  const status = $("#power-filter-status");
+  if (status) status.textContent = filtering ? matches.length ? `${matches.length} tool${matches.length === 1 ? "" : "s"} found. Enter opens the first.` : "No tools match. Try another word or Clear." : "";
+  const focusId = matches.some((t) => t.id === activeId) ? activeId : matches[0]?.id;
+  const pane = mounted.get(activeId)?.root;
+  if (pane) {
+    if (matches.some((t) => t.id === activeId)) {
+      pane.setAttribute("aria-labelledby", `power-tab-${activeId}`);
+      pane.removeAttribute("aria-label");
+    } else {
+      pane.removeAttribute("aria-labelledby");
+      pane.setAttribute("aria-label", tabs.find((t) => t.id === activeId).label);
+    }
+  }
   let previous = null;
-  for (const t of orderedTabs()) {
+  for (const t of matches) {
     const group = groupOf(t);
     if (previous !== null && previous !== group) strip.append(h("span", { class: "power-sep", "aria-hidden": "true" }));
     previous = group;
     strip.append(h("button", {
       type: "button", role: "tab", id: `power-tab-${t.id}`, class: `power-tab${t.id === activeId ? " active" : ""}`,
-      "aria-selected": String(t.id === activeId), "aria-controls": `power-pane-${t.id}`, tabindex: t.id === activeId || (activeId === null && t === orderedTabs()[0]) ? "0" : "-1", title: `${t.label}: ${t.tip}`,
+      "aria-selected": String(t.id === activeId), "aria-controls": `power-pane-${t.id}`, tabindex: t.id === focusId ? "0" : "-1", title: `${t.label}: ${t.tip}`,
       onclick: () => selectTab(t.id),
     }, h("span", { class: "pt-icon", "aria-hidden": "true" }, t.icon), h("span", { class: "pt-label" }, t.label)));
   }
@@ -101,6 +127,10 @@ function renderTabs() {
 function selectTab(id, opts) {
   const tab = tabs.find((t) => t.id === id);
   if (!tab) return;
+  if (!matchingTabs().some((t) => t.id === id)) {
+    const filter = $("#power-filter");
+    if (filter) filter.value = "";
+  }
   const body = $("#power-body");
   if (activeId && activeId !== id) mounted.get(activeId)?.hooks?.hide?.();
   const changed = activeId !== id;
@@ -185,14 +215,38 @@ export function togglePower(tabId) {
 export function wirePower() {
   $("#power-close")?.addEventListener("click", closePower);
   const strip = $("#power-tabs");
+  const filter = $("#power-filter");
+  const clearFilter = () => {
+    if (!filter) return;
+    filter.value = "";
+    renderTabs();
+    keepTabInView(activeId);
+    filter.focus();
+  };
+  filter?.addEventListener("input", renderTabs);
+  filter?.addEventListener("search", renderTabs);
+  $("#power-filter-clear")?.addEventListener("click", clearFilter);
+  filter?.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      clearFilter();
+    } else if (e.key === "Enter" || e.key === "ArrowDown") {
+      e.preventDefault();
+      const first = matchingTabs()[0];
+      if (!first) return;
+      if (e.key === "Enter") selectTab(first.id);
+      $(`#power-tab-${first.id}`)?.focus();
+    }
+  });
   const scrollBy = (dir) => strip?.scrollBy?.({ left: dir * Math.max(120, strip.clientWidth * 0.6), behavior: "smooth" });
   $("#power-scroll-left")?.addEventListener("click", () => scrollBy(-1));
   $("#power-scroll-right")?.addEventListener("click", () => scrollBy(1));
   strip?.addEventListener("scroll", updateScrollButtons, { passive: true });
   if (strip && typeof ResizeObserver === "function") new ResizeObserver(updateScrollButtons).observe(strip);
   strip?.addEventListener("keydown", (e) => {
-    const all = orderedTabs();
-    const i = all.findIndex((t) => t.id === activeId);
+    const all = matchingTabs();
+    const i = all.findIndex((t) => `power-tab-${t.id}` === e.target.closest("[role=tab]")?.id);
     let next = null;
     if (e.key === "ArrowRight") next = all[(i + 1) % all.length];
     else if (e.key === "ArrowLeft") next = all[(i + all.length - 1) % all.length];

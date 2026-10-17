@@ -20,7 +20,7 @@ test.skipIf(process.platform !== "win32" && (!Bun.which("zip") || !Bun.which("un
   writeFileSync(join(work, file), bytes);
   const archives = await createArchives(dir, work, "mp3", [{
     file,
-    credit: { title: "Fixture song", uploader: "Fixture creator", url: "https://example.com/fixture" },
+    title: "Fixture song",
   }], "test fixture");
   expect(archives).toEqual([`bun-rad-studio-v${VERSION}-free-music-mp3.zip`]);
   const archive = join(dir, archives[0]!);
@@ -33,7 +33,7 @@ test.skipIf(process.platform !== "win32" && (!Bun.which("zip") || !Bun.which("un
   expect(readFileSync(join(out, file))).toEqual(bytes);
   const attribution = readFileSync(join(out, "ATTRIBUTION.txt"), "utf8");
   expect(attribution).toContain("Fixture song");
-  expect(attribution).toContain("Fixture creator");
+  expect(attribution).toContain("Codecaine");
   expect(attribution).toContain("CC BY 4.0");
   expect(attribution).toContain("test fixture");
 }, 30000);

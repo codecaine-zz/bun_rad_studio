@@ -112,7 +112,7 @@ describe("selected paths for a terminal", () => {
       .replace(/^import .*;\r?$/gm, "").replace(/^export /gm, "");
     const insert = new Function("deps", `
       const { $, Terminal, FitAddon, ResizeObserver, WebSocket, window, requestAnimationFrame,
-        quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl, state, terminalUrl, emit, toast } = deps;
+        quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl, state, terminalUrl, emit, toast, wireTerminalClipboard } = deps;
       ${source}
       return insertPaths;
     `)({
@@ -122,6 +122,7 @@ describe("selected paths for a terminal", () => {
       quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl,
       state: { platform: "darwin", settings: { textSize: 100 }, location: { kind: "folder", path: "/tmp" } },
       terminalUrl: () => "ws://test", emit() {}, toast: (message: string) => notices.push(message),
+      wireTerminalClipboard() {},
     }) as (paths: string[]) => Promise<void>;
     const pending = insert(["/tmp/a file", "/tmp/folder"]);
     expect(sockets).toHaveLength(1);
@@ -248,7 +249,7 @@ function loadTerminal(platform: string) {
     .replace(/^import .*;\r?$/gm, "").replace(/^export /gm, "");
   const api = new Function("deps", `
     const { $, Terminal, FitAddon, ResizeObserver, WebSocket, window, requestAnimationFrame,
-      quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl, state, terminalUrl, emit, toast, goTo } = deps;
+      quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl, state, terminalUrl, emit, toast, goTo, wireTerminalClipboard } = deps;
     ${source}
     return { insertPaths, folderCommand, typeInTerminal };
   `)({
@@ -258,6 +259,7 @@ function loadTerminal(platform: string) {
     quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl,
     state: { platform, settings, location: { kind: "folder", path: platform === "win32" ? "C:\\" : "/tmp" } },
     terminalUrl: () => "ws://test", emit() {}, toast: (message: string) => notices.push(message),
+    wireTerminalClipboard() {},
     goTo: (path: string) => navigated.push(path),
   }) as { insertPaths: (paths: string[]) => Promise<void>; folderCommand: (folder: string, shell: string, wsl?: object) => string | null; typeInTerminal: (text: string) => boolean };
   return { ...api, sockets, notices, element, navigated, settings };

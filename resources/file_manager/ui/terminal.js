@@ -10,6 +10,7 @@ import { toast } from "./menus.js";
 import { goTo, saveSettings } from "./nav.js";
 import { selectedEntries } from "./selection.js";
 import { emit, on, state } from "./state.js";
+import { wireTerminalClipboard } from "./terminalClipboard.js";
 
 const MIN_HEIGHT = 120;
 const STEP = 24;
@@ -198,6 +199,7 @@ function ensureTerminal() {
   fit = new FitAddon();
   term.loadAddon(fit);
   term.open($("#terminal-host"));
+  wireTerminalClipboard(term, $("#terminal-host"));
   term.onData((data) => {
     if (ended && data === "\r") return restart();
     send({ type: "input", data });

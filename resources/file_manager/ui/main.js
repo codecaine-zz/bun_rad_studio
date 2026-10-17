@@ -5,6 +5,7 @@ import { showWelcome } from "./extras.js";
 import { wireFavorites } from "./favorites.js";
 import { wireInfo } from "./info.js";
 import { wireKeys } from "./keys.js";
+import { wireTextInputs } from "./textInputs.js";
 import { isRenaming, renderList, wireList } from "./list.js";
 import { menuIsOpen } from "./menus.js";
 import { goTo, loadPlaces, refresh } from "./nav.js";
@@ -74,6 +75,7 @@ function showFatal(message) {
 }
 
 async function start() {
+  wireTextInputs();
   try {
     await loadPlaces();
   } catch (err) {

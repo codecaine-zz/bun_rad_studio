@@ -1,6 +1,12 @@
 // Small DOM helpers. File names and paths come from disk and are untrusted, so the page never builds HTML from
 // them: text always goes in through textContent (the h() helper does this for you).
 
+export function quietInput(el) {
+  for (const [key, value] of Object.entries({ spellcheck: "false", autocomplete: "off", autocorrect: "off", autocapitalize: "off" })) {
+    el.setAttribute(key, value);
+  }
+}
+
 /**
  * Creates an element. `attrs`: class, text, dataset, aria-* / other attributes, boolean flags, and on<event> handlers.
  * `children` may be strings, nodes, arrays or null.
@@ -11,6 +17,7 @@
  */
 export function h(tag, attrs = {}, ...children) {
   const el = document.createElement(tag);
+  if (tag === "input" || tag === "textarea") quietInput(el);
   for (const [key, value] of Object.entries(attrs ?? {})) {
     if (value === undefined || value === null || value === false) continue;
     if (key === "class") el.className = value;

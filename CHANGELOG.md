@@ -7,7 +7,7 @@ All notable changes. Version 1.4.1 is the tenth release (1.0.0, 1.1.0, 1.2.0, 1.
 ### Added
 
 - **File Manager: local lyrics in Quick Look and More info.** Show embedded MP3, FLAC, Ogg, MP4 and ffprobe lyric tags, matching local `.lrc` and `.txt` files, and video subtitle text. No online lookup or transcription is used.
-- **Free music download bundles.** The Codecaine playlist is available as source audio, full-length MP3s and individual chapter tracks under CC BY 4.0, separately from the MIT application downloads.
+- **Free music download bundles.** Original local lyric videos and MP3 songs extracted from them use song-title filenames under CC BY 4.0, separately from the MIT application downloads. Music builds no longer download YouTube playlists.
 
 ### Improved
 

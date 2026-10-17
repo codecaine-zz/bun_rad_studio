@@ -189,7 +189,10 @@ export function beginRename(key, pane = left) {
     if (e.key === "Enter") { e.preventDefault(); finish(true); }
     else if (e.key === "Escape") { e.preventDefault(); finish(false); }
   });
-  input.addEventListener("blur", () => setTimeout(() => !finished && view.renaming && finish(true), 80));
+  input.addEventListener("blur", (e) => {
+    if (e.relatedTarget instanceof Element && e.relatedTarget.closest(".menu")) return;
+    setTimeout(() => !finished && view.renaming && finish(true), 80);
+  });
   input.addEventListener("click", (e) => e.stopPropagation());
   input.addEventListener("dblclick", (e) => e.stopPropagation());
 }

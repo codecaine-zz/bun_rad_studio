@@ -279,12 +279,13 @@ button:disabled { cursor: default; }
 #terminal-resizer { height: 6px; margin-top: -3px; cursor: row-resize; flex: none; position: relative; z-index: 1; }
 #terminal-resizer:hover, #terminal-resizer.dragging { background: var(--accent); opacity: 0.6; }
 #terminal-resizer:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.term-bar { display: flex; align-items: center; gap: 0.8rem; padding: 0.25rem 0.6rem; flex: none; font-size: 0.85rem; }
+.term-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem; padding: 0.25rem 0.6rem; flex: none; font-size: 0.85rem; }
 .term-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .term-note { color: var(--muted); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.term-actions { display: flex; gap: 0.35rem; flex: none; }
+.term-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; flex: 0 1 auto; }
 .term-btn { font: inherit; padding: 0.15rem 0.6rem; border: 1px solid var(--border); border-radius: 0.35rem; background: var(--bg); color: var(--text); cursor: pointer; }
 .term-btn:hover { background: var(--hover); }
+.term-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .term-host { flex: 1; min-height: 0; background: #1e1e1e; padding: 0.3rem 0 0 0.5rem; overflow: hidden; }
 .term-host .xterm { height: 100%; }
 
