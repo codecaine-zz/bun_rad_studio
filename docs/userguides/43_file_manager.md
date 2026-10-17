@@ -317,6 +317,8 @@ Programs are found on your PATH **and** in the places they install to: Homebrew'
 
 ### One-click setup of the helper programs
 
+Ghostscript is not currently available in winget. On Windows, use **Download Ghostscript** to get the installer from its official website, or use the Scoop install button if Scoop is available. With winget only, Ghostscript is listed for manual installation and does not block Install all. After installing it, press **Check again**.
+
 Opening Convert checks helper versions in the background without showing Windows console windows. LibreOffice is checked in headless mode, preferring its Windows console launcher (`soffice.com`), so checking it does not open the office interface.
 
 In **Convert & process → Helper programs…** the **One-click setup** box installs everything that is missing in one go.

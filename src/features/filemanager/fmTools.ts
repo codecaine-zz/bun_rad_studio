@@ -71,7 +71,7 @@ export const TOOLS: Record<ToolId, ToolDef> = {
   ghostscript: {
     id: "ghostscript", name: "Ghostscript", what: "Works on PDF files: joins, splits, shrinks them, and turns pages into pictures or text.",
     executables: ["gs", "gswin64c", "gswin32c"], versionArgs: ["--version"], website: "https://ghostscript.com/releases/gsdnld.html",
-    brew: "ghostscript", winget: "ArtifexSoftware.GhostScript", scoop: "ghostscript", choco: "ghostscript", apt: "ghostscript", dnf: "ghostscript", pacman: "ghostscript",
+    brew: "ghostscript", winget: "", scoop: "ghostscript", choco: "ghostscript", apt: "ghostscript", dnf: "ghostscript", pacman: "ghostscript",
     dirs: { win32: ["{PF}\\gs\\gs*\\bin", "{PF86}\\gs\\gs*\\bin"] },
   },
   libreoffice: {

@@ -5,7 +5,8 @@ import { join } from "path";
 import { createContext } from "../src/features/filemanager/fmCore";
 import { openToolWebsite, startConvert } from "../src/features/filemanager/fmBatch";
 import { resolveTool, toolStatus } from "../src/features/filemanager/fmToolDetect";
-import { childEnv, findExecutable, searchDirs } from "../src/features/filemanager/fmTools";
+import { childEnv, findExecutable, installPlan, searchDirs } from "../src/features/filemanager/fmTools";
+import { setupOptions } from "../src/features/filemanager/fmSetup";
 
 const root = mkdtempSync(join(tmpdir(), "fm-win-tools-"));
 afterAll(async () => {
@@ -95,6 +96,22 @@ afterAll(async () => {
 });
 
 describe("helper download buttons", () => {
+  test("Ghostscript has no winget package, offers the official download, and can use Scoop", async () => {
+    const manual = installPlan("win32", "ghostscript", { winget: "winget.exe" });
+    expect(manual).toMatchObject({ auto: false, argv: null, missingManager: null });
+    expect(manual.note).toContain("https://ghostscript.com/releases/gsdnld.html");
+    expect(manual.display).not.toContain("winget");
+    const scoop = installPlan("win32", "ghostscript", { winget: "winget.exe", scoop: "scoop.cmd" });
+    expect(scoop).toMatchObject({ auto: true, method: "scoop", argv: ["scoop.cmd", "install", "ghostscript"] });
+    const bin = join(root, "winget-only");
+    mkdirSync(bin);
+    writeFileSync(join(bin, "winget.exe"), "fixture");
+    const ctx = createContext({ platform: "win32", home: root, toolDirs: [bin] });
+    const options = await setupOptions(ctx);
+    expect(options.tools.find((t) => t.id === "ghostscript")!.autoInstall).toBe(false);
+    expect((await openToolWebsite({ ...ctx, launch: async () => {} }, "ghostscript")).opened).toBe("https://ghostscript.com/releases/gsdnld.html");
+  });
+
   test("opens catalog addresses through the OS and refuses arbitrary URLs", async () => {
     const calls: Array<{ command: string; args: string[] }> = [];
     const ctx = createContext({ platform: "win32", home: root, toolDirs: [], launch: async (command, args) => { calls.push({ command, args }); } });
