@@ -1,6 +1,18 @@
 # Changelog
 
-All notable changes. Version 1.3.1 is the seventh release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2 and 1.3.0 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.3.2 is the eighth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0 and 1.3.1 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+
+## 1.3.2 (16 October 2026)
+
+### Added
+
+- **File Manager: Image Studio and Media Studio.** Save presets, apply them to multiple files, and choose from 39 additional ImageMagick and FFmpeg actions.
+- **File Manager: a richer media and theme experience.** Pictures, sound and video open in the built-in viewer by default; the theme gallery now has 178 themes, including 20 effects themes and 22 classic operating-system themes, plus an effects filter and shortcut.
+- **File Manager: shell-aware Windows terminal paths.** Insert or copy selected paths quoted for PowerShell, Command Prompt, Git Bash or WSL; WSL paths use the selected distribution's Linux paths.
+
+### Fixed
+
+- **Linux desktop releases on Ubuntu 24.04+:** installers can opt in to a validated, executable-specific AppArmor permission for WebKit's user-namespace sandbox, with matching uninstall support.
 
 ## 1.3.1 (16 October 2026)
 
