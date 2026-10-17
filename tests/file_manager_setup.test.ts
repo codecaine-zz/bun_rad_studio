@@ -63,6 +63,17 @@ describe("which package managers are offered", () => {
     expect(mac.tools.find((t) => t.id === "libreoffice")!.packages.brew).toBe(true);
     for (const t of o.tools) expect(typeof t.what).toBe("string");
   });
+
+  test("Windows setup offers only helpers supported by the detected background installer", async () => {
+    const win = computer("win32", ["winget.exe"]);
+    const options = await setupOptions(win.ctx);
+    expect(options.tools.find((t) => t.id === "ffmpeg")!.autoInstall).toBe(true);
+    for (const id of ["fonttools", "woff2", "unar"]) {
+      expect(options.tools.find((t) => t.id === id)!.autoInstall).toBe(false);
+    }
+    const unavailable = await setupOptions(computer("win32").ctx);
+    expect(unavailable.tools.every((t) => !t.autoInstall)).toBe(true);
+  });
 });
 
 suite("the setup script", () => {

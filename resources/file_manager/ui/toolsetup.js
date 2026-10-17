@@ -22,7 +22,6 @@ const describeChoice = (c) => `${MANAGER_WORDS[c.id] ?? c.name}${c.installsItsel
 async function run({ ids, choice, options, startJob, closeOuter }) {
   const direct = options.platform === "win32" || (choice && choice.id === "brew" && !choice.installsItself);
   if (direct) {
-    closeOuter?.();
     return startJob(ids);
   }
   if (!terminalAvailable()) {
@@ -51,7 +50,7 @@ function pickPrograms(options, missing, preselectMain) {
   const list = h("div", { class: "setup-list" });
   const buttonsEl = {};
 
-  const available = (t) => !choice || t.packages[choice.id] !== false;
+  const available = (t) => options.platform === "win32" ? t.autoInstall : !choice || t.packages[choice.id] !== false;
   const chosenIds = () => [...boxes].filter(([id, box]) => box.checked && !box.disabled).map(([id]) => id);
 
   function refresh() {
@@ -78,7 +77,7 @@ function pickPrograms(options, missing, preselectMain) {
   const row = (t) => {
     const box = h("input", { type: "checkbox", checked: preselectMain ? !t.optional : true, onchange: refresh });
     boxes.set(t.id, box);
-    return h("label", { class: "check setup-row", title: t.what }, box, h("span", {}, h("strong", {}, t.name), " — ", t.what, t.size ? ` ${t.size[0].toUpperCase()}${t.size.slice(1)}.` : ""));
+    return h("label", { class: "check setup-row", title: t.what }, box, h("span", {}, h("strong", {}, t.name), " — ", t.what, options.platform === "win32" && !t.autoInstall ? " Install manually using its command or download link." : "", t.size ? ` ${t.size[0].toUpperCase()}${t.size.slice(1)}.` : ""));
   };
   list.append(h("h3", { class: "tools-heading" }, "Main helpers"), ...missing.filter((t) => !t.optional).map(row), h("h3", { class: "tools-heading" }, "More helpers"), ...missing.filter((t) => t.optional).map(row));
   const all = (value) => () => { for (const [id, box] of boxes) if (!box.disabled) box.checked = value; refresh(); };
@@ -120,15 +119,16 @@ export async function startSetup({ mode, startJob, closeOuter }) {
     return picked && picked.ids.length ? run({ ids: picked.ids, choice: picked.choice, options, startJob, closeOuter }) : null;
   }
   const choice = options.choices[0] ?? null;
-  const usable = missing.filter((t) => !choice || t.packages[choice.id] !== false);
+  const usable = missing.filter((t) => options.platform === "win32" ? t.autoInstall : !choice || t.packages[choice.id] !== false);
   if (!usable.length) {
     toast("None of the missing programs can be installed with the package manager found here. Use the download links next to each one.", { kind: "error" });
     return null;
   }
   const big = usable.filter((t) => t.size);
+  const manual = missing.filter((t) => !usable.includes(t));
   const ok = await confirmBox({
     title: "Install everything that is missing?",
-    message: `This installs ${plural(usable.length, "program")}${big.length ? ` (${big.map((t) => `${t.name}: ${t.size}`).join("; ")})` : ""}. ${choice ? describeChoice(choice) + "." : "Windows' own installer (winget or Scoop) does the work."}`,
+    message: `This installs ${plural(usable.length, "program")}${big.length ? ` (${big.map((t) => `${t.name}: ${t.size}`).join("; ")})` : ""}. ${choice ? describeChoice(choice) + "." : "Windows' own installer (winget or Scoop) does the work."}${manual.length ? ` Install manually using the commands or download links: ${manual.map((t) => t.name).join(", ")}.` : ""}`,
     confirmLabel: `Install all ${usable.length}`,
     details: usable.map((t) => t.name),
   });

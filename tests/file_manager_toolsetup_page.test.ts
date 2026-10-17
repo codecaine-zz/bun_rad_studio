@@ -205,12 +205,15 @@ describe("one-click setup of the helper programs", () => {
   test("Windows: the background installers (winget or Scoop) are used, with the same list to choose from", async () => {
     closeAll();
     typed.length = 0;
-    computer("win32", []);
+    computer("win32", ["winget.exe"]);
     const jobs: string[][] = [];
     const started = setup.startSetup({ mode: "choose", startJob: (ids: string[]) => { jobs.push(ids); return "job"; }, closeOuter: () => {} });
     await until(() => top()?.querySelector(".setup-list"), "the list");
     expect(top().querySelectorAll("input[type=radio]").length).toBe(0);
     expect(top().textContent).toContain("winget or Scoop");
+    const unavailable = [...top().querySelectorAll(".setup-row input")].filter((b: any) => b.disabled);
+    expect(unavailable.length).toBeGreaterThan(0);
+    expect(unavailable.every((b: any) => !b.checked)).toBe(true);
     button("Select none", top()).click();
     const first = top().querySelector(".setup-row input[type=checkbox]");
     first.checked = true;
@@ -219,6 +222,48 @@ describe("one-click setup of the helper programs", () => {
     expect(await started).toBe("job");
     expect(jobs[0]!.length).toBe(1);
     expect(typed.length).toBe(0);
+  });
+
+  test("Windows Install all excludes manual-only helpers and leaves the outer dialog open until the job starts", async () => {
+    closeAll();
+    computer("win32", ["winget.exe"]);
+    const jobs: string[][] = [];
+    let closed = false;
+    const started = setup.startSetup({ mode: "everything", startJob: (ids: string[]) => { jobs.push(ids); return "job"; }, closeOuter: () => { closed = true; } });
+    await until(() => top()?.textContent.includes("Install everything that is missing?"), "the question");
+    expect(top().textContent).toContain("Install manually");
+    button("Install all", top()).click();
+    expect(await started).toBe("job");
+    expect(jobs[0]).toContain("ffmpeg");
+    expect(jobs[0]).not.toContain("fonttools");
+    expect(jobs[0]).not.toContain("woff2");
+    expect(jobs[0]).not.toContain("unar");
+    expect(closed).toBe(false);
+  });
+
+  test("Windows Install all keeps installation startup errors visible in Helper programs", async () => {
+    closeAll();
+    computer("win32", ["winget.exe"]);
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+      if (typeof input === "string" && input.includes("/api/tools/install")) {
+        return new Response(JSON.stringify({ error: { code: "MANUAL_INSTALL", message: "Installer could not start (test)." } }), { status: 400, headers: { "Content-Type": "application/json" } });
+      }
+      return realFetch(input, init);
+    }) as typeof fetch;
+    try {
+      await tools.showToolsDialog();
+      await until(() => button("Install everything missing"), "the helper programs");
+      const outer = top();
+      button("Install everything missing", outer).click();
+      await until(() => top() !== outer && button("Install all", top()), "the question");
+      button("Install all", top()).click();
+      await until(() => outer.textContent.includes("Installer could not start (test)."), "the installation error");
+      expect(outer.isConnected).toBe(true);
+    } finally {
+      globalThis.fetch = realFetch;
+      closeAll();
+    }
   });
 
   test("the helper programs window shows the one-click section with both buttons, and nothing says null", async () => {

@@ -35,6 +35,7 @@ export interface SetupTool {
   size: string;
   installed: boolean;
   optional: boolean;
+  autoInstall: boolean;
   /** Which of the offered managers have a package for it. */
   packages: Partial<Record<SetupManager, boolean>>;
 }
@@ -81,7 +82,7 @@ export async function setupOptions(ctx: FmContext): Promise<SetupOptions> {
   const choices = setupChoices(ctx);
   const status = await toolStatus(ctx);
   const tools: SetupTool[] = status.tools.map((t) => ({
-    id: t.id, name: t.name, what: t.what, size: TOOLS[t.id].size ?? "", installed: t.installed, optional: t.optional,
+    id: t.id, name: t.name, what: t.what, size: TOOLS[t.id].size ?? "", installed: t.installed, optional: t.optional, autoInstall: t.plan.auto,
     packages: Object.fromEntries(choices.map((c) => [c.id, hasPackage(ctx, c.id, t.id)])),
   }));
   return { platform: ctx.platform, choices, defaultManager: choices[0]?.id ?? null, tools };
