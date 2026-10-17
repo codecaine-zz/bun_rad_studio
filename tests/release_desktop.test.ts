@@ -4,7 +4,7 @@ import { tmpdir } from "os";
 import { join, relative } from "path";
 import { rm } from "fs/promises";
 import { Data, Resource } from "resedit";
-import { ROOT, TARGETS, listSourceApps, zipEntries } from "../scripts/release/common";
+import { ROOT, TARGETS, listSourceApps, run, zipEntries } from "../scripts/release/common";
 import { WINDOWS_SETUP, desktopInfo, embedWindowsIcon, stageDesktopIcons, windowsDesktopLauncher, windowsInstallCommand, windowsInstallScript, windowsResources } from "../scripts/release/desktop";
 import { DOWNLOADS, LAUNCHER_STUB, MAC_README, WINDOWS_TROUBLESHOOT, downloadPage, linuxInstallScript, readmeFor } from "../scripts/release/build_file_manager";
 import { bundleApps, installScript, windowsLauncher } from "../scripts/release/suite";
@@ -56,6 +56,12 @@ describe("matching Mac artwork", () => {
 });
 
 describe("platform launchers", () => {
+  test("release commands use the running Bun instead of a stale runtime on PATH", async () => {
+    const output = await run(["bun", "-e", "console.log(JSON.stringify({ runtime: process.execPath, version: Bun.version, mode: process.env.BUN_BE_BUN }))"],
+      { env: { PATH: workspace(), BUN_BE_BUN: "" } });
+    expect(JSON.parse(output)).toEqual({ runtime: process.execPath, version: Bun.version, mode: "1" });
+  });
+
   test("release entrypoints start directly but imported entrypoints do not run", async () => {
     const dir = workspace();
     const source = join(dir, "entry.ts");

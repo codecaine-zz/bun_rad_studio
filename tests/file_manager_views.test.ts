@@ -1429,6 +1429,40 @@ describe("Quick Look and copy to the clipboard", () => {
     key(doc.activeElement, "Escape");
   });
 
+  test("the player loads Windows-style local lyrics, switches sources and toggles them with L", async () => {
+    const dir = join(home, "Lyrics with spaces");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "song.mp3"), Buffer.alloc(500, 1));
+    writeFileSync(join(dir, "song.LRC"), "\uFEFF[00:01.00]Local verse\r\nSecond line\r\n");
+    writeFileSync(join(dir, "song.en.txt"), "Alternate verse\r\n");
+    const nav = await import("../resources/file_manager/ui/nav.js");
+    try {
+      await nav.goTo(dir);
+      await waitFor(() => names().includes("song.mp3"));
+      select("song.mp3");
+      $("#list").focus();
+      space();
+      await waitFor(() => $(".mp-select[aria-label='Lyrics source']")?.options.length === 2);
+      const button = $(".mp-btn[aria-label='Show lyrics (L)']");
+      expect(button.hidden).toBe(false);
+      key(doc.activeElement, "l");
+      expect($(".mp-lyrics").closest(".mp-panel").hidden).toBe(false);
+      const sources = $(".mp-select[aria-label='Lyrics source']");
+      sources.value = String([...sources.options].findIndex((option: any) => option.text === "song.LRC"));
+      sources.dispatchEvent(new win.Event("change", { bubbles: true }));
+      expect($(".mp-lyrics").textContent).toBe("[00:01.00]Local verse\r\nSecond line");
+      sources.value = String([...sources.options].findIndex((option: any) => option.text === "song.en.txt"));
+      sources.dispatchEvent(new win.Event("change", { bubbles: true }));
+      expect($(".mp-lyrics").textContent).toBe("Alternate verse");
+      key(doc.activeElement, "l");
+      expect($(".mp-lyrics").closest(".mp-panel").hidden).toBe(true);
+      expect($(".mp-message").textContent).toBe("");
+    } finally {
+      if (open()) key(doc.activeElement, "Escape");
+      await nav.goTo(qdir);
+    }
+  });
+
   test("a text file gets Copy text, Convert…, Edit, Open and More; Convert and Edit step aside for what they open", async () => {
     select("e-notes.txt");
     $("#list").focus();

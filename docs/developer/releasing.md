@@ -27,6 +27,8 @@ bun run build:mac-apps -- --jobs 4       # build four apps at the same time
 bun run release:music            # optional, separate CC BY 4.0 music archives
 ```
 
+The optional music builder needs `yt-dlp` and FFmpeg on `PATH`. Windows uses its built-in PowerShell ZIP support; macOS/Linux also need `zip` and `unzip`. These tools are only needed to build music packs, not to play the downloaded music or use local lyrics.
+
 **Parallel builds.** The build scripts (`build:mac-apps`, `release:build`, `release:file-manager`) bundle the apps, draw the icons, assemble the `.app` bundles, install and zip, and pack the platforms several at a time. The default is your processor cores minus one (at most 8), so the computer stays usable; `--jobs N` (or `-j N`) sets it, and `-j 1` builds one by one as before. (On a 12-app test, `-j 1` took 10.6 s and `-j 6` 3.6 s, with the same bundles.) `--verify` always starts the apps one at a time because each opens a window, and zipping is limited to 3 at once. The helpers are `mapPool`, `defaultJobs` and `parseJobs` in `scripts/release/common.ts`; each build writes only its own files, the shared `_assets` folders are cleared once at the end, and the shared stub files are written atomically.
 
 The first `release:build` needs the internet: Bun downloads one runtime per platform (about 75 MB each, then cached). Everything is written under `release/`, which is not tracked by git.

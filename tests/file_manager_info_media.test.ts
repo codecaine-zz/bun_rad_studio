@@ -216,7 +216,7 @@ describe("the media report", () => {
       const r = await mediaInfo(bare, join(dir, name));
       expect(r.source, name).toBe("built-in");
       expect(r.helper.ffprobe).toBe(false);
-      expect(r.helper.hint).toContain("ffmpeg");
+      expect(r.helper.hint.toLowerCase()).toContain("ffmpeg");
       expect(r.groups.length, name).toBeGreaterThan(1);
     }
     await expect(mediaInfo(bare, join(dir, "f.txt"))).rejects.toMatchObject({ code: "NOT_MEDIA" });

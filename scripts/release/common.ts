@@ -111,7 +111,9 @@ export function log(emoji: string, message: string) {
 
 /** Runs a program and returns its output; throws with the program's own words when it fails. */
 export async function run(cmd: string[], options: { cwd?: string; env?: Record<string, string> } = {}): Promise<string> {
-  const proc = Bun.spawn(cmd, { cwd: options.cwd, env: { ...process.env, ...options.env }, stdout: "pipe", stderr: "pipe" });
+  const bun = cmd[0] === "bun";
+  const command = bun ? [process.execPath, ...cmd.slice(1)] : cmd;
+  const proc = Bun.spawn(command, { cwd: options.cwd, env: { ...process.env, ...options.env, ...(bun ? { BUN_BE_BUN: "1" } : {}) }, stdout: "pipe", stderr: "pipe" });
   const [out, err, code] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]);
   if (code !== 0) throw new Error(`${cmd.slice(0, 3).join(" ")} failed (${code}): ${(err || out).trim().split("\n").slice(-6).join("\n")}`);
   return out;

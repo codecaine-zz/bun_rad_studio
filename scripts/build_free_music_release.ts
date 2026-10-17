@@ -2,7 +2,7 @@
 import { mkdirSync, mkdtempSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { ROOT, VERSION, run } from "./release/common";
+import { ROOT, VERSION, run, zipEntries } from "./release/common";
 
 const RELEASE = join(ROOT, "release");
 const PLAYLIST_URL = "https://www.youtube.com/watch?v=DevI7G5bh3A&list=PLLrJYAtW5i7A";
@@ -98,7 +98,7 @@ function groupBySize(work: string, files: PackFile[]): PackFile[][] {
   return groups;
 }
 
-async function createArchives(
+export async function createArchives(
   stage: string,
   work: string,
   format: "source" | "mp3" | "songs-mp3",
@@ -112,9 +112,15 @@ async function createArchives(
     const name = `${VERSION_PREFIX}${format}${part}.zip`;
     const archive = join(stage, name);
     writeFileSync(join(work, "ATTRIBUTION.txt"), attribution(groups[i]!.map((item) => item.credit), changes));
-    await run(["zip", "-0", "-j", archive, "ATTRIBUTION.txt", ...groups[i]!.map((item) => item.file)], { cwd: work });
+    const entries = ["ATTRIBUTION.txt", ...groups[i]!.map((item) => item.file)];
+    if (process.platform === "win32") await zipEntries(work, entries, archive);
+    else await run(["zip", "-0", "-j", archive, ...entries], { cwd: work });
     if (statSync(archive).size > 2_000_000_000) throw new Error(`Archive exceeds GitHub's 2 GB per-file limit: ${name}`);
-    await run(["unzip", "-tqq", archive]);
+    if (process.platform === "win32") {
+      await run(["powershell.exe", "-NoProfile", "-Command",
+        "$ErrorActionPreference = 'Stop'; Add-Type -AssemblyName System.IO.Compression.FileSystem; $zip = [IO.Compression.ZipFile]::OpenRead($env:MUSIC_ARCHIVE); try { foreach ($entry in $zip.Entries) { $stream = $entry.Open(); try { $stream.CopyTo([IO.Stream]::Null) } finally { $stream.Dispose() } } } finally { $zip.Dispose() }"],
+      { env: { MUSIC_ARCHIVE: archive } });
+    } else await run(["unzip", "-tqq", archive]);
     names.push(name);
   }
   return names;
@@ -125,7 +131,7 @@ function slug(title: string): string {
 }
 
 async function main(): Promise<void> {
-  for (const tool of ["yt-dlp", "ffmpeg", "zip", "unzip"]) requireTool(tool);
+  for (const tool of ["yt-dlp", "ffmpeg", ...(process.platform === "win32" ? ["powershell.exe"] : ["zip", "unzip"])]) requireTool(tool);
   mkdirSync(RELEASE, { recursive: true });
   const existing = readdirSync(RELEASE).filter((name) => name.startsWith(VERSION_PREFIX) && name.endsWith(".zip"));
   if (existing.length) throw new Error(`Refusing to overwrite existing music archives: ${existing.join(", ")}`);

@@ -47,3 +47,4 @@ export async function call(op, body = {}) {
 
 /** The address of a picture, for an <img>. */
 export const rawUrl = (path) => `/api/raw?path=${encodeURIComponent(path)}&token=${encodeURIComponent(TOKEN)}`;
+export const lyricsUrl = (path) => `${rawUrl(path)}&lyrics=1`;

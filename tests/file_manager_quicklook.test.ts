@@ -95,6 +95,25 @@ describe("/api/raw for Quick Look", () => {
   afterAll(() => server.stop(true));
   const raw = (path: string, extra = "", init: RequestInit = {}, token = "ql-token") => fetch(`${base}/api/raw?path=${encodeURIComponent(path)}&token=${token}${extra}`, init);
 
+  test("the player can read local lyrics with Windows paths, mixed-case endings and CRLF text", async () => {
+    const lyrics = "\uFEFF[00:01.00]First line\r\n[00:02.00]Second line\r\n";
+    for (const name of ["b-song.LRC", "b-song.en.txt"]) {
+      const file = join(work, name);
+      writeFileSync(file, lyrics);
+      expect((await raw(file)).status).toBe(415);
+      const response = await raw(file, "&lyrics=1");
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe("text/plain; charset=utf-8");
+      expect(response.headers.get("content-security-policy")).toContain("sandbox");
+      expect(await response.text()).toBe(lyrics.slice(1));
+      expect((await raw(file, "&lyrics=1", {}, "wrong-token")).status).toBe(401);
+    }
+    const large = join(work, "large.lrc");
+    writeFileSync(large, "x".repeat(256 * 1024 + 1));
+    expect((await raw(large, "&lyrics=1")).status).toBe(413);
+    expect((await raw(join(work, "f-blob.bin"), "&lyrics=1")).status).toBe(415);
+  });
+
   test("streams sound and video, with ranges, the right type and a sandbox policy", async () => {
     const whole = await raw(join(work, "b-song.mp3"));
     expect(whole.status).toBe(200);

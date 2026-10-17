@@ -646,10 +646,15 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           const picture = RAW_MIME[ext] && classify(name, false).preview === "image" ? RAW_MIME[ext] : undefined;
           // Subtitle files next to a video (the player turns .srt into WebVTT itself).
           const subtitle = ext === "vtt" || ext === "srt" ? "text/plain; charset=utf-8" : undefined;
+          const lyrics = url.searchParams.get("lyrics") === "1" && (ext === "lrc" || ext === "txt");
           // Only what a preview can show is served, and that is decided by the name before the disk is touched.
-          if (!thumb && !media && !picture && !subtitle) return json(415, { ok: false, error: { code: "CANT_PREVIEW", message: "That kind of file can't be previewed this way." } });
+          if (!thumb && !media && !picture && !subtitle && !lyrics) return json(415, { ok: false, error: { code: "CANT_PREVIEW", message: "That kind of file can't be previewed this way." } });
           const st = await fsp.stat(file);
           if (!st.isFile()) return json(400, { ok: false, error: { code: "NOT_A_FILE", message: "That isn't a file." } });
+          if (lyrics) {
+            if (st.size > 256 * 1024) return json(413, { ok: false, error: { code: "TOO_BIG", message: "That lyrics file exceeds the 256 KB display limit." } });
+            return new Response(Bun.file(file), { headers: secureHeaders({ "Content-Type": "text/plain; charset=utf-8", ...preview }) });
+          }
           // A picture of a document that only the system's Quick Look can draw (macOS).
           if (thumb) {
             const png = await thumbnailFor(ctx, file);

@@ -163,7 +163,8 @@ async function compileLauncher(d: Download, outFile: string, icoFile: string | n
     args.push("--windows-hide-console");
     if (process.platform === "win32") args.push(`--windows-title=${APP_TITLE}`);
   }
-  await run([...args, stub]);
+  const output = await run([...args, stub]);
+  if (!existsSync(outFile)) throw new Error(`The compiler did not produce ${outFile}: ${output.trim()}`);
   if (d.os === "windows" && icoFile) embedWindowsIcon(outFile, icoFile);
 }
 

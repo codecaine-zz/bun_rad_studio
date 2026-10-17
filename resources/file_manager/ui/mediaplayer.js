@@ -2,7 +2,7 @@
 // repeat, speed, an A-B loop, volume, a ten-band equaliser, a spectrum for music, tags and cover art, subtitles, picture in
 // picture, full screen and the computer's media keys. One <video> element plays everything (it plays sound files too), so
 // the audio graph for the equaliser and the spectrum is built once and kept.
-import { rawUrl } from "./api.js";
+import { lyricsUrl, rawUrl } from "./api.js";
 import { h } from "./dom.js";
 import { EQ_BANDS, EQ_PRESETS, LYRIC_EXTS, PlayQueue, clampGain, formatClock, mediaKindOfName, parseFlac, parseId3, parseMp4Tags, parseOggTags, srtToVtt, subtitleText, SUBTITLE_EXTS } from "./mediacore.js";
 import { formatSize } from "./util.js";
@@ -366,7 +366,7 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
         continue;
       }
       try {
-        const res = await fetch(rawUrl(sidecar.path));
+        const res = await fetch(lyricsUrl(sidecar.path));
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
         if (token !== loadToken || destroyed) return;
