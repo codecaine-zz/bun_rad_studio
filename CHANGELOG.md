@@ -17,6 +17,11 @@ All notable changes. Version 1.4.2 is the eleventh release (1.0.0, 1.1.0, 1.2.0,
 - **Predictable text entry.** Inputs disable spelling corrections and saved-entry suggestions, with Select all, Clear text and clipboard editing actions. Opening the editing menu does not commit an inline rename.
 - **macOS release refresh.** Rebuild the standalone File Manager, full suite and desktop app bundles for Apple silicon and Intel.
 
+### Verification (Windows release)
+
+- **Windows terminal and File Manager updates.** Verified right-click Copy/Paste and Select all, toolbar paste, Ctrl+V, Ctrl+Shift+C/A, and unchanged Ctrl+C interruption against a real PowerShell ConPTY session on Windows ARM64 with x64 GUI emulation. Targeted terminal, UI and release checks passed (180 checks, with optional/platform-specific cases skipped), and typechecking reported no errors.
+- **Windows downloads.** Built the full suite and standalone File Manager for x64, x64-baseline and ARM64. The ARM64 standalone archive passed a packaged-server startup and terminal clipboard resource smoke test; this is not a claim of manual testing on native x64 hardware.
+
 ## 1.4.1 (17 October 2026)
 
 ### Added
