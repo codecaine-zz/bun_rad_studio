@@ -1,13 +1,28 @@
 # Changelog
 
-All notable changes. Version 1.4.1 is the tenth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2 and 1.4.0 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.4.2 is the eleventh release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0 and 1.4.1 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+
+## 1.4.2 (17 October 2026)
+
+### Added
+
+- **Find File Manager tools without scrolling.** Filter apps by name, description or group in Tools and Split views, open matches with the keyboard, and clear the filter without leaving the current tool.
+- **Terminal selection and clipboard controls.** Copy, Paste and Select all buttons and a right-click menu work with terminal output and scrollback. Shell Ctrl+C and Ctrl+A keep their original behavior.
+- **Local lyric-video and MP3 music archives.** Package original local videos and extracted 128 kbps MP3 songs with readable filenames and CC BY 4.0 attribution, without downloading YouTube playlists.
+- **Tutorial source examples.** Include the SimpleGUI click-event example and the terminal-short production script.
+
+### Improved
+
+- **Download folders open inside File Manager.** Open folder uses the built-in Files view and selects completed downloads; System file manager remains a separate option.
+- **Predictable text entry.** Inputs disable spelling corrections and saved-entry suggestions, with Select all, Clear text and clipboard editing actions. Opening the editing menu does not commit an inline rename.
+- **macOS release refresh.** Rebuild the standalone File Manager, full suite and desktop app bundles for Apple silicon and Intel.
 
 ## 1.4.1 (17 October 2026)
 
 ### Added
 
 - **File Manager: local lyrics in Quick Look and More info.** Show embedded MP3, FLAC, Ogg, MP4 and ffprobe lyric tags, matching local `.lrc` and `.txt` files, and video subtitle text. No online lookup or transcription is used.
-- **Free music download bundles.** Original local lyric videos and MP3 songs extracted from them use song-title filenames under CC BY 4.0, separately from the MIT application downloads. Music builds no longer download YouTube playlists.
+- **Free music download bundles.** The Codecaine playlist is available as source audio, full-length MP3s and individual chapter tracks under CC BY 4.0, separately from the MIT application downloads.
 
 ### Improved
 

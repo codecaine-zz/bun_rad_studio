@@ -42,8 +42,9 @@ function collect(): Array<{ path: string; name: string; bytes: number }> {
   take(FM, new RegExp(`^Codecaine-File-Manager-v${VERSION.replace(/\./g, "\\.")}-.*\\.zip$`));
   take(RELEASE, new RegExp(`^bun-rad-studio-v${VERSION.replace(/\./g, "\\.")}-(?!free-music-).*\\.(tar\\.gz|zip)$`));
   take(RELEASE, new RegExp(`^bun-rad-studio-v${VERSION.replace(/\./g, "\\.")}-free-music-(?:lyrics-videos|mp3)(?:-\\d+of\\d+)?\\.zip$`));
-  take(join(RELEASE, "mac-apps"), /-apps(-\d+of\d+)?\.zip$/);
-  take(join(RELEASE, "mac-apps-x64"), /-apps(-\d+of\d+)?\.zip$/);
+  const macApps = new RegExp(`^bun-rad-studio-v${VERSION.replace(/\./g, "\\.")}-macos-(?:arm64|x64)-apps(-\\d+of\\d+)?\\.zip$`);
+  take(join(RELEASE, "mac-apps"), macApps);
+  take(join(RELEASE, "mac-apps-x64"), macApps);
   const seen = new Set<string>();
   return out.filter((f) => (seen.has(f.name) ? false : (seen.add(f.name), true)));
 }
