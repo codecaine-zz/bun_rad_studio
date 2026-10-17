@@ -11,6 +11,13 @@ import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
 import { getSharedWorkbench } from "../src/db/workbench_shared";
 import { mysqlStaging } from "../src/db/staging/mount";
 import { viewApi } from "../src/shared/studioViews";
+import {
+  formatSqlDialect,
+  buildColumnFilterWhere,
+  buildOrderClause,
+  computeSchemaDiffDdl,
+  type SortColumnSpec,
+} from "../src/shared/studioServerEnhancements";
 import { splitStatements } from "../src/db/splitter";
 import { SQL } from "bun";
 
@@ -999,7 +1006,15 @@ export class MysqlManager {
 
   public async getTableData(
     table: string,
-    options: { page?: number; pageSize?: number; orderBy?: string; orderDir?: "ASC" | "DESC"; search?: string } = {}
+    options: {
+      page?: number;
+      pageSize?: number;
+      orderBy?: string;
+      orderDir?: "ASC" | "DESC";
+      sortColumns?: SortColumnSpec[];
+      search?: string;
+      columnFilters?: Record<string, string>;
+    } = {}
   ): Promise<any> {
     const page = Math.max(1, options.page || 1);
     const pageSize = Math.min(500, Math.max(1, options.pageSize || 25));
@@ -1018,22 +1033,29 @@ export class MysqlManager {
       const columns = cols.map((c: any) => c.COLUMN_NAME || c.column_name);
       const pkColumns = cols.filter((c: any) => (c.COLUMN_KEY || c.column_key) === "PRI").map((c: any) => c.COLUMN_NAME || c.column_name);
 
-      let whereClause = "";
+      const whereParts: string[] = [];
       const params: any[] = [];
       if (options.search && options.search.trim() && columns.length > 0) {
         const searchVal = `%${options.search.trim()}%`;
         const conditions = columns.map((col: string) => `${qm(col)} LIKE ?`);
-        whereClause = `WHERE (${conditions.join(" OR ")})`;
+        whereParts.push(`(${conditions.join(" OR ")})`);
         columns.forEach(() => params.push(searchVal));
       }
-
-      let orderClause = "";
-      if (options.orderBy && columns.includes(options.orderBy)) {
-        const dir = options.orderDir === "DESC" ? "DESC" : "ASC";
-        orderClause = `ORDER BY ${qm(options.orderBy)} ${dir}`;
-      } else if (pkColumns.length > 0) {
-        orderClause = `ORDER BY ${qm(pkColumns[0])} ASC`;
+      if (options.columnFilters && typeof options.columnFilters === "object") {
+        const colFilter = buildColumnFilterWhere(options.columnFilters, columns, "mysql");
+        if (colFilter.clauses.length > 0) {
+          whereParts.push(...colFilter.clauses);
+          params.push(...colFilter.params);
+        }
       }
+      const whereClause = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
+
+      const orderClause = buildOrderClause(columns, "mysql", {
+        sortColumns: options.sortColumns,
+        orderBy: options.orderBy,
+        orderDir: options.orderDir,
+        defaultPkColumn: pkColumns[0],
+      });
 
       const countSql = `SELECT count(*) as total FROM ${escapedTable} ${whereClause}`;
       const countRes = await this.sql_conn.unsafe(countSql, params);
@@ -2155,6 +2177,17 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
         }
       }
 
+      // 4a. Format SQL with sql-formatter
+      if (url.pathname === "/api/sql/format" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { sql: string };
+          const formatted = formatSqlDialect(body.sql || "", "mysql");
+          return Response.json({ success: true, formatted }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
       // 4b. Views: check / create / definition / drop (src/shared/studioViews.ts)
       const viewMatch = /^\/api\/view\/(check|create|definition|drop)$/.exec(url.pathname);
       if (viewMatch && req.method === "POST") {
@@ -2186,7 +2219,9 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
             pageSize?: number;
             orderBy?: string;
             orderDir?: "ASC" | "DESC";
+            sortColumns?: SortColumnSpec[];
             search?: string;
+            columnFilters?: Record<string, string>;
           };
           const result = await manager.getTableData(body.table, body);
           return Response.json(result, { headers: corsHeaders });
@@ -2429,6 +2464,12 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
             case "details":
               result = await manager.getTableDetails(body.table);
               break;
+            case "diff": {
+              const currentTables = Array.isArray(body.targetTables) ? body.targetTables : (await manager.getSchema()).tables;
+              const baselineTables = Array.isArray(body.baselineTables) ? body.baselineTables : [];
+              result = { success: true, ...computeSchemaDiffDdl(baselineTables, currentTables, "mysql") };
+              break;
+            }
             default:
               return new Response("Not Found", { status: 404, headers: corsHeaders });
           }

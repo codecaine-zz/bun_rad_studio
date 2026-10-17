@@ -1,6 +1,18 @@
 # Changelog
 
-All notable changes. Version 1.4.2 is the eleventh release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0 and 1.4.1 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.4.3 is the twelfth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1 and 1.4.2 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+
+## 1.4.3 (17 October 2026)
+
+### Added
+
+- **Database Studio IDE & Workbench v2 enhancements.** Add multi-tab SQL worksheets, 1-click dialect-aware SQL formatting, run highlighted selection, schema-aware autocomplete, searchable query history, transaction and read-only guard bar, server-backed column filter and `Shift+Click` multi-column sorting, foreign key (`↗`) drill-down navigation, collapsible row and JSON/BLOB side inspector, full-database SVG ER diagram, and live schema diff with migration DDL generation across SQLite, PostgreSQL, and MySQL studios.
+- **`bun:sql` and TypeScript code generation.** Add `bun-sql` and `typescript` code generation targets to the Database Studio codegen engine and SQLite Studio macros.
+
+### Improved
+
+- **Workbench v2 partial batch save recovery.** Preserve failed operations in the staging drawer when a batch save partially fails instead of clearing all staged edits.
+- **Cross-platform release refresh.** Rebuild standalone File Manager, full suite, and macOS `.app` bundles across macOS, Linux, and Windows targets.
 
 ## 1.4.2 (17 October 2026)
 

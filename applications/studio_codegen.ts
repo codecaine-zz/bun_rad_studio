@@ -27,7 +27,7 @@ import {
   quoteIdentFor,
 } from "./sqlite_studio_macros.ts";
 
-export type CodegenTarget = "python" | "bun" | "vlang";
+export type CodegenTarget = "python" | "bun" | "vlang" | "bun-sql" | "typescript";
 
 export interface CodegenResult {
   target: CodegenTarget;
@@ -49,7 +49,13 @@ export const CODEGEN_TARGETS: Record<CodegenTarget, { label: string; ext: string
   python: { label: "Python (sqlite3)", ext: "py" },
   bun: { label: "Bun (bun:sqlite)", ext: "ts" },
   vlang: { label: "V (db.sqlite)", ext: "v" },
+  "bun-sql": { label: "Bun (Bun.sql native)", ext: "ts" },
+  typescript: { label: "TypeScript (Interfaces + Client)", ext: "ts" },
 };
+
+function isJsTarget(target: CodegenTarget): boolean {
+  return target === "bun" || target === "bun-sql" || target === "typescript";
+}
 
 // -------------------------------------------------------------------------------------------------
 // SQL translation (MySQL / Postgres -> SQLite)
@@ -239,13 +245,13 @@ function camel(name: string): string {
 }
 
 function identFor(target: CodegenTarget, name: string): string {
-  const id = target === "bun" ? camel(name) : snake(name);
-  const kw = target === "python" ? PY_KEYWORDS : target === "bun" ? JS_KEYWORDS : V_KEYWORDS;
+  const id = isJsTarget(target) ? camel(name) : snake(name);
+  const kw = target === "python" ? PY_KEYWORDS : isJsTarget(target) ? JS_KEYWORDS : V_KEYWORDS;
   return kw.has(id) ? `${id}_` : id;
 }
 
 function fnNameFor(target: CodegenTarget, macroName: string): string {
-  return target === "bun" ? `run${camel(macroName)[0]!.toUpperCase()}${camel(macroName).slice(1)}` : `run_${snake(macroName)}`;
+  return isJsTarget(target) ? `run${camel(macroName)[0]!.toUpperCase()}${camel(macroName).slice(1)}` : `run_${snake(macroName)}`;
 }
 
 function pyStr(s: string): string {
@@ -268,7 +274,7 @@ function vStr(s: string): string {
 }
 
 function strLit(target: CodegenTarget, s: string): string {
-  return target === "python" ? pyStr(s) : target === "bun" ? jsStr(s) : vStr(s);
+  return target === "python" ? pyStr(s) : isJsTarget(target) ? jsStr(s) : vStr(s);
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -323,7 +329,7 @@ const UI_VARS = new Set(["totalRows", "activeTable", "dbName", "kpiTables", "act
 
 function isRowReturning(sql: string): boolean {
   const first = sql.replace(/^\s*(--[^\n]*\n|\/\*[\s\S]*?\*\/|\s)+/, "").match(/^[A-Za-z]+/)?.[0]?.toUpperCase() ?? "";
-  return ["SELECT", "WITH", "PRAGMA", "EXPLAIN", "VALUES"].includes(first);
+  return ["SELECT", "WITH", "PRAGMA", "EXPLAIN", "VALUES", "SHOW", "DESCRIBE"].includes(first);
 }
 
 function buildPlan(root: MacroDefinition, ctx: CodegenContext, target: CodegenTarget): Plan {
@@ -341,10 +347,15 @@ function buildPlan(root: MacroDefinition, ctx: CodegenContext, target: CodegenTa
     const binds: Bind[] = [];
     // [Enter X] prompts become bound parameters.
     for (const name of extractPromptParams(raw)) if (!params.includes(name)) params.push(name);
+    let idx = 0;
     const withPlaceholders = raw.replace(/\[(Enter [^\[\]\r\n]+)\]/gi, (_m, name) => {
       binds.push({ kind: "param", name });
-      return "?";
+      idx++;
+      return target === "bun-sql" && src === "postgres" ? `$${idx}` : "?";
     });
+    if (target === "bun-sql") {
+      return { sql: withPlaceholders.trim().replace(/;+\s*$/, ""), binds };
+    }
     const tr = translateSqlToSqlite(withPlaceholders, src);
     tr.warnings.forEach((w) => warn(`Step ${step}: ${w}`));
     return { sql: tr.sql.trim().replace(/;+\s*$/, ""), binds };
@@ -536,7 +547,7 @@ function translateCondition(expr: string, target: CodegenTarget): string | null 
       while (j < expr.length && /\w/.test(expr[j]!)) j++;
       const w = expr.slice(i, j);
       if (w === "true" || w === "false") out += target === "python" ? (w === "true" ? "True" : "False") : w;
-      else if (w === "null") out += target === "python" ? "None" : target === "bun" ? "null" : "none";
+      else if (w === "null") out += target === "python" ? "None" : isJsTarget(target) ? "null" : "none";
       else return null; // bare identifiers are not translatable
       i = j;
     } else if (/[\w\s<>=!+\-*/%().,]/.test(c)) { out += c; i++; }
@@ -568,7 +579,7 @@ class Writer {
 
 function paramAccess(target: CodegenTarget, name: string): string {
   const id = identFor(target, name);
-  return target === "python" ? `params[${JSON.stringify(id)}]` : target === "bun" ? `params.${id}` : `params['${id}']`;
+  return target === "python" ? `params[${JSON.stringify(id)}]` : isJsTarget(target) ? `params.${id}` : `params['${id}']`;
 }
 
 function bindExpr(target: CodegenTarget, b: Bind): string {
@@ -995,18 +1006,226 @@ function emitVOp(w: Writer, op: Op, mp: MacroPlan) {
   } else body();
 }
 
+// ---- Bun.sql (Native Postgres / MySQL / SQLite driver) -------------------------------------------
+
+function emitBunSql(plan: Plan, root: MacroDefinition, kind: string, ctx: CodegenContext): string {
+  const w = new Writer("  ");
+  w.line("#!/usr/bin/env bun");
+  w.line(`// Generated by ${ctx.appName || "Studio Pro"} from ${kind} "${root.name}"`);
+  w.line(`// Source SQL dialect: ${ctx.sourceDialect} (native Bun.sql client)`);
+  w.line("// Review before production use: user input is always bound as parameters.");
+  w.line('import { SQL } from "bun";');
+  w.line('import { parseArgs } from "node:util";');
+  w.line();
+  w.line("type Params = Record<string, string>;");
+
+  const defaultUrl =
+    ctx.sourceDialect === "postgres"
+      ? "postgres://postgres:postgres@127.0.0.1:5432/postgres"
+      : ctx.sourceDialect === "mysql"
+      ? "mysql://root@127.0.0.1:3306/mysql"
+      : "sqlite://app.db";
+
+  for (const mp of plan.macros) {
+    w.line();
+    w.line(`/** Macro '${mp.macro.name.replace(/\*\//g, "")}'. Returns true if a StopMacro step halted it. */`);
+    w.block(`export async function ${mp.fn}(db: SQL, params: Params): Promise<boolean> {`, () => {
+      for (const [name, t] of mp.vars) w.line(`let ${identFor("bun-sql", name)} = ${jsDefault(t)};`);
+      for (const op of mp.ops) {
+        const cond = op.condition ? translateCondition(op.condition, "bun-sql") : undefined;
+        w.line(`// Step ${op.step}: ${op.action}${op.condition ? ` [If ${op.condition.replace(/\n/g, " ")}]` : ""}`);
+        if (op.condition && cond === null) {
+          w.line(`// Condition could not be translated; step skipped: ${op.condition}`);
+          continue;
+        }
+        const body = () => {
+          switch (op.kind) {
+            case "comment": w.line(`// ${String(op.text).replace(/\n/g, " ")}`); break;
+            case "print": w.line(`console.log(${jsStr(op.text || "")});`); break;
+            case "setvar": w.line(`${identFor("bun-sql", op.varName!)} = ${typeof op.varValue === "number" ? op.varValue : jsStr(String(op.varValue))};`); break;
+            case "stop": w.line("return true;"); break;
+            case "call": w.line(`if (await ${fnNameFor("bun-sql", op.macroName!)}(db, params)) return true;`); break;
+            case "sql": {
+              const binds = op.binds!.map((b) => bindExpr("bun-sql", b));
+              const sqlLit = jsStr(op.sql!);
+              const call = binds.length ? `await db.unsafe(${sqlLit}, [${binds.join(", ")}])` : `await db.unsafe(${sqlLit})`;
+              if (op.returnsRows) {
+                w.line(`console.table(${call});`);
+              } else if (mp.vars.has("lastRowsAffected") && op.capturesRowCount) {
+                w.line(`const res_${op.step} = ${call};`);
+                w.line(`lastRowsAffected = Number((res_${op.step} as any)?.count ?? (res_${op.step} as any)?.affectedRows ?? 0);`);
+              } else {
+                w.line(`${call};`);
+              }
+            }
+          }
+        };
+        if (cond) {
+          w.line(`if (${cond}) {`);
+          w.indent(); body(); w.dedent();
+          w.line("}");
+        } else body();
+      }
+      w.line("return false;");
+    }, "}");
+  }
+
+  w.line();
+  w.block("async function main(): Promise<number> {", () => {
+    w.block("const { values } = parseArgs({", () => {
+      w.line("options: {");
+      w.line(`  url: { type: "string", default: process.env.DATABASE_URL ?? ${jsStr(defaultUrl)} },`);
+      for (const name of plan.params) w.line(`  ${JSON.stringify(identFor("bun-sql", name))}: { type: "string" },`);
+      w.line("},");
+    }, "});");
+    for (const name of plan.params) {
+      const id = identFor("bun-sql", name);
+      w.line(`if (values.${id} === undefined) { console.error("Missing --${id}: ${name.replace(/"/g, "'")}"); return 2; }`);
+    }
+    w.line(`const params: Params = { ${plan.params.map((n) => `${identFor("bun-sql", n)}: values.${identFor("bun-sql", n)} as string`).join(", ")} };`);
+    w.line("const db = new SQL(values.url as string);");
+    w.block("try {", () => {
+      w.line(`await db.begin(async (tx) => { await ${plan.macros[plan.macros.length - 1]!.fn}(tx as unknown as SQL, params); });`);
+      w.line("return 0;");
+    });
+    w.line("} catch (err) {");
+    w.line('  console.error("Execution failed, changes rolled back:", err instanceof Error ? err.message : err);');
+    w.line("  return 1;");
+    w.line("} finally {");
+    w.line("  await db.close();");
+    w.line("}");
+  }, "}");
+  w.line();
+  w.line("if (import.meta.main) process.exit(await main());");
+  return w.toString();
+}
+
+// ---- TypeScript (Row Interfaces + Typed Query Helper) --------------------------------------------
+
+function mapSqlTypeToTs(sqlType: string): string {
+  const t = sqlType.toUpperCase();
+  if (/INT|SERIAL|DEC|NUM|FLOAT|DOUBLE|REAL|MONEY/.test(t)) return "number";
+  if (/BOOL|BIT/.test(t)) return "boolean";
+  if (/JSON/.test(t)) return "Record<string, unknown> | unknown[]";
+  if (/BLOB|BYTEA|BINARY/.test(t)) return "Uint8Array";
+  return "string";
+}
+
+function inferTypeScriptInterfaces(plan: Plan, rootName: string): { name: string; fields: { col: string; tsType: string; nullable: boolean }[] }[] {
+  const out: { name: string; fields: { col: string; tsType: string; nullable: boolean }[] }[] = [];
+  const seen = new Set<string>();
+  const toPascal = (s: string) => {
+    const c = camel(s);
+    return c[0]!.toUpperCase() + c.slice(1);
+  };
+
+  for (const mp of plan.macros) {
+    for (const op of mp.ops) {
+      if (op.kind !== "sql" || !op.sql) continue;
+      const createMatch = op.sql.match(/CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+["`]?([A-Za-z0-9_]+)["`]?\s*\(([\s\S]+)\)$/i);
+      if (createMatch) {
+        const tblName = createMatch[1]!;
+        const ifaceName = `${toPascal(tblName)}Row`;
+        if (seen.has(ifaceName)) continue;
+        seen.add(ifaceName);
+        const body = createMatch[2]!;
+        const fields: { col: string; tsType: string; nullable: boolean }[] = [];
+        for (const rawPart of body.split(",")) {
+          const part = rawPart.trim();
+          if (!part || /^(PRIMARY|FOREIGN|UNIQUE|CHECK|CONSTRAINT)\b/i.test(part)) continue;
+          const m = part.match(/^["`]?([A-Za-z0-9_]+)["`]?\s+([A-Za-z0-9_()]+)/);
+          if (m) {
+            const col = m[1]!;
+            const colType = m[2]!;
+            const notNull = /\bNOT\s+NULL\b|\bPRIMARY\s+KEY\b/i.test(part);
+            fields.push({ col, tsType: mapSqlTypeToTs(colType), nullable: !notNull });
+          }
+        }
+        if (fields.length > 0) out.push({ name: ifaceName, fields });
+      }
+    }
+  }
+
+  if (out.length === 0) {
+    out.push({
+      name: `${toPascal(rootName)}Row`,
+      fields: [{ col: "[column: string]", tsType: "unknown", nullable: false }],
+    });
+  }
+  return out;
+}
+
+function emitTypeScript(plan: Plan, root: MacroDefinition, kind: string, ctx: CodegenContext): string {
+  const w = new Writer("  ");
+  header(kind, root.name, ctx, "//", plan.warnings).forEach((l) => w.line(l));
+  w.line('import { Database } from "bun:sqlite";');
+  w.line();
+
+  const interfaces = inferTypeScriptInterfaces(plan, root.name);
+  for (const iface of interfaces) {
+    w.block(`export interface ${iface.name} {`, () => {
+      for (const f of iface.fields) {
+        if (f.col.startsWith("[")) w.line(`${f.col}: ${f.tsType};`);
+        else w.line(`${JSON.stringify(f.col)}: ${f.tsType}${f.nullable ? " | null" : ""};`);
+      }
+    }, "}");
+    w.line();
+  }
+
+  w.block("export interface QueryParams {", () => {
+    if (plan.params.length === 0) {
+      w.line("[key: string]: string | number | boolean | null;");
+    } else {
+      for (const name of plan.params) {
+        w.line(`${identFor("typescript", name)}: string | number;`);
+      }
+    }
+  }, "}");
+  w.line();
+
+  const primaryIface = interfaces[0]!.name;
+  const rootPlan = plan.macros[plan.macros.length - 1]!;
+  w.block(`export function ${rootPlan.fn}(db: Database, params: QueryParams = {} as QueryParams): ${primaryIface}[] {`, () => {
+    w.line(`const results: ${primaryIface}[] = [];`);
+    for (const op of rootPlan.ops) {
+      if (op.kind !== "sql" || !op.sql) continue;
+      const binds = (op.binds || []).map((b) => bindExpr("typescript", b));
+      const sqlLit = jsStr(op.sql);
+      if (op.returnsRows) {
+        w.line(`results.push(...(db.query(${sqlLit}).all(${binds.join(", ")}) as ${primaryIface}[]));`);
+      } else {
+        w.line(`db.run(${sqlLit}${binds.length ? `, [${binds.join(", ")}]` : ""});`);
+      }
+    }
+    w.line("return results;");
+  }, "}");
+
+  return w.toString();
+}
+
 // -------------------------------------------------------------------------------------------------
 // Public API
 // -------------------------------------------------------------------------------------------------
 
 function finish(target: CodegenTarget, plan: Plan, root: MacroDefinition, kind: string, ctx: CodegenContext): CodegenResult {
-  const code = target === "python" ? emitPython(plan, root, kind, ctx) : target === "bun" ? emitBun(plan, root, kind, ctx) : emitV(plan, root, kind, ctx);
+  const code =
+    target === "python"
+      ? emitPython(plan, root, kind, ctx)
+      : target === "bun"
+      ? emitBun(plan, root, kind, ctx)
+      : target === "bun-sql"
+      ? emitBunSql(plan, root, kind, ctx)
+      : target === "typescript"
+      ? emitTypeScript(plan, root, kind, ctx)
+      : emitV(plan, root, kind, ctx);
   const ext = CODEGEN_TARGETS[target].ext;
   const file = `${snake(root.name)}.${ext}`;
   const args = plan.params.map((n) => ` --${identFor(target, n).replace(/_/g, "-")} <value>`).join("");
   const runHint =
     target === "python" ? `python3 ${file} --db app.db${args}`
     : target === "bun" ? `bun run ${file} --db app.db${plan.params.map((n) => ` --${identFor(target, n)} <value>`).join("")}`
+    : target === "bun-sql" ? `bun run ${file} --url $DATABASE_URL${plan.params.map((n) => ` --${identFor(target, n)} <value>`).join("")}`
+    : target === "typescript" ? `bun test / import { ${plan.macros[plan.macros.length - 1]!.fn} } from "./${file}"`
     : `v run ${file} --db app.db${plan.params.map((n) => ` --${identFor(target, n)} <value>`).join("")}`;
   return { target, language: CODEGEN_TARGETS[target].label, filename: file, runHint, code, warnings: plan.warnings };
 }

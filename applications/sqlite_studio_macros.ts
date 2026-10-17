@@ -1538,6 +1538,8 @@ export const MACRO_HTML = `
         <div class="macro-code-tabs" id="macroCodeTabs">
           <button class="btn" data-target="python" onclick="setCodeGenTarget('python')">🐍 Python · sqlite3</button>
           <button class="btn" data-target="bun" onclick="setCodeGenTarget('bun')">🥟 Bun · bun:sqlite</button>
+          <button class="btn" data-target="bun-sql" onclick="setCodeGenTarget('bun-sql')">🌐 Bun.sql · Native</button>
+          <button class="btn" data-target="typescript" onclick="setCodeGenTarget('typescript')">📘 TypeScript · Types</button>
           <button class="btn" data-target="vlang" onclick="setCodeGenTarget('vlang')">⚡ V · db.sqlite</button>
         </div>
         <div class="macro-code-meta" id="macroCodeMeta"></div>

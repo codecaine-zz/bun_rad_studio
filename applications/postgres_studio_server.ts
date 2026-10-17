@@ -12,6 +12,13 @@ import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
 import { getSharedWorkbench } from "../src/db/workbench_shared";
 import { postgresStaging } from "../src/db/staging/mount";
 import { viewApi } from "../src/shared/studioViews";
+import {
+  formatSqlDialect,
+  buildColumnFilterWhere,
+  buildOrderClause,
+  computeSchemaDiffDdl,
+  type SortColumnSpec,
+} from "../src/shared/studioServerEnhancements";
 import { quoteIdent } from "../src/db/quote";
 import { SQL } from "bun";
 import { resolve, basename } from "path";
@@ -1422,7 +1429,11 @@ export class PostgresManager {
     orderBy?: string,
     orderDir: string = "ASC",
     search?: string,
-    schemaName?: string
+    schemaName?: string,
+    extraOptions?: {
+      columnFilters?: Record<string, string>;
+      sortColumns?: SortColumnSpec[];
+    }
   ): Promise<{
     success: boolean;
     columns: string[];
@@ -1440,20 +1451,52 @@ export class PostgresManager {
       let countSql = `SELECT count(*) as c FROM ${pgq(schema)}.${pgq(tableName)}`;
       let dataSql = `SELECT * FROM ${pgq(schema)}.${pgq(tableName)}`;
 
+      const whereParts: string[] = [];
       const params: any[] = [];
-      if (search && search.trim()) {
+      let validColNames: string[] = [];
+
+      const needCols = Boolean(
+        (search && search.trim()) ||
+        (extraOptions?.columnFilters && Object.keys(extraOptions.columnFilters).length > 0) ||
+        (extraOptions?.sortColumns && extraOptions.sortColumns.length > 0)
+      );
+      if (needCols) {
         const schemaMeta = await this.getSchema(schema);
         const allItems = [...schemaMeta.tables, ...schemaMeta.views, ...schemaMeta.matviews];
         const tbl = allItems.find((t) => t.name === tableName);
         if (tbl && tbl.columns.length > 0) {
-          const filterClauses = tbl.columns.map((c) => `CAST(${pgq(c.name)} AS TEXT) ILIKE $1`).join(" OR ");
-          countSql += ` WHERE ${filterClauses}`;
-          dataSql += ` WHERE ${filterClauses}`;
-          params.push(`%${search.trim()}%`);
+          validColNames = tbl.columns.map((c) => c.name);
         }
       }
 
-      if (orderBy) {
+      if (search && search.trim() && validColNames.length > 0) {
+        const filterClauses = validColNames.map((c) => `CAST(${pgq(c)} AS TEXT) ILIKE $1`).join(" OR ");
+        whereParts.push(`(${filterClauses})`);
+        params.push(`%${search.trim()}%`);
+      }
+
+      if (extraOptions?.columnFilters && validColNames.length > 0) {
+        const colFilter = buildColumnFilterWhere(extraOptions.columnFilters, validColNames, "postgres", params.length + 1);
+        if (colFilter.clauses.length > 0) {
+          whereParts.push(...colFilter.clauses);
+          params.push(...colFilter.params);
+        }
+      }
+
+      if (whereParts.length > 0) {
+        const whereStr = ` WHERE ${whereParts.join(" AND ")}`;
+        countSql += whereStr;
+        dataSql += whereStr;
+      }
+
+      if (extraOptions?.sortColumns && extraOptions.sortColumns.length > 0 && validColNames.length > 0) {
+        const orderClause = buildOrderClause(validColNames, "postgres", {
+          sortColumns: extraOptions.sortColumns,
+          orderBy,
+          orderDir: safeDir,
+        });
+        if (orderClause) dataSql += ` ${orderClause}`;
+      } else if (orderBy) {
         dataSql += ` ORDER BY ${pgq(orderBy)} ${safeDir}`;
       }
       dataSql += ` LIMIT ${Number(pageSize)} OFFSET ${Number(offset)};`;
@@ -1462,7 +1505,7 @@ export class PostgresManager {
       const totalRows = Number(countRes[0]?.c || countRes[0]?.count || 0);
 
       const rows = await this.sql_conn.unsafe(dataSql, params);
-      const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+      const columns = rows.length > 0 ? Object.keys(rows[0]) : validColNames;
 
       return {
         success: true,
@@ -3047,6 +3090,17 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
         }
       }
 
+      // 9b. Format SQL with sql-formatter
+      if (url.pathname === "/api/sql/format" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { sql: string };
+          const formatted = formatSqlDialect(body.sql || "", "postgres");
+          return Response.json({ success: true, formatted }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
       // 10. Table Data (Paginated & Filtered)
       if (url.pathname === "/api/table/data" && req.method === "POST") {
         try {
@@ -3056,7 +3110,9 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
             pageSize?: number;
             orderBy?: string;
             orderDir?: string;
+            sortColumns?: SortColumnSpec[];
             search?: string;
+            columnFilters?: Record<string, string>;
             schema?: string;
           };
           const data = await manager.getTableData(
@@ -3066,7 +3122,8 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
             body.orderBy,
             body.orderDir,
             body.search,
-            body.schema
+            body.schema,
+            { columnFilters: body.columnFilters, sortColumns: body.sortColumns }
           );
           return Response.json({ ...data, total: data.totalRows }, { headers: corsHeaders });
         } catch (err: any) {
@@ -3221,6 +3278,12 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
             case "drop-column":
               result = await manager.dropColumn(body.table || body.name, body.column || body.columnName, body.cascade, body.schema);
               break;
+            case "diff": {
+              const currentTables = Array.isArray(body.targetTables) ? body.targetTables : (await manager.getSchema(body.schema)).tables;
+              const baselineTables = Array.isArray(body.baselineTables) ? body.baselineTables : [];
+              result = { success: true, ...computeSchemaDiffDdl(baselineTables, currentTables, "postgres") };
+              break;
+            }
             default:
               return Response.json({ success: false, error: `Unknown op ${op}` }, { status: 400, headers: corsHeaders });
           }

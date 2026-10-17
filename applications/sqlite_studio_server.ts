@@ -11,6 +11,13 @@ import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
 import { getSharedWorkbench } from "../src/db/workbench_shared";
 import { sqliteStaging } from "../src/db/staging/mount";
 import { viewApi } from "../src/shared/studioViews";
+import {
+  formatSqlDialect,
+  buildColumnFilterWhere,
+  buildOrderClause,
+  computeSchemaDiffDdl,
+  type SortColumnSpec,
+} from "../src/shared/studioServerEnhancements";
 import { Database } from "bun:sqlite";
 import { resolve, basename } from "path";
 import { existsSync, statSync, writeFileSync, readdirSync, mkdirSync } from "fs";
@@ -192,8 +199,13 @@ export class SqliteManager {
 
       const newDb = new Database(targetPath);
       
-      // Close old if not memory
-      try { this.db.close(); } catch {}
+      // Close old if not memory (checkpoint WAL first so no orphaned -wal/-shm files remain)
+      try {
+        if (!this.isMemory) {
+          this.db.run("PRAGMA wal_checkpoint(TRUNCATE);");
+        }
+        this.db.close();
+      } catch {}
       
       this.db = newDb;
       this.activePath = targetPath;
@@ -555,7 +567,15 @@ export class SqliteManager {
 
   public getTableData(
     table: string,
-    options: { page?: number; pageSize?: number; orderBy?: string; orderDir?: "ASC" | "DESC"; search?: string } = {}
+    options: {
+      page?: number;
+      pageSize?: number;
+      orderBy?: string;
+      orderDir?: "ASC" | "DESC";
+      sortColumns?: SortColumnSpec[];
+      search?: string;
+      columnFilters?: Record<string, string>;
+    } = {}
   ): {
     success: boolean;
     table: string;
@@ -588,27 +608,35 @@ export class SqliteManager {
       const colsRaw = (this.db.query(`PRAGMA table_info("${escapedTable}");`).all() as any[]) || [];
       const columns = colsRaw.map((c) => c.name);
 
-      // Where filter for search
-      let whereClause = "";
+      // Where filter for global search + per-column filters
+      const whereParts: string[] = [];
       const params: any[] = [];
       if (options.search && options.search.trim() && columns.length > 0) {
         const searchVal = `%${options.search.trim()}%`;
         const conditions = columns.map((col) => `CAST("${col.replace(/"/g, '""')}" AS TEXT) LIKE ?`);
-        whereClause = `WHERE (${conditions.join(" OR ")})`;
+        whereParts.push(`(${conditions.join(" OR ")})`);
         columns.forEach(() => params.push(searchVal));
       }
+      if (options.columnFilters && typeof options.columnFilters === "object") {
+        const colFilter = buildColumnFilterWhere(options.columnFilters, columns, "sqlite");
+        if (colFilter.clauses.length > 0) {
+          whereParts.push(...colFilter.clauses);
+          params.push(...colFilter.params);
+        }
+      }
+      const whereClause = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
 
       // Total count
       const countSql = `SELECT count(*) as total FROM "${escapedTable}" ${whereClause};`;
       const countStmt = this.db.query(countSql);
       const totalRows = Number((countStmt.get(...params) as any)?.total || 0);
 
-      // Order by
-      let orderClause = "";
-      if (options.orderBy && columns.includes(options.orderBy)) {
-        const dir = options.orderDir === "DESC" ? "DESC" : "ASC";
-        orderClause = `ORDER BY "${options.orderBy.replace(/"/g, '""')}" ${dir}`;
-      }
+      // Order by (supports multi-column sortColumns or single orderBy/orderDir)
+      const orderClause = buildOrderClause(columns, "sqlite", {
+        sortColumns: options.sortColumns,
+        orderBy: options.orderBy,
+        orderDir: options.orderDir,
+      });
 
       // Data fetch (tables expose their rowid as __rowid__ so every row is addressable)
       const isTable = (exists as any).type === "table";
@@ -2241,6 +2269,17 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
         }
       }
 
+      // 4a. Format SQL with sql-formatter
+      if (url.pathname === "/api/sql/format" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { sql: string };
+          const formatted = formatSqlDialect(body.sql || "", "sqlite");
+          return Response.json({ success: true, formatted }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
       // 4b. Views: check / create / definition / drop (src/shared/studioViews.ts)
       const viewMatch = /^\/api\/view\/(check|create|definition|drop)$/.exec(url.pathname);
       if (viewMatch && req.method === "POST") {
@@ -2272,7 +2311,9 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
             pageSize?: number;
             orderBy?: string;
             orderDir?: "ASC" | "DESC";
+            sortColumns?: SortColumnSpec[];
             search?: string;
+            columnFilters?: Record<string, string>;
           };
           const result = manager.getTableData(body.table, body);
           return Response.json(result, { headers: corsHeaders });
@@ -2404,6 +2445,12 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
             case "create-index": result = manager.createIndex(body); break;
             case "create-view": result = manager.createView(body.name, body.sql); break;
             case "details": result = manager.getTableDetails(body.table); break;
+            case "diff": {
+              const currentTables = Array.isArray(body.targetTables) ? body.targetTables : manager.getSchema().tables;
+              const baselineTables = Array.isArray(body.baselineTables) ? body.baselineTables : [];
+              result = { success: true, ...computeSchemaDiffDdl(baselineTables, currentTables, "sqlite") };
+              break;
+            }
             default: return new Response("Not Found", { status: 404, headers: corsHeaders });
           }
           return Response.json(result, { headers: corsHeaders });

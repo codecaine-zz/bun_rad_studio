@@ -1,6 +1,7 @@
 import { randomBytes, timingSafeEqual } from "crypto";
+import { format as formatSql } from "sql-formatter";
 import { DbError, normalizeError } from "./errors";
-import type { BrowseFilter, ObjectRef, Param } from "./types";
+import type { BrowseFilter, ObjectRef, Param, TableInfo } from "./types";
 import { WorkbenchService } from "./service";
 import { guardLocalRequest } from "../localGuard";
 import { generateWorkbenchHtml } from "./workbench_ui";
@@ -214,6 +215,30 @@ export function createWorkbenchHandler(service: WorkbenchService, options: Workb
         return json({ ok: true, preview: service.sqliteRestorePreview(reqStr(b, "backupPath", 2048), reqStr(b, "targetPath", 2048)) });
       case "/api/v2/sqlite/restore/execute":
         return json({ ok: true, restored: service.sqliteRestoreExecute(reqStr(b, "backupPath", 2048), reqStr(b, "targetPath", 2048), reqStr(b, "token", 100)) });
+      case "/api/v2/format": {
+        const sql = reqStr(b, "sql", 5_000_000);
+        const engine = optStr(b, "engine", 32) ?? "sqlite";
+        const language = engine === "postgres" ? "postgresql" : engine === "mysql" ? "mysql" : "sqlite";
+        try {
+          const formatted = formatSql(sql, { language, tabWidth: 2, keywordCase: "upper" });
+          return json({ ok: true, formatted });
+        } catch {
+          return json({ ok: true, formatted: sql.trim() });
+        }
+      }
+      case "/api/v2/describe-all": {
+        const connId = reqStr(b, "connectionId", 64);
+        const objs = await service.objects(connId);
+        const tables: TableInfo[] = [];
+        for (const obj of objs) {
+          if (obj.type === "table") {
+            try {
+              tables.push(await service.describe(connId, obj));
+            } catch {}
+          }
+        }
+        return json({ ok: true, tables });
+      }
       default:
         return json({ ok: false, error: { code: "INVALID_REQUEST", message: "Unknown endpoint" } }, 404);
     }

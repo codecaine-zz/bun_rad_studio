@@ -66,6 +66,15 @@ dialog label{display:block;margin:6px 0 2px;color:var(--mute)}
 dialog input,dialog select{width:100%}
 pre.sql{background:#020617;border:1px solid var(--line);border-radius:6px;padding:8px;overflow:auto;max-height:200px;white-space:pre-wrap}
 textarea#sqlText{width:100%;min-height:140px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical}
+td[data-fk-table]{color:#7dd3fc;text-decoration:underline dotted #38bdf8}
+td[data-fk-table]::after{content:" ↗";font-size:10px;color:var(--acc)}
+#dataSplit{flex:1;display:flex;gap:8px;min-height:0}
+#rowInspector{width:300px;border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:8px;overflow:auto}
+.ws-tabs{display:flex;gap:4px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
+.ws-tab{padding:3px 9px;border-radius:5px;font-size:12px;background:var(--panel);border:1px solid var(--line);cursor:pointer}
+.ws-tab.active{background:#0369a1;border-color:#38bdf8;color:#fff}
+#sqlSuggest{position:fixed;z-index:60;background:var(--panel);border:1px solid var(--acc);border-radius:6px;max-height:200px;overflow:auto;min-width:220px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+#sqlHistoryBox{max-height:160px;overflow:auto;border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:6px;margin-bottom:8px}
 #toast{position:fixed;right:14px;bottom:14px;max-width:420px;padding:10px 14px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);display:none;z-index:50}
 </style>
 </head>
@@ -110,7 +119,7 @@ textarea#sqlText{width:100%;min-height:140px;font-family:ui-monospace,SFMono-Reg
         <span class="grow"></span>
         <select id="pageSize" aria-label="Rows per page"><option>25</option><option selected>50</option><option>100</option><option>500</option></select>
         <button id="btnPrev">◀</button><span id="pageInfo" class="mute"></span><button id="btnNext">▶</button>
-        <button id="btnRefresh">Refresh</button><button id="btnExport">Export CSV</button>
+        <button id="btnRefresh">Refresh</button><button id="btnExport">Export CSV</button><button id="btnInspector" title="Toggle Row & JSON Inspector">Inspector</button>
       </div>
       <div class="row">
         <button id="btnAddRow">+ Add row</button><button id="btnDelRow">Delete selected</button>
@@ -118,19 +127,33 @@ textarea#sqlText{width:100%;min-height:140px;font-family:ui-monospace,SFMono-Reg
         <span id="pendingInfo" class="mute"></span>
         <button id="btnPreview" disabled>Preview changes</button><button id="btnSave" class="primary" disabled>Save</button><button id="btnDiscard" disabled>Discard</button>
       </div>
-      <div class="gridwrap"><table id="grid" aria-label="Table data"></table></div>
+      <div id="dataSplit">
+        <div class="gridwrap"><table id="grid" aria-label="Table data"></table></div>
+        <div id="rowInspector" hidden></div>
+      </div>
     </div>
-    <div id="paneStruct" class="pane"><div id="structBody" class="mute">Choose a table in the explorer.</div></div>
+    <div id="paneStruct" class="pane">
+      <div class="row">
+        <button id="btnStructTable" class="primary">Table Structure</button>
+        <button id="btnErDiagram">🗺️ Full ER Diagram</button>
+      </div>
+      <div id="structBody" class="mute" style="flex:1;overflow:auto">Choose a table in the explorer.</div>
+    </div>
     <div id="paneSql" class="pane">
-      <textarea id="sqlText" spellcheck="false" aria-label="SQL" placeholder="SELECT * FROM …"></textarea>
+      <div id="sqlTabs" class="ws-tabs"></div>
+      <textarea id="sqlText" spellcheck="false" aria-label="SQL" placeholder="SELECT * FROM … (Ctrl+Space for autocomplete, Shift+Alt+F to format, Ctrl+Enter to run)"></textarea>
+      <div id="sqlSuggest" hidden></div>
       <div class="row" style="margin-top:8px">
         <button id="btnRun" class="primary">Run statement</button><button id="btnRunScript">Run script</button>
+        <button id="btnFormatSql" title="Format SQL (Shift+Alt+F)">✨ Format SQL</button>
+        <button id="btnSqlHistory" title="Toggle Query History">🕒 History</button>
         <select id="onError" aria-label="On error"><option value="stop">Stop on error</option><option value="continue">Continue on error</option></select>
         <label><input type="checkbox" id="atomic"> all-or-nothing</label>
         <button id="btnCancel">Cancel</button>
         <span class="grow"></span>
         <button id="btnBegin">Begin</button><button id="btnCommit">Commit</button><button id="btnRollback">Rollback</button>
       </div>
+      <div id="sqlHistoryBox" hidden></div>
       <div id="sqlStatus" class="banner mute">No connection.</div>
       <div id="sqlResults" class="gridwrap" style="padding:6px"></div>
     </div>
@@ -144,7 +167,8 @@ textarea#sqlText{width:100%;min-height:140px;font-family:ui-monospace,SFMono-Reg
 var TOKEN = document.querySelector('meta[name="wb-token"]').content;
 var $ = function(id){ return document.getElementById(id); };
 var state = { profiles: [], conn: null, objects: [], table: null, info: null, page: null, sort: [], filter: null, offset: 0, selected: -1,
-  pending: { updates: {}, deletes: {}, inserts: [] }, busy: false };
+  pending: { updates: {}, deletes: {}, inserts: [] }, busy: false, inspectorOpen: false,
+  worksheets: [{ id: "ws1", title: "Query 1", sql: "" }], activeWs: "ws1", history: [] };
 
 function el(tag, attrs, children){
   var e = document.createElement(tag);
@@ -370,6 +394,55 @@ function parseInput(col, text, isNull){
   if (/float|double|real/.test(t)) { var n = Number(text); if (!isFinite(n)) throw new Error(col.name + ": enter a number"); return n; }
   return text;
 }
+function fkForColumn(colName){
+  if (!state.info || !state.info.foreignKeys) return null;
+  for (var i = 0; i < state.info.foreignKeys.length; i++) {
+    var f = state.info.foreignKeys[i];
+    var idx = f.columns.indexOf(colName);
+    if (idx >= 0) return { refTable: f.refTable, refSchema: f.refSchema, refColumn: f.refColumns[idx] || f.refColumns[0] };
+  }
+  return null;
+}
+function drillToFk(fk, val){
+  if (!fk || val === null || val === undefined) return;
+  var target = state.objects.filter(function(o){ return o.name === fk.refTable && (!fk.refSchema || o.schema === fk.refSchema); })[0];
+  if (!target) return toast("Referenced table " + fk.refTable + " not found", true);
+  if (hasPending() && !window.confirm("Discard your unsaved changes to the current table?")) return;
+  discardPending(); state.table = target; state.sort = []; state.offset = 0; state.selected = -1;
+  state.filter = { column: fk.refColumn, op: "eq", value: val };
+  renderObjects(); loadPage(); loadStructure();
+}
+function renderInspector(){
+  var box = $("rowInspector");
+  if (!state.inspectorOpen) { box.hidden = true; return; }
+  box.hidden = false; clear(box);
+  box.appendChild(el("div", { class: "row", style: "justify-content:space-between" }, [
+    el("strong", { text: "Row Inspector" }),
+    el("button", { text: "✕", onclick: function(){ state.inspectorOpen = false; renderInspector(); } })
+  ]));
+  if (!state.page || state.selected < 0 || !state.page.rows[state.selected]) {
+    box.appendChild(el("p", { class: "mute", text: "Click a row in the grid to inspect its fields, JSON values, and foreign key links." }));
+    return;
+  }
+  var row = state.page.rows[state.selected];
+  state.page.columns.forEach(function(c){
+    var v = row[c.name];
+    var fk = fkForColumn(c.name);
+    var head = el("div", { style: "margin-top:6px;display:flex;justify-content:space-between;align-items:center" }, [
+      el("span", { style: "font-weight:600;color:#7dd3fc", text: c.name }),
+      el("span", { class: "mute", style: "font-size:11px", text: c.dataType })
+    ]);
+    if (fk && v !== null && v !== undefined) {
+      head.appendChild(el("button", { text: "↗ " + fk.refTable + "." + fk.refColumn, style: "font-size:11px;padding:1px 6px", onclick: function(){ drillToFk(fk, v); } }));
+    }
+    box.appendChild(head);
+    var formatted = v === null || v === undefined ? "NULL" : isBinary(v) ? "[binary " + Math.floor(v.$binary.length * 3 / 4) + " bytes]" : typeof v === "object" ? JSON.stringify(v, null, 2) : String(v);
+    if (typeof v === "string" && (v.charAt(0) === "{" || v.charAt(0) === "[")) {
+      try { formatted = JSON.stringify(JSON.parse(v), null, 2); } catch (_e) {}
+    }
+    box.appendChild(el("pre", { class: "sql", style: "margin:3px 0 0;font-size:11px;max-height:140px", text: formatted }));
+  });
+}
 function renderGrid(){
   var p = state.page, g = $("grid"); clear(g);
   var banner = $("dataBanner");
@@ -377,9 +450,26 @@ function renderGrid(){
   else { banner.className = "banner ro"; banner.textContent = "Read-only: " + p.editable.reason; }
   var head = el("tr"); head.appendChild(el("th", { text: "#" }));
   p.columns.forEach(function(c){
-    var dir = state.sort.length && state.sort[0].column === c.name ? (state.sort[0].direction === "asc" ? " ▲" : " ▼") : "";
-    var th = el("th", { text: c.name + dir, title: c.dataType + (c.nullable ? "" : " NOT NULL") + (c.primaryKeyPosition ? " PRIMARY KEY" : ""), "data-col": c.name });
-    th.addEventListener("click", function(){ var next = state.sort.length && state.sort[0].column === c.name && state.sort[0].direction === "asc" ? "desc" : "asc"; state.sort = [{ column: c.name, direction: next }]; state.offset = 0; loadPage(); });
+    var sIdx = -1;
+    for (var si = 0; si < state.sort.length; si++) { if (state.sort[si].column === c.name) { sIdx = si; break; } }
+    var dir = sIdx >= 0 ? (state.sort[sIdx].direction === "asc" ? " ▲" : " ▼") + (state.sort.length > 1 ? String(sIdx + 1) : "") : "";
+    var th = el("th", { text: c.name + dir, title: c.dataType + (c.nullable ? "" : " NOT NULL") + (c.primaryKeyPosition ? " PRIMARY KEY" : "") + " (Shift+Click for multi-column sort)", "data-col": c.name });
+    th.addEventListener("click", function(ev){
+      if (ev.shiftKey) {
+        var copy = state.sort.slice();
+        if (sIdx >= 0) {
+          if (copy[sIdx].direction === "asc") copy[sIdx] = { column: c.name, direction: "desc" };
+          else copy.splice(sIdx, 1);
+        } else {
+          copy.push({ column: c.name, direction: "asc" });
+        }
+        state.sort = copy;
+      } else {
+        var next = state.sort.length === 1 && state.sort[0].column === c.name && state.sort[0].direction === "asc" ? "desc" : "asc";
+        state.sort = [{ column: c.name, direction: next }];
+      }
+      state.offset = 0; loadPage();
+    });
     head.appendChild(th);
   });
   g.appendChild(el("thead", {}, [head]));
@@ -392,11 +482,21 @@ function renderGrid(){
     p.columns.forEach(function(c){
       var v = upd && Object.prototype.hasOwnProperty.call(upd.display, c.name) ? upd.display[c.name] : row[c.name];
       var d = display(v);
-      var td = el("td", { class: d.cls + (upd && Object.prototype.hasOwnProperty.call(upd.display, c.name) ? " dirty" : ""), text: d.text, "data-col": c.name });
+      var fk = fkForColumn(c.name);
+      var tdAttrs = { class: d.cls + (upd && Object.prototype.hasOwnProperty.call(upd.display, c.name) ? " dirty" : ""), text: d.text, "data-col": c.name };
+      if (fk && v !== null && v !== undefined) {
+        tdAttrs["data-fk-table"] = fk.refTable;
+        tdAttrs["data-fk-col"] = fk.refColumn;
+        tdAttrs.title = "FK → " + fk.refTable + "." + fk.refColumn + " (Alt+Click to follow)";
+      }
+      var td = el("td", tdAttrs);
+      if (fk && v !== null && v !== undefined) {
+        td.addEventListener("click", function(ev){ if (ev.altKey || ev.metaKey) { ev.stopPropagation(); drillToFk(fk, v); } });
+      }
       if (p.editable.ok && !c.generated && !isBinary(row[c.name])) td.addEventListener("dblclick", function(){ editCell(row, c, td); });
       tr.appendChild(td);
     });
-    tr.addEventListener("click", function(){ state.selected = i; Array.prototype.forEach.call(tb.children, function(r){ r.style.outline = ""; }); tr.style.outline = "1px solid #38bdf8"; });
+    tr.addEventListener("click", function(){ state.selected = i; Array.prototype.forEach.call(tb.children, function(r){ r.style.outline = ""; }); tr.style.outline = "1px solid #38bdf8"; if (state.inspectorOpen) renderInspector(); });
     tb.appendChild(tr);
   });
   state.pending.inserts.forEach(function(ins, i){
@@ -411,6 +511,7 @@ function renderGrid(){
   var fc = $("fCol"); if (fc.options.length !== p.columns.length || fc.getAttribute("data-t") !== state.table.name) { clear(fc); p.columns.forEach(function(c){ fc.appendChild(el("option", { value: c.name, text: c.name })); }); fc.setAttribute("data-t", state.table.name); }
   $("btnAddRow").disabled = !p.editable.ok && state.table.type === "view"; $("btnDelRow").disabled = !p.editable.ok;
   updatePendingUi();
+  if (state.inspectorOpen) renderInspector();
 }
 function cellEditor(col, current){
   var input, nullBox;
@@ -452,9 +553,33 @@ function updatePendingUi(){
 }
 function pendingOps(){
   var ops = [], t = state.table;
-  Object.keys(state.pending.updates).forEach(function(id){ var u = state.pending.updates[id]; var exp = {}; Object.keys(u.expected).forEach(function(k){ if (u.expected[k] !== undefined) exp[k] = u.expected[k]; }); ops.push({ path: "/api/v2/row/update", label: "UPDATE " + t.name + " SET " + Object.keys(u.changes).join(", ") + " WHERE " + JSON.stringify(u.key), body: { table: t, key: u.key, expected: exp, changes: u.changes } }); });
-  state.pending.inserts.forEach(function(ins){ ops.push({ path: "/api/v2/row/insert", label: "INSERT INTO " + t.name + " (" + Object.keys(ins.values).join(", ") + ")", body: { table: t, values: ins.values } }); });
-  Object.keys(state.pending.deletes).forEach(function(id){ var d = state.pending.deletes[id]; ops.push({ path: "/api/v2/row/delete", label: "DELETE FROM " + t.name + " WHERE " + JSON.stringify(d.key), body: { table: t, key: d.key, expected: d.expected } }); });
+  Object.keys(state.pending.updates).forEach(function(id){
+    var u = state.pending.updates[id]; var exp = {};
+    Object.keys(u.expected).forEach(function(k){ if (u.expected[k] !== undefined) exp[k] = u.expected[k]; });
+    ops.push({
+      path: "/api/v2/row/update",
+      label: "UPDATE " + t.name + " SET " + Object.keys(u.changes).join(", ") + " WHERE " + JSON.stringify(u.key),
+      body: { table: t, key: u.key, expected: exp, changes: u.changes },
+      remove: function(){ delete state.pending.updates[id]; }
+    });
+  });
+  state.pending.inserts.forEach(function(ins){
+    ops.push({
+      path: "/api/v2/row/insert",
+      label: "INSERT INTO " + t.name + " (" + Object.keys(ins.values).join(", ") + ")",
+      body: { table: t, values: ins.values },
+      remove: function(){ var idx = state.pending.inserts.indexOf(ins); if (idx >= 0) state.pending.inserts.splice(idx, 1); }
+    });
+  });
+  Object.keys(state.pending.deletes).forEach(function(id){
+    var d = state.pending.deletes[id];
+    ops.push({
+      path: "/api/v2/row/delete",
+      label: "DELETE FROM " + t.name + " WHERE " + JSON.stringify(d.key),
+      body: { table: t, key: d.key, expected: d.expected },
+      remove: function(){ delete state.pending.deletes[id]; }
+    });
+  });
   return ops;
 }
 function previewChanges(){
@@ -467,12 +592,16 @@ function saveChanges(){
   return ops.reduce(function(p, op){
     return p.then(function(){
       var body = Object.assign({ connectionId: state.conn.connectionId }, op.body);
-      return withConfirm(op.path, body).then(function(){ done++; });
+      return withConfirm(op.path, body).then(function(){
+        done++;
+        if (op.remove) op.remove();
+        updatePendingUi();
+      });
     });
   }, Promise.resolve()).then(function(){ toast("Saved " + done + " change" + (done === 1 ? "" : "s") + "."); discardPending(); return loadPage(); })
   .catch(function(e){ if (e.cancelled) { toast("Save cancelled. " + done + " of " + ops.length + " changes were already applied."); } else { toast("Stopped after " + done + " of " + ops.length + " changes: " + errText(e), true); }
-    // Drop the changes that were applied so a retry does not repeat them.
-    return loadPage().then(function(){ if (done) { discardPending(); renderGrid(); } }); })
+    // Keep remaining unapplied changes intact so a retry only runs what failed or was not yet executed.
+    return loadPage().then(function(){ renderGrid(); }); })
   .then(function(){ state.busy = false; });
 }
 function exportCsv(){
@@ -482,11 +611,14 @@ function exportCsv(){
     .then(function(blob){ var a = el("a", { href: URL.createObjectURL(blob), download: state.table.name + ".csv" }); document.body.appendChild(a); a.click(); a.remove(); toast("Exported " + state.table.name + ".csv"); }).catch(fail);
 }
 
-// ---- structure -------------------------------------------------------------------------------------------------
+// ---- structure & ER diagram ------------------------------------------------------------------------------------
 function loadStructure(){
   var body = $("structBody"); clear(body);
+  if (!state.conn || !state.table) { body.appendChild(el("span", { class: "mute", text: "Choose a table in the explorer." })); return; }
   api("/api/v2/describe", { connectionId: state.conn.connectionId, table: state.table }).then(function(j){
     var t = j.table;
+    state.info = t;
+    if (state.page) renderGrid();
     body.appendChild(el("h3", { text: (t.schema ? t.schema + "." : "") + t.name + " (" + t.type + ")" }));
     var tbl = el("table", { id: "structCols" }); tbl.appendChild(el("tr", {}, ["Column", "Type", "Null", "Default", "Key", "Extra"].map(function(h){ return el("th", { text: h }); })));
     t.columns.forEach(function(c){ tbl.appendChild(el("tr", {}, [c.name, c.dataType, c.nullable ? "YES" : "NO", c.defaultValue === null ? "" : c.defaultValue, c.primaryKeyPosition ? "PK" + c.primaryKeyPosition : "", [c.autoIncrement ? "auto-increment" : "", c.generated ? "generated" : ""].filter(Boolean).join(", ")].map(function(x){ return el("td", { text: String(x) }); }))); });
@@ -499,8 +631,166 @@ function loadStructure(){
     t.indexes.forEach(function(i){ body.appendChild(el("p", { text: i.name + (i.primary ? " (primary)" : i.unique ? " (unique)" : "") + ": " + i.columns.join(", ") })); });
   }).catch(function(e){ body.appendChild(el("p", { class: "banner err", text: errText(e) })); });
 }
+function loadErDiagram(){
+  var body = $("structBody"); clear(body);
+  if (!state.conn) { body.appendChild(el("span", { class: "mute", text: "Connect first to view the ER diagram." })); return; }
+  body.appendChild(el("p", { class: "mute", text: "Loading schema ER diagram…" }));
+  api("/api/v2/describe-all", { connectionId: state.conn.connectionId }).then(function(j){
+    clear(body);
+    var tables = j.tables || [];
+    if (!tables.length) { body.appendChild(el("p", { class: "mute", text: "No tables found." })); return; }
+    var ns = "http://www.w3.org/2000/svg";
+    var colsPerRow = Math.max(1, Math.min(4, Math.ceil(Math.sqrt(tables.length))));
+    var boxW = 220, gapX = 70, gapY = 40;
+    var pos = {};
+    var maxH = 200;
+    tables.forEach(function(t, idx){
+      var colIdx = idx % colsPerRow, rowIdx = Math.floor(idx / colsPerRow);
+      var x = 24 + colIdx * (boxW + gapX);
+      var h = 32 + t.columns.length * 20;
+      var y = 24 + rowIdx * 240;
+      pos[t.name] = { x: x, y: y, w: boxW, h: h, table: t };
+      if (y + h + 40 > maxH) maxH = y + h + 40;
+    });
+    var svgW = Math.max(700, colsPerRow * (boxW + gapX) + 40);
+    var svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("id", "wbErSvg");
+    svg.setAttribute("width", String(svgW));
+    svg.setAttribute("height", String(maxH));
+    svg.setAttribute("style", "background:#090d16;border:1px solid #26364f;border-radius:8px;display:block");
+    tables.forEach(function(t){
+      var src = pos[t.name];
+      (t.foreignKeys || []).forEach(function(fk){
+        var dst = pos[fk.refTable];
+        if (!src || !dst) return;
+        var path = document.createElementNS(ns, "path");
+        var x1 = src.x + src.w, y1 = src.y + 28, x2 = dst.x, y2 = dst.y + 28;
+        if (src.x > dst.x) { x1 = src.x; x2 = dst.x + dst.w; }
+        var cx = (x1 + x2) / 2;
+        path.setAttribute("d", "M " + x1 + " " + y1 + " C " + cx + " " + y1 + ", " + cx + " " + y2 + ", " + x2 + " " + y2);
+        path.setAttribute("stroke", "#38bdf8");
+        path.setAttribute("stroke-width", "1.8");
+        path.setAttribute("fill", "none");
+        svg.appendChild(path);
+      });
+    });
+    tables.forEach(function(t){
+      var p = pos[t.name];
+      var g = document.createElementNS(ns, "g");
+      var rect = document.createElementNS(ns, "rect");
+      rect.setAttribute("x", String(p.x)); rect.setAttribute("y", String(p.y));
+      rect.setAttribute("width", String(p.w)); rect.setAttribute("height", String(p.h));
+      rect.setAttribute("rx", "6"); rect.setAttribute("fill", "#111c33"); rect.setAttribute("stroke", "#38bdf8");
+      g.appendChild(rect);
+      var title = document.createElementNS(ns, "text");
+      title.setAttribute("x", String(p.x + 10)); title.setAttribute("y", String(p.y + 20));
+      title.setAttribute("fill", "#38bdf8"); title.setAttribute("font-weight", "bold"); title.setAttribute("font-size", "12");
+      title.textContent = t.name;
+      g.appendChild(title);
+      t.columns.forEach(function(c, ci){
+        var ct = document.createElementNS(ns, "text");
+        ct.setAttribute("x", String(p.x + 10)); ct.setAttribute("y", String(p.y + 42 + ci * 20));
+        ct.setAttribute("fill", c.primaryKeyPosition ? "#fcd34d" : "#e2e8f0"); ct.setAttribute("font-size", "11");
+        ct.textContent = (c.primaryKeyPosition ? "🔑 " : "• ") + c.name + " (" + c.dataType + ")";
+        g.appendChild(ct);
+      });
+      svg.appendChild(g);
+    });
+    body.appendChild(svg);
+  }).catch(function(e){ clear(body); body.appendChild(el("p", { class: "banner err", text: errText(e) })); });
+}
 
 // ---- SQL ------------------------------------------------------------------------------------------------------
+function renderWorksheets(){
+  var bar = $("sqlTabs"); if (!bar) return; clear(bar);
+  state.worksheets.forEach(function(ws){
+    var b = el("button", { class: "ws-tab" + (ws.id === state.activeWs ? " active" : ""), text: ws.title, onclick: function(){
+      saveCurrentWs(); state.activeWs = ws.id; $("sqlText").value = ws.sql; renderWorksheets();
+    } });
+    bar.appendChild(b);
+  });
+  bar.appendChild(el("button", { class: "ws-tab", text: "+", title: "New SQL worksheet", onclick: function(){
+    saveCurrentWs();
+    var id = "ws" + (Date.now() % 100000);
+    var n = state.worksheets.length + 1;
+    state.worksheets.push({ id: id, title: "Query " + n, sql: "" });
+    state.activeWs = id; $("sqlText").value = ""; renderWorksheets();
+  } }));
+}
+function saveCurrentWs(){
+  for (var i = 0; i < state.worksheets.length; i++) {
+    if (state.worksheets[i].id === state.activeWs) { state.worksheets[i].sql = $("sqlText").value; break; }
+  }
+}
+function activeSqlText(){
+  var ta = $("sqlText");
+  if (ta.selectionStart !== undefined && ta.selectionEnd !== undefined && ta.selectionStart !== ta.selectionEnd) {
+    var sel = ta.value.slice(ta.selectionStart, ta.selectionEnd).trim();
+    if (sel) return sel;
+  }
+  return ta.value;
+}
+function recordSqlHistory(sqlText, elapsedMs, rowCount){
+  state.history.unshift({ sql: sqlText, elapsedMs: elapsedMs, rowCount: rowCount, ts: new Date().toLocaleTimeString() });
+  if (state.history.length > 50) state.history.pop();
+  renderSqlHistory();
+}
+function renderSqlHistory(){
+  var box = $("sqlHistoryBox"); if (!box || box.hidden) return;
+  clear(box);
+  if (!state.history.length) { box.appendChild(el("span", { class: "mute", text: "No queries executed yet." })); return; }
+  state.history.forEach(function(h){
+    var item = el("div", { class: "item", style: "justify-content:space-between" }, [
+      el("code", { text: h.sql.slice(0, 90), style: "overflow:hidden;text-overflow:ellipsis" }),
+      el("span", { class: "mute", text: h.rowCount + " rows · " + h.elapsedMs + " ms (" + h.ts + ")" })
+    ]);
+    item.addEventListener("click", function(){ $("sqlText").value = h.sql; saveCurrentWs(); });
+    box.appendChild(item);
+  });
+}
+function formatSqlEditor(){
+  var raw = $("sqlText").value;
+  if (!raw.trim()) return;
+  var eng = state.conn ? state.conn.engine : "sqlite";
+  api("/api/v2/format", { sql: raw, engine: eng }).then(function(j){
+    $("sqlText").value = j.formatted;
+    saveCurrentWs();
+  }).catch(fail);
+}
+function showAutocomplete(){
+  var ta = $("sqlText"), box = $("sqlSuggest");
+  var pos = ta.selectionStart || 0;
+  var before = ta.value.slice(0, pos);
+  var m = /([A-Za-z0-9_]*\\.)?([A-Za-z0-9_]*)$/.exec(before);
+  var prefix = m && m[2] ? m[2].toLowerCase() : "";
+  var candidates = [];
+  state.objects.forEach(function(o){ candidates.push({ label: o.name, kind: o.type }); });
+  if (state.info && state.info.columns) {
+    state.info.columns.forEach(function(c){ candidates.push({ label: c.name, kind: c.dataType }); });
+  }
+  ["SELECT", "FROM", "WHERE", "ORDER BY", "GROUP BY", "LIMIT", "JOIN", "LEFT JOIN", "INSERT INTO", "UPDATE", "DELETE FROM"].forEach(function(kw){
+    candidates.push({ label: kw, kind: "SQL" });
+  });
+  var filtered = candidates.filter(function(c){ return !prefix || c.label.toLowerCase().indexOf(prefix) === 0; }).slice(0, 15);
+  if (!filtered.length) { box.hidden = true; return; }
+  clear(box);
+  filtered.forEach(function(item){
+    var row = el("div", { class: "item", style: "justify-content:space-between" }, [
+      el("span", { text: item.label }),
+      el("span", { class: "mute", style: "font-size:11px", text: item.kind })
+    ]);
+    row.addEventListener("click", function(){
+      var start = pos - (m && m[2] ? m[2].length : 0);
+      ta.value = ta.value.slice(0, start) + item.label + ta.value.slice(pos);
+      box.hidden = true; ta.focus();
+    });
+    box.appendChild(row);
+  });
+  var rect = ta.getBoundingClientRect();
+  box.style.left = Math.max(12, rect.left + 16) + "px";
+  box.style.top = Math.max(12, rect.top + 36) + "px";
+  box.hidden = false;
+}
 function resultTable(r){
   var wrap = el("div", { style: "margin-bottom:10px" });
   var info = r.columns.length ? r.rowCount + " row" + (r.rowCount === 1 ? "" : "s") + (r.truncated ? " (truncated — more rows exist)" : "") : (r.affectedRows === null ? "OK" : r.affectedRows + " row(s) affected" + (r.lastInsertId ? ", last insert id " + r.lastInsertId : ""));
@@ -517,11 +807,16 @@ function sqlError(e){ showSqlResult([el("div", { class: "banner err", text: errT
 function refreshTxState(){ if (!state.conn) return; api("/api/v2/connections").then(function(j){ var c = j.connections.filter(function(x){ return x.connectionId === state.conn.connectionId; })[0]; if (c) { state.conn = c; $("txBadge").hidden = !c.inTransaction; } }).catch(function(){}); }
 function runSql(){
   if (!state.conn) return toast("Connect first.", true);
-  withConfirm("/api/v2/query", { connectionId: state.conn.connectionId, sql: $("sqlText").value, maxRows: 1000 }).then(function(j){ showSqlResult([resultTable(j.result)]); refreshTxState(); }).catch(function(e){ if (!e.cancelled) sqlError(e); });
+  var q = activeSqlText();
+  withConfirm("/api/v2/query", { connectionId: state.conn.connectionId, sql: q, maxRows: 1000 }).then(function(j){
+    recordSqlHistory(q, j.result.elapsedMs, j.result.rowCount);
+    showSqlResult([resultTable(j.result)]); refreshTxState();
+  }).catch(function(e){ if (!e.cancelled) sqlError(e); });
 }
 function runScript(){
   if (!state.conn) return toast("Connect first.", true);
-  withConfirm("/api/v2/script", { connectionId: state.conn.connectionId, sql: $("sqlText").value, onError: $("onError").value, atomic: $("atomic").checked }).then(function(j){
+  var q = activeSqlText();
+  withConfirm("/api/v2/script", { connectionId: state.conn.connectionId, sql: q, onError: $("onError").value, atomic: $("atomic").checked }).then(function(j){
     var s = j.script, nodes = [];
     s.statements.forEach(function(st){
       nodes.push(el("div", { class: "mute", text: "Statement " + (st.index + 1) + " (line " + st.line + "): " + st.sql.slice(0, 80) }));
@@ -545,6 +840,9 @@ $("btnPrev").addEventListener("click", function(){ state.offset = Math.max(0, st
 $("btnNext").addEventListener("click", function(){ state.offset += Number($("pageSize").value); loadPage(); });
 $("btnRefresh").addEventListener("click", function(){ if (hasPending() && !window.confirm("Refreshing discards unsaved changes. Continue?")) return; discardPending(); loadPage(); });
 $("btnExport").addEventListener("click", exportCsv);
+$("btnInspector").addEventListener("click", function(){ state.inspectorOpen = !state.inspectorOpen; renderInspector(); });
+$("btnStructTable").addEventListener("click", function(){ loadStructure(); });
+$("btnErDiagram").addEventListener("click", function(){ loadErDiagram(); });
 $("btnAddRow").addEventListener("click", function(){ if (!state.page) return; state.pending.inserts.push({ values: {}, display: {} }); renderGrid(); });
 $("btnDelRow").addEventListener("click", function(){ if (!state.page || state.selected < 0) return toast("Select a row first (click it).", true); var row = state.page.rows[state.selected]; if (!row) return; var id = rowId(row); var expected = {}; state.page.columns.forEach(function(c){ if (!/float|double|real|json|blob|bytea/i.test(c.dataType) && !isBinary(row[c.name])) expected[c.name] = typedValue(c, row[c.name]); }); state.pending.deletes[id] = { key: keyOf(row), expected: expected }; renderGrid(); });
 $("btnPreview").addEventListener("click", previewChanges);
@@ -552,12 +850,22 @@ $("btnSave").addEventListener("click", saveChanges);
 $("btnDiscard").addEventListener("click", function(){ discardPending(); if (state.page) renderGrid(); });
 $("btnRun").addEventListener("click", runSql);
 $("btnRunScript").addEventListener("click", runScript);
+$("btnFormatSql").addEventListener("click", formatSqlEditor);
+$("btnSqlHistory").addEventListener("click", function(){ var box = $("sqlHistoryBox"); box.hidden = !box.hidden; renderSqlHistory(); });
+$("sqlText").addEventListener("input", function(){ saveCurrentWs(); });
+$("sqlText").addEventListener("keydown", function(ev){
+  if ((ev.ctrlKey || ev.metaKey) && ev.key === "Enter") { ev.preventDefault(); runSql(); }
+  else if (ev.shiftKey && ev.altKey && (ev.key === "F" || ev.key === "f")) { ev.preventDefault(); formatSqlEditor(); }
+  else if (ev.ctrlKey && ev.key === " ") { ev.preventDefault(); showAutocomplete(); }
+  else if (ev.key === "Escape") { $("sqlSuggest").hidden = true; }
+});
 $("btnCancel").addEventListener("click", function(){ if (!state.conn) return; api("/api/v2/cancel", { connectionId: state.conn.connectionId }).then(function(j){ toast(j.canceled ? "Cancel requested." : (j.explanation || "Nothing to cancel.")); }).catch(fail); });
 $("btnBegin").addEventListener("click", function(){ tx("begin"); });
 $("btnCommit").addEventListener("click", function(){ tx("commit"); });
 $("btnRollback").addEventListener("click", function(){ tx("rollback"); });
 window.addEventListener("beforeunload", function(ev){ if (hasPending() || (state.conn && state.conn.inTransaction)) { ev.preventDefault(); ev.returnValue = ""; } });
-window.__wb = { state: state, loadProfiles: loadProfiles };
+window.__wb = { state: state, loadProfiles: loadProfiles, formatSqlEditor: formatSqlEditor, loadErDiagram: loadErDiagram };
+renderWorksheets();
 loadProfiles();
 })();
 </script>

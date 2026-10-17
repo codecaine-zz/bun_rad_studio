@@ -284,7 +284,9 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       });
       expect(resMem.status).toBe(200);
     } finally {
-      try { unlinkSync(tempDbPath); } catch {}
+      for (const suffix of ["", "-wal", "-shm"]) {
+        try { unlinkSync(tempDbPath + suffix); } catch {}
+      }
     }
   });
 
@@ -297,7 +299,9 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
     tempDb.close();
 
     const fileBuffer = readFileSync(tempDbPath);
-    try { unlinkSync(tempDbPath); } catch {}
+    for (const suffix of ["", "-wal", "-shm"]) {
+      try { unlinkSync(tempDbPath + suffix); } catch {}
+    }
 
     const blob = new Blob([fileBuffer], { type: "application/octet-stream" });
     const formData = new FormData();
@@ -313,14 +317,16 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
     expect(data.name).toBe("uploaded_test.db");
     expect(data.schema.tables.some((t: any) => t.name === "uploaded_records")).toBe(true);
 
-    try { unlinkSync(data.path); } catch {}
-
-    // Reconnect to in-memory database to restore seed tables for subsequent tests
+    // Reconnect to in-memory database to release file handle before unlinking
     await fetch(`${baseUrl}/api/connect`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ path: ":memory:" }),
     });
+
+    for (const suffix of ["", "-wal", "-shm"]) {
+      try { unlinkSync(data.path + suffix); } catch {}
+    }
   });
 
   it("14. Embedded workstation scripts parse with valid JavaScript syntax (no GUI freeze)", async () => {
