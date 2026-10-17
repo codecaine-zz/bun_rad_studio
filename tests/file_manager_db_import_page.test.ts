@@ -54,7 +54,9 @@ const closeAll = () => {
 };
 const call = async (op: string, body: Record<string, unknown> = {}) => {
   const r = await fetch(`${base}/api/${op}`, { method: "POST", headers: { "content-type": "application/json", "x-fm-token": "ui-token" }, body: JSON.stringify(body) });
-  return (await r.json()) as any;
+  const data = await r.json() as any;
+  if (!r.ok) throw new Error(`${op}: ${JSON.stringify(data)}`);
+  return data;
 };
 const entry = (name: string) => ({ name, path: join(work, name), isDir: false, size: 1 });
 async function openTab(opts?: Record<string, unknown>) {
@@ -76,13 +78,18 @@ beforeAll(async () => {
   mkdirSync(work, { recursive: true });
   for (const [name, text] of Object.entries({ "people.csv": "id,name\n1,Ann\n", "t.tsv": "id\tname\n", "d.json": "[]", "l.ndjson": "{}\n", "book.xlsx": "PK", "notes.txt": "hi", "readme.md": "# x" })) writeFileSync(join(work, name), text);
   sqliteFile = join(home, "shop.sqlite");
-  new Database(sqliteFile).run("create table customers(id integer primary key, name text)");
+  const db = new Database(sqliteFile);
+  try {
+    db.run("create table customers(id integer primary key, name text)");
+  } finally {
+    db.close();
+  }
   const keychain = new FakeKeychain();
   server = startFileManagerServer({
     port: 0,
     token: "ui-token",
     context: {
-      platform: "linux",
+      platform: process.platform === "win32" ? "win32" : process.platform === "darwin" ? "darwin" : "linux",
       home,
       dataDir: join(root, "data"),
       databases: {
@@ -98,7 +105,7 @@ beforeAll(async () => {
     },
   });
   base = `http://127.0.0.1:${server.port}`;
-  const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8").replace(/__FM_TOKEN__/g, "ui-token").replace(/__FM_PLATFORM__/g, "linux").replace(/__FM_NONCE__/g, "n").replace(/__FM_START__/g, "");
+  const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8").replace(/__FM_TOKEN__/g, "ui-token").replace(/__FM_PLATFORM__/g, process.platform).replace(/__FM_NONCE__/g, "n").replace(/__FM_START__/g, "");
   const dom = new JSDOM(html, { url: `${base}/`, pretendToBeVisual: true });
   win = dom.window;
   const g = globalThis as any;
@@ -108,8 +115,8 @@ beforeAll(async () => {
   Object.defineProperty(g, "fetch", { value: (u: any, o: any) => realFetch(typeof u === "string" && u.startsWith("/") ? base + u : u, o), configurable: true, writable: true });
   doc = win.document;
   const st = (await import("../resources/file_manager/ui/state.js")).state;
-  st.platform = "linux";
-  st.sep = "/";
+  st.platform = process.platform;
+  st.sep = process.platform === "win32" ? "\\" : "/";
   st.home = home;
   st.location = { kind: "folder", path: work };
   power = await import("../resources/file_manager/ui/power.js");

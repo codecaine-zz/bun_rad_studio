@@ -113,7 +113,7 @@
         <span id="terminal-title" class="term-title">Terminal</span>
         <span class="term-note">A real terminal: things deleted here skip the Recycle Bin and can't be undone.</span>
         <span class="term-actions">
-          <label class="term-follow" title="When you change folder in the terminal (with cd), the file list above moves to the same folder"><input id="terminal-follow" type="checkbox"> Follow terminal</label>
+          <label class="term-follow" title="Follow the terminal's physical folder, resolving symlinks and junctions. This can differ from pwd; compare pwd -P in a POSIX shell. Hover the terminal title for the reported path."><input id="terminal-follow" type="checkbox"> Follow terminal (real path)</label>
           <button id="terminal-cd" type="button" class="term-btn" title="Move the terminal to the folder you selected, or to the folder you are looking at if none is selected">Go to this folder</button>
           <button id="terminal-restart" type="button" class="term-btn" title="End this shell and start a new one in the selected folder, or the folder you are looking at">Restart</button>
           <button id="terminal-close" type="button" class="term-btn term-close" title="Hide the terminal (Ctrl+`). It keeps running." aria-label="Hide the terminal">✕</button>

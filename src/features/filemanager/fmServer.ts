@@ -431,7 +431,7 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
   const token = options.token ?? randomBytes(24).toString("base64url");
   const assets = getFileManagerAssetsDir();
 
-  const terminals = createTerminalHub();
+  const terminals = createTerminalHub(undefined, assets);
   const primaryHostname = (options.host ?? "127.0.0.1").toLowerCase();
 
   async function serveEmbedded(id: string, rel: string, host: string, query: URLSearchParams): Promise<Response> {

@@ -55,9 +55,10 @@ function installDesktop(extra: Record<string, any> = {}) {
   win.fmWindowSave = fn("save", { ok: true, mode: "remember" });
   win.fmWindowReset = fn("reset", { ok: true, settled: true, mode: "fill" });
   win.fmWindowApply = fn("apply", { ok: true, settled: true, mode: "fill" });
+  win.fmWindowAlwaysOnTop = fn("alwaysOnTop", { ok: true, alwaysOnTop: true });
 }
 function removeDesktop() {
-  for (const k of ["fmWindowPoll", "fmWindowChanged", "fmWindowSave", "fmWindowReset", "fmWindowApply"]) delete win[k];
+  for (const k of ["fmWindowPoll", "fmWindowChanged", "fmWindowSave", "fmWindowReset", "fmWindowApply", "fmWindowAlwaysOnTop"]) delete win[k];
 }
 const called = (name: string) => calls.filter((c) => c[0] === name);
 

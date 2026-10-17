@@ -13,6 +13,20 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 
 ---
 
+## Watch the demos and tutorials
+
+Recent walkthroughs from [codecaine on YouTube](https://www.youtube.com/@codecaine/videos):
+
+| Video | Length | What it covers |
+|---|---|---|
+| [Bun RAD Studio: quick look](https://www.youtube.com/shorts/vIxSt2525Jk) | Short | A quick introduction to Bun RAD Studio |
+| [Bun RAD Studio: Full Tutorial](https://www.youtube.com/watch?v=jhTA6194Xn4) | 5:55 | The desktop apps, CLI tools and visual designer |
+| [Build Desktop Apps Fast: Bun RAD Studio & SimpleGUI Full Tutorial](https://www.youtube.com/watch?v=-6H_in0W73k) | 15:07 | Building desktop applications with Bun, TypeScript and SimpleGUI |
+| [Build a Desktop App With No Code: The SimpleGUI Visual Designer](https://www.youtube.com/watch?v=Rh38eyWk0Jo) | 10:56 | The visual designer workflow |
+| [Codecaine File Manager: walkthrough](https://www.youtube.com/watch?v=uPrlPMj_uK4) | Video | The latest File Manager walkthrough |
+
+---
+
 <a id="download"></a>
 
 ## ⬇️ Download (no coding, no compiling)
@@ -21,13 +35,27 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 
 | You have | Download |
 |---|---|
-| 🍎 **Mac** (M1 or newer / Intel) | `Codecaine-File-Manager-…-macos-arm64.zip` / `…-macos-x64.zip`: a double-click `.app` with its own icon |
+| 🍎 **Mac** (M1 or newer / Intel) | `bun-rad-studio-…-macos-arm64.tar.gz` / `…-macos-x64.tar.gz`: the full suite, including the File Manager |
 | 🪟 **Windows** (most PCs / ARM / pre-2013 CPUs) | `Codecaine-File-Manager-…-windows-x64.zip` / `…-windows-arm64.zip` / `…-windows-x64-baseline.zip` |
 | 🐧 **Linux** (Intel/AMD / ARM / pre-2013 CPUs) | `Codecaine-File-Manager-…-linux-x64.zip` / `…-linux-arm64.zip` / `…-linux-x64-baseline.zip` |
 
-The same release also has **every desktop app as a Mac `.app`** (65 apps, in three zips per Mac type) and **the whole suite** (every desktop app and command-line tool) for each platform. Each file's checksum is in `SHA256SUMS.txt`. The apps are not signed with an Apple or Microsoft certificate, so the first launch shows a security prompt (Mac: right-click → **Open**; Windows: **More info → Run anyway**).
+The release includes **the whole suite** (every desktop app and command-line tool) for each platform. The standalone File Manager and 65 individual Mac `.app` downloads are built separately on macOS and can be added to the release afterward. Each file's checksum is in `SHA256SUMS.txt`. The apps are not signed with an Apple or Microsoft certificate.
+
+**First launch:**
+
+- **Mac:** for now, download the full-suite archive and start `bin/file-manager-studio` from the extracted folder (see its `README.txt` for first-launch guidance). The standalone `.app` downloads will be added after a Mac build.
+- **Windows:** extract the entire folder, double-click `install.cmd`, then open `Codecaine File Manager.exe`. Setup checks **WebView2** and the [Visual C++ 2015-2022 **x64** Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe), including on ARM, and offers to download signed installers from Microsoft if needed. The ARM download requires Windows 11 x64 emulation and uses the baseline runtime (no AVX2 required). If SmartScreen warns, choose **More info → Run anyway**. If no window opens, use `troubleshoot.cmd` in new builds to see the error. No Bun or compiler is needed for downloads.
+- **Linux:** install GTK 4 and WebKitGTK 6.0 (`sudo apt install libgtk-4-1 libwebkitgtk-6.0-4` on Ubuntu 24.04+/Debian, or `sudo dnf install gtk4 webkitgtk6.0` on Fedora). In the extracted folder, run `sh install.sh` to restore executable permission and create a menu entry. New builds include `sh troubleshoot.sh`; older downloads can be started with `chmod +x codecaine-file-manager` followed by `./codecaine-file-manager` in a terminal. A graphical desktop is required for the window.
+
+New Windows/Linux File Manager builds save startup output in `~/.bun_rad_studio/logs/file-manager-<pid>.log` (`%USERPROFILE%\.bun_rad_studio\logs` on Windows). `--server` starts the File Manager without loading the native window library.
+
+**The whole suite uses the same artwork and application names as the Mac apps:** on Windows, double-click `install.cmd` for Start menu shortcuts (or run `install.ps1 -Desktop` through PowerShell for desktop shortcuts). The shortcuts open without a console and retain errors in `%USERPROFILE%\.bun_rad_studio\logs`. On Linux, `sh install.sh` creates matching application-menu entries. Windows ARM includes native CLI tools plus baseline x64 desktop apps. Keep the extracted folder in place; reinstall shortcuts after moving it. The suite shares one Bun runtime per architecture instead of duplicating it into every program.
 
 Maintainers: `bun run release:file-manager`, `bun run release:build -- --mac-apps` (and `bun run build:mac-apps -- --arch x64 --zip --out release/mac-apps-x64`), then `bun run release:publish` creates the GitHub Release and points the website page (`release/file-manager/index.html`) at it. Add `-- --dry-run` to preview.
+
+### Build all apps on Windows
+
+From a source checkout with [Bun](https://bun.sh) installed, run `.\build.cmd` in PowerShell (or double-click `build.cmd` in File Explorer). It builds the full app and command-line suite plus the standalone File Manager for your Windows architecture. The ZIP files are written to `release\` and `release\file-manager\`; no Bash or Visual Studio installation is needed.
 
 ---
 
@@ -154,6 +182,8 @@ bun run cli:launcher --search sqlite
 
 One command builds every desktop app and every command-line tool for **macOS, Linux and Windows, on ARM and Intel**, as archives you can attach to a GitHub release. You need [Bun](https://bun.sh) and the internet the first time (Bun downloads one small runtime per platform, then caches it). Run it from a clone with `bun install` done.
 
+**Building on Windows:** install Bun, then double-click [build.cmd](build.cmd). It restores locked dependencies, detects ARM64 or x64, and builds both the whole suite and standalone File Manager for your PC. No Bash, zip utility, Visual Studio or system execution-policy change is required. From PowerShell, `.\build.cmd -Target windows-x64-baseline -Jobs 2` builds for older x64 PCs instead. Outputs are under `release/` and `release/file-manager/`; extract the archive and run its `install.cmd`. Building a selected target leaves other platforms' archives intact.
+
 ```bash
 bun run release:build                              # all platforms -> release/
 bun run release:build -- --targets linux-arm64,windows-x64   # only some of them
@@ -175,7 +205,7 @@ bun run release:file-manager                       # File Manager only: one zip 
 | `…-linux-arm64.tar.gz` | 64-bit ARM Linux (Raspberry Pi OS 64-bit, Graviton …) | yes |
 | `…-linux-x64-musl.tar.gz`, `…-linux-arm64-musl.tar.gz` | Alpine and other musl Linux | tools only |
 | `…-windows-x64.zip`, `…-windows-x64-baseline.zip` | 64-bit Windows 10/11 | yes |
-| `…-windows-arm64.zip` | Windows on ARM (the desktop apps run from the x64 file by emulation) | tools only |
+| `…-windows-arm64.zip` | Windows 11 on ARM (native CLI tools; bundled baseline x64 runtime for desktop apps) | yes |
 | `…-macos-arm64-apps-1of3.zip` … | the Mac `.app` bundles (with `--mac-apps`) | yes |
 | `SHA256SUMS.txt`, `RELEASE_NOTES.md` | checksums and a ready-made "which one do I pick" page | |
 
@@ -683,7 +713,7 @@ Explore live desktop and responsive viewport previews for all 28 enterprise prod
 | **MySQL Studio Pro**<br>[User Guide](docs/userguides/41_mysql_studio.md)<br>`bun run app:mysql` | ![MySQL Studio Desktop](screenshots/apps/mysql_studio_desktop.png) | ![MySQL Studio Responsive](screenshots/apps/mysql_studio_responsive.png) |
 | **JSON Query Studio Pro**<br>[User Guide](docs/userguides/04_json_query_studio.md)<br>`bun run app:json` | ![JSON Query Studio Desktop](screenshots/apps/json_studio_desktop.png) | ![JSON Query Studio Responsive](screenshots/apps/json_studio_responsive.png) |
 | **Data Converter Studio**<br>[User Guide](docs/userguides/08_data_converter_studio.md)<br>`bun run app:convert` | ![Data Converter Studio Desktop](screenshots/apps/dataconvert_studio_desktop.png) | ![Data Converter Studio Responsive](screenshots/apps/dataconvert_studio_responsive.png) |
-
+bu
 #### 🌐 Networking, DNS & Security Forensics
 
 | Workstation | Desktop Preview (1200×850) | Responsive Preview (960×720) |

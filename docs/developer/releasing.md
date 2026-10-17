@@ -9,6 +9,7 @@ Commands in this page were run on **14 October 2026** (macOS 26 on Apple silicon
 - [The short version](#the-short-version)
 - [What a release contains](#what-a-release-contains)
 - [Platforms](#platforms)
+- [Building on Windows](#building-on-windows)
 - [Linux sandbox permissions](#linux-sandbox-permissions)
 - [Mac apps with icons](#mac-apps-with-icons)
 - [How it works](#how-it-works)
@@ -63,11 +64,26 @@ One shared runtime instead of a 60 MB executable per app keeps each platform nea
 | `linux-x64-musl`, `linux-arm64-musl` | Alpine and other musl Linux | command-line tools only (`apk add libstdc++ libgcc`) |
 | `windows-x64` | 64-bit Windows 10 and 11 | yes (needs WebView2, part of Windows 11) |
 | `windows-x64-baseline` | the same, for CPUs without AVX2 | yes |
-| `windows-arm64` | Windows on ARM | command-line tools only; use `windows-x64` for the apps (Windows on ARM runs it by emulation) |
+| `windows-arm64` | Windows 11 on ARM | native command-line tools and baseline x64-emulated desktop apps |
 
 32-bit processors are not offered: Bun does not support them. The desktop apps are only offered where the project's window library exists (it has no musl or Windows ARM build).
 
 Pick one platform while testing: `bun run release:build -- --targets linux-arm64,macos-arm64`.
+
+## Building on Windows
+
+Install [Bun](https://bun.sh), then double-click [build.cmd](../../build.cmd) in a source checkout. It restores dependencies with `bun install --frozen-lockfile`, detects the Windows hardware architecture, and builds the suite and standalone File Manager. It keeps errors visible and stops if any build fails.
+
+```powershell
+.\build.cmd                                     # ARM64 or x64, detected automatically
+.\build.cmd -Target windows-x64-baseline -Jobs 2  # target older x64 processors
+```
+
+The resulting ZIPs are in `release/` and `release/file-manager/`. Packaging uses built-in PowerShell, not Unix `zip`; no Bash or Visual Studio is needed. A single-target build preserves archives for other platforms. macOS `.app` packaging still needs a Mac.
+
+For end users: extract the entire ZIP into a permanent folder, double-click `install.cmd`, then open the app. Setup checks WebView2 and the **x64** Visual C++ runtime, including on ARM, and asks permission before downloading missing Microsoft installers. Signatures are verified before execution; failures stop setup instead of reporting success. In the suite, setup then creates Start menu shortcuts using the matching Mac artwork. Uninstall shortcuts using `install.cmd -Uninstall` (add `-Desktop` if desktop shortcuts were installed); this does not remove shared Microsoft runtimes.
+
+Windows ARM desktop launchers use the bundled baseline x64 runtime and x64 window DLL; command-line launchers use native ARM64 Bun. This avoids DLL architecture error 193 and does not require AVX2 emulation. Users do not need Bun or a compiler. Startup logs are in `%USERPROFILE%\.bun_rad_studio\logs`; standalone File Manager also includes `troubleshoot.cmd`.
 
 ## Linux sandbox permissions
 
@@ -133,6 +149,8 @@ Downloaded Mac files carry a quarantine mark. Tell people to run `xattr -dr com.
 
 ## What was verified
 
+- **Windows 11 ARM64, 16 October 2026:** double-click build workflow built all 73 desktop apps and 79 CLI tools plus standalone File Manager. The extracted File Manager ZIP opened a native window through x64 emulation and served HTTP 200. Tests exercised executable icon preservation, ZIP extraction (including literal brackets/apostrophes), real shortcut install/uninstall, prerequisite detection, and stderr retention. The missing-prerequisite download/install branch is tested without installing system software, not verified on a clean Windows installation.
+
 - **All 65 Mac apps** were built, signed (`codesign --verify --deep --strict`), started and checked: 64 passed first time, the Postgres app failed because it reads `postgres_designer.js` next to its code; that file is now copied and the app passes. Apps whose page server shares a thread with the window can't answer a request while the window is busy, so for those the check is "still running with a web address", not "page answered".
 - **`linux-arm64`** was unpacked in an Ubuntu 24.04 arm64 container (Docker on this Mac): `bin/fd-cli` runs, and `bin/file-manager-studio` opened a real WebKitGTK window under Xvfb with its page answering `200`; the Calculator also started.
 - **`linux-arm64-musl`** command-line tools ran in an Alpine 3.20 container after `apk add libstdc++ libgcc`.
@@ -141,7 +159,7 @@ Downloaded Mac files carry a quarantine mark. Tell people to run `xattr -dr com.
 
 ## Known limits
 
-- **Not run:** `macos-x64`, `linux-x64`, `linux-x64-baseline`, `windows-x64`, `windows-x64-baseline` and `windows-arm64`. They are built the same way as the verified ones, but no program from them has been started. The Windows `.cmd` launchers and the WebView2 loading in particular are untested.
+- **Not run on native hardware:** `macos-x64`, `linux-x64`, `linux-x64-baseline`, `windows-x64` and `windows-x64-baseline`. Windows x64 desktop code was exercised through emulation on Windows ARM, not on an Intel/AMD PC.
 - **Not notarized:** Macs will warn about downloaded apps until you notarize them with an Apple Developer ID (not part of this repository).
 - **Apps that start other programs** by running `bun` (for example the Launcher's "open this app" buttons) need Bun on the PATH; they are not rewritten to use the runtime.
 - **A console window** stays open behind desktop apps started from a Windows `.cmd` launcher.

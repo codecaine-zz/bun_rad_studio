@@ -21,11 +21,11 @@
  * Every zip also holds the SQLite, MySQL, PostgreSQL and Redis studios, which the File Manager starts from the same folder.
  */
 import { chmodSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "fs";
-import { join } from "path";
-import { ICONS_OUT, iconSpecFor, renderPngs } from "./icons";
+import { basename, join } from "path";
+import { WINDOWS_SETUP, desktopInfo, embedWindowsIcon, windowsInstallCommand } from "./desktop";
 import { BUNDLE_DIR, CACHE_DIR, RELEASE_DIR, bundleApps, buildRuntime, logBundleFailures } from "./suite";
-import { buildApp, type MacApp } from "./build_mac_apps";
-import { ROOT, SIDECAR_FILES, TARGETS, VERSION, defaultJobs, listSourceApps, log, mapPool, parseJobs, run, sha256File, webviewLibSource, writeFileAtomic, type SourceApp, type Target } from "./common";
+import type { MacApp } from "./build_mac_apps";
+import { ROOT, SIDECAR_FILES, TARGETS, VERSION, defaultJobs, listSourceApps, log, mapPool, parseJobs, run, sha256File, webviewLibSource, writeFileAtomic, zipEntries, type SourceApp, type Target } from "./common";
 import { LINUX_SANDBOX_WARNING, linuxSandboxSetup } from "./linuxSandbox";
 
 export const APP_TITLE = "Codecaine File Manager";
@@ -33,7 +33,6 @@ export const OUT_DIR = join(RELEASE_DIR, "file-manager");
 const STAGE = join(RELEASE_DIR, ".stage-fm");
 const MAIN = "file-manager-studio";
 const STUDIOS = ["sqlite-studio", "mysql-studio", "postgres-studio", "redis-studio"];
-const MAGICK = ["/opt/homebrew/opt/imagemagick-full/bin/magick", "/opt/homebrew/bin/magick", "magick"].find((p) => p === "magick" || existsSync(p)) ?? "magick";
 
 export interface Download {
   /** Used in the file name: macos-arm64, windows-x64 ... */
@@ -51,7 +50,7 @@ export const DOWNLOADS: Download[] = [
   { id: "macos-arm64", os: "macos", arch: "arm64", from: "macos-arm64", label: "Apple silicon", hint: "Macs with an M1, M2, M3, M4 or newer chip" },
   { id: "macos-x64", os: "macos", arch: "x64", from: "macos-x64", label: "Intel", hint: "Macs with an Intel processor" },
   { id: "windows-x64", os: "windows", arch: "x64", from: "windows-x64", label: "64-bit (x64)", hint: "Most Windows 10 and 11 PCs" },
-  { id: "windows-arm64", os: "windows", arch: "arm64", from: "windows-x64", label: "ARM64", hint: "Windows on ARM (Snapdragon X, Surface Pro X ...). Runs through Windows' built-in x64 emulation" },
+  { id: "windows-arm64", os: "windows", arch: "arm64", from: "windows-x64-baseline", label: "ARM64", hint: "Windows 11 on ARM (Snapdragon X, Surface Pro X ...). Uses the baseline x64 runtime through emulation, without requiring AVX2" },
   { id: "windows-x64-baseline", os: "windows", arch: "x64", from: "windows-x64-baseline", label: "x64 for older CPUs", hint: "Processors from before 2013 (no AVX2)", older: true },
   { id: "linux-x64", os: "linux", arch: "x64", from: "linux-x64", label: "x86-64 (Intel / AMD)", hint: "Ubuntu, Debian, Fedora, Arch and other glibc distributions" },
   { id: "linux-arm64", os: "linux", arch: "arm64", from: "linux-arm64", label: "ARM64", hint: "Raspberry Pi OS 64-bit, Ampere, Graviton and other 64-bit ARM Linux" },
@@ -69,11 +68,41 @@ function targetOf(d: Download): Target {
 
 /** The program at the root of the Windows and Linux folders: it starts itself as the bundled Bun runtime running the app. */
 export const LAUNCHER_STUB = `// ${APP_TITLE} launcher. Started by a double-click; runs app/${MAIN}.js with this same executable acting as Bun.
-import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, rmSync, symlinkSync } from "fs";
+import { appendFileSync, existsSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "fs";
 import { homedir } from "os";
 import { dirname, join } from "path";
 
 const dir = dirname(process.execPath);
+let logFile: string | undefined;
+async function fail(error: unknown): Promise<never> {
+  const message = String(error instanceof Error ? error.stack || error.message : error);
+  const help = process.platform === "win32"
+    ? "Install Microsoft Edge WebView2 and the Microsoft Visual C++ 2015-2022 x64 Redistributable (also on ARM). Keep app, lib and resources next to the exe."
+    : "Install GTK 4 and WebKitGTK 6.0: Ubuntu/Debian: sudo apt install libgtk-4-1 libwebkitgtk-6.0-4; Fedora: sudo dnf install gtk4 webkitgtk6.0. A graphical desktop is required.";
+  const text = "${APP_TITLE} could not start.\\n\\n" + message + "\\n\\n" + help + (logFile ? "\\n\\nStartup log: " + logFile : "");
+  console.error(text);
+  if (logFile) appendFileSync(logFile, "\\n" + text + "\\n");
+  if (!process.argv.includes("--server") && !process.argv.includes("-s")) {
+    let command: string[] | undefined;
+    if (process.platform === "win32") {
+      command = ["powershell.exe", "-NoProfile", "-Command", "Add-Type -AssemblyName System.Windows.Forms; [void][System.Windows.Forms.MessageBox]::Show($env:FM_START_ERROR, '${APP_TITLE}')"];
+    } else if (Bun.which("zenity")) command = ["zenity", "--error", "--no-markup", "--text", text];
+    else if (Bun.which("kdialog")) command = ["kdialog", "--error", text];
+    else if (Bun.which("xmessage")) command = ["xmessage", "-center", text];
+    if (command) {
+      const notice = Bun.spawn(command, { env: { ...process.env, FM_START_ERROR: text }, stdout: "ignore", stderr: "inherit" });
+      const code = await notice.exited;
+      if (code !== 0) console.error("Could not show the startup error dialog (exit " + code + ").");
+    }
+  }
+  process.exit(1);
+}
+
+async function start() {
+const logs = join(homedir(), ".bun_rad_studio", "logs");
+mkdirSync(logs, { recursive: true });
+logFile = join(logs, "file-manager-" + process.pid + ".log");
+writeFileSync(logFile, "Executable: " + process.execPath + "\\nPlatform: " + process.platform + " " + process.arch + "\\n");
 const lib = process.platform === "win32" ? "libwebview.dll" : process.platform === "darwin" ? "libwebview.dylib" : \`libwebview-\${process.arch}.so\`;
 const env: Record<string, string> = { ...(process.env as Record<string, string>), BUN_BE_BUN: "1" };
 if (!env.WEBVIEW_PATH) env.WEBVIEW_PATH = join(dir, "lib", lib);
@@ -88,38 +117,39 @@ if (process.platform !== "win32") {
     rmSync(join(work, "resources"), { force: true });
     symlinkSync(join(dir, "resources"), join(work, "resources"));
     cwd = work;
-  } catch (err) {
-    console.warn("Could not prepare the writable resource folder; using the extracted folder instead:", err);
-    cwd = dir;
+  } catch (error) {
+    throw new Error("Could not prepare the writable resources folder: " + String(error));
   }
 }
 
 const script = join(dir, "app", "${MAIN}.js");
-const logDir = join(homedir(), ".bun_rad_studio");
-mkdirSync(logDir, { recursive: true });
-const logFile = join(logDir, "file-manager-startup.log");
-const log = openSync(logFile, "a", 0o600);
-appendFileSync(log, "\\nFile Manager startup: " + new Date().toISOString() + " " + process.platform + "/" + process.arch + "\\n");
-const serverOnly = process.argv.includes("--server") || process.argv.includes("-s");
-try {
-  if (!existsSync(script)) {
-    throw new Error("Missing " + script + ". Unpack the whole zip and keep its files together.");
-  }
-  const child = Bun.spawn([process.execPath, script, ...process.argv.slice(2)], { cwd, env, stdio: ["inherit", serverOnly ? "inherit" : log, serverOnly ? "inherit" : log] });
-  const code = await child.exited;
-  if (code !== 0) {
-    const message = "File Manager exited with " + code + ". See " + logFile;
-    appendFileSync(log, message + "\\n");
-    console.error(message);
-  }
-  process.exitCode = code;
-} catch (err) {
-  appendFileSync(log, String(err) + "\\n");
-  console.error("Could not start the File Manager. See " + logFile, err);
-  process.exitCode = 1;
-} finally {
-  closeSync(log);
+if (!existsSync(script)) {
+  throw new Error("Missing " + script + ". Unpack the whole zip and keep its files together.");
 }
+const child = Bun.spawn([process.execPath, script, ...process.argv.slice(2)], { cwd, env, stdin: "inherit", stdout: "pipe", stderr: "pipe" });
+if (process.platform === "win32" && !process.argv.includes("--server") && !process.argv.includes("-s")) {
+  try {
+    const { dlopen, FFIType } = await import("bun:ffi");
+    const user32 = dlopen("user32.dll", { AllowSetForegroundWindow: { args: [FFIType.u32], returns: FFIType.bool } });
+    try {
+      if (!user32.symbols.AllowSetForegroundWindow(child.pid)) console.warn("Windows did not grant foreground activation to the File Manager process.");
+    } finally {
+      user32.close();
+    }
+  } catch (error) {
+    console.warn("Could not pass foreground activation to the File Manager process:", error);
+  }
+}
+async function copy(stream: ReadableStream<Uint8Array>, output: NodeJS.WriteStream) {
+  for await (const chunk of stream) {
+    appendFileSync(logFile!, chunk);
+    output.write(chunk);
+  }
+}
+const [code] = await Promise.all([child.exited, copy(child.stdout, process.stdout), copy(child.stderr, process.stderr)]);
+if (code !== 0) throw new Error("The application exited with code " + code + ". See the startup log for the original error.");
+}
+try { await start(); } catch (error) { await fail(error); }
 `;
 
 async function compileLauncher(d: Download, outFile: string, icoFile: string | null): Promise<void> {
@@ -128,28 +158,28 @@ async function compileLauncher(d: Download, outFile: string, icoFile: string | n
   const stub = join(CACHE_DIR, "fm-launcher.ts");
   writeFileAtomic(stub, LAUNCHER_STUB);
   const args = ["bun", "build", "--compile", "--minify", `--target=${t.bunTarget}`, `--outfile=${outFile}`];
-  // Bun only embeds a custom .exe icon and title when it runs on Windows; building from a Mac or Linux keeps Bun's own. Hiding the console works everywhere.
   if (d.os === "windows") {
     args.push("--windows-hide-console");
-    if (process.platform === "win32") args.push(`--windows-title=${APP_TITLE}`, ...(icoFile ? [`--windows-icon=${icoFile}`] : []));
+    if (process.platform === "win32") args.push(`--windows-title=${APP_TITLE}`);
   }
   await run([...args, stub]);
+  if (d.os === "windows" && icoFile) embedWindowsIcon(outFile, icoFile);
 }
 
 export function readmeFor(d: Download): string {
   const L: string[] = [`${APP_TITLE} ${VERSION}: ${d.label}`, "", d.hint + ".", ""];
   if (d.os === "windows") {
-    L.push(`Start it: double-click "${APP_TITLE}.exe".`, "", "It needs the Microsoft WebView2 runtime (already part of Windows 11):", "  https://developer.microsoft.com/microsoft-edge/webview2/", "");
+    L.push(`First, double-click install.cmd to check prerequisites and install missing ones from Microsoft with your permission. Then double-click "${APP_TITLE}.exe".`, "", "No Bun or compiler is needed. Microsoft installers may request elevation.", "", "It needs the Microsoft WebView2 runtime (already part of Windows 11):", "  https://developer.microsoft.com/microsoft-edge/webview2/", "");
     L.push("Windows SmartScreen may say the app is unrecognised the first time. Choose More info > Run anyway.", "Keep the folders next to the .exe (app, lib, resources): the program reads them.");
-    L.push("", "The native window also needs Microsoft Visual C++ 2015-2022 Redistributable (x64):", "  https://aka.ms/vs/17/release/vc_redist.x64.exe");
-    if (d.arch === "arm64") L.push("", "This is the 64-bit Intel/AMD build; Windows on ARM runs it through its own emulation. It works the same, a little slower to start.");
+    L.push("", "The native window library also needs the Microsoft Visual C++ 2015-2022 x64 Redistributable (even on ARM):", "  https://aka.ms/vs/17/release/vc_redist.x64.exe", "", "If no window opens, double-click troubleshoot.cmd to see the error in a console.");
+    if (d.arch === "arm64") L.push("", "Requires Windows 11 on ARM with x64 emulation. Uses the baseline x64 build, so AVX2 emulation is not required.");
   } else if (d.os === "linux") {
     L.push("Start it:", "  ./codecaine-file-manager", "", "Add it to your applications menu and your PATH:", "  sh install.sh        (undo with: sh install.sh --uninstall)", "", "It needs GTK 4 and WebKitGTK 6.0:", "  Debian/Ubuntu 24.04+:  sudo apt install libgtk-4-1 libwebkitgtk-6.0-4", "  Fedora:                sudo dnf install gtk4 webkitgtk6.0", "");
-    L.push("Headless (no window, open the address it prints in a browser):", "  ./codecaine-file-manager --server");
+    L.push("If the file manager will not execute the binary, use a terminal in this folder:", "  chmod +x codecaine-file-manager", "  sh troubleshoot.sh", "", "Headless (no window, open the address it prints in a browser):", "  ./codecaine-file-manager --server");
     L.push("", "Ubuntu 24.04+ sandbox fix:", "  If startup logs say 'bwrap: setting up uid map: Permission denied' or", "  'Failed to fully launch dbus-proxy', run:", "    sh install.sh --apparmor", "  Enter your sudo password in the terminal. This installs an AppArmor profile", "  for this executable only; AppArmor and WebKit's sandbox stay enabled.", "  Keep the folder in its final location; rerun that command after moving it.", "  Remove the menu entry, link and profile with: sh install.sh --uninstall --apparmor");
   }
-  L.push("", "If the native window is unavailable, the File Manager opens in your default browser instead.",
-    "Startup details and errors: " + (d.os === "windows" ? "%USERPROFILE%\\\\.bun_rad_studio\\\\file-manager-startup.log" : "~/.bun_rad_studio/file-manager-startup.log") + ".");
+  L.push("", "If the native window is unavailable, the File Manager opens in your default browser instead.");
+  L.push("", "Startup logs: ~/.bun_rad_studio/logs/file-manager-<pid>.log (on Windows: %USERPROFILE%\\.bun_rad_studio\\logs).");
   L.push("", "Licence: MIT (see LICENSE). The source code is at https://github.com/codecaine-zz/bun_rad_studio", "");
   return L.join(d.os === "windows" ? "\r\n" : "\n");
 }
@@ -168,13 +198,15 @@ if [ "$UNINSTALL" = 1 ]; then
   exit 0
 fi
 mkdir -p "$BIN" "$APPS"
+chmod +x "$ROOT/codecaine-file-manager"
 ln -sf "$ROOT/codecaine-file-manager" "$BIN/codecaine-file-manager"
+ESCAPED_ROOT="$(printf '%s' "$ROOT" | sed 's/\\\\/\\\\\\\\/g; s/"/\\\\"/g; s/\\\`/\\\\\\\`/g; s/\\$/\\\\$/g; s/%/%%/g')"
 cat > "$APPS/codecaine-file-manager.desktop" <<EOF
 [Desktop Entry]
 Type=Application
 Name=${APP_TITLE}
 Comment=File manager for developers
-Exec="$ROOT/codecaine-file-manager"
+Exec="$ESCAPED_ROOT/codecaine-file-manager"
 Icon=$ROOT/codecaine-file-manager.png
 Terminal=false
 Categories=Utility;FileManager;Development;
@@ -184,12 +216,16 @@ ${LINUX_SANDBOX_WARNING}\
 `;
 }
 
-const MAC_README = `${APP_TITLE} ${VERSION}
+export const MAC_README = `${APP_TITLE} ${VERSION}
 
 1. Drag "${APP_TITLE}.app" into your Applications folder.
-2. Open it. The first time, macOS may say it can't verify the app (it is signed ad hoc, not with an Apple Developer ID).
-   - Right-click the app, choose Open, then Open again. You only do this once.
-   - Or run:  xattr -dr com.apple.quarantine "/Applications/${APP_TITLE}.app"
+2. This app is signed ad hoc, not signed with an Apple Developer ID or notarized.
+   macOS may block it; right-click > Open does not work on every macOS version.
+3. Only if you trust this download and have checked its checksum, open Terminal and run:
+   xattr -dr com.apple.quarantine "/Applications/${APP_TITLE}.app"
+4. Open the app from Applications.
+
+This removes quarantine only from this app. Do not disable Gatekeeper system-wide.
 
 Everything runs on your Mac: no account, nothing is sent anywhere.
 Licence: MIT. Source code: https://github.com/codecaine-zz/bun_rad_studio
@@ -202,36 +238,17 @@ interface Assets {
 }
 
 async function makeAssets(): Promise<Assets> {
-  const assets: Assets = { icnsPng: null, ico: null, png512: null };
-  if (process.platform !== "darwin") return assets;
-  try {
-    const names = await renderPngs([iconSpecFor({ id: MAIN, category: "File & Directory Tools" })]);
-    if (names.includes(MAIN)) assets.icnsPng = join(ICONS_OUT, "png", `${MAIN}.png`);
-  } catch (err: any) {
-    log("⚠️", `Couldn't draw the icon (${String(err?.message ?? err).split("\n")[0]}); using the generic one.`);
-  }
-  if (assets.icnsPng) {
-    const dir = join(CACHE_DIR, "fm-icons");
-    mkdirSync(dir, { recursive: true });
-    assets.png512 = join(dir, "icon-512.png");
-    await run(["sips", "-z", "512", "512", assets.icnsPng, "--out", assets.png512]);
-    try {
-      assets.ico = join(dir, "icon.ico");
-      await run([MAGICK, assets.icnsPng, "-define", "icon:auto-resize=256,128,64,48,32,16", assets.ico]);
-    } catch (err: any) {
-      assets.ico = null;
-      log("⚠️", `No Windows icon (${String(err?.message ?? err).split("\n")[0]})`);
-    }
-  }
-  return assets;
+  const icon = desktopInfo(MAIN);
+  return { icnsPng: icon.png, ico: icon.ico, png512: icon.png };
 }
 
 async function zipDir(parent: string, entries: string[], out: string): Promise<void> {
   rmSync(out, { force: true });
-  await run(["zip", "-qry", "-X", out, ...entries], { cwd: parent });
+  await zipEntries(parent, entries, out);
 }
 
 async function buildMac(d: Download, assets: Assets, sources: SourceApp[]): Promise<string> {
+  const { buildApp } = await import("./build_mac_apps");
   const target = targetOf(d);
   const stage = join(STAGE, d.id);
   rmSync(stage, { recursive: true, force: true });
@@ -275,8 +292,14 @@ async function buildFolder(d: Download, assets: Assets): Promise<string> {
   cpSync(join(ROOT, "resources"), join(dir, "resources"), { recursive: true });
   if (existsSync(join(ROOT, "LICENSE"))) cpSync(join(ROOT, "LICENSE"), join(dir, "LICENSE"));
   writeFileSync(join(dir, "README.txt"), readmeFor(d));
+  if (d.os === "windows") {
+    writeFileSync(join(dir, "setup.ps1"), WINDOWS_SETUP);
+    writeFileSync(join(dir, "install.cmd"), windowsInstallCommand(false));
+  }
+  if (d.os === "windows") writeFileSync(join(dir, "troubleshoot.cmd"), `@echo off\r\ncd /d "%~dp0"\r\nset "BUN_BE_BUN=1"\r\nset "WEBVIEW_PATH=%~dp0lib\\libwebview.dll"\r\n"${APP_TITLE}.exe" "%~dp0app\\${MAIN}.js" %*\r\npause\r\n`);
   writeFileSync(join(dir, "VERSION"), `${VERSION}\n`);
   if (d.os === "linux") {
+    writeFileSync(join(dir, "troubleshoot.sh"), `#!/bin/sh\nset -eu\ncd "$(dirname "$0")"\nchmod +x codecaine-file-manager\nexec ./codecaine-file-manager "$@"\n`);
     writeFileSync(join(dir, "install.sh"), linuxInstallScript());
     chmodSync(join(dir, "install.sh"), 0o755);
     if (assets.png512) cpSync(assets.png512, join(dir, "codecaine-file-manager.png"));
@@ -289,6 +312,7 @@ async function buildFolder(d: Download, assets: Assets): Promise<string> {
 export function downloadPage(rows: Array<{ d: Download; file: string; bytes: number }>, baseUrl = ""): string {
   const base = baseUrl && !baseUrl.endsWith("/") ? `${baseUrl}/` : baseUrl;
   const data = rows.map((r) => ({ id: r.d.id, os: r.d.os, arch: r.d.arch, label: r.d.label, hint: r.d.hint, older: !!r.d.older, file: base + r.file, size: mb(r.bytes) }));
+  const macAvailable = rows.some((r) => r.d.os === "macos");
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
   const card = (os: "macos" | "windows" | "linux", title: string, icon: string, note: string) => {
     const list = rows.filter((r) => r.d.os === os);
@@ -326,14 +350,14 @@ footer{margin-top:40px;color:var(--dim);font-size:14px}footer a{color:var(--acc2
 <p class="ver">Version ${VERSION} · macOS, Windows and Linux · free and open source (MIT)</p>
 <div id="rec"><div><b id="rec-title"></b><div id="rec-sub" style="color:#b9c4e8;font-size:14px"></div></div><a id="rec-link" href="#" download>Download</a></div>
 <div class="grid">
-${card("macos", "macOS", "🍎", "A double-clickable .app with its own icon. Drag it to Applications.")}
+${card("macos", "macOS", "🍎", macAvailable ? "A double-clickable .app with its own icon. Drag it to Applications." : 'Standalone .app downloads are being built on macOS. For now, get the macOS full-suite archive from <a href="https://github.com/codecaine-zz/bun_rad_studio/releases/latest">GitHub Releases</a>.')}
 ${card("windows", "Windows", "🪟", "Unzip and double-click the .exe. Needs the WebView2 runtime (built into Windows 11).")}
 ${card("linux", "Linux", "🐧", "Unzip, run it, or use install.sh for a menu entry. Needs GTK 4 and WebKitGTK 6.0.")}
 </div>
 <div class="how">
-<div><h3>macOS: first launch</h3><ol><li>Unzip and drag the app to Applications.</li><li>Right-click it, choose <b>Open</b>, then <b>Open</b> again.</li></ol><p>Or: <code>xattr -dr com.apple.quarantine "/Applications/${APP_TITLE}.app"</code></p></div>
-<div><h3>Windows: first launch</h3><ol><li>Unzip the whole folder (keep the files together).</li><li>Double-click <b>${APP_TITLE}.exe</b>.</li></ol><p>If SmartScreen warns you, choose <b>More info</b> then <b>Run anyway</b>.</p></div>
-<div><h3>Linux: first launch</h3><ol><li><code>unzip</code> the download.</li><li>Run <code>./codecaine-file-manager</code> or <code>sh install.sh</code>.</li></ol><p>Ubuntu 24.04+: if the window crashes with a bwrap / dbus-proxy permission error, run <code>sh install.sh --apparmor</code> (sudo required). This permits sandbox namespaces for this executable only. Rerun after moving the folder.</p><p>Not sure of your CPU? <code>uname -m</code> prints x86_64 or aarch64.</p></div>
+${macAvailable ? `<div><h3>macOS: first launch</h3><ol><li>Unzip and drag the app to Applications.</li><li>The app is not Developer ID signed or notarized. Right-click Open may not bypass quarantine.</li><li>Only after trusting the source and checking the checksum, run <code>xattr -dr com.apple.quarantine "/Applications/${APP_TITLE}.app"</code> in Terminal, then open the app.</li></ol><p>Do not disable Gatekeeper system-wide.</p></div>` : `<div><h3>macOS: using the full suite</h3><p>Download a macOS full-suite archive from <a href="https://github.com/codecaine-zz/bun_rad_studio/releases/latest">GitHub Releases</a>, then start <code>bin/file-manager-studio</code> from its extracted folder. See the included <code>README.txt</code> for first-launch guidance.</p></div>`}
+<div><h3>Windows: first launch</h3><ol><li>Unzip the whole folder (keep the files together).</li><li>Double-click <b>install.cmd</b>. It checks WebView2 and the <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe">Visual C++ x64 Redistributable</a> (also on ARM), and asks permission to install missing prerequisites from Microsoft.</li><li>Double-click <b>${APP_TITLE}.exe</b>. If it fails, open <b>troubleshoot.cmd</b>.</li></ol><p>No Bun or compiler needed. If SmartScreen warns you, choose <b>More info</b> then <b>Run anyway</b>. ARM requires Windows 11 x64 emulation.</p></div>
+<div><h3>Linux: first launch</h3><ol><li><code>unzip</code> the download.</li><li>Install GTK 4 and WebKitGTK 6.0. Ubuntu/Debian: <code>sudo apt install libgtk-4-1 libwebkitgtk-6.0-4</code>; Fedora: <code>sudo dnf install gtk4 webkitgtk6.0</code>.</li><li>Run <code>sh install.sh</code> for a menu entry, or <code>sh troubleshoot.sh</code> in a terminal to see errors.</li></ol><p>Ubuntu 24.04+: if the window crashes with a bwrap / dbus-proxy permission error, run <code>sh install.sh --apparmor</code> (sudo required). This permits sandbox namespaces for this executable only. Rerun after moving the folder.</p><p>Needs a graphical desktop. Not sure of your CPU? <code>uname -m</code> prints x86_64 or aarch64. No desktop? Use <code>./codecaine-file-manager --server</code>.</p></div>
 </div>
 <footer>Check a download: <code>shasum -a 256 -c SHA256SUMS.txt --ignore-missing</code> (the file is next to the zips). Prefer to build it yourself? The source is on <a href="https://github.com/codecaine-zz/bun_rad_studio">GitHub</a>.</footer>
 </main>
@@ -420,8 +444,8 @@ async function main() {
     try {
       log("🔨", `${d.id}`);
       const out = d.os === "macos" ? await buildMac(d, assets, sources) : await buildFolder(d, assets);
-      log("✅", `${out.split("/").pop()}  ${mb(statSync(out).size)}`);
-      return { d, file: out.split("/").pop()!, bytes: statSync(out).size };
+      log("✅", `${basename(out)}  ${mb(statSync(out).size)}`);
+      return { d, file: basename(out), bytes: statSync(out).size };
     } catch (err: any) {
       failures.push(`${d.id}: ${String(err?.message ?? err).split("\n").slice(0, 3).join(" ")}`);
       log("❌", failures[failures.length - 1]!);

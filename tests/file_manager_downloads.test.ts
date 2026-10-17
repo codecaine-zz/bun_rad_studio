@@ -9,7 +9,7 @@ import { DownloadManager, chunkSizeFor, cleanHeaders, decodeProgress, encodeProg
 
 /** The byte at a position: a repeatable pattern, so any slice of the file can be made (and checked) without storing it. */
 const byteAt = (i: number) => (i * 31 + (i >> 8) * 7 + (i >> 16)) & 255;
-function bytes(from: number, to: number): Uint8Array {
+function bytes(from: number, to: number): Uint8Array<ArrayBuffer> {
   const out = new Uint8Array(Math.max(0, to - from));
   for (let i = 0; i < out.length; i++) out[i] = byteAt(from + i);
   return out;

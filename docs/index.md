@@ -33,6 +33,16 @@ The counts come from the launcher's own scan (`bun run cli:launcher --list`); se
 3. [Learn the database words you will meet](databases/index.md), then [open a disposable SQLite database in the Workbench](databases/workbench.md#getting-started).
 4. Look up any tool in the [application index](reference/application-index.md).
 
+## Video walkthroughs
+
+- [Bun RAD Studio: quick look](https://www.youtube.com/shorts/vIxSt2525Jk) (YouTube Short).
+- [Bun RAD Studio overview: desktop apps, CLI tools and visual designer](https://www.youtube.com/watch?v=jhTA6194Xn4) (5:55).
+- [Build Desktop Apps Fast: Bun RAD Studio & SimpleGUI](https://www.youtube.com/watch?v=-6H_in0W73k) (15:07).
+- [Build a Desktop App With No Code: the SimpleGUI Visual Designer](https://www.youtube.com/watch?v=Rh38eyWk0Jo) (10:56).
+- [Codecaine File Manager: walkthrough](https://www.youtube.com/watch?v=uPrlPMj_uK4).
+
+See the [complete demo list](../README.md#watch-the-demos-and-tutorials) or [the latest channel uploads](https://www.youtube.com/@codecaine/videos).
+
 ## Important limitations (read before relying on anything)
 
 - **The visual designer is only partly verified.** It had three defects that made it unusable ([D-001](documentation-maintenance/discrepancies.md#d-001), [D-016](documentation-maintenance/discrepancies.md#d-016), [D-017](documentation-maintenance/discrepancies.md#d-017)); all are fixed. Placing controls, the property fields, the code tabs, undo/redo, Audit and Import were checked in a browser rendering of the page. Run, Export and the native window were not, and the designer page says which is which.

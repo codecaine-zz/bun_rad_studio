@@ -18,7 +18,8 @@ import { chmodSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rm
 import { homedir } from "os";
 import { join } from "path";
 import { collect } from "../build_showcase";
-import { GENERIC_ICNS, appStoreCategory, copyGeneric, iconSpecFor, makeIcns, renderPngs, ICONS_OUT } from "./icons";
+import { appStoreCategory, makeIcns } from "./icons";
+import { desktopInfo } from "./desktop";
 import { BUNDLE_DIR, RELEASE_DIR, bundleApps, buildRuntime, logBundleFailures } from "./suite";
 import { ROOT, SIDECAR_FILES, TARGETS, VERSION, defaultJobs, listSourceApps, log, mapPool, parseJobs, run, webviewLibSource, xmlEscape, type SourceApp } from "./common";
 
@@ -156,8 +157,7 @@ export async function buildApp(app: MacApp, runtime: string, opts: BuildOptions,
   for (const d of ["MacOS", "Resources/app", "Resources/runtime", "Resources/lib"]) mkdirSync(join(contents, d), { recursive: true });
 
   const icon = join(contents, "Resources", "AppIcon.icns");
-  if (png) await makeIcns(png, icon);
-  else copyGeneric(icon);
+  await makeIcns(png ?? desktopInfo(app.id).png, icon);
 
   writeFileSync(join(contents, "Info.plist"), infoPlist(app, "AppIcon"));
   const exe = join(contents, "MacOS", app.id);
@@ -237,22 +237,13 @@ async function main() {
   const target = TARGETS.find((t) => t.id === `macos-${opts.arch}`)!;
   const runtime = await buildRuntime(target);
 
-  let pngs = new Set<string>();
-  try {
-    log("🎨", "Drawing icons");
-    pngs = new Set(await renderPngs(apps.map((a) => iconSpecFor({ id: a.id, category: a.category })), undefined, opts.jobs));
-  } catch (err: any) {
-    log("⚠️", `Couldn't draw the icons (${String(err?.message ?? err).split("\n")[0]}); using the generic icon.`);
-  }
-  if (!existsSync(GENERIC_ICNS)) log("⚠️", "icons/app_default.icns is missing");
-
   mkdirSync(opts.outDir, { recursive: true });
   const failures: string[] = [];
   log("⚙️", `Building ${apps.length} apps, ${Math.min(opts.jobs, apps.length)} at a time`);
   let finished = 0;
   const outcomes = await mapPool(apps, opts.jobs, async (app) => {
     try {
-      const path = await buildApp(app, runtime, opts, pngs.has(app.id) ? join(ICONS_OUT, "png", `${app.id}.png`) : null);
+      const path = await buildApp(app, runtime, opts, desktopInfo(app.id).png);
       log("✅", `[${++finished}/${apps.length}] ${app.title}.app`);
       return { app, path };
     } catch (err: any) {
@@ -303,4 +294,3 @@ if (import.meta.main) {
     process.exit(1);
   });
 }
-

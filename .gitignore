@@ -45,6 +45,7 @@ bun-debug.log*
 
 # Caches & IDE Settings
 .cache/
+.bun-cache/
 .eslintcache
 *.tsbuildinfo
 .idea/

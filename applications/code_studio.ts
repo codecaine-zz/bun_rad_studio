@@ -559,14 +559,21 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
           const execCwd = body.cwd ? resolve(workspaceRoot, body.cwd) : workspaceRoot;
           const startTime = performance.now();
 
-          const proc = Bun.spawn(["sh", "-c", body.command], {
+          const command = process.platform === "win32"
+            ? ["powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", body.command]
+            : ["sh", "-c", body.command];
+          const proc = Bun.spawn(command, {
             cwd: execCwd,
             env: { ...process.env, TERM: "xterm-256color" },
+            stdout: "pipe",
+            stderr: "pipe",
           });
 
-          const stdout = await new Response(proc.stdout).text();
-          const stderr = await new Response(proc.stderr).text();
-          const exitCode = await proc.exited;
+          const [stdout, stderr, exitCode] = await Promise.all([
+            new Response(proc.stdout).text(),
+            new Response(proc.stderr).text(),
+            proc.exited,
+          ]);
           const durationMs = Math.round(performance.now() - startTime);
 
           return Response.json({

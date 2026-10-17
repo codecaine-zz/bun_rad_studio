@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, mock, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
-import { join } from "path";
+import { basename, join } from "path";
 import { JSDOM } from "jsdom";
 import { createContext } from "../src/features/filemanager/fmCore";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
@@ -14,7 +14,56 @@ const root = mkdtempSync(join(tmpdir(), "fm-views-"));
 const home = join(root, "home");
 const dataDir = join(root, "data");
 const dest = join(home, "dest");
-const ctx = createContext({ home, dataDir: join(root, "data-unit"), platform: "linux" });
+const ctx = createContext({ home, dataDir: join(root, "data-unit") });
+
+describe("saving settings while navigation is still being remembered", () => {
+  const loadSaver = (call: (method: string, data: { set: Record<string, unknown> }) => Promise<{ settings: Record<string, unknown> }>) => {
+    const state = { settings: { view: "details" } as Record<string, unknown> };
+    const source = readFileSync(new URL("../resources/file_manager/ui/nav.js", import.meta.url), "utf8")
+      .replace(/^import .*;\r?$/gm, "").replace(/^export /gm, "");
+    const save = new Function("state", "call", "emit", "debounce", `${source}\nreturn saveSettings;`)(state, call, () => {}, (fn: unknown) => fn) as
+      (change: Record<string, unknown>) => Promise<Record<string, unknown>>;
+    return { state, save };
+  };
+
+  test("writes in order and an older response cannot undo a newer view choice", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const writes: Record<string, unknown>[] = [];
+    const stored: Record<string, unknown> = { view: "details" };
+    const { state, save } = loadSaver(async (_method, { set }) => {
+      writes.push(set);
+      if (writes.length === 1) await gate;
+      Object.assign(stored, set);
+      return { settings: { ...stored } };
+    });
+    const folder = save({ lastPath: home });
+    const icons = save({ view: "icons" });
+    await Promise.resolve();
+    expect(writes).toEqual([{ lastPath: home }]);
+    expect(state.settings.view).toBe("icons");
+    release();
+    await folder;
+    expect(state.settings.view).toBe("icons");
+    await icons;
+    expect(writes).toEqual([{ lastPath: home }, { view: "icons" }]);
+    expect(state.settings).toEqual({ view: "icons", lastPath: home });
+  });
+
+  test("a failed write is reported and does not prevent the next save", async () => {
+    let attempts = 0;
+    const { state, save } = loadSaver(async (_method, { set }) => {
+      if (++attempts === 1) throw new Error("Settings are locked");
+      return { settings: { ...set } };
+    });
+    const failed = save({ view: "icons" });
+    const recovered = save({ view: "list" });
+    await expect(failed).rejects.toThrow("Settings are locked");
+    await recovered;
+    expect(attempts).toBe(2);
+    expect(state.settings.view).toBe("list");
+  });
+});
 
 describe("the saved settings behind the views", () => {
   test("a new install starts in the Files view with sensible split values", () => {
@@ -128,9 +177,9 @@ beforeAll(async () => {
   mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalShell: () => "posix", terminalWsl: () => ({}),
     terminalAvailable: () => true, typeInTerminal: () => true, showTerminal() {}, hideTerminal() {}, toggleTerminal() {}, isTerminalOpen: () => false, wireTerminal() {},
   }));
-  server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir, platform: "linux", launch: async (command, args) => void launched.push({ command, args }), editor: { which: (n: string) => (n === "code" ? "/usr/bin/code" : null), open: (path: string, options: any) => void editorStarts.push({ path, options }) }, clipboard: { writeText: (t) => { clip.text = t; return true; }, writeImage: async (file, mime) => { clip.image = { file, mime }; return true; } } } });
+  server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir, launch: async (command, args) => void launched.push({ command, args }), editor: { which: (n: string) => (n === "code" ? "/usr/bin/code" : null), open: (path: string, options: any) => void editorStarts.push({ path, options }) }, clipboard: { writeText: (t) => { clip.text = t; return true; }, writeImage: async (file, mime) => { clip.image = { file, mime }; return true; } } } });
   const base = `http://127.0.0.1:${server.port}`;
-  const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8").replace(/__FM_TOKEN__/g, "ui-token").replace(/__FM_PLATFORM__/g, "linux").replace(/__FM_START__/g, "").replace(/__FM_NONCE__/g, "n");
+  const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8").replace(/__FM_TOKEN__/g, "ui-token").replace(/__FM_PLATFORM__/g, process.platform).replace(/__FM_START__/g, "").replace(/__FM_NONCE__/g, "n");
   const dom = new JSDOM(html, { url: `${base}/`, pretendToBeVisual: true });
   win = dom.window;
   const g = globalThis as any;
@@ -152,7 +201,7 @@ beforeAll(async () => {
   (await import("../resources/file_manager/ui/menus.js")).closeMenu();
   (await import("../resources/file_manager/ui/power.js")).resetPower();
   const shared = (await import("../resources/file_manager/ui/state.js")).state;
-  Object.assign(shared, { workspace: "files", powerOpen: false, search: null, loading: false, busy: 0, terminalOpen: false });
+  Object.assign(shared, { platform: process.platform, sep: process.platform === "win32" ? "\\" : "/", home, workspace: "files", powerOpen: false, search: null, loading: false, busy: 0, terminalOpen: false });
   shared.selection.clear();
   chrome = await import("../resources/file_manager/ui/chrome.js");
   toolbarModule = await import("../resources/file_manager/ui/toolbar.js");
@@ -320,7 +369,8 @@ describe("Home", () => {
     expect($("#home-sections").textContent).toContain("a.txt");
     expect([...doc.querySelectorAll("#home-sections .home-quick")].map((b: any) => b.textContent.trim())).toEqual(expect.arrayContaining(["📁 New folder", "📄 New file"]));
     expect(doc.querySelectorAll("#home-sections .home-tips li").length).toBe(3);
-    await sleep(500);
+    const deadline = Date.now() + 20_000;
+    while (doc.querySelectorAll("#home-sections .home-chip").length === 0 && Date.now() < deadline) await sleep(50);
     expect(doc.querySelectorAll("#home-sections .home-chip").length).toBeGreaterThan(3);
   });
 
@@ -815,7 +865,7 @@ describe("the Dual view's right pane has the same options as the left one", () =
     throw new Error(`Timed out waiting for ${what}`);
   };
   const $$ = (sel: string): any[] => [...doc.querySelectorAll(sel)];
-  const byName = (list: string, name: string): any => $$(`${list} .row`).find((r: any) => r.dataset.key.endsWith(`/${name}`));
+  const byName = (list: string, name: string): any => $$(`${list} .row`).find((r: any) => basename(r.dataset.key) === name);
   const click = (list: string, name: string, extra: Record<string, unknown> = {}) => byName(list, name).dispatchEvent(new win.MouseEvent("click", { bubbles: true, ...extra }));
   const rightClick = (target: any) => target.dispatchEvent(new win.MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 6, clientY: 6 }));
   const menuLabels = () => $$(".menu .menu-label").map((e: any) => e.textContent);
@@ -880,12 +930,15 @@ describe("the Dual view's right pane has the same options as the left one", () =
 
   test("the View setting changes both lists, and the column headings go away with Details", async () => {
     await nav.saveSettings({ view: "icons" });
+    await until(() => $("#dual-list").className === "view-icons", "both lists to use icons");
     expect($("#list").className).toBe("view-icons");
     expect($("#dual-list").className).toBe("view-icons");
     expect($("#list-head").hidden && $("#dual-list-head").hidden).toBe(true);
     await nav.saveSettings({ view: "list" });
+    await until(() => $("#dual-list").className === "view-list", "both lists to use list view");
     expect($("#dual-list").className).toBe("view-list");
     await nav.saveSettings({ view: "details" });
+    await until(() => $("#dual-list").className === "view-details", "both lists to use details");
     expect($("#dual-list").className).toBe("view-details");
     expect($("#dual-list-head").hidden).toBe(false);
   });
@@ -992,7 +1045,7 @@ describe("the Dual view's right pane has the same options as the left one", () =
     expect($("#list .rename-input")).toBeNull();
     $("#dual-list .rename-input").value = "renamed.txt";
     key($("#dual-list .rename-input"), "Enter");
-    await until(() => rowNames("#dual-list").includes("renamed.txt"), "the new name");
+    await until(() => !!byName("#dual-list", "renamed.txt")?.classList.contains("selected"), "the renamed file to be selected");
     expect(existsSync(join(other, "renamed.txt"))).toBe(true);
     expect(existsSync(join(other, "only-right.txt"))).toBe(false);
     expect(byName("#dual-list", "renamed.txt").classList.contains("selected")).toBe(true);

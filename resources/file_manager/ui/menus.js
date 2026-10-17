@@ -56,6 +56,7 @@ export function showMenu(items, { x = 0, y = 0, anchor, label = "Menu" } = {}) {
     const list = enabled();
     const i = list.indexOf(document.activeElement);
     if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); closeMenu(); }
+    else if (e.key === "Enter" && i >= 0) { e.preventDefault(); e.stopPropagation(); list[i].click(); }
     else if (e.key === "ArrowDown") { e.preventDefault(); list[(i + 1) % list.length]?.focus(); }
     else if (e.key === "ArrowUp") { e.preventDefault(); list[(i - 1 + list.length) % list.length]?.focus(); }
     else if (e.key === "Home") { e.preventDefault(); list[0]?.focus(); }

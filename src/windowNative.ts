@@ -46,6 +46,8 @@ export interface WindowNative {
   unmaximize(): void;
   /** Enters or leaves the system's full-screen mode. True when the window is (or is going to be) in the wanted state. */
   setFullscreen(on: boolean): boolean;
+  /** Optional platform support; changes stacking without moving, resizing or activating the window. */
+  setAlwaysOnTop?(on: boolean): boolean;
   /** The window's frame and state, or null when it can't be read (the page's own numbers are then used). */
   getFrame(): FrameInfo | null;
 }
@@ -203,6 +205,11 @@ function windowsNative(wv: Webview): WindowNative {
   const hwnd = (): Pointer => wv.unsafeWindowHandle as Pointer;
   const user32 = () => dlopen("user32.dll", {
     ShowWindow: { args: [P, FFIType.i32], returns: FFIType.bool },
+    BringWindowToTop: { args: [P], returns: FFIType.bool },
+    SetForegroundWindow: { args: [P], returns: FFIType.bool },
+    GetForegroundWindow: { args: [], returns: P },
+    GetWindowThreadProcessId: { args: [P, P], returns: FFIType.u32 },
+    AttachThreadInput: { args: [FFIType.u32, FFIType.u32, FFIType.bool], returns: FFIType.bool },
     IsZoomed: { args: [P], returns: FFIType.bool },
     SetWindowPos: { args: [P, P, FFIType.i32, FFIType.i32, FFIType.i32, FFIType.i32, FFIType.u32], returns: FFIType.bool },
     GetWindowRect: { args: [P, P], returns: FFIType.bool },
@@ -255,7 +262,35 @@ function windowsNative(wv: Webview): WindowNative {
       }
     },
     hide: () => void ok(() => user32().ShowWindow(hwnd(), 0)),
-    show: () => void ok(() => user32().ShowWindow(hwnd(), 5)),
+    show() {
+      try {
+        const u = user32();
+        const window = hwnd();
+        u.ShowWindow(window, 5);
+        u.BringWindowToTop(window);
+        if (u.SetForegroundWindow(window)) return;
+        const foreground = u.GetForegroundWindow();
+        const foregroundThread = foreground ? u.GetWindowThreadProcessId(foreground, null) : 0;
+        const kernel32 = dlopen("kernel32.dll", { GetCurrentThreadId: { args: [], returns: FFIType.u32 } });
+        try {
+          const currentThread = kernel32.symbols.GetCurrentThreadId();
+          // A hidden launcher may not own the foreground input queue. Share it only for this startup activation.
+          if (foregroundThread && foregroundThread !== currentThread && u.AttachThreadInput(currentThread, foregroundThread, true)) {
+            try {
+              u.BringWindowToTop(window);
+              if (u.SetForegroundWindow(window)) return;
+            } finally {
+              if (!u.AttachThreadInput(currentThread, foregroundThread, false)) console.warn("Could not detach the Windows foreground input queue.");
+            }
+          }
+        } finally {
+          kernel32.close();
+        }
+        console.warn("Windows declined the request to bring the window to the foreground. Select it from the taskbar.");
+      } catch (error) {
+        console.warn("Could not show and activate the Windows window:", error);
+      }
+    },
     setBounds({ width, height, x, y }) {
       ok(() => {
         const u = user32();
@@ -279,6 +314,16 @@ function windowsNative(wv: Webview): WindowNative {
       }
     },
     unmaximize: () => void ok(() => user32().ShowWindow(hwnd(), 9)),
+    setAlwaysOnTop(on) {
+      try {
+        const u = user32();
+        const after = (on ? -1 : -2) as Pointer; // HWND_TOPMOST / HWND_NOTOPMOST
+        return Boolean(u.SetWindowPos(hwnd(), after, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010));
+      } catch (error) {
+        console.warn("Could not change the Windows always-on-top setting:", error);
+        return false;
+      }
+    },
     setFullscreen(on) {
       try {
         const u = user32();

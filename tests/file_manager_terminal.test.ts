@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+import { pathToFileURL } from "url";
+import { quotePathsForTerminal } from "../resources/file_manager/ui/codeRun.js";
 import { createContext } from "../src/features/filemanager/fmCore";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 import { clampSize, createTerminalHub, pickShell, shellFolder, terminalSupported, windowsTerminalOutput } from "../src/features/filemanager/fmTerminal";
@@ -250,6 +252,50 @@ describe("terminal helpers", () => {
 });
 
 (posix ? describe.skip : describe)("Windows ConPTY terminal", () => {
+  test("a relocated bundle uses its packaged bridge and appends paths without executing the pending line", async () => {
+    const packaged = join(root, "packaged terminal");
+    const assets = join(packaged, "resources", "file_manager");
+    mkdirSync(assets, { recursive: true });
+    for (const name of ["windows-terminal.ps1", "windows-terminal.cs", "windows-terminal-shell.ps1", "windows-terminal-wsl.sh"]) {
+      cpSync(join(import.meta.dir, "..", "resources", "file_manager", name), join(assets, name));
+    }
+    const build = await Bun.build({
+      entrypoints: [join(import.meta.dir, "..", "src", "features", "filemanager", "fmTerminal.ts")],
+      outdir: packaged, target: "bun", naming: "terminal.mjs",
+    });
+    expect(build.success).toBe(true);
+    const { createTerminalHub: packagedHub } = await import(pathToFileURL(join(packaged, "terminal.mjs")).href);
+    const hub: ReturnType<typeof createTerminalHub> = packagedHub(1, assets);
+    const ctx = createContext({ home, dataDir: join(root, "data") });
+    let output = "";
+    const session = hub.open(ctx, { cwd: work, cols: 180, rows: 24, onData: (text) => output += text, onExit() {} })!;
+    const waitFor = async (check: () => boolean) => {
+      const end = Date.now() + 30000;
+      while (!check() && Date.now() < end) await Bun.sleep(50);
+      if (!check()) throw new Error(`Terminal timed out: ${JSON.stringify(output.slice(-1000))}`);
+    };
+    const paths = [join(work, "first folder"), join(work, "it's another folder")];
+    const marker = join(work, "inserted-paths.txt");
+    const quoted = quotePathsForTerminal(paths, "powershell");
+    try {
+      await waitFor(() => /PS .*work with spaces>/.test(output));
+      session.write("Write-Output ");
+      await Bun.sleep(200);
+      expect(quoted.text).not.toMatch(/[\x00-\x1f\x7f]/);
+      session.write(quoted.text!);
+      session.write(`| Set-Content -LiteralPath '${marker.replaceAll("'", "''")}'`);
+      await Bun.sleep(700);
+      expect(existsSync(marker)).toBe(false);
+      expect(session.cwd).toBe(realpathSync.native(work));
+      session.write("\r");
+      await waitFor(() => existsSync(marker));
+      await waitFor(() => readFileSync(marker, "utf8").trimEnd().split(/\r?\n/).length === 2);
+      expect(readFileSync(marker, "utf8").trimEnd().split(/\r?\n/)).toEqual(paths);
+    } finally {
+      hub.closeAll();
+    }
+  }, 60000);
+
   (process.env.FM_TEST_WSL === "1" ? test : test.skip)("follows real WSL Bash on entry, cd, mounted paths and exit; direct commands pass through", async () => {
     const c = await connect({ token: TOKEN, path: work, cols: "180" });
     const quote = (path: string) => `'${path.replaceAll("'", "'\\''")}'`;
@@ -378,6 +424,43 @@ describe("terminal helpers", () => {
       expect(c.messages.some((m) => m.type === "exit" && m.code === 3)).toBe(true);
     } finally { c.ws.close(); }
   }, 40000);
+
+  test("the embedded terminal bridge and shell do not open visible Windows console windows", async () => {
+    const { dlopen, FFIType, JSCallback, ptr } = await import("bun:ffi");
+    const user32 = dlopen("user32.dll", {
+      EnumWindows: { args: [FFIType.pointer, FFIType.i64], returns: FFIType.bool },
+      IsWindowVisible: { args: [FFIType.pointer], returns: FFIType.bool },
+      GetWindowThreadProcessId: { args: [FFIType.pointer, FFIType.pointer], returns: FFIType.u32 },
+    });
+    const hub = createTerminalHub();
+    const ctx = createContext({ home, dataDir: join(root, "data") });
+    let output = "";
+    const session = hub.open(ctx, { cwd: work, cols: 80, rows: 24, onData: (text) => output += text, onExit: () => {} })!;
+    try {
+      const end = Date.now() + 30000;
+      while (!/PS .*work with spaces>/.test(output) && Date.now() < end) await Bun.sleep(25);
+      expect(output).toMatch(/PS .*work with spaces>/);
+      session.write("Write-Output ('EMBEDDED_' + 'SHELL=' + $PID)\r");
+      const commandEnd = Date.now() + 15000;
+      while (!/EMBEDDED_SHELL=\d+/.test(output) && Date.now() < commandEnd) await Bun.sleep(25);
+      const shellPid = Number(/EMBEDDED_SHELL=(\d+)/.exec(output)?.[1]);
+      expect(shellPid).toBeGreaterThan(0);
+      const visible: number[] = [];
+      const callback = new JSCallback((window) => {
+        const pid = new Uint32Array(1);
+        user32.symbols.GetWindowThreadProcessId(window, ptr(pid));
+        if (user32.symbols.IsWindowVisible(window) && (pid[0] === session.pid || pid[0] === shellPid)) visible.push(pid[0]);
+        return true;
+      }, { args: [FFIType.pointer, FFIType.i64], returns: FFIType.bool });
+      try {
+        expect(user32.symbols.EnumWindows(callback.ptr, 0)).toBe(true);
+        expect(visible).toEqual([]);
+      } finally { callback.close(); }
+    } finally {
+      hub.closeAll();
+      user32.close();
+    }
+  }, 50000);
 
   test("closing the connection terminates the actual shell", async () => {
     const c = await connect({ token: TOKEN, path: work });

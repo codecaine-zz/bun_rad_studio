@@ -3,6 +3,7 @@
 import { ApiError, call } from "./api.js";
 import { h } from "./dom.js";
 import { toast } from "./menus.js";
+import { state as appState } from "./state.js";
 import { bridge, buildReport, hasDesktopWindow, pageMetrics, untilSettled } from "./windowState.js";
 
 export const WINDOW_MODES = [
@@ -27,7 +28,8 @@ export async function resetWindowToDefault() {
   } catch (err) {
     return failure(err);
   }
-  await untilSettled(() => bridge.reset(), () => bridge.apply("fill"));
+  const answer = await untilSettled(() => bridge.reset(), () => bridge.apply("fill"));
+  if (!answer?.ok) return toast("The window couldn't be reset.", { kind: "error" });
   toast("Window reset: the File Manager fills the screen.");
 }
 
@@ -43,13 +45,22 @@ export function windowSection() {
   const saved = h("p", { class: "hint", "data-window-saved": "" }, "");
   const radios = new Map();
   let known = null;
+  const top = h("input", { type: "checkbox", "data-window-top": "", onchange: async () => {
+    const wanted = top.checked;
+    top.disabled = true;
+    const answer = await bridge.alwaysOnTop(wanted);
+    top.checked = answer?.ok ? answer.alwaysOnTop : !wanted;
+    top.disabled = false;
+    if (!answer?.ok) toast(answer?.message || "Always on top couldn't be changed.", { kind: "error" });
+  } });
 
   async function refresh() {
     try {
-      const { mode, state } = await call("window/get");
+      const { mode, state, alwaysOnTop } = await call("window/get");
       known = state;
       for (const [value, input] of radios) input.checked = value === mode;
       saved.textContent = savedText(state);
+      top.checked = alwaysOnTop === true;
     } catch {
       saved.textContent = "";
     }
@@ -91,6 +102,7 @@ export function windowSection() {
     h("h3", { id: "fm-window-heading" }, "Window"),
     h("p", { class: "hint" }, "The File Manager opens filling the screen. When you resize or move the window, it remembers that for next time. Reset goes back to filling the screen."),
     group,
+    appState.platform === "win32" ? h("label", { class: "check", title: "Keeps the File Manager above other windows. Off by default; remembered for next time." }, top, h("span", {}, "Always on top")) : null,
     saved,
     h("div", { class: "range-row" }, useNow, reset),
   );

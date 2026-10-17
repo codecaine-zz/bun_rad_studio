@@ -171,13 +171,15 @@ export function windowsTerminalOutput(onData: (text: string) => void, onFolder: 
   };
 }
 
-function openWindowsTerminal(ctx: FmContext, options: OpenTerminalOptions): TerminalSession {
+function openWindowsTerminal(ctx: FmContext, options: OpenTerminalOptions, assetsDir: string): TerminalSession {
   const shell = pickShell("win32");
+  const bridge = resolve(assetsDir, "windows-terminal.ps1");
+  if (!existsSync(bridge)) throw new Error(`The Windows terminal bridge was not found: ${bridge}`);
   const proc = Bun.spawn([
     shell, "-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
-    "-File", resolve(import.meta.dir, "../../../resources/file_manager/windows-terminal.ps1"),
+    "-File", bridge,
     "-Shell", shell, "-WorkingDirectory", options.cwd, "-Columns", String(options.cols), "-Rows", String(options.rows),
-  ], { cwd: options.cwd, env: childEnv(ctx), stdin: "pipe", stdout: "pipe", stderr: "pipe" });
+  ], { cwd: options.cwd, env: childEnv(ctx), stdin: "pipe", stdout: "pipe", stderr: "pipe", windowsHide: true });
   let closed = false;
   let cwd = realpathSync.native(options.cwd);
   let activeShell: WindowsShell = "powershell";
@@ -255,7 +257,7 @@ export interface TerminalHub {
   closeAll(): void;
 }
 
-export function createTerminalHub(limit = MAX_TERMINALS): TerminalHub {
+export function createTerminalHub(limit = MAX_TERMINALS, assetsDir = resolve(import.meta.dir, "../../../resources/file_manager")): TerminalHub {
   const sessions = new Set<TerminalSession>();
 
   return {
@@ -272,7 +274,7 @@ export function createTerminalHub(limit = MAX_TERMINALS): TerminalHub {
         const windows = openWindowsTerminal(ctx, {
           ...options,
           onExit(code) { sessions.delete(session); options.onExit(code); },
-        });
+        }, assetsDir);
         const session: TerminalSession = {
           ...windows,
           get cwd() { return windows.cwd; },

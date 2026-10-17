@@ -76,12 +76,12 @@ describe("built-in formatters", () => {
 describe("languages without a built-in formatter", () => {
   const tools = (command: string, args: string[]) => ({ py: [{ id: "t", name: "faketool", command, args: () => args, install: "faketool (not real)" }] });
   test("the installed formatter gets the text on its input and its output is used", async () => {
-    const r = await prettify({ path: "a.py", text: "print(1)\n" }, tools("tr", ["a-z", "A-Z"]) as any);
+    const r = await prettify({ path: "a.py", text: "print(1)\n" }, tools(process.execPath, ["-e", "process.stdout.write((await Bun.stdin.text()).toUpperCase())"]) as any);
     expect(r).toMatchObject({ ok: true, text: "PRINT(1)\n", engine: "faketool" });
     expect(r.basic).toBeUndefined();
   });
   test("a formatter that fails reports its own words and changes nothing", async () => {
-    const r = await prettify({ path: "a.py", text: "x" }, tools("sh", ["-c", "echo 'bad syntax' >&2; exit 2"]) as any);
+    const r = await prettify({ path: "a.py", text: "x" }, tools(process.execPath, ["-e", "console.error('bad syntax'); process.exit(2)"]) as any);
     expect(r.ok).toBe(false);
     expect(r.error?.message).toContain("bad syntax");
   });

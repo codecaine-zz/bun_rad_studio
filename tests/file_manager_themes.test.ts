@@ -7,7 +7,7 @@ import { createContext } from "../src/features/filemanager/fmCore";
 import { getThemeColours, listThemes, themeVars } from "../src/features/filemanager/fmThemes";
 import { sanitizeSettings } from "../src/features/filemanager/fmSettings";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
-import { SIMPLEGUI_THEMES } from "../src/simplegui";
+import { SIMPLEGUI_THEMES } from "../src/shared/simpleguiThemes";
 import { contrastRatio } from "../src/shared/themeSemantic";
 import { exportTheme, parseShared, toSimpleTheme, validateDraft } from "../src/features/filemanager/fmThemeStore";
 import { FX_THEMES, fxCssVars, glassReport } from "../src/shared/fxThemes";
@@ -138,6 +138,13 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const rootVar = (name: string): string => doc.documentElement.style.getPropertyValue(`--${name}`);
 const card = (name: string): any => [...doc.querySelectorAll(".theme-card")].find((c: any) => c.querySelector(".theme-name")?.textContent.startsWith(name));
 const closeDialogs = () => doc.querySelectorAll(".modal-backdrop").forEach((e: any) => e.remove());
+async function waitForSavedPalette(palette: string) {
+  for (let i = 0; i < 50; i++) {
+    if ((await api.call("settings")).settings.palette === palette) return;
+    await sleep(50);
+  }
+  expect((await api.call("settings")).settings.palette).toBe(palette);
+}
 
 beforeAll(async () => {
   mkdirSync(home, { recursive: true });
@@ -240,6 +247,7 @@ describe("the theme gallery in the page", () => {
     expect(rootVar("accent")).toBe(getThemeColours("cyberpunk_hologram")!.vars.accent!);
     expect(doc.documentElement.dataset.theme).toBe("dark");
     expect(doc.documentElement.style.getPropertyValue("color-scheme")).toBe("dark");
+    await waitForSavedPalette("cyberpunk_hologram");
     expect((await api.call("settings")).settings.palette).toBe("cyberpunk_hologram");
     expect(card("Cyberpunk Hologram").getAttribute("aria-pressed")).toBe("true");
     expect(await themes.currentThemeName()).toBe("Cyberpunk Hologram");
@@ -248,8 +256,10 @@ describe("the theme gallery in the page", () => {
     for (let i = 0; i < 30 && doc.documentElement.dataset.palette !== "liquid_metal_light"; i++) await sleep(50);
     expect(doc.documentElement.dataset.theme).toBe("light");
     expect(rootVar("accent")).toBe(getThemeColours("liquid_metal_light")!.vars.accent!);
+    await waitForSavedPalette("liquid_metal_light");
 
     card("Standard").click();
+    await waitForSavedPalette("");
     await sleep(300);
     expect(doc.documentElement.dataset.palette).toBeUndefined();
     expect(rootVar("bg")).toBe("");

@@ -13,6 +13,7 @@ import { parseArgs as parseReleaseArgs, releaseNotes } from "../scripts/build_re
 const temp: string[] = [];
 afterAll(() => temp.forEach((d) => rmSync(d, { recursive: true, force: true })));
 const lint = (script: string) => Bun.spawnSync(["sh", "-c", `printf '%s' "$1" | sh -n`, "x", script]);
+const shellTest = test.skipIf(!Bun.which("sh"));
 
 describe("platforms", () => {
   test("ids are unique and every one names a Bun target", () => {
@@ -60,7 +61,7 @@ describe("launchers", () => {
   const linux = TARGETS.find((t) => t.id === "linux-x64")!;
   const win = TARGETS.find((t) => t.id === "windows-x64")!;
 
-  test("shell launchers are valid shell and follow symlinks", () => {
+  shellTest("shell launchers are valid shell and follow symlinks", () => {
     for (const app of [gui, cli]) {
       const script = unixLauncher(app, linux);
       expect(lint(script).exitCode).toBe(0);
@@ -82,12 +83,14 @@ describe("launchers", () => {
     expect(text).toContain("runtime\\bun.exe");
     expect(windowsLauncher(cli, win)).not.toContain("WEBVIEW_PATH");
   });
-  test("the install script is valid shell", () => {
+  shellTest("the install script is valid shell", () => {
     expect(lint(installScript(["calculator-studio", "file-manager-studio"])).exitCode).toBe(0);
     expect(lint(installScript([])).exitCode).toBe(0);
   });
   test("shQuote survives quotes", () => {
     expect(shQuote("it's")).toBe(`'it'\\''s'`);
+  });
+  shellTest("shQuote preserves literal values in a shell", () => {
     expect(Bun.spawnSync(["sh", "-c", `printf %s ${shQuote("a'b $(x) \"c\"")}`]).stdout.toString()).toBe(`a'b $(x) "c"`);
   });
   test("the readme tells each platform what it needs", () => {
@@ -106,14 +109,14 @@ describe("a real suite", () => {
     const target = TARGETS.find((t) => t.id === hostTargetId())!;
     const stageRoot = mkdtempSync(join(tmpdir(), "suite-"));
     temp.push(stageRoot);
-    const dir = await stageSuite(target, { bundles, iconsDir: null }, stageRoot);
+    const dir = await stageSuite(target, { bundles }, stageRoot);
     const outDir = mkdtempSync(join(tmpdir(), "suite-out-"));
     temp.push(outDir);
     const archive = await archiveSuite(dir, target, outDir);
     expect(archive).toMatch(/bun-rad-studio-v[\d.]+-.+\.(tar\.gz|zip)$/);
     expect(statSync(archive).size).toBeGreaterThan(1_000_000);
 
-    expect(readdirSync(join(dir, "bin")).sort()).toEqual(target.os === "windows" ? ["calculator-studio.cmd", "fd-cli.cmd"] : ["calculator-studio", "fd-cli"]);
+    expect(readdirSync(join(dir, "bin")).sort()).toEqual(target.os === "windows" ? ["calculator-studio.cmd", "calculator-studio.ps1", "fd-cli.cmd"] : ["calculator-studio", "fd-cli"]);
     expect(existsSync(join(dir, "lib", target.webviewLib!))).toBe(true);
     expect(existsSync(join(dir, "resources"))).toBe(true);
     expect(readFileSync(join(dir, "VERSION"), "utf8").trim()).toMatch(/^\d+\.\d+\.\d+/);
@@ -212,7 +215,7 @@ describe("macOS apps", () => {
       expect(Bun.spawnSync(["plutil", "-lint", file]).exitCode).toBe(0);
     }
   });
-  test("the launcher is valid shell and starts the app's own bundle", () => {
+  shellTest("the launcher is valid shell and starts the app's own bundle", () => {
     const script = launcherScript(apps[0]!);
     expect(lint(script).exitCode).toBe(0);
     expect(script).toContain(`app/${apps[0]!.id}.js`);

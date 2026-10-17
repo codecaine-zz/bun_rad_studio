@@ -2,6 +2,8 @@
 
 Bun RAD Studio works with three database engines. This page tells you which tool to use and links to the detailed guide. Engine-by-engine guides and a plain-language concepts guide are **planned** for the next documentation phase; until then the [Database Workbench guide](workbench.md) is the authoritative description of verified behaviour.
 
+**Video walkthrough:** [Codecaine File Manager](https://www.youtube.com/watch?v=uPrlPMj_uK4).
+
 ## Contents
 
 - [Which tool for which job](#which-tool-for-which-job)

@@ -64,7 +64,7 @@ beforeAll(async () => {
     context: { home, dataDir: join(root, "data"), launch: async () => {}, editor: { which: (n) => (n === "code" ? "/usr/local/bin/code" : null), env: {}, open: (p, { command: _c, ...o }) => void started.push(`${p}|${JSON.stringify(o)}`) } },
   });
   const base = `http://127.0.0.1:${server.port}`;
-  const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8").replace(/__FM_TOKEN__/g, "ui-token").replace(/__FM_PLATFORM__/g, process.platform === "darwin" ? "darwin" : "linux").replace(/__FM_NONCE__/g, "n").replace(/__FM_START__/g, "");
+  const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8").replace(/__FM_TOKEN__/g, "ui-token").replace(/__FM_PLATFORM__/g, process.platform).replace(/__FM_NONCE__/g, "n").replace(/__FM_START__/g, "");
   const dom = new JSDOM(html, { url: `${base}/`, pretendToBeVisual: true });
   win = dom.window;
   const g = globalThis as any;
@@ -87,10 +87,10 @@ beforeAll(async () => {
   extras = await import("../resources/file_manager/ui/extras.js");
   const api = await import("../resources/file_manager/ui/api.js");
   state.home = home;
-  state.sep = "/";
+  state.sep = process.platform === "win32" ? "\\" : "/";
   state.places = [];
   state.drives = [];
-  state.platform = process.platform === "darwin" ? "darwin" : "linux";
+  state.platform = process.platform;
   state.settings = (await (api.call as any)("settings")).settings;
   state.location = { path: work };
 });
@@ -117,7 +117,7 @@ describe("right-click on empty space", () => {
     expect(menuLabels().indexOf("New SQLite database")).toBe(menuLabels().indexOf("New file") + 1);
     expect(menuItem("New SQLite database").getAttribute("title").length).toBeGreaterThan(30);
     menuItem("New SQLite database").click();
-    await waitFor(() => existsSync(join(work, "New database.sqlite")), 4000, "the database file");
+    await waitFor(() => existsSync(join(work, "New database.sqlite")) && readFileSync(join(work, "New database.sqlite")).length >= 4096, 4000, "the initialized database file");
     expect(readFileSync(join(work, "New database.sqlite")).subarray(0, 15).toString()).toBe("SQLite format 3");
     expect(state.location.path).toBe(work);
   });

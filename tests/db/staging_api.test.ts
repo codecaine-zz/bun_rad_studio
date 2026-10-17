@@ -27,7 +27,7 @@ class Client {
     if (start.status !== 200) return start;
     let off = 0;
     for (; off < bytes.length; off += chunk) {
-      const part = bytes.subarray(off, off + chunk);
+      const part = new Uint8Array(bytes.subarray(off, off + chunk));
       const r = await fetch(`${this.base}/api/staging/upload/chunk?id=${start.body.uploadId}&offset=${off}`, { method: "POST", headers: { "X-Studio-Staging": "1", "Content-Type": "application/octet-stream" }, body: part });
       const j = (await r.json()) as any;
       if (!j.ok) return { status: r.status, body: j };

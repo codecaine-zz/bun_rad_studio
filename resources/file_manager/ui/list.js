@@ -18,6 +18,7 @@ const views = new Map();
 
 function viewOf(pane) {
   if (!views.has(pane)) views.set(pane, { rows: new Map(), renaming: null });
+
   return views.get(pane);
 }
 
@@ -208,6 +209,10 @@ export function wirePane(pane) {
   const wrap = part(pane, "wrap");
   const entryOf = (row) => visibleEntries(pane).find((e) => e.path === row.dataset.key);
   const mine = () => setActivePane(pane.side);
+  let primarySelection = false;
+  wrap.addEventListener("mousedown", (e) => {
+    primarySelection = state.platform !== "darwin" && e.button === 0 && e.ctrlKey;
+  });
 
   container.addEventListener("click", (e) => {
     const row = rowOf(e.target);
@@ -236,6 +241,8 @@ export function wirePane(pane) {
 
   wrap.addEventListener("contextmenu", (e) => {
     e.preventDefault();
+    // Some Windows hosts also report Ctrl+left-click as a context-menu gesture.
+    if (state.platform !== "darwin" && e.ctrlKey && (e.button === 0 || primarySelection)) return;
     const row = rowOf(e.target);
     mine();
     if (row) {

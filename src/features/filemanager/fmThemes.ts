@@ -3,7 +3,8 @@
  * there can be picked here. Each one is turned into the page's own colour variables, and every text and background
  * pair is nudged until it passes the contrast checks that tests/file_manager_themes.test.ts runs on all of them.
  */
-import { SIMPLEGUI_THEMES, type SimpleGUITheme } from "../../simplegui";
+import type { SimpleGUITheme } from "../../simplegui";
+import { SIMPLEGUI_THEMES } from "../../shared/simpleguiThemes";
 import { FX_THEME_KEYS, fxCssVars, fxRootAttrs, glassReport, type ThemeFx } from "../../shared/fxThemes";
 import { OS_THEME_KEYS, RARE_OS_THEME_KEYS } from "../../shared/osThemes";
 import { buildSemanticPalette, contrastRatio, overridesForTheme, parseColor, toHex } from "../../shared/themeSemantic";

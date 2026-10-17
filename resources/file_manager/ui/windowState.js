@@ -27,6 +27,7 @@ export const bridge = {
   save: (report) => call("fmWindowSave", report),
   reset: () => call("fmWindowReset"),
   apply: (mode) => call("fmWindowApply", mode),
+  alwaysOnTop: (on) => call("fmWindowAlwaysOnTop", on),
 };
 
 const whole = (n) => (Number.isFinite(n) ? Math.round(n) : 0);

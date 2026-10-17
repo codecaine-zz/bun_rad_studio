@@ -4,6 +4,12 @@
 **Prerequisites:** [Requirements](requirements.md) – Bun and Git installed.
 **Difficulty:** beginner. Every command below was run from a fresh clone on macOS with Bun 1.4.2 (13 October 2026) unless it says otherwise.
 
+Prefer to watch first? Start with the [Bun RAD Studio overview](https://www.youtube.com/watch?v=jhTA6194Xn4) (5:55), then the [SimpleGUI full tutorial](https://www.youtube.com/watch?v=-6H_in0W73k) (15:07) or the [no-code visual designer walkthrough](https://www.youtube.com/watch?v=Rh38eyWk0Jo) (10:56).
+
+**Windows downloads:** no source checkout, Bun or compilation is needed. Extract the whole ZIP into a permanent folder, double-click `install.cmd` to check/install Microsoft's desktop prerequisites with your permission, then open the File Manager executable or the suite's Start menu shortcuts. Windows ARM needs Windows 11 x64 emulation; setup uses the x64 Visual C++ runtime even on ARM.
+
+**Compile from source on Windows:** install Bun, clone the project, then double-click [build.cmd](../../build.cmd). It restores dependencies and produces Windows suite and File Manager ZIPs for your PC. See [Building on Windows](../developer/releasing.md#building-on-windows) for target options.
+
 ## Contents
 
 - [Step 1: Open a terminal](#step-1-open-a-terminal)
@@ -99,7 +105,7 @@ bun run build
 ## Things that do not work yet
 
 - **`bun start` (the visual form designer)** now opens its window and the page works (see [what was checked](../visual-designer/index.md#what-was-checked)); before 13 October 2026 it crashed ([D-001](../documentation-maintenance/discrepancies.md#d-001)) and its page did nothing ([D-016](../documentation-maintenance/discrepancies.md#d-016)). The designer cannot save a layout, so this page still uses a code example for the first project that you can save and reopen.
-- Windows and Linux: the automated tests were run on both in CI (see [Testing](../testing/index.md#other-platforms)); no window was opened by hand on either, so installing and launching there is **not verified**.
+- Windows ARM: the source build and extracted File Manager's native window were verified on Windows 11 ARM64 on 16 October 2026. Linux ARM64 native startup and sandbox setup were verified on Ubuntu 24.04; see [release verification](../developer/releasing.md#what-was-verified). Other hardware and every app's UI have not all been manually tested.
 
 ## When something fails
 

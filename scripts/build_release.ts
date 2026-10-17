@@ -16,9 +16,7 @@
  * Publish with:  gh release create v<version> release/*.tar.gz release/*.zip release/SHA256SUMS.txt -F release/RELEASE_NOTES.md
  */
 import { mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "fs";
-import { join } from "path";
-import { ICONS_OUT, iconSpecFor, renderPngs } from "./release/icons";
-import { listMacApps } from "./release/build_mac_apps";
+import { basename, join } from "path";
 import { RELEASE_DIR, archiveSuite, bundleApps, logBundleFailures, stageSuite } from "./release/suite";
 import { TARGETS, VERSION, defaultJobs, findTargets, hostTargetId, listSourceApps, log, mapPool, parseJobs, run, sha256File, type Target } from "./release/common";
 
@@ -51,10 +49,10 @@ export function releaseNotes(rows: Array<{ target: Target; file: string; bytes: 
   L.push("| Your computer | Download | Size | Desktop apps | Command-line tools |", "|---|---|---|---|---|");
   for (const r of rows) L.push(`| ${r.target.note.split(".")[0]} | \`${r.file}\` | ${mb(r.bytes)} | ${r.guiCount || "-"} | ${r.cliCount} |`);
   L.push("", "### Which one do I pick?", "", "- **Mac:** Apple silicon (M1 or newer) -> `macos-arm64`. Intel -> `macos-x64`." + (macApps.length ? " The `-apps` zip files hold ready-to-open `.app` bundles with their own icons." : ""));
-  L.push("- **Windows:** `windows-x64`. Windows on ARM can run it too; `windows-arm64` has the command-line tools only. `-baseline` is for processors from before 2013.");
+  L.push("- **Windows:** `windows-x64`. `windows-arm64` has native command-line tools and uses baseline x64 emulation for desktop apps (Windows 11 required). `-baseline` is for processors from before 2013. Run `install.cmd` for Start menu shortcuts with the same artwork as the Mac apps.");
   L.push("- **Linux:** `linux-x64` (Intel/AMD) or `linux-arm64` (Raspberry Pi, Graviton ...). Alpine uses the `-musl` files (command-line tools only). `-baseline` is for processors from before 2013.", "");
   L.push("Check a download against `SHA256SUMS.txt`: `shasum -a 256 -c SHA256SUMS.txt --ignore-missing`.", "");
-  L.push("Desktop apps need a web view on the system: macOS has one built in; Windows needs the WebView2 runtime (part of Windows 11); Linux needs GTK 4 and WebKitGTK 6.0 (`libgtk-4-1 libwebkitgtk-6.0-4`).", "");
+  L.push("Desktop apps need a web view on the system: macOS has one built in; Windows needs WebView2 and the Visual C++ 2015-2022 x64 Redistributable (including on ARM); Linux needs GTK 4 and WebKitGTK 6.0 (`libgtk-4-1 libwebkitgtk-6.0-4`). Linux `sh install.sh` adds app names and matching Mac icons to your menu.", "");
   L.push("Ubuntu 24.04+: if a desktop app crashes with a bwrap / dbus-proxy permission error, run `sh install.sh --apparmor` in the extracted Linux download (sudo required). This grants sandbox user namespaces to that download's shared runtime, covering every desktop app and child studio. AppArmor and WebKit's sandbox stay enabled. Rerun after moving the folder; remove with `sh install.sh --uninstall --apparmor`. Alpine/musl downloads have command-line tools only and do not need this fix.", "");
   return L.join("\n");
 }
@@ -72,30 +70,21 @@ async function main() {
   logBundleFailures(bundles);
   log("🧩", `Bundled ${bundles.built.length} of ${sources.length}`);
 
-  // Menu icons for Linux come from the same drawing code as the Mac icons, so they can only be drawn on a Mac.
-  let iconsDir: string | null = null;
-  if (process.platform === "darwin") {
-    try {
-      const apps = listMacApps();
-      await renderPngs(apps.map((a) => iconSpecFor({ id: a.id, category: a.category })), join(ICONS_OUT, "png"), opts.jobs);
-      iconsDir = join(ICONS_OUT, "png");
-    } catch (err: any) {
-      log("⚠️", `No icons for the Linux menus (${String(err?.message ?? err).split("\n")[0]})`);
-    }
-  }
-
   mkdirSync(RELEASE_DIR, { recursive: true });
-  for (const f of readdirSync(RELEASE_DIR)) if (/^bun-rad-studio-v.*\.(tar\.gz|zip)$/.test(f) || f === "SHA256SUMS.txt") rmSync(join(RELEASE_DIR, f), { force: true });
+  for (const target of opts.targets) {
+    const file = `bun-rad-studio-v${VERSION}-${target.id}.${target.os === "windows" ? "zip" : "tar.gz"}`;
+    rmSync(join(RELEASE_DIR, file), { force: true });
+  }
 
   // Platforms are packed at the same time (each has its own staging folder); the table keeps the order of the list.
   const rows = await mapPool(opts.targets, Math.min(opts.jobs, 4), async (target) => {
     log("🔨", `${target.id}`);
-    const dir = await stageSuite(target, { bundles, iconsDir });
+    const dir = await stageSuite(target, { bundles });
     const file = await archiveSuite(dir, target);
     if (!opts.keepStage) rmSync(dir, { recursive: true, force: true });
     const gui = target.gui ? bundles.built.filter((a) => a.kind === "gui").length : 0;
-    log("✅", `${file.split("/").pop()}  ${mb(statSync(file).size)}`);
-    return { target, file: file.split("/").pop()!, bytes: statSync(file).size, guiCount: gui, cliCount: bundles.built.filter((a) => a.kind === "cli").length };
+    log("✅", `${basename(file)}  ${mb(statSync(file).size)}`);
+    return { target, file: basename(file), bytes: statSync(file).size, guiCount: gui, cliCount: bundles.built.filter((a) => a.kind === "cli").length };
   });
 
   const macZips: string[] = [];

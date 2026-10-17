@@ -178,6 +178,18 @@ describe("NovaCode Studio Pro — Developer Workstation Contracts", () => {
     expect(data.durationMs).toBeGreaterThanOrEqual(0);
   });
 
+  test("reports a shell command's nonzero exit code", async () => {
+    const res = await fetch(`${baseUrl}/api/exec`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ command: "exit 7" }),
+    });
+    expect(res.status).toBe(200);
+    const data = await res.json() as { success: boolean; exitCode: number };
+    expect(data.success).toBe(true);
+    expect(data.exitCode).toBe(7);
+  });
+
   afterAll(() => {
     try {
       server?.stop();

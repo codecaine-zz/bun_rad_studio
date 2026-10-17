@@ -9,9 +9,12 @@ const FAKE = join(import.meta.dir, "helpers", "fake_studio_staging.ts");
 const studioCommand = () => ({ kind: "dev" as const, where: FAKE, build: (bunArgs: string[], studioArgs: string[]) => [process.execPath, ...bunArgs, FAKE, ...studioArgs] });
 
 const computers: DbComputer[] = [];
-afterAll(() => {
+afterAll(async () => {
   resetLimits();
-  computers.forEach((c) => c.remove());
+  for (const c of computers) {
+    for (const studio of (await c.ok("db/studio/list")).studios) await c.ok("db/studio/stop", { id: studio.id });
+    c.remove();
+  }
 });
 const computer = (o: Parameters<typeof dbComputer>[0] = {}) => {
   const c = dbComputer({ ...o, hooks: { studioCommand, ...o.hooks } });
@@ -22,7 +25,12 @@ const getJson = async (url: string) => (await fetch(url)).json() as Promise<any>
 
 async function sqliteProfile(c: DbComputer, extra: Record<string, unknown> = {}) {
   const file = join(c.dir, `shop-${Math.random().toString(36).slice(2, 6)}.sqlite`);
-  new Database(file).run("create table customers(id integer primary key, name text)");
+  const db = new Database(file);
+  try {
+    db.run("create table customers(id integer primary key, name text)");
+  } finally {
+    db.close();
+  }
   const id = (await c.ok("db/profile/save", { profile: { engine: "sqlite", name: "shop", path: file, sqliteMode: "readwrite", ...extra } })).profile.id;
   return { id, file };
 }

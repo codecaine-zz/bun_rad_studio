@@ -25,6 +25,8 @@ export interface Target {
   gui: boolean;
   /** The file inside lib/ that the apps load (set as WEBVIEW_PATH). */
   webviewLib: string | null;
+  /** A different runtime for desktop apps, e.g. x64 emulation with the x64 window DLL on Windows ARM. */
+  guiRuntime?: string;
   /** Where to start reading about it. */
   note: string;
 }
@@ -42,7 +44,7 @@ export const TARGETS: Target[] = [
   { id: "linux-arm64-musl", bunTarget: "bun-linux-arm64-musl", os: "linux", arch: "arm64", variant: "musl", gui: false, webviewLib: null, note: "Alpine on ARM. Command-line tools only" },
   { id: "windows-x64", bunTarget: "bun-windows-x64", os: "windows", arch: "x64", variant: "", gui: true, webviewLib: "libwebview.dll", note: "64-bit Windows 10 and 11 (needs the WebView2 runtime, already part of Windows 11). Also runs on Windows on ARM through emulation" },
   { id: "windows-x64-baseline", bunTarget: "bun-windows-x64-baseline", os: "windows", arch: "x64", variant: "baseline", gui: true, webviewLib: "libwebview.dll", note: "Like windows-x64, for CPUs older than 2013 (no AVX2)" },
-  { id: "windows-arm64", bunTarget: "bun-windows-arm64", os: "windows", arch: "arm64", variant: "", gui: false, webviewLib: null, note: "Windows on ARM, native command-line tools. For the desktop apps use windows-x64 (Windows on ARM runs it through emulation)" },
+  { id: "windows-arm64", bunTarget: "bun-windows-arm64", os: "windows", arch: "arm64", variant: "", gui: true, webviewLib: "libwebview.dll", guiRuntime: "windows-x64-baseline", note: "Windows 11 on ARM: native command-line tools; desktop apps use baseline x64 emulation and the x64 WebView2/Visual C++ runtimes" },
 ];
 
 export function findTargets(ids: string[] | null): Target[] {
@@ -113,6 +115,16 @@ export async function run(cmd: string[], options: { cwd?: string; env?: Record<s
   const [out, err, code] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]);
   if (code !== 0) throw new Error(`${cmd.slice(0, 3).join(" ")} failed (${code}): ${(err || out).trim().split("\n").slice(-6).join("\n")}`);
   return out;
+}
+
+export async function zipEntries(parent: string, entries: string[], out: string): Promise<void> {
+  if (process.platform === "win32") {
+    await run(["powershell.exe", "-NoProfile", "-Command",
+      "$ErrorActionPreference = 'Stop'; $entries = @(foreach ($entry in (ConvertFrom-Json $env:ZIP_ENTRIES)) { Join-Path $env:ZIP_PARENT ([string]$entry) }); Compress-Archive -LiteralPath $entries -DestinationPath $env:ZIP_OUT -Force"],
+    { env: { ZIP_ENTRIES: JSON.stringify(entries), ZIP_PARENT: parent, ZIP_OUT: out } });
+  } else {
+    await run(["zip", "-qry", "-X", out, ...entries], { cwd: parent });
+  }
 }
 
 /** How many things to build at once when --jobs isn't given: every core but one (so the computer stays usable), at most 8. */

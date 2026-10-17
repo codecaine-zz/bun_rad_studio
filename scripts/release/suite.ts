@@ -9,9 +9,10 @@
 //
 // One shared runtime instead of a 60 MB executable per app keeps the whole suite near 30 MB per platform.
 import { chmodSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
-import { join } from "path";
-import { ROOT, SIDECAR_FILES, VERSION, defaultJobs, log, mapPool, run, shQuote, webviewLibSource, writeFileAtomic, type SourceApp, type Target } from "./common";
+import { basename, join } from "path";
+import { ROOT, SIDECAR_FILES, TARGETS, VERSION, defaultJobs, log, mapPool, run, shQuote, webviewLibSource, writeFileAtomic, zipEntries, type SourceApp, type Target } from "./common";
 import { LINUX_SANDBOX_WARNING, linuxSandboxSetup } from "./linuxSandbox";
+import { WINDOWS_SETUP, desktopInfo, stageDesktopIcons, windowsDesktopLauncher, windowsInstallCommand, windowsInstallScript } from "./desktop";
 
 export const RELEASE_DIR = join(ROOT, "release");
 export const CACHE_DIR = join(RELEASE_DIR, ".cache");
@@ -131,7 +132,8 @@ export function windowsLauncher(app: SourceApp, target: Target): string {
   const lib = app.kind === "gui" && target.webviewLib ? `if not defined WEBVIEW_PATH set "WEBVIEW_PATH=%ROOT%\\lib\\${target.webviewLib}"\r\n` : "";
   const dir = app.kind === "gui" ? "apps" : "cli";
   const cd = app.kind === "gui" ? `cd /d "%ROOT%"\r\n` : "";
-  return `@echo off\r\nsetlocal\r\nset "ROOT=%~dp0.."\r\nset BUN_BE_BUN=1\r\n${lib}${cd}"%ROOT%\\runtime\\bun.exe" "%ROOT%\\${dir}\\${app.name}.js" %*\r\nexit /b %errorlevel%\r\n`;
+  const runtime = app.kind === "gui" && target.guiRuntime ? "bun-gui.exe" : "bun.exe";
+  return `@echo off\r\nsetlocal\r\nset "ROOT=%~dp0.."\r\nset BUN_BE_BUN=1\r\n${lib}${cd}"%ROOT%\\runtime\\${runtime}" "%ROOT%\\${dir}\\${app.name}.js" %*\r\nexit /b %errorlevel%\r\n`;
 }
 
 export function installScript(guiNames: string[], target?: Target): string {
@@ -158,16 +160,19 @@ if [ "$UNINSTALL" = 1 ]; then
 fi
 mkdir -p "$BIN" "$APPS"
 for f in "$ROOT"/bin/*; do ln -sf "$f" "$BIN/$(basename "$f")"; done
+chmod +x "$ROOT/runtime/bun" "$ROOT"/bin/*
+ESCAPED_ROOT="$(printf '%s' "$ROOT" | sed 's/\\\\/\\\\\\\\/g; s/"/\\\\"/g; s/\\\`/\\\\\\\`/g; s/\\$/\\\\$/g; s/%/%%/g')"
 ${guiNames.length ? `for name in ${guiNames.map(shQuote).join(" ")}; do
   icon="$ROOT/share/icons/$name.png"
-  [ -f "$icon" ] || icon="$ROOT/share/icons/app-default.png"
-  title="$(echo "$name" | sed 's/-studio$//; s/-/ /g')"
+  case "$name" in
+${guiNames.map(name => `    ${shQuote(name)}) title=${shQuote(desktopInfo(name).title)} ;;`).join("\n")}
+  esac
   cat > "$APPS/bun-rad-studio-$name.desktop" <<EOF
 [Desktop Entry]
 Type=Application
 Name=$title
 Comment=Bun RAD Studio
-Exec="$ROOT/bin/$name"
+Exec="$ESCAPED_ROOT/bin/$name"
 Icon=$icon
 Terminal=false
 Categories=Development;Utility;
@@ -198,15 +203,13 @@ export function readme(target: Target, guiNames: string[], cliNames: string[]): 
   if (target.os === "linux" && target.variant === "musl") lines.push("Alpine needs the C++ runtime for Bun:", "  apk add libstdc++ libgcc", "");
   if (target.os === "linux" && target.gui) lines.push("The desktop apps need GTK 4 and WebKitGTK 6.0:", "  Debian/Ubuntu 24.04+:  sudo apt install libgtk-4-1 libwebkitgtk-6.0-4", "  Fedora:                sudo dnf install gtk4 webkitgtk6.0", "");
   if (target.os === "linux" && target.gui) lines.push("Ubuntu 24.04+ may block WebKit's sandbox with a bwrap / dbus-proxy permission error.", "Fix all desktop apps in this download with:", "  sh install.sh --apparmor", "This uses sudo to install /etc/apparmor.d/bun-rad-studio, allowing sandbox user", "namespaces for this download's runtime/bun only. AppArmor and WebKit's sandbox stay enabled.", "All apps and their child studios use that shared runtime; no per-app setup is needed.", "Keep the folder in its final location, and rerun after moving it. One suite installation", "is covered at a time. Command-line tools do not need this permission.", "Remove links, menu entries and the profile with: sh install.sh --uninstall --apparmor", "");
-  if (target.os === "windows" && target.gui) lines.push("The desktop apps need the Microsoft WebView2 runtime (already on Windows 11):", "  https://developer.microsoft.com/microsoft-edge/webview2/", "", "They also need Microsoft Visual C++ 2015-2022 Redistributable (x64):", "  https://aka.ms/vs/17/release/vc_redist.x64.exe", "");
+  if (target.os === "windows" && target.gui) lines.push("First, double-click install.cmd. It checks Microsoft WebView2 and the Visual C++ 2015-2022 x64 Redistributable (including on ARM), offers to install missing prerequisites from Microsoft, then adds Start menu shortcuts.", "No Bun, compiler, administrator shell or source checkout is needed. Microsoft installers may request elevation.", "Manual downloads:", "  https://developer.microsoft.com/microsoft-edge/webview2/", "  https://aka.ms/vs/17/release/vc_redist.x64.exe", "", "Optional desktop shortcuts: powershell -NoProfile -ExecutionPolicy Bypass -File .\\install.ps1 -Desktop", "Undo: powershell -NoProfile -ExecutionPolicy Bypass -File .\\install.ps1 -Uninstall -Desktop", "Keep the folder in place. Menu shortcuts start without a console; errors are in %USERPROFILE%\\.bun_rad_studio\\logs.", "For a console with the original output, run the matching bin\\<app>.cmd.", "");
   lines.push("Every file in this download is also in the source repository. Licence: MIT (see LICENSE).", "");
   return lines.join(sh ? "\n" : "\r\n");
 }
 
 export interface StageOptions {
   bundles: BundleResult;
-  /** Folder of PNG icons (one per app) to include for Linux menus, when they have been drawn. */
-  iconsDir?: string | null;
 }
 
 /** Lays out one platform's folder, ready to be archived. Returns the folder. */
@@ -220,6 +223,11 @@ export async function stageSuite(target: Target, options: StageOptions, stageRoo
   const runtime = await buildRuntime(target);
   cpSync(runtime, join(dir, "runtime", `bun${exe}`));
   if (target.os !== "windows") chmodSync(join(dir, "runtime", "bun"), 0o755);
+  if (target.guiRuntime) {
+    const guiTarget = TARGETS.find(t => t.id === target.guiRuntime);
+    if (!guiTarget) throw new Error(`Unknown desktop runtime ${target.guiRuntime}`);
+    cpSync(await buildRuntime(guiTarget), join(dir, "runtime", "bun-gui.exe"));
+  }
 
   const apps = options.bundles.built.filter((a) => a.kind === "cli" || target.gui);
   const gui = apps.filter((a) => a.kind === "gui");
@@ -228,7 +236,10 @@ export async function stageSuite(target: Target, options: StageOptions, stageRoo
   for (const app of apps) {
     const sub = app.kind === "gui" ? "apps" : "cli";
     cpSync(join(BUNDLE_DIR, sub, `${app.name}.js`), join(dir, sub, `${app.name}.js`));
-    if (target.os === "windows") writeFileSync(join(dir, "bin", `${app.name}.cmd`), windowsLauncher(app, target));
+    if (target.os === "windows") {
+      writeFileSync(join(dir, "bin", `${app.name}.cmd`), windowsLauncher(app, target));
+      if (app.kind === "gui") writeFileSync(join(dir, "bin", `${app.name}.ps1`), windowsDesktopLauncher(app.name, target.guiRuntime ? "bun-gui.exe" : "bun.exe"));
+    }
     else {
       const file = join(dir, "bin", app.name);
       writeFileSync(file, unixLauncher(app, target));
@@ -242,13 +253,15 @@ export async function stageSuite(target: Target, options: StageOptions, stageRoo
     cpSync(join(ROOT, "resources"), join(dir, "resources"), { recursive: true });
     for (const f of SIDECAR_FILES) if (existsSync(join(ROOT, f))) cpSync(join(ROOT, f), join(dir, "apps", f.split("/").pop()!));
   }
-  if (gui.length && options.iconsDir && existsSync(options.iconsDir)) {
-    mkdirSync(join(dir, "share", "icons"), { recursive: true });
-    for (const f of readdirSync(options.iconsDir).filter((x) => x.endsWith(".png"))) cpSync(join(options.iconsDir, f), join(dir, "share", "icons", f));
-  }
+  if (gui.length) stageDesktopIcons(dir, gui.map(a => a.name));
   const guiNames = gui.map((a) => a.name);
   writeFileSync(join(dir, "README.txt"), readme(target, guiNames, cli.map((a) => a.name)));
   writeFileSync(join(dir, "VERSION"), `${VERSION}\n`);
+  if (target.os === "windows" && gui.length) {
+    writeFileSync(join(dir, "install.ps1"), windowsInstallScript(guiNames));
+    writeFileSync(join(dir, "setup.ps1"), WINDOWS_SETUP);
+    writeFileSync(join(dir, "install.cmd"), windowsInstallCommand(true));
+  }
   if (existsSync(join(ROOT, "LICENSE"))) cpSync(join(ROOT, "LICENSE"), join(dir, "LICENSE"));
   if (target.os !== "windows") {
     writeFileSync(join(dir, "install.sh"), installScript(guiNames, target));
@@ -260,12 +273,12 @@ export async function stageSuite(target: Target, options: StageOptions, stageRoo
 /** Packs a staged folder: .tar.gz for macOS and Linux, .zip for Windows. Returns the archive path. */
 export async function archiveSuite(dir: string, target: Target, outDir = RELEASE_DIR): Promise<string> {
   mkdirSync(outDir, { recursive: true });
-  const base = dir.split("/").pop()!;
+  const base = basename(dir);
   const parent = join(dir, "..");
   if (target.os === "windows") {
     const out = join(outDir, `${base}.zip`);
     rmSync(out, { force: true });
-    await run(["zip", "-qr", "-X", out, base], { cwd: parent });
+    await zipEntries(parent, [base], out);
     return out;
   }
   const out = join(outDir, `${base}.tar.gz`);

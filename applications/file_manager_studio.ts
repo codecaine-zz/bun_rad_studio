@@ -19,7 +19,7 @@
  * the remembered window and the Recycle Bin live) and --tool-dirs A:B (look for ffmpeg, ImageMagick and pandoc only
  * there); the last three are mainly for testing.
  */
-import { SizeHint, Webview } from "webview-bun";
+import type { Webview } from "webview-bun";
 import { delimiter, resolve } from "path";
 import { APP_NAME, startFileManagerServer, type FileManagerServerOptions } from "../src/features/filemanager/fmServer";
 import { openManagedWindow } from "../src/features/filemanager/fmWindowControl";
@@ -120,6 +120,7 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
       try {
         await fetch(app.url).catch(() => {});
         if (app.server) throw new Error("the server could not be started in the background");
+        const { SizeHint, Webview } = await import("webview-bun");
         // The window is sized, placed and shown from the remembered preference (default: it fills the screen).
         const fixedSize = options.width || options.height ? { width, height } : undefined;
         const managed = openManagedWindow({
@@ -155,11 +156,13 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
         if (process.platform === "win32") console.warn("For a native window, install Microsoft Edge WebView2 and the Microsoft Visual C++ 2015-2022 Redistributable (x64).");
         const cmd = openCommand(process.platform === "win32" ? "win32" : process.platform === "darwin" ? "darwin" : "linux", app.url);
         try {
-          const browser = Bun.spawn([cmd.command, ...cmd.args], { stdout: "ignore", stderr: "inherit" });
-          const code = await browser.exited;
-          if (code !== 0) console.error(`Could not open the browser (${cmd.command} exited with ${code}). Open ${app.url} manually.`);
+          const browser = Bun.spawn([cmd.command, ...cmd.args], { stdout: "ignore", stderr: "pipe" });
+          const [code, stderr] = await Promise.all([browser.exited, new Response(browser.stderr).text()]);
+          if (code !== 0) throw new Error(stderr.trim() || `browser opener exited with code ${code}`);
         } catch (openError) {
-          console.error(`Could not open the browser. Open ${app.url} manually.`, openError);
+          child?.kill();
+          app.server?.stop(true);
+          throw new Error(`The desktop window failed (${String(err)}), and the browser could not be opened: ${String(openError)}`);
         }
         await new Promise(() => {});
       }

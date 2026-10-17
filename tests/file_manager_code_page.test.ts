@@ -79,6 +79,9 @@ beforeAll(async () => {
     terminalAvailable: () => true,
     typeInTerminal: (text: string) => (typedInTerminal.push(text), true),
     showTerminal() {},
+    hideTerminal() {},
+    toggleTerminal() {},
+    wireTerminal() {},
     isTerminalOpen: () => false,
   }));
   server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir: join(root, "data"), launch: async (command, args) => void launched.push({ command, args }) } });
@@ -103,7 +106,7 @@ beforeAll(async () => {
   // The page's shared state outlives the page tests that ran before this one in the same process (the Recycle Bin as the
   // current place changes what the right-click menu offers): start from an ordinary folder.
   const shared = (await import("../resources/file_manager/ui/state.js")).state;
-  Object.assign(shared, { location: { kind: "folder", path: work }, search: null, workspace: "files", powerOpen: false });
+  Object.assign(shared, { platform: process.platform, sep: process.platform === "win32" ? "\\" : "/", home, location: { kind: "folder", path: work }, search: null, workspace: "files", powerOpen: false });
   shared.selection.clear();
   mod = shared.platform === "darwin" ? "metaKey" : "ctrlKey";
   power.wirePower();
@@ -283,7 +286,7 @@ describe("the Code tab in a browser-like page", () => {
     button("Tools").click();
     await sleep(50);
     [...doc.querySelectorAll("[role=menuitem]")].find((e: any) => e.textContent.includes("prettify document")).click();
-    await sleep(2500);
+    await until(() => toasts().some((t) => /v fmt|isn't installed/.test(t)), "the V formatter's result");
     expect(toasts().join(" | ")).toMatch(/v fmt|isn't installed/);
     expect(ta.value).toBe("fn main( {\n");
   });
@@ -370,7 +373,9 @@ describe("the Code tab in a browser-like page", () => {
     button("Run").click();
     await until(() => typedInTerminal.length > 0, "the command to be typed");
     expect(typedInTerminal.length).toBe(1);
-    expect(typedInTerminal[0]).toBe(`cd ${work} && v run ${file}\r`);
+    const quotedWork = process.platform === "win32" ? `'${work}'` : work;
+    const quotedFile = process.platform === "win32" ? `'${file}'` : file;
+    expect(typedInTerminal[0]).toBe(`cd ${quotedWork} && v run ${quotedFile}\r`);
     expect(typedInTerminal[0]!.endsWith("\r")).toBe(true);
     expect(typedInTerminal[0]!.slice(0, -1)).not.toContain("\n");
   });

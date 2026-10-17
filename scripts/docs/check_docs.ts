@@ -21,6 +21,15 @@ export interface Issue {
 export const ROOT = resolve(import.meta.dir, "..", "..");
 export const DOCS = join(ROOT, "docs");
 
+/** Legacy symlink aliases can be plain target text in a Windows checkout with core.symlinks=false. */
+const MARKDOWN_ALIASES = new Map([[join(DOCS, "theme.md"), "THEMES.md"]]);
+
+export function readMarkdown(file: string): string {
+  const text = readFileSync(file, "utf8");
+  const target = MARKDOWN_ALIASES.get(file);
+  return target && text.trim() === target ? readFileSync(join(dirname(file), target), "utf8") : text;
+}
+
 export function walkMarkdown(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
@@ -188,7 +197,7 @@ export async function checkDocs(opts: { external?: boolean } = {}): Promise<{ is
   const issues: Issue[] = [];
   const files = [...walkMarkdown(DOCS), join(ROOT, "README.md")].filter((f) => existsSync(f));
   const parsed = new Map<string, Parsed>();
-  for (const f of files) parsed.set(f, parseMarkdown(readFileSync(f, "utf8")));
+  for (const f of files) parsed.set(f, parseMarkdown(readMarkdown(f)));
   const rel = (f: string) => relative(ROOT, f);
   const packageScripts = new Set(Object.keys(JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).scripts ?? {}));
   let linkCount = 0;
@@ -224,7 +233,7 @@ export async function checkDocs(opts: { external?: boolean } = {}): Promise<{ is
       if (anchor) {
         let tp = parsed.get(targetFile);
         if (!tp && targetFile.endsWith(".md") && existsSync(targetFile)) {
-          tp = parseMarkdown(readFileSync(targetFile, "utf8"));
+          tp = parseMarkdown(readMarkdown(targetFile));
           parsed.set(targetFile, tp);
         }
         if (tp && !tp.anchors.has(decodeURIComponent(anchor).toLowerCase()) && !tp.anchors.has(anchor)) {

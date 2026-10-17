@@ -133,6 +133,23 @@ describe("selected paths for a terminal", () => {
     expect(notices).toEqual(["Paths inserted. Add a command or press Enter when you're ready."]);
   });
 
+  test("inserting multiple paths appends to pending input without resetting or submitting it", async () => {
+    const { insertPaths, typeInTerminal, sockets } = loadTerminal("win32");
+    typeInTerminal("Write-Output ");
+    const ws = sockets[0]!;
+    ws.readyState = 1;
+    ws.dispatchEvent(new Event("open"));
+    const paths = ["C:\\first folder", "C:\\it's a folder"];
+    await insertPaths(paths);
+    const messages = ws.sent.map((text) => JSON.parse(text));
+    expect(messages).toEqual([
+      { type: "input", data: "Write-Output " },
+      { type: "input", data: "'C:\\first folder' 'C:\\it''s a folder' " },
+    ]);
+    expect(messages.map((message) => message.data).join("")).not.toMatch(/[\x00-\x1f\x7f]/);
+    expect(sockets).toHaveLength(1);
+  });
+
   test("each Windows shell gets its own folder command", () => {
     const { folderCommand } = loadTerminal("win32");
     expect(folderCommand("C:\\it's here", "powershell")).toBe("\x1bSet-Location -LiteralPath 'C:\\it''s here'\r");
@@ -171,6 +188,28 @@ describe("selected paths for a terminal", () => {
     ]);
     expect(notices.every((n) => n.startsWith("Paths inserted"))).toBe(true);
   });
+
+  test("following uses the reported physical folder and explains logical versus physical paths", () => {
+    for (const platform of ["linux", "darwin", "win32"]) {
+      const { typeInTerminal, sockets, element, navigated, settings } = loadTerminal(platform);
+      typeInTerminal("pwd");
+      expect(element.title).toContain("Requested terminal folder:");
+      const physical = platform === "win32" ? "C:\\real folder" : "/tmp/real folder";
+      sockets[0]!.onmessage!({ data: JSON.stringify({ type: "cwd", path: physical }) });
+      expect(navigated).toEqual([physical]);
+      expect(element.textContent).toContain(physical);
+      expect(element.title).toContain(`Physical folder reported by the terminal: ${physical}`);
+      expect(element.title).toContain("can differ from pwd");
+      settings.terminalFollow = false;
+      const next = platform === "win32" ? "C:\\another target" : "/tmp/another target";
+      sockets[0]!.onmessage!({ data: JSON.stringify({ type: "cwd", path: next }) });
+      expect(navigated).toEqual([physical]);
+      expect(element.title).toContain(next);
+    }
+    const html = readFileSync(new URL("../resources/file_manager/index.html", import.meta.url), "utf8");
+    expect(html).toContain("Follow terminal (real path)");
+    expect(html).toContain("compare pwd -P");
+  });
 });
 
 type FakeSocketT = EventTarget & { readyState: number; sent: string[]; onmessage?: (e: { data: string }) => void };
@@ -202,21 +241,24 @@ function loadTerminal(platform: string) {
     proposeDimensions() { return { cols: 80, rows: 24 }; }
   }
   const notices: string[] = [];
-  const element = { hidden: true, style: { setProperty() {} }, setAttribute() {} };
+  const navigated: string[] = [];
+  const settings = { textSize: 100, terminalFollow: true };
+  const element = { hidden: true, title: "", textContent: "", style: { setProperty() {} }, setAttribute() {} };
   const source = readFileSync(new URL("../resources/file_manager/ui/terminal.js", import.meta.url), "utf8")
     .replace(/^import .*;\r?$/gm, "").replace(/^export /gm, "");
   const api = new Function("deps", `
     const { $, Terminal, FitAddon, ResizeObserver, WebSocket, window, requestAnimationFrame,
-      quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl, state, terminalUrl, emit, toast } = deps;
+      quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl, state, terminalUrl, emit, toast, goTo } = deps;
     ${source}
-    return { insertPaths, folderCommand };
+    return { insertPaths, folderCommand, typeInTerminal };
   `)({
     $: () => element, Terminal: FakeTerminal, FitAddon: FakeFit,
     ResizeObserver: class { observe() {} }, WebSocket: FakeSocket,
     window: { innerHeight: 1000 }, requestAnimationFrame: () => 0,
     quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl,
-    state: { platform, settings: { textSize: 100 }, location: { kind: "folder", path: platform === "win32" ? "C:\\" : "/tmp" } },
+    state: { platform, settings, location: { kind: "folder", path: platform === "win32" ? "C:\\" : "/tmp" } },
     terminalUrl: () => "ws://test", emit() {}, toast: (message: string) => notices.push(message),
-  }) as { insertPaths: (paths: string[]) => Promise<void>; folderCommand: (folder: string, shell: string, wsl?: object) => string | null };
-  return { ...api, sockets, notices };
+    goTo: (path: string) => navigated.push(path),
+  }) as { insertPaths: (paths: string[]) => Promise<void>; folderCommand: (folder: string, shell: string, wsl?: object) => string | null; typeInTerminal: (text: string) => boolean };
+  return { ...api, sockets, notices, element, navigated, settings };
 }

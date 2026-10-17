@@ -50,8 +50,12 @@ function send(message) {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
 }
 
-function setTitle() {
-  $("#terminal-title").textContent = startedIn ? `Terminal · ${startedIn}` : "Terminal";
+function setTitle(reported = false) {
+  const title = $("#terminal-title");
+  title.textContent = startedIn ? `Terminal · ${startedIn}` : "Terminal";
+  title.title = reported
+    ? `Physical folder reported by the terminal: ${startedIn}. Follow terminal uses this path, which can differ from pwd when symlinks or junctions are involved.`
+    : startedIn ? `Requested terminal folder: ${startedIn}. Waiting for the shell to report its physical folder.` : "Terminal";
 }
 
 function queueFit() {
@@ -78,7 +82,7 @@ function applyHeight() {
 /** The shell moved to another folder (the person typed `cd`): show that folder in the file list too, if "Follow terminal" is on. */
 function followShell(path) {
   startedIn = path;
-  setTitle();
+  setTitle(true);
   if (state.settings.terminalFollow === false) return;
   if (state.location.kind === "folder" && state.location.path === path) return;
   goTo(path);
@@ -362,11 +366,11 @@ export function wireTerminal() {
   follow.checked = state.settings.terminalFollow !== false;
   follow.addEventListener("change", () => {
     saveSettings({ terminalFollow: follow.checked });
-    toast(follow.checked ? "The file list will follow the terminal." : "The file list stays where it is when you change folder in the terminal.", { kind: "info" });
+    toast(follow.checked ? "The file list will follow the terminal's physical folder (symlinks resolved)." : "The file list stays where it is when you change folder in the terminal.", { kind: "info" });
   });
   on("settings", () => { follow.checked = state.settings.terminalFollow !== false; });
   $("#terminal-cd").addEventListener("click", () => goToFolder());
-  $("#terminal-restart").addEventListener("click", restart);
+  $("#terminal-restart").addEventListener("click", () => restart());
   $("#terminal-close").addEventListener("click", hideTerminal);
   wireResizer();
   window.addEventListener("resize", () => state.terminalOpen && applyHeight());

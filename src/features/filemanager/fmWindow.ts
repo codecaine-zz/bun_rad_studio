@@ -65,6 +65,8 @@ export interface WindowState {
 export interface WindowPrefs {
   mode: WindowMode;
   state: WindowState | null;
+  /** Missing in older preferences, and when off (the default). */
+  alwaysOnTop?: boolean;
 }
 
 export const DEFAULT_WINDOW_PREFS: Readonly<WindowPrefs> = { mode: "fill", state: null };
@@ -102,7 +104,7 @@ export function sanitizeWindowState(raw: unknown): WindowState | null {
 export function sanitizeWindowPrefs(raw: unknown): WindowPrefs {
   const r = (raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {}) as Record<string, unknown>;
   const mode = WINDOW_MODES.includes(r.mode as WindowMode) ? (r.mode as WindowMode) : "fill";
-  return { mode, state: sanitizeWindowState(r.state) };
+  return { mode, state: sanitizeWindowState(r.state), ...(r.alwaysOnTop === true ? { alwaysOnTop: true } : {}) };
 }
 
 export function isWindowMode(v: unknown): v is WindowMode {
@@ -134,7 +136,17 @@ export function writeWindowPrefs(dataDir: string, prefs: WindowPrefs): WindowPre
   try {
     writeFileSync(tmp, JSON.stringify({ version: 1, ...clean }, null, 2), { mode: 0o600 });
     chmodSync(tmp, 0o600);
-    renameSync(tmp, file);
+    const wait = process.platform === "win32" ? new Int32Array(new SharedArrayBuffer(4)) : null;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        renameSync(tmp, file);
+        break;
+      } catch (err) {
+        // Windows scanners can briefly hold a file without allowing its replacement.
+        if (!wait || !(err instanceof Error) || !("code" in err) || !["EPERM", "EACCES", "EBUSY"].includes(String(err.code)) || attempt >= 10) throw err;
+        Atomics.wait(wait, 0, 0, 25);
+      }
+    }
   } catch (err) {
     try { rmSync(tmp, { force: true }); } catch {}
     throw err;
@@ -181,7 +193,7 @@ export function reduceReport(prefs: WindowPrefs, raw: unknown): ReportResult {
   const merged = mergeNormalBounds(prefs.state, state);
   const modeSwitched = prefs.mode !== "remember";
   if (!modeSwitched && sameWindowState(prefs.state, merged)) return nothing;
-  return { prefs: { mode: "remember", state: merged }, save: true, modeSwitched };
+  return { prefs: { ...prefs, mode: "remember", state: merged }, save: true, modeSwitched };
 }
 
 export type WindowPlanMode = "maximize" | "fullscreen" | "normal";
@@ -270,7 +282,7 @@ export function planWindow(prefs: WindowPrefs, screens: FmScreen[], defaults: { 
 }
 
 /** What the page and the Settings dialog are told about the preference. */
-const describe = (prefs: WindowPrefs) => ({ mode: prefs.mode, state: prefs.state, saved: prefs.state !== null });
+const describe = (prefs: WindowPrefs) => ({ ...prefs, saved: prefs.state !== null });
 
 /** `window/get`, `window/set` and `window/reset`: the Settings dialog reads and writes the same file the window process uses. */
 export const windowOperations: Record<string, FmHandler> = {
@@ -289,7 +301,7 @@ export const windowOperations: Record<string, FmHandler> = {
       if (!state) throw new FmError("BAD_REQUEST", "That window size and position isn't valid.");
     }
     const mode: WindowMode = hasMode ? b.mode : current.mode;
-    return describe(writeWindowPrefs(ctx.dataDir, { mode, state }));
+    return describe(writeWindowPrefs(ctx.dataDir, { ...current, mode, state }));
   },
   async "window/reset"(ctx: FmContext) {
     return describe(resetWindowPrefs(ctx.dataDir));

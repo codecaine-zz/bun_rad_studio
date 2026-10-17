@@ -1,0 +1,197 @@
+{
+  "api-studio": {
+    "title": "API Testing Studio Pro"
+  },
+  "lolo-studio": {
+    "title": "Adventures of Lolo Remaster"
+  },
+  "app-bundler-studio": {
+    "title": "App Bundler Studio Pro"
+  },
+  "blackjack-studio": {
+    "title": "Blackjack Royale VIP"
+  },
+  "paint-studio": {
+    "title": "Chroma Studio Pro"
+  },
+  "tokei-studio": {
+    "title": "Code Statistics Studio (Tokei)"
+  },
+  "codecaine-bros-studio": {
+    "title": "Codecaine Bros. Arcade"
+  },
+  "file-manager-studio": {
+    "title": "Codecaine File Manager"
+  },
+  "color-studio": {
+    "title": "Color Palette Studio Pro"
+  },
+  "crypto-studio": {
+    "title": "Cryptography & Hashing Studio"
+  },
+  "breakout-studio": {
+    "title": "Cyber Breakout Deluxe"
+  },
+  "frogger-studio": {
+    "title": "CyberFrog Deluxe"
+  },
+  "typing-studio": {
+    "title": "CyberType Deluxe"
+  },
+  "connect4-studio": {
+    "title": "Cyberpunk Connect 4"
+  },
+  "maze-generator-studio": {
+    "title": "Cyberpunk Maze Runner"
+  },
+  "pacman-studio": {
+    "title": "Cyberpunk Pac-Man Arcade"
+  },
+  "doggo-studio": {
+    "title": "DNS Query Studio (Doggo)"
+  },
+  "dataconvert-studio": {
+    "title": "Data Format Converter Studio"
+  },
+  "devtools-studio": {
+    "title": "DevTools & OmniTool Studio"
+  },
+  "gdu-studio": {
+    "title": "Disk Usage Studio (GDU)"
+  },
+  "dr-codecaine-studio": {
+    "title": "Dr. Codecaine Arcade"
+  },
+  "rat-screw-studio": {
+    "title": "Egyptian Rat Screw Royale"
+  },
+  "env-studio": {
+    "title": "Environment Variable Studio"
+  },
+  "fd-studio": {
+    "title": "Fd Studio Pro"
+  },
+  "flappy-bird-studio": {
+    "title": "Flappy Bird Deluxe"
+  },
+  "git-studio": {
+    "title": "Git Version Control Studio"
+  },
+  "brew-studio": {
+    "title": "Homebrew Package Studio"
+  },
+  "ipinfo-studio": {
+    "title": "IP Geolocation Studio"
+  },
+  "interval-timer-studio": {
+    "title": "Interval Timer & Workout Suite"
+  },
+  "jq-studio": {
+    "title": "JQ JSON Query Studio"
+  },
+  "balatro-studio": {
+    "title": "Joker Royale (Balatro Deluxe)"
+  },
+  "launcher-studio": {
+    "title": "Launcher Studio Pro"
+  },
+  "markdown-studio": {
+    "title": "Markdown Live Editor Studio"
+  },
+  "math-munchers-studio": {
+    "title": "Math Munchers Deluxe"
+  },
+  "minesweeper-studio": {
+    "title": "Minesweeper Pro Championship"
+  },
+  "mysql-studio": {
+    "title": "MySQL Studio Pro"
+  },
+  "pong-studio": {
+    "title": "Neon Cyber Pong"
+  },
+  "snake-studio": {
+    "title": "Neon Snake Deluxe"
+  },
+  "tictactoe-studio": {
+    "title": "Neon Tic-Tac-Toe Arcade"
+  },
+  "word-search-studio": {
+    "title": "Neon Word Search Labyrinth"
+  },
+  "network-studio": {
+    "title": "Network Diagnostics Studio"
+  },
+  "code-studio": {
+    "title": "NovaCode Studio Pro"
+  },
+  "omnitool-studio": {
+    "title": "OmniTool Studio Pro"
+  },
+  "postgres-studio": {
+    "title": "Postgres Studio Pro"
+  },
+  "process-studio": {
+    "title": "Process Monitor Studio"
+  },
+  "procs-studio": {
+    "title": "Procs Process Workstation"
+  },
+  "rad-studio": {
+    "title": "RAD Utilities Studio Pro"
+  },
+  "redis-studio": {
+    "title": "Redis Studio Pro"
+  },
+  "regex-studio": {
+    "title": "Regex Pattern Testing Studio"
+  },
+  "rip-studio": {
+    "title": "Rip Studio Pro"
+  },
+  "rodents-revenge-studio": {
+    "title": "Rodent's Revenge Deluxe"
+  },
+  "sqlite-studio": {
+    "title": "SQLite Studio Pro"
+  },
+  "skifree-studio": {
+    "title": "SkiFree Deluxe"
+  },
+  "sd-studio": {
+    "title": "Stream Editor Studio (SD)"
+  },
+  "subfinder-studio": {
+    "title": "Subdomain Finder Studio"
+  },
+  "subprocess-pipe-studio": {
+    "title": "Subprocess Pipe Pro"
+  },
+  "system-studio": {
+    "title": "System Information Studio Pro"
+  },
+  "task-manager": {
+    "title": "Task Manager & Process Studio"
+  },
+  "tetris-studio": {
+    "title": "Tetris Ultra Deluxe"
+  },
+  "poker-studio": {
+    "title": "Texas Hold'em & 5-Card Draw Poker Royale"
+  },
+  "calculator-studio": {
+    "title": "Universal Calculator & IntuitionLab Studio"
+  },
+  "rad-designer": {
+    "title": "Visual Form Designer"
+  },
+  "watchexec-studio": {
+    "title": "WatchExec Studio Pro"
+  },
+  "world-time-zones-studio": {
+    "title": "World Time Zones Studio Pro"
+  },
+  "yahtzee-studio": {
+    "title": "Yahtzee Royale Deluxe"
+  }
+}

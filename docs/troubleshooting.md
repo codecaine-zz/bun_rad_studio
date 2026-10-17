@@ -13,6 +13,20 @@ Look up what you see, find the likely cause and the safe next step. Rows marked 
 
 ## Starting a program
 
+### Downloaded File Manager does not open
+
+Extract the **whole** archive; keep `app`, `lib` and `resources` beside the executable.
+
+- **Windows / Windows ARM:** first run `install.cmd` from the extracted download. It checks WebView2 and the [Visual C++ 2015-2022 x64 Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe), and offers to install missing prerequisites using signed Microsoft installers. The native window DLL is x64 even on ARM; an ARM64-only C++ runtime is not sufficient. The ARM download uses the baseline x64 Bun runtime to avoid requiring AVX2 emulation and needs Windows 11 with x64 emulation. Open `troubleshoot.cmd` to retain errors in a console.
+- **Linux:** install GTK 4 and WebKitGTK 6.0: `sudo apt install libgtk-4-1 libwebkitgtk-6.0-4` (Ubuntu 24.04+/Debian), or `sudo dnf install gtk4 webkitgtk6.0` (Fedora). Run `sh install.sh` in the extracted folder, then use the applications menu. This restores execute permission if the unzip tool lost it. For errors run `sh troubleshoot.sh` in a terminal; on older downloads use `chmod +x codecaine-file-manager` then `./codecaine-file-manager`. A window needs a graphical desktop; `--server` prints a browser address without loading the native window library.
+- **macOS:** move the app to Applications first. These downloads are ad-hoc signed, not Developer ID signed or notarized. Right-click **Open** is not sufficient on every macOS version. Only after trusting the source and verifying the download checksum, run `xattr -dr com.apple.quarantine "/Applications/Codecaine File Manager.app"` in Terminal, then open it from Applications. Do not disable Gatekeeper globally.
+
+New Windows/Linux builds retain startup output in `~/.bun_rad_studio/logs/file-manager-<pid>.log` (`%USERPROFILE%\.bun_rad_studio\logs` on Windows) and try to show an error dialog on failure. The troubleshooting scripts and startup logs require a rebuilt download; existing release archives are unchanged.
+
+Window preferences are saved by atomic replacement. On Windows, brief file locks are retried for up to 250 ms; a persistent lock or permission error is still reported rather than deleting the previous settings file. Close any program holding `file_manager_window.json` and check the data folder's permissions if saving continues to fail.
+
+File Manager page settings are saved in order. Changing a view while the last folder is still being remembered no longer lets an older save response replace the newer view choice.
+
 | What you see | Likely cause | What to do |
 |---|---|---|
 | `src/ide.html does not match src/ide/` from `bun run ide:check` or a failing `tests/ide_build.test.ts`; or an edit to `src/ide.html` that vanished | `src/ide.html` is built from the parts in `src/ide/`. It was edited by hand, or a part was edited and `bun run ide:build` was not run ([D-044](documentation-maintenance/discrepancies.md#d-044)) | Make the change in the matching file under `src/ide/` (find it by function name; the [handbook](developer/handbook.md#extend-the-designer) lists the main ones), run `bun run ide:build`, commit both |
@@ -32,6 +46,8 @@ Look up what you see, find the likely cause and the safe next step. Rows marked 
 | A studio's address does not open from another computer (**seen**) | Studios listen on this computer only, on purpose ([D-013](documentation-maintenance/discrepancies.md#d-013)) | Use the studio on the machine where it runs; do not rebind it |
 | `curl` to a studio works but your own web page's request fails (**seen**) | `curl` sends no `Origin`; a page on another address does, and is refused | Expected. Put your code inside the studio, or call it from a program, not a web page |
 | `READY:<port>` is never printed | That studio has no headless mode, or it printed a "server running at" line instead | Look at the application index column "Automated start check" ([Application index](reference/application-index.md#studios)) |
+
+NovaCode Studio's command runner uses Windows PowerShell on Windows and `sh` on macOS/Linux. Use commands for that shell; Windows does not require Git Bash or WSL for the runner.
 
 ## The designer
 
@@ -58,11 +74,14 @@ Look up what you see, find the likely cause and the safe next step. Rows marked 
 
 ## Tests, type check and documentation checks
 
+On Windows, use an **x64 Bun executable** for tests that import `webview-bun`, including on Windows ARM: its Windows native DLL is x64. Invoke that executable directly for the test runner; an ARM64 Bun installation can otherwise be selected by nested package scripts. WSL integration tests require WSL and the opt-in `FM_TEST_WSL=1`; Unix-shell tests require `sh`.
+
 | What you see | Likely cause | What to do |
 |---|---|---|
 | `New type errors (the count for these files went up)` (**seen**) | `bun run typecheck` found more errors in the listed files | Fix them. Only after a deliberate decision, `bun run typecheck -- --update` and say why in the commit |
 | `docs/toc.md is stale: run bun run docs:build` (**seen**) | A generated page is out of date, often because a page was added to `docs/nav.json` | `bun run docs:build`, commit the result |
 | `missing anchor #...` from `docs:check` (**seen**) | A link points at a heading that does not exist. Anchors are the full heading text in lower case with hyphens, so `## CLI tool (command-line interface)` is `#cli-tool-command-line-interface` | Copy the anchor from the heading |
+| `docs/theme.md` has no H1 on Windows (**seen** before the fix) | Git checked out the tracked symlink as a plain file containing `THEMES.md` because `core.symlinks` is false | Update the project: the checker now reads this known legacy alias as [Themes](THEMES.md), without requiring symlink privileges. Do not edit the symlink's target text as if it were a Markdown page |
 | A test passes on your machine but fails in a fresh clone | It depends on an untracked file (for example `.env`) or the folder name ([D-020](documentation-maintenance/discrepancies.md#d-020)) | Make the test create what it needs |
 | About 152 tests are skipped | The MySQL and PostgreSQL suites need a disposable server | [Database tests](testing/database-tests.md) |
 | `git status` shows changes in `bin/` after tests | The wrapper list really changed (the timestamp alone no longer causes this, [D-006](documentation-maintenance/discrepancies.md#d-006)) | Review the change; commit it if intended |

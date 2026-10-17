@@ -258,6 +258,50 @@ describe("the window file", () => {
     expect(readdirSync(dir)).toEqual([WINDOW_FILE]);
   });
 
+  test.skipIf(process.platform !== "win32")("a short Windows file lock does not lose the saved preference", async () => {
+    const dir = folder();
+    writeWindowPrefs(dir, { mode: "remember", state: state() });
+    const proc = Bun.spawn(["powershell.exe", "-NoProfile", "-Command",
+      "$file = [IO.File]::Open($env:WINDOW_PREFS_FILE, 'Open', 'Read', 'ReadWrite'); try { [Console]::WriteLine('LOCKED'); Start-Sleep -Milliseconds 100 } finally { $file.Dispose() }"],
+    { env: { ...process.env, WINDOW_PREFS_FILE: join(dir, WINDOW_FILE) }, stdout: "pipe", stderr: "pipe" });
+    try {
+      const reader = proc.stdout.getReader();
+      const { value } = await reader.read();
+      expect(new TextDecoder().decode(value)).toContain("LOCKED");
+      reader.releaseLock();
+      writeWindowPrefs(dir, { mode: "remember", state: state({ width: 1100 }) });
+      expect(readWindowPrefs(dir).state?.width).toBe(1100);
+      expect(readdirSync(dir)).toEqual([WINDOW_FILE]);
+      expect(await proc.exited, await new Response(proc.stderr).text()).toBe(0);
+    } finally {
+      proc.kill();
+      await proc.exited;
+    }
+  });
+
+  test.skipIf(process.platform !== "win32")("a persistent Windows lock reports the error and preserves the previous preference", async () => {
+    const dir = folder();
+    writeWindowPrefs(dir, { mode: "remember", state: state() });
+    const proc = Bun.spawn(["powershell.exe", "-NoProfile", "-Command",
+      "$file = [IO.File]::Open($env:WINDOW_PREFS_FILE, 'Open', 'Read', 'ReadWrite'); try { [Console]::WriteLine('LOCKED'); [Console]::ReadLine() | Out-Null } finally { $file.Dispose() }"],
+    { env: { ...process.env, WINDOW_PREFS_FILE: join(dir, WINDOW_FILE) }, stdin: "pipe", stdout: "pipe", stderr: "pipe" });
+    try {
+      const reader = proc.stdout.getReader();
+      const { value } = await reader.read();
+      expect(new TextDecoder().decode(value)).toContain("LOCKED");
+      reader.releaseLock();
+      expect(() => writeWindowPrefs(dir, { mode: "remember", state: state({ width: 1100 }) })).toThrow();
+      expect(readWindowPrefs(dir).state?.width).toBe(1000);
+      expect(readdirSync(dir)).toEqual([WINDOW_FILE]);
+      proc.stdin.write("\n");
+      proc.stdin.end();
+      expect(await proc.exited, await new Response(proc.stderr).text()).toBe(0);
+    } finally {
+      proc.kill();
+      await proc.exited;
+    }
+  });
+
   test("a write that can't happen throws and leaves no temporary file", () => {
     const dir = folder();
     writeFileSync(dir, "a file, not a folder");
@@ -350,7 +394,7 @@ describe("opening the window", () => {
     expect(calls.indexOf("setBounds")).toBeLessThan(calls.indexOf("maximize"));
     expect(calls.indexOf("maximize")).toBeLessThan(calls.lastIndexOf("show"));
     expect(f.bounds).toEqual([{ x: 224, y: 125, width: 1280, height: 820 }]);
-    expect(calls.filter((c) => c.startsWith("bind:"))).toEqual(["bind:fmWindowPoll", "bind:fmWindowChanged", "bind:fmWindowSave", "bind:fmWindowReset", "bind:fmWindowApply"]);
+    expect(calls.filter((c) => c.startsWith("bind:"))).toEqual(["bind:fmWindowPoll", "bind:fmWindowChanged", "bind:fmWindowSave", "bind:fmWindowReset", "bind:fmWindowApply", "bind:fmWindowAlwaysOnTop"]);
     expect(existsSync(join(dir, WINDOW_FILE))).toBe(false); // opening at the default writes nothing
   });
 
@@ -540,7 +584,7 @@ describe("the window process and the page's reports", () => {
     const bound = new Map<string, (...a: any[]) => unknown>();
     const { c, native } = make();
     bindWindowControl({ bind: (name, fn) => void bound.set(name, fn) }, c);
-    expect([...bound.keys()]).toEqual(["fmWindowPoll", "fmWindowChanged", "fmWindowSave", "fmWindowReset", "fmWindowApply"]);
+    expect([...bound.keys()]).toEqual(["fmWindowPoll", "fmWindowChanged", "fmWindowSave", "fmWindowReset", "fmWindowApply", "fmWindowAlwaysOnTop"]);
     expect(bound.get("fmWindowPoll")!()).toBeNull();
     expect(bound.get("fmWindowApply")!("fill")).toMatchObject({ ok: true });
     expect(bound.get("fmWindowChanged")!(undefined)).toMatchObject({ ok: true, saved: false });
@@ -552,6 +596,54 @@ describe("the window process and the page's reports", () => {
     expect(bound.get("fmWindowPoll")!()).toBeNull();
     expect(bound.get("fmWindowChanged")!({})).toMatchObject({ ok: false });
     expect(bound.get("fmWindowReset")!()).toMatchObject({ ok: false });
+  });
+});
+
+describe("always on top", () => {
+  test("off by default, saved when enabled, restored on reopening, and preserved by frame reports", () => {
+    const dir = folder();
+    const f = fakeNative({ frame: () => state() });
+    const changes: boolean[] = [];
+    f.native.setAlwaysOnTop = (on) => { changes.push(on); return true; };
+    const c = createWindowController({ native: f.native, dataDir: dir, graceMs: 0 });
+    c.open(c.plan());
+    expect(changes).toEqual([]);
+    expect(c.setAlwaysOnTop(true)).toEqual({ ok: true, alwaysOnTop: true });
+    expect(readWindowPrefs(dir).alwaysOnTop).toBe(true);
+    c.changed(state());
+    expect(readWindowPrefs(dir).alwaysOnTop).toBe(true);
+    expect(c.save()).toMatchObject({ ok: true });
+    expect(readWindowPrefs(dir).alwaysOnTop).toBe(true);
+    const reopened = createWindowController({ native: f.native, dataDir: dir });
+    reopened.open(reopened.plan());
+    expect(changes).toEqual([true, true]);
+    expect(reopened.setAlwaysOnTop(false)).toEqual({ ok: true, alwaysOnTop: false });
+    expect(readWindowPrefs(dir).alwaysOnTop).not.toBe(true);
+    expect(changes).toEqual([true, true, false]);
+    expect(reopened.setAlwaysOnTop(true).ok).toBe(true);
+    expect(reopened.reset().ok).toBe(true);
+    expect(changes.at(-1)).toBe(false);
+    expect(readWindowPrefs(dir).alwaysOnTop).not.toBe(true);
+  });
+
+  test("unsupported or invalid requests report failure without saving", () => {
+    const dir = folder();
+    const f = fakeNative();
+    const c = createWindowController({ native: f.native, dataDir: dir });
+    expect(c.setAlwaysOnTop(true)).toMatchObject({ ok: false, alwaysOnTop: false });
+    expect(c.setAlwaysOnTop("yes")).toMatchObject({ ok: false, alwaysOnTop: false });
+    expect(existsSync(join(dir, WINDOW_FILE))).toBe(false);
+  });
+
+  test("a failed save restores native stacking and reports the error", () => {
+    const blocked = join(root, "not-a-directory");
+    writeFileSync(blocked, "");
+    const f = fakeNative();
+    const changes: boolean[] = [];
+    f.native.setAlwaysOnTop = (on) => { changes.push(on); return true; };
+    const c = createWindowController({ native: f.native, dataDir: blocked });
+    expect(c.setAlwaysOnTop(true)).toMatchObject({ ok: false, alwaysOnTop: false });
+    expect(changes).toEqual([true, false]);
   });
 });
 

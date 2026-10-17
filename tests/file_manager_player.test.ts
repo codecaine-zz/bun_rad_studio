@@ -3,8 +3,8 @@
  * each format, and real files made by ffmpeg when it is installed), subtitle conversion, clock text, and the play queue
  * with shuffle and repeat. No page is needed.
  */
-import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "fs";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { AUDIO_MIME, VIDEO_MIME } from "../src/features/filemanager/fmQuickLook";
@@ -117,9 +117,11 @@ describe("FLAC tags", () => {
   });
 });
 
-const ffmpeg = ["/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg", Bun.which("ffmpeg") ?? ""].find((p) => p && Bun.spawnSync([p, "-version"]).exitCode === 0);
+const ffmpeg = ["/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg", Bun.which("ffmpeg") ?? ""].find((p) => p && existsSync(p) && Bun.spawnSync([p, "-version"]).exitCode === 0);
 describe.skipIf(!ffmpeg)("real files made by ffmpeg", () => {
-  const dir = mkdtempSync(join(tmpdir(), "fm-player-"));
+  let dir: string;
+  beforeAll(() => { dir = mkdtempSync(join(tmpdir(), "fm-player-")); });
+  afterAll(() => { rmSync(dir, { recursive: true, force: true }); });
   const run = (args: string[]) => expect(Bun.spawnSync([ffmpeg!, "-y", "-loglevel", "error", ...args], { cwd: dir }).exitCode).toBe(0);
   test("an MP3 with ID3 tags and a cover", () => {
     mkdirSync(dir, { recursive: true });
@@ -151,7 +153,6 @@ describe.skipIf(!ffmpeg)("real files made by ffmpeg", () => {
     const t = parseMp4Tags(moov!)!;
     expect([t.title, t.artist]).toEqual(["Real M4A", "M4A Artist"]);
     expect(t.cover).not.toBeNull();
-    rmSync(dir, { recursive: true, force: true });
   });
 });
 

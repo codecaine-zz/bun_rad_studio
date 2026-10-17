@@ -87,7 +87,7 @@ esac
   return { dir, root, home, script, commands, profile, run };
 }
 
-describe("all Linux suite desktop apps", () => {
+describe.skipIf(process.platform === "win32")("all Linux suite desktop apps", () => {
   const apps = listSourceApps().filter((app) => app.kind === "gui");
   const cliNames = listSourceApps()
     .filter((app) => app.kind === "cli")
@@ -166,7 +166,7 @@ describe("all Linux suite desktop apps", () => {
   });
 });
 
-describe("File Manager Linux release installer", () => {
+describe.skipIf(process.platform === "win32")("File Manager Linux release installer", () => {
   test("valid POSIX shell; plain install and uninstall do not invoke sudo", () => {
     const f = fixture();
     expect(Bun.spawnSync(["sh", "-n", f.script]).exitCode).toBe(0);

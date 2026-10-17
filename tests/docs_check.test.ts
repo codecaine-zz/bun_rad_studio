@@ -1,10 +1,16 @@
 import { describe, it, expect } from "bun:test";
-import { checkDocs, findCommandProblems, findSecrets, parseMarkdown, slugify } from "../scripts/docs/check_docs";
+import { DOCS, checkDocs, findCommandProblems, findSecrets, parseMarkdown, readMarkdown, slugify } from "../scripts/docs/check_docs";
 import { renderAll } from "../scripts/docs/build_docs";
 import { readFileSync } from "fs";
 import { join } from "path";
 
 describe("documentation checker", () => {
+  it("reads the legacy theme alias as its guide on symlink and plain-file checkouts", () => {
+    expect(readMarkdown(join(DOCS, "theme.md"))).toBe(readFileSync(join(DOCS, "THEMES.md"), "utf8"));
+    expect(parseMarkdown(readMarkdown(join(DOCS, "theme.md"))).headings.filter((h) => h.level === 1)).toHaveLength(1);
+    expect(readMarkdown(join(DOCS, "troubleshooting.md"))).toBe(readFileSync(join(DOCS, "troubleshooting.md"), "utf8"));
+  });
+
   it("slugifies headings like GitHub (emoji-led headings keep a leading hyphen)", () => {
     expect(slugify("Step 3: Install the packages")).toBe("step-3-install-the-packages");
     expect(slugify("Import/export versus backup/restore")).toBe("importexport-versus-backuprestore");

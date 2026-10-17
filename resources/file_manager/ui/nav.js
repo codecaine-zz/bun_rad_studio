@@ -23,14 +23,24 @@ export async function busy(fn) {
 }
 
 const saveLastPath = debounce((path) => saveSettings({ lastPath: path }).catch(() => {}), 600);
+let settingsSave = Promise.resolve();
+let settingsRevision = 0;
 
 /** Saves a change to the remembered settings (and updates the page right away). */
 export async function saveSettings(change) {
+  const revision = ++settingsRevision;
+  const set = { ...change };
+  const persist = async () => {
+    const res = await call("settings", { set });
+    if (revision === settingsRevision) state.settings = res.settings;
+    return res.settings;
+  };
+  // Order writes, and never let an older reply replace a newer optimistic change.
+  const saved = settingsSave.then(persist, persist);
+  settingsSave = saved;
   Object.assign(state.settings, change);
   emit("settings", change);
-  const res = await call("settings", { set: change });
-  state.settings = res.settings;
-  return res.settings;
+  return saved;
 }
 
 /** Loads the sidebar data: places, drives, Recycle Bin count and settings. */

@@ -1,6 +1,17 @@
 # Changelog
 
-All notable changes. Version 1.3.2 is the eighth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0 and 1.3.1 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.4.0 is the ninth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1 and 1.3.2 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+
+## 1.4.0 (16 October 2026)
+
+### Added
+
+- **Build the full Windows suite from source with `build.cmd`.** The command detects Windows x64 or ARM64 and writes ZIPs for the full app and command-line suite and the standalone File Manager.
+- **New full-suite binaries for macOS, Linux and Windows.** All 73 desktop apps and 79 command-line tools are bundled for ten supported platform targets, including baseline and ARM64 builds. Standalone File Manager binaries are refreshed for Windows and Linux.
+
+### Improved
+
+- **File Manager selection and Windows interactions.** Control-click selection, terminal path handling and window controls are improved across platforms.
 
 ## 1.3.2 (16 October 2026)
 

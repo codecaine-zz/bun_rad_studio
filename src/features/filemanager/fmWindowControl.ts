@@ -71,6 +71,7 @@ export interface WindowController {
   reset(): ApplyResult;
   /** Applies a mode to the open window now (the preference itself is saved by the server operation `window/set`). */
   apply(mode: unknown): ApplyResult;
+  setAlwaysOnTop(on: unknown): { ok: boolean; alwaysOnTop: boolean; message?: string };
 }
 
 const guard = <T>(fn: () => T, fallback: T): T => {
@@ -135,6 +136,9 @@ export function createWindowController(options: WindowControllerOptions): Window
           fillPending = true;
         }
       }
+      if (loaded.alwaysOnTop && !guard(() => native.setAlwaysOnTop?.(true), false)) {
+        console.warn("The saved always-on-top preference could not be applied.");
+      }
       guard(() => native.show(), undefined);
       startGrace();
     },
@@ -167,17 +171,23 @@ export function createWindowController(options: WindowControllerOptions): Window
         const state = sanitizeWindowState({ ...page, ...(frame ?? {}) });
         if (!state) return { ok: false, mode: loaded.mode };
         const previous = readWindowPrefs(dataDir);
-        loaded = writeWindowPrefs(dataDir, { mode: "remember", state: mergeNormalBounds(previous.state, state) });
+        loaded = writeWindowPrefs(dataDir, { ...previous, mode: "remember", state: mergeNormalBounds(previous.state, state) });
         return { ok: true, mode: loaded.mode };
       } catch {
         return { ok: false, mode: loaded.mode };
       }
     },
     reset() {
+      if (loaded.alwaysOnTop && !guard(() => native.setAlwaysOnTop?.(false), false)) {
+        console.warn("Could not turn off always-on-top while resetting the window.");
+        return { ok: false, settled: false, mode: loaded.mode };
+      }
       try {
         loaded = resetWindowPrefs(dataDir);
-      } catch {
-        loaded = { mode: "fill", state: null };
+      } catch (error) {
+        console.warn("Could not reset the window preference:", error);
+        if (loaded.alwaysOnTop) guard(() => native.setAlwaysOnTop?.(true), false);
+        return { ok: false, settled: false, mode: loaded.mode };
       }
       startGrace();
       return { ok: true, settled: fill(), mode: "fill" };
@@ -192,6 +202,22 @@ export function createWindowController(options: WindowControllerOptions): Window
         return { ok: true, settled: frame ? frame.fullscreen : true, mode };
       }
       return { ok: true, settled: fill(), mode, fellBack: true };
+    },
+    setAlwaysOnTop(on) {
+      const previous = loaded.alwaysOnTop === true;
+      if (typeof on !== "boolean") return { ok: false, alwaysOnTop: previous, message: "Always on top must be on or off." };
+      if (!persist) return { ok: false, alwaysOnTop: previous, message: "Window preferences are disabled when an explicit window size is supplied." };
+      if (!guard(() => native.setAlwaysOnTop?.(on), false)) {
+        return { ok: false, alwaysOnTop: previous, message: "Always on top isn't available for this window." };
+      }
+      try {
+        loaded = writeWindowPrefs(dataDir, { ...readWindowPrefs(dataDir), alwaysOnTop: on });
+        return { ok: true, alwaysOnTop: on };
+      } catch (error) {
+        if (!guard(() => native.setAlwaysOnTop?.(previous), false)) console.warn("Could not restore the previous always-on-top setting.");
+        console.warn("Could not save always-on-top:", error);
+        return { ok: false, alwaysOnTop: previous, message: "The always-on-top preference couldn't be saved." };
+      }
     },
   };
 }
@@ -208,6 +234,7 @@ export function bindWindowControl(webview: Bindable, controller: WindowControlle
   webview.bind("fmWindowSave", safe((report?: unknown) => controller.save(report), { ok: false, mode: "fill" as WindowMode }));
   webview.bind("fmWindowReset", safe(() => controller.reset(), { ok: false, settled: false, mode: "fill" as WindowMode }));
   webview.bind("fmWindowApply", safe((mode: unknown) => controller.apply(mode), { ok: false, settled: false, mode: "fill" as WindowMode }));
+  webview.bind("fmWindowAlwaysOnTop", safe((on: unknown) => controller.setAlwaysOnTop(on), { ok: false, alwaysOnTop: false, message: "Couldn't change always on top." }));
 }
 
 export interface ManagedWindowOptions<W extends Bindable> {
