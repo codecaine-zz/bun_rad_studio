@@ -19,9 +19,7 @@ All notable changes. Version 1.4.1 is the tenth release (1.0.0, 1.1.0, 1.2.0, 1.
 - **Standalone File Manager startup diagnostics.** Launchers preserve the application's exit code and consistently write errors to `~/.bun_rad_studio/file-manager-startup.log`.
 - **CI regression fixtures.** File Manager tests account for macOS Command shortcuts and canonical temporary paths, and Showcase checks each app's image without assuming a fixed featured-image count.
 
-## Unreleased
-
-### Fixed
+### Fixed (Windows refresh, 17 October 2026)
 
 - **Local lyrics load in the media player.** Matching `.lrc` and `.txt` files now use an authenticated, size-limited text preview instead of being rejected with HTTP 415. Verified embedded and local lyrics, source switching and the L shortcut on Windows, including paths with spaces, mixed-case extensions and CRLF text.
 - **Music-pack builds on Windows.** The optional builder uses built-in PowerShell ZIP support rather than requiring Unix `zip` and `unzip`; `yt-dlp` and FFmpeg remain required.
