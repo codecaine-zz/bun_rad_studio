@@ -31,6 +31,17 @@ export function unload() {}
 export const WEBVIEW_VERSION = "0.12.0";
 `;
 
+const FILE_MANAGER_WORKER = "fmFindWorker.ts";
+
+/** Copies an app and the separately bundled worker it loads relative to its own URL. */
+export function copyAppBundle(app: SourceApp, destination: string, outRoot = BUNDLE_DIR): void {
+  const source = join(outRoot, app.kind === "gui" ? "apps" : "cli");
+  cpSync(join(source, `${app.name}.js`), join(destination, `${app.name}.js`));
+  if (app.name === "file-manager-studio") {
+    cpSync(join(source, FILE_MANAGER_WORKER), join(destination, FILE_MANAGER_WORKER));
+  }
+}
+
 /**
  * The window library is found through the WEBVIEW_PATH that every launcher sets, so the bundles carry no copy of it.
  * - Desktop apps: webview-bun's loader is replaced by one that reads WEBVIEW_PATH or lib/ next to the bundle (its own
@@ -84,6 +95,17 @@ export async function bundleApps(apps: SourceApp[], outRoot = BUNDLE_DIR, jobs =
         naming: { entry: `${app.name}.js`, asset: "_assets/[name]-[hash].[ext]" },
       });
       if (!out.success) throw new Error(out.logs.map((l) => l.message).join("; ").slice(0, 300) || "the bundler failed");
+      if (app.name === "file-manager-studio") {
+        // Keep the filename used by fmFindRun's relative URL; the contents include all worker dependencies.
+        const worker = await Bun.build({
+          entrypoints: [join(ROOT, "src/features/filemanager", FILE_MANAGER_WORKER)],
+          target: "bun",
+          minify: true,
+          outdir: dir,
+          naming: { entry: FILE_MANAGER_WORKER },
+        });
+        if (!worker.success) throw new Error(worker.logs.map((l) => l.message).join("; ").slice(0, 300) || "the Find worker bundler failed");
+      }
       return null;
     } catch (err: any) {
       return String(err?.message ?? err).slice(0, 300);
@@ -235,7 +257,7 @@ export async function stageSuite(target: Target, options: StageOptions, stageRoo
   if (gui.length) mkdirSync(join(dir, "apps"), { recursive: true });
   for (const app of apps) {
     const sub = app.kind === "gui" ? "apps" : "cli";
-    cpSync(join(BUNDLE_DIR, sub, `${app.name}.js`), join(dir, sub, `${app.name}.js`));
+    copyAppBundle(app, join(dir, sub));
     if (target.os === "windows") {
       writeFileSync(join(dir, "bin", `${app.name}.cmd`), windowsLauncher(app, target));
       if (app.kind === "gui") writeFileSync(join(dir, "bin", `${app.name}.ps1`), windowsDesktopLauncher(app.name, target.guiRuntime ? "bun-gui.exe" : "bun.exe"));

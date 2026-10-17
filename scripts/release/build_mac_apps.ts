@@ -20,7 +20,7 @@ import { join } from "path";
 import { collect } from "../build_showcase";
 import { appStoreCategory, makeIcns } from "./icons";
 import { desktopInfo } from "./desktop";
-import { BUNDLE_DIR, RELEASE_DIR, bundleApps, buildRuntime, logBundleFailures } from "./suite";
+import { RELEASE_DIR, bundleApps, buildRuntime, copyAppBundle, logBundleFailures } from "./suite";
 import { ROOT, SIDECAR_FILES, TARGETS, VERSION, defaultJobs, listSourceApps, log, mapPool, parseJobs, run, webviewLibSource, xmlEscape, type SourceApp } from "./common";
 
 export interface MacApp {
@@ -167,7 +167,7 @@ export async function buildApp(app: MacApp, runtime: string, opts: BuildOptions,
   // `cp -c` makes an APFS clone: the runtime and resources appear in every app but cost disk space only once.
   await run(["cp", "-c", runtime, join(contents, "Resources", "runtime", "bun")]).catch(() => run(["cp", runtime, join(contents, "Resources", "runtime", "bun")]));
   chmodSync(join(contents, "Resources", "runtime", "bun"), 0o755);
-  cpSync(join(BUNDLE_DIR, "apps", `${app.id}.js`), join(contents, "Resources", "app", `${app.id}.js`));
+  copyAppBundle(app.source, join(contents, "Resources", "app"));
   cpSync(webviewLibSource("libwebview.dylib"), join(contents, "Resources", "lib", "libwebview.dylib"));
   await run(["cp", "-cR", join(ROOT, "resources"), join(contents, "Resources", "resources")]).catch(() => run(["cp", "-R", join(ROOT, "resources"), join(contents, "Resources", "resources")]));
   for (const f of SIDECAR_FILES) if (existsSync(join(ROOT, f))) cpSync(join(ROOT, f), join(contents, "Resources", "app", f.split("/").pop()!));

@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join, resolve } from "path";
-import { bundleApps } from "../scripts/release/suite";
+import { bundleApps, copyAppBundle } from "../scripts/release/suite";
 import { LAUNCHER_STUB } from "../scripts/release/build_file_manager";
 
 const script = resolve(import.meta.dir, "../applications/file_manager_studio.ts");
@@ -42,7 +42,14 @@ test("the packaged File Manager serves and opens a browser when the native libra
   try {
     const bundles = await bundleApps([{ name: "file-manager-studio", entry: "applications/file_manager_studio.ts", kind: "gui" }], dir, 1);
     expect(bundles.failed).toEqual([]);
-    const app = join(dir, "apps", "file-manager-studio.js");
+    const relocated = join(dir, "Applications", "Codecaine File Manager.app", "Contents", "Resources", "app");
+    mkdirSync(relocated, { recursive: true });
+    copyAppBundle(bundles.built[0]!, relocated, dir);
+    rmSync(join(dir, "apps"), { recursive: true });
+    const app = join(relocated, "file-manager-studio.js");
+    expect(existsSync(join(relocated, "fmFindWorker.ts"))).toBe(true);
+    const needle = join(dir, "packaged-find-needle.txt");
+    writeFileSync(needle, "packaged worker search\n");
     const urlFile = join(dir, "opened-url");
     const bin = join(dir, "bin");
     mkdirSync(bin);
@@ -59,6 +66,20 @@ test("the packaged File Manager serves and opens a browser when the native libra
     }
     reader.releaseLock();
     expect(output).toMatch(/READY:\d+/);
+    const serverUrl = `http://127.0.0.1:${/READY:(\d+)/.exec(output)![1]}`;
+    const page = await (await fetch(serverUrl)).text();
+    const token = /<meta name="fm-token" content="([^"]+)">/.exec(page)?.[1];
+    expect(token).toBeDefined();
+    const search = await fetch(`${serverUrl}/api/find/search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-fm-token": token! },
+      body: JSON.stringify({ root: dir, pattern: "packaged-find-needle.txt", mode: "fixed", type: "file" }),
+      signal: AbortSignal.timeout(10000),
+    });
+    expect(search.status).toBe(200);
+    const result = await search.json();
+    expect(result.ok).toBe(true);
+    expect(result.items.map((item: { path: string }) => item.path)).toEqual([needle]);
     child.kill();
     await child.exited;
 

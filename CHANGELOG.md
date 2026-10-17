@@ -4,6 +4,10 @@ All notable changes. Version 1.4.0 is the ninth release (1.0.0, 1.1.0, 1.2.0, 1.
 
 ## 1.4.0 (16 October 2026)
 
+### Fixed (macOS binary refresh, 17 October 2026)
+
+- **Packaged File Manager: Find File can start its worker.** Release builds now bundle the Find worker and its dependencies alongside the app, including in macOS app bundles, so searches do not fail with `ModuleNotFound` after installation or relocation. The macOS downloads were rebuilt for Apple silicon and Intel.
+
 ### Added
 
 - **Build the full Windows suite from source with `build.cmd`.** The command detects Windows x64 or ARM64 and writes ZIPs for the full app and command-line suite and the standalone File Manager.

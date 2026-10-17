@@ -133,6 +133,7 @@ Details that matter:
 
 - **The window library** is not carried in the bundles. For desktop apps a small plugin replaces `webview-bun`'s loader (which picks a file inside `node_modules`) with one that uses `WEBVIEW_PATH`, or else `lib/` next to the bundle's folder; a child process an app starts finds it the same way. **Command-line tools** get a stub in place of `webview-bun`, so they start on machines with no GTK or WebKit at all.
 - **Files next to the code:** a few apps read a file from the folder their code is in (`postgres_designer.js`, `ide.html`); `SIDECAR_FILES` in `common.ts` copies them beside the bundles. If an app starts failing with "no such file" after you add one, add it there.
+- **File Manager Find worker:** `bundleApps` separately bundles `fmFindWorker.ts` and its dependencies. `copyAppBundle` keeps it beside `file-manager-studio.js` in the suite, Mac apps and standalone downloads, before signing. Its `.ts` filename is retained to match the worker URL used by source builds; its contents are bundled JavaScript. Keep both files together when moving an app.
 - **Launchers** follow symlinks, so `ln -s .../bin/fd-cli /usr/local/bin/` works. Desktop-app launchers start in `~/.bun_rad_studio/run` (see above); command-line launchers keep your folder.
 - **The same bundles** go into every platform; only the runtime, window library and launchers differ.
 

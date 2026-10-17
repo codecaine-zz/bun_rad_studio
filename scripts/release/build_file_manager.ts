@@ -23,7 +23,7 @@
 import { chmodSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "fs";
 import { basename, join } from "path";
 import { WINDOWS_SETUP, desktopInfo, embedWindowsIcon, windowsInstallCommand } from "./desktop";
-import { BUNDLE_DIR, CACHE_DIR, RELEASE_DIR, bundleApps, buildRuntime, logBundleFailures } from "./suite";
+import { BUNDLE_DIR, CACHE_DIR, RELEASE_DIR, bundleApps, buildRuntime, copyAppBundle, logBundleFailures } from "./suite";
 import type { MacApp } from "./build_mac_apps";
 import { ROOT, SIDECAR_FILES, TARGETS, VERSION, defaultJobs, listSourceApps, log, mapPool, parseJobs, run, sha256File, webviewLibSource, writeFileAtomic, zipEntries, type SourceApp, type Target } from "./common";
 import { LINUX_SANDBOX_WARNING, linuxSandboxSetup } from "./linuxSandbox";
@@ -286,7 +286,8 @@ async function buildFolder(d: Download, assets: Assets): Promise<string> {
   await compileLauncher(d, join(dir, exeName), d.os === "windows" ? assets.ico : null);
   if (d.os !== "windows") chmodSync(join(dir, exeName), 0o755);
 
-  for (const s of [MAIN, ...STUDIOS]) if (existsSync(join(BUNDLE_DIR, "apps", `${s}.js`))) cpSync(join(BUNDLE_DIR, "apps", `${s}.js`), join(dir, "app", `${s}.js`));
+  copyAppBundle({ name: MAIN, entry: "applications/file_manager_studio.ts", kind: "gui" }, join(dir, "app"));
+  for (const s of STUDIOS) if (existsSync(join(BUNDLE_DIR, "apps", `${s}.js`))) cpSync(join(BUNDLE_DIR, "apps", `${s}.js`), join(dir, "app", `${s}.js`));
   for (const f of SIDECAR_FILES) if (existsSync(join(ROOT, f))) cpSync(join(ROOT, f), join(dir, "app", f.split("/").pop()!));
   cpSync(webviewLibSource(target.webviewLib!), join(dir, "lib", target.webviewLib!));
   cpSync(join(ROOT, "resources"), join(dir, "resources"), { recursive: true });
