@@ -88,10 +88,49 @@ describe("⚡ Enterprise 16-Application CLI Suite Specification", () => {
     expect(res.output).toContain("admin@domain.com");
   });
 
-  it("11. Bundler CLI validates entry point requirement", async () => {
+  it("11. Bundler CLI validates entry point requirement and App Bundler CLI packages macOS, Windows, and Linux bundles", async () => {
     const res = await runCli("cli_apps/bundler_cli.ts", ["--entry", "./non_existent_file.ts"]);
     expect(res.exitCode).toBe(1);
     expect(res.output).toContain("Entry file not found");
+
+    const { mkdtempSync, writeFileSync, existsSync, rmSync } = await import("fs");
+    const { join } = await import("path");
+    const { tmpdir } = await import("os");
+    const tmp = mkdtempSync(join(tmpdir(), "appbundler-cli-"));
+    try {
+      const dummyBin = join(tmp, "dummy-bin");
+      writeFileSync(dummyBin, "#!/bin/sh\necho ok\n");
+      const allRes = await runCli("cli_apps/app_bundler_cli.ts", [
+        "-b",
+        dummyBin,
+        "-n",
+        "SampleApp",
+        "-i",
+        "com.test.sample",
+        "-v",
+        "2.0.0",
+        "-p",
+        "all",
+        "-c",
+        "./icons/app_default.png",
+        "-o",
+        tmp,
+      ]);
+      expect(allRes.exitCode).toBe(0);
+      expect(existsSync(join(tmp, "SampleApp.app", "Contents", "Info.plist"))).toBe(true);
+      expect(existsSync(join(tmp, "SampleApp-windows", "SampleApp.exe"))).toBe(true);
+      expect(existsSync(join(tmp, "SampleApp-windows", "SampleApp.exe.manifest"))).toBe(true);
+      expect(existsSync(join(tmp, "SampleApp-windows", "SampleApp.ico"))).toBe(true);
+      expect(existsSync(join(tmp, "SampleApp-windows", "launch.cmd"))).toBe(true);
+      expect(existsSync(join(tmp, "SampleApp-windows", "install-shortcuts.ps1"))).toBe(true);
+      expect(existsSync(join(tmp, "SampleApp.AppDir", "AppRun"))).toBe(true);
+      expect(existsSync(join(tmp, "SampleApp.AppDir", "SampleApp.desktop"))).toBe(true);
+      expect(existsSync(join(tmp, "SampleApp.AppDir", "SampleApp.png"))).toBe(true);
+      expect(existsSync(join(tmp, "SampleApp.AppDir", "install.sh"))).toBe(true);
+      expect(existsSync(join(tmp, "SampleApp.AppDir", "usr", "bin", "SampleApp"))).toBe(true);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   });
 
   it("12. Network Forensics CLI probes localhost port", async () => {

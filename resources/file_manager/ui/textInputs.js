@@ -9,17 +9,65 @@ function isTextBox(el) {
   return el instanceof HTMLTextAreaElement || (el instanceof HTMLInputElement && TEXT_TYPES.has(el.type));
 }
 
+function selectedDomText() {
+  if (typeof window === "undefined" || typeof window.getSelection !== "function") return "";
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return "";
+  return sel.toString();
+}
+
 export function wireTextInputs() {
   document.querySelectorAll("input, textarea").forEach(quietInput);
   document.addEventListener("focusin", (e) => {
     if (isTextBox(e.target)) quietInput(e.target);
   });
   document.addEventListener("keydown", (e) => {
-    if (e.defaultPrevented || !isTextBox(e.target) || e.target.disabled) return;
-    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "a") {
-      e.preventDefault();
-      e.stopPropagation();
-      e.target.select();
+    if (e.defaultPrevented || (e.target instanceof Element && e.target.closest("#terminal-host"))) return;
+    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+    const key = (e.key || "").toLowerCase();
+    if (isTextBox(e.target) && !e.target.disabled) {
+      const field = e.target;
+      if (key === "a") {
+        e.preventDefault();
+        e.stopPropagation();
+        field.select();
+        return;
+      }
+      if ((key === "c" || key === "x") && field.type !== "password") {
+        const start = field.selectionStart;
+        const end = field.selectionEnd;
+        if (start !== null && end !== null && end > start) {
+          const text = field.value.slice(start, end);
+          e.preventDefault();
+          e.stopPropagation();
+          if (field.classList?.contains("code-ta")) {
+            field.dispatchEvent(new Event(key === "x" && !field.readOnly ? "cut" : "copy", { bubbles: true }));
+          }
+          void copyToClipboard(text, { quiet: true });
+          if (key === "x" && !field.readOnly) {
+            let edited = false;
+            try {
+              edited = document.execCommand?.("delete", false) ?? false;
+            } catch {
+              edited = false;
+            }
+            if (!edited || field.value.slice(start, end) === text) {
+              field.setRangeText("", start, end, "end");
+              field.dispatchEvent(new Event("input", { bubbles: true }));
+            }
+            field.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+          return;
+        }
+      }
+    }
+    if (key === "c") {
+      const domText = selectedDomText();
+      if (domText.length > 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        void copyToClipboard(domText, { quiet: true });
+      }
     }
   }, true);
   document.addEventListener("contextmenu", (e) => {

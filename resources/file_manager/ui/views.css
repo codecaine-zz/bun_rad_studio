@@ -1,21 +1,28 @@
 /* The workspace views: the view switcher, the Split and Dual layouts, Focus mode, the Home page, the second pane of
-   the Dual view, and the tidier toolbar. Colours come from the variables in style.css so both themes work. */
+   the Dual view, and the tidier toolbar. Colors come from the variables in style.css so both themes work. */
 
-#viewbar, #toolbar-row, #addressbar, #terminal-panel, #status { flex: none; }
+#viewbar, #toolbar-row, #tabbar, #addressbar, #terminal-panel, #status { flex: none; }
 
 /* ---------------------------------------------------------------- view switcher */
-#viewbar { display: flex; align-items: center; gap: 0.6rem; padding: 0.3rem 0.6rem; background: var(--panel); border-bottom: 1px solid var(--border); }
+#viewbar { display: flex; align-items: center; gap: 0.6rem; padding: 0.3rem 0.6rem; background: var(--panel); border-bottom: 1px solid color-mix(in oklab, var(--border) 72%, transparent); }
 .vb-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; border: 1px solid transparent; border-radius: 0.5rem; background: transparent; color: var(--text); white-space: nowrap; }
 .vb-btn[hidden] { display: none; }
-.vb-btn:hover { background: var(--hover); border-color: var(--border); }
+.vb-btn:hover { background: var(--hover); border-color: color-mix(in oklab, var(--border) 75%, transparent); }
 .vb-btn[aria-pressed="true"] { background: var(--selected); color: var(--selected-text); }
 .vb-icon { font-size: 1.05rem; line-height: 1; }
-#view-switch { display: flex; gap: 0.15rem; padding: 0.15rem; border: 1px solid var(--border); border-radius: 0.65rem; background: var(--bg); }
+#view-switch { display: flex; gap: 0.15rem; padding: 0.15rem; border: 1px solid color-mix(in oklab, var(--border) 78%, transparent); border-radius: 0.65rem; background: var(--bg); }
 .vb-view[aria-checked="true"], .vb-view[aria-checked="true"]:hover { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 650; }
-#view-extras { margin-left: auto; display: flex; gap: 0.35rem; }
+#view-extras { margin-left: auto; display: flex; align-items: center; gap: 0.35rem; }
+.vb-clock { display: inline-flex; align-items: center; gap: 0.42rem; padding: 0.26rem 0.68rem; border: 1px solid color-mix(in oklab, var(--border) 68%, transparent); border-radius: 0.5rem; background: color-mix(in oklab, var(--bg) 65%, var(--panel)); color: var(--text); font-size: 0.82rem; font-variant-numeric: tabular-nums; white-space: nowrap; cursor: pointer; user-select: none; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05); }
+.vb-clock:hover { background: var(--hover); border-color: color-mix(in oklab, var(--accent) 55%, var(--border)); }
+.vb-clock:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.vb-clock-date { color: var(--muted); font-weight: 500; }
+.vb-clock-sep { color: var(--muted); opacity: 0.65; }
+.vb-clock-time { color: var(--text); font-weight: 650; letter-spacing: 0.01em; }
+@media (max-width: 760px) { .vb-clock-date, .vb-clock-sep { display: none; } }
 
 /* ---------------------------------------------------------------------- toolbar */
-#toolbar-row { display: flex; align-items: center; background: var(--panel); border-bottom: 1px solid var(--border); }
+#toolbar-row { display: flex; align-items: center; background: var(--panel); border-bottom: 1px solid color-mix(in oklab, var(--border) 72%, transparent); }
 #toolbar-row #toolbar { flex: 1 1 0; min-width: 0; flex-wrap: nowrap; overflow: hidden; border-bottom: 0; }
 #toolbar .tool-group { flex: none; }
 #toolbar .tool.overflowed, #toolbar .tool-group:not(:has(.tool:not(.overflowed):not([hidden]))) { display: none; }
@@ -37,7 +44,7 @@ body:not(.ready) #stage { visibility: hidden; }
 #stage.resizing { user-select: none; -webkit-user-select: none; }
 #stage.resizing iframe { pointer-events: none; }
 
-#splitter { flex: none; width: 7px; cursor: col-resize; background: var(--panel); border-left: 1px solid var(--border); border-right: 1px solid var(--border); position: relative; touch-action: none; }
+#splitter { flex: none; width: 7px; cursor: col-resize; background: var(--panel); border-left: 1px solid color-mix(in oklab, var(--border) 70%, transparent); border-right: 1px solid color-mix(in oklab, var(--border) 70%, transparent); position: relative; touch-action: none; }
 #splitter::after { content: ""; position: absolute; left: 2px; top: 50%; width: 3px; height: 2.2rem; margin-top: -1.1rem; border-radius: 2px; background: var(--muted); opacity: 0.55; }
 #splitter:hover, #stage.resizing #splitter { background: var(--selected); }
 #splitter:hover::after, #stage.resizing #splitter::after { background: var(--accent); opacity: 1; }
@@ -47,7 +54,7 @@ body:not(.ready) #stage { visibility: hidden; }
 #app[data-workspace="split"] #body, #app[data-workspace="dual"] #body { flex: 0 0 calc(var(--split, 50) * 1% - 3px); }
 #app[data-workspace="split"] #power-panel, #app[data-workspace="dual"] #dual-pane { flex: 1 1 0; }
 #app[data-workspace="split"][data-split-side="bottom"] #stage { flex-direction: column; }
-#app[data-workspace="split"][data-split-side="bottom"] #splitter { width: auto; height: 7px; cursor: row-resize; border: 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+#app[data-workspace="split"][data-split-side="bottom"] #splitter { width: auto; height: 7px; cursor: row-resize; border: 0; border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent); border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent); }
 #app[data-workspace="split"][data-split-side="bottom"] #splitter::after { left: 50%; top: 2px; width: 2.2rem; height: 3px; margin: 0 0 0 -1.1rem; }
 #app[data-workspace="split"][data-split-side="bottom"] #body { flex-basis: calc(var(--split, 50) * 1% - 3px); }
 
@@ -56,16 +63,56 @@ body:not(.ready) #stage { visibility: hidden; }
 #app[data-workspace="split"][data-split-side="bottom"] { --side-w: 13rem; }
 
 /* The sidebar can be folded away (and Focus folds it too). Its grid column shrinks to nothing. */
-#app.sidebar-collapsed, #app.focus-mode { --side-w: 0px; }
+#app.sidebar-collapsed, #app.focus-mode, #app[data-workspace="split"].db-studio-open { --side-w: 0px; }
 #app.focus-mode { --info-w: 0px; }
-#app.sidebar-collapsed #sidebar, #app.focus-mode #sidebar { visibility: hidden; padding: 0; border-right: 0; overflow: hidden; }
+#app.sidebar-collapsed #sidebar, #app.focus-mode #sidebar, #app[data-workspace="split"].db-studio-open #sidebar { visibility: hidden; padding: 0; border-right: 0; overflow: hidden; }
 #app.focus-mode #info { display: none; }
 
 /* Focus: only the view switcher (with its Focus button) and the content stay. */
-#app.focus-mode #toolbar-row, #app.focus-mode #status { display: none; }
+#app.focus-mode #toolbar-row, #app.focus-mode #tabbar, #app.focus-mode #status { display: none; }
 
 /* Home and Tools have their own headings, so the address bar and search box step aside. */
+#app[data-workspace="home"] #tabbar,
 #app[data-workspace="home"] #addressbar { display: none; }
+
+/* In Tools view, step aside the file-browsing toolbar, address bar and status bar so every tool gets maximum room. */
+#app[data-workspace="tools"] #toolbar-row,
+#app[data-workspace="tools"] #tabbar,
+#app[data-workspace="tools"] #addressbar,
+#app[data-workspace="tools"] #status,
+#app.power-compact #power-panel > .power-filter:not(:focus-within),
+#app.power-compact .embed-pane .embed-note,
+#app.db-studio-open #power-panel > .power-filter:not(:focus-within) { display: none; }
+#app[data-workspace="tools"] #power-panel > .power-head,
+#app.power-compact #power-panel > .power-head,
+#app.db-studio-open #power-panel > .power-head { padding: 3px 8px; }
+
+/* Full-window Tool / Database Studio mode (⛶ Expand / Ultra Focus): the tool fills the entire window, even from Split view. */
+#app.power-max #viewbar,
+#app.power-max #toolbar-row,
+#app.power-max #tabbar,
+#app.power-max #addressbar,
+#app.power-max #status,
+#app.power-max #terminal-panel,
+#app.power-max #power-panel > .power-filter,
+#app.power-max #power-panel > .power-head,
+#app.power-max .embed-pane > .embed-bar,
+#app.power-max .games-pane.games-mode-play > .games-topbar,
+#app.power-max .db-root[data-view="studio"] > .db-strip,
+#app.power-max .db-root[data-view="studio"] .db-studio[data-state="running"] > .db-studio-head,
+#app.power-max .db-root[data-view="studio"] .db-studio[data-state="running"] > .db-logs:not([open]),
+#app[data-workspace="split"].power-max #body,
+#app[data-workspace="split"].power-max #splitter,
+#app.db-studio-max #viewbar,
+#app.db-studio-max #toolbar-row,
+#app.db-studio-max #tabbar,
+#app.db-studio-max #addressbar,
+#app.db-studio-max #status,
+#app.db-studio-max #terminal-panel,
+#app.db-studio-max #power-panel > .power-filter,
+#app.db-studio-max #power-panel > .power-head,
+#app[data-workspace="split"].db-studio-max #body,
+#app[data-workspace="split"].db-studio-max #splitter { display: none; }
 
 /* ------------------------------------------------------------------- status bar */
 #status-right { display: flex; align-items: center; gap: 1rem; }
@@ -74,20 +121,25 @@ body:not(.ready) #stage { visibility: hidden; }
 .status-view { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0 0.55rem; border: 1px solid transparent; border-radius: 0.35rem; background: transparent; color: var(--muted); }
 .status-view:hover { background: var(--hover); color: var(--text); }
 .status-view[aria-pressed="true"] { background: var(--selected); color: var(--selected-text); }
+.status-clock { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--muted); font-size: 0.78rem; padding: 0.1rem 0.35rem 0.1rem 0.65rem; border-left: 1px solid color-mix(in oklab, var(--border) 65%, transparent); border-radius: 0.3rem; cursor: pointer; user-select: none; }
+.status-clock:hover { color: var(--text); background: var(--hover); }
 
 /* ------------------------------------------------------------------------- Home */
 #home { flex: 1 1 0; overflow: auto; background: var(--bg); }
 .home-scroll { max-width: 76rem; margin: 0 auto; padding: 1.4rem 1.4rem 2.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+.home-hero-top { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem 1rem; }
 .home-hero h1 { margin: 0; font-size: 1.9rem; }
+.home-datetime { margin: 0; font-size: 0.95rem; font-weight: 550; font-variant-numeric: tabular-nums; color: var(--accent); letter-spacing: 0.01em; cursor: pointer; padding: 0.2rem 0.55rem; border-radius: 0.45rem; border: 1px solid transparent; }
+.home-datetime:hover { background: var(--hover); border-color: color-mix(in oklab, var(--accent) 45%, var(--border)); }
 .home-hero .lead { margin: 0.2rem 0 0.9rem; color: var(--muted); }
 .home-searchbox { display: flex; gap: 0.5rem; max-width: 46rem; }
-.home-search { flex: 1; min-width: 0; font-size: 1.05rem; padding: 0.6rem 0.9rem; border: 1px solid var(--border); border-radius: 0.6rem; background: var(--bg); color: var(--text); }
+.home-search { flex: 1; min-width: 0; font-size: 1.05rem; padding: 0.6rem 0.9rem; border: 1px solid var(--border); border-radius: 0.6rem; background: var(--bg); color: var(--text); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05); }
 .home-search:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
 .home-h { font-size: 1.05rem; margin: 0 0 0.6rem; }
 .home-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 0.7rem; }
-.home-tile { display: grid; grid-template-columns: auto 1fr; grid-template-rows: 1fr auto; gap: 0.3rem 0.8rem; align-items: start; text-align: left; padding: 0.8rem 0.9rem; border: 1px solid var(--border); border-radius: 0.8rem; background: var(--panel); color: var(--text); }
+.home-tile { display: grid; grid-template-columns: auto 1fr; grid-template-rows: 1fr auto; gap: 0.3rem 0.8rem; align-items: start; text-align: left; padding: 0.8rem 0.9rem; border: 1px solid color-mix(in oklab, var(--border) 82%, transparent); border-radius: 0.8rem; background: var(--panel); color: var(--text); box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.04); }
 .home-tile[hidden] { display: none; }
-.home-tile:hover { background: var(--hover); border-color: var(--accent); }
+.home-tile:hover { background: var(--hover); border-color: var(--accent); box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.14), 0 2px 6px -2px rgba(0, 0, 0, 0.08); }
 .home-tile[aria-disabled="true"] { opacity: 0.6; }
 .ht-icon { grid-row: 1 / 3; font-size: 2rem; line-height: 1.1; }
 .ht-body { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
@@ -95,7 +147,7 @@ body:not(.ready) #stage { visibility: hidden; }
 .ht-text { color: var(--muted); font-size: 0.88rem; }
 .ht-go { grid-column: 2; color: var(--accent); font-weight: 650; font-size: 0.88rem; }
 .home-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); gap: 1rem; align-items: start; }
-.home-card { border: 1px solid var(--border); border-radius: 0.8rem; padding: 0.8rem 0.9rem; background: var(--panel); min-width: 0; }
+.home-card { border: 1px solid color-mix(in oklab, var(--border) 82%, transparent); border-radius: 0.8rem; padding: 0.8rem 0.9rem; background: var(--panel); min-width: 0; box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.04); }
 .home-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.15rem; }
 .home-place { display: flex; align-items: flex-start; gap: 0.6rem; width: 100%; text-align: left; padding: 0.4rem 0.5rem; border: 0; border-radius: 0.45rem; background: transparent; color: var(--text); }
 .home-place:hover { background: var(--hover); }
@@ -105,16 +157,106 @@ body:not(.ready) #stage { visibility: hidden; }
 .hp-note { color: var(--muted); font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hp-space { display: flex; flex-direction: column; gap: 0.15rem; }
 .home-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.home-recent-item { display: flex; align-items: center; gap: 0.25rem; }
+.home-recent-item .home-place { flex: 1 1 auto; min-width: 0; }
+.home-recent-rm { flex: none; padding: 0.2rem 0.45rem; color: var(--muted); opacity: 0.75; }
+.home-recent-rm:hover { opacity: 1; color: var(--danger); }
+.home-recent-actions { margin-top: 0.5rem; padding-top: 0.45rem; border-top: 1px solid color-mix(in oklab, var(--border) 68%, transparent); }
 .home-chips { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0; margin: 0 0 0.5rem; }
 .home-chip { padding: 0.15rem 0.65rem; border: 1px solid var(--border); border-radius: 1rem; background: var(--bg); font-size: 0.85rem; }
 .home-chip.ok { color: var(--good); }
 .home-chip.missing { color: var(--danger); }
 .home-tips .tips { margin-bottom: 0.6rem; }
 
+/* ------------------------------------------- Calendar, World Clocks & Timestamps */
+.cal-dialog { display: flex; flex-direction: column; gap: 0.9rem; }
+.cal-badges { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.cal-badge { padding: 0.22rem 0.65rem; border: 1px solid color-mix(in oklab, var(--border) 75%, transparent); border-radius: 999px; background: var(--bg); color: var(--text); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.cal-columns { display: grid; grid-template-columns: minmax(18rem, 1fr) minmax(19rem, 1.15fr); gap: 1rem; align-items: start; }
+@media (max-width: 720px) { .cal-columns { grid-template-columns: 1fr; } }
+.cal-side { display: flex; flex-direction: column; gap: 0.85rem; min-width: 0; }
+.cal-section { border: 1px solid color-mix(in oklab, var(--border) 78%, transparent); border-radius: 0.65rem; padding: 0.75rem 0.85rem; background: color-mix(in oklab, var(--panel) 88%, var(--bg)); display: flex; flex-direction: column; gap: 0.6rem; min-width: 0; }
+.cal-subhead { margin: 0; font-size: 0.92rem; font-weight: 650; }
+.cal-nav { display: flex; align-items: center; gap: 0.4rem; }
+.cal-month-label { flex: 1; text-align: center; font-size: 0.98rem; }
+.cal-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-variant-numeric: tabular-nums; }
+.cal-table th { font-size: 0.75rem; font-weight: 600; color: var(--muted); padding: 0.25rem 0; text-align: center; }
+.cal-table td { padding: 2px; text-align: center; }
+.cal-wk-head, .cal-wk { font-size: 0.72rem; color: var(--muted); opacity: 0.75; width: 2.2rem; }
+.cal-day { width: 100%; padding: 0.32rem 0; border: 1px solid transparent; border-radius: 0.4rem; background: transparent; color: var(--text); font-size: 0.84rem; cursor: pointer; }
+.cal-day:hover { background: var(--hover); border-color: color-mix(in oklab, var(--border) 80%, transparent); }
+.cal-day.outside { color: var(--muted); opacity: 0.48; }
+.cal-day.today { border-color: var(--accent); font-weight: 700; color: var(--accent); }
+.cal-day.selected { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 700; }
+.cal-selected-bar { display: flex; flex-direction: column; gap: 0.45rem; padding-top: 0.45rem; border-top: 1px solid color-mix(in oklab, var(--border) 68%, transparent); }
+.cal-selected-info { font-size: 0.84rem; font-weight: 600; color: var(--text); }
+.cal-selected-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.cal-world-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: 0.45rem; }
+.cal-world-card { padding: 0.45rem 0.55rem; border: 1px solid color-mix(in oklab, var(--border) 72%, transparent); border-radius: 0.5rem; background: var(--bg); display: flex; flex-direction: column; gap: 0.1rem; font-variant-numeric: tabular-nums; }
+.cal-world-city { font-size: 0.76rem; color: var(--muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-world-time { font-size: 0.92rem; font-weight: 700; color: var(--text); }
+.cal-world-day { font-size: 0.72rem; color: var(--muted); }
+.cal-epoch-bar { display: flex; gap: 0.4rem; }
+.cal-epoch-input { flex: 1; min-width: 0; padding: 0.38rem 0.6rem; border: 1px solid var(--border); border-radius: 0.45rem; background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 0.84rem; }
+.cal-epoch-result { display: flex; flex-direction: column; gap: 0.3rem; }
+.cal-epoch-row { display: grid; grid-template-columns: 8.5rem 1fr auto; align-items: center; gap: 0.4rem; font-size: 0.8rem; }
+.cal-epoch-k { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-epoch-v { padding: 0.15rem 0.4rem; border-radius: 0.3rem; background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-copy-mini { padding: 0.12rem 0.45rem; font-size: 0.75rem; }
+.cal-epoch-error { margin: 0; color: var(--danger); font-size: 0.82rem; }
+
+/* ------------------------------------------- Folder Tabs, Marquee, Tree, Tags & Grouping */
+#tabbar { display: flex; align-items: center; gap: 0.25rem; padding: 0.22rem 0.6rem; background: color-mix(in oklab, var(--panel) 88%, var(--bg)); border-bottom: 1px solid color-mix(in oklab, var(--border) 68%, transparent); overflow-x: auto; scrollbar-width: thin; }
+.fm-tab { display: inline-flex; align-items: center; max-width: 14rem; border: 1px solid color-mix(in oklab, var(--border) 75%, transparent); border-radius: 0.45rem; background: var(--bg); color: var(--muted); font-size: 0.82rem; overflow: hidden; flex: none; }
+.fm-tab.active { background: var(--selected); color: var(--selected-text); border-color: color-mix(in oklab, var(--accent) 55%, var(--border)); font-weight: 600; }
+.fm-tab-select { display: inline-flex; align-items: center; gap: 0.32rem; padding: 0.2rem 0.55rem; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; min-width: 0; max-width: 12rem; }
+.fm-tab-select:hover { background: var(--hover); }
+.fm-tab-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fm-tab-close { border: 0; border-left: 1px solid color-mix(in oklab, var(--border) 55%, transparent); background: transparent; color: inherit; padding: 0.2rem 0.42rem; cursor: pointer; font-size: 0.85rem; line-height: 1; opacity: 0.75; }
+.fm-tab-close:hover { opacity: 1; color: var(--danger); background: var(--hover); }
+.fm-tab-btn { display: inline-flex; align-items: center; justify-content: center; width: 1.65rem; height: 1.65rem; border: 1px solid color-mix(in oklab, var(--border) 72%, transparent); border-radius: 0.42rem; background: var(--bg); color: var(--text); font-size: 0.9rem; cursor: pointer; flex: none; }
+.fm-tab-btn:hover { background: var(--hover); border-color: var(--accent); }
+
+.marquee-box { position: fixed; z-index: 9999; pointer-events: none; border: 1.5px solid var(--accent); background: color-mix(in oklab, var(--accent) 18%, transparent); border-radius: 3px; }
+
+.folder-tree { display: flex; flex-direction: column; gap: 1px; max-height: 14rem; overflow-y: auto; padding-right: 0.15rem; }
+.tree-row { display: flex; align-items: center; gap: 0.1rem; min-width: 0; border-radius: 0.35rem; }
+.tree-row:hover { background: var(--hover); }
+.tree-row.active { background: var(--selected); color: var(--selected-text); }
+.tree-twist { width: 1.25rem; height: 1.4rem; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 0.75rem; flex: none; }
+.tree-twist:hover { color: var(--text); }
+.tree-item { display: flex; align-items: center; gap: 0.35rem; flex: 1; min-width: 0; padding: 0.18rem 0.35rem; border: 0; background: transparent; color: inherit; text-align: left; font-size: 0.84rem; cursor: pointer; overflow: hidden; }
+.tree-item .sl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-empty { font-size: 0.76rem; color: var(--muted); padding: 0.12rem 0.35rem; font-style: italic; }
+
+.side-tags { display: flex; flex-wrap: wrap; gap: 0.28rem; padding: 0.15rem 0.25rem; }
+.side-tag-pill { display: inline-flex; align-items: center; gap: 0.28rem; padding: 0.16rem 0.45rem; border: 1px solid color-mix(in oklab, var(--border) 75%, transparent); border-radius: 999px; background: var(--bg); color: var(--text); font-size: 0.74rem; cursor: pointer; }
+.side-tag-pill:hover { background: var(--hover); }
+.side-tag-pill.active { border-color: var(--accent); background: var(--selected); color: var(--selected-text); font-weight: 650; }
+.tag-dot { display: inline-block; width: 0.56rem; height: 0.56rem; border-radius: 999px; flex: none; vertical-align: middle; margin-right: 0.32rem; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18); }
+.side-tag-pill .tag-dot { margin-right: 0; }
+.tag-red { background: #ef4444; }
+.tag-orange { background: #f97316; }
+.tag-yellow { background: #eab308; }
+.tag-green { background: #22c55e; }
+.tag-blue { background: #3b82f6; }
+.tag-purple { background: #a855f7; }
+.tag-gray { background: #64748b; }
+
+.group-header { grid-column: 1 / -1; display: flex; align-items: center; padding: 0.42rem 0.65rem 0.2rem; margin-top: 0.25rem; border-bottom: 1px solid color-mix(in oklab, var(--border) 68%, transparent); color: var(--accent); font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; user-select: none; }
+.c-ext, .c-perms { color: var(--muted); font-size: 0.82rem; font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.h-ext, .h-perms { color: var(--muted); font-size: 0.8rem; font-weight: 600; padding: 0.35rem 0.5rem; }
+.list-head[data-cols="ext"]:not(:has(.h-where:not([hidden]))), .view-details[data-cols="ext"]:not(.searching):not(.in-trash) .row { grid-template-columns: 2.2rem minmax(10rem, 1fr) 11rem 9rem 6.5rem 5.5rem; }
+.list-head[data-cols="permissions"]:not(:has(.h-where:not([hidden]))), .view-details[data-cols="permissions"]:not(.searching):not(.in-trash) .row { grid-template-columns: 2.2rem minmax(10rem, 1fr) 11rem 9rem 6.5rem 7.5rem; }
+.list-head[data-cols="ext,permissions"]:not(:has(.h-where:not([hidden]))), .list-head[data-cols="permissions,ext"]:not(:has(.h-where:not([hidden]))), .view-details[data-cols="ext,permissions"]:not(.searching):not(.in-trash) .row, .view-details[data-cols="permissions,ext"]:not(.searching):not(.in-trash) .row { grid-template-columns: 2.2rem minmax(10rem, 1fr) 11rem 9rem 6.5rem 5.5rem 7.5rem; }
+
 /* --------------------------------------------------------- the Dual view's right pane */
 #dual-pane { display: flex; flex-direction: column; background: var(--bg); container-type: inline-size; container-name: dualpane; }
 .dual-head { display: flex; align-items: center; gap: 0.3rem; padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--border); background: var(--panel); }
 .dual-crumbs { flex: 1; min-width: 0; display: flex; align-items: center; overflow: hidden; }
+.dual-address-input { flex: 1; min-width: 0; }
+.dual-search-wrap { display: inline-flex; align-items: center; gap: 0.15rem; max-width: 11rem; }
+.dual-search-input { width: 8.5rem; min-width: 4rem; font-size: 0.82rem; padding: 0.2rem 0.45rem; }
 .dual-listwrap { position: relative; flex: 1; min-height: 0; overflow: auto; }
 .dual-listwrap.drop-target { outline: 3px dashed var(--accent); outline-offset: -3px; }
 #dual-list { padding-bottom: 1rem; }

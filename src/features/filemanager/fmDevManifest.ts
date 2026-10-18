@@ -1,6 +1,6 @@
 /**
  * Small, forgiving readers for project manifests: a size-capped text read, a "TOML-lite" parser (enough for Cargo.toml
- * and pyproject.toml: sections, strings, numbers, booleans, arrays) and licence detection from licence text.
+ * and pyproject.toml: sections, strings, numbers, booleans, arrays) and license detection from license text.
  * Nothing here runs a manifest or leaves the folder.
  */
 import { MAX_MANIFEST_BYTES, readManifestText } from "./fmDevRead";
@@ -108,7 +108,7 @@ const LICENSES: Array<[string, (t: string) => boolean]> = [
   ["WTFPL", (t) => t.includes("do what the fuck you want to")],
 ];
 
-/** The short SPDX-style name of a licence text (MIT, Apache-2.0, GPL-3.0 ...), or null when it isn't one we know. */
+/** The short SPDX-style name of a license text (MIT, Apache-2.0, GPL-3.0 ...), or null when it isn't one we know. */
 export function detectLicense(text: string): string | null {
   const t = text.slice(0, 40_000).toLowerCase().replace(/\s+/g, " ");
   return LICENSES.find(([, test]) => test(t))?.[0] ?? null;

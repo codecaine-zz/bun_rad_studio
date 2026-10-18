@@ -6,7 +6,7 @@
  * table.data-grid, .btn, .modal-card, ...), so one theme-aware stylesheet and one small script lift all of them:
  *
  *   STUDIO_POLISH_STYLE  design tokens (4/8px rhythm, type scale, borders / hover / zebra derived from the theme's own
- *                        colours with color-mix, so every studio theme keeps working, light or dark), buttons, tabs,
+ *                        colors with color-mix, so every studio theme keeps working, light or dark), buttons, tabs,
  *                        toolbars, readable data grids (sticky header, zebra, tabular numbers, NULL badge), menus,
  *                        modals, toasts, focus rings, scrollbars, empty / loading states, narrow-pane layout and
  *                        prefers-reduced-motion.
@@ -92,7 +92,7 @@ export const STUDIO_POLISH_STYLE = `
     .sidebar-mini-btn { border-radius: var(--sc-radius-sm); border-color: var(--sc-line); }
     .sidebar-mini-btn:hover { background: var(--sc-hover); }
 
-    /* Form controls use the theme's text colour (inline "#fff" styles break light themes) */
+    /* Form controls use the theme's text color (inline "#fff" styles break light themes) */
     input[type="text"], input[type="search"], input[type="number"], input:not([type]), select, textarea { color: var(--text-main); font-family: inherit; }
     .grid-toolbar input[type="text"], .grid-toolbar input[type="search"], .activity-toolbar input[type="text"], #formCurrentRecordInput, .sidebar-search-input, .preset-select { color: var(--text-main) !important; background-color: color-mix(in srgb, var(--text-main) 6%, transparent) !important; border: 1px solid var(--sc-line-strong) !important; border-radius: var(--sc-radius-sm) !important; min-height: 28px; padding: 3px 10px !important; font-size: var(--sc-fs-sm) !important; }
     input::placeholder, textarea::placeholder { color: var(--text-dim); opacity: 1; }

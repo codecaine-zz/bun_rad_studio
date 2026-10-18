@@ -45,7 +45,16 @@ export function parseInline(src, depth = 0) {
       const image = c === "!";
       const open = image ? i + 1 : i;
       const mid = src.indexOf("](", open);
-      const close = mid > open ? src.indexOf(")", mid + 2) : -1;
+      let close = mid > open ? src.indexOf(")", mid + 2) : -1;
+      if (close > mid && src.slice(mid + 2, close).includes("(")) {
+        let paren = 1;
+        close = -1;
+        for (let k = mid + 2; k < n && k < mid + 2048; k++) {
+          if (src[k] === "\n") break;
+          if (src[k] === "(") paren++;
+          else if (src[k] === ")" && --paren === 0) { close = k; break; }
+        }
+      }
       if (mid > open && close > mid) {
         const label = src.slice(open + 1, mid);
         const target = src.slice(mid + 2, close).trim().replace(/\s+"[^"]*"$/, "");
@@ -58,6 +67,21 @@ export function parseInline(src, depth = 0) {
       const end = src.indexOf(">", i + 1);
       const inner = end > 0 ? src.slice(i + 1, end) : "";
       if (/^https?:\/\/[^\s<>]+$/.test(inner)) { flush(); out.push({ tag: "a", href: inner, children: [text(inner)] }); i = end + 1; continue; }
+    } else if (depth === 0 && (c === "h" || c === "H") && (src.startsWith("https://", i) || src.startsWith("http://", i)) && (i === 0 || /[\s([{:;,]/.test(src[i - 1]))) {
+      const m = /^https?:\/\/[^\s<>[\]"'`]+/i.exec(src.slice(i));
+      if (m) {
+        let raw = m[0];
+        while (/[.,;:!?)]$/.test(raw)) {
+          if (raw.endsWith(")") && (raw.match(/\(/g)?.length ?? 0) >= (raw.match(/\)/g)?.length ?? 0)) break;
+          raw = raw.slice(0, -1);
+        }
+        if (raw.length > 8) {
+          flush();
+          out.push({ tag: "a", href: raw, children: [text(raw)] });
+          i += raw.length;
+          continue;
+        }
+      }
     }
     buf += c;
     i++;

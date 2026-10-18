@@ -4,7 +4,7 @@ import { h } from "./dom.js";
 
 let counter = 0;
 
-/** A labelled text box (a <label> wrapping the input, so clicking the words focuses the box). */
+/** A labeled text box (a <label> wrapping the input, so clicking the words focuses the box). */
 function textField({ label, tip, value = "", placeholder = "", cls = "", mono = false }) {
   const input = h("input", { type: "text", value, placeholder, title: tip, spellcheck: "false", autocomplete: "off", class: mono ? "pw-mono" : null });
   const el = h("label", { class: `pw-field sd-field ${cls}`.trim(), title: tip }, h("span", {}, label), input);

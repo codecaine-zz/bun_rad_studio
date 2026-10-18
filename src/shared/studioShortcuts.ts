@@ -49,7 +49,14 @@ function studioShortcutsClient() {
   add("Window", "Right Option+[", "Previous theme");
   add("Window", "Mod+Q", "Quit the desktop app, including from inputs and dialogs");
 
-  function dialogOpen() { return !!(window.StudioDialogs && window.StudioDialogs.isOpen && window.StudioDialogs.isOpen()); }
+  function dialogOpen() {
+    if (window.StudioDialogs && window.StudioDialogs.isOpen && window.StudioDialogs.isOpen()) return true;
+    if (!document.querySelector) return false;
+    if (document.querySelector(".modal-overlay.open, .modal-overlay.active, .modal-backdrop.active, .stg-overlay:not([hidden]), .crud-menu, .sc-menu, .sc-pop, #studioSqlHistoryDrawer.open, #studioRowInspector.open")) return true;
+    const sug = document.getElementById("studioSqlSuggest");
+    if (sug && sug.style && sug.style.display !== "none" && sug.children && sug.children.length > 0) return true;
+    return false;
+  }
 
   // What the Run button does for the view that is showing
   window.runDesignerActive = function () {
@@ -62,6 +69,22 @@ function studioShortcutsClient() {
 
   window.addEventListener("keydown", (e) => {
     const mod = e.metaKey || e.ctrlKey;
+    const k = String(e.key || "").toLowerCase();
+    const isF11 = e.key === "F11" || e.code === "F11" || e.key === "\uF70E" || e.keyCode === 122;
+    const isExpandChord = isF11 || (e.ctrlKey && e.metaKey && !e.altKey && (k === "f" || e.code === "KeyF")) || (mod && e.shiftKey && !e.altKey && (k === "u" || e.code === "KeyU"));
+    if (isExpandChord) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (e.repeat || e.isComposing) return;
+      if (window.parent && window.parent !== window) {
+        try { window.top.postMessage({ fmToggleExpand: true }, "*"); } catch (_) {}
+      } else if (typeof window.doToggleFullscreen === "function") {
+        window.doToggleFullscreen();
+      } else if (typeof window.toggleNativeFullscreen === "function") {
+        try { window.toggleNativeFullscreen(); } catch (_) {}
+      }
+      return;
+    }
     const run = (mod && !e.altKey && !e.shiftKey && e.key === "Enter") || (e.key === "F5" && !mod && !e.altKey && !e.shiftKey);
     if (run && designerShowing()) {
       if (dialogOpen()) return;
@@ -79,6 +102,22 @@ function studioShortcutsClient() {
       show();
     }
   }, true);
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+    if (e.target && e.target.classList && e.target.classList.contains("crud-inline")) return;
+    const openModals = document.querySelectorAll ? document.querySelectorAll(".modal-overlay.open, .modal-overlay.active, .modal-backdrop.active") : [];
+    if (openModals.length > 0) {
+      const topModal = openModals[openModals.length - 1];
+      topModal.classList.remove("open", "active");
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    if (!dialogOpen() && window.parent && window.parent !== window) {
+      try { window.top.postMessage({ fmEscapeExpand: true }, "*"); } catch (_) {}
+    }
+  });
 
   function show() {
     const D = window.StudioDialogs;

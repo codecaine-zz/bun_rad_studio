@@ -39,7 +39,7 @@ export async function loadShortcuts() {
   }
 }
 
-/** Favourites first, then the most recently used, then by name. */
+/** Favorites first, then the most recently used, then by name. */
 export function listShortcuts() {
   const time = (p) => Date.parse(p.lastUsedAt ?? "") || 0;
   return [...shortcuts].sort((a, b) => Number(!!b.favorite) - Number(!!a.favorite) || time(b) - time(a) || a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).slice(0, MAX_SHORTCUTS);

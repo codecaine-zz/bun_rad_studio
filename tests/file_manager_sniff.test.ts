@@ -148,7 +148,7 @@ const SAMPLES: Array<[string, () => Uint8Array, string, Sniffed["family"]]> = [
   ["font collection", () => pad(ascii("ttcf")), "ttc", "font"],
 ];
 
-describe("recognising real content", () => {
+describe("recognizing real content", () => {
   for (const [label, make, kind, family] of SAMPLES) {
     test(`${label} is ${kind}`, () => {
       const s = sniffType(make());
@@ -307,7 +307,7 @@ describe("which content each extension may hold", () => {
     expect(expectedFor(".PNG")!.family).toBe("image");
   });
 
-  test("binary data of an unrecognised format is not reported for media and documents (it may be damaged or rare)", () => {
+  test("binary data of an unrecognized format is not reported for media and documents (it may be damaged or rare)", () => {
     for (const name of ["a.pdf", "a.jpg", "a.mp3", "a.docx", "a.zip", "a.mp4"]) expect(verdict(name, pad([1, 2, 3, 0, 9, 9, 9])), name).toBeNull();
   });
 

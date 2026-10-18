@@ -214,7 +214,7 @@ describe("the domain box", () => {
 
 describe("host names from sources (hostile data)", () => {
   const scope = "example.com";
-  test("normalises: lower case, strips a leading wildcard and a trailing dot, keeps the apex", () => {
+  test("normalizes: lower case, strips a leading wildcard and a trailing dot, keeps the apex", () => {
     expect(normaliseHost("WWW.Example.COM", scope)).toBe("www.example.com");
     expect(normaliseHost("*.dev.example.com", scope)).toBe("dev.example.com");
     expect(normaliseHost("api.example.com.", scope)).toBe("api.example.com");

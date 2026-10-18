@@ -80,7 +80,7 @@ const pdfTool = (id: string, label: string, hint: string, out: string, suffix: s
 /** Page selection for Ghostscript: -sPageList takes the same "1-3,5" form. */
 const gsPages = (o: OptionValues) => (o.pages ? [`-sPageList=${o.pages}`] : []);
 
-/** Where Ghostscript keeps its sRGB colour profile (a PDF/A file must name one), found from the folders it reports. */
+/** Where Ghostscript keeps its sRGB color profile (a PDF/A file must name one), found from the folders it reports. */
 export function ghostscriptProfile(gsExe: string): string | null {
   let text = "";
   try {
@@ -184,7 +184,7 @@ export const DOC_DEFS: ConvDef[] = [
   doc("doc-pptx", "Make a PowerPoint (PPTX)", "Each top-level heading starts a new slide. Works best from Markdown.", "pptx", [pandocFmt("pptx")], { keywords: "slides presentation powerpoint" }),
   doc("doc-fb2", "Convert to an FB2 e-book", "An e-book format used in Russia and by many readers.", "fb2", [pandocFmt("fb2"), { tool: "calibre", accepts: EB_FROM, argv: (c) => [c.inputs[0]!, c.output] }], { inputs: new Set([...DOC_IN_PLUS, ...EB_ONLY, "pdf"]), group: "Ebooks" }),
 
-  { id: "ocr-text", label: "Read the text in a picture or scan (OCR)", hint: "Turns a picture, photo or scanned PDF into a text file.", group: "Documents", inputs: new Set([...OCR_IMAGES, "pdf"]), out: "txt", suffix: "text", mode: "each", engines: [ocr("txt")], options: [LANGUAGE_OPTION, { ...numberOpt("dpi", "Scan detail (for PDF files)", "Higher reads small print better and takes longer.", 100, 600, 300, "dpi", 50), forExts: ["pdf"] }], keywords: "ocr scan recognise recognize" },
+  { id: "ocr-text", label: "Read the text in a picture or scan (OCR)", hint: "Turns a picture, photo or scanned PDF into a text file.", group: "Documents", inputs: new Set([...OCR_IMAGES, "pdf"]), out: "txt", suffix: "text", mode: "each", engines: [ocr("txt")], options: [LANGUAGE_OPTION, { ...numberOpt("dpi", "Scan detail (for PDF files)", "Higher reads small print better and takes longer.", 100, 600, 300, "dpi", 50), forExts: ["pdf"] }], keywords: "ocr scan recognize recognize" },
   { id: "ocr-pdf", label: "Make a scanned PDF searchable (OCR)", hint: "A new PDF that looks the same, but where you can search and copy the text.", group: "Documents", inputs: new Set([...OCR_IMAGES, "pdf"]), out: "pdf", suffix: "searchable", mode: "each", engines: [ocr("pdf")], options: [LANGUAGE_OPTION, { ...numberOpt("dpi", "Scan detail (for PDF files)", "Higher reads small print better and takes longer.", 100, 600, 300, "dpi", 50), forExts: ["pdf"] }], keywords: "ocr scan searchable text layer" },
 ];
 
@@ -210,7 +210,7 @@ export const PDF_DEFS: ConvDef[] = [
   pdfTool("pdf-linearize", "Prepare for fast web viewing", "Makes the first page appear quickly when the PDF is opened on a website.", "pdf", "web", [{ tool: "qpdf", argv: (c) => ["--linearize", c.inputs[0]!, c.output] }], { keywords: "linearise optimize" }),
   pdfTool("pdf-pdfa", "Make a PDF/A copy for archiving", "A PDF built to stay readable for decades.", "pdf", "PDFA", [gs((c) => {
     const icc = ghostscriptProfile(c.exe);
-    if (!icc) throw new Error("Ghostscript's colour profile wasn't found, so a PDF/A file can't be made.");
+    if (!icc) throw new Error("Ghostscript's color profile wasn't found, so a PDF/A file can't be made.");
     return [...GS, `--permit-file-read=${icc}`, "-dPDFA=2", "-dPDFACompatibilityPolicy=1", "-sColorConversionStrategy=RGB", "-sDEVICE=pdfwrite", `-sOutputFile=${c.output}`, c.tmpFile("PDFA_def.ps", pdfaDefinition(c.title, icc)), c.inputs[0]!];
   })], { keywords: "archive pdf/a long term" }),
   pdfTool("pdf-png", "Save each page as a picture (PNG)", "A new folder with one sharp picture for every page.", "", "pages", [gs((c) => [...GS, "-sDEVICE=png16m", `-r${optNum(c.opts, "dpi")}`, "-dTextAlphaBits=4", "-dGraphicsAlphaBits=4", ...gsPages(c.opts), `-sOutputFile=${nodePath.join(c.output, "page-%03d.png")}`, c.inputs[0]!])], {

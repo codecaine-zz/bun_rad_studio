@@ -85,10 +85,10 @@ function parseBmp(head: Buffer): Rows {
   }
   r.add("Width × height", `${Math.abs(w)} × ${Math.abs(h)} pixels`);
   r.add("Row order", h < 0 ? "Top to bottom" : "Bottom to top (the usual BMP way)");
-  r.add("Bits per pixel", bpp, "How many bits describe one pixel. 24 means full colour; 32 adds transparency.");
+  r.add("Bits per pixel", bpp, "How many bits describe one pixel. 24 means full color; 32 adds transparency.");
   r.add("Compression", ["None", "RLE 8-bit", "RLE 4-bit", "Bit fields", "JPEG", "PNG", "Bit fields with alpha"][comp] ?? `Method ${comp}`, "Most BMP files are not compressed, which is why they are large.");
   if (dpiX > 0 && dpiY > 0) r.add("Pixel density", `${Math.round(dpiX * 0.0254)} × ${Math.round(dpiY * 0.0254)} DPI`, "How many pixels fit in an inch when printed.");
-  r.add("Palette colours", colors || "");
+  r.add("Palette colors", colors || "");
   r.add("DIB header", size === 12 ? "OS/2 core" : size === 40 ? "Windows (BITMAPINFOHEADER)" : `${size} bytes`);
   return r;
 }
@@ -116,7 +116,7 @@ async function parseGif(src: Source, deadline = Date.now() + 6000): Promise<{ ro
   const h = await src.read(0, 13);
   const w = le16(h, 6), ht = le16(h, 8), packed = h[10]!;
   const gct = (packed & 0x80) !== 0 ? 1 << ((packed & 7) + 1) : 0;
-  rows.add("Version", ascii(h, 0, 6)).add("Colours in the main palette", gct || "", "GIF pictures use at most 256 colours.");
+  rows.add("Version", ascii(h, 0, 6)).add("Colors in the main palette", gct || "", "GIF pictures use at most 256 colors.");
   let pos = 13 + gct * 3;
   let frames = 0, duration = 0, loops: number | null = null, partial = false, interlaced = false, transparent = false;
   const comments: string[] = [];
@@ -182,7 +182,7 @@ function parseTiffImage(buf: Buffer, size: number): { rows: Rows; w: number | nu
   const bits = exif.tags.find((x) => x.ifd === "IFD0" && x.id === 0x102)?.value;
   const comp = n(0x103), photo = n(0x106), spp = n(0x115);
   rows.add("Byte order", exif.littleEndian ? "Little-endian (II)" : "Big-endian (MM)", "How the numbers in the file are written. It doesn't affect the picture.");
-  rows.add("Compression", comp !== null ? name(COMPRESSION_TIFF, comp) : "").add("Colour model", photo !== null ? name(PHOTOMETRIC, photo) : "", "How the colours of each pixel are stored.");
+  rows.add("Compression", comp !== null ? name(COMPRESSION_TIFF, comp) : "").add("Color model", photo !== null ? name(PHOTOMETRIC, photo) : "", "How the colors of each pixel are stored.");
   rows.add("Channels", spp, "How many numbers describe one pixel.").add("Bits per channel", Array.isArray(bits) ? bits.join(", ") : bits);
   rows.add("Planar layout", n(0x11c) === 2 ? "Separate planes" : n(0x11c) === 1 ? "Chunky (interleaved)" : "");
   return { rows, w: n(0x100), h: n(0x101), exif, partial: exif.partial || size > buf.length };
@@ -206,16 +206,16 @@ export async function analyzeImage(src: Source, extHint = ""): Promise<ImageAnal
       Object.assign(out, { width: j.width, height: j.height, exif: j.exif, icc: j.icc, xmp: j.xmp, hasIptc: j.hasIptc, partial: j.partial });
       r.add("JPEG type", j.sof ? `${j.sof}${j.progressive ? " (loads blurry first, then sharpens)" : ""}` : "", "Progressive JPEGs show a rough picture first and sharpen as they load. Baseline ones load top to bottom.");
       r.add("Bits per channel", j.precision).add("Channels", j.components, "How many numbers describe one pixel (3 = red, green, blue).");
-      r.add("Chroma subsampling", j.subsampling, "How much colour detail was dropped to save space. 4:4:4 keeps all of it; 4:2:0 is the usual saving.");
+      r.add("Chroma subsampling", j.subsampling, "How much color detail was dropped to save space. 4:4:4 keeps all of it; 4:2:0 is the usual saving.");
       r.add("Quality (estimate)", j.quality ? `about ${j.quality} of 100` : "", "A guess of the 'quality' setting used when the file was saved. Higher keeps more detail and makes bigger files.");
       if (j.jfif) {
         r.add("JFIF version", j.jfif.version);
         if (j.jfif.units.startsWith("dots")) r.add("Pixel density", `${j.jfif.density} (${j.jfif.units})`, "How many pixels fit in a unit when printed.");
       }
-      r.add("Colour handling", j.adobe, "Which program-specific colour mode the file declares.");
+      r.add("Color handling", j.adobe, "Which program-specific color mode the file declares.");
       for (const c of j.comments) r.add("Comment", c);
       const seg = new Rows();
-      seg.add("Segments", j.segments.map((s) => (s.detail ? `${s.name} (${s.detail})` : s.name)).join(", "), "A JPEG file is a list of labelled blocks. APP blocks carry notes: EXIF is the camera's notes, XMP is extra text.");
+      seg.add("Segments", j.segments.map((s) => (s.detail ? `${s.name} (${s.detail})` : s.name)).join(", "), "A JPEG file is a list of labeled blocks. APP blocks carry notes: EXIF is the camera's notes, XMP is extra text.");
       seg.add("Multi-picture data (MPF)", j.hasMpf ? "Present: the file holds extra pictures, such as a preview or depth map" : "");
       const g = seg.group("jpeg-structure", "JPEG structure");
       if (g) out.groups.push(g);
@@ -248,7 +248,7 @@ export async function analyzeImage(src: Source, extHint = ""): Promise<ImageAnal
     } else if (kind === "heif") {
       const hf = await parseHeif(src);
       Object.assign(out, { rows: hf.rows, width: hf.width, height: hf.height, partial: hf.partial, hasAlpha: null });
-      out.notes.push("HEIC and AVIF are read only for size and colour details. Install ExifTool to also see camera notes and location.");
+      out.notes.push("HEIC and AVIF are read only for size and color details. Install ExifTool to also see camera notes and location.");
     } else if (kind === "svg") {
       const b = await src.read(0, 2 * 1024 * 1024);
       const s = parseSvg(Buffer.from(b).toString("utf8"));

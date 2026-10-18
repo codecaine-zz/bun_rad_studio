@@ -38,7 +38,7 @@ const FORMS = {
   },
   contact: {
     label: "Contact card",
-    fields: [{ id: "first", label: "First name" }, { id: "last", label: "Last name" }, { id: "org", label: "Organisation" }, { id: "title", label: "Job title" }, { id: "phone", label: "Mobile phone" }, { id: "workPhone", label: "Work phone" }, { id: "email", label: "E-mail" }, { id: "url", label: "Web site" }, { id: "address", label: "Address" }, { id: "note", label: "Note", kind: "textarea" }],
+    fields: [{ id: "first", label: "First name" }, { id: "last", label: "Last name" }, { id: "org", label: "Organization" }, { id: "title", label: "Job title" }, { id: "phone", label: "Mobile phone" }, { id: "workPhone", label: "Work phone" }, { id: "email", label: "E-mail" }, { id: "url", label: "Web site" }, { id: "address", label: "Address" }, { id: "note", label: "Note", kind: "textarea" }],
     build: (v) => vcardPayload(v),
   },
   email: { label: "E-mail", fields: [{ id: "to", label: "To", placeholder: "name@example.com" }, { id: "subject", label: "Subject" }, { id: "body", label: "Message", kind: "textarea" }], build: (v) => emailPayload({ to: v.to, subject: v.subject, body: v.body }) },
@@ -55,13 +55,13 @@ const FORMS = {
 const LEVELS = [["L", "Low (7%): the smallest code"], ["M", "Medium (15%): a good choice"], ["Q", "Quartile (25%): for printing"], ["H", "High (30%): survives dirt and a logo"]];
 const SIZES = [[4, "Small (4 pixels per square)"], [8, "Medium (8)"], [16, "Large (16)"], [32, "Very large (32)"]];
 
-/** How bright a #rrggbb colour is (0 to 1). */
+/** How bright a #rrggbb color is (0 to 1). */
 function luminance(hex) {
   const [r, g, bl] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
   return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
 }
 
-/** WCAG-style contrast of two colours (1 to 21). */
+/** WCAG-style contrast of two colors (1 to 21). */
 function contrast(a, b) {
   const [x, y] = [luminance(a), luminance(b)].sort((p, q) => q - p);
   return (x + 0.05) / (y + 0.05);
@@ -142,7 +142,7 @@ function mount(root) {
     check.textContent = back && back.text === payload ? "✓ Checked: the code reads back as exactly this." : "⚠ This code didn't read back correctly. Try a different error-correction level.";
     const ratio = contrast(style.fg, style.bg);
     const lighter = luminance(style.fg) > luminance(style.bg);
-    if (ratio < 3) warn.textContent = "These colours are too close: many scanners won't read the code. Use dark squares on a light background.";
+    if (ratio < 3) warn.textContent = "These colors are too close: many scanners won't read the code. Use dark squares on a light background.";
     else if (lighter && ratio >= 3) warn.textContent = "Light squares on a dark background (an inverted code) can't be read by many scanners.";
     else if (payload.length > 900) warn.textContent = "This is a lot of data, so the code is dense. Print it large, or shorten the text.";
     paint();
@@ -208,7 +208,7 @@ function mount(root) {
     h("div", { class: "qr-left" },
       h("label", { class: "field" }, h("span", { class: "field-label" }, "What is it?"), typeSelect),
       formBox,
-      h("details", { class: "qr-more" }, h("summary", {}, "Size, error correction and colours"),
+      h("details", { class: "qr-more" }, h("summary", {}, "Size, error correction and colors"),
         select("Error correction", LEVELS, "ecc", "How much damage the code survives. Higher levels make a bigger code."),
         select("Picture size", SIZES, "size", "How many pixels each square gets in a saved PNG.", Number),
         select("White border", [[0, "None"], [2, "Narrow"], [4, "Normal (needed by most scanners)"], [8, "Wide"]], "border", "The empty space around the code.", Number),

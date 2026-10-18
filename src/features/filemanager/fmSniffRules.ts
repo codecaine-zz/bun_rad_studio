@@ -113,7 +113,7 @@ export function expectedFor(ext: string): ExtRule | null {
  */
 export function judge(r: ExtRule, actual: Sniffed): "ok" | "same" | "different" {
   if (r.kinds.has(actual.kind)) return "ok";
-  // Binary data that isn't recognised may be a rare or damaged format; only plain text names are sure it is wrong.
+  // Binary data that isn't recognized may be a rare or damaged format; only plain text names are sure it is wrong.
   if (actual.kind === "binary") return r.textLike ? "different" : "ok";
   // A .txt that is really Rich Text is a different format of a document, not a different sort of file.
   if (r.textLike && actual.kind === "rtf") return "same";

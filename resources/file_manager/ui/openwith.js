@@ -95,7 +95,7 @@ export async function showOpenWith(entries = selectedEntries()) {
     h("span", { class: "act-label" }, label), h("span", { class: "act-hint" }, hint));
 
   function addForm() {
-    const name = h("input", { type: "text", id: "ow-name", class: "ow-input", placeholder: "Name, like My Editor", "aria-label": "Name of the program", title: "A name you will recognise in this list", autocomplete: "off" });
+    const name = h("input", { type: "text", id: "ow-name", class: "ow-input", placeholder: "Name, like My Editor", "aria-label": "Name of the program", title: "A name you will recognize in this list", autocomplete: "off" });
     const kind = h("select", { id: "ow-kind", class: "ow-input", "aria-label": "Kind of program", title: "A program is a command or the full path of a program file. A Mac application is the name of an app in your Applications folder." },
       data.platform === "darwin" ? h("option", { value: "app" }, "Mac application") : null,
       h("option", { value: "command" }, "Program or command"));

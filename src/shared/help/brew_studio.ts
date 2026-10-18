@@ -2,13 +2,13 @@ import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `brew_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */
 export const brewStudioTips: HelpTips = {
-  "#dd_theme": "Change the colours of this window. Your choice is remembered.",
+  "#dd_theme": "Change the colors of this window. Your choice is remembered.",
   "#btn_save_state": "Save the window size, theme and the package name you typed so they are still here next time you open this app.",
   "#btn_center": "Move the window to the middle of the screen.",
   "#btn_fullscreen": "Fill the whole screen with this window. Press it again to go back.",
   "#txt_pkg_name": "The name of an npm package, such as webview-bun or @types/node. You can add a version, for example react@18. Search and Info use it as typed; bun add and bun remove only accept a valid package name.",
-  "#btn_search": "Search the public npm registry (the online catalogue of JavaScript packages) for the text in the box and list up to 8 matches with version, description and publisher. Needs an internet connection.",
-  "#btn_info": "Look up the package named in the box on the npm registry and show its latest version, description, licence, dates, repository and dependencies. Needs an internet connection.",
+  "#btn_search": "Search the public npm registry (the online catalog of JavaScript packages) for the text in the box and list up to 8 matches with version, description and publisher. Needs an internet connection.",
+  "#btn_info": "Look up the package named in the box on the npm registry and show its latest version, description, license, dates, repository and dependencies. Needs an internet connection.",
   "#btn_install": "Run bun add with the package in the box. It downloads the package and adds it to package.json in the folder this app was started from. The output is shown below.",
   "#btn_uninstall": "Run bun remove with the package in the box. It deletes the package from package.json and node_modules in the folder this app was started from.",
   "#btn_telemetry": "Show a snapshot of this computer and this app: Bun version, uptime, memory use, CPU cores, load average and network interfaces.",

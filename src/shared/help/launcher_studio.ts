@@ -3,7 +3,7 @@ import type { HelpTips, SkipRule } from "../helpMatch";
 /** Help tips for `launcher_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */
 export const launcherStudioTips: HelpTips = {
   // Window
-  "#dd_theme": "Change the colours of this window. Your choice is remembered.",
+  "#dd_theme": "Change the colors of this window. Your choice is remembered.",
   "#btn_fullscreen": "Fill the whole screen with this window. Press it again to go back.",
   "#btn_save_state": "Save the values in the boxes and the window settings to this app's settings file. This window does not load them back when it starts, so it changes little.",
   "#btn_center": "Move the window to the middle of the screen.",
@@ -25,7 +25,7 @@ export const launcherStudioTips: HelpTips = {
   "#btn_quick_rad": "Open RAD Studio, a window with many small development utilities in one place.",
   "#btn_quick_calc": "Open the Calculator window.",
   "#btn_quick_markdown": "Open Markdown Studio, a window for writing Markdown text with a live preview.",
-  "#btn_quick_paint": "Open Chroma Studio, a drawing and colouring window.",
+  "#btn_quick_paint": "Open Chroma Studio, a drawing and coloring window.",
   "#btn_quick_system": "Open System Studio, a window that shows information about this computer.",
   "#btn_quick_db": "Open Database Studio. This opens the same SQLite window as the SQLite Studio button.",
   "#btn_quick_fd": "Open Fd Studio, a window for finding files and folders and acting on the results.",

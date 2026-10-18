@@ -28,7 +28,7 @@ export function createSnapshots(env) {
     h("option", { value: "csv" }, "CSV"), h("option", { value: "json" }, "JSON"), h("option", { value: "md" }, "Markdown table"));
   const scope = h("select", { id: "dev-export-scope", title: "Export the table of languages, or the list of files as shown above." },
     h("option", { value: "languages" }, "Languages table"), h("option", { value: "files" }, "Files (as listed above)"));
-  const name = h("input", { type: "text", id: "dev-snap-name", maxlength: "60", spellcheck: "false", autocomplete: "off", placeholder: "Before the refactor", title: "A name to recognise this snapshot by." });
+  const name = h("input", { type: "text", id: "dev-snap-name", maxlength: "60", spellcheck: "false", autocomplete: "off", placeholder: "Before the refactor", title: "A name to recognize this snapshot by." });
   const picker = h("select", { id: "dev-snap-list", title: "Snapshots saved earlier. Pick one to compare today's numbers with it." });
   const diffHost = h("div", { class: "dev-diff" });
   const compare = btn("Compare", "Show what changed per language since the chosen snapshot.", () => doCompare());

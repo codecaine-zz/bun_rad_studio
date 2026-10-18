@@ -1,11 +1,11 @@
 /**
- * The log of one watcher: its output cleaned of terminal colours, kept in a capped buffer whose cursor only ever
+ * The log of one watcher: its output cleaned of terminal colors, kept in a capped buffer whose cursor only ever
  * grows, so the page can ask for "everything since where I was".
  */
 
 export const MAX_LOG_CHARS = 1_000_000;
 
-/** Removes colours and other terminal escape sequences, and makes line endings plain. */
+/** Removes colors and other terminal escape sequences, and makes line endings plain. */
 export function stripAnsi(text: string): string {
   return text
     .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, "")

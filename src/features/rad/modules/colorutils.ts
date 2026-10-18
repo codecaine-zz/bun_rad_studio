@@ -1,7 +1,7 @@
 /**
- * colorutils — Colour science & terminal colour toolkit.
+ * colorutils — Color science & terminal color toolkit.
  *
- * Parses any CSS colour via native `Bun.color` (hex, rgb(), hsl(), named, …), converts between
+ * Parses any CSS color via native `Bun.color` (hex, rgb(), hsl(), named, …), converts between
  * RGB / HSL / HSV / CIE-Lab, manipulates (lighten, saturate, rotate, mix, invert), measures
  * (WCAG 2.1 luminance & contrast, ΔE76 distance), generates palettes, and emits 24-bit ANSI.
  *
@@ -59,13 +59,13 @@ const clamp255 = (n: number) => Math.min(255, Math.max(0, Math.round(n)));
 const normHue = (h: number) => ((h % 360) + 360) % 360;
 
 /**
- * Parse any CSS colour string (or RGB object) into RGBA.
- * @throws `[colorutils.parseColor]` on unrecognised input.
+ * Parse any CSS color string (or RGB object) into RGBA.
+ * @throws `[colorutils.parseColor]` on unrecognized input.
  * @example colorutils.parseColor("hsl(120 100% 50% / 0.5)"); // { r: 0, g: 255, b: 0, a: 0.5 }
  */
 export function parseColor(input: string | RGB | RGBA): RGBA {
   const out = Bun.color(input as any, "{rgba}") as RGBA | null;
-  if (!out) throw new Error(`[colorutils.parseColor] Unrecognised colour: ${JSON.stringify(input)}`);
+  if (!out) throw new Error(`[colorutils.parseColor] Unrecognized color: ${JSON.stringify(input)}`);
   return { r: out.r, g: out.g, b: out.b, a: Math.round(out.a * 1000) / 1000 };
 }
 
@@ -74,7 +74,7 @@ export function isValidColor(input: string): boolean {
   return Bun.color(input, "{rgb}") !== null;
 }
 
-/** Hex (`#rgb`, `#rrggbb`, also any CSS colour) → RGB. @throws on invalid input. @example colorutils.hexToRgb("#ff5733"); // { r: 255, g: 87, b: 51 } */
+/** Hex (`#rgb`, `#rrggbb`, also any CSS color) → RGB. @throws on invalid input. @example colorutils.hexToRgb("#ff5733"); // { r: 255, g: 87, b: 51 } */
 export function hexToRgb(hex: string): RGB {
   const out = Bun.color(hex, "{rgb}") as RGB | null;
   if (!out) throw new Error(`[colorutils] Invalid hex color: "${hex}"`);
@@ -221,7 +221,7 @@ export function mix(c1: RGB, c2: RGB, weight = 0.5): RGB {
   return { r: clamp255(c1.r + (c2.r - c1.r) * w), g: clamp255(c1.g + (c2.g - c1.g) * w), b: clamp255(c1.b + (c2.b - c1.b) * w) };
 }
 
-/** `steps` evenly spaced colours from `from` to `to` (inclusive). @example colorutils.gradient({ r: 0, g: 0, b: 0 }, { r: 255, g: 255, b: 255 }, 3).length; // 3 */
+/** `steps` evenly spaced colors from `from` to `to` (inclusive). @example colorutils.gradient({ r: 0, g: 0, b: 0 }, { r: 255, g: 255, b: 255 }, 3).length; // 3 */
 export function gradient(from: RGB, to: RGB, steps: number): RGB[] {
   if (steps < 2) return [mix(from, to, 0)];
   return Array.from({ length: steps }, (_, i) => mix(from, to, i / (steps - 1)));
@@ -274,7 +274,7 @@ export function bestTextColor(bg: RGB): RGB {
   return contrastRatio(bg, BLACK) >= contrastRatio(bg, WHITE) ? { ...BLACK } : { ...WHITE };
 }
 
-/** Random colour (pass a seeded rng for determinism). @example colorutils.randomColor(); */
+/** Random color (pass a seeded rng for determinism). @example colorutils.randomColor(); */
 export function randomColor(rng: () => number = Math.random): RGB {
   return { r: Math.floor(rng() * 256), g: Math.floor(rng() * 256), b: Math.floor(rng() * 256) };
 }
@@ -289,12 +289,12 @@ export function bgRgb(text: string, rgb: RGB): string {
   return `\x1b[48;2;${rgb.r};${rgb.g};${rgb.b}m${text}\x1b[0m`;
 }
 
-/** Foreground from any CSS colour string. @example console.log(colorutils.fgColor("warn", "orange")); */
+/** Foreground from any CSS color string. @example console.log(colorutils.fgColor("warn", "orange")); */
 export function fgColor(text: string, color: string): string {
   return fgRgb(text, parseColor(color));
 }
 
-/** Per-character colour gradient for terminal banners. @example console.log(colorutils.gradientText("BUN RAD", "#f472b6", "#60a5fa")); */
+/** Per-character color gradient for terminal banners. @example console.log(colorutils.gradientText("BUN RAD", "#f472b6", "#60a5fa")); */
 export function gradientText(text: string, from: string | RGB, to: string | RGB): string {
   const chars = Array.from(text);
   const stops = gradient(parseColor(from), parseColor(to), Math.max(2, chars.length));

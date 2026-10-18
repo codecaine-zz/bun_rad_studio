@@ -8,7 +8,7 @@
  * - 6-deck shoe with realistic shuffle penetration, cut card insertion, and real-time Hi-Lo card counting telemetry (Running & True Count)
  * - Classic Casino Rules: Natural 21 pays 3:2, Dealer stands on all 17s, Hole-card peek on Ace/10, Late Surrender (50% refund)
  * - Action-packed splitting (matching ranks), Double Down (any initial two cards), and Insurance against Dealer Ace
- * - Exclusive Side Bets: Perfect Pairs (Mixed 6:1, Coloured 12:1, Perfect 25:1) and 21+3 Poker (Flush, Straight, Trips, Straight Flush, Suited Trips up to 100:1)
+ * - Exclusive Side Bets: Perfect Pairs (Mixed 6:1, Colored 12:1, Perfect 25:1) and 21+3 Poker (Flush, Straight, Trips, Straight Flush, Suited Trips up to 100:1)
  * - Dynamic Basic Strategy Advisor bar with live recommended moves + comprehensive Strategy Matrix Modal
  * - Polyphonic WebAudio synthesizer (chip clinks, card snaps, dealer stand knocks, win fanfares, bust drops)
  * - Multi-felt luxury table customization (Emerald Green, Monte Carlo Navy, Bellagio Burgundy, Midnight Onyx)
@@ -154,7 +154,7 @@ ${getWindowShortcutsScript()}
  */
 export function startBlackjackServer(options: BlackjackServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "blackjack_studio", name: "Blackjack Royale VIP — Multi-Hand Casino Studio", version: "1.0.0", assetsDir: getBlackjackAssetsDir(), generateHtml: generateBlackjackStudioHtml },
+    { app: "blackjack_studio", name: "Codecaine Blackjack Royale VIP — Multi-Hand Casino Studio", version: "1.0.0", assetsDir: getBlackjackAssetsDir(), generateHtml: generateBlackjackStudioHtml },
     options,
   );
 }
@@ -167,7 +167,7 @@ export function createBlackjackStudio(options: BlackjackStudioOptions = {}): Bla
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1240);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Blackjack Royale VIP — Multi-Hand Casino Studio";
+  const title = "Codecaine Blackjack Royale VIP — Multi-Hand Casino Studio";
 
   const app: BlackjackStudioInstance = {
     title,

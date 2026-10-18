@@ -1,6 +1,6 @@
 /**
- * Colour themes for the File Manager page. They come from the same table the SimpleGUI apps use, so every theme
- * there can be picked here. Each one is turned into the page's own colour variables, and every text and background
+ * Color themes for the File Manager page. They come from the same table the SimpleGUI apps use, so every theme
+ * there can be picked here. Each one is turned into the page's own color variables, and every text and background
  * pair is nudged until it passes the contrast checks that tests/file_manager_themes.test.ts runs on all of them.
  */
 import type { SimpleGUITheme } from "../../simplegui";
@@ -10,11 +10,35 @@ import { OS_THEME_KEYS, RARE_OS_THEME_KEYS } from "../../shared/osThemes";
 import { buildSemanticPalette, contrastRatio, overridesForTheme, parseColor, toHex } from "../../shared/themeSemantic";
 import { FmError } from "./fmPaths";
 import type { FmContext, FmHandler } from "./fmCore";
-import { deleteCustom, exportTheme, isCustomKey, loadCustom, parseShared, saveCustom, toSimpleTheme, validateDraft, type CustomTheme, type ThemeDraft } from "./fmThemeStore";
+import { deleteCustom, exportTheme, exportThemeCss, exportThemePack, importThemePack, isCustomKey, loadCustom, parseShared, saveCustom, toSimpleTheme, validateDraft, type CustomTheme, type ThemeDraft } from "./fmThemeStore";
 
 type RGB = [number, number, number];
 
 export type ThemeGroup = "My themes" | "Futuristic" | "Linux" | "Windows" | "macOS" | "Rare and beloved systems" | "Editors and classics";
+
+export interface ThemePreview {
+  bg: string;
+  panel: string;
+  accent: string;
+  text: string;
+  muted: string;
+  border: string;
+  selected: string;
+  selectedText: string;
+  radius: "sharp" | "soft" | "round" | "pill";
+  glow: "none" | "soft" | "neon";
+  glowColor: string;
+  borderStyle: "flat" | "gradient" | "metal";
+}
+
+export interface ThemeContrastItem {
+  pair: string;
+  label: string;
+  fg: string;
+  bg: string;
+  ratio: number;
+  grade: "AAA" | "AA" | "AA Large";
+}
 
 export interface ThemeSummary {
   key: string;
@@ -24,15 +48,19 @@ export interface ThemeSummary {
   group: ThemeGroup;
   /** Background, panel, accent and text, for the little preview. */
   swatch: [string, string, string, string];
-  /** True when the theme has special effects (glass, glow, motion, texture), not just colours. */
+  /** Richer tokens for the miniature window preview card. */
+  preview: ThemePreview;
+  /** True when the theme has special effects (glass, glow, motion, texture), not just colors. */
   hasEffects: boolean;
 }
 
 export interface ThemeVars {
   scheme: "light" | "dark";
   vars: Record<string, string>;
-  /** Plain-words notes about colours that were changed to keep the text readable. */
+  /** Plain-words notes about colors that were changed to keep the text readable. */
   notes: string[];
+  /** WCAG contrast telemetry for key foreground/surface pairs. */
+  contrast: ThemeContrastItem[];
   effects?: { css: string; attrs: Record<string, string> };
 }
 
@@ -59,9 +87,24 @@ function readable(color: string, surfaces: string[], min: number): string {
 /** Black or white text, whichever reads better on `solid`. */
 const textOn = (solid: string) => (contrastRatio(solid, "#ffffff") >= contrastRatio(solid, "#111111") ? "#ffffff" : "#111111");
 
-/** A translucent colour laid over a solid one. */
+/** A translucent color laid over a solid one. */
 function over(base: string, tint: string, alpha: number): string {
   return hex(mix(parseColor(base), parseColor(tint), alpha));
+}
+
+function buildContrastReport(vars: Record<string, string>): ThemeContrastItem[] {
+  const specs: Array<[string, string, string, string]> = [
+    ["text/bg", "Text / Window", vars.text!, vars.bg!],
+    ["text/panel", "Text / Panel", vars.text!, vars.panel!],
+    ["muted/panel", "Muted / Panel", vars.muted!, vars.panel!],
+    ["accent/panel", "Accent / Panel", vars.accent!, vars.panel!],
+    ["selected", "Selection", vars["selected-text"]!, vars.selected!],
+    ["danger", "Danger", vars.danger!, vars["danger-bg"]!],
+  ];
+  return specs.map(([pair, label, fg, bg]) => {
+    const r = Math.round(contrastRatio(fg, bg) * 10) / 10;
+    return { pair, label, fg, bg, ratio: r, grade: r >= 7 ? "AAA" : r >= 4.5 ? "AA" : "AA Large" };
+  });
 }
 
 export function themeVars(theme: SimpleGUITheme): ThemeVars {
@@ -70,22 +113,30 @@ export function themeVars(theme: SimpleGUITheme): ThemeVars {
   const fg = hex(parseColor(theme.font_color, dark ? [232, 234, 237] : [27, 31, 36]));
   const card = theme.card_background ? hex(parseColor(theme.card_background)) : "";
   const panel = card && contrastRatio(card, bg) >= 1.04 ? card : over(bg, fg, 0.07);
-  // A mid-tone background beside a light panel (a teal desktop behind silver windows) can't hold any text colour
-  // on both, so the page background takes the panel's colour.
+  // A mid-tone background beside a light panel (a teal desktop behind silver windows) can't hold any text color
+  // on both, so the page background takes the panel's color.
   const reads = (c: string) => Math.min(contrastRatio(c, bg), contrastRatio(c, panel));
   if (Math.max(reads("#000000"), reads("#ffffff")) < 5) bg = panel;
-  let text = readable(fg, [bg, panel], 4.5);
+  const surfaceElevated = dark ? over(panel, "#ffffff", 0.05) : over(panel, "#ffffff", 0.55);
+  const surfaceSunken = dark ? over(bg, "#000000", 0.2) : over(panel, "#000000", 0.04);
+  let text = readable(fg, [bg, panel, surfaceElevated, surfaceSunken], 4.5);
   let hover = over(panel, text, 0.11);
   for (let i = 0; i < 3; i++) {
-    text = readable(text, [bg, panel, hover], 4.5);
+    text = readable(text, [bg, panel, hover, surfaceElevated, surfaceSunken], 4.5);
     hover = over(panel, text, 0.11);
   }
-  const border = theme.card_border && contrastRatio(theme.card_border, bg) >= 1.15 ? hex(parseColor(theme.card_border)) : over(bg, text, 0.22);
+  const rawBorder = theme.card_border && contrastRatio(theme.card_border, bg) >= 1.15 ? hex(parseColor(theme.card_border)) : over(panel, text, dark ? 0.16 : 0.18);
+  const border = contrastRatio(rawBorder, panel) > 1.85 ? over(panel, rawBorder, dark ? 0.42 : 0.48) : rawBorder;
+  const borderSubtle = over(panel, border, 0.58);
+  const borderStrong = over(border, text, 0.28);
   const accent = readable(hex(parseColor(theme.accent_color, [11, 92, 213])), [bg, panel], 4.5);
   const accentText = textOn(accent);
+  const accentSoft = over(panel, accent, dark ? 0.22 : 0.15);
+  const focusRing = readable(accent, [bg, panel], 3);
   const selected = over(bg, accent, 0.3);
   const selectedText = readable(text, [selected], 4.5);
-  const muted = readable(over(text, panel, 0.38), [bg, panel, hover, selected], 4.5);
+  const muted = readable(over(text, panel, 0.38), [bg, panel, hover, selected, surfaceElevated], 4.5);
+  const scrollbarThumb = over(panel, muted, 0.48);
 
   const sem = buildSemanticPalette({ background: bg, card: panel, isDark: dark, overrides: overridesForTheme(theme) });
   const alpha = dark ? 0.18 : 0.14;
@@ -103,9 +154,9 @@ export function themeVars(theme: SimpleGUITheme): ThemeVars {
 
   const notes: string[] = [];
   const asked = (c: string | undefined, fallback: string) => hex(parseColor(c, parseColor(fallback)));
-  if (bg !== asked(theme.background_color, bg) && theme.background_color) notes.push("The window colour was matched to the cards, because no text colour reads well on both.");
-  if (text !== asked(theme.font_color, text) && theme.font_color) notes.push("The text colour was adjusted a little so it stays easy to read.");
-  if (accent !== asked(theme.accent_color, accent) && theme.accent_color) notes.push("The accent colour was adjusted a little so it stands out from the background.");
+  if (bg !== asked(theme.background_color, bg) && theme.background_color) notes.push("The window color was matched to the cards, because no text color reads well on both.");
+  if (text !== asked(theme.font_color, text) && theme.font_color) notes.push("The text color was adjusted a little so it stays easy to read.");
+  if (accent !== asked(theme.accent_color, accent) && theme.accent_color) notes.push("The accent color was adjusted a little so it stands out from the background.");
   let effects: ThemeVars["effects"];
   if (theme.fx) {
     const safe = { ...theme, background_color: bg, card_background: panel, font_color: text };
@@ -120,17 +171,30 @@ export function themeVars(theme: SimpleGUITheme): ThemeVars {
     if (opacity > report.requestedAlpha) notes.push(`Panel opacity was raised to ${Math.round(opacity * 100)}% to keep text readable.`);
   }
 
+  const vars: Record<string, string> = {
+    bg, panel,
+    "surface-elevated": surfaceElevated,
+    "surface-sunken": surfaceSunken,
+    text, muted, border,
+    "border-subtle": borderSubtle,
+    "border-strong": borderStrong,
+    accent, "accent-text": accentText,
+    "accent-soft": accentSoft,
+    "focus-ring": focusRing,
+    "scrollbar-thumb": scrollbarThumb,
+    selected, "selected-text": selectedText, hover,
+    danger, "danger-bg": dangerBg, "danger-text": dangerText,
+    "toast-bg": toastBg, "toast-text": toastText, "toast-action": toastAction, "toast-good": toastGood, "toast-bad": toastBad,
+    good, "warn-bg": warnBg, "warn-text": warnText,
+    shadow: dark ? "0 8px 28px rgba(0, 0, 0, 0.6)" : "0 8px 28px rgba(15, 23, 42, 0.22)",
+  };
+
   return {
     scheme: dark ? "dark" : "light",
     notes,
+    contrast: buildContrastReport(vars),
     ...(effects ? { effects } : {}),
-    vars: {
-      bg, panel, text, muted, border, accent, "accent-text": accentText, selected, "selected-text": selectedText, hover,
-      danger, "danger-bg": dangerBg, "danger-text": dangerText,
-      "toast-bg": toastBg, "toast-text": toastText, "toast-action": toastAction, "toast-good": toastGood, "toast-bad": toastBad,
-      good, "warn-bg": warnBg, "warn-text": warnText,
-      shadow: dark ? "0 8px 28px rgba(0, 0, 0, 0.6)" : "0 8px 28px rgba(15, 23, 42, 0.22)",
-    },
+    vars,
   };
 }
 
@@ -156,7 +220,7 @@ interface Entry {
   computed?: ThemeVars;
 }
 
-/** The colours a theme was made from, for the editor to start from. */
+/** The colors a theme was made from, for the editor to start from. */
 export interface ThemeSource {
   dark: boolean;
   colors: Record<string, string>;
@@ -180,6 +244,24 @@ export function sourceOf(theme: SimpleGUITheme): ThemeSource {
 
 let table: Map<string, Entry> | null = null;
 
+function previewOf(theme: SimpleGUITheme, v: Record<string, string>): ThemePreview {
+  const fx = theme.fx;
+  return {
+    bg: v.bg!,
+    panel: v.panel!,
+    accent: v.accent!,
+    text: v.text!,
+    muted: v.muted!,
+    border: v.border!,
+    selected: v.selected!,
+    selectedText: v["selected-text"]!,
+    radius: fx?.radius ?? "soft",
+    glow: fx?.glow ?? "none",
+    glowColor: fx?.glowColor ?? v.accent!,
+    borderStyle: fx?.border ?? "flat",
+  };
+}
+
 function build(): Map<string, Entry> {
   const out = new Map<string, Entry>();
   const seenNames = new Set<string>();
@@ -190,7 +272,7 @@ function build(): Map<string, Entry> {
     const v = themeVars(theme).vars;
     out.set(key, {
       theme,
-      summary: { key, name: theme.name, description: theme.description ?? "", dark: theme.is_dark, group: groupOf(key, theme), swatch: [v.bg!, v.panel!, v.accent!, v.text!], hasEffects: !!theme.fx },
+      summary: { key, name: theme.name, description: theme.description ?? "", dark: theme.is_dark, group: groupOf(key, theme), swatch: [v.bg!, v.panel!, v.accent!, v.text!], preview: previewOf(theme, v), hasEffects: !!theme.fx },
     });
   }
   return out;
@@ -203,7 +285,7 @@ export const listThemes = (): ThemeSummary[] => [...entries().values()].map((e) 
 function summaryOf(key: string, theme: SimpleGUITheme, group: ThemeGroup): ThemeSummary & ThemeVars {
   const computed = themeVars(theme);
   const v = computed.vars;
-  return { key, name: theme.name, description: theme.description ?? "", dark: theme.is_dark, group, swatch: [v.bg!, v.panel!, v.accent!, v.text!], hasEffects: !!theme.fx, ...computed };
+  return { key, name: theme.name, description: theme.description ?? "", dark: theme.is_dark, group, swatch: [v.bg!, v.panel!, v.accent!, v.text!], preview: previewOf(theme, v), hasEffects: !!theme.fx, ...computed };
 }
 
 export function getThemeColours(key: unknown): (ThemeSummary & ThemeVars) | null {
@@ -215,7 +297,7 @@ export function getThemeColours(key: unknown): (ThemeSummary & ThemeVars) | null
 }
 
 const customSummary = (t: CustomTheme): ThemeSummary => {
-  const { notes: _notes, scheme: _scheme, vars: _vars, effects: _effects, ...summary } = summaryOf(t.id, toSimpleTheme(t), "My themes");
+  const { notes: _notes, scheme: _scheme, vars: _vars, effects: _effects, contrast: _contrast, ...summary } = summaryOf(t.id, toSimpleTheme(t), "My themes");
   return summary;
 };
 
@@ -237,7 +319,7 @@ export const themeOperations: Record<string, FmHandler> = {
     if (!r) throw new FmError("NOT_FOUND", "That theme isn't available.");
     return { theme: r.colours, source: r.source, custom: r.draft ? { id: r.draft.id, name: r.draft.name, base: r.draft.base } : null };
   },
-  /** Works out the colours of a theme that isn't saved yet, so the editor can show it live. */
+  /** Works out the colors of a theme that isn't saved yet, so the editor can show it live. */
   async "themes/preview"(_ctx, b) {
     const draft = validateDraft(b.theme);
     const c = themeVars(toSimpleTheme(draft));
@@ -255,6 +337,34 @@ export const themeOperations: Record<string, FmHandler> = {
     const t = isCustomKey(b.id) ? (await loadCustom(ctx)).find((x) => x.id === b.id) : null;
     if (!t) throw new FmError("NOT_FOUND", "That theme isn't one of yours.");
     return { text: exportTheme(t) };
+  },
+  /** Exports any theme draft or saved theme key as a standalone `:root` CSS variables stylesheet. */
+  async "themes/custom/export-css"(ctx, b) {
+    if (b.theme && typeof b.theme === "object") {
+      const draft = validateDraft(b.theme);
+      const c = themeVars(toSimpleTheme(draft));
+      return { css: exportThemeCss(draft.name, c.scheme, c.vars, c.effects?.css) };
+    }
+    const r = await resolve(ctx, b.key ?? b.id);
+    if (!r) throw new FmError("NOT_FOUND", "That theme isn't available.");
+    return { css: exportThemeCss(r.colours.name, r.colours.scheme, r.colours.vars, r.colours.effects?.css) };
+  },
+  /** Exports all custom themes (or a subset by IDs) as a shareable Theme Pack JSON string. */
+  async "themes/custom/export-pack"(ctx, b) {
+    const all = await loadCustom(ctx);
+    const ids = Array.isArray(b.ids) ? b.ids.filter(isCustomKey) : null;
+    const picked = ids && ids.length ? all.filter((t) => ids.includes(t.id)) : all;
+    if (!picked.length && b.theme && typeof b.theme === "object") {
+      const draft = validateDraft(b.theme);
+      return { text: exportThemePack([draft]), count: 1 };
+    }
+    if (!picked.length) throw new FmError("NOT_FOUND", "Save at least one custom theme first to export a pack.");
+    return { text: exportThemePack(picked), count: picked.length };
+  },
+  /** Imports a Theme Pack (or single theme) and saves all themes into the user's custom themes. */
+  async "themes/custom/import-pack"(ctx, b) {
+    const created = await importThemePack(ctx, b.text);
+    return { imported: created.map((t) => ({ id: t.id, name: t.name })), count: created.length, first: created[0] ?? null };
   },
   /** Reads shared theme text and returns it as a draft for the editor (nothing is saved yet). */
   async "themes/custom/import"(_ctx, b) {

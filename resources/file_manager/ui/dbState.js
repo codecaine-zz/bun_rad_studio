@@ -44,7 +44,7 @@ const ENVIRONMENTS = {
 };
 export const ENVIRONMENT_NAMES = Object.keys(ENVIRONMENTS);
 
-/** A badge that says the environment in words and an icon, never by colour alone. */
+/** A badge that says the environment in words and an icon, never by color alone. */
 export function environmentBadge(environment) {
   const e = ENVIRONMENTS[environment] ?? ENVIRONMENTS.development;
   return h("span", { class: `db-env db-env-${environment}`, title: `This connection is marked as ${e.label.toLowerCase()}.` }, h("span", { "aria-hidden": "true" }, e.icon), ` ${e.label}`);
@@ -68,7 +68,7 @@ export function studiosFor(profileId) {
   return db.studios.filter((s) => s.profileId === profileId && (s.state === "running" || s.state === "starting"));
 }
 
-/** A labelled form row: <label><span>text</span> control hint</label>. */
+/** A labeled form row: <label><span>text</span> control hint</label>. */
 export function field(label, control, hint = "", extra = "") {
   return h("label", { class: `db-field ${extra}`.trim() }, h("span", { class: "db-field-label" }, label), control, hint ? h("span", { class: "db-field-hint" }, hint) : null);
 }

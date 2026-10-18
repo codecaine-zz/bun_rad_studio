@@ -10,6 +10,7 @@ import {
   validateMacro,
   macroToSqlScript,
   macroToVba,
+  macroToBunJs,
 } from "../applications/sqlite_studio_macros.ts";
 
 describe("⚡ SQLite Studio Pro - Macro Automation Suite", () => {
@@ -707,9 +708,57 @@ describe("⚡ SQLite Studio Pro - Macro Automation Suite", () => {
 
   it("21. Designer exposes the new controls", async () => {
     const html = await (await fetch(`${baseUrl}/`)).text();
-    for (const token of ["btnDryRun", "btnAtomicRun", "macroOnErrorSelect", "duplicateCurrentMacro", "runMacroSteps", "extractPromptParams", "resolveMacroSqlParams", "macroDialogModal", "macroAskConfirm", "macro-modal"]) {
+    for (const token of ["btnDryRun", "btnAtomicRun", "macroOnErrorSelect", "duplicateCurrentMacro", "runMacroSteps", "extractPromptParams", "resolveMacroSqlParams", "macroDialogModal", "macroAskConfirm", "macro-modal", "RunCode"]) {
       expect(html).toContain(token);
     }
   });
+
+  it("22. RunCode executes Bun JS with CurrentDb, DoCmd, TempVars, DCount/DLookup/DSum and exports to Bun JS", async () => {
+    await sql("CREATE TABLE IF NOT EXISTS m22 (id INTEGER PRIMARY KEY, name TEXT, score INTEGER);");
+    await sql("DELETE FROM m22;");
+    await sql("INSERT INTO m22 (name, score) VALUES ('Ada', 40), ('Grace', 60);");
+
+    const macro: MacroDefinition = {
+      id: "m22_bun",
+      name: "Bun Access Macro",
+      description: "Test Bun JS RunCode action",
+      actions: [
+        step("1", "RunCode", {
+          code: `
+            const cnt = await DCount("*", "m22");
+            const total = await DSum("score", "m22");
+            const topName = await DLookup("name", "m22", "score = 60");
+            await DoCmd.InsertRecord("m22", { name: "Alan", score: 50 });
+            TempVars.countBefore = cnt;
+            TempVars.totalBefore = total;
+            TempVars.topName = topName;
+            Debug.print("Count=" + cnt + " Total=" + total + " Top=" + topName);
+            return { cnt, total, topName, after: await DCount("*", "m22") };
+          `,
+        }),
+        step("2", "MessageBox", {
+          message: "Top was [topName] with total [totalBefore]",
+          title: "Summary",
+        }),
+      ],
+    };
+
+    const runRes = await post("/api/macros/run", { macro });
+    expect(runRes.success).toBe(true);
+    expect(runRes.result.success).toBe(true);
+    expect(runRes.result.executedSteps).toBe(2);
+    expect(runRes.result.logs[0].message).toContain("Count=2 Total=100 Top=Grace");
+    expect(runRes.result.logs[0].output.returnValue).toEqual({ cnt: 2, total: 100, topName: "Grace", after: 3 });
+
+    const bunJs = macroToBunJs(macro);
+    expect(bunJs).toContain("export async function Bun_Access_Macro(");
+    expect(bunJs).toContain('MsgBox("Top was [topName] with total [totalBefore]"');
+
+    const exportOut = await post("/api/macros/export", { macro, format: "bun" });
+    expect(exportOut.success).toBe(true);
+    expect(exportOut.filename).toBe("Bun_Access_Macro.macro.js");
+    expect(exportOut.content).toContain("export async function Bun_Access_Macro(");
+  });
 });
+
 

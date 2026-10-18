@@ -157,3 +157,10 @@
 			copyTextToClipboard(code, "Copied Python CustomTkinter code to clipboard!", targetBtn);
 			switchTab("tabPython");
 		}
+
+		function copyJSONCode(btn) {
+			const code = JSON.stringify(formSpec, null, 2);
+			const targetBtn = btn || (typeof event !== 'undefined' && event && event.currentTarget);
+			copyTextToClipboard(code, "Copied FormSpec JSON layout to clipboard!", targetBtn);
+			switchTab("tabJSON");
+		}

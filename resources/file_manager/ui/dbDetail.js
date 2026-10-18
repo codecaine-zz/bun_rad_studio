@@ -3,6 +3,8 @@
 import { call } from "./api.js";
 import { confirmBox, openDialog } from "./dialogs.js";
 import { clear, h } from "./dom.js";
+import { showCloneDialog } from "./dbClone.js";
+import { showMacrosDialog } from "./dbMacros.js";
 import { renderEffective } from "./dbEffective.js";
 import { renderTestResult, showEditor } from "./dbEditor.js";
 import { showEngineSettings } from "./dbSettings.js";
@@ -75,6 +77,14 @@ export function renderDetail(box) {
   };
   const buttons = h("div", { class: "pw-row db-actions" },
     openBtn, windowBtn, browserBtn, importButton(p), testBtn,
+    act("Clone…", "Clone this database or selected tables, views and keys into another connection or a new SQLite file", async () => {
+      const res = await showCloneDialog({ sourceProfileId: p.id });
+      if (res?.createdProfile) db.selectedId = res.createdProfile.id;
+      if (res) await changed();
+    }),
+    act("Macros…", "Open the Bun JS & Visual Macro Studio targeting this connection", async () => {
+      await showMacrosDialog({ profileId: p.id });
+    }),
     act("Edit…", "Change this connection", async () => { if (await showEditor({ profile: p })) await changed(); }),
     act("Duplicate…", "Make a copy of this connection", async () => {
       const choice = await chooseCopy(p);
@@ -88,7 +98,7 @@ export function renderDetail(box) {
         toast(errorText(err, "That couldn't be copied."), { kind: "error" });
       }
     }),
-    act(p.favorite ? "★ Unfavourite" : "☆ Favourite", "Keep this connection near the top of the list", async () => {
+    act(p.favorite ? "★ Unfavorite" : "☆ Favorite", "Keep this connection near the top of the list", async () => {
       try {
         await call("db/profile/favorite", { id: p.id, favorite: !p.favorite });
         await changed();
@@ -111,7 +121,7 @@ export function renderDetail(box) {
   const tag = (t) => h("span", { class: "db-tag" }, t);
   // append() would print "null" for a missing part, so the parts are filtered first.
   const parts = [
-    h("h3", { class: "db-h" }, h("span", { "aria-hidden": "true" }, `${info.icon} `), p.name, " ", environmentBadge(p.environment), p.favorite ? h("span", { class: "db-fav", title: "Favourite" }, " ★") : null),
+    h("h3", { class: "db-h" }, h("span", { "aria-hidden": "true" }, `${info.icon} `), p.name, " ", environmentBadge(p.environment), p.favorite ? h("span", { class: "db-fav", title: "Favorite" }, " ★") : null),
     h("dl", { class: "db-kv" },
       row("Kind", info.label),
       row(p.engine === "sqlite" ? "File" : "Server", summaryOf(p)),

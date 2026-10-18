@@ -4,12 +4,15 @@ import { ApiError } from "./api.js";
 import { showBackgroundMenu, showEntryMenu } from "./contextmenu.js";
 import { attachDropTarget, drag, endDrag, startDrag } from "./dnd.js";
 import { clear, h, iconFor } from "./dom.js";
+import { wireMarquee } from "./marquee.js";
 import { toast } from "./menus.js";
 import { saveSettings, visibleEntries } from "./nav.js";
 import { commitRename, dropOnto, openEntry } from "./ops.js";
 import { inTrash, isFolderView, left, setActivePane } from "./pane.js";
 import { clearSelection, selectOnly, selectRangeTo, selectedEntries, toggleKey } from "./selection.js";
 import { on, state } from "./state.js";
+import { openNewTab } from "./tabs.js";
+import { tagForPath, tagInfo } from "./tags.js";
 import { describeSelection, formatDate, formatSize, isModifier, summarizeCount } from "./util.js";
 
 const PAGE = 500;
@@ -29,12 +32,45 @@ const list = (pane = left) => part(pane, "list");
 function emptyMessage(pane) {
   if (pane.search) return ["No matches", `Nothing here has a name containing "${pane.search.query}". Try fewer letters, or use * as a wildcard (for example *.jpg).`];
   if (inTrash(pane)) return ["The Recycle Bin is empty", "Items you delete show up here, and you can restore them."];
+  if (state.tagFilter) {
+    const t = tagInfo(state.tagFilter);
+    return [`No ${t ? t.label.toLowerCase() : "tagged"} items here`, "No files or folders in this location have that color tag. Click the tag again in the sidebar to show all items."];
+  }
   return ["This folder is empty", "Drag files here, or use New folder / New file in the toolbar."];
 }
 
 function whereText(pane, entry) {
   if (pane.search) return entry.folder ?? "";
   if (inTrash(pane)) return entry.where ?? "";
+  return "";
+}
+
+/** Computes the group heading for an entry when Group By is active. */
+export function groupBucketFor(entry, mode = state.settings.groupBy) {
+  if (!mode || mode === "none") return "";
+  if (mode === "kind") {
+    if (entry.isDir) return "Folders";
+    return entry.label || "Files";
+  }
+  if (mode === "date") {
+    const ms = Number(entry.mtimeMs) || 0;
+    if (!ms) return "Unknown date";
+    const diffHours = Math.max(0, (Date.now() - ms) / 3_600_000);
+    if (diffHours < 24) return "Today";
+    if (diffHours < 48) return "Yesterday";
+    if (diffHours < 24 * 7) return "Earlier this week";
+    if (diffHours < 24 * 30) return "Earlier this month";
+    return "Older";
+  }
+  if (mode === "size") {
+    if (entry.isDir) return "Folders";
+    const sz = Number(entry.size) || 0;
+    if (sz === 0) return "Empty (0 B)";
+    if (sz < 10 * 1024) return "Tiny (< 10 KB)";
+    if (sz < 1024 * 1024) return "Small (10 KB – 1 MB)";
+    if (sz < 100 * 1024 * 1024) return "Medium (1 – 100 MB)";
+    return "Large (> 100 MB)";
+  }
   return "";
 }
 
@@ -47,23 +83,35 @@ export function makeListHead(id) {
     h("span", { class: "h-where", hidden: true }, "Folder"),
     sort("h-date", "modified", "Date modified", "Sort by when each item was last changed. Click again to reverse the order."),
     sort("h-type", "type", "Type", "Sort by kind of item. Click again to reverse the order."),
-    sort("h-size", "size", "Size", "Sort by size. Click again to reverse the order."));
+    sort("h-size", "size", "Size", "Sort by size. Click again to reverse the order."),
+    h("span", { class: "h-ext", hidden: true }, "Extension"),
+    h("span", { class: "h-perms", hidden: true }, "Permissions"));
 }
 
 function makeRow(pane, entry, index) {
   const cut = state.clipboard?.mode === "cut" && state.clipboard.paths.includes(entry.path);
   const trash = inTrash(pane);
+  const tag = !trash ? tagForPath(entry.path) : null;
+  const cols = Array.isArray(state.settings.columns) ? state.settings.columns : [];
+  const extText = entry.isDir ? "—" : (entry.ext ? String(entry.ext).replace(/^\./, "").toUpperCase() : "—");
+  const permsText = entry.mode || (entry.writable === false ? "r--r--r--" : entry.isDir ? "rwxr-xr-x" : "rw-r--r--");
   const row = h("div", {
     class: `row${entry.isDir ? " is-folder" : ""}${entry.hidden ? " hidden-item" : ""}${cut ? " cut" : ""}${entry.broken ? " broken" : ""}`,
     role: "option", id: `${pane.ids.row}-${index}`, "aria-selected": String(pane.selection.has(entry.path)),
-    draggable: trash ? null : "true", dataset: { key: entry.path, index: String(index) }, title: entry.path && !trash ? entry.path : entry.name,
+    draggable: trash ? null : "true",
+    dataset: { key: entry.path, index: String(index), ...(tag ? { tag: tag.id } : {}) },
+    title: entry.path && !trash ? entry.path : entry.name,
   },
     h("span", { class: "c-icon", "aria-hidden": "true" }, entry.icon || iconFor(entry.name, entry.isDir)),
-    h("span", { class: "c-name" }, h("span", { class: "name-text" }, entry.name)),
+    h("span", { class: "c-name" },
+      tag ? h("span", { class: `tag-dot tag-${tag.id}`, title: `Tagged ${tag.label}`, "aria-label": `Tagged ${tag.label}` }) : null,
+      h("span", { class: "name-text" }, entry.name)),
     h("span", { class: "c-where" }, whereText(pane, entry)),
     h("span", { class: "c-date" }, formatDate(entry.mtimeMs)),
     h("span", { class: "c-type" }, entry.label),
     h("span", { class: "c-size" }, entry.isDir ? "" : formatSize(entry.size)),
+    h("span", { class: "c-ext", hidden: !cols.includes("ext") }, extText),
+    h("span", { class: "c-perms", hidden: !cols.includes("permissions") }, permsText),
   );
   viewOf(pane).rows.set(entry.path, row);
   return row;
@@ -75,14 +123,30 @@ export function renderList(pane = left) {
   const view = viewOf(pane);
   const entries = visibleEntries(pane);
   const trash = inTrash(pane);
+  const cols = Array.isArray(state.settings.columns) ? state.settings.columns : [];
+  const groupBy = !trash ? (state.settings.groupBy || "none") : "none";
   view.rows.clear();
   view.renaming = null;
-  container.className = `view-${state.settings.view}${pane.search ? " searching" : ""}${trash ? " in-trash" : ""}`;
+  container.className = `view-${state.settings.view}${pane.search ? " searching" : ""}${trash ? " in-trash" : ""}${groupBy !== "none" ? " grouped" : ""}`;
+  container.dataset.cols = cols.join(",");
   container.setAttribute("aria-label", pane.side === "right" ? "Files and folders in the right pane" : trash ? "Recycle Bin" : pane.search ? "Search results" : "Files and folders");
   const limit = pane.shown || PAGE;
   pane.shown = Math.min(Math.max(limit, PAGE), entries.length);
   const frag = document.createDocumentFragment();
-  entries.slice(0, pane.shown).forEach((e, i) => frag.append(makeRow(pane, e, i)));
+  const slice = entries.slice(0, pane.shown);
+  let lastBucket = null;
+  slice.forEach((e, i) => {
+    if (groupBy !== "none") {
+      const bucket = groupBucketFor(e, groupBy);
+      if (bucket && bucket !== lastBucket) {
+        lastBucket = bucket;
+        frag.append(h("div", { class: "group-header", role: "presentation", dataset: { group: bucket } },
+          h("span", { class: "group-title" }, bucket),
+        ));
+      }
+    }
+    frag.append(makeRow(pane, e, i));
+  });
   if (entries.length > pane.shown) {
     frag.append(h("div", { class: "more" },
       h("span", {}, summarizeCount(entries.length, pane.shown)),
@@ -103,6 +167,8 @@ export function renderList(pane = left) {
 
 function updateHeaderSort(pane) {
   const head = part(pane, "head");
+  const cols = Array.isArray(state.settings.columns) ? state.settings.columns : [];
+  head.dataset.cols = cols.join(",");
   head.querySelectorAll("[data-sort]").forEach((b) => {
     const active = b.dataset.sort === state.settings.sortBy;
     b.setAttribute("aria-sort", active ? (state.settings.sortDir === "asc" ? "ascending" : "descending") : "none");
@@ -111,6 +177,10 @@ function updateHeaderSort(pane) {
   const where = head.querySelector(".h-where");
   where.hidden = !(pane.search || inTrash(pane));
   where.textContent = inTrash(pane) ? "Was in" : "Folder";
+  const extHead = head.querySelector(".h-ext");
+  if (extHead) extHead.hidden = !cols.includes("ext");
+  const permsHead = head.querySelector(".h-perms");
+  if (permsHead) permsHead.hidden = !cols.includes("permissions");
 }
 
 /** Updates selected/focused marks without redrawing everything. */
@@ -303,13 +373,33 @@ export function wirePane(pane) {
 
 export function wireList() {
   wirePane(left);
+  wirePaneExtras(left);
   on("view", () => {
     state.shown = 0;
     renderList();
   });
+  on("settings", (c) => {
+    if (c && ("columns" in c || "groupBy" in c || "tags" in c)) renderList(left);
+  });
   on("selection", () => syncSelection(left));
   on("clipboard", () => renderList(left));
   on("rename-request", ({ key, pane }) => setTimeout(() => beginRename(key, pane), 0));
+}
+
+export function wirePaneExtras(pane) {
+  wireMarquee(pane);
+  const container = list(pane);
+  if (!container) return;
+  container.addEventListener("auxclick", (e) => {
+    if (e.button !== 1) return;
+    const row = rowOf(e.target);
+    if (!row) return;
+    const entry = visibleEntries(pane).find((x) => x.path === row.dataset.key);
+    if (entry?.isDir && entry.path && !inTrash(pane)) {
+      e.preventDefault();
+      openNewTab(entry.path);
+    }
+  });
 }
 
 /** Entries per visual line in the icons view, so Up/Down can move by a whole line. */

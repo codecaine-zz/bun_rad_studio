@@ -341,7 +341,7 @@ describe("fonts", () => {
     font.write("maxp", 12, "latin1"); font.writeUInt32BE(dirLen, 20); font.writeUInt32BE(maxp.length, 24);
     font.write("name", 28, "latin1"); font.writeUInt32BE(dirLen + maxp.length, 36); font.writeUInt32BE(nameTable.length, 40);
     const f = rows(await fontInfo(bufferSource(Buffer.concat([font, maxp, nameTable]))));
-    expect([f["font/Family"], f["font/Style"], f["font/Version"], f["font/Designer"], f["font/Licence"], f["font/Glyphs"]]).toEqual(["Test Sans", "Bold", "Version 1.5", "A. Designer", "Free to use", "321"]);
+    expect([f["font/Family"], f["font/Style"], f["font/Version"], f["font/Designer"], f["font/License"], f["font/Glyphs"]]).toEqual(["Test Sans", "Bold", "Version 1.5", "A. Designer", "Free to use", "321"]);
   });
 
   test("garbage in a font header doesn't throw", async () => {

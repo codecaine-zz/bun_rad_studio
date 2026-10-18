@@ -1,5 +1,5 @@
-// "More info": the main colours of a picture, worked out here in the page. The picture is drawn small on a canvas
-// (from this app's own address, so the canvas is never "tainted") and the colours are grouped with the median-cut method.
+// "More info": the main colors of a picture, worked out here in the page. The picture is drawn small on a canvas
+// (from this app's own address, so the canvas is never "tainted") and the colors are grouped with the median-cut method.
 import { rawUrl } from "./api.js";
 import { h } from "./dom.js";
 import { copyValue } from "./fileinfoRender.js";
@@ -28,8 +28,8 @@ export function toHslText({ r, g, b }) {
 }
 
 /**
- * The dominant colours of some RGBA pixels, most common first. Median cut: the pixels are split in halves along the
- * colour channel that varies most, until there are `k` boxes; each box gives its average colour.
+ * The dominant colors of some RGBA pixels, most common first. Median cut: the pixels are split in halves along the
+ * color channel that varies most, until there are `k` boxes; each box gives its average color.
  * @param {ArrayLike<number>} data RGBA bytes
  * @param {number} [k] at most 8
  * @returns {Array<{ r: number, g: number, b: number, share: number }>}
@@ -66,7 +66,7 @@ export function dominantColors(data, k = 6) {
     for (const p of box) { sum[0] += p[0]; sum[1] += p[1]; sum[2] += p[2]; }
     return [sum[0] / box.length, sum[1] / box.length, sum[2] / box.length];
   });
-  // A few rounds of k-means from the median-cut colours: each pixel joins its nearest colour, then each colour moves to the middle of its pixels.
+  // A few rounds of k-means from the median-cut colors: each pixel joins its nearest color, then each color moves to the middle of its pixels.
   let centers = seeds;
   let counts = [];
   for (let round = 0; round < 6; round++) {
@@ -91,7 +91,7 @@ export function dominantColors(data, k = 6) {
 }
 
 /**
- * Loads the picture and works out its colours. Resolves null when the picture can't be drawn (not a picture the
+ * Loads the picture and works out its colors. Resolves null when the picture can't be drawn (not a picture the
  * browser can show, no canvas, or the pixels can't be read).
  */
 export function loadPalette(path, k = 6) {
@@ -120,29 +120,29 @@ export function loadPalette(path, k = 6) {
   });
 }
 
-/** The group of rows for reports and searching: one row per colour. */
+/** The group of rows for reports and searching: one row per color. */
 export function paletteGroup(colors) {
   return {
     id: "palette",
-    title: "Colour palette",
-    hint: "The main colours of the picture, found by looking at a small copy of it on this page.",
-    rows: colors.map((c, i) => ({ label: `Colour ${i + 1}`, value: `${toHex(c)}  ${toRgbText(c)}  ${toHslText(c)}  (${Math.round(c.share * 100)}% of the picture)`, hint: "HEX, RGB and HSL are three ways of writing the same colour." })),
+    title: "Color palette",
+    hint: "The main colors of the picture, found by looking at a small copy of it on this page.",
+    rows: colors.map((c, i) => ({ label: `Color ${i + 1}`, value: `${toHex(c)}  ${toRgbText(c)}  ${toHslText(c)}  (${Math.round(c.share * 100)}% of the picture)`, hint: "HEX, RGB and HSL are three ways of writing the same color." })),
   };
 }
 
-/** Swatches you can click to copy a colour. */
+/** Swatches you can click to copy a color. */
 export function paletteView(colors) {
   const items = colors.map((c, i) => {
     const hex = toHex(c);
     const swatch = h("span", { class: "fi-swatch", "aria-hidden": "true" });
     swatch.style.setProperty("--fi-swatch", hex);
-    return h("li", {}, h("button", { type: "button", class: "fi-chip", title: `Copy ${hex}`, "aria-label": `Copy colour ${i + 1}: ${hex}, ${toRgbText(c)}, ${toHslText(c)}`, onclick: () => copyValue(hex, hex) },
+    return h("li", {}, h("button", { type: "button", class: "fi-chip", title: `Copy ${hex}`, "aria-label": `Copy color ${i + 1}: ${hex}, ${toRgbText(c)}, ${toHslText(c)}`, onclick: () => copyValue(hex, hex) },
       swatch,
       h("span", { class: "fi-chip-text" }, h("strong", {}, hex), h("span", {}, toRgbText(c)), h("span", {}, toHslText(c)), h("span", { class: "hint" }, `${Math.round(c.share * 100)}%`)),
     ));
   });
   return h("section", { class: "fi-group fi-palette", dataset: { group: "palette-view" } },
-    h("h3", { class: "fi-title", title: "The main colours of the picture. Click one to copy its HEX code." }, "Colour palette"),
-    items.length ? h("ul", { class: "fi-chips" }, items) : h("p", { class: "hint" }, "The colours could not be worked out for this picture."),
+    h("h3", { class: "fi-title", title: "The main colors of the picture. Click one to copy its HEX code." }, "Color palette"),
+    items.length ? h("ul", { class: "fi-chips" }, items) : h("p", { class: "hint" }, "The colors could not be worked out for this picture."),
   );
 }

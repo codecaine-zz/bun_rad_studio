@@ -240,9 +240,10 @@ describe("a Mac keyboard on Windows or Linux (its Delete key sends Backspace)", 
           expect(checkAssign(a, spec, keys, platform), `${platform} ${a.id} ${spec}`).toBeNull();
         }
       }
-      // the Mac is untouched: its Delete key already is Backspace, and Cmd+Backspace deletes there
-      expect(defaultsFor(action("file.trash"), "darwin")).toEqual(["Delete", "Mod+Backspace"]);
-      expect(defaultsFor(action("nav.up"), "darwin")).toEqual(["Alt+ArrowUp", "Mod+ArrowUp", "Backspace"]);
+      // the Mac is untouched: its Delete key already is Backspace, so Backspace and Cmd+Backspace both delete there
+      expect(defaultsFor(action("file.trash"), "darwin")).toEqual(["Delete", "Backspace", "Mod+Backspace"]);
+      expect(defaultsFor(action("file.deleteForever"), "darwin")).toEqual(["Shift+Delete", "Shift+Backspace"]);
+      expect(defaultsFor(action("nav.up"), "darwin")).toEqual(["Alt+ArrowUp", "Mod+ArrowUp"]);
     } finally {
       setBackspaceDeletes(false);
     }

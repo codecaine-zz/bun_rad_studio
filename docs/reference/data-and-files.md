@@ -34,7 +34,7 @@ Everything the project reads or writes on your computer, sorted by how much it m
 | Uploaded SQLite files | `.sqlite_uploads/` in the current folder: **a copy** of the file you chose | Your work (edits go to the copy) | SQLite Studio upload | yes |
 | SQLite runtime files | `*.sqlite-wal` and `*.sqlite-shm` next to a database | Temporary | SQLite | yes |
 | Legacy studio database settings | `.env` in the current folder | **Sensitive** | you; read by MySQL and PostgreSQL studios | yes |
-| Launcher favourites and history | `.launcher_history.json` in the current folder, or `LAUNCHER_HISTORY_FILE` | Your preferences | Launcher | yes |
+| Launcher favorites and history | `.launcher_history.json` in the current folder, or `LAUNCHER_HISTORY_FILE` | Your preferences | Launcher | yes |
 | Maze and word-search game state | `.maze_generator_state.json`, `.word_search_state.json` in the current folder (maze: `MAZE_GENERATOR_STATE_FILE`) | Your progress | those games, through a temporary file and a rename | yes |
 | Other games' progress | The browser storage inside the studio's window (a fallback keeps it in memory if storage is blocked) | Your progress | the game pages | n/a |
 | File Manager settings | `~/.bun_rad_studio/file_manager.json` (mode 0600): favorites, recent folders, view, sort, theme, text size, last folder | Your preferences | File Manager | outside the repository |

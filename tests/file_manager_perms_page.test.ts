@@ -482,7 +482,7 @@ describe.skipIf(!posix)("the Permissions section of Properties", () => {
     // no table, text block or fact list of its own: the Properties window keeps a single Copy button
     expect(section().querySelectorAll("table, pre, dl")).toHaveLength(0);
     expect(section().textContent).not.toMatch(/\bnull\b|\bundefined\b|\[object|NaN/i);
-    // nothing relies on colour alone: warnings start with words
+    // nothing relies on color alone: warnings start with words
     for (const w of section().querySelectorAll(".perm-warn")) expect(w.textContent).toMatch(/^Careful/);
   });
 

@@ -72,7 +72,7 @@ describe("⚡ Cyber Breakout Deluxe — Arcade Master Edition Suite", () => {
     const apps = scanWorkspaceApps();
     const found = apps.find((a) => a.name === "breakout_studio" || a.id === "rad_breakout_studio");
     expect(found).toBeDefined();
-    expect(found?.displayName).toBe("Cyber Breakout Deluxe");
+    expect(found?.displayName).toBe("Codecaine Cyber Breakout Deluxe");
     expect(found?.icon).toBe("🧱");
     expect(found?.category).toBe("Games & Entertainment");
     expect(found?.description).toContain("continuous swept physics");

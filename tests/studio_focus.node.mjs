@@ -12,7 +12,7 @@ const body = (s) => s.d.body.classList;
 const hidden = (s, sel) => { const e = s.q(sel); if (!e) return null; return s.w.getComputedStyle(e).display === "none"; };
 
 describe(`Focus mode on the ${ENGINE} studio (jsdom against the real server)`, () => {
-  test("every section header has a labelled Focus button with a tooltip and aria-pressed", async () => {
+  test("every section header has a labeled Focus button with a tooltip and aria-pressed", async () => {
     const s = await openStudio(BASE, { table: "wide" });
     await wait(() => s.q(".view-tabs .sf-btn"), "the tab bar button");
     const tab = s.q(".view-tabs .sf-btn");

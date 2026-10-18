@@ -1,5 +1,5 @@
 // App icons: one picture per application that says what the app is. Each is a glowing "liquid glass" tile (see
-// iconRenderer.ts) with a symbol chosen for the app (iconDesigns.ts) in its category's colours, drawn by macOS's own
+// iconRenderer.ts) with a symbol chosen for the app (iconDesigns.ts) in its category's colors, drawn by macOS's own
 // graphics through a short JavaScript-for-Automation program (osascript) and turned into a .icns file with sips and
 // iconutil. If drawing fails the Mac apps use the project's generic icon, and the apps still work.
 import { existsSync, mkdirSync, rmSync, writeFileSync, copyFileSync } from "fs";
@@ -14,7 +14,7 @@ export interface IconSpec {
   symbol?: string;
   custom?: string;
   text?: string;
-  /** Deep colour in the top left, vivid colour in the bottom right, the glow around the glyph, and the glyph's lower tint. */
+  /** Deep color in the top left, vivid color in the bottom right, the glow around the glyph, and the glyph's lower tint. */
   dark: string;
   vivid: string;
   glow: string;
@@ -87,7 +87,7 @@ function hslToHex([h, s, l]: [number, number, number]): string {
   return "#" + [f(0), f(8), f(4)].map((v) => Math.round(v * 255).toString(16).padStart(2, "0")).join("");
 }
 
-/** The category's colours, turned by an amount that depends on the app's name so neighbours are still told apart (games turn furthest, so they span red to violet). */
+/** The category's colors, turned by an amount that depends on the app's name so neighbours are still told apart (games turn furthest, so they span red to violet). */
 export function colorsFor(category: string, id: string): Palette {
   const base = PALETTES[category] ?? FALLBACK;
   const range = category === "Games & Entertainment" ? 90 : 40;

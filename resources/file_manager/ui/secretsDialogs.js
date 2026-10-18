@@ -47,7 +47,7 @@ const select = (options, value, label, tip) => {
   el.value = String(value);
   return el;
 };
-const labelled = (text, control) => h("label", { class: "sx-flabel" }, text, control);
+const labeled = (text, control) => h("label", { class: "sx-flabel" }, text, control);
 
 export function settingsDialog() {
   const s = sx.status.settings;
@@ -64,7 +64,7 @@ export function settingsDialog() {
   warnClip.hidden = clip.value !== "0";
   return formDialog({
     title: "Vault settings", submitLabel: "Save settings", tip: "Save these settings inside the vault",
-    fields: [labelled("Lock after", lock), warn, labelled("Clear the clipboard after", clip), warnClip, h("label", { class: "sx-check" }, blur, " Lock when I switch to another window"), labelled("Ask for the master password at least every", days), h("p", { class: "sx-hint" }, "The last setting only matters when “Unlock with this computer” is on.")],
+    fields: [labeled("Lock after", lock), warn, labeled("Clear the clipboard after", clip), warnClip, h("label", { class: "sx-check" }, blur, " Lock when I switch to another window"), labeled("Ask for the master password at least every", days), h("p", { class: "sx-hint" }, "The last setting only matters when “Unlock with this computer” is on.")],
     run: async () => {
       const res = await call("secrets/settings", { settings: { autoLockMinutes: Number(lock.value), clipboardSeconds: Number(clip.value), lockOnBlur: blur.checked, deviceMaxDays: Number(days.value) } });
       setStatus(res.status);
@@ -158,7 +158,7 @@ export function rekeyDialog() {
   return formDialog({
     title: "Re-key the vault", submitLabel: "Re-key", tip: "Re-encrypt the key protection with the strength you chose",
     intro: h("p", {}, "Choose how expensive guessing your master password should be. This is recalculated from your master password now. It takes a few seconds."),
-    fields: [confirm.el, labelled("Strength", level), h("label", { class: "sx-check" }, rotate, " Also make brand-new encryption keys (removes the recovery key, the computer shortcut and old backups; make a new recovery key afterwards)")],
+    fields: [confirm.el, labeled("Strength", level), h("label", { class: "sx-check" }, rotate, " Also make brand-new encryption keys (removes the recovery key, the computer shortcut and old backups; make a new recovery key afterwards)")],
     run: async () => {
       const res = await call("secrets/rekey", { ...confirm.values(), strength: level.value, rotateKey: rotate.checked });
       setStatus(res.status);
@@ -173,7 +173,7 @@ export function destroyDialog() {
   return formDialog({
     title: "Erase the vault and start over", submitLabel: "Erase everything", danger: true, tip: "Permanently delete the vault, its backups and its keys",
     intro: h("p", { class: "sx-warning" }, "This permanently deletes the vault file and its backups, and everything stored in them. It cannot be undone, and nobody can get the data back. Backup copies you exported yourself are not touched."),
-    fields: [labelled("Type DELETE to confirm", word)],
+    fields: [labeled("Type DELETE to confirm", word)],
     run: async () => {
       const res = await call("secrets/destroy", { confirm: word.value });
       setStatus(res.status);

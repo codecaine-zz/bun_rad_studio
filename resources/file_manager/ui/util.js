@@ -60,7 +60,7 @@ export function sortEntries(entries, { by = "name", dir = "asc", foldersFirst = 
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Paths (the server always sends absolute, normalised paths; `sep` is "/" or "\")
+// Paths (the server always sends absolute, normalized paths; `sep` is "/" or "\")
 // ---------------------------------------------------------------------------------------------------------------
 
 export function isWindowsPath(path) {

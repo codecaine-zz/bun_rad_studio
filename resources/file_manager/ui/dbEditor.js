@@ -5,6 +5,7 @@ import { confirmBox, openDialog } from "./dialogs.js";
 import { clear, h } from "./dom.js";
 import { ENVIRONMENT_NAMES, db, engineInfo, errorText, field, loadOverview } from "./dbState.js";
 import { selectedEntries } from "./selection.js";
+import { state } from "./state.js";
 
 const ENV_WORDS = { development: "Development", test: "Test", staging: "Staging", production: "Production (be careful)" };
 const SQLITE_MODES = [
@@ -12,6 +13,12 @@ const SQLITE_MODES = [
   ["readonly", "Open read-only"],
   ["create", "Create it if it is missing"],
   ["memory", "In memory (nothing is saved)"],
+];
+const SQLITE_TEMPLATES = [
+  ["empty", "Empty database (no tables)"],
+  ["starter", "Starter schema (users & items tables with sample rows)"],
+  ["kv", "Key-Value store (kv_store table)"],
+  ["notes", "Notes table (notes with title, body & tags)"],
 ];
 
 /** Shows the result of Test connection: words first, then a few facts. */
@@ -160,19 +167,35 @@ export async function showEditor({ profile = null, engine = profile?.engine, pre
     field("Name", name, "", "db-wide"), field("Folder", folder, "Connections with the same folder are listed together."), field("Tags", tags, "Separate with commas."),
     field("Environment", environment, "Production connections ask before a studio opens, because the studios can change data."),
     h("div", { class: "db-checks" },
-      h("label", { class: "db-check" }, favorite, " Favourite"),
+      h("label", { class: "db-check" }, favorite, " Favorite"),
       h("label", { class: "db-check", title: "Marks the connection as one you should not change. The studios have no read-only switch, so this makes the File Manager ask before opening one." }, readOnly, " Read-only (ask before opening a studio)"),
     ),
   ];
   let specific;
   if (isSqlite) {
+    const folderNow = () => (state.location?.kind === "folder" && state.location.path ? state.location.path : state.home || "");
     specific = [
       field("Database file", path, "A full path. Type it, or select the file in the file list and use the button.", "db-wide"),
-      h("button", { type: "button", class: "pw-btn", title: "Use the file selected in the file list", onclick: () => {
-        const sel = selectedEntries().find((e) => !e.isDir);
-        if (sel) path.value = sel.path;
-        else dlg.setError("Select a database file in the file list first.");
-      } }, "Use the selected file"),
+      h("div", { class: "pw-row" },
+        h("button", { type: "button", class: "pw-btn", title: "Use the file selected in the file list", onclick: () => {
+          const sel = selectedEntries().find((e) => !e.isDir);
+          if (sel) path.value = sel.path;
+          else dlg.setError("Select a database file in the file list first.");
+        } }, "Use the selected file"),
+        h("button", { type: "button", class: "pw-btn", title: "Create a brand-new SQLite database file in the current folder and fill in its path", onclick: async () => {
+          const parent = folderNow();
+          if (!parent) { dlg.setError("Open a folder in the file list first."); return; }
+          dlg.setError("");
+          try {
+            const desiredName = name.value.trim() || undefined;
+            const r = await call("newsqlite", { parent, ...(desiredName ? { name: desiredName } : {}) });
+            path.value = r.path;
+            if (!name.value.trim()) name.value = r.name.replace(/\.(sqlite3?|db3?|s3db|sl3)$/i, "");
+          } catch (err) {
+            dlg.setError(errorText(err, "Couldn't create the SQLite file."));
+          }
+        } }, "Create new file in current folder"),
+      ),
       field("How to open it", mode),
     ];
   } else {
@@ -218,5 +241,64 @@ export async function showEditor({ profile = null, engine = profile?.engine, pre
       }
     }, true);
     dlg.result.then((v) => resolve(v && v !== "save" ? v : null));
+  });
+}
+
+/**
+ * One-step dialog to create a brand-new SQLite database file (empty or with a starter schema), optionally save it as a
+ * connection in Databases, and open it immediately in SQLite Studio.
+ */
+export async function showNewSqliteDialog(opts = {}) {
+  const folderNow = opts.folder || (state.location?.kind === "folder" && state.location.path ? state.location.path : state.home || "");
+  const name = h("input", { type: "text", class: "text-input pw-mono", value: opts.name ?? "New database.sqlite", maxlength: "120", required: true, autocomplete: "off", spellcheck: "false" });
+  const folder = h("input", { type: "text", class: "text-input pw-mono", value: folderNow, required: true, autocomplete: "off", spellcheck: "false" });
+  const template = h("select", { class: "text-input" }, SQLITE_TEMPLATES.map(([v, l]) => h("option", { value: v, selected: (opts.template ?? "empty") === v }, l)));
+  const saveProfile = h("input", { type: "checkbox", checked: opts.saveProfile !== false });
+  const openNow = h("input", { type: "checkbox", checked: opts.openNow !== false });
+
+  const dlg = openDialog({
+    title: "New SQLite database",
+    wide: true,
+    describe: "Choose a file name, folder, and optional starter schema to create a new SQLite database.",
+    body: h("div", { class: "db-editor" },
+      h("p", { class: "pw-hint" }, "Creates a brand-new SQLite database file on disk. Existing files are never overwritten."),
+      h("div", { class: "db-form" },
+        field("File name", name, ".sqlite is added when you leave it out.", "db-wide"),
+        field("Folder", folder, "An existing folder where the new file will be saved.", "db-wide"),
+        field("Starter template", template, "Start empty or pre-populate common starter tables.", "db-wide"),
+        h("div", { class: "db-checks db-wide" },
+          h("label", { class: "db-check" }, saveProfile, " Save as a connection in Databases"),
+          h("label", { class: "db-check" }, openNow, " Open immediately in SQLite Studio"),
+        ),
+      ),
+    ),
+    buttons: [{ label: "Cancel", value: null }, { label: "Create SQLite database", value: "create", primary: true }],
+    initialFocus: name,
+  });
+
+  const createBtn = [...dlg.el.querySelectorAll(".btn")].find((b) => b.classList.contains("primary"));
+  return await new Promise((resolve) => {
+    createBtn.addEventListener("click", async (e) => {
+      e.stopImmediatePropagation();
+      dlg.setError("");
+      createBtn.disabled = true;
+      createBtn.textContent = "Creating…";
+      try {
+        const r = await call("newsqlite", {
+          parent: folder.value.trim(),
+          name: name.value.trim() || undefined,
+          template: template.value,
+          saveProfile: saveProfile.checked,
+        });
+        if (saveProfile.checked) await loadOverview();
+        dlg.close("create");
+        resolve({ ...r, openNow: openNow.checked });
+      } catch (err) {
+        dlg.setError(errorText(err, "The SQLite database couldn't be created."));
+        createBtn.disabled = false;
+        createBtn.textContent = "Create SQLite database";
+      }
+    }, true);
+    dlg.result.then((v) => { if (!v || v !== "create") resolve(null); });
   });
 }

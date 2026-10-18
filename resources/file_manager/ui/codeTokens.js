@@ -1,10 +1,10 @@
-// Syntax highlighting: turns lines of text into coloured pieces. `tokenizeLine` handles one line given the state
+// Syntax highlighting: turns lines of text into colored pieces. `tokenizeLine` handles one line given the state
 // left by the line before; `createHighlighter` keeps the work for a whole document so that after an edit only
 // the lines that changed (and any lines whose state really changed) are scanned again.
 import { scanCode, prepare, push } from "./codeScan.js";
 import { scanCss, scanDiff, scanMarkdown, scanMarkup } from "./codeMarkup.js";
 
-/** Lines longer than this are shown without colours (minified files), which keeps every line cheap. */
+/** Lines longer than this are shown without colors (minified files), which keeps every line cheap. */
 export const MAX_COLOURED_LINE = 2000;
 export const TOKEN_TYPES = ["keyword", "type", "function", "constant", "string", "number", "comment", "property", "tag", "attr", "variable", "meta", "regexp", "heading", "link", "strong", "emphasis", "inserted", "deleted"];
 
@@ -15,7 +15,7 @@ const join = (head, rest) => {
   return { tokens, state: rest.state };
 };
 
-/** For config-like files: colour the key (or [section]) at the start of the line, then scan the rest normally. */
+/** For config-like files: color the key (or [section]) at the start of the line, then scan the rest normally. */
 function keyedLine(id, line, state) {
   if (state) return scanCode(id, line, state);
   const m = /^(\s*)(?:(\[[^\]\n]*\])|((?:-\s+)*)((?:"[^"\n]*"|'[^'\n]*'|[^\s=:#;[\]"'-][^=:#;]*?))(\s*)([=:]))/.exec(line);
@@ -54,7 +54,7 @@ function makeLine(line, state) {
 }
 
 /**
- * Colours one line of `lang` (a language id from codeLang.js). `state` is what the previous line returned ("" at the top).
+ * Colors one line of `lang` (a language id from codeLang.js). `state` is what the previous line returned ("" at the top).
  * @returns {{ tokens: Array<{ text: string, type: string }>, state: string }}
  */
 export function tokenizeLine(lang, line, state = "") {
@@ -75,7 +75,7 @@ export function tokenizeLine(lang, line, state = "") {
   }
 }
 
-/** All the lines of a text, coloured. Handy for previews and tests. */
+/** All the lines of a text, colored. Handy for previews and tests. */
 export function tokenizeText(lang, text) {
   let state = "";
   return text.split("\n").map((line) => {
@@ -87,7 +87,7 @@ export function tokenizeText(lang, text) {
 
 /**
  * A highlighter for one document. Give it the lines with setLines() after every change and ask for the lines
- * on screen with line(i); colours are worked out only when asked for and kept until the line changes.
+ * on screen with line(i); colors are worked out only when asked for and kept until the line changes.
  */
 export function createHighlighter(lang = "plain") {
   let language = lang;
@@ -145,7 +145,7 @@ export function createHighlighter(lang = "plain") {
       cache = cache.slice(0, a);
       // a big change is scanned lazily, when the lines are asked for
       if (!enabled || states[a] === undefined || newEnd - a > 2000) return;
-      // rescan the changed block, then see whether the lines after it can keep their colours
+      // rescan the changed block, then see whether the lines after it can keep their colors
       let state = states[a];
       for (let k = a; k < newEnd; k++) {
         const r = tokenizeLine(language, lines[k], state);
@@ -161,7 +161,7 @@ export function createHighlighter(lang = "plain") {
         states[newEnd + b] = tailStates[b];
       }
     },
-    /** The coloured pieces of line `i` (0-based). */
+    /** The colored pieces of line `i` (0-based). */
     line(i) {
       return cache[i] ?? compute(i);
     },

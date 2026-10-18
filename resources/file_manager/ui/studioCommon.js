@@ -1,4 +1,4 @@
-// Pieces shared by the Image Studio and the Media Studio: the "which file" row, labelled sliders and switches, preset
+// Pieces shared by the Image Studio and the Media Studio: the "which file" row, labeled sliders and switches, preset
 // buttons, and saving: every change is sent as ONE conversion job (tools/run), so the result gets a new, safe name next
 // to the original, shows in the task list, and the original is never touched.
 import { ApiError, call } from "./api.js";
@@ -46,7 +46,7 @@ export function fileRow({ what, accepts, onPick, idPrefix }) {
   return { el, setName: (path) => { name.textContent = path ? baseName(path) : `No ${what} yet`; name.title = path ?? ""; } };
 }
 
-/** A labelled slider with its value shown; `format(v)` writes the value ("+20", "150%"). */
+/** A labeled slider with its value shown; `format(v)` writes the value ("+20", "150%"). */
 export function slider({ id, label, min, max, step = 1, value, format = (v) => String(v), tip, onInput }) {
   const out = h("output", { class: "st-value" }, format(value));
   const input = h("input", { type: "range", min, max, step, value, "aria-label": label, title: tip ?? label, dataset: { opt: id } });

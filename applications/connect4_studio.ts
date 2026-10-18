@@ -203,7 +203,7 @@ export function startConnect4StudioServer(options: Connect4ServerOptions = {}) {
           {
             status: "ok",
             app: "connect4_studio",
-            name: "Cyberpunk Connect 4 - Neon AI & 2-Player Arcade",
+            name: "Codecaine Cyberpunk Connect 4 - Neon AI & 2-Player Arcade",
             version: "1.0.0",
             timestamp: Date.now(),
           },
@@ -236,7 +236,7 @@ export function createConnect4Studio(options: Connect4StudioOptions = {}): Conne
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
   const height = options.height ?? (fullscreen ? screen.height : 900);
-  const title = "Cyberpunk Connect 4 - Neon AI & 2-Player Arcade";
+  const title = "Codecaine Cyberpunk Connect 4 - Neon AI & 2-Player Arcade";
 
   const app: Connect4StudioInstance = {
     title,

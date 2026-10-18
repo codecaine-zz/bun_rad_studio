@@ -8,6 +8,7 @@ import { promises as fsp } from "fs";
 import * as nodePath from "path";
 import { absolutePath, type FmContext, type FmHandler } from "./fmCore";
 import { FmError, classify, describeFsError, extensionOf, formatSize } from "./fmPaths";
+import { imagePreviewFor } from "./fmQuickLook";
 
 export const MAX_CLIP_TEXT_BYTES = 5 * 1024 * 1024;
 export const MAX_CLIP_IMAGE_BYTES = 50 * 1024 * 1024;
@@ -36,8 +37,10 @@ export async function copyImageToClipboard(ctx: FmContext, input: unknown): Prom
   const name = nodePath.basename(file);
   if (classify(name, false).kind !== "image") throw new FmError("NOT_AN_IMAGE", "That isn't a picture, so it can't be copied as one.");
   if (size > MAX_CLIP_IMAGE_BYTES) throw new FmError("TOO_BIG", `That picture is ${formatSize(size)}, which is more than the ${formatSize(MAX_CLIP_IMAGE_BYTES)} that can be put on the clipboard.`);
-  const mime = IMAGE_MIME[extensionOf(name)] ?? "image/png";
-  if (!(await ctx.clipboard.writeImage(file, mime))) {
+  const directMime = IMAGE_MIME[extensionOf(name)];
+  const targetFile = directMime ? file : ((await imagePreviewFor(ctx, file)) ?? file);
+  const mime = directMime ?? "image/png";
+  if (!(await ctx.clipboard.writeImage(targetFile, mime))) {
     throw new FmError("CLIPBOARD_FAILED", "The picture couldn't be put on the clipboard. Its format may not be supported on this computer, or the clipboard tool is missing (Linux needs wl-copy or xclip).");
   }
   return { copied: true };

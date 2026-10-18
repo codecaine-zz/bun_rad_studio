@@ -1,5 +1,5 @@
 /* The Power tools frame. Each tool styles its own content in its own .css file. */
-#power-panel { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; min-height: 0; background: var(--bg); container-type: inline-size; container-name: power; }
+#power-panel { position: relative; display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; min-height: 0; background: var(--bg); container-type: inline-size; container-name: power; }
 #power-panel[hidden] { display: none; }
 .power-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--border); flex: none; }
 .power-title { font-weight: 600; margin-right: 6px; }
@@ -22,6 +22,13 @@
 .power-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .power-close { flex: none; border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 6px; padding: 5px 10px; cursor: pointer; font: inherit; white-space: nowrap; }
 .power-close:hover { background: var(--hover); }
+.power-actions { flex: none; display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+.power-act { padding: 3px 8px; font-size: 0.84em; white-space: nowrap; }
+.power-act[aria-pressed="true"] { background: var(--selected); color: var(--selected-text); border-color: var(--accent); font-weight: 600; }
+.power-max-bar { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); z-index: 30; display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border: 1px solid var(--border); border-radius: 999px; background: color-mix(in srgb, var(--panel) 92%, transparent); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18); backdrop-filter: blur(6px); opacity: 0.38; transition: opacity 0.16s ease; }
+.power-max-bar:hover, .power-max-bar:focus-within { opacity: 1; }
+.power-max-bar:not(:hover):not(:focus-within) > button:not(#power-restore) { display: none; }
+#app.db-studio-max .power-max-bar, .power-max-bar[hidden] { display: none; }
 /* In a narrow pane (the Split view) only the open tab keeps its name; the others show just their picture. */
 @container power (max-width: 640px) {
   .power-title { display: none; }
@@ -62,3 +69,23 @@
 .pw-table tr[aria-selected="true"] td { background: var(--selected); color: var(--selected-text); }
 .pw-table td.num, .pw-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .pw-split { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+
+/* Codecaine Games Suite pane */
+.power-pane.games-pane { padding: 10px 14px; gap: 8px; overflow: hidden; }
+.power-pane.games-pane.games-mode-play { padding: 6px 10px; gap: 6px; }
+#app.power-max .power-pane.games-pane.games-mode-play { padding: 0; gap: 0; }
+.games-topbar { flex: none; }
+.games-catalog-wrap { display: flex; flex-direction: column; gap: 10px; flex: 1 1 0; min-height: 0; overflow: auto; }
+.games-catalog-wrap[hidden] { display: none !important; }
+.games-stage-wrap { display: flex; flex-direction: column; gap: 6px; flex: 1 1 0; min-height: 0; width: 100%; height: 100%; }
+#app.power-max .games-stage-wrap { gap: 0; }
+.games-stage-wrap[hidden] { display: none !important; }
+#games-active-note { flex: none; margin: 0; }
+#app.power-compact #games-active-note,
+#app.power-max #games-active-note { display: none; }
+#games-frame { flex: 1 1 0; width: 100%; height: 100%; min-height: 0; border: 1px solid var(--border); border-radius: 8px; background: #050510; }
+#app.power-max #games-frame { border: 0; border-radius: 0; }
+.game-card-head { justify-content: space-between; }
+.game-card-controls { font-size: 0.78em; opacity: 0.85; }
+.game-card-actions { margin-top: auto; padding-top: 4px; }
+

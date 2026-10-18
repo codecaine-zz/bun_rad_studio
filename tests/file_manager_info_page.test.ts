@@ -212,7 +212,7 @@ describe("opening the window", () => {
 });
 
 describe("what the window shows for a photo", () => {
-  test("groups, real tables with headers, plain-word tooltips and a labelled copy button on every row", async () => {
+  test("groups, real tables with headers, plain-word tooltips and a labeled copy button on every row", async () => {
     await open([photo]);
     await loaded();
     const groups = qa(".fi-group").map((g) => g.dataset.group);
@@ -238,7 +238,7 @@ describe("what the window shows for a photo", () => {
     await closeAll();
   });
 
-  test("the location warning is shown in plain words with text and an icon, not colour alone", async () => {
+  test("the location warning is shown in plain words with text and an icon, not color alone", async () => {
     await open([photo]);
     await loaded();
     const banner = q(".fi-gps-banner");
@@ -506,7 +506,7 @@ describe("the map and the private information", () => {
   });
 });
 
-describe("the colour palette", () => {
+describe("the color palette", () => {
   test("is worked out in the page from a canvas (stubbed here), and each swatch copies its HEX code", async () => {
     // left half red, right half blue
     canvasPixels = Array.from({ length: 64 }, (_, i) => (i < 32 ? [220, 20, 20, 255] : [20, 20, 220, 255])).flat();
@@ -520,17 +520,17 @@ describe("the colour palette", () => {
     expect(chips.map((c) => c.querySelector("strong").textContent).sort()).toEqual(["#1414dc", "#dc1414"]);
     expect(chips[0].textContent).toMatch(/rgb\(\d+, \d+, \d+\)/);
     expect(chips[0].textContent).toMatch(/hsl\(\d+, \d+%, \d+%\)/);
-    expect(chips[0].getAttribute("aria-label")).toContain("Copy colour 1");
+    expect(chips[0].getAttribute("aria-label")).toContain("Copy color 1");
     expect(chips[0].querySelector(".fi-swatch").style.getPropertyValue("--fi-swatch")).toMatch(/^#[0-9a-f]{6}$/);
     copied.length = 0;
     chips.find((c) => c.querySelector("strong").textContent === "#dc1414").click();
     await waitFor(() => copied.length === 1);
     expect(copied[0]).toBe("#dc1414");
-    // the colours are part of the report too
+    // the colors are part of the report too
     copied.length = 0;
     q(".fi-copy-report").click();
     await waitFor(() => copied.length === 1);
-    expect(copied[0]).toContain("== Colour palette ==");
+    expect(copied[0]).toContain("== Color palette ==");
     expect(copied[0]).toContain("#dc1414");
     await closeAll();
   });
@@ -544,7 +544,7 @@ describe("the colour palette", () => {
     await closeAll();
   });
 
-  test("median cut: dominant colours, share, k limit, transparency and edge cases", () => {
+  test("median cut: dominant colors, share, k limit, transparency and edge cases", () => {
     const px = (r: number, g: number, b: number, a = 255, n = 1) => Array.from({ length: n }, () => [r, g, b, a]).flat();
     const two = dominantColors(px(255, 0, 0, 255, 30).concat(px(0, 0, 255, 255, 10)), 2);
     expect(two.map(toHex)).toEqual(["#ff0000", "#0000ff"]);

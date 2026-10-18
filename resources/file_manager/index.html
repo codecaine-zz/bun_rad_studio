@@ -33,6 +33,7 @@
 <link rel="stylesheet" href="/ui/grave.css">
 <link rel="stylesheet" href="/ui/plan.css">
 <link rel="stylesheet" href="/ui/studio.css">
+<link rel="stylesheet" href="/ui/player.css">
 <link rel="stylesheet" href="/ui/themeEffects.css">
 </head>
 <body spellcheck="false" autocorrect="off" autocapitalize="off">
@@ -45,6 +46,7 @@
       <div id="view-extras">
         <button id="split-orient" type="button" class="vb-btn" hidden></button>
         <button id="focus-toggle" type="button" class="vb-btn" aria-pressed="false" title="Hide the toolbar and side panels so the list or tool has the whole window (Alt+6). Press Esc to bring them back."><span aria-hidden="true">⛶</span><span class="vb-label">Focus</span></button>
+        <time id="fm-clock" class="vb-clock" role="button" tabindex="0" aria-label="Current date and time. Click to switch between 12-hour and 24-hour time." title="Current date and time. Click to switch between 12-hour and 24-hour time."><span id="fm-clock-date" class="vb-clock-date"></span><span class="vb-clock-sep" aria-hidden="true">·</span><span id="fm-clock-time" class="vb-clock-time"></span></time>
       </div>
     </div>
 
@@ -52,6 +54,8 @@
       <header id="toolbar" role="toolbar" aria-label="Actions"></header>
       <button id="tool-more" type="button" class="tool tool-more" aria-haspopup="menu" title="More buttons that don't fit in this narrow window" hidden><span class="ti" aria-hidden="true">⋯</span><span class="tl">More</span></button>
     </div>
+
+    <div id="tabbar" role="tablist" aria-label="Folder tabs"></div>
 
     <div id="addressbar">
       <div class="address-main">
@@ -79,6 +83,8 @@
           <button type="button" class="h-date" data-sort="modified">Date modified</button>
           <button type="button" class="h-type" data-sort="type">Type</button>
           <button type="button" class="h-size" data-sort="size">Size</button>
+          <span class="h-ext" hidden>Extension</span>
+          <span class="h-perms" hidden>Permissions</span>
         </div>
         <div id="list-wrap">
           <div id="list" role="listbox" tabindex="0" aria-multiselectable="true" aria-label="Files and folders"></div>
@@ -104,6 +110,18 @@
         <button id="power-scroll-left" type="button" class="power-scroll" tabindex="-1" title="Show the tools on the left" aria-label="Scroll the tool tabs left" hidden>‹</button>
         <div id="power-tabs" role="tablist" aria-label="Tools"></div>
         <button id="power-scroll-right" type="button" class="power-scroll" tabindex="-1" title="Show more tools on the right" aria-label="Scroll the tool tabs right" hidden>›</button>
+        <div class="power-actions" role="group" aria-label="Tool screen and window options">
+          <button id="power-compact" type="button" class="pw-btn power-act" aria-pressed="false" title="Hide the tool filter bar and app notes for extra room">Compact</button>
+          <button id="power-expand" type="button" class="pw-btn power-act" aria-pressed="false" title="Fill the whole window with this tool (press Esc to restore)">⛶ Expand</button>
+          <button id="power-window" type="button" class="pw-btn power-act" title="Open the current tool in its own desktop window">Window</button>
+          <button id="power-browser" type="button" class="pw-btn power-act" title="Open the current tool in your web browser">Browser</button>
+        </div>
+      </div>
+      <div id="power-max-bar" class="power-max-bar" role="group" aria-label="Full-window tool controls" hidden>
+        <button id="power-restore" type="button" class="pw-btn power-act" aria-pressed="true" title="Restore the File Manager bars and tabs (Esc)">⛶ Restore</button>
+        <button id="power-max-window" type="button" class="pw-btn power-act" title="Open the current tool in its own desktop window">Window</button>
+        <button id="power-max-browser" type="button" class="pw-btn power-act" title="Open the current tool in your web browser">Browser</button>
+        <button id="power-max-close" type="button" class="pw-btn danger power-act" title="Close the current game or tool and stop audio">✕ Close</button>
       </div>
       <div id="power-body"></div>
     </section>
@@ -123,6 +141,7 @@
           <button id="terminal-paste" type="button" class="term-btn" title="Paste clipboard text into the terminal">Paste</button>
           <button id="terminal-select-all" type="button" class="term-btn" title="Select all terminal output, including scrollback (Ctrl+Shift+A or Command+A)">Select all</button>
           <label class="term-follow" title="Follow the terminal's physical folder, resolving symlinks and junctions. This can differ from pwd; compare pwd -P in a POSIX shell. Hover the terminal title for the reported path."><input id="terminal-follow" type="checkbox"> Follow terminal (real path)</label>
+          <button id="terminal-cliutils" type="button" class="term-btn" title="Open the built-in RAD Studio CLI utilities folder in the terminal so you can run ./tool-name directly">CLI utilities</button>
           <button id="terminal-cd" type="button" class="term-btn" title="Move the terminal to the folder you selected, or to the folder you are looking at if none is selected">Go to this folder</button>
           <button id="terminal-restart" type="button" class="term-btn" title="End this shell and start a new one in the selected folder, or the folder you are looking at">Restart</button>
           <button id="terminal-close" type="button" class="term-btn term-close" title="Hide the terminal (Ctrl+`). It keeps running." aria-label="Hide the terminal">✕</button>
@@ -133,7 +152,7 @@
 
     <footer id="status">
       <span id="status-left" aria-live="off"></span>
-      <span id="status-right"><button id="status-terminal" type="button" class="status-terminal" aria-pressed="false" title="Show the terminal"><span aria-hidden="true">⌨️</span> Terminal <kbd class="status-terminal-key"></kbd></button><span id="status-views" role="group" aria-label="How files are shown"></span><span class="busy-indicator">Working…</span></span>
+      <span id="status-right"><button id="status-terminal" type="button" class="status-terminal" aria-pressed="false" title="Show the terminal"><span aria-hidden="true">⌨️</span> Terminal <kbd class="status-terminal-key"></kbd></button><span id="status-views" role="group" aria-label="How files are shown"></span><time id="status-clock" class="status-clock" aria-label="Current date and time"></time><span class="busy-indicator">Working…</span></span>
     </footer>
   </div>
 

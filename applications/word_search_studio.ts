@@ -210,7 +210,7 @@ export function startWordSearchStudioServer(options: WordSearchServerOptions = {
           {
             status: "ok",
             app: "word_search_studio",
-            name: "Neon Word Search - Cyber Labyrinth Edition",
+            name: "Codecaine Neon Word Search - Cyber Labyrinth Edition",
             version: "1.0.0",
             timestamp: Date.now(),
           },
@@ -255,7 +255,7 @@ export function createWordSearchStudio(options: WordSearchStudioOptions = {}): W
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1280);
   const height = options.height ?? (fullscreen ? screen.height : 880);
-  const title = "Neon Word Search - Cyber Labyrinth Edition";
+  const title = "Codecaine Neon Word Search - Cyber Labyrinth Edition";
 
   const app: WordSearchStudioInstance = {
     title,

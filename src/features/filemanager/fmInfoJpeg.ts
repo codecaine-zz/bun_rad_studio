@@ -77,7 +77,7 @@ const SOF_NAME: Record<number, string> = {
 };
 
 function subsamplingOf(comps: Array<{ h: number; v: number }>): string | null {
-  if (comps.length === 1) return "Grey (one channel)";
+  if (comps.length === 1) return "Gray (one channel)";
   if (comps.length < 3) return null;
   const y = comps[0]!, cb = comps[1]!, cr = comps[2]!;
   if (cb.h !== cr.h || cb.v !== cr.v || !cb.h || !cb.v) return null;
@@ -129,7 +129,7 @@ export async function parseJpeg(src: Source): Promise<JpegInfo> {
         seg.detail = "XMP";
       } else if (marker === 0xe2 && tag.startsWith("ICC_PROFILE\0")) {
         iccParts.set(body[12] ?? 0, Buffer.from(body.subarray(14)));
-        seg.detail = "ICC colour profile";
+        seg.detail = "ICC color profile";
       } else if (marker === 0xe2 && tag.startsWith("MPF\0")) {
         info.hasMpf = true;
         seg.detail = "MPF (multi-picture)";
@@ -138,7 +138,7 @@ export async function parseJpeg(src: Source): Promise<JpegInfo> {
         seg.detail = info.hasIptc ? "Photoshop / IPTC" : "Photoshop";
       } else if (marker === 0xee && tag.startsWith("Adobe")) {
         const t = body[11];
-        info.adobe = t === 0 ? "Adobe (no colour change)" : t === 1 ? "Adobe (YCbCr)" : t === 2 ? "Adobe (YCCK)" : "Adobe";
+        info.adobe = t === 0 ? "Adobe (no color change)" : t === 1 ? "Adobe (YCbCr)" : t === 2 ? "Adobe (YCCK)" : "Adobe";
         seg.detail = "Adobe";
       } else seg.detail = clip(tag.split("\0")[0], 40);
     } else if (marker === 0xfe) {

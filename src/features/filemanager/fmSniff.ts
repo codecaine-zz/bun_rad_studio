@@ -1,5 +1,5 @@
 /**
- * Recognising what a file really is from its first bytes, whatever its name says. Pure: bytes in, answer out.
+ * Recognizing what a file really is from its first bytes, whatever its name says. Pure: bytes in, answer out.
  * Only the start of a file (about 600 bytes) is ever looked at, and nothing is run or parsed any further.
  */
 
@@ -287,7 +287,7 @@ function sniffText(b: Uint8Array): Sniffed | null {
 }
 
 /**
- * What the bytes at the start of a file say it is. `null` only for no bytes at all. Anything that isn't recognised
+ * What the bytes at the start of a file say it is. `null` only for no bytes at all. Anything that isn't recognized
  * is "text" (it reads as text) or "binary" (it doesn't), never a guess about a specific format.
  */
 export function sniffType(bytes: Uint8Array): Sniffed | null {

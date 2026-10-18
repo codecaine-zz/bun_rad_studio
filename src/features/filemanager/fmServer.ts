@@ -14,6 +14,7 @@
 import { randomBytes, timingSafeEqual } from "crypto";
 import { existsSync, promises as fsp, readFileSync, realpathSync } from "fs";
 import * as nodePath from "path";
+import { gunzipSync } from "zlib";
 import { guardLocalRequest, writeClipboardSync } from "../../localGuard";
 import { absolutePath, createContext, pathApi, type FmContext, type FmContextOptions, type FmHandler } from "./fmCore";
 import { codeOperations } from "./fmCodeOps";
@@ -44,6 +45,7 @@ import { databaseOperations } from "./fmDbOps";
 import { studioFrameResponse } from "./fmDbFrame";
 import { hostedPageResponse, hostedSessionFor, hostedStudioOperations } from "./fmHostedStudios";
 import { downloadOperations } from "./fmDownloadOps";
+import { cliUtilsDir, cliUtilsOperations, ensureCliUtilsFolder, findCliSourceRoot } from "./fmCliUtils";
 import type { HostedPeer, HostedSession } from "../../simplegui_host";
 import { dbState } from "./fmDbState";
 import { watchOperations } from "./fmWatchOps";
@@ -51,7 +53,7 @@ import { entryFor, listFolder, listPlaces, previewFile, propertiesOf, searchFold
 import { clipboardOperations } from "./fmClipboardOps";
 import { qrOperations } from "./fmQr";
 import { startRenames, startTransfer } from "./fmFileOps";
-import { MEDIA_MIME, fileResponse, thumbnailFor } from "./fmQuickLook";
+import { MEDIA_MIME, fileResponse, imagePreviewFor, thumbnailFor } from "./fmQuickLook";
 import { clearHistory, loadHistory } from "./fmOpHistory";
 import { bulkRename, copyItems, findConflicts, makeFile, makeFolder, moveItems, relocate, renameItem } from "./fmOps";
 import { makeSqliteFile } from "./fmNewSqlite";
@@ -59,7 +61,7 @@ import { overview, previewConvert, startConvert, startInstall, openToolWebsite }
 import { openItem, revealItem } from "./fmOpen";
 import { openViaAssociation, openWithOperations } from "./fmOpenWith";
 import { FmError, classify, describeFsError, parseTypedPath, extensionOf } from "./fmPaths";
-import { addRecent, loadSettings, updateSettings } from "./fmSettings";
+import { addRecent, clearRecents, loadSettings, pruneRecents, removeRecent, updateSettings } from "./fmSettings";
 import { windowOperations } from "./fmWindow";
 import { MAX_INPUT_BYTES, clampSize, createTerminalHub, shellFolder, terminalSupported, type TerminalSession } from "./fmTerminal";
 import { deleteFromTrash, deletePermanently, listTrash, moveToTrash, restoreFromTrash } from "./fmTrash";
@@ -141,6 +143,17 @@ export interface EmbeddedApp {
   evalFormulas?: boolean;
 }
 
+const gameEmbed = (dir: string): EmbeddedApp => ({
+  dir,
+  script: ["https://cdn.tailwindcss.com", "https://cdnjs.cloudflare.com"],
+  style: ["https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+  font: ["https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+  img: [],
+  frame: [],
+  connect: [],
+  hideCss: "",
+});
+
 export const EMBEDDED_APPS: Record<string, EmbeddedApp> = {
   calc: {
     dir: "universal_calculator",
@@ -158,6 +171,40 @@ export const EMBEDDED_APPS: Record<string, EmbeddedApp> = {
     connect: ["https://cdnjs.cloudflare.com"],
     hideCss: ".hub-return-btn{display:none!important}",
   },
+  paint: {
+    dir: "paint",
+    script: [],
+    style: ["https://fonts.googleapis.com"],
+    font: ["https://fonts.gstatic.com"],
+    img: [],
+    frame: [],
+    connect: [],
+    hideCss: ".hub-return-btn{display:none!important}",
+  },
+  balatro: gameEmbed("balatro"),
+  blackjack: gameEmbed("blackjack"),
+  breakout: gameEmbed("breakout"),
+  codecaine_bros: gameEmbed("codecaine_bros"),
+  connect4: gameEmbed("connect4"),
+  dr_codecaine: gameEmbed("dr_codecaine"),
+  flappy_bird: gameEmbed("flappy_bird"),
+  frogger: gameEmbed("frogger_studio"),
+  lolo: gameEmbed("lolo"),
+  math_munchers: gameEmbed("math_munchers"),
+  maze_generator: gameEmbed("maze_generator"),
+  minesweeper: gameEmbed("minesweeper"),
+  pacman: gameEmbed("pacman"),
+  poker: gameEmbed("poker"),
+  pong: gameEmbed("pong"),
+  rat_screw: gameEmbed("rat_screw"),
+  rodents_revenge: gameEmbed("rodents_revenge"),
+  skifree: gameEmbed("skifree"),
+  snake: gameEmbed("snake_studio"),
+  tetris: gameEmbed("tetris_studio"),
+  tictactoe: gameEmbed("tictactoe"),
+  typing: gameEmbed("typing_studio"),
+  word_search: gameEmbed("word_search"),
+  yahtzee: gameEmbed("yahtzee"),
 };
 
 function embeddedCsp(app: EmbeddedApp, host: string): string {
@@ -187,9 +234,25 @@ function embeddedCsp(app: EmbeddedApp, host: string): string {
  * asks the server to open it in the system browser. Only the address is sent (never anything secret), and the page checks
  * it again before opening it.
  */
-const LINK_BRIDGE = `<script>(function(){var send=function(u){try{parent.postMessage({fmOpenLink:String(u)},"*")}catch(e){}};` +
+const LINK_BRIDGE = `<script>(function(){` +
+  `try{var _ls=window.localStorage;_ls.getItem("__fm__")}catch(e){var _m={};var _p={getItem:function(k){return Object.prototype.hasOwnProperty.call(_m,k)?_m[k]:null},setItem:function(k,v){_m[k]=String(v)},removeItem:function(k){delete _m[k]},clear:function(){_m={}},key:function(i){return Object.keys(_m)[i]||null},get length(){return Object.keys(_m).length}};try{Object.defineProperty(window,"localStorage",{value:_p,configurable:true,writable:true})}catch(_){}try{Object.defineProperty(Window.prototype,"localStorage",{get:function(){return _p},configurable:true})}catch(_){}}` +
+  `var _acs=[];var _trackAc=function(ac){if(ac&&_acs.indexOf(ac)===-1)_acs.push(ac);return ac};` +
+  `try{if(typeof AudioNode!=="undefined"&&AudioNode.prototype&&AudioNode.prototype.connect){var _origConn=AudioNode.prototype.connect;AudioNode.prototype.connect=function(){try{_trackAc(this.context)}catch(_){}return _origConn.apply(this,arguments)}}}catch(_){}` +
+  `var _wrapAc=function(Orig){if(!Orig)return Orig;var W=function(){var inst=new(Function.prototype.bind.apply(Orig,[null].concat(Array.prototype.slice.call(arguments))))();return _trackAc(inst)};W.prototype=Orig.prototype;return W};` +
+  `try{if(window.AudioContext)window.AudioContext=_wrapAc(window.AudioContext);if(window.webkitAudioContext)window.webkitAudioContext=_wrapAc(window.webkitAudioContext)}catch(_){}` +
+  `window.__fmSilenceAll=function(){try{if(window.AudioEngine&&typeof window.AudioEngine.stopMusic==="function")window.AudioEngine.stopMusic();if(window.sound&&typeof window.sound.stopBGM==="function")window.sound.stopBGM();if(window.sfx&&typeof window.sfx.stopBGM==="function")window.sfx.stopBGM()}catch(_){}for(var i=0;i<_acs.length;i++){try{_acs[i].suspend()}catch(_){}try{_acs[i].close()}catch(_){}}try{var m=document.querySelectorAll("audio,video");for(var j=0;j<m.length;j++){try{m[j].pause();m[j].src=""}catch(_){}}}catch(_){}try{if(window.speechSynthesis)window.speechSynthesis.cancel()}catch(_){}};` +
+  `window.addEventListener("message",function(e){if(e.data&&typeof e.data==="object"&&e.data.fmStopGame){window.__fmSilenceAll()}});` +
+  `window.addEventListener("pagehide",window.__fmSilenceAll);window.addEventListener("beforeunload",window.__fmSilenceAll);` +
+  `document.addEventListener("visibilitychange",function(){try{for(var i=0;i<_acs.length;i++){if(document.hidden)_acs[i].suspend();else if(_acs[i].state==="suspended")_acs[i].resume()}}catch(_){}});` +
+  `var _origFetch=window.fetch;if(typeof _origFetch==="function"){window.fetch=function(input,init){var u=typeof input==="string"?input:(input&&input.url)||"";if(/(^|\\/)api\\/(state|scores| telemetry)\\b/.test(u)){return Promise.resolve(new Response(JSON.stringify({ok:true,status:"ok",highScore:0}),{status:200,headers:{"Content-Type":"application/json"}}))}return _origFetch.apply(this,arguments)}}` +
+  `var send=function(u){try{parent.postMessage({fmOpenLink:String(u)},"*")}catch(e){}};` +
   `var abs=function(u){try{var x=new URL(u,location.href);return(x.protocol==="http:"||x.protocol==="https:")&&x.origin!==location.origin?x.href:null}catch(e){return null}};` +
-  `document.addEventListener("click",function(e){var a=e.target&&e.target.closest&&e.target.closest("a[href]");if(!a||e.defaultPrevented||e.button>1)return;var u=abs(a.getAttribute("href"));if(u){e.preventDefault();send(u)}},true);` +
+  `document.addEventListener("click",function(e){var closeBtn=e.target&&e.target.closest&&e.target.closest("#btnHub,.hub-return-btn,[data-close-game],a[href='/']");if(closeBtn&&window.parent&&window.parent!==window){e.preventDefault();e.stopPropagation();window.__fmSilenceAll();try{parent.postMessage({fmCloseGame:true},"*")}catch(_){}return}var a=e.target&&e.target.closest&&e.target.closest("a[href]");if(!a||e.defaultPrevented||e.button>1)return;var u=abs(a.getAttribute("href"));if(u){e.preventDefault();send(u)}},true);` +
+  `document.addEventListener("click",function(){try{window.focus();setTimeout(function(){var el=document.activeElement;if(el&&el.tagName==="BUTTON"&&(el.offsetParent===null||document.querySelector("canvas"))){try{el.blur()}catch(_){}}window.focus()},0)}catch(e){}},false);` +
+  `window.addEventListener("load",function(){setTimeout(function(){try{window.dispatchEvent(new Event("resize"));window.focus()}catch(e){}},32);setTimeout(function(){try{window.dispatchEvent(new Event("resize"))}catch(e){}},160)});` +
+  `var _lastF11=0;window.addEventListener("keydown",function(e){if(!window.parent||window.parent===window)return;var mod=e.ctrlKey||e.metaKey;var k=(e.key||"").toLowerCase();var isF11=e.key==="F11"||e.code==="F11"||e.key==="\\uF70E"||e.keyCode===122;if(isF11||(mod&&e.shiftKey&&!e.altKey&&(k==="u"||e.code==="KeyU"))||(e.ctrlKey&&e.metaKey&&!e.altKey&&(k==="f"||e.code==="KeyF"))||(e.altKey&&!mod&&!e.shiftKey&&(e.code==="Digit8"||e.key==="8"))){if(isF11)_lastF11=Date.now();e.preventDefault();e.stopPropagation();try{parent.postMessage({fmToggleExpand:true},"*")}catch(_){}return}if(mod&&!e.altKey&&!e.shiftKey&&(k==="k"||e.code==="KeyK")){e.preventDefault();e.stopPropagation();try{parent.postMessage({fmFilterTools:true},"*")}catch(_){}return}if(mod&&!e.altKey&&!e.shiftKey&&(k==="c"||e.code==="KeyC")){var t="";var el=e.target;if(el&&(el.tagName==="INPUT"||el.tagName==="TEXTAREA")&&el.type!=="password"&&typeof el.selectionStart==="number"&&typeof el.selectionEnd==="number"&&el.selectionEnd>el.selectionStart){t=String(el.value||"").slice(el.selectionStart,el.selectionEnd)}else if(typeof window.getSelection==="function"){var s=window.getSelection();if(s&&!s.isCollapsed)t=s.toString()}if(t){e.preventDefault();try{parent.postMessage({fmCopyText:t},"*")}catch(_){}return}}},true);` +
+  `window.addEventListener("keydown",function(e){if(!window.parent||window.parent===window)return;if(e.key==="Escape"&&!e.defaultPrevented&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!e.shiftKey){if(document.querySelector&&document.querySelector(".sgd-container,.modal-backdrop.active,.modal-overlay.open,.modal-overlay.active,dialog[open]"))return;try{parent.postMessage({fmEscapeExpand:true},"*")}catch(_){}}},false);` +
+  `window.addEventListener("keyup",function(e){if(!window.parent||window.parent===window)return;var isF11=e.key==="F11"||e.code==="F11"||e.key==="\\uF70E"||e.keyCode===122;if(isF11&&Date.now()-_lastF11>300){e.preventDefault();e.stopPropagation();try{parent.postMessage({fmToggleExpand:true},"*")}catch(_){}}},true);` +
   `window.open=function(u){var x=u&&abs(u);if(x)send(x);return null}})();</script>`;
 
 const EMBED_TYPES: Record<string, string> = { html: "text/html; charset=utf-8", js: "text/javascript; charset=utf-8", css: "text/css; charset=utf-8", svg: "image/svg+xml", json: "application/json; charset=utf-8", png: "image/png", gif: "image/gif", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", woff2: "font/woff2", mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg" };
@@ -221,14 +284,28 @@ const MIME: Record<string, string> = {
 
 const RAW_MIME: Record<string, string> = {
   png: "image/png",
+  apng: "image/apng",
   jpg: "image/jpeg",
   jpeg: "image/jpeg",
+  jfif: "image/jpeg",
+  pjpeg: "image/jpeg",
+  pjp: "image/jpeg",
   gif: "image/gif",
   webp: "image/webp",
   bmp: "image/bmp",
   svg: "image/svg+xml",
+  svgz: "image/svg+xml",
   ico: "image/x-icon",
   avif: "image/avif",
+};
+
+const FONT_MIME: Record<string, string> = {
+  ttf: "font/ttf",
+  otf: "font/otf",
+  woff: "font/woff",
+  woff2: "font/woff2",
+  ttc: "font/collection",
+  eot: "application/vnd.ms-fontobject",
 };
 
 const secureHeaders = (extra: Record<string, string> = {}): Record<string, string> => ({
@@ -252,9 +329,14 @@ const operations: Record<string, Handler> = {
   async places(ctx) {
     const places = listPlaces(ctx);
     const trash = await listTrash(ctx);
-    return { ...places, trash: { count: trash.count }, settings: await loadSettings(ctx) };
+    const cliDir = ensureCliUtilsFolder(ctx);
+    const cliSource = findCliSourceRoot()?.cliDir ?? "";
+    return { ...places, cliUtilsDir: cliDir, cliAppsDir: cliSource, trash: { count: trash.count }, settings: await loadSettings(ctx) };
   },
   async list(ctx, b) {
+    if (typeof b.path === "string" && pathApi(ctx).resolve(b.path) === pathApi(ctx).resolve(cliUtilsDir(ctx))) {
+      ensureCliUtilsFolder(ctx);
+    }
     return await listFolder(ctx, b.path, { showHidden: b.showHidden === true });
   },
   async props(ctx, b) {
@@ -267,7 +349,11 @@ const operations: Record<string, Handler> = {
     return await makeFile(ctx, b.parent, b.name);
   },
   async newsqlite(ctx, b) {
-    return await makeSqliteFile(ctx, b.parent, b.name);
+    return await makeSqliteFile(ctx, b.parent, b.name, {
+      template: b.template,
+      saveProfile: b.saveProfile,
+      connectionName: b.connectionName,
+    });
   },
   async rename(ctx, b) {
     return await renameItem(ctx, b.path, b.name);
@@ -308,6 +394,15 @@ const operations: Record<string, Handler> = {
     const entry = await entryFor(ctx, b.path);
     if (entry.isDir) throw new FmError("BAD_REQUEST", "Only files are listed under Recent.");
     return { settings: await addRecent(ctx, entry.path) };
+  },
+  async "recent/remove"(ctx, b) {
+    return { settings: await removeRecent(ctx, absolutePath(ctx, b.path)) };
+  },
+  async "recent/clear"(ctx) {
+    return { settings: await clearRecents(ctx) };
+  },
+  async "recent/prune"(ctx) {
+    return await pruneRecents(ctx);
   },
   async entry(ctx, b) {
     return { entry: await entryFor(ctx, b.path) };
@@ -409,6 +504,8 @@ Object.assign(operations, windowOperations);
 Object.assign(operations, hostedStudioOperations);
 // Fast, resumable downloads split over several connections.
 Object.assign(operations, downloadOperations);
+// Built-in RAD Studio command-line utilities folder and catalog.
+Object.assign(operations, cliUtilsOperations);
 
 export const API_OPERATIONS = Object.keys(operations);
 
@@ -464,10 +561,17 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
         }
         return json(200, { success: true, count: tracks.length, tracks });
       }
-      const html = readFileSync(file, "utf8");
+      let html = readFileSync(file, "utf8");
+      const headOpen = /<head[^>]*>/i.exec(html);
+      if (headOpen) {
+        const idx = headOpen.index + headOpen[0].length;
+        html = html.slice(0, idx) + LINK_BRIDGE + html.slice(idx);
+      } else {
+        html = LINK_BRIDGE + html;
+      }
       const at = html.lastIndexOf("</head>");
-      const tweak = `<style>${app.hideCss}</style>${LINK_BRIDGE}`;
-      return new Response(at >= 0 ? html.slice(0, at) + tweak + html.slice(at) : html + tweak, { headers });
+      const styleTweak = `<style>${app.hideCss}</style>`;
+      return new Response(at >= 0 ? html.slice(0, at) + styleTweak + html.slice(at) : html + styleTweak, { headers });
     }
     return new Response(Bun.file(file), { headers });
   }
@@ -572,7 +676,7 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
 
       try {
         // Embedded apps are served to an iframe on the other loopback spelling, which is a separate origin.
-        const embedded = /^\/app\/([a-z]+)\/(.*)$/.exec(path);
+        const embedded = /^\/app\/([a-z0-9_]+)\/(.*)$/.exec(path);
         if (embedded) {
           if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405, headers: secureHeaders() });
           if (embedded[1] === "hosted" || embedded[1] === "hostedws") {
@@ -642,32 +746,50 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           const ext = extensionOf(name);
           const preview = { "Content-Security-Policy": "sandbox; default-src 'none'", "Cache-Control": "private, max-age=30" };
           const thumb = url.searchParams.get("thumb") === "1";
+          const forceConvert = url.searchParams.get("convert") === "1";
+          const fontMime = url.searchParams.get("font") === "1" ? FONT_MIME[ext] : undefined;
           const media = MEDIA_MIME[ext];
-          const picture = RAW_MIME[ext] && classify(name, false).preview === "image" ? RAW_MIME[ext] : undefined;
+          const isImage = classify(name, false).preview === "image";
+          const picture = !forceConvert && RAW_MIME[ext] && isImage ? RAW_MIME[ext] : undefined;
+          const convertImg = isImage && (!picture || forceConvert);
           // Subtitle files next to a video (the player turns .srt into WebVTT itself).
           const subtitle = ext === "vtt" || ext === "srt" ? "text/plain; charset=utf-8" : undefined;
           const lyrics = url.searchParams.get("lyrics") === "1" && (ext === "lrc" || ext === "txt");
           // Only what a preview can show is served, and that is decided by the name before the disk is touched.
-          if (!thumb && !media && !picture && !subtitle && !lyrics) return json(415, { ok: false, error: { code: "CANT_PREVIEW", message: "That kind of file can't be previewed this way." } });
+          if (!thumb && !media && !picture && !convertImg && !subtitle && !lyrics && !fontMime) return json(415, { ok: false, error: { code: "CANT_PREVIEW", message: "That kind of file can't be previewed this way." } });
           const st = await fsp.stat(file);
           if (!st.isFile()) return json(400, { ok: false, error: { code: "NOT_A_FILE", message: "That isn't a file." } });
+          if (fontMime) {
+            if (st.size > 32 * 1024 * 1024) return json(413, { ok: false, error: { code: "TOO_BIG", message: "That font file is too big to preview." } });
+            return new Response(Bun.file(file), { headers: secureHeaders({ "Content-Type": fontMime, ...preview }) });
+          }
           if (lyrics) {
             if (st.size > 256 * 1024) return json(413, { ok: false, error: { code: "TOO_BIG", message: "That lyrics file exceeds the 256 KB display limit." } });
             return new Response(Bun.file(file), { headers: secureHeaders({ "Content-Type": "text/plain; charset=utf-8", ...preview }) });
           }
           // A picture of a document that only the system's Quick Look can draw (macOS).
           if (thumb) {
-            const png = await thumbnailFor(ctx, file);
+            const png = (await thumbnailFor(ctx, file)) ?? (isImage ? await imagePreviewFor(ctx, file) : null);
             if (!png) return json(404, { ok: false, error: { code: "NO_THUMBNAIL", message: "This computer can't draw a preview of that file." } });
             return new Response(Bun.file(png), { headers: secureHeaders({ "Content-Type": "image/png", ...preview }) });
           }
           // Sound and video: streamed in pieces, so playing starts at once and seeking works.
-          if (media) return fileResponse(req, file, st.size, secureHeaders({ "Content-Type": media, ...preview }));
+          if (media) return fileResponse(req, file, st.size, secureHeaders({ "Content-Type": media, ...preview, "Cache-Control": "private, max-age=3600" }));
           if (subtitle) {
             if (st.size > 2 * 1024 * 1024) return json(413, { ok: false, error: { code: "TOO_BIG", message: "That subtitle file is too big." } });
             return new Response(Bun.file(file), { headers: secureHeaders({ "Content-Type": subtitle, ...preview }) });
           }
           if (st.size > MAX_RAW_BYTES) return json(413, { ok: false, error: { code: "TOO_BIG", message: "That picture is too big to preview." } });
+          if (convertImg) {
+            const png = await imagePreviewFor(ctx, file);
+            if (!png) return json(404, { ok: false, error: { code: "NO_THUMBNAIL", message: "This computer can't draw a preview of that picture." } });
+            return new Response(Bun.file(png), { headers: secureHeaders({ "Content-Type": "image/png", ...preview }) });
+          }
+          if (ext === "svgz") {
+            const rawBytes = await fsp.readFile(file);
+            const svgBytes = gunzipSync(rawBytes, { maxOutputLength: 16 * 1024 * 1024 });
+            return new Response(svgBytes, { headers: secureHeaders({ "Content-Type": "image/svg+xml", ...preview }) });
+          }
           return new Response(Bun.file(file), { headers: secureHeaders({ "Content-Type": picture!, ...preview }) });
         }
 

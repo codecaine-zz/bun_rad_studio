@@ -259,6 +259,7 @@ const REQUIRED_MACRO_PARAMS: Record<string, string[][]> = {
   MakeTable: [["newTable", "newTableName", "tableName", "table"], ["selectSql", "sourceSql", "sql", "queryName"]],
   RunSQL: [["sql"]],
   RunMacro: [["macroName"]],
+  RunCode: [["code", "functionName"]],
 };
 
 export function validateMacro(macro: MacroDefinition, knownMacroNames: string[] = []): MacroValidationIssue[] {
@@ -283,6 +284,17 @@ export function validateMacro(macro: MacroDefinition, knownMacroNames: string[] 
     }
     if (act.action === "RunMacro" && p.macroName && knownMacroNames.length && !knownMacroNames.includes(p.macroName)) {
       issues.push({ stepIndex: i + 1, severity: "error", message: `RunMacro target '${p.macroName}' does not exist` });
+    }
+    if (act.action === "RunCode") {
+      const code = String(p.code ?? p.functionName ?? "").trim();
+      if (code && typeof Bun !== "undefined" && typeof Bun.Transpiler === "function") {
+        try {
+          const transpiler = new Bun.Transpiler({ loader: "ts", target: "bun" });
+          transpiler.transformSync(`async function __check() {\n${code}\n}`);
+        } catch (err: any) {
+          issues.push({ stepIndex: i + 1, severity: "error", message: `RunCode syntax error: ${err?.message || String(err)}` });
+        }
+      }
     }
   });
   return issues;
@@ -391,6 +403,9 @@ export function macroToVba(macro: MacroDefinition, queries: SavedQueryDefinition
       case "RunMacro":
         body.push(`Call ${String(p.macroName || "").replace(/[^A-Za-z0-9_]/g, "_")}`);
         break;
+      case "RunCode":
+        body.push(`' [Bun JS RunCode]: ${String(p.code ?? p.functionName ?? "").replace(/\r?\n/g, " | ")}`);
+        break;
       default: {
         const sql = stepToSql(act, queries, d);
         if (sql !== null) body.push(`DoCmd.RunSQL ${vbaStr(sql)}`);
@@ -407,6 +422,80 @@ export function macroToVba(macro: MacroDefinition, queries: SavedQueryDefinition
     }
   });
   out.push(`    Exit Sub`, `ErrHandler:`, `    MsgBox "Macro ${subName} failed: " & Err.Description, vbCritical`, `End Sub`, ``);
+  return out.join("\n");
+}
+
+/**
+ * Serializes a macro into a Bun JavaScript / TypeScript module using CurrentDb, DoCmd, TempVars,
+ * DLookup/DCount/DSum, and MsgBox (analogous to Access's "Convert Macro to Visual Basic").
+ */
+export function macroToBunJs(macro: MacroDefinition, queries: SavedQueryDefinition[] = [], d: MacroDialect = "sqlite"): string {
+  const fnName = String(macro.name || "Macro").replace(/[^A-Za-z0-9_]/g, "_").replace(/^(\d)/, "_$1");
+  const out: string[] = [
+    `// Macro: ${macro.name || "Untitled"}`,
+    `// Converted to Bun JavaScript Runtime (${d})`,
+    `export async function ${fnName}({ CurrentDb, db, DoCmd, TempVars, DCount, DLookup, DSum, MsgBox, Debug }) {`,
+  ];
+  (macro.actions || []).forEach((act, i) => {
+    if (act.enabled === false) {
+      out.push(`  // Step ${i + 1}: ${act.action} (disabled)`);
+      return;
+    }
+    const p = act.parameters || {};
+    const lines: string[] = [];
+    switch (act.action) {
+      case "Comment":
+        lines.push(`// ${String(p.comment || "").replace(/\r?\n/g, " ")}`);
+        break;
+      case "OpenTable":
+        lines.push(`await DoCmd.OpenTable(${JSON.stringify(p.table || "")});`);
+        break;
+      case "OpenQuery": {
+        const sql = stepToSql(act, queries, d) || p.sql || "";
+        lines.push(`await DoCmd.OpenQuery(${JSON.stringify(sql)}, ${JSON.stringify(p.queryName || "Query")});`);
+        break;
+      }
+      case "MessageBox":
+        lines.push(`MsgBox(${JSON.stringify(p.message || "")}, ${JSON.stringify(p.title || "Macro")}, ${JSON.stringify(p.type || "info")});`);
+        break;
+      case "Beep":
+        lines.push(`DoCmd.Beep();`);
+        break;
+      case "SetVariable":
+        lines.push(`TempVars[${JSON.stringify(p.name || "var1")}] = ${JSON.stringify(p.expression ?? "")};`);
+        break;
+      case "SetValue":
+        lines.push(`TempVars[${JSON.stringify(p.item || "var")}] = ${JSON.stringify(p.expression ?? "")};`);
+        break;
+      case "StopMacro":
+        lines.push(`DoCmd.StopMacro(${JSON.stringify(p.reason || "Normal")});`);
+        lines.push(`return;`);
+        break;
+      case "RunMacro":
+        lines.push(`await DoCmd.RunMacro(${JSON.stringify(p.macroName || "")});`);
+        break;
+      case "RunCode": {
+        const code = String(p.code ?? p.functionName ?? "").trim();
+        for (const cl of code.split(/\r?\n/)) lines.push(cl);
+        break;
+      }
+      default: {
+        const sql = stepToSql(act, queries, d);
+        if (sql !== null) lines.push(`await DoCmd.RunSQL(${JSON.stringify(sql)});`);
+        else lines.push(`// ${act.action}`);
+      }
+    }
+    out.push(`  // Step ${i + 1}: ${act.action}`);
+    if (act.condition && act.condition.trim()) {
+      const jsCond = act.condition.trim().replace(/\[([A-Za-z0-9_]+)\]/g, "TempVars.$1");
+      out.push(`  if (${jsCond}) {`);
+      lines.forEach((l) => out.push(`    ${l}`));
+      out.push(`  }`);
+    } else {
+      lines.forEach((l) => out.push(`  ${l}`));
+    }
+  });
+  out.push(`  return TempVars;`, `}`, ``);
   return out.join("\n");
 }
 
@@ -1351,6 +1440,7 @@ export const MACRO_HTML = `
                 <button class="sidebar-mini-btn" onclick="openMacroExportDialog('json')" title="Export macro as JSON">📤 Export</button>
                 <button class="sidebar-mini-btn" onclick="openMacroExportDialog('sql')" title="Export macro as a plain SQL script">📜 SQL</button>
                 <button class="sidebar-mini-btn" onclick="openMacroExportDialog('vba')" title="Export macro as a VBA module">🧾 VBA</button>
+                <button class="sidebar-mini-btn" onclick="openMacroExportDialog('bun')" title="Convert macro to Bun JavaScript (like Access Convert Macro to VBA)">🥟 Bun JS</button>
                 <button class="sidebar-mini-btn" onclick="openCodeGenForCurrentMacro()" title="Translate this macro to Python / Bun / V using native SQLite">🧬 Code</button>
                 <button class="sidebar-mini-btn" onclick="openMacroImportDialog()" title="Import macro JSON">📥 Import</button>
                 <button class="sidebar-mini-btn" id="btnToggleCatalog" onclick="toggleActionCatalog()" title="Toggle Action Catalog Drawer">📖 Catalog</button>
@@ -1401,6 +1491,7 @@ export const MACRO_HTML = `
                       <button class="sidebar-mini-btn" onclick="quickAddAction('GoToRecord')" title="GoToRecord">+ GoToRecord</button>
                       <button class="sidebar-mini-btn" onclick="quickAddAction('OpenTable')">+ OpenTable</button>
                       <button class="sidebar-mini-btn" onclick="quickAddAction('RunSQL')">+ RunSQL</button>
+                      <button class="sidebar-mini-btn" onclick="quickAddAction('RunCode')" title="Run Bun JavaScript Code (like Access RunCode)">+ RunCode</button>
                       <button class="sidebar-mini-btn" onclick="quickAddAction('ApplyFilter')">+ Filter</button>
                       <button class="sidebar-mini-btn" onclick="quickAddAction('MessageBox')">+ MsgBox</button>
                     </div>
@@ -1766,6 +1857,13 @@ const ACCESS_ACTION_CATALOG = [
   },
 
   // Flow & Logic
+  {
+    name: "RunCode",
+    category: "Flow & Logic",
+    icon: "🥟",
+    desc: "Executes a Bun JavaScript / TypeScript snippet with CurrentDb, DoCmd, TempVars, and DLookup/DCount/DSum (like Access RunCode).",
+    defaultParams: { code: "const count = await DCount('*', 'customers');\\nTempVars.customerCount = count;\\nDebug.print('Customers:', count);" }
+  },
   {
     name: "SetVariable",
     category: "Flow & Logic",
@@ -3071,6 +3169,21 @@ function renderActionArguments(container, actionObj) {
       break;
     }
 
+    case "RunCode": {
+      const fieldCode = createParamField("Bun JS Code:");
+      const inputCode = document.createElement("textarea");
+      inputCode.className = "macro-param-input";
+      inputCode.style.width = "360px";
+      inputCode.style.height = "46px";
+      inputCode.style.fontFamily = "var(--font-mono)";
+      inputCode.placeholder = "const c = await DCount('*', 'customers'); TempVars.total = c;";
+      inputCode.value = params.code || params.functionName || "";
+      inputCode.onchange = () => { params.code = inputCode.value; };
+      fieldCode.appendChild(inputCode);
+      box.appendChild(fieldCode);
+      break;
+    }
+
     default: {
       const sp = document.createElement("span");
       sp.style.color = "var(--text-dim)";
@@ -3870,6 +3983,20 @@ async function executeMacroAction(action) {
       return { message: "Remark: " + (p.comment || "") };
     }
 
+    case "RunCode": {
+      const res = await apiRequest('/api/macros/run', {
+        macro: { id: "adhoc_runcode", name: "RunCode", description: "", actions: [action] },
+        variables: macroVariables,
+      });
+      const r = (res && res.result) || {};
+      if (!res || !r.success) throw new Error(r.error || (res && res.error) || "RunCode failed");
+      if (r.variables && typeof r.variables === "object") {
+        Object.assign(macroVariables, r.variables);
+      }
+      const stepLog = Array.isArray(r.logs) && r.logs[0];
+      return { message: (stepLog && stepLog.message) || "Executed Bun JS RunCode" };
+    }
+
     default:
       return { message: "Action " + action.action + " completed" };
   }
@@ -4318,8 +4445,8 @@ async function openMacroExportDialog(format = "json") {
   const title = document.getElementById("macroJsonModalTitle");
   const textarea = document.getElementById("macroJsonTextArea");
   const btn = document.getElementById("btnMacroJsonAction");
-  const labels = { json: "JSON", sql: "SQL Script", vba: "VBA Module" };
-  const exts = { json: ".macro.json", sql: ".sql", vba: ".bas" };
+  const labels = { json: "JSON", sql: "SQL Script", vba: "VBA Module", bun: "Bun JS Module" };
+  const exts = { json: ".macro.json", sql: ".sql", vba: ".bas", bun: ".macro.ts" };
   const fmt = labels[format] ? format : "json";
 
   title.textContent = "Export Macro " + labels[fmt] + ": " + currentMacro.name;

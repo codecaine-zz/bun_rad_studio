@@ -157,6 +157,109 @@ describe("/api/raw for Quick Look", () => {
     const again = Buffer.from(await (await raw(join(work, "memo.docx"), "&thumb=1")).arrayBuffer());
     expect(again.equals(bytes)).toBe(true);
   }, 30_000);
+
+  test("converts non-browser image formats (PPM, TGA, TIFF, PSD, QOI, XBM) and &convert=1 requests to a temporary PNG", async () => {
+    const ctx = createContext({ home, dataDir });
+    const pngMagic = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+    // 1. Netpbm PPM
+    const ppmPath = join(work, "sample.ppm");
+    writeFileSync(ppmPath, "P3\n2 2\n255\n255 0 0  0 255 0\n0 0 255  255 255 255\n");
+
+    // 2. Truevision TGA (1x1 24-bit uncompressed)
+    const tgaPath = join(work, "sample.tga");
+    const tgaBuf = Buffer.alloc(18 + 3);
+    tgaBuf[2] = 2; // uncompressed true-color
+    tgaBuf.writeUInt16LE(1, 12); // width = 1
+    tgaBuf.writeUInt16LE(1, 14); // height = 1
+    tgaBuf[16] = 24; // 24 bpp
+    tgaBuf[18] = 0x11; tgaBuf[19] = 0x22; tgaBuf[20] = 0x33;
+    writeFileSync(tgaPath, tgaBuf);
+
+    // 3. TIFF (1x1 uncompressed RGB little-endian)
+    const tiffPath = join(work, "sample.tiff");
+    const tiffBuf = Buffer.alloc(128);
+    tiffBuf.write("II", 0, "ascii");
+    tiffBuf.writeUInt16LE(42, 2);
+    tiffBuf.writeUInt32LE(8, 4); // IFD offset
+    tiffBuf.writeUInt16LE(7, 8); // 7 entries
+    const writeTag = (idx: number, tag: number, type: number, count: number, val: number) => {
+      const off = 10 + idx * 12;
+      tiffBuf.writeUInt16LE(tag, off);
+      tiffBuf.writeUInt16LE(type, off + 2);
+      tiffBuf.writeUInt32LE(count, off + 4);
+      if (type === 3 && count === 1) tiffBuf.writeUInt16LE(val, off + 8);
+      else tiffBuf.writeUInt32LE(val, off + 8);
+    };
+    writeTag(0, 256, 4, 1, 1); // ImageWidth = 1
+    writeTag(1, 257, 4, 1, 1); // ImageLength = 1
+    writeTag(2, 258, 3, 3, 100); // BitsPerSample -> offset 100
+    writeTag(3, 259, 3, 1, 1); // Compression = 1 (none)
+    writeTag(4, 262, 3, 1, 2); // Photometric = 2 (RGB)
+    writeTag(5, 273, 4, 1, 110); // StripOffsets = 110
+    writeTag(6, 277, 3, 1, 3); // SamplesPerPixel = 3
+    tiffBuf.writeUInt16LE(8, 100); tiffBuf.writeUInt16LE(8, 102); tiffBuf.writeUInt16LE(8, 104);
+    tiffBuf[110] = 200; tiffBuf[111] = 100; tiffBuf[112] = 50;
+    writeFileSync(tiffPath, tiffBuf);
+
+    // 4. Adobe PSD (1x1 3-channel 8-bit raw composite)
+    const psdPath = join(work, "sample.psd");
+    const psdBuf = Buffer.alloc(26 + 4 + 4 + 4 + 2 + 3);
+    psdBuf.write("8BPS", 0, "ascii");
+    psdBuf.writeUInt16BE(1, 4); // version 1
+    psdBuf.writeUInt16BE(3, 12); // 3 channels
+    psdBuf.writeUInt32BE(1, 14); // height = 1
+    psdBuf.writeUInt32BE(1, 18); // width = 1
+    psdBuf.writeUInt16BE(8, 22); // depth = 8
+    psdBuf.writeUInt16BE(3, 24); // mode = RGB (3)
+    // Color mode data len (0) at 26, image resources len (0) at 30, layer info len (0) at 34
+    psdBuf.writeUInt16BE(0, 38); // compression = 0 (raw)
+    psdBuf[40] = 255; psdBuf[41] = 128; psdBuf[42] = 64;
+    writeFileSync(psdPath, psdBuf);
+
+    // 5. QOI (1x1)
+    const qoiPath = join(work, "sample.qoi");
+    const qoiBuf = Buffer.alloc(14 + 5 + 8);
+    qoiBuf.write("qoif", 0, "ascii");
+    qoiBuf.writeUInt32BE(1, 4); // width = 1
+    qoiBuf.writeUInt32BE(1, 8); // height = 1
+    qoiBuf[12] = 4; // RGBA
+    qoiBuf[13] = 0; // sRGB
+    qoiBuf[14] = 0xfe; qoiBuf[15] = 10; qoiBuf[16] = 20; qoiBuf[17] = 30; // QOI_OP_RGB
+    qoiBuf[14 + 5 + 7] = 1; // end marker
+    writeFileSync(qoiPath, qoiBuf);
+
+    // 6. XBM (8x1 monochrome bitmap)
+    const xbmPath = join(work, "sample.xbm");
+    writeFileSync(xbmPath, "#define icon_width 8\n#define icon_height 1\nstatic unsigned char icon_bits[] = { 0x55 };\n");
+
+    for (const file of [ppmPath, tgaPath, tiffPath, psdPath, qoiPath, xbmPath]) {
+      expect(await previewFile(ctx, file)).toMatchObject({ type: "image" });
+      const res = await raw(file);
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toBe("image/png");
+      const out = Buffer.from(await res.arrayBuffer());
+      expect(out.subarray(0, 8).equals(pngMagic)).toBe(true);
+    }
+
+    // 7. Browser-native format with &convert=1 also returns converted PNG
+    const bmpPath = join(work, "sample.bmp");
+    const bmpBuf = Buffer.alloc(58);
+    bmpBuf.write("BM", 0, "ascii");
+    bmpBuf.writeUInt32LE(58, 2);
+    bmpBuf.writeUInt32LE(54, 10);
+    bmpBuf.writeUInt32LE(40, 14);
+    bmpBuf.writeInt32LE(1, 18);
+    bmpBuf.writeInt32LE(1, 22);
+    bmpBuf.writeUInt16LE(1, 26);
+    bmpBuf.writeUInt16LE(24, 28);
+    bmpBuf[54] = 100; bmpBuf[55] = 150; bmpBuf[56] = 200;
+    writeFileSync(bmpPath, bmpBuf);
+    const convertedBmp = await raw(bmpPath, "&convert=1");
+    expect(convertedBmp.status).toBe(200);
+    expect(convertedBmp.headers.get("content-type")).toBe("image/png");
+    expect(Buffer.from(await convertedBmp.arrayBuffer()).subarray(0, 8).equals(pngMagic)).toBe(true);
+  });
 });
 
 describe("the table reader", () => {

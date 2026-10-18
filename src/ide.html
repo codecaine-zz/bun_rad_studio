@@ -19,6 +19,10 @@
 			--border-color: rgba(255, 255, 255, 0.08);
 			--grid-color: rgba(255, 255, 255, 0.05);
 			--radius: 8px;
+			--palette-width: 224px;
+			--inspector-width: 300px;
+			--scrollbar-thumb: rgba(255, 255, 255, 0.18);
+			--scrollbar-track: rgba(0, 0, 0, 0.2);
 		}
 
 		* {
@@ -38,20 +42,31 @@
 			overflow: hidden;
 		}
 
-		/* Custom Scrollbar */
-		::-webkit-scrollbar {
-			width: 6px;
-			height: 6px;
+		/* Custom Scrollbar (Standard CSS Scrollbars + legacy WebKit fallback) */
+		.palette-sidebar,
+		.tab-content,
+		.canvas-viewport,
+		.form-canvas,
+		textarea.code-area,
+		#diagnosticsSummary {
+			scrollbar-width: thin;
+			scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 		}
-		::-webkit-scrollbar-track {
-			background: rgba(0, 0, 0, 0.2);
-		}
-		::-webkit-scrollbar-thumb {
-			background: rgba(255, 255, 255, 0.15);
-			border-radius: 3px;
-		}
-		::-webkit-scrollbar-thumb:hover {
-			background: var(--accent);
+		@supports not (scrollbar-color: auto) {
+			::-webkit-scrollbar {
+				width: 6px;
+				height: 6px;
+			}
+			::-webkit-scrollbar-track {
+				background: var(--scrollbar-track);
+			}
+			::-webkit-scrollbar-thumb {
+				background: var(--scrollbar-thumb);
+				border-radius: 3px;
+			}
+			::-webkit-scrollbar-thumb:hover {
+				background: var(--accent);
+			}
 		}
 
 		/* Top Navigation Toolbar */
@@ -92,9 +107,30 @@
 		.toolbar-actions {
 			display: flex;
 			align-items: center;
-			gap: 4px;
+			gap: 5px;
 			flex-wrap: wrap;
 			overflow: visible;
+		}
+
+		.toolbar-group {
+			display: inline-flex;
+			align-items: center;
+			gap: 3px;
+			background: rgba(255, 255, 255, 0.025);
+			border: 1px solid rgba(255, 255, 255, 0.06);
+			border-radius: 6px;
+			padding: 2px 4px;
+		}
+
+		.toolbar-group-label {
+			font-size: 9px;
+			font-weight: 700;
+			text-transform: uppercase;
+			letter-spacing: 0.5px;
+			color: var(--text-muted);
+			padding: 0 4px;
+			opacity: 0.75;
+			white-space: nowrap;
 		}
 
 		.toolbar-divider {
@@ -120,6 +156,21 @@
 			transition: all 0.15s ease;
 			white-space: nowrap;
 			flex-shrink: 0;
+		}
+
+		.btn.btn-disabled {
+			opacity: 0.36;
+			filter: grayscale(0.4);
+		}
+		.btn.btn-disabled:hover {
+			border-color: var(--border-color);
+			box-shadow: none;
+		}
+
+		.btn.btn-active-pane {
+			border-color: rgba(56, 189, 248, 0.45);
+			color: var(--accent);
+			background: rgba(56, 189, 248, 0.12);
 		}
 
 		.btn-icon {
@@ -276,11 +327,46 @@
 		/* Main Layout Grid */
 		.studio-container {
 			display: grid;
-			grid-template-columns: 210px 1fr 260px;
+			grid-template-columns: var(--palette-width, 224px) 1fr var(--inspector-width, 300px);
 			height: calc(100vh - 66px);
 			width: 100vw;
 			overflow: hidden;
+			position: relative;
 		}
+		.studio-container.palette-collapsed {
+			grid-template-columns: 0px 1fr var(--inspector-width, 300px);
+		}
+		.studio-container.inspector-collapsed {
+			grid-template-columns: var(--palette-width, 224px) 1fr 0px;
+		}
+		.studio-container.palette-collapsed.inspector-collapsed {
+			grid-template-columns: 0px 1fr 0px;
+		}
+		.studio-container.palette-collapsed .palette-sidebar,
+		.studio-container.inspector-collapsed .inspector-sidebar {
+			padding: 0;
+			border: none;
+			overflow: hidden;
+			opacity: 0;
+			pointer-events: none;
+		}
+
+		.pane-resizer {
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			width: 5px;
+			cursor: col-resize;
+			z-index: 30;
+			background: transparent;
+			transition: background 0.15s ease;
+		}
+		.pane-resizer:hover,
+		.pane-resizer.dragging {
+			background: rgba(56, 189, 248, 0.5);
+		}
+		.pane-resizer-left { left: 0; }
+		.pane-resizer-right { right: 0; }
 
 		/* Left Palette Sidebar */
 		.palette-sidebar {
@@ -291,6 +377,7 @@
 			padding: 10px;
 			gap: 8px;
 			overflow-y: auto;
+			min-width: 0;
 		}
 
 		.sidebar-heading {
@@ -300,6 +387,13 @@
 			letter-spacing: 0.8px;
 			color: var(--text-muted);
 			margin-bottom: 2px;
+		}
+
+		.sidebar-heading-row {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 6px;
 		}
 
 		.templates-row {
@@ -339,6 +433,10 @@
 			margin-top: 4px;
 		}
 
+		.palette-category.collapsed .palette-grid {
+			display: none;
+		}
+
 		.palette-cat-header {
 			font-size: 10px;
 			font-weight: 700;
@@ -352,6 +450,43 @@
 			align-items: center;
 			justify-content: space-between;
 			cursor: pointer;
+			transition: background 0.15s ease;
+		}
+		.palette-cat-header:hover {
+			background: rgba(56, 189, 248, 0.14);
+		}
+
+		.palette-cat-chevron {
+			font-size: 9px;
+			opacity: 0.75;
+			transition: transform 0.15s ease;
+			display: inline-block;
+			margin-left: 4px;
+		}
+		.palette-category.collapsed .palette-cat-chevron {
+			transform: rotate(-90deg);
+		}
+
+		.palette-cat-count {
+			font-size: 9px;
+			color: var(--text-muted);
+			font-weight: 600;
+			background: rgba(255, 255, 255, 0.06);
+			padding: 1px 5px;
+			border-radius: 9999px;
+			margin-left: auto;
+			margin-right: 4px;
+		}
+
+		.palette-empty-msg {
+			display: none;
+			padding: 12px 8px;
+			text-align: center;
+			font-size: 11px;
+			color: var(--text-muted);
+			border: 1px dashed var(--border-color);
+			border-radius: 6px;
+			margin-top: 4px;
 		}
 
 		.palette-grid {
@@ -399,6 +534,7 @@
 			height: 100%;
 			background: #04060a;
 			overflow: hidden;
+			min-width: 0;
 		}
 
 		.canvas-toolbar {
@@ -406,19 +542,20 @@
 			align-items: center;
 			justify-content: space-between;
 			width: 100%;
-			padding: 6px 10px;
+			padding: 5px 10px;
 			background: #090d16;
 			border-bottom: 1px solid var(--border-color);
 			font-size: 11px;
 			color: var(--text-muted);
 			flex-wrap: wrap;
-			gap: 4px;
+			gap: 6px;
 			z-index: 10;
 		}
 
 		.quick-align-bar {
 			display: flex;
-			gap: 4px;
+			align-items: center;
+			gap: 5px;
 			flex-wrap: wrap;
 		}
 
@@ -778,30 +915,75 @@
 			display: flex;
 			flex-direction: column;
 			overflow: hidden;
+			min-width: 0;
 		}
 
 		.tab-bar {
 			display: flex;
-			flex-wrap: wrap;
+			flex-wrap: nowrap;
 			background: #090d16;
 			border-bottom: 1px solid var(--border-color);
 		}
 
 		.tab-item {
 			flex: 1;
-			padding: 8px 2px;
+			padding: 8px 4px;
 			text-align: center;
-			font-size: 10px;
+			font-size: 11px;
 			font-weight: 700;
 			color: var(--text-muted);
 			cursor: pointer;
 			border-bottom: 2px solid transparent;
 			transition: all 0.15s ease;
+			white-space: nowrap;
+		}
+		.tab-item:hover {
+			color: var(--text-primary);
+			background: rgba(255, 255, 255, 0.02);
 		}
 		.tab-item.active {
 			color: var(--accent);
 			border-bottom-color: var(--accent);
-			background: rgba(56, 189, 248, 0.05);
+			background: rgba(56, 189, 248, 0.06);
+		}
+
+		.code-lang-bar {
+			display: none;
+			align-items: center;
+			gap: 4px;
+			padding: 6px 8px;
+			background: #060a12;
+			border-bottom: 1px solid var(--border-color);
+			flex-wrap: wrap;
+		}
+		.code-lang-bar.visible {
+			display: flex;
+		}
+
+		.code-lang-pill {
+			flex: 1;
+			min-width: 44px;
+			padding: 4px 6px;
+			text-align: center;
+			font-size: 10px;
+			font-weight: 700;
+			color: var(--text-muted);
+			background: var(--bg-card);
+			border: 1px solid var(--border-color);
+			border-radius: 5px;
+			cursor: pointer;
+			transition: all 0.15s ease;
+			white-space: nowrap;
+		}
+		.code-lang-pill:hover {
+			color: var(--text-primary);
+			border-color: rgba(56, 189, 248, 0.4);
+		}
+		.code-lang-pill.active {
+			color: #ffffff;
+			background: var(--accent-hover);
+			border-color: var(--accent);
+			box-shadow: 0 0 8px rgba(56, 189, 248, 0.25);
 		}
 
 		.tab-content {
@@ -984,68 +1166,68 @@
 	<!-- Top Navigation Bar -->
 	<header class="app-header">
 		<div class="app-title">
+			<button class="btn btn-icon btn-active-pane" id="togglePaletteBtn" onclick="toggleSidebarPane('palette')" title="Toggle Left Component Palette Sidebar">◧</button>
 			<span>⚡ Bun RAD Studio</span>
 			<span class="badge-rad">Delphi / VB Style</span>
 		</div>
 		<div class="toolbar-actions">
-			<!-- Primary actions -->
-			<button class="btn btn-success" onclick="triggerRunForm()" title="Launch live interactive window preview (F5)">▶ Run</button>
-			<button class="btn btn-primary" onclick="exportApp()" title="Export full Bun project to disk">💾 Export</button>
-			<button class="btn" id="stayOnTopBtn" onclick="toggleAlwaysOnTop()" title="Toggle window always-on-top mode (Stay On Top)">📌 Pin: OFF</button>
-			<button class="btn" onclick="toggleFullscreen()" title="Toggle fullscreen window mode (Fn+F / F11)">⛶ Fullscreen</button>
-			<select class="btn" id="winPosSelect" onchange="changeWindowPosition(this.value)" title="Move window position on screen">
-				<option value="" disabled selected>📍 Position</option>
-				<option value="center">Center Screen</option>
-				<option value="upper_left">Upper Left</option>
-				<option value="upper_right">Upper Right</option>
-				<option value="top_center">Top Center</option>
-				<option value="bottom_left">Lower Left</option>
-				<option value="bottom_right">Lower Right</option>
-				<option value="bottom_center">Lower Center</option>
-				<option value="center_left">Center Left</option>
-				<option value="center_right">Center Right</option>
-			</select>
-			<button class="btn" onclick="clearForm()" title="New blank form">📄 New</button>
-			<button class="btn btn-primary" onclick="launchAccessCrudWizard()" title="Auto-generate an MS Access style Database CRUD form layout">🗄️ DB Wizard</button>
-			<button class="btn" onclick="showImportModal()" title="Import JSON layout">📥 Import</button>
-			<span class="toolbar-divider"></span>
-			<!-- Edit actions -->
-			<button class="btn btn-icon" onclick="undo()" id="undoBtn" title="Undo (⌘Z)">↩</button>
-			<button class="btn btn-icon" onclick="redo()" id="redoBtn" title="Redo (⌘⇧Z)">↪</button>
-			<button class="btn btn-icon" onclick="copySelectedControl(this)" title="Copy (⌘C)">⎘</button>
-			<button class="btn btn-icon" onclick="pasteCopiedControl()" title="Paste (⌘V)">📋</button>
-			<button class="btn btn-icon" onclick="duplicateSelectedControl()" title="Duplicate (⌘D)">⧉</button>
-			<span class="toolbar-divider"></span>
-			<!-- Multi-Select Alignment Tools -->
-			<button class="btn btn-icon" onclick="alignSelectedControls('left')" title="Align Left Edges">⇤</button>
-			<button class="btn btn-icon" onclick="alignSelectedControls('center_h')" title="Center Horizontally">↔</button>
-			<button class="btn btn-icon" onclick="alignSelectedControls('right')" title="Align Right Edges">⇥</button>
-			<button class="btn btn-icon" onclick="alignSelectedControls('top')" title="Align Top Edges">⟰</button>
-			<button class="btn btn-icon" onclick="alignSelectedControls('center_v')" title="Center Vertically">↕</button>
-			<button class="btn btn-icon" onclick="alignSelectedControls('bottom')" title="Align Bottom Edges">⟱</button>
-			<button class="btn btn-icon" onclick="equalizeSize('width')" title="Make Same Width">⇗</button>
-			<button class="btn btn-icon" onclick="equalizeSize('height')" title="Make Same Height">⇘</button>
-			<span class="toolbar-divider"></span>
-			<!-- Layout tools -->
-			<button class="btn btn-icon" onclick="toggleLockSelected()" title="Lock / Unlock selected">🔒</button>
-			<button class="btn btn-icon" onclick="bringToFront()" title="Bring to Front">⬆</button>
-			<button class="btn btn-icon" onclick="sendToBack()" title="Send to Back">⬇</button>
-			<button class="btn" onclick="showSnapGridMenu()" id="snapBtn" title="Toggle Grid Snapping">⊞ Grid</button>
-			<span class="toolbar-divider"></span>
-			<!-- Advanced -->
-			<button class="btn" id="liveHoverTestBtn" onclick="toggleLiveHoverMode()" title="Live hover test mode on canvas">🧪 Test</button>
-			<button class="btn" onclick="showDiagnosticsModal()" title="Audit form for overlaps/errors">🔍 Audit</button>
-			<button class="btn btn-primary" onclick="copyBunTSCode(this)" title="Copy Bun GUI TypeScript code to clipboard">⚡ Bun TS</button>
-			<button class="btn" onclick="copyHTMLCode(this)" title="Copy standalone HTML/CSS code to clipboard">🌐 HTML</button>
-			<button class="btn" onclick="showHotkeysModal()" title="Keyboard shortcuts">⌨ Keys</button>
+			<!-- Run & Project Actions -->
+			<div class="toolbar-group">
+				<button class="btn btn-success" onclick="triggerRunForm()" title="Launch live interactive window preview (F5)">▶ Run</button>
+				<button class="btn btn-primary" onclick="exportApp()" title="Export full Bun project to disk">💾 Export</button>
+				<button class="btn" onclick="clearForm()" title="New blank form">📄 New</button>
+				<button class="btn" onclick="showImportModal()" title="Import JSON layout">📥 Import</button>
+				<button class="btn btn-primary" onclick="launchAccessCrudWizard()" title="Auto-generate an MS Access style Database CRUD form layout">🗄️ DB Wizard</button>
+			</div>
+			<!-- Window Controls -->
+			<div class="toolbar-group">
+				<button class="btn" id="stayOnTopBtn" onclick="toggleAlwaysOnTop()" title="Toggle window always-on-top mode (Stay On Top)">📌 Pin: OFF</button>
+				<button class="btn" onclick="toggleFullscreen()" title="Toggle fullscreen window mode (Fn+F / F11)">⛶ Fullscreen</button>
+				<select class="btn" id="winPosSelect" onchange="changeWindowPosition(this.value)" title="Move window position on screen">
+					<option value="" disabled selected>📍 Position</option>
+					<option value="center">Center Screen</option>
+					<option value="upper_left">Upper Left</option>
+					<option value="upper_right">Upper Right</option>
+					<option value="top_center">Top Center</option>
+					<option value="bottom_left">Lower Left</option>
+					<option value="bottom_right">Lower Right</option>
+					<option value="bottom_center">Lower Center</option>
+					<option value="center_left">Center Left</option>
+					<option value="center_right">Center Right</option>
+				</select>
+			</div>
+			<!-- History & Clipboard -->
+			<div class="toolbar-group">
+				<button class="btn btn-icon" onclick="undo()" id="undoBtn" title="Undo (⌘Z)">↩</button>
+				<button class="btn btn-icon" onclick="redo()" id="redoBtn" title="Redo (⌘⇧Z)">↪</button>
+				<button class="btn btn-icon" data-min-sel="1" onclick="copySelectedControl(this)" title="Copy (⌘C)">⎘</button>
+				<button class="btn btn-icon" id="pasteBtn" onclick="pasteCopiedControl()" title="Paste (⌘V)">📋</button>
+				<button class="btn btn-icon" data-min-sel="1" onclick="duplicateSelectedControl()" title="Duplicate (⌘D)">⧉</button>
+			</div>
+			<!-- Layer & Grid -->
+			<div class="toolbar-group">
+				<button class="btn btn-icon" data-min-sel="1" onclick="toggleLockSelected()" title="Lock / Unlock selected">🔒</button>
+				<button class="btn btn-icon" data-min-sel="1" onclick="bringToFront()" title="Bring to Front">⬆</button>
+				<button class="btn btn-icon" data-min-sel="1" onclick="sendToBack()" title="Send to Back">⬇</button>
+				<button class="btn" onclick="showSnapGridMenu()" id="snapBtn" title="Toggle Grid Snapping">⊞ Grid</button>
+			</div>
+			<!-- Diagnostics & Quick Code -->
+			<div class="toolbar-group">
+				<button class="btn" id="liveHoverTestBtn" onclick="toggleLiveHoverMode()" title="Live hover test mode on canvas">🧪 Test</button>
+				<button class="btn" onclick="showDiagnosticsModal()" title="Audit form for overlaps/errors">🔍 Audit</button>
+				<button class="btn btn-primary" onclick="copyBunTSCode(this)" title="Copy Bun GUI TypeScript code to clipboard">⚡ Bun TS</button>
+				<button class="btn" onclick="copyHTMLCode(this)" title="Copy standalone HTML/CSS code to clipboard">🌐 HTML</button>
+				<button class="btn" onclick="showHotkeysModal()" title="Keyboard shortcuts">⌨ Keys</button>
+				<button class="btn btn-icon btn-active-pane" id="toggleInspectorBtn" onclick="toggleSidebarPane('inspector')" title="Toggle Right Object Inspector Sidebar">◨</button>
+			</div>
 		</div>
 	</header>
 
 	<!-- Main Studio Workspace Grid -->
-	<div class="studio-container">
+	<div class="studio-container" id="studioContainer">
 
 		<!-- Left Toolbox Categorized Palette -->
-		<aside class="palette-sidebar">
+		<aside class="palette-sidebar" id="paletteSidebar">
 			<span class="sidebar-heading">Form Layout Templates</span>
 			<div class="templates-row" style="flex-wrap: wrap; gap: 4px;">
 				<span class="template-chip" onclick="loadTemplate('default')" title="Load Customer Account Registration preset form layout">Customer</span>
@@ -1062,8 +1244,11 @@
 
 			<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 4px 0;">
 
-			<span class="sidebar-heading">Component Palette</span>
-			<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="search-box" placeholder="Filter controls..." oninput="filterPalette(this.value)" title="Filter palette components by name">
+			<div class="sidebar-heading-row">
+				<span class="sidebar-heading">Component Palette</span>
+				<button class="btn" id="toggleAllCategoriesBtn" onclick="toggleAllPaletteCategories()" style="padding: 1px 6px; font-size: 9px;" title="Collapse or expand all component categories in the palette">⊟ Collapse</button>
+			</div>
+			<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="search-box" id="paletteSearchInput" placeholder="Filter controls..." oninput="filterPalette(this.value)" title="Filter palette components by name">
 
 			<!-- Category 1: Standard Controls -->
 			<div class="palette-category">
@@ -1545,36 +1730,50 @@
 					</div>
 				</div>
 			</div>
+			<div id="paletteEmptyMsg" class="palette-empty-msg">No matching components found.</div>
 		</aside>
 
 		<!-- Center Canvas Viewport with Rulers -->
 		<div class="canvas-viewport-wrapper">
+			<div class="pane-resizer pane-resizer-left" id="paletteResizer" title="Drag to resize Component Palette (double-click to collapse/expand)"></div>
+			<div class="pane-resizer pane-resizer-right" id="inspectorResizer" title="Drag to resize Object Inspector (double-click to collapse/expand)"></div>
 			<div class="canvas-toolbar">
 				<span id="canvasStats">Form: 840x540 | Controls: 0</span>
 				<div class="quick-align-bar">
-					<button class="btn" onclick="selectAllControls()">☑️ Select All</button>
-					<button class="btn" onclick="zoomCanvas(0.1)">🔍 In</button>
-					<button class="btn" onclick="zoomCanvas(-0.1)">🔍 Out</button>
-					<button class="btn" onclick="resetZoom()">🔍 100%</button>
-					<button class="btn" onclick="autoArrangeColumns(2)">📊 2-Cols</button>
-					<button class="btn" onclick="autoArrangeColumns(3)">📊 3-Cols</button>
-					<button class="btn" onclick="alignControls('left')">⬅️ Left</button>
-					<button class="btn" onclick="alignControls('center')">↔️ Center</button>
-					<button class="btn" onclick="alignControls('right')">➡️ Right</button>
-					<button class="btn" onclick="alignControls('top')">⬆️ Top</button>
-					<button class="btn" onclick="alignControls('middle')">↕️ Middle</button>
-					<button class="btn" onclick="alignControls('bottom')">⬇️ Bottom</button>
-					<button class="btn" onclick="distributeControls('horiz')">⬌ Dist H</button>
-					<button class="btn" onclick="distributeControls('vert')">⬍ Dist V</button>
-					<button class="btn" onclick="equalizeSize('width', 'first')">📐 Eq W</button>
-					<button class="btn" onclick="equalizeSize('height', 'first')">📐 Eq H</button>
-					<button class="btn" onclick="equalizeSize('width', 'widest')" title="Make all selected controls match the widest control (MS Access style)">↔️ Widest</button>
-					<button class="btn" onclick="equalizeSize('width', 'narrowest')" title="Make all selected controls match the narrowest control">↔️ Narrowest</button>
-					<button class="btn" onclick="equalizeSize('height', 'tallest')" title="Make all selected controls match the tallest control (MS Access style)">↕️ Tallest</button>
-					<button class="btn" onclick="equalizeSize('height', 'shortest')" title="Make all selected controls match the shortest control">↕️ Shortest</button>
-					<button class="btn" onclick="centerInForm('horiz')" title="Center selected control(s) horizontally inside form window">🎯 Center H Form</button>
-					<button class="btn" onclick="centerInForm('vert')" title="Center selected control(s) vertically inside form window">🎯 Center V Form</button>
-					<button class="btn" onclick="fitControlToContent()" title="Auto-size control to fit font size and text length">📏 Fit Text Size</button>
+					<div class="toolbar-group">
+						<button class="btn" onclick="selectAllControls()">☑️ Select All</button>
+						<button class="btn" onclick="zoomCanvas(0.1)">🔍 In</button>
+						<button class="btn" onclick="zoomCanvas(-0.1)">🔍 Out</button>
+						<button class="btn" onclick="resetZoom()">🔍 100%</button>
+						<button class="btn" onclick="autoArrangeColumns(2)">📊 2-Cols</button>
+						<button class="btn" onclick="autoArrangeColumns(3)">📊 3-Cols</button>
+					</div>
+					<div class="toolbar-group">
+						<span class="toolbar-group-label">Align</span>
+						<button class="btn" data-min-sel="1" onclick="alignSelectedControls('left')">⬅️ Left</button>
+						<button class="btn" data-min-sel="1" onclick="alignControls('center')">↔️ Center</button>
+						<button class="btn" data-min-sel="1" onclick="alignControls('right')">➡️ Right</button>
+						<button class="btn" data-min-sel="1" onclick="alignControls('top')">⬆️ Top</button>
+						<button class="btn" data-min-sel="1" onclick="alignControls('middle')">↕️ Middle</button>
+						<button class="btn" data-min-sel="1" onclick="alignControls('bottom')">⬇️ Bottom</button>
+						<button class="btn" data-min-sel="1" onclick="centerInForm('horiz')" title="Center selected control(s) horizontally inside form window">🎯 Center H Form</button>
+						<button class="btn" data-min-sel="1" onclick="centerInForm('vert')" title="Center selected control(s) vertically inside form window">🎯 Center V Form</button>
+						<button class="btn" data-min-sel="1" onclick="fitControlToContent()" title="Auto-size control to fit font size and text length">📏 Fit Text Size</button>
+					</div>
+					<div class="toolbar-group">
+						<span class="toolbar-group-label">Size</span>
+						<button class="btn" data-min-sel="2" onclick="equalizeSize('width')">📐 Eq W</button>
+						<button class="btn" data-min-sel="2" onclick="equalizeSize('height', 'first')">📐 Eq H</button>
+						<button class="btn" data-min-sel="2" onclick="equalizeSize('width', 'widest')" title="Make all selected controls match the widest control (MS Access style)">↔️ Widest</button>
+						<button class="btn" data-min-sel="2" onclick="equalizeSize('width', 'narrowest')" title="Make all selected controls match the narrowest control">↔️ Narrowest</button>
+						<button class="btn" data-min-sel="2" onclick="equalizeSize('height', 'tallest')" title="Make all selected controls match the tallest control (MS Access style)">↕️ Tallest</button>
+						<button class="btn" data-min-sel="2" onclick="equalizeSize('height', 'shortest')" title="Make all selected controls match the shortest control">↕️ Shortest</button>
+					</div>
+					<div class="toolbar-group">
+						<span class="toolbar-group-label">Dist</span>
+						<button class="btn" data-min-sel="3" onclick="distributeControls('horiz')">⬌ Dist H</button>
+						<button class="btn" data-min-sel="3" onclick="distributeControls('vert')">⬍ Dist V</button>
+					</div>
 				</div>
 			</div>
 
@@ -1627,7 +1826,7 @@
 		</div>
 
 		<!-- Right Object Inspector -->
-		<aside class="inspector-sidebar">
+		<aside class="inspector-sidebar" id="inspectorSidebar">
 			<div class="control-selector-header" style="padding: 8px 10px; background: rgba(0, 0, 0, 0.25); border-bottom: 1px solid var(--border-color);">
 				<span style="font-size: 9px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 4px;">⚡ Component Selector</span>
 				<select class="prop-input" id="objectInspectorSelector" onchange="selectControlFromDropdown(this.value)" style="width: 100%; font-weight: 600; color: var(--text-primary); background: var(--bg-card); border-color: var(--accent);" title="Select component on form to inspect properties">
@@ -1639,12 +1838,15 @@
 				<div class="tab-item active" onclick="switchTab('tabProps', event)">Properties</div>
 				<div class="tab-item" onclick="switchTab('tabTree', event)">Tree</div>
 				<div class="tab-item" onclick="switchTab('tabEvents', event)">Events</div>
-				<div class="tab-item" onclick="switchTab('tabBunTS', event)">Bun TS</div>
-				<div class="tab-item" onclick="switchTab('tabHTML', event)">HTML</div>
-				<div class="tab-item" onclick="switchTab('tabReact', event)">React</div>
-				<div class="tab-item" onclick="switchTab('tabVue', event)">Vue 3</div>
-				<div class="tab-item" onclick="switchTab('tabPython', event)">Python</div>
-				<div class="tab-item" onclick="switchTab('tabJSON', event)">JSON</div>
+				<div class="tab-item" id="inspectorCodePrimaryTab" onclick="switchTab('tabCode', event)">Code</div>
+			</div>
+			<div class="code-lang-bar" id="inspectorCodeSubbar">
+				<div class="code-lang-pill active" onclick="switchTab('tabBunTS', event)">Bun TS</div>
+				<div class="code-lang-pill" onclick="switchTab('tabHTML', event)">HTML</div>
+				<div class="code-lang-pill" onclick="switchTab('tabReact', event)">React</div>
+				<div class="code-lang-pill" onclick="switchTab('tabVue', event)">Vue 3</div>
+				<div class="code-lang-pill" onclick="switchTab('tabPython', event)">Python</div>
+				<div class="code-lang-pill" onclick="switchTab('tabJSON', event)">JSON</div>
 			</div>
 
 			<!-- Properties Tab -->
@@ -2166,7 +2368,11 @@
 
 			<!-- JSON Export Tab -->
 			<div class="tab-content" id="tabJSON">
-				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="jsonPreviewText" readonly></textarea>
+				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+					<span class="prop-label" style="color:var(--accent);">FormSpec JSON</span>
+					<button class="btn btn-primary" onclick="copyJSONCode(this)">📋 Copy JSON Code</button>
+				</div>
+				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="jsonPreviewText" readonly style="height:320px; font-family:monospace; font-size:11px;"></textarea>
 			</div>
 		</aside>
 	</div>
@@ -2671,11 +2877,14 @@
 		function initDesignerApp() {
 			makeClickablesKeyboardOperable();
 			setupDialogs();
+			initPaletteCategories();
+			setupSidebarResizers();
 			const propTitleEl = document.getElementById("propFormTitle");
 			if (propTitleEl) propTitleEl.value = formSpec.title || "";
 			bindLivePropertyEditors();
 			setupCanvasZoomAndPan();
 			setupCustomTooltipEngine();
+			updateToolbarSelectionState();
 
 			// Live mouse coordinates in status bar
 			const canvasForCoords = document.getElementById('formCanvas');
@@ -3017,6 +3226,7 @@
 			showCopyToast(msg);
 			const targetBtn = btn || (typeof event !== 'undefined' && event && event.currentTarget);
 			if (targetBtn) flashCopyButton(targetBtn);
+			if (typeof updateToolbarSelectionState === "function") updateToolbarSelectionState();
 		}
 
 		function pasteCopiedControl() {
@@ -3175,6 +3385,88 @@
 					viewport.classList.remove("panning");
 				}
 			});
+		}
+
+		function toggleSidebarPane(which) {
+			const container = document.getElementById("studioContainer") || document.querySelector(".studio-container");
+			if (!container) return;
+			if (which === "palette") {
+				const collapsed = container.classList.toggle("palette-collapsed");
+				const btn = document.getElementById("togglePaletteBtn");
+				if (btn) {
+					btn.classList.toggle("btn-active-pane", !collapsed);
+					btn.setAttribute("aria-pressed", collapsed ? "false" : "true");
+				}
+				const statusMsg = document.getElementById("statusMsg");
+				if (statusMsg) statusMsg.textContent = collapsed ? "Component Palette hidden." : "Component Palette visible.";
+			} else if (which === "inspector") {
+				const collapsed = container.classList.toggle("inspector-collapsed");
+				const btn = document.getElementById("toggleInspectorBtn");
+				if (btn) {
+					btn.classList.toggle("btn-active-pane", !collapsed);
+					btn.setAttribute("aria-pressed", collapsed ? "false" : "true");
+				}
+				const statusMsg = document.getElementById("statusMsg");
+				if (statusMsg) statusMsg.textContent = collapsed ? "Object Inspector hidden." : "Object Inspector visible.";
+			}
+			drawRulers();
+		}
+
+		function setupSidebarResizers() {
+			const container = document.getElementById("studioContainer") || document.querySelector(".studio-container");
+			const leftResizer = document.getElementById("paletteResizer");
+			const rightResizer = document.getElementById("inspectorResizer");
+			if (!container) return;
+
+			if (leftResizer && leftResizer.dataset.resizerBound !== "1") {
+				leftResizer.dataset.resizerBound = "1";
+				leftResizer.addEventListener("dblclick", () => toggleSidebarPane("palette"));
+				leftResizer.addEventListener("mousedown", (e) => {
+					e.preventDefault();
+					leftResizer.classList.add("dragging");
+					if (container.classList.contains("palette-collapsed")) {
+						toggleSidebarPane("palette");
+					}
+					const onMove = (me) => {
+						const rect = container.getBoundingClientRect();
+						const newW = Math.min(420, Math.max(160, Math.round(me.clientX - rect.left)));
+						container.style.setProperty("--palette-width", newW + "px");
+						drawRulers();
+					};
+					const onUp = () => {
+						leftResizer.classList.remove("dragging");
+						window.removeEventListener("mousemove", onMove);
+						window.removeEventListener("mouseup", onUp);
+					};
+					window.addEventListener("mousemove", onMove);
+					window.addEventListener("mouseup", onUp);
+				});
+			}
+
+			if (rightResizer && rightResizer.dataset.resizerBound !== "1") {
+				rightResizer.dataset.resizerBound = "1";
+				rightResizer.addEventListener("dblclick", () => toggleSidebarPane("inspector"));
+				rightResizer.addEventListener("mousedown", (e) => {
+					e.preventDefault();
+					rightResizer.classList.add("dragging");
+					if (container.classList.contains("inspector-collapsed")) {
+						toggleSidebarPane("inspector");
+					}
+					const onMove = (me) => {
+						const rect = container.getBoundingClientRect();
+						const newW = Math.min(520, Math.max(220, Math.round(rect.right - me.clientX)));
+						container.style.setProperty("--inspector-width", newW + "px");
+						drawRulers();
+					};
+					const onUp = () => {
+						rightResizer.classList.remove("dragging");
+						window.removeEventListener("mousemove", onMove);
+						window.removeEventListener("mouseup", onUp);
+					};
+					window.addEventListener("mousemove", onMove);
+					window.addEventListener("mouseup", onUp);
+				});
+			}
 		}
 
 		function zoomCanvas(delta) {
@@ -3554,12 +3846,99 @@
 		}
 
 		function filterPalette(query) {
-			const items = document.querySelectorAll(".palette-item");
-			query = query.toLowerCase();
-			items.forEach(item => {
-				const match = item.textContent.toLowerCase().includes(query);
-				item.style.display = match ? "flex" : "none";
+			const q = (query || "").toLowerCase().trim();
+			let totalVisible = 0;
+			const categories = document.querySelectorAll(".palette-category");
+			categories.forEach(cat => {
+				const items = cat.querySelectorAll(".palette-item");
+				let catVisible = 0;
+				items.forEach(item => {
+					const labelText = (item.textContent || "").toLowerCase();
+					const titleText = (item.getAttribute("title") || "").toLowerCase();
+					const match = !q || labelText.includes(q) || titleText.includes(q);
+					item.style.display = match ? "flex" : "none";
+					if (match) catVisible++;
+				});
+				totalVisible += catVisible;
+				const countBadge = cat.querySelector(".palette-cat-count");
+				if (countBadge) {
+					countBadge.textContent = q ? (catVisible + "/" + items.length) : String(items.length);
+				}
+				if (q) {
+					cat.style.display = catVisible > 0 ? "" : "none";
+					const grid = cat.querySelector(".palette-grid");
+					if (grid) grid.style.display = catVisible > 0 ? "grid" : "none";
+				} else {
+					cat.style.display = "";
+					const grid = cat.querySelector(".palette-grid");
+					if (grid) grid.style.display = "";
+				}
 			});
+			const emptyMsg = document.getElementById("paletteEmptyMsg");
+			if (emptyMsg) {
+				emptyMsg.style.display = (q && totalVisible === 0) ? "block" : "none";
+			}
+		}
+
+		function updatePaletteCollapseButtonLabel() {
+			const btn = document.getElementById("toggleAllCategoriesBtn");
+			if (!btn) return;
+			const categories = Array.from(document.querySelectorAll(".palette-category"));
+			const allCollapsed = categories.length > 0 && categories.every(c => c.classList.contains("collapsed"));
+			btn.textContent = allCollapsed ? "⊞ Expand" : "⊟ Collapse";
+		}
+
+		function initPaletteCategories() {
+			document.querySelectorAll(".palette-category").forEach(cat => {
+				const header = cat.querySelector(".palette-cat-header");
+				const items = cat.querySelectorAll(".palette-item");
+				if (!header || header.dataset.collapsibleBound === "1") return;
+				header.dataset.collapsibleBound = "1";
+				if (!header.querySelector(".palette-cat-count")) {
+					const countSpan = document.createElement("span");
+					countSpan.className = "palette-cat-count";
+					countSpan.textContent = String(items.length);
+					header.appendChild(countSpan);
+				}
+				if (!header.querySelector(".palette-cat-chevron")) {
+					const chev = document.createElement("span");
+					chev.className = "palette-cat-chevron";
+					chev.textContent = "▾";
+					header.appendChild(chev);
+				}
+				header.setAttribute("role", "button");
+				header.setAttribute("tabindex", "0");
+				header.setAttribute("aria-expanded", cat.classList.contains("collapsed") ? "false" : "true");
+				const toggleCat = () => {
+					cat.classList.toggle("collapsed");
+					header.setAttribute("aria-expanded", cat.classList.contains("collapsed") ? "false" : "true");
+					updatePaletteCollapseButtonLabel();
+				};
+				header.addEventListener("click", toggleCat);
+				header.addEventListener("keydown", (e) => {
+					if (e.key === "Enter" || e.key === " ") {
+						e.preventDefault();
+						toggleCat();
+					}
+				});
+			});
+			updatePaletteCollapseButtonLabel();
+		}
+
+		function toggleAllPaletteCategories() {
+			const categories = Array.from(document.querySelectorAll(".palette-category"));
+			if (categories.length === 0) return;
+			const allCollapsed = categories.every(c => c.classList.contains("collapsed"));
+			categories.forEach(cat => {
+				if (allCollapsed) {
+					cat.classList.remove("collapsed");
+				} else {
+					cat.classList.add("collapsed");
+				}
+				const header = cat.querySelector(".palette-cat-header");
+				if (header) header.setAttribute("aria-expanded", allCollapsed ? "true" : "false");
+			});
+			updatePaletteCollapseButtonLabel();
 		}
 
 		function filterControlProps(query) {
@@ -3888,6 +4267,11 @@
 			document.getElementById("statusMsg").textContent = "Auto-arranged controls into " + cols + " columns.";
 		}
 
+		function alignSelectedControls(mode) {
+			const mapped = mode === "center_h" ? "center" : (mode === "center_v" ? "middle" : mode);
+			alignControls(mapped);
+		}
+
 		function alignControls(mode) {
 			if (selectedIndices.length === 0) {
 				const msg = document.getElementById('statusMsg');
@@ -4039,7 +4423,7 @@
 			return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
 		}
 
-		// Theme colours with the button text guaranteed readable: a theme's own button text colour is kept when it
+		// Theme colors with the button text guaranteed readable: a theme's own button text color is kept when it
 		// reaches the WCAG AA ratio (4.5:1) on the button fill, otherwise black or white, whichever reads better.
 		function getThemeColors(theme) {
 			const colors = getRawThemeColors(theme);
@@ -5269,6 +5653,7 @@
 			if (canvasStats) {
 				canvasStats.textContent = "Form: " + formSpec.width + "x" + formSpec.height + " | Controls: " + formSpec.controls.length + (selectedIndices.length > 0 ? " (Selected: " + selectedIndices.length + ")" : "");
 			}
+			if (typeof updateToolbarSelectionState === "function") updateToolbarSelectionState();
 		}
 
 		function renderCanvas() {
@@ -5290,6 +5675,7 @@
 
 			const statsEl = document.getElementById("canvasStats");
 			if (statsEl) statsEl.textContent = "Form: " + formSpec.width + "x" + formSpec.height + " | Controls: " + formSpec.controls.length + (selectedIndices.length > 0 ? " (Selected: " + selectedIndices.length + ")" : "");
+			if (typeof updateToolbarSelectionState === "function") updateToolbarSelectionState();
 
 			formSpec.controls.forEach((ctrl, idx) => {
 				const div = document.createElement("div");
@@ -5849,8 +6235,34 @@
 			}
 		}
 
+		function updateToolbarSelectionState() {
+			const selCount = Array.isArray(selectedIndices) ? selectedIndices.length : 0;
+			document.querySelectorAll("[data-min-sel]").forEach(btn => {
+				const minSel = parseInt(btn.getAttribute("data-min-sel") || "1", 10);
+				if (selCount < minSel) {
+					btn.classList.add("btn-disabled");
+					btn.setAttribute("aria-disabled", "true");
+				} else {
+					btn.classList.remove("btn-disabled");
+					btn.setAttribute("aria-disabled", "false");
+				}
+			});
+			const pasteBtn = document.getElementById("pasteBtn");
+			if (pasteBtn) {
+				const hasClip = Array.isArray(clipboardBuffer) && clipboardBuffer.length > 0;
+				if (!hasClip) {
+					pasteBtn.classList.add("btn-disabled");
+					pasteBtn.setAttribute("aria-disabled", "true");
+				} else {
+					pasteBtn.classList.remove("btn-disabled");
+					pasteBtn.setAttribute("aria-disabled", "false");
+				}
+			}
+		}
+
 		function populateInspector() {
 			updateObjectInspectorDropdown();
+			updateToolbarSelectionState();
 			const container = document.getElementById("controlPropContainer");
 			if (!container) return;
 			if (selectedIndices.length === 0) {
@@ -6263,19 +6675,44 @@
 			renderCode();
 		}
 
+		let lastActiveCodeTab = "tabBunTS";
+		const INSPECTOR_CODE_TABS = ["tabBunTS", "tabHTML", "tabReact", "tabVue", "tabPython", "tabJSON"];
+
 		function switchTab(tabId, evt) {
+			const resolvedTabId = tabId === "tabCode" ? (lastActiveCodeTab || "tabBunTS") : tabId;
+			const isCodeTab = INSPECTOR_CODE_TABS.includes(resolvedTabId);
+
 			document.querySelectorAll(".tab-item").forEach(t => t.classList.remove("active"));
 			document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
-			if (evt && evt.target) {
-				evt.target.classList.add("active");
-			} else {
-				document.querySelectorAll(".tab-item").forEach(t => {
-					if (t.getAttribute("onclick") && t.getAttribute("onclick").includes("'" + tabId + "'")) {
-						t.classList.add("active");
+
+			const subbar = document.getElementById("inspectorCodeSubbar");
+			if (isCodeTab) {
+				lastActiveCodeTab = resolvedTabId;
+				const primaryCodeTab = document.getElementById("inspectorCodePrimaryTab");
+				if (primaryCodeTab) primaryCodeTab.classList.add("active");
+				if (subbar) subbar.classList.add("visible");
+				document.querySelectorAll(".code-lang-pill").forEach(pill => {
+					const oc = pill.getAttribute("onclick") || "";
+					if (oc.includes("'" + resolvedTabId + "'")) {
+						pill.classList.add("active");
+					} else {
+						pill.classList.remove("active");
 					}
 				});
+			} else {
+				if (subbar) subbar.classList.remove("visible");
+				if (evt && evt.target && evt.target.classList.contains("tab-item")) {
+					evt.target.classList.add("active");
+				} else {
+					document.querySelectorAll(".tab-item").forEach(t => {
+						if (t.getAttribute("onclick") && t.getAttribute("onclick").includes("'" + resolvedTabId + "'")) {
+							t.classList.add("active");
+						}
+					});
+				}
 			}
-			const targetContent = document.getElementById(tabId);
+
+			const targetContent = document.getElementById(resolvedTabId);
 			if (targetContent) targetContent.classList.add("active");
 		}
 
@@ -7477,6 +7914,13 @@ wv.bind("backendAlert", (msg: string) => {
 			const targetBtn = btn || (typeof event !== 'undefined' && event && event.currentTarget);
 			copyTextToClipboard(code, "Copied Python CustomTkinter code to clipboard!", targetBtn);
 			switchTab("tabPython");
+		}
+
+		function copyJSONCode(btn) {
+			const code = JSON.stringify(formSpec, null, 2);
+			const targetBtn = btn || (typeof event !== 'undefined' && event && event.currentTarget);
+			copyTextToClipboard(code, "Copied FormSpec JSON layout to clipboard!", targetBtn);
+			switchTab("tabJSON");
 		}
 
 		// Hook into renderCode to keep modern exporters populated

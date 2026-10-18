@@ -2,7 +2,7 @@ import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Sd Studio: find and replace across many files, with diffs, backups and undo. */
 export const sdStudioTips: HelpTips = {
-  "#dd_theme": "Change the colours of this window. Your choice is remembered.",
+  "#dd_theme": "Change the colors of this window. Your choice is remembered.",
   "#btn_fullscreen": "Fill the whole screen with this window. Press it again to go back.",
   "#btn_save_state": "Remember the window size, the theme and everything typed or ticked here (find, replace, targets, options), so it is restored next time you open this app.",
   "#btn_center": "Move the window to the middle of the screen.",

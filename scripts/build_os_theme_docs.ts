@@ -1,4 +1,4 @@
-// Writes the "Linux distributions, Windows versions and macOS versions" and "status colours" sections of
+// Writes the "Linux distributions, Windows versions and macOS versions" and "status colors" sections of
 // docs/THEMES.md from the real theme data, between two marker comments, so the page cannot drift from the code.
 //   bun run scripts/build_os_theme_docs.ts           rewrite the block
 //   bun run scripts/build_os_theme_docs.ts --check   exit 1 if the block is out of date
@@ -27,7 +27,7 @@ export function groups(): Group[] {
     const windows = ["win31", "win98", "win2000", "winxp_luna", "vista_aero", "win7_aero", "win8_metro", "win10_dark", "win10_light", "windows_terminal", "windows_high_contrast"];
     const mac = ["mac_os_9", "snow_leopard", "yosemite", "big_sur", "monterey_light", "sequoia_dark", "tahoe_glass"];
     return [
-        { id: "os-linux", title: "🐧 Linux Distributions & Desktop Environments", intro: "One theme per major distribution, desktop environment and popular GTK theme, built from each project's own colours.", keys: keys.filter((k) => !windows.includes(k) && !mac.includes(k) && !RARE_OS_THEME_KEYS.includes(k)) },
+        { id: "os-linux", title: "🐧 Linux Distributions & Desktop Environments", intro: "One theme per major distribution, desktop environment and popular GTK theme, built from each project's own colors.", keys: keys.filter((k) => !windows.includes(k) && !mac.includes(k) && !RARE_OS_THEME_KEYS.includes(k)) },
         { id: "os-windows", title: "🪟 Windows Versions", intro: "Windows 3.1 through Windows 11, plus the Windows Terminal and High Contrast schemes.", keys: windows },
         { id: "os-macos", title: "🍎 macOS Versions", intro: "Mac OS 9 Platinum through macOS Tahoe.", keys: mac },
         { id: "os-rare", title: "💾 Rare & Beloved Systems", intro: "Desktops and devices many people loved but may never have seen: BeOS and Haiku, OS/2 Warp, Solaris CDE, SGI IRIX, Atari GEM, RISC OS, QNX Photon, Symbian, Palm OS and webOS, Windows Phone, Zune, Android Holo, Longhorn, Media Center, Plan 9 Acme, SerenityOS, KDE 3 Keramik, Bluecurve, Ubuntu Human and Window Maker.", keys: RARE_OS_THEME_KEYS },
@@ -53,16 +53,16 @@ export function buildBlock(): string {
         lines.push("---", "");
     }
     lines.push(
-        '<a id="status-colours"></a>',
-        "## 🚦 Status colours: danger, warning, success, info",
+        '<a id="status-colors"></a>',
+        "## 🚦 Status colors: danger, warning, success, info",
         "",
-        "Every theme has four status colours. They are worked out from the theme so they always read well on its canvas and cards (text at least 4.5:1 where the canvas allows it, fills at least 3:1 against the card, and the label on a fill at least 4.5:1). Well-known palettes (Dracula, Nord, Gruvbox, Solarized, Catppuccin, Monokai Pro, Tokyo Night, One Dark, GitHub, Everforest, Kanagawa and the classic Windows palettes) use their own published colours.",
+        "Every theme has four status colors. They are worked out from the theme so they always read well on its canvas and cards (text at least 4.5:1 where the canvas allows it, fills at least 3:1 against the card, and the label on a fill at least 4.5:1). Well-known palettes (Dracula, Nord, Gruvbox, Solarized, Catppuccin, Monokai Pro, Tokyo Night, One Dark, GitHub, Everforest, Kanagawa and the classic Windows palettes) use their own published colors.",
         "",
         "```ts",
         'const sem = simplegui.getSemanticColors("dracula");   // sem.danger.solid, .on, .text, .soft, .border (same for warning, success, info)',
         'win.addButton("del", "Delete", { variant: "danger" });                     // solid',
         'win.addButton("save", "Save", { variant: "success", appearance: "soft" }); // soft tint; "outline" also works',
-        'win.addBadge("Late", "warning");                                           // badges, alerts, toasts and status dots use the same colours',
+        'win.addBadge("Late", "warning");                                           // badges, alerts, toasts and status dots use the same colors',
         "```",
         "",
         "In CSS they are variables that follow the theme, including after a live theme switch: `--danger`, `--danger-on`, `--danger-text`, `--danger-soft`, `--danger-border`, and the same for `--warning`, `--success`, `--info`.",
@@ -95,7 +95,7 @@ export function buildFxBlock(): string {
         '<a id="fx-themes"></a>',
         `## 🌌 Futuristic Themes (${entries.length} Themes)`,
         "",
-        `Glass surfaces, edge glow, a slow living backdrop and a motion layer (button bloom, floating labels, sliding tab pill, tilting cards). Every theme here carries an \`fx\` descriptor; the other ${getThemeNames().length - entries.length} themes render exactly as before. Body text on glass is checked at 4.5:1 over both a black and a white backdrop, and the effects respect \`prefers-reduced-motion\`, \`prefers-contrast\` and forced colours. Guide: [fx-themes developer guide](developer/fx-themes.md).`,
+        `Glass surfaces, edge glow, a slow living backdrop and a motion layer (button bloom, floating labels, sliding tab pill, tilting cards). Every theme here carries an \`fx\` descriptor; the other ${getThemeNames().length - entries.length} themes render exactly as before. Body text on glass is checked at 4.5:1 over both a black and a white backdrop, and the effects respect \`prefers-reduced-motion\`, \`prefers-contrast\` and forced colors. Guide: [fx-themes developer guide](developer/fx-themes.md).`,
         "",
         "| Theme Key | Display Name | Mode | Primary Accent | Secondary | Canvas | Card | Text | Glow | Glass | Motion | Border | Screenshot |",
         "|---|---|---|---|---|---|---|---|---|---|---|---|---|",

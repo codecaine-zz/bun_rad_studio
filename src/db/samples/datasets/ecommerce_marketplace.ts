@@ -77,9 +77,9 @@ const BRAND_N = 24;
 export default dataset({
   id: "ecommerce_marketplace",
   title: "E-commerce Marketplace",
-  tagline: "Catalogue, variants, inventory, orders, payments, shipments, returns, promotions and reviews.",
+  tagline: "Catalog, variants, inventory, orders, payments, shipments, returns, promotions and reviews.",
   description:
-    "A multi-seller online marketplace: a category tree, sellers, brands, products with size/colour variants (EAN-13 barcodes with valid check digits), warehouse inventory, customers and addresses, " +
+    "A multi-seller online marketplace: a category tree, sellers, brands, products with size/color variants (EAN-13 barcodes with valid check digits), warehouse inventory, customers and addresses, " +
     "orders with line items whose totals always add up, payments, shipments with promised and actual delivery dates, returns, promotions, wishlists, reviews, price history and seller payouts. " +
     "Seasonal demand peaks in November and December and the product popularity is heavily skewed. All data is synthetic.",
   tags: ["Retail", "Commerce", "Analytics"],
@@ -92,7 +92,7 @@ export default dataset({
     table("brand", "Product brands (fictional).", ["id id", "name str(60) uq", "country char(2)"], {
       n: BRAND_N, gen: (g, i) => ({ name: `${COMPANY_A[i - 1]} ${COMPANY_B[(i * 3) % COMPANY_B.length]}`.slice(0, 58), country: g.pick(["US", "DE", "JP", "CN", "GB", "IT"]) }),
     }),
-    table("warehouse", "Fulfilment centres.", ["id id", "code str(8) uq", "city str(40)", "state char(2)"], { rows: [{ code: "EAST1", city: "Newark", state: "NJ" }, { code: "WEST1", city: "Reno", state: "NV" }, { code: "CENT1", city: "Dallas", state: "TX" }, { code: "SOUTH1", city: "Atlanta", state: "GA" }] }),
+    table("warehouse", "Fulfilment centers.", ["id id", "code str(8) uq", "city str(40)", "state char(2)"], { rows: [{ code: "EAST1", city: "Newark", state: "NJ" }, { code: "WEST1", city: "Reno", state: "NV" }, { code: "CENT1", city: "Dallas", state: "TX" }, { code: "SOUTH1", city: "Atlanta", state: "GA" }] }),
     table("seller", "Third-party sellers on the marketplace.", ["id id", "name str(80)", "status enum(active,suspended,closed)", "commission_pct dec(4,2)", "rating dec(2,1) null", "joined_on date", "country char(2)"], {
       n: [20, 80, 300], gen: (g) => ({ name: g.company(), status: g.w([["active", 90], ["suspended", 6], ["closed", 4]] as const), commission_pct: g.pick([8, 10, 12, 15]), rating: g.bool(0.9) ? g.round(g.clamp(g.normal(4.4, 0.4), 2.5, 5), 1) : null, joined_on: g.date("2019-01-01", "2024-12-31"), country: g.pick(["US", "US", "US", "CA", "GB", "DE"]) }),
     }),
@@ -100,7 +100,7 @@ export default dataset({
       n: [P.small.PR, P.medium.PR, P.large.PR], ix: ["category_id,status"],
       gen: (g, i) => { const cat = productCat(i); const noun = g.pick(NOUNS[CATS[cat - 1]![0]]!); return { seller_id: productSeller(i, g.count("seller")), brand_id: 1 + (i * 5) % BRAND_N, category_id: cat, title: `${COMPANY_A[(i * 11) % COMPANY_A.length]} ${noun}`, description: g.sentence(14), status: g.w([["active", 92], ["draft", 3], ["archived", 5]] as const), created_at: g.ts(g.date("2022-06-01", "2025-03-01")) }; },
     }),
-    table("product_variant", "Size / colour variants with SKU, barcode and price.", ["id id", "product_id int fk:product cascade", "sku str(24) uq", "barcode char(13) uq # EAN-13 with a valid check digit", "size_label str(20)", "color str(20)", "price dec(10,2)", "weight_g int", "is_active bool def:true"], {
+    table("product_variant", "Size / color variants with SKU, barcode and price.", ["id id", "product_id int fk:product cascade", "sku str(24) uq", "barcode char(13) uq # EAN-13 with a valid check digit", "size_label str(20)", "color str(20)", "price dec(10,2)", "weight_g int", "is_active bool def:true"], {
       n: (n) => n("product") * 3, ck: ["price > 0"],
       gen: (g, i) => ({ product_id: Math.ceil(i / 3), sku: `SKU-${String(i).padStart(7, "0")}`, barcode: ean13(i), size_label: SIZES[(i * 5) % SIZES.length]!, color: COLORS[(i * 3) % COLORS.length]!, price: variantPrice(i), weight_g: g.int(80, 4000), is_active: g.bool(0.97) }),
     }),

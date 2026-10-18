@@ -2,313 +2,695 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Tetris Ultra Deluxe</title>
+  <script>(function(){try{var s=window.localStorage;s.getItem("__tt__")}catch(e){var m={};var p={getItem:function(k){return Object.prototype.hasOwnProperty.call(m,k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}},key:function(i){return Object.keys(m)[i]||null},get length(){return Object.keys(m).length}};try{Object.defineProperty(window,"localStorage",{value:p,configurable:true,writable:true})}catch(_){}}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Codecaine Tetris Ultra Deluxe</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Orbitron:wght@500;700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600;700&display=swap');
 
     :root {
-      --bg: #050510;
-      --board-bg: rgba(10, 10, 20, 0.8);
-      --border: #4444ff;
-      --text: #ffffff;
+      --bg: #04040e;
+      --bg-grad: radial-gradient(circle at 50% 35%, #161238 0%, #050512 70%, #020208 100%);
+      --board-bg: rgba(7, 8, 20, 0.92);
+      --panel-bg: rgba(10, 12, 28, 0.85);
+      --border: #00f0ff;
       --accent: #ff00ff;
+      --accent2: #00f0ff;
+      --gold: #ffcc00;
+      --text: #ffffff;
+      --muted: #8a99c8;
+      --grid-line: rgba(0, 240, 255, 0.06);
     }
+
+    body.theme-synthwave {
+      --bg: #0e0318;
+      --bg-grad: radial-gradient(circle at 50% 30%, #380947 0%, #140324 70%, #07010f 100%);
+      --board-bg: rgba(16, 4, 28, 0.92);
+      --panel-bg: rgba(24, 6, 40, 0.85);
+      --border: #ff2a85;
+      --accent: #ff9900;
+      --accent2: #ff2a85;
+      --gold: #ffe600;
+      --grid-line: rgba(255, 42, 133, 0.08);
+    }
+
+    body.theme-matrix {
+      --bg: #010a03;
+      --bg-grad: radial-gradient(circle at 50% 35%, #062910 0%, #021006 75%, #000501 100%);
+      --board-bg: rgba(2, 14, 5, 0.94);
+      --panel-bg: rgba(4, 20, 8, 0.88);
+      --border: #00ff66;
+      --accent: #00ff66;
+      --accent2: #55ff99;
+      --gold: #b8ff00;
+      --grid-line: rgba(0, 255, 102, 0.08);
+    }
+
+    body.theme-retro {
+      --bg: #0f1912;
+      --bg-grad: radial-gradient(circle at 50% 35%, #1f3322 0%, #0f1912 80%);
+      --board-bg: rgba(15, 28, 17, 0.95);
+      --panel-bg: rgba(22, 38, 25, 0.9);
+      --border: #9bbc0f;
+      --accent: #8bac0f;
+      --accent2: #9bbc0f;
+      --gold: #d8ff4a;
+      --grid-line: rgba(155, 188, 15, 0.1);
+    }
+
+    * { box-sizing: border-box; }
+
     body {
-      margin: 0; padding: 0;
-      background: var(--bg);
+      margin: 0;
+      padding: 0;
+      background: var(--bg-grad);
       color: var(--text);
-      font-family: 'Inter', sans-serif;
-      display: flex; justify-content: center; align-items: center;
-      height: 100vh; overflow: hidden;
-      background: radial-gradient(circle at 50% 50%, #1a1a3a, #050510);
+      font-family: 'Inter', system-ui, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
       user-select: none;
     }
-    
-    /* Grid background effect */
+
+    /* Animated cyber perspective grid */
     body::before {
       content: "";
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-image: 
-        linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
-      background-size: 40px 40px;
-      z-index: -1;
-      transform: perspective(500px) rotateX(60deg) translateY(-100px) scale(3);
-      animation: gridMove 10s linear infinite;
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+      background-size: 36px 36px;
+      z-index: 0;
+      transform: perspective(560px) rotateX(52deg) translateY(-90px) scale(2.6);
+      animation: gridMove 12s linear infinite;
+      pointer-events: none;
     }
 
     @keyframes gridMove {
       0% { background-position: 0 0; }
-      100% { background-position: 0 40px; }
+      100% { background-position: 0 72px; }
     }
 
     #app-container {
-      display: flex; flex-direction: column; align-items: center;
-      gap: 20px;
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      max-width: 1120px;
+      width: 100%;
+    }
+
+    .header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 960px;
+      padding: 4px 10px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      box-shadow: 0 0 18px rgba(0, 240, 255, 0.45);
     }
 
     .title {
       font-family: 'Orbitron', sans-serif;
-      font-size: 42px; font-weight: 900;
+      font-size: 28px;
+      font-weight: 900;
       margin: 0;
-      background: linear-gradient(180deg, #ffffff, #00ffff);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      text-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
-      letter-spacing: 4px;
+      background: linear-gradient(135deg, #ffffff 0%, var(--accent2) 55%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 24px rgba(0, 240, 255, 0.35);
+      letter-spacing: 3px;
+    }
+
+    .subtitle-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .mode-pills {
+      display: flex;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.45);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .mode-pill {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.18s ease;
+    }
+
+    .mode-pill:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .mode-pill.active {
+      color: #fff;
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.25), rgba(255, 0, 255, 0.25));
+      border-color: var(--accent2);
+      box-shadow: 0 0 14px rgba(0, 240, 255, 0.3);
     }
 
     #game-container {
-      display: flex; gap: 30px;
-      padding: 30px;
-      background: rgba(0, 0, 0, 0.6);
-      border: 1px solid rgba(0, 255, 255, 0.2);
-      border-radius: 20px;
-      box-shadow: 0 0 50px rgba(0, 0, 0, 0.8), inset 0 0 30px rgba(0, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
+      display: flex;
+      gap: 20px;
+      padding: 20px;
+      background: var(--panel-bg);
+      border: 1px solid rgba(0, 240, 255, 0.28);
+      border-radius: 22px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85), inset 0 0 30px rgba(0, 240, 255, 0.08);
+      backdrop-filter: blur(16px);
+      align-items: stretch;
+      transition: transform 0.06s ease-out;
     }
 
     .panel {
-      display: flex; flex-direction: column; gap: 20px;
-      width: 160px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 190px;
     }
 
     .box {
       background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(0, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 15px;
+      border: 1px solid rgba(0, 240, 255, 0.16);
+      border-radius: 14px;
+      padding: 11px 12px;
       text-align: center;
-      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.45);
     }
-    
+
     .box-title {
       font-family: 'Orbitron', sans-serif;
-      font-size: 12px; text-transform: uppercase; letter-spacing: 2px;
-      color: #8888ff; margin-bottom: 10px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--muted);
+      margin-bottom: 5px;
     }
-    
+
     .box-value {
       font-family: 'Orbitron', sans-serif;
-      font-size: 28px; font-weight: bold;
+      font-size: 22px;
+      font-weight: 800;
       color: #fff;
-      text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+      text-shadow: 0 0 12px rgba(0, 240, 255, 0.45);
+    }
+
+    .box-sub {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px;
+      color: var(--gold);
+      margin-top: 2px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-mini {
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 8px;
+      padding: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .stat-mini-label {
+      font-size: 9px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-mini-val {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent2);
+      margin-top: 2px;
+    }
+
+    #board-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
     }
 
     #board-container {
       position: relative;
-      border-radius: 8px;
+      border-radius: 12px;
       padding: 4px;
-      background: linear-gradient(135deg, #ff00ff, #00ffff);
-      box-shadow: 0 0 20px rgba(255, 0, 255, 0.4), 0 0 40px rgba(0, 255, 255, 0.2);
+      background: linear-gradient(135deg, var(--accent), var(--accent2), var(--gold));
+      box-shadow: 0 0 28px rgba(255, 0, 255, 0.35), 0 0 50px rgba(0, 240, 255, 0.2);
     }
 
     canvas {
       display: block;
     }
-    
+
     #board {
       background: var(--board-bg);
-      border-radius: 4px;
+      border-radius: 8px;
     }
 
     .mini-canvas-container {
-      display: flex; justify-content: center; align-items: center;
-      height: 100px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     #preview-canvas, #hold-canvas {
-      background: transparent;
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    #particles-canvas {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      pointer-events: none;
+      z-index: 5;
+      border-radius: 8px;
+    }
+
+    /* Callout banner for TETRIS / T-SPIN / B2B / COMBO */
+    #callout-banner {
+      position: absolute;
+      top: 26%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      pointer-events: none;
+      z-index: 8;
+      text-align: center;
+      opacity: 0;
+      transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+    }
+
+    #callout-banner.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .callout-main {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 24px;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 0 12px var(--accent), 0 0 24px var(--accent2);
+      letter-spacing: 2px;
+      white-space: nowrap;
+    }
+
+    .callout-sub {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--gold);
+      text-shadow: 0 0 8px rgba(255, 204, 0, 0.8);
+      letter-spacing: 1.5px;
     }
 
     .overlay {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      display: flex; flex-direction: column; justify-content: center; align-items: center;
-      background: rgba(0, 0, 0, 0.85);
-      border-radius: 4px;
+      position: absolute;
+      inset: 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(4, 5, 15, 0.88);
+      border-radius: 8px;
       z-index: 10;
-      backdrop-filter: blur(4px);
+      backdrop-filter: blur(6px);
+      padding: 20px;
+      text-align: center;
     }
 
     .overlay h1 {
       font-family: 'Orbitron', sans-serif;
-      font-size: 42px; margin: 0 0 30px 0;
+      font-size: 34px;
+      margin: 0 0 10px 0;
       color: #fff;
-      text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 40px #ff00ff;
-      text-align: center;
-    }
-    
-    .overlay.paused h1 {
-      text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 40px #00ffff;
+      text-shadow: 0 0 12px var(--accent), 0 0 28px var(--accent2);
+      letter-spacing: 3px;
     }
 
-    button {
+    .overlay-desc {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 22px;
+      max-width: 240px;
+      line-height: 1.5;
+    }
+
+    .btn-primary {
       font-family: 'Orbitron', sans-serif;
-      padding: 15px 30px; font-size: 16px; font-weight: bold;
-      color: #fff; background: rgba(0, 255, 255, 0.1);
-      border: 1px solid #00ffff; border-radius: 8px;
-      cursor: pointer; transition: all 0.2s ease;
-      box-shadow: 0 0 15px rgba(0, 255, 255, 0.2), inset 0 0 10px rgba(0, 255, 255, 0.1);
-      text-transform: uppercase; letter-spacing: 2px;
+      padding: 13px 28px;
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.25), rgba(255, 0, 255, 0.25));
+      border: 1px solid var(--accent2);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 18px rgba(0, 240, 255, 0.3), inset 0 0 10px rgba(0, 240, 255, 0.15);
+      text-transform: uppercase;
+      letter-spacing: 2px;
     }
 
-    button:hover {
-      background: rgba(0, 255, 255, 0.3);
-      box-shadow: 0 0 25px rgba(0, 255, 255, 0.5), inset 0 0 15px rgba(0, 255, 255, 0.3);
+    .btn-primary:hover {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.45), rgba(255, 0, 255, 0.45));
+      box-shadow: 0 0 28px rgba(0, 240, 255, 0.6);
       transform: translateY(-2px);
-    }
-    
-    button:active {
-      transform: translateY(1px);
     }
 
     .hidden { display: none !important; }
 
-    .controls-help {
-      margin-top: auto;
-      font-size: 12px; color: #888;
-      line-height: 1.6;
-      background: rgba(0,0,0,0.3);
-      padding: 15px; border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.05);
+    .select-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: left;
     }
-    .controls-help b { color: #ccc; }
-    .key { 
-      display: inline-block; padding: 2px 6px; 
-      background: #222; border-radius: 4px; 
-      border-bottom: 2px solid #111; color: #00ffff;
-      font-family: monospace; font-size: 11px;
+
+    .select-label {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
     }
-    
-    #particles-canvas {
-      position: absolute;
-      top: 0; left: 0;
-      pointer-events: none;
-      z-index: 5;
-    }
-    
+
     .music-select {
       width: 100%;
-      background: rgba(0,0,0,0.5);
-      color: #00ffff;
-      border: 1px solid rgba(0, 255, 255, 0.3);
-      padding: 8px;
-      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.55);
+      color: var(--accent2);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      padding: 6px 8px;
+      border-radius: 6px;
       font-family: 'Orbitron', sans-serif;
-      font-size: 11px;
+      font-size: 10px;
       outline: none;
       cursor: pointer;
     }
+
     .music-select option {
-      background: #000;
-      color: #00ffff;
+      background: #080818;
+      color: var(--accent2);
+    }
+
+    .controls-help {
+      margin-top: auto;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.65;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      text-align: left;
+    }
+
+    .controls-help b { color: #fff; font-family: 'Orbitron', sans-serif; font-size: 10px; letter-spacing: 1px; }
+
+    .key {
+      display: inline-block;
+      padding: 1px 5px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      border-bottom: 2px solid rgba(0, 0, 0, 0.6);
+      color: var(--accent2);
+      font-family: monospace;
+      font-size: 10px;
+    }
+
+    /* Touch / Mouse Arcade Deck */
+    .arcade-deck {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    .deck-btn {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 7px 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      color: #e2ecff;
+      cursor: pointer;
+      transition: all 0.12s ease;
+      min-width: 40px;
+    }
+
+    .deck-btn:hover {
+      background: rgba(0, 240, 255, 0.2);
+      border-color: var(--accent2);
+    }
+
+    .deck-btn:active {
+      transform: scale(0.95);
+    }
+
+    .deck-btn.drop-btn {
+      background: rgba(255, 0, 255, 0.18);
+      border-color: var(--accent);
+      color: #fff;
     }
   </style>
 </head>
 <body>
 
 <div id="app-container">
-  <h1 class="title">TETRIS ULTRA DELUXE</h1>
-
-  <div id="game-container">
-    <div class="panel">
-      <div class="box">
-        <div class="box-title">Hold</div>
-        <div class="mini-canvas-container">
-          <canvas id="hold-canvas" width="100" height="100"></canvas>
+  <div class="header-bar">
+    <div class="brand-group">
+      <img src="favicon.svg" alt="Tetris Logo" class="brand-logo" onerror="this.style.display='none'">
+      <div>
+        <h1 class="title">CODECAINE TETRIS ULTRA DELUXE</h1>
+        <div class="subtitle-row">
+          <span>SRS 7-BAG ENGINE</span>
+          <span>•</span>
+          <span>T-SPIN &amp; B2B TELEMETRY</span>
+          <span>•</span>
+          <span id="mode-indicator">MARATHON MODE</span>
         </div>
       </div>
-      
+    </div>
+
+    <div class="mode-pills" id="mode-selector">
+      <button class="mode-pill active" data-mode="marathon">MARATHON</button>
+      <button class="mode-pill" data-mode="sprint">40L SPRINT</button>
+      <button class="mode-pill" data-mode="ultra">2M ULTRA</button>
+      <button class="mode-pill" data-mode="zen">ZEN CHILL</button>
+    </div>
+  </div>
+
+  <div id="game-container">
+    <!-- Left Telemetry & Hold Panel -->
+    <div class="panel">
+      <div class="box">
+        <div class="box-title">Hold Queue <span class="key">C</span></div>
+        <div class="mini-canvas-container">
+          <canvas id="hold-canvas" width="110" height="84"></canvas>
+        </div>
+      </div>
+
       <div class="box">
         <div class="box-title">Score</div>
         <div id="score" class="box-value">0</div>
+        <div class="box-sub">BEST: <span id="best-score">0</span></div>
       </div>
-      
+
       <div class="box">
-        <div class="box-title">Level</div>
-        <div id="level" class="box-value">1</div>
-      </div>
-      
-      <div class="box">
-        <div class="box-title">Lines</div>
+        <div class="box-title" id="primary-metric-label">Lines</div>
         <div id="lines" class="box-value">0</div>
+        <div class="box-sub">LEVEL <span id="level">1</span></div>
       </div>
-    </div>
 
-    <div id="board-container">
-      <canvas id="board" width="300" height="600"></canvas>
-      <canvas id="particles-canvas" width="300" height="600"></canvas>
-      
-      <div id="start-overlay" class="overlay">
-        <h1>READY</h1>
-        <button id="start-btn">Play Now</button>
-      </div>
-      
-      <div id="pause-overlay" class="overlay paused hidden">
-        <h1>PAUSED</h1>
-        <button id="resume-btn">Resume</button>
-      </div>
-      
-      <div id="game-over-overlay" class="overlay hidden">
-        <h1>GAME OVER</h1>
-        <div style="font-family: 'Orbitron'; color: #00ffff; font-size: 24px; margin-bottom: 30px;">
-          Score: <span id="final-score">0</span>
+      <div class="box">
+        <div class="box-title">Live Telemetry</div>
+        <div class="stats-grid">
+          <div class="stat-mini">
+            <div class="stat-mini-label">Combo</div>
+            <div id="stat-combo" class="stat-mini-val">0x</div>
+          </div>
+          <div class="stat-mini">
+            <div class="stat-mini-label">B2B Chain</div>
+            <div id="stat-b2b" class="stat-mini-val">0x</div>
+          </div>
+          <div class="stat-mini">
+            <div class="stat-mini-label">Time</div>
+            <div id="stat-time" class="stat-mini-val">0:00</div>
+          </div>
+          <div class="stat-mini">
+            <div class="stat-mini-label">PPS</div>
+            <div id="stat-pps" class="stat-mini-val">0.00</div>
+          </div>
         </div>
-        <button id="restart-btn">Play Again</button>
+      </div>
+
+      <div class="box select-group">
+        <div class="select-label">Visual Theme</div>
+        <select id="theme-select" class="music-select">
+          <option value="cyber">Cyberpunk Neon</option>
+          <option value="synthwave">Synthwave Sunset</option>
+          <option value="matrix">Matrix Grid</option>
+          <option value="retro">Retro Handheld</option>
+        </select>
       </div>
     </div>
 
+    <!-- Center Playfield -->
+    <div id="board-wrapper">
+      <div id="board-container">
+        <canvas id="board" width="300" height="600"></canvas>
+        <canvas id="particles-canvas" width="300" height="600"></canvas>
+
+        <div id="callout-banner">
+          <div class="callout-main" id="callout-main">TETRIS!</div>
+          <div class="callout-sub" id="callout-sub">BACK-TO-BACK x1.5</div>
+        </div>
+
+        <div id="start-overlay" class="overlay">
+          <h1>READY</h1>
+          <div class="overlay-desc" id="mode-desc">Endless 20-level gravity challenge with T-Spin &amp; Back-to-Back bonuses.</div>
+          <button id="start-btn" class="btn-primary">Play Now</button>
+        </div>
+
+        <div id="pause-overlay" class="overlay paused hidden">
+          <h1>PAUSED</h1>
+          <div class="overlay-desc">Take a breath. Your cyber grid awaits.</div>
+          <button id="resume-btn" class="btn-primary">Resume</button>
+        </div>
+
+        <div id="game-over-overlay" class="overlay hidden">
+          <h1 id="gameover-title">GAME OVER</h1>
+          <div style="font-family: 'Orbitron'; color: var(--accent2); font-size: 20px; margin-bottom: 8px;">
+            Score: <span id="final-score">0</span>
+          </div>
+          <div id="final-summary" style="font-family: 'Rajdhani'; color: var(--gold); font-size: 14px; margin-bottom: 22px;">
+            Lines: 0 • Max Combo: 0x
+          </div>
+          <button id="restart-btn" class="btn-primary">Play Again</button>
+        </div>
+      </div>
+
+      <!-- Interactive Arcade Deck -->
+      <div class="arcade-deck">
+        <button class="deck-btn" id="btn-left" title="Move Left">◄</button>
+        <button class="deck-btn" id="btn-down" title="Soft Drop">▼</button>
+        <button class="deck-btn" id="btn-right" title="Move Right">►</button>
+        <button class="deck-btn" id="btn-ccw" title="Rotate Left (Z)">⟲</button>
+        <button class="deck-btn" id="btn-cw" title="Rotate Right (Up/X)">⟳</button>
+        <button class="deck-btn drop-btn" id="btn-drop" title="Hard Drop (Space)">⤓ DROP</button>
+        <button class="deck-btn" id="btn-hold" title="Hold Piece (C)">⇄ HOLD</button>
+        <button class="deck-btn" id="btn-pause" title="Pause (Esc/P)">⏸</button>
+      </div>
+    </div>
+
+    <!-- Right Queue & Audio/Controls Panel -->
     <div class="panel">
       <div class="box">
-        <div class="box-title">Next</div>
+        <div class="box-title">Next Queue (3)</div>
         <div class="mini-canvas-container">
-          <canvas id="preview-canvas" width="100" height="100"></canvas>
+          <canvas id="preview-canvas" width="110" height="220"></canvas>
         </div>
       </div>
-      
-      <div class="box">
-        <div class="box-title">Music</div>
+
+      <div class="box select-group">
+        <div class="select-label">Synth Soundtrack</div>
         <select id="music-select" class="music-select">
-          <option value="none">Off</option>
-          <option value="nostalgia">Nostalgia (Type A)</option>
-          <option value="synthwave">Neon Synth (Type B)</option>
+          <option value="nostalgia">Korobeiniki Cyber (Type A)</option>
+          <option value="synthwave">Neon Outrun (Type B)</option>
+          <option value="cyberpunk">Dark Arpeggio (Type C)</option>
+          <option value="none">Audio Mute / Off</option>
         </select>
+        <div class="select-label" style="margin-top:4px;">Master Volume</div>
+        <input type="range" id="volume-slider" min="0" max="100" value="40" style="width:100%; accent-color: var(--accent2); cursor:pointer;">
       </div>
 
       <div class="controls-help">
-        <div style="margin-bottom:8px; border-bottom:1px solid #333; padding-bottom:8px;"><b>CONTROLS</b></div>
-        <span class="key">←</span> <span class="key">→</span> Move<br>
-        <span class="key">↑</span> <span class="key">X</span> Rotate R<br>
-        <span class="key">Z</span> Rotate L<br>
-        <span class="key">↓</span> Soft Drop<br>
-        <span class="key">Space</span> Hard Drop<br>
-        <span class="key">C</span> Hold<br>
-        <span class="key">Esc</span> Pause
+        <div style="margin-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px;"><b>PRO CONTROLS</b></div>
+        <span class="key">←</span> <span class="key">→</span> Move • <span class="key">↓</span> Soft Drop<br>
+        <span class="key">Space</span> Hard Drop (+2/cell)<br>
+        <span class="key">↑</span> / <span class="key">X</span> Rotate CW<br>
+        <span class="key">Z</span> Rotate CCW • <span class="key">A</span> 180°<br>
+        <span class="key">C</span> / <span class="key">Shift</span> Hold Piece<br>
+        <span class="key">P</span> / <span class="key">Esc</span> Pause • <span class="key">R</span> Restart
       </div>
     </div>
   </div>
 </div>
 
 <script>
-// --- Audio System (Web Audio API) ---
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-const masterGain = audioCtx.createGain();
-masterGain.gain.value = 0.3;
-masterGain.connect(audioCtx.destination);
+// --- Audio System (Web Audio API Polyphonic Synth) ---
+const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+const audioCtx = AudioContextClass ? new AudioContextClass() : null;
+const masterGain = audioCtx ? audioCtx.createGain() : null;
+const musicGain = audioCtx ? audioCtx.createGain() : null;
 
-// --- Music Sequencer ---
-const musicGain = audioCtx.createGain();
-musicGain.gain.value = 0.15;
-musicGain.connect(masterGain);
+if (masterGain && audioCtx) {
+  masterGain.gain.value = 0.4;
+  masterGain.connect(audioCtx.destination);
+  musicGain.gain.value = 0.18;
+  musicGain.connect(masterGain);
+}
 
-let currentTrack = 'none';
+let currentTrack = 'nostalgia';
 let nextNoteTime = 0;
 let currentNoteIndex = 0;
 let musicTimerID = null;
 
 const tracks = {
   nostalgia: {
-    tempo: 160,
+    tempo: 156,
+    wave: 'square',
     notes: [
       {f: 659.25, d: 1}, {f: 493.88, d: 0.5}, {f: 523.25, d: 0.5}, {f: 587.33, d: 1},
       {f: 523.25, d: 0.5}, {f: 493.88, d: 0.5}, {f: 440.00, d: 1}, {f: 440.00, d: 0.5},
@@ -323,58 +705,62 @@ const tracks = {
     ]
   },
   synthwave: {
-    tempo: 140,
+    tempo: 138,
+    wave: 'sawtooth',
     notes: [
-      {f: 220, d: 0.5}, {f: 329.63, d: 0.5}, {f: 440, d: 0.5}, {f: 329.63, d: 0.5},
-      {f: 220, d: 0.5}, {f: 329.63, d: 0.5}, {f: 440, d: 0.5}, {f: 329.63, d: 0.5},
-      {f: 196, d: 0.5}, {f: 293.66, d: 0.5}, {f: 392, d: 0.5}, {f: 293.66, d: 0.5},
-      {f: 196, d: 0.5}, {f: 293.66, d: 0.5}, {f: 392, d: 0.5}, {f: 293.66, d: 0.5},
-      {f: 174.61, d: 0.5}, {f: 261.63, d: 0.5}, {f: 349.23, d: 0.5}, {f: 261.63, d: 0.5},
-      {f: 174.61, d: 0.5}, {f: 261.63, d: 0.5}, {f: 349.23, d: 0.5}, {f: 261.63, d: 0.5},
-      {f: 164.81, d: 0.5}, {f: 246.94, d: 0.5}, {f: 329.63, d: 0.5}, {f: 246.94, d: 0.5},
-      {f: 164.81, d: 0.5}, {f: 246.94, d: 0.5}, {f: 329.63, d: 0.5}, {f: 246.94, d: 0.5}
+      {f: 220, d: 0.5}, {f: 329.63, d: 0.5}, {f: 440, d: 0.5}, {f: 523.25, d: 0.5},
+      {f: 220, d: 0.5}, {f: 329.63, d: 0.5}, {f: 440, d: 0.5}, {f: 659.25, d: 0.5},
+      {f: 196, d: 0.5}, {f: 293.66, d: 0.5}, {f: 392, d: 0.5}, {f: 493.88, d: 0.5},
+      {f: 196, d: 0.5}, {f: 293.66, d: 0.5}, {f: 392, d: 0.5}, {f: 587.33, d: 0.5},
+      {f: 174.61, d: 0.5}, {f: 261.63, d: 0.5}, {f: 349.23, d: 0.5}, {f: 440, d: 0.5},
+      {f: 164.81, d: 0.5}, {f: 246.94, d: 0.5}, {f: 329.63, d: 0.5}, {f: 493.88, d: 0.5}
+    ]
+  },
+  cyberpunk: {
+    tempo: 148,
+    wave: 'triangle',
+    notes: [
+      {f: 146.83, d: 0.5}, {f: 293.66, d: 0.5}, {f: 349.23, d: 0.5}, {f: 440.00, d: 0.5},
+      {f: 146.83, d: 0.5}, {f: 440.00, d: 0.5}, {f: 392.00, d: 0.5}, {f: 349.23, d: 0.5},
+      {f: 130.81, d: 0.5}, {f: 261.63, d: 0.5}, {f: 329.63, d: 0.5}, {f: 392.00, d: 0.5},
+      {f: 116.54, d: 0.5}, {f: 233.08, d: 0.5}, {f: 293.66, d: 0.5}, {f: 349.23, d: 0.5}
     ]
   }
 };
 
 function scheduleMusic() {
-  if (currentTrack === 'none' || gameState !== 'playing') return;
+  if (!audioCtx || currentTrack === 'none' || gameState !== 'playing') return;
   const track = tracks[currentTrack];
-  const lookahead = 0.1;
+  if (!track) return;
+  const lookahead = 0.12;
   while (nextNoteTime < audioCtx.currentTime + lookahead) {
     const note = track.notes[currentNoteIndex];
     const beatLen = 60.0 / track.tempo;
-    
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    
-    if (currentTrack === 'nostalgia') {
-      osc.type = 'square';
-      osc.frequency.value = note.f;
-    } else {
-      osc.type = 'sawtooth';
-      osc.frequency.value = note.f / 2; // deeper bass for synthwave
-    }
-    
+
+    osc.type = track.wave || 'square';
+    osc.frequency.value = note.f;
+
     gain.gain.setValueAtTime(0.01, nextNoteTime);
-    gain.gain.exponentialRampToValueAtTime(0.8, nextNoteTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.65, nextNoteTime + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.01, nextNoteTime + (note.d * beatLen) - 0.02);
-    
+
     osc.connect(gain);
     gain.connect(musicGain);
     osc.start(nextNoteTime);
     osc.stop(nextNoteTime + (note.d * beatLen));
-    
+
     nextNoteTime += note.d * beatLen;
     currentNoteIndex = (currentNoteIndex + 1) % track.notes.length;
   }
-  musicTimerID = setTimeout(scheduleMusic, 25);
+  musicTimerID = setTimeout(scheduleMusic, 30);
 }
 
 function startMusic() {
   stopMusic();
-  if (currentTrack === 'none' || audioCtx.state === 'suspended') return;
-  nextNoteTime = audioCtx.currentTime + 0.1;
+  if (!audioCtx || currentTrack === 'none' || audioCtx.state === 'suspended') return;
+  nextNoteTime = audioCtx.currentTime + 0.08;
   currentNoteIndex = 0;
   scheduleMusic();
 }
@@ -384,118 +770,169 @@ function stopMusic() {
   musicTimerID = null;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const select = document.getElementById('music-select');
-  if(select) {
-    select.addEventListener('change', (e) => {
-      currentTrack = e.target.value;
-      if (gameState === 'playing') {
-        startMusic();
-      }
-    });
-  }
-});
-
-function playTone(freq, type, duration, vol=1) {
+function playTone(freq, type, duration, vol = 0.5, slideFreq = null) {
+  if (!audioCtx || currentTrack === 'none') return;
   if (audioCtx.state === 'suspended') audioCtx.resume();
+  const now = audioCtx.currentTime;
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
-  
   osc.type = type;
-  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-  
-  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-  
+  osc.frequency.setValueAtTime(freq, now);
+  if (slideFreq) {
+    osc.frequency.exponentialRampToValueAtTime(slideFreq, now + duration);
+  }
+  gain.gain.setValueAtTime(vol, now);
+  gain.gain.exponentialRampToValueAtTime(0.008, now + duration);
   osc.connect(gain);
   gain.connect(masterGain);
-  
-  osc.start();
-  osc.stop(audioCtx.currentTime + duration);
+  osc.start(now);
+  osc.stop(now + duration);
 }
 
 const sfx = {
-  move: () => playTone(300, 'sine', 0.05, 0.2),
-  rotate: () => playTone(400, 'square', 0.05, 0.2),
+  move: () => playTone(290, 'sine', 0.04, 0.18),
+  rotate: () => playTone(460, 'triangle', 0.06, 0.25, 620),
+  softDrop: () => playTone(210, 'sine', 0.03, 0.12),
   hardDrop: () => {
-    playTone(150, 'square', 0.1, 0.5);
-    playTone(100, 'sawtooth', 0.15, 0.5);
+    playTone(180, 'square', 0.09, 0.45, 55);
+    playTone(110, 'sawtooth', 0.14, 0.4, 40);
   },
-  lock: () => playTone(200, 'sine', 0.1, 0.3),
-  clear: () => {
-    playTone(600, 'square', 0.1, 0.5);
-    setTimeout(() => playTone(800, 'square', 0.2, 0.5), 100);
+  lock: () => playTone(190, 'sine', 0.07, 0.25),
+  hold: () => playTone(520, 'sine', 0.09, 0.3, 390),
+  clear: (lines, combo) => {
+    const base = 440 + Math.min(combo, 10) * 45;
+    playTone(base, 'square', 0.11, 0.4);
+    setTimeout(() => playTone(base * 1.25, 'square', 0.16, 0.4), 75);
   },
   tetris: () => {
-    playTone(400, 'square', 0.1, 0.5);
-    setTimeout(() => playTone(500, 'square', 0.1, 0.5), 100);
-    setTimeout(() => playTone(600, 'square', 0.1, 0.5), 200);
-    setTimeout(() => playTone(800, 'square', 0.3, 0.5), 300);
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, idx) => {
+      setTimeout(() => playTone(f, 'square', 0.16, 0.5), idx * 65);
+    });
   },
-  levelUp: () => playTone(880, 'sine', 0.5, 0.5),
+  tspin: () => {
+    [440, 554.37, 659.25, 880, 1108.73].forEach((f, idx) => {
+      setTimeout(() => playTone(f, 'sawtooth', 0.14, 0.5), idx * 55);
+    });
+  },
+  levelUp: () => {
+    playTone(587.33, 'triangle', 0.12, 0.45);
+    setTimeout(() => playTone(880, 'triangle', 0.25, 0.5), 110);
+  },
   gameOver: () => {
-    playTone(300, 'sawtooth', 0.3, 0.5);
-    setTimeout(() => playTone(250, 'sawtooth', 0.3, 0.5), 300);
-    setTimeout(() => playTone(200, 'sawtooth', 0.8, 0.5), 600);
-  },
-  hold: () => playTone(500, 'sine', 0.1, 0.3)
+    [340, 290, 240, 170].forEach((f, idx) => {
+      setTimeout(() => playTone(f, 'sawtooth', 0.25, 0.45), idx * 180);
+    });
+  }
 };
 
-// --- Particle System ---
+// --- Particle & Beam Effects ---
 const pCanvas = document.getElementById('particles-canvas');
 const pCtx = pCanvas.getContext('2d');
 let particles = [];
+let dropBeams = [];
 
-function createExplosion(y, color) {
-  for (let i = 0; i < 50; i++) {
+function createExplosion(y, color, count = 42) {
+  for (let i = 0; i < count; i++) {
     particles.push({
       x: Math.random() * pCanvas.width,
-      y: y + Math.random() * 30,
-      vx: (Math.random() - 0.5) * 10,
-      vy: (Math.random() - 0.5) * 10,
+      y: y + Math.random() * 26,
+      vx: (Math.random() - 0.5) * 9,
+      vy: (Math.random() - 0.65) * 8,
+      size: 2 + Math.random() * 4,
       life: 1,
-      color: color
+      color
     });
   }
+}
+
+function createDropBeam(xPx, topY, bottomY, widthPx, color) {
+  dropBeams.push({
+    x: xPx,
+    y: topY,
+    h: Math.max(10, bottomY - topY),
+    w: widthPx,
+    color,
+    life: 1
+  });
 }
 
 function updateParticles() {
   pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+
+  // Hard drop laser beams
+  for (let i = dropBeams.length - 1; i >= 0; i--) {
+    const b = dropBeams[i];
+    b.life -= 0.08;
+    if (b.life <= 0) {
+      dropBeams.splice(i, 1);
+    } else {
+      const grad = pCtx.createLinearGradient(b.x, b.y, b.x, b.y + b.h);
+      grad.addColorStop(0, 'transparent');
+      grad.addColorStop(1, b.color);
+      pCtx.globalAlpha = b.life * 0.45;
+      pCtx.fillStyle = grad;
+      pCtx.fillRect(b.x, b.y, b.w, b.h);
+    }
+  }
+
   for (let i = particles.length - 1; i >= 0; i--) {
-    let p = particles[i];
+    const p = particles[i];
     p.x += p.vx;
     p.y += p.vy;
-    p.vy += 0.2; // gravity
-    p.life -= 0.02;
-    
+    p.vy += 0.22;
+    p.life -= 0.024;
     if (p.life <= 0) {
       particles.splice(i, 1);
     } else {
       pCtx.globalAlpha = p.life;
       pCtx.fillStyle = p.color;
-      pCtx.fillRect(p.x, p.y, 4, 4);
+      pCtx.shadowColor = p.color;
+      pCtx.shadowBlur = 8;
+      pCtx.fillRect(p.x, p.y, p.size, p.size);
     }
   }
+  pCtx.shadowBlur = 0;
   pCtx.globalAlpha = 1;
 }
 
-// --- Game Logic ---
+function triggerScreenShake(intensity = 5) {
+  const container = document.getElementById('game-container');
+  if (!container) return;
+  const dx = (Math.random() - 0.5) * intensity * 2;
+  const dy = (Math.random() - 0.5) * intensity * 2;
+  container.style.transform = `translate(${dx}px, ${dy}px)`;
+  setTimeout(() => { container.style.transform = ''; }, 75);
+}
+
+let calloutTimer = null;
+function showCallout(mainText, subText = '') {
+  const banner = document.getElementById('callout-banner');
+  const mainEl = document.getElementById('callout-main');
+  const subEl = document.getElementById('callout-sub');
+  if (!banner || !mainEl || !subEl) return;
+  mainEl.textContent = mainText;
+  subEl.textContent = subText;
+  banner.classList.add('show');
+  if (calloutTimer) clearTimeout(calloutTimer);
+  calloutTimer = setTimeout(() => banner.classList.remove('show'), 1100);
+}
+
+// --- Core Tetris Constants & 7-Bag SRS ---
 const COLS = 10;
 const ROWS = 20;
 const BLOCK_SIZE = 30;
 
 const COLORS = [
   null,
-  '#00ffff', // 1: I - Cyan
-  '#0000ff', // 2: J - Blue
-  '#ff7f00', // 3: L - Orange
-  '#ffff00', // 4: O - Yellow
-  '#00ff00', // 5: S - Green
-  '#800080', // 6: T - Purple
-  '#ff0000'  // 7: Z - Red
+  '#00f0ff', // 1: I - Cyan
+  '#3366ff', // 2: J - Electric Blue
+  '#ff8800', // 3: L - Neon Orange
+  '#ffe600', // 4: O - Solar Yellow
+  '#00ff66', // 5: S - Cyber Green
+  '#d000ff', // 6: T - Plasma Purple
+  '#ff0055'  // 7: Z - Crimson Neon
 ];
 
-// JLOSTZ are 3x3, I is 4x4, O is 2x2. We pad to square matrices for easy rotation.
 const SHAPES = [
   [],
   [[0,0,0,0], [1,1,1,1], [0,0,0,0], [0,0,0,0]], // I
@@ -507,123 +944,226 @@ const SHAPES = [
   [[7,7,0], [0,7,7], [0,0,0]]  // Z
 ];
 
+const MODE_DESCRIPTIONS = {
+  marathon: 'Endless 20-level gravity challenge with T-Spin & Back-to-Back bonuses.',
+  sprint: 'Clear 40 lines as fast as humanly possible! High-speed time trial.',
+  ultra: '2-Minute Score Attack! Rack up maximum points before the clock hits zero.',
+  zen: 'Relaxing endless flow. Overflow rows auto-dissolve so you never top out.'
+};
+
+let currentMode = 'marathon';
 let board = [];
+let bag = [];
+let nextQueue = [];
 let piece = null;
-let nextPieceId = null;
 let holdPieceId = null;
 let hasHeld = false;
+
 let score = 0;
 let lines = 0;
 let level = 1;
+let combo = -1;
+let maxCombo = 0;
+let b2b = 0;
+let piecesPlaced = 0;
+let startTimeMs = 0;
+let elapsedSec = 0;
+let lastActionWasRotate = false;
+
 let dropCounter = 0;
 let dropInterval = 1000;
 let lastTime = 0;
-let animationId = null;
 let gameState = 'start'; // start, playing, paused, gameover
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
-const nextCtx = document.getElementById('preview-canvas').getContext('2d');
-const holdCtx = document.getElementById('hold-canvas').getContext('2d');
+const nextCanvas = document.getElementById('preview-canvas');
+const nextCtx = nextCanvas.getContext('2d');
+const holdCanvas = document.getElementById('hold-canvas');
+const holdCtx = holdCanvas.getContext('2d');
 
-function initBoard() {
-  board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+function getBestKey() {
+  return `codecaine_tetris_best_${currentMode}`;
 }
 
-function randomPiece() {
-  return Math.floor(Math.random() * 7) + 1;
+function loadBestScore() {
+  try {
+    const val = localStorage.getItem(getBestKey());
+    document.getElementById('best-score').innerText = val ? val : '0';
+  } catch (e) {}
+}
+
+function saveBestScore() {
+  try {
+    const prev = parseInt(localStorage.getItem(getBestKey()) || '0', 10);
+    if (score > prev) {
+      localStorage.setItem(getBestKey(), String(score));
+      document.getElementById('best-score').innerText = String(score);
+    }
+  } catch (e) {}
+}
+
+function initBoard() {
+  board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+}
+
+function refillBag() {
+  const pieces = [1, 2, 3, 4, 5, 6, 7];
+  for (let i = pieces.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pieces[i], pieces[j]] = [pieces[j], pieces[i]];
+  }
+  bag.push(...pieces);
+}
+
+function pullFromBag() {
+  if (bag.length < 7) refillBag();
+  return bag.shift();
+}
+
+function initQueues() {
+  bag = [];
+  nextQueue = [];
+  refillBag();
+  for (let i = 0; i < 3; i++) {
+    nextQueue.push(pullFromBag());
+  }
 }
 
 function createPiece(id) {
   return {
-    id: id,
-    matrix: JSON.parse(JSON.stringify(SHAPES[id])),
-    x: Math.floor(COLS / 2) - Math.floor(SHAPES[id][0].length / 2),
+    id,
+    matrix: SHAPES[id].map(row => [...row]),
+    x: Math.floor(COLS / 2) - Math.ceil(SHAPES[id][0].length / 2),
     y: 0
   };
 }
 
 function spawnPiece() {
-  if (nextPieceId === null) nextPieceId = randomPiece();
-  piece = createPiece(nextPieceId);
-  nextPieceId = randomPiece();
+  const nextId = nextQueue.shift();
+  nextQueue.push(pullFromBag());
+  piece = createPiece(nextId);
   hasHeld = false;
-  
+  lastActionWasRotate = false;
+
   if (collide(board, piece)) {
-    gameOver();
-  } else {
-    drawNext();
+    if (currentMode === 'zen') {
+      // Zen mode dissolves bottom 6 rows on overflow so play continues
+      board.splice(ROWS - 6, 6);
+      for (let i = 0; i < 6; i++) board.unshift(Array(COLS).fill(0));
+      createExplosion(300, '#00f0ff', 60);
+      showCallout('ZEN RESET', 'GRID CLEARED');
+    } else {
+      gameOver('GAME OVER');
+      return;
+    }
   }
+  drawNext();
+}
+
+function drawBeveledBlock(context, px, py, size, color, isGhost = false) {
+  if (isGhost) {
+    context.save();
+    context.fillStyle = color + '22';
+    context.strokeStyle = color + 'aa';
+    context.lineWidth = 1.5;
+    context.fillRect(px + 1, py + 1, size - 2, size - 2);
+    context.strokeRect(px + 1.5, py + 1.5, size - 3, size - 3);
+    context.restore();
+    return;
+  }
+
+  context.save();
+  context.fillStyle = color;
+  context.fillRect(px, py, size, size);
+
+  // Top/Left glossy bevel
+  context.fillStyle = 'rgba(255, 255, 255, 0.36)';
+  context.fillRect(px, py, size, 3);
+  context.fillRect(px, py, 3, size);
+
+  // Inner core sheen
+  context.fillStyle = 'rgba(255, 255, 255, 0.12)';
+  context.fillRect(px + 5, py + 5, size - 10, size - 10);
+
+  // Bottom/Right shadow bevel
+  context.fillStyle = 'rgba(0, 0, 0, 0.38)';
+  context.fillRect(px, py + size - 3, size, 3);
+  context.fillRect(px + size - 3, py, 3, size);
+
+  context.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+  context.lineWidth = 1;
+  context.strokeRect(px + 0.5, py + 0.5, size - 1, size - 1);
+  context.restore();
 }
 
 function drawMatrix(matrix, offsetX, offsetY, context, isGhost = false, blockSize = BLOCK_SIZE) {
   matrix.forEach((row, y) => {
     row.forEach((value, x) => {
       if (value !== 0) {
-        context.fillStyle = isGhost ? COLORS[value] + '40' : COLORS[value];
-        context.fillRect((offsetX + x) * blockSize, (offsetY + y) * blockSize, blockSize, blockSize);
-        
-        // Inner highlight
-        context.fillStyle = 'rgba(255,255,255,0.3)';
-        context.fillRect((offsetX + x) * blockSize, (offsetY + y) * blockSize, blockSize, 2);
-        context.fillRect((offsetX + x) * blockSize, (offsetY + y) * blockSize, 2, blockSize);
-        
-        // Dark border
-        context.strokeStyle = 'rgba(0,0,0,0.5)';
-        context.strokeRect((offsetX + x) * blockSize, (offsetY + y) * blockSize, blockSize, blockSize);
+        drawBeveledBlock(
+          context,
+          (offsetX + x) * blockSize,
+          (offsetY + y) * blockSize,
+          blockSize,
+          COLORS[value],
+          isGhost
+        );
       }
     });
   });
 }
 
 function drawNext() {
-  nextCtx.clearRect(0, 0, 100, 100);
-  if (nextPieceId) {
-    const matrix = SHAPES[nextPieceId];
-    // Center it in 100x100 box
-    const size = 20;
+  nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+  const size = 18;
+  nextQueue.forEach((id, idx) => {
+    const matrix = SHAPES[id];
     const w = matrix[0].length * size;
     const h = matrix.length * size;
-    const ox = (100 - w) / 2 / size;
-    const oy = (100 - h) / 2 / size;
+    const ox = (nextCanvas.width - w) / 2 / size;
+    const oy = (idx * 70 + (68 - h) / 2) / size;
     drawMatrix(matrix, ox, oy, nextCtx, false, size);
-  }
+  });
 }
 
 function drawHold() {
-  holdCtx.clearRect(0, 0, 100, 100);
+  holdCtx.clearRect(0, 0, holdCanvas.width, holdCanvas.height);
   if (holdPieceId) {
     const matrix = SHAPES[holdPieceId];
-    const size = 20;
+    const size = 18;
     const w = matrix[0].length * size;
     const h = matrix.length * size;
-    const ox = (100 - w) / 2 / size;
-    const oy = (100 - h) / 2 / size;
-    drawMatrix(matrix, ox, oy, holdCtx, false, size);
+    const ox = (holdCanvas.width - w) / 2 / size;
+    const oy = (holdCanvas.height - h) / 2 / size;
+    drawMatrix(matrix, ox, oy, holdCtx, hasHeld, size);
   }
 }
 
 function hold() {
-  if (hasHeld) return;
+  if (gameState !== 'playing' || hasHeld || !piece) return;
   sfx.hold();
   if (holdPieceId === null) {
     holdPieceId = piece.id;
     spawnPiece();
   } else {
-    let temp = piece.id;
+    const temp = piece.id;
     piece = createPiece(holdPieceId);
     holdPieceId = temp;
+    lastActionWasRotate = false;
   }
   hasHeld = true;
   drawHold();
 }
 
-function collide(board, piece) {
-  const m = piece.matrix;
+function collide(board, p) {
+  const m = p.matrix;
   for (let y = 0; y < m.length; ++y) {
     for (let x = 0; x < m[y].length; ++x) {
-      if (m[y][x] !== 0 &&
-         (board[y + piece.y] && board[y + piece.y][x + piece.x]) !== 0) {
+      if (
+        m[y][x] !== 0 &&
+        (board[y + p.y] === undefined || board[y + p.y][x + p.x] !== 0)
+      ) {
         return true;
       }
     }
@@ -631,72 +1171,125 @@ function collide(board, piece) {
   return false;
 }
 
-function merge(board, piece) {
-  piece.matrix.forEach((row, y) => {
+function merge(board, p) {
+  p.matrix.forEach((row, y) => {
     row.forEach((value, x) => {
-      if (value !== 0) {
-        board[y + piece.y][x + piece.x] = value;
+      if (value !== 0 && board[y + p.y]) {
+        board[y + p.y][x + p.x] = value;
       }
     });
   });
 }
 
 function rotate(matrix, dir) {
-  // Transpose then reverse
   const newMatrix = matrix.map((_, i) => matrix.map(col => col[i]));
   if (dir > 0) return newMatrix.map(row => row.reverse());
   return newMatrix.reverse();
 }
 
 function playerRotate(dir) {
-  const pos = piece.x;
-  let offset = 1;
-  piece.matrix = rotate(piece.matrix, dir);
-  
-  // Basic wall kick
-  while (collide(board, piece)) {
-    piece.x += offset;
-    offset = -(offset + (offset > 0 ? 1 : -1));
-    if (offset > piece.matrix[0].length) {
-      // rotate back if failed
-      piece.matrix = rotate(piece.matrix, -dir);
-      piece.x = pos;
+  if (gameState !== 'playing' || !piece) return;
+  const origMatrix = piece.matrix.map(r => [...r]);
+  const origX = piece.x;
+  const origY = piece.y;
+
+  if (dir === 2) {
+    piece.matrix = rotate(rotate(piece.matrix, 1), 1);
+  } else {
+    piece.matrix = rotate(piece.matrix, dir);
+  }
+
+  // SRS-inspired multi-point wall & floor kicks
+  const kicks = [
+    [0, 0], [-1, 0], [1, 0], [0, -1],
+    [-1, -1], [1, -1], [-2, 0], [2, 0], [0, -2]
+  ];
+
+  for (const [kx, ky] of kicks) {
+    piece.x = origX + kx;
+    piece.y = origY + ky;
+    if (!collide(board, piece)) {
+      sfx.rotate();
+      lastActionWasRotate = true;
       return;
     }
   }
-  sfx.rotate();
+
+  piece.matrix = origMatrix;
+  piece.x = origX;
+  piece.y = origY;
 }
 
 function playerMove(dir) {
+  if (gameState !== 'playing' || !piece) return;
   piece.x += dir;
   if (collide(board, piece)) {
     piece.x -= dir;
   } else {
     sfx.move();
+    lastActionWasRotate = false;
   }
 }
 
-function playerDrop() {
+// 3-corner T-Spin check
+function detectTSpin() {
+  if (!piece || piece.id !== 6 || !lastActionWasRotate) return false;
+  const cx = piece.x + 1;
+  const cy = piece.y + 1;
+  const corners = [
+    [cx - 1, cy - 1],
+    [cx + 1, cy - 1],
+    [cx - 1, cy + 1],
+    [cx + 1, cy + 1]
+  ];
+  let occupied = 0;
+  for (const [x, y] of corners) {
+    if (x < 0 || x >= COLS || y < 0 || y >= ROWS || (board[y] && board[y][x] !== 0)) {
+      occupied++;
+    }
+  }
+  return occupied >= 3;
+}
+
+function playerDrop(isSoftDrop = false) {
+  if (gameState !== 'playing' || !piece) return;
   piece.y++;
   if (collide(board, piece)) {
     piece.y--;
-    merge(board, piece);
-    playerReset();
-    arenaSweep();
+    lockAndSweep();
   } else {
+    if (isSoftDrop) {
+      score += 1;
+      sfx.softDrop();
+      updateScore();
+    }
+    lastActionWasRotate = false;
     dropCounter = 0;
   }
 }
 
 function playerHardDrop() {
+  if (gameState !== 'playing' || !piece) return;
+  const startY = piece.y;
   while (!collide(board, piece)) {
     piece.y++;
   }
   piece.y--;
+  const droppedCells = Math.max(0, piece.y - startY);
+  score += droppedCells * 2;
+  if (droppedCells > 0) lastActionWasRotate = false;
+
+  // Compute piece bounding width for drop laser beam
+  createDropBeam(
+    piece.x * BLOCK_SIZE,
+    startY * BLOCK_SIZE,
+    (piece.y + 2) * BLOCK_SIZE,
+    piece.matrix[0].length * BLOCK_SIZE,
+    COLORS[piece.id]
+  );
   sfx.hardDrop();
-  merge(board, piece);
-  playerReset();
-  arenaSweep();
+  triggerScreenShake(4);
+  lockAndSweep();
   dropCounter = 0;
 }
 
@@ -708,170 +1301,383 @@ function getGhostY() {
   return tempY;
 }
 
-function playerReset() {
+function lockAndSweep() {
+  const isTSpin = detectTSpin();
+  merge(board, piece);
+  piecesPlaced++;
   sfx.lock();
-  spawnPiece();
+  arenaSweep(isTSpin);
+  if (gameState === 'playing') {
+    spawnPiece();
+  }
 }
 
-function arenaSweep() {
+function isBoardEmpty() {
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      if (board[y][x] !== 0) return false;
+    }
+  }
+  return true;
+}
+
+function arenaSweep(isTSpin) {
   let rowCount = 0;
-  let clearYs = [];
-  
+  const clearYs = [];
+
   outer: for (let y = board.length - 1; y >= 0; --y) {
     for (let x = 0; x < board[y].length; ++x) {
       if (board[y][x] === 0) continue outer;
     }
     const row = board.splice(y, 1)[0].fill(0);
     board.unshift(row);
+    clearYs.push(y);
     ++y;
     rowCount++;
-    clearYs.push(y);
   }
-  
+
   if (rowCount > 0) {
-    if (rowCount === 4) sfx.tetris();
-    else sfx.clear();
-    
-    // Line clear particles
+    combo++;
+    if (combo > maxCombo) maxCombo = combo;
+
+    const difficultClear = rowCount === 4 || isTSpin;
+    let b2bMult = 1;
+    if (difficultClear) {
+      if (b2b > 0) b2bMult = 1.5;
+      b2b++;
+    } else {
+      b2b = 0;
+    }
+
+    // Modern Guideline Scoring
+    let basePoints = 0;
+    let label = '';
+    if (isTSpin) {
+      const tScores = [400, 800, 1200, 1600];
+      basePoints = tScores[rowCount] || 1600;
+      const names = ['T-SPIN!', 'T-SPIN SINGLE!', 'T-SPIN DOUBLE!', 'T-SPIN TRIPLE!'];
+      label = names[rowCount] || 'T-SPIN!';
+      sfx.tspin();
+      triggerScreenShake(8);
+    } else {
+      const stdScores = [0, 100, 300, 500, 800];
+      basePoints = stdScores[rowCount] || 800;
+      const names = ['', 'SINGLE', 'DOUBLE', 'TRIPLE', 'TETRIS!'];
+      label = names[rowCount];
+      if (rowCount === 4) {
+        sfx.tetris();
+        triggerScreenShake(7);
+      } else {
+        sfx.clear(rowCount, combo);
+      }
+    }
+
+    let pts = Math.floor(basePoints * level * b2bMult);
+    if (combo > 0) {
+      pts += 50 * combo * level;
+    }
+
+    let subLabel = '';
+    if (b2b > 1 && difficultClear) subLabel = `BACK-TO-BACK x1.5`;
+    if (combo >= 2) subLabel = (subLabel ? subLabel + ' • ' : '') + `COMBO ${combo}x`;
+
+    if (isBoardEmpty()) {
+      pts += 1800 * level;
+      label = 'PERFECT CLEAR!';
+      subLabel = `+${1800 * level} BONUS`;
+      sfx.tetris();
+    }
+
+    if (label && (rowCount >= 2 || isTSpin || combo >= 2 || b2b > 1)) {
+      showCallout(label, subLabel);
+    }
+
     clearYs.forEach(cy => {
-      createExplosion(cy * BLOCK_SIZE, '#00ffff');
+      createExplosion(cy * BLOCK_SIZE, rowCount === 4 || isTSpin ? '#ff00ff' : '#00f0ff', rowCount === 4 ? 65 : 36);
     });
 
+    score += pts;
     lines += rowCount;
-    // Standard Nintendo scoring
-    const lineScores = [0, 40, 100, 300, 1200];
-    score += lineScores[rowCount] * level;
-    
-    // Level up every 10 lines
-    if (lines >= level * 10) {
-      level++;
-      dropInterval = Math.max(100, dropInterval * 0.85); // speed up
-      sfx.levelUp();
+
+    if (currentMode === 'marathon') {
+      const targetLevel = Math.min(20, Math.floor(lines / 10) + 1);
+      if (targetLevel > level) {
+        level = targetLevel;
+        dropInterval = Math.max(75, Math.floor(1000 * Math.pow(0.84, level - 1)));
+        sfx.levelUp();
+        showCallout(`LEVEL ${level}`, 'SPEED INCREASED');
+      }
+    } else if (currentMode === 'sprint' && lines >= 40) {
+      updateScore();
+      gameOver('40L COMPLETE!');
+      return;
     }
-    updateScore();
+  } else {
+    combo = -1;
+    if (isTSpin) {
+      score += 100 * level;
+      showCallout('T-SPIN MINI', `+${100 * level}`);
+      sfx.rotate();
+    }
   }
+
+  updateScore();
+}
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
 function updateScore() {
-  document.getElementById('score').innerText = score;
-  document.getElementById('lines').innerText = lines;
+  document.getElementById('score').innerText = score.toLocaleString();
+  document.getElementById('lines').innerText = currentMode === 'sprint' ? `${lines} / 40` : lines;
   document.getElementById('level').innerText = level;
+  document.getElementById('stat-combo').innerText = `${Math.max(0, combo)}x`;
+  document.getElementById('stat-b2b').innerText = `${Math.max(0, b2b > 0 ? b2b - 1 : 0)}x`;
+  saveBestScore();
+}
+
+function updateTelemetry() {
+  if (gameState !== 'playing') return;
+  elapsedSec = (performance.now() - startTimeMs) / 1000;
+  if (currentMode === 'ultra') {
+    const rem = Math.max(0, 120 - elapsedSec);
+    document.getElementById('stat-time').innerText = formatTime(rem);
+    if (rem <= 0) {
+      gameOver('TIME UP!');
+      return;
+    }
+  } else {
+    document.getElementById('stat-time').innerText = formatTime(elapsedSec);
+  }
+  const pps = elapsedSec > 0.5 ? (piecesPlaced / elapsedSec).toFixed(2) : '0.00';
+  document.getElementById('stat-pps').innerText = pps;
+}
+
+function drawGridBackground() {
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+  ctx.lineWidth = 1;
+  for (let x = 1; x < COLS; x++) {
+    ctx.beginPath();
+    ctx.moveTo(x * BLOCK_SIZE, 0);
+    ctx.lineTo(x * BLOCK_SIZE, canvas.height);
+    ctx.stroke();
+  }
+  for (let y = 1; y < ROWS; y++) {
+    ctx.beginPath();
+    ctx.moveTo(0, y * BLOCK_SIZE);
+    ctx.lineTo(canvas.width, y * BLOCK_SIZE);
+    ctx.stroke();
+  }
 }
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
+  drawGridBackground();
   drawMatrix(board, 0, 0, ctx);
-  
+
   if (piece) {
-    // Draw Ghost
     drawMatrix(piece.matrix, piece.x, getGhostY(), ctx, true);
-    // Draw Piece
     drawMatrix(piece.matrix, piece.x, piece.y, ctx);
   }
 }
 
 function update(time = 0) {
-  if (gameState !== 'playing') {
+  if (gameState === 'playing') {
+    const deltaTime = time - lastTime;
     lastTime = time;
-    animationId = requestAnimationFrame(update);
-    return;
+    dropCounter += deltaTime;
+
+    if (dropCounter > dropInterval) {
+      playerDrop(false);
+    }
+
+    updateTelemetry();
+    draw();
+  } else {
+    lastTime = time;
   }
-  
-  const deltaTime = time - lastTime;
-  lastTime = time;
-  dropCounter += deltaTime;
-  
-  if (dropCounter > dropInterval) {
-    playerDrop();
-  }
-  
-  draw();
+
   updateParticles();
-  animationId = requestAnimationFrame(update);
+  requestAnimationFrame(update);
 }
 
 function startGame() {
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   initBoard();
+  initQueues();
   score = 0;
   lines = 0;
   level = 1;
-  dropInterval = 1000;
-  nextPieceId = null;
+  combo = -1;
+  maxCombo = 0;
+  b2b = 0;
+  piecesPlaced = 0;
+  startTimeMs = performance.now();
+  dropInterval = currentMode === 'zen' ? 850 : 1000;
   holdPieceId = null;
   hasHeld = false;
+
   updateScore();
+  loadBestScore();
   drawHold();
   spawnPiece();
-  
+
   gameState = 'playing';
-  startMusic();
   document.getElementById('start-overlay').classList.add('hidden');
   document.getElementById('game-over-overlay').classList.add('hidden');
   document.getElementById('pause-overlay').classList.add('hidden');
-  
-  if (!animationId) {
-    update();
-  }
+
+  lastTime = performance.now();
+  startMusic();
 }
 
-function togglePause() {
+function pauseGame() {
   if (gameState === 'playing') {
     gameState = 'paused';
-    stopMusic();
     document.getElementById('pause-overlay').classList.remove('hidden');
+    stopMusic();
   } else if (gameState === 'paused') {
     gameState = 'playing';
-    startMusic();
     document.getElementById('pause-overlay').classList.add('hidden');
+    lastTime = performance.now();
+    startMusic();
   }
 }
 
-function gameOver() {
+function gameOver(titleText = 'GAME OVER') {
   gameState = 'gameover';
   stopMusic();
   sfx.gameOver();
-  document.getElementById('final-score').innerText = score;
+  saveBestScore();
+  document.getElementById('gameover-title').innerText = titleText;
+  document.getElementById('final-score').innerText = score.toLocaleString();
+  document.getElementById('final-summary').innerText =
+    `Lines: ${lines} • Max Combo: ${maxCombo}x • Time: ${formatTime(elapsedSec)}`;
   document.getElementById('game-over-overlay').classList.remove('hidden');
 }
 
-// Input handling
+// --- Input & UI Wiring ---
 document.addEventListener('keydown', event => {
-  if (gameState === 'playing') {
-    if (event.keyCode === 37) { // Left
-      playerMove(-1);
-    } else if (event.keyCode === 39) { // Right
-      playerMove(1);
-    } else if (event.keyCode === 40) { // Down
-      playerDrop();
-    } else if (event.keyCode === 38 || event.keyCode === 88) { // Up or X (rotate right)
-      playerRotate(1);
-    } else if (event.keyCode === 90) { // Z (rotate left)
-      playerRotate(-1);
-    } else if (event.keyCode === 32) { // Space
-      playerHardDrop();
-    } else if (event.keyCode === 67 || event.keyCode === 16) { // C or Shift (hold)
-      hold();
+  if (event.key === 'r' || event.key === 'R') {
+    if (gameState === 'playing' || gameState === 'gameover') {
+      startGame();
+      return;
     }
   }
-  
-  if (event.keyCode === 27) { // Esc
-    togglePause();
+  if (gameState !== 'playing') {
+    if ((event.key === 'Escape' || event.key === 'p' || event.key === 'P') && gameState === 'paused') {
+      pauseGame();
+    } else if (event.key === 'Enter' && (gameState === 'start' || gameState === 'gameover')) {
+      startGame();
+    }
+    return;
+  }
+
+  switch (event.key) {
+    case 'ArrowLeft':
+      event.preventDefault();
+      playerMove(-1);
+      break;
+    case 'ArrowRight':
+      event.preventDefault();
+      playerMove(1);
+      break;
+    case 'ArrowDown':
+      event.preventDefault();
+      playerDrop(true);
+      break;
+    case 'ArrowUp':
+    case 'x':
+    case 'X':
+      event.preventDefault();
+      playerRotate(1);
+      break;
+    case 'z':
+    case 'Z':
+    case 'Control':
+      event.preventDefault();
+      playerRotate(-1);
+      break;
+    case 'a':
+    case 'A':
+      event.preventDefault();
+      playerRotate(2);
+      break;
+    case ' ':
+      event.preventDefault();
+      playerHardDrop();
+      break;
+    case 'c':
+    case 'C':
+    case 'Shift':
+      event.preventDefault();
+      hold();
+      break;
+    case 'Escape':
+    case 'p':
+    case 'P':
+      event.preventDefault();
+      pauseGame();
+      break;
+  }
+  draw();
+});
+
+// Mode selector pills
+document.querySelectorAll('.mode-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+    document.getElementById('mode-indicator').innerText = `${currentMode.toUpperCase()} MODE`;
+    document.getElementById('mode-desc').innerText = MODE_DESCRIPTIONS[currentMode] || '';
+    loadBestScore();
+    if (gameState === 'playing' || gameState === 'gameover') {
+      startGame();
+    }
+  });
+});
+
+// Theme selector
+document.getElementById('theme-select').addEventListener('change', e => {
+  document.body.className = e.target.value === 'cyber' ? '' : `theme-${e.target.value}`;
+});
+
+// Music & Volume controls
+document.getElementById('music-select').addEventListener('change', e => {
+  currentTrack = e.target.value;
+  if (gameState === 'playing') startMusic();
+  else stopMusic();
+});
+
+document.getElementById('volume-slider').addEventListener('input', e => {
+  if (masterGain) {
+    masterGain.gain.value = parseInt(e.target.value, 10) / 100;
   }
 });
 
+// On-screen Arcade Deck buttons
+document.getElementById('btn-left').addEventListener('click', () => { playerMove(-1); draw(); });
+document.getElementById('btn-right').addEventListener('click', () => { playerMove(1); draw(); });
+document.getElementById('btn-down').addEventListener('click', () => { playerDrop(true); draw(); });
+document.getElementById('btn-ccw').addEventListener('click', () => { playerRotate(-1); draw(); });
+document.getElementById('btn-cw').addEventListener('click', () => { playerRotate(1); draw(); });
+document.getElementById('btn-drop').addEventListener('click', () => { playerHardDrop(); draw(); });
+document.getElementById('btn-hold').addEventListener('click', () => { hold(); draw(); });
+document.getElementById('btn-pause').addEventListener('click', () => { pauseGame(); });
+
 document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('resume-btn').addEventListener('click', pauseGame);
 document.getElementById('restart-btn').addEventListener('click', startGame);
-document.getElementById('resume-btn').addEventListener('click', togglePause);
 
-// Initial draw empty board
+// Initial boot
 initBoard();
+loadBestScore();
 draw();
-drawNext();
-drawHold();
-updateParticles();
-
+requestAnimationFrame(update);
 </script>
 </body>
 </html>

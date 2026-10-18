@@ -49,7 +49,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
 | Field | Values | Effect |
 |---|---|---|
 | `glow` | `none`, `soft`, `neon` | Strength of the `--fx-glow-*` shadow lists |
-| `glowColor`, `glowColor2` | hex | Primary and secondary light colour (rings, bloom, backdrop) |
+| `glowColor`, `glowColor2` | hex | Primary and secondary light color (rings, bloom, backdrop) |
 | `glowIntensity` | 0 to 1, optional (default 1) | Scales glow alpha without changing focus rings or text opacity |
 | `borderOpacity` | 0 to 1, optional | Overrides the glass border alpha; omitted values keep the original theme style |
 | `blur` | 0 to 32 (px) | Backdrop blur behind glass surfaces |
@@ -68,7 +68,7 @@ Helpers exported from `simplegui.ts` (each with a snake_case alias): `getThemeFx
 
 ### Editable effects in File Manager
 
-File Manager's theme editor exposes opacity, blur, glow colours/intensity, border strength/style, corners, animation feel and decorative effects. Its optional `fx` field uses the same `ThemeFx` descriptor and survives save, import and export; old colour-only themes stay unchanged. Numeric ranges, enum values and hex colours are validated before producing CSS. Glass stays on small chrome surfaces, never file rows, code or terminal text; opacity is raised to protect readable body and muted text. Reduced-motion preferences disable movement, and browsers without backdrop blur use solid panels.
+File Manager's theme editor exposes opacity, blur, glow colors/intensity, border strength/style, corners, animation feel and decorative effects. Its optional `fx` field uses the same `ThemeFx` descriptor and survives save, import and export; old color-only themes stay unchanged. Numeric ranges, enum values and hex colors are validated before producing CSS. Glass stays on small chrome surfaces, never file rows, code or terminal text; opacity is raised to protect readable body and muted text. Reduced-motion preferences disable movement, and browsers without backdrop blur use solid panels.
 
 Twenty more presets cover the common styles: `synthwave_sunset`, `matrix_rain`, `amber_phosphor`, `midnight_glass`, `abyss_bloom`, `cosmic_nebula`, `obsidian_gold`, `crimson_eclipse`, `acid_reactor`, `polar_night`, `emerald_grove`, `brass_engine`, `focus_glow` (quiet effects, no motion or texture), `neon_max` (maximum contrast), `vaporwave_dream`, and the light `frosted_glass`, `sakura_glass`, `pearl_hologram`, `rose_gold` and `daylight_hud`. The new showcase presets are `prism_reactor` (cyan/magenta glass), `orbital_ice` (bright frosted instrumentation), and `ember_grid` (amber tactical controls). Try `bun run demo:themes prism_reactor`, or choose them in File Manager or the Visual Designer.
 
@@ -91,7 +91,7 @@ Remove the field and the page is identical to the old one again (the test suite 
 
 | Token | Meaning |
 |---|---|
-| `--fx-glow-color`, `--fx-glow-color-2` | Primary and secondary light colours |
+| `--fx-glow-color`, `--fx-glow-color-2` | Primary and secondary light colors |
 | `--fx-glow-soft`, `--fx-glow-med`, `--fx-glow-strong` | Ready-made `box-shadow` lists; all three are a no-op for `glow: "none"` |
 | `--fx-blur-sm`, `--fx-blur-md`, `--fx-blur-lg` | Backdrop blur for bars, cards and modals |
 | `--fx-glass-bg`, `--fx-glass-bg-strong` | Glass fills, already opaque enough for AA text |
@@ -105,10 +105,10 @@ Remove the field and the page is identical to the old one again (the test suite 
 | `--fx-dur-instant`, `-fast`, `-base`, `-slow`, `-ambient` | Durations |
 | `--fx-stagger` | Delay step for `--fx-i` children |
 | `--fx-hover-scale`, `--fx-press-scale` | Button scale on hover (1.01 to 1.03) and press (0.97 to 0.99) |
-| `--fx-focus-color`, `--fx-focus-ring`, `--fx-focus-offset`, `--fx-focus-halo` | Focus ring; the colour is moved until it reaches 3:1 on the canvas and card |
-| `--fx-on-accent` | Black or white, whichever reads on the accent colour |
+| `--fx-focus-color`, `--fx-focus-ring`, `--fx-focus-offset`, `--fx-focus-halo` | Focus ring; the color is moved until it reaches 3:1 on the canvas and card |
+| `--fx-on-accent` | Black or white, whichever reads on the accent color |
 | `--fx-scanline-opacity`, `--fx-grain-opacity` | 0 or 0.035 |
-| `--fx-ca-1`, `--fx-ca-2`, `--fx-ambient-1`, `--fx-ambient-2`, `--fx-noise` | Heading fringe colours, backdrop blobs, noise texture |
+| `--fx-ca-1`, `--fx-ca-2`, `--fx-ambient-1`, `--fx-ambient-2`, `--fx-noise` | Heading fringe colors, backdrop blobs, noise texture |
 | `--fx-pointer-x`, `--fx-pointer-y`, `--fx-pointer-size` | Cursor glow position (written by the pointer script) and radius |
 | `--fx-tilt-x`, `--fx-tilt-y`, `--fx-mag-x`, `--fx-mag-y`, `--fx-pill-x`, `--fx-pill-w` | Written by the pointer script: card tilt, toolbar drift, tab indicator |
 
@@ -165,8 +165,8 @@ The sliding tab indicator reads the active tab from `[aria-selected="true"]`, `[
 - **No timers, no layout reads on hot paths.** One rAF-throttled handler; at most one `getBoundingClientRect` per frame for the hovered element.
 - **`will-change` only on states that animate** (hover, press, open, ambient), never on resting elements.
 - **Reduced motion.** Motion rules live inside `@media (prefers-reduced-motion: no-preference)`. With `reduce`, animations are off and hover states fade; `data-fx="reduced"` gives the same result on request.
-- **Contrast preference.** `prefers-contrast: more` turns off glow, glass, blur, scanlines, grain and the heading fringe, uses solid surfaces with a 1px text-coloured border and a thicker focus ring.
-- **Forced colours.** System colours (`Canvas`, `CanvasText`, `Highlight`), no shadows or blur, effect layers hidden.
+- **Contrast preference.** `prefers-contrast: more` turns off glow, glass, blur, scanlines, grain and the heading fringe, uses solid surfaces with a 1px text-colored border and a thicker focus ring.
+- **Forced colors.** System colors (`Canvas`, `CanvasText`, `Highlight`), no shadows or blur, effect layers hidden.
 - **Focus is never removed.** `:focus-visible` always draws `--fx-focus-ring`; no rule sets `outline: none`.
 - **Glass stays readable.** `--fx-glass-bg` is raised until the theme's text reaches 4.5:1 over a pure black and a pure white backdrop (`glassReport()`); without `backdrop-filter` support the fill becomes the opaque `--fx-glass-solid`. `backdrop-filter` is used on small surfaces, never on table bodies.
 - **Nothing flashes.** The fastest looping animation is 1.6 seconds per cycle.
@@ -174,7 +174,7 @@ The sliding tab indicator reads the active tab from `[aria-selected="true"]`, `[
 
 ## The Visual Designer
 
-- **Theme select.** `propFormTheme` has a new **Futuristic** group; every old option is unchanged. `getRawThemeColors()` returns each fx theme's colours (the table in `15_fx_layer.js`), and `getThemeColors()` keeps button text at 4.5:1.
+- **Theme select.** `propFormTheme` has a new **Futuristic** group; every old option is unchanged. `getRawThemeColors()` returns each fx theme's colors (the table in `15_fx_layer.js`), and `getThemeColors()` keeps button text at 4.5:1.
 - **Effects control.** **Effects** (Full, Reduced, Off, default Full) sits under **Form Theme**. The choice and the theme name are stored in the form (`theme` and `fx_mode`), so they survive autosave, restore, import, undo and the Run preview. Full follows the system reduced-motion setting through the CSS.
 - **Preview.** The canvas (`#formCanvas`) gets `class="fx-root"` plus the `data-fx` flags, so glass, glow and ambient backdrop show while you design. Hover transforms are deliberately off on the canvas so they never fight dragging, and a selected control keeps the Designer's own selection border.
 - **Chrome.** The toolbar, the tab strip and the header buttons use the layer when an fx theme is selected. The code areas and the properties panel never do: no blur behind code, no scanlines over text you edit.
@@ -182,8 +182,8 @@ The sliding tab indicator reads the active tab from `[aria-selected="true"]`, `[
 
 ## Adding a theme
 
-1. Add an entry to `FX_THEMES` with colours, a description, `is_dark`, optional `semantic` overrides and an `fx` descriptor.
-2. Run `bun test tests/fx_themes.test.ts`. It checks text, accent, border and focus contrast, the four status colours, glass over black and white, code colours and the token set. Adjust colours until it passes.
+1. Add an entry to `FX_THEMES` with colors, a description, `is_dark`, optional `semantic` overrides and an `fx` descriptor.
+2. Run `bun test tests/fx_themes.test.ts`. It checks text, accent, border and focus contrast, the four status colors, glass over black and white, code colors and the token set. Adjust colors until it passes.
 3. Add the display name to the **Futuristic** group in `src/ide/05_body_markup.html` (the test compares the list with `FX_THEMES`).
 4. Run `bun run fx:build`, then `bun run capture:themes <key>` for the screenshot, then `bun run scripts/build_os_theme_docs.ts` to refresh `docs/THEMES.md`.
 5. Update the count in `tests/vlang_webview_parity.test.ts` (the list of themes there is the contract for `getThemeNames()`).
@@ -200,7 +200,7 @@ In the Designer use the **Effects** control. Users who set reduced motion in the
 ## Known limits
 
 - `backdrop-filter` needs WebKit (macOS), WebView2 (Windows) or a recent WebKitGTK (Linux). Elsewhere surfaces fall back to the solid fill; nothing breaks.
-- Colour Studio's **Export CSS** writes `design_tokens.css` in the folder it was started from and replaces the file. Run it somewhere else, or run `bun run fx:build` afterwards to restore the fx tokens.
+- Color Studio's **Export CSS** writes `design_tokens.css` in the folder it was started from and replaces the file. Run it somewhere else, or run `bun run fx:build` afterwards to restore the fx tokens.
 - The HTML, React and Vue code tabs of the Designer export their own markup and do not include the layer; Run and Export do.
 - Real hover cannot be driven in a hidden browser tab; the documentation screenshots park the pointer and finish transitions, so they show end states.
 

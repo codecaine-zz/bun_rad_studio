@@ -1,7 +1,58 @@
 import type { Chapter } from "./fm_tutorial_types";
 
-/** Chapters 10 to 15: converting, finding, the review window, comparing folders, projects and saved actions. */
+/** Chapters 9b to 15: deep file info, permissions & encryption, converting, finding, the review window, comparing folders, projects and saved actions. */
 export const toolsAndSafety: Chapter[] = [
+  {
+    id: "09b_perms_info_lock",
+    chapter: "INFO, PERMS & LOCK",
+    title: "More info, permissions and password encryption",
+    blurb: "Deep metadata & color palettes, POSIX permissions & octal codes, and AES-256-GCM .radenc file locking",
+    path: "<HOME>/Documents/Trip",
+    steps: [
+      {
+        cap: "More info: deep metadata, dominant color palette & fingerprints",
+        say: "Right-click any photo or file and choose More info. A searchable inspector opens with every detail: image dimensions, color space, dominant color swatches you can copy with one click, privacy checks, and cryptographic fingerprints. You can search the details, or copy and save the entire report as Text, J S O N, or Markdown.",
+        act: async (d) => {
+          await d.row("IMG_0001", "rclick", { pause: 800 });
+          await d.menu("More info", { pause: 1600 });
+          await d.waitFor(".dialog .fi-search", 6000);
+          await d.hover(".dialog .fi-slot-palette, .dialog .fi-slot-image", 1200).catch(() => {});
+          await d.click(".dialog .fi-copy-report", { pause: 1000 });
+          await d.hover(".dialog .fi-save-report", 900);
+          await d.key("Escape", "Esc");
+          await d.wait(500);
+        },
+      },
+      {
+        cap: "Properties & Permissions: Owner, Group, Others, octal codes and presets",
+        say: "Right-click a file and choose Properties to see its size, dates, and the full Permissions editor. Checkboxes for Owner, Group, and Others stay in sync with the three-digit octal code like six four four and the symbolic r w x string, with quick presets and a live preview of what will change before you press Apply.",
+        act: async (d) => {
+          await d.row("itinerary.txt", "rclick", { pause: 800 });
+          await d.menu("Properties", { pause: 1500 });
+          await d.waitFor(".dialog .perm-section", 6000);
+          await d.click(".dialog .perm-presets button", { pause: 1400 }).catch(() => {});
+          await d.hover(".dialog .perm-section", 1200);
+          await d.key("Escape", "Esc");
+          await d.wait(500);
+        },
+      },
+      {
+        cap: "Lock: protect files with AES-256-GCM password encryption (.radenc)",
+        say: "Need to protect sensitive files with a password? Select a file and click Lock in the toolbar. It encrypts the file with A E S two fifty-six G C M and Argon2id into a dot radenc file, with a password strength meter, a four-word recovery phrase generator, and the choice to keep the original file until you verify the encrypted copy.",
+        act: async (d) => {
+          await d.row("itinerary.txt", "click", { pause: 600 });
+          await d.click("#tool-lock", { pause: 1200 });
+          await d.waitFor(".dialog", 6000);
+          await d.click(".dialog button >> Suggest a passphrase", { pause: 1400 });
+          await d.click(".dialog .vault-go", { pause: 1800 });
+          await d.waitFor(".dialog button >> Close", 10000).catch(() => {});
+          await d.click(".dialog button >> Close", { pause: 800 }).catch(() => d.key("Escape", "Esc"));
+          await d.hover("#list", 800);
+        },
+      },
+    ],
+  },
+
   {
     id: "10_convert", chapter: "CONVERT", title: "Convert and process files", blurb: "Pictures, video, sound and documents, in batches",
     path: "<HOME>/Documents/Trip",
@@ -191,7 +242,7 @@ export const toolsAndSafety: Chapter[] = [
       },
       {
         cap: "Choose differences to copy",
-        say: "Now I choose what to copy. I tick the file that is only on the left, and the one that is different. The direction says copy to the right. A tick box is greyed out when a row cannot be copied that way, for example something that only exists on the other side.",
+        say: "Now I choose what to copy. I tick the file that is only on the left, and the one that is different. The direction says copy to the right. A tick box is grayed out when a row cannot be copied that way, for example something that only exists on the other side.",
         act: async (d) => {
           await d.click(".compare-chips button >> Only on the left", { pause: 1200 });
           await d.click(".compare-table tbody tr input[type=checkbox]", { pause: 900 });

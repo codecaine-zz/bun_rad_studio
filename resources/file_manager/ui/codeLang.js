@@ -1,4 +1,4 @@
-// Languages the Code tab knows: how to recognise them, their comment styles, and how to run a file.
+// Languages the Code tab knows: how to recognize them, their comment styles, and how to run a file.
 // Pure data and functions (no DOM), so they can be tested on their own.
 
 /**

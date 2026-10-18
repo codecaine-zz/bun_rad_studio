@@ -161,7 +161,7 @@ export const iccp = (name: string, profile: Buffer) => chunk("iCCP", Buffer.conc
 export interface PngOptions {
   w?: number;
   h?: number;
-  /** PNG colour type: 0 grey, 2 RGB, 3 palette, 4 grey+alpha, 6 RGBA. */
+  /** PNG color type: 0 gray, 2 RGB, 3 palette, 4 gray+alpha, 6 RGBA. */
   colorType?: number;
   depth?: number;
   interlace?: number;

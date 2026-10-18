@@ -110,7 +110,7 @@ describe("one-click setup of the helper programs", () => {
     button("Select all", d).click();
     expect(button("Install 15", d)).toBeTruthy();
 
-    // Homebrew has no package for LibreOffice on Linux: switching to it unticks and greys that one out
+    // Homebrew has no package for LibreOffice on Linux: switching to it unticks and grays that one out
     const brewRadio = [...d.querySelectorAll("input[type=radio]")].find((r: any) => r.value === "brew");
     brewRadio.checked = true;
     brewRadio.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));

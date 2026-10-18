@@ -114,7 +114,7 @@ ${getWindowShortcutsScript()}
  */
 export function startPacmanStudioServer(options: PacmanServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "pacman_studio", name: "Cyberpunk Pac-Man Arcade - Neon Remaster", version: "1.0.0", assetsDir: getPacmanAssetsDir(), generateHtml: generatePacmanStudioHtml },
+    { app: "pacman_studio", name: "Codecaine Cyberpunk Pac-Man Arcade - Neon Remaster", version: "1.0.0", assetsDir: getPacmanAssetsDir(), generateHtml: generatePacmanStudioHtml },
     options,
   );
 }
@@ -127,7 +127,7 @@ export function createPacmanStudio(options: PacmanStudioOptions = {}): PacmanStu
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
   const height = options.height ?? (fullscreen ? screen.height : 900);
-  const title = "Cyberpunk Pac-Man Arcade - Neon Remaster";
+  const title = "Codecaine Cyberpunk Pac-Man Arcade - Neon Remaster";
 
   const app: PacmanStudioInstance = {
     title,

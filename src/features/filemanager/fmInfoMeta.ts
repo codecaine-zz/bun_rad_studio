@@ -1,5 +1,5 @@
 /**
- * Embedded colour profiles (ICC) and XMP packets. XMP is read with a tiny tokenizer that only looks for a few
+ * Embedded color profiles (ICC) and XMP packets. XMP is read with a tiny tokenizer that only looks for a few
  * named elements: it never builds a document, never follows an entity or a DOCTYPE, and never fetches anything.
  */
 import { ascii, be16, be32, clip, Rows } from "./fmInfoCommon";
@@ -15,9 +15,9 @@ export interface IccInfo {
 }
 
 const ICC_CLASS: Record<string, string> = {
-  scnr: "Input device (scanner or camera)", mntr: "Display", prtr: "Output device (printer)", link: "Device link", abst: "Abstract", spac: "Colour space conversion", nmcl: "Named colours",
+  scnr: "Input device (scanner or camera)", mntr: "Display", prtr: "Output device (printer)", link: "Device link", abst: "Abstract", spac: "Color space conversion", nmcl: "Named colors",
 };
-const ICC_SPACE: Record<string, string> = { "RGB ": "RGB", "CMYK": "CMYK", "GRAY": "Grey", "Lab ": "Lab", "XYZ ": "XYZ", "YCbr": "YCbCr", "HSV ": "HSV", "HLS ": "HLS", "CMY ": "CMY" };
+const ICC_SPACE: Record<string, string> = { "RGB ": "RGB", "CMYK": "CMYK", "GRAY": "Gray", "Lab ": "Lab", "XYZ ": "XYZ", "YCbr": "YCbCr", "HSV ": "HSV", "HLS ": "HLS", "CMY ": "CMY" };
 
 function utf16be(buf: Uint8Array): string {
   let out = "";
@@ -60,8 +60,8 @@ export function parseIcc(p: Uint8Array): IccInfo | null {
 
 export function iccRows(icc: IccInfo | null, rows = new Rows()): Rows {
   if (!icc) return rows;
-  rows.add("Colour profile", icc.description || "Embedded profile", "An ICC profile tells programs exactly which colours the numbers in the picture mean, so it looks the same everywhere.");
-  rows.add("Profile colour space", icc.colorSpace, "The kind of colour numbers the profile describes (RGB for screens, CMYK for printing).");
+  rows.add("Color profile", icc.description || "Embedded profile", "An ICC profile tells programs exactly which colors the numbers in the picture mean, so it looks the same everywhere.");
+  rows.add("Profile color space", icc.colorSpace, "The kind of color numbers the profile describes (RGB for screens, CMYK for printing).");
   rows.add("Profile version", icc.version).add("Profile type", icc.profileClass, "What the profile is for.").add("Profile size", icc.size ? `${icc.size.toLocaleString("en-US")} bytes` : "");
   return rows;
 }

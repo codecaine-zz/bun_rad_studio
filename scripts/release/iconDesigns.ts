@@ -1,4 +1,4 @@
-// The design of every Mac app icon: which symbol or drawing says what the app is, and its colours.
+// The design of every Mac app icon: which symbol or drawing says what the app is, and its colors.
 // Symbols are Apple SF Symbol names (checked to exist on macOS 26); `custom` names a shape the renderer draws itself
 // (games with no matching symbol); `text` draws characters (the regex studio shows `.*`).
 export interface Design {

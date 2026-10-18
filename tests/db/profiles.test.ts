@@ -82,7 +82,7 @@ describe("ProfileStore", () => {
     }
   });
 
-  it("organises profiles: duplicate, favourite, remove, recent", async () => {
+  it("organizes profiles: duplicate, favorite, remove, recent", async () => {
     const secrets = new MemorySecretStore();
     const store = new ProfileStore(tmp(), secrets);
     const a = await store.save(pg({ name: "A", favorite: true, environment: "production", readOnly: true }), "pw");

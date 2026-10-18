@@ -30,7 +30,7 @@ const CATEGORIES: Array<[string, string]> = [
   ["Security & Crypto", "Hashes, keys, secrets and encryption without the command line."],
   ["System & Hardware", "Know what your machine is running and keep it tidy."],
   ["Productivity & Text", "Write, convert, calculate and keep time."],
-  ["Design & Media", "Colour, drawing and design tokens."],
+  ["Design & Media", "Color, drawing and design tokens."],
   ["Design & UX", "Build the interface itself."],
   ["RAD Studio", "The visual designer and the tools around it."],
   ["Games & Entertainment", "Quick, polished games for a break."],
@@ -77,7 +77,7 @@ const PREFERRED = new Set(["sqlite_studio", "jq_studio", "watchexec_studio", "om
 
 /** Apps the launcher's table does not describe (or describes too thinly for a promotion). */
 const OVERRIDES: Record<string, { name: string; icon: string; category: string; description: string }> = {
-  launcher_studio: { name: "Launcher Studio Pro", icon: "🚀", category: "RAD Studio", description: "The home screen of the toolbox: search, favourite and open any application with one click, with history and categories" },
+  launcher_studio: { name: "Launcher Studio Pro", icon: "🚀", category: "RAD Studio", description: "The home screen of the toolbox: search, favorite and open any application with one click, with history and categories" },
 };
 
 export interface Entry { file: string; name: string; icon: string; category: string; description: string; image: string; command: string | null; guide: string | null; hash: string }

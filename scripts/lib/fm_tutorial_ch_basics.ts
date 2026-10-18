@@ -266,4 +266,55 @@ export const basics: Chapter[] = [
       },
     ],
   },
+
+  {
+    id: "04b_tabs_tree_tags",
+    chapter: "TABS, TREE & TAGS",
+    title: "Folder tabs, the sidebar folder tree, color tags and grouping",
+    blurb: "Multiple folder tabs, lazy-loaded sidebar tree, color tag filters, Group By, and Extension/Permissions columns",
+    steps: [
+      {
+        cap: "Folder tabs: duplicate a tab, open a new tab, switch and close",
+        say: "Right above the file list is the folder tab bar. Each tab keeps its own folder, selection, and Back and Forward history. Click Duplicate tab to open a second tab in the same folder, navigate into docs, or click the plus button to open another tab. Click any tab to switch folders instantly, and click the close button when you are done with it.",
+        act: async (d) => {
+          await d.hover("#tabbar", 1000);
+          await d.click(".fm-tab-dup", { pause: 1200 });
+          await d.row("docs", "dblclick", { pause: 1200 });
+          await d.click(".fm-tab-add", { pause: 1100 });
+          await d.click("#tabbar .fm-tab-select", { pause: 1200 });
+          await d.click("#tabbar .fm-tab:not(.active) .fm-tab-close", { pause: 900 });
+          await d.click("#tabbar .fm-tab:not(.active) .fm-tab-close", { pause: 900 });
+        },
+      },
+      {
+        cap: "The expandable Folder Tree in the sidebar",
+        say: "In the sidebar under Places, click the arrow next to Folder tree to open an expandable directory tree. You can expand subfolders on demand, jump straight into any branch, or right-click a branch to open it in a new folder tab.",
+        act: async (d) => {
+          await d.scroll("#sidebar", 260, 5).catch(() => {});
+          await d.click("[data-tree-toggle]", { pause: 1400 });
+          await d.hover(".folder-tree", 1400);
+          await d.click("[data-tree-toggle]", { pause: 900 });
+        },
+      },
+      {
+        cap: "Color tags, sidebar tag filters, Group by Kind, and Permissions column",
+        say: "You can also organize files with seven color tags. Right-click README dot md and choose Tag Red, then right-click package dot json and choose Tag Blue. In the sidebar under Tags, click Red to filter the folder down to red-tagged items, then clear the filter. And in the View menu, you can group items by Kind, Date, or Size, and toggle the Extension and Permissions columns.",
+        act: async (d) => {
+          await d.row("README.md", "rclick", { pause: 800 });
+          await d.menu("Tag: Red", { pause: 1200 });
+          await d.row("package.json", "rclick", { pause: 800 });
+          await d.menu("Tag: Blue", { pause: 1200 });
+          await d.click('[data-tag-filter="red"]', { pause: 1500 });
+          await d.click("[data-tag-clear-filter]", { pause: 1000 });
+          await d.click("#tool-view", { pause: 900 });
+          await d.menu("Group by: Kind", { pause: 1600 });
+          await d.click("#tool-view", { pause: 900 });
+          await d.menu("Column: Permissions", { pause: 1500 });
+          await d.click("#tool-view", { pause: 800 });
+          await d.menu("Group by: None", { pause: 900 });
+        },
+      },
+    ],
+  },
 ];
+

@@ -109,7 +109,7 @@ export function drawPreview(canvas, image, corners, maxSide = 320) {
   if (!corners) return;
   const { tl, tr, bl } = corners;
   const br = { x: tr.x + bl.x - tl.x, y: tr.y + bl.y - tl.y };
-  // The centres of the corner squares; grow the outline by about a module and a half to cover the whole code.
+  // The centers of the corner squares; grow the outline by about a module and a half to cover the whole code.
   const cx = (tl.x + tr.x + bl.x + br.x) / 4;
   const cy = (tl.y + tr.y + bl.y + br.y) / 4;
   const grow = (p) => {

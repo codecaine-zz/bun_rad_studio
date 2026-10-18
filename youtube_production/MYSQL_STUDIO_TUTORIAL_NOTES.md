@@ -1,4 +1,4 @@
-# MySQL in the Codecaine File Manager (16:44)
+# MySQL in the Codecaine File Manager (17:51)
 
 ## YouTube title
 
@@ -27,9 +27,10 @@ Chapters
 9:04 Design queries and schemas visually
 10:47 Live activity, locks, plans and maintenance
 12:33 Automate it: build and run a macro
-13:39 Load a CSV file with staging, from the file list
-15:28 Back to the File Manager: stop, shortcuts and safety
-16:23 That is MySQL in the File Manager
+13:39 Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen
+14:46 Load a CSV file with staging, from the file list
+16:35 Back to the File Manager: stop, shortcuts and safety
+17:30 That is MySQL in the File Manager
 ```
 
 ## Tags (comma separated)

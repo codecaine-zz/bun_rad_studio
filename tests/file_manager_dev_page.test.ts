@@ -144,7 +144,7 @@ afterAll(() => {
 });
 
 describe("the Dev tab in a browser-like page", () => {
-  test("the tab is in the strip (with the files tools), starts on the current folder, and every control is labelled and explained", () => {
+  test("the tab is in the strip (with the files tools), starts on the current folder, and every control is labeled and explained", () => {
     const tab = doc.getElementById("power-tab-dev");
     expect(tab).toBeTruthy();
     expect(tab.textContent).toContain("Dev");
@@ -183,7 +183,7 @@ describe("the Dev tab in a browser-like page", () => {
     expect(svg.querySelectorAll("rect").length).toBeGreaterThan(1);
     expect(svg.querySelector("title").textContent).toMatch(/lines of code \(\d/);
     expect(panel().querySelectorAll(".dev-legend li").length).toBeGreaterThan(1);
-    expect(panel().querySelector(".dev-legend li").textContent).toMatch(/%/); // not colour alone
+    expect(panel().querySelector(".dev-legend li").textContent).toMatch(/%/); // not color alone
     expect(panel().querySelectorAll("svg.dev-bar[aria-label]").length).toBeGreaterThan(1);
   });
 

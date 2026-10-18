@@ -12,7 +12,7 @@ export interface ExiftoolResult {
 
 const GROUP_HINTS: Record<string, string> = {
   IFD0: "The main list of camera notes (EXIF).", ExifIFD: "Shooting details: exposure, ISO, lens.", GPS: "Where the picture was taken.", XMP: "Extra text notes (XMP).",
-  ICC_Profile: "The colour profile.", File: "Facts about the file itself.", System: "Facts the file system keeps.", Composite: "Values ExifTool works out by combining other tags.",
+  ICC_Profile: "The color profile.", File: "Facts about the file itself.", System: "Facts the file system keeps.", Composite: "Values ExifTool works out by combining other tags.",
   MakerNotes: "Private notes of the camera brand.", IPTC: "News-agency style notes (caption, keywords, credit).", PNG: "PNG header and text notes.", JFIF: "JPEG file header details.",
   QuickTime: "Movie and phone-video details.", PDF: "PDF document details.", ThumbnailIFD: "The small preview picture stored inside.",
 };

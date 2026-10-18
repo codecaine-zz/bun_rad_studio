@@ -203,7 +203,7 @@ export function startTicTacToeStudioServer(options: TicTacToeServerOptions = {})
           {
             status: "ok",
             app: "tictactoe_studio",
-            name: "Neon Tic-Tac-Toe AI & 2-Player Arcade",
+            name: "Codecaine Neon Tic-Tac-Toe AI & 2-Player Arcade",
             version: "1.0.0",
             timestamp: Date.now(),
           },
@@ -236,7 +236,7 @@ export function createTicTacToeStudio(options: TicTacToeStudioOptions = {}): Tic
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
   const height = options.height ?? (fullscreen ? screen.height : 900);
-  const title = "Neon Tic-Tac-Toe AI & 2-Player Arcade";
+  const title = "Codecaine Neon Tic-Tac-Toe AI & 2-Player Arcade";
 
   const app: TicTacToeStudioInstance = {
     title,

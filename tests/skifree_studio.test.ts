@@ -72,7 +72,7 @@ describe("⛷️ SkiFree Deluxe — Winter Legends Arcade Suite", () => {
     const apps = scanWorkspaceApps();
     const found = apps.find((a) => a.name === "skifree_studio" || a.id === "rad_skifree_studio");
     expect(found).toBeDefined();
-    expect(found?.displayName).toBe("SkiFree Deluxe");
+    expect(found?.displayName).toBe("Codecaine SkiFree Deluxe");
     expect(found?.icon).toBe("⛷️");
     expect(found?.category).toBe("Games & Entertainment");
     expect(found?.description).toContain("Yeti");

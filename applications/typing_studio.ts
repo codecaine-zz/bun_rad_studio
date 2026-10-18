@@ -1,8 +1,179 @@
+/**
+ * ⚡ Codecaine CyberType Deluxe — Mavis Master Edition Studio
+ *
+ * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
+ */
+
 import { SizeHint, Webview } from "webview-bun";
 import { serve } from "bun";
-import { join } from "path";
-import { readFileSync } from "fs";
-import { attachWindowShortcuts } from "../index";
+import { join, resolve } from "path";
+import { existsSync, readFileSync } from "fs";
+import { startStaticStudioServer } from "../src/studio_server";
+import {
+  setAlwaysOnTopNative,
+  setWindowPositionNative,
+  attachWindowShortcuts,
+  toggleFullscreenNative,
+  getWindowShortcutsScript,
+  getScreenDimensions,
+} from "../index.ts";
+
+export interface TypingStudioOptions {
+  fullscreen?: boolean;
+  width?: number;
+  height?: number;
+  alwaysOnTop?: boolean;
+  port?: number;
+  host?: string;
+}
+
+export interface TypingStudioInstance {
+  title: string;
+  width: number;
+  height: number;
+  fullscreen: boolean;
+  port?: number;
+  url?: string;
+  server?: any;
+  webview?: Webview;
+  run: () => Promise<void> | void;
+  generateHtml: () => string;
+}
+
+export interface TypingServerOptions {
+  port?: number;
+  host?: string;
+}
+
+export function getTypingAssetsDir(): string {
+  const candidates = [
+    resolve(import.meta.dir, "../resources/typing_studio"),
+    resolve(process.cwd(), "resources/typing_studio"),
+    resolve(import.meta.dir, "../../resources/typing_studio"),
+  ];
+
+  for (const c of candidates) {
+    if (existsSync(join(c, "index.html"))) {
+      return c;
+    }
+  }
+
+  return candidates[0]!;
+}
+
+export function generateTypingStudioHtml(): string {
+  const assetsDir = getTypingAssetsDir();
+  const indexPath = join(assetsDir, "index.html");
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Codecaine CyberType Deluxe</h1>";
+
+  const desktopHooks = `
+  <script>
+${getWindowShortcutsScript()}
+  </script>
+  `;
+
+  if (html.includes("</body>")) {
+    html = html.replace("</body>", `${desktopHooks}\n</body>`);
+  } else {
+    html += desktopHooks;
+  }
+
+  return html;
+}
+
+export function startTypingServer(options: TypingServerOptions = {}) {
+  return startStaticStudioServer(
+    {
+      app: "typing_studio",
+      name: "Codecaine CyberType Deluxe — Mavis Master Edition",
+      version: "2.0.0",
+      assetsDir: getTypingAssetsDir(),
+      generateHtml: generateTypingStudioHtml,
+    },
+    options,
+  );
+}
+
+export function createTypingStudio(options: TypingStudioOptions = {}): TypingStudioInstance {
+  const fullscreen = options.fullscreen ?? false;
+  const screen = getScreenDimensions();
+  const width = options.width ?? (fullscreen ? screen.width : 1280);
+  const height = options.height ?? (fullscreen ? screen.height : 820);
+  const title = "Codecaine CyberType Deluxe — Mavis Edition";
+
+  const app: TypingStudioInstance = {
+    title,
+    width,
+    height,
+    fullscreen,
+    generateHtml: () => generateTypingStudioHtml(),
+    run: async () => {
+      console.log("⚡ Launching Codecaine CyberType Deluxe...");
+      const html = generateTypingStudioHtml();
+
+      let srv: any = null;
+      try {
+        srv = startTypingServer({
+          port: options.port ?? 0,
+          host: options.host ?? "127.0.0.1",
+        });
+        app.server = srv;
+        app.port = srv.port;
+        app.url = `http://127.0.0.1:${srv.port}`;
+        console.log(`⚡ Background server active at: ${app.url}`);
+      } catch (err: any) {
+        console.warn("Local server note:", err?.message || err);
+      }
+
+      try {
+        const webview = new Webview(true, {
+          width,
+          height,
+          hint: SizeHint.NONE,
+        });
+        app.webview = webview;
+        webview.title = title;
+
+        try {
+          if (fullscreen) {
+            setWindowPositionNative(webview, { x: 0, y: 0 }, width, height);
+          } else {
+            setWindowPositionNative(webview, "center", width, height);
+          }
+          setAlwaysOnTopNative(webview, options.alwaysOnTop ?? false);
+        } catch {}
+
+        attachWindowShortcuts(webview, {
+          onQuit: () => {
+            try { srv?.stop(); } catch {}
+            process.exit(0);
+          },
+          onClose: () => {
+            try { srv?.stop(); } catch {}
+            process.exit(0);
+          },
+          onFullscreen: () => {
+            toggleFullscreenNative(webview);
+          },
+          fullscreen,
+        });
+
+        webview.setHTML(html);
+        console.log("⚡ Desktop window open.");
+        webview.run();
+        try { srv?.stop(); } catch {}
+        process.exit(0);
+      } catch (err: any) {
+        console.warn("Desktop Webview unavailable. Running as server only.", err);
+        await new Promise(() => {});
+      }
+    },
+  };
+
+  return app;
+}
 
 export class TypingStudio {
   private webview: Webview | null = null;
@@ -13,7 +184,7 @@ export class TypingStudio {
   }
 
   public async start(): Promise<void> {
-    console.log(`⚡ Launching CyberType Deluxe...`);
+    console.log("⚡ Launching Codecaine CyberType Deluxe...");
     this.startServer();
     console.log(`⚡ Background server active at: http://127.0.0.1:${this.port}`);
 
@@ -23,20 +194,17 @@ export class TypingStudio {
         height: 800,
         hint: SizeHint.NONE,
       });
-      this.webview.title = "CyberType Deluxe — Mavis Edition";
+      this.webview.title = "Codecaine CyberType Deluxe — Mavis Edition";
       attachWindowShortcuts(this.webview, { fullscreen: false });
 
-      // Read HTML directly to bypass macOS App Transport Security on localhost
-      const htmlPath = join(import.meta.dir, "../resources/typing_studio/index.html");
-      const htmlContent = readFileSync(htmlPath, "utf-8");
-      
+      const htmlContent = generateTypingStudioHtml();
+
       this.webview.setHTML(htmlContent);
-      console.log(`⚡ Desktop window open.`);
+      console.log("⚡ Desktop window open.");
       this.webview.run();
       process.exit(0);
-    } catch(err) {
+    } catch (err) {
       console.warn("Desktop Webview unavailable. Running as server only.", err);
-      // keep alive
       await new Promise(() => {});
     }
   }
@@ -46,26 +214,42 @@ export class TypingStudio {
       port: this.port,
       fetch: (req) => {
         const url = new URL(req.url);
-        
+
         if (url.pathname === "/api/health") {
-          return new Response(JSON.stringify({ status: "ok", game: "typing_studio" }), {
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-          });
+          return new Response(
+            JSON.stringify({
+              status: "ok",
+              game: "typing_studio",
+              name: "Codecaine CyberType Deluxe",
+              version: "3.0.0",
+              features: [
+                "interactive-10-step-tutorial",
+                "18-lesson-academy-curriculum",
+                "keybr-adaptive-ai",
+                "multi-layout-keyboard",
+                "pace-ghost-runner",
+                "per-finger-telemetry",
+              ],
+            }),
+            {
+              headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+            },
+          );
         }
-        
+
         if (url.pathname === "/favicon.svg") {
           try {
-            const svgPath = join(import.meta.dir, "../resources/typing_studio/favicon.svg");
+            const svgPath = join(getTypingAssetsDir(), "favicon.svg");
             const svgData = readFileSync(svgPath, "utf-8");
             return new Response(svgData, { headers: { "Content-Type": "image/svg+xml" } });
           } catch (e) {
             return new Response("Not Found", { status: 404 });
           }
         }
-        
+
         if (url.pathname === "/") {
           try {
-            const htmlPath = join(import.meta.dir, "../resources/typing_studio/index.html");
+            const htmlPath = join(getTypingAssetsDir(), "index.html");
             const htmlData = readFileSync(htmlPath, "utf-8");
             return new Response(htmlData, { headers: { "Content-Type": "text/html" } });
           } catch (e) {
@@ -74,15 +258,23 @@ export class TypingStudio {
         }
 
         return new Response("Not Found", { status: 404 });
-      }
+      },
     });
   }
 }
 
-// Auto-run if executed directly
-if (import.meta.main) {
+export const createTypingApp = createTypingStudio;
+export const startTypingStudioServer = startTypingServer;
+
+if (process.argv.includes("--server")) {
+  const port = parseInt(process.env.PORT || "0", 10);
+  const srv = startTypingServer({ port, host: "127.0.0.1" });
+  console.log(`READY:${srv.port}`);
+  console.log(`⚡ Codecaine CyberType Deluxe Server listening on http://127.0.0.1:${srv.port}`);
+  setInterval(() => {}, 60000);
+} else if (import.meta.main) {
   const app = new TypingStudio();
-  app.start().catch(err => {
+  app.start().catch((err) => {
     console.error("Failed to start TypingStudio:", err);
     process.exit(1);
   });

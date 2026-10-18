@@ -49,10 +49,10 @@ export async function imageInfo(ctx: FmContext, input: unknown): Promise<ImageRe
   const groups: InfoGroup[] = [];
   const image = commonImageRows(a);
   for (const row of report.image.rows) if (!image.rows.some((r) => r.label === row.label)) image.rows.push(row);
-  pushGroup(groups, image.group("image", "Image", "The picture itself: its size, colours and how it is stored."));
+  pushGroup(groups, image.group("image", "Image", "The picture itself: its size, colors and how it is stored."));
   pushGroup(groups, report.camera.group("camera", "Camera and shot", "What the camera recorded when the picture was taken."));
   pushGroup(groups, report.location.group("location", "Location", "Where the picture was taken. This is private information."));
-  pushGroup(groups, iccRows(a.icc).group("colour", "Colour profile", "How the colours should be shown."));
+  pushGroup(groups, iccRows(a.icc).group("colour", "Color profile", "How the colors should be shown."));
   pushGroup(groups, xmpRows(a.xmp).group("xmp", "Extra notes (XMP)", "A second place where programs keep notes about the picture."));
   for (const g of a.groups) groups.push(g);
 

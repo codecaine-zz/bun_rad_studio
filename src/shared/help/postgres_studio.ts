@@ -3,7 +3,7 @@ import type { HelpTips, SkipRule } from "../helpMatch";
 /** Help tips for `postgres_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */
 export const postgresStudioTips: HelpTips = {
   // ---- Header ----
-  "#ddStudioTheme": "Change the colours of this window. Your choice is remembered in this browser.",
+  "#ddStudioTheme": "Change the colors of this window. Your choice is remembered in this browser.",
   "#schemaSelect": "Choose the active schema, a named group of tables and views inside the database (public is the default). The studio switches its search_path to it and reloads the object list.",
   "text:Connection Config": "Open the connection window to set the PostgreSQL host, port, user, password, database and schema, or paste a connection URL. Nothing changes until you press Connect & Apply.",
   "text:Databases": "Open the connection window on the Server Databases tab. It lists every database on this PostgreSQL server and lets you switch to one or create a new one.",

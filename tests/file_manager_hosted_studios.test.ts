@@ -10,10 +10,25 @@ const DATA = fs.mkdtempSync("/tmp/fm-hosted-data-");
 let fm: ReturnType<typeof startFileManagerServer>;
 let primary = "";
 let other = "";
+const spawnedWindows: Array<{ command: string[]; cwd: string }> = [];
+const launchedUrls: Array<{ cmd: string; args: string[] }> = [];
 const post = (op: string, body: object, token = fm?.token) => fetch(`${primary}/api/${op}`, { method: "POST", headers: { "content-type": "application/json", ...(token ? { "x-fm-token": token } : {}) }, body: JSON.stringify(body) });
 
 beforeAll(() => {
-  fm = startFileManagerServer({ port: 0, context: { home: HOME, dataDir: DATA } });
+  fm = startFileManagerServer({
+    port: 0,
+    context: {
+      home: HOME,
+      dataDir: DATA,
+      launch: async (cmd, args) => { launchedUrls.push({ cmd, args }); },
+      databases: {
+        spawnWindow: async (command, options) => {
+          spawnedWindows.push({ command, cwd: options.cwd });
+          return { ok: true };
+        },
+      },
+    },
+  });
   primary = `http://127.0.0.1:${fm.port}`;
   other = `http://localhost:${fm.port}`;
 });
@@ -189,5 +204,59 @@ describe("the download API", () => {
     expect(r.settings.maxConcurrent).toBe(1);
     expect(r.settings.speedLimit).toBe(0);
     expect(r.settings.retries).toBe(20);
+  });
+});
+
+describe("window mode and browser mode for all tools", () => {
+  test("studios/window spawns standalone studio windows and File Manager tool windows, and every configured script exists on disk", async () => {
+    spawnedWindows.length = 0;
+    const paintRes: any = await (await post("studios/window", { id: "paint" })).json();
+    expect(paintRes.ok).toBe(true);
+    expect(paintRes.title).toBe("Paint Studio");
+    expect(spawnedWindows.at(-1)?.command.some((part) => part.includes("paint_studio"))).toBe(true);
+
+    const fixedMappings: Array<[string, string]> = [
+      ["timer", "interval_timer_studio"],
+      ["find", "fd_studio"],
+      ["sd", "sd_studio"],
+      ["dev", "devtools_studio"],
+      ["watch", "watchexec_studio"],
+      ["ip", "ipinfo_studio"],
+      ["net", "network_studio"],
+      ["subs", "subfinder_studio"],
+      ["player", "media_player_studio"],
+      ["grave", "rip_studio"],
+    ];
+    for (const [id, expectedScript] of fixedMappings) {
+      const res: any = await (await post("studios/window", { id })).json();
+      expect(res.ok).toBe(true);
+      const cmd = spawnedWindows.at(-1)?.command ?? [];
+      expect(cmd.some((part) => part.includes(expectedScript))).toBe(true);
+      const scriptPath = cmd.find((part) => part.endsWith(".ts"));
+      expect(scriptPath && fs.existsSync(scriptPath)).toBe(true);
+    }
+
+    const cliRes: any = await (await post("studios/window", { id: "cliutils", path: HOME })).json();
+    expect(cliRes.ok).toBe(true);
+    expect(cliRes.title).toBe("CLI Utilities");
+    expect(spawnedWindows.at(-1)?.command).toEqual(expect.arrayContaining(["--tool", "cliutils", "--max", "--path", HOME]));
+
+    const qrRes: any = await (await post("studios/window", { id: "qr", path: HOME })).json();
+    expect(qrRes.ok).toBe(true);
+    expect(qrRes.title).toBe("QR Code");
+    expect(spawnedWindows.at(-1)?.command).toEqual(expect.arrayContaining(["--tool", "qr", "--max", "--path", HOME]));
+
+    expect((await post("studios/window", { id: "unknown-tool" })).status).toBe(400);
+  });
+
+  test("studios/browser opens valid http/https tool addresses in the system browser and refuses invalid ones", async () => {
+    launchedUrls.length = 0;
+    const okRes: any = await (await post("studios/browser", { id: "paint", url: `${other}/app/paint/` })).json();
+    expect(okRes.ok).toBe(true);
+    expect(okRes.opened).toBe(`${other}/app/paint/`);
+    expect(launchedUrls.at(-1)?.args.join(" ")).toContain(`${other}/app/paint/`);
+
+    expect((await post("studios/browser", { id: "paint", url: "javascript:alert(1)" })).status).toBe(400);
+    expect((await post("studios/browser", { id: "paint", url: "" })).status).toBe(400);
   });
 });

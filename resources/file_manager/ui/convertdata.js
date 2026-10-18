@@ -1,5 +1,5 @@
 // Plain functions for the "Convert & process" window: what the selected files are, how the list of things to make is
-// searched and labelled. Nothing here touches the page, so it is easy to test.
+// searched and labeled. Nothing here touches the page, so it is easy to test.
 
 /** The groups of the list, in the order they are shown. The server sends the same names. */
 export const GROUP_ORDER = ["Pictures", "Video", "Sound", "Documents", "Data & text", "Archives", "PDF tools", "Ebooks", "Fonts", "Other"];

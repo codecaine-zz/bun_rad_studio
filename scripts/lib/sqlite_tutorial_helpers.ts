@@ -52,7 +52,7 @@ export async function saveFoundConnection(d: D) {
 
 /** Starts the studio for the saved shop connection, closes its welcome box and (optionally) gives it the whole window. */
 export async function startStudio(d: D, focus = true) {
-  await d.click(".db-row", { pause: 600 });
+  await d.click(".db-row >> shop.sqlite", { pause: 600 });
   await d.click("button >> Open in SQLite Studio", { pause: 500 });
   await d.waitFor(S + "#msgBoxBtnOk", 30000);
   await d.wait(500);

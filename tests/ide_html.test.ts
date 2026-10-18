@@ -168,7 +168,7 @@ describe("Designer themes: readable button text (D-019)", () => {
         }
     });
 
-    test("only the button text colour is adjusted", () => {
+    test("only the button text color is adjusted", () => {
         for (const t of themes) {
             const { btnFg: _a, ...raw } = api.getRawThemeColors(t);
             const { btnFg: _b, ...adjusted } = api.getThemeColors(t);
@@ -1068,3 +1068,169 @@ describe("Generated output is not tracked by git", () => {
         }
     });
 });
+
+describe("Designer: Main UI improvements (toolbars, sidebars, palette, and consolidated inspector)", () => {
+    const html = getIdeHtml();
+    const grab = (name: string) => {
+        const start = html.indexOf(`function ${name}(`);
+        expect(start).toBeGreaterThan(-1);
+        let depth = 0;
+        let end = html.indexOf("{", start);
+        for (; end < html.length; end++) {
+            if (html[end] === "{") depth++;
+            else if (html[end] === "}" && --depth === 0) break;
+        }
+        return html.slice(start, end + 1);
+    };
+
+    test("alignSelectedControls maps center_h and center_v and delegates to alignControls", () => {
+        const calls: string[] = [];
+        const fn = new Function("alignControls", `${grab("alignSelectedControls")}; return alignSelectedControls;`)((m: string) => calls.push(m));
+        fn("left");
+        fn("center_h");
+        fn("center_v");
+        fn("bottom");
+        expect(calls).toEqual(["left", "center", "middle", "bottom"]);
+    });
+
+    test("updateToolbarSelectionState dims and enables selection-dependent and clipboard buttons", () => {
+        const body = html.slice(html.indexOf("<body"), html.indexOf("<script>", html.indexOf("<body")));
+        const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
+        const doc = dom.window.document;
+        const runUpdate = new Function(
+            "document", "selectedIndices", "clipboardBuffer",
+            `${grab("updateToolbarSelectionState")}; updateToolbarSelectionState();`,
+        );
+
+        const btnSel1 = doc.querySelector('[data-min-sel="1"]')!;
+        const btnSel2 = doc.querySelector('[data-min-sel="2"]')!;
+        const btnSel3 = doc.querySelector('[data-min-sel="3"]')!;
+        const pasteBtn = doc.getElementById("pasteBtn")!;
+
+        // 0 selected, empty clipboard -> all dimmed
+        runUpdate(doc, [], []);
+        expect(btnSel1.classList.contains("btn-disabled")).toBe(true);
+        expect(btnSel2.classList.contains("btn-disabled")).toBe(true);
+        expect(btnSel3.classList.contains("btn-disabled")).toBe(true);
+        expect(pasteBtn.classList.contains("btn-disabled")).toBe(true);
+
+        // 1 selected, 1 clipboard item -> min-sel=1 and paste enabled; min-sel=2,3 still dimmed
+        runUpdate(doc, [0], [{ id: "btn_1" }]);
+        expect(btnSel1.classList.contains("btn-disabled")).toBe(false);
+        expect(btnSel2.classList.contains("btn-disabled")).toBe(true);
+        expect(btnSel3.classList.contains("btn-disabled")).toBe(true);
+        expect(pasteBtn.classList.contains("btn-disabled")).toBe(false);
+
+        // 3 selected -> all enabled
+        runUpdate(doc, [0, 1, 2], [{ id: "btn_1" }]);
+        expect(btnSel1.classList.contains("btn-disabled")).toBe(false);
+        expect(btnSel2.classList.contains("btn-disabled")).toBe(false);
+        expect(btnSel3.classList.contains("btn-disabled")).toBe(false);
+    });
+
+    test("toggleSidebarPane collapses and expands the Palette and Inspector sidebars", () => {
+        const body = html.slice(html.indexOf("<body"), html.indexOf("<script>", html.indexOf("<body")));
+        const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
+        const doc = dom.window.document;
+        const toggle = new Function(
+            "document",
+            `const drawRulers = () => {}; ${grab("toggleSidebarPane")}; return toggleSidebarPane;`,
+        )(doc);
+
+        const studio = doc.getElementById("studioContainer")!;
+        const palBtn = doc.getElementById("togglePaletteBtn")!;
+        const inspBtn = doc.getElementById("toggleInspectorBtn")!;
+
+        toggle("palette");
+        expect(studio.classList.contains("palette-collapsed")).toBe(true);
+        expect(palBtn.getAttribute("aria-pressed")).toBe("false");
+
+        toggle("palette");
+        expect(studio.classList.contains("palette-collapsed")).toBe(false);
+        expect(palBtn.getAttribute("aria-pressed")).toBe("true");
+
+        toggle("inspector");
+        expect(studio.classList.contains("inspector-collapsed")).toBe(true);
+        expect(inspBtn.getAttribute("aria-pressed")).toBe("false");
+    });
+
+    test("collapsible palette categories and filterPalette hide empty categories and match tooltips", () => {
+        const body = html.slice(html.indexOf("<body"), html.indexOf("<script>", html.indexOf("<body")));
+        const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
+        const doc = dom.window.document;
+        const api = new Function(
+            "document",
+            `${grab("updatePaletteCollapseButtonLabel")}\n${grab("initPaletteCategories")}\n${grab("toggleAllPaletteCategories")}\n${grab("filterPalette")}\nreturn { initPaletteCategories, toggleAllPaletteCategories, filterPalette };`,
+        )(doc);
+
+        api.initPaletteCategories();
+        const cats = Array.from(doc.querySelectorAll(".palette-category")) as HTMLElement[];
+        expect(cats.length).toBeGreaterThan(5);
+        expect(cats[0]!.querySelector(".palette-cat-count")?.textContent).toBe("5");
+
+        // Click first category header to collapse it
+        (cats[0]!.querySelector(".palette-cat-header") as HTMLElement).click();
+        expect(cats[0]!.classList.contains("collapsed")).toBe(true);
+
+        // Collapse all, then expand all
+        api.toggleAllPaletteCategories();
+        expect(cats.every((c) => c.classList.contains("collapsed"))).toBe(true);
+        api.toggleAllPaletteCategories();
+        expect(cats.every((c) => !c.classList.contains("collapsed"))).toBe(true);
+
+        // Filter by tooltip keyword ("sparkline") -> only matching categories stay visible
+        api.filterPalette("sparkline");
+        const visibleCats = cats.filter((c) => c.style.display !== "none");
+        expect(visibleCats.length).toBeGreaterThan(0);
+        expect(visibleCats.length).toBeLessThan(cats.length);
+        expect(doc.getElementById("paletteEmptyMsg")!.style.display).toBe("none");
+
+        // Filter with no matches -> empty message shown
+        api.filterPalette("zzzz_nonexistent_widget_xyz");
+        expect(doc.getElementById("paletteEmptyMsg")!.style.display).toBe("block");
+
+        // Clear filter -> all categories restored
+        api.filterPalette("");
+        expect(cats.every((c) => c.style.display === "")).toBe(true);
+        expect(doc.getElementById("paletteEmptyMsg")!.style.display).toBe("none");
+    });
+
+    test("consolidated Inspector Code tab and secondary language switcher remember active language", () => {
+        const body = html.slice(html.indexOf("<body"), html.indexOf("<script>", html.indexOf("<body")));
+        const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
+        const doc = dom.window.document;
+        const switchTab = new Function(
+            "document",
+            `let lastActiveCodeTab = "tabBunTS"; const INSPECTOR_CODE_TABS = ["tabBunTS", "tabHTML", "tabReact", "tabVue", "tabPython", "tabJSON"]; ${grab("switchTab")}; return switchTab;`,
+        )(doc);
+
+        const subbar = doc.getElementById("inspectorCodeSubbar")!;
+        const codePrimary = doc.getElementById("inspectorCodePrimaryTab")!;
+
+        // Initially Properties tab is active and code subbar is hidden
+        expect(subbar.classList.contains("visible")).toBe(false);
+
+        // Clicking Code primary tab opens default Bun TS tab and shows subbar
+        switchTab("tabCode");
+        expect(codePrimary.classList.contains("active")).toBe(true);
+        expect(subbar.classList.contains("visible")).toBe(true);
+        expect(doc.getElementById("tabBunTS")!.classList.contains("active")).toBe(true);
+
+        // Switching to Vue 3 keeps Code primary tab active and activates tabVue
+        switchTab("tabVue");
+        expect(codePrimary.classList.contains("active")).toBe(true);
+        expect(subbar.classList.contains("visible")).toBe(true);
+        expect(doc.getElementById("tabVue")!.classList.contains("active")).toBe(true);
+
+        // Switching to Properties hides code subbar
+        switchTab("tabProps");
+        expect(subbar.classList.contains("visible")).toBe(false);
+        expect(doc.getElementById("tabProps")!.classList.contains("active")).toBe(true);
+
+        // Clicking Code primary tab again restores Vue 3 (lastActiveCodeTab)
+        switchTab("tabCode");
+        expect(subbar.classList.contains("visible")).toBe(true);
+        expect(doc.getElementById("tabVue")!.classList.contains("active")).toBe(true);
+    });
+});
+

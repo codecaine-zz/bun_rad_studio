@@ -1,5 +1,5 @@
 /**
- * The real "start an editor" behaviour behind `ctx.editor` (tests replace all of it).
+ * The real "start an editor" behavior behind `ctx.editor` (tests replace all of it).
  *
  * `Bun.openInEditor` finds the editor on the PATH the app was started with, and an app opened from the Dock, the
  * Start menu or a launcher often has a very short PATH that lacks /usr/local/bin or /opt/homebrew/bin. So the editor

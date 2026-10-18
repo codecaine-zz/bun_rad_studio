@@ -1,8 +1,8 @@
 // The side panels of the Code tab besides the Explorer: Search (find in all files), Git (what changed), Outline
-// (the functions and headings of this file) and Bookmarks. Each returns { el, show() }.
+// (the functions and headings of this file), TODOs (task comments) and Bookmarks. Each returns { el, show() }.
 import { ApiError } from "./api.js";
 import { h } from "./dom.js";
-import { extractSymbols } from "./codeLogic.js";
+import { extractSymbols, extractTodos } from "./codeLogic.js";
 import { gitCall, searchFiles } from "./codeIO.js";
 import { state } from "./state.js";
 
@@ -127,6 +127,55 @@ export function createOutlinePanel({ getDoc, onGo }) {
   return { el: h("div", { class: "code-panel" }, h("div", { class: "code-panel-head" }, filter), list), show: draw, update: draw };
 }
 
+/** TODO / FIXME / BUG / HACK / NOTE comments across open files. */
+export function createTodosPanel({ getDoc, getDocs, onGo }) {
+  const filter = input({ placeholder: "Filter tasks (TODO, FIXME, BUG…)", "aria-label": "Filter task comments", title: "Type text or a tag like FIXME to filter the list." });
+  const list = h("div", { class: "code-results" });
+  let activeTag = "ALL";
+  const tagBtns = ["ALL", "TODO", "FIXME", "BUG", "NOTE"].map((tag) =>
+    h("button", {
+      type: "button",
+      class: "code-btn code-tog code-small",
+      "aria-pressed": String(tag === "ALL"),
+      title: tag === "ALL" ? "Show all task tags" : `Show only ${tag} comments`,
+      onclick: () => {
+        activeTag = tag;
+        for (const b of tagBtns) b.setAttribute("aria-pressed", String(b.dataset.tag === tag));
+        draw();
+      },
+      dataset: { tag },
+    }, tag === "ALL" ? "All" : tag),
+  );
+
+  const draw = () => {
+    list.replaceChildren();
+    const allDocs = getDocs().filter((d) => d.kind !== "diff");
+    if (!allDocs.length) return void list.append(hint("Open a file to scan for TODO, FIXME, BUG, HACK and NOTE comments."));
+    const cur = getDoc();
+    const ordered = cur ? [cur, ...allDocs.filter((d) => d !== cur)] : allDocs;
+    const needle = filter.value.trim().toLowerCase();
+    let total = 0;
+    for (const d of ordered) {
+      const todos = extractTodos(d.text).filter((t) => (activeTag === "ALL" || t.tag === activeTag) && (!needle || `${t.tag} ${t.author} ${t.text}`.toLowerCase().includes(needle)));
+      if (!todos.length) continue;
+      total += todos.length;
+      list.append(h("div", { class: "code-res-file", title: d.path || d.name }, d.name, h("span", { class: "code-res-count" }, ` ${todos.length}`)));
+      for (const t of todos) {
+        list.append(
+          h("button", { type: "button", class: "code-res-line", title: `${t.tag} on line ${t.line} of ${d.name}`, onclick: () => onGo(d, t.line, t.col) },
+            h("span", { class: `code-todo-tag code-todo-${t.tag.toLowerCase()}` }, t.tag),
+            h("span", {}, `${t.author ? `(${t.author}) ` : ""}${t.text}`),
+            h("span", { class: "code-res-ln" }, String(t.line)),
+          ),
+        );
+      }
+    }
+    if (!total) list.append(hint("No matching TODO, FIXME, BUG, HACK or NOTE comments in the open files."));
+  };
+  filter.addEventListener("input", draw);
+  return { el: h("div", { class: "code-panel" }, h("div", { class: "code-panel-head" }, filter, h("div", { class: "code-row-tools" }, ...tagBtns)), list), show: draw, update: draw };
+}
+
 /** Bookmarks of every open file. */
 export function createBookmarksPanel({ getDocs, onGo, onClear }) {
   const list = h("div", { class: "code-results" });
@@ -142,7 +191,47 @@ export function createBookmarksPanel({ getDocs, onGo, onClear }) {
         list.append(h("button", { type: "button", class: "code-res-line", title: `Go to line ${n} of ${doc.name}`, onclick: () => onGo(doc, n) }, h("span", { class: "code-res-ln" }, String(n)), (lines[n - 1] ?? "").trim().slice(0, 120) || "(empty line)"));
       }
     }
-    if (!any) list.append(hint("No bookmarks yet. Press Ctrl/Cmd+F2 on a line to mark it, then F2 and Shift+F2 jump between marks."));
+    if (!any) list.append(hint("No bookmarks yet. Press Ctrl/Cmd+F2 on a line (or click its line number) to mark it, then F2 and Shift+F2 jump between marks."));
   };
   return { el: h("div", { class: "code-panel" }, h("div", { class: "code-panel-head" }, btn("Clear all", "Remove every bookmark in the open files", () => onClear())), list), show: draw, update: draw };
 }
+
+/** Local file history / timeline snapshots for the active document. */
+export function createHistoryPanel({ getDoc, onRestore, onDiff, onSnapshot }) {
+  const list = h("div", { class: "code-results" });
+  const snapBtn = btn("+ Snapshot now", "Save a local timeline snapshot of the current file right now", () => {
+    onSnapshot?.();
+    draw();
+  });
+  const draw = () => {
+    list.replaceChildren();
+    const doc = getDoc();
+    if (!doc || doc.kind === "diff") {
+      snapBtn.disabled = true;
+      return void list.append(hint("Open a file to browse its local timeline snapshots."));
+    }
+    snapBtn.disabled = false;
+    const items = doc.history ?? [];
+    if (!items.length) {
+      return void list.append(hint("No local snapshots yet. Snapshots are recorded automatically when you open or save a file, or click '+ Snapshot now' above."));
+    }
+    list.append(h("div", { class: "code-res-file", title: doc.path || doc.name }, `${doc.name} (${items.length} ${items.length === 1 ? "snapshot" : "snapshots"})`));
+    for (let i = items.length - 1; i >= 0; i--) {
+      const snap = items[i];
+      const lineCount = snap.text.split("\n").length;
+      const row = h("div", { class: "code-hist-item" },
+        h("div", { class: "code-hist-meta" },
+          h("strong", { class: "code-hist-label" }, snap.label || "Snapshot"),
+          h("span", { class: "code-res-ln" }, `${ snap.timeLabel || "" } · ${lineCount} lines`),
+        ),
+        h("div", { class: "code-row-tools" },
+          btn("Diff", `Compare current file with snapshot "${snap.label}"`, () => onDiff?.(doc, snap)),
+          btn("Restore", `Restore file contents from snapshot "${snap.label}"`, () => onRestore?.(doc, snap)),
+        ),
+      );
+      list.append(row);
+    }
+  };
+  return { el: h("div", { class: "code-panel" }, h("div", { class: "code-panel-head" }, snapBtn), list), show: draw, update: draw };
+}
+

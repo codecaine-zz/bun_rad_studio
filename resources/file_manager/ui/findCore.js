@@ -74,7 +74,7 @@ export function sampleNames(items, count = 5) {
   return more > 0 ? `${names.join(", ")} and ${more} more` : names.join(", ");
 }
 
-/** Tells apart a plain "no" from a failure when summarising what a batch action did. */
+/** Tells apart a plain "no" from a failure when summarizing what a batch action did. */
 export function summarizeBatch(verb, result) {
   const parts = [];
   if (result.done) parts.push(`${verb} ${plural(result.done, "item")}`);

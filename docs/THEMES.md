@@ -29,7 +29,7 @@ Welcome to the **Bun RAD Studio & SimpleGUI Visual Theme Gallery**. Every theme 
 - [🍎 macOS Versions (7 Themes)](#os-macos)
 - [💾 Rare & Beloved Systems (22 Themes)](#os-rare)
 - [🌌 Futuristic Themes with glass, glow and motion (35 Themes)](#fx-themes)
-- [🚦 Status colours: danger, warning, success, info](#status-colours)
+- [🚦 Status colours: danger, warning, success, info](#status-colors)
 - [⚡ Quick Reference Index Table (the first 76 Themes)](#quick-reference-index)
 - [💻 How to Use Any Theme in SimpleGUI Code](#-how-to-use-any-theme-in-simplegui-code)
 
@@ -893,7 +893,7 @@ Faithful recreations of vintage computing hardware, phosphor CRTs, and retro gam
 <a id="theme-playstation"></a>
 ### 56. PlayStation 1994 (`playstation`)
 
-> 1994 PSX console grey with iconic geometric controller accents
+> 1994 PSX console gray with iconic geometric controller accents
 
 - **Mode**: 🌙 Dark | **Primary Accent**: `#00d2c4` | **Secondary**: `#f44336`
 - **Canvas**: `#1e1e24` | **Card Background**: `#2a2b34` | **Text**: `#e4e5eb`
@@ -1022,7 +1022,7 @@ Authentic Linux desktop operating system styling covering Ubuntu Yaru, GNOME Lib
 <a id="os-linux"></a>
 ## 🐧 Linux Distributions & Desktop Environments (27 Themes)
 
-One theme per major distribution, desktop environment and popular GTK theme, built from each project's own colours.
+One theme per major distribution, desktop environment and popular GTK theme, built from each project's own colors.
 
 | Theme Key | Display Name | Mode | Primary Accent | Secondary | Canvas | Card | Text | Screenshot |
 |---|---|---|---|---|---|---|---|---|
@@ -1192,7 +1192,7 @@ Try one live: `bun run demo:themes debian_dark`
 <a id="theme-kde_breeze_light"></a>
 ### KDE Plasma Breeze Light (`kde_breeze_light`)
 
-> KDE Plasma Breeze Light with soft grey windows and Plasma blue
+> KDE Plasma Breeze Light with soft gray windows and Plasma blue
 
 ![KDE Plasma Breeze Light Showcase](../screenshots/themes/kde_breeze_light.png)
 
@@ -1220,7 +1220,7 @@ Try one live: `bun run demo:themes debian_dark`
 <a id="theme-arc_dark"></a>
 ### Arc GTK Dark (`arc_dark`)
 
-> Arc GTK dark theme with flat blue-grey surfaces and the Arc blue accent
+> Arc GTK dark theme with flat blue-gray surfaces and the Arc blue accent
 
 ![Arc GTK Dark Showcase](../screenshots/themes/arc_dark.png)
 
@@ -1271,7 +1271,7 @@ Try one live: `bun run demo:themes win31`
 <a id="theme-win31"></a>
 ### Windows 3.1 (`win31`)
 
-> Windows 3.1 Program Manager grey desktop with white windows and navy title bars
+> Windows 3.1 Program Manager gray desktop with white windows and navy title bars
 
 ![Windows 3.1 Showcase](../screenshots/themes/win31.png)
 
@@ -1320,14 +1320,14 @@ Try one live: `bun run demo:themes win31`
 <a id="theme-win10_dark"></a>
 ### Windows 10 Dark (`win10_dark`)
 
-> Windows 10 dark mode with neutral grey surfaces and the Windows blue
+> Windows 10 dark mode with neutral gray surfaces and the Windows blue
 
 ![Windows 10 Dark Showcase](../screenshots/themes/win10_dark.png)
 
 <a id="theme-win10_light"></a>
 ### Windows 10 Light (`win10_light`)
 
-> Windows 10 light mode with white surfaces, grey canvas and the Windows blue
+> Windows 10 light mode with white surfaces, gray canvas and the Windows blue
 
 ![Windows 10 Light Showcase](../screenshots/themes/win10_light.png)
 
@@ -1367,14 +1367,14 @@ Try one live: `bun run demo:themes mac_os_9`
 <a id="theme-mac_os_9"></a>
 ### Mac OS 9 Platinum (`mac_os_9`)
 
-> Mac OS 8 and 9 Platinum with grey pinstripe windows and the lavender selection
+> Mac OS 8 and 9 Platinum with gray pinstripe windows and the lavender selection
 
 ![Mac OS 9 Platinum Showcase](../screenshots/themes/mac_os_9.png)
 
 <a id="theme-snow_leopard"></a>
 ### Mac OS X Snow Leopard (`snow_leopard`)
 
-> Mac OS X Snow Leopard Graphite with brushed grey surfaces and a steel blue accent
+> Mac OS X Snow Leopard Graphite with brushed gray surfaces and a steel blue accent
 
 ![Mac OS X Snow Leopard Showcase](../screenshots/themes/snow_leopard.png)
 
@@ -1603,16 +1603,16 @@ Try one live: `bun run demo:themes beos_r5`
 
 ---
 
-<a id="status-colours"></a>
+<a id="status-colors"></a>
 ## 🚦 Status colours: danger, warning, success, info
 
-Every theme has four status colours. They are worked out from the theme so they always read well on its canvas and cards (text at least 4.5:1 where the canvas allows it, fills at least 3:1 against the card, and the label on a fill at least 4.5:1). Well-known palettes (Dracula, Nord, Gruvbox, Solarized, Catppuccin, Monokai Pro, Tokyo Night, One Dark, GitHub, Everforest, Kanagawa and the classic Windows palettes) use their own published colours.
+Every theme has four status colors. They are worked out from the theme so they always read well on its canvas and cards (text at least 4.5:1 where the canvas allows it, fills at least 3:1 against the card, and the label on a fill at least 4.5:1). Well-known palettes (Dracula, Nord, Gruvbox, Solarized, Catppuccin, Monokai Pro, Tokyo Night, One Dark, GitHub, Everforest, Kanagawa and the classic Windows palettes) use their own published colors.
 
 ```ts
 const sem = simplegui.getSemanticColors("dracula");   // sem.danger.solid, .on, .text, .soft, .border (same for warning, success, info)
 win.addButton("del", "Delete", { variant: "danger" });                     // solid
 win.addButton("save", "Save", { variant: "success", appearance: "soft" }); // soft tint; "outline" also works
-win.addBadge("Late", "warning");                                           // badges, alerts, toasts and status dots use the same colours
+win.addBadge("Late", "warning");                                           // badges, alerts, toasts and status dots use the same colors
 ```
 
 In CSS they are variables that follow the theme, including after a live theme switch: `--danger`, `--danger-on`, `--danger-text`, `--danger-soft`, `--danger-border`, and the same for `--warning`, `--success`, `--info`.
@@ -1639,7 +1639,7 @@ In CSS they are variables that follow the theme, including after a live theme sw
 <a id="fx-themes"></a>
 ## 🌌 Futuristic Themes (35 Themes)
 
-Glass surfaces, edge glow, a slow living backdrop and a motion layer (button bloom, floating labels, sliding tab pill, tilting cards). Every theme here carries an `fx` descriptor; the other 143 themes render exactly as before. Body text on glass is checked at 4.5:1 over both a black and a white backdrop, and the effects respect `prefers-reduced-motion`, `prefers-contrast` and forced colours. Guide: [fx-themes developer guide](developer/fx-themes.md).
+Glass surfaces, edge glow, a slow living backdrop and a motion layer (button bloom, floating labels, sliding tab pill, tilting cards). Every theme here carries an `fx` descriptor; the other 143 themes render exactly as before. Body text on glass is checked at 4.5:1 over both a black and a white backdrop, and the effects respect `prefers-reduced-motion`, `prefers-contrast` and forced colors. Guide: [fx-themes developer guide](developer/fx-themes.md).
 
 | Theme Key | Display Name | Mode | Primary Accent | Secondary | Canvas | Card | Text | Glow | Glass | Motion | Border | Screenshot |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|

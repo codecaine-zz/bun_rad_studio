@@ -84,7 +84,7 @@ export default dataset({
       n: [CFG.small.F, CFG.medium.F, CFG.large.F], ix: ["flight_date", "route_id,flight_date", "status"],
       gen: (g, i) => { const f = plan(g.scale).flights[i - 1]!; const dur = Math.round(distance(f.route) / 7.6) + 25; const dep = `${f.date} ${String(f.hour).padStart(2, "0")}:${g.pick(["00", "15", "30", "45"])}:00`; const arr = new Date(Date.parse(dep.replace(" ", "T") + "Z") + dur * 60000).toISOString().slice(0, 19).replace("T", " "); return { flight_no: f.no, route_id: f.route, aircraft_id: f.ac, flight_date: f.date, scheduled_dep: dep, scheduled_arr: arr, actual_dep: f.status === "departed" ? new Date(Date.parse(dep.replace(" ", "T") + "Z") + f.delay * 60000).toISOString().slice(0, 19).replace("T", " ") : null, status: f.status, delay_minutes: f.delay, delay_code_id: f.delay >= 15 ? g.fkSkew(DELAYS.length, 1.5) : null, gate: f.status === "cancelled" ? null : `${g.pick(["A", "B", "C"])}${g.int(1, 24)}` }; },
     }),
-    table("passenger", "Travellers (synthetic).", ["id id", "first_name str(40)", "last_name str(40)", "birth_date date", "email str(160) null", "phone str(16) null", "nationality char(2)", "created_at ts def:now"], {
+    table("passenger", "Travelers (synthetic).", ["id id", "first_name str(40)", "last_name str(40)", "birth_date date", "email str(160) null", "phone str(16) null", "nationality char(2)", "created_at ts def:now"], {
       n: [CFG.small.PAX, CFG.medium.PAX, CFG.large.PAX], ix: ["last_name,first_name"],
       gen: (g, i) => { const f = g.first(), l = g.last(); return { first_name: f, last_name: l, birth_date: dayStr(dayOf(ASOF) - Math.round(g.clamp(g.normal(41, 16), 2, 90)) * 365 - g.int(0, 364)), email: g.bool(0.8) ? `${f}.${l}${i}@traveler.example`.toLowerCase() : null, phone: g.bool(0.6) ? g.phone() : null, nationality: g.w([["US", 86], ["CA", 5], ["MX", 4], ["GB", 3], ["DE", 2]] as const), created_at: g.ts(g.date("2020-01-01", ASOF)) }; },
     }),
@@ -92,11 +92,11 @@ export default dataset({
       n: (n) => Math.floor(n("passenger") * 0.45), uq: [["passenger_id"]],
       gen: (g, i) => ({ passenger_id: i, member_no: `BR${String(i).padStart(8, "0")}`, tier: g.w([["blue", 62], ["silver", 22], ["gold", 12], ["platinum", 4]] as const), points_balance: Math.round(g.logNormal(9000, 1.1)), enrolled_on: g.date("2019-01-01", "2025-03-01") }),
     }),
-    table("booking", "Reservations (PNR) of one to four travellers on one flight.", ["id id", "pnr char(6) uq", "booked_at ts", "contact_email str(160)", "channel enum(web,mobile,agent,corporate)", "status enum(confirmed,cancelled)"], {
+    table("booking", "Reservations (PNR) of one to four travelers on one flight.", ["id id", "pnr char(6) uq", "booked_at ts", "contact_email str(160)", "channel enum(web,mobile,agent,corporate)", "status enum(confirmed,cancelled)"], {
       n: (n, s) => plan(s).bookings.length, ix: ["booked_at"],
       gen: (g, i) => { const b = plan(g.scale).bookings[i - 1]!; const f = plan(g.scale).flights[b.flight - 1]!; return { pnr: pnrOf(i), booked_at: g.ts(addDays(f.date, -g.int(1, 60) > dayOf(f.date) ? 0 : -g.int(1, 60)), 0, 23), contact_email: `pnr${i}@booking.example`, channel: g.w([["web", 48], ["mobile", 32], ["agent", 12], ["corporate", 8]] as const), status: "confirmed" }; },
     }),
-    table("ticket", "One ticket per traveller; a seat is unique within a flight.", ["id id", "ticket_no str(14) uq", "booking_id int fk:booking cascade", "flight_id int fk:flight", "passenger_id int fk:passenger", "fare_class_id int fk:fare_class", "seat str(4)", "fare_amount dec(10,2)", "tax_amount dec(10,2)", "total_amount dec(10,2) = fare_amount + tax_amount", "status enum(ticketed,flown,no_show,cancelled)"], {
+    table("ticket", "One ticket per traveler; a seat is unique within a flight.", ["id id", "ticket_no str(14) uq", "booking_id int fk:booking cascade", "flight_id int fk:flight", "passenger_id int fk:passenger", "fare_class_id int fk:fare_class", "seat str(4)", "fare_amount dec(10,2)", "tax_amount dec(10,2)", "total_amount dec(10,2) = fare_amount + tax_amount", "status enum(ticketed,flown,no_show,cancelled)"], {
       n: (n, s) => plan(s).tickets, uq: [["flight_id", "seat"], ["flight_id", "passenger_id"]], ix: ["booking_id", "passenger_id"],
       all: (g) => {
         const p = plan(g.scale); const P = g.count("passenger"); const out: Record<string, unknown>[] = []; let t = 0;

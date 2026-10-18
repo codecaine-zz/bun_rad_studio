@@ -220,20 +220,27 @@ export interface FileKind {
   program: boolean;
 }
 
+const ALL_IMAGE_EXTS = [
+  "png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "svgz", "ico", "tif", "tiff", "heic", "heif", "avif",
+  "raw", "psd", "cr2", "cr3", "nef", "arw", "dng", "orf", "rw2", "pef", "srw", "raf",
+  "tga", "ppm", "pgm", "pbm", "pnm", "pam", "hdr", "exr", "dds", "pcx", "jp2", "j2k", "jpf", "jxl",
+  "icns", "cur", "qoi", "sgi", "rgb", "xbm", "xpm", "wbmp", "pict", "pct", "iff", "lbm", "jfif", "pjpeg", "pjp", "apng",
+];
+
 const EXT_GROUPS: Array<[FileKind["kind"], string, string, string[]]> = [
-  ["image", "🖼️", "image", ["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "ico", "tif", "tiff", "heic", "avif", "raw", "psd"]],
+  ["image", "🖼️", "image", ALL_IMAGE_EXTS],
   ["video", "🎞️", "video", ["mp4", "mov", "mkv", "avi", "webm", "wmv", "flv", "m4v", "mpg", "mpeg"]],
   ["audio", "🎵", "audio file", ["mp3", "wav", "flac", "aac", "ogg", "m4a", "wma", "opus", "aiff", "mid", "midi"]],
   ["pdf", "📕", "PDF document", ["pdf"]],
-  ["document", "📄", "document", ["doc", "docx", "odt", "rtf", "pages", "epub", "mobi"]],
-  ["spreadsheet", "📊", "spreadsheet", ["xls", "xlsx", "ods", "csv", "tsv", "numbers"]],
-  ["presentation", "📽️", "presentation", ["ppt", "pptx", "odp", "key"]],
-  ["archive", "🗜️", "archive", ["zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "xz", "zst", "cab", "iso"]],
+  ["document", "📄", "document", ["doc", "docx", "odt", "rtf", "pages", "epub", "mobi", "fb2"]],
+  ["spreadsheet", "📊", "spreadsheet", ["xls", "xlsx", "xlsm", "ods", "csv", "tsv", "numbers"]],
+  ["presentation", "📽️", "presentation", ["ppt", "pptx", "ppsx", "odp", "key"]],
+  ["archive", "🗜️", "archive", ["zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "xz", "zst", "cab", "iso", "whl", "cbz"]],
   ["code", "💻", "source file", ["js", "mjs", "cjs", "ts", "tsx", "jsx", "py", "rb", "go", "rs", "java", "kt", "swift", "c", "h", "cpp", "hpp", "cs", "php", "html", "htm", "css", "scss", "json", "xml", "yaml", "yml", "toml", "sql", "lua", "dart", "vue", "svelte", "ps1", "bat", "cmd", "sh", "bash", "zsh", "v", "vsh", "vv", "zig", "nim", "ex", "exs", "erl", "hs", "ml", "clj", "scala", "groovy", "r", "jl", "pl", "pm", "fs", "fsx", "vb", "asm", "s", "m", "mm", "cc", "cxx", "hh", "hxx", "mts", "cts", "jsonc", "less", "sass", "graphql", "proto", "cmake", "gradle", "tf", "sol", "wat", "fish", "ksh"]],
   ["text", "📝", "text file", ["txt", "md", "markdown", "log", "ini", "cfg", "conf", "env", "gitignore", "rst", "tex", "nfo"]],
   ["program", "⚙️", "program", ["exe", "msi", "app", "command", "jar", "apk", "appimage", "scr", "com", "run", "vbs", "deb", "rpm", "pkg"]],
   ["disk-image", "💿", "disk image", ["dmg", "img", "vhd", "vmdk"]],
-  ["font", "🔤", "font", ["ttf", "otf", "woff", "woff2", "eot"]],
+  ["font", "🔤", "font", ["ttf", "otf", "woff", "woff2", "ttc", "eot"]],
 ];
 
 /** Plain names for source files whose extension alone says little (".v" is V, not Verilog or Coq). */
@@ -244,7 +251,7 @@ for (const g of EXT_GROUPS) for (const e of g[3]) if (!BY_EXT.has(e)) BY_EXT.set
 
 /** Opening any of these would start a program or an installer. */
 const PROGRAM_EXTS = new Set(["exe", "msi", "bat", "cmd", "com", "scr", "ps1", "vbs", "jar", "app", "command", "sh", "bash", "zsh", "run", "appimage", "deb", "rpm", "pkg", "dmg", "apk"]);
-const IMAGE_PREVIEW = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "ico", "avif"]);
+const IMAGE_PREVIEW = new Set(ALL_IMAGE_EXTS);
 
 export function extensionOf(name: string): string {
   const [, ext] = splitName(name);

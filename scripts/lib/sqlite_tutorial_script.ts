@@ -33,7 +33,7 @@ export const fmChapters: Chapter[] = [
       },
       {
         cap: "Load a CSV into a database, then Find & more → Databases",
-        say: "A data file gets a database command too: Load into a database, staging first. We use it near the end. Everything is organised in the Databases tool, so open Find and more, and choose the Databases tab.",
+        say: "A data file gets a database command too: Load into a database, staging first. We use it near the end. Everything is organized in the Databases tool, so open Find and more, and choose the Databases tab.",
         act: async (d) => {
           await d.key("Escape");
           await d.wait(500);
@@ -86,7 +86,7 @@ export const fmChapters: Chapter[] = [
       },
       {
         cap: "Edit: environment, tags, read-only",
-        say: "Edit lets you name the connection, add a folder and tags, mark a favourite, and choose its environment: development, test, staging or production. You can also mark it read only. Duplicate copies it, and Delete asks first.",
+        say: "Edit lets you name the connection, add a folder and tags, mark a favorite, and choose its environment: development, test, staging or production. You can also mark it read only. Duplicate copies it, and Delete asks first.",
         act: async (d) => {
           await d.click("button >> Edit…", { pause: 1200 });
           await d.hover(".dialog select", 1500);

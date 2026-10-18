@@ -72,7 +72,7 @@ NovaCode Studio's command runner uses Windows PowerShell on Windows and `sh` on 
 | What you see | Likely cause | What to do |
 |---|---|---|
 | Edits to an uploaded SQLite file are not in the original | SQLite Studio works on a **copy** in `.sqlite_uploads/` | Use the Workbench to open the original file, or copy the edited file back yourself |
-| Launcher favourites vanished | `.launcher_history.json` is kept in the folder you started from | Start from the same folder, or set `LAUNCHER_HISTORY_FILE` |
+| Launcher favorites vanished | `.launcher_history.json` is kept in the folder you started from | Start from the same folder, or set `LAUNCHER_HISTORY_FILE` |
 | A file you "deleted" with Rip Studio is missing | It is in the graveyard (`$GRAVEYARD`, else `~/.local/share/rip/graveyard`), not gone | Restore it from Rip Studio |
 | Database settings from `.env` are not picked up | `.env` is read from the **current folder** only | Start the studio from the folder that holds it ([Environment variables](reference/index.md#environment-variables)) |
 

@@ -132,7 +132,7 @@ export const operations: Chapter[] = [
       },
       {
         cap: "Activity: the history of copies and moves",
-        say: "The Activity button on the toolbar opens a history of your copies, moves, and renames. It lists what finished, what failed, and what was cancelled, with the full paths. It is kept between sessions, and it contains only names and results, never the contents of your files. Press Close when you are done.",
+        say: "The Activity button on the toolbar opens a history of your copies, moves, and renames. It lists what finished, what failed, and what was canceled, with the full paths. It is kept between sessions, and it contains only names and results, never the contents of your files. Press Close when you are done.",
         act: async (d) => {
           await d.click("#tool-activity", { pause: 3500 });
           await d.hover(".dialog", 2500);

@@ -52,7 +52,7 @@ export default dataset({
   title: "SaaS Subscription Billing",
   tagline: "Plans, subscriptions, usage metering, invoices, payments, dunning and MRR analytics.",
   description:
-    "A subscription-business back office: a plan and price catalogue (USD/EUR, monthly/annual), accounts and users, subscriptions with a trial-to-active-to-canceled lifecycle, " +
+    "A subscription-business back office: a plan and price catalog (USD/EUR, monthly/annual), accounts and users, subscriptions with a trial-to-active-to-canceled lifecycle, " +
     "usage metering, invoices with line items, payments and refunds, dunning attempts, coupons and tax rates. Views compute MRR, invoice ageing and revenue by month; the example " +
     "queries build an MRR waterfall, cohort retention and payment-failure analysis. All data is synthetic.",
   tags: ["Finance", "SaaS", "Analytics"],

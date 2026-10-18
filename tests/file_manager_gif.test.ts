@@ -8,7 +8,7 @@ const { GifError, composeFrames, composedBytes, describeGif, durationMs, frameMs
 import { CATALOG_BY_ID } from "../src/features/filemanager/fmConvCatalog";
 import { gifFromMixed } from "../src/features/filemanager/fmConvMedia";
 
-// A small GIF writer for the tests (palette of up to 256 colours, LZW compression, optional interlacing).
+// A small GIF writer for the tests (palette of up to 256 colors, LZW compression, optional interlacing).
 interface TFrame { x?: number; y?: number; w: number; h: number; pixels: number[]; delay?: number; disposal?: number; transparent?: number; interlaced?: boolean }
 function lzwEncode(indices: number[], minCode: number): number[] {
   const clear = 1 << minCode, end = clear + 1;
@@ -75,7 +75,7 @@ describe("reading a GIF", () => {
     expect(frameMs(1)).toBe(100);
     expect(frameMs(2)).toBe(20);
   });
-  test("big pictures with many colours survive the compression (the code size grows to 12 bits)", () => {
+  test("big pictures with many colors survive the compression (the code size grows to 12 bits)", () => {
     let seed = 7; const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
     const palette = Array.from({ length: 256 }, (_, i) => [i, 255 - i, (i * 7) & 255]);
     const pixels = Array.from({ length: 200 * 100 }, (_, i) => (rnd() < 0.5 ? Math.floor(rnd() * 256) : i % 17));
@@ -169,7 +169,7 @@ describe("the GIF maker and real ffmpeg output", () => {
     expect(() => gifFromMixed({ exe: "ffmpeg", inputs: Array(40).fill("/c/d.mp4"), output: "/o/o.gif", opts: { ...opts, clip: 10 } } as any)).toThrow(/too long|enormous/);
     expect(gifFromMixed({ exe: "f", inputs: ["/a.png"], output: "/o.gif", opts: { ...opts, repeat: "once" } } as any)).toContain("-1");
   });
-  test.skipIf(!FF)("pictures and a video become one GIF with the right frames, size and colours", () => {
+  test.skipIf(!FF)("pictures and a video become one GIF with the right frames, size and colors", () => {
     const ff = (...a: string[]) => spawnSync(FF!, ["-loglevel", "error", "-y", ...a], { encoding: "utf8" });
     ff("-f", "lavfi", "-i", "color=c=red:s=640x360:d=0.1", "-frames:v", "1", join(dir, "a.png"));
     ff("-f", "lavfi", "-i", "color=c=blue:s=300x500:d=0.1", "-frames:v", "1", join(dir, "b.png"));

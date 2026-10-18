@@ -220,8 +220,10 @@ export function crudClientMain() {
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
-      if (menuEl) { closeMenu(); return; }
+      if (menuEl) { e.preventDefault(); e.stopPropagation(); closeMenu(); return; }
       if (modalStack.length && !(e.target && e.target.classList && e.target.classList.contains("crud-inline"))) {
+        e.preventDefault();
+        e.stopPropagation();
         modalStack[modalStack.length - 1].close();
       }
     }
@@ -684,25 +686,166 @@ export function crudClientMain() {
   }
 
   // -------------------------------------------------------------------------------------------
-  // Import Wizard (CSV / TSV / JSON / JSONL / Markdown / SQL)
+  // Import Wizard (CSV / TSV / PSV / JSON / JSONL / XLSX / ODS / YAML / TOML / XML / Plist / HTML / Markdown / INI / ENV / Properties / SQL)
   // -------------------------------------------------------------------------------------------
-  function openImportDialog(targetTable = null) {
-    const tableSel = mkSelect(
-      (currentSchema ? currentSchema.tables.map(t => t.name) : []),
-      targetTable || activeTable
-    );
+  function arrayBufferToBase64(buf) {
+    const bytes = new Uint8Array(buf);
+    let binary = "";
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  }
 
-    const textarea = h("textarea", { placeholder: "Paste CSV, TSV, JSON, JSONL, or Markdown table content here...", style: "height: 120px;" });
-    const dropZone = h("div", { class: "crud-drop" }, "📁 Drop CSV, TSV, JSON or SQL file here or click to select");
-    const fileInput = h("input", { type: "file", accept: ".csv,.tsv,.json,.jsonl,.sql,.txt", style: "display:none" });
+  function openImportDialog(targetTable = null) {
+    const st = {
+      text: "", base64: "", fileName: "",
+      format: "auto", sheet: "", hasHeader: true,
+      mode: "append", onConflict: "abort",
+      targetMode: (targetTable || activeTable) ? "existing" : "new",
+      newTableName: "",
+      parsed: null,
+    };
+
+    const existingTables = currentSchema ? currentSchema.tables.map(t => t.name) : [];
+    const tableSel = mkSelect(
+      [{ value: "__new__", label: "➕ Create New Table…" }].concat(existingTables.map(t => ({ value: t, label: t }))),
+      targetTable || activeTable || (existingTables[0] || "__new__"),
+      (val) => {
+        newTableInput.style.display = val === "__new__" ? "inline-block" : "none";
+      }
+    );
+    const newTableInput = h("input", {
+      type: "text",
+      placeholder: "New table name (e.g. imported_data)",
+      style: "max-width: 220px; display: " + (tableSel.value === "__new__" ? "inline-block" : "none")
+    });
+
+    const fmtSel = mkSelect([
+      { value: "auto", label: "Auto-detect format" },
+      { value: "csv", label: "CSV / Delimited" },
+      { value: "tsv", label: "TSV (Tab-separated)" },
+      { value: "psv", label: "PSV (Pipe-separated)" },
+      { value: "json", label: "JSON / JSONC / JSON5" },
+      { value: "ndjson", label: "JSON Lines (NDJSON)" },
+      { value: "xlsx", label: "Excel Workbook (.xlsx)" },
+      { value: "ods", label: "OpenDocument Spreadsheet (.ods)" },
+      { value: "yaml", label: "YAML (.yaml / .yml)" },
+      { value: "toml", label: "TOML (.toml)" },
+      { value: "xml", label: "XML records (.xml)" },
+      { value: "plist", label: "Apple Property List (.plist)" },
+      { value: "html", label: "HTML <table> (.html)" },
+      { value: "markdown", label: "Markdown table (.md)" },
+      { value: "ini", label: "INI / Config (.ini / .cfg)" },
+      { value: "env", label: "Dotenv (.env)" },
+      { value: "properties", label: "Java .properties" },
+      { value: "sql", label: "SQL dump → extract table rows (INSERT / COPY)" },
+      { value: "sql_script", label: "SQL script → execute DDL/DML directly" },
+    ], "auto", (v) => { st.format = v; previewImport(); });
+
+    const sheetSelWrap = h("span", { style: "display:none" });
+    const statusBadge = h("div", { class: "crud-info", style: "display:none" });
+    const previewWrap = h("div");
+
+    const textarea = h("textarea", {
+      placeholder: "Paste CSV, TSV, JSON, JSONL, YAML, TOML, XML, HTML table, Markdown table, INI, .env, or SQL content here...",
+      style: "height: 110px;"
+    });
+    const dropZone = h(
+      "div",
+      { class: "crud-drop" },
+      "📁 Drop CSV, TSV, JSON, Excel (.xlsx), ODS, YAML, TOML, XML, Plist, HTML, Markdown, INI/ENV or SQL file here or click to select"
+    );
+    const fileInput = h("input", {
+      type: "file",
+      accept: ".csv,.tsv,.tab,.psv,.txt,.dat,.log,.json,.jsonc,.json5,.jsonl,.ndjson,.xlsx,.ods,.yaml,.yml,.toml,.xml,.plist,.sql,.md,.markdown,.html,.htm,.ini,.cfg,.conf,.env,.properties,text/*,application/json,application/xml",
+      style: "display:none"
+    });
+
+    async function loadFileObj(f) {
+      if (!f) return;
+      st.fileName = f.name || "";
+      st.sheet = "";
+      if (!newTableInput.value) {
+        newTableInput.value = st.fileName.replace(/\.[^.]+$/, "").replace(/[^\w]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase() || "imported_data";
+      }
+      if (/\.xlsx$|\.ods$/i.test(st.fileName)) {
+        const buf = await f.arrayBuffer();
+        st.base64 = arrayBufferToBase64(buf);
+        st.text = "";
+        textarea.value = "";
+        textarea.disabled = true;
+      } else {
+        st.text = await f.text();
+        st.base64 = "";
+        textarea.disabled = false;
+        textarea.value = st.text;
+      }
+      statusBadge.style.display = "block";
+      statusBadge.textContent = `📄 Loaded ${f.name} (${(f.size / 1024).toFixed(1)} KB)`;
+      showToast(`Loaded ${f.name} (${f.size} bytes)`);
+      await previewImport();
+    }
+
+    async function previewImport() {
+      previewWrap.innerHTML = "";
+      sheetSelWrap.style.display = "none";
+      sheetSelWrap.innerHTML = "";
+      const rawText = st.text || textarea.value.trim();
+      if (!rawText && !st.base64) return;
+      if (st.format === "sql_script") {
+        previewWrap.appendChild(h("div", { class: "crud-info" }, "SQL script mode: will execute all statements inside a transaction."));
+        return;
+      }
+      try {
+        const res = await call("/api/parse-import", {
+          content: st.base64 ? undefined : rawText,
+          base64: st.base64 || undefined,
+          fileName: st.fileName || undefined,
+          format: st.format === "auto" ? undefined : st.format,
+          sheet: st.sheet || undefined,
+          hasHeader: st.hasHeader,
+        });
+        if (!res.success) {
+          previewWrap.appendChild(h("div", { class: "crud-error" }, res.error || "Could not parse input"));
+          st.parsed = null;
+          return;
+        }
+        st.parsed = res;
+        if (res.sheets && res.sheets.length > 1) {
+          sheetSelWrap.style.display = "inline-block";
+          const shSel = mkSelect(
+            res.sheets.map(s => ({ value: s, label: "Sheet/Table: " + s })),
+            st.sheet || res.selectedSheet || res.sheets[0],
+            (v) => { st.sheet = v; previewImport(); }
+          );
+          sheetSelWrap.appendChild(shSel);
+        }
+        const cols = res.columns || [];
+        const rows = res.rows || [];
+        previewWrap.appendChild(
+          h("div", { class: "crud-section-title" }, `Preview (${res.format.toUpperCase()}) — ${rows.length.toLocaleString()} rows × ${cols.length} columns`)
+        );
+        if (cols.length) {
+          const tbl = h("table", null,
+            h("thead", null, h("tr", null, cols.map(c => h("th", null, c)))),
+            h("tbody", null, rows.slice(0, 6).map(r => h("tr", null, cols.map((c, i) => {
+              const v = Array.isArray(r) ? r[i] : r[c];
+              return h("td", null, v === null || v === undefined ? "NULL" : typeof v === "object" ? JSON.stringify(v) : String(v));
+            }))))
+          );
+          previewWrap.appendChild(h("div", { class: "crud-scroll" }, tbl));
+        }
+      } catch (err) {
+        previewWrap.appendChild(h("div", { class: "crud-error" }, err.message || String(err)));
+      }
+    }
 
     dropZone.onclick = () => fileInput.click();
     fileInput.onchange = (e) => {
       const f = e.target.files && e.target.files[0];
-      if (!f) return;
-      const r = new FileReader();
-      r.onload = (ev) => { textarea.value = String(ev.target.result); showToast(`Loaded ${f.name} (${f.size} bytes)`); };
-      r.readAsText(f);
+      if (f) loadFileObj(f);
     };
 
     dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add("dragover"); };
@@ -711,21 +854,56 @@ export function crudClientMain() {
       e.preventDefault();
       dropZone.classList.remove("dragover");
       const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-      if (!f) return;
-      const r = new FileReader();
-      r.onload = (ev) => { textarea.value = String(ev.target.result); showToast(`Loaded ${f.name} (${f.size} bytes)`); };
-      r.readAsText(f);
+      if (f) loadFileObj(f);
+    };
+
+    textarea.oninput = () => {
+      st.text = textarea.value;
+      st.base64 = "";
+      previewImport();
     };
 
     const body = h("div", { class: "crud-body" },
       h("div", { class: "crud-row" },
         h("label", { style: "font-weight: 700; width: 100px;" }, "Target Table:"),
-        tableSel
+        tableSel,
+        newTableInput,
+        btn("🖥️ Browse Server File…", async () => {
+          const r = await call("/api/pick-file", {});
+          if (r.success) {
+            st.fileName = r.name || "";
+            st.sheet = "";
+            if (!newTableInput.value) {
+              newTableInput.value = st.fileName.replace(/\.[^.]+$/, "").replace(/[^\w]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase() || "imported_data";
+            }
+            if (r.isBinary && r.base64) {
+              st.base64 = r.base64;
+              st.text = "";
+              textarea.value = "";
+              textarea.disabled = true;
+            } else {
+              st.text = r.text || "";
+              st.base64 = "";
+              textarea.disabled = false;
+              textarea.value = st.text;
+            }
+            statusBadge.style.display = "block";
+            statusBadge.textContent = `📄 Loaded ${st.fileName}`;
+            await previewImport();
+          }
+        }, "btn-sm")
+      ),
+      h("div", { class: "crud-row" },
+        h("label", { style: "font-weight: 700; width: 100px;" }, "Format:"),
+        fmtSel,
+        sheetSelWrap
       ),
       dropZone,
       fileInput,
+      statusBadge,
       h("div", { class: "crud-section-title" }, "Or Paste Content Below:"),
-      textarea
+      textarea,
+      previewWrap
     );
 
     const m = openModal({
@@ -735,42 +913,41 @@ export function crudClientMain() {
       buttons: [
         btn("Cancel", () => m.close()),
         btn("Execute Import", async () => {
-          const tName = tableSel.value;
-          const text = textarea.value.trim();
-          if (!tName) { m.error("Select target table"); return; }
-          if (!text) { m.error("No data provided to import"); return; }
-
-          let parsedRows = [];
-          try {
-            if (text.startsWith("[") && text.endsWith("]")) {
-              parsedRows = JSON.parse(text);
-            } else if (text.startsWith("{")) {
-              parsedRows = text.split("\n").filter(l => l.trim()).map(l => JSON.parse(l));
+          const isNew = tableSel.value === "__new__";
+          const tName = isNew ? newTableInput.value.trim() : tableSel.value;
+          const rawText = st.text || textarea.value.trim();
+          if (st.format === "sql_script") {
+            if (!rawText) { m.error("No SQL script provided"); return; }
+            const res = await call("/api/script", { sql: rawText });
+            if (res.success) {
+              showToast("✓ SQL script executed!");
+              m.close();
+              loadSchema();
+              if (activeTable) loadTableData(activeTable, 1);
             } else {
-              // CSV/TSV Parser
-              const lines = text.split("\n").filter(l => l.trim());
-              if (lines.length > 1) {
-                const delim = lines[0].includes("\t") ? "\t" : ",";
-                const headers = lines[0].split(delim).map(h => h.trim().replace(/^"|"$/g, ''));
-                parsedRows = lines.slice(1).map(l => {
-                  const vals = l.split(delim).map(v => v.trim().replace(/^"|"$/g, ''));
-                  const row = {};
-                  headers.forEach((h, i) => { row[h] = vals[i] !== undefined ? vals[i] : null; });
-                  return row;
-                });
-              }
+              m.error(res.error || "Script execution failed");
             }
-          } catch(err) {
-            m.error("Parse error: " + err.message);
             return;
           }
+          if (!tName) { m.error("Select or enter a target table name"); return; }
+          if (!rawText && !st.base64) { m.error("No data provided to import"); return; }
 
-          if (!parsedRows.length) { m.error("Could not parse rows from input"); return; }
-
-          showToast(`Importing ${parsedRows.length} records into "${tName}"...`);
-          const res = await call("/api/rows/import-batch", { table: tName, rows: parsedRows });
+          showToast(`Importing into "${tName}"...`);
+          const res = await call("/api/rows/import-batch", {
+            table: tName,
+            create: isNew,
+            content: st.base64 ? undefined : rawText,
+            base64: st.base64 || undefined,
+            fileName: st.fileName || undefined,
+            format: st.format === "auto" ? undefined : st.format,
+            sheet: st.sheet || undefined,
+            hasHeader: st.hasHeader,
+            rows: st.parsed ? st.parsed.rows : undefined,
+            columns: st.parsed ? st.parsed.columns : undefined,
+          });
           if (res.success) {
-            showToast(`✓ Successfully imported ${res.importedCount || parsedRows.length} records!`);
+            const cnt = res.inserted ?? res.importedCount ?? (st.parsed ? st.parsed.rows.length : 0);
+            showToast(`✓ Successfully imported ${cnt} records!`);
             m.close();
             loadSchema();
             loadTableData(tName, 1);

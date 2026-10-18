@@ -228,9 +228,9 @@ describe.skipIf(!ffmpeg || !hasProbe)("sound with ffmpeg", () => {
     }
   });
 
-  test("normalise, silence, speed, join, tags, art, waveform and ringtone", async () => {
+  test("normalize, silence, speed, join, tags, art, waveform and ringtone", async () => {
     const norm = (await run({ action: "aud-normalize", paths: [tone] })).outputs[0]!;
-    expect(norm.endsWith("tone (normalised).wav")).toBe(true);
+    expect(norm.endsWith("tone (normalized).wav")).toBe(true);
     expect((await probe(norm)).duration).toBeGreaterThan(2.5);
     const sil = join(fresh("silence"), "gap.wav");
     await exec([resolveTool(ctx, "ffmpeg")!, "-nostdin", "-loglevel", "error", "-f", "lavfi", "-t", "1", "-i", "anullsrc=r=44100:cl=mono", "-f", "lavfi", "-i", "sine=frequency=500:duration=1", "-filter_complex", "[0][1]concat=n=2:v=0:a=1", sil]);

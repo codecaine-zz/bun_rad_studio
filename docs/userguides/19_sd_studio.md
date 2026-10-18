@@ -69,4 +69,4 @@ bun run cli:sd "http://localhost:3000" "https://api.prod.com" config.json --back
 - **Safety**: Binary files and files over 5 MB are skipped automatically (the status bar says how many), so they cannot be corrupted by a text replace.
 - **↶ Undo Last Replace**: Restores every file changed by the most recent *Replace In Files* to its previous content (kept for the current session, no backup files needed).
 - **📋 Copy Diff / 💾 Save Diff As… / 📊 Save Report As…**: Copy or save the unified diff of the last preview/replace, or save a Markdown report listing each file's matches and hunks.
-- **Feedback**: A toast summarises each run (matches and files), warns when nothing matched, and shows regex errors immediately.
+- **Feedback**: A toast summarizes each run (matches and files), warns when nothing matched, and shows regex errors immediately.

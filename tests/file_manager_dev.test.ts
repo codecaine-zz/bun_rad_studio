@@ -92,7 +92,7 @@ describe("the language table", () => {
     for (const f of ["main.v", "x.vv", "build.vsh", "MAIN.V"]) expect(languageForName(f)?.name, f).toBe("V");
   });
 
-  test("files are recognised by name, extension and first line", () => {
+  test("files are recognized by name, extension and first line", () => {
     expect(languageForName("Makefile")?.name).toBe("Makefile");
     expect(languageForName("Dockerfile")?.name).toBe("Dockerfile");
     expect(languageForName("Dockerfile.dev")?.name).toBe("Dockerfile");
@@ -776,7 +776,7 @@ describe("project overview", () => {
     expect(text).not.toContain("ANOTHERSECRET456");
   });
 
-  test("licence detection from the text", async () => {
+  test("license detection from the text", async () => {
     const samples: Record<string, string> = {
       MIT: "MIT License\n\nPermission is hereby granted, free of charge, to any person obtaining a copy",
       "Apache-2.0": "Apache License\nVersion 2.0, January 2004",

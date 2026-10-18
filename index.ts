@@ -336,17 +336,31 @@ export function attachWindowShortcuts(wv: Webview, options?: WindowShortcutOptio
     let alwaysOnTopState = false;
     wv.init(DESKTOP_SHORTCUTS_SCRIPT);
 
-    // Enable macOS FullScreen Collection Behavior immediately on creation
+    // Enable macOS FullScreen Collection Behavior immediately on creation and silence unhandled-key NSBeep()
     if (process.platform === "darwin" && wv?.unsafeWindowHandle) {
         try {
             const libobjc = dlopen("libobjc.dylib", {
+                objc_getClass: { args: [FFIType.cstring], returns: FFIType.pointer },
                 objc_msgSend: { args: [FFIType.pointer, FFIType.pointer, FFIType.u64], returns: FFIType.u64 },
-                sel_registerName: { args: [FFIType.cstring], returns: FFIType.pointer }
+                sel_registerName: { args: [FFIType.cstring], returns: FFIType.pointer },
+                class_getMethodImplementation: { args: [FFIType.pointer, FFIType.pointer], returns: FFIType.pointer },
+                class_replaceMethod: { args: [FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.cstring], returns: FFIType.pointer },
             });
             const sel_cb = libobjc.symbols.sel_registerName(Buffer.from("collectionBehavior\0"));
             const sel_scb = libobjc.symbols.sel_registerName(Buffer.from("setCollectionBehavior:\0"));
             const cb = BigInt(libobjc.symbols.objc_msgSend(wv.unsafeWindowHandle, sel_cb, 0n));
             libobjc.symbols.objc_msgSend(wv.unsafeWindowHandle, sel_scb, cb | 128n);
+            const nsObject = libobjc.symbols.objc_getClass(Buffer.from("NSObject\0"));
+            const nsResponder = libobjc.symbols.objc_getClass(Buffer.from("NSResponder\0"));
+            const noopImp = nsObject ? libobjc.symbols.class_getMethodImplementation(nsObject, libobjc.symbols.sel_registerName(Buffer.from("self\0"))) : null;
+            if (noopImp && nsResponder) {
+                libobjc.symbols.class_replaceMethod(nsResponder, libobjc.symbols.sel_registerName(Buffer.from("noResponderFor:\0")), noopImp, Buffer.from("v@::\0"));
+            }
+            const cg = dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", {
+                CGSSetSymbolicHotKeyEnabled: { args: [FFIType.i32, FFIType.bool], returns: FFIType.i32 },
+            });
+            cg.symbols.CGSSetSymbolicHotKeyEnabled(36, false);
+            cg.symbols.CGSSetSymbolicHotKeyEnabled(37, false);
         } catch (e) {}
     }
 
@@ -582,6 +596,14 @@ ${DESKTOP_SHORTCUTS_SCRIPT}
         if (now - lastFullscreenTime < 450) return;
         lastFullscreenTime = now;
 
+        if (window.parent && window.parent !== window) {
+            try { window.top.postMessage({ fmToggleExpand: true }, "*"); } catch(e) {}
+            if (window.parent !== window.top) {
+                try { window.parent.postMessage({ fmToggleExpand: true }, "*"); } catch(e) {}
+            }
+            return;
+        }
+
         // 1. Native Desktop Webview IPC (if available, dispatch ONCE and return immediately)
         if (typeof window.toggleNativeFullscreen === "function") {
             try { window.toggleNativeFullscreen(); return; } catch(e) {}
@@ -690,7 +712,7 @@ ${DESKTOP_SHORTCUTS_SCRIPT}
             return;
         }
 
-        const isInput = !!(e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.target.isContentEditable));
+        const isInput = !!(e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.target.isContentEditable || (typeof e.target.closest === "function" && e.target.closest("[data-typing-input], [data-typing-app]")))) || !!(document.body && document.body.hasAttribute && document.body.hasAttribute("data-typing-app"));
         const isFn = isFnPressed || (typeof e.getModifierState === "function" && (e.getModifierState("Fn") || e.getModifierState("FnLock") || e.getModifierState("Symbol")));
         const isBareF = !e.metaKey && !e.ctrlKey && !e.altKey && isF;
         const isCmdOrCtrlF = (e.metaKey || e.ctrlKey) && isF;
@@ -706,8 +728,8 @@ ${DESKTOP_SHORTCUTS_SCRIPT}
         if (
             isCmdOrCtrlF ||
             (!isInput && isBareF) ||
-            (isFn && isF) ||
-            e.key === "F11" || code === "F11" ||
+            (!isInput && isFn && isF) ||
+            e.key === "F11" || code === "F11" || e.key === "\\uF70E" || e.keyCode === 122 ||
             (e.altKey && (e.key === "Enter" || code === "Enter"))
         ) {
             e.preventDefault();
@@ -781,6 +803,12 @@ ${DESKTOP_SHORTCUTS_SCRIPT}
 
     // Automatically trigger initial fullscreen on application launch with verification
     function triggerInitialFullscreen() {
+        if (document.body && document.body.hasAttribute && document.body.hasAttribute("data-typing-app")) {
+            if (typeof window.requestInitialFullscreen === "function") {
+                try { window.requestInitialFullscreen(); } catch(e) {}
+            }
+            return;
+        }
         var attempts = 0;
         function attempt() {
             if (typeof window.requestInitialFullscreen === "function") {
@@ -800,11 +828,9 @@ ${DESKTOP_SHORTCUTS_SCRIPT}
             }
             if (typeof window.toggleNativeFullscreen === "function") {
                 try { window.toggleNativeFullscreen(); } catch(e) {}
-            } else if (typeof window.toggleFullscreen === "function") {
-                try { window.toggleFullscreen(); } catch(e) {}
-            }
-            if (attempts++ < 25) {
-                setTimeout(attempt, 150);
+                if (attempts++ < 25) {
+                    setTimeout(attempt, 150);
+                }
             }
         }
         setTimeout(attempt, 80);

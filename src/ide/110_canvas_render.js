@@ -763,6 +763,7 @@
 			if (canvasStats) {
 				canvasStats.textContent = "Form: " + formSpec.width + "x" + formSpec.height + " | Controls: " + formSpec.controls.length + (selectedIndices.length > 0 ? " (Selected: " + selectedIndices.length + ")" : "");
 			}
+			if (typeof updateToolbarSelectionState === "function") updateToolbarSelectionState();
 		}
 
 		function renderCanvas() {
@@ -784,6 +785,7 @@
 
 			const statsEl = document.getElementById("canvasStats");
 			if (statsEl) statsEl.textContent = "Form: " + formSpec.width + "x" + formSpec.height + " | Controls: " + formSpec.controls.length + (selectedIndices.length > 0 ? " (Selected: " + selectedIndices.length + ")" : "");
+			if (typeof updateToolbarSelectionState === "function") updateToolbarSelectionState();
 
 			formSpec.controls.forEach((ctrl, idx) => {
 				const div = document.createElement("div");

@@ -117,8 +117,34 @@
 			}
 		}
 
+		function updateToolbarSelectionState() {
+			const selCount = Array.isArray(selectedIndices) ? selectedIndices.length : 0;
+			document.querySelectorAll("[data-min-sel]").forEach(btn => {
+				const minSel = parseInt(btn.getAttribute("data-min-sel") || "1", 10);
+				if (selCount < minSel) {
+					btn.classList.add("btn-disabled");
+					btn.setAttribute("aria-disabled", "true");
+				} else {
+					btn.classList.remove("btn-disabled");
+					btn.setAttribute("aria-disabled", "false");
+				}
+			});
+			const pasteBtn = document.getElementById("pasteBtn");
+			if (pasteBtn) {
+				const hasClip = Array.isArray(clipboardBuffer) && clipboardBuffer.length > 0;
+				if (!hasClip) {
+					pasteBtn.classList.add("btn-disabled");
+					pasteBtn.setAttribute("aria-disabled", "true");
+				} else {
+					pasteBtn.classList.remove("btn-disabled");
+					pasteBtn.setAttribute("aria-disabled", "false");
+				}
+			}
+		}
+
 		function populateInspector() {
 			updateObjectInspectorDropdown();
+			updateToolbarSelectionState();
 			const container = document.getElementById("controlPropContainer");
 			if (!container) return;
 			if (selectedIndices.length === 0) {
@@ -531,18 +557,43 @@
 			renderCode();
 		}
 
+		let lastActiveCodeTab = "tabBunTS";
+		const INSPECTOR_CODE_TABS = ["tabBunTS", "tabHTML", "tabReact", "tabVue", "tabPython", "tabJSON"];
+
 		function switchTab(tabId, evt) {
+			const resolvedTabId = tabId === "tabCode" ? (lastActiveCodeTab || "tabBunTS") : tabId;
+			const isCodeTab = INSPECTOR_CODE_TABS.includes(resolvedTabId);
+
 			document.querySelectorAll(".tab-item").forEach(t => t.classList.remove("active"));
 			document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
-			if (evt && evt.target) {
-				evt.target.classList.add("active");
-			} else {
-				document.querySelectorAll(".tab-item").forEach(t => {
-					if (t.getAttribute("onclick") && t.getAttribute("onclick").includes("'" + tabId + "'")) {
-						t.classList.add("active");
+
+			const subbar = document.getElementById("inspectorCodeSubbar");
+			if (isCodeTab) {
+				lastActiveCodeTab = resolvedTabId;
+				const primaryCodeTab = document.getElementById("inspectorCodePrimaryTab");
+				if (primaryCodeTab) primaryCodeTab.classList.add("active");
+				if (subbar) subbar.classList.add("visible");
+				document.querySelectorAll(".code-lang-pill").forEach(pill => {
+					const oc = pill.getAttribute("onclick") || "";
+					if (oc.includes("'" + resolvedTabId + "'")) {
+						pill.classList.add("active");
+					} else {
+						pill.classList.remove("active");
 					}
 				});
+			} else {
+				if (subbar) subbar.classList.remove("visible");
+				if (evt && evt.target && evt.target.classList.contains("tab-item")) {
+					evt.target.classList.add("active");
+				} else {
+					document.querySelectorAll(".tab-item").forEach(t => {
+						if (t.getAttribute("onclick") && t.getAttribute("onclick").includes("'" + resolvedTabId + "'")) {
+							t.classList.add("active");
+						}
+					});
+				}
 			}
-			const targetContent = document.getElementById(tabId);
+
+			const targetContent = document.getElementById(resolvedTabId);
 			if (targetContent) targetContent.classList.add("active");
 		}

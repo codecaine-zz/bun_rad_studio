@@ -39,26 +39,42 @@
       box-sizing: border-box;
     }
 
+    .hidden {
+      display: none !important;
+    }
+
     html, body {
       height: 100%;
       height: 100dvh;
+      margin: 0;
       overflow: hidden;
       touch-action: none;
     }
 
     body {
-      font-family: 'Outfit', sans-serif;
+      font-family: 'Outfit', system-ui, -apple-system, sans-serif;
       user-select: none;
       -webkit-user-select: none;
+      color: #f1f5f9;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
       background-color: var(--bg-dark);
       background-image: 
-        radial-gradient(ellipse at 50% 0%, rgba(14, 165, 233, 0.1) 0%, transparent 65%),
-        radial-gradient(circle at 10% 90%, rgba(245, 158, 11, 0.05) 0%, transparent 40%),
-        radial-gradient(circle at 90% 90%, rgba(255, 51, 102, 0.05) 0%, transparent 40%);
+        radial-gradient(ellipse at 50% 0%, rgba(14, 165, 233, 0.14) 0%, transparent 65%),
+        radial-gradient(circle at 10% 90%, rgba(245, 158, 11, 0.06) 0%, transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(255, 51, 102, 0.06) 0%, transparent 40%);
       padding-top: max(6px, env(safe-area-inset-top));
       padding-bottom: max(6px, env(safe-area-inset-bottom));
       padding-left: max(8px, env(safe-area-inset-left));
       padding-right: max(8px, env(safe-area-inset-right));
+    }
+
+    svg {
+      width: 1.15rem;
+      height: 1.15rem;
+      flex-shrink: 0;
     }
 
     .retro-font {
@@ -66,14 +82,14 @@
     }
 
     .fun-font {
-      font-family: 'Fredoka One', cursive;
+      font-family: 'Fredoka One', cursive, sans-serif;
     }
 
     /* Arcade Cabinet Screen Frame */
     .arcade-cabinet {
-      background: radial-gradient(ellipse at 50% 0%, rgba(14, 165, 233, 0.14) 0%, rgba(15, 23, 42, 0.96) 80%);
-      box-shadow: inset 0 0 35px rgba(0, 240, 255, 0.14), 0 20px 50px rgba(0, 0, 0, 0.85);
-      border: 2px solid rgba(56, 189, 248, 0.35);
+      background: radial-gradient(ellipse at 50% 0%, rgba(14, 165, 233, 0.16) 0%, rgba(15, 23, 42, 0.97) 80%);
+      box-shadow: inset 0 0 35px rgba(0, 240, 255, 0.16), 0 20px 50px rgba(0, 0, 0, 0.85);
+      border: 2px solid rgba(56, 189, 248, 0.4);
     }
 
     /* Scanlines effect */
@@ -98,23 +114,21 @@
 
     /* Game Canvas Responsive Sizing */
     #gameCanvas {
-      width: 100%;
+      width: auto;
+      max-width: 100%;
       height: auto;
-      max-height: 58vh;
+      max-height: max(360px, calc(100dvh - 165px));
       aspect-ratio: 4 / 3;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
 
-    @media (min-height: 720px) {
-      #gameCanvas {
-        max-height: 64vh;
+    @media (min-width: 768px) and (pointer: fine) {
+      #touchControlsSection {
+        display: none;
       }
-    }
-
-    @media (min-height: 850px) {
       #gameCanvas {
-        max-height: 68vh;
+        max-height: max(420px, calc(100dvh - 125px));
       }
     }
 
@@ -128,9 +142,9 @@
   <!-- Top Navigation Bar -->
   <header class="w-full max-w-4xl flex items-center justify-between py-1.5 px-3 bg-slate-900/90 rounded-2xl border border-slate-800 backdrop-blur shadow-lg flex-shrink-0">
     <div class="flex items-center gap-2 sm:gap-3">
-      <a href="/" class="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 hover:text-cyan-300 border border-slate-700 transition flex items-center gap-1.5 text-xs font-semibold" title="Return to Hub">
+      <a href="/" id="btnHub" data-close-game="true" class="hub-return-btn p-1.5 sm:p-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 active:bg-rose-600/40 text-rose-300 hover:text-white border border-rose-500/40 transition flex items-center gap-1.5 text-xs font-bold" title="Close Game & Return to Hub">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
-        <span class="hidden sm:inline">Hub</span>
+        <span class="hidden sm:inline">Exit</span>
       </a>
 
       <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-rose-500 via-amber-400 to-cyan-400 p-0.5 shadow-md flex items-center justify-center flex-shrink-0">
@@ -141,16 +155,16 @@
 
       <div>
         <h1 class="text-base sm:text-2xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-rose-400 to-cyan-300 fun-font leading-tight">
-          CODECAINE BROS. <span class="text-[10px] uppercase px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30 hidden xs:inline">Triple-A</span>
+          CODECAINE BROS. <span class="text-[10px] uppercase px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30 hidden xs:inline">Overclocked Deluxe</span>
         </h1>
-        <p class="text-[11px] text-slate-400 hidden sm:block">Bump floors beneath pests, slam the POW, and kick them out!</p>
+        <p class="text-[11px] text-slate-400 hidden sm:block">Bump floors beneath pests, shatter Cryo-Freezies, slam the POW, and kick them out!</p>
       </div>
     </div>
 
-    <!-- Quick Audio & Game Actions -->
+    <!-- Quick Audio, Mode & Game Actions -->
     <div class="flex items-center gap-1.5 sm:gap-2">
       <!-- POW Charges Indicator (HUD Mini) -->
-      <div class="flex items-center gap-1 bg-slate-950/80 px-2 py-1 rounded-xl border border-sky-500/30 text-xs font-bold mr-1">
+      <div class="flex items-center gap-1 bg-slate-950/80 px-2 py-1 rounded-xl border border-sky-500/30 text-xs font-bold mr-0.5" title="POW Block Shockwave Charges (Space/Bump)">
         <span class="text-sky-400 text-[10px] sm:text-xs">POW</span>
         <div id="powLights" class="flex gap-1">
           <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#00f0ff]"></span>
@@ -159,16 +173,20 @@
         </div>
       </div>
 
-      <button id="btnCrtToggle" class="px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-[10px] sm:text-xs font-bold text-cyan-300 border border-slate-700 transition" title="Toggle CRT Arcade Phosphor Shader">
+      <button id="btnQuickMode" class="px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-[10px] sm:text-xs font-bold text-amber-300 border border-slate-700 transition" title="Cycle Game Mode: 1P Solo / 1P + AI Caine / 2P Local Co-Op">
+        MODE: <span id="quickModeText">1P SOLO</span>
+      </button>
+
+      <button id="btnCrtToggle" class="px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-[10px] sm:text-xs font-bold text-cyan-300 border border-slate-700 transition" title="Toggle CRT Arcade Phosphor Shader (C)">
         CRT: <span id="crtStateText">OFF</span>
       </button>
 
-      <button id="btnSoundToggle" class="p-2 sm:p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 border border-slate-700 transition" title="Toggle Sound">
+      <button id="btnSoundToggle" class="p-2 sm:p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 border border-slate-700 transition" title="Toggle Sound (M)">
         <svg id="soundIconOn" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
         <svg id="soundIconOff" class="w-4 h-4 sm:w-5 sm:h-5 hidden text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
       </button>
 
-      <button id="btnPause" class="p-2 sm:p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 border border-slate-700 transition" title="Pause Game">
+      <button id="btnPause" class="p-2 sm:p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 border border-slate-700 transition" title="Pause Game (P)">
         <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </button>
 
@@ -238,9 +256,10 @@
       <div id="pauseOverlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm hidden flex flex-col items-center justify-center gap-3 z-30 p-4 text-center">
         <div class="text-3xl font-black text-white fun-font tracking-wider">GAME PAUSED</div>
         <p class="text-slate-400 text-xs max-w-xs">Pest extermination halted. Ready to jump back in?</p>
-        <div class="flex flex-col gap-2 w-48 mt-2">
-          <button id="btnResume" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold hover:brightness-110 shadow-lg shadow-cyan-500/25">RESUME</button>
-          <button id="btnRestartPhase" class="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700">RESTART PHASE</button>
+        <div class="flex flex-col gap-2 w-52 mt-2">
+          <button id="btnResume" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold hover:brightness-110 shadow-lg shadow-cyan-500/25">RESUME (P / SPACE)</button>
+          <button id="btnRestartPhase" class="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700">RESTART PHASE (R)</button>
+          <a href="/" data-close-game="true" class="hub-return-btn w-full py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-bold border border-rose-500/40 block">EXIT GAME</a>
         </div>
       </div>
 
@@ -257,8 +276,8 @@
         </div>
 
         <div class="flex flex-col gap-2 w-56 mt-2">
-          <button id="btnNextOrRetry" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 text-white font-bold hover:brightness-110 shadow-lg shadow-amber-500/25">NEXT PHASE</button>
-          <button id="btnNewGame" class="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700">MAIN MENU</button>
+          <button id="btnNextOrRetry" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 text-white font-bold hover:brightness-110 shadow-lg shadow-amber-500/25">NEXT PHASE (SPACE)</button>
+          <button id="btnNewGame" class="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700">NEW GAME (PHASE 1)</button>
         </div>
       </div>
 
@@ -267,7 +286,7 @@
   </main>
 
   <!-- Mobile Touch Virtual Controls Section -->
-  <section class="w-full max-w-lg flex flex-col gap-1 px-3 py-1 flex-shrink-0 z-10">
+  <section id="touchControlsSection" class="w-full max-w-lg flex flex-col gap-1 px-3 py-1 flex-shrink-0 z-10">
     <div class="grid grid-cols-4 gap-2">
       <!-- D-Pad Left -->
       <button id="touchLeft" class="arcade-btn h-12 sm:h-14 rounded-2xl bg-slate-800/90 border border-slate-700 flex items-center justify-center shadow-lg active:bg-slate-700">
@@ -312,12 +331,13 @@
         </div>
       </div>
 
-      <!-- Game Mode: Solo or Co-Op Partner AI -->
+      <!-- Game Mode: Solo, AI Partner, or 2P Local Co-Op -->
       <div>
         <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Game Mode</label>
-        <div class="grid grid-cols-2 gap-2">
-          <button id="btnModeSolo" class="mode-opt py-1.5 rounded-xl border border-amber-500/50 text-xs font-bold text-amber-400 bg-amber-500/10">1P SOLO</button>
-          <button id="btnModeCoop" class="mode-opt py-1.5 rounded-xl border border-slate-700 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700">1P + AI CAINE</button>
+        <div class="grid grid-cols-3 gap-1.5">
+          <button id="btnModeSolo" class="mode-opt py-1.5 rounded-xl border border-amber-500/50 text-[11px] font-bold text-amber-400 bg-amber-500/10">1P SOLO</button>
+          <button id="btnModeCoop" class="mode-opt py-1.5 rounded-xl border border-slate-700 text-[11px] font-bold text-slate-300 bg-slate-800 hover:bg-slate-700">1P + AI CAINE</button>
+          <button id="btnMode2P" class="mode-opt py-1.5 rounded-xl border border-slate-700 text-[11px] font-bold text-slate-300 bg-slate-800 hover:bg-slate-700">2P CO-OP</button>
         </div>
       </div>
 
@@ -1002,6 +1022,8 @@
     let powCharges = 3;
     let gameState = 'START';
     let coOpPartnerEnabled = false;
+    let gameMode = 'SOLO'; // 'SOLO', 'AI', '2P'
+    let frozenPlatforms = new Set();
     let screenShake = 0;
     let comboCount = 0;
     let comboResetTimer = null;
@@ -1104,6 +1126,7 @@
         this.speed = 4.2;
         this.jumpForce = -11.6;
         this.isGrounded = false;
+        this.currentPlatformId = 'floor';
         this.facing = isP1 ? 1 : -1;
         this.invulnerable = 0;
         this.animTimer = 0;
@@ -1121,6 +1144,7 @@
         this.vx = 0;
         this.vy = 0;
         this.isGrounded = true;
+        this.currentPlatformId = 'floor';
         this.dead = false;
         this.invulnerable = 2000;
         this.coyoteTimer = 0;
@@ -1140,11 +1164,27 @@
         let wantJump = false;
 
         if (!isAI) {
-          if (keys['ArrowLeft'] || keys['KeyA']) moveDir = -1;
-          if (keys['ArrowRight'] || keys['KeyD']) moveDir = 1;
-          const currentJumpInput = keys['ArrowUp'] || keys['KeyW'] || keys['Space'];
-          if (currentJumpInput && !this.jumpHeld) wantJump = true;
-          this.jumpHeld = currentJumpInput;
+          if (gameMode === '2P') {
+            if (this.isP1) {
+              if (keys['KeyA']) moveDir = -1;
+              if (keys['KeyD']) moveDir = 1;
+              const currentJumpInput = Boolean(keys['KeyW'] || keys['Space']);
+              if (currentJumpInput && !this.jumpHeld) wantJump = true;
+              this.jumpHeld = currentJumpInput;
+            } else {
+              if (keys['ArrowLeft']) moveDir = -1;
+              if (keys['ArrowRight']) moveDir = 1;
+              const currentJumpInput = Boolean(keys['ArrowUp'] || keys['Enter'] || keys['ShiftRight']);
+              if (currentJumpInput && !this.jumpHeld) wantJump = true;
+              this.jumpHeld = currentJumpInput;
+            }
+          } else {
+            if (keys['ArrowLeft'] || keys['KeyA']) moveDir = -1;
+            if (keys['ArrowRight'] || keys['KeyD']) moveDir = 1;
+            const currentJumpInput = Boolean(keys['ArrowUp'] || keys['KeyW'] || keys['Space']);
+            if (currentJumpInput && !this.jumpHeld) wantJump = true;
+            this.jumpHeld = currentJumpInput;
+          }
         } else {
           const ai = getAIDecision(this);
           moveDir = ai.moveDir;
@@ -1168,22 +1208,29 @@
         this.squashX += (1.0 - this.squashX) * 0.18;
         this.squashY += (1.0 - this.squashY) * 0.18;
 
+        const onIce = this.isGrounded && this.currentPlatformId && frozenPlatforms.has(this.currentPlatformId);
+
         if (moveDir !== 0) {
           const wasSkidding = this.isGrounded && this.vx !== 0 && Math.sign(this.vx) !== moveDir && Math.abs(this.vx) > 2.0;
-          this.vx = moveDir * this.speed;
+          if (onIce) {
+            this.vx += moveDir * 0.36;
+            if (Math.abs(this.vx) > this.speed * 1.18) this.vx = moveDir * this.speed * 1.18;
+          } else {
+            this.vx = moveDir * this.speed;
+          }
           this.facing = moveDir;
           this.animTimer += 0.25;
 
           if (wasSkidding) {
-            spawnDust(this.x + this.w / 2, this.y + this.h, 6, '#f59e0b');
+            spawnDust(this.x + this.w / 2, this.y + this.h, 6, onIce ? '#67e8f9' : '#f59e0b');
             const pan = (this.x - VW / 2) / (VW / 2);
             sound.playSkid(pan);
           } else if (this.isGrounded && Math.random() < 0.2) {
-            spawnDust(this.x + this.w / 2, this.y + this.h, 1);
+            spawnDust(this.x + this.w / 2, this.y + this.h, 1, onIce ? '#a5f3fc' : '#cbd5e1');
           }
         } else {
-          this.vx *= 0.75;
-          if (Math.abs(this.vx) < 0.2) this.vx = 0;
+          this.vx *= onIce ? 0.94 : 0.75;
+          if (Math.abs(this.vx) < 0.15) this.vx = 0;
         }
 
         // Spawn neon speed ghost trail on fast movement / leaping
@@ -1230,6 +1277,7 @@
 
       checkPlatformCollisions() {
         this.isGrounded = false;
+        this.currentPlatformId = null;
 
         for (const p of platforms) {
           // Landing
@@ -1248,6 +1296,7 @@
             this.y = p.y - this.h;
             this.vy = 0;
             this.isGrounded = true;
+            this.currentPlatformId = p.id;
           }
           // Bumping from below!
           else if (
@@ -1423,7 +1472,7 @@
     // Enemy Class with Realistic Flipping Rocking & Expressive Animations
     class Enemy {
       constructor(type, x, y, dir = 1) {
-        this.type = type; // 'turtle', 'crab', 'fly'
+        this.type = type; // 'turtle', 'crab', 'fly', 'freezie'
         this.x = x;
         this.y = y;
         this.w = 30;
@@ -1434,6 +1483,8 @@
           this.baseSpeed = 1.10 + phaseBonus;
         } else if (type === 'fly') {
           this.baseSpeed = 1.18 + phaseBonus;
+        } else if (type === 'freezie') {
+          this.baseSpeed = 1.02 + phaseBonus;
         } else {
           // 'turtle': calm, well-balanced initial arcade pace for early phases
           this.baseSpeed = 0.85 + phaseBonus;
@@ -1442,6 +1493,7 @@
         this.vx = this.dir * this.speed;
         this.vy = 0;
         this.isGrounded = false;
+        this.currentPlatformId = null;
         this.state = 'WALKING'; // 'WALKING', 'ENRAGED', 'FLIPPED', 'KICKED'
         this.flippedTimer = 0;
         this.flippedMaxTime = Math.max(3800, 7800 - (phase * 350));
@@ -1539,6 +1591,12 @@
               this.squashX = 0.8;
               this.squashY = 1.25;
             }
+          } else if (this.type === 'freezie' && this.isGrounded && this.currentPlatformId && this.currentPlatformId !== 'floor') {
+            if (!frozenPlatforms.has(this.currentPlatformId) && Math.random() < 0.015) {
+              frozenPlatforms.add(this.currentPlatformId);
+              spawnSparkles(this.x + this.w / 2, this.y + this.h, '#67e8f9', 12);
+              spawnComicStarburst(this.x + this.w / 2, this.y, 'FROZEN!');
+            }
           }
 
           this.vx = this.dir * this.speed;
@@ -1557,6 +1615,7 @@
 
       checkCollisions() {
         this.isGrounded = false;
+        this.currentPlatformId = null;
 
         for (const p of platforms) {
           if (
@@ -1578,16 +1637,17 @@
             this.y = p.y - this.h;
             this.vy = 0;
             this.isGrounded = true;
+            this.currentPlatformId = p.id;
           }
         }
 
         this.wasGrounded = this.isGrounded;
 
-        // Bottom pipe entry wrap
-        if (this.y >= 530 && this.state !== 'FLIPPED') {
-          if (this.x < 30 && this.dir === -1) {
+        // Bottom pipe entry wrap (trigger cleanly at pipe flange x <= 56 or x + w >= VW - 56)
+        if (this.y >= 525 && this.state !== 'FLIPPED') {
+          if (this.x <= 56 && this.dir === -1) {
             this.respawnAtTop(1);
-          } else if (this.x > VW - 60 && this.dir === 1) {
+          } else if (this.x + this.w >= VW - 56 && this.dir === 1) {
             this.respawnAtTop(-1);
           }
         }
@@ -1606,6 +1666,19 @@
       }
 
       flip(impulseX = 0, rotSpeed = null) {
+        if (this.type === 'freezie') {
+          // Cryo-Freezie shatters immediately when bumped from below!
+          this.state = 'KICKED';
+          this.kickedVx = impulseX || 2;
+          this.kickedVy = -6;
+          this.y = VH + 100; // Remove next tick
+          totalEnemiesKicked++;
+          addScore(1000, this.x, this.y);
+          spawnSparkles(this.x + this.w / 2, this.y - 100, '#67e8f9', 16);
+          spawnComicStarburst(this.x + this.w / 2, this.y - 100, 'SHATTER!');
+          sound.playKick();
+          return;
+        }
         if (this.state === 'FLIPPED') {
           // Bumping an already flipped enemy gives another air pop with momentum & spin
           this.vy = -6.2;
@@ -1855,6 +1928,42 @@
           ctx.moveTo(4, -9);
           ctx.lineTo(7, -15 - Math.sin(this.animTimer * 3) * 2);
           ctx.stroke();
+        } else if (this.type === 'freezie') {
+          // Triple-A Cryo-Freezie (Slipice Ice Crystal)
+          const pulse = Math.sin(this.animTimer * 2.5) * 1.5;
+          const iceGrad = ctx.createLinearGradient(0, -14, 0, 12);
+          iceGrad.addColorStop(0, '#ecfeff');
+          iceGrad.addColorStop(0.45, '#67e8f9');
+          iceGrad.addColorStop(1, '#0891b2');
+
+          ctx.fillStyle = iceGrad;
+          ctx.beginPath();
+          ctx.moveTo(0, -14 - pulse);
+          ctx.lineTo(8, -5);
+          ctx.lineTo(14, 10);
+          ctx.lineTo(-14, 10);
+          ctx.lineTo(-8, -5);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = '#cffafe';
+          ctx.lineWidth = 1.8;
+          ctx.stroke();
+
+          // Specular crystal facet line
+          ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(0, -12);
+          ctx.lineTo(-3, 8);
+          ctx.stroke();
+
+          // Glowing amber-white eyes inside the crystal
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(-5, -2, 3, 5);
+          ctx.fillRect(3, -2, 3, 5);
+          ctx.fillStyle = '#fef08a';
+          ctx.fillRect(-4, -1, 2, 2);
+          ctx.fillRect(4, -1, 2, 2);
         }
 
         ctx.restore();
@@ -2356,6 +2465,9 @@
       
       enemies = [];
       coins = [];
+      fireballs = [];
+      fireballTimer = 0;
+      frozenPlatforms.clear();
       platformBumps = [];
       brickDebris = [];
       shockwaves = [];
@@ -2386,7 +2498,8 @@
         const totalTurtles = Math.min(10, 3 + phase);
         const totalCrabs = phase >= 2 ? Math.min(8, phase) : 0;
         const totalFlies = phase >= 4 ? Math.min(6, phase - 2) : 0;
-        enemiesRemainingInWave = totalTurtles + totalCrabs + totalFlies;
+        const totalFreezies = phase >= 3 ? Math.min(3, Math.floor(phase / 2)) : 0;
+        enemiesRemainingInWave = totalTurtles + totalCrabs + totalFlies + totalFreezies;
       }
 
       if (phase % 3 === 1) {
@@ -2400,7 +2513,8 @@
       }
 
       gameState = 'PLAYING';
-      waveSpawnTimer = 0;
+      const initialSpawnInterval = Math.max(1800, 3200 - (phase - 1) * 250);
+      waveSpawnTimer = Math.max(0, initialSpawnInterval - 450); // First enemy emerges within 450ms!
       sound.setHurryUp(false);
 
       sound.init();
@@ -2422,9 +2536,11 @@
 
       let type = 'turtle';
       const r = Math.random();
-      if (phase >= 4 && r < 0.3) {
+      if (phase >= 3 && r < 0.18) {
+        type = 'freezie';
+      } else if (phase >= 4 && r < 0.42) {
         type = 'fly';
-      } else if (phase >= 2 && r < 0.65) {
+      } else if (phase >= 2 && r < 0.72) {
         type = 'crab';
       }
 
@@ -2836,12 +2952,31 @@
       startPhase(1);
     });
 
-    // Settings Modal
+    // Settings Modal & Mode Cycler
     const settingsModal = document.getElementById('settingsModal');
     const phaseRange = document.getElementById('phaseRange');
     const phaseRangeVal = document.getElementById('phaseRangeVal');
     const btnModeSolo = document.getElementById('btnModeSolo');
     const btnModeCoop = document.getElementById('btnModeCoop');
+    const btnMode2P = document.getElementById('btnMode2P');
+    const btnQuickMode = document.getElementById('btnQuickMode');
+    const quickModeText = document.getElementById('quickModeText');
+
+    function setGameMode(mode) {
+      gameMode = mode;
+      coOpPartnerEnabled = (mode === 'AI' || mode === '2P');
+      const activeCls = 'mode-opt py-1.5 rounded-xl border border-amber-500/50 text-xs font-bold text-amber-400 bg-amber-500/10';
+      const inactiveCls = 'mode-opt py-1.5 rounded-xl border border-slate-700 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700';
+      if (btnModeSolo) btnModeSolo.className = mode === 'SOLO' ? activeCls : inactiveCls;
+      if (btnModeCoop) btnModeCoop.className = mode === 'AI' ? activeCls : inactiveCls;
+      if (btnMode2P) btnMode2P.className = mode === '2P' ? activeCls : inactiveCls;
+      if (quickModeText) {
+        quickModeText.textContent = mode === 'SOLO' ? '1P SOLO' : (mode === 'AI' ? '1P + AI CAINE' : '2P CO-OP');
+      }
+      if (coOpPartnerEnabled && p2.dead) {
+        p2.resetPosition();
+      }
+    }
 
     document.getElementById('btnSettings').addEventListener('click', () => {
       if (gameState === 'PLAYING') togglePause();
@@ -2857,17 +2992,15 @@
       phaseRangeVal.textContent = String(e.target.value).padStart(2, '0');
     });
 
-    btnModeSolo.addEventListener('click', () => {
-      coOpPartnerEnabled = false;
-      btnModeSolo.className = 'mode-opt py-1.5 rounded-xl border border-amber-500/50 text-xs font-bold text-amber-400 bg-amber-500/10';
-      btnModeCoop.className = 'mode-opt py-1.5 rounded-xl border border-slate-700 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700';
-    });
-
-    btnModeCoop.addEventListener('click', () => {
-      coOpPartnerEnabled = true;
-      btnModeCoop.className = 'mode-opt py-1.5 rounded-xl border border-amber-500/50 text-xs font-bold text-amber-400 bg-amber-500/10';
-      btnModeSolo.className = 'mode-opt py-1.5 rounded-xl border border-slate-700 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700';
-    });
+    if (btnModeSolo) btnModeSolo.addEventListener('click', () => setGameMode('SOLO'));
+    if (btnModeCoop) btnModeCoop.addEventListener('click', () => setGameMode('AI'));
+    if (btnMode2P) btnMode2P.addEventListener('click', () => setGameMode('2P'));
+    if (btnQuickMode) {
+      btnQuickMode.addEventListener('click', () => {
+        const nextMode = gameMode === 'SOLO' ? 'AI' : (gameMode === 'AI' ? '2P' : 'SOLO');
+        setGameMode(nextMode);
+      });
+    }
 
     document.getElementById('btnApplySettings').addEventListener('click', () => {
       const targetP = parseInt(phaseRange.value, 10);
@@ -2905,7 +3038,7 @@
         checkPlayerEnemyCollisions(p1);
 
         if (coOpPartnerEnabled) {
-          p2.update(keys, true);
+          p2.update(keys, gameMode === 'AI');
           checkPlayerEnemyCollisions(p2);
         }
 
@@ -3243,12 +3376,35 @@
         ctx.restore();
       }
 
-      // Platforms with Physical Sinusoidal Brick Ripple Waves
+      // Platforms with Physical Sinusoidal Brick Ripple Waves & Cryo-Frost
       for (const p of platforms) {
-        if (p.id === 'floor') continue; // Bottom floor rendered as sewer water canal below
+        if (p.id === 'floor') {
+          // Bottom Industrial Grated Catwalk Floor at y = 560
+          ctx.save();
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(p.x, p.y, p.w, 8);
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y + 1);
+          ctx.lineTo(p.x + p.w, p.y + 1);
+          ctx.stroke();
+
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+          ctx.lineWidth = 1.5;
+          for (let gx = 0; gx < p.w; gx += 16) {
+            ctx.beginPath();
+            ctx.moveTo(gx, p.y + 2);
+            ctx.lineTo(gx + 6, p.y + 8);
+            ctx.stroke();
+          }
+          ctx.restore();
+          continue;
+        }
 
         ctx.save();
         const bump = platformBumps.find(b => b.platformId === p.id);
+        const isFrozen = frozenPlatforms.has(p.id);
         const stepW = 16;
         const numSteps = Math.ceil(p.w / stepW);
 
@@ -3276,7 +3432,7 @@
           ctx.lineTo(bx, p.y + offY);
         }
         ctx.closePath();
-        ctx.fillStyle = '#0f172a';
+        ctx.fillStyle = isFrozen ? '#083344' : '#0f172a';
         ctx.fill();
 
         // Stroke top neon runner edge
@@ -3293,12 +3449,12 @@
           if (s === 0) ctx.moveTo(bx, p.y + offY);
           else ctx.lineTo(bx, p.y + offY);
         }
-        ctx.strokeStyle = p.color;
-        ctx.lineWidth = 3.5;
+        ctx.strokeStyle = isFrozen ? '#67e8f9' : p.color;
+        ctx.lineWidth = isFrozen ? 4.5 : 3.5;
         ctx.stroke();
 
         // Brick vertical dividers
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.strokeStyle = isFrozen ? 'rgba(165, 243, 252, 0.35)' : 'rgba(255, 255, 255, 0.15)';
         ctx.lineWidth = 1;
         for (let bx = p.x + 24; bx < p.x + p.w; bx += 24) {
           let offY = 0;
@@ -3385,10 +3541,10 @@
       }
       ctx.restore();
 
-      // Draw Animated Bottom Sewer Water Canal with Real-time Interactive Wave Ripples
+      // Draw Animated Bottom Sewer Water Canal beneath the industrial catwalk
       ctx.save();
       sewerWaterPhase += 0.038;
-      const canalTop = 554;
+      const canalTop = 566;
       const canalGrad = ctx.createLinearGradient(0, canalTop, 0, VH);
       canalGrad.addColorStop(0, '#042f2e');
       canalGrad.addColorStop(0.35, '#083344');
@@ -3607,15 +3763,18 @@
 
     let speedrunTimerMs = 0;
     let lastTime = 0;
+    let physicsAccumulator = 0;
+    const TICK_MS = 1000 / 60;
 
     function gameLoop(timestamp) {
       if (!lastTime) lastTime = timestamp;
-      const dt = timestamp - lastTime;
+      const rawDt = Math.min(100, Math.max(0, timestamp - lastTime));
       lastTime = timestamp;
+      physicsAccumulator += rawDt;
 
       try {
         if (gameState === 'PLAYING') {
-          speedrunTimerMs += dt;
+          speedrunTimerMs += rawDt;
           const mins = Math.floor(speedrunTimerMs / 60000);
           const secs = Math.floor((speedrunTimerMs % 60000) / 1000);
           const ms = Math.floor((speedrunTimerMs % 1000) / 100);
@@ -3624,7 +3783,12 @@
              timerEl.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${ms}`;
           }
         }
-        update();
+        let steps = 0;
+        while (physicsAccumulator >= TICK_MS && steps < 4) {
+          update();
+          physicsAccumulator -= TICK_MS;
+          steps++;
+        }
         render();
       } catch (e) {
         console.error('Error in gameLoop:', e);

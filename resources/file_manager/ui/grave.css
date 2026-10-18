@@ -1,4 +1,4 @@
-/* Styles of the Graveyard tab. Every class starts with .grave-. Colours come from the theme's variables, so every theme works. */
+/* Styles of the Graveyard tab. Every class starts with .grave-. Colors come from the theme's variables, so every theme works. */
 .grave-pane { gap: 10px; }
 .grave-cards { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
 .grave-card { display: flex; flex-direction: column; gap: 1px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); min-width: 0; }

@@ -6,7 +6,7 @@ import { confirmBox } from "./dialogs.js";
 import { showFavoritesMenu } from "./favorites.js";
 import { showHelp, showProperties, showSettings } from "./extras.js";
 import { showMoreInfo } from "./fileinfo.js";
-import { openPower } from "./power.js";
+import { focusPowerFilter, openPower, togglePowerExpanded } from "./power.js";
 import { menuIsOpen, toast } from "./menus.js";
 import { openQuickLook, quickLookIsOpen } from "./quicklook.js";
 import { canGoUpIn, clearSearch, goBack, goForward, goUpIn, refresh, saveSettings } from "./nav.js";
@@ -19,6 +19,8 @@ import { emit, state } from "./state.js";
 import { actionFor } from "./keymap.js";
 import { isModifier, typeaheadFind } from "./util.js";
 import { visibleEntries } from "./nav.js";
+import { closeTab, cycleTab, openNewTab } from "./tabs.js";
+import { goRightBack, goRightForward } from "./dual.js";
 
 /** On Windows and Linux, Backspace goes up a folder. Someone on a Mac keyboard pressed their Delete key: say once how to change it. */
 function hintBackspace(action, key) {
@@ -126,13 +128,17 @@ const FILE_ACTIONS = {
   "file.moreInfo": MORE_INFO,
   "app.settings": () => showSettings(),
   "app.themes": () => emit("theme-picker"),
+  "app.expandTool": () => togglePowerExpanded(),
   "nav.findTool": () => openPower("find"),
+  "nav.filterTools": () => focusPowerFilter(),
   "file.bury": () => void ops.burySelection(),
-  "nav.back": () => void (activePane().side === "left" ? goBack() : null),
-  "nav.forward": () => void (activePane().side === "left" ? goForward() : null),
+  "nav.back": () => void (activePane().side === "left" ? goBack() : goRightBack()),
+  "nav.forward": () => void (activePane().side === "left" ? goForward() : goRightForward()),
   "nav.up": () => void (canGoUpIn(activePane()) ? goUpIn(activePane()) : null),
   "nav.address": () => editAddress(),
   "nav.favorites": () => showFavoritesMenu({ x: 40, y: 90 }),
+  "nav.newTab": () => void openNewTab(),
+  "nav.closeTab": () => void closeTab(),
   "file.editInCode": () => editInCode(),
   "nav.search": () => focusSearch(),
   "file.selectAll": () => selectAll(),
@@ -143,6 +149,7 @@ const FILE_ACTIONS = {
   "file.undo": () => void ops.undo(),
   "file.newFolder": () => void ops.newFolder(),
   "file.newFile": () => void ops.newFile(),
+  "file.newSqlite": () => void ops.newSqlite(),
   "file.deleteForever": () => void ops.deleteForever(),
   "file.trash": () => void ops.trashSelection(),
   "view.hidden": () => void saveSettings({ showHidden: !state.settings.showHidden }),
@@ -152,9 +159,9 @@ const FILE_ACTIONS = {
   "view.icons": () => void saveSettings({ view: "icons" }),
 };
 /** Work wherever you are, even with a button focused. */
-const EVERYWHERE = ["app.help", "nav.refresh", "file.rename", "file.properties", "file.moreInfo"];
+const EVERYWHERE = ["app.help", "nav.refresh", "file.rename", "file.properties", "file.moreInfo", "app.expandTool"];
 /** Also work inside the tools panel, the Home page and the other panes. */
-const IN_PANES = ["nav.findTool", "app.settings", "app.themes"];
+const IN_PANES = ["nav.findTool", "nav.filterTools", "app.settings", "app.themes", "app.expandTool"];
 const IN_LISTS = Object.keys(FILE_ACTIONS).filter((id) => !EVERYWHERE.includes(id));
 
 export function wireKeys() {
@@ -171,6 +178,7 @@ export function wireKeys() {
 
     // Closing the window (only where the desktop app gave the page a way to do that)
     if (mod && (lower === "w" || lower === "q") && typeof window.closeApp === "function") { stop(); return void closeWindow(); }
+    if (e.ctrlKey && !e.altKey && !e.metaKey && key === "Tab" && state.tabs.length > 1) { stop(); return void cycleTab(e.shiftKey ? -1 : 1); }
 
     // Help, refresh, rename, properties (their keys can be changed in Settings)
     if (key === "?" && !mod) { stop(); return showHelp(); }

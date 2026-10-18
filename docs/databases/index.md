@@ -1,6 +1,6 @@
 # Databases overview
 
-Bun RAD Studio works with three database engines. This page tells you which tool to use and links to the detailed guide. Engine-by-engine guides and a plain-language concepts guide are **planned** for the next documentation phase; until then the [Database Workbench guide](workbench.md) is the authoritative description of verified behaviour.
+Bun RAD Studio works with four database engines (**SQLite**, **MySQL / MariaDB**, **PostgreSQL**, and **Redis**). This page tells you which tool to use and links to the detailed guides, including the [Complete guide to databases in the File Manager](complete-databases-guide.md) and the [Database Workbench guide](workbench.md).
 
 **Video walkthrough:** [Codecaine File Manager](https://www.youtube.com/watch?v=uPrlPMj_uK4).
 
@@ -17,7 +17,8 @@ Bun RAD Studio works with three database engines. This page tells you which tool
 
 | I want to… | Use | Notes |
 |---|---|---|
-| Look at tables, edit rows safely, run SQL, export a table | [Database Workbench](workbench.md) | Same screen for all three engines. Open it with the **🧰 Workbench** button inside SQLite, MySQL or Postgres Studio, or run `bun run workbench`. Verified by automated tests. |
+| Manage connections, create sample databases, clone databases/tables across engines, or open any studio | [Complete guide to databases in the File Manager](complete-databases-guide.md) | Covers SQLite, MySQL / MariaDB, PostgreSQL and Redis inside the File Manager (`bun run app:files`), including cross-engine database and table cloning. Verified by automated tests. |
+| Look at tables, edit rows safely, run SQL, export a table | [Database Workbench](workbench.md) | Same screen for all three SQL engines. Open it with the **🧰 Workbench** button inside SQLite, MySQL or Postgres Studio, or run `bun run workbench`. Verified by automated tests. |
 | Use the larger full-screen tools (many tabs: designer, diagrams, macros, activity…) | SQLite Studio `bun run app:database` · MySQL Studio `bun run app:mysql` · Postgres Studio `bun run app:postgres` | Their server APIs are tested automatically; the windows themselves were not exercised by hand for this handbook. |
 | Turn a macro or a query into Python, Bun or V code | The "code" buttons in each studio | Output is text; not executed in tests. Targets SQLite. |
 | Build a window that edits database rows | Not available | The designer's database controls are placeholders ([D-002](../documentation-maintenance/discrepancies.md#d-002)). |
@@ -35,7 +36,7 @@ Bun RAD Studio works with three database engines. This page tells you which tool
 
 ## Safe practice for learning
 
-- Practise on a **disposable** database containing made-up data, never on a production database.
+- Practice on a **disposable** database containing made-up data, never on a production database.
 - In the Workbench give practice connections the environment **development** and use **read-only** while you only want to look.
 - Anything that deletes or overwrites data asks for a confirmation that shows the exact target; read it before confirming.
 
@@ -72,6 +73,7 @@ Full detail: [coverage matrix](../documentation-maintenance/coverage-matrix.md).
 
 ## See also
 
+- [Complete guide to databases in the File Manager](complete-databases-guide.md)
 - [Database Workbench guide](workbench.md)
 - [Sample databases](sample-datasets.md)
 - [Import with staging](staging-import.md)

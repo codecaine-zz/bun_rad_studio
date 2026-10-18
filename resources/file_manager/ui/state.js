@@ -7,16 +7,19 @@ export const state = {
   platform,
   sep: platform === "win32" ? "\\" : "/",
   home: "",
+  cliUtilsDir: "",
+  cliAppsDir: "",
   fmName: "your file manager",
   /** Sidebar data from the server. */
   places: [],
   drives: [],
   trashCount: 0,
   settings: {
-    favorites: [], favoriteNames: {}, recents: [], view: "details", sortBy: "name", sortDir: "asc", foldersFirst: true,
+    favorites: [], favoriteNames: {}, recents: [], recentsEnabled: true, view: "details", sortBy: "name", sortDir: "asc", foldersFirst: true,
     showHidden: false, showInfoPanel: false, theme: "auto", palette: "", textSize: 100, lastPath: "", seenWelcome: false, terminalFollow: true,
     workspace: "files", startWith: "files", splitSide: "right", splitSize: 50, sidebarCollapsed: false, focusMode: false,
     activeTool: "", splitTool: "", dualPath: "", typeWarnings: true, backspaceDeletes: false, shortcutsCantClose: false, serveOptions: { kind: "auto", liveReload: true, openBrowser: true }, deleteTo: "bin", dbShortcut: "window", mediaOpensIn: "manager",
+    columns: [], groupBy: "none", tags: {}, treeExpanded: false,
   },
   /** Ids of queued jobs that came from a reviewed plan (planDialog.js reports on those itself). */
   planJobs: new Set(),
@@ -34,6 +37,11 @@ export const state = {
   /** Search results, or null. { query, root, entries, truncated, skipped } */
   search: null,
   loading: false,
+  /** Active color tag filter in the current session ("" = show all). */
+  tagFilter: "",
+  /** Open folder tabs in the primary pane: Array<{ id, location, history, future, selection, scrollTop }>. */
+  tabs: [],
+  activeTabId: 0,
 
   /** Selected keys: paths for folders and search results, ids in the Recycle Bin. */
   selection: new Set(),

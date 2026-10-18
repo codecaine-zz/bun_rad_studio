@@ -29,7 +29,7 @@ describe("Launcher lists only things that can be launched", () => {
 });
 
 describe("The generated command list does not depend on the user's launcher history", () => {
-  test("favourites and launch counts do not change the wrapper definitions or their order", () => {
+  test("favorites and launch counts do not change the wrapper definitions or their order", () => {
     const baseline = buildWrapperDefinitions().map((d) => d.binName);
     const dir = mkdtempSync(join(tmpdir(), "launcher-history-"));
     const file = join(dir, "history.json");

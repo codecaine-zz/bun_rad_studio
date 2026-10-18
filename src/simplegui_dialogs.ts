@@ -65,7 +65,7 @@ export interface DialogOptions {
     imageHeight?: number | string;
     footer?: string;
 
-    // behaviour
+    // behavior
     /** Render as a small non-blocking toast. */
     toast?: boolean;
     /** `false` = non-modal: no backdrop, page stays interactive. */
@@ -124,7 +124,7 @@ export interface DialogOptions {
     background?: string;
     color?: string;
     accent?: string;
-    /** `false` = no backdrop, or any CSS colour. */
+    /** `false` = no backdrop, or any CSS color. */
     backdrop?: boolean | string;
     align?: "left" | "center";
     customClass?: string | Partial<Record<"popup" | "title" | "confirmButton" | "cancelButton" | "denyButton", string>>;
@@ -231,7 +231,7 @@ select.sgd-input option,select.sgd-input optgroup{color:#111827;background:#fff}
 .sgd-step.active{background:var(--sgd-accent);border-color:var(--sgd-accent);color:#fff}.sgd-step.done{background:var(--sgd-accent);border-color:var(--sgd-accent);color:#fff;opacity:.55}
 .sgd-step-line{width:34px;height:2px;background:var(--sgd-border)}
 .sgd-toasts{position:fixed;z-index:2147483100;display:flex;flex-direction:column;gap:10px;max-width:100vw;padding:14px;pointer-events:none;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-.sgd-toasts.sgd-v-top{top:0}.sgd-toasts.sgd-v-bottom{bottom:0}.sgd-toasts.sgd-v-center{top:50%}
+.sgd-toasts.sgd-v-top{top:46px}.sgd-toasts.sgd-v-bottom{bottom:0}.sgd-toasts.sgd-v-center{top:50%}
 .sgd-toasts.sgd-h-start{left:0;align-items:flex-start}.sgd-toasts.sgd-h-end{right:0;align-items:flex-end}.sgd-toasts.sgd-h-center{left:50%;align-items:center}
 .sgd-toasts.sgd-v-center.sgd-h-center{transform:translate(-50%,-50%)}.sgd-toasts.sgd-v-center:not(.sgd-h-center){transform:translateY(-50%)}.sgd-toasts.sgd-h-center:not(.sgd-v-center){transform:translateX(-50%)}
 .sgd-toast{position:relative;display:flex;align-items:center;gap:12px;min-width:250px;max-width:440px;padding:12px 16px 12px 14px;overflow:hidden;border-radius:12px;border:1px solid var(--sgd-border);border-left:4px solid var(--sgd-stripe,var(--sgd-accent));background:var(--sgd-bg);color:var(--sgd-fg);box-shadow:0 14px 36px rgba(0,0,0,.4);font-size:14px;line-height:1.4;pointer-events:auto;cursor:pointer;animation:sgdToastIn .3s cubic-bezier(.16,1,.3,1) both}
@@ -296,7 +296,7 @@ const DIALOG_CLIENT_JS = String.raw`
   function px(v) { return typeof v === 'number' ? v + 'px' : v; }
   function dismissed(why) { return { isConfirmed: false, isDenied: false, isDismissed: true, dismiss: why }; }
 
-  // ---------- colours / theme ----------
+  // ---------- colors / theme ----------
   function parseColor(c) {
     if (!c) return null; c = String(c).trim(); var m;
     if ((m = /^#([0-9a-f]{3})$/i.exec(c))) { var h = m[1]; return [parseInt(h[0] + h[0], 16), parseInt(h[1] + h[1], 16), parseInt(h[2] + h[2], 16)]; }
@@ -329,7 +329,7 @@ const DIALOG_CLIENT_JS = String.raw`
     return { accent: accent, light: light };
   }
 
-  // ---------- option normalisation ----------
+  // ---------- option normalization ----------
   function normalize(raw) {
     raw = raw || {};
     var d = {

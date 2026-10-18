@@ -376,42 +376,57 @@ export function listPlaces(ctx: FmContext): { places: Place[]; drives: Place[]; 
 // Preview
 // ---------------------------------------------------------------------------------------------------------------
 
+import { inspectRichPreview, type RichPreview } from "./fmPreview";
+
 export const PREVIEW_BYTES = 64 * 1024;
 
 export type Preview =
-  | { type: "text"; text: string; truncated: boolean; size: number }
+  | { type: "text"; text: string; truncated: boolean; size: number; rich?: RichPreview }
   | { type: "image"; size: number }
   /** Sound or video the page can play itself (streamed from /api/raw). */
   | { type: "audio" | "video"; size: number }
   /** A document the system can draw a picture of (macOS Quick Look): /api/raw?thumb=1. */
-  | { type: "thumb"; size: number }
-  | { type: "binary"; size: number }
+  | { type: "thumb"; size: number; rich?: RichPreview }
+  | { type: "binary"; size: number; rich?: RichPreview }
   | { type: "none"; size: number };
 
 export async function previewFile(ctx: FmContext, input: unknown): Promise<Preview> {
   const path = absolutePath(ctx, input);
   const st = await fsp.stat(path);
   if (st.isDirectory()) return { type: "none", size: 0 };
-  const kind = classify(nodePath.basename(path), false);
+  const base = nodePath.basename(path);
+  const kind = classify(base, false);
   if (kind.preview === "image") return { type: "image", size: st.size };
-  const media = mediaKindOf(nodePath.basename(path));
+  const media = mediaKindOf(base);
   if (media) return { type: media, size: st.size };
-  if (wantsThumbnail(nodePath.basename(path)) && thumbnailsAvailable(ctx)) return { type: "thumb", size: st.size };
-  if (st.size === 0) return { type: "text", text: "", truncated: false, size: 0 };
+  const hasThumb = wantsThumbnail(base) && thumbnailsAvailable(ctx);
+  if (st.size === 0) {
+    return hasThumb ? { type: "thumb", size: 0 } : { type: "text", text: "", truncated: false, size: 0 };
+  }
   const handle = await fsp.open(path, "r");
   try {
     const length = Math.min(st.size, PREVIEW_BYTES);
     const buffer = Buffer.alloc(length);
     const { bytesRead } = await handle.read(buffer, 0, length, 0);
     const head = buffer.subarray(0, bytesRead);
-    if (head.subarray(0, 8192).includes(0)) return { type: "binary", size: st.size };
-    if (kind.preview !== "text") {
+    if (hasThumb) {
+      const rich = await inspectRichPreview(handle, path, st.size, head, null, true).catch(() => null);
+      return { type: "thumb", size: st.size, ...(rich ? { rich } : {}) };
+    }
+    let isBin = head.subarray(0, 8192).includes(0);
+    if (!isBin && kind.preview !== "text") {
       // Unknown extension: show it as text only when it really looks like text.
       let odd = 0;
       for (const b of head.subarray(0, 4096)) if (b < 9 || (b > 13 && b < 32)) odd++;
-      if (odd > 4096 * 0.02) return { type: "binary", size: st.size };
+      if (odd > 4096 * 0.02) isBin = true;
     }
-    return { type: "text", text: new TextDecoder("utf-8").decode(head), truncated: st.size > bytesRead, size: st.size };
+    if (isBin) {
+      const rich = await inspectRichPreview(handle, path, st.size, head, null, false).catch(() => null);
+      return { type: "binary", size: st.size, ...(rich ? { rich } : {}) };
+    }
+    const text = new TextDecoder("utf-8").decode(head);
+    const rich = await inspectRichPreview(handle, path, st.size, head, text, false).catch(() => null);
+    return { type: "text", text, truncated: st.size > bytesRead, size: st.size, ...(rich ? { rich } : {}) };
   } finally {
     await handle.close();
   }

@@ -3,7 +3,7 @@ import type { HelpTips, SkipRule } from "../helpMatch";
 /** Help tips for `mysql_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */
 export const mysqlStudioTips: HelpTips = {
   // ---- Header ----
-  "#ddStudioTheme": "Change the colours of this window. Your choice is remembered in this browser.",
+  "#ddStudioTheme": "Change the colors of this window. Your choice is remembered in this browser.",
   "text:Connection Config": "Open the connection window to set the MySQL host, port, user, password and default database, or paste a connection URL. Nothing changes until you press Connect & Apply.",
   "text:Databases": "Open the connection window on the Server Databases tab. It lists every database on this MySQL server (SHOW DATABASES) and lets you switch to one or create a new one.",
   "text:Config": "Open the connection window to change which MySQL server, login and database this studio uses.",

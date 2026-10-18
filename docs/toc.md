@@ -15,6 +15,7 @@ Generated from [nav.json](nav.json): a page that is not listed there is reported
 ## Databases (MySQL, PostgreSQL, SQLite)
 
 - [Databases overview](databases/index.md)
+- [Complete guide to databases in the File Manager](databases/complete-databases-guide.md)
 - [Database Workbench guide](databases/workbench.md)
 - [Sample databases](databases/sample-datasets.md)
 - [Import with staging](databases/staging-import.md)

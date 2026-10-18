@@ -18,13 +18,13 @@ It is additive: the existing studios are unchanged apart from that link and the 
 | PostgreSQL | A running server and a role | Host, port (5432), user, password, database, schema (default `public`). |
 
 1. **+ New connection**, fill the form, **Test**, then **Save**.
-2. Click the connection to connect. The header shows its name, engine, version, database, **environment colour**
+2. Click the connection to connect. The header shows its name, engine, version, database, **environment color**
    (green development · blue test · amber staging · red production) and **READ-ONLY** when applicable.
 3. Pick a table in the explorer.
 
 ## Connections and credentials
 
-* Profiles (name, folder, tags, favourite, environment, read-only, host/port/database, TLS) are saved in
+* Profiles (name, folder, tags, favorite, environment, read-only, host/port/database, TLS) are saved in
   `~/.bun_rad_studio/connections.json` (mode 0600; override the folder with `STUDIO_DB_PROFILE_DIR`).
 * **Passwords are never written to that file.** They go to the operating-system credential store through
   `Bun.secrets` (macOS Keychain, Windows Credential Manager, Linux libsecret). If the store is unavailable the
@@ -61,7 +61,7 @@ It is additive: the existing studios are unchanged apart from that link and the 
   with a real tokenizer (quotes, comments, PostgreSQL `$$…$$`, MySQL `DELIMITER`, SQLite trigger bodies) and runs the
   statements in order, **stopping** or **continuing** on error as you choose. *All-or-nothing* wraps the script in a
   transaction (not possible for MySQL DDL, which commits implicitly).
-* Results show row count, time and are labelled **read-only result**. Result sets are limited to 1000 rows (`truncated` is reported).
+* Results show row count, time and are labeled **read-only result**. Result sets are limited to 1000 rows (`truncated` is reported).
 * **Begin / Commit / Rollback** control one explicit transaction per connection; the header shows *transaction open*.
   On MySQL/PostgreSQL the grid's row edits use their own connection and are refused while a SQL transaction is open;
   on SQLite they join it.
@@ -73,10 +73,10 @@ It is additive: the existing studios are unchanged apart from that link and the 
 * **Read-only connections** are enforced below the UI: SQLite opens the file read-only; PostgreSQL runs each statement
   in `BEGIN READ ONLY` (always rolled back); MySQL uses a session-level read-only setting (which also blocks DDL).
   A statement filter additionally rejects writes, transaction control and `SET` tricks, and multiple statements per
-  request. The filter is defence in depth, **not** the boundary — for a hard guarantee use a database account without
+  request. The filter is defense in depth, **not** the boundary — for a hard guarantee use a database account without
   write privileges (verified by the *insufficient privileges* test).
 * **Confirmations are enforced by the server.** Dropping, truncating, `DELETE`/`UPDATE` without `WHERE`,
-  `ALTER … DROP`, administrative or unrecognised statements, and row deletes return a one-time token bound to that exact
+  `ALTER … DROP`, administrative or unrecognized statements, and row deletes return a one-time token bound to that exact
   operation; the dialog shows the connection, database, environment and statements. **Production** connections confirm
   every write and require typing the connection name. Tokens expire after 2 minutes and work once.
 * Everything the database returns is inserted as text, never HTML. API calls need a per-process token, a loopback

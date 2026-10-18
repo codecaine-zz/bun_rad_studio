@@ -1,5 +1,5 @@
 // What goes inside a QR code, for the usual jobs: builders that make the text for Wi-Fi, contacts, e-mail, SMS, phone numbers,
-// places and calendar events, and `describePayload`, which recognises the same kinds in text read from a code and lists
+// places and calendar events, and `describePayload`, which recognizes the same kinds in text read from a code and lists
 // their parts. Pure functions. Fields that hold a secret are marked `secret: true` so the page can hide them.
 
 const escapeWifi = (s) => String(s).replace(/([\\;,":])/g, "\\$1");
@@ -20,7 +20,7 @@ export function wifiPayload({ ssid, password = "", security = "WPA", hidden = fa
 export function vcardPayload(c) {
   const first = clean(c.first);
   const last = clean(c.last);
-  if (!first && !last && !clean(c.org)) throw new Error("Type at least a name or an organisation.");
+  if (!first && !last && !clean(c.org)) throw new Error("Type at least a name or an organization.");
   const lines = ["BEGIN:VCARD", "VERSION:3.0", `N:${escapeVcard(last)};${escapeVcard(first)};;;`, `FN:${escapeVcard([first, last].filter(Boolean).join(" ") || clean(c.org))}`];
   if (clean(c.org)) lines.push(`ORG:${escapeVcard(clean(c.org))}`);
   if (clean(c.title)) lines.push(`TITLE:${escapeVcard(clean(c.title))}`);
@@ -85,7 +85,7 @@ export function urlPayload(value) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Recognising what a code holds
+// Recognizing what a code holds
 // ---------------------------------------------------------------------------------------------------------------
 
 const unescapeWifi = (s) => s.replace(/\\([\\;,":])/g, "$1");
@@ -130,11 +130,11 @@ export function describePayload(text) {
     };
     const tels = lines.filter((x) => /^TEL/i.test(x)).map((x) => x.slice(x.indexOf(":") + 1));
     const name = first("FN") || first("N").split(";").filter(Boolean).reverse().join(" ");
-    return { kind: "contact", title: "Contact", fields: [field("Name", name), ...(first("ORG") ? [field("Organisation", first("ORG"))] : []), ...(first("TITLE") ? [field("Job title", first("TITLE"))] : []), ...tels.map((n) => field("Phone", n)), ...(first("EMAIL") ? [field("E-mail", first("EMAIL"))] : []), ...(first("URL") ? [field("Web", first("URL"))] : []), ...(first("ADR") ? [field("Address", first("ADR").split(";").filter(Boolean).join(", "))] : []), ...(first("NOTE") ? [field("Note", first("NOTE"))] : [])] };
+    return { kind: "contact", title: "Contact", fields: [field("Name", name), ...(first("ORG") ? [field("Organization", first("ORG"))] : []), ...(first("TITLE") ? [field("Job title", first("TITLE"))] : []), ...tels.map((n) => field("Phone", n)), ...(first("EMAIL") ? [field("E-mail", first("EMAIL"))] : []), ...(first("URL") ? [field("Web", first("URL"))] : []), ...(first("ADR") ? [field("Address", first("ADR").split(";").filter(Boolean).join(", "))] : []), ...(first("NOTE") ? [field("Note", first("NOTE"))] : [])] };
   }
   if (/^MECARD:/i.test(trimmed)) {
     const items = splitUnescaped(trimmed.slice(7), ";").map((x) => [x.slice(0, x.indexOf(":")), x.slice(x.indexOf(":") + 1)]);
-    const label = { N: "Name", TEL: "Phone", EMAIL: "E-mail", URL: "Web", ADR: "Address", NOTE: "Note", ORG: "Organisation" };
+    const label = { N: "Name", TEL: "Phone", EMAIL: "E-mail", URL: "Web", ADR: "Address", NOTE: "Note", ORG: "Organization" };
     return { kind: "contact", title: "Contact", fields: items.filter(([k]) => label[k]).map(([k, v]) => field(label[k], k === "N" ? v.split(",").reverse().join(" ") : v)) };
   }
   if (/^BEGIN:VCALENDAR|^BEGIN:VEVENT/i.test(trimmed)) {

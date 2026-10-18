@@ -242,7 +242,7 @@ export function parseLocation(text: unknown): { lat: number; lon: number } | nul
   return { lat, lon };
 }
 
-/** The AS number an organisation text starts with ("AS15169 Google LLC" -> "AS15169"). */
+/** The AS number an organization text starts with ("AS15169 Google LLC" -> "AS15169"). */
 export const asnOf = (text: unknown): string | null => {
   const m = typeof text === "string" ? /^AS(\d{1,10})\b/i.exec(text.trim()) : null;
   return m ? `AS${Number(m[1])}` : null;

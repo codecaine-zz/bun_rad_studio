@@ -1,6 +1,6 @@
 # Bun RAD Studio handbook
 
-**Documentation scope:** written against the repository at commit `2f8d2f9` (13 October 2026), checked on macOS (Apple silicon) with Bun 1.4.2. Anything not checked on that setup is labelled *not verified*. This handbook is **being built in phases**; the [coverage matrix](documentation-maintenance/coverage-matrix.md) shows exactly what is and is not documented yet.
+**Documentation scope:** written against the repository at commit `2f8d2f9` (13 October 2026), checked on macOS (Apple silicon) with Bun 1.4.2. Anything not checked on that setup is labeled *not verified*. This handbook is **being built in phases**; the [coverage matrix](documentation-maintenance/coverage-matrix.md) shows exactly what is and is not documented yet.
 
 ## What the project is
 

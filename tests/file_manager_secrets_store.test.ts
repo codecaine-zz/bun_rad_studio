@@ -269,7 +269,7 @@ describe("items: trash, history, search, filters and sorting", () => {
     expect(await titles({ favorite: true })).toEqual(["alpha mail"]);
     expect(await titles({ tag: "money" })).toEqual(["Bank"]);
     expect(await titles({ folder: "Finance" })).toEqual(["Bank"]);
-    expect(await titles({})).toEqual(["alpha mail", "Bank", "Visa", "Zebra"]); // favourites first, then A–Z ignoring case
+    expect(await titles({})).toEqual(["alpha mail", "Bank", "Visa", "Zebra"]); // favorites first, then A–Z ignoring case
     expect(await titles({ sort: "title", dir: "desc", favoritesFirst: false })).toEqual(["Zebra", "Visa", "Bank", "alpha mail"]);
     expect((await titles({ sort: "modified", favoritesFirst: false }))[0]).toBe("Visa");
     expect(await titles({ limit: 2, offset: 1 })).toEqual(["Bank", "Visa"]);
@@ -470,7 +470,7 @@ describe("the password generator", () => {
 });
 
 describe("importing other password managers' exports", () => {
-  test("each dialect is recognised and mapped", () => {
+  test("each dialect is recognized and mapped", () => {
     const chrome = importCsv("name,url,username,password,note\nGit,https://github.com,me,pw1,hello\n");
     expect(chrome.dialect).toBe("Chrome or Edge");
     expect(chrome.items[0]).toMatchObject({ title: "Git", type: "login", notes: "hello", fields: { username: "me", password: "pw1", url: "https://github.com" } });

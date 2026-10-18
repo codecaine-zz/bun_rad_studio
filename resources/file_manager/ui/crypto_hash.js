@@ -110,7 +110,7 @@ export function buildHashCards(env) {
     h("div", { class: "pw-row crypto-group" }, folder.el, fileName.el, useFolder, saveButton), saveStatus.el,
     h("div", { class: "pw-row crypto-group" }, expected.el, verifyButton), verifyStatus.el);
 
-  /** `fast` are the fast checksums: shown in their own, clearly labelled table, but used by checks and reports like the rest. */
+  /** `fast` are the fast checksums: shown in their own, clearly labeled table, but used by checks and reports like the rest. */
   function showDigests(rows, source, fast = [], hints = {}, fastTitle = "", skipped = []) {
     current = { rows: [...rows, ...fast], source };
     sourceLine.textContent = `Digests of: ${source}`;

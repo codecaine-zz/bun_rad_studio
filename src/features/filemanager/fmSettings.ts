@@ -8,12 +8,15 @@ import { randomBytes } from "crypto";
 import * as nodePath from "path";
 import { pathApi, type FmContext } from "./fmCore";
 import { sanitizeOverrides } from "../../../resources/file_manager/ui/shortcuts.js";
+import { ATMOSPHERE_IDS, normalizeAtmosphereSpec } from "../../../resources/file_manager/ui/atmosphereCatalog.js";
 
 export interface Settings {
   favorites: string[];
   /** A short name of the person's own for a favorite (the key is one of `favorites`). */
   favoriteNames: Record<string, string>;
   recents: Array<{ path: string; at: string }>;
+  /** Whether opening files records them in `recents` and shows them in the sidebar and on the Home page. */
+  recentsEnabled: boolean;
   view: "details" | "list" | "icons";
   sortBy: "name" | "modified" | "size" | "type";
   sortDir: "asc" | "desc";
@@ -21,8 +24,20 @@ export interface Settings {
   showHidden: boolean;
   showInfoPanel: boolean;
   theme: "auto" | "light" | "dark";
-  /** The key of a colour theme from the theme gallery, or "" to use `theme` above. */
+  /** The key of a color theme from the theme gallery, or "" to use `theme` above. */
   palette: string;
+  /** Optional light theme key used automatically when `theme === "auto"` and `palette === ""` while the OS is in light mode. */
+  preferredLightPalette: string;
+  /** Optional dark theme key used automatically when `theme === "auto"` and `palette === ""` while the OS is in dark mode. */
+  preferredDarkPalette: string;
+  /** Theme keys pinned by the user to appear at the top of the gallery and in the Themes menu. */
+  favoriteThemes: string[];
+  /** Optional atmospheric special effect or `+`-combined multi-effect mix shown across the File Manager. */
+  atmosphere: AtmosphereEffect;
+  /** Intensity of the atmospheric special effect from 10 to 100 (default 60). */
+  atmosphereIntensity: number;
+  /** Hardware graphics tier for atmospheric effects: "auto" detects Apple Silicon / modern ARM / CPU cores, or manual "low" | "medium" | "high" | "ultra". */
+  atmosphereTier: AtmosphereTier;
   textSize: number;
   lastPath: string;
   seenWelcome: boolean;
@@ -47,7 +62,7 @@ export interface Settings {
   shortcutsCantClose: boolean;
   /** The code editor "Open in editor" starts: "default" uses $VISUAL / $EDITOR, or the first known editor found. */
   editor: "default" | "vscode" | "subl" | "webstorm" | "idea";
-  /** The Serve tool's remembered form choices. The network (LAN) option is never remembered. */
+  /** The Serve tool's remembered form choices. The network (LAN) is never remembered. */
   serveOptions: { kind: "auto" | "static" | "php"; liveReload: boolean; openBrowser: boolean };
   /** Where Delete sends things: the File Manager's own Recycle Bin, or the Rip graveyard (shared with the `rip` tools). */
   deleteTo: "bin" | "graveyard";
@@ -72,7 +87,23 @@ export interface Settings {
   shortcuts: Record<string, string[]>;
   /** Looks saved in the Image Studio and the Media Studio, to use again on one file or on many at once. */
   studioPresets: { image: StudioPreset[]; media: StudioPreset[] };
+  /** Extra columns shown in the Details view ("permissions", "ext"). */
+  columns: ExtraColumn[];
+  /** How items in a folder are grouped ("none", "kind", "date", "size"). */
+  groupBy: GroupByMode;
+  /** Color tags assigned to files or folders: absolute path -> tag color key. */
+  tags: Record<string, TagColor>;
+  /** Whether the collapsible Folder Tree section in the sidebar is expanded. */
+  treeExpanded: boolean;
 }
+
+export const EXTRA_COLUMNS = ["permissions", "ext"] as const;
+export type ExtraColumn = (typeof EXTRA_COLUMNS)[number];
+export const GROUP_BY_MODES = ["none", "kind", "date", "size"] as const;
+export type GroupByMode = (typeof GROUP_BY_MODES)[number];
+export const TAG_COLORS = ["red", "orange", "yellow", "green", "blue", "purple", "gray"] as const;
+export type TagColor = (typeof TAG_COLORS)[number];
+export const MAX_TAGS = 500;
 
 export interface StudioPreset {
   name: string;
@@ -82,6 +113,10 @@ export interface StudioPreset {
 
 export const WORKSPACES = ["files", "home", "tools", "split", "dual"] as const;
 export type Workspace = (typeof WORKSPACES)[number];
+export const ATMOSPHERE_EFFECTS: readonly string[] = ATMOSPHERE_IDS;
+export type AtmosphereEffect = string;
+export const ATMOSPHERE_TIERS = ["auto", "low", "medium", "high", "ultra"] as const;
+export type AtmosphereTier = (typeof ATMOSPHERE_TIERS)[number];
 export const SPLIT_MIN = 20;
 export const SPLIT_MAX = 80;
 const TOOL_ID = /^[a-z][a-z0-9-]{0,24}$/;
@@ -90,6 +125,7 @@ export const DEFAULT_SETTINGS: Settings = {
   favorites: [],
   favoriteNames: {},
   recents: [],
+  recentsEnabled: true,
   view: "details",
   sortBy: "name",
   sortDir: "asc",
@@ -98,6 +134,12 @@ export const DEFAULT_SETTINGS: Settings = {
   showInfoPanel: false,
   theme: "auto",
   palette: "",
+  preferredLightPalette: "",
+  preferredDarkPalette: "",
+  favoriteThemes: [],
+  atmosphere: "none",
+  atmosphereIntensity: 60,
+  atmosphereTier: "auto",
   textSize: 100,
   lastPath: "",
   seenWelcome: false,
@@ -122,10 +164,15 @@ export const DEFAULT_SETTINGS: Settings = {
   mediaOpensIn: "manager",
   shortcuts: {},
   studioPresets: { image: [], media: [] },
+  columns: [],
+  groupBy: "none",
+  tags: {},
+  treeExpanded: false,
 };
 
 export const MAX_FAVORITES = 100;
 export const MAX_FAVORITE_NAME = 60;
+export const MAX_FAVORITE_THEMES = 50;
 export const MAX_RECENTS = 30;
 export const MAX_STUDIO_PRESETS = 50;
 export const MAX_PRESET_NAME = 40;
@@ -155,11 +202,35 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
       recents.push({ path: p.resolve(item.path as string), at: typeof item.at === "string" && !isNaN(Date.parse(item.at)) ? item.at : new Date(0).toISOString() });
     }
   }
+  const favoriteThemes: string[] = [];
+  for (const k of Array.isArray(r.favoriteThemes) ? r.favoriteThemes : []) {
+    if (typeof k === "string" && /^[a-z0-9_]{1,60}$/.test(k) && !favoriteThemes.includes(k) && favoriteThemes.length < MAX_FAVORITE_THEMES) {
+      favoriteThemes.push(k);
+    }
+  }
+  const columns: ExtraColumn[] = [];
+  for (const c of Array.isArray(r.columns) ? r.columns : []) {
+    if ((EXTRA_COLUMNS as readonly string[]).includes(c as string) && !columns.includes(c as ExtraColumn)) {
+      columns.push(c as ExtraColumn);
+    }
+  }
+  const tags: Record<string, TagColor> = {};
+  const rawTags = r.tags && typeof r.tags === "object" && !Array.isArray(r.tags) ? (r.tags as Record<string, unknown>) : {};
+  for (const [key, value] of Object.entries(rawTags)) {
+    if (Object.keys(tags).length >= MAX_TAGS) break;
+    if (!isPath(key) || typeof value !== "string") continue;
+    if ((TAG_COLORS as readonly string[]).includes(value)) {
+      tags[p.resolve(key)] = value as TagColor;
+    }
+  }
   const size = typeof r.textSize === "number" && isFinite(r.textSize) ? Math.round(Math.min(160, Math.max(80, r.textSize))) : DEFAULT_SETTINGS.textSize;
+  const atmosphereIntensity = typeof r.atmosphereIntensity === "number" && isFinite(r.atmosphereIntensity) ? Math.round(Math.min(100, Math.max(10, r.atmosphereIntensity))) : DEFAULT_SETTINGS.atmosphereIntensity;
+  const isPaletteKey = (v: unknown): v is string => typeof v === "string" && /^[a-z0-9_]{1,60}$/.test(v);
   return {
     favorites,
     favoriteNames: names,
     recents,
+    recentsEnabled: typeof r.recentsEnabled === "boolean" ? r.recentsEnabled : DEFAULT_SETTINGS.recentsEnabled,
     view: oneOf(r.view, ["details", "list", "icons"], DEFAULT_SETTINGS.view),
     sortBy: oneOf(r.sortBy, ["name", "modified", "size", "type"], DEFAULT_SETTINGS.sortBy),
     sortDir: oneOf(r.sortDir, ["asc", "desc"], DEFAULT_SETTINGS.sortDir),
@@ -167,7 +238,13 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     showHidden: typeof r.showHidden === "boolean" ? r.showHidden : DEFAULT_SETTINGS.showHidden,
     showInfoPanel: typeof r.showInfoPanel === "boolean" ? r.showInfoPanel : DEFAULT_SETTINGS.showInfoPanel,
     theme: oneOf(r.theme, ["auto", "light", "dark"], DEFAULT_SETTINGS.theme),
-    palette: typeof r.palette === "string" && /^[a-z0-9_]{1,60}$/.test(r.palette) ? r.palette : "",
+    palette: isPaletteKey(r.palette) ? r.palette : "",
+    preferredLightPalette: isPaletteKey(r.preferredLightPalette) ? r.preferredLightPalette : "",
+    preferredDarkPalette: isPaletteKey(r.preferredDarkPalette) ? r.preferredDarkPalette : "",
+    favoriteThemes,
+    atmosphere: normalizeAtmosphereSpec(r.atmosphere) || DEFAULT_SETTINGS.atmosphere,
+    atmosphereIntensity,
+    atmosphereTier: oneOf(r.atmosphereTier, ATMOSPHERE_TIERS, DEFAULT_SETTINGS.atmosphereTier),
     textSize: size,
     lastPath: isPath(r.lastPath) ? p.resolve(r.lastPath) : "",
     seenWelcome: typeof r.seenWelcome === "boolean" ? r.seenWelcome : DEFAULT_SETTINGS.seenWelcome,
@@ -192,6 +269,10 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     mediaOpensIn: oneOf(r.mediaOpensIn, ["manager", "system"], DEFAULT_SETTINGS.mediaOpensIn),
     shortcuts: sanitizeOverrides(r.shortcuts, ctx.platform) as Record<string, string[]>,
     studioPresets: sanitizeStudioPresets(r.studioPresets),
+    columns,
+    groupBy: oneOf(r.groupBy, GROUP_BY_MODES, DEFAULT_SETTINGS.groupBy),
+    tags,
+    treeExpanded: typeof r.treeExpanded === "boolean" ? r.treeExpanded : DEFAULT_SETTINGS.treeExpanded,
   };
 }
 
@@ -262,9 +343,43 @@ export async function updateSettings(ctx: FmContext, change: unknown): Promise<S
   return result;
 }
 
-/** Remembers that an item was opened (newest first, no duplicates, at most 30). */
+/** Remembers that an item was opened (newest first, no duplicates, at most 30). No-op when `recentsEnabled` is false. */
 export async function addRecent(ctx: FmContext, path: string): Promise<Settings> {
   const current = await loadSettings(ctx);
-  const recents = [{ path, at: new Date().toISOString() }, ...current.recents.filter((r) => r.path !== path)].slice(0, MAX_RECENTS);
+  if (!current.recentsEnabled) return current;
+  const p = pathApi(ctx);
+  const resolved = p.resolve(path);
+  const recents = [{ path: resolved, at: new Date().toISOString() }, ...current.recents.filter((r) => r.path !== resolved)].slice(0, MAX_RECENTS);
   return updateSettings(ctx, { recents });
+}
+
+/** Removes one item from the Recent list by path. */
+export async function removeRecent(ctx: FmContext, path: string): Promise<Settings> {
+  const current = await loadSettings(ctx);
+  const p = pathApi(ctx);
+  const resolved = p.resolve(path);
+  const recents = current.recents.filter((r) => r.path !== resolved);
+  return updateSettings(ctx, { recents });
+}
+
+/** Clears every remembered item from the Recent list. */
+export async function clearRecents(ctx: FmContext): Promise<Settings> {
+  return updateSettings(ctx, { recents: [] });
+}
+
+/** Removes items from the Recent list whose file is no longer on disk. */
+export async function pruneRecents(ctx: FmContext): Promise<{ settings: Settings; removed: number }> {
+  const current = await loadSettings(ctx);
+  const kept: Settings["recents"] = [];
+  for (const item of current.recents) {
+    try {
+      const st = await fsp.stat(item.path);
+      if (!st.isDirectory()) kept.push(item);
+    } catch {
+      // missing or unreadable file is dropped
+    }
+  }
+  const removed = current.recents.length - kept.length;
+  const settings = removed > 0 ? await updateSettings(ctx, { recents: kept }) : current;
+  return { settings, removed };
 }

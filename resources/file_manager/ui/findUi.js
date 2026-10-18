@@ -5,7 +5,7 @@ import { h } from "./dom.js";
 import { toast } from "./menus.js";
 import { busy } from "./nav.js";
 
-/** A labelled text box, drop-down or other control: the label sits above it and the tooltip covers both. */
+/** A labeled text box, drop-down or other control: the label sits above it and the tooltip covers both. */
 export function field(label, control, tip) {
   return h("label", { class: "pw-field", title: tip }, label, control);
 }

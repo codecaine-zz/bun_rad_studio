@@ -49,7 +49,7 @@ export function createProject(env) {
       if (mine !== seq) return;
       host.replaceChildren(...info.cards.map((c) => cardEl(c, root)));
       const kinds = info.cards.filter((c) => !["files", "ci", "make", "docker"].includes(c.id)).map((c) => c.title);
-      status.set(info.cards.length ? `Found: ${kinds.join(", ") || "project files"}.` : "No project files were recognised in this folder. Try a folder that has a package.json, Cargo.toml, go.mod, pyproject.toml or similar.");
+      status.set(info.cards.length ? `Found: ${kinds.join(", ") || "project files"}.` : "No project files were recognized in this folder. Try a folder that has a package.json, Cargo.toml, go.mod, pyproject.toml or similar.");
       announce(status.el.textContent);
     } catch (err) {
       if (mine === seq) status.set(errorText(err, "The project files couldn't be read."), true);
@@ -60,7 +60,7 @@ export function createProject(env) {
     el: h("div", { class: "dev-section" },
       h("div", { class: "pw-card" }, h("h3", {}, "Project overview"),
         h("p", { class: "pw-hint" }, "Read from the project's own files (nothing is run and nothing is sent anywhere). Names of .env files are listed, but their contents are never read."),
-        h("div", { class: "pw-row" }, btn("Read project", "Look at this folder's project files and summarise them.", load, { primary: true })), status.el),
+        h("div", { class: "pw-row" }, btn("Read project", "Look at this folder's project files and summarize them.", load, { primary: true })), status.el),
       host),
     load,
   };

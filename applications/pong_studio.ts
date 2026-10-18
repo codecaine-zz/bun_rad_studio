@@ -194,7 +194,7 @@ export function startPongStudioServer(options: PongServerOptions = {}) {
           {
             status: "ok",
             app: "pong_studio",
-            name: "Neon Cyber Pong - Kinetic Arcade",
+            name: "Codecaine Neon Cyber Pong - Kinetic Arcade",
             version: "1.0.0",
             timestamp: Date.now(),
           },
@@ -227,7 +227,7 @@ export function createPongStudio(options: PongStudioOptions = {}): PongStudioIns
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
   const height = options.height ?? (fullscreen ? screen.height : 900);
-  const title = "Neon Cyber Pong - Kinetic Arcade";
+  const title = "Codecaine Neon Cyber Pong - Kinetic Arcade";
 
   const app: PongStudioInstance = {
     title,

@@ -31,7 +31,7 @@ export const SIGNALS = {
 } as const;
 export type SignalName = keyof typeof SIGNALS;
 
-/** Processes that must never be signalled: stopping or killing them logs you out or freezes the machine. */
+/** Processes that must never be signaled: stopping or killing them logs you out or freezes the machine. */
 export const CRITICAL_NAMES = ["launchd", "kernel_task", "WindowServer", "loginwindow", "systemd", "init"];
 
 /** Human-readable name: the app name for .app bundles, otherwise the executable's base name. */
@@ -236,7 +236,7 @@ export function assessSignal(proc: ProcessItem | undefined, pid: string, signal:
   const label = proc ? `${proc.name} (PID ${pid})` : `PID ${pid}`;
   const notes: string[] = [];
   if (pid === ctx.parentPid) notes.push("This is the process that launched Task Manager, so it will probably close this window.");
-  if (proc && proc.user !== ctx.currentUser) notes.push(`It belongs to "${proc.user}", not you. This will probably be refused, and signalling system processes can destabilise your Mac.`);
+  if (proc && proc.user !== ctx.currentUser) notes.push(`It belongs to "${proc.user}", not you. This will probably be refused, and signaling system processes can destabilise your Mac.`);
   if (proc && proc.ports.length) notes.push(`It is listening on ${proc.ports.join(", ")}.`);
   const destructive = signal === "SIGKILL" || signal === "SIGSTOP";
   if (destructive || notes.length) {

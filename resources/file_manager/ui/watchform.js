@@ -2,7 +2,7 @@
 // fields; watch.js decides what to do with them.
 import { h } from "./dom.js";
 
-/** A labelled field: the label text is visible, and the tip shows when hovering the label or the control. */
+/** A labeled field: the label text is visible, and the tip shows when hovering the label or the control. */
 function field(text, control, tip, extraClass = "") {
   control.title = tip;
   return h("label", { class: `pw-field watch-field ${extraClass}`.trim(), title: tip }, text, control);

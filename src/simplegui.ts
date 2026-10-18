@@ -119,7 +119,7 @@ export interface FormSpec {
     card_border?: string;
     /** The theme's own light/dark answer, when the form still has the theme's background. */
     is_dark?: boolean;
-    /** Base danger, warning, success and info colours of the theme, when it defines its own. */
+    /** Base danger, warning, success and info colors of the theme, when it defines its own. */
     semantic_overrides?: SemanticOverrides;
     padding: number;
     spacing: number;
@@ -984,9 +984,9 @@ export class SimpleWindow {
     }
 
     /**
-     * Colour pairs [old theme's value, new theme's value] for the backgrounds and borders the page was generated with.
+     * Color pairs [old theme's value, new theme's value] for the backgrounds and borders the page was generated with.
      * Controls are drawn with inline backgrounds taken from the theme at start-up, so switching themes while the
-     * window is open has to move those values over too, or a control keeps the old surface under the new text colour
+     * window is open has to move those values over too, or a control keeps the old surface under the new text color
      * (white text on a white box, or the reverse).
      */
     private themeColorPairs(from: string, to: string): Array<[string, string]> {
@@ -1340,7 +1340,7 @@ export class SimpleWindow {
                             var bc = el.style.borderColor;
                             if (bc && map[norm(bc)]) el.style.borderColor = map[norm(bc)];
                         });
-                        // Text colours were also written inline for the old theme. Only text that is no longer readable on its
+                        // Text colors were also written inline for the old theme. Only text that is no longer readable on its
                         // (new) surface is changed, so text that is meant to stay light on a dark chip or an accent button is left alone.
                         var lin = function(v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
                         var rgba = function(c) { var m = (c || '').match(/[0-9.]+/g); return m && m.length >= 3 ? { r: +m[0], g: +m[1], b: +m[2], a: m.length > 3 ? +m[3] : 1 } : null; };
@@ -1353,7 +1353,7 @@ export class SimpleWindow {
                             }
                             return rgba(getComputedStyle(document.body).backgroundColor) || { r: 255, g: 255, b: 255, a: 1 };
                         };
-                        // Controls animate colour changes, so computed colours lag behind; stop the animations while measuring.
+                        // Controls animate color changes, so computed colors lag behind; stop the animations while measuring.
                         var noMotion = document.createElement('style');
                         noMotion.textContent = '*, *::before, *::after { transition: none !important; }';
                         document.head.appendChild(noMotion);
@@ -5278,7 +5278,7 @@ export class SimpleWindow {
             secondary_accent: themeObj?.secondary_accent,
             card_background: themeObj?.card_background,
             card_border: themeObj?.card_border,
-            // The theme's own answer, used only while the page still has the theme's background (a custom background is judged by its colour).
+            // The theme's own answer, used only while the page still has the theme's background (a custom background is judged by its color).
             is_dark: themeObj && this.backgroundColor === themeObj.background_color ? themeObj.is_dark : undefined,
             semantic_overrides: themeObj ? overridesForTheme(themeObj) : undefined,
             ...(themeObj?.fx ? { fx: themeObj.fx, fx_mode: this.effects } : {}),
@@ -5388,6 +5388,10 @@ export class SimpleWindow {
                     if (now - lastFullscreenTime < 500) return;
                     lastFullscreenTime = now;
 
+                    if (window.parent && window.parent !== window) {
+                        try { window.top.postMessage({ fmToggleExpand: true }, "*"); } catch(e) {}
+                        return;
+                    }
                     if (typeof window.toggleNativeFullscreen === "function") {
                         try { window.toggleNativeFullscreen(); return; } catch(e) {}
                     }
@@ -5498,7 +5502,7 @@ export class SimpleWindow {
                         isCmdOrCtrlF ||
                         (!isInput && isBareF) ||
                         (isFn && isF) ||
-                        e.key === "F11" || e.code === "F11" ||
+                        e.key === "F11" || e.code === "F11" || e.key === "\\uF70E" || e.keyCode === 122 ||
                         (e.altKey && (e.key === "Enter" || e.code === "Enter"))
                     ) {
                         e.preventDefault();
@@ -9642,7 +9646,7 @@ export interface SimpleGUITheme {
     card_border?: string;
     description: string;
     is_dark: boolean;
-    /** Optional danger, warning, success and info base colours; the rest of each status colour is derived and contrast-checked. */
+    /** Optional danger, warning, success and info base colors; the rest of each status color is derived and contrast-checked. */
     semantic?: SemanticOverrides;
     /** Optional effects descriptor (glow, glass, motion). A theme without it gets no effects output at all. */
     fx?: ThemeFx;
@@ -9930,7 +9934,7 @@ export function getTheme(themeName: string): SimpleGUITheme {
     return SIMPLEGUI_THEMES["monokai_pro"] || SIMPLEGUI_THEMES["apple_light"]!;
 }
 
-/** Danger, warning, success and info colours for a theme: solid fill, readable text, soft tint and border, all contrast-checked. */
+/** Danger, warning, success and info colors for a theme: solid fill, readable text, soft tint and border, all contrast-checked. */
 export function getSemanticColors(themeName: string): SemanticPalette {
     const t = getTheme(themeName);
     return buildSemanticPalette({
@@ -9953,7 +9957,7 @@ export function isFxTheme(themeName: string): boolean {
 }
 export const is_fx_theme = isFxTheme;
 
-/** Code colours (keyword, string, number, comment, function, type) for any theme, each readable on its canvas. */
+/** Code colors (keyword, string, number, comment, function, type) for any theme, each readable on its canvas. */
 export function getSyntaxPalette(themeName: string): SyntaxPalette {
     return syntaxPalette(getTheme(themeName));
 }

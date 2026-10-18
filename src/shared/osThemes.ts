@@ -240,7 +240,7 @@ export const OS_THEMES: Record<string, SimpleGUITheme> = {
         secondary_accent: "#3daee9",
         card_background: "#fcfcfc",
         card_border: "#bdc3c7",
-        description: "KDE Plasma Breeze Light with soft grey windows and Plasma blue",
+        description: "KDE Plasma Breeze Light with soft gray windows and Plasma blue",
         is_dark: false,
     },
     xfce_dark: {
@@ -288,7 +288,7 @@ export const OS_THEMES: Record<string, SimpleGUITheme> = {
         secondary_accent: "#7c6ad6",
         card_background: "#404552",
         card_border: "#2b2e39",
-        description: "Arc GTK dark theme with flat blue-grey surfaces and the Arc blue accent",
+        description: "Arc GTK dark theme with flat blue-gray surfaces and the Arc blue accent",
         is_dark: true,
     },
     arc_light: {
@@ -336,7 +336,7 @@ export const OS_THEMES: Record<string, SimpleGUITheme> = {
         secondary_accent: "#c0c0c0",
         card_background: "#ffffff",
         card_border: "#000000",
-        description: "Windows 3.1 Program Manager grey desktop with white windows and navy title bars",
+        description: "Windows 3.1 Program Manager gray desktop with white windows and navy title bars",
         is_dark: false,
     },
     win98: {
@@ -420,7 +420,7 @@ export const OS_THEMES: Record<string, SimpleGUITheme> = {
         secondary_accent: "#0078d7",
         card_background: "#2b2b2b",
         card_border: "#3b3b3b",
-        description: "Windows 10 dark mode with neutral grey surfaces and the Windows blue",
+        description: "Windows 10 dark mode with neutral gray surfaces and the Windows blue",
         is_dark: true,
     },
     win10_light: {
@@ -432,7 +432,7 @@ export const OS_THEMES: Record<string, SimpleGUITheme> = {
         secondary_accent: "#0078d7",
         card_background: "#ffffff",
         card_border: "#cccccc",
-        description: "Windows 10 light mode with white surfaces, grey canvas and the Windows blue",
+        description: "Windows 10 light mode with white surfaces, gray canvas and the Windows blue",
         is_dark: false,
     },
     windows_terminal: {
@@ -468,7 +468,7 @@ export const OS_THEMES: Record<string, SimpleGUITheme> = {
         secondary_accent: "#9999cc",
         card_background: "#eeeeee",
         card_border: "#8c8c8c",
-        description: "Mac OS 8 and 9 Platinum with grey pinstripe windows and the lavender selection",
+        description: "Mac OS 8 and 9 Platinum with gray pinstripe windows and the lavender selection",
         is_dark: false,
     },
     snow_leopard: {
@@ -480,7 +480,7 @@ export const OS_THEMES: Record<string, SimpleGUITheme> = {
         secondary_accent: "#8a94a3",
         card_background: "#f3f4f6",
         card_border: "#aab0ba",
-        description: "Mac OS X Snow Leopard Graphite with brushed grey surfaces and a steel blue accent",
+        description: "Mac OS X Snow Leopard Graphite with brushed gray surfaces and a steel blue accent",
         is_dark: false,
     },
     yosemite: {

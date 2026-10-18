@@ -86,7 +86,7 @@ const popItems = (s) => s.qa("#scPop-grid .sc-item input");
 const tick = () => sleep(60);
 
 describe(`Columns control on the ${ENGINE} studio (jsdom against the real server)`, () => {
-  test("the Columns button is in the grid toolbar, labelled, and shows the column count", async () => {
+  test("the Columns button is in the grid toolbar, labeled, and shows the column count", async () => {
     const s = await openStudio();
     try {
       const b = s.q("#scBtn-grid");
@@ -293,7 +293,7 @@ describe(`Columns control on the ${ENGINE} studio (jsdom against the real server
 // ----------------------------------------------------------------------------------------------------------
 // datasheet: widths, display names, order, frozen columns, filters, formatting
 // ----------------------------------------------------------------------------------------------------------
-describe(`Datasheet behaviour on the ${ENGINE} studio (jsdom against the real server)`, () => {
+describe(`Datasheet behavior on the ${ENGINE} studio (jsdom against the real server)`, () => {
   const plain = (a) => JSON.parse(JSON.stringify(a));
   const kd = (s, key, opts, target) => { const ev = new s.w.KeyboardEvent("keydown", Object.assign({ key, bubbles: true, cancelable: true }, opts)); (target || s.d.activeElement || s.d.body).dispatchEvent(ev); return ev; };
   const th = (s, c) => s.q('#gridHeaderRow th[data-col="' + c + '"]');

@@ -65,7 +65,7 @@ The same list is in the [application index](../reference/application-index.md).
 bun run app:launcher
 ```
 
-*What it does:* opens **Launcher Studio Pro**, a window listing every tool with search, favourites and a launch button.
+*What it does:* opens **Launcher Studio Pro**, a window listing every tool with search, favorites and a launch button.
 *Expected result:* a window opens and stays open. The terminal prints `Launching Project Application & CLI Workstation Launcher...` and keeps running; close the window or press Ctrl+C to stop it.
 *Verified:* the window opened and kept running for at least 7 seconds. Clicking through its features was not done by hand for this handbook (automated tests for it exist).
 

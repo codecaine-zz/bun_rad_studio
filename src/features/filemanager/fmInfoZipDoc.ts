@@ -91,7 +91,7 @@ export async function zipDocument(handle: fsp.FileHandle, size: number, ext: str
     r.add("Created", xmlText(core, "dcterms:created")).add("Last saved", xmlText(core, "dcterms:modified")).add("Revision", xmlText(core, "cp:revision"), "How many times it was saved.");
     r.add("Keywords", xmlText(core, "cp:keywords")).add("Description", xmlText(core, "dc:description")).add("Category", xmlText(core, "cp:category"));
     r.add("Made with", [xmlText(app, "Application"), xmlText(app, "AppVersion")].filter(Boolean).join(" "));
-    r.add("Company", xmlText(app, "Company"), "The organisation name stored by the program.");
+    r.add("Company", xmlText(app, "Company"), "The organization name stored by the program.");
     r.add("Pages", xmlText(app, "Pages")).add("Words", xmlText(app, "Words")).add("Characters", xmlText(app, "Characters")).add("Paragraphs", xmlText(app, "Paragraphs"));
     const total = xmlText(app, "TotalTime");
     r.add("Editing time", total ? `${total} minutes` : "", "How long the document was open for editing, as the program counted.");

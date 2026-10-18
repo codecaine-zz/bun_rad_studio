@@ -11,6 +11,8 @@
 import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
 import { getSharedWorkbench } from "../src/db/workbench_shared";
 import { postgresStaging } from "../src/db/staging/mount";
+import { parseUniversalTable } from "../src/db/importParser";
+import { splitStatements } from "../src/db/splitter";
 import { viewApi } from "../src/shared/studioViews";
 import {
   formatSqlDialect,
@@ -2141,18 +2143,120 @@ export class PostgresManager {
     }
   }
 
-  public async importBatchRows(tableName: string, rows: Record<string, any>[], schemaName?: string): Promise<{ success: boolean; importedCount: number; error?: string }> {
-    const schema = schemaName || this.activeSchema || "public";
+  public async importBatchRows(
+    tableName: string,
+    rows: any[],
+    schemaName?: string,
+    extra?: {
+      create?: boolean;
+      createColumns?: { name: string; type?: string; pk?: boolean; notnull?: boolean }[];
+      columns?: string[];
+      mode?: "append" | "replace";
+      onConflict?: "abort" | "ignore" | "replace";
+    },
+  ): Promise<{ success: boolean; importedCount: number; inserted?: number; skipped?: number; error?: string }> {
+    return this.importRows({
+      table: tableName,
+      schema: schemaName,
+      rows,
+      ...(extra || {}),
+    });
+  }
+
+  public async importRows(spec: {
+    table: string;
+    schema?: string;
+    create?: boolean;
+    createColumns?: { name: string; type?: string; pk?: boolean; notnull?: boolean }[];
+    columns?: string[];
+    rows: any[];
+    mode?: "append" | "replace";
+    onConflict?: "abort" | "ignore" | "replace";
+  }): Promise<{ success: boolean; importedCount: number; imported: number; inserted: number; skipped: number; latencyMs?: number; error?: string }> {
+    const t0 = performance.now();
+    const schema = spec.schema || this.activeSchema || "public";
     try {
-      if (!rows || rows.length === 0) return { success: true, importedCount: 0 };
-      let imported = 0;
-      for (const row of rows) {
-        const res = await this.insertRow(tableName, row, schema);
-        if (res.success) imported++;
+      const tableName = String(spec.table || "").trim();
+      if (!tableName) throw new Error("Target table is required");
+      const rawRows = Array.isArray(spec.rows) ? spec.rows : [];
+      if (rawRows.length === 0 && !spec.create) {
+        return { success: true, importedCount: 0, imported: 0, inserted: 0, skipped: 0, latencyMs: 0 };
       }
-      return { success: true, importedCount: imported };
+
+      let columns = Array.isArray(spec.columns) ? [...spec.columns] : [];
+      let recordRows: Record<string, any>[] = [];
+
+      if (columns.length > 0 && rawRows.length > 0 && Array.isArray(rawRows[0])) {
+        recordRows = rawRows.map((arr: any[]) => {
+          const obj: Record<string, any> = {};
+          columns.forEach((c, i) => {
+            obj[c] = arr[i] === undefined ? null : arr[i];
+          });
+          return obj;
+        });
+      } else {
+        recordRows = rawRows.filter((r) => r && typeof r === "object" && !Array.isArray(r));
+        if (columns.length === 0) {
+          const colSet = new Set<string>();
+          for (const r of recordRows) for (const k of Object.keys(r)) colSet.add(k);
+          columns = Array.from(colSet);
+        }
+      }
+
+      if (spec.create) {
+        const cols =
+          spec.createColumns && spec.createColumns.length
+            ? spec.createColumns.map((c) => ({
+                name: c.name,
+                type: !c.type || c.type.toUpperCase() === "REAL" ? "DOUBLE PRECISION" : c.type,
+                pk: c.pk,
+                notnull: c.notnull,
+              }))
+            : columns.map((n) => ({ name: n, type: "TEXT" }));
+        const cr = await this.createTable(tableName, cols, schema);
+        if (!cr.success) throw new Error(cr.error || `Failed to create table '${tableName}'`);
+      } else if (spec.mode === "replace") {
+        await this.sql_conn.unsafe(`DELETE FROM ${pgq(schema)}.${pgq(tableName)};`);
+      }
+
+      let imported = 0;
+      let skipped = 0;
+      for (const row of recordRows) {
+        const res = await this.insertRow(tableName, row, schema);
+        if (res.success) {
+          imported++;
+        } else if (spec.onConflict === "ignore") {
+          skipped++;
+        } else {
+          throw new Error(res.error || "Failed to insert row");
+        }
+      }
+      return {
+        success: true,
+        importedCount: imported,
+        imported,
+        inserted: imported,
+        skipped,
+        latencyMs: Number((performance.now() - t0).toFixed(2)),
+      };
     } catch (err: any) {
-      return { success: false, importedCount: 0, error: err.message };
+      return { success: false, importedCount: 0, imported: 0, inserted: 0, skipped: 0, error: err?.message || String(err) };
+    }
+  }
+
+  public async runScript(sql: string): Promise<{ success: boolean; executed?: number; error?: string }> {
+    try {
+      const text = String(sql || "").trim();
+      if (!text) throw new Error("Script is empty");
+      const stmts = splitStatements(text, { engine: "postgres" }).map((s) => s.sql);
+      let executed = 0;
+      for (const st of stmts) {
+        await this.sql_conn.unsafe(st);
+        executed++;
+      }
+      return { success: true, executed };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
     }
   }
 
@@ -3308,13 +3412,66 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
             case "delete":
               result = await manager.deleteRow(body.table, body.pkCol, body.pkVal, body.schema);
               break;
-            case "import-batch":
-              result = await manager.importBatchRows(body.table, body.rows, body.schema);
+            case "import-batch": {
+              let rows = body.rows;
+              let cols = body.columns;
+              if (!Array.isArray(rows) && (body.content !== undefined || body.base64 !== undefined || body.filePath !== undefined)) {
+                const parsed = await parseUniversalTable(body);
+                rows = parsed.records;
+                cols = parsed.columns;
+              }
+              result = await manager.importRows({
+                ...body,
+                table: body.table,
+                schema: body.schema,
+                columns: cols,
+                rows: rows || [],
+              });
               break;
+            }
             default:
               return Response.json({ success: false, error: `Unknown row op ${op}` }, { status: 400, headers: corsHeaders });
           }
           return Response.json(result, { status: result.success !== false ? 200 : 400, headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/parse-import" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as any;
+          const parsed = await parseUniversalTable(body);
+          return Response.json({ success: true, ...parsed }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/import" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as any;
+          if (!Array.isArray(body.rows) && (body.content !== undefined || body.base64 !== undefined || body.filePath !== undefined)) {
+            const parsed = await parseUniversalTable(body);
+            const res = await manager.importRows({
+              ...body,
+              columns: body.columns?.length ? body.columns : parsed.columns,
+              rows: parsed.rows,
+            });
+            return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+          }
+          const res = await manager.importRows(body);
+          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/script" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { sql: string };
+          const res = await manager.runScript(body.sql);
+          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
         }
@@ -3333,8 +3490,21 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
 
       if (url.pathname === "/api/rows/import-batch" && req.method === "POST") {
         try {
-          const body = (await req.json()) as { table: string; rows: Record<string, any>[]; schema?: string };
-          const res = await manager.importBatchRows(body.table, body.rows, body.schema);
+          const body = (await req.json()) as any;
+          let rows = body.rows;
+          let cols = body.columns;
+          if (!Array.isArray(rows) && (body.content !== undefined || body.base64 !== undefined || body.filePath !== undefined)) {
+            const parsed = await parseUniversalTable(body);
+            rows = parsed.records;
+            cols = parsed.columns;
+          }
+          const res = await manager.importRows({
+            ...body,
+            table: body.table,
+            schema: body.schema,
+            columns: cols,
+            rows: rows || [],
+          });
           return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });

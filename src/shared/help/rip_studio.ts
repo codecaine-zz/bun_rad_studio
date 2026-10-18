@@ -2,7 +2,7 @@ import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Rip Studio: bury files in a recoverable graveyard instead of deleting them. */
 export const ripStudioTips: HelpTips = {
-  "#dd_theme": "Change the colours of this window. Your choice is remembered.",
+  "#dd_theme": "Change the colors of this window. Your choice is remembered.",
   "#btn_fullscreen": "Fill the whole screen with this window. Press it again to go back.",
   "#btn_save_state": "Remember the window size, the theme and what is typed in the boxes, so they are restored next time you open this app.",
   "#btn_refresh": "Read the graveyard again and update the table and the counts, for example after burying or restoring items from another program.",

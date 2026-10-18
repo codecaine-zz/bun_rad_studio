@@ -250,7 +250,7 @@ describe("the page starts in the view it was left in", () => {
 });
 
 describe("the view switcher", () => {
-  test("is a labelled radio group with a tooltip and keyboard hint on every view", () => {
+  test("is a labeled radio group with a tooltip and keyboard hint on every view", () => {
     const group = $("#view-switch");
     expect(group.getAttribute("role")).toBe("radiogroup");
     expect(group.getAttribute("aria-label")).toBeTruthy();
@@ -747,6 +747,47 @@ describe("the toolbar and the status bar", () => {
     alt(1);
     expect($("#status-views").hidden).toBe(false);
   });
+
+  test("the view bar, status bar, and Home page show a live clock and date that toggles between 12-hour and 24-hour time", async () => {
+    const fixed = new Date("2026-10-17T19:05:09");
+    chrome.updateClock(fixed);
+    expect($("#fm-clock-date").textContent).toContain("2026");
+    expect($("#fm-clock-time").textContent).toMatch(/05:09/);
+    expect($("#status-clock").textContent).toContain("2026");
+    expect($("#status-clock").textContent).toMatch(/05:09/);
+    const beforeTitle = $("#fm-clock").title;
+    $("#fm-clock").click();
+    chrome.updateClock(fixed);
+    expect($("#fm-clock").title).not.toBe(beforeTitle);
+    const c12 = chrome.formatClock(fixed, false);
+    const c24 = chrome.formatClock(fixed, true);
+    expect(c24.time).toContain("19:05:09");
+    expect(c12.time).toMatch(/7:05:09/);
+    $("#fm-clock").click();
+
+    // Right-clicking #fm-clock opens the Clock & Calendar quick menu with timestamp copy and dated folder actions
+    $("#fm-clock").dispatchEvent(new win.MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
+    await sleep(40);
+    const menuText = doc.querySelector(".menu")?.textContent ?? "";
+    expect(menuText).toContain("Calendar, World Clocks & Timestamps");
+    expect(menuText).toContain("Copy local date");
+    expect(menuText).toContain("Copy filename timestamp");
+    expect(menuText).toContain("New dated folder");
+    (await import("../resources/file_manager/ui/menus.js")).closeMenu();
+
+    // Calendar, World Clocks & Epoch Converter dialog
+    const dlg = chrome.openCalendarDialog(fixed);
+    await sleep(50);
+    expect(doc.querySelector("#cal-month-label")?.textContent).toContain("2026");
+    expect(doc.querySelectorAll("#cal-world-grid .cal-world-card").length).toBe(6);
+    const epochIn = doc.querySelector("#cal-epoch-input") as any;
+    expect(epochIn).toBeTruthy();
+    epochIn.value = "1700000000";
+    epochIn.dispatchEvent(new win.Event("input", { bubbles: true }));
+    expect(doc.querySelector("#cal-epoch-result")?.textContent).toContain("2023-11-14T22:13:20.000Z");
+    dlg.close(null);
+    await sleep(40);
+  });
 });
 
 describe("the Dual view", () => {
@@ -1035,7 +1076,7 @@ describe("the Dual view's right pane has the same options as the left one", () =
     key($("#dual-list"), "h");
     expect($("#dual-list .row.focused .name-text").textContent).toBe("three.md");
     expect($("#dual-list .row.selected .name-text").textContent).toBe("three.md");
-    key($("#dual-list"), "Backspace");
+    key($("#dual-list"), process.platform === "darwin" ? "ArrowUp" : "Backspace", process.platform === "darwin" ? { altKey: true } : {});
     await until(() => $("#dual-crumbs .crumb.current").textContent === "parity", "the right pane to go up");
     expect(rowNames("#list")).toContain("one.txt");
     await openOnRight(other);
@@ -1419,7 +1460,7 @@ describe("Quick Look and copy to the clipboard", () => {
     expect(open()).toBeNull();
   });
 
-  test("the equaliser and queue panels open from the keyboard and the equaliser has ten labelled bands", async () => {
+  test("the equalizer and queue panels open from the keyboard and the equalizer has ten labeled bands", async () => {
     select("b-song.mp3");
     $("#list").focus();
     space();
@@ -1562,6 +1603,63 @@ describe("Quick Look and copy to the clipboard", () => {
       proto.getContext = oldGetContext;
       if (!hadImageData) delete g.ImageData;
       if (open()) key(doc.activeElement ?? doc.body, "Escape");
+    }
+  });
+
+  test("pressing Space on a Markdown file opens formatted Markdown with GitHub-style Outline navigation and toggles Preview / Plain text via buttons or P; non-browser images (PPM) preview as images", async () => {
+    const dir = join(home, "QuickLook Markdown and Images");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "icon.ppm"), "P3\n1 1\n255\n0 255 0\n");
+    writeFileSync(
+      join(dir, "readme.md"),
+      "# Project Title\n\nWelcome to [Example](https://example.com) with ![Icon](./icon.ppm).\n\n## Features\n- Fast\n",
+    );
+    const nav = await import("../resources/file_manager/ui/nav.js");
+    try {
+      await nav.goTo(dir);
+      await waitFor(() => names().includes("readme.md"));
+      select("readme.md");
+      $("#list").focus();
+      space();
+      await waitFor(() => !!$(".ql .code-md-toolbar"));
+
+      const mdContent = () => $(".ql .code-md-content");
+      const plainPre = () => $(".ql pre.ql-text");
+      expect(mdContent().hidden).toBe(false);
+      expect(plainPre().hidden).toBe(true);
+      expect($(".ql .code-md-toolbar").textContent).toContain("Outline (2)");
+
+      // Toggle to Plain text with the P key
+      key(doc.activeElement ?? doc.body, "p");
+      expect(mdContent().hidden).toBe(true);
+      expect(plainPre().hidden).toBe(false);
+      expect(plainPre().textContent).toContain("# Project Title");
+
+      // Toggle back to Preview with the P key
+      key(doc.activeElement ?? doc.body, "p");
+      expect(mdContent().hidden).toBe(false);
+      expect(plainPre().hidden).toBe(true);
+
+      // Toggle via the Plain text button in the toolbar
+      const plainBtn = [...doc.querySelectorAll(".ql .code-md-mode-btn")].find((b: any) => b.textContent === "Plain text") as any;
+      plainBtn.click();
+      expect(mdContent().hidden).toBe(true);
+      expect(plainPre().hidden).toBe(false);
+
+      key(doc.activeElement ?? doc.body, "Escape");
+      expect(open()).toBeNull();
+
+      // Space on non-browser image (icon.ppm) opens image preview
+      select("icon.ppm");
+      $("#list").focus();
+      space();
+      await waitFor(() => !!$(".ql img.ql-image"));
+      expect(decodeURIComponent($(".ql img.ql-image").getAttribute("src") || "")).toContain("icon.ppm");
+      key(doc.activeElement ?? doc.body, "Escape");
+      expect(open()).toBeNull();
+    } finally {
+      if (open()) key(doc.activeElement ?? doc.body, "Escape");
+      await nav.goTo(qdir);
     }
   });
 
@@ -1812,7 +1910,7 @@ describe("the QR tool", () => {
     }
   });
 
-  test("a colour choice that a scanner can't read is flagged", async () => {
+  test("a color choice that a scanner can't read is flagged", async () => {
     const canvas = stubCanvas();
     try {
       const details = doc.querySelector(".qr-more");
@@ -1865,7 +1963,7 @@ describe("the Themes button in the ribbon", () => {
     const btn = $("#tool-themes");
     expect(btn).toBeTruthy();
     expect(btn.getAttribute("aria-label")).toBe("Themes");
-    expect(btn.title).toContain("colours");
+    expect(btn.title).toContain("colors");
     expect(btn.querySelector(".ti").textContent).toBe("🎨");
     expect(btn.nextElementSibling?.id).toBe("tool-settings");
   });
@@ -1934,6 +2032,30 @@ describe("the Themes button in the ribbon", () => {
   test("the shortcut for the gallery can be set in the shortcuts dialog and starts with none", async () => {
     const { keysOf } = await import("../resources/file_manager/ui/keymap.js");
     expect(keysOf("app.themes")).toEqual(["Mod+Shift+T"]);
+  });
+
+  test("pinned favorite themes appear under Favorites in the Themes menu and are not duplicated in Recent", async () => {
+    const { call } = await import("../resources/file_manager/ui/api.js");
+    const themes = ((await call("themes/list")) as any).themes;
+    const { chooseTheme, toggleFavoriteTheme } = await import("../resources/file_manager/ui/themes.js");
+    const g = globalThis as any;
+    const hadStorage = "localStorage" in g;
+    g.localStorage = win.localStorage;
+    win.localStorage.removeItem("fm_recent_themes");
+    win.localStorage.removeItem("fm_favorite_themes");
+    await chooseTheme(themes[3].key);
+    await chooseTheme(themes[4].key);
+    toggleFavoriteTheme(themes[3].key);
+    await sleep(300);
+    await open();
+    const headers = [...doc.querySelectorAll(".menu .menu-header")].map((h: any) => h.textContent);
+    expect(headers).toEqual(["Favorites", "Recent"]);
+    const matching = [...doc.querySelectorAll(".menu .menu-item .menu-label")].filter((l: any) => l.textContent === themes[3].name);
+    expect(matching.length).toBe(1);
+    toggleFavoriteTheme(themes[3].key);
+    item("Standard: follow my computer").click();
+    await sleep(300);
+    if (!hadStorage) delete g.localStorage;
   });
 });
 
@@ -2260,28 +2382,33 @@ describe("the review dialog, Compare, Projects and duplicate cleanup", () => {
     const { activePane } = await import("../resources/file_manager/ui/pane.js");
     const shared = (await import("../resources/file_manager/ui/state.js")).state;
     const here = () => shared.location.path;
-    win.localStorage.removeItem("fm_backspace_hint");
-    await nav.goTo(dir);
-    await sleep(300);
-    // default: Backspace = up one folder, and the hint appears once
-    key($("#list"), "Backspace");
-    await waitFor(() => here() === join(lab, "bs"));
-    expect(here()).toBe(join(lab, "bs"));
-    if (process.platform === "darwin") expect(toasts()).not.toContain("Delete key is Backspace");
-    else expect(toasts()).toContain("Delete key is Backspace");
-    expect(existsSync(f)).toBe(true);
-    // the setting: Backspace moves the selected file to the Recycle Bin and stays in the folder
-    await nav.saveSettings({ backspaceDeletes: true });
-    await nav.goTo(dir);
-    await sleep(300);
-    (activePane() as any).selection.clear();
-    (activePane() as any).selection.add(f);
-    key($("#list"), "Backspace");
-    await waitFor(() => !existsSync(f));
-    expect(existsSync(f)).toBe(false);
-    expect(existsSync(join(dir, "keeper.txt"))).toBe(true);
-    expect(here()).toBe(dir);
-    await nav.saveSettings({ backspaceDeletes: false });
+    const prevPlatform = shared.platform;
+    shared.platform = "linux";
+    try {
+      win.localStorage.removeItem("fm_backspace_hint");
+      await nav.goTo(dir);
+      await sleep(300);
+      // default on Windows/Linux: Backspace = up one folder, and the hint appears once
+      key($("#list"), "Backspace");
+      await waitFor(() => here() === join(lab, "bs"));
+      expect(here()).toBe(join(lab, "bs"));
+      expect(toasts()).toContain("Delete key is Backspace");
+      expect(existsSync(f)).toBe(true);
+      // the setting (Windows/Linux) or Mac default: Backspace moves the selected file to the Recycle Bin and stays in the folder
+      await nav.saveSettings({ backspaceDeletes: true });
+      await nav.goTo(dir);
+      await sleep(300);
+      (activePane() as any).selection.clear();
+      (activePane() as any).selection.add(f);
+      key($("#list"), "Backspace");
+      await waitFor(() => !existsSync(f));
+      expect(existsSync(f)).toBe(false);
+      expect(existsSync(join(dir, "keeper.txt"))).toBe(true);
+      expect(here()).toBe(dir);
+    } finally {
+      shared.platform = prevPlatform;
+      await nav.saveSettings({ backspaceDeletes: false });
+    }
   });
 });
 
@@ -2604,3 +2731,276 @@ describe("download folders open inside the File Manager by default", () => {
     }
   });
 });
+
+describe("tool screen room toggles and universal window/browser actions", () => {
+  test("Compact and Expand toggle extra room for all tools, and Escape restores from Expand before leaving Tools", async () => {
+    alt(1);
+    await sleep(80);
+    const power = await import("../resources/file_manager/ui/power.js");
+    power.openPower("paint");
+    await sleep(80);
+    expect(ws()).toBe("tools");
+    expect(app().classList.contains("power-compact")).toBe(false);
+    expect(app().classList.contains("power-max")).toBe(false);
+
+    $("#power-compact").click();
+    expect(app().classList.contains("power-compact")).toBe(true);
+    expect($("#power-compact").getAttribute("aria-pressed")).toBe("true");
+    $("#power-compact").click();
+    expect(app().classList.contains("power-compact")).toBe(false);
+
+    $("#power-expand").click();
+    expect(app().classList.contains("power-max")).toBe(true);
+    expect($("#power-expand").getAttribute("aria-pressed")).toBe("true");
+    expect($("#power-max-bar").hidden).toBe(false);
+
+    // Pressing Escape restores from Expand first without leaving the Tools view
+    key(doc.body, "Escape");
+    expect(app().classList.contains("power-max")).toBe(false);
+    expect($("#power-max-bar").hidden).toBe(true);
+    expect(ws()).toBe("tools");
+
+    //Embedded apps also have their own Expand, Window, and Browser buttons
+    const paintPane = $("#power-pane-paint");
+    expect(paintPane.querySelector(".embed-expand")).not.toBeNull();
+    expect(paintPane.querySelector(".embed-window")).not.toBeNull();
+    expect(paintPane.querySelector(".embed-browser")).not.toBeNull();
+
+    const launchesBefore = launched.length;
+    paintPane.querySelector(".embed-browser").click();
+    await sleep(120);
+    expect(launched.length).toBeGreaterThan(launchesBefore);
+    expect(launched.at(-1)!.args.join(" ")).toContain("/app/paint/");
+
+    // Keyboard shortcuts (F11, macOS NSF11FunctionKey \uF70E, Ctrl+F11, Ctrl+Cmd+F, Mod+Shift+U, Alt+8) toggle Ultra Focus mode
+    const modOpt = process.platform === "darwin" ? { metaKey: true } : { ctrlKey: true };
+    key(doc.body, "F11", { code: "F11" });
+    expect(app().classList.contains("power-max")).toBe(true);
+    key(doc.body, "\uF70E", { code: "" });
+    expect(app().classList.contains("power-max")).toBe(false);
+    key(doc.body, "F11", { ctrlKey: true, code: "F11" });
+    expect(app().classList.contains("power-max")).toBe(true);
+    key(doc.body, "f", { ctrlKey: true, metaKey: true, code: "KeyF" });
+    expect(app().classList.contains("power-max")).toBe(false);
+    key(doc.body, "F11", { code: "F11" });
+    expect(app().classList.contains("power-max")).toBe(true);
+    key(doc.body, "U", { ...modOpt, shiftKey: true, code: "KeyU" });
+    expect(app().classList.contains("power-max")).toBe(false);
+    key(doc.body, "8", { altKey: true, code: "Digit8" });
+    expect(app().classList.contains("power-max")).toBe(true);
+
+    // Embedded and nested studio iframe postMessage bridge can toggle/exit Ultra Focus, focus app filter, and copy text
+    win.dispatchEvent(new win.MessageEvent("message", { data: { fmEscapeExpand: true }, source: win }));
+    expect(app().classList.contains("power-max")).toBe(false);
+    win.dispatchEvent(new win.MessageEvent("message", { data: { fmToggleExpand: true }, origin: "http://127.0.0.1:54321" }));
+    expect(app().classList.contains("power-max")).toBe(true);
+    win.dispatchEvent(new win.MessageEvent("message", { data: { fmFilterTools: true }, source: win }));
+    expect(app().classList.contains("power-max")).toBe(false);
+    expect(doc.activeElement.id).toBe("power-filter");
+
+    clip.text = "";
+    win.dispatchEvent(new win.MessageEvent("message", { data: { fmCopyText: "copied from iframe" }, source: win }));
+    for (let i = 0; i < 50 && clip.text !== "copied from iframe"; i++) await sleep(20);
+    expect(clip.text).toBe("copied from iframe");
+
+    // Mod+K from Files view opens Tools and focuses #power-filter
+    (await import("../resources/file_manager/ui/state.js")).emit("workspace-go", "files");
+    await sleep(60);
+    expect(ws()).toBe("files");
+    key(doc.body, "k", { ...modOpt, code: "KeyK" });
+    expect(ws()).toBe("tools");
+    expect(doc.activeElement.id).toBe("power-filter");
+
+    // Cmd+C / Ctrl+C copies selected text in inputs/textareas and selected DOM text in the UI
+    const field = doc.createElement("input");
+    field.value = "hello shortcut copy";
+    doc.body.append(field);
+    field.focus();
+    field.setSelectionRange(6, 14);
+    clip.text = "";
+    expect(key(field, "c", { ...modOpt, code: "KeyC" }).defaultPrevented).toBe(true);
+    for (let i = 0; i < 50 && clip.text !== "shortcut"; i++) await sleep(20);
+    expect(clip.text).toBe("shortcut");
+
+    field.setSelectionRange(0, 6);
+    clip.text = "";
+    expect(key(field, "x", { ...modOpt, code: "KeyX" }).defaultPrevented).toBe(true);
+    for (let i = 0; i < 50 && clip.text !== "hello "; i++) await sleep(20);
+    expect(clip.text).toBe("hello ");
+    expect(field.value).toBe("shortcut copy");
+    field.remove();
+
+    // Selecting non-input DOM text anywhere in the UI and pressing Cmd+C / Ctrl+C copies the selected text instead of files
+    (await import("../resources/file_manager/ui/state.js")).emit("workspace-go", "files");
+    await sleep(60);
+    const sharedState = (await import("../resources/file_manager/ui/state.js")).state;
+    sharedState.clipboard = null;
+    const span = doc.createElement("span");
+    span.textContent = "selected ui text";
+    doc.body.append(span);
+    const range = doc.createRange();
+    range.selectNodeContents(span);
+    const sel = win.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    clip.text = "";
+    expect(key(doc.body, "c", { ...modOpt, code: "KeyC" }).defaultPrevented).toBe(true);
+    for (let i = 0; i < 50 && clip.text !== "selected ui text"; i++) await sleep(20);
+    expect(clip.text).toBe("selected ui text");
+    expect(sharedState.clipboard).toBeNull();
+    sel.removeAllRanges();
+    span.remove();
+
+    (await import("../resources/file_manager/ui/state.js")).emit("workspace-go", "files");
+  });
+});
+
+describe("core file browsing & pane ergonomics (tabs, marquee, folder tree, columns/grouping, color tags, dual-pane parity)", () => {
+  test("settings sanitize columns, groupBy, tags, and treeExpanded", () => {
+    const clean = sanitizeSettings({
+      columns: ["permissions", "ext", "bogus"],
+      groupBy: "kind",
+      tags: { [join(home, "a.txt")]: "red", [join(home, "b.txt")]: "invalid-color" },
+      treeExpanded: true,
+    }, ctx);
+    expect(clean.columns).toEqual(["permissions", "ext"]);
+    expect(clean.groupBy).toBe("kind");
+    expect(clean.tags[join(home, "a.txt")]).toBe("red");
+    expect(clean.tags[join(home, "b.txt")]).toBeUndefined();
+    expect(clean.treeExpanded).toBe(true);
+  });
+
+  test("folder tabs open, duplicate, switch, cycle, and close while preserving per-tab location", async () => {
+    const { state } = await import("../resources/file_manager/ui/state.js");
+    const { goTo } = await import("../resources/file_manager/ui/nav.js");
+    const tabs = await import("../resources/file_manager/ui/tabs.js");
+
+    await goTo(home);
+    tabs.renderTabs();
+    const initialCount = state.tabs.length;
+    expect(initialCount).toBeGreaterThanOrEqual(1);
+
+    await tabs.openNewTab(dest);
+    expect(state.tabs.length).toBe(initialCount + 1);
+    expect(state.location.path).toBe(dest);
+    expect(doc.querySelectorAll("#tabbar .fm-tab").length).toBe(state.tabs.length);
+
+    await tabs.cycleTab(-1);
+    expect(state.location.path).toBe(home);
+
+    await tabs.duplicateTab();
+    expect(state.tabs.length).toBe(initialCount + 2);
+
+    await tabs.closeTab();
+    expect(state.tabs.length).toBe(initialCount + 1);
+    await tabs.closeTab();
+    expect(state.tabs.length).toBe(initialCount);
+    await goTo(home);
+  });
+
+  test("customizable details columns (ext, permissions) and group-by section headers render in details view", async () => {
+    const { emit } = await import("../resources/file_manager/ui/state.js");
+    const { goTo, saveSettings } = await import("../resources/file_manager/ui/nav.js");
+
+    await goTo(home);
+    await saveSettings({ view: "details", columns: ["ext", "permissions"], groupBy: "kind" });
+    emit("view");
+    await sleep(40);
+
+    expect(doc.querySelector("#list-head .h-ext")?.hidden).toBe(false);
+    expect(doc.querySelector("#list-head .h-perms")?.hidden).toBe(false);
+    expect(doc.querySelector("#list .row .c-ext")?.hidden).toBe(false);
+    expect(doc.querySelector("#list .row .c-perms")?.hidden).toBe(false);
+    expect(doc.querySelectorAll("#list .group-header").length).toBeGreaterThan(0);
+
+    await saveSettings({ columns: [], groupBy: "none" });
+    emit("view");
+    await sleep(40);
+    expect(doc.querySelector("#list-head .h-ext")?.hidden).toBe(true);
+    expect(doc.querySelector("#list-head .h-perms")?.hidden).toBe(true);
+    expect(doc.querySelectorAll("#list .group-header").length).toBe(0);
+  });
+
+  test("color tags mark rows with a colored dot and filter visible entries from the sidebar", async () => {
+    const { state } = await import("../resources/file_manager/ui/state.js");
+    const { goTo } = await import("../resources/file_manager/ui/nav.js");
+    const { setTagForPaths } = await import("../resources/file_manager/ui/tags.js");
+
+    await goTo(home);
+    const fileA = join(home, "a.txt");
+    await setTagForPaths([fileA], "red");
+    await sleep(40);
+
+    const rowA = rowOf("#list", "a.txt");
+    expect(rowA?.dataset.tag).toBe("red");
+    expect(rowA?.querySelector(".tag-dot.tag-red")).not.toBeNull();
+
+    const redFilter = doc.querySelector('#sidebar [data-tag-filter="red"]') as any;
+    expect(redFilter).not.toBeNull();
+    redFilter.click();
+    await sleep(40);
+    expect(state.tagFilter).toBe("red");
+    expect(rowNames("#list")).toEqual(["a.txt"]);
+
+    // Clicking the active tag filter again clears the filter
+    const redFilterAgain = doc.querySelector('#sidebar [data-tag-filter="red"]') as any;
+    redFilterAgain.click();
+    await sleep(40);
+    expect(state.tagFilter).toBe("");
+    expect(rowNames("#list")).toContain("b.txt");
+
+    await setTagForPaths([fileA], "");
+    await sleep(40);
+    expect(rowOf("#list", "a.txt")?.querySelector(".tag-dot")).toBeNull();
+  });
+
+  test("sidebar expandable folder tree expands, lists subfolders, and navigates on click", async () => {
+    const { state } = await import("../resources/file_manager/ui/state.js");
+    const { renderSidebar } = await import("../resources/file_manager/ui/sidebar.js");
+    const { toggleFolderTreeSection } = await import("../resources/file_manager/ui/folderTree.js");
+
+    if (!state.settings.treeExpanded) await toggleFolderTreeSection();
+    renderSidebar();
+    await sleep(60);
+
+    const treeRows = [...doc.querySelectorAll("#sidebar .tree-row")];
+    expect(treeRows.length).toBeGreaterThan(0);
+    const destRow = treeRows.find((n: any) => n.dataset.treePath === dest);
+    expect(destRow).toBeDefined();
+    destRow.querySelector(".tree-item").click();
+    await sleep(60);
+    expect(state.location.path).toBe(dest);
+    await (await import("../resources/file_manager/ui/nav.js")).goTo(home);
+  });
+
+  test("right-pane parity in dual view supports back/forward history, editable address bar, and search", async () => {
+    const { emit } = await import("../resources/file_manager/ui/state.js");
+    const { right } = await import("../resources/file_manager/ui/pane.js");
+    const dual = await import("../resources/file_manager/ui/dual.js");
+
+    emit("workspace-go", "dual");
+    await sleep(80);
+    await dual.loadRight(home, { push: false });
+    await dual.loadRight(dest, { push: true });
+    expect(right.location.path).toBe(dest);
+    expect($("#dual-back").disabled).toBe(false);
+
+    await dual.goRightBack();
+    expect(right.location.path).toBe(home);
+    expect($("#dual-forward").disabled).toBe(false);
+
+    await dual.goRightForward();
+    expect(right.location.path).toBe(dest);
+
+    // Search in right pane
+    $("#dual-search").value = "c.txt";
+    await dual.runRightSearch("c.txt");
+    await sleep(60);
+    expect(rowNames("#dual-list")).toContain("c.txt");
+
+    await dual.loadRight(home, { push: false });
+    emit("workspace-go", "files");
+    await sleep(60);
+  });
+});
+

@@ -1,6 +1,6 @@
 # Performance
 
-What was measured, under what conditions, and what the numbers do **not** show. Nothing here is a claim about other machines, other operating systems or real user workloads. No "before and after" comparison exists because nothing was optimised: the numbers are a baseline.
+What was measured, under what conditions, and what the numbers do **not** show. Nothing here is a claim about other machines, other operating systems or real user workloads. No "before and after" comparison exists because nothing was optimized: the numbers are a baseline.
 
 ## Contents
 
@@ -39,7 +39,7 @@ Measured on 13 October 2026 on one machine: Apple M4 Pro, 14 cores, macOS 27.0.1
 
 ## What was found
 
-- **Everything measured scales roughly linearly** with the number of controls. No quadratic behaviour showed up in generation, export, import, edit or undo up to 4,000 controls (generation) and 2,000 controls (page).
+- **Everything measured scales roughly linearly** with the number of controls. No quadratic behavior showed up in generation, export, import, edit or undo up to 4,000 controls (generation) and 2,000 controls (page).
 - **Every edit re-renders the whole canvas** (the "one more edit" column). At 2,000 controls that is about 70 ms per edit, which will feel slow while dragging (not measured). Forms of a few hundred controls are far below that.
 - **Undo history is bounded** at 41 snapshots (`saveHistoryState` in `src/ide.html`), each a full JSON copy of the form, so memory is bounded too (memory was not measured).
 - Studio start-up is dominated by starting Bun itself; the first page is served within about 25 ms for all but one studio.

@@ -154,7 +154,7 @@ ${getWindowShortcutsScript()}
  */
 export function startYahtzeeServer(options: YahtzeeServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "yahtzee_studio", name: "Yahtzee Royale Deluxe — Classic Dice Board Studio", version: "1.0.0", assetsDir: getYahtzeeAssetsDir(), generateHtml: generateYahtzeeStudioHtml },
+    { app: "yahtzee_studio", name: "Codecaine Yahtzee Royale Deluxe — Classic Dice Board Studio", version: "1.0.0", assetsDir: getYahtzeeAssetsDir(), generateHtml: generateYahtzeeStudioHtml },
     options,
   );
 }
@@ -167,7 +167,7 @@ export function createYahtzeeStudio(options: YahtzeeStudioOptions = {}): Yahtzee
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1240);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Yahtzee Royale Deluxe — Classic Dice Board Studio";
+  const title = "Codecaine Yahtzee Royale Deluxe — Classic Dice Board Studio";
 
   const app: YahtzeeStudioInstance = {
     title,

@@ -64,7 +64,7 @@ describe("the three studio pages carry the shared Columns control and polish", (
     expect(pages[2]![1]).toContain("studioSqlCols");
   });
 
-  it("the polish keeps light and dark themes working: colours come from the theme variables", () => {
+  it("the polish keeps light and dark themes working: colors come from the theme variables", () => {
     expect(STUDIO_POLISH_STYLE).toContain("color-mix(in srgb, var(--text-main)");
     expect(STUDIO_POLISH_STYLE).toContain("prefers-reduced-motion");
     expect(STUDIO_POLISH_STYLE).toContain(":focus-visible");

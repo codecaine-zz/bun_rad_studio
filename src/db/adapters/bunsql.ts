@@ -10,7 +10,7 @@ const WRITE_KEYWORDS = new Set(["INSERT", "UPDATE", "DELETE", "REPLACE", "MERGE"
 type Conn = { unsafe(sql: string, params?: unknown[]): Promise<any> };
 type Reserved = Conn & { release(): void };
 
-/** Common behaviour of the two server engines, both driven by Bun's built-in SQL client. */
+/** Common behavior of the two server engines, both driven by Bun's built-in SQL client. */
 export abstract class BunSqlAdapter extends BaseAdapter {
   protected pool: SQL | null = null;
 

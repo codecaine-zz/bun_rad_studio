@@ -40,7 +40,7 @@ export const ending: Chapter[] = [
     steps: [
       {
         cap: "The Themes button",
-        say: "Let's make the File Manager look the way you like. The Themes button, in the ribbon, changes the colours of the whole app. Your most recent themes are listed first, so your favourites are always one click away.",
+        say: "Let's make the File Manager look the way you like. The Themes button, in the ribbon, changes the colors of the whole app. Your most recent themes are listed first, so your favorites are always one click away.",
         act: async (d) => { await d.click("#tool-themes", { pause: 1800 }); await d.hover(".menu", 2200); },
       },
       {
@@ -56,8 +56,8 @@ export const ending: Chapter[] = [
         },
       },
       {
-        cap: "✨ Effects or plain colours",
-        say: "Every card tells you what kind of theme it is. Themes marked Effects add glass, glow and motion. The others say Colours only. This menu, next to the light and dark filter, shows only the special effects themes, or only the plain ones. The line above the cards counts how many of each you are looking at.",
+        cap: "✨ Effects or plain colors",
+        say: "Every card tells you what kind of theme it is. Themes marked Effects add glass, glow and motion. The others say Colors only. This menu, next to the light and dark filter, shows only the special effects themes, or only the plain ones. The line above the cards counts how many of each you are looking at.",
         act: async (d) => {
           await search(d, "");
           await d.hover(".dialog .theme-fx-badge", 1800).catch(() => {});
@@ -84,7 +84,7 @@ export const ending: Chapter[] = [
       },
       {
         cap: "Futuristic themes: glass, glow and motion",
-        say: "The futuristic themes go further than colour. Panels are made of frosted glass, edges glow, and there is a gentle living light behind everything. Here is Orbital Ice, cool and calm. And Ember Grid, warm and bold. Each one keeps text easy to read, because every theme is checked for contrast.",
+        say: "The futuristic themes go further than color. Panels are made of frosted glass, edges glow, and there is a gentle living light behind everything. Here is Orbital Ice, cool and calm. And Ember Grid, warm and bold. Each one keeps text easy to read, because every theme is checked for contrast.",
         act: async (d) => {
           await search(d, "orbital");
           await d.click(".theme-card >> Orbital Ice", { pause: 2800 });
@@ -128,7 +128,7 @@ export const ending: Chapter[] = [
       },
       {
         cap: "Create or edit a theme",
-        say: "Now let's make our own. In the gallery, I press Create or edit a theme. It starts from the theme I am using, Ember Grid, so its effects are already switched on. Every colour can be changed, with a colour picker or a hex code. And below the colours, glass, glow and motion.",
+        say: "Now let's make our own. In the gallery, I press Create or edit a theme. It starts from the theme I am using, Ember Grid, so its effects are already switched on. Every color can be changed, with a color picker or a hex code. And below the colors, glass, glow and motion.",
         act: async (d) => {
           await d.click("#tool-themes", { pause: 1400 });
           await d.menu("All themes", { pause: 1600 });
@@ -150,7 +150,7 @@ export const ending: Chapter[] = [
       },
       {
         cap: "Glow, corners, borders, motion and texture",
-        say: "There is more. Glow style, from none to soft to neon. Two glow colours. Corners, from sharp to round to pill shaped. Borders, flat, gradient or metal. How lively the animations feel. And extras like an ambient light, a sheen, film grain and scanlines, for a real science fiction look.",
+        say: "There is more. Glow style, from none to soft to neon. Two glow colors. Corners, from sharp to round to pill shaped. Borders, flat, gradient or metal. How lively the animations feel. And extras like an ambient light, a sheen, film grain and scanlines, for a real science fiction look.",
         act: async (d) => {
           await pick(d, "Glow style", "neon");
           await pick(d, "Corner style", "round");
@@ -233,11 +233,17 @@ export const ending: Chapter[] = [
         act: async (d) => { await d.click("#power-tab-databases", { pause: 1800 }); await d.hover("#power-body", 3500); },
       },
       {
-        cap: "Next: SQLite Studio, then MySQL Studio",
-        say: "Next, we will go through two of them completely, step by step. First SQLite Studio, from finding a database file in your folders, to browsing, editing, designing tables and writing queries. Then MySQL Studio, from connecting to a server, to the workbench, backups and imports. Just like before, take your time, and pause whenever you like.",
+        cap: "Next: Complete Databases Masterclass, SQLite Studio & MySQL Studio",
+        say: "Next, we will go through the entire database suite completely, step by step. First, the Complete Databases and Cross-Engine Cloning Masterclass across all four engines: SQLite, PostgreSQL, MySQL, and Redis, including Bun JavaScript and Visual Macros, Universal Staging Import, and Studio I D E version two. Then the dedicated SQLite Studio and MySQL Studio deep dives. Take your time, and pause whenever you like.",
         act: async (d) => { await d.hover("#power-body", 4000); },
       },
     ],
+  },
+
+  {
+    id: "23b_databases_masterclass", chapter: "DATABASES MASTERCLASS", title: "All 4 Databases, Cross-Engine Cloning, Bun JS Macros & Studio IDE v2", blurb: "SQLite, MySQL, PostgreSQL, Redis, live cross-engine cloning, Bun JS & visual macros, staging import, ER diagram, schema diff & codegen",
+    kind: "external", external: { dir: "databases_masterclass_tutorial", label: "Databases Hub" },
+    steps: [],
   },
 
   {

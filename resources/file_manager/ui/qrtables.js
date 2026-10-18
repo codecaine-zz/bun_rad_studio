@@ -25,7 +25,7 @@ const BLOCKS = {
 export const sizeOf = (version) => 17 + 4 * version;
 export const versionOfSize = (size) => ((size - 17) % 4 === 0 && size >= 21 && size <= 177 ? (size - 17) / 4 : 0);
 
-/** Positions (row and column) of the alignment patterns' centres. */
+/** Positions (row and column) of the alignment patterns' centers. */
 export function alignmentPositions(version) {
   if (version === 1) return [];
   const count = Math.floor(version / 7) + 2;

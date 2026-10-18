@@ -72,7 +72,7 @@ describe("search, sort, time", () => {
     expect(sortApps(apps, "most_used").map((a) => a.id)[0]).toBe("task_watcher");
     expect(sortApps(apps, "name").map((a) => a.id)).toEqual(["fd_cli", "redis_studio", "task_manager", "task_watcher"]);
     const d = sortApps(apps, "default").map((a) => a.id);
-    expect(d[0]).toBe("redis_studio"); // favourite first
+    expect(d[0]).toBe("redis_studio"); // favorite first
     expect(d[1]).toBe("fd_cli"); // then running
     expect(sortModeFromLabel(SORT_LABELS.most_used)).toBe("most_used");
     expect(sortModeFromLabel("garbage")).toBe("default");
@@ -212,7 +212,7 @@ describe("launcher backend in an isolated project", () => {
     expect(await waitDead(b.pid!)).toBe(true);
   });
 
-  test("history survives garbage, clear keeps favourites, favourites toggle", () => {
+  test("history survives garbage, clear keeps favorites, favorites toggle", () => {
     fs.writeFileSync(process.env.LAUNCHER_HISTORY_FILE!, `{"favorites":"oops","launchHistory":null}`);
     expect(loadHistory()).toEqual({ favorites: [], launchHistory: {} });
     fs.writeFileSync(process.env.LAUNCHER_HISTORY_FILE!, "not json");

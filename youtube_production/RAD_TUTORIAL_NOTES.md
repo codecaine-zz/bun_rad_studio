@@ -1,13 +1,13 @@
-# Bun RAD Studio: the complete RAD tutorial (15:06)
+# Bun RAD Studio: the complete RAD tutorial (16:46)
 
 ## YouTube title
 
-Build Desktop Apps Fast With Bun: The Complete SimpleGUI RAD Tutorial (TypeScript)
+Build Desktop Apps Fast With Bun: The Complete SimpleGUI RAD & Visual Designer Tutorial (TypeScript)
 
 ## YouTube description (copy and paste)
 
 ```text
-Rapid application development with Bun RAD Studio. Learn the SimpleGUI API one idea at a time with the code beside the running program: windows, rows, grids and cards, controls, state and binding, menus, toolbars, dialogs, timers, busy states, 133 themes, and a finished contacts app with SQLite. Then design a form with the visual designer, use the 45 rad utility modules and the system tools (fd, sd, tokei, gdu, watchexec) as plain functions, and compile a program people can run.
+Rapid application development with Bun RAD Studio and SimpleGUI RAD App Builder. Learn the SimpleGUI API one idea at a time with the code beside the running program: windows, rows, grids and cards, standard and form controls, VLang parity widgets, Studio extended controls, enterprise components, reactive state and OS persistence, menus, toolbars, context menus, SweetAlert2 dialogs, declarative modals, webview file pickers, timers, busy states, 133 themes, and a finished contacts app with SQLite. Then design a form with the visual designer, use the 45 rad utility modules and the 10 system tools (fd, sd, tokei, gdu, watchexec and more) as plain functions, and compile a single binary people can run.
 
 Free and open source: https://github.com/codecaine-zz/bun_rad_studio
 SimpleGUI API: https://github.com/codecaine-zz/bun_rad_studio/blob/main/docs/SIMPLEGUI_API.md
@@ -20,16 +20,18 @@ Chapters
 0:29 Your first window
 2:18 Rows, grids and cards
 3:36 The controls you can use
-4:57 State and binding
-6:04 Menus, dialogs, timers and busy states
-7:25 One hundred thirty three themes
-8:21 Put it together: a contacts app with SQLite
-9:47 Forty-five utility modules
-11:17 The system tools, as functions
-12:23 Design a form visually
-13:31 Turn it into a program people can run
-14:15 Where to look things up
-14:46 Now build something
+4:57 Parity, extended and enterprise widgets
+5:47 State and binding
+6:53 Menus, dialogs, timers and busy states
+8:14 Context menus, SweetAlert2 dialogs and file pickers
+9:04 One hundred thirty three themes
+10:01 Put it together: a contacts app with SQLite
+11:26 Forty-five utility modules
+12:56 The system tools, as functions
+14:02 Design a form visually
+15:11 Turn it into a program people can run
+15:54 Where to look things up
+16:25 Now build something
 ```
 
 ## Notes

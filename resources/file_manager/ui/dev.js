@@ -37,7 +37,7 @@ function mount(root) {
   });
   const env = { getRoot: () => rootInput.value.trim() };
 
-  async function normalise() {
+  async function normalize() {
     const text = rootInput.value.trim();
     if (!text) return;
     try {
@@ -108,11 +108,11 @@ function mount(root) {
   rootInput.addEventListener("keydown", async (e) => {
     if (e.key !== "Enter") return;
     e.preventDefault();
-    await normalise();
+    await normalize();
     const s = section(active);
     (s.start ?? s.load)?.call(s);
   });
-  rootInput.addEventListener("change", normalise);
+  rootInput.addEventListener("change", normalize);
 
   root.append(
     h("div", { class: "pw-card dev-target" },

@@ -301,7 +301,7 @@ describe("the editor", () => {
   }
   const labelsOf = (d: any) => [...d.querySelectorAll(".db-field-label")].map((e: any) => e.textContent.trim());
 
-  test("each engine asks for its own settings, with defaults, hints and labelled controls", async () => {
+  test("each engine asks for its own settings, with defaults, hints and labeled controls", async () => {
     const sqlite = await openEditor("SQLite");
     expect(labelsOf(sqlite)).toEqual(["Name", "Folder", "Tags", "Environment", "Database file", "How to open it"]);
     expect([...field(sqlite, "How to open it").options].map((o: any) => o.value)).toEqual(["readwrite", "readonly", "create", "memory"]);
@@ -445,7 +445,7 @@ describe("the editor", () => {
 });
 
 describe("a saved connection in the list and its details", () => {
-  test("arrow keys move through the list and Enter opens; rows say their environment in words; favourites and groups", async () => {
+  test("arrow keys move through the list and Enter opens; rows say their environment in words; favorites and groups", async () => {
     await call("db/profile/save", { profile: { engine: "postgres", name: "Prod reports", host: "prod.example", environment: "production", favorite: true, folder: "Clients" }, password: PW });
     await openTab();
     const list = pane().querySelector(".db-list");
@@ -455,7 +455,7 @@ describe("a saved connection in the list and its details", () => {
     expect(prod.textContent).toContain("Production");
     expect(prod.querySelector(".db-env").textContent).toContain("⚠");
     expect(prod.title).toContain("PostgreSQL");
-    // favourites first within a folder
+    // favorites first within a folder
     const clients = [...list.querySelectorAll(".db-group")].find((g: any) => g.querySelector(".db-group-title").textContent.includes("Clients"));
     expect(clients.querySelector(".db-row-name").textContent).toContain("★ Prod reports");
     const all = [...list.querySelectorAll(".db-row")];
@@ -473,7 +473,7 @@ describe("a saved connection in the list and its details", () => {
     setValue(pane().querySelector(".db-filter"), "");
   });
 
-  test("details, Test connection, Duplicate with the password choice, Favourite and Delete (with a confirmation)", async () => {
+  test("details, Test connection, Duplicate with the password choice, Favorite and Delete (with a confirmation)", async () => {
     await openTab();
     await selectRow("Prod reports");
     const detail = pane().querySelector(".db-detail");
@@ -554,25 +554,48 @@ describe("a studio inside the tab", () => {
     expect(f.getAttribute("sandbox")).not.toContain("allow-popups");
     expect(f.getAttribute("referrerpolicy")).toBe("no-referrer");
     expect(pane().dataset.view).toBe("studio");
+    expect(doc.getElementById("app").classList.contains("db-studio-open")).toBe(true);
     const section = pane().querySelector(".db-studio:not([hidden])");
+    expect(section.dataset.state).toBe("running");
     expect(section.querySelector(".db-state").textContent).toContain("Running");
     expect(section.querySelector(".db-state").getAttribute("role")).toBe("status");
-    expect([...section.querySelectorAll("button")].map((b: any) => b.textContent)).toEqual(["← Connections", "Stop", "Restart", "Open in a separate window", "Open in my browser", "Close"]);
+    expect([...section.querySelectorAll("button")].map((b: any) => b.textContent)).toEqual(["← Connections", "⛶ Expand", "Stop", "Restart", "Open in a separate window", "Open in my browser", "Close"]);
     for (const b of section.querySelectorAll("button")) expect(b.title, b.textContent).toBeTruthy();
     expect(section.querySelector(".db-studio-title").textContent).toBe("SQLite Studio: People");
     expect(pane().querySelector(".db-strip").textContent).toContain("SQLite Studio: People");
+    expect(pane().querySelector(".db-strip").dataset.count).toBe("1");
+    expect(pane().querySelector(".db-strip .db-chip.active")?.getAttribute("aria-current")).toBe("true");
+    // Expand fills the window (db-studio-max), and Esc or Restore returns without leaving the studio
+    const expandBtn = section.querySelector(".db-expand");
+    expect(expandBtn.getAttribute("aria-pressed")).toBe("false");
+    click(expandBtn);
+    expect(studio.isStudioExpanded()).toBe(true);
+    expect(doc.getElementById("app").classList.contains("db-studio-max")).toBe(true);
+    expect(pane().dataset.maximized).toBe("true");
+    expect(expandBtn.textContent).toBe("⛶ Restore");
+    expect(expandBtn.getAttribute("aria-pressed")).toBe("true");
+    key(doc.body, "Escape");
+    expect(studio.isStudioExpanded()).toBe(false);
+    expect(doc.getElementById("app").classList.contains("db-studio-max")).toBe(false);
+    expect(pane().dataset.view).toBe("studio");
+    expect(expandBtn.textContent).toBe("⛶ Expand");
     // the frame page it points at is the server's, on the other loopback address
     const page = await fetch(f.getAttribute("src"), { headers: { Host: `localhost:${server.port}` } }).catch(() => null);
     expect(page).toBeTruthy();
   });
 
   test("back to the list keeps it running; the separate window and Stop work; Restart starts a new one", async () => {
+    click(btn("⛶ Expand"));
+    expect(doc.getElementById("app").classList.contains("db-studio-max")).toBe(true);
     click(btn("← Connections"));
     await until(() => pane().dataset.view === "list", "the list");
+    expect(doc.getElementById("app").classList.contains("db-studio-open")).toBe(false);
+    expect(doc.getElementById("app").classList.contains("db-studio-max")).toBe(false);
     expect(frame()).toBeTruthy();
     expect(pane().querySelector(".db-row.selected .db-running").textContent).toContain("open");
     click(btn("Show it"));
     await until(() => pane().dataset.view === "studio", "the studio view");
+    expect(doc.getElementById("app").classList.contains("db-studio-open")).toBe(true);
     click(btn("Open in a separate window"));
     await until(() => windows.length === 1, "the window request");
     expect(windows[0]!.command.at(-1)).toContain("people.sqlite");
@@ -644,7 +667,7 @@ describe("databases in the file list", () => {
     const { state, emit } = await import("../resources/file_manager/ui/state.js");
     (state as any).entries = [entry(real, 100), entry(fake, 41), entry(plain, 5)];
     emit("view");
-    await until(() => files.isSqliteFile(state.entries[0]), "the real file to be recognised");
+    await until(() => files.isSqliteFile(state.entries[0]), "the real file to be recognized");
     await sleep(150);
     expect(files.sqliteMenuItems([state.entries[0]]).map((i: any) => i.label)).toEqual(["Open in SQLite Studio", "Open in SQLite Studio in its own window", "Open in SQLite Studio in my browser", "Add as database connection"]);
     expect(files.sqliteMenuItems([state.entries[1]])).toEqual([]);
@@ -703,7 +726,7 @@ describe("shortcuts that open a database in a window or the browser", () => {
     const { state, emit } = await import("../resources/file_manager/ui/state.js");
     (state as any).entries = [{ name: "real.sqlite", path: real, isDir: false, size: 100, mtimeMs: 1 }];
     emit("view");
-    await until(() => files.isSqliteFile(state.entries[0]), "the real file to be recognised");
+    await until(() => files.isSqliteFile(state.entries[0]), "the real file to be recognized");
     const items = files.sqliteMenuItems([state.entries[0]]);
     const before = windows.length;
     await items.find((i: any) => i.label.endsWith("its own window")).action();

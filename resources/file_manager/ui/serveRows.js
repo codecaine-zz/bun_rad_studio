@@ -12,7 +12,7 @@ const STATUS_TEXT = { starting: "starting", running: "running", stopping: "stopp
 /** A short name for the folder shown in labels: the last part of its path. */
 const folderName = (path) => path.split(/[\\/]/).filter(Boolean).pop() ?? path;
 
-/** The text of the on/off switch: its state in words, so it never depends on colour alone. */
+/** The text of the on/off switch: its state in words, so it never depends on color alone. */
 export const switchLabel = (on) => (on ? "On" : "Off");
 
 /** A switch button: role="switch", keyboard-operable, with the state in its text. */

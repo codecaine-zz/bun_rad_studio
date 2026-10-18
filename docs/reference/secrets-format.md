@@ -111,7 +111,7 @@ After that, **every** failure (a wrong password, a wrong or missing key file, a 
 
 ## The database inside
 
-JSON, version 1: `createdAt`, `modifiedAt`, `settings` (auto-lock minutes, clipboard seconds, lock on blur, device-shortcut days), `items` (by random id) and `audit` (the last 500 non-sensitive events, never a field value). An item has a type (`login`, `note`, `card`, `identity`, `api`, `wifi`, `ssh`, `custom`), title, favourite, tags, folder, notes, typed fields, custom fields (text, hidden, url, date, one-time code), the last 10 old passwords, attachments (base64, at most 1 MiB each and 10 MiB in all) and times.
+JSON, version 1: `createdAt`, `modifiedAt`, `settings` (auto-lock minutes, clipboard seconds, lock on blur, device-shortcut days), `items` (by random id) and `audit` (the last 500 non-sensitive events, never a field value). An item has a type (`login`, `note`, `card`, `identity`, `api`, `wifi`, `ssh`, `custom`), title, favorite, tags, folder, notes, typed fields, custom fields (text, hidden, url, date, one-time code), the last 10 old passwords, attachments (base64, at most 1 MiB each and 10 MiB in all) and times.
 
 ## Backups, throttling and rollback
 

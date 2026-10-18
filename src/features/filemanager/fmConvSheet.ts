@@ -75,95 +75,116 @@ function densify(rows: Value[][]): Value[][] {
   return out.map((r) => (r.length < width ? [...r, ...Array.from({ length: width - r.length }, () => null)] : r));
 }
 
+function bufferHandle(bytes: Uint8Array): fsp.FileHandle {
+  return {
+    async read(buf: Buffer, offset: number, length: number, position: number) {
+      if (position < 0 || position >= bytes.byteLength || length <= 0) return { bytesRead: 0, buffer: buf };
+      const end = Math.min(bytes.byteLength, position + length);
+      const count = end - position;
+      buf.set(bytes.subarray(position, end), offset);
+      return { bytesRead: count, buffer: buf };
+    },
+    async close() {},
+  } as unknown as fsp.FileHandle;
+}
+
+async function readXlsxHandle(handle: fsp.FileHandle, size: number): Promise<Sheet[]> {
+  let entries: Map<string, CentralEntry>;
+  try {
+    entries = new Map((await readCentralDirectory(handle, size)).map((e) => [e.name, e]));
+  } catch {
+    throw new ConvError("This file isn't a valid .xlsx spreadsheet (it can't be opened as a zip).");
+  }
+  const wb = (await entryText(handle, size, entries, "xl/workbook.xml", true))!;
+  const rels = (await entryText(handle, size, entries, "xl/_rels/workbook.xml.rels", false)) ?? "";
+  const date1904 = /<workbookPr\b[^>]*\bdate1904\s*=\s*["'](?:1|true)["']/i.test(wb);
+  const relTarget = new Map<string, string>();
+  for (const m of rels.matchAll(/<Relationship\b[^>]*>/g)) {
+    const id = attr(m[0], "Id");
+    const target = attr(m[0], "Target");
+    if (id && target) relTarget.set(id, target.startsWith("/") ? target.slice(1) : `xl/${target}`);
+  }
+  const shared: string[] = [];
+  const sst = await entryText(handle, size, entries, "xl/sharedStrings.xml", false);
+  if (sst) {
+    for (const si of sst.matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>/g)) {
+      const body = si[1]!.replace(/<rPh\b[\s\S]*?<\/rPh>/g, "");
+      let s = "";
+      for (const t of body.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)) s += decodeEntities(t[1]!);
+      shared.push(s);
+    }
+  }
+  const styles = await entryText(handle, size, entries, "xl/styles.xml", false);
+  const dateStyles = new Set<number>();
+  if (styles) {
+    const custom = new Map<number, string>();
+    for (const m of styles.matchAll(/<numFmt\b[^>]*>/g)) {
+      const id = Number(attr(m[0], "numFmtId"));
+      const code = attr(m[0], "formatCode");
+      if (code !== null) custom.set(id, code);
+    }
+    const cellXfs = /<cellXfs\b[^>]*>([\s\S]*?)<\/cellXfs>/.exec(styles)?.[1] ?? "";
+    let i = 0;
+    for (const xf of cellXfs.matchAll(/<xf\b[^>]*>/g)) {
+      const id = Number(attr(xf[0], "numFmtId") ?? 0);
+      if (BUILTIN_DATE_FORMATS.has(id) || (custom.has(id) && isDateFormatCode(custom.get(id)!))) dateStyles.add(i);
+      i++;
+    }
+  }
+  const sheets: Sheet[] = [];
+  const state = { cells: 0 };
+  for (const m of wb.matchAll(/<sheet\b[^>]*>/g)) {
+    const name = attr(m[0], "name") ?? `Sheet${sheets.length + 1}`;
+    const rid = attr(m[0], "r:id") ?? attr(m[0], "id");
+    const target = rid ? relTarget.get(rid) : undefined;
+    const xml = target ? await entryText(handle, size, entries, target, false) : null;
+    if (xml === null) continue;
+    const rows: Value[][] = [];
+    let autoRow = 0;
+    for (const rm of xml.matchAll(/<row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/row>)/g)) {
+      const rIdx = attr(rm[1]!, "r") ? Number(attr(rm[1]!, "r")) - 1 : autoRow;
+      autoRow = rIdx + 1;
+      if (!rm[2]) continue;
+      let autoCol = 0;
+      for (const cm of rm[2].matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
+        const ref = attr(cm[1]!, "r");
+        const col = ref && /^[A-Za-z]+/.test(ref) ? colIndex(/^[A-Za-z]+/.exec(ref)![0]) : autoCol;
+        autoCol = col + 1;
+        const type = attr(cm[1]!, "t") ?? "n";
+        const style = Number(attr(cm[1]!, "s") ?? 0);
+        const inner = cm[2] ?? "";
+        const v = /<v\b[^>]*>([\s\S]*?)<\/v>/.exec(inner)?.[1];
+        let value: Value = null;
+        if (type === "s") value = v !== undefined ? shared[Number(v)] ?? "" : null;
+        else if (type === "inlineStr") value = [...inner.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map((t) => decodeEntities(t[1]!)).join("");
+        else if (type === "str" || type === "e") value = v !== undefined ? decodeEntities(v) : null;
+        else if (type === "b") value = v === "1";
+        else if (type === "d") value = v !== undefined ? decodeEntities(v) : null;
+        else if (v !== undefined && v !== "") {
+          const num = Number(v);
+          value = Number.isFinite(num) ? (dateStyles.has(style) ? excelDate(num, date1904) : num) : decodeEntities(v);
+        }
+        if (value !== null && value !== "") addCell(rows, rIdx, col, value, state);
+      }
+    }
+    sheets.push({ name, rows: densify(rows) });
+  }
+  if (!sheets.length) throw new ConvError("This spreadsheet has no sheets.");
+  return sheets;
+}
+
 export async function readXlsx(path: string): Promise<Sheet[]> {
   const handle = await fsp.open(path, "r");
   try {
     const size = (await handle.stat()).size;
-    let entries: Map<string, CentralEntry>;
-    try {
-      entries = new Map((await readCentralDirectory(handle, size)).map((e) => [e.name, e]));
-    } catch {
-      throw new ConvError("This file isn't a valid .xlsx spreadsheet (it can't be opened as a zip).");
-    }
-    const wb = (await entryText(handle, size, entries, "xl/workbook.xml", true))!;
-    const rels = (await entryText(handle, size, entries, "xl/_rels/workbook.xml.rels", false)) ?? "";
-    const date1904 = /<workbookPr\b[^>]*\bdate1904\s*=\s*["'](?:1|true)["']/i.test(wb);
-    const relTarget = new Map<string, string>();
-    for (const m of rels.matchAll(/<Relationship\b[^>]*>/g)) {
-      const id = attr(m[0], "Id");
-      const target = attr(m[0], "Target");
-      if (id && target) relTarget.set(id, target.startsWith("/") ? target.slice(1) : `xl/${target}`);
-    }
-    const shared: string[] = [];
-    const sst = await entryText(handle, size, entries, "xl/sharedStrings.xml", false);
-    if (sst) {
-      for (const si of sst.matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>/g)) {
-        const body = si[1]!.replace(/<rPh\b[\s\S]*?<\/rPh>/g, "");
-        let s = "";
-        for (const t of body.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)) s += decodeEntities(t[1]!);
-        shared.push(s);
-      }
-    }
-    const styles = await entryText(handle, size, entries, "xl/styles.xml", false);
-    const dateStyles = new Set<number>();
-    if (styles) {
-      const custom = new Map<number, string>();
-      for (const m of styles.matchAll(/<numFmt\b[^>]*>/g)) {
-        const id = Number(attr(m[0], "numFmtId"));
-        const code = attr(m[0], "formatCode");
-        if (code !== null) custom.set(id, code);
-      }
-      const cellXfs = /<cellXfs\b[^>]*>([\s\S]*?)<\/cellXfs>/.exec(styles)?.[1] ?? "";
-      let i = 0;
-      for (const xf of cellXfs.matchAll(/<xf\b[^>]*>/g)) {
-        const id = Number(attr(xf[0], "numFmtId") ?? 0);
-        if (BUILTIN_DATE_FORMATS.has(id) || (custom.has(id) && isDateFormatCode(custom.get(id)!))) dateStyles.add(i);
-        i++;
-      }
-    }
-    const sheets: Sheet[] = [];
-    const state = { cells: 0 };
-    for (const m of wb.matchAll(/<sheet\b[^>]*>/g)) {
-      const name = attr(m[0], "name") ?? `Sheet${sheets.length + 1}`;
-      const rid = attr(m[0], "r:id") ?? attr(m[0], "id");
-      const target = rid ? relTarget.get(rid) : undefined;
-      const xml = target ? await entryText(handle, size, entries, target, false) : null;
-      if (xml === null) continue;
-      const rows: Value[][] = [];
-      let autoRow = 0;
-      for (const rm of xml.matchAll(/<row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/row>)/g)) {
-        const rIdx = attr(rm[1]!, "r") ? Number(attr(rm[1]!, "r")) - 1 : autoRow;
-        autoRow = rIdx + 1;
-        if (!rm[2]) continue;
-        let autoCol = 0;
-        for (const cm of rm[2].matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
-          const ref = attr(cm[1]!, "r");
-          const col = ref && /^[A-Za-z]+/.test(ref) ? colIndex(/^[A-Za-z]+/.exec(ref)![0]) : autoCol;
-          autoCol = col + 1;
-          const type = attr(cm[1]!, "t") ?? "n";
-          const style = Number(attr(cm[1]!, "s") ?? 0);
-          const inner = cm[2] ?? "";
-          const v = /<v\b[^>]*>([\s\S]*?)<\/v>/.exec(inner)?.[1];
-          let value: Value = null;
-          if (type === "s") value = v !== undefined ? shared[Number(v)] ?? "" : null;
-          else if (type === "inlineStr") value = [...inner.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map((t) => decodeEntities(t[1]!)).join("");
-          else if (type === "str" || type === "e") value = v !== undefined ? decodeEntities(v) : null;
-          else if (type === "b") value = v === "1";
-          else if (type === "d") value = v !== undefined ? decodeEntities(v) : null;
-          else if (v !== undefined && v !== "") {
-            const num = Number(v);
-            value = Number.isFinite(num) ? (dateStyles.has(style) ? excelDate(num, date1904) : num) : decodeEntities(v);
-          }
-          if (value !== null && value !== "") addCell(rows, rIdx, col, value, state);
-        }
-      }
-      sheets.push({ name, rows: densify(rows) });
-    }
-    if (!sheets.length) throw new ConvError("This spreadsheet has no sheets.");
-    return sheets;
+    return await readXlsxHandle(handle, size);
   } finally {
     await handle.close();
   }
+}
+
+export async function readXlsxBuffer(bytes: Uint8Array): Promise<Sheet[]> {
+  return readXlsxHandle(bufferHandle(bytes), bytes.byteLength);
 }
 
 function odsText(cell: string): string {
@@ -173,55 +194,75 @@ function odsText(cell: string): string {
   return decodeEntities(paras.join("\n"));
 }
 
+async function readOdsHandle(handle: fsp.FileHandle, size: number): Promise<Sheet[]> {
+  let entries: Map<string, CentralEntry>;
+  try {
+    entries = new Map((await readCentralDirectory(handle, size)).map((e) => [e.name, e]));
+  } catch {
+    throw new ConvError("This file isn't a valid .ods spreadsheet (it can't be opened as a zip).");
+  }
+  const xml = (await entryText(handle, size, entries, "content.xml", true))!;
+  const sheets: Sheet[] = [];
+  const state = { cells: 0 };
+  for (const tm of xml.matchAll(/<table:table(?=[\s>])([^>]*?)>([\s\S]*?)<\/table:table>/g)) {
+    const name = attr(tm[1]!, "table:name") ?? `Sheet${sheets.length + 1}`;
+    const rows: Value[][] = [];
+    let r = 0;
+    for (const rm of tm[2]!.matchAll(/<table:table-row(?=[\s>\/])([^>]*?)(?:\/>|>([\s\S]*?)<\/table:table-row>)/g)) {
+      const repeat = Math.min(Number(attr(rm[1]!, "table:number-rows-repeated") ?? 1), 100_000);
+      const cells: Array<[number, Value, number]> = [];
+      let c = 0;
+      for (const cm of (rm[2] ?? "").matchAll(/<table:(?:covered-)?table-cell\b([^>]*?)(?:\/>|>([\s\S]*?)<\/table:(?:covered-)?table-cell>)/g)) {
+        const times = Math.min(Number(attr(cm[1]!, "table:number-columns-repeated") ?? 1), MAX_COLS);
+        const type = attr(cm[1]!, "office:value-type");
+        let value: Value = null;
+        if (type === "float" || type === "percentage" || type === "currency") {
+          const num = Number(attr(cm[1]!, "office:value"));
+          value = Number.isFinite(num) ? num : null;
+        } else if (type === "boolean") value = attr(cm[1]!, "office:boolean-value") === "true";
+        else if (type === "date") value = attr(cm[1]!, "office:date-value");
+        else if (type === "time") value = attr(cm[1]!, "office:time-value");
+        else if (type === "string") value = attr(cm[1]!, "office:string-value") ?? odsText(cm[2] ?? "");
+        if (value !== null && value !== "") cells.push([c, value, Math.min(times, 1000)]);
+        c += times;
+      }
+      if (cells.length) for (let k = 0; k < Math.min(repeat, 1000); k++) for (const [col, v, times] of cells) for (let t = 0; t < times; t++) addCell(rows, r + k, col + t, v, state);
+      r += repeat;
+    }
+    sheets.push({ name, rows: densify(rows) });
+  }
+  if (!sheets.length) throw new ConvError("This spreadsheet has no sheets.");
+  return sheets;
+}
+
 export async function readOds(path: string): Promise<Sheet[]> {
   const handle = await fsp.open(path, "r");
   try {
     const size = (await handle.stat()).size;
-    let entries: Map<string, CentralEntry>;
-    try {
-      entries = new Map((await readCentralDirectory(handle, size)).map((e) => [e.name, e]));
-    } catch {
-      throw new ConvError("This file isn't a valid .ods spreadsheet (it can't be opened as a zip).");
-    }
-    const xml = (await entryText(handle, size, entries, "content.xml", true))!;
-    const sheets: Sheet[] = [];
-    const state = { cells: 0 };
-    for (const tm of xml.matchAll(/<table:table(?=[\s>])([^>]*?)>([\s\S]*?)<\/table:table>/g)) {
-      const name = attr(tm[1]!, "table:name") ?? `Sheet${sheets.length + 1}`;
-      const rows: Value[][] = [];
-      let r = 0;
-      for (const rm of tm[2]!.matchAll(/<table:table-row(?=[\s>\/])([^>]*?)(?:\/>|>([\s\S]*?)<\/table:table-row>)/g)) {
-        const repeat = Math.min(Number(attr(rm[1]!, "table:number-rows-repeated") ?? 1), 100_000);
-        const cells: Array<[number, Value, number]> = [];
-        let c = 0;
-        for (const cm of (rm[2] ?? "").matchAll(/<table:(?:covered-)?table-cell\b([^>]*?)(?:\/>|>([\s\S]*?)<\/table:(?:covered-)?table-cell>)/g)) {
-          const times = Math.min(Number(attr(cm[1]!, "table:number-columns-repeated") ?? 1), MAX_COLS);
-          const type = attr(cm[1]!, "office:value-type");
-          let value: Value = null;
-          if (type === "float" || type === "percentage" || type === "currency") {
-            const num = Number(attr(cm[1]!, "office:value"));
-            value = Number.isFinite(num) ? num : null;
-          } else if (type === "boolean") value = attr(cm[1]!, "office:boolean-value") === "true";
-          else if (type === "date") value = attr(cm[1]!, "office:date-value");
-          else if (type === "time") value = attr(cm[1]!, "office:time-value");
-          else if (type === "string") value = attr(cm[1]!, "office:string-value") ?? odsText(cm[2] ?? "");
-          if (value !== null && value !== "") cells.push([c, value, Math.min(times, 1000)]);
-          c += times;
-        }
-        if (cells.length) for (let k = 0; k < Math.min(repeat, 1000); k++) for (const [col, v, times] of cells) for (let t = 0; t < times; t++) addCell(rows, r + k, col + t, v, state);
-        r += repeat;
-      }
-      sheets.push({ name, rows: densify(rows) });
-    }
-    if (!sheets.length) throw new ConvError("This spreadsheet has no sheets.");
-    return sheets;
+    return await readOdsHandle(handle, size);
   } finally {
     await handle.close();
   }
 }
 
+export async function readOdsBuffer(bytes: Uint8Array): Promise<Sheet[]> {
+  return readOdsHandle(bufferHandle(bytes), bytes.byteLength);
+}
+
 export async function readSpreadsheet(path: string): Promise<Sheet[]> {
   return path.toLowerCase().endsWith(".ods") ? readOds(path) : readXlsx(path);
+}
+
+export async function readSpreadsheetBuffer(bytes: Uint8Array, name = ""): Promise<Sheet[]> {
+  const handle = bufferHandle(bytes);
+  try {
+    const entries = new Map((await readCentralDirectory(handle, bytes.byteLength)).map((e) => [e.name.toLowerCase(), e]));
+    if (entries.has("content.xml") && !entries.has("xl/workbook.xml")) return await readOdsHandle(handle, bytes.byteLength);
+    if (entries.has("xl/workbook.xml")) return await readXlsxHandle(handle, bytes.byteLength);
+  } catch {
+    // Fall through to extension-specific reader for clear error reporting
+  }
+  return name.toLowerCase().endsWith(".ods") ? readOdsBuffer(bytes) : readXlsxBuffer(bytes);
 }
 
 /** A sheet as data: a list of records when the first row is a header, otherwise a list of lists. */

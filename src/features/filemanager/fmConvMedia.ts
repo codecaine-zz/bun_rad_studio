@@ -58,7 +58,7 @@ export const PICTURE_DEFS: ConvDef[] = [
   pic("img-heic", "Convert to HEIC", "The format iPhones use; small files.", "heic", "converted", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-quality", "80"]), "heic")], { rejectSame: true }),
   pic("img-tiff", "Convert to TIFF", "For printing and archives; no quality is lost.", "tiff", "converted", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-compress", "LZW"]), "tiff")]),
   pic("img-bmp", "Convert to BMP", "An old, plain format that every program opens.", "bmp", "converted", [im(imSimple([...FIRST_FRAME, "-auto-orient", ...FLATTEN]), "bmp")], { rejectSame: true }),
-  pic("img-gif", "Convert to GIF", "Up to 256 colours. Moving pictures keep moving.", "gif", "converted", [im(imSimple(["-auto-orient", "-layers", "optimize"]), "gif")], { rejectSame: true }),
+  pic("img-gif", "Convert to GIF", "Up to 256 colors. Moving pictures keep moving.", "gif", "converted", [im(imSimple(["-auto-orient", "-layers", "optimize"]), "gif")], { rejectSame: true }),
   pic("img-ico", "Make an icon (.ico)", "A Windows icon with the usual sizes.", "ico", "icon", [im(imSimple([...FIRST_FRAME, "-define", "icon:auto-resize=256,128,64,48,32,16"]), "ico")]),
   pic("img-favicon", "Make a favicon (16, 32 and 48 px)", "The small icon for a website's tab: one .ico with three sizes.", "ico", "favicon", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-background", "none", "-resize", "256x256", "-define", "icon:auto-resize=48,32,16"]), "ico")], { keywords: "website tab icon" }),
   pic("img-icns", "Make a Mac icon (.icns)", "An app icon for macOS.", "icns", "icon", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-background", "none", "-resize", "512x512", "-gravity", "center", "-extent", "512x512"]), "icns")]),
@@ -79,14 +79,14 @@ export const PICTURE_DEFS: ConvDef[] = [
       numberOpt("size", "Longest side", "The picture is shrunk to fit this many pixels (never enlarged).", 100, 8000, 1920, "pixels", 10),
       numberOpt("quality", "Quality", "Higher looks better and makes a bigger file. 80 to 85 is a good balance.", 30, 100, 82, "%"),
     ],
-    keywords: "compress optimise optimize resize website email", makes: "web-sized copy",
+    keywords: "compress optimize optimize resize website email", makes: "web-sized copy",
   }),
   pic("img-compress", "Make the file smaller (same format)", "Removes hidden details and squeezes JPG, PNG and WebP files. The size in pixels stays the same.", "", "smaller", [im((c) => {
     const ext = extOfPath(c.inputs[0]!);
     const q = String(optNum(c.opts, "quality"));
     return [c.inputs[0]!, "-auto-orient", "-strip", ...(ext === "png" ? ["-define", "png:compression-level=9", "-define", "png:compression-strategy=1"] : ext === "jpg" || ext === "jpeg" ? ["-sampling-factor", "4:2:0", "-interlace", "Plane", "-quality", q] : ["-quality", q]), c.output];
   })], {
-    inputs: exts("jpg jpeg png webp"), options: [numberOpt("quality", "Quality", "For JPG and WebP. PNG files are never made blurrier.", 30, 100, 80, "%")], keywords: "compress optimise optimize shrink",
+    inputs: exts("jpg jpeg png webp"), options: [numberOpt("quality", "Quality", "For JPG and WebP. PNG files are never made blurrier.", 30, 100, 80, "%")], keywords: "compress optimize optimize shrink",
   }),
   pic("img-resize", "Resize…", "Choose the new size yourself.", "", "resized", [im((c) => {
     const n = optNum(c.opts, "size");
@@ -115,8 +115,8 @@ export const PICTURE_DEFS: ConvDef[] = [
   pic("img-flip-h", "Mirror left to right", "Flip the picture like a mirror.", "", "mirrored", [im(imSimple([...FIRST_FRAME, "-flop"]))]),
   pic("img-flip-v", "Flip top to bottom", "Turn the picture over vertically.", "", "flipped", [im(imSimple([...FIRST_FRAME, "-flip"]))]),
   pic("img-autoorient", "Turn upright (use the camera's rotation)", "Fixes pictures that show sideways because of how the phone was held.", "", "upright", [im(imSimple([...FIRST_FRAME, "-auto-orient"]))]),
-  pic("img-gray", "Black and white (greyscale)", "Remove the colour: shades of grey only.", "", "black and white", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-colorspace", "Gray"]))], { keywords: "grey gray greyscale grayscale monochrome mono bw" }),
-  pic("img-srgb", "Convert colours to sRGB", "Makes colours look right on screens and the web (fixes printer-style CMYK pictures).", "", "sRGB", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-colorspace", "sRGB", "-strip"]))], { keywords: "cmyk colour color profile" }),
+  pic("img-gray", "Black and white (grayscale)", "Remove the color: shades of gray only.", "", "black and white", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-colorspace", "Gray"]))], { keywords: "gray gray grayscale grayscale monochrome mono bw" }),
+  pic("img-srgb", "Convert colors to sRGB", "Makes colors look right on screens and the web (fixes printer-style CMYK pictures).", "", "sRGB", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-colorspace", "sRGB", "-strip"]))], { keywords: "cmyk color color profile" }),
   pic("img-strip", "Remove location and camera info", "A copy without the hidden details (where and when it was taken, the camera).", "", "private", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-strip"]))], { keywords: "metadata exif privacy gps" }),
   pic("img-watermark", "Add a text watermark", "Writes a short text on each picture.", "", "watermarked", [im((c) => {
     const size = ({ small: "24", medium: "40", large: "64" } as Record<string, string>)[optStr(c.opts, "size")] ?? "40";
@@ -135,7 +135,7 @@ export const PICTURE_DEFS: ConvDef[] = [
   pic("img-gif-anim", "Make an animated GIF from pictures", "The pictures, in name order, become the frames of a moving picture.", "gif", "animation", [im((c) => ["-delay", String(Math.max(1, Math.round(optNum(c.opts, "delay") / 10))), "-loop", "0", ...c.inputs.flatMap((i) => [`${i}[0]`, "-resize", `${optNum(c.opts, "width")}x>`]), "-layers", "optimize", c.output], "gif")], {
     mode: "all", allName: "Animation", minFiles: 2, inputs: IMG_RASTER, options: FRAME_OPTIONS, keywords: "slideshow animation",
   }),
-  pic("img-webp-anim", "Make an animated WebP from pictures", "Like an animated GIF but smaller and with better colours.", "webp", "animation", [im((c) => ["-delay", String(Math.max(1, Math.round(optNum(c.opts, "delay") / 10))), "-loop", "0", ...c.inputs.flatMap((i) => [`${i}[0]`, "-resize", `${optNum(c.opts, "width")}x>`]), "-quality", "80", c.output], "webp")], {
+  pic("img-webp-anim", "Make an animated WebP from pictures", "Like an animated GIF but smaller and with better colors.", "webp", "animation", [im((c) => ["-delay", String(Math.max(1, Math.round(optNum(c.opts, "delay") / 10))), "-loop", "0", ...c.inputs.flatMap((i) => [`${i}[0]`, "-resize", `${optNum(c.opts, "width")}x>`]), "-quality", "80", c.output], "webp")], {
     mode: "all", allName: "Animation", minFiles: 2, inputs: IMG_RASTER, options: FRAME_OPTIONS,
   }),
 ];
@@ -248,8 +248,8 @@ export const VIDEO_DEFS: ConvDef[] = [
       numberOpt("still", "Time for each picture", "How long every picture stays on screen.", 0.1, 10, 1.5, "seconds", 0.1),
       numberOpt("clip", "Most from each video", "A longer video is cut off after this many seconds (from its start).", 1, 60, 5, "seconds"),
       choiceOpt("fps", "Smoothness", "More pictures per second looks smoother and makes a bigger file.", [["8", "8 per second"], ["10", "10 per second"], ["12", "12 per second"], ["15", "15 per second"], ["20", "20 per second"], ["25", "25 per second"]], "12"),
-      choiceOpt("colors", "Colours", "A GIF has at most 256 colours. Fewer makes a smaller file.", [["256", "256 (best look)"], ["128", "128"], ["64", "64 (smaller)"], ["32", "32 (smallest)"]], "256"),
-      choiceOpt("dither", "Shading", "Smooth looks best; Pattern gives smaller files.", [["smooth", "Smooth"], ["bayer", "Pattern (smaller)"], ["none", "None (flat colours)"]], "smooth"),
+      choiceOpt("colors", "Colors", "A GIF has at most 256 colors. Fewer makes a smaller file.", [["256", "256 (best look)"], ["128", "128"], ["64", "64 (smaller)"], ["32", "32 (smallest)"]], "256"),
+      choiceOpt("dither", "Shading", "Smooth looks best; Pattern gives smaller files.", [["smooth", "Smooth"], ["bayer", "Pattern (smaller)"], ["none", "None (flat colors)"]], "smooth"),
       choiceOpt("repeat", "Repeat", "", [["forever", "Forever"], ["once", "Play once"]], "forever"),
       toggleOpt("boomerang", "Play it forwards, then backwards", "Makes a back-and-forth loop. It doubles the length and needs more memory.", false),
       ORDER_OPTION,
@@ -258,6 +258,7 @@ export const VIDEO_DEFS: ConvDef[] = [
   }),
   vid("vid-mp4", "Convert to MP4", "Plays almost everywhere.", "mp4", "converted", [ffEngine((c) => ff(c, [], ["-c:v", "libx264", "-crf", "23", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart"]), "x264")]),
   vid("vid-mkv", "Convert to MKV (no quality loss)", "Moves the picture and sound into an MKV file without re-encoding: very fast.", "mkv", "converted", [ffEngine((c) => ff(c, [], ["-map", "0:v?", "-map", "0:a?", "-map", "0:s?", "-c", "copy", "-c:s", "srt"]))], { rejectSame: true, keywords: "matroska remux" }),
+  vid("vid-remux-mp4", "Fast copy into MP4 (no quality loss)", "Moves MKV, MOV or TS video straight into an MP4 file without re-encoding the picture: very fast.", "mp4", "converted", [ffEngine((c) => ff(c, [], ["-map", "0:v:0", "-map", "0:a?", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", ...FASTSTART]))], { inputs: exts("mkv mov m4v ts"), rejectSame: true, keywords: "remux mkv mov mp4 fast copy" }),
   vid("vid-mov", "Convert to MOV", "For Apple video programs.", "mov", "converted", [ffEngine((c) => ff(c, [], [...H264, "-crf", "20", "-preset", "medium", ...AAC("192k")]), "x264")], { rejectSame: true, keywords: "quicktime" }),
   vid("vid-avi", "Convert to AVI", "An old format for old players.", "avi", "converted", [ffEngine((c) => ff(c, [], ["-c:v", "mpeg4", "-q:v", "4", "-c:a", "libmp3lame", "-q:a", "4"]), "mp3")], { rejectSame: true }),
   vid("vid-webm", "Convert to WebM", "For websites. This one is slow.", "webm", "converted", [ffEngine((c) => ff(c, [], ["-c:v", "libvpx-vp9", "-crf", "32", "-b:v", "0", "-c:a", "libopus"]), "vp9")]),
@@ -296,7 +297,7 @@ export const VIDEO_DEFS: ConvDef[] = [
     return ff(c, [], ["-vf", t === "cw" ? "transpose=1" : t === "ccw" ? "transpose=2" : "hflip,vflip", ...H264, "-crf", "23", "-preset", "medium", "-c:a", "copy", ...FASTSTART]);
   }, "x264")], { options: [choiceOpt("turn", "Turn", "", [["cw", "A quarter turn right"], ["ccw", "A quarter turn left"], ["half", "Upside down"]], "cw")] }),
   vid("vid-gif", "Make an animated GIF", "A short silent loop, 480 pixels wide.", "gif", "animation", [ffEngine((c) => ff(c, [], ["-an", "-vf", "fps=12,scale=480:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse"]))]),
-  vid("vid-gif-custom", "Make a GIF (choose the part and size)", "A silent loop with colours chosen for the best look.", "gif", "animation", [ffEngine((c) => {
+  vid("vid-gif-custom", "Make a GIF (choose the part and size)", "A silent loop with colors chosen for the best look.", "gif", "animation", [ffEngine((c) => {
     const pre = [...(c.opts.start ? ["-ss", String(c.opts.start)] : []), "-t", String(optNum(c.opts, "length"))];
     return ff(c, pre, ["-an", "-vf", `fps=${optNum(c.opts, "fps")},scale='min(${optNum(c.opts, "width")},iw)':-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse`]);
   })], {
@@ -352,8 +353,8 @@ export const VIDEO_DEFS: ConvDef[] = [
     outName: (_n, _o, files) => `${(files.find((p) => VID_IN.has(extOfPath(p))) ?? files[0]!).split(/[\\/]/).pop()!.replace(/\.[^.]*$/, "")} (subtitled).mp4`,
   }),
   vid("vid-extract-subs", "Save the subtitles as a file", "Takes the first subtitle track out of the video as an .srt file.", "srt", "subtitles", [ffEngine((c) => ff(c, [], ["-map", "0:s:0"]))], { inputs: exts("mkv mp4 mov m4v webm ts"), keywords: "captions srt" }),
-  vid("vid-hdr-sdr", "Make an HDR video look right on normal screens", "HDR videos look grey and dull on normal screens. This converts the colours.", "mp4", "SDR", [ffEngine((c) => ff(c, [], ["-vf", "zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p", ...H264, "-crf", "20", "-preset", "medium", "-c:a", "copy", ...FASTSTART]), ["x264", "zimg"])], { note: "Slow. Only helps for HDR videos.", keywords: "tonemap hdr10 dolby" }),
-  ...(["srt", "vtt", "ass"] as const).map((fmt) => vid(`sub-${fmt}`, `Convert subtitles to ${fmt.toUpperCase()}`, fmt === "srt" ? "The most common subtitle format." : fmt === "vtt" ? "The subtitle format for web video." : "Subtitles with fonts and colours.", fmt, "converted", [ffEngine((c) => ff(c, [], []))], { inputs: SUB_IN, rejectSame: true, keywords: "captions" })),
+  vid("vid-hdr-sdr", "Make an HDR video look right on normal screens", "HDR videos look gray and dull on normal screens. This converts the colors.", "mp4", "SDR", [ffEngine((c) => ff(c, [], ["-vf", "zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p", ...H264, "-crf", "20", "-preset", "medium", "-c:a", "copy", ...FASTSTART]), ["x264", "zimg"])], { note: "Slow. Only helps for HDR videos.", keywords: "tonemap hdr10 dolby" }),
+  ...(["srt", "vtt", "ass"] as const).map((fmt) => vid(`sub-${fmt}`, `Convert subtitles to ${fmt.toUpperCase()}`, fmt === "srt" ? "The most common subtitle format." : fmt === "vtt" ? "The subtitle format for web video." : "Subtitles with fonts and colors.", fmt, "converted", [ffEngine((c) => ff(c, [], []))], { inputs: SUB_IN, rejectSame: true, keywords: "captions" })),
 ];
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -385,7 +386,7 @@ export const SOUND_DEFS: ConvDef[] = [
     ],
     keywords: "bitrate kbps vbr mono stereo sample rate",
   }),
-  snd("aud-normalize", "Make the volume even (normalise)", "Brings quiet and loud files to the same loudness (the EBU R128 standard).", "", "normalised", [ffEngine((c) => ff(c, [], ["-vn", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-ar", "44100", ...sameCodec(extOfPath(c.inputs[0]!))]))], { keywords: "loudness volume level loudnorm" }),
+  snd("aud-normalize", "Make the volume even (normalize)", "Brings quiet and loud files to the same loudness (the EBU R128 standard).", "", "normalized", [ffEngine((c) => ff(c, [], ["-vn", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-ar", "44100", ...sameCodec(extOfPath(c.inputs[0]!))]))], { keywords: "loudness volume level loudnorm" }),
   snd("aud-silence", "Cut the silence at the start and end", "Removes the quiet parts at the beginning and the end.", "", "trimmed", [ffEngine((c) => {
     const s = "silenceremove=start_periods=1:start_silence=0.1:start_threshold=-50dB";
     return ff(c, [], ["-vn", "-af", `${s},areverse,${s},areverse`, ...sameCodec(extOfPath(c.inputs[0]!))]);
@@ -396,6 +397,7 @@ export const SOUND_DEFS: ConvDef[] = [
   snd("aud-join", "Join sounds into one file", "Put the selected files one after the other.", "", "joined", [ffEngine((c) => [...BASE, ...c.inputs.flatMap((p) => ["-i", `file:${p}`]), "-filter_complex", `${c.inputs.map((_p, i) => `[${i}:a]`).join("")}concat=n=${c.inputs.length}:v=0:a=1[a]`, "-map", "[a]", ...sameCodec(extOfPath(c.inputs[0]!)), `file:${c.output}`])], {
     mode: "all", allName: "Joined sound", minFiles: 2, options: [ORDER_OPTION], keywords: "merge concatenate combine",
   }),
+  snd("aud-extract-art", "Save the cover picture (album art)", "Extracts the album cover picture stored inside the song as a JPG image.", "jpg", "cover", [ffEngine((c) => ff(c, [], ["-an", "-map", "0:v:0", "-frames:v", "1", "-q:v", "2"]))], { inputs: exts("mp3 flac m4a"), keywords: "album art cover picture image extract" }),
   snd("aud-strip-art", "Remove the cover picture", "A copy of the song without its album art. The sound is not re-encoded.", "", "no cover", [ffEngine((c) => ff(c, [], ["-map", "0:a", "-c", "copy", "-map_metadata", "0"]))], { inputs: exts("mp3 flac m4a ogg opus aac") }),
   snd("aud-strip-tags", "Remove all the tags", "A copy without title, artist and so on. The sound is not re-encoded.", "", "no tags", [ffEngine((c) => ff(c, [], ["-map", "0:a", "-c", "copy", "-map_metadata", "-1"]))], { inputs: exts("mp3 flac m4a ogg opus aac wav aiff"), keywords: "metadata id3 privacy" }),
   snd("aud-tags", "Change the title, artist or album", "Fills in the tags you type; empty fields stay as they are.", "", "tagged", [ffEngine((c) => ff(c, [], ["-map", "0", "-c", "copy", ...(["title", "artist", "album"] as const).flatMap((k) => (optStr(c.opts, k) ? ["-metadata", `${k}=${optStr(c.opts, k)}`] : []))]))], {

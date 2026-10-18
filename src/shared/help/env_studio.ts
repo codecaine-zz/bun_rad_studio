@@ -2,7 +2,7 @@ import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Environment & Secret Vault Studio. */
 export const envStudioTips: HelpTips = {
-  "#dd_theme": "Change the colours of this window. Your choice is remembered.",
+  "#dd_theme": "Change the colors of this window. Your choice is remembered.",
   "#btn_fullscreen": "Fill the whole screen with this window. Press it again to go back.",
   "#btn_save_state": "Remember what is in the boxes below, so it is still here next time you open this app.",
   "#btn_center": "Move the window to the middle of the screen.",

@@ -165,9 +165,9 @@ export function parseGif(bytes, { maxFrames = 2000 } = {}) {
       palette = b.subarray(p, p + n);
       p += n;
     }
-    if (!palette) throw new GifError("This GIF has no colours.");
+    if (!palette) throw new GifError("This GIF has no colors.");
     const minCode = b[p++];
-    if (minCode < 1 || minCode > 11) throw new GifError("This GIF is damaged (a bad colour size).");
+    if (minCode < 1 || minCode > 11) throw new GifError("This GIF is damaged (a bad color size).");
     const chunks = [];
     let total = 0;
     while (p < b.length && b[p] !== 0) {

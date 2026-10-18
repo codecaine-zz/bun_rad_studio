@@ -149,7 +149,7 @@ ${getWindowShortcutsScript()}
  */
 export function startSkiFreeServer(options: SkiFreeServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "skifree_studio", name: "SkiFree Deluxe — Winter Legends Arcade", version: "1.0.0", assetsDir: getSkiFreeAssetsDir(), generateHtml: generateSkiFreeStudioHtml },
+    { app: "skifree_studio", name: "Codecaine SkiFree Deluxe — Winter Legends Arcade", version: "1.0.0", assetsDir: getSkiFreeAssetsDir(), generateHtml: generateSkiFreeStudioHtml },
     options,
   );
 }
@@ -162,7 +162,7 @@ export function createSkiFreeStudio(options: SkiFreeStudioOptions = {}): SkiFree
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "SkiFree Deluxe — Winter Legends Arcade";
+  const title = "Codecaine SkiFree Deluxe — Winter Legends Arcade";
 
   const app: SkiFreeStudioInstance = {
     title,

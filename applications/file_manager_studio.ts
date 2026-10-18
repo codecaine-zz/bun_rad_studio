@@ -34,6 +34,12 @@ export interface FileManagerStudioOptions extends FileManagerServerOptions {
   height?: number;
   /** Forget the remembered window first, so the window fills the screen (--reset-window). */
   resetWindow?: boolean;
+  /** Open directly into a specific tool tab (--tool <id>). */
+  startTool?: string;
+  /** Open directly into a specific Codecaine game (--game <id>). */
+  startGame?: string;
+  /** Start with the tool expanded to fill the window (--max). */
+  startMax?: boolean;
 }
 
 export interface FileManagerStudioInstance {
@@ -115,10 +121,15 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
         app.server = startFileManagerServer({ port: options.port ?? 0, host: "127.0.0.1", context: options.context, startPath: options.startPath });
         port = app.server.port ?? 0;
       }
-      app.url = `http://127.0.0.1:${port}/`;
+      const query = new URLSearchParams();
+      if (options.startTool) query.set("tool", options.startTool);
+      if (options.startGame) query.set("game", options.startGame);
+      if (options.startMax) query.set("max", "1");
+      const qs = query.toString();
+      app.url = `http://127.0.0.1:${port}/${qs ? `?${qs}` : ""}`;
       console.log(`📁 ${APP_NAME} server running at: ${app.url}`);
       try {
-        await fetch(app.url).catch(() => {});
+        await fetch(`http://127.0.0.1:${port}/`).catch(() => {});
         if (app.server) throw new Error("the server could not be started in the background");
         const { SizeHint, Webview } = await import("webview-bun");
         // The window is sized, placed and shown from the remembered preference (default: it fills the screen).
@@ -180,6 +191,9 @@ if (import.meta.main) {
   const args = process.argv.slice(2);
   const port = Number(argValue(args, "--port") ?? process.env.PORT ?? 0) || 0;
   const startPath = argValue(args, "--path");
+  const startTool = argValue(args, "--tool");
+  const startGame = argValue(args, "--game");
+  const startMax = args.includes("--max");
   const home = argValue(args, "--home");
   const dataDir = argValue(args, "--data-dir");
   const toolDirs = argValue(args, "--tool-dirs");
@@ -204,6 +218,6 @@ if (import.meta.main) {
   } else {
     const width = Number(argValue(args, "--width")) || undefined;
     const height = Number(argValue(args, "--height")) || undefined;
-    await createFileManagerStudio({ port, startPath, context, width, height, resetWindow }).run();
+    await createFileManagerStudio({ port, startPath, context, width, height, resetWindow, startTool, startGame, startMax }).run();
   }
 }

@@ -41,7 +41,7 @@ export const TOP_PORTS: Array<{ port: number; service: string }> = [
 ];
 
 export const PRESETS = [
-  { id: "localhost", label: "Localhost", host: "127.0.0.1", port: 3000, note: "This computer itself (a good place to practise)." },
+  { id: "localhost", label: "Localhost", host: "127.0.0.1", port: 3000, note: "This computer itself (a good place to practice)." },
   { id: "cloudflare", label: "Cloudflare", host: "1.1.1.1", port: 443, note: "Cloudflare's public DNS service." },
   { id: "google", label: "Google", host: "google.com", port: 443, note: "Google's website." },
   { id: "github", label: "GitHub", host: "github.com", port: 443, note: "GitHub's website." },

@@ -292,7 +292,7 @@ export function startMazeStudioServer(options: MazeServerOptions = {}) {
           {
             status: "ok",
             app: "maze_generator_studio",
-            name: "Cyberpunk Maze Runner - Neon Labyrinth",
+            name: "Codecaine Cyberpunk Maze Runner - Neon Labyrinth",
             version: "2.5.0",
             timestamp: Date.now(),
           },
@@ -325,7 +325,7 @@ export function createMazeStudio(options: MazeStudioOptions = {}): MazeStudioIns
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
   const height = options.height ?? (fullscreen ? screen.height : 900);
-  const title = "Cyberpunk Maze Runner - Neon Labyrinth";
+  const title = "Codecaine Cyberpunk Maze Runner - Neon Labyrinth";
 
   const app: MazeStudioInstance = {
     title,

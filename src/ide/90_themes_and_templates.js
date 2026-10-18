@@ -9,7 +9,7 @@
 			return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
 		}
 
-		// Theme colours with the button text guaranteed readable: a theme's own button text colour is kept when it
+		// Theme colors with the button text guaranteed readable: a theme's own button text color is kept when it
 		// reaches the WCAG AA ratio (4.5:1) on the button fill, otherwise black or white, whichever reads better.
 		function getThemeColors(theme) {
 			const colors = getRawThemeColors(theme);

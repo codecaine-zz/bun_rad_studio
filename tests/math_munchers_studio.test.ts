@@ -72,7 +72,7 @@ describe("👾 Math Munchers Deluxe — Cyber Legends Arcade Suite", () => {
     const apps = scanWorkspaceApps();
     const found = apps.find((a) => a.name === "math_munchers_studio" || a.id === "rad_math_munchers_studio");
     expect(found).toBeDefined();
-    expect(found?.displayName).toBe("Math Munchers Deluxe");
+    expect(found?.displayName).toBe("Codecaine Math Munchers Deluxe");
     expect(found?.icon).toBe("👾");
     expect(found?.category).toBe("Games & Entertainment");
     expect(found?.description).toContain("Troggles");

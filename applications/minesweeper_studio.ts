@@ -115,7 +115,7 @@ ${getWindowShortcutsScript()}
  */
 export function startMinesweeperServer(options: MinesweeperServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "minesweeper_studio", name: "Minesweeper Pro — Championship Deluxe Master Edition", version: "1.0.0", assetsDir: getMinesweeperAssetsDir(), generateHtml: generateMinesweeperStudioHtml },
+    { app: "minesweeper_studio", name: "Codecaine Minesweeper Pro — Championship Deluxe Master Edition", version: "1.0.0", assetsDir: getMinesweeperAssetsDir(), generateHtml: generateMinesweeperStudioHtml },
     options,
   );
 }
@@ -128,7 +128,7 @@ export function createMinesweeperStudio(options: MinesweeperStudioOptions = {}):
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Minesweeper Pro — Championship Deluxe Master Edition";
+  const title = "Codecaine Minesweeper Pro — Championship Deluxe Master Edition";
 
   const app: MinesweeperStudioInstance = {
     title,

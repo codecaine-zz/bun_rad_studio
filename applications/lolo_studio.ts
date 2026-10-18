@@ -203,7 +203,7 @@ export function startLoloStudioServer(options: LoloServerOptions = {}) {
           {
             status: "ok",
             app: "lolo_studio",
-            name: "Adventures of Lolo - Cyberpunk Remaster",
+            name: "Codecaine Adventures of Lolo - Cyberpunk Remaster",
             version: "1.0.0",
             timestamp: Date.now(),
           },
@@ -236,7 +236,7 @@ export function createLoloStudio(options: LoloStudioOptions = {}): LoloStudioIns
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1280);
   const height = options.height ?? (fullscreen ? screen.height : 880);
-  const title = "Adventures of Lolo - Cyberpunk Remaster";
+  const title = "Codecaine Adventures of Lolo - Cyberpunk Remaster";
 
   const app: LoloStudioInstance = {
     title,

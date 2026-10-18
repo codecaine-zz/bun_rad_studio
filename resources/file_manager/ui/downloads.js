@@ -68,7 +68,7 @@ function mount(root) {
       h("label", { class: "dl-field" }, "Connections", connections),
       saveAs, checksum,
       h("label", { class: "dl-check" }, startNow, " Start right away")),
-    h("details", { class: "dl-more" }, h("summary", {}, "Headers (cookies, referer, authorisation)"), headers),
+    h("details", { class: "dl-more" }, h("summary", {}, "Headers (cookies, referer, authorization)"), headers),
     h("div", { class: "pw-row" }, go, probeBtn),
     info);
 

@@ -72,7 +72,7 @@ describe("🐦 Flappy Bird Deluxe — Cyber Legends Arcade Suite", () => {
     const apps = scanWorkspaceApps();
     const found = apps.find((a) => a.name === "flappy_bird_studio" || a.id === "rad_flappy_bird_studio");
     expect(found).toBeDefined();
-    expect(found?.displayName).toBe("Flappy Bird Deluxe");
+    expect(found?.displayName).toBe("Codecaine Flappy Bird Deluxe");
     expect(found?.icon).toBe("🐦");
     expect(found?.category).toBe("Games & Entertainment");
     expect(found?.description).toContain("kinetic");

@@ -4,9 +4,15 @@
  */
 import { existsSync, readdirSync } from "fs";
 import { basename, dirname, join } from "path";
+import type { ConnectionConfig, DbAdapter } from "../../db/types";
 import { detectSecretStore, type SecretStore } from "../../db/profiles";
 import { testConnection, type TestInput, type TestResult } from "./fmDbTest";
 import { ENGINES, type DbEngine } from "./fmDbModel";
+
+export interface CloneRedisClient {
+  send(command: string, args: string[]): Promise<unknown>;
+  close(): void;
+}
 
 /** A running child program as the studio manager sees it. */
 export interface DbProcess {
@@ -47,6 +53,10 @@ export interface DatabasesHooks {
   studioCommand(engine: DbEngine): StudioCommand | null;
   /** One attempt to connect (Test connection). */
   testConnection(input: TestInput): Promise<TestResult>;
+  /** Optional override for opening a SQL adapter (used by database cloning). */
+  openAdapter?(config: ConnectionConfig): DbAdapter;
+  /** Optional override for opening a Redis client (used by database cloning). */
+  openRedis?(input: TestInput): Promise<CloneRedisClient>;
   /** Is the studio's page answering on this port? */
   probe(port: number): Promise<boolean>;
   startTimeoutMs: number;

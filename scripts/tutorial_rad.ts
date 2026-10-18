@@ -77,7 +77,7 @@ async function open(ch: Chapter) {
   if (!app) await cdp.eval("window.__stage.idle()");
   await sleep(1500);
   // The program is drawn a little larger than it is, so it reads well in a video.
-  if (app) { await cdp.evalFrame("#appframe", `document.documentElement.style.zoom = "1.2"`); await sleep(500); }
+  if (app) { await cdp.evalFrame("#appframe", `document.documentElement.style.zoom = ${JSON.stringify(String(spec.zoom ?? 1.2))}`); await sleep(500); }
 }
 
 const notes = (marks: Array<{ at: number; title: string }>, total: number) => {
@@ -87,12 +87,12 @@ const notes = (marks: Array<{ at: number; title: string }>, total: number) => {
 
 ## YouTube title
 
-Build Desktop Apps Fast With Bun: The Complete SimpleGUI RAD Tutorial (TypeScript)
+Build Desktop Apps Fast With Bun: The Complete SimpleGUI RAD & Visual Designer Tutorial (TypeScript)
 
 ## YouTube description (copy and paste)
 
 \`\`\`text
-Rapid application development with Bun RAD Studio. Learn the SimpleGUI API one idea at a time with the code beside the running program: windows, rows, grids and cards, controls, state and binding, menus, toolbars, dialogs, timers, busy states, 133 themes, and a finished contacts app with SQLite. Then design a form with the visual designer, use the 45 rad utility modules and the system tools (fd, sd, tokei, gdu, watchexec) as plain functions, and compile a program people can run.
+Rapid application development with Bun RAD Studio and SimpleGUI RAD App Builder. Learn the SimpleGUI API one idea at a time with the code beside the running program: windows, rows, grids and cards, standard and form controls, VLang parity widgets, Studio extended controls, enterprise components, reactive state and OS persistence, menus, toolbars, context menus, SweetAlert2 dialogs, declarative modals, webview file pickers, timers, busy states, 133 themes, and a finished contacts app with SQLite. Then design a form with the visual designer, use the 45 rad utility modules and the 10 system tools (fd, sd, tokei, gdu, watchexec and more) as plain functions, and compile a single binary people can run.
 
 Free and open source: ${REPO}
 SimpleGUI API: ${REPO}/blob/main/docs/SIMPLEGUI_API.md

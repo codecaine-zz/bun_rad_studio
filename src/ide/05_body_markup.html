@@ -3,68 +3,68 @@
 	<!-- Top Navigation Bar -->
 	<header class="app-header">
 		<div class="app-title">
+			<button class="btn btn-icon btn-active-pane" id="togglePaletteBtn" onclick="toggleSidebarPane('palette')" title="Toggle Left Component Palette Sidebar">◧</button>
 			<span>⚡ Bun RAD Studio</span>
 			<span class="badge-rad">Delphi / VB Style</span>
 		</div>
 		<div class="toolbar-actions">
-			<!-- Primary actions -->
-			<button class="btn btn-success" onclick="triggerRunForm()" title="Launch live interactive window preview (F5)">▶ Run</button>
-			<button class="btn btn-primary" onclick="exportApp()" title="Export full Bun project to disk">💾 Export</button>
-			<button class="btn" id="stayOnTopBtn" onclick="toggleAlwaysOnTop()" title="Toggle window always-on-top mode (Stay On Top)">📌 Pin: OFF</button>
-			<button class="btn" onclick="toggleFullscreen()" title="Toggle fullscreen window mode (Fn+F / F11)">⛶ Fullscreen</button>
-			<select class="btn" id="winPosSelect" onchange="changeWindowPosition(this.value)" title="Move window position on screen">
-				<option value="" disabled selected>📍 Position</option>
-				<option value="center">Center Screen</option>
-				<option value="upper_left">Upper Left</option>
-				<option value="upper_right">Upper Right</option>
-				<option value="top_center">Top Center</option>
-				<option value="bottom_left">Lower Left</option>
-				<option value="bottom_right">Lower Right</option>
-				<option value="bottom_center">Lower Center</option>
-				<option value="center_left">Center Left</option>
-				<option value="center_right">Center Right</option>
-			</select>
-			<button class="btn" onclick="clearForm()" title="New blank form">📄 New</button>
-			<button class="btn btn-primary" onclick="launchAccessCrudWizard()" title="Auto-generate an MS Access style Database CRUD form layout">🗄️ DB Wizard</button>
-			<button class="btn" onclick="showImportModal()" title="Import JSON layout">📥 Import</button>
-			<span class="toolbar-divider"></span>
-			<!-- Edit actions -->
-			<button class="btn btn-icon" onclick="undo()" id="undoBtn" title="Undo (⌘Z)">↩</button>
-			<button class="btn btn-icon" onclick="redo()" id="redoBtn" title="Redo (⌘⇧Z)">↪</button>
-			<button class="btn btn-icon" onclick="copySelectedControl(this)" title="Copy (⌘C)">⎘</button>
-			<button class="btn btn-icon" onclick="pasteCopiedControl()" title="Paste (⌘V)">📋</button>
-			<button class="btn btn-icon" onclick="duplicateSelectedControl()" title="Duplicate (⌘D)">⧉</button>
-			<span class="toolbar-divider"></span>
-			<!-- Multi-Select Alignment Tools -->
-			<button class="btn btn-icon" onclick="alignSelectedControls('left')" title="Align Left Edges">⇤</button>
-			<button class="btn btn-icon" onclick="alignSelectedControls('center_h')" title="Center Horizontally">↔</button>
-			<button class="btn btn-icon" onclick="alignSelectedControls('right')" title="Align Right Edges">⇥</button>
-			<button class="btn btn-icon" onclick="alignSelectedControls('top')" title="Align Top Edges">⟰</button>
-			<button class="btn btn-icon" onclick="alignSelectedControls('center_v')" title="Center Vertically">↕</button>
-			<button class="btn btn-icon" onclick="alignSelectedControls('bottom')" title="Align Bottom Edges">⟱</button>
-			<button class="btn btn-icon" onclick="equalizeSize('width')" title="Make Same Width">⇗</button>
-			<button class="btn btn-icon" onclick="equalizeSize('height')" title="Make Same Height">⇘</button>
-			<span class="toolbar-divider"></span>
-			<!-- Layout tools -->
-			<button class="btn btn-icon" onclick="toggleLockSelected()" title="Lock / Unlock selected">🔒</button>
-			<button class="btn btn-icon" onclick="bringToFront()" title="Bring to Front">⬆</button>
-			<button class="btn btn-icon" onclick="sendToBack()" title="Send to Back">⬇</button>
-			<button class="btn" onclick="showSnapGridMenu()" id="snapBtn" title="Toggle Grid Snapping">⊞ Grid</button>
-			<span class="toolbar-divider"></span>
-			<!-- Advanced -->
-			<button class="btn" id="liveHoverTestBtn" onclick="toggleLiveHoverMode()" title="Live hover test mode on canvas">🧪 Test</button>
-			<button class="btn" onclick="showDiagnosticsModal()" title="Audit form for overlaps/errors">🔍 Audit</button>
-			<button class="btn btn-primary" onclick="copyBunTSCode(this)" title="Copy Bun GUI TypeScript code to clipboard">⚡ Bun TS</button>
-			<button class="btn" onclick="copyHTMLCode(this)" title="Copy standalone HTML/CSS code to clipboard">🌐 HTML</button>
-			<button class="btn" onclick="showHotkeysModal()" title="Keyboard shortcuts">⌨ Keys</button>
+			<!-- Run & Project Actions -->
+			<div class="toolbar-group">
+				<button class="btn btn-success" onclick="triggerRunForm()" title="Launch live interactive window preview (F5)">▶ Run</button>
+				<button class="btn btn-primary" onclick="exportApp()" title="Export full Bun project to disk">💾 Export</button>
+				<button class="btn" onclick="clearForm()" title="New blank form">📄 New</button>
+				<button class="btn" onclick="showImportModal()" title="Import JSON layout">📥 Import</button>
+				<button class="btn btn-primary" onclick="launchAccessCrudWizard()" title="Auto-generate an MS Access style Database CRUD form layout">🗄️ DB Wizard</button>
+			</div>
+			<!-- Window Controls -->
+			<div class="toolbar-group">
+				<button class="btn" id="stayOnTopBtn" onclick="toggleAlwaysOnTop()" title="Toggle window always-on-top mode (Stay On Top)">📌 Pin: OFF</button>
+				<button class="btn" onclick="toggleFullscreen()" title="Toggle fullscreen window mode (Fn+F / F11)">⛶ Fullscreen</button>
+				<select class="btn" id="winPosSelect" onchange="changeWindowPosition(this.value)" title="Move window position on screen">
+					<option value="" disabled selected>📍 Position</option>
+					<option value="center">Center Screen</option>
+					<option value="upper_left">Upper Left</option>
+					<option value="upper_right">Upper Right</option>
+					<option value="top_center">Top Center</option>
+					<option value="bottom_left">Lower Left</option>
+					<option value="bottom_right">Lower Right</option>
+					<option value="bottom_center">Lower Center</option>
+					<option value="center_left">Center Left</option>
+					<option value="center_right">Center Right</option>
+				</select>
+			</div>
+			<!-- History & Clipboard -->
+			<div class="toolbar-group">
+				<button class="btn btn-icon" onclick="undo()" id="undoBtn" title="Undo (⌘Z)">↩</button>
+				<button class="btn btn-icon" onclick="redo()" id="redoBtn" title="Redo (⌘⇧Z)">↪</button>
+				<button class="btn btn-icon" data-min-sel="1" onclick="copySelectedControl(this)" title="Copy (⌘C)">⎘</button>
+				<button class="btn btn-icon" id="pasteBtn" onclick="pasteCopiedControl()" title="Paste (⌘V)">📋</button>
+				<button class="btn btn-icon" data-min-sel="1" onclick="duplicateSelectedControl()" title="Duplicate (⌘D)">⧉</button>
+			</div>
+			<!-- Layer & Grid -->
+			<div class="toolbar-group">
+				<button class="btn btn-icon" data-min-sel="1" onclick="toggleLockSelected()" title="Lock / Unlock selected">🔒</button>
+				<button class="btn btn-icon" data-min-sel="1" onclick="bringToFront()" title="Bring to Front">⬆</button>
+				<button class="btn btn-icon" data-min-sel="1" onclick="sendToBack()" title="Send to Back">⬇</button>
+				<button class="btn" onclick="showSnapGridMenu()" id="snapBtn" title="Toggle Grid Snapping">⊞ Grid</button>
+			</div>
+			<!-- Diagnostics & Quick Code -->
+			<div class="toolbar-group">
+				<button class="btn" id="liveHoverTestBtn" onclick="toggleLiveHoverMode()" title="Live hover test mode on canvas">🧪 Test</button>
+				<button class="btn" onclick="showDiagnosticsModal()" title="Audit form for overlaps/errors">🔍 Audit</button>
+				<button class="btn btn-primary" onclick="copyBunTSCode(this)" title="Copy Bun GUI TypeScript code to clipboard">⚡ Bun TS</button>
+				<button class="btn" onclick="copyHTMLCode(this)" title="Copy standalone HTML/CSS code to clipboard">🌐 HTML</button>
+				<button class="btn" onclick="showHotkeysModal()" title="Keyboard shortcuts">⌨ Keys</button>
+				<button class="btn btn-icon btn-active-pane" id="toggleInspectorBtn" onclick="toggleSidebarPane('inspector')" title="Toggle Right Object Inspector Sidebar">◨</button>
+			</div>
 		</div>
 	</header>
 
 	<!-- Main Studio Workspace Grid -->
-	<div class="studio-container">
+	<div class="studio-container" id="studioContainer">
 
 		<!-- Left Toolbox Categorized Palette -->
-		<aside class="palette-sidebar">
+		<aside class="palette-sidebar" id="paletteSidebar">
 			<span class="sidebar-heading">Form Layout Templates</span>
 			<div class="templates-row" style="flex-wrap: wrap; gap: 4px;">
 				<span class="template-chip" onclick="loadTemplate('default')" title="Load Customer Account Registration preset form layout">Customer</span>
@@ -81,8 +81,11 @@
 
 			<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 4px 0;">
 
-			<span class="sidebar-heading">Component Palette</span>
-			<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="search-box" placeholder="Filter controls..." oninput="filterPalette(this.value)" title="Filter palette components by name">
+			<div class="sidebar-heading-row">
+				<span class="sidebar-heading">Component Palette</span>
+				<button class="btn" id="toggleAllCategoriesBtn" onclick="toggleAllPaletteCategories()" style="padding: 1px 6px; font-size: 9px;" title="Collapse or expand all component categories in the palette">⊟ Collapse</button>
+			</div>
+			<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="search-box" id="paletteSearchInput" placeholder="Filter controls..." oninput="filterPalette(this.value)" title="Filter palette components by name">
 
 			<!-- Category 1: Standard Controls -->
 			<div class="palette-category">
@@ -564,36 +567,50 @@
 					</div>
 				</div>
 			</div>
+			<div id="paletteEmptyMsg" class="palette-empty-msg">No matching components found.</div>
 		</aside>
 
 		<!-- Center Canvas Viewport with Rulers -->
 		<div class="canvas-viewport-wrapper">
+			<div class="pane-resizer pane-resizer-left" id="paletteResizer" title="Drag to resize Component Palette (double-click to collapse/expand)"></div>
+			<div class="pane-resizer pane-resizer-right" id="inspectorResizer" title="Drag to resize Object Inspector (double-click to collapse/expand)"></div>
 			<div class="canvas-toolbar">
 				<span id="canvasStats">Form: 840x540 | Controls: 0</span>
 				<div class="quick-align-bar">
-					<button class="btn" onclick="selectAllControls()">☑️ Select All</button>
-					<button class="btn" onclick="zoomCanvas(0.1)">🔍 In</button>
-					<button class="btn" onclick="zoomCanvas(-0.1)">🔍 Out</button>
-					<button class="btn" onclick="resetZoom()">🔍 100%</button>
-					<button class="btn" onclick="autoArrangeColumns(2)">📊 2-Cols</button>
-					<button class="btn" onclick="autoArrangeColumns(3)">📊 3-Cols</button>
-					<button class="btn" onclick="alignControls('left')">⬅️ Left</button>
-					<button class="btn" onclick="alignControls('center')">↔️ Center</button>
-					<button class="btn" onclick="alignControls('right')">➡️ Right</button>
-					<button class="btn" onclick="alignControls('top')">⬆️ Top</button>
-					<button class="btn" onclick="alignControls('middle')">↕️ Middle</button>
-					<button class="btn" onclick="alignControls('bottom')">⬇️ Bottom</button>
-					<button class="btn" onclick="distributeControls('horiz')">⬌ Dist H</button>
-					<button class="btn" onclick="distributeControls('vert')">⬍ Dist V</button>
-					<button class="btn" onclick="equalizeSize('width', 'first')">📐 Eq W</button>
-					<button class="btn" onclick="equalizeSize('height', 'first')">📐 Eq H</button>
-					<button class="btn" onclick="equalizeSize('width', 'widest')" title="Make all selected controls match the widest control (MS Access style)">↔️ Widest</button>
-					<button class="btn" onclick="equalizeSize('width', 'narrowest')" title="Make all selected controls match the narrowest control">↔️ Narrowest</button>
-					<button class="btn" onclick="equalizeSize('height', 'tallest')" title="Make all selected controls match the tallest control (MS Access style)">↕️ Tallest</button>
-					<button class="btn" onclick="equalizeSize('height', 'shortest')" title="Make all selected controls match the shortest control">↕️ Shortest</button>
-					<button class="btn" onclick="centerInForm('horiz')" title="Center selected control(s) horizontally inside form window">🎯 Center H Form</button>
-					<button class="btn" onclick="centerInForm('vert')" title="Center selected control(s) vertically inside form window">🎯 Center V Form</button>
-					<button class="btn" onclick="fitControlToContent()" title="Auto-size control to fit font size and text length">📏 Fit Text Size</button>
+					<div class="toolbar-group">
+						<button class="btn" onclick="selectAllControls()">☑️ Select All</button>
+						<button class="btn" onclick="zoomCanvas(0.1)">🔍 In</button>
+						<button class="btn" onclick="zoomCanvas(-0.1)">🔍 Out</button>
+						<button class="btn" onclick="resetZoom()">🔍 100%</button>
+						<button class="btn" onclick="autoArrangeColumns(2)">📊 2-Cols</button>
+						<button class="btn" onclick="autoArrangeColumns(3)">📊 3-Cols</button>
+					</div>
+					<div class="toolbar-group">
+						<span class="toolbar-group-label">Align</span>
+						<button class="btn" data-min-sel="1" onclick="alignSelectedControls('left')">⬅️ Left</button>
+						<button class="btn" data-min-sel="1" onclick="alignControls('center')">↔️ Center</button>
+						<button class="btn" data-min-sel="1" onclick="alignControls('right')">➡️ Right</button>
+						<button class="btn" data-min-sel="1" onclick="alignControls('top')">⬆️ Top</button>
+						<button class="btn" data-min-sel="1" onclick="alignControls('middle')">↕️ Middle</button>
+						<button class="btn" data-min-sel="1" onclick="alignControls('bottom')">⬇️ Bottom</button>
+						<button class="btn" data-min-sel="1" onclick="centerInForm('horiz')" title="Center selected control(s) horizontally inside form window">🎯 Center H Form</button>
+						<button class="btn" data-min-sel="1" onclick="centerInForm('vert')" title="Center selected control(s) vertically inside form window">🎯 Center V Form</button>
+						<button class="btn" data-min-sel="1" onclick="fitControlToContent()" title="Auto-size control to fit font size and text length">📏 Fit Text Size</button>
+					</div>
+					<div class="toolbar-group">
+						<span class="toolbar-group-label">Size</span>
+						<button class="btn" data-min-sel="2" onclick="equalizeSize('width')">📐 Eq W</button>
+						<button class="btn" data-min-sel="2" onclick="equalizeSize('height', 'first')">📐 Eq H</button>
+						<button class="btn" data-min-sel="2" onclick="equalizeSize('width', 'widest')" title="Make all selected controls match the widest control (MS Access style)">↔️ Widest</button>
+						<button class="btn" data-min-sel="2" onclick="equalizeSize('width', 'narrowest')" title="Make all selected controls match the narrowest control">↔️ Narrowest</button>
+						<button class="btn" data-min-sel="2" onclick="equalizeSize('height', 'tallest')" title="Make all selected controls match the tallest control (MS Access style)">↕️ Tallest</button>
+						<button class="btn" data-min-sel="2" onclick="equalizeSize('height', 'shortest')" title="Make all selected controls match the shortest control">↕️ Shortest</button>
+					</div>
+					<div class="toolbar-group">
+						<span class="toolbar-group-label">Dist</span>
+						<button class="btn" data-min-sel="3" onclick="distributeControls('horiz')">⬌ Dist H</button>
+						<button class="btn" data-min-sel="3" onclick="distributeControls('vert')">⬍ Dist V</button>
+					</div>
 				</div>
 			</div>
 
@@ -646,7 +663,7 @@
 		</div>
 
 		<!-- Right Object Inspector -->
-		<aside class="inspector-sidebar">
+		<aside class="inspector-sidebar" id="inspectorSidebar">
 			<div class="control-selector-header" style="padding: 8px 10px; background: rgba(0, 0, 0, 0.25); border-bottom: 1px solid var(--border-color);">
 				<span style="font-size: 9px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 4px;">⚡ Component Selector</span>
 				<select class="prop-input" id="objectInspectorSelector" onchange="selectControlFromDropdown(this.value)" style="width: 100%; font-weight: 600; color: var(--text-primary); background: var(--bg-card); border-color: var(--accent);" title="Select component on form to inspect properties">
@@ -658,12 +675,15 @@
 				<div class="tab-item active" onclick="switchTab('tabProps', event)">Properties</div>
 				<div class="tab-item" onclick="switchTab('tabTree', event)">Tree</div>
 				<div class="tab-item" onclick="switchTab('tabEvents', event)">Events</div>
-				<div class="tab-item" onclick="switchTab('tabBunTS', event)">Bun TS</div>
-				<div class="tab-item" onclick="switchTab('tabHTML', event)">HTML</div>
-				<div class="tab-item" onclick="switchTab('tabReact', event)">React</div>
-				<div class="tab-item" onclick="switchTab('tabVue', event)">Vue 3</div>
-				<div class="tab-item" onclick="switchTab('tabPython', event)">Python</div>
-				<div class="tab-item" onclick="switchTab('tabJSON', event)">JSON</div>
+				<div class="tab-item" id="inspectorCodePrimaryTab" onclick="switchTab('tabCode', event)">Code</div>
+			</div>
+			<div class="code-lang-bar" id="inspectorCodeSubbar">
+				<div class="code-lang-pill active" onclick="switchTab('tabBunTS', event)">Bun TS</div>
+				<div class="code-lang-pill" onclick="switchTab('tabHTML', event)">HTML</div>
+				<div class="code-lang-pill" onclick="switchTab('tabReact', event)">React</div>
+				<div class="code-lang-pill" onclick="switchTab('tabVue', event)">Vue 3</div>
+				<div class="code-lang-pill" onclick="switchTab('tabPython', event)">Python</div>
+				<div class="code-lang-pill" onclick="switchTab('tabJSON', event)">JSON</div>
 			</div>
 
 			<!-- Properties Tab -->
@@ -1185,7 +1205,11 @@
 
 			<!-- JSON Export Tab -->
 			<div class="tab-content" id="tabJSON">
-				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="jsonPreviewText" readonly></textarea>
+				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+					<span class="prop-label" style="color:var(--accent);">FormSpec JSON</span>
+					<button class="btn btn-primary" onclick="copyJSONCode(this)">📋 Copy JSON Code</button>
+				</div>
+				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="jsonPreviewText" readonly style="height:320px; font-family:monospace; font-size:11px;"></textarea>
 			</div>
 		</aside>
 	</div>

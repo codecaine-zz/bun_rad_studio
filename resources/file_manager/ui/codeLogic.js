@@ -23,3 +23,10 @@ export { callAt, inCommentOrString, normalizeType, receiverAt, structLiteralAt, 
 export { parseParams } from "./codeCompleteIndex.js";
 export { createSnippetSession, expandSnippet, snippetPreview } from "./codeSnippets.js";
 export { SNIPPETS } from "./codeSnippetData.js";
+export {
+  GENERATOR_ITEMS, TODO_TAGS, addLinePrefixSuffix, computeGutterLineChanges, computeLineDiff, csvToMarkdownTable,
+  detectCsvDelimiter, detectFoldableRanges, diagnoseSyntax, editAllOccurrences, evaluateMath, evaluateMathEdit,
+  expandSelection, extractTodos, findLineColors, findWordOccurrences, formatColorFormats, generateUuidV4,
+  inspectTokenAtCaret, numberSelectedLines, parseCsvTable, renameSymbolInText, sortJsonKeys, toggleQuotes,
+  toggleValueAtCaret, wrapWithTag,
+} from "./codeExtras.js";

@@ -51,7 +51,7 @@ export function btn(label, title, onclick, { primary = false, danger = false } =
   return h("button", { type: "button", class: `pw-btn${primary ? " primary" : ""}${danger ? " danger" : ""}`, title, onclick }, label);
 }
 
-/** A labelled input/select/checkbox. `control` already has its own title. */
+/** A labeled input/select/checkbox. `control` already has its own title. */
 export function field(label, control, { inline = false } = {}) {
   return h("label", { class: inline ? "dev-check" : "pw-field" }, inline ? [control, " ", label] : [label, control]);
 }
@@ -129,7 +129,7 @@ export function createTable({ caption, columns, onSort, className = "" }) {
   };
 }
 
-/** The message under a section's buttons. Plain text; `bad` colours it and adds a ✗ so colour isn't the only signal. */
+/** The message under a section's buttons. Plain text; `bad` colors it and adds a ✗ so color isn't the only signal. */
 export function createStatus() {
   const el = h("p", { class: "pw-status dev-status", role: "status", "aria-live": "polite" });
   return {

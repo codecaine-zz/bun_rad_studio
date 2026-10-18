@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cyberpunk Pac-Man Arcade - Neon Remaster</title>
+    <title>Codecaine Cyberpunk Pac-Man Arcade - Neon Remaster</title>
     <meta name="description" content="Production-level Cyberpunk Pac-Man arcade remaster. Features authentic 4-ghost AI personalities (Blinky, Pinky, Inky, Clyde), power pellets, fruit bonuses, sound synthesis, particle effects, and mobile D-pad.">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -168,7 +168,7 @@
         .arena-container {
             width: 100%;
             max-width: 100%;
-            max-height: calc(100vh - 240px);
+            max-height: max(360px, calc(100vh - 200px));
             aspect-ratio: 28 / 30;
             position: relative;
             background: #000;
@@ -186,7 +186,7 @@
             display: block;
             width: 100%;
             height: 100%;
-            max-height: calc(100vh - 240px);
+            max-height: max(360px, calc(100vh - 200px));
             object-fit: contain;
             aspect-ratio: 28 / 30;
             background: #000000;
@@ -1910,6 +1910,9 @@
 
         function setDirection(dx, dy) {
             getAudioContext();
+            if (gameState === 'START') {
+                startMatch();
+            }
             pacman.nextDirX = dx;
             pacman.nextDirY = dy;
         }
@@ -1927,9 +1930,13 @@
             } else if (['ArrowRight', 'd', 'D'].includes(e.key)) {
                 e.preventDefault();
                 setDirection(1, 0);
-            } else if (e.code === 'Space') {
+            } else if (e.code === 'Space' || e.key === 'p' || e.key === 'P') {
                 e.preventDefault();
-                togglePause();
+                if (gameState === 'START' || gameState === 'GAMEOVER') startMatch();
+                else togglePause();
+            } else if (e.key === 'Enter' && (gameState === 'START' || gameState === 'GAMEOVER')) {
+                e.preventDefault();
+                startMatch();
             }
         });
 
@@ -2048,6 +2055,7 @@
             updateHUD();
 
             gameOverlay.style.display = 'none';
+            try { startBtn.blur(); window.focus(); } catch (_) {}
             isPaused = false;
             pauseIcon.textContent = "⏸";
 
@@ -2075,6 +2083,7 @@
                 gameOverlay.style.display = 'flex';
             } else {
                 gameOverlay.style.display = 'none';
+                try { startBtn.blur(); window.focus(); } catch (_) {}
                 if (gameState === 'PLAYING') {
                     startMusic();
                     startSiren(frightenedTimer > 0);

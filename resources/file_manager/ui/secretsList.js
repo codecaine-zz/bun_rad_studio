@@ -21,7 +21,7 @@ const CHIPS = [
   ["login", "Logins", "Website and app logins"],
   ["note", "Notes", "Secure notes"],
   ["card", "Cards", "Payment cards"],
-  ["favorite", "Favourites", "Items you starred"],
+  ["favorite", "Favorites", "Items you starred"],
   ["flagged", "Weak or reused", "Items with a weak or reused password"],
   ["trash", "Trash", "Deleted items you can still restore"],
 ];
@@ -66,7 +66,7 @@ export function buildList() {
     },
     h("span", { class: "sx-ico", "aria-hidden": "true" }, TYPE_ICONS[item.type] ?? "🗂️"),
     h("span", { class: "sx-rtext" }, h("strong", { class: "sx-rtitle" }, item.title), h("span", { class: "sx-rsub" }, [item.subtitle, item.host && item.host !== item.subtitle ? item.host : ""].filter(Boolean).join(" · "))),
-    item.favorite ? h("span", { class: "sx-badge", title: "Favourite" }, "★") : null,
+    item.favorite ? h("span", { class: "sx-badge", title: "Favorite" }, "★") : null,
     item.hasTotp ? h("span", { class: "sx-badge", title: "Has a one-time code (2FA)" }, "2FA") : null);
   }
 

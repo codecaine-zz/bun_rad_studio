@@ -3,12 +3,25 @@
 // the tab strip, keyboard use, and handing each tab a container to draw into. WHERE the panel sits (filling the
 // window in the Tools view, or beside the files in the Split view) is decided by workspace.js, which plugs in
 // through setPowerHost(); without one (a page that only mounts this file) the panel simply shows and hides.
+import { call } from "./api.js";
+import { copyToClipboard } from "./copyclip.js";
 import { $, clear, h } from "./dom.js";
+import { hintOf, matchesAction } from "./keymap.js";
+import { toast } from "./menus.js";
 import { emit, state } from "./state.js";
 
 /** The groups the tab strip is arranged in, in this order. A tab can name one with `group`. */
 const GROUPS = [["files", "Files and text"], ["data", "Databases"], ["media", "Pictures and media"], ["automate", "Automate"], ["security", "Security"], ["network", "Network"], ["handy", "Handy"], ["more", "More"]];
-const DEFAULT_GROUP = { find: "files", compare: "files", projects: "files", sd: "files", code: "files", dev: "files", databases: "data", watch: "automate", actions: "automate", serve: "automate", crypto: "security", vault: "security", ip: "network", net: "network", calc: "handy", timer: "handy", qr: "handy" };
+const DEFAULT_GROUP = { find: "files", compare: "files", projects: "files", sd: "files", code: "files", dev: "files", databases: "data", paint: "media", watch: "automate", actions: "automate", serve: "automate", crypto: "security", vault: "security", ip: "network", net: "network", calc: "handy", timer: "handy", qr: "handy" };
+const EMBEDDED_IDS = new Set([
+  "calc", "timer", "paint",
+  "balatro", "blackjack", "breakout", "codecaine_bros", "connect4",
+  "dr_codecaine", "flappy_bird", "frogger", "lolo", "math_munchers",
+  "maze_generator", "minesweeper", "pacman", "poker", "pong",
+  "rat_screw", "rodents_revenge", "skifree", "snake", "tetris",
+  "tictactoe", "typing", "word_search", "yahtzee",
+]);
+const HOSTED_IDS = new Set(["api", "bundler", "env"]);
 
 /** @type {Array<{ id: string, label: string, icon: string, tip: string, group?: string, mount: (root: HTMLElement) => ({ show?: (opts?: any) => void, hide?: () => void } | void) }>} */
 const tabs = [];
@@ -20,7 +33,7 @@ let host = null;
 const groupOf = (t) => (GROUPS.some(([g]) => g === t.group) ? t.group : DEFAULT_GROUP[t.id] ?? "more");
 
 /** The tools in the order the tab strip shows them within a group; a tool not listed comes after these. */
-const TOOL_ORDER = ["find", "compare", "sd", "code", "dev", "projects", "bundler", "watch", "actions", "serve", "crypto", "vault", "env", "ip", "net", "subs", "downloads", "api", "calc", "timer", "qr", "imagestudio", "mediastudio", "databases"];
+const TOOL_ORDER = ["find", "compare", "sd", "code", "dev", "projects", "bundler", "watch", "actions", "serve", "crypto", "vault", "env", "ip", "net", "subs", "downloads", "api", "calc", "timer", "qr", "imagestudio", "paint", "player", "mediastudio", "databases", "games"];
 
 /** The tabs in the order they are shown: grouped, then in a steady order within a group. */
 function orderedTabs() {
@@ -34,6 +47,140 @@ function matchingTabs() {
     const text = `${t.label} ${t.tip} ${GROUPS.find(([g]) => g === groupOf(t))?.[1] ?? ""}`.toLowerCase();
     return words.every((word) => text.includes(word));
   });
+}
+
+export function isPowerExpanded() {
+  return !!document.getElementById("app")?.classList.contains("power-max");
+}
+
+function syncExpandButtons(on) {
+  const hint = hintOf("app.expandTool");
+  const btn = $("#power-expand");
+  if (btn) {
+    btn.setAttribute("aria-pressed", String(on));
+    btn.textContent = on ? "⛶ Restore" : "⛶ Expand";
+    btn.title = on ? `Restore the File Manager bars and tabs (Esc)${hint}` : `Fill the whole window with this tool (press Esc to restore)${hint}`;
+  }
+  const restoreBtn = $("#power-restore");
+  if (restoreBtn) restoreBtn.title = `Restore the File Manager bars and tabs (Esc)${hint}`;
+  const maxBar = $("#power-max-bar");
+  if (maxBar) maxBar.hidden = !on;
+  if (typeof document !== "undefined") {
+    for (const b of document.querySelectorAll(".embed-expand")) {
+      b.setAttribute("aria-pressed", String(on));
+      b.textContent = on ? "⛶ Restore" : "⛶ Expand";
+      b.title = on ? `Restore the File Manager bars and tabs (Esc)${hint}` : `Fill the whole window with this app (press Esc to restore)${hint}`;
+    }
+  }
+}
+
+export function setPowerExpanded(expanded) {
+  const app = typeof document === "undefined" ? null : document.getElementById("app");
+  if (!app) return;
+  const on = Boolean(expanded) && powerIsOpen();
+  app.classList.toggle("power-max", on);
+  syncExpandButtons(on);
+  emit("power-max", on);
+  const frames = mounted.get(activeId)?.root?.querySelectorAll?.("iframe") ?? [];
+  const frame = [...frames].find((f) => !f.closest("[hidden]"));
+  if (frame) {
+    try {
+      frame.focus();
+      frame.contentWindow?.focus?.();
+      frame.contentWindow?.dispatchEvent?.(new Event("resize"));
+    } catch { /* cross-origin frame */ }
+  }
+}
+
+export function togglePowerExpanded() {
+  const app = typeof document === "undefined" ? null : document.getElementById("app");
+  if (app?.classList.contains("db-studio-max")) {
+    app.querySelector(".db-studio:not([hidden]) .db-expand")?.click();
+    return;
+  }
+  if (isPowerExpanded()) {
+    setPowerExpanded(false);
+    return;
+  }
+  if (!powerIsOpen()) openPower();
+  setPowerExpanded(true);
+}
+
+/** Opens the Tools panel if needed, restores the filter bar if compact/expanded, and focuses the tool filter input. */
+export function focusPowerFilter() {
+  if (!powerIsOpen()) openPower();
+  if (isPowerExpanded()) setPowerExpanded(false);
+  if (isPowerCompact()) setPowerCompact(false);
+  const filter = $("#power-filter");
+  if (!filter) return;
+  filter.focus();
+  filter.select?.();
+}
+
+export function isPowerCompact() {
+  return !!document.getElementById("app")?.classList.contains("power-compact");
+}
+
+export function setPowerCompact(compact) {
+  const app = typeof document === "undefined" ? null : document.getElementById("app");
+  if (!app) return;
+  const on = Boolean(compact);
+  app.classList.toggle("power-compact", on);
+  const btn = $("#power-compact");
+  if (btn) {
+    btn.setAttribute("aria-pressed", String(on));
+    btn.title = on ? "Show the tool filter bar and app notes again" : "Hide the tool filter bar and app notes for extra room";
+  }
+  emit("power-compact", on);
+}
+
+export function togglePowerCompact() {
+  setPowerCompact(!isPowerCompact());
+}
+
+/** The browser address for any tool: embedded apps and hosted studios use the alternate loopback origin; File Manager tools use ?tool=<id>&max=1. */
+export async function resolveToolBrowserUrl(id = activeId) {
+  const target = id || activeId;
+  if (!target) return "";
+  const other = location.hostname === "localhost" ? "127.0.0.1" : "localhost";
+  const altOrigin = `${location.protocol}//${other}${location.port ? `:${location.port}` : ""}`;
+  if (EMBEDDED_IDS.has(target)) return `${altOrigin}/app/${target}/`;
+  if (HOSTED_IDS.has(target)) {
+    const existing = $(`#power-pane-${target} iframe.embed-frame`)?.getAttribute("src");
+    if (existing) return existing;
+    const r = await call("studios/open", { id: target });
+    return `${altOrigin}/app/hosted/${target}/?s=${encodeURIComponent(r.secret)}`;
+  }
+  return `${location.origin}/?tool=${encodeURIComponent(target)}&max=1`;
+}
+
+/** Opens the specified (or currently active) tool in its own standalone desktop window. */
+export async function openToolInWindow(id = activeId) {
+  const target = id || activeId;
+  if (!target) return;
+  try {
+    const res = await call("studios/window", { id: target, path: state.path || "" });
+    toast(`Opened ${res.title || "tool"} in a separate window.`);
+    return res;
+  } catch (err) {
+    toast(err?.message || "Couldn't open a separate window.", { kind: "error" });
+    return null;
+  }
+}
+
+/** Opens the specified (or currently active) tool in the user's system web browser. */
+export async function openToolInBrowser(id = activeId, customUrl = "") {
+  const target = id || activeId;
+  if (!target && !customUrl) return;
+  try {
+    const url = customUrl || (await resolveToolBrowserUrl(target));
+    const res = await call("studios/browser", { id: target, url });
+    toast("Opened in your web browser.");
+    return res;
+  } catch (err) {
+    toast(err?.message || "Couldn't open your web browser.", { kind: "error" });
+    return null;
+  }
 }
 
 /**
@@ -59,6 +206,10 @@ export function resetPower() {
   mounted.clear();
   activeId = null;
   host = null;
+  if (typeof document !== "undefined") {
+    const app = document.getElementById("app");
+    app?.classList.remove("power-max", "power-compact");
+  }
 }
 
 /** Lets the workspace decide where the panel goes: `open(tabId, opts)` must end by calling revealPower(). */
@@ -152,6 +303,7 @@ function selectTab(id, opts) {
     mounted.set(id, entry);
   }
   entry.root.hidden = false;
+  syncExpandButtons(isPowerExpanded());
   renderTabs();
   keepTabInView(id);
   try {
@@ -180,6 +332,7 @@ export function concealPower() {
   const panel = $("#power-panel");
   if (!panel || panel.hidden) return;
   if (activeId) mounted.get(activeId)?.hooks?.hide?.();
+  setPowerExpanded(false);
   panel.hidden = true;
   document.getElementById("app").classList.remove("power-open");
   state.powerOpen = false;
@@ -201,6 +354,7 @@ export function openPower(tabId, opts) {
 /** Leaves the tools: back to the files. */
 export function closePower() {
   if (!powerIsOpen()) return;
+  setPowerExpanded(false);
   if (host) host.leave();
   else concealPower();
   $("#list")?.focus();
@@ -213,7 +367,29 @@ export function togglePower(tabId) {
 
 /** Wires the close and scroll buttons and arrow-key movement along the tab strip. */
 export function wirePower() {
+  const effectiveTargetId = () => mounted.get(activeId)?.hooks?.targetId?.() || activeId;
+  const activeDbBtn = (role) => activeId === "databases" ? document.querySelector(`.db-studio:not([hidden]) [data-role="${role}"]`) : null;
   $("#power-close")?.addEventListener("click", closePower);
+  $("#power-compact")?.addEventListener("click", togglePowerCompact);
+  $("#power-expand")?.addEventListener("click", togglePowerExpanded);
+  $("#power-restore")?.addEventListener("click", () => setPowerExpanded(false));
+  $("#power-window")?.addEventListener("click", () => { const b = activeDbBtn("db-window"); if (b) b.click(); else void openToolInWindow(effectiveTargetId()); });
+  $("#power-max-window")?.addEventListener("click", () => { const b = activeDbBtn("db-window"); if (b) b.click(); else void openToolInWindow(effectiveTargetId()); });
+  $("#power-browser")?.addEventListener("click", () => { const b = activeDbBtn("db-browser"); if (b) b.click(); else void openToolInBrowser(effectiveTargetId()); });
+  $("#power-max-browser")?.addEventListener("click", () => { const b = activeDbBtn("db-browser"); if (b) b.click(); else void openToolInBrowser(effectiveTargetId()); });
+  $("#power-max-close")?.addEventListener("click", () => {
+    const closeGameBtn = document.getElementById("games-close-game");
+    const dbBackBtn = activeDbBtn("db-back");
+    if (activeId === "games" && closeGameBtn && !closeGameBtn.hidden) {
+      closeGameBtn.click();
+      setPowerExpanded(false);
+    } else if (dbBackBtn) {
+      dbBackBtn.click();
+      setPowerExpanded(false);
+    } else {
+      closePower();
+    }
+  });
   const strip = $("#power-tabs");
   const filter = $("#power-filter");
   const clearFilter = () => {
@@ -258,12 +434,74 @@ export function wirePower() {
       $(`#power-tab-${next.id}`)?.focus();
     }
   });
+  let lastF11Down = 0;
+  document.addEventListener("keydown", (e) => {
+    if (document.querySelector(".modal-backdrop")) return;
+    const isF11 = e.key === "F11" || e.code === "F11" || e.key === "\uF70E" || e.keyCode === 122;
+    const isMacCtrlCmdF = e.ctrlKey && e.metaKey && !e.altKey && (e.key === "f" || e.key === "F" || e.code === "KeyF");
+    if (isF11 || isMacCtrlCmdF || matchesAction(e, "app.expandTool")) {
+      if (isF11) lastF11Down = Date.now();
+      e.preventDefault();
+      e.stopPropagation();
+      togglePowerExpanded();
+      return;
+    }
+    const inCodeOrTerm = typeof e.target?.closest === "function" && !!e.target.closest(".code-root, #terminal-panel");
+    if (!inCodeOrTerm && matchesAction(e, "nav.filterTools")) {
+      e.preventDefault();
+      e.stopPropagation();
+      focusPowerFilter();
+      return;
+    }
+    if (e.key === "Escape" && !e.defaultPrevented && isPowerExpanded()) {
+      e.preventDefault();
+      e.stopPropagation();
+      setPowerExpanded(false);
+    }
+  }, true);
+  document.addEventListener("keyup", (e) => {
+    if (document.querySelector(".modal-backdrop")) return;
+    const isF11 = e.key === "F11" || e.code === "F11" || e.key === "\uF70E" || e.keyCode === 122;
+    if (isF11 && Date.now() - lastF11Down > 300) {
+      e.preventDefault();
+      e.stopPropagation();
+      togglePowerExpanded();
+    }
+  }, true);
   document.addEventListener("keydown", (e) => {
     // Esc leaves the Tools view. In the Split view the tools sit beside the files, so Esc is left to whatever has focus.
-    if (e.key === "Escape" && !e.defaultPrevented && state.workspace !== "split" && powerIsOpen() && !document.querySelector(".modal-backdrop") && !(e.target instanceof HTMLInputElement && e.target.type === "search")) {
+    if (e.key === "Escape" && !e.defaultPrevented && state.workspace !== "split" && powerIsOpen() && activeId !== "databases" && !document.getElementById("app")?.classList.contains("db-studio-open") && !document.querySelector(".modal-backdrop") && !(e.target instanceof HTMLInputElement && e.target.type === "search")) {
       e.preventDefault();
       closePower();
     }
   });
+  if (typeof window !== "undefined") {
+    window.addEventListener("message", (e) => {
+      if (!e.data || typeof e.data !== "object" || document.querySelector(".modal-backdrop")) return;
+      const frames = [...document.querySelectorAll("#power-panel iframe")];
+      const fromPowerFrame = e.source === window || frames.some((f) => {
+        if (f.contentWindow === e.source) return true;
+        try {
+          for (let i = 0; i < (f.contentWindow?.frames?.length ?? 0); i++) {
+            if (f.contentWindow.frames[i] === e.source) return true;
+          }
+        } catch { /* cross-origin frame */ }
+        return false;
+      }) || (frames.length > 0 && /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(String(e.origin || "")));
+      if (!fromPowerFrame) return;
+      if (e.data.fmToggleExpand) togglePowerExpanded();
+      else if (e.data.fmEscapeExpand) {
+        const app = document.getElementById("app");
+        if (app?.classList.contains("db-studio-max")) app.querySelector(".db-studio:not([hidden]) .db-expand")?.click();
+        else if (isPowerExpanded()) setPowerExpanded(false);
+      }
+      else if (e.data.fmFilterTools) focusPowerFilter();
+      else if (typeof e.data.fmCopyText === "string" && e.data.fmCopyText.length > 0 && e.data.fmCopyText.length <= 1_000_000) {
+        void copyToClipboard(e.data.fmCopyText, { quiet: true });
+      }
+    });
+  }
+  syncExpandButtons(isPowerExpanded());
+  if (filter) filter.title = `Filter apps by name, description, or category${hintOf("nav.filterTools")}`;
   renderTabs();
 }

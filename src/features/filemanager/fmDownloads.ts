@@ -42,7 +42,7 @@ export interface DlRequest {
   /** Save as this name instead of the one the server or the address suggests. */
   name?: string;
   connections?: number;
-  /** Extra request headers (cookies, a referer, an authorisation token ...). */
+  /** Extra request headers (cookies, a referer, an authorization token ...). */
   headers?: Record<string, string>;
   /** `sha256:<hex>` (or md5, sha1, sha512), or just the hex digits. Checked when the download ends. */
   checksum?: string;

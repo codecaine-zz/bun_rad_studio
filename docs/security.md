@@ -1,6 +1,6 @@
 # Security
 
-What the project protects, what it does not, and how to use it safely. Each protection says how it was checked. Reviewed on **13 October 2026** (macOS); Windows and Linux behaviour was not assessed. This is a review of this repository's own code, not a security audit or a guarantee.
+What the project protects, what it does not, and how to use it safely. Each protection says how it was checked. Reviewed on **13 October 2026** (macOS); Windows and Linux behavior was not assessed. This is a review of this repository's own code, not a security audit or a guarantee.
 
 ## Contents
 

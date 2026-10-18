@@ -9,11 +9,14 @@ import type { SimpleGUITheme } from "../../simplegui";
 import type { FmContext } from "./fmCore";
 import { FmError } from "./fmPaths";
 import type { ThemeFx } from "../../shared/fxThemes";
+import { normalizeAtmosphereSpec } from "../../../resources/file_manager/ui/atmosphereCatalog.js";
 
 export const MAX_CUSTOM_THEMES = 50;
 export const MAX_THEME_NAME = 40;
 export const MAX_IMPORT_BYTES = 20_000;
+export const MAX_PACK_IMPORT_BYTES = 200_000;
 export const EXPORT_FORMAT = "bun-rad-studio-file-manager-theme";
+export const EXPORT_PACK_FORMAT = "bun-rad-studio-file-manager-theme-pack";
 
 export const REQUIRED_COLOURS = ["background", "text", "accent"] as const;
 export const OPTIONAL_COLOURS = ["secondary", "card", "border", "danger", "warning", "success", "info"] as const;
@@ -34,7 +37,55 @@ export interface CustomTheme extends ThemeDraft {
 }
 
 const HEX = /^#[0-9a-f]{6}$/i;
+const SHORT_HEX = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i;
 const clean = (s: string) => s.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, " ").replace(/\s+/g, " ").trim();
+const expandHex = (v: unknown): unknown => {
+  if (typeof v !== "string") return v;
+  const m = v.trim().match(SHORT_HEX);
+  return m ? `#${m[1]}${m[1]}${m[2]}${m[2]}${m[3]}${m[3]}`.toLowerCase() : v;
+};
+
+/**
+ * Forward- and backward-compatible migration for shared theme objects and packs:
+ * expands 3-digit hex codes (#abc -> #aabbcc), maps SimpleGUI keys (background_color, font_color, etc.),
+ * and ignores unknown future schema fields.
+ */
+export function migrateThemeInput(input: unknown): unknown {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return input;
+  const r = input as Record<string, unknown>;
+  const rawColors = r.colors && typeof r.colors === "object" && !Array.isArray(r.colors) ? { ...(r.colors as Record<string, unknown>) } : {};
+  const legacyMap: Array<[string, ColourKey]> = [
+    ["background_color", "background"],
+    ["font_color", "text"],
+    ["accent_color", "accent"],
+    ["secondary_accent", "secondary"],
+    ["card_background", "card"],
+    ["card_border", "border"],
+  ];
+  for (const [legacyKey, targetKey] of legacyMap) {
+    if (rawColors[targetKey] === undefined && typeof r[legacyKey] === "string") rawColors[targetKey] = r[legacyKey];
+  }
+  if (r.semantic && typeof r.semantic === "object" && !Array.isArray(r.semantic)) {
+    const sem = r.semantic as Record<string, unknown>;
+    for (const k of ["danger", "warning", "success", "info"] as const) {
+      if (rawColors[k] === undefined && typeof sem[k] === "string") rawColors[k] = sem[k];
+    }
+  }
+  for (const k of Object.keys(rawColors)) rawColors[k] = expandHex(rawColors[k]);
+  let fx = r.fx;
+  if (fx && typeof fx === "object" && !Array.isArray(fx)) {
+    const fxObj = { ...(fx as Record<string, unknown>) };
+    if (fxObj.glowColor !== undefined) fxObj.glowColor = expandHex(fxObj.glowColor);
+    if (fxObj.glowColor2 !== undefined) fxObj.glowColor2 = expandHex(fxObj.glowColor2);
+    fx = fxObj;
+  }
+  return {
+    ...r,
+    dark: typeof r.dark === "boolean" ? r.dark : r.is_dark === true,
+    colors: rawColors,
+    ...(fx !== undefined ? { fx } : {}),
+  };
+}
 
 /** Checks what the editor sent. Throws a plain-words error for anything wrong. */
 export function validateDraft(input: unknown): ThemeDraft {
@@ -48,10 +99,10 @@ export function validateDraft(input: unknown): ThemeDraft {
   for (const key of COLOUR_KEYS) {
     const v = raw[key];
     if (v === undefined || v === null || v === "") {
-      if ((REQUIRED_COLOURS as readonly string[]).includes(key)) throw new FmError("BAD_REQUEST", `Choose a ${key} colour.`);
+      if ((REQUIRED_COLOURS as readonly string[]).includes(key)) throw new FmError("BAD_REQUEST", `Choose a ${key} color.`);
       continue;
     }
-    if (typeof v !== "string" || !HEX.test(v.trim())) throw new FmError("BAD_REQUEST", `The ${key} colour must look like #1a2b3c.`);
+    if (typeof v !== "string" || !HEX.test(v.trim())) throw new FmError("BAD_REQUEST", `The ${key} color must look like #1a2b3c.`);
     colors[key] = v.trim().toLowerCase();
   }
   const fx = r.fx === undefined ? undefined : validateEffects(r.fx, colors.accent!);
@@ -78,9 +129,15 @@ function validateEffects(input: unknown, accent: string): ThemeFx {
   };
   const color = (key: string, fallback: string): string => {
     const value = r[key] ?? fallback;
-    if (typeof value !== "string" || !HEX.test(value)) throw new FmError("BAD_REQUEST", `The ${key} effect colour must look like #1a2b3c.`);
+    if (typeof value !== "string" || !HEX.test(value)) throw new FmError("BAD_REQUEST", `The ${key} effect color must look like #1a2b3c.`);
     return value.toLowerCase();
   };
+  let atmosphere = "none";
+  if (r.atmosphere !== undefined) {
+    const parsedAtmo = normalizeAtmosphereSpec(r.atmosphere, { strict: true });
+    if (!parsedAtmo) throw new FmError("BAD_REQUEST", "Choose a valid atmosphere effect.");
+    atmosphere = parsedAtmo;
+  }
   return {
     glow: choice("glow", ["none", "soft", "neon"], "soft"),
     glowColor: color("glowColor", accent), glowColor2: color("glowColor2", accent),
@@ -91,10 +148,11 @@ function validateEffects(input: unknown, accent: string): ThemeFx {
     border: choice("border", ["flat", "gradient", "metal"], "flat"),
     motion: choice("motion", ["calm", "spring", "snappy"], "calm"),
     sheen: flag("sheen"), noise: flag("noise"), chromatic: flag("chromatic"), ambient: flag("ambient"),
+    ...(atmosphere !== "none" ? { atmosphere } : {}),
   };
 }
 
-/** The shape the built-in themes have, so one code path makes the page colours for both. */
+/** The shape the built-in themes have, so one code path makes the page colors for both. */
 export function toSimpleTheme(t: ThemeDraft): SimpleGUITheme {
   const c = t.colors;
   const semantic: Record<string, string> = {};
@@ -129,7 +187,7 @@ export async function loadCustom(ctx: FmContext): Promise<CustomTheme[]> {
   const out: CustomTheme[] = [];
   for (const item of list.slice(0, MAX_CUSTOM_THEMES)) {
     try {
-      if (isCustomKey(item?.id) && !out.some((t) => t.id === item.id)) out.push({ id: item.id, ...validateDraft(item) });
+      if (isCustomKey(item?.id) && !out.some((t) => t.id === item.id)) out.push({ id: item.id, ...validateDraft(migrateThemeInput(item)) });
     } catch {
       // A damaged entry is left out; the rest still load.
     }
@@ -180,7 +238,40 @@ export async function deleteCustom(ctx: FmContext, id: unknown): Promise<void> {
 /** The text a person can copy to share a theme. */
 export const exportTheme = (t: ThemeDraft): string => JSON.stringify({ format: EXPORT_FORMAT, version: 1, name: t.name, dark: t.dark, colors: t.colors, ...(t.fx ? { fx: t.fx } : {}) }, null, 2);
 
-/** Reads shared theme text. Accepts the exported form or a bare `{ name, dark, colors }`. */
+/** Formats computed theme tokens as a standalone `:root` CSS custom properties stylesheet. */
+export function exportThemeCss(name: string, scheme: "light" | "dark", vars: Record<string, string>, effectsCss?: string): string {
+  const safeName = clean(name || "Custom Theme");
+  const lines = [
+    `/* ${safeName} (${scheme}) — exported from File Manager */`,
+    ":root {",
+    `  color-scheme: ${scheme};`,
+  ];
+  for (const [k, v] of Object.entries(vars)) lines.push(`  --${k}: ${v};`);
+  if (effectsCss) {
+    for (const part of effectsCss.split(";").map((s) => s.trim()).filter(Boolean)) {
+      lines.push(`  ${part};`);
+    }
+  }
+  lines.push("}");
+  return lines.join("\n");
+}
+
+/** Exports multiple themes as a single shareable Theme Pack JSON string. */
+export function exportThemePack(themes: ThemeDraft[]): string {
+  return JSON.stringify({
+    format: EXPORT_PACK_FORMAT,
+    version: 1,
+    themes: themes.map((t) => ({
+      name: t.name,
+      dark: t.dark,
+      ...(t.base ? { base: t.base } : {}),
+      colors: t.colors,
+      ...(t.fx ? { fx: t.fx } : {}),
+    })),
+  }, null, 2);
+}
+
+/** Reads shared theme text. Accepts the exported form, a legacy/SimpleGUI object, or a bare `{ name, dark, colors }`. */
 export function parseShared(text: unknown): ThemeDraft {
   if (typeof text !== "string" || !text.trim()) throw new FmError("BAD_REQUEST", "Paste the theme text first.");
   if (text.length > MAX_IMPORT_BYTES) throw new FmError("BAD_REQUEST", "That text is too long to be a theme.");
@@ -190,6 +281,52 @@ export function parseShared(text: unknown): ThemeDraft {
   } catch {
     throw new FmError("BAD_REQUEST", "That text isn't a theme. Copy the whole text from Export.");
   }
+  if (data && typeof data === "object" && (data as any).format === EXPORT_PACK_FORMAT && Array.isArray((data as any).themes) && (data as any).themes.length > 0) {
+    return validateDraft(migrateThemeInput((data as any).themes[0]));
+  }
   if (data && typeof data === "object" && (data as any).format !== undefined && (data as any).format !== EXPORT_FORMAT) throw new FmError("BAD_REQUEST", "That isn't a File Manager theme.");
-  return validateDraft(data);
+  return validateDraft(migrateThemeInput(data));
+}
+
+/** Parses either a multi-theme pack or a single theme JSON string into an array of validated ThemeDrafts. */
+export function parseThemePack(text: unknown): ThemeDraft[] {
+  if (typeof text !== "string" || !text.trim()) throw new FmError("BAD_REQUEST", "Paste the theme pack text first.");
+  if (text.length > MAX_PACK_IMPORT_BYTES) throw new FmError("BAD_REQUEST", "That text is too long to be a theme pack.");
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new FmError("BAD_REQUEST", "That text isn't valid JSON. Copy the whole text from Export.");
+  }
+  if (!data || typeof data !== "object") throw new FmError("BAD_REQUEST", "That text isn't a theme pack.");
+  const r = data as Record<string, unknown>;
+  if (r.format !== undefined && r.format !== EXPORT_PACK_FORMAT && r.format !== EXPORT_FORMAT) {
+    throw new FmError("BAD_REQUEST", "That isn't a File Manager theme or theme pack.");
+  }
+  const items = Array.isArray(r.themes) ? r.themes : [r];
+  if (!items.length) throw new FmError("BAD_REQUEST", "That theme pack has no themes in it.");
+  const drafts: ThemeDraft[] = [];
+  for (const item of items.slice(0, MAX_CUSTOM_THEMES)) {
+    drafts.push(validateDraft(migrateThemeInput(item)));
+  }
+  return drafts;
+}
+
+/** Imports a Theme Pack (or single theme) and saves all of them into the user's custom themes. */
+export async function importThemePack(ctx: FmContext, text: unknown): Promise<CustomTheme[]> {
+  const drafts = parseThemePack(text);
+  const all = await loadCustom(ctx);
+  if (all.length + drafts.length > MAX_CUSTOM_THEMES) {
+    throw new FmError("TOO_MANY", `You can keep up to ${MAX_CUSTOM_THEMES} themes of your own (you have ${all.length}, and this pack has ${drafts.length}).`);
+  }
+  const created: CustomTheme[] = [];
+  for (const draft of drafts) {
+    let id = `custom_${randomBytes(4).toString("hex")}`;
+    while (all.some((t) => t.id === id)) id = `custom_${randomBytes(4).toString("hex")}`;
+    const made: CustomTheme = { id, ...draft };
+    all.push(made);
+    created.push(made);
+  }
+  await saveAll(ctx, all);
+  return created;
 }

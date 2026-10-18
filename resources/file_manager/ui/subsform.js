@@ -1,5 +1,5 @@
 // The controls of the Subdomains tool. Every input has a visible label, every control has a tooltip written for a
-// beginner, and everything is reachable with the keyboard. Built with h() only; subs.js wires up the behaviour.
+// beginner, and everything is reachable with the keyboard. Built with h() only; subs.js wires up the behavior.
 import { h } from "./dom.js";
 import { COLUMNS } from "./subscore.js";
 

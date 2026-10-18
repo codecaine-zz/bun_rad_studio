@@ -12,7 +12,7 @@ import { resultList, runView, summaryText } from "./vaultRun.js";
 
 let counter = 0;
 
-/** A labelled tick box with a tooltip and an optional explanation underneath. */
+/** A labeled tick box with a tooltip and an optional explanation underneath. */
 function tick({ label, hint, checked, title }) {
   const id = `vault-opt-${++counter}`;
   const input = h("input", { type: "checkbox", id, checked: checked || null, title });

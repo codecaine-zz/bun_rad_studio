@@ -172,7 +172,7 @@ export function readmeFor(d: Download): string {
   const L: string[] = [`${APP_TITLE} ${VERSION}: ${d.label}`, "", d.hint + ".", ""];
   if (d.os === "windows") {
     L.push(`First, double-click install.cmd to check prerequisites and install missing ones from Microsoft with your permission. Then double-click "${APP_TITLE}.exe".`, "", "No Bun or compiler is needed. Microsoft installers may request elevation.", "", "It needs the Microsoft WebView2 runtime (already part of Windows 11):", "  https://developer.microsoft.com/microsoft-edge/webview2/", "");
-    L.push("Windows SmartScreen may say the app is unrecognised the first time. Choose More info > Run anyway.", "Keep the folders next to the .exe (app, lib, resources): the program reads them.");
+    L.push("Windows SmartScreen may say the app is unrecognized the first time. Choose More info > Run anyway.", "Keep the folders next to the .exe (app, lib, resources): the program reads them.");
     L.push("", "The native window library also needs the Microsoft Visual C++ 2015-2022 x64 Redistributable (even on ARM):", "  https://aka.ms/vs/17/release/vc_redist.x64.exe", "", "If no window opens, double-click troubleshoot.cmd to see the error in a console.");
     if (d.arch === "arm64") L.push("", "Requires Windows 11 on ARM with x64 emulation. Uses the baseline x64 build, so AVX2 emulation is not required.");
   } else if (d.os === "linux") {
@@ -182,7 +182,7 @@ export function readmeFor(d: Download): string {
   }
   L.push("", "If the native window is unavailable, the File Manager opens in your default browser instead.");
   L.push("", "Startup logs: ~/.bun_rad_studio/file-manager-startup.log (on Windows: %USERPROFILE%\\.bun_rad_studio\\file-manager-startup.log).");
-  L.push("", "Licence: MIT (see LICENSE). The source code is at https://github.com/codecaine-zz/bun_rad_studio", "");
+  L.push("", "License: MIT (see LICENSE). The source code is at https://github.com/codecaine-zz/bun_rad_studio", "");
   return L.join(d.os === "windows" ? "\r\n" : "\n");
 }
 
@@ -230,7 +230,7 @@ export const MAC_README = `${APP_TITLE} ${VERSION}
 This removes quarantine only from this app. Do not disable Gatekeeper system-wide.
 
 Everything runs on your Mac: no account, nothing is sent anywhere.
-Licence: MIT. Source code: https://github.com/codecaine-zz/bun_rad_studio
+License: MIT. Source code: https://github.com/codecaine-zz/bun_rad_studio
 `;
 
 interface Assets {

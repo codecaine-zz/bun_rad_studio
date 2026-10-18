@@ -33,7 +33,7 @@ export interface FileInfo {
 
 /** Options for {@link parseCsvString} / {@link readCsv}. */
 export interface CsvParseOptions {
-  /** Trim whitespace around every cell. Default `true` (legacy behaviour). */
+  /** Trim whitespace around every cell. Default `true` (legacy behavior). */
   trim?: boolean;
   /** Drop rows that are entirely empty. Default `true`. */
   skipEmptyLines?: boolean;
@@ -100,7 +100,7 @@ export function formatBytes(bytes: number, decimals = 1): string {
 /**
  * Parse a human byte string back into a number of bytes (1024-based). Inverse of {@link formatBytes}.
  * Accepts `B`, `K/KB/KiB`, `M/MB/MiB`, … case-insensitively; a bare number means bytes.
- * @throws When the string is not a recognisable size.
+ * @throws When the string is not a recognizable size.
  * @example
  * ```ts
  * fileutils.parseBytes("1.5 KB"); // 1536
@@ -109,7 +109,7 @@ export function formatBytes(bytes: number, decimals = 1): string {
  */
 export function parseBytes(input: string): number {
   const m = /^\s*(-?\d+(?:\.\d+)?)\s*([kmgtpe]?)(i?b)?\s*$/i.exec(input);
-  if (!m) throw new Error(`[fileutils.parseBytes] Unrecognised size string: "${input}"`);
+  if (!m) throw new Error(`[fileutils.parseBytes] Unrecognized size string: "${input}"`);
   const power = m[2] ? "BKMGTPE".indexOf(m[2].toUpperCase()) : 0;
   return Math.round(Number(m[1]) * 1024 ** power);
 }

@@ -28,7 +28,7 @@ export const SQLITE_ROWID_COLUMN = "__rowid__";
 
 export type Executor = (sql: string, params: Param[], options?: QueryOptions) => Promise<QueryResult>;
 
-/** Shared behaviour built on top of an engine-specific `execute` + catalog introspection. */
+/** Shared behavior built on top of an engine-specific `execute` + catalog introspection. */
 export abstract class BaseAdapter implements DbAdapter {
   abstract readonly engine: Engine;
   readonly config: Readonly<Omit<ConnectionConfig, "password">>;

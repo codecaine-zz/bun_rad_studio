@@ -1,15 +1,11 @@
 // The Dual view's second pane. It is a second copy of the normal file list, not a lighter one: it has its own folder,
-// breadcrumbs, selection and column headings, and it is drawn, selected, renamed, dragged, sorted, jumped through by
-// typing and right-clicked by the same code as the left list (list.js, selection.js, contextmenu.js, ops.js, keys.js).
-// Both lists follow the same View, sort and hidden-files settings, and the keys, the toolbar and the menus act on the
-// active pane (pane.js). What this file adds is the folder loading for the right pane, its address bar, F5 / F6
-// (copy or move to the other pane) and the buttons under it.
-// Not shared: the search box, Back and Forward, the Recycle Bin view and the Details panel belong to the left list.
+// history, breadcrumbs, editable address input, search box, selection and column headings, and it is drawn, selected,
+// renamed, dragged, sorted, jumped through by typing and right-clicked by the same code as the left list.
 import { ApiError, call } from "./api.js";
 import { attachDropTarget } from "./dnd.js";
 import { actionFor } from "./keymap.js";
 import { $, clear, h } from "./dom.js";
-import { isRenaming, makeListHead, renderList, syncSelection, wirePane } from "./list.js";
+import { isRenaming, makeListHead, renderList, syncSelection, wirePane, wirePaneExtras } from "./list.js";
 import { menuIsOpen, toast } from "./menus.js";
 import { goUpIn, saveSettings } from "./nav.js";
 import { transferInto, trashSelection } from "./ops.js";
@@ -22,6 +18,8 @@ let built = false;
 let loadNumber = 0;
 let loading = 0;
 let refreshTimer = 0;
+const rightHistory = [];
+const rightFuture = [];
 
 const mod = () => (state.platform === "darwin" ? "⌘" : "Ctrl+");
 const byId = (id) => document.getElementById(id);
@@ -42,17 +40,25 @@ function applyActive() {
  * Opens `path` in the right pane. Resolves true when it worked; a problem is explained and leaves the old folder.
  * `keep` keeps the selection (for a refresh of the same folder); `select` selects one item after opening.
  */
-export async function loadRight(path, { keep = false, select = null } = {}) {
+export async function loadRight(path, { keep = false, select = null, push = true } = {}) {
   const mine = ++loadNumber;
   loading++;
   try {
     const res = await call("list", { path, showHidden: state.settings.showHidden });
     if (mine !== loadNumber) return false;
-    const moved = res.path !== right.location.path;
+    const prevPath = right.location.path;
+    const moved = res.path !== prevPath;
+    if (push && moved && prevPath) {
+      if (rightHistory.at(-1) !== prevPath) rightHistory.push(prevPath);
+      if (rightHistory.length > 100) rightHistory.shift();
+      rightFuture.length = 0;
+    }
     right.location = { kind: "folder", path: res.path };
     right.entries = res.entries;
     right.total = res.total;
     right.search = null;
+    const searchInput = byId("dual-search");
+    if (searchInput && moved) searchInput.value = "";
     if (select) right.selection = new Set([select]);
     else if (keep && !moved) right.selection = new Set([...right.selection].filter((k) => res.entries.some((e) => e.path === k)));
     else right.selection = new Set();
@@ -73,11 +79,86 @@ export async function loadRight(path, { keep = false, select = null } = {}) {
 
 hooks.loadRight = loadRight;
 
+export async function goRightBack() {
+  const target = rightHistory.pop();
+  if (!target) return false;
+  if (right.location.path) rightFuture.push(right.location.path);
+  return await loadRight(target, { push: false });
+}
+
+export async function goRightForward() {
+  const target = rightFuture.pop();
+  if (!target) return false;
+  if (right.location.path) rightHistory.push(right.location.path);
+  return await loadRight(target, { push: false });
+}
+
+export async function runRightSearch(query) {
+  const text = String(query ?? "").trim();
+  if (!text) {
+    if (!right.search) return false;
+    right.search = null;
+    right.shown = 0;
+    drawRight();
+    return true;
+  }
+  if (!right.location.path) return false;
+  const mine = ++loadNumber;
+  try {
+    const res = await call("search", { path: right.location.path, query: text, showHidden: state.settings.showHidden });
+    if (mine !== loadNumber) return false;
+    right.search = { query: text, root: right.location.path, entries: res.entries, truncated: res.truncated, skipped: res.skipped };
+    right.shown = 0;
+    right.selection = new Set();
+    right.focusKey = null;
+    drawRight();
+    return true;
+  } catch (err) {
+    toast(err instanceof ApiError ? err.message : "Search failed in the right pane.", { kind: "error" });
+    return false;
+  }
+}
+
 function drawRight() {
   renderList(right);
   renderCrumbs();
   syncButtons();
   emit("right-view");
+}
+
+function openRightAddressEdit() {
+  const crumbs = byId("dual-crumbs");
+  const input = byId("dual-address-input");
+  if (!crumbs || !input) return;
+  crumbs.hidden = true;
+  input.hidden = false;
+  input.value = right.location.path || state.home || "";
+  input.focus();
+  input.select();
+}
+
+function closeRightAddressEdit() {
+  const crumbs = byId("dual-crumbs");
+  const input = byId("dual-address-input");
+  if (!crumbs || !input) return;
+  input.hidden = true;
+  crumbs.hidden = false;
+}
+
+async function submitRightAddress() {
+  const input = byId("dual-address-input");
+  if (!input) return;
+  const raw = input.value.trim();
+  closeRightAddressEdit();
+  if (!raw) return;
+  try {
+    const r = await call("typedpath", { text: raw, cwd: right.location.path || state.home });
+    if (!r.exists) return toast(`There is no folder at ${r.path}.`, { kind: "error" });
+    if (!r.isDir) return toast("Type a folder path for the right pane.", { kind: "error" });
+    await loadRight(r.path);
+  } catch (err) {
+    toast(err instanceof ApiError ? err.message : "Couldn't open that location.", { kind: "error" });
+  }
 }
 
 function renderCrumbs() {
@@ -92,13 +173,17 @@ function renderCrumbs() {
     box.append(el);
     if (!last) box.append(h("span", { class: "crumb-sep", "aria-hidden": "true" }, "›"));
   });
+  const back = byId("dual-back");
+  if (back) back.disabled = rightHistory.length === 0;
+  const fwd = byId("dual-forward");
+  if (fwd) fwd.disabled = rightFuture.length === 0;
   const up = byId("dual-up");
   if (up) up.disabled = !parentOf(right.location.path, state.sep);
 }
 
 /** The buttons under the right pane: which ones make sense for what is selected on each side. */
 function syncButtons() {
-  if (!built) return;
+  if (!built || !byId("dual-copy-left")) return;
   const chosen = right.selection.size;
   for (const id of ["dual-copy-left", "dual-move-left"]) byId(id).disabled = !chosen || !leftFolder();
   for (const id of ["dual-copy-right", "dual-move-right"]) byId(id).disabled = !left.selection.size || !right.location.path;
@@ -143,10 +228,58 @@ function actionButton(id, icon, label, tip, run) {
 
 function build() {
   const pane = $("#dual-pane");
+  const addrInput = h("input", {
+    id: "dual-address-input",
+    type: "text",
+    class: "address-input dual-address-input",
+    title: "Type a folder location for the right pane and press Enter",
+    "aria-label": "Type a folder location for the right pane and press Enter",
+    spellcheck: "false",
+    autocomplete: "off",
+    hidden: true,
+    onkeydown: (e) => {
+      if (e.key === "Enter") { e.preventDefault(); submitRightAddress(); }
+      else if (e.key === "Escape") { e.preventDefault(); closeRightAddressEdit(); }
+    },
+    onblur: () => closeRightAddressEdit(),
+  });
+  const searchInput = h("input", {
+    id: "dual-search",
+    type: "search",
+    class: "search-input dual-search-input",
+    placeholder: "Search right pane",
+    title: "Search files and folders inside the right pane",
+    "aria-label": "Search files and folders in the right pane",
+    autocomplete: "off",
+    spellcheck: "false",
+    onkeydown: (e) => {
+      if (e.key === "Enter") { e.preventDefault(); runRightSearch(searchInput.value); }
+      else if (e.key === "Escape" && searchInput.value) { e.preventDefault(); searchInput.value = ""; runRightSearch(""); }
+    },
+    oninput: () => {
+      if (!searchInput.value) runRightSearch("");
+    },
+  });
+  const crumbsNav = h("nav", {
+    id: "dual-crumbs",
+    class: "dual-crumbs",
+    "aria-label": "Where the right pane is",
+    onclick: (e) => {
+      if (e.target === crumbsNav) openRightAddressEdit();
+    },
+  });
   clear(pane).append(
     h("div", { class: "dual-head" },
+      h("button", { type: "button", class: "icon-btn", id: "dual-back", title: "Go back to the previous folder in the right pane", "aria-label": "Back in the right pane", onclick: () => goRightBack() }, "←"),
+      h("button", { type: "button", class: "icon-btn", id: "dual-forward", title: "Go forward in the right pane", "aria-label": "Forward in the right pane", onclick: () => goRightForward() }, "→"),
       h("button", { type: "button", class: "icon-btn", id: "dual-up", title: "Go up one folder in this pane", "aria-label": "Up one folder in the right pane", onclick: () => goUpIn(right) }, "↑"),
-      h("nav", { id: "dual-crumbs", class: "dual-crumbs", "aria-label": "Where the right pane is" }),
+      crumbsNav,
+      addrInput,
+      h("button", { type: "button", class: "icon-btn", id: "dual-edit-address", title: "Type a folder location for the right pane", "aria-label": "Type a location in the right pane", onclick: () => openRightAddressEdit() }, "✎"),
+      h("div", { class: "search dual-search-wrap", role: "search" },
+        searchInput,
+        h("button", { type: "button", class: "icon-btn", id: "dual-search-go", title: "Search the right pane", "aria-label": "Search the right pane", onclick: () => runRightSearch(searchInput.value) }, "🔍"),
+      ),
       h("button", { type: "button", class: "icon-btn", id: "dual-same", title: "Show the folder from the left pane here too", "aria-label": "Show the left folder in this pane", onclick: () => leftFolder() && loadRight(leftFolder()) }, "⇄")),
     makeListHead(right.ids.head),
     h("div", { class: "dual-listwrap", id: right.ids.wrap },
@@ -162,6 +295,7 @@ function build() {
         actionButton("dual-trash", "🗑️", "Delete", "Move what is selected here to the Recycle Bin (Delete). You can undo this.", () => { setActivePane("right"); trashSelection(); }))),
   );
   wirePane(right);
+  wirePaneExtras(right);
 
   const list = byId(right.ids.list);
   list.addEventListener("focusin", () => setActivePane("right"));
@@ -198,7 +332,7 @@ export function wireDual() {
   on("settings", (change) => {
     const keys = Object.keys(change ?? {});
     if (!live()) return;
-    if (keys.some((k) => ["view", "sortBy", "sortDir", "foldersFirst"].includes(k))) renderList(right);
+    if (keys.some((k) => ["view", "sortBy", "sortDir", "foldersFirst", "columns", "groupBy", "tags"].includes(k))) renderList(right);
     if (keys.includes("deleteTo")) syncButtons();
   });
   document.addEventListener("keydown", (e) => {

@@ -111,4 +111,4 @@ await createSystemStudio({ fullscreen: false }).run();
 | :--- | :--- |
 | **A method shows an error or empty values.** | Some APIs need OS permissions or are not available on every platform (for example temperatures on some machines). The Telemetry Log shows the exact error. |
 | **Where are exported files saved?** | In the `reports/` folder of the directory the studio was launched from. |
-| **Compare is greyed out.** | Take a **📸 Snapshot** first; the button enables once a snapshot exists. |
+| **Compare is grayed out.** | Take a **📸 Snapshot** first; the button enables once a snapshot exists. |

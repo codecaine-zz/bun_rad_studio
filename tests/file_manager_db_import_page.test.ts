@@ -201,13 +201,13 @@ describe("right-click on a data file: Load into a database (staging first)…", 
     return qa(".menu .menu-item .menu-label").map((e) => e.textContent);
   };
 
-  test("CSV, TSV, JSON and JSON Lines files get it; other files, folders and selections of several do not; Excel gets an honest disabled item", () => {
-    for (const n of ["people.csv", "t.tsv", "d.json", "l.ndjson"]) expect(labelsFor([entry(n)]), n).toContain(label);
+  test("CSV, TSV, JSON, JSON Lines, Excel (.xlsx) and other data files get it; other files, folders and selections of several do not; legacy .xls gets an honest disabled item", () => {
+    for (const n of ["people.csv", "t.tsv", "d.json", "l.ndjson", "book.xlsx", "sheet.ods", "data.yaml", "dump.sql"]) expect(labelsFor([entry(n)]), n).toContain(label);
     expect(labelsFor([entry("notes.txt")])).not.toContain(label);
     expect(labelsFor([entry("readme.md")])).not.toContain(label);
     expect(labelsFor([{ name: "work", path: work, isDir: true, size: 0 }])).not.toContain(label);
     expect(labelsFor([entry("people.csv"), entry("t.tsv")])).not.toContain(label);
-    expect(labelsFor([entry("book.xlsx")])).toContain(label);
+    expect(labelsFor([entry("book.xls")])).toContain(label);
     const x = menuItem(label);
     expect(x.disabled).toBe(true);
     expect(x.title).toContain("CSV UTF-8");

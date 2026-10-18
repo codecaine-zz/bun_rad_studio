@@ -45,6 +45,20 @@ export const KEYMAP = {
   build: ["Mod+B"],
   preview: ["Mod+Shift+V"],
   shortcuts: ["F1", "Mod+Alt+H"],
+  expandSelection: ["Alt+Shift+ArrowRight"],
+  goToBracket: ["Mod+Shift+\\"],
+  nextOccurrence: ["Mod+Alt+N"],
+  prevOccurrence: ["Mod+Alt+P"],
+  renameSymbol: ["Mod+Shift+R"],
+  toggleValue: ["Alt+T"],
+  toggleQuotes: ["Alt+'"],
+  wrapTag: ["Alt+Shift+W"],
+  evalMath: ["Mod+Shift+E"],
+  inspectToken: ["Alt+I"],
+  insertSnippet: ["Alt+S"],
+  insertGenerated: ["Alt+G"],
+  minimap: ["Alt+M"],
+  diffSaved: ["Mod+Alt+D"],
 };
 
 /** Keys that are named by where they are, not by what they type (a shifted ` or = types something else, and layouts differ). */
@@ -85,8 +99,10 @@ export function matchShortcut(e, spec, platform) {
   if (!shiftedSymbol && e.shiftKey !== s.shift) return false;
   if (s.alt && codeOf(s.key)) return e.code === codeOf(s.key);
   if (PUNCT_CODES[s.key] && e.code === PUNCT_CODES[s.key]) return true;
-  const pressed = e.key === " " ? "Space" : e.key.length === 1 ? e.key.toLowerCase() : e.key;
-  return pressed === s.key;
+  const cp = typeof e.key === "string" && e.key.length === 1 ? e.key.charCodeAt(0) : 0;
+  const macFn = cp >= 0xf704 && cp <= 0xf71b ? `F${cp - 0xf703}` : "";
+  const pressed = macFn || (e.key === " " ? "Space" : typeof e.key === "string" && e.key.length === 1 ? e.key.toLowerCase() : e.key);
+  return pressed === s.key || (/^F\d{1,2}$/.test(s.key) && (e.code === s.key || (s.key === "F11" && e.keyCode === 122)));
 }
 
 /** The command id a key press stands for, or null. */

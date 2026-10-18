@@ -9,6 +9,8 @@ import {
 } from "../applications/paint_studio.ts";
 import { scanWorkspaceApps } from "../applications/launcher_studio.ts";
 import { COLORING_LIBRARY } from "../resources/paint/coloring_library.js";
+import { HELP_SKIP, HELP_TIPS } from "../src/shared/help";
+import { auditHtml, uncovered } from "../src/shared/helpAudit";
 
 describe("🎨 Chroma Studio Pro — Advanced Paint & Vector Coloring Studio Suite", () => {
   it("1. Static assets are present, readable, and properly structured", () => {
@@ -21,12 +23,30 @@ describe("🎨 Chroma Studio Pro — Advanced Paint & Vector Coloring Studio Sui
     expect(html).toContain("Chroma Studio Pro");
     expect(html).toContain("bgCanvas");
     expect(html).toContain("drawCanvas");
+    expect(html).toContain("strokeBufferCanvas");
+    expect(html).toContain("gridCanvas");
     expect(html).toContain("previewCanvas");
     expect(html).toContain("vectorLayerWrap");
     expect(html).toContain("tool_brush");
+    expect(html).toContain("tool_pencil");
     expect(html).toContain("tool_airbrush");
+    expect(html).toContain("tool_pen");
+    expect(html).toContain("tool_marker");
+    expect(html).toContain("tool_watercolor");
+    expect(html).toContain("tool_clone");
     expect(html).toContain("tool_bucket");
+    expect(html).toContain("tool_gradient");
     expect(html).toContain("tool_eraser");
+    expect(html).toContain("tool_line");
+    expect(html).toContain("tool_curve");
+    expect(html).toContain("tool_rect");
+    expect(html).toContain("tool_circle");
+    expect(html).toContain("tool_polygon");
+    expect(html).toContain("tool_star");
+    expect(html).toContain("tool_select");
+    expect(html).toContain("tool_hand");
+    expect(html).toContain("tool_picker");
+    expect(html).toContain("tool_text");
     expect(html).toContain("floodFill");
     expect(html).toContain("loadVectorArtwork");
   });
@@ -121,4 +141,91 @@ describe("🎨 Chroma Studio Pro — Advanced Paint & Vector Coloring Studio Sui
     expect(found?.category).toBe("Design & Media");
     expect(found?.description).toContain("106+ vector coloring book");
   });
+
+  it("7. Includes complete pro paint features: multi-layer management, symmetry, selection/crop, filters, adjustments, and project I/O", () => {
+    const html = generatePaintStudioHtml();
+    // Multi-layer management
+    expect(html).toContain("addPaintLayer");
+    expect(html).toContain("duplicateActiveLayer");
+    expect(html).toContain("mergeActiveLayerDown");
+    expect(html).toContain("deleteActiveLayer");
+    expect(html).toContain("layerBlendSelect");
+    expect(html).toContain("layerOpacitySlider");
+
+    // Symmetry & Mandala modes
+    expect(html).toContain("symmetrySelect");
+    expect(html).toContain("getSymmetryPoints");
+    expect(html).toContain("radial12");
+
+    // Selection marquee, copy/cut/paste, and crop
+    expect(html).toContain("cropToSelection");
+    expect(html).toContain("copySelection");
+    expect(html).toContain("cutSelection");
+    expect(html).toContain("pasteSelection");
+    expect(html).toContain("flipSelection");
+
+    // Image filters & color adjustments
+    expect(html).toContain("applyCanvasFilter");
+    expect(html).toContain("transformCanvas");
+    expect(html).toContain("previewColorAdjustments");
+    expect(html).toContain("commitColorAdjustments");
+
+    // Draggable floating text tool & file import/export
+    expect(html).toContain("floatingTextOverlay");
+    expect(html).toContain("commitFloatingText");
+    expect(html).toContain("saveProjectJson");
+    expect(html).toContain("importFileObject");
+  });
+
+  it("8. All inline JavaScript blocks compile without syntax errors and every UI control has a help tip", async () => {
+    const html = generatePaintStudioHtml();
+    const scriptMatches = [...html.matchAll(/<script(?![^>]*src=)[^>]*>([\s\S]*?)<\/script>/gi)];
+    expect(scriptMatches.length).toBeGreaterThanOrEqual(3);
+    for (const match of scriptMatches) {
+      const code = match[1]!;
+      expect(() => new Function(code)).not.toThrow();
+    }
+
+    const controls = await auditHtml(html, HELP_TIPS.paint_studio!);
+    const missing = uncovered(controls, HELP_SKIP.paint_studio ?? []);
+    expect(missing).toEqual([]);
+  });
+
+  it("9. Vector Coloring Book Studio provides 106 unique multi-region illustrations with Color-by-Number, Group Fill, SVG Fill Styles, Auto-Color, and Line Styler", async () => {
+    const mod = await import("../resources/paint/coloring_library.js" as any);
+    const lib = mod.COLORING_LIBRARY as Array<any>;
+    expect(lib.length).toBe(106);
+
+    const uniqueSvgs = new Set(lib.map((item) => item.svg));
+    expect(uniqueSvgs.size).toBe(106);
+
+    for (const item of lib) {
+      const targetMatches = item.svg.match(/color-fill-target/g) || [];
+      expect(targetMatches.length).toBeGreaterThanOrEqual(14);
+      expect(item.regionsCount).toBe(targetMatches.length);
+      expect(Array.isArray(item.palette)).toBe(true);
+      expect(item.palette.length).toBe(8);
+      expect(item.svg).toContain('data-group="');
+      expect(item.svg).toContain('data-num="');
+      expect(item.svg).toContain('data-hint="#');
+    }
+
+    const html = generatePaintStudioHtml();
+    expect(html).toContain("vecFillStyleSelect");
+    expect(html).toContain("vecGroupFillCheck");
+    expect(html).toContain("btnColorByNumber");
+    expect(html).toContain("btnAutoColorArt");
+    expect(html).toContain("btnRandomizeArt");
+    expect(html).toContain("btnFavoriteArt");
+    expect(html).toContain("vecLineColorInput");
+    expect(html).toContain("vecLineWidthSlider");
+    expect(html).toContain("galleryDifficultySelect");
+    expect(html).toContain("galleryStatusSelect");
+    expect(html).toContain("btnRandomArt");
+    expect(html).toContain("autoColorVectorArt");
+    expect(html).toContain("surpriseColorVectorArt");
+    expect(html).toContain("renderColorByNumberOverlay");
+    expect(html).toContain("getSvgFillValue");
+  });
 });
+

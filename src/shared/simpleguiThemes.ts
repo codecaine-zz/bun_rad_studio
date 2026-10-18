@@ -1829,7 +1829,7 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         secondary_accent: "#f44336",
         card_background: "#2a2b34",
         card_border: "#3f414f",
-        description: "1994 PSX console grey with iconic geometric controller accents",
+        description: "1994 PSX console gray with iconic geometric controller accents",
         is_dark: true
     },
     "psx": {
@@ -1841,7 +1841,7 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         secondary_accent: "#f44336",
         card_background: "#2a2b34",
         card_border: "#3f414f",
-        description: "1994 PSX console grey with iconic geometric controller accents",
+        description: "1994 PSX console gray with iconic geometric controller accents",
         is_dark: true
     }
 };

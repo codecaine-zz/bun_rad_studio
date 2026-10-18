@@ -3,7 +3,7 @@ import type { HelpTips, SkipRule } from "../helpMatch";
 /** DevTools Studio / OmniTool Studio: search, find, replace, trash and JSON query in one window. */
 export const omnitoolStudioTips: HelpTips = {
   "#dd_mode": "Choose which tool the Execute button runs: code search, file finder, find and replace, watcher (only shows a note, it does not watch files), safe trash or JSON query. Each tool uses only some of the fields below.",
-  "#dd_theme": "Change the colours of this window. Your choice is remembered.",
+  "#dd_theme": "Change the colors of this window. Your choice is remembered.",
   "#btn_fullscreen": "Fill the whole screen with this window. Press it again to go back.",
   "#btn_save_state": "Remember the window size, the theme and what is typed in the boxes and ticked below, so they are restored next time you open this app.",
   "#btn_center": "Move the window to the middle of the screen.",

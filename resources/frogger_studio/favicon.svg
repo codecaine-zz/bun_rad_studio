@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#080214"/>
+      <stop offset="100%" stop-color="#1b0933"/>
+    </linearGradient>
+    <linearGradient id="frog" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00ff88"/>
+      <stop offset="100%" stop-color="#00ccaa"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)" stroke="#ff00ff" stroke-width="2" stroke-opacity="0.6"/>
+  <!-- Frog legs -->
+  <path d="M18 42 L10 34 L14 50 M46 42 L54 34 L50 50" fill="none" stroke="#00ff88" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M20 26 L12 18 M44 26 L52 18" fill="none" stroke="#00ff88" stroke-width="4" stroke-linecap="round"/>
+  <!-- Frog body -->
+  <ellipse cx="32" cy="34" rx="14" ry="16" fill="url(#frog)" stroke="#ffffff" stroke-width="1.5"/>
+  <!-- Cyber visor & eyes -->
+  <circle cx="23" cy="20" r="5" fill="#ff00ff" stroke="#ffffff" stroke-width="1.5"/>
+  <circle cx="41" cy="20" r="5" fill="#ff00ff" stroke="#ffffff" stroke-width="1.5"/>
+  <rect x="20" y="25" width="24" height="4" rx="2" fill="#00ffff"/>
+</svg>

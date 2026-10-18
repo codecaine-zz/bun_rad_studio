@@ -18,7 +18,7 @@ describe("countErrorsByFile", () => {
     expect(countErrorsByFile(out, "/repo")).toEqual({ "src/a.ts": 2, "src/b.ts": 1 });
   });
 
-  test("normalises paths relative to the root", () => {
+  test("normalizes paths relative to the root", () => {
     expect(countErrorsByFile("/repo/x/y.ts(1,1): error TS1005: ';' expected.", "/repo")).toEqual({ "x/y.ts": 1 });
   });
 

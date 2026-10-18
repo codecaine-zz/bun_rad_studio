@@ -2,7 +2,7 @@ import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `api_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */
 export const apiStudioTips: HelpTips = {
-  "#dd_theme": "Change the colours of this window. Your choice is remembered.",
+  "#dd_theme": "Change the colors of this window. Your choice is remembered.",
   "#btn_save_state": "Save the window size, theme and everything in the boxes below (URL, headers, body, variables, options) so it is still here next time you open this app. The auth type and credential are saved too.",
   "#btn_save_req_file": "Save this request (method, URL, headers, query, body, variables and auth type) to a .apireq.json file you can share or reopen later. The token or password is not written to the file.",
   "#btn_load_req_file": "Load a request from a saved .apireq.json file and fill in the boxes below. If it used authentication you must type the token or password again.",

@@ -1,6 +1,6 @@
 // Small SVG charts for the Dev tool, built with DOM calls (never HTML text): a stacked share bar, a one-row bar for a
-// table cell, and a sparkline. Colours come from CSS classes (dev.css), so every theme works; the numbers are always
-// written out too (legend, table, <title>), so colour is never the only signal.
+// table cell, and a sparkline. Colors come from CSS classes (dev.css), so every theme works; the numbers are always
+// written out too (legend, table, <title>), so color is never the only signal.
 
 const NS = "http://www.w3.org/2000/svg";
 
@@ -17,7 +17,7 @@ const title = (text) => {
   return t;
 };
 
-/** Number of colour classes in dev.css (.dev-s0 ... .dev-s9). */
+/** Number of color classes in dev.css (.dev-s0 ... .dev-s9). */
 export const PALETTE = 10;
 
 /** A one-line bar showing `part` of `whole`, for a table cell. */
@@ -31,7 +31,7 @@ export function barCell(part, whole, label) {
 
 /**
  * A stacked bar of language shares. items: [{ name, value }] (largest first). Small ones are merged into "Other".
- * Returns { svg, legend } where legend is a list of what each colour is, with the percentage.
+ * Returns { svg, legend } where legend is a list of what each color is, with the percentage.
  */
 export function shareBar(items, { max = 9, unit = "lines", describe } = {}) {
   const total = items.reduce((n, i) => n + i.value, 0);

@@ -8,7 +8,14 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { AUDIO_MIME, VIDEO_MIME } from "../src/features/filemanager/fmQuickLook";
-import { AUDIO_EXTS, EQ_BANDS, EQ_PRESETS, PlayQueue, VIDEO_EXTS, clampGain, formatClock, mediaKindOfName, parseFlac, parseId3, parseMp4Tags, parseOggTags, srtToVtt, subtitleText } from "../resources/file_manager/ui/mediacore.js";
+import {
+  AUDIO_EXTS, DECK_HARDWARE_TIERS, EQ_BANDS, EQ_PRESETS, PLAYER_SKINS, PlayQueue, VIDEO_EXTS,
+  VIZ_MIX_PRESETS, VIZ_MODES, activeLrcIndex, clampBalance, clampGain, computeEqSpline, formatClock,
+  formatLedClock, formatM3u, formatVizLabel, isPlayableOrPlaylist, isPlaylistFile, mediaKindOfName,
+  normalizeVizSpec, parseFlac, parseId3, parseLrc, parseM3u, parseMp4Tags, parseOggTags, parseVizLayers,
+  renderAudioVisualizer, srtToVtt, subtitleText,
+} from "../resources/file_manager/ui/mediacore.js";
+import { generateMediaPlayerStudioHtml, startMediaPlayerStudioServer } from "../applications/media_player_studio";
 
 const enc = new TextEncoder();
 const cat = (...parts: Array<Uint8Array | number[]>) => Uint8Array.from(parts.flatMap((p) => Array.from(p)));
@@ -233,15 +240,173 @@ describe("the play queue", () => {
   });
 });
 
-describe("the equaliser", () => {
+describe("the equalizer", () => {
   test("every preset has one gain per band, inside the limits, and Flat is flat", () => {
+    expect(Object.keys(EQ_PRESETS).length).toBeGreaterThanOrEqual(18);
     for (const [name, gains] of Object.entries(EQ_PRESETS)) {
       expect(gains.length, name).toBe(EQ_BANDS.length);
       for (const g of gains) expect(Math.abs(g)).toBeLessThanOrEqual(12);
     }
     expect(EQ_PRESETS.Flat.every((g: number) => g === 0)).toBe(true);
   });
-  test("gains are rounded and clamped; nonsense is 0", () => {
+  test("gains and stereo balance are rounded and clamped; nonsense is 0", () => {
     expect([clampGain(3.6), clampGain(99), clampGain(-99), clampGain("x"), clampGain(undefined)]).toEqual([4, 12, -12, 0, 0]);
+    expect([clampBalance(-150), clampBalance(45.4), clampBalance(150), clampBalance("bad")]).toEqual([-100, 45, 100, 0]);
+  });
+  test("computeEqSpline builds smooth points and anchors for the 10-band curve", () => {
+    const spline = computeEqSpline(3, EQ_PRESETS.Rock, 240, 60);
+    expect(spline.anchors.length).toBe(EQ_BANDS.length);
+    expect(spline.points.length).toBeGreaterThan(EQ_BANDS.length);
+    expect(spline.zeroY).toBeGreaterThan(0);
+    expect(spline.zeroY).toBeLessThan(60);
   });
 });
+
+describe("Digital LED clock, synced LRC lyrics, and M3U8 playlists", () => {
+  test("formatLedClock formats elapsed and remaining digital clock strings", () => {
+    expect(formatLedClock(65, 200, false)).toBe("1:05");
+    expect(formatLedClock(65, 200, true)).toBe("-2:15");
+    expect(formatLedClock(0, NaN, true)).toBe("0:00");
+  });
+
+  test("parseLrc and activeLrcIndex parse synced karaoke lyrics and track active cues", () => {
+    const sample = "[ti:Cyber Song]\n[ar:Codecaine]\n[00:05.00]First line\n[00:12.50]Second line\n[00:25.00]Third line";
+    const cues = parseLrc(sample);
+    expect(cues.map((c: any) => c.text)).toEqual(["First line", "Second line", "Third line"]);
+    expect(activeLrcIndex(cues, 2)).toBe(-1);
+    expect(activeLrcIndex(cues, 5.1)).toBe(0);
+    expect(activeLrcIndex(cues, 15)).toBe(1);
+    expect(activeLrcIndex(cues, 99)).toBe(2);
+  });
+
+  test("formatM3u and parseM3u round-trip extended M3U8 playlists", () => {
+    const m3uText = formatM3u([
+      { path: "/music/one.mp3", title: "Artist A - Track One", duration: 185 },
+      { path: "/music/two.flac", name: "two.flac", duration: 240 },
+    ]);
+    expect(m3uText).toContain("#EXTM3U");
+    expect(m3uText).toContain("#EXTINF:185,Artist A - Track One");
+    const items = parseM3u(m3uText);
+    expect(items.length).toBe(2);
+    expect(items[0]).toEqual({ path: "/music/one.mp3", title: "Artist A - Track One", duration: 185 });
+    expect(items[1].path).toBe("/music/two.flac");
+  });
+
+  test("16 studio skins, 108 visualizer modes across Low/Medium/ARM Ultra tiers, multi-layer mixing, and 32 EQ presets", () => {
+    expect(PLAYER_SKINS.length).toBe(16);
+    expect(PLAYER_SKINS.slice(0, 5).map((s: any) => s.id)).toEqual(["classic", "modern", "cyberpunk", "amber", "theme"]);
+    expect(PLAYER_SKINS.map((s: any) => s.id)).toContain("outrun");
+    expect(PLAYER_SKINS.map((s: any) => s.id)).toContain("liquid_metal");
+    expect(Object.keys(EQ_PRESETS).length).toBe(32);
+
+    expect(VIZ_MODES.length).toBeGreaterThanOrEqual(108);
+    expect(VIZ_MODES.slice(0, 20).map((m: any) => m.id)).toEqual([
+      "spectrum",
+      "oscilloscope",
+      "milkdrop",
+      "vu",
+      "led_matrix",
+      "analog_vu",
+      "synthwave",
+      "matrix",
+      "starfield",
+      "pulsar",
+      "dna",
+      "plasma",
+      "particles",
+      "lissajous",
+      "fire",
+      "kaleidoscope",
+      "mirror_bars",
+      "spectrogram",
+      "blackhole",
+      "cyber_city",
+    ]);
+
+    // Verify Low, Medium, and Modern ARM Ultra hardware tiers are populated
+    expect(DECK_HARDWARE_TIERS.map((t: any) => t.id)).toEqual(["auto", "low", "medium", "high", "ultra"]);
+    expect(VIZ_MODES.filter((m: any) => m.tier === "low").length).toBeGreaterThanOrEqual(25);
+    expect(VIZ_MODES.filter((m: any) => m.tier === "medium").length).toBeGreaterThanOrEqual(35);
+    expect(VIZ_MODES.filter((m: any) => m.tier === "ultra").length).toBeGreaterThanOrEqual(40);
+
+    // Verify Multi-Layer Visualizer Mixing helpers & 12 Signature Mix Presets
+    expect(VIZ_MIX_PRESETS.length).toBe(12);
+    expect(parseVizLayers("synthwave+spectrum+starfield")).toEqual(["synthwave", "spectrum", "starfield"]);
+    expect(normalizeVizSpec(" synthwave + spectrum + synthwave + invalid_id ")).toBe("synthwave+spectrum");
+    expect(formatVizLabel("synthwave+spectrum+starfield")).toContain("1984 Outrun Stage");
+
+    // Verify renderAudioVisualizer executes without error for all 108 modes AND multi-layer mixes
+    const ops: string[] = [];
+    const mockCtx: any = {
+      fillStyle: "",
+      strokeStyle: "",
+      lineWidth: 1,
+      lineCap: "butt",
+      font: "",
+      textAlign: "left",
+      globalAlpha: 1,
+      clearRect: () => ops.push("clearRect"),
+      fillRect: () => ops.push("fillRect"),
+      strokeRect: () => ops.push("strokeRect"),
+      beginPath: () => ops.push("beginPath"),
+      moveTo: () => {},
+      lineTo: () => {},
+      quadraticCurveTo: () => {},
+      arc: () => {},
+      ellipse: () => {},
+      closePath: () => {},
+      stroke: () => ops.push("stroke"),
+      fill: () => ops.push("fill"),
+      fillText: () => ops.push("fillText"),
+      save: () => ops.push("save"),
+      restore: () => ops.push("restore"),
+      translate: () => {},
+      rotate: () => {},
+      scale: () => {},
+      drawImage: () => ops.push("drawImage"),
+      createLinearGradient: () => ({ addColorStop: () => {} }),
+      createRadialGradient: () => ({ addColorStop: () => {} }),
+    };
+    const freq = new Uint8Array(128).fill(140);
+    const time = new Uint8Array(128).fill(128);
+    const peaks = new Float32Array(64);
+    for (const mode of VIZ_MODES) {
+      ops.length = 0;
+      renderAudioVisualizer(mockCtx, 360, 120, mode.id, freq, time, peaks, "#00ff44", 42);
+      expect(ops.length, mode.id).toBeGreaterThan(1);
+    }
+
+    // Multi-layer composite rendering test
+    ops.length = 0;
+    renderAudioVisualizer(mockCtx, 360, 120, "synthwave+spectrum+starfield", freq, time, peaks, "#00ff44", 42);
+    expect(ops.filter((op) => op === "save").length).toBe(3);
+    expect(ops.length).toBeGreaterThan(20);
+
+    expect(isPlaylistFile("mix.m3u8")).toBe(true);
+    expect(isPlaylistFile("song.mp3")).toBe(false);
+    expect(isPlayableOrPlaylist("mix.m3u")).toBe(true);
+    expect(isPlayableOrPlaylist("video.mp4")).toBe(true);
+    expect(isPlayableOrPlaylist("clip.mov")).toBe(true);
+  });
+
+  test("standalone Media Player Studio server serves HTML with 108 FX Studio Rack, Studio Clock, and library JSON", async () => {
+    const html = generateMediaPlayerStudioHtml();
+    expect(html).toContain("AMPDECK STUDIO PRO");
+    expect(html).toContain("btn-studio-clock");
+    expect(html).toContain("rack-fx");
+    expect(html).toContain("btn-fx-mix-mode");
+    expect(html).toContain("studio-help:media_player_studio");
+    const started = startMediaPlayerStudioServer({ port: 0 });
+    try {
+      const pageRes = await fetch(`${started.url}/`);
+      expect(pageRes.status).toBe(200);
+      const libRes = await fetch(`${started.url}/api/library`);
+      expect(libRes.status).toBe(200);
+      const lib = await libRes.json();
+      expect(Array.isArray(lib.tracks)).toBe(true);
+    } finally {
+      started.server.stop(true);
+    }
+  });
+});
+

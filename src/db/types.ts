@@ -1,6 +1,6 @@
 /**
  * Shared database layer types. Engines differ (SQL dialect, transactions, permissions); this layer
- * normalises how callers talk to them but exposes real differences through `Capabilities`.
+ * normalizes how callers talk to them but exposes real differences through `Capabilities`.
  */
 
 export type Engine = "sqlite" | "mysql" | "postgres";

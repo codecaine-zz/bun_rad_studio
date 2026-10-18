@@ -131,9 +131,9 @@ Every data grid (a table opened from the sidebar, and query results) works like 
 | **Freeze columns** | **Freeze columns up to here** keeps that column and everything left of it (plus the checkbox and `#` gutter) in place while you scroll sideways; **Unfreeze all columns** releases them. |
 | **Filter** | **Filter…** in the header menu: a condition (equals, contains, begins/ends with, greater/less than, between, is empty, is not empty) or a checklist of the distinct values with a search box. It filters the rows of the page that is showing (the database query is not changed); a header mark and the strip *N filters: x of y rows on this page* show it, **Clear all filters** removes them. *Filter by selection* (right-click a cell) and the **Filter Bar** keep working as before. |
 | **Sort** | **Sort A → Z / Z → A / Clear sort** in the header menu (the PostgreSQL grid has no header sort; the menu then shows no sort entries). |
-| **Formatting** | *Datasheet layout* in the field list: **Row height** (compact / normal / spacious), **Font size**, **Alternate row colour**. **Reset layout** returns widths, order, frozen columns and formatting to default and keeps hidden columns and display names. |
+| **Formatting** | *Datasheet layout* in the field list: **Row height** (compact / normal / spacious), **Font size**, **Alternate row color**. **Reset layout** returns widths, order, frozen columns and formatting to default and keeps hidden columns and display names. |
 
-Not included: the per-column totals functions (Sum, Avg, Count, Min, Max) are not in this release (the **Totals** row keeps its existing behaviour), filters work on the loaded page rather than on the whole table, *Save as SQL alias* is not offered, and a plain click on a header still sorts (selects the column) so Ctrl/Cmd+click and Shift+click select columns.
+Not included: the per-column totals functions (Sum, Avg, Count, Min, Max) are not in this release (the **Totals** row keeps its existing behavior), filters work on the loaded page rather than on the whole table, *Save as SQL alias* is not offered, and a plain click on a header still sorts (selects the column) so Ctrl/Cmd+click and Shift+click select columns.
 
 #### Focus mode: use the whole window for one section
 

@@ -43,14 +43,59 @@ export function wireTabKeys(strip, activate) {
 }
 
 /** The screen with big buttons for when no file is open. */
-export function renderWelcome(el, { recents, onNew, onQuickOpen, onOpen, onOpenByPath }) {
+export function renderWelcome(el, { recents, recentsEnabled = true, onNew, onQuickOpen, onOpen, onOpenByPath, onRemoveRecent, onClearRecents, onToggleRecents }) {
   const big = (label, tip, run) => h("button", { type: "button", class: "btn code-big", title: tip, onclick: run }, label);
+  const recentHeader = h("div", { class: "code-recent-head" },
+    h("h3", {}, "Recent files"),
+    h("div", { class: "code-recent-actions" },
+      onToggleRecents ? h("button", {
+        type: "button",
+        class: "btn small ghost",
+        title: recentsEnabled ? "Stop remembering recently opened files in the Code editor" : "Resume remembering recently opened files in the Code editor",
+        onclick: () => onToggleRecents(!recentsEnabled),
+      }, recentsEnabled ? "Turn off" : "Turn on") : null,
+      recents.length && onClearRecents ? h("button", {
+        type: "button",
+        class: "btn small ghost",
+        title: "Clear all recent files from the Code editor",
+        onclick: onClearRecents,
+      }, "Clear") : null,
+    ),
+  );
+  const recentItems = !recentsEnabled
+    ? [h("p", { class: "code-hint" }, "Recent files are turned off.")]
+    : recents.length
+      ? recents.slice(0, 8).map((r) => h("div", { class: "code-recent-row" },
+          h("button", {
+            type: "button",
+            class: "code-res-line",
+            title: r.path,
+            onclick: () => onOpen(r.path),
+            oncontextmenu: (e) => {
+              e.preventDefault();
+              showMenu([
+                { label: "Open", icon: "📄", action: () => onOpen(r.path) },
+                ...(onRemoveRecent ? [{ label: "Remove from Recent", icon: "✕", action: () => onRemoveRecent(r.path) }] : []),
+                ...(onClearRecents ? [{ separator: true }, { label: "Clear recent files", icon: "🧹", danger: true, action: onClearRecents }] : []),
+                ...(onToggleRecents ? [{ label: "Stop remembering recent files", icon: "⏸", action: () => onToggleRecents(false) }] : []),
+              ], { x: e.clientX, y: e.clientY, label: `Recent file ${r.path}` });
+            },
+          }, r.path),
+          onRemoveRecent ? h("button", {
+            type: "button",
+            class: "btn small ghost code-recent-remove",
+            title: `Remove ${r.path} from recent files`,
+            "aria-label": `Remove ${r.path} from recent files`,
+            onclick: (e) => { e.stopPropagation(); onRemoveRecent(r.path); },
+          }, "✕") : null,
+        ))
+      : [h("p", { class: "code-hint" }, "No recent files yet.")];
   el.replaceChildren(
     h("h2", {}, "Code editor"),
     h("p", { class: "code-hint" }, "Open a file from the Explorer on the left, or start here:"),
     h("div", { class: "pw-row" }, big("New file", "Start an empty file", onNew), big("Go to file…", "Find a file by typing part of its name", onQuickOpen), big("Open by path…", "Type the full path of a file", onOpenByPath)),
-    ...(recents.length ? [h("h3", {}, "Recent files")] : []),
-    ...recents.slice(0, 8).map((r) => h("button", { type: "button", class: "code-res-line", title: r.path, onclick: () => onOpen(r.path) }, r.path)),
+    recentHeader,
+    ...recentItems,
     h("p", { class: "code-hint" }, "Press F1 to see every keyboard shortcut."),
   );
 }

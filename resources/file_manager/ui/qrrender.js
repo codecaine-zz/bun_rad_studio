@@ -1,10 +1,10 @@
 // Turns a QR code (from qrencode.js) into something to look at or save: SVG text, a grid of RGBA pixels, or text art.
-// Pure functions. Colours must be #rgb, #rrggbb or #rrggbbaa so that nothing but a colour can reach the SVG.
+// Pure functions. Colors must be #rgb, #rrggbb or #rrggbbaa so that nothing but a color can reach the SVG.
 
-const COLOUR = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+const COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
 export function checkColour(value, fallback) {
-  return typeof value === "string" && COLOUR.test(value) ? value.toLowerCase() : fallback;
+  return typeof value === "string" && COLOR.test(value) ? value.toLowerCase() : fallback;
 }
 
 /** "#rrggbb" to [r, g, b, a] (0-255). */

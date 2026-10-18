@@ -13,6 +13,7 @@ import { busy, goTo, goToIn, refresh, refreshTrashCount, saveSettings, showTrash
 import { bulkRenameDialog } from "./extras.js";
 import { buryItems } from "./graveBury.js";
 import { activePane, currentPath, inTrash, isFolderView } from "./pane.js";
+import { openPower } from "./power.js";
 import { selectKeys, selectedEntries } from "./selection.js";
 import { AUDIO_EXTS, VIDEO_EXTS } from "./mediacore.js";
 import { emit, on, state } from "./state.js";
@@ -139,6 +140,13 @@ export async function openEntry(entry, { viewer = true } = {}) {
   if (inTrash()) return toast("Items in the Recycle Bin can't be opened. Restore one first (right-click, then Restore).");
   if (entry.isDir) return goToIn(activePane(), entry.path);
   if (isLocked(entry)) return unlockEntries([entry]);
+  const entryParent = parentOf(entry.path, state.sep);
+  if (!entry.isDir && state.cliUtilsDir && entryParent === state.cliUtilsDir && /^[A-Za-z0-9._-]+$/.test(entry.name)) {
+    const cmd = `${state.platform === "win32" ? ".\\" : "./"}${entry.name} `;
+    emit("terminal-run-in", { folder: state.cliUtilsDir, command: cmd, submit: false });
+    toast(`Ready in Terminal: ${cmd.trim()} (add arguments or press Enter to run)`, { kind: "info" });
+    return;
+  }
   if (textOpensInEditor(entry) || (await isPlainTextInside(entry))) {
     rememberRecent(entry.path);
     if (state.settings.textOpensIn === "editor") return openInEditor(entry);
@@ -154,8 +162,11 @@ export async function openEntry(entry, { viewer = true } = {}) {
 
 /** Files opened in the built-in editor are listed under Recent too (the ones opened by another program already are). */
 function rememberRecent(path) {
+  if (state.settings.recentsEnabled === false) return;
   call("recent/add", { path }).then((r) => { state.settings = r.settings; emit("settings", {}); }).catch(() => {});
 }
+
+on("recent-open", (path) => openPath(path));
 
 /**
  * Opens an item known only by its path (Recent, Favorites), always inside the File Manager: a folder in the file list,
@@ -246,6 +257,12 @@ async function createItem(op, label) {
     await refresh({ keepSelection: false, pane });
     selectKeys([r.path], pane);
     emit("rename-request", { key: r.path, pane });
+    if (op === "newsqlite") {
+      toast(`Created "${baseName(r.path, state.sep)}".`, {
+        kind: "info",
+        action: { label: "Open in SQLite Studio", run: () => openPower("databases", { sqlitePath: tracker.path }) },
+      });
+    }
   } catch (err) {
     fail(err);
   }
@@ -254,6 +271,70 @@ async function createItem(op, label) {
 export const newFolder = () => createItem("mkdir", "folder");
 export const newFile = () => createItem("newfile", "file");
 export const newSqlite = () => createItem("newsqlite", "SQLite database");
+
+export function localDateStamp(now = new Date()) {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function uniqueInPane(pane, stem, ext = "") {
+  const taken = new Set((pane.entries ?? []).map((e) => e.name));
+  const first = `${stem}${ext}`;
+  if (!taken.has(first)) return first;
+  for (let i = 2; i < 1000; i++) {
+    const candidate = `${stem} (${i})${ext}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+  return `${stem}-${Date.now()}${ext}`;
+}
+
+/** Creates a folder named after `dateStr` (default: today's YYYY-MM-DD) in the active folder with Undo support. */
+export async function newDatedFolder(dateStr = localDateStamp()) {
+  if (!needFolder("creating a dated folder")) return null;
+  const pane = activePane();
+  const name = uniqueInPane(pane, dateStr);
+  try {
+    const r = await busy(() => call("mkdir", { parent: currentPath(pane), name }));
+    lastCreated = { path: r.path };
+    const tracker = lastCreated;
+    pushUndo(`new folder "${r.name}"`, async () => ensureOk((await trashPaths([tracker.path])).failed.map((m) => ({ ok: false, message: m })), "undo"));
+    await refresh({ keepSelection: false, pane });
+    selectKeys([r.path], pane);
+    toast(`Created folder "${r.name}".`, { kind: "success", action: { label: "Open", run: () => goToIn(pane, r.path) } });
+    return r;
+  } catch (err) {
+    fail(err);
+    return null;
+  }
+}
+
+/** Creates a Markdown note named after `dateStr` (default: today's YYYY-MM-DD.md) in the active folder with Undo support. */
+export async function newDatedNote(dateStr = localDateStamp()) {
+  if (!needFolder("creating a dated note")) return null;
+  const pane = activePane();
+  const name = uniqueInPane(pane, dateStr, ".md");
+  try {
+    const r = await busy(() => call("newfile", { parent: currentPath(pane), name }));
+    lastCreated = { path: r.path };
+    const tracker = lastCreated;
+    pushUndo(`new note "${r.name}"`, async () => ensureOk((await trashPaths([tracker.path])).failed.map((m) => ({ ok: false, message: m })), "undo"));
+    await refresh({ keepSelection: false, pane });
+    selectKeys([r.path], pane);
+    toast(`Created note "${r.name}".`, { kind: "success", action: { label: "Edit in Code", run: () => openInCode(r.path) } });
+    return r;
+  } catch (err) {
+    fail(err);
+    return null;
+  }
+}
+
+export async function newSqliteIn(folderPath) {
+  const pane = activePane();
+  if (!(await goToIn(pane, folderPath))) return;
+  await createItem("newsqlite", "SQLite database");
+}
 
 /** Renames one item; throws an ApiError when the name isn't accepted (the caller shows it next to the name). */
 export async function commitRename(path, newName, pane = activePane()) {

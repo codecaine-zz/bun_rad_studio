@@ -167,7 +167,7 @@ Set the **Target** (host name, IP or URL) and **Port**, then pick a tool. A targ
 
 > Scans and checks run one after another and the window waits while they do, so a large list or slow host can pause the UI briefly.
 
-> Only scan hosts you own or are authorised to test.
+> Only scan hosts you own or are authorized to test.
 
 ---
 

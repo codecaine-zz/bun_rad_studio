@@ -2,7 +2,7 @@ import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Regex Studio: test a regular expression, preview a replacement and generate code. */
 export const regexStudioTips: HelpTips = {
-  "#dd_theme": "Change the colours of this window. Your choice is remembered.",
+  "#dd_theme": "Change the colors of this window. Your choice is remembered.",
   "#btn_fullscreen": "Fill the whole screen with this window. Press it again to go back.",
   "#btn_save_state": "Remember the window size, the theme and everything typed or ticked here (pattern, substitution, text, flags), so it is restored next time you open this app.",
   "#btn_save_ws_file": "Save the pattern, substitution, test text and flags to a .json file you choose, so you can share it or come back to it later.",

@@ -1,5 +1,5 @@
 /**
- * The built-in counter's language table: how to recognise a language (extension, file name, first line) and what its
+ * The built-in counter's language table: how to recognize a language (extension, file name, first line) and what its
  * comments and strings look like. Names follow tokei's, so the two engines' results line up. See fmDevCount.ts for
  * how a table entry is used.
  */

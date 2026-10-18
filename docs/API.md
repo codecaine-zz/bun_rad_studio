@@ -216,24 +216,24 @@ The `event_handlers` record maps event names to function names or JavaScript str
 | `db_input` | Data Bound Field | 220 × 44 px | Field-bound database text input |
 | `db_dropdown` | Data Bound Select | 220 × 44 px | Field-bound database lookup select |
 | `divider` | Separator | 300 × 4 px | Horizontal line divider |
-| `form_field` | Labelled Input | 220 × 44 px | Pre-configured label + text field pair |
-| `form_password` | Labelled Password | 220 × 44 px | Pre-configured field label + password masked input pair |
-| `form_textarea` | Labelled Textarea | 280 × 120 px | Pre-configured field label + multi-line text input |
-| `form_dropdown` | Labelled Dropdown | 220 × 44 px | Pre-configured field label + dropdown select menu |
-| `form_link` | Labelled Link | 150 × 36 px | Pre-configured field label + hyperlink text |
-| `form_checkbox` | Labelled Checkbox | 220 × 44 px | Pre-configured field label + checkbox toggle option |
-| `form_radio` | Labelled Radio | 220 × 44 px | Pre-configured field label + radio selection button |
-| `form_search` | Labelled Search Bar | 220 × 44 px | Pre-configured field label + search bar input |
-| `form_color` | Labelled Color Well | 220 × 44 px | Pre-configured field label + color swatch picker & hex display |
-| `form_time` | Labelled Time Picker | 220 × 44 px | Pre-configured field label + clock time picker input |
-| `form_stepper` | Labelled Stepper | 220 × 44 px | Pre-configured field label + numeric counter stepper |
-| `form_code` | Labelled Code View | 280 × 140 px | Pre-configured field label + monospaced syntax code editor |
-| `form_drop_zone` | Labelled Drop Zone | 280 × 120 px | Pre-configured field label + drag-and-drop file upload area |
-| `form_switch` | Labelled Switch | 220 × 44 px | Pre-configured field label + toggle switch control |
-| `form_slider` | Labelled Slider | 220 × 44 px | Pre-configured field label + range value slider |
-| `form_number` | Labelled Number Input | 220 × 44 px | Pre-configured field label + numeric input field |
-| `form_date` | Labelled Date Picker | 220 × 44 px | Pre-configured field label + date picker input |
-| `form_progress` | Labelled Progress Bar | 220 × 44 px | Pre-configured field label + progress bar gauge |
+| `form_field` | Labeled Input | 220 × 44 px | Pre-configured label + text field pair |
+| `form_password` | Labeled Password | 220 × 44 px | Pre-configured field label + password masked input pair |
+| `form_textarea` | Labeled Textarea | 280 × 120 px | Pre-configured field label + multi-line text input |
+| `form_dropdown` | Labeled Dropdown | 220 × 44 px | Pre-configured field label + dropdown select menu |
+| `form_link` | Labeled Link | 150 × 36 px | Pre-configured field label + hyperlink text |
+| `form_checkbox` | Labeled Checkbox | 220 × 44 px | Pre-configured field label + checkbox toggle option |
+| `form_radio` | Labeled Radio | 220 × 44 px | Pre-configured field label + radio selection button |
+| `form_search` | Labeled Search Bar | 220 × 44 px | Pre-configured field label + search bar input |
+| `form_color` | Labeled Color Well | 220 × 44 px | Pre-configured field label + color swatch picker & hex display |
+| `form_time` | Labeled Time Picker | 220 × 44 px | Pre-configured field label + clock time picker input |
+| `form_stepper` | Labeled Stepper | 220 × 44 px | Pre-configured field label + numeric counter stepper |
+| `form_code` | Labeled Code View | 280 × 140 px | Pre-configured field label + monospaced syntax code editor |
+| `form_drop_zone` | Labeled Drop Zone | 280 × 120 px | Pre-configured field label + drag-and-drop file upload area |
+| `form_switch` | Labeled Switch | 220 × 44 px | Pre-configured field label + toggle switch control |
+| `form_slider` | Labeled Slider | 220 × 44 px | Pre-configured field label + range value slider |
+| `form_number` | Labeled Number Input | 220 × 44 px | Pre-configured field label + numeric input field |
+| `form_date` | Labeled Date Picker | 220 × 44 px | Pre-configured field label + date picker input |
+| `form_progress` | Labeled Progress Bar | 220 × 44 px | Pre-configured field label + progress bar gauge |
 | `tabs` | Tab Container | 320 × 40 px | Multi-tab navigation bar with active tab selector |
 | `tool_bar` | Action Toolbar | 400 × 40 px | Window action toolbar with icon action buttons |
 | `status_bar` | Window Status Bar | 400 × 28 px | Bottom desktop window status strip with indicator dot |

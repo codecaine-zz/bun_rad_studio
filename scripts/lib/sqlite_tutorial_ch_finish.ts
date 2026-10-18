@@ -88,6 +88,63 @@ export const finishChapters: Chapter[] = [
   },
 
   {
+    id: "11b_studio_ide_v2", chapter: "STUDIO IDE V2", title: "Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen", blurb: "Side row inspector, foreign-key navigation, multi-tab SQL IDE, ER canvas, schema diff and five-language code generation",
+    before: (d) => studioReady(d),
+    steps: [
+      {
+        cap: "Side Row Inspector & FK ↗ Jump",
+        say: "In the Data Grid, Row View opens the Side Row Inspector on the right, showing every field of the selected row with a type badge, a Null toggle, a JSON formatter, and a Save Row button. Foreign-key cells also have a jump arrow that filters the parent table in one click.",
+        act: async (d) => {
+          await d.click(S + "#tabBtnGrid", { pause: 600 });
+          await d.click(S + ".tree-item-title >> orders", { pause: 900 });
+          await d.click(S + "#btnToggleRowInspector", { pause: 900 });
+          await d.click(S + "#gridBody tr", { pause: 1300 });
+          await d.hover(S + "#studioRowInspector", 1200).catch(() => {});
+          if (await d.c.exists(S + ".studio-fk-jump")) {
+            await d.click(S + ".studio-fk-jump", { pause: 1400 });
+          }
+          await d.click(S + "#btnToggleRowInspector", { pause: 700 });
+        },
+      },
+      {
+        cap: "Multi-Tab SQL Worksheets, Format, History & Guards",
+        say: "In the S Q L editor, the plus button opens additional worksheet tabs that stay saved across sessions. Format S Q L indents your query, History recalls past runs, and the Transaction and Read-Only Guard bar gives you Begin, Commit, Rollback, and a safety lock that blocks destructive statements.",
+        act: async (d) => {
+          await d.click(S + "#btnAddWorksheet", { pause: 800 });
+          await d.click(S + ".studio-ws-tab", { pause: 600 });
+          await d.click(S + "#btnStudioFormatSql", { pause: 900 });
+          await d.click(S + 'button[onclick="runEditorQuery()"]', { pause: 1000 });
+          await d.click(S + "#btnStudioSqlHistory", { pause: 1100 });
+          await d.click(S + "#btnStudioHistClose", { pause: 500 });
+          await d.click(S + "#btnTxBegin", { pause: 900 });
+          await d.click(S + "#btnTxCommit", { pause: 800 });
+          await d.click(S + "#btnReadOnlyGuard", { pause: 800 });
+          await d.click(S + "#btnReadOnlyGuard", { pause: 600 });
+        },
+      },
+      {
+        cap: "Full ER Diagram, Schema Diff & 5-Language Codegen",
+        say: "In Schema Designer, E R Diagram draws every table and foreign-key relationship on an interactive canvas, and Schema Diff captures a baseline snapshot to generate migration D D L. And in the Macro Designer, the Code button compiles any macro into TypeScript, Python, Go, Rust, or C Sharp.",
+        act: async (d) => {
+          await d.click(S + "#tabBtnSchema", { pause: 900 });
+          await d.click(S + "#btnSchemaModeEr", { pause: 1400 });
+          await d.hover(S + "#studioErDiagramPane", 1100).catch(() => {});
+          await d.click(S + "#btnSchemaModeDiff", { pause: 1000 });
+          await d.click(S + "#btnCaptureBaseline", { pause: 900 });
+          await d.click(S + "#btnRunSchemaDiff", { pause: 1100 });
+          await d.click(S + "#btnSchemaModeTable", { pause: 500 });
+          await d.click(S + "#tabBtnMacros", { pause: 900 });
+          await d.click(S + 'button[onclick="openCodeGenForCurrentMacro()"]', { pause: 1100 });
+          for (const lang of ["bun-sql", "typescript", "python", "vlang"]) {
+            await d.click(S + `#macroCodeTabs button[data-target="${lang}"]`, { pause: 650 });
+          }
+          await d.click(S + 'button[onclick="closeCodeGenModal()"]', { pause: 500 });
+        },
+      },
+    ],
+  },
+
+  {
     id: "12_backup", chapter: "EXPORT", title: "Export and one-click backup", blurb: "Export a table, or dump the whole database",
     before: (d) => studioReady(d),
     steps: [
@@ -178,7 +235,7 @@ export const finishChapters: Chapter[] = [
 
   {
     id: "14_safety", chapter: "SAFETY", title: "Production connections and shortcuts", blurb: "Be asked before you touch something that matters",
-    before: async (d) => { await skipWelcome(d); await d.wait(400); await openDatabasesTool(d); await saveFoundConnection(d); await d.click(".db-row", { pause: 700 }); },
+    before: async (d) => { await skipWelcome(d); await d.wait(400); await openDatabasesTool(d); await saveFoundConnection(d); await d.click(".db-row >> shop.sqlite", { pause: 700 }); },
     steps: [
       {
         cap: "Mark it Production: a confirmation first",
@@ -194,10 +251,10 @@ export const finishChapters: Chapter[] = [
         },
       },
       {
-        cap: "Favourites, Home tiles and Shift Enter",
-        say: "Mark a connection as a favourite, and the Home page shows a tile for it, together with your most recent ones, that opens it in one click. Shift and Enter on a connection in the list opens it in its own window or in your browser, as you choose in Settings.",
+        cap: "Favorites, Home tiles and Shift Enter",
+        say: "Mark a connection as a favorite, and the Home page shows a tile for it, together with your most recent ones, that opens it in one click. Shift and Enter on a connection in the list opens it in its own window or in your browser, as you choose in Settings.",
         act: async (d) => {
-          await d.click("button >> Favourite", { pause: 1200 });
+          await d.click("button >> Favorite", { pause: 1200 });
           await d.click("#view-home", { pause: 1500 });
           await d.hover(".ht-title >> shop.sqlite", 2500);
         },

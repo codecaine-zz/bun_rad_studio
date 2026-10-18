@@ -71,7 +71,7 @@ export function createGit(env) {
     el: h("div", { class: "dev-section" },
       h("div", { class: "pw-card" }, h("h3", {}, "Git summary"),
         h("p", { class: "pw-hint" }, "Only read-only Git commands are used. Nothing is fetched from the internet and nothing is changed."),
-        h("div", { class: "pw-row" }, btn("Read Git history", "Summarise this folder's Git repository.", load, { primary: true })), status.el),
+        h("div", { class: "pw-row" }, btn("Read Git history", "Summarize this folder's Git repository.", load, { primary: true })), status.el),
       host),
     load,
   };

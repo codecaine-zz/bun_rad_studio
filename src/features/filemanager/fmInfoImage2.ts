@@ -74,8 +74,8 @@ export async function parseWebp(src: Source, deadline = Date.now() + 6000): Prom
   else if (info.alpha === null) info.alpha = false;
   info.animated = (flags & 0x02) !== 0 || frames > 1;
   r.add("Encoding", encoding, "Lossy WebP drops a little detail to save space. Lossless WebP keeps every pixel.");
-  const has = [flags & 0x20 ? "colour profile" : "", flags & 0x10 ? "transparency" : "", flags & 0x08 ? "EXIF" : "", flags & 0x04 ? "XMP" : "", flags & 0x02 ? "animation" : ""].filter(Boolean);
-  r.add("Contains", has.join(", "), "Extra parts the file declares: a colour profile (ICC), see-through areas, EXIF camera notes, XMP text notes, animation.");
+  const has = [flags & 0x20 ? "color profile" : "", flags & 0x10 ? "transparency" : "", flags & 0x08 ? "EXIF" : "", flags & 0x04 ? "XMP" : "", flags & 0x02 ? "animation" : ""].filter(Boolean);
+  r.add("Contains", has.join(", "), "Extra parts the file declares: a color profile (ICC), see-through areas, EXIF camera notes, XMP text notes, animation.");
   r.add("Transparency", info.alpha ? "Yes" : "No");
   if (info.animated) {
     r.add("Frames", frames || "").add("Animation length", duration ? formatDuration(duration) : "").add("Loops", loops === null ? "" : loops === 0 ? "Forever" : `${loops} time${loops === 1 ? "" : "s"}`);
@@ -95,7 +95,7 @@ export async function parseHeif(src: Source): Promise<HeifInfo> {
   const buf = await src.read(0, 4 * 1024 * 1024);
   const ftyp = readBoxes(buf, 0, buf.length).find((b) => b.type === "ftyp");
   const sizes: Array<[number, number]> = [];
-  let depth = "", rotation: number | null = null, colour = "";
+  let depth = "", rotation: number | null = null, color = "";
   if (ftyp) {
     rows.add("Brand", ascii(buf, ftyp.body, 4).trim(), "The label that says which kind of HEIF file this is (heic = Apple photos, avif = AV1 images).");
     const compat: string[] = [];
@@ -110,9 +110,9 @@ export async function parseHeif(src: Source): Promise<HeifInfo> {
       else if (b.type === "ispe" && b.end - b.body >= 12 && sizes.length < 64) sizes.push([be32(buf, b.body + 4), be32(buf, b.body + 8)]);
       else if (b.type === "pixi" && b.end - b.body >= 6 && !depth) depth = `${buf[b.body + 5] ?? ""} bits per channel, ${buf[b.body + 4] ?? ""} channels`;
       else if (b.type === "irot" && rotation === null) rotation = ((buf[b.body] ?? 0) & 3) * 90;
-      else if (b.type === "colr" && !colour) {
+      else if (b.type === "colr" && !color) {
         const t = ascii(buf, b.body, 4);
-        colour = t === "nclx" ? "Described by number codes (nclx)" : t === "prof" || t === "rICC" ? "Embedded ICC profile" : "";
+        color = t === "nclx" ? "Described by number codes (nclx)" : t === "prof" || t === "rICC" ? "Embedded ICC profile" : "";
       }
     }
   };
@@ -120,6 +120,6 @@ export async function parseHeif(src: Source): Promise<HeifInfo> {
   sizes.sort((a, b) => b[0] * b[1] - a[0] * a[1]);
   const best = sizes[0];
   rows.add("Pictures inside", sizes.length > 1 ? `${sizes.length} (the largest is shown; the others are previews)` : "", "HEIC files often hold the main picture and smaller preview pictures.");
-  rows.add("Bit depth", depth).add("Rotation stored", rotation === null ? "" : `${rotation}° turn`, "The picture is stored this way up and a viewer turns it.").add("Colour description", colour);
+  rows.add("Bit depth", depth).add("Rotation stored", rotation === null ? "" : `${rotation}° turn`, "The picture is stored this way up and a viewer turns it.").add("Color description", color);
   return { width: best?.[0] ?? null, height: best?.[1] ?? null, rows, partial: !best };
 }

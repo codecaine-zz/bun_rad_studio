@@ -1,4 +1,4 @@
-// Semantic status colours (danger, warning, success, info) derived per theme.
+// Semantic status colors (danger, warning, success, info) derived per theme.
 // Every pair is contrast-checked: `text` reads on the page and card, `on` reads on `solid`.
 
 export type SemanticKind = "danger" | "warning" | "success" | "info";
@@ -19,7 +19,7 @@ export interface SemanticColor {
 export type SemanticPalette = Record<SemanticKind, SemanticColor>;
 export type SemanticOverrides = Partial<Record<SemanticKind, string>>;
 
-// Published status colours of well-known palettes, keyed by theme display name (aliases share the name).
+// Published status colors of well-known palettes, keyed by theme display name (aliases share the name).
 export const NAMED_SEMANTICS: Record<string, SemanticOverrides> = {
     "Dracula": { danger: "#ff5555", warning: "#f1fa8c", success: "#50fa7b", info: "#8be9fd" },
     "Nord": { danger: "#bf616a", warning: "#ebcb8b", success: "#a3be8c", info: "#88c0d0" },
@@ -94,7 +94,7 @@ function mix(a: RGB, b: RGB, t: number): RGB {
     return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
 
-// Moves a colour toward white or black in small steps until it meets the ratio against every surface.
+// Moves a color toward white or black in small steps until it meets the ratio against every surface.
 function reach(color: RGB, surfaces: string[], target: number, toward: RGB): RGB {
     let out = color;
     for (let i = 0; i <= 20; i++) {

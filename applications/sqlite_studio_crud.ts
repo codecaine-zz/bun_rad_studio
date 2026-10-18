@@ -257,8 +257,10 @@ export function crudClientMain() {
   }
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
-      if (menuEl) { closeMenu(); return; }
+      if (menuEl) { e.preventDefault(); e.stopPropagation(); closeMenu(); return; }
       if (modalStack.length && !(e.target && e.target.classList && e.target.classList.contains("crud-inline"))) {
+        e.preventDefault();
+        e.stopPropagation();
         modalStack[modalStack.length - 1].close();
       }
     }
@@ -1344,22 +1346,41 @@ export function crudClientMain() {
 
   function detectFormat(text, fileName) {
     const name = (fileName || "").toLowerCase();
+    if (/\.xlsx$/.test(name)) return "xlsx";
+    if (/\.ods$/.test(name)) return "ods";
     if (/\.sql$/.test(name)) return "sql";
     if (/\.jsonl$|\.ndjson$/.test(name)) return "jsonl";
-    if (/\.json$/.test(name)) return "json";
+    if (/\.json$|\.jsonc$|\.json5$/.test(name)) return "json";
+    if (/\.yaml$|\.yml$/.test(name)) return "yaml";
+    if (/\.toml$/.test(name)) return "toml";
+    if (/\.plist$/.test(name)) return "plist";
+    if (/\.xml$/.test(name)) return "xml";
+    if (/\.html$|\.htm$/.test(name)) return "html";
+    if (/\.md$|\.markdown$/.test(name)) return "md";
+    if (/\.ini$|\.cfg$|\.conf$/.test(name)) return "ini";
+    if (/^\.env($|\.)|\.env$/.test(name)) return "env";
+    if (/\.properties$/.test(name)) return "properties";
     if (/\.tsv$|\.tab$/.test(name)) return "tsv";
+    if (/\.psv$/.test(name)) return "psv";
     if (/\.csv$/.test(name)) return "csv";
     const t = text.replace(/^\uFEFF/, "").trimStart();
-    if (/^(INSERT\s|CREATE\s|BEGIN\b|PRAGMA\s|DROP\s|--|\/\*|REPLACE\s|ALTER\s|UPDATE\s|DELETE\s)/i.test(t)) return "sql";
+    if (/^(INSERT\s|CREATE\s|BEGIN\b|PRAGMA\s|DROP\s|--|\/\*|REPLACE\s|ALTER\s|UPDATE\s|DELETE\s|COPY\s)/i.test(t)) return "sql";
+    if (/^<\?xml[\s>]/i.test(t)) return /<!DOCTYPE\s+plist|<plist[\s>]/i.test(t) ? "plist" : "xml";
+    if (/^<!DOCTYPE\s+html|<html[\s>]|<table[\s>]/i.test(t)) return "html";
+    if (/^</.test(t) && /<\/[a-zA-Z0-9_:-]+>\s*$/.test(t)) return "xml";
     if (t[0] === "[" || t[0] === "{") {
       try { JSON.parse(t); return "json"; } catch {}
       const lines = t.split(/\r?\n/).filter((l) => l.trim());
       if (lines.length && lines.every((l) => l.trim()[0] === "{")) return "jsonl";
       return "json";
     }
+    if (/^---\s*\r?\n/.test(t) || /^\s*-\s+[a-zA-Z0-9_"-]+\s*:/.test(t)) return "yaml";
+    if (/^\s*\[\[[a-zA-Z0-9_.-]+\]\]/m.test(t)) return "toml";
+    if (/^\s*\[[a-zA-Z0-9_.-]+\]\s*$/m.test(t) && /^\s*[a-zA-Z0-9_.-]+\s*=/m.test(t)) return "ini";
     if (/^\s*\|.+\|\s*$/m.test(t.split(/\r?\n/)[0] || "")) return "md";
     const first = t.split(/\r?\n/)[0] || "";
     if (first.includes("\t")) return "tsv";
+    if (first.includes("|")) return "psv";
     return "csv";
   }
 
@@ -1380,13 +1401,16 @@ export function crudClientMain() {
     return { headers: hdr, rows: out };
   }
 
+  const SERVER_PARSED_FORMATS = new Set(["xlsx", "ods", "yaml", "toml", "xml", "plist", "html", "ini", "env", "properties", "sql_table"]);
+
   function parseSource(text, opts) {
     const clean = text.replace(/^\uFEFF/, "");
     const fmt = opts.format === "auto" ? detectFormat(clean, opts.fileName) : opts.format;
     const info = { format: fmt, delimiter: null };
     if (fmt === "sql") return { info, sql: true };
-    if (fmt === "csv" || fmt === "tsv") {
-      const delim = opts.delimiter === "auto" ? (fmt === "tsv" ? "\t" : detectDelimiter(clean)) : opts.delimiter;
+    if (SERVER_PARSED_FORMATS.has(fmt)) return { info, needsServer: true };
+    if (fmt === "csv" || fmt === "tsv" || fmt === "psv") {
+      const delim = opts.delimiter === "auto" ? (fmt === "tsv" ? "\t" : fmt === "psv" ? "|" : detectDelimiter(clean)) : opts.delimiter;
       info.delimiter = delim;
       const all = parseDelimited(clean, delim);
       if (!all.length) return { info, headers: [], rows: [] };
@@ -1404,12 +1428,17 @@ export function crudClientMain() {
     }
     // JSON / JSON lines
     let data;
-    if (fmt === "jsonl") {
+    if (fmt === "jsonl" || fmt === "ndjson") {
       data = clean.split(/\r?\n/).filter((l) => l.trim()).map((l, i) => {
         try { return JSON.parse(l); } catch (e) { throw new Error("Line " + (i + 1) + " is not valid JSON: " + e.message); }
       });
     } else {
-      data = JSON.parse(clean);
+      try {
+        data = JSON.parse(clean);
+      } catch {
+        // Fallback to server parser for JSONC / JSON5
+        return { info, needsServer: true };
+      }
       if (!Array.isArray(data) && data && typeof data === "object") {
         const arrKey = Object.keys(data).find((k) => Array.isArray(data[k]));
         if (arrKey) data = data[arrKey];
@@ -1454,11 +1483,21 @@ export function crudClientMain() {
     return s;
   }
 
+  function arrayBufferToBase64(buf) {
+    const bytes = new Uint8Array(buf);
+    let binary = "";
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  }
+
   async function openImportWizard(opts) {
     opts = opts || {};
     const st = {
-      text: "", fileName: "", fromFile: false,
-      format: "auto", delimiter: "auto", header: true, trim: true, emptyNull: true,
+      text: "", base64: "", fileName: "", fromFile: false,
+      format: "auto", delimiter: "auto", header: true, trim: true, emptyNull: true, sheet: "",
       parsed: null, parseError: "",
       target: opts.table ? "existing" : "new",
       newName: "", existing: opts.table || (allTableNames()[0] || ""),
@@ -1466,9 +1505,9 @@ export function crudClientMain() {
       colNames: [], colTypes: [], map: [],
     };
 
-    const dropzone = h("div", { class: "crud-drop" }, h("div", { style: "font-size:22px" }, "📥"), h("div", null, "Drop a CSV / TSV / JSON / SQL file here, or click to choose"));
-    const fileInput = h("input", { type: "file", style: "display:none", accept: ".csv,.tsv,.txt,.json,.jsonl,.ndjson,.sql,.md,text/*,application/json" });
-    const ta = h("textarea", { rows: "4", placeholder: "…or paste data here: copy cells from Excel / Google Sheets / a web table, or paste CSV, JSON or SQL text." });
+    const dropzone = h("div", { class: "crud-drop" }, h("div", { style: "font-size:22px" }, "📥"), h("div", null, "Drop CSV, TSV, JSON, Excel (.xlsx), ODS, YAML, TOML, XML, HTML, Markdown, INI/ENV or SQL file here, or click to choose"));
+    const fileInput = h("input", { type: "file", style: "display:none", accept: ".csv,.tsv,.tab,.psv,.txt,.dat,.log,.json,.jsonc,.json5,.jsonl,.ndjson,.xlsx,.ods,.yaml,.yml,.toml,.xml,.plist,.sql,.md,.markdown,.html,.htm,.ini,.cfg,.conf,.env,.properties,text/*,application/json,application/xml" });
+    const ta = h("textarea", { rows: "4", placeholder: "…or paste data here: copy cells from Excel / Google Sheets / a web table, or paste CSV, JSON, YAML, TOML, XML, HTML, INI, .env, Markdown or SQL text." });
     const fileBadge = h("div", { class: "crud-info", style: "display:none" });
     const optsBox = h("div");
     const mapBox = h("div");
@@ -1485,35 +1524,44 @@ export function crudClientMain() {
         optsBox, previewBox, mapBox),
     });
 
-    function setSource(text, name, fromFile) {
-      st.text = text; st.fileName = name || ""; st.fromFile = !!fromFile;
+    function setSource(text, name, fromFile, base64) {
+      st.text = text || ""; st.base64 = base64 || ""; st.fileName = name || ""; st.fromFile = !!fromFile; st.sheet = "";
       if (fromFile) {
         ta.value = ""; ta.disabled = true;
         fileBadge.style.display = "block";
-        fileBadge.textContent = "📄 " + name + " — " + (text.length / 1024).toFixed(1) + " KB loaded";
+        const sizeKb = base64 ? (base64.length * 0.75 / 1024).toFixed(1) : ((text || "").length / 1024).toFixed(1);
+        fileBadge.textContent = "📄 " + name + " — " + sizeKb + " KB loaded";
       } else {
         ta.disabled = false; fileBadge.style.display = "none";
       }
       if (!st.newName) st.newName = (name || "imported_data").replace(/\.[^.]+$/, "").replace(/[^\w]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase() || "imported_data";
       reparse();
     }
-    function clearSource() { st.text = ""; st.fileName = ""; st.fromFile = false; ta.value = ""; ta.disabled = false; fileBadge.style.display = "none"; reparse(); }
+    function clearSource() { st.text = ""; st.base64 = ""; st.fileName = ""; st.fromFile = false; st.sheet = ""; ta.value = ""; ta.disabled = false; fileBadge.style.display = "none"; reparse(); }
     async function readFile(file) {
-      const text = await file.text();
-      setSource(text, file.name, true);
+      const lower = (file.name || "").toLowerCase();
+      if (/\.xlsx$|\.ods$/.test(lower)) {
+        const buf = await file.arrayBuffer();
+        setSource("", file.name, true, arrayBufferToBase64(buf));
+      } else {
+        const text = await file.text();
+        setSource(text, file.name, true, "");
+      }
     }
     async function pickViaServer() {
       m.error("");
       const r = await call("/api/pick-file", {});
-      if (r.success) setSource(r.text, r.name, true);
-      else if (!r.cancelled) m.error(r.error || "Could not open file");
+      if (r.success) {
+        if (r.isBinary && r.base64) setSource("", r.name, true, r.base64);
+        else setSource(r.text || "", r.name, true, "");
+      } else if (!r.cancelled) m.error(r.error || "Could not open file");
     }
     async function pasteFromClipboard() {
       m.error("");
       try {
         const t = await navigator.clipboard.readText();
         if (!t) { m.error("Clipboard is empty."); return; }
-        ta.disabled = false; ta.value = t; setSource(t, "", false);
+        ta.disabled = false; ta.value = t; setSource(t, "", false, "");
       } catch {
         m.error("Clipboard access was blocked — click in the box below and press Ctrl/Cmd+V instead.");
         ta.focus();
@@ -1524,14 +1572,9 @@ export function crudClientMain() {
     ["dragover", "dragenter"].forEach((ev) => dropzone.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); dropzone.classList.add("dragover"); }));
     dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
     dropzone.addEventListener("drop", (e) => { e.preventDefault(); e.stopPropagation(); dropzone.classList.remove("dragover"); if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]); });
-    ta.addEventListener("input", () => { setSource(ta.value, "", false); });
+    ta.addEventListener("input", () => { setSource(ta.value, "", false, ""); });
 
-    function reparse() {
-      st.parsed = null; st.parseError = "";
-      if (st.text.trim()) {
-        try { st.parsed = parseSource(st.text, { format: st.format, delimiter: st.delimiter, header: st.header, fileName: st.fileName }); }
-        catch (e) { st.parseError = e.message || String(e); }
-      }
+    function applyParsedColumns() {
       if (st.parsed && !st.parsed.sql) {
         const p = st.parsed;
         st.colNames = p.headers.slice();
@@ -1543,29 +1586,122 @@ export function crudClientMain() {
           const pos = lower.indexOf(hd.toLowerCase());
           if (pos >= 0) return meta.columns[pos].name;
           if (!st.header && meta.columns[i]) {
-            // Without headers, import by position but never into an auto-number key
             const c = meta.columns[i];
             return c.name;
           }
           return "";
         });
       }
+    }
+
+    let parseSeq = 0;
+    async function reparse() {
+      const seq = ++parseSeq;
+      st.parsed = null; st.parseError = "";
+      if (!st.text.trim() && !st.base64) {
+        renderOptions(); renderPreview(); renderMapping(); renderFooter();
+        return;
+      }
+      if (st.base64) {
+        const fmt = st.format === "auto" ? detectFormat("", st.fileName) : st.format;
+        const r = await call("/api/parse-import", {
+          base64: st.base64,
+          fileName: st.fileName,
+          format: fmt === "sql_table" ? "sql" : (st.format === "auto" ? undefined : st.format),
+          hasHeader: st.header,
+          sheet: st.sheet || undefined,
+        });
+        if (seq !== parseSeq) return;
+        if (!r.success) {
+          st.parseError = r.error || "Failed to parse spreadsheet";
+        } else {
+          st.parsed = {
+            info: { format: r.format || fmt, delimiter: null },
+            headers: r.columns || [],
+            rows: (r.rows || []).map((row) => Array.isArray(row) ? row : (r.columns || []).map((c) => row[c] ?? null)),
+            sheets: r.sheets || [],
+            selectedSheet: r.selectedSheet || "",
+          };
+          applyParsedColumns();
+        }
+        renderOptions(); renderPreview(); renderMapping(); renderFooter();
+        return;
+      }
+
+      try {
+        const local = parseSource(st.text, { format: st.format, delimiter: st.delimiter, header: st.header, fileName: st.fileName });
+        if (local && local.needsServer) {
+          const fmt = local.info.format;
+          const r = await call("/api/parse-import", {
+            content: st.text,
+            fileName: st.fileName,
+            format: fmt === "sql_table" ? "sql" : fmt,
+            delimiter: st.delimiter === "auto" ? undefined : st.delimiter,
+            hasHeader: st.header,
+            sheet: st.sheet || undefined,
+          });
+          if (seq !== parseSeq) return;
+          if (!r.success) {
+            st.parseError = r.error || "Could not parse input";
+          } else {
+            st.parsed = {
+              info: { format: fmt === "sql_table" ? "sql_table" : (r.format || fmt), delimiter: null },
+              headers: r.columns || [],
+              rows: (r.rows || []).map((row) => Array.isArray(row) ? row : (r.columns || []).map((c) => row[c] ?? null)),
+              sheets: r.sheets || [],
+              selectedSheet: r.selectedSheet || "",
+            };
+            applyParsedColumns();
+          }
+        } else {
+          st.parsed = local;
+          applyParsedColumns();
+        }
+      } catch (e) {
+        st.parseError = e.message || String(e);
+      }
       renderOptions(); renderPreview(); renderMapping(); renderFooter();
     }
 
     function renderOptions() {
       optsBox.innerHTML = "";
-      if (!st.text.trim()) return;
+      if (!st.text.trim() && !st.base64) return;
       const sqlMode = st.parsed && st.parsed.sql;
       const fmtSel = mkSelect([
-        { value: "auto", label: "Auto-detect" }, { value: "csv", label: "CSV / delimited text" }, { value: "tsv", label: "TSV (Excel / Sheets paste)" },
-        { value: "json", label: "JSON" }, { value: "jsonl", label: "JSON Lines" }, { value: "md", label: "Markdown table" }, { value: "sql", label: "SQL script" },
+        { value: "auto", label: "Auto-detect" },
+        { value: "csv", label: "CSV / delimited text" },
+        { value: "tsv", label: "TSV (Excel / Sheets paste)" },
+        { value: "psv", label: "PSV (pipe-separated)" },
+        { value: "json", label: "JSON / JSONC / JSON5" },
+        { value: "jsonl", label: "JSON Lines (NDJSON)" },
+        { value: "xlsx", label: "Excel Workbook (.xlsx)" },
+        { value: "ods", label: "OpenDocument Spreadsheet (.ods)" },
+        { value: "yaml", label: "YAML (.yaml / .yml)" },
+        { value: "toml", label: "TOML (.toml)" },
+        { value: "xml", label: "XML records (.xml)" },
+        { value: "plist", label: "Apple Property List (.plist)" },
+        { value: "html", label: "HTML <table> (.html)" },
+        { value: "md", label: "Markdown table (.md)" },
+        { value: "ini", label: "INI / Config (.ini / .cfg)" },
+        { value: "env", label: "Dotenv (.env)" },
+        { value: "properties", label: "Java .properties" },
+        { value: "sql", label: "SQL script (execute DDL/DML)" },
+        { value: "sql_table", label: "SQL dump → extract table rows" },
       ], st.format, (v) => { st.format = v; reparse(); });
       const row = h("div", { class: "crud-row" }, h("span", { class: "crud-section-title" }, "2 · Format"), fmtSel);
-      row.firstChild.nextSibling.style.maxWidth = "210px";
+      row.firstChild.nextSibling.style.maxWidth = "220px";
       if (st.parsed) {
         row.appendChild(h("span", { class: "crud-badge" }, "detected: " + st.parsed.info.format.toUpperCase()));
-        if (st.parsed.info.format === "csv" || st.parsed.info.format === "tsv") {
+        if (st.parsed.sheets && st.parsed.sheets.length > 1) {
+          const shSel = mkSelect(
+            st.parsed.sheets.map((s) => ({ value: s, label: "Sheet/Table: " + s })),
+            st.sheet || st.parsed.selectedSheet || st.parsed.sheets[0],
+            (v) => { st.sheet = v; reparse(); }
+          );
+          shSel.style.maxWidth = "200px";
+          row.appendChild(shSel);
+        }
+        if (st.parsed.info.format === "csv" || st.parsed.info.format === "tsv" || st.parsed.info.format === "psv") {
           const dSel = mkSelect([{ value: "auto", label: "delimiter: auto" }, { value: ",", label: "delimiter: comma" }, { value: ";", label: "delimiter: semicolon" }, { value: "\t", label: "delimiter: tab" }, { value: "|", label: "delimiter: pipe" }], st.delimiter, (v) => { st.delimiter = v; reparse(); });
           dSel.style.maxWidth = "170px";
           row.appendChild(dSel);
@@ -1590,7 +1726,7 @@ export function crudClientMain() {
       if (st.parseError) { previewBox.appendChild(h("div", { class: "crud-error" }, "Couldn't read this data: " + st.parseError)); return; }
       if (!st.parsed) return;
       if (st.parsed.sql) {
-        previewBox.appendChild(h("div", { class: "crud-info" }, "SQL script detected — it will be executed inside one transaction (all-or-nothing). Make sure you trust the source."));
+        previewBox.appendChild(h("div", { class: "crud-info" }, "SQL script detected — it will be executed inside one transaction (all-or-nothing). Tip: Switch Format to 'SQL dump → extract table rows' to map INSERT/COPY rows into a table."));
         previewBox.appendChild(h("div", { class: "crud-code" }, st.text.slice(0, 1500) + (st.text.length > 1500 ? "\n…" : "")));
         return;
       }

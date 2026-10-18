@@ -210,7 +210,7 @@ function cssItems(c, ctx) {
   if (seg.includes(":")) {
     const prop = seg.slice(0, seg.indexOf(":")).trim().toLowerCase();
     for (const v of words(CSS_VALUES[prop] ?? "")) c.add(v, "keyword", { detail: `${prop} value` });
-    if (/color|background|border|outline|shadow|fill|stroke/.test(prop)) for (const v of words(CSS_COLORS)) c.add(v, "keyword", { detail: "colour" });
+    if (/color|background|border|outline|shadow|fill|stroke/.test(prop)) for (const v of words(CSS_COLORS)) c.add(v, "keyword", { detail: "color" });
     for (const v of words(CSS_COMMON_VALUES)) c.add(v, "keyword", { detail: "common value" });
     for (const v of customs) c.add(`var(${v})`, "local", { detail: "custom property" });
   } else {

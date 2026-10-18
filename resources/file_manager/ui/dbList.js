@@ -1,4 +1,4 @@
-// The list of saved connections, grouped by folder (favourites first), with a filter box. Arrow keys move through it,
+// The list of saved connections, grouped by folder (favorites first), with a filter box. Arrow keys move through it,
 // Enter opens the studio, and every row says its environment in words as well as with an icon.
 import { clear, h } from "./dom.js";
 import { db, engineInfo, environmentBadge, summaryOf, studiosFor } from "./dbState.js";
@@ -52,7 +52,7 @@ export function renderList(box, { filter = "", open, shortcut }) {
       },
         h("span", { class: "db-row-icon", "aria-hidden": "true" }, info.icon),
         h("span", { class: "db-row-main" },
-          h("span", { class: "db-row-name" }, p.favorite ? h("span", { class: "db-fav", title: "Favourite" }, "★ ") : null, p.name),
+          h("span", { class: "db-row-name" }, p.favorite ? h("span", { class: "db-fav", title: "Favorite" }, "★ ") : null, p.name),
           h("span", { class: "db-row-sub pw-mono" }, summaryOf(p)),
           p.tags?.length ? h("span", { class: "db-row-tags" }, p.tags.map((t) => h("span", { class: "db-tag" }, t))) : null,
         ),

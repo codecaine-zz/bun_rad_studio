@@ -55,6 +55,7 @@ export const STUDIO_FOCUS_STYLE = `
     .sf-focused:focus { outline: none; }
     .tab-pane { position: relative; }
     .sf-btn.sf-float { position: absolute; top: 6px; right: 14px; z-index: 6; margin: 0; }
+    body.sf-on .sf-btn { display: none !important; }
     @media (max-width: 720px) { .sf-bar .sf-hint { display: none; } .sf-bar .sf-seg button { padding: 3px 7px; } .sf-btn .sf-lbl { display: none; } }
     @media (prefers-reduced-motion: no-preference) { body.sf-on .sf-bar { animation: sf-in 0.12s ease-out; } @keyframes sf-in { from { transform: translateY(-100%); } to { transform: none; } } }
 `;
@@ -257,7 +258,7 @@ function studioFocusClient() {
         const e = q(".editor-section .editor-toolbar", p); if (e) heads.push([e, "editor", "SQL editor"]);
         const r = q(".grid-container .grid-toolbar", p); if (r) heads.push([r, "results", "query results"]);
       } else {
-        const h = q(".qbe-ribbon, .macro-ribbon, .grid-toolbar, .activity-toolbar", p);
+        const h = q(".qbe-ribbon, .macro-ribbon, .grid-toolbar, .activity-toolbar, .studio-schema-subnav", p);
         if (h) heads.push([h, null, name]);
       }
       if (!heads.length) {
@@ -286,7 +287,7 @@ function studioFocusClient() {
     if (t.closest(".tab-btn.active")) { const p = activePane(); if (p) toggle("pane:" + p.id); return; }
     if (t.closest(".editor-top")) return toggle("editor");
     if (t.closest(".sidebar-db-card")) return toggle("sidebar");
-    const head = t.closest(".grid-toolbar, .activity-toolbar, .qbe-ribbon");
+    const head = t.closest(".grid-toolbar, .activity-toolbar, .qbe-ribbon, .macro-ribbon, .studio-schema-subnav");
     if (head) { const p = head.closest(".tab-pane"); if (p) toggle("pane:" + p.id); }
   });
 

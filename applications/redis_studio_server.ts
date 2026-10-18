@@ -39,7 +39,9 @@ import {
   exportFileName,
   normalizeDeletePattern,
   validateExportDoc,
+  parseRedisImportPayload,
   type RedisExportKey,
+  type RedisImportOptions,
 } from "../src/redis_helpers";
 
 export interface RedisServerOptions {
@@ -749,9 +751,13 @@ export class RedisManager {
     }
   }
 
-  /** Imports an export document into the active DB. Existing keys are skipped unless overwrite is true. */
-  public async importKeys(input: unknown, overwrite = false): Promise<{ success: boolean; imported: number; skipped: number; errors: string[] }> {
-    const v = validateExportDoc(input);
+  /** Imports an export document or any supported tabular/config/dump/CLI file format into the active DB. Existing keys are skipped unless overwrite is true. */
+  public async importKeys(
+    input: unknown,
+    overwrite = false,
+    opts?: RedisImportOptions,
+  ): Promise<{ success: boolean; imported: number; skipped: number; errors: string[]; detectedFormat?: string }> {
+    const v = await parseRedisImportPayload(input, opts);
     if (!v.doc) return { success: false, imported: 0, skipped: 0, errors: v.errors };
     let imported = 0;
     let skipped = 0;
@@ -780,7 +786,7 @@ export class RedisManager {
         errors.push(`'${k.key}': ${err?.message || err}`);
       }
     }
-    return { success: errors.length === 0 || imported > 0, imported, skipped, errors };
+    return { success: errors.length === 0 || imported > 0, imported, skipped, errors, detectedFormat: v.detectedFormat };
   }
 
   public async unlinkKey(key: string): Promise<{ success: boolean; error?: string }> {
@@ -1388,7 +1394,13 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
       if (pathname === "/api/import" && req.method === "POST") {
         try {
           const body: any = await req.json();
-          const result = await manager.importKeys(body.doc ?? body.text, Boolean(body.overwrite));
+          const result = await manager.importKeys(body.doc ?? body.text ?? body.content, Boolean(body.overwrite), {
+            format: body.format,
+            fileName: body.fileName,
+            base64: body.base64,
+            keyPrefix: body.keyPrefix,
+            sheet: body.sheet,
+          });
           return Response.json(result, { status: result.success ? 200 : 400, headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, imported: 0, skipped: 0, errors: [err.message] }, { status: 400, headers: corsHeaders });

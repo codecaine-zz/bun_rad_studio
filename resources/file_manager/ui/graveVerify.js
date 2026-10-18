@@ -9,7 +9,7 @@ import { plural } from "./util.js";
 
 const say = (err) => (err instanceof ApiError ? err.message : "That didn't work.");
 
-/** The problems found, as short plain sentences (each starts with a word, never only a colour). */
+/** The problems found, as short plain sentences (each starts with a word, never only a color). */
 export function problemLines(report) {
   const c = report.counts;
   const lines = [];

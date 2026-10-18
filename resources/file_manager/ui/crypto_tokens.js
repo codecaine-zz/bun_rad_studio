@@ -1,4 +1,4 @@
-// Tokens and encoders: read and check JWTs, and convert text to and from URL, Base64, hex and HTML forms (plus colour codes and width).
+// Tokens and encoders: read and check JWTs, and convert text to and from URL, Base64, hex and HTML forms (plus color codes and width).
 import { call } from "./api.js";
 import { clear, h } from "./dom.js";
 import { formatSize } from "./util.js";
@@ -13,7 +13,7 @@ const ENCODERS = [
   ["hex-decode", "Hex decode", "Turn hex digits back into the original text."],
   ["html-escape", "HTML escape", "Make text safe to put inside a web page: < > & \" and ' are written as &lt; &gt; &amp; &quot; and &#x27; so they show as text instead of being read as page code."],
   ["html-unescape", "HTML unescape", "Turn &lt; &gt; &amp; &quot; &apos; and numeric forms like &#39; back into the characters they stand for. Other names such as &nbsp; are left as they are. The result is only text."],
-  ["strip-ansi", "Remove colour codes", "Take the colour and style codes out of text copied from a terminal or a log, so only the plain words are left."],
+  ["strip-ansi", "Remove color codes", "Take the color and style codes out of text copied from a terminal or a log, so only the plain words are left."],
   ["text-width", "Text width", "Count the characters, the bytes and the columns the text takes in a terminal. Chinese, Japanese and Korean letters and emoji take two columns."],
 ];
 
@@ -97,7 +97,7 @@ export function buildTokenCards(env) {
     text.input.value = result.text();
     result.set("");
   });
-  const encoderCard = card("Encoders: URL, Base64, hex and text tools", "These convert text between forms. They only change how text is written; they do not hide it, so none of them is a way to keep secrets. The last four are tidy-up helpers: HTML escape and unescape, removing terminal colour codes, and measuring text width.",
+  const encoderCard = card("Encoders: URL, Base64, hex and text tools", "These convert text between forms. They only change how text is written; they do not hide it, so none of them is a way to keep secrets. The last four are tidy-up helpers: HTML escape and unescape, removing terminal color codes, and measuring text width.",
     text.el, h("div", { class: "pw-row" }, ...buttons, moveUp), encStatus.el, result.el);
   encoderCard.setAttribute("data-copy-secret", "");
 

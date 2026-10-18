@@ -237,11 +237,11 @@ export function studioStagingClient(cfg) {
   // ---- Step 1: Source ---------------------------------------------------------------------------------------------------
   function renderSource() {
     clear(els.body);
-    var drop = h("div", { class: "stg-drop", tabIndex: 0, role: "button", "aria-label": "Choose a data file, or drop one here", title: "Choose a CSV, TSV, JSON or JSON Lines file" },
+    var drop = h("div", { class: "stg-drop", tabIndex: 0, role: "button", "aria-label": "Choose a data file, or drop one here", title: "Choose a CSV, TSV, JSON, Excel (.xlsx), ODS, YAML, TOML, XML, SQL, Markdown, HTML, INI, .env or .properties file" },
       h("div", { class: "stg-drop-big", text: "Drop a file here, or choose one" }),
-      h("div", { class: "stg-muted", text: "CSV, TSV, semicolon- or pipe-separated text, a JSON list, or JSON Lines (NDJSON)." }),
+      h("div", { class: "stg-muted", text: "CSV, TSV, pipe/semicolon text, JSON, JSON5, JSON Lines (NDJSON), Excel (.xlsx), OpenDocument (.ods), YAML, TOML, XML, plist, SQL, Markdown, HTML, INI, .env or .properties." }),
       h("div", { class: "stg-muted", text: "The file stays on this computer: it is sent only to this studio, never over the internet." }));
-    var input = h("input", { type: "file", class: "stg-file", accept: ".csv,.tsv,.txt,.tab,.psv,.dat,.json,.ndjson,.jsonl,.log,text/*,application/json", "aria-label": "Choose a data file", hidden: true });
+    var input = h("input", { type: "file", class: "stg-file", accept: ".csv,.tsv,.txt,.tab,.psv,.ssv,.dat,.json,.jsonc,.json5,.ndjson,.jsonl,.log,.xlsx,.ods,.yaml,.yml,.toml,.xml,.plist,.sql,.md,.markdown,.html,.htm,.ini,.cfg,.conf,.env,.properties,text/*,application/json,application/xml,application/sql", "aria-label": "Choose a data file", hidden: true });
     input.addEventListener("change", function () { if (input.files && input.files[0]) chooseFile(input.files[0]); });
     drop.addEventListener("click", function () { input.click(); });
     drop.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); input.click(); } });
@@ -250,9 +250,9 @@ export function studioStagingClient(cfg) {
     drop.addEventListener("drop", function (e) { var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) chooseFile(f); });
 
     var paste = h("details", { class: "stg-paste" }, h("summary", { text: "Or paste the data as text" }),
-      h("textarea", { class: "stg-textarea", rows: 5, "aria-label": "Paste CSV, TSV or JSON text here", placeholder: "id,name\n1,Ann\n2,Bob", value: S.pasteText, oninput: function (e) { S.pasteText = e.target.value; } }),
+      h("textarea", { class: "stg-textarea", rows: 5, "aria-label": "Paste CSV, TSV, JSON, YAML, TOML, XML, SQL, Markdown, HTML, INI or .env text here", placeholder: "id,name\n1,Ann\n2,Bob", value: S.pasteText, oninput: function (e) { S.pasteText = e.target.value; } }),
       h("div", {}, btn("Use this text", function () { usePaste(); }, { title: "Read the pasted text" })));
-    var excel = h("p", { class: "stg-muted" }, "Excel files (.xlsx, .xls) can't be read here. In Excel use File → Save As → “CSV UTF-8” and choose that file.");
+    var excel = h("p", { class: "stg-muted" }, "Modern Excel (.xlsx) and OpenDocument (.ods) spreadsheets work directly. Legacy .xls files can't be read here — in Excel use File → Save As → “CSV UTF-8” and choose that file.");
     els.srcInfo = h("div", { class: "stg-srcinfo", "aria-live": "polite" });
     els.body.appendChild(h("div", { class: "stg-pane" }, h("h3", { text: "1 · Where is the data?" }), drop, input, paste, excel, els.srcInfo));
     drawSource();
@@ -331,7 +331,7 @@ export function studioStagingClient(cfg) {
     options.forEach(function (o) { s.appendChild(h("option", { value: o[0], text: o[1], selected: String(o[0]) === String(value) })); });
     return s;
   }
-  function labelled(text, control, hint) { return h("label", { class: "stg-field" }, h("span", { class: "stg-fieldlabel", text: text }), control, hint ? h("span", { class: "stg-muted small", text: hint }) : null); }
+  function labeled(text, control, hint) { return h("label", { class: "stg-field" }, h("span", { class: "stg-fieldlabel", text: text }), control, hint ? h("span", { class: "stg-muted small", text: hint }) : null); }
 
   function drawSource() {
     if (!els.srcInfo) return;
@@ -355,12 +355,32 @@ export function studioStagingClient(cfg) {
   function settingsForm(a) {
     var s = a.settings;
     var delimOpts = [[",", "Comma ( , )"], ["\t", "Tab"], [";", "Semicolon ( ; )"], ["|", "Pipe ( | )"], ["", "None (one column)"]];
+    var formatOpts = [
+      ["csv", "Delimited text (CSV, TSV…)"],
+      ["json", "JSON / JSONC / JSON5"],
+      ["ndjson", "JSON Lines (NDJSON / JSONL)"],
+      ["xlsx", "Excel spreadsheet (.xlsx)"],
+      ["ods", "OpenDocument spreadsheet (.ods)"],
+      ["yaml", "YAML (.yaml / .yml)"],
+      ["toml", "TOML (.toml)"],
+      ["xml", "XML (.xml)"],
+      ["plist", "Apple Property List (.plist)"],
+      ["sql", "SQL dump (INSERT / COPY)"],
+      ["markdown", "Markdown table (.md)"],
+      ["html", "HTML table (.html)"],
+      ["ini", "INI config (.ini / .cfg)"],
+      ["env", "Environment file (.env)"],
+      ["properties", "Java .properties"],
+    ];
     var isCsv = s.format === "csv";
+    var isSheet = s.format === "xlsx" || s.format === "ods";
+    var sheets = Array.isArray(a.sheets) && a.sheets.length > 1 ? a.sheets : null;
     return h("div", { class: "stg-settings" },
-      labelled("File layout", select([["csv", "Delimited text (CSV, TSV…)"], ["json", "JSON list [ … ]"], ["ndjson", "JSON Lines (one record per line)"]], s.format, function (v) { reread({ format: v }); }, "File layout", "How the file is organised")),
-      isCsv ? labelled("Separator", select(delimOpts, s.delimiter, function (v) { reread({ delimiter: v }); }, "Separator between values", "The character that separates the values in a row")) : null,
-      isCsv ? labelled("Quote", select([['"', 'Double quote ( " )'], ["'", "Single quote ( ' )"], ["", "No quotes"]], s.quote, function (v) { reread({ quote: v }); }, "Quote character", "The character that wraps values containing the separator")) : null,
-      labelled("Text encoding", select([["utf-8", "UTF-8"], ["utf-16le", "UTF-16 (little-endian)"], ["utf-16be", "UTF-16 (big-endian)"], ["windows-1252", "Latin-1 / Windows-1252"]], s.encoding, function (v) { reread({ encoding: v }); }, "Text encoding", "Detected: " + a.encodingLabel + ". Change it if accented letters look wrong.")),
+      labeled("File layout", select(formatOpts, s.format, function (v) { reread({ format: v }); }, "File layout", "How the file is organized")),
+      sheets ? labeled("Sheet / table", select(sheets.map(function (n) { return [n, n]; }), s.sheet || sheets[0], function (v) { reread({ sheet: v }); }, "Sheet or table", "Which sheet or table in the file to import")) : null,
+      isCsv ? labeled("Separator", select(delimOpts, s.delimiter, function (v) { reread({ delimiter: v }); }, "Separator between values", "The character that separates the values in a row")) : null,
+      isCsv ? labeled("Quote", select([['"', 'Double quote ( " )'], ["'", "Single quote ( ' )"], ["", "No quotes"]], s.quote, function (v) { reread({ quote: v }); }, "Quote character", "The character that wraps values containing the separator")) : null,
+      !isSheet ? labeled("Text encoding", select([["utf-8", "UTF-8"], ["utf-16le", "UTF-16 (little-endian)"], ["utf-16be", "UTF-16 (big-endian)"], ["windows-1252", "Latin-1 / Windows-1252"]], s.encoding, function (v) { reread({ encoding: v }); }, "Text encoding", "Detected: " + a.encodingLabel + ". Change it if accented letters look wrong.")) : null,
       h("label", { class: "stg-check", title: "Tick when the first row holds column names" }, h("input", { type: "checkbox", checked: s.hasHeader, onchange: function (e) { reread({ hasHeader: e.target.checked }); } }), h("span", { text: "The first row has column names" })));
   }
   function reread(o) {
@@ -458,8 +478,8 @@ export function studioStagingClient(cfg) {
       S.rules = []; S.tableInfo = null; S.mapping = null; S.sample = null;
       loadSuggestion();
     }, "Target table", "The table this data is ultimately for. Nothing is written to it until step 5.");
-    pane.appendChild(h("div", { class: "stg-card" }, labelled("Load into", tableSelect, "The data goes to a staging table first. Your table is not touched until you promote."),
-      S.targetMode === "new" ? labelled("New table name", h("input", { class: "stg-input", type: "text", value: S.newName, maxlength: 60, "aria-label": "Name of the new table", title: "Letters, digits and underscores", onchange: function (e) { S.newName = e.target.value.trim(); drawMap(); } })) : null));
+    pane.appendChild(h("div", { class: "stg-card" }, labeled("Load into", tableSelect, "The data goes to a staging table first. Your table is not touched until you promote."),
+      S.targetMode === "new" ? labeled("New table name", h("input", { class: "stg-input", type: "text", value: S.newName, maxlength: 60, "aria-label": "Name of the new table", title: "Letters, digits and underscores", onchange: function (e) { S.newName = e.target.value.trim(); drawMap(); } })) : null));
     if (S.busy && !S.rules.length) { pane.appendChild(h("p", { class: "stg-muted", text: "Matching the columns…" })); renderMapFoot(); return; }
     if (S.targetMode === "existing" && S.tableInfo) drawExistingMap(pane);
     if (S.targetMode === "new" && S.newSpec) drawNewMap(pane);
@@ -492,13 +512,13 @@ export function studioStagingClient(cfg) {
         h("div", { class: "stg-checks", role: "group", "aria-label": "Columns to join" }, S.analysis.columns.map(function (c) {
           return h("label", { class: "stg-check small" }, h("input", { type: "checkbox", checked: s.columns.indexOf(c.name) >= 0, onchange: function (e) { s.columns = S.analysis.columns.map(function (x) { return x.name; }).filter(function (n) { return n === c.name ? e.target.checked : s.columns.indexOf(n) >= 0; }); redraw(); } }), h("span", { text: c.name }));
         })),
-        labelled("Put this between them", h("input", { class: "stg-input short", type: "text", value: s.separator, "aria-label": "Text between the joined columns", onchange: function (e) { s.separator = e.target.value; redraw(); } })));
+        labeled("Put this between them", h("input", { class: "stg-input short", type: "text", value: s.separator, "aria-label": "Text between the joined columns", onchange: function (e) { s.separator = e.target.value; redraw(); } })));
     }
     if (s.kind === "split") {
       return h("div", { class: "stg-extra" },
         select(S.analysis.columns.map(function (c) { return [c.name, c.name]; }), s.column, function (v) { s.column = v; redraw(); }, "Column to split"),
-        labelled("Split at", h("input", { class: "stg-input short", type: "text", value: s.separator, "aria-label": "Split at this text", onchange: function (e) { s.separator = e.target.value || " "; redraw(); } })),
-        labelled("Take part number", h("input", { class: "stg-input short", type: "number", min: 1, max: 50, value: s.part, "aria-label": "Which part to take, counting from 1", onchange: function (e) { s.part = Math.max(1, Number(e.target.value) || 1); redraw(); } })));
+        labeled("Split at", h("input", { class: "stg-input short", type: "text", value: s.separator, "aria-label": "Split at this text", onchange: function (e) { s.separator = e.target.value || " "; redraw(); } })),
+        labeled("Take part number", h("input", { class: "stg-input short", type: "number", min: 1, max: 50, value: s.part, "aria-label": "Which part to take, counting from 1", onchange: function (e) { s.part = Math.max(1, Number(e.target.value) || 1); redraw(); } })));
     }
     if (s.kind === "constant") return h("div", { class: "stg-extra" }, h("input", { class: "stg-input", type: "text", value: s.value === null ? "" : s.value, "aria-label": "The fixed value", placeholder: "value for every row", onchange: function (e) { s.value = e.target.value; redraw(); } }));
     return null;
@@ -580,7 +600,7 @@ export function studioStagingClient(cfg) {
     var keyBox = h("div", { class: "stg-card" }, h("div", { class: "stg-strong", text: "Which columns say two rows are the same?" }),
       h("div", { class: "stg-muted", text: "Used to find rows that already exist, and repeats in the file. Usually the primary key." }),
       h("div", { class: "stg-checks", role: "group", "aria-label": "Key columns" }, mapped.map(function (n) {
-        return h("label", { class: "stg-check", title: "Use " + n + " to recognise the same row" }, h("input", { type: "checkbox", checked: S.keyColumns.indexOf(n) >= 0, onchange: function (e) { S.keyColumns = mapped.filter(function (m) { return m === n ? e.target.checked : S.keyColumns.indexOf(m) >= 0; }); } }), h("span", { text: n }));
+        return h("label", { class: "stg-check", title: "Use " + n + " to recognize the same row" }, h("input", { type: "checkbox", checked: S.keyColumns.indexOf(n) >= 0, onchange: function (e) { S.keyColumns = mapped.filter(function (m) { return m === n ? e.target.checked : S.keyColumns.indexOf(m) >= 0; }); } }), h("span", { text: n }));
       })));
     var rules = h("details", { class: "stg-card", open: S.userRules.length > 0 }, h("summary", { class: "stg-strong", text: "Your own checks (optional)" }));
     var list = h("div", { class: "stg-rules" });
@@ -899,7 +919,7 @@ export function studioStagingClient(cfg) {
     var stepSel = select(Object.keys(STEP_LABELS).filter(function (k) { return k !== "default" && k !== "replace"; }).map(function (k) { return [k, STEP_LABELS[k]]; }), "trim", function () {}, "Clean-up to apply");
     var ord = select([["MDY", "date: month first"], ["DMY", "date: day first"], ["YMD", "date: year first"]], S.dateOrder || "MDY", function () {}, "Date order");
     var errBox = h("div");
-    sheet("Clean a whole column", h("div", {}, h("p", { class: "stg-muted", text: "Applies to every staged row that is not yet imported. Then check again." }), labelled("Column", colSel), labelled("Clean-up", stepSel), labelled("Date order (for date clean-ups)", ord), errBox),
+    sheet("Clean a whole column", h("div", {}, h("p", { class: "stg-muted", text: "Applies to every staged row that is not yet imported. Then check again." }), labeled("Column", colSel), labeled("Clean-up", stepSel), labeled("Date order (for date clean-ups)", ord), errBox),
       [btn("Cancel", closeSheet), btn("Apply", function () {
         var step = { t: stepSel.value }; if (step.t === "date" || step.t === "datetime") step.order = ord.value; if (step.t === "number") step.locale = "auto";
         runJob("transform", { batchId: S.batch.batchId, column: colSel.value, step: step }).then(function (r) { closeSheet(); S.needsCheck = true; S.rowsPage = null; drawCheck(); toast(plural(r.changed, "value") + " changed. Check again."); }).catch(function (e) { clear(errBox).appendChild(errBanner(e)); });

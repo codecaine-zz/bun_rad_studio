@@ -1257,12 +1257,40 @@ function buildRedisHtml(): string {
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>Choose an export file (.json)</label>
-          <input type="file" id="importFile" accept=".json,application/json" onchange="loadImportFile(this)" />
+          <label>Choose a file (JSON, JSONL, CSV, TSV, Excel .xlsx, ODS, YAML, TOML, XML, Plist, SQL, HTML, Markdown, INI, .env, .properties, Redis CLI)</label>
+          <input type="file" id="importFile" accept=".json,.jsonc,.json5,.jsonl,.ndjson,.csv,.tsv,.tab,.psv,.txt,.xlsx,.ods,.yaml,.yml,.toml,.xml,.plist,.sql,.md,.markdown,.html,.htm,.ini,.cfg,.conf,.env,.properties,.redis,.resp,text/*,application/json,application/xml" onchange="loadImportFile(this)" />
+        </div>
+        <div class="form-group" style="display:flex; gap:8px;">
+          <div style="flex:1;">
+            <label>Format</label>
+            <select id="importFormat" style="width:100%;">
+              <option value="auto">Auto-detect</option>
+              <option value="json">JSON / Redis Export / JSON5</option>
+              <option value="ndjson">JSON Lines (.jsonl / .ndjson)</option>
+              <option value="csv">CSV / TSV / PSV</option>
+              <option value="xlsx">Excel Workbook (.xlsx)</option>
+              <option value="ods">OpenDocument Spreadsheet (.ods)</option>
+              <option value="yaml">YAML (.yaml / .yml)</option>
+              <option value="toml">TOML (.toml)</option>
+              <option value="xml">XML (.xml)</option>
+              <option value="plist">Apple Plist (.plist)</option>
+              <option value="sql">SQL Dump (INSERT / COPY)</option>
+              <option value="markdown">Markdown Table (.md)</option>
+              <option value="html">HTML &lt;table&gt; (.html)</option>
+              <option value="ini">INI / Config (.ini / .cfg)</option>
+              <option value="env">Dotenv (.env)</option>
+              <option value="properties">Java .properties</option>
+              <option value="redis">Redis CLI Commands (SET / HSET / ...)</option>
+            </select>
+          </div>
+          <div style="flex:1;">
+            <label>Key Prefix (optional)</label>
+            <input type="text" id="importKeyPrefix" placeholder="e.g. app: or users:" style="width:100%;" />
+          </div>
         </div>
         <div class="form-group">
-          <label>...or paste export JSON</label>
-          <textarea id="importText" rows="8" style="width:100%; font-family: var(--font-mono); font-size: 11px;" placeholder="{ &quot;format&quot;: &quot;redis-studio-export&quot;, ... }"></textarea>
+          <label>...or paste JSON, CSV, YAML, TOML, XML, SQL, .env, or Redis CLI commands</label>
+          <textarea id="importText" rows="8" style="width:100%; font-family: var(--font-mono); font-size: 11px;" placeholder="{ &quot;format&quot;: &quot;redis-studio-export&quot;, ... } or CSV / YAML / TOML / .env / SET key value"></textarea>
         </div>
         <div class="form-group">
           <label><input type="checkbox" id="importOverwrite" /> Overwrite keys that already exist</label>
@@ -2396,8 +2424,8 @@ function buildRedisHtml(): string {
         cancel.onclick = function() { done(null); };
         ok.onclick = function() { done(input ? input.value : true); };
         back.addEventListener('keydown', function(e) {
-          if (e.key === 'Escape') done(null);
-          if (e.key === 'Enter') ok.click();
+          if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(null); }
+          if (e.key === 'Enter') { e.preventDefault(); ok.click(); }
         });
         setTimeout(function() { (input || ok).focus(); }, 80);
       });
@@ -2508,25 +2536,74 @@ function buildRedisHtml(): string {
       } catch (e) { notify('Request failed: ' + e.message, 'error'); }
     }
 
+    var importFileState = { base64: '', fileName: '' };
+
     function openImportModal() {
-      document.getElementById('importText').value = '';
-      document.getElementById('importFile').value = '';
+      importFileState = { base64: '', fileName: '' };
+      var t = document.getElementById('importText');
+      if (t) { t.value = ''; t.disabled = false; }
+      var f = document.getElementById('importFile');
+      if (f) f.value = '';
+      var fmt = document.getElementById('importFormat');
+      if (fmt) fmt.value = 'auto';
+      var pfx = document.getElementById('importKeyPrefix');
+      if (pfx) pfx.value = '';
       openModal('importModal');
     }
 
     function loadImportFile(input) {
       var f = input.files && input.files[0];
       if (!f) return;
+      importFileState.fileName = f.name || '';
+      var lower = importFileState.fileName.toLowerCase();
       var reader = new FileReader();
-      reader.onload = function() { document.getElementById('importText').value = String(reader.result || ''); };
-      reader.readAsText(f);
+      if (/\.xlsx$|\.ods$/.test(lower)) {
+        reader.onload = function() {
+          var bytes = new Uint8Array(reader.result);
+          var binary = '';
+          var chunk = 0x8000;
+          for (var i = 0; i < bytes.length; i += chunk) {
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+          }
+          importFileState.base64 = btoa(binary);
+          var t = document.getElementById('importText');
+          if (t) {
+            t.value = '[Binary spreadsheet loaded: ' + f.name + ' (' + f.size + ' bytes)]';
+            t.disabled = true;
+          }
+        };
+        reader.readAsArrayBuffer(f);
+      } else {
+        importFileState.base64 = '';
+        reader.onload = function() {
+          var t = document.getElementById('importText');
+          if (t) {
+            t.disabled = false;
+            t.value = String(reader.result || '');
+          }
+        };
+        reader.readAsText(f);
+      }
     }
 
     async function submitImport() {
       var text = document.getElementById('importText').value.trim();
-      if (!text) { notify('Choose a file or paste export JSON first', 'warning'); return; }
+      if (!text && !importFileState.base64) { notify('Choose a file or paste data first', 'warning'); return; }
+      var fmtEl = document.getElementById('importFormat');
+      var pfxEl = document.getElementById('importKeyPrefix');
       try {
-        var res = await fetch('/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text, overwrite: document.getElementById('importOverwrite').checked }) });
+        var res = await fetch('/api/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: importFileState.base64 ? '' : text,
+            base64: importFileState.base64 || undefined,
+            fileName: importFileState.fileName || undefined,
+            format: fmtEl && fmtEl.value !== 'auto' ? fmtEl.value : undefined,
+            keyPrefix: pfxEl && pfxEl.value.trim() ? pfxEl.value.trim() : undefined,
+            overwrite: document.getElementById('importOverwrite').checked
+          })
+        });
         var r = await res.json();
         if (r.success) {
           closeModal('importModal');
@@ -2538,6 +2615,22 @@ function buildRedisHtml(): string {
 
     function openModal(id) { document.getElementById(id).classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    window.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && !e.defaultPrevented && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+        var openModals = document.querySelectorAll('.modal-backdrop.active');
+        if (openModals.length > 0) {
+          var topModal = openModals[openModals.length - 1];
+          if (topModal.id) closeModal(topModal.id);
+          else topModal.remove();
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        if (window.parent && window.parent !== window) {
+          try { window.top.postMessage({ fmEscapeExpand: true }, '*'); } catch (_) {}
+        }
+      }
+    });
 
     function openAddKeyModal() { openModal('addKeyModal'); }
     function openConnectModal() { openModal('connectModal'); }

@@ -1,11 +1,98 @@
 
 		function filterPalette(query) {
-			const items = document.querySelectorAll(".palette-item");
-			query = query.toLowerCase();
-			items.forEach(item => {
-				const match = item.textContent.toLowerCase().includes(query);
-				item.style.display = match ? "flex" : "none";
+			const q = (query || "").toLowerCase().trim();
+			let totalVisible = 0;
+			const categories = document.querySelectorAll(".palette-category");
+			categories.forEach(cat => {
+				const items = cat.querySelectorAll(".palette-item");
+				let catVisible = 0;
+				items.forEach(item => {
+					const labelText = (item.textContent || "").toLowerCase();
+					const titleText = (item.getAttribute("title") || "").toLowerCase();
+					const match = !q || labelText.includes(q) || titleText.includes(q);
+					item.style.display = match ? "flex" : "none";
+					if (match) catVisible++;
+				});
+				totalVisible += catVisible;
+				const countBadge = cat.querySelector(".palette-cat-count");
+				if (countBadge) {
+					countBadge.textContent = q ? (catVisible + "/" + items.length) : String(items.length);
+				}
+				if (q) {
+					cat.style.display = catVisible > 0 ? "" : "none";
+					const grid = cat.querySelector(".palette-grid");
+					if (grid) grid.style.display = catVisible > 0 ? "grid" : "none";
+				} else {
+					cat.style.display = "";
+					const grid = cat.querySelector(".palette-grid");
+					if (grid) grid.style.display = "";
+				}
 			});
+			const emptyMsg = document.getElementById("paletteEmptyMsg");
+			if (emptyMsg) {
+				emptyMsg.style.display = (q && totalVisible === 0) ? "block" : "none";
+			}
+		}
+
+		function updatePaletteCollapseButtonLabel() {
+			const btn = document.getElementById("toggleAllCategoriesBtn");
+			if (!btn) return;
+			const categories = Array.from(document.querySelectorAll(".palette-category"));
+			const allCollapsed = categories.length > 0 && categories.every(c => c.classList.contains("collapsed"));
+			btn.textContent = allCollapsed ? "⊞ Expand" : "⊟ Collapse";
+		}
+
+		function initPaletteCategories() {
+			document.querySelectorAll(".palette-category").forEach(cat => {
+				const header = cat.querySelector(".palette-cat-header");
+				const items = cat.querySelectorAll(".palette-item");
+				if (!header || header.dataset.collapsibleBound === "1") return;
+				header.dataset.collapsibleBound = "1";
+				if (!header.querySelector(".palette-cat-count")) {
+					const countSpan = document.createElement("span");
+					countSpan.className = "palette-cat-count";
+					countSpan.textContent = String(items.length);
+					header.appendChild(countSpan);
+				}
+				if (!header.querySelector(".palette-cat-chevron")) {
+					const chev = document.createElement("span");
+					chev.className = "palette-cat-chevron";
+					chev.textContent = "▾";
+					header.appendChild(chev);
+				}
+				header.setAttribute("role", "button");
+				header.setAttribute("tabindex", "0");
+				header.setAttribute("aria-expanded", cat.classList.contains("collapsed") ? "false" : "true");
+				const toggleCat = () => {
+					cat.classList.toggle("collapsed");
+					header.setAttribute("aria-expanded", cat.classList.contains("collapsed") ? "false" : "true");
+					updatePaletteCollapseButtonLabel();
+				};
+				header.addEventListener("click", toggleCat);
+				header.addEventListener("keydown", (e) => {
+					if (e.key === "Enter" || e.key === " ") {
+						e.preventDefault();
+						toggleCat();
+					}
+				});
+			});
+			updatePaletteCollapseButtonLabel();
+		}
+
+		function toggleAllPaletteCategories() {
+			const categories = Array.from(document.querySelectorAll(".palette-category"));
+			if (categories.length === 0) return;
+			const allCollapsed = categories.every(c => c.classList.contains("collapsed"));
+			categories.forEach(cat => {
+				if (allCollapsed) {
+					cat.classList.remove("collapsed");
+				} else {
+					cat.classList.add("collapsed");
+				}
+				const header = cat.querySelector(".palette-cat-header");
+				if (header) header.setAttribute("aria-expanded", allCollapsed ? "true" : "false");
+			});
+			updatePaletteCollapseButtonLabel();
 		}
 
 		function filterControlProps(query) {

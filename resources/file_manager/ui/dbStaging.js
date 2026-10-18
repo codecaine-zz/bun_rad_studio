@@ -13,8 +13,31 @@ import { state } from "./state.js";
 
 /** The kinds of database that have tables to stage for. */
 const SQL_ENGINES = new Set(["sqlite", "mysql", "postgres"]);
-const DATA_EXTENSIONS = new Set(["csv", "tsv", "tab", "psv", "json", "ndjson", "jsonl"]);
-const EXCEL_EXTENSIONS = new Set(["xlsx", "xls", "ods"]);
+const DATA_EXTENSIONS = new Set([
+  "csv",
+  "tsv",
+  "tab",
+  "psv",
+  "ssv",
+  "dat",
+  "json",
+  "jsonc",
+  "json5",
+  "ndjson",
+  "jsonl",
+  "xlsx",
+  "ods",
+  "yaml",
+  "yml",
+  "toml",
+  "xml",
+  "plist",
+  "sql",
+  "ini",
+  "env",
+  "properties",
+]);
+const EXCEL_EXTENSIONS = new Set(["xls"]);
 const REDIS_WHY = "Staging is for databases with tables: load rows, check them, then promote them. Redis has no tables, so Redis Studio does not offer it.";
 
 export const isSqlEngine = (engine) => SQL_ENGINES.has(engine);

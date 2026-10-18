@@ -45,7 +45,7 @@ function snapshot() {
 
 async function editProject(project, seed) {
   const w = project ?? seed;
-  const name = h("input", { type: "text", class: "find-input", value: w.name, spellcheck: "false", "aria-label": "Project name", title: "A name you will recognise" });
+  const name = h("input", { type: "text", class: "find-input", value: w.name, spellcheck: "false", "aria-label": "Project name", title: "A name you will recognize" });
   const roots = textArea(w.roots.join("\n"), { label: "Project folders", tip: "The folders this project is about, one per line (full paths).", rows: 3 });
   const open = textArea(w.openFolders.join("\n"), { label: "Folders to open", tip: "Folders to show when you open the project: the first in the file list, the second in the Dual view.", rows: 2 });
   const view = h("select", { class: "find-input", "aria-label": "View", title: "Which view to show when you open the project" }, Object.entries(VIEW_NAMES).map(([v, l]) => h("option", { value: v, selected: v === w.view }, l)));

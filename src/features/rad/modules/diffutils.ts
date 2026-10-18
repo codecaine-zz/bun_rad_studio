@@ -243,7 +243,7 @@ export function applyPatch(oldText: string, patch: string): string {
   return [...out, ...src.slice(pos)].join("\n");
 }
 
-/** Colourise unified-diff text for terminals. @example console.log(diffutils.renderColoredDiff(patch)); */
+/** Colorize unified-diff text for terminals. @example console.log(diffutils.renderColoredDiff(patch)); */
 export function renderColoredDiff(diffText: string): string {
   return diffText
     .split(/\r?\n/)

@@ -8,7 +8,7 @@ Launchers: [Desktop GUI: bun run app:word_search]  •  [Headless Server: bun ru
 ---
 
 ## 🌟 Executive Overview
-**Neon Word Search Labyrinth** is a cyberpunk-themed word puzzle game: glowing canvas typography, tactile Web Audio feedback, drag-to-select words, limited hints, streak scoring and star ratings. It ships 10 word categories (Cyber, Cosmos, Arcade, Nature, Animals, Food, Geography, Science, Music, Sports), 3 difficulty levels, 3 board sizes, 4 colour palettes, a **Daily Puzzle**, a **Stats** screen with personal bests, and saves your preferences and records between sessions.
+**Neon Word Search Labyrinth** is a cyberpunk-themed word puzzle game: glowing canvas typography, tactile Web Audio feedback, drag-to-select words, limited hints, streak scoring and star ratings. It ships 10 word categories (Cyber, Cosmos, Arcade, Nature, Animals, Food, Geography, Science, Music, Sports), 3 difficulty levels, 3 board sizes, 4 color palettes, a **Daily Puzzle**, a **Stats** screen with personal bests, and saves your preferences and records between sessions.
 
 ---
 
@@ -21,7 +21,7 @@ Launchers: [Desktop GUI: bun run app:word_search]  •  [Headless Server: bun ru
 ---
 
 ## 🕹️ Gameplay & Controls
-- **Word Selection**: Click and drag across letters in a straight line (horizontal, vertical or diagonal, forwards or backwards). Releasing over a valid word locks it in with a neon colour. Re-selecting a found word is harmless and does not break your streak.
+- **Word Selection**: Click and drag across letters in a straight line (horizontal, vertical or diagonal, forwards or backwards). Releasing over a valid word locks it in with a neon color. Re-selecting a found word is harmless and does not break your streak.
 - **Difficulty**: Easy (words run down), Medium (4 directions), Hard (all 8 directions, some reversed). Board sizes 10×10, 12×12, 14×14.
 - **Scoring**: points per letter plus a streak multiplier for quick consecutive finds; 1–3 stars by score and time.
 - **Hint (H)**: Pulses the first letter of an unfound word; 3 per game, then it tells you none are left.

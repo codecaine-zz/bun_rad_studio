@@ -1,4 +1,4 @@
-/* Styles of the Find tool. Prefix every class with .find- to stay out of the way of the other tools. Colours come from the
+/* Styles of the Find tool. Prefix every class with .find- to stay out of the way of the other tools. Colors come from the
    page's variables (style.css), so light and dark themes both work. */
 
 .find-pane { gap: 12px; text-align: left; }

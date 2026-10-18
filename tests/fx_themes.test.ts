@@ -219,7 +219,7 @@ describe("fx themes: tokens", () => {
 
 describe("fx themes: contrast", () => {
     for (const [key, t] of Object.entries(FX_THEMES)) {
-        test(`${key}: text, accents, borders, focus and status colours`, () => {
+        test(`${key}: text, accents, borders, focus and status colors`, () => {
             const card = t.card_background!;
             expect(contrastRatio(t.font_color, t.background_color), "text on canvas").toBeGreaterThanOrEqual(4.5);
             expect(contrastRatio(t.font_color, card), "text on card").toBeGreaterThanOrEqual(4.5);
@@ -258,7 +258,7 @@ describe("fx themes: contrast", () => {
             }
         });
 
-        test(`${key}: code colours are readable`, () => {
+        test(`${key}: code colors are readable`, () => {
             const p = getSyntaxPalette(key);
             for (const kind of ["keyword", "string", "number", "comment", "function", "type", "text"] as const) {
                 expect(contrastRatio(p[kind], t.background_color), `${kind}`).toBeGreaterThanOrEqual(4.5);
@@ -418,7 +418,7 @@ describe("fx css: only compositor properties move", () => {
     });
 });
 
-describe("fx css: scoping, reduced motion, contrast, forced colours, off", () => {
+describe("fx css: scoping, reduced motion, contrast, forced colors, off", () => {
     test("every rule is scoped under data-fx, so no fx attribute means no effects", () => {
         for (const r of parsed.rules) for (const sel of splitSel(r.selector)) expect(sel, `unscoped: ${sel.slice(0, 100)}`).toMatch(/data-fx/);
     });
@@ -463,7 +463,7 @@ describe("fx css: scoping, reduced motion, contrast, forced colours, off", () =>
         expect(all).toMatch(/text-shadow:\s*none/);
     });
 
-    test("forced-colors falls back to system colours", () => {
+    test("forced-colors falls back to system colors", () => {
         const rules = parsed.rules.filter((r) => r.media.includes("@media (forced-colors: active)"));
         const all = rules.map((r) => r.body).join("\n");
         expect(all).toContain("Canvas");

@@ -1,19 +1,37 @@
 // The player inside Quick Look: sound and video with a queue (the other sound and video files of the folder), shuffle and
-// repeat, speed, an A-B loop, volume, a ten-band equaliser, a spectrum for music, tags and cover art, subtitles, picture in
-// picture, full screen and the computer's media keys. One <video> element plays everything (it plays sound files too), so
-// the audio graph for the equaliser and the spectrum is built once and kept.
+// repeat, speed, an A-B loop, volume, stereo balance, preamp + ten-band equalizer with spline curve, multi-mode
+// spectrum/oscilloscope/radial/VU visualizers with peak-hold caps, skins, tags and cover art, subtitles, picture in
+// picture, full screen, handoff to the full Media Deck, and the computer's media keys.
 import { lyricsUrl, rawUrl } from "./api.js";
 import { h } from "./dom.js";
-import { EQ_BANDS, EQ_PRESETS, LYRIC_EXTS, PlayQueue, clampGain, formatClock, mediaKindOfName, parseFlac, parseId3, parseMp4Tags, parseOggTags, srtToVtt, subtitleText, SUBTITLE_EXTS } from "./mediacore.js";
+import {
+  EQ_BANDS, EQ_PRESETS, LYRIC_EXTS, PLAYER_SKINS, PlayQueue, SUBTITLE_EXTS, VIZ_MODES,
+  clampBalance, clampGain, computeEqSpline, formatClock, formatLedClock, mediaKindOfName,
+  parseFlac, parseId3, parseMp4Tags, parseOggTags, renderAudioVisualizer, srtToVtt, subtitleText,
+} from "./mediacore.js";
+import { emit } from "./state.js";
 import { formatSize } from "./util.js";
+
+export { renderAudioVisualizer };
 
 const PREFS_KEY = "fm_player_v1";
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const MAX_TAG_BYTES = 2 * 1024 * 1024;
 const MAX_COVER_BYTES = 8 * 1024 * 1024;
 
+function syncSliderVars(el) {
+  if (!el) return;
+  el.style.setProperty("--attr-min", el.min || "0");
+  el.style.setProperty("--attr-max", el.max || "100");
+  el.style.setProperty("--control-value", el.value || "0");
+}
+
 function loadPrefs() {
-  const d = { volume: 0.8, muted: false, rate: 1, repeat: "off", shuffle: false, eqOn: false, eq: EQ_PRESETS.Flat.slice(), preset: "Flat" };
+  const d = {
+    volume: 0.8, muted: false, rate: 1, repeat: "off", shuffle: false,
+    eqOn: false, preamp: 0, balance: 0, eq: EQ_PRESETS.Flat.slice(), preset: "Flat",
+    vizMode: "spectrum", skin: "classic", remainingTime: false,
+  };
   try {
     const raw = JSON.parse(localStorage.getItem(PREFS_KEY) ?? "null");
     if (raw && typeof raw === "object") {
@@ -23,10 +41,14 @@ function loadPrefs() {
       if (raw.repeat === "all" || raw.repeat === "one") d.repeat = raw.repeat;
       d.shuffle = raw.shuffle === true;
       d.eqOn = raw.eqOn === true;
+      if (typeof raw.preamp === "number") d.preamp = clampGain(raw.preamp);
+      if (typeof raw.balance === "number") d.balance = clampBalance(raw.balance);
       if (Array.isArray(raw.eq) && raw.eq.length === EQ_BANDS.length) d.eq = raw.eq.map(clampGain);
       if (typeof raw.preset === "string") d.preset = raw.preset;
+      if (VIZ_MODES.some((m) => m.id === raw.vizMode)) d.vizMode = raw.vizMode;
+      if (PLAYER_SKINS.some((s) => s.id === raw.skin)) d.skin = raw.skin;
+      d.remainingTime = raw.remainingTime === true;
     }
-
   } catch { /* no saved choices: the defaults are fine */ }
   return d;
 }
@@ -39,25 +61,28 @@ async function fetchRange(path, start, end) {
   return new Uint8Array(await res.arrayBuffer());
 }
 
-/** The tags and cover picture inside a file, read from just the parts of it that hold them. Null when there are none. */
+/** The tags and cover picture inside an audio file, read from just the parts of it that hold them. Null when there are none. */
 export async function readTags(entry) {
   const name = entry.name.toLowerCase();
+  // Skip tag box-walking for video files (.mov, .mp4, .m4v, etc.): their moov atom sits at the end of large files
+  // and holds multi-megabyte frame tables, so fetching it from JS competes with <video> streaming and causes stutter.
+  if (mediaKindOfName(name) === "video") return null;
   try {
     if (name.endsWith(".mp3")) return parseId3(await fetchRange(entry.path, 0, Math.min(entry.size, MAX_TAG_BYTES) - 1));
     if (name.endsWith(".flac")) return parseFlac(await fetchRange(entry.path, 0, Math.min(entry.size, MAX_TAG_BYTES) - 1));
     if (/\.(ogg|oga|opus)$/.test(name)) return parseOggTags(await fetchRange(entry.path, 0, Math.min(entry.size, MAX_TAG_BYTES) - 1));
-    if (/\.(m4a|mp4|m4v|mov)$/.test(name)) {
-      // Walk the top-level boxes by their sizes until the one called "moov" (it is often at the end of a big file).
+    if (name.endsWith(".m4a")) {
+      // Walk the top-level boxes by their sizes until the one called "moov".
       let pos = 0;
       for (let i = 0; i < 64 && pos + 8 <= entry.size; i++) {
         const head = await fetchRange(entry.path, pos, pos + 15);
         const dv = new DataView(head.buffer, head.byteOffset, head.byteLength);
         let size = dv.getUint32(0);
         const type = String.fromCharCode(head[4], head[5], head[6], head[7]);
-        if (size === 1 && head.length >= 16) size = dv.getUint32(12);
+        if (size === 1 && head.length >= 16) size = dv.getUint32(8) * 0x100000000 + dv.getUint32(12);
         if (size === 0) size = entry.size - pos;
         if (size < 8) return null;
-        if (type === "moov") return size > 16 * 1024 * 1024 ? null : parseMp4Tags(await fetchRange(entry.path, pos + 8, pos + size - 1));
+        if (type === "moov") return size > MAX_TAG_BYTES ? null : parseMp4Tags(await fetchRange(entry.path, pos + 8, pos + size - 1));
         pos += size;
       }
     }
@@ -72,12 +97,46 @@ const dataUrlOf = (blob) => new Promise((resolve, reject) => {
   reader.readAsDataURL(blob);
 });
 
-
+/** Draws the 10-band EQ spline curve onto a canvas. */
+export function drawEqSplineCanvas(canvas, preamp, bands, eqOn) {
+  if (!canvas || typeof canvas.getContext !== "function") return;
+  if (typeof HTMLCanvasElement !== "undefined" && canvas instanceof HTMLCanvasElement && typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent ?? "")) return;
+  const g2 = canvas.getContext("2d");
+  if (!g2) return;
+  const w = canvas.width;
+  const h = canvas.height;
+  g2.clearRect(0, 0, w, h);
+  g2.fillStyle = "rgba(10, 15, 28, 0.85)";
+  g2.fillRect(0, 0, w, h);
+  const { points, anchors, zeroY } = computeEqSpline(preamp, bands, w, h);
+  // 0 dB / preamp line
+  g2.strokeStyle = "rgba(148, 163, 184, 0.35)";
+  g2.lineWidth = 1;
+  g2.beginPath();
+  g2.moveTo(0, zeroY);
+  g2.lineTo(w, zeroY);
+  g2.stroke();
+  // Spline curve
+  if (points.length) {
+    g2.strokeStyle = eqOn ? "#22c55e" : "#64748b";
+    g2.lineWidth = 2;
+    g2.beginPath();
+    points.forEach((pt, idx) => {
+      if (idx === 0) g2.moveTo(pt.x, pt.y);
+      else g2.lineTo(pt.x, pt.y);
+    });
+    g2.stroke();
+  }
+  for (const pt of anchors) {
+    g2.fillStyle = eqOn ? "#facc15" : "#94a3b8";
+    g2.fillRect(pt.x - 2, pt.y - 2, 4, 4);
+  }
+}
 
 /**
- * @param {{ entries: any[], start: any, onTrack: (entry: any) => void, announce: (text: string) => void, subtitleEntries?: any[] }} options
+ * @param {{ entries: any[], start: any, onTrack: (entry: any) => void, announce: (text: string) => void, subtitleEntries?: any[], onOpenDeck?: (state: any) => void }} options
  */
-export function createPlayer({ entries, start, onTrack, announce, subtitleEntries = [] }) {
+export function createPlayer({ entries, start, onTrack, announce, subtitleEntries = [], onOpenDeck }) {
   const prefs = loadPrefs();
   const list = entries.filter((e) => mediaKindOfName(e.name));
   const queue = new PlayQueue(list.length, Math.max(0, list.findIndex((e) => e.path === start.path)));
@@ -95,25 +154,28 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
   let tags = null;
   let loop = { a: null, b: null };
   let cover = "";
-  let graph = null; // { ctx, analyser, filters }
+  let graph = null; // { ctx, analyser, filters, preamp, panner, out }
   let graphTried = false;
   let raf = 0;
   let destroyed = false;
   let loadToken = 0;
   let trackUrls = [];
   let lyricSources = [];
+  const peaks = new Float32Array(64);
+  let vizPhase = 0;
 
   // --- parts ---------------------------------------------------------------------------------------------------
   const art = h("div", { class: "mp-art", "aria-hidden": "true" });
-  const canvas = h("canvas", { class: "mp-viz", width: 640, height: 160, "aria-hidden": "true" });
-  const stage = h("div", { class: "mp-stage" }, art, canvas, media);
+  const canvas = h("canvas", { class: "mp-viz", width: 640, height: 160, title: "Click to cycle visualizer mode (V)" });
+  const vizBadge = h("span", { class: "mp-viz-badge" });
+  const stage = h("div", { class: "mp-stage" }, art, canvas, vizBadge, media);
   const title = h("div", { class: "mp-title" });
   const artist = h("div", { class: "mp-artist" });
   const message = h("p", { class: "mp-message", role: "status" });
   const info = h("div", { class: "mp-info" }, title, artist, message);
 
   const seek = h("input", { type: "range", class: "mp-seek", min: "0", max: "1000", value: "0", step: "1", "aria-label": "Position" });
-  const elapsed = h("span", { class: "mp-time" }, "0:00");
+  const elapsed = h("span", { class: "mp-time mp-time-toggle", title: "Click to toggle elapsed or remaining time" }, "0:00");
   const total = h("span", { class: "mp-time" }, "0:00");
   const abMark = h("div", { class: "mp-ab", hidden: true });
   const seekRow = h("div", { class: "mp-seekrow" }, elapsed, h("div", { class: "mp-seekwrap" }, seek, abMark), total);
@@ -128,22 +190,34 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
   const volume = h("input", { type: "range", class: "mp-volume", min: "0", max: "100", value: String(Math.round(prefs.volume * 100)), "aria-label": "Volume" });
   const speed = h("select", { class: "mp-select", "aria-label": "Speed ([ and ])", title: "Speed ([ slower, ] faster)" }, ...SPEEDS.map((s) => h("option", { value: String(s), selected: s === prefs.rate }, `${s}×`)));
   const abBtn = btn("", "A–B loop (A)", "A–B", () => cycleLoop());
-  const eqBtn = btn("", "Equaliser (E)", "🎚", () => togglePanel("eq"));
+  const vizBtn = btn("", "Visualizer mode (V)", "📊", () => cycleVizMode());
+  const vizSelect = h("select", { class: "mp-select", "aria-label": "Visualizer preset", title: "Choose visualizer preset (V cycles)" }, ...VIZ_MODES.map((m) => h("option", { value: m.id, selected: m.id === prefs.vizMode }, m.label)));
+  const eqBtn = btn("", "Equalizer (E)", "🎚", () => togglePanel("eq"));
   const queueBtn = btn("", "Queue (Q)", "☰", () => togglePanel("queue"));
   const lyricsBtn = btn("", "Show lyrics (L)", "♪", () => togglePanel("lyrics"));
   lyricsBtn.hidden = true;
   const subSelect = h("select", { class: "mp-select", hidden: true, "aria-label": "Subtitles (C)", title: "Subtitles (C)" });
+  const skinSelect = h("select", { class: "mp-select", "aria-label": "Player skin", title: "Choose player skin" }, ...PLAYER_SKINS.map((s) => h("option", { value: s.id, selected: s.id === prefs.skin }, s.label)));
+  const deckBtn = btn("", "Open in Media Deck (W)", "🎛️", () => openInDeck());
   const pipBtn = btn("", "Picture in picture", "⧉", () => pip());
   const fsBtn = btn("", "Full screen (F)", "⛶", () => fullscreen());
   const buttons = h("div", { class: "mp-buttons" }, shuffleBtn, prevBtn, playBtn, nextBtn, repeatBtn,
-    h("span", { class: "mp-sep" }), muteBtn, volume, speed, abBtn, eqBtn, queueBtn, lyricsBtn, subSelect, pipBtn, fsBtn);
+    h("span", { class: "mp-sep" }), muteBtn, volume, speed, abBtn, vizBtn, vizSelect, eqBtn, queueBtn, lyricsBtn, subSelect, skinSelect, deckBtn, pipBtn, fsBtn);
 
-  const eqPreset = h("select", { class: "mp-select", "aria-label": "Equaliser preset" }, ...Object.keys(EQ_PRESETS).map((n) => h("option", { value: n }, n)), h("option", { value: "Custom" }, "Custom"));
-  const eqOn = h("input", { type: "checkbox", "aria-label": "Equaliser on" });
+  const eqPreset = h("select", { class: "mp-select", "aria-label": "Equalizer preset" }, ...Object.keys(EQ_PRESETS).map((n) => h("option", { value: n }, n)), h("option", { value: "Custom" }, "Custom"));
+  const eqOn = h("input", { type: "checkbox", "aria-label": "Equalizer on" });
+  const preampInput = h("input", { type: "range", class: "mp-preamp", min: "-12", max: "12", step: "1", value: String(prefs.preamp), orient: "vertical", "aria-label": "Preamp gain", oninput: () => preampChanged() });
+  const balanceInput = h("input", { type: "range", class: "mp-balance", min: "-100", max: "100", step: "5", value: String(prefs.balance), "aria-label": "Stereo balance", oninput: () => balanceChanged() });
+  const eqCurveCanvas = h("canvas", { class: "mp-eq-curve", width: 220, height: 48, "aria-hidden": "true" });
   const bandInputs = EQ_BANDS.map((hz, i) => h("input", { type: "range", class: "mp-band", min: "-12", max: "12", step: "1", value: String(prefs.eq[i]), orient: "vertical", "aria-label": `${hz >= 1000 ? `${hz / 1000} kilohertz` : `${hz} hertz`} gain`, oninput: () => bandChanged(i) }));
   const eqPanel = h("div", { class: "mp-panel", hidden: true },
     h("div", { class: "mp-paneltop" }, h("label", {}, eqOn, " On"), eqPreset, h("button", { type: "button", class: "btn", onclick: () => applyPreset("Flat") }, "Reset")),
-    h("div", { class: "mp-bands" }, ...EQ_BANDS.map((hz, i) => h("label", { class: "mp-band-wrap" }, bandInputs[i], h("span", {}, hz >= 1000 ? `${hz / 1000}k` : String(hz))))),
+    eqCurveCanvas,
+    h("div", { class: "mp-eq-meta" }, h("label", { class: "mp-balance-wrap" }, "Pan L/R ", balanceInput)),
+    h("div", { class: "mp-bands" },
+      h("label", { class: "mp-band-wrap mp-preamp-wrap" }, preampInput, h("span", {}, "Pre")),
+      ...EQ_BANDS.map((hz, i) => h("label", { class: "mp-band-wrap" }, bandInputs[i], h("span", {}, hz >= 1000 ? `${hz / 1000}k` : String(hz)))),
+    ),
     h("p", { class: "mp-note", id: "mp-eqnote" }, ""));
   const queueList = h("ol", { class: "mp-queue", "aria-label": "Play queue" });
   const queuePanel = h("div", { class: "mp-panel", hidden: true }, queueList);
@@ -152,13 +226,54 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
   const lyricsPanel = h("div", { class: "mp-panel mp-lyrics-panel", hidden: true },
     h("div", { class: "mp-paneltop" }, h("strong", {}, "Lyrics"), lyricsSelect), lyricsText);
 
-  const root = h("div", { class: "mp", tabindex: "-1" }, stage, info, seekRow, buttons, eqPanel, queuePanel, lyricsPanel);
+  const root = h("div", { class: "mp", tabindex: "-1", dataset: { skin: prefs.skin } }, stage, info, seekRow, buttons, eqPanel, queuePanel, lyricsPanel);
+
+  for (const el of [seek, volume, preampInput, balanceInput, ...bandInputs]) syncSliderVars(el);
 
   // --- helpers -------------------------------------------------------------------------------------------------
   const save = () => savePrefs(prefs);
   const say = (text) => announce?.(text);
   const showMessage = (text) => { message.textContent = text; message.hidden = !text; };
   const isVideo = () => mediaKindOfName(entry.name) === "video";
+
+  function openInDeck() {
+    const payload = { entries: list, start: entry, currentTime: media.currentTime, paused: media.paused };
+    media.pause();
+    if (typeof onOpenDeck === "function") onOpenDeck(payload);
+    else emit("player-deck-open", payload);
+  }
+
+  function drawIdleViz() {
+    if (isVideo() || (typeof HTMLCanvasElement !== "undefined" && canvas instanceof HTMLCanvasElement && typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent ?? ""))) return;
+    const g2 = typeof canvas.getContext === "function" ? canvas.getContext("2d") : null;
+    if (!g2) return;
+    const freqData = new Uint8Array(128);
+    const timeData = new Uint8Array(128);
+    for (let i = 0; i < 128; i++) {
+      freqData[i] = Math.max(14, Math.round(105 * Math.exp(-i / 42) + 45 * Math.sin(i * 0.28 + 0.8) * Math.sin(i * 0.11)));
+      timeData[i] = Math.round(128 + 38 * Math.sin(i * 0.22) * Math.cos(i * 0.07));
+    }
+    vizPhase += 4;
+    const accent = getComputedStyle(root).getPropertyValue("--mp-led").trim() || "#00ff41";
+    renderAudioVisualizer(g2, canvas.width, canvas.height, prefs.vizMode, freqData, timeData, peaks, accent, vizPhase);
+  }
+
+  function setVizMode(id) {
+    const modeObj = VIZ_MODES.find((m) => m.id === id);
+    if (!modeObj) return;
+    prefs.vizMode = modeObj.id;
+    vizSelect.value = modeObj.id;
+    vizBadge.textContent = modeObj.label;
+    if (media.paused || !graph) drawIdleViz();
+    save();
+    say(`Visualizer: ${modeObj.label}`);
+  }
+
+  function cycleVizMode() {
+    const idx = VIZ_MODES.findIndex((m) => m.id === prefs.vizMode);
+    const nextMode = VIZ_MODES[(idx + 1) % VIZ_MODES.length];
+    setVizMode(nextMode.id);
+  }
 
   function renderQueue() {
     queueList.replaceChildren(...list.map((e, i) => h("li", { class: i === list.indexOf(entry) ? "is-current" : "" },
@@ -181,16 +296,24 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     abBtn.classList.toggle("is-on", loop.a !== null);
     abBtn.textContent = loop.a === null ? "A–B" : loop.b === null ? "A→" : "A⇄B";
     prevBtn.disabled = nextBtn.disabled = list.length < 2 && queue.repeat === "off";
+    vizBtn.hidden = isVideo();
+    vizSelect.hidden = isVideo();
+    vizBadge.hidden = isVideo();
+    vizSelect.value = prefs.vizMode;
+    vizBadge.textContent = VIZ_MODES.find((m) => m.id === prefs.vizMode)?.label ?? "";
     pipBtn.hidden = !isVideo() || !canPip();
     fsBtn.hidden = !isVideo();
   }
 
   function refreshTime() {
     const d = media.duration;
-    elapsed.textContent = formatClock(media.currentTime);
+    elapsed.textContent = formatLedClock(media.currentTime, d, prefs.remainingTime);
     total.textContent = Number.isFinite(d) ? formatClock(d) : "0:00";
-    if (document.activeElement !== seek || !seek.matches(":active")) seek.value = Number.isFinite(d) && d > 0 ? String(Math.round((media.currentTime / d) * 1000)) : "0";
-    seek.setAttribute("aria-valuetext", `${elapsed.textContent} of ${total.textContent}`);
+    if (document.activeElement !== seek || !seek.matches(":active")) {
+      seek.value = Number.isFinite(d) && d > 0 ? String(Math.round((media.currentTime / d) * 1000)) : "0";
+      syncSliderVars(seek);
+    }
+    seek.setAttribute("aria-valuetext", `${formatClock(media.currentTime)} of ${total.textContent}`);
     if (loop.a !== null && loop.b !== null && media.currentTime >= loop.b) media.currentTime = loop.a;
   }
 
@@ -202,7 +325,7 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     abMark.style.width = `${(((loop.b ?? media.currentTime) - loop.a) / d) * 100}%`;
   }
 
-  // --- the audio graph: equaliser and spectrum ---------------------------------------------------------------
+  // --- the audio graph: preamp, equalizer, stereo balance and spectrum -----------------------------------------
   async function ensureGraph() {
     if (graph || graphTried) return graph;
     graphTried = true;
@@ -213,6 +336,7 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
       await ctx.resume();
       if (ctx.state !== "running") { await ctx.close(); return null; } // routing the sound through a stopped context would silence it
       const source = ctx.createMediaElementSource(media);
+      const preamp = ctx.createGain();
       const filters = EQ_BANDS.map((hz, i) => {
         const f = ctx.createBiquadFilter();
         f.type = i === 0 ? "lowshelf" : i === EQ_BANDS.length - 1 ? "highshelf" : "peaking";
@@ -221,12 +345,14 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
         f.gain.value = prefs.eqOn ? prefs.eq[i] : 0;
         return f;
       });
+      const panner = typeof ctx.createStereoPanner === "function" ? ctx.createStereoPanner() : null;
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
       analyser.smoothingTimeConstant = 0.78;
       const out = ctx.createGain();
-      [source, ...filters, analyser, out, ctx.destination].reduce((a, b) => (a.connect(b), b));
-      graph = { ctx, analyser, filters, out };
+      const chain = [source, preamp, ...filters, ...(panner ? [panner] : []), analyser, out, ctx.destination];
+      chain.reduce((a, b) => (a.connect(b), b));
+      graph = { ctx, preamp, panner, analyser, filters, out };
       applyLevel();
       applyEq();
     } catch { graph = null; }
@@ -234,34 +360,68 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
   }
 
   function applyEq() {
-    graph?.filters.forEach((f, i) => { f.gain.value = prefs.eqOn ? prefs.eq[i] : 0; });
+    if (graph) {
+      graph.preamp.gain.value = prefs.eqOn ? Math.pow(10, prefs.preamp / 20) : 1;
+      if (graph.panner) graph.panner.pan.value = Math.max(-1, Math.min(1, prefs.balance / 100));
+      graph.filters.forEach((f, i) => { f.gain.value = prefs.eqOn ? prefs.eq[i] : 0; });
+    }
     eqOn.checked = prefs.eqOn;
-    bandInputs.forEach((el, i) => { el.value = String(prefs.eq[i]); });
+    preampInput.value = String(prefs.preamp);
+    preampInput.setAttribute("aria-valuetext", `${prefs.preamp > 0 ? "+" : ""}${prefs.preamp} decibels`);
+    syncSliderVars(preampInput);
+    balanceInput.value = String(prefs.balance);
+    balanceInput.setAttribute("aria-valuetext", prefs.balance === 0 ? "Center" : prefs.balance < 0 ? `${Math.abs(prefs.balance)}% Left` : `${prefs.balance}% Right`);
+    syncSliderVars(balanceInput);
+    bandInputs.forEach((el, i) => {
+      el.value = String(prefs.eq[i]);
+      el.setAttribute("aria-valuetext", `${prefs.eq[i] > 0 ? "+" : ""}${prefs.eq[i]} decibels`);
+      syncSliderVars(el);
+    });
     eqPreset.value = Object.keys(EQ_PRESETS).includes(prefs.preset) ? prefs.preset : "Custom";
+    drawEqSplineCanvas(eqCurveCanvas, prefs.preamp, prefs.eq, prefs.eqOn);
     const note = eqPanel.querySelector("#mp-eqnote");
-    if (note) note.textContent = graphTried && !graph ? "The equaliser and the spectrum aren't available here: this window's audio system could not be started. Playing is not affected." : "";
+    if (note) note.textContent = graphTried && !graph ? "The equalizer and the spectrum aren't available here: this window's audio system could not be started. Playing is not affected." : "";
+  }
+
+  function preampChanged() {
+    prefs.preamp = clampGain(preampInput.value);
+    prefs.eqOn = true;
+    if (!media.paused) ensureGraph().then(applyEq);
+    else applyEq();
+    save();
+  }
+
+  function balanceChanged() {
+    prefs.balance = clampBalance(balanceInput.value);
+    if (!media.paused && prefs.balance !== 0) ensureGraph().then(applyEq);
+    else applyEq();
+    save();
   }
 
   function bandChanged(i) {
     prefs.eq[i] = clampGain(bandInputs[i].value);
     prefs.preset = "Custom";
     prefs.eqOn = true;
-    applyEq();
+    if (!media.paused) ensureGraph().then(applyEq);
+    else applyEq();
     save();
   }
 
   function applyPreset(name) {
     prefs.eq = (EQ_PRESETS[name] ?? EQ_PRESETS.Flat).slice();
+    if (name === "Flat") prefs.preamp = 0;
     prefs.preset = name;
     prefs.eqOn = name !== "Flat" || prefs.eqOn;
-    applyEq();
+    if (!media.paused && prefs.eqOn) ensureGraph().then(applyEq);
+    else applyEq();
     save();
   }
 
   function startViz() {
     if (raf || destroyed || isVideo() || !graph || window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
     const g2 = canvas.getContext("2d");
-    const data = new Uint8Array(graph.analyser.frequencyBinCount);
+    const freqData = new Uint8Array(graph.analyser.frequencyBinCount);
+    const timeData = new Uint8Array(graph.analyser.frequencyBinCount);
     let last = 0;
     const frame = (now) => {
       raf = 0;
@@ -269,15 +429,13 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
       raf = requestAnimationFrame(frame);
       if (now - last < 33) return; // about 30 pictures a second is plenty, and light
       last = now;
-      graph.analyser.getByteFrequencyData(data);
-      const w = canvas.width, hgt = canvas.height, bars = 56, bw = w / bars;
-      g2.clearRect(0, 0, w, hgt);
-      g2.fillStyle = getComputedStyle(root).getPropertyValue("--accent").trim() || "#0b5cd5";
-      for (let i = 0; i < bars; i++) {
-        const v = data[Math.min(data.length - 1, Math.floor((i / bars) * data.length * 0.8))] / 255;
-        const bh = Math.max(2, v * hgt);
-        g2.fillRect(i * bw + 1, hgt - bh, bw - 2, bh);
+      vizPhase++;
+      graph.analyser.getByteFrequencyData(freqData);
+      if (prefs.vizMode === "oscilloscope" && typeof graph.analyser.getByteTimeDomainData === "function") {
+        graph.analyser.getByteTimeDomainData(timeData);
       }
+      const accent = getComputedStyle(root).getPropertyValue("--accent").trim() || "#00ff41";
+      renderAudioVisualizer(g2, canvas.width, canvas.height, prefs.vizMode, freqData, timeData, peaks, accent, vizPhase);
     };
     raf = requestAnimationFrame(frame);
   }
@@ -390,6 +548,7 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     tags = null; cover = ""; loop = { a: null, b: null };
     showMessage("");
     clearTracks();
+    if (!media.paused) media.pause();
     media.src = rawUrl(entry.path);
     media.load();
     showInfo();
@@ -399,17 +558,21 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     onTrack?.(entry);
     say(`Playing ${entry.name}`);
     if (autoplay) play();
-    readTags(entry).then(async (t) => {
-      if (token !== loadToken || destroyed) return;
-      if (t) {
-        tags = t;
-        if (t.cover && t.cover.data.length <= MAX_COVER_BYTES) { try { cover = await dataUrlOf(new Blob([t.cover.data], { type: t.cover.mime })); } catch { cover = ""; } }
-        if (token === loadToken && !destroyed) showInfo();
-      }
-      await loadLyrics(token, t?.lyrics);
-    }).catch((err) => {
-      if (token === loadToken && !destroyed) showMessage(`Couldn't read this file's media tags: ${err instanceof Error ? err.message : String(err)}`);
-    });
+    if (isVideo()) {
+      loadLyrics(token, null);
+    } else {
+      readTags(entry).then(async (t) => {
+        if (token !== loadToken || destroyed) return;
+        if (t) {
+          tags = t;
+          if (t.cover && t.cover.data.length <= MAX_COVER_BYTES) { try { cover = await dataUrlOf(new Blob([t.cover.data], { type: t.cover.mime })); } catch { cover = ""; } }
+          if (token === loadToken && !destroyed) showInfo();
+        }
+        await loadLyrics(token, t?.lyrics);
+      }).catch((err) => {
+        if (token === loadToken && !destroyed) showMessage(`Couldn't read this file's media tags: ${err instanceof Error ? err.message : String(err)}`);
+      });
+    }
     loadSubtitles(token);
   }
 
@@ -421,8 +584,11 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
   async function play() {
     try {
       await media.play();
-      await ensureGraph();
-      graph?.ctx.resume?.();
+      // Keep video (.mov/.mp4) on the native hardware A/V clock unless EQ or stereo balance DSP is actively enabled.
+      if (!isVideo() || prefs.eqOn || prefs.balance !== 0) {
+        await ensureGraph();
+        graph?.ctx.resume?.();
+      }
       startViz();
     } catch (err) {
       // Only a refusal for lack of a click or key press gets this message; a format that can't be played has its own (the error event).
@@ -447,7 +613,7 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
   }
   function seekBy(sec) { if (Number.isFinite(media.duration)) media.currentTime = Math.max(0, Math.min(media.duration, media.currentTime + sec)); }
   /**
-   * Volume and mute. Once the sound goes through the audio graph (spectrum and equaliser), some engines (WebKit, which
+   * Volume and mute. Once the sound goes through the audio graph (spectrum and equalizer), some engines (WebKit, which
    * the desktop window uses) ignore the element's own volume and mute, so the graph's last gain does both and the
    * element stays at full volume; without a graph the element does it.
    */
@@ -460,7 +626,10 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
       media.volume = level;
       media.muted = silent;
     }
-    volume.value = String(Math.round((silent ? 0 : level) * 100));
+    const pct = Math.round((silent ? 0 : level) * 100);
+    volume.value = String(pct);
+    volume.setAttribute("aria-valuetext", `${pct}%`);
+    syncSliderVars(volume);
     prefs.volume = level; prefs.muted = silent; save(); refreshButtons();
   }
   function setVolume(v) { level = Math.max(0, Math.min(1, v)); if (level > 0) silent = false; applyLevel(); }
@@ -543,15 +712,36 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     refreshSubtitleOptions();
     if (isVideo() && media.videoWidth) artist.textContent = `${artist.textContent}  ·  ${media.videoWidth} × ${media.videoHeight}`;
   });
-  seek.addEventListener("input", () => { if (Number.isFinite(media.duration)) media.currentTime = (Number(seek.value) / 1000) * media.duration; });
+  elapsed.addEventListener("click", () => {
+    prefs.remainingTime = !prefs.remainingTime;
+    save();
+    refreshTime();
+  });
+  canvas.addEventListener("click", () => { if (!isVideo()) cycleVizMode(); });
+  seek.addEventListener("input", () => {
+    syncSliderVars(seek);
+    if (Number.isFinite(media.duration)) media.currentTime = (Number(seek.value) / 1000) * media.duration;
+  });
   volume.addEventListener("input", () => setVolume(Number(volume.value) / 100));
   speed.addEventListener("change", () => setRate(Number(speed.value)));
+  vizSelect.addEventListener("change", () => setVizMode(vizSelect.value));
+  skinSelect.addEventListener("change", () => {
+    prefs.skin = skinSelect.value;
+    root.dataset.skin = prefs.skin;
+    if (media.paused || !graph) drawIdleViz();
+    save();
+  });
   subSelect.addEventListener("change", () => setSubtitle(Number(subSelect.value)));
   lyricsSelect.addEventListener("change", () => {
     const source = lyricSources[Number(lyricsSelect.value)];
     if (source) lyricsText.textContent = source.text;
   });
-  eqOn.addEventListener("change", () => { prefs.eqOn = eqOn.checked; applyEq(); save(); });
+  eqOn.addEventListener("change", () => {
+    prefs.eqOn = eqOn.checked;
+    if (!media.paused && prefs.eqOn) ensureGraph().then(applyEq);
+    else applyEq();
+    save();
+  });
   eqPreset.addEventListener("change", () => { if (eqPreset.value !== "Custom") applyPreset(eqPreset.value); });
   stage.addEventListener("click", (e) => { if (isVideo() && e.target === media) toggle(); });
   stage.addEventListener("dblclick", (e) => { if (isVideo() && e.target === media) fullscreen(); });
@@ -578,6 +768,8 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     else if (lower === "a") cycleLoop();
     else if (lower === "r") setRepeat(queue.cycleRepeat());
     else if (lower === "s") setShuffle(!queue.shuffle);
+    else if (lower === "v" && !isVideo()) cycleVizMode();
+    else if (lower === "w") openInDeck();
     else if (lower === "f" && isVideo()) fullscreen();
     else if (lower === "e") togglePanel("eq");
     else if (lower === "q") togglePanel("queue");
@@ -631,3 +823,4 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     media,
   };
 }
+

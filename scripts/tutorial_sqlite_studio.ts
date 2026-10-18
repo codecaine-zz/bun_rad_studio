@@ -77,7 +77,7 @@ SQLite in the Codecaine File Manager: Browse, Edit, Query, Design and Import (Bu
 ## YouTube description (copy and paste)
 
 \`\`\`text
-Work with SQLite databases without leaving the Codecaine File Manager, part of Bun RAD Studio. See how a real SQLite file is recognised in the file list, saved as a connection in the Databases tool (found in your environment, tested, edited, marked production), and opened in SQLite Studio inside the File Manager window. Then use the whole studio: sort, filter, totals and column chooser in the data grid, adding, editing and deleting rows without SQL, designing tables visually, the SQL editor with presets, explain plan and create view, the visual query designer with automatic joins, building and running a macro, PRAGMA settings, the audit log, exports and one-click backups, and Import with staging that checks every row before it reaches your table. All on made-up sample data.
+Work with SQLite databases without leaving the Codecaine File Manager, part of Bun RAD Studio. See how a real SQLite file is recognized in the file list, saved as a connection in the Databases tool (found in your environment, tested, edited, marked production), and opened in SQLite Studio inside the File Manager window. Then use the whole studio: sort, filter, totals and column chooser in the data grid, adding, editing and deleting rows without SQL, designing tables visually, the SQL editor with presets, explain plan and create view, the visual query designer with automatic joins, building and running a macro, PRAGMA settings, the audit log, exports and one-click backups, and Import with staging that checks every row before it reaches your table. All on made-up sample data.
 
 Free and open source: ${REPO}
 SQLite Studio guide: ${REPO}/blob/main/docs/userguides/01_sqlite_studio.md
@@ -114,7 +114,7 @@ const suite: Suite = {
   open: (ch) => open(ch),
   start: async () => {
     seedWorld();
-    if (!existsSync(join(APP, ".env"))) prepareAppCopy(ROOT, APP, sqlite.shopDb);
+    prepareAppCopy(ROOT, APP, sqlite.shopDb);
     cdp = await Cdp.launch(CDP_PORT, join(WORK, "chrome"), 1920, VIEW_H);
   },
   stop: () => { stopServer(); cdp?.close(); },

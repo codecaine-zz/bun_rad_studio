@@ -16,15 +16,23 @@ const SHAPES = [["keep", "Keep the shape"], ["1:1", "Square (1:1)"], ["4:5", "Po
 
 /** One-click looks: each sets a few sliders (everything else goes back to normal first). */
 const PRESETS = [
+  ["Auto-enhance", { enhance: true, contrast: 8, saturation: 112, sharpen: 1 }],
   ["Black and white", { gray: true, contrast: 10 }],
+  ["Document scan", { gray: true, contrast: 65, brightness: 15, sharpen: 2 }],
+  ["High contrast", { contrast: 45, saturation: 115, sharpen: 1 }],
   ["Vintage", { sepia: 60, contrast: -10, vignette: true, saturation: 80 }],
   ["Vivid", { saturation: 160, contrast: 15, enhance: true }],
   ["Warm", { warmth: 45, saturation: 110 }],
+  ["Golden hour", { warmth: 65, brightness: 8, saturation: 125, vignette: true }],
   ["Cool", { warmth: -45 }],
   ["Dreamy", { blur: 1.5, brightness: 10, saturation: 120, vignette: true }],
+  ["Polaroid frame", { warmth: 20, contrast: 10, border: 28, borderColour: "white", vignette: true }],
   ["Profile picture", { crop: "circle", width: 512, format: "png" }],
   ["Square post", { crop: "1:1", width: 1080 }],
   ["Story (9:16)", { crop: "9:16", width: 1080 }],
+  ["YouTube (16:9)", { crop: "16:9", width: 1280, contrast: 10, saturation: 115 }],
+  ["Transparent logo", { transparent: true, format: "png" }],
+  ["Small WebP", { width: 1600, format: "webp", quality: 80, strip: true }],
 ];
 
 function mount(root) {
@@ -43,15 +51,15 @@ function mount(root) {
   const on = () => draw();
   add(slider({ id: "brightness", label: "Brightness", min: -100, max: 100, value: 0, format: signed, onInput: on }));
   add(slider({ id: "contrast", label: "Contrast", min: -100, max: 100, value: 0, format: signed, onInput: on }));
-  add(slider({ id: "saturation", label: "Colour", min: 0, max: 300, value: 100, format: (v) => `${v}%`, tip: "0% is black and white, 100% is normal, more is more colourful.", onInput: on }));
+  add(slider({ id: "saturation", label: "Color", min: 0, max: 300, value: 100, format: (v) => `${v}%`, tip: "0% is black and white, 100% is normal, more is more colorful.", onInput: on }));
   add(slider({ id: "warmth", label: "Warmth", min: -100, max: 100, value: 0, format: signed, tip: "Warmer (more orange) or cooler (more blue).", onInput: on }));
-  add(slider({ id: "hue", label: "Hue", min: -180, max: 180, value: 0, format: (v) => `${v}°`, tip: "Shifts every colour around the colour wheel.", onInput: on }));
+  add(slider({ id: "hue", label: "Hue", min: -180, max: 180, value: 0, format: (v) => `${v}°`, tip: "Shifts every color around the color wheel.", onInput: on }));
   add(slider({ id: "sepia", label: "Sepia", min: 0, max: 100, value: 0, format: (v) => `${v}%`, tip: "An old brown photo look.", onInput: on }));
   add(slider({ id: "blur", label: "Blur", min: 0, max: 40, step: 0.5, value: 0, onInput: on }));
   add(slider({ id: "sharpen", label: "Sharpen", min: 0, max: 5, step: 0.5, value: 0, onInput: on }));
   add(toggle({ id: "gray", label: "Black and white", onInput: on }));
   add(toggle({ id: "invert", label: "Negative", onInput: on }));
-  add(toggle({ id: "enhance", label: "Auto-enhance", tip: "Fixes dull, flat colours and contrast automatically.", onInput: on }));
+  add(toggle({ id: "enhance", label: "Auto-enhance", tip: "Fixes dull, flat colors and contrast automatically.", onInput: on }));
   add(toggle({ id: "vignette", label: "Vignette", tip: "Darkens the edges to draw the eye to the middle.", onInput: on }));
   add(toggle({ id: "transparent", label: "White to see-through", tip: "Makes a white background see-through (saves as PNG).", onInput: on }));
   add(select({ id: "rotate", label: "Rotate", choices: [["0", "None"], ["90", "Right"], ["180", "Upside down"], ["270", "Left"]], value: "0", onInput: on }));
@@ -60,7 +68,7 @@ function mount(root) {
   add(select({ id: "crop", label: "Shape", choices: SHAPES, value: "keep", tip: "Cuts the middle of the picture to this shape.", onInput: on }));
   add(slider({ id: "corners", label: "Round corners", min: 0, max: 400, value: 0, format: (v) => `${v} px`, onInput: on }));
   add(slider({ id: "border", label: "Border", min: 0, max: 300, value: 0, format: (v) => `${v} px`, onInput: on }));
-  add(select({ id: "borderColour", label: "Border colour", choices: [["white", "White"], ["black", "Black"], ["#808080", "Grey"]], value: "white", onInput: on }));
+  add(select({ id: "borderColour", label: "Border color", choices: [["white", "White"], ["black", "Black"], ["#808080", "Gray"]], value: "white", onInput: on }));
   add(slider({ id: "width", label: "Width", min: 0, max: 4000, step: 10, value: 0, format: (v) => (v ? `${v} px` : "Same size"), tip: "Shrinks the saved picture to this width. Same size keeps it as it is.", onInput: on }));
   add(select({ id: "format", label: "Save as", choices: [["keep", "Same as the original"], ["jpg", "JPG"], ["png", "PNG"], ["webp", "WebP"], ["avif", "AVIF"]], value: "keep", onInput: on }));
   add(slider({ id: "quality", label: "Quality", min: 30, max: 100, value: 88, format: (v) => `${v}%`, tip: "Lower makes a smaller file (JPG, WebP and AVIF).", onInput: on }));
@@ -121,16 +129,26 @@ function mount(root) {
   function load(p) {
     path = p;
     files.setName(p);
-    const can = PREVIEWABLE.has(extOf(p));
+    const can = isStudioPicture(p);
     noPreview.hidden = can;
     empty.hidden = true;
     frame.hidden = !can;
+    delete img.dataset.retried;
     if (can) img.src = rawUrl(p);
     saveBtn.disabled = false;
     status.textContent = "";
     draw();
   }
   img.addEventListener("load", draw);
+  img.addEventListener("error", () => {
+    if (path && !img.dataset.retried) {
+      img.dataset.retried = "1";
+      img.src = `${rawUrl(path)}&convert=1`;
+      return;
+    }
+    frame.hidden = true;
+    noPreview.hidden = false;
+  });
   const files = fileRow({ what: "picture", accepts: isStudioPicture, onPick: load, idPrefix: "ist" });
   frame.hidden = true;
 
@@ -150,7 +168,7 @@ function mount(root) {
     h("div", { class: "st-body" },
       h("div", { class: "st-preview" }, stage, noPreview, h("div", { class: "pw-row" }, compare, saveBtn, savedAs), warn, status, bulk.el),
       h("div", { class: "st-panels" },
-        group("Light and colour", c.brightness.el, c.contrast.el, c.saturation.el, c.warmth.el, c.hue.el, c.enhance.el),
+        group("Light and color", c.brightness.el, c.contrast.el, c.saturation.el, c.warmth.el, c.hue.el, c.enhance.el),
         group("Effects", c.gray.el, c.sepia.el, c.invert.el, c.vignette.el, c.blur.el, c.sharpen.el, c.transparent.el),
         group("Turn and shape", c.rotate.el, c.flipH.el, c.flipV.el, c.crop.el, c.corners.el, c.border.el, c.borderColour.el),
         group("Saving", c.width.el, c.format.el, c.quality.el, c.strip.el)))));
@@ -165,4 +183,4 @@ function mount(root) {
   };
 }
 
-registerPowerTab({ id: "imagestudio", label: "Image Studio", icon: "🎨", tip: "Edit a picture with sliders: light, colour, effects, crop to a shape, circle, borders, size and format", group: "media", mount });
+registerPowerTab({ id: "imagestudio", label: "Image Studio", icon: "🎨", tip: "Edit a picture with sliders: light, color, effects, crop to a shape, circle, borders, size and format", group: "media", mount });

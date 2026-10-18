@@ -53,7 +53,7 @@ describe("the Redis server on this computer's usual address", () => {
     }
   });
 
-  test("the card has a host and a port, never a password, and a saved local connection is recognised", () => {
+  test("the card has a host and a port, never a password, and a saved local connection is recognized", () => {
     const c = localRedisConnection("open");
     expect(c.fields.host?.value).toBe("127.0.0.1");
     expect(c.fields.port?.value).toBe(6379);

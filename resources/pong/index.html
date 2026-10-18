@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cyberpunk Pong - Neon AI &amp; 2-Player Arcade</title>
+    <title>Codecaine Cyberpunk Pong - Neon AI &amp; 2-Player Arcade</title>
     <meta name="description" content="Fast-paced retro cyberpunk Pong featuring responsive paddle physics, 4 AI difficulty levels, 2-Player local mode, particle effects, and synthesized audio.">
     <link rel="icon" href="favicon.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -223,7 +223,7 @@
         .canvas-container {
             width: 100%;
             max-width: 100%;
-            max-height: calc(100vh - 190px);
+            max-height: max(320px, calc(100vh - 190px));
             aspect-ratio: 16 / 9;
             position: relative;
             background: #000;
@@ -242,7 +242,7 @@
             display: block;
             width: 100%;
             height: 100%;
-            max-height: calc(100vh - 190px);
+            max-height: max(320px, calc(100vh - 190px));
             object-fit: contain;
             aspect-ratio: 16 / 9;
             background-color: #000000;

@@ -1,5 +1,5 @@
-/* Styles of the Dev tool. Every class starts with .dev- to stay out of the way of the other tools. Colours come from
-   the theme's variables (so every theme works); the chart colours are fixed mid-tones that read on light and dark. */
+/* Styles of the Dev tool. Every class starts with .dev- to stay out of the way of the other tools. Colors come from
+   the theme's variables (so every theme works); the chart colors are fixed mid-tones that read on light and dark. */
 .dev-pane { gap: 10px; }
 .dev-root-field { flex: 1 1 22rem; }
 .dev-root { width: 100%; box-sizing: border-box; }

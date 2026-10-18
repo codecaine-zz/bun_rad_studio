@@ -9,10 +9,10 @@ import { sanitizeSettings } from "../src/features/filemanager/fmSettings";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 import { SIMPLEGUI_THEMES } from "../src/shared/simpleguiThemes";
 import { contrastRatio } from "../src/shared/themeSemantic";
-import { exportTheme, parseShared, toSimpleTheme, validateDraft } from "../src/features/filemanager/fmThemeStore";
+import { exportTheme, exportThemeCss, exportThemePack, parseShared, parseThemePack, toSimpleTheme, validateDraft } from "../src/features/filemanager/fmThemeStore";
 import { FX_THEMES, fxCssVars, glassReport } from "../src/shared/fxThemes";
 
-// The same pairs tests/file_manager_ui_theme.test.ts demands of the built-in light and dark colours.
+// The same pairs tests/file_manager_ui_theme.test.ts demands of the built-in light and dark colors.
 const PAIRS: Array<[string, string, number]> = [
   ["text", "bg", 4.5], ["text", "panel", 4.5], ["muted", "bg", 4.5], ["muted", "panel", 4.5], ["text", "hover", 4.5], ["muted", "hover", 4.5],
   ["selected-text", "selected", 4.5], ["accent-text", "accent", 4.5], ["accent", "bg", 4.5], ["accent", "panel", 4.5],
@@ -70,12 +70,12 @@ describe("the theme table", () => {
     expect(failures).toEqual([]);
   });
 
-  test("a theme whose background can't hold any text colour beside its panel takes the panel's colour", () => {
+  test("a theme whose background can't hold any text color beside its panel takes the panel's color", () => {
     const v = themeVars({ name: "x", background_color: "#008080", card_background: "#c0c0c0", font_color: "#000000", accent_color: "#000080", description: "", is_dark: false }).vars;
     expect(v.bg).toBe("#c0c0c0");
   });
 
-  test("junk colours fall back instead of throwing", () => {
+  test("junk colors fall back instead of throwing", () => {
     const v = themeVars({ name: "x", background_color: "nonsense", font_color: "", accent_color: "rgb(1,2,3)", description: "", is_dark: true }).vars;
     for (const n of ["bg", "text", "accent"]) expect(v[n]).toMatch(/^#[0-9a-f]{6}$/);
   });
@@ -93,10 +93,67 @@ describe("the saved choice", () => {
     expect(sanitizeSettings({}, ctx).palette).toBe("");
   });
 
+  test("favoriteThemes keeps valid unique theme keys, drops bad ones, and caps at 50", () => {
+    const cleaned = sanitizeSettings({ favoriteThemes: ["nord", "dracula", "nord", "Bad Key", "../x", 42, "", "user_1"] }, ctx);
+    expect(cleaned.favoriteThemes).toEqual(["nord", "dracula", "user_1"]);
+    const many = Array.from({ length: 65 }, (_, i) => `theme_${i}`);
+    expect(sanitizeSettings({ favoriteThemes: many }, ctx).favoriteThemes.length).toBe(50);
+  });
+
+  test("preferredLightPalette and preferredDarkPalette keep valid palette keys and drop invalid ones", () => {
+    const cleaned = sanitizeSettings({ preferredLightPalette: "solarized_light", preferredDarkPalette: "nord" }, ctx);
+    expect(cleaned.preferredLightPalette).toBe("solarized_light");
+    expect(cleaned.preferredDarkPalette).toBe("nord");
+    const bad = sanitizeSettings({ preferredLightPalette: "Bad Key!", preferredDarkPalette: "../hack" }, ctx);
+    expect(bad.preferredLightPalette).toBe("");
+    expect(bad.preferredDarkPalette).toBe("");
+  });
+
+  test("parseShared and parseThemePack migrate 3-digit hex codes, SimpleGUI legacy fields, and multi-theme packs", () => {
+    const legacy = JSON.stringify({
+      name: "Legacy Short Hex",
+      is_dark: true,
+      background_color: "#123",
+      font_color: "#fed",
+      accent_color: "#0af",
+      future_unknown_field: { nested: true },
+    });
+    const migrated = parseShared(legacy);
+    expect(migrated.name).toBe("Legacy Short Hex");
+    expect(migrated.dark).toBe(true);
+    expect(migrated.colors.background).toBe("#112233");
+    expect(migrated.colors.text).toBe("#ffeedd");
+    expect(migrated.colors.accent).toBe("#00aaff");
+
+    const packText = exportThemePack([
+      migrated,
+      validateDraft({ name: "Second Theme", dark: false, colors: { background: "#ffffff", text: "#111111", accent: "#0055cc" } }),
+    ]);
+    const parsedPack = parseThemePack(packText);
+    expect(parsedPack.length).toBe(2);
+    expect(parsedPack[0]!.name).toBe("Legacy Short Hex");
+    expect(parsedPack[1]!.name).toBe("Second Theme");
+  });
+
+  test("exportThemeCss formats a standalone :root CSS variables block and themeVars includes WCAG contrast telemetry", () => {
+    const c = getThemeColours("nord")!;
+    expect(c.contrast.length).toBeGreaterThanOrEqual(6);
+    for (const item of c.contrast) {
+      expect(item.ratio).toBeGreaterThanOrEqual(4.5);
+      expect(["AAA", "AA"]).toContain(item.grade);
+    }
+    const cssText = exportThemeCss(c.name, c.scheme, c.vars, c.effects?.css);
+    expect(cssText).toContain(":root {");
+    expect(cssText).toContain("color-scheme: dark;");
+    expect(cssText).toContain(`--bg: ${c.vars.bg};`);
+    expect(cssText).toContain(`--surface-elevated: ${c.vars["surface-elevated"]};`);
+    expect(cssText).toContain(`--focus-ring: ${c.vars["focus-ring"]};`);
+  });
+
   describe("custom theme effects", () => {
     const draft = { name: "Custom glass", dark: true, colors: { background: "#060918", card: "#101a30", text: "#edf8ff", accent: "#53f4ff" }, fx: FX_THEMES.prism_reactor!.fx! };
 
-    test("effects survive validation, export and import without changing old colour-only themes", () => {
+    test("effects survive validation, export and import without changing old color-only themes", () => {
       const checked = validateDraft(draft);
       expect(parseShared(exportTheme(checked))).toEqual(checked);
       expect(toSimpleTheme(checked).fx).toEqual(checked.fx);
@@ -239,7 +296,71 @@ describe("the theme gallery in the page", () => {
     await sleep(250);
   });
 
-  test("clicking a theme applies its colours at once and saves the choice; Standard takes them off again", async () => {
+  test("each card renders a miniature window swatch preview with sidebar, selected row pill, text row, and glow/border attributes", async () => {
+    const holoCard = card("Cyberpunk Hologram");
+    const sw = holoCard.querySelector(".theme-swatch");
+    expect(sw).toBeTruthy();
+    expect(sw.querySelector(".theme-swatch-side")).toBeTruthy();
+    expect(sw.querySelector(".theme-swatch-main")).toBeTruthy();
+    expect(sw.querySelector(".theme-swatch-pill")).toBeTruthy();
+    expect(sw.querySelector(".theme-swatch-row")).toBeTruthy();
+    expect(sw.style.getPropertyValue("--sw-bg")).toMatch(/^#[0-9a-f]{6}$/);
+    expect(sw.style.getPropertyValue("--sw-panel")).toMatch(/^#[0-9a-f]{6}$/);
+    expect(sw.style.getPropertyValue("--sw-selected")).toMatch(/^#[0-9a-f]{6}$/);
+    expect(sw.getAttribute("data-sw-glow")).toBeTruthy();
+
+    const win95Sw = card("Windows 95").querySelector(".theme-swatch");
+    expect(win95Sw.getAttribute("data-sw-border")).toBeTruthy();
+  });
+
+  test("category filter narrows themes to a single group or to favorites, and pinning a theme places it in a Favorites section at the top", async () => {
+    const catSelect = doc.querySelector('.theme-tools select[aria-label="Show themes from a category"]');
+    expect(catSelect).toBeTruthy();
+    catSelect.value = "Windows";
+    catSelect.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
+    await sleep(200);
+    const winHeadings = [...doc.querySelectorAll(".theme-list h3")].map((h: any) => h.textContent);
+    expect(winHeadings.length).toBe(1);
+    expect(winHeadings[0]).toMatch(/^Windows \(\d+\)$/);
+    expect(card("Windows 95")).toBeTruthy();
+    expect(card("Dracula")).toBeUndefined();
+
+    catSelect.value = "all";
+    catSelect.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
+    await sleep(200);
+
+    // Pin Nord as a favorite
+    const nordItem = card("Nord").closest(".theme-card-item");
+    const pinBtn = nordItem.querySelector(".theme-pin");
+    expect(pinBtn.getAttribute("aria-pressed")).toBe("false");
+    pinBtn.click();
+    await sleep(250);
+
+    const headingsAfterPin = [...doc.querySelectorAll(".theme-list h3")].map((h: any) => h.textContent);
+    expect(headingsAfterPin[0]).toBe("Favorites (1)");
+    expect(state.settings.favoriteThemes).toContain("nord");
+    expect((await api.call("settings")).settings.favoriteThemes).toContain("nord");
+
+    // Filter by ★ Favorites
+    catSelect.value = "favorites";
+    catSelect.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
+    await sleep(200);
+    expect([...doc.querySelectorAll(".theme-card")].map((c: any) => c.querySelector(".theme-name")?.textContent)).toEqual(["Nord"]);
+
+    // Unpin Nord
+    const unpinBtn = doc.querySelector(".theme-card-item .theme-pin");
+    expect(unpinBtn.getAttribute("aria-pressed")).toBe("true");
+    unpinBtn.click();
+    await sleep(250);
+    expect(state.settings.favoriteThemes).toEqual([]);
+    expect(doc.querySelector(".theme-list").textContent).toContain("No favorite themes yet");
+
+    catSelect.value = "all";
+    catSelect.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
+    await sleep(200);
+  });
+
+  test("clicking a theme applies its colors at once and saves the choice; Standard takes them off again", async () => {
     card("Cyberpunk Hologram").click();
     for (let i = 0; i < 30 && doc.documentElement.dataset.palette !== "cyberpunk_hologram"; i++) await sleep(50);
     expect(doc.documentElement.dataset.palette).toBe("cyberpunk_hologram");
@@ -268,7 +389,7 @@ describe("the theme gallery in the page", () => {
     closeDialogs();
   });
 
-  test("a saved theme that no longer exists falls back to the standard colours", async () => {
+  test("a saved theme that no longer exists falls back to the standard colors", async () => {
     state.settings.palette = "gone_theme";
     const name = await themes.applyPalette("gone_theme");
     expect(name).toBe("");
@@ -277,7 +398,7 @@ describe("the theme gallery in the page", () => {
     state.settings.palette = "";
   });
 
-  test("cycling themes wraps, applies colours and persists the selected theme", async () => {
+  test("cycling themes wraps, applies colors and persists the selected theme", async () => {
     const all = (await api.call("themes/list")).themes;
     await themes.chooseTheme("");
     await themes.cycleTheme(1);
@@ -313,11 +434,11 @@ describe("the theme gallery in the page", () => {
 const MINE = { name: "  Night   Owl  ", dark: true, base: "Dracula", colors: { background: "#101820", text: "#e6edf3", accent: "#ff9f1c", card: "#17212b", border: "#2b3a48" } };
 
 describe("your own themes, on the server", () => {
-  test("a draft is checked: name, colours and the colours that must be there", async () => {
+  test("a draft is checked: name, colors and the colors that must be there", async () => {
     const bad: Array<[any, RegExp]> = [
       [null, /form/], [{ ...MINE, name: "   " }, /name/], [{ ...MINE, name: "x".repeat(41) }, /40/],
-      [{ ...MINE, colors: { ...MINE.colors, accent: "orange" } }, /accent colour must look like/],
-      [{ ...MINE, colors: { ...MINE.colors, text: "#fff" } }, /text colour must look like/],
+      [{ ...MINE, colors: { ...MINE.colors, accent: "orange" } }, /accent color must look like/],
+      [{ ...MINE, colors: { ...MINE.colors, text: "#fff" } }, /text color must look like/],
       [{ ...MINE, colors: { background: "#000000", text: "#ffffff" } }, /accent/],
       [{ ...MINE, colors: { ...MINE.colors, danger: 5 } }, /danger/],
     ];
@@ -327,16 +448,16 @@ describe("your own themes, on the server", () => {
     }
   });
 
-  test("preview works out the page colours without saving, and says when it changed a colour", async () => {
+  test("preview works out the page colors without saving, and says when it changed a color", async () => {
     const { theme } = await api.call("themes/preview", { theme: { name: "Low", dark: false, colors: { background: "#ffffff", text: "#f0f0f0", accent: "#ffff00" } } });
     expect(theme.scheme).toBe("light");
     for (const [a, b, min] of PAIRS) expect(contrastRatio(theme.vars[a], theme.vars[b]), `${a} on ${b}`).toBeGreaterThanOrEqual(min);
-    expect(theme.notes.join(" ")).toMatch(/text colour was adjusted/);
-    expect(theme.notes.join(" ")).toMatch(/accent colour was adjusted/);
+    expect(theme.notes.join(" ")).toMatch(/text color was adjusted/);
+    expect(theme.notes.join(" ")).toMatch(/accent color was adjusted/);
     expect((await api.call("themes/list")).themes.some((t: any) => t.name === "Low")).toBe(false);
   });
 
-  test("save, list under My themes, get with its colours, update in place, copy, delete", async () => {
+  test("save, list under My themes, get with its colors, update in place, copy, delete", async () => {
     const made = await api.call("themes/custom/save", { theme: MINE });
     expect(made.id).toMatch(/^custom_[0-9a-f]{8}$/);
     expect(made.name).toBe("Night Owl");
@@ -429,7 +550,7 @@ describe("the theme editor in the page", () => {
     closeDialogs();
   });
 
-  test("starting from another theme loads its colours; Save keeps a new theme, applies it, and lists it first", async () => {
+  test("starting from another theme loads its colors; Save keeps a new theme, applies it, and lists it first", async () => {
     themes.forgetThemeList();
     state.settings.palette = "";
     const { emit } = await import("../resources/file_manager/ui/state.js");
@@ -488,4 +609,142 @@ describe("the theme editor in the page", () => {
     expect(doc.documentElement.dataset.palette).toBeUndefined();
     closeDialogs();
   });
+
+  test("theme editor displays live WCAG contrast badges and supports CSS variables and Theme Pack export/import", async () => {
+    const { emit } = await import("../resources/file_manager/ui/state.js");
+    emit("theme-editor", { from: "nord" });
+    await sleep(450);
+    const chips = [...doc.querySelectorAll(".theme-contrast-inspector .theme-contrast-chip")];
+    expect(chips.length).toBeGreaterThanOrEqual(6);
+    expect(chips[0].textContent).toContain(":1");
+    expect(chips[0].querySelector(".theme-contrast-grade")?.textContent).toMatch(/^AA/);
+
+    editorButton("Export…").click();
+    await sleep(200);
+    const cssTab = [...doc.querySelectorAll(".theme-export-tab")].find((b: any) => b.textContent.includes("CSS variables"));
+    expect(cssTab).toBeTruthy();
+    cssTab.click();
+    await sleep(250);
+    expect(doc.querySelector("textarea.theme-export").value).toContain(":root {");
+    expect(doc.querySelector("textarea.theme-export").value).toContain("--surface-elevated:");
+    editorButton("Close").click();
+    await sleep(250);
+    editorButton("Cancel").click();
+    await sleep(400);
+    closeDialogs();
+
+    // Server pack import & export round-trip
+    const packInput = exportThemePack([
+      validateDraft({ name: "Pack One", dark: true, colors: { background: "#101418", text: "#f0f4f8", accent: "#4da3ff" } }),
+      validateDraft({ name: "Pack Two", dark: false, colors: { background: "#fafafa", text: "#18181b", accent: "#2563eb" } }),
+    ]);
+    const imported = await api.call("themes/custom/import-pack", { text: packInput });
+    expect(imported.count).toBe(2);
+    const exportedPack = await api.call("themes/custom/export-pack", {});
+    expect(exportedPack.count).toBe(2);
+    expect(JSON.parse(exportedPack.text).themes.length).toBe(2);
+    for (const item of imported.imported) await api.call("themes/custom/delete", { id: item.id });
+  });
+
+  test("Auto Day/Night pairing resolves preferredLightPalette and preferredDarkPalette and syncs terminal/frame theme payload", async () => {
+    state.settings.theme = "auto";
+    state.settings.palette = "";
+    state.settings.preferredLightPalette = "liquid_metal_light";
+    state.settings.preferredDarkPalette = "nord";
+    expect(themes.effectiveAutoPalette(false)).toBe("liquid_metal_light");
+    expect(themes.effectiveAutoPalette(true)).toBe("nord");
+
+    await themes.applyPalette(themes.effectiveAutoPalette(true));
+    const payload = themes.currentThemePayload();
+    expect(payload.palette).toBe("nord");
+    expect(payload.scheme).toBe("dark");
+    expect(payload.vars["surface-sunken"]).toMatch(/^#[0-9a-f]{6}$/);
+    const termColors = themes.terminalTheme(payload);
+    expect(termColors.background).toBe(payload.vars["surface-sunken"]);
+    expect(termColors.foreground).toBe(payload.vars.text);
+    expect(termColors.cursor).toBe(payload.vars.accent);
+
+    state.settings.preferredLightPalette = "";
+    state.settings.preferredDarkPalette = "";
+    await themes.applyPalette("");
+    expect(themes.terminalTheme().background).toBe("#1e1e1e");
+  });
+
+  test("Atmospheric Special Effects engine supports 110 effects across Low, Medium, and Modern ARM Ultra tiers plus Multi-Effect Layer Mixing", async () => {
+    const atmo = await import("../resources/file_manager/ui/atmosphereFx.js");
+    expect(atmo.ATMOSPHERE_OPTIONS.length).toBe(110);
+    expect(atmo.ATMOSPHERE_MIX_PRESETS.length).toBeGreaterThanOrEqual(10);
+
+    // Hardware tier auto-detection
+    expect(atmo.detectHardwareTier({ hardwareConcurrency: 2, userAgent: "Linux x86_64" }, { devicePixelRatio: 1 })).toBe("low");
+    expect(atmo.detectHardwareTier({ hardwareConcurrency: 4, userAgent: "Windows NT 10.0" }, { devicePixelRatio: 1 })).toBe("medium");
+    expect(atmo.detectHardwareTier({ hardwareConcurrency: 8, userAgent: "Windows NT 10.0; Win64; x64" }, { devicePixelRatio: 1 })).toBe("high");
+    expect(atmo.detectHardwareTier({ hardwareConcurrency: 10, userAgent: "Mozilla/5.0 (Macintosh; ARM Mac OS X 14_5)" }, { devicePixelRatio: 2 })).toBe("ultra");
+
+    // Open the Atmospheric Special Effects dialog
+    void atmo.showAtmosphereDialog();
+    await sleep(200);
+    expect(doc.querySelector(".dialog-title").textContent).toBe("Atmospheric special effects");
+    const sections = doc.querySelectorAll(".fm-atmo-section");
+    expect(sections.length).toBe(3);
+    expect(sections[0].getAttribute("data-tier-section")).toBe("low");
+    expect(sections[1].getAttribute("data-tier-section")).toBe("medium");
+    expect(sections[2].getAttribute("data-tier-section")).toBe("ultra");
+    expect(sections[2].textContent).toContain("Modern ARM");
+
+    const tierBtns = doc.querySelectorAll(".fm-atmo-tier-btn");
+    expect(tierBtns.length).toBe(5);
+    expect(doc.querySelectorAll(".fm-atmo-card .fm-atmo-preview").length).toBe(110);
+    expect(doc.querySelector(".fm-atmo-theme-sync")).toBeTruthy();
+    expect(doc.querySelector(".fm-atmo-mixer-dock")).toBeTruthy();
+
+    // Select Modern ARM / Ultra tier and test effects across multiple procedural engines
+    doc.querySelector('.fm-atmo-tier-btn[data-tier="ultra"]').click();
+    for (const effectId of ["rain", "smoke", "cyberstorm", "nebula", "aurora", "outrun_grid", "neural_nexus", "dna_helix", "quantum_cpu", "black_hole"]) {
+      doc.querySelector(`.fm-atmo-card[data-atmo="${effectId}"]`).click();
+      expect(doc.documentElement.dataset.atmosphere).toBe(effectId);
+      expect(doc.documentElement.dataset.atmosphereTier).toBe("ultra");
+      expect(doc.getElementById("fm-atmosphere-layer")?.getAttribute("data-effect")).toBe(effectId);
+    }
+
+    // Multi-effect layer mixing: click a Signature Mix preset (3 simultaneous layers)
+    doc.querySelector('.fm-atmo-preset-btn[data-mix="sakura+fireflies+aurora"]').click();
+    expect(doc.documentElement.dataset.atmosphere).toBe("sakura+fireflies+aurora");
+    expect(doc.documentElement.dataset.atmosphereLayers).toBe("3");
+    expect(doc.querySelectorAll(".fm-atmo-layer-chip").length).toBe(3);
+
+    // Add a 4th layer via the + Mix chip on a card
+    const rainMixChip = doc.querySelector('.fm-atmo-card[data-atmo="rain"] .fm-atmo-mix-chip');
+    rainMixChip.click();
+    expect(doc.documentElement.dataset.atmosphere).toBe("sakura+fireflies+aurora+rain");
+    expect(doc.documentElement.dataset.atmosphereLayers).toBe("4");
+
+    // Category filter narrows the visible cards and "all" restores all 110
+    doc.querySelector('.fm-atmo-cat-btn[data-cat="cosmic"]').click();
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBeLessThan(40);
+    doc.querySelector('.fm-atmo-cat-btn[data-cat="all"]').click();
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(110);
+
+    // Switching themes automatically re-harmonizes --fm-atmo-c1, --fm-atmo-c2, and --fm-atmo-c3
+    const c1Before = doc.documentElement.style.getPropertyValue("--fm-atmo-c1");
+    await themes.applyPalette("dracula");
+    const c1After = doc.documentElement.style.getPropertyValue("--fm-atmo-c1");
+    expect(c1After).toMatch(/^rgb\(/);
+    expect(c1After).not.toBe(c1Before);
+    expect(doc.documentElement.style.getPropertyValue("--fm-atmo-c2")).toMatch(/^rgb\(/);
+    expect(doc.documentElement.style.getPropertyValue("--fm-atmo-c3")).toMatch(/^rgb\(/);
+    await themes.applyPalette("");
+
+    editorButton("Apply effect").click();
+    await sleep(300);
+    expect(state.settings.atmosphere).toBe("sakura+fireflies+aurora+rain");
+    expect(state.settings.atmosphereTier).toBe("ultra");
+
+    // Turn off cleanly
+    atmo.applyAtmosphere("none");
+    expect(doc.documentElement.dataset.atmosphere).toBeUndefined();
+    expect(doc.getElementById("fm-atmosphere-layer")).toBeNull();
+    closeDialogs();
+  });
 });
+

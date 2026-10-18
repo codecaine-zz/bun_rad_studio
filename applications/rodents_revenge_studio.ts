@@ -113,7 +113,7 @@ ${getWindowShortcutsScript()}
  */
 export function startRodentsRevengeStudioServer(options: RodentsRevengeServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "rodents_revenge_studio", name: "Rodent's Revenge - Deluxe Master Edition", version: "1.0.0", assetsDir: getRodentsRevengeAssetsDir(), generateHtml: generateRodentsRevengeStudioHtml },
+    { app: "rodents_revenge_studio", name: "Codecaine Rodent's Revenge - Deluxe Master Edition", version: "1.0.0", assetsDir: getRodentsRevengeAssetsDir(), generateHtml: generateRodentsRevengeStudioHtml },
     options,
   );
 }
@@ -126,7 +126,7 @@ export function createRodentsRevengeStudio(options: RodentsRevengeStudioOptions 
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Rodent's Revenge - Deluxe Master Edition";
+  const title = "Codecaine Rodent's Revenge - Deluxe Master Edition";
 
   const app: RodentsRevengeStudioInstance = {
     title,

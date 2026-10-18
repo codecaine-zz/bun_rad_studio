@@ -156,3 +156,49 @@ export function askChangedOnDisk(name, deleted) {
       : [{ label: "Cancel", value: null }, { label: "Save as a copy…", value: "copy" }, { label: "Load the disk version", value: "reload", danger: true }, { label: "Overwrite the file", value: "overwrite", primary: true }],
   }).result;
 }
+
+/** Smart Token Inspector & Color Picker at cursor: shows decoded JWT, Timestamp, Color formats, Cron, Chmod, Numbers, URL, and Unicode. */
+export function openTokenInspector(info, { onReplace, onOpenUrl } = {}) {
+  let dlg;
+  const sections = info.cards.map((card) => {
+    const picker = card.kind === "color" && onReplace
+      ? h("input", {
+          type: "color",
+          value: card.color,
+          title: "Pick a new color to replace this value in the editor",
+          "aria-label": "Pick a color",
+          onchange: (e) => { dlg.close(); onReplace(info.from, info.to, e.currentTarget.value); },
+        })
+      : null;
+    const actions = (card.replacements ?? []).map((rep) =>
+      h("button", {
+        type: "button",
+        class: "code-btn code-small",
+        title: `Replace "${info.token}" with ${rep.value}`,
+        onclick: () => { dlg.close(); onReplace?.(info.from, info.to, rep.value); },
+      }, rep.label),
+    );
+    if (card.kind === "url" && card.url && onOpenUrl) {
+      actions.unshift(
+        h("button", {
+          type: "button",
+          class: "code-btn code-small",
+          title: `Open ${card.url} in your web browser`,
+          onclick: () => { dlg.close(); onOpenUrl(card.url); },
+        }, "Open in browser ↗"),
+      );
+    }
+    return h("section", { class: "code-pv-card" },
+      h("div", { class: "code-pv-card-head" }, h("strong", {}, card.title), picker),
+      h("dl", { class: "code-sc-list" }, card.rows.flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, h("code", {}, v))])),
+      actions.length ? h("div", { class: "code-row-tools" }, ...actions) : null,
+    );
+  });
+  dlg = openDialog({
+    title: info.token ? `Inspect: ${info.token.slice(0, 48)}` : "Inspect value at cursor",
+    wide: true,
+    body: sections.length ? sections : [h("p", { class: "code-hint" }, "Put the cursor on a color (#hex, rgb, hsl), JWT token, Unix timestamp, cron expression, chmod mode, number, URL or character to inspect it.")],
+    buttons: [{ label: "Close", value: null, primary: true }],
+  });
+  return dlg;
+}

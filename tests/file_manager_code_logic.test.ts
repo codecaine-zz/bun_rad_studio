@@ -7,7 +7,7 @@ const L: any = logic;
 
 const { tokenizeLine, tokenizeText, createHighlighter } = L;
 
-/** [type, text] pairs for the coloured pieces of a text (plain pieces are left out). */
+/** [type, text] pairs for the colored pieces of a text (plain pieces are left out). */
 const coloured = (lang: string, text: string) => tokenizeText(lang, text).flat().filter((t: any) => t.type).map((t: any) => [t.type, t.text]);
 const roundTrip = (lang: string, text: string) => tokenizeText(lang, text).map((tokens: any[]) => tokens.map((t) => t.text).join("")).join("\n");
 
@@ -241,7 +241,7 @@ describe("the incremental highlighter", () => {
     }
   });
 
-  test("lines below an edit keep their colours when the state doesn't change, and change when it does", () => {
+  test("lines below an edit keep their colors when the state doesn't change, and change when it does", () => {
     const hl = createHighlighter("javascript");
     const base = Array.from({ length: 30 }, (_, i) => `let v${i} = ${i};`);
     hl.setLines(base);
@@ -1036,5 +1036,110 @@ describe("Run and Build presets: the sequence sent to the terminal", () => {
     expect(L.copyName("Run", ["Run"])).toBe("Run (copy)");
     expect(L.copyName("Run", ["Run", "Run (copy)"])).toBe("Run (copy 2)");
     expect(L.copyName("x".repeat(60), []).length).toBeLessThanOrEqual(60);
+  });
+});
+
+describe("built-in developer power tools (codeExtras)", () => {
+  test("extractTodos finds TODO, FIXME, BUG, HACK, NOTE, XXX and OPTIMIZE comments with optional author", () => {
+    const src = [
+      "const x = 1; // TODO(alice): handle edge case",
+      "# FIXME: broken on Windows",
+      "/* BUG(bob) off by one */",
+      "<!-- NOTE: keep in sync -->",
+      "const str = 'not a comment';",
+    ].join("\n");
+    const todos = L.extractTodos(src);
+    expect(todos).toEqual([
+      { tag: "TODO", author: "alice", text: "handle edge case", line: 1, col: 17 },
+      { tag: "FIXME", author: "", text: "broken on Windows", line: 2, col: 3 },
+      { tag: "BUG", author: "bob", text: "off by one", line: 3, col: 4 },
+      { tag: "NOTE", author: "", text: "keep in sync", line: 4, col: 6 },
+    ]);
+  });
+
+  test("findWordOccurrences and renameSymbolInText match whole identifiers and rename all occurrences", () => {
+    const src = "const count = 1;\nconst totalCount = count + 2;\nreturn count;\n";
+    const occ = L.findWordOccurrences(src, 7, 7)!;
+    expect(occ.word).toBe("count");
+    expect(occ.matches.length).toBe(3);
+    expect(occ.current).toBe(0);
+
+    const renamed = L.renameSymbolInText(src, 7, 7, "items");
+    expect(renamed.count).toBe(3);
+    expect(renamed.insert).toBe("const items = 1;\nconst totalCount = items + 2;\nreturn items;\n");
+  });
+
+  test("expandSelection progressively grows from word to quotes, brackets, line, and whole file", () => {
+    const src = 'function f() {\n  const msg = "hello world";\n}\n';
+    const pos = src.indexOf("hello") + 2;
+    const s1 = L.expandSelection(src, pos, pos)!;
+    expect(src.slice(s1.selStart, s1.selEnd)).toBe("hello");
+    const s2 = L.expandSelection(src, s1.selStart, s1.selEnd)!;
+    expect(src.slice(s2.selStart, s2.selEnd)).toBe("hello world");
+    const s3 = L.expandSelection(src, s2.selStart, s2.selEnd)!;
+    expect(src.slice(s3.selStart, s3.selEnd)).toBe('"hello world"');
+    const s4 = L.expandSelection(src, s3.selStart, s3.selEnd)!;
+    expect(src.slice(s4.selStart, s4.selEnd)).toBe('const msg = "hello world";');
+  });
+
+  test("toggleValueAtCaret flips booleans, keywords, and operators while preserving case", () => {
+    expect(L.toggleValueAtCaret("flag = true;", 8, 8).insert).toBe("false");
+    expect(L.toggleValueAtCaret("flag = True;", 8, 8).insert).toBe("False");
+    expect(L.toggleValueAtCaret("flag = TRUE;", 8, 8).insert).toBe("FALSE");
+    expect(L.toggleValueAtCaret("const x = 1;", 2, 2).insert).toBe("let");
+    expect(L.toggleValueAtCaret("if (a === b)", 7, 7).insert).toBe("!==");
+  });
+
+  test("toggleQuotes cycles between double, single, and backtick quotes with proper escaping", () => {
+    const s1 = L.toggleQuotes('const s = "it\'s here";', 14, 14);
+    expect(s1.insert).toBe("'it\\'s here'");
+    const s2 = L.toggleQuotes(`const s = ${s1.insert};`, 14, 14);
+    expect(s2.insert).toBe("`it's here`");
+    const s3 = L.toggleQuotes(`const s = ${s2.insert};`, 14, 14);
+    expect(s3.insert).toBe('"it\'s here"');
+  });
+
+  test("wrapWithTag supports classes, IDs, nested tags, and per-line * wrapping", () => {
+    expect(L.wrapWithTag("Hello", 0, 5, "div.card#hero").insert).toBe('<div id="hero" class="card">Hello</div>');
+    expect(L.wrapWithTag("one\ntwo", 0, 7, "ul>li*").insert).toBe("<ul>\n  <li>one</li>\n  <li>two</li>\n</ul>");
+  });
+
+  test("evaluateMath and evaluateMathEdit safely calculate expressions without eval", () => {
+    expect(L.evaluateMath("2 + 3 * 4")).toEqual({ value: 14, text: "14" });
+    expect(L.evaluateMath("sqrt(144) + 2 ** 3")).toEqual({ value: 20, text: "20" });
+    expect(L.evaluateMathEdit("1920 * 1080 =", 0, 13).insert).toBe("1920 * 1080 = 2073600");
+    expect(L.evaluateMath("1 / 0")).toHaveProperty("error");
+  });
+
+  test("sortJsonKeys, parseCsvTable, csvToMarkdownTable, and generateUuidV4", () => {
+    expect(L.generateUuidV4()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+    const sorted = L.sortJsonKeys('{"b":1,"a":{"z":2,"m":3}}', "  ");
+    expect(sorted.insert).toBe('{\n  "a": {\n    "m": 3,\n    "z": 2\n  },\n  "b": 1\n}');
+    const md = L.csvToMarkdownTable("name,score\nAlice,95\nBob,88");
+    expect(md).toContain("| name  | score |");
+    expect(md).toContain("| Alice | 95    |");
+  });
+
+  test("inspectTokenAtCaret decodes colors, timestamps, chmod modes, numbers, URLs, and JWTs", () => {
+    const colorInfo = L.inspectTokenAtCaret("color: #0b5cd5;", 9, 9);
+    expect(colorInfo.cards.some((c: any) => c.kind === "color" && c.color === "#0b5cd5")).toBe(true);
+
+    const tsInfo = L.inspectTokenAtCaret("const t = 1700000000;", 13, 13);
+    expect(tsInfo.cards.some((c: any) => c.kind === "timestamp")).toBe(true);
+
+    const chmodInfo = L.inspectTokenAtCaret("chmod 0755", 8, 8);
+    expect(chmodInfo.cards.some((c: any) => c.kind === "chmod")).toBe(true);
+
+    expect(L.findLineColors("border: 1px solid #ff00aa; background: rgb(10, 20, 30);").length).toBe(2);
+  });
+
+  test("computeLineDiff produces unified diff hunks and line counts", () => {
+    const d = L.computeLineDiff("a\nb\nc\n", "a\nB\nc\nd\n", { oldLabel: "old", newLabel: "new" });
+    expect(d.identical).toBe(false);
+    expect(d.added).toBe(2);
+    expect(d.removed).toBe(1);
+    expect(d.diff).toContain("-b");
+    expect(d.diff).toContain("+B");
+    expect(d.diff).toContain("+d");
   });
 });

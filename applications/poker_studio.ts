@@ -153,7 +153,7 @@ ${getWindowShortcutsScript()}
  */
 export function startPokerServer(options: PokerServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "poker_studio", name: "Texas Hold'em & 5-Card Draw Poker Royale", version: "1.0.0", assetsDir: getPokerAssetsDir(), generateHtml: generatePokerStudioHtml },
+    { app: "poker_studio", name: "Codecaine Texas Hold'em & 5-Card Draw Poker Royale", version: "1.0.0", assetsDir: getPokerAssetsDir(), generateHtml: generatePokerStudioHtml },
     options,
   );
 }
@@ -166,7 +166,7 @@ export function createPokerStudio(options: PokerStudioOptions = {}): PokerStudio
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1240);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Texas Hold'em & 5-Card Draw Poker Royale — Casino Studio";
+  const title = "Codecaine Texas Hold'em & 5-Card Draw Poker Royale — Casino Studio";
 
   const app: PokerStudioInstance = {
     title,

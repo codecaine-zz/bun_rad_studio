@@ -11,9 +11,9 @@ import { menuIsOpen } from "./menus.js";
 import { goTo, loadPlaces, refresh } from "./nav.js";
 import { renderSidebar, wireSidebar } from "./sidebar.js";
 import { on, state } from "./state.js";
-import { wirePower } from "./power.js";
+import { openPower, setPowerExpanded, wirePower } from "./power.js";
 import { wireChrome } from "./chrome.js";
-import { applyPalette } from "./themes.js";
+import { applyPalette, effectiveAutoPalette } from "./themes.js";
 import { wireTypeCheck } from "./typecheck.js";
 import { wireWindowState } from "./windowState.js";
 import { startCopySections } from "./copysection.js";
@@ -34,7 +34,9 @@ import "./secrets.js";
 import "./calc.js";
 import "./qr.js";
 import "./imageStudio.js";
+import "./paint.js";
 import "./mediaStudio.js";
+import "./playerDeck.js";
 import "./compare.js";
 import "./projects.js";
 import "./actions.js";
@@ -45,28 +47,34 @@ import "./graveyard.js";
 import "./databases.js";
 import "./hostedStudios.js";
 import "./downloads.js";
+import "./cliUtils.js";
+import "./games.js";
 import "./themeEditor.js";
+import { applyAtmosphere } from "./atmosphereFx.js";
 import { startQuietDetect } from "./dbDetect.js";
+import { wireTabs } from "./tabs.js";
 import { wireTerminal } from "./terminal.js";
 import { wireTools } from "./tools.js";
 import { renderAddress, renderBanner, updateSearchBox, updateToolbar, wireToolbar } from "./toolbar.js";
 
 /** The settings that change how the list looks or is ordered. */
-const LIST_SETTINGS = ["view", "sortBy", "sortDir", "foldersFirst"];
+const LIST_SETTINGS = ["view", "sortBy", "sortDir", "foldersFirst", "columns", "groupBy", "tags"];
 
 function applySettings() {
   const s = state.settings;
   const root = document.documentElement;
+  const desiredPalette = s.palette || effectiveAutoPalette();
   // While the theme editor shows a theme that isn't saved yet, the page keeps it.
   if (root.dataset.palette === "preview") {
     // nothing to change
-  } else if (s.palette) {
-    if (root.dataset.palette !== s.palette) applyPalette(s.palette);
+  } else if (desiredPalette) {
+    if (root.dataset.palette !== desiredPalette) applyPalette(desiredPalette);
   } else if (root.dataset.palette) applyPalette("");
   else if (s.theme === "auto") delete root.dataset.theme;
   else root.dataset.theme = s.theme;
   root.style.setProperty("--fm-scale", String(s.textSize / 100));
   $("#info").hidden = !s.showInfoPanel;
+  applyAtmosphere();
 }
 
 function showFatal(message) {
@@ -83,6 +91,7 @@ async function start() {
   }
   applySettings();
   wireToolbar();
+  wireTabs();
   wireList();
   wireSidebar();
   wireFavorites();
@@ -119,6 +128,13 @@ async function start() {
   renderBanner();
   updateSearchBox();
   restoreWorkspace();
+  const urlParams = new URLSearchParams(window.location.search);
+  const startTool = urlParams.get("tool");
+  const startGame = urlParams.get("game");
+  if (startTool) {
+    openPower(startTool, startGame ? { game: startGame } : undefined);
+    if (urlParams.get("max") === "1") setPowerExpanded(true);
+  }
   document.body.classList.add("ready");
   // Once, quietly: say so only if database connections turned up in the environment.
   startQuietDetect();

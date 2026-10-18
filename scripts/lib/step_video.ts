@@ -317,6 +317,8 @@ function assemble() {
   const bed = join(SEG, "bed.m4a");
   sh([FFMPEG, "-y", "-f", "lavfi", "-i", `aevalsrc=sin(130.81*2*PI*t)*0.015+sin(196*2*PI*t)*0.012+sin(261.63*2*PI*t)*0.015+sin(329.63*2*PI*t)*0.01:s=48000:d=${total.toFixed(1)}`, "-af", "lowpass=f=900,afade=t=in:d=3,afade=t=out:st=" + (total - 4).toFixed(1) + ":d=4", "-c:a", "aac", bed], { quiet: true });
   sh([FFMPEG, "-y", "-i", merged, "-i", bed, "-filter_complex", "[0:a][1:a]amix=inputs=2:duration=first:weights=1.0 0.09[a]", "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", FINAL]);
+  rmSync(merged, { force: true });
+  rmSync(bed, { force: true });
   mkdirSync(PROD, { recursive: true });
   writeFileSync(NOTES, S.notes(marks, total));
   console.log(`\n✔ ${FINAL}  ${fmtTime(total)}  ${(Bun.file(FINAL).size / 1048576).toFixed(0)} MB`);

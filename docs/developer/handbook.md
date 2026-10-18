@@ -74,8 +74,8 @@ Requirements are on [Requirements](../getting-started/requirements.md). `--froze
 2. `bun run typecheck` passes. If you touched the designer page, you edited `src/ide/` and ran `bun run ide:build` (`bun run ide:check` passes).
 3. `bun run docs:build` has been run and its output is committed, then `bun run docs:check` passes.
 4. `git status` shows only files you meant to change. A full `bun test` run leaves the tree clean ([D-006](../documentation-maintenance/discrepancies.md#d-006)).
-5. If you changed behaviour, the page that describes it and its row in `docs/documentation-maintenance/features.json` say what was verified and how. See the [contributor checklist](../documentation-maintenance/contributor-checklist.md).
-6. Refactoring and behaviour changes are separate commits where practical, and a behaviour change says so in the commit message and in [discrepancies](../documentation-maintenance/discrepancies.md) when it fixes a defect.
+5. If you changed behavior, the page that describes it and its row in `docs/documentation-maintenance/features.json` say what was verified and how. See the [contributor checklist](../documentation-maintenance/contributor-checklist.md).
+6. Refactoring and behavior changes are separate commits where practical, and a behavior change says so in the commit message and in [discrepancies](../documentation-maintenance/discrepancies.md) when it fixes a defect.
 
 CI (`.github/workflows/ci.yml`) runs steps 1 to 3 on macOS for every push and pull request, and it passes on GitHub ([Testing](../testing/index.md#continuous-integration)). Its first run failed 14 tests that had passed locally ([D-032](../documentation-maintenance/discrepancies.md#d-032)): check that your change does not depend on something only your machine has (a running server, a desktop, speed).
 
@@ -99,7 +99,7 @@ This recipe was followed with a throwaway file and checked against the automated
 4. **Add a `package.json` script** `app:<short>` (for example `"app:pong": "bun run applications/pong_studio.ts"`).
 5. **Give the launcher a description:** without an entry in `KNOWN_STUDIO_META` (`applications/launcher_studio.ts`) the launcher shows the file name as the title, the category "RAD Studio" and a generic description. Add an entry for a proper title, category and description. The generated application index falls back to the first comment at the top of the file.
 6. **Regenerate the wrappers** with `bun run scripts/generate_brew_suite.ts` and commit `bin/` changes.
-7. **Add tests** for the behaviour (see `tests/breakout_studio.test.ts` for the style).
+7. **Add tests** for the behavior (see `tests/breakout_studio.test.ts` for the style).
 8. **Give it tooltips** (a non-game app) or **name it in `GAME_APPS`** (a game), see [Help tooltips](#help-tooltips-for-every-app); take its screenshot and run `bun run showcase`.
 9. **Run `bun run docs:build`** so the application index lists it, and add a row to `features.json` if it is a feature worth tracking.
 
@@ -177,7 +177,7 @@ A dictionary maps a key to a sentence. The first matching key wins: `#id`, `aria
 ## Compatibility and releases
 
 - No saved file format is versioned ([Data and files](../reference/data-and-files.md#file-formats-and-compatibility)); do not change one silently.
-- A behaviour change that users could notice is listed in [discrepancies](../documentation-maintenance/discrepancies.md) with a "Behaviour change" line, and a migration note if needed.
+- A behavior change that users could notice is listed in [discrepancies](../documentation-maintenance/discrepancies.md) with a "Behavior change" line, and a migration note if needed.
 - Releases for every platform and the Mac `.app` bundles are built by `bun run release:build` and `bun run build:mac-apps`; see [Building releases](releasing.md) for what was and was not verified. The Homebrew steps were not verified end to end. Before tagging anything, run the CI commands in a fresh clone.
 
 ## See also

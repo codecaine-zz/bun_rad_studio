@@ -10,6 +10,7 @@
 import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
 import { getSharedWorkbench } from "../src/db/workbench_shared";
 import { sqliteStaging } from "../src/db/staging/mount";
+import { parseUniversalTable } from "../src/db/importParser";
 import { viewApi } from "../src/shared/studioViews";
 import {
   formatSqlDialect,
@@ -41,6 +42,7 @@ import {
   extractPromptParams,
   applyPromptParams,
   validateMacro,
+  macroToBunJs,
   macroToSqlScript,
   macroToVba,
 } from "./sqlite_studio_macros.ts";
@@ -937,8 +939,8 @@ export class SqliteManager {
     table: string;
     create?: boolean;
     createColumns?: ColumnSpec[];
-    columns: string[];
-    rows: any[][];
+    columns?: string[];
+    rows: any[];
     mode?: "append" | "replace";
     onConflict?: "abort" | "ignore" | "replace";
   }): { success: boolean; inserted?: number; skipped?: number; error?: string; latencyMs?: number } {
@@ -946,32 +948,50 @@ export class SqliteManager {
     try {
       const table = String(opts.table || "").trim();
       if (!table) throw new Error("Target table is required");
-      if (!opts.columns || opts.columns.length === 0) throw new Error("No columns to import");
-      const rows = Array.isArray(opts.rows) ? opts.rows : [];
+      const rawRows = Array.isArray(opts.rows) ? opts.rows : [];
+      let columns = Array.isArray(opts.columns) ? [...opts.columns] : [];
+      let rows: any[][] = [];
+
+      if (columns.length === 0 && rawRows.length > 0 && rawRows[0] && typeof rawRows[0] === "object" && !Array.isArray(rawRows[0])) {
+        const colSet = new Set<string>();
+        for (const r of rawRows) {
+          if (r && typeof r === "object") {
+            for (const k of Object.keys(r)) colSet.add(k);
+          }
+        }
+        columns = Array.from(colSet);
+        rows = rawRows.map((r) => columns.map((c) => (r && typeof r === "object" ? r[c] ?? null : null)));
+      } else {
+        rows = rawRows.map((r) => (Array.isArray(r) ? r : columns.map((c) => (r && typeof r === "object" ? r[c] ?? null : null))));
+      }
+
+      if (columns.length === 0) throw new Error("No columns to import");
 
       this.db.run("BEGIN;");
       try {
         if (opts.create) {
-          const cols = opts.createColumns && opts.createColumns.length ? opts.createColumns : opts.columns.map((n) => ({ name: n, type: "TEXT" } as ColumnSpec));
+          const cols = opts.createColumns && opts.createColumns.length ? opts.createColumns : columns.map((n) => ({ name: n, type: "TEXT" } as ColumnSpec));
           this.db.run(this.buildCreateTableSql(table, cols));
         } else {
           const ex = this.db.query("SELECT name FROM sqlite_master WHERE type='table' AND name = ?;").get(table);
           if (!ex) throw new Error(`Table '${table}' does not exist`);
           const valid = new Set((this.db.query(`PRAGMA table_info(${qi(table)});`).all() as any[]).map((c) => c.name));
-          for (const c of opts.columns) if (!valid.has(c)) throw new Error(`Unknown column '${c}' in '${table}'`);
+          for (const c of columns) if (!valid.has(c)) throw new Error(`Unknown column '${c}' in '${table}'`);
           if (opts.mode === "replace") this.db.run(`DELETE FROM ${qi(table)};`);
         }
 
         const verb = opts.onConflict === "ignore" ? "INSERT OR IGNORE" : opts.onConflict === "replace" ? "INSERT OR REPLACE" : "INSERT";
         const stmt = this.db.prepare(
-          `${verb} INTO ${qi(table)} (${opts.columns.map(qi).join(", ")}) VALUES (${opts.columns.map(() => "?").join(", ")});`
+          `${verb} INTO ${qi(table)} (${columns.map(qi).join(", ")}) VALUES (${columns.map(() => "?").join(", ")});`
         );
         let inserted = 0;
         let skipped = 0;
         for (const r of rows) {
-          const vals = opts.columns.map((_, i) => {
+          const vals = columns.map((_, i) => {
             const v = r[i];
-            return v === undefined ? null : v;
+            if (v === undefined) return null;
+            if (v !== null && typeof v === "object" && !(v instanceof Uint8Array)) return JSON.stringify(v);
+            return v;
           });
           const res = stmt.run(...vals);
           if (res.changes > 0) inserted++; else skipped++;
@@ -2063,6 +2083,88 @@ export class SqliteManager {
             message = `Remark: ${p.comment || ""}`;
             break;
           }
+          case "RunCode": {
+            const rawCode = String(p.code ?? p.functionName ?? "").trim();
+            if (!rawCode) throw new Error("RunCode requires code");
+            const transpiler = new Bun.Transpiler({ loader: "ts", target: "bun" });
+            transpiler.transformSync(`async function __check() {\n${rawCode}\n}`);
+            const syncCode = rawCode.replace(/\bawait\s+/g, "");
+            const jsBody = transpiler.transformSync(`function __sqliteRunCode() {\n${syncCode}\n}`);
+            const debugLogs: string[] = [];
+            const qi = (ident: string) => `"${String(ident ?? "").replace(/"/g, '""')}"`;
+            const CurrentDb = {
+              dialect: "sqlite",
+              RecordsAffected: 0,
+              query: (sql: string) => {
+                const res = this.query(this.resolvePromptParams(sql, promptParams));
+                if (!res.success) throw new Error(res.error || "RunCode.query failed");
+                return res.rows || [];
+              },
+              execute: (sql: string) => {
+                const res = this.query(this.resolvePromptParams(sql, promptParams));
+                if (!res.success) throw new Error(res.error || "RunCode.execute failed");
+                CurrentDb.RecordsAffected = res.rowsAffected ?? 0;
+                variables.lastRowsAffected = CurrentDb.RecordsAffected;
+                return { affectedRows: CurrentDb.RecordsAffected };
+              },
+              tables: () => {
+                const rows = this.db.query("SELECT name FROM sqlite_master WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_studio_%' ORDER BY name;").all() as any[];
+                return rows.map((r) => String(r.name));
+              },
+            };
+            const DCount = (expr = "*", domain: string, criteria?: string) => {
+              const w = criteria && criteria.trim() ? ` WHERE ${criteria.trim()}` : "";
+              const r = CurrentDb.query(`SELECT COUNT(${expr || "*"}) AS c FROM ${qi(domain)}${w}`);
+              return Number(r[0]?.c ?? Object.values(r[0] || {})[0] ?? 0);
+            };
+            const DLookup = (expr: string, domain: string, criteria?: string) => {
+              const w = criteria && criteria.trim() ? ` WHERE ${criteria.trim()}` : "";
+              const r = CurrentDb.query(`SELECT ${expr} AS v FROM ${qi(domain)}${w} LIMIT 1`);
+              return r[0]?.v ?? (r[0] ? Object.values(r[0])[0] : null) ?? null;
+            };
+            const DSum = (expr: string, domain: string, criteria?: string) => {
+              const w = criteria && criteria.trim() ? ` WHERE ${criteria.trim()}` : "";
+              const r = CurrentDb.query(`SELECT COALESCE(SUM(${expr}), 0) AS s FROM ${qi(domain)}${w}`);
+              return Number(r[0]?.s ?? Object.values(r[0] || {})[0] ?? 0);
+            };
+            const DoCmd = {
+              RunSQL: (sql: string) => CurrentDb.execute(sql),
+              OpenQuery: (sql: string) => CurrentDb.query(sql),
+              OpenTable: (table: string, where?: string, limit = 200) => {
+                const w = where && where.trim() ? ` WHERE ${where.trim()}` : "";
+                return CurrentDb.query(`SELECT * FROM ${qi(table)}${w} LIMIT ${Math.max(1, Number(limit) || 200)}`);
+              },
+              InsertRecord: (table: string, fields: any) => CurrentDb.execute(parseRecordFieldsToInsertSql(table, fields)),
+              UpdateRecord: (table: string, setVals: string, where?: string) => CurrentDb.execute(buildUpdateRecordSql(table, setVals, where)),
+              DeleteRecord: (table: string, where?: string) => CurrentDb.execute(buildDeleteRecordSql(table, where)),
+              EmptyTable: (table: string) => CurrentDb.execute(buildEmptyTableSql(table)),
+              SetTempVar: (k: string, v: any) => { variables[k] = v; },
+              RemoveTempVar: (k: string) => { delete variables[k]; },
+              MessageBox: (msg: any) => { debugLogs.push(String(msg)); },
+              Beep: () => {},
+            };
+            const Debug = {
+              print: (...args: any[]) => debugLogs.push(args.map((x) => (typeof x === "string" ? x : JSON.stringify(x))).join(" ")),
+              Print: (...args: any[]) => debugLogs.push(args.map((x) => (typeof x === "string" ? x : JSON.stringify(x))).join(" ")),
+            };
+            const fn = new Function(
+              "CurrentDb",
+              "db",
+              "DoCmd",
+              "TempVars",
+              "vars",
+              "DCount",
+              "DLookup",
+              "DSum",
+              "MsgBox",
+              "Debug",
+              `${jsBody}\n return __sqliteRunCode();`,
+            );
+            const ret = fn(CurrentDb, CurrentDb, DoCmd, variables, variables, DCount, DLookup, DSum, DoCmd.MessageBox, Debug);
+            output = { returnValue: ret, debugLogs };
+            message = debugLogs.length > 0 ? `RunCode: ${debugLogs.join(" | ")}` : `Executed Bun JS RunCode`;
+            break;
+          }
           default: {
             message = `Validated action '${act.action}' for execution`;
             break;
@@ -2459,9 +2561,30 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
         }
       }
 
+      if (url.pathname === "/api/parse-import" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as any;
+          const parsed = await parseUniversalTable(body);
+          return Response.json({ success: true, ...parsed }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
       if (url.pathname === "/api/import" && req.method === "POST") {
         try {
           const body = (await req.json()) as any;
+          if (!Array.isArray(body.rows) && (body.content !== undefined || body.base64 !== undefined || body.filePath !== undefined)) {
+            const parsed = await parseUniversalTable(body);
+            return Response.json(
+              manager.importRows({
+                ...body,
+                columns: body.columns?.length ? body.columns : parsed.columns,
+                rows: parsed.rows,
+              }),
+              { headers: corsHeaders },
+            );
+          }
           return Response.json(manager.importRows(body), { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
@@ -2578,13 +2701,18 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
 
       if (url.pathname === "/api/rows/import-batch" && req.method === "POST") {
         try {
-          const body = (await req.json()) as { table: string; rows: Record<string, any>[] };
+          const body = (await req.json()) as any;
+          let rowsToInsert: Record<string, any>[] = Array.isArray(body.rows) ? body.rows : [];
+          if (!rowsToInsert.length && (body.content !== undefined || body.base64 !== undefined || body.filePath !== undefined)) {
+            const parsed = await parseUniversalTable(body);
+            rowsToInsert = parsed.records;
+          }
           let inserted = 0;
-          for (const row of (body.rows || [])) {
+          for (const row of rowsToInsert) {
             manager.mutateRow(body.table, "insert", { data: row });
             inserted++;
           }
-          return Response.json({ success: true, count: inserted }, { headers: corsHeaders });
+          return Response.json({ success: true, count: inserted, inserted }, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
         }
@@ -2610,7 +2738,7 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
         }
       }
 
-      // 8f. Native data-file chooser (returns file text) and save-to-Downloads
+      // 8f. Native data-file chooser (returns file text or parsed binary spreadsheet) and save-to-Downloads
       if (url.pathname === "/api/pick-file" && req.method === "POST") {
         try {
           const p = pickNativeDataFile();
@@ -2619,8 +2747,22 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
           if (st.size > 200 * 1024 * 1024) {
             return Response.json({ success: false, error: "File is larger than 200 MB" }, { headers: corsHeaders });
           }
+          const name = basename(p);
+          const lower = name.toLowerCase();
+          if (lower.endsWith(".xlsx") || lower.endsWith(".ods")) {
+            const buf = new Uint8Array(await Bun.file(p).arrayBuffer());
+            const parsed = await parseUniversalTable({ bytes: buf, filename: name });
+            return Response.json({
+              success: true,
+              name,
+              size: st.size,
+              text: "",
+              base64: Buffer.from(buf).toString("base64"),
+              parsed,
+            }, { headers: corsHeaders });
+          }
           const text = await Bun.file(p).text();
-          return Response.json({ success: true, name: basename(p), size: st.size, text }, { headers: corsHeaders });
+          return Response.json({ success: true, name, size: st.size, text }, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
         }
@@ -2807,16 +2949,19 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
 
       if (url.pathname === "/api/macros/export" && req.method === "POST") {
         try {
-          const body = (await req.json()) as { macro?: MacroDefinition; id?: string; format?: "json" | "sql" | "vba" };
+          const body = (await req.json()) as { macro?: MacroDefinition; id?: string; format?: "json" | "sql" | "vba" | "bun" };
           const macro = body.macro || manager.getMacros().find((m) => m.id === body.id || m.name === body.id);
           if (!macro) return Response.json({ success: false, error: "Macro not found" }, { status: 404, headers: corsHeaders });
           const queries = manager.getSavedQueries();
           const format = body.format || "json";
+          const ext = format === "sql" ? "sql" : format === "vba" ? "bas" : format === "bun" ? "macro.js" : "macro.json";
+          const filename = `${(macro.name || "macro").replace(/[^a-zA-Z0-9_-]/g, "_")}.${ext}`;
           const content =
             format === "sql" ? macroToSqlScript(macro, queries)
             : format === "vba" ? macroToVba(macro, queries)
+            : format === "bun" ? macroToBunJs(macro, queries)
             : JSON.stringify(macro, null, 2);
-          return Response.json({ success: true, format, content }, { headers: corsHeaders });
+          return Response.json({ success: true, format, filename, content }, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
         }

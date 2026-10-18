@@ -438,12 +438,13 @@ describe("code/git", () => {
 });
 
 describe("code/session", () => {
-  test("whether the preview is open is remembered; anything but true or false is ignored", async () => {
+  test("whether the preview is open and whether recent files are remembered are kept; anything but true or false is ignored", async () => {
     const { op } = sandbox();
     expect((await op("code/session")).session.settings.preview).toBe(false);
-    expect((await op("code/session", { set: { settings: { preview: true } } })).session.settings.preview).toBe(true);
-    expect((await op("code/session")).session.settings.preview).toBe(true);
-    expect((await op("code/session", { set: { settings: { preview: "yes" } } })).session.settings.preview).toBe(false);
+    expect((await op("code/session")).session.settings.recentsEnabled).toBe(true);
+    expect((await op("code/session", { set: { settings: { preview: true, recentsEnabled: false } } })).session.settings).toMatchObject({ preview: true, recentsEnabled: false });
+    expect((await op("code/session")).session.settings).toMatchObject({ preview: true, recentsEnabled: false });
+    expect((await op("code/session", { set: { settings: { preview: "yes", recentsEnabled: "no" } } })).session.settings).toMatchObject({ preview: false, recentsEnabled: true });
   });
 
   test("starts with defaults; saves and returns what was set; keeps unspecified parts", async () => {

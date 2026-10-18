@@ -89,7 +89,7 @@ export function subnetAnswer(input: unknown) {
   return { kind: "cidr" as const, family: t.family, cidr: String(subnet.cidr), subnet, table: makeTable(COLS, rows, acts), summary: summaryText(rows), json: JSON.stringify(subnet, null, 2), csv: toCsv(keys, [keys.map((k) => subnet[k])]), label };
 }
 
-/** Normalises an address typed for a CIDR test: IPv4 (also as a number or hex), IPv6, or IPv4-mapped IPv6. */
+/** Normalizes an address typed for a CIDR test: IPv4 (also as a number or hex), IPv6, or IPv4-mapped IPv6. */
 function testAddress(input: unknown): { ip: string; family: Family } {
   const text = typeof input === "string" ? input.trim() : "";
   if (!text) throw new FmError("BAD_IP", "Type the address to test, like 192.168.1.77.");

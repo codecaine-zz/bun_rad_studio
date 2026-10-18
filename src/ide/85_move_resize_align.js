@@ -80,6 +80,11 @@
 			document.getElementById("statusMsg").textContent = "Auto-arranged controls into " + cols + " columns.";
 		}
 
+		function alignSelectedControls(mode) {
+			const mapped = mode === "center_h" ? "center" : (mode === "center_v" ? "middle" : mode);
+			alignControls(mapped);
+		}
+
 		function alignControls(mode) {
 			if (selectedIndices.length === 0) {
 				const msg = document.getElementById('statusMsg');

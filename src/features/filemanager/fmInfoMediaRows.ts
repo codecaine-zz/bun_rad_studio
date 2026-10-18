@@ -65,7 +65,7 @@ export function mediaGroups(m: MediaInfo, size: number): InfoGroup[] {
     const p = video.length > 1 ? `Video ${i + 1}: ` : "";
     vr.add(`${p}Codec`, s.codec, "A codec is the method used to squeeze the pictures (or sound) into the file. For example H.264 or AV1.");
     vr.add(`${p}Size`, s.width && s.height ? `${s.width} × ${s.height} pixels` : "").add(`${p}Frame rate`, s.fps ? `${Math.round(s.fps * 1000) / 1000} frames per second` : "", "How many pictures are shown each second.");
-    vr.add(`${p}Details`, s.detail, "Extra facts about the video, such as the colour format.").add(`${p}Bit rate`, s.bitrate ? bitrateText(s.bitrate) : "");
+    vr.add(`${p}Details`, s.detail, "Extra facts about the video, such as the color format.").add(`${p}Bit rate`, s.bitrate ? bitrateText(s.bitrate) : "");
   });
   const vg = vr.group("video", "Video");
   if (vg) groups.push(vg);

@@ -9,6 +9,8 @@ import { sanitizeProfileInput, type ConnectionProfile } from "../../db/profiles"
 import type { FmHandler } from "./fmCore";
 import { detectOperations } from "./fmDbDetectOps";
 import { sampleOperations } from "./fmDbSampleOps";
+import { cloneOperations } from "./fmDbClone";
+import { macroOperations } from "./fmDbMacros";
 import { ENGINES, DB_ENGINES, isEngine, parseConnectionUrl, type DbEngine } from "./fmDbModel";
 import { buildLaunch, describeEffective } from "./fmDbResolve";
 import { checkSqlitePath, dbState, envView, guarded, looksLikeSqlite, secretKind, stashPassword, takeStashed } from "./fmDbState";
@@ -210,4 +212,4 @@ export const databaseOperations: Record<string, FmHandler> = {
 
 };
 
-Object.assign(databaseOperations, detectOperations, studioOperations, sampleOperations, importOperations);
+Object.assign(databaseOperations, detectOperations, studioOperations, sampleOperations, importOperations, cloneOperations, macroOperations);

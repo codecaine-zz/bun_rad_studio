@@ -289,6 +289,45 @@ describe("opening an item known only by its path (Recent)", () => {
     expect((await api("recent/add", { path: join(work, "sub") })).json.ok).toBe(false);
     expect((await api("recent/add", { path: join(work, "not-here.txt") })).json.ok).toBe(false);
   });
+
+  test("recent/remove, recent/prune, recent/clear, and recentsEnabled manage the Recent list", async () => {
+    const f1 = join(work, "r1.txt");
+    const f2 = join(work, "r2.txt");
+    const f3 = join(work, "r3.txt");
+    writeFileSync(f1, "1");
+    writeFileSync(f2, "2");
+    writeFileSync(f3, "3");
+    await api("recent/add", { path: f1 });
+    await api("recent/add", { path: f2 });
+    await api("recent/add", { path: f3 });
+
+    // Remove a single item
+    const rem = await api("recent/remove", { path: f2 });
+    expect(rem.json.ok).toBe(true);
+    expect(rem.json.settings.recents.map((r: any) => r.path)).toContain(f1);
+    expect(rem.json.settings.recents.map((r: any) => r.path)).not.toContain(f2);
+    expect((await api("recent/remove", { path: "relative.txt" })).json.ok).toBe(false);
+
+    // Prune missing files
+    rmSync(f1);
+    const pruned = await api("recent/prune", {});
+    expect(pruned.json.ok).toBe(true);
+    expect(pruned.json.removed).toBeGreaterThanOrEqual(1);
+    expect(pruned.json.settings.recents.map((r: any) => r.path)).not.toContain(f1);
+    expect(pruned.json.settings.recents.map((r: any) => r.path)).toContain(f3);
+
+    // Disable recents and verify new opens/adds are ignored
+    await api("settings", { set: { recentsEnabled: false } });
+    writeFileSync(f2, "2");
+    const afterAddWhenDisabled = await api("recent/add", { path: f2 });
+    expect(afterAddWhenDisabled.json.settings.recents.map((r: any) => r.path)).not.toContain(f2);
+    await api("settings", { set: { recentsEnabled: true } });
+
+    // Clear all recents
+    const cleared = await api("recent/clear", {});
+    expect(cleared.json.ok).toBe(true);
+    expect(cleared.json.settings.recents).toEqual([]);
+  });
 });
 
 describe("links clicked inside an embedded app (link/open)", () => {

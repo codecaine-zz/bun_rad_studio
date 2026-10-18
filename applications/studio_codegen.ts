@@ -499,7 +499,7 @@ function buildPlan(root: MacroDefinition, ctx: CodegenContext, target: CodegenTa
         const name = m[1]!;
         if (!plan.vars.has(name)) {
           plan.vars.set(name, KNOWN_STRING_VARS.has(name) ? "string" : "int");
-          if (UI_VARS.has(name)) warn(`Condition [${name}] is a UI variable in the designer; it is initialised to a default here — set it yourself.`);
+          if (UI_VARS.has(name)) warn(`Condition [${name}] is a UI variable in the designer; it is initialized to a default here — set it yourself.`);
         }
       }
     }

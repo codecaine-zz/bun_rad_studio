@@ -1,7 +1,7 @@
 // Feature: RAD - statutils
 // Descriptive & inferential statistics in pure TypeScript: central tendency (arithmetic, geometric,
 // harmonic, weighted), dispersion, percentiles/quartiles, shape (skew/kurtosis), correlation
-// (Pearson, Spearman), OLS regression + prediction, normalisation, moving averages (SMA/EMA),
+// (Pearson, Spearman), OLS regression + prediction, normalization, moving averages (SMA/EMA),
 // IQR outlier detection, histograms and a one-call summary.
 // Convention: empty inputs return 0 / [] instead of NaN so dashboards never render "NaN".
 

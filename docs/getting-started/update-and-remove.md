@@ -26,7 +26,7 @@ After updating, run `bun test tests/db/splitter.test.ts` (or `bun test`) to chec
 | Database passwords | Your operating system's credential store (macOS Keychain), service name `bun-rad-studio.database` | `src/db/profiles.ts` |
 | Saved macros and queries of the database studios | `~/.bun_rad_studio/macros` (override: `STUDIO_MACRO_STORE_DIR`) | `applications/studio_macros_server.ts` |
 | Studio file exports | MySQL Studio: the folder you started it from (override: `STUDIO_EXPORT_DIR`). PostgreSQL Studio: `~/.bun_rad_studio/exports`. Other studios: not checked | `applications/mysql_studio_server.ts`, `applications/postgres_studio_server.ts` |
-| Launcher favourites and history | `.launcher_history.json` in the folder you started the launcher from, or the file named by `LAUNCHER_HISTORY_FILE` (ignored by Git) | `applications/launcher_studio.ts` |
+| Launcher favorites and history | `.launcher_history.json` in the folder you started the launcher from, or the file named by `LAUNCHER_HISTORY_FILE` (ignored by Git) | `applications/launcher_studio.ts` |
 | Designer export | `exported_project/` in the current folder (ignored by Git) | `index.ts` |
 | Downloaded packages | `node_modules/` in the repository folder | `bun install` |
 | Build output | `dist/` | `bun run build` |

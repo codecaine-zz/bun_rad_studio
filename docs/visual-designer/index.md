@@ -24,7 +24,7 @@ Checked in a browser rendering of the designer page, one item at a time (this is
 |---|---|
 | Page loads with no script errors | Yes. The form is called "Form1", 800 by 600, with no controls. |
 | Place a control | Click an item in the **Component palette**; the status bar says to click the canvas; click the canvas to drop it. Button, Label and Input were placed (ids `button_1`, `label_2`, `input_3`, 150 by 36 pixels, snapped to an 8 pixel grid). |
-| Property fields | Selecting a control fills the id, caption, position, size, colours and tooltip fields. |
+| Property fields | Selecting a control fills the id, caption, position, size, colors and tooltip fields. |
 | Code tabs | With three controls placed, the JSON tab parses, the Python tab compiles (`python3 -m py_compile`), the Bun TS tab transpiles, and the HTML, React and Vue 3 tabs have the expected content. They were not run as projects. React and Vue place controls 30 pixels lower than Python (a title-bar offset); this was seen, not investigated. |
 | Undo and redo | Cmd+Z and Cmd+Shift+Z took the control count from 3 to 2 and back to 3. |
 | **Audit** | Opens a dialog. With no problems it says "Perfect! No layout collisions or structural issues detected." Overlap, out-of-bounds, duplicate-id and empty-caption checks are in the source; the "no issues" result and, on 13 October 2026, the out-of-bounds, invalid-size, empty-caption and overlap findings were seen in a browser (not in the native window). Since 13 October 2026 ([D-041](../documentation-maintenance/discrepancies.md#d-041)) it also reports a control that starts at a negative position and a control whose width or height is not above 0, and it escapes control ids and the form title in its report. **Auto-Fix** also pulls negative positions to 0; it cannot fix a missing size. |
@@ -33,7 +33,7 @@ Checked in a browser rendering of the designer page, one item at a time (this is
 | Native window | `bun run index.ts` opens a window titled "Bun RAD Studio (Delphi/VB Style)" that shows the same interface as the browser rendering (seen once in a screenshot; no clicks were made in it). |
 | **Run** | Calls `runPreviewHelper`. Verified by running it: it writes `.rad_preview/preview.html` and `preview.ts` into the current folder and starts a separate process that stays running, also when the designer was started from another folder. The preview window's contents were **not** inspected. |
 | **Export** | Calls `exportProjectHelper` (button not clicked): writes `index.html`, `index.ts` and `package.json` into `exported_project` in the current folder; files that would change are first kept as `<name>.bak-<time>`. A one-button project builds and starts with the real webview. |
-| Keys dialog, right-click menu, **DB Wizard**, **Pin**, **Fullscreen**, drag to move and resize, theme list, alignment buttons | **Not checked.** (Button text colours in all 51 themes were checked by calculation, see [D-019](../documentation-maintenance/discrepancies.md#d-019).) |
+| Keys dialog, right-click menu, **DB Wizard**, **Pin**, **Fullscreen**, drag to move and resize, theme list, alignment buttons | **Not checked.** (Button text colors in all 51 themes were checked by calculation, see [D-019](../documentation-maintenance/discrepancies.md#d-019).) |
 
 ### Importing a layout
 

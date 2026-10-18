@@ -181,7 +181,7 @@ export function levenshteinDistance(a: string, b: string): number {
   return prev[b.length]!;
 }
 
-/** Normalised similarity `1 − distance / maxLen` in `0..1`. @example strutils.similarity("night", "nacht"); // 0.6 */
+/** Normalized similarity `1 − distance / maxLen` in `0..1`. @example strutils.similarity("night", "nacht"); // 0.6 */
 export function similarity(a: string, b: string): number {
   const max = Math.max(a.length, b.length);
   return max === 0 ? 1 : 1 - levenshteinDistance(a, b) / max;

@@ -89,7 +89,7 @@ describe("query engine upgrades", () => {
     expect(evaluateBunJsonQuery("hello", 'test("^he")')).toBe(true);
   });
 
-  it("keeps existing behaviour", () => {
+  it("keeps existing behavior", () => {
     expect(evaluateBunJsonQuery(DATA, ".modules | map(.name)")).toEqual(["a", "b", "c"]);
     expect(evaluateBunJsonQuery(DATA, "[.modules[].lines] | add")).toBe(7900);
     expect(evaluateBunJsonQuery(DATA, '.tags | join(", ")')).toBe("x, y");

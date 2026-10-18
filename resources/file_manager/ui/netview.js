@@ -13,7 +13,7 @@ const PORT_STATUS = {
 
 const LEVEL_MARK = { ok: "✔", warn: "⚠", error: "✖", info: "•" };
 
-/** One line of the live diagnostics stream. The mark makes the level clear without relying on colour. */
+/** One line of the live diagnostics stream. The mark makes the level clear without relying on color. */
 export function consoleLine(level, text, at = Date.now()) {
   return h("div", { class: `net-line net-${level}` }, h("span", { class: "net-time" }, fmtClock(at)), " ", h("span", { "aria-hidden": "true" }, LEVEL_MARK[level] ?? "•"), " ", text);
 }
@@ -28,7 +28,7 @@ const textTable = (rows) => {
   return rows.map(([k, v]) => `${pad(k, w)}${v}`).join("\n");
 };
 
-/** The common frame: a coloured heading with a plain-language line under it, then the content. */
+/** The common frame: a colored heading with a plain-language line under it, then the content. */
 function frame(tone, title, subtitle, children, text) {
   const node = h("div", { class: `net-result net-tone-${tone}` },
     h("h3", { class: "net-result-title" }, title),

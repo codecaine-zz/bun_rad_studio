@@ -82,7 +82,7 @@ export function classifyStatement(_engine: Engine, sql: string): Classification 
     case "KILL":
       return { kind: "admin", reasons: ["Administrative statement"] };
     default:
-      return { kind: "other", reasons: ["Statement type not recognised"] };
+      return { kind: "other", reasons: ["Statement type not recognized"] };
   }
 }
 

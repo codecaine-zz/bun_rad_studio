@@ -9,7 +9,7 @@ import { choiceOpt, exts, numberOpt, timeOpt, type BuildContext, type ConvDef } 
 
 /** Picture shapes, as ImageMagick's width:height crop and a label. */
 export const SHAPES: Array<[string, string]> = [["1:1", "Square (1:1)"], ["4:5", "Portrait post (4:5)"], ["9:16", "Tall: stories, reels, shorts (9:16)"], ["16:9", "Wide: YouTube, screens (16:9)"], ["4:3", "Classic photo (4:3)"], ["3:2", "Camera photo (3:2)"]];
-export const COLOURS: Array<[string, string]> = [["white", "White"], ["black", "Black"], ["#808080", "Grey"], ["none", "See-through (PNG)"]];
+export const COLORS: Array<[string, string]> = [["white", "White"], ["black", "Black"], ["#808080", "Gray"], ["none", "See-through (PNG)"]];
 
 /** A crop of the middle of the picture to a width:height shape. */
 export const shapeCrop = (shape: string) => ["-gravity", "center", "-crop", shape, "+repage"];
@@ -23,14 +23,14 @@ export const MORE_PICTURE_DEFS: ConvDef[] = [
   pic("img-sepia", "Old photo (sepia)", "Warm brown tones, like an old print.", "", "sepia", [im((c) => [c.inputs[0]!, ...FIRST_FRAME, "-auto-orient", "-sepia-tone", `${optNum(c.opts, "amount")}%`, c.output])], {
     options: [numberOpt("amount", "Strength", "", 10, 100, 80, "%")], keywords: "vintage retro brown effect filter",
   }),
-  pic("img-invert", "Invert the colours (negative)", "Black becomes white, red becomes cyan, like a film negative.", "", "negative", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-negate"]))], { keywords: "negate negative effect filter" }),
-  pic("img-enhance", "Auto-enhance (fix dull colours)", "Stretches the colours and light so a dull or grey photo looks crisp.", "", "enhanced", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-auto-gamma", "-auto-level"]))], { keywords: "auto fix improve levels contrast" }),
-  pic("img-adjust", "Brightness, contrast and colour…", "Make the picture lighter or darker, punchier or softer, more or less colourful.", "", "adjusted", [im((c) => [c.inputs[0]!, ...FIRST_FRAME, "-auto-orient",
+  pic("img-invert", "Invert the colors (negative)", "Black becomes white, red becomes cyan, like a film negative.", "", "negative", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-negate"]))], { keywords: "negate negative effect filter" }),
+  pic("img-enhance", "Auto-enhance (fix dull colors)", "Stretches the colors and light so a dull or gray photo looks crisp.", "", "enhanced", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-auto-gamma", "-auto-level"]))], { keywords: "auto fix improve levels contrast" }),
+  pic("img-adjust", "Brightness, contrast and color…", "Make the picture lighter or darker, punchier or softer, more or less colorful.", "", "adjusted", [im((c) => [c.inputs[0]!, ...FIRST_FRAME, "-auto-orient",
     "-brightness-contrast", `${optNum(c.opts, "brightness")}x${optNum(c.opts, "contrast")}`, "-modulate", `100,${optNum(c.opts, "saturation")}`, c.output])], {
     options: [
       numberOpt("brightness", "Brightness", "Below 0 is darker, above 0 is lighter.", -100, 100, 10),
       numberOpt("contrast", "Contrast", "Below 0 is softer, above 0 is punchier.", -100, 100, 10),
-      numberOpt("saturation", "Colour", "100 keeps it, 0 is grey, 200 is twice as colourful.", 0, 300, 110, "%"),
+      numberOpt("saturation", "Color", "100 keeps it, 0 is gray, 200 is twice as colorful.", 0, 300, 110, "%"),
     ], keywords: "light dark saturation vibrance exposure",
   }),
   pic("img-blur", "Blur the picture…", "Soften the whole picture (to hide details, or for a background).", "", "blurred", [im((c) => [c.inputs[0]!, ...FIRST_FRAME, "-auto-orient", "-blur", `0x${optNum(c.opts, "amount")}`, c.output])], {
@@ -44,7 +44,7 @@ export const MORE_PICTURE_DEFS: ConvDef[] = [
     return [c.inputs[0]!, ...FIRST_FRAME, "-auto-orient", "-scale", `${(100 / n).toFixed(3)}%`, "-scale", `${n * 100}%`, c.output];
   })], { options: [numberOpt("block", "Block size", "", 2, 64, 12, "pixels")], keywords: "mosaic hide retro 8-bit censor" }),
   pic("img-vignette", "Soft dark edges (vignette)", "Darkens the edges so the eye goes to the middle.", "", "vignette", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-background", "black", "-vignette", "0x%[fx:min(w,h)/6]"]))], { keywords: "effect filter frame" }),
-  pic("img-sketch", "Pencil sketch", "Turns a photo into a grey pencil drawing.", "", "sketch", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-colorspace", "Gray", "-sketch", "0x20+120"]))], { keywords: "drawing art effect charcoal" }),
+  pic("img-sketch", "Pencil sketch", "Turns a photo into a gray pencil drawing.", "", "sketch", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-colorspace", "Gray", "-sketch", "0x20+120"]))], { keywords: "drawing art effect charcoal" }),
   pic("img-crop", "Crop to a shape (square, 16:9…)", "Keeps the middle in the shape a site or screen wants.", "", "cropped", [im((c) => [c.inputs[0]!, ...FIRST_FRAME, "-auto-orient", ...shapeCrop(optStr(c.opts, "shape")), c.output])], {
     options: [shapeOpt()], keywords: "cut aspect ratio square instagram",
   }),
@@ -53,17 +53,29 @@ export const MORE_PICTURE_DEFS: ConvDef[] = [
     const bg = optStr(c.opts, "colour");
     return [c.inputs[0]!, ...FIRST_FRAME, "-auto-orient", "-background", bg, "-gravity", "center", "-extent", "%[fx:max(w,h)]x%[fx:max(w,h)]", c.output];
   })], {
-    out: (o) => (o.colour === "none" ? "png" : ""), options: [choiceOpt("colour", "Edge colour", "", COLOURS, "white")], keywords: "letterbox pad extend",
+    out: (o) => (o.colour === "none" ? "png" : ""), options: [choiceOpt("colour", "Edge color", "", COLORS, "white")], keywords: "letterbox pad extend",
   }),
   pic("img-border", "Add a border", "A plain frame around the picture.", "", "border", [im((c) => [c.inputs[0]!, ...FIRST_FRAME, "-auto-orient", "-bordercolor", optStr(c.opts, "colour"), "-border", String(optNum(c.opts, "size")), c.output])], {
-    options: [numberOpt("size", "Thickness", "", 1, 300, 20, "pixels"), choiceOpt("colour", "Colour", "", COLOURS.slice(0, 3), "white")], keywords: "frame edge",
+    options: [numberOpt("size", "Thickness", "", 1, 300, 20, "pixels"), choiceOpt("colour", "Color", "", COLORS.slice(0, 3), "white")], keywords: "frame edge",
   }),
   pic("img-circle", "Make a round picture (circle)", "Cuts a square from the middle and rounds it, for profile pictures. Saved as PNG.", "png", "round", [im(imSimple([...FIRST_FRAME, "-auto-orient", ...CIRCLE]), "png")], { keywords: "avatar profile circle round" }),
   pic("img-rounded", "Round the corners", "Soft rounded corners, like an app icon or a card. Saved as PNG.", "png", "rounded", [im((c) => [c.inputs[0]!, ...FIRST_FRAME, "-auto-orient", ...rounded(optNum(c.opts, "radius")), c.output], "png")], {
     options: [numberOpt("radius", "Roundness", "", 4, 400, 40, "pixels")], keywords: "corner radius card icon",
   }),
   pic("img-transparent", "Make the white background see-through", "Plain white (or nearly white) becomes transparent, for logos and signatures. Saved as PNG.", "png", "transparent", [im((c) => [c.inputs[0]!, ...FIRST_FRAME, "-auto-orient", "-fuzz", `${optNum(c.opts, "fuzz")}%`, "-transparent", "white", c.output], "png")], {
-    options: [numberOpt("fuzz", "How close to white", "Higher also removes light greys.", 0, 50, 10, "%")], keywords: "remove background transparent logo signature",
+    options: [numberOpt("fuzz", "How close to white", "Higher also removes light grays.", 0, 50, 10, "%")], keywords: "remove background transparent logo signature",
+  }),
+  pic("img-scan", "Clean up a photographed page (document scan)", "Turns a photo of a page, receipt or whiteboard into crisp dark writing on clean white paper.", "", "scan", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-colorspace", "Gray", "(", "+clone", "-blur", "0x20", ")", "+swap", "-compose", "DivideSrc", "-composite", "-linear-stretch", "5%x1%"]))], {
+    keywords: "document scan receipt page whiteboard paper clean contrast",
+  }),
+  pic("img-polaroid", "Polaroid photo frame", "Adds a classic white photo frame with a wider bottom edge, like an instant camera print.", "", "polaroid", [im(imSimple([...FIRST_FRAME, "-auto-orient", "-bordercolor", "white", "-border", "24x24", "-gravity", "south", "-background", "white", "-splice", "0x56"]))], {
+    keywords: "polaroid frame instant photo print border",
+  }),
+  pic("img-shadow", "Add a soft drop shadow (for screenshots)", "Puts a soft shadow behind a screenshot or card on a see-through background. Saved as PNG.", "png", "shadow", [im(imSimple([...FIRST_FRAME, "-auto-orient", "(", "+clone", "-background", "black", "-shadow", "60x12+0+8", ")", "+swap", "-background", "none", "-layers", "merge", "+repage"]), "png")], {
+    keywords: "shadow drop screenshot card png",
+  }),
+  pic("img-posterize", "Poster look (fewer, bold colors)", "Reduces the picture to a handful of flat, bold color steps, like a screen-printed poster.", "", "poster", [im((c) => [c.inputs[0]!, ...FIRST_FRAME, "-auto-orient", "-posterize", String(optNum(c.opts, "levels")), c.output])], {
+    options: [numberOpt("levels", "Color levels", "Fewer is bolder; 4 to 8 works well.", 2, 16, 6)], keywords: "poster posterize flat colors art",
   }),
   pic("img-append", "Put side by side", "Joins the selected pictures into one, next to each other or one under the other.", "png", "joined", [im((c) => {
     const across = optStr(c.opts, "direction") === "across";
@@ -114,25 +126,38 @@ export const MORE_VIDEO_DEFS: ConvDef[] = [
   vid("vid-crop-shape", "Crop to a shape (vertical, square…)", "Keeps the middle of the picture: make a wide video tall for shorts and reels, or square.", "mp4", "cropped", [ffEngine((c) => ff(c, [], ["-vf", videoShapeCrop(optStr(c.opts, "shape")), ...H264, ...x264, "-c:a", "copy", ...FASTSTART]), "x264")], {
     options: [choiceOpt("shape", "Shape", "", VIDEO_SHAPES, "9:16")], keywords: "vertical portrait tiktok reels shorts square aspect",
   }),
+  vid("vid-vertical-blur", "Fit into vertical (9:16) with blurred background", "Keeps the whole wide video in the middle and fills the top and bottom with a soft, blurred copy — for shorts, reels and TikTok without cutting anything off.", "mp4", "vertical", [ffEngine((c) => ff(c, [], ["-vf", "split[bg][fg];[bg]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,boxblur=20:5[bg2];[fg]scale=720:1280:force_original_aspect_ratio=decrease[fg2];[bg2][fg2]overlay=(W-w)/2:(H-h)/2,format=yuv420p", ...H264, ...x264, "-c:a", "copy", ...FASTSTART]), "x264")], {
+    keywords: "vertical portrait tiktok reels shorts blur background pillarbox 9:16",
+  }),
+  vid("vid-boomerang", "Make a boomerang (forward then backward)", "Plays the clip forwards and then right back to the start in one smooth silent loop. Best for short clips.", "mp4", "boomerang", [ffEngine((c) => ff(c, [], ["-vf", "split[f][b];[b]reverse[r];[f][r]concat=n=2:v=1:a=0,format=yuv420p", "-an", ...H264, ...x264, ...FASTSTART]), "x264")], {
+    keywords: "boomerang bounce loop forward backward instagram",
+  }),
   vid("vid-fade", "Fade in and out", "The picture fades from and to black and the sound fades in and out.", "mp4", "faded", [ffEngine((c) => {
     const len = probeSeconds(c, c.inputs[0]!);
     const fi = optNum(c.opts, "fadeIn");
     const fo = optNum(c.opts, "fadeOut");
     return ff(c, [], ["-vf", ["format=yuv420p", ...fades("v", fi, fo, len)].join(","), "-af", ["anull", ...fades("a", fi, fo, len)].join(","), ...H264, ...x264, ...AAC("160k"), ...FASTSTART]);
   }, "x264")], { options: fadeOpts, keywords: "fade black transition" }),
-  vid("vid-gray", "Black and white video (greyscale)", "Removes the colour from the picture. The sound stays.", "mp4", "black and white", [ffEngine((c) => ff(c, [], ["-vf", "hue=s=0", ...H264, ...x264, "-c:a", "copy", ...FASTSTART]), "x264")], { keywords: "grey gray greyscale grayscale monochrome" }),
+  vid("vid-gray", "Black and white video (grayscale)", "Removes the color from the picture. The sound stays.", "mp4", "black and white", [ffEngine((c) => ff(c, [], ["-vf", "hue=s=0", ...H264, ...x264, "-c:a", "copy", ...FASTSTART]), "x264")], { keywords: "gray gray grayscale grayscale monochrome" }),
   vid("vid-mirror", "Mirror left to right", "Flips the picture like a mirror (fixes selfie videos).", "mp4", "mirrored", [ffEngine((c) => ff(c, [], ["-vf", "hflip", ...H264, ...x264, "-c:a", "copy", ...FASTSTART]), "x264")], { keywords: "flip selfie" }),
   vid("vid-reverse", "Play backwards (reverse)", "The video and its sound run backwards. Best for short clips: the whole video is held in memory.", "mp4", "reversed", [ffEngine((c) => ff(c, [], ["-vf", "reverse", "-af", "areverse", ...H264, ...x264, ...AAC("160k"), ...FASTSTART]), "x264")], { keywords: "rewind backward" }),
-  vid("vid-color", "Brightness, contrast and colour…", "Make a dark or dull video brighter and more colourful.", "mp4", "adjusted", [ffEngine((c) => {
+  vid("vid-color", "Brightness, contrast and color…", "Make a dark or dull video brighter and more colorful.", "mp4", "adjusted", [ffEngine((c) => {
     const eq = `eq=brightness=${(optNum(c.opts, "brightness") / 200).toFixed(3)}:contrast=${(1 + optNum(c.opts, "contrast") / 100).toFixed(3)}:saturation=${(optNum(c.opts, "saturation") / 100).toFixed(3)}`;
     return ff(c, [], ["-vf", eq, ...H264, ...x264, "-c:a", "copy", ...FASTSTART]);
   }, "x264")], {
-    options: [numberOpt("brightness", "Brightness", "Below 0 is darker.", -100, 100, 10), numberOpt("contrast", "Contrast", "Below 0 is softer.", -100, 100, 10), numberOpt("saturation", "Colour", "100 keeps it, 0 is grey.", 0, 300, 120, "%")],
+    options: [numberOpt("brightness", "Brightness", "Below 0 is darker.", -100, 100, 10), numberOpt("contrast", "Contrast", "Below 0 is softer.", -100, 100, 10), numberOpt("saturation", "Color", "100 keeps it, 0 is gray.", 0, 300, 120, "%")],
     keywords: "light dark saturation exposure grade",
   }),
   vid("vid-denoise", "Clean up a grainy video", "Smooths the speckles of a video filmed in low light.", "mp4", "clean", [ffEngine((c) => ff(c, [], ["-vf", "hqdn3d=4:3:6:4.5", ...H264, ...x264, "-c:a", "copy", ...FASTSTART]), "x264")], { keywords: "noise grain low light denoise" }),
+  vid("vid-sharpen", "Sharpen a soft video", "Brings out edges and detail in a slightly blurry video.", "mp4", "sharpened", [ffEngine((c) => ff(c, [], ["-vf", "unsharp=5:5:1.0:5:5:0.0", ...H264, ...x264, "-c:a", "copy", ...FASTSTART]), "x264")], { keywords: "crisp detail focus unsharp" }),
   vid("vid-volume", "Make the sound louder or quieter", "Changes the volume. The picture is not re-encoded.", "", "volume", [ffEngine((c) => ff(c, [], ["-c:v", "copy", "-af", `volume=${optNum(c.opts, "volume") / 100}`, ...AAC("192k")]))], {
     inputs: exts("mp4 mov m4v mkv"), options: [numberOpt("volume", "Volume", "100 keeps it, 200 is twice as loud.", 0, 500, 150, "%")], keywords: "loud quiet gain boost",
+  }),
+  vid("vid-normalize", "Make the video's sound even (normalize)", "Evens out quiet and loud parts of the sound (the EBU R128 standard). The picture is not re-encoded.", "", "normalized", [ffEngine((c) => ff(c, [], ["-c:v", "copy", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-ar", "48000", ...AAC("192k")]))], {
+    inputs: exts("mp4 mov m4v mkv"), keywords: "loudness volume level loudnorm even audio",
+  }),
+  vid("vid-voice", "Clean up speech in a video", "Cuts background rumble and hiss and evens out voices in a lecture, interview or screen recording. The picture is not re-encoded.", "", "clear voice", [ffEngine((c) => ff(c, [], ["-c:v", "copy", "-af", "highpass=f=80,afftdn=nf=-20,acompressor=threshold=-20dB:ratio=3:attack=5:release=120,loudnorm=I=-16:TP=-1.5:LRA=11", "-ar", "48000", ...AAC("192k")]))], {
+    inputs: exts("mp4 mov m4v mkv"), keywords: "speech voice podcast lecture noise hiss clarity",
   }),
   vid("vid-fps", "Change the frames per second", "Smaller files at 24 or 30; smoother motion is not created.", "mp4", "fps", [ffEngine((c) => ff(c, [], ["-vf", `fps=${optStr(c.opts, "fps")}`, ...H264, ...x264, "-c:a", "copy", ...FASTSTART]), "x264")], {
     options: [choiceOpt("fps", "Frames per second", "", [["24", "24 (film)"], ["25", "25"], ["30", "30 (most videos)"], ["60", "60 (smooth)"], ["15", "15 (small)"]], "30")], keywords: "framerate frame rate",
@@ -191,13 +216,31 @@ export const MORE_SOUND_DEFS: ConvDef[] = [
     keywords: "cut clip shorten",
   }),
   snd("aud-mono", "Make mono", "Both speakers play the same sound; the file is smaller.", "", "mono", [ffEngine((c) => ff(c, [], ["-vn", "-ac", "1", ...sndSame(c)]))], { keywords: "channels stereo" }),
+  snd("aud-small-voice", "Make small for sharing (voice M4A)", "Turns a long meeting, lecture or voice memo into a tiny mono M4A file that is easy to email or message.", "m4a", "small", [ffEngine((c) => ff(c, [], ["-vn", "-ac", "1", "-ar", "24000", "-c:a", "aac", "-b:a", "48k", ...FASTSTART]))], {
+    keywords: "compress shrink voice memo lecture meeting podcast email whatsapp",
+  }),
   snd("aud-reverse", "Play backwards (reverse)", "The sound runs backwards.", "", "reversed", [ffEngine(sndFilter("areverse"))], { keywords: "backward rewind" }),
   snd("aud-denoise", "Reduce background noise", "Lowers steady hiss and hum (fans, air conditioning) in recordings.", "", "clean", [ffEngine(sndFilter("highpass=f=70,afftdn=nf=-25"))], { keywords: "noise hiss hum clean denoise" }),
   snd("aud-voice", "Make speech clearer", "Cuts rumble and evens the level of a voice recording, podcast or lecture.", "", "clear voice", [ffEngine(sndFilter("highpass=f=90,lowpass=f=12000,acompressor=threshold=-20dB:ratio=3:attack=5:release=120,loudnorm=I=-16:TP=-1.5:LRA=11"))], {
     keywords: "podcast voice speech compressor clarity",
   }),
   snd("aud-bass", "Bass boost", "More low end for small speakers.", "", "bass", [ffEngine((c) => ff(c, [], ["-vn", "-af", `bass=g=${optNum(c.opts, "gain")}:f=110,alimiter=limit=0.95`, ...sndSame(c)]))], {
-    options: [numberOpt("gain", "How much", "", 1, 20, 6, "dB")], keywords: "bass boost equaliser eq low",
+    options: [numberOpt("gain", "How much", "", 1, 20, 6, "dB")], keywords: "bass boost equalizer equaliser eq low",
+  }),
+  snd("aud-treble", "Make brighter and crisper (treble boost)", "Adds clarity and sparkle to muffled recordings or dull songs.", "", "crisp", [ffEngine((c) => ff(c, [], ["-vn", "-af", `treble=g=${optNum(c.opts, "gain")}:f=4000,alimiter=limit=0.95`, ...sndSame(c)]))], {
+    options: [numberOpt("gain", "How much", "", 1, 15, 5, "dB")], keywords: "treble high crisp clarity equalizer equaliser eq",
+  }),
+  snd("aud-echo", "Add room echo (reverb)", "Gives a dry voice or instrument a warm room echo.", "", "echo", [ffEngine(sndFilter("aecho=0.8:0.88:60|120:0.35|0.2"))], {
+    keywords: "echo reverb room hall delay effect",
+  }),
+  snd("aud-nightcore", "Nightcore (faster and higher pitch)", "Speeds up the song and raises the pitch together, like a sped-up record.", "", "nightcore", [ffEngine(sndFilter("asetrate=44100*1.25,aresample=44100"))], {
+    keywords: "nightcore pitch fast chipmunk remix",
+  }),
+  snd("aud-slowed", "Slowed and dreamy (slowed + reverb)", "Slows the song down and lowers the pitch with a gentle echo.", "", "slowed", [ffEngine(sndFilter("asetrate=44100*0.85,aresample=44100,aecho=0.8:0.88:80:0.25"))], {
+    keywords: "slowed reverb vaporwave pitch deep dreamy",
+  }),
+  snd("aud-8d", "8D rotating sound (for headphones)", "Gently moves the sound from ear to ear in a circle. Listen with headphones.", "", "8D", [ffEngine(sndFilter("apulsator=mode=sine:hz=0.125:amount=0.85"))], {
+    keywords: "8d binaural pan headphones surround",
   }),
   snd("aud-karaoke", "Try to remove the singer (karaoke)", "Removes what sits in the middle of a stereo song, usually the voice. Works best on older stereo recordings.", "", "karaoke", [ffEngine(sndFilter("pan=stereo|c0=c0-c1|c1=c1-c0"))], { keywords: "vocals instrumental remove voice" }),
   snd("aud-split", "Split into equal parts", "Cuts a long recording into pieces of the same length, in a new folder. Not re-encoded.", "", "parts", [ffEngine((c) => {

@@ -32,7 +32,7 @@ const $ = (selector: string, from: any = doc): any => from.querySelector(selecto
 const $$ = (selector: string, from: any = doc): any[] => [...from.querySelectorAll(selector)];
 const pane = () => $("#power-pane-serve");
 const button = (text: string, from: any = doc): any => $$("button", from).find((b) => b.textContent.trim() === text);
-const labelled = (label: string, from: any = doc): any => $(`[aria-label="${label}"]`, from);
+const labeled = (label: string, from: any = doc): any => $(`[aria-label="${label}"]`, from);
 const rows = () => $$(".serve-row", pane());
 const click = (el: any) => el.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
 const change = (el: any, value?: string) => {
@@ -171,7 +171,7 @@ describe("the Serve tab", () => {
     noStrayWords(pane(), "the Serve tab");
     // The kinds, port and options are there.
     expect($$("select option", pane()).map((o) => o.value)).toEqual(["auto", "static", "php"]);
-    expect(labelled("Port number").placeholder).toBe("Auto");
+    expect(labeled("Port number").placeholder).toBe("Auto");
     expect(pane().textContent).toContain("Reload the page when files change");
     expect(pane().textContent).toContain("Open my browser when it starts");
     expect(pane().textContent).toContain("Show hidden files");
@@ -279,17 +279,17 @@ describe("the Serve tab", () => {
 
   test("the form starts a server for any folder, remembers choices but never the network option", async () => {
     await openTool(plain);
-    const folder = labelled("Folder to serve");
+    const folder = labeled("Folder to serve");
     folder.value = site;
     change(folder);
     await until(() => /live server/.test($(".serve-detect", pane()).textContent), "the folder to be described");
     expect($(".serve-detect", pane()).textContent).toContain("This folder has web pages (HTML)");
-    const kind = labelled("Kind of server");
+    const kind = labeled("Kind of server");
     kind.value = "static";
     const open = $$("input[type=checkbox]", pane()).find((i) => i.closest("label").textContent.includes("Open my browser"));
     open.checked = false;
     const before = launched.length;
-    const port = labelled("Port number");
+    const port = labeled("Port number");
     port.value = "abc";
     click(button("Start server"));
     await until(() => /port must be a whole number/.test($(".serve-message", pane()).textContent), "the port message");
@@ -314,7 +314,7 @@ describe("the Serve tab", () => {
 
   test("the network option asks first, says why, and marks the server clearly", async () => {
     await openTool(plain);
-    const folder = labelled("Folder to serve");
+    const folder = labeled("Folder to serve");
     folder.value = site;
     change(folder);
     const lan = $$("input[type=checkbox]", pane()).find((i) => i.closest("label").textContent.includes("(LAN)"));
@@ -354,7 +354,7 @@ describe("the Serve tab", () => {
 
   test("errors from the server are shown in plain words, never as null or undefined", async () => {
     await openTool(plain);
-    const folder = labelled("Folder to serve");
+    const folder = labeled("Folder to serve");
     folder.value = "";
     click(button("Start server"));
     expect($(".serve-message", pane()).textContent).toBe("Choose the folder to serve first.");

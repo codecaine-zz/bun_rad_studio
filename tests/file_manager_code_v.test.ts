@@ -14,7 +14,7 @@ const types = (src: string) => tokenizeText("v", src).flat().filter((t: any) => 
 beforeAll(() => mkdirSync(join(root, "snip"), { recursive: true }));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
-describe("V files are recognised", () => {
+describe("V files are recognized", () => {
   test("by name, by the v.mod file name and by the shebang", () => {
     for (const name of ["a.v", "a.vsh", "a.vv", "v.mod", "x_test.v", "x.c.v", "x.js.v", "FOO.V"]) expect(detectLanguage(name), name).toBe("v");
     expect(detectLanguage("script", "#!/usr/bin/env -S v run")).toBe("v");

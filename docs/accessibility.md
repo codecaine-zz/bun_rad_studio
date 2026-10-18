@@ -1,6 +1,6 @@
 # Accessibility
 
-What was checked about how usable the programs are with a keyboard, a screen reader or low vision, what was fixed, and what is still missing. **Only the visual designer's page was assessed**, in a Chromium-based browser rendering on macOS on 13 October 2026, with scripted measurements and a few real key presses. No screen reader, no zoom or reflow test, no colour-blindness check and no test in the native window was done. This is not a compliance claim (WCAG or any other standard).
+What was checked about how usable the programs are with a keyboard, a screen reader or low vision, what was fixed, and what is still missing. **Only the visual designer's page was assessed**, in a Chromium-based browser rendering on macOS on 13 October 2026, with scripted measurements and a few real key presses. No screen reader, no zoom or reflow test, no color-blindness check and no test in the native window was done. This is not a compliance claim (WCAG or any other standard).
 
 ## Contents
 
@@ -25,7 +25,7 @@ What was checked about how usable the programs are with a keyboard, a screen rea
 | Clickable elements a keyboard cannot reach | **133 of 133** (the whole component palette, the layout templates and similar) | **0** |
 | Visible keyboard focus | **none**: three style rules remove the default outline and nothing replaced it (the focused button had `outline: none`) | a solid outline appears on keyboard focus (checked with real Tab presses) |
 | Button text contrast | 25 of 51 themes below 4.5 to 1 | all 51 reach 4.5 to 1 ([D-019](documentation-maintenance/discrepancies.md#d-019)) |
-| Body text contrast | Solarized Light and Solarized Dark body text on the form or panel colour is below 4.5 to 1 (published palette) | unchanged |
+| Body text contrast | Solarized Light and Solarized Dark body text on the form or panel color is below 4.5 to 1 (published palette) | unchanged |
 
 ## Fixed on 13 October 2026
 
@@ -43,12 +43,12 @@ What was checked about how usable the programs are with a keyboard, a screen rea
 - **Icon-only buttons rely on `title`** instead of `aria-label`; screen readers differ in how they use it.
 - **No `<label>` association** for the property fields; the `title` attribute is the only programmatic name.
 - **The canvas** (the form being designed) exposes the controls as plain elements; whether a screen reader can understand the form was not tested.
-- **Motion, zoom, text size and colour-blindness** were not assessed.
+- **Motion, zoom, text size and color-blindness** were not assessed.
 - **Solarized** body text contrast, see above.
 
 ## File Manager
 
-Built with accessibility in mind and **partly measured** ([D-045](documentation-maintenance/discrepancies.md#d-045)): `tests/file_manager_ui_theme.test.ts` checks the WCAG contrast of the text, link and status colours in the light and dark themes and that dark colours also apply automatically from the system setting; `tests/file_manager_ui_structure.test.ts` checks the page. In a browser: every action works from the keyboard, the list is a labelled `listbox` with `option` rows, dialogs trap focus and close with Escape, there is a "Skip to the files" link, the Recycle Bin's name includes its count, and the focused item has a visible outline. A text-size setting (80% to 160%) is available. The tasks panel for conversions is a labelled region with a native `<progress>` per task, text status, keyboard-reachable Cancel, Show and Dismiss buttons, and its completion is announced through the page's live region ([D-048](documentation-maintenance/discrepancies.md#d-048)); the Convert window uses ordinary buttons and headings. A screen reader was not used on either. The terminal panel is a labelled region with a keyboard-resizable separator and visible focus; xterm.js is used with its default (non-screen-reader) mode, so **a screen reader was not tested with it and may not read the terminal output** ([D-046](documentation-maintenance/discrepancies.md#d-046)). **Not checked:** a real screen reader, reduced motion, colour-blindness, high-contrast mode, or the native window on Windows and Linux.
+Built with accessibility in mind and **partly measured** ([D-045](documentation-maintenance/discrepancies.md#d-045)): `tests/file_manager_ui_theme.test.ts` checks the WCAG contrast of the text, link and status colors in the light and dark themes and that dark colors also apply automatically from the system setting; `tests/file_manager_ui_structure.test.ts` checks the page. In a browser: every action works from the keyboard, the list is a labeled `listbox` with `option` rows, dialogs trap focus and close with Escape, there is a "Skip to the files" link, the Recycle Bin's name includes its count, and the focused item has a visible outline. A text-size setting (80% to 160%) is available. The tasks panel for conversions is a labeled region with a native `<progress>` per task, text status, keyboard-reachable Cancel, Show and Dismiss buttons, and its completion is announced through the page's live region ([D-048](documentation-maintenance/discrepancies.md#d-048)); the Convert window uses ordinary buttons and headings. A screen reader was not used on either. The terminal panel is a labeled region with a keyboard-resizable separator and visible focus; xterm.js is used with its default (non-screen-reader) mode, so **a screen reader was not tested with it and may not read the terminal output** ([D-046](documentation-maintenance/discrepancies.md#d-046)). **Not checked:** a real screen reader, reduced motion, color-blindness, high-contrast mode, or the native window on Windows and Linux.
 
 ## Tooltips in the other applications
 
@@ -56,7 +56,7 @@ Every non-game window now has the shared tooltip script ([D-049](documentation-m
 
 ## Futuristic themes (effects layer)
 
-The 12 futuristic themes add glass, glow and motion. What the tests and the browser checks cover, from [D-054](documentation-maintenance/discrepancies.md#d-054): body text on every glass surface reaches 4.5:1 over both a pure black and a pure white backdrop; text, accent, border and status colours are contrast-checked per theme; the focus ring is never removed and is moved until it reaches 3:1 on the canvas and card; scanlines and grain stay at or below 4% and never take the pointer; nothing loops faster than two cycles per second; `prefers-reduced-motion` removes all motion (fades only), `prefers-contrast: more` switches to solid, outlined surfaces with no glow, blur or overlays, and forced colours use system colours. Not assessed: screen-reader behaviour of the Designer's new **Effects** control, and any native WebView. Details: [developer/fx-themes.md](developer/fx-themes.md).
+The 12 futuristic themes add glass, glow and motion. What the tests and the browser checks cover, from [D-054](documentation-maintenance/discrepancies.md#d-054): body text on every glass surface reaches 4.5:1 over both a pure black and a pure white backdrop; text, accent, border and status colors are contrast-checked per theme; the focus ring is never removed and is moved until it reaches 3:1 on the canvas and card; scanlines and grain stay at or below 4% and never take the pointer; nothing loops faster than two cycles per second; `prefers-reduced-motion` removes all motion (fades only), `prefers-contrast: more` switches to solid, outlined surfaces with no glow, blur or overlays, and forced colors use system colors. Not assessed: screen-reader behavior of the Designer's new **Effects** control, and any native WebView. Details: [developer/fx-themes.md](developer/fx-themes.md).
 
 ## Other applications
 

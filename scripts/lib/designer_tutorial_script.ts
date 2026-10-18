@@ -29,22 +29,47 @@ export const designerChapters: Chapter[] = [
       {
         cap: "Three areas: palette, canvas, inspector",
         say: "The designer has three main areas. On the left, form layout templates, and the component palette. In the middle, the canvas, which is your form. On the right, the inspector, where you edit whatever is selected. Along the top is the toolbar. Right now the form is empty.",
-        act: async (d) => { await d.hover(".template-chip >> Customer", 1400); await d.hover(".palette-item >> Button", 1400); await d.hover("#formCanvas", 1500); await d.hover("#tabProps", 1500); },
+        act: async (d) => {
+          await d.hover(".template-chip >> Customer", 1000);
+          await d.hover(".palette-item >> Button", 1000);
+          await d.hover("#formCanvas", 1000);
+          await d.hover("#tabProps", 1000);
+          await d.click("#togglePaletteBtn", { pause: 600 });
+          await d.click("#togglePaletteBtn", { pause: 600 });
+          await d.click("#toggleInspectorBtn", { pause: 600 });
+          await d.click("#toggleInspectorBtn", { pause: 600 });
+        },
       },
       {
         cap: "The palette has about a hundred controls",
         say: "The palette is grouped. Standard controls, like buttons, labels and inputs. Toggles and options, like checkboxes, switches and sliders. Database controls, like grids and lookups. And many more further down. If you cannot find one, type in the filter box. I will type chart.",
-        act: async (d) => { await d.scroll(".palette-item >> Button", 600, 5); await d.click(".search-box", { pause: 500 }); await d.type("chart", 110); await d.wait(1500); await d.eval(`(() => { const i = document.querySelector('.search-box'); i.value = ''; i.dispatchEvent(new Event('input', { bubbles: true })); })()`); },
+        act: async (d) => {
+          await d.click("#toggleAllCategoriesBtn", { pause: 700 });
+          await d.click("#toggleAllCategoriesBtn", { pause: 700 });
+          await d.scroll(".palette-item >> Button", 600, 5);
+          await d.click(".search-box", { pause: 500 });
+          await d.type("chart", 110);
+          await d.wait(1200);
+          await d.eval(`(() => { const i = document.querySelector('.search-box'); i.value = ''; i.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+        },
       },
       {
         cap: "Rulers, zoom and the status bar",
         say: "The canvas has rulers on the top and left, so you can see exact positions in pixels. The text above the canvas tells you the size of the form, and how many controls it has. And the status bar at the bottom shows the position of your mouse.",
-        act: async (d) => { await d.hover("#rulerH", 1500); await d.hover("#canvasStats", 1500); await d.hover("#statusCoords", 1500); },
+        act: async (d) => { await d.hover("#rulerH", 1300); await d.hover("#canvasStats", 1300); await d.hover("#nonVisualTrayContainer", 1000); await d.hover("#statusCoords", 1300); },
       },
       {
         cap: "The inspector's six code tabs",
         say: "The inspector has tabs. Properties. The control Tree. Events. And then five tabs that show the code for your form as you build it: Bun TypeScript, H T M L, React, Vue three, and Python. Everything updates live.",
-        act: async (d) => { for (const t of ["Tree", "Events", "Bun TS", "HTML", "React", "Vue 3", "Properties"]) await d.click(`.tab-item >> ${t}`, { pause: 1000 }); },
+        act: async (d) => {
+          await d.click(".tab-item >> Tree", { pause: 800 });
+          await d.click(".tab-item >> Events", { pause: 800 });
+          await d.click("#inspectorCodePrimaryTab", { pause: 800 });
+          for (const t of ["Bun TS", "HTML", "React", "Vue 3", "Python", "JSON"]) {
+            await d.click(`.code-lang-pill >> ${t}`, { pause: 650 });
+          }
+          await d.click(".tab-item >> Properties", { pause: 800 });
+        },
       },
     ],
   },
@@ -68,7 +93,7 @@ export const designerChapters: Chapter[] = [
       {
         cap: "Click a control on the form to select it",
         say: "To change a control, click it on the form. It gets a highlight and resize handles, and the inspector shows its properties. This is the label.",
-        act: async (d) => { await control(d, 1, 1500); await d.hover("#selectedPropHeader", 1500); },
+        act: async (d) => { await control(d, 1, 1200); await d.hover("#objectInspectorSelector", 900); await d.hover("#selectedPropHeader", 1200); },
       },
       {
         cap: "Caption / Text and Control ID",
@@ -93,7 +118,7 @@ export const designerChapters: Chapter[] = [
   },
 
   {
-    id: "03_inspector", chapter: "PROPERTIES", title: "Size, colour, position and style", blurb: "Everything about how a control looks",
+    id: "03_inspector", chapter: "PROPERTIES", title: "Size, color, position and style", blurb: "Everything about how a control looks",
     steps: [
       {
         cap: "Start from a template",
@@ -102,13 +127,22 @@ export const designerChapters: Chapter[] = [
       },
       {
         cap: "Select a button; style presets",
-        say: "I select the button. Under the toolbar, there are style presets: Primary, Success, Warning, Danger, Violet and Slate. One click gives the button a matching colour. I try Success, then Danger.",
+        say: "I select the button. Under the toolbar, there are style presets: Primary, Success, Warning, Danger, Violet and Slate. One click gives the button a matching color. I try Success, then Danger.",
         act: async (d) => { await tag(d); const n = await d.eval(`document.querySelectorAll("#formCanvas .designer-control").length`); await control(d, n, 1200); await d.click("button >> Success", { pause: 1300 }); await d.click("button >> Danger", { pause: 1300 }); await d.click("button >> Primary", { pause: 1300 }); },
       },
       {
         cap: "Position and size, in pixels",
-        say: "Further down in the inspector are the exact numbers. X and Y are the position. Width and height are the size. Font size, colours, border radius, border, shadow and opacity are all here. I make the button wider.",
-        act: async (d) => { await d.scroll("#controlPropContainer", 500, 5); await fill(d, "propWidth", "300"); await fill(d, "propBorderRadius", "20"); await d.hover("#formCanvas", 1500); },
+        say: "Further down in the inspector are the exact numbers. X and Y are the position. Width and height are the size. Font size, colors, border radius, border, shadow and opacity are all here. I make the button wider.",
+        act: async (d) => {
+          await d.scroll("#controlPropContainer", 500, 5);
+          await fill(d, "propWidth", "300");
+          await fill(d, "propBorderRadius", "20");
+          await d.eval(`setHoverBgColor('#10b981')`);
+          await d.click("#anchorRightBtn", { pause: 500 });
+          await d.click("#liveHoverTestBtn", { pause: 700 });
+          await d.hover("#formCanvas", 1100);
+          await d.click("#liveHoverTestBtn", { pause: 500 });
+        },
       },
       {
         cap: "Move and resize with the mouse",
@@ -137,8 +171,8 @@ export const designerChapters: Chapter[] = [
         act: async (d) => { await d.click("button >> Left", { pause: 1500 }); await d.click("button >> Eq W", { pause: 1500 }); await d.click("button >> Dist V", { pause: 1500 }); },
       },
       {
-        cap: "Columns, centring and the grid",
-        say: "Two Columns and Three Columns show guides that help you build column layouts. Center H Form centres the selection in the form. And Grid turns on snapping, so everything you move lands on a tidy grid.",
+        cap: "Columns, centering and the grid",
+        say: "Two Columns and Three Columns show guides that help you build column layouts. Center H Form centers the selection in the form. And Grid turns on snapping, so everything you move lands on a tidy grid.",
         act: async (d) => { await d.click("button >> 2-Cols", { pause: 1500 }); await d.click("button >> 2-Cols", { pause: 800 }); await d.click("button >> Center H Form", { pause: 1500 }); await d.click("#snapBtn", { pause: 1400 }); },
       },
       {
@@ -160,12 +194,25 @@ export const designerChapters: Chapter[] = [
       {
         cap: "Write the On Click handler",
         say: "In the on click box, I replace the starting line with one line of code that shows a message: alert, Welcome back. The box takes ordinary JavaScript. It is what runs in the form's page when the button is clicked.",
-        act: async (d) => { await d.click("#evtOnClick", { pause: 700 }); await d.eval(`document.getElementById('evtOnClick').select()`); await d.type("alert('Welcome back!');", 70); await d.key("Tab", "Tab"); await d.wait(1200); },
+        act: async (d) => {
+          await d.click("#evtOnClick", { pause: 600 });
+          await d.eval(`document.getElementById('evtOnClick').select()`);
+          await d.type("alert('Welcome back!');", 65);
+          await d.key("Tab", "Tab");
+          await d.eval(`showEventEditorModal('onClick')`);
+          await d.wait(900);
+          await d.click("button >> Save & Bind Handler", { pause: 800 });
+        },
       },
       {
         cap: "The handler appears in the generated code",
         say: "Now look at the Bun T S tab. The handler is part of the generated code, attached to the button. Every code tab includes it, so what you test in the preview is what you export. And you can add a handler to any control the same way.",
-        act: async (d) => { await d.click(".tab-item >> Bun TS", { pause: 1600 }); await d.scroll("#bunTsPreviewText", 500, 5); await d.hover("#bunTsPreviewText", 2200); },
+        act: async (d) => {
+          await d.click("#inspectorCodePrimaryTab", { pause: 900 });
+          await d.click(".code-lang-pill >> Bun TS", { pause: 900 });
+          await d.scroll("#bunTsPreviewText", 500, 5);
+          await d.hover("#bunTsPreviewText", 2000);
+        },
       },
     ],
   },
@@ -176,17 +223,35 @@ export const designerChapters: Chapter[] = [
       {
         cap: "Bun TypeScript: the SimpleGUI code",
         say: "This is the point. The Bun T S tab shows the real SimpleGUI code for your form. A window, then each control, with its position and size, and your handler. You can copy it, paste it into a file, and run it with bun.",
-        act: async (d) => { await d.click(".template-chip >> Auth Login", { pause: 1500 }); await d.click(".tab-item >> Bun TS", { pause: 1500 }); await d.scroll("#bunTsPreviewText", 400, 5); await d.hover("#bunTsPreviewText", 1800); },
+        act: async (d) => {
+          await d.click(".template-chip >> Auth Login", { pause: 1200 });
+          await d.click("#inspectorCodePrimaryTab", { pause: 900 });
+          await d.click(".code-lang-pill >> Bun TS", { pause: 900 });
+          await d.scroll("#bunTsPreviewText", 400, 5);
+          await d.hover("#bunTsPreviewText", 1600);
+        },
       },
       {
         cap: "HTML, React, Vue and Python",
         say: "The same form is also available as plain H T M L, as a React component, as a Vue three component, and as Python code. They update live as you change the form.",
-        act: async (d) => { for (const t of ["HTML", "React", "Vue 3", "Python"]) { await d.click(`.tab-item >> ${t}`, { pause: 1000 }); await d.hover(".tab-content.active, #tabHTML", 1400).catch(() => {}); } },
+        act: async (d) => {
+          await d.click("#inspectorCodePrimaryTab", { pause: 600 });
+          for (const t of ["HTML", "React", "Vue 3", "Python"]) {
+            await d.click(`.code-lang-pill >> ${t}`, { pause: 950 });
+            await d.hover(".tab-content.active", 1100).catch(() => {});
+          }
+        },
       },
       {
         cap: "Copy buttons",
         say: "Copy buttons put any of them on the clipboard. And the J S O N tab is the form itself, which you can save, share, and import again later.",
-        act: async (d) => { await d.click("button >> Copy Bun Code", { pause: 1600 }).catch(() => {}); await d.click(".tab-item >> JSON", { pause: 1600 }); },
+        act: async (d) => {
+          await d.click("#inspectorCodePrimaryTab", { pause: 600 });
+          await d.click(".code-lang-pill >> Bun TS", { pause: 700 });
+          await d.click("button >> Copy Bun Code", { pause: 1200 }).catch(() => {});
+          await d.click(".code-lang-pill >> JSON", { pause: 1400 });
+          await d.hover("#jsonPreviewText", 1200);
+        },
       },
     ],
   },
@@ -201,8 +266,8 @@ export const designerChapters: Chapter[] = [
       },
       {
         cap: "Form Theme: sixty three looks",
-        say: "Back in the inspector, click the title bar to select the form. The Form Theme list has sixty three looks, from light and dark to futuristic ones. The full SimpleGUI library has one hundred and thirty three themes, including operating system looks, editor colour schemes and retro computers. I will try a few.",
-        act: async (d) => { await d.click("#winTitleHeader", { pause: 1000 }); for (const t of ["Light", "Neo-Tokyo Dark", "Cyberpunk Hologram"]) { await d.eval(pick("propFormTheme", t)); await d.wait(2000); } },
+        say: "Back in the inspector, click the title bar to select the form. The Form Theme list has sixty three looks, from light and dark to futuristic ones. The full SimpleGUI library has one hundred and thirty three themes, including operating system looks, editor color schemes and retro computers. I will try a few.",
+        act: async (d) => { await d.click(".tab-item >> Properties", { pause: 700 }); await d.click("#winTitleHeader", { pause: 900 }); for (const t of ["Light", "Neo-Tokyo Dark", "Cyberpunk Hologram"]) { await d.eval(pick("propFormTheme", t)); await d.wait(1900); } },
       },
       {
         cap: "Visual effects",
@@ -223,17 +288,17 @@ export const designerChapters: Chapter[] = [
       {
         cap: "Audit: find problems",
         say: "Audit checks your form. It finds duplicate names, controls hanging off the edge, missing labels, and other mistakes, and explains each one.",
-        act: async (d) => { await d.click("button >> Audit", { pause: 2000 }); await d.waitFor("#diagnosticsModal", 5000).catch(() => {}); await d.hover("#diagnosticsModal", 2500).catch(() => {}); await d.key("Escape", "Esc"); },
+        act: async (d) => { await d.click("button >> Audit", { pause: 1800 }); await d.waitFor("#diagnosticsModal", 5000).catch(() => {}); await d.hover("#diagnosticsSummary", 1800).catch(() => {}); await d.click("#diagnosticsModal button >> Close", { pause: 800 }).catch(() => d.key("Escape", "Esc")); },
       },
       {
         cap: "Keys: every keyboard shortcut",
         say: "Keys opens the list of keyboard shortcuts, for placing, selecting, moving, copying and aligning controls, so you hardly need the mouse.",
-        act: async (d) => { await d.click("button >> Keys", { pause: 2000 }); await d.hover("#hotkeysModal", 2800).catch(() => {}); await d.key("Escape", "Esc"); },
+        act: async (d) => { await d.click("button >> Keys", { pause: 1800 }); await d.hover("#hotkeysModal", 2200).catch(() => {}); await d.click("#hotkeysModal button >> Got it!", { pause: 800 }).catch(() => d.key("Escape", "Esc")); },
       },
       {
         cap: "Database wizard",
         say: "And the D B Wizard builds a data form from a database table, with a grid, a navigator and fields already connected. Databases are covered in their own tutorial.",
-        act: async (d) => { await d.click("button >> DB Wizard", { pause: 2200 }); await d.hover(".modal.active, .modal[style*='flex'], .modal", 2400).catch(() => {}); await d.key("Escape", "Esc"); },
+        act: async (d) => { await d.click("button >> DB Wizard", { pause: 1800 }); await d.hover("#formCanvas", 1500); await d.hover("#nonVisualTrayContainer", 1500); },
       },
     ],
   },
@@ -249,12 +314,12 @@ export const designerChapters: Chapter[] = [
       {
         cap: "Import a saved form",
         say: "Import does the opposite. Paste a form's J S O N, and it appears on the canvas, so you can continue where you stopped, or open a form someone shared with you.",
-        act: async (d) => { await d.click("button >> Import", { pause: 2000 }); await d.hover("#importModal", 2200).catch(() => {}); await d.key("Escape", "Esc"); },
+        act: async (d) => { await d.click("button >> Import", { pause: 1800 }); await d.hover("#importJsonText", 1800).catch(() => {}); await d.click("#importModal button >> Cancel", { pause: 800 }).catch(() => d.key("Escape", "Esc")); },
       },
       {
         cap: "Drafts are saved automatically",
         say: "And you never lose work. The designer saves a draft as you go. If you close it by accident and open it again, a banner offers to restore your form, or to discard it.",
-        act: async (d) => { await d.hover("#draftBanner", 1800).catch(() => {}); await d.hover("#statusMsg", 1800); },
+        act: async (d) => { await d.hover("#statusMsg", 1800); await d.hover("#statusRight", 1500); },
       },
     ],
   },
@@ -288,7 +353,7 @@ export const designerChapters: Chapter[] = [
       },
       {
         cap: "Change it and run again",
-        say: "The label changed, and a toast message appeared. From here, you can change colours, add controls, switch to any of the one hundred thirty three themes, and use the other windows of the toolbox, from databases to games, all built with the same A P I. The full reference is in the docs folder, and there is a cookbook of working examples.",
+        say: "The label changed, and a toast message appeared. From here, you can change colors, add controls, switch to any of the one hundred thirty three themes, and use the other windows of the toolbox, from databases to games, all built with the same A P I. The full reference is in the docs folder, and there is a cookbook of working examples.",
         act: async (d) => { await d.click("input", { pause: 400 }); await d.type(" and friends", 100); await d.click("button >> Say hello", { pause: 2500 }); },
       },
     ],

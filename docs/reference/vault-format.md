@@ -54,7 +54,7 @@ The two levels the program offers:
 
 ## From password to key
 
-1. Normalise the password to Unicode **NFKC**, encode as **UTF-8**.
+1. Normalize the password to Unicode **NFKC**, encode as **UTF-8**.
 2. `master = Argon2id(password, nonce = salt, memory, passes, parallelism, tagLength = 32)` (version 0x13, no secret, no associated data).
 3. `key = HKDF-SHA-256(IKM = master, salt = salt, info = "radenc v1 file key" (ASCII, no terminator), L = 32)`.
 

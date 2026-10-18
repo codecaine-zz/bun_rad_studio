@@ -7,7 +7,7 @@ install step and loads nothing from the network.
 |---|---|---|
 | `xterm.mjs`, `xterm.css` | `@xterm/xterm` (`lib/xterm.mjs`, `css/xterm.css`) | 6.0.0 |
 | `addon-fit.mjs` | `@xterm/addon-fit` (`lib/addon-fit.mjs`) | 0.11.0 |
-| `LICENSE-xterm.txt` | both packages' licence files | |
+| `LICENSE-xterm.txt` | both packages' license files | |
 
 Changes made to the upstream files (both are checked by `tests/file_manager_ui_structure.test.ts`):
 

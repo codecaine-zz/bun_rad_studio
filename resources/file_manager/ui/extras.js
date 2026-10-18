@@ -9,6 +9,7 @@ import { saveSettings } from "./nav.js";
 import { keysOf } from "./keymap.js";
 import { permissionsSection } from "./permsPanel.js";
 import { reviewPlan } from "./planDialog.js";
+import { clearRecents, isRecentsEnabled, showRecentsManager } from "./recents.js";
 import { formatShortcut } from "./shortcuts.js";
 import { showShortcutsDialog } from "./shortcutsDialog.js";
 import { state } from "./state.js";
@@ -196,6 +197,8 @@ function shortcuts() {
     ["Switch window view: Files, Home, Tools, Split, Dual", `${alt}1  ·  ${alt}2  ·  ${alt}3  ·  ${alt}4  ·  ${alt}5`],
     ["Focus (hide toolbar and side panels), Esc to leave", `${alt}6`],
     ["Show or hide the list of places", `${alt}7`],
+    ["Expand or restore the tool (ultra focus), Esc to leave", `${K("app.expandTool")}  ·  ${alt}8`],
+    ["Filter tools and apps", K("nav.filterTools")],
     ["Open Find in the tools", K("nav.findTool")],
     ["Dual view: switch side, copy, move", `Tab  ·  ${K("dual.copy")}  ·  ${K("dual.move")}`],
     ["Properties", K("file.properties")],
@@ -279,8 +282,8 @@ export function showSettings() {
       options.map(([v, l]) => h("option", { value: v, selected: state.settings[key] === v }, l)));
     return h("label", { class: "field" }, h("span", { class: "field-label" }, label), select);
   };
-  const toggle = (label, key, tip) => {
-    const input = h("input", { type: "checkbox", checked: state.settings[key], onchange: () => saveSettings({ [key]: input.checked }) });
+  const toggle = (label, key, tip, after) => {
+    const input = h("input", { type: "checkbox", checked: state.settings[key] !== false && Boolean(state.settings[key]), onchange: async () => { await saveSettings({ [key]: input.checked }); after?.(); } });
     return h("label", { class: "check", title: tip }, input, h("span", {}, label));
   };
   const size = h("input", { type: "range", min: "80", max: "160", step: "10", value: String(state.settings.textSize), "aria-label": "Text size", oninput: () => { sizeValue.textContent = `${size.value}%`; saveSettings({ textSize: Number(size.value) }); } });
@@ -288,7 +291,38 @@ export function showSettings() {
   const themeNow = h("span", { class: "range-value" }, state.settings.palette ? "" : "Standard");
   currentThemeName().then((name) => { if (name) themeNow.textContent = name; }).catch(() => {});
   const themeRow = h("div", { class: "field" }, h("span", { class: "field-label" }, "Theme"),
-    h("span", { class: "range-row" }, h("button", { type: "button", class: "btn", title: "Pick from over 170 themes: dark, light, futuristic special-effects themes, Linux, Windows, macOS, rare classic systems and editor favourites.", onclick: () => showThemePicker() }, "Choose a theme…"), themeNow));
+    h("span", { class: "range-row" }, h("button", { type: "button", class: "btn", title: "Pick from over 170 themes: dark, light, futuristic special-effects themes, Linux, Windows, macOS, rare classic systems and editor favorites.", onclick: () => showThemePicker() }, "Choose a theme…"), themeNow));
+  const recentSummary = h("span", { class: "range-value", dataset: { settingsRecentSummary: "" } });
+  const clearRecentsBtn = h("button", {
+    type: "button",
+    class: "btn",
+    dataset: { settingsRecentClear: "" },
+    title: "Forget all recently opened files",
+    onclick: async () => {
+      await clearRecents();
+      updateRecentRow();
+    },
+  }, "Clear recent files");
+  const updateRecentRow = () => {
+    const count = state.settings.recents.length;
+    recentSummary.textContent = isRecentsEnabled() ? `${plural(count, "file")} remembered` : `Turned off (${plural(count, "saved file")})`;
+    clearRecentsBtn.disabled = count === 0;
+  };
+  updateRecentRow();
+  const recentRow = h("div", { class: "field" }, h("span", { class: "field-label" }, "Recent files"),
+    h("span", { class: "range-row" },
+      h("button", {
+        type: "button",
+        class: "btn",
+        dataset: { settingsRecentManage: "" },
+        title: "Enable or disable recent files, filter the list, remove missing files or clear all",
+        onclick: async () => {
+          await showRecentsManager();
+          updateRecentRow();
+        },
+      }, "Manage recent files…"),
+      clearRecentsBtn,
+      recentSummary));
   const textOpenSelect = h("select", { class: "select", "aria-label": "Open text files with", title: "What double-click, Enter and Open do with text and source files. Documents, programs and other files open in the program your computer uses for them.", onchange: () => saveSettings({ textOpensIn: textOpenSelect.value }) },
     ...[["builtin", "The built-in Code editor"], ["editor", "My code editor (the one chosen below)"], ["system", "The program my computer uses"]].map(([value, label]) => h("option", { value, selected: (state.settings.textOpensIn ?? "builtin") === value }, label)));
   const mediaOpenSelect = h("select", { class: "select", "aria-label": "Open pictures, sound and video with", title: "What double-click, Enter and Open do with pictures, sound and video. The File Manager's viewer has the player, playlist and picture tools; Quick Look's Open button and right-click → Open with… still use another program.", onchange: () => saveSettings({ mediaOpensIn: mediaOpenSelect.value }) },
@@ -303,7 +337,7 @@ export function showSettings() {
     title: "Settings",
     body: [
       themeRow,
-      choice("Colours", "theme", [["auto", "Match my computer"], ["light", "Light"], ["dark", "Dark"]]),
+      choice("Colors", "theme", [["auto", "Match my computer"], ["light", "Light"], ["dark", "Dark"]]),
       choice("When the File Manager starts, show", "startWith", [["files", "My files"], ["home", "The Home page"], ["last", "The view I used last time"]]),
       choice("When I press Delete, use", "deleteTo", [["bin", "The File Manager's Recycle Bin"], ["graveyard", "The Rip graveyard"]], undefined, "Where the Delete key and the Delete button send things. The Recycle Bin is only for this app; the Rip graveyard is shared with Rip Studio. Both can be undone."),
       choice("Database shortcuts open in", "dbShortcut", [["window", "Their own window"], ["browser", "My web browser"]], undefined, "Where the quick-open buttons for saved database connections (on the Home page, and Shift+Enter in the Databases tool) show the studio."),
@@ -312,9 +346,11 @@ export function showSettings() {
       toggle("Show hidden files and folders", "showHidden"),
       toggle("Keep folders at the top of the list", "foldersFirst"),
       toggle("Show the Details panel", "showInfoPanel"),
+      toggle("Remember recently opened files", "recentsEnabled", "Keep a list of files you open in the sidebar, on the Home page and under the Recent menu. Turn off to stop recording new files.", updateRecentRow),
       toggle("Warn when a file isn't what its name says", "typeWarnings", "Shows a badge on files like a program named invoice.pdf, and asks before opening the dangerous ones. Turn it off if you don't want these checks."),
       state.platform !== "darwin" ? toggle("My keyboard's Delete key is Backspace (a Mac keyboard on Windows or Linux)", "backspaceDeletes", "A Mac keyboard's Delete key sends Backspace. Turn this on and Backspace moves the selected items to the Recycle Bin (Shift+Backspace deletes for good) instead of going up a folder. Alt+Up still goes up.") : null,
       typeof window.closeApp === "function" ? toggle("Only close the window with its close button", "shortcutsCantClose", `Stops ${state.platform === "darwin" ? "⌘Q and ⌘W" : "Ctrl+Q and Ctrl+W"} from closing the File Manager by accident. Close it with the window's close button instead.${state.platform === "darwin" ? "" : " Alt+F4 is handled by the system itself, so it still closes the window."}`) : null,
+      recentRow,
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Open text files with"), textOpenSelect),
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Open pictures, sound and video with"), mediaOpenSelect),
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Code editor"), editorSelect),

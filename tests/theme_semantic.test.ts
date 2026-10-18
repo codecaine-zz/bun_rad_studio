@@ -3,7 +3,7 @@ import { SimpleWindow, SIMPLEGUI_THEMES, getSemanticColors, getTheme, getThemeKe
 import { SEMANTIC_KINDS, contrastRatio, normalizeKind, parseColor } from "../src/shared/themeSemantic";
 import { OS_THEMES, RARE_OS_THEME_KEYS } from "../src/shared/osThemes";
 
-// Aliases share a record's colours, so each distinct theme is checked once.
+// Aliases share a record's colors, so each distinct theme is checked once.
 function distinctThemes(): { key: string; name: string }[] {
     const seen = new Set<string>();
     const out: { key: string; name: string }[] = [];
@@ -21,8 +21,8 @@ function attainable(bg: string, isDark: boolean): number {
     return Math.min(4.5, contrastRatio(isDark ? "#ffffff" : "#000000", bg) - 0.1);
 }
 
-describe("semantic status colours", () => {
-    test("every theme has readable danger, warning, success and info colours", () => {
+describe("semantic status colors", () => {
+    test("every theme has readable danger, warning, success and info colors", () => {
         for (const { key } of distinctThemes()) {
             const t = getTheme(key);
             const card = t.card_background || (t.is_dark ? "#1e293b" : "#ffffff");
@@ -52,7 +52,7 @@ describe("semantic status colours", () => {
         }
     });
 
-    test("well-known palettes keep their published colours", () => {
+    test("well-known palettes keep their published colors", () => {
         expect(getSemanticColors("dracula").danger.solid).toBe("#ff5555");
         expect(getSemanticColors("nord").success.solid).toBe("#a3be8c");
         expect(getSemanticColors("github_light").danger.solid).toBe("#cf222e");
@@ -90,7 +90,7 @@ describe("semantic status colours", () => {
         expect(html).not.toMatch(/<button id="plain"[^>]*rad-btn-/);
     });
 
-    test("an explicit background colour still wins over a status variant", () => {
+    test("an explicit background color still wins over a status variant", () => {
         const win = new SimpleWindow("t", 400, 300, {});
         win.addButton("x", "X", { variant: "danger", background_color: "#123456" });
         const html = win.generateHtml();
@@ -98,7 +98,7 @@ describe("semantic status colours", () => {
         expect(html).toContain("#123456");
     });
 
-    test("badges use the theme's status text colour", () => {
+    test("badges use the theme's status text color", () => {
         const win = new SimpleWindow("t", 400, 300, {});
         win.setTheme("nord");
         win.addBadge("Late", "warning");

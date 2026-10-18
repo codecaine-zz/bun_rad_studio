@@ -31,14 +31,22 @@ const VIDEO_ONLY = ["mute", "brightness", "contrast", "saturation", "gray", "mir
 const signed = (v) => (v > 0 ? `+${v}` : String(v));
 const PRESETS = [
   ["Podcast voice", { voice: true, denoise: true, normalize: true, mono: true }],
+  ["Clean up noise", { denoise: true, normalize: true }],
+  ["Crisp speech (1.25×)", { speed: 1.25, voice: true, treble: 4, normalize: true }],
   ["Louder", { volume: 180, normalize: true }],
   ["Bass boost", { bass: 10 }],
+  ["Smooth fades", { fadeIn: 2, fadeOut: 3, normalize: true }],
   ["Ringtone (30 s)", { fadeIn: 1, fadeOut: 2, format: "m4a" }, (st) => st.ringtone()],
   ["Sound only (MP3)", { format: "mp3" }],
+  ["Mute video", { mute: true }],
   ["Fast (2×)", { speed: 2 }],
   ["Slow motion", { speed: 0.5 }],
   ["Vertical for shorts", { shape: "9:16", size: "1080" }],
+  ["Square post (1:1)", { shape: "1:1", size: "1080" }],
+  ["Small MP4 (720p)", { size: "720", format: "mp4" }],
+  ["Tiny MP4 (480p)", { size: "480", format: "mp4", mono: true }],
   ["Old film", { gray: true, contrast: 20 }],
+  ["Lossless FLAC", { format: "flac" }],
 ];
 
 function mount(root) {
@@ -66,7 +74,7 @@ function mount(root) {
   add(toggle({ id: "mute", label: "No sound", tip: "Keeps only the picture of a video.", onInput: on }));
   add(slider({ id: "brightness", label: "Brightness", min: -100, max: 100, value: 0, format: signed, onInput: on }));
   add(slider({ id: "contrast", label: "Contrast", min: -100, max: 100, value: 0, format: signed, onInput: on }));
-  add(slider({ id: "saturation", label: "Colour", min: 0, max: 300, value: 100, format: (v) => `${v}%`, onInput: on }));
+  add(slider({ id: "saturation", label: "Color", min: 0, max: 300, value: 100, format: (v) => `${v}%`, onInput: on }));
   add(toggle({ id: "gray", label: "Black and white", onInput: on }));
   add(toggle({ id: "mirror", label: "Mirror", onInput: on }));
   add(toggle({ id: "fadePicture", label: "Fade the picture too", value: true, tip: "Fades from and to black along with the sound.", onInput: on }));
@@ -256,4 +264,4 @@ function mount(root) {
   };
 }
 
-registerPowerTab({ id: "mediastudio", label: "Media Studio", icon: "🎬", tip: "Edit songs, voice recordings and videos: trim, speed, volume, fades, bass, noise, picture colour, shape and format", group: "media", mount });
+registerPowerTab({ id: "mediastudio", label: "Media Studio", icon: "🎬", tip: "Edit songs, voice recordings and videos: trim, speed, volume, fades, bass, noise, picture color, shape and format", group: "media", mount });

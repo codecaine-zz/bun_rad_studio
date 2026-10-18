@@ -258,7 +258,7 @@ export function summarizeExif(d: ExifData, extras: { xmp?: boolean; iptc?: boole
   camera.add("Exposure compensation", bias !== null ? `${bias > 0 ? "+" : ""}${trimNum(bias, 2)} EV` : "", "How much brighter or darker than the camera's own choice.");
   camera.add("Exposure program", program !== null ? name(EXPOSURE_PROGRAM, program) : "").add("Exposure mode", mode !== null ? name(EXPOSURE_MODE, mode) : "");
   camera.add("Metering", metering !== null ? name(METERING, metering) : "", "How the camera measured the light.");
-  camera.add("Flash", flash !== null ? flashText(flash) : "").add("White balance", wb !== null ? name(WHITE_BALANCE, wb) : "", "How the camera corrected the colour of the light.");
+  camera.add("Flash", flash !== null ? flashText(flash) : "").add("White balance", wb !== null ? name(WHITE_BALANCE, wb) : "", "How the camera corrected the color of the light.");
   camera.add("Scene type", scene !== null ? name(SCENE_TYPE, scene) : "").add("Light source", (() => { const n = exifNumber(d, "Exif", 0x9208); return n ? name(LIGHT_SOURCE, n) : ""; })());
   camera.add("Sensor type", (() => { const n = exifNumber(d, "Exif", 0xa217); return n ? name(SENSING, n) : ""; })());
   camera.add("Software", exifText(d, "IFD0", 0x131), "The program that made or last saved this picture.");
@@ -271,7 +271,7 @@ export function summarizeExif(d: ExifData, extras: { xmp?: boolean; iptc?: boole
   const cs = exifNumber(d, "Exif", 0xa001);
   image.add("Orientation", orient !== null ? name(ORIENTATION, orient) : "", "Which way the camera was held. Viewers turn the picture to match.");
   image.add("Resolution", xr && yr && unit !== 1 ? `${trimNum(xr, 2)} × ${trimNum(yr, 2)} per ${unit !== null ? name(RESOLUTION_UNIT, unit) : "unit"}` : "", "Print size hint (dots per inch). It does not change how many pixels the picture has.");
-  image.add("Colour space", cs !== null ? name(COLOR_SPACE, cs) : "", "Which set of colours the picture uses. sRGB is the usual one for screens.");
+  image.add("Color space", cs !== null ? name(COLOR_SPACE, cs) : "", "Which set of colors the picture uses. sRGB is the usual one for screens.");
   image.add("Size in the camera notes", exifNumber(d, "Exif", 0xa002) && exifNumber(d, "Exif", 0xa003) ? `${exifNumber(d, "Exif", 0xa002)} × ${exifNumber(d, "Exif", 0xa003)} pixels` : "");
   image.add("Thumbnail", d.hasThumbnail ? "Has a small preview picture inside" : "", "A tiny copy of the picture stored inside the file. It can show an older, uncropped version.");
   image.add("Camera maker's extra notes", d.hasMakerNote ? `Present (${d.makerNoteBytes.toLocaleString("en-US")} bytes, not decoded)` : "", "Private notes only the camera brand can read (it can include a serial number).");

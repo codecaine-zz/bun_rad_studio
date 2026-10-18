@@ -25,17 +25,56 @@ const STATE_ICON = { starting: "⏳", running: "🟢", stopping: "⏳", stopped:
 let area = null;
 let timer = 0;
 let activeId = null;
+let expanded = false;
+let wiredDoc = null;
 /** id -> { root, info, target, frame, frameBox, parts } */
 const panes = new Map();
+
+function syncExpandButton(btn) {
+  if (!btn) return;
+  btn.textContent = expanded ? "⛶ Restore" : "⛶ Expand";
+  btn.setAttribute("aria-pressed", String(expanded));
+  btn.title = expanded
+    ? "Bring back the File Manager bars and side panes (Esc)"
+    : "Hide the File Manager bars and side panes so this studio gets the whole window (Esc restores them)";
+}
+
+export const isStudioExpanded = () => expanded;
+
+export function setStudioExpanded(next) {
+  expanded = Boolean(next);
+  const root = area?.closest?.(".db-root");
+  if (root) root.dataset.maximized = expanded ? "true" : "false";
+  if (typeof document !== "undefined") document.getElementById("app")?.classList.toggle("db-studio-max", expanded);
+  for (const p of panes.values()) syncExpandButton(p.parts.expand);
+}
+
+export function toggleStudioExpanded() {
+  setStudioExpanded(!expanded);
+}
+
+function ensureEscapeListener() {
+  if (typeof document === "undefined" || wiredDoc === document) return;
+  wiredDoc = document;
+  document.addEventListener("keydown", (e) => {
+    if (!expanded || !activeId || e.key !== "Escape" || e.defaultPrevented || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (document.querySelector(".modal-backdrop, .menu")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setStudioExpanded(false);
+  }, true);
+}
 
 /** Where the panes live (the Databases tab gives one container). */
 export function mountStudioArea(el) {
   area = el;
+  ensureEscapeListener();
 }
 
 export function resetStudios() {
   clearInterval(timer);
   timer = 0;
+  setStudioExpanded(false);
   panes.clear();
   activeId = null;
   area = null;
@@ -65,23 +104,26 @@ export async function openStudio(target, { confirmed = false } = {}) {
 
 function buildPane(info, target) {
   const state = h("span", { class: "db-state", role: "status" });
+  const expand = h("button", { type: "button", class: "pw-btn db-expand", "aria-pressed": "false", title: "" });
+  syncExpandButton(expand);
   const stop = h("button", { type: "button", class: "pw-btn", title: "Stop this studio (its process ends)" }, "Stop");
   const restart = h("button", { type: "button", class: "pw-btn", title: "Stop it and start it again with the current connection settings" }, "Restart");
-  const windowBtn = h("button", { type: "button", class: "pw-btn", title: "Open this studio as its own desktop window, with the same connection" }, "Open in a separate window");
-  const browserBtn = h("button", { type: "button", class: "pw-btn", title: "Open this studio in your web browser" }, "Open in my browser");
+  const windowBtn = h("button", { type: "button", class: "pw-btn", "data-role": "db-window", title: "Open this studio as its own desktop window, with the same connection" }, "Open in a separate window");
+  const browserBtn = h("button", { type: "button", class: "pw-btn", "data-role": "db-browser", title: "Open this studio in your web browser" }, "Open in my browser");
   const close = h("button", { type: "button", class: "pw-btn", title: "Remove this finished studio from the list" }, "Close");
-  const back = h("button", { type: "button", class: "pw-btn", title: "Back to the list of connections (the studio keeps running)" }, "← Connections");
+  const back = h("button", { type: "button", class: "pw-btn", "data-role": "db-back", title: "Back to the list of connections (the studio keeps running)" }, "← Connections");
   const banner = h("p", { class: "db-banner-writes", role: "note", hidden: true });
   const message = h("p", { class: "db-studio-message", role: "alert", hidden: true });
   const logBox = h("pre", { class: "pw-out db-log", tabindex: "0", "aria-label": "Studio log" });
   const log = h("details", { class: "db-logs" }, h("summary", {}, "Log (secrets are hidden)"), logBox);
   const frameBox = h("div", { class: "db-frame-box" });
-  const root = h("section", { class: "db-studio", "aria-label": info.title, dataset: { id: info.id }, hidden: true },
-    h("div", { class: "db-studio-head" }, back, h("h3", { class: "db-studio-title" }, info.title), state, h("span", { class: "db-studio-actions" }, stop, restart, windowBtn, browserBtn, close)),
+  const root = h("section", { class: "db-studio", "aria-label": info.title, "data-copy-self": "off", dataset: { id: info.id, state: info.state }, hidden: true },
+    h("div", { class: "db-studio-head" }, back, h("h3", { class: "db-studio-title" }, info.title), state, h("span", { class: "db-studio-actions" }, expand, stop, restart, windowBtn, browserBtn, close)),
     banner, message, log, frameBox,
   );
-  const pane = { root, info, target, frame: null, frameBox, parts: { state, stop, restart, windowBtn, browserBtn, close, banner, message, logBox, log } };
+  const pane = { root, info, target, frame: null, frameBox, parts: { state, expand, stop, restart, windowBtn, browserBtn, close, banner, message, logBox, log } };
 
+  expand.addEventListener("click", () => toggleStudioExpanded());
   back.addEventListener("click", () => emit("db-view", { view: "list" }));
   stop.addEventListener("click", async () => {
     stop.disabled = true;
@@ -142,6 +184,8 @@ async function loadLog(pane) {
 function paint(pane) {
   const { info, parts } = pane;
   const live = info.state === "running";
+  pane.root.dataset.state = info.state;
+  syncExpandButton(parts.expand);
   parts.state.textContent = `${STATE_ICON[info.state] ?? ""} ${STATE_WORDS[info.state] ?? info.state}`;
   parts.stop.disabled = !(info.state === "running" || info.state === "starting");
   parts.restart.disabled = info.state === "stopping" || info.state === "starting";
@@ -225,6 +269,7 @@ export function showStudioById(id) {
 }
 
 export function hideStudios() {
+  setStudioExpanded(false);
   for (const p of panes.values()) p.root.hidden = true;
   activeId = null;
 }

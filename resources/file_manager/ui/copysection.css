@@ -1,5 +1,5 @@
-/* The "Copy this section" buttons. Colours come only from the theme variables, so every theme works. */
-.copy-bar { display: inline-flex; align-items: stretch; font-size: 0.78rem; line-height: 1.2; opacity: 0; transition: opacity 0.12s; white-space: nowrap; }
+/* The "Copy this section" buttons. Colors come only from the theme variables, so every theme works. */
+.copy-bar { display: inline-flex; align-items: stretch; font-size: 0.78rem; line-height: 1.2; opacity: 0; pointer-events: none; transition: opacity 0.12s; white-space: nowrap; }
 .copy-bar[hidden] { display: none !important; }
 .copy-bar button, .copy-item { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--border); padding: 2px 8px; cursor: pointer; }
 .copy-main { border-radius: 6px 0 0 6px; }
@@ -14,7 +14,10 @@
 
 .copy-host:hover > .copy-bar, .copy-host:focus-within > .copy-bar,
 .copy-bar:hover, .copy-bar:focus-within,
-.copy-bar:has(+ :hover), .copy-bar:has(+ :focus-within) { opacity: 1; }
+.copy-bar:has(+ :hover), .copy-bar:has(+ :focus-within) { opacity: 1; pointer-events: auto; }
+#app.focus-mode .copy-host:not(:hover) > .copy-bar-host:not(:hover):not(:focus-within),
+#app.power-max .copy-host:not(:hover) > .copy-bar-host:not(:hover):not(:focus-within),
+#app.db-studio-max .copy-host:not(:hover) > .copy-bar-host:not(:hover):not(:focus-within) { opacity: 0; pointer-events: none; }
 
 /* Small "Copy" buttons next to a single value (a digest, a password, a log line). */
 .copy-item { border-radius: 6px; font-size: 0.78rem; padding: 1px 8px; white-space: nowrap; flex: none; }

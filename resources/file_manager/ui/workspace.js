@@ -6,7 +6,7 @@ import { enterDual } from "./dual.js";
 import { renderHome } from "./home.js";
 import { menuIsOpen } from "./menus.js";
 import { saveSettings } from "./nav.js";
-import { activePowerTab, concealPower, listPowerTabs, powerIsOpen, revealPower, setPowerHost } from "./power.js";
+import { activePowerTab, concealPower, listPowerTabs, powerIsOpen, revealPower, setPowerHost, togglePowerExpanded } from "./power.js";
 import { emit, on, state } from "./state.js";
 
 const mac = () => state.platform === "darwin";
@@ -270,11 +270,12 @@ function wireShortcuts() {
     }
     if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || inTerminal) return;
     // Option+digit types a symbol on a Mac, so look at the physical key rather than the character.
-    const digit = /^Digit([1-7])$/.exec(e.code ?? "")?.[1] ?? (/^[1-7]$/.test(e.key) ? e.key : null);
+    const digit = /^Digit([1-8])$/.exec(e.code ?? "")?.[1] ?? (/^[1-8]$/.test(e.key) ? e.key : null);
     if (!digit) return;
     e.preventDefault();
     if (digit === "6") toggleFocusMode();
     else if (digit === "7") toggleSidebar();
+    else if (digit === "8") togglePowerExpanded();
     else setWorkspace(VIEWS[Number(digit) - 1].id, { focus: true });
   });
 }

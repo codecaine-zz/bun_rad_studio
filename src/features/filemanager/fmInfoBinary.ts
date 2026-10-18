@@ -118,7 +118,7 @@ export async function sqliteInfo(src: Source): Promise<{ groups: InfoGroup[]; ki
 
 const NAME_IDS: Array<[number, string, string?]> = [
   [1, "Family"], [2, "Style"], [4, "Full name"], [5, "Version"], [6, "PostScript name"], [0, "Copyright"], [7, "Trademark"], [8, "Made by"], [9, "Designer"],
-  [11, "Maker's website"], [13, "Licence", "What you are allowed to do with the font."], [14, "Licence website"],
+  [11, "Maker's website"], [13, "License", "What you are allowed to do with the font."], [14, "License website"],
 ];
 
 function decodeName(platform: number, bytes: Uint8Array): string {
@@ -189,7 +189,7 @@ export async function fontInfo(src: Source): Promise<{ groups: InfoGroup[]; kind
   }
   r.add("Outlines", tables.has("CFF ") || tables.has("CFF2") ? "PostScript (CFF)" : tables.has("glyf") ? "TrueType" : flavor === "OTTO" ? "PostScript (CFF)" : "", "How the letter shapes are drawn.");
   r.add("Variable font", tables.has("fvar") ? "Yes: it has adjustable weight or width" : "No", "A variable font holds many styles in one file.");
-  r.add("Colour glyphs", tables.has("COLR") || tables.has("SVG ") || tables.has("sbix") || tables.has("CBDT") ? "Yes (emoji-style colour)" : "");
+  r.add("Color glyphs", tables.has("COLR") || tables.has("SVG ") || tables.has("sbix") || tables.has("CBDT") ? "Yes (emoji-style color)" : "");
   r.add("Fonts in collection", collection || "", "A font collection (.ttc) holds several fonts in one file; the first is shown.");
   r.add("Format", woff ? "WOFF (web font)" : flavor === "OTTO" ? "OpenType (CFF)" : "TrueType / OpenType");
   const g = r.group("font", "Font");

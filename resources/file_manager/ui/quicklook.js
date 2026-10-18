@@ -10,6 +10,7 @@ import { copyImageFile, copyTextFile } from "./clipfile.js";
 import { copyPathOf, openEntry, revealEntry } from "./ops.js";
 import { openInCode } from "./code.js";
 import { isKnownTextName } from "./codeLang.js";
+import { renderMarkdown } from "./codePreview.js";
 import { showMoreInfo } from "./fileinfo.js";
 import { showProperties } from "./extras.js";
 import { createGifViewer } from "./gifviewer.js";
@@ -19,14 +20,17 @@ import { showOpenWith } from "./openwith.js";
 import { showToolsDialog } from "./tools.js";
 import { activePane } from "./pane.js";
 import { focusIndex, selectedEntries } from "./selection.js";
-import { inTrash, on } from "./state.js";
+import { inTrash, on, state } from "./state.js";
 import { parseTable } from "./quicklookTable.js";
+import { renderRichQuickLook } from "./quicklookFormat.js";
 import { openPower } from "./power.js";
 import { isStudioPicture } from "./imageStudio.js";
 import { isStudioMedia } from "./mediaStudio.js";
+import { quickMediaMenuItems } from "./mediaQuick.js";
 import { extensionOf, formatDate, formatSize, plural } from "./util.js";
 
 const DEFAULT_FOOT = "Space or Esc closes  ·  ← → show the next or previous item  ·  Enter opens it in another program";
+const MD_FOOT = "Space or Esc closes  ·  P toggles Preview / Plain text  ·  ← → show the next or previous item  ·  Enter opens it in another program";
 
 /** The open Quick Look, or null. */
 let ql = null;
@@ -35,6 +39,8 @@ export const quickLookIsOpen = () => ql !== null;
 
 const thumbUrl = (path) => `${rawUrl(path)}&thumb=1`;
 const TABLE_EXTS = new Set(["csv", "tsv"]);
+const MD_EXTS = new Set(["md", "markdown", "mdx", "mkd", "mdown", "mkdn"]);
+const isMarkdownName = (name) => MD_EXTS.has(extensionOf(name)) || /^readme$/i.test(String(name ?? ""));
 
 function destroyPlayer() {
   if (!ql?.player) return;
@@ -93,8 +99,78 @@ function failed(entry, what) {
   return infoCard(entry, `${what} Press Enter to open it in the program your computer uses for it.`);
 }
 
+function resolveQuickLookImageSrc(entry, rawSrc) {
+  const s = String(rawSrc ?? "").trim();
+  if (!s || (/^[a-z][a-z0-9+.-]*:/i.test(s) && !/^file:\/\//i.test(s) && !/^[A-Za-z]:[\\/]/.test(s))) return "";
+  let clean = s.split("#")[0].split("?")[0];
+  try { clean = decodeURIComponent(clean); } catch {}
+  if (/^file:\/\//i.test(clean)) {
+    try { clean = decodeURIComponent(new URL(clean).pathname); } catch { return ""; }
+  }
+  const sep = state.sep || "/";
+  const baseDir = entry?.path
+    ? entry.path.slice(0, Math.max(entry.path.lastIndexOf("/"), entry.path.lastIndexOf("\\"))) || entry.path
+    : state.home || "";
+  const isAbs = clean.startsWith("/") || /^[A-Za-z]:[\\/]/.test(clean);
+  const joined = isAbs ? clean : `${baseDir}${sep}${clean}`;
+  const driveMatch = /^[A-Za-z]:/.exec(joined);
+  const prefix = driveMatch ? driveMatch[0] : "";
+  const parts = joined.slice(prefix.length).split(/[\\/]+/);
+  const norm = [];
+  for (const part of parts) {
+    if (!part || part === ".") continue;
+    if (part === "..") norm.pop();
+    else norm.push(part);
+  }
+  const resolved = prefix ? `${prefix}${sep}${norm.join(sep)}` : `${sep}${norm.join(sep)}`;
+  return rawUrl(resolved);
+}
+
+async function openQuickLookMarkdownLink(entry, rawHref) {
+  const href = String(rawHref ?? "").trim();
+  if (!href) return;
+  if (/^(?:https?:\/\/|\/\/|www\.[^\s/]+\.[^\s]+)/i.test(href)) {
+    const url = href.startsWith("//") ? `https:${href}` : /^www\./i.test(href) ? `https://${href}` : href;
+    try {
+      await call("link/open", { url });
+    } catch (err) {
+      toast(err?.message || "Couldn't open that web address.", { kind: "error" });
+    }
+    return;
+  }
+  if (/^[a-z][a-z0-9+.-]*:/i.test(href) && !/^file:\/\//i.test(href) && !/^[A-Za-z]:[\\/]/.test(href)) {
+    const addr = href.replace(/^mailto:/i, "");
+    call("copytext", { text: addr })
+      .then(() => toast(`Copied "${addr}" to the clipboard.`))
+      .catch(() => toast(`Link: ${href}`));
+    return;
+  }
+  let pathPart = href.split("#")[0];
+  try { pathPart = decodeURIComponent(pathPart); } catch {}
+  const baseDir = entry?.path
+    ? entry.path.slice(0, Math.max(entry.path.lastIndexOf("/"), entry.path.lastIndexOf("\\"))) || entry.path
+    : state.home || "";
+  try {
+    const resolved = await call("typedpath", { text: pathPart || entry.path, cwd: baseDir });
+    if (!resolved.exists) {
+      toast(`Linked file not found: ${pathPart}`, { kind: "error" });
+      return;
+    }
+    const idx = ql?.entries.findIndex((e) => e.path === resolved.path) ?? -1;
+    if (idx >= 0) {
+      show(idx);
+      return;
+    }
+    closeQuickLook();
+    openInCode(resolved.path);
+  } catch (err) {
+    toast(err?.message || "Couldn't open that linked file.", { kind: "error" });
+  }
+}
+
 async function renderBody(entry, mine) {
   const open = (node) => { if (ql && mine === ql.seq) ql.body.replaceChildren(node); };
+  ql.mdController = null;
   if (entry.isDir) {
     open(infoCard(entry, "Press Enter to open this folder."));
     try {
@@ -117,10 +193,25 @@ async function renderBody(entry, mine) {
     case "image": {
       if (extensionOf(entry.name) === "gif") return mountGif(entry, mine, open);
       setCopy({ label: "Copy picture", tip: "Put the picture on the clipboard, to paste into a document or chat", run: () => copyImageFile(entry) });
-      const img = h("img", { class: "ql-image", src: rawUrl(entry.path), alt: `Preview of ${entry.name}`, onload: () => ql && mine === ql.seq && setSub(`${baseSub(entry)}  ·  ${img.naturalWidth} × ${img.naturalHeight}`), onerror: () => open(failed(entry, "This picture can't be shown here.")) });
+      const img = h("img", {
+        class: "ql-image",
+        src: rawUrl(entry.path),
+        alt: `Preview of ${entry.name}`,
+        onload: () => ql && mine === ql.seq && setSub(`${baseSub(entry)}  ·  ${img.naturalWidth} × ${img.naturalHeight}`),
+        onerror: () => {
+          if (!img.dataset.retried) {
+            img.dataset.retried = "1";
+            img.src = `${rawUrl(entry.path)}&convert=1`;
+            return;
+          }
+          open(failed(entry, "This picture can't be shown here."));
+        },
+      });
       return open(img);
     }
     case "thumb": {
+      const richNode = renderRichQuickLook(entry, preview, { onClose: closeQuickLook });
+      if (richNode) return open(richNode);
       const img = h("img", { class: "ql-image", src: thumbUrl(entry.path), alt: `First page or picture of ${entry.name}`, onerror: () => open(failed(entry, "This computer couldn't make a preview of it.")) });
       return open(h("div", { class: "ql-doc" }, img, h("p", { class: "ql-note" }, "A picture of the first page, made by your computer's own Quick Look.")));
     }
@@ -136,10 +227,32 @@ async function renderBody(entry, mine) {
           return open(h("div", { class: "ql-tablewrap", tabindex: "0", "aria-label": `Table ${entry.name}` }, h("table", { class: "ql-table" }, h("thead", {}, h("tr", {}, ...Array.from({ length: width }, (_, i) => h("th", { scope: "col" }, rows[0][i] ?? "")))), h("tbody", {}, ...body)), note, rows.length >= 300 ? h("p", { class: "ql-note" }, "Showing the first 300 rows.") : null));
         }
       }
+      if (isMarkdownName(entry.name)) {
+        const plainPre = h("pre", { class: "ql-text", tabindex: "0", "aria-label": `Contents of ${entry.name}` }, preview.text || "(An empty file.)");
+        const mdWrap = h("div", { class: "ql-textwrap ql-md-wrap code-preview-body" });
+        ql.mdController = renderMarkdown(mdWrap, preview.text, {
+          plainEl: plainPre,
+          mode: ql.mdMode || "preview",
+          onModeChange: (m) => { ql.mdMode = m; },
+          onOpenLink: (href) => openQuickLookMarkdownLink(entry, href),
+          resolveImageSrc: (src) => resolveQuickLookImageSrc(entry, src),
+        });
+        if (note) mdWrap.append(note);
+        ql.foot.textContent = MD_FOOT;
+        return open(mdWrap);
+      }
+      const richNode = renderRichQuickLook(entry, preview, { onClose: closeQuickLook });
+      if (richNode) {
+        if (note) richNode.append(note);
+        return open(richNode);
+      }
       return open(h("div", { class: "ql-textwrap" }, h("pre", { class: "ql-text", tabindex: "0", "aria-label": `Contents of ${entry.name}` }, preview.text || "(An empty file.)"), note));
     }
-    default:
+    default: {
+      const richNode = renderRichQuickLook(entry, preview, { onClose: closeQuickLook });
+      if (richNode) return open(richNode);
       return open(infoCard(entry, "There is no preview for this kind of file. Press Enter to open it in the program your computer uses for it."));
+    }
   }
 }
 
@@ -173,7 +286,7 @@ function mountPlayer(entry, mine) {
   if (mine !== ql.seq) return;
   ql.player = createPlayer({ entries: ql.entries, start: entry, subtitleEntries: ql.entries, announce, onTrack: (e) => followTrack(e) });
   ql.body.replaceChildren(ql.player.root);
-  ql.foot.textContent = "Space plays or pauses  ·  ← → seek  ·  ↑ ↓ volume  ·  N and B next and previous  ·  E equaliser  ·  Q queue  ·  Esc closes  ·  Enter opens it in another program";
+  ql.foot.textContent = "Space plays or pauses  ·  ← → seek  ·  ↑ ↓ volume  ·  N and B next and previous  ·  E equalizer  ·  Q queue  ·  Esc closes  ·  Enter opens it in another program";
 }
 
 /** The player moved to another track by itself (the queue, shuffle, repeat): keep the window's header and selection in step. */
@@ -241,7 +354,7 @@ function onKey(e) {
   // A menu or a dialog opened from here has the keys first.
   if (menuIsOpen() || document.querySelector(".modal-backdrop")) return;
   const target = e.target instanceof Element ? e.target : null;
-  const onControl = !!target?.closest("button, select, input, textarea, a[href]");
+  const onControl = !!target?.closest("button, select, input, textarea, a[href], [role='link']");
   const isArrow = e.key.startsWith("Arrow");
   // While Quick Look is open it owns the keyboard: nothing reaches the file list underneath.
   if (e.ctrlKey || e.metaKey || e.altKey) { if (!e.metaKey && !e.ctrlKey) e.stopPropagation(); return; }
@@ -262,13 +375,19 @@ function onKey(e) {
     return;
   }
   // A focused button, list or slider keeps the keys it uses itself (Space and Enter press a button; arrows move a slider or a list).
-  if (e.key === "Enter" && target?.closest("button")) { e.stopPropagation(); return; }
+  if (e.key === "Enter" && target?.closest("button, [role='link']")) { e.stopPropagation(); return; }
   if (e.key === " " && onControl) { e.stopPropagation(); return; }
-  if (isArrow && target?.closest("select, input[type=range]")) { e.stopPropagation(); return; }
+  if (isArrow && target?.closest("select, input[type=range], input[type=text]")) { e.stopPropagation(); return; }
   if (e.key === "Enter") { e.stopPropagation(); e.preventDefault(); return openCurrent(); }
   // The player owns the rest of the keys while a sound or video is in view.
   if (ql.player && ql.player.handleKey(e)) { e.stopPropagation(); e.preventDefault(); return; }
   if (ql.gif && ql.gif.handleKey(e)) { e.stopPropagation(); e.preventDefault(); return; }
+  if ((e.key === "p" || e.key === "P") && ql.mdController && !target?.closest("input, textarea")) {
+    e.stopPropagation();
+    e.preventDefault();
+    ql.mdController.toggleMode();
+    return;
+  }
   const mine = e.key === " " || isArrow || e.key === "Home" || e.key === "End";
   if (!mine) { e.stopPropagation(); return; }
   e.stopPropagation();
@@ -310,10 +429,12 @@ export function openQuickLook(entry = null, pane = activePane()) {
   const moreBtn = h("button", { type: "button", class: "btn", "aria-haspopup": "menu", title: "More things to do with this file", onclick: () => {
     const e = current();
     if (!e) return;
+    const quick = quickMediaMenuItems([e], { limit: 8 });
     showMenu([
       { label: "Copy path", icon: "🔗", action: () => copyPathOf([e]) },
       { label: "Open with…", icon: "🧩", disabled: e.isDir, action: thenClose((x) => showOpenWith([x])) },
       { label: "Show in file manager", icon: "🔎", action: () => revealEntry(e) },
+      ...(quick.length ? [{ separator: true }, ...quick] : []),
       { separator: true },
       { label: "Properties…", icon: "ℹ️", action: thenClose((x) => showProperties([x.path])) },
       { label: "More info…", icon: "🔍", action: thenClose((x) => showMoreInfo([x.path])) },

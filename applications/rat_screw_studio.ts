@@ -151,7 +151,7 @@ ${getWindowShortcutsScript()}
  */
 export function startRatScrewServer(options: RatScrewServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "rat_screw_studio", name: "Egyptian Rat Screw Royale", version: "1.0.0", assetsDir: getRatScrewAssetsDir(), generateHtml: generateRatScrewStudioHtml },
+    { app: "rat_screw_studio", name: "Codecaine Egyptian Rat Screw Royale", version: "1.0.0", assetsDir: getRatScrewAssetsDir(), generateHtml: generateRatScrewStudioHtml },
     options,
   );
 }
@@ -164,7 +164,7 @@ export function createRatScrewStudio(options: RatScrewStudioOptions = {}): RatSc
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1240);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Egyptian Rat Screw Royale — Deluxe Reflex Card Studio";
+  const title = "Codecaine Egyptian Rat Screw Royale — Deluxe Reflex Card Studio";
 
   const app: RatScrewStudioInstance = {
     title,

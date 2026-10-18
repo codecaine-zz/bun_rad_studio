@@ -148,7 +148,7 @@ ${getWindowShortcutsScript()}
  */
 export function startBreakoutServer(options: BreakoutServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "breakout_studio", name: "Cyber Breakout Deluxe — Arcade Master Edition", version: "1.0.0", assetsDir: getBreakoutAssetsDir(), generateHtml: generateBreakoutStudioHtml },
+    { app: "breakout_studio", name: "Codecaine Cyber Breakout Deluxe — Arcade Master Edition", version: "1.0.0", assetsDir: getBreakoutAssetsDir(), generateHtml: generateBreakoutStudioHtml },
     options,
   );
 }
@@ -161,7 +161,7 @@ export function createBreakoutStudio(options: BreakoutStudioOptions = {}): Break
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Cyber Breakout Deluxe — Arcade Master Edition";
+  const title = "Codecaine Cyber Breakout Deluxe — Arcade Master Edition";
 
   const app: BreakoutStudioInstance = {
     title,

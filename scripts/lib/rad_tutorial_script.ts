@@ -7,13 +7,15 @@ import type { Chapter, Step } from "./fm_tutorial_types";
 import type { Do } from "./step_video";
 
 /** What each live chapter shows. `make` is the function of the example that creates the window. */
-export interface StageSpec { file: string; title: string; make?: string; term?: { command: string[]; show: string } | { build: true }; designer?: boolean }
+export interface StageSpec { file: string; title: string; make?: string; zoom?: number; term?: { command: string[]; show: string } | { build: true }; designer?: boolean }
 export const stages: Record<string, StageSpec> = {
   "01_first_app": { file: "01_quickstart.ts", title: "Your first window", make: "createQuickstart" },
   "02_layout": { file: "02_layout.ts", title: "Layout", make: "createLayout" },
   "03_controls": { file: "03_controls.ts", title: "Controls", make: "createControls" },
+  "03b_parity_extended": { file: "08_parity_and_extended.ts", title: "Parity, extended & enterprise controls", make: "createParityAndExtended", zoom: 1.05 },
   "04_state": { file: "04_state.ts", title: "State and binding", make: "createState" },
   "05_dialogs_menus": { file: "05_dialogs_menus.ts", title: "Menus, dialogs, timers", make: "createDialogsMenus" },
+  "05b_sweetalert_menus": { file: "09_sweetalert_and_menus.ts", title: "Context menus, SweetAlert2 & pickers", make: "createSweetAlertAndMenus", zoom: 1.1 },
   "06_themes": { file: "06_themes.ts", title: "Themes", make: "createThemes" },
   "07_capstone": { file: "07_contacts.ts", title: "A finished app", make: "createContacts" },
   "08_rad_modules": { file: "10_rad_modules.ts", title: "The rad modules", term: { command: ["bun", "run", "examples/rad_tutorial/10_rad_modules.ts"], show: "bun run examples/rad_tutorial/10_rad_modules.ts" } },
@@ -64,7 +66,7 @@ export const radChapters: Chapter[] = [
       step("A whole app in under 30 lines", "Here is a complete desktop app. The code is on the left, and the program it makes is on the right. There is no project to set up, no build step and no framework to learn first. One TypeScript file, run with Bun. Let us read it from the top.", async (d) => { await stage.hl(d); await wait(d, 1500); }),
       step("Create the window", "First, the window. New simple window takes a title, a width, a height, and some options. Here the option is a theme, apple dark. SimpleGUI has one hundred thirty three themes built in, and you will see them later.", async (d) => { await stage.hl(d, "const win = newSimpleWindow"); await wait(d, 1200); }),
       step("Controls go in, top to bottom", "Then you add controls, one after another, and they stack from the top. Group them with begin card and end card, and put things side by side with begin row and end row. A label here, a text input there. Each one is just a function call.", async (d) => { await stage.hl(d, "win.addLabel(\"⚡"); await wait(d, 1800); await stage.hl(d, "win.beginCard", "win.endCard"); await wait(d, 1500); }),
-      step("Chain size, colour and font", "Every control you add returns a reference you can chain. Give it an I D so you can find it again, then a width, a height, a font, a colour. The button here has a background, a bold style, and a click handler that receives the window. Inside the handler, get text reads the input by its I D, and info shows a dialog.", async (d) => { await stage.hl(d, "win.addButton(", "height(38)"); await wait(d, 1500); }),
+      step("Chain size, color and font", "Every control you add returns a reference you can chain. Give it an I D so you can find it again, then a width, a height, a font, a color. The button here has a background, a bold style, and a click handler that receives the window. Inside the handler, get text reads the input by its I D, and info shows a dialog.", async (d) => { await stage.hl(d, "win.addButton(", "height(38)"); await wait(d, 1500); }),
       step("Run it: type a name, press Login", "Now I use it. I click the user name box, type a name, and press Login. The handler ran, read the box, and showed the dialog. That is the whole loop of SimpleGUI: add a control, give it an I D, and react to it in a handler.", async (d) => {
         await fill(d, "input", "Alex", 130);
         await d.click(`${A} button >> Login`, { pause: 2600 });
@@ -84,7 +86,7 @@ export const radChapters: Chapter[] = [
         await d.click(`${A} button >> Go`, { pause: 1800 });
       }),
       step("Grids make equal columns", "Begin grid takes a number of columns and a gap. The controls inside fill the grid row by row, and wrap to a new row by themselves. Three text boxes and a switch make a tidy form, with no coordinates at all.", async (d) => { await stage.hl(d, "win.beginGrid", "win.endGrid"); await wait(d, 2500); }),
-      step("Cards group related things", "A card is a titled box with rounded corners. It can have a small subtitle. Cards inside grids give you dashboards. They are the main way to make a window feel organised.", async (d) => { await stage.hl(d, "win.beginCard", "win.endCard"); await wait(d, 2500); }),
+      step("Cards group related things", "A card is a titled box with rounded corners. It can have a small subtitle. Cards inside grids give you dashboards. They are the main way to make a window feel organized.", async (d) => { await stage.hl(d, "win.beginCard", "win.endCard"); await wait(d, 2500); }),
       step("Status bar and exact positions", "Add status bar creates the strip at the bottom, and set status bar text changes it any time. If you ever need exact placement, any control accepts at, with an x and a y, to leave the automatic layout. Most windows never need it.", async (d) => { await stage.hl(d, "win.addStatusBar"); await wait(d, 2500); }),
     ],
   },
@@ -94,10 +96,31 @@ export const radChapters: Chapter[] = [
     steps: [
       step("Standard controls", "SimpleGUI has the controls you expect: labels, buttons, text inputs, password and search boxes, text areas, check boxes, switches, drop downs, list boxes, sliders, steppers, progress bars, color and date pickers, badges, tables and tree views. Each one is a single call, and you can chain styling on the result.", async (d) => { await stage.hl(d); await wait(d, 2500); }),
       step("Form fields with their labels", "For forms there are compound helpers that add the label and the control together. Add form field, add form dropdown, add form slider and add form switch each take a label, an I D and a starting value. That is a whole form in four lines.", async (d) => { await stage.hl(d, "win.beginCard(\"📝 Form\")", "win.endCard"); await wait(d, 2500); }),
-      step("Meters and dashboard controls", "For dashboards and developer tools there are circular progress, gauges, sparklines, charts, a property grid, a console, an activity feed, a markdown viewer, a PIN box, colour palettes and more. In all, well over fifty. Here are a circular progress and a gauge.", async (d) => { await stage.hl(d, "win.addCircularProgress", "win.addGauge"); await wait(d, 2500); }),
+      step("Meters and dashboard controls", "For dashboards and developer tools there are circular progress, gauges, sparklines, charts, a property grid, a console, an activity feed, a markdown viewer, a PIN box, color palettes and more. In all, well over fifty. Here are a circular progress and a gauge.", async (d) => { await stage.hl(d, "win.addCircularProgress", "win.addGauge"); await wait(d, 2500); }),
       step("Tables, with a click handler", "Add table takes an I D, the column headings and the rows. You can pass a handler as well, and it receives the row that was clicked. I click a row to show it. The full list of controls, with every argument, is in the SimpleGUI A P I guide.", async (d) => {
         await stage.hl(d, "win.addTable", "]);");
         await d.click(`${A} table tr >> WARN`, { pause: 2200 });
+      }),
+    ],
+  },
+
+  {
+    id: "03b_parity_extended", chapter: "EXTENDED & ENTERPRISE", title: "Parity, extended and enterprise widgets", blurb: "VLang parity, Studio extended controls and enterprise components",
+    steps: [
+      step("Hero banners, score cards, donuts and rings", "Beyond standard controls, SimpleGUI includes full VLang SimpleGUI parity widgets. Add hero banner creates a header with a badge. Add score card, add donut chart, add activity rings and add knob build rich telemetry dashboards with a single call each.", async (d) => {
+        await stage.hl(d, "win.addHeroBanner", "win.addKnob");
+        await wait(d, 2500);
+      }),
+      step("Mode controls, pill toggles and tag clouds", "Mode controls, pill toggles and tag clouds let users switch modes or filter tags with one click. I switch the environment mode and toggle the live pill.", async (d) => {
+        await stage.hl(d, "win.addModeControl", "win.addTagCloud");
+        await d.click(`${A} button >> Stage`, { pause: 900 }).catch(() => {});
+        await d.click(`${A} button >> Prod`, { pause: 900 }).catch(() => {});
+        await wait(d, 1000);
+      }),
+      step("Studio extended and enterprise components", "Studio extended and enterprise components add animated inputs, segmented button groups, count badges, one-click copy buttons, statistics with trend indicators, selectable chips, callout panels and a bottom status dock.", async (d) => {
+        await stage.hl(d, "win.beginCard(\"✨ Studio Extended", "win.addStatusDock");
+        await d.click(`${A} button >> Copy Key`, { pause: 1100 }).catch(() => {});
+        await wait(d, 1500);
       }),
     ],
   },
@@ -153,10 +176,37 @@ export const radChapters: Chapter[] = [
   },
 
   {
+    id: "05b_sweetalert_menus", chapter: "CONTEXT MENUS & SWEETALERT2", title: "Context menus, SweetAlert2 dialogs and file pickers", blurb: "Right-click menus, declarative modals, multi-button fire() and file dialogs",
+    steps: [
+      step("Per-control and global right-click context menus", "Any control can have its own right-click menu by chaining context menu with a list of items and a callback. And set global context menu adds a menu to the window background. I right-click the text box and convert its text to uppercase.", async (d) => {
+        await stage.hl(d, "win.setGlobalContextMenu", "w.setStatusBarText(\"Context menu");
+        await d.rclick(`${A} #txtClip`, { pause: 1000 });
+        await d.c.evalFrame("#appframe", `(() => { const el = [...document.querySelectorAll('.sg-ctx-item, [data-ctx-item], div')].find(x => x.textContent?.trim() === '🔤 Convert to UPPERCASE' && x.offsetParent !== null); if (el) el.click(); })()`);
+        await wait(d, 1200);
+      }),
+      step("Declarative modals and SweetAlert2 fire()", "For richer dialogs, add modal defines a backdrop-blur modal that you open with open modal. And fire gives you SweetAlert2 style dialogs with confirm, deny and cancel buttons, custom icons and input prompts.", async (d) => {
+        await stage.hl(d, "win.addModal", "}).bg(\"#db2777\")");
+        await d.click(`${A} button >> Open Modal`, { pause: 1400 });
+        await d.c.evalFrame("#appframe", `(() => { const b = [...document.querySelectorAll('button')].find(x => /Confirm|OK/i.test(x.textContent || '') && x.offsetParent !== null); if (b) b.click(); })()`);
+        await wait(d, 700);
+        await d.click(`${A} button >> SweetAlert fire()`, { pause: 1500 });
+        await d.c.evalFrame("#appframe", `(() => { const b = [...document.querySelectorAll('button')].find(x => /Publish/i.test(x.textContent || '') && x.offsetParent !== null); if (b) b.click(); })()`);
+        await wait(d, 900);
+      }),
+      step("Cross-platform webview file and folder pickers", "SimpleGUI also includes built-in webview file, folder and save dialogs that work identically on macOS, Windows, Linux and headless servers, alongside native operating system pickers.", async (d) => {
+        await stage.hl(d, "win.addButton(\"🌐 File Picker\"", "win.addStatusBar");
+        await d.click(`${A} button >> File Picker`, { pause: 1600 });
+        await d.c.evalFrame("#appframe", `(() => { const b = [...document.querySelectorAll('button')].find(x => /Cancel|Close/i.test(x.textContent || '') && x.offsetParent !== null); if (b) b.click(); })()`);
+        await wait(d, 800);
+      }),
+    ],
+  },
+
+  {
     id: "06_themes", chapter: "THEMES", title: "One hundred thirty three themes", blurb: "Restyle the whole window with one call",
     steps: [
       step("Pick a theme by name", "SimpleGUI ships with one hundred thirty three themes: Mac, Windows, Linux desktop looks, editor palettes like Dracula, Nord and Solarized, and some wild futuristic ones. This little program lists all of them in a drop down, and a change calls set theme.", async (d) => { await stage.hl(d, "const names", "win.addDropdown"); await wait(d, 2500); }),
-      step("Watch the same window change", "I pick Nord. Then Dracula. Then Synthwave. Then a light theme. The controls, the cards and the text all follow, with no code of your own. A theme is a set of colours, and the library applies it everywhere.", async (d) => {
+      step("Watch the same window change", "I pick Nord. Then Dracula. Then Synthwave. Then a light theme. The controls, the cards and the text all follow, with no code of your own. A theme is a set of colors, and the library applies it everywhere.", async (d) => {
         for (const t of ["nord", "dracula", "synthwave84", "solarized_light", "cyberpunk_hologram", "tokyo_night"]) { await setTheme(d, t); await wait(d, 1900); }
       }),
       step("Themes you can browse", "The full list is in the themes page of the documentation, with a picture of each. In the File Manager there is also a Themes button in the ribbon. And in the designer, the form theme and the effects are properties you set while you build.", async (d) => { await stage.hl(d); await setTheme(d, "apple_dark"); await wait(d, 2500); }),
@@ -222,9 +272,22 @@ export const radChapters: Chapter[] = [
   {
     id: "10_designer", chapter: "DESIGN QUICKLY", title: "Design a form visually", blurb: "Drag, preview, and get the code",
     steps: [
-      step("The visual designer", "When a window is mostly a form, you do not have to type it. The visual designer, in the same toolbox, works like Delphi or Visual Basic did. A palette of about a hundred controls on the left, the form in the middle, and the properties on the right. There is a whole tutorial for it, so here is the quick version.", async (d) => { await wait(d, 2000); }),
-      step("Start from a template", "I click a template, Auth Login. There are templates for logins, customer forms, settings pages, media players, checkouts and more. Now there is a real form on the canvas that I can change, move, and restyle.", async (d) => { await d.click(".template-chip >> Auth Login", { pause: 2000 }); }),
-      step("The code writes itself", "The designer writes the code as you work. This tab is Bun TypeScript for SimpleGUI. The others are plain HTML, React, Vue and Python. You can copy any of it into your own project.", async (d) => { await d.click(".tab-item >> Bun TS", { pause: 1600 }); await d.scroll("#bunTsPreviewText", 400, 5); await wait(d, 1500); }),
+      step("The visual designer", "When a window is mostly a form, you do not have to type it. The visual designer, in the same toolbox, works like Delphi or Visual Basic did. A palette of about a hundred controls on the left, the form in the middle, and the properties on the right. There is a whole tutorial for it, so here is the quick version.", async (d) => {
+        await d.hover("#paletteSidebar", 900);
+        await d.hover("#formCanvas", 900);
+        await d.hover("#inspectorSidebar", 900);
+      }),
+      step("Start from a template", "I click a template, Auth Login. There are templates for logins, customer forms, settings pages, media players, checkouts and more. Now there is a real form on the canvas that I can change, move, and restyle.", async (d) => {
+        await d.click(".template-chip >> Auth Login", { pause: 2000 });
+      }),
+      step("The code writes itself", "The designer writes the code as you work. This tab is Bun TypeScript for SimpleGUI. The others are plain HTML, React, Vue and Python. You can copy any of it into your own project.", async (d) => {
+        await d.click("#inspectorCodePrimaryTab", { pause: 800 });
+        await d.click(".code-lang-pill >> Bun TS", { pause: 800 });
+        await d.scroll("#bunTsPreviewText", 400, 5);
+        for (const lang of ["HTML", "React", "Vue 3", "Python", "Bun TS"]) {
+          await d.click(`.code-lang-pill >> ${lang}`, { pause: 450 });
+        }
+      }),
       step("Preview, then export", "Run opens a live preview of the form right on top of the designer. Export writes a complete project folder. Then you add your logic in the handlers, exactly as in the first chapters.", async (d) => {
         await d.click("button >> Run", { pause: 2500 });
         await d.waitFor("#__preview", 6000);

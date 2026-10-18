@@ -1,4 +1,4 @@
-# SQLite in the Codecaine File Manager: the complete walkthrough (16:23)
+# SQLite in the Codecaine File Manager: the complete walkthrough (17:29)
 
 ## YouTube title
 
@@ -7,7 +7,7 @@ SQLite in the Codecaine File Manager: Browse, Edit, Query, Design and Import (Bu
 ## YouTube description (copy and paste)
 
 ```text
-Work with SQLite databases without leaving the Codecaine File Manager, part of Bun RAD Studio. See how a real SQLite file is recognised in the file list, saved as a connection in the Databases tool (found in your environment, tested, edited, marked production), and opened in SQLite Studio inside the File Manager window. Then use the whole studio: sort, filter, totals and column chooser in the data grid, adding, editing and deleting rows without SQL, designing tables visually, the SQL editor with presets, explain plan and create view, the visual query designer with automatic joins, building and running a macro, PRAGMA settings, the audit log, exports and one-click backups, and Import with staging that checks every row before it reaches your table. All on made-up sample data.
+Work with SQLite databases without leaving the Codecaine File Manager, part of Bun RAD Studio. See how a real SQLite file is recognized in the file list, saved as a connection in the Databases tool (found in your environment, tested, edited, marked production), and opened in SQLite Studio inside the File Manager window. Then use the whole studio: sort, filter, totals and column chooser in the data grid, adding, editing and deleting rows without SQL, designing tables visually, the SQL editor with presets, explain plan and create view, the visual query designer with automatic joins, building and running a macro, PRAGMA settings, the audit log, exports and one-click backups, and Import with staging that checks every row before it reaches your table. All on made-up sample data.
 
 Free and open source: https://github.com/codecaine-zz/bun_rad_studio
 SQLite Studio guide: https://github.com/codecaine-zz/bun_rad_studio/blob/main/docs/userguides/01_sqlite_studio.md
@@ -26,10 +26,11 @@ Chapters
 9:41 The visual query designer
 10:53 Building and running a macro
 12:08 Inspect, tune and maintain
-13:05 Export and one-click backup
-13:49 Import with staging, from the file list
-15:21 Production connections and shortcuts
-16:01 Thank you for watching
+13:05 Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen
+14:12 Export and one-click backup
+14:56 Import with staging, from the file list
+16:28 Production connections and shortcuts
+17:08 Thank you for watching
 ```
 
 ## Tags (copy and paste)

@@ -11,11 +11,11 @@ import { goTo, saveSettings } from "./nav.js";
 import { selectedEntries } from "./selection.js";
 import { emit, on, state } from "./state.js";
 import { wireTerminalClipboard } from "./terminalClipboard.js";
+import { terminalTheme } from "./themes.js";
 
 const MIN_HEIGHT = 120;
 const STEP = 24;
-// The terminal is dark in both colour schemes, as terminals usually are.
-const THEME = { background: "#1e1e1e", foreground: "#e6e6e6", cursor: "#e6e6e6", cursorAccent: "#1e1e1e", selectionBackground: "#3d5a80" };
+export { terminalTheme };
 
 /** @type {any} */
 let term = null;
@@ -193,7 +193,7 @@ function ensureTerminal() {
     fontSize: fontSize(),
     cursorBlink: true,
     scrollback: 5000,
-    theme: THEME,
+    theme: terminalTheme(),
     screenReaderMode: false,
   });
   fit = new FitAddon();
@@ -300,6 +300,23 @@ function openHere(path) {
   goToFolder(folder);
 }
 
+/** Moves (or opens) the terminal in `folder` and types `command`, optionally pressing Enter (`submit: true`). */
+export function runInTerminalFolder(folder, command, submit = false) {
+  if (!terminalAvailable()) return false;
+  const target = folder || currentFolder();
+  const hadSocket = !!socket && !ended;
+  if (!state.terminalOpen) showTerminal(target);
+  else if (ended) restart(target);
+  const text = `${command}${submit ? "\r" : ""}`;
+  const writeCommand = () => {
+    if (hadSocket && startedIn !== target) goToFolder(target);
+    sendInput(text);
+  };
+  if (socket && socket.readyState === WebSocket.CONNECTING) socket.addEventListener("open", writeCommand, { once: true });
+  else writeCommand();
+  return true;
+}
+
 export async function insertPaths(paths) {
   if (!terminalAvailable()) return toast("The terminal isn't supported on this system.", { kind: "error" });
   const checked = quotePathsForTerminal(paths, terminalShell(), wslInfo);
@@ -354,6 +371,7 @@ function wireStatusButton() {
 export function wireTerminal() {
   on("toggle-terminal", toggleTerminal);
   on("terminal-here", openHere);
+  on("terminal-run-in", ({ folder, command, submit }) => runInTerminalFolder(folder, command, submit));
   on("terminal-insert-paths", (paths) => void insertPaths(paths));
   wireStatusButton();
   on("settings", () => {
@@ -364,6 +382,10 @@ export function wireTerminal() {
       queueFit();
     }
   });
+  on("theme-changed", (payload) => {
+    if (!term) return;
+    term.options.theme = terminalTheme(payload);
+  });
   const follow = $("#terminal-follow");
   follow.checked = state.settings.terminalFollow !== false;
   follow.addEventListener("change", () => {
@@ -371,6 +393,12 @@ export function wireTerminal() {
     toast(follow.checked ? "The file list will follow the terminal's physical folder (symlinks resolved)." : "The file list stays where it is when you change folder in the terminal.", { kind: "info" });
   });
   on("settings", () => { follow.checked = state.settings.terminalFollow !== false; });
+  $("#terminal-cliutils")?.addEventListener("click", () => {
+    if (!state.cliUtilsDir) return toast("The built-in CLI utilities folder isn't ready yet.", { kind: "info" });
+    goTo(state.cliUtilsDir);
+    openHere(state.cliUtilsDir);
+    toast("CLI Utilities ready in Terminal. Type ./<tool-name> (or press Tab) to run any utility.", { kind: "info" });
+  });
   $("#terminal-cd").addEventListener("click", () => goToFolder());
   $("#terminal-restart").addEventListener("click", () => restart());
   $("#terminal-close").addEventListener("click", hideTerminal);

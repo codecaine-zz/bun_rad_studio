@@ -11,10 +11,14 @@
  *     calculator), and only to someone who knows the secret. The socket also needs an Origin equal to its own address.
  *   - They stop with the File Manager (ctx.disposers) and a tool can be closed from the page.
  */
+import { basename, dirname, join } from "path";
 import type { SimpleWindow } from "../../simplegui";
 import { createHostedHub, hostedPage, type HostedHub, type HostedSession } from "../../simplegui_host";
 import type { FmContext, FmHandler } from "./fmCore";
+import { realLayout, type StudioCommand, type StudioLayout } from "./fmDbHooks";
+import { dbState } from "./fmDbState";
 import { FmError } from "./fmPaths";
+import { openQrUrl } from "./fmQr";
 
 export interface HostedStudioInfo {
   id: string;
@@ -43,6 +47,104 @@ export const HOSTED_STUDIOS: Record<string, HostedStudioInfo> = {
   },
 };
 
+export interface ToolWindowInfo {
+  id: string;
+  title: string;
+  script: string;
+  args?: string[];
+}
+
+export const TOOL_WINDOW_APPS: Record<string, ToolWindowInfo> = {
+  paint: { id: "paint", title: "Paint Studio", script: "paint_studio" },
+  calc: { id: "calc", title: "Calculator", script: "calculator_studio" },
+  timer: { id: "timer", title: "Timer & Alarms", script: "interval_timer_studio" },
+  api: { id: "api", title: "API Studio", script: "api_studio" },
+  bundler: { id: "bundler", title: "App Bundler", script: "app_bundler_studio" },
+  env: { id: "env", title: "Env Studio", script: "env_studio" },
+  find: { id: "find", title: "Find & Replace", script: "fd_studio" },
+  sd: { id: "sd", title: "Replace Text", script: "sd_studio" },
+  code: { id: "code", title: "Code Studio", script: "code_studio" },
+  dev: { id: "dev", title: "Developer Tools", script: "devtools_studio" },
+  watch: { id: "watch", title: "System Watch", script: "watchexec_studio" },
+  crypto: { id: "crypto", title: "Checksums & Passwords", script: "crypto_studio" },
+  ip: { id: "ip", title: "IP Lookup", script: "ipinfo_studio" },
+  net: { id: "net", title: "Network Check", script: "network_studio" },
+  subs: { id: "subs", title: "Subdomains", script: "subfinder_studio" },
+  player: { id: "player", title: "Media Player", script: "media_player_studio" },
+  databases: { id: "databases", title: "Databases", script: "file_manager_studio", args: ["--tool", "databases", "--max"] },
+  grave: { id: "grave", title: "Graveyard", script: "rip_studio" },
+  cliutils: { id: "cliutils", title: "CLI Utilities", script: "file_manager_studio", args: ["--tool", "cliutils", "--max"] },
+  imagestudio: { id: "imagestudio", title: "Picture Tools", script: "file_manager_studio", args: ["--tool", "imagestudio", "--max"] },
+  mediastudio: { id: "mediastudio", title: "Audio & Video", script: "file_manager_studio", args: ["--tool", "mediastudio", "--max"] },
+  compare: { id: "compare", title: "Compare Folders", script: "file_manager_studio", args: ["--tool", "compare", "--max"] },
+  projects: { id: "projects", title: "Projects", script: "file_manager_studio", args: ["--tool", "projects", "--max"] },
+  actions: { id: "actions", title: "Batch Convert", script: "file_manager_studio", args: ["--tool", "actions", "--max"] },
+  serve: { id: "serve", title: "Share This Folder", script: "file_manager_studio", args: ["--tool", "serve", "--max"] },
+  vault: { id: "vault", title: "Locked Files", script: "file_manager_studio", args: ["--tool", "vault", "--max"] },
+  secrets: { id: "secrets", title: "Secret Check", script: "file_manager_studio", args: ["--tool", "secrets", "--max"] },
+  downloads: { id: "downloads", title: "Clean Up Downloads", script: "file_manager_studio", args: ["--tool", "downloads", "--max"] },
+  qr: { id: "qr", title: "QR Code", script: "file_manager_studio", args: ["--tool", "qr", "--max"] },
+  games: { id: "games", title: "Codecaine Games Arcade", script: "file_manager_studio", args: ["--tool", "games", "--max"] },
+  balatro: { id: "balatro", title: "Codecaine Joker Royale (Balatro Deluxe)", script: "balatro_studio" },
+  blackjack: { id: "blackjack", title: "Codecaine Blackjack Royale VIP", script: "blackjack_studio" },
+  breakout: { id: "breakout", title: "Codecaine Cyber Breakout Deluxe", script: "breakout_studio" },
+  codecaine_bros: { id: "codecaine_bros", title: "Codecaine Bros. Arcade", script: "codecaine_bros_studio" },
+  connect4: { id: "connect4", title: "Codecaine Cyberpunk Connect 4", script: "connect4_studio" },
+  dr_codecaine: { id: "dr_codecaine", title: "Codecaine Dr. Codecaine Arcade", script: "dr_codecaine_studio" },
+  flappy_bird: { id: "flappy_bird", title: "Codecaine Flappy Bird Deluxe", script: "flappy_bird_studio" },
+  frogger: { id: "frogger", title: "Codecaine CyberFrog Deluxe", script: "frogger_studio" },
+  lolo: { id: "lolo", title: "Codecaine Adventures of Lolo Remaster", script: "lolo_studio" },
+  math_munchers: { id: "math_munchers", title: "Codecaine Math Munchers Deluxe", script: "math_munchers_studio" },
+  maze_generator: { id: "maze_generator", title: "Codecaine Cyberpunk Maze Runner", script: "maze_generator_studio" },
+  minesweeper: { id: "minesweeper", title: "Codecaine Minesweeper Pro Championship", script: "minesweeper_studio" },
+  pacman: { id: "pacman", title: "Codecaine Cyberpunk Pac-Man Arcade", script: "pacman_studio" },
+  poker: { id: "poker", title: "Codecaine Texas Hold'em & 5-Card Draw Poker Royale", script: "poker_studio" },
+  pong: { id: "pong", title: "Codecaine Neon Cyber Pong", script: "pong_studio" },
+  rat_screw: { id: "rat_screw", title: "Codecaine Egyptian Rat Screw Royale", script: "rat_screw_studio" },
+  rodents_revenge: { id: "rodents_revenge", title: "Codecaine Rodent's Revenge Deluxe", script: "rodents_revenge_studio" },
+  skifree: { id: "skifree", title: "Codecaine SkiFree Deluxe", script: "skifree_studio" },
+  snake: { id: "snake", title: "Codecaine Neon Snake Deluxe", script: "snake_studio" },
+  tetris: { id: "tetris", title: "Codecaine Tetris Ultra Deluxe", script: "tetris_studio" },
+  tictactoe: { id: "tictactoe", title: "Codecaine Neon Tic-Tac-Toe Arcade", script: "tictactoe_studio" },
+  typing: { id: "typing", title: "Codecaine CyberType Deluxe", script: "typing_studio" },
+  word_search: { id: "word_search", title: "Codecaine Neon Word Search Labyrinth", script: "word_search_studio" },
+  yahtzee: { id: "yahtzee", title: "Codecaine Yahtzee Royale Deluxe", script: "yahtzee_studio" },
+};
+
+const dashed = (s: string) => s.replace(/_/g, "-");
+
+export function resolveToolWindowCommand(script: string, layout: StudioLayout = realLayout()): StudioCommand | null {
+  const bundle = `${dashed(script)}.js`;
+  const argvDir = layout.argv1 ? dirname(layout.argv1) : "";
+  const run = (exe: string, file: string, kind: StudioCommand["kind"]): StudioCommand => ({ kind, where: file, build: (bunArgs, studioArgs) => [exe, ...bunArgs, file, ...studioArgs] });
+
+  if (argvDir && layout.exists(join(argvDir, bundle))) return run(layout.execPath, join(argvDir, bundle), "bundle");
+
+  const m = /^(.*\.app)\/Contents\/Resources\/app$/.exec(argvDir.replace(/\\/g, "/"));
+  if (m) {
+    const holder = dirname(m[1]!);
+    for (const name of layout.readdir(holder)) {
+      if (!name.endsWith(".app")) continue;
+      const res = join(holder, name, "Contents", "Resources");
+      const file = join(res, "app", bundle);
+      const runtime = join(res, "runtime", "bun");
+      if (layout.exists(file) && layout.exists(runtime)) return run(runtime, file, "app");
+    }
+  }
+
+  for (const suffix of ["", ".exe"]) {
+    const exe = join(dirname(layout.execPath), `${dashed(script)}${suffix}`);
+    if (basename(layout.execPath).toLowerCase().replace(/\.exe$/, "") !== dashed(script) && layout.exists(exe)) return { kind: "executable", where: exe, build: (_bunArgs, studioArgs) => [exe, ...studioArgs] };
+  }
+
+  for (const dir of [argvDir, join(layout.repoRoot, "applications")]) {
+    if (!dir) continue;
+    const file = join(dir, `${script}.ts`);
+    if (layout.exists(file)) return run(layout.execPath, file, "dev");
+  }
+  return null;
+}
+
 const hubs = new WeakMap<FmContext, HostedHub>();
 
 export function hubOf(ctx: FmContext): HostedHub {
@@ -59,6 +161,7 @@ export function hubOf(ctx: FmContext): HostedHub {
 const HOSTED_LIMIT = 6;
 
 const isStudioId = (id: unknown): id is string => typeof id === "string" && Object.prototype.hasOwnProperty.call(HOSTED_STUDIOS, id);
+const isToolWindowId = (id: unknown): id is string => typeof id === "string" && Object.prototype.hasOwnProperty.call(TOOL_WINDOW_APPS, id);
 
 export const hostedStudioOperations: Record<string, FmHandler> = {
   async "studios/list"() {
@@ -83,6 +186,39 @@ export const hostedStudioOperations: Record<string, FmHandler> = {
   async "studios/close"(ctx, b) {
     if (isStudioId(b.id)) hubOf(ctx).close(b.id);
     return {};
+  },
+  async "studios/window"(ctx, b) {
+    if (!isToolWindowId(b.id)) throw new FmError("BAD_REQUEST", "That tool doesn't exist.");
+    const info = TOOL_WINDOW_APPS[b.id]!;
+    const st = dbState(ctx);
+    let command = resolveToolWindowCommand(info.script);
+    let studioArgs = [...(info.args ?? [])];
+    let usingFmFallback = info.script === "file_manager_studio";
+    if (!command && info.script !== "file_manager_studio") {
+      command = resolveToolWindowCommand("file_manager_studio");
+      if (command) {
+        usingFmFallback = true;
+        studioArgs = info.title.startsWith("Codecaine ")
+          ? ["--tool", "games", "--game", info.id, "--max"]
+          : ["--tool", info.id, "--max"];
+      }
+    }
+    if (!command) throw new FmError("NOT_AVAILABLE", `${info.title} isn't part of this copy of the program, so it can't be opened in its own window.`);
+    const rawEnv = st.hooks.env();
+    const env: Record<string, string> = {};
+    for (const [k, v] of Object.entries(rawEnv)) {
+      if (typeof v === "string" && k !== "STUDIO_PARENT_PID") env[k] = v;
+    }
+    if (usingFmFallback && typeof b.path === "string" && b.path.trim()) {
+      studioArgs.push("--path", b.path.trim());
+    }
+    const result = await st.hooks.spawnWindow(command.build([], studioArgs), { env, cwd: st.hooks.cwd() });
+    if (!result.ok) throw new FmError("OPEN_FAILED", result.reason);
+    return { opened: true, id: info.id, title: info.title };
+  },
+  async "studios/browser"(ctx, b) {
+    if (typeof b.url !== "string" || !b.url.trim()) throw new FmError("BAD_REQUEST", "Choose a web address to open.");
+    return await openQrUrl(ctx, b.url);
   },
 };
 

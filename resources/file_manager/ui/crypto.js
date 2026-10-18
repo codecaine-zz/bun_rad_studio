@@ -1,6 +1,6 @@
 // The "Crypto" tool of the Power tools panel: everything Crypto Studio Pro can do, inside the File Manager.
 // Hashes and HMAC, file hashing and checksum checks, AES lock/unlock, strength meter, random keys and passwords,
-// password hashing, JWT reading/checking, encoders and a colour converter. Secrets live only in the boxes of this page: they are never stored.
+// password hashing, JWT reading/checking, encoders and a color converter. Secrets live only in the boxes of this page: they are never stored.
 import { h } from "./dom.js";
 import { toast } from "./menus.js";
 import { registerPowerTab } from "./power.js";

@@ -1,10 +1,12 @@
 // The Home view: a friendly start page that shows everything the app can do. Other modules add their own tiles
 // with registerHomeTile(); the tools in the Power panel get a tile each automatically (see homeTiles.js).
 import { call } from "./api.js";
+import { openCalendarDialog, updateClock } from "./chrome.js";
 import { $, clear, h } from "./dom.js";
-import { toast } from "./menus.js";
+import { showMenu, toast } from "./menus.js";
 import { goTo, runSearch } from "./nav.js";
 import * as ops from "./ops.js";
+import { clearRecents, formatRecentTime, isRecentsEnabled, recentMenuItems, removeRecentItem, showRecentsManager, toggleRecentsEnabled } from "./recents.js";
 import { emit, on, state } from "./state.js";
 import { showToolsDialog } from "./tools.js";
 import { baseName, formatSize, parentOf, plural } from "./util.js";
@@ -136,14 +138,67 @@ function placesCard() {
 }
 
 function recent() {
-  const items = state.settings.recents.slice(0, 8);
-  const content = items.length
-    ? h("ul", { class: "home-list" }, items.map((r) => placeButton({
-      icon: "🕘", label: baseName(r.path, state.sep), title: r.path, onClick: () => ops.openPath(r.path),
-      extra: h("span", { class: "hp-note" }, parentOf(r.path, state.sep) ?? ""),
-    })))
-    : h("p", { class: "hint" }, "Files you open will be listed here, so you can get back to them quickly.");
-  return card("recent", "🕘 Recent files", null, content);
+  const enabled = isRecentsEnabled();
+  const all = state.settings.recents;
+  const items = enabled ? all.slice(0, 8) : [];
+  const actions = h("div", { class: "home-actions home-recent-actions" },
+    h("button", {
+      type: "button",
+      class: "btn",
+      dataset: { homeRecentToggle: "" },
+      title: enabled ? "Stop recording newly opened files" : "Resume recording newly opened files",
+      onclick: () => toggleRecentsEnabled(),
+    }, enabled ? "⏸ Turn off" : "▶ Turn on"),
+    h("button", {
+      type: "button",
+      class: "btn",
+      dataset: { homeRecentClear: "" },
+      disabled: !all.length,
+      title: "Clear the list of recent files",
+      onclick: () => clearRecents(),
+    }, "🧹 Clear"),
+    h("button", {
+      type: "button",
+      class: "btn",
+      dataset: { homeRecentManage: "" },
+      title: "Manage recent files: filter, remove missing files, or clear",
+      onclick: () => showRecentsManager(),
+    }, "⚙️ Manage…"));
+
+  let listContent;
+  if (!enabled) {
+    listContent = h("p", { class: "hint" }, "Recent files are turned off. Turn them on to list the files you open here.");
+  } else if (!items.length) {
+    listContent = h("p", { class: "hint" }, "Files you open will be listed here, so you can get back to them quickly.");
+  } else {
+    listContent = h("ul", { class: "home-list" }, items.map((r) => {
+      const name = baseName(r.path, state.sep) || r.path;
+      const folder = parentOf(r.path, state.sep) ?? "";
+      const when = formatRecentTime(r.at);
+      const subtitle = [folder, when ? `opened ${when}` : ""].filter(Boolean).join(" · ");
+      const mainBtn = h("button", {
+        type: "button",
+        class: "home-place",
+        title: `${r.path}${when ? ` — opened ${when}` : ""}`,
+        onclick: () => ops.openPath(r.path),
+        oncontextmenu: (e) => {
+          e.preventDefault();
+          showMenu(recentMenuItems(r.path), { x: e.clientX, y: e.clientY, label: "Recent file" });
+        },
+      },
+        h("span", { class: "hp-icon", "aria-hidden": "true" }, "🕘"),
+        h("span", { class: "hp-body" }, h("span", { class: "hp-label" }, name), h("span", { class: "hp-note" }, subtitle)));
+      const rmBtn = h("button", {
+        type: "button",
+        class: "icon-btn home-recent-rm",
+        title: `Remove "${name}" from Recent`,
+        "aria-label": `Remove ${name} from Recent`,
+        onclick: () => removeRecentItem(r.path),
+      }, "✕");
+      return h("li", { class: "home-recent-item" }, mainBtn, rmBtn);
+    }));
+  }
+  return card("recent", "🕘 Recent files", null, h("div", { class: "home-recent-body" }, listContent, actions));
 }
 
 function quick() {
@@ -151,6 +206,7 @@ function quick() {
   return card("quick", "⚡ Quick actions", "These work in the folder you were last looking at.", h("div", { class: "home-actions" },
     act("New folder", "📁", "Make a new folder in the folder you were looking at", ops.newFolder),
     act("New file", "📄", "Make a new empty file in the folder you were looking at", ops.newFile),
+    act("Dated folder", "📅", "Make a new folder named with today's YYYY-MM-DD date in the folder you were looking at", () => ops.newDatedFolder()),
     act("Paste", "📥", state.clipboard ? "Paste what you copied or cut into the folder you were looking at" : "Nothing has been copied or cut yet", ops.paste, !state.clipboard),
     act("Undo", "↶", state.undoStack.length ? "Undo the last thing you did" : "Nothing to undo yet", ops.undo, !state.undoStack.length),
     act("Empty Recycle Bin…", "🧹", state.trashCount ? "Permanently delete everything in the Recycle Bin (it asks first)" : "The Recycle Bin is already empty", ops.emptyBin, !state.trashCount)));
@@ -261,7 +317,9 @@ function build() {
     input, h("button", { type: "submit", class: "btn primary", title: "Look for files and folders whose name contains what you typed" }, "Search files"));
   clear(root).append(h("div", { class: "home-scroll" },
     h("header", { class: "home-hero" },
-      h("h1", { id: "home-title" }, greeting() + "!"),
+      h("div", { class: "home-hero-top" },
+        h("h1", { id: "home-title" }, greeting() + "!"),
+        h("p", { id: "home-datetime", class: "home-datetime", "aria-live": "off", onclick: () => openCalendarDialog() })),
       h("p", { class: "lead" }, "What would you like to do?"),
       form,
       h("p", { id: "home-hint", class: "hint" })),
@@ -271,6 +329,7 @@ function build() {
       h("p", { id: "home-tiles-empty", class: "hint", hidden: true }, "Nothing matches. Press Enter to search your files instead.")),
     h("div", { id: "home-sections" })));
   built = true;
+  updateClock();
   fillTiles();
   fillSections();
 }
@@ -280,6 +339,7 @@ export function renderHome() {
   if (!built) build();
   else {
     byId("home-title").textContent = `${greeting()}!`;
+    updateClock();
     fillTiles();
     fillSections();
   }

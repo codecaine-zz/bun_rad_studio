@@ -28,6 +28,8 @@ export interface ByteSource {
   /** File name for display (never a path). */
   name: string;
   size: number;
+  /** Underlying path on disk when available (for random-access zip/spreadsheet readers). */
+  path?: string;
   /** The first bytes, enough to detect the format. */
   sample(bytes?: number): Promise<Uint8Array>;
   /** Every byte, in chunks. May be called more than once. */
@@ -42,6 +44,7 @@ export function fileSource(path: string, name?: string): ByteSource {
   return {
     name: name ?? path.split(/[\\/]/).pop() ?? "file",
     size: st.size,
+    path,
     async sample(bytes = 65536) {
       return new Uint8Array(await file.slice(0, bytes).arrayBuffer());
     },

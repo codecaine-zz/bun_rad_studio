@@ -74,7 +74,7 @@ export async function renderEditor(host, { id, type, scope, onDone }) {
     else el.type = on ? "text" : "password";
   } }, "Show");
 
-  const title = input("title", { label: "Title", tip: "A name you will recognise, such as “Bank” or “Home Wi-Fi”", initial: item?.title ?? "" });
+  const title = input("title", { label: "Title", tip: "A name you will recognize, such as “Bank” or “Home Wi-Fi”", initial: item?.title ?? "" });
   const favorite = h("input", { type: "checkbox", id: `sx-f${n}-fav`, title: "Show this item at the top of the list" });
   favorite.checked = item?.favorite ?? false;
   const fieldRows = [];
@@ -182,7 +182,7 @@ export async function renderEditor(host, { id, type, scope, onDone }) {
 
   const form = h("form", { class: "sx-form", "aria-label": item ? `Edit ${TYPE_NAMES[kind]}` : `New ${TYPE_NAMES[kind]}`, autocomplete: "off", novalidate: true, onsubmit: submit, "data-copy": "off" },
     h("h2", { class: "sx-title", tabindex: "-1" }, item ? "Edit item" : `New ${TYPE_NAMES[kind].toLowerCase()}`),
-    h("div", { class: "sx-frow" }, title.label, h("div", { class: "sx-fctl" }, title.el, h("label", { class: "sx-check", title: "Show this item at the top of the list" }, favorite, " Favourite"))),
+    h("div", { class: "sx-frow" }, title.label, h("div", { class: "sx-fctl" }, title.el, h("label", { class: "sx-check", title: "Show this item at the top of the list" }, favorite, " Favorite"))),
     fieldRows,
     h("div", { class: "sx-frow" }, notes.label, h("div", { class: "sx-fctl sx-notesctl" }, notes.el, preview, previewButton, notesToggle)),
     h("div", { class: "sx-frow" }, folder.label, h("div", { class: "sx-fctl" }, folder.el)),

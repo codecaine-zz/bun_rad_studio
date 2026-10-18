@@ -15,7 +15,7 @@ export const GEMINI_MODEL = process.env.GEMINI_TTS_MODEL ?? "gemini-2.5-flash-pr
 /** Speed-up applied to a Gemini narration afterwards (1 = as spoken). Gemini voices read slowly, so the default is a little faster. */
 export const TTS_TEMPO = Number(process.env.TTS_TEMPO ?? "1.12");
 export const GEMINI_VOICE = process.env.GEMINI_TTS_VOICE ?? "Kore";
-export const EDGE_VOICE = process.env.EDGE_TTS_VOICE ?? "en-US-AndrewMultilingualNeural";
+export const EDGE_VOICE = process.env.EDGE_TTS_VOICE ?? "en-US-AvaMultilingualNeural";
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -143,6 +143,7 @@ export async function narrate(id: string, narration: string, audioDir: string, o
       const work = join(audioDir, `_edge_${id}`);
       mkdirSync(work, { recursive: true });
       edge(text, raw, work, rate, gap);
+      rmSync(work, { recursive: true, force: true });
     }
     // Speeding up in the same ffmpeg run as the encoder can make some clips fail, so it is a step of its own.
     let source = raw;

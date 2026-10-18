@@ -48,7 +48,7 @@ export const intervalTimerStudioTips: HelpTips = {
   "#pill-beep-chimes": "Use soft musical chords for the timer cues: start of work, start of rest and finish.",
   "#pill-beep-athletic": "Use sharper, higher beeps for the timer cues, easier to hear over loud music.",
   "#pill-beep-metronome": "Use short woodblock-style clicks for the timer cues.",
-  "#pill-beep-silent": "Play no sounds for the timer cues. The timer card flashes in a colour at each change instead.",
+  "#pill-beep-silent": "Play no sounds for the timer cues. The timer card flashes in a color at each change instead.",
   "#apple-beep-volume": "Loudness of the timer beeps and the drone and metronome sounds, from 0 to 100%. It does not change the volume of other music.",
   "text:Plain English Translator": "Open the glossary that explains the science terms used here in plain words, with everyday comparisons. It opens at the matching topic.",
   "text:Science Translator": "Open the glossary that explains the science terms used here in plain words. It opens at the nerve and mobility topic.",

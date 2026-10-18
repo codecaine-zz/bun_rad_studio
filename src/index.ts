@@ -7,7 +7,7 @@ export * from "./simplecli/index.ts";
 export * from "./simplegui.ts";
 export * from "./features/rad/index.ts";
 
-// Names that more than one of the libraries above define, each with different behaviour. They used to be
+// Names that more than one of the libraries above define, each with different behavior. They used to be
 // exported as `undefined`; each now refers to one definition on purpose (decision recorded in D-027).
 // The `rad` versions stay available through their module namespaces: `logutils.Logger`, `logutils.LogLevel`,
 // `cacheutils.LRUCache`, `fileutils.writeFileAtomic` (asynchronous, unlike SimpleGUI's).

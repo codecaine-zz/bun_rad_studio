@@ -11,7 +11,7 @@ export type OptionKind = "choice" | "number" | "time" | "pages" | "text" | "name
 export interface OptionChoice {
   value: string;
   label: string;
-  /** A capability the program must have for this choice (see fmBatch); the choice is greyed out without it. */
+  /** A capability the program must have for this choice (see fmBatch); the choice is grayed out without it. */
   needs?: string;
 }
 

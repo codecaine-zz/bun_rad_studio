@@ -1,5 +1,5 @@
 /**
- * Project overview for the Dev tab: recognises the kinds of project in a folder from their manifests and shows a
+ * Project overview for the Dev tab: recognizes the kinds of project in a folder from their manifests and shows a
  * summary card for each. Read only: manifests are parsed (never run), each read is size-capped, nothing is fetched
  * from the network, and `.env` files are listed by name only (their contents are never read).
  */
@@ -21,7 +21,7 @@ export interface ProjectCard {
 export interface ProjectInfo {
   root: string;
   cards: ProjectCard[];
-  /** Names of the things found at the top of the folder (for the page's "nothing recognised" message). */
+  /** Names of the things found at the top of the folder (for the page's "nothing recognized" message). */
   topLevel: number;
 }
 
@@ -256,7 +256,7 @@ async function filesCard(root: string, names: Set<string>): Promise<ProjectCard 
   const licenseFile = [...names].filter((n) => /^(licen[sc]e|copying|unlicense)(\.\w+)?$/i.test(n)).sort()[0];
   if (licenseFile) {
     const text = await readText(nodePath.join(root, licenseFile));
-    facts.push(["License file", `${licenseFile}${text ? ` — ${detectLicense(text) ?? "type not recognised"}` : ""}`]);
+    facts.push(["License file", `${licenseFile}${text ? ` — ${detectLicense(text) ?? "type not recognized"}` : ""}`]);
   } else facts.push(["License file", "none found"]);
   if (names.has(".editorconfig")) {
     const text = (await readText(nodePath.join(root, ".editorconfig"))) ?? "";

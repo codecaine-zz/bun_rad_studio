@@ -63,7 +63,7 @@ function meaningOf(check) {
 
 function adviceOf(check) {
   if (check.severity === "danger") return "Don't open it unless you trust where it came from. If you weren't expecting it, move it to the Recycle Bin.";
-  if (check.severity === "warning") return "If you know what it really is, rename it so it ends the right way. If you don't recognise it, check where it came from before you open it.";
+  if (check.severity === "warning") return "If you know what it really is, rename it so it ends the right way. If you don't recognize it, check where it came from before you open it.";
   return check.suggestedName ? "You can rename it so its ending matches what it really is." : "Nothing needs to be done unless a program refuses to open it.";
 }
 

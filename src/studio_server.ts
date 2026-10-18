@@ -4,7 +4,7 @@
  * Every such studio used to carry its own copy of this code. One copy means a security fix, such as the
  * loopback guard (D-012), is made once.
  *
- * Behaviour, unchanged from the copies it replaces:
+ * Behavior, unchanged from the copies it replaces:
  *   - binds to 127.0.0.1 by default and refuses foreign Host or Origin headers (`guardLocalRequest`)
  *   - `/` and `/index.html` serve the page produced by `generateHtml()`
  *   - `/favicon.svg` and any other file are served from `assetsDir`, never from outside it

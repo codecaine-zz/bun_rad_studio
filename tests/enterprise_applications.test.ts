@@ -155,12 +155,25 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
     expect(html).toContain("btn_replace");
   });
 
-  it("11. App Bundler Studio Pro initializes with native bun compile target, app browser, and icon picker", () => {
+  it("11. App Bundler Studio Pro initializes with native bun compile target, app browser, and icon picker", async () => {
+    const {
+      generateWindowsManifest,
+      generateLinuxDesktopEntry,
+      bundleWindowsIcon,
+      bundleLinuxIcon,
+      pngToIcoBuffer,
+    } = await import("../applications/app_bundler_studio");
+    const { mkdtempSync, existsSync, readFileSync, rmSync } = await import("fs");
+    const { join } = await import("path");
+    const { tmpdir } = await import("os");
+
     const win = createAppBundlerStudio();
     const html = win.generateHtml();
     expect(html).toContain("App Bundler Studio Pro");
     expect(html).toContain("btn_compile_binary");
     expect(html).toContain("btn_build_bundle");
+    expect(html).toContain("btn_build_windows");
+    expect(html).toContain("btn_build_linux");
     expect(html).toContain("dd_preset_app");
     expect(html).toContain("btn_load_app");
     expect(html).toContain("btn_browse_app");
@@ -190,6 +203,40 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
 
     const buildHandler = (win as any).eventHandlersMap.get("btn_build_bundle:onclick");
     expect(buildHandler).toBeDefined();
+    const buildWinHandler = (win as any).eventHandlersMap.get("btn_build_windows:onclick");
+    expect(buildWinHandler).toBeDefined();
+    const buildLinuxHandler = (win as any).eventHandlersMap.get("btn_build_linux:onclick");
+    expect(buildLinuxHandler).toBeDefined();
+
+    // Verify Windows manifest & Linux desktop entry generation
+    const winManifest = generateWindowsManifest("SqliteStudioPro", "com.enterprise.sqlitestudiopro", "1.2.3", true);
+    expect(winManifest).toContain('version="1.2.3.0"');
+    expect(winManifest).toContain("PerMonitorV2");
+    const linuxDesktop = generateLinuxDesktopEntry("SqliteStudioPro", "com.enterprise.sqlitestudiopro", "1.2.3");
+    expect(linuxDesktop).toContain("[Desktop Entry]");
+    expect(linuxDesktop).toContain("Exec=SqliteStudioPro %F");
+    expect(linuxDesktop).toContain("Icon=SqliteStudioPro");
+
+    // Verify Windows and Linux icon bundlers
+    const tmp = mkdtempSync(join(tmpdir(), "bundler-test-"));
+    try {
+      const winIconRes = bundleWindowsIcon("./icons/redis_studio.icns", join(tmp, "win"), "RedisStudioPro");
+      expect(winIconRes.success).toBe(true);
+      expect(existsSync(join(tmp, "win", "RedisStudioPro.ico"))).toBe(true);
+      const icoBuf = readFileSync(join(tmp, "win", "RedisStudioPro.ico"));
+      expect(icoBuf.readUInt16LE(2)).toBe(1);
+
+      const linuxIconRes = bundleLinuxIcon("./icons/redis_studio.icns", join(tmp, "linux.AppDir"), "RedisStudioPro");
+      expect(linuxIconRes.success).toBe(true);
+      expect(existsSync(join(tmp, "linux.AppDir", "RedisStudioPro.png"))).toBe(true);
+      expect(existsSync(join(tmp, "linux.AppDir", ".DirIcon"))).toBe(true);
+      expect(existsSync(join(tmp, "linux.AppDir", "usr", "share", "icons", "hicolor", "256x256", "apps", "RedisStudioPro.png"))).toBe(true);
+
+      const convertedIco = pngToIcoBuffer(readFileSync("./icons/redis_studio.png"));
+      expect(convertedIco.readUInt16LE(2)).toBe(1);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   });
 
   it("12. Network Forensics Studio initializes with port scan & DNS tools", async () => {

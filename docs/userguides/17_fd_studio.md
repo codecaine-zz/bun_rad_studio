@@ -92,4 +92,4 @@ A beginner-friendly file-manager layer on top of search — everything is a butt
 - **Sort**: Default, Name A→Z / Z→A, Size largest / smallest, Modified newest / oldest — applied instantly without rescanning.
 - **Filter results**: Type to narrow the current results by name or path (case-insensitive) without rescanning. Batch actions, exports and copies use exactly what is shown.
 - **💾 Save Results As…**: Native Save dialog; the format follows the extension you choose — `.json`, `.csv`, `.tsv`, `.md` or `.txt` (path list).
-- **Feedback**: A toast summarises each search (count and time), and a missing Search Root shows a clear error instead of an empty result.
+- **Feedback**: A toast summarizes each search (count and time), and a missing Search Root shows a clear error instead of an empty result.

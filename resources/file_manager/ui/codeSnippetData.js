@@ -203,7 +203,7 @@ const HTML = [
 ];
 
 const CSS = [
-  S("flex", "flex centre", "display: flex;", "align-items: center;", "justify-content: center;"),
+  S("flex", "flex center", "display: flex;", "align-items: center;", "justify-content: center;"),
   S("grid", "grid", "display: grid;", "grid-template-columns: repeat(${1:3}, 1fr);", "gap: ${2:1rem};"),
   S("media", "media query", "@media (max-width: ${1:600px}) {", "\t$0", "}"),
   S("keyframes", "keyframes", "@keyframes ${1:name} {", "\tfrom { $2 }", "\tto { $0 }", "}"),

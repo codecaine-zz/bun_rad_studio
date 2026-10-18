@@ -12,8 +12,8 @@ import { copyToClipboard, flashCopied } from "./copyclip.js";
 import { extractSection } from "./copyformat.js";
 
 const CANDIDATES = '[data-copy], section, .pw-card, .dialog, table, pre, dl, ul.detail-list, .dialog-error, .toast.error';
-/** Places that never get a button: the file list, the terminal, the code editor, menus, forms' own rows. */
-const EXCLUDED = '[data-copy="off"], #list, #list-head, #sidebar, #toolbar, #viewbar, #addressbar, #terminal-panel, .xterm, .code-ed, .menu, #toasts .toast:not(.error), [contenteditable="true"]';
+/** Places that never get a button: the file list, the terminal, the code editor, menus, forms' own rows, status/clock bars, and theme/effect pickers. */
+const EXCLUDED = '[data-copy="off"], #list, #list-head, #dual-list, #dual-list-head, #sidebar, #toolbar, #viewbar, #addressbar, #status, #home-datetime, #fm-atmosphere-layer, .theme-list, .fm-atmo-sections, #terminal-panel, .xterm, .code-ed, .menu, #toasts .toast:not(.error), [contenteditable="true"]';
 /** The big containers of the page: they hold tools, they are not blocks of information themselves. */
 const SHELL = new Set(["power-panel", "dual-pane", "home", "stage", "app", "main", "body"]);
 const HOST_SELECTOR = '[data-copy], section, .pw-card, .dialog';
@@ -71,8 +71,8 @@ function titleOf(el) {
   if (head) return squash(head.textContent);
   const caption = tag(el) === "TABLE" ? [...el.children].find((c) => tag(c) === "CAPTION") : null;
   if (caption) return squash(caption.textContent);
-  const labelled = el.getAttribute("aria-labelledby")?.split(/\s+/).map((id) => document.getElementById(id)?.textContent).join(" ");
-  return squash(labelled || el.getAttribute("aria-label")).replace(/\.\s.*$/, "").replace(/\.$/, "");
+  const labeled = el.getAttribute("aria-labelledby")?.split(/\s+/).map((id) => document.getElementById(id)?.textContent).join(" ");
+  return squash(labeled || el.getAttribute("aria-label")).replace(/\.\s.*$/, "").replace(/\.$/, "");
 }
 
 const KIND_WORD = { section: "section", table: "table", pre: "text", dl: "list of facts", list: "list", error: "error message", text: "text", toast: "error message" };
@@ -83,7 +83,7 @@ const worthCopying = (el) => el.querySelector(EDITABLE) === null || el.querySele
 /** True when the block is the only table, text block or fact list of the section around it: the section's own button covers it. */
 function soleBlockOfSection(el) {
   for (let p = el.parentElement; p; p = p.parentElement) {
-    if (p.matches(HOST_SELECTOR) && p.getAttribute("data-copy") !== "off" && (p.hasAttribute("data-copy") || directHeading(p))) return p.querySelectorAll("table, pre, dl").length === 1;
+    if (p.matches(HOST_SELECTOR) && p.getAttribute("data-copy") !== "off" && p.getAttribute("data-copy-self") !== "off" && (p.hasAttribute("data-copy") || directHeading(p))) return p.querySelectorAll("table, pre, dl").length === 1;
   }
   return false;
 }
@@ -289,10 +289,13 @@ function schedule() {
 }
 
 function onMutations(records) {
+  let dirty = false;
   for (const r of records) {
     const target = r.target;
     if (target.nodeType !== 1 || target.hasAttribute("data-copy-ui")) continue;
     if (isTextEntry(target)) continue;
+    if (typeof target.closest === "function" && target.closest(EXCLUDED)) continue;
+    dirty = true;
     touched.add(target);
     if (r.type === "attributes") toggled.add(target);
     if (r.type !== "childList") continue;
@@ -307,7 +310,7 @@ function onMutations(records) {
     // a module that rebuilds the insides of a block also removed our button: put it back
     if (foreign && targets.has(target)) pending.add(target);
   }
-  schedule();
+  if (dirty) schedule();
 }
 
 function entryFrom(node) {

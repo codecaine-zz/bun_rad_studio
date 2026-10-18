@@ -53,7 +53,7 @@ export const workbenchChapters: Chapter[] = [
 export const endChapters: Chapter[] = [
   {
     id: "12_back", chapter: "BACK IN THE FILE MANAGER", title: "Back to the File Manager: stop, shortcuts and safety",
-    blurb: "Stopping a studio, favourites and the Home tile, production warnings, and where the password lives",
+    blurb: "Stopping a studio, favorites and the Home tile, production warnings, and where the password lives",
     steps: [
       {
         cap: "Stop the studio, back to Connections",
@@ -64,10 +64,10 @@ export const endChapters: Chapter[] = [
         },
       },
       {
-        cap: "Favourite, and the Home tile",
-        say: "I star the connection as a favourite. Favourites and recent connections get a tile on Home, one click away; Shift Enter does the same. Showing tiles never reads your keychain.",
+        cap: "Favorite, and the Home tile",
+        say: "I star the connection as a favorite. Favorites and recent connections get a tile on Home, one click away; Shift Enter does the same. Showing tiles never reads your keychain.",
         act: async (d) => {
-          await d.click("#power-pane-databases button >> Favourite", { pause: 1800 });
+          await d.click("#power-pane-databases button >> Favorite", { pause: 1800 });
           await d.click("#view-home", { pause: 2000 });
           await d.scroll("body", 900, 8);
           await d.wait(2500);
@@ -79,7 +79,7 @@ export const endChapters: Chapter[] = [
         act: async (d) => {
           await d.click("#view-tools", { pause: 1500 });
           await d.click("#power-tab-databases", { pause: 1500 });
-          await d.click("#power-pane-databases .db-row", { pause: 1200 });
+          await d.click("#power-pane-databases .db-row >> shop", { pause: 1200 });
           await d.click("#power-pane-databases button >> Edit", { pause: 1800 });
           await d.hover(".dialog select", 1500);
           await d.wait(2500);

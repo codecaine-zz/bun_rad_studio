@@ -3,13 +3,13 @@
     "title": "API Testing Studio Pro"
   },
   "lolo-studio": {
-    "title": "Adventures of Lolo Remaster"
+    "title": "Codecaine Adventures of Lolo Remaster"
   },
   "app-bundler-studio": {
     "title": "App Bundler Studio Pro"
   },
   "blackjack-studio": {
-    "title": "Blackjack Royale VIP"
+    "title": "Codecaine Blackjack Royale VIP"
   },
   "paint-studio": {
     "title": "Chroma Studio Pro"
@@ -30,22 +30,22 @@
     "title": "Cryptography & Hashing Studio"
   },
   "breakout-studio": {
-    "title": "Cyber Breakout Deluxe"
+    "title": "Codecaine Cyber Breakout Deluxe"
   },
   "frogger-studio": {
-    "title": "CyberFrog Deluxe"
+    "title": "Codecaine CyberFrog Deluxe"
   },
   "typing-studio": {
-    "title": "CyberType Deluxe"
+    "title": "Codecaine CyberType Deluxe"
   },
   "connect4-studio": {
-    "title": "Cyberpunk Connect 4"
+    "title": "Codecaine Cyberpunk Connect 4"
   },
   "maze-generator-studio": {
-    "title": "Cyberpunk Maze Runner"
+    "title": "Codecaine Cyberpunk Maze Runner"
   },
   "pacman-studio": {
-    "title": "Cyberpunk Pac-Man Arcade"
+    "title": "Codecaine Cyberpunk Pac-Man Arcade"
   },
   "doggo-studio": {
     "title": "DNS Query Studio (Doggo)"
@@ -60,10 +60,10 @@
     "title": "Disk Usage Studio (GDU)"
   },
   "dr-codecaine-studio": {
-    "title": "Dr. Codecaine Arcade"
+    "title": "Codecaine Dr. Codecaine Arcade"
   },
   "rat-screw-studio": {
-    "title": "Egyptian Rat Screw Royale"
+    "title": "Codecaine Egyptian Rat Screw Royale"
   },
   "env-studio": {
     "title": "Environment Variable Studio"
@@ -72,7 +72,7 @@
     "title": "Fd Studio Pro"
   },
   "flappy-bird-studio": {
-    "title": "Flappy Bird Deluxe"
+    "title": "Codecaine Flappy Bird Deluxe"
   },
   "git-studio": {
     "title": "Git Version Control Studio"
@@ -90,7 +90,7 @@
     "title": "JQ JSON Query Studio"
   },
   "balatro-studio": {
-    "title": "Joker Royale (Balatro Deluxe)"
+    "title": "Codecaine Joker Royale (Balatro Deluxe)"
   },
   "launcher-studio": {
     "title": "Launcher Studio Pro"
@@ -99,25 +99,25 @@
     "title": "Markdown Live Editor Studio"
   },
   "math-munchers-studio": {
-    "title": "Math Munchers Deluxe"
+    "title": "Codecaine Math Munchers Deluxe"
   },
   "minesweeper-studio": {
-    "title": "Minesweeper Pro Championship"
+    "title": "Codecaine Minesweeper Pro Championship"
   },
   "mysql-studio": {
     "title": "MySQL Studio Pro"
   },
   "pong-studio": {
-    "title": "Neon Cyber Pong"
+    "title": "Codecaine Neon Cyber Pong"
   },
   "snake-studio": {
-    "title": "Neon Snake Deluxe"
+    "title": "Codecaine Neon Snake Deluxe"
   },
   "tictactoe-studio": {
-    "title": "Neon Tic-Tac-Toe Arcade"
+    "title": "Codecaine Neon Tic-Tac-Toe Arcade"
   },
   "word-search-studio": {
-    "title": "Neon Word Search Labyrinth"
+    "title": "Codecaine Neon Word Search Labyrinth"
   },
   "network-studio": {
     "title": "Network Diagnostics Studio"
@@ -150,13 +150,13 @@
     "title": "Rip Studio Pro"
   },
   "rodents-revenge-studio": {
-    "title": "Rodent's Revenge Deluxe"
+    "title": "Codecaine Rodent's Revenge Deluxe"
   },
   "sqlite-studio": {
     "title": "SQLite Studio Pro"
   },
   "skifree-studio": {
-    "title": "SkiFree Deluxe"
+    "title": "Codecaine SkiFree Deluxe"
   },
   "sd-studio": {
     "title": "Stream Editor Studio (SD)"
@@ -174,10 +174,10 @@
     "title": "Task Manager & Process Studio"
   },
   "tetris-studio": {
-    "title": "Tetris Ultra Deluxe"
+    "title": "Codecaine Tetris Ultra Deluxe"
   },
   "poker-studio": {
-    "title": "Texas Hold'em & 5-Card Draw Poker Royale"
+    "title": "Codecaine Texas Hold'em & 5-Card Draw Poker Royale"
   },
   "calculator-studio": {
     "title": "Universal Calculator & IntuitionLab Studio"
@@ -192,6 +192,6 @@
     "title": "World Time Zones Studio Pro"
   },
   "yahtzee-studio": {
-    "title": "Yahtzee Royale Deluxe"
+    "title": "Codecaine Yahtzee Royale Deluxe"
   }
 }

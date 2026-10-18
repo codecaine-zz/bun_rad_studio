@@ -122,7 +122,7 @@ describe("badges in the file list", () => {
     expect(rowFor("invoice.pdf").classList.contains("has-verdict")).toBe(true);
   });
 
-  test("each badge says what it is in words, not just colour, and can be focused and pressed", () => {
+  test("each badge says what it is in words, not just color, and can be focused and pressed", () => {
     const danger = badgeFor("invoice.pdf");
     expect(danger.tagName).toBe("BUTTON");
     expect(danger.type).toBe("button");

@@ -827,7 +827,7 @@ describe("the page", () => {
     expect(ip).toContain("ipinfo.io");
   });
 
-  test("the styles only use the app's colour variables and ip- classes", () => {
+  test("the styles only use the app's color variables and ip- classes", () => {
     const css = readFileSync(join(UI, "ip.css"), "utf8");
     expect(css).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/);
     for (const m of css.matchAll(/^\s*([.#][\w-]+)/gm)) expect(m[1]!.startsWith(".ip-"), m[1]).toBe(true);

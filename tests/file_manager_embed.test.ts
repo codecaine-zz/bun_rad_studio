@@ -43,8 +43,8 @@ describe("the page lets the frames in, and only them", () => {
 });
 
 describe("embedded apps", () => {
-  test("the calculator and the timer are served with their own policy and the page hides its hub links", async () => {
-    for (const id of ["calc", "timer"]) {
+  test("the calculator, timer and paint studio are served with their own policy and the page hides its hub links", async () => {
+    for (const id of ["calc", "timer", "paint"]) {
       const res = await asAlt(`/app/${id}/`);
       expect(res.status, id).toBe(200);
       expect(res.headers.get("content-type")).toContain("text/html");
@@ -70,6 +70,8 @@ describe("embedded apps", () => {
     // The timer only links to YouTube; nothing from YouTube runs or is framed inside it.
     expect(EMBEDDED_APPS.timer!.frame).toEqual([]);
     expect(EMBEDDED_APPS.timer!.script.join(" ")).not.toContain("youtube");
+    expect(EMBEDDED_APPS.paint!.script).toEqual([]);
+    expect(EMBEDDED_APPS.paint!.style).toEqual(["https://fonts.googleapis.com"]);
     for (const app of Object.values(EMBEDDED_APPS)) for (const list of [app.script, app.style, app.font, app.img, app.frame, app.connect]) for (const origin of list) expect(origin).toMatch(/^https:\/\/[a-z0-9.-]+$/);
   });
 
@@ -77,6 +79,11 @@ describe("embedded apps", () => {
     expect((await asAlt("/app/calc/app.js")).status).toBe(200);
     expect((await asAlt("/app/calc/styles.css")).headers.get("content-type")).toContain("text/css");
     expect((await asAlt("/app/calc/intuitionlab/index.html")).status).toBe(200);
+    const paintLib = await asAlt("/app/paint/coloring_library.js");
+    expect(paintLib.status).toBe(200);
+    const paintLibCode = await paintLib.text();
+    expect(paintLibCode).toContain("window.COLORING_LIBRARY = COLORING_LIBRARY");
+    expect(paintLibCode).toContain("coloring-library-loaded");
     for (const bad of ["/app/calc/../../package.json", "/app/calc/%2e%2e/%2e%2e/package.json", "/app/calc/..%2f..%2fpackage.json", "/app/calc/a%00b.js", "/app/calc/sw.js.map", "/app/calc/nope.js", "/app/nothing/", "/app/Calc/", "/app/calc/app.js%5c..%5c..", "/app/calc//etc/passwd"]) {
       const res = await asAlt(bad);
       expect(res.status, bad).toBe(404);
@@ -107,9 +114,38 @@ describe("embedded apps", () => {
     expect(post.status).toBe(404);
   });
 
-  test("the File Manager itself still works on its own address", async () => {
+  test("the File Manager itself still works on its own address and serves the Paint Studio UI module", async () => {
     expect((await asMain("/")).status).toBe(200);
     expect((await asMain("/api/health")).status).toBe(200);
+    const paintUi = await asMain("/ui/paint.js");
+    expect(paintUi.status).toBe(200);
+    expect(await paintUi.text()).toContain('id: "paint"');
+    const gamesUi = await asMain("/ui/games.js");
+    expect(gamesUi.status).toBe(200);
+    expect(await gamesUi.text()).toContain('id: "games"');
+    const mainUi = await asMain("/ui/main.js");
+    expect(mainUi.status).toBe(200);
+    const mainText = await mainUi.text();
+    expect(mainText).toContain('import "./paint.js"');
+    expect(mainText).toContain('import "./games.js"');
+  });
+
+  test("all 24 Codecaine games are served as embedded apps with Codecaine titles", async () => {
+    const gameIds = [
+      "balatro", "blackjack", "breakout", "codecaine_bros", "connect4",
+      "dr_codecaine", "flappy_bird", "frogger", "lolo", "math_munchers",
+      "maze_generator", "minesweeper", "pacman", "poker", "pong",
+      "rat_screw", "rodents_revenge", "skifree", "snake", "tetris",
+      "tictactoe", "typing", "word_search", "yahtzee",
+    ];
+    for (const id of gameIds) {
+      const res = await asAlt(`/app/${id}/`);
+      expect(res.status, id).toBe(200);
+      expect(res.headers.get("content-type"), id).toContain("text/html");
+      const html = await res.text();
+      expect(html, id).toContain("Codecaine");
+      expect(html, id).toContain("fmOpenLink");
+    }
   });
 
   test("foreign Host headers are still refused", async () => {

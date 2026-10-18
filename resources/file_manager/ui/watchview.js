@@ -42,7 +42,7 @@ export function buildWatchView(actions) {
 
   const logNode = document.createTextNode("");
   const follow = h("input", { type: "checkbox", checked: true, title: "Keeps the newest output in view. It switches off by itself if you scroll up to read." });
-  const pre = h("pre", { class: "pw-out watch-console", tabindex: "0", "aria-live": "off", "aria-label": "Command output", title: "What the command prints while it runs. Colours are removed so it is easy to read." }, logNode);
+  const pre = h("pre", { class: "pw-out watch-console", tabindex: "0", "aria-live": "off", "aria-label": "Command output", title: "What the command prints while it runs. Colors are removed so it is easy to read." }, logNode);
   const emptyLog = h("p", { class: "pw-hint" }, "The command's output will appear here when it runs.");
   pre.addEventListener("scroll", () => {
     if (pre.scrollHeight - pre.scrollTop - pre.clientHeight > 40) follow.checked = false;

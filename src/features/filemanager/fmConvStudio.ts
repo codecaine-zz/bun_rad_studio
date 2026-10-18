@@ -6,7 +6,7 @@
  */
 import { optBool, optNum, optStr, parseTime, type OptionValues } from "./fmConvOptions";
 import { AUD_IN, audioCodecArgs, BASE, extOfPath, ffEngine, FIRST_FRAME, H264, IMG_IN, im, imNeeds, pic, sameCodec, vid, VID_IN, atempoChain } from "./fmConvMedia";
-import { CIRCLE, COLOURS, fades, probeSeconds, rounded, SHAPES, shapeCrop, videoShapeCrop } from "./fmConvMediaMore";
+import { CIRCLE, COLORS, fades, probeSeconds, rounded, SHAPES, shapeCrop, videoShapeCrop } from "./fmConvMediaMore";
 import { choiceOpt, numberOpt, timeOpt, toggleOpt, type BuildContext, type ConvDef } from "./fmConvTypes";
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -69,7 +69,7 @@ export function imageStudioArgs(c: BuildContext): string[] {
 const IMAGE_OPTIONS = [
   numberOpt("brightness", "Brightness", "", -100, 100, 0),
   numberOpt("contrast", "Contrast", "", -100, 100, 0),
-  numberOpt("saturation", "Colour", "", 0, 300, 100, "%"),
+  numberOpt("saturation", "Color", "", 0, 300, 100, "%"),
   numberOpt("hue", "Hue", "", -180, 180, 0, "°"),
   numberOpt("warmth", "Warmth", "", -100, 100, 0),
   numberOpt("blur", "Blur", "", 0, 40, 0, "", 0.5),
@@ -87,7 +87,7 @@ const IMAGE_OPTIONS = [
   numberOpt("corners", "Round corners", "", 0, 400, 0, "pixels"),
   numberOpt("width", "Width", "0 keeps the size; bigger pictures are shrunk to this width.", 0, 12000, 0, "pixels"),
   numberOpt("border", "Border", "", 0, 300, 0, "pixels"),
-  choiceOpt("borderColour", "Border colour", "", COLOURS.slice(0, 3), "white"),
+  choiceOpt("borderColour", "Border color", "", COLORS.slice(0, 3), "white"),
   choiceOpt("format", "Save as", "", IMAGE_FORMATS, "keep"),
   numberOpt("quality", "Quality", "", 30, 100, 88, "%"),
   toggleOpt("strip", "Remove location and camera info", "", true),
@@ -197,7 +197,7 @@ const MEDIA_OPTIONS = [
   toggleOpt("mute", "No sound", ""),
   numberOpt("brightness", "Brightness", "", -100, 100, 0),
   numberOpt("contrast", "Contrast", "", -100, 100, 0),
-  numberOpt("saturation", "Colour", "", 0, 300, 100, "%"),
+  numberOpt("saturation", "Color", "", 0, 300, 100, "%"),
   toggleOpt("gray", "Black and white", ""),
   toggleOpt("mirror", "Mirror", ""),
   toggleOpt("fadePicture", "Fade the picture too", "", true),

@@ -2528,7 +2528,10 @@ ${STUDIO_STAGING_STYLE}
     // Inside the File Manager the studio sits in a frame: browser full screen would be left with Esc, which the studio needs.
     const insideFrame = window.parent !== window;
     window.doToggleFullscreen = function() {
-      if (insideFrame) return;
+      if (insideFrame) {
+        try { window.top.postMessage({ fmToggleExpand: true }, "*"); } catch(e) {}
+        return;
+      }
       if (typeof window.toggleFullscreen === "function") {
         try { window.toggleFullscreen(); return; } catch(e) {}
       }
@@ -2552,6 +2555,7 @@ ${STUDIO_STAGING_STYLE}
 
     // Automatically trigger initial fullscreen once Webview DOM is ready and event loop is running
     function triggerInitialFullscreen() {
+      if (insideFrame) return;
       setTimeout(() => {
         if (typeof window.requestInitialFullscreen === "function") {
           try { window.requestInitialFullscreen(); return; } catch(e) {}

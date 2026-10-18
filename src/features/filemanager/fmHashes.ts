@@ -1,5 +1,5 @@
 /**
- * Every kind of hash and checksum the File Manager can work out, in one catalogue shared by the Crypto tab and the
+ * Every kind of hash and checksum the File Manager can work out, in one catalog shared by the Crypto tab and the
  * "More info" window.
  *
  * - "Secure" digests (SHA-2, SHA-3, BLAKE2, ...) come from Bun's `Bun.CryptoHasher`, which hashes in pieces, so a big

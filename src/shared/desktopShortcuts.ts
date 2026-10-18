@@ -41,7 +41,24 @@ declare const window: DesktopShortcutWindow;
 declare const document: { querySelector(selector: string): ThemeControl | null };
 
 function desktopShortcutsClient() {
-    const host = window;
+    const host = window as DesktopShortcutWindow & { localStorage?: unknown };
+    try {
+        const ls = host.localStorage as { getItem?: (k: string) => unknown } | undefined;
+        ls?.getItem?.("__rad_ls__");
+    } catch {
+        let mem: Record<string, string> = {};
+        const poly = {
+            getItem: (k: string) => (Object.prototype.hasOwnProperty.call(mem, k) ? mem[k]! : null),
+            setItem: (k: string, v: unknown) => { mem[k] = String(v); },
+            removeItem: (k: string) => { delete mem[k]; },
+            clear: () => { mem = {}; },
+            key: (i: number) => Object.keys(mem)[i] ?? null,
+            get length() { return Object.keys(mem).length; },
+        };
+        try {
+            Object.defineProperty(host, "localStorage", { value: poly, configurable: true, writable: true });
+        } catch {}
+    }
     if (host.__desktopShortcutsAttached) return;
     host.__desktopShortcutsAttached = true;
     let rightOption = false;

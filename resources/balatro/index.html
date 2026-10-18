@@ -2,14 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <script>(function(){try{var s=window.localStorage;s.getItem("__bl__")}catch(e){var m={};var p={getItem:function(k){return Object.prototype.hasOwnProperty.call(m,k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}},key:function(i){return Object.keys(m)[i]||null},get length(){return Object.keys(m).length}};try{Object.defineProperty(window,"localStorage",{value:p,configurable:true,writable:true})}catch(_){}}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Joker Royale — Balatro Deluxe Roguelike Poker Studio</title>
+  <title>Codecaine Joker Royale — Balatro Deluxe Roguelike Poker Studio</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=JetBrains+Mono:wght@500;700;800&family=Orbitron:wght@700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Plus+Jakarta+Sans:wght@600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
+      --in-oklab: ;
+      --in-oklch: ;
       --bg-dark: #080c14;
       --felt-dark: #072314;
       --felt-light: #123d24;
@@ -26,6 +29,13 @@
       --font-sans: "Plus Jakarta Sans", sans-serif;
       --font-mono: "JetBrains Mono", monospace;
       --font-card-rank: "Playfair Display", "Cinzel", "Georgia", "Times New Roman", serif;
+    }
+
+    @supports (background: linear-gradient(in oklab, white, black)) {
+      :root {
+        --in-oklab: in oklab;
+        --in-oklch: in oklch;
+      }
     }
 
     * {
@@ -1000,33 +1010,95 @@
     .poker-card.enhancement-bonus .card-enhancement-badge { background: #3b82f6; color: #fff; }
 
     /* Card Editions: Foil, Holo, Polychrome */
-    .poker-card.edition-foil::after {
+    .poker-card.edition-foil,
+    .joker-card.edition-foil {
+      isolation: isolate;
+    }
+    .poker-card.edition-foil::after,
+    .joker-card.edition-foil::after {
       content: "";
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
       border-radius: 10px;
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.28), rgba(236, 72, 153, 0.28), rgba(245, 158, 11, 0.28));
+      background: linear-gradient(135deg var(--in-oklab), rgba(59, 130, 246, 0.32), rgba(236, 72, 153, 0.32), rgba(245, 158, 11, 0.32));
       mix-blend-mode: overlay;
       pointer-events: none;
     }
 
-    .poker-card.edition-holographic::after {
+    .poker-card.edition-holographic::after,
+    .joker-card.edition-holographic::after {
       content: "";
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
       border-radius: 10px;
-      background: repeating-linear-gradient(45deg, rgba(239, 68, 68, 0.22) 0px, rgba(59, 130, 246, 0.22) 10px);
+      background: repeating-linear-gradient(45deg, rgba(239, 68, 68, 0.24) 0px, rgba(59, 130, 246, 0.24) 10px);
       pointer-events: none;
     }
 
-    .poker-card.edition-polychrome::after {
+    .poker-card.edition-polychrome::after,
+    .joker-card.edition-polychrome::after {
       content: "";
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
       border-radius: 10px;
-      background: linear-gradient(45deg, rgba(255,0,0,0.35), rgba(255,165,0,0.35), rgba(255,255,0,0.35), rgba(0,255,0,0.35), rgba(0,0,255,0.35), rgba(238,130,238,0.35));
+      background: linear-gradient(45deg var(--in-oklch), rgba(255,0,0,0.35), rgba(255,165,0,0.35), rgba(255,255,0,0.35), rgba(0,255,0,0.35), rgba(0,0,255,0.35), rgba(238,130,238,0.35));
       animation: rainbowShift 3s linear infinite;
       pointer-events: none;
+    }
+
+    .joker-card.edition-negative {
+      filter: invert(0.92) hue-rotate(180deg);
+      border-color: #38bdf8;
+    }
+
+    /* Debuffed & Non-Scoring Card States */
+    .poker-card.debuffed {
+      filter: grayscale(0.85) brightness(0.72);
+    }
+    .poker-card.debuffed::before {
+      content: "DEBUFFED";
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) rotate(-24deg);
+      background: rgba(220, 38, 38, 0.92);
+      color: #ffffff;
+      font-family: var(--font-mono);
+      font-size: 0.56rem;
+      font-weight: 900;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #fca5a5;
+      z-index: 25;
+      letter-spacing: 0.8px;
+      pointer-events: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+    }
+    .poker-card.non-scoring {
+      opacity: 0.55;
+      filter: saturate(0.5);
+    }
+
+    /* Floating Score Popup Badge */
+    .score-popup-badge {
+      position: fixed;
+      transform: translate(-50%, -50%) scale(0.7);
+      font-family: var(--font-mono);
+      font-size: 0.92rem;
+      font-weight: 900;
+      padding: 0.22rem 0.55rem;
+      border-radius: 8px;
+      color: #ffffff;
+      z-index: 950;
+      pointer-events: none;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65);
+      animation: scorePopFloat 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      white-space: nowrap;
+    }
+    @keyframes scorePopFloat {
+      0% { transform: translate(-50%, -20%) scale(0.6) rotate(-6deg); opacity: 0; }
+      25% { transform: translate(-50%, -95%) scale(1.15) rotate(3deg); opacity: 1; }
+      80% { transform: translate(-50%, -140%) scale(1.0) rotate(0deg); opacity: 1; }
+      100% { transform: translate(-50%, -175%) scale(0.85); opacity: 0; }
     }
 
     @keyframes rainbowShift {
@@ -1071,12 +1143,69 @@
     .card-seal.gold { background: radial-gradient(circle, #fde047, #ca8a04); color: #000; }
     .card-seal.purple { background: radial-gradient(circle, #c084fc, #9333ea); }
 
+    /* Blind Progress Bar & Skip Button */
+    .blind-progress-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 0.22rem;
+      margin-top: 0.15rem;
+    }
+    .blind-progress-row {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 800;
+      color: #e2e8f0;
+    }
+    .blind-progress-track {
+      width: 100%;
+      height: 7px;
+      background: rgba(0, 0, 0, 0.55);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+    .blind-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg var(--in-oklab), #00f3ff, #ec4899, #f59e0b);
+      border-radius: 999px;
+      transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
+    }
+    .btn-skip-blind {
+      margin-top: 0.2rem;
+      background: rgba(245, 158, 11, 0.16);
+      border: 1px solid rgba(245, 158, 11, 0.55);
+      color: #fde047;
+      border-radius: 6px;
+      padding: 0.22rem 0.45rem;
+      font-family: var(--font-mono);
+      font-size: 0.64rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.15s ease;
+    }
+    .btn-skip-blind:hover:not(:disabled) {
+      background: rgba(245, 158, 11, 0.32);
+      border-color: var(--neon-gold);
+      transform: translateY(-1px);
+    }
+    .btn-skip-blind:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
     /* Joker Card Item in Tray */
     .joker-card {
-      width: 76px;
-      height: 108px;
+      width: 78px;
+      height: 112px;
       border-radius: 10px;
-      background: linear-gradient(145deg, #1e1b4b, #0f172a);
+      background: linear-gradient(145deg var(--in-oklab), #1e1b4b, #0f172a);
       border: 2px solid #8b5cf6;
       box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
       position: relative;
@@ -1085,7 +1214,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: space-between;
-      padding: 0.4rem 0.3rem;
+      padding: 0.35rem 0.25rem;
       transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
       flex-shrink: 0;
     }
@@ -1097,9 +1226,69 @@
       z-index: 60;
     }
 
+    .joker-controls {
+      position: absolute;
+      bottom: 2px;
+      left: 2px;
+      right: 2px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 2px;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      z-index: 20;
+      background: rgba(8, 12, 20, 0.92);
+      padding: 2px;
+      border-radius: 6px;
+    }
+    .joker-card:hover .joker-controls,
+    .consumable-card:hover .joker-controls {
+      opacity: 1;
+    }
+    .btn-mini-ctrl {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: #f8fafc;
+      font-family: var(--font-mono);
+      font-size: 0.52rem;
+      font-weight: 800;
+      padding: 1px 4px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn-mini-ctrl:hover {
+      background: var(--neon-cyan);
+      color: #000;
+    }
+    .btn-mini-ctrl.sell {
+      background: rgba(239, 68, 68, 0.28);
+      border-color: #f87171;
+      color: #fecaca;
+    }
+    .btn-mini-ctrl.sell:hover {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    .joker-edition-tag {
+      position: absolute;
+      top: 2px;
+      right: 3px;
+      font-family: var(--font-mono);
+      font-size: 0.46rem;
+      font-weight: 900;
+      padding: 1px 3px;
+      border-radius: 3px;
+      background: rgba(0, 243, 255, 0.25);
+      color: var(--neon-cyan);
+      border: 1px solid rgba(0, 243, 255, 0.5);
+      text-transform: uppercase;
+    }
+
     .joker-icon {
-      font-size: 1.8rem;
-      margin-top: 0.2rem;
+      font-size: 1.75rem;
+      margin-top: 0.15rem;
     }
 
     .joker-name {
@@ -1127,12 +1316,12 @@
     .joker-rarity.rare { color: #f43f5e; background: rgba(244, 63, 94, 0.18); }
     .joker-rarity.legendary { color: #fbbf24; background: rgba(245, 158, 11, 0.28); border: 1px solid #f59e0b; }
 
-    /* Consumable Tarot/Planet Card */
+    /* Consumable Tarot/Planet/Spectral Card */
     .consumable-card {
       width: 74px;
-      height: 106px;
+      height: 108px;
       border-radius: 10px;
-      background: linear-gradient(145deg, #2e1065, #0f172a);
+      background: linear-gradient(145deg var(--in-oklab), #2e1065, #0f172a);
       border: 1px solid #c084fc;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
       display: flex;
@@ -1143,15 +1332,57 @@
       cursor: pointer;
       transition: all 0.2s ease;
       flex-shrink: 0;
+      position: relative;
+    }
+
+    .consumable-card.planet {
+      background: linear-gradient(145deg var(--in-oklab), #0c4a6e, #0f172a);
+      border-color: #38bdf8;
+    }
+
+    .consumable-card.spectral {
+      background: linear-gradient(145deg var(--in-oklab), #311042, #090d16);
+      border-color: #f472b6;
+      box-shadow: 0 0 14px rgba(244, 114, 182, 0.35);
     }
 
     .consumable-card:hover {
       transform: translateY(-6px) scale(1.05);
       border-color: var(--neon-gold);
       box-shadow: 0 10px 20px rgba(192, 132, 252, 0.45);
+      z-index: 60;
     }
 
-    /* Modal Windows (Shop, Run End, Deck Viewer, Hall of Fame) */
+    /* Toast Stack */
+    #toastContainer {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      z-index: 1100;
+      pointer-events: none;
+    }
+    .game-toast {
+      background: rgba(10, 16, 29, 0.95);
+      border: 1px solid var(--neon-cyan);
+      border-left: 4px solid var(--neon-cyan);
+      color: #f8fafc;
+      padding: 0.55rem 0.9rem;
+      border-radius: 10px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.65);
+      animation: toastSlideIn 0.22s ease-out;
+    }
+    @keyframes toastSlideIn {
+      0% { transform: translateX(30px); opacity: 0; }
+      100% { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Modal Windows (Shop, Run End, Deck Viewer, Hall of Fame, Run Info, Pack Choice) */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
@@ -1169,7 +1400,7 @@
       border: 2px solid rgba(255, 255, 255, 0.18);
       border-radius: 20px;
       box-shadow: 0 25px 65px rgba(0, 0, 0, 0.85);
-      max-width: 900px;
+      max-width: 920px;
       width: 100%;
       max-height: 90vh;
       display: flex;
@@ -1184,7 +1415,7 @@
     }
 
     .modal-header {
-      padding: 1.25rem 1.75rem;
+      padding: 1.1rem 1.6rem;
       border-bottom: 1px solid rgba(255, 255, 255, 0.12);
       display: flex;
       align-items: center;
@@ -1193,32 +1424,54 @@
 
     .modal-title {
       font-family: var(--font-display);
-      font-size: 1.6rem;
+      font-size: 1.5rem;
       font-weight: 900;
       color: #ffffff;
+      text-wrap: balance;
+    }
+
+    .blind-name {
+      text-wrap: balance;
     }
 
     .modal-body {
-      padding: 1.5rem 1.75rem;
+      padding: 1.35rem 1.6rem;
       overflow-y: auto;
       flex: 1;
+    }
+
+    /* Cashout Breakdown Banner in Shop */
+    .cashout-summary-bar {
+      background: linear-gradient(90deg var(--in-oklab), rgba(16, 185, 129, 0.16), rgba(245, 158, 11, 0.16));
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      border-radius: 10px;
+      padding: 0.55rem 0.9rem;
+      margin-bottom: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      color: #fde68a;
     }
 
     /* The Shop Grid */
     .shop-shelves {
       display: flex;
       flex-direction: column;
-      gap: 1.5rem;
+      gap: 1.25rem;
     }
 
     .shelf-group {
       display: flex;
       flex-direction: column;
-      gap: 0.6rem;
+      gap: 0.55rem;
     }
 
     .shelf-title {
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 800;
       color: #94a3b8;
       letter-spacing: 1.5px;
@@ -1227,8 +1480,8 @@
 
     .shelf-items {
       display: flex;
-      align-items: center;
-      gap: 1.25rem;
+      align-items: stretch;
+      gap: 1rem;
       flex-wrap: wrap;
     }
 
@@ -1236,12 +1489,13 @@
       background: rgba(15, 23, 42, 0.85);
       border: 2px solid rgba(255, 255, 255, 0.14);
       border-radius: 12px;
-      padding: 1rem;
-      width: 180px;
+      padding: 0.85rem;
+      width: 174px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0.5rem;
+      justify-content: space-between;
+      gap: 0.45rem;
       text-align: center;
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
       transition: all 0.2s ease;
@@ -1253,22 +1507,28 @@
       box-shadow: 0 12px 26px rgba(245, 158, 11, 0.35);
     }
 
+    .shop-item-desc,
+    .blind-rule,
+    #endSubtitle {
+      text-wrap: pretty;
+    }
+
     .shop-item-desc {
-      font-size: 0.75rem;
+      font-size: 0.73rem;
       color: #cbd5e1;
       line-height: 1.3;
-      min-height: 48px;
+      min-height: 44px;
     }
 
     .btn-buy {
       width: 100%;
-      background: linear-gradient(135deg, #f59e0b, #d97706);
+      background: linear-gradient(135deg var(--in-oklab), #f59e0b, #d97706);
       border: none;
       color: #000000;
       font-family: var(--font-mono);
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       font-weight: 900;
-      padding: 0.5rem;
+      padding: 0.45rem;
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.15s ease;
@@ -1286,12 +1546,43 @@
     }
 
     .shop-footer-bar {
-      padding: 1rem 1.75rem;
+      padding: 1rem 1.6rem;
       border-top: 1px solid rgba(255, 255, 255, 0.12);
       display: flex;
       align-items: center;
       justify-content: space-between;
       background: rgba(10, 16, 26, 0.95);
+    }
+
+    /* Poker Hands Run Info Table */
+    .hands-ref-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 0.55rem;
+    }
+    .hand-ref-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 0.45rem 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+    }
+
+    /* Deck Selector Pill in Header */
+    .deck-select-input {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(0, 243, 255, 0.45);
+      color: #f8fafc;
+      border-radius: 8px;
+      padding: 0.25rem 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 800;
+      cursor: pointer;
     }
 
     /* Deck Viewer Grid */
@@ -1308,18 +1599,18 @@
     /* Tooltip Bubble */
     #cardTooltip {
       position: fixed;
-      background: rgba(15, 23, 42, 0.95);
+      background: rgba(15, 23, 42, 0.96);
       border: 1px solid var(--neon-cyan);
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.75);
       backdrop-filter: blur(12px);
       border-radius: 8px;
       padding: 0.6rem 0.8rem;
-      max-width: 220px;
+      max-width: 240px;
       pointer-events: none;
       z-index: 1000;
       display: none;
       font-size: 0.78rem;
-      line-height: 1.3;
+      line-height: 1.35;
       color: #f1f5f9;
     }
 
@@ -1335,7 +1626,7 @@
         --card-w: 70px;
         --card-h: 102px;
       }
-      .blind-panel { width: 170px; }
+      .blind-panel { width: 175px; }
       .score-banner { padding: 0.5rem 1rem; gap: 0.8rem; }
     }
   </style>
@@ -1343,6 +1634,7 @@
 <body>
   <div class="crt-overlay"></div>
   <div id="cardTooltip"></div>
+  <div id="toastContainer"></div>
 
   <div id="gameApp">
     <!-- Header -->
@@ -1351,6 +1643,15 @@
         <span class="logo">JOKER ROYALE</span>
         <span class="badge-ante" id="hudAnte">ANTE 1/8</span>
         <span class="badge-ante" style="border-color:var(--neon-blue); color:#60a5fa;" id="hudRound">ROUND 1</span>
+        <select class="deck-select-input" id="deckTypeSelect" title="Select Starter Deck (Starts New Run)">
+          <option value="red">🔴 Red Deck (+1 Discard)</option>
+          <option value="blue">🔵 Blue Deck (+1 Hand)</option>
+          <option value="yellow">🟡 Yellow Deck (+$10 Start)</option>
+          <option value="green">🟢 Green Deck (Eco Bonus)</option>
+          <option value="plasma">🟣 Plasma Deck (Balanced Math)</option>
+          <option value="checkered">🏁 Checkered Deck (♠ & ♥ Only)</option>
+          <option value="cyber">⚡ Cyber Deck (Quantum Start)</option>
+        </select>
       </div>
 
       <div class="telemetry-cluster">
@@ -1369,6 +1670,7 @@
       </div>
 
       <div class="header-actions">
+        <button class="btn-icon" id="btnRunInfo" title="Run Info & Poker Hands (I)" style="width:auto; padding:0 0.55rem; font-family:var(--font-mono); font-size:0.72rem; font-weight:800; gap:0.25rem;">📊 HANDS</button>
         <button class="btn-icon" id="btnSpeedToggle" title="Game Speed (1x / 2x / 4x)" style="font-family:var(--font-mono); font-size:0.75rem; font-weight:800; width:44px;">1X</button>
         <button class="btn-icon" id="btnDeckView" title="Inspect Deck (D)">🃏</button>
         <button class="btn-icon" id="btnMusicToggle" title="Toggle Music Mode (M)">🎵</button>
@@ -1389,29 +1691,42 @@
             <span id="blindTypeLabel">SMALL BLIND</span>
             <span class="blind-reward" id="blindRewardLabel">REWARD: $3</span>
           </div>
-          <div class="blind-name" id="blindNameLabel">The Neon Gate</div>
+          <div class="blind-name" id="blindNameLabel">Small Blind</div>
           <div class="blind-score-target">
             <span>🎯</span>
             <span id="blindTargetLabel">300</span>
           </div>
+          <div class="blind-progress-wrap">
+            <div class="blind-progress-row">
+              <span>SCORED</span>
+              <span id="roundScoreVal" style="color:var(--neon-gold);">0 / 300</span>
+            </div>
+            <div class="blind-progress-track">
+              <div class="blind-progress-fill" id="blindProgressBar"></div>
+            </div>
+          </div>
           <div class="blind-rule" id="blindRuleLabel">No boss restrictions active.</div>
+          <button class="btn-skip-blind" id="btnSkipBlind" title="Skip Blind to claim Tag reward">
+            <span>⏭️ SKIP BLIND</span>
+            <span id="skipTagLabel">+Tag</span>
+          </button>
         </div>
 
-        <!-- Jokers Tray (Up to 5) -->
+        <!-- Jokers Tray (Up to 5+) -->
         <div class="joker-section">
           <div class="tray-header">
             <span>Jokers (<span id="jokerCount">0</span>/<span id="jokerMax">5</span>)</span>
-            <span style="font-size:0.65rem; color:#64748b;">Triggers Left → Right</span>
+            <span style="font-size:0.65rem; color:#64748b;">Triggers Left → Right (Hover to Reorder/Sell)</span>
           </div>
           <div class="tray-slots" id="jokerTray">
             <!-- Dynamically populated -->
           </div>
         </div>
 
-        <!-- Consumables Tray (Tarot & Planets, Up to 2) -->
+        <!-- Consumables Tray (Tarot, Planets & Spectrals, Up to 2+) -->
         <div class="consumable-section">
           <div class="tray-header">
-            <span>Consumables (<span id="consumableCount">0</span>/2)</span>
+            <span>Consumables (<span id="consumableCount">0</span>/<span id="consumableMax">2</span>)</span>
           </div>
           <div class="tray-slots" id="consumableTray">
             <!-- Dynamically populated -->
@@ -1421,7 +1736,7 @@
 
       <!-- Center Stage: The Live Score Flames & Hand Preview -->
       <div class="center-stage">
-        <div class="score-banner" id="scoreBanner">
+        <div class="score-banner" id="scoreBanner" title="Click to inspect all Poker Hand levels" style="cursor:pointer;" onclick="openRunInfoModal()">
           <div class="hand-eval-badge">
             <span class="hand-name" id="evalHandName">High Card</span>
             <span class="hand-level" id="evalHandLevel">Lv. 1</span>
@@ -1477,10 +1792,14 @@
       </div>
 
       <div class="modal-body">
+        <div class="cashout-summary-bar" id="cashoutSummaryBar">
+          <span>🏆 BLIND CLEARED!</span>
+          <span id="cashoutBreakdownText">Reward: +$3</span>
+        </div>
         <div class="shop-shelves">
           <!-- Card Shelf: Jokers & Consumables -->
           <div class="shelf-group">
-            <div class="shelf-title">Featured Cards (Jokers, Tarots, Planets)</div>
+            <div class="shelf-title">Featured Cards (Jokers, Tarots, Planets, Spectrals)</div>
             <div class="shelf-items" id="shopCardItems">
               <!-- Dynamically generated -->
             </div>
@@ -1488,7 +1807,7 @@
 
           <!-- Booster Packs -->
           <div class="shelf-group">
-            <div class="shelf-title">Booster Packs</div>
+            <div class="shelf-title">Booster Packs (Open & Choose 1 of 3)</div>
             <div class="shelf-items" id="shopBoosterItems">
               <!-- Dynamically generated -->
             </div>
@@ -1496,7 +1815,7 @@
 
           <!-- Vouchers -->
           <div class="shelf-group">
-            <div class="shelf-title">Run Vouchers</div>
+            <div class="shelf-title">Run Vouchers (Permanent Upgrades)</div>
             <div class="shelf-items" id="shopVoucherItems">
               <!-- Dynamically generated -->
             </div>
@@ -1516,19 +1835,55 @@
     </div>
   </div>
 
+  <!-- Interactive Booster Pack Unpacking Modal -->
+  <div class="modal-overlay" id="packModal" style="z-index:600;">
+    <div class="modal-card" style="max-width:680px;">
+      <div class="modal-header">
+        <span class="modal-title" id="packModalTitle">📦 BOOSTER PACK</span>
+        <button class="btn-icon" onclick="closePackModal()">SKIP</button>
+      </div>
+      <div class="modal-body" style="text-align:center;">
+        <p id="packModalSubtitle" style="color:#94a3b8; font-size:0.88rem; margin-bottom:1.25rem;">Choose 1 card to claim for your run:</p>
+        <div class="shelf-items" id="packChoicesContainer" style="justify-content:center;">
+          <!-- 3 choices rendered here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Run Info & Poker Hands Modal -->
+  <div class="modal-overlay" id="runInfoModal">
+    <div class="modal-card" style="max-width:820px;">
+      <div class="modal-header">
+        <span class="modal-title">📊 RUN TELEMETRY & POKER HANDS</span>
+        <button class="btn-icon" onclick="closeRunInfoModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom:0.85rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+          <span style="font-size:0.82rem; color:#94a3b8;">Upgrade hand levels using Celestial Planet cards or Orbital Tags.</span>
+          <span id="runVouchersBadge" style="font-family:var(--font-mono); font-size:0.78rem; color:var(--neon-gold);">Active Vouchers: None</span>
+        </div>
+        <div class="hands-ref-grid" id="handsRefGrid">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Deck Inspector Modal -->
   <div class="modal-overlay" id="deckModal">
-    <div class="modal-card" style="max-width:800px;">
+    <div class="modal-card" style="max-width:820px;">
       <div class="modal-header">
         <span class="modal-title">FULL DECK TELEMETRY (<span id="deckTotalCards">52</span> CARDS)</span>
         <button class="btn-icon" onclick="closeDeckModal()">✕</button>
       </div>
       <div class="modal-body">
-        <div style="margin-bottom:1rem; display:flex; gap:1.5rem; font-family:var(--font-mono); font-size:0.85rem;">
+        <div style="margin-bottom:1rem; display:flex; flex-wrap:wrap; gap:1.25rem; font-family:var(--font-mono); font-size:0.82rem;">
           <span>♠ Spades: <b id="spadeCount">13</b></span>
           <span>♥ Hearts: <b id="heartCount">13</b></span>
           <span>♣ Clubs: <b id="clubCount">13</b></span>
           <span>♦ Diamonds: <b id="diamondCount">13</b></span>
+          <span style="color:var(--neon-cyan);">Draw Pile: <b id="drawPileCount">44</b></span>
         </div>
         <div class="deck-grid" id="deckGridContainer">
           <!-- Full 52+ cards generated here -->
@@ -1574,9 +1929,14 @@
             <b id="endFavHand" style="color:var(--neon-pink);">Flush</b>
           </div>
         </div>
-        <button class="btn-action play" onclick="startNewRun()" style="width:100%; justify-content:center;">
-          <span>NEW RUN</span>
-        </button>
+        <div style="display:flex; gap:0.75rem; width:100%;">
+          <button class="btn-action" id="btnEndlessMode" onclick="continueEndlessMode()" style="flex:1; justify-content:center; display:none; border-color:var(--neon-cyan); color:var(--neon-cyan);">
+            <span>♾️ ENDLESS MODE</span>
+          </button>
+          <button class="btn-action play" onclick="startNewRun()" style="flex:1; justify-content:center;">
+            <span>NEW RUN</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1596,7 +1956,7 @@
     };
 
     // -------------------------------------------------------------------------
-    // Canvas Particle FX Engine (Embers, Gold Dust, Confetti)
+    // Canvas Particle FX Engine (Embers, Gold Dust, Confetti, Glass, Coins, Stars)
     // -------------------------------------------------------------------------
     const FxEngine = {
       canvas: null,
@@ -1610,7 +1970,10 @@
         this.ctx = this.canvas.getContext("2d");
         this.resize();
         window.addEventListener("resize", () => this.resize());
-        this.loop();
+        if (!this._loopRunning) {
+          this._loopRunning = true;
+          this.loop();
+        }
       },
 
       resize() {
@@ -1647,6 +2010,70 @@
             alpha: 1.0,
             decay: 0.02 + Math.random() * 0.03,
             color: Math.random() < 0.5 ? "#ef4444" : (Math.random() < 0.5 ? "#f59e0b" : "#ec4899")
+          });
+        }
+      },
+
+      spawnGlassShatter(x, y, count = 32) {
+        if (!this.canvas) return;
+        const colors = ["#e0f2fe", "#7dd3fc", "#38bdf8", "#ffffff"];
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 2.5 + Math.random() * 6.5;
+          this.particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 1.5,
+            size: 2.5 + Math.random() * 4.5,
+            alpha: 1.0,
+            decay: 0.018 + Math.random() * 0.02,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            isConfetti: true,
+            rot: Math.random() * 360,
+            rotSpeed: (Math.random() - 0.5) * 18
+          });
+        }
+      },
+
+      spawnCoinShower(x, y, count = 16) {
+        if (!this.canvas) return;
+        const colors = ["#fde047", "#facc15", "#eab308", "#f59e0b"];
+        for (let i = 0; i < count; i++) {
+          const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.8;
+          const speed = 2 + Math.random() * 5.5;
+          this.particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: 3.5 + Math.random() * 2.5,
+            alpha: 1.0,
+            decay: 0.015 + Math.random() * 0.015,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            isConfetti: false
+          });
+        }
+      },
+
+      spawnLuckyStars(x, y, count = 22) {
+        if (!this.canvas) return;
+        const colors = ["#4ade80", "#22c55e", "#fde047", "#ffffff"];
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 2 + Math.random() * 5.5;
+          this.particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: 2.5 + Math.random() * 3.5,
+            alpha: 1.0,
+            decay: 0.018 + Math.random() * 0.02,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            isConfetti: true,
+            rot: Math.random() * 360,
+            rotSpeed: (Math.random() - 0.5) * 14
           });
         }
       },
@@ -1738,6 +2165,35 @@
         requestAnimationFrame(() => this.loop());
       }
     };
+
+    function spawnFloatingPopup(targetEl, text, bgColor = "#3b82f6") {
+      if (!targetEl) return;
+      const rect = targetEl.getBoundingClientRect();
+      const badge = document.createElement("div");
+      badge.className = "score-popup-badge";
+      badge.textContent = text;
+      badge.style.background = bgColor;
+      badge.style.left = `${rect.left + rect.width / 2 + (Math.random() - 0.5) * 18}px`;
+      badge.style.top = `${rect.top + 12}px`;
+      document.body.appendChild(badge);
+      setTimeout(() => badge.remove(), 680);
+    }
+
+    function showToast(message, borderColor = "var(--neon-cyan)") {
+      const container = document.getElementById("toastContainer");
+      if (!container) return;
+      const t = document.createElement("div");
+      t.className = "game-toast";
+      t.style.borderColor = borderColor;
+      t.style.borderLeftColor = borderColor;
+      t.textContent = message;
+      container.appendChild(t);
+      setTimeout(() => {
+        t.style.opacity = "0";
+        t.style.transition = "opacity 0.25s ease";
+        setTimeout(() => t.remove(), 260);
+      }, 2400);
+    }
 
     // -------------------------------------------------------------------------
     // Procedural WebAudio Synthesizer Engine 2.0
@@ -2090,7 +2546,7 @@
     };
 
     // -------------------------------------------------------------------------
-    // 2. Data Definitions: Jokers, Tarots, Planets, Boss Blinds
+    // 2. Data Definitions: Jokers, Tarots, Planets, Spectrals, Vouchers, Blinds
     // -------------------------------------------------------------------------
     const SUITS = [
       { name: "spades", symbol: "♠", color: "black" },
@@ -2126,79 +2582,194 @@
       "Four of a Kind":   { baseChips: 60,  baseMult: 7,  chipPerLvl: 30, multPerLvl: 3, planet: "Mars" },
       "Straight Flush":   { baseChips: 100, baseMult: 8,  chipPerLvl: 40, multPerLvl: 4, planet: "Neptune" },
       "Royal Flush":      { baseChips: 100, baseMult: 8,  chipPerLvl: 40, multPerLvl: 4, planet: "Neptune" },
-      "Five of a Kind":   { baseChips: 120, baseMult: 12, chipPerLvl: 35, multPerLvl: 3, planet: "Planet X" }
+      "Five of a Kind":   { baseChips: 120, baseMult: 12, chipPerLvl: 35, multPerLvl: 3, planet: "Planet X" },
+      "Flush House":      { baseChips: 140, baseMult: 14, chipPerLvl: 40, multPerLvl: 4, planet: "Ceres" },
+      "Flush Five":       { baseChips: 160, baseMult: 16, chipPerLvl: 50, multPerLvl: 3, planet: "Eris" }
     };
 
-    // Iconic Joker Library
+    function cardMatchesSuit(card, suitName) {
+      if (!card || card.enhancement === "stone") return false;
+      return card.enhancement === "wild" || card.suit === suitName;
+    }
+
+    function cardIsFace(card) {
+      if (!card || card.enhancement === "stone") return false;
+      if (jokers.some(j => j.id === "pareidolia")) return true;
+      return !!card.rank.isFace;
+    }
+
+    // Iconic 40+ Joker Library
     const JOKER_CATALOG = [
       { id: "joker", name: "Joker", cost: 2, rarity: "common", icon: "🃏", desc: "+4 Mult", onEval: (ctx) => { ctx.mult += 4; } },
-      { id: "greedy_joker", name: "Greedy Joker", cost: 5, rarity: "common", icon: "♦️", desc: "Played Diamonds give +4 Mult", onCardScored: (card, ctx) => { if (card.suit === "diamonds") ctx.mult += 4; } },
-      { id: "lusty_joker", name: "Lusty Joker", cost: 5, rarity: "common", icon: "♥️", desc: "Played Hearts give +4 Mult", onCardScored: (card, ctx) => { if (card.suit === "hearts") ctx.mult += 4; } },
-      { id: "wrathful_joker", name: "Wrathful Joker", cost: 5, rarity: "common", icon: "♠️", desc: "Played Spades give +4 Mult", onCardScored: (card, ctx) => { if (card.suit === "spades") ctx.mult += 4; } },
-      { id: "gluttonous_joker", name: "Gluttonous Joker", cost: 5, rarity: "common", icon: "♣️", desc: "Played Clubs give +4 Mult", onCardScored: (card, ctx) => { if (card.suit === "clubs") ctx.mult += 4; } },
-      { id: "jolly_joker", name: "Jolly Joker", cost: 3, rarity: "common", icon: "😄", desc: "+8 Mult if hand contains a Pair", onEval: (ctx) => { if (ctx.handType.includes("Pair") || ctx.handType === "Full House") ctx.mult += 8; } },
+      { id: "greedy_joker", name: "Greedy Joker", cost: 5, rarity: "common", icon: "♦️", desc: "Played Diamonds give +4 Mult", onCardScored: (card, ctx) => { if (cardMatchesSuit(card, "diamonds")) ctx.mult += 4; } },
+      { id: "lusty_joker", name: "Lusty Joker", cost: 5, rarity: "common", icon: "♥️", desc: "Played Hearts give +4 Mult", onCardScored: (card, ctx) => { if (cardMatchesSuit(card, "hearts")) ctx.mult += 4; } },
+      { id: "wrathful_joker", name: "Wrathful Joker", cost: 5, rarity: "common", icon: "♠️", desc: "Played Spades give +4 Mult", onCardScored: (card, ctx) => { if (cardMatchesSuit(card, "spades")) ctx.mult += 4; } },
+      { id: "gluttonous_joker", name: "Gluttonous Joker", cost: 5, rarity: "common", icon: "♣️", desc: "Played Clubs give +4 Mult", onCardScored: (card, ctx) => { if (cardMatchesSuit(card, "clubs")) ctx.mult += 4; } },
+      { id: "jolly_joker", name: "Jolly Joker", cost: 3, rarity: "common", icon: "😄", desc: "+8 Mult if hand contains a Pair", onEval: (ctx) => { if (ctx.handType.includes("Pair") || ctx.handType.includes("Full House") || ctx.handType === "Flush House") ctx.mult += 8; } },
       { id: "mad_joker", name: "Mad Joker", cost: 4, rarity: "common", icon: "😡", desc: "+10 Mult if hand contains Two Pair", onEval: (ctx) => { if (ctx.handType === "Two Pair") ctx.mult += 10; } },
-      { id: "zany_joker", name: "Zany Joker", cost: 4, rarity: "common", icon: "🤪", desc: "+12 Mult if hand contains 3 of a Kind", onEval: (ctx) => { if (ctx.handType === "Three of a Kind" || ctx.handType === "Full House") ctx.mult += 12; } },
+      { id: "zany_joker", name: "Zany Joker", cost: 4, rarity: "common", icon: "🤪", desc: "+12 Mult if hand contains 3 of a Kind", onEval: (ctx) => { if (ctx.handType === "Three of a Kind" || ctx.handType === "Full House" || ctx.handType === "Flush House") ctx.mult += 12; } },
       { id: "droll_joker", name: "Droll Joker", cost: 4, rarity: "common", icon: "🎭", desc: "+10 Mult if hand contains a Flush", onEval: (ctx) => { if (ctx.handType.includes("Flush")) ctx.mult += 10; } },
-      { id: "crazy_joker", name: "Crazy Joker", cost: 4, rarity: "common", icon: "🌀", desc: "+12 Mult if hand contains a Straight", onEval: (ctx) => { if (ctx.handType.includes("Straight")) ctx.mult += 12; } },
+      { id: "crazy_joker", name: "Crazy Joker", cost: 4, rarity: "common", icon: "🌀", desc: "+12 Mult if hand contains a Straight", onEval: (ctx) => { if (ctx.handType.includes("Straight") || ctx.handType === "Royal Flush") ctx.mult += 12; } },
       { id: "half_joker", name: "Half Joker", cost: 5, rarity: "common", icon: "🌓", desc: "+20 Mult if hand has 3 or fewer cards", onEval: (ctx) => { if (ctx.playedCount <= 3) ctx.mult += 20; } },
       { id: "banner", name: "Banner", cost: 5, rarity: "common", icon: "🚩", desc: "+30 Chips for each remaining Discard", onEval: (ctx) => { ctx.chips += ctx.discardsLeft * 30; } },
-      { id: "even_steven", name: "Even Steven", cost: 4, rarity: "common", icon: "⚖️", desc: "Played even cards give +4 Mult", onCardScored: (card, ctx) => { if ([2,4,6,8,10].includes(card.rank.order)) ctx.mult += 4; } },
-      { id: "odd_todd", name: "Odd Todd", cost: 4, rarity: "common", icon: "🎲", desc: "Played odd cards give +31 Chips", onCardScored: (card, ctx) => { if ([3,5,7,9,14].includes(card.rank.order)) ctx.chips += 31; } },
+      { id: "mystic_summit", name: "Mystic Summit", cost: 5, rarity: "common", icon: "🏔️", desc: "+15 Mult when 0 Discards remaining", onEval: (ctx) => { if (ctx.discardsLeft === 0) ctx.mult += 15; } },
+      { id: "even_steven", name: "Even Steven", cost: 4, rarity: "common", icon: "⚖️", desc: "Played even cards (2,4,6,8,10) give +4 Mult", onCardScored: (card, ctx) => { if ([2,4,6,8,10].includes(card.rank.order)) ctx.mult += 4; } },
+      { id: "odd_todd", name: "Odd Todd", cost: 4, rarity: "common", icon: "🎲", desc: "Played odd cards (A,3,5,7,9) give +31 Chips", onCardScored: (card, ctx) => { if ([3,5,7,9,14].includes(card.rank.order)) ctx.chips += 31; } },
       { id: "scholar", name: "Scholar", cost: 4, rarity: "common", icon: "🎓", desc: "Played Aces give +20 Chips and +4 Mult", onCardScored: (card, ctx) => { if (card.rank.id === "A") { ctx.chips += 20; ctx.mult += 4; } } },
-      { id: "smiley_face", name: "Smiley Face", cost: 4, rarity: "common", icon: "🙂", desc: "Played face cards give +5 Mult", onCardScored: (card, ctx) => { if (card.rank.isFace) ctx.mult += 5; } },
-      { id: "scary_face", name: "Scary Face", cost: 4, rarity: "common", icon: "👹", desc: "Played face cards give +30 Chips", onCardScored: (card, ctx) => { if (card.rank.isFace) ctx.chips += 30; } },
-      { id: "bull", name: "Bull", cost: 6, rarity: "uncommon", icon: "🐂", desc: "+2 Chips for every dollar you have", onEval: (ctx) => { ctx.chips += ctx.money * 2; } },
-      { id: "gros_michel", name: "Gros Michel", cost: 5, rarity: "common", icon: "🍌", desc: "+15 Mult. 1 in 6 chance to expire each round", onEval: (ctx) => { ctx.mult += 15; } },
+      { id: "fibonacci", name: "Fibonacci", cost: 7, rarity: "uncommon", icon: "🐚", desc: "Played Ace, 2, 3, 5, or 8 gives +8 Mult", onCardScored: (card, ctx) => { if (["A","2","3","5","8"].includes(card.rank.id)) ctx.mult += 8; } },
+      { id: "smiley_face", name: "Smiley Face", cost: 4, rarity: "common", icon: "🙂", desc: "Played face cards give +5 Mult", onCardScored: (card, ctx) => { if (cardIsFace(card)) ctx.mult += 5; } },
+      { id: "scary_face", name: "Scary Face", cost: 4, rarity: "common", icon: "👹", desc: "Played face cards give +30 Chips", onCardScored: (card, ctx) => { if (cardIsFace(card)) ctx.chips += 30; } },
+      { id: "photograph", name: "Photograph", cost: 5, rarity: "common", icon: "📸", desc: "First played face card gives ×2 Mult", onCardScored: (card, ctx) => { if (cardIsFace(card) && !ctx._photoTriggered) { ctx._photoTriggered = true; ctx.mult *= 2; } } },
+      { id: "abstract_joker", name: "Abstract Joker", cost: 4, rarity: "common", icon: "🎨", desc: "+3 Mult for each Joker card you have", onEval: (ctx) => { ctx.mult += jokers.length * 3; } },
+      { id: "supernova", name: "Supernova", cost: 5, rarity: "common", icon: "💥", desc: "Adds times poker hand has been played this run to Mult", onEval: (ctx) => { ctx.mult += (handUsage[ctx.handType] || 0) + 1; } },
+      { id: "bull", name: "Bull", cost: 6, rarity: "uncommon", icon: "🐂", desc: "+2 Chips for every $1 you have", onEval: (ctx) => { ctx.chips += Math.max(0, ctx.money) * 2; } },
+      { id: "bootstraps", name: "Bootstraps", cost: 7, rarity: "uncommon", icon: "🥾", desc: "+2 Mult for every $5 you have", onEval: (ctx) => { ctx.mult += Math.floor(Math.max(0, ctx.money) / 5) * 2; } },
+      { id: "acrobat", name: "Acrobat", cost: 6, rarity: "uncommon", icon: "🤸", desc: "×3 Mult on final hand of round", onEval: (ctx) => { if (handsLeft <= 1) ctx.mult *= 3; } },
+      { id: "blackboard", name: "Blackboard", cost: 6, rarity: "uncommon", icon: "⬛", desc: "×3 Mult if all cards held in hand are Spades or Clubs", onEval: (ctx) => {
+        if (ctx.heldCards && ctx.heldCards.length > 0 && ctx.heldCards.every(c => c.suit === "spades" || c.suit === "clubs" || c.enhancement === "wild")) {
+          ctx.mult *= 3;
+        }
+      }},
+      { id: "bloodstone", name: "Bloodstone", cost: 7, rarity: "uncommon", icon: "🩸", desc: "1 in 2 chance for played Hearts to give ×1.5 Mult", onCardScored: (card, ctx) => { if (cardMatchesSuit(card, "hearts") && (ctx.isPreview || Math.random() < 0.5)) ctx.mult *= 1.5; } },
+      { id: "arrowhead", name: "Arrowhead", cost: 7, rarity: "uncommon", icon: "🏹", desc: "Played Spades give +50 Chips", onCardScored: (card, ctx) => { if (cardMatchesSuit(card, "spades")) ctx.chips += 50; } },
+      { id: "onyx_agate", name: "Onyx Agate", cost: 7, rarity: "uncommon", icon: "🖤", desc: "Played Clubs give +7 Mult", onCardScored: (card, ctx) => { if (cardMatchesSuit(card, "clubs")) ctx.mult += 7; } },
+      { id: "gros_michel", name: "Gros Michel", cost: 5, rarity: "common", icon: "🍌", desc: "+15 Mult. 1 in 6 chance to expire at round end", onEval: (ctx) => { ctx.mult += 15; } },
       { id: "cavendish", name: "Cavendish", cost: 5, rarity: "common", icon: "✨🍌", desc: "×3 Mult. 1 in 1000 chance to expire", onEval: (ctx) => { ctx.mult *= 3; } },
-      { id: "the_duo", name: "The Duo", cost: 7, rarity: "rare", icon: "👥", desc: "×2 Mult if hand contains a Pair", onEval: (ctx) => { if (ctx.handType.includes("Pair") || ctx.handType === "Full House") ctx.mult *= 2; } },
-      { id: "the_trio", name: "The Trio", cost: 7, rarity: "rare", icon: "👥👤", desc: "×3 Mult if hand contains 3 of a Kind", onEval: (ctx) => { if (ctx.handType === "Three of a Kind" || ctx.handType === "Full House") ctx.mult *= 3; } },
-      { id: "the_tribe", name: "The Tribe", cost: 7, rarity: "rare", icon: "🏕️", desc: "×2 Mult if hand contains a Flush", onEval: (ctx) => { if (ctx.handType.includes("Flush")) ctx.mult *= 2; } },
-      { id: "the_order", name: "The Order", cost: 7, rarity: "rare", icon: "📜", desc: "×3 Mult if hand contains a Straight", onEval: (ctx) => { if (ctx.handType.includes("Straight")) ctx.mult *= 3; } },
+      { id: "the_duo", name: "The Duo", cost: 8, rarity: "rare", icon: "👥", desc: "×2 Mult if hand contains a Pair", onEval: (ctx) => { if (ctx.handType.includes("Pair") || ctx.handType.includes("Full House") || ctx.handType === "Flush House") ctx.mult *= 2; } },
+      { id: "the_trio", name: "The Trio", cost: 8, rarity: "rare", icon: "👥👤", desc: "×3 Mult if hand contains 3 of a Kind", onEval: (ctx) => { if (ctx.handType === "Three of a Kind" || ctx.handType === "Full House" || ctx.handType === "Flush House") ctx.mult *= 3; } },
+      { id: "the_family", name: "The Family", cost: 8, rarity: "rare", icon: "👨‍👩‍👧‍👦", desc: "×4 Mult if hand contains 4 of a Kind", onEval: (ctx) => { if (ctx.handType === "Four of a Kind" || ctx.handType === "Five of a Kind" || ctx.handType === "Flush Five") ctx.mult *= 4; } },
+      { id: "the_tribe", name: "The Tribe", cost: 8, rarity: "rare", icon: "🏕️", desc: "×2 Mult if hand contains a Flush", onEval: (ctx) => { if (ctx.handType.includes("Flush")) ctx.mult *= 2; } },
+      { id: "the_order", name: "The Order", cost: 8, rarity: "rare", icon: "📜", desc: "×3 Mult if hand contains a Straight", onEval: (ctx) => { if (ctx.handType.includes("Straight") || ctx.handType === "Royal Flush") ctx.mult *= 3; } },
       { id: "baron", name: "Baron", cost: 8, rarity: "rare", icon: "👑", desc: "Each King held in hand gives ×1.5 Mult", onHeldInHand: (card, ctx) => { if (card.rank.id === "K") ctx.mult *= 1.5; } },
-      { id: "golden_joker", name: "Golden Joker", cost: 6, rarity: "common", icon: "🥇", desc: "Earn $4 at end of round", onRoundEnd: (gameState) => { gameState.money += 4; } },
-      { id: "cyber_quantum", name: "Cyber Quantum", cost: 9, rarity: "rare", icon: "⚡", desc: "Balatro+ Exclusive: Played cards have 50% chance to double their chips & mult!", onCardScored: (card, ctx) => {
-        if (Math.random() < 0.5) {
+      { id: "hanging_chad", name: "Hanging Chad", cost: 5, rarity: "common", icon: "🎟️", desc: "Retrigger first played scoring card 2 additional times" },
+      { id: "sock_and_buskin", name: "Sock and Buskin", cost: 6, rarity: "uncommon", icon: "🎭", desc: "Retrigger all played face cards" },
+      { id: "hack", name: "Hack", cost: 6, rarity: "uncommon", icon: "🎙️", desc: "Retrigger each played 2, 3, 4, or 5" },
+      { id: "mime", name: "Mime", cost: 5, rarity: "uncommon", icon: "🤡", desc: "Retrigger all card held in hand abilities" },
+      { id: "splash", name: "Splash", cost: 3, rarity: "common", icon: "💦", desc: "Every played card counts in scoring" },
+      { id: "four_fingers", name: "Four Fingers", cost: 7, rarity: "uncommon", icon: "🖖", desc: "All Flushes and Straights can be made with 4 cards" },
+      { id: "shortcut", name: "Shortcut", cost: 7, rarity: "uncommon", icon: "🛤️", desc: "Allows Straights to be made with gaps of 1 rank" },
+      { id: "pareidolia", name: "Pareidolia", cost: 5, rarity: "uncommon", icon: "👁️", desc: "All cards are considered face cards" },
+      { id: "blueprint", name: "Blueprint", cost: 10, rarity: "rare", icon: "📐", desc: "Copies ability of Joker to the right" },
+      { id: "brainstorm", name: "Brainstorm", cost: 10, rarity: "rare", icon: "🧠", desc: "Copies ability of leftmost Joker" },
+      { id: "golden_joker", name: "Golden Joker", cost: 6, rarity: "common", icon: "🥇", desc: "Earn $4 at end of round", onRoundEnd: () => 4 },
+      { id: "triboulet", name: "Triboulet", cost: 12, rarity: "legendary", icon: "⚜️", desc: "Legendary: Played Kings and Queens each give ×2 Mult", onCardScored: (card, ctx) => { if (card.rank.id === "K" || card.rank.id === "Q") ctx.mult *= 2; } },
+      { id: "cyber_quantum", name: "Cyber Quantum", cost: 9, rarity: "rare", icon: "⚡", desc: "Balatro+ Exclusive: Played cards have 50% chance to double their chips & +4 Mult!", onCardScored: (card, ctx) => {
+        if (ctx.isPreview || Math.random() < 0.5) {
           ctx.chips += card.rank.chips;
-          ctx.mult += 2;
+          ctx.mult += 4;
         }
       }}
     ];
 
     // Tarot Cards
     const TAROT_CATALOG = [
-      { id: "the_fool", name: "The Fool", icon: "🃏", desc: "Spawns the last Tarot or Planet used this run" },
-      { id: "the_magician", name: "The Magician", icon: "🪄", desc: "Enhances 2 selected cards into Lucky Cards" },
-      { id: "the_empress", name: "The Empress", icon: "👑", desc: "Enhances 2 selected cards to +4 Mult Cards" },
-      { id: "the_hierophant", name: "The Hierophant", icon: "🏛️", desc: "Enhances 2 selected cards to +30 Bonus Chips" },
-      { id: "the_lovers", name: "The Lovers", icon: "❤️", desc: "Enhances 1 selected card into a Wild Card (all suits)" },
-      { id: "the_chariot", name: "The Chariot", icon: "🛡️", desc: "Enhances 1 selected card into Steel (×1.5 Mult in hand)" },
-      { id: "justice", name: "Justice", icon: "⚖️", desc: "Enhances 1 selected card into Glass (×2 Mult, 1 in 4 break)" },
-      { id: "the_hermit", name: "The Hermit", icon: "💰", desc: "Doubles current money (Max +$20)" },
-      { id: "wheel_of_fortune", name: "Wheel of Fortune", icon: "🎡", desc: "1 in 4 chance to add Foil, Holo, or Polychrome to a random Joker" },
-      { id: "the_hanged_man", name: "The Hanged Man", icon: "✂️", desc: "Destroys up to 2 selected cards from your deck" },
-      { id: "death", name: "Death", icon: "💀", desc: "Converts the left selected card into the right selected card" }
+      { id: "the_fool", name: "The Fool", icon: "🃏", desc: "Spawns the last Tarot or Planet used this run", minCards: 0 },
+      { id: "the_magician", name: "The Magician", icon: "🪄", desc: "Enhances up to 2 selected cards into Lucky Cards", minCards: 1 },
+      { id: "the_empress", name: "The Empress", icon: "👑", desc: "Enhances up to 2 selected cards to +4 Mult Cards", minCards: 1 },
+      { id: "the_hierophant", name: "The Hierophant", icon: "🏛️", desc: "Enhances up to 2 selected cards to +30 Bonus Chips", minCards: 1 },
+      { id: "the_lovers", name: "The Lovers", icon: "❤️", desc: "Enhances 1 selected card into a Wild Card (all suits)", minCards: 1 },
+      { id: "the_chariot", name: "The Chariot", icon: "🛡️", desc: "Enhances 1 selected card into Steel (×1.5 Mult in hand)", minCards: 1 },
+      { id: "justice", name: "Justice", icon: "⚖️", desc: "Enhances 1 selected card into Glass (×2 Mult, 1 in 4 break)", minCards: 1 },
+      { id: "the_devil", name: "The Devil", icon: "😈", desc: "Enhances 1 selected card into a Gold Card (+$3 in hand)", minCards: 1 },
+      { id: "the_tower", name: "The Tower", icon: "🗿", desc: "Enhances 1 selected card into a Stone Card (+50 Chips)", minCards: 1 },
+      { id: "strength", name: "Strength", icon: "💪", desc: "Increases rank of up to 2 selected cards by +1", minCards: 1 },
+      { id: "the_hermit", name: "The Hermit", icon: "💰", desc: "Doubles current money (Max +$20)", minCards: 0 },
+      { id: "temperance", name: "Temperance", icon: "🏺", desc: "Gives total sell value of all current Jokers (Min +$4)", minCards: 0 },
+      { id: "wheel_of_fortune", name: "Wheel of Fortune", icon: "🎡", desc: "1 in 4 chance to add Foil, Holo, or Polychrome to a random Joker", minCards: 0 },
+      { id: "the_hanged_man", name: "The Hanged Man", icon: "✂️", desc: "Destroys up to 2 selected cards permanently from your deck", minCards: 1 },
+      { id: "death", name: "Death", icon: "💀", desc: "Select 2 cards: converts the left card into the right card", minCards: 2 },
+      { id: "the_sun", name: "The Sun", icon: "☀️", desc: "Converts up to 3 selected cards to Hearts ♥", minCards: 1 },
+      { id: "the_moon", name: "The Moon", icon: "🌙", desc: "Converts up to 3 selected cards to Clubs ♣", minCards: 1 },
+      { id: "the_star", name: "The Star", icon: "⭐", desc: "Converts up to 3 selected cards to Diamonds ♦", minCards: 1 },
+      { id: "the_world", name: "The World", icon: "🌍", desc: "Converts up to 3 selected cards to Spades ♠", minCards: 1 }
+    ];
+
+    // Celestial Planet Cards
+    const PLANET_CATALOG = Object.entries(POKER_HANDS)
+      .filter(([handName]) => handName !== "Royal Flush")
+      .map(([handName, cfg]) => ({
+        id: `planet_${cfg.planet.toLowerCase().replace(/\s+/g, "_")}`,
+        name: cfg.planet,
+        icon: "🪐",
+        planetHand: handName,
+        cost: 3,
+        desc: `Level up ${handName} (+${cfg.chipPerLvl} Chips, +${cfg.multPerLvl} Mult)`
+      }));
+
+    // Spectral Cards
+    const SPECTRAL_CATALOG = [
+      { id: "spec_deja_vu", name: "Deja Vu", icon: "🔴", cost: 4, minCards: 1, desc: "Adds a Red Seal (Retrigger) to 1 selected card" },
+      { id: "spec_talisman", name: "Talisman", icon: "🟡", cost: 4, minCards: 1, desc: "Adds a Gold Seal (+$3 when scored) to 1 selected card" },
+      { id: "spec_trance", name: "Trance", icon: "🔵", cost: 4, minCards: 1, desc: "Adds a Blue Seal (Spawns Planet in hand) to 1 selected card" },
+      { id: "spec_medium", name: "Medium", icon: "🟣", cost: 4, minCards: 1, desc: "Adds a Purple Seal (Spawns Tarot on discard) to 1 selected card" },
+      { id: "spec_aura", name: "Aura", icon: "✨", cost: 4, minCards: 1, desc: "Applies Foil, Holographic, or Polychrome to 1 selected card" },
+      { id: "spec_black_hole", name: "Black Hole", icon: "🕳️", cost: 6, minCards: 0, desc: "Upgrades EVERY poker hand by +1 Level!" },
+      { id: "spec_the_soul", name: "The Soul", icon: "💎", cost: 8, minCards: 0, desc: "Creates a Legendary Joker (Triboulet)!" }
+    ];
+
+    // Run Vouchers
+    const VOUCHER_CATALOG = [
+      { id: "overstock", name: "Overstock", icon: "🎫", cost: 10, desc: "+1 Card slot available in the shop permanently" },
+      { id: "grabber", name: "Grabber", icon: "🧤", cost: 10, desc: "Permanently gain +1 Hand per round" },
+      { id: "wasteful", name: "Wasteful", icon: "🗑️", cost: 10, desc: "Permanently gain +1 Discard per round" },
+      { id: "crystal_ball", name: "Crystal Ball", icon: "🔮", cost: 10, desc: "+1 Consumable slot permanently" },
+      { id: "antimatter", name: "Antimatter", icon: "⚛️", cost: 12, desc: "+1 Joker slot permanently!" },
+      { id: "seed_money", name: "Seed Money", icon: "🌱", cost: 10, desc: "Raises interest cap earned per round to $10" }
+    ];
+
+    // Skip Blind Reward Tags
+    const SKIP_TAGS = [
+      { id: "tag_investment", name: "Investment Tag", label: "+$15 Cash", apply: () => { money += 15; AudioEngine.playCashKaching(); showToast("💰 Investment Tag: +$15 Cash!", "var(--neon-gold)"); } },
+      { id: "tag_orbital", name: "Orbital Tag", label: "+3 Hand Lvls", apply: () => {
+        const hands = ["Flush", "Straight", "Full House", "Two Pair", "Pair", "Three of a Kind"];
+        const pick = hands[Math.floor(Math.random() * hands.length)];
+        handLevels[pick] = (handLevels[pick] || 1) + 3;
+        AudioEngine.playVictoryFanfare();
+        showToast(`🪐 Orbital Tag: ${pick} upgraded +3 Levels!`, "var(--neon-cyan)");
+      }},
+      { id: "tag_buffoon", name: "Buffoon Tag", label: "Free Joker", apply: () => {
+        if (jokers.length < maxJokers) {
+          const pool = JOKER_CATALOG.filter(j => j.rarity === "rare" || j.rarity === "uncommon");
+          const pick = pool[Math.floor(Math.random() * pool.length)] || JOKER_CATALOG[0];
+          jokers.push(instantiateJoker(pick, "foil"));
+          AudioEngine.playVictoryFanfare();
+          showToast(`🃏 Buffoon Tag: Claimed Foil ${pick.name}!`, "var(--neon-pink)");
+        } else {
+          money += 10;
+          showToast("🃏 Joker Tray Full: Awarded +$10 instead!", "var(--neon-gold)");
+        }
+      }},
+      { id: "tag_polychrome", name: "Polychrome Tag", label: "Polychrome Joker", apply: () => {
+        if (jokers.length > 0) {
+          jokers[jokers.length - 1].edition = "polychrome";
+          showToast(`🌈 ${jokers[jokers.length - 1].name} upgraded to Polychrome (×1.5 Mult)!`, "var(--neon-pink)");
+        } else {
+          money += 12;
+        }
+      }}
     ];
 
     // Boss Blinds
     const BOSS_BLINDS = [
-      { name: "The Hook", rule: "Discards 2 random cards when hand is played" },
-      { name: "The Needle", rule: "Play only 1 hand this round!" },
+      { name: "The Hook", rule: "Discards 2 random cards held in hand when a hand is played" },
+      { name: "The Needle", rule: "Play only 1 hand this round! (1.0x Base Target)" },
       { name: "The Wall", rule: "Extra giant blind (2.5x score requirement)" },
-      { name: "The Arm", rule: "Decreases level of played poker hand by 1" },
+      { name: "The Water", rule: "Start round with 0 Discards" },
+      { name: "The Arm", rule: "Decreases level of played poker hand by 1 (Min Lv. 1)" },
       { name: "The Eye", rule: "No repeat hand types allowed this round" },
-      { name: "The Psychic", rule: "Must play exactly 5 cards" },
-      { name: "The Goad", rule: "All Spade cards are debuffed" },
-      { name: "The Club", rule: "All Club cards are debuffed" },
-      { name: "The Window", rule: "All Diamond cards are debuffed" },
-      { name: "The Head", rule: "All Heart cards are debuffed" },
+      { name: "The Psychic", rule: "Must play 5 cards (fewer than 5 cards will not score)" },
+      { name: "The Goad", rule: "All Spade ♠ cards are debuffed" },
+      { name: "The Club", rule: "All Club ♣ cards are debuffed" },
+      { name: "The Window", rule: "All Diamond ♦ cards are debuffed" },
+      { name: "The Head", rule: "All Heart ♥ cards are debuffed" },
       { name: "The Mark", rule: "All face cards are drawn face down" },
       { name: "The Wheel", rule: "1 in 7 cards get drawn face down" }
     ];
 
     // -------------------------------------------------------------------------
-    // 3. Core Game State & Run Engine
+    // 3. Core Game State & Persistent Run Engine
     // -------------------------------------------------------------------------
+    let runDeck = [];
     let deck = [];
     let playerHand = [];
     let selectedIndices = [];
@@ -2206,10 +2777,21 @@
     let consumables = [];
     let handLevels = {};
     let handUsage = {};
+    let vouchers = {};
+    let playedHandTypesThisRound = [];
+
+    let selectedDeckType = "red";
+    let maxJokers = 5;
+    let maxConsumables = 2;
+    let baseHandsPerRound = 4;
+    let baseDiscardsPerRound = 3;
+    let shopCardSlots = 2;
+    let interestCap = 5;
 
     let ante = 1;
     let blindIndex = 0; // 0 = Small, 1 = Big, 2 = Boss
     let currentBlind = null;
+    let currentSkipTag = null;
     let round = 1;
     let money = 4;
     let handsLeft = 4;
@@ -2219,25 +2801,40 @@
     let highestHandScore = 0;
     let lastUsedConsumable = null;
     let gameSpeed = 1; // 1x, 2x, 4x
+    let nextCardUid = 100;
 
-    function buildStandardDeck() {
+    function instantiateJoker(template, edition = "none") {
+      const def = JOKER_CATALOG.find(j => j.id === template.id) || template;
+      return {
+        ...def,
+        uid: Date.now() + Math.floor(Math.random() * 100000),
+        edition: edition || template.edition || "none"
+      };
+    }
+
+    function buildStandardDeck(deckType = "red") {
       const d = [];
       let uid = 0;
       for (const suit of SUITS) {
+        const effectiveSuit = (deckType === "checkered" && suit.name === "clubs")
+          ? SUITS[0]
+          : (deckType === "checkered" && suit.name === "diamonds" ? SUITS[1] : suit);
         for (const rank of RANKS) {
           d.push({
             uid: ++uid,
-            suit: suit.name,
-            suitSymbol: suit.symbol,
-            suitColor: suit.color,
-            rank: rank,
+            suit: effectiveSuit.name,
+            suitSymbol: effectiveSuit.symbol,
+            suitColor: effectiveSuit.color,
+            rank: { ...rank },
             enhancement: "none", // bonus, mult, wild, glass, steel, stone, lucky, gold
             edition: "none",     // foil, holographic, polychrome
             seal: "none",        // red, blue, gold, purple
-            debuffed: false
+            debuffed: false,
+            backColor: deckType === "blue" ? "blue" : "red"
           });
         }
       }
+      nextCardUid = uid + 1;
       return shuffle(d);
     }
 
@@ -2250,14 +2847,57 @@
       return a;
     }
 
+    function syncCardToRunDeck(card) {
+      const idx = runDeck.findIndex(c => c.uid === card.uid);
+      if (idx !== -1) {
+        runDeck[idx] = {
+          ...card,
+          isFaceDown: false,
+          debuffed: false
+        };
+      }
+    }
+
+    function removeCardFromRunDeck(uid) {
+      runDeck = runDeck.filter(c => c.uid !== uid);
+    }
+
+    function checkCardDebuff(card) {
+      if (!currentBlind || !currentBlind.bossRule) return false;
+      if (card.enhancement === "stone") return false;
+      const r = currentBlind.bossRule;
+      if (r === "The Goad" && cardMatchesSuit(card, "spades")) return true;
+      if (r === "The Club" && cardMatchesSuit(card, "clubs")) return true;
+      if (r === "The Window" && cardMatchesSuit(card, "diamonds")) return true;
+      if (r === "The Head" && cardMatchesSuit(card, "hearts")) return true;
+      return false;
+    }
+
     function initRun() {
-      deck = buildStandardDeck();
+      const deckSelectEl = document.getElementById("deckTypeSelect");
+      selectedDeckType = deckSelectEl ? deckSelectEl.value : "red";
+
+      runDeck = buildStandardDeck(selectedDeckType);
+      deck = [];
       playerHand = [];
       selectedIndices = [];
-      jokers = [
-        { ...JOKER_CATALOG[0], uid: 1 } // Start with basic Joker
-      ];
-      consumables = [];
+      vouchers = {};
+      maxJokers = 5;
+      maxConsumables = 2;
+      shopCardSlots = 2;
+      interestCap = 5;
+      baseHandsPerRound = selectedDeckType === "blue" ? 5 : 4;
+      baseDiscardsPerRound = selectedDeckType === "red" ? 4 : 3;
+
+      if (selectedDeckType === "cyber") {
+        const q = JOKER_CATALOG.find(j => j.id === "cyber_quantum") || JOKER_CATALOG[0];
+        jokers = [instantiateJoker(q, "foil")];
+        consumables = [{ ...TAROT_CATALOG[1], type: "tarot", uid: Date.now() }];
+      } else {
+        jokers = [instantiateJoker(JOKER_CATALOG[0])];
+        consumables = [];
+      }
+
       handLevels = {};
       handUsage = {};
       for (const h in POKER_HANDS) {
@@ -2268,8 +2908,9 @@
       ante = 1;
       blindIndex = 0;
       round = 1;
-      money = 4;
+      money = selectedDeckType === "yellow" ? 14 : 4;
       highestHandScore = 0;
+      lastUsedConsumable = null;
       setupBlind();
       FxEngine.init();
       AudioEngine.startMusic();
@@ -2277,7 +2918,9 @@
 
     function calculateBlindTarget(anteNum, bIdx) {
       const baseAnteScores = [300, 800, 2000, 5000, 11000, 20000, 35000, 50000];
-      const base = baseAnteScores[Math.min(anteNum - 1, baseAnteScores.length - 1)] || (anteNum * 35000);
+      const base = anteNum <= baseAnteScores.length
+        ? baseAnteScores[anteNum - 1]
+        : Math.round(50000 * Math.pow(1.8, anteNum - 8));
       if (bIdx === 0) return Math.round(base * 1.0);
       if (bIdx === 1) return Math.round(base * 1.5);
       return Math.round(base * 2.0);
@@ -2286,26 +2929,40 @@
     function setupBlind() {
       const targetScore = calculateBlindTarget(ante, blindIndex);
       const isBoss = blindIndex === 2;
-      const boss = isBoss ? BOSS_BLINDS[Math.floor(Math.random() * BOSS_BLINDS.length)] : null;
+      const boss = isBoss ? BOSS_BLINDS[(ante - 1 + Math.floor(Math.random() * BOSS_BLINDS.length)) % BOSS_BLINDS.length] : null;
+      currentSkipTag = !isBoss ? SKIP_TAGS[Math.floor(Math.random() * SKIP_TAGS.length)] : null;
+      playedHandTypesThisRound = [];
+
+      let finalTarget = targetScore;
+      if (isBoss && boss.name === "The Wall") finalTarget = Math.round(targetScore * 2.25);
+      if (isBoss && boss.name === "The Needle") finalTarget = Math.round(targetScore * 0.5);
 
       currentBlind = {
         name: isBoss ? boss.name : (blindIndex === 0 ? "Small Blind" : "Big Blind"),
         type: isBoss ? "BOSS BLIND" : (blindIndex === 0 ? "SMALL BLIND" : "BIG BLIND"),
-        target: isBoss && boss.name === "The Wall" ? Math.round(targetScore * 2.5) : targetScore,
+        target: finalTarget,
         reward: isBoss ? 5 : (blindIndex === 0 ? 3 : 4),
-        rule: isBoss ? boss.rule : "No boss restrictions active.",
+        rule: isBoss ? boss.rule : (selectedDeckType === "plasma" ? "Plasma Deck: Balances Chips & Mult!" : "No boss restrictions active."),
         isBoss: isBoss,
         bossRule: boss ? boss.name : null
       };
 
       currentRoundScore = 0;
-      handsLeft = currentBlind.bossRule === "The Needle" ? 1 : 4;
-      discardsLeft = currentBlind.bossRule === "The Water" ? 0 : 3;
+      const extraHands = vouchers["grabber"] ? 1 : 0;
+      const extraDiscards = vouchers["wasteful"] ? 1 : 0;
+      handsLeft = currentBlind.bossRule === "The Needle" ? 1 : (baseHandsPerRound + extraHands);
+      discardsLeft = currentBlind.bossRule === "The Water" ? 0 : (baseDiscardsPerRound + extraDiscards);
 
-      // Draw initial hand of 8 cards
-      deck = buildStandardDeck();
+      // Clone and shuffle persistent runDeck for this blind
+      deck = shuffle(runDeck.map(c => ({
+        ...c,
+        rank: { ...c.rank },
+        isFaceDown: false,
+        debuffed: false
+      })));
       playerHand = [];
       selectedIndices = [];
+      isScoring = false;
       drawCards(8);
 
       updateHUD();
@@ -2314,11 +2971,19 @@
       updateScorePreview();
     }
 
+    function skipCurrentBlind() {
+      if (isScoring || !currentBlind || currentBlind.isBoss || !currentSkipTag) return;
+      currentSkipTag.apply();
+      blindIndex++;
+      setupBlind();
+    }
+
     function drawCards(count) {
       for (let i = 0; i < count; i++) {
         if (deck.length === 0) break;
         const card = deck.pop();
-        if (currentBlind && currentBlind.bossRule === "The Mark" && card.rank.isFace) {
+        card.debuffed = checkCardDebuff(card);
+        if (currentBlind && currentBlind.bossRule === "The Mark" && cardIsFace(card)) {
           card.isFaceDown = true;
         } else if (currentBlind && currentBlind.bossRule === "The Wheel" && Math.random() < (1 / 7)) {
           card.isFaceDown = true;
@@ -2330,14 +2995,20 @@
     }
 
     // -------------------------------------------------------------------------
-    // 4. Poker Hand Evaluation Algorithm
+    // 4. Poker Hand Evaluation Algorithm (Supports Four Fingers, Shortcut, Splash, Flush Five)
     // -------------------------------------------------------------------------
     function evaluateHand(cards) {
       if (!cards || cards.length === 0) {
         return { name: "High Card", scoringCards: [] };
       }
 
-      const sorted = cards.slice().sort((a, b) => b.rank.order - a.rank.order);
+      const nonStone = cards.filter(c => c.enhancement !== "stone");
+      const stoneCards = cards.filter(c => c.enhancement === "stone");
+      if (nonStone.length === 0) {
+        return { name: "High Card", scoringCards: stoneCards.slice() };
+      }
+
+      const sorted = nonStone.slice().sort((a, b) => b.rank.order - a.rank.order);
       const rankCounts = {};
       const suitCounts = {};
 
@@ -2347,43 +3018,94 @@
         suitCounts[s] = (suitCounts[s] || 0) + 1;
       });
 
+      const reqLen = jokers.some(j => j.id === "four_fingers") ? 4 : 5;
+      const hasShortcut = jokers.some(j => j.id === "shortcut");
+      const hasSplash = jokers.some(j => j.id === "splash");
+
       const counts = Object.values(rankCounts).sort((a, b) => b - a);
-      const isFlush = Object.keys(suitCounts).some(s => s !== "wild" && (suitCounts[s] + (suitCounts["wild"] || 0)) >= 5) || (suitCounts["wild"] || 0) >= 5;
+      const isFlush = Object.keys(suitCounts).some(s => s !== "wild" && (suitCounts[s] + (suitCounts["wild"] || 0)) >= reqLen) || (suitCounts["wild"] || 0) >= reqLen;
 
       const uniqueRanks = Array.from(new Set(sorted.map(c => c.rank.order))).sort((a, b) => b - a);
       let isStraight = false;
-      let straightRanks = [];
 
-      if (uniqueRanks.length >= 5) {
-        for (let i = 0; i <= uniqueRanks.length - 5; i++) {
-          if (uniqueRanks[i] - uniqueRanks[i + 4] === 4) {
-            isStraight = true;
-            straightRanks = uniqueRanks.slice(i, i + 5);
-            break;
+      if (uniqueRanks.length >= reqLen) {
+        const maxGap = hasShortcut ? 2 : 1;
+        for (let i = 0; i <= uniqueRanks.length - reqLen; i++) {
+          let ok = true;
+          for (let k = 0; k < reqLen - 1; k++) {
+            const diff = uniqueRanks[i + k] - uniqueRanks[i + k + 1];
+            if (diff < 1 || diff > maxGap) { ok = false; break; }
           }
+          if (ok) { isStraight = true; break; }
         }
         // Ace-low straight
-        if (!isStraight && uniqueRanks.includes(14) && uniqueRanks.includes(5) && uniqueRanks.includes(4) && uniqueRanks.includes(3) && uniqueRanks.includes(2)) {
-          isStraight = true;
-          straightRanks = [5, 4, 3, 2, 14];
+        if (!isStraight && uniqueRanks.includes(14)) {
+          const lowRanks = uniqueRanks.map(r => r === 14 ? 1 : r).sort((a, b) => b - a);
+          for (let i = 0; i <= lowRanks.length - reqLen; i++) {
+            let ok = true;
+            for (let k = 0; k < reqLen - 1; k++) {
+              const diff = lowRanks[i + k] - lowRanks[i + k + 1];
+              if (diff < 1 || diff > maxGap) { ok = false; break; }
+            }
+            if (ok) { isStraight = true; break; }
+          }
         }
       }
 
-      if (counts[0] >= 5) return { name: "Five of a Kind", scoringCards: sorted };
-      if (isStraight && isFlush && uniqueRanks[0] === 14 && uniqueRanks[4] === 10) return { name: "Royal Flush", scoringCards: sorted };
-      if (isStraight && isFlush) return { name: "Straight Flush", scoringCards: sorted };
-      if (counts[0] === 4) return { name: "Four of a Kind", scoringCards: sorted.filter(c => rankCounts[c.rank.order] === 4) };
-      if (counts[0] === 3 && counts[1] >= 2) return { name: "Full House", scoringCards: sorted };
-      if (isFlush) return { name: "Flush", scoringCards: sorted };
-      if (isStraight) return { name: "Straight", scoringCards: sorted };
-      if (counts[0] === 3) return { name: "Three of a Kind", scoringCards: sorted.filter(c => rankCounts[c.rank.order] === 3) };
-      if (counts[0] === 2 && counts[1] === 2) return { name: "Two Pair", scoringCards: sorted.filter(c => rankCounts[c.rank.order] === 2) };
-      if (counts[0] === 2) return { name: "Pair", scoringCards: sorted.filter(c => rankCounts[c.rank.order] === 2) };
+      const withFinish = (name, baseScoring) => {
+        if (hasSplash) return { name, scoringCards: cards.slice() };
+        const combined = baseScoring.slice();
+        stoneCards.forEach(sc => {
+          if (!combined.includes(sc)) combined.push(sc);
+        });
+        return { name, scoringCards: combined };
+      };
 
-      return { name: "High Card", scoringCards: [sorted[0]] };
+      if (counts[0] >= 5 && isFlush) return withFinish("Flush Five", sorted);
+      if (counts[0] === 3 && counts[1] >= 2 && isFlush) return withFinish("Flush House", sorted);
+      if (counts[0] >= 5) return withFinish("Five of a Kind", sorted);
+      if (isStraight && isFlush && uniqueRanks[0] === 14 && uniqueRanks[reqLen - 1] >= 10) return withFinish("Royal Flush", sorted);
+      if (isStraight && isFlush) return withFinish("Straight Flush", sorted);
+      if (counts[0] === 4) return withFinish("Four of a Kind", sorted.filter(c => rankCounts[c.rank.order] === 4));
+      if (counts[0] === 3 && counts[1] >= 2) return withFinish("Full House", sorted);
+      if (isFlush) return withFinish("Flush", sorted);
+      if (isStraight) return withFinish("Straight", sorted);
+      if (counts[0] === 3) return withFinish("Three of a Kind", sorted.filter(c => rankCounts[c.rank.order] === 3));
+      if (counts[0] === 2 && counts[1] === 2) return withFinish("Two Pair", sorted.filter(c => rankCounts[c.rank.order] === 2));
+      if (counts[0] === 2) return withFinish("Pair", sorted.filter(c => rankCounts[c.rank.order] === 2));
+
+      return withFinish("High Card", [sorted[0]]);
     }
 
-    function calculateHandScore(cards) {
+    function resolveEffectiveJoker(joker, idx) {
+      if (joker.id === "blueprint") {
+        const right = jokers[idx + 1];
+        if (right && right.id !== "blueprint" && right.id !== "brainstorm") {
+          return JOKER_CATALOG.find(j => j.id === right.id) || right;
+        }
+      } else if (joker.id === "brainstorm") {
+        const first = jokers[0];
+        if (first && first.uid !== joker.uid && first.id !== "blueprint" && first.id !== "brainstorm") {
+          return JOKER_CATALOG.find(j => j.id === first.id) || first;
+        }
+      }
+      return JOKER_CATALOG.find(j => j.id === joker.id) || joker;
+    }
+
+    function getCardRetriggerCount(card, isFirstScoringCard) {
+      if (card.debuffed) return 0;
+      let retriggers = 1;
+      if (card.seal === "red") retriggers += 1;
+      jokers.forEach((j, idx) => {
+        const eff = resolveEffectiveJoker(j, idx);
+        if (eff.id === "hanging_chad" && isFirstScoringCard) retriggers += 2;
+        if (eff.id === "sock_and_buskin" && cardIsFace(card)) retriggers += 1;
+        if (eff.id === "hack" && ["2", "3", "4", "5"].includes(card.rank.id)) retriggers += 1;
+      });
+      return retriggers;
+    }
+
+    function calculateHandScore(cards, isPreview = true) {
       const evaluation = evaluateHand(cards);
       const handConfig = POKER_HANDS[evaluation.name] || POKER_HANDS["High Card"];
       const level = handLevels[evaluation.name] || 1;
@@ -2391,20 +3113,7 @@
       let chips = handConfig.baseChips + (level - 1) * handConfig.chipPerLvl;
       let mult = handConfig.baseMult + (level - 1) * handConfig.multPerLvl;
 
-      // Add played card chips
-      cards.forEach(c => {
-        let cardChips = c.rank.chips;
-        if (c.enhancement === "bonus") cardChips += 30;
-        if (c.enhancement === "stone") cardChips += 50;
-        if (c.edition === "foil") cardChips += 50;
-        chips += cardChips;
-
-        if (c.enhancement === "mult") mult += 4;
-        if (c.edition === "holographic") mult += 10;
-        if (c.edition === "polychrome") mult = Math.round(mult * 1.5);
-      });
-
-      // Context for Joker triggers
+      const heldInHand = playerHand.filter((_, idx) => !selectedIndices.includes(idx));
       const evalContext = {
         chips,
         mult,
@@ -2412,33 +3121,73 @@
         playedCount: cards.length,
         discardsLeft,
         money,
-        scoringCards: evaluation.scoringCards
+        scoringCards: evaluation.scoringCards,
+        heldCards: heldInHand,
+        isPreview,
+        _photoTriggered: false
       };
 
-      // 1. Card scored triggers
-      cards.forEach(card => {
-        jokers.forEach(j => {
-          if (j.onCardScored) j.onCardScored(card, evalContext);
-        });
+      // Score only scoringCards (ordered left-to-right as selected/played)
+      const scoringSet = new Set(evaluation.scoringCards.map(c => c.uid));
+      const orderedScoring = cards.filter(c => scoringSet.has(c.uid));
+
+      orderedScoring.forEach((c, sIdx) => {
+        if (c.debuffed) return;
+        const reps = getCardRetriggerCount(c, sIdx === 0);
+        for (let r = 0; r < reps; r++) {
+          let cardChips = c.enhancement === "stone" ? 50 : c.rank.chips;
+          if (c.enhancement === "bonus") cardChips += 30;
+          if (c.edition === "foil") cardChips += 50;
+          evalContext.chips += cardChips;
+
+          if (c.enhancement === "mult") evalContext.mult += 4;
+          if (c.enhancement === "lucky" && !isPreview && Math.random() < 0.25) evalContext.mult += 20;
+          if (c.edition === "holographic") evalContext.mult += 10;
+          if (c.enhancement === "glass") evalContext.mult *= 2;
+          if (c.edition === "polychrome") evalContext.mult *= 1.5;
+
+          jokers.forEach((j, jIdx) => {
+            const eff = resolveEffectiveJoker(j, jIdx);
+            if (eff.onCardScored) eff.onCardScored(c, evalContext);
+          });
+        }
       });
 
-      // 2. Joker overall triggers
-      jokers.forEach(j => {
-        if (j.onEval) j.onEval(evalContext);
-      });
-
-      // 3. Held in hand triggers
-      const heldInHand = playerHand.filter((_, idx) => !selectedIndices.includes(idx));
+      // Held in hand triggers (Steel + Baron, repeated by Mime)
+      const mimeCount = jokers.filter((j, idx) => resolveEffectiveJoker(j, idx).id === "mime").length;
+      const heldReps = 1 + mimeCount;
       heldInHand.forEach(card => {
-        if (card.enhancement === "steel") evalContext.mult = Math.round(evalContext.mult * 1.5);
-        jokers.forEach(j => {
-          if (j.onHeldInHand) j.onHeldInHand(card, evalContext);
-        });
+        if (card.debuffed) return;
+        for (let r = 0; r < heldReps; r++) {
+          if (card.enhancement === "steel") evalContext.mult *= 1.5;
+          jokers.forEach((j, jIdx) => {
+            const eff = resolveEffectiveJoker(j, jIdx);
+            if (eff.onHeldInHand) eff.onHeldInHand(card, evalContext);
+          });
+        }
       });
+
+      // Joker tray Left -> Right triggers + Joker Editions
+      jokers.forEach((j, jIdx) => {
+        if (j.edition === "foil") evalContext.chips += 50;
+        if (j.edition === "holographic") evalContext.mult += 10;
+        const eff = resolveEffectiveJoker(j, jIdx);
+        if (eff.onEval) eff.onEval(evalContext);
+        if (j.edition === "polychrome") evalContext.mult *= 1.5;
+      });
+
+      if (selectedDeckType === "plasma") {
+        const avg = Math.round((evalContext.chips + evalContext.mult) / 2);
+        evalContext.chips = avg;
+        evalContext.mult = avg;
+      }
 
       return {
         name: evaluation.name,
         level,
+        baseChips: handConfig.baseChips + (level - 1) * handConfig.chipPerLvl,
+        baseMult: handConfig.baseMult + (level - 1) * handConfig.multPerLvl,
+        scoringCards: evaluation.scoringCards,
         chips: Math.round(evalContext.chips),
         mult: Math.round(evalContext.mult),
         total: Math.round(evalContext.chips * evalContext.mult)
@@ -2446,79 +3195,159 @@
     }
 
     // -------------------------------------------------------------------------
-    // 5. Playing Hands & Dramatic Scoring Sequence
+    // 5. Playing Hands & Dramatic Step-by-Step Scoring Sequence
     // -------------------------------------------------------------------------
     async function playSelectedHand() {
       if (isScoring || selectedIndices.length === 0 || handsLeft <= 0) return;
+
+      const playedCards = selectedIndices.map(i => playerHand[i]);
+      const preEval = evaluateHand(playedCards);
+
+      // Boss Blind Pre-Play Restrictions
+      if (currentBlind && currentBlind.bossRule === "The Psychic" && playedCards.length < 5) {
+        AudioEngine.playNopeBuzzer();
+        shakeScreen(6);
+        showToast("🔮 THE PSYCHIC: You must play 5 cards!", "var(--neon-red)");
+        return;
+      }
+      if (currentBlind && currentBlind.bossRule === "The Eye" && playedHandTypesThisRound.includes(preEval.name)) {
+        AudioEngine.playNopeBuzzer();
+        shakeScreen(6);
+        showToast(`👁️ THE EYE: ${preEval.name} was already played this round!`, "var(--neon-red)");
+        return;
+      }
 
       isScoring = true;
       document.getElementById("btnPlayHand").disabled = true;
       document.getElementById("btnDiscard").disabled = true;
 
-      const playedCards = selectedIndices.map(i => playerHand[i]);
-      const scoredData = calculateHandScore(playedCards);
+      if (currentBlind && currentBlind.bossRule === "The Arm") {
+        if ((handLevels[preEval.name] || 1) > 1) {
+          handLevels[preEval.name]--;
+          showToast(`💪 THE ARM: ${preEval.name} decreased to Lv. ${handLevels[preEval.name]}!`, "var(--neon-red)");
+        }
+      }
+
+      playedHandTypesThisRound.push(preEval.name);
+      const scoredData = calculateHandScore(playedCards, false);
 
       handsLeft--;
       handUsage[scoredData.name] = (handUsage[scoredData.name] || 0) + 1;
       AudioEngine.playChipChime(1.0);
 
-      // Boss restrictions check:
-      if (currentBlind.bossRule === "The Hook") {
-        const remaining = playerHand.filter((_, i) => !selectedIndices.includes(i));
-        if (remaining.length >= 2) {
-          remaining.splice(Math.floor(Math.random() * remaining.length), 1);
-          remaining.splice(Math.floor(Math.random() * remaining.length), 1);
-        }
-      }
+      // Initialize live step-by-step counters at Base Hand Chips & Mult
+      let liveChips = scoredData.baseChips;
+      let liveMult = scoredData.baseMult;
+      const chipsEl = document.getElementById("calcChips");
+      const multEl = document.getElementById("calcMult");
+      const totalBlock = document.getElementById("calcTotal");
+      document.getElementById("evalHandName").textContent = scoredData.name;
+      document.getElementById("evalHandLevel").textContent = `Lv. ${scoredData.level}`;
+      chipsEl.textContent = Math.round(liveChips).toLocaleString();
+      multEl.textContent = Math.round(liveMult).toLocaleString();
+      totalBlock.textContent = Math.round(liveChips * liveMult).toLocaleString();
 
-      // Step-by-Step Scoring Animation
+      // Remove played cards from playerHand immediately so remaining held cards are accurate
+      const selectedSet = new Set(selectedIndices);
+      playerHand = playerHand.filter((_, idx) => !selectedSet.has(idx));
+      selectedIndices = [];
+
+      // Boss Rule: The Hook discards 2 random held cards
+      if (currentBlind && currentBlind.bossRule === "The Hook" && playerHand.length > 0) {
+        const hookCount = Math.min(2, playerHand.length);
+        for (let h = 0; h < hookCount; h++) {
+          const rIdx = Math.floor(Math.random() * playerHand.length);
+          playerHand.splice(rIdx, 1);
+        }
+        showToast("🪝 THE HOOK: Discarded 2 cards from hand!", "var(--neon-red)");
+      }
+      renderPlayerHand();
+
+      // Step-by-Step Scoring Animation in Played Tray
       const playedTray = document.getElementById("playedCardsTray");
       playedTray.innerHTML = "";
+      const scoringUidSet = new Set(scoredData.scoringCards.map(c => c.uid));
 
-      // Move played cards to played tray (flipping any face-down cards face-up)
       playedCards.forEach(c => {
-        if (c.isFaceDown) {
-          c.isFaceDown = false;
-        }
+        if (c.isFaceDown) c.isFaceDown = false;
         const el = createCardElement(c, false);
+        if (!scoringUidSet.has(c.uid)) {
+          el.classList.add("non-scoring");
+        }
         el.style.transform = "translateY(40px) scale(0.9)";
         el.style.opacity = "0";
         playedTray.appendChild(el);
       });
 
-      await sleep(100);
+      await sleep(90);
       const domCards = Array.from(playedTray.children);
       domCards.forEach((c, idx) => {
         setTimeout(() => {
           c.style.transition = "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)";
           c.style.transform = "translateY(0) scale(1.05)";
-          c.style.opacity = "1";
+          c.style.opacity = c.classList.contains("non-scoring") ? "0.55" : "1";
           AudioEngine.playCardSelect(idx + 1);
-        }, (idx * 100) / gameSpeed);
+        }, (idx * 90) / gameSpeed);
       });
 
-      await sleep((domCards.length * 100 + 200));
+      await sleep(domCards.length * 90 + 180);
 
-      // Sequential card chip pops
+      // Sequential Scoring Card Triggers
+      const shatteredUids = [];
       for (let i = 0; i < domCards.length; i++) {
         const cardEl = domCards[i];
         const cardData = playedCards[i];
-        cardEl.style.transform = "translateY(-14px) scale(1.18)";
-        cardEl.style.boxShadow = "0 0 25px var(--neon-cyan)";
-        AudioEngine.playChipChime(1.0 + i * 0.1);
+        if (!cardData || !scoringUidSet.has(cardData.uid)) continue;
 
-        // Check Card Enhancements for unique visual & audio reactions!
-        if (cardData) {
+        if (cardData.debuffed) {
+          spawnFloatingPopup(cardEl, "DEBUFFED!", "#dc2626");
+          AudioEngine.playNopeBuzzer();
+          await sleep(140);
+          continue;
+        }
+
+        const isFirstScoring = cardData.uid === (scoredData.scoringCards[0] && scoredData.scoringCards[0].uid);
+        const reps = getCardRetriggerCount(cardData, isFirstScoring);
+
+        for (let r = 0; r < reps; r++) {
+          cardEl.style.transform = "translateY(-16px) scale(1.18)";
+          cardEl.style.boxShadow = "0 0 25px var(--neon-cyan)";
+
+          let addChips = cardData.enhancement === "stone" ? 50 : cardData.rank.chips;
+          if (cardData.enhancement === "bonus") addChips += 30;
+          if (cardData.edition === "foil") addChips += 50;
+          liveChips += addChips;
+          chipsEl.textContent = Math.round(liveChips).toLocaleString();
+          spawnFloatingPopup(cardEl, r > 0 ? `AGAIN! +${addChips}` : `+${addChips}`, "#2563eb");
+          AudioEngine.playChipChime(1.0 + i * 0.1 + r * 0.08);
+
+          if (cardData.seal === "gold") {
+            money += 3;
+            AudioEngine.playGoldChime();
+            spawnFloatingPopup(cardEl, "+$3", "#ca8a04");
+          }
+
           const rect = cardEl.getBoundingClientRect();
           const cx = rect.left + rect.width / 2;
           const cy = rect.top + rect.height / 2;
 
+          if (cardData.enhancement === "mult" || cardData.edition === "holographic") {
+            const mAdd = (cardData.enhancement === "mult" ? 4 : 0) + (cardData.edition === "holographic" ? 10 : 0);
+            liveMult += mAdd;
+            multEl.textContent = Math.round(liveMult).toLocaleString();
+            spawnFloatingPopup(cardEl, `+${mAdd} Mult`, "#dc2626");
+          }
           if (cardData.enhancement === "glass") {
-            if (Math.random() < 0.25) {
+            liveMult *= 2;
+            multEl.textContent = Math.round(liveMult).toLocaleString();
+            spawnFloatingPopup(cardEl, "×2 Mult", "#0284c7");
+            if (r === reps - 1 && Math.random() < 0.25) {
               AudioEngine.playGlassShatter();
               FxEngine.spawnGlassShatter(cx, cy, 32);
               shakeScreen(7);
-              cardEl.style.filter = "grayscale(1) brightness(0.5)";
+              cardEl.style.filter = "grayscale(1) brightness(0.45)";
+              shatteredUids.push(cardData.uid);
+              showToast(`💎 Glass ${cardData.rank.label}${cardData.suitSymbol} shattered!`, "#38bdf8");
             }
           } else if (cardData.enhancement === "gold") {
             AudioEngine.playGoldChime();
@@ -2526,34 +3355,77 @@
           } else if (cardData.enhancement === "steel") {
             AudioEngine.playSteelResonance();
           } else if (cardData.enhancement === "lucky") {
-            if (Math.random() < 0.4) {
+            if (Math.random() < 0.35) {
+              liveMult += 20;
+              multEl.textContent = Math.round(liveMult).toLocaleString();
               AudioEngine.playLuckyJackpot();
               FxEngine.spawnLuckyStars(cx, cy, 20);
+              spawnFloatingPopup(cardEl, "LUCKY! +20 Mult", "#16a34a");
+            }
+            if (Math.random() < 0.12) {
+              money += 20;
+              AudioEngine.playCashKaching();
+              spawnFloatingPopup(cardEl, "JACKPOT! +$20", "#ca8a04");
             }
           }
-        }
 
-        await sleep(150);
-        cardEl.style.transform = "translateY(0) scale(1.05)";
-        cardEl.style.boxShadow = "0 8px 18px rgba(0,0,0,0.4)";
+          if (cardData.edition === "polychrome") {
+            liveMult *= 1.5;
+            multEl.textContent = Math.round(liveMult).toLocaleString();
+          }
+
+          totalBlock.textContent = Math.round(liveChips * liveMult).toLocaleString();
+          await sleep(145);
+          cardEl.style.transform = "translateY(0) scale(1.05)";
+          cardEl.style.boxShadow = "0 8px 18px rgba(0,0,0,0.4)";
+        }
       }
 
-      // Joker trigger activations
+      // Remove shattered glass cards from persistent runDeck
+      shatteredUids.forEach(uid => removeCardFromRunDeck(uid));
+
+      // Held-in-hand Steel & Baron activations
+      const handCardEls = document.querySelectorAll("#playerHandFan .poker-card");
+      for (let h = 0; h < playerHand.length; h++) {
+        const hc = playerHand[h];
+        const hEl = handCardEls[h];
+        if (!hc || hc.debuffed) continue;
+        const hasBaron = jokers.some((j, idx) => resolveEffectiveJoker(j, idx).id === "baron") && hc.rank.id === "K";
+        if (hc.enhancement === "steel" || hasBaron) {
+          if (hEl) {
+            hEl.style.transform = "translateY(-24px) scale(1.12)";
+            spawnFloatingPopup(hEl, "×1.5 Mult", "#8b5cf6");
+          }
+          AudioEngine.playSteelResonance();
+          await sleep(120);
+          if (hEl) hEl.style.transform = "";
+        }
+      }
+
+      // Joker Tray Left -> Right Activations
       const jokerEls = document.querySelectorAll(".joker-card");
       for (let j = 0; j < jokerEls.length; j++) {
         const jEl = jokerEls[j];
+        const jData = jokers[j];
         jEl.style.transform = "translateY(-16px) scale(1.2)";
         jEl.style.borderColor = "var(--neon-pink)";
         AudioEngine.playJokerTrigger(j);
         const rect = jEl.getBoundingClientRect();
         FxEngine.spawnFireEmbers(rect.left + rect.width / 2, rect.top + 10, 15);
-        await sleep(180);
+        if (jData) {
+          spawnFloatingPopup(jEl, jData.id === "blueprint" || jData.id === "brainstorm" ? "COPY!" : jData.name, "#9333ea");
+        }
+        await sleep(165);
         jEl.style.transform = "";
         jEl.style.borderColor = "";
       }
 
+      // Sync exact final chips, mult, and total
+      chipsEl.textContent = scoredData.chips.toLocaleString();
+      multEl.textContent = scoredData.mult.toLocaleString();
+      totalBlock.textContent = scoredData.total.toLocaleString();
+
       // Grand Multiplier Flame Burst
-      const totalBlock = document.getElementById("calcTotal");
       totalBlock.style.transform = "scale(1.35)";
       totalBlock.style.boxShadow = "0 0 40px var(--neon-gold)";
       const rect = totalBlock.getBoundingClientRect();
@@ -2566,26 +3438,70 @@
         highestHandScore = scoredData.total;
       }
 
-      await sleep(400);
+      await sleep(380);
       totalBlock.style.transform = "scale(1)";
       totalBlock.style.boxShadow = "";
-
-      // Remove played cards from player's hand
-      playerHand = playerHand.filter((_, idx) => !selectedIndices.includes(idx));
-      selectedIndices = [];
       playedTray.innerHTML = "";
 
       updateHUD();
 
-      // Check if target met or out of hands
+      // Check if Blind Target Met or Out of Hands
       if (currentRoundScore >= currentBlind.target) {
-        await sleep(500);
+        await sleep(420);
         FxEngine.spawnConfetti(70);
         AudioEngine.playCashKaching();
-        money += currentBlind.reward;
+
+        // Calculate Authentic Round Cash-Out Breakdown
+        const baseReward = currentBlind.reward;
+        const handsBonus = handsLeft * (selectedDeckType === "green" ? 2 : 1);
+        const discardBonus = selectedDeckType === "green" ? discardsLeft : 0;
+        const interest = Math.min(interestCap, Math.floor(Math.max(0, money) / 5));
+        let goldCardBonus = 0;
+        playerHand.forEach(c => {
+          if (!c.debuffed && c.enhancement === "gold") goldCardBonus += 3;
+          if (!c.debuffed && c.seal === "blue" && consumables.length < maxConsumables) {
+            const pCard = PLANET_CATALOG.find(p => p.planetHand === scoredData.name) || PLANET_CATALOG[0];
+            consumables.push({ ...pCard, type: "planet", uid: Date.now() + Math.random() });
+            showToast(`🔵 Blue Seal spawned ${pCard.name}!`, "var(--neon-cyan)");
+          }
+        });
+        let jokerRoundBonus = 0;
+        jokers.forEach((j, idx) => {
+          const eff = resolveEffectiveJoker(j, idx);
+          if (eff.id === "golden_joker") jokerRoundBonus += 4;
+        });
+
+        // Banana Expiration Check (Gros Michel / Cavendish)
+        for (let k = jokers.length - 1; k >= 0; k--) {
+          if (jokers[k].id === "gros_michel" && Math.random() < (1 / 6)) {
+            showToast("🍌 Gros Michel went extinct! (Cavendish unlocked)", "var(--neon-gold)");
+            jokers.splice(k, 1);
+          } else if (jokers[k].id === "cavendish" && Math.random() < (1 / 1000)) {
+            showToast("🍌 Cavendish went extinct!", "var(--neon-red)");
+            jokers.splice(k, 1);
+          }
+        }
+
+        const totalEarned = baseReward + handsBonus + discardBonus + interest + goldCardBonus + jokerRoundBonus;
+        money += totalEarned;
+
+        const parts = [`Blind +$${baseReward}`];
+        if (handsBonus > 0) parts.push(`Hands +$${handsBonus}`);
+        if (discardBonus > 0) parts.push(`Discards +$${discardBonus}`);
+        if (interest > 0) parts.push(`Interest +$${interest}`);
+        if (goldCardBonus > 0) parts.push(`Gold Cards +$${goldCardBonus}`);
+        if (jokerRoundBonus > 0) parts.push(`Jokers +$${jokerRoundBonus}`);
+        const breakdownEl = document.getElementById("cashoutBreakdownText");
+        if (breakdownEl) {
+          breakdownEl.textContent = `${parts.join(" • ")} = +$${totalEarned} Total!`;
+        }
+
+        isScoring = false;
+        updateHUD();
         openShop();
       } else if (handsLeft <= 0) {
-        await sleep(500);
+        await sleep(450);
+        isScoring = false;
         AudioEngine.playNopeBuzzer();
         triggerGameOver();
       } else {
@@ -2601,9 +3517,20 @@
       discardsLeft--;
       AudioEngine.playCardDeselect();
 
+      // Check Purple Seal on discarded cards
+      selectedIndices.forEach(idx => {
+        const c = playerHand[idx];
+        if (c && !c.debuffed && c.seal === "purple" && consumables.length < maxConsumables) {
+          const t = TAROT_CATALOG[Math.floor(Math.random() * TAROT_CATALOG.length)];
+          consumables.push({ ...t, type: "tarot", uid: Date.now() + Math.random() });
+          showToast(`🟣 Purple Seal spawned ${t.name}!`, "var(--neon-purple)");
+        }
+      });
+
       playerHand = playerHand.filter((_, idx) => !selectedIndices.includes(idx));
       selectedIndices = [];
       drawCards(8 - playerHand.length);
+      renderConsumables();
       updateHUD();
       updateScorePreview();
     }
@@ -3157,8 +4084,9 @@
     function createCardElement(card, isInteractive = true) {
       const el = document.createElement("div");
       el.className = `poker-card ${card.suitColor}`;
-      if (card.edition !== "none") el.classList.add(`edition-${card.edition}`);
-      if (card.enhancement !== "none") el.classList.add(`enhancement-${card.enhancement}`);
+      if (card.edition && card.edition !== "none") el.classList.add(`edition-${card.edition}`);
+      if (card.enhancement && card.enhancement !== "none") el.classList.add(`enhancement-${card.enhancement}`);
+      if (card.debuffed) el.classList.add("debuffed");
 
       if (card.isFaceDown) {
         el.innerHTML = `
@@ -3178,7 +4106,7 @@
       }
 
       let badgeHtml = "";
-      if (card.enhancement !== "none") {
+      if (card.enhancement && card.enhancement !== "none") {
         badgeHtml = `<span class="card-enhancement-badge">${card.enhancement.toUpperCase()}</span>`;
       }
 
@@ -3219,6 +4147,8 @@
         `;
       }
 
+      const displayChips = card.enhancement === "stone" ? 50 : (card.rank.chips + (card.enhancement === "bonus" ? 30 : 0) + (card.edition === "foil" ? 50 : 0));
+
       el.innerHTML = `
         <div class="card-sheen"></div>
         <div class="card-face">
@@ -3236,11 +4166,11 @@
             <span class="card-rank">${card.rank.label}</span>
             <div class="card-corner-suit">${getSuitSvg(card.suit)}</div>
           </div>
-          <div class="card-chip-val">+${card.rank.chips}</div>
+          <div class="card-chip-val">+${displayChips}</div>
         </div>
       `;
 
-      if (card.seal !== "none") {
+      if (card.seal && card.seal !== "none") {
         const seal = document.createElement("div");
         seal.className = `card-seal ${card.seal}`;
         seal.textContent = card.seal === "gold" ? "$" : (card.seal === "blue" ? "☾" : (card.seal === "purple" ? "✦" : "★"));
@@ -3263,7 +4193,19 @@
           }
         });
 
+        el.addEventListener("mouseenter", (e) => {
+          const details = [`+${displayChips} Chips`];
+          if (card.enhancement && card.enhancement !== "none") details.push(`Enhancement: ${card.enhancement.toUpperCase()}`);
+          if (card.edition && card.edition !== "none") details.push(`Edition: ${card.edition.toUpperCase()}`);
+          if (card.seal && card.seal !== "none") details.push(`Seal: ${card.seal.toUpperCase()} SEAL`);
+          if (card.debuffed) details.push("DEBUFFED by Boss Blind");
+          if (details.length > 1) {
+            showTooltip(e, `${card.rank.label} of ${card.suit.toUpperCase()}`, details.join(" • "));
+          }
+        });
+
         el.addEventListener("mouseleave", () => {
+          hideTooltip();
           const isSel = el.classList.contains("selected");
           const baseRot = parseFloat(el.dataset.baseRot || "0");
           const baseY = parseFloat(el.dataset.baseY || "0");
@@ -3284,6 +4226,7 @@
 
       const total = playerHand.length;
       playerHand.forEach((card, idx) => {
+        card.debuffed = checkCardDebuff(card);
         const el = createCardElement(card, true);
         if (selectedIndices.includes(idx)) {
           el.classList.add("selected");
@@ -3313,6 +4256,7 @@
     }
 
     function toggleCardSelection(index) {
+      if (index < 0 || index >= playerHand.length) return;
       const pos = selectedIndices.indexOf(index);
       if (pos >= 0) {
         selectedIndices.splice(pos, 1);
@@ -3337,8 +4281,8 @@
     }
 
     function updateScorePreview() {
-      const played = selectedIndices.map(i => playerHand[i]);
-      const scored = calculateHandScore(played);
+      const played = selectedIndices.map(i => playerHand[i]).filter(Boolean);
+      const scored = calculateHandScore(played, true);
 
       document.getElementById("evalHandName").textContent = scored.name;
       document.getElementById("evalHandLevel").textContent = `Lv. ${scored.level}`;
@@ -3347,26 +4291,76 @@
       document.getElementById("calcTotal").textContent = scored.total.toLocaleString();
     }
 
+    function moveJoker(index, dir, event) {
+      if (event) event.stopPropagation();
+      const target = index + dir;
+      if (target < 0 || target >= jokers.length) return;
+      const temp = jokers[index];
+      jokers[index] = jokers[target];
+      jokers[target] = temp;
+      AudioEngine.playCardSlide();
+      hideTooltip();
+      renderJokers();
+      updateScorePreview();
+    }
+
+    function sellJoker(index, event) {
+      if (event) event.stopPropagation();
+      const j = jokers[index];
+      if (!j) return;
+      const sellVal = Math.max(1, Math.floor((j.cost || 4) / 2));
+      money += sellVal;
+      jokers.splice(index, 1);
+      AudioEngine.playCashKaching();
+      hideTooltip();
+      showToast(`💰 Sold ${j.name} for $${sellVal}`, "var(--neon-gold)");
+      renderJokers();
+      updateHUD();
+      updateScorePreview();
+      if (document.getElementById("shopModal").style.display === "flex") {
+        document.getElementById("shopCashVal").textContent = `$${money}`;
+      }
+    }
+
     function renderJokers() {
       const tray = document.getElementById("jokerTray");
       tray.innerHTML = "";
       document.getElementById("jokerCount").textContent = jokers.length;
+      document.getElementById("jokerMax").textContent = maxJokers;
 
       jokers.forEach((j, idx) => {
         const el = document.createElement("div");
         el.className = "joker-card";
+        if (j.edition && j.edition !== "none") {
+          el.classList.add(`edition-${j.edition}`);
+        }
+        const sellVal = Math.max(1, Math.floor((j.cost || 4) / 2));
+        const editionBadge = (j.edition && j.edition !== "none")
+          ? `<span class="joker-edition-tag">${j.edition.slice(0, 4)}</span>`
+          : "";
         el.innerHTML = `
+          ${editionBadge}
           <div class="joker-icon">${j.icon}</div>
           <div class="joker-name">${j.name}</div>
           <div class="joker-rarity ${j.rarity}">${j.rarity}</div>
+          <div class="joker-controls">
+            <button class="btn-mini-ctrl" title="Move Left" onclick="moveJoker(${idx}, -1, event)">◀</button>
+            <button class="btn-mini-ctrl sell" title="Sell Joker ($${sellVal})" onclick="sellJoker(${idx}, event)">$${sellVal}</button>
+            <button class="btn-mini-ctrl" title="Move Right" onclick="moveJoker(${idx}, 1, event)">▶</button>
+          </div>
         `;
 
-        el.addEventListener("mouseenter", (e) => showTooltip(e, j.name, j.desc));
+        let descText = j.desc;
+        if (j.edition === "foil") descText += " • [Foil: +50 Chips]";
+        if (j.edition === "holographic") descText += " • [Holo: +10 Mult]";
+        if (j.edition === "polychrome") descText += " • [Polychrome: ×1.5 Mult]";
+
+        el.addEventListener("mouseenter", (e) => showTooltip(e, j.name, descText));
         el.addEventListener("mouseleave", hideTooltip);
         tray.appendChild(el);
       });
 
-      for (let i = jokers.length; i < 5; i++) {
+      for (let i = jokers.length; i < maxJokers; i++) {
         const empty = document.createElement("div");
         empty.className = "empty-slot";
         empty.textContent = "+";
@@ -3374,25 +4368,43 @@
       }
     }
 
+    function sellConsumable(index, event) {
+      if (event) event.stopPropagation();
+      const c = consumables[index];
+      if (!c) return;
+      money += 1;
+      consumables.splice(index, 1);
+      AudioEngine.playCashKaching();
+      hideTooltip();
+      showToast(`💰 Sold ${c.name} for $1`, "var(--neon-gold)");
+      renderConsumables();
+      updateHUD();
+    }
+
     function renderConsumables() {
       const tray = document.getElementById("consumableTray");
       tray.innerHTML = "";
       document.getElementById("consumableCount").textContent = consumables.length;
+      const maxEl = document.getElementById("consumableMax");
+      if (maxEl) maxEl.textContent = maxConsumables;
 
       consumables.forEach((c, idx) => {
         const el = document.createElement("div");
-        el.className = "consumable-card";
+        el.className = `consumable-card ${c.type || "tarot"}`;
         el.innerHTML = `
-          <div style="font-size:1.6rem; margin-top:0.2rem;">${c.icon}</div>
-          <div style="font-size:0.65rem; font-weight:800; text-align:center; color:#f1f5f9;">${c.name}</div>
-          <button style="font-size:0.6rem; padding:0.15rem 0.4rem; background:#a855f7; border:none; color:#fff; border-radius:4px; font-weight:800; cursor:pointer;" onclick="useConsumable(${idx})">USE</button>
+          <div style="font-size:1.55rem; margin-top:0.15rem;">${c.icon}</div>
+          <div style="font-size:0.62rem; font-weight:800; text-align:center; color:#f1f5f9;">${c.name}</div>
+          <div style="display:flex; gap:3px; width:100%; justify-content:center;">
+            <button style="font-size:0.56rem; padding:0.15rem 0.35rem; background:#a855f7; border:none; color:#fff; border-radius:4px; font-weight:800; cursor:pointer;" onclick="useConsumable(${idx})">USE</button>
+            <button style="font-size:0.52rem; padding:0.15rem 0.28rem; background:rgba(239,68,68,0.3); border:1px solid #f87171; color:#fecaca; border-radius:4px; font-weight:800; cursor:pointer;" onclick="sellConsumable(${idx}, event)">$1</button>
+          </div>
         `;
         el.addEventListener("mouseenter", (e) => showTooltip(e, c.name, c.desc));
         el.addEventListener("mouseleave", hideTooltip);
         tray.appendChild(el);
       });
 
-      for (let i = consumables.length; i < 2; i++) {
+      for (let i = consumables.length; i < maxConsumables; i++) {
         const empty = document.createElement("div");
         empty.className = "empty-slot";
         empty.style.width = "64px";
@@ -3401,40 +4413,211 @@
       }
     }
 
+    function applyCardSuitChange(card, suitName) {
+      const s = SUITS.find(x => x.name === suitName);
+      if (!s) return;
+      card.suit = s.name;
+      card.suitSymbol = s.symbol;
+      card.suitColor = s.color;
+      syncCardToRunDeck(card);
+    }
+
     function useConsumable(index) {
       const c = consumables[index];
       if (!c) return;
-      lastUsedConsumable = c;
+
+      // Validate minimum selected cards before consuming!
+      if (c.minCards && selectedIndices.length < c.minCards) {
+        AudioEngine.playNopeBuzzer();
+        shakeScreen(4);
+        showToast(`⚠️ Select at least ${c.minCards} card${c.minCards > 1 ? "s" : ""} in your hand first!`, "var(--neon-red)");
+        return;
+      }
+
+      if (c.id === "the_fool") {
+        if (!lastUsedConsumable || lastUsedConsumable.id === "the_fool") {
+          AudioEngine.playNopeBuzzer();
+          showToast("⚠️ No previous Tarot or Planet card used yet!", "var(--neon-red)");
+          return;
+        }
+        consumables.splice(index, 1);
+        consumables.push({ ...lastUsedConsumable, uid: Date.now() + Math.random() });
+        AudioEngine.playVictoryFanfare();
+        showToast(`🃏 The Fool recreated ${lastUsedConsumable.name}!`, "var(--neon-cyan)");
+        renderConsumables();
+        return;
+      }
+
+      if (c.type !== "spectral") {
+        lastUsedConsumable = { ...c };
+      }
 
       if (c.id === "the_hermit") {
-        const bonus = Math.min(20, money);
+        const bonus = Math.min(20, Math.max(0, money));
         money += bonus;
         AudioEngine.playCashKaching();
-      } else if (c.id === "the_empress" && selectedIndices.length > 0) {
-        selectedIndices.slice(0, 2).forEach(i => { playerHand[i].enhancement = "mult"; });
-        AudioEngine.playCardSelect(1);
-      } else if (c.id === "the_hierophant" && selectedIndices.length > 0) {
-        selectedIndices.slice(0, 2).forEach(i => { playerHand[i].enhancement = "bonus"; });
-        AudioEngine.playCardSelect(1);
-      } else if (c.id === "the_lovers" && selectedIndices.length > 0) {
+        showToast(`💰 The Hermit awarded +$${bonus}!`, "var(--neon-gold)");
+      } else if (c.id === "temperance") {
+        const totalSell = Math.min(50, Math.max(4, jokers.reduce((acc, j) => acc + Math.max(1, Math.floor((j.cost || 4) / 2)), 0)));
+        money += totalSell;
+        AudioEngine.playCashKaching();
+        showToast(`🏺 Temperance awarded +$${totalSell}!`, "var(--neon-gold)");
+      } else if (c.id === "wheel_of_fortune") {
+        if (jokers.length > 0 && Math.random() < 0.25) {
+          const targetJoker = jokers[Math.floor(Math.random() * jokers.length)];
+          const editions = ["foil", "holographic", "polychrome"];
+          targetJoker.edition = editions[Math.floor(Math.random() * editions.length)];
+          AudioEngine.playVictoryFanfare();
+          showToast(`🎡 Wheel of Fortune: ${targetJoker.name} became ${targetJoker.edition.toUpperCase()}!`, "var(--neon-pink)");
+        } else {
+          AudioEngine.playNopeBuzzer();
+          showToast("🎡 Wheel of Fortune: NOPE!", "var(--neon-red)");
+        }
+      } else if (c.id === "the_magician") {
+        selectedIndices.slice(0, 2).forEach(i => {
+          playerHand[i].enhancement = "lucky";
+          syncCardToRunDeck(playerHand[i]);
+        });
+        AudioEngine.playLuckyJackpot();
+        showToast("🪄 Enhanced to Lucky Card!", "#22c55e");
+      } else if (c.id === "the_empress") {
+        selectedIndices.slice(0, 2).forEach(i => {
+          playerHand[i].enhancement = "mult";
+          syncCardToRunDeck(playerHand[i]);
+        });
+        AudioEngine.playCardSelect(2);
+        showToast("👑 Enhanced to +4 Mult Card!", "#ef4444");
+      } else if (c.id === "the_hierophant") {
+        selectedIndices.slice(0, 2).forEach(i => {
+          playerHand[i].enhancement = "bonus";
+          syncCardToRunDeck(playerHand[i]);
+        });
+        AudioEngine.playCardSelect(2);
+        showToast("🏛️ Enhanced to +30 Bonus Chips!", "#3b82f6");
+      } else if (c.id === "the_lovers") {
         playerHand[selectedIndices[0]].enhancement = "wild";
-        AudioEngine.playCardSelect(1);
-      } else if (c.id === "the_chariot" && selectedIndices.length > 0) {
+        syncCardToRunDeck(playerHand[selectedIndices[0]]);
+        AudioEngine.playCardSelect(3);
+        showToast("❤️ Enhanced to Wild Card!", "var(--neon-pink)");
+      } else if (c.id === "the_chariot") {
         playerHand[selectedIndices[0]].enhancement = "steel";
-        AudioEngine.playCardSelect(1);
-      } else if (c.id === "justice" && selectedIndices.length > 0) {
+        syncCardToRunDeck(playerHand[selectedIndices[0]]);
+        AudioEngine.playSteelResonance();
+        showToast("🛡️ Enhanced to Steel Card (×1.5 Mult in hand)!", "#94a3b8");
+      } else if (c.id === "justice") {
         playerHand[selectedIndices[0]].enhancement = "glass";
-        AudioEngine.playCardSelect(1);
-      } else if (c.id === "the_hanged_man" && selectedIndices.length > 0) {
-        playerHand = playerHand.filter((_, idx) => !selectedIndices.slice(0, 2).includes(idx));
+        syncCardToRunDeck(playerHand[selectedIndices[0]]);
+        AudioEngine.playCardSelect(4);
+        showToast("⚖️ Enhanced to Glass Card (×2 Mult)!", "#38bdf8");
+      } else if (c.id === "the_devil") {
+        playerHand[selectedIndices[0]].enhancement = "gold";
+        syncCardToRunDeck(playerHand[selectedIndices[0]]);
+        AudioEngine.playGoldChime();
+        showToast("😈 Enhanced to Gold Card (+$3 in hand)!", "var(--neon-gold)");
+      } else if (c.id === "the_tower") {
+        playerHand[selectedIndices[0]].enhancement = "stone";
+        syncCardToRunDeck(playerHand[selectedIndices[0]]);
+        AudioEngine.playSteelResonance();
+        showToast("🗿 Enhanced to Stone Card (+50 Chips)!", "#a8a29e");
+      } else if (c.id === "strength") {
+        selectedIndices.slice(0, 2).forEach(i => {
+          const curOrder = playerHand[i].rank.order;
+          const nextRank = RANKS.find(r => r.order === (curOrder === 14 ? 2 : curOrder + 1)) || RANKS[0];
+          playerHand[i].rank = { ...nextRank };
+          syncCardToRunDeck(playerHand[i]);
+        });
+        AudioEngine.playVictoryFanfare();
+        showToast("💪 Increased card rank by +1!", "var(--neon-cyan)");
+      } else if (c.id === "the_hanged_man") {
+        const toKill = selectedIndices.slice(0, 2);
+        toKill.forEach(i => {
+          if (playerHand[i]) removeCardFromRunDeck(playerHand[i].uid);
+        });
+        playerHand = playerHand.filter((_, idx) => !toKill.includes(idx));
         selectedIndices = [];
-        AudioEngine.playCardSelect(1);
+        AudioEngine.playCardDeselect();
+        showToast("✂️ Destroyed selected cards from run deck!", "var(--neon-red)");
+      } else if (c.id === "death") {
+        const sortedSel = selectedIndices.slice(0, 2).sort((a, b) => a - b);
+        const leftCard = playerHand[sortedSel[0]];
+        const rightCard = playerHand[sortedSel[1]];
+        if (leftCard && rightCard) {
+          leftCard.suit = rightCard.suit;
+          leftCard.suitSymbol = rightCard.suitSymbol;
+          leftCard.suitColor = rightCard.suitColor;
+          leftCard.rank = { ...rightCard.rank };
+          leftCard.enhancement = rightCard.enhancement;
+          leftCard.edition = rightCard.edition;
+          leftCard.seal = rightCard.seal;
+          syncCardToRunDeck(leftCard);
+          AudioEngine.playVictoryFanfare();
+          showToast(`💀 Converted left card into ${rightCard.rank.label}${rightCard.suitSymbol}!`, "var(--neon-purple)");
+        }
+      } else if (c.id === "the_sun") {
+        selectedIndices.slice(0, 3).forEach(i => applyCardSuitChange(playerHand[i], "hearts"));
+        AudioEngine.playCardSelect(3);
+      } else if (c.id === "the_moon") {
+        selectedIndices.slice(0, 3).forEach(i => applyCardSuitChange(playerHand[i], "clubs"));
+        AudioEngine.playCardSelect(3);
+      } else if (c.id === "the_star") {
+        selectedIndices.slice(0, 3).forEach(i => applyCardSuitChange(playerHand[i], "diamonds"));
+        AudioEngine.playCardSelect(3);
+      } else if (c.id === "the_world") {
+        selectedIndices.slice(0, 3).forEach(i => applyCardSuitChange(playerHand[i], "spades"));
+        AudioEngine.playCardSelect(3);
       } else if (c.planetHand) {
         handLevels[c.planetHand] = (handLevels[c.planetHand] || 1) + 1;
         AudioEngine.playVictoryFanfare();
+        showToast(`🪐 ${c.name}: ${c.planetHand} upgraded to Lv. ${handLevels[c.planetHand]}!`, "var(--neon-cyan)");
+      } else if (c.id === "spec_deja_vu") {
+        playerHand[selectedIndices[0]].seal = "red";
+        syncCardToRunDeck(playerHand[selectedIndices[0]]);
+        AudioEngine.playVictoryFanfare();
+        showToast("🔴 Added Red Seal (Retrigger)!", "#ef4444");
+      } else if (c.id === "spec_talisman") {
+        playerHand[selectedIndices[0]].seal = "gold";
+        syncCardToRunDeck(playerHand[selectedIndices[0]]);
+        AudioEngine.playGoldChime();
+        showToast("🟡 Added Gold Seal (+$3 when scored)!", "var(--neon-gold)");
+      } else if (c.id === "spec_trance") {
+        playerHand[selectedIndices[0]].seal = "blue";
+        syncCardToRunDeck(playerHand[selectedIndices[0]]);
+        AudioEngine.playVictoryFanfare();
+        showToast("🔵 Added Blue Seal (Spawns Planet)!", "#3b82f6");
+      } else if (c.id === "spec_medium") {
+        playerHand[selectedIndices[0]].seal = "purple";
+        syncCardToRunDeck(playerHand[selectedIndices[0]]);
+        AudioEngine.playVictoryFanfare();
+        showToast("🟣 Added Purple Seal (Spawns Tarot on discard)!", "#a855f7");
+      } else if (c.id === "spec_aura") {
+        const editions = ["foil", "holographic", "polychrome"];
+        const pick = editions[Math.floor(Math.random() * editions.length)];
+        playerHand[selectedIndices[0]].edition = pick;
+        syncCardToRunDeck(playerHand[selectedIndices[0]]);
+        AudioEngine.playVictoryFanfare();
+        showToast(`✨ Aura bestowed ${pick.toUpperCase()} Edition!`, "var(--neon-pink)");
+      } else if (c.id === "spec_black_hole") {
+        for (const h in POKER_HANDS) {
+          handLevels[h] = (handLevels[h] || 1) + 1;
+        }
+        AudioEngine.playVictoryFanfare();
+        FxEngine.spawnConfetti(60);
+        showToast("🕳️ BLACK HOLE: All Poker Hands upgraded by +1 Level!", "var(--neon-pink)");
+      } else if (c.id === "spec_the_soul") {
+        const trib = JOKER_CATALOG.find(j => j.id === "triboulet") || JOKER_CATALOG[0];
+        if (jokers.length < maxJokers) {
+          jokers.push(instantiateJoker(trib, "polychrome"));
+          AudioEngine.playVictoryFanfare();
+          showToast("💎 THE SOUL: Summoned Legendary Triboulet!", "var(--neon-gold)");
+        } else {
+          showToast("⚠️ Joker slots full!", "var(--neon-red)");
+          return;
+        }
       }
 
       consumables.splice(index, 1);
+      hideTooltip();
+      renderJokers();
       renderConsumables();
       renderPlayerHand();
       updateScorePreview();
@@ -3445,7 +4628,7 @@
       const tt = document.getElementById("cardTooltip");
       tt.innerHTML = `<div class="tt-title">${title}</div><div>${desc}</div>`;
       tt.style.display = "block";
-      const x = Math.min(window.innerWidth - 240, e.clientX + 14);
+      const x = Math.min(window.innerWidth - 250, e.clientX + 14);
       const y = Math.min(window.innerHeight - 100, e.clientY + 14);
       tt.style.left = `${x}px`;
       tt.style.top = `${y}px`;
@@ -3468,6 +4651,29 @@
         document.getElementById("blindTargetLabel").textContent = currentBlind.target.toLocaleString();
         document.getElementById("blindRewardLabel").textContent = `REWARD: $${currentBlind.reward}`;
         document.getElementById("blindRuleLabel").textContent = currentBlind.rule;
+
+        const scoreValEl = document.getElementById("roundScoreVal");
+        if (scoreValEl) {
+          scoreValEl.textContent = `${currentRoundScore.toLocaleString()} / ${currentBlind.target.toLocaleString()}`;
+        }
+        const barEl = document.getElementById("blindProgressBar");
+        if (barEl) {
+          const pct = Math.min(100, Math.round((currentRoundScore / Math.max(1, currentBlind.target)) * 100));
+          barEl.style.width = `${pct}%`;
+        }
+
+        const skipBtn = document.getElementById("btnSkipBlind");
+        const skipTagLbl = document.getElementById("skipTagLabel");
+        if (skipBtn && skipTagLbl) {
+          if (currentBlind.isBoss || !currentSkipTag) {
+            skipBtn.style.display = "none";
+          } else {
+            skipBtn.style.display = "flex";
+            skipBtn.disabled = currentRoundScore > 0 || isScoring;
+            skipTagLbl.textContent = currentSkipTag.label;
+          }
+        }
+
         const bCard = document.getElementById("blindCard");
         if (currentBlind.isBoss) bCard.classList.add("boss");
         else bCard.classList.remove("boss");
@@ -3475,9 +4681,11 @@
     }
 
     // -------------------------------------------------------------------------
-    // 7. Shop & Booster Pack Engine
+    // 7. Shop, Vouchers & Interactive Booster Pack Engine
     // -------------------------------------------------------------------------
     let rerollCost = 5;
+    let currentShopItems = [];
+    let currentPackChoices = [];
 
     function openShop() {
       document.getElementById("shopCashVal").textContent = `$${money}`;
@@ -3493,121 +4701,281 @@
     function populateShopItems() {
       const cardShelf = document.getElementById("shopCardItems");
       cardShelf.innerHTML = "";
+      currentShopItems = [];
 
-      for (let i = 0; i < 2; i++) {
-        const isJoker = Math.random() < 0.6;
+      const totalSlots = shopCardSlots + (vouchers["overstock"] ? 1 : 0);
+      const hasGoneExtinctGros = !jokers.some(j => j.id === "gros_michel");
+
+      for (let i = 0; i < totalSlots; i++) {
+        const roll = Math.random();
         let item;
-        if (isJoker) {
-          const j = JOKER_CATALOG[Math.floor(Math.random() * JOKER_CATALOG.length)];
-          item = { type: "joker", ...j };
-        } else {
+        if (roll < 0.55) {
+          const pool = JOKER_CATALOG.filter(j => j.rarity !== "legendary" && (j.id !== "cavendish" || hasGoneExtinctGros));
+          const j = pool[Math.floor(Math.random() * pool.length)] || JOKER_CATALOG[0];
+          const edRoll = Math.random();
+          const edition = edRoll < 0.04 ? "polychrome" : (edRoll < 0.10 ? "holographic" : (edRoll < 0.18 ? "foil" : "none"));
+          const extraCost = edition === "polychrome" ? 4 : (edition !== "none" ? 2 : 0);
+          item = { ...j, shopType: "joker", edition, cost: j.cost + extraCost };
+        } else if (roll < 0.80) {
           const t = TAROT_CATALOG[Math.floor(Math.random() * TAROT_CATALOG.length)];
-          item = { type: "tarot", cost: 3, ...t };
+          item = { ...t, shopType: "tarot", type: "tarot", cost: 3 };
+        } else {
+          const p = PLANET_CATALOG[Math.floor(Math.random() * PLANET_CATALOG.length)];
+          item = { ...p, shopType: "planet", type: "planet", cost: 3 };
         }
+
+        currentShopItems.push(item);
 
         const el = document.createElement("div");
         el.className = "shop-item-card";
+        const edTag = (item.edition && item.edition !== "none") ? ` <span style="color:var(--neon-pink); font-size:0.65rem;">[${item.edition.toUpperCase()}]</span>` : "";
         el.innerHTML = `
-          <div style="font-size:2rem;">${item.icon}</div>
-          <b style="font-size:0.85rem; color:#f8fafc;">${item.name}</b>
+          <div style="font-size:1.95rem;">${item.icon}</div>
+          <b style="font-size:0.82rem; color:#f8fafc;">${item.name}${edTag}</b>
           <div class="shop-item-desc">${item.desc}</div>
           <button class="btn-buy" onclick="buyShopItem(${i})" ${money < item.cost ? "disabled" : ""}>
             BUY $${item.cost}
           </button>
         `;
-        el.dataset.itemJson = JSON.stringify(item);
         cardShelf.appendChild(el);
       }
 
       const boosterShelf = document.getElementById("shopBoosterItems");
       boosterShelf.innerHTML = `
         <div class="shop-item-card">
-          <div style="font-size:2rem;">📦🃏</div>
+          <div style="font-size:1.85rem;">📦🃏</div>
           <b>Buffoon Pack</b>
-          <div class="shop-item-desc">Choose 1 of 2 Joker cards to add to your deck</div>
-          <button class="btn-buy" onclick="buyBooster('buffoon', 4)" ${money < 4 ? "disabled" : ""}>BUY $4</button>
+          <div class="shop-item-desc">Choose 1 of 3 Joker cards to add to your tray</div>
+          <button class="btn-buy" onclick="buyBooster('buffoon', 4)" ${money < 4 ? "disabled" : ""}>OPEN $4</button>
         </div>
         <div class="shop-item-card">
-          <div style="font-size:2rem;">📦🪐</div>
+          <div style="font-size:1.85rem;">📦🪐</div>
           <b>Celestial Pack</b>
           <div class="shop-item-desc">Choose 1 of 3 Planet cards to level up your hands</div>
-          <button class="btn-buy" onclick="buyBooster('celestial', 4)" ${money < 4 ? "disabled" : ""}>BUY $4</button>
+          <button class="btn-buy" onclick="buyBooster('celestial', 4)" ${money < 4 ? "disabled" : ""}>OPEN $4</button>
+        </div>
+        <div class="shop-item-card">
+          <div style="font-size:1.85rem;">📦🔮</div>
+          <b>Arcana Pack</b>
+          <div class="shop-item-desc">Choose 1 of 3 Tarot cards for your consumables</div>
+          <button class="btn-buy" onclick="buyBooster('arcana', 4)" ${money < 4 ? "disabled" : ""}>OPEN $4</button>
+        </div>
+        <div class="shop-item-card">
+          <div style="font-size:1.85rem;">📦👻</div>
+          <b>Spectral Pack</b>
+          <div class="shop-item-desc">Choose 1 of 2 rare Spectral cards with Seals & Editions</div>
+          <button class="btn-buy" onclick="buyBooster('spectral', 6)" ${money < 6 ? "disabled" : ""}>OPEN $6</button>
         </div>
       `;
 
       const voucherShelf = document.getElementById("shopVoucherItems");
-      voucherShelf.innerHTML = `
-        <div class="shop-item-card" style="width:220px;">
-          <div style="font-size:2rem;">🎫</div>
-          <b>Overstock Voucher</b>
-          <div class="shop-item-desc">+1 Card slot available in the shop permanently</div>
-          <button class="btn-buy" onclick="buyVoucher('overstock', 10)" ${money < 10 ? "disabled" : ""}>BUY $10</button>
-        </div>
-      `;
+      const availVouchers = VOUCHER_CATALOG.filter(v => !vouchers[v.id]);
+      if (availVouchers.length === 0) {
+        voucherShelf.innerHTML = `<div style="color:#94a3b8; font-size:0.8rem;">All Run Vouchers unlocked!</div>`;
+      } else {
+        const vPick = availVouchers[ante % availVouchers.length] || availVouchers[0];
+        voucherShelf.innerHTML = `
+          <div class="shop-item-card" style="width:220px;">
+            <div style="font-size:1.95rem;">${vPick.icon}</div>
+            <b>${vPick.name} Voucher</b>
+            <div class="shop-item-desc">${vPick.desc}</div>
+            <button class="btn-buy" onclick="buyVoucher('${vPick.id}', ${vPick.cost})" ${money < vPick.cost ? "disabled" : ""}>REDEEM $${vPick.cost}</button>
+          </div>
+        `;
+      }
+    }
+
+    function refreshShopButtons() {
+      document.getElementById("shopCashVal").textContent = `$${money}`;
+      document.getElementById("shopRerollCost").textContent = `$${rerollCost}`;
+      document.querySelectorAll("#shopCardItems .shop-item-card").forEach((cardEl, idx) => {
+        const item = currentShopItems[idx];
+        const btn = cardEl.querySelector(".btn-buy");
+        if (btn && item && !item.sold) {
+          btn.disabled = money < item.cost;
+        }
+      });
     }
 
     function buyShopItem(index) {
-      const items = document.querySelectorAll("#shopCardItems .shop-item-card");
-      const cardEl = items[index];
-      if (!cardEl) return;
-      const item = JSON.parse(cardEl.dataset.itemJson);
+      const item = currentShopItems[index];
+      if (!item || item.sold || money < item.cost) return;
 
-      if (money < item.cost) return;
-
-      if (item.type === "joker") {
-        if (jokers.length >= 5) {
-          alert("Joker slots full! (Max 5)");
+      if (item.shopType === "joker") {
+        if (jokers.length >= maxJokers) {
+          AudioEngine.playNopeBuzzer();
+          showToast(`⚠️ Joker slots full! (Max ${maxJokers}) — Sell a Joker first.`, "var(--neon-red)");
           return;
         }
         money -= item.cost;
-        jokers.push({ ...item, uid: Date.now() });
+        jokers.push(instantiateJoker(item, item.edition));
         AudioEngine.playCashKaching();
+        showToast(`🃏 Purchased ${item.name}!`, "var(--neon-cyan)");
       } else {
-        if (consumables.length >= 2) {
-          alert("Consumable slots full! (Max 2)");
+        if (consumables.length >= maxConsumables) {
+          AudioEngine.playNopeBuzzer();
+          showToast(`⚠️ Consumable slots full! (Max ${maxConsumables})`, "var(--neon-red)");
           return;
         }
         money -= item.cost;
-        consumables.push({ ...item, uid: Date.now() });
+        consumables.push({ ...item, uid: Date.now() + Math.random() });
         AudioEngine.playCashKaching();
+        showToast(`🔮 Purchased ${item.name}!`, "var(--neon-purple)");
       }
 
-      cardEl.remove();
-      document.getElementById("shopCashVal").textContent = `$${money}`;
+      item.sold = true;
+      const items = document.querySelectorAll("#shopCardItems .shop-item-card");
+      if (items[index]) {
+        const btn = items[index].querySelector(".btn-buy");
+        if (btn) {
+          btn.textContent = "SOLD";
+          btn.disabled = true;
+        }
+      }
+      refreshShopButtons();
       renderJokers();
       renderConsumables();
       updateHUD();
+      updateScorePreview();
     }
 
     function buyBooster(type, cost) {
       if (money < cost) return;
       money -= cost;
       AudioEngine.playCashKaching();
+      refreshShopButtons();
+      updateHUD();
 
-      if (type === "buffoon" && jokers.length < 5) {
-        const j = JOKER_CATALOG[Math.floor(Math.random() * JOKER_CATALOG.length)];
-        jokers.push({ ...j, uid: Date.now() });
-        alert(`🎉 Unpacked Joker: ${j.name}!`);
+      currentPackChoices = [];
+      const container = document.getElementById("packChoicesContainer");
+      container.innerHTML = "";
+      const titleEl = document.getElementById("packModalTitle");
+      const subEl = document.getElementById("packModalSubtitle");
+
+      if (type === "buffoon") {
+        titleEl.textContent = "📦🃏 BUFFOON PACK";
+        subEl.textContent = "Choose 1 Joker to add to your Joker Tray:";
+        const shuffled = shuffle(JOKER_CATALOG.filter(j => j.rarity !== "legendary")).slice(0, 3);
+        shuffled.forEach((j, idx) => {
+          const ed = Math.random() < 0.15 ? "foil" : "none";
+          currentPackChoices.push({ packType: "joker", data: j, edition: ed });
+        });
       } else if (type === "celestial") {
-        const keys = Object.keys(POKER_HANDS);
-        const randHand = keys[Math.floor(Math.random() * keys.length)];
-        handLevels[randHand] = (handLevels[randHand] || 1) + 1;
-        alert(`🌌 Celestial Upgrade! ${randHand} upgraded to Lv. ${handLevels[randHand]}!`);
+        titleEl.textContent = "📦🪐 CELESTIAL PACK";
+        subEl.textContent = "Choose 1 Planet card to immediately upgrade that Poker Hand:";
+        const shuffled = shuffle(PLANET_CATALOG).slice(0, 3);
+        shuffled.forEach(p => {
+          currentPackChoices.push({ packType: "planet", data: p });
+        });
+      } else if (type === "arcana") {
+        titleEl.textContent = "📦🔮 ARCANA PACK";
+        subEl.textContent = "Choose 1 Tarot card to add to your Consumable Tray:";
+        const shuffled = shuffle(TAROT_CATALOG).slice(0, 3);
+        shuffled.forEach(t => {
+          currentPackChoices.push({ packType: "tarot", data: t });
+        });
+      } else if (type === "spectral") {
+        titleEl.textContent = "📦👻 SPECTRAL PACK";
+        subEl.textContent = "Choose 1 rare Spectral card to claim:";
+        const shuffled = shuffle(SPECTRAL_CATALOG).slice(0, 2);
+        shuffled.forEach(s => {
+          currentPackChoices.push({ packType: "spectral", data: s });
+        });
       }
 
-      document.getElementById("shopCashVal").textContent = `$${money}`;
-      renderJokers();
-      updateHUD();
-      populateShopItems();
+      currentPackChoices.forEach((choice, idx) => {
+        const item = choice.data;
+        const card = document.createElement("div");
+        card.className = "shop-item-card";
+        const edLabel = choice.edition && choice.edition !== "none" ? ` [${choice.edition.toUpperCase()}]` : "";
+        card.innerHTML = `
+          <div style="font-size:2.1rem;">${item.icon}</div>
+          <b style="font-size:0.86rem; color:#f8fafc;">${item.name}${edLabel}</b>
+          <div class="shop-item-desc">${item.desc}</div>
+          <button class="btn-buy" onclick="claimPackChoice(${idx})">CLAIM</button>
+        `;
+        container.appendChild(card);
+      });
+
+      document.getElementById("packModal").style.display = "flex";
     }
 
-    function buyVoucher(name, cost) {
-      if (money < cost) return;
-      money -= cost;
-      AudioEngine.playVictoryFanfare();
-      alert(`🎫 Overstock Voucher activated!`);
-      document.getElementById("shopCashVal").textContent = `$${money}`;
+    function claimPackChoice(index) {
+      const choice = currentPackChoices[index];
+      if (!choice) return;
+      const item = choice.data;
+
+      if (choice.packType === "joker") {
+        if (jokers.length >= maxJokers) {
+          AudioEngine.playNopeBuzzer();
+          showToast(`⚠️ Joker slots full! (Max ${maxJokers})`, "var(--neon-red)");
+          return;
+        }
+        jokers.push(instantiateJoker(item, choice.edition));
+        AudioEngine.playVictoryFanfare();
+        showToast(`🃏 Claimed ${item.name}!`, "var(--neon-cyan)");
+      } else if (choice.packType === "planet") {
+        handLevels[item.planetHand] = (handLevels[item.planetHand] || 1) + 1;
+        lastUsedConsumable = { ...item, type: "planet" };
+        AudioEngine.playVictoryFanfare();
+        showToast(`🪐 ${item.planetHand} upgraded to Lv. ${handLevels[item.planetHand]}!`, "var(--neon-cyan)");
+      } else if (choice.packType === "tarot" || choice.packType === "spectral") {
+        if (choice.packType === "spectral" && item.id === "spec_black_hole") {
+          for (const h in POKER_HANDS) handLevels[h] = (handLevels[h] || 1) + 1;
+          AudioEngine.playVictoryFanfare();
+          showToast("🕳️ BLACK HOLE: All Poker Hands upgraded by +1 Level!", "var(--neon-pink)");
+        } else if (choice.packType === "spectral" && item.id === "spec_the_soul") {
+          const trib = JOKER_CATALOG.find(j => j.id === "triboulet") || JOKER_CATALOG[0];
+          if (jokers.length < maxJokers) {
+            jokers.push(instantiateJoker(trib, "polychrome"));
+            AudioEngine.playVictoryFanfare();
+            showToast("💎 Summoned Legendary Polychrome Triboulet!", "var(--neon-gold)");
+          } else {
+            showToast("⚠️ Joker slots full!", "var(--neon-red)");
+            return;
+          }
+        } else {
+          if (consumables.length >= maxConsumables) {
+            AudioEngine.playNopeBuzzer();
+            showToast(`⚠️ Consumable slots full! (Max ${maxConsumables})`, "var(--neon-red)");
+            return;
+          }
+          consumables.push({ ...item, type: choice.packType, uid: Date.now() + Math.random() });
+          AudioEngine.playVictoryFanfare();
+          showToast(`🔮 Added ${item.name} to Consumables!`, "var(--neon-purple)");
+        }
+      }
+
+      closePackModal();
+      renderJokers();
+      renderConsumables();
       updateHUD();
+      updateScorePreview();
+    }
+
+    function closePackModal() {
+      document.getElementById("packModal").style.display = "none";
+    }
+
+    function buyVoucher(id, cost) {
+      if (money < cost || vouchers[id]) return;
+      money -= cost;
+      vouchers[id] = true;
+
+      if (id === "crystal_ball") maxConsumables += 1;
+      if (id === "antimatter") maxJokers += 1;
+      if (id === "seed_money") interestCap = 10;
+      if (id === "grabber") handsLeft += 1;
+      if (id === "wasteful") discardsLeft += 1;
+
+      AudioEngine.playVictoryFanfare();
+      const vDef = VOUCHER_CATALOG.find(v => v.id === id);
+      showToast(`🎫 Redeemed ${vDef ? vDef.name : id} Voucher!`, "var(--neon-gold)");
+      renderJokers();
+      renderConsumables();
+      updateHUD();
+      populateShopItems();
+      refreshShopButtons();
     }
 
     document.getElementById("btnShopReroll").addEventListener("click", () => {
@@ -3615,9 +4983,8 @@
       money -= rerollCost;
       rerollCost += 1;
       AudioEngine.playCardSelect(1);
-      document.getElementById("shopCashVal").textContent = `$${money}`;
-      document.getElementById("shopRerollCost").textContent = `$${rerollCost}`;
       populateShopItems();
+      refreshShopButtons();
       updateHUD();
     });
 
@@ -3627,7 +4994,7 @@
       if (blindIndex > 2) {
         blindIndex = 0;
         ante++;
-        if (ante > 8) {
+        if (ante === 9) {
           triggerVictory();
           return;
         }
@@ -3638,16 +5005,56 @@
     }
 
     // -------------------------------------------------------------------------
-    // 8. Modals: Deck View, Hall of Fame, Game Over
+    // 8. Modals: Run Info, Deck View, Hall of Fame, Game Over & Endless Mode
     // -------------------------------------------------------------------------
+    function openRunInfoModal() {
+      const grid = document.getElementById("handsRefGrid");
+      grid.innerHTML = "";
+
+      const activeVoucherNames = VOUCHER_CATALOG.filter(v => vouchers[v.id]).map(v => `${v.icon} ${v.name}`);
+      const vBadge = document.getElementById("runVouchersBadge");
+      if (vBadge) {
+        vBadge.textContent = `Active Vouchers: ${activeVoucherNames.length > 0 ? activeVoucherNames.join(", ") : "None"}`;
+      }
+
+      Object.entries(POKER_HANDS).forEach(([handName, cfg]) => {
+        const lvl = handLevels[handName] || 1;
+        const c = cfg.baseChips + (lvl - 1) * cfg.chipPerLvl;
+        const m = cfg.baseMult + (lvl - 1) * cfg.multPerLvl;
+        const played = handUsage[handName] || 0;
+
+        const row = document.createElement("div");
+        row.className = "hand-ref-row";
+        row.innerHTML = `
+          <div>
+            <b style="color:#f8fafc;">${handName}</b>
+            <div style="font-size:0.65rem; color:var(--neon-cyan);">Lv. ${lvl} • Played: ${played}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.35rem;">
+            <span style="background:rgba(59,130,246,0.28); border:1px solid #3b82f6; color:#93c5fd; padding:2px 6px; border-radius:6px; font-weight:800;">${c}</span>
+            <span>×</span>
+            <span style="background:rgba(239,68,68,0.28); border:1px solid #ef4444; color:#fca5a5; padding:2px 6px; border-radius:6px; font-weight:800;">${m}</span>
+          </div>
+        `;
+        grid.appendChild(row);
+      });
+
+      document.getElementById("runInfoModal").style.display = "flex";
+    }
+
+    function closeRunInfoModal() {
+      document.getElementById("runInfoModal").style.display = "none";
+    }
+
     function openDeckModal() {
       const container = document.getElementById("deckGridContainer");
       container.innerHTML = "";
-      document.getElementById("deckTotalCards").textContent = deck.length + playerHand.length;
+      document.getElementById("deckTotalCards").textContent = runDeck.length;
+      const drawCountEl = document.getElementById("drawPileCount");
+      if (drawCountEl) drawCountEl.textContent = deck.length;
 
       let sp = 0, he = 0, cl = 0, di = 0;
-      const allCards = deck.concat(playerHand);
-      allCards.forEach(c => {
+      runDeck.forEach(c => {
         if (c.suit === "spades") sp++;
         else if (c.suit === "hearts") he++;
         else if (c.suit === "clubs") cl++;
@@ -3659,13 +5066,13 @@
       document.getElementById("diamondCount").textContent = di;
 
       const suitOrder = { spades: 0, hearts: 1, clubs: 2, diamonds: 3 };
-      allCards.slice().sort((a, b) => {
+      runDeck.slice().sort((a, b) => {
         if (suitOrder[a.suit] !== suitOrder[b.suit]) {
           return suitOrder[a.suit] - suitOrder[b.suit];
         }
         return b.rank.order - a.rank.order;
       }).forEach(c => {
-        const cardCopy = { ...c, isFaceDown: false };
+        const cardCopy = { ...c, isFaceDown: false, debuffed: checkCardDebuff(c) };
         const el = createCardElement(cardCopy, false);
         container.appendChild(el);
       });
@@ -3730,6 +5137,8 @@
       document.getElementById("endSubtitle").textContent = `Failed to beat ${currentBlind.target.toLocaleString()} on ${currentBlind.name}.`;
       document.getElementById("endAnte").textContent = `Ante ${ante}`;
       document.getElementById("endHighestScore").textContent = highestHandScore.toLocaleString();
+      const endlessBtn = document.getElementById("btnEndlessMode");
+      if (endlessBtn) endlessBtn.style.display = "none";
 
       let fav = "High Card", maxVal = 0;
       for (const h in handUsage) {
@@ -3747,10 +5156,20 @@
       document.getElementById("endSubtitle").textContent = "You beat the Final Boss Blind and became the Joker Royale Champion!";
       document.getElementById("endAnte").textContent = "Ante 8 Completed";
       document.getElementById("endHighestScore").textContent = highestHandScore.toLocaleString();
+      const endlessBtn = document.getElementById("btnEndlessMode");
+      if (endlessBtn) endlessBtn.style.display = "flex";
       saveScore(highestHandScore, 8);
       FxEngine.spawnConfetti(120);
 
       document.getElementById("gameOverModal").style.display = "flex";
+    }
+
+    function continueEndlessMode() {
+      document.getElementById("gameOverModal").style.display = "none";
+      round++;
+      rerollCost = 5;
+      setupBlind();
+      showToast(`♾️ Entered Endless Mode — Ante ${ante}!`, "var(--neon-cyan)");
     }
 
     function startNewRun() {
@@ -3762,8 +5181,14 @@
     // 9. Keyboard Shortcuts & Event Listeners
     // -------------------------------------------------------------------------
     window.addEventListener("keydown", (e) => {
+      if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "SELECT")) return;
       const k = (e.key || "").toLowerCase();
-      if (k === " " || k === "enter") {
+      if (k >= "1" && k <= "8") {
+        const idx = parseInt(k, 10) - 1;
+        if (!isScoring && idx < playerHand.length) {
+          toggleCardSelection(idx);
+        }
+      } else if (k === " " || k === "enter") {
         e.preventDefault();
         playSelectedHand();
       } else if (k === "d") {
@@ -3780,8 +5205,14 @@
         selectedIndices = [];
         renderPlayerHand();
         updateScorePreview();
+      } else if (k === "i") {
+        openRunInfoModal();
       } else if (k === "m") {
         cycleMusic();
+      } else if (k === "escape") {
+        closeDeckModal();
+        closeHofModal();
+        closeRunInfoModal();
       }
     });
 
@@ -3789,9 +5220,17 @@
     document.getElementById("btnDiscard").addEventListener("click", discardSelectedCards);
     document.getElementById("btnDeselectAll").addEventListener("click", deselectAllCards);
     document.getElementById("btnDeckView").addEventListener("click", openDeckModal);
+    document.getElementById("btnRunInfo").addEventListener("click", openRunInfoModal);
+    document.getElementById("btnSkipBlind").addEventListener("click", skipCurrentBlind);
     document.getElementById("btnHof").addEventListener("click", openHofModal);
     document.getElementById("btnNewRun").addEventListener("click", () => {
-      if (confirm("Restart current run?")) initRun();
+      initRun();
+      showToast("🔄 Started a fresh run!", "var(--neon-cyan)");
+    });
+    document.getElementById("deckTypeSelect").addEventListener("change", () => {
+      initRun();
+      const sel = document.getElementById("deckTypeSelect");
+      showToast(`🃏 Switched to ${sel.options[sel.selectedIndex].text}!`, "var(--neon-gold)");
     });
 
     document.getElementById("btnSortRank").addEventListener("click", () => {
@@ -3831,11 +5270,20 @@
     window.nextRoundFromShop = nextRoundFromShop;
     window.closeDeckModal = closeDeckModal;
     window.closeHofModal = closeHofModal;
+    window.openRunInfoModal = openRunInfoModal;
+    window.closeRunInfoModal = closeRunInfoModal;
+    window.closePackModal = closePackModal;
+    window.claimPackChoice = claimPackChoice;
+    window.continueEndlessMode = continueEndlessMode;
     window.startNewRun = startNewRun;
     window.buyShopItem = buyShopItem;
     window.buyBooster = buyBooster;
     window.buyVoucher = buyVoucher;
     window.useConsumable = useConsumable;
+    window.sellConsumable = sellConsumable;
+    window.moveJoker = moveJoker;
+    window.sellJoker = sellJoker;
+    window.skipCurrentBlind = skipCurrentBlind;
 
     // Initial startup: check document.readyState so it runs even if DOMContentLoaded already fired
     if (document.readyState === "loading") {

@@ -239,7 +239,7 @@ export function scanCss(line, state) {
   return finish();
 }
 
-/** One piece of a CSS value starting at `i`: a number with its unit, a colour, a function name, !important, or a character. */
+/** One piece of a CSS value starting at `i`: a number with its unit, a color, a function name, !important, or a character. */
 function cssValue(line, i, out) {
   const n = line.length;
   const c = line[i];

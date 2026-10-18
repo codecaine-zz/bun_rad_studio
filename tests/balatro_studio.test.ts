@@ -81,4 +81,58 @@ describe("🃏 Joker Royale — Balatro Deluxe Roguelike Poker Studio Suite", ()
     expect(found?.category).toBe("Games & Entertainment");
     expect(found?.description).toContain("Jokers");
   });
+
+  it("6. Embedded scripts parse cleanly and include full Balatro Deluxe catalogs, persistent deck, FX, and modals", () => {
+    const dir = getBalatroAssetsDir();
+    const html = readFileSync(join(dir, "index.html"), "utf8");
+
+    // Extract all inline <script> blocks and ensure every block has valid JavaScript syntax
+    const scriptMatches = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+    expect(scriptMatches.length).toBeGreaterThanOrEqual(2);
+    for (const match of scriptMatches) {
+      expect(() => new Function(match[1])).not.toThrow();
+    }
+
+    // Verify expanded catalogs and core systems
+    expect(html).toContain("PLANET_CATALOG");
+    expect(html).toContain("SPECTRAL_CATALOG");
+    expect(html).toContain("VOUCHER_CATALOG");
+    expect(html).toContain("SKIP_TAGS");
+    expect(html).toContain("selectedDeckType");
+    expect(html).toContain("runDeck");
+    expect(html).toContain("instantiateJoker");
+    expect(html).toContain("buyBooster");
+    expect(html).toContain("openRunInfoModal");
+
+    // Verify fixed FxEngine particle and popup methods
+    expect(html).toContain("spawnGlassShatter");
+    expect(html).toContain("spawnCoinShower");
+    expect(html).toContain("spawnLuckyStars");
+    expect(html).toContain("spawnFloatingPopup");
+
+    // Verify iconic Balatro Jokers and secret hands
+    expect(html).toContain("Flush House");
+    expect(html).toContain("Flush Five");
+    expect(html).toContain('id: "blueprint"');
+    expect(html).toContain('id: "brainstorm"');
+    expect(html).toContain('id: "baron"');
+    expect(html).toContain('id: "triboulet"');
+    expect(html).toContain('id: "hanging_chad"');
+    expect(html).toContain('id: "four_fingers"');
+    expect(html).toContain('id: "shortcut"');
+
+    // Verify new UI modals, round score progress bar, and modern CSS features
+    expect(html).toContain("roundScoreVal");
+    expect(html).toContain("blindProgressBar");
+    expect(html).toContain("btnSkipBlind");
+    expect(html).toContain("deckTypeSelect");
+    expect(html).toContain("packModal");
+    expect(html).toContain("runInfoModal");
+    expect(html).toContain("btnEndlessMode");
+    expect(html).toContain("--in-oklab");
+    expect(html).toContain("isolation: isolate");
+    expect(html).toContain("text-wrap: balance");
+    expect(html).toContain("text-wrap: pretty");
+  });
 });
+

@@ -170,7 +170,7 @@ describe("macOS apps", () => {
     for (const id of Object.keys(DESIGNS)) expect(ids.has(id), `${id} is not an app`).toBe(true);
     for (const [id, d] of Object.entries(DESIGNS)) expect([d.symbol, d.custom, d.text].filter(Boolean).length, id).toBe(1);
   });
-  test("no two apps share a picture (same symbol and same colours)", () => {
+  test("no two apps share a picture (same symbol and same colors)", () => {
     const seen = new Map<string, string>();
     for (const a of apps) {
       const spec = iconSpecFor({ id: a.id, category: a.category });
@@ -179,7 +179,7 @@ describe("macOS apps", () => {
       seen.set(key, a.id);
     }
   });
-  test("colours are valid, steady, and neighbours in a category differ", () => {
+  test("colors are valid, steady, and neighbours in a category differ", () => {
     for (const a of apps) {
       const spec = iconSpecFor({ id: a.id, category: a.category });
       for (const c of [spec.dark, spec.vivid, spec.glow, spec.tint]) expect(c).toMatch(/^#[0-9a-f]{6}$/);

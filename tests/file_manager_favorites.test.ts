@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, mock, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -53,6 +53,10 @@ const sidebarLabels = () => [...doc.querySelectorAll("#sidebar .side-section")].
 beforeAll(async () => {
   for (const d of [projects, music, join(home, "Docs")]) mkdirSync(d, { recursive: true });
   writeFileSync(join(home, "file.txt"), "x");
+  mock.module("../resources/file_manager/ui/terminal.js", () => ({
+    terminalShell: () => "posix", terminalWsl: () => ({}),
+    terminalAvailable: () => true, typeInTerminal: () => true, showTerminal() {}, hideTerminal() {}, toggleTerminal() {}, isTerminalOpen: () => false, wireTerminal() {},
+  }));
   server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir: join(root, "data") } });
   const base = `http://127.0.0.1:${server.port}`;
   const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8").replace(/__FM_TOKEN__/g, "ui-token").replace(/__FM_PLATFORM__/g, process.platform === "darwin" ? "darwin" : "linux").replace(/__FM_NONCE__/g, "n").replace(/__FM_START__/g, "");

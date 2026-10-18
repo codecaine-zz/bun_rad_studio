@@ -10,7 +10,7 @@ export const encodingName = (id) => ENCODING_NAMES[id] ?? id;
 export function createStatus({ onLanguage, onEol, onIndent, onEncoding, onPosition, onAutosave }) {
   const part = (cls, tip, click) => h(click ? "button" : "span", { class: `code-st ${cls}`, type: click ? "button" : undefined, title: tip, onclick: click });
   const pos = part("code-st-pos", "Where the cursor is. Click to go to a line (Ctrl/Cmd+G).", onPosition);
-  const lang = part("code-st-lang", "The kind of file, used for colours and comments. Click to change it.", onLanguage);
+  const lang = part("code-st-lang", "The kind of file, used for colors and comments. Click to change it.", onLanguage);
   const eol = part("code-st-eol", "How lines end in this file: LF (Mac, Linux) or CRLF (Windows). Click to change it.", onEol);
   const indent = part("code-st-indent", "How indentation is done. Click to change it.", onIndent);
   const enc = part("code-st-enc", "The text encoding of the file. Click to reopen or save it in another one.", onEncoding);

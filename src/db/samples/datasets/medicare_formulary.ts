@@ -2,7 +2,7 @@
  * Medicare Part D formulary builder (flagship sample).
  *
  * SYNTHETIC. Plan, contract, member and pharmacy identifiers, prices, rules and utilization are generated. The drug names are real
- * generic and brand names used only as a realistic catalogue; tiers, coverage rules and costs are invented and do NOT describe any
+ * generic and brand names used only as a realistic catalog; tiers, coverage rules and costs are invented and do NOT describe any
  * real plan, formulary or CMS file. The table layouts follow the spirit of the CMS Part D formulary, plan information, beneficiary
  * cost and pharmacy network files so tooling can be tried against realistic shapes.
  */
@@ -12,7 +12,7 @@ import { CITIES } from "../words";
 
 const ASOF = "2025-06-30";
 
-// ---------------------------------------------------------------------------------------------- drug catalogue
+// ---------------------------------------------------------------------------------------------- drug catalog
 const CATEGORIES: Record<string, string> = {
   AN: "Analgesics", AX: "Antianxiety Agents", AC: "Anticonvulsants", AD: "Antidementia Agents", DP: "Antidepressants", AP: "Antipsychotics",
   BG: "Blood Glucose Regulators", CV: "Cardiovascular Agents", BM: "Blood Products and Modifiers", AB: "Antibacterials", AV: "Antivirals",
@@ -418,10 +418,10 @@ export default dataset({
   tagline: "Formulary versions, tiers, utilization management, cost sharing, pharmacy networks and CMS-style export staging.",
   description:
     "A formulary-management system for a Medicare Part D sponsor: plan years and contracts, plans (H0000-001 style ids), formularies with a draft / in review / approved / published workflow, " +
-    "a drug catalogue of about 450 clinical drug concepts (generic and brand names, RxNorm-style RXCUI ids, NDC-style product codes, USP-style categories and classes, DEA schedules), " +
+    "a drug catalog of about 450 clinical drug concepts (generic and brand names, RxNorm-style RXCUI ids, NDC-style product codes, USP-style categories and classes, DEA schedules), " +
     "six tiers with cost sharing by benefit phase, pharmacy channel and days supply (legacy coverage-gap model for 2024 and the current out-of-pocket-cap model for 2025+), " +
     "prior authorization, step-therapy groups, quantity and age/gender limits, B-vs-D rules, pharmacy networks, claims, exceptions and appeals, a change log and audit trail, and staging tables in the spirit of the CMS formulary, plan information and beneficiary cost file layouts. " +
-    "SYNTHETIC DATA: real drug names are used only as a catalogue; plan, contract, member and pharmacy ids, prices, rules and utilization are generated and are not CMS data.",
+    "SYNTHETIC DATA: real drug names are used only as a catalog; plan, contract, member and pharmacy ids, prices, rules and utilization are generated and are not CMS data.",
   tags: ["Healthcare", "Pharmacy", "Medicare", "Flagship"],
   asOf: ASOF,
   highlights: ["version workflow + status triggers", "immutable published versions", "tier-change report (LAG)", "step-therapy chains", "CMS-style staging tables", "materialized view (PostgreSQL)"],
@@ -474,7 +474,7 @@ export default dataset({
     table("app_user", "Staff who build, review and approve formularies.", [
       "id id", "username str(40) uq", "full_name str(80)", "email str(120) uq", "role enum(pharmacist,clinical_reviewer,pt_committee,formulary_analyst,compliance,admin)", "is_active bool def:true", "created_at ts def:now",
     ], { n: 24, gen: (g, i) => { const f = g.first(), l = g.last(); return { username: `${f}.${l}${i}`.toLowerCase(), full_name: `${f} ${l}`, email: `${f}.${l}${i}@formulary.example`.toLowerCase(), role: i === 1 ? "admin" : g.w([["pharmacist", 5], ["clinical_reviewer", 4], ["pt_committee", 4], ["formulary_analyst", 6], ["compliance", 3]] as const), is_active: g.bool(0.92), created_at: g.ts(g.date("2020-01-01", "2024-06-01")) }; } }),
-    table("sponsor", "Part D plan sponsors (parent organisations).", ["id id", "name str(80) uq", "sponsor_code char(4) uq", "headquarters_state char(2)", "created_at ts def:now"], {
+    table("sponsor", "Part D plan sponsors (parent organizations).", ["id id", "name str(80) uq", "sponsor_code char(4) uq", "headquarters_state char(2)", "created_at ts def:now"], {
       n: by([3, 5, 8]), gen: (g, i) => ({ name: SPONSORS[i - 1]!, sponsor_code: `SP${String(i).padStart(2, "0")}`, headquarters_state: g.pick(CITIES)[1], created_at: g.ts("2015-01-01") }),
     }),
     table("contract", "CMS-style contracts (H = MA-PD, S = stand-alone PDP); ids are fictional.", [

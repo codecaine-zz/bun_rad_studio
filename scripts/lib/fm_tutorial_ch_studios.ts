@@ -50,8 +50,54 @@ async function choosePreset(d: Do, id: string, name: string) {
   await d.wait(1600);
 }
 
-/** Chapters after the toolbox: one-click conversions, the Image and Media Studios, presets for many files, and Recent. */
+/** Chapters after the toolbox: Home & Split views, Clock/Calendar/Timestamps, CLI utilities, one-click conversions, Image and Media Studios, presets, Recent, Media Deck, Paint Studio & Arcade Games. */
 export const studios: Chapter[] = [
+  {
+    id: "21a_home_split_clock_cli", chapter: "HOME, SPLIT, CLOCK & CLI", title: "Home view, Split view, Calendar & World Clocks, and CLI Utilities", blurb: "Start page tiles, tools beside your files, interactive calendar and epoch converter, and built-in command-line utilities",
+    path: "<HOME>/Projects/shop-app",
+    steps: [
+      {
+        cap: "Home view & Split view",
+        say: "Before we look at the media studios, let's check two more views in the top bar. Home is a friendly start page with tiles for your recent folders, favorite databases, and every tool in the suite. And Split puts any tool right beside your file list, so you can search, hash, or inspect while you browse.",
+        act: async (d) => {
+          await d.click("#view-home", { pause: 1800 });
+          await d.hover("#home", 1800).catch(() => {});
+          await d.click("#view-split", { pause: 1800 });
+          await d.hover("#power-panel", 1400);
+          await d.click("#view-files", { pause: 1000 });
+        },
+      },
+      {
+        cap: "Clock, Calendar, World Clocks & Unix Epoch Converter",
+        say: "Click the clock in the status bar, or right-click the top clock, for date and timestamp tools. You can copy ISO or filename-safe timestamps, create a folder or Markdown note named with today's date, or open the interactive Calendar, World Clocks, and Unix Epoch Converter.",
+        act: async (d) => {
+          await d.click("#status-clock", { pause: 1100 });
+          await d.hover(".menu", 1000);
+          await d.menu("Calendar, World Clocks & Timestamps", { pause: 1500 });
+          await d.hover(".cal-table", 1100).catch(() => {});
+          await d.hover("#cal-world-grid", 1100).catch(() => {});
+          await d.click("#cal-epoch-result button", { pause: 1000 }).catch(() => {});
+          await d.key("Escape", "Esc");
+          await d.wait(500);
+        },
+      },
+      {
+        cap: "Tool filter & Built-in RAD Studio CLI Utilities",
+        say: "In the Tools view, the filter box at the top finds any tool as you type, and Compact or Expand gives the active tool the whole window. Let's open C L I Utilities. Every Bun R A D Studio command-line utility is ready to run in the built-in terminal with a single click.",
+        act: async (d) => {
+          await d.click("#view-tools", { pause: 900 });
+          await d.click("#power-filter", { pause: 400 });
+          await d.type("cli", 90);
+          await d.wait(800);
+          await d.click("#power-tab-cliutils", { pause: 1400 });
+          await d.click(".cliutil-card button >> 📋 Copy", { pause: 1200 }).catch(() => {});
+          await d.click("#power-filter-clear", { pause: 700 }).catch(() => {});
+          await d.click("#view-files", { pause: 800 });
+        },
+      },
+    ],
+  },
+
   {
     id: "21b_convert_more", chapter: "ONE-CLICK EDITS", title: "One-click picture, video and sound edits", blurb: "Black and white, round pictures, sepia, shapes and more",
     path: "<HOME>/Media",
@@ -114,7 +160,7 @@ export const studios: Chapter[] = [
         act: async (d) => { await rightClick(d, "sunset.jpg", "Edit in Image Studio", 2600); },
       },
       {
-        cap: "Sliders: light, colour, warmth",
+        cap: "Sliders: light, color, warmth",
         say: "Let me make it brighter, and a little warmer. I just click along the sliders. Brightness up. Warmth up. You can see the picture change as I go. If you go too far, double click a slider, and it jumps back to normal.",
         act: async (d) => {
           await nudge(d, "brightness", 60);
@@ -175,7 +221,7 @@ export const studios: Chapter[] = [
       },
       {
         cap: "Speed, volume, fades, picture",
-        say: "Then the rest is just like the Image Studio. Quick recipes along the top, like Vertical for shorts, which makes a tall clip for phones. Then fine tune it with the sliders. Speed. Volume. Fade in, and fade out. For a video, the picture too: brightness, colour, and the shape.",
+        say: "Then the rest is just like the Image Studio. Quick recipes along the top, like Vertical for shorts, which makes a tall clip for phones. Then fine tune it with the sliders. Speed. Volume. Fade in, and fade out. For a video, the picture too: brightness, color, and the shape.",
         act: async (d) => {
           await quick(d, "Vertical for shorts", 2200);
           await nudge(d, "speed", -120);
@@ -208,7 +254,7 @@ export const studios: Chapter[] = [
     steps: [
       {
         cap: "Make a look you like",
-        say: "Here is my favourite time saver. Say I have a folder of holiday photos, and I want them all to look the same. I open the first one in the Image Studio, and make a look I like. Square, for posting. A little warmer. And a little more contrast.",
+        say: "Here is my favorite time saver. Say I have a folder of holiday photos, and I want them all to look the same. I open the first one in the Image Studio, and make a look I like. Square, for posting. A little warmer. And a little more contrast.",
         act: async (d) => {
           await rightClick(d, "IMG_0001", "Edit in Image Studio", 2200);
           await quick(d, "Square post", 1600);
@@ -318,4 +364,36 @@ export const studios: Chapter[] = [
       },
     ],
   },
+
+  {
+    id: "21g_player_paint_games", chapter: "MEDIA DECK, PAINT & GAMES", title: "Media Deck, Paint Studio & 24 Built-in Arcade Games", blurb: "10-band equalizer, 108 visualizers, pixel and vector Paint Studio, and 24 arcade, puzzle and card games",
+    path: "<HOME>/Media",
+    steps: [
+      {
+        cap: "Media Deck: 10-band equalizer, 108 visualizers & playlists",
+        say: "In the Tools panel, Media Deck is a full modular rack player for music and video. It has a digital L E D clock, a hundred and eight real-time spectrum, oscilloscope, and multi-layer visualizers, a ten-band graphic equalizer with preamp and spline curve, M 3 U playlists, synced karaoke lyrics, and sixteen studio skins.",
+        act: async (d) => {
+          await d.click("#view-tools", { pause: 900 });
+          await d.click("#power-tab-player", { pause: 1300 });
+          await d.click(".wa-pill-btn >> 📂 Folder", { pause: 1600 }).catch(() => {});
+          await d.hover(".wa-stage", 1200).catch(() => {});
+          await d.hover(".wa-eq-rack", 1200).catch(() => {});
+          await d.hover(".wa-skin-select", 1000).catch(() => {});
+        },
+      },
+      {
+        cap: "Paint Studio & 24 Built-in Arcade Games",
+        say: "Next to it, Paint Studio gives you a full canvas with brushes, shapes, layers, and filters right inside the File Manager. And when you want a break, the Games tab packs twenty-four built-in arcade, puzzle, card, and word games, from Tetris and Pac-Man to Poker, Blackjack, and Balatro Deluxe, playable here or in their own window.",
+        act: async (d) => {
+          await d.click("#power-tab-paint", { pause: 1800 });
+          await d.hover("#power-body", 1400);
+          await d.click("#power-tab-games", { pause: 1400 });
+          await d.click("#games-view-play", { pause: 2000 }).catch(() => {});
+          await d.click("#games-close-game", { pause: 900 }).catch(() => {});
+          await d.click("#view-files", { pause: 800 });
+        },
+      },
+    ],
+  },
 ];
+

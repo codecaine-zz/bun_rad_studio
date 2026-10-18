@@ -4,14 +4,16 @@
 import { clear, h } from "./dom.js";
 import { ApiError } from "./api.js";
 import { detected, refreshDetect, renderBanner, renderDetectSettings } from "./dbDetect.js";
+import { showCloneDialog } from "./dbClone.js";
+import { showMacrosDialog } from "./dbMacros.js";
 import { renderDetail } from "./dbDetail.js";
-import { showEditor } from "./dbEditor.js";
+import { showEditor, showNewSqliteDialog } from "./dbEditor.js";
 import { showSampleDialog } from "./dbSample.js";
 import { showEnvFileImport, showEnvImport, showPasteUrl } from "./dbImport.js";
 import { renderList } from "./dbList.js";
 import { openShortcut } from "./dbShortcuts.js";
 import { db, loadOverview, profileById } from "./dbState.js";
-import { hideStudios, mountStudioArea, openStudio, openStudios, showStudioById } from "./dbStudio.js";
+import { activeStudioId, hideStudios, mountStudioArea, openStudio, openStudios, setStudioExpanded, showStudioById } from "./dbStudio.js";
 import { showMenu, toast } from "./menus.js";
 import { registerPowerTab } from "./power.js";
 import { on } from "./state.js";
@@ -23,14 +25,22 @@ function mount(root) {
   root.dataset.view = "list";
   let filter = "";
   let visible = false;
+  const syncStudioChrome = () => {
+    if (typeof document !== "undefined") {
+      document.getElementById("app")?.classList.toggle("db-studio-open", visible && root.dataset.view === "studio");
+    }
+  };
 
   const addBtn = h("button", { type: "button", class: "pw-btn primary", "aria-haspopup": "menu", title: "Add a connection: SQLite, MySQL / MariaDB, PostgreSQL or Redis" }, "＋ Add connection");
+  const newSqliteBtn = h("button", { type: "button", class: "pw-btn", title: "Create a brand-new SQLite database file (empty or with starter tables) and optionally open it right away" }, "🪶 New SQLite database…");
+  const cloneBtn = h("button", { type: "button", class: "pw-btn", title: "Clone an entire database or selected tables, views and Redis keys between SQLite, MySQL / MariaDB, PostgreSQL and Redis" }, "🧬 Clone database / tables…");
+  const macrosBtn = h("button", { type: "button", class: "pw-btn", title: "Build and run Microsoft Access-style database macros using the Bun JavaScript runtime (CurrentDb, DoCmd, DLookup, TempVars) or visual action rows" }, "⚡ Macros (Bun JS)…");
   const pasteBtn = h("button", { type: "button", class: "pw-btn", title: "Paste a mysql://, postgres://, redis:// or sqlite: address to fill in the form" }, "Paste address…");
   const envBtn = h("button", { type: "button", class: "pw-btn", title: "Look for connections in this program's environment variables and .env files" }, "Import from environment…");
   const fileBtn = h("button", { type: "button", class: "pw-btn", title: "Import database settings from a .env file you choose" }, "Import .env file…");
   const sampleBtn = h("button", { type: "button", class: "pw-btn", title: "Create a new SQLite file with one of the built-in synthetic sample databases (Medicare formulary builder, hospital, banking and more)" }, "New sample database…");
   const search = h("input", { type: "search", class: "text-input db-filter", placeholder: "Filter connections", "aria-label": "Filter connections by name, folder, tag or server", autocomplete: "off" });
-  const toolbar = h("div", { class: "pw-row db-toolbar", role: "toolbar", "aria-label": "Database connections" }, addBtn, sampleBtn, pasteBtn, envBtn, fileBtn, search);
+  const toolbar = h("div", { class: "pw-row db-toolbar", role: "toolbar", "aria-label": "Database connections" }, addBtn, newSqliteBtn, cloneBtn, macrosBtn, sampleBtn, pasteBtn, envBtn, fileBtn, search);
   const found = h("section", { class: "db-found", "aria-label": "Found in your environment", hidden: true });
   const detectBox = h("div", { class: "db-detect" });
   const strip = h("div", { class: "db-strip", role: "group", "aria-label": "Open studios", hidden: true });
@@ -74,6 +84,29 @@ function mount(root) {
       { anchor: addBtn, label: "Kind of connection to add" },
     );
   });
+  newSqliteBtn.addEventListener("click", async () => {
+    const made = await showNewSqliteDialog();
+    if (!made) return;
+    toast(`Created ${made.path}${made.profile ? " and saved it as a connection." : "."}`, { kind: "info" });
+    if (made.profile) await choose(made.profile);
+    else await loadOverview();
+    if (made.openNow) {
+      if (made.profile) await openStudio({ profileId: made.profile.id });
+      else await openStudio({ engine: "sqlite", path: made.path });
+    }
+  });
+  cloneBtn.addEventListener("click", async () => {
+    const made = await showCloneDialog({ sourceProfileId: db.selectedId ?? undefined });
+    if (!made) return;
+    if (made.createdProfile) await choose(made.createdProfile);
+    else {
+      await loadOverview();
+      renderAll();
+    }
+  });
+  macrosBtn.addEventListener("click", async () => {
+    await showMacrosDialog({ profileId: db.selectedId ?? undefined });
+  });
   pasteBtn.addEventListener("click", async () => choose(await showPasteUrl()));
   sampleBtn.addEventListener("click", async () => {
     const made = await showSampleDialog();
@@ -99,12 +132,23 @@ function mount(root) {
 
   function renderStrip() {
     const open = openStudios();
+    const cur = activeStudioId();
     clear(strip);
+    strip.dataset.count = String(open.length);
     strip.hidden = open.length === 0;
     if (!open.length) return;
     strip.append(
       h("span", { class: "pw-hint" }, `Open studios (${open.filter((s) => s.state !== "crashed").length} of ${db.limits.maxStudios}): `),
-      ...open.map((s) => h("button", { type: "button", class: "pw-btn db-chip", title: `Show ${s.title}`, onclick: () => showStudioById(s.id) }, `${STATE_ICON[s.state] ?? ""} ${s.title}`)),
+      ...open.map((s) => {
+        const isCurrent = s.id === cur;
+        return h("button", {
+          type: "button",
+          class: `pw-btn db-chip${isCurrent ? " active" : ""}`,
+          ...(isCurrent ? { "aria-current": "true" } : {}),
+          title: `Show ${s.title}`,
+          onclick: () => showStudioById(s.id),
+        }, `${STATE_ICON[s.state] ?? ""} ${s.title}`);
+      }),
     );
   }
 
@@ -141,6 +185,7 @@ function mount(root) {
   on("db-view", (d) => {
     root.dataset.view = d.view === "studio" ? "studio" : "list";
     if (d.view !== "studio") hideStudios();
+    syncStudioChrome();
     if (visible) {
       renderStrip();
       if (d.view !== "studio") drawList();
@@ -150,6 +195,7 @@ function mount(root) {
   return {
     async show(opts = {}) {
       visible = true;
+      syncStudioChrome();
       try {
         await loadOverview();
         if (db.settings.detect.auto || !detected.loaded) await refreshDetect().catch(() => {});
@@ -166,6 +212,8 @@ function mount(root) {
     },
     hide() {
       visible = false;
+      setStudioExpanded(false);
+      syncStudioChrome();
     },
   };
 }

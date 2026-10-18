@@ -1,6 +1,8 @@
 // Right-click menus and the View menu items (shared by the toolbar, the menus and the keyboard).
 import { isStudioPicture } from "./imageStudio.js";
 import { isStudioMedia } from "./mediaStudio.js";
+import { isPlayableOrPlaylist } from "./mediacore.js";
+import { openInMediaDeck } from "./playerDeck.js";
 import { showMenu } from "./menus.js";
 import { clearSearch, refresh, saveSettings } from "./nav.js";
 import * as ops from "./ops.js";
@@ -15,6 +17,8 @@ import { openFolderInCode, openInCode } from "./code.js";
 import { openPower } from "./power.js";
 import { looksLikeText } from "./codeLang.js";
 import { envFileMenuItems, sqliteMenuItems } from "./dbFiles.js";
+import { cloneSqliteMenuItems } from "./dbClone.js";
+import { macroSqliteMenuItems } from "./dbMacros.js";
 import { importFileMenuItems } from "./dbStaging.js";
 import { showOpenWith } from "./openwith.js";
 import { folderServeItems, serveMenuItems } from "./serveActions.js";
@@ -25,22 +29,57 @@ import { openQuickLook } from "./quicklook.js";
 import { canCopyImage, canCopyText, copyImageFile, copyTextFile } from "./clipfile.js";
 import { canLock, canUnlock, lockEntries, unlockEntries } from "./vault.js";
 import { permissionItems } from "./permsQuick.js";
+import { quickMediaMenuItems } from "./mediaQuick.js";
 import { databaseStudioItems, moreToolsItem } from "./toolLauncher.js";
+import { openNewTab } from "./tabs.js";
+import { TAG_DEFS, setTagForPaths, tagForPath } from "./tags.js";
 
 const mod = () => (state.platform === "darwin" ? "⌘" : "Ctrl+");
 const del = () => (state.platform === "darwin" ? "⌘⌫" : "Del");
 const buryKey = () => (state.platform === "darwin" ? "⌥⌫" : "Alt+Del");
 const toGraveyard = () => state.settings.deleteTo === "graveyard";
 
+function toggleColumn(colId) {
+  const cur = Array.isArray(state.settings.columns) ? state.settings.columns : [];
+  const next = cur.includes(colId) ? cur.filter((c) => c !== colId) : [...cur, colId];
+  saveSettings({ columns: next });
+}
+
+function tagMenuItems(entries) {
+  const paths = entries.map((x) => x.path).filter(Boolean);
+  if (!paths.length) return [];
+  const existing = paths.map((p) => tagForPath(p)?.id).filter(Boolean);
+  const shared = existing.length === paths.length && existing.every((c) => c === existing[0]) ? existing[0] : "";
+  const items = TAG_DEFS.map((t) => ({
+    label: `Tag: ${t.label}`,
+    icon: "🏷️",
+    checked: shared === t.id,
+    tip: `Assign the ${t.label} color tag to the selected item${paths.length === 1 ? "" : "s"} so you can spot or filter them quickly.`,
+    action: () => setTagForPaths(paths, shared === t.id ? "" : t.id),
+  }));
+  if (existing.length > 0) {
+    items.push({
+      label: "Clear color tag",
+      icon: "✕",
+      tip: "Remove the color tag from the selected files and folders.",
+      action: () => setTagForPaths(paths, ""),
+    });
+  }
+  return items;
+}
+
 export function viewMenuItems() {
   const s = state.settings;
-  const view = (v, label, key) => ({ label, checked: s.view === v, shortcut: labelOf(`view.${v}`), action: () => saveSettings({ view: v }) });
+  const cols = Array.isArray(s.columns) ? s.columns : [];
+  const groupBy = s.groupBy || "none";
+  const view = (v, label) => ({ label, checked: s.view === v, shortcut: labelOf(`view.${v}`), action: () => saveSettings({ view: v }) });
   const sort = (by, label) => ({ label, checked: s.sortBy === by, action: () => saveSettings({ sortBy: by }) });
+  const group = (g, label, tip) => ({ label: `Group by: ${label}`, checked: groupBy === g, tip, action: () => saveSettings({ groupBy: g }) });
   return [
     { header: "View as" },
-    view("details", "Details", "1"),
-    view("list", "List", "2"),
-    view("icons", "Icons", "3"),
+    view("details", "Details"),
+    view("list", "List"),
+    view("icons", "Icons"),
     { separator: true },
     { header: "Sort by" },
     sort("name", "Name"),
@@ -51,6 +90,16 @@ export function viewMenuItems() {
     { label: "Ascending order", checked: s.sortDir === "asc", action: () => saveSettings({ sortDir: "asc" }) },
     { label: "Descending order", checked: s.sortDir === "desc", action: () => saveSettings({ sortDir: "desc" }) },
     { label: "Folders first", checked: s.foldersFirst, action: () => saveSettings({ foldersFirst: !s.foldersFirst }) },
+    { separator: true },
+    { header: "Group by" },
+    group("none", "None", "Show all files and folders in one continuous list without section headers."),
+    group("kind", "Kind", "Group items under section headers for Folders and each file type."),
+    group("date", "Date", "Group items by when they were modified: Today, Yesterday, Earlier this week, Earlier this month, or Older."),
+    group("size", "Size", "Group files by size bucket: Empty, Tiny (< 10 KB), Small (< 1 MB), Medium (< 100 MB), or Large (> 100 MB)."),
+    { separator: true },
+    { header: "Details columns" },
+    { label: "Column: Extension", checked: cols.includes("ext"), tip: "Show or hide the file extension column in the Details view.", action: () => toggleColumn("ext") },
+    { label: "Column: Permissions", checked: cols.includes("permissions"), tip: "Show or hide the rwx permissions column in the Details view.", action: () => toggleColumn("permissions") },
     { separator: true },
     { label: "Show hidden files", checked: s.showHidden, shortcut: labelOf("view.hidden"), action: () => saveSettings({ showHidden: !s.showHidden }) },
     { label: "Show details panel", checked: s.showInfoPanel, shortcut: labelOf("view.info"), action: () => saveSettings({ showInfoPanel: !s.showInfoPanel }) },
@@ -85,6 +134,7 @@ function entryItems(entries) {
   const convertible = entries.length > 0;
   return [
     one ? { label: "Open", icon: e.isDir ? "📂" : "📄", shortcut: "Enter", action: () => ops.openEntry(e) } : null,
+    one && e.isDir ? { label: "Open in new tab", icon: "🗂️", tip: "Open this folder in a new folder tab at the top of the file list.", action: () => openNewTab(e.path) } : null,
     one ? { label: "Quick Look", icon: "👁️", shortcut: "Space", tip: "Look at a picture, play a sound or video, read a text file or see a document here, without opening another program.", action: () => openQuickLook(e) } : null,
     one && searching ? { label: "Open containing folder", icon: "📁", action: () => ops.goToContaining(e) } : null,
     ...studioMenuItems(entries),
@@ -94,18 +144,24 @@ function entryItems(entries) {
     one && !e.isDir && looksLikeText(e.name) ? { label: "Open in your editor", icon: "🧑‍💻", tip: "Open this file in the code editor chosen in Settings (VS Code, Sublime Text, WebStorm or IntelliJ IDEA).", action: () => openInEditor(e) } : null,
     canCompareData(entries) ? { label: "Compare data files…", icon: "⚖️", tip: "Compare these two JSON, YAML or TOML files by what they say, ignoring key order and formatting, and list what differs.", action: () => showCompareData(entries) } : null,
     one ? { label: e.isDir ? "Open terminal here" : "Open terminal in this folder", icon: "⌨️", shortcut: labelOf("terminal.here"), tip: "Show the terminal and move it to this folder.", action: () => emit("terminal-here", e.isDir ? e.path : parentOf(e.path, state.sep)) } : null,
+    one && !e.isDir && (e.program || (state.cliUtilsDir && parentOf(e.path, state.sep) === state.cliUtilsDir) || (state.cliAppsDir && parentOf(e.path, state.sep) === state.cliAppsDir)) && /^[A-Za-z0-9._-]+$/.test(e.name) ? { label: `Put ${state.platform === "win32" ? ".\\" : "./"}${e.name} in Terminal`, icon: "⌨️", tip: "Open the terminal in this file's folder and type ./filename so you can add arguments or press Enter.", action: () => emit("terminal-run-in", { folder: parentOf(e.path, state.sep), command: `${state.platform === "win32" ? ".\\" : "./"}${e.name} `, submit: false }) } : null,
+    one && !e.isDir && (e.program || (state.cliUtilsDir && parentOf(e.path, state.sep) === state.cliUtilsDir) || (state.cliAppsDir && parentOf(e.path, state.sep) === state.cliAppsDir)) && /^[A-Za-z0-9._-]+$/.test(e.name) ? { label: `Run ${state.platform === "win32" ? ".\\" : "./"}${e.name} in Terminal`, icon: "▶️", tip: "Open the terminal in this file's folder and run ./filename right away.", action: () => emit("terminal-run-in", { folder: parentOf(e.path, state.sep), command: `${state.platform === "win32" ? ".\\" : "./"}${e.name}`, submit: true }) } : null,
     { label: "Insert paths in Terminal", icon: "⌨️", tip: "Insert the selected files and folders as shell-quoted arguments. Nothing runs until you press Enter.", action: () => emit("terminal-insert-paths", entries.map((entry) => entry.path)) },
     one && e.isDir ? { label: "Open folder in Code editor", icon: "📝", shortcut: labelOf("file.editInCode"), action: () => openFolderInCode(e.path) } : null,
+    one && e.isDir && !searching ? { label: "New SQLite database in this folder", icon: "🗄️", tip: "Make a new, empty SQLite database file inside this folder, open that folder, and select it to rename or open in SQLite Studio.", action: () => ops.newSqliteIn(e.path) } : null,
     one && e.isDir ? { label: "Code statistics…", icon: "📊", action: () => openPower("dev", { root: e.path, section: "stats" }) } : null,
     ...serveMenuItems(entries),
     entries.some((x) => !x.isDir) ? { label: "Open with…", icon: "🧩", action: () => showOpenWith(entries) } : null,
     ...sqliteMenuItems(entries),
+    ...cloneSqliteMenuItems(entries),
+    ...macroSqliteMenuItems(entries),
     ...envFileMenuItems(entries),
     ...importFileMenuItems(entries),
     isZip ? { label: "Extract here", icon: "📦", disabled: searching, action: () => ops.unzipEntry(e) } : null,
     one ? { label: `Show in ${state.fmName === "your file manager" ? "file manager" : state.fmName}`, icon: "🔎", action: () => ops.revealEntry(e) } : null,
     one && e.isDir ? { label: ops.isFavorite(e.path) ? "Remove from Favorites" : "Add to Favorites", icon: "⭐", action: () => ops.toggleFavorite(e.path) } : null,
     convertible ? { label: "Convert or process…", icon: "🧰", action: showToolsDialog } : null,
+    ...quickMediaMenuItems(entries),
     canLock(entries) ? { label: "Encrypt…", icon: "🔒", action: () => lockEntries(entries) } : null,
     canUnlock(entries) ? { label: "Decrypt…", icon: "🔓", action: () => unlockEntries(entries) } : null,
     one && !e.isDir && extensionOf(e.name) === "radsec" ? { label: "Open in Secrets", icon: "🗝️", tip: "Open the Secrets tool, where this encrypted vault backup can be restored (you will be asked for its master password).", action: () => openPower("secrets", { restorePath: e.path }) } : null,
@@ -129,6 +185,8 @@ function entryItems(entries) {
     { label: "Open Graveyard", icon: "🪦", tip: "Go to the Graveyard tool: see what you buried, restore it to where it came from, or delete it for good.", action: () => openPower("grave") },
     moreToolsItem(),
     { label: "Delete permanently…", danger: true, shortcut: labelOf("file.deleteForever"), action: ops.deleteForever },
+    { separator: true },
+    ...tagMenuItems(entries),
     { separator: true },
     ...permissionItems(entries),
     { label: "More info…", icon: "🔍", shortcut: labelOf("file.moreInfo"), action: () => showMoreInfo(entries.map((x) => x.path)) },
@@ -163,7 +221,9 @@ export function backgroundItems() {
   return [
     { label: "New folder", icon: "📁", shortcut: labelOf("file.newFolder"), action: ops.newFolder },
     { label: "New file", icon: "📄", shortcut: labelOf("file.newFile"), action: ops.newFile },
-    { label: "New SQLite database", icon: "🗄️", tip: "Make a new, empty SQLite database file here. Open it in SQLite Studio, add it as a connection, or fill it with a sample database.", action: ops.newSqlite },
+    { label: "New SQLite database", icon: "🗄️", shortcut: labelOf("file.newSqlite"), tip: "Make a new, empty SQLite database file here. Open it in SQLite Studio, add it as a connection, or fill it with a sample database.", action: ops.newSqlite },
+    { label: `New dated folder (${ops.localDateStamp()})`, icon: "📅", tip: "Make a new folder here named with today's YYYY-MM-DD date, ready for organizing daily work or backups.", action: () => ops.newDatedFolder() },
+    { label: `New dated note (${ops.localDateStamp()}.md)`, icon: "📝", tip: "Make a new Markdown note here named with today's YYYY-MM-DD.md date.", action: () => ops.newDatedNote() },
     { separator: true },
     { label: "Paste", icon: "📥", shortcut: labelOf("file.paste"), disabled: !state.clipboard, action: ops.paste },
     { label: "Select all", shortcut: labelOf("file.selectAll"), action: selectAll },
@@ -191,8 +251,12 @@ export function showBackgroundMenu(point) {
 function studioMenuItems(entries) {
   const pics = entries.filter((x) => !x.isDir && isStudioPicture(x.name)).map((x) => x.path);
   const media = entries.filter((x) => !x.isDir && isStudioMedia(x.name)).map((x) => x.path);
+  const playable = entries.filter((x) => !x.isDir && isPlayableOrPlaylist(x.name));
   return [
-    pics.length ? { label: pics.length > 1 ? `Edit ${pics.length} pictures in Image Studio` : "Edit in Image Studio", icon: "🎨", tip: pics.length > 1 ? "Choose a look (or a saved preset) once and apply it to every selected picture; each gets its own new copy." : "Change the light, colour and shape of this picture with sliders, then save a copy.", action: () => openPower("imagestudio", { paths: pics }) } : null,
+    playable.length ? { label: playable.length > 1 ? `Play ${playable.length} tracks in Media Deck` : "Play in Media Deck", icon: "🎛️", tip: "Open the Media Deck with a 10-band equalizer, spectrum and radial visualizers, M3U playlist and karaoke lyrics.", action: () => openInMediaDeck({ entries: playable, enqueue: false }) } : null,
+    playable.length ? { label: playable.length > 1 ? `Enqueue ${playable.length} tracks in Media Deck` : "Enqueue in Media Deck", icon: "➕", tip: "Add the selected tracks or M3U playlist to the end of the Media Deck queue.", action: () => openInMediaDeck({ entries: playable, enqueue: true }) } : null,
+    pics.length ? { label: pics.length > 1 ? `Edit ${pics.length} pictures in Image Studio` : "Edit in Image Studio", icon: "🎨", tip: pics.length > 1 ? "Choose a look (or a saved preset) once and apply it to every selected picture; each gets its own new copy." : "Change the light, color and shape of this picture with sliders, then save a copy.", action: () => openPower("imagestudio", { paths: pics }) } : null,
+    pics.length === 1 ? { label: "Paint in Paint Studio", icon: "🖌️", tip: "Open this picture on the canvas in Paint Studio (Chroma Studio Pro) to draw, paint, add layers, apply filters or trace over it.", action: () => openPower("paint", { path: pics[0] }) } : null,
     media.length ? { label: media.length > 1 ? `Edit ${media.length} files in Media Studio` : "Edit in Media Studio", icon: "🎬", tip: media.length > 1 ? "Choose the settings (or a saved preset) once and apply them to every selected song or video; each gets its own new copy." : "Trim, speed up, fade and clean up this song, recording or video, then save a copy.", action: () => openPower("mediastudio", { paths: media }) } : null,
   ];
 }

@@ -20,6 +20,7 @@ import { ipinfoStudioTips, ipinfoStudioSkip } from "./ipinfo_studio";
 import { jqStudioTips, jqStudioSkip } from "./jq_studio";
 import { launcherStudioTips, launcherStudioSkip } from "./launcher_studio";
 import { markdownStudioTips, markdownStudioSkip } from "./markdown_studio";
+import { mediaPlayerStudioTips, mediaPlayerStudioSkip } from "./media_player_studio";
 import { mysqlStudioTips, mysqlStudioSkip } from "./mysql_studio";
 import { networkStudioTips, networkStudioSkip } from "./network_studio";
 import { omnitoolStudioTips, omnitoolStudioSkip } from "./omnitool_studio";
@@ -61,6 +62,7 @@ export const HELP_TIPS: Record<string, HelpTips> = {
   jq_studio: jqStudioTips,
   launcher_studio: launcherStudioTips,
   markdown_studio: markdownStudioTips,
+  media_player_studio: mediaPlayerStudioTips,
   mysql_studio: mysqlStudioTips,
   network_studio: networkStudioTips,
   paint_studio: paintStudioTips,
@@ -103,6 +105,7 @@ export const HELP_SKIP: Record<string, SkipRule[]> = {
   jq_studio: jqStudioSkip,
   launcher_studio: launcherStudioSkip,
   markdown_studio: markdownStudioSkip,
+  media_player_studio: mediaPlayerStudioSkip,
   mysql_studio: mysqlStudioSkip,
   network_studio: networkStudioSkip,
   paint_studio: paintStudioSkip,

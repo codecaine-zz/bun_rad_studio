@@ -28,7 +28,7 @@ describe("findStudioResources", () => {
     expect(findStudioResources("frogger_studio", join(root, "applications"), elsewhere)).toBe(join(root, "resources", "frogger_studio"));
   });
 
-  test("still finds resources in the working directory when none sit next to the studio (previous behaviour)", () => {
+  test("still finds resources in the working directory when none sit next to the studio (previous behavior)", () => {
     const studioRoot = tree();
     const cwd = tree();
     addPage(cwd, "snake_studio");

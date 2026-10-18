@@ -10,6 +10,7 @@
 import { existsSync, promises as fsp, realpathSync, statSync } from "fs";
 import { win32, resolve } from "path";
 import type { FmContext } from "./fmCore";
+import { terminalEnv } from "./fmCliUtils";
 import { childEnv } from "./fmTools";
 
 export const MAX_TERMINALS = 4;
@@ -179,7 +180,7 @@ function openWindowsTerminal(ctx: FmContext, options: OpenTerminalOptions, asset
     shell, "-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
     "-File", bridge,
     "-Shell", shell, "-WorkingDirectory", options.cwd, "-Columns", String(options.cols), "-Rows", String(options.rows),
-  ], { cwd: options.cwd, env: childEnv(ctx), stdin: "pipe", stdout: "pipe", stderr: "pipe", windowsHide: true });
+  ], { cwd: options.cwd, env: terminalEnv(ctx, childEnv(ctx)), stdin: "pipe", stdout: "pipe", stderr: "pipe", windowsHide: true });
   let closed = false;
   let cwd = realpathSync.native(options.cwd);
   let activeShell: WindowsShell = "powershell";
@@ -288,7 +289,7 @@ export function createTerminalHub(limit = MAX_TERMINALS, assetsDir = resolve(imp
       const decoder = new TextDecoder();
       const proc = Bun.spawn([pickShell(ctx.platform)], {
         cwd: options.cwd,
-        env: { ...process.env, TERM: "xterm-256color", COLORTERM: "truecolor" },
+        env: terminalEnv(ctx),
         terminal: {
           cols: options.cols,
           rows: options.rows,

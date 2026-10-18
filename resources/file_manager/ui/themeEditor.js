@@ -1,4 +1,4 @@
-// The theme editor: make your own colour theme, or start from any other theme and change it. The whole window shows
+// The theme editor: make your own color theme, or start from any other theme and change it. The whole window shows
 // the theme while you edit (the server keeps text and buttons readable), and nothing is kept until you press Save.
 import { ApiError, call } from "./api.js";
 import { confirmBox, openDialog } from "./dialogs.js";
@@ -7,12 +7,13 @@ import { toast } from "./menus.js";
 import { saveSettings } from "./nav.js";
 import { emit, on, state } from "./state.js";
 import { applyPalette, forgetThemeList, paint } from "./themes.js";
+import { ATMOSPHERE_IDS, ATMOSPHERE_MIX_PRESETS } from "./atmosphereCatalog.js";
 
 const EXPORT_FORMAT = "bun-rad-studio-file-manager-theme";
 
-/** The colours people can change, with what each one does. `secondary` isn't shown: this window has no use for it. */
+/** The colors people can change, with what each one does. `secondary` isn't shown: this window has no use for it. */
 const FIELDS = [
-  ["background", "Window background", "The main colour behind the list of files."],
+  ["background", "Window background", "The main color behind the list of files."],
   ["card", "Panels", "The toolbar, side panel, menus and dialogs."],
   ["text", "Text", "Names, labels and everything you read. It is adjusted a little if it would be hard to read."],
   ["accent", "Accent", "Selected items, links and the main buttons."],
@@ -59,15 +60,15 @@ async function openEditor({ from = "" } = {}) {
     glow: "soft", glowColor: draft.colors.accent, glowColor2: draft.colors.secondary || draft.colors.accent,
     blur: 16, glass: 0.4, glowIntensity: 1, borderOpacity: 0.16,
     grain: "none", scanlines: "none", sheen: false, radius: "soft", border: "flat", motion: "calm",
-    noise: false, chromatic: false, ambient: false,
+    noise: false, chromatic: false, ambient: false, atmosphere: "none",
   });
 
   // -- the form ----------------------------------------------------------------------------------------------------
   const nameInput = h("input", { type: "text", class: "prop-input", maxlength: "40", "aria-label": "Theme name", title: "The name shown in the theme gallery.", value: draft.name });
-  const darkBox = h("input", { type: "checkbox", checked: draft.dark, title: "Tick this when the background is dark. It decides the shadows and the colour of the browser's own controls." });
+  const darkBox = h("input", { type: "checkbox", checked: draft.dark, title: "Tick this when the background is dark. It decides the shadows and the color of the browser's own controls." });
   const notes = h("p", { class: "hint theme-notes", role: "status" });
   const status = h("p", { class: "dialog-error", role: "alert", hidden: true });
-  const startSelect = h("select", { class: "prop-input", "aria-label": "Start from", title: "Copy the colours of another theme to work from." });
+  const startSelect = h("select", { class: "prop-input", "aria-label": "Start from", title: "Copy the colors of another theme to work from." });
   const heading = h("p", { class: "hint" });
   const effectsEnabled = h("input", { type: "checkbox", checked: !!draft.fx, "aria-label": "Enable visual effects" });
   const effectControls = h("fieldset", { class: "theme-effect-controls" });
@@ -100,8 +101,8 @@ async function openEditor({ from = "" } = {}) {
     effectField("glowIntensity", "Glow intensity", null, [0, 1, 0.05]),
     effectField("borderOpacity", "Border strength", null, [0, 1, 0.05]),
     effectField("glow", "Glow style", ["none", "soft", "neon"]),
-    effectField("glowColor", "Glow colour"),
-    effectField("glowColor2", "Secondary glow colour"),
+    effectField("glowColor", "Glow color"),
+    effectField("glowColor2", "Secondary glow color"),
     effectField("radius", "Corner style", ["sharp", "soft", "round", "pill"]),
     effectField("border", "Border style", ["flat", "gradient", "metal"]),
     effectField("motion", "Animation feel", ["calm", "spring", "snappy"]),
@@ -116,6 +117,7 @@ async function openEditor({ from = "" } = {}) {
   effectControls.append(
     effectField("grain", "Film grain", ["none", "subtle"]),
     effectField("scanlines", "Scanlines", ["none", "subtle"]),
+    effectField("atmosphere", "Atmospheric effect", [...ATMOSPHERE_IDS, ...ATMOSPHERE_MIX_PRESETS.map((m) => m.id)]),
   );
   effectsEnabled.addEventListener("change", () => {
     draft.fx = effectsEnabled.checked ? defaultEffects() : undefined;
@@ -126,7 +128,7 @@ async function openEditor({ from = "" } = {}) {
 
   const rows = new Map();
   const field = ([key, label, tip]) => {
-    const picker = h("input", { type: "color", class: "theme-color", "aria-label": `${label} colour picker`, title: tip, value: draft.colors[key] ?? "#808080" });
+    const picker = h("input", { type: "color", class: "theme-color", "aria-label": `${label} color picker`, title: tip, value: draft.colors[key] ?? "#808080" });
     const text = h("input", { type: "text", class: "prop-input theme-hex", maxlength: "7", spellcheck: "false", "aria-label": `${label} as a hex code`, title: `${tip} Type a code like #1a2b3c.`, value: draft.colors[key] ?? "" });
     const set = (value) => {
       if (!isHex(value)) { text.setAttribute("aria-invalid", "true"); return; }
@@ -160,6 +162,31 @@ async function openEditor({ from = "" } = {}) {
     refresh();
   };
 
+  const contrastBar = h("div", { class: "theme-contrast-inspector", "aria-label": "WCAG contrast ratios" });
+  const renderContrast = (items) => {
+    if (!Array.isArray(items) || !items.length) {
+      contrastBar.replaceChildren();
+      return;
+    }
+    contrastBar.replaceChildren(
+      h("span", { class: "theme-contrast-title" }, "WCAG contrast:"),
+      ...items.map((item) => {
+        const dot = h("span", { class: "theme-contrast-dot" });
+        dot.style.background = item.fg;
+        dot.style.boxShadow = `inset 0 0 0 2px ${item.bg}`;
+        return h("span", {
+          class: "theme-contrast-chip",
+          title: `${item.label}: ${item.fg} on ${item.bg} — contrast ratio ${item.ratio}:1 (${item.grade})`,
+        },
+          dot,
+          h("span", {}, item.label),
+          h("span", { class: "theme-contrast-ratio" }, `${item.ratio}:1`),
+          h("span", { class: "theme-contrast-grade", "data-grade": item.grade }, item.grade),
+        );
+      }),
+    );
+  };
+
   const draftBody = () => ({ name: nameInput.value, dark: darkBox.checked, base: draft.base ?? "", colors: draft.colors, ...(draft.fx ? { fx: draft.fx } : {}) });
   const refresh = debounce(async () => {
     if (closed) return;
@@ -168,11 +195,12 @@ async function openEditor({ from = "" } = {}) {
       const { theme } = await call("themes/preview", { theme: { ...draftBody(), name: nameInput.value.trim() || "Untitled" } });
       if (closed || version !== previewVersion) return;
       paint(theme, "preview");
+      renderContrast(theme.contrast);
       notes.textContent = theme.notes.join(" ");
       status.hidden = true;
     } catch (err) {
       if (closed || version !== previewVersion) return;
-      status.textContent = err instanceof ApiError ? err.message : "That colour can't be shown.";
+      status.textContent = err instanceof ApiError ? err.message : "That color can't be shown.";
       status.hidden = false;
     }
   }, 120);
@@ -201,17 +229,18 @@ async function openEditor({ from = "" } = {}) {
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Start from"), startSelect),
       h("label", { class: "check" }, darkBox, h("span", {}, "This is a dark theme"))),
     h("div", { class: "theme-fields" }, FIELDS.map(field)),
+    contrastBar,
     h("h3", {}, "Glass, glow and motion"),
     h("label", { class: "check" }, effectsEnabled, h("span", {}, "Enable visual effects")),
     effectControls,
     h("p", { class: "hint" }, "Opacity affects panels, not text or the native window. The preview raises opacity when needed for readable text. Motion follows your computer's reduced-motion preference."),
-    h("div", { class: "theme-sample", "aria-label": "Sample of the colours" },
+    h("div", { class: "theme-sample", "aria-label": "Sample of the colors" },
       h("button", { type: "button", class: "btn primary", tabindex: "-1" }, "Main button"),
       h("button", { type: "button", class: "btn", tabindex: "-1" }, "Button"),
       h("button", { type: "button", class: "btn danger", tabindex: "-1" }, "Delete"),
       h("span", { class: "hint" }, "Sample text in a hint")),
     notes, status,
-    h("p", { class: "hint" }, "The whole window shows your colours while you edit. Nothing is kept until you press Save."));
+    h("p", { class: "hint" }, "The whole window shows your colors while you edit. Nothing is kept until you press Save."));
   load(draft);
 
   // -- the buttons -------------------------------------------------------------------------------------------------
@@ -262,12 +291,45 @@ async function openEditor({ from = "" } = {}) {
   }
 
   async function exportText() {
-    const text = JSON.stringify({ format: EXPORT_FORMAT, version: 1, ...draftBody(), name: nameInput.value.trim() }, null, 2);
-    const box = h("textarea", { class: "prop-input theme-export", readonly: true, rows: "10", "aria-label": "The theme as text", title: "Copy this text and keep it, or send it to someone. Import… turns it back into a theme." }, text);
-    const d = openDialog({ title: "Export theme", body: [h("p", {}, "Copy this text to keep or share the theme."), box], buttons: [{ label: "Close", value: false }, { label: "Copy", value: true, primary: true }], initialFocus: box });
+    const currentDraft = { ...draftBody(), name: nameInput.value.trim() || "Untitled" };
+    const jsonText = JSON.stringify({ format: EXPORT_FORMAT, version: 1, ...currentDraft }, null, 2);
+    const box = h("textarea", { class: "prop-input theme-export", readonly: true, rows: "10", "aria-label": "The theme as text", title: "Copy this text and keep it, or send it to someone. Import… turns it back into a theme." }, jsonText);
+    const setActiveTab = (activeBtn) => {
+      for (const b of tabs.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b === activeBtn));
+    };
+    const jsonBtn = h("button", {
+      type: "button", class: "btn theme-export-tab", "aria-pressed": "true",
+      onclick: () => { setActiveTab(jsonBtn); box.value = jsonText; },
+    }, "Theme JSON");
+    const cssBtn = h("button", {
+      type: "button", class: "btn theme-export-tab", "aria-pressed": "false",
+      onclick: async () => {
+        setActiveTab(cssBtn);
+        try {
+          const { css } = await call("themes/custom/export-css", { theme: currentDraft });
+          box.value = css;
+        } catch (err) {
+          toast(err instanceof ApiError ? err.message : "Couldn't generate CSS variables.", { kind: "error" });
+        }
+      },
+    }, "CSS variables (:root)");
+    const packBtn = h("button", {
+      type: "button", class: "btn theme-export-tab", "aria-pressed": "false",
+      onclick: async () => {
+        setActiveTab(packBtn);
+        try {
+          const { text } = await call("themes/custom/export-pack", { theme: currentDraft });
+          box.value = text;
+        } catch (err) {
+          toast(err instanceof ApiError ? err.message : "Couldn't export theme pack.", { kind: "error" });
+        }
+      },
+    }, "Theme pack (all my themes)");
+    const tabs = h("div", { class: "theme-export-tabs" }, jsonBtn, cssBtn, packBtn);
+    const d = openDialog({ title: "Export theme", body: [h("p", {}, "Copy this text to keep or share the theme, export a standalone CSS variables block, or export all your custom themes as a pack."), tabs, box], buttons: [{ label: "Close", value: false }, { label: "Copy", value: true, primary: true }], initialFocus: box });
     if (await d.result) {
       try {
-        await call("copytext", { text });
+        await call("copytext", { text: box.value });
         toast("The theme text was copied.", { kind: "success" });
       } catch {
         toast("Couldn't copy. Select the text and copy it yourself.", { kind: "error" });
@@ -276,9 +338,27 @@ async function openEditor({ from = "" } = {}) {
   }
 
   async function importText() {
-    const box = h("textarea", { class: "prop-input theme-export", rows: "10", "aria-label": "Theme text to import", title: "Paste text that was made with Export…", placeholder: "Paste the theme text here" });
-    const d = openDialog({ title: "Import theme", body: [h("p", {}, "Paste a theme that was exported from this editor. You can look at it and change it before saving."), box], buttons: [{ label: "Cancel", value: false }, { label: "Use this theme", value: true, primary: true }], initialFocus: box });
+    const box = h("textarea", { class: "prop-input theme-export", rows: "10", "aria-label": "Theme text to import", title: "Paste text that was made with Export…", placeholder: "Paste the theme or theme pack JSON here" });
+    const d = openDialog({ title: "Import theme", body: [h("p", {}, "Paste a single theme or a multi-theme pack that was exported from this editor. You can look at a single theme and change it before saving, or import a whole pack at once."), box], buttons: [{ label: "Cancel", value: false }, { label: "Use this theme", value: true, primary: true }], initialFocus: box });
     if (!(await d.result)) return;
+    let parsed = null;
+    try {
+      parsed = JSON.parse(box.value);
+    } catch { /* let the server return its plain-words error */ }
+    if (parsed && typeof parsed === "object" && parsed.format === "bun-rad-studio-file-manager-theme-pack" && Array.isArray(parsed.themes) && parsed.themes.length > 1) {
+      try {
+        const res = await call("themes/custom/import-pack", { text: box.value });
+        forgetThemeList();
+        if (res.first) {
+          load({ name: res.first.name, dark: res.first.dark, colors: { ...draft.colors, ...res.first.colors }, fx: res.first.fx, base: res.first.base || "an imported theme pack", editingId: res.first.id });
+        }
+        toast(`Imported ${res.count} themes into My themes.`, { kind: "success" });
+        return;
+      } catch (err) {
+        toast(err instanceof ApiError ? err.message : "That theme pack couldn't be imported.", { kind: "error" });
+        return;
+      }
+    }
     try {
       const { theme } = await call("themes/custom/import", { text: box.value });
       load({ name: theme.name, dark: theme.dark, colors: { ...draft.colors, ...theme.colors }, fx: theme.fx, base: "an imported theme", editingId: null });

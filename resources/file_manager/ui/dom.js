@@ -53,6 +53,7 @@ export function announce(message) {
   live.textContent = "";
   setTimeout(() => (live.textContent = message), 30);
 }
+export const say = announce;
 
 const ICONS = [
   ["🖼️", "png jpg jpeg gif webp bmp svg ico tif tiff heic avif raw psd"],

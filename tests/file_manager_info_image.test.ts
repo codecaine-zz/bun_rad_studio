@@ -35,18 +35,18 @@ describe("PNG", () => {
     after: [chunk("eXIf", exifBlock)],
   });
 
-  test("size, colour type, bit depth, density, gamma, profile name, times and text notes", async () => {
+  test("size, color type, bit depth, density, gamma, profile name, times and text notes", async () => {
     const a = await analyze(file);
     expect([a.kind, a.width, a.height, a.hasAlpha]).toEqual(["png", 7, 5, true]);
     const r = rowsOf(a);
-    expect(r["Colour type"]).toContain("RGBA");
+    expect(r["Color type"]).toContain("RGBA");
     expect(r["Bit depth"]).toBe("8 bits per channel");
     expect(r["Channels"]).toBe("4");
     expect(r["Bits per pixel"]).toBe("32");
     expect(r["Pixel density"]).toContain("300 × 300 DPI");
     expect(r["Gamma"]).toBe("1");
-    expect(r["Colour space"]).toContain("sRGB");
-    expect(r["Colour profile name"]).toContain("My ICC profile");
+    expect(r["Color space"]).toContain("sRGB");
+    expect(r["Color profile name"]).toContain("My ICC profile");
     expect(r["Last changed (stored in the file)"]).toBe("2024-05-01 12:30:15 UTC");
     expect(r["Interlaced"]).toStartWith("No");
     const texts = Object.fromEntries(a.groups.find((g) => g.id === "png-text")!.rows.map((x) => [x.label, x.value]));
@@ -64,10 +64,10 @@ describe("PNG", () => {
     expect(gps.lon).toBeCloseTo(2.2945, 5);
   });
 
-  test("interlaced palette pictures and 16-bit greys", async () => {
+  test("interlaced palette pictures and 16-bit grays", async () => {
     const p = rowsOf(await analyze(png({ colorType: 3, interlace: 1, depth: 8 })));
     expect(p["Interlaced"]).toContain("Adam7");
-    expect(p["Palette colours"]).toBe("4");
+    expect(p["Palette colors"]).toBe("4");
     const g = rowsOf(await analyze(png({ colorType: 0, depth: 16 })));
     expect([g["Bit depth"], g["Channels"], g["Transparency"]]).toEqual(["16 bits per channel", "1", "No"]);
   });
@@ -103,7 +103,7 @@ describe("EXIF", () => {
       const image = Object.fromEntries(report.image.rows.map((r) => [r.label, r.value]));
       expect(image["Orientation"]).toContain("90° right");
       expect(image["Resolution"]).toBe("72 × 72 per inch");
-      expect(image["Colour space"]).toBe("sRGB");
+      expect(image["Color space"]).toBe("sRGB");
       expect(image["Thumbnail"]).toContain("preview");
       expect(image["Camera maker's extra notes"]).toContain("Present");
       expect(report.gps).toMatchObject({ lat: 48.858222, lon: 2.2945, altitude: 35.5, direction: 90 });
@@ -182,9 +182,9 @@ describe("JPEG", () => {
     expect(r["Pixel density"]).toContain("72 × 72");
   });
 
-  test("progressive, grey and the other subsampling modes", async () => {
+  test("progressive, gray and the other subsampling modes", async () => {
     expect(rowsOf(await analyze(jpeg({ progressive: true })))["JPEG type"]).toContain("Progressive");
-    expect(rowsOf(await analyze(jpeg({ gray: true })))["Chroma subsampling"]).toContain("Grey");
+    expect(rowsOf(await analyze(jpeg({ gray: true })))["Chroma subsampling"]).toContain("Gray");
     expect(rowsOf(await analyze(jpeg({ subsampling: "444" })))["Chroma subsampling"]).toBe("4:4:4");
     expect(rowsOf(await analyze(jpeg({ subsampling: "422" })))["Chroma subsampling"]).toBe("4:2:2");
   });
@@ -198,7 +198,7 @@ describe("JPEG", () => {
     expect((await parseJpeg(bufferSource(jpeg({ quality: 100 })))).quality).toBe(100);
   });
 
-  test("Exif (both byte orders), XMP, ICC, Adobe, MPF, Photoshop and comment segments are recognised", async () => {
+  test("Exif (both byte orders), XMP, ICC, Adobe, MPF, Photoshop and comment segments are recognized", async () => {
     const xmp = '<x:xmpmeta xmlns:dc="d"><rdf:RDF><rdf:Description xmp:Rating="4" xmp:CreatorTool="Tool X"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">A &amp; B</rdf:li></rdf:Alt></dc:title><dc:creator><rdf:Seq><rdf:li>Ann</rdf:li><rdf:li>Bob</rdf:li></rdf:Seq></dc:creator><dc:subject><rdf:Bag><rdf:li>cat</rdf:li><rdf:li>dog</rdf:li></rdf:Bag></dc:subject><dc:rights><rdf:Alt><rdf:li>(c) Me</rdf:li></rdf:Alt></dc:rights></rdf:Description></rdf:RDF></x:xmpmeta>';
     const profile = icc("Display P3");
     const iccSeg = segment(0xe2, Buffer.concat([Buffer.from("ICC_PROFILE\0", "latin1"), Buffer.from([1, 1]), profile]));
@@ -210,11 +210,11 @@ describe("JPEG", () => {
       expect(a.hasIptc).toBe(true);
       const r = rowsOf(a);
       expect(r["Comment"]).toBe("hello comment");
-      expect(r["Colour handling"]).toBe("Adobe (YCbCr)");
+      expect(r["Color handling"]).toBe("Adobe (YCbCr)");
       const segs = a.groups.find((g) => g.id === "jpeg-structure")!.rows[0]!.value;
       expect(segs).toContain("APP1 (EXIF)");
       expect(segs).toContain("APP1 (XMP)");
-      expect(segs).toContain("ICC colour profile");
+      expect(segs).toContain("ICC color profile");
       expect(segs).toContain("MPF");
     }
   });
@@ -236,7 +236,7 @@ describe("GIF, WebP, BMP, ICO and TIFF", () => {
     expect(r["Frames"]).toBe("4");
     expect(r["Animation length"]).toBe("1 s");
     expect(r["Loops"]).toBe("3 times");
-    expect(r["Colours in the main palette"]).toBe("2");
+    expect(r["Colors in the main palette"]).toBe("2");
     expect(r["Transparency"]).toBe("Yes");
     expect(a.groups.find((g) => g.id === "gif-comments")!.rows[0]!.value).toBe("made by tests");
     expect(rowsOf(await analyze(gif(2, 10, 0)))["Loops"]).toBe("Forever");
@@ -251,7 +251,7 @@ describe("GIF, WebP, BMP, ICO and TIFF", () => {
     expect([lossless.width, lossless.height, lossless.hasAlpha]).toEqual([65, 33, true]);
     const ext = await analyze(webpExtended(1000, 700, { exif: Buffer.concat([Buffer.from("Exif\0\0", "latin1"), photoTiff(false)]), xmp: "<x:xmpmeta><dc:title><rdf:Alt><rdf:li>WebP title</rdf:li></rdf:Alt></dc:title></x:xmpmeta>", icc: icc("WebP profile"), alpha: true }));
     expect([ext.width, ext.height, ext.hasAlpha]).toEqual([1000, 700, true]);
-    expect(rowsOf(ext)["Contains"]).toBe("colour profile, transparency, EXIF, XMP");
+    expect(rowsOf(ext)["Contains"]).toBe("color profile, transparency, EXIF, XMP");
     expect(gpsOf(ext.exif!)!.lat).toBeCloseTo(48.858222, 5);
     expect(ext.xmp?.title).toBe("WebP title");
     expect(ext.icc?.description).toBe("WebP profile");
@@ -281,7 +281,7 @@ describe("GIF, WebP, BMP, ICO and TIFF", () => {
       expect([a.kind, a.width, a.height]).toEqual(["tiff", 1024, 768]);
       const r = rowsOf(a);
       expect(r["Compression"]).toBe("LZW");
-      expect(r["Colour model"]).toBe("RGB");
+      expect(r["Color model"]).toBe("RGB");
       expect(r["Bits per channel"]).toBe("8, 8, 8");
       expect(r["Byte order"]).toContain(le ? "Little" : "Big");
       expect(a.exif!.tags.find((x) => x.name === "ISOSpeedRatings")!.value).toBe(200);
@@ -444,7 +444,7 @@ describe("the strippers", () => {
     expect(a.xmp).toBeNull();
     expect(a.hasIptc).toBe(false);
     expect(rowsOf(a)["Comment"]).toBeUndefined();
-    expect(rowsOf(a)["Colour handling"]).toBe("Adobe (YCbCr)");
+    expect(rowsOf(a)["Color handling"]).toBe("Adobe (YCbCr)");
     expect(rowsOf(a)["JFIF version"]).toBe("1.01");
     expect([a.width, a.height]).toEqual([64, 48]);
     expect(out.bytes.includes(Buffer.from("EXTRA-HIDDEN"))).toBe(false);
@@ -479,7 +479,7 @@ describe("the strippers", () => {
     expect(() => stripJpeg(Buffer.from([0xff, 0xd8, 0xff, 0xe1, 0xff, 0xff, 0, 0]))).toThrow();
   });
 
-  test("PNG: pixel data identical; text, time and EXIF gone; colour chunks kept", async () => {
+  test("PNG: pixel data identical; text, time and EXIF gone; color chunks kept", async () => {
     const original = png({ before: [phys(2835), iccp("P", icc("keep me")), chunk("gAMA", Buffer.from([0, 1, 0x86, 0xa0])), text("Author", "Jane"), ztxt("Comment", "x"), itxt("Title", "t"), chunk("tIME", Buffer.from([0x07, 0xe8, 5, 1, 1, 1, 1])), chunk("prVt", Buffer.from("private")), chunk("tRNS", Buffer.from([0, 0]))], after: [chunk("eXIf", photoTiff(true))], trailing: Buffer.from("TRAILING-SECRET") });
     const out = stripPng(original);
     const idat = (b: Buffer) => { const at = b.indexOf("IDAT"); return b.subarray(at - 4, at + 8 + b.readUInt32BE(at - 4)); };

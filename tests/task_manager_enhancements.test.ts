@@ -201,7 +201,7 @@ describe("Task Manager GUI against real processes", () => {
     expect(html).toContain("Uptime");
   });
 
-  test("table has uptime column and the user is recognised as owner", async () => {
+  test("table has uptime column and the user is recognized as owner", async () => {
     const child = sleeper();
     await settle();
     const win = make();
@@ -384,7 +384,7 @@ describe("Task Manager GUI against real processes", () => {
     const win = make();
     noConfirm(win, false);
     await trigger(win, "btn_clean_dev");
-    // whatever was found, a refusal must leave this test process alive and nothing signalled
+    // whatever was found, a refusal must leave this test process alive and nothing signaled
     expect(String(win.getValue("task_console"))).not.toContain("Sent SIGTERM");
     expect(isAlive(process.pid)).toBe(true);
   });

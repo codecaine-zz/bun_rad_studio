@@ -2,11 +2,14 @@
 		function initDesignerApp() {
 			makeClickablesKeyboardOperable();
 			setupDialogs();
+			initPaletteCategories();
+			setupSidebarResizers();
 			const propTitleEl = document.getElementById("propFormTitle");
 			if (propTitleEl) propTitleEl.value = formSpec.title || "";
 			bindLivePropertyEditors();
 			setupCanvasZoomAndPan();
 			setupCustomTooltipEngine();
+			updateToolbarSelectionState();
 
 			// Live mouse coordinates in status bar
 			const canvasForCoords = document.getElementById('formCanvas');

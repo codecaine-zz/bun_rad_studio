@@ -71,7 +71,7 @@ await (async () => {
 })();
 
 describe("the new actions are listed, the studio recipes are not", () => {
-  test.skipIf(!magickPath)("a picture offers greyscale, crop, circle… but never the studio", async () => {
+  test.skipIf(!magickPath)("a picture offers grayscale, crop, circle… but never the studio", async () => {
     const ids = (await overview(ctx, [photo])).actions.map((a) => a.id);
     for (const id of ["img-gray", "img-sepia", "img-crop", "img-circle", "img-transparent", "img-adjust"]) expect(ids).toContain(id);
     expect(ids).not.toContain("studio-image");
@@ -138,7 +138,7 @@ describe.skipIf(!magickPath)("Image Studio", () => {
     expect(info.w).toBe(info.h);
   });
 
-  test("greyscale WebP at a chosen width", async () => {
+  test("grayscale WebP at a chosen width", async () => {
     const out = await run({ action: "studio-image", paths: [photo], options: { gray: true, format: "webp", width: 160, quality: 70 } });
     expect(out.endsWith(".webp")).toBe(true);
     expect((await identify(out)).w).toBe(160);
@@ -151,7 +151,7 @@ describe.skipIf(!magickPath)("Image Studio", () => {
 });
 
 describe.skipIf(!media)("Media Studio", () => {
-  test("a song: trim, faster, louder, fades, bass, normalised, as M4A", async () => {
+  test("a song: trim, faster, louder, fades, bass, normalized, as M4A", async () => {
     const out = await run({ action: "studio-media", paths: [song], options: { start: "1", end: "5", speed: 2, volume: 150, fadeIn: 0.5, fadeOut: 0.5, bass: 4, normalize: true, format: "m4a" } });
     expect(out.endsWith(".m4a")).toBe(true);
     expect((await probe(out)).duration).toBeCloseTo(2, 0);
@@ -164,7 +164,7 @@ describe.skipIf(!media)("Media Studio", () => {
     expect(p.streams[0]!.channels).toBe(1);
   });
 
-  test("a video: crop to vertical, colours, black and white, mirror, fades, slower", async () => {
+  test("a video: crop to vertical, colors, black and white, mirror, fades, slower", async () => {
     const out = await run({ action: "studio-media", paths: [clip], options: { shape: "9:16", brightness: 10, contrast: 10, saturation: 120, gray: true, mirror: true, fadeIn: 1, fadeOut: 1, speed: 0.5, format: "mp4" } });
     const p = await probe(out);
     const v = p.streams.find((s) => s.codec_type === "video")!;

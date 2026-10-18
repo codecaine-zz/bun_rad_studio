@@ -239,6 +239,23 @@ describe("commands are lists of arguments, exactly", () => {
     expect(argvOf("vid-gif-custom", "ffmpeg", ["/v/a.mp4"], "/v/o.gif", { start: "0:12", length: 3, width: 320, fps: "15" }).join(" ")).toContain("-ss 0:12 -t 3 -i file:/v/a.mp4 -an -vf fps=15,scale='min(320,iw)':-1");
     expect(argvOf("vid-hdr-sdr", "ffmpeg", ["/v/a.mp4"], "/v/o.mp4").join(" ")).toContain("tonemap=tonemap=hable");
     expect(argvOf("vid-extract-subs", "ffmpeg", ["/v/a.mkv"], "/v/o.srt")).toEqual([...ffHead, "-i", "file:/v/a.mkv", "-map", "0:s:0", "file:/v/o.srt"]);
+    expect(argvOf("vid-remux-mp4", "ffmpeg", ["/v/a.mkv"], "/v/o.mp4")).toEqual([...ffHead, "-i", "file:/v/a.mkv", "-map", "0:v:0", "-map", "0:a?", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "file:/v/o.mp4"]);
+    expect(argvOf("vid-vertical-blur", "ffmpeg", ["/v/a.mp4"], "/v/o.mp4").join(" ")).toContain("boxblur=20:5[bg2]");
+    expect(argvOf("vid-boomerang", "ffmpeg", ["/v/a.mp4"], "/v/o.mp4").join(" ")).toContain("reverse[r];[f][r]concat=n=2:v=1:a=0");
+    expect(argvOf("vid-sharpen", "ffmpeg", ["/v/a.mp4"], "/v/o.mp4").join(" ")).toContain("unsharp=5:5:1.0:5:5:0.0");
+    expect(argvOf("vid-normalize", "ffmpeg", ["/v/a.mp4"], "/v/o.mp4")).toEqual([...ffHead, "-i", "file:/v/a.mp4", "-c:v", "copy", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-ar", "48000", "-c:a", "aac", "-b:a", "192k", "file:/v/o.mp4"]);
+    expect(argvOf("vid-voice", "ffmpeg", ["/v/a.mp4"], "/v/o.mp4").join(" ")).toContain("highpass=f=80,afftdn=nf=-20");
+    expect(argvOf("aud-extract-art", "ffmpeg", ["/m/a.mp3"], "/m/o.jpg")).toEqual([...ffHead, "-i", "file:/m/a.mp3", "-an", "-map", "0:v:0", "-frames:v", "1", "-q:v", "2", "file:/m/o.jpg"]);
+    expect(argvOf("aud-small-voice", "ffmpeg", ["/m/a.wav"], "/m/o.m4a")).toEqual([...ffHead, "-i", "file:/m/a.wav", "-vn", "-ac", "1", "-ar", "24000", "-c:a", "aac", "-b:a", "48k", "-movflags", "+faststart", "file:/m/o.m4a"]);
+    expect(argvOf("aud-treble", "ffmpeg", ["/m/a.mp3"], "/m/o.mp3").join(" ")).toContain("treble=g=5:f=4000");
+    expect(argvOf("aud-echo", "ffmpeg", ["/m/a.mp3"], "/m/o.mp3").join(" ")).toContain("aecho=0.8:0.88:60|120:0.35|0.2");
+    expect(argvOf("aud-nightcore", "ffmpeg", ["/m/a.mp3"], "/m/o.mp3").join(" ")).toContain("asetrate=44100*1.25,aresample=44100");
+    expect(argvOf("aud-slowed", "ffmpeg", ["/m/a.mp3"], "/m/o.mp3").join(" ")).toContain("asetrate=44100*0.85,aresample=44100,aecho=0.8:0.88:80:0.25");
+    expect(argvOf("aud-8d", "ffmpeg", ["/m/a.mp3"], "/m/o.mp3").join(" ")).toContain("apulsator=mode=sine:hz=0.125:amount=0.85");
+    expect(argvOf("img-scan", "imagemagick", ["/s/in0001.jpg"], "/s/out.jpg").join(" ")).toContain("-colorspace Gray ( +clone -blur 0x20 ) +swap -compose DivideSrc -composite");
+    expect(argvOf("img-polaroid", "imagemagick", ["/s/in0001.jpg"], "/s/out.jpg").join(" ")).toContain("-border 24x24 -gravity south -background white -splice 0x56");
+    expect(argvOf("img-shadow", "imagemagick", ["/s/in0001.png"], "/s/out.png").join(" ")).toContain("-shadow 60x12+0+8");
+    expect(argvOf("img-posterize", "imagemagick", ["/s/in0001.png"], "/s/out.png")).toContain("-posterize");
     expect(argvOf("sub-vtt", "ffmpeg", ["/v/a.srt"], "/v/a.vtt")).toEqual([...ffHead, "-i", "file:/v/a.srt", "file:/v/a.vtt"]);
   });
 
@@ -319,7 +336,7 @@ describe("commands are lists of arguments, exactly", () => {
     expect(argvOf("doc-html", "pandoc", ["/d/-weird.md"], "/d/o.html", { toc: true }, { title: 'T "x"' })).toEqual(["/d/-weird.md", "-s", "--embed-resources", "--metadata", 'pagetitle=T "x"', "--toc", "-o", "/d/o.html"]);
   });
 
-  suite("PDF/A needs Ghostscript's colour profile, which is found from the folders gs reports", () => {
+  suite("PDF/A needs Ghostscript's color profile, which is found from the folders gs reports", () => {
     test("the profile is found next to the lib folder; a missing profile is a plain error", () => {
       const share = join(root, "gs-share");
       mkdirSync(join(share, "lib"), { recursive: true });
@@ -336,7 +353,7 @@ describe("commands are lists of arguments, exactly", () => {
       writeFileSync(empty, "#!/bin/sh\necho nothing\n");
       chmodSync(empty, 0o755);
       expect(ghostscriptProfile(empty)).toBeNull();
-      expect(() => argvOf("pdf-pdfa", "ghostscript", ["/s/in0001.pdf"], "/s/out.pdf", {}, { exe: empty })).toThrow(/colour profile/);
+      expect(() => argvOf("pdf-pdfa", "ghostscript", ["/s/in0001.pdf"], "/s/out.pdf", {}, { exe: empty })).toThrow(/color profile/);
     });
   });
 
@@ -368,7 +385,7 @@ describe("commands are lists of arguments, exactly", () => {
       const inputs = d.id === "vid-burn-subs" ? ["/w/-rf evil video.mp4", "/w/-rf evil subs.srt"] : d.mode === "all" ? [input, input.replace("evil", "evil2")] : [input];
       for (const engine of d.engines) {
         if (engine.tool === "builtin" || !engine.argv) continue;
-        if (d.id === "pdf-pdfa") continue; // asks Ghostscript where its colour profile is; covered by its own test below
+        if (d.id === "pdf-pdfa") continue; // asks Ghostscript where its color profile is; covered by its own test below
         const opts = optsOf(d, d.options?.some((o) => o.id === "pages") ? { pages: "1-2" } : {});
         for (const o of d.options ?? []) if (o.kind === "text" && !opts[o.id]) opts[o.id] = "text";
         const built = engine.argv(ctxFor(inputs, "/w/out/result", opts)) as Array<string | string[] | (() => string[])>;

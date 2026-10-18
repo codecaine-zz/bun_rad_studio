@@ -451,7 +451,7 @@ describe("the log", () => {
     expect(one.log + incremental.log).toBe(two.log);
   });
 
-  test("colours and cursor codes are removed, even when split between chunks", () => {
+  test("colors and cursor codes are removed, even when split between chunks", () => {
     expect(stripAnsi("\x1b[31mred\x1b[0m \x1b]0;title\x07ok\r\nnext\rline\x07")).toBe("red ok\nnext\nline");
     const clean = createTextCleaner();
     const enc = new TextEncoder();
@@ -461,10 +461,10 @@ describe("the log", () => {
     expect(clean(bytes.slice(0, 1)) + clean(bytes.slice(1))).toBe("é");
   });
 
-  test("coloured output from a command arrives clean", async () => {
+  test("colored output from a command arrives clean", async () => {
     const ctx = newCtx();
     const dir = newDir();
-    const script = join(root, `colour${++counter}.js`);
+    const script = join(root, `color${++counter}.js`);
     writeFileSync(script, `process.stdout.write("\\x1b[32mgreen text\\x1b[0m\\n");`);
     const id = await start(ctx, dir, { command: `${BUN} ${JSON.stringify(script)}` });
     await op(ctx, "watch/run", { id });

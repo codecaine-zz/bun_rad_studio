@@ -4,6 +4,7 @@ import { viewMenuItems } from "./contextmenu.js";
 import { attachDropTarget } from "./dnd.js";
 import { showHelp, showSettings } from "./extras.js";
 import { showFavoritesMenu } from "./favorites.js";
+import { showRecentsMenu } from "./recents.js";
 import { showToolsDialog } from "./tools.js";
 import { openPower, togglePower } from "./power.js";
 import { lockSelection } from "./vault.js";
@@ -40,6 +41,7 @@ function buttonSpecs() {
     [
       { id: "newFolder", icon: "📁", label: "New folder", get tip() { return `Make a new folder${hintOf("file.newFolder")}`; }, run: ops.newFolder, enabled: folderView, hide: inTrash },
       { id: "newFile", icon: "📄", label: "New file", get tip() { return `Make a new empty file${hintOf("file.newFile")}`; }, run: ops.newFile, enabled: folderView, hide: inTrash },
+      { id: "newSqlite", icon: "🪶", label: "New SQLite", get tip() { return `Make a new SQLite database file${hintOf("file.newSqlite")}`; }, run: ops.newSqlite, enabled: folderView, hide: inTrash },
     ],
     [
       { id: "cut", icon: "✂️", label: "Cut", get tip() { return `Cut${hintOf("file.cut")}`; }, run: ops.cutSelection, enabled: () => sel() > 0, hide: inTrash },
@@ -48,7 +50,7 @@ function buttonSpecs() {
     ],
     [
       { id: "rename", icon: "✏️", label: "Rename", get tip() { return `Rename${hintOf("file.rename")}`; }, run: ops.renameSelection, enabled: () => sel() > 0, hide: inTrash },
-      { id: "delete", icon: "🗑️", label: "Delete", tip: "Move to the Recycle Bin (Delete). You can undo this.", run: ops.trashSelection, enabled: () => sel() > 0, hide: inTrash },
+      { id: "delete", icon: "🗑️", label: "Delete", get tip() { return `Move to the Recycle Bin (${state.platform === "darwin" ? "⌘⌫ or Fn+Delete" : "Delete"}). You can undo this.`; }, run: ops.trashSelection, enabled: () => sel() > 0, hide: inTrash },
       { id: "restore", icon: "↩️", label: "Restore", tip: "Put the selected items back where they were", run: ops.restoreFromBin, enabled: () => sel() > 0, show: inTrash, primary: true },
       { id: "deleteForever", icon: "❌", label: "Delete forever", tip: "Delete the selected items permanently", run: ops.trashSelection, enabled: () => sel() > 0, show: inTrash },
       { id: "empty", icon: "🧹", label: "Empty bin", tip: "Delete everything in the Recycle Bin", run: ops.emptyBin, enabled: () => state.trashCount > 0, show: inTrash },
@@ -60,14 +62,16 @@ function buttonSpecs() {
     [
       { id: "view", icon: "▦", label: "View", tip: "Change how files are shown and sorted", run: (btn) => showMenu(viewMenuItems(), { anchor: btn, label: "View" }), enabled: () => true, menu: true },
       { id: "favorites", icon: "⭐", label: "Favorites", get tip() { return `Jump to your favorite folders, or add this one${hintOf("nav.favorites")}`; }, run: (btn) => showFavoritesMenu(btn), enabled: () => true, menu: true },
+      { id: "recent", icon: "🕘", label: "Recent", tip: "Open a file you used lately, or turn recent files on, off or clear them", run: (btn) => showRecentsMenu(btn), enabled: () => true, menu: true },
       { id: "info", icon: "ℹ️", label: "Details", get tip() { return `Show or hide the details panel${hintOf("view.info")}`; }, run: () => emit("toggle-info"), enabled: () => true, toggle: () => state.settings.showInfoPanel },
       { id: "lock", icon: "🔒", label: "Lock", tip: "Protect the selected files or folders with a password (encrypt), or unlock a selected .radenc file. A lost password can't be recovered.", run: lockSelection, enabled: () => sel() > 0, hide: inTrash },
       { id: "tools", icon: "🧰", label: "Convert", tip: "Convert, shrink or combine pictures, video, sound and documents, and set up the helper programs", run: showToolsDialog, enabled: () => !inTrash() },
       { id: "power", icon: "🔎", label: "Find & more", get tip() { return `Power tools: advanced find, watch folders and run commands, hashes and encryption, IP lookup and network checks${hintOf("nav.findTool")}`; }, run: () => togglePower(), enabled: () => true, toggle: () => state.powerOpen === true },
       { id: "databases", icon: "🗄️", label: "Databases", tip: "Open the Databases tool: saved connections and the SQLite, MySQL, PostgreSQL and Redis studios", run: () => openPower("databases"), enabled: () => true },
+      { id: "games", icon: "🕹️", label: "Games", tip: "Open Codecaine Games: play all 24 built-in Codecaine arcade, puzzle, card and casino games", run: () => openPower("games"), enabled: () => true },
       { id: "terminal", icon: "⌨️", label: "Terminal", get tip() { return `Show or hide a terminal in this folder${hintOf("terminal.toggle")}`; }, run: () => emit("toggle-terminal"), enabled: () => true, toggle: () => state.terminalOpen },
-      { id: "themes", icon: "🎨", label: "Themes", get tip() { return `Change the colours: standard light or dark, themes you used lately, or all of them${hintOf("app.themes")}`; }, run: async (btn) => showMenu(await themeMenuItems(), { anchor: btn, label: "Themes" }), enabled: () => true, menu: true },
-      { id: "settings", icon: "⚙️", label: "Settings", tip: "Colours, text size and more", run: showSettings, enabled: () => true },
+      { id: "themes", icon: "🎨", label: "Themes", get tip() { return `Change the colors: standard light or dark, themes you used lately, or all of them${hintOf("app.themes")}`; }, run: async (btn) => showMenu(await themeMenuItems(), { anchor: btn, label: "Themes" }), enabled: () => true, menu: true },
+      { id: "settings", icon: "⚙️", label: "Settings", tip: "Colors, text size and more", run: showSettings, enabled: () => true },
       { id: "help", icon: "❓", label: "Help", get tip() { return `Help and keyboard shortcuts${hintOf("app.help")}`; }, run: showHelp, enabled: () => true },
     ],
   ];

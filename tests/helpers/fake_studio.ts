@@ -1,7 +1,7 @@
 /**
  * A stand-in for the database studios in tests: it takes the same `--server` / `--port` arguments, prints
  * READY:<port>, and answers /__env with exactly what it was started with (environment, arguments, folder).
- * FAKE_MODE changes its behaviour: "crash" exits after READY, "silent" never says READY, "leak" prints a password it was given.
+ * FAKE_MODE changes its behavior: "crash" exits after READY, "silent" never says READY, "leak" prints a password it was given.
  */
 import { watchParentProcess } from "../../src/parentWatch";
 

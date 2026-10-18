@@ -35,7 +35,7 @@ const PAIRS: Array<[string, string, number]> = [
 ];
 
 for (const [name, selector] of [["light", ":root {"], ["dark", ':root[data-theme="dark"]']] as const) {
-  describe(`${name} theme colours`, () => {
+  describe(`${name} theme colors`, () => {
     const vars = variables(selector);
     test("every text and background pair is readable", () => {
       const low: string[] = [];
@@ -51,7 +51,7 @@ for (const [name, selector] of [["light", ":root {"], ["dark", ':root[data-theme
 }
 
 describe("the automatic dark theme matches the dark theme", () => {
-  test("same colours in the media query as in [data-theme=dark]", () => {
+  test("same colors in the media query as in [data-theme=dark]", () => {
     const dark = variables(':root[data-theme="dark"]');
     const auto = variables(":root:not([data-theme])");
     for (const [k, v] of Object.entries(dark)) expect(auto[k], k).toBe(v);

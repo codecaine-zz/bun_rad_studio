@@ -24,7 +24,7 @@ export async function copyText(text, what) {
 /** Tab-separated text of a table, for pasting into a spreadsheet. */
 export const tableToTsv = (table) => [table.headers, ...table.rows].map((r) => r.map((c) => String(c).replace(/[\t\r\n]+/g, " ")).join("\t")).join("\n");
 
-/** Up to five labelled facts for the strip under the search box. */
+/** Up to five labeled facts for the strip under the search box. */
 export function glance(a) {
   const d = a.data ?? {};
   switch (a.kind) {

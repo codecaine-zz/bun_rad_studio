@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#070516"/>
+      <stop offset="100%" stop-color="#140c30"/>
+    </linearGradient>
+    <linearGradient id="tpiece" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff00ff"/>
+      <stop offset="100%" stop-color="#9900ff"/>
+    </linearGradient>
+    <linearGradient id="ipiece" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00ffff"/>
+      <stop offset="100%" stop-color="#0088ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)" stroke="#00ffff" stroke-width="2" stroke-opacity="0.5"/>
+  <!-- T-piece -->
+  <g fill="url(#tpiece)" stroke="#ffffff" stroke-width="1" stroke-opacity="0.6">
+    <rect x="24" y="10" width="14" height="14" rx="3"/>
+    <rect x="10" y="24" width="14" height="14" rx="3"/>
+    <rect x="24" y="24" width="14" height="14" rx="3"/>
+    <rect x="38" y="24" width="14" height="14" rx="3"/>
+  </g>
+  <!-- Cyan I-piece bar below -->
+  <g fill="url(#ipiece)" stroke="#ffffff" stroke-width="1" stroke-opacity="0.6">
+    <rect x="8" y="44" width="12" height="12" rx="2.5"/>
+    <rect x="20" y="44" width="12" height="12" rx="2.5"/>
+    <rect x="32" y="44" width="12" height="12" rx="2.5"/>
+    <rect x="44" y="44" width="12" height="12" rx="2.5"/>
+  </g>
+</svg>

@@ -228,7 +228,7 @@ export const SUGGESTIONS = [
   { name: "Lint (v vet)", command: "v vet {file}", kind: "run", cwd: "file", langs: ["v"], tip: "Looks for suspicious code with V's vet tool." },
   { name: "Show the docs (v doc)", command: "v doc {file}", kind: "run", cwd: "file", langs: ["v"], tip: "Prints the documentation V finds in this file." },
   { name: "Build with V", command: "v {file}", kind: "build", cwd: "file", langs: ["v"], tip: "Compiles this V file into a program." },
-  { name: "Build optimised (v -prod)", command: "v -prod {file}", kind: "build", cwd: "file", langs: ["v"], tip: "Compiles with optimisations for a release build." },
+  { name: "Build optimized (v -prod)", command: "v -prod {file}", kind: "build", cwd: "file", langs: ["v"], tip: "Compiles with optimizations for a release build." },
   { name: "Build with debug info (v -cg)", command: "v -cg {file}", kind: "build", cwd: "file", langs: ["v"], tip: "Compiles with debug symbols so a debugger can show the V code." },
   { name: "Build a program named after the file", command: "v -o {stem} {file}", kind: "build", cwd: "file", langs: ["v"], tip: "Compiles this file into a program named after it." },
   { name: "Check without building (v -check)", command: "v -check {file}", kind: "build", cwd: "file", langs: ["v"], tip: "Parses and type-checks this file without making a program." },

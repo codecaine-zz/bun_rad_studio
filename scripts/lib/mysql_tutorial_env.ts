@@ -127,7 +127,7 @@ export async function saveEnvConnection(c: Cdp) {
   await sleep(1500);
   await c.eval(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Done')?.click()`);
   await sleep(600);
-  await c.eval(`document.querySelector('#power-pane-databases .db-row')?.click()`);
+  await c.eval(`[...document.querySelectorAll('#power-pane-databases .db-row')].find(r => r.textContent.includes('shop'))?.click()`);
   await sleep(800);
 }
 

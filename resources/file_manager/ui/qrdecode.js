@@ -218,7 +218,7 @@ export function toGray({ data, width, height }) {
   return { gray: g, width, height };
 }
 
-/** Shrinks a grey picture by an integer factor, averaging each block (keeps thin lines visible). */
+/** Shrinks a gray picture by an integer factor, averaging each block (keeps thin lines visible). */
 function shrink({ gray, width, height }, factor) {
   if (factor <= 1) return { gray, width, height };
   const w = Math.floor(width / factor);
@@ -235,7 +235,7 @@ function shrink({ gray, width, height }, factor) {
   return { gray: out, width: w, height: h };
 }
 
-/** Enlarges a grey picture by an integer factor with smooth (bilinear) steps. */
+/** Enlarges a gray picture by an integer factor with smooth (bilinear) steps. */
 function enlarge({ gray, width, height }, factor) {
   const w = width * factor;
   const h = height * factor;
@@ -373,7 +373,7 @@ function crossCheck(bits, width, height, startX, startY, dx, dy, maxCount, origi
   return crossesRatio(c) ? p - c[4] - c[3] - c[2] / 2 : NaN;
 }
 
-/** Candidate finder-pattern centres: [{ x, y, size (module size), count }]. */
+/** Candidate finder-pattern centers: [{ x, y, size (module size), count }]. */
 export function findFinders({ bits, width, height }) {
   const found = [];
   const add = (cx, cy, total) => {
@@ -505,7 +505,7 @@ export function homography(src, dst) {
   };
 }
 
-/** Looks near (ex, ey) for an alignment pattern: a dark centre in a light ring, one module wide each. */
+/** Looks near (ex, ey) for an alignment pattern: a dark center in a light ring, one module wide each. */
 function findAlignment({ bits, width, height }, ex, ey, mod, reachModules = 4.5) {
   const reach = Math.ceil(mod * reachModules);
   const x0 = Math.max(0, Math.floor(ex - reach));

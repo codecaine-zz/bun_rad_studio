@@ -4,7 +4,7 @@ Copy this list into your pull request description and tick every line that appli
 
 ## Always
 
-- [ ] I ran every command I wrote or changed and recorded the result (or labelled it *not verified*).
+- [ ] I ran every command I wrote or changed and recorded the result (or labeled it *not verified*).
 - [ ] I followed the [style guide](style-guide.md).
 - [ ] New or moved pages are listed in `docs/nav.json`.
 - [ ] `bun run docs:build` has been run and its output committed.
@@ -12,7 +12,7 @@ Copy this list into your pull request description and tick every line that appli
 
 ## When a feature changes
 
-- [ ] The application or feature page describes the new behaviour (not the planned behaviour).
+- [ ] The application or feature page describes the new behavior (not the planned behavior).
 - [ ] Its row in the [coverage matrix](coverage-matrix.md) source (`features.json`) has the right implementation and verification status, with date and setup.
 - [ ] Screenshots from before the change are replaced or removed.
 - [ ] The [task index](../reference/task-index.md) still points to the right place.
@@ -44,7 +44,7 @@ Copy this list into your pull request description and tick every line that appli
 
 ## Database work
 
-- [ ] Examples use disposable databases and fictional data; destructive steps are labelled and name their target.
+- [ ] Examples use disposable databases and fictional data; destructive steps are labeled and name their target.
 - [ ] No real credentials appear anywhere (including screenshots and history).
 
 ## Before you merge

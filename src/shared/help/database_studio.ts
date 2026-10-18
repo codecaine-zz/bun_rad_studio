@@ -2,7 +2,7 @@ import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `database_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */
 export const databaseStudioTips: HelpTips = {
-  "#dd_theme": "Change the colours of this window. Your choice is remembered.",
+  "#dd_theme": "Change the colors of this window. Your choice is remembered.",
   "#btn_save_state": "Save the window size, theme, database path and the SQL in the editor so they are still here next time you open this app. It does not save the database itself.",
   "#btn_center": "Move the window to the middle of the screen.",
   "#btn_fullscreen": "Fill the whole screen with this window. Press it again to go back.",

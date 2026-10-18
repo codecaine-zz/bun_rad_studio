@@ -383,7 +383,7 @@ describe("working with items", () => {
     const { emit } = await import("../resources/file_manager/ui/state.js");
     emit("secrets-items");
     await until(() => rowTitles().length >= 4, "four items");
-    expect(rowTitles()).toEqual(["Visa", "Example Bank", "Mail", "Plans"]); // favourites first, then A–Z
+    expect(rowTitles()).toEqual(["Visa", "Example Bank", "Mail", "Plans"]); // favorites first, then A–Z
     click(pane().querySelectorAll(".sx-row-item")[3]);
     await until(() => pane().querySelector(".sx-detail h2")?.textContent === "Plans", "the Plans note");
     click(btn("Show notes", pane().querySelector(".sx-detail")));
@@ -417,8 +417,8 @@ describe("working with items", () => {
     click(btn("Cards"));
     await until(() => rowTitles().join() === "Visa", "cards");
     expect(btn("Cards").getAttribute("aria-pressed")).toBe("true");
-    click(btn("Favourites"));
-    await until(() => rowTitles().join() === "Visa", "favourites");
+    click(btn("Favorites"));
+    await until(() => rowTitles().join() === "Visa", "favorites");
     click(btn("Notes"));
     await until(() => rowTitles().join() === "Plans", "notes");
     click(btn("Logins"));
@@ -456,7 +456,7 @@ describe("working with items", () => {
     await until(() => clip.text === M.pw, "the copied password");
   });
 
-  test("a custom hidden field is secret too; Duplicate, favourite, Trash, Restore and Delete for good", async () => {
+  test("a custom hidden field is secret too; Duplicate, favorite, Trash, Restore and Delete for good", async () => {
     const detail = pane().querySelector(".sx-detail");
     const pin = [...detail.querySelectorAll(".sx-field")].find((r: any) => r.textContent.startsWith("pin"));
     expect(pin.textContent).not.toContain(M.custom);
@@ -719,7 +719,7 @@ describe("locking, unlocking and what is left behind", () => {
 });
 
 describe("the whole tab", () => {
-  test("no 'null' or 'undefined' text, no inline colours, no copy-section buttons that could dump a secret", async () => {
+  test("no 'null' or 'undefined' text, no inline colors, no copy-section buttons that could dump a secret", async () => {
     const states: string[] = [];
     states.push(pane().textContent);
     for (const item of [0, 1, 2, 3]) {

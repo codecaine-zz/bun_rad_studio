@@ -8,6 +8,7 @@ export type FxRadius = "sharp" | "soft" | "round" | "pill";
 export type FxBorder = "flat" | "gradient" | "metal";
 export type FxMotion = "calm" | "spring" | "snappy";
 export type FxMode = "on" | "reduced" | "off";
+export type FxAtmosphere = string;
 
 export interface ThemeFx {
     glow: FxGlow;
@@ -36,6 +37,8 @@ export interface ThemeFx {
     glowIntensity?: number;
     /** Glass border opacity, 0 to 1. Defaults to the theme's border style. */
     borderOpacity?: number;
+    /** Optional weather or particle atmosphere effect. */
+    atmosphere?: FxAtmosphere;
 }
 
 /** The page-level effects switch: Full = "on", Reduced keeps looks but no motion, Off removes everything. */
@@ -623,7 +626,7 @@ function shadowStack(isDark: boolean, tint: string): string[] {
     ];
 }
 
-/** Colour of the focus ring: the accent, moved toward white or black only if it does not reach 3:1 on both surfaces. */
+/** Color of the focus ring: the accent, moved toward white or black only if it does not reach 3:1 on both surfaces. */
 export function focusRingColor(t: { accent_color: string; background_color: string; card_background?: string; is_dark: boolean }): string {
     const surfaces = [t.background_color, t.card_background ?? t.background_color];
     const base = parseColor(t.accent_color);
@@ -757,6 +760,7 @@ export function fxRootAttrs(theme: SimpleGUITheme | undefined | null, mode: FxMo
     if (fx.noise) a["data-fx-noise"] = "on";
     if (fx.chromatic) a["data-fx-ca"] = "on";
     if (fx.ambient) a["data-fx-ambient"] = "on";
+    if (fx.atmosphere && fx.atmosphere !== "none") a["data-fx-atmosphere"] = fx.atmosphere;
     return a;
 }
 
@@ -775,8 +779,8 @@ export interface SyntaxPalette {
 }
 
 /**
- * Code colours for a theme, worked out from its accent, secondary and status colours. There is no per-theme syntax
- * table in the Designer, so editors that want one use this; every colour reads at 4.5:1 or better on the theme's canvas.
+ * Code colors for a theme, worked out from its accent, secondary and status colors. There is no per-theme syntax
+ * table in the Designer, so editors that want one use this; every color reads at 4.5:1 or better on the theme's canvas.
  */
 export function syntaxPalette(theme: SimpleGUITheme): SyntaxPalette {
     const sem = buildSemanticPalette({ background: theme.background_color, card: theme.card_background, isDark: theme.is_dark, overrides: overridesForTheme(theme) });

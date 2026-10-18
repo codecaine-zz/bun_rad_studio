@@ -2,6 +2,7 @@
 import { call, rawUrl } from "./api.js";
 import { openFolderInCode, openInCode } from "./code.js";
 import { looksLikeText } from "./codeLang.js";
+import { isSqliteFile, openInSqliteStudio } from "./dbFiles.js";
 import { showProperties } from "./extras.js";
 import { showMoreInfo } from "./fileinfo.js";
 import { mayHavePhotoDetails, photoStrip } from "./fileinfoPhoto.js";
@@ -10,6 +11,8 @@ import { saveSettings, visibleEntries } from "./nav.js";
 import { octalOf, symbolicOf } from "./permsModel.js";
 import { selectedEntries } from "./selection.js";
 import { inTrash, on, state } from "./state.js";
+import { quickMediaBlock } from "./mediaQuick.js";
+import { renderRichInfoSummary } from "./quicklookFormat.js";
 import { verdictBlock } from "./typecheck.js";
 import { baseName, formatDate, formatSize, plural } from "./util.js";
 
@@ -23,9 +26,31 @@ async function previewFor(entry) {
   if (entry.isDir || inTrash()) return null;
   try {
     const { preview } = await call("preview", { path: entry.path });
-    if (preview.type === "image") return h("img", { class: "preview-image", src: rawUrl(entry.path), alt: `Preview of ${entry.name}` });
+    if (preview.type === "image") {
+      const img = h("img", {
+        class: "preview-image",
+        src: rawUrl(entry.path),
+        alt: `Preview of ${entry.name}`,
+        onerror: () => {
+          if (!img.dataset.retried) {
+            img.dataset.retried = "1";
+            img.src = `${rawUrl(entry.path)}&convert=1`;
+          }
+        },
+      });
+      return img;
+    }
+    if (preview.type === "thumb") {
+      const img = h("img", { class: "preview-image", src: `${rawUrl(entry.path)}&thumb=1`, alt: `Preview of ${entry.name}` });
+      const richBox = renderRichInfoSummary(entry, preview);
+      return richBox ? h("div", { class: "info-thumb-rich" }, img, richBox) : img;
+    }
     if (preview.type === "text") return h("pre", { class: "preview-text", tabindex: "0", "aria-label": `Start of ${entry.name}` }, preview.text + (preview.truncated ? "\n…" : ""));
-    if (preview.type === "binary") return h("p", { class: "hint" }, "No preview for this kind of file.");
+    if (preview.type === "binary") {
+      const richBox = renderRichInfoSummary(entry, preview);
+      if (richBox) return richBox;
+      return h("p", { class: "hint" }, "No preview for this kind of file.");
+    }
   } catch {
     // preview is a nicety: say nothing
   }
@@ -52,13 +77,14 @@ export async function renderInfo() {
   }
   if (items.length > 1) {
     const files = items.filter((e) => !e.isDir);
-    box.append(
+    box.append(...[
       h("div", { class: "info-icon", "aria-hidden": "true" }, "🗂️"),
       h("h2", { class: "info-name" }, `${items.length} items selected`),
       h("dl", { class: "info-facts" }, ...fact("Folders", String(items.length - files.length)), ...fact("Files", String(files.length)), ...fact("Size of files", formatSize(files.reduce((n, e) => n + e.size, 0)))),
       h("button", { type: "button", class: "btn", onclick: () => showProperties(items.map((e) => e.path)) }, "Properties…"),
       h("button", { type: "button", class: "btn fi-more", title: "A summary of everything selected: total size, kinds of files and dates", onclick: () => showMoreInfo(items.map((e) => e.path)) }, "More info…"),
-    );
+      quickMediaBlock(items),
+    ].filter((part) => part !== null));
     return;
   }
   const e = items[0];
@@ -73,7 +99,9 @@ export async function renderInfo() {
     inTrash() || e.isDir ? null : verdictBlock(e.path, e.name),
     inTrash() ? null : h("button", { type: "button", class: "btn", onclick: () => showProperties([e.path]) }, "Properties…"),
     inTrash() ? null : h("button", { type: "button", class: "btn fi-more", title: "Everything about this item, including hidden details such as camera, location and checksums (Alt+Shift+Enter)", onclick: () => showMoreInfo([e.path]) }, "More info…"),
+    inTrash() || e.isDir || !(isSqliteFile(e) || e.kind === "sqlite") ? null : h("button", { type: "button", class: "btn", title: "Open this database in SQLite Studio inside the Databases tool", onclick: () => openInSqliteStudio(e.path) }, "Open in SQLite Studio"),
     inTrash() || !(e.isDir || looksLikeText(e.name)) ? null : h("button", { type: "button", class: "btn", title: "Open it in the built-in code editor (Ctrl/Cmd+E)", onclick: () => (e.isDir ? openFolderInCode(e.path) : openInCode(e.path)) }, e.isDir ? "Open folder in Code editor" : "Edit in Code editor"),
+    quickMediaBlock([e]),
   ].filter((part) => part !== null));
   const [preview, strip] = await Promise.all([previewFor(e), !inTrash() && mayHavePhotoDetails(e) ? photoStrip(e) : null]);
   if (mine === sequence && preview) box.insertBefore(preview, box.querySelector(".info-facts"));

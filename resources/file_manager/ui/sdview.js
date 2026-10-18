@@ -26,7 +26,7 @@ export function describeNotes(stats) {
   return notes.join(" ");
 }
 
-/** Shows a unified diff with a colour AND a + / − mark on every changed line. */
+/** Shows a unified diff with a color AND a + / − mark on every changed line. */
 export function renderDiff(host, text) {
   clear(host);
   for (const line of text.split("\n")) {

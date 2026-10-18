@@ -13,7 +13,7 @@ export default dataset({
   title: "Warehouse, Inventory and Supply Chain",
   tagline: "Suppliers, purchase orders, receiving, lots with expiry, bin stock, pick tasks, shipments and cycle counts.",
   description:
-    "A distribution-centre WMS: suppliers and their lead times, purchase orders with receipts, product lots with expiry dates, stock by bin location, a stock-movement ledger, sales orders with " +
+    "A distribution-center WMS: suppliers and their lead times, purchase orders with receipts, product lots with expiry dates, stock by bin location, a stock-movement ledger, sales orders with " +
     "pick tasks and shipments, carriers, cycle counts with a computed variance and reorder policies. Views and queries cover ABC velocity classes, expiring lots, open PO ageing, " +
     "fill rate and supplier on-time-in-full. All data is synthetic.",
   tags: ["Logistics", "Inventory", "Operations"],
@@ -23,7 +23,7 @@ export default dataset({
     table("supplier", "Vendors.", ["id id", "code str(10) uq", "name str(80)", "country char(2)", "payment_terms enum(net15,net30,net45,net60)", "rating dec(2,1)", "is_active bool def:true"], {
       n: [14, 50, 150], gen: (g, i) => ({ code: `SUP${String(i).padStart(5, "0")}`, name: g.company(), country: g.w([["US", 60], ["MX", 10], ["CN", 12], ["DE", 8], ["IN", 10]] as const), payment_terms: g.pick(["net15", "net30", "net30", "net45", "net60"]), rating: g.round(g.clamp(g.normal(4.1, 0.5), 2, 5), 1), is_active: g.bool(0.95) }),
     }),
-    table("warehouse", "Distribution centres.", ["id id", "code str(8) uq", "name str(40)", "city str(40)", "state char(2)"], { rows: [{ code: "DC-ATL", name: "Atlanta DC", city: "Atlanta", state: "GA" }, { code: "DC-DAL", name: "Dallas DC", city: "Dallas", state: "TX" }, { code: "DC-RNO", name: "Reno DC", city: "Reno", state: "NV" }] }),
+    table("warehouse", "Distribution centers.", ["id id", "code str(8) uq", "name str(40)", "city str(40)", "state char(2)"], { rows: [{ code: "DC-ATL", name: "Atlanta DC", city: "Atlanta", state: "GA" }, { code: "DC-DAL", name: "Dallas DC", city: "Dallas", state: "TX" }, { code: "DC-RNO", name: "Reno DC", city: "Reno", state: "NV" }] }),
     table("location", "Storage bins.", ["id id", "warehouse_id int fk:warehouse", "zone char(1)", "aisle smallint", "bay smallint", "level smallint", "bin_code str(14) uq", "location_type enum(pick,reserve,receiving,shipping)", "max_weight_kg int"], {
       n: [90, 400, 1500], ix: ["warehouse_id,zone"],
       gen: (g, i) => { const wh = ((i - 1) % 3) + 1; const zone = "ABCD"[Math.floor((i - 1) / 3) % 4]!; const aisle = Math.floor((i - 1) / 12) % 30 + 1; const bay = (i % 12) + 1; const level = (i % 4) + 1; return { warehouse_id: wh, zone, aisle, bay, level, bin_code: `W${wh}-${zone}${String(aisle).padStart(2, "0")}-${String(i).padStart(5, "0")}`, location_type: level === 1 ? "pick" : g.pick(["reserve", "reserve", "pick"]), max_weight_kg: g.pick([250, 500, 1000]) }; },

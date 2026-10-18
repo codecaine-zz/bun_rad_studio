@@ -56,4 +56,29 @@ describe("New SQLite database", () => {
       server.stop(true);
     }
   });
+
+  test("supports starter templates (starter, kv, notes) and saving as a connection profile", async () => {
+    const starter = await makeSqliteFile(ctx, work, "app_starter", { template: "starter", saveProfile: true, connectionName: "My Starter DB" });
+    expect(starter.name).toBe("app_starter.sqlite");
+    expect(starter.profile?.name).toBe("My Starter DB");
+    expect(starter.profile?.engine).toBe("sqlite");
+    const db1 = new Database(starter.path);
+    const users = db1.query("SELECT name, email FROM users ORDER BY id").all();
+    expect(users.length).toBeGreaterThanOrEqual(2);
+    const items = db1.query("SELECT title, status FROM items").all();
+    expect(items.length).toBeGreaterThanOrEqual(2);
+    db1.close();
+
+    const kv = await makeSqliteFile(ctx, work, "app_kv", { template: "kv" });
+    const db2 = new Database(kv.path);
+    const kvRows = db2.query("SELECT key, value FROM kv_store ORDER BY key").all();
+    expect(kvRows.length).toBeGreaterThanOrEqual(2);
+    db2.close();
+
+    const notes = await makeSqliteFile(ctx, work, "app_notes", { template: "notes" });
+    const db3 = new Database(notes.path);
+    const noteRows = db3.query("SELECT title FROM notes").all() as { title: string }[];
+    expect(noteRows[0]?.title).toBe("Welcome");
+    db3.close();
+  });
 });

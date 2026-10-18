@@ -4833,6 +4833,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
         html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
         html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+        html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|#[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: var(--accent, #61afef); text-decoration: underline; cursor: pointer;">$1</a>');
 
         html = html.replace(/\|(.+)\|/gim, (row) => {
           if (row.includes("---")) return "";
@@ -5811,7 +5812,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         const currentFile = state.files.find((f) => f.path === state.activeFilePath);
         if (!currentFile) return;
         if (await prettifyWithServer("prettify")) return;
-        // The server could not be reached: keep the old, simple behaviour.
+        // The server could not be reached: keep the old, simple behavior.
         pushUndoSnapshot(currentFile, true);
         const ext = currentFile.path.split(".").pop().toLowerCase();
         if (ext === "json") {

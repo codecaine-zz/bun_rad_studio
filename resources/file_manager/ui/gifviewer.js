@@ -58,7 +58,7 @@ export function createGifViewer(entry) {
       return { fallback: plainPicture(entry, `This GIF has ${info.frames} frames of ${gif.width} × ${gif.height} pixels, which is too much to hold for frame-by-frame viewing. It plays as it is.`) };
     }
     const rgba = composeFrames(gif);
-    // Only a picture with holes in it is "see-through": most GIFs use a transparent colour just to save space between frames.
+    // Only a picture with holes in it is "see-through": most GIFs use a transparent color just to save space between frames.
     const seeThrough = rgba.some((px) => {
       for (let i = 3; i < px.length; i += 4) if (px[i] === 0) return true;
       return false;

@@ -54,3 +54,8 @@
 .st-presetbar select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; min-width: 12rem; max-width: 100%; }
 .st-bulk { border-style: dashed; }
 .st-bulk-count { overflow-wrap: anywhere; }
+
+.mq-box { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: color-mix(in srgb, var(--panel) 60%, var(--bg)); margin-top: 6px; }
+.mq-title { font-size: 0.78em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.mq-buttons { display: flex; flex-wrap: wrap; gap: 5px; }
+.mq-btn { font-size: 0.82em; padding: 3px 8px; text-align: left; }

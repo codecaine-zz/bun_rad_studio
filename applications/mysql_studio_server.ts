@@ -10,6 +10,7 @@
 import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
 import { getSharedWorkbench } from "../src/db/workbench_shared";
 import { mysqlStaging } from "../src/db/staging/mount";
+import { parseUniversalTable } from "../src/db/importParser";
 import { viewApi } from "../src/shared/studioViews";
 import {
   formatSqlDialect,
@@ -1255,15 +1256,98 @@ export class MysqlManager {
     }
   }
 
-  public async importRows(spec: { table: string; rows: Record<string, any>[] }): Promise<any> {
+  public async importRows(spec: {
+    table: string;
+    create?: boolean;
+    createColumns?: ColumnSpec[];
+    columns?: string[];
+    rows: any[];
+    mode?: "append" | "replace";
+    onConflict?: "abort" | "ignore" | "replace";
+  }): Promise<any> {
+    const t0 = performance.now();
     try {
-      if (!spec.rows || spec.rows.length === 0) return { success: true, imported: 0 };
-      let count = 0;
-      for (const row of spec.rows) {
-        const res = await this.mutateRow(spec.table, "insert", { data: row });
-        if (res.success) count++;
+      const table = String(spec.table || "").trim();
+      if (!table) throw new Error("Target table is required");
+      const rawRows = Array.isArray(spec.rows) ? spec.rows : [];
+      if (rawRows.length === 0 && !spec.create) {
+        return { success: true, imported: 0, inserted: 0, skipped: 0, latencyMs: 0 };
       }
-      return { success: true, imported: count };
+
+      let columns = Array.isArray(spec.columns) ? [...spec.columns] : [];
+      let rows: any[][] = [];
+
+      if (columns.length === 0 && rawRows.length > 0 && rawRows[0] && typeof rawRows[0] === "object" && !Array.isArray(rawRows[0])) {
+        const colSet = new Set<string>();
+        for (const r of rawRows) {
+          if (r && typeof r === "object") {
+            for (const k of Object.keys(r)) colSet.add(k);
+          }
+        }
+        columns = Array.from(colSet);
+        rows = rawRows.map((r) => columns.map((c) => (r && typeof r === "object" ? r[c] ?? null : null)));
+      } else {
+        rows = rawRows.map((r) => (Array.isArray(r) ? r : columns.map((c) => (r && typeof r === "object" ? r[c] ?? null : null))));
+      }
+
+      if (spec.create) {
+        const cols: ColumnSpec[] =
+          spec.createColumns && spec.createColumns.length
+            ? spec.createColumns.map((c) => ({
+                ...c,
+                type: !c.type || c.type.toUpperCase() === "TEXT" ? "TEXT" : c.type.toUpperCase() === "REAL" ? "DOUBLE" : c.type,
+              }))
+            : columns.map((n) => ({ name: n, type: "TEXT" }));
+        const cr = await this.createTable(table, cols);
+        if (!cr.success) throw new Error(cr.error || `Failed to create table '${table}'`);
+      } else if (spec.mode === "replace") {
+        await this.sql_conn.unsafe(`DELETE FROM ${qm(table)}`);
+      }
+
+      if (columns.length === 0 || rows.length === 0) {
+        return { success: true, imported: 0, inserted: 0, skipped: 0, latencyMs: Number((performance.now() - t0).toFixed(2)) };
+      }
+
+      let inserted = 0;
+      let skipped = 0;
+      const escapedTable = qm(table);
+      const colNames = columns.map((k) => qm(k)).join(", ");
+      const placeholders = columns.map(() => "?").join(", ");
+      const verb =
+        spec.onConflict === "ignore"
+          ? "INSERT IGNORE INTO"
+          : spec.onConflict === "replace"
+            ? "REPLACE INTO"
+            : "INSERT INTO";
+
+      for (const r of rows) {
+        const values = columns.map((_, i) => {
+          const v = r[i];
+          if (v === undefined) return null;
+          if (v !== null && typeof v === "object" && !(v instanceof Uint8Array)) return JSON.stringify(v);
+          return v;
+        });
+        try {
+          const res = await this.sql_conn.unsafe(`${verb} ${escapedTable} (${colNames}) VALUES (${placeholders})`, values);
+          const affected = res?.affectedRows ?? 1;
+          if (affected > 0) inserted++;
+          else skipped++;
+        } catch (rowErr) {
+          if (spec.onConflict === "ignore") {
+            skipped++;
+          } else {
+            throw rowErr;
+          }
+        }
+      }
+      await this.logAudit("IMPORT", table, `${inserted} rows imported`);
+      return {
+        success: true,
+        imported: inserted,
+        inserted,
+        skipped,
+        latencyMs: Number((performance.now() - t0).toFixed(2)),
+      };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
     }
@@ -2479,9 +2563,30 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
         }
       }
 
+      if (url.pathname === "/api/parse-import" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as any;
+          const parsed = await parseUniversalTable(body);
+          return Response.json({ success: true, ...parsed }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
       if (url.pathname === "/api/import" && req.method === "POST") {
         try {
           const body = (await req.json()) as any;
+          if (!Array.isArray(body.rows) && (body.content !== undefined || body.base64 !== undefined || body.filePath !== undefined)) {
+            const parsed = await parseUniversalTable(body);
+            return Response.json(
+              await manager.importRows({
+                ...body,
+                columns: body.columns?.length ? body.columns : parsed.columns,
+                rows: parsed.rows,
+              }),
+              { headers: corsHeaders },
+            );
+          }
           return Response.json(await manager.importRows(body), { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
@@ -2631,8 +2736,22 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
           if (st.size > 200 * 1024 * 1024) {
             return Response.json({ success: false, error: "File is larger than 200 MB" }, { headers: corsHeaders });
           }
+          const name = basename(p);
+          const lower = name.toLowerCase();
+          if (lower.endsWith(".xlsx") || lower.endsWith(".ods")) {
+            const buf = new Uint8Array(await Bun.file(p).arrayBuffer());
+            const parsed = await parseUniversalTable({ bytes: buf, filename: name });
+            return Response.json({
+              success: true,
+              name,
+              size: st.size,
+              text: "",
+              base64: Buffer.from(buf).toString("base64"),
+              parsed,
+            }, { headers: corsHeaders });
+          }
           const text = await Bun.file(p).text();
-          return Response.json({ success: true, name: basename(p), size: st.size, text }, { headers: corsHeaders });
+          return Response.json({ success: true, name, size: st.size, text }, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
         }

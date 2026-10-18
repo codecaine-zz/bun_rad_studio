@@ -150,7 +150,7 @@ ${getWindowShortcutsScript()}
  */
 export function startFlappyBirdServer(options: FlappyBirdServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "flappy_bird_studio", name: "Flappy Bird Deluxe — Cyber Legends Arcade", version: "1.0.0", assetsDir: getFlappyBirdAssetsDir(), generateHtml: generateFlappyBirdStudioHtml },
+    { app: "flappy_bird_studio", name: "Codecaine Flappy Bird Deluxe — Cyber Legends Arcade", version: "1.0.0", assetsDir: getFlappyBirdAssetsDir(), generateHtml: generateFlappyBirdStudioHtml },
     options,
   );
 }
@@ -163,7 +163,7 @@ export function createFlappyBirdStudio(options: FlappyBirdStudioOptions = {}): F
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1100);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Flappy Bird Deluxe — Cyber Legends Arcade";
+  const title = "Codecaine Flappy Bird Deluxe — Cyber Legends Arcade";
 
   const app: FlappyBirdStudioInstance = {
     title,

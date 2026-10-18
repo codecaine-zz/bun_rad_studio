@@ -2,7 +2,7 @@ import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Task Manager Pro (the process monitor, app file process_studio / task_manager). */
 export const taskManagerTips: HelpTips = {
-  "#dd_theme": "Change the colours of this window. Your choice is remembered.",
+  "#dd_theme": "Change the colors of this window. Your choice is remembered.",
   "#btn_refresh": "Read the list of running processes again right now and update the table, the counts and the log.",
   "#dd_autorefresh": "How often the process list updates by itself: every 1, 2 or 5 seconds, or never (Off). Use Refresh to update by hand when it is Off.",
   "#btn_export": "Save the processes currently shown in the table to a file you choose. A name ending in .json gives JSON; any other name gives CSV (a spreadsheet-friendly list).",

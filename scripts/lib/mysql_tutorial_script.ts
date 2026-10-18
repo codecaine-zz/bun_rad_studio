@@ -33,6 +33,7 @@ export const plans: Record<string, Plan> = {
   "08_design": { path: HOME, studio: true },
   "09_diagnostics": { path: HOME, studio: true },
   "10_macros": { path: HOME, studio: true },
+  "10b_studio_ide_v2": { path: HOME, studio: true },
   "11_import": { path: `${HOME}/Projects/shop-app/data`, saved: true, files: true },
   "12_back": { path: HOME, studio: true },
 };

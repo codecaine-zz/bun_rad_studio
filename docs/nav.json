@@ -15,6 +15,7 @@
       "title": "Databases (MySQL, PostgreSQL, SQLite)",
       "pages": [
         { "title": "Databases overview", "path": "databases/index.md" },
+        { "title": "Complete guide to databases in the File Manager", "path": "databases/complete-databases-guide.md" },
         { "title": "Database Workbench guide", "path": "databases/workbench.md" },
         { "title": "Sample databases", "path": "databases/sample-datasets.md" },
         { "title": "Import with staging", "path": "databases/staging-import.md" }

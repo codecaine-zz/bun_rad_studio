@@ -328,7 +328,7 @@ export const ACTIONS: ActionDef[] = [
   imageAction("img-fit-800", "Fit within 800 px", "Small enough for a chat message.", "", "800 px", [...FIRST_FRAME_ONLY, "-auto-orient", ...FIT(800)]),
   imageAction("img-rot-right", "Rotate right", "Turn the picture a quarter turn clockwise.", "", "rotated", [...FIRST_FRAME_ONLY, "-rotate", "90"]),
   imageAction("img-rot-left", "Rotate left", "Turn the picture a quarter turn the other way.", "", "rotated", [...FIRST_FRAME_ONLY, "-rotate", "270"]),
-  imageAction("img-gray", "Black and white", "Remove the colour.", "", "black and white", [...FIRST_FRAME_ONLY, "-auto-orient", "-colorspace", "Gray"]),
+  imageAction("img-gray", "Black and white", "Remove the color.", "", "black and white", [...FIRST_FRAME_ONLY, "-auto-orient", "-colorspace", "Gray"]),
   imageAction("img-strip", "Remove location and camera info", "A copy without the hidden details (where and when it was taken, the camera).", "", "private", [...FIRST_FRAME_ONLY, "-auto-orient", "-strip"]),
 
   videoAction("vid-mp4", "Convert to MP4", "Plays almost everywhere.", "mp4", "converted", ["-c:v", "libx264", "-crf", "23", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart"], { needs: "x264" }),

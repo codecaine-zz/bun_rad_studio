@@ -48,6 +48,7 @@
 			showCopyToast(msg);
 			const targetBtn = btn || (typeof event !== 'undefined' && event && event.currentTarget);
 			if (targetBtn) flashCopyButton(targetBtn);
+			if (typeof updateToolbarSelectionState === "function") updateToolbarSelectionState();
 		}
 
 		function pasteCopiedControl() {

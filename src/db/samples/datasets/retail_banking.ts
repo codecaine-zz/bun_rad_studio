@@ -93,7 +93,7 @@ export default dataset({
     table("merchant", "Card acceptors with merchant category codes.", ["id id", "name str(80)", "mcc char(4)", "mcc_description str(40)", "country char(2)"], {
       n: [60, 300, 1200], ix: ["mcc"], gen: (g) => { const [mcc, d] = g.pickSkew(MCC, 1.2); return { name: g.company(), mcc, mcc_description: d, country: g.w([["US", 88], ["GB", 4], ["CA", 4], ["MX", 2], ["FR", 2]] as const) }; },
     }),
-    table("card_transaction", "Authorised card transactions with a fraud score.", ["id id", "card_id int fk:card", "merchant_id int fk:merchant", "amount dec(10,2)", "currency char(3) def:USD", "authorized_at ts", "status enum(approved,declined,reversed)", "auth_code str(8) null", "fraud_score smallint", "country char(2)"], {
+    table("card_transaction", "Authorized card transactions with a fraud score.", ["id id", "card_id int fk:card", "merchant_id int fk:merchant", "amount dec(10,2)", "currency char(3) def:USD", "authorized_at ts", "status enum(approved,declined,reversed)", "auth_code str(8) null", "fraud_score smallint", "country char(2)"], {
       n: [1000, 12000, 80000], ix: ["card_id,authorized_at", "fraud_score"], ck: ["fraud_score BETWEEN 0 AND 100"],
       gen: (g, i) => { const m = g.rows("merchant")[g.fkSkew(g.count("merchant"), 1.5) - 1]!; const odd = g.bool(0.012); const fs = odd ? g.int(70, 99) : Math.round(g.clamp(g.normal(9, 8), 0, 60)); const last = g.memo("last", () => ({ card: 1, ts: "" }));
       const burst = i % 18 === 0 && last.ts !== "";
@@ -191,7 +191,7 @@ SELECT m.mcc, m.mcc_description, COUNT(*) AS transactions, ${d.round("SUM(ct.amo
 FROM card_transaction ct JOIN merchant m ON m.id = ct.merchant_id JOIN card c ON c.id = ct.card_id
 GROUP BY m.mcc, m.mcc_description ORDER BY spend DESC`),
     query("velocity", "Card velocity", "Cards with the most transactions inside a single hour (possible card testing).", (d) => `
--- Velocity check: many authorisations within the same hour
+-- Velocity check: many authorizations within the same hour
 SELECT card_id, ${d.dateOf("authorized_at")} AS day, ${d.hour("authorized_at")} AS hour, COUNT(*) AS transactions, ${d.round("SUM(amount)")} AS total
 FROM card_transaction
 GROUP BY card_id, ${d.dateOf("authorized_at")}, ${d.hour("authorized_at")}

@@ -165,11 +165,11 @@ describe("reading codes", () => {
       expect(r?.text, `v${q.version} ${l} x${scale}`).toBe(t);
     }
   });
-  test("coloured and inverted pictures", () => {
-    const q = encodeQr("colours");
-    expect(decodeQr(qrToRgba(q, { scale: 6, fg: "#143c8c", bg: "#faf5c8" }))?.text).toBe("colours");
+  test("colored and inverted pictures", () => {
+    const q = encodeQr("colors");
+    expect(decodeQr(qrToRgba(q, { scale: 6, fg: "#143c8c", bg: "#faf5c8" }))?.text).toBe("colors");
     const r = decodeQr(qrToRgba(q, { scale: 6, fg: "#ffffff", bg: "#000000" }));
-    expect(r?.text).toBe("colours");
+    expect(r?.text).toBe("colors");
     expect(r?.inverted).toBe(true);
   });
   test("a code inside a larger picture, turned by an angle and noisy", () => {
@@ -226,7 +226,7 @@ describe("reading codes", () => {
 
 describe("pictures of a code", () => {
   const q = encodeQr("render me");
-  test("SVG is valid, small, uses one path, and only accepts real colours", () => {
+  test("SVG is valid, small, uses one path, and only accepts real colors", () => {
     const svg = qrToSvg(q, { fg: "#123456", bg: "#fefefe" });
     expect(svg).toContain(`viewBox="0 0 ${q.size + 8} ${q.size + 8}"`);
     expect(svg).toContain('fill="#123456"');
@@ -297,7 +297,7 @@ describe("what goes inside a code", () => {
     expect(urlPayload("http://x.org")).toBe("http://x.org");
     expect(urlPayload("  ")).toBe("");
   });
-  test("what a code says is recognised, and links are offered only when they are plain web addresses", () => {
+  test("what a code says is recognized, and links are offered only when they are plain web addresses", () => {
     expect(describePayload("https://example.com/path").url).toBe("https://example.com/path");
     for (const risky of ["javascript:alert(1)", "file:///etc/passwd", "ftp://x.org", "intent://x#Intent;end", "https://exa mple.com", "just some words"]) expect(describePayload(risky).url, risky).toBeUndefined();
     const otp = describePayload("otpauth://totp/Example:ada@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Example");

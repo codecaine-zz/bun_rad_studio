@@ -149,7 +149,7 @@ ${getWindowShortcutsScript()}
  */
 export function startBalatroServer(options: BalatroServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "balatro_studio", name: "Joker Royale — Balatro Deluxe", version: "1.0.0", assetsDir: getBalatroAssetsDir(), generateHtml: generateBalatroStudioHtml },
+    { app: "balatro_studio", name: "Codecaine Joker Royale — Balatro Deluxe", version: "1.0.0", assetsDir: getBalatroAssetsDir(), generateHtml: generateBalatroStudioHtml },
     options,
   );
 }
@@ -162,7 +162,7 @@ export function createBalatroStudio(options: BalatroStudioOptions = {}): Balatro
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1240);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Joker Royale — Balatro Deluxe Roguelike Poker Studio";
+  const title = "Codecaine Joker Royale — Balatro Deluxe Roguelike Poker Studio";
 
   const app: BalatroStudioInstance = {
     title,

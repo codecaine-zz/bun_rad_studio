@@ -72,7 +72,7 @@ describe("⚡ Minesweeper Pro — Championship Deluxe Master Edition Suite", () 
     const apps = scanWorkspaceApps();
     const found = apps.find((a) => a.name === "minesweeper_studio" || a.id === "rad_minesweeper_studio");
     expect(found).toBeDefined();
-    expect(found?.displayName).toBe("Minesweeper Pro Championship");
+    expect(found?.displayName).toBe("Codecaine Minesweeper Pro Championship");
     expect(found?.icon).toBe("💣");
     expect(found?.category).toBe("Games & Entertainment");
     expect(found?.description).toContain("safe first-click");

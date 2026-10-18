@@ -134,7 +134,7 @@ describe("the Crypto tab in a browser-like page", () => {
     power.openPower("crypto");
   });
 
-  test("text hashes: the extra kinds, and the fast checksums in their own clearly labelled table that the checksum check also understands", async () => {
+  test("text hashes: the extra kinds, and the fast checksums in their own clearly labeled table that the checksum check also understands", async () => {
     field("Text to hash").value = "abc";
     field("HMAC key (optional)").value = "";
     await click("Calculate hashes");
@@ -215,11 +215,11 @@ describe("the Crypto tab in a browser-like page", () => {
     expect(pane().textContent).not.toContain(PW);
   });
 
-  test("colour card: a swatch drawn with the style object model, every form with its own Copy, and a plain error", async () => {
-    field("Colour").value = "Tomato";
+  test("color card: a swatch drawn with the style object model, every form with its own Copy, and a plain error", async () => {
+    field("Color").value = "Tomato";
     await click("Show all forms");
     await waitFor(() => pane().querySelectorAll(".crypto-colors tbody tr").length > 10);
-    const swatch = pane().querySelector(".crypto-swatch-colour") as any;
+    const swatch = pane().querySelector(".crypto-swatch-color") as any;
     expect(swatch.style.getPropertyValue("background-color")).toBe("tomato");
     expect(pane().querySelector(".crypto-swatch")!.hasAttribute("hidden")).toBe(false);
     const rows = [...pane().querySelectorAll(".crypto-colors tbody tr")];
@@ -227,18 +227,18 @@ describe("the Crypto tab in a browser-like page", () => {
     expect(hex.querySelector("td").textContent).toBe("#ff6347");
     expect(hex.querySelector("th").getAttribute("title")).toMatch(/six hex digits/i);
     for (const r of rows) expect((r as any).querySelector("button")!.getAttribute("aria-label")).toMatch(/^Copy /);
-    field("Colour").value = "zzz not a colour";
+    field("Color").value = "zzz not a color";
     await click("Show all forms");
     await waitFor(() => statuses().includes("Couldn't read"));
     expect(pane().querySelector(".crypto-swatch")!.hasAttribute("hidden")).toBe(true);
     expect(pane().querySelectorAll(".crypto-colors").length).toBe(0);
-    field("Colour").value = "rgba(10 20 30 / 50%)";
+    field("Color").value = "rgba(10 20 30 / 50%)";
     await click("Show all forms");
     await waitFor(() => pane().querySelector(".crypto-colors"));
     expect(pane().textContent).toContain("partly transparent");
   });
 
-  test("text tools: HTML escape and unescape, colour codes and text width", async () => {
+  test("text tools: HTML escape and unescape, color codes and text width", async () => {
     const box = field("Text to convert");
     box.value = `<b>"Tom" & 'Jerry'</b>`;
     await click("HTML escape");
@@ -247,7 +247,7 @@ describe("the Crypto tab in a browser-like page", () => {
     await click("HTML unescape");
     expect(output("Converted text")).toBe(`<b>"Tom" & 'Jerry'</b>`);
     box.value = "\u001b[31mred\u001b[0m ok".replace(/\\u001b/g, "\u001b");
-    await click("Remove colour codes");
+    await click("Remove color codes");
     expect(output("Converted text")).toBe("red ok");
     box.value = "日本語😀";
     await click("Text width");
@@ -358,7 +358,7 @@ describe("Crypto tab: every section and value can be copied by itself", () => {
   test("every card has one Copy button after its heading, with a name and a tooltip, and every value has its own", () => {
     const cards = [...pane().querySelectorAll("section.crypto-card")];
     expect(cards.map((c: any) => c.querySelector("h3").textContent)).toEqual([
-      "Hash some text", "Hash a file", "Results", "Lock and unlock text with a passphrase (AES-256)", "Random keys and IDs", "Password generator", "Hash a password for storing", "Check a password against a stored hash", "JWT reader and signature check", "Look inside a UUID", "Encoders: URL, Base64, hex and text tools", "Colour converter", "Activity log",
+      "Hash some text", "Hash a file", "Results", "Lock and unlock text with a passphrase (AES-256)", "Random keys and IDs", "Password generator", "Hash a password for storing", "Check a password against a stored hash", "JWT reader and signature check", "Look inside a UUID", "Encoders: URL, Base64, hex and text tools", "Color converter", "Activity log",
     ]);
     for (const c of cards) {
       const bars = c.querySelectorAll(":scope > .copy-bar-host");
@@ -375,7 +375,7 @@ describe("Crypto tab: every section and value can be copied by itself", () => {
     }
     const labels = [...pane().querySelectorAll("button.copy-item")].map((b: any) => b.getAttribute("aria-label"));
     for (const want of ["Copy Lock or unlock result", "Copy Generated value", "Copy Generated password", "Copy Header", "Copy Payload (claims)", "Copy Converted text"]) expect(labels, want).toContain(want);
-    expect(pane().querySelectorAll("[style]:not(.crypto-swatch-colour)").length).toBe(0);
+    expect(pane().querySelectorAll("[style]:not(.crypto-swatch-color)").length).toBe(0);
   });
 
   test("empty results hide their bars, and a Copy with nothing in it says so instead of copying", async () => {
@@ -576,7 +576,7 @@ describe("Crypto tab: every section and value can be copied by itself", () => {
 
   test("Copy all gives the whole tab as text without anything typed", async () => {
     const all = (await press(button("Copy all")))!;
-    for (const heading of ["Hash some text", "Hash a file", "Results", "Lock and unlock text with a passphrase (AES-256)", "Random keys and IDs", "Password generator", "JWT reader and signature check", "Hash a password for storing", "Encoders: URL, Base64, hex and text tools", "Colour converter", "Activity log"]) expect(all, heading).toContain(heading);
+    for (const heading of ["Hash some text", "Hash a file", "Results", "Lock and unlock text with a passphrase (AES-256)", "Random keys and IDs", "Password generator", "JWT reader and signature check", "Hash a password for storing", "Encoders: URL, Base64, hex and text tools", "Color converter", "Activity log"]) expect(all, heading).toContain(heading);
     expect(all).toContain("Digests of");
     expect(all).not.toContain(COPY_PASS);
     expect(all).not.toContain("hmac-key-QX82");

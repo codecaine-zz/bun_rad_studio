@@ -113,11 +113,11 @@ describe("validating a remembered window", () => {
 describe("planning where the window goes", () => {
   const fill: WindowPrefs = { mode: "fill", state: null };
 
-  test("the default fills the usable screen: maximise, with a centred 1280 × 820 to go back to", () => {
+  test("the default fills the usable screen: maximise, with a centered 1280 × 820 to go back to", () => {
     expect(planWindow(fill, [mac])).toEqual({ mode: "maximize", x: 224, y: 125, width: 1280, height: 820, work: mac.work, reason: "default" });
   });
 
-  test("on a small screen the default size shrinks to fit; no screens means 'let the system centre it'", () => {
+  test("on a small screen the default size shrinks to fit; no screens means 'let the system center it'", () => {
     const small: FmScreen = { ...rect(0, 0, 1024, 768), work: rect(0, 25, 1024, 743) };
     expect(planWindow(fill, [small])).toMatchObject({ mode: "maximize", width: 1024, height: 743, x: 0, y: 25 });
     expect(planWindow(fill, [])).toEqual({ mode: "maximize", x: null, y: null, width: DEFAULT_WINDOW_SIZE.width, height: DEFAULT_WINDOW_SIZE.height, work: null, reason: "no-screens" });
@@ -152,7 +152,7 @@ describe("planning where the window goes", () => {
     expect(planWindow({ mode: "remember", state: state({ x: 200, y: -900, width: 1200, height: 800 }) }, [mac, above])).toMatchObject({ x: 200, y: -900, reason: "saved", work: above.work });
   });
 
-  test("a window saved on a monitor that is gone comes back centred on the primary screen, fully visible", () => {
+  test("a window saved on a monitor that is gone comes back centered on the primary screen, fully visible", () => {
     const s = state({ x: -1500, y: 100, width: 1200, height: 800 });
     const plan = planWindow({ mode: "remember", state: s }, [mac]);
     expect(plan).toEqual({ mode: "normal", x: 264, y: 135, width: 1200, height: 800, work: mac.work, reason: "offscreen" });

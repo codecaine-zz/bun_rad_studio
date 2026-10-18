@@ -15,7 +15,38 @@ import { isObject } from "./fmDbCommon";
 import type { StudioInfo } from "./fmDbStudios";
 import { FmError } from "./fmPaths";
 
-export const IMPORT_EXTENSIONS = new Set(["csv", "tsv", "tab", "txt", "psv", "dat", "json", "ndjson", "jsonl"]);
+export const IMPORT_EXTENSIONS = new Set([
+  "csv",
+  "tsv",
+  "tab",
+  "txt",
+  "psv",
+  "ssv",
+  "dat",
+  "json",
+  "jsonc",
+  "json5",
+  "ndjson",
+  "jsonl",
+  "log",
+  "yaml",
+  "yml",
+  "toml",
+  "xml",
+  "plist",
+  "ini",
+  "cfg",
+  "conf",
+  "env",
+  "properties",
+  "md",
+  "markdown",
+  "html",
+  "htm",
+  "sql",
+  "xlsx",
+  "ods",
+]);
 
 export interface ImportAsk {
   /** A data file the wizard should start with. */
@@ -38,7 +69,18 @@ export async function checkImportFile(ctx: FmContext, input: unknown): Promise<{
   if (!st) throw new FmError("NOT_FOUND", "That file isn't there any more.");
   if (!st.isFile()) throw new FmError("NOT_A_FILE", "That isn't a file.");
   const ext = extname(path).slice(1).toLowerCase();
-  if (!IMPORT_EXTENSIONS.has(ext)) throw new FmError("NOT_DATA", "Only CSV, TSV, text, JSON and JSON Lines files can be loaded this way. (Excel files can't be read: save them as “CSV UTF-8” first.)");
+  const base = path.split(/[\\/]/).pop()?.toLowerCase() ?? "";
+  if (!IMPORT_EXTENSIONS.has(ext) && base !== ".env" && !base.startsWith(".env.")) {
+    throw new FmError(
+      "NOT_DATA",
+      "Only CSV, TSV, text, JSON, JSON Lines, Excel (.xlsx), ODS, YAML, TOML, XML, SQL, Markdown, HTML, INI, .env and .properties files can be loaded this way. (Legacy Excel .xls files can't be read: save them as “CSV UTF-8” first.)",
+    );
+  }
+  if (ext === "xlsx" || ext === "ods") {
+    if (st.size < 22) {
+      throw new FmError("NOT_DATA", "This spreadsheet file is damaged or not a valid .xlsx/.ods archive. (In Excel you can also save as “CSV UTF-8” first.)");
+    }
+  }
   if (st.size > limits.maxFileBytes) throw new FmError("TOO_BIG", `That file is bigger than ${Math.round(limits.maxFileBytes / 1024 ** 3)} GB, which is more than one import can hold. Split it into smaller files.`);
   const real = realpathSync(path);
   return { path: real, name: real.split(/[\\/]/).pop()!, size: st.size };

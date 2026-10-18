@@ -1,4 +1,4 @@
-// Building blocks shared by the Crypto tool's cards: labelled fields, secret fields with a show/hide button,
+// Building blocks shared by the Crypto tool's cards: labeled fields, secret fields with a show/hide button,
 // output boxes, the activity log and the copy helper. Nothing here stores or logs what the user types.
 import { ApiError } from "./api.js";
 import { clear, h } from "./dom.js";

@@ -6,7 +6,7 @@
  * (STUDIO_COLUMNS_SCRIPT). The script exposes `window.StudioCols.create(options)`, which returns a controller that
  * owns one data grid:
  *
- *   - a labelled "Columns" button (icon + text + "5 of 8" badge) mounted in the grid toolbar,
+ *   - a labeled "Columns" button (icon + text + "5 of 8" badge) mounted in the grid toolbar,
  *   - a popover with a checkbox per column (type + PK / FK / IDX marks), a filter box for wide tables,
  *     Show all / Hide all / Only keys / Reset to default and the "include hidden columns in exports" option,
  *   - a strip above the grid ("3 hidden columns - Show all") so nothing is silently lost,
@@ -288,7 +288,7 @@ function studioColumnsClient() {
   }
 
   // ======================================================================================================
-  // Datasheet behaviour (style): widths, display names, order, frozen columns, filters,
+  // Datasheet behavior (style): widths, display names, order, frozen columns, filters,
   // formatting. Works on the table the studio renders: it never changes how the studio draws or queries.
   // ======================================================================================================
   function installDatasheet(inst, api) {
@@ -767,7 +767,7 @@ function studioColumnsClient() {
     function persist() {
       if (!inst.scopeKey) return;
       const arr = Array.from(inst.hidden);
-      // plain list of hidden columns while nothing else is customised (the format used before widths, aliases and order existed)
+      // plain list of hidden columns while nothing else is customized (the format used before widths, aliases and order existed)
       if (layoutIsDefault()) { if (arr.length) store.set(inst.scopeKey, JSON.stringify(arr)); else store.del(inst.scopeKey); return; }
       store.set(inst.scopeKey, JSON.stringify({ v: 2, hidden: arr, widths: inst.layout.widths, alias: inst.layout.alias, order: inst.layout.order, freeze: inst.layout.freeze, fmt: inst.layout.fmt }));
     }
@@ -993,7 +993,7 @@ function studioColumnsClient() {
       alias.addEventListener("change", () => { if (alias.checked) store.set(ALIAS_KEY, "1"); else store.del(ALIAS_KEY); refreshUi(); syncPop(alias.checked ? "Copy and export use display names as headers." : "Copy and export use the real column names."); });
       lay.appendChild(el("div", { class: "sc-actions" }, bFit, bRw, bUf, bRl));
       lay.appendChild(el("div", { class: "sc-fmt" }, rowSel, fontSel,
-        el("label", { class: "sc-opt" }, zebra, el("span", null, "Alternate row colour")),
+        el("label", { class: "sc-opt" }, zebra, el("span", null, "Alternate row color")),
         el("label", { class: "sc-opt", title: "When ticked, the header row of copied or exported data uses the display names (Rename Field). SQL always uses the real names." }, alias, el("span", null, "Use display names (aliases) in copy/export"))));
       node.appendChild(lay);
       const exp = el("input", { type: "checkbox", id: "scExp-" + inst.id });

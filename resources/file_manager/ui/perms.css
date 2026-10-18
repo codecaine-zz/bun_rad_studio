@@ -1,4 +1,4 @@
-/* The Permissions section of the Properties window. Colours come only from the page's theme variables. */
+/* The Permissions section of the Properties window. Colors come only from the page's theme variables. */
 
 .perm-section { margin-top: 1.1rem; padding-top: 0.2rem; border-top: 1px solid var(--border); }
 .perm-heading { margin: 0.8rem 0 0.5rem; font-size: 1rem; }

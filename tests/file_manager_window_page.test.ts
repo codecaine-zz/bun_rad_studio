@@ -370,7 +370,7 @@ describe("Settings → Window", () => {
     expect(top().textContent).not.toContain("Reset window");
   });
 
-  test("the section: three choices in a labelled group, the default ticked, a plain saved-text, two buttons with explanations", async () => {
+  test("the section: three choices in a labeled group, the default ticked, a plain saved-text, two buttons with explanations", async () => {
     installDesktop();
     const section = await open();
     expect(section.querySelector("h3").textContent).toBe("Window");

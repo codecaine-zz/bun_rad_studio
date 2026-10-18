@@ -19,7 +19,7 @@ import { autoMap, compileRules, sanitizeRules } from "./mapping";
 import { checkNewTableName, newTableTarget, sanitizeNewTable, suggestNewTable } from "./newtable";
 import { checkCell } from "./validate";
 import { executePromote, previewPromote, MODE_LABELS, testDatabaseRules, undoBatch } from "./promote";
-import { analyzeSource, isEncodingName, type Analysis, type SourceSettings } from "./reader";
+import { analyzeSource, isEncodingName, isSourceFormat, type Analysis, type SourceSettings } from "./reader";
 import { dropStaging, fixCell, forgetBatch, listProblems, listStagedRows, rejectsCsv, setSkipped, stagingArea, stagingDataColumns, transformColumn } from "./review";
 import { fileSource, memorySource, type ByteSource } from "./source";
 import { loadIntoStaging, LoadCancelled } from "./staging";
@@ -43,7 +43,38 @@ const fail = (e: unknown): Response => {
 };
 
 const isObj = (v: unknown): v is Record<string, any> => typeof v === "object" && v !== null && !Array.isArray(v);
-const ALLOWED_EXT = new Set(["csv", "tsv", "txt", "tab", "psv", "dat", "json", "ndjson", "jsonl", "log"]);
+const ALLOWED_EXT = new Set([
+  "csv",
+  "tsv",
+  "txt",
+  "tab",
+  "psv",
+  "ssv",
+  "dat",
+  "json",
+  "jsonc",
+  "json5",
+  "ndjson",
+  "jsonl",
+  "log",
+  "yaml",
+  "yml",
+  "toml",
+  "xml",
+  "plist",
+  "ini",
+  "cfg",
+  "conf",
+  "env",
+  "properties",
+  "md",
+  "markdown",
+  "html",
+  "htm",
+  "sql",
+  "xlsx",
+  "ods",
+]);
 const MAX_JSON_BODY = 64 * 1024 * 1024;
 const MAX_CHUNK = 16 * 1024 * 1024;
 
@@ -135,7 +166,10 @@ export function createStagingHandler(ctx: StagingContext, opts: { token?: string
       const st = statSync(real);
       if (!st.isFile()) return { ok: false, error: "That is not a file." };
       const ext = extname(real).slice(1).toLowerCase();
-      if (!ALLOWED_EXT.has(ext)) return { ok: false, error: "Only CSV, TSV, text, JSON and JSON Lines files can be loaded." };
+      const base = real.split(/[\\/]/).pop()?.toLowerCase() ?? "";
+      if (!ALLOWED_EXT.has(ext) && base !== ".env" && !base.startsWith(".env.")) {
+        return { ok: false, error: "Only CSV, TSV, text, JSON, JSON Lines, Excel (.xlsx), ODS, YAML, TOML, XML, SQL, Markdown, HTML, INI, .env and .properties files can be loaded." };
+      }
       if (st.size > limits.maxFileBytes) return { ok: false, error: limitMessage("file") };
       return { ok: true, path: real, name: real.split(/[\\/]/).pop()!, size: st.size };
     } catch {
@@ -159,11 +193,12 @@ export function createStagingHandler(ctx: StagingContext, opts: { token?: string
   function settingsFrom(raw: unknown): Partial<SourceSettings> {
     if (!isObj(raw)) return {};
     const out: Partial<SourceSettings> = {};
-    if (raw.format === "csv" || raw.format === "json" || raw.format === "ndjson") out.format = raw.format;
+    if (isSourceFormat(raw.format)) out.format = raw.format;
     if (typeof raw.delimiter === "string" && raw.delimiter.length <= 1) out.delimiter = raw.delimiter;
     if (typeof raw.quote === "string" && ['"', "'", ""].includes(raw.quote)) out.quote = raw.quote;
     if (typeof raw.hasHeader === "boolean") out.hasHeader = raw.hasHeader;
     if (isEncodingName(raw.encoding)) out.encoding = raw.encoding;
+    if (typeof raw.sheet === "string" && raw.sheet.trim()) out.sheet = raw.sheet.trim();
     return out;
   }
 

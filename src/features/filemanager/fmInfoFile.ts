@@ -95,7 +95,7 @@ async function macExtras(ctx: FmContext, path: string, isDir: boolean, sniffed: 
   rows.add("Type family", md.kMDItemContentTypeTree?.join(" → "), "The chain of broader types this type belongs to.");
   rows.add("Date added", md.kMDItemDateAdded?.[0]?.replace(/ \+0000$/, " UTC"), "When it first appeared in this folder, as Spotlight recorded it.");
   rows.add("Last opened", md.kMDItemLastUsedDate?.[0]?.replace(/ \+0000$/, " UTC")).add("Times opened", md.kMDItemUseCount?.[0]);
-  rows.add("Finder tags", md.kMDItemUserTags?.join(", "), "Coloured labels you or other programs added in the Finder.");
+  rows.add("Finder tags", md.kMDItemUserTags?.join(", "), "Colored labels you or other programs added in the Finder.");
   rows.add("Finder comment", md.kMDItemFinderComment?.[0]);
   const from = md.kMDItemWhereFroms;
   if (from?.length) sec.add("Downloaded from", from.join("  ·  "), "The web addresses this file was downloaded from, saved by the browser. They can reveal where you were browsing.", "warn");

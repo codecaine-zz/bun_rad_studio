@@ -50,6 +50,8 @@ export async function loadPlaces() {
   state.drives = res.drives;
   state.trashCount = res.trash.count;
   state.home = res.home;
+  state.cliUtilsDir = res.cliUtilsDir || "";
+  state.cliAppsDir = res.cliAppsDir || "";
   state.fmName = res.fileManagerName;
   state.sep = res.separator;
   state.settings = res.settings;
@@ -71,7 +73,11 @@ export async function refreshTrashCount() {
 export function visibleEntries(pane = left) {
   const { sortBy, sortDir, foldersFirst } = state.settings;
   if (pane.location.kind === "trash") return sortEntries(pane.trashItems, { by: sortBy === "type" ? "name" : sortBy, dir: sortDir, foldersFirst });
-  return sortEntries(pane.search ? pane.search.entries : pane.entries, { by: sortBy, dir: sortDir, foldersFirst });
+  let raw = pane.search ? pane.search.entries : pane.entries;
+  if (state.tagFilter && state.settings?.tags) {
+    raw = raw.filter((e) => state.settings.tags[e.path] === state.tagFilter);
+  }
+  return sortEntries(raw, { by: sortBy, dir: sortDir, foldersFirst });
 }
 
 function keyOf(entry) {

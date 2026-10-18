@@ -1,6 +1,7 @@
 // The built-in tiles of the Home view. Each tool in the Power panel gets a tile automatically; other parts of the
 // page can add their own with registerHomeTile() from home.js.
 import { openAboutLink, showAbout, showDonate } from "./about.js";
+import { openCalendarDialog } from "./chrome.js";
 import { showHelp, showSettings } from "./extras.js";
 import { showThemePicker } from "./themes.js";
 import { showMoreInfo } from "./fileinfo.js";
@@ -32,7 +33,10 @@ const TOOL_TEXT = {
   secrets: "Your private vault for passwords and secure notes, locked with one master password. Includes a password generator, one-time codes and a health check.",
   databases: "Saved connections for SQLite, MySQL, PostgreSQL and Redis, with each studio inside the File Manager. Passwords stay in your keychain, and a saved connection replaces environment variables.",
   dev: "Developer information about a folder: lines of code per language, project type, Git history, disk usage and TODO notes.",
+  player: "Modular rack media player with a 10-band graphic equalizer, preamp, spectrum and radial visualizers, M3U playlists, synced karaoke lyrics and 5 skins.",
+  paint: "Draw, paint and illustrate on a multi-layer canvas with 20 brushes, symmetry modes, image filters and a 106-page vector coloring book.",
   grave: "A safe place for things you bury instead of deleting. See what is there, restore items to where they came from, or delete them for good. Shared with Rip Studio.",
+  games: "Play all 24 Codecaine arcade, puzzle, card, casino and word games right inside the File Manager, in a separate desktop window, or in your browser.",
 };
 
 export function registerHomeTiles() {
@@ -53,7 +57,8 @@ export function registerHomeTiles() {
   registerHomeTile({ id: "openwith", order: 70, icon: "🧩", title: "Open with…", text: "Choose which program opens a kind of file, and add your own programs. Select a file first.", run: () => { toFiles(); return showOpenWith(); } });
   registerHomeTile({ id: "bin", order: 80, icon: "🗑️", title: "Recycle Bin", text: "See what you deleted, put things back, or empty the bin.", run: () => { toFiles(); return showTrash(); } });
   registerHomeTile({ id: "themes", order: 88, icon: "🎨", title: "Themes", text: "Change how the whole window looks: over 170 dark, light, special-effects, Linux, Windows, macOS and rare classic-system themes.", run: showThemePicker });
-  registerHomeTile({ id: "settings", order: 90, icon: "⚙️", title: "Settings", text: "Colours, text size, hidden files and what to show when this app starts.", run: showSettings });
+  registerHomeTile({ id: "calendar", order: 89, icon: "🗓️", title: "Calendar & timestamps", text: "Monthly calendar with ISO week numbers, live world clocks, Unix epoch converter, and one-click dated folders.", run: () => openCalendarDialog() });
+  registerHomeTile({ id: "settings", order: 90, icon: "⚙️", title: "Settings", text: "Colors, text size, hidden files and what to show when this app starts.", run: showSettings });
   registerHomeTile({ id: "donate", order: 98, icon: "💙", title: "Support the project", text: "Say thanks with an optional PayPal donation: scan the QR code or open the link.", run: showDonate });
   registerHomeTile({ id: "tutorials", order: 96, icon: "📚", title: "Markdown tutorials", text: "Learn Markdown, the plain-text format for README files and notes, with lessons and examples. Opens in your web browser.", run: () => openAboutLink("tutorials") });
   registerHomeTile({ id: "about", order: 97, icon: "🐙", title: "About and GitHub", text: "Find the project on GitHub, report a problem or suggest an idea.", run: showAbout });

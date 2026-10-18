@@ -98,7 +98,7 @@ export async function renderDetail(host, id, scope) {
     return null;
   }
   const trashed = item.deletedAt !== null;
-  const star = h("button", { type: "button", class: "btn sx-btn sx-star", "aria-pressed": String(item.favorite), "aria-label": item.favorite ? "Remove from favourites" : "Add to favourites", title: "Mark this item as a favourite so it appears at the top of the list", disabled: trashed, onclick: async () => { try { await call("secrets/save", { id, item: { favorite: !item.favorite } }); emit("secrets-items"); emit("secrets-select", id); } catch (err) { toast(errorText(err), { kind: "error" }); } } }, item.favorite ? "★" : "☆");
+  const star = h("button", { type: "button", class: "btn sx-btn sx-star", "aria-pressed": String(item.favorite), "aria-label": item.favorite ? "Remove from favorites" : "Add to favorites", title: "Mark this item as a favorite so it appears at the top of the list", disabled: trashed, onclick: async () => { try { await call("secrets/save", { id, item: { favorite: !item.favorite } }); emit("secrets-items"); emit("secrets-select", id); } catch (err) { toast(errorText(err), { kind: "error" }); } } }, item.favorite ? "★" : "☆");
   const actions = trashed
     ? [
       h("button", { type: "button", class: "btn", title: "Put this item back in your list", onclick: async () => { await call("secrets/restore", { id }); toast("Restored."); emit("secrets-items"); } }, "Restore"),

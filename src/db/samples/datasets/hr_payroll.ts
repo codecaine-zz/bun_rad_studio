@@ -81,7 +81,7 @@ export default dataset({
       n: (n) => n("employee") * 2, uq: [["employee_id", "review_year"]], ck: ["rating BETWEEN 1 AND 5"],
       gen: (g, i) => { const id = Math.ceil(i / 2); return { employee_id: id, review_year: i % 2 ? 2023 : 2024, reviewer_id: Math.max(1, Math.floor((id - 1) / 5)), rating: g.w([[1, 3], [2, 10], [3, 45], [4, 31], [5, 11]] as const), comments: g.sentence(12) }; },
     }),
-    table("training_course", "Training catalogue.", ["id id", "title str(80)", "hours dec(4,1)", "is_mandatory bool"], { rows: ["Security awareness", "Code of conduct", "Harassment prevention", "Data privacy", "Leadership essentials", "SQL for analysts", "Presentation skills", "Project management", "First aid", "Accessibility basics"].map((title, i) => ({ title, hours: [1, 1, 2, 1.5, 12, 8, 4, 16, 6, 3][i], is_mandatory: i < 4 })) }),
+    table("training_course", "Training catalog.", ["id id", "title str(80)", "hours dec(4,1)", "is_mandatory bool"], { rows: ["Security awareness", "Code of conduct", "Harassment prevention", "Data privacy", "Leadership essentials", "SQL for analysts", "Presentation skills", "Project management", "First aid", "Accessibility basics"].map((title, i) => ({ title, hours: [1, 1, 2, 1.5, 12, 8, 4, 16, 6, 3][i], is_mandatory: i < 4 })) }),
     table("training_completion", "Completed trainings.", ["id id", "employee_id int fk:employee cascade", "course_id int fk:training_course", "completed_on date", "score smallint null"], {
       n: (n) => n("employee") * 3, uq: [["employee_id", "course_id"]], gen: (g, i) => ({ employee_id: Math.ceil(i / 3), course_id: ((i - 1) % 3) * 3 + 1 + (Math.ceil(i / 3) % 3), completed_on: g.date("2023-01-01", ASOF), score: g.bool(0.7) ? g.int(65, 100) : null }),
     }),
@@ -118,8 +118,8 @@ WHERE e.terminated_on IS NULL GROUP BY e.id, lt.name, lt.annual_days`),
 SELECT ${d.ym("terminated_on")} AS month, COUNT(*) AS leavers FROM employee WHERE terminated_on IS NOT NULL GROUP BY ${d.ym("terminated_on")}`),
   ],
   queries: [
-    query("span_of_control", "Span of control", "Managers ranked by direct reports and total organisation size (recursive CTE).", () => `
--- How big is each manager's organisation?
+    query("span_of_control", "Span of control", "Managers ranked by direct reports and total organization size (recursive CTE).", () => `
+-- How big is each manager's organization?
 WITH RECURSIVE org (root_id, id) AS (
   SELECT id, id FROM employee
   UNION ALL

@@ -129,7 +129,7 @@ afterAll(async () => {
 });
 
 describe("the Code tab in a browser-like page", () => {
-  test("starts on the welcome screen, with every control labelled and explained", () => {
+  test("starts on the welcome screen, with every control labeled and explained", () => {
     expect(doc.querySelector("#power-tab-code")).toBeTruthy();
     expect(doc.querySelector(".code-welcome").textContent).toContain("Code editor");
     expect(doc.querySelector(".code-welcome").textContent).not.toContain("null");
@@ -244,7 +244,7 @@ describe("the Code tab in a browser-like page", () => {
     await sleep(300);
   });
 
-  test("a V file is recognised, coloured, and its snippets have tab stops with mirrors", async () => {
+  test("a V file is recognized, colored, and its snippets have tab stops with mirrors", async () => {
     await openFile("hello.v");
     expect(status("lang")).toBe("V");
     expect(status("indent")).toBe("Tabs");
@@ -649,3 +649,444 @@ describe("Recent in the Places list opens things the way the file list does", ()
     expect(launched.length).toBe(before);
   });
 });
+
+describe("built-in developer power features in the UI", () => {
+  test("breadcrumbs show path, active symbol, word occurrences, and task count; Tasks panel lists TODOs; Minimap toggles", async () => {
+    writeFileSync(
+      join(work, "feature.js"),
+      "function computeTotal(price) {\n  // TODO: apply discount\n  const total = price + price;\n  return total;\n}\n",
+    );
+    await openFile("feature.js");
+    const ta = active();
+    const pos = ta.value.indexOf("price");
+    ta.setSelectionRange(pos, pos);
+    doc.dispatchEvent(new win.Event("selectionchange"));
+    await sleep(100);
+
+    const crumbs = doc.querySelector(".code-crumbs");
+    expect(crumbs.hidden).toBe(false);
+    expect(crumbs.textContent).toContain("feature.js");
+    expect(crumbs.textContent).toContain("computeTotal");
+    expect(crumbs.textContent).toContain("price · 3×");
+    expect(crumbs.textContent).toContain("1 task");
+
+    // Clicking the task badge in breadcrumbs opens the Tasks (TODO) side panel
+    const todoPill: any = doc.querySelector(".code-crumb-todo");
+    todoPill.click();
+    await sleep(100);
+    expect(doc.querySelector(".code-panel-host").textContent).toContain("apply discount");
+
+    // Toggle minimap via toolbar button
+    const mmBtn = button("Minimap");
+    expect(mmBtn).toBeTruthy();
+    mmBtn!.click();
+    await sleep(100);
+    const mm: any = doc.querySelector(".code-ed:not([hidden]) .code-minimap");
+    expect(mm.hidden).toBe(false);
+    mmBtn!.click();
+    await sleep(50);
+  });
+
+  test("JSON Tree Explorer preview, Live Code Inspector preview, and Compare with Saved diff tab", async () => {
+    writeFileSync(join(work, "data.json"), '{"b": 1, "a": 2}\n');
+    await openFile("data.json");
+    const pvBtn = button("Preview");
+    pvBtn!.click();
+    await sleep(100);
+    const pvPane: any = doc.querySelector(".code-preview-pane");
+    expect(pvPane.hidden).toBe(false);
+    expect(pvPane.textContent).toContain("JSON Tree Explorer");
+
+    // Switch to feature.js to see the Live Code Inspector and test Compare with Saved
+    await openFile("feature.js");
+    await sleep(100);
+    expect(pvPane.textContent).toContain("Live Inspector");
+    const ta = active();
+    caretToEnd(ta);
+    type(ta, "// extra line\n");
+    await sleep(400);
+    expect(pvPane.textContent).toContain("+1 added");
+
+    const openDiffBtn = [...pvPane.querySelectorAll("button")].find((b: any) => b.textContent.includes("Open diff tab"));
+    expect(openDiffBtn).toBeTruthy();
+    openDiffBtn.click();
+    await sleep(150);
+    expect(tabNames().some((n) => n.startsWith("Diff:"))).toBe(true);
+    pvBtn!.click();
+    await sleep(50);
+  });
+
+  test("clicking links in Markdown preview opens web URLs in the browser, jumps to #headings, and opens relative files", async () => {
+    writeFileSync(
+      join(work, "links.md"),
+      [
+        "# Overview",
+        "",
+        "Visit [Bun Docs](https://bun.sh/docs) or https://example.com/guide for more.",
+        "Jump to [Details section](#details-section) or open [Notes](./notes.txt).",
+        "",
+        "## Details Section",
+        "Line 7 content.",
+      ].join("\n"),
+    );
+    await openFile("links.md");
+    const pvBtn = button("Preview");
+    pvBtn!.click();
+    await sleep(100);
+    const pvPane: any = doc.querySelector(".code-preview-pane");
+    expect(pvPane.hidden).toBe(false);
+
+    const links = [...pvPane.querySelectorAll('.code-md-link[role="link"]')];
+    expect(links.map((l: any) => l.textContent)).toEqual(["Bun Docs", "https://example.com/guide", "Details section", "Notes"]);
+
+    // 1. Click external web link -> opens in system browser
+    const beforeLaunch = launched.length;
+    links[0].click();
+    await until(() => launched.length > beforeLaunch, "the web link to be launched");
+    expect(launched.at(-1)?.args.join(" ")).toContain("https://bun.sh/docs");
+
+    // 2. Click bare autolinked URL -> opens in system browser
+    const beforeAuto = launched.length;
+    links[1].click();
+    await until(() => launched.length > beforeAuto, "the bare autolinked URL to be launched");
+    expect(launched.at(-1)?.args.join(" ")).toContain("https://example.com/guide");
+
+    // 3. Click #details-section anchor -> jumps editor cursor to line 6
+    links[2].click();
+    await sleep(50);
+    expect(status("pos")).toContain("Ln 6");
+
+    // 4. Click relative file link ./notes.txt -> opens notes.txt tab in the editor
+    links[3].click();
+    await until(() => doc.querySelector(".code-tab.active .code-tab-name")?.textContent === "notes.txt", "notes.txt to become active");
+    pvBtn!.click();
+    await sleep(50);
+  });
+
+  test("GitHub-style Markdown navigation: Outline (TOC) with filter, Prev/Next/Back section navigation, # heading anchors, Preview / Plain text toggle, and inline image preview", async () => {
+    writeFileSync(join(work, "diagram.ppm"), "P3\n1 1\n255\n255 0 0\n");
+    writeFileSync(
+      join(work, "guide.md"),
+      [
+        "# Getting Started",
+        "Intro text with ![Diagram](./diagram.ppm)",
+        "",
+        "## Installation",
+        "Install steps.",
+        "",
+        "### Advanced Setup",
+        "Advanced details.",
+      ].join("\n"),
+    );
+    await openFile("guide.md");
+    const pvBtn = button("Preview");
+    pvBtn!.click();
+    await sleep(100);
+    const pvPane: any = doc.querySelector(".code-preview-pane");
+    expect(pvPane.hidden).toBe(false);
+
+    // Inline image resolves relative to the Markdown file via /api/raw
+    const img: any = pvPane.querySelector("img.code-md-image");
+    expect(img).toBeTruthy();
+    expect(decodeURIComponent(img.getAttribute("src") || "")).toContain("diagram.ppm");
+
+    // 1. Outline button shows heading count and opens TOC panel
+    const tocBtn: any = pvPane.querySelector(".code-md-toc-btn");
+    expect(tocBtn).toBeTruthy();
+    expect(tocBtn.textContent).toContain("Outline (3)");
+    const tocPanel: any = pvPane.querySelector(".code-md-toc");
+    expect(tocPanel.hidden).toBe(true);
+    tocBtn.click();
+    expect(tocPanel.hidden).toBe(false);
+    expect(tocPanel.querySelectorAll(".code-md-toc-item").length).toBe(3);
+
+    // Filter TOC
+    const tocFilter: any = tocPanel.querySelector(".code-md-toc-filter");
+    tocFilter.value = "adv";
+    tocFilter.dispatchEvent(new win.Event("input", { bubbles: true }));
+    expect(tocPanel.querySelectorAll(".code-md-toc-item").length).toBe(1);
+    expect(tocPanel.querySelector(".code-md-toc-text").textContent).toBe("Advanced Setup");
+
+    // Click TOC item -> jumps editor to line 7 (### Advanced Setup) and updates current section
+    tocPanel.querySelector(".code-md-toc-item").click();
+    await sleep(50);
+    expect(status("pos")).toContain("Ln 7");
+    expect(pvPane.querySelector(".code-md-cur-sec").textContent).toContain("Advanced Setup");
+
+    // 2. Prev / Next section buttons and Back history button
+    const prevBtn: any = pvPane.querySelector(".code-md-prev-btn");
+    const nextBtn: any = pvPane.querySelector(".code-md-next-btn");
+    const backBtn: any = pvPane.querySelector(".code-md-back-btn");
+    expect(backBtn.hidden).toBe(false);
+    prevBtn.click();
+    await sleep(50);
+    expect(status("pos")).toContain("Ln 4");
+    expect(pvPane.querySelector(".code-md-cur-sec").textContent).toContain("Installation");
+
+    // Clicking # anchor on Getting Started jumps back to line 1 and records history
+    const firstAnchor: any = pvPane.querySelector(".code-md-anchor");
+    expect(firstAnchor).toBeTruthy();
+    firstAnchor.click();
+    await sleep(50);
+    expect(status("pos")).toContain("Ln 1");
+
+    // Clicking Back returns to Installation (line 4)
+    backBtn.click();
+    await sleep(50);
+    expect(status("pos")).toContain("Ln 4");
+
+    nextBtn.click();
+    await sleep(50);
+    expect(status("pos")).toContain("Ln 7");
+
+    // 3. Toggle between Preview and Plain text inside the Markdown preview toolbar
+    const plainModeBtn: any = [...pvPane.querySelectorAll(".code-md-mode-btn")].find((b: any) => b.textContent === "Plain text");
+    const previewModeBtn: any = [...pvPane.querySelectorAll(".code-md-mode-btn")].find((b: any) => b.textContent === "Preview");
+    expect(plainModeBtn).toBeTruthy();
+    expect(previewModeBtn.getAttribute("aria-pressed")).toBe("true");
+    plainModeBtn.click();
+    expect(plainModeBtn.getAttribute("aria-pressed")).toBe("true");
+    expect(pvPane.querySelector(".code-md-content").hidden).toBe(true);
+    expect(pvPane.querySelector(".code-md-plain").hidden).toBe(false);
+    expect(pvPane.querySelector(".code-md-plain").textContent).toContain("# Getting Started");
+
+    previewModeBtn.click();
+    expect(previewModeBtn.getAttribute("aria-pressed")).toBe("true");
+    expect(pvPane.querySelector(".code-md-content").hidden).toBe(false);
+    expect(pvPane.querySelector(".code-md-plain").hidden).toBe(true);
+
+    // 4. Zoom images in Markdown preview (click image, +/- buttons, zoom slider, reset, and fullscreen lightbox)
+    const imgWrap: any = pvPane.querySelector(".code-md-img");
+    const zoomInBtn: any = imgWrap.querySelector(".code-md-zoom-in");
+    const zoomOutBtn: any = imgWrap.querySelector(".code-md-zoom-out");
+    const zoomRange: any = imgWrap.querySelector(".code-md-zoom-range");
+    const zoomPct: any = imgWrap.querySelector(".code-md-zoom-pct");
+    const lbBtn: any = imgWrap.querySelector(".code-md-zoom-lightbox");
+
+    expect(imgWrap.dataset.zoom).toBe("100");
+    // Clicking the image toggles 100% -> 200%
+    img.click();
+    expect(imgWrap.dataset.zoom).toBe("200");
+    expect(img.style.width).toBe("200%");
+    expect(zoomPct.textContent).toBe("200%");
+
+    // + button increases zoom by 25% -> 225%
+    zoomInBtn.click();
+    expect(imgWrap.dataset.zoom).toBe("225");
+    // − button decreases zoom by 25% -> 200%
+    zoomOutBtn.click();
+    expect(imgWrap.dataset.zoom).toBe("200");
+
+    // Range slider sets zoom to 300%
+    zoomRange.value = "300";
+    zoomRange.dispatchEvent(new win.Event("input", { bubbles: true }));
+    expect(imgWrap.dataset.zoom).toBe("300");
+    expect(img.style.width).toBe("300%");
+
+    // Reset button restores 100%
+    zoomPct.click();
+    expect(imgWrap.dataset.zoom).toBe("100");
+    expect(img.style.width).toBe("");
+
+    // Lightbox viewer opens, zooms, and closes with Escape
+    lbBtn.click();
+    const lb: any = doc.querySelector(".code-md-lightbox");
+    expect(lb).toBeTruthy();
+    expect(lb.dataset.zoom).toBe("100");
+    lb.querySelector(".code-md-lb-in").click();
+    expect(lb.dataset.zoom).toBe("125");
+    win.dispatchEvent(new win.KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    expect(doc.querySelector(".code-md-lightbox")).toBeNull();
+
+    // 5. Resizing the split between Code Editor and Preview (via slider and draggable resizer bar)
+    const resizer: any = doc.querySelector(".code-preview-resizer");
+    const splitSlider: any = pvPane.querySelector(".code-preview-split-slider");
+    const splitVal: any = pvPane.querySelector(".code-preview-split-val");
+    expect(resizer.hidden).toBe(false);
+    expect(pvPane.dataset.width).toBe("45");
+
+    // Slide the split slider to 60%
+    splitSlider.value = "60";
+    splitSlider.dispatchEvent(new win.Event("input", { bubbles: true }));
+    expect(pvPane.dataset.width).toBe("60");
+    expect(pvPane.style.flexBasis).toBe("60%");
+    expect(splitVal.textContent).toBe("60%");
+    expect(resizer.getAttribute("aria-valuenow")).toBe("60");
+
+    // Drag the resizer bar between the editor and preview
+    resizer.dispatchEvent(new win.MouseEvent("mousedown", { button: 0, clientX: 400, bubbles: true }));
+    win.dispatchEvent(new win.MouseEvent("mousemove", { clientX: 480, bubbles: true }));
+    win.dispatchEvent(new win.MouseEvent("mouseup", { bubbles: true }));
+    expect(pvPane.dataset.width).toBe("50");
+    expect(splitSlider.value).toBe("50");
+
+    // Keyboard arrow keys on the resizer bar adjust the split and 0 resets to 45%
+    resizer.dispatchEvent(new win.KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true }));
+    expect(pvPane.dataset.width).toBe("55");
+    resizer.dispatchEvent(new win.KeyboardEvent("keydown", { key: "0", bubbles: true, cancelable: true }));
+    expect(pvPane.dataset.width).toBe("45");
+
+    pvBtn!.click();
+    await sleep(50);
+    expect(resizer.hidden).toBe(true);
+  });
+
+  test("Code Folding, Sticky Scroll Header, Multi-Cursor Batch Edits, Inline Color Swatches, Live Syntax Diagnostics, Diff Gutter Bars, Split Editor, and Local File History", async () => {
+    const { detectFoldableRanges, diagnoseSyntax, computeGutterLineChanges, editAllOccurrences, addLinePrefixSuffix, numberSelectedLines } = await import("../resources/file_manager/ui/codeLogic.js");
+
+    // 1. Pure logic checks for foldable ranges, syntax diagnostics, diff gutter bars, and batch edits
+    const sampleCode = [
+      "function renderCard(title) {",
+      "  const color = '#3b82f6';",
+      "  if (title) {",
+      "    return title;",
+      "  }",
+      "}",
+    ].join("\n");
+    const folds = detectFoldableRanges(sampleCode, "javascript");
+    expect(folds.length).toBeGreaterThanOrEqual(2);
+    expect(folds[0]).toMatchObject({ startLine: 1, endLine: 6 });
+
+    const badJson = '{\n  "name": "app",\n  "broken": [1, 2\n}';
+    const jsonDiags = diagnoseSyntax(badJson, "json");
+    expect(jsonDiags.length).toBeGreaterThan(0);
+
+    const badJs = "function demo() {\n  const x = [1, 2);\n}\n";
+    const jsDiags = diagnoseSyntax(badJs, "javascript");
+    expect(jsDiags.length).toBeGreaterThan(0);
+    expect(jsDiags[0]!.line).toBe(2);
+
+    const changes = computeGutterLineChanges("a\nb\nc", "a\nB_MOD\nc\nd_NEW");
+    expect(changes.get(2)).toBe("modified");
+    expect(changes.get(4)).toBe("added");
+
+    const batchOcc = editAllOccurrences("const foo = 1;\nconst bar = foo + foo;\n", 6, 9, "total");
+    expect(batchOcc.insert).toContain("const total = 1;\nconst bar = total + total;");
+
+    const prefSuf = addLinePrefixSuffix("apple\nbanana", 0, 12, "- [ ] ", "!");
+    expect(prefSuf.insert).toBe("- [ ] apple!\n- [ ] banana!");
+
+    const numbered = numberSelectedLines("first\nsecond\nthird", 0, 18);
+    expect(numbered.insert).toBe("1. first\n2. second\n3. third");
+
+    // 2. End-to-end UI checks in the mounted Code Editor
+    await openFile("hello.v");
+    const editorText = [
+      "fn render_theme() {",
+      "  primary := '#ff5500'",
+      "  secondary := 'rgb(16, 185, 129)'",
+      "  if primary != '' {",
+      "    println(primary)",
+      "  }",
+      "}",
+    ].join("\n");
+    const t = active();
+    t.value = editorText;
+    t.selectionStart = t.selectionEnd = editorText.indexOf("println");
+    t.dispatchEvent(new win.Event("input", { bubbles: true }));
+    win.document.dispatchEvent(new win.Event("selectionchange"));
+    await sleep(420);
+
+    // Diff gutter bars mark modified/added lines compared to saved file
+    expect(doc.querySelectorAll(".code-gn-modified, .code-gn-added").length).toBeGreaterThan(0);
+
+    // Inline color swatches appear in the editor layer and breadcrumb bar
+    expect(doc.querySelectorAll(".code-color-swatch").length).toBeGreaterThanOrEqual(2);
+    t.selectionStart = t.selectionEnd = editorText.indexOf("#ff5500");
+    win.document.dispatchEvent(new win.Event("selectionchange"));
+    expect(doc.querySelector(".code-crumb-color")).toBeTruthy();
+
+    // Sticky scroll header shows enclosing block when cursor is inside nested block
+    const stickyEl: any = doc.querySelector(".code-ed:not([hidden]) .code-sticky-scroll");
+    expect(stickyEl).toBeTruthy();
+    t.selectionStart = t.selectionEnd = editorText.indexOf("println");
+    win.document.dispatchEvent(new win.Event("selectionchange"));
+    expect(stickyEl.hidden).toBe(false);
+    expect(stickyEl.textContent).toContain("Ln ");
+
+    // Code folding via gutter icon and Selection menu commands
+    const foldIcon: any = doc.querySelector(".code-ed:not([hidden]) .code-fold-icon");
+    expect(foldIcon).toBeTruthy();
+    foldIcon.dispatchEvent(new win.MouseEvent("mousedown", { button: 0, bubbles: true }));
+    expect(doc.querySelector(".code-ed:not([hidden]) .code-fold-badge")).toBeTruthy();
+    expect(doc.querySelectorAll(".code-ed:not([hidden]) .code-row-folded").length).toBeGreaterThan(0);
+
+    const runMenuCmd = (menuName: string, itemLabel: string) => {
+      const mBtn = [...doc.querySelectorAll(".code-menu-btn")].find((b: any) => b.textContent.trim() === menuName) as any;
+      mBtn.click();
+      const item = [...doc.querySelectorAll(".menu .menu-item")].find((b: any) => b.textContent.includes(itemLabel)) as any;
+      item.click();
+    };
+
+    runMenuCmd("Selection", "Unfold all blocks");
+    expect(doc.querySelector(".code-ed:not([hidden]) .code-fold-badge")).toBeNull();
+    runMenuCmd("Selection", "Fold all blocks");
+    expect(doc.querySelector(".code-ed:not([hidden]) .code-fold-badge")).toBeTruthy();
+    runMenuCmd("Selection", "Unfold all blocks");
+
+    // Live syntax diagnostics squiggles & breadcrumb error badge on unclosed bracket
+    t.value = "fn broken() {\n  x := [1, 2)\n}\n";
+    t.dispatchEvent(new win.Event("input", { bubbles: true }));
+    await sleep(420);
+    expect(doc.querySelector(".code-ed:not([hidden]) .code-diag-err")).toBeTruthy();
+    expect(doc.querySelector(".code-ed:not([hidden]) .code-gn-err")).toBeTruthy();
+    const diagCrumb: any = doc.querySelector(".code-crumb-diag");
+    expect(diagCrumb).toBeTruthy();
+    expect(diagCrumb.textContent).toContain("error");
+    diagCrumb.click();
+    expect(status("pos")).toContain("Ln 2");
+
+    // Side-by-side Split Editor pane
+    writeFileSync(join(work, "history-test.md"), "# Guide\n\n## Intro\nHello world\n");
+    await openFile("history-test.md");
+    const splitBtn = [...doc.querySelectorAll(".code-toolbar .code-btn")].find((b: any) => b.textContent.includes("Split")) as any;
+    expect(splitBtn).toBeTruthy();
+    const splitPane: any = doc.querySelector(".code-split-pane");
+    expect(splitPane.hidden).toBe(true);
+    splitBtn.click();
+    expect(splitPane.hidden).toBe(false);
+    expect(splitPane.querySelector(".code-split-select").options.length).toBeGreaterThanOrEqual(2);
+    expect(splitPane.querySelector(".code-split-body").textContent.length).toBeGreaterThan(0);
+    splitBtn.click();
+    expect(splitPane.hidden).toBe(true);
+
+    // Synchronized Markdown scrolling toggle in Markdown preview
+    const pvBtn = [...doc.querySelectorAll(".code-toolbar .code-btn")].find((b: any) => b.textContent.includes("Preview")) as any;
+    pvBtn.click();
+    await sleep(80);
+    const syncBtn: any = doc.querySelector(".code-md-sync-btn");
+    expect(syncBtn).toBeTruthy();
+    expect(syncBtn.getAttribute("aria-pressed")).toBe("true");
+    syncBtn.click();
+    expect(syncBtn.getAttribute("aria-pressed")).toBe("false");
+    syncBtn.click();
+    expect(syncBtn.getAttribute("aria-pressed")).toBe("true");
+    pvBtn.click();
+    await sleep(50);
+
+    // Local File History / Timeline Snapshots side panel
+    const histTab = [...doc.querySelectorAll(".code-side-tab")].find((b: any) => b.dataset.panel === "history") as any;
+    expect(histTab).toBeTruthy();
+    histTab.click();
+    expect(doc.querySelectorAll(".code-hist-item").length).toBeGreaterThanOrEqual(1);
+
+    // Modify guide.md, take a manual snapshot, then restore initial snapshot
+    const mdTa = active();
+    const originalMd = mdTa.value;
+    mdTa.value = `${originalMd}\n\n## Extra Section\n`;
+    mdTa.dispatchEvent(new win.Event("input", { bubbles: true }));
+    const snapNowBtn = [...doc.querySelectorAll(".code-panel-head .code-btn")].find((b: any) => b.textContent.includes("Snapshot now")) as any;
+    expect(snapNowBtn).toBeTruthy();
+    snapNowBtn.click();
+    const histItems = [...doc.querySelectorAll(".code-hist-item")];
+    expect(histItems.length).toBeGreaterThanOrEqual(2);
+
+    // Click Restore on the earliest ("Initial open") snapshot (last item in reverse-chronological list)
+    const earliestItem = histItems[histItems.length - 1]!;
+    const restoreBtn = [...earliestItem.querySelectorAll("button")].find((b: any) => b.textContent === "Restore") as any;
+    restoreBtn.click();
+    expect(mdTa.value).toBe(originalMd);
+  });
+});
+
+

@@ -490,7 +490,7 @@ async function execute(ctx: FmContext, def: ActionDef, params: Record<string, Op
       }
       view.jobId = job.id;
       const done = await ctx.jobs.whenDone(job.id);
-      // A conversion step is labelled "original → new name"; the original is the file that failed.
+      // A conversion step is labeled "original → new name"; the original is the file that failed.
       view.failedFiles = done.steps.filter((s) => s.state === "failed").map((s) => ({ path: s.item?.source ?? s.label.split(" → ")[0]!, message: s.message }));
       if (done.state === "cancelled" || run.cancelled) {
         view.state = "cancelled";

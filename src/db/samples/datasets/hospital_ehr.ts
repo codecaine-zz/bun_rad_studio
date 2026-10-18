@@ -80,7 +80,7 @@ export default dataset({
     }),
     table("diagnosis_code", "ICD-10-CM style diagnosis subset.", ["id id", "code str(10) uq", "description str(160)", "chapter str(30)"], { rows: DX.map(([code, description, chapter]) => ({ code, description, chapter })) }),
     table("procedure_code", "CPT-style procedure subset with plain-language descriptions and a base charge.", ["id id", "code str(8) uq", "description str(120)", "base_charge dec(10,2)"], { rows: PX.map(([code, description, base_charge]) => ({ code, description, base_charge })) }),
-    table("lab_test", "LOINC-style laboratory catalogue with adult reference ranges.", ["id id", "loinc_code str(10) uq", "name str(60)", "unit str(12)", "ref_low dec(8,2)", "ref_high dec(8,2)"], {
+    table("lab_test", "LOINC-style laboratory catalog with adult reference ranges.", ["id id", "loinc_code str(10) uq", "name str(60)", "unit str(12)", "ref_low dec(8,2)", "ref_high dec(8,2)"], {
       rows: LABS.map(([loinc_code, name, unit, ref_low, ref_high]) => ({ loinc_code, name, unit, ref_low, ref_high })),
     }),
     table("medication", "Medication formulary used for orders.", ["id id", "name str(60) uq", "strength_form str(40)", "route str(16)", "drug_class str(40)"], { rows: MEDS.map(([name, strength_form, route, drug_class]) => ({ name, strength_form, route, drug_class })) }),

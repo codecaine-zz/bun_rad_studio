@@ -41,7 +41,7 @@ function seedWorld(): World {
   seedDemoWorkspace(HOME, join(ROOT_DIR, "frames"));
   const put = (rel: string, body: string) => { const p = join(HOME, rel); mkdirSync(join(p, ".."), { recursive: true }); writeFileSync(p, body); };
 
-  // Eight holiday photos (a different colour each), so thumbnails, sorting and bulk rename have something to show.
+  // Eight holiday photos (a different color each), so thumbnails, sorting and bulk rename have something to show.
   mkdirSync(join(HOME, "Documents", "Trip"), { recursive: true });
   for (let i = 1; i <= 8; i++) {
     sh([FFMPEG, "-y", "-f", "lavfi", "-i", `testsrc2=size=1280x800:rate=1`, "-frames:v", "1", "-vf", `hue=h=${i * 40},drawtext=text='Photo ${i}':fontcolor=white:fontsize=96:x=(w-text_w)/2:y=(h-text_h)/2`, join(HOME, "Documents", "Trip", `IMG_${String(i).padStart(4, "0")}.jpg`)], { quiet: true });
@@ -133,7 +133,7 @@ ${chaptersText}
 - The SQLite and MySQL chapters are the recorded chapters of \`sqlite_studio_tutorial\` and \`mysql_studio_tutorial\`, joined in without their own intro and outro (build those first).
 - The desktop-only keys (Right Option + ] / [ / /, Command+Q) are shown on screen; the theme change is the real one.
 - The picture is 1920x972 above its own caption strip, so the captions never cover the program.
-- Narration: Edge neural voice (${EDGE_VOICE}, female) at ${RATE} speed with ${GAP}s between sentences, cleaned up with a gentle compressor and loudness normalised to -16 LUFS.
+- Narration: Edge neural voice (${EDGE_VOICE}, female) at ${RATE} speed with ${GAP}s between sentences, cleaned up with a gentle compressor and loudness normalized to -16 LUFS.
 - Rebuild: \`bun scripts/tutorial_file_manager.ts all\` (needs Google Chrome, ffmpeg-full from Homebrew and the internet for the voice). Re-record one chapter: \`... record 18_terminal\` then \`... build\`.
 `;
 }

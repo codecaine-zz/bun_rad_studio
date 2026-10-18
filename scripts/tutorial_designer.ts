@@ -26,7 +26,7 @@ let host: HostedApp | null = null;
 const seedWorld = (): World => ({ home: WORK, data: WORK, big: "", put: () => {} });
 
 async function open(ch: Chapter) {
-  host?.stop();
+  const prev = host;
   host = null;
   rmSync(`${WORK}/draft`, { recursive: true, force: true });
   if (ch.id === "11_hello") {
@@ -37,6 +37,7 @@ async function open(ch: Chapter) {
     host = hostDesigner(`${WORK}/draft`);
     await cdp.goto(host.url, null);
   }
+  prev?.stop();
   await sleep(2000);
 }
 
@@ -52,7 +53,7 @@ Build a Desktop App With No Code: The SimpleGUI Visual Designer (Bun + TypeScrip
 ## YouTube description (copy and paste)
 
 \`\`\`text
-A calm, step-by-step tutorial of the Bun RAD Studio visual designer: place controls from a palette of about a hundred, set their properties, align and distribute them, connect events, run a live preview, choose from 63 form themes (133 in the SimpleGUI library), and export real Bun TypeScript, HTML, React, Vue and Python code. Then the same ideas written by hand with the SimpleGUI API.
+A calm, step-by-step tutorial of the Bun RAD Studio visual designer: place controls from a palette of 101 controls across 11 collapsible categories, set their properties, hover styles, Delphi anchors and data bindings, align and distribute them, connect events in the script editor, run a live preview, choose from 63 form themes (133 in the SimpleGUI library), run layout audits and the MS Access CRUD database wizard, and export real Bun TypeScript, HTML, React, Vue 3, Python and FormSpec JSON code. Then the same ideas written by hand with the SimpleGUI API.
 
 Free and open source: ${REPO}
 Docs: ${REPO}/blob/main/docs/SIMPLEGUI_API.md

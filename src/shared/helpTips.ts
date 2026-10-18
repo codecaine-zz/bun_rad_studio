@@ -5,7 +5,7 @@
  * does, taken from a help dictionary for that app (`src/shared/help/<appId>.ts`) or, failing that, from the
  * control's own `title`. The tooltip is shown after a short pause over a control and at once when a control gets
  * the keyboard focus, so it works for people who do not use a mouse. It is plain text, themed by the page's own
- * colours, and described to screen readers with `aria-describedby`.
+ * colors, and described to screen readers with `aria-describedby`.
  *
  * Dictionary keys (the first that matches wins, in this order):
  *   #id           the element's id

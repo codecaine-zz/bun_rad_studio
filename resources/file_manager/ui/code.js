@@ -2,13 +2,13 @@
 // parts together (documents, editors, Explorer and panels, find bar, status bar, menus, keyboard, session).
 // Other modules: codeEditor (the text area), codeDocs (open files), codeActions (save, close, rename ...),
 // codeCommands (every command), codeRunUi (Run and Build presets), codeLogic (the pure logic, unit-tested).
-import { call } from "./api.js";
+import { call, rawUrl } from "./api.js";
 import { debounce, h } from "./dom.js";
 import { showMenu, toast } from "./menus.js";
 import { registerOpener } from "./openwith.js";
 import { activePowerTab, openPower, powerIsOpen, registerPowerTab } from "./power.js";
 import { state } from "./state.js";
-import { commandForEvent, shiftBookmarks } from "./codeLogic.js";
+import { commandForEvent, computeGutterLineChanges, computeLineDiff, extractSymbols, extractTodos, findLineColors, shiftBookmarks, symbolAt } from "./codeLogic.js";
 import { shortcutText } from "./codeKeys.js";
 import { createActions } from "./codeActions.js";
 import { createAssist } from "./codeAssist.js";
@@ -20,8 +20,8 @@ import { createDocs, isDirty } from "./codeDocs.js";
 import { createEditor } from "./codeEditor.js";
 import { createExplorer } from "./codeExplorer.js";
 import { createFindBar } from "./codeFindBar.js";
-import { createBookmarksPanel, createGitPanel, createOutlinePanel, createSearchPanel } from "./codePanels.js";
-import { renderMarkdown, renderSource } from "./codePreview.js";
+import { createBookmarksPanel, createGitPanel, createHistoryPanel, createOutlinePanel, createSearchPanel, createTodosPanel } from "./codePanels.js";
+import { createZoomableImage, renderCodeInspectorPreview, renderCsvPreview, renderJsonPreview, renderMarkdown, renderNotebookPreview, renderSource, renderStructuredDataPreview, slugifyMarkdownHeading } from "./codePreview.js";
 import { createRunUi } from "./codeRunUi.js";
 import { createStatus } from "./codeStatus.js";
 import { renderTabs, renderWelcome, wireTabKeys } from "./codeTabs.js";
@@ -44,12 +44,12 @@ export function openFolderInCode(path) {
 registerOpener("code", (path) => openInCode(path));
 
 const MENUS = {
-  File: ["newFile", "quickOpen", "openPath", "recent", "-", "save", "saveAs", "saveAll", "revert", "-", "rename", "deleteFile", "copyPath", "-", "closeTab", "closeOthers", "closeAll"],
-  Edit: ["undo", "redo", "-", "find", "replace", "findNext", "findPrev", "findInFiles", "-", "goToLine", "goToSymbol", "-", "complete", "selectAll", "clipboard"],
-  Selection: ["toggleComment", "blockComment", "-", "indent", "outdent", "-", "selectLine", "selectWord", "-", "deleteLine", "duplicate", "duplicateUp", "moveUp", "moveDown", "joinLines"],
-  Tools: ["sortAsc", "sortDesc", "sortNumeric", "reverseLines", "dedupe", "-", "trim", "finalNewline", "tabsToSpaces", "spacesToTabs", "-", "upper", "lower", "title", "camel", "snake", "kebab", "-", "convertText", "removeAccents", "composeAccents", "decomposeAccents", "-", "urlEncode", "urlDecode", "-", "format", "minify", "-", "regexSandbox"],
-  Go: ["bookmarkToggle", "bookmarkNext", "bookmarkPrev", "bookmarkClear", "-", "goToLine", "goToSymbol", "quickOpen"],
-  View: ["wrap", "lineNumbers", "-", "zoomIn", "zoomOut", "zoomReset", "-", "zen", "explorer", "preview", "-", "panelFiles", "panelGit", "panelOutline", "panelBookmarks", "-", "completion", "autoOpen", "autosave", "autosaveOptions", "-", "shortcuts", "palette"],
+  File: ["newFile", "quickOpen", "openPath", "recent", "recentToggle", "recentClear", "-", "save", "saveAs", "saveAll", "revert", "diffSaved", "diffTab", "panelHistory", "-", "rename", "deleteFile", "copyPath", "-", "closeTab", "closeOthers", "closeAll"],
+  Edit: ["undo", "redo", "-", "find", "replace", "findNext", "findPrev", "findInFiles", "-", "goToLine", "goToSymbol", "renameSymbol", "editAllOccurrences", "inspectToken", "-", "insertSnippet", "insertGenerated", "complete", "selectAll", "clipboard"],
+  Selection: ["expandSelection", "goToBracket", "nextOccurrence", "prevOccurrence", "editAllOccurrences", "prefixSuffixLines", "numberLines", "-", "foldBlock", "unfoldBlock", "foldAll", "unfoldAll", "-", "toggleComment", "blockComment", "wrapTag", "-", "indent", "outdent", "-", "selectLine", "selectWord", "-", "deleteLine", "duplicate", "duplicateUp", "moveUp", "moveDown", "joinLines"],
+  Tools: ["toggleValue", "toggleQuotes", "evalMath", "-", "sortJson", "csvToMd", "-", "sortAsc", "sortDesc", "sortNumeric", "reverseLines", "dedupe", "-", "trim", "finalNewline", "tabsToSpaces", "spacesToTabs", "-", "upper", "lower", "title", "camel", "snake", "kebab", "-", "convertText", "removeAccents", "composeAccents", "decomposeAccents", "-", "urlEncode", "urlDecode", "-", "format", "minify", "-", "regexSandbox"],
+  Go: ["goToBracket", "nextOccurrence", "prevOccurrence", "-", "bookmarkToggle", "bookmarkNext", "bookmarkPrev", "bookmarkClear", "-", "goToLine", "goToSymbol", "quickOpen"],
+  View: ["wrap", "lineNumbers", "minimap", "stickyScroll", "whitespace", "indentGuides", "ruler", "wordHighlight", "-", "zoomIn", "zoomOut", "zoomReset", "-", "zen", "explorer", "preview", "splitEditor", "-", "panelFiles", "panelGit", "panelOutline", "panelTodos", "panelBookmarks", "panelHistory", "-", "completion", "autoOpen", "autosave", "autosaveOptions", "-", "shortcuts", "palette"],
 };
 
 function mount(root) {
@@ -60,17 +60,91 @@ function mount(root) {
   let started = false;
   let zen = false;
   let previewOn = false;
+  let previewWidth = 45;
+  let splitEditorOn = false;
+  let splitDocId = 0;
+  let mdController = null;
   // Zen mode hides the toolbar and its Preview button, so the preview has a switch of its own that stays in sight.
-  const zenPreview = h("button", { type: "button", class: "code-zen-preview", "aria-pressed": "false", title: "Show or hide the preview next to the text (Markdown and HTML)", onclick: () => commands.run("preview") }, "👁 Preview");
+  const zenPreview = h("button", { type: "button", class: "code-zen-preview", "aria-pressed": "false", title: "Show or hide the preview & live inspector next to the text", onclick: () => commands.run("preview") }, "👁 Preview");
 
   const editors = h("div", { class: "code-editors" });
   const welcome = h("div", { class: "code-welcome" });
   const tabStrip = h("div", { class: "code-tabs", role: "tablist", "aria-label": "Open files" });
+  const crumbs = h("nav", { class: "code-crumbs", "aria-label": "File path and current symbol", hidden: true });
   const banner = h("div", { class: "code-banner", role: "status", hidden: true });
   const previewBody = h("div", { class: "code-preview-body" });
   const previewTitle = h("strong", {}, "Preview");
-  const previewExtra = h("span", {});
-  const preview = h("aside", { class: "code-preview-pane", "aria-label": "Preview", hidden: true }, h("div", { class: "code-preview-head" }, previewTitle, previewExtra), previewBody);
+  const previewExtra = h("span", { class: "code-row-tools" });
+  const splitSlider = h("input", {
+    type: "range",
+    class: "code-preview-split-slider",
+    min: "15",
+    max: "85",
+    step: "1",
+    value: "45",
+    "aria-label": "Resize code editor and preview split",
+    title: "Slide to resize the code editor and preview split (15% – 85%)",
+    oninput: () => setPreviewWidth(Number(splitSlider.value)),
+  });
+  const splitVal = h("span", {
+    class: "code-preview-split-val",
+    title: "Double-click to reset split width to 45%",
+    ondblclick: () => setPreviewWidth(45),
+  }, "45%");
+  const splitCtl = h("label", {
+    class: "code-preview-split-ctl",
+    title: "Slide to resize the code editor and preview",
+  }, splitSlider, splitVal);
+  const previewResizer = h("div", {
+    class: "code-preview-resizer",
+    role: "separator",
+    "aria-orientation": "vertical",
+    "aria-label": "Resize code editor and preview",
+    "aria-valuemin": "15",
+    "aria-valuemax": "85",
+    "aria-valuenow": "45",
+    tabindex: "0",
+    hidden: true,
+    title: "Drag to resize the code editor and preview (double-click to reset, or use Left/Right arrow keys)",
+    ondblclick: () => setPreviewWidth(previewWidth === 45 ? 50 : 45),
+  }, h("span", { class: "code-preview-resizer-grip", "aria-hidden": "true" }, "⋮"));
+  const preview = h("aside", { class: "code-preview-pane", "aria-label": "Preview", dataset: { width: "45" }, hidden: true }, h("div", { class: "code-preview-head" }, previewTitle, h("span", { class: "code-grow" }), splitCtl, previewExtra), previewBody);
+
+  const splitSelect = h("select", {
+    class: "code-in code-split-select",
+    "aria-label": "Select open tab for split editor",
+    title: "Choose which open tab to display in the side-by-side split pane",
+    onchange: () => {
+      splitDocId = Number(splitSelect.value) || 0;
+      updateSplitPane();
+    },
+  });
+  const splitDiffBtn = h("button", {
+    type: "button",
+    class: "btn code-small code-split-diff-btn",
+    title: "Compare the active editor tab with this split pane tab",
+    onclick: () => {
+      const cur = doc();
+      const target = docs.get(splitDocId) ?? docs.list().find((x) => x !== cur && x.kind !== "diff") ?? cur;
+      if (!cur || !target) return;
+      const r = computeLineDiff(target.text, cur.text, { oldLabel: target.name, newLabel: cur.name });
+      if (r.identical) return void toast(`"${cur.name}" and "${target.name}" have identical text.`);
+      docs.openView(`Diff: ${target.name} ↔ ${cur.name}`, r.diff, "diff");
+    },
+  }, "⇄ Diff");
+  const splitCloseBtn = h("button", {
+    type: "button",
+    class: "btn code-small code-split-close-btn",
+    title: "Close side-by-side split editor pane",
+    "aria-label": "Close side-by-side split editor pane",
+    onclick: () => app.toggleSplitEditor(),
+  }, "✕");
+  const splitBody = h("div", { class: "code-split-body" });
+  const splitPane = h("aside", { class: "code-split-pane", "aria-label": "Side-by-side split editor", hidden: true },
+    h("div", { class: "code-preview-head" }, h("strong", {}, "Split editor"), splitSelect, h("span", { class: "code-grow" }), splitDiffBtn, splitCloseBtn),
+    splitBody,
+  );
+
   const status = createStatus({ onLanguage: () => actions.pickLanguage(), onEol: () => actions.pickEol(), onIndent: () => actions.pickIndent(), onEncoding: () => actions.pickEncoding(), onPosition: () => actions.goToLine(), onAutosave: () => setSetting("autosave", !settings().autosave) });
 
   const findBar = createFindBar({ getEditor: ed, toast, onClose: () => ed()?.focus() });
@@ -93,7 +167,7 @@ function mount(root) {
 
   const ctx = {
     docs, explorer, doc, ed, open,
-    setLanguage(d, id) { d.lang = id; d.langPinned = true; if (id === "v" && d.indent.size === null) d.indent = { useTabs: true, size: null }; d.editor?.setOptions(optionsFor(d)); assist.reset(d); afterMeta(); },
+    setLanguage(d, id) { d.lang = id; d.langPinned = true; if (id === "v" && d.indent.size === null) d.indent = { useTabs: true, size: null }; d.editor?.setOptions(optionsFor(d)); assist.reset(d); afterMeta(); updatePreview(); },
     statusButton: (name) => status.el.querySelector(`.code-st-${name}`),
     refreshEditor(d) { d.editor?.setOptions(optionsFor(d)); afterMeta(); },
   };
@@ -105,11 +179,35 @@ function mount(root) {
     search: createSearchPanel({ getRoot: () => explorer.root, getHidden: () => settings().showHidden, onOpen: open }),
     git: createGitPanel({ getRoot: () => explorer.root, onOpen: (p) => open(p), onDiff: (title, text, lang) => docs.openView(title, text, lang) }),
     outline: createOutlinePanel({ getDoc: doc, onGo: (line) => ed()?.goTo(line) }),
+    todos: createTodosPanel({ getDoc: doc, getDocs: () => docs.list(), onGo: (d, line, col) => { docs.activate(d.id); d.editor?.goTo(line, col); } }),
     bookmarks: createBookmarksPanel({ getDocs: () => docs.list(), onGo: async (d, line) => { docs.activate(d.id); d.editor?.goTo(line); }, onClear: () => docs.list().forEach((d) => { docs.setBookmarks(d, []); d.editor?.setBookmarks([]); }) }),
+    history: createHistoryPanel({
+      getDoc: doc,
+      onSnapshot: () => {
+        const d = doc();
+        if (!d) return;
+        docs.snapshot(d, "Manual snapshot");
+        toast(`Saved local snapshot of ${d.name}.`, { kind: "success" });
+      },
+      onDiff: (d, snap) => {
+        const r = computeLineDiff(snap.text, d.text, { oldLabel: `${d.name} (${snap.label} ${snap.timeLabel})`, newLabel: `${d.name} (current)` });
+        if (r.identical) return void toast("Current file is identical to that snapshot.");
+        docs.openView(`Diff: ${d.name} @ ${snap.timeLabel}`, r.diff, "diff");
+      },
+      onRestore: (d, snap) => {
+        if (!d.editor) return;
+        const curText = d.editor.getText();
+        if (curText === snap.text) return void toast("Current file already matches that snapshot.");
+        docs.snapshot(d, "Before restore");
+        d.editor.apply({ from: 0, to: curText.length, insert: snap.text, selStart: 0, selEnd: 0 });
+        d.editor.focus();
+        toast(`Restored ${d.name} from snapshot (${snap.label}).`, { kind: "success" });
+      },
+    }),
   };
-  const PANEL_NAMES = { files: "Files", search: "Search", git: "Git", outline: "Outline", bookmarks: "Bookmarks" };
+  const PANEL_NAMES = { files: "Files", search: "Search", git: "Git", outline: "Outline", todos: "Tasks", bookmarks: "Bookmarks", history: "History" };
   const panelHost = h("div", { class: "code-panel-host" });
-  const sideButtons = Object.entries(PANEL_NAMES).map(([id, label]) => h("button", { type: "button", class: "code-side-tab", role: "tab", dataset: { panel: id }, title: { files: "The folder tree", search: "Find text in every file", git: "See which files changed (read only)", outline: "Functions and headings of this file", bookmarks: "Lines you marked" }[id], onclick: () => showPanel(id, true) }, label));
+  const sideButtons = Object.entries(PANEL_NAMES).map(([id, label]) => h("button", { type: "button", class: "code-side-tab", role: "tab", dataset: { panel: id }, title: { files: "The folder tree", search: "Find text in every file", git: "See which files changed (read only)", outline: "Functions and headings of this file", todos: "TODO, FIXME, BUG and NOTE comments across open files", bookmarks: "Lines you marked", history: "Local file timeline snapshots (diff and restore)" }[id], onclick: () => showPanel(id, true) }, label));
   const side = h("div", { class: "code-side" }, h("div", { class: "code-side-tabs", role: "tablist", "aria-label": "Side panels" }, sideButtons), panelHost);
   let panel = "files";
 
@@ -127,10 +225,48 @@ function mount(root) {
   function optionsFor(d) {
     const s = settings();
     const useTabs = d.indent.useTabs;
-    return { lang: d.lang, wrap: s.wrap, lineNumbers: s.lineNumbers, fontSize: s.fontSize, tabSize: useTabs ? Math.max(4, s.tabSize) : d.indent.size ?? s.tabSize, unit: actions.unitOf(d, s.tabSize), readOnly: d.readOnly };
+    return {
+      lang: d.lang,
+      wrap: s.wrap,
+      lineNumbers: s.lineNumbers,
+      minimap: s.minimap,
+      stickyScroll: s.stickyScroll !== false,
+      whitespace: s.whitespace,
+      indentGuides: s.indentGuides !== false,
+      ruler: s.ruler,
+      wordHighlight: s.wordHighlight !== false,
+      fontSize: s.fontSize,
+      tabSize: useTabs ? Math.max(4, s.tabSize) : d.indent.size ?? s.tabSize,
+      unit: actions.unitOf(d, s.tabSize),
+      readOnly: d.readOnly,
+    };
   }
 
-  const refreshSoon = debounce(() => { findBar.refresh(); panels.outline.update?.(); if (previewOn) updatePreview(); }, 350);
+  function updateLineChanges(d) {
+    if (!d?.editor || d.kind === "diff") return;
+    if (d.text.length > 300_000) {
+      d.editor.setLineChanges(new Map());
+      return;
+    }
+    d.editor.setLineChanges(computeGutterLineChanges(d.savedText ?? "", d.text ?? ""));
+  }
+
+  const refreshSoon = debounce(() => {
+    const d = doc();
+    if (d) {
+      d.cachedSymbols = null;
+      d.cachedTodos = null;
+      updateLineChanges(d);
+    }
+    findBar.refresh();
+    panels.outline.update?.();
+    if (panel === "todos") panels.todos.update?.();
+    if (panel === "history") panels.history.update?.();
+    updateCrumbs();
+    if (previewOn) updatePreview();
+    if (splitEditorOn) updateSplitPane();
+  }, 350);
+
   // Autosave: a timer that restarts on every keystroke, and an immediate pass when the user moves away.
   let autosaveTimer = null;
   let autosaving = false;
@@ -179,15 +315,22 @@ function mount(root) {
         if (settings().autosave) autosaveSoon();
         docs.persist();
       },
-      onSelect: (s) => { d.line = s.line; d.col = s.col; d.sel = s; updateStatus(); assist.caretMoved(d); },
+      onSelect: (s) => { d.line = s.line; d.col = s.col; d.sel = s; updateStatus(); updateCrumbs(); assist.caretMoved(d); },
       onClip: (text) => actions.rememberClip(text),
       onKey: (ev) => assist.keydown(d, ev),
+      onBookmark: (line) => actions.bookmark("toggle", line),
+      onScroll: ({ topLine, ratio }) => {
+        if (d === doc() && previewOn && d.lang === "markdown") {
+          mdController?.syncToEditor?.(topLine, ratio);
+        }
+      },
     });
     d.editor = e;
     e.setOptions(optionsFor(d));
     e.setText(d.text);
     d.lineCountBefore = e.lineCount;
     e.setBookmarks(d.bookmarks);
+    updateLineChanges(d);
     assist.attach(d, e);
     e.el.hidden = true;
     editors.append(e.el);
@@ -200,13 +343,143 @@ function mount(root) {
     e.setBookmarks(d.bookmarks);
   }
 
+  function updateCrumbs() {
+    const d = doc();
+    crumbs.hidden = !d;
+    if (!d) return;
+    const items = [];
+    const rel = d.path && explorer.root && d.path.startsWith(explorer.root + state.sep) ? d.path.slice(explorer.root.length + 1) : d.path || d.name;
+    const parts = rel.split(/[\\/]/).filter(Boolean);
+    parts.slice(-4).forEach((seg, idx, arr) => {
+      if (idx > 0) items.push(h("span", { class: "code-crumb-sep", "aria-hidden": "true" }, "›"));
+      items.push(h("button", {
+        type: "button",
+        class: "code-crumb-btn",
+        title: d.path ? `Path: ${d.path} (click to copy path)` : d.name,
+        onclick: () => (d.path ? actions.copyPath(d) : actions.quickOpen()),
+      }, idx === arr.length - 1 ? `📄 ${seg}` : seg));
+    });
+
+    if (d.text.length < 300_000) {
+      d.cachedSymbols ??= extractSymbols(d.text, d.lang);
+      const activeSym = symbolAt(d.cachedSymbols, d.line || 1);
+      if (activeSym) {
+        items.push(h("span", { class: "code-crumb-sep", "aria-hidden": "true" }, "›"));
+        items.push(h("button", {
+          type: "button",
+          class: "code-crumb-btn code-crumb-sym",
+          title: `Current ${activeSym.kind}: ${activeSym.name} (line ${activeSym.line}). Click to jump to any symbol.`,
+          onclick: () => actions.goToSymbol(),
+        }, `ƒ ${activeSym.name}`));
+      }
+    }
+
+    items.push(h("span", { class: "code-grow" }));
+
+    if (d.kind !== "diff") {
+      const diags = d.editor?.getDiagnostics?.() ?? [];
+      if (diags.length > 0) {
+        const first = diags[0];
+        items.push(h("button", {
+          type: "button",
+          class: "code-crumb-pill code-crumb-diag",
+          title: `${first.message} (line ${first.line}, col ${first.col}). Click to jump to syntax error.`,
+          onclick: () => d.editor?.goTo(first.line, first.col),
+        }, `⚠ ${diags.length} ${diags.length === 1 ? "error" : "errors"}`));
+      }
+    }
+
+    if (d.kind !== "diff" && d.text.length < 300_000) {
+      const curLineText = d.text.split("\n")[(d.line || 1) - 1] ?? "";
+      const lineColors = findLineColors(curLineText);
+      for (const c of lineColors.slice(0, 3)) {
+        const dot = h("span", { class: "code-crumb-color-dot" });
+        dot.style.backgroundColor = c.color;
+        items.push(h("button", {
+          type: "button",
+          class: "code-crumb-pill code-crumb-color",
+          title: `Color ${c.color} on line ${d.line || 1}. Click to open color picker.`,
+          onclick: () => {
+            if (d.editor) {
+              const pos = d.editor.lineOffset(d.line || 1, c.from + 1);
+              d.editor.setSelection(pos, pos + (c.to - c.from));
+            }
+            actions.inspectToken();
+          },
+        }, dot, c.color));
+      }
+    }
+
+    if (d.sel?.wordCount > 1) {
+      items.push(h("button", {
+        type: "button",
+        class: "code-crumb-pill",
+        title: `"${d.sel.word}" appears ${d.sel.wordCount} times in this file. Click for next occurrence, or press F2 / Rename Symbol to rename all.`,
+        onclick: () => actions.stepOccurrence(1),
+      }, `${d.sel.word} · ${d.sel.wordCount}×`));
+    }
+
+    if (d.text.length < 300_000) {
+      d.cachedTodos ??= extractTodos(d.text);
+      if (d.cachedTodos.length) {
+        items.push(h("button", {
+          type: "button",
+          class: "code-crumb-pill code-crumb-todo",
+          title: `${d.cachedTodos.length} task ${d.cachedTodos.length === 1 ? "comment" : "comments"} (TODO/FIXME) in this file. Click to open the Tasks panel.`,
+          onclick: () => showPanel("todos", true),
+        }, `✓ ${d.cachedTodos.length} ${d.cachedTodos.length === 1 ? "task" : "tasks"}`));
+      }
+    }
+
+    if (d.kind !== "diff") {
+      items.push(h("button", {
+        type: "button",
+        class: "code-crumb-pill",
+        title: "Inspect value or pick a color at the cursor (Alt+I)",
+        onclick: () => actions.inspectToken(),
+      }, "🔍 Inspect"));
+    }
+
+    crumbs.replaceChildren(...items);
+  }
+
+  function updateSplitPane() {
+    const cur = doc();
+    splitPane.hidden = !splitEditorOn || !cur;
+    if (splitPane.hidden) return;
+    const allDocs = docs.list();
+    if (!allDocs.some((x) => x.id === splitDocId)) {
+      const other = allDocs.find((x) => x !== cur && x.kind !== "diff") ?? cur;
+      splitDocId = other ? other.id : 0;
+    }
+    splitSelect.replaceChildren(
+      ...allDocs.map((x) => h("option", { value: String(x.id), selected: x.id === splitDocId ? "" : null }, x === cur ? `${x.name} (active)` : x.name)),
+    );
+    const target = docs.get(splitDocId) ?? cur;
+    if (!target) {
+      splitBody.replaceChildren(h("p", { class: "code-hint" }, "No open tab to display."));
+      return;
+    }
+    renderSource(splitBody, target.text, target.lang);
+  }
+
   function showActive() {
     const d = doc();
     for (const x of docs.list()) if (x.editor) x.editor.el.hidden = x !== d;
     editors.hidden = !d;
     welcome.hidden = !!d;
     if (!d) {
-      renderWelcome(welcome, { recents: docs.session.recents, onNew: () => docs.newUntitled(), onQuickOpen: () => actions.quickOpen(), onOpen: (p) => open(p), onOpenByPath: () => actions.openByPath() });
+      renderWelcome(welcome, {
+        recents: docs.session.recents,
+        recentsEnabled: settings().recentsEnabled !== false,
+        onNew: () => docs.newUntitled(),
+        onQuickOpen: () => actions.quickOpen(),
+        onOpen: (p) => open(p),
+        onOpenByPath: () => actions.openByPath(),
+        onRemoveRecent: (p) => docs.removeRecent(p),
+        onClearRecents: () => actions.clearRecent(),
+        onToggleRecents: (on) => actions.toggleRecent(on),
+      });
     } else {
       const e = ensureEditor(d);
       e.el.hidden = false;
@@ -216,10 +489,14 @@ function mount(root) {
     }
     renderTabsNow();
     updateStatus();
+    updateCrumbs();
     updateBanner();
     panels.outline.update?.();
+    if (panel === "todos") panels.todos.update?.();
     if (panel === "bookmarks") panels.bookmarks.update?.();
+    if (panel === "history") panels.history.update?.();
     updatePreview();
+    updateSplitPane();
     findBar.refresh();
     runButtons.hidden = !d || d.kind === "diff";
   }
@@ -262,26 +539,223 @@ function mount(root) {
     banner.replaceChildren(...(items[0] ? [h("span", {}, items[0][0]), ...items[0].slice(1)] : []));
   }
 
-  const afterMeta = () => { renderTabsNow(); updateStatus(); updateBanner(); };
+  const afterMeta = () => {
+    const d = doc();
+    if (d) updateLineChanges(d);
+    if (panel === "history") panels.history.update?.();
+    renderTabsNow();
+    updateStatus();
+    updateCrumbs();
+    updateBanner();
+  };
 
   // -- preview -----------------------------------------------------------------------------------------------------
+
+  const slugifyHeading = slugifyMarkdownHeading;
+
+  function resolveLocalImageSrc(d, rawSrc) {
+    const s = String(rawSrc ?? "").trim();
+    if (!s || (/^[a-z][a-z0-9+.-]*:/i.test(s) && !/^file:\/\//i.test(s) && !/^[A-Za-z]:[\\/]/.test(s))) return "";
+    let clean = s.split("#")[0].split("?")[0];
+    try { clean = decodeURIComponent(clean); } catch {}
+    if (/^file:\/\//i.test(clean)) {
+      try { clean = decodeURIComponent(new URL(clean).pathname); } catch { return ""; }
+    }
+    const sep = state.sep || "/";
+    const baseDir = d?.path
+      ? d.path.slice(0, Math.max(d.path.lastIndexOf("/"), d.path.lastIndexOf("\\"))) || d.path
+      : explorer.root || (state.location.kind === "folder" && state.location.path) || state.home || "";
+    const isAbs = clean.startsWith("/") || /^[A-Za-z]:[\\/]/.test(clean);
+    const joined = isAbs ? clean : `${baseDir}${sep}${clean}`;
+    const driveMatch = /^[A-Za-z]:/.exec(joined);
+    const prefix = driveMatch ? driveMatch[0] : joined.startsWith("/") ? "" : "";
+    const parts = joined.slice(prefix.length).split(/[\\/]+/);
+    const norm = [];
+    for (const part of parts) {
+      if (!part || part === ".") continue;
+      if (part === "..") norm.pop();
+      else norm.push(part);
+    }
+    const resolved = prefix ? `${prefix}${sep}${norm.join(sep)}` : `${sep}${norm.join(sep)}`;
+    return rawUrl(resolved);
+  }
+
+  function jumpToHeadingInDoc(targetDoc, rawFrag) {
+    const lineMatch = /^L(\d+)(?:C(\d+))?(?:-L?\d+)?$/i.exec(rawFrag);
+    if (lineMatch) {
+      targetDoc?.editor?.goTo(Number(lineMatch[1]), Number(lineMatch[2] || 1));
+      return true;
+    }
+    const wanted = slugifyHeading(rawFrag);
+    if (!wanted) return false;
+    let found = false;
+    if (targetDoc === doc() && !preview.hidden) {
+      const headingEl = [...previewBody.querySelectorAll("h1, h2, h3, h4, h5, h6")].find(
+        (el) => el.dataset.slug === wanted || slugifyHeading(el.textContent) === wanted || el.textContent.trim().toLowerCase() === rawFrag.toLowerCase(),
+      );
+      if (headingEl) {
+        headingEl.scrollIntoView?.({ behavior: "smooth", block: "start" });
+        found = true;
+      }
+    }
+    if (targetDoc) {
+      const sym = extractSymbols(targetDoc.text, targetDoc.lang).find(
+        (s) => slugifyHeading(s.name) === wanted || s.name.trim().toLowerCase() === rawFrag.toLowerCase(),
+      );
+      if (sym) {
+        targetDoc.editor?.goTo(sym.line, 1);
+        found = true;
+      }
+    }
+    return found;
+  }
+
+  async function openMarkdownLink(rawHref) {
+    const href = String(rawHref ?? "").trim();
+    if (!href) return;
+    if (/^(?:https?:\/\/|\/\/|www\.[^\s/]+\.[^\s]+)/i.test(href)) {
+      const url = href.startsWith("//") ? `https:${href}` : /^www\./i.test(href) ? `https://${href}` : href;
+      try {
+        await call("link/open", { url });
+      } catch (err) {
+        toast(err?.message || "Couldn't open that web address.", { kind: "error" });
+      }
+      return;
+    }
+    if (href.startsWith("#")) {
+      let frag = href.slice(1);
+      try { frag = decodeURIComponent(frag); } catch {}
+      if (!jumpToHeadingInDoc(doc(), frag.trim())) {
+        toast(`Heading "${frag}" wasn't found in this document.`);
+      }
+      return;
+    }
+    if (/^[a-z][a-z0-9+.-]*:/i.test(href) && !/^file:\/\//i.test(href) && !/^[A-Za-z]:[\\/]/.test(href)) {
+      const addr = href.replace(/^mailto:/i, "");
+      call("copytext", { text: addr })
+        .then(() => toast(`Copied "${addr}" to the clipboard.`))
+        .catch(() => toast(`Link: ${href}`));
+      return;
+    }
+    let pathPart = href;
+    let frag = "";
+    if (!/^file:\/\//i.test(pathPart)) {
+      const hashIdx = pathPart.indexOf("#");
+      if (hashIdx >= 0) {
+        frag = pathPart.slice(hashIdx + 1);
+        pathPart = pathPart.slice(0, hashIdx);
+      }
+    } else {
+      try {
+        const u = new URL(pathPart);
+        if (u.hash) frag = u.hash.slice(1);
+        pathPart = `${u.protocol}//${u.host}${u.pathname}`;
+      } catch {}
+    }
+    try { frag = decodeURIComponent(frag); } catch {}
+    let line = 1;
+    let col = 1;
+    const lineSuffix = !/^file:\/\//i.test(pathPart) ? /:(\d+)(?::(\d+))?$/.exec(pathPart) : null;
+    if (lineSuffix) {
+      line = Number(lineSuffix[1]) || 1;
+      col = Number(lineSuffix[2]) || 1;
+      pathPart = pathPart.slice(0, lineSuffix.index);
+    } else if (/^L(\d+)(?:C(\d+))?/i.test(frag)) {
+      const m = /^L(\d+)(?:C(\d+))?/i.exec(frag);
+      line = Number(m[1]) || 1;
+      col = Number(m[2]) || 1;
+      frag = "";
+    }
+    if (!/^file:\/\//i.test(pathPart)) {
+      try { pathPart = decodeURIComponent(pathPart); } catch {}
+    }
+    const d = doc();
+    const baseDir = d?.path
+      ? d.path.slice(0, Math.max(d.path.lastIndexOf("/"), d.path.lastIndexOf("\\"))) || d.path
+      : explorer.root || (state.location.kind === "folder" && state.location.path) || state.home;
+    try {
+      const resolved = await call("typedpath", { text: pathPart || d?.path || "", cwd: baseDir });
+      if (!resolved.exists) {
+        toast(`Linked file not found: ${pathPart}`, { kind: "error" });
+        return;
+      }
+      if (resolved.isDir) {
+        await explorer.setRoot(resolved.path);
+        showPanel("files");
+        return;
+      }
+      await open(resolved.path, line, col);
+      if (frag) jumpToHeadingInDoc(doc(), frag);
+    } catch (err) {
+      toast(err?.message || "Couldn't open that linked file.", { kind: "error" });
+    }
+  }
+
+  function setPreviewWidth(nextPct) {
+    previewWidth = Math.max(15, Math.min(85, Math.round(Number(nextPct) || 45)));
+    preview.style.flexBasis = `${previewWidth}%`;
+    preview.dataset.width = String(previewWidth);
+    previewResizer.setAttribute("aria-valuenow", String(previewWidth));
+    splitSlider.value = String(previewWidth);
+    splitVal.textContent = `${previewWidth}%`;
+    ed()?.layout();
+  }
 
   function updatePreview() {
     const d = doc();
     zenPreview.setAttribute("aria-pressed", String(previewOn));
     preview.hidden = !previewOn || !d;
+    previewResizer.hidden = preview.hidden;
+    mdController = null;
     if (preview.hidden) return;
     previewExtra.replaceChildren();
     if (d.lang === "markdown") {
-      previewTitle.textContent = "Preview";
-      renderMarkdown(previewBody, d.text);
+      previewTitle.textContent = "Markdown preview";
+      mdController = renderMarkdown(previewBody, d.text, {
+        onOpenLink: openMarkdownLink,
+        onGoLine: (l, c) => ed()?.goTo(l, c),
+        resolveImageSrc: (src) => resolveLocalImageSrc(d, src),
+        mode: d.mdPreviewMode || "preview",
+        onModeChange: (m) => { d.mdPreviewMode = m; },
+        syncScroll: d.mdSyncScroll !== false,
+        onSyncScrollChange: (on) => { d.mdSyncScroll = on; },
+      });
+    } else if (/\.ipynb$/i.test(d.name)) {
+      previewTitle.textContent = "Jupyter Notebook preview";
+      renderNotebookPreview(previewBody, d.text);
+    } else if (/\.(jsonl|ndjson)$/i.test(d.name)) {
+      previewTitle.textContent = "JSON Lines Explorer";
+      renderStructuredDataPreview(previewBody, d.text, "jsonl");
+    } else if (d.lang === "json") {
+      previewTitle.textContent = "JSON Tree Explorer";
+      renderJsonPreview(previewBody, d.text, { onGoLine: (l, c) => ed()?.goTo(l, c) });
+      previewExtra.append(
+        h("button", { type: "button", class: "btn code-small", title: "Sort all object keys alphabetically", onclick: () => commands.run("sortJson") }, "Sort keys A–Z"),
+        h("button", { type: "button", class: "btn code-small", title: "Format JSON with indentation", onclick: () => commands.run("format") }, "Prettify"),
+      );
+    } else if (d.lang === "yaml" || /\.(ya?ml)$/i.test(d.name)) {
+      previewTitle.textContent = "YAML Tree Explorer";
+      renderStructuredDataPreview(previewBody, d.text, "yaml");
+    } else if (d.lang === "toml" || /\.toml$/i.test(d.name)) {
+      previewTitle.textContent = "TOML Tree Explorer";
+      renderStructuredDataPreview(previewBody, d.text, "toml");
+    } else if (d.lang === "ini" || /\.(ini|cfg|conf|env|properties)$/i.test(d.name) || /^\.env(\..+)?$/i.test(d.name)) {
+      previewTitle.textContent = "Config / Env Explorer";
+      renderStructuredDataPreview(previewBody, d.text, "ini");
+    } else if (/\.(csv|tsv)$/i.test(d.name)) {
+      previewTitle.textContent = "Table preview";
+      renderCsvPreview(previewBody, d.text);
+      previewExtra.append(h("button", { type: "button", class: "btn code-small", title: "Convert this CSV/TSV into a formatted Markdown table", onclick: () => commands.run("csvToMd") }, "To Markdown table"));
     } else if (d.lang === "html" || d.lang === "xml") {
-      previewTitle.textContent = "HTML source (coloured)";
+      previewTitle.textContent = /\.svg$/i.test(d.name) ? "SVG preview & source" : "HTML source (colored)";
       renderSource(previewBody, d.text, d.lang);
+      if (/\.svg$/i.test(d.name) && d.path) {
+        previewBody.prepend(h("div", { class: "code-pv-card" }, createZoomableImage(rawUrl(d.path), `Preview of ${d.name}`, `Picture: ${d.name}`, d.name)));
+      }
       previewExtra.append(h("button", { type: "button", class: "btn code-small", disabled: !d.path, title: "Open this file in your web browser. Save first to see your latest changes.", onclick: () => (isDirty(d) ? toast("Save the file first so the browser shows your latest changes.") : call("open", { path: d.path }).catch((e) => toast(e.message, { kind: "error" }))) }, "Open in browser"));
     } else {
-      previewTitle.textContent = "Preview";
-      previewBody.replaceChildren(h("p", { class: "code-hint" }, "A preview is available for Markdown and HTML files."));
+      previewTitle.textContent = "Live Inspector";
+      renderCodeInspectorPreview(previewBody, d, { onGoLine: (l, c) => ed()?.goTo(l, c), onOpenDiff: () => commands.run("diffSaved") });
     }
   }
 
@@ -329,6 +803,12 @@ function mount(root) {
     toggleSide() { setSetting("explorer", !settings().explorer); },
     togglePreview() { setSetting("preview", !previewOn); },
     isPreview: () => previewOn,
+    toggleSplitEditor() {
+      splitEditorOn = !splitEditorOn;
+      updateSplitPane();
+      ed()?.layout();
+    },
+    isSplitEditor: () => splitEditorOn,
     regexSandbox: () => openRegexSandbox(ed() ? ed().getText().slice(0, 5000) : ""),
     convertText: () => openPalette({ title: "Convert text", placeholder: "Type what you want, for example base64, snake, accents, links", empty: "No conversion matches.", items: TRANSFORMS.map((t) => ({ label: t.label, detail: `${t.group} · ${t.tip}`, value: t.id })), onPick: (id) => commands.run(`tx:${id}`) }),
     shortcuts: () => openShortcutsHelp(commands.list.filter((c) => !c.hidden).map((c) => ({ group: c.group, label: c.label, shortcut: c.shortcut }))),
@@ -342,26 +822,77 @@ function mount(root) {
   const commands = createCommands(app);
 
   const menuButton = (name, ids) => h("button", { type: "button", class: "code-menu-btn", "aria-haspopup": "menu", title: `${name} menu`, onclick: (e) => showMenu(commands.menu(ids), { anchor: e.currentTarget, label: `${name} menu` }) }, name);
-  const themeButtons = THEME_CHOICES.map(([id, label]) => h("button", { type: "button", class: "code-theme-btn", dataset: { theme: id }, "aria-pressed": "false", title: `Editor colours: ${label}`, onclick: () => setSetting("theme", id) }, label.split(" (")[0].replace("Follow the File Manager", "Auto")));
+  const themeButtons = THEME_CHOICES.map(([id, label]) => h("button", { type: "button", class: "code-theme-btn", dataset: { theme: id }, "aria-pressed": "false", title: `Editor colors: ${label}`, onclick: () => setSetting("theme", id) }, label.split(" (")[0].replace("Follow the File Manager", "Auto")));
   const quick = (label, tip, run, extra = {}) => h("button", { type: "button", class: "code-btn", title: tip, "aria-label": tip, onclick: run, ...extra }, label);
   const runMain = quick("▶ Run", "Run this file: sends its default Run command to the Terminal and presses Enter (Ctrl/Cmd+Enter)", () => commands.run("run"));
   const runMore = quick("▾", "Choose a Run or Build preset, or edit the presets of this file", (e) => runUi.presetMenu(doc(), e.currentTarget));
   const buildBtn = quick("🔨 Build", "Build: sends this file's Build command to the Terminal and presses Enter (Ctrl/Cmd+B)", () => commands.run("build"));
   const runButtons = h("span", { class: "code-run-group", hidden: true }, runMain, runMore, buildBtn, quick("Presets…", "Add, edit and choose the commands saved for this file", () => commands.run("presets")));
-  const themeMenu = h("button", { type: "button", class: "code-menu-btn", "aria-haspopup": "menu", title: "Choose the editor colours", onclick: (e) => showMenu(THEME_CHOICES.map(([id, label]) => ({ label, checked: settings().theme === id, action: () => setSetting("theme", id) })), { anchor: e.currentTarget, label: "Editor colours" }) }, "Colours");
+  const themeMenu = h("button", { type: "button", class: "code-menu-btn", "aria-haspopup": "menu", title: "Choose the editor colors", onclick: (e) => showMenu(THEME_CHOICES.map(([id, label]) => ({ label, checked: settings().theme === id, action: () => setSetting("theme", id) })), { anchor: e.currentTarget, label: "Editor colors" }) }, "Colors");
   const toolbar = h("div", { class: "code-toolbar", role: "toolbar", "aria-label": "Editor commands" },
     ...Object.entries(MENUS).map(([name, ids]) => menuButton(name, ids)), themeMenu,
     h("span", { class: "code-sep" }),
-    quick("💾 Save", "Save this file (Ctrl/Cmd+S)", () => commands.run("save")), quick("🔎 Find", "Find in this file (Ctrl/Cmd+F)", () => commands.run("find")), quick("✨ Format", "Format / prettify the whole file (Alt+Shift+F). Minify is in the Tools menu.", () => commands.run("format")), quick("🔤 Convert", "Change the case, clean up, encode or extract: about seventy text conversions for the selection or the whole file", () => commands.run("convertText")),
+    quick("💾 Save", "Save this file (Ctrl/Cmd+S)", () => commands.run("save")),
+    quick("🔎 Find", "Find in this file (Ctrl/Cmd+F)", () => commands.run("find")),
+    quick("✨ Format", "Format / prettify the whole file (Alt+Shift+F). Minify is in the Tools menu.", () => commands.run("format")),
+    quick("🔤 Convert", "Change the case, clean up, encode or extract: about seventy text conversions for the selection or the whole file", () => commands.run("convertText")),
+    quick("🧩 Snippet", "Insert a code snippet or generated value (Alt+S)", () => commands.run("insertSnippet")),
     runButtons,
     h("span", { class: "code-grow" }),
-    quick("👁 Preview", "Show a preview next to the text (Markdown and HTML)", () => commands.run("preview")), quick("⛶ Zen", "Hide everything except the text (press again to come back)", () => commands.run("zen")));
+    quick("🗺 Minimap", "Show or hide the code minimap (Alt+M)", () => commands.run("minimap")),
+    quick("◫ Split", "Show or hide the side-by-side split editor pane", () => commands.run("splitEditor")),
+    quick("👁 Preview", "Show a preview or Live Code Inspector next to the text (Markdown, JSON, CSV, HTML & code)", () => commands.run("preview")),
+    quick("⛶ Zen", "Hide everything except the text (press again to come back)", () => commands.run("zen")));
 
-  const centre = h("div", { class: "code-centre" }, tabStrip, banner, findBar.el, h("div", { class: "code-work" }, editors, welcome, preview), status.el);
+  const work = h("div", { class: "code-work" }, editors, welcome, splitPane, previewResizer, preview);
+  previewResizer.addEventListener("mousedown", (startEv) => {
+    if (startEv.button !== 0) return;
+    startEv.preventDefault();
+    previewResizer.classList.add("is-dragging");
+    const startX = startEv.clientX;
+    const startWidth = previewWidth;
+    const onMove = (moveEv) => {
+      const rect = work.getBoundingClientRect();
+      if (rect.width > 0) {
+        const pct = ((rect.right - moveEv.clientX) / rect.width) * 100;
+        setPreviewWidth(pct);
+      } else {
+        const deltaPct = ((startX - moveEv.clientX) / 800) * 100;
+        setPreviewWidth(startWidth + deltaPct);
+      }
+    };
+    const onUp = () => {
+      previewResizer.classList.remove("is-dragging");
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  });
+  previewResizer.addEventListener("keydown", (e) => {
+    const step = e.shiftKey ? 1 : 5;
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      setPreviewWidth(previewWidth + step);
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      setPreviewWidth(previewWidth - step);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setPreviewWidth(75);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setPreviewWidth(25);
+    } else if (e.key === "0" || e.key === "Enter") {
+      e.preventDefault();
+      setPreviewWidth(45);
+    }
+  });
+  const center = h("div", { class: "code-center" }, tabStrip, crumbs, banner, findBar.el, work, status.el);
   // Zen mode hides the toolbar (and its Zen button), so it needs a way out that stays in sight.
   const zenExit = h("button", { type: "button", class: "code-zen-exit", title: `Leave zen mode (Esc or ${shortcutText("zen", state.platform)})`, "aria-label": "Leave zen mode", onclick: () => commands.run("zen") }, "✕ Leave zen mode");
   const zenBar = h("div", { class: "code-zen-bar" }, zenPreview, zenExit);
-  root.append(toolbar, h("div", { class: "code-main" }, side, centre), zenBar);
+  root.append(toolbar, h("div", { class: "code-main" }, side, center), zenBar);
   wireTabKeys(tabStrip, (id) => { saveScroll(); docs.activate(id); });
 
   root.addEventListener("keydown", (e) => {
@@ -395,10 +926,11 @@ function mount(root) {
 
   docs.subscribe((kind) => {
     if (kind === "tabs" || kind === "active") showActive();
+    else if (kind === "recents") { if (!doc()) showActive(); }
     else if (kind === "goto") { showActive(); const d = doc(); if (d?.editor) d.editor.goTo(d.line, d.col); }
-    else if (kind === "reload") { for (const d of docs.list()) if (d.editor && d.editor.getText() !== d.text) { d.editor.setText(d.text); d.editor.setOptions(optionsFor(d)); assist.reset(d); } afterMeta(); updatePreview(); }
+    else if (kind === "reload") { for (const d of docs.list()) if (d.editor && d.editor.getText() !== d.text) { d.editor.setText(d.text); d.editor.setOptions(optionsFor(d)); updateLineChanges(d); assist.reset(d); } afterMeta(); updatePreview(); updateSplitPane(); }
     else if (kind === "saved" || kind === "meta") { afterMeta(); if (kind === "saved") findBar.refresh(); }
-    else if (kind === "settings") { applySettings(); updateStatus(); ed()?.layout(); }
+    else if (kind === "settings") { applySettings(); updateStatus(); ed()?.layout(); if (!doc()) showActive(); }
     else if (kind === "bookmarks") { panels.bookmarks.update?.(); }
   });
 

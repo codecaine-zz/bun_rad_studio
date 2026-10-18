@@ -4,7 +4,7 @@ import { classifyStatement, needsConfirmation, maskLiterals } from "../../src/db
 const kind = (sql: string) => classifyStatement("postgres", sql).kind;
 
 describe("classifyStatement", () => {
-  it("recognises reads, writes, DDL and destructive statements", () => {
+  it("recognizes reads, writes, DDL and destructive statements", () => {
     expect(kind("SELECT * FROM t")).toBe("read");
     expect(kind("  /* c */ select 1")).toBe("read");
     expect(kind("WITH x AS (SELECT 1) SELECT * FROM x")).toBe("read");

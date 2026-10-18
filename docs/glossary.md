@@ -105,7 +105,7 @@ A plain-text table where each line is a row and commas separate columns. **Why i
 ## D
 
 ### Database
-An organised collection of tables. **Example:** a SQLite database is one file; MySQL and PostgreSQL databases live inside a server. **Related:** [Database server](#database-server), [Schema](#schema).
+An organized collection of tables. **Example:** a SQLite database is one file; MySQL and PostgreSQL databases live inside a server. **Related:** [Database server](#database-server), [Schema](#schema).
 
 ### Database server
 A separate program that holds databases and answers requests (MySQL, PostgreSQL). SQLite has no server. **See:** [Databases overview](databases/index.md#the-three-engines-at-a-glance).
@@ -169,7 +169,7 @@ Prepared data or files a test uses. **Example:** a throwaway SQLite database cre
 A column that refers to the primary key of another table. **Related:** [Primary key](#primary-key).
 
 ### Form spec (`FormSpec`)
-The JSON document the designer keeps for a whole form: title, size, colours and a `controls` list. **Why it matters:** it is what **Import** accepts, what the JSON tab shows and what all code tabs are generated from. **Related:** [Control specification](#control-specification-controlspec), [Generated code](#generated-code). **See:** [API.md](API.md#1-formspec-data-model-schema), [Importing a layout](visual-designer/index.md#importing-a-layout).
+The JSON document the designer keeps for a whole form: title, size, colors and a `controls` list. **Why it matters:** it is what **Import** accepts, what the JSON tab shows and what all code tabs are generated from. **Related:** [Control specification](#control-specification-controlspec), [Generated code](#generated-code). **See:** [API.md](API.md#1-formspec-data-model-schema), [Importing a layout](visual-designer/index.md#importing-a-layout).
 
 ### Frontend / backend
 The frontend is what you see (the HTML page); the backend is the program behind it that does files, processes and databases. **Why it matters:** they talk through [bindings](#binding) or a local web server.
@@ -260,7 +260,7 @@ The designer's side panel of controls to place on a form. Clicking an item enter
 The column or columns that identify one row uniquely. **Why it matters:** the Workbench edits a row only through its full primary key and detects conflicting changes. **Related:** [Foreign key](#foreign-key), [Capability](#capability).
 
 ### Property
-A setting of a control, such as text, position, colour or tooltip, edited in the designer's side panel. **Related:** [Control](#control).
+A setting of a control, such as text, position, color or tooltip, edited in the designer's side panel. **Related:** [Control](#control).
 
 ## Q
 
@@ -311,7 +311,7 @@ Any value that must not be shared: a password, a key, a token. **Why it matters:
 One continuous period of a connection, with its own transaction state. **Related:** [Connection](#connection), [Transaction](#transaction).
 
 ### SimpleCLI
-The project's library for command-line tools (flags, prompts, coloured output, logging), in `src/simplecli/`. **Why it matters:** most of the `cli_apps/` use it. **Related:** [SimpleGUI](#simplegui), [CLI tool](#cli-tool-command-line-interface), [RAD utility modules](#rad-utility-modules-rad).
+The project's library for command-line tools (flags, prompts, colored output, logging), in `src/simplecli/`. **Why it matters:** most of the `cli_apps/` use it. **Related:** [SimpleGUI](#simplegui), [CLI tool](#cli-tool-command-line-interface), [RAD utility modules](#rad-utility-modules-rad).
 
 ### SimpleGUI
 The project's code library for building windows by writing code, as an alternative to the visual designer (`SimpleWindow`, `SimpleControlRef`). **See:** [SimpleGUI API](SIMPLEGUI_API.md).
@@ -331,7 +331,7 @@ The project's word for a windowed application, such as SQLite Studio Pro or Code
 Rows and columns of data in a database. In the designer, `table` is also a control.
 
 ### Theme
-A named set of colours (form, controls, buttons) for a form or window. **Why it matters:** the designer applies one to every control, and since [D-019](documentation-maintenance/discrepancies.md#d-019) its button text always reaches the [contrast](#wcag-contrast) rule. The framework has 76 named themes (151 keys with aliases); the designer's theme list is a 51-item subset ([D-028](documentation-maintenance/discrepancies.md#d-028)). **See:** [THEMES.md](THEMES.md).
+A named set of colors (form, controls, buttons) for a form or window. **Why it matters:** the designer applies one to every control, and since [D-019](documentation-maintenance/discrepancies.md#d-019) its button text always reaches the [contrast](#wcag-contrast) rule. The framework has 76 named themes (151 keys with aliases); the designer's theme list is a 51-item subset ([D-028](documentation-maintenance/discrepancies.md#d-028)). **See:** [THEMES.md](THEMES.md).
 
 ### Throwaway database
 A temporary database created for one test and removed afterwards, so tests never touch real data. **See:** [Database tests](testing/database-tests.md).

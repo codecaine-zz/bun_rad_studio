@@ -16,7 +16,7 @@ const HIDDEN_CHARS = /[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u115f\u1160\u180e\
 const LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const TLD = /^(?:[a-z]{2,63}|xn--[a-z0-9-]{1,59})$/;
 
-/** Second-level names that many separate organisations share ("co.uk"), and well-known sites that hand out subdomains to the public. */
+/** Second-level names that many separate organizations share ("co.uk"), and well-known sites that hand out subdomains to the public. */
 const SHARED_SUFFIXES = new Set(`
 co.uk org.uk me.uk ltd.uk plc.uk net.uk sch.uk ac.uk gov.uk nhs.uk police.uk
 com.au net.au org.au edu.au gov.au asn.au id.au
@@ -93,7 +93,7 @@ export function validateTargetDomain(input: unknown): DomainCheck {
   if (/^\d+$/.test(last) || /^0x[0-9a-f]*$/.test(last)) return bad("That looks like a number or an IP address, not a domain name.");
   if (last === "localhost" || last === "invalid" || last === "arpa") return bad(`Names ending in .${last} can't be looked up on the internet.`);
   if (!TLD.test(last)) return bad(`".${last.slice(0, 20)}" doesn't look like a real top-level domain.`);
-  if (isPublicSuffix(ascii)) return bad(`"${ascii}" is a shared suffix: many unrelated organisations have names under it. Type a name under it, like example.${ascii}.`);
+  if (isPublicSuffix(ascii)) return bad(`"${ascii}" is a shared suffix: many unrelated organizations have names under it. Type a name under it, like example.${ascii}.`);
   const unicode = domainToUnicode(ascii);
   if (!unicode || unicode.split(".").length !== labels.length) return bad(`That has characters a domain name can't have. ${HELP}`);
   return { ok: true, ascii, unicode };

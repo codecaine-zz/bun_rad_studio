@@ -147,7 +147,7 @@ ${getWindowShortcutsScript()}
  */
 export function startDrCodecaineStudioServer(options: DrCodecaineServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "dr_codecaine_studio", name: "Dr. Codecaine - Overclocked Retro Arcade", version: "1.0.0", assetsDir: getDrCodecaineAssetsDir(), generateHtml: generateDrCodecaineStudioHtml },
+    { app: "dr_codecaine_studio", name: "Codecaine Dr. Codecaine - Overclocked Retro Arcade", version: "1.0.0", assetsDir: getDrCodecaineAssetsDir(), generateHtml: generateDrCodecaineStudioHtml },
     options,
   );
 }
@@ -160,7 +160,7 @@ export function createDrCodecaineStudio(options: DrCodecaineStudioOptions = {}):
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Dr. Codecaine - Overclocked Retro Arcade";
+  const title = "Codecaine Dr. Codecaine - Overclocked Retro Arcade";
 
   const app: DrCodecaineStudioInstance = {
     title,

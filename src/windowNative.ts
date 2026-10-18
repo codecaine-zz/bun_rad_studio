@@ -29,7 +29,7 @@ export interface FrameInfo extends Rect {
 export interface WindowBounds {
   width: number;
   height: number;
-  /** null: let the system centre the window. */
+  /** null: let the system center the window. */
   x: number | null;
   y: number | null;
 }
@@ -113,7 +113,39 @@ export function parseMacFrame(text: string, primaryHeight: number): Rect | null 
   return { x, y: primaryHeight - (y + h), width: w, height: h };
 }
 
+let macKeyBeepSilenced = false;
+/**
+ * Silences the macOS AppKit `NSBeep()` alert sound when function keys (e.g. F11 / NSF11FunctionKey) or custom shortcuts
+ * are handled in JavaScript inside WKWebView without a matching NSMenuItem in the native responder chain.
+ */
+export function silenceMacKeyBeep(): void {
+  if (macKeyBeepSilenced || process.platform !== "darwin") return;
+  macKeyBeepSilenced = true;
+  ok(() => {
+    const objc = dlopen("libobjc.dylib", {
+      objc_getClass: { args: [FFIType.cstring], returns: P },
+      class_getMethodImplementation: { args: [P, P], returns: P },
+      class_replaceMethod: { args: [P, P, P, FFIType.cstring], returns: P },
+    }).symbols;
+    const nsObject = objc.objc_getClass(Buffer.from("NSObject\0"));
+    const nsResponder = objc.objc_getClass(Buffer.from("NSResponder\0"));
+    const noopImp = nsObject ? objc.class_getMethodImplementation(nsObject, sel("self")) : null;
+    if (noopImp && nsResponder) {
+      objc.class_replaceMethod(nsResponder, sel("noResponderFor:"), noopImp, Buffer.from("v@::\0"));
+    }
+  });
+  ok(() => {
+    const cg = dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", {
+      CGSSetSymbolicHotKeyEnabled: { args: [FFIType.i32, FFIType.bool], returns: FFIType.i32 },
+    }).symbols;
+    // Symbolic hotkeys 36 (F11) & 37 (Shift+F11) are Mission Control "Show Desktop", which swallows F11 before the app receives it.
+    cg.CGSSetSymbolicHotKeyEnabled(36, false);
+    cg.CGSSetSymbolicHotKeyEnabled(37, false);
+  });
+}
+
 function macNative(wv: Webview): WindowNative {
+  silenceMacKeyBeep();
   const win = (): Pointer => wv.unsafeWindowHandle as Pointer;
   let screens: FmScreen[] | null = null;
   let primaryHeight = 0;
@@ -175,9 +207,9 @@ function macNative(wv: Webview): WindowNative {
     setFullscreen(on) {
       try {
         if (isFullscreen() === on) return true;
-        // The window needs the full-screen behaviour switched on first (NSWindowCollectionBehaviorFullScreenPrimary).
-        const behaviour = BigInt(send([P, P], FFIType.u64)(win(), sel("collectionBehavior")));
-        send([P, P, FFIType.u64], FFIType.void)(win(), sel("setCollectionBehavior:"), behaviour | 128n);
+        // The window needs the full-screen behavior switched on first (NSWindowCollectionBehaviorFullScreenPrimary).
+        const behavior = BigInt(send([P, P], FFIType.u64)(win(), sel("collectionBehavior")));
+        send([P, P, FFIType.u64], FFIType.void)(win(), sel("setCollectionBehavior:"), behavior | 128n);
         send([P, P, P], FFIType.void)(win(), sel("toggleFullScreen:"), null);
         return true;
       } catch {

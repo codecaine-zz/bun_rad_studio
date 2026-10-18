@@ -390,7 +390,7 @@ describe("port scans", () => {
 });
 
 describe("TCP ping", () => {
-  test("times five connections and summarises them", async () => {
+  test("times five connections and summarizes them", async () => {
     fresh();
     const l = listener();
     const done = await untilDone((await call("net/tcpping", { host: "127.0.0.1", port: l.port })).task.id);

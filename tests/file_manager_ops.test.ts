@@ -7,7 +7,7 @@ import { createContext, absolutePath, moveTree } from "../src/features/filemanag
 import { MAX_LIST_ENTRIES, folderStats, listFolder, listPlaces, nameMatcher, parseMountPoints, parseNoBrowseMounts, previewFile, propertiesOf, searchFolder } from "../src/features/filemanager/fmList";
 import { bulkRename, copyItems, findConflicts, makeFile, makeFolder, moveItems, planBulkRename, relocate, renameItem } from "../src/features/filemanager/fmOps";
 import { deleteFromTrash, deletePermanently, listTrash, moveToTrash, restoreFromTrash } from "../src/features/filemanager/fmTrash";
-import { DEFAULT_SETTINGS, MAX_FAVORITES, MAX_RECENTS, addRecent, loadSettings, sanitizeSettings, updateSettings } from "../src/features/filemanager/fmSettings";
+import { DEFAULT_SETTINGS, MAX_FAVORITES, MAX_RECENTS, addRecent, clearRecents, loadSettings, pruneRecents, removeRecent, sanitizeSettings, updateSettings } from "../src/features/filemanager/fmSettings";
 import { openCommand, openItem, revealCommand, revealItem } from "../src/features/filemanager/fmOpen";
 
 const posix = process.platform !== "win32";
@@ -824,6 +824,43 @@ describe("settings", () => {
     expect(recents.length).toBe(MAX_RECENTS);
     expect(recents[0]!.path).toBe(join(work, "f10.txt"));
     expect(new Set(recents.map((r) => r.path)).size).toBe(MAX_RECENTS);
+  });
+
+  test("recents: enable/disable, remove single item, clear all, and prune missing files", async () => {
+    const { ctx, work } = sandbox();
+    const a = join(work, "a.txt");
+    const b = join(work, "b.txt");
+    const c = join(work, "c.txt");
+    put(a, "A");
+    put(b, "B");
+    put(c, "C");
+    expect(DEFAULT_SETTINGS.recentsEnabled).toBe(true);
+    expect(sanitizeSettings({ recentsEnabled: false }, ctx).recentsEnabled).toBe(false);
+    expect(sanitizeSettings({ recentsEnabled: "no" }, ctx).recentsEnabled).toBe(true);
+
+    await addRecent(ctx, a);
+    await addRecent(ctx, b);
+    await addRecent(ctx, c);
+    expect((await loadSettings(ctx)).recents.map((r) => r.path)).toEqual([c, b, a]);
+
+    // Removing a single item leaves the others in order
+    const afterRemove = await removeRecent(ctx, b);
+    expect(afterRemove.recents.map((r) => r.path)).toEqual([c, a]);
+
+    // Pruning removes only items that no longer exist on disk
+    rmSync(a);
+    const pruned = await pruneRecents(ctx);
+    expect(pruned.removed).toBe(1);
+    expect(pruned.settings.recents.map((r) => r.path)).toEqual([c]);
+
+    // When recentsEnabled is false, addRecent is a no-op
+    await updateSettings(ctx, { recentsEnabled: false });
+    await addRecent(ctx, b);
+    expect((await loadSettings(ctx)).recents.map((r) => r.path)).toEqual([c]);
+
+    // Clear removes all recent files
+    const cleared = await clearRecents(ctx);
+    expect(cleared.recents).toEqual([]);
   });
 
   test("favorites are capped and de-duplicated", () => {

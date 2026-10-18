@@ -26,9 +26,11 @@ import {
   buildUpdateRecordSql,
   createDefaultMacros,
   extractPromptParams,
+  macroToBunJs,
   macroToSqlScript,
   macroToVba,
   parseRecordFieldsToInsertSql,
+  quoteIdentFor,
   validateMacro,
 } from "./sqlite_studio_macros.ts";
 import { handleCodegenRequest } from "./studio_codegen.ts";
@@ -433,6 +435,74 @@ async function runCore(
           message = `Remark: ${p.comment || ""}`;
           break;
         }
+        case "RunCode": {
+          const code = String(p.code ?? p.functionName ?? "").trim();
+          if (!code) throw new Error("RunCode requires code");
+          const transpiler = new Bun.Transpiler({ loader: "ts", target: "bun" });
+          const jsBody = transpiler.transformSync(`async function __studioRunCode() {\n${code}\n}`);
+          const debugLogs: string[] = [];
+          const CurrentDb = {
+            dialect: d,
+            RecordsAffected: 0,
+            async query(sql: string) {
+              const r = await run(resolvePrompts(sql, promptParams, d), "RunCode.query");
+              return r.rows || [];
+            },
+            async execute(sql: string) {
+              const r = await run(resolvePrompts(sql, promptParams, d), "RunCode.execute");
+              this.RecordsAffected = r.rowsAffected ?? 0;
+              variables.lastRowsAffected = this.RecordsAffected;
+              return { affectedRows: this.RecordsAffected };
+            },
+            async tables() {
+              return await adapter.listTables();
+            },
+          };
+          const DCount = async (expr = "*", domain: string, criteria?: string) => {
+            const w = criteria && criteria.trim() ? ` WHERE ${criteria.trim()}` : "";
+            const r = await CurrentDb.query(`SELECT COUNT(${expr || "*"}) AS c FROM ${quoteIdentFor(d, domain)}${w}`);
+            return Number(r[0]?.c ?? Object.values(r[0] || {})[0] ?? 0);
+          };
+          const DLookup = async (expr: string, domain: string, criteria?: string) => {
+            const w = criteria && criteria.trim() ? ` WHERE ${criteria.trim()}` : "";
+            const r = await CurrentDb.query(`SELECT ${expr} AS v FROM ${quoteIdentFor(d, domain)}${w} LIMIT 1`);
+            return r[0]?.v ?? (r[0] ? Object.values(r[0])[0] : null) ?? null;
+          };
+          const DSum = async (expr: string, domain: string, criteria?: string) => {
+            const w = criteria && criteria.trim() ? ` WHERE ${criteria.trim()}` : "";
+            const r = await CurrentDb.query(`SELECT COALESCE(SUM(${expr}), 0) AS s FROM ${quoteIdentFor(d, domain)}${w}`);
+            return Number(r[0]?.s ?? Object.values(r[0] || {})[0] ?? 0);
+          };
+          const DoCmd = {
+            RunSQL: (sql: string) => CurrentDb.execute(sql),
+            OpenQuery: (sql: string) => CurrentDb.query(sql),
+            SetTempVar: (k: string, v: any) => { variables[k] = v; },
+            RemoveTempVar: (k: string) => { delete variables[k]; },
+            MessageBox: (msg: any) => { debugLogs.push(String(msg)); },
+            Beep: () => {},
+          };
+          const Debug = {
+            print: (...args: any[]) => debugLogs.push(args.map((x) => (typeof x === "string" ? x : JSON.stringify(x))).join(" ")),
+            Print: (...args: any[]) => debugLogs.push(args.map((x) => (typeof x === "string" ? x : JSON.stringify(x))).join(" ")),
+          };
+          const fn = new Function(
+            "CurrentDb",
+            "db",
+            "DoCmd",
+            "TempVars",
+            "vars",
+            "DCount",
+            "DLookup",
+            "DSum",
+            "MsgBox",
+            "Debug",
+            `return (async () => { ${jsBody}\n return await __studioRunCode(); })();`,
+          );
+          const ret = await fn(CurrentDb, CurrentDb, DoCmd, variables, variables, DCount, DLookup, DSum, DoCmd.MessageBox, Debug);
+          output = { returnValue: ret, debugLogs };
+          message = debugLogs.length > 0 ? `RunCode: ${debugLogs.join(" | ")}` : `Executed Bun JS RunCode`;
+          break;
+        }
         case "RunMacro": {
           const sub = await runCore(adapter, store, exec, inTx, p.macroName, variables, promptParams, depth + 1);
           logs.push({
@@ -535,6 +605,7 @@ export async function handleMacroRoute(
       const content =
         format === "sql" ? macroToSqlScript(macro, queries, adapter.dialect)
         : format === "vba" ? macroToVba(macro, queries, adapter.dialect)
+        : format === "bun" ? macroToBunJs(macro, queries, adapter.dialect)
         : JSON.stringify(macro, null, 2);
       return ok({ success: true, format, content });
     }

@@ -205,7 +205,7 @@ describe("the format, proven by an independent decryptor", () => {
     expect(await inspectFile(file)).toMatchObject({ valid: true, version: 1, compressed: false, chunkSize: 1 << 20 });
   });
 
-  test("password text is normalised (NFKC) before use", async () => {
+  test("password text is normalized (NFKC) before use", async () => {
     const dir = fresh();
     const src = join(dir, "u.txt");
     writeFileSync(src, "x");

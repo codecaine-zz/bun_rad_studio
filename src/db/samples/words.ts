@@ -1,4 +1,4 @@
-/** Word lists for the sample-data generators. Every name is invented or common; no real people or organisations. */
+/** Word lists for the sample-data generators. Every name is invented or common; no real people or organizations. */
 
 export const FIRST_NAMES = (
   "Aaliyah Aaron Abigail Adam Adrian Aiden Alana Albert Alex Alice Alicia Amara Amelia Amir Andre Andrea Angela Anika Anthony Aria Arjun Ashley Audrey Ava " +
@@ -63,7 +63,7 @@ export const LOREM = (
   "onyx orchid pebble quartz ripple saffron timber umber velvet willow zephyr signal ledger vector matrix circuit prism beacon horizon summit harvest"
 ).split(" ");
 
-export const COLORS = ["Black", "White", "Grey", "Navy", "Red", "Green", "Blue", "Olive", "Sand", "Burgundy", "Teal", "Orange", "Pink", "Brown", "Cream"];
+export const COLORS = ["Black", "White", "Gray", "Navy", "Red", "Green", "Blue", "Olive", "Sand", "Burgundy", "Teal", "Orange", "Pink", "Brown", "Cream"];
 export const COUNTRIES: [string, string][] = [
   ["US", "United States"], ["CA", "Canada"], ["MX", "Mexico"], ["GB", "United Kingdom"], ["DE", "Germany"], ["FR", "France"], ["ES", "Spain"],
   ["IT", "Italy"], ["NL", "Netherlands"], ["SE", "Sweden"], ["PL", "Poland"], ["BR", "Brazil"], ["AR", "Argentina"], ["IN", "India"], ["JP", "Japan"],

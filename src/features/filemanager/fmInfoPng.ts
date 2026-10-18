@@ -20,8 +20,8 @@ export interface PngInfo {
 }
 
 const COLOR_TYPE: Record<number, { name: string; channels: number }> = {
-  0: { name: "Greyscale", channels: 1 }, 2: { name: "True colour (RGB)", channels: 3 }, 3: { name: "Indexed colour (palette)", channels: 1 },
-  4: { name: "Greyscale with transparency", channels: 2 }, 6: { name: "True colour with transparency (RGBA)", channels: 4 },
+  0: { name: "Grayscale", channels: 1 }, 2: { name: "True color (RGB)", channels: 3 }, 3: { name: "Indexed color (palette)", channels: 1 },
+  4: { name: "Grayscale with transparency", channels: 2 }, 6: { name: "True color with transparency (RGBA)", channels: 4 },
 };
 const MAX_CHUNKS = 20_000;
 const MAX_READ = 1024 * 1024;
@@ -78,10 +78,10 @@ export async function parsePng(src: Source, deadline = Date.now() + 6000): Promi
       if (d.length >= 4) rows.add("Gamma", String(be32(d, 0) / 100000), "A number describing how bright the middle tones are.");
     } else if (type === "cHRM") {
       const d = await data();
-      if (d.length >= 32) rows.add("Chromaticities", `white ${be32(d, 0) / 1e5}, ${be32(d, 4) / 1e5}; red ${be32(d, 8) / 1e5}, ${be32(d, 12) / 1e5}`, "The exact colours of red, green, blue and white the picture was made for.");
+      if (d.length >= 32) rows.add("Chromaticities", `white ${be32(d, 0) / 1e5}, ${be32(d, 4) / 1e5}; red ${be32(d, 8) / 1e5}, ${be32(d, 12) / 1e5}`, "The exact colors of red, green, blue and white the picture was made for.");
     } else if (type === "sRGB") {
       const d = await data();
-      rows.add("Colour space", `sRGB (${["perceptual", "relative colorimetric", "saturation", "absolute colorimetric"][d[0] ?? 0] ?? "intent " + d[0]})`, "The standard colours for screens and the web.");
+      rows.add("Color space", `sRGB (${["perceptual", "relative colorimetric", "saturation", "absolute colorimetric"][d[0] ?? 0] ?? "intent " + d[0]})`, "The standard colors for screens and the web.");
     } else if (type === "iCCP") {
       const d = await data();
       const z = cut(d, 0);
@@ -89,7 +89,7 @@ export async function parsePng(src: Source, deadline = Date.now() + 6000): Promi
         const name = clip(Buffer.from(d.subarray(0, z)).toString("latin1"), 80);
         const profile = inflateLimited(d.subarray(z + 2), 2 * 1024 * 1024);
         info.icc = profile ? parseIcc(profile) : null;
-        rows.add("Colour profile name", info.icc?.description ? `${name} (${info.icc.description})` : name, "The name of the embedded colour profile (ICC).");
+        rows.add("Color profile name", info.icc?.description ? `${name} (${info.icc.description})` : name, "The name of the embedded color profile (ICC).");
       }
     } else if (type === "tEXt" || type === "zTXt" || type === "iTXt") {
       const d = await data(2 * MAX_READ);
@@ -137,11 +137,11 @@ export async function parsePng(src: Source, deadline = Date.now() + 6000): Promi
   const ct = COLOR_TYPE[ctype];
   if (ct) {
     info.hasAlpha = ctype === 4 || ctype === 6 || trns;
-    rows.add("Colour type", ct.name, "How the colours of each pixel are stored.");
-    rows.add("Bit depth", `${depth} bits per channel`, "How many bits describe each colour channel. 8 is usual; 16 holds smoother gradients.");
+    rows.add("Color type", ct.name, "How the colors of each pixel are stored.");
+    rows.add("Bit depth", `${depth} bits per channel`, "How many bits describe each color channel. 8 is usual; 16 holds smoother gradients.");
     rows.add("Channels", ct.channels, "How many numbers describe one pixel (for example red, green, blue and transparency).");
     rows.add("Bits per pixel", depth * ct.channels).add("Transparency", info.hasAlpha ? "Yes" : "No");
-    if (palette) rows.add("Palette colours", palette);
+    if (palette) rows.add("Palette colors", palette);
   }
   rows.add("Interlaced", interlace === 1 ? "Yes (Adam7): shows blurry first, then sharpens" : "No", "An interlaced picture appears in a rough form first while it loads.");
   if (animFrames > 0) {
@@ -151,7 +151,7 @@ export async function parsePng(src: Source, deadline = Date.now() + 6000): Promi
   const g = texts.group("png-text", "Text notes inside the picture", "Notes (tEXt, iTXt, zTXt chunks) that programs add: title, author, software, comments.");
   if (g) info.groups.push(g);
   const names = new Rows();
-  names.add("Chunks present", info.chunkNames.join(", "), "A PNG file is a list of labelled blocks called chunks. IHDR is the header, IDAT holds the pixels.");
+  names.add("Chunks present", info.chunkNames.join(", "), "A PNG file is a list of labeled blocks called chunks. IHDR is the header, IDAT holds the pixels.");
   names.add("Pixel data blocks", idat);
   const gn = names.group("png-chunks", "PNG structure");
   if (gn) info.groups.push(gn);

@@ -62,7 +62,7 @@ describe("shared static studio server", () => {
   });
 
   test("never serves a file from outside the assets folder, even for raw traversal requests", async () => {
-    // fetch() normalises ".." before sending, so write the request line ourselves.
+    // fetch() normalizes ".." before sending, so write the request line ourselves.
     const raw = (path: string) =>
       new Promise<string>((resolve) => {
         let out = "";

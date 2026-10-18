@@ -11,7 +11,7 @@ const AES_NOTES = [
   "This lock has no tamper check. A wrong passphrase or damaged text is usually reported, but not always: sometimes you get nonsense instead. Anyone who can change the locked text could alter it without you being told. For serious secrets use a dedicated, audited tool.",
 ];
 
-function labelled(label, id, control) {
+function labeled(label, id, control) {
   return h("div", { class: "pw-field crypto-field" }, h("label", { for: id }, label), control);
 }
 
@@ -102,7 +102,7 @@ export function buildSecretCards(env) {
     return generate(bytes, "random bytes", { kind: "bytes", length: n, format: format.value }, `${Number.isFinite(n) ? n : "?"} bytes`);
   });
   const randomCard = card("Random keys and IDs", "Random values come from your computer's secure random generator, so they are safe to use as keys. Generate a new one each time; never reuse a key for different things.",
-    h("div", { class: "pw-row" }, uuid, hex32, b64), h("div", { class: "pw-row" }, uuid7Count.el, labelled("Write UUIDs as", "crypto-uuid7-format", uuid7Format), uuid7), h("div", { class: "pw-row" }, count.el, labelled("Write as", "crypto-bytes-format", format), bytes), genStatus.el, genOut.el);
+    h("div", { class: "pw-row" }, uuid, hex32, b64), h("div", { class: "pw-row" }, uuid7Count.el, labeled("Write UUIDs as", "crypto-uuid7-format", uuid7Format), uuid7), h("div", { class: "pw-row" }, count.el, labeled("Write as", "crypto-bytes-format", format), bytes), genStatus.el, genOut.el);
 
   // ---- Password -------------------------------------------------------------------------------------------------
   const length = lineBox({ label: "Length", tip: "How many characters (4 to 256). Longer is stronger; 16 or more is a good choice.", type: "number", value: "20", min: "4", max: "256", width: "crypto-narrow" });

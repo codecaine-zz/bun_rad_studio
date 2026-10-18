@@ -121,6 +121,21 @@ describe("right-click on empty space", () => {
     expect(readFileSync(join(work, "New database.sqlite")).subarray(0, 15).toString()).toBe("SQLite format 3");
     expect(state.location.path).toBe(work);
   });
+
+  test("offers New dated folder and New dated note, creating YYYY-MM-DD folders and notes on disk", async () => {
+    const ops = await import("../resources/file_manager/ui/ops.js");
+    const stamp = ops.localDateStamp();
+    contextmenu.showBackgroundMenu({ x: 5, y: 5 });
+    expect(menuLabels()).toContain(`New dated folder (${stamp})`);
+    expect(menuLabels()).toContain(`New dated note (${stamp}.md)`);
+    menuItem(`New dated folder (${stamp})`).click();
+    await waitFor(() => existsSync(join(work, stamp)), 4000, "the dated folder");
+    expect(existsSync(join(work, stamp))).toBe(true);
+    contextmenu.showBackgroundMenu({ x: 5, y: 5 });
+    menuItem(`New dated note (${stamp}.md)`).click();
+    await waitFor(() => existsSync(join(work, `${stamp}.md`)), 4000, "the dated note");
+    expect(existsSync(join(work, `${stamp}.md`))).toBe(true);
+  });
 });
 
 describe("right-click actions that use Bun's utilities", () => {
@@ -237,5 +252,91 @@ describe("Settings: the editor choice", () => {
     menuItem("Open in your editor").click();
     await waitFor(() => /IntelliJ IDEA can't be started from here/.test(toasts()), 3000, "the explanation");
     expect(started.length).toBe(1);
+  });
+});
+
+describe("One-click media actions in the right-click menu and Details panel", () => {
+  test("pictures, videos, sounds and 2-file pairs offer tailored one-click actions that all exist in the catalog", async () => {
+    const mq = await import("../resources/file_manager/ui/mediaQuick.js");
+    const { CATALOG_BY_ID } = await import("../src/features/filemanager/fmConvCatalog");
+    const pic = { name: "photo.jpg", path: join(work, "photo.jpg"), isDir: false, size: 120 };
+    const pic2 = { name: "second.png", path: join(work, "second.png"), isDir: false, size: 140 };
+    const vid = { name: "clip.mov", path: join(work, "clip.mov"), isDir: false, size: 500 };
+    const vid2 = { name: "clip2.mp4", path: join(work, "clip2.mp4"), isDir: false, size: 600 };
+    const aud = { name: "voice.mp3", path: join(work, "voice.mp3"), isDir: false, size: 200 };
+    const aud2 = { name: "voice2.wav", path: join(work, "voice2.wav"), isDir: false, size: 220 };
+    const sub = { name: "captions.srt", path: join(work, "captions.srt"), isDir: false, size: 40 };
+
+    for (const sel of [[pic], [pic, pic2], [vid], [vid, vid2], [aud], [aud, aud2], [pic, aud], [vid, aud], [vid, sub]]) {
+      for (const a of mq.quickMediaActions(sel)) {
+        expect(CATALOG_BY_ID.has(a.id), a.id).toBe(true);
+      }
+    }
+
+    const picIds = mq.quickMediaActions([pic]).map((a: any) => a.id);
+    expect(picIds).toContain("img-rot-right");
+    expect(picIds).toContain("img-enhance");
+    expect(picIds).toContain("img-scan");
+    expect(picIds).toContain("img-png");
+    expect(picIds).not.toContain("img-jpg"); // already a JPG
+
+    const multiPicIds = mq.quickMediaActions([pic, pic2]).map((a: any) => a.id);
+    expect(multiPicIds).toContain("img-combine-pdf");
+    expect(multiPicIds).toContain("img-montage");
+    expect(multiPicIds).toContain("img-gif-anim");
+
+    const vidIds = mq.quickMediaActions([vid]).map((a: any) => a.id);
+    expect(vidIds).toContain("vid-small");
+    expect(vidIds).toContain("vid-mp3");
+    expect(vidIds).toContain("vid-mute");
+    expect(vidIds).toContain("vid-vertical-blur");
+    expect(vidIds).toContain("vid-normalize");
+    expect(vidIds).toContain("vid-voice");
+    expect(vidIds).toContain("vid-mp4");
+
+    const audIds = mq.quickMediaActions([aud]).map((a: any) => a.id);
+    expect(audIds).toContain("aud-normalize");
+    expect(audIds).toContain("aud-voice");
+    expect(audIds).toContain("aud-denoise");
+    expect(audIds).toContain("aud-silence");
+    expect(audIds).toContain("aud-small-voice");
+    expect(audIds).toContain("aud-wav");
+    expect(audIds).not.toContain("aud-mp3"); // already MP3
+
+    expect(mq.quickMediaActions([pic, aud]).map((a: any) => a.id)).toEqual(["vid-still"]);
+    expect(mq.quickMediaActions([vid, aud]).map((a: any) => a.id)).toEqual(["vid-add-music"]);
+    expect(mq.quickMediaActions([vid, sub]).map((a: any) => a.id)).toEqual(["vid-burn-subs"]);
+
+    // Right-click menu includes One-click media items for a video, and Paint in Paint Studio for a picture
+    closeAll();
+    contextmenu.showEntryMenu([vid], { x: 5, y: 5 });
+    expect(menuLabels()).toContain("Make smaller for sharing");
+    expect(menuLabels()).toContain("Save the sound as MP3");
+    expect(menuLabels()).toContain("Remove the sound (mute)");
+    closeAll();
+    contextmenu.showEntryMenu([pic], { x: 5, y: 5 });
+    expect(menuLabels()).toContain("Edit in Image Studio");
+    expect(menuLabels()).toContain("Paint in Paint Studio");
+    closeAll();
+
+    // Paint Studio power tab is registered in Pictures and media
+    await import("../resources/file_manager/ui/paint.js");
+    const { listPowerTabs } = await import("../resources/file_manager/ui/power.js");
+    expect(listPowerTabs().find((t: any) => t.id === "paint")).toMatchObject({
+      id: "paint",
+      label: "Paint Studio",
+      icon: "🖌️",
+      group: "media",
+      groupLabel: "Pictures and media",
+    });
+
+    // Details panel card renders buttons with tooltips and data-quick-action
+    const card = mq.quickMediaBlock([aud]);
+    expect(card).not.toBeNull();
+    const btns = [...card.querySelectorAll("button.mq-btn")];
+    expect(btns.length).toBeGreaterThanOrEqual(6);
+    expect(btns.some((b: any) => b.dataset.quickAction === "aud-voice")).toBe(true);
+    expect(btns.every((b: any) => b.getAttribute("title")?.length > 10)).toBe(true);
+    await new Promise((r) => setTimeout(r, 10));
   });
 });

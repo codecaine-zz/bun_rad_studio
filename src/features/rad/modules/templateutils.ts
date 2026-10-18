@@ -24,7 +24,7 @@ export type TemplateFilter = (value: unknown) => unknown;
 export interface TemplateOptions {
   /** HTML-escape `{{ }}` output (`{{{ }}}` stays raw). Default `false`. */
   escape?: boolean;
-  /** Behaviour for unresolved variables without fallback. Default `"empty"`. */
+  /** Behavior for unresolved variables without fallback. Default `"empty"`. */
   missing?: "empty" | "keep" | "throw";
   /** Extra / overriding filters. */
   filters?: Record<string, TemplateFilter>;
@@ -219,7 +219,7 @@ function renderBlockMd(line: string): string | null {
 /**
  * Render Markdown for terminals: headings (h1–h6), fenced code, bullets, numbered & task lists,
  * blockquotes, horizontal rules, **bold**, *italic*, ~~strike~~, `code` and [links](url).
- * Colours are suppressed automatically when stdout is not a TTY.
+ * Colors are suppressed automatically when stdout is not a TTY.
  * @example console.log(templateutils.renderMarkdownAnsi("# Release\n- [x] tests\n> shipped **today**"));
  */
 export function renderMarkdownAnsi(markdown: string): string {

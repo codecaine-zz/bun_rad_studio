@@ -56,7 +56,7 @@ export interface WindowState {
   height: number;
   maximized: boolean;
   fullscreen: boolean;
-  /** The size of the screen the window was on, and its pixel density: only to recognise a changed set-up. */
+  /** The size of the screen the window was on, and its pixel density: only to recognize a changed set-up. */
   screenWidth: number;
   screenHeight: number;
   dpr: number;
@@ -201,7 +201,7 @@ export type WindowPlanMode = "maximize" | "fullscreen" | "normal";
 export interface WindowPlan {
   /** What to do after sizing: fill the usable screen, enter full screen, or just show the window at this size. */
   mode: WindowPlanMode;
-  /** Where the window's top-left corner goes; null when unknown (the window is then centred by the system). */
+  /** Where the window's top-left corner goes; null when unknown (the window is then centered by the system). */
   x: number | null;
   y: number | null;
   width: number;
@@ -222,7 +222,7 @@ const intersection = (a: Rect, b: Rect): Rect | null => {
 
 const between = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
-/** A rect of this size, shrunk to fit and centred in `work`. */
+/** A rect of this size, shrunk to fit and centered in `work`. */
 function centeredIn(work: Rect, width: number, height: number): Rect {
   const w = Math.min(width, work.width);
   const h = Math.min(height, work.height);
@@ -238,7 +238,7 @@ function usableScreens(screens: FmScreen[]): FmScreen[] {
 /**
  * Where the window goes at start-up. Pure: the saved preference, the screens that exist now (the first is the
  * primary) and the default size in, an exact size, position and mode out. A remembered window is always brought
- * fully onto a screen; one whose monitor is gone comes back centred on the primary screen.
+ * fully onto a screen; one whose monitor is gone comes back centered on the primary screen.
  */
 export function planWindow(prefs: WindowPrefs, screens: FmScreen[], defaults: { width: number; height: number } = DEFAULT_WINDOW_SIZE): WindowPlan {
   const dw = number(defaults.width, MIN_WINDOW_WIDTH, MAX_WINDOW_SIZE) ?? DEFAULT_WINDOW_SIZE.width;

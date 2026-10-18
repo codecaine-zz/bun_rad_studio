@@ -471,9 +471,15 @@ describe("⚡ Enterprise GUI Interactive Control & Verification Suite", () => {
     expect(win.getValue("txt_version")).toBe("1.0.0");
     expect(win.getValue("lbl_status")).toContain("Status: Ready");
 
-    // Test non-existent entry point validation
+    // Test non-existent entry point validation across binary and macOS/Windows/Linux bundlers
     win.setValue("txt_exec_path", "./non_existent_file_xyz.ts");
     await trigger(win, "btn_compile_binary");
     expect(win.getValue("bundler_console")).toContain("[Compiler Error] Entry script does not exist");
+
+    await trigger(win, "btn_build_windows");
+    expect(win.getValue("bundler_console")).toContain("[Bundler Error] Entry script does not exist");
+
+    await trigger(win, "btn_build_linux");
+    expect(win.getValue("bundler_console")).toContain("[Bundler Error] Entry script does not exist");
   });
 });

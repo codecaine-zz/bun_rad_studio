@@ -1,6 +1,6 @@
 # Architecture
 
-How the parts of Bun RAD Studio fit together: what each part is responsible for, how data moves between them, and where the boundaries (and the trust boundaries) are. Everything here was read from the source on 13 October 2026; statements about running behaviour say what was run. For the vocabulary see the [glossary](../glossary.md); for how to work on the code see the [developer handbook](handbook.md).
+How the parts of Bun RAD Studio fit together: what each part is responsible for, how data moves between them, and where the boundaries (and the trust boundaries) are. Everything here was read from the source on 13 October 2026; statements about running behavior say what was run. For the vocabulary see the [glossary](../glossary.md); for how to work on the code see the [developer handbook](handbook.md).
 
 ## Contents
 
@@ -46,7 +46,7 @@ Every program is a Bun script that opens a native window (through the `webview-b
 | Component | Responsibility | Main files |
 |---|---|---|
 | Visual designer | Edit a form as JSON, show it as code, export a project, preview it | `index.ts` (backend: windowing, export, preview), `src/ide.html` (the whole page: built from the parts in `src/ide/`; HTML, CSS and about 4,700 lines of script) |
-| Window helpers | Native fullscreen, always-on-top, centring and window shortcuts for every window, through `bun:ffi` | `index.ts` (`attachWindowShortcuts`, `setWindowPositionNative`, ...) |
+| Window helpers | Native fullscreen, always-on-top, centering and window shortcuts for every window, through `bun:ffi` | `index.ts` (`attachWindowShortcuts`, `setWindowPositionNative`, ...) |
 | SimpleGUI | Build a window by calling methods (`addButton`, `addInput`, ...); it generates the page and handles events | `src/simplegui.ts` (about 11,600 lines), `src/simplegui_components.ts`, `src/simplegui_dialogs.ts` |
 | Studios | One windowed application each | `applications/*_studio.ts` (and a few other names); 85 files in the folder including helpers |
 | Studio servers | Local web server that gives a studio's page its data (`/api/...`) | `applications/*_server.ts` or inside the studio file |
@@ -102,7 +102,7 @@ browser/webview page ──(JSON, per-process token, loopback Host/Origin)──
 
 It is mounted inside the SQLite, MySQL and PostgreSQL studio servers under `/workbench` and `/api/v2/` (checked for SQLite in `applications/sqlite_studio_server.ts`), and it can also run alone (`bun run workbench`). One workbench exists per process (`src/db/workbench_shared.ts`).
 
-**Launcher**: `scanWorkspaceApps` lists files in `applications/`, `cli_apps/` and `demos/`, skipping helper files (`*_server.*`, `*_crud.*`, `*_engine.*`, `*_ops.*`) and the modules named in `NON_APP_MODULES`; it starts them as `bun run <path>` and keeps favourites and history in `.launcher_history.json`. The same scan feeds the `bin/` wrapper generator and the [application index](../reference/application-index.md).
+**Launcher**: `scanWorkspaceApps` lists files in `applications/`, `cli_apps/` and `demos/`, skipping helper files (`*_server.*`, `*_crud.*`, `*_engine.*`, `*_ops.*`) and the modules named in `NON_APP_MODULES`; it starts them as `bun run <path>` and keeps favorites and history in `.launcher_history.json`. The same scan feeds the `bin/` wrapper generator and the [application index](../reference/application-index.md).
 
 ## Trust boundaries
 

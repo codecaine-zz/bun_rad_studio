@@ -205,7 +205,7 @@ const SYNONYMS: string[][] = [
   ["desc", "description", "details", "summary"],
   ["amt", "amount", "total", "sum"],
   ["addr", "address", "street", "streetaddress", "address1"],
-  ["company", "organization", "organisation", "org", "employer", "business"],
+  ["company", "organization", "organization", "org", "employer", "business"],
   ["created", "createdat", "createddate", "creationdate", "datecreated", "createdon"],
   ["updated", "updatedat", "modifiedat", "modified", "lastmodified", "datemodified", "updatedon"],
   ["state", "province", "region"],

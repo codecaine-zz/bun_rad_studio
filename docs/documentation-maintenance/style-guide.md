@@ -21,7 +21,7 @@ How to write and change pages in this handbook. Short on purpose: if a rule is n
 
 1. **Describe what exists.** If you did not run it, read it from the source and say "source only". Never describe a planned feature as available, and never invent commands, shortcuts, settings, screenshots or API signatures.
 2. **One authoritative page per subject.** Link to it instead of copying its steps.
-3. **Say how you know.** Every behaviour claim is either verified (what was run, when, on what) or labelled.
+3. **Say how you know.** Every behavior claim is either verified (what was run, when, on what) or labeled.
 4. **When code and documents disagree, document the code** and record the disagreement in [discrepancies](discrepancies.md).
 
 ## Plain language
@@ -59,7 +59,7 @@ Put a warning **before** the step it protects, in a block quote that starts with
 
 > **Warning – this deletes data.** Name the exact thing that will be deleted and whether it can be undone.
 
-Labels: **Warning** (data loss, security), **Note** (useful but not dangerous), **Not verified** (behaviour not checked). Every step that changes or deletes data is labelled and names its exact target. Examples use disposable databases and fictional data only.
+Labels: **Warning** (data loss, security), **Note** (useful but not dangerous), **Not verified** (behavior not checked). Every step that changes or deletes data is labeled and names its exact target. Examples use disposable databases and fictional data only.
 
 ## Commands and code examples
 

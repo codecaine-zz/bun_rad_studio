@@ -150,7 +150,7 @@ ${getWindowShortcutsScript()}
  */
 export function startMathMunchersServer(options: MathMunchersServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "math_munchers_studio", name: "Math Munchers Deluxe — Cyber Legends Arcade", version: "1.0.0", assetsDir: getMathMunchersAssetsDir(), generateHtml: generateMathMunchersStudioHtml },
+    { app: "math_munchers_studio", name: "Codecaine Math Munchers Deluxe — Cyber Legends Arcade", version: "1.0.0", assetsDir: getMathMunchersAssetsDir(), generateHtml: generateMathMunchersStudioHtml },
     options,
   );
 }
@@ -163,7 +163,7 @@ export function createMathMunchersStudio(options: MathMunchersStudioOptions = {}
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1240);
   const height = options.height ?? (fullscreen ? screen.height : 880);
-  const title = "Math Munchers Deluxe — Cyber Legends Arcade";
+  const title = "Codecaine Math Munchers Deluxe — Cyber Legends Arcade";
 
   const app: MathMunchersStudioInstance = {
     title,

@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="en" style="background-color: #05070e; margin: 0; padding: 0;">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>⌨️ CyberType Deluxe — Mavis Beacon Master Edition</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⌨️ Codecaine CyberType Deluxe — Mavis Beacon Master Edition</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 
   <script>
-    // Storage Polyfills for Webview
+    // Storage Polyfills for Webview & Opaque Origins
     (function() {
       try {
         var k = '__test__';
@@ -18,7 +18,7 @@
         try {
           Object.defineProperty(window, 'localStorage', {
             value: {
-              getItem: function(k) { return mem.hasOwnProperty(k) ? mem[k] : null; },
+              getItem: function(k) { return Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : null; },
               setItem: function(k, v) { mem[k] = String(v); },
               removeItem: function(k) { delete mem[k]; },
               clear: function() { mem = {}; },
@@ -40,35 +40,45 @@
 
   <style>
     :root {
+      --in-oklab: ;
+      --in-oklch: ;
+
       --bg-dark: #05070e;
-      --bg-panel: rgba(15, 23, 42, 0.65);
-      --bg-card: rgba(30, 41, 59, 0.45);
-      --border-panel: rgba(0, 243, 255, 0.2);
-      
+      --bg-panel: rgba(15, 23, 42, 0.72);
+      --bg-card: rgba(30, 41, 59, 0.52);
+      --border-panel: rgba(0, 243, 255, 0.22);
+
       --neon-cyan: #00f3ff;
       --neon-pink: #ff007f;
       --neon-yellow: #facc15;
       --neon-purple: #c084fc;
       --neon-green: #10b981;
       --neon-orange: #f97316;
-      
+
       --text-main: #f1f5f9;
       --text-muted: #94a3b8;
       --text-dim: #475569;
       --error-red: #ef4444;
       --correct-green: #10b981;
-      
+
       --font-ui: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
       --font-arcade: "Orbitron", sans-serif;
       --font-mono: "JetBrains Mono", monospace;
     }
 
+    @supports (background: linear-gradient(in oklab, white, black)) {
+      :root {
+        --in-oklab: in oklab;
+        --in-oklch: in oklch;
+      }
+    }
+
     /* Themes */
     body.theme-mavis {
       --bg-dark: #0b1526;
-      --bg-panel: rgba(16, 32, 60, 0.75);
-      --bg-card: rgba(24, 48, 88, 0.5);
-      --border-panel: rgba(38, 198, 218, 0.3);
+      --bg-panel: rgba(16, 32, 60, 0.78);
+      --bg-card: rgba(24, 48, 88, 0.55);
+      --border-panel: rgba(38, 198, 218, 0.32);
       --neon-cyan: #26c6da;
       --neon-pink: #ff7043;
       --neon-yellow: #ffd54f;
@@ -77,9 +87,9 @@
 
     body.theme-matrix {
       --bg-dark: #020a04;
-      --bg-panel: rgba(5, 25, 10, 0.8);
-      --bg-card: rgba(10, 40, 18, 0.6);
-      --border-panel: rgba(0, 255, 102, 0.3);
+      --bg-panel: rgba(5, 25, 10, 0.82);
+      --bg-card: rgba(10, 40, 18, 0.62);
+      --border-panel: rgba(0, 255, 102, 0.32);
       --neon-cyan: #00ff66;
       --neon-pink: #34d399;
       --neon-yellow: #a3e635;
@@ -89,9 +99,9 @@
 
     body.theme-synthwave {
       --bg-dark: #120726;
-      --bg-panel: rgba(35, 15, 65, 0.7);
-      --bg-card: rgba(55, 25, 95, 0.5);
-      --border-panel: rgba(255, 0, 127, 0.35);
+      --bg-panel: rgba(35, 15, 65, 0.75);
+      --bg-card: rgba(55, 25, 95, 0.55);
+      --border-panel: rgba(255, 0, 127, 0.38);
       --neon-cyan: #00f3ff;
       --neon-pink: #ff007f;
       --neon-yellow: #ffbe0b;
@@ -100,9 +110,9 @@
 
     body.theme-nord {
       --bg-dark: #242933;
-      --bg-panel: rgba(46, 52, 64, 0.8);
-      --bg-card: rgba(59, 66, 82, 0.6);
-      --border-panel: rgba(136, 192, 208, 0.35);
+      --bg-panel: rgba(46, 52, 64, 0.84);
+      --bg-card: rgba(59, 66, 82, 0.64);
+      --border-panel: rgba(136, 192, 208, 0.38);
       --neon-cyan: #88c0d0;
       --neon-pink: #bf616a;
       --neon-yellow: #ebcb8b;
@@ -110,15 +120,33 @@
       --text-dim: #4c566a;
     }
 
+    body.theme-paper {
+      --bg-dark: #0f172a;
+      --bg-panel: rgba(30, 41, 59, 0.88);
+      --bg-card: rgba(51, 65, 85, 0.65);
+      --border-panel: rgba(56, 189, 248, 0.38);
+      --neon-cyan: #38bdf8;
+      --neon-pink: #f43f5e;
+      --neon-yellow: #fbbf24;
+      --text-main: #f8fafc;
+      --text-dim: #64748b;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-    
+
+    html {
+      background-color: #05070e;
+      font-size: 16px;
+    }
+
     body {
       background: var(--bg-dark);
-      background-image: 
-        radial-gradient(circle at 50% -10%, rgba(0, 243, 255, 0.09) 0%, transparent 60%),
-        radial-gradient(circle at 10% 90%, rgba(255, 0, 127, 0.06) 0%, transparent 45%);
+      background-image:
+        radial-gradient(circle at 50% -10%, rgba(0, 243, 255, 0.1) 0%, transparent 60%),
+        radial-gradient(circle at 10% 90%, rgba(255, 0, 127, 0.07) 0%, transparent 45%);
       color: var(--text-main);
       font-family: var(--font-ui);
+      line-height: 1.5;
       height: 100vh;
       display: flex;
       flex-direction: column;
@@ -129,40 +157,53 @@
     /* Top Master Bar */
     .master-bar {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 24px;
-      background: rgba(5, 7, 14, 0.88);
+      padding: 0.45rem 1.25rem;
+      background: rgba(5, 7, 14, 0.9);
       backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border-panel);
       z-index: 100;
+      gap: 0.75rem;
+      flex-wrap: wrap;
     }
 
-    .brand-cluster { display: flex; align-items: center; gap: 12px; }
-    .brand-icon { width: 34px; height: 34px; border-radius: 8px; filter: drop-shadow(0 0 10px rgba(0, 243, 255, 0.6)); }
+    .brand-cluster { display: flex; align-items: center; gap: 0.75rem; }
+    .brand-icon { width: 2.1rem; height: 2.1rem; border-radius: 0.5rem; filter: drop-shadow(0 0 10px rgba(0, 243, 255, 0.6)); flex-shrink: 0; }
     .brand-titles h1 {
       font-family: var(--font-arcade);
-      font-size: 1.15rem; font-weight: 900; letter-spacing: 1px;
-      display: flex; align-items: center; gap: 8px;
-      background: linear-gradient(135deg, var(--neon-cyan), #ffffff, var(--neon-yellow));
+      font-size: clamp(0.95rem, 0.8rem + 0.5vw, 1.15rem);
+      font-weight: 900; letter-spacing: 0.06em;
+      display: flex; align-items: center; gap: 0.5rem;
+      background: linear-gradient(135deg var(--in-oklch), var(--neon-cyan), #ffffff, var(--neon-yellow));
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
     .badge-deluxe {
-      font-family: var(--font-mono); font-size: 0.6rem;
-      background: rgba(255,0,127,0.18); border: 1px solid var(--neon-pink);
-      color: var(--neon-pink); padding: 2px 6px; border-radius: 4px; font-weight: 800;
+      font-family: var(--font-mono); font-size: 0.62rem;
+      background: rgba(255, 0, 127, 0.18); border: 1px solid var(--neon-pink);
+      color: var(--neon-pink); padding: 0.12rem 0.4rem; border-radius: 0.25rem; font-weight: 800;
       -webkit-text-fill-color: initial;
     }
-    .brand-titles p { font-size: 0.72rem; color: var(--text-muted); margin-top: 1px; }
+    .brand-meta {
+      display: flex; align-items: center; gap: 0.6rem; margin-top: 0.1rem;
+      font-size: 0.7rem; color: var(--text-muted);
+    }
+    .rank-pill {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3);
+      color: var(--neon-cyan); padding: 0.05rem 0.45rem; border-radius: 999px;
+      font-family: var(--font-mono); font-size: 0.65rem; font-weight: 700;
+      cursor: pointer;
+    }
 
     /* Top Controls & Navigation Bar */
-    .top-actions { display: flex; align-items: center; gap: 8px; }
+    .top-actions { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
     .control-pill {
-      display: flex; align-items: center; gap: 6px;
-      background: var(--bg-card); border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 8px; padding: 4px 10px; font-size: 0.8rem; color: var(--text-muted);
+      display: flex; align-items: center; gap: 0.35rem;
+      background: var(--bg-card); border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 0.5rem; padding: 0.25rem 0.55rem; font-size: 0.76rem; color: var(--text-muted);
       cursor: pointer; transition: all 0.2s;
     }
     .control-pill:hover, .control-pill.active {
-      border-color: var(--neon-cyan); color: #fff; background: rgba(0,243,255,0.12);
+      border-color: var(--neon-cyan); color: #fff; background: rgba(0, 243, 255, 0.14);
     }
     .control-pill select {
       background: transparent; border: none; color: inherit; font-family: inherit; font-size: inherit; outline: none; cursor: pointer;
@@ -172,154 +213,246 @@
     }
 
     .btn-icon {
-      background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
-      color: var(--text-main); width: 34px; height: 34px; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center; cursor: pointer;
-      font-size: 1rem; transition: all 0.2s ease;
+      background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-main); min-width: 2.05rem; height: 2.05rem; padding: 0 0.45rem; border-radius: 0.5rem;
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.3rem; cursor: pointer;
+      font-size: 0.82rem; font-family: var(--font-ui); font-weight: 700; transition: all 0.2s ease;
     }
-    .btn-icon:hover {
+    .btn-icon:hover, .btn-icon.active {
       background: rgba(0, 243, 255, 0.2); border-color: var(--neon-cyan);
       color: #fff; box-shadow: 0 0 12px rgba(0, 243, 255, 0.35); transform: translateY(-1px);
     }
 
     /* Sub-nav Modes Bar */
     .modes-bar {
-      display: flex; align-items: center; justify-content: center; gap: 16px;
-      padding: 8px 16px; background: rgba(0,0,0,0.25);
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      font-family: var(--font-mono); font-size: 0.8rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+      padding: 0.4rem 1.25rem; background: rgba(0, 0, 0, 0.32);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      font-family: var(--font-mono); font-size: 0.76rem;
+      flex-wrap: wrap;
     }
-    .mode-group { display: flex; align-items: center; gap: 4px; }
+    .mode-group { display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap; }
     .mode-btn {
-      padding: 4px 10px; border-radius: 6px; cursor: pointer; color: var(--text-muted);
-      transition: all 0.15s ease; border: 1px solid transparent; display: flex; align-items: center; gap: 6px;
+      background: transparent;
+      padding: 0.28rem 0.6rem; border-radius: 0.4rem; cursor: pointer; color: var(--text-muted);
+      transition: all 0.15s ease; border: 1px solid transparent; display: inline-flex; align-items: center; gap: 0.35rem;
+      font-family: inherit; font-size: inherit;
     }
-    .mode-btn:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
+    .mode-btn:hover { color: var(--text-main); background: rgba(255, 255, 255, 0.06); }
     .mode-btn.active {
-      color: var(--neon-cyan); background: rgba(0, 243, 255, 0.12);
-      border-color: rgba(0, 243, 255, 0.35); font-weight: 700;
+      color: var(--neon-cyan); background: rgba(0, 243, 255, 0.14);
+      border-color: rgba(0, 243, 255, 0.4); font-weight: 700;
     }
-    .sub-options { display: flex; align-items: center; gap: 4px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,0.1); }
+    .sub-options-cluster {
+      display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+    }
+    .sub-options {
+      display: flex; align-items: center; gap: 0.25rem; padding-left: 0.6rem;
+      border-left: 1px solid rgba(255, 255, 255, 0.12); flex-wrap: wrap;
+    }
     .sub-btn {
-      padding: 3px 8px; border-radius: 4px; cursor: pointer; color: var(--text-dim); font-size: 0.75rem;
-      transition: all 0.15s;
+      background: transparent; border: 1px solid transparent;
+      padding: 0.2rem 0.5rem; border-radius: 0.3rem; cursor: pointer; color: var(--text-muted); font-size: 0.72rem;
+      font-family: var(--font-mono); transition: all 0.15s;
     }
-    .sub-btn:hover { color: var(--text-main); }
-    .sub-btn.active { color: var(--neon-yellow); font-weight: 700; background: rgba(250,204,21,0.1); }
+    .sub-btn:hover { color: var(--text-main); background: rgba(255, 255, 255, 0.05); }
+    .sub-btn.active { color: var(--neon-yellow); font-weight: 700; background: rgba(250, 204, 21, 0.12); border-color: rgba(250, 204, 21, 0.35); }
+
+    .modifier-toggles {
+      display: flex; align-items: center; gap: 0.25rem; padding-left: 0.5rem;
+      border-left: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .mod-pill {
+      background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted); padding: 0.18rem 0.48rem; border-radius: 0.3rem;
+      font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.15s;
+    }
+    .mod-pill.active {
+      color: var(--neon-green); border-color: var(--neon-green); background: rgba(16, 185, 129, 0.14); font-weight: 700;
+    }
 
     /* Main Container */
     .main-container {
       flex: 1; display: flex; flex-direction: column; align-items: center;
-      padding: 12px 24px; position: relative; max-width: 1200px; margin: 0 auto; width: 100%;
+      padding: 0.6rem 1.25rem; position: relative; max-width: 1220px; margin: 0 auto; width: 100%;
       overflow-y: auto; overflow-x: hidden;
     }
 
     /* HUD Stats Bar */
     .hud-bar {
-      display: flex; justify-content: center; gap: 32px; margin-bottom: 14px;
-      background: var(--bg-panel); border: 1px solid rgba(255,255,255,0.08);
-      padding: 8px 30px; border-radius: 14px; backdrop-filter: blur(10px);
-      transition: all 0.3s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      display: flex; justify-content: center; align-items: center; gap: 1.6rem; margin-bottom: 0.55rem;
+      background: var(--bg-panel); border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 0.4rem 1.5rem; border-radius: 0.85rem; backdrop-filter: blur(10px);
+      transition: all 0.3s ease; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      flex-wrap: wrap;
     }
-    .hud-bar.active { border-color: rgba(0, 243, 255, 0.4); box-shadow: 0 0 25px rgba(0, 243, 255, 0.15); }
-    .stat-box { display: flex; flex-direction: column; align-items: center; min-width: 76px; }
-    .stat-label { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
-    .stat-val { font-family: var(--font-arcade); font-size: 1.6rem; font-weight: 900; color: #fff; }
+    .hud-bar.active { border-color: rgba(0, 243, 255, 0.45); box-shadow: 0 0 25px rgba(0, 243, 255, 0.15); }
+    .stat-box { display: flex; flex-direction: column; align-items: center; min-width: 4.4rem; }
+    .stat-label { font-family: var(--font-mono); font-size: 0.64rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.08rem; }
+    .stat-val { font-family: var(--font-arcade); font-size: 1.35rem; font-weight: 900; color: #fff; line-height: 1.15; }
     .stat-val.primary { color: var(--neon-cyan); text-shadow: 0 0 12px rgba(0, 243, 255, 0.4); }
     .stat-val.warning { color: var(--neon-yellow); text-shadow: 0 0 12px rgba(250, 204, 21, 0.4); }
     .stat-val.purple { color: var(--neon-purple); text-shadow: 0 0 12px rgba(192, 132, 252, 0.4); }
+    .stat-val.green { color: var(--neon-green); text-shadow: 0 0 12px rgba(16, 185, 129, 0.4); }
+
+    /* Interactive Tutorial / Academy Lesson Briefing Banner */
+    .tutorial-briefing {
+      display: none; align-items: center; justify-content: space-between; gap: 1rem;
+      width: 100%; max-width: 980px; padding: 0.55rem 1rem; margin-bottom: 0.45rem;
+      background: linear-gradient(90deg var(--in-oklab), rgba(0, 243, 255, 0.12), rgba(15, 23, 42, 0.78), rgba(250, 204, 21, 0.1));
+      border: 1px solid rgba(0, 243, 255, 0.35); border-radius: 0.65rem;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+    .tutorial-briefing.visible { display: flex; }
+    .tut-info { display: flex; flex-direction: column; gap: 0.15rem; flex: 1; }
+    .tut-title-row { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; }
+    .tut-step-badge {
+      font-family: var(--font-arcade); font-size: 0.68rem; font-weight: 900;
+      background: var(--neon-cyan); color: #05070e; padding: 0.12rem 0.5rem; border-radius: 0.3rem;
+    }
+    .tut-title { font-weight: 800; font-size: 0.88rem; color: #fff; }
+    .tut-keys-badges { display: inline-flex; gap: 0.25rem; }
+    .tut-key-chip {
+      font-family: var(--font-mono); font-size: 0.72rem; font-weight: 800;
+      background: rgba(255, 255, 255, 0.1); border: 1px solid var(--neon-yellow);
+      color: var(--neon-yellow); padding: 0.05rem 0.4rem; border-radius: 0.25rem;
+    }
+    .tut-desc { font-size: 0.76rem; color: var(--text-muted); text-wrap: pretty; }
+    .tut-posture-tip {
+      font-family: var(--font-mono); font-size: 0.7rem; color: var(--neon-green);
+      display: flex; align-items: center; gap: 0.35rem; margin-top: 0.1rem;
+    }
+    .tut-nav-btns { display: flex; align-items: center; gap: 0.35rem; flex-shrink: 0; }
+
+    /* Keybr-Style Per-Key Mastery Strip */
+    .keybr-strip {
+      display: none; align-items: center; justify-content: center; gap: 0.22rem;
+      width: 100%; max-width: 980px; padding: 0.35rem 0.6rem; margin-bottom: 0.45rem;
+      background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 0.55rem; flex-wrap: wrap;
+    }
+    .keybr-strip.visible { display: flex; }
+    .keybr-cell {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      width: 1.65rem; height: 1.85rem; border-radius: 0.28rem;
+      background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);
+      font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700; color: var(--text-muted);
+      position: relative; overflow: hidden;
+    }
+    .keybr-cell.focus-key { border-color: var(--neon-yellow); color: #fff; box-shadow: 0 0 8px rgba(250, 204, 21, 0.35); }
+    .keybr-cell.mastered { border-color: rgba(16, 185, 129, 0.5); color: var(--neon-green); }
+    .keybr-cell.weak-key { border-color: rgba(239, 68, 68, 0.6); color: var(--error-red); }
+    .keybr-bar {
+      position: absolute; bottom: 0; left: 0; height: 3px; background: var(--neon-cyan); transition: width 0.25s;
+    }
 
     /* Coach / Finger Guidance Banner (Mavis Beacon Hallmark) */
     .coach-banner {
       display: flex; align-items: center; justify-content: space-between;
-      width: 100%; max-width: 960px; padding: 6px 16px; margin-bottom: 8px;
-      background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 8px; font-family: var(--font-mono); font-size: 0.78rem;
+      width: 100%; max-width: 980px; padding: 0.34rem 0.9rem; margin-bottom: 0.4rem;
+      background: rgba(15, 23, 42, 0.58); border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 0.5rem; font-family: var(--font-mono); font-size: 0.73rem;
+      gap: 0.5rem; flex-shrink: 0;
     }
-    .coach-instruction { display: flex; align-items: center; gap: 8px; color: var(--text-main); }
+    .coach-instruction { display: flex; align-items: center; gap: 0.45rem; color: var(--text-main); white-space: nowrap; }
     .target-key-pill {
-      background: rgba(0, 243, 255, 0.2); border: 1px solid var(--neon-cyan);
-      color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 0.9rem;
-      min-width: 24px; text-align: center;
+      background: rgba(0, 243, 255, 0.22); border: 1px solid var(--neon-cyan);
+      color: #fff; padding: 0.08rem 0.45rem; border-radius: 0.28rem; font-weight: 800; font-size: 0.82rem;
+      min-width: 1.55rem; text-align: center;
     }
     .finger-indicator { font-weight: 700; color: var(--neon-cyan); }
-    .pace-tracker { color: var(--text-muted); font-size: 0.74rem; display: flex; align-items: center; gap: 6px; }
+    .coach-biomechanics { color: var(--text-muted); font-size: 0.68rem; }
+    .pace-tracker { color: var(--text-muted); font-size: 0.7rem; display: flex; align-items: center; gap: 0.45rem; white-space: nowrap; }
+    .pace-delta { font-weight: 700; padding: 0.08rem 0.4rem; border-radius: 0.25rem; font-size: 0.68rem; }
+    .pace-delta.ahead { color: var(--neon-green); background: rgba(16, 185, 129, 0.12); }
+    .pace-delta.behind { color: var(--error-red); background: rgba(239, 68, 68, 0.12); }
 
     /* Typing Area Container */
     .typing-container {
-      width: 100%; max-width: 960px; min-height: 140px; max-height: 200px;
-      position: relative; font-family: var(--font-mono); font-size: 1.85rem;
+      width: 100%; max-width: 980px; height: 7.4rem; flex-shrink: 0;
+      position: relative; font-family: var(--font-mono); font-size: clamp(1.35rem, 1.1rem + 0.75vw, 1.75rem);
       line-height: 1.6; font-weight: 500; color: var(--text-dim);
-      display: flex; flex-wrap: wrap; align-content: flex-start; gap: 0 14px;
-      margin-bottom: 12px; padding: 16px 20px;
-      outline: none; overflow: hidden; border-radius: 12px;
-      background: rgba(10, 16, 30, 0.6); border: 1px solid rgba(255,255,255,0.08);
-      box-shadow: inset 0 0 40px rgba(0,0,0,0.5);
-      -webkit-mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
-      mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
+      margin-bottom: 0.45rem; padding: 0.65rem 1.25rem;
+      outline: none; overflow: hidden; border-radius: 0.75rem;
+      background: rgba(10, 16, 30, 0.68); border: 1px solid rgba(0, 243, 255, 0.25);
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
+      cursor: text;
+    }
+    .typing-container.focused {
+      border-color: rgba(0, 243, 255, 0.45);
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5), 0 0 18px rgba(0, 243, 255, 0.1);
+    }
+    #wordsViewport {
+      position: relative;
+      width: 100%;
+      height: 6.1rem;
+      overflow: hidden;
     }
     #wordsWrapper {
-      display: flex; flex-wrap: wrap; align-content: flex-start; gap: 0 14px; width: 100%;
-      transition: margin-top 0.2s ease-out;
+      display: flex; flex-wrap: wrap; align-content: flex-start; gap: 0 0.85rem; width: 100%;
+      position: relative;
     }
-    .word { display: flex; position: relative; margin-bottom: 6px; border-radius: 4px; border-bottom: 2px solid transparent; transition: background 0.2s, opacity 0.2s; }
-    .word.active-word { background: rgba(255, 255, 255, 0.05); box-shadow: 0 2px 0 var(--neon-cyan); }
+    .word { display: flex; position: relative; margin-bottom: 0.35rem; border-radius: 0.25rem; border-bottom: 2px solid transparent; }
+    .word.active-word { background: rgba(255, 255, 255, 0.06); box-shadow: 0 2px 0 var(--neon-cyan); }
     .word.error { border-bottom-color: var(--error-red); }
-    .word.passed { opacity: 0.4; }
-    .letter { position: relative; transition: color 0.08s; }
-    .letter.correct { color: var(--text-main); text-shadow: 0 0 6px rgba(255,255,255,0.25); }
-    .letter.incorrect { color: var(--error-red); text-shadow: 0 0 8px rgba(239, 68, 68, 0.5); }
-    .letter.extra { color: var(--error-red); opacity: 0.8; }
+    .word.passed { opacity: 0.42; }
+    .letter { position: relative; }
+    .letter.correct { color: var(--text-main); text-shadow: 0 0 6px rgba(255, 255, 255, 0.22); }
+    .letter.incorrect { color: var(--error-red); text-shadow: 0 0 8px rgba(239, 68, 68, 0.5); background: rgba(239, 68, 68, 0.18); border-radius: 2px; }
+    .letter.extra { color: var(--error-red); opacity: 0.85; background: rgba(239, 68, 68, 0.14); }
 
-    
-    /* Smooth Animated Cursor */
+    /* Smooth Animated Cursor (Always visible when ready/typing) */
     .cursor {
-      position: absolute; left: 0; top: 10%; width: 3px; height: 80%;
+      position: absolute; left: 0; top: 0; width: 3px; height: 1.95rem;
       background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan);
-      transition: left 0.08s ease, top 0.08s ease;
+      transition: left 0.04s ease, top 0.04s ease;
       animation: blink 1s infinite; border-radius: 2px;
-      z-index: 10; display: none;
+      z-index: 10; display: block; pointer-events: none;
     }
-    .typing-container.focused .cursor { display: block; }
     @keyframes blink { 0%, 48% { opacity: 1; } 50%, 100% { opacity: 0; } }
 
     /* Pace Ghost Runner Caret */
     .ghost-cursor {
-      position: absolute; left: 0; top: 10%; width: 3px; height: 80%;
-      background: var(--neon-pink); opacity: 0.6; box-shadow: 0 0 8px var(--neon-pink);
-      border-radius: 2px; z-index: 8; display: none; transition: left 0.15s linear, top 0.15s ease;
+      position: absolute; left: 0; top: 0; width: 3px; height: 1.95rem;
+      background: var(--neon-pink); opacity: 0.72; box-shadow: 0 0 10px var(--neon-pink);
+      border-radius: 2px; z-index: 8; display: none; pointer-events: none;
+      transition: left 0.1s linear, top 0.1s ease;
     }
     .ghost-cursor.active { display: block; }
 
-    /* Start Prompt Overlay */
+    /* Non-blocking Start Status Pill in Coach Banner (Never overlaps any words or shifts layout!) */
     .start-prompt {
-      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-      background: rgba(5,7,14,0.7); backdrop-filter: blur(4px); z-index: 20;
-      font-family: var(--font-arcade); font-size: 1.3rem; color: var(--neon-cyan);
-      text-shadow: 0 0 15px var(--neon-cyan); cursor: pointer; transition: opacity 0.2s;
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.35);
+      border-radius: 999px; padding: 0.06rem 0.55rem;
+      font-family: var(--font-mono); font-size: 0.66rem; color: var(--neon-cyan);
+      pointer-events: none;
+    }
+    .start-prompt-sub {
+      color: var(--text-muted); font-size: 0.64rem;
     }
 
     /* Interactive Hands Visualizer (Mavis Beacon Signature) */
     .hands-wrapper {
-      display: flex; justify-content: space-around; width: 100%; max-width: 900px;
-      margin-bottom: 6px; transition: max-height 0.3s ease, opacity 0.3s ease;
-      overflow: hidden;
+      display: flex; justify-content: space-around; align-items: center; width: 100%; max-width: 940px;
+      margin-bottom: 0.35rem; transition: max-height 0.3s ease, opacity 0.3s ease;
+      overflow: hidden; gap: 0.75rem; flex-shrink: 0;
     }
     .hands-wrapper.hidden { max-height: 0; opacity: 0; margin-bottom: 0; pointer-events: none; }
     .hand-box {
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
-      background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255,255,255,0.05);
-      border-radius: 12px; padding: 6px 14px;
+      display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
+      background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 0.7rem; padding: 0.3rem 0.85rem;
     }
-    .hand-label { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-    .hand-svg { width: 220px; height: 95px; }
+    .hand-label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .hand-svg { width: 200px; height: 76px; }
     .finger {
       fill: #1e293b; stroke: #334155; stroke-width: 1.5;
       transition: fill 0.15s, stroke 0.15s, filter 0.15s, transform 0.1s;
     }
     .finger-active {
       filter: drop-shadow(0 0 6px currentColor);
-      transform: translateY(-2px);
+      transform: translateY(-3px);
     }
     .finger[data-finger="l-pinky"].finger-active, .finger[data-finger="r-pinky"].finger-active { fill: var(--neon-pink) !important; stroke: #fff !important; }
     .finger[data-finger="l-ring"].finger-active, .finger[data-finger="r-ring"].finger-active { fill: var(--neon-orange) !important; stroke: #fff !important; }
@@ -327,118 +460,240 @@
     .finger[data-finger="l-index"].finger-active, .finger[data-finger="r-index"].finger-active { fill: var(--neon-cyan) !important; stroke: #fff !important; }
     .finger[data-finger="thumb"].finger-active { fill: var(--neon-purple) !important; stroke: #fff !important; }
 
+    /* Center Ergonomic Legend inside Hands Row */
+    .finger-legend-card {
+      display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+      background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 0.7rem; padding: 0.45rem 0.75rem; font-family: var(--font-mono); font-size: 0.66rem;
+    }
+    .legend-swatches { display: flex; gap: 0.45rem; flex-wrap: wrap; justify-content: center; }
+    .swatch-item { display: inline-flex; align-items: center; gap: 0.25rem; color: var(--text-muted); }
+    .swatch-dot { width: 0.55rem; height: 0.55rem; border-radius: 50%; display: inline-block; }
+
     /* Keyboard Visualizer */
     .keyboard-box {
-      background: var(--bg-panel); border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 14px; padding: 14px 18px; box-shadow: inset 0 0 30px rgba(0,0,0,0.5);
-      margin-top: auto; margin-bottom: 8px; width: 100%; max-width: 960px;
+      background: var(--bg-panel); border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 0.85rem; padding: 0.65rem 1rem; box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
+      margin-top: auto; margin-bottom: 0.3rem; width: 100%; max-width: 980px; flex-shrink: 0;
     }
-    .keyboard-row { display: flex; justify-content: center; gap: 5px; margin-bottom: 5px; }
+    .keyboard-row { display: flex; justify-content: center; gap: 0.3rem; margin-bottom: 0.3rem; }
+    .keyboard-row:last-child { margin-bottom: 0; }
     .key {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: #1e293b; border: 1px solid #334155; border-radius: 6px;
-      min-width: 42px; height: 42px; color: #94a3b8; font-family: var(--font-ui); font-size: 0.85rem; font-weight: 700;
-      box-shadow: 0 3px 0 #0f172a, 0 4px 8px rgba(0,0,0,0.35);
+      position: relative;
+      background: #1e293b; border: 1px solid #334155; border-radius: 0.38rem;
+      min-width: 2.55rem; height: 2.45rem; color: #94a3b8; font-family: var(--font-ui); font-size: 0.82rem; font-weight: 700;
+      box-shadow: 0 3px 0 #0f172a, 0 4px 8px rgba(0, 0, 0, 0.35);
       transition: transform 0.05s, box-shadow 0.05s, background 0.15s, color 0.15s, border-color 0.15s;
     }
+    .key-sub {
+      font-size: 0.55rem; color: var(--text-dim); line-height: 1; position: absolute; top: 3px; left: 5px; font-family: var(--font-mono);
+    }
+    /* Tactile Homing Bar on F and J (or layout equivalents) */
+    .key.homing::after {
+      content: ""; position: absolute; bottom: 4px; width: 12px; height: 2px;
+      background: var(--neon-cyan); border-radius: 2px; opacity: 0.75;
+    }
     .key.pressed {
-      transform: translateY(3px); box-shadow: 0 0 0 #0f172a, 0 1px 2px rgba(0,0,0,0.4);
-      background: var(--text-main); color: #05070e;
+      transform: translateY(3px); box-shadow: 0 0 0 #0f172a, 0 1px 2px rgba(0, 0, 0, 0.4);
+      background: var(--text-main) !important; color: #05070e !important;
+    }
+    .key.error-flash {
+      background: rgba(239, 68, 68, 0.45) !important;
+      border-color: var(--error-red) !important;
+      color: #fff !important;
     }
     .key.target {
-      border-color: var(--neon-cyan); color: #fff; background: rgba(0, 243, 255, 0.15);
-      box-shadow: 0 3px 0 #0f172a, 0 0 15px rgba(0, 243, 255, 0.4);
-      animation: keyPulse 1.2s infinite alternate;
+      border-color: var(--neon-cyan); color: #fff; background: rgba(0, 243, 255, 0.18);
+      box-shadow: 0 3px 0 #0f172a, 0 0 15px rgba(0, 243, 255, 0.45);
+      animation: keyPulse 1.1s infinite alternate;
     }
     @keyframes keyPulse {
       0% { transform: scale(1); }
       100% { transform: scale(1.05); }
     }
-    
-    /* Finger Zones Highlights */
-    .key.target[data-finger="l-pinky"], .key.target[data-finger="r-pinky"] { border-color: var(--neon-pink); background: rgba(255,0,127,0.18); box-shadow: 0 3px 0 #0f172a, 0 0 14px rgba(255,0,127,0.5); }
-    .key.target[data-finger="l-ring"], .key.target[data-finger="r-ring"] { border-color: var(--neon-orange); background: rgba(249,115,22,0.18); box-shadow: 0 3px 0 #0f172a, 0 0 14px rgba(249,115,22,0.5); }
-    .key.target[data-finger="l-middle"], .key.target[data-finger="r-middle"] { border-color: var(--neon-green); background: rgba(16,185,129,0.18); box-shadow: 0 3px 0 #0f172a, 0 0 14px rgba(16,185,129,0.5); }
-    .key.target[data-finger="l-index"], .key.target[data-finger="r-index"] { border-color: var(--neon-cyan); background: rgba(0,243,255,0.18); box-shadow: 0 3px 0 #0f172a, 0 0 14px rgba(0,243,255,0.5); }
-    .key.target[data-finger="thumb"] { border-color: var(--neon-purple); background: rgba(192,132,252,0.18); box-shadow: 0 3px 0 #0f172a, 0 0 14px rgba(192,132,252,0.5); }
 
-    .key-wide-1 { width: 58px; }
-    .key-wide-2 { width: 70px; }
-    .key-wide-3 { width: 88px; }
-    .key-space { width: 280px; }
+    /* Finger Zones Always-On Tint Mode */
+    .keyboard-box.show-zones .key[data-finger="l-pinky"], .keyboard-box.show-zones .key[data-finger="r-pinky"] { border-bottom: 2px solid var(--neon-pink); }
+    .keyboard-box.show-zones .key[data-finger="l-ring"], .keyboard-box.show-zones .key[data-finger="r-ring"] { border-bottom: 2px solid var(--neon-orange); }
+    .keyboard-box.show-zones .key[data-finger="l-middle"], .keyboard-box.show-zones .key[data-finger="r-middle"] { border-bottom: 2px solid var(--neon-green); }
+    .keyboard-box.show-zones .key[data-finger="l-index"], .keyboard-box.show-zones .key[data-finger="r-index"] { border-bottom: 2px solid var(--neon-cyan); }
+    .keyboard-box.show-zones .key[data-finger="thumb"] { border-bottom: 2px solid var(--neon-purple); }
+
+    /* Target Finger Zone Highlights */
+    .key.target[data-finger="l-pinky"], .key.target[data-finger="r-pinky"] { border-color: var(--neon-pink); background: rgba(255, 0, 127, 0.22); box-shadow: 0 3px 0 #0f172a, 0 0 14px rgba(255, 0, 127, 0.55); }
+    .key.target[data-finger="l-ring"], .key.target[data-finger="r-ring"] { border-color: var(--neon-orange); background: rgba(249, 115, 22, 0.22); box-shadow: 0 3px 0 #0f172a, 0 0 14px rgba(249, 115, 22, 0.55); }
+    .key.target[data-finger="l-middle"], .key.target[data-finger="r-middle"] { border-color: var(--neon-green); background: rgba(16, 185, 129, 0.22); box-shadow: 0 3px 0 #0f172a, 0 0 14px rgba(16, 185, 129, 0.55); }
+    .key.target[data-finger="l-index"], .key.target[data-finger="r-index"] { border-color: var(--neon-cyan); background: rgba(0, 243, 255, 0.22); box-shadow: 0 3px 0 #0f172a, 0 0 14px rgba(0, 243, 255, 0.55); }
+    .key.target[data-finger="thumb"] { border-color: var(--neon-purple); background: rgba(192, 132, 252, 0.22); box-shadow: 0 3px 0 #0f172a, 0 0 14px rgba(192, 132, 252, 0.55); }
+
+    /* Heatmap Overlay Colors */
+    .keyboard-box.show-heatmap .key.heat-good { background: rgba(16, 185, 129, 0.25); border-color: #10b981; color: #ecfdf5; }
+    .keyboard-box.show-heatmap .key.heat-warn { background: rgba(250, 204, 21, 0.25); border-color: #facc15; color: #fefce8; }
+    .keyboard-box.show-heatmap .key.heat-bad { background: rgba(239, 68, 68, 0.3); border-color: #ef4444; color: #fef2f2; }
+
+    .key-wide-1 { width: 3.6rem; }
+    .key-wide-2 { width: 4.35rem; }
+    .key-wide-3 { width: 5.5rem; }
+    .key-space { width: 17.5rem; }
 
     /* Results Screen */
     .results-overlay {
-      position: absolute; inset: 0; background: rgba(5,7,14,0.96); backdrop-filter: blur(20px);
+      position: absolute; inset: 0; background: rgba(5, 7, 14, 0.98); backdrop-filter: blur(20px);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      opacity: 0; pointer-events: none; transition: opacity 0.3s ease; z-index: 50; padding: 20px;
+      opacity: 0; pointer-events: none; transition: opacity 0.12s ease; z-index: 150; padding: 1.25rem;
+      overflow-y: auto;
     }
     .results-overlay.show { opacity: 1; pointer-events: auto; }
-    .res-title { font-family: var(--font-arcade); font-size: 2.2rem; color: #fff; margin-bottom: 20px; text-shadow: 0 0 20px rgba(0,243,255,0.5); }
-    .res-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; max-width: 860px; width: 100%; }
-    .res-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px 18px; text-align: center; }
-    .res-card .label { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); margin-bottom: 4px; }
-    .res-card .val { font-family: var(--font-arcade); font-size: 2rem; font-weight: 900; color: #fff; }
-    .res-card .val.wpm { color: var(--neon-cyan); text-shadow: 0 0 16px rgba(0,243,255,0.4); }
-    .res-card .val.acc { color: var(--neon-yellow); text-shadow: 0 0 16px rgba(250,204,21,0.4); }
-    .res-card .val.raw { color: var(--neon-purple); text-shadow: 0 0 16px rgba(192,132,252,0.4); }
-    
+    .res-header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.9rem; flex-wrap: wrap; justify-content: center; }
+    .res-title { font-family: var(--font-arcade); font-size: clamp(1.4rem, 1.1rem + 1vw, 2rem); color: #fff; text-shadow: 0 0 20px rgba(0, 243, 255, 0.5); text-wrap: balance; }
+    .res-stars { font-size: 1.5rem; letter-spacing: 0.15em; }
+    .res-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.85rem; margin-bottom: 1rem; max-width: 920px; width: 100%; }
+    .res-card { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 0.75rem; padding: 0.75rem 0.9rem; text-align: center; }
+    .res-card .label { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-muted); margin-bottom: 0.2rem; }
+    .res-card .val { font-family: var(--font-arcade); font-size: 1.75rem; font-weight: 900; color: #fff; }
+    .res-card .val.wpm { color: var(--neon-cyan); text-shadow: 0 0 16px rgba(0, 243, 255, 0.4); }
+    .res-card .val.acc { color: var(--neon-yellow); text-shadow: 0 0 16px rgba(250, 204, 21, 0.4); }
+    .res-card .val.raw { color: var(--neon-purple); text-shadow: 0 0 16px rgba(192, 132, 252, 0.4); }
+
     /* Performance Canvas Chart */
     .chart-container {
-      width: 100%; max-width: 860px; height: 120px; background: rgba(0,0,0,0.4);
-      border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; margin-bottom: 20px;
+      width: 100%; max-width: 920px; height: 115px; background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 0.65rem; margin-bottom: 1rem;
       position: relative; overflow: hidden;
     }
     #resChart { width: 100%; height: 100%; display: block; }
 
-    /* Weak Keys & Badges Area */
-    .analytics-row { display: flex; gap: 20px; width: 100%; max-width: 860px; margin-bottom: 24px; }
-    .analysis-panel { flex: 1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 16px; }
-    .analysis-panel h4 { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; }
-    .weak-keys-list { display: flex; gap: 8px; flex-wrap: wrap; }
+    /* Weak Keys, Finger Breakdown & Badges Area */
+    .analytics-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.85rem; width: 100%; max-width: 920px; margin-bottom: 1.1rem; }
+    .analysis-panel { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 0.65rem; padding: 0.75rem 0.95rem; }
+    .analysis-panel h3 { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .weak-keys-list { display: flex; gap: 0.4rem; flex-wrap: wrap; }
     .weak-key-item {
-      background: rgba(239,68,68,0.15); border: 1px solid var(--error-red);
-      color: #fff; border-radius: 6px; padding: 4px 10px; font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700;
-      display: flex; align-items: center; gap: 6px;
+      background: rgba(239, 68, 68, 0.15); border: 1px solid var(--error-red);
+      color: #fff; border-radius: 0.35rem; padding: 0.22rem 0.55rem; font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700;
+      display: flex; align-items: center; gap: 0.35rem;
     }
     .badge-pill {
-      background: rgba(250,204,21,0.12); border: 1px solid var(--neon-yellow); color: var(--neon-yellow);
-      border-radius: 6px; padding: 4px 10px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(250, 204, 21, 0.12); border: 1px solid var(--neon-yellow); color: var(--neon-yellow);
+      border-radius: 0.35rem; padding: 0.22rem 0.55rem; font-size: 0.74rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.35rem;
     }
+    .finger-mini-bars { display: flex; flex-direction: column; gap: 0.28rem; font-family: var(--font-mono); font-size: 0.68rem; }
+    .finger-bar-row { display: flex; align-items: center; gap: 0.4rem; }
+    .finger-bar-track { flex: 1; height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; overflow: hidden; }
+    .finger-bar-fill { height: 100%; background: var(--neon-cyan); border-radius: 3px; }
 
-    .action-row { display: flex; gap: 14px; }
+    .action-row { display: flex; gap: 0.85rem; flex-wrap: wrap; justify-content: center; }
     .btn-action {
-      background: linear-gradient(135deg, #0284c7, var(--neon-cyan)); border: none; border-radius: 999px;
-      color: #05070e; font-family: var(--font-arcade); font-size: 1rem; font-weight: 900;
-      padding: 12px 36px; cursor: pointer; box-shadow: 0 6px 20px rgba(0,243,255,0.35);
+      background: linear-gradient(135deg var(--in-oklch), #0284c7, var(--neon-cyan)); border: none; border-radius: 999px;
+      color: #05070e; font-family: var(--font-arcade); font-size: 0.9rem; font-weight: 900;
+      padding: 0.7rem 1.8rem; cursor: pointer; box-shadow: 0 6px 20px rgba(0, 243, 255, 0.35);
       transition: all 0.2s ease;
     }
-    .btn-action:hover { transform: scale(1.04); box-shadow: 0 10px 30px rgba(0,243,255,0.55); }
+    .btn-action:hover { transform: scale(1.03); box-shadow: 0 10px 30px rgba(0, 243, 255, 0.55); }
     .btn-action.secondary {
-      background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.2); box-shadow: none;
+      background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: none;
     }
-    .btn-action.secondary:hover { background: rgba(255,255,255,0.15); transform: scale(1.04); }
+    .btn-action.secondary:hover { background: rgba(255, 255, 255, 0.15); transform: scale(1.03); }
 
     /* Word Rain Arcade Mini-Game Canvas */
     .arcade-overlay {
-      position: absolute; inset: 0; background: #05070e; z-index: 40;
+      position: absolute; inset: 0; background: #05070e; z-index: 160;
       display: none; flex-direction: column; align-items: center; justify-content: center;
     }
     .arcade-overlay.active { display: flex; }
     #arcadeCanvas { background: radial-gradient(circle at center, #0c1427 0%, #05070e 100%); width: 100%; height: 100%; }
     .arcade-hud {
-      position: absolute; top: 14px; left: 24px; right: 24px; display: flex; justify-content: space-between; align-items: center;
-      font-family: var(--font-arcade); color: #fff; z-index: 42; pointer-events: none;
+      position: absolute; top: 0.85rem; left: 1.5rem; right: 1.5rem; display: flex; justify-content: space-between; align-items: center;
+      font-family: var(--font-arcade); color: #fff; z-index: 165; pointer-events: none; flex-wrap: wrap; gap: 0.5rem;
     }
-    .arcade-hud-box { background: rgba(5,7,14,0.8); border: 1px solid var(--neon-cyan); padding: 8px 18px; border-radius: 8px; backdrop-filter: blur(8px); }
+    .arcade-hud-box { background: rgba(5, 7, 14, 0.85); border: 1px solid var(--neon-cyan); padding: 0.45rem 1rem; border-radius: 0.5rem; backdrop-filter: blur(8px); font-size: 0.82rem; pointer-events: auto; }
+
+    /* Native Modal Dialogs (<dialog>) */
+    dialog.cyber-dialog {
+      margin: auto;
+      background: #0b1120;
+      color: var(--text-main);
+      border: 1px solid var(--neon-cyan);
+      border-radius: 1rem;
+      padding: 1.4rem 1.6rem;
+      max-width: 880px;
+      width: 92vw;
+      max-height: 86vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85), 0 0 30px rgba(0, 243, 255, 0.2);
+    }
+    dialog.cyber-dialog::backdrop {
+      background: rgba(2, 6, 23, 0.82);
+      backdrop-filter: blur(8px);
+    }
+    .dialog-header {
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 0.75rem; margin-bottom: 1rem;
+    }
+    .dialog-header h2 {
+      font-family: var(--font-arcade); font-size: 1.2rem; color: var(--neon-cyan);
+      text-wrap: balance;
+    }
+    .curriculum-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.75rem;
+    }
+    .lesson-card {
+      background: rgba(30, 41, 59, 0.55); border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 0.65rem; padding: 0.75rem 0.9rem; cursor: pointer; transition: all 0.18s;
+      display: flex; flex-direction: column; gap: 0.3rem; text-align: left; color: var(--text-main); font-family: var(--font-ui);
+    }
+    .lesson-card:hover, .lesson-card.active {
+      border-color: var(--neon-cyan); background: rgba(0, 243, 255, 0.12); transform: translateY(-2px);
+    }
+    .lesson-card-top { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-mono); font-size: 0.7rem; color: var(--neon-yellow); }
+    .lesson-card-title { font-weight: 800; font-size: 0.88rem; color: #fff; }
+    .lesson-card-desc { font-size: 0.72rem; color: var(--text-muted); }
+
+    .guide-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.85rem; margin-bottom: 1rem;
+    }
+    .guide-box {
+      background: rgba(30, 41, 59, 0.45); border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 0.65rem; padding: 0.85rem;
+    }
+    .guide-box h3 { font-family: var(--font-arcade); font-size: 0.85rem; color: var(--neon-yellow); margin-bottom: 0.4rem; }
+    .guide-box p { font-size: 0.78rem; color: var(--text-muted); text-wrap: pretty; line-height: 1.5; }
+
+    .custom-textarea {
+      width: 100%; min-height: 130px; background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(0, 243, 255, 0.35); border-radius: 0.5rem;
+      color: #fff; font-family: var(--font-mono); font-size: 0.88rem; padding: 0.75rem;
+      margin-bottom: 0.85rem; resize: vertical; user-select: text; -webkit-user-select: text;
+    }
+
+    @media (max-height: 780px) {
+      .master-bar { padding: 0.3rem 1rem; gap: 0.45rem; }
+      .modes-bar { padding: 0.25rem 1rem; gap: 0.45rem; }
+      .main-container { padding: 0.35rem 1rem; }
+      .hud-bar { padding: 0.25rem 1.1rem; margin-bottom: 0.3rem; gap: 1.2rem; }
+      .stat-val { font-size: 1.1rem; }
+      .tutorial-briefing { padding: 0.35rem 0.8rem; margin-bottom: 0.3rem; }
+      .keybr-strip { padding: 0.2rem 0.5rem; margin-bottom: 0.3rem; }
+      .coach-banner { padding: 0.22rem 0.75rem; margin-bottom: 0.28rem; }
+      .typing-container { margin-bottom: 0.3rem; }
+      .hands-wrapper { margin-bottom: 0.25rem; }
+      .hand-box { padding: 0.18rem 0.65rem; }
+      .hand-svg { width: 170px; height: 52px; }
+      .finger-legend-card { padding: 0.28rem 0.6rem; }
+      .keyboard-box { padding: 0.4rem 0.75rem; margin-bottom: 0.15rem; }
+      .keyboard-row { gap: 0.24rem; margin-bottom: 0.22rem; }
+      .key { height: 1.85rem; min-width: 2.35rem; font-size: 0.76rem; }
+    }
   </style>
 </head>
-<body class="theme-cyber">
+<body class="theme-cyber" data-typing-app="true">
 
   <!-- Master Top Navigation Bar -->
   <header class="master-bar">
     <div class="brand-cluster">
-      <svg class="brand-icon" viewBox="0 0 128 128">
+      <svg class="brand-icon" viewBox="0 0 128 128" aria-hidden="true">
         <rect width="128" height="128" rx="28" fill="#05070e" stroke="#00f3ff" stroke-width="4"/>
         <rect x="24" y="24" width="80" height="80" rx="12" fill="#0f172a" stroke="#ffffff" stroke-width="3"/>
         <path d="M 24 84 L 104 84" stroke="#ffffff" stroke-width="3" stroke-opacity="0.3"/>
@@ -447,18 +702,55 @@
       </svg>
       <div class="brand-titles">
         <h1>CyberType <span class="badge-deluxe">Mavis Master</span></h1>
-        <p>Biometric Telemetry • Dual-Hand Posture Guide • Adaptive Curriculum</p>
+        <div class="brand-meta">
+          <span>Biometric Telemetry • Dual-Hand Posture Guide • Adaptive AI Curriculum</span>
+          <button type="button" class="rank-pill" id="btnCareerModal" title="Open Career Profile & Finger Telemetry">
+            🏆 <span id="lblCareerRank">Novice Operator</span> • <span id="lblCareerPB">PB: 0 WPM</span>
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Quick Preferences -->
+    <!-- Quick Preferences & Studio Modals -->
     <div class="top-actions">
+      <!-- Interactive Posture & Touch-Typing Guide -->
+      <button type="button" class="btn-icon" id="btnOpenGuide" title="Interactive Touch-Typing & Ergonomics Guide">📖 Guide</button>
+      <!-- 18-Lesson Academy Curriculum Map -->
+      <button type="button" class="btn-icon" id="btnOpenCurriculum" title="Open 18-Lesson Mastery Curriculum Map">🎓 Academy</button>
+
+      <!-- Hardware Keyboard Layout -->
+      <div class="control-pill" title="Keyboard Layout">
+        <span>⌨️</span>
+        <select id="selLayout" aria-label="Keyboard Layout">
+          <option value="qwerty">QWERTY</option>
+          <option value="colemak">Colemak</option>
+          <option value="dvorak">Dvorak</option>
+          <option value="workman">Workman</option>
+        </select>
+      </div>
+
+      <!-- Pace Ghost Speed Selector -->
+      <div class="control-pill" title="Pace Ghost Runner Target Speed">
+        <span>👻</span>
+        <select id="selPace" aria-label="Pace Ghost Target Speed">
+          <option value="75">Pace: 75 WPM</option>
+          <option value="0">Pace: Off</option>
+          <option value="40">Pace: 40 WPM</option>
+          <option value="60">Pace: 60 WPM</option>
+          <option value="90">Pace: 90 WPM</option>
+          <option value="120">Pace: 120 WPM</option>
+          <option value="pb">Pace: My PB</option>
+        </select>
+      </div>
+
       <!-- Switch Sound Profile -->
       <div class="control-pill" title="Mechanical Sound Profile">
         <span>🔊</span>
-        <select id="selSound">
+        <select id="selSound" aria-label="Mechanical Sound Profile">
           <option value="thock">Thock (Ink Black)</option>
           <option value="clicky">Clicky (Box White)</option>
+          <option value="panda">Tactile (Holy Panda)</option>
+          <option value="topre">Topre (45g Capacitive)</option>
           <option value="typewriter">Typewriter (Bell)</option>
           <option value="cyber">Cyber Synth</option>
           <option value="mute">Muted</option>
@@ -468,44 +760,59 @@
       <!-- Theme Selector -->
       <div class="control-pill" title="Color Theme">
         <span>🎨</span>
-        <select id="selTheme">
+        <select id="selTheme" aria-label="Color Theme">
           <option value="theme-cyber">Cyber Neon</option>
           <option value="theme-mavis">Mavis 90s</option>
           <option value="theme-matrix">Matrix Code</option>
           <option value="theme-synthwave">Synthwave</option>
           <option value="theme-nord">Nord Frost</option>
+          <option value="theme-paper">Daylight Slate</option>
         </select>
       </div>
 
+      <!-- Heatmap & Finger Zone Toggles -->
+      <button type="button" class="btn-icon active" id="btnToggleZones" title="Toggle Finger Zone Color Guides">🌈</button>
+      <button type="button" class="btn-icon" id="btnToggleHeatmap" title="Toggle Live Key Accuracy Heatmap">🔥</button>
       <!-- Hands Guide Toggle -->
-      <button class="btn-icon" id="btnToggleHands" title="Toggle Hands Guide">🤲</button>
+      <button type="button" class="btn-icon active" id="btnToggleHands" title="Toggle Hands Guide">🤲</button>
       <!-- Restart -->
-      <button class="btn-icon" id="btnRestart" title="Restart (Tab + Enter)">🔄</button>
+      <button type="button" class="btn-icon" id="btnRestart" title="Restart (Tab + Enter)">🔄</button>
       <!-- Hub Return -->
       <a href="/" class="btn-icon" title="Return to RAD Hub" style="text-decoration:none;">⚡</a>
     </div>
   </header>
 
   <!-- Modes & Curricula Sub-Navbar -->
-  <nav class="modes-bar">
+  <nav class="modes-bar" aria-label="Typing Training Modes">
     <div class="mode-group">
-      <button class="mode-btn active" data-mode="time">⏱️ Time</button>
-      <button class="mode-btn" data-mode="words">📝 Words</button>
-      <button class="mode-btn" data-mode="paragraphs">📄 Paragraphs</button>
-      <button class="mode-btn" data-mode="letters">🔤 Letters</button>
-      <button class="mode-btn" data-mode="lessons">🎓 Lessons</button>
-      <button class="mode-btn" data-mode="quote">📜 Quotes</button>
-      <button class="mode-btn" data-mode="code">💻 Code</button>
-      <button class="mode-btn" data-mode="weak">🎯 Weak Keys</button>
-      <button class="mode-btn" data-mode="arcade">👾 Word Rain</button>
+      <button type="button" class="mode-btn" data-mode="tutorial">🧭 Tutorial</button>
+      <button type="button" class="mode-btn" data-mode="lessons">🎓 Lessons</button>
+      <button type="button" class="mode-btn" data-mode="adaptive">🧠 Adaptive AI</button>
+      <button type="button" class="mode-btn active" data-mode="time">⏱️ Time</button>
+      <button type="button" class="mode-btn" data-mode="words">📝 Words</button>
+      <button type="button" class="mode-btn" data-mode="paragraphs">📄 Paragraphs</button>
+      <button type="button" class="mode-btn" data-mode="letters">🔤 Letters</button>
+      <button type="button" class="mode-btn" data-mode="quote">📜 Quotes</button>
+      <button type="button" class="mode-btn" data-mode="code">💻 Code</button>
+      <button type="button" class="mode-btn" data-mode="weak">🎯 Weak Keys</button>
+      <button type="button" class="mode-btn" data-mode="custom">✍️ Custom</button>
+      <button type="button" class="mode-btn" data-mode="arcade">👾 Word Rain</button>
     </div>
 
-    <!-- Contextual Sub-Options (Time / Words / Lessons selector) -->
-    <div class="sub-options" id="subOptions">
-      <span class="sub-btn" data-val="15">15s</span>
-      <span class="sub-btn active" data-val="30">30s</span>
-      <span class="sub-btn" data-val="60">60s</span>
-      <span class="sub-btn" data-val="120">120s</span>
+    <div class="sub-options-cluster">
+      <!-- Contextual Sub-Options (Time / Words / Lessons selector) -->
+      <div class="sub-options" id="subOptions">
+        <button type="button" class="sub-btn" data-val="15">15s</button>
+        <button type="button" class="sub-btn active" data-val="30">30s</button>
+        <button type="button" class="sub-btn" data-val="60">60s</button>
+        <button type="button" class="sub-btn" data-val="120">120s</button>
+      </div>
+
+      <!-- Optional Punctuation / Numbers Modifiers for Time & Words modes -->
+      <div class="modifier-toggles" id="modToggles">
+        <button type="button" class="mod-pill" id="btnModPunct" title="Include Punctuation & Capitals">@ Punctuation</button>
+        <button type="button" class="mod-pill" id="btnModNums" title="Include Numbers"># Numbers</button>
+      </div>
     </div>
   </nav>
 
@@ -529,7 +836,35 @@
         <div class="stat-label">Accuracy</div>
         <div class="stat-val warning" id="hudAcc">100%</div>
       </div>
+      <div class="stat-box">
+        <div class="stat-label">Streak</div>
+        <div class="stat-val green" id="hudStreak">0🔥</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Latency</div>
+        <div class="stat-val" id="hudLatency">—</div>
+      </div>
     </div>
+
+    <!-- Interactive Step-by-Step Tutorial & Lesson Briefing Card -->
+    <section class="tutorial-briefing" id="tutorialBriefing" aria-live="polite">
+      <div class="tut-info">
+        <div class="tut-title-row">
+          <span class="tut-step-badge" id="tutBadge">STEP 1 / 10</span>
+          <span class="tut-title" id="tutTitle">Tactile Index Anchors (F &amp; J)</span>
+          <div class="tut-keys-badges" id="tutKeyChips"></div>
+        </div>
+        <p class="tut-desc" id="tutDesc">Feel the raised homing bumps on F and J with your Left and Right Index fingers. Keep all 8 fingers gently curved on the Home Row (A S D F — J K L ;) and thumbs resting over Space.</p>
+        <div class="tut-posture-tip" id="tutPostureTip">💡 Ergonomic Check: Keep wrists floating neutral — never bend wrists upward against the desk edge.</div>
+      </div>
+      <div class="tut-nav-btns">
+        <button type="button" class="btn-icon" id="btnPrevStep" title="Previous Tutorial Step">◀ Prev</button>
+        <button type="button" class="btn-icon" id="btnNextStep" title="Next Tutorial Step">Next ▶</button>
+      </div>
+    </section>
+
+    <!-- Keybr-Style Per-Key Confidence & Mastery Strip -->
+    <div class="keybr-strip" id="keybrStrip" title="Per-Key Mastery & Confidence Telemetry"></div>
 
     <!-- Mavis Beacon Coach & Target Guidance Banner -->
     <div class="coach-banner" id="coachBanner">
@@ -538,18 +873,25 @@
         <span class="target-key-pill" id="targetKeyDisplay">T</span>
         <span>• Touch Finger:</span>
         <span class="finger-indicator" id="fingerIndicator">Left Index Finger</span>
+        <span class="coach-biomechanics" id="coachBiomechanics">(Home anchor: F)</span>
       </div>
       <div class="pace-tracker">
-        <span>Target Pace: <strong>75 WPM</strong></span>
+        <div class="start-prompt" id="startPrompt">
+          <span>⌨️ Ready — Type First Letter to Start</span>
+          <span class="start-prompt-sub">• Tab + Enter to Reset</span>
+        </div>
+        <span>Target Pace: <strong id="lblTargetPace">75 WPM</strong></span>
+        <span class="pace-delta ahead" id="lblPaceDelta">Ready</span>
       </div>
     </div>
 
     <!-- Typing Canvas / Words Viewport -->
-    <div class="typing-container" id="typeCanvas" tabindex="0">
-      <div class="cursor" id="typeCursor"></div>
-      <div class="ghost-cursor" id="ghostCursor"></div>
-      <div id="wordsWrapper"></div>
-      <div class="start-prompt" id="startPrompt">Click or Press Any Key to Begin Protocol</div>
+    <div class="typing-container focused" id="typeCanvas" data-typing-input="true" tabindex="0" role="region" aria-label="Typing Practice Area">
+      <div id="wordsViewport">
+        <div class="cursor" id="typeCursor"></div>
+        <div class="ghost-cursor" id="ghostCursor"></div>
+        <div id="wordsWrapper"></div>
+      </div>
     </div>
 
     <!-- Dual Hands Interactive Visualizer (Left & Right Hands - Mavis Beacon Signature) -->
@@ -557,117 +899,118 @@
       <!-- Left Hand -->
       <div class="hand-box">
         <span class="hand-label">Left Hand</span>
-        <svg class="hand-svg" viewBox="0 0 240 100">
-          <!-- Palm Base -->
+        <svg class="hand-svg" viewBox="0 0 240 100" aria-hidden="true">
           <path d="M 30 95 Q 60 70 120 70 Q 180 70 210 95 Z" fill="#0f172a" stroke="#334155" stroke-width="1.5"/>
-          <!-- Left Pinky -->
           <rect class="finger" data-finger="l-pinky" x="25" y="32" width="22" height="52" rx="10"/>
-          <!-- Left Ring -->
           <rect class="finger" data-finger="l-ring" x="55" y="16" width="24" height="66" rx="11"/>
-          <!-- Left Middle -->
           <rect class="finger" data-finger="l-middle" x="87" y="8" width="24" height="74" rx="11"/>
-          <!-- Left Index -->
           <rect class="finger" data-finger="l-index" x="119" y="18" width="24" height="64" rx="11"/>
-          <!-- Left Thumb -->
           <rect class="finger" data-finger="thumb" x="156" y="44" width="26" height="46" rx="12" transform="rotate(24 169 67)"/>
         </svg>
+      </div>
+
+      <!-- Finger Color Zone Legend -->
+      <div class="finger-legend-card">
+        <span class="hand-label">Touch-Typing Finger Zones</span>
+        <div class="legend-swatches">
+          <span class="swatch-item"><i class="swatch-dot" style="background:var(--neon-pink)"></i>Pinky</span>
+          <span class="swatch-item"><i class="swatch-dot" style="background:var(--neon-orange)"></i>Ring</span>
+          <span class="swatch-item"><i class="swatch-dot" style="background:var(--neon-green)"></i>Middle</span>
+          <span class="swatch-item"><i class="swatch-dot" style="background:var(--neon-cyan)"></i>Index</span>
+          <span class="swatch-item"><i class="swatch-dot" style="background:var(--neon-purple)"></i>Thumb</span>
+        </div>
+        <span style="color:var(--text-dim); font-size:0.62rem;">Opposite-hand Pinky holds Shift for capitals</span>
       </div>
 
       <!-- Right Hand -->
       <div class="hand-box">
         <span class="hand-label">Right Hand</span>
-        <svg class="hand-svg" viewBox="0 0 240 100">
-          <!-- Palm Base -->
+        <svg class="hand-svg" viewBox="0 0 240 100" aria-hidden="true">
           <path d="M 30 95 Q 60 70 120 70 Q 180 70 210 95 Z" fill="#0f172a" stroke="#334155" stroke-width="1.5"/>
-          <!-- Right Thumb -->
           <rect class="finger" data-finger="thumb" x="58" y="44" width="26" height="46" rx="12" transform="rotate(-24 71 67)"/>
-          <!-- Right Index -->
           <rect class="finger" data-finger="r-index" x="97" y="18" width="24" height="64" rx="11"/>
-          <!-- Right Middle -->
           <rect class="finger" data-finger="r-middle" x="129" y="8" width="24" height="74" rx="11"/>
-          <!-- Right Ring -->
           <rect class="finger" data-finger="r-ring" x="161" y="16" width="24" height="66" rx="11"/>
-          <!-- Right Pinky -->
           <rect class="finger" data-finger="r-pinky" x="193" y="32" width="22" height="52" rx="10"/>
         </svg>
       </div>
     </div>
 
-    <!-- Interactive Mechanical QWERTY Keyboard -->
-    <div class="keyboard-box" id="keyboardArea">
+    <!-- Interactive Mechanical Keyboard -->
+    <div class="keyboard-box show-zones" id="keyboardArea">
       <!-- Row 1 -->
       <div class="keyboard-row">
-        <div class="key" data-key="`">`</div>
-        <div class="key" data-finger="l-pinky" data-key="1">1</div>
-        <div class="key" data-finger="l-ring" data-key="2">2</div>
-        <div class="key" data-finger="l-middle" data-key="3">3</div>
-        <div class="key" data-finger="l-index" data-key="4">4</div>
-        <div class="key" data-finger="l-index" data-key="5">5</div>
-        <div class="key" data-finger="r-index" data-key="6">6</div>
-        <div class="key" data-finger="r-index" data-key="7">7</div>
-        <div class="key" data-finger="r-middle" data-key="8">8</div>
-        <div class="key" data-finger="r-ring" data-key="9">9</div>
-        <div class="key" data-finger="r-pinky" data-key="0">0</div>
-        <div class="key" data-finger="r-pinky" data-key="-">-</div>
-        <div class="key" data-finger="r-pinky" data-key="=">=</div>
-        <div class="key key-wide-2" data-key="Backspace">Back</div>
+        <div class="key" data-finger="l-pinky" data-key="`"><span class="key-sub">~</span><span class="key-lbl">`</span></div>
+        <div class="key" data-finger="l-pinky" data-key="1"><span class="key-sub">!</span><span class="key-lbl">1</span></div>
+        <div class="key" data-finger="l-ring" data-key="2"><span class="key-sub">@</span><span class="key-lbl">2</span></div>
+        <div class="key" data-finger="l-middle" data-key="3"><span class="key-sub">#</span><span class="key-lbl">3</span></div>
+        <div class="key" data-finger="l-index" data-key="4"><span class="key-sub">$</span><span class="key-lbl">4</span></div>
+        <div class="key" data-finger="l-index" data-key="5"><span class="key-sub">%</span><span class="key-lbl">5</span></div>
+        <div class="key" data-finger="r-index" data-key="6"><span class="key-sub">^</span><span class="key-lbl">6</span></div>
+        <div class="key" data-finger="r-index" data-key="7"><span class="key-sub">&amp;</span><span class="key-lbl">7</span></div>
+        <div class="key" data-finger="r-middle" data-key="8"><span class="key-sub">*</span><span class="key-lbl">8</span></div>
+        <div class="key" data-finger="r-ring" data-key="9"><span class="key-sub">(</span><span class="key-lbl">9</span></div>
+        <div class="key" data-finger="r-pinky" data-key="0"><span class="key-sub">)</span><span class="key-lbl">0</span></div>
+        <div class="key" data-finger="r-pinky" data-key="-"><span class="key-sub">_</span><span class="key-lbl">-</span></div>
+        <div class="key" data-finger="r-pinky" data-key="="><span class="key-sub">+</span><span class="key-lbl">=</span></div>
+        <div class="key key-wide-2" data-finger="r-pinky" data-key="Backspace">Back</div>
       </div>
       <!-- Row 2 -->
       <div class="keyboard-row">
-        <div class="key key-wide-1" data-key="Tab">Tab</div>
-        <div class="key" data-finger="l-pinky" data-key="q">Q</div>
-        <div class="key" data-finger="l-ring" data-key="w">W</div>
-        <div class="key" data-finger="l-middle" data-key="e">E</div>
-        <div class="key" data-finger="l-index" data-key="r">R</div>
-        <div class="key" data-finger="l-index" data-key="t">T</div>
-        <div class="key" data-finger="r-index" data-key="y">Y</div>
-        <div class="key" data-finger="r-index" data-key="u">U</div>
-        <div class="key" data-finger="r-middle" data-key="i">I</div>
-        <div class="key" data-finger="r-ring" data-key="o">O</div>
-        <div class="key" data-finger="r-pinky" data-key="p">P</div>
-        <div class="key" data-finger="r-pinky" data-key="[">[</div>
-        <div class="key" data-finger="r-pinky" data-key="]">]</div>
-        <div class="key key-wide-1" data-finger="r-pinky" data-key="\\">\</div>
+        <div class="key key-wide-1" data-finger="l-pinky" data-key="Tab">Tab</div>
+        <div class="key" data-pos="r2c0" data-finger="l-pinky" data-key="q">Q</div>
+        <div class="key" data-pos="r2c1" data-finger="l-ring" data-key="w">W</div>
+        <div class="key" data-pos="r2c2" data-finger="l-middle" data-key="e">E</div>
+        <div class="key" data-pos="r2c3" data-finger="l-index" data-key="r">R</div>
+        <div class="key" data-pos="r2c4" data-finger="l-index" data-key="t">T</div>
+        <div class="key" data-pos="r2c5" data-finger="r-index" data-key="y">Y</div>
+        <div class="key" data-pos="r2c6" data-finger="r-index" data-key="u">U</div>
+        <div class="key" data-pos="r2c7" data-finger="r-middle" data-key="i">I</div>
+        <div class="key" data-pos="r2c8" data-finger="r-ring" data-key="o">O</div>
+        <div class="key" data-pos="r2c9" data-finger="r-pinky" data-key="p">P</div>
+        <div class="key" data-pos="r2c10" data-finger="r-pinky" data-key="["><span class="key-sub">{</span><span class="key-lbl">[</span></div>
+        <div class="key" data-pos="r2c11" data-finger="r-pinky" data-key="]"><span class="key-sub">}</span><span class="key-lbl">]</span></div>
+        <div class="key key-wide-1" data-finger="r-pinky" data-key="\\"><span class="key-sub">|</span><span class="key-lbl">\</span></div>
       </div>
       <!-- Row 3 (Home Row) -->
       <div class="keyboard-row">
-        <div class="key key-wide-2" data-key="CapsLock">Caps</div>
-        <div class="key" data-finger="l-pinky" data-key="a">A</div>
-        <div class="key" data-finger="l-ring" data-key="s">S</div>
-        <div class="key" data-finger="l-middle" data-key="d">D</div>
-        <div class="key" data-finger="l-index" data-key="f">F</div>
-        <div class="key" data-finger="l-index" data-key="g">G</div>
-        <div class="key" data-finger="r-index" data-key="h">H</div>
-        <div class="key" data-finger="r-index" data-key="j">J</div>
-        <div class="key" data-finger="r-middle" data-key="k">K</div>
-        <div class="key" data-finger="r-ring" data-key="l">L</div>
-        <div class="key" data-finger="r-pinky" data-key=";">;</div>
-        <div class="key" data-finger="r-pinky" data-key="'">'</div>
-        <div class="key key-wide-2" data-key="Enter">Enter</div>
+        <div class="key key-wide-2" data-finger="l-pinky" data-key="CapsLock">Caps</div>
+        <div class="key" data-pos="r3c0" data-finger="l-pinky" data-key="a">A</div>
+        <div class="key" data-pos="r3c1" data-finger="l-ring" data-key="s">S</div>
+        <div class="key" data-pos="r3c2" data-finger="l-middle" data-key="d">D</div>
+        <div class="key homing" data-pos="r3c3" data-finger="l-index" data-key="f">F</div>
+        <div class="key" data-pos="r3c4" data-finger="l-index" data-key="g">G</div>
+        <div class="key" data-pos="r3c5" data-finger="r-index" data-key="h">H</div>
+        <div class="key homing" data-pos="r3c6" data-finger="r-index" data-key="j">J</div>
+        <div class="key" data-pos="r3c7" data-finger="r-middle" data-key="k">K</div>
+        <div class="key" data-pos="r3c8" data-finger="r-ring" data-key="l">L</div>
+        <div class="key" data-pos="r3c9" data-finger="r-pinky" data-key=";"><span class="key-sub">:</span><span class="key-lbl">;</span></div>
+        <div class="key" data-pos="r3c10" data-finger="r-pinky" data-key="'"><span class="key-sub">"</span><span class="key-lbl">'</span></div>
+        <div class="key key-wide-2" data-finger="r-pinky" data-key="Enter">Enter</div>
       </div>
       <!-- Row 4 -->
       <div class="keyboard-row">
         <div class="key key-wide-3" data-finger="l-pinky" data-key="ShiftLeft">Shift</div>
-        <div class="key" data-finger="l-pinky" data-key="z">Z</div>
-        <div class="key" data-finger="l-ring" data-key="x">X</div>
-        <div class="key" data-finger="l-middle" data-key="c">C</div>
-        <div class="key" data-finger="l-index" data-key="v">V</div>
-        <div class="key" data-finger="l-index" data-key="b">B</div>
-        <div class="key" data-finger="r-index" data-key="n">N</div>
-        <div class="key" data-finger="r-index" data-key="m">M</div>
-        <div class="key" data-finger="r-middle" data-key=",">,</div>
-        <div class="key" data-finger="r-ring" data-key=".">.</div>
-        <div class="key" data-finger="r-pinky" data-key="/">/</div>
+        <div class="key" data-pos="r4c0" data-finger="l-pinky" data-key="z">Z</div>
+        <div class="key" data-pos="r4c1" data-finger="l-ring" data-key="x">X</div>
+        <div class="key" data-pos="r4c2" data-finger="l-middle" data-key="c">C</div>
+        <div class="key" data-pos="r4c3" data-finger="l-index" data-key="v">V</div>
+        <div class="key" data-pos="r4c4" data-finger="l-index" data-key="b">B</div>
+        <div class="key" data-pos="r4c5" data-finger="r-index" data-key="n">N</div>
+        <div class="key" data-pos="r4c6" data-finger="r-index" data-key="m">M</div>
+        <div class="key" data-pos="r4c7" data-finger="r-middle" data-key=","><span class="key-sub">&lt;</span><span class="key-lbl">,</span></div>
+        <div class="key" data-pos="r4c8" data-finger="r-ring" data-key="."><span class="key-sub">&gt;</span><span class="key-lbl">.</span></div>
+        <div class="key" data-pos="r4c9" data-finger="r-pinky" data-key="/"><span class="key-sub">?</span><span class="key-lbl">/</span></div>
         <div class="key key-wide-3" data-finger="r-pinky" data-key="ShiftRight">Shift</div>
       </div>
       <!-- Row 5 -->
       <div class="keyboard-row">
         <div class="key key-wide-1" data-key="ControlLeft">Ctrl</div>
-        <div class="key" data-key="MetaLeft">Win</div>
+        <div class="key" data-key="MetaLeft">Cmd</div>
         <div class="key key-wide-1" data-key="AltLeft">Alt</div>
         <div class="key key-space" data-finger="thumb" data-key=" ">Space</div>
         <div class="key key-wide-1" data-key="AltRight">Alt</div>
-        <div class="key" data-key="MetaRight">Win</div>
+        <div class="key" data-key="MetaRight">Cmd</div>
         <div class="key key-wide-1" data-key="ControlRight">Ctrl</div>
       </div>
     </div>
@@ -678,16 +1021,19 @@
     <div class="arcade-hud">
       <div class="arcade-hud-box">SCORE: <span id="arcScore" style="color:var(--neon-cyan)">0</span></div>
       <div class="arcade-hud-box">DEFENSE SHIELD: <span id="arcShield" style="color:var(--neon-green)">100%</span></div>
-      <div class="arcade-hud-box">WAVE: <span id="arcWave" style="color:var(--neon-yellow)">1</span></div>
-      <button class="btn-action secondary" id="btnExitArcade" style="padding:6px 18px; font-size:0.8rem;">EXIT ARCADE</button>
+      <div class="arcade-hud-box">WAVE: <span id="arcWave" style="color:var(--neon-yellow)">1</span> • COMBO: <span id="arcCombo" style="color:var(--neon-pink)">1x</span></div>
+      <button type="button" class="btn-action secondary" id="btnExitArcade" style="padding:0.4rem 1.1rem; font-size:0.78rem; pointer-events:auto;">EXIT ARCADE</button>
     </div>
     <canvas id="arcadeCanvas"></canvas>
   </div>
 
   <!-- End-of-Session Analytics & Results Overlay -->
   <div class="results-overlay" id="resultsOverlay">
-    <h2 class="res-title">SESSION METRICS TELEMETRY</h2>
-    
+    <div class="res-header-row">
+      <h2 class="res-title">SESSION METRICS TELEMETRY</h2>
+      <div class="res-stars" id="resStars" title="Lesson Star Rating">⭐⭐⭐</div>
+    </div>
+
     <div class="res-grid">
       <div class="res-card">
         <div class="label">NET SPEED</div>
@@ -705,6 +1051,10 @@
         <div class="label">CONSISTENCY</div>
         <div class="val" id="resConsistency">0%</div>
       </div>
+      <div class="res-card">
+        <div class="label">AVG LATENCY</div>
+        <div class="val" id="resLatency">0ms</div>
+      </div>
     </div>
 
     <!-- Live WPM & Errors Trajectory Chart -->
@@ -712,42 +1062,134 @@
       <canvas id="resChart"></canvas>
     </div>
 
-    <!-- Weak Keys & Badges Area -->
+    <!-- Weak Keys, Finger Breakdown & Badges Area -->
     <div class="analytics-row">
       <div class="analysis-panel">
-        <h4>Target Practice / Problem Keys</h4>
+        <h3>Target Practice / Problem Keys</h3>
         <div class="weak-keys-list" id="resWeakKeys">
           <span style="color:var(--text-muted); font-size:0.8rem;">None detected! Clean typing.</span>
         </div>
       </div>
       <div class="analysis-panel">
-        <h4>Badges & Mastery Achievements</h4>
-        <div id="resBadges" style="display:flex; gap:8px; flex-wrap:wrap;">
+        <h3>Per-Finger Accuracy Telemetry</h3>
+        <div class="finger-mini-bars" id="resFingerBars"></div>
+      </div>
+      <div class="analysis-panel">
+        <h3>Badges &amp; Mastery Achievements</h3>
+        <div id="resBadges" style="display:flex; gap:0.4rem; flex-wrap:wrap;">
           <span class="badge-pill">🚀 First Steps</span>
         </div>
       </div>
     </div>
 
     <div class="action-row">
-      <button class="btn-action" id="btnNextTest">NEXT PROTOCOL (TAB + ENTER)</button>
-      <button class="btn-action secondary" id="btnDrillWeak">DRILL WEAK KEYS</button>
+      <button type="button" class="btn-action" id="btnNextTest">NEXT PROTOCOL (TAB + ENTER)</button>
+      <button type="button" class="btn-action secondary" id="btnAdvanceLesson" style="display:none;">NEXT LESSON ▶</button>
+      <button type="button" class="btn-action secondary" id="btnDrillWeak">DRILL WEAK KEYS</button>
     </div>
   </div>
 
+  <!-- Native Dialog 1: Interactive Touch-Typing & Ergonomics Guide -->
+  <dialog class="cyber-dialog" id="dlgGuide" closedby="any">
+    <div class="dialog-header">
+      <h2>📖 Modern Touch-Typing Methodology &amp; Ergonomics</h2>
+      <button type="button" class="btn-icon" id="btnCloseGuide">✕</button>
+    </div>
+    <div class="guide-grid">
+      <div class="guide-box">
+        <h3>1. Tactile Home Row Anchors</h3>
+        <p>Rest your Left Index on <strong>F</strong> and Right Index on <strong>J</strong>—feel the physical tactile ridges without looking down. Curve your remaining fingers over <strong>A S D</strong> and <strong>K L ;</strong>. After every upper or lower row reach, snap that finger immediately back to its home key.</p>
+      </div>
+      <div class="guide-box">
+        <h3>2. Floating Wrists &amp; Posture</h3>
+        <p>Sit with elbows at a 90°–100° open angle. Keep your wrists straight and hovering slightly during active bursts rather than planting heavy weight on the desk edge, preventing carpal tunnel compression and ulnar deviation.</p>
+      </div>
+      <div class="guide-box">
+        <h3>3. Opposite-Hand Shift Rule</h3>
+        <p>When typing a capital letter or shifted symbol, never press Shift and the letter with the same hand. If the target key is typed with your Left Hand, hold <strong>Right Shift</strong> with your Right Pinky (and vice versa).</p>
+      </div>
+      <div class="guide-box">
+        <h3>4. Rhythm &amp; Look-Ahead Vision</h3>
+        <p>Elite 120+ WPM typists do not rush fast keys and stall on hard keys—they type with a steady metronomic cadence while keeping their eyes 1 to 2 words ahead of the active caret. Accuracy above 97% builds automatic muscle memory.</p>
+      </div>
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
+      <button type="button" class="btn-action" id="btnStartGuidedTutorial">START INTERACTIVE 10-STEP TUTORIAL</button>
+    </div>
+  </dialog>
+
+  <!-- Native Dialog 2: 18-Lesson Structured Academy Curriculum Map -->
+  <dialog class="cyber-dialog" id="dlgCurriculum" closedby="any">
+    <div class="dialog-header">
+      <h2>🎓 CyberType Academy — 18-Lesson Mastery Curriculum</h2>
+      <button type="button" class="btn-icon" id="btnCloseCurriculum">✕</button>
+    </div>
+    <div class="curriculum-grid" id="curriculumGrid"></div>
+  </dialog>
+
+  <!-- Native Dialog 3: Custom Text & Drill Studio -->
+  <dialog class="cyber-dialog" id="dlgCustom" closedby="any">
+    <div class="dialog-header">
+      <h2>✍️ Custom Practice Text &amp; Code Drill Builder</h2>
+      <button type="button" class="btn-icon" id="btnCloseCustom">✕</button>
+    </div>
+    <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.6rem;">Paste any book passage, technical documentation, study notes, or source code snippet to practice with full biometric telemetry:</p>
+    <textarea class="custom-textarea" id="txtCustomInput" placeholder="Paste or type your custom practice text here...">Touch typing is the ability to type using all ten fingers without looking at the keys. By anchoring your index fingers on the tactile bumps of F and J, your brain builds spatial muscle memory for every character on the keyboard.</textarea>
+    <div style="display:flex; justify-content:flex-end; gap:0.65rem;">
+      <button type="button" class="btn-action" id="btnApplyCustom">LAUNCH CUSTOM DRILL</button>
+    </div>
+  </dialog>
+
+  <!-- Native Dialog 4: Career Profile & Per-Key Telemetry -->
+  <dialog class="cyber-dialog" id="dlgCareer" closedby="any">
+    <div class="dialog-header">
+      <h2>🏆 Career Biometric Telemetry &amp; Key Mastery</h2>
+      <button type="button" class="btn-icon" id="btnCloseCareer">✕</button>
+    </div>
+    <div class="res-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1rem;">
+      <div class="res-card">
+        <div class="label">PERSONAL BEST</div>
+        <div class="val wpm" id="carPB">0</div>
+      </div>
+      <div class="res-card">
+        <div class="label">SESSIONS COMPLETED</div>
+        <div class="val" id="carSessions">0</div>
+      </div>
+      <div class="res-card">
+        <div class="label">TOTAL WORDS TYPED</div>
+        <div class="val raw" id="carWords">0</div>
+      </div>
+      <div class="res-card">
+        <div class="label">LESSONS STARRED</div>
+        <div class="val acc" id="carStars">0 / 54⭐</div>
+      </div>
+    </div>
+    <div class="analysis-panel" style="margin-bottom:1rem;">
+      <h3>All-Time Per-Key Confidence &amp; Latency</h3>
+      <div id="careerKeyGrid" style="display:flex; flex-wrap:wrap; gap:0.35rem; margin-top:0.5rem;"></div>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <button type="button" class="btn-action secondary" id="btnResetCareer" style="font-size:0.75rem; padding:0.45rem 1rem;">Reset Telemetry</button>
+      <button type="button" class="btn-action" id="btnCareerCloseAction" style="font-size:0.8rem; padding:0.5rem 1.4rem;">Done</button>
+    </div>
+  </dialog>
+
   <script>
     // -------------------------------------------------------------------------
-    // 1. Text Repositories & Curricula Generator
+    // 1. Text Repositories, Interactive 10-Step Tutorial & 18-Lesson Curriculum
     // -------------------------------------------------------------------------
     const commonWords = [
-      "the", "be", "of", "and", "a", "to", "in", "he", "have", "it", "that", "for", "they", "I", "with", "as", "not", "on", "she", "at", 
-      "by", "this", "we", "you", "do", "but", "from", "or", "which", "one", "would", "all", "will", "there", "say", "who", "make", "when", 
-      "can", "more", "if", "no", "man", "out", "other", "so", "what", "time", "up", "go", "about", "than", "into", "could", "state", "only", 
-      "new", "year", "some", "take", "come", "these", "know", "see", "use", "get", "like", "then", "first", "any", "work", "now", "may", 
-      "such", "give", "over", "think", "most", "even", "find", "day", "also", "after", "way", "many", "must", "look", "before", "great", 
-      "back", "through", "long", "where", "much", "should", "well", "people", "down", "own", "just", "because", "good", "each", "those", 
-      "feel", "seem", "how", "high", "too", "place", "little", "world", "very", "still", "nation", "hand", "old", "life", "tell", "write", 
-      "become", "here", "show", "house", "both", "between", "need", "mean", "call", "develop", "under", "last", "right", "move", "thing", 
-      "general", "school", "never", "same", "another", "begin", "while", "number", "part", "turn", "real", "leave", "might", "want", "point"
+      "the", "be", "of", "and", "a", "to", "in", "he", "have", "it", "that", "for", "they", "I", "with", "as", "not", "on", "she", "at",
+      "by", "this", "we", "you", "do", "but", "from", "or", "which", "one", "would", "all", "will", "there", "say", "who", "make", "when",
+      "can", "more", "if", "no", "man", "out", "other", "so", "what", "time", "up", "go", "about", "than", "into", "could", "state", "only",
+      "new", "year", "some", "take", "come", "these", "know", "see", "use", "get", "like", "then", "first", "any", "work", "now", "may",
+      "such", "give", "over", "think", "most", "even", "find", "day", "also", "after", "way", "many", "must", "look", "before", "great",
+      "back", "through", "long", "where", "much", "should", "well", "people", "down", "own", "just", "because", "good", "each", "those",
+      "feel", "seem", "how", "high", "too", "place", "little", "world", "very", "still", "nation", "hand", "old", "life", "tell", "write",
+      "become", "here", "show", "house", "both", "between", "need", "mean", "call", "develop", "under", "last", "right", "move", "thing",
+      "general", "school", "never", "same", "another", "begin", "while", "number", "part", "turn", "real", "leave", "might", "want", "point",
+      "system", "program", "question", "number", "always", "power", "change", "follow", "around", "possible", "large", "small", "early",
+      "course", "public", "consider", "service", "feature", "pattern", "signal", "memory", "future", "design", "create", "modern", "focus"
     ];
 
     const quotesList = [
@@ -757,55 +1199,202 @@
       "Experience is the name everyone gives to their mistakes.",
       "In order to be irreplaceable, one must always be different.",
       "Knowledge is power, but enthusiasm pulls the switch.",
-      "Simplicity is prerequisite for reliability."
+      "Simplicity is prerequisite for reliability.",
+      "Talk is cheap. Show me the code.",
+      "Programs must be written for people to read, and only incidentally for machines to execute.",
+      "The best way to predict the future is to invent it.",
+      "Controlling complexity is the essence of computer programming.",
+      "Smooth seas do not make skillful sailors; steady rhythm builds effortless speed."
     ];
 
-    const codeSnippets = [
-      "const debounce = (fn, ms) => { let id; return (...args) => { clearTimeout(id); id = setTimeout(() => fn(...args), ms); }; };",
-      "async function fetchData(url) { const res = await fetch(url); if (!res.ok) throw new Error(res.statusText); return res.json(); }",
-      "const filtered = items.filter(x => x.active).map(x => ({ id: x.id, value: x.amount * 1.15 }));",
-      "export class WebAudioSynth { constructor(ctx) { this.ctx = ctx; this.gain = ctx.createGain(); } play() { return true; } }",
-      "function binarySearch(arr, target) { let left = 0, right = arr.length - 1; while (left <= right) { const mid = (left + right) >> 1; } }"
-    ];
+    const codeCatalog = {
+      ts: [
+        "const debounce = (fn, ms) => { let id; return (...args) => { clearTimeout(id); id = setTimeout(() => fn(...args), ms); }; };",
+        "async function fetchData(url) { const res = await fetch(url); if (!res.ok) throw new Error(res.statusText); return res.json(); }",
+        "const filtered = items.filter(x => x.active).map(x => ({ id: x.id, value: x.amount * 1.15 }));",
+        "export class WebAudioSynth { constructor(ctx) { this.ctx = ctx; this.gain = ctx.createGain(); } play() { return true; } }",
+        "function binarySearch(arr, target) { let left = 0, right = arr.length - 1; while (left <= right) { const mid = (left + right) >> 1; } }"
+      ],
+      py: [
+        "def quicksort(arr): return arr if len(arr) <= 1 else quicksort([x for x in arr[1:] if x < arr[0]]) + [arr[0]]",
+        "with open('telemetry.json', 'r', encoding='utf-8') as f: records = [row['wpm'] for row in json.load(f) if row['acc'] >= 95]",
+        "async def fetch_metrics(session, url): async with session.get(url) as resp: return await resp.json()"
+      ],
+      rust: [
+        "pub fn sum_even_squares(nums: &[i64]) -> i64 { nums.iter().copied().filter(|n| n % 2 == 0).map(|n| n * n).sum() }",
+        "match fs::read_to_string(&path) { Ok(content) => println!(\"{} bytes\", content.len()), Err(e) => eprintln!(\"Error: {e}\") }"
+      ],
+      sql: [
+        "SELECT user_id, ROUND(AVG(net_wpm), 1) AS avg_wpm, MAX(accuracy) AS best_acc FROM sessions GROUP BY user_id HAVING COUNT(*) >= 5;",
+        "CREATE INDEX idx_telemetry_created ON typing_sessions (user_id, created_at DESC) WHERE accuracy >= 96.0;"
+      ],
+      sh: [
+        "git log --oneline --graph --decorate -n 15 && rg -n \"createTypingStudio\" applications/ src/ tests/",
+        "find . -maxdepth 2 -name \"*.ts\" -print0 | xargs -0 wc -l | sort -nr | head -n 10"
+      ]
+    };
+    const codeSnippets = codeCatalog.ts;
 
     const paragraphsList = [
       "The quick brown fox jumps over the lazy dog. This sentence contains every letter in the English alphabet. Typing it repeatedly is a great way to improve your speed and accuracy on a standard QWERTY keyboard layout.",
       "In the beginning the Universe was created. This has made a lot of people very angry and been widely regarded as a bad move. Many races believe that it was created by some sort of god.",
       "The term 'cyberspace' was coined by William Gibson in his 1982 short story 'Burning Chrome'. It popularized the concept of a global computer network, well before the World Wide Web was invented.",
       "Mechanical keyboards offer a tactile typing experience that many professionals and enthusiasts prefer. The distinct feedback from each keystroke can lead to faster typing speeds and reduced finger fatigue during long sessions.",
-      "To be, or not to be, that is the question: Whether 'tis nobler in the mind to suffer The slings and arrows of outrageous fortune, Or to take Arms against a Sea of troubles, And by opposing end them."
+      "To be, or not to be, that is the question: Whether 'tis nobler in the mind to suffer The slings and arrows of outrageous fortune, Or to take Arms against a Sea of troubles, And by opposing end them.",
+      "Touch typing relies on procedural muscle memory stored in the cerebellum and basal ganglia. When you resist looking down at the keycaps and trust the tactile bumps on F and J, your neural pathways wire direct finger trajectories."
     ];
 
     const lettersList = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-
-    const lessonCurriculum = [
-      { name: "Home Row Mastery", pool: ["asdf", "jkl;", "fdsa", "asdf jkl;", "fads", "glad", "flask", "half", "fall", "salad", "dads", "sash"] },
-      { name: "Home Row + E & I", pool: ["fed", "led", "see", "fee", "lie", "die", "kid", "ill", "silk", "like", "file", "idle", "elite", "life"] },
-      { name: "Home Row + R & U", pool: ["fur", "rug", "run", "red", "sir", "rule", "sure", "user", "fire", "rare", "dark", "rail", "risk", "surf"] },
-      { name: "Top Row Letters", pool: ["type", "quiet", "power", "tower", "wire", "quote", "write", "pretty", "equity", "report", "poetry", "proper"] },
-      { name: "Bottom Row Letters", pool: ["zone", "vex", "calm", "zero", "maze", "brave", "vocal", "cabin", "climb", "blank", "mixer", "zenith"] },
-      { name: "Numbers & Symbols", pool: ["123", "456", "789", "2026", "item #4", "value: $50", "score = 100%", "count + 1", "test (v2.0)"] }
+    // Interactive 10-Step Guided Onboarding Tutorial
+    const interactiveTutorialSteps = [
+      {
+        title: "Tactile Index Anchors (F & J)",
+        keys: ["F", "J", "Space"],
+        desc: "Place your Left Index on F and Right Index on J. Feel the raised homing bumps without looking down. Strike F, J, and Space with steady rhythm.",
+        tip: "Keep your eyes on the screen! Trust the physical ridges on F and J.",
+        words: ["f", "j", "ff", "jj", "fj", "jf", "fff", "jjj", "fjf", "jfj", "ff", "jj", "fj", "jf", "fjf", "jfj"]
+      },
+      {
+        title: "Home Row Middle Fingers (D & K)",
+        keys: ["D", "K", "F", "J"],
+        desc: "Curve your Left Middle finger onto D and Right Middle finger onto K. Combine D, F, J, and K with relaxed wrist posture.",
+        tip: "Press each key with the pad of your fingertip, keeping fingers gently curved.",
+        words: ["d", "k", "dd", "kk", "df", "jk", "fd", "kj", "dfjk", "kjfd", "dk", "kd", "dfd", "kjk", "fjdk", "dkfj"]
+      },
+      {
+        title: "Home Row Ring & Pinky (S, L, A, ;)",
+        keys: ["S", "L", "A", ";"],
+        desc: "Complete the 8-finger Home Row stance: Left Ring on S, Left Pinky on A, Right Ring on L, Right Pinky on ;.",
+        tip: "Do not flare your elbows outward; keep forearms parallel to the keyboard.",
+        words: ["s", "l", "a", ";", "asdf", "jkl;", "fdsa", ";lkj", "sad", "lad", "all", "fall", "ask", "flask", "salad", "falls"]
+      },
+      {
+        title: "Center Index Reaches (G & H)",
+        keys: ["G", "H"],
+        desc: "Your Left Index reaches one key right from F to G, and your Right Index reaches one key left from J to H, then snaps right back!",
+        tip: "Always return your index finger to F or J immediately after striking G or H.",
+        words: ["fg", "jh", "gf", "hj", "had", "has", "half", "glad", "hash", "hall", "shag", "flag", "gash", "dash", "flash", "shall"]
+      },
+      {
+        title: "Upper Row Core Vowels (E & I)",
+        keys: ["E", "I"],
+        desc: "Reach up with your Left Middle finger from D to E, and Right Middle finger from K to I. Keep your index anchors resting on F and J!",
+        tip: "Move only the reaching finger—keep the rest of your hand hovering over the Home Row.",
+        words: ["de", "ki", "ed", "ik", "see", "did", "lie", "fed", "side", "life", "file", "like", "ideal", "field", "slide", "skill"]
+      },
+      {
+        title: "Upper Row Index Power (R, U, T, Y)",
+        keys: ["R", "U", "T", "Y"],
+        desc: "Left Index reaches up to R and T; Right Index reaches up to U and Y. These four keys unlock hundreds of English words.",
+        tip: "For T and Y, pivot slightly from the index knuckle and snap back to F and J.",
+        words: ["fr", "ju", "ft", "jy", "true", "turn", "fire", "jury", "try", "fruit", "first", "study", "trust", "dirty", "shirt", "thirty"]
+      },
+      {
+        title: "Upper Row Outer Keys (W, O, Q, P)",
+        keys: ["W", "O", "Q", "P"],
+        desc: "Ring fingers reach up to W and O; Pinkies reach up to Q and P. You now command the entire Upper and Home rows!",
+        tip: "Let your hand glide slightly forward if your pinky is short, then re-home on F and J.",
+        words: ["sw", "lo", "aq", ";p", "word", "work", "power", "quote", "world", "proud", "people", "proper", "report", "liquid", "flower", "support"]
+      },
+      {
+        title: "Bottom Row Inner Reaches (V, M, B, N)",
+        keys: ["V", "M", "B", "N"],
+        desc: "Curl your Left Index down to V and B, and your Right Index down to M and N.",
+        tip: "Curl the finger inward toward your palm rather than sliding your whole arm down.",
+        words: ["fv", "jm", "fb", "jn", "man", "van", "name", "even", "never", "move", "number", "member", "moment", "banner", "burn", "verb"]
+      },
+      {
+        title: "Bottom Row Outer & Punctuation (C, X, Z, ,, ., /)",
+        keys: ["C", "X", "Z", ",", ".", "/"],
+        desc: "Complete the full alphabet and core punctuation with Middle, Ring, and Pinky downward reaches.",
+        tip: "Keep your rhythm steady—slow down slightly on Z and X until accuracy hits 98%.",
+        words: ["dc", "sx", "az", "k,", "l.", ";/", "zone", "next", "voice", "exact", "citizen", "complex", "zero.", "focus,", "quick/fast", "amaze."]
+      },
+      {
+        title: "Opposite-Hand Shift & Full Speed Synthesis",
+        keys: ["Shift", "A–Z"],
+        desc: "Use Right Shift for Left-Hand capitals and Left Shift for Right-Hand capitals. Combine all rows into fluent sentences!",
+        tip: "Read 1–2 words ahead of your active word so your fingers never wait for your eyes.",
+        words: ["The", "Quick", "Brown", "Fox", "Jumps", "Over", "Lazy", "Dogs.", "Master", "Every", "Keystroke", "With", "Precision", "And", "Steady", "Flow."]
+      }
     ];
 
-    // Finger zone mapping for Coach Guidance & Hands
+    // 18-Lesson Mastery Curriculum
+    const lessonCurriculum = [
+      { name: "Home Row Mastery", tier: "Tier 1: Foundation", pool: ["asdf", "jkl;", "fdsa", "asdf jkl;", "fads", "glad", "flask", "half", "fall", "salad", "dads", "sash"] },
+      { name: "Home Row + E & I", tier: "Tier 1: Foundation", pool: ["fed", "led", "see", "fee", "lie", "die", "kid", "ill", "silk", "like", "file", "idle", "elite", "life"] },
+      { name: "Home Row + R & U", tier: "Tier 1: Foundation", pool: ["fur", "rug", "run", "red", "sir", "rule", "sure", "user", "fire", "rare", "dark", "rail", "risk", "surf"] },
+      { name: "Top Row Letters", tier: "Tier 2: Expansion", pool: ["type", "quiet", "power", "tower", "wire", "quote", "write", "pretty", "equity", "report", "poetry", "proper"] },
+      { name: "Bottom Row Letters", tier: "Tier 2: Expansion", pool: ["zone", "vex", "calm", "zero", "maze", "brave", "vocal", "cabin", "climb", "blank", "mixer", "zenith"] },
+      { name: "Numbers & Symbols", tier: "Tier 3: Precision", pool: ["123", "456", "789", "2026", "item #4", "value: $50", "score = 100%", "count + 1", "test (v2.0)"] },
+      { name: "Index Reach G, H, T, Y", tier: "Tier 1: Foundation", pool: ["high", "that", "they", "ight", "truth", "youth", "sight", "light", "right", "thought", "height", "bright"] },
+      { name: "Ring & Pinky Precision", tier: "Tier 2: Expansion", pool: ["plaza", "quartz", "wax", "opal", "quip", "puzzle", "oxygen", "wizard", "polar", "pixel", "plaque", "zephyr"] },
+      { name: "Opposite-Hand Shift", tier: "Tier 3: Precision", pool: ["Alice", "Boston", "Cyber", "Delta", "Tokyo", "London", "Saturn", "Neptune", "Quantum", "Beacon", "Matrix", "Phoenix"] },
+      { name: "Punctuation Flow", tier: "Tier 3: Precision", pool: ["Wait,", "don't", "stop!", "Yes;", "it's", "clear.", "\"Hello,\"", "world!", "fast-very", "well-done;", "ready?", "go!"] },
+      { name: "Top 25 English Bigrams", tier: "Tier 4: Fluency", pool: ["the", "and", "tha", "ent", "ing", "ion", "tio", "for", "nde", "has", "nce", "edt", "tis", "oft", "sth", "men"] },
+      { name: "High-Speed Trigrams", tier: "Tier 4: Fluency", pool: ["there", "their", "other", "would", "which", "about", "after", "think", "every", "under", "great", "state", "world"] },
+      { name: "Double-Letter Rhythm", tier: "Tier 4: Fluency", pool: ["letter", "coffee", "committee", "success", "balloon", "bookkeeper", "screen", "speed", "channel", "pattern", "current"] },
+      { name: "Alphabet Pangrams", tier: "Tier 5: Speed", pool: ["sphinx", "quartz", "judge", "vow", "pack", "dozen", "liquor", "jugs", "quick", "brown", "fox", "jumps", "lazy", "dog"] },
+      { name: "Developer Brackets & Ops", tier: "Tier 6: Polyglot Code", pool: ["() => {}", "arr[i]", "obj?.id", "a !== b", "x && y", "val ?? 0", "${name}", "fn<T>(x: T)", "list[0..5]", "a |= b"] },
+      { name: "TypeScript & React", tier: "Tier 6: Polyglot Code", pool: ["interface", "readonly", "useEffect", "useState", "Promise<void>", "export", "default", "async", "await", "return"] },
+      { name: "Shell & Git Workflow", tier: "Tier 6: Polyglot Code", pool: ["git status", "git commit -m", "bun test", "chmod +x", "grep -rn", "curl -sL", "docker ps", "ssh-keygen", "tar -xzf"] },
+      { name: "Grandmaster Endurance", tier: "Tier 5: Speed", pool: ["architecture", "synchronization", "microsecond", "cryptographic", "biometric", "telecommunications", "infrastructure", "parallelism"] }
+    ];
+
+    // Hardware Keyboard Layouts Map (Row 2, Row 3, Row 4 character mappings)
+    const keyboardLayouts = {
+      qwerty: {
+        r2: ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]"],
+        r3: ["a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'"],
+        r4: ["z", "x", "c", "v", "b", "n", "m", ",", ".", "/"]
+      },
+      colemak: {
+        r2: ["q", "w", "f", "p", "g", "j", "l", "u", "y", ";", "[", "]"],
+        r3: ["a", "r", "s", "t", "d", "h", "n", "e", "i", "o", "'"],
+        r4: ["z", "x", "c", "v", "b", "k", "m", ",", ".", "/"]
+      },
+      dvorak: {
+        r2: ["'", ",", ".", "p", "y", "f", "g", "c", "r", "l", "/", "="],
+        r3: ["a", "o", "e", "u", "i", "d", "h", "t", "n", "s", "-"],
+        r4: [";", "q", "j", "k", "x", "b", "m", "w", "v", "z"]
+      },
+      workman: {
+        r2: ["q", "d", "r", "w", "b", "j", "f", "u", "p", ";", "[", "]"],
+        r3: ["a", "s", "h", "t", "g", "y", "n", "e", "o", "i", "'"],
+        r4: ["z", "x", "m", "c", "v", "k", "l", ",", ".", "/"]
+      }
+    };
+
+    // Finger zone mapping for Coach Guidance & Hands (rebuilt dynamically when layout changes)
     const fingerMap = {
-      '`': 'l-pinky', '1': 'l-pinky', 'q': 'l-pinky', 'a': 'l-pinky', 'z': 'l-pinky',
-      '2': 'l-ring', 'w': 'l-ring', 's': 'l-ring', 'x': 'l-ring',
-      '3': 'l-middle', 'e': 'l-middle', 'd': 'l-middle', 'c': 'l-middle',
-      '4': 'l-index', '5': 'l-index', 'r': 'l-index', 't': 'l-index', 'f': 'l-index', 'g': 'l-index', 'v': 'l-index', 'b': 'l-index',
+      '`': 'l-pinky', '~': 'l-pinky', '1': 'l-pinky', '!': 'l-pinky', 'q': 'l-pinky', 'a': 'l-pinky', 'z': 'l-pinky',
+      '2': 'l-ring', '@': 'l-ring', 'w': 'l-ring', 's': 'l-ring', 'x': 'l-ring',
+      '3': 'l-middle', '#': 'l-middle', 'e': 'l-middle', 'd': 'l-middle', 'c': 'l-middle',
+      '4': 'l-index', '$': 'l-index', '5': 'l-index', '%': 'l-index', 'r': 'l-index', 't': 'l-index', 'f': 'l-index', 'g': 'l-index', 'v': 'l-index', 'b': 'l-index',
       ' ': 'thumb',
-      '6': 'r-index', '7': 'r-index', 'y': 'r-index', 'u': 'r-index', 'h': 'r-index', 'j': 'r-index', 'n': 'r-index', 'm': 'r-index',
-      '8': 'r-middle', 'i': 'r-middle', 'k': 'r-middle', ',': 'r-middle',
-      '9': 'r-ring', 'o': 'r-ring', 'l': 'r-ring', '.': 'r-ring',
-      '0': 'r-pinky', '-': 'r-pinky', '=': 'r-pinky', 'p': 'r-pinky', '[': 'r-pinky', ']': 'r-pinky', '\\': 'r-pinky',
-      ';': 'r-pinky', '\'': 'r-pinky', '/': 'r-pinky'
+      '6': 'r-index', '^': 'r-index', '7': 'r-index', '&': 'r-index', 'y': 'r-index', 'u': 'r-index', 'h': 'r-index', 'j': 'r-index', 'n': 'r-index', 'm': 'r-index',
+      '8': 'r-middle', '*': 'r-middle', 'i': 'r-middle', 'k': 'r-middle', ',': 'r-middle', '<': 'r-middle',
+      '9': 'r-ring', '(': 'r-ring', 'o': 'r-ring', 'l': 'r-ring', '.': 'r-ring', '>': 'r-ring',
+      '0': 'r-pinky', ')': 'r-pinky', '-': 'r-pinky', '_': 'r-pinky', '=': 'r-pinky', '+': 'r-pinky', 'p': 'r-pinky', '[': 'r-pinky', '{': 'r-pinky', ']': 'r-pinky', '}': 'r-pinky', '\\': 'r-pinky', '|': 'r-pinky',
+      ';': 'r-pinky', ':': 'r-pinky', '\'': 'r-pinky', '"': 'r-pinky', '/': 'r-pinky', '?': 'r-pinky'
+    };
+
+    const shiftedToBase = {
+      '~': '`', '!': '1', '@': '2', '#': '3', '$': '4', '%': '5', '^': '6', '&': '7', '*': '8', '(': '9', ')': '0',
+      '_': '-', '+': '=', '{': '[', '}': ']', '|': '\\', ':': ';', '"': '\'', '<': ',', '>': '.', '?': '/'
     };
 
     const fingerNames = {
       'l-pinky': 'Left Pinky', 'l-ring': 'Left Ring', 'l-middle': 'Left Middle', 'l-index': 'Left Index',
       'thumb': 'Spacebar (Thumbs)',
       'r-index': 'Right Index', 'r-middle': 'Right Middle', 'r-ring': 'Right Ring', 'r-pinky': 'Right Pinky'
+    };
+
+    let fingerHomeAnchors = {
+      'l-pinky': 'Home anchor: A', 'l-ring': 'Home anchor: S', 'l-middle': 'Home anchor: D', 'l-index': 'Home anchor: F (bump)',
+      'thumb': 'Rest over center Spacebar',
+      'r-index': 'Home anchor: J (bump)', 'r-middle': 'Home anchor: K', 'r-ring': 'Home anchor: L', 'r-pinky': 'Home anchor: ;'
     };
 
     // -------------------------------------------------------------------------
@@ -824,36 +1413,33 @@
       return {
         setProfile(p) { profile = p; },
         getProfile() { return profile; },
+        stopMusic() {
+          try { if (ctx && ctx.state === 'running') ctx.suspend(); } catch (_) {}
+        },
         playKey(isSpace = false) {
           if (profile === "mute") return;
           try {
             const ac = getCtx();
             const now = ac.currentTime;
-            
+
             if (profile === "thock") {
-              // Deep Gateron Ink Black acoustic bottom out
               const osc = ac.createOscillator();
               const gain = ac.createGain();
               const filter = ac.createBiquadFilter();
-              
               osc.type = "sine";
               osc.frequency.setValueAtTime(isSpace ? 110 : 160 + Math.random() * 25, now);
               osc.frequency.exponentialRampToValueAtTime(35, now + 0.04);
-              
               filter.type = "lowpass";
               filter.frequency.value = 850;
-
               gain.gain.setValueAtTime(0.35, now);
               gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-
               osc.connect(filter);
               filter.connect(gain);
               gain.connect(ac.destination);
               osc.start(now);
               osc.stop(now + 0.04);
-            } 
+            }
             else if (profile === "clicky") {
-              // Crisp Box White mechanical switch click
               const osc = ac.createOscillator();
               const gain = ac.createGain();
               osc.type = "triangle";
@@ -865,9 +1451,34 @@
               gain.connect(ac.destination);
               osc.start(now);
               osc.stop(now + 0.015);
-            } 
+            }
+            else if (profile === "panda") {
+              const osc = ac.createOscillator();
+              const gain = ac.createGain();
+              osc.type = "triangle";
+              osc.frequency.setValueAtTime(isSpace ? 180 : 260 + Math.random() * 35, now);
+              osc.frequency.exponentialRampToValueAtTime(65, now + 0.032);
+              gain.gain.setValueAtTime(0.28, now);
+              gain.gain.exponentialRampToValueAtTime(0.001, now + 0.032);
+              osc.connect(gain);
+              gain.connect(ac.destination);
+              osc.start(now);
+              osc.stop(now + 0.032);
+            }
+            else if (profile === "topre") {
+              const osc = ac.createOscillator();
+              const gain = ac.createGain();
+              osc.type = "sine";
+              osc.frequency.setValueAtTime(isSpace ? 95 : 135 + Math.random() * 15, now);
+              osc.frequency.exponentialRampToValueAtTime(28, now + 0.05);
+              gain.gain.setValueAtTime(0.32, now);
+              gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+              osc.connect(gain);
+              gain.connect(ac.destination);
+              osc.start(now);
+              osc.stop(now + 0.05);
+            }
             else if (profile === "typewriter") {
-              // Striker sound
               const osc = ac.createOscillator();
               const gain = ac.createGain();
               osc.type = "sawtooth";
@@ -881,7 +1492,6 @@
               osc.stop(now + 0.03);
 
               if (isSpace) {
-                // Typewriter bell chime
                 const bell = ac.createOscillator();
                 const bellGain = ac.createGain();
                 bell.type = "sine";
@@ -893,9 +1503,8 @@
                 bell.start(now);
                 bell.stop(now + 0.35);
               }
-            } 
+            }
             else if (profile === "cyber") {
-              // Retro 80s arcade synth pip
               const osc = ac.createOscillator();
               const gain = ac.createGain();
               osc.type = "square";
@@ -927,32 +1536,111 @@
             osc.start(now);
             osc.stop(now + 0.1);
           } catch(e) {}
+        },
+        playFanfare() {
+          if (profile === "mute") return;
+          try {
+            const ac = getCtx();
+            const notes = [523.25, 659.25, 783.99, 1046.5];
+            notes.forEach((freq, idx) => {
+              const osc = ac.createOscillator();
+              const gain = ac.createGain();
+              const start = ac.currentTime + idx * 0.07;
+              osc.type = "triangle";
+              osc.frequency.setValueAtTime(freq, start);
+              gain.gain.setValueAtTime(0.12, start);
+              gain.gain.exponentialRampToValueAtTime(0.001, start + 0.22);
+              osc.connect(gain);
+              gain.connect(ac.destination);
+              osc.start(start);
+              osc.stop(start + 0.22);
+            });
+          } catch(e) {}
         }
       };
     })();
+    window.AudioEngine = AudioEngine;
 
     // -------------------------------------------------------------------------
-    // 3. Application State & Telemetry Store
+    // 3. Persistent Career & Per-Key Telemetry Store (localStorage)
     // -------------------------------------------------------------------------
-    let currentMode = "time"; // 'time', 'words', 'lessons', 'quote', 'code', 'weak', 'arcade'
-    let currentSubVal = 30;   // 15, 30, 60, 120 or word count / lesson index
+    const STORAGE_KEY = "cybertype_master_telemetry_v2";
+    let careerStore = {
+      pbWpm: 0,
+      sessions: 0,
+      totalWords: 0,
+      lessonStars: {},
+      keyStats: {},
+      fingerStats: {}
+    };
+
+    function loadCareerStore() {
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          careerStore = Object.assign(careerStore, parsed);
+        }
+      } catch (_) {}
+      updateCareerHeaderUI();
+    }
+
+    function saveCareerStore() {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(careerStore));
+      } catch (_) {}
+      updateCareerHeaderUI();
+    }
+
+    function getCareerRankTitle(pb, sessions) {
+      if (pb >= 110) return "Apex Grandmaster";
+      if (pb >= 85) return "Neural Cypher";
+      if (pb >= 65) return "Syntax Runner";
+      if (pb >= 45) return "Cyber Scribe";
+      if (sessions >= 3 || pb >= 25) return "Terminal Operator";
+      return "Novice Operator";
+    }
+
+    function updateCareerHeaderUI() {
+      document.getElementById('lblCareerRank').textContent = getCareerRankTitle(careerStore.pbWpm, careerStore.sessions);
+      document.getElementById('lblCareerPB').textContent = `PB: ${careerStore.pbWpm} WPM`;
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. Application State & Live Session Telemetry
+    // -------------------------------------------------------------------------
+    let currentMode = "time";
+    let currentSubVal = 30;
+    let currentCodeLang = "ts";
+    let includePunctuation = false;
+    let includeNumbers = false;
+    let customPracticeText = "Touch typing is the ability to type using all ten fingers without looking at the keys. By anchoring your index fingers on the tactile bumps of F and J, your brain builds spatial muscle memory for every character on the keyboard.";
+
     let words = [];
     let typedWords = [];
     let activeWordIdx = 0;
+    let scrollOffsetPx = 0;
 
     let isRunning = false;
     let isFinished = false;
     let startTime = 0;
+    let lastKeyTime = 0;
     let timerInterval = null;
+    let ghostInterval = null;
     let timeRemaining = 30;
+    let targetPaceWpm = 75;
 
-    // Detailed metrics tracking for analytics
+    // Session metrics
     let charsTyped = 0;
     let charsCorrect = 0;
     let charsIncorrect = 0;
     let charsExtra = 0;
-    let missedKeysMap = {}; // key -> count of misses
-    let wpmSnapshots = [];  // array of { sec, wpm, errors }
+    let currentStreak = 0;
+    let bestStreak = 0;
+    let latenciesMs = [];
+    let missedKeysMap = {};
+    let sessionFingerStats = {};
+    let wpmSnapshots = [];
 
     // DOM Elements
     const elCanvas = document.getElementById('typeCanvas');
@@ -965,61 +1653,193 @@
     const elWpm = document.getElementById('hudWPM');
     const elRaw = document.getElementById('hudRaw');
     const elAcc = document.getElementById('hudAcc');
+    const elStreak = document.getElementById('hudStreak');
+    const elLatency = document.getElementById('hudLatency');
     const elHud = document.getElementById('hudBar');
     const elTargetKey = document.getElementById('targetKeyDisplay');
     const elFingerIndicator = document.getElementById('fingerIndicator');
+    const elCoachBiomechanics = document.getElementById('coachBiomechanics');
     const elSubOptions = document.getElementById('subOptions');
+    const elTutorialBriefing = document.getElementById('tutorialBriefing');
+    const elKeybrStrip = document.getElementById('keybrStrip');
 
     // -------------------------------------------------------------------------
-    // 4. Test Generation & Flow Control
+    // 5. Keybr-Style Adaptive Word Synthesizer & Mastery Strip
+    // -------------------------------------------------------------------------
+    const phoneticOnsets = ["th", "ch", "sh", "st", "pr", "tr", "gr", "cr", "pl", "cl", "sp", "fl", "br", "dr", "fr", "t", "n", "s", "r", "l", "d", "c", "m", "p", "b", "v", "w", "k", "j", "qu", "z"];
+    const phoneticVowels = ["a", "e", "i", "o", "u", "ea", "ou", "ai", "oo", "ee"];
+    const phoneticCodas = ["nd", "nt", "nk", "st", "rk", "rd", "lt", "mp", "ng", "n", "r", "s", "l", "t", "d", "m", "p", "ck", "x", "z"];
+
+    function getAdaptiveFocusLetters() {
+      const alphabet = "etaoinshrdlcumwfgypbvkjxqz".split("");
+      const scored = alphabet.map(ch => {
+        const st = careerStore.keyStats[ch] || { hits: 0, misses: 0, totalMs: 0 };
+        const total = st.hits + st.misses;
+        const errRate = total > 0 ? st.misses / total : 0.25;
+        const avgMs = st.hits > 0 ? st.totalMs / st.hits : 240;
+        const weaknessScore = (errRate * 100) + (avgMs / 8) + (total < 6 ? 12 : 0);
+        return { ch, weaknessScore, total, errRate, avgMs };
+      });
+      scored.sort((a, b) => b.weaknessScore - a.weaknessScore);
+      return scored.slice(0, 4).map(s => s.ch);
+    }
+
+    function generateAdaptiveWords(count) {
+      const focusChars = getAdaptiveFocusLetters();
+      const result = [];
+      for (let i = 0; i < count; i++) {
+        const targetChar = focusChars[i % focusChars.length];
+        const matchingReal = commonWords.filter(w => w.toLowerCase().includes(targetChar));
+        if (matchingReal.length > 0 && Math.random() < 0.65) {
+          result.push(matchingReal[Math.floor(Math.random() * matchingReal.length)]);
+        } else {
+          const onset = phoneticOnsets[Math.floor(Math.random() * phoneticOnsets.length)];
+          const vowel = phoneticVowels[Math.floor(Math.random() * phoneticVowels.length)];
+          const coda = phoneticCodas[Math.floor(Math.random() * phoneticCodas.length)];
+          result.push(onset + vowel + targetChar + coda);
+        }
+      }
+      return result;
+    }
+
+    function renderKeybrMasteryStrip() {
+      const showStrip = (currentMode === "adaptive" || currentMode === "weak" || currentMode === "tutorial" || currentMode === "lessons");
+      elKeybrStrip.classList.toggle("visible", showStrip);
+      if (!showStrip) return;
+
+      const focusSet = new Set(getAdaptiveFocusLetters());
+      const letters = "abcdefghijklmnopqrstuvwxyz".split("");
+      elKeybrStrip.innerHTML = "";
+
+      letters.forEach(ch => {
+        const st = careerStore.keyStats[ch] || { hits: 0, misses: 0, totalMs: 0 };
+        const total = st.hits + st.misses;
+        const acc = total > 0 ? st.hits / total : 0;
+        const confidence = Math.min(100, Math.round(acc * 100 * Math.min(1, total / 8)));
+
+        const cell = document.createElement("div");
+        cell.className = "keybr-cell";
+        if (focusSet.has(ch) && (currentMode === "adaptive" || currentMode === "weak")) cell.classList.add("focus-key");
+        else if (confidence >= 85) cell.classList.add("mastered");
+        else if (total >= 3 && acc < 0.8) cell.classList.add("weak-key");
+
+        cell.title = `${ch.toUpperCase()}: ${confidence}% Mastery (${st.hits} hits, ${st.misses} misses)`;
+        cell.innerHTML = `<span>${ch.toUpperCase()}</span><div class="keybr-bar" style="width:${confidence}%"></div>`;
+        elKeybrStrip.appendChild(cell);
+      });
+    }
+
+    function updateKeyboardHeatmap() {
+      const kb = document.getElementById("keyboardArea");
+      kb.querySelectorAll(".key").forEach(k => {
+        k.classList.remove("heat-good", "heat-warn", "heat-bad");
+        const ch = (k.dataset.key || "").toLowerCase();
+        if (!ch || ch.length !== 1) return;
+        const st = careerStore.keyStats[ch];
+        if (!st || (st.hits + st.misses) === 0) return;
+        const acc = st.hits / (st.hits + st.misses);
+        if (acc >= 0.94) k.classList.add("heat-good");
+        else if (acc >= 0.82) k.classList.add("heat-warn");
+        else k.classList.add("heat-bad");
+      });
+    }
+
+    // -------------------------------------------------------------------------
+    // 6. Test Generation & Flow Control
     // -------------------------------------------------------------------------
     function initTest() {
       clearInterval(timerInterval);
+      clearInterval(ghostInterval);
       typedWords = [];
       activeWordIdx = 0;
+      scrollOffsetPx = 0;
       isRunning = false;
       isFinished = false;
       charsTyped = 0; charsCorrect = 0; charsIncorrect = 0; charsExtra = 0;
+      currentStreak = 0; bestStreak = 0;
+      latenciesMs = [];
+      sessionFingerStats = {};
       wpmSnapshots = [];
-      
+      lastKeyTime = 0;
+
       elHud.classList.remove('active');
       document.getElementById('resultsOverlay').classList.remove('show');
-      elStartPrompt.style.display = 'flex';
+      document.getElementById('btnAdvanceLesson').style.display = 'none';
+      elStartPrompt.style.display = 'inline-flex';
+      elGhost.classList.remove('active');
+      document.getElementById('lblPaceDelta').textContent = 'Ready';
+      document.getElementById('lblPaceDelta').className = 'pace-delta ahead';
 
-      // Mode-specific word generation
-      if (currentMode === "time") {
-        timeRemaining = currentSubVal;
+      const showMods = (currentMode === "time" || currentMode === "words");
+      document.getElementById('modToggles').style.display = showMods ? 'flex' : 'none';
+      elTutorialBriefing.classList.toggle('visible', currentMode === "tutorial" || currentMode === "lessons");
+
+      if (currentMode === "tutorial") {
+        const stepIdx = Math.max(0, Math.min(interactiveTutorialSteps.length - 1, Number(currentSubVal) || 0));
+        const step = interactiveTutorialSteps[stepIdx];
+        document.getElementById('tutBadge').textContent = `TUTORIAL ${stepIdx + 1} / ${interactiveTutorialSteps.length}`;
+        document.getElementById('tutTitle').textContent = step.title;
+        document.getElementById('tutDesc').textContent = step.desc;
+        document.getElementById('tutPostureTip').textContent = `💡 Ergonomic Check: ${step.tip}`;
+        const chipsEl = document.getElementById('tutKeyChips');
+        chipsEl.innerHTML = '';
+        step.keys.forEach(k => {
+          const span = document.createElement('span');
+          span.className = 'tut-key-chip';
+          span.textContent = k;
+          chipsEl.appendChild(span);
+        });
+        words = step.words.slice();
+        elRemainingLbl.textContent = "Step";
+        elTime.textContent = `${stepIdx + 1}/${interactiveTutorialSteps.length}`;
+      }
+      else if (currentMode === "lessons") {
+        const lIdx = Math.max(0, Math.min(lessonCurriculum.length - 1, Number(currentSubVal) || 0));
+        const lesson = lessonCurriculum[lIdx];
+        document.getElementById('tutBadge').textContent = `${lesson.tier} • L${lIdx + 1}`;
+        document.getElementById('tutTitle').textContent = lesson.name;
+        document.getElementById('tutDesc').textContent = `Master the ${lesson.name} drill with 96%+ accuracy to earn 3 Stars (⭐⭐⭐). Keep unused fingers lightly anchored on F and J.`;
+        document.getElementById('tutPostureTip').textContent = `💡 Goal: Maintain steady inter-keystroke rhythm without looking down at the keyboard.`;
+        document.getElementById('tutKeyChips').innerHTML = '';
+        elRemainingLbl.textContent = "Lesson";
+        elTime.textContent = (lIdx + 1);
+        words = [];
+        for (let i = 0; i < 36; i++) {
+          const token = lesson.pool[Math.floor(Math.random() * lesson.pool.length)];
+          token.split(" ").forEach(part => { if (part) words.push(part); });
+        }
+      }
+      else if (currentMode === "adaptive") {
+        words = generateAdaptiveWords(Number(currentSubVal) || 25);
+        elRemainingLbl.textContent = "Adaptive";
+        elTime.textContent = words.length;
+      }
+      else if (currentMode === "time") {
+        timeRemaining = Number(currentSubVal) || 30;
         elRemainingLbl.textContent = "Time";
         elTime.textContent = timeRemaining;
-        words = generateRandomWords(150);
-      } 
+        words = generateRandomWords(160);
+      }
       else if (currentMode === "words") {
         timeRemaining = 0;
+        const count = Number(currentSubVal) || 25;
         elRemainingLbl.textContent = "Remaining";
-        elTime.textContent = currentSubVal;
-        words = generateRandomWords(currentSubVal);
-      } 
-      else if (currentMode === "lessons") {
-        const lesson = lessonCurriculum[currentSubVal] || lessonCurriculum[0];
-        elRemainingLbl.textContent = "Lesson";
-        elTime.textContent = (currentSubVal + 1);
-        words = [];
-        for (let i = 0; i < 40; i++) {
-          words.push(lesson.pool[Math.floor(Math.random() * lesson.pool.length)]);
-        }
-      } 
+        elTime.textContent = count;
+        words = generateRandomWords(count);
+      }
       else if (currentMode === "quote") {
         const q = quotesList[Math.floor(Math.random() * quotesList.length)];
         words = q.split(" ");
         elRemainingLbl.textContent = "Quote";
         elTime.textContent = words.length;
-      } 
+      }
       else if (currentMode === "code") {
-        const c = codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
+        const pool = codeCatalog[currentCodeLang] || codeSnippets;
+        const c = pool[Math.floor(Math.random() * pool.length)];
         words = c.split(" ");
         elRemainingLbl.textContent = "Code";
         elTime.textContent = words.length;
-      } 
+      }
       else if (currentMode === "paragraphs") {
         const p = paragraphsList[Math.floor(Math.random() * paragraphsList.length)];
         words = p.split(" ");
@@ -1028,21 +1848,21 @@
       }
       else if (currentMode === "letters") {
         timeRemaining = 0;
+        const count = Number(currentSubVal) || 25;
         elRemainingLbl.textContent = "Remaining";
-        elTime.textContent = currentSubVal;
+        elTime.textContent = count;
         words = [];
-        for (let i = 0; i < currentSubVal; i++) {
+        for (let i = 0; i < count; i++) {
           let chunk = "";
-          for(let j=0; j<5; j++) chunk += lettersList[Math.floor(Math.random() * lettersList.length)];
+          for (let j = 0; j < 5; j++) chunk += lettersList[Math.floor(Math.random() * lettersList.length)];
           words.push(chunk);
         }
-      } 
+      }
       else if (currentMode === "weak") {
-        // Build drill from most missed keys or fallback
-        const weakList = Object.keys(missedKeysMap).sort((a,b) => missedKeysMap[b] - missedKeysMap[a]);
-        const keysToDrill = weakList.length >= 2 ? weakList.slice(0, 4) : ["p", "q", "b", "z", "x"];
+        const weakList = Object.keys(missedKeysMap).sort((a, b) => missedKeysMap[b] - missedKeysMap[a]);
+        const keysToDrill = weakList.length >= 2 ? weakList.slice(0, 4) : getAdaptiveFocusLetters();
         words = [];
-        for (let i = 0; i < 35; i++) {
+        for (let i = 0; i < 32; i++) {
           let chunk = "";
           for (let j = 0; j < 4; j++) chunk += keysToDrill[Math.floor(Math.random() * keysToDrill.length)];
           words.push(chunk);
@@ -1050,40 +1870,75 @@
         elRemainingLbl.textContent = "Drill";
         elTime.textContent = words.length;
       }
+      else if (currentMode === "custom") {
+        const cleaned = (customPracticeText || "Type your custom text here.").trim().replace(/\s+/g, " ");
+        words = cleaned.split(" ");
+        elRemainingLbl.textContent = "Custom";
+        elTime.textContent = words.length;
+      }
 
       elWpm.textContent = '0';
       elRaw.textContent = '0';
       elAcc.textContent = '100%';
+      elStreak.textContent = '0🔥';
+      elLatency.textContent = '—';
 
+      renderKeybrMasteryStrip();
+      updateKeyboardHeatmap();
       renderWords();
       updateCursor();
       updateTargetKeyAndHands();
-      elCanvas.focus();
+      elCanvas.classList.add('focused');
+      try { elCanvas.focus({ preventScroll: true }); } catch (_) {}
     }
 
     function generateRandomWords(count) {
-      let list = [];
-      for(let i=0; i<count; i++) {
-        list.push(commonWords[Math.floor(Math.random() * commonWords.length)]);
+      const punctMarks = [",", ".", ";", "!", "?"];
+      const list = [];
+      for (let i = 0; i < count; i++) {
+        if (includeNumbers && i % 6 === 4) {
+          list.push(String(10 + Math.floor(Math.random() * 980)));
+          continue;
+        }
+        let w = commonWords[Math.floor(Math.random() * commonWords.length)];
+        if (includePunctuation) {
+          if (i % 5 === 0) w = w.charAt(0).toUpperCase() + w.slice(1);
+          if (i % 4 === 3) w += punctMarks[Math.floor(Math.random() * punctMarks.length)];
+        }
+        list.push(w);
       }
       return list;
+    }
+
+    function createWordElement(w, i) {
+      const wordEl = document.createElement('div');
+      wordEl.className = 'word';
+      wordEl.dataset.idx = i;
+      w.split('').forEach(char => {
+        const charEl = document.createElement('span');
+        charEl.className = 'letter';
+        charEl.textContent = char;
+        wordEl.appendChild(charEl);
+      });
+      return wordEl;
     }
 
     function renderWords() {
       elWrapper.innerHTML = '';
       words.forEach((w, i) => {
-        const wordEl = document.createElement('div');
-        wordEl.className = 'word';
-        wordEl.dataset.idx = i;
-        w.split('').forEach(char => {
-          const charEl = document.createElement('span');
-          charEl.className = 'letter';
-          charEl.textContent = char;
-          wordEl.appendChild(charEl);
-        });
-        elWrapper.appendChild(wordEl);
+        elWrapper.appendChild(createWordElement(w, i));
       });
-      elWrapper.style.marginTop = '0px';
+      scrollOffsetPx = 0;
+      elWrapper.style.transform = 'translateY(0px)';
+    }
+
+    function appendMoreTimeWords() {
+      const extra = generateRandomWords(60);
+      const startIdx = words.length;
+      extra.forEach((w, idx) => {
+        words.push(w);
+        elWrapper.appendChild(createWordElement(w, startIdx + idx));
+      });
     }
 
     function startTimer() {
@@ -1093,6 +1948,13 @@
       elStartPrompt.style.display = 'none';
       elHud.classList.add('active');
 
+      const paceVal = document.getElementById('selPace').value;
+      targetPaceWpm = paceVal === "pb" ? (careerStore.pbWpm || 60) : parseInt(paceVal, 10);
+      if (targetPaceWpm > 0) {
+        elGhost.classList.add('active');
+        ghostInterval = setInterval(updateGhostCaret, 120);
+      }
+
       timerInterval = setInterval(() => {
         if (currentMode === "time") {
           timeRemaining--;
@@ -1101,53 +1963,145 @@
           updateLiveStats();
           if (timeRemaining <= 0) endTest();
         } else {
-          timeRemaining++; // elapsed seconds
+          timeRemaining++;
           recordSnapshot();
           updateLiveStats();
         }
       }, 1000);
     }
 
-    function recordSnapshot() {
+    function computeCaretCoordinates(wordIdx, charOffset) {
+      const wordEl = elWrapper.children[wordIdx];
+      if (!wordEl) return null;
+      const baseLeft = wordEl.offsetLeft;
+      const baseTop = wordEl.offsetTop - scrollOffsetPx + 4;
+
+      if (charOffset < wordEl.children.length) {
+        const charEl = wordEl.children[charOffset];
+        return {
+          left: baseLeft + (charEl ? charEl.offsetLeft : 0),
+          top: baseTop
+        };
+      }
+      const lastEl = wordEl.lastElementChild;
+      return {
+        left: baseLeft + (lastEl ? lastEl.offsetLeft + lastEl.offsetWidth : wordEl.offsetWidth),
+        top: baseTop
+      };
+    }
+
+    function updateGhostCaret() {
+      if (!isRunning || isFinished || targetPaceWpm <= 0) return;
       const elapsedMins = (Date.now() - startTime) / 60000;
-      const currentNetWPM = Math.round((charsCorrect / 5) / (elapsedMins || 0.001));
+      const expectedChars = Math.floor(elapsedMins * targetPaceWpm * 5);
+
+      let rem = expectedChars;
+      let gWordIdx = 0;
+      while (gWordIdx < words.length && rem > words[gWordIdx].length) {
+        rem -= (words[gWordIdx].length + 1);
+        gWordIdx++;
+      }
+      const clampedWordIdx = Math.min(gWordIdx, elWrapper.children.length - 1);
+      const pos = computeCaretCoordinates(clampedWordIdx, Math.max(0, rem));
+      if (pos) {
+        elGhost.style.left = `${pos.left}px`;
+        elGhost.style.top = `${pos.top}px`;
+      }
+    }
+
+    function recordSnapshot() {
+      const elapsedSec = Math.max(1, (Date.now() - startTime) / 1000);
+      const elapsedMins = elapsedSec / 60;
+      const currentNetWPM = Math.round((charsCorrect / 5) / elapsedMins);
+      const currentRawWPM = Math.round((charsTyped / 5) / elapsedMins);
       wpmSnapshots.push({
-        sec: Math.round((Date.now() - startTime) / 1000),
+        sec: Math.round(elapsedSec),
         wpm: currentNetWPM,
+        raw: currentRawWPM,
         errors: charsIncorrect + charsExtra
       });
     }
 
     function updateLiveStats() {
-      const elapsedMins = (Date.now() - startTime) / 60000 || 0.0001;
-      const netWpm = Math.round((charsCorrect / 5) / elapsedMins);
-      const rawWpm = Math.round((charsTyped / 5) / elapsedMins);
+      const elapsedMs = isRunning ? (Date.now() - startTime) : 0;
+      // Avoid astronomical 2,000 WPM spikes on the first keystrokes while always reporting positive WPM
+      const effectiveMins = Math.max(elapsedMs, charsTyped * 55, 500) / 60000;
+      const netWpm = charsCorrect > 0 ? Math.max(1, Math.round((charsCorrect / 5) / effectiveMins)) : 0;
+      const rawWpm = charsTyped > 0 ? Math.max(1, Math.round((charsTyped / 5) / effectiveMins)) : 0;
       const acc = charsTyped > 0 ? Math.round((charsCorrect / charsTyped) * 100) : 100;
 
-      elWpm.textContent = Math.max(0, netWpm);
-      elRaw.textContent = Math.max(0, rawWpm);
+      elWpm.textContent = netWpm;
+      elRaw.textContent = rawWpm;
       elAcc.textContent = `${acc}%`;
+      elStreak.textContent = `${currentStreak}🔥`;
 
-      if (currentMode === "words" || currentMode === "quote" || currentMode === "code" || currentMode === "weak" || currentMode === "paragraphs" || currentMode === "letters") {
+      if (latenciesMs.length > 0) {
+        const avgLat = Math.round(latenciesMs.reduce((a, b) => a + b, 0) / latenciesMs.length);
+        elLatency.textContent = `${avgLat}ms`;
+      }
+
+      if (targetPaceWpm > 0 && isRunning && charsTyped > 0) {
+        const diff = netWpm - targetPaceWpm;
+        const deltaEl = document.getElementById('lblPaceDelta');
+        deltaEl.textContent = diff >= 0 ? `+${diff} WPM ahead` : `${diff} WPM behind`;
+        deltaEl.className = `pace-delta ${diff >= 0 ? 'ahead' : 'behind'}`;
+      }
+
+      if (["words", "quote", "code", "weak", "paragraphs", "letters", "adaptive", "custom"].includes(currentMode)) {
         elTime.textContent = Math.max(0, words.length - activeWordIdx);
       }
     }
 
     function endTest() {
+      if (isFinished) return;
       clearInterval(timerInterval);
+      clearInterval(ghostInterval);
       isRunning = false;
       isFinished = true;
+      elGhost.classList.remove('active');
+      recordSnapshot();
       updateLiveStats();
+      AudioEngine.playFanfare();
 
-      // Show Results Overlay
+      const finalWpm = parseInt(elWpm.textContent, 10) || 0;
+      const finalAcc = parseInt(elAcc.textContent, 10) || 0;
+      const avgLat = latenciesMs.length > 0
+        ? Math.round(latenciesMs.reduce((a, b) => a + b, 0) / latenciesMs.length)
+        : 110;
+
+      careerStore.sessions += 1;
+      careerStore.totalWords += Math.max(1, activeWordIdx);
+      if (finalWpm > careerStore.pbWpm && finalAcc >= 85) {
+        careerStore.pbWpm = finalWpm;
+      }
+
+      let stars = 1;
+      if (finalAcc >= 96 && finalWpm >= 35) stars = 3;
+      else if (finalAcc >= 90 && finalWpm >= 20) stars = 2;
+      document.getElementById('resStars').textContent = "⭐".repeat(stars) + "☆".repeat(3 - stars);
+
+      if (currentMode === "lessons") {
+        const lIdx = Number(currentSubVal) || 0;
+        careerStore.lessonStars[lIdx] = Math.max(careerStore.lessonStars[lIdx] || 0, stars);
+        if (lIdx < lessonCurriculum.length - 1) {
+          document.getElementById('btnAdvanceLesson').style.display = 'inline-block';
+        }
+      } else if (currentMode === "tutorial") {
+        const sIdx = Number(currentSubVal) || 0;
+        if (sIdx < interactiveTutorialSteps.length - 1) {
+          document.getElementById('btnAdvanceLesson').style.display = 'inline-block';
+        }
+      }
+      saveCareerStore();
+
       const resOverlay = document.getElementById('resultsOverlay');
       document.getElementById('resWPM').textContent = elWpm.textContent;
       document.getElementById('resAcc').textContent = elAcc.textContent;
       document.getElementById('resRaw').textContent = elRaw.textContent;
+      document.getElementById('resLatency').textContent = `${avgLat}ms`;
 
-      // Consistency Calculation
-      let consistency = 88;
-      if (wpmSnapshots.length > 3) {
+      let consistency = 90;
+      if (wpmSnapshots.length > 2) {
         const wpms = wpmSnapshots.map(s => s.wpm);
         const mean = wpms.reduce((a, b) => a + b, 0) / wpms.length;
         const variance = wpms.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / wpms.length;
@@ -1156,33 +2110,35 @@
       }
       document.getElementById('resConsistency').textContent = `${consistency}%`;
 
-      // Render Performance Sparkline Chart
       renderResultsChart();
-
-      // Populate Weak Keys
       renderWeakKeysList();
-
-      // Populate Badges
-      evaluateBadges(parseInt(elWpm.textContent, 10), parseInt(elAcc.textContent, 10));
+      renderFingerBreakdown();
+      evaluateBadges(finalWpm, finalAcc);
 
       resOverlay.classList.add('show');
     }
 
     function renderResultsChart() {
       const canvas = document.getElementById('resChart');
-      const ctx = canvas.getContext('2d');
-      canvas.width = canvas.parentElement.clientWidth * 2;
-      canvas.height = canvas.parentElement.clientHeight * 2;
+      if (!canvas) return;
+      let ctx = null;
+      try {
+        ctx = canvas.getContext('2d');
+      } catch (_) {}
+      if (!ctx) return;
+      canvas.width = (canvas.parentElement.clientWidth || 800) * 2;
+      canvas.height = (canvas.parentElement.clientHeight || 115) * 2;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      if (wpmSnapshots.length < 2) return;
+      if (wpmSnapshots.length < 2) {
+        wpmSnapshots.push({ sec: 1, wpm: parseInt(elWpm.textContent, 10) || 40, raw: parseInt(elRaw.textContent, 10) || 40, errors: 0 });
+      }
 
-      const maxWpm = Math.max(60, ...wpmSnapshots.map(s => s.wpm)) * 1.15;
+      const maxWpm = Math.max(60, ...wpmSnapshots.map(s => Math.max(s.wpm, s.raw || 0))) * 1.15;
       const w = canvas.width;
       const h = canvas.height;
-      const stepX = w / (wpmSnapshots.length - 1);
+      const stepX = w / Math.max(1, wpmSnapshots.length - 1);
 
-      // Draw Grid Lines
       ctx.strokeStyle = "rgba(255, 255, 255, 0.06)";
       ctx.lineWidth = 1;
       for (let y = 0.25; y < 1; y += 0.25) {
@@ -1192,7 +2148,19 @@
         ctx.stroke();
       }
 
-      // Draw WPM Smooth Line
+      ctx.beginPath();
+      ctx.setLineDash([8, 6]);
+      ctx.strokeStyle = "rgba(192, 132, 252, 0.55)";
+      ctx.lineWidth = 2.5;
+      wpmSnapshots.forEach((pt, i) => {
+        const x = i * stepX;
+        const y = h - ((pt.raw || pt.wpm) / maxWpm) * h;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+
       ctx.beginPath();
       ctx.strokeStyle = "#00f3ff";
       ctx.lineWidth = 4;
@@ -1208,11 +2176,10 @@
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      // Draw Points
       wpmSnapshots.forEach((pt, i) => {
         const x = i * stepX;
         const y = h - (pt.wpm / maxWpm) * h;
-        ctx.fillStyle = "#ffffff";
+        ctx.fillStyle = pt.errors > 0 ? "#facc15" : "#ffffff";
         ctx.beginPath();
         ctx.arc(x, y, 4, 0, Math.PI * 2);
         ctx.fill();
@@ -1222,16 +2189,46 @@
     function renderWeakKeysList() {
       const container = document.getElementById('resWeakKeys');
       container.innerHTML = '';
-      const sorted = Object.keys(missedKeysMap).sort((a,b) => missedKeysMap[b] - missedKeysMap[a]);
+      const sorted = Object.keys(missedKeysMap).sort((a, b) => missedKeysMap[b] - missedKeysMap[a]);
       if (sorted.length === 0) {
-        container.innerHTML = '<span style="color:var(--neon-green); font-size:0.85rem; font-weight:700;">🌟 Flawless session! 0 Missed Keys.</span>';
+        container.innerHTML = '<span style="color:var(--neon-green); font-size:0.82rem; font-weight:700;">🌟 Flawless session! 0 Missed Keys.</span>';
         return;
       }
       sorted.slice(0, 5).forEach(k => {
         const badge = document.createElement('div');
         badge.className = 'weak-key-item';
-        badge.innerHTML = `<span>${k.toUpperCase()}</span> <span style="font-size:0.75rem; opacity:0.7;">(${missedKeysMap[k]} misses)</span>`;
+        badge.innerHTML = `<span>${k === ' ' ? 'SPACE' : k.toUpperCase()}</span> <span style="font-size:0.72rem; opacity:0.75;">(${missedKeysMap[k]} misses)</span>`;
         container.appendChild(badge);
+      });
+    }
+
+    function renderFingerBreakdown() {
+      const container = document.getElementById('resFingerBars');
+      if (!container) return;
+      container.innerHTML = '';
+      const groups = [
+        { label: "Index Fingers", codes: ["l-index", "r-index"] },
+        { label: "Middle Fingers", codes: ["l-middle", "r-middle"] },
+        { label: "Ring Fingers", codes: ["l-ring", "r-ring"] },
+        { label: "Pinky Fingers", codes: ["l-pinky", "r-pinky"] }
+      ];
+      groups.forEach(g => {
+        let hits = 0, misses = 0;
+        g.codes.forEach(c => {
+          const st = sessionFingerStats[c] || { hits: 0, misses: 0 };
+          hits += st.hits;
+          misses += st.misses;
+        });
+        const total = hits + misses;
+        const pct = total > 0 ? Math.round((hits / total) * 100) : 100;
+        const row = document.createElement('div');
+        row.className = 'finger-bar-row';
+        row.innerHTML = `
+          <span style="width:92px; color:var(--text-muted);">${g.label}</span>
+          <div class="finger-bar-track"><div class="finger-bar-fill" style="width:${pct}%"></div></div>
+          <span style="width:36px; text-align:right; color:#fff; font-weight:700;">${pct}%</span>
+        `;
+        container.appendChild(row);
       });
     }
 
@@ -1244,8 +2241,10 @@
       if (wpm >= 40) badges.push("⚡ Swift Typist (40+ WPM)");
       if (wpm >= 70) badges.push("🏎️ Velocity Master (70+ WPM)");
       if (wpm >= 100) badges.push("👑 Grandmaster Centurion (100+ WPM)");
-      if (acc === 100 && charsTyped > 40) badges.push("🎯 Deadeye Precision (100% Acc)");
+      if (acc === 100 && charsTyped > 20) badges.push("🎯 Deadeye Precision (100% Acc)");
+      if (bestStreak >= 35) badges.push(`🔥 ${bestStreak}x Unbroken Streak`);
       if (currentMode === "code") badges.push("💻 Cyber Hacker");
+      if (currentMode === "tutorial" || currentMode === "lessons") badges.push("🎓 Academy Scholar");
 
       badges.forEach(b => {
         const el = document.createElement('span');
@@ -1256,35 +2255,22 @@
     }
 
     // -------------------------------------------------------------------------
-    // 5. Cursor, Target Key & Hands Posture Guidance
+    // 7. Cursor, Multi-Line Scroll, Target Key & Hands Posture Guidance
     // -------------------------------------------------------------------------
     function updateCursor() {
       if (isFinished) return;
       const activeWordEl = elWrapper.children[activeWordIdx];
       if (!activeWordEl) return;
 
-      const currentTyped = typedWords[activeWordIdx] || '';
-      let targetEl;
-
-      if (currentTyped.length < words[activeWordIdx].length) {
-        targetEl = activeWordEl.children[currentTyped.length];
-        if (targetEl) {
-          const rect = targetEl.getBoundingClientRect();
-          const wrapperRect = elWrapper.getBoundingClientRect();
-          elCursor.style.left = `${rect.left - wrapperRect.left}px`;
-          elCursor.style.top = `${rect.top - wrapperRect.top + 3}px`;
-        }
+      // Update multi-line scroll offset first so caret coordinates use the exact current scroll line
+      if (activeWordEl.offsetTop > 36) {
+        scrollOffsetPx = activeWordEl.offsetTop;
       } else {
-        targetEl = activeWordEl.lastElementChild;
-        if (targetEl) {
-          const rect = targetEl.getBoundingClientRect();
-          const wrapperRect = elWrapper.getBoundingClientRect();
-          elCursor.style.left = `${rect.right - wrapperRect.left}px`;
-          elCursor.style.top = `${rect.top - wrapperRect.top + 3}px`;
-        }
+        scrollOffsetPx = 0;
       }
+      elWrapper.style.transform = `translateY(-${scrollOffsetPx}px)`;
 
-      // Handle Active Word Highlighting and Passed State
+      // Highlight active and passed words
       Array.from(elWrapper.children).forEach((w, idx) => {
         if (idx < activeWordIdx) {
           w.classList.add('passed');
@@ -1298,16 +2284,15 @@
         }
       });
 
-      // Multi-line auto scrolling
-      if (activeWordEl.offsetTop > 45) {
-        elWrapper.style.marginTop = `-${activeWordEl.offsetTop - 5}px`;
-      } else {
-        elWrapper.style.marginTop = '0px';
+      const currentTyped = typedWords[activeWordIdx] || '';
+      const pos = computeCaretCoordinates(activeWordIdx, currentTyped.length);
+      if (pos) {
+        elCursor.style.left = `${pos.left}px`;
+        elCursor.style.top = `${pos.top}px`;
       }
     }
 
     function updateTargetKeyAndHands() {
-      // Clear previous active highlights
       document.querySelectorAll('.key.target').forEach(k => k.classList.remove('target'));
       document.querySelectorAll('.finger-active').forEach(f => f.classList.remove('finger-active'));
       if (isFinished) return;
@@ -1324,48 +2309,51 @@
       }
 
       const lookupChar = targetChar.toLowerCase();
-      const fingerCode = fingerMap[lookupChar] || 'thumb';
+      const baseKeyChar = shiftedToBase[targetChar] || lookupChar;
+      const fingerCode = fingerMap[lookupChar] || fingerMap[baseKeyChar] || 'thumb';
       const fingerName = fingerNames[fingerCode] || 'Spacebar (Thumbs)';
 
-      // Update Guidance Banner
       elTargetKey.textContent = targetChar === ' ' ? 'SPACE' : targetChar;
       elFingerIndicator.textContent = fingerName;
+      elCoachBiomechanics.textContent = `(${fingerHomeAnchors[fingerCode] || 'Home Row'})`;
 
-      // Highlight Keyboard Key
       let keyEl;
       if (targetChar === ' ') {
         keyEl = document.querySelector('.key-space');
       } else {
-        keyEl = document.querySelector(`.key[data-key="${lookupChar}"]`) || document.querySelector(`.key[data-key="${targetChar}"]`);
+        try {
+          keyEl = document.querySelector(`.key[data-key="${CSS.escape(baseKeyChar)}"]`) ||
+                  document.querySelector(`.key[data-key="${CSS.escape(lookupChar)}"]`);
+        } catch (_) {
+          keyEl = document.querySelector(`.key[data-key="${baseKeyChar}"]`);
+        }
       }
       if (keyEl) keyEl.classList.add('target');
 
-      // Highlight Shift if uppercase letter
-      if (targetChar !== lookupChar && lookupChar.match(/[a-z]/)) {
-         const isLeftHand = fingerCode.startsWith('l-');
-         const shiftKey = isLeftHand ? 'ShiftRight' : 'ShiftLeft';
-         const shiftEl = document.querySelector(`.key[data-key="${shiftKey}"]`);
-         if (shiftEl) shiftEl.classList.add('target');
-         
-         // Highlight shift finger on hands SVG (pinky of opposite hand)
-         const shiftFinger = isLeftHand ? 'r-pinky' : 'l-pinky';
-         document.querySelectorAll(`.finger[data-finger="${shiftFinger}"]`).forEach(f => f.classList.add('finger-active'));
+      const needsShift = (targetChar !== lookupChar && lookupChar.match(/[a-z]/)) || Boolean(shiftedToBase[targetChar]);
+      if (needsShift) {
+        const isLeftHand = fingerCode.startsWith('l-');
+        const shiftKey = isLeftHand ? 'ShiftRight' : 'ShiftLeft';
+        const shiftEl = document.querySelector(`.key[data-key="${shiftKey}"]`);
+        if (shiftEl) shiftEl.classList.add('target');
+
+        const shiftFinger = isLeftHand ? 'r-pinky' : 'l-pinky';
+        document.querySelectorAll(`.finger[data-finger="${shiftFinger}"]`).forEach(f => f.classList.add('finger-active'));
       }
 
-      // Highlight Hands SVG Finger for main key
       document.querySelectorAll(`.finger[data-finger="${fingerCode}"]`).forEach(f => {
         f.classList.add('finger-active');
       });
     }
 
-    function renderActiveWord() {
-      const activeWordEl = elWrapper.children[activeWordIdx];
-      if (!activeWordEl) return;
+    function renderWordAt(idx) {
+      const wordEl = elWrapper.children[idx];
+      if (!wordEl) return;
 
-      const targetWord = words[activeWordIdx];
-      const typed = typedWords[activeWordIdx] || '';
+      const targetWord = words[idx];
+      const typed = typedWords[idx] || '';
 
-      activeWordEl.innerHTML = '';
+      wordEl.innerHTML = '';
       let isError = false;
 
       for (let i = 0; i < targetWord.length; i++) {
@@ -1381,121 +2369,275 @@
             isError = true;
           }
         }
-        activeWordEl.appendChild(charEl);
+        wordEl.appendChild(charEl);
       }
 
-      // Extra typed characters
       if (typed.length > targetWord.length) {
         isError = true;
         for (let i = targetWord.length; i < typed.length; i++) {
           const charEl = document.createElement('span');
           charEl.className = 'letter extra';
           charEl.textContent = typed[i];
-          activeWordEl.appendChild(charEl);
+          wordEl.appendChild(charEl);
         }
       }
 
-      if (isError) activeWordEl.classList.add('error');
-      else activeWordEl.classList.remove('error');
+      if (idx < activeWordIdx && typed.length < targetWord.length) {
+        isError = true;
+      }
+
+      if (isError) wordEl.classList.add('error');
+      else wordEl.classList.remove('error');
+    }
+
+    function renderActiveWord() {
+      renderWordAt(activeWordIdx);
     }
 
     // -------------------------------------------------------------------------
-    // 6. Keystroke Interaction Logic
+    // 8. Global Keystroke Interaction Logic (Never Loses Focus!)
     // -------------------------------------------------------------------------
-    elCanvas.addEventListener('keydown', (e) => {
-      if (e.key === 'Tab') { e.preventDefault(); return; }
+    let lastTabTime = 0;
+    let currentLayout = "qwerty";
+    const physicalRowCodes = {
+      r2: ["KeyQ", "KeyW", "KeyE", "KeyR", "KeyT", "KeyY", "KeyU", "KeyI", "KeyO", "KeyP", "BracketLeft", "BracketRight"],
+      r3: ["KeyA", "KeyS", "KeyD", "KeyF", "KeyG", "KeyH", "KeyJ", "KeyK", "KeyL", "Semicolon", "Quote"],
+      r4: ["KeyZ", "KeyX", "KeyC", "KeyV", "KeyB", "KeyN", "KeyM", "Comma", "Period", "Slash"]
+    };
+    const baseToShifted = {
+      '`': '~', '1': '!', '2': '@', '3': '#', '4': '$', '5': '%', '6': '^', '7': '&', '8': '*', '9': '(', '0': ')',
+      '-': '_', '=': '+', '[': '{', ']': '}', '\\': '|', ';': ':', '\'': '"', ',': '<', '.': '>', '/': '?'
+    };
+
+    function resolveEffectiveKey(e) {
+      if (currentLayout && currentLayout !== "qwerty" && e.code) {
+        const spec = keyboardLayouts[currentLayout];
+        if (spec) {
+          for (const rowKey of ["r2", "r3", "r4"]) {
+            const cIdx = physicalRowCodes[rowKey].indexOf(e.code);
+            if (cIdx !== -1 && spec[rowKey][cIdx]) {
+              const baseCh = spec[rowKey][cIdx];
+              if (e.shiftKey) {
+                if (baseCh >= 'a' && baseCh <= 'z') return baseCh.toUpperCase();
+                return baseToShifted[baseCh] || baseCh;
+              }
+              return baseCh;
+            }
+          }
+        }
+      }
+      return e.key;
+    }
+
+    function isModalOrInputActive(e) {
+      if (document.querySelector('dialog[open]')) return true;
+      const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+      return tag === 'INPUT' || tag === 'TEXTAREA';
+    }
+
+    function handleTypingKeyDown(e) {
+      if (arcRunning) return;
+      if (isModalOrInputActive(e)) return;
+
+      // Tab + Enter quick restart combo
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        lastTabTime = Date.now();
+        return;
+      }
+      if (e.key === 'Enter' && (Date.now() - lastTabTime < 1200 || isFinished)) {
+        e.preventDefault();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        lastTabTime = 0;
+        initTest();
+        return;
+      }
+
       if (isFinished) return;
 
-      const keyStr = e.key.toLowerCase();
-      let keyEl = document.querySelector(`.key[data-key="${keyStr}"]`) || document.querySelector(`.key[data-key="${e.code}"]`);
-      if (e.key === ' ') keyEl = document.querySelector('.key-space');
+      // Ignore OS/browser shortcuts (Ctrl+C, Cmd+R, Right Option+/, etc.) except Ctrl/Cmd/Alt+Backspace
+      if ((e.ctrlKey || e.metaKey || e.altKey) && e.key !== 'Backspace') return;
+
+      // Ensure typing container has visual focus and blur any toolbar button/select so Space doesn't click buttons
+      if (document.activeElement && document.activeElement !== elCanvas && document.activeElement !== document.body) {
+        try { document.activeElement.blur(); } catch (_) {}
+      }
+      elCanvas.classList.add('focused');
+
+      const effectiveKey = resolveEffectiveKey(e);
+      const keyStr = effectiveKey.toLowerCase();
+      let keyEl = null;
+      try {
+        keyEl = document.querySelector(`.key[data-key="${CSS.escape(keyStr)}"]`) || document.querySelector(`.key[data-key="${CSS.escape(e.code)}"]`);
+      } catch (_) {}
+      if (effectiveKey === ' ') keyEl = document.querySelector('.key-space');
       if (keyEl) keyEl.classList.add('pressed');
 
-      if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(e.key)) return;
-
-      if (!isRunning) startTimer();
+      if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
 
       const targetWord = words[activeWordIdx];
+      if (!targetWord) return;
       let typed = typedWords[activeWordIdx] || '';
 
       if (e.key === 'Backspace') {
-        if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        if (e.ctrlKey || e.metaKey || e.altKey) {
           typedWords[activeWordIdx] = '';
+          renderActiveWord();
         } else if (typed.length > 0) {
           typedWords[activeWordIdx] = typed.slice(0, -1);
+          renderActiveWord();
+        } else if (activeWordIdx > 0) {
+          // Allow backspacing into the previous word if you hit Space too early or made a typo
+          activeWordIdx--;
+          renderActiveWord();
         }
         AudioEngine.playKey();
-      } 
-      else if (e.key === ' ') {
-        e.preventDefault();
-        if (typed.length > 0) {
-          activeWordIdx++;
-          typedWords[activeWordIdx] = '';
-          AudioEngine.playKey(true);
+        updateLiveStats();
+        updateCursor();
+        updateTargetKeyAndHands();
+        return;
+      }
 
-          // Check if finished (word mode / quote / code)
+      if (effectiveKey === ' ') {
+        e.preventDefault();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        if (typed.length > 0) {
+          // Count the space keystroke in WPM & Accuracy telemetry
+          if (typed.length < targetWord.length) {
+            const skipped = targetWord.length - typed.length;
+            charsTyped += skipped + 1;
+            charsIncorrect += skipped;
+            currentStreak = 0;
+            AudioEngine.playError();
+          } else {
+            charsTyped++;
+            charsCorrect++;
+            currentStreak++;
+            if (currentStreak > bestStreak) bestStreak = currentStreak;
+            AudioEngine.playKey(true);
+          }
+
+          const prevIdx = activeWordIdx;
+          activeWordIdx++;
+          renderWordAt(prevIdx);
+
+          if (currentMode === "time" && activeWordIdx >= words.length - 30) {
+            appendMoreTimeWords();
+          }
+
           if (activeWordIdx >= words.length) {
             endTest();
             return;
           }
+          if (!typedWords[activeWordIdx]) typedWords[activeWordIdx] = '';
+          updateLiveStats();
+          updateCursor();
+          updateTargetKeyAndHands();
         }
-      } 
-      else if (e.key.length === 1) {
+        return;
+      }
+
+      if (effectiveKey.length === 1) {
+        e.preventDefault();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        if (!isRunning) startTimer();
+
+        const now = Date.now();
+        const deltaMs = lastKeyTime > 0 ? (now - lastKeyTime) : 0;
+        lastKeyTime = now;
+        if (deltaMs > 15 && deltaMs < 1500) {
+          latenciesMs.push(deltaMs);
+        }
+
         charsTyped++;
+        const expectedChar = typed.length < targetWord.length ? targetWord[typed.length] : null;
+        const expectedLower = expectedChar ? expectedChar.toLowerCase() : '';
+        const fCode = fingerMap[expectedLower] || 'l-index';
+        if (!sessionFingerStats[fCode]) sessionFingerStats[fCode] = { hits: 0, misses: 0 };
+
         if (typed.length < targetWord.length) {
-          if (e.key === targetWord[typed.length]) {
+          if (effectiveKey === expectedChar) {
             charsCorrect++;
+            currentStreak++;
+            if (currentStreak > bestStreak) bestStreak = currentStreak;
+            sessionFingerStats[fCode].hits++;
+
+            if (expectedLower >= 'a' && expectedLower <= 'z') {
+              if (!careerStore.keyStats[expectedLower]) careerStore.keyStats[expectedLower] = { hits: 0, misses: 0, totalMs: 0 };
+              careerStore.keyStats[expectedLower].hits++;
+              if (deltaMs > 15 && deltaMs < 1200) careerStore.keyStats[expectedLower].totalMs += deltaMs;
+            }
             AudioEngine.playKey();
           } else {
             charsIncorrect++;
+            currentStreak = 0;
+            sessionFingerStats[fCode].misses++;
             AudioEngine.playError();
-            missedKeysMap[targetWord[typed.length]] = (missedKeysMap[targetWord[typed.length]] || 0) + 1;
+            if (keyEl) {
+              keyEl.classList.add('error-flash');
+              setTimeout(() => keyEl.classList.remove('error-flash'), 220);
+            }
+            missedKeysMap[expectedChar] = (missedKeysMap[expectedChar] || 0) + 1;
+            if (expectedLower >= 'a' && expectedLower <= 'z') {
+              if (!careerStore.keyStats[expectedLower]) careerStore.keyStats[expectedLower] = { hits: 0, misses: 0, totalMs: 0 };
+              careerStore.keyStats[expectedLower].misses++;
+            }
           }
         } else {
           charsExtra++;
+          currentStreak = 0;
           AudioEngine.playError();
+          if (keyEl) {
+            keyEl.classList.add('error-flash');
+            setTimeout(() => keyEl.classList.remove('error-flash'), 220);
+          }
         }
 
-        typedWords[activeWordIdx] = typed + e.key;
+        typedWords[activeWordIdx] = typed + effectiveKey;
+        renderActiveWord();
+        updateLiveStats();
+        updateCursor();
+        updateTargetKeyAndHands();
 
-        // Auto-advance if last char in quote/code/words mode
-        if (activeWordIdx === words.length - 1 && typedWords[activeWordIdx].length === targetWord.length) {
+        // Auto-complete test immediately when last word is typed accurately in non-timed modes
+        if (activeWordIdx === words.length - 1 && typedWords[activeWordIdx] === targetWord) {
           if (currentMode !== "time") {
-            setTimeout(endTest, 80);
+            endTest();
           }
         }
       }
+    }
 
-      renderActiveWord();
-      updateCursor();
-      updateTargetKeyAndHands();
-    });
-
-    elCanvas.addEventListener('keyup', (e) => {
-      const keyStr = e.key.toLowerCase();
-      let keyEl = document.querySelector(`.key[data-key="${keyStr}"]`) || document.querySelector(`.key[data-key="${e.code}"]`);
-      if (e.key === ' ') keyEl = document.querySelector('.key-space');
+    function handleTypingKeyUp(e) {
+      const effectiveKey = resolveEffectiveKey(e);
+      const keyStr = effectiveKey.toLowerCase();
+      let keyEl = null;
+      try {
+        keyEl = document.querySelector(`.key[data-key="${CSS.escape(keyStr)}"]`) || document.querySelector(`.key[data-key="${CSS.escape(e.code)}"]`);
+      } catch (_) {}
+      if (effectiveKey === ' ') keyEl = document.querySelector('.key-space');
       if (keyEl) keyEl.classList.remove('pressed');
-    });
+    }
 
-    // Master shortcut: Tab + Enter to restart
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        const checkEnter = (ev) => {
-          if (ev.key === 'Enter') {
-            initTest();
-            window.removeEventListener('keydown', checkEnter);
-          }
-        };
-        window.addEventListener('keydown', checkEnter, { once: true });
-        setTimeout(() => window.removeEventListener('keydown', checkEnter), 1000);
-      }
+    // Attach in capture phase on window so typing always works even after clicking buttons/dropdowns and before any injected window shortcuts
+    window.addEventListener('keydown', handleTypingKeyDown, true);
+    window.addEventListener('keyup', handleTypingKeyUp, true);
+    window.addEventListener('resize', () => {
+      if (!isFinished) updateCursor();
     });
 
     // -------------------------------------------------------------------------
-    // 7. Mode Switching & Sub-Nav Handlers
+    // 9. Mode Switching, Layout Switching & Sub-Nav Handlers
     // -------------------------------------------------------------------------
+    function getDefaultSubValForMode(mode) {
+      if (mode === "time") return 30;
+      if (mode === "words" || mode === "adaptive" || mode === "letters") return 25;
+      return 0;
+    }
+
     document.querySelectorAll('.mode-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
@@ -1506,7 +2648,12 @@
           startArcadeMiniGame();
           return;
         }
+        if (currentMode === "custom") {
+          const dlg = document.getElementById('dlgCustom');
+          if (dlg && typeof dlg.showModal === 'function') dlg.showModal();
+        }
 
+        currentSubVal = getDefaultSubValForMode(currentMode);
         buildSubOptions();
         initTest();
       });
@@ -1515,129 +2662,278 @@
     function buildSubOptions() {
       elSubOptions.innerHTML = '';
       if (currentMode === "time") {
+        if (![15, 30, 60, 120].includes(Number(currentSubVal))) currentSubVal = 30;
         [15, 30, 60, 120].forEach(t => {
-          const el = document.createElement('span');
-          el.className = `sub-btn ${t === 30 ? 'active' : ''}`;
+          const el = document.createElement('button');
+          el.type = 'button';
+          el.className = `sub-btn ${t === Number(currentSubVal) ? 'active' : ''}`;
           el.textContent = `${t}s`;
           el.dataset.val = t;
-          el.onclick = () => selectSubOption(t, el);
+          el.addEventListener('click', () => selectSubOption(t, el));
           elSubOptions.appendChild(el);
         });
-        currentSubVal = 30;
-      } 
-      else if (currentMode === "words") {
-        [10, 25, 50, 100].forEach((w, idx) => {
-          const el = document.createElement('span');
-          el.className = `sub-btn ${idx === 1 ? 'active' : ''}`;
+      }
+      else if (currentMode === "words" || currentMode === "adaptive") {
+        if (![15, 25, 50, 100].includes(Number(currentSubVal))) currentSubVal = 25;
+        [15, 25, 50, 100].forEach((w) => {
+          const el = document.createElement('button');
+          el.type = 'button';
+          el.className = `sub-btn ${w === Number(currentSubVal) ? 'active' : ''}`;
           el.textContent = `${w} words`;
           el.dataset.val = w;
-          el.onclick = () => selectSubOption(w, el);
+          el.addEventListener('click', () => selectSubOption(w, el));
           elSubOptions.appendChild(el);
         });
-        currentSubVal = 25;
-      } 
-      else if (currentMode === "lessons") {
-        lessonCurriculum.forEach((l, idx) => {
-          const el = document.createElement('span');
-          el.className = `sub-btn ${idx === 0 ? 'active' : ''}`;
-          el.textContent = `L${idx+1}: ${l.name}`;
+      }
+      else if (currentMode === "tutorial") {
+        const activeStep = Math.max(0, Math.min(interactiveTutorialSteps.length - 1, Number(currentSubVal) || 0));
+        currentSubVal = activeStep;
+        interactiveTutorialSteps.forEach((step, idx) => {
+          const el = document.createElement('button');
+          el.type = 'button';
+          el.className = `sub-btn ${idx === activeStep ? 'active' : ''}`;
+          el.textContent = `S${idx + 1}: ${step.keys.join('/')}`;
           el.dataset.val = idx;
-          el.onclick = () => selectSubOption(idx, el);
+          el.addEventListener('click', () => selectSubOption(idx, el));
           elSubOptions.appendChild(el);
         });
-        currentSubVal = 0;
+      }
+      else if (currentMode === "lessons") {
+        const activeLesson = Math.max(0, Math.min(lessonCurriculum.length - 1, Number(currentSubVal) || 0));
+        currentSubVal = activeLesson;
+        const startIdx = activeLesson >= 8 ? Math.min(activeLesson - 3, lessonCurriculum.length - 8) : 0;
+        lessonCurriculum.slice(startIdx, startIdx + 8).forEach((l, offset) => {
+          const idx = startIdx + offset;
+          const el = document.createElement('button');
+          el.type = 'button';
+          el.className = `sub-btn ${idx === activeLesson ? 'active' : ''}`;
+          const st = careerStore.lessonStars[idx] ? ` ${"⭐".repeat(careerStore.lessonStars[idx])}` : "";
+          el.textContent = `L${idx + 1}: ${l.name}${st}`;
+          el.dataset.val = idx;
+          el.addEventListener('click', () => selectSubOption(idx, el));
+          elSubOptions.appendChild(el);
+        });
+        const moreBtn = document.createElement('button');
+        moreBtn.type = 'button';
+        moreBtn.className = 'sub-btn';
+        moreBtn.textContent = `All ${lessonCurriculum.length} Lessons ▾`;
+        moreBtn.addEventListener('click', openCurriculumModal);
+        elSubOptions.appendChild(moreBtn);
+      }
+      else if (currentMode === "code") {
+        [
+          { id: "ts", label: "TypeScript" },
+          { id: "py", label: "Python" },
+          { id: "rust", label: "Rust" },
+          { id: "sql", label: "SQL" },
+          { id: "sh", label: "Bash CLI" }
+        ].forEach((lang) => {
+          const el = document.createElement('button');
+          el.type = 'button';
+          el.className = `sub-btn ${lang.id === currentCodeLang ? 'active' : ''}`;
+          el.textContent = lang.label;
+          el.addEventListener('click', () => {
+            elSubOptions.querySelectorAll('.sub-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            currentCodeLang = lang.id;
+            initTest();
+          });
+          elSubOptions.appendChild(el);
+        });
       }
       else if (currentMode === "letters") {
-        [10, 25, 50, 100].forEach((w, idx) => {
-          const el = document.createElement('span');
-          el.className = `sub-btn ${idx === 1 ? 'active' : ''}`;
+        if (![10, 25, 50, 100].includes(Number(currentSubVal))) currentSubVal = 25;
+        [10, 25, 50, 100].forEach((w) => {
+          const el = document.createElement('button');
+          el.type = 'button';
+          el.className = `sub-btn ${w === Number(currentSubVal) ? 'active' : ''}`;
           el.textContent = `${w} groups`;
           el.dataset.val = w;
-          el.onclick = () => selectSubOption(w, el);
+          el.addEventListener('click', () => selectSubOption(w, el));
           elSubOptions.appendChild(el);
         });
-        currentSubVal = 25;
       }
     }
 
     function selectSubOption(val, el) {
       elSubOptions.querySelectorAll('.sub-btn').forEach(b => b.classList.remove('active'));
-      el.classList.add('active');
+      if (el) el.classList.add('active');
       currentSubVal = val;
       initTest();
     }
 
+    // Hardware Keyboard Layout Remapping (QWERTY / Colemak / Dvorak / Workman)
+    function applyKeyboardLayout(layoutName) {
+      currentLayout = keyboardLayouts[layoutName] ? layoutName : "qwerty";
+      const spec = keyboardLayouts[currentLayout];
+      ["r2", "r3", "r4"].forEach(rowKey => {
+        spec[rowKey].forEach((ch, idx) => {
+          const keyEl = document.querySelector(`.key[data-pos="${rowKey}c${idx}"]`);
+          if (!keyEl) return;
+          keyEl.dataset.key = ch;
+          keyEl.textContent = ch.toUpperCase();
+          if (keyEl.dataset.finger) {
+            fingerMap[ch] = keyEl.dataset.finger;
+          }
+        });
+      });
+      // Update home row anchor labels dynamically for the active layout
+      fingerHomeAnchors = {
+        'l-pinky': `Home anchor: ${spec.r3[0].toUpperCase()}`,
+        'l-ring': `Home anchor: ${spec.r3[1].toUpperCase()}`,
+        'l-middle': `Home anchor: ${spec.r3[2].toUpperCase()}`,
+        'l-index': `Home anchor: ${spec.r3[3].toUpperCase()} (bump)`,
+        'thumb': 'Rest over center Spacebar',
+        'r-index': `Home anchor: ${spec.r3[6].toUpperCase()} (bump)`,
+        'r-middle': `Home anchor: ${spec.r3[7].toUpperCase()}`,
+        'r-ring': `Home anchor: ${spec.r3[8].toUpperCase()}`,
+        'r-pinky': `Home anchor: ${spec.r3[9].toUpperCase()}`
+      };
+      updateTargetKeyAndHands();
+    }
+
     // -------------------------------------------------------------------------
-    // 8. Word Rain Arcade Mini-Game (Mavis Beacon Classic)
+    // 10. Word Rain Arcade Mini-Game (Upgraded with Prefix Lock & Lasers)
     // -------------------------------------------------------------------------
     let arcWords = [];
+    let arcParticles = [];
+    let arcLasers = [];
     let arcScore = 0;
     let arcShield = 100;
     let arcWave = 1;
+    let arcCombo = 1;
     let arcRunning = false;
     let arcCurrentInput = "";
     let arcReqId = null;
+    let arcSpawnTimer = null;
 
     function startArcadeMiniGame() {
+      // Stop any running typing session timer so it never interrupts Arcade mode
+      clearInterval(timerInterval);
+      clearInterval(ghostInterval);
+      isRunning = false;
+
       document.getElementById('arcadeOverlay').classList.add('active');
       const canvas = document.getElementById('arcadeCanvas');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      canvas.width = window.innerWidth || 1100;
+      canvas.height = window.innerHeight || 760;
 
       arcScore = 0;
       arcShield = 100;
       arcWave = 1;
+      arcCombo = 1;
       arcWords = [];
+      arcParticles = [];
+      arcLasers = [];
       arcCurrentInput = "";
       arcRunning = true;
 
       document.getElementById('arcScore').textContent = "0";
       document.getElementById('arcShield').textContent = "100%";
       document.getElementById('arcWave').textContent = "1";
+      document.getElementById('arcCombo').textContent = "1x";
 
       spawnArcadeWord();
-      requestAnimationFrame(arcadeLoop);
+      arcReqId = requestAnimationFrame(arcadeLoop);
     }
 
     function spawnArcadeWord() {
       if (!arcRunning) return;
       const w = commonWords[Math.floor(Math.random() * commonWords.length)];
+      const cw = document.getElementById('arcadeCanvas').width || 1000;
       arcWords.push({
         text: w,
-        x: 100 + Math.random() * (window.innerWidth - 300),
-        y: 60,
-        speed: 0.8 + arcWave * 0.3
+        x: 120 + Math.random() * Math.max(200, cw - 260),
+        y: 80,
+        speed: 0.72 + arcWave * 0.24
       });
-      setTimeout(spawnArcadeWord, Math.max(1200, 3000 - arcWave * 400));
+      arcSpawnTimer = setTimeout(spawnArcadeWord, Math.max(1000, 2600 - arcWave * 300));
+    }
+
+    function spawnExplosion(x, y, color) {
+      for (let i = 0; i < 18; i++) {
+        const angle = (Math.PI * 2 * i) / 18;
+        const spd = 1.5 + Math.random() * 3.5;
+        arcParticles.push({
+          x, y,
+          vx: Math.cos(angle) * spd,
+          vy: Math.sin(angle) * spd,
+          alpha: 1,
+          color: color || "#00f3ff"
+        });
+      }
     }
 
     function arcadeLoop() {
       if (!arcRunning) return;
       const canvas = document.getElementById('arcadeCanvas');
-      const ctx = canvas.getContext('2d');
+      if (!canvas) return;
+      let ctx = null;
+      try {
+        ctx = canvas.getContext('2d');
+      } catch (_) {}
+      if (!ctx) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Defense Shield Line
-      ctx.strokeStyle = "rgba(0, 243, 255, 0.4)";
+      ctx.strokeStyle = "rgba(0, 243, 255, 0.45)";
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(0, canvas.height - 80);
       ctx.lineTo(canvas.width, canvas.height - 80);
       ctx.stroke();
 
+      // Cyber Turret Core
+      const turretX = canvas.width / 2;
+      const turretY = canvas.height - 80;
+      ctx.fillStyle = "#00f3ff";
+      ctx.beginPath();
+      ctx.arc(turretX, turretY, 14, Math.PI, 0);
+      ctx.fill();
+
+      // Draw Active Laser Beams
+      for (let i = arcLasers.length - 1; i >= 0; i--) {
+        const l = arcLasers[i];
+        ctx.strokeStyle = `rgba(250, 204, 21, ${l.alpha})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(turretX, turretY);
+        ctx.lineTo(l.tx, l.ty);
+        ctx.stroke();
+        l.alpha -= 0.1;
+        if (l.alpha <= 0) arcLasers.splice(i, 1);
+      }
+
+      // Draw Particles
+      for (let i = arcParticles.length - 1; i >= 0; i--) {
+        const p = arcParticles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.035;
+        if (p.alpha <= 0) {
+          arcParticles.splice(i, 1);
+          continue;
+        }
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
       // Current Typing Buffer
-      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-      ctx.font = "900 28px 'Orbitron', monospace";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+      ctx.font = "900 26px 'Orbitron', monospace";
       ctx.textAlign = "center";
-      ctx.fillText(arcCurrentInput || "Type words to destroy...", canvas.width / 2, canvas.height - 35);
+      ctx.fillText(arcCurrentInput || "Type falling words to intercept...", canvas.width / 2, canvas.height - 32);
 
       // Draw and update falling words
-      ctx.font = "700 24px 'JetBrains Mono', monospace";
+      ctx.font = "700 22px 'JetBrains Mono', monospace";
       for (let i = arcWords.length - 1; i >= 0; i--) {
         const item = arcWords[i];
         item.y += item.speed;
 
-        // Check if matching current input
         if (item.text.startsWith(arcCurrentInput) && arcCurrentInput.length > 0) {
           ctx.fillStyle = "#facc15";
           ctx.shadowColor = "#facc15";
@@ -1648,15 +2944,20 @@
         }
 
         ctx.fillText(item.text, item.x, item.y);
+        ctx.shadowBlur = 0;
 
-        // Ground shield collision
         if (item.y >= canvas.height - 80) {
           arcWords.splice(i, 1);
-          arcShield -= 15;
-          document.getElementById('arcShield').textContent = `${Math.max(0, arcShield)}%`;
+          // Clear buffer if no remaining falling word matches the current buffer
+          if (arcCurrentInput && !arcWords.some(w => w.text.startsWith(arcCurrentInput))) {
+            arcCurrentInput = "";
+          }
+          arcShield = Math.max(0, arcShield - 20);
+          arcCombo = 1;
+          document.getElementById('arcShield').textContent = `${arcShield}%`;
+          document.getElementById('arcCombo').textContent = "1x";
           AudioEngine.playError();
           if (arcShield <= 0) {
-            alert(`ARCADE OVER! Final Score: ${arcScore}`);
             exitArcade();
             return;
           }
@@ -1668,65 +2969,262 @@
 
     window.addEventListener('keydown', (e) => {
       if (!arcRunning) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        exitArcade();
+        return;
+      }
+      const effectiveKey = resolveEffectiveKey(e);
       if (e.key === 'Backspace') {
+        e.preventDefault();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
         arcCurrentInput = arcCurrentInput.slice(0, -1);
-      } else if (e.key.length === 1 && e.key !== ' ') {
-        arcCurrentInput += e.key.toLowerCase();
-        
-        // Check for complete word match
-        const matchIdx = arcWords.findIndex(w => w.text === arcCurrentInput);
+      } else if (effectiveKey === ' ') {
+        e.preventDefault();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        arcCurrentInput = "";
+      } else if (effectiveKey.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        const ch = effectiveKey.toLowerCase();
+        const nextCandidate = arcCurrentInput + ch;
+
+        const matchIdx = arcWords.findIndex(w => w.text === nextCandidate);
         if (matchIdx !== -1) {
+          const destroyed = arcWords[matchIdx];
+          arcLasers.push({ tx: destroyed.x, ty: destroyed.y, alpha: 1 });
+          spawnExplosion(destroyed.x, destroyed.y, "#facc15");
           arcWords.splice(matchIdx, 1);
-          arcScore += 100 * arcWave;
+          arcScore += 100 * arcWave * arcCombo;
+          arcCombo = Math.min(8, arcCombo + 1);
           document.getElementById('arcScore').textContent = arcScore;
+          document.getElementById('arcCombo').textContent = `${arcCombo}x`;
           arcCurrentInput = "";
           AudioEngine.playKey(true);
-          if (arcScore % 500 === 0) {
+          if (arcScore >= arcWave * 600) {
             arcWave++;
             document.getElementById('arcWave').textContent = arcWave;
           }
         } else {
-          AudioEngine.playKey();
+          const partial = arcWords.find(w => w.text.startsWith(nextCandidate));
+          if (partial) {
+            arcCurrentInput = nextCandidate;
+            arcLasers.push({ tx: partial.x, ty: partial.y, alpha: 0.65 });
+            AudioEngine.playKey();
+          } else {
+            // If starting fresh or switching words, check if single char starts a word
+            const freshStart = arcWords.find(w => w.text.startsWith(ch));
+            if (arcCurrentInput.length === 0 && freshStart) {
+              arcCurrentInput = ch;
+              arcLasers.push({ tx: freshStart.x, ty: freshStart.y, alpha: 0.65 });
+              AudioEngine.playKey();
+            } else {
+              // Keep existing valid prefix so a single slip doesn't force retyping the whole word
+              arcCombo = 1;
+              document.getElementById('arcCombo').textContent = "1x";
+              AudioEngine.playError();
+            }
+          }
         }
       }
-    });
+    }, true);
 
     function exitArcade() {
       arcRunning = false;
+      clearTimeout(arcSpawnTimer);
       cancelAnimationFrame(arcReqId);
       document.getElementById('arcadeOverlay').classList.remove('active');
       document.querySelector('.mode-btn[data-mode="time"]').click();
     }
-    document.getElementById('btnExitArcade').onclick = exitArcade;
+    document.getElementById('btnExitArcade').addEventListener('click', exitArcade);
 
     // -------------------------------------------------------------------------
-    // 9. Buttons, Sound, Hands Toggle & Theme Selectors
+    // 11. Buttons, Modals, Sound, Hands Toggle & Theme Selectors
     // -------------------------------------------------------------------------
-    document.getElementById('btnRestart').onclick = initTest;
-    document.getElementById('btnNextTest').onclick = initTest;
-    document.getElementById('btnDrillWeak').onclick = () => {
+    document.getElementById('btnRestart').addEventListener('click', initTest);
+    document.getElementById('btnNextTest').addEventListener('click', initTest);
+    document.getElementById('btnDrillWeak').addEventListener('click', () => {
       document.querySelector('.mode-btn[data-mode="weak"]').click();
-    };
+    });
 
-    document.getElementById('selSound').onchange = (e) => {
+    document.getElementById('btnAdvanceLesson').addEventListener('click', () => {
+      if (currentMode === "lessons" && currentSubVal < lessonCurriculum.length - 1) {
+        currentSubVal++;
+        buildSubOptions();
+        initTest();
+      } else if (currentMode === "tutorial" && currentSubVal < interactiveTutorialSteps.length - 1) {
+        currentSubVal++;
+        buildSubOptions();
+        initTest();
+      }
+    });
+
+    document.getElementById('btnPrevStep').addEventListener('click', () => {
+      if (currentSubVal > 0) {
+        currentSubVal--;
+        buildSubOptions();
+        initTest();
+      }
+    });
+    document.getElementById('btnNextStep').addEventListener('click', () => {
+      const maxIdx = currentMode === "tutorial" ? interactiveTutorialSteps.length - 1 : lessonCurriculum.length - 1;
+      if (currentSubVal < maxIdx) {
+        currentSubVal++;
+        buildSubOptions();
+        initTest();
+      }
+    });
+
+    document.getElementById('btnModPunct').addEventListener('click', (e) => {
+      includePunctuation = !includePunctuation;
+      e.currentTarget.classList.toggle('active', includePunctuation);
+      initTest();
+    });
+    document.getElementById('btnModNums').addEventListener('click', (e) => {
+      includeNumbers = !includeNumbers;
+      e.currentTarget.classList.toggle('active', includeNumbers);
+      initTest();
+    });
+
+    document.getElementById('selSound').addEventListener('change', (e) => {
       AudioEngine.setProfile(e.target.value);
-    };
+      e.target.blur();
+      elCanvas.focus({ preventScroll: true });
+    });
 
-    document.getElementById('selTheme').onchange = (e) => {
+    document.getElementById('selTheme').addEventListener('change', (e) => {
       document.body.className = e.target.value;
-    };
+      e.target.blur();
+      elCanvas.focus({ preventScroll: true });
+    });
+
+    document.getElementById('selLayout').addEventListener('change', (e) => {
+      applyKeyboardLayout(e.target.value);
+      e.target.blur();
+      elCanvas.focus({ preventScroll: true });
+    });
+
+    document.getElementById('selPace').addEventListener('change', (e) => {
+      const v = e.target.value;
+      const paceWpm = v === "pb" ? (careerStore.pbWpm || 60) : parseInt(v, 10);
+      document.getElementById('lblTargetPace').textContent = paceWpm > 0 ? `${paceWpm} WPM` : "Off";
+      e.target.blur();
+      elCanvas.focus({ preventScroll: true });
+    });
 
     const handsWrapper = document.getElementById('handsWrapper');
-    document.getElementById('btnToggleHands').onclick = () => {
+    document.getElementById('btnToggleHands').addEventListener('click', (e) => {
       handsWrapper.classList.toggle('hidden');
-    };
+      e.currentTarget.classList.toggle('active', !handsWrapper.classList.contains('hidden'));
+      e.currentTarget.blur();
+    });
+
+    const keyboardArea = document.getElementById('keyboardArea');
+    document.getElementById('btnToggleZones').addEventListener('click', (e) => {
+      keyboardArea.classList.toggle('show-zones');
+      e.currentTarget.classList.toggle('active', keyboardArea.classList.contains('show-zones'));
+      e.currentTarget.blur();
+    });
+
+    document.getElementById('btnToggleHeatmap').addEventListener('click', (e) => {
+      keyboardArea.classList.toggle('show-heatmap');
+      e.currentTarget.classList.toggle('active', keyboardArea.classList.contains('show-heatmap'));
+      updateKeyboardHeatmap();
+      e.currentTarget.blur();
+    });
+
+    // Modals: Touch-Typing Guide, 18-Lesson Curriculum Map, Custom Text, Career Profile
+    const dlgGuide = document.getElementById('dlgGuide');
+    document.getElementById('btnOpenGuide').addEventListener('click', () => {
+      if (dlgGuide && typeof dlgGuide.showModal === 'function') dlgGuide.showModal();
+    });
+    document.getElementById('btnCloseGuide').addEventListener('click', () => dlgGuide.close());
+    document.getElementById('btnStartGuidedTutorial').addEventListener('click', () => {
+      dlgGuide.close();
+      document.querySelector('.mode-btn[data-mode="tutorial"]').click();
+    });
+
+    const dlgCurriculum = document.getElementById('dlgCurriculum');
+    function openCurriculumModal() {
+      const grid = document.getElementById('curriculumGrid');
+      grid.innerHTML = '';
+      lessonCurriculum.forEach((lesson, idx) => {
+        const stars = careerStore.lessonStars[idx] || 0;
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = `lesson-card ${currentMode === 'lessons' && currentSubVal === idx ? 'active' : ''}`;
+        card.innerHTML = `
+          <div class="lesson-card-top">
+            <span>Lesson ${idx + 1} • ${lesson.tier}</span>
+            <span>${"⭐".repeat(stars)}${"☆".repeat(3 - stars)}</span>
+          </div>
+          <div class="lesson-card-title">${lesson.name}</div>
+          <div class="lesson-card-desc">Sample: ${lesson.pool.slice(0, 5).join(" · ")}</div>
+        `;
+        card.addEventListener('click', () => {
+          dlgCurriculum.close();
+          document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+          document.querySelector('.mode-btn[data-mode="lessons"]').classList.add('active');
+          currentMode = "lessons";
+          currentSubVal = idx;
+          buildSubOptions();
+          initTest();
+        });
+        grid.appendChild(card);
+      });
+      if (dlgCurriculum && typeof dlgCurriculum.showModal === 'function') dlgCurriculum.showModal();
+    }
+    document.getElementById('btnOpenCurriculum').addEventListener('click', openCurriculumModal);
+    document.getElementById('btnCloseCurriculum').addEventListener('click', () => dlgCurriculum.close());
+
+    const dlgCustom = document.getElementById('dlgCustom');
+    document.getElementById('btnCloseCustom').addEventListener('click', () => dlgCustom.close());
+    document.getElementById('btnApplyCustom').addEventListener('click', () => {
+      customPracticeText = document.getElementById('txtCustomInput').value || customPracticeText;
+      dlgCustom.close();
+      initTest();
+    });
+
+    const dlgCareer = document.getElementById('dlgCareer');
+    document.getElementById('btnCareerModal').addEventListener('click', () => {
+      document.getElementById('carPB').textContent = `${careerStore.pbWpm} WPM`;
+      document.getElementById('carSessions').textContent = careerStore.sessions;
+      document.getElementById('carWords').textContent = careerStore.totalWords;
+      const totalStars = Object.values(careerStore.lessonStars).reduce((a, b) => a + b, 0);
+      document.getElementById('carStars').textContent = `${totalStars} / ${lessonCurriculum.length * 3}⭐`;
+
+      const kGrid = document.getElementById('careerKeyGrid');
+      kGrid.innerHTML = '';
+      "abcdefghijklmnopqrstuvwxyz".split("").forEach(ch => {
+        const st = careerStore.keyStats[ch] || { hits: 0, misses: 0, totalMs: 0 };
+        const total = st.hits + st.misses;
+        const acc = total > 0 ? Math.round((st.hits / total) * 100) : 100;
+        const ms = st.hits > 0 ? Math.round(st.totalMs / st.hits) : 0;
+        const pill = document.createElement('div');
+        pill.className = 'badge-pill';
+        pill.style.borderColor = total === 0 ? 'rgba(255,255,255,0.12)' : (acc >= 94 ? 'var(--neon-green)' : 'var(--neon-yellow)');
+        pill.style.color = total === 0 ? 'var(--text-muted)' : '#fff';
+        pill.textContent = `${ch.toUpperCase()}: ${total > 0 ? acc + '%' : '—'}${ms ? ' (' + ms + 'ms)' : ''}`;
+        kGrid.appendChild(pill);
+      });
+      if (dlgCareer && typeof dlgCareer.showModal === 'function') dlgCareer.showModal();
+    });
+    document.getElementById('btnCloseCareer').addEventListener('click', () => dlgCareer.close());
+    document.getElementById('btnCareerCloseAction').addEventListener('click', () => dlgCareer.close());
+    document.getElementById('btnResetCareer').addEventListener('click', () => {
+      careerStore = { pbWpm: 0, sessions: 0, totalWords: 0, lessonStars: {}, keyStats: {}, fingerStats: {} };
+      saveCareerStore();
+      dlgCareer.close();
+      initTest();
+    });
 
     // Focus Handlers
     elCanvas.addEventListener('click', () => { elCanvas.focus(); });
     elCanvas.addEventListener('focus', () => { elCanvas.classList.add('focused'); });
-    elCanvas.addEventListener('blur', () => { elCanvas.classList.remove('focused'); });
 
-    // Initialize First Test
+    // Initialize Career Telemetry & First Test
+    loadCareerStore();
     initTest();
   </script>
 </body>

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="description" content="Rodent's Revenge is a fast-paced puzzle arcade game where you trap cats, chase cheese, and survive escalating levels across a neon maze.">
-  <title>Rodent's Revenge - Deluxe Master Edition</title>
+  <title>Codecaine Rodent's Revenge - Deluxe Master Edition</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -51,6 +51,9 @@
     .gold-glow {
       animation: pulse-gold 2s infinite ease-in-out;
     }
+    .hidden {
+      display: none !important;
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-between overflow-x-hidden selection:bg-amber-400 selection:text-slate-900">
@@ -58,19 +61,19 @@
   <!-- Header with Global Stats and Quick Options -->
   <header class="w-full max-w-4xl px-4 py-2 sm:py-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md sticky top-0 z-20">
     <div class="flex items-center space-x-3">
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 border border-amber-300/40 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/20">
-        🧀
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-lime-500 via-amber-400 to-amber-600 border border-amber-300/50 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/20">
+        🐭
       </div>
       <div>
-        <h1 class="text-xl sm:text-2xl font-black tracking-tight bg-gradient-to-r from-amber-300 via-orange-300 to-yellow-400 bg-clip-text text-transparent flex items-center gap-2">
-          Rodent's Revenge
-          <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-ui font-bold uppercase tracking-wider">Deluxe</span>
+        <h1 class="text-lg sm:text-xl font-black tracking-tight bg-gradient-to-r from-amber-300 via-lime-300 to-yellow-400 bg-clip-text text-transparent flex items-center gap-2">
+          Codecaine Rodent's Revenge
+          <span id="theme-badge" class="text-[10px] px-1.5 py-0.5 rounded-full bg-lime-500/20 text-lime-300 border border-lime-500/40 font-ui font-bold uppercase tracking-wider">1991 HD</span>
         </h1>
         <p class="text-xs text-slate-400 flex items-center gap-1.5 font-medium">
           <span id="threat-indicator" class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span id="threat-status">Patrolling territory safely</span>
           <span class="text-slate-600 hidden sm:inline">•</span>
-          <span id="level-subtitle" class="text-amber-300/90 font-semibold truncate max-w-[140px] sm:max-w-[240px] hidden sm:inline">The Mouse's Training</span>
+          <span id="level-subtitle" class="text-amber-300/90 font-semibold truncate max-w-[140px] sm:max-w-[220px] hidden sm:inline">The Mouse's Training</span>
         </p>
       </div>
     </div>
@@ -92,9 +95,18 @@
         <span id="hud-cats" class="font-bold text-rose-400 font-mono">3</span>
       </div>
       <div class="w-px h-6 bg-slate-800"></div>
-      <div class="flex flex-col items-center min-w-[46px]" title="Time until next cat spawns (Original Windows Clock mechanic)">
-        <span class="text-[9px] uppercase font-bold text-slate-400 font-ui flex items-center gap-0.5">⏰ Next</span>
-        <span id="hud-clock" class="font-bold text-cyan-400 font-mono">40s</span>
+      <div class="flex items-center gap-1.5 min-w-[62px]" title="1991 Reinforcement Clock — time until next cat or yarn spawns">
+        <svg id="hud-analog-clock" width="24" height="24" viewBox="0 0 24 24" class="shrink-0">
+          <circle cx="12" cy="12" r="10" fill="#f8fafc" stroke="#334155" stroke-width="2"/>
+          <circle cx="12" cy="3.8" r="1.3" fill="#ef4444"/>
+          <line x1="12" y1="12" x2="12" y2="5" stroke="#ef4444" stroke-width="1.2" stroke-dasharray="1.5 1.5"/>
+          <line id="clock-hand" x1="12" y1="12" x2="12" y2="5" stroke="#1e293b" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="12" cy="12" r="1.8" fill="#dc2626"/>
+        </svg>
+        <div class="flex flex-col items-center">
+          <span class="text-[9px] uppercase font-bold text-slate-400 font-ui">Clock</span>
+          <span id="hud-clock" class="font-bold text-cyan-400 font-mono">40s</span>
+        </div>
       </div>
       <div class="w-px h-6 bg-slate-800"></div>
       <div class="flex flex-col items-center min-w-[55px]">
@@ -116,7 +128,7 @@
       <button id="btn-music" title="Toggle Adaptive BGM (M)" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition text-sm flex items-center justify-center">
         🎵
       </button>
-      <button id="btn-theme" title="Toggle Theme (Modern / Win95 Retro)" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition text-sm flex items-center justify-center">
+      <button id="btn-theme" title="Cycle Visual Theme (1991 Classic HD / Modern Neon / Win3.1 Retro)" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition text-sm flex items-center justify-center">
         🎨
       </button>
       <button id="btn-sound" title="Toggle Sound FX" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition text-sm flex items-center justify-center">
@@ -128,8 +140,11 @@
       <button id="btn-help" title="Rules & How to Play" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition text-sm flex items-center justify-center">
         ❓
       </button>
-      <button id="btn-pause" title="Pause Game (Space)" class="p-2 rounded-lg bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/30 transition text-sm flex items-center justify-center font-bold px-3">
+      <button id="btn-pause" title="Pause Game (Space)" class="p-2 rounded-lg bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/30 transition text-sm flex items-center justify-center font-bold px-2.5">
         ⏸️
+      </button>
+      <button id="btnHub" data-close-game="true" title="Exit Game" class="px-2.5 py-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-200 border border-rose-500/40 transition text-xs font-bold flex items-center gap-1">
+        ✕ Exit
       </button>
     </div>
   </header>
@@ -497,36 +512,41 @@
         const leadProgression = [440, 523.25, 587.33, 659.25, 587.33, 523.25, 493.88, 440, 659.25, 698.46, 783.99, 880];
 
         const tick = () => {
-          if (!this.musicEnabled || !this.ctx) return;
-          const now = this.ctx.currentTime;
-          const bFreq = bassProgression[this.bgmStep % bassProgression.length];
-          const mFreq = leadProgression[(this.bgmStep + 1) % leadProgression.length];
-
-          // Bass groove
-          const bOsc = this.ctx.createOscillator();
-          const bGain = this.ctx.createGain();
-          bOsc.type = this.urgencyMode ? 'sawtooth' : 'triangle';
-          bOsc.frequency.setValueAtTime(bFreq, now);
-          bGain.gain.setValueAtTime(0.04, now);
-          bGain.gain.exponentialRampToValueAtTime(0.001, now + (this.tempo / 1000) * 0.9);
-          bOsc.connect(bGain);
-          bGain.connect(this.ctx.destination);
-          bOsc.start(now);
-          bOsc.stop(now + (this.tempo / 1000) * 0.9);
-
-          // Fast arpeggiated lead
-          if (this.bgmStep % 2 === 0 || this.urgencyMode) {
-            const mOsc = this.ctx.createOscillator();
-            const mGain = this.ctx.createGain();
-            mOsc.type = 'square';
-            mOsc.frequency.setValueAtTime(mFreq, now);
-            mGain.gain.setValueAtTime(0.02, now);
-            mGain.gain.exponentialRampToValueAtTime(0.001, now + (this.tempo / 1000) * 0.6);
-            mOsc.connect(mGain);
-            mGain.connect(this.ctx.destination);
-            mOsc.start(now);
-            mOsc.stop(now + (this.tempo / 1000) * 0.6);
+          if (!this.musicEnabled || !this.ctx || this.ctx.state === 'closed') {
+            this.stopBgmLoop();
+            return;
           }
+          try {
+            const now = this.ctx.currentTime;
+            const bFreq = bassProgression[this.bgmStep % bassProgression.length];
+            const mFreq = leadProgression[(this.bgmStep + 1) % leadProgression.length];
+
+            // Bass groove
+            const bOsc = this.ctx.createOscillator();
+            const bGain = this.ctx.createGain();
+            bOsc.type = this.urgencyMode ? 'sawtooth' : 'triangle';
+            bOsc.frequency.setValueAtTime(bFreq, now);
+            bGain.gain.setValueAtTime(0.04, now);
+            bGain.gain.exponentialRampToValueAtTime(0.001, now + (this.tempo / 1000) * 0.9);
+            bOsc.connect(bGain);
+            bGain.connect(this.ctx.destination);
+            bOsc.start(now);
+            bOsc.stop(now + (this.tempo / 1000) * 0.9);
+
+            // Fast arpeggiated lead
+            if (this.bgmStep % 2 === 0 || this.urgencyMode) {
+              const mOsc = this.ctx.createOscillator();
+              const mGain = this.ctx.createGain();
+              mOsc.type = 'square';
+              mOsc.frequency.setValueAtTime(mFreq, now);
+              mGain.gain.setValueAtTime(0.02, now);
+              mGain.gain.exponentialRampToValueAtTime(0.001, now + (this.tempo / 1000) * 0.6);
+              mOsc.connect(mGain);
+              mGain.connect(this.ctx.destination);
+              mOsc.start(now);
+              mOsc.stop(now + (this.tempo / 1000) * 0.6);
+            }
+          } catch (e) {}
 
           this.bgmStep++;
           this.musicTimer = setTimeout(tick, this.tempo);
@@ -539,6 +559,17 @@
           clearTimeout(this.musicTimer);
           this.musicTimer = null;
         }
+      }
+
+      silenceAll() {
+        this.musicEnabled = false;
+        this.enabled = false;
+        this.stopBgmLoop();
+        try {
+          if (this.ctx && this.ctx.state !== 'closed') {
+            this.ctx.suspend();
+          }
+        } catch (e) {}
       }
 
       playScurry() {
@@ -1203,7 +1234,7 @@
         this.cols = 15;
         this.rows = 15;
         this.tileSize = 40;
-        this.theme = 'modern';
+        this.theme = 'classic_hd'; // 'classic_hd' | 'modern' | 'retro'
 
         this.score = 0;
         this.level = 1;
@@ -1233,7 +1264,9 @@
           walkCycle: 0,
           isMoving: false,
           earRotate: 0,
-          scaredTimer: 0
+          scaredTimer: 0,
+          pushTimer: 0,
+          lastPushCount: 0
         };
 
         this.cats = [];
@@ -1242,6 +1275,8 @@
         this.grid = [];
         this.floatingTexts = [];
         this.particles = [];
+        this.blockAnims = new Map();
+        this.trapSnapAnims = new Map();
         this.shakeTimer = 0;
         this.shakeMagnitude = 0;
 
@@ -1271,6 +1306,20 @@
         this.bindEvents();
         this.updateHUD();
       }
+
+      // Unified property aliases so HUD & renderer always stay synchronized
+      get isStuckInSinkhole() { return this.stuckInSinkhole; }
+      set isStuckInSinkhole(v) { this.stuckInSinkhole = v; }
+      get stealthTimer() { return this.invulnerableTimer; }
+      set stealthTimer(v) { this.invulnerableTimer = v; }
+      get pepperSpeedTimer() { return this.dashTimeRemaining; }
+      set pepperSpeedTimer(v) { this.dashTimeRemaining = v; }
+      get stinkyRepelTimer() { return this.stinkyRepelTimeRemaining; }
+      set stinkyRepelTimer(v) { this.stinkyRepelTimeRemaining = v; }
+      get pocketTraps() { return this.traps; }
+      set pocketTraps(v) { this.traps = v; }
+      get catSpawnTimer() { return this.clockSecondsRemaining * 1000; }
+      get speedMode() { return this.gameSpeed; }
 
       initCanvasSize() {
         const maxDisplaySize = Math.min(window.innerWidth - 32, 540);
@@ -1395,9 +1444,11 @@
         const midX = Math.floor(this.cols / 2);
         const midY = Math.floor(this.rows / 2);
 
+        const isSafeFromSpawn = (x, y) => Math.abs(x - this.player.x) > 1 || Math.abs(y - this.player.y) > 1;
+
         const placeSolid = (x, y) => {
           if (x > 0 && x < this.cols - 1 && y > 0 && y < this.rows - 1) {
-            if (!(x === this.player.x && y === this.player.y)) {
+            if (isSafeFromSpawn(x, y)) {
               this.grid[y][x] = SOLID_BLOCK;
             }
           }
@@ -1405,7 +1456,7 @@
 
         const placeTrap = (x, y) => {
           if (x > 0 && x < this.cols - 1 && y > 0 && y < this.rows - 1) {
-            if (this.grid[y][x] === EMPTY && !(x === this.player.x && y === this.player.y)) {
+            if (this.grid[y][x] === EMPTY && isSafeFromSpawn(x, y)) {
               this.grid[y][x] = TRAP;
             }
           }
@@ -1413,7 +1464,7 @@
 
         const placeSinkhole = (x, y) => {
           if (x > 0 && x < this.cols - 1 && y > 0 && y < this.rows - 1) {
-            if (this.grid[y][x] === EMPTY && !(x === this.player.x && y === this.player.y)) {
+            if (this.grid[y][x] === EMPTY && isSafeFromSpawn(x, y)) {
               this.grid[y][x] = SINKHOLE;
             }
           }
@@ -1662,6 +1713,7 @@
               y: midY - 1,
               isGold: true,
               kind: 'gold',
+              cheeseType: 'gold',
               timer: 20000,
               maxTimer: 20000
             });
@@ -1777,6 +1829,8 @@
         this.mouseHoles = [];
         this.particles = [];
         this.floatingTexts = [];
+        this.blockAnims = new Map();
+        this.trapSnapAnims = new Map();
         this.undoStack = [];
         this.undosRemaining = this.maxUndos;
         this.cheeseEatenCount = 0;
@@ -1820,12 +1874,13 @@
           })
         );
 
-        // Player starting coordinate
+        // Player starting coordinate in exact center (1991 authentic)
         this.player.x = Math.floor(this.cols / 2);
         this.player.y = Math.floor(this.rows / 2);
         this.player.renderX = this.player.x;
         this.player.renderY = this.player.y;
         this.player.facing = 'DOWN';
+        this.player.pushTimer = 0;
 
         const catCount = cfg ? cfg.catCount : Math.min(14, 2 + lvl);
         const blockDensity = cfg ? cfg.blockDensity : Math.max(0.22, 0.40 - (lvl * 0.012));
@@ -1836,10 +1891,8 @@
         const hasBoss = cfg ? !!cfg.hasBoss : (lvl % 5 === 0);
 
         if (cfg && cfg.layout) {
-          // Handcrafted Nostalgic Stage Architecture
           this.applyLevelLayout(cfg.layout, cfg);
         } else {
-          // Procedural Endless Stage Architecture
           const holePairs = lvl >= 5 ? 2 : 1;
           for (let p = 0; p < holePairs; p++) {
             let h1 = { x: 2 + (p * 2), y: 2 + (p * 2) };
@@ -1888,25 +1941,46 @@
           }
         }
 
-        // Populate Movable Green Blocks around remaining open ground
+        // Authentic 1991 Central Block Fortress + Outer Patrol Ring
+        // Central core (r: 3..rows-4, c: 3..cols-4) is densely packed with pushable olive-green blocks
+        // around the mouse's 1x1 starting hollow, while the outer perimeter (r=1, rows-2, c=1, cols-2)
+        // stays clear as the feline patrol track!
         for (let r = 1; r < this.rows - 1; r++) {
           for (let c = 1; c < this.cols - 1; c++) {
             if (this.grid[r][c] !== EMPTY) continue;
-            const distFromPlayer = Math.hypot(c - this.player.x, r - this.player.y);
-            if (distFromPlayer < 2.2) continue;
-            if (Math.random() < blockDensity) {
-              this.grid[r][c] = BLOCK;
+            if (c === this.player.x && r === this.player.y) continue;
+
+            const isOuterTrack = (r === 1 || r === this.rows - 2 || c === 1 || c === this.cols - 2);
+            const isInnerCore = (r >= 3 && r <= this.rows - 4 && c >= 3 && c <= this.cols - 4);
+
+            if (isOuterTrack) {
+              // Keep outer perimeter clear for cats & yarn balls
+              continue;
+            } else if (isInnerCore) {
+              // Classic 1991 dense central block cluster (higher density on early levels)
+              const coreDensity = lvl === 1 ? 0.92 : Math.min(0.88, blockDensity + 0.45);
+              if (Math.random() < coreDensity) {
+                this.grid[r][c] = BLOCK;
+              }
+            } else {
+              // Middle ring (r=2 / rows-3 / c=2 / cols-3)
+              if (Math.random() < blockDensity * 0.65) {
+                this.grid[r][c] = BLOCK;
+              }
             }
           }
         }
+        // Ensure mouse center tile is empty
+        this.grid[this.player.y][this.player.x] = EMPTY;
 
-        // Spawn Cats & Boss Archetypes
+        // Spawn Cats & Boss Archetypes along the outer perimeter patrol track
         const breeds = ['tabby', 'tuxedo', 'calico', 'siamese', 'black'];
         let placedCats = 0;
         let attempts = 0;
 
         if (hasBoss) {
-          let bx = 2, by = 2;
+          let bx = 1, by = 1;
+          this.grid[by][bx] = EMPTY;
           this.cats.push({
             id: 'boss-king',
             x: bx,
@@ -1915,6 +1989,7 @@
             renderY: by,
             facing: 'RIGHT',
             state: 'stalking',
+            isSitting: false,
             archetype: 'boss',
             breed: 'calico',
             walkCycle: 0,
@@ -1933,12 +2008,30 @@
           placedCats++;
         }
 
+        // Gather outer perimeter tiles first so cats spawn on the patrol track like 1991 Rodent's Revenge
+        const perimeterSpots = [];
+        for (let r = 1; r < this.rows - 1; r++) {
+          for (let c = 1; c < this.cols - 1; c++) {
+            if ((r === 1 || r === this.rows - 2 || c === 1 || c === this.cols - 2) && this.grid[r][c] === EMPTY) {
+              perimeterSpots.push({ x: c, y: r });
+            }
+          }
+        }
+        perimeterSpots.sort(() => Math.random() - 0.5);
+
         while (placedCats < catCount && attempts < 600) {
           attempts++;
-          const rx = 1 + Math.floor(Math.random() * (this.cols - 2));
-          const ry = 1 + Math.floor(Math.random() * (this.rows - 2));
+          let rx, ry;
+          if (perimeterSpots.length > 0) {
+            const spot = perimeterSpots.pop();
+            rx = spot.x;
+            ry = spot.y;
+          } else {
+            rx = 1 + Math.floor(Math.random() * (this.cols - 2));
+            ry = 1 + Math.floor(Math.random() * (this.rows - 2));
+          }
           const dist = Math.hypot(rx - this.player.x, ry - this.player.y);
-          if (this.grid[ry][rx] === EMPTY && dist > 3.5 && !this.cats.some(cat => cat.x === rx && cat.y === ry)) {
+          if (this.grid[ry][rx] === EMPTY && dist > 3.2 && !this.cats.some(cat => cat.x === rx && cat.y === ry)) {
             const breed = breeds[placedCats % breeds.length];
             let archetype = 'normal';
             if (lvl >= 4 && Math.random() < 0.25) archetype = 'ninja';
@@ -1950,8 +2043,9 @@
               y: ry,
               renderX: rx,
               renderY: ry,
-              facing: Math.random() > 0.5 ? 'LEFT' : 'RIGHT',
+              facing: rx > this.player.x ? 'LEFT' : 'RIGHT',
               state: archetype === 'sleepy' ? 'asleep' : 'stalking',
+              isSitting: false,
               archetype: archetype,
               breed: breed,
               walkCycle: Math.random() * Math.PI * 2,
@@ -1970,13 +2064,19 @@
           }
         }
 
-        // Spawn Bouncing Yarn Hazards
+        // Spawn Bouncing Yarn Hazards along the perimeter
         for (let i = 0; i < yarnCount; i++) {
+          const yx = 1 + ((i * 5) % (this.cols - 3));
+          const yy = 1;
           this.yarns.push({
-            x: 2 + i * 4,
-            y: 2,
+            x: yx,
+            y: yy,
+            renderX: yx,
+            renderY: yy,
             dx: Math.random() > 0.5 ? 1 : -1,
-            dy: Math.random() > 0.5 ? 1 : -1
+            dy: 1,
+            spinAngle: Math.random() * Math.PI * 2,
+            bounceSquash: 0
           });
         }
 
@@ -2127,12 +2227,40 @@
 
       spawnReinforcementCat() {
         sound.playClockChime();
+        // In 1991 Rodent's Revenge, the clock spawns a reinforcement Cat or a bouncing Yarn Ball!
+        if (this.level >= 2 && this.yarns.length < 2 && Math.random() < 0.35) {
+          this.yarns.push({
+            x: 1,
+            y: 1,
+            renderX: 1,
+            renderY: 1,
+            dx: 1,
+            dy: 1,
+            spinAngle: 0,
+            bounceSquash: 0.3
+          });
+          this.showToast("TICK-TOCK! A wild Yarn Ball rolled onto the board!", "🧶");
+          this.createSparkles(1.5 * this.tileSize, 1.5 * this.tileSize, '#ec4899', 20);
+          this.updateHUD();
+          return;
+        }
+
         this.showToast("TICK-TOCK! Reinforcement cat arrived!", "⏰");
         const candidates = [];
         for (let r = 1; r < this.rows - 1; r++) {
           for (let c = 1; c < this.cols - 1; c++) {
-            if (this.grid[r][c] === EMPTY && Math.hypot(c - this.player.x, r - this.player.y) > 4 && !this.cats.some(cat => cat.x === c && cat.y === r)) {
+            const onEdge = (r === 1 || r === this.rows - 2 || c === 1 || c === this.cols - 2);
+            if (onEdge && this.grid[r][c] === EMPTY && Math.hypot(c - this.player.x, r - this.player.y) > 3.5 && !this.cats.some(cat => cat.x === c && cat.y === r)) {
               candidates.push({ x: c, y: r });
+            }
+          }
+        }
+        if (candidates.length === 0) {
+          for (let r = 1; r < this.rows - 1; r++) {
+            for (let c = 1; c < this.cols - 1; c++) {
+              if (this.grid[r][c] === EMPTY && Math.hypot(c - this.player.x, r - this.player.y) > 3.5 && !this.cats.some(cat => cat.x === c && cat.y === r)) {
+                candidates.push({ x: c, y: r });
+              }
             }
           }
         }
@@ -2147,6 +2275,7 @@
             renderY: spot.y,
             facing: 'LEFT',
             state: 'stalking',
+            isSitting: false,
             archetype: Math.random() < 0.3 ? 'ninja' : 'normal',
             breed: breeds[Math.floor(Math.random() * breeds.length)],
             walkCycle: 0,
@@ -2227,6 +2356,7 @@
         if (targetCell === TRAP) {
           sound.playTrapSnap();
           this.grid[targetY][targetX] = SPRUNG_TRAP;
+          this.trapSnapAnims.set(`${targetX},${targetY}`, 1.0);
           this.triggerDeath("Snap! You walked right into a mousetrap.");
           return;
         }
@@ -2276,6 +2406,9 @@
         if (cheeseIndex !== -1) {
           const eatenCheese = this.cheeses[cheeseIndex];
           this.cheeses.splice(cheeseIndex, 1);
+          if (this.grid[targetY][targetX] === GOLD_CHEESE || this.grid[targetY][targetX] === CHEESE) {
+            this.grid[targetY][targetX] = EMPTY;
+          }
           this.cheeseEatenCount++;
 
           const now = performance.now();
@@ -2290,15 +2423,16 @@
             this.unlockAchievement('triple_combo');
           }
 
+          const cType = eatenCheese.cheeseType || eatenCheese.kind || 'cheddar';
           let basePts = (eatenCheese.isGold ? 350 : 120) * this.level;
-          if (eatenCheese.cheeseType === 'pepper') {
+          if (cType === 'pepper') {
             basePts = 250 * this.level;
             this.dashTimeRemaining = 6000;
             sound.playSpeedDash();
             const dashInd = document.getElementById('dash-indicator');
             if (dashInd) dashInd.classList.remove('hidden');
             this.showToast("Spicy Pepper Jack! Turbo Mouse Dash for 6s!", "🌶️");
-          } else if (eatenCheese.cheeseType === 'stinky') {
+          } else if (cType === 'stinky') {
             basePts = 300 * this.level;
             this.stinkyRepelTimeRemaining = 5000;
             const stinkyInd = document.getElementById('stinky-indicator');
@@ -2337,11 +2471,7 @@
           return;
         }
 
-        // 8. Pushing Blocks (Orthogonal only in authentic rules)
-        if (targetCell === BLOCK && !['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(dirKey)) {
-          return;
-        }
-
+        // 8. Pushing Chains of Blocks (All 8 directions supported in 1991 Classic Mode!)
         if (targetCell === BLOCK) {
           let pushLine = [{ x: targetX, y: targetY }];
           let scanX = targetX + dir.dx;
@@ -2369,6 +2499,9 @@
             return;
           }
 
+          this.player.pushTimer = 12;
+          this.player.lastPushCount = pushLine.length;
+
           // Push into Sinkhole -> fills it
           if (endCell === SINKHOLE) {
             this.pushBlocksAlongLine(pushLine, dir);
@@ -2391,6 +2524,7 @@
           if (endCell === TRAP) {
             this.pushBlocksAlongLine(pushLine, dir);
             this.grid[destY][destX] = SPRUNG_TRAP;
+            this.trapSnapAnims.set(`${destX},${destY}`, 1.0);
             sound.playTrapSnap();
             sound.playPush();
             this.showToast("Mousetrap safely disarmed with a block!", "🪤");
@@ -2407,13 +2541,13 @@
             return;
           }
 
-          // Push into Empty tile or Sprung trap (or cheese)
-          if (endCell === EMPTY || endCell === SPRUNG_TRAP || this.cheeses.some(c => c.x === destX && c.y === destY)) {
+          // Push into Empty tile or Sprung trap (or cheese, squashing cheese like 1991 original)
+          if (endCell === EMPTY || endCell === SPRUNG_TRAP || endCell === CHEESE || endCell === GOLD_CHEESE || this.cheeses.some(c => c.x === destX && c.y === destY)) {
             this.cheeses = this.cheeses.filter(c => !(c.x === destX && c.y === destY));
 
             this.pushBlocksAlongLine(pushLine, dir);
             sound.playPush();
-            this.triggerScreenShake(3);
+            this.triggerScreenShake(Math.min(5, 1 + pushLine.length));
 
             this.player.x = targetX;
             this.player.y = targetY;
@@ -2429,11 +2563,18 @@
       pushBlocksAlongLine(line, dir) {
         for (let i = line.length - 1; i >= 0; i--) {
           const b = line[i];
+          const nx = b.x + dir.dx;
+          const ny = b.y + dir.dy;
           this.grid[b.y][b.x] = EMPTY;
-          this.grid[b.y + dir.dy][b.x + dir.dx] = BLOCK;
+          this.grid[ny][nx] = BLOCK;
+          this.blockAnims.set(`${nx},${ny}`, {
+            offsetX: -dir.dx * this.tileSize,
+            offsetY: -dir.dy * this.tileSize,
+            scalePop: 0.16
+          });
           this.createDust(
-            (b.x + dir.dx) * this.tileSize + this.tileSize / 2,
-            (b.y + dir.dy) * this.tileSize + this.tileSize / 2
+            nx * this.tileSize + this.tileSize / 2,
+            ny * this.tileSize + this.tileSize / 2
           );
         }
       }
@@ -2452,6 +2593,21 @@
       }
 
       updateCatAnimations() {
+        if (this.player.pushTimer > 0) {
+          this.player.pushTimer--;
+        }
+        // Smoothly interpolate rolling yarn balls every frame
+        for (const yarn of this.yarns) {
+          if (typeof yarn.renderX !== 'number') yarn.renderX = yarn.x;
+          if (typeof yarn.renderY !== 'number') yarn.renderY = yarn.y;
+          yarn.renderX += (yarn.x - yarn.renderX) * 0.25;
+          yarn.renderY += (yarn.y - yarn.renderY) * 0.25;
+          yarn.spinAngle = (yarn.spinAngle || 0) + 0.16 * (yarn.dx || 1);
+          if (yarn.bounceSquash > 0) {
+            yarn.bounceSquash *= 0.84;
+            if (yarn.bounceSquash < 0.01) yarn.bounceSquash = 0;
+          }
+        }
         for (const cat of this.cats) {
           const dx = cat.x - cat.renderX;
           const dy = cat.y - cat.renderY;
@@ -2495,7 +2651,7 @@
           }
 
           const distToMouse = Math.hypot(cat.x - this.player.x, cat.y - this.player.y);
-          const targetCrouch = (distToMouse <= 2.5 && cat.state !== 'asleep') ? 2.5 : 0;
+          const targetCrouch = (distToMouse <= 2.5 && cat.state !== 'asleep' && !cat.isSitting) ? 2.5 : 0;
           cat.prowlHeight += (targetCrouch - cat.prowlHeight) * 0.15;
 
           if (isCornered) {
@@ -2523,15 +2679,7 @@
             this.spawnReinforcementCat();
           }
 
-          const clockEl = document.getElementById('hud-clock');
-          if (clockEl) {
-            clockEl.textContent = `${this.clockSecondsRemaining}s`;
-            if (this.clockSecondsRemaining <= 5) {
-              clockEl.className = 'font-bold text-rose-400 font-mono animate-ping';
-            } else {
-              clockEl.className = 'font-bold text-cyan-400 font-mono';
-            }
-          }
+          this.updateClockVisual();
         }
 
         // 2. Dash countdown
@@ -2566,7 +2714,7 @@
         // Proximity threat calculation
         let closestDist = Infinity;
         for (const cat of this.cats) {
-          if (cat.state !== 'asleep') {
+          if (cat.state !== 'asleep' && !cat.isSitting) {
             const d = Math.hypot(cat.x - this.player.x, cat.y - this.player.y);
             if (d < closestDist) closestDist = d;
           }
@@ -2609,6 +2757,11 @@
           if (ch.timer <= 0) {
             this.cheeses.splice(i, 1);
             this.grid[ch.y][ch.x] = BLOCK;
+            this.blockAnims.set(`${ch.x},${ch.y}`, {
+              offsetX: 0,
+              offsetY: 0,
+              scalePop: 0.25
+            });
             sound.playHarden();
             this.addFloatingText(ch.x * this.tileSize + this.tileSize / 2, ch.y * this.tileSize, "PETRIFIED!", "#34d399");
             this.showToast("Cheese hardened into a solid block!", "🧀");
@@ -2621,6 +2774,13 @@
         for (let i = this.cats.length - 1; i >= 0; i--) {
           const cat = this.cats[i];
           if (cat.state === 'asleep') continue;
+
+          // Check if cat is boxed into a tiny sealed pen (<= 6 tiles)
+          const pocket = this.analyzeCatPocket(cat);
+          cat.isSitting = pocket.isSitting;
+
+          // If sitting in a tiny walled-off pen, cat stays put or paces only occasionally
+          if (cat.isSitting && Math.random() < 0.65) continue;
 
           const isNinja = cat.archetype === 'ninja';
           const validMoves = this.getAvailableCatMoves(cat.x, cat.y, isNinja);
@@ -2657,13 +2817,16 @@
           }
 
           if (bestMove) {
-            cat.facing = bestMove.x < cat.x ? 'LEFT' : 'RIGHT';
+            if (bestMove.x !== cat.x) {
+              cat.facing = bestMove.x < cat.x ? 'LEFT' : 'RIGHT';
+            }
             cat.x = bestMove.x;
             cat.y = bestMove.y;
 
             // Cat stepped into active mousetrap!
             if (this.grid[bestMove.y][bestMove.x] === TRAP) {
               this.grid[bestMove.y][bestMove.x] = SPRUNG_TRAP;
+              this.trapSnapAnims.set(`${bestMove.x},${bestMove.y}`, 1.0);
               this.cats.splice(i, 1);
               this.cheeses.push({
                 x: bestMove.x,
@@ -2671,7 +2834,8 @@
                 timer: 15000,
                 maxTimer: 15000,
                 isGold: cat.archetype === 'boss',
-                cheeseType: 'cheddar'
+                cheeseType: 'cheddar',
+                kind: cat.archetype === 'boss' ? 'gold' : 'cheddar'
               });
               sound.playCatTrap();
               this.triggerScreenShake(7);
@@ -2710,11 +2874,14 @@
         this.checkTrappedCats();
       }
 
+      // Authentic 1991 8-directional cat movement
       getAvailableCatMoves(cx, cy, canLeapSinkholes = false) {
         const moves = [];
         const offsets = [
           { dx: 0, dy: -1 }, { dx: 0, dy: 1 },
-          { dx: -1, dy: 0 }, { dx: 1, dy: 0 }
+          { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
+          { dx: -1, dy: -1 }, { dx: 1, dy: -1 },
+          { dx: -1, dy: 1 }, { dx: 1, dy: 1 }
         ];
 
         for (const off of offsets) {
@@ -2724,8 +2891,8 @@
           if (nx < 0 || nx >= this.cols || ny < 0 || ny >= this.rows) continue;
 
           const cell = this.grid[ny][nx];
-          // Can walk on EMPTY, SPRUNG_TRAP, and TRAP (where it gets snapped!)
-          if (cell === EMPTY || cell === SPRUNG_TRAP || cell === TRAP) {
+          // Can walk on EMPTY, SPRUNG_TRAP, TRAP, or CHEESE
+          if (cell === EMPTY || cell === SPRUNG_TRAP || cell === TRAP || cell === CHEESE || cell === GOLD_CHEESE) {
             if (!this.cats.some(c => c.x === nx && c.y === ny)) {
               moves.push({ x: nx, y: ny });
             }
@@ -2750,15 +2917,74 @@
         return moves;
       }
 
+      // 8-way BFS flood-fill to analyze the cat's enclosed pocket
+      analyzeCatPocket(cat) {
+        const visited = Array.from({ length: this.rows }, () => Array(this.cols).fill(false));
+        const queue = [{ x: cat.x, y: cat.y }];
+        visited[cat.y][cat.x] = true;
+
+        const offsets = [
+          { dx: 0, dy: -1 }, { dx: 0, dy: 1 },
+          { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
+          { dx: -1, dy: -1 }, { dx: 1, dy: -1 },
+          { dx: -1, dy: 1 }, { dx: 1, dy: 1 }
+        ];
+
+        let totalTiles = 0;
+        let freeTiles = 0;
+        let containsPlayer = false;
+
+        while (queue.length > 0) {
+          const cur = queue.shift();
+          totalTiles++;
+
+          if (cur.x === this.player.x && cur.y === this.player.y) {
+            containsPlayer = true;
+          }
+
+          const occupiedByCat = this.cats.some(c => c.x === cur.x && c.y === cur.y);
+          if (!occupiedByCat && !(cur.x === this.player.x && cur.y === this.player.y)) {
+            freeTiles++;
+          }
+
+          for (const off of offsets) {
+            const nx = cur.x + off.dx;
+            const ny = cur.y + off.dy;
+            if (nx <= 0 || nx >= this.cols - 1 || ny <= 0 || ny >= this.rows - 1) continue;
+            if (visited[ny][nx]) continue;
+            const cell = this.grid[ny][nx];
+            if (cell !== WALL && cell !== BLOCK && cell !== SOLID_BLOCK && cell !== MOUSE_HOLE) {
+              visited[ny][nx] = true;
+              queue.push({ x: nx, y: ny });
+            }
+          }
+        }
+
+        return {
+          totalTiles,
+          freeTiles,
+          containsPlayer,
+          isImmobilized: !containsPlayer && freeTiles === 0,
+          isSitting: !containsPlayer && freeTiles > 0 && totalTiles <= 6
+        };
+      }
+
       checkTrappedCats() {
         let transformedAny = false;
 
-        for (let i = this.cats.length - 1; i >= 0; i--) {
-          const cat = this.cats[i];
+        // Evaluate all cats before splicing so multi-cat pockets (e.g. 2 cats in 2 tiles) transform together
+        const catStates = this.cats.map(cat => {
           const isNinja = cat.archetype === 'ninja';
           const availableMoves = this.getAvailableCatMoves(cat.x, cat.y, isNinja);
+          const pocket = this.analyzeCatPocket(cat);
+          cat.isSitting = pocket.isSitting;
+          const isTrapped = availableMoves.length === 0 && pocket.isImmobilized;
+          return { cat, isTrapped };
+        });
 
-          if (availableMoves.length === 0) {
+        for (let i = catStates.length - 1; i >= 0; i--) {
+          if (catStates[i].isTrapped) {
+            const cat = catStates[i].cat;
             const trappedX = cat.x;
             const trappedY = cat.y;
             const isBoss = cat.archetype === 'boss';
@@ -2779,7 +3005,8 @@
               timer: 15000,
               maxTimer: 15000,
               isGold: isBoss || cheeseType === 'gold',
-              cheeseType: cheeseType
+              cheeseType: cheeseType,
+              kind: cheeseType
             });
 
             const trapPoints = (isBoss ? 1000 : 250) * this.level;
@@ -2796,11 +3023,11 @@
             this.createSparkles(
               trappedX * this.tileSize + this.tileSize / 2,
               trappedY * this.tileSize + this.tileSize / 2,
-              isBoss ? '#f59e0b' : (cheeseType === 'pepper' ? '#ef4444' : (cheeseType === 'stinky' ? '#10b981' : '#38bdf8')),
+              isBoss ? '#f59e0b' : (cheeseType === 'pepper' ? '#ef4444' : (cheeseType === 'stinky' ? '#10b981' : '#fbbf24')),
               isBoss ? 45 : 24
             );
-            this.addFloatingText(trappedX * this.tileSize + this.tileSize / 2, trappedY * this.tileSize, `+${trapPoints}`, isBoss ? '#f59e0b' : '#38bdf8');
-            this.showToast(`Cat trapped! +${trapPoints} pts → ${cheeseType.toUpperCase()} CHEESE!`, '🧀');
+            this.addFloatingText(trappedX * this.tileSize + this.tileSize / 2, trappedY * this.tileSize, `+${trapPoints}`, isBoss ? '#f59e0b' : '#fbbf24');
+            this.showToast(`Cat boxed in! +${trapPoints} pts → ${cheeseType.toUpperCase()} SWISS CHEESE!`, '🧀');
           }
         }
 
@@ -2816,14 +3043,21 @@
         for (const yarn of this.yarns) {
           let nextX = yarn.x + yarn.dx;
           let nextY = yarn.y + yarn.dy;
+          let bounced = false;
 
-          if (nextX <= 0 || nextX >= this.cols - 1 || this.grid[yarn.y][nextX] === WALL || this.grid[yarn.y][nextX] === BLOCK) {
+          if (nextX <= 0 || nextX >= this.cols - 1 || this.grid[yarn.y][nextX] === WALL || this.grid[yarn.y][nextX] === BLOCK || this.grid[yarn.y][nextX] === SOLID_BLOCK) {
             yarn.dx = -yarn.dx;
             nextX = yarn.x + yarn.dx;
+            bounced = true;
           }
-          if (nextY <= 0 || nextY >= this.rows - 1 || this.grid[nextY][yarn.x] === WALL || this.grid[nextY][yarn.x] === BLOCK) {
+          if (nextY <= 0 || nextY >= this.rows - 1 || this.grid[nextY][yarn.x] === WALL || this.grid[nextY][yarn.x] === BLOCK || this.grid[nextY][yarn.x] === SOLID_BLOCK) {
             yarn.dy = -yarn.dy;
             nextY = yarn.y + yarn.dy;
+            bounced = true;
+          }
+
+          if (bounced) {
+            yarn.bounceSquash = 0.28;
           }
 
           yarn.x = Math.max(1, Math.min(this.cols - 2, nextX));
@@ -3007,6 +3241,7 @@
 
       renderFloor() {
         const isRetro = this.theme === 'retro';
+        const isClassic = this.theme === 'classic_hd';
         for (let r = 0; r < this.rows; r++) {
           for (let c = 0; c < this.cols; c++) {
             const x = c * this.tileSize;
@@ -3015,6 +3250,13 @@
               this.ctx.fillStyle = (r + c) % 2 === 0 ? '#c0c0c0' : '#d4d4d4';
               this.ctx.fillRect(x, y, this.tileSize, this.tileSize);
               this.ctx.strokeStyle = '#a0a0a0';
+              this.ctx.lineWidth = 1;
+              this.ctx.strokeRect(x, y, this.tileSize, this.tileSize);
+            } else if (isClassic) {
+              // Authentic 1991 warm parchment/tan arena floor with subtle tile grid
+              this.ctx.fillStyle = (r + c) % 2 === 0 ? '#dcd8c6' : '#d3ceb8';
+              this.ctx.fillRect(x, y, this.tileSize, this.tileSize);
+              this.ctx.strokeStyle = '#b8b29a';
               this.ctx.lineWidth = 1;
               this.ctx.strokeRect(x, y, this.tileSize, this.tileSize);
             } else {
@@ -3030,6 +3272,8 @@
 
       renderGridObjects() {
         const isRetro = this.theme === 'retro';
+        const isClassic = this.theme === 'classic_hd';
+        const now = performance.now();
 
         for (let r = 0; r < this.rows; r++) {
           for (let c = 0; c < this.cols; c++) {
@@ -3039,55 +3283,126 @@
             const size = this.tileSize;
 
             if (cell === WALL) {
+              const wallWave = Math.sin(now / 520 + (r + c) * 0.45);
               if (isRetro) {
                 this.ctx.fillStyle = '#808080';
                 this.ctx.fillRect(x, y, size, size);
                 this.drawBevel(x, y, size, size, '#ffffff', '#404040', 2);
+              } else if (isClassic) {
+                // Iconic 1991 Slate-Blue 3D Beveled Outer Border Wall with animated beacon sheen
+                this.ctx.fillStyle = '#334e68';
+                this.ctx.fillRect(x, y, size, size);
+                this.drawBevel(x, y, size, size, '#829ab1', '#102a43', 3);
+                this.ctx.strokeStyle = '#243b53';
+                this.ctx.lineWidth = 1.5;
+                this.ctx.strokeRect(x + 5, y + 5, size - 10, size - 10);
+
+                // Subtle animated metallic glint on corner perimeter bricks
+                const glintAlpha = 0.08 + Math.max(0, wallWave) * 0.14;
+                this.ctx.fillStyle = `rgba(186, 230, 253, ${glintAlpha.toFixed(3)})`;
+                this.ctx.fillRect(x + 6, y + 6, size - 12, 3);
               } else {
                 this.ctx.fillStyle = '#1e293b';
                 this.ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
                 this.ctx.strokeStyle = '#334155';
                 this.ctx.lineWidth = 2;
                 this.ctx.strokeRect(x + 1, y + 1, size - 2, size - 2);
-                this.ctx.fillStyle = '#0f172a';
-                this.ctx.fillRect(x + 4, y + size / 2 - 1, size - 8, 2);
+                const pulseAlpha = 0.25 + (wallWave + 1) * 0.2;
+                this.ctx.fillStyle = `rgba(56, 189, 248, ${pulseAlpha.toFixed(3)})`;
+                this.ctx.fillRect(x + 6, y + size / 2 - 1, size - 12, 2);
               }
             } else if (cell === BLOCK) {
+              const key = `${c},${r}`;
+              let anim = this.blockAnims.get(key);
+              let offX = 0;
+              let offY = 0;
+              let pop = 0;
+              if (anim) {
+                offX = anim.offsetX;
+                offY = anim.offsetY;
+                pop = anim.scalePop;
+                anim.offsetX *= 0.62;
+                anim.offsetY *= 0.62;
+                anim.scalePop *= 0.78;
+                if (Math.abs(anim.offsetX) < 0.3 && Math.abs(anim.offsetY) < 0.3 && anim.scalePop < 0.01) {
+                  this.blockAnims.delete(key);
+                }
+              }
+
+              // Continuous gentle breathing + traveling diagonal specular wave
+              const phase = (now / 650) + (r * 0.38) + (c * 0.52);
+              const breathScale = 1 + Math.sin(phase) * 0.018 + pop;
+              const sheenPos = ((now / 18 + (c + r) * 14) % (size * 2.4)) - size * 0.7;
+
+              this.ctx.save();
+              const bx = x + offX + size / 2;
+              const by = y + offY + size / 2;
+              this.ctx.translate(bx, by);
+              this.ctx.scale(breathScale, breathScale);
+              this.ctx.translate(-size / 2, -size / 2);
+
               if (isRetro) {
                 this.ctx.fillStyle = '#008000';
-                this.ctx.fillRect(x, y, size, size);
-                this.drawBevel(x, y, size, size, '#00ff00', '#004000', 3);
+                this.ctx.fillRect(0, 0, size, size);
+                this.drawBevel(0, 0, size, size, '#00ff00', '#004000', 3);
                 this.ctx.fillStyle = '#00a000';
                 this.ctx.beginPath();
-                this.ctx.moveTo(x + size / 2, y + 6);
-                this.ctx.lineTo(x + size - 6, y + size / 2);
-                this.ctx.lineTo(x + size / 2, y + size - 6);
-                this.ctx.lineTo(x + 6, y + size / 2);
+                this.ctx.moveTo(size / 2, 6);
+                this.ctx.lineTo(size - 6, size / 2);
+                this.ctx.lineTo(size / 2, size - 6);
+                this.ctx.lineTo(6, size / 2);
                 this.ctx.fill();
+              } else if (isClassic) {
+                // Iconic 1991 Olive-Green 3D Beveled Pushable Block in HD with animated sheen
+                const grad = this.ctx.createLinearGradient(0, 0, size, size);
+                grad.addColorStop(0, '#65a30d');
+                grad.addColorStop(1, '#4d7c0f');
+                this.ctx.fillStyle = grad;
+                this.ctx.fillRect(1, 1, size - 2, size - 2);
+
+                // Crisp 3D raised bevel
+                this.drawBevel(1, 1, size - 2, size - 2, '#bef264', '#365314', 3.5);
+
+                // Recessed inner panel with subtle living pulse
+                const innerPulse = Math.sin(phase * 1.3) * 0.5;
+                this.ctx.fillStyle = '#558b0a';
+                this.ctx.fillRect(7, 7, size - 14, size - 14);
+                this.drawBevel(7, 7, size - 14, size - 14, '#3f6212', '#a3e635', 1.5);
+
+                // Animated specular shimmer band across inner panel
+                if (sheenPos >= 0 && sheenPos <= size) {
+                  this.ctx.fillStyle = 'rgba(236, 252, 203, 0.22)';
+                  this.ctx.fillRect(Math.max(8, Math.min(size - 12, sheenPos)), 8, 4, size - 16);
+                }
+                if (innerPulse > 0.2) {
+                  this.ctx.fillStyle = 'rgba(217, 249, 157, 0.18)';
+                  this.ctx.fillRect(9, 9, 4, 4);
+                }
               } else {
-                const grad = this.ctx.createLinearGradient(x, y, x + size, y + size);
+                const grad = this.ctx.createLinearGradient(0, 0, size, size);
                 grad.addColorStop(0, '#059669');
                 grad.addColorStop(1, '#047857');
                 this.ctx.fillStyle = grad;
-                this.roundRect(x + 2, y + 2, size - 4, size - 4, 6, true, false);
+                this.roundRect(2, 2, size - 4, size - 4, 6, true, false);
 
                 this.ctx.fillStyle = 'rgba(255,255,255,0.22)';
-                this.roundRect(x + 4, y + 4, size - 8, size / 3, 3, true, false);
+                this.roundRect(4, 4, size - 8, size / 3, 3, true, false);
 
-                this.ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+                this.ctx.strokeStyle = 'rgba(255,255,255,0.42)';
                 this.ctx.lineWidth = 2;
                 this.ctx.beginPath();
-                this.ctx.arc(x + size / 2, y + size / 2, size / 5, 0, Math.PI * 2);
+                this.ctx.arc(size / 2, size / 2, (size / 5) + Math.sin(phase * 1.5) * 1.1, 0, Math.PI * 2);
                 this.ctx.stroke();
               }
+              this.ctx.restore();
             } else if (cell === SOLID_BLOCK) {
-              this.renderSolidBlock(x, y, size, isRetro);
+              this.renderSolidBlock(x, y, size, isRetro, c, r);
             } else if (cell === MOUSE_HOLE) {
-              this.renderMouseHole(x, y, size, isRetro);
+              this.renderMouseHole(x, y, size, isRetro, c, r);
             } else if (cell === TRAP) {
-              this.renderTrap(x, y, size, isRetro, false);
+              this.renderTrap(x, y, size, isRetro, false, c, r);
             } else if (cell === SPRUNG_TRAP) {
-              this.renderTrap(x, y, size, isRetro, true);
+              this.renderTrap(x, y, size, isRetro, true, c, r);
             } else if (cell === SINKHOLE) {
               this.renderSinkhole(x, y, size, isRetro, c, r);
             }
@@ -3095,12 +3410,15 @@
         }
       }
 
-      renderSolidBlock(x, y, size, isRetro) {
+      renderSolidBlock(x, y, size, isRetro, gridX = 0, gridY = 0) {
+        const isClassic = this.theme === 'classic_hd';
+        const now = performance.now();
+        const glintPhase = (now / 380) + gridX * 0.9 + gridY * 0.7;
+
         if (isRetro) {
           this.ctx.fillStyle = '#4b5563';
           this.ctx.fillRect(x, y, size, size);
           this.drawBevel(x, y, size, size, '#9ca3af', '#1f2937', 3);
-          // Mortar and stone lines
           this.ctx.strokeStyle = '#111827';
           this.ctx.lineWidth = 1.5;
           this.ctx.beginPath();
@@ -3111,6 +3429,31 @@
           this.ctx.moveTo(x + size / 3, y + size / 2);
           this.ctx.lineTo(x + size / 3, y + size - 3);
           this.ctx.stroke();
+        } else if (isClassic) {
+          // 1991 Classic HD Unmovable Stone / Steel Riveted Block with animated rivet glints
+          this.ctx.fillStyle = '#52606d';
+          this.ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
+          this.drawBevel(x + 1, y + 1, size - 2, size - 2, '#cbd2d9', '#1f2933', 3.5);
+
+          // Chiseled inner plate with subtle metallic sheen
+          this.ctx.strokeStyle = '#323f4b';
+          this.ctx.lineWidth = 2;
+          this.ctx.strokeRect(x + 8, y + 8, size - 16, size - 16);
+
+          // 4 Corner steel rivets with sequential specular twinkle
+          const rivets = [
+            [x + 6, y + 6],
+            [x + size - 6, y + 6],
+            [x + 6, y + size - 6],
+            [x + size - 6, y + size - 6]
+          ];
+          rivets.forEach(([rx, ry], idx) => {
+            const shine = Math.max(0, Math.sin(glintPhase + idx * 1.5));
+            this.ctx.fillStyle = shine > 0.7 ? '#ffffff' : '#e4e7eb';
+            this.ctx.beginPath();
+            this.ctx.arc(rx, ry, 1.8 + shine * 0.7, 0, Math.PI * 2);
+            this.ctx.fill();
+          });
         } else {
           const grad = this.ctx.createLinearGradient(x, y, x + size, y + size);
           grad.addColorStop(0, '#334155');
@@ -3118,39 +3461,41 @@
           this.ctx.fillStyle = grad;
           this.roundRect(x + 2, y + 2, size - 4, size - 4, 6, true, false);
 
-          // Chiseled stone masonry texture
           this.ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
           this.ctx.lineWidth = 2;
           this.ctx.strokeRect(x + 5, y + 5, size - 10, size - 10);
 
-          // Center solid stone cross / anchor
           this.ctx.fillStyle = '#475569';
           this.ctx.beginPath();
           this.ctx.arc(x + size / 2, y + size / 2, size / 5.5, 0, Math.PI * 2);
           this.ctx.fill();
 
+          this.ctx.save();
+          this.ctx.translate(x + size / 2, y + size / 2);
+          this.ctx.rotate(Math.sin(glintPhase * 0.5) * 0.25);
           this.ctx.strokeStyle = '#94a3b8';
           this.ctx.lineWidth = 1.5;
           this.ctx.beginPath();
-          this.ctx.moveTo(x + size / 2 - 4, y + size / 2);
-          this.ctx.lineTo(x + size / 2 + 4, y + size / 2);
-          this.ctx.moveTo(x + size / 2, y + size / 2 - 4);
-          this.ctx.lineTo(x + size / 2, y + size / 2 + 4);
+          this.ctx.moveTo(-4, 0);
+          this.ctx.lineTo(4, 0);
+          this.ctx.moveTo(0, -4);
+          this.ctx.lineTo(0, 4);
           this.ctx.stroke();
+          this.ctx.restore();
         }
       }
 
-      renderMouseHole(x, y, size, isRetro) {
+      renderMouseHole(x, y, size, isRetro, gridX = 0, gridY = 0) {
         const cx = x + size / 2;
         const cy = y + size / 2;
         const now = performance.now();
-        const eyesBlink = Math.sin(now / 400) > 0.85;
+        const eyesBlink = Math.sin(now / 420 + gridX) > 0.86;
+        const eyeLookX = Math.sin(now / 550 + gridY) * 1.8;
+        const portalPulse = (Math.sin(now / 260 + gridX + gridY) + 1) * 0.5;
 
         if (isRetro) {
-          // Retro wooden floor with dark hole
           this.ctx.fillStyle = '#1c1917';
           this.ctx.fillRect(x + 2, y + 2, size - 4, size - 4);
-          // Burrow arch
           this.ctx.fillStyle = '#000000';
           this.ctx.beginPath();
           this.ctx.arc(cx, y + size - 6, size / 3, Math.PI, 0);
@@ -3159,49 +3504,53 @@
           this.ctx.lineWidth = 2;
           this.ctx.stroke();
 
-          // Tiny glowing peeking eyes
           if (!eyesBlink) {
             this.ctx.fillStyle = '#ffffff';
-            this.ctx.fillRect(cx - 3, y + size - 12, 2, 2);
-            this.ctx.fillRect(cx + 2, y + size - 12, 2, 2);
+            this.ctx.fillRect(cx - 3 + eyeLookX, y + size - 12, 2, 2);
+            this.ctx.fillRect(cx + 2 + eyeLookX, y + size - 12, 2, 2);
           }
         } else {
-          // Modern burrow with arched stone frame
           this.ctx.save();
-          // Subtle subterranean tunnel glow
-          this.ctx.shadowColor = 'rgba(168, 85, 247, 0.4)';
-          this.ctx.shadowBlur = 10;
+          this.ctx.shadowColor = 'rgba(56, 189, 248, 0.55)';
+          this.ctx.shadowBlur = 8 + portalPulse * 6;
 
-          // Arch trim
+          // Outer stone/wood arch frame
           this.ctx.fillStyle = '#334155';
           this.ctx.beginPath();
-          this.ctx.arc(cx, y + size - 4, size / 2.6, Math.PI, 0);
-          this.ctx.lineTo(cx + size / 2.6, y + size - 2);
-          this.ctx.lineTo(cx - size / 2.6, y + size - 2);
+          this.ctx.arc(cx, y + size - 4, size / 2.5, Math.PI, 0);
+          this.ctx.lineTo(cx + size / 2.5, y + size - 2);
+          this.ctx.lineTo(cx - size / 2.5, y + size - 2);
           this.ctx.closePath();
           this.ctx.fill();
 
-          // Deep dark interior
+          // Dark tunnel interior
           this.ctx.fillStyle = '#020617';
           this.ctx.beginPath();
-          this.ctx.arc(cx, y + size - 4, size / 3.4, Math.PI, 0);
-          this.ctx.lineTo(cx + size / 3.4, y + size - 2);
-          this.ctx.lineTo(cx - size / 3.4, y + size - 2);
+          this.ctx.arc(cx, y + size - 4, size / 3.3, Math.PI, 0);
+          this.ctx.lineTo(cx + size / 3.3, y + size - 2);
+          this.ctx.lineTo(cx - size / 3.3, y + size - 2);
           this.ctx.closePath();
           this.ctx.fill();
 
-          // Glowing subterranean swirl / eyes
+          // Animated subterranean warp ring inside the burrow
+          this.ctx.strokeStyle = `rgba(56, 189, 248, ${(0.25 + portalPulse * 0.45).toFixed(2)})`;
+          this.ctx.lineWidth = 1.5;
+          this.ctx.beginPath();
+          this.ctx.arc(cx, y + size - 9, 4 + portalPulse * 3.5, Math.PI * 1.05, Math.PI * 1.95);
+          this.ctx.stroke();
+
+          // Peeking scout eyes looking left & right
           if (!eyesBlink) {
             this.ctx.fillStyle = '#38bdf8';
             this.ctx.beginPath();
-            this.ctx.arc(cx - 4, y + size - 14, 1.8, 0, Math.PI * 2);
-            this.ctx.arc(cx + 4, y + size - 14, 1.8, 0, Math.PI * 2);
+            this.ctx.arc(cx - 4 + eyeLookX, y + size - 13, 1.9, 0, Math.PI * 2);
+            this.ctx.arc(cx + 4 + eyeLookX, y + size - 13, 1.9, 0, Math.PI * 2);
             this.ctx.fill();
 
             this.ctx.fillStyle = '#ffffff';
             this.ctx.beginPath();
-            this.ctx.arc(cx - 4, y + size - 14, 0.8, 0, Math.PI * 2);
-            this.ctx.arc(cx + 4, y + size - 14, 0.8, 0, Math.PI * 2);
+            this.ctx.arc(cx - 4.3 + eyeLookX, y + size - 13.4, 0.8, 0, Math.PI * 2);
+            this.ctx.arc(cx + 3.7 + eyeLookX, y + size - 13.4, 0.8, 0, Math.PI * 2);
             this.ctx.fill();
           }
 
@@ -3209,68 +3558,92 @@
         }
       }
 
-      renderTrap(x, y, size, isRetro, isSprung = false) {
+      renderTrap(x, y, size, isRetro, isSprung = false, gridX = 0, gridY = 0) {
+        const now = performance.now();
+        const key = `${gridX},${gridY}`;
+        let snapVib = this.trapSnapAnims.get(key) || 0;
+        if (snapVib > 0) {
+          snapVib *= 0.88;
+          if (snapVib < 0.02) this.trapSnapAnims.delete(key);
+          else this.trapSnapAnims.set(key, snapVib);
+        }
+
+        // Tension tremor & bait bobbing on armed traps
+        const springTremor = !isSprung && Math.sin(now / 180 + gridX * 2) > 0.75
+          ? Math.sin(now / 18) * 1.2
+          : 0;
+        const baitBob = Math.sin(now / 210 + gridX + gridY) * 1.3;
+
         if (isRetro) {
           this.ctx.fillStyle = isSprung ? '#573315' : '#8b5a2b';
           this.ctx.fillRect(x + 4, y + 6, size - 8, size - 12);
           if (isSprung) {
-            // Sprung flat wire
+            const recoil = Math.sin(now / 25) * snapVib * 4;
             this.ctx.strokeStyle = '#9ca3af';
             this.ctx.lineWidth = 3;
             this.ctx.beginPath();
-            this.ctx.moveTo(x + 6, y + size / 2);
-            this.ctx.lineTo(x + size - 6, y + size / 2);
+            this.ctx.moveTo(x + 6, y + size / 2 + recoil);
+            this.ctx.lineTo(x + size - 6, y + size / 2 - recoil);
             this.ctx.stroke();
           } else {
-            // Active wire and cheese bait
             this.ctx.strokeStyle = '#c0c0c0';
             this.ctx.lineWidth = 2;
-            this.ctx.strokeRect(x + 6, y + 8, size - 12, size - 16);
+            this.ctx.strokeRect(x + 6 + springTremor, y + 8, size - 12, size - 16);
             this.ctx.fillStyle = '#ffff00';
-            this.ctx.fillRect(x + size / 2 - 2, y + size / 2 - 2, 5, 5);
+            this.ctx.fillRect(x + size / 2 - 2, y + size / 2 - 2 + baitBob, 5, 5);
           }
         } else {
-          // Modern detailed mousetrap
           this.ctx.save();
-          this.ctx.fillStyle = isSprung ? '#451a03' : '#78350f';
-          this.roundRect(x + 3, y + 5, size - 6, size - 10, 4, true, false);
+          this.ctx.translate(x + springTremor, y);
 
-          // Wood grain edge
-          this.ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+          // Wooden baseplate
+          this.ctx.fillStyle = isSprung ? '#451a03' : '#78350f';
+          this.roundRect(3, 5, size - 6, size - 10, 4, true, false);
+
+          this.ctx.strokeStyle = 'rgba(255,255,255,0.18)';
           this.ctx.lineWidth = 1;
-          this.ctx.strokeRect(x + 5, y + 7, size - 10, size - 14);
+          this.ctx.strokeRect(5, 7, size - 10, size - 14);
 
           if (isSprung) {
-            // Sprung bar snapped down
+            const recoil = Math.sin(now / 22) * snapVib * 5;
             this.ctx.strokeStyle = '#94a3b8';
             this.ctx.lineWidth = 3;
             this.ctx.beginPath();
-            this.ctx.moveTo(x + 7, y + size / 2);
-            this.ctx.lineTo(x + size - 7, y + size / 2);
+            this.ctx.moveTo(7, size / 2 + recoil);
+            this.ctx.lineTo(size - 7, size / 2 - recoil);
             this.ctx.stroke();
 
-            // Spent indicator
-            this.ctx.fillStyle = '#64748b';
-            this.ctx.font = 'bold 9px monospace';
+            this.ctx.fillStyle = '#94a3b8';
+            this.ctx.font = 'bold 8px monospace';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText('SNAPPED', x + size / 2, y + size - 8);
+            this.ctx.fillText('SNAPPED', size / 2, size - 7);
           } else {
-            // Active armed trip-wire & spring
+            // Armed steel jaw frame
             this.ctx.strokeStyle = '#e2e8f0';
             this.ctx.lineWidth = 2.5;
-            this.ctx.strokeRect(x + 7, y + 9, size - 14, size - 18);
+            this.ctx.strokeRect(7, 9, size - 14, size - 18);
 
-            // Center coil spring
+            // Coiled copper/brass spring bar
             this.ctx.fillStyle = '#cbd5e1';
-            this.ctx.fillRect(x + size / 2 - 3, y + 10, 6, size - 20);
+            this.ctx.fillRect(size / 2 - 3, 10, 6, size - 20);
 
-            // Cheese bait on pedal
+            // Animated bobbing cheese bait morsel with aroma wave
+            const baitPulse = 4.2 + Math.sin(now / 160 + gridX) * 0.7;
             this.ctx.shadowColor = '#f59e0b';
-            this.ctx.shadowBlur = 6;
-            this.ctx.fillStyle = '#f59e0b';
+            this.ctx.shadowBlur = 6 + Math.sin(now / 150) * 3;
+            this.ctx.fillStyle = '#fbbf24';
             this.ctx.beginPath();
-            this.ctx.arc(x + size / 2, y + size / 2, 4.5, 0, Math.PI * 2);
+            this.ctx.arc(size / 2, size / 2 + baitBob, baitPulse, 0, Math.PI * 2);
             this.ctx.fill();
+
+            // Rising bait scent curl
+            const scentY = ((now / 45 + gridX * 5) % 8);
+            this.ctx.strokeStyle = 'rgba(251, 191, 36, 0.65)';
+            this.ctx.lineWidth = 1.1;
+            this.ctx.beginPath();
+            this.ctx.moveTo(size / 2, size / 2 - 4 - scentY);
+            this.ctx.quadraticCurveTo(size / 2 + 3, size / 2 - 7 - scentY, size / 2 - 1, size / 2 - 10 - scentY);
+            this.ctx.stroke();
           }
           this.ctx.restore();
         }
@@ -3279,7 +3652,9 @@
       renderSinkhole(x, y, size, isRetro, gridX, gridY) {
         const cx = x + size / 2;
         const cy = y + size / 2;
+        const now = performance.now();
         const isPlayerStuckHere = this.isStuckInSinkhole && this.player.x === gridX && this.player.y === gridY;
+        const swirlAngle = (now / 420) + (gridX * 0.7) + (gridY * 0.5);
 
         if (isRetro) {
           this.ctx.fillStyle = '#000000';
@@ -3291,26 +3666,44 @@
           this.ctx.stroke();
         } else {
           this.ctx.save();
-          // Abyss radial gradient
-          const grad = this.ctx.createRadialGradient(cx, cy, 2, cx, cy, size / 2.3);
+          const grad = this.ctx.createRadialGradient(cx, cy, 2, cx, cy, size / 2.2);
           grad.addColorStop(0, '#000000');
-          grad.addColorStop(0.7, '#090d16');
+          grad.addColorStop(0.65, '#090d16');
           grad.addColorStop(1, isPlayerStuckHere ? '#7f1d1d' : '#1e293b');
 
           this.ctx.fillStyle = grad;
           this.ctx.beginPath();
-          this.ctx.arc(cx, cy, size / 2.3, 0, Math.PI * 2);
+          this.ctx.arc(cx, cy, size / 2.25, 0, Math.PI * 2);
           this.ctx.fill();
 
-          this.ctx.strokeStyle = isPlayerStuckHere ? '#f43f5e' : '#334155';
-          this.ctx.lineWidth = isPlayerStuckHere ? 2.5 : 1.5;
+          this.ctx.strokeStyle = isPlayerStuckHere ? '#f43f5e' : '#475569';
+          this.ctx.lineWidth = isPlayerStuckHere ? 2.5 : 1.6;
           this.ctx.stroke();
 
-          // If mouse is stuck inside, draw struggling dirt ripples and squirm effect
+          // Animated swirling vortex arcs inside every sinkhole
+          for (let a = 0; a < 2; a++) {
+            const startA = swirlAngle + a * Math.PI;
+            this.ctx.strokeStyle = isPlayerStuckHere ? 'rgba(244, 63, 94, 0.55)' : 'rgba(148, 163, 184, 0.32)';
+            this.ctx.lineWidth = 1.4;
+            this.ctx.beginPath();
+            this.ctx.arc(cx, cy, size / 4.2, startA, startA + 1.35);
+            this.ctx.stroke();
+          }
+
+          // Bubbling mud/tar bubble rising & popping
+          const bubbleProgress = ((now / 700 + gridX * 0.37 + gridY * 0.61) % 1);
+          const bubbleX = cx + Math.cos(swirlAngle * 1.3) * 4;
+          const bubbleY = cy + Math.sin(swirlAngle * 1.3) * 4;
+          this.ctx.strokeStyle = `rgba(148, 163, 184, ${(1 - bubbleProgress) * 0.55})`;
+          this.ctx.lineWidth = 1.1;
+          this.ctx.beginPath();
+          this.ctx.arc(bubbleX, bubbleY, 1 + bubbleProgress * 3.2, 0, Math.PI * 2);
+          this.ctx.stroke();
+
           if (isPlayerStuckHere) {
-            const rippleR = (performance.now() / 20) % (size / 2.5);
-            this.ctx.strokeStyle = 'rgba(244, 63, 94, 0.6)';
-            this.ctx.lineWidth = 1.5;
+            const rippleR = (now / 20) % (size / 2.3);
+            this.ctx.strokeStyle = 'rgba(244, 63, 94, 0.7)';
+            this.ctx.lineWidth = 1.8;
             this.ctx.beginPath();
             this.ctx.arc(cx, cy, rippleR, 0, Math.PI * 2);
             this.ctx.stroke();
@@ -3320,18 +3713,27 @@
       }
 
       renderCheeses() {
+        const now = performance.now();
         for (const ch of this.cheeses) {
-          const cx = ch.x * this.tileSize + this.tileSize / 2;
-          const cy = ch.y * this.tileSize + this.tileSize / 2;
-          const isGold = ch.kind === 'gold' || ch.isGold;
-          const isPepper = ch.kind === 'pepper';
-          const isStinky = ch.kind === 'stinky';
+          const baseCx = ch.x * this.tileSize + this.tileSize / 2;
+          const baseCy = ch.y * this.tileSize + this.tileSize / 2;
+          const cType = ch.cheeseType || ch.kind || 'cheddar';
+          const isGold = cType === 'gold' || ch.isGold;
+          const isPepper = cType === 'pepper';
+          const isStinky = cType === 'stinky';
 
+          // Floating bob + gentle rocking + pre-petrify shiver when timer < 3.5s
+          const phase = now / 200 + ch.x * 0.8 + ch.y * 0.6;
+          const bobY = Math.sin(phase) * 2.4;
+          const rockAngle = Math.cos(phase * 0.85) * 0.08;
+          const shiverX = ch.timer < 3500 ? Math.sin(now / 25) * 1.6 : 0;
+
+          const cx = baseCx + shiverX;
+          const cy = baseCy + bobY;
           const r = this.tileSize / (isGold ? 2.2 : 2.5);
 
           this.ctx.save();
 
-          // Glow according to cheese variety
           if (isGold) {
             this.ctx.shadowColor = '#eab308';
             this.ctx.shadowBlur = 18;
@@ -3346,68 +3748,88 @@
             this.ctx.shadowBlur = 10;
           }
 
-          // Countdown timer ring
+          // Countdown timer ring (fixed around base tile center)
           const ratio = Math.max(0, ch.timer / (ch.maxTimer || 15000));
-          let ringColor = isGold ? '#facc15' : (isPepper ? '#f97316' : (isStinky ? '#a3e635' : 'rgba(245, 158, 11, 0.7)'));
-          if (ratio <= 0.3) ringColor = 'rgba(239, 68, 68, 0.9)';
+          let ringColor = isGold ? '#facc15' : (isPepper ? '#f97316' : (isStinky ? '#a3e635' : 'rgba(217, 119, 6, 0.85)'));
+          if (ratio <= 0.3) ringColor = 'rgba(239, 68, 68, 0.95)';
 
           this.ctx.strokeStyle = ringColor;
           this.ctx.lineWidth = 2.5;
           this.ctx.beginPath();
-          this.ctx.arc(cx, cy, r + 4, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * ratio));
+          this.ctx.arc(baseCx, baseCy, r + 4.5, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * ratio));
           this.ctx.stroke();
 
+          // Rotate wedge slightly around its floating center
+          this.ctx.translate(cx, cy);
+          this.ctx.rotate(rockAngle);
+
           // Cheese wedge body
-          let bodyColor = isGold ? '#fbbf24' : (isPepper ? '#ea580c' : (isStinky ? '#bef264' : '#f59e0b'));
+          let bodyColor = isGold ? '#facc15' : (isPepper ? '#ea580c' : (isStinky ? '#bef264' : '#fbbf24'));
           this.ctx.fillStyle = bodyColor;
           this.ctx.beginPath();
-          this.ctx.arc(cx, cy, r, -0.4, Math.PI - 0.4);
-          this.ctx.lineTo(cx, cy);
+          this.ctx.arc(0, 0, r, -0.4, Math.PI - 0.4);
+          this.ctx.lineTo(0, 0);
           this.ctx.closePath();
           this.ctx.fill();
+          this.ctx.strokeStyle = '#b45309';
+          this.ctx.lineWidth = 1.2;
+          this.ctx.stroke();
 
-          // Cheese holes / special flakes
           if (isPepper) {
-            // Spicy chili flakes
             this.ctx.fillStyle = '#dc2626';
-            this.ctx.fillRect(cx - 3, cy + 2, 2.5, 2.5);
-            this.ctx.fillRect(cx + 3, cy - 1, 2.5, 2.5);
+            this.ctx.fillRect(-3, 2, 2.5, 2.5);
+            this.ctx.fillRect(3, -1, 2.5, 2.5);
             this.ctx.fillStyle = '#16a34a';
-            this.ctx.fillRect(cx, cy + 5, 2.5, 2.5);
+            this.ctx.fillRect(0, 5, 2.5, 2.5);
+
+            // Animated dancing spicy flame tongues
+            const flameH = 4 + Math.sin(now / 70 + ch.x) * 2.5;
+            this.ctx.fillStyle = 'rgba(249, 115, 22, 0.85)';
+            this.ctx.beginPath();
+            this.ctx.moveTo(-4, -3);
+            this.ctx.quadraticCurveTo(-2, -3 - flameH, 0, -2);
+            this.ctx.quadraticCurveTo(2, -4 - flameH, 4, -2);
+            this.ctx.fill();
           } else if (isStinky) {
-            // Mold / stink spots
             this.ctx.fillStyle = '#65a30d';
             this.ctx.beginPath();
-            this.ctx.arc(cx - 3, cy + 2, 2.2, 0, Math.PI * 2);
-            this.ctx.arc(cx + 4, cy - 2, 1.8, 0, Math.PI * 2);
+            this.ctx.arc(-3, 2, 2.2, 0, Math.PI * 2);
+            this.ctx.arc(4, -2, 1.8, 0, Math.PI * 2);
             this.ctx.fill();
-            // Rising green aroma lines
-            const now = performance.now();
             const aromaY = (now / 35) % 10;
-            this.ctx.strokeStyle = 'rgba(132, 204, 22, 0.7)';
-            this.ctx.lineWidth = 1.2;
+            this.ctx.strokeStyle = 'rgba(101, 163, 13, 0.85)';
+            this.ctx.lineWidth = 1.3;
             this.ctx.beginPath();
-            this.ctx.moveTo(cx - 2, cy - r - 1 + aromaY);
-            this.ctx.quadraticCurveTo(cx - 4, cy - r - 5, cx - 1, cy - r - 9);
-            this.ctx.moveTo(cx + 3, cy - r - 2 + aromaY);
-            this.ctx.quadraticCurveTo(cx + 5, cy - r - 6, cx + 2, cy - r - 10);
+            this.ctx.moveTo(-2, -r - 1 + aromaY);
+            this.ctx.quadraticCurveTo(-4, -r - 5, -1, -r - 9);
+            this.ctx.moveTo(3, -r - 2 + aromaY);
+            this.ctx.quadraticCurveTo(5, -r - 6, 2, -r - 10);
             this.ctx.stroke();
           } else {
-            // Classic swiss holes
-            this.ctx.fillStyle = isGold ? '#f59e0b' : '#d97706';
+            this.ctx.fillStyle = isGold ? '#d97706' : '#b45309';
             this.ctx.beginPath();
-            this.ctx.arc(cx - 3, cy + 2, 2.5, 0, Math.PI * 2);
-            this.ctx.arc(cx + 4, cy - 2, 2, 0, Math.PI * 2);
-            this.ctx.arc(cx + 1, cy + 5, 1.8, 0, Math.PI * 2);
+            this.ctx.arc(-3, 2, 2.5, 0, Math.PI * 2);
+            this.ctx.arc(4, -2, 2, 0, Math.PI * 2);
+            this.ctx.arc(1, 5, 1.8, 0, Math.PI * 2);
             this.ctx.fill();
+
+            // Gentle savory aroma steam on classic & gold cheddar
+            const steamOffset = (now / 50 + ch.x * 3) % 8;
+            this.ctx.strokeStyle = 'rgba(254, 243, 199, 0.45)';
+            this.ctx.lineWidth = 1.1;
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, -r + 2 - steamOffset);
+            this.ctx.quadraticCurveTo(2.5, -r - 2 - steamOffset, -0.5, -r - 5 - steamOffset);
+            this.ctx.stroke();
           }
 
-          // Golden sparkle stars
           if (isGold) {
+            // Orbiting golden sparkle stars
+            const starAngle = now / 320;
             this.ctx.fillStyle = '#ffffff';
             this.ctx.beginPath();
-            this.ctx.arc(cx - 5, cy - 4, 1.2, 0, Math.PI * 2);
-            this.ctx.arc(cx + 6, cy + 4, 1.2, 0, Math.PI * 2);
+            this.ctx.arc(Math.cos(starAngle) * (r * 0.75), Math.sin(starAngle) * (r * 0.75), 1.6, 0, Math.PI * 2);
+            this.ctx.arc(Math.cos(starAngle + Math.PI) * (r * 0.75), Math.sin(starAngle + Math.PI) * (r * 0.75), 1.4, 0, Math.PI * 2);
             this.ctx.fill();
           }
 
@@ -3416,23 +3838,58 @@
       }
 
       renderYarns() {
+        const now = performance.now();
         for (const yarn of this.yarns) {
-          const cx = yarn.x * this.tileSize + this.tileSize / 2;
-          const cy = yarn.y * this.tileSize + this.tileSize / 2;
-          const r = this.tileSize / 2.8;
+          const rx = typeof yarn.renderX === 'number' ? yarn.renderX : yarn.x;
+          const ry = typeof yarn.renderY === 'number' ? yarn.renderY : yarn.y;
+          const cx = rx * this.tileSize + this.tileSize / 2;
+          const cy = ry * this.tileSize + this.tileSize / 2;
+          const r = this.tileSize / 2.75;
+          const spin = yarn.spinAngle || (now / 120);
+          const squash = yarn.bounceSquash || 0;
 
           this.ctx.save();
-          this.ctx.fillStyle = '#ec4899';
+
+          // Trailing loose yarn tail waving behind the rolling ball
+          const tailWave = Math.sin(now / 75) * 4;
+          this.ctx.strokeStyle = '#f472b6';
+          this.ctx.lineWidth = 2.2;
+          this.ctx.lineCap = 'round';
           this.ctx.beginPath();
-          this.ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          this.ctx.moveTo(cx, cy);
+          this.ctx.quadraticCurveTo(
+            cx - (yarn.dx || 1) * 10,
+            cy - (yarn.dy || 1) * 10 + tailWave,
+            cx - (yarn.dx || 1) * 17,
+            cy - (yarn.dy || 1) * 15 - tailWave
+          );
+          this.ctx.stroke();
+
+          this.ctx.translate(cx, cy);
+          this.ctx.scale(1 + squash, 1 - squash * 0.75);
+          this.ctx.rotate(spin);
+
+          // Main yarn sphere
+          const grad = this.ctx.createRadialGradient(-3, -3, 2, 0, 0, r);
+          grad.addColorStop(0, '#f472b6');
+          grad.addColorStop(0.7, '#ec4899');
+          grad.addColorStop(1, '#be185d');
+          this.ctx.fillStyle = grad;
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, r, 0, Math.PI * 2);
           this.ctx.fill();
 
+          // Rotating wound yarn strand lines
           this.ctx.strokeStyle = '#fbcfe8';
-          this.ctx.lineWidth = 1.8;
+          this.ctx.lineWidth = 1.7;
           this.ctx.beginPath();
-          this.ctx.arc(cx, cy, r * 0.7, 0.4, 2.4);
-          this.ctx.arc(cx, cy, r * 0.5, 3.2, 5.2);
+          this.ctx.arc(0, 0, r * 0.72, 0.3, 2.3);
+          this.ctx.moveTo(-r * 0.6, -r * 0.2);
+          this.ctx.quadraticCurveTo(0, r * 0.4, r * 0.6, -r * 0.1);
+          this.ctx.moveTo(-r * 0.3, r * 0.6);
+          this.ctx.quadraticCurveTo(r * 0.2, 0, -r * 0.2, -r * 0.6);
           this.ctx.stroke();
+
           this.ctx.restore();
         }
       }
@@ -3482,7 +3939,7 @@
             this.ctx.lineTo(x + size - 8, y + 8);
             this.ctx.fill();
 
-            if (!cat.isBlinking && cat.state !== 'asleep') {
+            if (!cat.isBlinking && cat.state !== 'asleep' && !cat.isSitting) {
               this.ctx.fillStyle = isAlarmed ? '#ef4444' : '#facc15';
               this.ctx.fillRect(x + 10, y + 12, 3, 3);
               this.ctx.fillRect(x + size - 13, y + 12, 3, 3);
@@ -3492,11 +3949,11 @@
             continue;
           }
 
-          // Modern Lifelike Rendering
+          // Modern / 1991 Classic HD Lifelike Rendering
           this.ctx.save();
           this.ctx.translate(cx, cy);
           if (dir === -1) this.ctx.scale(-1, 1);
-          if (isBoss) this.ctx.scale(1.25, 1.25); // Boss size boost
+          if (isBoss) this.ctx.scale(1.25, 1.25);
 
           let mainCoat = '#ea580c';
           let darkMarkings = '#9a3412';
@@ -3533,16 +3990,17 @@
           }
 
           const breath = Math.sin(cat.walkCycle * 0.7) * 0.8;
-          const walkTilt = cat.isMoving ? Math.sin(cat.walkCycle) * 0.08 : 0;
+          const walkTilt = (cat.isMoving && !cat.isSitting) ? Math.sin(cat.walkCycle) * 0.08 : 0;
           this.ctx.rotate(walkTilt);
 
-          // Sleeping ZZZ effect
-          if (cat.state === 'asleep') {
+          // Sleeping or Walled-off Sitting ZZZ effect (1991 authentic boxed-in indicator!)
+          if (cat.state === 'asleep' || cat.isSitting) {
             this.ctx.save();
-            this.ctx.fillStyle = '#38bdf8';
+            if (dir === -1) this.ctx.scale(-1, 1);
+            this.ctx.fillStyle = cat.isSitting ? '#f59e0b' : '#38bdf8';
             this.ctx.font = 'bold 9px Outfit, sans-serif';
             const zOff = Math.sin(performance.now() / 300) * 3;
-            this.ctx.fillText("Zzz...", 4, -12 + zOff);
+            this.ctx.fillText(cat.isSitting ? "BOXED! Zzz" : "Zzz...", -14, -14 + zOff);
             this.ctx.restore();
           }
 
@@ -3566,9 +4024,9 @@
           this.ctx.stroke();
           this.ctx.restore();
 
-          // Paws / Legs
-          const frontLegOffset = cat.isMoving ? Math.sin(cat.walkCycle) * 5 : 0;
-          const backLegOffset = cat.isMoving ? Math.cos(cat.walkCycle) * 5 : 0;
+          // Paws / Legs (tucked neatly when sitting!)
+          const frontLegOffset = (cat.isMoving && !cat.isSitting) ? Math.sin(cat.walkCycle) * 5 : 0;
+          const backLegOffset = (cat.isMoving && !cat.isSitting) ? Math.cos(cat.walkCycle) * 5 : 0;
 
           this.ctx.fillStyle = darkMarkings;
           this.ctx.beginPath();
@@ -3635,7 +4093,7 @@
           this.ctx.fill();
 
           // Ears
-          const earFold = isAlarmed || isTrapped ? -0.45 : cat.earTwitchAngle;
+          const earFold = isAlarmed || isTrapped || cat.isSitting ? -0.45 : cat.earTwitchAngle;
 
           this.ctx.save();
           this.ctx.translate(headX - 3, headY - 6);
@@ -3680,7 +4138,7 @@
           const leftEyeX = headX - 1.5;
           const rightEyeX = headX + 4.5;
 
-          if (cat.isBlinking || cat.state === 'asleep') {
+          if (cat.isBlinking || cat.state === 'asleep' || cat.isSitting) {
             this.ctx.strokeStyle = '#0f172a';
             this.ctx.lineWidth = 1.5;
             this.ctx.lineCap = 'round';
@@ -3760,11 +4218,11 @@
 
       renderPlayer() {
         const isRetro = this.theme === 'retro';
+        const isClassic = this.theme === 'classic_hd';
         const cx = this.player.renderX * this.tileSize + this.tileSize / 2;
         let cy = this.player.renderY * this.tileSize + this.tileSize / 2;
         const size = this.tileSize;
 
-        // If stuck in sinkhole, mouse sinks down slightly
         if (this.isStuckInSinkhole) {
           cy += 4;
         }
@@ -3783,7 +4241,6 @@
           this.ctx.fillRect(cx - 2, cy - 2, 4, 4);
 
           if (this.isStuckInSinkhole) {
-            // Sweat drops in retro
             this.ctx.fillStyle = '#38bdf8';
             this.ctx.fillRect(cx + 6, cy - 8, 2, 3);
           }
@@ -3791,17 +4248,15 @@
           return;
         }
 
-        // Modern Expressive Hero Mouse
+        // Expressive HD Hero Mouse
         this.ctx.save();
 
-        // Subterranean Shadow Stealth Aura
         if (this.stealthTimer > 0) {
           this.ctx.shadowColor = '#c084fc';
           this.ctx.shadowBlur = 14;
           this.ctx.globalAlpha = 0.65 + Math.sin(performance.now() / 120) * 0.25;
         }
 
-        // Spicy Pepper Dash Aura
         if (this.pepperSpeedTimer > 0) {
           this.ctx.shadowColor = '#f97316';
           this.ctx.shadowBlur = 12;
@@ -3809,10 +4264,13 @@
 
         const scurryOffset = this.player.isMoving ? Math.sin(this.player.walkCycle * 2) * 2 : 0;
         const squirm = this.isStuckInSinkhole ? Math.sin(performance.now() / 60) * 2 : 0;
+        const fDir = DIRS[this.player.facing] || DIRS.DOWN;
+        const pushLeanX = this.player.pushTimer > 0 ? fDir.dx * 2.5 : 0;
+        const pushLeanY = this.player.pushTimer > 0 ? fDir.dy * 2.5 : 0;
 
         // Tail
         this.ctx.strokeStyle = '#f472b6';
-        this.ctx.lineWidth = 2.5;
+        this.ctx.lineWidth = 2.6;
         this.ctx.lineCap = 'round';
         this.ctx.beginPath();
         const tailOffset = (Math.sin(performance.now() / 150) * 4);
@@ -3827,11 +4285,14 @@
         this.ctx.ellipse(cx + 5 - scurryOffset + squirm, cy + 11, 2.5, 3.5, 0, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Body
-        this.ctx.fillStyle = this.pepperSpeedTimer > 0 ? '#fca5a5' : '#94a3b8';
+        // Body (warm chestnut-gray in 1991 Classic HD, slate-silver in Modern)
+        this.ctx.fillStyle = this.pepperSpeedTimer > 0 ? '#fca5a5' : (isClassic ? '#8b7355' : '#94a3b8');
+        this.ctx.strokeStyle = isClassic ? '#4a3c2c' : '#475569';
+        this.ctx.lineWidth = 1.5;
         this.ctx.beginPath();
-        this.ctx.arc(cx + squirm, cy, size / 3.2, 0, Math.PI * 2);
+        this.ctx.arc(cx + squirm + pushLeanX, cy + pushLeanY, size / 3.1, 0, Math.PI * 2);
         this.ctx.fill();
+        this.ctx.stroke();
 
         // Rotating Ears (Ears listen to the closest cat!)
         let closestCatAngle = 0;
@@ -3847,9 +4308,9 @@
 
         // Left Ear
         this.ctx.save();
-        this.ctx.translate(cx - 9 + squirm, cy - 9);
+        this.ctx.translate(cx - 9 + squirm + pushLeanX, cy - 9 + pushLeanY);
         this.ctx.rotate(earSway);
-        this.ctx.fillStyle = '#64748b';
+        this.ctx.fillStyle = isClassic ? '#6e5a42' : '#64748b';
         this.ctx.beginPath();
         this.ctx.arc(0, 0, 6.5, 0, Math.PI * 2);
         this.ctx.fill();
@@ -3861,9 +4322,9 @@
 
         // Right Ear
         this.ctx.save();
-        this.ctx.translate(cx + 9 + squirm, cy - 9);
+        this.ctx.translate(cx + 9 + squirm + pushLeanX, cy - 9 + pushLeanY);
         this.ctx.rotate(-earSway);
-        this.ctx.fillStyle = '#64748b';
+        this.ctx.fillStyle = isClassic ? '#6e5a42' : '#64748b';
         this.ctx.beginPath();
         this.ctx.arc(0, 0, 6.5, 0, Math.PI * 2);
         this.ctx.fill();
@@ -3874,44 +4335,48 @@
         this.ctx.restore();
 
         // Big alert mouse eyes
-        const eyeSize = (minDist <= 2 || this.isStuckInSinkhole) ? 3.4 : 2.5; // Eyes bulge when cat is nearby or stuck!
+        const eyeSize = (minDist <= 2 || this.isStuckInSinkhole) ? 3.4 : 2.6;
         this.ctx.fillStyle = '#0f172a';
         this.ctx.beginPath();
-        this.ctx.arc(cx - 4 + squirm, cy - 1, eyeSize, 0, Math.PI * 2);
-        this.ctx.arc(cx + 4 + squirm, cy - 1, eyeSize, 0, Math.PI * 2);
+        this.ctx.arc(cx - 4 + squirm + pushLeanX, cy - 1 + pushLeanY, eyeSize, 0, Math.PI * 2);
+        this.ctx.arc(cx + 4 + squirm + pushLeanX, cy - 1 + pushLeanY, eyeSize, 0, Math.PI * 2);
         this.ctx.fill();
 
         this.ctx.fillStyle = '#ffffff';
         this.ctx.beginPath();
-        this.ctx.arc(cx - 4.5 + squirm, cy - 1.5, 1, 0, Math.PI * 2);
-        this.ctx.arc(cx + 3.5 + squirm, cy - 1.5, 1, 0, Math.PI * 2);
+        this.ctx.arc(cx - 4.5 + squirm + pushLeanX, cy - 1.5 + pushLeanY, 1, 0, Math.PI * 2);
+        this.ctx.arc(cx + 3.5 + squirm + pushLeanX, cy - 1.5 + pushLeanY, 1, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Snout & Pink Nose
+        // Snout & Sniffing Pink Nose
+        const now = performance.now();
+        const noseSniff = Math.sin(now / 110) * 0.9;
+        const whiskerTwitch = Math.sin(now / 85) * 1.6;
+
         this.ctx.fillStyle = '#f43f5e';
         this.ctx.beginPath();
-        this.ctx.arc(cx + squirm, cy + 5, 2.5, 0, Math.PI * 2);
+        this.ctx.arc(cx + squirm + pushLeanX, cy + 5 + pushLeanY + noseSniff * 0.5, 2.5 + Math.max(0, noseSniff * 0.25), 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Tiny Mouse Whiskers
-        this.ctx.strokeStyle = '#e2e8f0';
-        this.ctx.lineWidth = 1;
+        // Animated Twitching Mouse Whiskers
+        this.ctx.strokeStyle = isClassic ? '#33291f' : '#e2e8f0';
+        this.ctx.lineWidth = 1.1;
         this.ctx.beginPath();
-        this.ctx.moveTo(cx - 2 + squirm, cy + 5);
-        this.ctx.lineTo(cx - 10 + squirm, cy + 3);
-        this.ctx.moveTo(cx - 2 + squirm, cy + 6);
-        this.ctx.lineTo(cx - 9 + squirm, cy + 7);
-        this.ctx.moveTo(cx + 2 + squirm, cy + 5);
-        this.ctx.lineTo(cx + 10 + squirm, cy + 3);
-        this.ctx.moveTo(cx + 2 + squirm, cy + 6);
-        this.ctx.lineTo(cx + 9 + squirm, cy + 7);
+        this.ctx.moveTo(cx - 2 + squirm + pushLeanX, cy + 5 + pushLeanY);
+        this.ctx.lineTo(cx - 11 + squirm + pushLeanX, cy + 3 + pushLeanY + whiskerTwitch);
+        this.ctx.moveTo(cx - 2 + squirm + pushLeanX, cy + 6 + pushLeanY);
+        this.ctx.lineTo(cx - 10 + squirm + pushLeanX, cy + 7 + pushLeanY - whiskerTwitch * 0.7);
+        this.ctx.moveTo(cx + 2 + squirm + pushLeanX, cy + 5 + pushLeanY);
+        this.ctx.lineTo(cx + 11 + squirm + pushLeanX, cy + 3 + pushLeanY - whiskerTwitch);
+        this.ctx.moveTo(cx + 2 + squirm + pushLeanX, cy + 6 + pushLeanY);
+        this.ctx.lineTo(cx + 10 + squirm + pushLeanX, cy + 7 + pushLeanY + whiskerTwitch * 0.7);
         this.ctx.stroke();
 
-        // Sweat drops if struggling in sinkhole
-        if (this.isStuckInSinkhole) {
-          this.ctx.fillStyle = '#38bdf8';
+        // Effort / Sweat drops if struggling in sinkhole or pushing a heavy chain of blocks
+        if (this.isStuckInSinkhole || this.player.pushTimer > 0) {
+          this.ctx.fillStyle = this.isStuckInSinkhole ? '#38bdf8' : '#fde047';
           this.ctx.beginPath();
-          this.ctx.arc(cx + 11 + squirm, cy - 8, 2.5, 0, Math.PI * 2);
+          this.ctx.arc(cx + 11 + squirm, cy - 8 + Math.sin(now / 50) * 1.5, 2.5, 0, Math.PI * 2);
           this.ctx.fill();
         }
 
@@ -3951,6 +4416,28 @@
         }
       }
 
+      updateClockVisual() {
+        const clockEl = document.getElementById('hud-clock');
+        const secLeft = Math.max(0, Math.ceil(this.clockSecondsRemaining));
+        if (clockEl) {
+          clockEl.textContent = `${secLeft}s`;
+          if (secLeft <= 6) {
+            clockEl.className = 'font-bold text-rose-400 font-mono animate-pulse';
+          } else {
+            clockEl.className = 'font-bold text-cyan-400 font-mono';
+          }
+        }
+        const handEl = document.getElementById('clock-hand');
+        if (handEl && this.clockInterval > 0) {
+          const progress = 1 - (secLeft / this.clockInterval);
+          const angle = (progress * Math.PI * 2) - (Math.PI / 2);
+          const x2 = 12 + Math.cos(angle) * 7;
+          const y2 = 12 + Math.sin(angle) * 7;
+          handEl.setAttribute('x2', x2.toFixed(2));
+          handEl.setAttribute('y2', y2.toFixed(2));
+        }
+      }
+
       updateHUD() {
         const scoreEl = document.getElementById('hud-score');
         if (scoreEl) scoreEl.textContent = this.score.toLocaleString();
@@ -3965,31 +4452,19 @@
         const freezeEl = document.getElementById('freeze-count');
         if (freezeEl) freezeEl.textContent = this.freezes.toString();
         const trapEl = document.getElementById('trap-count');
-        if (trapEl) trapEl.textContent = (this.pocketTraps || 0).toString();
+        if (trapEl) trapEl.textContent = (this.traps || 0).toString();
 
-        // Reinforcement Clock countdown (Original Windows 1991 Clock mechanic)
-        const clockEl = document.getElementById('hud-clock');
-        if (clockEl) {
-          const secLeft = Math.max(0, Math.ceil(this.catSpawnTimer / 1000));
-          clockEl.textContent = `${secLeft}s`;
-          if (secLeft <= 10) {
-            clockEl.className = 'font-bold text-rose-400 font-mono animate-pulse';
-          } else {
-            clockEl.className = 'font-bold text-cyan-400 font-mono';
-          }
-        }
+        this.updateClockVisual();
 
-        // Speed toggle icon
         const speedIcon = document.getElementById('speed-icon');
         if (speedIcon) {
-          speedIcon.textContent = this.speedMode === 'turbo' ? '🚀' : (this.speedMode === 'slow' ? '🐢' : '⚡');
+          speedIcon.textContent = this.gameSpeed === 'turbo' ? '🚀' : (this.gameSpeed === 'slow' ? '🐢' : '⚡');
         }
 
-        // Sinkhole Stuck Struggle Indicator
         const stuckEl = document.getElementById('stuck-indicator');
         const stuckWigglesEl = document.getElementById('stuck-wiggles');
         if (stuckEl && stuckWigglesEl) {
-          if (this.isStuckInSinkhole) {
+          if (this.stuckInSinkhole) {
             stuckWigglesEl.textContent = this.stuckWigglesNeeded.toString();
             stuckEl.classList.remove('hidden');
           } else {
@@ -3997,24 +4472,22 @@
           }
         }
 
-        // Pepper Dash Indicator
         const dashEl = document.getElementById('dash-indicator');
         const dashTimerEl = document.getElementById('dash-timer');
         if (dashEl && dashTimerEl) {
-          if (this.pepperSpeedTimer > 0) {
-            dashTimerEl.textContent = Math.ceil(this.pepperSpeedTimer / 1000).toString();
+          if (this.dashTimeRemaining > 0) {
+            dashTimerEl.textContent = Math.ceil(this.dashTimeRemaining / 1000).toString();
             dashEl.classList.remove('hidden');
           } else {
             dashEl.classList.add('hidden');
           }
         }
 
-        // Stinky Repel Indicator
         const stinkyEl = document.getElementById('stinky-indicator');
         const stinkyTimerEl = document.getElementById('stinky-timer');
         if (stinkyEl && stinkyTimerEl) {
-          if (this.stinkyRepelTimer > 0) {
-            stinkyTimerEl.textContent = Math.ceil(this.stinkyRepelTimer / 1000).toString();
+          if (this.stinkyRepelTimeRemaining > 0) {
+            stinkyTimerEl.textContent = Math.ceil(this.stinkyRepelTimeRemaining / 1000).toString();
             stinkyEl.classList.remove('hidden');
           } else {
             stinkyEl.classList.add('hidden');
@@ -4055,14 +4528,23 @@
       }
 
       toggleTheme() {
-        this.theme = this.theme === 'modern' ? 'retro' : 'modern';
+        const order = ['classic_hd', 'modern', 'retro'];
+        const nextIdx = (order.indexOf(this.theme) + 1) % order.length;
+        this.theme = order[nextIdx];
         const canvas = document.getElementById('gameCanvas');
+        const badge = document.getElementById('theme-badge');
         if (this.theme === 'retro') {
           canvas.classList.add('pixelated');
-          this.showToast('Nostalgic Win95 theme activated!', '💾');
+          if (badge) badge.textContent = 'Win3.1';
+          this.showToast('Win3.1 Pixel Retro theme activated!', '💾');
+        } else if (this.theme === 'classic_hd') {
+          canvas.classList.remove('pixelated');
+          if (badge) badge.textContent = '1991 HD';
+          this.showToast('1991 Classic HD Remaster theme activated!', '🧀');
         } else {
           canvas.classList.remove('pixelated');
-          this.showToast('Modern Vector theme activated!', '✨');
+          if (badge) badge.textContent = 'Neon';
+          this.showToast('Modern Neon Deluxe theme activated!', '✨');
         }
       }
 
@@ -4174,6 +4656,25 @@
           else if (e.key === 'r' || e.key === 'R') this.initLevel(this.level);
         });
 
+        // Direct Click / Tap on Canvas to move/push in 8 directions
+        this.canvas.addEventListener('click', (e) => {
+          const rect = this.canvas.getBoundingClientRect();
+          const scaleX = this.canvas.width / rect.width;
+          const scaleY = this.canvas.height / rect.height;
+          const tileX = Math.floor(((e.clientX - rect.left) * scaleX) / this.tileSize);
+          const tileY = Math.floor(((e.clientY - rect.top) * scaleY) / this.tileSize);
+          const dx = Math.sign(tileX - this.player.x);
+          const dy = Math.sign(tileY - this.player.y);
+          if (dx === 0 && dy === -1) this.tryMovePlayer('UP');
+          else if (dx === 0 && dy === 1) this.tryMovePlayer('DOWN');
+          else if (dx === -1 && dy === 0) this.tryMovePlayer('LEFT');
+          else if (dx === 1 && dy === 0) this.tryMovePlayer('RIGHT');
+          else if (dx === -1 && dy === -1) this.tryMovePlayer('UP_LEFT');
+          else if (dx === 1 && dy === -1) this.tryMovePlayer('UP_RIGHT');
+          else if (dx === -1 && dy === 1) this.tryMovePlayer('DOWN_LEFT');
+          else if (dx === 1 && dy === 1) this.tryMovePlayer('DOWN_RIGHT');
+        });
+
         // Swipe & touch controls
         let touchStartX = 0;
         let touchStartY = 0;
@@ -4228,6 +4729,24 @@
         document.getElementById('btn-pause').addEventListener('click', () => this.togglePause());
         document.getElementById('btn-resume').addEventListener('click', () => this.togglePause());
         document.getElementById('btn-theme').addEventListener('click', () => this.toggleTheme());
+
+        // Exit Game button (#btnHub)
+        const hubBtn = document.getElementById('btnHub');
+        if (hubBtn) {
+          hubBtn.addEventListener('click', () => {
+            sound.silenceAll();
+            try { if (typeof window.__fmSilenceAll === 'function') window.__fmSilenceAll(); } catch (e) {}
+            try {
+              if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ fmCloseGame: true }, '*');
+              }
+            } catch (e) {}
+            try {
+              if (typeof window.quitApp === 'function') window.quitApp();
+              else if (typeof window.closeWindow === 'function') window.closeWindow();
+            } catch (e) {}
+          });
+        }
 
         // Music toggle
         const musicBtn = document.getElementById('btn-music');

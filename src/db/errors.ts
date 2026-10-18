@@ -85,7 +85,7 @@ export function normalizeError(engine: Engine, err: unknown, secrets: (string | 
   return mk("UNKNOWN");
 }
 
-/** Statements allowed on a read-only connection (defence in depth on top of the engine-level enforcement). */
+/** Statements allowed on a read-only connection (defense in depth on top of the engine-level enforcement). */
 const READ_KEYWORDS = new Set(["SELECT", "WITH", "SHOW", "DESCRIBE", "DESC", "EXPLAIN", "VALUES", "TABLE", "PRAGMA"]);
 
 /**

@@ -114,7 +114,7 @@ SQLite Studio Pro works like a desktop database: you can create tables, add/edit
 - Works on tables with no primary key or composite keys (rows are addressed by SQLite \`rowid\`). Views and ad-hoc query results are read-only.
 
 ### Designing Tables Visually
-- **➕ New Table** (header or sidebar) opens the **Table Designer**: name the table, add columns with a friendly type picker (INTEGER, TEXT, REAL, BOOLEAN, DATE, DATETIME, BLOB, JSON…), and set **PK**, **Auto #**, **Required**, **Unique**, a **Default value** (e.g. \`0\`, \`CURRENT_TIMESTAMP\`) and **Link to table** (foreign key with on-delete behaviour). Quick-add chips insert common columns (\`id\`, \`created_at\`…). A live **SQL preview** shows the generated \`CREATE TABLE\`.
+- **➕ New Table** (header or sidebar) opens the **Table Designer**: name the table, add columns with a friendly type picker (INTEGER, TEXT, REAL, BOOLEAN, DATE, DATETIME, BLOB, JSON…), and set **PK**, **Auto #**, **Required**, **Unique**, a **Default value** (e.g. \`0\`, \`CURRENT_TIMESTAMP\`) and **Link to table** (foreign key with on-delete behavior). Quick-add chips insert common columns (\`id\`, \`created_at\`…). A live **SQL preview** shows the generated \`CREATE TABLE\`.
 - **🛠️ Design Table** on an existing table lets you rename it, rename/add/remove/reorder columns and change types or constraints. The table is rebuilt safely inside a transaction: data is copied, indexes and triggers are restored. Removed columns lose their data. *CHECK constraints, multi-column UNIQUE and multi-column foreign keys can't be represented and are dropped — the designer warns you first.*
 - **Sidebar ⋯ menu** (hover a table, or right-click it): Open, Add row, Design, Add column, New index, Import into, Export, Copy name, Rename, Empty table, Delete.
 - **👁️ New View**: save a SELECT as a view (pre-filled from the SQL editor).
@@ -338,7 +338,7 @@ await createSystemStudio({ fullscreen: false }).run();
 | :--- | :--- |
 | **A method shows an error or empty values.** | Some APIs need OS permissions or are not available on every platform (for example temperatures on some machines). The Telemetry Log shows the exact error. |
 | **Where are exported files saved?** | In the \`reports/\` folder of the directory the studio was launched from. |
-| **Compare is greyed out.** | Take a **📸 Snapshot** first; the button enables once a snapshot exists. |
+| **Compare is grayed out.** | Take a **📸 Snapshot** first; the button enables once a snapshot exists. |
 `);
 
   // 03_task_watcher_studio.md

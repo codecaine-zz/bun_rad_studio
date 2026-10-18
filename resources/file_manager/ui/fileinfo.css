@@ -1,6 +1,6 @@
 /* Styles of the "More info" window and the Details panel's photo strip. Every class starts with .fi- to stay out of the way
-   of the rest of the page. Colours come from the page's variables (style.css), so the light and dark themes both work, and
-   nothing is shown by colour alone: flags also have an icon and words. */
+   of the rest of the page. Colors come from the page's variables (style.css), so the light and dark themes both work, and
+   nothing is shown by color alone: flags also have an icon and words. */
 
 .dialog.wide.fi-dialog { width: min(62rem, 100%); }
 .fi { text-align: left; }
