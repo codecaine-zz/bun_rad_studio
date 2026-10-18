@@ -40,9 +40,30 @@ const RING_MASK = "-webkit-mask: linear-gradient(#000 0 0) content-box, linear-g
 function looks(): string {
     return `
 /* ---- looks: glass, rings, glow, radius (full and reduced) ---- */
+[data-fx] { --in-oklab: ; --in-oklch: ; }
+@supports (background: linear-gradient(in oklab, #000, #fff)) {
+  [data-fx] { --in-oklab: in oklab, ; --in-oklch: in oklch, ; }
+}
 ${V}[data-fx-ambient="on"] body::before, ${V}[data-fx-ambient="on"].fx-root::before {
   content: ""; position: fixed; inset: -10%; z-index: -1; pointer-events: none;
-  background: radial-gradient(60vmax 45vmax at 12% 8%, var(--fx-ambient-1), transparent 62%), radial-gradient(55vmax 40vmax at 90% 92%, var(--fx-ambient-2), transparent 60%);
+  background: radial-gradient(var(--in-oklab) 60vmax 45vmax at 12% 8%, var(--fx-ambient-1), transparent 62%), radial-gradient(var(--in-oklab) 55vmax 40vmax at 90% 92%, var(--fx-ambient-2), transparent 60%);
+}
+${V}[data-fx-atmosphere="nebula"]:not([data-fx-tier="low"]) body::before, ${V}[data-fx-atmosphere="nebula"]:not([data-fx-tier="low"]).fx-root::before {
+  content: ""; position: fixed; inset: -12%; z-index: -1; pointer-events: none;
+  background: radial-gradient(var(--in-oklab) 65vmax 50vmax at 16% 14%, var(--fx-ambient-1), transparent 64%), radial-gradient(var(--in-oklab) 60vmax 45vmax at 84% 86%, var(--fx-ambient-2), transparent 62%), conic-gradient(from 140deg at 50% 50%, transparent 0deg, var(--fx-accent-soft) 120deg, transparent 260deg);
+}
+${V}[data-fx-atmosphere="grid"]:not([data-fx-tier="low"]) body::before, ${V}[data-fx-atmosphere="grid"]:not([data-fx-tier="low"]).fx-root::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background-image: linear-gradient(to right, var(--fx-accent-soft) 1px, transparent 1px), linear-gradient(to bottom, var(--fx-accent-soft) 1px, transparent 1px), radial-gradient(var(--in-oklab) 60vmax 45vmax at 50% 0%, var(--fx-ambient-1), transparent 70%);
+  background-size: 36px 36px, 36px 36px, 100% 100%;
+}
+${V}[data-fx-atmosphere="aurora"]:not([data-fx-tier="low"]) body::before, ${V}[data-fx-atmosphere="aurora"]:not([data-fx-tier="low"]).fx-root::before {
+  content: ""; position: fixed; inset: -10%; z-index: -1; pointer-events: none;
+  background: radial-gradient(var(--in-oklch) 80vmax 35vmax at 25% 5%, var(--fx-ambient-1), transparent 65%), radial-gradient(var(--in-oklch) 75vmax 38vmax at 78% 12%, var(--fx-ambient-2), transparent 68%);
+}
+${V}[data-fx-atmosphere="horizon"]:not([data-fx-tier="low"]) body::before, ${V}[data-fx-atmosphere="horizon"]:not([data-fx-tier="low"]).fx-root::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(var(--in-oklch) 90vmax 36vmax at 50% 100%, var(--fx-ambient-1), transparent 68%), linear-gradient(var(--in-oklab) 180deg, transparent 55%, var(--fx-ambient-2) 100%);
 }
 ${V}.fx-root { isolation: isolate; }
 ${V}.fx-root[data-fx-ambient="on"]::before { position: absolute; inset: 0; }
@@ -88,7 +109,7 @@ ${V} .fx-input > label { position: absolute; left: 12px; top: 15px; pointer-even
 ${V} .fx-input > :where(input, textarea):not(:placeholder-shown) ~ label, ${V} .fx-input:focus-within > label { color: var(--fx-focus-color); }
 ${V} .fx-input::before { content: ""; position: absolute; inset: -2px; z-index: -1; border-radius: calc(var(--fx-radius-md) + 2px); pointer-events: none; box-shadow: var(--fx-glow-med); opacity: 0; transition-property: opacity; transition-duration: var(--fx-dur-base); }
 ${V} .fx-input:focus-within::before { opacity: 1; }
-${V} .fx-input::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 0; height: 2px; pointer-events: none; background: linear-gradient(90deg, var(--fx-glow-color), var(--fx-glow-color-2)); opacity: 0; transition-property: opacity; transition-duration: var(--fx-dur-fast); }
+${V} .fx-input::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 0; height: 2px; pointer-events: none; background: linear-gradient(var(--in-oklch) 90deg, var(--fx-glow-color), var(--fx-glow-color-2)); opacity: 0; transition-property: opacity; transition-duration: var(--fx-dur-fast); }
 ${V} .fx-input:focus-within::after { opacity: 1; }
 ${V} .fx-input > :where(input, textarea):not(:placeholder-shown) ~ label, ${V} .fx-input:focus-within > label { font-size: 11px; top: 6px; }
 ${V} .fx-input > label { font-size: 13px; top: 15px; }
@@ -103,7 +124,8 @@ ${V} ${SURF}${NF}${NO_ABS} { position: relative; }
 ${V} :where(.fx-card, .fx-panel, .rad-card[style*="border-radius:10px"], .rad-kpi-card, .sg-kpi-card)${NF} { border-radius: var(--fx-radius-lg) !important; }
 ${V} :where(fieldset[style*="border-radius:8px"])${NF} { border-radius: var(--fx-radius-lg) !important; }
 ${V}:not([data-fx-border="flat"]) ${SURF}:not(fieldset)${NF}::after {
-  content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; padding: 1px; pointer-events: none; background: var(--fx-border-gradient); ${RING_MASK}
+  content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: radial-gradient(220px circle at var(--fx-pointer-x, 50%) var(--fx-pointer-y, 50%), var(--fx-glow-color), transparent 72%), var(--fx-border-gradient); ${RING_MASK}
 }
 ${V} :where(.fx-card, .fx-panel)${NF}::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; box-shadow: var(--fx-shadow-4); opacity: 0; transition-property: opacity; transition-duration: var(--fx-dur-base); }
 ${V} :where(.fx-card, .fx-panel)${NF}:hover::before { opacity: 1; }
@@ -113,7 +135,7 @@ ${V} .fx-sheen::before { content: ""; position: absolute; inset: 0; pointer-even
 
 /* Tables: row highlight and an accent bar (the slide is in the motion block) */
 ${V} ${ROW} > td:first-child, ${V} ${ROW} > th:first-child { position: relative; }
-${V} ${ROW} > :first-child::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; pointer-events: none; background: linear-gradient(var(--fx-glow-color), var(--fx-glow-color-2)); opacity: 0; transition-property: opacity; transition-duration: var(--fx-dur-fast); }
+${V} ${ROW} > :first-child::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; pointer-events: none; background: linear-gradient(var(--in-oklch) 180deg, var(--fx-glow-color), var(--fx-glow-color-2)); opacity: 0; transition-property: opacity; transition-duration: var(--fx-dur-fast); }
 ${V} ${ROW}:hover > :first-child::before { opacity: 1; }
 ${V} ${ROW}:hover > td { background-image: linear-gradient(var(--fx-row-hover), var(--fx-row-hover)); }
 
@@ -122,7 +144,7 @@ ${both(BAR, NF)} { background-color: var(--fx-glass-bg) !important; border-color
 ${both(PILL, `${NF}${NO_ABS}`)} { position: relative; }
 ${both(PILL, `${NF}::after`)} {
   content: ""; position: absolute; left: 0; bottom: 0; width: 1px; height: 3px; pointer-events: none; opacity: 0; transform-origin: left center;
-  background: linear-gradient(90deg, var(--fx-glow-color), var(--fx-glow-color-2)); transform: translateX(var(--fx-pill-x, 0px)) scaleX(var(--fx-pill-w, 0));
+  background: linear-gradient(var(--in-oklch) 90deg, var(--fx-glow-color), var(--fx-glow-color-2)); transform: translateX(var(--fx-pill-x, 0px)) scaleX(var(--fx-pill-w, 0));
   transition-property: opacity; transition-duration: var(--fx-dur-fast);
 }
 ${both(PILL, `${NF}[data-fx-pill]::after`)} { opacity: 1; }
@@ -145,6 +167,15 @@ ${V} .fx-skeleton { position: relative; overflow: hidden; contain: paint; border
 ${V} .fx-skeleton::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent); transform: translateX(-100%); }
 ${V} ${PRG} { position: relative; overflow: hidden; box-shadow: var(--fx-glow-soft); }
 ${V} ${PRG}::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent); opacity: 0; }
+
+/* Wide-gamut Display-P3 and Liquid Retina XDR / HDR enhancements (e.g. M4 MacBook Pro) */
+@media (color-gamut: p3) {
+  ${V}:not([data-fx-tier="low"]) { --fx-glow-color: var(--fx-glow-p3); --fx-glow-color-2: var(--fx-glow-2-p3); --fx-saturate: var(--fx-saturate-ultra, 1.55); }
+}
+@media (dynamic-range: high) {
+  ${V}:not([data-fx-tier="low"]) ${SURF}${NF} { box-shadow: var(--fx-specular-rim), var(--fx-shadow-2) !important; -webkit-backdrop-filter: blur(var(--fx-blur-ultra, var(--fx-blur-md))) saturate(var(--fx-saturate-ultra, var(--fx-saturate))); backdrop-filter: blur(var(--fx-blur-ultra, var(--fx-blur-md))) saturate(var(--fx-saturate-ultra, var(--fx-saturate))); }
+  ${V}:not([data-fx-tier="low"]) ${MODAL}${NF} { box-shadow: var(--fx-specular-rim), var(--fx-shadow-5) !important; -webkit-backdrop-filter: blur(var(--fx-blur-ultra, var(--fx-blur-lg))) saturate(var(--fx-saturate-ultra, var(--fx-saturate))); backdrop-filter: blur(var(--fx-blur-ultra, var(--fx-blur-lg))) saturate(var(--fx-saturate-ultra, var(--fx-saturate))); }
+}
 `;
 }
 
@@ -233,6 +264,24 @@ ${reduced(RM).replace(/^/, "")}
   [data-fx] { --fx-glass-bg: var(--fx-glass-solid); --fx-glass-bg-strong: var(--fx-glass-solid); }
 }
 
+@media (prefers-reduced-transparency: reduce) {
+  [data-fx] { --fx-glass-bg: var(--fx-glass-solid); --fx-glass-bg-strong: var(--fx-glass-solid); --fx-blur-sm: 0px; --fx-blur-md: 0px; --fx-blur-lg: 0px; --fx-blur-ultra: 0px; --fx-saturate: 1; --fx-saturate-ultra: 1; }
+  ${both(SURF, NF)}, ${both(BAR, NF)}, ${V} ${MODAL}${NF} { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background-image: none !important; }
+  ${V} body::before, ${V} body::after, ${V}::after, ${V}.fx-root::before, ${V}.fx-root::after { display: none !important; }
+}
+
+[data-fx][data-fx-tier="low"] {
+  --fx-glass-bg: var(--fx-glass-solid); --fx-glass-bg-strong: var(--fx-glass-solid);
+  --fx-blur-sm: 0px; --fx-blur-md: 0px; --fx-blur-lg: 0px; --fx-blur-ultra: 0px; --fx-saturate: 1; --fx-saturate-ultra: 1;
+  --fx-scanline-opacity: 0; --fx-grain-opacity: 0;
+}
+[data-fx][data-fx-tier="low"] ${SURF}${NF}, [data-fx][data-fx-tier="low"] ${BAR}${NF}, [data-fx][data-fx-tier="low"] ${MODAL}${NF} {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background-image: none !important;
+}
+[data-fx][data-fx-tier="low"] body::before, [data-fx][data-fx-tier="low"] body::after, [data-fx][data-fx-tier="low"]::after, [data-fx][data-fx-tier="low"].fx-root::before, [data-fx][data-fx-tier="low"].fx-root::after {
+  display: none !important;
+}
+
 @media (prefers-contrast: more) {
   [data-fx] { --fx-glass-bg: var(--fx-glass-solid); --fx-glass-bg-strong: var(--fx-glass-solid); --fx-glass-border: var(--theme-fg, currentColor);
     --fx-blur-sm: 0px; --fx-blur-md: 0px; --fx-blur-lg: 0px; --fx-saturate: 1;
@@ -246,7 +295,10 @@ ${reduced(RM).replace(/^/, "")}
 }
 
 @media (forced-colors: active) {
+  [data-fx] { forced-color-adjust: auto; --fx-blur-sm: 0px; --fx-blur-md: 0px; --fx-blur-lg: 0px; --fx-blur-ultra: 0px; }
   ${both(HOOKS, NF)}, ${both(BAR, NF)} { background: Canvas !important; background-image: none !important; color: CanvasText !important; border-color: CanvasText !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; filter: none !important; }
+  ${both(BTN, NF)} { background: ButtonFace !important; color: ButtonText !important; border-color: ButtonText !important; }
+  ${both(INPUT, NF)} { background: Field !important; color: FieldText !important; border-color: ButtonText !important; }
   ${both(HOOKS, "::before")}, ${both(HOOKS, "::after")}, ${V} body::before, ${V} body::after, ${V}::after { display: none !important; }
   ${both(PILL, "[data-fx-pill]::after")} { display: block !important; background: Highlight; opacity: 1; }
   ${V} :where(h1, h2, .rad-heading, .rad-subheading, .fx-heading) { text-shadow: none !important; }

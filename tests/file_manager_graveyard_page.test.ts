@@ -138,7 +138,7 @@ beforeAll(async () => {
   const keys = await import("../resources/file_manager/ui/keys.js");
   state.platform = "linux";
   state.home = home;
-  state.sep = "/";
+  state.sep = process.platform === "win32" ? "\\" : "/";
   state.places = [];
   state.drives = [];
   state.settings = (await api.call("settings")).settings;
@@ -616,7 +616,15 @@ describe("previews and opening the original folder", () => {
     const sub = join(dir, "pack");
     write(join(sub, "one.txt"));
     write(join(sub, "two.txt"));
-    symlinkSync("/etc/hosts", join(dir, "lnk"));
+    let linkTarget = "/etc/hosts";
+    try {
+      symlinkSync("/etc/hosts", join(dir, "lnk"));
+    } catch {
+      const jt = join(dir, "jtarget");
+      mkdirSync(jt, { recursive: true });
+      symlinkSync(jt, join(dir, "lnk"), "junction");
+      linkTarget = jt;
+    }
     await buryByApi([txt, sub, join(dir, "lnk")]);
     await reloadTab();
     await until(() => rows().length === 3, "rows");
@@ -627,7 +635,7 @@ describe("previews and opening the original folder", () => {
     clickName("pack");
     await until(() => q(".grave-names", pane())?.textContent.includes("two.txt"), "the folder's names");
     clickName("lnk");
-    await until(() => q(".grave-preview-body", pane()).textContent.includes("points to “/etc/hosts”"), "the link text");
+    await until(() => q(".grave-preview-body", pane()).textContent.includes("points to “") && q(".grave-preview-body", pane()).textContent.includes(linkTarget), "the link text");
     expect(q(".grave-preview-body", pane()).textContent).toContain("isn't opened or followed");
   });
 

@@ -68,7 +68,11 @@ export function dbComputer(options: DbTestOptions = {}) {
     },
     remove() {
       server.stop(true);
-      rmSync(dir, { recursive: true, force: true });
+      try {
+        rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+      } catch {
+        // Windows may briefly hold a handle to a killed child process's working folder.
+      }
     },
   };
 }

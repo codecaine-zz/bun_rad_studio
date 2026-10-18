@@ -13,7 +13,7 @@
  * - Real-time Action Telemetry log and interactive Hand Rankings hierarchy guide
  */
 
-import { SizeHint, Webview } from "webview-bun";
+import type { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
 import { existsSync, readFileSync } from "fs";
 import { guardLocalRequest } from "../src/localGuard";
@@ -193,6 +193,7 @@ export function createPokerStudio(options: PokerStudioOptions = {}): PokerStudio
       }
 
       try {
+        const { SizeHint, Webview } = require("webview-bun") as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,

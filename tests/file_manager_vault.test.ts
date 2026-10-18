@@ -42,7 +42,7 @@ function tree(dir: string, base = dir): string[] {
   for (const name of readdirSync(dir).sort()) {
     const p = join(dir, name);
     const st = lstatSync(p);
-    const rel = p.slice(base.length + 1);
+    const rel = p.slice(base.length + 1).replace(/\\/g, "/");
     if (st.isDirectory()) out.push(`${rel}/`, ...tree(p, base));
     else out.push(`${rel} ${sha(readFileSync(p))}`);
   }
@@ -168,7 +168,7 @@ describe("the format, proven by an independent decryptor", () => {
       const byPath = new Map(ref.entries.map((e) => [e.path, e]));
       expect([...byPath.keys()].sort()).toEqual(["a.txt", "empty", "sub", "sub/b.bin", "sub/deeper", "sub/deeper/c.txt"]);
       expect(byPath.get("a.txt")!.data.equals(readFileSync(join(src, "a.txt")))).toBe(true);
-      expect(byPath.get("a.txt")!.mode).toBe(0o640);
+      expect(byPath.get("a.txt")!.mode).toBe(process.platform === "win32" ? 0o666 : 0o640);
       expect(byPath.get("a.txt")!.mtime).toBe(1_600_000_000_123);
       expect(byPath.get("empty")!.type).toBe("D");
       expect(byPath.get("sub/deeper/c.txt")!.data.length).toBe(0);
@@ -380,7 +380,7 @@ describe("round trips", () => {
     utimesSync(src, new Date(1_500_000_000_000), new Date(1_500_000_000_000));
     const out = fresh();
     const d = await dec((await enc(src, fresh())).output, out);
-    expect(statSync(d.output).mode & 0o777).toBe(0o755);
+    expect(statSync(d.output).mode & 0o777).toBe(process.platform === "win32" ? 0o666 : 0o755);
     expect(statSync(d.output).mtimeMs).toBe(1_500_000_000_000);
   });
 
@@ -390,7 +390,8 @@ describe("round trips", () => {
     mkdirSync(folder);
     writeFileSync(join(folder, "real.txt"), "real");
     writeFileSync(join(dir, "outside.txt"), "OUTSIDE");
-    symlinkSync(join(dir, "outside.txt"), join(folder, "link.txt"));
+    if (process.platform === "win32") symlinkSync(dir, join(folder, "link.txt"), "junction");
+    else symlinkSync(join(dir, "outside.txt"), join(folder, "link.txt"));
     const r = await enc(folder, fresh());
     expect(r.warnings.join("\n")).toContain("link.txt");
     const ref = referenceDecrypt(readFileSync(r.output), PW);
@@ -798,8 +799,13 @@ describe("hostile containers (valid encryption, malicious contents) never write 
     const dest = join(dir, "dest");
     mkdirSync(dest);
     writeFileSync(join(dir, "target.txt"), "KEEP");
-    symlinkSync(join(dir, "target.txt"), join(dest, "evil"));
-    symlinkSync(join(dir, "target.txt"), join(dest, "n.txt"));
+    if (process.platform === "win32") {
+      symlinkSync(dir, join(dest, "evil"), "junction");
+      symlinkSync(dir, join(dest, "n.txt"), "junction");
+    } else {
+      symlinkSync(join(dir, "target.txt"), join(dest, "evil"));
+      symlinkSync(join(dir, "target.txt"), join(dest, "n.txt"));
+    }
     const file = await forge(build([F("a.txt", "new")]));
     const r = await decryptFile({ source: file, outputDir: dest, password: PW });
     expect(r.outputName).toBe("evil (2)");
@@ -835,7 +841,8 @@ describe("never overwrites, never touches the original", () => {
     writeFileSync(src, "data");
     mkdirSync(join(dir, "x.txt.radenc"));
     writeFileSync(join(dir, "keep.txt"), "KEEP");
-    symlinkSync(join(dir, "keep.txt"), join(dir, "x.txt (2).radenc"));
+    if (process.platform === "win32") symlinkSync(dir, join(dir, "x.txt (2).radenc"), "junction");
+    else symlinkSync(join(dir, "keep.txt"), join(dir, "x.txt (2).radenc"));
     const r = await enc(src, dir);
     expect(r.outputName).toBe("x.txt (3).radenc");
     expect(readFileSync(join(dir, "keep.txt"), "utf8")).toBe("KEEP");
@@ -1130,9 +1137,11 @@ describe("the vault operations (tasks, trash, limits, secrets)", () => {
     const dir = work();
     writeFileSync(join(dir, "p.txt"), "p");
     const base = { paths: [join(dir, "p.txt")], password: PW };
-    await rejectsWith(() => call("vault/encrypt", { ...base, outputDir: "/etc" }), "PROTECTED");
+    const sysDir1 = process.platform === "win32" ? (process.env.SystemRoot || "C:\\Windows") : "/etc";
+    const sysDir2 = process.platform === "win32" ? join(process.env.SystemRoot || "C:\\Windows", "System32") : "/usr/bin";
+    await rejectsWith(() => call("vault/encrypt", { ...base, outputDir: sysDir1 }), "PROTECTED");
     await rejectsWith(() => call("vault/encrypt", { ...base, outputDir: ctx.trashRoot }), "PROTECTED");
-    await rejectsWith(() => call("vault/decrypt", { ...base, outputDir: "/usr/bin" }), "PROTECTED");
+    await rejectsWith(() => call("vault/decrypt", { ...base, outputDir: sysDir2 }), "PROTECTED");
     mkdirSync(join(ctx.trashRoot, "items"), { recursive: true });
     writeFileSync(join(ctx.trashRoot, "items", "t.txt"), "t");
     await rejectsWith(() => call("vault/encrypt", { paths: [join(ctx.trashRoot, "items", "t.txt")], password: PW }), "PROTECTED");
@@ -1247,7 +1256,7 @@ describe("the vault operations (tasks, trash, limits, secrets)", () => {
     const dir = work();
     writeFileSync(join(dir, "n.txt"), "n");
     const e = await finish((await call("vault/encrypt", { paths: [join(dir, "n.txt")], password: PW })).task.id);
-    const t = await finish((await call("vault/decrypt", { paths: [`${dir}/../${dir.split("/").pop()}/n.txt.radenc`], password: PW, outputDir: work() })).task.id);
+    const t = await finish((await call("vault/decrypt", { paths: [`${dir}/../${dir.split(/[/\\]/).pop()}/n.txt.radenc`], password: PW, outputDir: work() })).task.id);
     expect(t.items[0].state).toBe("done");
     expect(e.state).toBe("done");
   });

@@ -727,3 +727,61 @@
 }
 .fm-atmo-intensity input[type="range"] { flex: 1 1 auto; accent-color: var(--fm-atmo-c1, var(--accent)); }
 .fm-atmo-output { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 650; min-width: 3rem; text-align: right; }
+
+/* ---- Wide-gamut Display-P3, Liquid Retina XDR / Windows Auto HDR, and Hardware/OS Fallbacks ---- */
+@media (color-gamut: p3) {
+  :root[data-fx]:not([data-fx-tier="low"]) {
+    --fx-glow-color: var(--fx-glow-p3, var(--fx-glow-color));
+    --fx-glow-color-2: var(--fx-glow-2-p3, var(--fx-glow-color-2));
+    --accent: var(--accent-p3, var(--accent));
+  }
+}
+
+@media (dynamic-range: high) {
+  :root[data-fx]:not([data-fx-tier="low"]) :is(.dialog, .theme-card) {
+    box-shadow: var(--fx-specular-rim, inset 0 1px 0 0 rgba(255, 255, 255, 0.28)), var(--fx-shadow-3, var(--shadow));
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-fx] {
+    --fx-glass-bg: var(--fx-glass-solid, var(--panel));
+    --fx-glass-bg-strong: var(--fx-glass-solid, var(--panel));
+  }
+  :root[data-fx] body::before,
+  :root[data-fx] body::after,
+  .fm-atmosphere-layer {
+    display: none !important;
+  }
+}
+
+:root[data-fx][data-fx-tier="low"] {
+  --fx-glass-bg: var(--fx-glass-solid, var(--panel));
+  --fx-glass-bg-strong: var(--fx-glass-solid, var(--panel));
+}
+:root[data-fx][data-fx-tier="low"] body::before,
+:root[data-fx][data-fx-tier="low"] body::after,
+:root[data-fx-tier="low"] .fm-atmosphere-layer {
+  display: none !important;
+}
+
+@media (forced-colors: active) {
+  :root[data-fx] :is(#sidebar, #info, #status, #list-head, #toolbar-row, #addressbar, .dialog, .theme-card) {
+    background: Canvas !important;
+    color: CanvasText !important;
+    border-color: CanvasText !important;
+    box-shadow: none !important;
+  }
+  :root[data-fx] :is(.btn, .tool) {
+    background: ButtonFace !important;
+    color: ButtonText !important;
+    border-color: ButtonText !important;
+    box-shadow: none !important;
+  }
+  :root[data-fx] body::before,
+  :root[data-fx] body::after,
+  .fm-atmosphere-layer {
+    display: none !important;
+  }
+}
+

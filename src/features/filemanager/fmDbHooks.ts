@@ -3,7 +3,7 @@
  * start real studios, or read this machine's environment.
  */
 import { existsSync, readdirSync } from "fs";
-import { basename, dirname, join } from "path";
+import { basename, dirname, join, posix as posixPath, win32 as win32Path } from "path";
 import type { ConnectionConfig, DbAdapter } from "../../db/types";
 import { detectSecretStore, type SecretStore } from "../../db/profiles";
 import { testConnection, type TestInput, type TestResult } from "./fmDbTest";
@@ -86,11 +86,14 @@ export function realLayout(): StudioLayout {
   return { execPath: process.execPath, argv1: process.argv[1] ?? "", repoRoot: join(import.meta.dir, "..", "..", ".."), exists: existsSync, readdir: (p) => { try { return readdirSync(p); } catch { return []; } } };
 }
 
+const layoutPath = (layout: StudioLayout) => ([layout.execPath, layout.argv1, layout.repoRoot].some((s) => s.includes("\\") || /^[A-Za-z]:/.test(s)) ? win32Path : posixPath);
+
 /** The folder with this program's own files: the project when running from source, the release folder (or the .app's Resources) otherwise. */
 export function installRoot(layout: StudioLayout): string {
-  if (layout.exists(join(layout.repoRoot, "applications"))) return layout.repoRoot;
-  const dir = dirname(layout.argv1 || layout.execPath);
-  return ["apps", "app", "cli"].includes(basename(dir)) ? dirname(dir) : dir;
+  const p = layoutPath(layout);
+  if (layout.exists(p.join(layout.repoRoot, "applications"))) return layout.repoRoot;
+  const dir = p.dirname(layout.argv1 || layout.execPath);
+  return ["apps", "app", "cli"].includes(p.basename(dir)) ? p.dirname(dir) : dir;
 }
 
 /**
@@ -101,34 +104,35 @@ export function installRoot(layout: StudioLayout): string {
  *  - from source: `applications/<name>.ts` run by Bun.
  */
 export function resolveStudioCommand(engine: DbEngine, layout: StudioLayout = realLayout()): StudioCommand | null {
+  const p = layoutPath(layout);
   const script = ENGINES[engine].script;
   const bundle = `${dashed(script)}.js`;
-  const argvDir = layout.argv1 ? dirname(layout.argv1) : "";
+  const argvDir = layout.argv1 ? p.dirname(layout.argv1) : "";
   const run = (exe: string, file: string, kind: StudioCommand["kind"]): StudioCommand => ({ kind, where: file, build: (bunArgs, studioArgs) => [exe, ...bunArgs, file, ...studioArgs] });
 
-  if (argvDir && layout.exists(join(argvDir, bundle))) return run(layout.execPath, join(argvDir, bundle), "bundle");
+  if (argvDir && layout.exists(p.join(argvDir, bundle))) return run(layout.execPath, p.join(argvDir, bundle), "bundle");
 
   // Mac: X.app/Contents/Resources/app/<this>.js, with the other tools as sibling .app folders.
   const m = /^(.*\.app)\/Contents\/Resources\/app$/.exec(argvDir.replace(/\\/g, "/"));
   if (m) {
-    const holder = dirname(m[1]!);
+    const holder = p.dirname(m[1]!);
     for (const name of layout.readdir(holder)) {
       if (!name.endsWith(".app")) continue;
-      const res = join(holder, name, "Contents", "Resources");
-      const file = join(res, "app", bundle);
-      const runtime = join(res, "runtime", "bun");
+      const res = p.join(holder, name, "Contents", "Resources");
+      const file = p.join(res, "app", bundle);
+      const runtime = p.join(res, "runtime", "bun");
       if (layout.exists(file) && layout.exists(runtime)) return run(runtime, file, "app");
     }
   }
 
   for (const suffix of ["", ".exe"]) {
-    const exe = join(dirname(layout.execPath), `${dashed(script)}${suffix}`);
-    if (basename(layout.execPath).toLowerCase().replace(/\.exe$/, "") !== dashed(script) && layout.exists(exe)) return { kind: "executable", where: exe, build: (_bunArgs, studioArgs) => [exe, ...studioArgs] };
+    const exe = p.join(p.dirname(layout.execPath), `${dashed(script)}${suffix}`);
+    if (p.basename(layout.execPath).toLowerCase().replace(/\.exe$/, "") !== dashed(script) && layout.exists(exe)) return { kind: "executable", where: exe, build: (_bunArgs, studioArgs) => [exe, ...studioArgs] };
   }
 
-  for (const dir of [argvDir, join(layout.repoRoot, "applications")]) {
+  for (const dir of [argvDir, p.join(layout.repoRoot, "applications")]) {
     if (!dir) continue;
-    const file = join(dir, `${script}.ts`);
+    const file = p.join(dir, `${script}.ts`);
     if (layout.exists(file)) return run(layout.execPath, file, "dev");
   }
   return null;

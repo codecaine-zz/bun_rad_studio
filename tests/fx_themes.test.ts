@@ -15,6 +15,11 @@ import {
     isFxTheme,
     get_theme_fx,
     is_fx_theme,
+    FX_FALLBACK_THEMES,
+    detectThemeHardware,
+    getFallbackThemeKey,
+    resolveThemeForHardware,
+    srgbToDisplayP3,
 } from "../src/simplegui";
 import { FX_THEMES, FX_THEME_ALIASES, FX_THEME_KEYS, FX_TOKEN_NAMES, findFxTheme, fxRootAttrs, glassReport, focusRingColor, normalizeFxMode } from "../src/shared/fxThemes";
 import { fxCss } from "../src/shared/fxCss";
@@ -945,3 +950,136 @@ describe("designer wiring", () => {
         expect(css).toMatch(/:not\(\.selected\)/);
     });
 });
+
+describe("high-end M4 Pro / Windows DirectX enhancements and hardware fallbacks", () => {
+    test("every FX theme has a valid non-FX fallback theme with matching dark/light polarity", () => {
+        for (const key of FX_THEME_KEYS) {
+            const fxTheme = FX_THEMES[key]!;
+            const fbKey = FX_FALLBACK_THEMES[key];
+            expect(fbKey, `${key} fallback key`).toBeTruthy();
+            expect(getFallbackThemeKey(key)).toBe(fbKey!);
+            const fbTheme = SIMPLEGUI_THEMES[fbKey!];
+            expect(fbTheme, `${key} -> ${fbKey}`).toBeDefined();
+            expect(fbTheme!.fx, `${fbKey} must not be an FX theme`).toBeUndefined();
+            expect(fbTheme!.is_dark, `${key} -> ${fbKey} dark/light polarity`).toBe(fxTheme.is_dark);
+        }
+        // Aliases also resolve to the right fallback theme
+        expect(getFallbackThemeKey("m4_space_black")).toBe("oled_black");
+        expect(getFallbackThemeKey("win11_mica_fx")).toBe("fluent_light");
+    });
+
+    test("detects M4 MacBook Pro (Apple Silicon XDR) and Windows DirectX 12 RTX/Copilot+ PC as ultra tier", () => {
+        const m4 = detectThemeHardware({
+            gpuRenderer: "Apple M4 Max",
+            platform: "darwin",
+            cores: 14,
+            memoryGb: 36,
+            devicePixelRatio: 2,
+            colorGamutP3: true,
+            hdrDynamicRange: true,
+        });
+        expect(m4.tier).toBe("ultra");
+        expect(m4.isAppleSiliconPro).toBe(true);
+        expect(m4.supportsP3).toBe(true);
+        expect(m4.supportsHdr).toBe(true);
+        expect(m4.supportsProMotion).toBe(true);
+        expect(m4.nativeBackdrop).toBe("vibrancy");
+        expect(m4.shouldUseFallbackTheme).toBe(false);
+
+        const winRtx = detectThemeHardware({
+            gpuRenderer: "ANGLE (NVIDIA, NVIDIA GeForce RTX 4090 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+            platform: "win32",
+            cores: 16,
+            memoryGb: 32,
+            devicePixelRatio: 1.5,
+            colorGamutP3: true,
+            hdrDynamicRange: true,
+        });
+        expect(winRtx.tier).toBe("ultra");
+        expect(winRtx.isWindowsHighEnd).toBe(true);
+        expect(winRtx.nativeBackdrop).toBe("acrylic");
+        expect(winRtx.shouldUseFallbackTheme).toBe(false);
+    });
+
+    test("automatically reverts FX themes to lightweight fallback themes on software GPUs, Windows RDP, Forced Colors, or low-resource systems", () => {
+        const swResolved = resolveThemeForHardware("cyberpunk_hologram", {
+            gpuRenderer: "ANGLE (Microsoft, Microsoft Basic Render Driver Direct3D11, D3D11)",
+            platform: "win32",
+        });
+        expect(swResolved.downgraded).toBe(true);
+        expect(swResolved.revertedToFallback).toBe(true);
+        expect(swResolved.appliedKey).toBe("cyberpunk");
+        expect(swResolved.fxMode).toBe("off");
+        expect(swResolved.hardware.reason).toBe("software-gpu");
+
+        const rdpResolved = resolveThemeForHardware("quantum_obsidian", {
+            platform: "win32",
+            remoteSession: true,
+        });
+        expect(rdpResolved.revertedToFallback).toBe(true);
+        expect(rdpResolved.appliedKey).toBe("oled_black");
+        expect(rdpResolved.fxMode).toBe("off");
+        expect(rdpResolved.hardware.nativeBackdrop).toBe("none");
+        expect(rdpResolved.hardware.reason).toBe("windows-remote-session");
+
+        const forcedResolved = resolveThemeForHardware("orbital_ice", {
+            platform: "win32",
+            forcedColors: true,
+        });
+        expect(forcedResolved.revertedToFallback).toBe(true);
+        expect(forcedResolved.appliedKey).toBe("fluent_light");
+        expect(forcedResolved.fxMode).toBe("off");
+        expect(forcedResolved.hardware.reason).toBe("windows-forced-colors");
+
+        const lowRamResolved = resolveThemeForHardware("frosted_glass", {
+            cores: 2,
+            memoryGb: 2,
+        });
+        expect(lowRamResolved.revertedToFallback).toBe(true);
+        expect(lowRamResolved.appliedKey).toBe("apple_light");
+        expect(lowRamResolved.fxMode).toBe("reduced");
+
+        // SimpleWindow.setThemeSafe applies the fallback theme automatically on constrained hardware
+        const win = createWindow("Test", 400, 300, { theme: "midnight" });
+        win.setThemeSafe("m4_space_black", { gpuRenderer: "Google SwiftShader" }, false);
+        expect(win.getTheme()).toBe("oled_black");
+    });
+
+    test("srgbToDisplayP3 and fxCss include Display-P3, XDR HDR, OKLab/OKLCH, and low-tier fallback rules", () => {
+        const p3 = srgbToDisplayP3("#38bdf8");
+        expect(p3).toMatch(/^color\(display-p3 [0-9.]+ [0-9.]+ [0-9.]+\)$/);
+        const layer = fxCss();
+        expect(layer).toContain("@media (color-gamut: p3)");
+        expect(layer).toContain("@media (dynamic-range: high)");
+        expect(layer).toContain("@media (prefers-reduced-transparency: reduce)");
+        expect(layer).toContain('[data-fx][data-fx-tier="low"]');
+        expect(layer).toContain("in oklch");
+    });
+
+    test("fxPointer supports 0.1px sub-pixel precision on high-DPI displays and downgrades on low-tier hardware", () => {
+        const dom = new JSDOM(`<!doctype html><html data-fx="on"><body><button class="fx-button" id="b">Go</button></body></html>`);
+        const w = dom.window as any;
+        w.requestAnimationFrame = (cb: any) => { cb(16); return 1; };
+        w.cancelAnimationFrame = () => {};
+        const btn = w.document.getElementById("b");
+        btn.getBoundingClientRect = () => ({ left: 10, top: 20, width: 100, height: 40 });
+        const h = installFxPointer(w);
+        const ev = new w.Event("pointermove", { bubbles: true });
+        ev.clientX = 60.44;
+        ev.clientY = 50.76;
+        btn.dispatchEvent(ev);
+        expect(btn.style.getPropertyValue("--fx-pointer-x")).toBe("50.4px");
+        expect(btn.style.getPropertyValue("--fx-pointer-y")).toBe("30.8px");
+        h.dispose();
+
+        // Low-resource device downgrades data-fx="on" to "reduced" and sets data-fx-tier="low"
+        const lowDom = new JSDOM(`<!doctype html><html data-fx="on"><body><button class="fx-button" id="b2">Go</button></body></html>`);
+        const lw = lowDom.window as any;
+        Object.defineProperty(lw.navigator, "hardwareConcurrency", { value: 2, configurable: true });
+        const lh = installFxPointer(lw);
+        expect(lw.document.documentElement.getAttribute("data-fx-tier")).toBe("low");
+        expect(lw.document.documentElement.getAttribute("data-fx")).toBe("reduced");
+        lh.dispose();
+    });
+});
+

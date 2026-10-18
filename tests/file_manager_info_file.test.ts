@@ -38,7 +38,7 @@ describe("general facts", () => {
     expect(x["general/Full path"]).toBe(p);
     expect(x["general/Kind"]).toBe("PNG picture");
     expect(x["general/Size"]).toContain(`${readFileSync(p).length.toLocaleString("en-US")} bytes`);
-    expect(x["general/Size on disk"]).toContain("blocks of 512 bytes");
+    if (process.platform !== "win32") expect(x["general/Size on disk"]).toContain("blocks of 512 bytes");
     expect(x["dates/Modified"]).toMatch(/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/);
     expect(x["dates/Opened"]).toBeDefined();
     if (process.platform !== "linux") expect(x["dates/Created"]).toBeDefined();
@@ -518,8 +518,12 @@ describe("HTTP: token, loopback, path checks and limits", () => {
   });
 
   test("a request that is too big is refused", async () => {
-    const res = await fetch(`${url}/api/info/save`, { method: "POST", headers: { "Content-Type": "application/json", "x-fm-token": TOKEN }, body: JSON.stringify({ path: "/x", format: "txt", content: "y".repeat(2 * 1024 * 1024) }) });
-    expect(res.status).toBe(413);
+    try {
+      const res = await fetch(`${url}/api/info/save`, { method: "POST", headers: { "Content-Type": "application/json", "x-fm-token": TOKEN }, body: JSON.stringify({ path: "/x", format: "txt", content: "y".repeat(2 * 1024 * 1024) }) });
+      expect(res.status).toBe(413);
+    } catch (e: any) {
+      expect(["ECONNRESET", "EPIPE", "ECONNABORTED"]).toContain(e?.code);
+    }
   });
 
   test("every operation answers quickly for a normal file", async () => {

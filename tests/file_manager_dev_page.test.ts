@@ -122,7 +122,7 @@ beforeAll(async () => {
   (await import("../resources/file_manager/ui/devActions.js")).setCodeOpener((path: string, line: number) => codeOpened.push({ open: path, line }));
   await import("../resources/file_manager/ui/dev.js");
   state.home = home;
-  state.sep = "/";
+  state.sep = process.platform === "win32" ? "\\" : "/";
   state.location = { kind: "folder", path: work };
   state.settings = (await api.call("settings")).settings;
   power.wirePower();

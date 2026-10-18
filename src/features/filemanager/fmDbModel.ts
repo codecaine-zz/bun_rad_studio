@@ -312,7 +312,9 @@ function parseSqlite(rest: string): UrlResult {
     p = p.slice(0, q);
     notes.push("The settings after ? were ignored.");
   }
-  if (p.startsWith("//")) {
+  if (/^\/\/[A-Za-z]:[\\/]/.test(p)) {
+    p = p.slice(2);
+  } else if (p.startsWith("//")) {
     const slash = p.indexOf("/", 2);
     const host = slash < 0 ? p.slice(2) : p.slice(2, slash);
     if (host && host.toLowerCase() !== "localhost") return fail("An SQLite address names a file on this computer, like sqlite:///Users/you/data.db.");

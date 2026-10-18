@@ -18,10 +18,18 @@ export const FX_POINTER_FUNCTION = `(function (win) {
   var TILT = ${JSON.stringify(FX_TILT_TARGETS)};
   var MAGNET = ${JSON.stringify(FX_MAGNET_TARGETS)};
   var BARS = ${JSON.stringify(FX_PILL_BARS)};
-  var root = doc.documentElement;
-  var pending = null, raf = 0, current = null, cur = {};
+  var root = doc.documentElement, nav = win.navigator || {};
+  var pending = null, raf = 0, current = null, cur = {}, lastTs = 0, lag = 0;
+  var mm = function (q) { try { return !!(win.matchMedia && win.matchMedia(q).matches); } catch (_) { return false; } };
+  var forced = mm("(forced-colors: active)");
+  var low = forced || mm("(prefers-reduced-transparency: reduce)") || !!(nav.connection && nav.connection.saveData) || (nav.hardwareConcurrency > 0 && nav.hardwareConcurrency <= 2) || (nav.deviceMemory > 0 && nav.deviceMemory <= 2) || root.getAttribute("data-fx-tier") === "low";
+  function downgrade(off) {
+    low = true; root.setAttribute("data-fx-tier", "low");
+    if (root.getAttribute("data-fx") === "on") root.setAttribute("data-fx", off ? "off" : "reduced");
+  }
+  if (low && root.hasAttribute("data-fx")) downgrade(forced);
   // The page switch is <html data-fx="on">; the Designer turns it on for single regions instead.
-  function on(t) { return root.getAttribute("data-fx") === "on" || !!(t && t.closest && t.closest('[data-fx="on"]')); }
+  function on(t) { return !low && (root.getAttribute("data-fx") === "on" || !!(t && t.closest && t.closest('[data-fx="on"]'))); }
   function clear(el) {
     if (!el) return;
     var s = el.style;
@@ -34,8 +42,14 @@ export const FX_POINTER_FUNCTION = `(function (win) {
     cur[name] = value;
     el.style.setProperty(name, value);
   }
-  function frame() {
+  function frame(ts) {
     raf = 0;
+    if (typeof ts === "number" && lastTs > 0) {
+      var dt = ts - lastTs;
+      if (dt > 55 && dt < 500) { if (++lag >= 8) { downgrade(false); clear(current); current = null; cur = {}; return; } }
+      else if (dt < 32) lag = 0;
+    }
+    if (typeof ts === "number") lastTs = ts;
     var e = pending; pending = null;
     if (!e || !on(e.target)) return;
     var t = e.target;
@@ -45,8 +59,8 @@ export const FX_POINTER_FUNCTION = `(function (win) {
     var r = el.getBoundingClientRect();
     if (!r.width || !r.height) return;
     var x = e.clientX - r.left, y = e.clientY - r.top;
-    put(el, "--fx-pointer-x", Math.round(x) + "px");
-    put(el, "--fx-pointer-y", Math.round(y) + "px");
+    put(el, "--fx-pointer-x", (Math.round(x * 10) / 10) + "px");
+    put(el, "--fx-pointer-y", (Math.round(y * 10) / 10) + "px");
     if (el.matches(TILT)) {
       put(el, "--fx-tilt-x", (Math.round((0.5 - y / r.height) * ${FX_TILT_MAX_DEG * 2} * 10) / 10) + "deg");
       put(el, "--fx-tilt-y", (Math.round((x / r.width - 0.5) * ${FX_TILT_MAX_DEG * 2} * 10) / 10) + "deg");

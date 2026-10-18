@@ -487,7 +487,7 @@ const launched: Array<{ command: string; args: string[] }> = [];
 const TOKEN = "sniff-token";
 let server: ReturnType<typeof startFileManagerServer>;
 let base: string;
-const ctx = createContext({ home, dataDir: data, platform: "linux", launch: async (command, args) => void launched.push({ command, args }) });
+const ctx = createContext({ home, dataDir: data, launch: async (command, args) => void launched.push({ command, args }) });
 
 const file = (name: string, bytes: Uint8Array | string) => {
   writeFileSync(join(docs, name), bytes);
@@ -496,7 +496,7 @@ const file = (name: string, bytes: Uint8Array | string) => {
 
 beforeAll(() => {
   mkdirSync(docs, { recursive: true });
-  server = startFileManagerServer({ port: 0, token: TOKEN, context: { home, dataDir: data, platform: "linux", launch: async (command, args) => void launched.push({ command, args }) } });
+  server = startFileManagerServer({ port: 0, token: TOKEN, context: { home, dataDir: data, launch: async (command, args) => void launched.push({ command, args }) } });
   base = `http://127.0.0.1:${server.port}`;
 });
 afterAll(() => {
@@ -536,14 +536,15 @@ describe("checking files on disk", () => {
 
   test("a link is not followed, but its name still counts", async () => {
     const target = file("real.pdf", pe());
-    symlinkSync(target, join(docs, "link.jpg"));
+    const makeLink = (linkPath: string) => (process.platform === "win32" ? symlinkSync(docs, linkPath, "junction") : symlinkSync(target, linkPath));
+    makeLink(join(docs, "link.jpg"));
     expect(await checkFile(join(docs, "link.jpg"))).toBeNull();
-    symlinkSync(target, join(docs, "doc.pdf.exe"));
+    makeLink(join(docs, "doc.pdf.exe"));
     expect((await checkFile(join(docs, "doc.pdf.exe")))?.code).toBe("DOUBLE_EXTENSION");
   });
 
   test("an unreadable file is judged by its name alone", async () => {
-    if (process.getuid?.() === 0) return;
+    if (process.platform === "win32" || process.getuid?.() === 0) return;
     const p = file("secret.pdf.scr", pe());
     chmodSync(p, 0o000);
     try {

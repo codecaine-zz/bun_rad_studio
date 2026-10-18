@@ -28,7 +28,7 @@ function mount(root) {
     rows: [],
     status: null,
     emptyText: (data) => {
-      if (env.status?.damaged) return "The list can't be read because its record file is damaged. Open Verify to repair it.";
+      if (data.damaged || env.status?.damaged) return "The list can't be read because its record file is damaged. Open Verify to repair it.";
       if (env.query.filter === "here" && !currentPath()) return "Open a folder in the file list first: this filter shows what was buried from the folder you are looking at.";
       if (env.query.query || env.query.filter !== "all") return "Nothing matches. Clear the search or choose All to see everything that is buried.";
       return data.total === 0 ? "The graveyard is empty. Things you bury (right-click → Bury (Rip)) wait here until you restore or delete them." : "";

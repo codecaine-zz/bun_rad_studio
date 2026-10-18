@@ -43,7 +43,7 @@ beforeAll(async () => {
     terminalShell: () => "posix", terminalWsl: () => ({}),
     terminalAvailable: () => true, typeInTerminal: () => true, showTerminal() {}, hideTerminal() {}, toggleTerminal() {}, isTerminalOpen: () => false, wireTerminal() {},
   }));
-  server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir: join(root, "data") } });
+  server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir: join(root, "data"), toolDirs: [] } });
   const base = `http://127.0.0.1:${server.port}`;
   const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8")
     .replace(/__FM_TOKEN__/g, "ui-token")
@@ -67,7 +67,7 @@ beforeAll(async () => {
   codeTabs = await import("../resources/file_manager/ui/codeTabs.js");
 
   state.home = home;
-  state.sep = "/";
+  state.sep = process.platform === "win32" ? "\\" : "/";
   state.places = [];
   state.drives = [];
   state.location = { kind: "folder", path: docs };

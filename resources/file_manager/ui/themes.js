@@ -73,6 +73,50 @@ function clearPalette() {
   emit("theme-changed", currentThemePayload());
 }
 
+let cachedHw = null;
+
+/** Probes client GPU, display gamut/HDR, and accessibility/power constraints once per session. */
+export function probeClientHardware() {
+  if (cachedHw) return cachedHw;
+  const nav = typeof navigator !== "undefined" ? navigator : {};
+  const mm = (q) => {
+    try { return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia(q).matches; }
+    catch { return false; }
+  };
+  let gpu = "";
+  try {
+    if (typeof document !== "undefined" && !/jsdom/i.test(nav.userAgent || "")) {
+      const c = document.createElement("canvas");
+      const gl = c.getContext("webgl") || c.getContext("experimental-webgl");
+      if (gl) {
+        const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+        gpu = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || "") : String(gl.getParameter(gl.RENDERER) || "");
+      }
+    }
+  } catch {}
+  const cores = typeof nav.hardwareConcurrency === "number" ? nav.hardwareConcurrency : 8;
+  const mem = typeof nav.deviceMemory === "number" ? nav.deviceMemory : 8;
+  const dpr = typeof window !== "undefined" && typeof window.devicePixelRatio === "number" ? window.devicePixelRatio : 1;
+  const p3 = mm("(color-gamut: p3)");
+  const hdr = mm("(dynamic-range: high)");
+  const reducedMotion = mm("(prefers-reduced-motion: reduce)");
+  const reducedTransparency = mm("(prefers-reduced-transparency: reduce)");
+  const forcedColors = mm("(forced-colors: active)");
+  const saveData = Boolean(nav.connection?.saveData);
+  const swGpu = /swiftshader|llvmpipe|softpipe|basic render driver|microsoft basic|\bwarp\b|d3d11 warp|gdi generic|hyper-v|rdpudd|citrix|virtualbox|vmware/i.test(gpu);
+  const shouldFallback = forcedColors || reducedTransparency || saveData || swGpu || (cores > 0 && cores <= 2) || (mem > 0 && mem <= 2);
+  const ultra = !shouldFallback && (/apple\s+m[1-9]|rtx\s*[345]\d{2,3}|radeon\s+rx\s+[6789]\d{2,3}|intel.*arc\s+[ab]\d{3}|adreno\s+x1|snapdragon\s+x/i.test(gpu) || (p3 && hdr && cores >= 8));
+  cachedHw = {
+    tier: shouldFallback ? "low" : ultra ? "ultra" : (cores >= 8 || p3 || dpr >= 1.5) ? "high" : "balanced",
+    fxMode: (forcedColors || swGpu) ? "off" : (shouldFallback || reducedMotion) ? "reduced" : "on",
+    shouldFallback,
+    gpu,
+    p3,
+    hdr,
+  };
+  return cachedHw;
+}
+
 /** Puts a theme's color variables on the page. `key` marks which saved theme it is ("preview" while editing). */
 export function paint(theme, key) {
   clearEffects();
@@ -86,6 +130,7 @@ export function paint(theme, key) {
   root.dataset.palette = key;
   wanted = key;
   if (theme.effects) {
+    const hw = probeClientHardware();
     const style = document.createElement("style");
     style.id = "fm-theme-effects";
     const nonce = document.querySelector('meta[name="fm-nonce"]')?.content;
@@ -93,6 +138,8 @@ export function paint(theme, key) {
     style.textContent = `:root { ${theme.effects.css} }`;
     document.head.append(style);
     for (const [name, value] of Object.entries(theme.effects.attrs)) root.setAttribute(name, value);
+    root.setAttribute("data-fx-tier", hw.tier);
+    if (hw.fxMode !== "on") root.setAttribute("data-fx", hw.fxMode);
   }
   emit("theme-changed", currentThemePayload());
 }
@@ -118,6 +165,16 @@ export async function applyPalette(key) {
   try {
     const { theme } = await call("themes/get", { key: resolvedKey });
     if (wanted !== resolvedKey) return theme.name; // another theme was chosen while this one loaded
+    const hw = probeClientHardware();
+    if (theme.hasEffects && hw.shouldFallback && theme.fallbackKey && !state.settings?.disableThemeFallback) {
+      try {
+        const fb = await call("themes/get", { key: theme.fallbackKey });
+        if (wanted !== resolvedKey) return fb.theme.name;
+        paint(fb.theme, theme.fallbackKey);
+        toast(`Switched from ${theme.name} to ${fb.theme.name} for smooth performance on this system.`);
+        return fb.theme.name;
+      } catch {}
+    }
     paint(theme, resolvedKey);
     return theme.name;
   } catch (err) {

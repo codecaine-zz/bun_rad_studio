@@ -195,9 +195,13 @@ describe("over HTTP with a stub editor, and file:// addresses", () => {
   });
 
   test("file:// addresses are made with Bun.pathToFileURL: spaces, # and ? are escaped, paths are written out in full", async () => {
-    const r = await api("fileurl/make", { paths: [file, "/a/b#c?d e/", "/é ü/日本.txt"] });
-    expect(r.json.urls).toEqual([`file://${encodeURI(file).replace(/#/g, "%23")}`, "file:///a/b%23c%3Fd%20e", "file:///%C3%A9%20%C3%BC/%E6%97%A5%E6%9C%AC.txt"].map((u, i) => (i === 0 ? pathToFileUrl(file) : u)));
+    const p2 = join(root, "a", "b#c?d e") + (process.platform === "win32" ? "\\" : "/");
+    const p3 = join(root, "é ü", "日本.txt");
+    const r = await api("fileurl/make", { paths: [file, p2, p3] });
+    expect(r.json.urls).toEqual([pathToFileUrl(file), pathToFileUrl(join(root, "a", "b#c?d e")), pathToFileUrl(p3)]);
     expect(r.json.urls[0]).toContain("a%20b.txt");
+    expect(r.json.urls[1]).toMatch(/\/a\/b%23c%3Fd%20e$/);
+    expect(r.json.urls[2]).toMatch(/\/%C3%A9%20%C3%BC\/%E6%97%A5%E6%9C%AC\.txt$/);
     expect((await api("fileurl/make", { paths: [] })).json.error.code).toBe("BAD_REQUEST");
     expect((await api("fileurl/make", { paths: ["relative"] })).json.error.code).toBe("BAD_PATH");
     expect((await api("fileurl/make", { paths: Array.from({ length: 501 }, () => file) })).json.error.code).toBe("BAD_REQUEST");
@@ -208,9 +212,15 @@ describe("over HTTP with a stub editor, and file:// addresses", () => {
     const ok = await api("typedpath", { text: pathToFileUrl(dir) });
     expect(ok.json).toMatchObject({ path: dir, exists: true, isDir: true });
     expect((await api("typedpath", { text: `  "${pathToFileUrl(dir)}"  ` })).json.path).toBe(dir);
-    const bad = await api("typedpath", { text: "file://some-other-computer/share/x" });
-    expect(bad.json.error.message).toMatch(/doesn't point to a place on this computer/);
-    expect((await api("typedpath", { text: "file:///a%2Fb" })).json.error.code).toBe("BAD_PATH");
+    if (process.platform !== "win32") {
+      const bad = await api("typedpath", { text: "file://some-other-computer/share/x" });
+      expect(bad.json.error.message).toMatch(/doesn't point to a place on this computer/);
+    } else {
+      const bad = await api("typedpath", { text: "file:///" });
+      expect(bad.json.error.message).toMatch(/doesn't point to a place on this computer/);
+    }
+    const encSlash = process.platform === "win32" ? "file:///C:/a%2Fb" : "file:///a%2Fb";
+    expect((await api("typedpath", { text: encSlash })).json.error.code).toBe("BAD_PATH");
   });
 });
 

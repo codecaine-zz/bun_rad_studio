@@ -68,6 +68,7 @@ async function open(paths: string[]) {
 }
 const loaded = () => waitFor(() => q(".fi[data-state=ready]"), 8000, "the details to load");
 
+let canSymlink = true;
 beforeAll(async () => {
   // The terminal needs a library that only the real page can load.
   mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalShell: () => "posix", terminalWsl: () => ({}), terminalAvailable: () => false, typeInTerminal: () => false, showTerminal() {}, isTerminalOpen: () => false, hideTerminal() {}, toggleTerminal() {}, wireTerminal() {} }));
@@ -78,7 +79,11 @@ beforeAll(async () => {
   writeFileSync(plain, png({ w: 6, h: 4 }));
   writeFileSync(join(home, "tree", "a.txt"), "hello");
   writeFileSync(join(home, "tree", "sub", "b.txt"), "world!");
-  symlinkSync(photo, join(pics, "shortcut.jpg"));
+  try {
+    symlinkSync(photo, join(pics, "shortcut.jpg"));
+  } catch {
+    canSymlink = false;
+  }
   // Page modules read the token once, when first loaded, and other page tests share them: they all use this token.
   server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir: join(root.dir, "data"), launch: async (command, args) => void launched.push({ command, args }) } });
   const base = `http://127.0.0.1:${server.port}`;
@@ -128,7 +133,7 @@ beforeAll(async () => {
   ({ dominantColors, toHex, toHslText, toRgbText } = await import("../resources/file_manager/ui/fileinfoPalette.js"));
   const api = await import("../resources/file_manager/ui/api.js");
   state.home = home;
-  state.sep = "/";
+  state.sep = process.platform === "win32" ? "\\" : "/";
   state.places = [];
   state.drives = [];
   state.platform = process.platform === "darwin" ? "darwin" : "linux";
@@ -589,6 +594,7 @@ describe("folders, several items, links and failures", () => {
   });
 
   test("a link shows its own facts and a button to its target, whose window replaces it", async () => {
+    if (!canSymlink) return;
     await open([join(pics, "shortcut.jpg")]);
     await waitFor(() => q(".fi-target"), 4000, "the target button");
     expect(rowsOf("general")["Link points to"]).toBe(photo);

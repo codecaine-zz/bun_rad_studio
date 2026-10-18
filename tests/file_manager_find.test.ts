@@ -1032,8 +1032,16 @@ describe("live mode (watching the search folder)", () => {
     expect(isNoise("a.txt", false)).toBe(false);
   });
 
+  const watchRoot = join(home, "watch_root");
+  beforeAll(() => {
+    mkdirSync(join(watchRoot, "sub"), { recursive: true });
+    mkdirSync(join(watchRoot, "emptydir"), { recursive: true });
+    writeFileSync(join(watchRoot, "a.txt"), "hello\n");
+  });
+
   /** Starts a watcher and waits until the events from before it started (some systems replay them) have passed. */
   const startQuiet = async (body: Record<string, any>) => {
+    for (const id of [...findState(ctx).watchers.keys()]) await op("find/watch/stop", { watchId: id });
     const w = await op("find/watch/start", body);
     await Bun.sleep(250);
     return { w, baseline: (await op("find/watch/poll", w)).changes as number };
@@ -1048,19 +1056,18 @@ describe("live mode (watching the search folder)", () => {
   };
 
   test("counts changes and reports them when asked; stops on request", async () => {
-    buildTree();
-    const { w, baseline } = await startQuiet({ root: work });
-    expect(w.root).toBe(work);
+    const { w, baseline } = await startQuiet({ root: watchRoot });
+    expect(w.root).toBe(watchRoot);
     expect(await op("find/watch/poll", w)).toMatchObject({ active: true, error: null });
-    writeFileSync(join(work, "live-new.txt"), "x");
+    writeFileSync(join(watchRoot, "live-new.txt"), "x");
     const polled = await waitForChange(w, baseline);
     expect(polled.changes).toBeGreaterThan(baseline);
     expect(polled.lastName).toContain("live-new");
     // changes inside node_modules don't count
     await Bun.sleep(300);
     const settled = (await op("find/watch/poll", w)).changes;
-    mkdirSync(join(work, "node_modules", "z"), { recursive: true });
-    writeFileSync(join(work, "node_modules", "z", "q.js"), "x");
+    mkdirSync(join(watchRoot, "node_modules", "z"), { recursive: true });
+    writeFileSync(join(watchRoot, "node_modules", "z", "q.js"), "x");
     await Bun.sleep(400);
     expect((await op("find/watch/poll", w)).changes).toBe(settled);
     expect((await op("find/watch/stop", w)).stopped).toBe(true);
@@ -1070,32 +1077,32 @@ describe("live mode (watching the search folder)", () => {
   });
 
   test("hidden files count only when asked", async () => {
-    buildTree();
-    const quiet = await startQuiet({ root: work });
-    writeFileSync(join(work, ".dot-live.txt"), "x");
+    const quiet = await startQuiet({ root: watchRoot });
+    writeFileSync(join(watchRoot, ".dot-live.txt"), "x");
     await Bun.sleep(400);
     expect((await op("find/watch/poll", quiet.w)).changes).toBe(quiet.baseline);
     await op("find/watch/stop", quiet.w);
-    const loud = await startQuiet({ root: work, hidden: true });
-    writeFileSync(join(work, ".dot-live2.txt"), "x");
+    const loud = await startQuiet({ root: watchRoot, hidden: true });
+    writeFileSync(join(watchRoot, ".dot-live2.txt"), "x");
     expect((await waitForChange(loud.w, loud.baseline)).changes).toBeGreaterThan(loud.baseline);
     await op("find/watch/stop", loud.w);
   });
 
   test("at most two at a time", async () => {
-    const a = await op("find/watch/start", { root: work });
-    const b = await op("find/watch/start", { root: join(work, "sub") });
-    await fails(op("find/watch/start", { root: join(work, "emptydir") }), "TOO_MANY_WATCHERS", "2 folders");
+    for (const id of [...findState(ctx).watchers.keys()]) await op("find/watch/stop", { watchId: id });
+    const a = await op("find/watch/start", { root: watchRoot });
+    const b = await op("find/watch/start", { root: join(watchRoot, "sub") });
+    await fails(op("find/watch/start", { root: join(watchRoot, "emptydir") }), "TOO_MANY_WATCHERS", "2 folders");
     await op("find/watch/stop", a);
-    const c = await op("find/watch/start", { root: join(work, "emptydir") });
+    const c = await op("find/watch/start", { root: join(watchRoot, "emptydir") });
     await op("find/watch/stop", b);
     await op("find/watch/stop", c);
     expect(findState(ctx).watchers.size).toBe(0);
   });
 
   test("bad input", async () => {
-    await fails(op("find/watch/start", { root: join(work, "nope") }), "NOT_FOUND");
-    await fails(op("find/watch/start", { root: join(work, "a.txt") }), "NOT_A_FOLDER");
+    await fails(op("find/watch/start", { root: join(watchRoot, "nope") }), "NOT_FOUND");
+    await fails(op("find/watch/start", { root: join(watchRoot, "a.txt") }), "NOT_A_FOLDER");
     await fails(op("find/watch/start", { root: "relative" }), "BAD_PATH");
     expect(await op("find/watch/poll", {})).toMatchObject({ active: false });
     expect(await op("find/watch/poll", { watchId: "nope" })).toMatchObject({ active: false });
@@ -1103,19 +1110,20 @@ describe("live mode (watching the search folder)", () => {
   });
 
   test("a watcher nobody asks about stops by itself", async () => {
-    const w = await startWatch(ctx, { root: work }, 80);
+    for (const id of [...findState(ctx).watchers.keys()]) await op("find/watch/stop", { watchId: id });
+    const w = await startWatch(ctx, { root: watchRoot }, 80);
     expect(pollWatch(ctx, w, 80).active).toBe(true);
     await Bun.sleep(300);
     expect(pollWatch(ctx, w, 80).active).toBe(false);
     expect(findState(ctx).watchers.size).toBe(0);
-    const again = await startWatch(ctx, { root: work }, 80);
+    const again = await startWatch(ctx, { root: watchRoot }, 80);
     expect(stopWatch(ctx, again).stopped).toBe(true);
   });
 
   test("every watcher ends when the server's cleanup runs", async () => {
     const other = createContext({ home, dataDir: join(data, "watch") });
-    await startWatch(other, { root: work });
-    await startWatch(other, { root: join(work, "sub") });
+    await startWatch(other, { root: watchRoot });
+    await startWatch(other, { root: join(watchRoot, "sub") });
     expect(findState(other).watchers.size).toBe(2);
     for (const dispose of other.disposers.splice(0)) dispose();
     expect(findState(other).watchers.size).toBe(0);

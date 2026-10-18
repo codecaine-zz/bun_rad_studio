@@ -543,7 +543,11 @@ describe("the strippers", () => {
     require("fs").mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "a.gif"), gif(1));
     await expect(stripFile(ctx, join(dir, "a.gif"))).rejects.toMatchObject({ code: "NOT_SUPPORTED" });
-    require("fs").symlinkSync(join(dir, "a.gif"), join(dir, "link.gif"));
+    try {
+      require("fs").symlinkSync(join(dir, "a.gif"), join(dir, "link.gif"));
+    } catch {
+      require("fs").symlinkSync(dir, join(dir, "link.gif"), "junction");
+    }
     await expect(stripFile(ctx, join(dir, "link.gif"))).rejects.toMatchObject({ code: "IS_LINK" });
   });
 });
@@ -617,12 +621,14 @@ describe("ExifTool (optional)", () => {
     expect(r.groups.map((g) => g.title)).toEqual(expect.arrayContaining(["IFD0", "ExifIFD", "GPS", "File", "System"]));
     // the picture is not changed, and no stray files are made
     expect(readdirSync(dir)).toEqual(["-dash.jpg"]);
-    // a name ending in "|" is never handed over (ExifTool would treat it as a command)
-    const pipe = join(dir, "evil.jpg|");
-    writeFileSync(pipe, jpeg());
-    const refused = await exiftoolInfo(ctx, pipe);
-    expect(refused.groups).toEqual([]);
-    expect(refused.hint).toContain("not asked");
+    if (process.platform !== "win32") {
+      // a name ending in "|" is never handed over (ExifTool would treat it as a command)
+      const pipe = join(dir, "evil.jpg|");
+      writeFileSync(pipe, jpeg());
+      const refused = await exiftoolInfo(ctx, pipe);
+      expect(refused.groups).toEqual([]);
+      expect(refused.hint).toContain("not asked");
+    }
     // an empty file gives nothing, quickly
     writeFileSync(join(dir, "empty.jpg"), "");
     expect((await exiftoolInfo(ctx, join(dir, "empty.jpg"))).groups).toEqual([]);
@@ -675,7 +681,8 @@ describe.skipIf(!magick)("real pictures made by ImageMagick", () => {
   });
 
   test("the JPEG quality estimate is close to ImageMagick's own", async () => {
-    const q = Number((await run([identify!, "-format", "%Q", join(real, "b.jpg")])).trim());
+    const idCmd = identify ? [identify] : [magick!, "identify"];
+    const q = Number((await run([...idCmd, "-format", "%Q", join(real, "b.jpg")])).trim());
     const mine = (await parseJpeg(bufferSource(readFileSync(join(real, "b.jpg"))))).quality!;
     expect(q).toBe(72);
     expect(Math.abs(mine - q)).toBeLessThanOrEqual(2);

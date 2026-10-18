@@ -8,6 +8,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSyn
 import { tmpdir } from "os";
 import * as nodePath from "path";
 import { join } from "path";
+import { pathToFileURL } from "url";
 import { overview, planConvert, previewConvert, startConvert } from "../src/features/filemanager/fmBatch";
 import { CATALOG, CATALOG_BY_ID } from "../src/features/filemanager/fmConvCatalog";
 import { publishFile } from "../src/features/filemanager/fmConvExec";
@@ -307,7 +308,7 @@ describe("commands are lists of arguments, exactly", () => {
     expect(argvOf("pdf-merge", "ghostscript", ["/s/in0001.pdf", "/s/in0002.pdf"], "/s/out.pdf")).toEqual([...GS, "-sDEVICE=pdfwrite", "-sOutputFile=/s/out.pdf", "/s/in0001.pdf", "/s/in0002.pdf"]);
     expect(argvOf("pdf-compress", "ghostscript", ["/s/in0001.pdf"], "/s/out.pdf", { level: "screen" })).toEqual([...GS, "-sDEVICE=pdfwrite", "-dCompatibilityLevel=1.5", "-dPDFSETTINGS=/screen", "-sOutputFile=/s/out.pdf", "/s/in0001.pdf"]);
     expect(argvOf("pdf-png", "ghostscript", ["/s/in0001.pdf"], "/s/pages", { dpi: 200, pages: "1-3,5" })).toEqual([...GS, "-sDEVICE=png16m", "-r200", "-dTextAlphaBits=4", "-dGraphicsAlphaBits=4", "-sPageList=1-3,5", `-sOutputFile=${nodePath.join("/s/pages", "page-%03d.png")}`, "/s/in0001.pdf"]);
-    expect(argvOf("pdf-split", "ghostscript", ["/s/in0001.pdf"], "/s/pages")).toContain(nodePath.join("-sOutputFile=/s/pages", "page-%03d.pdf").replace("-sOutputFile=/", "-sOutputFile=/"));
+    expect(argvOf("pdf-split", "ghostscript", ["/s/in0001.pdf"], "/s/pages")).toContain(`-sOutputFile=${nodePath.join("/s/pages", "page-%03d.pdf")}`);
     expect(argvOf("pdf-text", "ghostscript", ["/s/in0001.pdf"], "/s/out.txt")).toEqual([...GS, "-sDEVICE=txtwrite", "-sstdout=%stderr", "-sOutputFile=/s/out.txt", "/s/in0001.pdf"]);
     expect(argvOf("pdf-text", "poppler", ["/p/a.pdf"], "/p/o.txt")).toEqual(["-layout", "-enc", "UTF-8", "/p/a.pdf", "/p/o.txt"]);
     expect(argvOf("pdf-extract", "qpdf", ["/p/a.pdf"], "/p/o.pdf", { pages: "2-4,7" })).toEqual(["--empty", "--pages", "/p/a.pdf", "2-4,7", "--", "/p/o.pdf"]);
@@ -326,7 +327,7 @@ describe("commands are lists of arguments, exactly", () => {
     expect(typeof pipeline[1]).toBe("function");
     const lo = argvOf("doc-pdf", "libreoffice", ["/s/out.docx"], "/s/out.pdf");
     expect(lo.slice(0, 5)).toEqual(["--headless", "--norestore", "--nolockcheck", "--nodefault", "--nologo"]);
-    expect(lo[5]).toBe(`-env:UserInstallation=file:///tmp/fm/profile`);
+    expect(lo[5]).toBe(`-env:UserInstallation=${pathToFileURL("/tmp/fm/profile").href}`);
     expect(lo.slice(6)).toEqual(["--convert-to", "pdf", "--outdir", "/s", "/s/out.docx"]);
     expect(argvOf("doc-docx", "libreoffice", ["/s/out.doc"], "/s/out.docx").slice(6, 8)).toEqual(["--convert-to", "docx"]);
     expect(argvOf("doc-txt", "libreoffice", ["/s/out.doc"], "/s/out.txt")[7]).toBe("txt:Text (encoded):UTF8");

@@ -1,10 +1,31 @@
 import { SIMPLEGUI_THEMES } from "./shared/simpleguiThemes";
 export { SIMPLEGUI_THEMES } from "./shared/simpleguiThemes";
-import { SizeHint, Webview } from "webview-bun";
+import type { SizeHint, Webview } from "webview-bun";
+const SIZE_HINT_NONE = 0 as SizeHint;
 import { injectHelp } from "./shared/helpTips";
 import { DESKTOP_SHORTCUTS_SCRIPT } from "./shared/desktopShortcuts";
 import { OS_THEME_KEYS } from "./shared/osThemes";
-import { FX_THEME_KEYS, FX_THEME_ALIASES, fxCssVars as buildFxCssVars, fxRootAttrs, normalizeFxMode, syntaxPalette, type FxMode, type SyntaxPalette, type ThemeFx } from "./shared/fxThemes";
+import {
+    FX_THEME_KEYS,
+    FX_THEME_ALIASES,
+    FX_FALLBACK_THEMES,
+    fxCssVars as buildFxCssVars,
+    fxRootAttrs,
+    normalizeFxMode,
+    syntaxPalette,
+    detectThemeHardware,
+    getFallbackThemeKey,
+    resolveThemeForHardware as resolveFxThemeForHardware,
+    srgbToDisplayP3,
+    type FxMode,
+    type FxHardwareInput,
+    type FxHardwareProfile,
+    type FxHardwareTier,
+    type FxNativeBackdrop,
+    type HardwareResolvedTheme,
+    type SyntaxPalette,
+    type ThemeFx,
+} from "./shared/fxThemes";
 import { fxCss } from "./shared/fxCss";
 import { FX_POINTER_SOURCE } from "./shared/fxPointer";
 import { buildSemanticPalette, overridesForTheme, semanticCssVars, type SemanticOverrides, type SemanticPalette } from "./shared/themeSemantic";
@@ -1410,6 +1431,20 @@ export class SimpleWindow {
     }
     public set_theme(themeName: string, persist = true): this {
         return this.setTheme(themeName, persist);
+    }
+
+    /**
+     * Applies a theme while checking system capabilities; if the machine cannot sustain heavy FX shaders/blurs
+     * (e.g. software GPU, Windows Remote Desktop, Windows High Contrast, <=2 cores/RAM, or reduced transparency),
+     * automatically reverts to the mapped lightweight non-FX fallback theme or downgrades effects mode.
+     */
+    public setThemeSafe(themeName: string, hw?: FxHardwareInput, persist = true, opts?: { revertToFallbackTheme?: boolean }): this {
+        const resolved = resolveFxThemeForHardware(themeName, getTheme, hw, opts);
+        this.effects = resolved.fxMode === "on" ? "full" : resolved.fxMode;
+        return this.setTheme(resolved.appliedKey, persist);
+    }
+    public set_theme_safe(themeName: string, hw?: FxHardwareInput, persist = true, opts?: { revertToFallbackTheme?: boolean }): this {
+        return this.setThemeSafe(themeName, hw, persist, opts);
     }
 
     /** Effects for themes that have an `fx` descriptor: "full" (default), "reduced" (looks without motion) or "off". */
@@ -6110,9 +6145,9 @@ export class SimpleWindow {
         }
 
         const html = this.generateHtml();
-        this.webview = this.hostedFactory ? (this.hostedFactory() as unknown as Webview) : new Webview();
+        this.webview = this.hostedFactory ? (this.hostedFactory() as unknown as Webview) : new (require("webview-bun") as typeof import("webview-bun")).Webview();
         this.webview.title = this.title;
-        this.webview.size = { width: this.width, height: this.height, hint: SizeHint.NONE };
+        this.webview.size = { width: this.width, height: this.height, hint: SIZE_HINT_NONE };
         if (this.fullscreen) {
             try { setWindowPositionNative(this.webview, { x: 0, y: 0 }, this.width, this.height); } catch {}
         }
@@ -6459,7 +6494,7 @@ export class SimpleWindow {
         this.width = width;
         this.height = height;
         if (this.webview) {
-            this.webview.size = { width, height, hint: SizeHint.NONE };
+            this.webview.size = { width, height, hint: SIZE_HINT_NONE };
         }
         return this;
     }
@@ -7580,7 +7615,7 @@ export class SimpleWindow {
     public set_size(w: number, h: number): this {
         this.width = w;
         this.height = h;
-        if (this.webview) this.webview.size = { width: w, height: h, hint: SizeHint.NONE };
+        if (this.webview) this.webview.size = { width: w, height: h, hint: SIZE_HINT_NONE };
         return this;
     }
 
@@ -9601,6 +9636,13 @@ export class SimpleWindow {
     }
 
     // --- Theming Operations ---
+    public getTheme(): string {
+        return this.theme;
+    }
+    public get_theme(): string {
+        return this.theme;
+    }
+
     public applyTheme(themeName: string): this {
         return this.setTheme(themeName);
     }
@@ -9969,6 +10011,34 @@ export function fxCssVars(theme: SimpleGUITheme | string): string {
 }
 export const fx_css_vars = fxCssVars;
 
+export {
+    FX_FALLBACK_THEMES,
+    detectThemeHardware,
+    getFallbackThemeKey,
+    srgbToDisplayP3,
+    type FxHardwareInput,
+    type FxHardwareProfile,
+    type FxHardwareTier,
+    type FxNativeBackdrop,
+    type HardwareResolvedTheme,
+};
+export const detect_theme_hardware = detectThemeHardware;
+export const get_fallback_theme_key = getFallbackThemeKey;
+export const srgb_to_display_p3 = srgbToDisplayP3;
+
+/**
+ * Resolves a theme by name/key and automatically downgrades or reverts to a lightweight non-FX fallback
+ * theme when the system cannot sustain glassmorphism, multi-stop blurs, or ambient shader layers.
+ */
+export function resolveThemeForHardware(
+    themeName: string,
+    hw?: FxHardwareInput,
+    opts?: { revertToFallbackTheme?: boolean }
+): HardwareResolvedTheme<SimpleGUITheme> {
+    return resolveFxThemeForHardware(themeName, getTheme, hw, opts);
+}
+export const resolve_theme_for_hardware = resolveThemeForHardware;
+
 // OS Path Utilities
 export function homeDir(): string { return process.env.HOME || "/Users"; }
 export function tempDir(): string { return process.env.TMPDIR || "/tmp"; }
@@ -10026,6 +10096,15 @@ export const simplegui = {
     fx_css_vars,
     getSyntaxPalette,
     get_syntax_palette,
+    FX_FALLBACK_THEMES,
+    detectThemeHardware,
+    detect_theme_hardware,
+    getFallbackThemeKey,
+    get_fallback_theme_key,
+    resolveThemeForHardware,
+    resolve_theme_for_hardware,
+    srgbToDisplayP3,
+    srgb_to_display_p3,
     save_theme,
     getSavedTheme,
     get_saved_theme,

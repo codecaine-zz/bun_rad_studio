@@ -4,7 +4,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { JSDOM } from "jsdom";
 import { createContext } from "../src/features/filemanager/fmCore";
-import { getThemeColours, listThemes, themeVars } from "../src/features/filemanager/fmThemes";
+import { getThemeColours, getThemeColoursForHardware, listThemes, themeVars } from "../src/features/filemanager/fmThemes";
 import { sanitizeSettings } from "../src/features/filemanager/fmSettings";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 import { SIMPLEGUI_THEMES } from "../src/shared/simpleguiThemes";
@@ -82,6 +82,36 @@ describe("the theme table", () => {
 
   test("unknown or odd keys give nothing", () => {
     for (const k of ["nope", "", null, 5, "__proto__", "constructor", "../x"]) expect(getThemeColours(k as any)).toBeNull();
+  });
+
+  test("effects themes include Display-P3 accent tokens and revert to lightweight fallback themes on constrained systems", () => {
+    for (const t of listThemes().filter((x) => x.hasEffects)) {
+      expect(t.fallbackKey, t.key).toBeTruthy();
+      expect(t.fallbackName, t.key).toBeTruthy();
+      const fb = getThemeColours(t.fallbackKey!);
+      expect(fb, `${t.key} -> ${t.fallbackKey}`).not.toBeNull();
+      expect(fb!.hasEffects).toBe(false);
+      expect(fb!.dark).toBe(t.dark);
+    }
+    const ultra = getThemeColoursForHardware("quantum_obsidian", {
+      gpuRenderer: "Apple M4 Pro",
+      platform: "darwin",
+      colorGamutP3: true,
+      hdrDynamicRange: true,
+    })!;
+    expect(ultra.revertedToFallback).toBe(false);
+    expect(ultra.appliedKey).toBe("quantum_obsidian");
+    expect(ultra.hardware.tier).toBe("ultra");
+    expect(ultra.theme.vars["accent-p3"]).toMatch(/^color\(display-p3 /);
+
+    const low = getThemeColoursForHardware("quantum_obsidian", {
+      gpuRenderer: "Microsoft Basic Render Driver",
+      platform: "win32",
+    })!;
+    expect(low.revertedToFallback).toBe(true);
+    expect(low.appliedKey).toBe("oled_black");
+    expect(low.theme.hasEffects).toBe(false);
+    expect(low.theme.notes.some((n) => n.includes("Automatically switched"))).toBe(true);
   });
 });
 

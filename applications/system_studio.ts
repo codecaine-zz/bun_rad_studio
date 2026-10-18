@@ -8,7 +8,7 @@
  * Guarantees 100% non-blocking async execution, zero FFI deadlocks, and instantaneous UI updates.
  */
 
-import { Webview, SizeHint } from "webview-bun";
+import type { Webview, SizeHint } from "webview-bun";
 import si from "systeminformation";
 import * as os from "os";
 import { writeFileSync, existsSync, mkdirSync } from "fs";
@@ -2832,6 +2832,7 @@ export function createSystemInformationStudio(options: SystemStudioOptions = {})
 
       // 2. Native Webview Window
       try {
+        const { Webview, SizeHint } = await import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,

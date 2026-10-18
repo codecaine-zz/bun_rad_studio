@@ -114,10 +114,10 @@ describe("starting and stopping", () => {
     writeFileSync(script, `require("fs").writeFileSync(${JSON.stringify(cwdOut)}, process.cwd());`);
     const id = await start(ctx, dir, { command: `${BUN} ${JSON.stringify(script)}`, postponeInitial: false, cwd: other });
     await waitRows(ctx, id, finished, "the run");
-    expect(readFileSync(cwdOut, "utf8").endsWith(other.slice(other.lastIndexOf("/") + 1))).toBe(true);
+    expect(readFileSync(cwdOut, "utf8").endsWith(other.split(/[/\\]/).pop()!)).toBe(true);
     const id2 = await start(ctx, dir, { command: `${BUN} ${JSON.stringify(script)}`, postponeInitial: false });
     await waitRows(ctx, id2, finished, "the second run");
-    expect(readFileSync(cwdOut, "utf8").endsWith(dir.slice(dir.lastIndexOf("/") + 1))).toBe(true);
+    expect(readFileSync(cwdOut, "utf8").endsWith(dir.split(/[/\\]/).pop()!)).toBe(true);
   });
 
   test("with 'postpone initial run' on nothing runs until a change; off runs at once", async () => {
@@ -263,7 +263,8 @@ describe("a running command", () => {
     const ctx = newCtx();
     const dir = newDir();
     const pids = newPidFile();
-    const id = await start(ctx, dir, { command: `${sleepyCmd(pids)} & ${sleepyCmd(pids)}`, postponeInitial: false });
+    const bothCmd = process.platform === "win32" ? `start /b "" ${sleepyCmd(pids)} & ${sleepyCmd(pids)}` : `${sleepyCmd(pids)} & ${sleepyCmd(pids)}`;
+    const id = await start(ctx, dir, { command: bothCmd, postponeInitial: false });
     await until(() => pidsIn(pids).length >= 2, "both programs to start");
     expect((await state(ctx, id)).running).toBe(true);
     expect(await op(ctx, "watch/kill", { id })).toEqual({ killed: true });
@@ -292,7 +293,7 @@ describe("a running command", () => {
   test("a failing command is recorded as FAILED(n) with its status", async () => {
     const ctx = newCtx();
     const dir = newDir();
-    const id = await start(ctx, dir, { command: "echo before-failing; exit 3" });
+    const id = await start(ctx, dir, { command: "echo before-failing && exit 3" });
     await op(ctx, "watch/run", { id });
     const s = await waitRows(ctx, id, finished, "the run");
     expect(s.history[0]).toMatchObject({ status: "FAILED(3)", kind: "failed", code: 3 });
@@ -383,7 +384,7 @@ describe("a running command", () => {
     const ctx = newCtx();
     const dir = newDir();
     const pids = newPidFile();
-    const id = await start(ctx, dir, { command: sleepyCmd(pids), postponeInitial: false });
+    const id = await start(ctx, dir, { command: sleepyCmd(pids), postponeInitial: false, cwd: home });
     await until(() => pidsIn(pids).length >= 1, "the run to start");
     rmSync(dir, { recursive: true });
     const s = await state(ctx, id);
@@ -543,7 +544,7 @@ describe("bad requests", () => {
     await bad({ ignore: ["x".repeat(201)] }, "BAD_REQUEST");
     await bad({ ignore: Array.from({ length: 101 }, (_, i) => `p${i}`) }, "BAD_REQUEST");
     await bad({ shell: "/bin/evil" }, "BAD_REQUEST");
-    await bad({ shell: "powershell" }, "BAD_REQUEST");
+    await bad({ shell: ctx.platform === "win32" ? "bash" : "powershell" }, "BAD_REQUEST");
     expect(getWatchHub(ctx).watchers.size).toBe(0);
   });
 
@@ -568,11 +569,12 @@ describe("bad requests", () => {
     const dir = newDir();
     const shells = shellsFor(ctx.platform);
     expect(shells.length).toBeGreaterThan(0);
-    const id = await start(ctx, dir, { shell: "bash", command: "echo $0" });
+    const chosenShell = ctx.platform === "win32" ? "powershell" : "bash";
+    const id = await start(ctx, dir, { shell: chosenShell, command: ctx.platform === "win32" ? "Write-Output powershell-ok" : "echo $0" });
     await op(ctx, "watch/run", { id });
     const s = await waitRows(ctx, id, finished, "the run");
-    if (process.platform !== "win32") expect(s.log).toContain("bash");
-    expect(s.config.shell).toBe("bash");
+    expect(s.log).toContain(ctx.platform === "win32" ? "powershell-ok" : "bash");
+    expect(s.config.shell).toBe(chosenShell);
   });
 });
 

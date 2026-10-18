@@ -47,7 +47,7 @@ const fails = async (p: Promise<unknown>) => {
   throw new Error("expected an error");
 };
 const preview = (dir: string, extra: Record<string, any> = {}) => op("preview", { find: "foo", replace: "bar", targets: [dir], ...extra });
-const names = (r: any) => r.files.map((f: any) => f.path.slice(f.path.lastIndexOf("/") + 1)).sort();
+const names = (r: any) => r.files.map((f: any) => f.path.split(/[/\\]/).pop()!).sort();
 
 describe("diff", () => {
   const apply = (a: string[], b: string[]) => editScript(a, b).filter((o) => o.k !== "-").map((o) => o.s);

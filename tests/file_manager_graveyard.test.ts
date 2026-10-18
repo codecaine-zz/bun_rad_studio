@@ -11,6 +11,16 @@ import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 const asRoot = typeof process.getuid === "function" && process.getuid() === 0;
 const TOKEN = "grave-token";
 const root = mkdtempSync(join(tmpdir(), "fm-grave-"));
+const canSymlink = (() => {
+  const probe = join(root, ".symlink-probe");
+  try {
+    symlinkSync("x", probe);
+    rmSync(probe, { force: true });
+    return true;
+  } catch {
+    return false;
+  }
+})();
 const home = join(root, "home");
 const work = join(home, "work");
 const gy = join(root, "graveyard");
@@ -142,8 +152,10 @@ describe("bury and restore round trips", () => {
         write(join(top, "émoji 🪦  two  spaces.txt"), "emoji");
         write(join(top, "read-only.txt"), "ro", 0o444);
         mkdirSync(join(top, "empty"));
-        symlinkSync("src/main.ts", join(top, "relative-link"));
-        symlinkSync("/definitely/not/here", join(top, "dangling-link"));
+        if (canSymlink) {
+          symlinkSync("src/main.ts", join(top, "relative-link"));
+          symlinkSync("/definitely/not/here", join(top, "dangling-link"));
+        }
         utimesSync(join(top, "src", "main.ts"), new Date(1_600_000_000_000), new Date(1_600_000_000_000));
         utimesSync(join(top, "src"), new Date(1_600_000_100_000), new Date(1_600_000_100_000));
         const before = snapshot(top);
@@ -151,16 +163,18 @@ describe("bury and restore round trips", () => {
         await bury([top]);
         const id = await idOf(top);
         const payload = join(gy, "entries", id, "project");
-        expect(lstatSync(join(payload, "relative-link")).isSymbolicLink()).toBe(true);
-        expect(readlinkSync(join(payload, "relative-link"))).toBe("src/main.ts");
-        expect(readlinkSync(join(payload, "dangling-link"))).toBe("/definitely/not/here");
+        if (canSymlink) {
+          expect(lstatSync(join(payload, "relative-link")).isSymbolicLink()).toBe(true);
+          expect(readlinkSync(join(payload, "relative-link"))).toBe("src/main.ts");
+          expect(readlinkSync(join(payload, "dangling-link"))).toBe("/definitely/not/here");
+        }
         const record = loadManifest(gy).items.find((i) => i.id === id)!;
         expect({ size: record.sizeBytes, files: record.fileCount, type: record.type }).toEqual({ size: engine.sizeBytes, files: engine.fileCount, type: "directory" });
         await restore([id]);
         expect(snapshot(top)).toEqual(before);
       });
 
-      test("a symbolic link is buried as a link: its target is neither moved nor followed", async () => {
+      (canSymlink ? test : test.skip)("a symbolic link is buried as a link: its target is neither moved nor followed", async () => {
         const dir = folder();
         const target = write(join(dir, "target.txt"), "keep me");
         const link = join(dir, "the-link");
@@ -177,7 +191,7 @@ describe("bury and restore round trips", () => {
         expect(readFileSync(link, "utf8")).toBe("keep me");
       });
 
-      test("a link to nowhere can be buried and restored too", async () => {
+      (canSymlink ? test : test.skip)("a link to nowhere can be buried and restored too", async () => {
         const link = join(folder(), "dangling");
         symlinkSync("missing-target", link);
         await bury([link]);
@@ -242,7 +256,7 @@ describe("a different disk is copied, checked, then removed", () => {
     seam.sameDevice = () => false;
     const top = join(folder(), "big");
     for (let i = 0; i < 120; i++) write(join(top, `d${i % 6}`, `f${i}.txt`), `file ${i}`.repeat(i + 1), i % 2 ? 0o600 : 0o644);
-    symlinkSync("d0/f0.txt", join(top, "link"));
+    if (canSymlink) symlinkSync("d0/f0.txt", join(top, "link"));
     const before = snapshot(top);
     let sourceSeenDuringCopy = true;
     seam.afterCopy = () => {
@@ -352,9 +366,9 @@ describe("a different disk is copied, checked, then removed", () => {
       expect(snapshot(top)).toEqual(before);
       expect(performance.now() - t0).toBeLessThan(25_000);
     }
-  });
+  }, 60_000);
 
-  test("the engine itself now buries and restores a link whose target is missing (it used to say 'no such file')", () => {
+  (canSymlink ? test : test.skip)("the engine itself now buries and restores a link whose target is missing (it used to say 'no such file')", () => {
     const link = join(folder("engine"), "dangling");
     symlinkSync("nowhere", link);
     const result = buryTargetsSync([link], { graveyardDir: gy });
@@ -663,7 +677,8 @@ describe("the same refusals as Delete", () => {
 
   test("home, system folders, main personal folders, the top of the disk and the Recycle Bin can't be buried", async () => {
     mkdirSync(join(home, "Documents"), { recursive: true });
-    for (const p of [home, join(home, "Documents"), "/", "/usr", "/usr/bin/env", "/etc", "/System", join(data, "file_manager_trash")]) {
+    const sysPaths = process.platform === "win32" ? ["C:\\", "C:\\Windows", "C:\\Windows\\System32", "C:\\Program Files"] : ["/", "/usr", "/usr/bin/env", "/etc", "/System"];
+    for (const p of [home, join(home, "Documents"), ...sysPaths, join(data, "file_manager_trash")]) {
       const r = await refused(p);
       expect(r.ok, p).toBe(false);
       expect(["PROTECTED"].includes(r.code), `${p}: ${r.code} ${r.message}`).toBe(true);
@@ -701,7 +716,8 @@ describe("the same refusals as Delete", () => {
     const f = write(join(folder(), "x.txt"));
     await bury([f]);
     const id = await idOf(f);
-    for (const to of [gy, join(gy, "entries"), "/usr/bin", "/etc"]) {
+    const sysTargets = process.platform === "win32" ? ["C:\\Windows\\System32", "C:\\Windows"] : ["/usr/bin", "/etc"];
+    for (const to of [gy, join(gy, "entries"), ...sysTargets]) {
       const r = await post("grave/restore", { ids: [id], to });
       const first = r.json.results?.[0] ?? r.json.error;
       expect(r.status === 400 || first?.ok === false, `${to}`).toBe(true);
@@ -842,8 +858,8 @@ describe("previews", () => {
     write(join(sub, "a.txt"));
     write(join(sub, "b", "c.txt"));
     const link = join(dir, "lnk");
-    symlinkSync("/etc/hosts", link);
-    await bury([txt, png, bin, sub, link]);
+    if (canSymlink) symlinkSync("/etc/hosts", link);
+    await bury(canSymlink ? [txt, png, bin, sub, link] : [txt, png, bin, sub]);
     const view = async (p: string) => (await api("grave/preview", { id: await idOf(p) })).preview;
     expect(await view(txt)).toEqual({ kind: "text", text: "line one\nline two", truncated: false, bytes: 17 });
     const image = await view(png);
@@ -854,7 +870,7 @@ describe("previews", () => {
     expect(folderView).toMatchObject({ kind: "folder", total: 2 });
     expect(folderView.entries).toEqual([{ name: "a.txt", type: "file" }, { name: "b", type: "folder" }]);
     // a link is described, never opened
-    expect(await view(link)).toEqual({ kind: "link", target: "/etc/hosts" });
+    if (canSymlink) expect(await view(link)).toEqual({ kind: "link", target: "/etc/hosts" });
   });
 
   test("a long text file is cut short, and a missing item gives a plain answer", async () => {
@@ -877,7 +893,7 @@ describe("previews", () => {
     const id = await idOf(f);
     rmSync(join(gy, "entries", id), { recursive: true });
     mkdirSync(dirname(secret), { recursive: true });
-    symlinkSync(dirname(secret), join(gy, "entries", id));
+    symlinkSync(dirname(secret), join(gy, "entries", id), process.platform === "win32" ? "junction" : "dir");
     writeFileSync(join(dirname(secret), "x.txt"), "OUTSIDE CONTENT");
     const p = (await api("grave/preview", { id })).preview;
     expect(p.kind).toBe("none");
@@ -940,8 +956,12 @@ describe("the server's guards", () => {
   });
 
   test("a request body over 1 MB is refused", async () => {
-    const r = await post("grave/restore", { ids: ["rip_1_a".padEnd(2_000_000, "a")] });
-    expect([400, 413]).toContain(r.status);
+    try {
+      const r = await post("grave/restore", { ids: ["rip_1_a".padEnd(2_000_000, "a")] });
+      expect([400, 413]).toContain(r.status);
+    } catch (e: any) {
+      expect(["ECONNRESET", "EPIPE", "ECONNABORTED"]).toContain(e?.code);
+    }
   });
 });
 

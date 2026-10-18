@@ -12,7 +12,7 @@
 
 import { injectHelp } from "../src/shared/helpTips";
 import { resolve } from "node:path";
-import { Webview, SizeHint } from "webview-bun";
+import type { Webview, SizeHint } from "webview-bun";
 import {
   setAlwaysOnTopNative,
   setWindowPositionNative,
@@ -2958,6 +2958,7 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
 
       // 2. Native Webview Desktop GUI
       try {
+        const { Webview, SizeHint } = await import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,

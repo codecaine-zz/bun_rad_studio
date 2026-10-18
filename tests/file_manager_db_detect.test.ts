@@ -325,15 +325,18 @@ describe("`.env` files in the application's folders", () => {
     const { c, start } = app();
     const outside = join(c.dir, "outside.env");
     writeFileSync(outside, "MSQL_HOST=stolen.example\n");
-    symlinkSync(outside, join(start, ".env"));
+    let linked = true;
+    try { symlinkSync(outside, join(start, ".env")); } catch { linked = false; }
     writeFileSync(join(start, ".env.local"), "X=" + "a".repeat(300_000));
     writeFileSync(join(start, ".env.development"), Buffer.from("MSQL_HOST=bin\u0000ary"));
     const comp = computer({ cwd: start });
     const res = await comp.ok("db/detect", { manual: true });
     expect(res.cards).toEqual([]);
-    expect(res.files.map((f: any) => [f.file, f.skipped]).sort()).toEqual([[".env", "link"], [".env.development", "binary"], [".env.local", "too-big"]]);
+    expect(res.files.map((f: any) => [f.file, f.skipped]).sort()).toEqual(
+      linked ? [[".env", "link"], [".env.development", "binary"], [".env.local", "too-big"]] : [[".env.development", "binary"], [".env.local", "too-big"]],
+    );
     const eff = await comp.ok("db/effective", { engine: "mysql" });
-    expect(eff.files.map((f: any) => f.skipped).sort()).toEqual(["binary", "link", "too-big"]);
+    expect(eff.files.map((f: any) => f.skipped).sort()).toEqual(linked ? ["binary", "link", "too-big"] : ["binary", "too-big"]);
   });
 
   test("references inside values are expanded for display, never executed", async () => {
@@ -409,7 +412,8 @@ describe("importing a .env file that was chosen", () => {
     writeFileSync(join(dir, "prod.env"), "PG_HOST=x\n");
     writeFileSync(join(dir, ".env.big"), "A=" + "b".repeat(300_000));
     writeFileSync(join(dir, ".env.bin"), Buffer.from([0, 1, 2, 3]));
-    symlinkSync(join(dir, ".env"), join(dir, ".env.link"));
+    let linked = true;
+    try { symlinkSync(join(dir, ".env"), join(dir, ".env.link")); } catch { linked = false; }
     mkdirSync(join(dir, ".env.dir"));
     const code = async (path: string) => (await c.api("db/envfile/preview", { path })).json.error?.code ?? "ok";
     expect(await code(join(dir, "notes.txt"))).toBe("BAD_REQUEST");
@@ -417,7 +421,7 @@ describe("importing a .env file that was chosen", () => {
     expect(await code(join(dir, "prod.env"))).toBe("ok");
     expect(await code(join(dir, ".env.big"))).toBe("BAD_FILE");
     expect(await code(join(dir, ".env.bin"))).toBe("BAD_FILE");
-    expect(await code(join(dir, ".env.link"))).toBe("BAD_FILE");
+    if (linked) expect(await code(join(dir, ".env.link"))).toBe("BAD_FILE");
     expect(await code(join(dir, ".env.dir"))).toBe("BAD_FILE");
     expect(await code(join(dir, ".env.nothere"))).toBe("NOT_FOUND");
     expect(await code(".env")).toBe("BAD_PATH");

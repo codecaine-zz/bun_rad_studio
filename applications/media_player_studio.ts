@@ -13,7 +13,7 @@
  */
 
 import { injectHelp } from "../src/shared/helpTips";
-import { SizeHint, Webview } from "webview-bun";
+import type { SizeHint, Webview } from "webview-bun";
 import { resolve, join, extname, dirname, basename } from "path";
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "fs";
 import { randomBytes } from "crypto";
@@ -1448,6 +1448,7 @@ export function createMediaPlayerStudio(options: MediaPlayerStudioOptions = {}):
       this.port = server.port;
       this.url = url;
 
+      const { SizeHint, Webview } = require("webview-bun") as typeof import("webview-bun");
       const webview = new Webview();
       this.webview = webview;
       webview.title = title;

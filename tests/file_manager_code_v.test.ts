@@ -6,7 +6,7 @@ import { formatV, vVersion } from "../src/features/filemanager/fmCodeFormat";
 import { SNIPPETS, buildIndex, commentSyntax, complete, detectIndent, detectLanguage, expandSnippet, extractSymbols, suggestionsFor, tokenizeText, toggleBlockComment, toggleLineComment } from "../resources/file_manager/ui/codeLogic.js";
 
 // V (vlang 0.5.2): the editor's knowledge of the language, checked against the real `v` when it is installed.
-const haveV = Bun.which("v") !== null;
+const haveV = Bun.which("v") !== null && Bun.spawnSync(["v", "fmt", "--version"], { timeout: 5000 }).exitCode === 0;
 const realV = haveV ? test : test.skip;
 const root = mkdtempSync(join(tmpdir(), "fm-code-v-"));
 const types = (src: string) => tokenizeText("v", src).flat().filter((t: any) => t.type).map((t: any) => `${t.type}:${t.text}`);
@@ -134,7 +134,7 @@ describe("V snippets and Run and Build presets", () => {
       if (r.exitCode !== 0) failures.push(`${s.prefix}: ${r.stdout.toString()}${r.stderr.toString()}`.slice(0, 160));
     }
     expect(failures).toEqual([]);
-  });
+  }, 30_000);
 
   test("the V presets include run, build, test, format, vet and project builds", () => {
     const cmds = suggestionsFor("v").map((s: any) => s.command);

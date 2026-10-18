@@ -119,7 +119,13 @@ export class Watcher {
       wanted = false;
     }
     if (!wanted) return;
-    this.pending = { abs: nodePath.join(this.config.watchPath, rel), rel };
+    const abs = nodePath.join(this.config.watchPath, rel);
+    try {
+      if (statSync(abs).isDirectory()) return;
+    } catch {
+      // A deleted or transient file should still trigger the watcher.
+    }
+    this.pending = { abs, rel };
     if (this.timer) clearTimeout(this.timer);
     this.timer = setTimeout(() => {
       this.timer = null;
@@ -162,12 +168,15 @@ export class Watcher {
 
     let proc: Subprocess;
     try {
-      proc = Bun.spawn(shellArgv(this.platform, config.shell, config.command), {
+      const argv = shellArgv(this.platform, config.shell, config.command);
+      const isCmd = this.platform === "win32" && argv[0]?.toLowerCase() === "cmd.exe";
+      proc = Bun.spawn(isCmd ? ["cmd.exe", "/d", "/s", "/c", `"${config.command}"`] : argv, {
         cwd: config.cwd,
         env: { ...process.env, ...buildWatchexecEnv(change?.abs, config.watchPath) },
         stdin: "ignore",
         stdout: "pipe",
         stderr: "pipe",
+        ...(isCmd ? { windowsVerbatimArguments: true } : {}),
       });
     } catch (err) {
       this.setRow(row, "failed", -1, startedAt);

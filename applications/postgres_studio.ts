@@ -20,7 +20,7 @@
  */
 
 import { injectHelp } from "../src/shared/helpTips";
-import { Webview, SizeHint } from "webview-bun";
+import type { Webview, SizeHint } from "webview-bun";
 import { resolve } from "path";
 import { dlopen, FFIType } from "bun:ffi";
 import {
@@ -6499,6 +6499,7 @@ export function createPostgresStudio(options: PostgresStudioOptions = {}): Postg
 
       // 2. Native Webview Window
       try {
+        const { Webview, SizeHint } = await import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,

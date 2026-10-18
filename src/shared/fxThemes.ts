@@ -527,15 +527,23 @@ export const FX_THEME_ALIASES: Record<string, string> = {
     hologram: "cyberpunk_hologram",
     cyberpunk_holo: "cyberpunk_hologram",
     holo: "cyberpunk_hologram",
+    rtx_neon: "cyberpunk_hologram",
     hud: "neon_hud",
+    directx_hud: "neon_hud",
     obsidian: "quantum_obsidian",
     quantum: "quantum_obsidian",
     oled_obsidian: "quantum_obsidian",
+    m4_space_black: "quantum_obsidian",
+    space_black_pro: "quantum_obsidian",
+    xdr_obsidian: "quantum_obsidian",
     nebula: "deep_space",
     space: "deep_space",
     titanium_metal: "liquid_metal",
     liquid_metal_dark: "liquid_metal",
+    m4_max: "liquid_metal",
     aurora: "titanium_aurora",
+    m4_pro: "titanium_aurora",
+    copilot_pc: "titanium_aurora",
     metal_light: "liquid_metal_light",
     liquid_metal_day: "liquid_metal_light",
     neo_tokyo: "neo_tokyo_dark",
@@ -545,7 +553,57 @@ export const FX_THEME_ALIASES: Record<string, string> = {
     solar: "synthetic_solar",
     synthetic_sun: "synthetic_solar",
     glass_aurora: "aurora_glass",
+    retina_xdr: "aurora_glass",
     violet_plasma: "plasma_violet",
+    tahoe_liquid_glass: "frosted_glass",
+    tahoe_dark_glass: "midnight_glass",
+    win11_mica_fx: "orbital_ice",
+    win11_mica_dark: "polar_night",
+    win11_acrylic: "midnight_glass",
+    fluent_acrylic: "frosted_glass",
+};
+
+/**
+ * Maps every futuristic/FX theme key to a lightweight, non-FX theme key with matching dark/light polarity
+ * and colour family so low-end, software-rendered, or battery/accessibility-constrained systems can
+ * automatically revert to a theme they can render at full frame rate without GPU glass/glow overhead.
+ */
+export const FX_FALLBACK_THEMES: Record<string, string> = {
+    prism_reactor: "tokyo_night",
+    orbital_ice: "fluent_light",
+    ember_grid: "sunset_orange",
+    cyberpunk_hologram: "cyberpunk",
+    neon_hud: "midnight",
+    quantum_obsidian: "oled_black",
+    deep_space: "abyss",
+    liquid_metal: "titanium_slate",
+    titanium_aurora: "tokyo_night",
+    liquid_metal_light: "apple_light",
+    neo_tokyo_dark: "tokyo_night",
+    synthetic_solar: "ventura_amber",
+    neo_tokyo_day: "nordic_paper",
+    aurora_glass: "nord",
+    plasma_violet: "dracula",
+    synthwave_sunset: "synthwave84",
+    matrix_rain: "matrix_phosphor",
+    amber_phosphor: "amber_crt",
+    midnight_glass: "apple_dark",
+    abyss_bloom: "abyss",
+    cosmic_nebula: "amethyst",
+    obsidian_gold: "oled_black",
+    crimson_eclipse: "rose_pine",
+    acid_reactor: "emerald",
+    polar_night: "nord",
+    emerald_grove: "sonoma_emerald",
+    brass_engine: "kanagawa",
+    focus_glow: "midnight",
+    neon_max: "cyberpunk",
+    vaporwave_dream: "synthwave84",
+    frosted_glass: "apple_light",
+    sakura_glass: "soft_pastel",
+    pearl_hologram: "fluent_light",
+    rose_gold: "solarized_light",
+    daylight_hud: "github_light",
 };
 
 const keyOf = (s: string) => s.toLowerCase().trim().replace(/[\s\-_]+/g, "_");
@@ -563,6 +621,293 @@ export function findFxTheme(nameOrKey: string | undefined | null): SimpleGUIThem
     return undefined;
 }
 
+/** Resolves any FX theme key, alias, or display name to its canonical FX key, or undefined if not an FX theme. */
+export function resolveFxThemeKey(nameOrKey: string | undefined | null): string | undefined {
+    if (!nameOrKey) return undefined;
+    const key = keyOf(String(nameOrKey));
+    if (FX_THEMES[key]) return key;
+    const aliased = FX_THEME_ALIASES[key];
+    if (aliased && FX_THEMES[aliased]) return aliased;
+    for (const [k, t] of Object.entries(FX_THEMES)) {
+        if (keyOf(t.name) === key || (t.short_name && keyOf(t.short_name) === key)) return k;
+    }
+    return undefined;
+}
+
+/** Returns the lightweight non-FX fallback theme key for an FX theme, or the normalized input key if already non-FX. */
+export function getFallbackThemeKey(nameOrKey: string | undefined | null): string {
+    if (!nameOrKey) return "midnight";
+    const fxKey = resolveFxThemeKey(nameOrKey);
+    if (fxKey && FX_FALLBACK_THEMES[fxKey]) return FX_FALLBACK_THEMES[fxKey];
+    return keyOf(String(nameOrKey));
+}
+
+export type FxHardwareTier = "ultra" | "high" | "balanced" | "low";
+export type FxNativeBackdrop = "vibrancy" | "mica-alt" | "acrylic" | "none";
+
+export interface FxHardwareInput {
+    /** Logical CPU core count (`navigator.hardwareConcurrency`). */
+    cores?: number;
+    /** Approximate RAM in GB (`navigator.deviceMemory`). */
+    memoryGb?: number;
+    /** Device pixel ratio (`window.devicePixelRatio`). */
+    devicePixelRatio?: number;
+    /** GPU renderer string (e.g. `"Apple M4 Max"`, `"NVIDIA GeForce RTX 4090"`, `"Microsoft Basic Render Driver"`). */
+    gpuRenderer?: string;
+    /** User agent or platform string. */
+    userAgent?: string;
+    /** OS platform (`"darwin"`, `"win32"`, `"linux"`). */
+    platform?: string;
+    /** Display-P3 wide color gamut support (`matchMedia("(color-gamut: p3)")`). */
+    colorGamutP3?: boolean;
+    /** High Dynamic Range / XDR / Windows Auto HDR support (`matchMedia("(dynamic-range: high)")`). */
+    hdrDynamicRange?: boolean;
+    /** OS/browser reduced motion preference (`matchMedia("(prefers-reduced-motion: reduce)")`). */
+    prefersReducedMotion?: boolean;
+    /** OS/browser reduced transparency preference (`matchMedia("(prefers-reduced-transparency: reduce)")`). */
+    prefersReducedTransparency?: boolean;
+    /** Windows High Contrast / forced-colors active (`matchMedia("(forced-colors: active)")`). */
+    forcedColors?: boolean;
+    /** Windows Remote Desktop (RDP) / Terminal Services session (`GetSystemMetrics(SM_REMOTESESSION)`). */
+    remoteSession?: boolean;
+    /** Network/battery data-saver hint (`navigator.connection?.saveData`). */
+    saveData?: boolean;
+    /** Measured frame delta in ms when a runtime frame-budget monitor is active. */
+    frameBudgetMs?: number;
+}
+
+export interface FxHardwareProfile {
+    tier: FxHardwareTier;
+    recommendedFxMode: FxMode;
+    shouldUseFallbackTheme: boolean;
+    supportsP3: boolean;
+    supportsHdr: boolean;
+    supportsBackdropBlur: boolean;
+    supportsPointerGlow: boolean;
+    supportsProMotion: boolean;
+    isAppleSiliconPro: boolean;
+    isWindowsHighEnd: boolean;
+    nativeBackdrop: FxNativeBackdrop;
+    reason: string;
+}
+
+const SOFTWARE_GPU_RE =
+    /swiftshader|llvmpipe|softpipe|software|basic render driver|microsoft basic|\bwarp\b|d3d11 warp|gdi generic|hyper-v|rdpudd|citrix|virtualbox|vmware|parallels|qemu/i;
+const APPLE_SILICON_RE = /apple\s+m[1-9](\s+(pro|max|ultra))?|macintosh.*arm64/i;
+const WINDOWS_HIGH_END_GPU_RE =
+    /rtx\s*[345]\d{2,3}|radeon\s+rx\s+[6789]\d{2,3}|intel.*arc\s+[ab]\d{3}|adreno\s+x1|snapdragon\s+x/i;
+
+/**
+ * Evaluates system capability across macOS (M4 Pro/Max, Liquid Retina XDR) and Windows 11/10 (DirectX 12 RTX/Radeon/Arc,
+ * DWM Mica/Acrylic, Windows HDR, or fallback cases like Microsoft Basic Render Driver, WARP, Remote Desktop, and High Contrast).
+ */
+export function detectThemeHardware(input: FxHardwareInput = {}): FxHardwareProfile {
+    const nav: any = typeof globalThis !== "undefined" ? (globalThis as any).navigator : undefined;
+    const win: any = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+    const mm = (q: string): boolean => {
+        try {
+            if (typeof win?.matchMedia === "function") return Boolean(win.matchMedia(q)?.matches);
+            if (typeof (globalThis as any).matchMedia === "function") return Boolean((globalThis as any).matchMedia(q)?.matches);
+        } catch {}
+        return false;
+    };
+
+    const cores = input.cores ?? (typeof nav?.hardwareConcurrency === "number" ? nav.hardwareConcurrency : 8);
+    const memoryGb = input.memoryGb ?? (typeof nav?.deviceMemory === "number" ? nav.deviceMemory : undefined);
+    const dpr = input.devicePixelRatio ?? (typeof win?.devicePixelRatio === "number" ? win.devicePixelRatio : 1);
+    const gpu = input.gpuRenderer ?? "";
+    const ua = input.userAgent ?? (typeof nav?.userAgent === "string" ? nav.userAgent : "");
+    const plat = (input.platform ?? (typeof nav?.platform === "string" ? nav.platform : typeof process !== "undefined" ? process.platform : "")).toLowerCase();
+    const isWin = plat.includes("win") || /windows/i.test(ua);
+    const isMac = plat.includes("mac") || plat.includes("darwin") || /macintosh|mac os x/i.test(ua);
+
+    const p3 = input.colorGamutP3 ?? mm("(color-gamut: p3)");
+    const hdr = input.hdrDynamicRange ?? mm("(dynamic-range: high)");
+    const reducedMotion = input.prefersReducedMotion ?? mm("(prefers-reduced-motion: reduce)");
+    const reducedTransparency = input.prefersReducedTransparency ?? mm("(prefers-reduced-transparency: reduce)");
+    const forcedColors = input.forcedColors ?? mm("(forced-colors: active)");
+    const remoteSession = Boolean(input.remoteSession);
+    const saveData = input.saveData ?? Boolean(nav?.connection?.saveData);
+    const frameMs = input.frameBudgetMs;
+
+    const isSoftwareGpu = gpu.length > 0 && SOFTWARE_GPU_RE.test(gpu);
+    const isLowMemory = memoryGb !== undefined && memoryGb <= 2;
+    const isLowCores = cores > 0 && cores <= 2;
+    const isFrameStarved = frameMs !== undefined && frameMs > 36;
+
+    if (forcedColors || remoteSession || isSoftwareGpu || isLowMemory || isLowCores || saveData || reducedTransparency || isFrameStarved) {
+        const reason = forcedColors
+            ? "windows-forced-colors"
+            : remoteSession
+              ? "windows-remote-session"
+              : isSoftwareGpu
+                ? "software-gpu"
+                : reducedTransparency
+                  ? "prefers-reduced-transparency"
+                  : isFrameStarved
+                    ? "frame-budget-exceeded"
+                    : isLowCores || isLowMemory
+                      ? "low-hardware-resources"
+                      : "save-data";
+        return {
+            tier: "low",
+            recommendedFxMode: forcedColors || remoteSession || isSoftwareGpu || (reducedMotion && reducedTransparency) ? "off" : "reduced",
+            shouldUseFallbackTheme: true,
+            supportsP3: false,
+            supportsHdr: false,
+            supportsBackdropBlur: false,
+            supportsPointerGlow: false,
+            supportsProMotion: false,
+            isAppleSiliconPro: false,
+            isWindowsHighEnd: false,
+            nativeBackdrop: "none",
+            reason,
+        };
+    }
+
+    if (reducedMotion) {
+        return {
+            tier: "balanced",
+            recommendedFxMode: "reduced",
+            shouldUseFallbackTheme: false,
+            supportsP3: p3,
+            supportsHdr: hdr,
+            supportsBackdropBlur: true,
+            supportsPointerGlow: false,
+            supportsProMotion: false,
+            isAppleSiliconPro: false,
+            isWindowsHighEnd: false,
+            nativeBackdrop: isMac ? "vibrancy" : isWin ? "mica-alt" : "none",
+            reason: "prefers-reduced-motion",
+        };
+    }
+
+    const isAppleSiliconPro =
+        APPLE_SILICON_RE.test(`${gpu} ${ua}`) ||
+        (isMac && p3 && hdr && cores >= 8 && dpr >= 2);
+    const isWindowsHighEnd =
+        WINDOWS_HIGH_END_GPU_RE.test(gpu) ||
+        (isWin && (hdr || p3) && cores >= 8);
+
+    if (isAppleSiliconPro || isWindowsHighEnd || (p3 && hdr && cores >= 8)) {
+        return {
+            tier: "ultra",
+            recommendedFxMode: "on",
+            shouldUseFallbackTheme: false,
+            supportsP3: p3 || isAppleSiliconPro,
+            supportsHdr: hdr || isAppleSiliconPro,
+            supportsBackdropBlur: true,
+            supportsPointerGlow: true,
+            supportsProMotion: true,
+            isAppleSiliconPro,
+            isWindowsHighEnd,
+            nativeBackdrop: isMac || isAppleSiliconPro ? "vibrancy" : isWin || isWindowsHighEnd ? "acrylic" : "none",
+            reason: isAppleSiliconPro
+                ? "apple-silicon-xdr"
+                : isWindowsHighEnd
+                  ? "windows-directx-ultra"
+                  : "wide-gamut-hdr-high-core",
+        };
+    }
+
+    if (cores >= 8 || p3 || dpr >= 2) {
+        return {
+            tier: "high",
+            recommendedFxMode: "on",
+            shouldUseFallbackTheme: false,
+            supportsP3: p3,
+            supportsHdr: hdr,
+            supportsBackdropBlur: true,
+            supportsPointerGlow: true,
+            supportsProMotion: dpr >= 1.25 && cores >= 8,
+            isAppleSiliconPro: false,
+            isWindowsHighEnd: false,
+            nativeBackdrop: isMac ? "vibrancy" : isWin ? "mica-alt" : "none",
+            reason: "capable-gpu",
+        };
+    }
+
+    return {
+        tier: "balanced",
+        recommendedFxMode: "on",
+        shouldUseFallbackTheme: false,
+        supportsP3: p3,
+        supportsHdr: hdr,
+        supportsBackdropBlur: true,
+        supportsPointerGlow: cores >= 4,
+        supportsProMotion: false,
+        isAppleSiliconPro: false,
+        isWindowsHighEnd: false,
+        nativeBackdrop: isMac ? "vibrancy" : isWin ? "mica-alt" : "none",
+        reason: "standard-hardware",
+    };
+}
+
+export interface HardwareResolvedTheme<T extends SimpleGUITheme = SimpleGUITheme> {
+    theme: T;
+    requestedKey: string;
+    appliedKey: string;
+    fallbackKey: string;
+    downgraded: boolean;
+    revertedToFallback: boolean;
+    fxMode: FxMode;
+    hardware: FxHardwareProfile;
+}
+
+/**
+ * Resolves a theme by name/key and automatically downgrades or reverts to a lightweight non-FX fallback
+ * theme when the system cannot sustain glassmorphism, multi-stop blurs, or ambient shader layers.
+ */
+export function resolveThemeForHardware<T extends SimpleGUITheme = SimpleGUITheme>(
+    nameOrKey: string,
+    lookupTheme: (key: string) => T,
+    hw?: FxHardwareInput,
+    opts?: { revertToFallbackTheme?: boolean }
+): HardwareResolvedTheme<T> {
+    const requestedKey = keyOf(nameOrKey || "midnight");
+    const requestedTheme = lookupTheme(nameOrKey);
+    const fallbackKey = getFallbackThemeKey(nameOrKey);
+    const hardware = detectThemeHardware(hw);
+    const revert = opts?.revertToFallbackTheme !== false;
+
+    if (requestedTheme?.fx && hardware.shouldUseFallbackTheme) {
+        if (revert && fallbackKey !== requestedKey) {
+            const fbTheme = lookupTheme(fallbackKey);
+            return {
+                theme: fbTheme,
+                requestedKey,
+                appliedKey: fallbackKey,
+                fallbackKey,
+                downgraded: true,
+                revertedToFallback: true,
+                fxMode: hardware.recommendedFxMode,
+                hardware,
+            };
+        }
+        return {
+            theme: requestedTheme,
+            requestedKey,
+            appliedKey: resolveFxThemeKey(nameOrKey) ?? requestedKey,
+            fallbackKey,
+            downgraded: true,
+            revertedToFallback: false,
+            fxMode: hardware.recommendedFxMode,
+            hardware,
+        };
+    }
+
+    return {
+        theme: requestedTheme,
+        requestedKey,
+        appliedKey: resolveFxThemeKey(nameOrKey) ?? requestedKey,
+        fallbackKey,
+        downgraded: hardware.recommendedFxMode !== "on" && Boolean(requestedTheme?.fx),
+        revertedToFallback: false,
+        fxMode: hardware.recommendedFxMode,
+        hardware,
+    };
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Tokens
 // ---------------------------------------------------------------------------------------------------------------------
@@ -574,6 +919,25 @@ const rgba = (hex: string, a: number) => {
 };
 const mixRgb = (a: RGB, b: RGB, t: number): RGB => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+
+/**
+ * Converts an sRGB hex color into a CSS Color 4 `color(display-p3 r g b)` value with a controlled chroma expansion
+ * along the dominant channels so wide-gamut Liquid Retina XDR / Display-P3 panels unlock deeper neon and aurora
+ * primaries while standard sRGB panels ignore the `@media (color-gamut: p3)` override.
+ */
+export function srgbToDisplayP3(hex: string, boost = 0.14): string {
+    const [r8, g8, b8] = parseColor(hex);
+    const r = r8 / 255;
+    const g = g8 / 255;
+    const b = b8 / 255;
+    const avg = (r + g + b) / 3;
+    const k = clamp(boost, 0, 0.35);
+    const rp = clamp(r + (r - avg) * k, 0, 1);
+    const gp = clamp(g + (g - avg) * k, 0, 1);
+    const bp = clamp(b + (b - avg) * k, 0, 1);
+    const fmt = (n: number) => String(Math.round(n * 1000) / 1000);
+    return `color(display-p3 ${fmt(rp)} ${fmt(gp)} ${fmt(bp)})`;
+}
 
 const RADII: Record<FxRadius, [number, number, number, number, number, number]> = {
     sharp: [1, 2, 3, 4, 6, 6],
@@ -638,8 +1002,9 @@ export function focusRingColor(t: { accent_color: string; background_color: stri
 }
 
 export const FX_TOKEN_NAMES = [
-    "--fx-glow-color", "--fx-glow-color-2", "--fx-glow-soft", "--fx-glow-med", "--fx-glow-strong",
-    "--fx-blur-sm", "--fx-blur-md", "--fx-blur-lg", "--fx-glass-bg", "--fx-glass-bg-strong", "--fx-glass-solid", "--fx-glass-border", "--fx-glass-alpha", "--fx-saturate",
+    "--fx-glow-color", "--fx-glow-color-2", "--fx-glow-p3", "--fx-glow-2-p3", "--fx-accent-p3",
+    "--fx-glow-soft", "--fx-glow-med", "--fx-glow-strong", "--fx-specular-rim",
+    "--fx-blur-sm", "--fx-blur-md", "--fx-blur-lg", "--fx-blur-ultra", "--fx-glass-bg", "--fx-glass-bg-strong", "--fx-glass-solid", "--fx-glass-border", "--fx-glass-alpha", "--fx-saturate", "--fx-saturate-ultra",
     "--fx-radius-xs", "--fx-radius-sm", "--fx-radius-md", "--fx-radius-lg", "--fx-radius-xl", "--fx-radius-pill",
     "--fx-shadow-1", "--fx-shadow-2", "--fx-shadow-3", "--fx-shadow-4", "--fx-shadow-5",
     "--fx-border-gradient", "--fx-sheen", "--fx-row-hover", "--fx-accent-soft",
@@ -673,6 +1038,9 @@ export function fxCssVars(theme: SimpleGUITheme | undefined | null): string {
     const glowSoft = fx.glow === "none" ? none : `0 0 0 1px ${glowRgba(g1, neon ? 0.35 : 0.22)}, 0 0 ${neon ? 14 : 10}px ${glowRgba(g1, neon ? 0.38 : 0.22)}`;
     const glowMed = fx.glow === "none" ? none : `0 0 0 1px ${glowRgba(g1, neon ? 0.55 : 0.34)}, 0 0 ${neon ? 22 : 16}px ${glowRgba(g1, neon ? 0.5 : 0.32)}, 0 0 ${neon ? 48 : 32}px ${glowRgba(g2, neon ? 0.26 : 0.14)}`;
     const glowStrong = fx.glow === "none" ? none : `0 0 0 1px ${glowRgba(g1, neon ? 0.8 : 0.5)}, 0 0 ${neon ? 30 : 22}px ${glowRgba(g1, neon ? 0.68 : 0.42)}, 0 0 ${neon ? 72 : 48}px ${glowRgba(g2, neon ? 0.4 : 0.2)}`;
+    const specularRim = isDark
+        ? "inset 0 1px 0 0 rgba(255, 255, 255, 0.38), inset 0 0 0 0.5px rgba(255, 255, 255, 0.2)"
+        : "inset 0 1px 0 0 rgba(255, 255, 255, 0.92), inset 0 0 0 0.5px rgba(255, 255, 255, 0.55)";
     const borderGradient =
         fx.border === "flat"
             ? `linear-gradient(${theme.card_border ?? g1}, ${theme.card_border ?? g1})`
@@ -691,18 +1059,24 @@ export function fxCssVars(theme: SimpleGUITheme | undefined | null): string {
     const vars: Array<[string, string]> = [
         ["--fx-glow-color", g1],
         ["--fx-glow-color-2", g2],
+        ["--fx-glow-p3", srgbToDisplayP3(g1, neon ? 0.18 : 0.12)],
+        ["--fx-glow-2-p3", srgbToDisplayP3(g2, neon ? 0.18 : 0.12)],
+        ["--fx-accent-p3", srgbToDisplayP3(theme.accent_color, 0.14)],
         ["--fx-glow-soft", glowSoft],
         ["--fx-glow-med", glowMed],
         ["--fx-glow-strong", glowStrong],
+        ["--fx-specular-rim", specularRim],
         ["--fx-blur-sm", `${Math.round(blur * 0.4)}px`],
         ["--fx-blur-md", `${blur}px`],
         ["--fx-blur-lg", `${Math.min(40, Math.round(blur * 1.6))}px`],
+        ["--fx-blur-ultra", `${Math.min(48, Math.round(blur * 1.45))}px`],
         ["--fx-glass-bg", rgba(card, glass.alpha)],
         ["--fx-glass-bg-strong", rgba(card, Math.min(1, glass.alpha + 0.12))],
         ["--fx-glass-solid", toHex(parseColor(card))],
         ["--fx-glass-border", glassBorder],
         ["--fx-glass-alpha", String(glass.alpha)],
         ["--fx-saturate", fx.glass > 0.3 ? "1.35" : "1.1"],
+        ["--fx-saturate-ultra", fx.glass > 0.3 ? "1.65" : "1.28"],
         ["--fx-radius-xs", `${rad[0]}px`],
         ["--fx-radius-sm", `${rad[1]}px`],
         ["--fx-radius-md", `${rad[2]}px`],
@@ -747,10 +1121,11 @@ export function fxCssVars(theme: SimpleGUITheme | undefined | null): string {
 }
 
 /** Attributes for the root element: `data-fx` plus one flag per feature, so the shared CSS can switch each one on or off. */
-export function fxRootAttrs(theme: SimpleGUITheme | undefined | null, mode: FxMode = "on"): Record<string, string> {
+export function fxRootAttrs(theme: SimpleGUITheme | undefined | null, mode: FxMode = "on", tier?: FxHardwareTier): Record<string, string> {
     const fx = theme?.fx;
     if (!fx) return {};
     const a: Record<string, string> = { "data-fx": mode };
+    if (tier) a["data-fx-tier"] = tier;
     a["data-fx-border"] = fx.border;
     a["data-fx-glow"] = fx.glow;
     a["data-fx-motion"] = fx.motion;
@@ -764,8 +1139,8 @@ export function fxRootAttrs(theme: SimpleGUITheme | undefined | null, mode: FxMo
     return a;
 }
 
-export function fxRootAttrString(theme: SimpleGUITheme | undefined | null, mode: FxMode = "on"): string {
-    return Object.entries(fxRootAttrs(theme, mode)).map(([k, v]) => `${k}="${v}"`).join(" ");
+export function fxRootAttrString(theme: SimpleGUITheme | undefined | null, mode: FxMode = "on", tier?: FxHardwareTier): string {
+    return Object.entries(fxRootAttrs(theme, mode, tier)).map(([k, v]) => `${k}="${v}"`).join(" ");
 }
 
 export interface SyntaxPalette {

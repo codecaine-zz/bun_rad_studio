@@ -8,7 +8,7 @@
  * - Responsive layout, sound effects & arcade touch/mouse selection
  */
 
-import { SizeHint, Webview } from "webview-bun";
+import type { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
 import { existsSync, readFileSync, writeFileSync, renameSync } from "fs";
 import { guardLocalRequest } from "../src/localGuard";
@@ -282,6 +282,7 @@ export function createWordSearchStudio(options: WordSearchStudioOptions = {}): W
       }
 
       try {
+        const { SizeHint, Webview } = require("webview-bun") as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,

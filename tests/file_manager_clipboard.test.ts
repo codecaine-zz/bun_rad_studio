@@ -3,7 +3,7 @@
  * real clipboard is never touched (every test uses a recording clipboard).
  */
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, truncateSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { createContext } from "../src/features/filemanager/fmCore";
@@ -43,7 +43,8 @@ describe("copy a text file's contents", () => {
   });
   test("keeps Unicode and unusual names, drops a byte-order mark, and counts a last line with no newline", async () => {
     const { ctx, got } = sandbox();
-    const file = put("żółć 日本語 \"quoted\" $(x).md", "\uFEFFhéllo 🌍\nlast");
+    const oddName = process.platform === "win32" ? "żółć 日本語 'quoted' $(x).md" : "żółć 日本語 \"quoted\" $(x).md";
+    const file = put(oddName, "\uFEFFhéllo 🌍\nlast");
     const r = await copyTextFileToClipboard(ctx, file);
     expect(got.text[0]).toBe("héllo 🌍\nlast");
     expect(r.lines).toBe(2);
@@ -64,7 +65,7 @@ describe("copy a text file's contents", () => {
     const { ctx } = sandbox({ text: false });
     await fails(copyTextFileToClipboard(ctx, put("c.txt", "x")), "CLIPBOARD_FAILED", /clipboard/);
   });
-  test("a link to a text file copies the text it points to", async () => {
+  test.skipIf(process.platform === "win32")("a link to a text file copies the text it points to", async () => {
     const { ctx, got } = sandbox();
     const target = put("target.txt", "linked");
     symlinkSync(target, join(work, "link.txt"));
@@ -93,7 +94,7 @@ describe("copy a picture", () => {
     await fails(copyImageToClipboard(ctx, join(work, "gone.png")), "ENOENT");
     const big = join(work, "huge.png");
     writeFileSync(big, "");
-    Bun.spawnSync(["truncate", "-s", String(MAX_CLIP_IMAGE_BYTES + 1), big]);
+    truncateSync(big, MAX_CLIP_IMAGE_BYTES + 1);
     if (Bun.file(big).size > MAX_CLIP_IMAGE_BYTES) await fails(copyImageToClipboard(ctx, big), "TOO_BIG");
     expect(got.image).toEqual([]);
   });

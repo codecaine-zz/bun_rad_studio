@@ -777,6 +777,7 @@ describe("over HTTP", () => {
 
   test("injection attempts are refused with a plain message", async () => {
     fakeInternet(() => { throw new Error("must not be called"); });
+    ipHooks.resolveHost = async () => { throw Object.assign(new Error("ENOTFOUND"), { code: "ENOTFOUND" }); };
     for (const target of ["https://evil.example", "8.8.8.8\r\nHost: evil", "a@b", "$(id)", "x".repeat(5000), { a: 1 }, ["8.8.8.8"]]) {
       const r = await api("ip/lookup", { target });
       expect(r.status).toBe(400);

@@ -1,12 +1,14 @@
 // The hosted studios (API Studio, App Bundler, Env Studio) and the download API: who may reach them.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import * as fs from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 import { HOSTED_STUDIOS } from "../src/features/filemanager/fmHostedStudios";
 import { createHostedHub, hostedPage, HostedSession } from "../src/simplegui_host";
 
-const HOME = fs.mkdtempSync("/tmp/fm-hosted-home-");
-const DATA = fs.mkdtempSync("/tmp/fm-hosted-data-");
+const HOME = fs.mkdtempSync(join(tmpdir(), "fm-hosted-home-"));
+const DATA = fs.mkdtempSync(join(tmpdir(), "fm-hosted-data-"));
 let fm: ReturnType<typeof startFileManagerServer>;
 let primary = "";
 let other = "";
@@ -188,7 +190,8 @@ describe("the download API", () => {
     }
   });
   test("refuses protected folders", async () => {
-    const res = await post("dl/add", { urls: "http://127.0.0.1:9/x", folder: "/etc", start: false });
+    const protectedDir = process.platform === "win32" ? (process.env.SystemRoot || "C:\\Windows") : "/etc";
+    const res = await post("dl/add", { urls: "http://127.0.0.1:9/x", folder: protectedDir, start: false });
     expect(res.status).toBeGreaterThanOrEqual(400);
     expect(((await res.json()) as any).error.code).toBe("PROTECTED");
   });

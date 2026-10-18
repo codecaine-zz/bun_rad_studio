@@ -10,7 +10,7 @@
  * - Polyphonic Web Audio API chiptune/synthwave sequencer + interactive Arcade Deck
  */
 
-import { SizeHint, Webview } from "webview-bun";
+import type { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
 import { existsSync, readFileSync } from "fs";
 import { startStaticStudioServer } from "../src/studio_server";
@@ -183,6 +183,7 @@ export function createTetrisStudio(options: TetrisStudioOptions = {}): TetrisStu
       }
 
       try {
+        const { SizeHint, Webview } = require("webview-bun") as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,

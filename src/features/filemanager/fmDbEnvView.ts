@@ -51,7 +51,7 @@ export interface EnvViewInput {
   home: string;
 }
 
-export const tilde = (path: string, home: string) => (home && (path === home || path.startsWith(home + "/") || path.startsWith(home + "\\")) ? "~" + path.slice(home.length) : path);
+export const tilde = (path: string, home: string) => (home && (path === home || path.startsWith(home + "/") || path.startsWith(home + "\\")) ? "~" + path.slice(home.length).replace(/\\/g, "/") : path);
 
 async function real(path: string): Promise<string> {
   try {

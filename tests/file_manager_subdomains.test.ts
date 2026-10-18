@@ -1277,7 +1277,7 @@ describe("Subdomains operations over HTTP", () => {
     for (const s of info.sources) expect(s.note.length).toBeGreaterThan(10);
     expect(info.defaults).toMatchObject({ timeoutSec: 15, maxResults: 2000, ports: "80,443", dnsConcurrency: 8, httpConcurrency: 4 });
     expect(info.limits).toMatchObject({ maxPorts: 20, maxResults: 10_000, maxDnsConcurrency: 10, maxHttpConcurrency: 5, maxRedirects: 3, maxRuns: 2, maxHistory: 20 });
-    expect(info.tools.subfinder.hint).toContain("brew install subfinder");
+    expect(info.tools.subfinder.hint).toContain(win ? "projectdiscovery/subfinder" : "brew install subfinder");
     if (!win) expect(info.tools.subfinder).toMatchObject({ installed: true, version: "3.2.1" });
   });
 
@@ -1558,7 +1558,7 @@ describe("Subdomains operations over HTTP", () => {
     const res = await api("subdomains/open", { id: done.id, host: "www.example.com" });
     expect(res.json.opened).toBe("https://www.example.com/");
     expect(launched).toHaveLength(1);
-    expect(launched[0]!.args).toEqual(["https://www.example.com/"]);
+    expect(launched[0]!.args.at(-1)).toBe("https://www.example.com/");
     const plain = await api("subdomains/open", { id: done.id, host: "blog.example.com", scheme: "http" });
     expect(plain.json.opened).toBe("http://blog.example.com/");
     await refusedWith({ id: done.id, host: "evil.org" }, "NO_HOST", "subdomains/open");

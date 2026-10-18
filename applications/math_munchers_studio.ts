@@ -11,7 +11,7 @@
  * - Full Gamepad API, touch virtual D-pad, keyboard shortcuts & persistent SafeStorage
  */
 
-import { SizeHint, Webview } from "webview-bun";
+import type { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
 import { existsSync, readFileSync } from "fs";
 import { guardLocalRequest } from "../src/localGuard";
@@ -190,6 +190,7 @@ export function createMathMunchersStudio(options: MathMunchersStudioOptions = {}
       }
 
       try {
+        const { SizeHint, Webview } = require("webview-bun") as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,

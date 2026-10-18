@@ -4,7 +4,7 @@ import { buildSemanticPalette, normalizeKind, semanticCssVars } from "./src/shar
 import { findFxTheme, fxCssVars, fxRootAttrString, normalizeFxMode } from "./src/shared/fxThemes";
 import { fxCss } from "./src/shared/fxCss";
 import { FX_POINTER_SOURCE } from "./src/shared/fxPointer";
-import { SizeHint, Webview } from "webview-bun";
+import type { SizeHint, Webview } from "webview-bun";
 import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync, unlinkSync, openSync, closeSync, appendFileSync } from "fs";
 import { spawn, spawnSync } from "child_process";
 import { join, dirname } from "path";
@@ -1466,6 +1466,7 @@ wv.run();
 
 // Only launch main Webview IDE window when run as primary entrypoint (not imported during bun test)
 if (import.meta.main) {
+    const { SizeHint, Webview } = await import("webview-bun");
     const webview = new Webview();
     attachWindowShortcuts(webview);
     // The tooltip script is added here, not in getIdeHtml(), which must stay identical to the built src/ide.html.

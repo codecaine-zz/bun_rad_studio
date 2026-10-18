@@ -112,7 +112,7 @@ describe("selected paths for a terminal", () => {
       .replace(/^import .*;\r?$/gm, "").replace(/^export /gm, "");
     const insert = new Function("deps", `
       const { $, Terminal, FitAddon, ResizeObserver, WebSocket, window, requestAnimationFrame,
-        quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl, state, terminalUrl, emit, toast, wireTerminalClipboard } = deps;
+        quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl, state, terminalUrl, emit, toast, wireTerminalClipboard, terminalTheme = () => ({}) } = deps;
       ${source}
       return insertPaths;
     `)({
@@ -249,7 +249,7 @@ function loadTerminal(platform: string) {
     .replace(/^import .*;\r?$/gm, "").replace(/^export /gm, "");
   const api = new Function("deps", `
     const { $, Terminal, FitAddon, ResizeObserver, WebSocket, window, requestAnimationFrame,
-      quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl, state, terminalUrl, emit, toast, goTo, wireTerminalClipboard } = deps;
+      quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl, state, terminalUrl, emit, toast, goTo, wireTerminalClipboard, terminalTheme = () => ({}) } = deps;
     ${source}
     return { insertPaths, folderCommand, typeInTerminal };
   `)({

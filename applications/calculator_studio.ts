@@ -19,7 +19,7 @@
 
 import { injectHelp } from "../src/shared/helpTips";
 import type { Server } from "bun";
-import { SizeHint, Webview } from "webview-bun";
+import type { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
 import { existsSync, readFileSync, statSync } from "fs";
 import { guardLocalRequest } from "../src/localGuard";
@@ -549,6 +549,7 @@ export function createCalculatorStudio(options: CalculatorStudioOptions = {}): C
       // Native Webview Window (debug: false prevents developer tools / inspect element)
       try {
         const debug = options.debug ?? false;
+        const { SizeHint, Webview } = require("webview-bun") as typeof import("webview-bun");
         const webview = new Webview(debug, {
           width,
           height,

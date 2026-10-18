@@ -83,11 +83,12 @@ describe("hostile .env files", () => {
     const outside = join(root, "outside-secret.env");
     writeFileSync(outside, "MSQL_HOST=stolen.example.com\n");
     const d = folder({ ".env": "X=" + "a".repeat(DOTENV_MAX_BYTES + 10), ".env.development": Buffer.from([0x41, 0x3d, 0x00, 0x42]) });
-    symlinkSync(outside, join(d, ".env.local"));
+    let linked = true;
+    try { symlinkSync(outside, join(d, ".env.local")); } catch { linked = false; }
     mkdirSync(join(d, ".env.development.local"));
     const read = await readDotenvFolder(d, undefined, {});
     const why = Object.fromEntries(read.files.map((f) => [f.name, f.skipped]));
-    expect(why).toEqual({ ".env": "too-big", ".env.development": "binary", ".env.local": "link", ".env.development.local": "not-a-file" });
+    expect(why).toEqual(linked ? { ".env": "too-big", ".env.development": "binary", ".env.local": "link", ".env.development.local": "not-a-file" } : { ".env": "too-big", ".env.development": "binary", ".env.development.local": "not-a-file" });
     expect(read.values.size).toBe(0);
   });
 

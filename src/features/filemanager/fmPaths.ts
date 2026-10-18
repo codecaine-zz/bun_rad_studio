@@ -11,8 +11,10 @@ export type Platform = "win32" | "darwin" | "linux";
 
 export const MAX_NAME_LENGTH = 255;
 
-function pathFor(platform: Platform) {
-  return platform === "win32" ? nodePath.win32 : nodePath.posix;
+function pathFor(platform: Platform, sample?: string) {
+  return platform === "win32" || (process.platform === "win32" && typeof sample === "string" && /^[A-Za-z]:[\\/]/.test(sample))
+    ? nodePath.win32
+    : nodePath.posix;
 }
 
 export function platformName(platform: string = process.platform): Platform {
@@ -114,7 +116,7 @@ function sameOrInside(child: string, parent: string, p: typeof nodePath.posix, c
  */
 export function protectedReason(target: string, ctx: ProtectContext, kind: "modify" | "create" = "modify"): string | null {
   const platform = ctx.platform ?? platformName();
-  const p = pathFor(platform);
+  const p = pathFor(platform, target);
   const ci = platform !== "linux";
   const t = p.resolve(target);
   const home = p.resolve(ctx.home);
@@ -149,7 +151,7 @@ export function protectedReason(target: string, ctx: ProtectContext, kind: "modi
 
 /** True when `child` is `parent` itself or lies inside it (used to stop "move a folder into itself"). */
 export function isSameOrInside(child: string, parent: string, platform: Platform = platformName()): boolean {
-  const p = pathFor(platform);
+  const p = pathFor(platform, child);
   return sameOrInside(p.resolve(child), p.resolve(parent), p, platform !== "linux");
 }
 

@@ -1,34 +1,34 @@
 {
   "window:midnight": {
-    "sha256": "c63a3c4191a842d1b1d3505e8d44875cb77f0eca9cca19e3645240a6b7443502",
-    "length": 471573
+    "sha256": "6ee08d42b5aed0134e160cb8f56ec20d3efe0c7055acd8b15cc7a1109a934993",
+    "length": 473064
   },
   "window:dracula": {
-    "sha256": "ab6287bc8eb682ce36ba6977f2a916fd6d9560a672d5d523d836e0912d17a199",
-    "length": 471542
+    "sha256": "3370216b69d360e9212d7a4d23484e47ce32ca69dbd2d3c4e6d48ba709c7a025",
+    "length": 473033
   },
   "window:win95": {
-    "sha256": "bc12bad8d00e80b42f60e25c3b06d45ee41952365351c93246e5f0da6901fc33",
-    "length": 470780
+    "sha256": "5c5af1f1c9942b61bbcd9c0e95ad64c4dd7012ff54cf43bd421c534e3aac1e53",
+    "length": 472271
   },
   "window:apple_light": {
-    "sha256": "eab83d77da54d4cc08012f083d13964a4b7ebc7be083b3b9e25be5f491592886",
-    "length": 470812
+    "sha256": "eb4024589da3d0a4fda6cf4772f4688e1b0f7ab16d527efeb613f459b619a25f",
+    "length": 472303
   },
   "window:tokyo_night": {
-    "sha256": "9a2f4820a53f29a722e39ecb830b3571268be97cb550f64ff1feb5051d41ee1f",
-    "length": 471565
+    "sha256": "d1226990ccb3bef79914a6e1e0cb8f32b89f712358e5c9bb7072c6a1ffc88427",
+    "length": 473056
   },
   "window:oled_black": {
-    "sha256": "523230ff54482ae5628cd2da54f52e0327e86134354108b3fba66c9fd519c033",
-    "length": 471568
+    "sha256": "cafaf77718394f63c4d673c0a5441787780de60dde7f38725e5bea8b2d02647a",
+    "length": 473059
   },
   "designer:dark": {
-    "sha256": "7de4fb0b4037b5e8864d14d343b07b9810b502c744a0844ac70b722826cbc808",
-    "length": 85393
+    "sha256": "34879138b250edbba5f612482e71f7e0300f843429797107e52faadcf9da4b24",
+    "length": 86005
   },
   "designer:light": {
-    "sha256": "47bfd0519cb32ef27ba2902e3cec3873a6c8155f94a836bc21bc87940e233749",
-    "length": 85092
+    "sha256": "fe9bff714bc96185b23d3d8a3e2928251c4f3fa788387100c3a2919d5a6f9f80",
+    "length": 85704
   }
 }

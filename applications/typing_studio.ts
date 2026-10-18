@@ -4,7 +4,7 @@
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  */
 
-import { SizeHint, Webview } from "webview-bun";
+import type { SizeHint, Webview } from "webview-bun";
 import { serve } from "bun";
 import { join, resolve } from "path";
 import { existsSync, readFileSync } from "fs";
@@ -128,6 +128,7 @@ export function createTypingStudio(options: TypingStudioOptions = {}): TypingStu
       }
 
       try {
+        const { SizeHint, Webview } = require("webview-bun") as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -189,6 +190,7 @@ export class TypingStudio {
     console.log(`⚡ Background server active at: http://127.0.0.1:${this.port}`);
 
     try {
+      const { SizeHint, Webview } = require("webview-bun") as typeof import("webview-bun");
       this.webview = new Webview(true, {
         width: 1280,
         height: 800,

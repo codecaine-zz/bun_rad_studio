@@ -1604,7 +1604,7 @@ Try one live: `bun run demo:themes beos_r5`
 ---
 
 <a id="status-colors"></a>
-## 🚦 Status colours: danger, warning, success, info
+## 🚦 Status colors: danger, warning, success, info
 
 Every theme has four status colors. They are worked out from the theme so they always read well on its canvas and cards (text at least 4.5:1 where the canvas allows it, fills at least 3:1 against the card, and the label on a fill at least 4.5:1). Well-known palettes (Dracula, Nord, Gruvbox, Solarized, Catppuccin, Monokai Pro, Tokyo Night, One Dark, GitHub, Everforest, Kanagawa and the classic Windows palettes) use their own published colors.
 

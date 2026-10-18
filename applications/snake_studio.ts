@@ -4,7 +4,7 @@
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  */
 
-import { SizeHint, Webview } from "webview-bun";
+import type { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
 import { existsSync, readFileSync } from "fs";
 import { startStaticStudioServer } from "../src/studio_server";
@@ -162,6 +162,7 @@ export function createSnakeStudio(options: SnakeStudioOptions = {}): SnakeStudio
       }
 
       try {
+        const { SizeHint, Webview } = require("webview-bun") as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,

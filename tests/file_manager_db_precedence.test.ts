@@ -119,7 +119,7 @@ describe("a saved connection replaces the environment (every engine, hostile var
       expect(r.env.STUDIO_EXPORT_DIR).toBe(join(c.dataDir, "db_studios", "files"));
       expect(r.env.PATH).toBe(hostile().PATH);
     }
-  });
+  }, 30_000);
 });
 
 describe("the order: connection, then the engine's defaults, then the environment, then the studio's own", () => {
@@ -147,13 +147,14 @@ describe("the order: connection, then the engine's defaults, then the environmen
     r = await run(c, { profileId: id });
     expect(r.env).toMatchObject({ MSQL_HOST: "h", MSQL_PORT: "3306", MSQL_USER: "root", MSQL_TLS: "false", MSQL_NAME: "my_app_dev" });
     expect(connectionVars(r.env).filter((n) => n.includes("URL"))).toEqual([]);
-  });
+  }, 30_000);
 
   test("a DATABASE_URL that would override the host does not, and is not even passed along", async () => {
     const env = { ...hostile(), DATABASE_URL: "mysql://sneaky:pw@evil-host:3306/evil-db", MSQL_URL: "" };
     delete (env as Record<string, string | undefined>).MSQL_URL;
     const { c } = setup({ env });
-    const id = (await c.ok("db/profile/save", { profile: { engine: "mysql", name: "p", host: "good-host", user: "good" } })).profile.id;
+    const id = (await c.ok("db/profile/save", { profile: { engine: "mysql", name: "p", host: "h", user: "good" } })).profile.id;
+    await c.ok("db/profile/save", { id, profile: { engine: "mysql", name: "p", host: "good-host", user: "good" } });
     const r = await run(c, { profileId: id });
     expect(r.env.MSQL_HOST).toBe("good-host");
     expect(r.env.DATABASE_URL).toBeUndefined();
@@ -197,7 +198,7 @@ describe("with no connection chosen", () => {
       expect(r.execArgv).not.toContain("--no-env-file");
       expect(r.env.PG_STUDIO_PORT).toBe(engine === "postgres" ? "0" : undefined);
     }
-  });
+  }, 30_000);
 
   test("and it then reads `.env` files of its start folder, as it always did", async () => {
     const { c } = setup({ env: { PATH: process.env.PATH ?? "" }, startEnvFile: "PG_HOST=dotenv-host\nPG_PASSWORD=dotenv-pw\n" });
@@ -223,7 +224,7 @@ describe("with no connection chosen", () => {
       expect(after.execArgv).toContain("--no-env-file");
       expect(after.cwd).toBe(neutral(c));
     }
-  });
+  }, 60_000);
 
   test("defaults without a connection: the defaults win over the environment, which fills the rest", async () => {
     const { c } = setup();

@@ -324,10 +324,10 @@ test.skipIf(process.platform !== "win32")("a compiled baseline Windows launcher 
   expect(JSON.parse(success.stdout.toString())).toEqual({ arch: "x64", args: ["--server", "--path", "folder with spaces"], runtime: "1" });
   writeFileSync(script, 'console.error("simulated missing native dependency"); process.exit(23);');
   const failure = Bun.spawnSync(["powershell.exe", "-NoProfile", "-Command", "& $env:TEST_EXE --server | Out-Host; exit $LASTEXITCODE"], { env: { ...env, TEST_EXE: exe } });
-  expect(failure.exitCode).toBe(1);
-  expect(failure.stderr.toString()).toContain("code 23");
-  const logs = join(dir, ".bun_rad_studio", "logs");
-  expect(readdirSync(logs).some(f => readFileSync(join(logs, f), "utf8").includes("simulated missing native dependency"))).toBe(true);
+  expect(failure.exitCode).toBe(23);
+  expect(failure.stderr.toString()).toContain("exited with 23");
+  const logFile = join(dir, ".bun_rad_studio", "file-manager-startup.log");
+  expect(readFileSync(logFile, "utf8")).toContain("simulated missing native dependency");
 }, 120_000);
 
 test("File Manager server starts and serves the page without loading a native webview", async () => {

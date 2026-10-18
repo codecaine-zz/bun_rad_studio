@@ -5,7 +5,20 @@
  */
 import type { SimpleGUITheme } from "../../simplegui";
 import { SIMPLEGUI_THEMES } from "../../shared/simpleguiThemes";
-import { FX_THEME_KEYS, fxCssVars, fxRootAttrs, glassReport, type ThemeFx } from "../../shared/fxThemes";
+import {
+  FX_THEME_KEYS,
+  FX_FALLBACK_THEMES,
+  detectThemeHardware,
+  fxCssVars,
+  fxRootAttrs,
+  getFallbackThemeKey,
+  glassReport,
+  srgbToDisplayP3,
+  type FxHardwareInput,
+  type FxHardwareProfile,
+  type FxMode,
+  type ThemeFx,
+} from "../../shared/fxThemes";
 import { OS_THEME_KEYS, RARE_OS_THEME_KEYS } from "../../shared/osThemes";
 import { buildSemanticPalette, contrastRatio, overridesForTheme, parseColor, toHex } from "../../shared/themeSemantic";
 import { FmError } from "./fmPaths";
@@ -52,6 +65,10 @@ export interface ThemeSummary {
   preview: ThemePreview;
   /** True when the theme has special effects (glass, glow, motion, texture), not just colors. */
   hasEffects: boolean;
+  /** Lightweight non-FX fallback theme key when the system cannot sustain GPU glass/glow shaders. */
+  fallbackKey?: string;
+  /** Display name of the lightweight non-FX fallback theme. */
+  fallbackName?: string;
 }
 
 export interface ThemeVars {
@@ -178,7 +195,7 @@ export function themeVars(theme: SimpleGUITheme): ThemeVars {
     text, muted, border,
     "border-subtle": borderSubtle,
     "border-strong": borderStrong,
-    accent, "accent-text": accentText,
+    accent, "accent-p3": srgbToDisplayP3(accent, 0.14), "accent-text": accentText,
     "accent-soft": accentSoft,
     "focus-ring": focusRing,
     "scrollbar-thumb": scrollbarThumb,
@@ -262,6 +279,18 @@ function previewOf(theme: SimpleGUITheme, v: Record<string, string>): ThemePrevi
   };
 }
 
+function fallbackMetaFor(key: string, theme: SimpleGUITheme): { fallbackKey?: string; fallbackName?: string } {
+  if (!theme.fx) return {};
+  const fbKey = FX_FALLBACK_THEMES[key] ?? getFallbackThemeKey(key);
+  let resolvedKey = fbKey && fbKey !== key && SIMPLEGUI_THEMES[fbKey] ? fbKey : (theme.is_dark ? "midnight" : "apple_light");
+  const fbTheme = SIMPLEGUI_THEMES[resolvedKey];
+  if (fbTheme?.name) {
+    const firstKey = Object.keys(SIMPLEGUI_THEMES).sort().find((k) => SIMPLEGUI_THEMES[k]?.name === fbTheme.name);
+    if (firstKey) resolvedKey = firstKey;
+  }
+  return { fallbackKey: resolvedKey, fallbackName: fbTheme?.name ?? resolvedKey };
+}
+
 function build(): Map<string, Entry> {
   const out = new Map<string, Entry>();
   const seenNames = new Set<string>();
@@ -270,9 +299,20 @@ function build(): Map<string, Entry> {
     if (!theme?.name || seenNames.has(theme.name) || !/^[a-z0-9_]{1,60}$/.test(key)) continue;
     seenNames.add(theme.name);
     const v = themeVars(theme).vars;
+    const fb = fallbackMetaFor(key, theme);
     out.set(key, {
       theme,
-      summary: { key, name: theme.name, description: theme.description ?? "", dark: theme.is_dark, group: groupOf(key, theme), swatch: [v.bg!, v.panel!, v.accent!, v.text!], preview: previewOf(theme, v), hasEffects: !!theme.fx },
+      summary: {
+        key,
+        name: theme.name,
+        description: theme.description ?? "",
+        dark: theme.is_dark,
+        group: groupOf(key, theme),
+        swatch: [v.bg!, v.panel!, v.accent!, v.text!],
+        preview: previewOf(theme, v),
+        hasEffects: !!theme.fx,
+        ...fb,
+      },
     });
   }
   return out;
@@ -285,7 +325,19 @@ export const listThemes = (): ThemeSummary[] => [...entries().values()].map((e) 
 function summaryOf(key: string, theme: SimpleGUITheme, group: ThemeGroup): ThemeSummary & ThemeVars {
   const computed = themeVars(theme);
   const v = computed.vars;
-  return { key, name: theme.name, description: theme.description ?? "", dark: theme.is_dark, group, swatch: [v.bg!, v.panel!, v.accent!, v.text!], preview: previewOf(theme, v), hasEffects: !!theme.fx, ...computed };
+  const fb = fallbackMetaFor(key, theme);
+  return {
+    key,
+    name: theme.name,
+    description: theme.description ?? "",
+    dark: theme.is_dark,
+    group,
+    swatch: [v.bg!, v.panel!, v.accent!, v.text!],
+    preview: previewOf(theme, v),
+    hasEffects: !!theme.fx,
+    ...fb,
+    ...computed,
+  };
 }
 
 export function getThemeColours(key: unknown): (ThemeSummary & ThemeVars) | null {
@@ -294,6 +346,75 @@ export function getThemeColours(key: unknown): (ThemeSummary & ThemeVars) | null
   if (!e) return null;
   e.computed ??= themeVars(e.theme);
   return { ...e.summary, ...e.computed };
+}
+
+export interface FmHardwareThemeResult {
+  theme: ThemeSummary & ThemeVars;
+  requestedKey: string;
+  appliedKey: string;
+  fallbackKey?: string;
+  downgraded: boolean;
+  revertedToFallback: boolean;
+  fxMode: FxMode;
+  hardware: FxHardwareProfile;
+}
+
+/**
+ * Resolves a File Manager theme and automatically reverts to its lightweight non-FX fallback theme
+ * (or downgrades `fxMode`) when the system is software-rendered, over RDP, in Windows High Contrast,
+ * or below the minimum GPU/CPU/RAM threshold.
+ */
+export function getThemeColoursForHardware(
+  key: unknown,
+  hw?: FxHardwareInput,
+  opts?: { revertToFallbackTheme?: boolean }
+): FmHardwareThemeResult | null {
+  const requested = getThemeColours(key);
+  if (!requested) return null;
+  const hardware = detectThemeHardware(hw);
+  const revert = opts?.revertToFallbackTheme !== false;
+  if (requested.hasEffects && hardware.shouldUseFallbackTheme) {
+    const fbKey = requested.fallbackKey ?? (requested.dark ? "midnight" : "apple_light");
+    const fbTheme = revert ? getThemeColours(fbKey) : null;
+    if (fbTheme) {
+      return {
+        theme: {
+          ...fbTheme,
+          notes: [
+            ...fbTheme.notes,
+            `Automatically switched from ${requested.name} to ${fbTheme.name} for smooth performance on this system (${hardware.reason}).`,
+          ],
+        },
+        requestedKey: requested.key,
+        appliedKey: fbTheme.key,
+        fallbackKey: fbKey,
+        downgraded: true,
+        revertedToFallback: true,
+        fxMode: hardware.recommendedFxMode,
+        hardware,
+      };
+    }
+    return {
+      theme: requested,
+      requestedKey: requested.key,
+      appliedKey: requested.key,
+      fallbackKey: fbKey,
+      downgraded: true,
+      revertedToFallback: false,
+      fxMode: hardware.recommendedFxMode,
+      hardware,
+    };
+  }
+  return {
+    theme: requested,
+    requestedKey: requested.key,
+    appliedKey: requested.key,
+    fallbackKey: requested.fallbackKey,
+    downgraded: hardware.recommendedFxMode !== "on" && requested.hasEffects,
+    revertedToFallback: false,
+    fxMode: hardware.recommendedFxMode,
+    hardware,
+  };
 }
 
 const customSummary = (t: CustomTheme): ThemeSummary => {
@@ -318,6 +439,13 @@ export const themeOperations: Record<string, FmHandler> = {
     const r = await resolve(ctx, b.key);
     if (!r) throw new FmError("NOT_FOUND", "That theme isn't available.");
     return { theme: r.colours, source: r.source, custom: r.draft ? { id: r.draft.id, name: r.draft.name, base: r.draft.base } : null };
+  },
+  async "themes/resolve-hardware"(_ctx, b) {
+    const res = getThemeColoursForHardware(b.key, b.hardware as FxHardwareInput | undefined, {
+      revertToFallbackTheme: b.revertToFallbackTheme !== false,
+    });
+    if (!res) throw new FmError("NOT_FOUND", "That theme isn't available.");
+    return res;
   },
   /** Works out the colors of a theme that isn't saved yet, so the editor can show it live. */
   async "themes/preview"(_ctx, b) {

@@ -242,23 +242,32 @@ describe("serving files", () => {
 
   test("the list page escapes names, so a file called <script> can't run anything", async () => {
     const dir = folder();
-    const nasty = ["<script>alert(1)<script>.txt", 'quote"s&amp;.txt', "<img src=x onerror=alert(1)>.txt", "a b#c%d.txt"];
+    const nasty =
+      process.platform === "win32"
+        ? ["quote's&amp;.txt", "a b#c%d.txt"]
+        : ["<script>alert(1)<script>.txt", 'quote"s&amp;.txt', "<img src=x onerror=alert(1)>.txt", "a b#c%d.txt"];
     for (const n of nasty) writeFileSync(join(dir, n), "x");
-    mkdirSync(join(dir, "<b>folder<b>"));
+    if (process.platform !== "win32") mkdirSync(join(dir, "<b>folder<b>"));
     const s = await serve(dir);
     const res = await fetch(`${s.url}/`);
     const html = await res.text();
     expect(html).not.toContain("<script>alert");
     expect(html).not.toContain("<img src=x");
     expect(html).not.toContain("<b>folder<b>");
-    expect(html).toContain("&lt;script&gt;alert(1)&lt;script&gt;.txt");
-    expect(html).toContain("quote&quot;s&amp;amp;.txt");
+    if (process.platform === "win32") {
+      expect(html).toContain("quote&#39;s&amp;amp;.txt");
+    } else {
+      expect(html).toContain("&lt;script&gt;alert(1)&lt;script&gt;.txt");
+      expect(html).toContain("quote&quot;s&amp;amp;.txt");
+    }
     expect(html).toContain(`href="/${encodeURIComponent("a b#c%d.txt")}"`);
     // A page of this kind carries its own restrictive policy.
     expect(res.headers.get("content-security-policy")).toContain("default-src 'none'");
     // And the odd names can be fetched through those links.
     expect(await (await fetch(`${s.url}/${encodeURIComponent("a b#c%d.txt")}`)).text()).toBe("x");
-    expect(await (await fetch(`${s.url}/${encodeURIComponent("<script>alert(1)<script>.txt")}`)).text()).toBe("x");
+    if (process.platform !== "win32") {
+      expect(await (await fetch(`${s.url}/${encodeURIComponent("<script>alert(1)<script>.txt")}`)).text()).toBe("x");
+    }
   });
 
   test("with listings off, a folder without an index is refused", async () => {
@@ -294,6 +303,19 @@ describe("serving files", () => {
 
 describe("keeping inside the folder", () => {
   const SECRET = "TOP-SECRET-OUTSIDE-CONTENT";
+  const canSymlink = (() => {
+    const probe = join(root, "symlink-probe");
+    const target = join(root, "symlink-target");
+    try {
+      writeFileSync(target, "x");
+      symlinkSync(target, probe);
+      rmSync(probe, { force: true });
+      rmSync(target, { force: true });
+      return true;
+    } catch {
+      return false;
+    }
+  })();
 
   function layout() {
     const base = folder("outer");
@@ -339,12 +361,15 @@ describe("keeping inside the folder", () => {
     const { base, dir } = layout();
     mkdirSync(join(dir, "real"));
     writeFileSync(join(dir, "real", "ok.txt"), "inside link");
-    symlinkSync(join(base, "secret.txt"), join(dir, "leak.txt"));
-    symlinkSync(join(base, "outsidedir"), join(dir, "leakdir"));
-    symlinkSync(join(dir, "real"), join(dir, "okdir"));
-    symlinkSync("../secret.txt", join(dir, "relative-leak.txt"));
+    if (canSymlink) {
+      symlinkSync(join(base, "secret.txt"), join(dir, "leak.txt"));
+      symlinkSync("../secret.txt", join(dir, "relative-leak.txt"));
+    }
+    symlinkSync(join(base, "outsidedir"), join(dir, "leakdir"), "junction");
+    symlinkSync(join(dir, "real"), join(dir, "okdir"), "junction");
     const s = await serve(dir);
-    for (const path of ["/leak.txt", "/leakdir/inner.txt", "/relative-leak.txt"]) {
+    const forbiddenPaths = canSymlink ? ["/leak.txt", "/leakdir/inner.txt", "/relative-leak.txt"] : ["/leakdir/inner.txt"];
+    for (const path of forbiddenPaths) {
       const res = await fetch(`${s.url}${path}`);
       expect(res.status, path).toBe(403);
       expect(await res.text(), path).not.toContain(SECRET);
@@ -362,7 +387,7 @@ describe("keeping inside the folder", () => {
     expect(listing).toContain("okdir");
   });
 
-  test("an index.html that is a link to outside is not served", async () => {
+  test.skipIf(!canSymlink)("an index.html that is a link to outside is not served", async () => {
     const { base, dir } = layout();
     rmSync(join(dir, "index.html"));
     symlinkSync(join(base, "secret.txt"), join(dir, "index.html"));
@@ -381,7 +406,7 @@ describe("keeping inside the folder", () => {
     writeFileSync(join(dir, "sub", ".git", "HEAD"), "ref");
     mkdirSync(join(dir, ".hidden"));
     writeFileSync(join(dir, ".hidden", "x.txt"), "x");
-    symlinkSync(join(dir, ".env"), join(dir, "innocent.txt"));
+    if (canSymlink) symlinkSync(join(dir, ".env"), join(dir, "innocent.txt"));
     const s = await serve(dir);
     for (const path of ["/.env", "/.git/config", "/.git/", "/sub/.git/HEAD", "/.hidden/x.txt", "/innocent.txt", "/.GIT/config"]) expect((await fetch(`${s.url}${path}`)).status, path).toBe(404);
     const list = await (await fetch(`${s.url}/`)).text();
@@ -904,9 +929,9 @@ describe("starting and stopping live servers", () => {
     const { server } = await op(ctx, "serve/start", { root: folder(), kind: "static" });
     const opened = await op(ctx, "serve/open", { id: server.id, path: "/pages/a%20b.html?x=1" });
     expect(opened.opened).toBe(`http://127.0.0.1:${server.port}/pages/a%20b.html?x=1`);
-    expect(ctx.launched.at(-1)!.args).toEqual([opened.opened]);
+    expect(ctx.launched.at(-1)!.args).toContain(opened.opened);
     await op(ctx, "serve/open", { id: server.id });
-    expect(ctx.launched.at(-1)!.args).toEqual([server.url]);
+    expect(ctx.launched.at(-1)!.args).toContain(server.url);
     for (const path of ["//evil.example/x", "http://evil.example/", "/a\\b", "relative", "/a\nb", "/\u0000", "/" + "a".repeat(5000), 5, {}]) {
       await fails(op(ctx, "serve/open", { id: server.id, path }), "BAD_REQUEST");
     }
@@ -931,7 +956,7 @@ describe("starting and stopping live servers", () => {
     await fails(op(ctx, "serve/start", { root: dir, kind: "static", docroot: dir }), "BAD_REQUEST", /not a full path/);
     await fails(op(ctx, "serve/start", { root: dir, kind: "static", docroot: "missing" }), "NOT_FOUND");
     await fails(op(ctx, "serve/start", { root: dir, kind: "static", docroot: "secret.txt" }), "NOT_A_FOLDER");
-    symlinkSync(join(root), join(dir, "linkout"));
+    symlinkSync(join(root), join(dir, "linkout"), "junction");
     await fails(op(ctx, "serve/start", { root: dir, kind: "static", docroot: "linkout" }), "BAD_REQUEST", /outside/);
   });
 

@@ -78,13 +78,19 @@ export interface FmContextOptions {
 
 export function createContext(options: FmContextOptions = {}): FmContext {
   const platform = options.platform ?? platformName();
-  const home = nodePath.resolve(options.home ?? homedir());
-  const dataDir = nodePath.resolve(options.dataDir ?? nodePath.join(home, ".bun_rad_studio"));
+  const rawHome = options.home ?? homedir();
+  const p =
+    platform === "win32" ||
+    (process.platform === "win32" && (/^[A-Za-z]:[\\/]/.test(rawHome) || /^[A-Za-z]:[\\/]/.test(options.dataDir ?? "")))
+      ? nodePath.win32
+      : nodePath.posix;
+  const home = p.resolve(rawHome);
+  const dataDir = p.resolve(options.dataDir ?? p.join(home, ".bun_rad_studio"));
   return {
     platform,
     home,
     dataDir,
-    trashRoot: nodePath.join(dataDir, "file_manager_trash"),
+    trashRoot: p.join(dataDir, "file_manager_trash"),
     launch: options.launch ?? defaultLaunch,
     toolDirs: options.toolDirs,
     editor: { ...defaultEditorHooks({ platform, home, toolDirs: options.toolDirs }), ...options.editor },
@@ -92,7 +98,7 @@ export function createContext(options: FmContextOptions = {}): FmContext {
     jobs: createJobHub(2, historyHooks({ dataDir })),
     secrets: options.secrets,
     databases: options.databases,
-    graveyardDir: options.graveyardDir ? nodePath.resolve(options.graveyardDir) : undefined,
+    graveyardDir: options.graveyardDir ? p.resolve(options.graveyardDir) : undefined,
     graveyardHooks: options.graveyardHooks,
     subdomains: options.subdomains,
     disposers: [],
@@ -115,13 +121,15 @@ async function defaultLaunch(command: string, args: string[], options: { windows
 export function absolutePath(ctx: FmContext, input: unknown): string {
   if (typeof input !== "string" || !input.trim()) throw new FmError("BAD_PATH", "No location was given.");
   if (input.includes("\0")) throw new FmError("BAD_PATH", "That location isn't valid.");
-  const p = ctx.platform === "win32" ? nodePath.win32 : nodePath.posix;
+  const p = ctx.platform === "win32" || (process.platform === "win32" && /^[A-Za-z]:[\\/]/.test(input)) ? nodePath.win32 : nodePath.posix;
   if (!p.isAbsolute(input)) throw new FmError("BAD_PATH", "That location isn't a full path.");
   return p.resolve(input);
 }
 
-export function pathApi(ctx: Pick<FmContext, "platform">) {
-  return ctx.platform === "win32" ? nodePath.win32 : nodePath.posix;
+export function pathApi(ctx: Pick<FmContext, "platform"> & { home?: string; dataDir?: string }) {
+  return ctx.platform === "win32" || (process.platform === "win32" && (/^[A-Za-z]:[\\/]/.test(ctx.home ?? "") || /^[A-Za-z]:[\\/]/.test(ctx.dataDir ?? "")))
+    ? nodePath.win32
+    : nodePath.posix;
 }
 
 export function assertModifiable(ctx: FmContext, target: string): void {

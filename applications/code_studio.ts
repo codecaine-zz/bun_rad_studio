@@ -18,7 +18,7 @@
 
 import { injectHelp } from "../src/shared/helpTips";
 import { minify as minifyCode, prettify as prettifyCode } from "../src/shared/code_prettify";
-import { SizeHint, Webview } from "webview-bun";
+import type { SizeHint, Webview } from "webview-bun";
 import { resolve, join, relative, dirname, isAbsolute, sep } from "path";
 import { guardLocalRequest } from "../src/localGuard";
 import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync, statSync, readdirSync, renameSync, rmSync } from "fs";
@@ -644,6 +644,7 @@ export function createCodeStudio(options: CodeStudioOptions = {}): CodeStudioIns
       }
 
       try {
+        const { Webview, SizeHint } = await import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,

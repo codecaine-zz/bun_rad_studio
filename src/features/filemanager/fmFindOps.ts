@@ -109,7 +109,7 @@ export const findOperations: Record<string, FmHandler> = {
       kind: "grep", paths: targets.paths, query, regex: b.regex === true, matchCase: b.matchCase === true, maxMatches: clamp(b.maxMatches, 500, 1, 2000),
     });
     const p = pathApi(ctx);
-    return { ...found, matches: found.matches.map((m) => ({ ...m, relativePath: targets.root ? p.relative(targets.root, m.path) : p.basename(m.path) })) };
+    return { ...found, matches: found.matches.map((m) => ({ ...m, relativePath: (targets.root ? p.relative(targets.root, m.path) : p.basename(m.path)).replace(/\\/g, "/") })) };
   },
 
   async "find/dupes"(ctx, b) {

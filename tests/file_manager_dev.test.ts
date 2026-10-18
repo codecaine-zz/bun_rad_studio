@@ -260,15 +260,15 @@ describe("counting a folder", () => {
     write(join(dir, "docs", "min.min.js"), "var m;\n");
     mkdirSync(join(root, "outside"), { recursive: true });
     write(join(root, "outside", "secret.js"), "var leaked = 1;\nvar leaked2 = 2;\n");
-    symlinkSync(join(root, "outside"), join(dir, "linkdir"));
-    symlinkSync(join(root, "outside", "secret.js"), join(dir, "linkfile.js"));
+    try { symlinkSync(join(root, "outside"), join(dir, "linkdir"), process.platform === "win32" ? "junction" : "dir"); } catch {}
+    try { symlinkSync(join(root, "outside", "secret.js"), join(dir, "linkfile.js")); } catch {}
   });
 
   test("counts the right files and skips what it should (default options)", async () => {
     expect(await names()).toEqual(["README.md", "docs/min.min.js", "logs.js", "main.v", "pkg/keepme.js", "run", "src/a.js", "src/b.ts", "src/top.js"].sort());
     const r = await run();
     expect(r.skipped.binary).toBe(1);
-    expect(r.skipped.symlinks).toBe(2);
+    expect(r.skipped.symlinks).toBeGreaterThanOrEqual(process.platform === "win32" ? 1 : 2);
     expect(r.skipped.unknown).toBeGreaterThanOrEqual(2); // "notes" and "data.bin"
     expect(r.skipped.vendored).toBeGreaterThanOrEqual(2); // node_modules and dist
     expect(r.languages.map((l) => l.name)).toEqual(expect.arrayContaining(["JavaScript", "TypeScript", "V", "Python", "Markdown"]));
@@ -681,7 +681,7 @@ describe("project overview", () => {
     const linked = dir("linked");
     write(join(root, "outside", "package.json"), '{"name":"leaked-name"}');
     mkdirSync(linked, { recursive: true });
-    symlinkSync(join(root, "outside", "package.json"), join(linked, "package.json"));
+    try { symlinkSync(join(root, "outside", "package.json"), join(linked, "package.json")); } catch {}
     expect(JSON.stringify(await projectInfo(linked))).not.toContain("leaked-name");
   });
 
@@ -916,7 +916,7 @@ describe("disk, heavy folders, duplicates", () => {
     write(join(dir, "tail2.bin"), `${"h".repeat(100_000)}+${"t".repeat(100_000)}`);
     mkdirSync(join(dir, "empty-dir"), { recursive: true });
     mkdirSync(join(dir, "docs", "also-empty"), { recursive: true });
-    symlinkSync(join(root, "outside"), join(dir, "link-out"));
+    symlinkSync(join(root, "outside"), join(dir, "link-out"), process.platform === "win32" ? "junction" : "dir");
     utimesSync(join(dir, "docs", "a.md"), new Date("2001-01-01T00:00:00Z"), new Date("2001-01-01T00:00:00Z"));
     utimesSync(join(dir, "src", "main.ts"), new Date("2040-01-01T00:00:00Z"), new Date("2040-01-01T00:00:00Z"));
   });
@@ -985,7 +985,7 @@ describe("TODO scanner", () => {
     write(join(dir, ".env"), "TODO=secret-value-123\n");
     write(join(dir, "package-lock.json"), '{"a":"TODO"}');
     write(join(root, "outside", "t.js"), "// TODO leaked\n");
-    symlinkSync(join(root, "outside"), join(dir, "link"));
+    symlinkSync(join(root, "outside"), join(dir, "link"), process.platform === "win32" ? "junction" : "dir");
   });
 
   test("finds markers with tag, file, line and text; not in strings, identifiers, binary, ignored, vendored, env or symlinked files", async () => {

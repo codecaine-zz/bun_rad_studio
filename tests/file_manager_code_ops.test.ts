@@ -320,7 +320,7 @@ describe("code/files", () => {
     expect(r.skipped[0]).toContain("huge/");
     await rejects(op("code/files", { root: join(work, "ok.txt") }), "NOT_A_FOLDER");
     await rejects(op("code/files", { root: "nope" }), "BAD_PATH");
-  });
+  }, 30_000);
 });
 
 describe("code/search", () => {
@@ -604,7 +604,7 @@ describe("run presets: validation", () => {
       types: { ".ts": { presets: [{ name: "all ts", command: "tsc" }] }, "ts": { presets: [{ name: "x", command: "x" }] }, ".": { presets: [] } },
     }, ctx);
     expect(Object.values(doc.files).length).toBe(1);
-    expect(doc.files[a]!.presets.map((p) => p.name)).toEqual(["ok"]);
+    expect(doc.files[process.platform === "win32" ? a.toLowerCase() : a]!.presets.map((p) => p.name)).toEqual(["ok"]);
     expect(Object.keys(doc.types)).toEqual([".ts"]);
     expect(dropped).toBeGreaterThanOrEqual(5);
   });

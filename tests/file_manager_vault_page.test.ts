@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, mock, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { JSDOM } from "jsdom";
@@ -53,6 +53,17 @@ beforeAll(async () => {
   writeFileSync(join(work, "album", "two.txt"), "22");
   writeFileSync(join(work, "plain.txt"), "not encrypted");
   writeFileSync(join(work, "fake.radenc"), "I only have the extension");
+  mock.module("../resources/file_manager/ui/terminal.js", () => ({
+    terminalShell: () => "posix",
+    terminalWsl: () => ({}),
+    terminalAvailable: () => false,
+    typeInTerminal: () => false,
+    showTerminal() {},
+    hideTerminal() {},
+    toggleTerminal() {},
+    wireTerminal() {},
+    isTerminalOpen: () => false,
+  }));
   server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir: join(scratch, "data") } });
   setVaultInternal(server.context, { kdf: { memoryKiB: 64, passes: 1, parallelism: 1 } });
   const base = `http://127.0.0.1:${server.port}`;
@@ -68,7 +79,7 @@ beforeAll(async () => {
   strength = await import("../resources/file_manager/ui/vaultStrength.js");
   vault = await import("../resources/file_manager/ui/vault.js");
   const state = (await import("../resources/file_manager/ui/state.js")).state as any;
-  state.sep = "/";
+  state.sep = process.platform === "win32" ? "\\" : "/";
   state.platform = process.platform;
   state.location = { kind: "folder", path: work };
 });
@@ -81,6 +92,7 @@ afterAll(() => {
     if (before) Object.defineProperty(g, key, before);
     else delete g[key];
   }
+  mock.restore();
   server.stop(true);
   rmSync(scratch, { recursive: true, force: true });
 });

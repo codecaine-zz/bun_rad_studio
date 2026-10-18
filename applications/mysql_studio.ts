@@ -11,7 +11,7 @@
  */
 
 import { injectHelp } from "../src/shared/helpTips";
-import { Webview, SizeHint } from "webview-bun";
+import type { Webview, SizeHint } from "webview-bun";
 
 import { resolve, join } from "path";
 import { writeFileSync, existsSync, mkdirSync } from "fs";
@@ -7632,6 +7632,7 @@ export function createMysqlStudio(options: SystemStudioOptions = {}): MysqlStudi
 
       // 2. Native Webview Window
       try {
+        const { Webview, SizeHint } = await import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,

@@ -233,13 +233,18 @@ function helperStrip() {
   return box;
 }
 
+let helpersLoading = false;
+
 async function loadHelpers() {
-  if (helpers.tools && Date.now() - helpers.at < 30000) return;
+  if (helpersLoading || (helpers.tools && Date.now() - helpers.at < 30000)) return;
+  helpersLoading = true;
   try {
     const data = await call("tools/overview", { paths: [] });
     helpers = { at: Date.now(), tools: data.tools ?? [], failed: false };
   } catch {
     helpers = { at: 0, tools: null, failed: true };
+  } finally {
+    helpersLoading = false;
   }
   if (built && state.workspace === "home") fillSections();
 }

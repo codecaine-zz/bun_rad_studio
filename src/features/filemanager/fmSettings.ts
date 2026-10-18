@@ -313,7 +313,9 @@ function sanitizeServeOptions(raw: unknown): Settings["serveOptions"] {
 
 const settingsFile = (ctx: FmContext) => nodePath.join(ctx.dataDir, "file_manager.json");
 
-export async function loadSettings(ctx: FmContext): Promise<Settings> {
+let writing: Promise<unknown> = Promise.resolve();
+
+async function readSettingsRaw(ctx: FmContext): Promise<Settings> {
   try {
     return sanitizeSettings(JSON.parse(await fsp.readFile(settingsFile(ctx), "utf8")), ctx);
   } catch {
@@ -321,12 +323,15 @@ export async function loadSettings(ctx: FmContext): Promise<Settings> {
   }
 }
 
-let writing: Promise<unknown> = Promise.resolve();
+export async function loadSettings(ctx: FmContext): Promise<Settings> {
+  await writing;
+  return readSettingsRaw(ctx);
+}
 
 /** Applies a partial change and saves it. Unknown keys are ignored. */
 export async function updateSettings(ctx: FmContext, change: unknown): Promise<Settings> {
   const run = async () => {
-    const current = await loadSettings(ctx);
+    const current = await readSettingsRaw(ctx);
     const patch = change && typeof change === "object" ? (change as Record<string, unknown>) : {};
     const keys = Object.keys(DEFAULT_SETTINGS);
     const merged: Record<string, unknown> = { ...current };
@@ -334,8 +339,14 @@ export async function updateSettings(ctx: FmContext, change: unknown): Promise<S
     const next = sanitizeSettings(merged, ctx);
     await fsp.mkdir(ctx.dataDir, { recursive: true });
     const tmp = `${settingsFile(ctx)}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
-    await fsp.writeFile(tmp, JSON.stringify(next, null, 2), { mode: 0o600 });
-    await fsp.rename(tmp, settingsFile(ctx));
+    const body = JSON.stringify(next, null, 2);
+    await fsp.writeFile(tmp, body, { mode: 0o600 });
+    try {
+      await fsp.rename(tmp, settingsFile(ctx));
+    } catch {
+      await fsp.writeFile(settingsFile(ctx), body, { mode: 0o600 });
+      await fsp.rm(tmp, { force: true }).catch(() => {});
+    }
     return next;
   };
   const result = writing.then(run, run);

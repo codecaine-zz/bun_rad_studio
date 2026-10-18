@@ -73,7 +73,7 @@ beforeAll(async () => {
   fav = await import("../resources/file_manager/ui/favorites.js");
   const sidebar = await import("../resources/file_manager/ui/sidebar.js");
   state.home = home;
-  state.sep = "/";
+  state.sep = process.platform === "win32" ? "\\" : "/";
   state.places = [];
   state.drives = [];
   state.location = { kind: "folder", path: projects };

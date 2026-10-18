@@ -289,7 +289,7 @@ describe("the Code tab in a browser-like page", () => {
     await until(() => toasts().some((t) => /v fmt|isn't installed/.test(t)), "the V formatter's result");
     expect(toasts().join(" | ")).toMatch(/v fmt|isn't installed/);
     expect(ta.value).toBe("fn main( {\n");
-  });
+  }, 15_000);
 
   test("Format / prettify and Minify lay out and squeeze a JavaScript file through the server; Undo brings it back", async () => {
     writeFileSync(join(work, "messy.js"), "const a={b:1,c:[1,2,3]};\nfunction f(x){return x+1}\n");

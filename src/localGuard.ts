@@ -31,6 +31,10 @@ export function writeClipboardSync(text: string): boolean {
       const proc = Bun.spawnSync(["pbcopy"], { stdin: inputBuf });
       return proc.exitCode === 0;
     } else if (process.platform === "win32") {
+      if (text.length > 0 && /^[\t\r\n\x20-\x7e]+$/.test(text)) {
+        const clip = Bun.spawnSync(["clip"], { stdin: inputBuf });
+        if (clip.exitCode === 0) return true;
+      }
       // PowerShell and clip read a pipe in the console's old code page, which garbles accents and other Unicode.
       // So PowerShell gets base64 (plain ASCII) and decodes it itself; clip understands UTF-16 with a byte-order mark.
       const ps = Bun.spawnSync(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command",

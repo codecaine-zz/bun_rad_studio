@@ -178,8 +178,8 @@ export async function runExec(ctx: FmContext, plan: ExecPlan, cwd: string, limit
         resolve({ exitCode, stdout: keep(stdout), stderr: keep(stderr), timedOut, ...(error ? { error } : {}) });
       };
       // Only the first part of the output is kept in memory, whatever the program prints.
-      child.stdout?.on("data", (d: Buffer) => { if (stdout.length < EXEC_OUTPUT_CAP) stdout += d.toString("utf8"); });
-      child.stderr?.on("data", (d: Buffer) => { if (stderr.length < EXEC_OUTPUT_CAP) stderr += d.toString("utf8"); });
+      child.stdout?.on("data", (d: Buffer) => { if (stdout.length <= EXEC_OUTPUT_CAP) stdout += d.toString("utf8"); });
+      child.stderr?.on("data", (d: Buffer) => { if (stderr.length <= EXEC_OUTPUT_CAP) stderr += d.toString("utf8"); });
       child.once("error", (err: NodeJS.ErrnoException) => done(null, err.code === "ENOENT" ? `The program "${plan.program}" wasn't found. Check the spelling, or give its full location.` : err.code === "EACCES" ? `You aren't allowed to run "${plan.program}".` : `The program couldn't start: ${err.message}`));
       child.once("close", (code) => done(code, timedOut ? "It took too long and was stopped." : undefined));
     });

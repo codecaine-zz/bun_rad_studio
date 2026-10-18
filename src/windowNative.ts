@@ -34,6 +34,17 @@ export interface WindowBounds {
   y: number | null;
 }
 
+export type NativeWindowBackdrop = "none" | "vibrancy" | "mica" | "mica-alt" | "acrylic";
+
+export interface WindowAppearanceOptions {
+  /** Whether the active theme is dark (syncs macOS NSAppearance and Windows DWMWA_USE_IMMERSIVE_DARK_MODE). */
+  dark?: boolean;
+  /** Native OS window material (macOS vibrancy, Windows 11 DWM Mica / Mica Alt / Acrylic, or "none" fallback). */
+  backdrop?: NativeWindowBackdrop;
+  /** Windows 11 DWM corner preference (true = DWMWCP_ROUND, false = DWMWCP_ROUNDSMALL). */
+  roundedCorners?: boolean;
+}
+
 export interface WindowNative {
   /** The monitors that exist now; the first is the primary. Empty when they can't be found out. */
   getScreens(): FmScreen[];
@@ -48,6 +59,8 @@ export interface WindowNative {
   setFullscreen(on: boolean): boolean;
   /** Optional platform support; changes stacking without moving, resizing or activating the window. */
   setAlwaysOnTop?(on: boolean): boolean;
+  /** Optional platform support; syncs native macOS NSAppearance/Vibrancy or Windows 11/10 DWM Dark Mode & Mica/Acrylic backdrop with automatic RDP/legacy fallback. */
+  setWindowAppearance?(opts: WindowAppearanceOptions): boolean;
   /** The window's frame and state, or null when it can't be read (the page's own numbers are then used). */
   getFrame(): FrameInfo | null;
 }
@@ -216,6 +229,21 @@ function macNative(wv: Webview): WindowNative {
         return false;
       }
     },
+    setWindowAppearance(opts) {
+      return ok(() => {
+        const objc = dlopen("libobjc.dylib", { objc_getClass: { args: [FFIType.cstring], returns: P } }).symbols;
+        const nsString = objc.objc_getClass(Buffer.from("NSString\0"));
+        const nsAppearance = objc.objc_getClass(Buffer.from("NSAppearance\0"));
+        if (!nsString || !nsAppearance) return;
+        const vibrant = opts.backdrop && opts.backdrop !== "none";
+        const name = opts.dark !== false
+          ? (vibrant ? "NSAppearanceNameVibrantDark" : "NSAppearanceNameDarkAqua")
+          : (vibrant ? "NSAppearanceNameVibrantLight" : "NSAppearanceNameAqua");
+        const str = send([P, P, FFIType.cstring], P)(nsString, sel("stringWithUTF8String:"), Buffer.from(`${name}\0`));
+        const app = str ? send([P, P, P], P)(nsAppearance, sel("appearanceNamed:"), str) : null;
+        if (app) send([P, P, P], FFIType.void)(win(), sel("setAppearance:"), app);
+      });
+    },
     getFrame() {
       try {
         getScreens();
@@ -356,6 +384,50 @@ function windowsNative(wv: Webview): WindowNative {
         return false;
       }
     },
+    setWindowAppearance(opts) {
+      try {
+        const u = user32();
+        const window = hwnd();
+        // SM_REMOTESESSION (0x1000 = 4096): disable heavy DWM Mica/Acrylic backdrops over Windows Remote Desktop.
+        const isRemoteSession = u.GetSystemMetrics(0x1000) !== 0;
+        const dwm = dlopen("dwmapi.dll", {
+          DwmSetWindowAttribute: { args: [P, FFIType.u32, P, FFIType.u32], returns: FFIType.i32 },
+        });
+        try {
+          const darkVal = new Int32Array([opts.dark !== false ? 1 : 0]);
+          // DWMWA_USE_IMMERSIVE_DARK_MODE = 20 (Windows 11 / Win10 20H1+), fallback 19 (Win10 1809-1909)
+          if (dwm.symbols.DwmSetWindowAttribute(window, 20, ptr(darkVal), 4) !== 0) {
+            dwm.symbols.DwmSetWindowAttribute(window, 19, ptr(darkVal), 4);
+          }
+          if (opts.roundedCorners !== undefined) {
+            // DWMWA_WINDOW_CORNER_PREFERENCE = 33 (2 = DWMWCP_ROUND, 3 = DWMWCP_ROUNDSMALL)
+            const cornerVal = new Int32Array([opts.roundedCorners ? 2 : 3]);
+            dwm.symbols.DwmSetWindowAttribute(window, 33, ptr(cornerVal), 4);
+          }
+          // DWMWA_SYSTEMBACKDROP_TYPE = 38 (Windows 11 22H2+): 1 = None, 2 = Mica, 3 = Acrylic, 4 = Mica Alt
+          const effectiveBackdrop = isRemoteSession ? "none" : (opts.backdrop ?? "none");
+          const backdropId =
+            effectiveBackdrop === "mica"
+              ? 2
+              : effectiveBackdrop === "acrylic"
+                ? 3
+                : effectiveBackdrop === "mica-alt" || effectiveBackdrop === "vibrancy"
+                  ? 4
+                  : 1;
+          const backdropVal = new Int32Array([backdropId]);
+          if (dwm.symbols.DwmSetWindowAttribute(window, 38, ptr(backdropVal), 4) !== 0 && backdropId !== 1) {
+            // Older Windows 10 / 11 21H2 build that does not support DWMWA_SYSTEMBACKDROP_TYPE: fall back cleanly.
+            const fallbackVal = new Int32Array([1]);
+            dwm.symbols.DwmSetWindowAttribute(window, 38, ptr(fallbackVal), 4);
+          }
+          return true;
+        } finally {
+          dwm.close();
+        }
+      } catch {
+        return false;
+      }
+    },
     setFullscreen(on) {
       try {
         const u = user32();
@@ -433,6 +505,7 @@ function linuxNative(wv: Webview, title: () => string): WindowNative {
     maximize: () => wmctrl("add,maximized_vert,maximized_horz"),
     unmaximize: () => void wmctrl("remove,maximized_vert,maximized_horz"),
     setFullscreen: (on) => wmctrl(on ? "add,fullscreen" : "remove,fullscreen"),
+    setWindowAppearance: () => false,
     getFrame: () => null,
   };
 }

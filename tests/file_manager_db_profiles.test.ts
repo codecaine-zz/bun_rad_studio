@@ -146,7 +146,9 @@ describe("saved connections", () => {
     expect(new Set(c.keychain.map.keys())).toEqual(new Set(made.map((p) => p.id)));
     // and no file on this computer does
     expect(diskHolds(c, MARK)).toEqual([]);
-    for (const f of filesUnder(c.dataDir).filter((x) => /connections|file_manager_databases/.test(x))) expect(statSync(f).mode & 0o077, f).toBe(0);
+    if (process.platform !== "win32") {
+      for (const f of filesUnder(c.dataDir).filter((x) => /connections|file_manager_databases/.test(x))) expect(statSync(f).mode & 0o077, f).toBe(0);
+    }
   });
 
   test("the shared connection file is the one the Database Workbench reads; Redis is kept beside it", async () => {

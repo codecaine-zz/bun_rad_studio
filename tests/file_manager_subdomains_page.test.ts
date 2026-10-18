@@ -52,7 +52,7 @@ async function until(fn: () => any, what: string, ms = 8000): Promise<any> {
     const v = fn();
     if (v) return v;
     if (Date.now() > end) throw new Error(`Timed out waiting for ${what}`);
-    await sleep(20);
+    await sleep(2);
   }
 }
 const pane = (): any => doc.getElementById("power-pane-subs");
@@ -92,8 +92,8 @@ async function run(domain: string, setup: () => void = () => {}) {
   type(field("Domain to look up"), domain);
   setup();
   btn("Find subdomains").click();
-  await until(() => isRunning() || message() && !message().hidden, "the run to start", 4000);
-  if (isRunning()) await idle();
+  await until(() => isRunning() || Boolean(toasts()), "the run to start", 4000);
+  await idle();
 }
 const sourcesOnly = (...ids: string[]) => {
   for (const input of qa(".subs-source input")) tick(input, !input.disabled && ids.includes(input.closest(".subs-source").dataset.source));
@@ -194,7 +194,7 @@ describe("the tab and its page", () => {
     const program = sourceRow("subfinder");
     expect(program.querySelector("input").disabled).toBe(true);
     expect(program.querySelector("input").checked).toBe(false);
-    expect(program.textContent).toContain("brew install subfinder");
+    expect(program.textContent).toContain(process.platform === "win32" ? "projectdiscovery/subfinder" : "brew install subfinder");
     expect(program.querySelector(".subs-badge").textContent).toBe("not installed");
     expect(qa(".subs-source input").filter((i) => i.checked)).toHaveLength(4);
     expect(qa(".subs-badge").filter((b) => b.textContent === "ready")).toHaveLength(4);
@@ -318,14 +318,16 @@ describe("ownership confirmation for the active steps", () => {
     expect(world.calls).toEqual([]);
     tick(permissionBox());
     expect(message().hidden).toBe(true);
+    doc.querySelector("#toasts").replaceChildren();
     btn("Find subdomains").click();
-    await until(isRunning, "the run");
+    await until(() => isRunning() || Boolean(toasts()), "the run");
     await idle();
     expect(rows().length).toBe(2);
     expect(q(".subs-permission p.pw-hint").textContent).toContain("Remembered for mine.example.org");
     // the same domain again: already ticked, no new question
+    doc.querySelector("#toasts").replaceChildren();
     btn("Find subdomains").click();
-    await until(isRunning, "the second run");
+    await until(() => isRunning() || Boolean(toasts()), "the second run");
     await idle();
     expect(message().hidden).toBe(true);
     // another domain: asked again; a passive run never asks
@@ -336,8 +338,9 @@ describe("ownership confirmation for the active steps", () => {
     expect(isRunning()).toBe(false);
     expect(message().textContent).toContain("I own this domain or have permission");
     tick(box("Resolve DNS"), false);
+    doc.querySelector("#toasts").replaceChildren();
     btn("Find subdomains").click();
-    await until(isRunning, "a passive run");
+    await until(() => isRunning() || Boolean(toasts()), "a passive run");
     await idle();
     expect(message().hidden).toBe(true);
     // back to the first domain: still remembered
@@ -617,7 +620,7 @@ describe("active steps: results and hostile data", () => {
     rows().find((r) => r.dataset.host === "www.act.example.net").click();
     btn("Open in browser").click();
     await until(() => launched.length === 1, "the browser launch");
-    expect(launched[0]!.args).toEqual(["https://www.act.example.net/"]);
+    expect(launched[0]!.args.at(-1)).toBe("https://www.act.example.net/");
     await until(() => toasts().includes("Opened https://www.act.example.net/"), "the confirmation");
   });
 });

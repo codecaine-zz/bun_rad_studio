@@ -50,7 +50,7 @@ async function until<T>(fn: () => T | Promise<T>, what: string, ms = 8000): Prom
 }
 const noStrayWords = (el: any, where: string) => expect(el.textContent, where).not.toMatch(/\bnull\b|\bundefined\b|\[object|NaN/);
 const menuLabels = () => $$(".menu .menu-label").map((e) => e.textContent);
-const entry = (path: string, isDir: boolean) => ({ path, name: path.split("/").pop(), isDir });
+const entry = (path: string, isDir: boolean) => ({ path, name: path.split(/[\\/]/).pop(), isDir });
 const portIsFree = async (port: number) => {
   try {
     const s = Bun.serve({ hostname: "127.0.0.1", port, fetch: () => new Response("") });
@@ -104,7 +104,7 @@ beforeAll(async () => {
   homeMod = await import("../resources/file_manager/ui/home.js");
   homeTiles = await import("../resources/file_manager/ui/homeTiles.js");
   state.home = home;
-  state.sep = "/";
+  state.sep = process.platform === "win32" ? "\\" : "/";
   state.settings = { ...(await api.call("settings")).settings };
   state.location = { kind: "folder", path: site };
   power.wirePower();

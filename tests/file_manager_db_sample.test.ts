@@ -55,12 +55,12 @@ beforeAll(async () => {
   server = startFileManagerServer({
     port: 0, token: "ui-token",
     context: {
-      platform: "linux", home, dataDir: join(root, "data"),
+      home, dataDir: join(root, "data"),
       databases: { secretStore: async () => keychain, env: () => ({ PATH: process.env.PATH ?? "" }), cwd: () => home, appRoots: () => [], studioCommand: () => fakeStudioCommand(), startTimeoutMs: 15_000, killGraceMs: 400 },
     },
   });
   base = `http://127.0.0.1:${server.port}`;
-  const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8").replace(/__FM_TOKEN__/g, "ui-token").replace(/__FM_PLATFORM__/g, "linux").replace(/__FM_NONCE__/g, "n").replace(/__FM_START__/g, "");
+  const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8").replace(/__FM_TOKEN__/g, "ui-token").replace(/__FM_PLATFORM__/g, process.platform === "win32" ? "win32" : "linux").replace(/__FM_NONCE__/g, "n").replace(/__FM_START__/g, "");
   const dom = new JSDOM(html, { url: `${base}/` });
   win = dom.window;
   const g = globalThis as any;
@@ -70,8 +70,8 @@ beforeAll(async () => {
   Object.defineProperty(g, "fetch", { value: (u: any, o: any) => realFetch(typeof u === "string" && u.startsWith("/") ? base + u : u, o), configurable: true, writable: true });
   doc = win.document;
   const st = (await import("../resources/file_manager/ui/state.js")).state;
-  st.platform = "linux";
-  st.sep = "/";
+  st.platform = process.platform === "win32" ? "win32" : "linux";
+  st.sep = process.platform === "win32" ? "\\" : "/";
   st.home = home;
   st.location = { kind: "folder", path: target };
   power = await import("../resources/file_manager/ui/power.js");
