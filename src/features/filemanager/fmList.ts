@@ -382,13 +382,13 @@ export const PREVIEW_BYTES = 64 * 1024;
 
 export type Preview =
   | { type: "text"; text: string; truncated: boolean; size: number; rich?: RichPreview }
-  | { type: "image"; size: number }
+  | { type: "image"; size: number; rich?: RichPreview }
   /** Sound or video the page can play itself (streamed from /api/raw). */
-  | { type: "audio" | "video"; size: number }
+  | { type: "audio" | "video"; size: number; rich?: RichPreview }
   /** A document the system can draw a picture of (macOS Quick Look): /api/raw?thumb=1. */
   | { type: "thumb"; size: number; rich?: RichPreview }
   | { type: "binary"; size: number; rich?: RichPreview }
-  | { type: "none"; size: number };
+  | { type: "none"; size: number; rich?: RichPreview };
 
 export async function previewFile(ctx: FmContext, input: unknown): Promise<Preview> {
   const path = absolutePath(ctx, input);

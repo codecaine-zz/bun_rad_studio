@@ -289,7 +289,7 @@ describe("Digital LED clock, synced LRC lyrics, and M3U8 playlists", () => {
     const items = parseM3u(m3uText);
     expect(items.length).toBe(2);
     expect(items[0]).toEqual({ path: "/music/one.mp3", title: "Artist A - Track One", duration: 185 });
-    expect(items[1].path).toBe("/music/two.flac");
+    expect(items[1]!.path).toBe("/music/two.flac");
   });
 
   test("16 studio skins, 108 visualizer modes across Low/Medium/ARM Ultra tiers, multi-layer mixing, and 32 EQ presets", () => {

@@ -333,7 +333,7 @@ describe("One-click media actions in the right-click menu and Details panel", ()
     // Details panel card renders buttons with tooltips and data-quick-action
     const card = mq.quickMediaBlock([aud]);
     expect(card).not.toBeNull();
-    const btns = [...card.querySelectorAll("button.mq-btn")];
+    const btns = [...card!.querySelectorAll("button.mq-btn")];
     expect(btns.length).toBeGreaterThanOrEqual(6);
     expect(btns.some((b: any) => b.dataset.quickAction === "aud-voice")).toBe(true);
     expect(btns.every((b: any) => b.getAttribute("title")?.length > 10)).toBe(true);

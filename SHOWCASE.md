@@ -1,6 +1,6 @@
 # Bun RAD Studio: the applications
 
-**65 desktop applications** in one toolbox: databases, developer tools, file tools, system monitors, productivity and games. Each one is a real window, runs on your own computer, has no accounts and no cloud, shares one set of 60+ themes, and explains every button when you hover over it.
+**66 desktop applications** in one toolbox: databases, developer tools, file tools, system monitors, productivity and games. Each one is a real window, runs on your own computer, has no accounts and no cloud, shares one set of 60+ themes, and explains every button when you hover over it.
 
 > Install once, then open any of them from the **Launcher** (`bun run app:launcher`), or run its command below.
 
@@ -13,7 +13,7 @@
 - [Network & Cloud](#network-and-cloud) (3)
 - [Security & Crypto](#security-and-crypto) (2)
 - [System & Hardware](#system-and-hardware) (5)
-- [Productivity & Text](#productivity-and-text) (4)
+- [Productivity & Text](#productivity-and-text) (5)
 - [Design & Media](#design-and-media) (1)
 - [Design & UX](#design-and-ux) (1)
 - [RAD Studio](#rad-studio) (2)
@@ -351,6 +351,14 @@ Real-time dual-pane WYSIWYG Markdown editor with live HTML preview & exports.
 
 `bun run app:markdown`  ·  [User guide](docs/userguides/14_markdown_studio.md)
 
+### 🎛️ Media Player Studio Pro
+
+Modular rack media player with 10-band graphic EQ, preamp, spectrum & radial visualizers, M3U8 playlists & karaoke LRC lyrics.
+
+![Media Player Studio Pro](screenshots/apps/media_player_studio_desktop.png)
+
+`bun run app:player`
+
 ### 🌐 World Time Zones Studio Pro
 
 Real-time global time zones workstation with interactive search, UTC offsets & local clock synchronization.
@@ -361,7 +369,7 @@ Real-time global time zones workstation with interactive search, UTC offsets & l
 
 ## Design & Media
 
-_Colour, drawing and design tokens._
+_Color, drawing and design tokens._
 
 ### 🎨 Chroma Studio Pro
 
@@ -389,7 +397,7 @@ _The visual designer and the tools around it._
 
 ### 🚀 Launcher Studio Pro
 
-The home screen of the toolbox: search, favourite and open any application with one click, with history and categories.
+The home screen of the toolbox: search, favorite and open any application with one click, with history and categories.
 
 ![Launcher Studio Pro](screenshots/apps/launcher_studio_desktop.png)
 
@@ -577,7 +585,7 @@ Unbeatable Minimax AI and 2-player local versus battle with glowing neon canvas 
 
 ### ⌨️ Codecaine CyberType Deluxe
 
-Cyberpunk typing tutor with haptic WebAudio mechanics, live dynamic keyboard, and biometric telemetry.
+Modern touch-typing academy with 10-step guided tutorial, 18-lesson curriculum, Keybr adaptive AI, multi-layout keyboard, and WebAudio switches.
 
 ![Codecaine CyberType Deluxe](screenshots/apps/typing_desktop.png)
 

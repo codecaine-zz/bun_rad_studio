@@ -16,7 +16,7 @@
  */
 import { chmodSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
 import { homedir } from "os";
-import { join } from "path";
+import { join, resolve } from "path";
 import { collect } from "../build_showcase";
 import { appStoreCategory, makeIcns } from "./icons";
 import { desktopInfo } from "./desktop";
@@ -277,7 +277,7 @@ async function main() {
     const names = readdirSync(opts.outDir).filter((f) => f.endsWith(".app")).sort();
     for (const f of readdirSync(opts.outDir)) if (/-apps(-\d+of\d+)?\.zip$/.test(f)) rmSync(join(opts.outDir, f), { force: true });
     await mapPool(zipPlan(names, opts.arch), Math.min(opts.jobs, 3), async ([file, group]) => {
-      await run(["zip", "-qry", join(opts.outDir, file), ...group], { cwd: opts.outDir });
+      await run(["zip", "-qry", resolve(opts.outDir, file), ...group], { cwd: opts.outDir });
       log("🗜️", join(opts.outDir, file));
     });
   }

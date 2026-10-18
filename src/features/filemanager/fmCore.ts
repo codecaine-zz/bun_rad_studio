@@ -120,7 +120,7 @@ export function absolutePath(ctx: FmContext, input: unknown): string {
   return p.resolve(input);
 }
 
-export function pathApi(ctx: FmContext) {
+export function pathApi(ctx: Pick<FmContext, "platform">) {
   return ctx.platform === "win32" ? nodePath.win32 : nodePath.posix;
 }
 

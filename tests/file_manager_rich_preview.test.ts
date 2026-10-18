@@ -311,7 +311,7 @@ endobj
     expect(prev.rich?.kind).toBe("notebook");
     if (prev.rich?.kind === "notebook") {
       expect(prev.rich.cells.length).toBe(2);
-      expect(prev.rich.cells[1]!.outputs[0]!.text?.trim()).toBe("42");
+      expect(prev.rich.cells[1]!.outputs![0]!.text?.trim()).toBe("42");
     }
   });
 
@@ -405,11 +405,11 @@ describe("UI renderers for rich Quick Look and Details panel (quicklookFormat.js
         const entry = { name, path, size: preview.size, isDir: false, label: name, mtimeMs: Date.now() };
         const qlNode = renderRichQuickLook(entry, preview);
         expect(qlNode, name).toBeTruthy();
-        expect(qlNode.textContent, name).not.toMatch(/\bnull\b|\bundefined\b|\[object/i);
+        expect(qlNode!.textContent, name).not.toMatch(/\bnull\b|\bundefined\b|\[object/i);
 
         const infoNode = renderRichInfoSummary(entry, preview);
         expect(infoNode, name).toBeTruthy();
-        expect(infoNode.textContent, name).not.toMatch(/\bnull\b|\bundefined\b|\[object/i);
+        expect(infoNode!.textContent, name).not.toMatch(/\bnull\b|\bundefined\b|\[object/i);
       }
     } finally {
       for (const k of keys) {

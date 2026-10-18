@@ -702,7 +702,7 @@ describe("File Manager Databases: Bun JS Macros UI Dialog & Integration", () => 
   test("1. right-clicking a SQLite file offers Run Bun JS macro on database… after probing", async () => {
     const paneMod = await import("../resources/file_manager/ui/pane.js");
     const entry = { name: "store.sqlite", path: sqliteFilePath, isDir: false, size: 8192, mtimeMs: 100 };
-    paneMod.left.entries = [entry];
+    (paneMod.left as any).entries = [entry];
     await dbFiles.probeSqliteFiles();
     const items = dbMacros.macroSqliteMenuItems([entry]);
     expect(items.length).toBe(1);

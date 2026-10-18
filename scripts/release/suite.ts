@@ -12,7 +12,7 @@ import { chmodSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rm
 import { basename, join } from "path";
 import { ROOT, SIDECAR_FILES, TARGETS, VERSION, defaultJobs, log, mapPool, run, shQuote, webviewLibSource, writeFileAtomic, zipEntries, type SourceApp, type Target } from "./common";
 import { LINUX_SANDBOX_WARNING, linuxSandboxSetup } from "./linuxSandbox";
-import { WINDOWS_SETUP, desktopInfo, stageDesktopIcons, windowsDesktopLauncher, windowsInstallCommand, windowsInstallScript } from "./desktop";
+import { WINDOWS_SETUP, desktopInfo, embedWindowsIcon, stageDesktopIcons, windowsDesktopLauncher, windowsInstallCommand, windowsInstallScript } from "./desktop";
 
 export const RELEASE_DIR = join(ROOT, "release");
 export const CACHE_DIR = join(RELEASE_DIR, ".cache");
@@ -140,6 +140,7 @@ export async function buildRuntime(target: Target): Promise<string> {
   const stub = join(CACHE_DIR, "runtime-stub.ts");
   writeFileAtomic(stub, STUB);
   await run(["bun", "build", "--compile", "--minify", `--target=${target.bunTarget}`, `--outfile=${out}`, stub]);
+  if (target.os === "windows") embedWindowsIcon(out, desktopInfo("rad-studio").ico);
   return out;
 }
 

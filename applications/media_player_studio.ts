@@ -1314,18 +1314,18 @@ export function startMediaPlayerStudioServer(options: { port?: number; host?: st
   const token = randomBytes(16).toString("hex");
   const uiDir = resolve(import.meta.dir, "../resources/file_manager/ui");
 
-  const server = Bun.serve({
+  const server: ReturnType<typeof Bun.serve> = Bun.serve({
     port,
     hostname: host,
-    async fetch(req) {
+    async fetch(req): Promise<Response> {
       const url = new URL(req.url);
       if (req.method === "POST") {
-        const blocked = guardLocalRequest(req, server.port);
+        const blocked = guardLocalRequest(req);
         if (blocked) return blocked;
       }
 
       if (url.pathname === "/" || url.pathname === "/index.html") {
-        const apiUrl = `http://${host}:${server.port}`;
+        const apiUrl: string = `http://${host}:${server.port}`;
         return new Response(generateMediaPlayerStudioHtml({ apiUrl, token }), {
           headers: { "Content-Type": "text/html; charset=utf-8" },
         });
@@ -1456,8 +1456,7 @@ export function createMediaPlayerStudio(options: MediaPlayerStudioOptions = {}):
       webview.size = { width: dims.width, height: dims.height, hint: SizeHint.NONE };
 
       attachWindowShortcuts(webview, {
-        title,
-        onToggleFullscreen: () => toggleFullscreenNative(title),
+        onFullscreen: () => toggleFullscreenNative(webview),
       });
 
       const shortcutScript = getWindowShortcutsScript();
@@ -1465,12 +1464,12 @@ export function createMediaPlayerStudio(options: MediaPlayerStudioOptions = {}):
 
       webview.navigate(url);
       if (fullscreen) {
-        setTimeout(() => toggleFullscreenNative(title), 250);
+        setTimeout(() => toggleFullscreenNative(webview), 250);
       } else {
-        setWindowPositionNative(title, 80, 60);
+        setWindowPositionNative(webview, { x: 80, y: 60 });
       }
       if (alwaysOnTop) {
-        setTimeout(() => setAlwaysOnTopNative(title, true), 300);
+        setTimeout(() => setAlwaysOnTopNative(webview, true), 300);
       }
 
       try {

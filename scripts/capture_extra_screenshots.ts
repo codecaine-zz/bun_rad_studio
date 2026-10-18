@@ -46,6 +46,7 @@ const hiding = (id: string) => (html: string) => {
 /** `name` is the file prefix: studios use their full name, games the short one (as the existing screenshots do). */
 const TARGETS: Target[] = [
   { name: "code_studio", mode: "html", module: "code_studio", factory: "createCodeStudio" },
+  { name: "media_player_studio", mode: "html", module: "media_player_studio", factory: "createMediaPlayerStudio" },
   { name: "paint_studio", mode: "html", module: "paint_studio", factory: "createPaintStudio" },
   { name: "postgres_studio", mode: "html", module: "postgres_studio", factory: "createPostgresStudio", post: hiding("macroMsgBoxModal") },
   { name: "rad_studio", mode: "html", module: "rad_studio", factory: "createRadStudio" },

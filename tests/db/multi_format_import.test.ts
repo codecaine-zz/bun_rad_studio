@@ -121,7 +121,7 @@ describe("Universal Multi-Format Database Import Suite", () => {
 
     // Analyze & read XLSX default sheet
     const xlsxSrc = fileSource(xlsxPath, "workbook.xlsx");
-    const aXlsx = await analyzeSource(xlsxSrc, { sampleSize: 50 });
+    const aXlsx = await analyzeSource(xlsxSrc, {}, 50);
     expect(aXlsx.settings.format).toBe("xlsx");
     expect(aXlsx.sheets).toEqual(["Employees", "Departments"]);
     expect(aXlsx.columns.map((c) => c.name)).toEqual(["id", "name", "salary", "active"]);
@@ -140,7 +140,7 @@ describe("Universal Multi-Format Database Import Suite", () => {
 
     // Analyze & read ODS
     const odsSrc = fileSource(odsPath, "workbook.ods");
-    const aOds = await analyzeSource(odsSrc, { sampleSize: 50 });
+    const aOds = await analyzeSource(odsSrc, {}, 50);
     expect(aOds.settings.format).toBe("ods");
     expect(aOds.sheets).toEqual(["Employees", "Departments"]);
     const rowsOds = await collectRows(odsSrc, aOds.settings);

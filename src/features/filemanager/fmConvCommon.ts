@@ -34,7 +34,7 @@ export function newObj(): Obj {
 
 /** Collects the things a conversion could not keep exactly, to tell the person afterwards. */
 export class Notes {
-  private readonly list: string[] = [];
+  readonly list: string[] = [];
   add(text: string): void {
     if (!this.list.includes(text) && this.list.length < 12) this.list.push(text);
   }

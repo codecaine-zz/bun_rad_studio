@@ -106,7 +106,7 @@ function stainedGlassBackdrop(style: "sunburst" | "rings" | "hills" | "waves" | 
   } else if (style === "frame") {
     out.push(shape("rect", { x: 16, y: 16, width: 368, height: 368, rx: 18 }, "frame-outer", "frame", 7, pal));
     out.push(shape("rect", { x: 28, y: 28, width: 344, height: 344, rx: 12 }, "frame-inner", "frame", 8, pal));
-    const corners = [[28, 28], [372, 28], [28, 372], [372, 372]];
+    const corners: Array<[number, number]> = [[28, 28], [372, 28], [28, 372], [372, 372]];
     corners.forEach(([cx, cy], i) => {
       out.push(shape("circle", { cx, cy, r: 14 }, `frame-gem-${i}`, "frame-gems", 4, pal));
     });

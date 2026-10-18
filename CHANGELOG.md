@@ -1,6 +1,18 @@
 # Changelog
 
-All notable changes. Version 1.4.3 is the twelfth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1 and 1.4.2 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.4.4 is the thirteenth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2 and 1.4.3 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+
+## 1.4.4 (18 October 2026)
+
+### Added
+
+- **Media Player Studio Pro (AmpDeck Audio Rack).** Add a standalone desktop media player and File Manager deck with 16 studio skins, 108 real-time Web Audio visualizers across Low/Medium/ARM Ultra hardware tiers, multi-layer visualizer mixing, a 10-band graphic equalizer with 32 presets, stereo balance/pan, DSP boosts (Sub-Bass, Air Exciter, Vocal Presence), vinyl pitch control, M3U/M3U8 playlist import/export, and synced karaoke lyrics.
+- **File Manager rich preview, CLI utilities, and database macros.** Add universal rich Quick Look and details inspection across spreadsheets, documents, presentations, PDFs, SQLite databases, archives, notebooks, 3D models, certificates, and binaries; built-in CLI utility wrappers; and Bun JS database macros and database/table cloning across SQLite, PostgreSQL, MySQL, and Redis.
+- **High-detail 3D liquid-glass application icons across compiled apps.** Upgrade all 66 desktop application icons (`.png`, `.icns`, and multi-resolution Windows `.ico`) and the 10 preset compiler icons with machined titanium-glass bezels, 16x16 technical blueprint grids, polar telemetry rings, corner HUD brackets, elevated frosted-glass medallions, 3D extruded main glyphs, and secondary corner instrument badges, embedded into macOS `.app` bundles, Windows `.exe` binaries/runtimes, and Linux desktop launchers.
+
+### Improved
+
+- **Cross-platform release refresh.** Rebuild standalone File Manager, full suite (74 desktop apps and 79 command-line tools), and all 66 macOS `.app` bundles across macOS, Linux, and Windows targets.
 
 ## 1.4.3 (17 October 2026)
 

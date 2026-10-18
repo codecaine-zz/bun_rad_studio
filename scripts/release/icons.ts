@@ -2,7 +2,7 @@
 // iconRenderer.ts) with a symbol chosen for the app (iconDesigns.ts) in its category's colors, drawn by macOS's own
 // graphics through a short JavaScript-for-Automation program (osascript) and turned into a .icns file with sips and
 // iconutil. If drawing fails the Mac apps use the project's generic icon, and the apps still work.
-import { existsSync, mkdirSync, rmSync, writeFileSync, copyFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, copyFileSync } from "fs";
 import { join } from "path";
 import { DESIGNS } from "./iconDesigns";
 import { ICON_RENDERER } from "./iconRenderer";
@@ -14,6 +14,7 @@ export interface IconSpec {
   symbol?: string;
   custom?: string;
   text?: string;
+  badge?: string;
   /** Deep color in the top left, vivid color in the bottom right, the glow around the glyph, and the glyph's lower tint. */
   dark: string;
   vivid: string;
@@ -121,6 +122,8 @@ export async function renderPngs(specs: IconSpec[], outDir = join(ICONS_OUT, "pn
     const json = join(dir, `specs-${i}.json`);
     writeFileSync(json, JSON.stringify(chunk));
     await run(["osascript", "-l", "JavaScript", script, json, outDir]);
+    const files = chunk.map((s) => join(outDir, `${s.name}.png`)).filter((p) => existsSync(p));
+    if (files.length) await run(["sips", "-z", "1024", "1024", ...files]);
   });
   return specs.map((s) => s.name).filter((n) => existsSync(join(outDir, `${n}.png`)));
 }
@@ -139,6 +142,44 @@ export async function makeIcns(png: string, icns: string): Promise<void> {
   for (const [px, file] of ICONSET_SIZES) await run(["sips", "-z", String(px), String(px), png, "--out", join(set, file)]);
   await run(["iconutil", "-c", "icns", set, "-o", icns]);
   rmSync(set, { recursive: true, force: true });
+}
+
+const ICO_SIZES = [32, 64, 128, 256] as const;
+
+/** Turns a 1024 PNG into a multi-resolution Windows .ico file (32, 64, 128 and 256 px PNG frames). */
+export async function makeIco(png: string, ico: string): Promise<void> {
+  const tmpDir = ico.replace(/\.ico$/, ".icoset");
+  rmSync(tmpDir, { recursive: true, force: true });
+  mkdirSync(tmpDir, { recursive: true });
+  try {
+    const frames: Buffer[] = [];
+    for (const px of ICO_SIZES) {
+      const f = join(tmpDir, `icon_${px}.png`);
+      await run(["sips", "-z", String(px), String(px), png, "--out", f]);
+      frames.push(readFileSync(f));
+    }
+    const header = Buffer.alloc(6 + ICO_SIZES.length * 16);
+    header.writeUInt16LE(0, 0);
+    header.writeUInt16LE(1, 2);
+    header.writeUInt16LE(ICO_SIZES.length, 4);
+    let offset = header.length;
+    ICO_SIZES.forEach((px, idx) => {
+      const buf = frames[idx]!;
+      const pos = 6 + idx * 16;
+      header.writeUInt8(px >= 256 ? 0 : px, pos);
+      header.writeUInt8(px >= 256 ? 0 : px, pos + 1);
+      header.writeUInt8(0, pos + 2);
+      header.writeUInt8(0, pos + 3);
+      header.writeUInt16LE(1, pos + 4);
+      header.writeUInt16LE(32, pos + 6);
+      header.writeUInt32LE(buf.length, pos + 8);
+      header.writeUInt32LE(offset, pos + 12);
+      offset += buf.length;
+    });
+    writeFileSync(ico, Buffer.concat([header, ...frames]));
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
 }
 
 /** The icon to use for everything when drawing is not possible. */

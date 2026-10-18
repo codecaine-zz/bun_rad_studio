@@ -102,7 +102,7 @@ describe("built-in RAD Studio CLI utilities folder and wrappers", () => {
     const ctx = createContext({ home, dataDir });
     const env = terminalEnv(ctx);
     expect(env.RAD_CLI_UTILS_DIR).toBe(cliUtilsDir(ctx));
-    expect(env.PATH.split(":")).toContain(cliUtilsDir(ctx));
+    expect(env.PATH!.split(":")).toContain(cliUtilsDir(ctx));
 
     // System `tr` still works as standard POSIX `tr` when called without `./`
     const sysTr = Bun.spawnSync(["sh", "-c", "printf 'a b' | tr ' ' x"], { cwd: work, env, stdout: "pipe", stderr: "pipe" });

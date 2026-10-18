@@ -1,14 +1,6 @@
 # 🎨 Bun RAD Studio - Application Icons Directory
 
-This directory contains application icons for compiling standalone macOS `.app` bundles, Windows executables, and Linux desktop packages.
-
-## Shared release artwork
-
-`desktop/` contains the exact artwork exported from the 65 macOS apps in the project's published [v1.3.0 release](https://github.com/codecaine-zz/bun_rad_studio/releases/tag/v1.3.0), plus a manifest of their application names. Each PNG is the original 1024-pixel image from `AppIcon.icns`; its ICO carries the original 32, 64, 128 and 256-pixel PNG frames. These are the project's icons, not replacements drawn to look similar.
-
-All release builders reuse these assets. macOS converts the shared PNG to ICNS; Windows embeds the ICO in the File Manager executable even when cross-built on a Mac or Linux; full-suite Windows shortcuts and Linux menu entries use the same artwork. Known aliases reuse the matching application's icon. Missing artwork fails the build rather than silently falling back to Bun's logo.
-
-To change a release icon, export the updated Mac artwork into the matching PNG and ICO in `desktop/`, keeping all ICO sizes, and update `desktop/manifest.json` for new applications or renamed titles. `scripts/release/iconDesigns.ts` and `iconRenderer.ts` remain the macOS drawing sources.
+This directory contains high-detail 1024x1024 application icons for compiling standalone macOS `.app` bundles, Windows executables, and Linux desktop packages.
 
 ## 📂 Available Pre-Configured Icons
 - **`app_default.icns` / `.png`**: Universal Bun RAD Studio application icon.
@@ -21,8 +13,9 @@ To change a release icon, export the updated Mac artwork into the matching PNG a
 - **`git_studio.icns` / `.png`**: Git Version Control Studio icon.
 - **`crypto_studio.icns` / `.png`**: Cryptography & Hashing Studio icon.
 - **`color_studio.icns` / `.png`**: Color Palette & Design Token Studio icon.
+- **`desktop/*.png` & `desktop/*.ico`**: Full suite of 66 application-specific 1024x1024 PNGs and multi-resolution Windows `.ico` icons.
 
 ## 📥 Adding Custom Icons
-You can drop any custom `.icns` or `.png` (512x512 recommended) file into this folder.
+You can drop any custom `.icns`, `.png` (1024x1024 recommended), or `.ico` file into this folder.
 In **App Bundler Studio Pro**, select your custom icon from the dropdown or click **📂 Browse Icon...** to pick any icon from disk.
-When packaging a macOS `.app` bundle, PNG icons are automatically converted to native multi-resolution Apple `.icns` bundles.
+When packaging a macOS `.app` bundle, PNG icons are automatically converted to native multi-resolution Apple `.icns` bundles. When compiling or packaging Windows `.exe` executables, multi-resolution `.ico` resources are embedded directly into the PE header.

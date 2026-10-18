@@ -90,7 +90,7 @@ describe("🃏 Joker Royale — Balatro Deluxe Roguelike Poker Studio Suite", ()
     const scriptMatches = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
     expect(scriptMatches.length).toBeGreaterThanOrEqual(2);
     for (const match of scriptMatches) {
-      expect(() => new Function(match[1])).not.toThrow();
+      expect(() => new Function(match[1]!)).not.toThrow();
     }
 
     // Verify expanded catalogs and core systems

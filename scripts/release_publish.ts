@@ -86,7 +86,7 @@ export function notes(files: Array<{ name: string; bytes: number }>, repo: strin
   const apps = files.filter((f) => KIND(f.name) === "apps");
   const suite = files.filter((f) => KIND(f.name) === "suite");
   if (apps.length) {
-    L.push("## 🍎 Every app as a Mac `.app` (with its own icon)", "", "65 desktop apps (games, studios, tools), each a double-click `.app`. Download **all the parts for your Mac** and unzip them into one folder.", "");
+    L.push("## 🍎 Every app as a Mac `.app` (with its own icon)", "", "66 desktop apps (games, studios, tools), each a double-click `.app`. Download **all the parts for your Mac** and unzip them into one folder.", "");
     for (const arch of ["arm64", "x64"]) {
       const parts = apps.filter((f) => f.name.includes(`-macos-${arch}-apps`));
       if (parts.length) L.push(`- **${arch === "arm64" ? "Apple silicon (M1 and newer)" : "Intel"}:** ${parts.map((p) => `[${p.name.replace(/^.*-apps-?/, "").replace(/\.zip$/, "") || "all"} (${mb(p.bytes)})](${url(p.name)})`).join(" · ")}`);
@@ -94,7 +94,7 @@ export function notes(files: Array<{ name: string; bytes: number }>, repo: strin
     L.push("");
   }
   if (suite.length) {
-    L.push("## 📦 The whole suite: every desktop app and command-line tool", "", "One download per platform with all 73 desktop apps and 79 command-line tools, each started from its `bin/` folder (see `README.txt` inside).", "", "| Platform | Download |", "|---|---|");
+    L.push("## 📦 The whole suite: every desktop app and command-line tool", "", "One download per platform with all 74 desktop apps and 79 command-line tools, each started from its `bin/` folder (see `README.txt` inside).", "", "| Platform | Download |", "|---|---|");
     for (const f of suite) L.push(`| ${platformOf(f.name)} | [${f.name}](${url(f.name)}) (${mb(f.bytes)}) |`);
     L.push("", "For **every desktop app in a Linux suite download** (ARM64, x64 and x64-baseline), the Ubuntu 24.04+ bwrap / dbus-proxy fix is `sh install.sh --apparmor` from that suite's folder. Its executable-specific AppArmor profile covers the shared `runtime/bun`, including child studios. Rerun after moving the folder; remove with `sh install.sh --uninstall --apparmor`.", "",
       "Windows: run `install.cmd` to add apps to the Start menu with their Mac artwork and no console window. Linux: `sh install.sh` adds matching names and icons to your applications menu. Keep the extracted folder in place. Windows ARM includes native CLI tools and baseline x64-emulated desktop apps. Alpine/musl downloads hold command-line tools only.", "");

@@ -41,6 +41,7 @@ export function deriveAppName(filepath: string): string {
     jq_studio: "JqStudioPro",
     json_studio: "JsonStudioPro",
     markdown_studio: "MarkdownStudioPro",
+    media_player_studio: "MediaPlayerStudioPro",
     network_studio: "NetworkStudioPro",
     omnitool_studio: "OmniToolStudioPro",
     process_studio: "ProcessStudioPro",
@@ -113,6 +114,7 @@ export function getHumanLabel(filepath: string): string {
     jq_studio: "JQ JSON Query Studio",
     json_studio: "JSON Formatter Studio",
     markdown_studio: "Markdown Live Editor Studio",
+    media_player_studio: "Media Player Studio Pro",
     network_studio: "Network Diagnostics Studio",
     omnitool_studio: "OmniTool Studio Pro",
     process_studio: "Process Monitor Studio",
@@ -214,6 +216,7 @@ end try`;
 
 export function getAvailableIcons(): { path: string; label: string; name: string }[] {
   const iconsDir = resolve(process.cwd(), "icons");
+  const desktopDir = join(iconsDir, "desktop");
   const list: { path: string; label: string; name: string }[] = [];
 
   if (existsSync(iconsDir)) {
@@ -225,6 +228,24 @@ export function getAvailableIcons(): { path: string; label: string; name: string
       for (const file of files) {
         const relPath = `./icons/${file}`;
         const name = file.replace(/\.(icns|png|ico)$/i, "");
+        const ext = file.split(".").pop()?.toUpperCase() || "";
+        const label = `${name} [${ext}] (${relPath})`;
+        list.push({ path: relPath, label, name });
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  if (existsSync(desktopDir)) {
+    try {
+      const files = readdirSync(desktopDir)
+        .filter((f) => f.endsWith(".png") || f.endsWith(".ico"))
+        .sort();
+
+      for (const file of files) {
+        const relPath = `./icons/desktop/${file}`;
+        const name = file.replace(/\.(png|ico)$/i, "");
         const ext = file.split(".").pop()?.toUpperCase() || "";
         const label = `${name} [${ext}] (${relPath})`;
         list.push({ path: relPath, label, name });
@@ -737,11 +758,13 @@ export function loadApplicationIntoWindow(win: SimpleWindow, scriptPath: string)
   const availableIcons = getAvailableIcons();
   const matchedIcon = availableIcons.find((ic) => {
     const icBase = ic.name.toLowerCase();
+    const icNorm = icBase.replace(/-/g, "_");
     return (
       icBase === targetBase ||
       icBase.replace(/_studio$/, "") === targetBase.replace(/_studio$/, "") ||
       icBase === fileBase ||
-      icBase.replace(/_studio$/, "") === fileBase.replace(/_studio$/, "")
+      icBase.replace(/_studio$/, "") === fileBase.replace(/_studio$/, "") ||
+      icNorm === fileBase
     );
   }) || availableIcons.find((ic) => ic.path.includes("app_default"));
 
@@ -1042,6 +1065,15 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
 
     if (code === 0 && existsSync(outBin)) {
       try { chmodSync(outBin, 0o755); } catch {}
+      if (isWin) {
+        const chosenIcon = win.getValue("txt_icon_path") || win.getValue("dd_preset_icon") || "";
+        if (chosenIcon) {
+          const iconRes = bundleWindowsIcon(chosenIcon, distDir, name, outBin);
+          if (iconRes.success) {
+            win.appendConsole("bundler_console", `[Icon] ${iconRes.message}\n`, 2);
+          }
+        }
+      }
       const sz = (statSync(outBin).size / 1024 / 1024).toFixed(2);
       win.appendConsole("bundler_console", `[Success] Single-executable compiled in ${elapsed}ms!\n  Artifact: ${outBin} (${sz} MB)\n`, 2);
       win.setText("lbl_status", `Compiled: ${outFileName} (${sz} MB)  |  Latency: ${elapsed}ms  |  Status: OK`);

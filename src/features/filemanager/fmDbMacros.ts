@@ -2084,7 +2084,7 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
       version: Bun.version,
       nanoseconds: () => Bun.nanoseconds(),
       sleep: (ms: number) => Bun.sleep(Math.min(Math.max(0, Number(ms) || 0), 2_000)),
-      hash: (v: string | ArrayBufferView) => Bun.hash(v),
+      hash: (v: string | ArrayBufferView) => Bun.hash(v as any),
       inspect: (v: unknown) => Bun.inspect(v),
       escapeHTML: (s: string) => Bun.escapeHTML(s),
       deepEquals: (a: unknown, b: unknown) => Bun.deepEquals(a, b),
