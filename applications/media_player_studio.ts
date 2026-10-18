@@ -14,9 +14,9 @@
 
 import { injectHelp } from "../src/shared/helpTips";
 import type { SizeHint, Webview } from "webview-bun";
-import { resolve, join, extname, dirname, basename } from "path";
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "fs";
-import { randomBytes } from "crypto";
+import { resolve, join, extname, dirname, basename, sep } from "path";
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "fs";
+import { randomBytes, timingSafeEqual } from "crypto";
 import { guardLocalRequest } from "../src/localGuard";
 import {
   setAlwaysOnTopNative,
@@ -486,10 +486,10 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
       EQ_BANDS, EQ_PRESETS, MAX_VIZ_LAYERS, VIZ_MIX_PRESETS, VIZ_MODES, PlayQueue,
       activeLrcIndex, clampBalance, clampGain, detectDeckHardwareTier, formatClock, formatLedClock,
       formatVizLabel, normalizeVizSpec, parseLrc, parseVizLayers, computeEqSpline, renderAudioVisualizer
-    } from "${apiBase}/ui/mediacore.js";
+    } from "${apiBase.replace(/["'<>\\]/g, "")}/ui/mediacore.js";
 
-    const API_BASE = ${JSON.stringify(apiBase)};
-    const TOKEN = ${JSON.stringify(token)};
+    const API_BASE = ${JSON.stringify(apiBase).replace(/</g, "\\u003c")};
+    const TOKEN = ${JSON.stringify(token).replace(/</g, "\\u003c")};
     const $ = (sel) => document.querySelector(sel);
 
     const shell = $("#ampdeck-studio");
@@ -1232,9 +1232,9 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
     plFilter.addEventListener("input", renderPlaylist);
     $("#btn-export-m3u").addEventListener("click", async () => {
       if (!state.tracks.length) return;
-      const res = await fetch(API_BASE + "/api/playlist", {
+      const res = await fetch(API_BASE + "/api/playlist?token=" + encodeURIComponent(TOKEN), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Media-Token": TOKEN },
         body: JSON.stringify({ action: "export", folder: folderInput.value, tracks: state.tracks }),
       });
       if (res.ok) {
@@ -1244,9 +1244,9 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
       }
     });
     $("#btn-import-m3u").addEventListener("click", async () => {
-      const res = await fetch(API_BASE + "/api/playlist", {
+      const res = await fetch(API_BASE + "/api/playlist?token=" + encodeURIComponent(TOKEN), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Media-Token": TOKEN },
         body: JSON.stringify({ action: "import", folder: folderInput.value }),
       });
       if (res.ok) {
@@ -1312,17 +1312,53 @@ export function startMediaPlayerStudioServer(options: { port?: number; host?: st
   const port = options.port ?? 0;
   const host = options.host ?? "127.0.0.1";
   const token = randomBytes(16).toString("hex");
+  const tokenBuf = Buffer.from(token, "utf8");
   const uiDir = resolve(import.meta.dir, "../resources/file_manager/ui");
+  const canonicalRoot = options.rootDir
+    ? (() => {
+        const r = resolve(options.rootDir);
+        try {
+          return realpathSync(r);
+        } catch {
+          return r;
+        }
+      })()
+    : null;
+
+  const isWithinAllowedRoot = (candidatePath: string): boolean => {
+    if (!canonicalRoot) return true;
+    const resolved = resolve(candidatePath);
+    let real = resolved;
+    try {
+      real = realpathSync(resolved);
+    } catch {
+      try {
+        real = join(realpathSync(dirname(resolved)), basename(resolved));
+      } catch {
+        real = resolved;
+      }
+    }
+    return real === canonicalRoot || real.startsWith(canonicalRoot + sep);
+  };
+
+  const verifyOptionalToken = (req: Request, url: URL): boolean => {
+    const provided = url.searchParams.get("token") ?? req.headers.get("x-media-token");
+    if (provided === null) return true;
+    const buf = Buffer.from(provided, "utf8");
+    return buf.length === tokenBuf.length && timingSafeEqual(buf, tokenBuf);
+  };
 
   const server: ReturnType<typeof Bun.serve> = Bun.serve({
     port,
     hostname: host,
     async fetch(req): Promise<Response> {
-      const url = new URL(req.url);
-      if (req.method === "POST") {
-        const blocked = guardLocalRequest(req);
-        if (blocked) return blocked;
+      const blocked = guardLocalRequest(req);
+      if (blocked) return blocked;
+      if (req.headers.get("sec-fetch-site") === "cross-site") {
+        return new Response("Forbidden (cross-site request rejected)", { status: 403 });
       }
+
+      const url = new URL(req.url);
 
       if (url.pathname === "/" || url.pathname === "/index.html") {
         const apiUrl: string = `http://${host}:${server.port}`;
@@ -1338,16 +1374,37 @@ export function startMediaPlayerStudioServer(options: { port?: number; host?: st
         });
       }
 
+      if (url.pathname.startsWith("/api/") && !verifyOptionalToken(req, url)) {
+        return new Response("Forbidden (invalid token)", { status: 403 });
+      }
+
       if (url.pathname === "/api/library") {
         const folder = url.searchParams.get("folder") || options.rootDir || getDefaultMediaLibraryDir();
+        if (folder.includes("\0") || !isWithinAllowedRoot(folder)) {
+          return new Response("Forbidden", { status: 403 });
+        }
         return Response.json(scanMediaFolder(folder));
       }
 
       if (url.pathname === "/api/lyrics") {
         const filePath = url.searchParams.get("path") ?? "";
-        if (!filePath || !existsSync(filePath)) return new Response("Not found", { status: 404 });
+        if (!filePath || filePath.includes("\0") || !existsSync(filePath)) {
+          return new Response("Not found", { status: 404 });
+        }
+        if (!isWithinAllowedRoot(filePath)) {
+          return new Response("Forbidden", { status: 403 });
+        }
         const ext = extname(filePath).toLowerCase();
         if (!SUB_AND_LYR_EXTS.has(ext)) return new Response("Forbidden", { status: 403 });
+        let st;
+        try {
+          st = statSync(filePath);
+        } catch {
+          return new Response("Not found", { status: 404 });
+        }
+        if (!st.isFile() || st.size > 2 * 1024 * 1024) {
+          return new Response("Forbidden", { status: 403 });
+        }
         return new Response(readFileSync(filePath, "utf8"), {
           headers: { "Content-Type": "text/plain; charset=utf-8" },
         });
@@ -1355,11 +1412,22 @@ export function startMediaPlayerStudioServer(options: { port?: number; host?: st
 
       if (url.pathname === "/api/raw") {
         const filePath = url.searchParams.get("path") ?? "";
-        if (!filePath || !existsSync(filePath)) return new Response("Not found", { status: 404 });
+        if (!filePath || filePath.includes("\0") || !existsSync(filePath)) {
+          return new Response("Not found", { status: 404 });
+        }
+        if (!isWithinAllowedRoot(filePath)) {
+          return new Response("Forbidden", { status: 403 });
+        }
         const ext = extname(filePath).toLowerCase();
         const mime = MIME_BY_EXT[ext];
         if (!mime) return new Response("Forbidden media type", { status: 403 });
-        const st = statSync(filePath);
+        let st;
+        try {
+          st = statSync(filePath);
+        } catch {
+          return new Response("Not found", { status: 404 });
+        }
+        if (!st.isFile()) return new Response("Forbidden", { status: 403 });
         const total = st.size;
         const rangeHeader = req.headers.get("range");
         const file = Bun.file(filePath);
@@ -1394,10 +1462,30 @@ export function startMediaPlayerStudioServer(options: { port?: number; host?: st
 
       if (url.pathname === "/api/playlist" && req.method === "POST") {
         const body = (await req.json().catch(() => ({}))) as any;
-        const folder = resolve(body.folder || getDefaultMediaLibraryDir());
-        if (body.action === "export" && Array.isArray(body.tracks)) {
+        const folder = resolve(body.folder || options.rootDir || getDefaultMediaLibraryDir());
+        if (folder.includes("\0") || !isWithinAllowedRoot(folder) || !existsSync(folder)) {
+          return new Response("Forbidden", { status: 403 });
+        }
+        try {
+          if (!statSync(folder).isDirectory()) return new Response("Forbidden", { status: 403 });
+        } catch {
+          return new Response("Forbidden", { status: 403 });
+        }
+        const rawTracks = Array.isArray(body.tracks)
+          ? body.tracks
+          : Array.isArray(body.paths)
+            ? body.paths.map((p: unknown) => ({ path: String(p ?? ""), name: basename(String(p ?? "")) }))
+            : null;
+        if (body.action === "export" && rawTracks) {
+          const sanitizedTracks = rawTracks
+            .filter((t: any) => t && typeof t.path === "string" && !t.path.includes("\0"))
+            .map((t: any) => ({
+              ...t,
+              path: String(t.path).replace(/[\r\n]+/g, ""),
+              name: typeof t.name === "string" ? t.name.replace(/[\r\n]+/g, "") : undefined,
+            }));
           const target = join(folder, "playlist.m3u8");
-          const m3u = formatM3u(body.tracks);
+          const m3u = formatM3u(sanitizedTracks);
           writeFileSync(target, m3u, "utf8");
           return Response.json({ ok: true, path: target });
         }
@@ -1411,11 +1499,17 @@ export function startMediaPlayerStudioServer(options: { port?: number; host?: st
           const resolvedTracks = items
             .map((item: { path: string; title?: string; duration?: number }) => {
               const p = item.path.startsWith("/") ? item.path : resolve(baseDir, item.path);
-              if (!existsSync(p)) return null;
+              if (!isWithinAllowedRoot(p) || !existsSync(p)) return null;
               const name = basename(p);
               const kind = mediaKindOfName(name);
               if (!kind) return null;
-              const st = statSync(p);
+              let st;
+              try {
+                st = statSync(p);
+              } catch {
+                return null;
+              }
+              if (!st.isFile()) return null;
               return { name, path: p, size: st.size, kind };
             })
             .filter(Boolean);

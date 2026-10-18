@@ -2297,12 +2297,17 @@ export class PostgresManager {
   ): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
+      const allowedTypes = new Set(["btree", "hash", "gist", "spgist", "gin", "brin"]);
+      const cleanType = (indexType || "btree").trim().toLowerCase();
+      if (!allowedTypes.has(cleanType)) {
+        return { success: false, error: `Unsupported index type: ${indexType}` };
+      }
       const safeCols = columns.map(c => `${pgq(c)}`).join(", ");
       const uq = unique ? "UNIQUE " : "";
-      const usingClause = indexType && indexType !== "btree" ? `USING ${indexType.toLowerCase()} ` : "";
+      const usingClause = cleanType !== "btree" ? `USING ${cleanType} ` : "";
       const sql = `CREATE ${uq}INDEX IF NOT EXISTS ${pgq(indexName)} ON ${pgq(schema)}.${pgq(tableName)} ${usingClause}(${safeCols});`;
       await this.sql_conn.unsafe(sql);
-      await this.logAudit("CREATE_INDEX", indexName, `Created ${indexType} index on ${tableName}`);
+      await this.logAudit("CREATE_INDEX", indexName, `Created ${cleanType} index on ${tableName}`);
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
@@ -3413,10 +3418,13 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
               result = await manager.deleteRow(body.table, body.pkCol, body.pkVal, body.schema);
               break;
             case "import-batch": {
+              if (body?.filePath) {
+                return Response.json({ success: false, error: "Server-side filePath is not allowed; send content or base64" }, { status: 400, headers: corsHeaders });
+              }
               let rows = body.rows;
               let cols = body.columns;
-              if (!Array.isArray(rows) && (body.content !== undefined || body.base64 !== undefined || body.filePath !== undefined)) {
-                const parsed = await parseUniversalTable(body);
+              if (!Array.isArray(rows) && (body.content !== undefined || body.base64 !== undefined)) {
+                const parsed = await parseUniversalTable({ ...body, filePath: undefined });
                 rows = parsed.records;
                 cols = parsed.columns;
               }
@@ -3441,7 +3449,10 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/parse-import" && req.method === "POST") {
         try {
           const body = (await req.json()) as any;
-          const parsed = await parseUniversalTable(body);
+          if (body?.filePath) {
+            return Response.json({ success: false, error: "Server-side filePath is not allowed; send content or base64" }, { status: 400, headers: corsHeaders });
+          }
+          const parsed = await parseUniversalTable({ ...body, filePath: undefined });
           return Response.json({ success: true, ...parsed }, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
@@ -3451,8 +3462,11 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/import" && req.method === "POST") {
         try {
           const body = (await req.json()) as any;
-          if (!Array.isArray(body.rows) && (body.content !== undefined || body.base64 !== undefined || body.filePath !== undefined)) {
-            const parsed = await parseUniversalTable(body);
+          if (body?.filePath) {
+            return Response.json({ success: false, error: "Server-side filePath is not allowed; send content or base64" }, { status: 400, headers: corsHeaders });
+          }
+          if (!Array.isArray(body.rows) && (body.content !== undefined || body.base64 !== undefined)) {
+            const parsed = await parseUniversalTable({ ...body, filePath: undefined });
             const res = await manager.importRows({
               ...body,
               columns: body.columns?.length ? body.columns : parsed.columns,
@@ -3491,10 +3505,13 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/rows/import-batch" && req.method === "POST") {
         try {
           const body = (await req.json()) as any;
+          if (body?.filePath) {
+            return Response.json({ success: false, error: "Server-side filePath is not allowed; send content or base64" }, { status: 400, headers: corsHeaders });
+          }
           let rows = body.rows;
           let cols = body.columns;
-          if (!Array.isArray(rows) && (body.content !== undefined || body.base64 !== undefined || body.filePath !== undefined)) {
-            const parsed = await parseUniversalTable(body);
+          if (!Array.isArray(rows) && (body.content !== undefined || body.base64 !== undefined)) {
+            const parsed = await parseUniversalTable({ ...body, filePath: undefined });
             rows = parsed.records;
             cols = parsed.columns;
           }
@@ -3722,7 +3739,8 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
             tableName?: string;
             sql?: string;
           };
-          const fmt = (body.format || "json").toLowerCase();
+          const rawFmt = (body.format || "json").toLowerCase();
+          const fmt = rawFmt === "csv" || rawFmt === "sql" ? rawFmt : "json";
           const rows = Array.isArray(body.rows) ? body.rows : [];
           const exportsDir = resolve(homedir(), ".bun_rad_studio", "exports");
           if (!existsSync(exportsDir)) mkdirSync(exportsDir, { recursive: true });
@@ -3785,6 +3803,9 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           }
 
           const cleanParam = (param || "").trim().toLowerCase();
+          if (cleanParam && !/^[a-z_][a-z0-9_.]*$/.test(cleanParam)) {
+            return Response.json({ success: false, error: "Invalid setting name" }, { status: 400, headers: corsHeaders });
+          }
           if (cleanParam === "vacuum") {
             const vacRes = await manager.vacuum(false, true);
             return Response.json({ success: true, result: JSON.stringify(vacRes, null, 2) }, { headers: corsHeaders });
@@ -3795,6 +3816,9 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           }
 
           if (value !== undefined && value !== null) {
+            if (!cleanParam) {
+              return Response.json({ success: false, error: "Setting name required" }, { status: 400, headers: corsHeaders });
+            }
             await manager.query(`SET ${cleanParam} = '${String(value).replace(/'/g, "''")}';`);
             return Response.json({ success: true, result: `${cleanParam} = ${value}` }, { headers: corsHeaders });
           } else {

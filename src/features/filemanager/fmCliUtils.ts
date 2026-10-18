@@ -5,7 +5,7 @@
  * ready-to-run `cli_utils` folder inside `ctx.dataDir` with executable wrappers (`./<name>` and `./<stem>`), marks
  * `cli_apps/*.ts` executable (`0o755`), and appends the CLI utilities folder to the built-in Terminal's `PATH`.
  */
-import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from "fs";
 import * as nodePath from "path";
 import { pathApi, type FmContext, type FmHandler } from "./fmCore";
 
@@ -180,18 +180,21 @@ export function ensureCliUtilsFolder(ctx: Pick<FmContext, "dataDir" | "platform"
   const catalog = discoverCatalog();
   try {
     mkdirSync(dir, { recursive: true });
+    if (lstatSync(dir).isSymbolicLink()) return dir;
     const execPath = process.execPath;
     for (const item of catalog) {
       const names = item.id === item.stem ? [item.id] : [item.id, item.stem];
       const shContent = posixWrapperScript(execPath, item.scriptPath);
       for (const name of names) {
         const target = nodePath.join(dir, name);
+        try { if (lstatSync(target).isSymbolicLink()) unlinkSync(target); } catch {}
         writeFileSync(target, shContent, { mode: 0o755 });
         if (process.platform !== "win32") {
           try { chmodSync(target, 0o755); } catch {}
         }
         if (ctx.platform === "win32" || process.platform === "win32") {
           const cmdTarget = nodePath.join(dir, `${name}.cmd`);
+          try { if (lstatSync(cmdTarget).isSymbolicLink()) unlinkSync(cmdTarget); } catch {}
           writeFileSync(cmdTarget, windowsCmdWrapper(execPath, item.scriptPath));
         }
       }

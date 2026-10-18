@@ -651,12 +651,20 @@ export interface MacroValidationResult {
   errors: { message: string; line?: number; column?: number }[];
 }
 
+export const FORBIDDEN_MACRO_CODE_RE =
+  /\b(?:process\s*\.\s*(?:env|binding|dlopen|exit|kill|mainModule)|Bun\s*\.\s*(?:spawn|spawnSync|serve|file|write|mmap|dlopen|unsafe|plugin)|globalThis\b|require\s*\(|import\s*\(|child_process\b|Function\s*\(|eval\s*\()/;
+
 export function validateBunMacroCode(code: string): MacroValidationResult {
   const warnings: string[] = [];
   const errors: { message: string; line?: number; column?: number }[] = [];
   const trimmed = (code ?? "").trim();
   if (!trimmed) {
     errors.push({ message: "Macro code cannot be empty." });
+    return { valid: false, warnings, errors };
+  }
+
+  if (FORBIDDEN_MACRO_CODE_RE.test(trimmed)) {
+    errors.push({ message: "Access to host process, filesystem, or OS process APIs is restricted inside database macros." });
     return { valid: false, warnings, errors };
   }
 
@@ -676,7 +684,7 @@ export function validateBunMacroCode(code: string): MacroValidationResult {
   } catch (err: any) {
     const rawMsg = err instanceof Error ? err.message : String(err);
     const posLine = typeof err?.line === "number" ? Math.max(1, err.line - 1) : undefined;
-    const posCol = typeof err?.column === "number" ? err.column : undefined;
+    const posCol = typeof err?.column === "number" ? err?.column : undefined;
     errors.push({
       message: rawMsg.replace(/\s+/g, " ").trim(),
       ...(posLine !== undefined ? { line: posLine } : {}),
@@ -1813,16 +1821,33 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
       return 1; // vbOK
     };
 
+    const READONLY_REDIS_CMDS = new Set([
+      "PING", "GET", "MGET", "HGET", "HMGET", "HGETALL", "HKEYS", "HVALS", "HLEN", "HEXISTS",
+      "LLEN", "LRANGE", "LINDEX", "SCARD", "SMEMBERS", "SISMEMBER", "ZCARD", "ZRANGE", "ZSCORE",
+      "TYPE", "TTL", "PTTL", "EXISTS", "SCAN", "HSCAN", "SSCAN", "ZSCAN", "DBSIZE", "INFO", "KEYS",
+    ]);
+
     const redisApi = {
       async command(cmd: string, ...args: (string | number)[]) {
         if (!redisClient) {
           throw new FmError("BAD_REQUEST", "This connection is not a Redis server.");
         }
+        const upper = String(cmd).toUpperCase().trim();
         const stepStart = performance.now();
-        const res = await redisClient.send(String(cmd).toUpperCase(), args.map(String));
+        if (dryRun && !READONLY_REDIS_CMDS.has(upper)) {
+          steps.push({
+            index: steps.length + 1,
+            action: `Redis ${upper}`,
+            status: "ok",
+            detail: redact(`[Dry Run — not executed] ${cmd} ${args.join(" ")}`.trim(), secrets),
+            elapsedMs: Math.round(performance.now() - stepStart),
+          });
+          return "OK";
+        }
+        const res = await redisClient.send(upper, args.map(String));
         steps.push({
           index: steps.length + 1,
-          action: `Redis ${String(cmd).toUpperCase()}`,
+          action: `Redis ${upper}`,
           status: "ok",
           detail: redact(`${cmd} ${args.join(" ")}`.trim(), secrets),
           elapsedMs: Math.round(performance.now() - stepStart),
@@ -1886,11 +1911,22 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
           ? { where: optionsOrWhere, limit: limitArg }
           : optionsOrWhere;
         const qTable = quoteIdent(sqlEngine, tableName);
-        const w =
-          options?.where && options.where.trim()
-            ? ` WHERE ${interpolateTemplate(options.where.trim(), tempVarsStore, inputParams, missingPrompts)}`
-            : "";
-        const o = options?.orderBy && options.orderBy.trim() ? ` ORDER BY ${options.orderBy.trim()}` : "";
+        let w = "";
+        if (options?.where && options.where.trim()) {
+          const interpolatedWhere = interpolateTemplate(options.where.trim(), tempVarsStore, inputParams, missingPrompts);
+          if (/;|--|\/\*/.test(interpolatedWhere)) {
+            throw new FmError("BAD_REQUEST", "Invalid OpenTable WHERE clause: statement separators and comments are not allowed.");
+          }
+          w = ` WHERE ${interpolatedWhere}`;
+        }
+        let o = "";
+        if (options?.orderBy && options.orderBy.trim()) {
+          const cleanOrder = options.orderBy.trim();
+          if (/;|--|\/\*/.test(cleanOrder)) {
+            throw new FmError("BAD_REQUEST", "Invalid OpenTable ORDER BY clause: statement separators and comments are not allowed.");
+          }
+          o = ` ORDER BY ${cleanOrder}`;
+        }
         const lim =
           options?.limit && Number.isFinite(Number(options.limit)) && Number(options.limit) > 0
             ? ` LIMIT ${Math.min(MAX_RESULT_ROWS, Math.trunc(Number(options.limit)))}`
@@ -2048,6 +2084,9 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
         } else {
           const sa = await openMacroSqlAdapter(ctx, subTarget);
           openedAdapters.push(sa);
+          if (useTransaction) {
+            await sa.query("BEGIN", []);
+          }
           return createDatabaseApi(subTarget, sa, null);
         }
       },
@@ -2094,6 +2133,9 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
     const evaluateExpr = async (exprCode: string): Promise<unknown> => {
       const trimmed = (exprCode ?? "").trim();
       if (!trimmed) return undefined;
+      if (FORBIDDEN_MACRO_CODE_RE.test(trimmed)) {
+        throw new FmError("SYNTAX_ERROR", "Access to host process, filesystem, or OS process APIs is restricted inside database macros.");
+      }
       const transpiler = new Bun.Transpiler({ loader: "ts", target: "bun" });
       const js = transpiler.transformSync(`async function __eval(__c: any) { return (${trimmed}); }`);
       const body = `${js}\nreturn await __eval(__ctx);`;
@@ -2117,6 +2159,14 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
         "redis",
         "connections",
         "Bun",
+        "process",
+        "globalThis",
+        "global",
+        "window",
+        "self",
+        "Function",
+        "eval",
+        "require",
         `return (async () => { ${body} })();`,
       );
       return await fn(
@@ -2139,6 +2189,14 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
         primaryEnv.redis,
         connectionsApi,
         safeBun,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
       );
     };
 
@@ -2182,6 +2240,14 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
         "redis",
         "connections",
         "Bun",
+        "process",
+        "globalThis",
+        "global",
+        "window",
+        "self",
+        "Function",
+        "eval",
+        "require",
         `return (async () => { ${runnerSource} })();`,
       );
       return await fn(
@@ -2204,6 +2270,14 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
         primaryEnv.redis,
         connectionsApi,
         safeBun,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
       );
     };
 
@@ -2251,12 +2325,44 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
             });
             break;
           case "InsertRecord": {
-            const parsed = JSON.parse(interpolateTemplate(p.values ?? "{}", tempVarsStore, inputParams, missingPrompts));
+            const rawVals = (p.values ?? "{}").trim();
+            let parsed: Record<string, unknown>;
+            try {
+              const obj = JSON.parse(rawVals);
+              parsed = isObject(obj)
+                ? Object.fromEntries(
+                    Object.entries(obj).map(([k, v]) => [
+                      k,
+                      typeof v === "string" ? interpolateTemplate(v, tempVarsStore, inputParams, missingPrompts) : v,
+                    ]),
+                  )
+                : {};
+            } catch {
+              parsed = JSON.parse(interpolateTemplate(rawVals, tempVarsStore, inputParams, missingPrompts));
+            }
             lastResult = await primaryEnv.DoCmd.InsertRecord(p.table ?? "", parsed);
             break;
           }
           case "UpdateRecord": {
-            const parsed = JSON.parse(interpolateTemplate(p.values ?? "{}", tempVarsStore, inputParams, missingPrompts));
+            const rawVals = (p.values ?? "{}").trim();
+            let parsed: Record<string, unknown> | string;
+            if (rawVals.startsWith("{")) {
+              try {
+                const obj = JSON.parse(rawVals);
+                parsed = isObject(obj)
+                  ? Object.fromEntries(
+                      Object.entries(obj).map(([k, v]) => [
+                        k,
+                        typeof v === "string" ? interpolateTemplate(v, tempVarsStore, inputParams, missingPrompts) : v,
+                      ]),
+                    )
+                  : rawVals;
+              } catch {
+                parsed = JSON.parse(interpolateTemplate(rawVals, tempVarsStore, inputParams, missingPrompts));
+              }
+            } else {
+              parsed = rawVals;
+            }
             lastResult = await primaryEnv.DoCmd.UpdateRecord(p.table ?? "", parsed, p.where ?? "");
             break;
           }
@@ -2387,12 +2493,16 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
       });
     }
 
-    if (primarySqlAdapter && useTransaction) {
+    if (openedAdapters.length > 0 && useTransaction) {
       if (dryRun) {
-        await primarySqlAdapter.query("ROLLBACK", []).catch(() => {});
+        for (const ad of openedAdapters) {
+          await ad.query("ROLLBACK", []).catch(() => {});
+        }
         rolledBack = true;
       } else {
-        await primarySqlAdapter.query("COMMIT", []);
+        for (const ad of openedAdapters) {
+          await ad.query("COMMIT", []);
+        }
         committed = true;
       }
     } else if (!dryRun) {
@@ -2401,18 +2511,24 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
   } catch (err) {
     if (err instanceof MacroStopSignal) {
       stoppedEarly = true;
-      if (primarySqlAdapter && useTransaction) {
+      if (openedAdapters.length > 0 && useTransaction) {
         if (dryRun) {
-          await primarySqlAdapter.query("ROLLBACK", []).catch(() => {});
+          for (const ad of openedAdapters) {
+            await ad.query("ROLLBACK", []).catch(() => {});
+          }
           rolledBack = true;
         } else {
-          await primarySqlAdapter.query("COMMIT", []).catch(() => {});
+          for (const ad of openedAdapters) {
+            await ad.query("COMMIT", []).catch(() => {});
+          }
           committed = true;
         }
       }
     } else {
-      if (primarySqlAdapter && useTransaction) {
-        await primarySqlAdapter.query("ROLLBACK", []).catch(() => {});
+      if (openedAdapters.length > 0 && useTransaction) {
+        for (const ad of openedAdapters) {
+          await ad.query("ROLLBACK", []).catch(() => {});
+        }
         rolledBack = true;
       }
       const rawMsg = err instanceof Error ? err.message : String(err);

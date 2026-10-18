@@ -700,10 +700,10 @@ describe("the theme editor in the page", () => {
     expect(themes.terminalTheme().background).toBe("#1e1e1e");
   });
 
-  test("Atmospheric Special Effects engine supports 160 effects across Low, Medium, and Modern ARM Ultra tiers plus Multi-Effect Layer Mixing", async () => {
+  test("Atmospheric Special Effects engine supports 172 effects (including Year-2126 Hyper-Dimensional presets) across Low, Medium, and Modern ARM Ultra tiers plus Multi-Effect Layer Mixing and User-Named Custom Presets", async () => {
     const atmo = await import("../resources/file_manager/ui/atmosphereFx.js");
-    expect(atmo.ATMOSPHERE_OPTIONS.length).toBe(160);
-    expect(atmo.ATMOSPHERE_MIX_PRESETS.length).toBe(28);
+    expect(atmo.ATMOSPHERE_OPTIONS.length).toBe(172);
+    expect(atmo.ATMOSPHERE_MIX_PRESETS.length).toBe(36);
 
     // Hardware tier auto-detection
     expect(atmo.detectHardwareTier({ hardwareConcurrency: 2, userAgent: "Linux x86_64" }, { devicePixelRatio: 1 })).toBe("low");
@@ -724,13 +724,13 @@ describe("the theme editor in the page", () => {
 
     const tierBtns = doc.querySelectorAll(".fm-atmo-tier-btn");
     expect(tierBtns.length).toBe(5);
-    expect(doc.querySelectorAll(".fm-atmo-card .fm-atmo-preview").length).toBe(160);
+    expect(doc.querySelectorAll(".fm-atmo-card .fm-atmo-preview").length).toBe(172);
     expect(doc.querySelector(".fm-atmo-theme-sync")).toBeTruthy();
     expect(doc.querySelector(".fm-atmo-mixer-dock")).toBeTruthy();
 
-    // Select Modern ARM / Ultra tier and test effects across multiple procedural engines including Tesla & Sci-Fi Physics
+    // Select Modern ARM / Ultra tier and test effects across multiple procedural engines including Tesla, Sci-Fi Physics, and Year-2126 Hyper-Dimensional
     doc.querySelector('.fm-atmo-tier-btn[data-tier="ultra"]').click();
-    for (const effectId of ["rain", "smoke", "cyberstorm", "nebula", "aurora", "outrun_grid", "neural_nexus", "dna_helix", "quantum_cpu", "black_hole", "liquid_glass_caustics", "m4_raytrace_prism", "win11_mica_bloom", "plasma_storm", "tesla_megacoil", "jacobs_ladder", "plasma_globe", "tokamak_fusion", "lorentz_attractor", "hadron_collider", "cherenkov_glow", "ferrofluid_spikes", "gravitational_waves", "hawking_horizon"]) {
+    for (const effectId of ["rain", "smoke", "cyberstorm", "nebula", "aurora", "outrun_grid", "neural_nexus", "dna_helix", "quantum_cpu", "black_hole", "liquid_glass_caustics", "m4_raytrace_prism", "win11_mica_bloom", "plasma_storm", "tesla_megacoil", "jacobs_ladder", "plasma_globe", "tokamak_fusion", "lorentz_attractor", "hadron_collider", "cherenkov_glow", "ferrofluid_spikes", "gravitational_waves", "hawking_horizon", "tesseract_4d", "calabi_yau", "penrose_quasicrystal", "klein_mobius", "chronos_retrocausal", "eigen_consciousness", "strangelet_condensate", "metric_fold_origami", "tachyon_braid_2126", "void_metamaterial", "omega_point_2126", "xenotech_biolith"]) {
       doc.querySelector(`.fm-atmo-card[data-atmo="${effectId}"]`).click();
       expect(doc.documentElement.dataset.atmosphere).toBe(effectId);
       expect(doc.documentElement.dataset.atmosphereTier).toBe("ultra");
@@ -749,31 +749,71 @@ describe("the theme editor in the page", () => {
     expect(doc.documentElement.dataset.atmosphere).toBe("sakura+fireflies+aurora+rain");
     expect(doc.documentElement.dataset.atmosphereLayers).toBe("4");
 
-    // Category filter narrows the visible cards and "all" restores all 160
+    // Save & Name a custom user preset in the dialog, switch away, recall it in 1 click, then delete it
+    const presetInput = doc.querySelector("[data-user-preset-name]") as any;
+    expect(presetInput).toBeTruthy();
+    presetInput.value = "Hyper-Singularity 2126";
+    doc.querySelector('.fm-atmo-preset-btn[data-mix="tesseract_4d+calabi_yau+chronos_retrocausal"]').click();
+    const intensityInput = doc.querySelector('.fm-atmo-intensity input[type="range"]') as any;
+    intensityInput.value = "85";
+    intensityInput.dispatchEvent(new doc.defaultView.Event("input", { bubbles: true }));
+    doc.querySelector("[data-save-user-preset]").click();
+    await sleep(120);
+
+    const savedChipBtn = doc.querySelector('[data-user-preset="Hyper-Singularity 2126"]') as any;
+    expect(savedChipBtn).toBeTruthy();
+    expect(atmo.savedAtmospherePresets()[0]?.name).toBe("Hyper-Singularity 2126");
+    expect(atmo.savedAtmospherePresets()[0]?.effect).toBe("tesseract_4d+calabi_yau+chronos_retrocausal");
+    expect(atmo.savedAtmospherePresets()[0]?.intensity).toBe(85);
+
+    // Switch to "none" and different intensity, then click the saved user preset to restore the 3-layer 2126 mix + 85% intensity
+    doc.querySelector('.fm-atmo-card[data-atmo="none"]').click();
+    intensityInput.value = "40";
+    intensityInput.dispatchEvent(new doc.defaultView.Event("input", { bubbles: true }));
+    expect(doc.documentElement.dataset.atmosphere).toBeUndefined();
+    (doc.querySelector('[data-user-preset="Hyper-Singularity 2126"]') as any).click();
+    expect(doc.documentElement.dataset.atmosphere).toBe("tesseract_4d+calabi_yau+chronos_retrocausal");
+    expect(Number(intensityInput.value)).toBe(85);
+
+    // Delete the custom preset via the × button
+    (doc.querySelector('[data-delete-user-preset="Hyper-Singularity 2126"]') as any).click();
+    await sleep(100);
+    expect(doc.querySelector('[data-user-preset="Hyper-Singularity 2126"]')).toBeNull();
+    expect(atmo.savedAtmospherePresets().length).toBe(0);
+
+    // Restore sakura+fireflies+aurora+rain for final Apply assertion
+    doc.querySelector('.fm-atmo-preset-btn[data-mix="sakura+fireflies+aurora"]').click();
+    doc.querySelector('.fm-atmo-card[data-atmo="rain"] .fm-atmo-mix-chip').click();
+
+    // Category filter narrows the visible cards (including Year 2126) and "all" restores all 172
+    doc.querySelector('.fm-atmo-cat-btn[data-cat="future2126"]').click();
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(13); // "none" + 12 Year-2126 effects
     doc.querySelector('.fm-atmo-cat-btn[data-cat="physics"]').click();
     expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(27);
     doc.querySelector('.fm-atmo-cat-btn[data-cat="cosmic"]').click();
     expect(doc.querySelectorAll(".fm-atmo-card").length).toBeLessThan(45);
     doc.querySelector('.fm-atmo-cat-btn[data-cat="all"]').click();
-    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(160);
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(172);
 
-    // Tier filter and Animation Engine filter narrow sections/cards and "all" restores all 160
+    // Tier filter and Animation Engine filter narrow sections/cards and "all" restores all 172
     doc.querySelector('[data-tier-filter="ultra"]').click();
     expect(doc.querySelectorAll(".fm-atmo-section").length).toBe(1);
-    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(65);
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(77);
     doc.querySelector('[data-tier-filter="medium"]').click();
     expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(55);
     doc.querySelector('[data-tier-filter="low"]').click();
     expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(40);
     doc.querySelector('[data-tier-filter="all"]').click();
-    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(160);
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(172);
 
+    doc.querySelector('[data-anim-filter="future2126"]').click();
+    expect(doc.querySelectorAll('.fm-atmo-card[data-atmo-engine="future2126"]').length).toBe(12);
     doc.querySelector('[data-anim-filter="tesla"]').click();
     expect(doc.querySelectorAll('.fm-atmo-card[data-atmo-engine="tesla"]').length).toBeGreaterThanOrEqual(8);
     doc.querySelector('[data-anim-filter="physics"]').click();
     expect(doc.querySelectorAll('.fm-atmo-card[data-atmo-engine="physics"]').length).toBeGreaterThanOrEqual(14);
     doc.querySelector('[data-anim-filter="all"]').click();
-    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(160);
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(172);
 
     // Switching themes automatically re-harmonizes --fm-atmo-c1, --fm-atmo-c2, and --fm-atmo-c3
     const c1Before = doc.documentElement.style.getPropertyValue("--fm-atmo-c1");
@@ -878,6 +918,145 @@ describe("the theme editor in the page", () => {
 
     editorButton("Cancel").click();
     await sleep(400);
+    closeDialogs();
+  });
+
+  test("Reactive Physics & Arc Surge, Side-by-Side Split-Screen Theme Comparator, 4-Stage Solar Cycle Schedule, and Per-Folder Theme Profiles work end-to-end", async () => {
+    const atmo = await import("../resources/file_manager/ui/atmosphereFx.js") as any;
+    const testCtx = createContext({ platform: "linux", home: "/home/u", dataDir: "/tmp/x" });
+
+    // 1. Settings sanitization for reactive mode, solar schedule, and folderThemes
+    const cleaned = sanitizeSettings({
+      atmosphereReactive: "telemetry",
+      solarScheduleEnabled: true,
+      solarDawnPalette: "van_de_graaff_day",
+      solarDayPalette: "liquid_metal_light",
+      solarDuskPalette: "tokamak_fusion",
+      solarNightPalette: "tesla_coil_plasma",
+      folderThemes: {
+        "/Users/alice/projects/physics/": "tesla_coil_plasma",
+        "/Users/alice/docs": "nord",
+        "relative/bad": "dracula",
+        "/Users/alice/invalid": "../../bad key",
+      },
+    }, testCtx);
+    expect(cleaned.atmosphereReactive).toBe("telemetry");
+    expect(cleaned.solarScheduleEnabled).toBe(true);
+    expect(cleaned.solarNightPalette).toBe("tesla_coil_plasma");
+    expect(cleaned.folderThemes).toEqual({
+      "/Users/alice/projects/physics": "tesla_coil_plasma",
+      "/Users/alice/docs": "nord",
+    });
+
+    // 2. Reactive Physics & Arc Surge in Atmospheric Special Effects studio
+    void atmo.showAtmosphereDialog();
+    await sleep(180);
+    expect(doc.querySelectorAll("[data-reactive-mode]").length).toBe(4);
+    doc.querySelector('.fm-atmo-card[data-atmo="tesla_megacoil"]').click();
+    doc.querySelector('[data-reactive-mode="telemetry"]').click();
+    expect(doc.documentElement.dataset.atmosphereReactive).toBe("telemetry");
+
+    const surgeBtn = doc.querySelector("[data-surge-btn]");
+    expect(surgeBtn).toBeTruthy();
+    surgeBtn.click();
+    expect(doc.documentElement.dataset.atmosphereSurge).toBe("true");
+    expect(atmo.computeReactiveMultiplier(10, "telemetry")).toBeGreaterThan(1.3);
+
+    // 2b. Fast keyboard navigation & live previewing across atmospheric effects
+    const teslaCard = doc.querySelector('.fm-atmo-card[data-atmo="tesla_megacoil"]') as any;
+    teslaCard.focus();
+    teslaCard.dispatchEvent(new doc.defaultView.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    expect(doc.documentElement.dataset.atmosphere).not.toBe("tesla_megacoil");
+    const afterRight = doc.documentElement.dataset.atmosphere;
+
+    const focusedCard = doc.activeElement as any;
+    focusedCard.dispatchEvent(new doc.defaultView.KeyboardEvent("keydown", { key: "PageDown", bubbles: true }));
+    expect(doc.documentElement.dataset.atmosphere).not.toBe(afterRight);
+
+    // [ and ] bracket keys step backward/forward anywhere in the dialog
+    doc.querySelector(".modal-backdrop").dispatchEvent(new doc.defaultView.KeyboardEvent("keydown", { key: "]", bubbles: true }));
+    const afterBracketRight = doc.documentElement.dataset.atmosphere;
+    doc.querySelector('[data-atmo-step="-1"]').click();
+    expect(doc.documentElement.dataset.atmosphere).not.toBe(afterBracketRight);
+
+    // + key nudges intensity up by 5% while previewing on a focused card
+    const beforeIntensity = Number((doc.querySelector('.fm-atmo-intensity input[type="range"]') as any).value);
+    (doc.activeElement as any).dispatchEvent(new doc.defaultView.KeyboardEvent("keydown", { key: "+", bubbles: true }));
+    expect(Number((doc.querySelector('.fm-atmo-intensity input[type="range"]') as any).value)).toBe(Math.min(100, beforeIntensity + 5));
+
+    editorButton("Apply effect").click();
+    await sleep(250);
+    expect(state.settings.atmosphereReactive).toBe("telemetry");
+
+    // Global cycleAtmosphere steps through effects and persists
+    const cycled = await atmo.cycleAtmosphere(1, { category: "physics" });
+    expect(cycled?.cat).toBe("physics");
+    expect(doc.documentElement.dataset.atmosphere).toBe(cycled?.id);
+    atmo.applyAtmosphere("none");
+    closeDialogs();
+
+    // 3. 4-Stage Solar Cycle Schedule resolution & dialog preset
+    state.settings.palette = "";
+    state.settings.theme = "auto";
+    state.settings.solarScheduleEnabled = true;
+    state.settings.solarDawnPalette = "van_de_graaff_day";
+    state.settings.solarDayPalette = "liquid_metal_light";
+    state.settings.solarDuskPalette = "tokamak_fusion";
+    state.settings.solarNightPalette = "tesla_coil_plasma";
+
+    expect(themes.resolveSolarPalette(6)).toBe("van_de_graaff_day");
+    expect(themes.resolveSolarPalette(13)).toBe("liquid_metal_light");
+    expect(themes.resolveSolarPalette(19)).toBe("tokamak_fusion");
+    expect(themes.resolveSolarPalette(23)).toBe("tesla_coil_plasma");
+    expect(themes.effectiveAutoPalette(false, 23)).toBe("tesla_coil_plasma");
+    expect(themes.effectiveAutoPalette(true, 7)).toBe("van_de_graaff_day");
+
+    void themes.showDayNightPairDialog();
+    await sleep(200);
+    expect(doc.querySelector("[data-solar-enabled]")).toBeTruthy();
+    expect(doc.querySelectorAll("[data-solar-stage]").length).toBe(4);
+    const solarPresetBtn = doc.querySelector("[data-solar-preset]");
+    expect(solarPresetBtn).toBeTruthy();
+    solarPresetBtn.click();
+    expect((doc.querySelector('[data-solar-stage="night"]') as any).value).toBe("tesla_coil_plasma");
+    editorButton("Clear pair").click();
+    await sleep(250);
+    expect(state.settings.solarScheduleEnabled).toBe(false);
+    closeDialogs();
+
+    // 4. Per-Folder / Workspace Directory Theme Profiles (with subfolder inheritance)
+    state.settings.folderThemes = {
+      "/workspace/reactor": "tokamak_fusion",
+      "/workspace/reactor/cryo": "meissner_superconductor",
+    };
+    expect(themes.resolveFolderPalette("/workspace/reactor")).toBe("tokamak_fusion");
+    expect(themes.resolveFolderPalette("/workspace/reactor/logs/2026")).toBe("tokamak_fusion");
+    expect(themes.resolveFolderPalette("/workspace/reactor/cryo/chamber")).toBe("meissner_superconductor");
+    expect(themes.resolveFolderPalette("/workspace/other")).toBe("");
+    state.settings.folderThemes = {};
+
+    // 5. Side-by-Side Split-Screen Theme Comparator
+    void themes.showThemeCompareDialog(undefined, "tesla_coil_plasma", "nord");
+    await sleep(200);
+    expect(doc.querySelector(".dialog-title")?.textContent).toBe("Compare themes side-by-side");
+    const stage = doc.querySelector(".theme-compare-stage");
+    const slider = doc.querySelector(".theme-compare-slider") as any;
+    expect(stage).toBeTruthy();
+    expect(slider).toBeTruthy();
+    slider.value = "72";
+    slider.dispatchEvent(new doc.defaultView.Event("input", { bubbles: true }));
+    expect(stage.style.getPropertyValue("--compare-split")).toBe("72%");
+    expect(doc.querySelectorAll(".theme-compare-table tbody tr").length).toBe(7);
+
+    doc.querySelector("[data-swap-compare]").click();
+    expect((doc.querySelector('[data-compare-select="a"]') as any).value).toBe("nord");
+    expect((doc.querySelector('[data-compare-select="b"]') as any).value).toBe("tesla_coil_plasma");
+
+    doc.querySelector('[data-apply-compare="b"]').click();
+    await sleep(350);
+    expect(state.settings.palette).toBe("tesla_coil_plasma");
+    await themes.applyPalette("");
+    state.settings.palette = "";
     closeDialogs();
   });
 });

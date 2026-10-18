@@ -54,7 +54,7 @@ async function resolveExportPayload(
   if (typeof b.method === "string" && b.method.trim()) {
     const probe = await runSysinfoProbe(
       b.method.trim(),
-      typeof b.param === "string" ? b.param : "",
+      typeof b.param === "string" ? b.param.slice(0, 200) : "",
       ctx.platform,
       ctx.sysinfo,
     );

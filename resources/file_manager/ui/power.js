@@ -478,8 +478,15 @@ export function wirePower() {
   if (typeof window !== "undefined") {
     window.addEventListener("message", (e) => {
       if (!e.data || typeof e.data !== "object" || document.querySelector(".modal-backdrop")) return;
+      const ownOrigin = typeof location !== "undefined" ? location.origin : "";
+      const altOrigin =
+        typeof location !== "undefined" && (location.hostname === "127.0.0.1" || location.hostname === "localhost")
+          ? `${location.protocol}//${location.hostname === "127.0.0.1" ? "localhost" : "127.0.0.1"}${location.port ? `:${location.port}` : ""}`
+          : "";
+      const isAllowedOrigin =
+        !e.origin || e.origin === "null" || e.origin === ownOrigin || (Boolean(altOrigin) && e.origin === altOrigin);
       const frames = [...document.querySelectorAll("#power-panel iframe")];
-      const fromPowerFrame = e.source === window || frames.some((f) => {
+      const fromMountedFrame = frames.some((f) => {
         if (f.contentWindow === e.source) return true;
         try {
           for (let i = 0; i < (f.contentWindow?.frames?.length ?? 0); i++) {
@@ -487,7 +494,11 @@ export function wirePower() {
           }
         } catch { /* cross-origin frame */ }
         return false;
-      }) || (frames.length > 0 && /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(String(e.origin || "")));
+      });
+      const fromPowerFrame =
+        (e.source === window && isAllowedOrigin) ||
+        (fromMountedFrame && isAllowedOrigin) ||
+        (frames.length > 0 && Boolean(e.origin) && (e.origin === ownOrigin || (Boolean(altOrigin) && e.origin === altOrigin)));
       if (!fromPowerFrame) return;
       if (e.data.fmToggleExpand) togglePowerExpanded();
       else if (e.data.fmEscapeExpand) {

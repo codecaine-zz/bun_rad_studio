@@ -52,6 +52,8 @@ export interface Settings {
   atmosphereTier: AtmosphereTier;
   /** Real-time reactive physics modulation mode ("off", "activity", "telemetry", "audio"). */
   atmosphereReactive: AtmosphereReactiveMode;
+  /** User-saved custom named atmospheric special effect presets (single effect or multi-layer mix + intensity + tier + reactive mode). */
+  atmospherePresets: AtmospherePreset[];
   textSize: number;
   lastPath: string;
   seenWelcome: boolean;
@@ -131,6 +133,14 @@ export interface StudioPreset {
   options: Record<string, string | number | boolean>;
 }
 
+export interface AtmospherePreset {
+  name: string;
+  effect: AtmosphereEffect;
+  intensity: number;
+  tier: AtmosphereTier;
+  reactive: AtmosphereReactiveMode;
+}
+
 export const WORKSPACES = ["files", "home", "tools", "split", "dual"] as const;
 export type Workspace = (typeof WORKSPACES)[number];
 export const ATMOSPHERE_EFFECTS: readonly string[] = ATMOSPHERE_IDS;
@@ -140,6 +150,7 @@ export type AtmosphereTier = (typeof ATMOSPHERE_TIERS)[number];
 export const ATMOSPHERE_REACTIVE_MODES = ["off", "activity", "telemetry", "audio"] as const;
 export type AtmosphereReactiveMode = (typeof ATMOSPHERE_REACTIVE_MODES)[number];
 export const MAX_FOLDER_THEMES = 100;
+export const MAX_ATMOSPHERE_PRESETS = 50;
 export const SPLIT_MIN = 20;
 export const SPLIT_MAX = 80;
 export const TERMINAL_HEIGHT_MIN = 120;
@@ -173,6 +184,7 @@ export const DEFAULT_SETTINGS: Settings = {
   atmosphereIntensity: 60,
   atmosphereTier: "auto",
   atmosphereReactive: "off",
+  atmospherePresets: [],
   textSize: 100,
   lastPath: "",
   seenWelcome: false,
@@ -296,6 +308,7 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     atmosphereIntensity,
     atmosphereTier: oneOf(r.atmosphereTier, ATMOSPHERE_TIERS, DEFAULT_SETTINGS.atmosphereTier),
     atmosphereReactive: oneOf(r.atmosphereReactive, ATMOSPHERE_REACTIVE_MODES, DEFAULT_SETTINGS.atmosphereReactive),
+    atmospherePresets: sanitizeAtmospherePresets(r.atmospherePresets),
     textSize: size,
     lastPath: isPath(r.lastPath) ? p.resolve(r.lastPath) : "",
     seenWelcome: typeof r.seenWelcome === "boolean" ? r.seenWelcome : DEFAULT_SETTINGS.seenWelcome,
@@ -328,6 +341,23 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     tags,
     treeExpanded: typeof r.treeExpanded === "boolean" ? r.treeExpanded : DEFAULT_SETTINGS.treeExpanded,
   };
+}
+
+function sanitizeAtmospherePresets(raw: unknown): AtmospherePreset[] {
+  const out: AtmospherePreset[] = [];
+  for (const item of Array.isArray(raw) ? raw : []) {
+    if (out.length >= MAX_ATMOSPHERE_PRESETS || !item || typeof item !== "object") continue;
+    const x = item as Record<string, unknown>;
+    // eslint-disable-next-line no-control-regex
+    const name = typeof x.name === "string" ? x.name.replace(/[\x00-\x1f\x7f]/g, " ").trim().slice(0, MAX_PRESET_NAME) : "";
+    const effect = normalizeAtmosphereSpec(x.effect);
+    if (!name || !effect || effect === "none" || out.some((p) => p.name.toLowerCase() === name.toLowerCase())) continue;
+    const intensity = typeof x.intensity === "number" && isFinite(x.intensity) ? Math.round(Math.min(100, Math.max(10, x.intensity))) : DEFAULT_SETTINGS.atmosphereIntensity;
+    const tier = oneOf(x.tier, ATMOSPHERE_TIERS, DEFAULT_SETTINGS.atmosphereTier);
+    const reactive = oneOf(x.reactive, ATMOSPHERE_REACTIVE_MODES, DEFAULT_SETTINGS.atmosphereReactive);
+    out.push({ name, effect, intensity, tier, reactive });
+  }
+  return out;
 }
 
 function sanitizePresetList(raw: unknown): StudioPreset[] {

@@ -5,7 +5,7 @@ import { openDialog } from "./dialogs.js";
 import { debounce, h } from "./dom.js";
 import { toast } from "./menus.js";
 import { saveSettings } from "./nav.js";
-import { emit, on, state } from "./state.js";
+import { currentPath, emit, on, state } from "./state.js";
 
 /** The variables a theme sets, so they can be taken off again. */
 let applied = [];
@@ -21,10 +21,68 @@ export function isSystemDark() {
   }
 }
 
-/** Resolves the paired theme key when `theme === "auto"` and no fixed `palette` is forced. */
-export function effectiveAutoPalette(dark = isSystemDark()) {
+/** Resolves the active 4-Stage Solar Cycle palette (Dawn 5-8, Day 9-16, Dusk 17-20, Midnight 21-4). */
+export function resolveSolarPalette(hour = new Date().getHours(), s = state.settings) {
+  if (!s?.solarScheduleEnabled) return "";
+  const hNum = ((Number(hour) % 24) + 24) % 24;
+  if (hNum >= 5 && hNum < 9) return s.solarDawnPalette || s.preferredLightPalette || "";
+  if (hNum >= 9 && hNum < 17) return s.solarDayPalette || s.preferredLightPalette || "";
+  if (hNum >= 17 && hNum < 21) return s.solarDuskPalette || s.preferredDarkPalette || "";
+  return s.solarNightPalette || s.preferredDarkPalette || "";
+}
+
+function normalizeFolderKey(raw) {
+  if (typeof raw !== "string") return "";
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  return trimmed.length > 1 ? trimmed.replace(/[\\/]+$/, "") : trimmed;
+}
+
+/** Resolves a per-folder or workspace ancestor theme profile for `folderPath`. */
+export function resolveFolderPalette(folderPath = currentPath() || state.cwd || "", s = state.settings) {
+  const map = s?.folderThemes;
+  if (!map || typeof map !== "object") return "";
+  const target = normalizeFolderKey(folderPath);
+  if (!target) return "";
+  if (typeof map[target] === "string" && map[target]) return map[target];
+  let bestPrefix = "";
+  let bestKey = "";
+  for (const [rawDir, key] of Object.entries(map)) {
+    const dir = normalizeFolderKey(rawDir);
+    if (!dir || typeof key !== "string" || !key) continue;
+    if (target === dir || target.startsWith(`${dir}/`) || target.startsWith(`${dir}\\`)) {
+      if (dir.length > bestPrefix.length) {
+        bestPrefix = dir;
+        bestKey = key;
+      }
+    }
+  }
+  return bestKey;
+}
+
+/** Assigns or clears (`paletteKey === ""`) a pinned theme for a specific folder path. */
+export async function setFolderTheme(folderPath, paletteKey) {
+  const dir = normalizeFolderKey(folderPath);
+  if (!dir) return;
+  const current = { ...(state.settings?.folderThemes ?? {}) };
+  if (paletteKey) current[dir] = paletteKey;
+  else delete current[dir];
+  await saveSettings({ folderThemes: current });
+  const activeDir = normalizeFolderKey(currentPath() || state.cwd || "");
+  if (activeDir && (activeDir === dir || activeDir.startsWith(`${dir}/`) || activeDir.startsWith(`${dir}\\`))) {
+    await applyPalette(paletteKey || state.settings?.palette || "");
+  }
+}
+
+/** Resolves the paired or solar-scheduled theme key when `theme === "auto"` and no fixed `palette` is forced. */
+export function effectiveAutoPalette(dark = isSystemDark(), hour = new Date().getHours()) {
   const s = state.settings;
-  if (!s || s.palette || s.theme !== "auto") return "";
+  if (!s || s.palette) return "";
+  if (s.solarScheduleEnabled) {
+    const solar = resolveSolarPalette(hour, s);
+    if (solar) return solar;
+  }
+  if (s.theme !== "auto") return "";
   return (dark ? s.preferredDarkPalette : s.preferredLightPalette) || "";
 }
 
@@ -152,7 +210,7 @@ export function forgetThemeList() {
 /** Applies the theme `key`, or goes back to the plain Light/Dark/automatic choice (or Day/Night pair) when `key` is empty or unknown. Resolves the theme's name or "". */
 export async function applyPalette(key) {
   const root = document.documentElement;
-  const resolvedKey = key || effectiveAutoPalette();
+  const resolvedKey = key || resolveFolderPalette() || effectiveAutoPalette();
   if (!resolvedKey) {
     clearPalette();
     const t = state.settings?.theme ?? "auto";
@@ -833,11 +891,11 @@ export async function showThemePicker() {
     const withFx = shown.filter((t) => t.hasEffects).length;
     count.textContent = `${shown.length} of ${themes.length} themes · ${withFx} with special effects ✨, ${shown.length - withFx} plain colors`;
   }
-  // Keyboard: the arrow keys, Home and End move between cards and show each theme straight away (not saved yet).
+  // Keyboard: the arrow keys, PageUp/PageDown, Home, End, and [ / ] move between cards and show each theme straight away (not saved yet).
   // Enter or Space keeps the focused theme, Done keeps the one on show, and Escape goes back to the saved theme.
   let previewKey = null;
   const cards = () => [...list.querySelectorAll(".theme-card")];
-  const preview = debounce((key) => { if (previewKey === key) applyPalette(key); }, 60);
+  const preview = debounce((key) => { if (previewKey === key) applyPalette(key); }, 20);
   async function pick(key) {
     previewKey = null;
     await choose(key);
@@ -854,31 +912,54 @@ export async function showThemePicker() {
   });
   const step = (from, key) => {
     const all = cards();
-    const i = all.indexOf(from);
+    if (!all.length) return from;
+    const i = Math.max(0, all.indexOf(from));
     if (key === "Home") return all[0];
     if (key === "End") return all.at(-1);
-    if (key === "ArrowLeft") return all[Math.max(0, i - 1)];
-    if (key === "ArrowRight") return all[Math.min(all.length - 1, i + 1)];
+    if (key === "ArrowLeft") return all[(i - 1 + all.length) % all.length];
+    if (key === "ArrowRight") return all[(i + 1) % all.length];
+    if (key === "PageUp") return all[Math.max(0, i - 8)];
+    if (key === "PageDown") return all[Math.min(all.length - 1, i + 8)];
     // Up and Down: the nearest card in the row above or below, across group headings too.
-    const r = from.getBoundingClientRect();
-    const x = r.left + r.width / 2;
+    const r = from.getBoundingClientRect?.() ?? { left: 0, top: 0, width: 0, height: 0 };
     const down = key === "ArrowDown";
-    const rows = all.map((c) => [c, c.getBoundingClientRect()]).filter(([, b]) => (down ? b.top > r.top + 4 : b.top < r.top - 4));
-    if (!rows.length) return from;
-    const rowTop = down ? Math.min(...rows.map(([, b]) => b.top)) : Math.max(...rows.map(([, b]) => b.top));
-    const row = rows.filter(([, b]) => Math.abs(b.top - rowTop) < 4);
-    return row.reduce((best, cur) => (Math.abs(cur[1].left + cur[1].width / 2 - x) < Math.abs(best[1].left + best[1].width / 2 - x) ? cur : best))[0];
+    if (r.width > 0 && r.height > 0) {
+      const x = r.left + r.width / 2;
+      const rows = all.map((c) => [c, c.getBoundingClientRect()]).filter(([, b]) => (down ? b.top > r.top + 4 : b.top < r.top - 4));
+      if (rows.length) {
+        const rowTop = down ? Math.min(...rows.map(([, b]) => b.top)) : Math.max(...rows.map(([, b]) => b.top));
+        const row = rows.filter(([, b]) => Math.abs(b.top - rowTop) < 4);
+        return row.reduce((best, cur) => (Math.abs(cur[1].left + cur[1].width / 2 - x) < Math.abs(best[1].left + best[1].width / 2 - x) ? cur : best))[0];
+      }
+    }
+    return all[Math.max(0, Math.min(all.length - 1, i + (down ? 4 : -4)))];
+  };
+  const focusAndPreviewCard = (targetCard) => {
+    if (!targetCard) return;
+    const key = targetCard.dataset.key ?? "";
+    previewKey = key;
+    void applyPalette(key);
+    targetCard.focus({ preventScroll: true });
+    targetCard.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  };
+  const stepThemeByDelta = (delta) => {
+    const all = cards();
+    if (!all.length) return;
+    const currentKey = previewKey ?? state.settings.palette ?? "";
+    const curIdx = all.findIndex((c) => (c.dataset.key ?? "") === currentKey);
+    const nextIdx = curIdx < 0 ? (delta > 0 ? 0 : all.length - 1) : (curIdx + delta + all.length) % all.length;
+    focusAndPreviewCard(all[nextIdx]);
   };
   list.addEventListener("keydown", (e) => {
     const from = e.target.closest?.(".theme-card");
-    if (!from || e.altKey || e.ctrlKey || e.metaKey || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(e.key)) return;
+    if (!from || e.altKey || e.ctrlKey || e.metaKey || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(e.key)) return;
     e.preventDefault();
-    step(from, e.key)?.focus();
+    focusAndPreviewCard(step(from, e.key));
   });
   const enterCards = (e) => {
     if (e.key !== "ArrowDown" || e.altKey || e.ctrlKey || e.metaKey) return;
     e.preventDefault();
-    (list.querySelector('.theme-card[aria-pressed="true"]') ?? cards()[0])?.focus();
+    focusAndPreviewCard(list.querySelector('.theme-card[aria-pressed="true"]') ?? cards()[0]);
   };
   search.addEventListener("keydown", enterCards);
 
@@ -890,12 +971,57 @@ export async function showThemePicker() {
   animFilter.addEventListener("change", draw);
   sortFilter.addEventListener("change", draw);
   draw();
+  const activeFolderPath = normalizeFolderKey(currentPath() || state.cwd || "");
+  const updatePinFolderLabel = (btn) => {
+    if (!btn) return;
+    const curFolder = normalizeFolderKey(currentPath() || state.cwd || "");
+    const pinnedKey = curFolder ? state.settings?.folderThemes?.[curFolder] : "";
+    btn.textContent = pinnedKey ? `📁 Folder Pinned (${pinnedKey})` : "📁 Pin to Folder";
+    btn.classList.toggle("is-active", Boolean(pinnedKey));
+  };
+  const pinFolderBtn = h("button", {
+    type: "button",
+    class: "btn theme-pin-folder-btn",
+    "data-pin-folder": activeFolderPath || "/",
+    title: "Pin the active theme to the current workspace folder (and its subfolders), or click again to unpin.",
+    onclick: async () => {
+      const targetDir = normalizeFolderKey(currentPath() || state.cwd || "/");
+      const currentKey = previewKey ?? state.settings?.palette ?? "";
+      const existing = state.settings?.folderThemes?.[targetDir] || "";
+      if (existing && (!currentKey || existing === currentKey)) {
+        await setFolderTheme(targetDir, "");
+        toast(`Unpinned folder theme from ${targetDir}.`, { kind: "info" });
+      } else if (currentKey) {
+        await setFolderTheme(targetDir, currentKey);
+        toast(`Pinned theme "${currentKey}" to folder ${targetDir}.`, { kind: "success" });
+      } else {
+        toast("Pick a theme first to pin it to this folder.", { kind: "info" });
+      }
+      updatePinFolderLabel(pinFolderBtn);
+    },
+  }, "📁 Pin to Folder");
+  updatePinFolderLabel(pinFolderBtn);
+
   const dialog = openDialog({
     title: "Themes",
     wide: true,
     body: [
       h("div", { class: "theme-tools" },
         search, mode, groupFilter, fxFilter, tierFilter, animFilter, sortFilter,
+        h("button", {
+          type: "button",
+          class: "btn theme-step-btn",
+          "data-theme-step": "-1",
+          title: "Preview previous theme ( [ or Left Arrow )",
+          onclick: () => stepThemeByDelta(-1),
+        }, "◀ Prev"),
+        h("button", {
+          type: "button",
+          class: "btn theme-step-btn",
+          "data-theme-step": "1",
+          title: "Preview next theme ( ] or Right Arrow )",
+          onclick: () => stepThemeByDelta(1),
+        }, "Next ▶"),
         h("button", {
           type: "button",
           class: "btn theme-random-btn",
@@ -906,18 +1032,40 @@ export async function showThemePicker() {
             const candidates = pool.filter((t) => t.key !== state.settings.palette);
             const chosen = (candidates.length ? candidates : pool)[Math.floor(Math.random() * (candidates.length || pool.length))];
             if (chosen) await pick(chosen.key);
+            updatePinFolderLabel(pinFolderBtn);
           },
         }, "🎲 Surprise me"),
+        h("button", {
+          type: "button",
+          class: "btn theme-compare-btn",
+          "data-compare-themes": "true",
+          title: "Compare any two themes side-by-side with a live interactive split-screen slider and shader/tier specification table.",
+          onclick: () => {
+            const firstKey = previewKey || state.settings.palette || lastShown[0]?.key || themes[0]?.key || "";
+            const secondCandidate = (lastShown.length > 1 ? lastShown : themes).find((t) => t.key !== firstKey);
+            void showThemeCompareDialog(themes, firstKey, secondCandidate?.key || firstKey);
+          },
+        }, "⚖️ Compare 2 Themes…"),
+        pinFolderBtn,
         h("button", { type: "button", class: "btn", title: "Add weather or particle effects like rain, smoke screen, digital rain, cyber storm or aurora — with Low, Medium and Modern ARM Ultra graphics profiles.", onclick: () => { emit("atmosphere-picker"); } }, "Atmosphere FX…"),
-        h("button", { type: "button", class: "btn", title: "Choose a Light theme for daytime and a Dark theme for nighttime so the File Manager switches between them automatically with your computer.", onclick: () => { void showDayNightPairDialog(themes); } }, "Day / Night pair…"),
+        h("button", { type: "button", class: "btn", title: "Choose a Light theme for daytime, a Dark theme for nighttime, or a 4-stage Solar Cycle schedule.", onclick: () => { void showDayNightPairDialog(themes); } }, "Day / Night pair…"),
         h("button", { type: "button", class: "btn", title: "Make your own theme, or start from one of these and change its colors.", onclick: () => { dialog.close(); emit("theme-editor", { from: state.settings.palette || "" }); } }, "Create or edit a theme…")),
       navBar, count, list,
-      h("p", { class: "hint" }, "A theme applies as soon as you click it, and is remembered. Click ☆ on any theme to pin it to Favorites, or ✎ to customize its colors and effects. Use Category, Template Tier, Animations, Surface Shader, and Color Vibe pills to filter in one click, or use the arrow keys to preview themes live."),
+      h("p", { class: "hint" }, "A theme applies as soon as you click it, and is remembered. Use ← ↑ ↓ →, PgUp/PgDn, or [ / ] to rapid-preview themes live; press Enter to keep the focused theme, ☆ to pin to Favorites, ✎ to customize, ⚖️ Compare 2 Themes to inspect side-by-side, or 📁 Pin to Folder."),
     ],
     buttons: [{ label: "Done", primary: true, value: true }],
     initialFocus: search,
   });
   dialogRef = dialog;
+  const dialogWrap = list.closest(".modal-backdrop") || list.parentElement;
+  dialogWrap?.addEventListener("keydown", (e) => {
+    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target === search) return;
+    if (e.key === "[" || e.key === "]") {
+      e.preventDefault();
+      stepThemeByDelta(e.key === "]" ? 1 : -1);
+    }
+  });
   dialog.result.then(async (value) => {
     const key = previewKey;
     previewKey = null;
@@ -927,7 +1075,178 @@ export async function showThemePicker() {
   });
 }
 
-/** Dialog to configure automatic Day (Light) and Night (Dark) themes that follow OS prefers-color-scheme. */
+function buildComparePane(theme, sideLabel) {
+  if (!theme) return h("div", { class: "theme-compare-card" }, "No theme selected");
+  const [bg, panel, accent, text] = theme.swatch ?? ["#16191d", "#1e2329", "#6ea8ff", "#e8eaed"];
+  const tier = resolveTemplateTier(theme);
+  const tierBadge = tier === "ultra" ? "🚀 Ultra Tier" : tier === "medium" ? "✨ Medium Tier" : "⚡ Low / Eco Tier";
+  const animDesc = theme.atmosphere && theme.atmosphere !== "none"
+    ? `🌌 Live FX (${theme.atmosphere})`
+    : theme.hasEffects && theme.motion && theme.motion !== "none"
+      ? `🌊 Motion (${theme.motion})`
+      : "⏹️ Static";
+  return h("div", {
+    class: "theme-compare-mockup",
+    style: `background:${bg};color:${text};border-color:${accent}`,
+  },
+    h("div", { class: "theme-compare-mockup-bar", style: `background:${panel};border-bottom:1px solid ${accent}44` },
+      h("span", { class: "theme-compare-side-tag", style: `background:${accent};color:${bg}` }, sideLabel),
+      h("strong", {}, theme.name),
+      h("span", { class: "theme-compare-tier-tag" }, tierBadge),
+    ),
+    h("div", { class: "theme-compare-mockup-body" },
+      h("div", { class: "theme-compare-mockup-sidebar", style: `background:${panel}` },
+        h("div", { class: "theme-compare-chip", style: `background:${accent}28;color:${accent};border:1px solid ${accent}66` }, "📁 Workspace"),
+        h("div", { class: "theme-compare-chip" }, "⚡ Shaders & FX"),
+        h("div", { class: "theme-compare-chip" }, animDesc),
+      ),
+      h("div", { class: "theme-compare-mockup-content" },
+        h("div", { class: "theme-compare-card-sample", style: `background:${panel};border:1px solid ${accent}55` },
+          h("div", { style: `font-weight:600;color:${accent}` }, `${theme.group} · ${theme.dark ? "Dark" : "Light"}`),
+          h("div", { style: "font-size:11px;opacity:0.86;margin-top:4px" }, theme.description || "Custom color and surface shader profile."),
+        ),
+        h("div", { class: "theme-compare-swatches" },
+          ...[bg, panel, accent, text].map((hex) =>
+            h("span", { class: "theme-compare-hex-pill", style: `background:${hex};color:${hex === bg || hex === panel ? text : bg};border:1px solid ${text}33` }, hex)),
+        ),
+      ),
+    ),
+  );
+}
+
+/** Side-by-Side Split-Screen Theme Comparator dialog with interactive wipe slider and spec matrix. */
+export async function showThemeCompareDialog(existingThemes, initialA = "", initialB = "") {
+  let themes = existingThemes;
+  if (!themes) {
+    try {
+      themes = await themeList();
+    } catch (err) {
+      toast(err?.message || "The themes couldn't be loaded.", { kind: "error" });
+      return;
+    }
+  }
+  if (!themes?.length) return;
+  const findOrFirst = (k, fallbackIdx = 0) => themes.find((t) => t.key === k) || themes[Math.min(fallbackIdx, themes.length - 1)];
+  let themeA = findOrFirst(initialA || state.settings?.palette, 0);
+  let themeB = findOrFirst(initialB, themes.length > 1 ? 1 : 0);
+  if (themeB.key === themeA.key && themes.length > 1) {
+    themeB = themes.find((t) => t.key !== themeA.key) || themeA;
+  }
+
+  const selectA = h("select", { class: "prop-input", "aria-label": "Left theme (Theme A)", "data-compare-select": "a" },
+    themes.map((t) => h("option", { value: t.key }, `${t.name} (${resolveTemplateTier(t).toUpperCase()})`)));
+  const selectB = h("select", { class: "prop-input", "aria-label": "Right theme (Theme B)", "data-compare-select": "b" },
+    themes.map((t) => h("option", { value: t.key }, `${t.name} (${resolveTemplateTier(t).toUpperCase()})`)));
+  selectA.value = themeA.key;
+  selectB.value = themeB.key;
+
+  const paneA = h("div", { class: "theme-compare-pane theme-compare-pane-a", "data-compare-pane": "a" });
+  const paneB = h("div", { class: "theme-compare-pane theme-compare-pane-b", "data-compare-pane": "b" });
+  const stage = h("div", { class: "theme-compare-stage", style: "--compare-split: 50%" }, paneA, paneB);
+  const splitSlider = h("input", {
+    type: "range",
+    class: "theme-compare-slider",
+    "aria-label": "Split comparison wipe position",
+    min: "10",
+    max: "90",
+    value: "50",
+    oninput: () => {
+      stage.style.setProperty("--compare-split", `${splitSlider.value}%`);
+    },
+  });
+  const specTable = h("table", { class: "theme-compare-table", "aria-label": "Side-by-side theme specification table" });
+
+  const renderComparison = () => {
+    themeA = findOrFirst(selectA.value, 0);
+    themeB = findOrFirst(selectB.value, 1);
+    paneA.replaceChildren(buildComparePane(themeA, "A · Left"));
+    paneB.replaceChildren(buildComparePane(themeB, "B · Right"));
+    const rows = [
+      ["Template Tier", resolveTemplateTier(themeA).toUpperCase(), resolveTemplateTier(themeB).toUpperCase()],
+      ["Category", themeA.group, themeB.group],
+      ["Polarity", themeA.dark ? "🌙 Dark" : "☀️ Light", themeB.dark ? "🌙 Dark" : "☀️ Light"],
+      ["Surface Shader", themeA.backdropStyle || themeA.preview?.backdrop || (themeA.hasEffects ? "glass" : "solid"), themeB.backdropStyle || themeB.preview?.backdrop || (themeB.hasEffects ? "glass" : "solid")],
+      ["Glow & Border", `${themeA.preview?.glow || "none"} / ${themeA.preview?.border || "solid"}`, `${themeB.preview?.glow || "none"} / ${themeB.preview?.border || "solid"}`],
+      ["Live Canvas FX", themeA.atmosphere && themeA.atmosphere !== "none" ? `🌌 ${themeA.atmosphere}` : "None", themeB.atmosphere && themeB.atmosphere !== "none" ? `🌌 ${themeB.atmosphere}` : "None"],
+      ["Motion Profile", themeA.motion || (themeA.hasEffects ? "smooth" : "static"), themeB.motion || (themeB.hasEffects ? "smooth" : "static")],
+    ];
+    specTable.replaceChildren(
+      h("thead", {}, h("tr", {}, h("th", {}, "Specification"), h("th", {}, `A: ${themeA.name}`), h("th", {}, `B: ${themeB.name}`))),
+      h("tbody", {}, ...rows.map(([label, valA, valB]) =>
+        h("tr", { class: valA !== valB ? "is-diff" : "" },
+          h("td", { class: "spec-name" }, label),
+          h("td", {}, valA),
+          h("td", {}, valB),
+        ))),
+    );
+  };
+
+  selectA.addEventListener("change", renderComparison);
+  selectB.addEventListener("change", renderComparison);
+  renderComparison();
+
+  const applySelected = async (key) => {
+    await saveSettings({ palette: key, recentPalettes: [key, ...(state.settings.recentPalettes ?? []).filter((k) => k !== key)].slice(0, 12) });
+    const name = await applyPalette(key);
+    if (name) toast(`Theme: ${name}`);
+  };
+
+  const dlg = openDialog({
+    title: "Compare themes side-by-side",
+    wide: true,
+    body: [
+      h("div", { class: "theme-compare-controls" },
+        h("label", { class: "field" }, h("span", { class: "field-label" }, "◀ Left Theme (A)"), selectA),
+        h("button", {
+          type: "button",
+          class: "btn",
+          "data-swap-compare": "true",
+          title: "Swap Left (A) and Right (B) themes",
+          onclick: () => {
+            const tmp = selectA.value;
+            selectA.value = selectB.value;
+            selectB.value = tmp;
+            renderComparison();
+          },
+        }, "⇄ Swap A / B"),
+        h("label", { class: "field" }, h("span", { class: "field-label" }, "Right Theme (B) ▶"), selectB),
+      ),
+      h("div", { class: "theme-compare-stage-wrap" },
+        stage,
+        h("label", { class: "theme-compare-slider-row" },
+          h("span", { class: "hint" }, "Drag split-screen wipe slider:"),
+          splitSlider,
+        ),
+      ),
+      specTable,
+      h("div", { class: "theme-compare-actions" },
+        h("button", {
+          type: "button",
+          class: "btn",
+          "data-apply-compare": "a",
+          onclick: async () => {
+            await applySelected(selectA.value);
+            dlg.close("a");
+          },
+        }, "Apply Left Theme (A)"),
+        h("button", {
+          type: "button",
+          class: "btn",
+          "data-apply-compare": "b",
+          onclick: async () => {
+            await applySelected(selectB.value);
+            dlg.close("b");
+          },
+        }, "Apply Right Theme (B)"),
+      ),
+    ],
+    buttons: [{ label: "Close", primary: true, value: "close" }],
+    initialFocus: selectA,
+  });
+  return dlg.result;
+}
+
+/** Dialog to configure automatic Day (Light) and Night (Dark) themes + 4-Stage Solar Cycle Schedule. */
 export async function showDayNightPairDialog(existingThemes) {
   let themes = existingThemes;
   if (!themes) {
@@ -950,11 +1269,70 @@ export async function showDayNightPairDialog(existingThemes) {
   );
   lightSelect.value = state.settings?.preferredLightPalette || "";
   darkSelect.value = state.settings?.preferredDarkPalette || "";
+
+  const makeSolarSelect = (stage, label, defaultLabel) => {
+    const sel = h("select", { class: "prop-input", "aria-label": label, "data-solar-stage": stage },
+      h("option", { value: "" }, defaultLabel),
+      ...themes.map((t) => h("option", { value: t.key }, `${t.name} (${t.dark ? "Dark" : "Light"})`)),
+    );
+    return sel;
+  };
+  const solarEnabled = h("input", {
+    type: "checkbox",
+    "data-solar-enabled": "true",
+    "aria-label": "Enable 4-stage Solar Cycle clock schedule",
+  });
+  solarEnabled.checked = Boolean(state.settings?.solarScheduleEnabled);
+  const dawnSelect = makeSolarSelect("dawn", "Dawn (05:00 – 08:59) theme", "Follow Daytime (Light) theme");
+  const daySelect = makeSolarSelect("day", "Solar Day (09:00 – 16:59) theme", "Follow Daytime (Light) theme");
+  const duskSelect = makeSolarSelect("dusk", "Golden Dusk (17:00 – 20:59) theme", "Follow Nighttime (Dark) theme");
+  const nightSelect = makeSolarSelect("night", "Deep Midnight (21:00 – 04:59) theme", "Follow Nighttime (Dark) theme");
+  dawnSelect.value = state.settings?.solarDawnPalette || "";
+  daySelect.value = state.settings?.solarDayPalette || "";
+  duskSelect.value = state.settings?.solarDuskPalette || "";
+  nightSelect.value = state.settings?.solarNightPalette || "";
+
+  const pickValidKey = (candidates, fallbackPool) => {
+    for (const c of candidates) {
+      if (themes.some((t) => t.key === c)) return c;
+    }
+    return fallbackPool[0]?.key || "";
+  };
+
+  const presetBtn = h("button", {
+    type: "button",
+    class: "btn",
+    "data-solar-preset": "scifi",
+    title: "Automatically populate Dawn, Solar Day, Golden Dusk, and Deep Midnight with curated themes.",
+    onclick: () => {
+      solarEnabled.checked = true;
+      dawnSelect.value = pickValidKey(["van_de_graaff_day", "sakura_glass", "liquid_metal_light", "catppuccin_latte"], lightThemes);
+      daySelect.value = pickValidKey(["cern_control_day", "liquid_metal_light", "daylight_hud", "github_light"], lightThemes);
+      duskSelect.value = pickValidKey(["tokamak_fusion", "dyson_megastructure", "dracula", "nord"], darkThemes);
+      nightSelect.value = pickValidKey(["tesla_coil_plasma", "hawking_horizon", "m4_space_black", "nord"], darkThemes);
+    },
+  }, "✨ Auto-Fill Sci-Fi Solar Cycle");
+
   const body = [
     h("p", { class: "hint" }, "Pick a Light theme for daytime and a Dark theme for nighttime. When \"Follow my computer\" is active, the File Manager switches between your pair automatically."),
     h("div", { class: "theme-daynight-grid" },
       h("label", { class: "field" }, h("span", { class: "field-label" }, "☀️ Daytime (Light) theme"), lightSelect),
       h("label", { class: "field" }, h("span", { class: "field-label" }, "🌙 Nighttime (Dark) theme"), darkSelect),
+    ),
+    h("div", { class: "theme-solar-section" },
+      h("div", { class: "theme-solar-header" },
+        h("label", { class: "theme-solar-toggle" },
+          solarEnabled,
+          h("span", {}, "🕰️ Enable 4-Stage Solar Cycle Schedule (Dawn / Day / Dusk / Midnight)"),
+        ),
+        presetBtn,
+      ),
+      h("div", { class: "theme-solar-grid" },
+        h("label", { class: "field" }, h("span", { class: "field-label" }, "🌅 Dawn (05:00 – 08:59)"), dawnSelect),
+        h("label", { class: "field" }, h("span", { class: "field-label" }, "☀️ Solar Day (09:00 – 16:59)"), daySelect),
+        h("label", { class: "field" }, h("span", { class: "field-label" }, "🌆 Golden Dusk (17:00 – 20:59)"), duskSelect),
+        h("label", { class: "field" }, h("span", { class: "field-label" }, "🌌 Deep Midnight (21:00 – 04:59)"), nightSelect),
+      ),
     ),
   ];
   const answer = await openDialog({
@@ -968,15 +1346,33 @@ export async function showDayNightPairDialog(existingThemes) {
     initialFocus: lightSelect,
   }).result;
   if (answer === "clear") {
-    await saveSettings({ preferredLightPalette: "", preferredDarkPalette: "" });
+    await saveSettings({
+      preferredLightPalette: "",
+      preferredDarkPalette: "",
+      solarScheduleEnabled: false,
+      solarDawnPalette: "",
+      solarDayPalette: "",
+      solarDuskPalette: "",
+      solarNightPalette: "",
+    });
     await applyPalette(state.settings?.palette || "");
-    toast("Day / Night theme pair cleared.", { kind: "info" });
+    toast("Day / Night theme pair and Solar Cycle cleared.", { kind: "info" });
   } else if (answer === "save") {
     const light = lightSelect.value;
     const dark = darkSelect.value;
-    await saveSettings({ theme: "auto", palette: "", preferredLightPalette: light, preferredDarkPalette: dark });
+    await saveSettings({
+      theme: "auto",
+      palette: "",
+      preferredLightPalette: light,
+      preferredDarkPalette: dark,
+      solarScheduleEnabled: Boolean(solarEnabled.checked),
+      solarDawnPalette: dawnSelect.value,
+      solarDayPalette: daySelect.value,
+      solarDuskPalette: duskSelect.value,
+      solarNightPalette: nightSelect.value,
+    });
     await applyPalette("");
-    toast("Day / Night theme pair active — following your computer's light and dark schedule.", { kind: "success" });
+    toast(solarEnabled.checked ? "4-Stage Solar Cycle schedule active." : "Day / Night theme pair active — following your computer's light and dark schedule.", { kind: "success" });
   }
 }
 
@@ -987,5 +1383,15 @@ try {
   });
 } catch { /* matchMedia unavailable */ }
 
+on("view", () => {
+  const map = state.settings?.folderThemes;
+  if (!map || typeof map !== "object" || !Object.keys(map).length) return;
+  const folderKey = resolveFolderPalette();
+  const target = folderKey || state.settings?.palette || "";
+  if ((document.documentElement.dataset.palette || "") !== (target || effectiveAutoPalette())) {
+    void applyPalette(target);
+  }
+});
 on("theme-picker", () => showThemePicker());
 on("theme-day-night", () => showDayNightPairDialog());
+on("theme-compare", (detail) => showThemeCompareDialog(undefined, detail?.a || "", detail?.b || ""));

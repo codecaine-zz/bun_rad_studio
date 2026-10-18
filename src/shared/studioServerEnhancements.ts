@@ -187,18 +187,28 @@ export function computeSchemaDiffDdl(
   let typeChanges = 0;
   const statements: string[] = [];
 
+  const safeDdlType = (rawType: unknown): string => {
+    const s = String(rawType || "TEXT").trim() || "TEXT";
+    if (/;|--|\/\*|\*\//.test(s) || !/^[A-Za-z0-9_ (),.\[\]'"]+$/.test(s)) return "TEXT";
+    return s;
+  };
+  const safeDdlDefault = (rawDflt: unknown): string => {
+    if (rawDflt === undefined || rawDflt === null || String(rawDflt) === "") return "";
+    const s = String(rawDflt).trim();
+    if (!s || /;|--|\/\*|\*\//.test(s)) return "";
+    return ` DEFAULT ${s}`;
+  };
+
   for (const [name, curr] of currMap.entries()) {
     const qTable = quoteCol(name, dialect);
     if (!baseMap.has(name)) {
       addedTables.push(name);
       const colDefs = (curr.columns || []).map((c) => {
         const qCol = quoteCol(c.name, dialect);
-        const typeStr = c.type || "TEXT";
+        const typeStr = safeDdlType(c.type);
         const pkStr = c.pk ? " PRIMARY KEY" : "";
         const nnStr = c.notnull && !c.pk ? " NOT NULL" : "";
-        const dfltStr = c.dflt_value !== undefined && c.dflt_value !== null && String(c.dflt_value) !== ""
-          ? ` DEFAULT ${c.dflt_value}`
-          : "";
+        const dfltStr = safeDdlDefault(c.dflt_value);
         return `  ${qCol} ${typeStr}${pkStr}${nnStr}${dfltStr}`;
       });
       statements.push(`CREATE TABLE ${qTable} (\n${colDefs.join(",\n")}\n);`);
@@ -215,30 +225,26 @@ export function computeSchemaDiffDdl(
       if (!baseCols.has(colName)) {
         tableModified = true;
         addedColumns++;
-        const typeStr = col.type || "TEXT";
+        const typeStr = safeDdlType(col.type);
         const nnStr = col.notnull ? " NOT NULL" : "";
-        const dfltStr = col.dflt_value !== undefined && col.dflt_value !== null && String(col.dflt_value) !== ""
-          ? ` DEFAULT ${col.dflt_value}`
-          : col.notnull
-          ? " DEFAULT ''"
-          : "";
+        const dfltStr = safeDdlDefault(col.dflt_value) || (col.notnull ? " DEFAULT ''" : "");
         statements.push(`ALTER TABLE ${qTable} ADD COLUMN ${qCol} ${typeStr}${nnStr}${dfltStr};`);
       } else {
         const oldCol = baseCols.get(colName)!;
-        const oldType = String(oldCol.type || "").toUpperCase().trim();
-        const newType = String(col.type || "").toUpperCase().trim();
+        const oldType = safeDdlType(oldCol.type).toUpperCase().trim();
+        const newType = safeDdlType(col.type).toUpperCase().trim();
         if (oldType !== newType || Boolean(oldCol.notnull) !== Boolean(col.notnull)) {
           tableModified = true;
           typeChanges++;
           if (dialect === "postgres") {
             if (oldType !== newType) {
-              statements.push(`ALTER TABLE ${qTable} ALTER COLUMN ${qCol} TYPE ${col.type || "TEXT"};`);
+              statements.push(`ALTER TABLE ${qTable} ALTER COLUMN ${qCol} TYPE ${safeDdlType(col.type)};`);
             }
             if (Boolean(oldCol.notnull) !== Boolean(col.notnull)) {
               statements.push(`ALTER TABLE ${qTable} ALTER COLUMN ${qCol} ${col.notnull ? "SET NOT NULL" : "DROP NOT NULL"};`);
             }
           } else if (dialect === "mysql") {
-            statements.push(`ALTER TABLE ${qTable} MODIFY COLUMN ${qCol} ${col.type || "TEXT"}${col.notnull ? " NOT NULL" : " NULL"};`);
+            statements.push(`ALTER TABLE ${qTable} MODIFY COLUMN ${qCol} ${safeDdlType(col.type)}${col.notnull ? " NOT NULL" : " NULL"};`);
           } else {
             statements.push(`-- SQLite column modification on ${qTable}.${qCol}: ${oldType || "ANY"} -> ${newType || "ANY"} (use Table Redesign in SQLite Studio)`);
           }

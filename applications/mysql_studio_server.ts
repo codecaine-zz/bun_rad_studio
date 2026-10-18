@@ -1163,7 +1163,11 @@ export class MysqlManager {
     try {
       if (!name || !columns || columns.length === 0) throw new Error("Table name and columns required");
       const colDefs = columns.map((c) => {
-        let def = `${qm(c.name)} ${c.type || "VARCHAR(255)"}`;
+        const rawType = String(c.type || "VARCHAR(255)").trim() || "VARCHAR(255)";
+        if (/;|--|\/\*|\*\//.test(rawType) || !/^[A-Za-z0-9_ (),.'"+-]+$/.test(rawType)) {
+          throw new Error(`Invalid column type: ${rawType}`);
+        }
+        let def = `${qm(c.name)} ${rawType}`;
         if (c.notnull) def += " NOT NULL";
         if (c.autoinc) def += " AUTO_INCREMENT";
         if (c.pk) def += " PRIMARY KEY";
@@ -2566,7 +2570,10 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/parse-import" && req.method === "POST") {
         try {
           const body = (await req.json()) as any;
-          const parsed = await parseUniversalTable(body);
+          if (body?.filePath) {
+            return Response.json({ success: false, error: "Server-side filePath is not allowed; send content or base64" }, { status: 400, headers: corsHeaders });
+          }
+          const parsed = await parseUniversalTable({ ...body, filePath: undefined });
           return Response.json({ success: true, ...parsed }, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
@@ -2576,8 +2583,11 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/import" && req.method === "POST") {
         try {
           const body = (await req.json()) as any;
-          if (!Array.isArray(body.rows) && (body.content !== undefined || body.base64 !== undefined || body.filePath !== undefined)) {
-            const parsed = await parseUniversalTable(body);
+          if (body?.filePath) {
+            return Response.json({ success: false, error: "Server-side filePath is not allowed; send content or base64" }, { status: 400, headers: corsHeaders });
+          }
+          if (!Array.isArray(body.rows) && (body.content !== undefined || body.base64 !== undefined)) {
+            const parsed = await parseUniversalTable({ ...body, filePath: undefined });
             return Response.json(
               await manager.importRows({
                 ...body,
@@ -2668,7 +2678,7 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
           if (body.name && body.name.includes(".")) {
             const [tbl = "", col = ""] = body.name.split(".");
             const valList = (body.values || []).map(v => `${ml(v)}`).join(", ");
-            await manager.runScript(`ALTER TABLE \`${tbl.replace(/`/g, "")}\` ADD COLUMN \`${col.replace(/`/g, "")}\` ENUM(${valList});`);
+            await manager.runScript(`ALTER TABLE ${qm(tbl)} ADD COLUMN ${qm(col)} ENUM(${valList});`);
           }
           return Response.json({ success: true }, { headers: corsHeaders });
         } catch (err: any) {

@@ -3,9 +3,10 @@
 // parameters so every effect renders a distinct, theme-harmonized animation.
 
 export const ATMOSPHERE_CATEGORIES = [
-  { id: "all", label: "All effects (160)" },
+  { id: "all", label: "All effects (188)" },
+  { id: "weather", label: "⛈️ Weather, Supercells & Storms" },
+  { id: "future2126", label: "🛸 Year 2126 / Hyper-Dimensional" },
   { id: "physics", label: "Tesla, Plasma & Sci-Fi Physics" },
-  { id: "weather", label: "Weather & Sky" },
   { id: "mist", label: "Volumetric & Mist" },
   { id: "cyber", label: "Cyber, Code & Circuits" },
   { id: "cosmic", label: "Cosmic, Space & Orbits" },
@@ -218,6 +219,38 @@ export const ATMOSPHERE_OPTIONS = [
   fx("casimir_vacuum", "ultra", "physics", "✨", "Casimir Zero-Point Fluctuations", "Quantum Field", "Parallel conducting plates with virtual photon pressure and spontaneous vacuum pair arcs.", "tesla", { mode: "cage", arcs: 6 }),
   fx("quark_gluon_plasma", "ultra", "physics", "🌈", "Quark-Gluon Color Confinement", "QCD Physics", "Relativistic color-charge flux tubes snapping into meson jets under strong-force tension.", "physics", { mode: "collider", qcd: true }),
   fx("tachyon_cherenkov", "ultra", "physics", "⏩", "Tachyon Superluminal Shockcone", "Causal Telemetry", "Faster-than-light causal wavefront cones and time-reversed phase trails.", "physics", { mode: "cherenkov", tachyon: true }),
+
+  // ---- Year 2126 / 100 Years From Now — Hyper-Dimensional & Post-Singularity Xenotech (12 effects) ----
+  fx("tesseract_4d", "ultra", "future2126", "💠", "4D Hypercube Stereographic Fold", "Year 2126 · 4D", "True 16-vertex, 32-edge 4-dimensional tesseract rotating across XW, YW & ZW planes with stereographic projection and cursor-coupled 4D tilt.", "future2126", { mode: "tesseract" }),
+  fx("calabi_yau", "ultra", "future2126", "🧬", "11D Calabi-Yau String Manifold", "Year 2126 · 11D", "11-dimensional superstring compactification manifold with morphing complex-plane Riemann sheets and iridescent string-tension filaments.", "future2126", { mode: "calabi_yau" }),
+  fx("penrose_quasicrystal", "ultra", "future2126", "✴️", "Aperiodic Penrose Quasicrystal", "Year 2126 · 5-Fold", "Non-repeating 5-fold and 10-fold Fourier quasicrystal interference wavefield with golden-ratio phason flips.", "future2126", { mode: "quasicrystal" }),
+  fx("klein_mobius", "ultra", "future2126", "♾️", "Non-Orientable Klein Bottle Immersion", "Year 2126 · Topology", "4D figure-8 Klein bottle topological immersion where inside and outside continuously invert with normal-vector plasma flow.", "future2126", { mode: "klein" }),
+  fx("chronos_retrocausal", "ultra", "future2126", "⏳", "Retrocausal Closed Timelike Curves", "Year 2126 · Time Loop", "Tipler-Gödel retrocausal telemetry: particles project future ghost echoes ahead of their path while twin entropy clocks phase-cancel.", "future2126", { mode: "retrocausal" }),
+  fx("eigen_consciousness", "ultra", "future2126", "🧠", "Matrioshka Brain Eigen-Consciousness", "Year 2126 · Dyson AI", "Post-biological stellar Matrioshka shells exchanging braided soliton thought-wavepackets and holographic eigen-glyph bursts.", "future2126", { mode: "matrioshka" }),
+  fx("strangelet_condensate", "ultra", "future2126", "🔮", "Supersolid Strange-Matter Condensate", "Year 2126 · Matter", "Zero-viscosity supersolid quantum matter state that simultaneously flows like a superfluid and locks into glowing hyper-facets.", "future2126", { mode: "supersolid" }),
+  fx("metric_fold_origami", "ultra", "future2126", "📐", "Spacetime Origami Metric Folding", "Year 2126 · Metric", "Reality creasing and unfolding along non-Euclidean geodesic hinges that refract starlight across dimensional folds.", "future2126", { mode: "origami_metric" }),
+  fx("tachyon_braid_2126", "ultra", "future2126", "🪢", "Anyon Braiding Quantum Loom", "Year 2126 · Anyons", "Fibonacci non-Abelian anyons braiding worldlines in 2+1D spacetime to execute topological quantum gates with Berry-phase rings.", "future2126", { mode: "anyon_braid" }),
+  fx("void_metamaterial", "ultra", "future2126", "🕳️", "Negative-Index Cloaking Metamaterial", "Year 2126 · Optics", "Sub-wavelength metamaterial resonator lattice bending wavefronts backward (n < 0) around your cursor like a phase-reversal cloak.", "future2126", { mode: "metamaterial" }),
+  fx("omega_point_2126", "ultra", "future2126", "👁️", "Omega Point Cosmological Convergence", "Year 2126 · Omega", "Final-state cosmological convergence where all geodesic trajectories spiral simultaneously inward and outward through a 4D horizon.", "future2126", { mode: "omega_point" }),
+  fx("xenotech_biolith", "ultra", "future2126", "🦠", "Living Crystalline Xenotech Biolith", "Year 2126 · Utility Fog", "Self-assembling 2126 programmable utility-fog polyhedra that morph into living geometric organs and react to your cursor.", "future2126", { mode: "xenotech" }),
+
+  // -- Extreme Meteorology, Supercells, Tornadoes & Planetary Storms (16 new Weather & Storm effects) ---------------
+  fx("supercell_tornado", "ultra", "weather", "🌪️", "EF5 Supercell Tornado & Mesocyclone", "Severe Storm · EF5", "Rotating mesocyclone wall cloud with a twisting condensation funnel vortex, swirling debris cloud, and anvil crawler lightning.", "weather_storm", { mode: "tornado" }),
+  fx("category5_hurricane", "ultra", "weather", "🌀", "Category 5 Hurricane Eyewall", "Cyclone · 185 MPH", "Logarithmic spiral rainbands whipping around a calm stadium-effect eye with eyewall lightning bursts and ocean spray.", "weather_storm", { mode: "hurricane" }),
+  fx("red_sprite_storm", "ultra", "weather", "🦑", "Mesospheric Red Sprites & Blue Jets", "Upper Atmosphere", "Crimson jellyfish red sprites, stratospheric blue starter jets, and ionospheric ELVES rings firing above a severe thunderstorm anvil.", "weather_storm", { mode: "red_sprites" }),
+  fx("derecho_squall", "ultra", "weather", "⛈️", "Derecho Bow-Echo Squall & Microburst", "100 MPH Wind Shear", "Horizontal wind-sheared rain curtains, downburst splash vortexes, and rapid staccato cloud-to-ground fork lightning.", "weather_storm", { mode: "derecho" }),
+  fx("thundersnow_gale", "ultra", "weather", "❄️", "Arctic Thundersnow & Graupel Gale", "Electrified Blizzard", "Turbulent winter cyclone with swirling snow squalls, muffled violet-blue cloud flashes, and wind-driven ice crystals.", "weather_storm", { mode: "thundersnow" }),
+  fx("haboob_dust_wall", "ultra", "weather", "🏜️", "Sahara Haboob & Dry Lightning Wall", "Triboelectric Storm", "Towering rolling copper-amber sandstorm front with triboelectric static dust-devil lightning and swirling silt eddies.", "weather_storm", { mode: "haboob" }),
+  fx("hail_supercell", "ultra", "weather", "🧊", "Emerald Sky Hailstorm & Mammatus", "Severe Hail Core", "Eerie green-tinted severe storm sky with pouch-like mammatus cloud undulation, bouncing ice hailstones, and sheet lightning.", "weather_storm", { mode: "hail_mammatus" }),
+  fx("waterspout_vortex", "ultra", "weather", "🌊", "Tornadic Marine Waterspout", "Oceanic Vortex", "Twin translucent oceanic waterspout columns drawing glowing sea-spray spirals from churning storm swells into a dark cumulus base.", "weather_storm", { mode: "waterspout" }),
+  fx("volcanic_lightning", "ultra", "weather", "🌋", "Pyroclastic Dirty-Thunderstorm Plume", "Volcanic Tempest", "Boiling volcanic ash column with hyper-frequent magenta-orange electrostatic lightning arcs and glowing tephra rain.", "weather_storm", { mode: "volcanic_storm" }),
+  fx("freezing_ice_storm", "ultra", "weather", "🥶", "Glaze Ice Storm & Sleet Needles", "Sub-Zero Squall", "High-velocity diagonal sleet needles with crystalline frost accretion halos and shivering silver wind gusts.", "weather_storm", { mode: "ice_storm" }),
+  fx("jupiter_red_spot", "ultra", "weather", "🪐", "Jovian Great Red Spot Anticyclone", "Planetary Hyper-Storm", "Planetary-scale crimson-ammonia anticyclonic vortex with counter-flowing zonal jet streams and ammonia-ice mega-bolts.", "weather_storm", { mode: "jupiter_spot" }),
+  fx("saturn_hex_storm", "ultra", "weather", "⬡", "Saturn North Polar Hexagon Jet", "Rossby Wave Storm", "6-sided standing Rossby wave polar jet stream rotating around a towering eye vortex with hydrocarbon lightning.", "weather_storm", { mode: "saturn_hex" }),
+  fx("neptune_diamond_rain", "ultra", "weather", "💎", "Neptunian Supersonic Diamond Squall", "1,200 MPH Ice Giant", "Supersonic methane wind shear condensing pressurized carbon into glittering falling diamond hailstones.", "weather_storm", { mode: "diamond_squall" }),
+  fx("venus_acid_lightning", "ultra", "weather", "🟡", "Venusian Sulfuric Vortex & Cloud Flash", "Super-Rotating Deck", "Dense golden-amber super-rotating cloud deck with horizontal sulfuric virga and warm baritone cloud-to-cloud discharges.", "weather_storm", { mode: "venus_storm" }),
+  fx("aurora_thunder_squall", "ultra", "weather", "🌌", "Geomagnetic Aurora Super-Squall", "Sub-Auroral Gale", "High-latitude storm where a violently dancing sub-auroral green/violet curtain collides with a driving coastal rain squall.", "weather_storm", { mode: "aurora_squall" }),
+  fx("monsoon_microburst", "ultra", "weather", "🌧️", "Tropical Monsoon Cloudburst & Downburst", "Torrential Sheet", "Torrential vertical cloudburst sheets with multi-ring surface hydro-splashes, rolling mist banks, and warm sheet lightning.", "weather_storm", { mode: "microburst" }),
 ];
 
 export const ATMOSPHERE_BY_ID = new Map(ATMOSPHERE_OPTIONS.map((o) => [o.id, o]));
@@ -226,6 +259,22 @@ export const MAX_ATMOSPHERE_LAYERS = 4;
 
 /** Curated multi-layer atmospheric combinations users can activate with one click or customize in the Mixer. */
 export const ATMOSPHERE_MIX_PRESETS = [
+  { id: "supercell_tornado+hail_supercell+cyberstorm", icon: "🌪️⚡", label: "Storm: Tornado Alley EF5", desc: "EF5 Supercell Tornado + Emerald Hailstorm + Fork Lightning" },
+  { id: "category5_hurricane+waterspout_vortex+monsoon_microburst", icon: "🌀🌊", label: "Storm: Category 5 Landfall", desc: "Cat-5 Hurricane Eyewall + Marine Waterspout + Monsoon Cloudburst" },
+  { id: "red_sprite_storm+derecho_squall+plasma_storm", icon: "🦑⛈️", label: "Storm: Mesospheric Red Sprites", desc: "Red Sprites & Blue Jets + Derecho Bow-Echo + Tesla Plasma" },
+  { id: "thundersnow_gale+blizzard+freezing_ice_storm", icon: "❄️🌩️", label: "Storm: Arctic Bomb Cyclone", desc: "Electrified Thundersnow + Whiteout Blizzard + Glaze Ice Storm" },
+  { id: "haboob_dust_wall+volcanic_lightning+embers", icon: "🏜️🌋", label: "Storm: Triboelectric Haboob", desc: "Sahara Haboob Dust Wall + Volcanic Dirty Lightning + Glowing Embers" },
+  { id: "jupiter_red_spot+saturn_hex_storm+neptune_diamond_rain", icon: "🪐💎", label: "Storm: Gas Giant Hyper-Vortex", desc: "Jovian Great Red Spot + Saturn Polar Hexagon + Neptunian Diamond Rain" },
+  { id: "aurora_thunder_squall+derecho_squall+smoke", icon: "🌌⛈️", label: "Storm: North Sea Super-Squall", desc: "Geomagnetic Aurora Squall + 100 MPH Derecho + Rolling Sea Mist" },
+  { id: "volcanic_lightning+dragon_forge+monsoon_microburst", icon: "🌋⚡", label: "Storm: Krakatoa Ash Tempest", desc: "Pyroclastic Lightning Plume + Volcanic Updraft + Monsoon Downburst" },
+  { id: "tesseract_4d+calabi_yau+chronos_retrocausal", icon: "💠🧬", label: "2126: 11D Hyperspace Fold", desc: "4D Tesseract + 11D Calabi-Yau Manifold + Retrocausal Time Loops" },
+  { id: "eigen_consciousness+tachyon_braid_2126+dyson_swarm", icon: "🧠🪢", label: "2126: Matrioshka God-Mind", desc: "Matrioshka Brain + Anyon Braiding Loom + Dyson Swarm" },
+  { id: "klein_mobius+penrose_quasicrystal+void_metamaterial", icon: "♾️✴️", label: "2126: Non-Euclidean Glitch", desc: "Klein Bottle Immersion + Penrose Quasicrystal + Negative-Index Cloak" },
+  { id: "xenotech_biolith+strangelet_condensate+ferrofluid_spikes", icon: "🦠🔮", label: "2126: Utility Fog Swarm", desc: "Living Xenotech Biolith + Supersolid Condensate + Ferrofluid Spikes" },
+  { id: "omega_point_2126+hawking_horizon+tesla_megacoil", icon: "👁️⚡", label: "2126: Omega Transcendence", desc: "Omega Point Convergence + Hawking Horizon + Wardenclyffe Mega-Tesla" },
+  { id: "metric_fold_origami+alcubierre_warp+gravitational_waves", icon: "📐🛸", label: "2126: Spacetime Origami Drive", desc: "Spacetime Origami Creases + Alcubierre Warp + LIGO Waves" },
+  { id: "calabi_yau+quark_gluon_plasma+quantum_foam", icon: "🧬🌈", label: "2126: Planck String Loom", desc: "11D Calabi-Yau Manifold + Quark-Gluon Plasma + Quantum Foam" },
+  { id: "chronos_retrocausal+tachyon_cherenkov+wormhole_transit", icon: "⏳⏩", label: "2126: Paradox Time-Engine", desc: "Retrocausal Time Curves + Tachyon Shockcone + Einstein-Rosen Wormhole" },
   { id: "plasma_storm+tesla_megacoil+ball_lightning", icon: "⚡🌐", label: "Wardenclyffe Overdrive", desc: "Tesla Coil Plasma Arc + Magnifying Transmitter + Ball Lightning" },
   { id: "tokamak_fusion+plasma_storm+arc_reactor_core", icon: "🔥💠", label: "ITER Tokamak Ignition", desc: "Tokamak Magnetic Torus + Tesla Plasma + Arc Reactor Core" },
   { id: "hadron_collider+antimatter_trap+cherenkov_glow", icon: "💥☢️", label: "CERN Antimatter Run", desc: "LHC Synchrotron + Penning Positron Trap + Cherenkov Core" },

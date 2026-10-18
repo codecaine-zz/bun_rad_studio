@@ -46,12 +46,20 @@ export interface SqliteHostContext {
 
 export function resolveSqliteTarget(ctx: Pick<SqliteHostContext, "sampleDir">, target: string): string {
   const t = target.trim();
-  if (!t) throw new SampleError("Enter a file name for the new sample database.", 400, "bad_name");
-  if (!isAbsolute(t) && /(^|[\\/])\.\.([\\/]|$)/.test(t)) throw new SampleError("The file name may not contain '..'.", 400, "bad_name");
+  if (!t || t.includes("\0")) throw new SampleError("Enter a file name for the new sample database.", 400, "bad_name");
+  if (/(^|[\\/])\.\.([\\/]|$)/.test(t)) throw new SampleError("The file name may not contain '..'.", 400, "bad_name");
   if (!isAbsolute(t) && /[\\/]/.test(t)) throw new SampleError("Use a plain file name (or a full path). It is created in the samples folder.", 400, "bad_name");
   if (!isAbsolute(t) && !/^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/.test(t)) throw new SampleError(`"${t}" is not a valid file name: use letters, digits, dots, dashes and underscores.`, 400, "bad_name");
   const withExt = /\.(sqlite|sqlite3|db|db3)$/i.test(t) ? t : `${t}.sqlite`;
-  return isAbsolute(withExt) ? resolve(withExt) : join(ctx.sampleDir(), withExt);
+  if (isAbsolute(withExt)) {
+    const resolved = resolve(withExt);
+    const sampleRoot = resolve(ctx.sampleDir());
+    if (resolved !== sampleRoot && !resolved.startsWith(sampleRoot + "/") && !resolved.startsWith(sampleRoot + "\\")) {
+      throw new SampleError("The sample database file must be inside the samples folder.", 400, "bad_name");
+    }
+    return resolved;
+  }
+  return join(ctx.sampleDir(), withExt);
 }
 
 export function sqliteSampleHost(ctx: SqliteHostContext): SampleHost {

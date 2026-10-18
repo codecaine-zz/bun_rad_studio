@@ -330,7 +330,13 @@ function translateDefaultClause(col: CloneSourceColumn, targetEngine: Engine): s
       if (m) return ` DEFAULT '${m[1]}'`;
       return "";
     }
-    return ` DEFAULT ${stripped}`;
+    const inner = quoted[1]!.replace(/''/g, "'");
+    if (inner.includes("\0")) return "";
+    const safeLit =
+      targetEngine === "mysql"
+        ? `'${inner.replace(/\\/g, "\\\\").replace(/'/g, "''")}'`
+        : `'${inner.replace(/'/g, "''")}'`;
+    return ` DEFAULT ${safeLit}`;
   }
   return "";
 }
@@ -1288,7 +1294,9 @@ async function executeSqlToSqlClone(
         opts.viewMode === "view" &&
         src.engine === dst.engine &&
         obj.viewSql &&
-        plan.targetName === obj.name
+        plan.targetName === obj.name &&
+        /^\s*CREATE\s+(?:OR\s+REPLACE\s+)?(?:TEMP(?:ORARY)?\s+)?VIEW\b/i.test(obj.viewSql) &&
+        !/;[\s\S]*\S/.test(obj.viewSql)
       ) {
         try {
           await dstAdapter.query(`DROP VIEW IF EXISTS ${qTarget}`).catch(() => {});

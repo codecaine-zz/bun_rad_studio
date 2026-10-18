@@ -638,25 +638,37 @@ export function ensureAssetsCopied(
   }
 }
 
+function escapeXmlAttr(s: string): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 export function generatePlist(name: string, id: string, ver: string, retina = true): string {
+  const safeName = escapeXmlAttr(name);
+  const safeId = escapeXmlAttr(id);
+  const safeVer = escapeXmlAttr(ver);
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
   <key>CFBundleExecutable</key>
-  <string>${name}</string>
+  <string>${safeName}</string>
   <key>CFBundleIconFile</key>
   <string>AppIcon</string>
   <key>CFBundleIdentifier</key>
-  <string>${id}</string>
+  <string>${safeId}</string>
   <key>CFBundleName</key>
-  <string>${name}</string>
+  <string>${safeName}</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
-  <string>${ver}</string>
+  <string>${safeVer}</string>
   <key>CFBundleVersion</key>
-  <string>${ver}</string>
+  <string>${safeVer}</string>
   <key>NSHighResolutionCapable</key>
   <${retina ? "true" : "false"}/>
   <key>NSRequiresAquaSystemAppearance</key>
@@ -668,6 +680,8 @@ export function generatePlist(name: string, id: string, ver: string, retina = tr
 export function generateWindowsManifest(name: string, id: string, ver: string, highDpi = true): string {
   const parts = ver.split(".").map((n) => parseInt(n, 10) || 0);
   const fourPartVer = `${parts[0] ?? 1}.${parts[1] ?? 0}.${parts[2] ?? 0}.${parts[3] ?? 0}`;
+  const safeName = escapeXmlAttr(name);
+  const safeId = escapeXmlAttr(id);
   const dpiBlock = highDpi
     ? `
   <application xmlns="urn:schemas-microsoft-com:asm.v3">
@@ -679,8 +693,8 @@ export function generateWindowsManifest(name: string, id: string, ver: string, h
     : "";
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-  <assemblyIdentity version="${fourPartVer}" processorArchitecture="*" name="${id}" type="win32"/>
-  <description>${name}</description>${dpiBlock}
+  <assemblyIdentity version="${fourPartVer}" processorArchitecture="*" name="${safeId}" type="win32"/>
+  <description>${safeName}</description>${dpiBlock}
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security>
       <requestedPrivileges>
@@ -692,18 +706,22 @@ export function generateWindowsManifest(name: string, id: string, ver: string, h
 }
 
 export function generateLinuxDesktopEntry(name: string, id: string, ver: string): string {
+  const cleanLine = (s: string) => String(s ?? "").replace(/[\r\n]/g, " ").trim();
+  const sName = cleanLine(name);
+  const sId = cleanLine(id);
+  const sVer = cleanLine(ver);
   return `[Desktop Entry]
 Type=Application
-Version=${ver}
-Name=${name}
-GenericName=${name}
-Comment=${name} (${id})
-Exec=${name} %F
-Icon=${name}
+Version=${sVer}
+Name=${sName}
+GenericName=${sName}
+Comment=${sName} (${sId})
+Exec=${sName} %F
+Icon=${sName}
 Terminal=false
 Categories=Development;Utility;
 StartupNotify=true
-StartupWMClass=${name}
+StartupWMClass=${sName}
 `;
 }
 
@@ -1021,9 +1039,14 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
   win.onChange("txt_exec_path", (w) => updatePreview(w));
   win.onChange("txt_icon_path", (w) => updatePreview(w));
 
+  const sanitizeBundleName = (raw: string, fallback: string) =>
+    String(raw || fallback).replace(/[/\\:*?"<>|$`';&%!\r\n]/g, "_").replace(/^\.+/, "_").trim() || fallback;
+  const sanitizeBundleVer = (raw: string) =>
+    String(raw || "1.0.0").replace(/[^0-9A-Za-z._+-]/g, "").trim() || "1.0.0";
+
   win.onClick("btn_compile_binary", () => {
     const rawName = win.getValue("txt_app_name") || "app";
-    const name = rawName.replace(/[/\\:*?"<>|]/g, "_").trim() || "app";
+    const name = sanitizeBundleName(rawName, "app");
     const entry = win.getValue("txt_exec_path") || "./applications/devtools_studio.ts";
     const targetChoice = win.getValue("dd_target") || "";
     const minify = win.getValue("chk_minify");
@@ -1054,7 +1077,7 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
     const outBin = join(distDir, outFileName);
 
     const extraFlags = [minify ? "--minify" : "", sourcemap ? "--sourcemap" : "", targetFlag].filter(Boolean).join(" ");
-    const compileCmd = `bun build "${absEntry}" --compile --outfile="${outBin}" ${extraFlags}`;
+    const compileCmd = `bun build "${absEntry.replace(/["$`\\]/g, "\\$&")}" --compile --outfile="${outBin}" ${extraFlags}`;
 
     win.appendConsole("bundler_console", `[Compiler] Executing: ${compileCmd}...\n`, 1);
     win.setStatus(`Compiling standalone binary ${outFileName}...`);
@@ -1088,9 +1111,9 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
 
   win.onClick("btn_build_bundle", () => {
     const rawName = win.getValue("txt_app_name") || "MyApp";
-    const name = rawName.replace(/[/\\:*?"<>|]/g, "_").trim() || "MyApp";
+    const name = sanitizeBundleName(rawName, "MyApp");
     const cleanId = ("com.enterprise." + name.toLowerCase()).replace(/[^a-z0-9.-]/g, "_");
-    const ver = win.getValue("txt_version") || "1.0.0";
+    const ver = sanitizeBundleVer(win.getValue("txt_version") || "1.0.0");
     const entry = win.getValue("txt_exec_path") || "./applications/devtools_studio.ts";
     const targetChoice = win.getValue("dd_target") || "";
     const minify = win.getValue("chk_minify");
@@ -1188,9 +1211,9 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
 
   win.onClick("btn_build_windows", () => {
     const rawName = win.getValue("txt_app_name") || "MyApp";
-    const name = rawName.replace(/[/\\:*?"<>|]/g, "_").trim() || "MyApp";
+    const name = sanitizeBundleName(rawName, "MyApp");
     const cleanId = ("com.enterprise." + name.toLowerCase()).replace(/[^a-z0-9.-]/g, "_");
-    const ver = win.getValue("txt_version") || "1.0.0";
+    const ver = sanitizeBundleVer(win.getValue("txt_version") || "1.0.0");
     const entry = win.getValue("txt_exec_path") || "./applications/devtools_studio.ts";
     const targetChoice = win.getValue("dd_target") || "";
     const minify = win.getValue("chk_minify");
@@ -1232,7 +1255,7 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
       ]
         .filter(Boolean)
         .join(" ");
-      const compileCmd = `bun build "${absEntry}" --compile --outfile="${winExe}" ${extraFlags}`;
+      const compileCmd = `bun build "${absEntry.replace(/["$`\\]/g, "\\$&")}" --compile --outfile="${winExe}" ${extraFlags}`;
 
       win.appendConsole("bundler_console", `[Compiler] Compiling Windows PE executable...\n  Command: ${compileCmd}\n`, 1);
       win.setStatus(`Compiling ${name}.exe...`);
@@ -1283,9 +1306,9 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
 
   win.onClick("btn_build_linux", () => {
     const rawName = win.getValue("txt_app_name") || "MyApp";
-    const name = rawName.replace(/[/\\:*?"<>|]/g, "_").trim() || "MyApp";
+    const name = sanitizeBundleName(rawName, "MyApp");
     const cleanId = ("com.enterprise." + name.toLowerCase()).replace(/[^a-z0-9.-]/g, "_");
-    const ver = win.getValue("txt_version") || "1.0.0";
+    const ver = sanitizeBundleVer(win.getValue("txt_version") || "1.0.0");
     const entry = win.getValue("txt_exec_path") || "./applications/devtools_studio.ts";
     const targetChoice = win.getValue("dd_target") || "";
     const minify = win.getValue("chk_minify");

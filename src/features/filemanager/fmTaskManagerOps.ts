@@ -19,6 +19,7 @@ import {
   findRogueDevServers,
   groupProcesses,
   inspectTaskProcess,
+  isCriticalProcess,
   processesToCsv,
   processesToJson,
   processesToMarkdown,
@@ -162,10 +163,14 @@ export const taskManagerOperations: Record<string, FmHandler> = {
         };
       }
       // *nix: walk descendants deepest-first, then the root process
+      const selfAncestors = new Set(ancestorsOf(snap.processes, snap.selfPid));
+      const byPid = new Map(snap.processes.map((p) => [p.pid, p]));
       const targets = [...descendants, pid];
       const stopped: string[] = [];
       for (const tPid of targets) {
-        if (tPid === snap.selfPid || tPid === "1") continue;
+        if (tPid === snap.selfPid || tPid === "1" || selfAncestors.has(tPid)) continue;
+        const tProc = byPid.get(tPid);
+        if (tProc && isCriticalProcess(tProc.name, tPid, ctx.platform)) continue;
         const cmd = buildProcessActionCommand(ctx.platform, "terminate", tPid);
         const res = await exec(cmd, ctx.platform);
         if (res.exitCode === 0) stopped.push(tPid);

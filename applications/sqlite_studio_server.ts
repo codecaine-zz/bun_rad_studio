@@ -1839,9 +1839,14 @@ export class SqliteManager {
 
       let conditionMet = true;
       let conditionError: string | null = null;
+      const forbiddenMacroRe =
+        /\b(?:process\s*\.|Bun\s*\.\s*(?:spawn|spawnSync|serve|file|write|env|dlopen|mmap)|globalThis\b|require\s*\(|import\s*\(|child_process\b|Function\s*\(|eval\s*\()/;
       if (act.condition && act.condition.trim()) {
         try {
           let expr = act.condition.trim();
+          if (forbiddenMacroRe.test(expr)) {
+            throw new Error("Macro condition references restricted host or process APIs");
+          }
           expr = expr.replace(/\[([a-zA-Z0-9_]+)\]/g, (_, vName) => {
             if (vName in variables) {
               const val = variables[vName];
@@ -1849,8 +1854,18 @@ export class SqliteManager {
             }
             return "0";
           });
-          const fn = new Function("vars", `with(vars) { return Boolean(${expr}); }`);
-          conditionMet = Boolean(fn(variables));
+          const fn = new Function(
+            "vars",
+            "process",
+            "globalThis",
+            "global",
+            "Bun",
+            "Function",
+            "eval",
+            "require",
+            `with(vars) { return Boolean(${expr}); }`,
+          );
+          conditionMet = Boolean(fn(variables, undefined, undefined, undefined, undefined, undefined, undefined, undefined));
         } catch (err: any) {
           conditionError = `Invalid condition [${act.condition}]: ${err?.message || err}`;
         }
@@ -2086,6 +2101,9 @@ export class SqliteManager {
           case "RunCode": {
             const rawCode = String(p.code ?? p.functionName ?? "").trim();
             if (!rawCode) throw new Error("RunCode requires code");
+            if (forbiddenMacroRe.test(rawCode)) {
+              throw new Error("RunCode references restricted host or process APIs");
+            }
             const transpiler = new Bun.Transpiler({ loader: "ts", target: "bun" });
             transpiler.transformSync(`async function __check() {\n${rawCode}\n}`);
             const syncCode = rawCode.replace(/\bawait\s+/g, "");
@@ -2158,9 +2176,34 @@ export class SqliteManager {
               "DSum",
               "MsgBox",
               "Debug",
+              "process",
+              "globalThis",
+              "global",
+              "Bun",
+              "Function",
+              "eval",
+              "require",
               `${jsBody}\n return __sqliteRunCode();`,
             );
-            const ret = fn(CurrentDb, CurrentDb, DoCmd, variables, variables, DCount, DLookup, DSum, DoCmd.MessageBox, Debug);
+            const ret = fn(
+              CurrentDb,
+              CurrentDb,
+              DoCmd,
+              variables,
+              variables,
+              DCount,
+              DLookup,
+              DSum,
+              DoCmd.MessageBox,
+              Debug,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+            );
             output = { returnValue: ret, debugLogs };
             message = debugLogs.length > 0 ? `RunCode: ${debugLogs.join(" | ")}` : `Executed Bun JS RunCode`;
             break;
@@ -2564,7 +2607,10 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/parse-import" && req.method === "POST") {
         try {
           const body = (await req.json()) as any;
-          const parsed = await parseUniversalTable(body);
+          if (body?.filePath) {
+            return Response.json({ success: false, error: "Server-side filePath is not allowed; send content or base64" }, { status: 400, headers: corsHeaders });
+          }
+          const parsed = await parseUniversalTable({ ...body, filePath: undefined });
           return Response.json({ success: true, ...parsed }, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
@@ -2574,8 +2620,11 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/import" && req.method === "POST") {
         try {
           const body = (await req.json()) as any;
-          if (!Array.isArray(body.rows) && (body.content !== undefined || body.base64 !== undefined || body.filePath !== undefined)) {
-            const parsed = await parseUniversalTable(body);
+          if (body?.filePath) {
+            return Response.json({ success: false, error: "Server-side filePath is not allowed; send content or base64" }, { status: 400, headers: corsHeaders });
+          }
+          if (!Array.isArray(body.rows) && (body.content !== undefined || body.base64 !== undefined)) {
+            const parsed = await parseUniversalTable({ ...body, filePath: undefined });
             return Response.json(
               manager.importRows({
                 ...body,
@@ -2702,9 +2751,12 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/rows/import-batch" && req.method === "POST") {
         try {
           const body = (await req.json()) as any;
+          if (body?.filePath) {
+            return Response.json({ success: false, error: "Server-side filePath is not allowed; send content or base64" }, { status: 400, headers: corsHeaders });
+          }
           let rowsToInsert: Record<string, any>[] = Array.isArray(body.rows) ? body.rows : [];
-          if (!rowsToInsert.length && (body.content !== undefined || body.base64 !== undefined || body.filePath !== undefined)) {
-            const parsed = await parseUniversalTable(body);
+          if (!rowsToInsert.length && (body.content !== undefined || body.base64 !== undefined)) {
+            const parsed = await parseUniversalTable({ ...body, filePath: undefined });
             rowsToInsert = parsed.records;
           }
           let inserted = 0;

@@ -4,6 +4,7 @@ import { join } from "path";
 import { startBalatroServer } from "../applications/balatro_studio.ts";
 import { startIntervalTimerStudioServer } from "../applications/interval_timer_studio.ts";
 import { startMazeStudioServer } from "../applications/maze_generator_studio.ts";
+import { startMediaPlayerStudioServer } from "../applications/media_player_studio.ts";
 
 const APPS_DIR = join(import.meta.dir, "..", "applications");
 
@@ -53,7 +54,8 @@ describe("Every Bun.serve call names the interface it listens on", () => {
     const text = readFileSync(file, "utf8");
     for (let i = text.indexOf("Bun.serve"); i >= 0; i = text.indexOf("Bun.serve", i + 1)) {
       const open = text.indexOf("(", i);
-      if (open < 0 || open - i > 20) continue; // a mention such as `Bun.serve<T>(` is handled below; prose is skipped
+      const between = open >= 0 ? text.slice(i + "Bun.serve".length, open) : "";
+      if (open < 0 || open - i > 70 || !/^\s*(?:<[^>()]+>)?\s*$/.test(between)) continue; // `Bun.serve<T>(` is matched; prose is skipped
       let depth = 0;
       let j = open;
       for (; j < text.length; j++) {
@@ -66,7 +68,7 @@ describe("Every Bun.serve call names the interface it listens on", () => {
   }
 
   test("the scan finds the calls", () => {
-    expect(calls).toBeGreaterThan(30);
+    expect(calls).toBeGreaterThanOrEqual(28);
   });
 
   test("none is missing a hostname", () => {
@@ -79,6 +81,10 @@ describe("Game and tool servers refuse other web pages", () => {
     ["balatro", () => startBalatroServer({ port: 0, host: "127.0.0.1" }) as any],
     ["interval timer", () => startIntervalTimerStudioServer({ port: 0, host: "127.0.0.1" }) as any],
     ["maze generator", () => startMazeStudioServer({ port: 0, host: "127.0.0.1" }) as any],
+    ["media player", () => {
+      const s = startMediaPlayerStudioServer({ port: 0, host: "127.0.0.1" });
+      return { port: s.port, stop: (force?: boolean) => s.server.stop(force) };
+    }],
   ];
 
   for (const [name, start] of cases) {

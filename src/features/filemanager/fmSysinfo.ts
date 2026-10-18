@@ -952,16 +952,27 @@ export async function runSysinfoProbe(
     throw new Error(`Unsupported system probe: "${method}".`);
   }
 
+  const cleanParam = String(param ?? "").slice(0, 200).trim();
+  if (entry.hasParam && cleanParam) {
+    if (method === "inetLatency") {
+      if (cleanParam.startsWith("-") || !/^[a-zA-Z0-9.:-]+$/.test(cleanParam)) {
+        throw new Error("Invalid target host for inetLatency probe.");
+      }
+    } else if (!/^[a-zA-Z0-9_.,\s*-]+$/.test(cleanParam)) {
+      throw new Error(`Invalid parameter for "${method}" probe.`);
+    }
+  }
+
   const started = performance.now();
   let data: unknown;
   if (hooks.runProbe) {
-    data = await hooks.runProbe(method, param, platform);
+    data = await hooks.runProbe(method, cleanParam, platform);
   } else {
     const fn = (si as Record<string, any>)[method];
     if (typeof fn !== "function") {
       throw new Error(`Probe "${method}" is not available on this platform.`);
     }
-    data = entry.hasParam ? await fn(param || entry.defaultParam || "") : await fn();
+    data = entry.hasParam ? await fn(cleanParam || entry.defaultParam || "") : await fn();
   }
   const elapsedMs = Math.max(1, Math.round(performance.now() - started));
 

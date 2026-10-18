@@ -177,7 +177,7 @@ export function crudClientMain() {
     return String(s === null || s === undefined ? "" : s)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
-  function qid(n) { return '"' + String(n).replace(/"/g, '""') + '"'; }
+  function qid(n) { return "`" + String(n).replace(/`/g, "``") + "`"; }
 
   function tableMeta(name) {
     if (!currentSchema) return null;

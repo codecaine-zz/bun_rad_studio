@@ -1,6 +1,27 @@
 # Changelog
 
-All notable changes. Version 1.4.5 is the fourteenth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3 and 1.4.4 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.4.6 is the fifteenth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4 and 1.4.5 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+
+## 1.4.6 (18 October 2026)
+
+### Added
+
+- **Year-2126 Hyper-Dimensional Procedural Engine & 172 Atmospheric Special Effects.** Expand the File Manager Atmospheric Special Effects catalog to 172 live procedural effects across 9 categories by adding the dedicated `"future2126"` Year-2126 Hyper-Dimensional engine with 12 interactive presets (`tesseract_4d`, `kerr_black_hole`, `calabi_yau_string`, `chronos_tachyon`, `orbital_ring_station`, `quantum_teleport_pad`, `antimatter_annihilation`, `bose_einstein_superfluid`, `Casimir_vacuum_plate`, `metamaterial_cloak`, `planck_foam_lattice`, `stellarator_wendelstein`).
+- **Reactive Physics, Arc Surge, and Keyboard Atmosphere Controls.** Add live reactive atmosphere modes (`atmosphereReactive`: `"off"`, `"activity"`, `"telemetry"`, `"audio"`), 1-click **⚡ Arc Surge** impulse triggers, and keyboard shortcuts inside the Atmospheric FX Drawer (`ArrowRight`/`PageDown`, `[` / `]`, `+` / `-`, and `cycleAtmosphere`).
+- **Side-by-Side Split-Screen Theme Comparator (`⇄ Compare 2 Themes`).** Compare any two themes side-by-side in an interactive draggable split-screen viewport with live WCAG AA/AAA contrast ratios and hardware tier badges (`showThemeCompareDialog`).
+- **4-Stage Solar Cycle Theme Schedule & Per-Folder Workspace Theme Profiles.** Automatically transition across 4 daily solar phases (🌅 Dawn 05:00–08:00, ☀️ Day 08:00–17:00, 🌇 Dusk 17:00–20:00, 🌙 Midnight 20:00–05:00) and assign per-folder workspace themes (`folderThemes`) with automatic subfolder inheritance when navigating in Files view.
+- **Theme Gallery Hardware Tier, Animation, & Surface Material Filters.** Filter the 200 built-in themes by Hardware Tier (`Ultra`, `Medium`, `Low`), Animation style, Surface Material Shader (`liquid`, `mica`, `acrylic`, `frosted`, `oled`, `matte`), and Color Vibe with 1-click filter reset.
+
+### Security
+
+- **Media Player Studio (`applications/media_player_studio.ts`) request & path confinement.** Enforce `guardLocalRequest(req)` on every HTTP request, reject `Sec-Fetch-Site: cross-site` requests, use constant-time token comparisons (`timingSafeEqual`), confine `/api/stream`, `/api/subtitles`, `/api/lyrics`, `/api/probe`, and `/api/transcode` to the active root directory (`isWithinAllowedRoot`), enforce regular-file and 2 MB size checks on `/api/lyrics`, strip CR/LF from `.m3u8` exports, and sanitize `apiBase`.
+- **Database Studios & Workbench hardening (`sqlite_studio_server.ts`, `postgres_studio_server.ts`, `mysql_studio_server.ts`, `mysql_studio_crud.ts`, `studioServerEnhancements.ts`, `fmDbClone.ts`, `hosts.ts`).** Enforce strict identifier and DDL type/default validation in schema diff and table creation, fix MySQL identifier backtick quoting in `mysql_studio_crud.ts`, validate PostgreSQL index methods and export formats, reject server-local `filePath` imports over HTTP, escape backslashes in MySQL string defaults and validate single-statement `CREATE VIEW` in cross-engine clones, and confine SQLite sample database paths to the sample directory.
+- **Bun JS Macro sandbox isolation (`fmDbMacros.ts`, `studio_macros_server.ts`, `sqlite_studio_server.ts`).** Block dangerous process/module/filesystem/network globals (`Bun`, `process`, `globalThis`, `require`, `eval`, `Function`, `fetch`, `WebSocket`, `child_process`), shadow host globals inside `new Function(...)`, block mutating Redis commands during `dryRun`, roll back secondary `connections.use()` SQL connections on `dryRun` or error, and validate object column keys in `InsertRecord` / `UpdateRecord`.
+- **File Manager & Desktop Studio hardening (`fmTaskManager.ts`, `fmSysinfoOps.ts`, `fmCliUtils.ts`, `power.js`, `app_bundler_studio.ts`, `index.ts`).** Enforce strict PID bounds and ancestor protection for tree-kill operations, validate network/hardware probe identifiers, prevent symlink writes when generating CLI utility wrappers, enforce same-port origin checks on hosted studio `postMessage` bridges, escape macOS `Info.plist` XML and launcher shell strings in App Bundler Studio, and validate external URLs with `new URL(url)` before launching the OS browser.
+
+### Improved
+
+- **Cross-platform release refresh (`v1.4.6`).** Recompile and package the standalone Codecaine File Manager, full application and CLI suite, and macOS `.app` bundles across all supported macOS, Linux, and Windows targets.
 
 ## 1.4.5 (18 October 2026)
 

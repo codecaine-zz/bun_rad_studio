@@ -937,6 +937,9 @@ export function assessTaskAction(
 
   const label = proc ? `${proc.name} (PID ${pid})` : `PID ${pid}`;
   const notes: string[] = [];
+  if (!proc) {
+    notes.push("Process details could not be verified in the current snapshot.");
+  }
   if (pid === ctx.parentPid) {
     notes.push("This is the parent process that launched the File Manager window.");
   }
@@ -1204,6 +1207,9 @@ export function buildProcessActionCommand(
   action: "terminate" | "kill" | "suspend" | "resume" | "reload" | "tree" | "priority",
   pid: string,
 ): string[] {
+  if (!/^\d+$/.test(pid) || pid === "0") {
+    throw new Error(`Invalid PID: ${pid}`);
+  }
   if (platform === "win32") {
     switch (action) {
       case "terminate":
@@ -1352,6 +1358,9 @@ export async function inspectTaskProcess(
   platform: Platform,
   hooks: TaskManagerHooks = {},
 ): Promise<TaskInspectResult> {
+  if (!/^\d+$/.test(pid) || pid === "0") {
+    throw new Error(`Invalid PID: ${pid}`);
+  }
   const exec = hooks.execCommand ?? defaultExecCommand;
   const snap = await collectTaskSnapshot(platform, hooks);
   const proc = snap.processes.find((p) => p.pid === pid) ?? null;

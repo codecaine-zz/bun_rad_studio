@@ -81,8 +81,8 @@ export const ATMOSPHERE_SECTIONS = [
   {
     tier: "ultra",
     title: "High-End & Modern ARM — Sci-Fi Physics, Tesla Coils & Relativistic Shaders",
-    subtitle: "Unleashes unified-memory ARM64 / Apple Silicon and high-end GPUs with interactive Tesla coil plasma arcs, Tokamak fusion toruses, CERN hadron colliders, Lorenz strange attractors, ferrofluid spikes and Hawking event horizons.",
-    badge: "ARM64 / Ultra Tier · 65 Effects",
+    subtitle: "Unleashes unified-memory ARM64 / Apple Silicon and high-end GPUs with interactive Tesla coil plasma arcs, Tokamak fusion toruses, CERN hadron colliders, Lorenz strange attractors, ferrofluid spikes, Hawking event horizons, and Year-2126 4D/11D hyper-dimensional projections.",
+    badge: "ARM64 / Ultra Tier · 77 Effects",
   },
 ];
 
@@ -134,18 +134,19 @@ const ENGINE_DEPTH_ORDER = {
   portal: 6,
   radar: 7,
   physics: 8,
-  stars: 9,
-  mist: 10,
-  network: 11,
-  geometry: 12,
-  dna: 13,
-  circuit: 14,
-  tesla: 15,
-  precip: 16,
-  snow: 17,
-  ember: 18,
-  orbs: 19,
-  glyph: 20,
+  future2126: 9,
+  stars: 10,
+  mist: 11,
+  network: 12,
+  geometry: 13,
+  dna: 14,
+  circuit: 15,
+  tesla: 16,
+  precip: 17,
+  snow: 18,
+  ember: 19,
+  orbs: 20,
+  glyph: 21,
 };
 
 const MAX_CANVAS_W = 1440;
@@ -907,6 +908,22 @@ function seedSingleLayer(opt, w, h, baseDensity) {
           tone: i % 3,
         });
       }
+    }
+  } else if (engine === "future2126") {
+    const count = Math.max(16, Math.round(36 * density));
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 1.1,
+        vy: (Math.random() - 0.5) * 1.1,
+        angle: (i / count) * Math.PI * 2,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.012 + Math.random() * 0.024,
+        r: 3 + Math.random() * 7,
+        sides: 5 + (i % 4),
+        tone: i % 3,
+      });
     }
   }
 
@@ -2209,6 +2226,185 @@ function drawSingleLayer(ctx, layer, w, h, scale, profile) {
         drawBokehSprite(ctx, spriteBank?.orbPrimary, px, py, 6.5, highlight, 0.75 * scale);
       }
     }
+  } else if (engine === "future2126") {
+    const mode = params.mode || "tesseract";
+    const t = frameTick * 0.024;
+    const cx = w * 0.5, cy = h * 0.5;
+    const mx = profile.interactive && pointer.active ? pointer.x : cx;
+    const my = profile.interactive && pointer.active ? pointer.y : cy;
+
+    if (mode === "tesseract") {
+      // 16-vertex, 32-edge 4D Hypercube rotated across XW, YW, ZW and XY planes with stereographic projection
+      const size = Math.min(w, h) * 0.22;
+      const tiltX = ((mx - cx) / Math.max(1, w)) * 1.2;
+      const tiltY = ((my - cy) / Math.max(1, h)) * 1.2;
+      const aXW = t * 0.9 + tiltX;
+      const aYW = t * 0.65 + tiltY;
+      const aZW = t * 0.45;
+      const aXY = t * 0.35;
+      const verts2D = [];
+      for (let i = 0; i < 16; i++) {
+        let x = (i & 1) ? 1 : -1;
+        let y = (i & 2) ? 1 : -1;
+        let z = (i & 4) ? 1 : -1;
+        let w4 = (i & 8) ? 1 : -1;
+        // XW rotation
+        let nx = x * Math.cos(aXW) - w4 * Math.sin(aXW);
+        let nw = x * Math.sin(aXW) + w4 * Math.cos(aXW);
+        x = nx; w4 = nw;
+        // YW rotation
+        let ny = y * Math.cos(aYW) - w4 * Math.sin(aYW);
+        nw = y * Math.sin(aYW) + w4 * Math.cos(aYW);
+        y = ny; w4 = nw;
+        // ZW rotation
+        let nz = z * Math.cos(aZW) - w4 * Math.sin(aZW);
+        nw = z * Math.sin(aZW) + w4 * Math.cos(aZW);
+        z = nz; w4 = nw;
+        // XY rotation
+        nx = x * Math.cos(aXY) - y * Math.sin(aXY);
+        ny = x * Math.sin(aXY) + y * Math.cos(aXY);
+        x = nx; y = ny;
+        // 4D -> 3D -> 2D stereographic projection
+        const wFactor = 1 / (2.7 - w4 * 0.65);
+        const zFactor = 1 / (3.1 - z * wFactor * 0.6);
+        const px = cx + x * wFactor * zFactor * size * 3.1;
+        const py = cy + y * wFactor * zFactor * size * 3.1;
+        verts2D.push({ x: px, y: py, w4 });
+      }
+      for (let i = 0; i < 16; i++) {
+        for (let bit = 0; bit < 4; bit++) {
+          const j = i ^ (1 << bit);
+          if (i < j) {
+            const [cr, cg, cb] = toneRgb(bit % 3);
+            ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.52 * scale})`;
+            ctx.lineWidth = bit === 3 ? 2.1 : 1.4;
+            ctx.beginPath();
+            ctx.moveTo(verts2D[i].x, verts2D[i].y);
+            ctx.lineTo(verts2D[j].x, verts2D[j].y);
+            ctx.stroke();
+          }
+        }
+        drawBokehSprite(ctx, spriteBank?.orbPrimary, verts2D[i].x, verts2D[i].y, 7 + (verts2D[i].w4 + 1) * 3.5, toneRgb(i % 3), 0.72 * scale);
+      }
+    } else if (mode === "calabi_yau") {
+      // 11D Calabi-Yau manifold cross-section: 6-fold complex Riemann sheets
+      const rad = Math.min(w, h) * 0.3;
+      const folds = 6;
+      for (let k = 0; k < folds; k++) {
+        const [cr, cg, cb] = toneRgb(k % 3);
+        ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.46 * scale})`;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        const phase = (k / folds) * Math.PI * 2 + t * 0.4;
+        const steps = 90;
+        for (let s = 0; s <= steps; s++) {
+          const u = (s / steps) * Math.PI * 2;
+          const rMod = rad * (0.45 + 0.55 * Math.cos(folds * 0.5 * u + t) * Math.sin(u * 2 + phase));
+          const x = cx + Math.cos(u + phase) * rMod + Math.sin(u * 3 - t) * 28;
+          const y = cy + Math.sin(u + phase) * rMod + Math.cos(u * 3 + t) * 28;
+          if (s === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+    } else if (mode === "quasicrystal") {
+      // 5-fold Penrose aperiodic quasicrystal rings & golden-ratio vertices
+      const phi = 1.61803398875;
+      const baseR = Math.min(w, h) * 0.065;
+      for (let shell = 1; shell <= 5; shell++) {
+        const r = baseR * Math.pow(phi, shell * 0.68);
+        const sym = 10;
+        const [cr, cg, cb] = toneRgb(shell % 3);
+        ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.42 * scale})`;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        for (let k = 0; k <= sym; k++) {
+          const ang = (k / sym) * Math.PI * 2 + (shell % 2 === 0 ? t * 0.3 : -t * 0.3);
+          const wave = 1 + 0.14 * Math.cos(5 * ang + t * 2);
+          const px = cx + Math.cos(ang) * r * wave;
+          const py = cy + Math.sin(ang) * r * wave;
+          if (k === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+          if (k < sym) drawBokehSprite(ctx, spriteBank?.orbPrimary, px, py, 6, toneRgb(k % 3), 0.55 * scale);
+        }
+        ctx.stroke();
+      }
+    } else if (mode === "klein") {
+      // Non-orientable figure-8 Klein bottle immersion ribs
+      const scaleR = Math.min(w, h) * 0.12;
+      const ribs = 16;
+      for (let r = 0; r < ribs; r++) {
+        const u = (r / ribs) * Math.PI * 2 + t * 0.35;
+        const [cr, cg, cb] = toneRgb(r % 3);
+        ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.44 * scale})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let s = 0; s <= 48; s++) {
+          const v = (s / 48) * Math.PI * 2;
+          const rad = 2.2 + Math.cos(u * 0.5) * Math.sin(v) - Math.sin(u * 0.5) * Math.sin(2 * v) * 0.5;
+          const x = cx + rad * Math.cos(u) * scaleR;
+          const y = cy + (rad * Math.sin(u) * 0.75 + Math.cos(u * 0.5) * Math.sin(2 * v) * 0.6) * scaleR;
+          if (s === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+    } else if (mode === "retrocausal") {
+      // Closed timelike curves: particles + future ghost echo ahead of trajectory
+      for (let c = 1; c <= 3; c++) {
+        const [cr, cg, cb] = toneRgb(c % 3);
+        ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.32 * scale})`;
+        ctx.setLineDash([6, 8]);
+        ctx.beginPath();
+        ctx.arc(cx, cy, Math.min(w, h) * (0.12 * c), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      for (const p of particles) {
+        p.angle += p.speed;
+        const r = Math.min(w, h) * (0.14 + (p.tone + 1) * 0.08);
+        const nowX = cx + Math.cos(p.angle) * r;
+        const nowY = cy + Math.sin(p.angle * 2) * r * 0.65;
+        const futAngle = p.angle + 0.42;
+        const futX = cx + Math.cos(futAngle) * r;
+        const futY = cy + Math.sin(futAngle * 2) * r * 0.65;
+        const [cr, cg, cb] = toneRgb(p.tone);
+        ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.38 * scale})`;
+        ctx.beginPath();
+        ctx.moveTo(nowX, nowY);
+        ctx.lineTo(futX, futY);
+        ctx.stroke();
+        drawBokehSprite(ctx, spriteBank?.orbPrimary, futX, futY, p.r * 1.4, highlight, 0.35 * scale);
+        drawBokehSprite(ctx, spriteBank?.orbPrimary, nowX, nowY, p.r * 2.1, toneRgb(p.tone), 0.85 * scale);
+      }
+    } else {
+      // Matrioshka Brain, Supersolid, Spacetime Origami, Anyon Braid, Metamaterial Cloak, Omega Point & Xenotech Biolith
+      const rings = 5;
+      for (let m = 1; m <= rings; m++) {
+        const [cr, cg, cb] = toneRgb(m % 3);
+        const rad = Math.min(w, h) * (0.07 * m);
+        ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.42 * scale})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        const segs = mode === "origami_metric" ? 8 : mode === "xenotech" ? 6 : 48;
+        for (let s = 0; s <= segs; s++) {
+          const a = (s / segs) * Math.PI * 2 + (m % 2 === 0 ? t * 0.4 : -t * 0.4);
+          const mod = 1 + 0.16 * Math.sin(a * (m + 2) + t * 2);
+          const px = mx + Math.cos(a) * rad * mod;
+          const py = my + Math.sin(a) * rad * mod;
+          if (s === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+      }
+      for (const p of particles) {
+        p.angle += p.speed;
+        const orbitR = Math.min(w, h) * (0.09 + ((p.phase * 0.5 + t * 0.2) % 0.34));
+        const px = mx + Math.cos(p.angle + p.phase) * orbitR;
+        const py = my + Math.sin(p.angle * (mode === "anyon_braid" ? 1.5 : 1) + p.phase) * orbitR;
+        drawBokehSprite(ctx, spriteBank?.orbPrimary, px, py, p.r * 2, toneRgb(p.tone), 0.78 * scale);
+      }
+    }
   }
 }
 
@@ -2428,7 +2624,7 @@ export async function showAtmosphereDialog() {
         const active = pickedReactive === rm.id;
         return h("button", {
           type: "button",
-          class: `fm-atmo-tier-btn${active ? " is-active" : ""}`,
+          class: `fm-atmo-reactive-btn fm-atmo-cat-btn${active ? " is-active" : ""}`,
           "data-reactive-mode": rm.id,
           "aria-pressed": String(active),
           onclick: () => {
@@ -2445,8 +2641,41 @@ export async function showAtmosphereDialog() {
     );
   };
 
-  // -- Multi-Effect Layer Mixer Dock ---------------------------------------------------------------------------------
+  // -- Multi-Effect Layer Mixer Dock & User Custom Presets -----------------------------------------------------------
   const mixerDock = h("div", { class: "fm-atmo-mixer-dock" });
+  const presetNameInput = h("input", {
+    type: "text",
+    class: "prop-input fm-atmo-preset-name-input",
+    "data-user-preset-name": "true",
+    maxlength: "48",
+    placeholder: "Name your custom effect preset (e.g. Hyper-Tesla 2126)…",
+    "aria-label": "Custom special effect preset name",
+  });
+
+  const handleSaveUserPreset = async () => {
+    const rawName = presetNameInput.value.trim();
+    const defaultLabel = formatAtmosphereLabel(pickedEffect);
+    const chosenName = (rawName || `My ${defaultLabel}`).slice(0, 48);
+    await saveCustomAtmospherePreset({
+      name: chosenName,
+      effect: pickedEffect,
+      intensity: pickedIntensity,
+      tier: pickedTier,
+      reactive: pickedReactive,
+    });
+    presetNameInput.value = "";
+    renderMixer();
+    toast(`Saved custom preset "${chosenName}".`, { kind: "info" });
+  };
+
+  presetNameInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      void handleSaveUserPreset();
+    }
+  });
+
   const renderMixer = () => {
     const activeIds = parseAtmosphereIds(pickedEffect);
     const mixToggleBtn = h("button", {
@@ -2456,7 +2685,7 @@ export async function showAtmosphereDialog() {
       onclick: () => {
         mixMode = !mixMode;
         renderMixer();
-        renderCards();
+        syncCardStates();
       },
     }, mixMode ? `🔀 Mix Mode: ON (${activeIds.length}/${MAX_ATMOSPHERE_LAYERS} layers)` : "🔀 Mix Mode: Layer up to 4 effects");
 
@@ -2465,15 +2694,15 @@ export async function showAtmosphereDialog() {
       class: "fm-atmo-random-mix",
       title: "Generate a creative 3-layer atmospheric combination",
       onclick: () => {
-        const backdrops = ATMOSPHERE_OPTIONS.filter((o) => ["grid", "nebula", "aurora", "waves", "beams", "portal", "radar", "physics"].includes(o.engine));
-        const mids = ATMOSPHERE_OPTIONS.filter((o) => ["stars", "mist", "network", "geometry", "dna", "circuit", "tesla"].includes(o.engine));
+        const backdrops = ATMOSPHERE_OPTIONS.filter((o) => ["grid", "nebula", "aurora", "waves", "beams", "portal", "radar", "physics", "future2126"].includes(o.engine));
+        const mids = ATMOSPHERE_OPTIONS.filter((o) => ["stars", "mist", "network", "geometry", "dna", "circuit", "tesla", "future2126"].includes(o.engine));
         const fronts = ATMOSPHERE_OPTIONS.filter((o) => ["precip", "snow", "ember", "orbs", "glyph", "tesla"].includes(o.engine));
         const pick = (arr) => arr[Math.floor(Math.random() * arr.length)]?.id;
         const combo = [pick(backdrops), pick(mids), pick(fronts)].filter(Boolean);
         mixMode = true;
         pickedEffect = combo.join("+");
         renderMixer();
-        renderCards();
+        syncCardStates();
         applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
       },
     }, "🎲 Surprise Mix");
@@ -2491,7 +2720,7 @@ export async function showAtmosphereDialog() {
               onclick: () => {
                 toggleLayerInMix(id);
                 renderMixer();
-                renderCards();
+                syncCardStates();
                 applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
               },
             },
@@ -2514,11 +2743,79 @@ export async function showAtmosphereDialog() {
             mixMode = true;
             pickedEffect = preset.id;
             renderMixer();
-            renderCards();
+            syncCardStates();
             applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
           },
         }, h("span", { class: "fm-atmo-preset-icon" }, preset.icon), h("span", {}, preset.label));
       }),
+    );
+
+    const userPresets = savedAtmospherePresets();
+    const savePresetBtn = h("button", {
+      type: "button",
+      class: "btn fm-atmo-save-preset-btn",
+      "data-save-user-preset": "true",
+      title: "Save current effect, layer mix, intensity, tier, and reactive mode as a named preset",
+      onclick: () => { void handleSaveUserPreset(); },
+    }, "💾 Save Preset");
+
+    const userPresetsList = h("div", { class: "fm-atmo-user-presets-list", role: "group", "aria-label": "My saved special effects presets" },
+      userPresets.length === 0
+        ? h("span", { class: "fm-atmo-layer-empty", "data-user-presets-empty": "true" }, "No custom presets saved yet — name & save your favorite effect, layer mix, and intensity above for 1-click recall.")
+        : userPresets.map((up) => {
+            const isCurrent = pickedEffect === up.effect && pickedIntensity === up.intensity;
+            const summary = `${formatAtmosphereLabel(up.effect)} · ${up.intensity}%`;
+            return h("span", { class: `fm-atmo-user-preset-chip${isCurrent ? " is-active" : ""}` },
+              h("button", {
+                type: "button",
+                class: `fm-atmo-user-preset-btn${isCurrent ? " is-active" : ""}`,
+                "data-user-preset": up.name,
+                "aria-pressed": String(isCurrent),
+                title: `Apply "${up.name}" (${summary})`,
+                onclick: () => {
+                  pickedEffect = normalizeAtmosphereSpec(up.effect);
+                  pickedIntensity = Math.max(10, Math.min(100, Number(up.intensity) || 60));
+                  if (up.tier && VALID_TIERS.has(up.tier)) pickedTier = up.tier;
+                  if (up.reactive && VALID_REACTIVE_MODES.has(up.reactive)) pickedReactive = up.reactive;
+                  mixMode = parseAtmosphereIds(pickedEffect).length > 1;
+                  intensitySlider.value = String(pickedIntensity);
+                  intensityOut.textContent = `${pickedIntensity}%`;
+                  renderTiers();
+                  updateTierHint();
+                  renderReactiveBar();
+                  updateReactiveHint();
+                  renderMixer();
+                  syncCardStates();
+                  applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+                },
+              },
+              h("span", { class: "fm-atmo-user-preset-star" }, "⭐"),
+              h("span", { class: "fm-atmo-user-preset-title" }, up.name),
+              h("span", { class: "fm-atmo-user-preset-meta" }, `${up.intensity}%`)),
+              h("button", {
+                type: "button",
+                class: "fm-atmo-user-preset-del",
+                "data-delete-user-preset": up.name,
+                title: `Delete preset "${up.name}"`,
+                "aria-label": `Delete preset ${up.name}`,
+                onclick: async (e) => {
+                  e.stopPropagation();
+                  await deleteCustomAtmospherePreset(up.name);
+                  renderMixer();
+                  toast(`Deleted preset "${up.name}".`, { kind: "info" });
+                },
+              }, "×"),
+            );
+          }),
+    );
+
+    const userPresetsBar = h("div", { class: "fm-atmo-user-presets-bar" },
+      h("div", { class: "fm-atmo-user-presets-form" },
+        h("strong", { class: "fm-atmo-user-presets-label" }, "💾 My Custom Presets:"),
+        presetNameInput,
+        savePresetBtn,
+      ),
+      userPresetsList,
     );
 
     mixerDock.replaceChildren(
@@ -2528,6 +2825,7 @@ export async function showAtmosphereDialog() {
       ),
       activeLayersRow,
       presetsRow,
+      userPresetsBar,
     );
   };
 
@@ -2536,14 +2834,15 @@ export async function showAtmosphereDialog() {
   let activeAnimFilter = "all";
 
   const ATMO_TIER_FILTERS = [
-    { id: "all", label: "All Tiers (160)" },
-    { id: "ultra", label: "🚀 Ultra / Modern ARM Tier (65)" },
+    { id: "all", label: "All Tiers (172)" },
+    { id: "ultra", label: "🚀 Ultra / Modern ARM Tier (77)" },
     { id: "medium", label: "✨ Medium / Balanced Tier (55)" },
     { id: "low", label: "⚡ Low / Eco Tier (40)" },
   ];
 
   const ATMO_ANIM_FILTERS = [
     { id: "all", label: "All Animations" },
+    { id: "future2126", label: "🛸 Year 2126 Hyper-Dimensional" },
     { id: "tesla", label: "⚡ High-Voltage Arcs (Tesla)" },
     { id: "physics", label: "⚛️ Relativistic & Chaos Physics" },
     { id: "interactive", label: "🎯 Cursor-Interactive" },
@@ -2555,9 +2854,10 @@ export async function showAtmosphereDialog() {
   const matchesAtmoAnim = (opt, anim) => {
     if (!anim || anim === "all" || opt.id === "none") return true;
     const e = opt.engine;
+    if (anim === "future2126") return e === "future2126";
     if (anim === "tesla") return e === "tesla";
     if (anim === "physics") return e === "physics";
-    if (anim === "interactive") return ["tesla", "physics", "orbs", "network", "portal", "radar"].includes(e);
+    if (anim === "interactive") return ["tesla", "physics", "future2126", "orbs", "network", "portal", "radar"].includes(e);
     if (anim === "particles") return ["precip", "snow", "ember", "stars", "glyph"].includes(e);
     if (anim === "waves") return ["waves", "beams", "aurora", "nebula", "mist"].includes(e);
     if (anim === "rings") return ["grid", "portal", "radar", "dna", "circuit", "geometry"].includes(e);
@@ -2567,7 +2867,7 @@ export async function showAtmosphereDialog() {
   const searchInput = h("input", {
     type: "search",
     class: "prop-input fm-atmo-search",
-    placeholder: "Search 160 effects (e.g. tesla, tokamak, cherenkov, collider, ferrofluid, lorenz, hawking, nebula)…",
+    placeholder: "Search 172 effects (e.g. tesseract, calabi-yau, penrose, klein, tesla, tokamak, cherenkov, collider)…",
     "aria-label": "Search atmospheric effects",
   });
   const catBar = h("div", { class: "fm-atmo-cat-bar", role: "tablist", "aria-label": "Effect categories" });
@@ -2631,6 +2931,46 @@ export async function showAtmosphereDialog() {
   });
 
   const sectionsContainer = h("div", { class: "fm-atmo-sections" });
+  const kbStatusText = h("span", { class: "fm-atmo-kb-status", "data-atmo-kb-status": "true" });
+
+  const allVisibleCards = () => [...sectionsContainer.querySelectorAll(".fm-atmo-card")];
+
+  const updateKbStatus = () => {
+    const cards = allVisibleCards();
+    const activeIds = parseAtmosphereIds(pickedEffect);
+    const primaryId = activeIds[0] || "none";
+    const idx = cards.findIndex((c) => c.dataset.atmo === primaryId);
+    const posLabel = idx >= 0 ? `${idx + 1} / ${cards.length}` : `${cards.length} shown`;
+    kbStatusText.textContent = `⚡ Live Preview: ${formatAtmosphereLabel(pickedEffect)} (${posLabel}) · Keys: ← ↑ ↓ → · PgUp/PgDn (±8) · [ / ] step · + / - intensity · Shift+Space layer`;
+  };
+
+  const syncCardStates = () => {
+    const activeIds = parseAtmosphereIds(pickedEffect);
+    const cards = allVisibleCards();
+    let anyTabZero = false;
+    for (const card of cards) {
+      const id = card.dataset.atmo || "none";
+      const layerIdx = activeIds.indexOf(id);
+      const active = id === "none" ? activeIds.length === 0 : layerIdx >= 0;
+      card.classList.toggle("is-active", active);
+      card.setAttribute("aria-pressed", String(active));
+      const isPrimary = (id === "none" && activeIds.length === 0) || layerIdx === 0;
+      if (isPrimary && !anyTabZero) {
+        card.setAttribute("tabindex", "0");
+        anyTabZero = true;
+      } else {
+        card.setAttribute("tabindex", "-1");
+      }
+      const chip = card.querySelector(".fm-atmo-mix-chip");
+      if (chip) {
+        chip.classList.toggle("is-layered", layerIdx >= 0);
+        chip.textContent = layerIdx >= 0 ? `Layer ${layerIdx + 1}` : "+ Mix";
+        chip.title = layerIdx >= 0 ? `Layer ${layerIdx + 1} in mix (click to toggle)` : "Add/toggle this effect as a layer";
+      }
+    }
+    if (!anyTabZero && cards[0]) cards[0].setAttribute("tabindex", "0");
+    updateKbStatus();
+  };
 
   const renderCards = () => {
     const activeIds = parseAtmosphereIds(pickedEffect);
@@ -2659,7 +2999,7 @@ export async function showAtmosphereDialog() {
                   toggleLayerInMix(opt.id);
                   if (parseAtmosphereIds(pickedEffect).length > 1) mixMode = true;
                   renderMixer();
-                  renderCards();
+                  syncCardStates();
                   applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
                 },
               }, layerIdx >= 0 ? `Layer ${layerIdx + 1}` : "+ Mix")
@@ -2680,7 +3020,7 @@ export async function showAtmosphereDialog() {
                 pickedEffect = opt.id;
               }
               renderMixer();
-              renderCards();
+              syncCardStates();
               applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
             },
           },
@@ -2706,7 +3046,108 @@ export async function showAtmosphereDialog() {
         grid,
       );
     }));
+    syncCardStates();
   };
+
+  const previewCardElement = (card, focusIt = true) => {
+    if (!card) return;
+    const id = card.dataset.atmo || "none";
+    pickedEffect = id;
+    renderMixer();
+    syncCardStates();
+    applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+    if (focusIt) {
+      card.setAttribute("tabindex", "0");
+      card.focus({ preventScroll: true });
+      card.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+    }
+  };
+
+  const stepCardFrom = (fromCard, key) => {
+    const all = allVisibleCards();
+    if (!all.length) return null;
+    const i = Math.max(0, all.indexOf(fromCard));
+    if (key === "Home") return all[0];
+    if (key === "End") return all[all.length - 1];
+    if (key === "ArrowLeft") return all[(i - 1 + all.length) % all.length];
+    if (key === "ArrowRight") return all[(i + 1) % all.length];
+    if (key === "PageUp") return all[Math.max(0, i - 8)];
+    if (key === "PageDown") return all[Math.min(all.length - 1, i + 8)];
+    const r = fromCard.getBoundingClientRect?.() ?? { left: 0, top: 0, width: 0, height: 0 };
+    const down = key === "ArrowDown";
+    if (r.width > 0 && r.height > 0) {
+      const x = r.left + r.width / 2;
+      const rows = all.map((c) => [c, c.getBoundingClientRect()]).filter(([, b]) => (down ? b.top > r.top + 4 : b.top < r.top - 4));
+      if (rows.length) {
+        const rowTop = down ? Math.min(...rows.map(([, b]) => b.top)) : Math.max(...rows.map(([, b]) => b.top));
+        const row = rows.filter(([, b]) => Math.abs(b.top - rowTop) < 8);
+        return row.reduce((best, cur) => (Math.abs(cur[1].left + cur[1].width / 2 - x) < Math.abs(best[1].left + best[1].width / 2 - x) ? cur : best))[0];
+      }
+    }
+    return all[Math.max(0, Math.min(all.length - 1, i + (down ? 4 : -4)))];
+  };
+
+  const stepByDelta = (delta) => {
+    const all = allVisibleCards();
+    if (!all.length) return;
+    const activeIds = parseAtmosphereIds(pickedEffect);
+    const primaryId = activeIds[0] || "none";
+    const curIdx = all.findIndex((c) => c.dataset.atmo === primaryId);
+    const nextIdx = curIdx < 0 ? (delta > 0 ? 0 : all.length - 1) : (curIdx + delta + all.length) % all.length;
+    previewCardElement(all[nextIdx], true);
+  };
+
+  sectionsContainer.addEventListener("focusin", (e) => {
+    const card = e.target.closest?.(".fm-atmo-card");
+    if (!card) return;
+    const id = card.dataset.atmo || "none";
+    if (!mixMode && pickedEffect !== id) {
+      pickedEffect = id;
+      renderMixer();
+      syncCardStates();
+      applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+    }
+  });
+
+  sectionsContainer.addEventListener("keydown", (e) => {
+    const card = e.target.closest?.(".fm-atmo-card");
+    if (!card || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(e.key)) {
+      e.preventDefault();
+      const target = stepCardFrom(card, e.key);
+      if (target) previewCardElement(target, true);
+      return;
+    }
+    if ((e.key === " " || e.key === "Enter") && e.shiftKey) {
+      e.preventDefault();
+      const id = card.dataset.atmo || "none";
+      if (id !== "none") {
+        toggleLayerInMix(id);
+        if (parseAtmosphereIds(pickedEffect).length > 1) mixMode = true;
+        renderMixer();
+        syncCardStates();
+        applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+      }
+      return;
+    }
+    if (e.key === "+" || e.key === "=" || e.key === "-" || e.key === "_") {
+      e.preventDefault();
+      const step = (e.key === "+" || e.key === "=") ? 5 : -5;
+      pickedIntensity = Math.max(10, Math.min(100, pickedIntensity + step));
+      intensitySlider.value = String(pickedIntensity);
+      intensityOut.textContent = `${pickedIntensity}%`;
+      applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+    }
+  });
+
+  searchInput.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" && !e.altKey && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      const all = allVisibleCards();
+      const activeCard = sectionsContainer.querySelector(".fm-atmo-card.is-active") || all[0];
+      if (activeCard) previewCardElement(activeCard, true);
+    }
+  });
 
   renderTiers();
   updateTierHint();
@@ -2718,17 +3159,38 @@ export async function showAtmosphereDialog() {
   renderAnimFilterBar();
   renderCards();
 
+  const kbScrubberBar = h("div", { class: "fm-atmo-kb-bar" },
+    h("div", { class: "fm-atmo-kb-btns" },
+      h("button", {
+        type: "button",
+        class: "btn fm-atmo-step-btn",
+        "data-atmo-step": "-1",
+        title: "Preview previous effect ( [ or Left Arrow )",
+        onclick: () => stepByDelta(-1),
+      }, "◀ Prev Effect"),
+      h("button", {
+        type: "button",
+        class: "btn fm-atmo-step-btn",
+        "data-atmo-step": "1",
+        title: "Preview next effect ( ] or Right Arrow )",
+        onclick: () => stepByDelta(1),
+      }, "Next Effect ▶"),
+    ),
+    kbStatusText,
+  );
+
   const themeSyncBar = h("div", { class: "fm-atmo-theme-sync" },
     h("span", { class: "fm-atmo-sync-dots", "aria-hidden": "true" },
       h("span", { class: "fm-atmo-sync-dot fm-atmo-sync-dot-1" }),
       h("span", { class: "fm-atmo-sync-dot fm-atmo-sync-dot-2" }),
       h("span", { class: "fm-atmo-sync-dot fm-atmo-sync-dot-3" }),
     ),
-    h("span", { class: "fm-atmo-sync-text" }, "160 Procedural Effects + 28 Signature Mixes · Harmonized with your active theme’s palette"),
+    h("span", { class: "fm-atmo-sync-text" }, "172 Procedural Effects + 36 Signature Mixes · Harmonized with your active theme’s palette"),
   );
 
   const filterBar = h("div", { class: "fm-atmo-filter-bar" },
     searchInput,
+    kbScrubberBar,
     catBar,
     tierFilterBar,
     animFilterBar,
@@ -2763,6 +3225,18 @@ export async function showAtmosphereDialog() {
       { label: "Cancel", value: null },
       { label: "Apply effect", value: "save", primary: true },
     ],
+    initialFocus: searchInput,
+  });
+
+  // Allow [ and ] anywhere in the dialog (when not typing in search or preset name) to rapid-step through visible effects
+  const dialogEl = sectionsContainer.closest(".modal-backdrop") || sectionsContainer.parentElement;
+  dialogEl?.addEventListener("keydown", (e) => {
+    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target === searchInput || e.target === presetNameInput) return;
+    if (e.key === "[" || e.key === "]") {
+      e.preventDefault();
+      stepByDelta(e.key === "]" ? 1 : -1);
+    }
   });
 
   const choice = await dlg.result;
@@ -2781,6 +3255,78 @@ export async function showAtmosphereDialog() {
   }
 }
 
+/** Returns the sanitized list of user-saved custom atmospheric presets from `state.settings.atmospherePresets`. */
+export function savedAtmospherePresets() {
+  const raw = state.settings?.atmospherePresets;
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  const seen = new Set();
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const name = typeof item.name === "string" ? item.name.trim().slice(0, 48) : "";
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const effect = normalizeAtmosphereSpec(typeof item.effect === "string" ? item.effect : "none");
+    const intensity = Math.max(10, Math.min(100, Math.round(Number(item.intensity) || 60)));
+    const tier = typeof item.tier === "string" && VALID_TIERS.has(item.tier) ? item.tier : "auto";
+    const reactive = typeof item.reactive === "string" && VALID_REACTIVE_MODES.has(item.reactive) ? item.reactive : "off";
+    out.push({ name, effect, intensity, tier, reactive });
+  }
+  return out;
+}
+
+/** Saves or updates a user-named custom atmospheric preset in `state.settings.atmospherePresets` and persists to server. */
+export async function saveCustomAtmospherePreset({ name, effect, intensity, tier, reactive } = {}) {
+  const cleanName = typeof name === "string" ? name.trim().slice(0, 48) : "";
+  if (!cleanName) return savedAtmospherePresets();
+  const entry = {
+    name: cleanName,
+    effect: normalizeAtmosphereSpec(effect ?? effectiveAtmosphere()),
+    intensity: Math.max(10, Math.min(100, Math.round(Number(intensity ?? effectiveIntensity()) || 60))),
+    tier: typeof tier === "string" && VALID_TIERS.has(tier) ? tier : (state.settings?.atmosphereTier || "auto"),
+    reactive: typeof reactive === "string" && VALID_REACTIVE_MODES.has(reactive) ? reactive : effectiveAtmosphereReactive(),
+  };
+  const existing = savedAtmospherePresets().filter((p) => p.name.toLowerCase() !== cleanName.toLowerCase());
+  const next = [entry, ...existing].slice(0, 50);
+  if (state.settings) state.settings.atmospherePresets = next;
+  await saveSettings({ atmospherePresets: next });
+  return next;
+}
+
+/** Deletes a user-saved custom atmospheric preset by name and persists to server. */
+export async function deleteCustomAtmospherePreset(name) {
+  const cleanName = typeof name === "string" ? name.trim().toLowerCase() : "";
+  const next = savedAtmospherePresets().filter((p) => p.name.toLowerCase() !== cleanName);
+  if (state.settings) state.settings.atmospherePresets = next;
+  await saveSettings({ atmospherePresets: next });
+  return next;
+}
+
+/** Rapidly cycles to the next (`direction = 1`) or previous (`direction = -1`) atmospheric effect and persists it. */
+export async function cycleAtmosphere(direction = 1, { category = "all", tier = "all" } = {}) {
+  const pool = ATMOSPHERE_OPTIONS.filter((opt) =>
+    (category === "all" || opt.cat === category || opt.id === "none")
+    && (tier === "all" || opt.section === tier),
+  );
+  if (!pool.length) return null;
+  const currentIds = parseAtmosphereIds(effectiveAtmosphere());
+  const currentPrimary = currentIds[0] || "none";
+  const curIdx = pool.findIndex((o) => o.id === currentPrimary);
+  const step = direction >= 0 ? 1 : -1;
+  const nextIdx = curIdx < 0 ? (step > 0 ? 0 : pool.length - 1) : (curIdx + step + pool.length) % pool.length;
+  const chosen = pool[nextIdx];
+  if (state.settings) state.settings.atmosphere = chosen.id;
+  applyAtmosphere(chosen.id);
+  await saveSettings({ atmosphere: chosen.id });
+  return chosen;
+}
+
+if (typeof window !== "undefined") {
+  window.cycleAtmosphereFx = cycleAtmosphere;
+}
+
 on("theme-changed", () => {
   refreshThemeColors();
   const next = effectiveAtmosphere();
@@ -2792,3 +3338,5 @@ on("theme-changed", () => {
 });
 
 on("atmosphere-picker", () => { void showAtmosphereDialog(); });
+
+

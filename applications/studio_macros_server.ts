@@ -180,8 +180,13 @@ export interface RunMacroOptions {
 
 const MAX_MACRO_DEPTH = 8;
 const DDL_PATTERN = /^\s*(CREATE|DROP|ALTER|TRUNCATE|RENAME)\b/i;
+const FORBIDDEN_STUDIO_MACRO_RE =
+  /\b(?:process\s*\.|Bun\s*\.\s*(?:spawn|spawnSync|serve|file|write|env|dlopen|mmap)|globalThis\b|require\s*\(|import\s*\(|child_process\b|Function\s*\(|eval\s*\()/;
 
 function evaluateCondition(condition: string, variables: Record<string, any>): boolean {
+  if (FORBIDDEN_STUDIO_MACRO_RE.test(condition)) {
+    throw new Error("Macro condition references restricted host or process APIs");
+  }
   const expr = condition.trim().replace(/\[([a-zA-Z0-9_]+)\]/g, (_, name) => {
     if (name in variables) {
       const val = variables[name];
@@ -189,8 +194,18 @@ function evaluateCondition(condition: string, variables: Record<string, any>): b
     }
     return "0";
   });
-  const fn = new Function("vars", `with(vars) { return Boolean(${expr}); }`);
-  return Boolean(fn(variables));
+  const fn = new Function(
+    "vars",
+    "process",
+    "globalThis",
+    "global",
+    "Bun",
+    "Function",
+    "eval",
+    "require",
+    `with(vars) { return Boolean(${expr}); }`,
+  );
+  return Boolean(fn(variables, undefined, undefined, undefined, undefined, undefined, undefined, undefined));
 }
 
 function resolvePrompts(sql: string, values: Record<string, any>, dialect: MacroDialect): string {
@@ -438,6 +453,9 @@ async function runCore(
         case "RunCode": {
           const code = String(p.code ?? p.functionName ?? "").trim();
           if (!code) throw new Error("RunCode requires code");
+          if (FORBIDDEN_STUDIO_MACRO_RE.test(code)) {
+            throw new Error("RunCode references restricted host or process APIs");
+          }
           const transpiler = new Bun.Transpiler({ loader: "ts", target: "bun" });
           const jsBody = transpiler.transformSync(`async function __studioRunCode() {\n${code}\n}`);
           const debugLogs: string[] = [];
@@ -496,9 +514,34 @@ async function runCore(
             "DSum",
             "MsgBox",
             "Debug",
+            "process",
+            "globalThis",
+            "global",
+            "Bun",
+            "Function",
+            "eval",
+            "require",
             `return (async () => { ${jsBody}\n return await __studioRunCode(); })();`,
           );
-          const ret = await fn(CurrentDb, CurrentDb, DoCmd, variables, variables, DCount, DLookup, DSum, DoCmd.MessageBox, Debug);
+          const ret = await fn(
+            CurrentDb,
+            CurrentDb,
+            DoCmd,
+            variables,
+            variables,
+            DCount,
+            DLookup,
+            DSum,
+            DoCmd.MessageBox,
+            Debug,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+          );
           output = { returnValue: ret, debugLogs };
           message = debugLogs.length > 0 ? `RunCode: ${debugLogs.join(" | ")}` : `Executed Bun JS RunCode`;
           break;

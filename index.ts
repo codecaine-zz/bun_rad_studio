@@ -473,19 +473,30 @@ export function attachWindowShortcuts(wv: Webview, options?: WindowShortcutOptio
     try {
         wv.bind("openExternalUrl", (url: string) => {
             if (typeof url === "string" && (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("mailto:"))) {
+                let safeUrl = "";
+                try {
+                    const parsed = new URL(url);
+                    if (parsed.protocol !== "http:" && parsed.protocol !== "https:" && parsed.protocol !== "mailto:") {
+                        return { success: false };
+                    }
+                    if (/[\r\n\0]/.test(url)) return { success: false };
+                    safeUrl = parsed.toString();
+                } catch {
+                    return { success: false };
+                }
                 const now = Date.now();
-                const lastTime = lastOpenedUrls.get(url) || 0;
+                const lastTime = lastOpenedUrls.get(safeUrl) || 0;
                 if (now - lastTime < 1000) {
                     return { success: true, deduped: true };
                 }
-                lastOpenedUrls.set(url, now);
+                lastOpenedUrls.set(safeUrl, now);
                 try {
                     if (process.platform === "darwin") {
-                        Bun.spawn(["open", url]);
+                        Bun.spawn(["open", safeUrl]);
                     } else if (process.platform === "win32") {
-                        Bun.spawn(["cmd", "/c", "start", "", url]);
+                        Bun.spawn(["rundll32", "url.dll,FileProtocolHandler", safeUrl]);
                     } else {
-                        Bun.spawn(["xdg-open", url]);
+                        Bun.spawn(["xdg-open", safeUrl]);
                     }
                 } catch (err) {
                     console.error("Failed to open external URL:", err);
