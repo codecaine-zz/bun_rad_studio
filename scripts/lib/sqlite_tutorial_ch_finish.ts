@@ -110,6 +110,7 @@ export const finishChapters: Chapter[] = [
         cap: "Multi-Tab SQL Worksheets, Format, History & Guards",
         say: "In the S Q L editor, the plus button opens additional worksheet tabs that stay saved across sessions. Format S Q L indents your query, History recalls past runs, and the Transaction and Read-Only Guard bar gives you Begin, Commit, Rollback, and a safety lock that blocks destructive statements.",
         act: async (d) => {
+          if (!(await d.c.exists(S + "#sqlEditor"))) await d.click(S + "#btnToggleEditor", { pause: 600 });
           await d.click(S + "#btnAddWorksheet", { pause: 800 });
           await d.click(S + ".studio-ws-tab", { pause: 600 });
           await d.click(S + "#btnStudioFormatSql", { pause: 900 });

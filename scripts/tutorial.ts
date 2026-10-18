@@ -11,8 +11,13 @@
  * File Manager uses) in headless Chrome with a visible cursor, the File Manager's terminal runs real commands, and
  * the games run in their own server mode. Nothing is faked; a scene that fails stops the recording.
  */
+import "./lib/tts_edge_default";
 import { copyFileSync, existsSync, mkdirSync, rmSync, statSync, writeFileSync } from "fs";
 import { join } from "path";
+
+mkdirSync("/tmp/tut_envhome", { recursive: true });
+process.env.HOME = "/tmp/tut_envhome";
+
 import { Cdp, sleep } from "./lib/cdp_recorder";
 import { hostApp, hostDesigner } from "./lib/host_app";
 import { seedDemoWorkspace } from "./lib/demo_workspace";
@@ -28,7 +33,7 @@ const ASSETS = join(OUT, "assets");
 const FINAL = join(PROD, "bun_rad_studio_tutorial.mp4");
 const NOTES = join(PROD, "TUTORIAL_NOTES.md");
 const REPO = "https://github.com/codecaine-zz/bun_rad_studio";
-const RELEASE_URL = `${REPO}/releases/tag/v1.0.0`;
+const RELEASE_URL = `${REPO}/releases/tag/v1.4.5`;
 
 interface Scene {
   id: string;
@@ -120,11 +125,11 @@ async function term(c: Cdp, cmd: string, wait: number, perChar = 55) {
 const scenes: Scene[] = [
   {
     id: "00_intro", chapter: "INTRODUCTION", title: "Bun RAD Studio", bullets: "", kind: "card",
-    card: { kicker: "The complete tutorial", title: "Bun RAD Studio", lines: ["65 desktop apps", "79 command-line tools", "A visual designer", "SimpleGUI"] },
+    card: { kicker: "The complete tutorial", title: "Bun RAD Studio", lines: ["67 desktop apps", "79 command-line tools", "A visual designer", "SimpleGUI"] },
     narration: "Welcome to Bun RAD Studio, a toolbox of desktop apps, command line tools, and a visual form designer, all written in TypeScript and powered by Bun. In this tutorial you will install it, tour the apps, design a window by dragging, write your own app in a few lines, and package it for other people. Let's start.",
   },
   {
-    id: "01_overview", chapter: "THE LAUNCHER", title: "The Launcher: One App for Everything", bullets: "172 tools found automatically · Search · Categories · Launch or run inline", kind: "live",
+    id: "01_overview", chapter: "THE LAUNCHER", title: "The Launcher: One App for Everything", bullets: "173 tools found automatically · Search · Categories · Launch or run inline", kind: "live",
     narration: "Bun RAD Studio is a collection of real desktop apps: database studios, developer tools, network and security tools, system monitors, and even games. Each one runs on your own computer, with no account and nothing sent anywhere. This is the launcher, the main app. It scans the project and finds every app and command line tool automatically, a hundred and seventy two in all, sorted into categories. Click a category, or search by name. Select a tool and press Launch to open it in its own window, or run a command line tool inline and read the output right here.",
     async run(env, dur) {
       const t0 = performance.now();
@@ -172,7 +177,7 @@ const scenes: Scene[] = [
       const t0 = performance.now();
       const { c } = env;
       await env.fileManager(WORK);
-      await c.click("#tool-terminal", { pause: 1800 });
+      await c.click("#status-terminal", { pause: 1800 });
       await c.click("#terminal-host", { pause: 300 });
       await c.startRecording();
       await term(c, "git clone --depth 1 -q https://github.com/codecaine-zz/bun_rad_studio && cd bun_rad_studio", 9500, 15);
@@ -188,7 +193,7 @@ const scenes: Scene[] = [
       const t0 = performance.now();
       const { c } = env;
       await env.fileManager(`${WORK}/bun_rad_studio`);
-      await c.click("#tool-terminal", { pause: 1800 });
+      await c.click("#status-terminal", { pause: 1800 });
       await c.click("#terminal-host", { pause: 300 });
       await c.startRecording();
       await term(c, "bun run cli:crypto hash sha256 hello", 1800, 25);
@@ -199,7 +204,7 @@ const scenes: Scene[] = [
     },
   },
   {
-    id: "05_designer", chapter: "VISUAL DESIGNER", title: "Drag, Drop, Preview, Export", bullets: "Delphi / VB style · 40+ controls · Templates · Live preview · Bun TS code", kind: "live",
+    id: "05_designer", chapter: "VISUAL DESIGNER", title: "Drag, Drop, Preview, Export", bullets: "Delphi / VB style · 101 controls · Templates · Live preview · Bun TS code", kind: "live",
     narration: "The visual designer works like Delphi or Visual Basic. Start from a template or drag controls from the palette, click one to edit its properties, and see the form take shape. Press Run for a live preview. The designer writes the code for you, as Bun TypeScript, plain HTML, React, Vue, or Python, ready to copy or export as a project.",
     async run(env, dur) {
       const t0 = performance.now();
@@ -213,8 +218,9 @@ const scenes: Scene[] = [
       await sleep(900);
       await c.click(".template-chip >> Auth Login", { pause: 1500 });
       await c.click(".palette-item >> Checkbox", { pause: 900 });
-      await c.click("button >> Bun TS", { pause: 1600 });
-      await c.click("button >> HTML", { pause: 1400 });
+      await c.click("#inspectorCodePrimaryTab", { pause: 800 });
+      await c.click(".code-lang-pill >> Bun TS", { pause: 1200 });
+      await c.click(".code-lang-pill >> HTML", { pause: 1200 });
       await c.click("button >> Run", { pause: 2600 });
       await c.click("button >> Close preview", { pause: 700 });
       await c.click(".template-chip >> Dashboard", { pause: 1600 });
@@ -279,21 +285,23 @@ const scenes: Scene[] = [
     },
   },
   {
-    id: "08_filemanager", chapter: "FILE MANAGER", title: "The File Manager", bullets: "Dual pane · Code editor · Databases · Vault · Downloads · API Studio", kind: "live",
+    id: "08_filemanager", chapter: "FILE MANAGER", title: "The File Manager", bullets: "Dual pane · Tasks & System Info · Databases · Media Deck · 180 Themes", kind: "live",
     narration: "The flagship app is the File Manager. It has a dual pane view, an undoable recycle bin, a code editor, a terminal, database studios, an encrypted password vault, a live web server, and a download manager that splits files over several connections and resumes them. The API Studio, App Bundler, and Environment Studio also live inside it as tabs.",
     async run(env, dur) {
       const t0 = performance.now();
       const { c } = env;
       await env.fileManager();
       await c.startRecording();
-      await sleep(1200);
-      await c.click("#view-dual", { pause: 2400 });
-      await c.click("#view-tools", { pause: 700 });
-      await c.click("#power-tab-downloads", { pause: 2600 });
-      await c.click("#power-tab-api", { pause: 3200 });
-      await c.click("#power-tab-env", { pause: 3000 });
-      await c.click("#power-tab-bundler", { pause: 2800 });
-      await c.click("#power-tab-code", { pause: 2000 });
+      await sleep(1000);
+      await c.click("#view-dual", { pause: 1800 });
+      await c.click("#view-tools", { pause: 600 });
+      await c.click("#power-tab-tasks", { pause: 2200 });
+      await c.click("#power-tab-sysinfo", { pause: 2200 });
+      await c.click("#power-tab-downloads", { pause: 2000 });
+      await c.click("#power-tab-api", { pause: 2200 });
+      await c.click("#power-tab-env", { pause: 2000 });
+      await c.click("#power-tab-bundler", { pause: 2000 });
+      await c.click("#power-tab-code", { pause: 1800 });
       await until(t0, dur);
     },
   },

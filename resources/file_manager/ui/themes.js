@@ -242,6 +242,55 @@ export function themeMatchesVibe(t, vibe) {
   return true;
 }
 
+/** Resolves a template's performance & shader tier ("low", "medium", or "ultra"). */
+export function resolveTemplateTier(t) {
+  if (t?.tier === "ultra" || t?.tier === "medium" || t?.tier === "low") return t.tier;
+  if (!t?.hasEffects) return "low";
+  if (t?.atmosphere && t.atmosphere !== "none") return "ultra";
+  if (t?.preview?.glow === "plasma" || t?.preview?.glow === "laser") return "ultra";
+  return "medium";
+}
+
+/** Filters a template by its hardware/visual tier ("all", "ultra", "medium", "low"). */
+export function themeMatchesTier(t, tier) {
+  if (!tier || tier === "all") return true;
+  return resolveTemplateTier(t) === tier;
+}
+
+const PHYSICS_ATMO_RE = /tesla|plasma|tokamak|cherenkov|collider|hadron|lorenz|lorentz|ferrofluid|hawking|black_hole|dyson|casimir|alcubierre|superconductor|antimatter|magnetar|soliton|sonolum|fusion|wormhole|quantum|relativ|synchrotron|pulsar|quasar|event_horizon|bose_einstein|tachyon|dirac|schwarzschild|zero_point|higgs|strange_matter|jacobs_ladder|ball_lightning|van_de_graaff/i;
+
+/** Filters a template by its animation / motion profile ("all", "atmosphere", "physics", "spring", "snappy", "calm", "static"). */
+export function themeMatchesAnimation(t, anim) {
+  if (!anim || anim === "all") return true;
+  const motion = t?.motion || (t?.hasEffects ? "calm" : "none");
+  const atmo = t?.atmosphere && t.atmosphere !== "none" ? String(t.atmosphere) : "";
+  if (anim === "atmosphere") return Boolean(atmo);
+  if (anim === "physics") {
+    return Boolean(
+      (atmo && PHYSICS_ATMO_RE.test(atmo))
+      || PHYSICS_ATMO_RE.test(`${t?.key || ""} ${t?.name || ""} ${t?.description || ""}`)
+      || t?.preview?.glow === "plasma"
+      || t?.preview?.glow === "laser",
+    );
+  }
+  if (anim === "spring") return motion === "spring" || motion === "elastic";
+  if (anim === "snappy") return motion === "snappy";
+  if (anim === "calm") return motion === "calm" || motion === "cinematic";
+  if (anim === "static") return !t?.hasEffects || motion === "none" || motion === "zero";
+  return true;
+}
+
+/** Filters a template by its surface material / backdrop shader ("all", "liquid", "mica", "frosted", "solid"). */
+export function themeMatchesMaterial(t, mat) {
+  if (!mat || mat === "all") return true;
+  const b = t?.backdropStyle || (t?.hasEffects ? "glass" : "solid");
+  if (mat === "liquid") return b === "liquid";
+  if (mat === "mica") return b === "mica" || b === "acrylic";
+  if (mat === "frosted") return b === "frosted" || b === "glass";
+  if (mat === "solid") return !t?.hasEffects || b === "oled" || b === "matte" || b === "solid";
+  return true;
+}
+
 function swatch(theme) {
   const [sBg, sPanel, sAccent, sText] = theme.swatch ?? ["#16191d", "#1e2329", "#6ea8ff", "#e8eaed"];
   const p = theme.preview ?? {
@@ -425,7 +474,7 @@ if (typeof window !== "undefined") {
 
 const choose = chooseTheme;
 
-/** The theme gallery: search, filter by light or dark, category, color vibe or effects, pin favorites, and click a theme to try it. */
+/** The theme gallery: search, filter by light or dark, category, template tier, animations, surface material, color vibe or effects, pin favorites, and click a theme to try it. */
 export async function showThemePicker() {
   let themes;
   try {
@@ -434,7 +483,7 @@ export async function showThemePicker() {
     toast(err?.message || "The themes couldn't be loaded.", { kind: "error" });
     return;
   }
-  const search = h("input", { type: "search", class: "prop-input", placeholder: "Search themes", "aria-label": "Search themes", title: "Type part of a theme's name, like dark, nord, m4, tahoe or windows." });
+  const search = h("input", { type: "search", class: "prop-input", placeholder: "Search themes", "aria-label": "Search themes", title: "Type part of a theme's name, like dark, nord, m4, tahoe, tesla, tokamak or windows." });
   const mode = h("select", { class: "prop-input", "aria-label": "Show light or dark themes", title: "Show only light themes, only dark ones, or both." },
     [["all", "Light and dark"], ["light", "Light only"], ["dark", "Dark only"]].map(([v, l]) => h("option", { value: v }, l)));
   const categoryOptions = [
@@ -453,7 +502,32 @@ export async function showThemePicker() {
     categoryOptions.map(([v, l]) => h("option", { value: v }, l)));
   const fxFilter = h("select", { class: "prop-input", "aria-label": "Show themes with or without special effects", title: "Special effects are glass panels, glow, moving light, scanlines and grain. Plain themes change only the colors." },
     [["any", "With or without effects"], ["fx", "✨ Special effects only"], ["plain", "Plain colors only"]].map(([v, l]) => h("option", { value: v }, l)));
+  const tierFilter = h("select", { class: "prop-input", "aria-label": "Filter templates by tier", title: "Filter templates by performance & shader tier: Ultra (M4/RTX & Live FX), Medium (Balanced Glass & Glow), or Low (Zero-GPU Eco Colors)." },
+    [
+      ["all", "All template tiers"],
+      ["ultra", "🚀 Ultra tier (M4 / Live FX)"],
+      ["medium", "✨ Medium tier (Balanced Glass)"],
+      ["low", "⚡ Low / Eco tier (Colors only)"],
+    ].map(([v, l]) => h("option", { value: v }, l)));
+  const animFilter = h("select", { class: "prop-input", "aria-label": "Filter templates by animations", title: "Filter templates by live canvas animations, Tesla/Physics simulations, or UI motion curves." },
+    [
+      ["all", "All animations & motion"],
+      ["atmosphere", "🌌 Live Canvas FX"],
+      ["physics", "⚡ Tesla & Sci-Fi Physics"],
+      ["spring", "🌊 Spring Physics Motion"],
+      ["snappy", "⚡ Snappy HUD Motion"],
+      ["calm", "🍃 Calm Ambient Drift"],
+      ["static", "⏹️ Static (No Motion)"],
+    ].map(([v, l]) => h("option", { value: v }, l)));
+  const sortFilter = h("select", { class: "prop-input", "aria-label": "Sort templates", title: "Sort templates by default category groups, Ultra tier first, Lightweight Eco tier first, or alphabetically." },
+    [
+      ["group", "Sort: Default groups"],
+      ["ultra-first", "Sort: 🚀 Ultra tier first"],
+      ["eco-first", "Sort: ⚡ Low / Eco first"],
+      ["name-asc", "Sort: Name (A–Z)"],
+    ].map(([v, l]) => h("option", { value: v }, l)));
   let activeVibe = "all";
+  let activeMaterial = "all";
   let lastShown = themes;
   let dialogRef = null;
   const list = h("div", { class: "theme-list" });
@@ -485,6 +559,67 @@ export async function showThemePicker() {
     }, label),
   );
 
+  const tierPillsDef = [
+    ["all", "All Tiers"],
+    ["ultra", "🚀 Ultra Tier"],
+    ["medium", "✨ Medium / Glass"],
+    ["low", "⚡ Low / Eco"],
+  ];
+  const tierPillButtons = tierPillsDef.map(([val, label]) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${val === "all" ? " is-active" : ""}`,
+      "data-tier-pill": val,
+      "aria-pressed": String(val === "all"),
+      onclick: () => {
+        tierFilter.value = val;
+        draw();
+      },
+    }, label),
+  );
+
+  const animPillsDef = [
+    ["all", "All Animations"],
+    ["atmosphere", "🌌 Live Canvas FX"],
+    ["physics", "⚡ Tesla & Physics"],
+    ["spring", "🌊 Spring Motion"],
+    ["snappy", "⚡ Snappy HUD"],
+    ["calm", "🍃 Calm Drift"],
+    ["static", "⏹️ Static"],
+  ];
+  const animPillButtons = animPillsDef.map(([val, label]) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${val === "all" ? " is-active" : ""}`,
+      "data-anim-pill": val,
+      "aria-pressed": String(val === "all"),
+      onclick: () => {
+        animFilter.value = val;
+        draw();
+      },
+    }, label),
+  );
+
+  const materialPillsDef = [
+    ["all", "All Surfaces"],
+    ["liquid", "💧 Liquid Glass"],
+    ["mica", "🪟 Mica & Acrylic"],
+    ["frosted", "❄️ Frosted Glass"],
+    ["solid", "🧱 Solid & OLED"],
+  ];
+  const materialPillButtons = materialPillsDef.map(([val, label]) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${val === "all" ? " is-active" : ""}`,
+      "data-material-pill": val,
+      "aria-pressed": String(val === "all"),
+      onclick: () => {
+        activeMaterial = val;
+        draw();
+      },
+    }, label),
+  );
+
   const vibePillsDef = [
     ["all", "All Vibes"],
     ["oled", "⚫ OLED Black"],
@@ -507,17 +642,63 @@ export async function showThemePicker() {
     }, label),
   );
 
+  const hw = probeClientHardware();
+  const recommendedTier = hw.tier === "ultra" ? "ultra" : hw.tier === "low" ? "low" : "medium";
+  const hwMatchBtn = h("button", {
+    type: "button",
+    class: "theme-filter-pill",
+    "data-hw-recommend": recommendedTier,
+    title: `Filter templates tailored for your detected hardware tier (${recommendedTier.toUpperCase()})`,
+    onclick: () => {
+      tierFilter.value = recommendedTier;
+      draw();
+    },
+  }, `🎯 For My System (${recommendedTier.toUpperCase()})`);
+
+  const resetFiltersBtn = h("button", {
+    type: "button",
+    class: "theme-filter-pill theme-reset-pill",
+    "data-reset-filters": "true",
+    title: "Reset all category, tier, animation, material, and color vibe filters",
+    onclick: () => {
+      search.value = "";
+      mode.value = "all";
+      groupFilter.value = "all";
+      fxFilter.value = "any";
+      tierFilter.value = "all";
+      animFilter.value = "all";
+      sortFilter.value = "group";
+      activeVibe = "all";
+      activeMaterial = "all";
+      draw();
+    },
+  }, "↺ Reset Filters");
+
   const navBar = h("div", { class: "theme-nav-bar", role: "region", "aria-label": "Quick theme filters" },
     h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Category"), ...catPillButtons),
-    h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Color Vibe"), ...vibePillButtons),
+    h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Template Tier"), ...tierPillButtons, hwMatchBtn),
+    h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Animations"), ...animPillButtons),
+    h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Surface Shader"), ...materialPillButtons),
+    h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Color Vibe"), ...vibePillButtons, resetFiltersBtn),
   );
 
   const card = (t) => {
     const on = state.settings.palette === t.key;
     const pinned = isFavoriteTheme(t.key);
-    const b = h("button", { type: "button", class: "theme-card", "data-key": t.key, "aria-pressed": String(on), title: `${t.name}: ${t.description}`, onclick: () => pick(t.key) },
+    const tier = resolveTemplateTier(t);
+    const tierLabel = tier === "ultra" ? "🚀 Ultra" : tier === "medium" ? "✨ Medium" : "⚡ Low";
+    const animBadge = t.atmosphere && t.atmosphere !== "none"
+      ? h("span", { class: "theme-anim-badge", "data-anim-badge": t.atmosphere, title: `Built-in live canvas animation: ${t.atmosphere}` }, "🌌 Live FX")
+      : t.hasEffects && t.motion && t.motion !== "none" && t.motion !== "zero"
+        ? h("span", { class: "theme-anim-badge", "data-anim-badge": t.motion, title: `UI motion profile: ${t.motion}` }, t.motion === "spring" ? "🌊 Spring" : t.motion === "snappy" ? "⚡ Snappy" : "🍃 Calm")
+        : null;
+    const b = h("button", { type: "button", class: "theme-card", "data-key": t.key, "data-tier": tier, "aria-pressed": String(on), title: `${t.name}: ${t.description}`, onclick: () => pick(t.key) },
       swatch(t), h("span", { class: "theme-name" }, t.name), h("span", { class: "theme-kind" }, t.dark ? "Dark" : "Light"),
-      t.hasEffects ? h("span", { class: "theme-fx-badge", title: "This theme has special effects: glass, glow, motion and texture." }, "✨ Effects") : h("span", { class: "theme-plain-badge" }, "Colors only"));
+      h("span", { class: "theme-card-badges" },
+        t.hasEffects ? h("span", { class: "theme-fx-badge", title: "This theme has special effects: glass, glow, motion and texture." }, "✨ Effects") : h("span", { class: "theme-plain-badge" }, "Colors only"),
+        h("span", { class: `theme-tier-badge theme-tier-${tier}`, "data-tier-badge": tier, title: `Template Tier: ${tierLabel}` }, tierLabel),
+        animBadge,
+      ));
     const editBtn = h("button", {
       type: "button",
       class: "theme-edit-quick",
@@ -560,13 +741,33 @@ export async function showThemePicker() {
         defaultSwatch(), h("span", { class: "theme-name" }, "Standard"), h("span", { class: "theme-kind" }, "Light or dark")));
   };
 
+  const TIER_RANK = { ultra: 3, medium: 2, low: 1 };
+
   function draw() {
     const q = search.value.trim().toLowerCase();
     const m = mode.value;
     const grp = groupFilter.value;
     const fx = fxFilter.value;
+    const tier = tierFilter.value;
+    const anim = animFilter.value;
+    const sortBy = sortFilter.value;
     for (const btn of catPillButtons) {
       const active = btn.dataset.catPill === grp;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-pressed", String(active));
+    }
+    for (const btn of tierPillButtons) {
+      const active = btn.dataset.tierPill === tier;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-pressed", String(active));
+    }
+    for (const btn of animPillButtons) {
+      const active = btn.dataset.animPill === anim;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-pressed", String(active));
+    }
+    for (const btn of materialPillButtons) {
+      const active = btn.dataset.materialPill === activeMaterial;
       btn.classList.toggle("is-active", active);
       btn.setAttribute("aria-pressed", String(active));
     }
@@ -581,12 +782,22 @@ export async function showThemePicker() {
     const shown = themes.filter((t) => (m === "all" || (m === "dark") === t.dark)
       && (fx === "any" || (fx === "fx") === !!t.hasEffects)
       && (grp === "all" || (grp === "favorites" ? favSet.has(t.key) : grp === "recent" ? recSet.has(t.key) : t.group === grp))
+      && themeMatchesTier(t, tier)
+      && themeMatchesAnimation(t, anim)
+      && themeMatchesMaterial(t, activeMaterial)
       && themeMatchesVibe(t, activeVibe)
-      && (!q || `${t.name} ${t.group} ${t.key} ${t.description} ${favSet.has(t.key) ? "favorite favorite pinned star" : ""} ${t.hasEffects ? "effects special effects fx glow glass motion" : "plain"}`.toLowerCase().includes(q)));
+      && (!q || `${t.name} ${t.group} ${t.key} ${t.description} ${resolveTemplateTier(t)} ${t.motion || ""} ${t.atmosphere || ""} ${t.backdropStyle || ""} ${favSet.has(t.key) ? "favorite favorite pinned star" : ""} ${t.hasEffects ? "effects special effects fx glow glass motion" : "plain"}`.toLowerCase().includes(q)));
+    if (sortBy === "ultra-first") {
+      shown.sort((a, b) => (TIER_RANK[resolveTemplateTier(b)] - TIER_RANK[resolveTemplateTier(a)]) || a.name.localeCompare(b.name));
+    } else if (sortBy === "eco-first") {
+      shown.sort((a, b) => (TIER_RANK[resolveTemplateTier(a)] - TIER_RANK[resolveTemplateTier(b)]) || a.name.localeCompare(b.name));
+    } else if (sortBy === "name-asc") {
+      shown.sort((a, b) => a.name.localeCompare(b.name));
+    }
     lastShown = shown;
     const sections = [];
     const favShown = favoriteKeys().map((k) => shown.find((t) => t.key === k)).filter(Boolean);
-    if ((grp === "all" || grp === "favorites") && favShown.length) {
+    if ((grp === "all" || grp === "favorites") && favShown.length && sortBy === "group") {
       sections.push(h("section", { class: "theme-section-favorites" }, h("h3", {}, `Favorites (${favShown.length})`), h("div", { class: "theme-grid" }, favShown.map(card))));
     }
     if (grp === "recent") {
@@ -595,18 +806,29 @@ export async function showThemePicker() {
         sections.push(h("section", { class: "theme-section-recent" }, h("h3", {}, `Recently used (${recShown.length})`), h("div", { class: "theme-grid" }, recShown.map(card))));
       }
     }
-    if (!q && m === "all" && fx !== "fx" && grp === "all" && activeVibe === "all") sections.push(h("section", {}, h("h3", {}, "Default"), h("div", { class: "theme-grid" }, defaultCard())));
+    if (!q && m === "all" && fx !== "fx" && grp === "all" && activeVibe === "all" && activeMaterial === "all" && tier === "all" && anim === "all" && sortBy === "group") {
+      sections.push(h("section", {}, h("h3", {}, "Default"), h("div", { class: "theme-grid" }, defaultCard())));
+    }
     if (grp !== "favorites" && grp !== "recent") {
-      for (const group of GROUP_ORDER) {
-        const inGroup = shown.filter((t) => t.group === group);
-        if (inGroup.length) sections.push(h("section", {}, h("h3", {}, `${group} (${inGroup.length})`), h("div", { class: "theme-grid" }, inGroup.map(card))));
+      if (sortBy !== "group") {
+        if (shown.length) {
+          const sortHeading = sortBy === "ultra-first" ? "Sorted by Tier (🚀 Ultra First)" : sortBy === "eco-first" ? "Sorted by Tier (⚡ Low / Eco First)" : "All Matching Themes (A–Z)";
+          sections.push(h("section", {}, h("h3", {}, `${sortHeading} (${shown.length})`), h("div", { class: "theme-grid" }, shown.map(card))));
+        }
+      } else {
+        for (const group of GROUP_ORDER) {
+          const inGroup = shown.filter((t) => t.group === group);
+          if (inGroup.length) sections.push(h("section", {}, h("h3", {}, `${group} (${inGroup.length})`), h("div", { class: "theme-grid" }, inGroup.map(card))));
+        }
       }
+    } else if (grp === "favorites" && sortBy !== "group" && favShown.length) {
+      sections.push(h("section", { class: "theme-section-favorites" }, h("h3", {}, `Favorites (${favShown.length})`), h("div", { class: "theme-grid" }, favShown.map(card))));
     }
     const emptyMsg = grp === "favorites" && !favSet.size
       ? "No favorite themes yet. Click ☆ on any theme card to pin it here."
       : grp === "recent" && !recSet.size
         ? "No recently used themes yet. Click any theme card to try it."
-        : "No theme matches. Try a shorter word or another Color Vibe.";
+        : "No theme matches. Click ↺ Reset Filters or try another Template Tier, Animation, Surface Shader, or Color Vibe.";
     list.replaceChildren(...(sections.length ? sections : [h("p", { class: "hint" }, emptyMsg)]));
     const withFx = shown.filter((t) => t.hasEffects).length;
     count.textContent = `${shown.length} of ${themes.length} themes · ${withFx} with special effects ✨, ${shown.length - withFx} plain colors`;
@@ -664,13 +886,16 @@ export async function showThemePicker() {
   mode.addEventListener("change", draw);
   groupFilter.addEventListener("change", draw);
   fxFilter.addEventListener("change", draw);
+  tierFilter.addEventListener("change", draw);
+  animFilter.addEventListener("change", draw);
+  sortFilter.addEventListener("change", draw);
   draw();
   const dialog = openDialog({
     title: "Themes",
     wide: true,
     body: [
       h("div", { class: "theme-tools" },
-        search, mode, groupFilter, fxFilter,
+        search, mode, groupFilter, fxFilter, tierFilter, animFilter, sortFilter,
         h("button", {
           type: "button",
           class: "btn theme-random-btn",
@@ -687,7 +912,7 @@ export async function showThemePicker() {
         h("button", { type: "button", class: "btn", title: "Choose a Light theme for daytime and a Dark theme for nighttime so the File Manager switches between them automatically with your computer.", onclick: () => { void showDayNightPairDialog(themes); } }, "Day / Night pair…"),
         h("button", { type: "button", class: "btn", title: "Make your own theme, or start from one of these and change its colors.", onclick: () => { dialog.close(); emit("theme-editor", { from: state.settings.palette || "" }); } }, "Create or edit a theme…")),
       navBar, count, list,
-      h("p", { class: "hint" }, "A theme applies as soon as you click it, and is remembered. Click ☆ on any theme to pin it to Favorites, or ✎ to customize its colors and effects. Use Category and Color Vibe pills to filter in one click, or use the arrow keys to preview themes live."),
+      h("p", { class: "hint" }, "A theme applies as soon as you click it, and is remembered. Click ☆ on any theme to pin it to Favorites, or ✎ to customize its colors and effects. Use Category, Template Tier, Animations, Surface Shader, and Color Vibe pills to filter in one click, or use the arrow keys to preview themes live."),
     ],
     buttons: [{ label: "Done", primary: true, value: true }],
     initialFocus: search,

@@ -73,7 +73,7 @@ export const fmChapters: Chapter[] = [
         cap: "Details and the Effective settings table",
         say: "Click the connection for its details. It is an S Q Lite file, opened for reading and writing, with no password. The Effective settings table shows every value the studio will use, and where it came from: the connection first, then your defaults, then environment variables.",
         act: async (d) => {
-          await d.click(".db-row", { pause: 1800 });
+          await d.click(".db-row >> shop.sqlite", { pause: 1800 });
           await d.scroll("button >> Test connection", 420, 8);
           await d.wait(2200);
           await d.scroll("button >> Test connection", -420, 8);
@@ -129,7 +129,7 @@ export const fmChapters: Chapter[] = [
 
   {
     id: "04_studio", chapter: "THE STUDIO", title: "SQLite Studio inside the File Manager", blurb: "Start it, control it, find your way around",
-    before: async (d) => { await skipWelcome(d); await d.wait(400); await openDatabasesTool(d); await saveFoundConnection(d); await d.click(".db-row", { pause: 700 }); },
+    before: async (d) => { await skipWelcome(d); await d.wait(400); await openDatabasesTool(d); await saveFoundConnection(d); await d.click(".db-row >> shop.sqlite", { pause: 700 }); },
     steps: [
       {
         cap: "Open in SQLite Studio",

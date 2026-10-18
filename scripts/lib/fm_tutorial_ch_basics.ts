@@ -125,7 +125,9 @@ export const basics: Chapter[] = [
           await d.click("#list .row >> docs", { pause: 600 });
           await d.key("ArrowDown", "↓"); await d.wait(500); await d.key("ArrowUp", "↑"); await d.wait(500);
           await d.key("Enter", "Enter"); await d.wait(1200);
-          await d.key("Backspace", "Backspace"); await d.wait(1200);
+          await d.key("Backspace", "Backspace");
+          await d.eval("document.getElementById('tool-up')?.click()");
+          await d.wait(1200);
         },
       },
       {

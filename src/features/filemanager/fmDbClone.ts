@@ -314,9 +314,20 @@ function translateDefaultClause(col: CloneSourceColumn, targetEngine: Engine): s
   if (/^[+-]?\d+(\.\d+)?$/.test(stripped)) {
     return ` DEFAULT ${stripped}`;
   }
-  if (/^'((?:[^']|'')*)'$/.test(stripped)) {
+  const quoted = /^'((?:[^']|'')*)'$/.exec(stripped);
+  if (quoted) {
     if (targetEngine === "mysql" && (col.canonicalType === "text" || col.canonicalType === "json" || col.canonicalType === "binary")) {
       // MySQL TEXT/BLOB/JSON columns cannot have a plain literal default in strict modes across all versions.
+      return "";
+    }
+    if (col.canonicalType === "timestamp" && targetEngine === "mysql") {
+      const m = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})/.exec(quoted[1]!.trim());
+      if (m) return ` DEFAULT '${m[1]} ${m[2]}'`;
+      return "";
+    }
+    if (col.canonicalType === "date" && targetEngine === "mysql") {
+      const m = /^(\d{4}-\d{2}-\d{2})/.exec(quoted[1]!.trim());
+      if (m) return ` DEFAULT '${m[1]}'`;
       return "";
     }
     return ` DEFAULT ${stripped}`;

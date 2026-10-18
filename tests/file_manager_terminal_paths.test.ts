@@ -211,20 +211,67 @@ describe("selected paths for a terminal", () => {
     expect(html).toContain("Follow terminal (real path)");
     expect(html).toContain("compare pwd -P");
   });
+
+  test("terminal open state, height, and folder are saved and restored across restarts", () => {
+    const first = loadTerminal("darwin");
+    first.settings.terminalHeight = 360;
+    first.showTerminal("/tmp/project");
+    expect(first.element.hidden).toBe(false);
+    expect(first.settings.terminalOpen).toBe(true);
+    expect(first.settings.terminalHeight).toBe(360);
+    expect(first.settings.terminalPath).toBe("/tmp/project");
+    expect(first.savedPatches.at(-1)).toEqual({
+      terminalOpen: true,
+      terminalHeight: 360,
+      terminalPath: "/tmp/project",
+    });
+
+    // Moving in the shell updates terminalPath (and lastPath when follow is on).
+    first.sockets[0]!.onmessage!({ data: JSON.stringify({ type: "cwd", path: "/tmp/project/sub" }) });
+    expect(first.settings.terminalPath).toBe("/tmp/project/sub");
+    expect(first.savedPatches.at(-1)).toEqual({
+      terminalPath: "/tmp/project/sub",
+      lastPath: "/tmp/project/sub",
+    });
+
+    // Simulating reopening the File Manager while the terminal was left open:
+    const reopened = loadTerminal("darwin");
+    Object.assign(reopened.settings, {
+      terminalOpen: true,
+      terminalHeight: 420,
+      terminalPath: "/tmp/project/sub",
+    });
+    reopened.restoreTerminal();
+    expect(reopened.element.hidden).toBe(false);
+    expect(reopened.props.get("--term-height")).toBe("420px");
+    expect(reopened.urls).toEqual(["ws://test?path=/tmp/project/sub"]);
+
+    // If the saved terminalPath was removed while closed, connection failure before open falls back to the current folder.
+    reopened.sockets[0]!.onclose?.();
+    expect(reopened.urls).toEqual(["ws://test?path=/tmp/project/sub", "ws://test?path=/tmp"]);
+
+    // Closing the terminal saves terminalOpen: false so it stays closed next time.
+    reopened.hideTerminal();
+    expect(reopened.element.hidden).toBe(true);
+    expect(reopened.settings.terminalOpen).toBe(false);
+    expect(reopened.savedPatches.at(-1)).toEqual({ terminalOpen: false });
+  });
 });
 
-type FakeSocketT = EventTarget & { readyState: number; sent: string[]; onmessage?: (e: { data: string }) => void };
+type FakeSocketT = EventTarget & { readyState: number; sent: string[]; onmessage?: (e: { data: string }) => void; onclose?: () => void };
 
 /** terminal.js with fake browser parts, so its shell handling can be checked without a page. */
 function loadTerminal(platform: string) {
   const sockets: FakeSocketT[] = [];
+  const urls: string[] = [];
   class FakeSocket extends EventTarget {
     static CONNECTING = 0;
     static OPEN = 1;
     readyState = 0;
     sent: string[] = [];
     onmessage?: (e: { data: string }) => void;
-    constructor(_url: string) { super(); sockets.push(this); }
+    onclose?: () => void;
+    constructor(url: string) { super(); urls.push(url); sockets.push(this); }
     send(text: string) { this.sent.push(text); }
     close() {}
   }
@@ -243,24 +290,34 @@ function loadTerminal(platform: string) {
   }
   const notices: string[] = [];
   const navigated: string[] = [];
-  const settings = { textSize: 100, terminalFollow: true };
-  const element = { hidden: true, title: "", textContent: "", style: { setProperty() {} }, setAttribute() {} };
+  const savedPatches: Array<Record<string, unknown>> = [];
+  const props = new Map<string, string>();
+  const settings: Record<string, any> = { textSize: 100, terminalFollow: true, terminalOpen: false, terminalHeight: 300, terminalPath: "" };
+  const element = { hidden: true, title: "", textContent: "", style: { setProperty(k: string, v: string) { props.set(k, v); } }, setAttribute() {}, contains: () => false };
   const source = readFileSync(new URL("../resources/file_manager/ui/terminal.js", import.meta.url), "utf8")
     .replace(/^import .*;\r?$/gm, "").replace(/^export /gm, "");
   const api = new Function("deps", `
-    const { $, Terminal, FitAddon, ResizeObserver, WebSocket, window, requestAnimationFrame,
-      quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl, state, terminalUrl, emit, toast, goTo, wireTerminalClipboard, terminalTheme = () => ({}) } = deps;
+    const { $, Terminal, FitAddon, ResizeObserver, WebSocket, window, document, requestAnimationFrame,
+      quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl, state, terminalUrl, emit, toast, goTo, saveSettings, wireTerminalClipboard, terminalTheme = () => ({}) } = deps;
     ${source}
-    return { insertPaths, folderCommand, typeInTerminal };
+    return { insertPaths, folderCommand, typeInTerminal, showTerminal, hideTerminal, restoreTerminal };
   `)({
     $: () => element, Terminal: FakeTerminal, FitAddon: FakeFit,
     ResizeObserver: class { observe() {} }, WebSocket: FakeSocket,
-    window: { innerHeight: 1000 }, requestAnimationFrame: () => 0,
+    window: { innerHeight: 1000 }, document: { activeElement: null, querySelector: () => null }, requestAnimationFrame: () => 0,
     quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl,
-    state: { platform, settings, location: { kind: "folder", path: platform === "win32" ? "C:\\" : "/tmp" } },
-    terminalUrl: () => "ws://test", emit() {}, toast: (message: string) => notices.push(message),
+    state: { platform, settings, location: { kind: "folder", path: platform === "win32" ? "C:\\" : "/tmp" }, terminalOpen: false },
+    terminalUrl: (folder: string) => `ws://test?path=${folder}`, emit() {}, toast: (message: string) => notices.push(message),
     wireTerminalClipboard() {},
     goTo: (path: string) => navigated.push(path),
-  }) as { insertPaths: (paths: string[]) => Promise<void>; folderCommand: (folder: string, shell: string, wsl?: object) => string | null; typeInTerminal: (text: string) => boolean };
-  return { ...api, sockets, notices, element, navigated, settings };
+    saveSettings: (patch: Record<string, unknown>) => savedPatches.push(patch),
+  }) as {
+    insertPaths: (paths: string[]) => Promise<void>;
+    folderCommand: (folder: string, shell: string, wsl?: object) => string | null;
+    typeInTerminal: (text: string) => boolean;
+    showTerminal: (folder?: string) => void;
+    hideTerminal: () => void;
+    restoreTerminal: () => void;
+  };
+  return { ...api, sockets, urls, notices, element, props, navigated, settings, savedPatches };
 }

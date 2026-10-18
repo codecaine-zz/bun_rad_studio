@@ -77,20 +77,26 @@ describe("the saved settings behind the views", () => {
     expect(s.activeTool).toBe("");
     expect(s.splitTool).toBe("");
     expect(s.dualPath).toBe("");
+    expect(s.terminalOpen).toBe(false);
+    expect(s.terminalHeight).toBe(300);
+    expect(s.terminalPath).toBe("");
     expect(DEFAULT_SETTINGS.workspace).toBe("files");
   });
 
   test("good values are kept", () => {
-    const s = sanitizeSettings({ workspace: "dual", startWith: "last", splitSide: "bottom", splitSize: 35, sidebarCollapsed: true, focusMode: true, activeTool: "find", splitTool: "my-tool-2", dualPath: home }, ctx);
-    expect(s).toMatchObject({ workspace: "dual", startWith: "last", splitSide: "bottom", splitSize: 35, sidebarCollapsed: true, focusMode: true, activeTool: "find", splitTool: "my-tool-2", dualPath: home });
+    const s = sanitizeSettings({ workspace: "dual", startWith: "last", splitSide: "bottom", splitSize: 35, sidebarCollapsed: true, focusMode: true, activeTool: "find", splitTool: "my-tool-2", dualPath: home, terminalOpen: true, terminalHeight: 420, terminalPath: dest }, ctx);
+    expect(s).toMatchObject({ workspace: "dual", startWith: "last", splitSide: "bottom", splitSize: 35, sidebarCollapsed: true, focusMode: true, activeTool: "find", splitTool: "my-tool-2", dualPath: home, terminalOpen: true, terminalHeight: 420, terminalPath: dest });
   });
 
   test("damaged values fall back to the defaults or are clamped", () => {
-    const s = sanitizeSettings({ workspace: "nonsense", startWith: 3, splitSide: "left", splitSize: "wide", sidebarCollapsed: "yes", focusMode: 1, activeTool: "Not A Tool!", splitTool: "9abc", dualPath: "relative/path" }, ctx);
-    expect(s).toMatchObject({ workspace: "files", startWith: "files", splitSide: "right", splitSize: 50, sidebarCollapsed: false, focusMode: false, activeTool: "", splitTool: "", dualPath: "" });
+    const s = sanitizeSettings({ workspace: "nonsense", startWith: 3, splitSide: "left", splitSize: "wide", sidebarCollapsed: "yes", focusMode: 1, activeTool: "Not A Tool!", splitTool: "9abc", dualPath: "relative/path", terminalOpen: "yes", terminalHeight: "tall", terminalPath: "relative/folder" }, ctx);
+    expect(s).toMatchObject({ workspace: "files", startWith: "files", splitSide: "right", splitSize: 50, sidebarCollapsed: false, focusMode: false, activeTool: "", splitTool: "", dualPath: "", terminalOpen: false, terminalHeight: 300, terminalPath: "" });
     expect(sanitizeSettings({ splitSize: 5 }, ctx).splitSize).toBe(20);
     expect(sanitizeSettings({ splitSize: 500 }, ctx).splitSize).toBe(80);
     expect(sanitizeSettings({ splitSize: Number.NaN }, ctx).splitSize).toBe(50);
+    expect(sanitizeSettings({ terminalHeight: 40 }, ctx).terminalHeight).toBe(120);
+    expect(sanitizeSettings({ terminalHeight: 5000 }, ctx).terminalHeight).toBe(1200);
+    expect(sanitizeSettings({ terminalHeight: Number.NaN }, ctx).terminalHeight).toBe(300);
     expect(sanitizeSettings({ activeTool: "a".repeat(26) }, ctx).activeTool).toBe("");
     expect(sanitizeSettings({ activeTool: "a".repeat(25) }, ctx).activeTool).toBe("a".repeat(25));
     expect(sanitizeSettings("garbage", ctx).workspace).toBe("files");
@@ -108,8 +114,8 @@ describe("the saved settings behind the views", () => {
   });
 
   test("changes are validated when saved, and unknown keys are dropped", async () => {
-    const s = await updateSettings(ctx, { workspace: "split", splitSize: 999, splitSide: "bottom", activeTool: "calc", bogus: 1 });
-    expect(s).toMatchObject({ workspace: "split", splitSize: 80, splitSide: "bottom", activeTool: "calc" });
+    const s = await updateSettings(ctx, { workspace: "split", splitSize: 999, splitSide: "bottom", activeTool: "calc", terminalOpen: true, terminalHeight: 2000, terminalPath: home, bogus: 1 });
+    expect(s).toMatchObject({ workspace: "split", splitSize: 80, splitSide: "bottom", activeTool: "calc", terminalOpen: true, terminalHeight: 1200, terminalPath: home });
     expect("bogus" in s).toBe(false);
     expect((await updateSettings(ctx, { workspace: "../etc" })).workspace).toBe("files");
   });

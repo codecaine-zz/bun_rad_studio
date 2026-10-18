@@ -114,12 +114,12 @@ The complete, step-by-step guide to the Codecaine File Manager: a free, open-sou
 ⭐ Source code: ${REPO}
 
 WHAT YOU WILL LEARN
-📁 The basics: the window, getting around, views, selecting, copy and move with progress, Cancel and Retry, name clashes, the Recycle Bin, Undo and Quick Look.
+📁 The basics: the window, getting around, views, folder tabs, sidebar folder tree, color tags, selecting, copy and move with progress, Cancel and Retry, name clashes, the Recycle Bin, Undo, Quick Look, permissions and AES-256-GCM file encryption.
 ⌨️ Terminal + files together: the file list follows your cd, "Open terminal here", and selected files and folders typed into the terminal as safely quoted paths. On Windows it works with PowerShell, the Command Prompt, Git Bash and WSL (C:\\Users becomes /mnt/c/Users), no external terminal needed.
-🧰 Every tool: Convert, Find and bulk rename, Review, Compare, Projects, Actions, QR codes, the code editor, Replace across files with Undo, the Dev tab (code stats, Git, TODOs), Watch, Serve, Crypto, Secrets, Env, Network, Downloads, Calculator, Timer, API, Bundler and the Graveyard.
-🎬 Pictures, songs and videos: one-click edits, the Image Studio and Media Studio with live sliders, trim, speed and fades, presets for many files at once, and a built-in viewer and player that opens on Enter.
-🎨 Make it yours: 180 themes, with glass, glow and motion effects, futuristic looks and rare classic systems (BeOS, OS/2 Warp, Palm OS, Zune and more), an effects filter, your own themes with panel opacity and blur, ⌘⇧T to open themes, and every keyboard shortcut changeable.
-🗄️ Databases: complete SQLite Studio and MySQL Studio walkthroughs, from browsing and editing rows to the visual query designer, macros, imports and backups.
+🧰 Every tool: Convert, Find and bulk rename, Review, Compare, Projects, Actions, QR codes, the code editor, Replace across files with Undo, the Dev tab (code stats, Git, TODOs), Watch, Serve, Crypto, Secrets, Env, Network, Downloads, Calculator, Timer, API, Bundler, the Graveyard, Calendar & World Clocks, CLI Utilities, Process & Task Manager, and System Information & Hardware Telemetry.
+🎬 Pictures, songs, videos, paint & games: one-click edits, the Image Studio and Media Studio with live sliders, trim, speed and fades, presets for many files at once, a built-in viewer and player, Media Deck (10-band EQ & 108 visualizers), Paint Studio, and 24 built-in arcade games.
+🎨 Make it yours: 180 themes, with glass, glow, living atmosphere and motion effects, futuristic looks and rare classic systems (BeOS, OS/2 Warp, Palm OS, Zune and more), an effects filter, your own themes with panel opacity and blur, ⌘⇧T to open themes, and every keyboard shortcut changeable.
+🗄️ Databases: complete Databases & Cross-Engine Cloning Masterclass (SQLite, MySQL, PostgreSQL, Redis, Bun JS & Visual Macros, 15-format staging import, Studio IDE v2), plus dedicated SQLite Studio and MySQL Studio walkthroughs.
 
 CHAPTERS
 ${chaptersText}

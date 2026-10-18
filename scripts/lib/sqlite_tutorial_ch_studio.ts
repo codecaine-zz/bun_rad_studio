@@ -163,13 +163,17 @@ export const studioChapters: Chapter[] = [
 
   {
     id: "08_sql", chapter: "SQL EDITOR", title: "The SQL editor", blurb: "Run, explain, and turn a query into a view",
-    before: (d) => studioReady(d),
+    before: async (d) => {
+      await studioReady(d);
+      await inStudio(d, `(() => { const b = document.getElementById('editorBanner'); if (b && !b.classList.contains('collapsed')) window.toggleEditorCollapse?.(); })()`);
+    },
     steps: [
       {
         cap: "Presets, Execute and the filter bar",
         say: "The S Q L editor is folded away until you need it, so press Expand. The snippet list has ready made queries. I choose All Customers, and Execute. The toolbar shows the rows and the time. Results have a Filter Bar, and I type V I P under tier.",
         act: async (d) => {
           await d.click(S + "#btnToggleEditor", { pause: 1200 });
+          if (!(await d.c.exists(S + "#sqlEditor"))) await d.click(S + "#btnToggleEditor", { pause: 600 });
           await d.hover(S + "#presetSelect", 900);
           await inStudio(d, `(() => { const s = document.getElementById('presetSelect'); s.selectedIndex = 6; s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
           await d.wait(900);

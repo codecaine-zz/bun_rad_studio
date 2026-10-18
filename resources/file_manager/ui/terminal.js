@@ -14,6 +14,8 @@ import { wireTerminalClipboard } from "./terminalClipboard.js";
 import { terminalTheme } from "./themes.js";
 
 const MIN_HEIGHT = 120;
+const MAX_HEIGHT = 1200;
+const DEFAULT_HEIGHT = 300;
 const STEP = 24;
 export { terminalTheme };
 
@@ -23,13 +25,24 @@ let term = null;
 let fit = null;
 /** @type {WebSocket | null} */
 let socket = null;
-let height = 300;
+let height = DEFAULT_HEIGHT;
 let ended = false;
 let startedIn = "";
 let fitQueued = false;
 let activeShell = "";
 /** The WSL distro's name and drive root, as its prompt reported them (empty until then). */
 let wslInfo = {};
+
+function clampHeight(val) {
+  return typeof val === "number" && Number.isFinite(val)
+    ? Math.round(Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, val)))
+    : DEFAULT_HEIGHT;
+}
+
+function persistTerminalState(patch) {
+  if (state.settings && typeof state.settings === "object") Object.assign(state.settings, patch);
+  if (typeof saveSettings === "function") saveSettings(patch);
+}
 
 /** The folder the buttons act on: the one folder selected in the list, otherwise the folder on screen. */
 function targetFolder() {
@@ -73,7 +86,7 @@ function queueFit() {
 }
 
 function applyHeight() {
-  const max = Math.max(MIN_HEIGHT, Math.floor(window.innerHeight * 0.7));
+  const max = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, Math.floor((window?.innerHeight || 1000) * 0.7)));
   height = Math.min(max, Math.max(MIN_HEIGHT, height));
   $("#terminal-panel").style.setProperty("--term-height", `${height}px`);
   $("#terminal-resizer").setAttribute("aria-valuenow", String(height));
@@ -84,7 +97,11 @@ function applyHeight() {
 function followShell(path) {
   startedIn = path;
   setTitle(true);
-  if (state.settings.terminalFollow === false) return;
+  if (state.settings.terminalFollow === false) {
+    persistTerminalState({ terminalPath: path });
+    return;
+  }
+  persistTerminalState({ terminalPath: path, lastPath: path });
   if (state.location.kind === "folder" && state.location.path === path) return;
   goTo(path);
 }
@@ -97,14 +114,19 @@ function connect(folder) {
     old.close();
   }
   ended = false;
+  let opened = false;
   activeShell = shellFor(state.platform);
   wslInfo = {};
   startedIn = folder;
+  if (folder && state.terminalOpen) persistTerminalState({ terminalPath: folder });
   setTitle();
   term.reset();
   const dims = fit.proposeDimensions();
   const ws = new WebSocket(terminalUrl(folder, dims?.cols ?? 80, dims?.rows ?? 24));
   socket = ws;
+  const markOpen = () => { opened = true; };
+  if (typeof ws.addEventListener === "function") ws.addEventListener("open", markOpen, { once: true });
+  else ws.onopen = markOpen;
   ws.onmessage = (e) => {
     if (socket !== ws) return;
     let m;
@@ -128,6 +150,11 @@ function connect(folder) {
   };
   ws.onclose = () => {
     if (socket !== ws) return;
+    const fallback = currentFolder();
+    if (!opened && !ended && folder && fallback && folder !== fallback) {
+      connect(fallback);
+      return;
+    }
     if (!ended) {
       ended = true;
       term.write("\r\n\x1b[2m[The connection to the terminal was lost. Press Enter to start a new one.]\x1b[0m\r\n");
@@ -181,6 +208,7 @@ function goToFolder(folder = targetFolder()) {
   const command = folderCommand(folder, terminalShell(), wslInfo);
   if (!command) return restart(folder);
   startedIn = folder;
+  if (folder) persistTerminalState({ terminalPath: folder });
   setTitle();
   send({ type: "input", data: command });
   term.focus();
@@ -227,25 +255,38 @@ export function isTerminalOpen() {
   return state.terminalOpen;
 }
 
-export function showTerminal(folder) {
+export function showTerminal(folder, { focus = true, save = true } = {}) {
   if (!terminalAvailable()) return toast("The terminal isn't supported on this system.", { kind: "error" });
+  if (typeof state.settings?.terminalHeight === "number" && Number.isFinite(state.settings.terminalHeight)) {
+    height = clampHeight(state.settings.terminalHeight);
+  }
   state.terminalOpen = true;
   $("#terminal-panel").hidden = false;
   ensureTerminal();
   applyHeight();
   fit.fit();
   if (!socket) connect(folder ?? currentFolder());
-  term.focus();
-  // Some web views ignore focus that is set while the key press that opened the panel is still being handled.
-  requestAnimationFrame(() => state.terminalOpen && term.focus());
+  if (save) {
+    persistTerminalState({
+      terminalOpen: true,
+      terminalHeight: height,
+      ...(startedIn ? { terminalPath: startedIn } : {}),
+    });
+  }
+  if (focus) {
+    term.focus();
+    // Some web views ignore focus that is set while the key press that opened the panel is still being handled.
+    requestAnimationFrame(() => state.terminalOpen && term.focus());
+  }
   emit("terminal");
 }
 
-export function hideTerminal() {
+export function hideTerminal({ save = true } = {}) {
   if (!state.terminalOpen) return;
   const hadFocus = $("#terminal-panel").contains(document.activeElement);
   state.terminalOpen = false;
   $("#terminal-panel").hidden = true;
+  if (save) persistTerminalState({ terminalOpen: false });
   if (hadFocus) $("#list").focus();
   emit("terminal");
 }
@@ -253,6 +294,15 @@ export function hideTerminal() {
 export function toggleTerminal() {
   if (state.terminalOpen) hideTerminal();
   else showTerminal();
+}
+
+/** Restores the terminal panel's saved height, working folder, and open/closed state from settings. */
+export function restoreTerminal() {
+  height = clampHeight(state.settings?.terminalHeight);
+  if (!state.settings?.terminalOpen || !terminalAvailable()) return;
+  const requested = typeof document !== "undefined" ? (document.querySelector?.('meta[name="fm-start"]')?.getAttribute("content") ?? "") : "";
+  const folder = !requested && state.settings.terminalPath ? state.settings.terminalPath : currentFolder();
+  showTerminal(folder, { focus: false, save: false });
 }
 
 function wireResizer() {
@@ -273,8 +323,10 @@ function wireResizer() {
     applyHeight();
   });
   const stop = (e) => {
+    const wasDragging = bar.classList.contains("dragging");
     bar.classList.remove("dragging");
     if (bar.hasPointerCapture(e.pointerId)) bar.releasePointerCapture(e.pointerId);
+    if (wasDragging) persistTerminalState({ terminalHeight: height });
   };
   bar.addEventListener("pointerup", stop);
   bar.addEventListener("pointercancel", stop);
@@ -284,6 +336,7 @@ function wireResizer() {
     e.stopPropagation();
     height += e.key === "ArrowUp" ? STEP : -STEP;
     applyHeight();
+    persistTerminalState({ terminalHeight: height });
   });
 }
 
@@ -369,12 +422,24 @@ function wireStatusButton() {
 }
 
 export function wireTerminal() {
+  height = clampHeight(state.settings?.terminalHeight);
+  let restored = false;
+  const offWorkspace = on("workspace", () => {
+    if (restored) return;
+    restored = true;
+    offWorkspace();
+    restoreTerminal();
+  });
   on("toggle-terminal", toggleTerminal);
   on("terminal-here", openHere);
   on("terminal-run-in", ({ folder, command, submit }) => runInTerminalFolder(folder, command, submit));
   on("terminal-insert-paths", (paths) => void insertPaths(paths));
   wireStatusButton();
-  on("settings", () => {
+  on("settings", (change) => {
+    if (change && typeof change.terminalHeight === "number") {
+      height = clampHeight(change.terminalHeight);
+      if (state.terminalOpen) applyHeight();
+    }
     if (!term) return;
     const size = fontSize();
     if (term.options.fontSize !== size) {
@@ -401,7 +466,7 @@ export function wireTerminal() {
   });
   $("#terminal-cd").addEventListener("click", () => goToFolder());
   $("#terminal-restart").addEventListener("click", () => restart());
-  $("#terminal-close").addEventListener("click", hideTerminal);
+  $("#terminal-close").addEventListener("click", () => hideTerminal());
   wireResizer();
   window.addEventListener("resize", () => state.terminalOpen && applyHeight());
   // The terminal keys (Ctrl+` and Cmd/Ctrl+Alt+T unless changed in Settings) work everywhere, also while typing in the terminal.

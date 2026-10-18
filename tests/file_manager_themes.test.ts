@@ -700,10 +700,10 @@ describe("the theme editor in the page", () => {
     expect(themes.terminalTheme().background).toBe("#1e1e1e");
   });
 
-  test("Atmospheric Special Effects engine supports 135 effects across Low, Medium, and Modern ARM Ultra tiers plus Multi-Effect Layer Mixing", async () => {
+  test("Atmospheric Special Effects engine supports 160 effects across Low, Medium, and Modern ARM Ultra tiers plus Multi-Effect Layer Mixing", async () => {
     const atmo = await import("../resources/file_manager/ui/atmosphereFx.js");
-    expect(atmo.ATMOSPHERE_OPTIONS.length).toBe(135);
-    expect(atmo.ATMOSPHERE_MIX_PRESETS.length).toBe(20);
+    expect(atmo.ATMOSPHERE_OPTIONS.length).toBe(160);
+    expect(atmo.ATMOSPHERE_MIX_PRESETS.length).toBe(28);
 
     // Hardware tier auto-detection
     expect(atmo.detectHardwareTier({ hardwareConcurrency: 2, userAgent: "Linux x86_64" }, { devicePixelRatio: 1 })).toBe("low");
@@ -724,13 +724,13 @@ describe("the theme editor in the page", () => {
 
     const tierBtns = doc.querySelectorAll(".fm-atmo-tier-btn");
     expect(tierBtns.length).toBe(5);
-    expect(doc.querySelectorAll(".fm-atmo-card .fm-atmo-preview").length).toBe(135);
+    expect(doc.querySelectorAll(".fm-atmo-card .fm-atmo-preview").length).toBe(160);
     expect(doc.querySelector(".fm-atmo-theme-sync")).toBeTruthy();
     expect(doc.querySelector(".fm-atmo-mixer-dock")).toBeTruthy();
 
-    // Select Modern ARM / Ultra tier and test effects across multiple procedural engines
+    // Select Modern ARM / Ultra tier and test effects across multiple procedural engines including Tesla & Sci-Fi Physics
     doc.querySelector('.fm-atmo-tier-btn[data-tier="ultra"]').click();
-    for (const effectId of ["rain", "smoke", "cyberstorm", "nebula", "aurora", "outrun_grid", "neural_nexus", "dna_helix", "quantum_cpu", "black_hole", "liquid_glass_caustics", "m4_raytrace_prism", "win11_mica_bloom"]) {
+    for (const effectId of ["rain", "smoke", "cyberstorm", "nebula", "aurora", "outrun_grid", "neural_nexus", "dna_helix", "quantum_cpu", "black_hole", "liquid_glass_caustics", "m4_raytrace_prism", "win11_mica_bloom", "plasma_storm", "tesla_megacoil", "jacobs_ladder", "plasma_globe", "tokamak_fusion", "lorentz_attractor", "hadron_collider", "cherenkov_glow", "ferrofluid_spikes", "gravitational_waves", "hawking_horizon"]) {
       doc.querySelector(`.fm-atmo-card[data-atmo="${effectId}"]`).click();
       expect(doc.documentElement.dataset.atmosphere).toBe(effectId);
       expect(doc.documentElement.dataset.atmosphereTier).toBe("ultra");
@@ -749,11 +749,31 @@ describe("the theme editor in the page", () => {
     expect(doc.documentElement.dataset.atmosphere).toBe("sakura+fireflies+aurora+rain");
     expect(doc.documentElement.dataset.atmosphereLayers).toBe("4");
 
-    // Category filter narrows the visible cards and "all" restores all 135
+    // Category filter narrows the visible cards and "all" restores all 160
+    doc.querySelector('.fm-atmo-cat-btn[data-cat="physics"]').click();
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(27);
     doc.querySelector('.fm-atmo-cat-btn[data-cat="cosmic"]').click();
     expect(doc.querySelectorAll(".fm-atmo-card").length).toBeLessThan(45);
     doc.querySelector('.fm-atmo-cat-btn[data-cat="all"]').click();
-    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(135);
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(160);
+
+    // Tier filter and Animation Engine filter narrow sections/cards and "all" restores all 160
+    doc.querySelector('[data-tier-filter="ultra"]').click();
+    expect(doc.querySelectorAll(".fm-atmo-section").length).toBe(1);
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(65);
+    doc.querySelector('[data-tier-filter="medium"]').click();
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(55);
+    doc.querySelector('[data-tier-filter="low"]').click();
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(40);
+    doc.querySelector('[data-tier-filter="all"]').click();
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(160);
+
+    doc.querySelector('[data-anim-filter="tesla"]').click();
+    expect(doc.querySelectorAll('.fm-atmo-card[data-atmo-engine="tesla"]').length).toBeGreaterThanOrEqual(8);
+    doc.querySelector('[data-anim-filter="physics"]').click();
+    expect(doc.querySelectorAll('.fm-atmo-card[data-atmo-engine="physics"]').length).toBeGreaterThanOrEqual(14);
+    doc.querySelector('[data-anim-filter="all"]').click();
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(160);
 
     // Switching themes automatically re-harmonizes --fm-atmo-c1, --fm-atmo-c2, and --fm-atmo-c3
     const c1Before = doc.documentElement.style.getPropertyValue("--fm-atmo-c1");
@@ -777,22 +797,66 @@ describe("the theme editor in the page", () => {
     closeDialogs();
   });
 
-  test("Theme gallery Quick-Jump Category Pills, Color Vibe Pills, and Theme Editor Style Presets & Color Harmony Generator work end-to-end", async () => {
+  test("Theme gallery Quick-Jump Category Pills, Template Tier Pills, Animation Pills, Surface Shader Pills, Color Vibe Pills, Sort Order, and Theme Editor Style Presets & Color Harmony Generator work end-to-end", async () => {
+    themes.forgetThemeList();
     await themes.showThemePicker();
     await sleep(150);
     expect(doc.querySelectorAll("[data-cat-pill]").length).toBeGreaterThanOrEqual(8);
+    expect(doc.querySelectorAll("[data-tier-pill]").length).toBe(4);
+    expect(doc.querySelectorAll("[data-anim-pill]").length).toBe(7);
+    expect(doc.querySelectorAll("[data-material-pill]").length).toBe(5);
     expect(doc.querySelectorAll("[data-vibe-pill]").length).toBe(7);
+    expect(doc.querySelector("[data-reset-filters]")).toBeTruthy();
+    expect(doc.querySelector("[data-hw-recommend]")).toBeTruthy();
     expect(doc.querySelector(".theme-random-btn")).toBeTruthy();
 
-    // Filter by OLED Black color vibe
-    doc.querySelector('[data-vibe-pill="oled"]').click();
-    await sleep(150);
-    const oledCards = [...doc.querySelectorAll(".theme-card")];
-    expect(oledCards.length).toBeGreaterThan(5);
-
-    // Restore All Vibes and click Quick Customize (✎) on a card
-    doc.querySelector('[data-vibe-pill="all"]').click();
+    // Filter by Template Tier: Ultra Tier vs Medium vs Low
+    doc.querySelector('[data-tier-pill="ultra"]').click();
     await sleep(100);
+    const ultraCards = [...doc.querySelectorAll(".theme-card")];
+    expect(ultraCards.length).toBeGreaterThanOrEqual(25);
+    expect(ultraCards.every((c: any) => c.dataset.tier === "ultra")).toBe(true);
+
+    doc.querySelector('[data-tier-pill="medium"]').click();
+    await sleep(100);
+    const medCards = [...doc.querySelectorAll(".theme-card")];
+    expect(medCards.length).toBeGreaterThanOrEqual(15);
+    expect(medCards.every((c: any) => c.dataset.tier === "medium")).toBe(true);
+
+    doc.querySelector('[data-tier-pill="low"]').click();
+    await sleep(100);
+    const lowCards = [...doc.querySelectorAll(".theme-card")];
+    expect(lowCards.length).toBeGreaterThanOrEqual(50);
+    expect(lowCards.every((c: any) => c.dataset.tier === "low")).toBe(true);
+
+    // Filter by Animations: Tesla & Sci-Fi Physics and Live Canvas FX
+    doc.querySelector('[data-tier-pill="all"]').click();
+    doc.querySelector('[data-anim-pill="physics"]').click();
+    await sleep(100);
+    const physicsCards = [...doc.querySelectorAll(".theme-card")];
+    expect(physicsCards.length).toBeGreaterThanOrEqual(22);
+
+    doc.querySelector('[data-anim-pill="atmosphere"]').click();
+    await sleep(100);
+    const liveFxCards = [...doc.querySelectorAll(".theme-card")];
+    expect(liveFxCards.length).toBeGreaterThanOrEqual(22);
+    expect(liveFxCards.every((c: any) => c.querySelector(".theme-anim-badge")?.textContent === "🌌 Live FX")).toBe(true);
+
+    // Filter by Surface Material Shader: Liquid Glass
+    doc.querySelector('[data-anim-pill="all"]').click();
+    doc.querySelector('[data-material-pill="liquid"]').click();
+    await sleep(100);
+    const liquidCards = [...doc.querySelectorAll(".theme-card")];
+    expect(liquidCards.length).toBeGreaterThanOrEqual(5);
+
+    // Filter by OLED Black color vibe, then reset all filters in 1 click
+    doc.querySelector('[data-vibe-pill="oled"]').click();
+    await sleep(100);
+    doc.querySelector("[data-reset-filters]").click();
+    await sleep(150);
+    expect(doc.querySelectorAll(".theme-card").length).toBeGreaterThanOrEqual(200);
+
+    // Quick Customize (✎) on a card
     const editBtn = doc.querySelector('.theme-edit-quick[data-edit-key="m4_space_black"]') || doc.querySelector(".theme-edit-quick");
     expect(editBtn).toBeTruthy();
     editBtn.click();

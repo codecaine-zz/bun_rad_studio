@@ -99,6 +99,47 @@ export const studios: Chapter[] = [
   },
 
   {
+    id: "21aa_tasks_sysinfo",
+    chapter: "TASKS & SYSTEM INFO",
+    title: "Process & Task Manager, and System Information",
+    blurb: "Live cross-platform process and TCP port manager, process tree, and deep hardware & OS telemetry",
+    path: "<HOME>/Projects/shop-app",
+    view: "#view-tools",
+    steps: [
+      {
+        cap: "Process & Task Manager: live processes, TCP ports & process tree",
+        say: "In the Tools panel, the Tasks tab is a live, cross-platform Process and Task Manager for Windows, mac O S, and Linux. At the top, telemetry cards show C P U load, memory usage, listening T C P ports, and dev runtimes. You can filter by name, port, or C P U threshold, switch between a flat list, a parent-child process tree, or grouped applications, free a stuck T C P port, or click any process row to inspect its command line, end the task, or export a snapshot.",
+        act: async (d) => {
+          await d.click("#power-tab-tasks", { pause: 1600 });
+          await d.hover("#power-pane-tasks .tasks-kpi-grid", 1400).catch(() => {});
+          await d.eval(`(() => { const s = document.querySelector('#power-pane-tasks select[title*="organized"]'); if (s) { s.value = 'tree'; s.dispatchEvent(new Event('change', { bubbles: true })); } })()`);
+          await d.wait(1400);
+          await d.eval(`(() => { const s = document.querySelector('#power-pane-tasks select[title*="organized"]'); if (s) { s.value = 'flat'; s.dispatchEvent(new Event('change', { bubbles: true })); } })()`);
+          await d.wait(900);
+          await d.click("#power-pane-tasks .tasks-table tbody tr", { pause: 1600 }).catch(() => {});
+          await d.hover("#power-pane-tasks .tasks-inspector", 1800).catch(() => {});
+          await d.click("#power-pane-tasks button >> Copy Snapshot", { pause: 1200 }).catch(() => {});
+        },
+      },
+      {
+        cap: "System Information: CPU, RAM, disks, GPUs, deep probes & baseline diff",
+        say: "Right beside it, the System tab is a complete hardware and operating system telemetry dashboard. It shows live per-core C P U bars, memory and swap, mounted disks, network interfaces, G P U controllers and displays, batteries, and installed runtimes. You can also run over forty deep hardware probes, pin a baseline snapshot, compare changes over time, and copy or save a full diagnostic report as J S O N, Markdown, C S V, or H T M L.",
+        act: async (d) => {
+          await d.click("#power-tab-sysinfo", { pause: 1800 });
+          await d.hover("#power-pane-sysinfo .sys-kpi-grid", 1400).catch(() => {});
+          for (const sec of ["CPU & Thermal", "Memory (RAM)", "Disks & Volumes", "GPUs & Displays", "OS & Versions"]) {
+            await d.click(`#power-pane-sysinfo .sys-tab >> ${sec}`, { pause: 1100 }).catch(() => {});
+          }
+          await d.click("#power-pane-sysinfo button >> Pin Baseline", { pause: 1000 }).catch(() => {});
+          await d.click("#power-pane-sysinfo button >> Compare to Baseline", { pause: 1400 }).catch(() => {});
+          await d.click("#power-pane-sysinfo button >> Copy Report", { pause: 1100 }).catch(() => {});
+          await d.click("#view-files", { pause: 800 });
+        },
+      },
+    ],
+  },
+
+  {
     id: "21b_convert_more", chapter: "ONE-CLICK EDITS", title: "One-click picture, video and sound edits", blurb: "Black and white, round pictures, sepia, shapes and more",
     path: "<HOME>/Media",
     steps: [

@@ -142,7 +142,7 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         'sequoia_dark',
         'tahoe_glass',
     ];
-    // The futuristic set (src/shared/fxThemes.ts): the same precedent as the OS versions above, 76 + 45 + 22 + 35 = 178.
+    // The futuristic set (src/shared/fxThemes.ts): the same precedent as the OS versions above, 76 + 45 + 22 + 57 = 200.
     const FUTURISTIC_THEMES = [
         'cyberpunk_hologram',
         'neon_hud',
@@ -179,6 +179,28 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         'pearl_hologram',
         'rose_gold',
         'daylight_hud',
+        'tesla_coil_plasma',
+        'wardenclyffe_tower',
+        'nikola_plasma_globe',
+        'jacobs_ladder_arc',
+        'ball_lightning_storm',
+        'tokamak_fusion',
+        'cherenkov_reactor',
+        'cern_synchrotron',
+        'lorentz_chaos',
+        'ferrofluid_spike',
+        'hawking_horizon',
+        'ligo_gravwave',
+        'meissner_superconductor',
+        'antimatter_penning',
+        'dyson_megastructure',
+        'alcubierre_metric',
+        'lissajous_scope',
+        'quark_chromodynamics',
+        'arc_reactor_mk',
+        'st_elmos_corona',
+        'van_de_graaff_day',
+        'cern_control_day',
     ];
     // Rare and beloved systems (RARE_OS_THEME_KEYS in src/shared/osThemes.ts).
     const RARE_OS_THEMES = [
@@ -207,9 +229,9 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
     ];
     const EXPECTED_76_THEMES = [...BASE_76_THEMES, ...OS_VERSION_THEMES, ...RARE_OS_THEMES, ...FUTURISTIC_THEMES].sort((a, b) => a.localeCompare(b));
 
-    it("1. getThemeNames() and getThemes() return all 178 canonical themes sorted alphabetically", () => {
+    it("1. getThemeNames() and getThemes() return all 200 canonical themes sorted alphabetically", () => {
         const names = getThemeNames();
-        expect(names.length).toBe(178);
+        expect(names.length).toBe(200);
         expect(names).toEqual(EXPECTED_76_THEMES);
 
         const namesSnake = get_theme_names();
@@ -230,7 +252,7 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         expect(isSorted(listThemes())).toBe(true);
     });
 
-    it("2. getTheme() resolves every one of the 178 themes with valid palettes", () => {
+    it("2. getTheme() resolves every one of the 200 themes with valid palettes", () => {
         for (const name of EXPECTED_76_THEMES) {
             const theme = getTheme(name);
             expect(theme).toBeDefined();
@@ -451,17 +473,17 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         const sortedListThemes = [...listThemesArr].sort((a, b) => a.localeCompare(b));
         expect(listThemesArr).toEqual(sortedListThemes);
 
-        // 4. Demo 25 theme dropdown has exactly 178 unique themes with zero duplicates
+        // 4. Demo 25 theme dropdown has exactly 200 unique themes with zero duplicates
         const demo25Win = createVlangShowcase();
         const demo25Html = demo25Win.getHtml();
         const themeMatch = demo25Html.match(/<select[^>]*id="dd_theme_selector"[^>]*>([\s\S]*?)<\/select>/);
         expect(themeMatch).toBeTruthy();
         const demo25Options = [...themeMatch![1]!.matchAll(/<option[^>]*value="([^"]*)"[^>]*>([^<]*)<\/option>/g)].map(x => ({ val: x[1], text: x[2] }));
-        expect(demo25Options.length).toBe(178);
+        expect(demo25Options.length).toBe(200);
         const uniqueValues = new Set(demo25Options.map(o => o.val));
         const uniqueTexts = new Set(demo25Options.map(o => o.text));
-        expect(uniqueValues.size).toBe(178);
-        expect(uniqueTexts.size).toBe(178);
+        expect(uniqueValues.size).toBe(200);
+        expect(uniqueTexts.size).toBe(200);
     });
 });
 

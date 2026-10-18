@@ -1,9 +1,10 @@
-// Catalog of 135 Atmospheric Special Effects ("none" + 134 live procedural effects) across Low, Medium, and
+// Catalog of 160 Atmospheric Special Effects ("none" + 159 live procedural effects) across Low, Medium, and
 // High-End / Modern ARM Ultra hardware tiers. Each effect specifies its procedural engine archetype and tuning
 // parameters so every effect renders a distinct, theme-harmonized animation.
 
 export const ATMOSPHERE_CATEGORIES = [
-  { id: "all", label: "All effects (135)" },
+  { id: "all", label: "All effects (160)" },
+  { id: "physics", label: "Tesla, Plasma & Sci-Fi Physics" },
   { id: "weather", label: "Weather & Sky" },
   { id: "mist", label: "Volumetric & Mist" },
   { id: "cyber", label: "Cyber, Code & Circuits" },
@@ -30,8 +31,8 @@ const GLYPH_SETS = {
 /**
  * Helper to define an atmospheric effect entry.
  * `section`: "low" | "medium" | "ultra"
- * `cat`: "weather" | "mist" | "cyber" | "cosmic" | "nature" | "thermal" | "geometry"
- * `engine`: "precip" | "snow" | "mist" | "glyph" | "ember" | "stars" | "orbs" | "nebula" | "aurora" | "grid" | "network" | "waves" | "geometry" | "beams" | "dna" | "circuit" | "radar" | "portal"
+ * `cat`: "physics" | "weather" | "mist" | "cyber" | "cosmic" | "nature" | "thermal" | "geometry"
+ * `engine`: "tesla" | "physics" | "precip" | "snow" | "mist" | "glyph" | "ember" | "stars" | "orbs" | "nebula" | "aurora" | "grid" | "network" | "waves" | "geometry" | "beams" | "dna" | "circuit" | "radar" | "portal"
  */
 const fx = (id, section, cat, icon, label, badge, desc, engine, params = {}) => ({
   id,
@@ -86,9 +87,12 @@ export const ATMOSPHERE_OPTIONS = [
   fx("cottonwood", "low", "nature", "☁️", "Cottonwood Drift", "Botanical", "Soft white cottonwood seeds floating across a sunlit summer sky.", "snow", { shape: "flake", sway: 1.35, speed: 0.35, sizeMul: 0.75 }),
   fx("radar_sweep_lite", "low", "cyber", "🎚️", "Minimalist Radar Sweep", "Tactical", "Clean polar sweep dial for HUD and terminal themes.", "radar", { rings: 2, sweep: true, planets: false, speed: 0.01 }),
   fx("starlight_velvet", "low", "cosmic", "🌌", "Velvet OLED Starlight", "Low GPU", "Ultra-calm high-contrast stars designed for pitch-black OLED themes.", "stars", { flareRatio: 0.22, meteorRate: 0.008, densityMul: 0.85 }),
+  fx("oscilloscope_lite", "low", "physics", "〰️", "Tektronix Lissajous Scope", "Vector CRT", "Classic phase-locked X-Y harmonic oscilloscope curve with phosphor trace.", "physics", { mode: "lissajous", curves: 1 }),
+  fx("static_sparks", "low", "physics", "⚡", "Electrostatic Micro-Sparks", "Low GPU", "Subtle high-voltage Van de Graaff static discharge ticks and floating ions.", "tesla", { mode: "ball", orbs: 3, arcs: 2 }),
+  fx("geiger_scintillation", "low", "physics", "☢️", "Scintillation Phosphor Flashes", "Physics Lab", "Quiet quantum zinc-sulfide detector flashes and Cerenkov pinpoints.", "stars", { flareRatio: 0.45, meteorRate: 0.02, densityMul: 0.7 }),
 
   // =================================================================================================================
-  // MEDIUM GRAPHICS TIER — Volumetric Weather, Streams & Bokeh (49 effects)
+  // MEDIUM GRAPHICS TIER — Volumetric Weather, Streams & Bokeh (55 effects)
   // =================================================================================================================
   fx("smoke", "medium", "mist", "🌫️", "Smoke screen", "Volumetric", "Silky volumetric mist waves, soft Gaussian vapour clouds and ambient light shafts.", "mist", { waveCount: 2, cloudScale: 1.0 }),
   fx("matrix", "medium", "cyber", "🟩", "Digital code rain", "Glyph stream", "Dual-depth cyber glyph streams with luminous phosphor heads and theme-graded trails.", "glyph", { charset: GLYPH_SETS.matrix, beamGlow: true }),
@@ -139,9 +143,15 @@ export const ATMOSPHERE_OPTIONS = [
   fx("fjord_mist", "medium", "mist", "🏔️", "Fjord Morning Mist", "Nordic", "Cool slate-blue coastal mist rolling over calm Nordic water.", "mist", { waveCount: 3, cloudScale: 1.2, speedMul: 0.75 }),
   fx("crystal_cavern", "medium", "geometry", "💎", "Amethyst Geode Cavern", "Refractive", "Floating crystalline prisms and subterranean mineral sparkles.", "geometry", { shape: "shards", speed: 0.65 }),
   fx("firework_sparks", "medium", "thermal", "🎆", "Festival Sparkler Trail", "Festive", "Crackle-like golden sparkler trails and drifting warm embers.", "ember", { trailLen: 4.5, speed: 1.8, horizonGlow: true }),
+  fx("jacobs_ladder", "medium", "physics", "⚡", "Jacob’s Ladder Voltage Arc", "High Voltage", "Climbing high-voltage electric arcs rising between diverging V-shaped copper electrodes.", "tesla", { mode: "jacobs", arcs: 3 }),
+  fx("plasma_globe", "medium", "physics", "🔮", "Nikola Plasma Sphere", "Dielectric Orb", "Glass plasma globe with undulating neon filaments that lock onto your cursor.", "tesla", { mode: "globe", tendrils: 12 }),
+  fx("cherenkov_glow", "medium", "physics", "💙", "Cherenkov Reactor Core", "Nuclear Optics", "Hexagonal fuel-rod lattice emitting supersonic blue/accent Cherenkov radiation cones.", "physics", { mode: "cherenkov" }),
+  fx("lissajous_harmonics", "medium", "physics", "🎛️", "Harmonic Laser Lissajous", "Phase Space", "Multi-frequency 3D phase-shifting Lissajous laser curves with phosphor persistence.", "physics", { mode: "lissajous", curves: 3 }),
+  fx("st_elmos_corona", "medium", "physics", "🔱", "St. Elmo’s Brush Corona", "Ionized Air", "Luminous violet-blue corona discharge plumes dancing along conductive spires.", "tesla", { mode: "coil", coils: 3, arcs: 5 }),
+  fx("faraday_cage", "medium", "physics", "🛡️", "Faraday Shield Mesh", "Electromagnetic", "Conductive hexagonal Faraday cage deflecting high-voltage skin-effect arcs.", "tesla", { mode: "cage", arcs: 4 }),
 
   // =================================================================================================================
-  // HIGH-END & MODERN ARM / ULTRA TIER — Out of This World (49 effects)
+  // HIGH-END & MODERN ARM / ULTRA TIER — Out of This World (65 effects)
   // =================================================================================================================
   fx("cyberstorm", "ultra", "cyber", "⛈️", "Cyber Storm", "ARM / Ultra", "High-velocity neon rain, branching plasma lightning arcs and chromatic shockwaves.", "precip", { cyber: true, drift: 2.8, speed: 17, len: 28, ripples: true, lightning: true }),
   fx("nebula", "ultra", "cosmic", "🌌", "Quantum Nebula", "ARM / Ultra", "Volumetric deep-space nebula clouds and relativistic warp-stars that bend to your cursor.", "nebula", { mode: "warp", cloudCount: 10 }),
@@ -179,7 +189,7 @@ export const ATMOSPHERE_OPTIONS = [
   fx("gravitational_lens", "ultra", "cosmic", "🔭", "Einstein Ring Lensing", "Relativity", "Concentric relativistic light arcs bending distant starlight around a focal mass.", "portal", { rings: 7, speed: 0.55 }),
   fx("sacred_mandala", "ultra", "geometry", "۞", "Sacred Geometry Lotus", "Harmonic", "Counter-rotating polygonal star rings and crystalline vertices in golden ratios.", "geometry", { shape: "mandala", speed: 0.9 }),
   fx("isometric_cubes", "ultra", "geometry", "🧊", "Quantum Tesseract Field", "Hypercube", "Floating 3D wireframe cubes and prisms tumbling through a volumetric light field.", "geometry", { shape: "cubes", speed: 1.1 }),
-  fx("plasma_storm", "ultra", "thermal", "⚡", "Tesla Coil Plasma Arc", "High Voltage", "Continuous branching electrical discharges and ionized violet/accent corona orbs.", "precip", { cyber: true, drift: 0.5, speed: 6, len: 10, ripples: true, lightning: true, lightningRate: 0.075 }),
+  fx("plasma_storm", "ultra", "physics", "⚡", "Tesla Coil Plasma Arc", "High Voltage", "Continuous branching high-voltage Tesla coil corona filaments that arc directly to your cursor.", "tesla", { mode: "coil", coils: 2, arcs: 7, interactive: true }),
   fx("dragon_forge", "ultra", "thermal", "🐉", "Dragonfire Maelstrom", "Inferno", "Swirling vortex of high-density embers, thermal shockwaves and rising ash clouds.", "ember", { trailLen: 6.0, speed: 2.6, horizonGlow: true, densityMul: 1.5 }),
   fx("abyssal_trench", "ultra", "nature", "🐋", "Mariana Bioluminescence", "Abyssal Ultra", "Deep-sea caustic shafts, pulsing siphonophore trails and drifting marine snow.", "orbs", { sizeScale: 1.5, pulseSpeed: 0.035, trailCount: 5, densityMul: 1.35 }),
   fx("omega_matrix", "ultra", "cyber", "💻", "Omega Singularity Stream", "ARM / Ultra", "Maximum-density multi-layer katakana, hex & rune code streams with plasma lightning.", "glyph", { charset: GLYPH_SETS.matrix + GLYPH_SETS.runes, beamGlow: true, densityMul: 1.4 }),
@@ -192,6 +202,22 @@ export const ATMOSPHERE_OPTIONS = [
   fx("quantum_foam", "ultra", "cosmic", "⚛️", "Planck Scale Quantum Foam", "Subatomic", "Fluctuating virtual particle pairs and vacuum energy ripples.", "network", { nodeCount: 52, linkDist: 155, pulses: true }),
   fx("valkyrie_aurora", "ultra", "weather", "🛡️", "Valhalla Celestial Veil", "Mythic Ultra", "Golden-violet polar curtains with ascending rune-like light pillars.", "aurora", { ribbons: 7, curtainHeight: 0.34, warm: true }),
   fx("singularity_core", "ultra", "cosmic", "🕳️", "Kerr Spinning Singularity", "ARM / Ultra", "Frame-dragging accretion vortex with Hawking radiation jets.", "nebula", { mode: "orbit", cloudCount: 14, spinSpeed: 0.035 }),
+  fx("tesla_megacoil", "ultra", "physics", "⚡", "Wardenclyffe Magnifying Transmitter", "Mega-Tesla Ultra", "Dual resonance Tesla towers unleashing 12M-volt fractal plasma arcs that track your cursor.", "tesla", { mode: "coil", coils: 3, arcs: 10, mega: true }),
+  fx("ball_lightning", "ultra", "physics", "🌐", "Drifting Ball-Lightning Plasmoids", "High Voltage", "Autonomous spherical plasma vortices crackling with internal filaments and inter-orb arcs.", "tesla", { mode: "ball", orbs: 6, arcs: 5 }),
+  fx("arc_reactor_core", "ultra", "physics", "💠", "Toroidal Arc Reactor Core", "Palladium Fusion", "Concentric segmented palladium induction rings with high-current radial plasma arcs.", "tesla", { mode: "globe", tendrils: 16, reactor: true }),
+  fx("tokamak_fusion", "ultra", "physics", "🔥", "ITER Tokamak Magnetic Torus", "Fusion Physics", "Helical magnetic confinement field lines trapping 150M-kelvin spiraling deuterium-tritium plasma.", "physics", { mode: "tokamak" }),
+  fx("lorentz_attractor", "ultra", "physics", "🦋", "Lorenz Strange Attractor Chaos", "Chaos Theory", "Real-time differential integration of chaotic phase-space butterfly trajectories with glowing heads.", "physics", { mode: "lorentz", trails: 24 }),
+  fx("hadron_collider", "ultra", "physics", "💥", "CERN LHC Synchrotron Detector", "Particle Physics", "Relativistic proton beam collisions bursting into curved Lorentz-force bubble-chamber spirals.", "physics", { mode: "collider" }),
+  fx("ferrofluid_spikes", "ultra", "physics", "🦔", "Rosensweig Ferrofluid Spikes", "Magnetohydrodynamics", "Liquid-metal magnetic peaks that dynamically bristle and orient toward your cursor’s dipole.", "physics", { mode: "ferrofluid" }),
+  fx("gravitational_waves", "ultra", "physics", "🌊", "LIGO Spacetime Interferometer", "General Relativity", "Binary black-hole merger quadrupolar spacetime metric ripples and orthogonal laser arms.", "physics", { mode: "gravwave" }),
+  fx("hawking_horizon", "ultra", "physics", "🕳️", "Hawking Event Horizon & Jets", "Quantum Gravity", "Relativistic Doppler-beamed accretion torus, photon ring, polar jets and quantum pair creation.", "physics", { mode: "hawking" }),
+  fx("meissner_levitation", "ultra", "physics", "🧊", "Meissner Superconductor Flux", "Cryo-Quantum", "Cryogenic Abrikosov magnetic flux vortices and levitating diamagnetic field lines.", "physics", { mode: "tokamak", cryo: true }),
+  fx("antimatter_trap", "ultra", "physics", "☢️", "Penning Positron Containment", "Antimatter", "High-vacuum quadrupole magnetic bottle confining annihilating matter-antimatter spiral tracks.", "physics", { mode: "collider", antimatter: true }),
+  fx("dyson_swarm", "ultra", "physics", "☀️", "Dyson Swarm Megastructure", "Kardashev II", "Orbital solar-collector mirrors and energy-transfer laser beams encircling a captive star.", "radar", { rings: 8, sweep: true, planets: true, speed: 0.015 }),
+  fx("alcubierre_warp", "ultra", "physics", "🛸", "Alcubierre Metric Warp Bubble", "FTL Physics", "Contracting spacetime bow-wave and expanding rear wake bending an Einstein tensor grid.", "physics", { mode: "gravwave", warpBubble: true }),
+  fx("casimir_vacuum", "ultra", "physics", "✨", "Casimir Zero-Point Fluctuations", "Quantum Field", "Parallel conducting plates with virtual photon pressure and spontaneous vacuum pair arcs.", "tesla", { mode: "cage", arcs: 6 }),
+  fx("quark_gluon_plasma", "ultra", "physics", "🌈", "Quark-Gluon Color Confinement", "QCD Physics", "Relativistic color-charge flux tubes snapping into meson jets under strong-force tension.", "physics", { mode: "collider", qcd: true }),
+  fx("tachyon_cherenkov", "ultra", "physics", "⏩", "Tachyon Superluminal Shockcone", "Causal Telemetry", "Faster-than-light causal wavefront cones and time-reversed phase trails.", "physics", { mode: "cherenkov", tachyon: true }),
 ];
 
 export const ATMOSPHERE_BY_ID = new Map(ATMOSPHERE_OPTIONS.map((o) => [o.id, o]));
@@ -200,6 +226,14 @@ export const MAX_ATMOSPHERE_LAYERS = 4;
 
 /** Curated multi-layer atmospheric combinations users can activate with one click or customize in the Mixer. */
 export const ATMOSPHERE_MIX_PRESETS = [
+  { id: "plasma_storm+tesla_megacoil+ball_lightning", icon: "⚡🌐", label: "Wardenclyffe Overdrive", desc: "Tesla Coil Plasma Arc + Magnifying Transmitter + Ball Lightning" },
+  { id: "tokamak_fusion+plasma_storm+arc_reactor_core", icon: "🔥💠", label: "ITER Tokamak Ignition", desc: "Tokamak Magnetic Torus + Tesla Plasma + Arc Reactor Core" },
+  { id: "hadron_collider+antimatter_trap+cherenkov_glow", icon: "💥☢️", label: "CERN Antimatter Run", desc: "LHC Synchrotron + Penning Positron Trap + Cherenkov Core" },
+  { id: "hawking_horizon+gravitational_waves+alcubierre_warp", icon: "🕳️🌊", label: "Einstein-Hawking Singularity", desc: "Hawking Event Horizon + LIGO Spacetime Waves + Alcubierre Warp" },
+  { id: "lorentz_attractor+lissajous_harmonics+math_cascade", icon: "🦋🎛️", label: "Chaos & Phase-Space Lab", desc: "Lorenz Strange Attractor + Laser Lissajous + Euler Stream" },
+  { id: "ferrofluid_spikes+meissner_levitation+plasma_globe", icon: "🦔🧊", label: "High-Field Magnetics Lab", desc: "Ferrofluid Spikes + Meissner Superconductor + Plasma Sphere" },
+  { id: "jacobs_ladder+st_elmos_corona+faraday_cage", icon: "⚡🔱", label: "Nikola’s Colorado Springs Lab", desc: "Jacob’s Ladder + St. Elmo’s Corona + Faraday Shield" },
+  { id: "dyson_swarm+solar_flare+tachyon_cherenkov", icon: "☀️⏩", label: "Kardashev Type-II Forge", desc: "Dyson Swarm + Coronal Mass Ejection + Tachyon Shockcone" },
   { id: "cyberstorm+outrun_grid+smoke", icon: "⛈️🌇", label: "Blade Runner 2084", desc: "Cyber Storm + Synthwave Grid + Volumetric Mist" },
   { id: "sakura+fireflies+aurora", icon: "🌸🪲", label: "Enchanted Sakura Night", desc: "Sakura Blossom + Fireflies + Prismatic Aurora" },
   { id: "black_hole+meteor_shower+quantum_mesh", icon: "🕳️☄️", label: "Singularity Horizon", desc: "Gargantua Black Hole + Meteors + Quantum Web" },

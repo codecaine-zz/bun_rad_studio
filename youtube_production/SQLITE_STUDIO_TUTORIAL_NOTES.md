@@ -22,15 +22,15 @@ Chapters
 4:47 Browsing a table
 6:05 Add, edit and delete rows without SQL
 7:14 Designing tables visually
-8:18 The SQL editor
+8:17 The SQL editor
 9:41 The visual query designer
-10:53 Building and running a macro
-12:08 Inspect, tune and maintain
-13:05 Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen
-14:12 Export and one-click backup
+10:52 Building and running a macro
+12:07 Inspect, tune and maintain
+13:04 Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen
+14:11 Export and one-click backup
 14:56 Import with staging, from the file list
-16:28 Production connections and shortcuts
-17:08 Thank you for watching
+16:27 Production connections and shortcuts
+17:07 Thank you for watching
 ```
 
 ## Tags (copy and paste)

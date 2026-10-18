@@ -1,4 +1,4 @@
-# MySQL in the Codecaine File Manager (17:51)
+# MySQL in the Codecaine File Manager (17:49)
 
 ## YouTube title
 
@@ -24,13 +24,13 @@ Chapters
 5:04 The studio's own connection workbench
 6:07 The data grid: browse, filter, total and edit rows
 7:43 The S Q L editor, presets, and one-click backup
-9:04 Design queries and schemas visually
-10:47 Live activity, locks, plans and maintenance
-12:33 Automate it: build and run a macro
-13:39 Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen
-14:46 Load a CSV file with staging, from the file list
-16:35 Back to the File Manager: stop, shortcuts and safety
-17:30 That is MySQL in the File Manager
+9:02 Design queries and schemas visually
+10:45 Live activity, locks, plans and maintenance
+12:30 Automate it: build and run a macro
+13:36 Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen
+14:43 Load a CSV file with staging, from the file list
+16:32 Back to the File Manager: stop, shortcuts and safety
+17:28 That is MySQL in the File Manager
 ```
 
 ## Tags (comma separated)

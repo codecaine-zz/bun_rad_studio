@@ -56,6 +56,8 @@ export interface ThemeContrastItem {
   grade: "AAA" | "AA" | "AA Large";
 }
 
+export type ThemeTier = "low" | "medium" | "ultra";
+
 export interface ThemeSummary {
   key: string;
   name: string;
@@ -68,6 +70,16 @@ export interface ThemeSummary {
   preview: ThemePreview;
   /** True when the theme has special effects (glass, glow, motion, texture), not just colors. */
   hasEffects: boolean;
+  /** Template hardware/visual tier: low (eco colors), medium (balanced glass/glow), or ultra (M4/RTX shaders & live atmosphere). */
+  tier: ThemeTier;
+  /** UI motion profile of the template ("none", "calm", "spring", "snappy", "elastic", "cinematic", "zero"). */
+  motion: string;
+  /** Built-in live atmospheric/physics canvas animation ID, if any. */
+  atmosphere?: string;
+  /** Interactive cursor lighting effect, if any. */
+  cursorEffect?: string;
+  /** Surface backdrop shader style, if any. */
+  backdropStyle?: string;
   /** Lightweight non-FX fallback theme key when the system cannot sustain GPU glass/glow shaders. */
   fallbackKey?: string;
   /** Display name of the lightweight non-FX fallback theme. */
@@ -294,6 +306,43 @@ function fallbackMetaFor(key: string, theme: SimpleGUITheme): { fallbackKey?: st
   return { fallbackKey: resolvedKey, fallbackName: fbTheme?.name ?? resolvedKey };
 }
 
+function templateTierMeta(key: string, theme: SimpleGUITheme): Pick<ThemeSummary, "tier" | "motion" | "atmosphere" | "cursorEffect" | "backdropStyle"> {
+  const fx = theme.fx;
+  if (!fx) {
+    return { tier: "low", motion: "none", backdropStyle: "solid" };
+  }
+  const hay = `${key} ${theme.name} ${theme.description ?? ""}`;
+  let backdropStyle: string = fx.backdropStyle ?? "";
+  if (!backdropStyle) {
+    if (/liquid|tahoe|vision|spatial|caustic|fluid|ferrofluid|soliton/i.test(hay) || ((fx.glass ?? 0) >= 0.65 && (fx.blur ?? 0) >= 24 && fx.sheen)) {
+      backdropStyle = "liquid";
+    } else if (/mica|acrylic|win11|fluent|copilot|aero/i.test(hay) || (fx.noise && (fx.blur ?? 0) >= 16)) {
+      backdropStyle = "mica";
+    } else if ((fx.blur ?? 0) >= 18) {
+      backdropStyle = "frosted";
+    } else {
+      backdropStyle = "glass";
+    }
+  }
+  const hasAtmo = Boolean(fx.atmosphere && fx.atmosphere !== "none");
+  const isUltra =
+    hasAtmo
+    || (fx.blur ?? 0) >= 18
+    || backdropStyle === "liquid"
+    || fx.glow === "plasma"
+    || fx.glow === "laser"
+    || fx.glow === "bloom"
+    || Boolean(fx.prismEdge)
+    || Boolean(fx.chromatic);
+  return {
+    tier: isUltra ? "ultra" : "medium",
+    motion: fx.motion ?? "calm",
+    ...(hasAtmo ? { atmosphere: fx.atmosphere } : {}),
+    ...(fx.cursorEffect && fx.cursorEffect !== "none" ? { cursorEffect: fx.cursorEffect } : {}),
+    backdropStyle,
+  };
+}
+
 function build(): Map<string, Entry> {
   const out = new Map<string, Entry>();
   const seenNames = new Set<string>();
@@ -303,6 +352,7 @@ function build(): Map<string, Entry> {
     seenNames.add(theme.name);
     const v = themeVars(theme).vars;
     const fb = fallbackMetaFor(key, theme);
+    const meta = templateTierMeta(key, theme);
     out.set(key, {
       theme,
       summary: {
@@ -314,6 +364,7 @@ function build(): Map<string, Entry> {
         swatch: [v.bg!, v.panel!, v.accent!, v.text!],
         preview: previewOf(theme, v),
         hasEffects: !!theme.fx,
+        ...meta,
         ...fb,
       },
     });
@@ -329,6 +380,7 @@ function summaryOf(key: string, theme: SimpleGUITheme, group: ThemeGroup): Theme
   const computed = themeVars(theme);
   const v = computed.vars;
   const fb = fallbackMetaFor(key, theme);
+  const meta = templateTierMeta(key, theme);
   return {
     key,
     name: theme.name,
@@ -338,6 +390,7 @@ function summaryOf(key: string, theme: SimpleGUITheme, group: ThemeGroup): Theme
     swatch: [v.bg!, v.panel!, v.accent!, v.text!],
     preview: previewOf(theme, v),
     hasEffects: !!theme.fx,
+    ...meta,
     ...fb,
     ...computed,
   };

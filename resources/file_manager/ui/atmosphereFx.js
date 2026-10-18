@@ -70,28 +70,56 @@ export const ATMOSPHERE_SECTIONS = [
     tier: "low",
     title: "Low Graphics — Lightweight & Battery Friendly",
     subtitle: "Engineered for integrated graphics and low power consumption while keeping a crisp, modern ambient vibe.",
-    badge: "Eco Tier · 37 Effects",
+    badge: "Eco Tier · 40 Effects",
   },
   {
     tier: "medium",
-    title: "Medium Graphics — Volumetric Weather & Particles",
-    subtitle: "Multi-depth weather, silk mist layers, glyph streams and glowing bokeh harmonized with your active theme.",
-    badge: "Balanced Tier · 49 Effects",
+    title: "Medium Graphics — Volumetric Weather, High-Voltage & Particles",
+    subtitle: "Multi-depth weather, Jacob’s Ladder arcs, Nikola plasma globes, Cherenkov cores, silk mist layers and glyph streams.",
+    badge: "Balanced Tier · 55 Effects",
   },
   {
     tier: "ultra",
-    title: "High-End & Modern ARM — Out of This World",
-    subtitle: "Unleashes unified-memory ARM64 / Apple Silicon and high-end GPUs with relativistic nebulae, 3D synthwave grids, neural networks, aurora curtains and cursor physics.",
-    badge: "ARM64 / Ultra Tier · 49 Effects",
+    title: "High-End & Modern ARM — Sci-Fi Physics, Tesla Coils & Relativistic Shaders",
+    subtitle: "Unleashes unified-memory ARM64 / Apple Silicon and high-end GPUs with interactive Tesla coil plasma arcs, Tokamak fusion toruses, CERN hadron colliders, Lorenz strange attractors, ferrofluid spikes and Hawking event horizons.",
+    badge: "ARM64 / Ultra Tier · 65 Effects",
+  },
+];
+
+export const REACTIVE_MODES = [
+  {
+    id: "off",
+    label: "Steady",
+    badge: "Constant",
+    desc: "Smooth, steady atmospheric and physics simulation speed.",
+  },
+  {
+    id: "activity",
+    label: "⚡ Typing & Cursor Velocity",
+    badge: "Interactive Surge",
+    desc: "Tesla arcs, Tokamak plasma, and particles surge dynamically as you type, click, or sweep the cursor.",
+  },
+  {
+    id: "telemetry",
+    label: "📊 System Telemetry Pulse",
+    badge: "Harmonic Load",
+    desc: "Modulates arc branching, collider cadence, and glow with real-time system telemetry harmonics.",
+  },
+  {
+    id: "audio",
+    label: "🎵 Audio & Synth Beat",
+    badge: "Rhythmic",
+    desc: "Pulses high-voltage arcs, ferrofluid spikes, and aurora waves to rhythmic bass and synth harmonics.",
   },
 ];
 
 const VALID_TIERS = new Set(HARDWARE_TIERS.map((t) => t.id));
+const VALID_REACTIVE_MODES = new Set(REACTIVE_MODES.map((m) => m.id));
 const DEFAULT_GLYPHS = "0123456789ABCDEFZ<>:+*=-ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ";
 
 export const TIER_PROFILES = {
   low: { density: 0.5, dpr: 1, bloom: false, interactive: false, lightning: false, ribbons: 2 },
-  medium: { density: 0.85, dpr: 1, bloom: true, interactive: false, lightning: true, ribbons: 3 },
+  medium: { density: 0.85, dpr: 1, bloom: true, interactive: true, lightning: true, ribbons: 3 },
   high: { density: 1.15, dpr: 1, bloom: true, interactive: true, lightning: true, ribbons: 4 },
   ultra: { density: 1.45, dpr: 1, bloom: true, interactive: true, lightning: true, ribbons: 5 },
 };
@@ -105,17 +133,19 @@ const ENGINE_DEPTH_ORDER = {
   beams: 5,
   portal: 6,
   radar: 7,
-  stars: 8,
-  mist: 9,
-  network: 10,
-  geometry: 11,
-  dna: 12,
-  circuit: 13,
-  precip: 14,
-  snow: 15,
-  ember: 16,
-  orbs: 17,
-  glyph: 18,
+  physics: 8,
+  stars: 9,
+  mist: 10,
+  network: 11,
+  geometry: 12,
+  dna: 13,
+  circuit: 14,
+  tesla: 15,
+  precip: 16,
+  snow: 17,
+  ember: 18,
+  orbs: 19,
+  glyph: 20,
 };
 
 const MAX_CANVAS_W = 1440;
@@ -127,6 +157,8 @@ let activeEffect = "none";
 let activeLayers = [];
 let activeIntensity = 60;
 let activeTier = "medium";
+let activeReactiveMode = "off";
+let reactiveImpulse = 0;
 let frameTick = 0;
 let lastFrameAt = 0;
 let scrollPauseUntil = 0;
@@ -165,6 +197,39 @@ export function effectiveAtmosphereTier() {
   const raw = state.settings?.atmosphereTier;
   if (typeof raw === "string" && VALID_TIERS.has(raw) && raw !== "auto") return raw;
   return detectHardwareTier();
+}
+
+export function effectiveAtmosphereReactive() {
+  const raw = state.settings?.atmosphereReactive;
+  return typeof raw === "string" && VALID_REACTIVE_MODES.has(raw) ? raw : "off";
+}
+
+/** Triggers an immediate high-voltage / physics surge across all active atmospheric layers. */
+export function triggerReactiveImpulse(boost = 1.15) {
+  reactiveImpulse = Math.min(2.0, Math.max(reactiveImpulse, Number(boost) || 1.15));
+  if (typeof document !== "undefined") {
+    document.documentElement.dataset.atmosphereSurge = "true";
+  }
+  if (activeEffect !== "none") drawFrame();
+  return reactiveImpulse;
+}
+
+/** Computes the current real-time reactive multiplier for particle & plasma energy. */
+export function computeReactiveMultiplier(tick = frameTick) {
+  reactiveImpulse *= 0.92;
+  if (reactiveImpulse < 0.01) reactiveImpulse = 0;
+  let mod = 1.0 + reactiveImpulse * 0.65;
+  if (activeReactiveMode === "activity") {
+    const speed = Math.min(40, Math.hypot(pointer.vx, pointer.vy));
+    mod += (speed / 40) * 0.45;
+  } else if (activeReactiveMode === "telemetry") {
+    mod += 0.22 + 0.2 * Math.sin(tick * 0.08) + 0.12 * Math.cos(tick * 0.21);
+  } else if (activeReactiveMode === "audio") {
+    const beat = Math.pow(Math.max(0, Math.sin(tick * 0.19)), 4);
+    const sub = 0.5 + 0.5 * Math.sin(tick * 0.05);
+    mod += beat * 0.55 + sub * 0.18;
+  }
+  return Math.min(2.2, Math.max(0.5, mod));
 }
 
 function parseColorRgb(raw, fallback = null) {
@@ -440,6 +505,16 @@ function ensureLayer() {
       pointer.x = nx;
       pointer.y = ny;
       pointer.active = true;
+    }, { passive: true });
+    window.addEventListener("pointerdown", () => {
+      if (activeEffect !== "none" && activeReactiveMode === "activity") {
+        reactiveImpulse = Math.min(2.0, reactiveImpulse + 0.35);
+      }
+    }, { passive: true });
+    window.addEventListener("keydown", () => {
+      if (activeEffect !== "none" && activeReactiveMode === "activity") {
+        reactiveImpulse = Math.min(2.0, reactiveImpulse + 0.16);
+      }
     }, { passive: true });
     document.addEventListener("scroll", () => {
       if (activeEffect !== "none") scrollPauseUntil = performance.now() + 120;
@@ -769,6 +844,69 @@ function seedSingleLayer(opt, w, h, baseDensity) {
         speed: (0.006 + Math.random() * 0.01) * (params.speed || 1),
         tone: i % 3,
       });
+    }
+  } else if (engine === "tesla") {
+    const mode = params.mode || "coil";
+    const orbCount = mode === "ball" ? (params.orbs || 5) : Math.max(8, Math.round(18 * density));
+    for (let i = 0; i < orbCount; i++) {
+      particles.push({
+        x: w * (0.1 + Math.random() * 0.8),
+        y: h * (0.12 + Math.random() * 0.76),
+        vx: (Math.random() - 0.5) * (mode === "ball" ? 1.35 : 0.8),
+        vy: mode === "jacobs" ? -(1.4 + Math.random() * 1.2) : (Math.random() - 0.5) * (mode === "ball" ? 1.15 : 0.75),
+        r: mode === "ball" ? 18 + Math.random() * 14 : 4 + Math.random() * 6,
+        phase: Math.random() * Math.PI * 2,
+        progress: i / Math.max(1, orbCount),
+        tone: i % 3,
+      });
+    }
+  } else if (engine === "physics") {
+    const mode = params.mode || "tokamak";
+    if (mode === "lorentz") {
+      const trailCount = Math.max(8, Math.round((params.trails || 22) * Math.min(1.3, density)));
+      for (let i = 0; i < trailCount; i++) {
+        const lx = (Math.random() - 0.5) * 16 + 0.1;
+        const ly = (Math.random() - 0.5) * 16 + 0.1;
+        const lz = 12 + Math.random() * 24;
+        const history = [];
+        let cx = lx, cy = ly, cz = lz;
+        const dt = 0.0065;
+        for (let s = 0; s < 26; s++) {
+          const dx = 10 * (cy - cx);
+          const dy = cx * (28 - cz) - cy;
+          const dz = cx * cy - (8 / 3) * cz;
+          cx += dx * dt;
+          cy += dy * dt;
+          cz += dz * dt;
+          history.push({ x: cx, y: cy, z: cz });
+        }
+        particles.push({ lx: cx, ly: cy, lz: cz, history, tone: i % 3 });
+      }
+    } else if (mode === "collider") {
+      const trackCount = Math.max(12, Math.round(28 * density));
+      for (let i = 0; i < trackCount; i++) {
+        particles.push({
+          angle: (i / trackCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.25,
+          curvature: (i % 2 === 0 ? 1 : -1) * (0.012 + Math.random() * 0.026),
+          speed: 0.014 + Math.random() * 0.018,
+          progress: Math.random(),
+          maxR: Math.min(w, h) * (0.24 + Math.random() * 0.24),
+          tone: i % 3,
+        });
+      }
+    } else {
+      const count = Math.max(14, Math.round(32 * density));
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          angle: (i / count) * Math.PI * 2,
+          phase: Math.random() * Math.PI * 2,
+          speed: 0.015 + Math.random() * 0.025,
+          r: 3.5 + Math.random() * 6,
+          tone: i % 3,
+        });
+      }
     }
   }
 
@@ -1679,6 +1817,398 @@ function drawSingleLayer(ctx, layer, w, h, scale, profile) {
       ctx.arc(cx, cy, rad, 0, Math.PI * 2);
       ctx.stroke();
     }
+  } else if (engine === "tesla") {
+    const mode = params.mode || "coil";
+    const t = frameTick * 0.04;
+    const drawPlasmaArc = (x1, y1, x2, y2, jitterAmp, tone, branchDepth = 1) => {
+      const dx = x2 - x1, dy = y2 - y1;
+      const dist = Math.hypot(dx, dy) || 1;
+      const steps = Math.max(6, Math.min(20, Math.floor(dist / 24)));
+      const nx = -dy / dist, ny = dx / dist;
+      const pts = [{ x: x1, y: y1 }];
+      for (let s = 1; s < steps; s++) {
+        const u = s / steps;
+        const env = Math.sin(u * Math.PI);
+        const wave = Math.sin(u * 12 + t * 2.3 + s * 1.7) * 0.55 + (Math.random() - 0.5) * 0.95;
+        const offset = wave * jitterAmp * env;
+        pts.push({
+          x: x1 + dx * u + nx * offset,
+          y: y1 + dy * u + ny * offset,
+        });
+      }
+      pts.push({ x: x2, y: y2 });
+      const [cr, cg, cb] = toneRgb(tone);
+      // Outer ionized violet/accent plasma sheath
+      ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.26 * scale})`;
+      ctx.lineWidth = 5.5;
+      ctx.beginPath();
+      for (let i = 0; i < pts.length; i++) {
+        if (i === 0) ctx.moveTo(pts[i].x, pts[i].y);
+        else ctx.lineTo(pts[i].x, pts[i].y);
+      }
+      ctx.stroke();
+      // Mid corona filament
+      ctx.strokeStyle = `rgba(${sr}, ${sg}, ${sb}, ${0.58 * scale})`;
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+      // White-hot core channel
+      ctx.strokeStyle = `rgba(${hr}, ${hg}, ${hb}, ${0.92 * scale})`;
+      ctx.lineWidth = 1.0;
+      ctx.stroke();
+
+      if (branchDepth > 0 && steps >= 8) {
+        const bIdx = Math.floor(steps * (0.35 + (frameTick % 5) * 0.08));
+        const bp = pts[bIdx];
+        if (bp) {
+          const bAng = Math.atan2(dy, dx) + (tone % 2 === 0 ? 0.65 : -0.65);
+          const bLen = dist * 0.34;
+          drawPlasmaArc(bp.x, bp.y, bp.x + Math.cos(bAng) * bLen, bp.y + Math.sin(bAng) * bLen, jitterAmp * 0.55, (tone + 1) % 3, branchDepth - 1);
+        }
+      }
+    };
+
+    if (mode === "globe") {
+      const cx = w * 0.5, cy = h * 0.5;
+      const globeR = Math.min(w, h) * 0.41;
+      // Outer dielectric glass sphere rim
+      ctx.strokeStyle = `rgba(${ar}, ${ag}, ${ab}, ${0.32 * scale})`;
+      ctx.lineWidth = params.reactor ? 3.2 : 1.6;
+      ctx.beginPath();
+      ctx.arc(cx, cy, globeR, 0, Math.PI * 2);
+      ctx.stroke();
+      if (params.reactor) {
+        ctx.strokeStyle = `rgba(${sr}, ${sg}, ${sb}, ${0.42 * scale})`;
+        ctx.lineWidth = 6;
+        for (let seg = 0; seg < 10; seg++) {
+          const a0 = (seg / 10) * Math.PI * 2 + t * 0.08;
+          ctx.beginPath();
+          ctx.arc(cx, cy, globeR * 0.86, a0, a0 + 0.38);
+          ctx.stroke();
+        }
+      }
+      drawBokehSprite(ctx, spriteBank?.orbPrimary, cx, cy, 42, accent, 0.78 * scale);
+      const tendrils = params.tendrils || 12;
+      for (let i = 0; i < tendrils; i++) {
+        const ang = (i / tendrils) * Math.PI * 2 + Math.sin(t * 0.3 + i) * 0.25 + t * 0.06;
+        let tx = cx + Math.cos(ang) * globeR;
+        let ty = cy + Math.sin(ang) * globeR;
+        if (profile.interactive && pointer.active && i < 3) {
+          const pdx = pointer.x - cx, pdy = pointer.y - cy;
+          const pDist = Math.min(globeR, Math.hypot(pdx, pdy) || 1);
+          const pAng = Math.atan2(pdy, pdx) + (i - 1) * 0.06;
+          tx = cx + Math.cos(pAng) * pDist;
+          ty = cy + Math.sin(pAng) * pDist;
+        }
+        drawPlasmaArc(cx, cy, tx, ty, 24, i % 3, 1);
+        drawBokehSprite(ctx, spriteBank?.orbSecondary, tx, ty, 13, secondary, 0.75 * scale);
+      }
+    } else if (mode === "jacobs") {
+      const cx = w * 0.5;
+      const botY = h * 0.9, topY = h * 0.08;
+      // V-shaped copper/rod electrodes
+      ctx.strokeStyle = `rgba(${ar}, ${ag}, ${ab}, ${0.38 * scale})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(cx - 28, botY);
+      ctx.lineTo(cx - w * 0.24, topY);
+      ctx.moveTo(cx + 28, botY);
+      ctx.lineTo(cx + w * 0.24, topY);
+      ctx.stroke();
+      const arcCount = params.arcs || 3;
+      for (let i = 0; i < arcCount; i++) {
+        const prog = ((frameTick * 0.0065 + i / arcCount) % 1);
+        const y = botY - prog * (botY - topY);
+        const halfSpan = 28 + prog * (w * 0.24 - 28);
+        const bow = Math.sin(prog * Math.PI) * 38;
+        drawPlasmaArc(cx - halfSpan, y, cx, y - bow, 16, i % 3, 0);
+        drawPlasmaArc(cx, y - bow, cx + halfSpan, y, 16, (i + 1) % 3, 0);
+        drawBokehSprite(ctx, spriteBank?.orbPrimary, cx - halfSpan, y, 11, highlight, 0.7 * scale);
+        drawBokehSprite(ctx, spriteBank?.orbPrimary, cx + halfSpan, y, 11, highlight, 0.7 * scale);
+      }
+    } else if (mode === "ball") {
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        if (profile.interactive) applyPointerForce(p, -0.9);
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 40 || p.x > w - 40) p.vx *= -1;
+        if (p.y < 40 || p.y > h - 40) p.vy *= -1;
+        drawBokehSprite(ctx, i % 2 === 0 ? spriteBank?.orbPrimary : spriteBank?.orbSecondary, p.x, p.y, p.r * 1.9, toneRgb(p.tone), 0.75 * scale);
+        for (let j = i + 1; j < particles.length; j++) {
+          const q = particles[j];
+          if (Math.hypot(q.x - p.x, q.y - p.y) < Math.min(w, h) * 0.42) {
+            drawPlasmaArc(p.x, p.y, q.x, q.y, 18, (i + j) % 3, 1);
+          }
+        }
+        if (profile.interactive && pointer.active && i < 2) {
+          drawPlasmaArc(p.x, p.y, pointer.x, pointer.y, 22, i % 3, 1);
+        }
+      }
+    } else if (mode === "cage") {
+      const spacing = 78;
+      ctx.strokeStyle = `rgba(${ar}, ${ag}, ${ab}, ${0.15 * scale})`;
+      ctx.lineWidth = 1;
+      for (let x = spacing / 2; x < w; x += spacing) {
+        for (let y = spacing / 2; y < h; y += spacing) {
+          ctx.beginPath();
+          ctx.arc(x, y, 3, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+      const arcs = params.arcs || 5;
+      for (let i = 0; i < arcs; i++) {
+        const x1 = ((i * 211 + frameTick * 3) % w);
+        const y1 = ((i * 149 + frameTick * 2) % h);
+        const ang = t * 0.4 + i * 1.7;
+        const span = 120 + (i % 3) * 55;
+        drawPlasmaArc(x1, y1, x1 + Math.cos(ang) * span, y1 + Math.sin(ang) * span, 20, i % 3, 1);
+      }
+    } else {
+      // Default "coil" mode: Tesla Coil Plasma Arcs & Wardenclyffe Magnifying Transmitter
+      const coilCount = params.coils || 2;
+      const arcCount = params.arcs || 7;
+      for (let c = 0; c < coilCount; c++) {
+        const cx = w * ((c + 1) / (coilCount + 1));
+        const cy = h * (c % 2 === 0 ? 0.28 : 0.72);
+        // Toroid terminal rings
+        ctx.strokeStyle = `rgba(${ar}, ${ag}, ${ab}, ${0.48 * scale})`;
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+        ctx.stroke();
+        drawBokehSprite(ctx, spriteBank?.orbPrimary, cx, cy, 34, accent, 0.82 * scale);
+
+        const perCoil = Math.max(3, Math.ceil(arcCount / coilCount));
+        for (let a = 0; a < perCoil; a++) {
+          const ang = (a / perCoil) * Math.PI * 2 + t * 0.14 * (c % 2 === 0 ? 1 : -1) + Math.sin(t * 0.5 + a) * 0.35;
+          const reach = Math.min(w, h) * (params.mega ? 0.46 : 0.34) * (0.7 + 0.3 * Math.sin(t * 0.9 + a * 2.1));
+          let tx = cx + Math.cos(ang) * reach;
+          let ty = cy + Math.sin(ang) * reach;
+          if (profile.interactive && pointer.active && a === 0) {
+            tx = pointer.x;
+            ty = pointer.y;
+          }
+          drawPlasmaArc(cx, cy, tx, ty, params.mega ? 34 : 24, (c + a) % 3, 1);
+          drawBokehSprite(ctx, spriteBank?.starPrimary, tx, ty, 12, highlight, 0.72 * scale);
+        }
+      }
+      // Inter-coil resonance arc
+      if (coilCount >= 2) {
+        drawPlasmaArc(w / (coilCount + 1), h * 0.28, (w * 2) / (coilCount + 1), h * 0.72, 32, 1, 1);
+      }
+    }
+  } else if (engine === "physics") {
+    const mode = params.mode || "tokamak";
+    const t = frameTick * 0.025;
+    const cx = w * 0.5, cy = h * 0.5;
+
+    if (mode === "tokamak") {
+      const R = Math.min(w, h) * 0.27;
+      const rMinor = Math.min(w, h) * 0.11;
+      const lines = 14;
+      for (let l = 0; l < lines; l++) {
+        const [cr, cg, cb] = toneRgb(l % 3);
+        ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.34 * scale})`;
+        ctx.lineWidth = params.cryo ? 1.8 : 1.4;
+        ctx.beginPath();
+        const steps = 64;
+        for (let s = 0; s <= steps; s++) {
+          const phi = (s / steps) * Math.PI * 2;
+          const theta = phi * 3 + (l / lines) * Math.PI * 2 + t;
+          const rad = R + rMinor * Math.cos(theta);
+          const x = cx + rad * Math.cos(phi);
+          const y = cy + rad * Math.sin(phi) * 0.62 + rMinor * Math.sin(theta) * 0.48;
+          if (s === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      for (const p of particles) {
+        p.angle += p.speed;
+        const phi = p.angle;
+        const theta = phi * 3 + p.phase + t * 1.5;
+        const rad = R + rMinor * Math.cos(theta);
+        const px = cx + rad * Math.cos(phi);
+        const py = cy + rad * Math.sin(phi) * 0.62 + rMinor * Math.sin(theta) * 0.48;
+        drawBokehSprite(ctx, spriteBank?.orbPrimary, px, py, p.r * 1.8, toneRgb(p.tone), 0.78 * scale);
+      }
+    } else if (mode === "lorentz") {
+      const scaleXY = Math.min(w, h) * 0.0145;
+      const dt = 0.0055;
+      for (const p of particles) {
+        const dx = 10 * (p.ly - p.lx);
+        const dy = p.lx * (28 - p.lz) - p.ly;
+        const dz = p.lx * p.ly - (8 / 3) * p.lz;
+        p.lx += dx * dt;
+        p.ly += dy * dt;
+        p.lz += dz * dt;
+        p.history.push({ x: p.lx, y: p.ly, z: p.lz });
+        if (p.history.length > 28) p.history.shift();
+        const [cr, cg, cb] = toneRgb(p.tone);
+        ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.48 * scale})`;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        for (let i = 0; i < p.history.length; i++) {
+          const pt = p.history[i];
+          const sx = cx + pt.x * scaleXY * 1.35;
+          const sy = cy + (pt.z - 25) * scaleXY * 1.1;
+          if (i === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        }
+        ctx.stroke();
+        const head = p.history[p.history.length - 1];
+        if (head) {
+          drawBokehSprite(ctx, spriteBank?.orbPrimary, cx + head.x * scaleXY * 1.35, cy + (head.z - 25) * scaleXY * 1.1, 8, highlight, 0.85 * scale);
+        }
+      }
+    } else if (mode === "collider") {
+      // Detector calorimeter rings & beamline
+      ctx.strokeStyle = `rgba(${ar}, ${ag}, ${ab}, ${0.18 * scale})`;
+      ctx.lineWidth = 1;
+      for (let r = 1; r <= 3; r++) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, Math.min(w, h) * 0.13 * r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      drawBokehSprite(ctx, spriteBank?.starPrimary, cx, cy, 26, highlight, 0.85 * scale);
+      for (const p of particles) {
+        p.progress = (p.progress + p.speed) % 1;
+        const [cr, cg, cb] = toneRgb(p.tone);
+        ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${(1 - p.progress * 0.5) * 0.62 * scale})`;
+        ctx.lineWidth = params.qcd ? 2.2 : 1.5;
+        ctx.beginPath();
+        const steps = 28;
+        let tipX = cx, tipY = cy;
+        for (let s = 0; s <= steps; s++) {
+          const u = (s / steps) * p.progress;
+          const rad = u * p.maxR;
+          const ang = p.angle + u * u * p.curvature * 55;
+          tipX = cx + Math.cos(ang) * rad;
+          tipY = cy + Math.sin(ang) * rad;
+          if (s === 0) ctx.moveTo(tipX, tipY);
+          else ctx.lineTo(tipX, tipY);
+        }
+        ctx.stroke();
+        drawBokehSprite(ctx, spriteBank?.orbSecondary, tipX, tipY, 7, highlight, 0.78 * scale);
+      }
+    } else if (mode === "cherenkov") {
+      const hexR = 68;
+      for (let row = -2; row <= 2; row++) {
+        for (let col = -3; col <= 3; col++) {
+          const hx = cx + col * hexR * 1.5 + (row % 2) * hexR * 0.75;
+          const hy = cy + row * hexR * 1.3;
+          const pulse = 0.55 + 0.45 * Math.sin(t * 2 + row * 0.8 + col * 0.6);
+          drawBokehSprite(ctx, spriteBank?.orbPrimary, hx, hy, 38 * pulse, accent, 0.42 * scale);
+          ctx.strokeStyle = `rgba(${hr}, ${hg}, ${hb}, ${0.32 * pulse * scale})`;
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.arc(hx, hy, 18 + pulse * 14, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+    } else if (mode === "ferrofluid") {
+      const cols = 11, rows = 7;
+      const stepX = w / (cols + 1), stepY = h / (rows + 1);
+      const mx = profile.interactive && pointer.active ? pointer.x : cx + Math.cos(t) * w * 0.22;
+      const my = profile.interactive && pointer.active ? pointer.y : cy + Math.sin(t) * h * 0.22;
+      for (let r = 1; r <= rows; r++) {
+        for (let c = 1; c <= cols; c++) {
+          const bx = c * stepX, by = r * stepY;
+          const dx = mx - bx, dy = my - by;
+          const dist = Math.hypot(dx, dy) || 1;
+          const pull = Math.max(0.2, 1 - dist / (Math.max(w, h) * 0.55));
+          const spikeLen = 12 + pull * 36;
+          const ang = Math.atan2(dy, dx);
+          const tipX = bx + Math.cos(ang) * spikeLen;
+          const tipY = by + Math.sin(ang) * spikeLen;
+          const perpX = -Math.sin(ang) * (4 + pull * 6);
+          const perpY = Math.cos(ang) * (4 + pull * 6);
+          const [cr, cg, cb] = toneRgb((r + c) % 3);
+          ctx.fillStyle = `rgba(${cr}, ${cg}, ${cb}, ${(0.22 + pull * 0.45) * scale})`;
+          ctx.strokeStyle = `rgba(${hr}, ${hg}, ${hb}, ${(0.35 + pull * 0.5) * scale})`;
+          ctx.lineWidth = 1.1;
+          ctx.beginPath();
+          ctx.moveTo(bx + perpX, by + perpY);
+          ctx.lineTo(tipX, tipY);
+          ctx.lineTo(bx - perpX, by - perpY);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+    } else if (mode === "lissajous") {
+      const curves = params.curves || 2;
+      const rx = Math.min(w, h) * 0.34, ry = Math.min(w, h) * 0.3;
+      for (let c = 0; c < curves; c++) {
+        const [cr, cg, cb] = toneRgb(c % 3);
+        ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.52 * scale})`;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        const freqX = 3 + c, freqY = 2 + c;
+        const delta = t * (0.7 + c * 0.25);
+        const steps = 140;
+        for (let s = 0; s <= steps; s++) {
+          const u = (s / steps) * Math.PI * 2;
+          const x = cx + Math.sin(freqX * u + delta) * rx;
+          const y = cy + Math.sin(freqY * u) * ry;
+          if (s === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        const headU = (t * 1.4) % (Math.PI * 2);
+        drawBokehSprite(ctx, spriteBank?.orbPrimary, cx + Math.sin(freqX * headU + delta) * rx, cy + Math.sin(freqY * headU) * ry, 10, highlight, 0.85 * scale);
+      }
+    } else if (mode === "gravwave") {
+      // Spacetime quadrupolar strain grid + orthogonal interferometer arms
+      const step = 56;
+      ctx.strokeStyle = `rgba(${ar}, ${ag}, ${ab}, ${0.24 * scale})`;
+      ctx.lineWidth = 1;
+      for (let y = step; y < h; y += step) {
+        ctx.beginPath();
+        for (let x = 0; x <= w; x += 28) {
+          const dist = Math.hypot(x - cx, y - cy);
+          const strain = Math.sin(dist * 0.035 - t * 2.4) * (params.warpBubble ? 16 : 9);
+          const wy = y + strain * Math.cos(Math.atan2(y - cy, x - cx) * 2);
+          if (x === 0) ctx.moveTo(x, wy);
+          else ctx.lineTo(x, wy);
+        }
+        ctx.stroke();
+      }
+      // LIGO orthogonal laser beams
+      ctx.strokeStyle = `rgba(${hr}, ${hg}, ${hb}, ${0.58 * scale})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, cy);
+      ctx.lineTo(w, cy);
+      ctx.moveTo(cx, 0);
+      ctx.lineTo(cx, h);
+      ctx.stroke();
+    } else if (mode === "hawking") {
+      const rShadow = Math.min(w, h) * 0.11;
+      // Relativistic accretion disk ellipses
+      for (let d = 1; d <= 5; d++) {
+        const [cr, cg, cb] = toneRgb(d % 3);
+        ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${(0.62 - d * 0.08) * scale})`;
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rShadow * (1.35 + d * 0.38), rShadow * (0.35 + d * 0.1), -0.22, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      // Photon sphere ring
+      ctx.strokeStyle = `rgba(${hr}, ${hg}, ${hb}, ${0.88 * scale})`;
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.arc(cx, cy, rShadow, 0, Math.PI * 2);
+      ctx.stroke();
+      // Hawking quantum pair radiation escaping horizon
+      for (const p of particles) {
+        p.phase += p.speed;
+        const rad = rShadow + ((p.phase * 45) % (Math.min(w, h) * 0.32));
+        const px = cx + Math.cos(p.angle + t * 0.3) * rad;
+        const py = cy + Math.sin(p.angle + t * 0.3) * rad;
+        drawBokehSprite(ctx, spriteBank?.orbPrimary, px, py, 6.5, highlight, 0.75 * scale);
+      }
+    }
   }
 }
 
@@ -1697,7 +2227,8 @@ function drawFrame() {
   const profile = TIER_PROFILES[activeTier] || TIER_PROFILES.medium;
   const w = canvas.width;
   const h = canvas.height;
-  const scale = activeIntensity / 60;
+  const reactiveMul = computeReactiveMultiplier(frameTick);
+  const scale = (activeIntensity / 60) * reactiveMul;
   const { isDark } = cachedColors;
 
   ctx.clearRect(0, 0, w, h);
@@ -1732,8 +2263,8 @@ function startLoop() {
   if (typeof requestAnimationFrame === "function") rafId = requestAnimationFrame(tick);
 }
 
-/** Applies the chosen atmospheric effect (or `+`-combined multi-effect mix) and graphics hardware tier (`"low" | "medium" | "high" | "ultra"`). */
-export function applyAtmosphere(overrideEffect, overrideIntensity, overrideTier) {
+/** Applies the chosen atmospheric effect (or `+`-combined multi-effect mix), graphics hardware tier, and reactive physics mode. */
+export function applyAtmosphere(overrideEffect, overrideIntensity, overrideTier, overrideReactive) {
   const effect = overrideEffect !== undefined
     ? normalizeAtmosphereSpec(overrideEffect)
     : effectiveAtmosphere();
@@ -1745,10 +2276,14 @@ export function applyAtmosphere(overrideEffect, overrideIntensity, overrideTier)
     ? overrideTier
     : (state.settings?.atmosphereTier || "auto");
   const resolvedTier = rawTier === "auto" ? detectHardwareTier() : rawTier;
+  const resolvedReactive = overrideReactive !== undefined && VALID_REACTIVE_MODES.has(overrideReactive)
+    ? overrideReactive
+    : effectiveAtmosphereReactive();
 
   activeEffect = layerIds.length ? layerIds.join("+") : "none";
   activeIntensity = intensity;
   activeTier = TIER_PROFILES[resolvedTier] ? resolvedTier : "medium";
+  activeReactiveMode = resolvedReactive;
   const root = document.documentElement;
 
   refreshThemeColors();
@@ -1759,6 +2294,8 @@ export function applyAtmosphere(overrideEffect, overrideIntensity, overrideTier)
     delete root.dataset.atmosphere;
     delete root.dataset.atmosphereTier;
     delete root.dataset.atmosphereLayers;
+    delete root.dataset.atmosphereReactive;
+    delete root.dataset.atmosphereSurge;
     root.style.removeProperty("--fm-atmosphere-intensity");
     document.getElementById("fm-atmosphere-layer")?.remove();
     return;
@@ -1767,10 +2304,12 @@ export function applyAtmosphere(overrideEffect, overrideIntensity, overrideTier)
   root.dataset.atmosphere = activeEffect;
   root.dataset.atmosphereTier = activeTier;
   root.dataset.atmosphereLayers = String(layerIds.length);
+  root.dataset.atmosphereReactive = activeReactiveMode;
   root.style.setProperty("--fm-atmosphere-intensity", String(Math.round((intensity / 100) * 100) / 100));
   const layer = ensureLayer();
   layer.dataset.effect = activeEffect;
   layer.dataset.tier = activeTier;
+  layer.dataset.reactive = activeReactiveMode;
   const hasMist = layerIds.some((id) => ATMOSPHERE_BY_ID.get(id)?.engine === "mist");
   if (hasMist) layer.dataset.mist = "true";
   else delete layer.dataset.mist;
@@ -1779,15 +2318,17 @@ export function applyAtmosphere(overrideEffect, overrideIntensity, overrideTier)
   startLoop();
 }
 
-/** Opens the interactive Atmospheric Special Effects Studio with 110 effects, Multi-Effect Layer Mixer, Signature Mixes, and Search/Category filtering. */
+/** Opens the interactive Atmospheric Special Effects Studio with 160 effects, Multi-Effect Layer Mixer, Signature Mixes, Reactive Physics, and Tier/Animation filtering. */
 export async function showAtmosphereDialog() {
   const savedEffect = normalizeAtmosphereSpec(state.settings?.atmosphere || "none");
   const savedIntensity = effectiveAtmosphereIntensity();
   const savedTier = VALID_TIERS.has(state.settings?.atmosphereTier) ? state.settings.atmosphereTier : "auto";
+  const savedReactive = effectiveAtmosphereReactive();
   const detectedTier = detectHardwareTier();
   let pickedEffect = savedEffect;
   let pickedIntensity = savedIntensity;
   let pickedTier = savedTier;
+  let pickedReactive = savedReactive;
   let mixMode = parseAtmosphereIds(savedEffect).length > 1;
   let activeCat = "all";
   let searchQuery = "";
@@ -1824,7 +2365,7 @@ export async function showAtmosphereDialog() {
   intensitySlider.addEventListener("input", () => {
     pickedIntensity = Number(intensitySlider.value);
     intensityOut.textContent = `${pickedIntensity}%`;
-    applyAtmosphere(pickedEffect, pickedIntensity, pickedTier);
+    applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
   });
 
   const tierBar = h("div", { class: "fm-atmo-tier-bar", role: "radiogroup", "aria-label": "Hardware graphics tier" });
@@ -1851,12 +2392,57 @@ export async function showAtmosphereDialog() {
           pickedTier = tier.id;
           renderTiers();
           updateTierHint();
-          applyAtmosphere(pickedEffect, pickedIntensity, pickedTier);
+          applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
         },
       },
       h("span", { class: "fm-atmo-tier-name" }, tier.label),
       h("span", { class: "fm-atmo-tier-badge" }, tier.id === "auto" ? `Auto (${detectedTier.toUpperCase()})` : tier.badge));
     }));
+  };
+
+  // -- Reactive Physics & Telemetry Modulation Bar -------------------------------------------------------------------
+  const reactiveBar = h("div", { class: "fm-atmo-tier-bar fm-atmo-reactive-bar", role: "radiogroup", "aria-label": "Reactive physics modulation" });
+  const reactiveHint = h("p", { class: "hint fm-atmo-tier-hint", role: "status" });
+  const surgeBtn = h("button", {
+    type: "button",
+    class: "fm-atmo-random-mix fm-atmo-surge-btn",
+    "data-surge-btn": "true",
+    title: "Discharge an immediate high-voltage / relativistic energy impulse across active layers",
+    onclick: () => {
+      if (pickedEffect === "none") pickedEffect = "tesla_megacoil";
+      applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+      triggerReactiveImpulse(1.55);
+      renderMixer();
+      renderCards();
+    },
+  }, "⚡ Trigger Arc Surge");
+
+  const updateReactiveHint = () => {
+    const chosen = REACTIVE_MODES.find((m) => m.id === pickedReactive) || REACTIVE_MODES[0];
+    reactiveHint.textContent = `${chosen.label} (${chosen.badge}): ${chosen.desc}`;
+  };
+
+  const renderReactiveBar = () => {
+    reactiveBar.replaceChildren(
+      ...REACTIVE_MODES.map((rm) => {
+        const active = pickedReactive === rm.id;
+        return h("button", {
+          type: "button",
+          class: `fm-atmo-tier-btn${active ? " is-active" : ""}`,
+          "data-reactive-mode": rm.id,
+          "aria-pressed": String(active),
+          onclick: () => {
+            pickedReactive = rm.id;
+            renderReactiveBar();
+            updateReactiveHint();
+            applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+          },
+        },
+        h("span", { class: "fm-atmo-tier-name" }, rm.label),
+        h("span", { class: "fm-atmo-tier-badge" }, rm.badge));
+      }),
+      surgeBtn,
+    );
   };
 
   // -- Multi-Effect Layer Mixer Dock ---------------------------------------------------------------------------------
@@ -1879,16 +2465,16 @@ export async function showAtmosphereDialog() {
       class: "fm-atmo-random-mix",
       title: "Generate a creative 3-layer atmospheric combination",
       onclick: () => {
-        const backdrops = ATMOSPHERE_OPTIONS.filter((o) => ["grid", "nebula", "aurora", "waves", "beams", "portal", "radar"].includes(o.engine));
-        const mids = ATMOSPHERE_OPTIONS.filter((o) => ["stars", "mist", "network", "geometry", "dna", "circuit"].includes(o.engine));
-        const fronts = ATMOSPHERE_OPTIONS.filter((o) => ["precip", "snow", "ember", "orbs", "glyph"].includes(o.engine));
+        const backdrops = ATMOSPHERE_OPTIONS.filter((o) => ["grid", "nebula", "aurora", "waves", "beams", "portal", "radar", "physics"].includes(o.engine));
+        const mids = ATMOSPHERE_OPTIONS.filter((o) => ["stars", "mist", "network", "geometry", "dna", "circuit", "tesla"].includes(o.engine));
+        const fronts = ATMOSPHERE_OPTIONS.filter((o) => ["precip", "snow", "ember", "orbs", "glyph", "tesla"].includes(o.engine));
         const pick = (arr) => arr[Math.floor(Math.random() * arr.length)]?.id;
         const combo = [pick(backdrops), pick(mids), pick(fronts)].filter(Boolean);
         mixMode = true;
         pickedEffect = combo.join("+");
         renderMixer();
         renderCards();
-        applyAtmosphere(pickedEffect, pickedIntensity, pickedTier);
+        applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
       },
     }, "🎲 Surprise Mix");
 
@@ -1906,7 +2492,7 @@ export async function showAtmosphereDialog() {
                 toggleLayerInMix(id);
                 renderMixer();
                 renderCards();
-                applyAtmosphere(pickedEffect, pickedIntensity, pickedTier);
+                applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
               },
             },
             h("span", { class: "fm-atmo-layer-num" }, String(idx + 1)),
@@ -1929,7 +2515,7 @@ export async function showAtmosphereDialog() {
             pickedEffect = preset.id;
             renderMixer();
             renderCards();
-            applyAtmosphere(pickedEffect, pickedIntensity, pickedTier);
+            applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
           },
         }, h("span", { class: "fm-atmo-preset-icon" }, preset.icon), h("span", {}, preset.label));
       }),
@@ -1945,14 +2531,49 @@ export async function showAtmosphereDialog() {
     );
   };
 
-  // -- Search & Category Filter Bar ----------------------------------------------------------------------------------
+  // -- Search, Category, Tier & Animation Engine Filter Bar ----------------------------------------------------------
+  let activeTierFilter = "all";
+  let activeAnimFilter = "all";
+
+  const ATMO_TIER_FILTERS = [
+    { id: "all", label: "All Tiers (160)" },
+    { id: "ultra", label: "🚀 Ultra / Modern ARM Tier (65)" },
+    { id: "medium", label: "✨ Medium / Balanced Tier (55)" },
+    { id: "low", label: "⚡ Low / Eco Tier (40)" },
+  ];
+
+  const ATMO_ANIM_FILTERS = [
+    { id: "all", label: "All Animations" },
+    { id: "tesla", label: "⚡ High-Voltage Arcs (Tesla)" },
+    { id: "physics", label: "⚛️ Relativistic & Chaos Physics" },
+    { id: "interactive", label: "🎯 Cursor-Interactive" },
+    { id: "particles", label: "🌧️ Falling & Rising Particles" },
+    { id: "waves", label: "🌌 Waves, Beams & Nebulae" },
+    { id: "rings", label: "🌀 Grids, Portals & Helices" },
+  ];
+
+  const matchesAtmoAnim = (opt, anim) => {
+    if (!anim || anim === "all" || opt.id === "none") return true;
+    const e = opt.engine;
+    if (anim === "tesla") return e === "tesla";
+    if (anim === "physics") return e === "physics";
+    if (anim === "interactive") return ["tesla", "physics", "orbs", "network", "portal", "radar"].includes(e);
+    if (anim === "particles") return ["precip", "snow", "ember", "stars", "glyph"].includes(e);
+    if (anim === "waves") return ["waves", "beams", "aurora", "nebula", "mist"].includes(e);
+    if (anim === "rings") return ["grid", "portal", "radar", "dna", "circuit", "geometry"].includes(e);
+    return true;
+  };
+
   const searchInput = h("input", {
     type: "search",
     class: "prop-input fm-atmo-search",
-    placeholder: "Search 135 effects (e.g. sakura, nebula, liquid glass, m4, outrun, matrix, dna, snow)…",
+    placeholder: "Search 160 effects (e.g. tesla, tokamak, cherenkov, collider, ferrofluid, lorenz, hawking, nebula)…",
     "aria-label": "Search atmospheric effects",
   });
   const catBar = h("div", { class: "fm-atmo-cat-bar", role: "tablist", "aria-label": "Effect categories" });
+  const tierFilterBar = h("div", { class: "fm-atmo-cat-bar fm-atmo-tier-filter-bar", role: "tablist", "aria-label": "Filter effects by tier" });
+  const animFilterBar = h("div", { class: "fm-atmo-cat-bar fm-atmo-anim-filter-bar", role: "tablist", "aria-label": "Filter effects by animation style" });
+
   const renderCatBar = () => {
     catBar.replaceChildren(...ATMOSPHERE_CATEGORIES.map((cat) => {
       const active = activeCat === cat.id;
@@ -1969,6 +2590,41 @@ export async function showAtmosphereDialog() {
       }, cat.label);
     }));
   };
+
+  const renderTierFilterBar = () => {
+    tierFilterBar.replaceChildren(...ATMO_TIER_FILTERS.map((tf) => {
+      const active = activeTierFilter === tf.id;
+      return h("button", {
+        type: "button",
+        class: `fm-atmo-cat-btn${active ? " is-active" : ""}`,
+        "data-tier-filter": tf.id,
+        "aria-pressed": String(active),
+        onclick: () => {
+          activeTierFilter = tf.id;
+          renderTierFilterBar();
+          renderCards();
+        },
+      }, tf.label);
+    }));
+  };
+
+  const renderAnimFilterBar = () => {
+    animFilterBar.replaceChildren(...ATMO_ANIM_FILTERS.map((af) => {
+      const active = activeAnimFilter === af.id;
+      return h("button", {
+        type: "button",
+        class: `fm-atmo-cat-btn${active ? " is-active" : ""}`,
+        "data-anim-filter": af.id,
+        "aria-pressed": String(active),
+        onclick: () => {
+          activeAnimFilter = af.id;
+          renderAnimFilterBar();
+          renderCards();
+        },
+      }, af.label);
+    }));
+  };
+
   searchInput.addEventListener("input", () => {
     searchQuery = searchInput.value.trim().toLowerCase();
     renderCards();
@@ -1978,12 +2634,14 @@ export async function showAtmosphereDialog() {
 
   const renderCards = () => {
     const activeIds = parseAtmosphereIds(pickedEffect);
-    sectionsContainer.replaceChildren(...ATMOSPHERE_SECTIONS.map((sec) => {
+    const visibleSections = ATMOSPHERE_SECTIONS.filter((sec) => activeTierFilter === "all" || sec.tier === activeTierFilter);
+    sectionsContainer.replaceChildren(...visibleSections.map((sec) => {
       const sectionOptions = ATMOSPHERE_OPTIONS.filter((opt) => {
         if (opt.section !== sec.tier) return false;
         if (activeCat !== "all" && opt.cat !== activeCat && opt.id !== "none") return false;
+        if (!matchesAtmoAnim(opt, activeAnimFilter)) return false;
         if (searchQuery) {
-          const hay = `${opt.id} ${opt.label} ${opt.badge} ${opt.desc} ${opt.cat} ${opt.engine}`.toLowerCase();
+          const hay = `${opt.id} ${opt.label} ${opt.badge} ${opt.desc} ${opt.cat} ${opt.engine} ${opt.section}`.toLowerCase();
           if (!hay.includes(searchQuery)) return false;
         }
         return true;
@@ -2002,7 +2660,7 @@ export async function showAtmosphereDialog() {
                   if (parseAtmosphereIds(pickedEffect).length > 1) mixMode = true;
                   renderMixer();
                   renderCards();
-                  applyAtmosphere(pickedEffect, pickedIntensity, pickedTier);
+                  applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
                 },
               }, layerIdx >= 0 ? `Layer ${layerIdx + 1}` : "+ Mix")
             : null;
@@ -2010,6 +2668,8 @@ export async function showAtmosphereDialog() {
             type: "button",
             class: `fm-atmo-card fm-atmo-card-${sec.tier}${active ? " is-active" : ""}`,
             "data-atmo": opt.id,
+            "data-atmo-tier": sec.tier,
+            "data-atmo-engine": opt.engine,
             "aria-pressed": String(active),
             onclick: (e) => {
               if (opt.id === "none") {
@@ -2021,7 +2681,7 @@ export async function showAtmosphereDialog() {
               }
               renderMixer();
               renderCards();
-              applyAtmosphere(pickedEffect, pickedIntensity, pickedTier);
+              applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
             },
           },
           h("div", { class: "fm-atmo-preview", "data-preview": opt.id, "data-engine": opt.engine, "aria-hidden": "true" },
@@ -2050,8 +2710,12 @@ export async function showAtmosphereDialog() {
 
   renderTiers();
   updateTierHint();
+  renderReactiveBar();
+  updateReactiveHint();
   renderMixer();
   renderCatBar();
+  renderTierFilterBar();
+  renderAnimFilterBar();
   renderCards();
 
   const themeSyncBar = h("div", { class: "fm-atmo-theme-sync" },
@@ -2060,10 +2724,15 @@ export async function showAtmosphereDialog() {
       h("span", { class: "fm-atmo-sync-dot fm-atmo-sync-dot-2" }),
       h("span", { class: "fm-atmo-sync-dot fm-atmo-sync-dot-3" }),
     ),
-    h("span", { class: "fm-atmo-sync-text" }, "135 Procedural Effects + 20 Signature Mixes · Harmonized with your active theme’s palette"),
+    h("span", { class: "fm-atmo-sync-text" }, "160 Procedural Effects + 28 Signature Mixes · Harmonized with your active theme’s palette"),
   );
 
-  const filterBar = h("div", { class: "fm-atmo-filter-bar" }, searchInput, catBar);
+  const filterBar = h("div", { class: "fm-atmo-filter-bar" },
+    searchInput,
+    catBar,
+    tierFilterBar,
+    animFilterBar,
+  );
 
   const dlg = openDialog({
     title: "Atmospheric special effects",
@@ -2074,6 +2743,11 @@ export async function showAtmosphereDialog() {
         h("strong", {}, "Hardware graphics tier"),
         tierBar,
         tierHint,
+      ),
+      h("div", { class: "fm-atmo-tier-box fm-atmo-reactive-box" },
+        h("strong", {}, "Reactive physics & telemetry modulation"),
+        reactiveBar,
+        reactiveHint,
       ),
       mixerDock,
       filterBar,
@@ -2093,17 +2767,17 @@ export async function showAtmosphereDialog() {
 
   const choice = await dlg.result;
   if (choice === "save") {
-    await saveSettings({ atmosphere: pickedEffect, atmosphereIntensity: pickedIntensity, atmosphereTier: pickedTier });
-    applyAtmosphere(pickedEffect, pickedIntensity, pickedTier);
+    await saveSettings({ atmosphere: pickedEffect, atmosphereIntensity: pickedIntensity, atmosphereTier: pickedTier, atmosphereReactive: pickedReactive });
+    applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
     const label = formatAtmosphereLabel(pickedEffect);
     const tierLabel = HARDWARE_TIERS.find((t) => t.id === (pickedTier === "auto" ? detectedTier : pickedTier))?.label || pickedTier;
     toast(pickedEffect === "none" ? "Atmospheric effects turned off." : `Atmosphere set to ${label} (${tierLabel}).`, { kind: "info" });
   } else if (choice === "off") {
     await saveSettings({ atmosphere: "none" });
-    applyAtmosphere("none", pickedIntensity, pickedTier);
+    applyAtmosphere("none", pickedIntensity, pickedTier, pickedReactive);
     toast("Atmospheric effects turned off.", { kind: "info" });
   } else {
-    applyAtmosphere(savedEffect, savedIntensity, savedTier);
+    applyAtmosphere(savedEffect, savedIntensity, savedTier, savedReactive);
   }
 }
 

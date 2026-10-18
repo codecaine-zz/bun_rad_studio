@@ -240,6 +240,33 @@
   background: color-mix(in oklab, var(--accent) 20%, var(--panel));
   font-weight: 650;
 }
+.theme-reset-pill {
+  margin-left: auto;
+  border-style: dashed;
+}
+.theme-card-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.28rem;
+  margin-top: 0.1rem;
+}
+.theme-tier-badge,
+.theme-anim-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.08rem 0.38rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--panel) 88%, var(--bg));
+  color: var(--muted);
+}
+.theme-tier-ultra {
+  border-color: color-mix(in oklab, var(--accent) 55%, var(--border));
+  color: var(--accent);
+}
 .theme-card-actions {
   position: absolute;
   top: 6px;

@@ -42,7 +42,7 @@ type Scene = {
 const scenes: Scene[] = [
   {
     id: "01_hook",
-    badge: "01 / 18 · CROSS-PLATFORM WORKSTATION",
+    badge: "01 / 19 · CROSS-PLATFORM WORKSTATION",
     title: "THIS IS A\nFILE MANAGER?!",
     label: "WINDOWS · macOS · LINUX · x64 & ARM64",
     extra: "Free & Open-Source · 100% Local · PowerShell + WSL on Windows",
@@ -54,7 +54,7 @@ const scenes: Scene[] = [
   },
   {
     id: "02_tabs_tree_tags",
-    badge: "02 / 18 · NAVIGATION & ORGANIZATION",
+    badge: "02 / 19 · NAVIGATION & ORGANIZATION",
     title: "TABS, TREES\n& COLOR TAGS.",
     label: "FOLDER TABS · SIDEBAR TREE · COLOR TAGS",
     extra: "Multi-Tab Browsing · Expandable Folder Tree · Group by Kind",
@@ -66,7 +66,7 @@ const scenes: Scene[] = [
   },
   {
     id: "03_dual_safety",
-    badge: "03 / 18 · DUAL-PANE & ZERO DATA LOSS",
+    badge: "03 / 19 · DUAL-PANE & ZERO DATA LOSS",
     title: "DUAL PANES.\nSAFE BY DEFAULT.",
     label: "DUAL PANE · F5 COPY · F6 MOVE · RECYCLE BIN",
     extra: "Live Progress · Collision Protection · Safe Restore & Undo",
@@ -78,7 +78,7 @@ const scenes: Scene[] = [
   },
   {
     id: "04_quicklook",
-    badge: "04 / 18 · SPACEBAR QUICK LOOK",
+    badge: "04 / 19 · SPACEBAR QUICK LOOK",
     title: "PRESS SPACE.\nINSTANT PREVIEW.",
     label: "PHOTOS · PDF · DOCX · XLSX · ARCHIVES · CODE",
     extra: "Flip Through Folders With Arrow Keys · Copy Image or Text Instantly",
@@ -90,7 +90,7 @@ const scenes: Scene[] = [
   },
   {
     id: "05_perms_lock",
-    badge: "05 / 18 · METADATA, PERMISSIONS & LOCK",
+    badge: "05 / 19 · METADATA, PERMISSIONS & LOCK",
     title: "VISUAL CHMOD &\nAES-256 LOCK.",
     label: "DEEP FILE INFO · OCTAL PERMISSIONS · .radenc LOCK",
     extra: "SHA-256 Fingerprints · Color Palettes · Password File Encryption",
@@ -102,7 +102,7 @@ const scenes: Scene[] = [
   },
   {
     id: "06_find_rename",
-    badge: "06 / 18 · DEEP FIND & BULK RENAME",
+    badge: "06 / 19 · DEEP FIND & BULK RENAME",
     title: "FIND MATCHES.\nRENAME IN BULK.",
     label: "FAST SEARCH + LIVE RENAME PREVIEW",
     extra: "Every New Name Checked Before Anything Changes on Disk",
@@ -114,7 +114,7 @@ const scenes: Scene[] = [
   },
   {
     id: "07_compare_projects",
-    badge: "07 / 18 · COMPARE, PROJECTS & ACTIONS",
+    badge: "07 / 19 · COMPARE, PROJECTS & ACTIONS",
     title: "COMPARE FOLDERS\n& SAVE WORKSPACES.",
     label: "TWO-FOLDER DIFF · PROJECTS · ACTION RECIPES",
     extra: "Side-by-Side Folder Sync · Saved Project Tabs · One-Click Recipes",
@@ -126,7 +126,7 @@ const scenes: Scene[] = [
   },
   {
     id: "08_terminal_sync",
-    badge: "08 / 18 · TWO-WAY SYNCED TERMINAL",
+    badge: "08 / 19 · TWO-WAY SYNCED TERMINAL",
     title: "TYPE cd.\nYOUR FILES FOLLOW.",
     label: "SYNCED TERMINAL + QUOTED PATH INSERTION",
     extra: "PowerShell · CMD · Git Bash · WSL · zsh · bash",
@@ -138,7 +138,7 @@ const scenes: Scene[] = [
   },
   {
     id: "09_code_dev",
-    badge: "09 / 18 · CODE EDITOR & DEV STATION",
+    badge: "09 / 19 · CODE EDITOR & DEV STATION",
     title: "CODE EDITOR,\nGIT & CODE STATS.",
     label: "70+ TEXT TRANSFORMS · MULTI-FILE REPLACE · DEV TAB",
     extra: "Zen Mode · Regex Replace with Undo · Tokei Code Stats · Git · QR",
@@ -150,7 +150,7 @@ const scenes: Scene[] = [
   },
   {
     id: "10_toolbox_serve",
-    badge: "10 / 18 · SERVE, WATCH & POWER TOOLBOX",
+    badge: "10 / 19 · SERVE, WATCH & POWER TOOLBOX",
     title: "A FULL DEVELOPER\nTOOLBOX INSIDE.",
     label: "LIVE SERVER · CRYPTO · SECRETS VAULT · CLOCKS",
     extra: "Watch Automation · Multi-Connection Downloads · API Studio · CLI Tools",
@@ -161,8 +161,20 @@ const scenes: Scene[] = [
     length: 22,
   },
   {
+    id: "10b_tasks_sysinfo",
+    badge: "11 / 19 · TASKS & SYSTEM TELEMETRY",
+    title: "PROCESS MANAGER\n& SYSTEM INFO.",
+    label: "PROCESS & TASK MANAGER · HARDWARE TELEMETRY",
+    extra: "Live CPU & RAM · TCP Port Bindings · Per-Core Bars · Baseline Diff",
+    bullets: ["Live Processes, Tree & Port Map", "Per-Core CPU, GPU, Disks & Net", "Pin & Compare Telemetry Baseline"],
+    say: "Monitor live processes, port bindings, and process trees in the Task Manager, and inspect per-core C P U, G P U, disks, and baseline diffs in System Info.",
+    file: "21aa_tasks_sysinfo",
+    start: 1,
+    length: 24,
+  },
+  {
     id: "11_image_media_studios",
-    badge: "11 / 18 · IMAGE & MEDIA STUDIOS",
+    badge: "12 / 19 · IMAGE & MEDIA STUDIOS",
     title: "EDIT PHOTOS,\nVIDEO & AUDIO.",
     label: "IMAGE STUDIO · MEDIA STUDIO · BATCH PRESETS",
     extra: "Live Sliders · Trim, Speed & Fades · Apply Saved Presets in Bulk",
@@ -174,7 +186,7 @@ const scenes: Scene[] = [
   },
   {
     id: "12_ampdeck_paint_games",
-    badge: "12 / 18 · AMPDECK, PAINT & 24 GAMES",
+    badge: "13 / 19 · AMPDECK, PAINT & 24 GAMES",
     title: "MEDIA DECK, PAINT\n& 24 ARCADE GAMES.",
     label: "10-BAND EQ · 108 VISUALIZERS · PAINT · 24 GAMES",
     extra: "Synced Lyrics Player · Vector Coloring Book · Retro Arcade Suite",
@@ -186,7 +198,7 @@ const scenes: Scene[] = [
   },
   {
     id: "13_themes_gallery",
-    badge: "13 / 18 · 180 THEMES & RETRO OS LOOKS",
+    badge: "14 / 19 · 180 THEMES & RETRO OS LOOKS",
     title: "180 THEMES.\nBeOS TO NEON GLASS.",
     label: "BeOS · OS/2 WARP · PALM OS · ORBITAL ICE · EMBER GRID",
     extra: "Rare Classic Systems · Frosted Glass · Living Neon Glow",
@@ -198,7 +210,7 @@ const scenes: Scene[] = [
   },
   {
     id: "14_theme_editor",
-    badge: "14 / 18 · LIVE CUSTOM THEME DESIGNER",
+    badge: "15 / 19 · LIVE CUSTOM THEME DESIGNER",
     title: "YOUR GLASS.\nYOUR SHORTCUTS.",
     label: "OPACITY · GLASS BLUR · GLOW · CUSTOM KEYS",
     extra: "Slide Panel Opacity & Blur Live · Remap Any Keyboard Shortcut",
@@ -210,7 +222,7 @@ const scenes: Scene[] = [
   },
   {
     id: "15_databases_clone",
-    badge: "15 / 18 · 4 DATABASES & CROSS-ENGINE CLONING",
+    badge: "16 / 19 · 4 DATABASES & CROSS-ENGINE CLONING",
     title: "4 DATABASE ENGINES.\nCROSS-ENGINE CLONING.",
     label: "SQLite · MySQL · PostgreSQL · Redis",
     extra: "Keychain Security · Clone Tables, Views, Indexes, FKs & Redis Hashes",
@@ -223,7 +235,7 @@ const scenes: Scene[] = [
   },
   {
     id: "16_db_macros_ide",
-    badge: "16 / 18 · BUN JS MACROS & STUDIO IDE v2",
+    badge: "17 / 19 · BUN JS MACROS & STUDIO IDE v2",
     title: "BUN JS MACROS,\nER DIAGRAMS & CODEGEN.",
     label: "DAO / DoCmd MACROS · 15-FORMAT STAGING · STUDIO IDE v2",
     extra: "Visual Query Designer · Full ER Diagram · Schema Diff · 5-Language Codegen",
@@ -236,7 +248,7 @@ const scenes: Scene[] = [
   },
   {
     id: "17_simplegui_rad",
-    badge: "17 / 18 · SIMPLEGUI TYPESCRIPT RAD",
+    badge: "18 / 19 · SIMPLEGUI TYPESCRIPT RAD",
     title: "BUILD DESKTOP APPS\nIN TYPESCRIPT.",
     label: "SIMPLEGUI API · 45 RAD MODULES · SINGLE BINARY",
     extra: "Reactive State · SweetAlert2 · SQLite Apps · Compile Standalone Executables",
@@ -249,12 +261,12 @@ const scenes: Scene[] = [
   },
   {
     id: "18_all_in_one_cta",
-    badge: "18 / 18 · FULL 2h 11m ALL-IN-ONE TUTORIAL",
+    badge: "19 / 19 · FULL ALL-IN-ONE MASTER TUTORIAL",
     title: "WATCH THE FULL\nALL-IN-ONE COURSE.",
     label: "FILE MANAGER + 4 DATABASES + VISUAL DESIGNER + RAD",
-    extra: "2 Hours 11 Minutes · 105 Step-by-Step Chapters · Every Click Shown Live",
+    extra: "2+ Hours · 106 Step-by-Step Chapters · Every Click Shown Live",
     bullets: ["Codecaine File Manager Complete Guide", "All 4 Databases & Cloning Masterclass", "Visual Designer & SimpleGUI RAD Course"],
-    say: "Plus the no-code Visual Designer that exports TypeScript, React, Vue, and Python. Watch the complete two-hour All-in-One Master Tutorial with all one hundred and five chapters: tap the related video below my name.",
+    say: "Plus the no-code Visual Designer that exports TypeScript, React, Vue, and Python. Watch the complete two-hour All-in-One Master Tutorial with all one hundred and six chapters: tap the related video below my name.",
     suite: "designer_tutorial",
     file: "01_tour",
     start: 20.7,
@@ -306,8 +318,8 @@ body{background:radial-gradient(900px 600px at 50% 0%,#1e1b4b,transparent),#090d
 </div>
 ${
   isLast
-    ? `<div class="cta"><strong>▶ FULL 2:11:26 ALL-IN-ONE MASTER TUTORIAL (105 CHAPTERS)</strong><p>Tap the related video link right below my channel name!</p><p class="sub">${esc(REPO)}</p></div>`
-    : `<div class="cta"><strong>▶ FULL 2h 11m ALL-IN-ONE TUTORIAL BELOW</strong><p>File Manager · 4 Databases · Visual Designer · SimpleGUI RAD</p><p class="sub">Tap the related video below my channel name · 105 chapters</p></div>`
+    ? `<div class="cta"><strong>▶ FULL ALL-IN-ONE MASTER TUTORIAL (106 CHAPTERS)</strong><p>Tap the related video link right below my channel name!</p><p class="sub">${esc(REPO)}</p></div>`
+    : `<div class="cta"><strong>▶ FULL 2h+ ALL-IN-ONE TUTORIAL BELOW</strong><p>File Manager · 4 Databases · Visual Designer · SimpleGUI RAD</p><p class="sub">Tap the related video below my channel name · 106 chapters</p></div>`
 }`;
 }
 
@@ -327,20 +339,20 @@ function notesMarkdown(seconds: number, tempo: number, sceneMarks: Array<{ at: n
 ## Video File
 
 - **Short MP4**: \`youtube_production/codecaine-file-manager-all-in-one-short.mp4\` (${seconds.toFixed(1)}s, 1080×1920 vertical, 30 fps)
-- **Target Related Video**: \`youtube_production/all_in_one_tutorial.mp4\` (\`2:11:26\`, 105 chapters — see \`youtube_production/ALL_IN_ONE_TUTORIAL_NOTES.md\`)
+- **Target Related Video**: \`youtube_production/all_in_one_tutorial.mp4\` (106 chapters — see \`youtube_production/ALL_IN_ONE_TUTORIAL_NOTES.md\`)
 
 ## YouTube Short Titles (Pick One)
 
 1. **This Free File Manager Replaced 15 Developer Tools?! (Full 2h Course Below) #Shorts**
 2. **Codecaine File Manager: Dual Pane, Synced Terminal, 180 Themes & 4 Databases #Shorts**
-3. **180 Themes, 4 Databases, Cross-Engine Cloning & Media Studios in One File Manager?! #Shorts**
+3. **180 Themes, 4 Databases, Task Manager, System Info & Media Studios in One File Manager?! #Shorts**
 
 ## YouTube Short Description (Copy & Paste)
 
 \`\`\`text
-Everything you can do in the Codecaine File Manager — and where to watch the complete 2-hour-11-minute All-in-One Master Tutorial (105 chapters)!
+Everything you can do in the Codecaine File Manager — and where to watch the complete All-in-One Master Tutorial (106 chapters)!
 
-▶ WATCH THE FULL 2:11:26 ALL-IN-ONE MASTER TUTORIAL:
+▶ WATCH THE FULL ALL-IN-ONE MASTER TUTORIAL:
 Tap the clickable Related Video link right below my channel name in the Shorts player!
 
 ⬇️ Free Download (Windows, macOS & Linux · x64 & ARM64): ${REPO}/releases/latest
@@ -354,6 +366,7 @@ WHAT'S INSIDE CODECAINE FILE MANAGER & BUN RAD STUDIO:
 • Two-Way Synced Terminal (PowerShell, CMD, Git Bash, WSL, zsh, bash) + Safely Quoted Path Insertion
 • Built-in Code Editor (70+ Text Conversions, Zen Mode), Multi-File Regex Replace with Undo, QR Codes & Dev Station (Tokei + Git)
 • Live Web & PHP Server, Watch Automation, Crypto, Secrets Vault, World Clocks & Built-in CLI Utilities
+• Process & Task Manager (Live Processes, Process Tree, TCP Port Bindings) + System Information & Hardware Telemetry (Per-Core CPU, GPU, Disks, Baseline Diff)
 • Batch Converter, Image Studio, Media Studio, Presets, AmpDeck Media Player (Synced Lyrics), Paint Studio & 24 Arcade Games
 • 180 Themes (BeOS, OS/2 Warp, Orbital Ice, Ember Grid) + Live Custom Theme Editor (Opacity, Glass Blur, Neon Glow) & Custom Shortcuts
 • All 4 Databases Built In (SQLite, MySQL, PostgreSQL, Redis) + Cross-Engine Database & Redis Hash Cloning
@@ -371,8 +384,8 @@ ${stamps}
 1. Upload \`youtube_production/all_in_one_tutorial.mp4\` using \`youtube_production/ALL_IN_ONE_TUTORIAL_NOTES.md\`.
 2. Upload \`youtube_production/codecaine-file-manager-all-in-one-short.mp4\` as a YouTube Short.
 3. In **YouTube Studio → Content → Shorts**, open this Short's details and click **Related video**.
-4. Select your uploaded **Codecaine File Manager & Bun RAD Studio Full Course (2:11:26)** video and click **Save**.
-5. Viewers watching the Short can now tap the related-video pill right below your channel handle to jump straight into the full 105-chapter All-in-One Master Tutorial.
+4. Select your uploaded **Codecaine File Manager & Bun RAD Studio Full Course** video and click **Save**.
+5. Viewers watching the Short can now tap the related-video pill right below your channel handle to jump straight into the full 106-chapter All-in-One Master Tutorial.
 
 ## Build Notes
 

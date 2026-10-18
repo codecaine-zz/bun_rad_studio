@@ -30,6 +30,18 @@ export interface Settings {
   preferredLightPalette: string;
   /** Optional dark theme key used automatically when `theme === "auto"` and `palette === ""` while the OS is in dark mode. */
   preferredDarkPalette: string;
+  /** Whether the 4-stage Solar Cycle (Dawn / Day / Dusk / Midnight) automatic theme schedule is active. */
+  solarScheduleEnabled: boolean;
+  /** Dawn (05:00–08:59) palette key for the 4-stage Solar Cycle. */
+  solarDawnPalette: string;
+  /** Day (09:00–16:59) palette key for the 4-stage Solar Cycle. */
+  solarDayPalette: string;
+  /** Dusk / Golden Hour (17:00–20:59) palette key for the 4-stage Solar Cycle. */
+  solarDuskPalette: string;
+  /** Midnight (21:00–04:59) palette key for the 4-stage Solar Cycle. */
+  solarNightPalette: string;
+  /** Per-folder workspace theme profiles: absolute directory path -> theme palette key. */
+  folderThemes: Record<string, string>;
   /** Theme keys pinned by the user to appear at the top of the gallery and in the Themes menu. */
   favoriteThemes: string[];
   /** Optional atmospheric special effect or `+`-combined multi-effect mix shown across the File Manager. */
@@ -38,11 +50,19 @@ export interface Settings {
   atmosphereIntensity: number;
   /** Hardware graphics tier for atmospheric effects: "auto" detects Apple Silicon / modern ARM / CPU cores, or manual "low" | "medium" | "high" | "ultra". */
   atmosphereTier: AtmosphereTier;
+  /** Real-time reactive physics modulation mode ("off", "activity", "telemetry", "audio"). */
+  atmosphereReactive: AtmosphereReactiveMode;
   textSize: number;
   lastPath: string;
   seenWelcome: boolean;
   /** The file list follows the terminal when you `cd` in it. */
   terminalFollow: boolean;
+  /** Whether the built-in terminal panel at the bottom of the window is open. */
+  terminalOpen: boolean;
+  /** Remembered height in pixels of the built-in terminal panel (120..1200, default 300). */
+  terminalHeight: number;
+  /** Last working folder of the built-in terminal panel ("" = follow the current folder). */
+  terminalPath: string;
   workspace: Workspace;
   startWith: "files" | "home" | "last";
   splitSide: "right" | "bottom";
@@ -117,8 +137,14 @@ export const ATMOSPHERE_EFFECTS: readonly string[] = ATMOSPHERE_IDS;
 export type AtmosphereEffect = string;
 export const ATMOSPHERE_TIERS = ["auto", "low", "medium", "high", "ultra"] as const;
 export type AtmosphereTier = (typeof ATMOSPHERE_TIERS)[number];
+export const ATMOSPHERE_REACTIVE_MODES = ["off", "activity", "telemetry", "audio"] as const;
+export type AtmosphereReactiveMode = (typeof ATMOSPHERE_REACTIVE_MODES)[number];
+export const MAX_FOLDER_THEMES = 100;
 export const SPLIT_MIN = 20;
 export const SPLIT_MAX = 80;
+export const TERMINAL_HEIGHT_MIN = 120;
+export const TERMINAL_HEIGHT_MAX = 1200;
+export const TERMINAL_HEIGHT_DEFAULT = 300;
 const TOOL_ID = /^[a-z][a-z0-9-]{0,24}$/;
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -136,14 +162,24 @@ export const DEFAULT_SETTINGS: Settings = {
   palette: "",
   preferredLightPalette: "",
   preferredDarkPalette: "",
+  solarScheduleEnabled: false,
+  solarDawnPalette: "",
+  solarDayPalette: "",
+  solarDuskPalette: "",
+  solarNightPalette: "",
+  folderThemes: {},
   favoriteThemes: [],
   atmosphere: "none",
   atmosphereIntensity: 60,
   atmosphereTier: "auto",
+  atmosphereReactive: "off",
   textSize: 100,
   lastPath: "",
   seenWelcome: false,
   terminalFollow: true,
+  terminalOpen: false,
+  terminalHeight: TERMINAL_HEIGHT_DEFAULT,
+  terminalPath: "",
   workspace: "files",
   startWith: "files",
   splitSide: "right",
@@ -225,7 +261,15 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
   }
   const size = typeof r.textSize === "number" && isFinite(r.textSize) ? Math.round(Math.min(160, Math.max(80, r.textSize))) : DEFAULT_SETTINGS.textSize;
   const atmosphereIntensity = typeof r.atmosphereIntensity === "number" && isFinite(r.atmosphereIntensity) ? Math.round(Math.min(100, Math.max(10, r.atmosphereIntensity))) : DEFAULT_SETTINGS.atmosphereIntensity;
+  const terminalHeight = typeof r.terminalHeight === "number" && isFinite(r.terminalHeight) ? Math.round(Math.min(TERMINAL_HEIGHT_MAX, Math.max(TERMINAL_HEIGHT_MIN, r.terminalHeight))) : DEFAULT_SETTINGS.terminalHeight;
   const isPaletteKey = (v: unknown): v is string => typeof v === "string" && /^[a-z0-9_]{1,60}$/.test(v);
+  const folderThemes: Record<string, string> = {};
+  const rawFolderThemes = r.folderThemes && typeof r.folderThemes === "object" && !Array.isArray(r.folderThemes) ? (r.folderThemes as Record<string, unknown>) : {};
+  for (const [key, value] of Object.entries(rawFolderThemes)) {
+    if (Object.keys(folderThemes).length >= MAX_FOLDER_THEMES) break;
+    if (!isPath(key) || !isPaletteKey(value)) continue;
+    folderThemes[p.resolve(key)] = value;
+  }
   return {
     favorites,
     favoriteNames: names,
@@ -241,14 +285,24 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     palette: isPaletteKey(r.palette) ? r.palette : "",
     preferredLightPalette: isPaletteKey(r.preferredLightPalette) ? r.preferredLightPalette : "",
     preferredDarkPalette: isPaletteKey(r.preferredDarkPalette) ? r.preferredDarkPalette : "",
+    solarScheduleEnabled: typeof r.solarScheduleEnabled === "boolean" ? r.solarScheduleEnabled : DEFAULT_SETTINGS.solarScheduleEnabled,
+    solarDawnPalette: isPaletteKey(r.solarDawnPalette) ? r.solarDawnPalette : "",
+    solarDayPalette: isPaletteKey(r.solarDayPalette) ? r.solarDayPalette : "",
+    solarDuskPalette: isPaletteKey(r.solarDuskPalette) ? r.solarDuskPalette : "",
+    solarNightPalette: isPaletteKey(r.solarNightPalette) ? r.solarNightPalette : "",
+    folderThemes,
     favoriteThemes,
     atmosphere: normalizeAtmosphereSpec(r.atmosphere) || DEFAULT_SETTINGS.atmosphere,
     atmosphereIntensity,
     atmosphereTier: oneOf(r.atmosphereTier, ATMOSPHERE_TIERS, DEFAULT_SETTINGS.atmosphereTier),
+    atmosphereReactive: oneOf(r.atmosphereReactive, ATMOSPHERE_REACTIVE_MODES, DEFAULT_SETTINGS.atmosphereReactive),
     textSize: size,
     lastPath: isPath(r.lastPath) ? p.resolve(r.lastPath) : "",
     seenWelcome: typeof r.seenWelcome === "boolean" ? r.seenWelcome : DEFAULT_SETTINGS.seenWelcome,
     terminalFollow: typeof r.terminalFollow === "boolean" ? r.terminalFollow : DEFAULT_SETTINGS.terminalFollow,
+    terminalOpen: typeof r.terminalOpen === "boolean" ? r.terminalOpen : DEFAULT_SETTINGS.terminalOpen,
+    terminalHeight,
+    terminalPath: isPath(r.terminalPath) ? p.resolve(r.terminalPath) : "",
     workspace: oneOf(r.workspace, WORKSPACES, DEFAULT_SETTINGS.workspace),
     startWith: oneOf(r.startWith, ["files", "home", "last"], DEFAULT_SETTINGS.startWith),
     splitSide: oneOf(r.splitSide, ["right", "bottom"], DEFAULT_SETTINGS.splitSide),
