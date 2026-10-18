@@ -1287,8 +1287,60 @@ describe("the theme editor in the page", () => {
     expect(mergedDetail.source?.fx?.uiElementFx).toBe("fire_folders");
     expect(mergedDetail.source?.colors?.accent).toBe("#ffbe0b"); // Kept existing CDE accent color while merging Inferno FX!
 
+    // 7. 🍎 High-End 3D Regular Folders & Pictures, 1-Click Jumpstart Kits, Option+] Selection Templates HUD, and Instant Keyboard Paste Import
+    const { entryIcon, classifyFolderTopic } = await import("../resources/file_manager/ui/dom.js");
+    expect(classifyFolderTopic("Pictures")).toBe("pictures");
+    expect(classifyFolderTopic("4K_Camera_Roll")).toBe("pictures");
+    expect(classifyFolderTopic("Videos")).toBe("video");
+    expect(classifyFolderTopic("Music")).toBe("music");
+    expect(classifyFolderTopic("src")).toBe("code");
+    expect(classifyFolderTopic("Blender_3D_Assets")).toBe("3d");
+
+    doc.documentElement.setAttribute("data-icon-pack", "macos_tahoe_3d");
+    expect(entryIcon({ isDirectory: true, name: "Pictures" })).toBe("🖼️");
+    expect(entryIcon({ isDirectory: true, name: "RegularProject" })).toBe("📁");
+    expect(entryIcon({ isDirectory: false, kind: "image", name: "hero_8k.png" })).toBe("🏞️");
+
+    doc.documentElement.setAttribute("data-icon-pack", "hdr_photo_studio");
+    expect(entryIcon({ isDirectory: true, name: "Photos_RAW" })).toBe("📸");
+    expect(entryIcon({ isDirectory: false, kind: "image", name: "portrait.cr3" })).toBe("🖼️");
+
+    // 1-Click Jumpstart Workstation Kits
+    expect((themes as any).JUMPSTART_WORKSTATION_KITS.length).toBeGreaterThanOrEqual(8);
+    const kitApplied = await (themes as any).applyJumpstartKit("macos_tahoe_3d_kit");
+    expect(kitApplied?.palette).toBe("tahoe_studio_3d");
+    expect(doc.documentElement.getAttribute("data-ui-fx")).toBe("tahoe_glass_folders");
+    expect(doc.documentElement.getAttribute("data-icon-pack")).toBe("macos_tahoe_3d");
+
+    // Option + ] / [ Quick-Switcher HUD & Flagship Selection Templates
+    expect((themes as any).OPTION_BRACKET_SHOWCASE_TEMPLATES.length).toBeGreaterThanOrEqual(12);
+    const cycledName = await themes.cycleTheme(1, { showcaseOnly: true, showHud: true });
+    expect(cycledName.length).toBeGreaterThan(0);
+    const quickHud = doc.getElementById("fm-quick-cycle-hud");
+    expect(quickHud).toBeTruthy();
+    expect(quickHud?.querySelectorAll("[data-quick-cycle-tpl]").length).toBeGreaterThanOrEqual(10);
+    (themes as any).hideQuickCycleHud();
+    expect(doc.getElementById("fm-quick-cycle-hud")).toBeNull();
+
+    // Instant Keyboard Paste Theme Import (⌘V / Ctrl+V & looksLikeThemeImportPayload)
+    const pasteShareCode = themeStore.encodeThemeShareCode(validateDraft({
+      name: "Pasted Instant Mac XDR Theme",
+      dark: true,
+      colors: { background: "#05070e", card: "#0e1320", text: "#f2f6ff", accent: "#38bdf8" },
+      fx: { glow: "bloom", glowColor: "#38bdf8", glowColor2: "#818cf8", blur: 26, glass: 0.65, glowIntensity: 0.85, borderOpacity: 0.3, grain: "none", scanlines: "none", radius: "squircle", border: "iridescent", motion: "spring", sheen: true, noise: false, chromatic: false, ambient: true, atmosphere: "none", uiElementFx: "tahoe_glass_folders", iconPackStyle: "macos_tahoe_3d" },
+    }));
+    expect((themes as any).looksLikeThemeImportPayload(pasteShareCode)).toBe(true);
+    expect((themes as any).looksLikeThemeImportPayload("just normal file name text")).toBe(false);
+
+    const pasteOut = await (themes as any).pasteImportThemesFromText(pasteShareCode, { applyFirst: true });
+    expect(pasteOut.completed).toBe(true);
+    expect(pasteOut.result.addedCount).toBe(1);
+    expect(pasteOut.result.first.name).toBe("Pasted Instant Mac XDR Theme");
+    expect(state.settings.palette).toBe(pasteOut.result.first.id);
+
     await themes.applyPalette("");
     atmo.applyAtmosphere("none");
     closeDialogs();
   });
 });
+

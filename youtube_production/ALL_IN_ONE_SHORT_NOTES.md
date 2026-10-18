@@ -8,8 +8,8 @@
 ## YouTube Short Titles (Pick One)
 
 1. **This Free File Manager Replaced 15 Developer Tools?! (Full 2h Course Below) #Shorts**
-2. **Codecaine File Manager: Dual Pane, Synced Terminal, 180 Themes & 4 Databases #Shorts**
-3. **180 Themes, 4 Databases, Task Manager, System Info & Media Studios in One File Manager?! #Shorts**
+2. **Codecaine File Manager: Dual Pane, Synced Terminal, 200+ Themes & 4 Databases #Shorts**
+3. **200+ Themes, 194 Live Shaders, 4 Databases, Task Manager & Media Studios in One File Manager?! #Shorts**
 
 ## YouTube Short Description (Copy & Paste)
 
@@ -32,7 +32,7 @@ WHAT'S INSIDE CODECAINE FILE MANAGER & BUN RAD STUDIO:
 • Live Web & PHP Server, Watch Automation, Crypto, Secrets Vault, World Clocks & Built-in CLI Utilities
 • Process & Task Manager (Live Processes, Process Tree, TCP Port Bindings) + System Information & Hardware Telemetry (Per-Core CPU, GPU, Disks, Baseline Diff)
 • Batch Converter, Image Studio, Media Studio, Presets, AmpDeck Media Player (Synced Lyrics), Paint Studio & 24 Arcade Games
-• 180 Themes (BeOS, OS/2 Warp, Orbital Ice, Ember Grid) + Live Custom Theme Editor (Opacity, Glass Blur, Neon Glow) & Custom Shortcuts
+• 200+ Themes (5-Row Filter Pills, Folder Pinning, Split Comparator, 4-Stage Solar Cycle, Tesla Coil Plasma, Tokamak Fusion, BeOS, OS/2 Warp) + 194 Live Shaders (EF5 Debris Tornadoes, 4D Tesseract, 11D Calabi-Yau, 6-Layer Mixer) + Theme Editor v2 & Custom Shortcuts
 • All 4 Databases Built In (SQLite, MySQL, PostgreSQL, Redis) + Cross-Engine Database & Redis Hash Cloning
 • Bun JavaScript & Visual Macro Studio + 15-Format Staging Import Wizard + Studio IDE v2 (ER Diagrams, Schema Diff & 5-Language Codegen)
 • SimpleGUI TypeScript RAD Framework + SimpleGUI Visual Designer (No-Code App Builder)!
@@ -51,9 +51,9 @@ SHORT TIMESTAMPS
 1:23 PROCESS & TASK MANAGER · HARDWARE TELEMETRY
 1:33 IMAGE STUDIO · MEDIA STUDIO · BATCH PRESETS
 1:42 10-BAND EQ · 108 VISUALIZERS · PAINT · 24 GAMES
-1:52 BeOS · OS/2 WARP · PALM OS · ORBITAL ICE · EMBER GRID
-2:02 OPACITY · GLASS BLUR · GLOW · CUSTOM KEYS
-2:10 SQLite · MySQL · PostgreSQL · Redis
+1:51 5-ROW FILTERS · FOLDER PINNING · SPLIT COMPARATOR · SOLAR CYCLE
+2:01 EF5 TORNADOES · 4D TESSERACT · 6-LAYER MIXER · THEME EDITOR
+2:11 SQLite · MySQL · PostgreSQL · Redis
 2:22 DAO / DoCmd MACROS · 15-FORMAT STAGING · STUDIO IDE v2
 2:34 SIMPLEGUI API · 45 RAD MODULES · SINGLE BINARY
 2:43 FILE MANAGER + 4 DATABASES + VISUAL DESIGNER + RAD
@@ -72,5 +72,5 @@ SHORT TIMESTAMPS
 ## Build Notes
 
 - Rebuild: `bun scripts/build_all_in_one_short.ts`
-- Duration: 176.62 seconds (<180s YouTube Shorts limit), 1080×1920 vertical, 30 fps, H.264 High + 48kHz stereo AAC.
-- Narrator: en-US-AvaMultilingualNeural, +3% delivery rate, 0.22s sentence gaps, pace factor 1.079x.
+- Duration: 176.55 seconds (<180s YouTube Shorts limit), 1080×1920 vertical, 30 fps, H.264 High + 48kHz stereo AAC.
+- Narrator: en-US-AvaMultilingualNeural, +3% delivery rate, 0.22s sentence gaps, pace factor 1.082x.

@@ -1243,6 +1243,7 @@ export function showQuickCycleHud(activeKey, allThemes = [], { index = 0, total 
       type: "button",
       class: `fm-quick-cycle-tpl-chip${isCurrent ? " is-active" : ""}`,
       "data-quick-template": tpl.key,
+      "data-quick-cycle-tpl": tpl.key,
       "aria-pressed": String(isCurrent),
       title: `${tObj.name} — ${tObj.description || tpl.badge}`,
       onclick: async (e) => {
@@ -1363,12 +1364,12 @@ export function showQuickCycleHud(activeKey, allThemes = [], { index = 0, total 
 
 let cycling = false;
 export async function cycleTheme(direction, opts = {}) {
-  if (cycling) return;
+  if (cycling) return "";
   cycling = true;
   try {
     const themes = await themeList();
     let keys;
-    if (opts.pool === "showcase") {
+    if (opts.pool === "showcase" || opts.showcaseOnly) {
       keys = OPTION_BRACKET_SHOWCASE_TEMPLATES.map((t) => t.key).filter((k) => themes.some((th) => th.key === k));
     } else if (opts.pool === "favorites") {
       const favs = favoriteKeys().filter((k) => themes.some((th) => th.key === k));
@@ -1385,8 +1386,10 @@ export async function cycleTheme(direction, opts = {}) {
     if (opts.showHud !== false) {
       showQuickCycleHud(nextKey, themes, { index: next, total: keys.length });
     }
+    return themes.find((t) => t.key === nextKey)?.name || "Standard";
   } catch (err) {
     toast(err?.message || "The theme couldn't be changed.", { kind: "error" });
+    return "";
   } finally {
     cycling = false;
   }

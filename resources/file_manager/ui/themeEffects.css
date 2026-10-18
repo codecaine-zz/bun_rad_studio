@@ -2160,3 +2160,256 @@ html[data-theme-show-glitch="true"] body {
   gap: 0.55rem;
   font-size: 0.8rem;
 }
+
+/* ============================================================================
+ * 🍎 High-End 3D Regular Folders & Framed Picture Studios (macOS Tahoe / Win11 Fluent / M4 Pro XDR)
+ * ============================================================================ */
+
+:root[data-ui-fx="tahoe_glass_folders"] .row.is-folder,
+:root[data-ui-fx="tahoe_glass_folders"] .card.is-folder {
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--accent) 18%, var(--panel)) 0%, color-mix(in oklab, var(--panel) 90%, transparent) 100%);
+  border: 1px solid color-mix(in oklab, var(--accent) 38%, rgba(255, 255, 255, 0.24));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    0 6px 18px -6px color-mix(in oklab, var(--accent) 28%, rgba(0, 0, 0, 0.38));
+  backdrop-filter: blur(18px) saturate(1.55);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease;
+}
+:root[data-ui-fx="tahoe_glass_folders"] .row.is-folder:hover,
+:root[data-ui-fx="tahoe_glass_folders"] .card.is-folder:hover {
+  transform: translateY(-1px) scale(1.004);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.48),
+    0 10px 24px -6px color-mix(in oklab, var(--accent) 44%, rgba(0, 0, 0, 0.45));
+}
+
+:root[data-ui-fx="fluent_mica_folders"] .row.is-folder,
+:root[data-ui-fx="fluent_mica_folders"] .card.is-folder {
+  background:
+    linear-gradient(160deg, color-mix(in oklab, #fbbf24 14%, var(--panel)) 0%, color-mix(in oklab, var(--accent) 12%, var(--panel)) 100%);
+  border: 1px solid color-mix(in oklab, #fbbf24 34%, var(--border));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    0 5px 16px -5px rgba(0, 0, 0, 0.36);
+  backdrop-filter: blur(22px) saturate(1.65);
+}
+
+:root[data-ui-fx="xdr_titanium_folders"] .row.is-folder,
+:root[data-ui-fx="xdr_titanium_folders"] .card.is-folder {
+  background:
+    linear-gradient(180deg, color-mix(in oklab, #ffffff 8%, var(--panel)) 0%, color-mix(in oklab, #000000 18%, var(--panel)) 100%);
+  border: 1px solid color-mix(in oklab, var(--accent) 45%, rgba(255, 255, 255, 0.28));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.55),
+    0 8px 22px -6px rgba(0, 0, 0, 0.65);
+}
+
+/* 3D Sculpted Regular Folder & Framed Picture Icon Styling */
+:root[data-icon-pack="macos_tahoe_3d"] .c-icon,
+:root[data-icon-pack="win11_fluent_pro"] .c-icon,
+:root[data-icon-pack="pro_studio_xdr"] .c-icon,
+:root[data-icon-pack="hdr_photo_studio"] .c-icon,
+:root[data-icon-pack="linux_papirus_pro"] .c-icon,
+:root[data-icon-pack="nordic_minimal"] .c-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-radius: 7px;
+  padding: 2px 5px;
+  background: linear-gradient(145deg, color-mix(in oklab, var(--accent) 26%, var(--panel)), color-mix(in oklab, var(--panel) 86%, #000));
+  border: 1px solid color-mix(in oklab, var(--accent) 48%, rgba(255, 255, 255, 0.32));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 3px 8px rgba(0, 0, 0, 0.32);
+  transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 150ms ease;
+}
+:root[data-icon-pack="macos_tahoe_3d"] .row:hover .c-icon,
+:root[data-icon-pack="win11_fluent_pro"] .row:hover .c-icon,
+:root[data-icon-pack="pro_studio_xdr"] .row:hover .c-icon,
+:root[data-icon-pack="hdr_photo_studio"] .row:hover .c-icon,
+:root[data-icon-pack="linux_papirus_pro"] .row:hover .c-icon,
+:root[data-icon-pack="nordic_minimal"] .row:hover .c-icon {
+  transform: translateY(-1px) scale(1.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 5px 14px color-mix(in oklab, var(--accent) 45%, rgba(0, 0, 0, 0.4));
+}
+
+/* Framed High-End Picture / Photo / Media Icon Plates */
+:root[data-icon-pack="macos_tahoe_3d"] .c-icon[data-icon-kind="image"],
+:root[data-icon-pack="win11_fluent_pro"] .c-icon[data-icon-kind="image"],
+:root[data-icon-pack="pro_studio_xdr"] .c-icon[data-icon-kind="image"],
+:root[data-icon-pack="hdr_photo_studio"] .c-icon[data-icon-kind="image"],
+:root[data-icon-pack="linux_papirus_pro"] .c-icon[data-icon-kind="image"],
+:root[data-icon-pack="nordic_minimal"] .c-icon[data-icon-kind="image"] {
+  background:
+    radial-gradient(circle at 28% 26%, rgba(255, 214, 102, 0.42), transparent 48%),
+    linear-gradient(155deg, color-mix(in oklab, var(--accent) 38%, #1e293b) 0%, color-mix(in oklab, #ec4899 28%, var(--panel)) 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.58);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.25),
+    0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* 1-Click Jumpstart Kits Row & Paste Theme Button */
+.theme-jumpstart-row {
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px dashed color-mix(in oklab, var(--accent) 32%, var(--border));
+}
+.theme-jumpstart-pill {
+  font-weight: 650;
+  border-color: color-mix(in oklab, var(--accent) 45%, var(--border)) !important;
+  background: linear-gradient(135deg, color-mix(in oklab, var(--accent) 16%, var(--panel)), var(--panel)) !important;
+}
+.theme-paste-btn {
+  border-color: color-mix(in oklab, var(--accent) 52%, var(--border));
+  font-weight: 600;
+}
+
+/* ============================================================================
+ * 🎛️ Right ⌥ + ] / [ Selection Template Quick-Switcher HUD (#fm-quick-cycle-hud)
+ * ============================================================================ */
+.fm-quick-cycle-hud {
+  position: fixed;
+  left: 50%;
+  bottom: 1.35rem;
+  transform: translateX(-50%);
+  z-index: 9850;
+  width: min(94vw, 820px);
+  padding: 0.8rem 1rem;
+  border-radius: 16px;
+  border: 1px solid color-mix(in oklab, var(--accent) 52%, rgba(255, 255, 255, 0.24));
+  background: color-mix(in oklab, var(--panel) 86%, rgba(8, 12, 20, 0.88));
+  backdrop-filter: blur(28px) saturate(1.75);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 22px 50px -12px rgba(0, 0, 0, 0.72),
+    0 0 28px -8px color-mix(in oklab, var(--accent) 42%, transparent);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  animation: fmQuickHudPop 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes fmQuickHudPop {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+.fm-quick-cycle-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.fm-quick-cycle-kbd-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--accent) 20%, var(--bg));
+  border: 1px solid color-mix(in oklab, var(--accent) 48%, var(--border));
+  color: var(--text);
+}
+.fm-quick-cycle-counter {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.fm-quick-cycle-close {
+  padding: 0.18rem 0.5rem;
+  font-size: 0.75rem;
+}
+.fm-quick-cycle-carousel {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr 1fr;
+  gap: 0.65rem;
+  align-items: stretch;
+}
+.fm-quick-cycle-neighbor,
+.fm-quick-cycle-active-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--bg) 72%, var(--panel));
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease;
+}
+.fm-quick-cycle-neighbor:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+}
+.fm-quick-cycle-active-card {
+  border: 1.5px solid var(--accent);
+  background: linear-gradient(145deg, color-mix(in oklab, var(--accent) 18%, var(--panel)), color-mix(in oklab, var(--bg) 82%, var(--panel)));
+  box-shadow: 0 6px 20px -6px color-mix(in oklab, var(--accent) 42%, rgba(0, 0, 0, 0.5));
+  cursor: default;
+}
+.fm-quick-cycle-active-info,
+.fm-quick-cycle-neighbor-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.16rem;
+  min-width: 0;
+}
+.fm-quick-cycle-dir {
+  font-size: 0.68rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+.fm-quick-cycle-active-title {
+  font-size: 0.92rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fm-quick-cycle-active-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+  margin-top: 0.12rem;
+}
+.fm-quick-cycle-pill {
+  font-size: 0.67rem;
+  padding: 0.1rem 0.42rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--accent) 16%, var(--bg));
+  border: 1px solid color-mix(in oklab, var(--accent) 36%, var(--border));
+}
+.fm-quick-cycle-templates-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  padding-top: 0.35rem;
+  border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+}
+.fm-quick-cycle-templates-label {
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--muted);
+  margin-right: 0.2rem;
+}
+.fm-quick-cycle-tpl-chip {
+  font-size: 0.71rem;
+  font-weight: 600;
+  padding: 0.2rem 0.52rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.fm-quick-cycle-tpl-chip:hover,
+.fm-quick-cycle-tpl-chip.is-active {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+

@@ -80,40 +80,40 @@ export const ICON_PACK_GLYPHS = {
     disk: "💿", font: "🔤", file: "📃",
   },
   macos_tahoe_3d: {
-    folder: "📂", image: "🏞️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📘",
+    folder: "📁", image: "🏞️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📘",
     sheet: "📊", slide: "🖼️", archive: "📦", code: "🧑‍💻", text: "🗒️", exec: "🚀",
     disk: "💿", font: "🔤", file: "📄",
-    topics: { pictures: "🏞️", videos: "🎬", music: "🎧", code: "💠", docs: "📚", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️" },
+    topics: { pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎧", code: "💠", "3d": "🧊", docs: "📚", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️" },
   },
   win11_fluent_pro: {
     folder: "🗂️", image: "🖼️", video: "📽️", audio: "🎵", pdf: "📕", doc: "📃",
     sheet: "📈", slide: "📊", archive: "🧳", code: "💻", text: "📝", exec: "⚡",
     disk: "💽", font: "🔤", file: "📄",
-    topics: { pictures: "🖼️", videos: "📽️", music: "🎵", code: "💻", docs: "🗂️", downloads: "⬇️", archive: "🧳", cloud: "☁️", database: "🛢️" },
+    topics: { pictures: "🖼️", video: "📽️", videos: "📽️", music: "🎵", code: "💻", "3d": "🧊", docs: "🗂️", downloads: "⬇️", archive: "🧳", cloud: "☁️", database: "🛢️" },
   },
   pro_studio_xdr: {
     folder: "🗄️", image: "📸", video: "🎞️", audio: "🎚️", pdf: "📋", doc: "📑",
     sheet: "📐", slide: "🖥️", archive: "🧰", code: "⚡", text: "🗒️", exec: "🎛️",
     disk: "💽", font: "🔡", file: "📄",
-    topics: { pictures: "📸", videos: "🎞️", music: "🎚️", code: "⚡", docs: "📑", downloads: "📡", archive: "🧰", cloud: "🛰️", database: "🗄️" },
+    topics: { pictures: "📸", video: "🎞️", videos: "🎞️", music: "🎚️", code: "⚡", "3d": "🧊", docs: "📑", downloads: "📡", archive: "🧰", cloud: "🛰️", database: "🗄️" },
   },
   hdr_photo_studio: {
-    folder: "📸", image: "🌅", video: "🎥", audio: "🎙️", pdf: "🎞️", doc: "🖼️",
+    folder: "📸", image: "🖼️", video: "🎥", audio: "🎙️", pdf: "🎞️", doc: "🖼️",
     sheet: "🎨", slide: "📽️", archive: "🎞️", code: "✨", text: "📝", exec: "🎬",
     disk: "💿", font: "🔤", file: "🖼️",
-    topics: { pictures: "🌅", videos: "🎥", music: "🎙️", code: "✨", docs: "🖼️", downloads: "📥", archive: "🎞️", cloud: "☁️", database: "🗄️" },
+    topics: { pictures: "📸", video: "🎥", videos: "🎥", music: "🎙️", code: "✨", "3d": "🧊", docs: "🖼️", downloads: "📥", archive: "🎞️", cloud: "☁️", database: "🗄️" },
   },
   linux_papirus_pro: {
     folder: "📂", image: "🖼️", video: "🎞️", audio: "🎶", pdf: "📕", doc: "📄",
     sheet: "📊", slide: "📽️", archive: "📦", code: "🐧", text: "📝", exec: "⚙️",
     disk: "💽", font: "🔤", file: "📃",
-    topics: { pictures: "🖼️", videos: "🎞️", music: "🎶", code: "🐧", docs: "📚", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️" },
+    topics: { pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎶", code: "🐧", "3d": "🧊", docs: "📚", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️" },
   },
   nordic_minimal: {
     folder: "📁", image: "🎨", video: "🎞️", audio: "🎵", pdf: "📓", doc: "📄",
     sheet: "📊", slide: "🖼️", archive: "📦", code: "🧩", text: "📝", exec: "⚙️",
     disk: "💿", font: "🔤", file: "📃",
-    topics: { pictures: "🎨", videos: "🎞️", music: "🎵", code: "🧩", docs: "📓", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️" },
+    topics: { pictures: "🎨", video: "🎞️", videos: "🎞️", music: "🎵", code: "🧩", "3d": "🧊", docs: "📓", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️" },
   },
   inferno: {
     folder: "🔥", image: "🌅", video: "🎬", audio: "🎸", pdf: "📜", doc: "🏮",
@@ -162,19 +162,20 @@ ICON_PACK_GLYPHS.storm_weather = ICON_PACK_GLYPHS.storm_tempest;
 ICON_PACK_GLYPHS.liquid_chrome = ICON_PACK_GLYPHS.liquid_gems;
 ICON_PACK_GLYPHS.arcane_glyphs = ICON_PACK_GLYPHS.xenotech_2126;
 
-/** Classifies a folder's semantic purpose (pictures, videos, music, code, docs, downloads, database, cloud, archive) for high-end 3D folder badges. */
+/** Classifies a folder's semantic purpose (pictures, video, music, code, 3d, docs, downloads, database, cloud, archive) for high-end 3D folder badges. */
 export function classifyFolderTopic(name) {
   const n = String(name || "").trim().toLowerCase();
   if (!n) return "general";
-  if (/^(pictures|photos|images|img|wallpapers|screenshots|camera|raw|renders|gallery|art|icons|avatars|thumbnails)$/.test(n)) return "pictures";
-  if (/^(videos|movies|films|clips|footage|cinema|recordings|captures)$/.test(n)) return "videos";
-  if (/^(music|audio|sounds|podcasts|tracks|stems|samples|sfx)$/.test(n)) return "music";
-  if (/^(src|lib|app|components|scripts|packages|server|client|api|hooks|utils|tests|test|__tests__|spec|bin|\.git|\.github)$/.test(n)) return "code";
-  if (/^(docs|documentation|notes|guides|manuals|papers|books|wiki|readme)$/.test(n)) return "docs";
-  if (/^(downloads|inbox|incoming|temp|tmp)$/.test(n)) return "downloads";
-  if (/^(db|database|databases|sql|migrations|data|prisma|seeds)$/.test(n)) return "database";
-  if (/^(cloud|sync|icloud|dropbox|drive|onedrive|shared)$/.test(n)) return "cloud";
-  if (/^(archive|archives|backups|backup|dist|build|out|release|releases|vendor|node_modules)$/.test(n)) return "archive";
+  if (/(?:^|[\s_.-])(3d|blender|maya|zbrush|cinema4d|houdini|cad|meshes|models|rigging)(?:$|[\s_.-])/.test(n)) return "3d";
+  if (/(?:^|[\s_.-])(pictures?|photos?|images?|img|wallpapers?|screenshots?|camera|raw|renders?|gallery|art|icons?|avatars?|thumbnails?|lightroom)(?:$|[\s_.-])/.test(n)) return "pictures";
+  if (/(?:^|[\s_.-])(videos?|movies?|films?|clips?|footage|cinema|recordings?|captures?)(?:$|[\s_.-])/.test(n)) return "video";
+  if (/(?:^|[\s_.-])(music|audio|sounds?|podcasts?|tracks?|stems?|samples?|sfx)(?:$|[\s_.-])/.test(n)) return "music";
+  if (/(?:^|[\s_.-])(src|lib|app|components|scripts|packages|server|client|api|hooks|utils|tests|test|__tests__|spec|bin|\.git|\.github)(?:$|[\s_.-])/.test(n)) return "code";
+  if (/(?:^|[\s_.-])(docs?|documentation|notes|guides|manuals|papers|books|wiki|readme)(?:$|[\s_.-])/.test(n)) return "docs";
+  if (/(?:^|[\s_.-])(downloads?|inbox|incoming|temp|tmp)(?:$|[\s_.-])/.test(n)) return "downloads";
+  if (/(?:^|[\s_.-])(db|databases?|sql|migrations|data|prisma|seeds)(?:$|[\s_.-])/.test(n)) return "database";
+  if (/(?:^|[\s_.-])(cloud|sync|icloud|dropbox|drive|onedrive|shared)(?:$|[\s_.-])/.test(n)) return "cloud";
+  if (/(?:^|[\s_.-])(archives?|backups?|dist|build|out|releases?|vendor|node_modules)(?:$|[\s_.-])/.test(n)) return "archive";
   return "general";
 }
 
@@ -196,7 +197,7 @@ export function activeIconPackStyle() {
 }
 
 /** A picture-word for a file name, for places (like the Recycle Bin) where the server didn't classify it, or when a custom Icon Pack is active. */
-export function iconFor(name, isDir, packOverride) {
+export function iconFor(name, isDir, packOverride, kindHint) {
   const pack = packOverride && ICON_PACK_GLYPHS[packOverride] ? packOverride : activeIconPackStyle();
   if (pack !== "default") {
     const def = ICON_PACK_GLYPHS[pack];
@@ -204,7 +205,7 @@ export function iconFor(name, isDir, packOverride) {
       const topic = classifyFolderTopic(name);
       if (topic !== "general" && def.topics[topic]) return def.topics[topic];
     }
-    const kind = classifyIconKind(name, isDir);
+    const kind = isDir ? "folder" : (kindHint && def?.[kindHint] ? kindHint : classifyIconKind(name, false));
     return def?.[kind] ?? def?.file ?? "📁";
   }
   if (isDir) return "📁";
@@ -218,10 +219,11 @@ export function iconForEntry(entry, packOverride) {
   const isDir = Boolean(entry?.isDir || entry?.isDirectory);
   const pack = packOverride && ICON_PACK_GLYPHS[packOverride] ? packOverride : activeIconPackStyle();
   if (pack !== "default") {
-    return iconFor(entry?.name || "", isDir, pack);
+    return iconFor(entry?.name || "", isDir, pack, entry?.kind);
   }
-  return entry?.icon || iconFor(entry?.name || "", isDir, "default");
+  return entry?.icon || iconFor(entry?.name || "", isDir, "default", entry?.kind);
 }
+export const entryIcon = iconForEntry;
 
 /** Updates all visible `.row .c-icon` elements in place when the active Icon Pack changes. */
 export function syncVisibleIcons(root = typeof document !== "undefined" ? document : null) {

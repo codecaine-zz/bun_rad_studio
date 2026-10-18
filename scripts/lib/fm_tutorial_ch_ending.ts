@@ -36,82 +36,83 @@ async function pick(d: Do, label: string, value: string) {
 /** Chapters 22 to 26: themes and shortcuts, the database studios (joined from their own tutorials), and the goodbye. */
 export const ending: Chapter[] = [
   {
-    id: "22_themes", chapter: "YOUR WAY", title: "Make it yours: 212 themes, 194 shaders, fire & slime folders, OKLab blender, bulk import & hacker lab", blurb: "5-row filter pills, Immersion Studio (fire/slime/storm folders & custom icon packs), OKLab theme blender, CCFM-THEME-v1 bulk import with conflict resolution, 4-stage solar cycle + playlist, 194 shaders with 6-layer mixer, Theme Show screensaver, and Theme Hacker Lab",
+    id: "22_themes", chapter: "YOUR WAY", title: "Make it yours: 218 themes, 3D folders & pictures, 1-click jumpstart kits, ⌘V paste import, OKLab blender & hacker lab", blurb: "1-click Jumpstart Kits, 3D Regular Folders & Framed Picture Studios, ⌘V instant clipboard paste import with conflict resolution, Right ⌥ + ] Quick-Switcher HUD, 194 shaders, Theme Show screensaver, and Theme Hacker Lab",
     path: "<HOME>/Projects/shop-app",
     steps: [
       {
-        cap: "The Themes button & quick switcher",
-        say: "Let's explore the completely upgraded Themes and Atmospheric Shader Studio, recorded live on a high-end Retina display. The Themes button in the ribbon lets you transform the entire workstation instantly. Your favorite and most recent themes sit right at the top of the menu, alongside one-click tools for Day and Night pairs, side-by-side comparison, folder pinning, and live atmospheric shaders.",
+        cap: "The Themes menu, ⌘V Instant Paste Import & Quick Switcher",
+        say: "Let's explore the complete Themes and Atmospheric Shader Studio, recorded live on a high-end Mac Pro Display X D R. Clicking the Themes button in the ribbon gives you one-click access to your Favorites, Recent themes, Instant Paste Theme from Clipboard with Command V, Share and Bulk Import, the Theme Show and Screensaver Studio, Atmospheric Effects, Day and Night pairs, and the Theme Editor.",
         act: async (d) => { await d.click("#tool-themes", { pause: 1800 }); await d.hover(".menu", 2400); },
       },
       {
-        cap: "212 themes, Tier/UI FX badges & [ / ] rapid preview",
-        say: "I choose All themes to open the gallery of two hundred and twelve built-in themes. Every card shows a live window swatch, whether it includes glass and shader effects, its hardware tier from Low Eco to Medium Glass and Ultra, its motion profile, and U I Element badges like Fire U I, Slime U I, or Storm U I. A great productivity trick: press the bracket keys or arrow keys right inside the gallery to live-preview themes rapidly.",
+        cap: "218 themes, 3D Folder & Picture Studios, & [ / ] rapid preview",
+        say: "I choose All themes to open the gallery of two hundred and eighteen built-in themes. Every card shows a live window swatch, hardware tier from Low Eco to Medium Glass and M4 Ultra, motion profile, and U I Element badges. Right at the top toolbar, you can also click Paste Theme or press Command V anywhere to import a theme from your clipboard instantly, or press the bracket keys to rapid-preview themes live.",
         act: async (d) => {
           await d.menu("All themes", { pause: 1600 });
           await d.waitFor(".theme-card", 6000);
-          await d.hover(".dialog .theme-fx-badge", 1000).catch(() => {});
-          await d.hover(".dialog .theme-tier-badge", 1000).catch(() => {});
-          await d.hover(".dialog .theme-uifx-badge", 1200).catch(() => {});
+          await d.hover('[data-paste-theme-btn="true"]', 1100).catch(() => {});
+          await d.hover(".dialog .theme-fx-badge", 900).catch(() => {});
+          await d.hover(".dialog .theme-tier-badge", 900).catch(() => {});
+          await d.hover(".dialog .theme-uifx-badge", 1000).catch(() => {});
           await showKeys(d, ["]"]);
           await d.click('[data-theme-step="1"]', { pause: 900 }).catch(() => {});
           await showKeys(d, ["["]);
           await d.click('[data-theme-step="-1"]', { pause: 900 }).catch(() => {});
           await d.scroll(".theme-list", 600, 6).catch(() => {});
-          await d.wait(900);
+          await d.wait(800);
           await d.scroll(".theme-list", -600, 6).catch(() => {});
         },
       },
       {
-        cap: "5-row filter pills & Folder, Toolbar & Icon Immersion Studio",
-        say: "Above the grid, the five-row filter bar slices the catalog by category, hardware tier with For My System auto-detection, animations, Liquid Glass or Mica shaders, and color vibes. Right below it, the Folder, Toolbar and Icon Immersion Studio lets you set folders and toolbars on fire, drip radioactive slime, sweep hurricane leaves across rows, or switch to Blazing Inferno, Toxic Slime, and 2126 Xenotech icon packs.",
+        cap: "⚡ 1-Click Jumpstart Kits, 3D Regular Folders & Framed Picture Packs",
+        say: "Zero manual work is required. Right below the five-row filter bar, the new One-Click Jumpstart Kits transform your entire workstation—theme palette, sculpted 3D regular folders, framed picture icons, typography, corners, and shaders—in a single click. Try macOS Tahoe 3D Glass and Pictures, M4 Max Pro Display X D R Studio, Windows 11 Fluent 3D and R T X, 8K H D R Photo Studio, or visceral Blazing Fire and Bio-Slime folders.",
         act: async (d) => {
-          await d.click('[data-cat-pill="Futuristic"]', { pause: 1000 });
-          await d.click("[data-hw-recommend]", { pause: 1000 });
-          await d.click('[data-material-pill="liquid"]', { pause: 1000 });
-          await d.click('[data-reset-filters="true"]', { pause: 1000 });
-          await d.click('.theme-immersion-bar [data-ui-fx="fire_folders"]', { pause: 1300 }).catch(() => {});
-          await d.click('.theme-immersion-bar [data-icon-pack="inferno"]', { pause: 1300 }).catch(() => {});
-          await d.click('.theme-immersion-bar [data-ui-fx="slime_drip"]', { pause: 1300 }).catch(() => {});
-          await d.click('.theme-immersion-bar [data-icon-pack="slime"]', { pause: 1300 }).catch(() => {});
-          await d.click('.theme-immersion-bar [data-ui-fx="auto"]', { pause: 900 }).catch(() => {});
-          await d.click('.theme-immersion-bar [data-icon-pack="default"]', { pause: 900 }).catch(() => {});
+          await d.click('[data-jumpstart-kit="macos_tahoe_3d_kit"]', { pause: 1500 }).catch(() => {});
+          await d.click('[data-jumpstart-kit="m4_max_xdr_kit"]', { pause: 1500 }).catch(() => {});
+          await d.click('[data-jumpstart-kit="win11_rtx_fluent_kit"]', { pause: 1500 }).catch(() => {});
+          await d.click('[data-jumpstart-kit="hdr_photo_cinema_kit"]', { pause: 1400 }).catch(() => {});
+          await d.click('.theme-immersion-bar [data-ui-fx="fire_folders"]', { pause: 1200 }).catch(() => {});
+          await d.click('.theme-immersion-bar [data-icon-pack="inferno"]', { pause: 1200 }).catch(() => {});
+          await d.click('.theme-immersion-bar [data-ui-fx="tahoe_glass_folders"]', { pause: 1100 }).catch(() => {});
+          await d.click('.theme-immersion-bar [data-icon-pack="macos_tahoe_3d"]', { pause: 1100 }).catch(() => {});
         },
       },
       {
-        cap: "Inferno Fire Folders, Radioactive Slime, EF5 Tornado & Tesla Plasma",
-        say: "Let's try the visceral storm and sci-fi themes. I search for inferno and click Inferno Blazing Folders with molten flames and fire icons, then try Radioactive Slime Bio-Vat with glowing green ooze, E F 5 Debris Tornado with wind-swept folders, and Tesla Coil Plasma, pinning Tesla to Favorites.",
+        cap: "Tahoe 3D Studio, Inferno Fire, Slime Bio-Vat, EF5 Tornado & Tesla Plasma",
+        say: "Let's test our flagship studio and extreme themes. I search for tahoe to apply Tahoe 3D Folders and Pictures, then try Inferno Blazing Folders with molten flames, Radioactive Slime Bio-Vat with glowing green ooze, E F 5 Debris Tornado with wind-swept folders, and Tesla Coil Plasma, pinning Tesla to Favorites.",
         act: async (d) => {
+          await search(d, "tahoe");
+          await d.click('.theme-card[data-key="tahoe_studio_3d"]', { pause: 1900 }).catch(() => {});
           await search(d, "inferno");
-          await d.click('.theme-card[data-key="inferno_fire_folders"]', { pause: 2100 });
+          await d.click('.theme-card[data-key="inferno_fire_folders"]', { pause: 1900 });
           await search(d, "slime");
-          await d.click('.theme-card[data-key="toxic_slime_ooze"]', { pause: 2100 });
+          await d.click('.theme-card[data-key="toxic_slime_ooze"]', { pause: 1900 });
           await search(d, "tornado");
-          await d.click('.theme-card[data-key="ef5_debris_tornado"]', { pause: 2100 });
+          await d.click('.theme-card[data-key="ef5_debris_tornado"]', { pause: 1900 });
           await search(d, "tesla");
-          await d.click('.theme-card[data-key="tesla_coil_plasma"]', { pause: 2000 });
-          await d.click('.theme-pin[data-pin-key="tesla_coil_plasma"]', { pause: 1100 }).catch(() => {});
+          await d.click('.theme-card[data-key="tesla_coil_plasma"]', { pause: 1900 });
+          await d.click('.theme-pin[data-pin-key="tesla_coil_plasma"]', { pause: 1000 }).catch(() => {});
         },
       },
       {
         cap: "Rare classic systems (BeOS, OS/2 Warp, Linux CDE) & Surprise Me",
-        say: "For Linux and classic computing fans, the Linux and Rare systems groups recreate nostalgic desktops like BeOS R 5, O S 2 Warp 4, Palm O S, Solaris C D E, and Ubuntu Yaru. You can also click Surprise me to jump to a random theme, or use Previous and Next to step through the list.",
+        say: "For Linux and classic computing fans, the Linux and Rare systems groups recreate nostalgic desktops like BeOS R 5, O S 2 Warp 4, Palm O S, Solaris C D E, and Linux Papirus Hi D P I. You can also click Surprise me to jump to a random theme, or use Previous and Next to step through the list.",
         act: async (d) => {
           await search(d, "rare");
-          await d.click('.theme-card[data-key="beos_r5"]', { pause: 2200 });
-          await d.click('.theme-card[data-key="os2_warp"]', { pause: 2200 });
+          await d.click('.theme-card[data-key="beos_r5"]', { pause: 2100 });
+          await d.click('.theme-card[data-key="os2_warp"]', { pause: 2100 });
           await search(d, "");
-          await d.click(".theme-random-btn", { pause: 1600 });
-          await d.click('[data-theme-step="1"]', { pause: 1400 });
+          await d.click(".theme-random-btn", { pause: 1500 });
+          await d.click('[data-theme-step="1"]', { pause: 1300 });
         },
       },
       {
-        cap: "📁 Pin to Folder, 📤 Share Hub & 📦 Bulk Import Conflict Resolution",
-        say: "Pick Prism Reactor and click Pin to Folder so this project automatically activates its theme whenever you open it. Then click Share and Import: generate one-line C C F M Theme share codes or Weather and Retro O S Pack bundles, or bulk import multiple themes at once. When a theme conflicts with an existing custom theme, the Conflict Resolution modal automatically prompts you to Replace, Keep Both with auto-rename, Merge FX, or Skip.",
+        cap: "📁 Pin to Folder, 📋 ⌘V Clipboard Paste & 📦 Bulk Import Conflict Resolution",
+        say: "Pick Prism Reactor and click Pin to Folder so this workspace automatically activates its theme whenever you open it. Next, click Share and Import: generate one-line C C F M Theme share codes, click Paste from Clipboard or press Command V anywhere, or bulk import multiple themes at once. When a theme conflicts with an existing custom theme, the Conflict Resolution modal automatically prompts you to Replace, Keep Both with auto-rename, Merge FX, or Skip.",
         act: async (d) => {
           await search(d, "prism");
           await d.click('.theme-card[data-key="prism_reactor"]', { pause: 1400 });
-          await d.click(".theme-pin-folder-btn", { pause: 1400 });
+          await d.click(".theme-pin-folder-btn", { pause: 1300 });
           await d.click(".theme-pin-folder-btn", { pause: 900 });
           await search(d, "");
           await d.eval(`(async () => {
@@ -130,10 +131,12 @@ export const ending: Chapter[] = [
           })()`);
           await d.click('[data-share-hub="true"]', { pause: 1400 });
           await d.waitFor('[data-share-format="code"]', 6000);
-          await d.click('[data-share-format="pack-weather"]', { pause: 1200 });
-          await d.click('[data-share-format="pack-nostalgia"]', { pause: 1200 });
+          await d.click('[data-share-format="pack-weather"]', { pause: 1100 });
+          await d.click('[data-share-format="pack-nostalgia"]', { pause: 1100 });
           await d.click('[data-share-format="code"]', { pause: 1000 });
-          await d.hover('[data-share-import-files-btn="true"]', 1000).catch(() => {});
+          await showKeys(d, ["⌘", "V"]);
+          await d.hover('[data-share-paste-clipboard-btn="true"]', 1000).catch(() => {});
+          await d.hover('[data-share-import-files-btn="true"]', 900).catch(() => {});
           await d.eval(`(() => {
             const box = document.querySelector('[data-share-import-box="true"]');
             if (!box) return;
@@ -286,19 +289,21 @@ export const ending: Chapter[] = [
         },
       },
       {
-        cap: "Theme Editor: Auto-Harmonize, Wallpaper Chameleon & WCAG Contrast",
-        say: "Now let's design and hack our own theme. In the gallery, I click Create or edit a theme. Every color token has a visual picker and hex input, plus one-click Palette Tools: Randomize palette, Invert Dark and Light mode, Auto-harmonize from your Accent color, and Extract from Image or Wallpaper. Below the colors, a live W C A G contrast inspector verifies every pair with double-A and triple-A grades.",
+        cap: "Theme Editor: Pre-Built Studio Pictures, Auto-Harmonize & WCAG Contrast",
+        say: "Now let's design and hack our own theme. In the gallery, I click Create or edit a theme. Along with Auto-harmonize, Invert, Randomize, Extract from Wallpaper, and Paste Theme with Command V, you get one-click Pre-Built Studio Pictures and 3D Folders like Tahoe Aerial Coast 8K, Pro Display X D R Nebula, and 8K Hasselblad Golden Hour. Below the colors, a live W C A G contrast inspector verifies every pair.",
         act: async (d) => {
           await d.click("#tool-themes", { pause: 1200 });
           await d.menu("All themes", { pause: 1400 });
           await d.click(".dialog button >> Create or edit a theme", { pause: 1800 });
           await d.waitFor(".dialog input[aria-label='Theme name']", 6000);
-          await d.click('[data-harmony="random"]', { pause: 1500 });
-          await d.click('[data-harmony="invert"]', { pause: 1500 });
-          await d.click('[data-harmony="invert"]', { pause: 1500 });
-          await d.click('[data-harmony="accent"]', { pause: 1500 });
-          await d.hover('[data-extract-image-btn="true"]', 1400).catch(() => {});
-          await d.hover(".theme-contrast-inspector", 2000);
+          await d.click('[data-prebuilt-picture="tahoe_aerial_coast"]', { pause: 1400 }).catch(() => {});
+          await d.click('[data-prebuilt-picture="pro_display_xdr_nebula"]', { pause: 1400 }).catch(() => {});
+          await d.click('[data-harmony="random"]', { pause: 1200 });
+          await d.click('[data-harmony="invert"]', { pause: 1200 });
+          await d.click('[data-harmony="invert"]', { pause: 1200 });
+          await d.click('[data-harmony="accent"]', { pause: 1200 });
+          await d.hover('[data-editor-paste-theme="true"]', 1000).catch(() => {});
+          await d.hover(".theme-contrast-inspector", 1600);
         },
       },
       {
@@ -329,7 +334,7 @@ export const ending: Chapter[] = [
       },
       {
         cap: "Attach Shader Mixes, Export CCFM-THEME-v1 Code & Save Theme",
-        say: "You can attach any of the one hundred and ninety-four atmospheric effects or forty-eight multi-layer mixes directly to your custom theme, along with its folder shader, icon pack, and custom C S S. I name our creation Midnight Liquid Glass, hover Export and Import for one-line C C F M Theme share codes and bulk conflict-resolved imports, and click Save theme.",
+        say: "You can attach any of the one hundred and ninety-four atmospheric effects or forty-eight multi-layer mixes directly to your custom theme, along with its 3D folder shader, picture icon pack, and custom C S S. I name our creation Midnight Liquid Glass, hover Export and Import for one-line C C F M Theme share codes and bulk conflict-resolved imports, and click Save theme.",
         act: async (d) => {
           await pick(d, "Atmospheric effect", "liquid_glass_caustics+m4_raytrace_prism+aurora");
           await d.eval(`(() => { const e = document.querySelector(".dialog input[aria-label='Theme name']"); e.value = ''; e.dispatchEvent(new Event('input', { bubbles: true })); e.focus(); })()`);
@@ -341,13 +346,20 @@ export const ending: Chapter[] = [
         },
       },
       {
-        cap: "Right ⌥ + ] / [ theme cycling, close lock & custom shortcuts",
-        say: "Finally, in the desktop app, hold Right Option and press the closing or opening square bracket to cycle through themes live without opening a menu, or Right Option and slash for full screen. In Settings, you can lock the window so only its close button can close it, and in Help under Change keyboard shortcuts, you can remap any key in the program.",
+        cap: "Right ⌥ + ] / [ Selection Templates HUD, close lock & custom shortcuts",
+        say: "Finally, hold Right Option and press the closing or opening square bracket to summon the live Selection Templates Quick-Switcher H U D—showing miniature window swatches, 3D folder and picture badges, and one-click flagship studio templates—or press Right Option and slash for full screen. In Settings, you can lock the window close button, and in Help under Change keyboard shortcuts, you can remap any key.",
         act: async (d) => {
           await closeDialogs(d);
-          for (let i = 0; i < 3; i++) { await showKeys(d, ["Right ⌥", "]"]); await d.eval(`window.cycleAppTheme(1)`); await d.wait(1300); }
-          await showKeys(d, ["Right ⌥", "["]); await d.eval(`window.cycleAppTheme(-1)`); await d.wait(1300);
-          await showKeys(d, ["Right ⌥", "/"]); await d.wait(1400);
+          for (let i = 0; i < 3; i++) {
+            await showKeys(d, ["Right ⌥", "]"]);
+            await d.eval(`window.cycleAppTheme(1, { showcaseOnly: true, showHud: true })`);
+            await d.wait(1400);
+          }
+          await showKeys(d, ["Right ⌥", "["]);
+          await d.eval(`window.cycleAppTheme(-1, { showcaseOnly: true, showHud: true })`);
+          await d.wait(1400);
+          await d.eval(`document.querySelector('[data-quick-cycle-close]')?.click()`).catch(() => {});
+          await showKeys(d, ["Right ⌥", "/"]); await d.wait(1200);
           await d.eval(`(() => { if (typeof window.closeApp !== 'function') window.closeApp = () => {}; })()`);
           await d.key("Meta+,", "⌘+,");
           await d.wait(900);
