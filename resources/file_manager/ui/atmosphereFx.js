@@ -70,19 +70,19 @@ export const ATMOSPHERE_SECTIONS = [
     tier: "low",
     title: "Low Graphics — Lightweight & Battery Friendly",
     subtitle: "Engineered for integrated graphics and low power consumption while keeping a crisp, modern ambient vibe.",
-    badge: "Eco Tier · 30 Effects",
+    badge: "Eco Tier · 37 Effects",
   },
   {
     tier: "medium",
     title: "Medium Graphics — Volumetric Weather & Particles",
     subtitle: "Multi-depth weather, silk mist layers, glyph streams and glowing bokeh harmonized with your active theme.",
-    badge: "Balanced Tier · 40 Effects",
+    badge: "Balanced Tier · 49 Effects",
   },
   {
     tier: "ultra",
     title: "High-End & Modern ARM — Out of This World",
     subtitle: "Unleashes unified-memory ARM64 / Apple Silicon and high-end GPUs with relativistic nebulae, 3D synthwave grids, neural networks, aurora curtains and cursor physics.",
-    badge: "ARM64 / Ultra Tier · 40 Effects",
+    badge: "ARM64 / Ultra Tier · 49 Effects",
   },
 ];
 
@@ -1949,7 +1949,7 @@ export async function showAtmosphereDialog() {
   const searchInput = h("input", {
     type: "search",
     class: "prop-input fm-atmo-search",
-    placeholder: "Search 110 effects (e.g. sakura, nebula, outrun, matrix, dna, snow)…",
+    placeholder: "Search 135 effects (e.g. sakura, nebula, liquid glass, m4, outrun, matrix, dna, snow)…",
     "aria-label": "Search atmospheric effects",
   });
   const catBar = h("div", { class: "fm-atmo-cat-bar", role: "tablist", "aria-label": "Effect categories" });
@@ -2060,7 +2060,7 @@ export async function showAtmosphereDialog() {
       h("span", { class: "fm-atmo-sync-dot fm-atmo-sync-dot-2" }),
       h("span", { class: "fm-atmo-sync-dot fm-atmo-sync-dot-3" }),
     ),
-    h("span", { class: "fm-atmo-sync-text" }, "110 Procedural Effects + Multi-Layer Mixer · Harmonized with your active theme’s palette"),
+    h("span", { class: "fm-atmo-sync-text" }, "135 Procedural Effects + 20 Signature Mixes · Harmonized with your active theme’s palette"),
   );
 
   const filterBar = h("div", { class: "fm-atmo-filter-bar" }, searchInput, catBar);

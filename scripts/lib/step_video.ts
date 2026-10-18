@@ -262,10 +262,11 @@ function externalSegments(ch: Chapter): Array<{ file: string; title: string }> {
   const files = [...readFileSync(listFile, "utf8").matchAll(/^file '(.+)'$/gm)].map((m) => m[1]!);
   const parts = files.flatMap((file) => {
     const id = file.split("/").pop()!.replace(/\.mp4$/, "");
-    if (id.endsWith("_card")) return [];
     const tlFile = join(dir, "timelines", `${id}.json`);
+    if (id.endsWith("_card") && !existsSync(tlFile)) return [];
     const tl = existsSync(tlFile) ? JSON.parse(readFileSync(tlFile, "utf8")) as Timeline : null;
-    if (!tl || !tl.clip) return []; // a spoken title card (the intro or the outro)
+    if (!tl) return [];
+    if (!tl.clip && /^(00_intro|01_server)$|_outro$/.test(id)) return []; // a spoken title card (the intro or the outro)
     if (!existsSync(file)) throw new Error(`${ch.id}: ${file} is missing; rebuild ${ch.external!.dir}`);
     return [{ file, title: tl.title }];
   });

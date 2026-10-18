@@ -31,6 +31,91 @@ const STANDARD = {
 
 const isHex = (v) => /^#[0-9a-f]{6}$/i.test(v);
 
+function hslToHex(hDeg, sPct, lPct) {
+  const h = ((hDeg % 360) + 360) % 360;
+  const s = Math.max(0, Math.min(100, sPct)) / 100;
+  const l = Math.max(0, Math.min(100, lPct)) / 100;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r = 0, g = 0, b = 0;
+  if (h < 60) [r, g, b] = [c, x, 0];
+  else if (h < 120) [r, g, b] = [x, c, 0];
+  else if (h < 180) [r, g, b] = [0, c, x];
+  else if (h < 240) [r, g, b] = [0, x, c];
+  else if (h < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+  const hex = (v) => Math.round((v + m) * 255).toString(16).padStart(2, "0");
+  return `#${hex(r)}${hex(g)}${hex(b)}`;
+}
+
+function hexToHsl(hexStr) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hexStr || "").trim());
+  if (!m) return { h: 210, s: 80, l: 55 };
+  const n = parseInt(m[1], 16);
+  const r = ((n >> 16) & 255) / 255;
+  const g = ((n >> 8) & 255) / 255;
+  const b = (n & 255) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (d === 0) return { h: 0, s: 0, l: Math.round(l * 100) };
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h = 0;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+  else if (max === g) h = ((b - r) / d + 2) * 60;
+  else h = ((r - g) / d + 4) * 60;
+  return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
+/** Generates a full harmonious theme color table from a single accent hex and dark/light flag. */
+export function harmonizeFromAccent(accentHex, dark = true) {
+  const { h, s } = hexToHsl(accentHex);
+  const sat = Math.max(45, s);
+  const secHue = (h + 48) % 360;
+  if (dark) {
+    return {
+      background: hslToHex(h, Math.min(34, Math.round(sat * 0.35)), 7),
+      card: hslToHex(h, Math.min(36, Math.round(sat * 0.38)), 12),
+      text: hslToHex(h, 24, 94),
+      accent: isHex(accentHex) ? accentHex.toLowerCase() : hslToHex(h, sat, 62),
+      secondary: hslToHex(secHue, Math.max(65, sat), 64),
+      border: hslToHex(h, 26, 24),
+      danger: "#ff6b81",
+      warning: "#fbbf24",
+      success: "#34d399",
+      info: "#38bdf8",
+    };
+  }
+  return {
+    background: hslToHex(h, 25, 98),
+    card: hslToHex(h, 28, 93),
+    text: hslToHex(h, 35, 11),
+    accent: isHex(accentHex) ? accentHex.toLowerCase() : hslToHex(h, sat, 44),
+    secondary: hslToHex(secHue, Math.max(60, sat), 42),
+    border: hslToHex(h, 22, 80),
+    danger: "#b42318",
+    warning: "#b45309",
+    success: "#166534",
+    info: "#0369a1",
+  };
+}
+
+export const EDITOR_FX_PRESETS = [
+  { id: "liquid_glass", label: "✨ Tahoe Liquid Glass", fx: { glass: 0.68, blur: 28, glow: "bloom", radius: "squircle", border: "iridescent", motion: "spring", backdropStyle: "liquid", cursorEffect: "prism", vignette: "subtle", sheen: true, frostedRim: true, innerGlow: true, ambient: true } },
+  { id: "m4_xdr_pro", label: "🍎 M4 Space Black XDR", fx: { glass: 0.56, blur: 24, glow: "soft", radius: "round", border: "metal", motion: "spring", backdropStyle: "oled", cursorEffect: "spotlight", vignette: "subtle", sheen: true, noise: true, frostedRim: true, ambient: true } },
+  { id: "win11_mica", label: "🪟 Win 11 Mica Alt", fx: { glass: 0.52, blur: 26, glow: "soft", radius: "soft", border: "bevel", motion: "calm", backdropStyle: "mica", cursorEffect: "spotlight", vignette: "none", sheen: false, noise: true, ambient: true, saturation: 1.55 } },
+  { id: "win11_acrylic", label: "🪟 Win 11 Acrylic", fx: { glass: 0.62, blur: 22, glow: "soft", radius: "soft", border: "gradient", motion: "snappy", backdropStyle: "acrylic", cursorEffect: "ripple", grain: "subtle", sheen: true, noise: true, frostedRim: true } },
+  { id: "cyber_hologram", label: "🔮 Cyberpunk Hologram", fx: { glass: 0.58, blur: 20, glow: "laser", radius: "sharp", border: "hologram", motion: "snappy", backdropStyle: "glass", cursorEffect: "prism", vignette: "cinema", scanlines: "subtle", chromatic: true, prismEdge: true, neonPulse: true, sheen: true } },
+  { id: "prismatic_crystal", label: "💎 Prismatic Crystal", fx: { glass: 0.65, blur: 26, glow: "aurora", radius: "round", border: "iridescent", motion: "elastic", backdropStyle: "frosted", cursorEffect: "prism", vignette: "ambient", chromatic: true, prismEdge: true, innerGlow: true, frostedRim: true, sheen: true } },
+  { id: "retro_crt", label: "📺 Retro CRT Phosphor", fx: { glass: 0.35, blur: 10, glow: "ember", radius: "soft", border: "double", motion: "snappy", backdropStyle: "oled", cursorEffect: "spotlight", vignette: "cinema", scanlines: "crt", grain: "film", crtCurve: true, innerGlow: true, neonPulse: true } },
+  { id: "plasma_reactor", label: "⚡ Plasma Reactor", fx: { glass: 0.55, blur: 24, glow: "plasma", radius: "round", border: "neon", motion: "elastic", backdropStyle: "glass", cursorEffect: "magnetic", vignette: "ambient", sheen: true, innerGlow: true, neonPulse: true, ambient: true, parallax: true } },
+  { id: "velvet_cinema", label: "🎬 Velvet Cinema", fx: { glass: 0.45, blur: 20, glow: "bloom", radius: "round", border: "gradient", motion: "cinematic", backdropStyle: "frosted", cursorEffect: "spotlight", vignette: "cinema", grain: "film", ambient: true, innerGlow: true } },
+  { id: "halftone_zine", label: "📰 Halftone Pop Zine", fx: { glass: 0.25, blur: 8, glow: "neon", radius: "sharp", border: "double", motion: "snappy", backdropStyle: "matte", cursorEffect: "magnetic", grain: "halftone", chromatic: true } },
+  { id: "aurora_silk", label: "🌌 Aurora Silk", fx: { glass: 0.6, blur: 30, glow: "aurora", radius: "pill", border: "gradient", motion: "calm", backdropStyle: "liquid", cursorEffect: "spotlight", vignette: "ambient", sheen: true, innerGlow: true, ambient: true } },
+  { id: "zen_matte", label: "🪨 Zen Matte Studio", fx: { glass: 0, blur: 0, glow: "none", radius: "soft", border: "flat", motion: "calm", backdropStyle: "matte", cursorEffect: "none", vignette: "none", scanlines: "none", grain: "none", sheen: false, noise: false, chromatic: false, ambient: false } },
+];
+
 async function loadStart(key) {
   if (STANDARD[key]) return { ...structuredClone(STANDARD[key]), base: STANDARD[key].name, editingId: null };
   const r = await call("themes/get", { key });
@@ -62,6 +147,12 @@ async function openEditor({ from = "" } = {}) {
     grain: "none", scanlines: "none", sheen: false, radius: "soft", border: "flat", motion: "calm",
     noise: false, chromatic: false, ambient: false, atmosphere: "none",
   });
+  const FIELD_FALLBACKS = {
+    backdropStyle: "glass",
+    cursorEffect: "spotlight",
+    vignette: "none",
+    saturation: 1.35,
+  };
 
   // -- the form ----------------------------------------------------------------------------------------------------
   const nameInput = h("input", { type: "text", class: "prop-input", maxlength: "40", "aria-label": "Theme name", title: "The name shown in the theme gallery.", value: draft.name });
@@ -80,16 +171,16 @@ async function openEditor({ from = "" } = {}) {
     const output = h("output", {});
     const read = () => {
       const fx = draft.fx || defaultEffects();
-      const value = key === "opacity" ? Math.round((1 - fx.glass * 0.6) * 100) : fx[key] ?? defaultEffects()[key];
+      const value = key === "opacity" ? Math.round((1 - fx.glass * 0.6) * 100) : fx[key] ?? defaultEffects()[key] ?? FIELD_FALLBACKS[key];
       input.value = String(value);
-      output.textContent = range ? `${value}${key === "opacity" ? "%" : key === "blur" ? "px" : ""}` : "";
+      output.textContent = range ? `${value}${key === "opacity" ? "%" : key === "blur" ? "px" : key === "saturation" ? "x" : ""}` : "";
     };
     input.addEventListener("input", () => {
       if (!draft.fx) return;
       const value = range ? Number(input.value) : input.value;
       if (key === "opacity") draft.fx.glass = (100 - Number(value)) / 60;
       else draft.fx[key] = value;
-      output.textContent = range ? `${value}${key === "opacity" ? "%" : key === "blur" ? "px" : ""}` : "";
+      output.textContent = range ? `${value}${key === "opacity" ? "%" : key === "blur" ? "px" : key === "saturation" ? "x" : ""}` : "";
       refresh();
     });
     effectInputs.set(key, read);
@@ -100,23 +191,38 @@ async function openEditor({ from = "" } = {}) {
     effectField("blur", "Glass blur", null, [0, 32, 1]),
     effectField("glowIntensity", "Glow intensity", null, [0, 1, 0.05]),
     effectField("borderOpacity", "Border strength", null, [0, 1, 0.05]),
-    effectField("glow", "Glow style", ["none", "soft", "neon"]),
+    effectField("saturation", "Backdrop saturation", null, [0.5, 2.2, 0.05]),
+    effectField("backdropStyle", "Surface material", ["glass", "liquid", "mica", "acrylic", "frosted", "oled", "matte"]),
+    effectField("glow", "Glow style", ["none", "soft", "neon", "bloom", "aurora", "laser", "plasma", "ember"]),
     effectField("glowColor", "Glow color"),
     effectField("glowColor2", "Secondary glow color"),
-    effectField("radius", "Corner style", ["sharp", "soft", "round", "pill"]),
-    effectField("border", "Border style", ["flat", "gradient", "metal"]),
-    effectField("motion", "Animation feel", ["calm", "spring", "snappy"]),
+    effectField("radius", "Corner style", ["sharp", "soft", "round", "pill", "squircle"]),
+    effectField("border", "Border style", ["flat", "gradient", "metal", "hologram", "neon", "iridescent", "bevel", "double"]),
+    effectField("motion", "Animation feel", ["calm", "spring", "snappy", "elastic", "cinematic", "zero"]),
+    effectField("cursorEffect", "Cursor interaction", ["spotlight", "ripple", "magnetic", "prism", "none"]),
+    effectField("vignette", "Screen vignette", ["none", "subtle", "cinema", "ambient"]),
   );
-  const effectFlags = ["ambient", "sheen", "chromatic", "noise"];
-  for (const key of effectFlags) {
+  const effectFlags = [
+    ["ambient", "Ambient"],
+    ["sheen", "Sheen"],
+    ["chromatic", "Chromatic"],
+    ["noise", "Noise"],
+    ["prismEdge", "Prismatic edge"],
+    ["innerGlow", "Inner glow"],
+    ["frostedRim", "Specular XDR rim"],
+    ["neonPulse", "Neon pulse"],
+    ["crtCurve", "CRT curvature"],
+    ["parallax", "3D Parallax"],
+  ];
+  for (const [key, labelText] of effectFlags) {
     const input = h("input", { type: "checkbox", "aria-label": `${key} effect` });
     effectInputs.set(key, () => { input.checked = draft.fx?.[key] ?? false; });
     input.addEventListener("change", () => { if (draft.fx) { draft.fx[key] = input.checked; refresh(); } });
-    effectControls.append(h("label", { class: "check" }, input, h("span", {}, `${key[0].toUpperCase()}${key.slice(1)}`)));
+    effectControls.append(h("label", { class: "check" }, input, h("span", {}, labelText)));
   }
   effectControls.append(
-    effectField("grain", "Film grain", ["none", "subtle"]),
-    effectField("scanlines", "Scanlines", ["none", "subtle"]),
+    effectField("grain", "Film grain", ["none", "subtle", "film", "halftone"]),
+    effectField("scanlines", "Scanlines", ["none", "subtle", "crt", "interlace"]),
     effectField("atmosphere", "Atmospheric effect", [...ATMOSPHERE_IDS, ...ATMOSPHERE_MIX_PRESETS.map((m) => m.id)]),
   );
   effectsEnabled.addEventListener("change", () => {
@@ -143,6 +249,80 @@ async function openEditor({ from = "" } = {}) {
     rows.set(key, { picker, text });
     return h("div", { class: "theme-field" }, h("span", { class: "theme-field-label", title: tip }, label), picker, text);
   };
+
+  const applyColorHarmony = (nextColors, nextDark = draft.dark) => {
+    draft.dark = nextDark;
+    darkBox.checked = nextDark;
+    draft.colors = { ...draft.colors, ...nextColors };
+    if (draft.fx) {
+      draft.fx.glowColor = draft.colors.accent;
+      draft.fx.glowColor2 = draft.colors.secondary || draft.colors.accent;
+    }
+    for (const [key, { picker, text }] of rows) {
+      const v = draft.colors[key] ?? "";
+      text.removeAttribute("aria-invalid");
+      text.value = v;
+      if (isHex(v)) picker.value = v;
+    }
+    for (const read of effectInputs.values()) read();
+    refresh();
+  };
+
+  const harmonyBar = h("div", { class: "theme-harmony-bar", role: "group", "aria-label": "Color harmony tools" },
+    h("span", { class: "theme-pill-label" }, "Palette tools:"),
+    h("button", {
+      type: "button",
+      class: "btn",
+      "data-harmony": "accent",
+      title: "Generate harmonious background, panel, border, text and status colors from your current Accent color.",
+      onclick: () => applyColorHarmony(harmonizeFromAccent(draft.colors.accent || "#6ea8ff", darkBox.checked), darkBox.checked),
+    }, "🎨 Auto-harmonize from Accent"),
+    h("button", {
+      type: "button",
+      class: "btn",
+      "data-harmony": "invert",
+      title: "Flip this theme between Dark and Light mode while keeping your Accent color harmony.",
+      onclick: () => {
+        const nextDark = !darkBox.checked;
+        applyColorHarmony(harmonizeFromAccent(draft.colors.accent || "#6ea8ff", nextDark), nextDark);
+      },
+    }, "🔄 Invert Dark / Light"),
+    h("button", {
+      type: "button",
+      class: "btn",
+      "data-harmony": "random",
+      title: "Generate a fresh random accent and harmonized color palette.",
+      onclick: () => {
+        const rndAccent = hslToHex(Math.floor(Math.random() * 360), 82, darkBox.checked ? 62 : 45);
+        applyColorHarmony(harmonizeFromAccent(rndAccent, darkBox.checked), darkBox.checked);
+      },
+    }, "🎲 Randomize palette"),
+  );
+
+  const presetStrip = h("div", { class: "theme-preset-strip", role: "group", "aria-label": "Effect style presets" },
+    ...EDITOR_FX_PRESETS.map((preset) =>
+      h("button", {
+        type: "button",
+        class: "theme-preset-pill",
+        "data-fx-preset": preset.id,
+        title: `Apply ${preset.label} effect settings while keeping your current colors.`,
+        onclick: () => {
+          effectsEnabled.checked = true;
+          effectControls.disabled = false;
+          const curAtmo = draft.fx?.atmosphere;
+          draft.fx = {
+            ...defaultEffects(),
+            ...preset.fx,
+            glowColor: draft.colors.accent || "#6ea8ff",
+            glowColor2: draft.colors.secondary || draft.colors.accent || "#6ea8ff",
+            ...(curAtmo && curAtmo !== "none" ? { atmosphere: curAtmo } : {}),
+          };
+          for (const read of effectInputs.values()) read();
+          refresh();
+        },
+      }, preset.label),
+    ),
+  );
 
   /** Fills the form from `next` (a theme to start from, or imported text). */
   const load = (next) => {
@@ -228,9 +408,12 @@ async function openEditor({ from = "" } = {}) {
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Name"), nameInput),
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Start from"), startSelect),
       h("label", { class: "check" }, darkBox, h("span", {}, "This is a dark theme"))),
+    harmonyBar,
     h("div", { class: "theme-fields" }, FIELDS.map(field)),
     contrastBar,
-    h("h3", {}, "Glass, glow and motion"),
+    h("h3", {}, "Glass, glow, materials and motion"),
+    h("p", { class: "hint" }, "Pick a 1-click Effect Style Preset below, or fine-tune every shader, surface material, border, glow, texture and optical effect."),
+    presetStrip,
     h("label", { class: "check" }, effectsEnabled, h("span", {}, "Enable visual effects")),
     effectControls,
     h("p", { class: "hint" }, "Opacity affects panels, not text or the native window. The preview raises opacity when needed for readable text. Motion follows your computer's reduced-motion preference."),

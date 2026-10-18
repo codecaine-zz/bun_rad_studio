@@ -46,6 +46,8 @@ import { studioFrameResponse } from "./fmDbFrame";
 import { hostedPageResponse, hostedSessionFor, hostedStudioOperations } from "./fmHostedStudios";
 import { downloadOperations } from "./fmDownloadOps";
 import { cliUtilsDir, cliUtilsOperations, ensureCliUtilsFolder, findCliSourceRoot } from "./fmCliUtils";
+import { taskManagerOperations } from "./fmTaskManagerOps";
+import { sysinfoOperations } from "./fmSysinfoOps";
 import type { HostedPeer, HostedSession } from "../../simplegui_host";
 import { dbState } from "./fmDbState";
 import { watchOperations } from "./fmWatchOps";
@@ -505,7 +507,7 @@ Object.assign(operations, hostedStudioOperations);
 // Fast, resumable downloads split over several connections.
 Object.assign(operations, downloadOperations);
 // Built-in RAD Studio command-line utilities folder and catalog.
-Object.assign(operations, cliUtilsOperations);
+Object.assign(operations, cliUtilsOperations, taskManagerOperations, sysinfoOperations);
 
 export const API_OPERATIONS = Object.keys(operations);
 

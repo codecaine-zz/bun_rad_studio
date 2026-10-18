@@ -84,6 +84,8 @@ export const TOOL_WINDOW_APPS: Record<string, ToolWindowInfo> = {
   secrets: { id: "secrets", title: "Secret Check", script: "file_manager_studio", args: ["--tool", "secrets", "--max"] },
   downloads: { id: "downloads", title: "Clean Up Downloads", script: "file_manager_studio", args: ["--tool", "downloads", "--max"] },
   qr: { id: "qr", title: "QR Code", script: "file_manager_studio", args: ["--tool", "qr", "--max"] },
+  tasks: { id: "tasks", title: "Task Manager", script: "file_manager_studio", args: ["--tool", "tasks", "--max"] },
+  sysinfo: { id: "sysinfo", title: "System Info", script: "file_manager_studio", args: ["--tool", "sysinfo", "--max"] },
   games: { id: "games", title: "Codecaine Games Arcade", script: "file_manager_studio", args: ["--tool", "games", "--max"] },
   balatro: { id: "balatro", title: "Codecaine Joker Royale (Balatro Deluxe)", script: "balatro_studio" },
   blackjack: { id: "blackjack", title: "Codecaine Blackjack Royale VIP", script: "blackjack_studio" },

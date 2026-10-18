@@ -14,9 +14,12 @@ import {
   getFallbackThemeKey,
   glassReport,
   srgbToDisplayP3,
+  type FxBorder,
+  type FxGlow,
   type FxHardwareInput,
   type FxHardwareProfile,
   type FxMode,
+  type FxRadius,
   type ThemeFx,
 } from "../../shared/fxThemes";
 import { OS_THEME_KEYS, RARE_OS_THEME_KEYS } from "../../shared/osThemes";
@@ -38,10 +41,10 @@ export interface ThemePreview {
   border: string;
   selected: string;
   selectedText: string;
-  radius: "sharp" | "soft" | "round" | "pill";
-  glow: "none" | "soft" | "neon";
+  radius: FxRadius;
+  glow: FxGlow;
   glowColor: string;
-  borderStyle: "flat" | "gradient" | "metal";
+  borderStyle: FxBorder;
 }
 
 export interface ThemeContrastItem {

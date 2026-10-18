@@ -1,9 +1,9 @@
-// Catalog of 110 Atmospheric Special Effects ("none" + 109 live procedural effects) across Low, Medium, and
+// Catalog of 135 Atmospheric Special Effects ("none" + 134 live procedural effects) across Low, Medium, and
 // High-End / Modern ARM Ultra hardware tiers. Each effect specifies its procedural engine archetype and tuning
 // parameters so every effect renders a distinct, theme-harmonized animation.
 
 export const ATMOSPHERE_CATEGORIES = [
-  { id: "all", label: "All effects (110)" },
+  { id: "all", label: "All effects (135)" },
   { id: "weather", label: "Weather & Sky" },
   { id: "mist", label: "Volumetric & Mist" },
   { id: "cyber", label: "Cyber, Code & Circuits" },
@@ -47,7 +47,7 @@ const fx = (id, section, cat, icon, label, badge, desc, engine, params = {}) => 
 
 export const ATMOSPHERE_OPTIONS = [
   // =================================================================================================================
-  // LOW GRAPHICS TIER — Lightweight & Battery Friendly (30 effects)
+  // LOW GRAPHICS TIER — Lightweight & Battery Friendly (37 effects)
   // =================================================================================================================
   fx("none", "low", "weather", "⊘", "Off", "0% GPU", "No weather or particle overlay.", "none"),
   fx("stars", "low", "cosmic", "✨", "Starfield", "Low GPU", "Diffraction starlight clusters and shooting meteors tinted to your theme.", "stars", { flareRatio: 0.15, meteorRate: 0.018 }),
@@ -79,9 +79,16 @@ export const ATMOSPHERE_OPTIONS = [
   fx("sonar_ping", "low", "cyber", "📡", "Submarine Sonar", "Tactical", "Periodic concentric acoustic range rings expanding from the center.", "portal", { rings: 4, speed: 0.6, pulseOnly: true }),
   fx("compass_rings", "low", "geometry", "🧭", "Navigator Rings", "Clean", "Thin, high-precision technical dials rotating at instrument-grade speeds.", "radar", { rings: 3, sweep: false, speed: 0.004 }),
   fx("night_snow", "low", "weather", "🏔️", "Midnight Flurry", "Low GPU", "Calm, vertical winter snowfall designed for dark-mode coding sessions.", "snow", { shape: "flake", sway: 0.45, speed: 0.7 }),
+  fx("snowglobe", "low", "weather", "🔮", "Winter Snowglobe", "Cozy", "Swirling glittery snowglobe flakes with warm indoor reflections.", "snow", { shape: "crystal", sway: 1.65, speed: 0.65, sparkle: true }),
+  fx("firefly_meadow", "low", "nature", "🌿", "Twilight Meadow", "Calm", "Sparse warm fireflies drifting above quiet evening grass.", "orbs", { sizeScale: 0.65, pulseSpeed: 0.022, trailCount: 1, densityMul: 0.65 }),
+  fx("pixel_rain", "low", "cyber", "👾", "16-Bit Pixel Rain", "Retro", "Crisp pixel-art rain ticks for retro and arcade themes.", "precip", { drift: 0, speed: 11, len: 8, ripples: false, densityMul: 0.7 }),
+  fx("autumn_ginkgo", "low", "nature", "💛", "Golden Ginkgo Fan", "Botanical", "Bright golden ginkgo leaves fluttering in a temple courtyard.", "snow", { shape: "petal", sway: 1.8, speed: 0.75, spin: 0.045 }),
+  fx("cottonwood", "low", "nature", "☁️", "Cottonwood Drift", "Botanical", "Soft white cottonwood seeds floating across a sunlit summer sky.", "snow", { shape: "flake", sway: 1.35, speed: 0.35, sizeMul: 0.75 }),
+  fx("radar_sweep_lite", "low", "cyber", "🎚️", "Minimalist Radar Sweep", "Tactical", "Clean polar sweep dial for HUD and terminal themes.", "radar", { rings: 2, sweep: true, planets: false, speed: 0.01 }),
+  fx("starlight_velvet", "low", "cosmic", "🌌", "Velvet OLED Starlight", "Low GPU", "Ultra-calm high-contrast stars designed for pitch-black OLED themes.", "stars", { flareRatio: 0.22, meteorRate: 0.008, densityMul: 0.85 }),
 
   // =================================================================================================================
-  // MEDIUM GRAPHICS TIER — Volumetric Weather, Streams & Bokeh (40 effects)
+  // MEDIUM GRAPHICS TIER — Volumetric Weather, Streams & Bokeh (49 effects)
   // =================================================================================================================
   fx("smoke", "medium", "mist", "🌫️", "Smoke screen", "Volumetric", "Silky volumetric mist waves, soft Gaussian vapour clouds and ambient light shafts.", "mist", { waveCount: 2, cloudScale: 1.0 }),
   fx("matrix", "medium", "cyber", "🟩", "Digital code rain", "Glyph stream", "Dual-depth cyber glyph streams with luminous phosphor heads and theme-graded trails.", "glyph", { charset: GLYPH_SETS.matrix, beamGlow: true }),
@@ -123,9 +130,18 @@ export const ATMOSPHERE_OPTIONS = [
   fx("origami_drift", "medium", "geometry", "🦢", "Origami Paper Cranes", "Folded", "Crisp geometric paper diamonds gliding along invisible wind currents.", "geometry", { shape: "diamonds", speed: 1.2 }),
   fx("pcb_traces", "medium", "cyber", "🔌", "Motherboard PCB Bus", "Hardware", "Orthogonal 45°/90° gold and copper circuit traces with zipping data pulses.", "circuit", { density: 1.0, speed: 1.0 }),
   fx("subway_neon", "medium", "cyber", "🚇", "Metro Transit Telemetry", "Vector Map", "Glowing multi-line transit conduits with express light packets traveling between nodes.", "circuit", { density: 0.75, speed: 1.35 }),
+  fx("cherry_storm", "medium", "nature", "🌺", "Hanami Petal Gale", "Botanical", "Swirling pink and ivory blossom storm with glowing bokeh petals.", "snow", { shape: "petal", sway: 2.6, speed: 1.45, spin: 0.055, densityMul: 1.3 }),
+  fx("neon_drizzle", "medium", "cyber", "🌃", "Tokyo Neon Drizzle", "Cyberpunk", "Magenta and cyan reflections rippling under a gentle night rain.", "precip", { drift: 0.8, speed: 11, len: 20, ripples: true, bokehDrops: true }),
+  fx("biolum_kelp", "medium", "nature", "🪸", "Coral Reef Spores", "Aquatic", "Glowing reef polyps and drifting iridescent sea spores.", "orbs", { sizeScale: 1.1, pulseSpeed: 0.038, rising: true, trailCount: 2 }),
+  fx("solar_wind", "medium", "cosmic", "🌬️", "Heliosphere Solar Wind", "Cosmic", "High-speed ionized particle stream sweeping diagonally across space.", "precip", { horizontal: true, drift: -14, speed: 3, len: 18, ripples: false }),
+  fx("vaporwave_sun", "medium", "geometry", "🌴", "Vaporwave Sunset Waves", "Retro 80s", "Segmented sunset glow with calm retro horizon waves.", "waves", { waveCount: 7, amp: 24, speed: 0.016, sparkles: true }),
+  fx("katakana_gold", "medium", "cyber", "🈶", "Gilded Katakana Stream", "Cyber", "Golden-tinted katakana and kanji glyph rain with warm bloom.", "glyph", { charset: GLYPH_SETS.matrix, beamGlow: true, densityMul: 1.15 }),
+  fx("fjord_mist", "medium", "mist", "🏔️", "Fjord Morning Mist", "Nordic", "Cool slate-blue coastal mist rolling over calm Nordic water.", "mist", { waveCount: 3, cloudScale: 1.2, speedMul: 0.75 }),
+  fx("crystal_cavern", "medium", "geometry", "💎", "Amethyst Geode Cavern", "Refractive", "Floating crystalline prisms and subterranean mineral sparkles.", "geometry", { shape: "shards", speed: 0.65 }),
+  fx("firework_sparks", "medium", "thermal", "🎆", "Festival Sparkler Trail", "Festive", "Crackle-like golden sparkler trails and drifting warm embers.", "ember", { trailLen: 4.5, speed: 1.8, horizonGlow: true }),
 
   // =================================================================================================================
-  // HIGH-END & MODERN ARM / ULTRA TIER — Out of This World (40 effects)
+  // HIGH-END & MODERN ARM / ULTRA TIER — Out of This World (49 effects)
   // =================================================================================================================
   fx("cyberstorm", "ultra", "cyber", "⛈️", "Cyber Storm", "ARM / Ultra", "High-velocity neon rain, branching plasma lightning arcs and chromatic shockwaves.", "precip", { cyber: true, drift: 2.8, speed: 17, len: 28, ripples: true, lightning: true }),
   fx("nebula", "ultra", "cosmic", "🌌", "Quantum Nebula", "ARM / Ultra", "Volumetric deep-space nebula clouds and relativistic warp-stars that bend to your cursor.", "nebula", { mode: "warp", cloudCount: 10 }),
@@ -167,6 +183,15 @@ export const ATMOSPHERE_OPTIONS = [
   fx("dragon_forge", "ultra", "thermal", "🐉", "Dragonfire Maelstrom", "Inferno", "Swirling vortex of high-density embers, thermal shockwaves and rising ash clouds.", "ember", { trailLen: 6.0, speed: 2.6, horizonGlow: true, densityMul: 1.5 }),
   fx("abyssal_trench", "ultra", "nature", "🐋", "Mariana Bioluminescence", "Abyssal Ultra", "Deep-sea caustic shafts, pulsing siphonophore trails and drifting marine snow.", "orbs", { sizeScale: 1.5, pulseSpeed: 0.035, trailCount: 5, densityMul: 1.35 }),
   fx("omega_matrix", "ultra", "cyber", "💻", "Omega Singularity Stream", "ARM / Ultra", "Maximum-density multi-layer katakana, hex & rune code streams with plasma lightning.", "glyph", { charset: GLYPH_SETS.matrix + GLYPH_SETS.runes, beamGlow: true, densityMul: 1.4 }),
+  fx("liquid_glass_caustics", "ultra", "geometry", "🫧", "Tahoe Liquid Glass Caustics", "macOS 26 Ultra", "Specular refractive glass caustics and iridescent prism flares.", "beams", { style: "caustics", beamCount: 12 }),
+  fx("m4_raytrace_prism", "ultra", "geometry", "💎", "M4 Ray-Traced Prism Field", "Apple Silicon", "Multi-bounce geometric prism shards with wide-gamut Display-P3 dispersion.", "geometry", { shape: "cubes", speed: 1.35 }),
+  fx("win11_mica_bloom", "ultra", "mist", "🪟", "DirectX 12 Mica Aurora", "Windows 11 Ultra", "High-saturation DirectComposition aurora ribbons and soft acrylic bokeh.", "aurora", { ribbons: 6, curtainHeight: 0.28 }),
+  fx("wormhole_transit", "ultra", "cosmic", "🌀", "Einstein-Rosen Wormhole", "Relativistic", "Twisting spacetime tunnel with relativistic blue-shift starlight.", "portal", { rings: 12, speed: 1.55 }),
+  fx("pulsar_magnetar", "ultra", "cosmic", "🌟", "Magnetar Gamma Sweep", "Astrophysics", "Rapidly spinning neutron star beams and magnetic field filaments.", "radar", { rings: 6, sweep: true, planets: true, speed: 0.032 }),
+  fx("cyber_samurai", "ultra", "cyber", "⚔️", "Neo-Edo Katana Sparks", "Cyber Ultra", "High-velocity clash sparks, drifting embers and neon voltage arcs.", "ember", { trailLen: 6.5, speed: 2.8, horizonGlow: true, densityMul: 1.4 }),
+  fx("quantum_foam", "ultra", "cosmic", "⚛️", "Planck Scale Quantum Foam", "Subatomic", "Fluctuating virtual particle pairs and vacuum energy ripples.", "network", { nodeCount: 52, linkDist: 155, pulses: true }),
+  fx("valkyrie_aurora", "ultra", "weather", "🛡️", "Valhalla Celestial Veil", "Mythic Ultra", "Golden-violet polar curtains with ascending rune-like light pillars.", "aurora", { ribbons: 7, curtainHeight: 0.34, warm: true }),
+  fx("singularity_core", "ultra", "cosmic", "🕳️", "Kerr Spinning Singularity", "ARM / Ultra", "Frame-dragging accretion vortex with Hawking radiation jets.", "nebula", { mode: "orbit", cloudCount: 14, spinSpeed: 0.035 }),
 ];
 
 export const ATMOSPHERE_BY_ID = new Map(ATMOSPHERE_OPTIONS.map((o) => [o.id, o]));
@@ -187,6 +212,14 @@ export const ATMOSPHERE_MIX_PRESETS = [
   { id: "dna_helix+qubit_stream+chrono_portal", icon: "🧬⏳", label: "Helix Spacetime Core", desc: "3D DNA Helix + Qubit Cascade + Dimensional Portal" },
   { id: "outrun_grid+hyperspace+laser_show", icon: "🌇🚀", label: "Retro Synth Odyssey", desc: "Synthwave Grid + Warp Jump + Arena Laser Prism" },
   { id: "sacred_mandala+alchemy_rain+will_o_wisp", icon: "۞🜁", label: "Alchemist’s Vault", desc: "Sacred Lotus + Hermetic Alchemy + Will-o’-the-Wisps" },
+  { id: "liquid_glass_caustics+m4_raytrace_prism+aurora", icon: "🫧💎", label: "Tahoe Liquid Glass Pro", desc: "Liquid Glass Caustics + M4 Prism Field + Aurora" },
+  { id: "m4_raytrace_prism+singularity_core+quantum_cpu", icon: "🍎🖥️", label: "M4 Max Neural Core", desc: "M4 Prism Field + Kerr Singularity + Quantum Die" },
+  { id: "win11_mica_bloom+cinema_bokeh+lo_fi_waves", icon: "🪟🎬", label: "Windows 11 Fluent Dream", desc: "DirectX 12 Mica Aurora + Cinema Bokeh + Sine Waves" },
+  { id: "cyber_samurai+cherry_storm+neon_drizzle", icon: "⚔️🌺", label: "Ghost of Neo-Tokyo", desc: "Katana Sparks + Hanami Petal Gale + Neon Drizzle" },
+  { id: "wormhole_transit+pulsar_magnetar+deep_space", icon: "🌀🌟", label: "Interstellar Odyssey", desc: "Einstein-Rosen Wormhole + Magnetar + Deep Space" },
+  { id: "valkyrie_aurora+ancient_runes+snow", icon: "🛡️ᚠ", label: "Asgard Winter Bifrost", desc: "Valhalla Veil + Elder Futhark Runes + Snowfall" },
+  { id: "quantum_foam+triple_helix+laser_show", icon: "⚛️🔦", label: "CERN Collider Chamber", desc: "Quantum Foam + Braided Plasma + Laser Prism" },
+  { id: "crystal_cavern+biolum_kelp+fairy_glade", icon: "💎🪸", label: "Subterranean Crystal Sea", desc: "Amethyst Geode + Coral Spores + Pixie Dust" },
 ];
 
 /**

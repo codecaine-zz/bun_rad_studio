@@ -203,7 +203,44 @@ export async function currentThemeName() {
 }
 
 const GROUP_ORDER = ["My themes", "Futuristic", "Editors and classics", "Linux", "Windows", "macOS", "Rare and beloved systems"];
-const RADIUS_PX = { sharp: ["2px", "1px"], soft: ["6px", "4px"], round: ["10px", "6px"], pill: ["14px", "999px"] };
+const RADIUS_PX = { sharp: ["2px", "1px"], soft: ["6px", "4px"], round: ["10px", "6px"], pill: ["14px", "999px"], squircle: ["11px", "7px"] };
+
+function parseHexRgb(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || "").trim());
+  if (!m) return [128, 128, 128];
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function rgbHueSatLum([r, g, b]) {
+  const rf = r / 255, gf = g / 255, bf = b / 255;
+  const max = Math.max(rf, gf, bf), min = Math.min(rf, gf, bf);
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (d === 0) return { h: 0, s: 0, l };
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h = 0;
+  if (max === rf) h = ((gf - bf) / d + (gf < bf ? 6 : 0)) * 60;
+  else if (max === gf) h = ((bf - rf) / d + 2) * 60;
+  else h = ((rf - gf) / d + 4) * 60;
+  return { h, s, l };
+}
+
+/** Classifies a theme into a visual color vibe/mood for 1-click gallery filtering. */
+export function themeMatchesVibe(t, vibe) {
+  if (!vibe || vibe === "all") return true;
+  if (vibe === "light") return !t.dark;
+  const [bgHex, , accentHex] = t.swatch ?? ["#16191d", "#1e2329", "#6ea8ff", "#e8eaed"];
+  const bg = parseHexRgb(bgHex);
+  if (vibe === "oled") return t.dark && bg[0] <= 14 && bg[1] <= 16 && bg[2] <= 24;
+  const { h, s } = rgbHueSatLum(parseHexRgb(accentHex));
+  if (s < 0.12) return false;
+  if (vibe === "cyan") return h >= 165 && h <= 235;
+  if (vibe === "violet") return (h > 235 && h <= 335);
+  if (vibe === "emerald") return h >= 85 && h < 165;
+  if (vibe === "warm") return h < 85 || h > 335;
+  return true;
+}
 
 function swatch(theme) {
   const [sBg, sPanel, sAccent, sText] = theme.swatch ?? ["#16191d", "#1e2329", "#6ea8ff", "#e8eaed"];
@@ -388,7 +425,7 @@ if (typeof window !== "undefined") {
 
 const choose = chooseTheme;
 
-/** The theme gallery: search, filter by light or dark, category or effects, pin favorites, and click a theme to try it. */
+/** The theme gallery: search, filter by light or dark, category, color vibe or effects, pin favorites, and click a theme to try it. */
 export async function showThemePicker() {
   let themes;
   try {
@@ -397,12 +434,13 @@ export async function showThemePicker() {
     toast(err?.message || "The themes couldn't be loaded.", { kind: "error" });
     return;
   }
-  const search = h("input", { type: "search", class: "prop-input", placeholder: "Search themes", "aria-label": "Search themes", title: "Type part of a theme's name, like dark, nord or windows." });
+  const search = h("input", { type: "search", class: "prop-input", placeholder: "Search themes", "aria-label": "Search themes", title: "Type part of a theme's name, like dark, nord, m4, tahoe or windows." });
   const mode = h("select", { class: "prop-input", "aria-label": "Show light or dark themes", title: "Show only light themes, only dark ones, or both." },
     [["all", "Light and dark"], ["light", "Light only"], ["dark", "Dark only"]].map(([v, l]) => h("option", { value: v }, l)));
   const categoryOptions = [
     ["all", "All categories"],
     ["favorites", "★ Favorites"],
+    ["recent", "⏱ Recently used"],
     ...(themes.some((t) => t.group === "My themes") ? [["My themes", "My themes"]] : []),
     ["Futuristic", "Futuristic"],
     ["Editors and classics", "Editors and classics"],
@@ -411,13 +449,68 @@ export async function showThemePicker() {
     ["macOS", "macOS"],
     ["Rare and beloved systems", "Rare and beloved systems"],
   ];
-  const groupFilter = h("select", { class: "prop-input", "aria-label": "Show themes from a category", title: "Show themes from all categories, only your pinned favorites, or one category like Futuristic, Linux or Windows." },
+  const groupFilter = h("select", { class: "prop-input", "aria-label": "Show themes from a category", title: "Show themes from all categories, only your pinned favorites, recently used, or one category like Futuristic, Linux or Windows." },
     categoryOptions.map(([v, l]) => h("option", { value: v }, l)));
   const fxFilter = h("select", { class: "prop-input", "aria-label": "Show themes with or without special effects", title: "Special effects are glass panels, glow, moving light, scanlines and grain. Plain themes change only the colors." },
     [["any", "With or without effects"], ["fx", "✨ Special effects only"], ["plain", "Plain colors only"]].map(([v, l]) => h("option", { value: v }, l)));
+  let activeVibe = "all";
+  let lastShown = themes;
+  let dialogRef = null;
   const list = h("div", { class: "theme-list" });
   const count = h("p", { class: "hint", role: "status" });
   const supportsHas = typeof CSS !== "undefined" && typeof CSS.supports === "function" && CSS.supports("selector(:has(*))");
+
+  const catPillsDef = [
+    ["all", "All"],
+    ["favorites", "★ Favorites"],
+    ["recent", "⏱ Recent"],
+    ...(themes.some((t) => t.group === "My themes") ? [["My themes", "🎨 My themes"]] : []),
+    ["Futuristic", "✨ Futuristic"],
+    ["macOS", "🍎 macOS"],
+    ["Windows", "🪟 Windows"],
+    ["Linux", "🐧 Linux"],
+    ["Editors and classics", "⌨️ Editors"],
+    ["Rare and beloved systems", "💎 Rare"],
+  ];
+  const catPillButtons = catPillsDef.map(([val, label]) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${val === "all" ? " is-active" : ""}`,
+      "data-cat-pill": val,
+      "aria-pressed": String(val === "all"),
+      onclick: () => {
+        groupFilter.value = val;
+        draw();
+      },
+    }, label),
+  );
+
+  const vibePillsDef = [
+    ["all", "All Vibes"],
+    ["oled", "⚫ OLED Black"],
+    ["cyan", "🔵 Cyan & Ocean"],
+    ["violet", "🟣 Violet & Neon"],
+    ["emerald", "🟢 Emerald"],
+    ["warm", "🟠 Amber & Warm"],
+    ["light", "☀️ Crisp Light"],
+  ];
+  const vibePillButtons = vibePillsDef.map(([val, label]) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${val === "all" ? " is-active" : ""}`,
+      "data-vibe-pill": val,
+      "aria-pressed": String(val === "all"),
+      onclick: () => {
+        activeVibe = val;
+        draw();
+      },
+    }, label),
+  );
+
+  const navBar = h("div", { class: "theme-nav-bar", role: "region", "aria-label": "Quick theme filters" },
+    h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Category"), ...catPillButtons),
+    h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Color Vibe"), ...vibePillButtons),
+  );
 
   const card = (t) => {
     const on = state.settings.palette === t.key;
@@ -425,6 +518,18 @@ export async function showThemePicker() {
     const b = h("button", { type: "button", class: "theme-card", "data-key": t.key, "aria-pressed": String(on), title: `${t.name}: ${t.description}`, onclick: () => pick(t.key) },
       swatch(t), h("span", { class: "theme-name" }, t.name), h("span", { class: "theme-kind" }, t.dark ? "Dark" : "Light"),
       t.hasEffects ? h("span", { class: "theme-fx-badge", title: "This theme has special effects: glass, glow, motion and texture." }, "✨ Effects") : h("span", { class: "theme-plain-badge" }, "Colors only"));
+    const editBtn = h("button", {
+      type: "button",
+      class: "theme-edit-quick",
+      "data-edit-key": t.key,
+      "aria-label": `Customize ${t.name}`,
+      title: `Customize ${t.name} in the Theme Editor…`,
+      onclick: (e) => {
+        e.stopPropagation();
+        dialogRef?.close();
+        emit("theme-editor", { from: t.key });
+      },
+    }, "✎");
     const pin = h("button", {
       type: "button",
       class: "theme-pin",
@@ -445,7 +550,7 @@ export async function showThemePicker() {
         list.querySelector(`.theme-pin[data-pin-key="${t.key}"]`)?.focus({ preventScroll: true });
       },
     }, pinned ? "★" : "☆");
-    const wrap = h("div", { class: `theme-card-item${!supportsHas && pinned ? " is-pinned" : ""}` }, b, pin);
+    const wrap = h("div", { class: `theme-card-item${!supportsHas && pinned ? " is-pinned" : ""}` }, b, editBtn, pin);
     return wrap;
   };
   const defaultCard = () => {
@@ -460,18 +565,38 @@ export async function showThemePicker() {
     const m = mode.value;
     const grp = groupFilter.value;
     const fx = fxFilter.value;
+    for (const btn of catPillButtons) {
+      const active = btn.dataset.catPill === grp;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-pressed", String(active));
+    }
+    for (const btn of vibePillButtons) {
+      const active = btn.dataset.vibePill === activeVibe;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-pressed", String(active));
+    }
     const favSet = new Set(favoriteKeys());
+    const recKeys = recentKeys();
+    const recSet = new Set(recKeys);
     const shown = themes.filter((t) => (m === "all" || (m === "dark") === t.dark)
       && (fx === "any" || (fx === "fx") === !!t.hasEffects)
-      && (grp === "all" || (grp === "favorites" ? favSet.has(t.key) : t.group === grp))
+      && (grp === "all" || (grp === "favorites" ? favSet.has(t.key) : grp === "recent" ? recSet.has(t.key) : t.group === grp))
+      && themeMatchesVibe(t, activeVibe)
       && (!q || `${t.name} ${t.group} ${t.key} ${t.description} ${favSet.has(t.key) ? "favorite favorite pinned star" : ""} ${t.hasEffects ? "effects special effects fx glow glass motion" : "plain"}`.toLowerCase().includes(q)));
+    lastShown = shown;
     const sections = [];
     const favShown = favoriteKeys().map((k) => shown.find((t) => t.key === k)).filter(Boolean);
     if ((grp === "all" || grp === "favorites") && favShown.length) {
       sections.push(h("section", { class: "theme-section-favorites" }, h("h3", {}, `Favorites (${favShown.length})`), h("div", { class: "theme-grid" }, favShown.map(card))));
     }
-    if (!q && m === "all" && fx !== "fx" && grp === "all") sections.push(h("section", {}, h("h3", {}, "Default"), h("div", { class: "theme-grid" }, defaultCard())));
-    if (grp !== "favorites") {
+    if (grp === "recent") {
+      const recShown = recKeys.map((k) => shown.find((t) => t.key === k)).filter(Boolean);
+      if (recShown.length) {
+        sections.push(h("section", { class: "theme-section-recent" }, h("h3", {}, `Recently used (${recShown.length})`), h("div", { class: "theme-grid" }, recShown.map(card))));
+      }
+    }
+    if (!q && m === "all" && fx !== "fx" && grp === "all" && activeVibe === "all") sections.push(h("section", {}, h("h3", {}, "Default"), h("div", { class: "theme-grid" }, defaultCard())));
+    if (grp !== "favorites" && grp !== "recent") {
       for (const group of GROUP_ORDER) {
         const inGroup = shown.filter((t) => t.group === group);
         if (inGroup.length) sections.push(h("section", {}, h("h3", {}, `${group} (${inGroup.length})`), h("div", { class: "theme-grid" }, inGroup.map(card))));
@@ -479,7 +604,9 @@ export async function showThemePicker() {
     }
     const emptyMsg = grp === "favorites" && !favSet.size
       ? "No favorite themes yet. Click ☆ on any theme card to pin it here."
-      : "No theme matches. Try a shorter word.";
+      : grp === "recent" && !recSet.size
+        ? "No recently used themes yet. Click any theme card to try it."
+        : "No theme matches. Try a shorter word or another Color Vibe.";
     list.replaceChildren(...(sections.length ? sections : [h("p", { class: "hint" }, emptyMsg)]));
     const withFx = shown.filter((t) => t.hasEffects).length;
     count.textContent = `${shown.length} of ${themes.length} themes · ${withFx} with special effects ✨, ${shown.length - withFx} plain colors`;
@@ -544,15 +671,28 @@ export async function showThemePicker() {
     body: [
       h("div", { class: "theme-tools" },
         search, mode, groupFilter, fxFilter,
+        h("button", {
+          type: "button",
+          class: "btn theme-random-btn",
+          title: "Pick a random theme from the currently shown themes.",
+          onclick: async () => {
+            const pool = lastShown.length ? lastShown : themes;
+            if (!pool.length) return;
+            const candidates = pool.filter((t) => t.key !== state.settings.palette);
+            const chosen = (candidates.length ? candidates : pool)[Math.floor(Math.random() * (candidates.length || pool.length))];
+            if (chosen) await pick(chosen.key);
+          },
+        }, "🎲 Surprise me"),
         h("button", { type: "button", class: "btn", title: "Add weather or particle effects like rain, smoke screen, digital rain, cyber storm or aurora — with Low, Medium and Modern ARM Ultra graphics profiles.", onclick: () => { emit("atmosphere-picker"); } }, "Atmosphere FX…"),
         h("button", { type: "button", class: "btn", title: "Choose a Light theme for daytime and a Dark theme for nighttime so the File Manager switches between them automatically with your computer.", onclick: () => { void showDayNightPairDialog(themes); } }, "Day / Night pair…"),
         h("button", { type: "button", class: "btn", title: "Make your own theme, or start from one of these and change its colors.", onclick: () => { dialog.close(); emit("theme-editor", { from: state.settings.palette || "" }); } }, "Create or edit a theme…")),
-      count, list,
-      h("p", { class: "hint" }, "A theme applies as soon as you click it, and is remembered. Click ☆ on any theme to pin it to Favorites. Or use the arrow keys to try themes as you move: Enter or Done keeps one, Escape goes back. Themes marked ✨ Effects add glass, glow and motion; the effects menu lets you show only them, or only plain color themes. The colors of every theme are checked so text stays readable."),
+      navBar, count, list,
+      h("p", { class: "hint" }, "A theme applies as soon as you click it, and is remembered. Click ☆ on any theme to pin it to Favorites, or ✎ to customize its colors and effects. Use Category and Color Vibe pills to filter in one click, or use the arrow keys to preview themes live."),
     ],
     buttons: [{ label: "Done", primary: true, value: true }],
     initialFocus: search,
   });
+  dialogRef = dialog;
   dialog.result.then(async (value) => {
     const key = previewKey;
     previewKey = null;

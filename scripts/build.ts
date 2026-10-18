@@ -17,6 +17,7 @@
 
 import { mkdirSync, copyFileSync, existsSync, writeFileSync, readFileSync } from "fs";
 import { join, resolve } from "path";
+import { webviewPlugin } from "./release/suite";
 
 const ROOT = resolve(import.meta.dir, "..");
 const DIST = join(ROOT, "dist");
@@ -58,6 +59,7 @@ async function buildLib() {
         format: "esm",
         sourcemap: "external",
         minify: true,
+        plugins: [webviewPlugin("gui")],
     });
     if (!mainResult.success) {
         for (const log_ of mainResult.logs) console.error(log_);
@@ -75,6 +77,7 @@ async function buildLib() {
         format: "esm",
         sourcemap: "external",
         minify: true,
+        plugins: [webviewPlugin("gui")],
     });
     if (!sgResult.success) {
         for (const log_ of sgResult.logs) console.error(log_);
@@ -132,11 +135,14 @@ async function buildBinary() {
     log("⚡", "Compiling standalone binary → dist/bun_rad_studio");
 
     mkdirSync(DIST, { recursive: true });
+    if (!existsSync(join(DIST, "index.js"))) {
+        await buildLib();
+    }
 
     await run([
         "bun", "build",
         "--compile",
-        join(ROOT, "index.ts"),
+        join(DIST, "index.js"),
         "--outfile", join(DIST, "bun_rad_studio"),
         "--target", "bun",
         "--minify",

@@ -139,21 +139,25 @@ export function buildShowcase(): string {
   L.push("");
 
   // Featured
-  const fm = ["desktop", "convert", "terminal", "responsive", "databases", "themes"].every((k) => existsSync(join(SHOTS, `file_manager_studio_${k}.png`)));
+  const fm = ["desktop", "dual", "convert", "terminal", "image_studio", "player", "databases", "dev", "games", "themes", "responsive"].every((k) => existsSync(join(SHOTS, `file_manager_studio_${k}.png`)));
   if (fm) {
     L.push("## Featured: the File Manager");
     L.push("");
-    L.push("An easy, safe file manager for macOS, Windows and Linux. A sidebar and address bar anyone can read, previews, drag and drop, an undoable Recycle Bin, **batch conversion of pictures, video, sound and documents**, and a **terminal that opens in the folder you are looking at**.");
+    L.push("An all-in-one, safe desktop file manager and workstation for macOS, Windows and Linux. Features **folder tabs**, an **expandable sidebar folder tree**, **7 color tags**, **Quick Look (`Space`)**, **Dual-Pane Commander view (`Alt+5`)**, an undoable Recycle Bin, **batch conversion of pictures, video, sound and documents**, a **built-in Image & Media Studio**, **AmpDeck 10-band EQ & 108-visualizer player**, **Databases Hub with cross-engine cloning & Bun JS macros**, **Split-view Code Editor**, **24 built-in arcade games**, **180 themes with glass & glow**, and a **two-way synced terminal**.");
     L.push("");
-    L.push("| Browse and preview | Convert in batches |");
+    L.push("| Browse, Folder Tabs, Color Tags & Preview | Dual-Pane Commander (`F5` Copy / `F6` Move) |");
     L.push("| :--- | :--- |");
-    L.push("| ![The File Manager showing a selected picture and its preview](screenshots/apps/file_manager_studio_desktop.png) | ![The Convert and process window listing what can be done with three selected pictures](screenshots/apps/file_manager_studio_convert.png) |");
-    L.push("| **Terminal in the current folder** | **Fits a smaller window** |");
-    L.push("| ![The File Manager with its terminal open](screenshots/apps/file_manager_studio_terminal.png) | ![The File Manager in a narrow window](screenshots/apps/file_manager_studio_responsive.png) |");
-    L.push("| **Databases, one click away** | **Edit Redis keys in place** |");
-    L.push("| ![The Databases tool with a Redis connection that was found automatically](screenshots/apps/file_manager_studio_databases.png) | ![Redis Studio editing the score of a sorted-set member](screenshots/apps/redis_studio_editing.png) |");
-    L.push("| **Enhanced themes: glass, glow, motion and texture** | |");
-    L.push("| ![The File Manager theme gallery filtered to enhanced themes with special effects](screenshots/apps/file_manager_studio_themes.png) | |");
+    L.push("| ![The File Manager showing folder tabs, sidebar tree, color tags, and selected picture preview](screenshots/apps/file_manager_studio_desktop.png) | ![The File Manager in side-by-side Dual-Pane Commander mode](screenshots/apps/file_manager_studio_dual.png) |");
+    L.push("| **Batch Convert & Process** | **Two-Way Synced Terminal in Current Folder** |");
+    L.push("| ![The Convert and process window listing what can be done with three selected pictures](screenshots/apps/file_manager_studio_convert.png) | ![The File Manager with its synced terminal open](screenshots/apps/file_manager_studio_terminal.png) |");
+    L.push("| **Built-in Image & Media Studio** | **AmpDeck Media Player (10-Band EQ & 108 Visualizers)** |");
+    L.push("| ![The built-in Image Studio editing a photo with live sliders and presets](screenshots/apps/file_manager_studio_image_studio.png) | ![The built-in AmpDeck Media Deck with 10-band equalizer and visualizer](screenshots/apps/file_manager_studio_player.png) |");
+    L.push("| **Databases Hub, Cross-Engine Cloning & Bun JS Macros** | **Split View + Built-in Code Editor & Live Preview** |");
+    L.push("| ![The Databases Hub with SQLite and Redis connections, cloning and macros](screenshots/apps/file_manager_studio_databases.png) | ![Split view showing files alongside the built-in Code Editor and Markdown preview](screenshots/apps/file_manager_studio_dev.png) |");
+    L.push("| **24 Built-in Retro Arcade, Card & Puzzle Games** | **180 Themes: Frosted Glass, Neon Glow & Motion FX** |");
+    L.push("| ![The built-in Codecaine Arcade Suite with 24 playable games inside the File Manager](screenshots/apps/file_manager_studio_games.png) | ![The File Manager theme gallery filtered to enhanced themes with special effects](screenshots/apps/file_manager_studio_themes.png) |");
+    L.push("| **Fits a smaller window (Responsive Layout)** | **Edit Redis keys in place** |");
+    L.push("| ![The File Manager in a narrow window](screenshots/apps/file_manager_studio_responsive.png) | ![Redis Studio editing the score of a sorted-set member](screenshots/apps/redis_studio_editing.png) |");
     L.push("");
     L.push("`bun run app:files`  ·  [User guide](docs/userguides/43_file_manager.md)");
     L.push("");

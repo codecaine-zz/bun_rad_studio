@@ -18,8 +18,8 @@
 process.env.SCREENSHOT_MODE = "1";
 
 import { spawn, spawnSync } from "child_process";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
-import { tmpdir } from "os";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
+import { homedir, tmpdir } from "os";
 import { join } from "path";
 
 const CHROME = process.env.CHROME_BIN ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -127,7 +127,7 @@ function makeSampleHome(): { home: string; data: string } {
   rmSync(base, { recursive: true, force: true });
   const home = base;
   const data = join(work, "data");
-  for (const d of ["Pictures/Trip to Italy", "Documents/Taxes", "Music", "Videos", "Downloads", "Desktop"]) mkdirSync(join(home, d), { recursive: true });
+  for (const d of ["Pictures/Trip to Italy", "Pictures/Wallpaper Studio", "Documents/Taxes", "Music", "Videos", "Downloads", "Desktop"]) mkdirSync(join(home, d), { recursive: true });
   mkdirSync(data, { recursive: true });
   const magick = tool("magick");
   const ffmpeg = tool("ffmpeg");
@@ -144,17 +144,37 @@ function makeSampleHome(): { home: string; data: string } {
   picture("Portrait.jpg", "gradient:#bc4e9c-#f80759", "800x1100");
   if (magick) for (const n of ["Colosseum.jpg", "Venice canal.jpg"]) spawnSync(magick, ["-size", "1000x700", "gradient:#355c7d-#f67280", join(home, "Pictures", "Trip to Italy", n)]);
   const text = (rel: string, body: string) => writeFileSync(join(home, rel), body);
-  text("Documents/Project notes.md", "# Project notes\n\n- Plan the launch\n- Write the guide\n- Ask for feedback\n");
+  text(
+    "Documents/Project notes.md",
+    [
+      "# Codecaine File Manager — Launch Notes",
+      "",
+      "Welcome to **Codecaine File Manager**, the all-in-one desktop workspace:",
+      "",
+      "- **Folder Tabs & Color Tags**: Organize folders with 7 Finder-style color tags and expandable sidebar trees.",
+      "- **Batch Convert & Image Studio**: Convert batches of images, videos, audio, and PDFs or tune photos live.",
+      "- **AmpDeck Media Deck**: 10-band equalizer, 108 audio-reactive visualizers, and M3U playlists.",
+      "- **Databases Hub**: Built-in SQLite, PostgreSQL, MySQL & Redis studios with cross-engine cloning & Bun JS macros.",
+      "",
+      "| Feature | Status | Shortcut |",
+      "| :--- | :--- | :--- |",
+      "| Quick Look Preview | Ready | `Space` |",
+      "| Dual-Pane Commander | Ready | `Alt+5` |",
+      "| Synced Terminal | Ready | `` Ctrl+` `` |",
+      "",
+    ].join("\n"),
+  );
   text("Documents/Meeting minutes.txt", "Attendees: Alex, Sam, Priya\n\nDecisions:\n1. Ship on Friday.\n2. Review the budget.\n");
   text("Documents/Budget 2026.csv", "Item,Cost\nHosting,240\nDomain,15\nDesign,600\n");
   text("Documents/Taxes/Receipts.txt", "Receipts for 2026 go here.\n");
   text("Downloads/installer-notes.txt", "Read me first.\n");
   if (ffmpeg) {
-    spawnSync(ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "sine=frequency=330:duration=3", join(home, "Music", "Morning melody.mp3")]);
-    spawnSync(ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "testsrc=duration=2:size=640x360:rate=24", "-pix_fmt", "yuv420p", join(home, "Videos", "Holiday clip.mp4")]);
+    spawnSync(ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "sine=frequency=330:duration=4", join(home, "Music", "Morning melody.mp3")]);
+    spawnSync(ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:duration=5", join(home, "Music", "Synthwave horizon.mp3")]);
+    spawnSync(ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "testsrc=duration=3:size=640x360:rate=24", "-pix_fmt", "yuv420p", join(home, "Videos", "Holiday clip.mp4")]);
   }
   writeFileSync(join(data, "file_manager.json"), JSON.stringify({
-    favorites: [join(home, "Pictures"), join(home, "Documents")], recents: [], view: "details", sortBy: "name", sortDir: "asc", foldersFirst: true,
+    favorites: [join(home, "Pictures"), join(home, "Documents"), join(home, "Music")], recents: [], view: "details", sortBy: "name", sortDir: "asc", foldersFirst: true,
     showHidden: false, showInfoPanel: true, theme: "dark", textSize: 100, lastPath: join(home, "Pictures"), seenWelcome: true,
   }));
   return { home, data };
@@ -189,10 +209,16 @@ class Cdp {
       }
     }
   }
-  async shot(file: string) {
+  async shot(file: string, promoDownloadName?: string) {
     await this.eval("document.querySelector('#toasts')?.replaceChildren()");
     const r = await this.send("Page.captureScreenshot", { format: "png" });
     writeFileSync(file, Buffer.from(r.data, "base64"));
+    if (promoDownloadName) {
+      const downloadsDir = join(homedir(), "Downloads");
+      if (existsSync(downloadsDir)) {
+        copyFileSync(file, join(downloadsDir, promoDownloadName));
+      }
+    }
   }
   async size(width: number, height: number) {
     await this.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: false });
@@ -234,63 +260,181 @@ async function captureFileManager() {
     await page.eval("new Promise(r => { const t = setInterval(() => { if (document.body.classList.contains('ready')) { clearInterval(t); r(true); } }, 100); })");
     await sleep(800);
 
-    const click = (name: string, meta = false) => page.eval(`(() => { const r = [...document.querySelectorAll('#list .row')].find(r => r.querySelector('.name-text')?.textContent === ${JSON.stringify(name)}); r.dispatchEvent(new MouseEvent('click', { bubbles: true, metaKey: ${meta} })); })()`);
+    // Seed folder tabs, sidebar folder tree expansion, and color tags so the main view showcases v1.4.4 features.
+    await page.eval(`(async () => {
+      const tabs = await import('/ui/tabs.js');
+      const tags = await import('/ui/tags.js');
+      const folderTree = await import('/ui/folderTree.js');
+      await tags.setTagForPaths([${JSON.stringify(join(home, "Pictures", "Sunset over the bay.jpg"))}], 'red');
+      await tags.setTagForPaths([${JSON.stringify(join(home, "Pictures", "Mountain lake.png"))}], 'blue');
+      await tags.setTagForPaths([${JSON.stringify(join(home, "Pictures", "Beach morning.jpg"))}], 'orange');
+      await tags.setTagForPaths([${JSON.stringify(join(home, "Pictures", "Forest path.png"))}], 'green');
+      await tabs.openNewTab(${JSON.stringify(join(home, "Documents"))});
+      await tabs.openNewTab(${JSON.stringify(join(home, "Music"))});
+      await tabs.switchTab(1);
+      await folderTree.toggleFolderTreeSection();
+      await folderTree.toggleTreeNode(${JSON.stringify(join(home, "Pictures"))});
+    })()`);
+    await sleep(900);
 
-    // 1. A picture selected, with the details panel showing its preview.
+    const click = (name: string, meta = false) => page.eval(`(() => { const r = [...document.querySelectorAll('#list .row')].find(r => r.querySelector('.name-text')?.textContent === ${JSON.stringify(name)}); r?.dispatchEvent(new MouseEvent('click', { bubbles: true, metaKey: ${meta}, ctrlKey: ${meta} })); })()`);
+
+    // 1. Browse view with Folder Tabs, Sidebar Tree, Color Tags, and Details preview panel.
     await click("Sunset over the bay.jpg");
     await sleep(1200);
-    await page.shot(join(OUT, "file_manager_studio_desktop.png"));
+    await page.shot(join(OUT, "file_manager_studio_desktop.png"), "codecaine_file_manager_01_browse_tabs_tags_preview.png");
     await page.size(960, 720);
     await sleep(500);
     await page.shot(join(OUT, "file_manager_studio_responsive.png"));
     await page.size(1280, 900);
     await sleep(400);
 
-    // 2. The Convert window for three pictures.
-    await click("Sunset over the bay.jpg");
-    await click("Mountain lake.png", true);
-    await click("Beach morning.jpg", true);
-    await page.eval("document.querySelector('#tool-tools').click()");
-    await page.eval("new Promise(r => { const t = setInterval(() => { if (document.querySelector('.dialog.wide') && document.querySelector('.dialog.wide').textContent.includes('What do you want to turn')) { clearInterval(t); r(true); } }, 100); })");
+    // 2. Dual-Pane Commander view (Pictures on the left, Documents on the right).
+    await page.eval(`(async () => {
+      const ws = await import('/ui/workspace.js');
+      const dual = await import('/ui/dual.js');
+      ws.setWorkspace('dual');
+      await dual.loadRight(${JSON.stringify(join(home, "Documents"))});
+    })()`);
+    await sleep(900);
+    await page.shot(join(OUT, "file_manager_studio_dual.png"), "codecaine_file_manager_02_dual_pane_commander.png");
+    await page.eval(`(async () => {
+      const ws = await import('/ui/workspace.js');
+      const pane = await import('/ui/pane.js');
+      ws.setWorkspace('files');
+      pane.setActivePane('left');
+    })()`);
+    await sleep(500);
+
+    // 3. The Convert window for three pictures.
+    await page.eval(`(async () => {
+      const sel = await import('/ui/selection.js');
+      sel.selectKeys([
+        ${JSON.stringify(join(home, "Pictures", "Sunset over the bay.jpg"))},
+        ${JSON.stringify(join(home, "Pictures", "Mountain lake.png"))},
+        ${JSON.stringify(join(home, "Pictures", "Beach morning.jpg"))}
+      ]);
+      const tools = await import('/ui/tools.js');
+      tools.showToolsDialog();
+    })()`);
+    await page.eval("new Promise(r => { let n = 0; const t = setInterval(() => { if ((document.querySelector('.dialog.wide') && document.querySelector('.dialog.wide').textContent.includes('What do you want to turn')) || ++n > 60) { clearInterval(t); r(true); } }, 100); })");
     await sleep(1500);
-    await page.shot(join(OUT, "file_manager_studio_convert.png"));
+    await page.shot(join(OUT, "file_manager_studio_convert.png"), "codecaine_file_manager_03_batch_convert_process.png");
     await page.eval("[...document.querySelectorAll('.dialog button')].find(b => b.textContent === 'Close')?.click()");
     await sleep(300);
 
-    // 3. The Databases tool, opened from its own toolbar button. The screenshot machine's own .env files are put aside so
-    // only the Redis found on this computer is left.
-    await page.eval("document.querySelector('#tool-databases').click()");
-    await page.eval("new Promise(r => { const t = setInterval(() => { if (document.querySelector('#power-panel') && !document.querySelector('#power-panel').hidden && document.querySelector('.db-row')) { clearInterval(t); r(true); } }, 100); })");
-    await sleep(800);
-    await page.eval("[...document.querySelectorAll('#power-panel button')].filter(b => b.textContent === 'Not now').forEach(b => b.click())");
-    await sleep(600);
-    await page.eval("document.querySelector('#power-panel .db-row')?.click()");
-    await page.eval("document.querySelector('#toasts')?.replaceChildren()");
-    await sleep(1200);
-    await page.shot(join(OUT, "file_manager_studio_databases.png"));
-    await page.eval("document.querySelector('#tool-power')?.click()");
-    await sleep(500);
-
     // 4. The terminal, started in the folder on screen.
-    await page.eval("document.querySelector('#tool-terminal').click()");
+    await page.eval("import('/ui/state.js').then(m => m.emit('toggle-terminal'))");
     await sleep(2500);
     await page.eval("document.querySelector('.xterm-helper-textarea')?.focus()");
     await page.send("Input.insertText", { text: "ls" });
     await page.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13, text: "\r" });
     await page.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
     await sleep(1200);
-    await page.shot(join(OUT, "file_manager_studio_terminal.png"));
-
-    // 5. The enhanced theme gallery, narrowed to themes with glass, glow, motion or texture.
-    await page.eval("document.querySelector('#tool-terminal')?.click()");
+    await page.shot(join(OUT, "file_manager_studio_terminal.png"), "codecaine_file_manager_04_synced_terminal.png");
+    await page.eval("import('/ui/state.js').then(m => m.emit('toggle-terminal'))");
     await sleep(300);
-    await page.eval("window.openAppThemes()");
-    await page.eval("new Promise(r => { const t = setInterval(() => { if (document.querySelector('.theme-list .theme-card')) { clearInterval(t); r(true); } }, 100); })");
-    await page.eval("(() => { const f = document.querySelector('[aria-label=\"Show themes with or without special effects\"]'); f.value = 'fx'; f.dispatchEvent(new Event('change', { bubbles: true })); })()");
+
+    // 5. Built-in Image Studio editing Sunset over the bay.jpg with Golden hour preset.
+    await page.eval(`(async () => {
+      const ws = await import('/ui/workspace.js');
+      ws.setWorkspace('tools', { tool: 'imagestudio', opts: { path: ${JSON.stringify(join(home, "Pictures", "Sunset over the bay.jpg"))} } });
+    })()`);
+    await sleep(1000);
+    await page.eval(`[...document.querySelectorAll('.st-preset')].find(b => b.textContent === 'Golden hour')?.click()`);
     await sleep(600);
-    await page.shot(join(OUT, "file_manager_studio_themes.png"));
+    await page.shot(join(OUT, "file_manager_studio_image_studio.png"), "codecaine_file_manager_05_image_media_studio.png");
+
+    // 6. Built-in AmpDeck Media Deck with 10-band EQ, visualizer canvas, and playlist queue.
+    await page.eval(`(async () => {
+      const ws = await import('/ui/workspace.js');
+      ws.setWorkspace('tools', {
+        tool: 'player',
+        opts: {
+          paths: [
+            ${JSON.stringify(join(home, "Music", "Morning melody.mp3"))},
+            ${JSON.stringify(join(home, "Music", "Synthwave horizon.mp3"))},
+            ${JSON.stringify(join(home, "Videos", "Holiday clip.mp4"))}
+          ]
+        }
+      });
+    })()`);
+    await sleep(1200);
+    await page.eval(`(() => {
+      const sel = document.querySelector('.wa-eq-preset-select');
+      if (sel) { sel.value = 'Rock'; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    })()`);
+    await sleep(600);
+    await page.shot(join(OUT, "file_manager_studio_player.png"), "codecaine_file_manager_06_ampdeck_media_player.png");
+
+    // 7. The Databases Hub, with a synthetic SQLite sample connection + detected Redis and Cross-Engine Clone / Macros toolbar.
+    await page.eval(`(async () => {
+      const api = await import('/ui/api.js');
+      const cat = await api.call('db/sample/catalog');
+      if (cat?.datasets?.[0]) {
+        await api.call('db/sample/create', {
+          datasetId: cat.datasets[0].id,
+          scale: 'small',
+          folder: ${JSON.stringify(join(home, "Documents"))},
+          name: 'Storefront_Demo',
+          save: true
+        });
+      }
+    })()`);
+    await page.eval("document.querySelector('#tool-databases').click()");
+    await page.eval("new Promise(r => { let n = 0; const t = setInterval(() => { if ((document.querySelector('#power-panel') && !document.querySelector('#power-panel').hidden && document.querySelector('.db-row')) || ++n > 60) { clearInterval(t); r(true); } }, 100); })");
+    await sleep(800);
+    await page.eval("[...document.querySelectorAll('#power-panel button')].filter(b => b.textContent === 'Not now').forEach(b => b.click())");
+    await sleep(600);
+    await page.eval("document.querySelector('#power-panel .db-row')?.click()");
+    await page.eval("document.querySelector('#toasts')?.replaceChildren()");
+    await sleep(1000);
+    await page.shot(join(OUT, "file_manager_studio_databases.png"), "codecaine_file_manager_07_databases_hub_cloning.png");
+
+    // 8. Split View with the folder list on the left and the built-in Code Editor + Live Markdown Preview on the right.
+    await page.eval(`(async () => {
+      const nav = await import('/ui/nav.js');
+      const ws = await import('/ui/workspace.js');
+      await nav.goTo(${JSON.stringify(join(home, "Documents"))});
+      ws.setWorkspace('split', { tool: 'code', opts: { open: ${JSON.stringify(join(home, "Documents", "Project notes.md"))} } });
+      document.querySelector('#stage')?.style.setProperty('--split', '36');
+    })()`);
+    await sleep(1200);
+    await page.eval(`(() => {
+      const side = document.querySelector('.code-root .code-side');
+      if (side) side.hidden = true;
+      const prevBtn = [...document.querySelectorAll('.code-root button')].find(b => b.textContent?.includes('Preview') && b.getAttribute('aria-pressed') === 'false');
+      prevBtn?.click();
+      window.dispatchEvent(new Event('resize'));
+    })()`);
+    await sleep(700);
+    await page.shot(join(OUT, "file_manager_studio_dev.png"), "codecaine_file_manager_08_split_code_editor_dev.png");
+
+    // 9. Built-in 24 Codecaine Arcade Games catalog inside the File Manager.
+    await page.eval(`(async () => {
+      const ws = await import('/ui/workspace.js');
+      ws.setWorkspace('tools', { tool: 'games' });
+    })()`);
+    await sleep(1000);
+    await page.shot(join(OUT, "file_manager_studio_games.png"), "codecaine_file_manager_09_24_arcade_games.png");
+
+    // 10. The 180 Themes gallery, narrowed to special-effects themes with a live glass/glow theme applied.
+    await page.eval(`(async () => {
+      const nav = await import('/ui/nav.js');
+      const ws = await import('/ui/workspace.js');
+      ws.setWorkspace('files');
+      await nav.goTo(${JSON.stringify(join(home, "Pictures"))});
+    })()`);
+    await sleep(500);
+    await page.eval("window.openAppThemes()");
+    await page.eval("new Promise(r => { let n = 0; const t = setInterval(() => { if (document.querySelector('.theme-list .theme-card') || ++n > 60) { clearInterval(t); r(true); } }, 100); })");
+    await page.eval("(() => { const f = document.querySelector('[aria-label=\"Show themes with or without special effects\"]'); f.value = 'fx'; f.dispatchEvent(new Event('change', { bubbles: true })); })()");
+    await sleep(400);
+    await page.eval("(() => { const card = [...document.querySelectorAll('.theme-list .theme-card')].find(c => c.textContent?.includes('Cyberpunk Hologram')) || document.querySelector('.theme-list .theme-card'); card?.click(); })()");
+    await sleep(600);
+    await page.shot(join(OUT, "file_manager_studio_themes.png"), "codecaine_file_manager_10_180_themes_glass_fx.png");
     ws.close();
-    console.log("  ✔ file_manager_studio: desktop, responsive, convert, databases, terminal and enhanced themes");
+    console.log("  ✔ file_manager_studio: 10 promotional screenshots captured into screenshots/apps/ and ~/Downloads/");
   } finally {
     chrome.kill();
     server.kill();

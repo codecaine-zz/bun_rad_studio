@@ -72,7 +72,7 @@ export function notes(files: Array<{ name: string; bytes: number }>, repo: strin
   };
   const L: string[] = [`# Bun RAD Studio v${VERSION}`, "", "**No programming needed.** Download, unzip, open. Bun is included; no source checkout or compilation needed. Native-window system requirements are listed below.", ""];
   if (whatsNew.length) L.push(`## ✨ What's new in v${VERSION}`, "", ...whatsNew.map((w) => `- ${w}`), "", "The full list is in the [changelog](https://github.com/" + repo + "/blob/main/CHANGELOG.md).", "");
-  L.push("## ⭐ Codecaine File Manager", "", "A fast, private file manager for developers: two folders side by side, a code editor, database studios (SQLite, MySQL, PostgreSQL, Redis), an encrypted password vault, a live web server, **a download manager that splits files over several connections and resumes them**, an API client, a project bundler, an `.env` editor, and more.", "");
+  L.push("## ⭐ Codecaine File Manager", "", "A fast, private file manager for developers: two folders side by side, a code editor, database studios (SQLite, MySQL, PostgreSQL, Redis), a cross-platform Process & Task Manager, a System Information dashboard, an encrypted password vault, a live web server, **a download manager that splits files over several connections and resumes them**, an API client, a project bundler, an `.env` editor, and more.", "");
   L.push("| Your computer | Download |", "|---|---|");
   for (const r of [row("🍎 **Mac**", (n) => n.includes("-macos-")), row("🪟 **Windows**", (n) => n.includes("-windows-")), row("🐧 **Linux**", (n) => n.includes("-linux-"))]) if (r) L.push(r);
   const hasFileManagerMac = files.some((f) => KIND(f.name) === "fm" && f.name.includes("-macos-"));

@@ -15,6 +15,8 @@ import type { DatabasesHooks } from "./fmDbHooks";
 import type { SecretsHooks } from "./fmSecretsHooks";
 import type { GraveyardHooks } from "./fmGraveyardHooks";
 import type { SubdomainsHooks } from "./fmSubdomainsHooks";
+import type { TaskManagerHooks } from "./fmTaskManager";
+import type { SysinfoHooks } from "./fmSysinfo";
 
 /** What "Open in editor" needs from the computer, replaceable so tests never start a real editor. */
 export interface EditorHooks {
@@ -50,6 +52,10 @@ export interface FmContext {
   graveyardHooks?: Partial<GraveyardHooks>;
   /** Test replacements for the Subdomains tool's fetch, DNS, HTTP and TCP calls, clock and program start. */
   subdomains?: Partial<SubdomainsHooks>;
+  /** Test replacements for the cross-platform Process & Task Manager tool. */
+  tasks?: Partial<TaskManagerHooks>;
+  /** Test replacements for the cross-platform System Information tool. */
+  sysinfo?: Partial<SysinfoHooks>;
   /** Putting text and pictures on the system clipboard. Replaceable so tests never touch the real one. */
   clipboard: ClipboardHooks;
   /** Background work: conversions and installs. */
@@ -73,6 +79,8 @@ export interface FmContextOptions {
   graveyardDir?: string;
   graveyardHooks?: Partial<GraveyardHooks>;
   subdomains?: Partial<SubdomainsHooks>;
+  tasks?: Partial<TaskManagerHooks>;
+  sysinfo?: Partial<SysinfoHooks>;
   clipboard?: Partial<ClipboardHooks>;
 }
 
@@ -101,6 +109,8 @@ export function createContext(options: FmContextOptions = {}): FmContext {
     graveyardDir: options.graveyardDir ? p.resolve(options.graveyardDir) : undefined,
     graveyardHooks: options.graveyardHooks,
     subdomains: options.subdomains,
+    tasks: options.tasks,
+    sysinfo: options.sysinfo,
     disposers: [],
   };
 }

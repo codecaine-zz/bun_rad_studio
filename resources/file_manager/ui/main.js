@@ -48,6 +48,8 @@ import "./databases.js";
 import "./hostedStudios.js";
 import "./downloads.js";
 import "./cliUtils.js";
+import "./tasks.js";
+import "./sysinfo.js";
 import "./games.js";
 import "./themeEditor.js";
 import { applyAtmosphere } from "./atmosphereFx.js";

@@ -3,10 +3,15 @@
 import type { SimpleGUITheme } from "../simplegui";
 import { buildSemanticPalette, contrastRatio, overridesForTheme, parseColor, toHex } from "./themeSemantic";
 
-export type FxGlow = "none" | "soft" | "neon";
-export type FxRadius = "sharp" | "soft" | "round" | "pill";
-export type FxBorder = "flat" | "gradient" | "metal";
-export type FxMotion = "calm" | "spring" | "snappy";
+export type FxGlow = "none" | "soft" | "neon" | "bloom" | "aurora" | "laser" | "plasma" | "ember";
+export type FxRadius = "sharp" | "soft" | "round" | "pill" | "squircle";
+export type FxBorder = "flat" | "gradient" | "metal" | "hologram" | "neon" | "iridescent" | "bevel" | "double";
+export type FxMotion = "calm" | "spring" | "snappy" | "elastic" | "cinematic" | "zero";
+export type FxGrain = "none" | "subtle" | "film" | "halftone";
+export type FxScanlines = "none" | "subtle" | "crt" | "interlace";
+export type FxBackdropStyle = "glass" | "liquid" | "mica" | "acrylic" | "frosted" | "oled" | "matte";
+export type FxCursorEffect = "none" | "spotlight" | "ripple" | "magnetic" | "prism";
+export type FxVignette = "none" | "subtle" | "cinema" | "ambient";
 export type FxMode = "on" | "reduced" | "off";
 export type FxAtmosphere = string;
 
@@ -18,10 +23,10 @@ export interface ThemeFx {
     blur: number;
     /** Surface translucency, 0 (opaque) to 1 (as clear as the contrast floor allows). */
     glass: number;
-    /** Film grain over the page, at most 4% opacity. */
-    grain: "none" | "subtle";
-    /** Scanlines over the page, at most 4% opacity, never intercepting the pointer. */
-    scanlines: "none" | "subtle";
+    /** Film grain / halftone texture over the page, at most 4% opacity. */
+    grain: FxGrain;
+    /** Scanlines / CRT interlace over the page, at most 4% opacity, never intercepting the pointer. */
+    scanlines: FxScanlines;
     /** Slow drifting highlight on borders and cards. */
     sheen: boolean;
     radius: FxRadius;
@@ -39,6 +44,26 @@ export interface ThemeFx {
     borderOpacity?: number;
     /** Optional weather or particle atmosphere effect. */
     atmosphere?: FxAtmosphere;
+    /** Surface material shader style (Liquid Glass, Windows 11 Mica/Acrylic, Frosted Crystal, OLED, Matte). */
+    backdropStyle?: FxBackdropStyle;
+    /** Interactive pointer lighting mode (Spotlight, Ripple, Magnetic, Prismatic). */
+    cursorEffect?: FxCursorEffect;
+    /** Screen-edge framing vignette (Subtle, Anamorphic Cinema, or Ambient Edge Glow). */
+    vignette?: FxVignette;
+    /** Prismatic rainbow dispersion line along top edges of cards and dialogs. */
+    prismEdge?: boolean;
+    /** Inset luminous aura inside cards, panels, and dialogs. */
+    innerGlow?: boolean;
+    /** Crisp 1px top/left specular crystal rim on glass surfaces. */
+    frostedRim?: boolean;
+    /** Gentle breathing glow on active selections and primary buttons. */
+    neonPulse?: boolean;
+    /** Retro CRT phosphor bloom & subtle edge framing. */
+    crtCurve?: boolean;
+    /** 3D perspective tilt and depth response on cards. */
+    parallax?: boolean;
+    /** Backdrop saturation percentage (50 to 250). */
+    saturation?: number;
 }
 
 /** The page-level effects switch: Full = "on", Reduced keeps looks but no motion, Off removes everything. */
@@ -944,12 +969,16 @@ const RADII: Record<FxRadius, [number, number, number, number, number, number]> 
     soft: [3, 6, 8, 12, 16, 999],
     round: [4, 8, 12, 18, 26, 999],
     pill: [6, 12, 18, 24, 34, 9999],
+    squircle: [5, 10, 14, 20, 28, 999],
 };
 
 const MOTION: Record<FxMotion, { instant: number; fast: number; base: number; slow: number; ambient: number; stagger: number; hover: number; press: number; ease: string }> = {
     calm: { instant: 80, fast: 180, base: 320, slow: 560, ambient: 12000, stagger: 45, hover: 1.01, press: 0.99, ease: "cubic-bezier(0.4, 0, 0.2, 1)" },
     spring: { instant: 70, fast: 150, base: 280, slow: 500, ambient: 9000, stagger: 50, hover: 1.02, press: 0.98, ease: "cubic-bezier(0.16, 1, 0.3, 1)" },
     snappy: { instant: 50, fast: 100, base: 180, slow: 320, ambient: 6000, stagger: 28, hover: 1.03, press: 0.97, ease: "cubic-bezier(0.22, 1, 0.36, 1)" },
+    elastic: { instant: 60, fast: 140, base: 260, slow: 480, ambient: 7500, stagger: 38, hover: 1.035, press: 0.965, ease: "cubic-bezier(0.34, 1.56, 0.64, 1)" },
+    cinematic: { instant: 110, fast: 240, base: 440, slow: 760, ambient: 16000, stagger: 65, hover: 1.015, press: 0.99, ease: "cubic-bezier(0.25, 1, 0.5, 1)" },
+    zero: { instant: 0, fast: 0, base: 0, slow: 0, ambient: 0, stagger: 0, hover: 1, press: 1, ease: "linear" },
 };
 
 export interface GlassReport {
@@ -1029,15 +1058,37 @@ export function fxCssVars(theme: SimpleGUITheme | undefined | null): string {
     const card = theme.card_background ?? theme.background_color;
     const glass = glassReport({ ...theme, fx });
     const blur = clamp(Math.round(fx.blur), 0, 32);
-    const rad = RADII[fx.radius];
-    const mo = MOTION[fx.motion];
+    const rad = RADII[fx.radius] ?? RADII.round;
+    const mo = MOTION[fx.motion] ?? MOTION.spring;
     const none = "0 0 0 0 rgba(0, 0, 0, 0)";
     const intensity = clamp(fx.glowIntensity ?? 1, 0, 1);
     const glowRgba = (color: string, alpha: number) => rgba(color, alpha * intensity);
-    const neon = fx.glow === "neon";
-    const glowSoft = fx.glow === "none" ? none : `0 0 0 1px ${glowRgba(g1, neon ? 0.35 : 0.22)}, 0 0 ${neon ? 14 : 10}px ${glowRgba(g1, neon ? 0.38 : 0.22)}`;
-    const glowMed = fx.glow === "none" ? none : `0 0 0 1px ${glowRgba(g1, neon ? 0.55 : 0.34)}, 0 0 ${neon ? 22 : 16}px ${glowRgba(g1, neon ? 0.5 : 0.32)}, 0 0 ${neon ? 48 : 32}px ${glowRgba(g2, neon ? 0.26 : 0.14)}`;
-    const glowStrong = fx.glow === "none" ? none : `0 0 0 1px ${glowRgba(g1, neon ? 0.8 : 0.5)}, 0 0 ${neon ? 30 : 22}px ${glowRgba(g1, neon ? 0.68 : 0.42)}, 0 0 ${neon ? 72 : 48}px ${glowRgba(g2, neon ? 0.4 : 0.2)}`;
+    const neon = fx.glow === "neon" || fx.glow === "laser" || fx.glow === "plasma";
+    const bloom = fx.glow === "bloom" || fx.glow === "aurora" || fx.glow === "ember";
+    const glowSoft =
+        fx.glow === "none"
+            ? none
+            : fx.glow === "laser"
+              ? `0 0 0 1px ${glowRgba(g1, 0.65)}, 0 0 6px ${glowRgba(g1, 0.55)}`
+              : bloom
+                ? `0 0 0 1px ${glowRgba(g1, 0.28)}, 0 0 18px ${glowRgba(g1, 0.32)}, 0 0 36px ${glowRgba(g2, 0.2)}`
+                : `0 0 0 1px ${glowRgba(g1, neon ? 0.35 : 0.22)}, 0 0 ${neon ? 14 : 10}px ${glowRgba(g1, neon ? 0.38 : 0.22)}`;
+    const glowMed =
+        fx.glow === "none"
+            ? none
+            : fx.glow === "laser"
+              ? `0 0 0 1.5px ${glowRgba(g1, 0.85)}, 0 0 10px ${glowRgba(g1, 0.72)}, 0 0 24px ${glowRgba(g2, 0.38)}`
+              : bloom
+                ? `0 0 0 1px ${glowRgba(g1, 0.44)}, 0 0 28px ${glowRgba(g1, 0.45)}, 0 0 64px ${glowRgba(g2, 0.32)}`
+                : `0 0 0 1px ${glowRgba(g1, neon ? 0.55 : 0.34)}, 0 0 ${neon ? 22 : 16}px ${glowRgba(g1, neon ? 0.5 : 0.32)}, 0 0 ${neon ? 48 : 32}px ${glowRgba(g2, neon ? 0.26 : 0.14)}`;
+    const glowStrong =
+        fx.glow === "none"
+            ? none
+            : fx.glow === "laser"
+              ? `0 0 0 2px ${glowRgba(g1, 0.95)}, 0 0 16px ${glowRgba(g1, 0.88)}, 0 0 42px ${glowRgba(g2, 0.52)}`
+              : bloom
+                ? `0 0 0 1px ${glowRgba(g1, 0.62)}, 0 0 40px ${glowRgba(g1, 0.6)}, 0 0 96px ${glowRgba(g2, 0.46)}`
+                : `0 0 0 1px ${glowRgba(g1, neon ? 0.8 : 0.5)}, 0 0 ${neon ? 30 : 22}px ${glowRgba(g1, neon ? 0.68 : 0.42)}, 0 0 ${neon ? 72 : 48}px ${glowRgba(g2, neon ? 0.4 : 0.2)}`;
     const specularRim = isDark
         ? "inset 0 1px 0 0 rgba(255, 255, 255, 0.38), inset 0 0 0 0.5px rgba(255, 255, 255, 0.2)"
         : "inset 0 1px 0 0 rgba(255, 255, 255, 0.92), inset 0 0 0 0.5px rgba(255, 255, 255, 0.55)";
@@ -1048,7 +1099,15 @@ export function fxCssVars(theme: SimpleGUITheme | undefined | null): string {
               ? isDark
                   ? "linear-gradient(135deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.08) 28%, rgba(255, 255, 255, 0.4) 52%, rgba(255, 255, 255, 0.06) 78%, rgba(255, 255, 255, 0.5))"
                   : "linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(60, 72, 84, 0.3) 28%, rgba(255, 255, 255, 0.8) 52%, rgba(60, 72, 84, 0.26) 78%, rgba(255, 255, 255, 0.9))"
-              : `linear-gradient(135deg, ${rgba(g1, 0.9)}, ${rgba(g2, 0.45)} 48%, ${rgba(g2, 0.9)})`;
+              : fx.border === "hologram" || fx.border === "iridescent"
+                ? `linear-gradient(135deg, ${rgba(g1, 0.95)}, rgba(255, 120, 220, 0.72) 25%, ${rgba(g2, 0.9)} 50%, rgba(90, 255, 210, 0.75) 75%, ${rgba(g1, 0.95)})`
+                : fx.border === "neon"
+                  ? `linear-gradient(135deg, ${rgba(g1, 1)}, ${rgba(g2, 0.95)})`
+                  : fx.border === "bevel"
+                    ? isDark
+                        ? "linear-gradient(180deg, rgba(255, 255, 255, 0.48), rgba(255, 255, 255, 0.08) 45%, rgba(0, 0, 0, 0.55))"
+                        : "linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(140, 155, 175, 0.25) 45%, rgba(30, 45, 65, 0.38))"
+                    : `linear-gradient(135deg, ${rgba(g1, 0.9)}, ${rgba(g2, 0.45)} 48%, ${rgba(g2, 0.9)})`;
     const sheen = isDark
         ? `linear-gradient(115deg, transparent 38%, ${rgba(g1, 0.16)} 50%, transparent 62%)`
         : `linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.7) 50%, transparent 62%)`;
@@ -1056,6 +1115,10 @@ export function fxCssVars(theme: SimpleGUITheme | undefined | null): string {
     const sh = shadowStack(isDark, g1);
     const borderAlpha = clamp(fx.borderOpacity ?? (isDark ? (fx.border === "metal" ? 0.2 : 0.13) : (fx.border === "metal" ? 0.22 : 0.16)), 0, 1);
     const glassBorder = isDark ? `rgba(255, 255, 255, ${borderAlpha})` : `rgba(20, 30, 40, ${borderAlpha})`;
+    const satBase = fx.saturation !== undefined ? String(Math.round(clamp(fx.saturation, 0.5, 2.2) * 100) / 100) : fx.glass > 0.3 ? "1.35" : "1.1";
+    const satUltra = fx.saturation !== undefined ? String(Math.round(clamp(fx.saturation * 1.22, 0.6, 2.5) * 100) / 100) : fx.glass > 0.3 ? "1.65" : "1.28";
+    const scanOpacity = fx.scanlines === "subtle" ? "0.035" : fx.scanlines === "crt" ? "0.04" : fx.scanlines === "interlace" ? "0.03" : "0";
+    const grainOpacity = fx.grain === "subtle" ? "0.035" : fx.grain === "film" ? "0.04" : fx.grain === "halftone" ? "0.038" : "0";
     const vars: Array<[string, string]> = [
         ["--fx-glow-color", g1],
         ["--fx-glow-color-2", g2],
@@ -1075,8 +1138,8 @@ export function fxCssVars(theme: SimpleGUITheme | undefined | null): string {
         ["--fx-glass-solid", toHex(parseColor(card))],
         ["--fx-glass-border", glassBorder],
         ["--fx-glass-alpha", String(glass.alpha)],
-        ["--fx-saturate", fx.glass > 0.3 ? "1.35" : "1.1"],
-        ["--fx-saturate-ultra", fx.glass > 0.3 ? "1.65" : "1.28"],
+        ["--fx-saturate", satBase],
+        ["--fx-saturate-ultra", satUltra],
         ["--fx-radius-xs", `${rad[0]}px`],
         ["--fx-radius-sm", `${rad[1]}px`],
         ["--fx-radius-md", `${rad[2]}px`],
@@ -1106,8 +1169,8 @@ export function fxCssVars(theme: SimpleGUITheme | undefined | null): string {
         ["--fx-focus-ring", `2px solid ${focus}`],
         ["--fx-focus-offset", "2px"],
         ["--fx-focus-halo", `0 0 0 4px ${rgba(focus, 0.28)}`],
-        ["--fx-scanline-opacity", fx.scanlines === "subtle" ? "0.035" : "0"],
-        ["--fx-grain-opacity", fx.grain === "subtle" ? "0.035" : "0"],
+        ["--fx-scanline-opacity", scanOpacity],
+        ["--fx-grain-opacity", grainOpacity],
         ["--fx-ca-1", rgba(g2, 0.6)],
         ["--fx-ca-2", rgba(g1, 0.6)],
         ["--fx-ambient-1", rgba(g1, isDark ? 0.2 : 0.14)],
@@ -1130,18 +1193,115 @@ export function fxRootAttrs(theme: SimpleGUITheme | undefined | null, mode: FxMo
     a["data-fx-glow"] = fx.glow;
     a["data-fx-motion"] = fx.motion;
     if (fx.scanlines === "subtle") a["data-fx-scan"] = "on";
+    else if (fx.scanlines && fx.scanlines !== "none") a["data-fx-scan"] = fx.scanlines;
     if (fx.grain === "subtle") a["data-fx-grain"] = "on";
+    else if (fx.grain && fx.grain !== "none") a["data-fx-grain"] = fx.grain;
     if (fx.sheen) a["data-fx-sheen"] = "on";
     if (fx.noise) a["data-fx-noise"] = "on";
     if (fx.chromatic) a["data-fx-ca"] = "on";
     if (fx.ambient) a["data-fx-ambient"] = "on";
     if (fx.atmosphere && fx.atmosphere !== "none") a["data-fx-atmosphere"] = fx.atmosphere;
+    if (fx.backdropStyle && fx.backdropStyle !== "glass") a["data-fx-backdrop"] = fx.backdropStyle;
+    if (fx.cursorEffect && fx.cursorEffect !== "none") a["data-fx-cursor"] = fx.cursorEffect;
+    if (fx.vignette && fx.vignette !== "none") a["data-fx-vignette"] = fx.vignette;
+    if (fx.prismEdge) a["data-fx-prism"] = "on";
+    if (fx.innerGlow) a["data-fx-inner-glow"] = "on";
+    if (fx.frostedRim) a["data-fx-rim"] = "on";
+    if (fx.neonPulse) a["data-fx-pulse"] = "on";
+    if (fx.crtCurve) a["data-fx-crt"] = "on";
+    if (fx.parallax) a["data-fx-parallax"] = "on";
     return a;
 }
 
 export function fxRootAttrString(theme: SimpleGUITheme | undefined | null, mode: FxMode = "on", tier?: FxHardwareTier): string {
     return Object.entries(fxRootAttrs(theme, mode, tier)).map(([k, v]) => `${k}="${v}"`).join(" ");
 }
+
+/**
+ * 12 curated 1-click Effect Style Presets that can be applied on top of any color palette
+ * in the Theme Editor without overwriting the user's primary colors.
+ */
+export interface FxStylePreset {
+    id: string;
+    label: string;
+    summary: string;
+    fx: Partial<ThemeFx>;
+}
+
+export const FX_STYLE_PRESETS: readonly FxStylePreset[] = [
+    {
+        id: "liquid_glass",
+        label: "Tahoe Liquid Glass",
+        summary: "macOS 26 specular refraction, frosted rim, and fluid spring motion",
+        fx: { glass: 0.68, blur: 28, glow: "bloom", radius: "squircle", border: "iridescent", motion: "spring", backdropStyle: "liquid", cursorEffect: "prism", vignette: "subtle", sheen: true, frostedRim: true, innerGlow: true, ambient: true },
+    },
+    {
+        id: "m4_xdr_pro",
+        label: "M4 Space Black XDR",
+        summary: "OLED carbon surface, brushed titanium border, and Display-P3 bloom",
+        fx: { glass: 0.56, blur: 24, glow: "soft", radius: "round", border: "metal", motion: "spring", backdropStyle: "oled", cursorEffect: "spotlight", vignette: "subtle", sheen: true, noise: true, frostedRim: true, ambient: true },
+    },
+    {
+        id: "win11_mica",
+        label: "Windows 11 Mica Alt",
+        summary: "DirectComposition high-saturation tinted backdrop with crisp Fluent bevel",
+        fx: { glass: 0.52, blur: 26, glow: "soft", radius: "soft", border: "bevel", motion: "calm", backdropStyle: "mica", cursorEffect: "spotlight", vignette: "none", sheen: false, noise: true, ambient: true, saturation: 1.55 },
+    },
+    {
+        id: "win11_acrylic",
+        label: "Windows 11 Acrylic",
+        summary: "Translucent Gaussian blur with micro-noise grain and Reveal highlight",
+        fx: { glass: 0.62, blur: 22, glow: "soft", radius: "soft", border: "gradient", motion: "snappy", backdropStyle: "acrylic", cursorEffect: "ripple", grain: "subtle", sheen: true, noise: true, frostedRim: true },
+    },
+    {
+        id: "cyber_hologram",
+        label: "Cyberpunk Hologram",
+        summary: "Chromatic dispersion, hologram border, laser glow, and CRT scanlines",
+        fx: { glass: 0.58, blur: 20, glow: "laser", radius: "sharp", border: "hologram", motion: "snappy", backdropStyle: "glass", cursorEffect: "prism", vignette: "cinema", scanlines: "subtle", chromatic: true, prismEdge: true, neonPulse: true, sheen: true },
+    },
+    {
+        id: "prismatic_crystal",
+        label: "Prismatic Crystal",
+        summary: "Iridescent diamond edges, chromatic aberration, and elastic bounce",
+        fx: { glass: 0.65, blur: 26, glow: "aurora", radius: "round", border: "iridescent", motion: "elastic", backdropStyle: "frosted", cursorEffect: "prism", vignette: "ambient", chromatic: true, prismEdge: true, innerGlow: true, frostedRim: true, sheen: true },
+    },
+    {
+        id: "retro_crt",
+        label: "Retro CRT Phosphor",
+        summary: "Curved CRT scanlines, analog film grain, and warm phosphor bloom",
+        fx: { glass: 0.35, blur: 10, glow: "ember", radius: "soft", border: "double", motion: "snappy", backdropStyle: "oled", cursorEffect: "spotlight", vignette: "cinema", scanlines: "crt", grain: "film", crtCurve: true, innerGlow: true, neonPulse: true },
+    },
+    {
+        id: "plasma_reactor",
+        label: "Plasma Reactor",
+        summary: "High-energy plasma halo, pulsing neon border, and ambient blooms",
+        fx: { glass: 0.55, blur: 24, glow: "plasma", radius: "round", border: "neon", motion: "elastic", backdropStyle: "glass", cursorEffect: "magnetic", vignette: "ambient", sheen: true, innerGlow: true, neonPulse: true, ambient: true, parallax: true },
+    },
+    {
+        id: "velvet_cinema",
+        label: "Velvet Cinema",
+        summary: "Deep theatrical vignette, 35mm film grain, and slow cinematic easing",
+        fx: { glass: 0.45, blur: 20, glow: "bloom", radius: "round", border: "gradient", motion: "cinematic", backdropStyle: "frosted", cursorEffect: "spotlight", vignette: "cinema", grain: "film", ambient: true, innerGlow: true },
+    },
+    {
+        id: "halftone_zine",
+        label: "Halftone Pop Zine",
+        summary: "Halftone dot texture, double borders, crisp corners, and snappy motion",
+        fx: { glass: 0.25, blur: 8, glow: "neon", radius: "sharp", border: "double", motion: "snappy", backdropStyle: "matte", cursorEffect: "magnetic", grain: "halftone", chromatic: true },
+    },
+    {
+        id: "aurora_silk",
+        label: "Aurora Silk",
+        summary: "Soft northern-lights diffusion, pill corners, and calm ambient drift",
+        fx: { glass: 0.6, blur: 30, glow: "aurora", radius: "pill", border: "gradient", motion: "calm", backdropStyle: "liquid", cursorEffect: "spotlight", vignette: "ambient", sheen: true, innerGlow: true, ambient: true },
+    },
+    {
+        id: "zen_matte",
+        label: "Zen Matte Studio",
+        summary: "Zero-distraction opaque matte finish with instant response and crisp borders",
+        fx: { glass: 0, blur: 0, glow: "none", radius: "soft", border: "flat", motion: "calm", backdropStyle: "matte", cursorEffect: "none", vignette: "none", scanlines: "none", grain: "none", sheen: false, noise: false, chromatic: false, ambient: false },
+    },
+];
 
 export interface SyntaxPalette {
     keyword: string;

@@ -700,10 +700,10 @@ describe("the theme editor in the page", () => {
     expect(themes.terminalTheme().background).toBe("#1e1e1e");
   });
 
-  test("Atmospheric Special Effects engine supports 110 effects across Low, Medium, and Modern ARM Ultra tiers plus Multi-Effect Layer Mixing", async () => {
+  test("Atmospheric Special Effects engine supports 135 effects across Low, Medium, and Modern ARM Ultra tiers plus Multi-Effect Layer Mixing", async () => {
     const atmo = await import("../resources/file_manager/ui/atmosphereFx.js");
-    expect(atmo.ATMOSPHERE_OPTIONS.length).toBe(110);
-    expect(atmo.ATMOSPHERE_MIX_PRESETS.length).toBeGreaterThanOrEqual(10);
+    expect(atmo.ATMOSPHERE_OPTIONS.length).toBe(135);
+    expect(atmo.ATMOSPHERE_MIX_PRESETS.length).toBe(20);
 
     // Hardware tier auto-detection
     expect(atmo.detectHardwareTier({ hardwareConcurrency: 2, userAgent: "Linux x86_64" }, { devicePixelRatio: 1 })).toBe("low");
@@ -724,13 +724,13 @@ describe("the theme editor in the page", () => {
 
     const tierBtns = doc.querySelectorAll(".fm-atmo-tier-btn");
     expect(tierBtns.length).toBe(5);
-    expect(doc.querySelectorAll(".fm-atmo-card .fm-atmo-preview").length).toBe(110);
+    expect(doc.querySelectorAll(".fm-atmo-card .fm-atmo-preview").length).toBe(135);
     expect(doc.querySelector(".fm-atmo-theme-sync")).toBeTruthy();
     expect(doc.querySelector(".fm-atmo-mixer-dock")).toBeTruthy();
 
     // Select Modern ARM / Ultra tier and test effects across multiple procedural engines
     doc.querySelector('.fm-atmo-tier-btn[data-tier="ultra"]').click();
-    for (const effectId of ["rain", "smoke", "cyberstorm", "nebula", "aurora", "outrun_grid", "neural_nexus", "dna_helix", "quantum_cpu", "black_hole"]) {
+    for (const effectId of ["rain", "smoke", "cyberstorm", "nebula", "aurora", "outrun_grid", "neural_nexus", "dna_helix", "quantum_cpu", "black_hole", "liquid_glass_caustics", "m4_raytrace_prism", "win11_mica_bloom"]) {
       doc.querySelector(`.fm-atmo-card[data-atmo="${effectId}"]`).click();
       expect(doc.documentElement.dataset.atmosphere).toBe(effectId);
       expect(doc.documentElement.dataset.atmosphereTier).toBe("ultra");
@@ -749,11 +749,11 @@ describe("the theme editor in the page", () => {
     expect(doc.documentElement.dataset.atmosphere).toBe("sakura+fireflies+aurora+rain");
     expect(doc.documentElement.dataset.atmosphereLayers).toBe("4");
 
-    // Category filter narrows the visible cards and "all" restores all 110
+    // Category filter narrows the visible cards and "all" restores all 135
     doc.querySelector('.fm-atmo-cat-btn[data-cat="cosmic"]').click();
-    expect(doc.querySelectorAll(".fm-atmo-card").length).toBeLessThan(40);
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBeLessThan(45);
     doc.querySelector('.fm-atmo-cat-btn[data-cat="all"]').click();
-    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(110);
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(135);
 
     // Switching themes automatically re-harmonizes --fm-atmo-c1, --fm-atmo-c2, and --fm-atmo-c3
     const c1Before = doc.documentElement.style.getPropertyValue("--fm-atmo-c1");
@@ -774,6 +774,46 @@ describe("the theme editor in the page", () => {
     atmo.applyAtmosphere("none");
     expect(doc.documentElement.dataset.atmosphere).toBeUndefined();
     expect(doc.getElementById("fm-atmosphere-layer")).toBeNull();
+    closeDialogs();
+  });
+
+  test("Theme gallery Quick-Jump Category Pills, Color Vibe Pills, and Theme Editor Style Presets & Color Harmony Generator work end-to-end", async () => {
+    await themes.showThemePicker();
+    await sleep(150);
+    expect(doc.querySelectorAll("[data-cat-pill]").length).toBeGreaterThanOrEqual(8);
+    expect(doc.querySelectorAll("[data-vibe-pill]").length).toBe(7);
+    expect(doc.querySelector(".theme-random-btn")).toBeTruthy();
+
+    // Filter by OLED Black color vibe
+    doc.querySelector('[data-vibe-pill="oled"]').click();
+    await sleep(150);
+    const oledCards = [...doc.querySelectorAll(".theme-card")];
+    expect(oledCards.length).toBeGreaterThan(5);
+
+    // Restore All Vibes and click Quick Customize (✎) on a card
+    doc.querySelector('[data-vibe-pill="all"]').click();
+    await sleep(100);
+    const editBtn = doc.querySelector('.theme-edit-quick[data-edit-key="m4_space_black"]') || doc.querySelector(".theme-edit-quick");
+    expect(editBtn).toBeTruthy();
+    editBtn.click();
+    await sleep(450);
+
+    expect(doc.querySelector(".dialog-title").textContent).toBe("Theme editor");
+    expect(doc.querySelectorAll("[data-fx-preset]").length).toBe(12);
+    expect(doc.querySelectorAll("[data-harmony]").length).toBe(3);
+
+    // Click Tahoe Liquid Glass preset and Auto-harmonize from Accent
+    doc.querySelector('[data-fx-preset="liquid_glass"]').click();
+    doc.querySelector('[data-harmony="accent"]').click();
+    await sleep(450);
+    expect(doc.documentElement.getAttribute("data-fx-backdrop")).toBe("liquid");
+    expect(doc.documentElement.getAttribute("data-fx-glow")).toBe("bloom");
+    expect(doc.documentElement.getAttribute("data-fx-border")).toBe("iridescent");
+    expect(doc.documentElement.getAttribute("data-fx-rim")).toBe("on");
+    expect(doc.documentElement.getAttribute("data-fx-inner-glow")).toBe("on");
+
+    editorButton("Cancel").click();
+    await sleep(400);
     closeDialogs();
   });
 });

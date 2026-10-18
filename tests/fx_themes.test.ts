@@ -21,7 +21,7 @@ import {
     resolveThemeForHardware,
     srgbToDisplayP3,
 } from "../src/simplegui";
-import { FX_THEMES, FX_THEME_ALIASES, FX_THEME_KEYS, FX_TOKEN_NAMES, findFxTheme, fxRootAttrs, glassReport, focusRingColor, normalizeFxMode } from "../src/shared/fxThemes";
+import { FX_THEMES, FX_THEME_ALIASES, FX_THEME_KEYS, FX_TOKEN_NAMES, FX_STYLE_PRESETS, findFxTheme, fxCssVars as fxCssVarsForTheme, fxRootAttrs, glassReport, focusRingColor, normalizeFxMode } from "../src/shared/fxThemes";
 import { fxCss } from "../src/shared/fxCss";
 import { FX_POINTER_FUNCTION, FX_POINTER_SOURCE, FX_MAGNET_MAX_PX, FX_TILT_MAX_DEG, installFxPointer } from "../src/shared/fxPointer";
 import { contrastRatio } from "../src/shared/themeSemantic";
@@ -1080,6 +1080,33 @@ describe("high-end M4 Pro / Windows DirectX enhancements and hardware fallbacks"
         expect(lw.document.documentElement.getAttribute("data-fx-tier")).toBe("low");
         expect(lw.document.documentElement.getAttribute("data-fx")).toBe("reduced");
         lh.dispose();
+    });
+
+    test("FX_STYLE_PRESETS and expanded ThemeFx materials, borders, glows, scanlines, grains, vignettes, and optical flags produce valid CSS and root attrs", () => {
+        expect(FX_STYLE_PRESETS.length).toBe(12);
+        const base = FX_THEMES.prism_reactor!;
+        for (const preset of FX_STYLE_PRESETS) {
+            const custom = {
+                ...base,
+                fx: { ...base.fx!, ...preset.fx },
+            };
+            const vars = fxCssVarsForTheme(custom);
+            const attrs = fxRootAttrs(custom);
+            expect(vars).toContain("--fx-glow-soft:");
+            expect(vars).toContain("--fx-border-gradient:");
+            expect(attrs["data-fx"]).toBe("on");
+            if (preset.fx.backdropStyle && preset.fx.backdropStyle !== "glass") {
+                expect(attrs["data-fx-backdrop"]).toBe(preset.fx.backdropStyle);
+            }
+            if (preset.fx.vignette && preset.fx.vignette !== "none") {
+                expect(attrs["data-fx-vignette"]).toBe(preset.fx.vignette);
+            }
+            if (preset.fx.prismEdge) expect(attrs["data-fx-prism"]).toBe("on");
+            if (preset.fx.innerGlow) expect(attrs["data-fx-inner-glow"]).toBe("on");
+            if (preset.fx.frostedRim) expect(attrs["data-fx-rim"]).toBe("on");
+            if (preset.fx.neonPulse) expect(attrs["data-fx-pulse"]).toBe("on");
+            if (preset.fx.crtCurve) expect(attrs["data-fx-crt"]).toBe("on");
+        }
     });
 });
 

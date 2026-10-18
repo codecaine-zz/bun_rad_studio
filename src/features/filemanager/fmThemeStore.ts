@@ -138,17 +138,32 @@ function validateEffects(input: unknown, accent: string): ThemeFx {
     if (!parsedAtmo) throw new FmError("BAD_REQUEST", "Choose a valid atmosphere effect.");
     atmosphere = parsedAtmo;
   }
+  const backdropStyle = r.backdropStyle !== undefined ? choice("backdropStyle", ["glass", "liquid", "mica", "acrylic", "frosted", "oled", "matte"], "glass") : undefined;
+  const cursorEffect = r.cursorEffect !== undefined ? choice("cursorEffect", ["none", "spotlight", "ripple", "magnetic", "prism"], "spotlight") : undefined;
+  const vignette = r.vignette !== undefined ? choice("vignette", ["none", "subtle", "cinema", "ambient"], "none") : undefined;
+  const saturation = r.saturation !== undefined ? number("saturation", 2.5, 1.35) : undefined;
   return {
-    glow: choice("glow", ["none", "soft", "neon"], "soft"),
+    glow: choice("glow", ["none", "soft", "neon", "bloom", "aurora", "laser", "plasma", "ember"], "soft"),
     glowColor: color("glowColor", accent), glowColor2: color("glowColor2", accent),
     blur: number("blur", 32, 16), glass: number("glass", 1, 0.4),
     glowIntensity: number("glowIntensity", 1, 1), borderOpacity: number("borderOpacity", 1, 0.16),
-    grain: choice("grain", ["none", "subtle"], "none"), scanlines: choice("scanlines", ["none", "subtle"], "none"),
-    radius: choice("radius", ["sharp", "soft", "round", "pill"], "soft"),
-    border: choice("border", ["flat", "gradient", "metal"], "flat"),
-    motion: choice("motion", ["calm", "spring", "snappy"], "calm"),
+    grain: choice("grain", ["none", "subtle", "film", "halftone"], "none"),
+    scanlines: choice("scanlines", ["none", "subtle", "crt", "interlace"], "none"),
+    radius: choice("radius", ["sharp", "soft", "round", "pill", "squircle"], "soft"),
+    border: choice("border", ["flat", "gradient", "metal", "hologram", "neon", "iridescent", "bevel", "double"], "flat"),
+    motion: choice("motion", ["calm", "spring", "snappy", "elastic", "cinematic", "zero"], "calm"),
     sheen: flag("sheen"), noise: flag("noise"), chromatic: flag("chromatic"), ambient: flag("ambient"),
     ...(atmosphere !== "none" ? { atmosphere } : {}),
+    ...(backdropStyle !== undefined ? { backdropStyle } : {}),
+    ...(cursorEffect !== undefined ? { cursorEffect } : {}),
+    ...(vignette !== undefined ? { vignette } : {}),
+    ...(saturation !== undefined ? { saturation } : {}),
+    ...(r.prismEdge !== undefined ? { prismEdge: flag("prismEdge") } : {}),
+    ...(r.innerGlow !== undefined ? { innerGlow: flag("innerGlow") } : {}),
+    ...(r.frostedRim !== undefined ? { frostedRim: flag("frostedRim") } : {}),
+    ...(r.neonPulse !== undefined ? { neonPulse: flag("neonPulse") } : {}),
+    ...(r.crtCurve !== undefined ? { crtCurve: flag("crtCurve") } : {}),
+    ...(r.parallax !== undefined ? { parallax: flag("parallax") } : {}),
   };
 }
 

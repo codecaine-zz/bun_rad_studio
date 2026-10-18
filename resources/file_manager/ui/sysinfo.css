@@ -1,0 +1,186 @@
+/* Styles for the System Information power tool (.sys-*).
+   Uses @container queries and sticky table headers for responsive split-pane and full-window layouts. */
+.sys-root {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sys-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sys-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82em;
+}
+
+.sys-os-badge {
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.sys-os-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.sys-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 6px 0;
+}
+
+@container (max-width: 780px) {
+  .sys-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (max-width: 440px) {
+  .sys-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sys-kpi-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.sys-kpi-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.sys-kpi-label {
+  font-size: 0.8em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.sys-kpi-val {
+  font-size: 1.15em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.sys-kpi-sub {
+  font-size: 0.78em;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sys-filter-input {
+  flex: 1 1 15rem;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+}
+
+.sys-probe-param {
+  width: 11rem;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.sys-subhead {
+  margin: 8px 0 6px;
+  font-size: 0.92em;
+}
+
+.sys-core-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  gap: 6px;
+}
+
+.sys-core-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  font-size: 0.82em;
+}
+
+.sys-core-lbl {
+  font-weight: 600;
+  color: var(--muted);
+  min-width: 1.6rem;
+}
+
+.sys-core-pct {
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+.sys-table-block {
+  margin-top: 8px;
+}
+
+.sys-table-wrap {
+  max-height: 28rem;
+  overflow: auto;
+}
+
+.sys-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--panel);
+}
+
+.sys-table tbody th[scope="row"] {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--panel);
+  font-weight: 600;
+}
+
+.sys-probe-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.sys-diff-summary {
+  margin: 0 0 8px;
+  font-weight: 600;
+}

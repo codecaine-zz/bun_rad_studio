@@ -36,6 +36,8 @@ const TOOL_TEXT = {
   player: "Modular rack media player with a 10-band graphic equalizer, preamp, spectrum and radial visualizers, M3U playlists, synced karaoke lyrics and 5 skins.",
   paint: "Draw, paint and illustrate on a multi-layer canvas with 20 brushes, symmetry modes, image filters and a 106-page vector coloring book.",
   grave: "A safe place for things you bury instead of deleting. See what is there, restore items to where they came from, or delete them for good. Shared with Rip Studio.",
+  tasks: "Cross-platform Process and Task Manager: inspect CPU, memory, process trees, and listening TCP ports, and end or signal tasks on Windows, macOS and Linux.",
+  sysinfo: "System Information and hardware telemetry: live CPU, RAM, storage, GPU, network, USB, battery and OS details with deep system probes and report export.",
   games: "Play all 24 Codecaine arcade, puzzle, card, casino and word games right inside the File Manager, in a separate desktop window, or in your browser.",
 };
 

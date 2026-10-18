@@ -35,15 +35,15 @@ Recent walkthroughs from [codecaine on YouTube](https://www.youtube.com/@codecai
 
 | You have | Download |
 |---|---|
-| 🍎 **Mac** (M1 or newer / Intel) | `bun-rad-studio-…-macos-arm64.tar.gz` / `…-macos-x64.tar.gz`: the full suite, including the File Manager |
+| 🍎 **Mac** (Apple Silicon M1–M4 / Intel) | `Codecaine-File-Manager-…-macos-arm64.zip` / `…-macos-x64.zip` (standalone `.app`) or `bun-rad-studio-…-macos-arm64.tar.gz` / `…-macos-x64.tar.gz` (full suite) |
 | 🪟 **Windows** (most PCs / ARM / pre-2013 CPUs) | `Codecaine-File-Manager-…-windows-x64.zip` / `…-windows-arm64.zip` / `…-windows-x64-baseline.zip` |
 | 🐧 **Linux** (Intel/AMD / ARM / pre-2013 CPUs) | `Codecaine-File-Manager-…-linux-x64.zip` / `…-linux-arm64.zip` / `…-linux-x64-baseline.zip` |
 
-The release includes **the whole suite** (every desktop app and command-line tool) for each platform. The standalone File Manager and 65 individual Mac `.app` downloads are built separately on macOS and can be added to the release afterward. Each file's checksum is in `SHA256SUMS.txt`. The apps are not signed with an Apple or Microsoft certificate.
+The release includes **the standalone Codecaine File Manager**, **all 66 individual Mac `.app` bundles** (`Codecaine-…-macos-arm64.zip` / `…-macos-x64.zip`), and **the full suite archive** (every desktop app and command-line tool) for each platform. Each file's checksum is in `SHA256SUMS.txt`. The apps are not signed with an Apple or Microsoft certificate.
 
 **First launch:**
 
-- **Mac:** for now, download the full-suite archive and start `bin/file-manager-studio` from the extracted folder (see its `README.txt` for first-launch guidance). The standalone `.app` downloads will be added after a Mac build.
+- **Mac:** unzip `Codecaine-File-Manager-…-macos-arm64.zip` (or `macos-x64.zip`) and drag `Codecaine File Manager.app` to Applications. On first launch, right-click `Codecaine File Manager.app` and choose **Open** (or run `xattr -cr "Codecaine File Manager.app"` in Terminal if macOS Gatekeeper blocks unsigned apps). For the full suite archive, extract and run `./bin/file-manager-studio`.
 - **Windows:** extract the entire folder, double-click `install.cmd`, then open `Codecaine File Manager.exe`. Setup checks **WebView2** and the [Visual C++ 2015-2022 **x64** Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe), including on ARM, and offers to download signed installers from Microsoft if needed. The ARM download requires Windows 11 x64 emulation and uses the baseline runtime (no AVX2 required). If SmartScreen warns, choose **More info → Run anyway**. If no window opens, use `troubleshoot.cmd` in new builds to see the error. No Bun or compiler is needed for downloads.
 - **Linux:** install GTK 4 and WebKitGTK 6.0 (`sudo apt install libgtk-4-1 libwebkitgtk-6.0-4` on Ubuntu 24.04+/Debian, or `sudo dnf install gtk4 webkitgtk6.0` on Fedora). In the extracted folder, run `sh install.sh` to restore executable permission and create a menu entry. New builds include `sh troubleshoot.sh`; older downloads can be started with `chmod +x codecaine-file-manager` followed by `./codecaine-file-manager` in a terminal. A graphical desktop is required for the window.
 
@@ -65,41 +65,47 @@ From a source checkout with [Bun](https://bun.sh) installed, run `.\build.cmd` i
 
 ## 🗂️ Featured: Codecaine File Manager
 
-**A friendly, safe file manager for macOS, Windows and Linux, with a whole toolbox built in.** It looks after your files first (every delete can be undone, risky actions are explained in plain words) and then gives you the tools you would otherwise install ten programs for.
+**A friendly, safe file manager for macOS, Windows and Linux, with a whole workstation and arcade toolbox built in.** It looks after your files first (every delete can be undone, risky actions are explained in plain words) and then gives you the tools you would otherwise install ten programs for.
 
-| Browse and preview | Convert in batches |
+| Browse, Folder Tabs, Color Tags & Preview | Dual-Pane Commander (`F5` Copy / `F6` Move) |
 | :--- | :--- |
-| ![Codecaine File Manager showing a selected picture and its preview](screenshots/apps/file_manager_studio_desktop.png) | ![The Convert and process window listing what can be done with three selected pictures](screenshots/apps/file_manager_studio_convert.png) |
-| **Terminal in the current folder** | **Fits a smaller window** |
-| ![Codecaine File Manager with its terminal open](screenshots/apps/file_manager_studio_terminal.png) | ![Codecaine File Manager in a narrow window](screenshots/apps/file_manager_studio_responsive.png) |
-| **Databases, one click away** | **Edit Redis keys in place** |
-| ![The Databases tool with a Redis connection that was found automatically](screenshots/apps/file_manager_studio_databases.png) | ![Redis Studio editing the score of a sorted-set member](screenshots/apps/redis_studio_editing.png) |
-| **Enhanced themes: glass, glow, motion and texture** | |
-| ![The File Manager theme gallery filtered to enhanced themes with special effects](screenshots/apps/file_manager_studio_themes.png) | |
+| ![Codecaine File Manager showing folder tabs, sidebar tree, color tags, and selected picture preview](screenshots/apps/file_manager_studio_desktop.png) | ![Codecaine File Manager in side-by-side Dual-Pane Commander mode](screenshots/apps/file_manager_studio_dual.png) |
+| **Batch Convert & Process** | **Two-Way Synced Terminal in Current Folder** |
+| ![The Convert and process window listing what can be done with three selected pictures](screenshots/apps/file_manager_studio_convert.png) | ![Codecaine File Manager with its synced terminal open](screenshots/apps/file_manager_studio_terminal.png) |
+| **Built-in Image & Media Studio** | **AmpDeck Media Player (10-Band EQ & 108 Visualizers)** |
+| ![The built-in Image Studio editing a photo with live sliders and presets](screenshots/apps/file_manager_studio_image_studio.png) | ![The built-in AmpDeck Media Deck with 10-band equalizer and visualizer](screenshots/apps/file_manager_studio_player.png) |
+| **Databases Hub, Cross-Engine Cloning & Bun JS Macros** | **Split View + Built-in Code Editor & Live Preview** |
+| ![The Databases Hub with SQLite and Redis connections, cloning and macros](screenshots/apps/file_manager_studio_databases.png) | ![Split view showing files alongside the built-in Code Editor and Markdown preview](screenshots/apps/file_manager_studio_dev.png) |
+| **24 Built-in Retro Arcade, Card & Puzzle Games** | **180 Themes: Frosted Glass, Neon Glow & Motion FX** |
+| ![The built-in Codecaine Arcade Suite with 24 playable games inside the File Manager](screenshots/apps/file_manager_studio_games.png) | ![The File Manager theme gallery filtered to enhanced themes with special effects](screenshots/apps/file_manager_studio_themes.png) |
+| **Fits a smaller window (Responsive Layout)** | **Edit Redis keys in place** |
+| ![Codecaine File Manager in a narrow window](screenshots/apps/file_manager_studio_responsive.png) | ![Redis Studio editing the score of a sorted-set member](screenshots/apps/redis_studio_editing.png) |
 
 ```bash
-bun run app:files            # open the desktop app
+bun run app:files                  # open the desktop app
 bun run app:files --reset-window   # forget the saved window size and position
 ```
 
-Downloaded a release instead? Run `./bin/file-manager-studio`. Everything below is in [the File Manager user guide](docs/userguides/43_file_manager.md).
+Downloaded a release instead? Open `Codecaine File Manager.app` on macOS, `Codecaine File Manager.exe` on Windows, or `./bin/file-manager-studio` from the full-suite archive. Everything below is in [the File Manager user guide](docs/userguides/43_file_manager.md).
 
 | | What you get |
 | :--- | :--- |
-| 🗃️ **Everyday files** | Sidebar and address bar anyone can read, previews, drag and drop, a **dual view** whose right pane has every option of the left, favorites, workspace views, an undoable Recycle Bin, **New SQLite database** from the right-click menu, one-click shortcuts to every tool, and **Permissions** (a Read/Write/Run grid with a preview and one-step Undo, plus macOS Locked/Hidden and Windows attributes). |
-| 🪟 **A window that remembers** | Opens filling the screen; once you resize or move it, it remembers, and **Reset window to default** is always one click away. |
+| 🗃️ **Everyday files, tabs & tags** | Multi-tab folder browsing (`Ctrl+T` / middle-click), expandable sidebar folder tree, **7 Finder-style Color Tags** (`1`–`7`, `0` to clear), **Quick Look (`Space`)** for images, video, audio, PDFs, Office docs, archives, SQLite DBs & code, drag and drop, **Dual-Pane Commander view (`Alt+5`)** with `F5` Copy / `F6` Move, an undoable Recycle Bin, **New SQLite database** from the toolbar or right-click menu, and **Permissions** (Read/Write/Run grid with one-step Undo). |
+| 🪟 **A window that remembers** | Opens filling the screen; once you resize or move it, it remembers, and **Reset window to default** (`--reset-window`) is always one click away. |
 | 🛡️ **Review before anything changes** | Renaming many items, deleting for good, cleaning up duplicates and Find's copy, move and delete show every change first (create, copy, move, rename, replace, delete, skip), what could go wrong, and **which ways back really exist** (Undo, Recycle Bin, backup, Graveyard). They are checked again when they run, never overwrite silently, and go through one task list with progress, Cancel and Retry. |
 | 🆚 **Compare folders** | Two folders in five groups (only left, only right, different, identical, cannot compare), a quick check that never calls a file identical without saying it was not read, a verified byte-by-byte check, ignore rules, and a one-way copy of the differences you pick. It never deletes. |
 | 📌 **Projects** | Save folders, view, search settings, ignore rules, favorite commands and database references, and reopen them in one click. No secrets are stored, and commands are typed into the terminal for you, never run. |
 | ⚙️ **Actions** | Saved recipes (for example *resize, make WebP, put in ./optimized*) that are checked first, run in the task list on copies of your files, and never overwrite. |
 | 🔄 **Convert and process** | Batch conversion of pictures, video, sound, documents and archives (Zstandard built in), with **one-click setup** of the helper programs through Homebrew, apt, dnf, pacman, winget or Scoop. |
-| 🔐 **Secrets** | An encrypted password manager and secure notes: AES-256-GCM, Argon2id, optional key file and recovery key (copy it or save it to a file instead of typing it), one-time codes, importers, auto-locking clipboard. [How it works](docs/security.md#secrets-vault-radsec) |
-| 🔒 **Encrypt files and folders** | Lock any file or folder with a password. |
-| 🗄️ **Databases** | SQLite, MySQL/MariaDB, PostgreSQL and Redis studios built in, with saved connection profiles (passwords in your system keychain) that take priority over environment variables, auto-detect from your environment and `.env` files, and quick-open shortcuts in a window or your browser. The SQL studios have a datasheet (hide, resize, rename and freeze columns), a Create view dialog, a Focus mode, **11 production-style sample databases** (such as a Medicare Part D formulary builder, hospital records, banking and e-commerce) and a guided **load into staging first** import with checks, dry run and undo. [Sample datasets](docs/databases/sample-datasets.md) · [Staging import](docs/databases/staging-import.md) |
-| 🪦 **Graveyard** | Bury files with Rip (Alt+Delete), browse, restore or delete them for good. |
-| 🔭 **Subdomains** | Passive subdomain discovery from several sources, with safe, opt-in DNS, HTTP and port checks. |
-| 🧑‍💻 **For developers** | A terminal that opens in the folder you are looking at, a Code editor, code statistics (Dev tab), a live server and PHP server, Find, Replace, Watch, Network, IP info, Crypto (UUID v7 and more) and Bun's own built-in utilities. |
-| 🎨 **180 themes** | The 178 named themes of the SimpleGUI apps plus *Default Dark* and *Default Light*, including futuristic themes with a motion layer, a theme editor, and a **Themes** button in the ribbon. |
+| 🎨 **Image, Media & Paint Studios** | **Image Studio** (live sliders for exposure, warmth, vignette, shape crops, rounded corners, borders & 17 presets), **Media Studio** (trim, speed, fade, normalize, strip audio, convert to GIF/MP3/MP4), and **Paint Studio** (layers, brushes, shapes & filters) — always saving non-destructive copies. |
+| 🎛️ **AmpDeck Media Player** | Built-in Winamp/milkdrop-inspired audio & video rack with a **10-band Web Audio equalizer**, preamp, bass/treble/vocal DSP boosters, **108 audio-reactive visualizers** across 3 hardware tiers with 3-layer FX mixing, M3U playlists, LRC synced lyrics, and persistent mini-bar. |
+| 🔐 **Secrets & File Encryption** | An encrypted password manager and secure notes (AES-256-GCM, Argon2id, optional key file and recovery key, one-time codes, importers, auto-locking clipboard) plus one-click password encryption for any file or folder. [How it works](docs/security.md#secrets-vault-radsec) |
+| 🗄️ **Databases, Cloning & Macros** | SQLite, MySQL/MariaDB, PostgreSQL and Redis studios built in, with saved connection profiles (passwords in your system keychain), auto-detect from `.env` files, **Cross-Engine Database & Table Cloning (`🧬`)** between SQLite, MySQL, PostgreSQL and Redis, **Microsoft Access-style Macros (`⚡`)** powered by the Bun JS runtime (`CurrentDb`, `DoCmd`, `DLookup`, `TempVars`), **11 synthetic sample databases**, and guided **staging import** with dry run and undo. [Sample datasets](docs/databases/sample-datasets.md) · [Staging import](docs/databases/staging-import.md) |
+| 🕹️ **24 Built-in Arcade Games** | Play all 24 Codecaine arcade, puzzle, card, casino and word games (Tetris, Pac-Man, Codecaine Bros., Dr. Codecaine, Balatro, Poker, Blackjack, Lolo, SkiFree and more) directly inside the File Manager, in a separate desktop window, or in your browser. |
+| 🪦 **Graveyard & Subdomains** | Bury files safely with Rip (`Alt+Delete`) and browse or restore them anytime; run passive multi-source subdomain discovery with opt-in DNS, HTTP and port checks. |
+| 📊 **Process & Task Manager + System Info** | Cross-platform **Tasks** monitor (live CPU/RAM/swap gauges, process search/sort, graceful vs. force kill, pause/resume, priority/renice, open listening ports, and 1-click jump to executable folder on Windows, macOS & Linux) and **System Information** dashboard (CPU, RAM, GPU/displays, storage volumes, network interfaces, battery health, toolchain versions, and 1-click Markdown/JSON report export). |
+| 🧑‍💻 **For developers (Studio IDE v2)** | A two-way synced terminal (`Ctrl+\``) that follows the current folder (and vice versa), a full **Code Editor** with live Markdown/CSV/JSON/SVG/HTML preview, Git/Outline/TODO/History panels, code statistics (Dev tab), API Client, App Bundler, and Bun utilities. |
+| 🌈 **180 themes** | The 178 named themes of the SimpleGUI apps plus *Default Dark* and *Default Light*, including special-effects themes with frosted glass, neon glow, animated motion layers, a theme editor, and a **Themes** button in the ribbon. |
 | ℹ️ **Know your files** | Warns when a file isn't what its name says, and shows image and file details and metadata. |
 
 > Built with care but not independently audited. Read [what was and was not verified](docs/userguides/43_file_manager.md#what-was-verified-and-what-was-not) before trusting it with anything you cannot replace.
@@ -647,6 +653,7 @@ bun run demo:simplegui
 In addition to RAD form design and UI demos, Bun RAD Studio provides a comprehensive suite of **39 production-grade developer desktop workstations and arcade games** engineered with zero Homebrew/external binary reliance. Each application includes detailed documentation in the [User Guides Directory](docs/userguides/README.md).
 
 |   #    | Application                        | User Guide                                                   | Focus & Capabilities                                                                                                        | Launch Command          |
+| :---: | :--- | :--- | :--- | :--- |
 | **01** | **SQLite Studio Pro**              | [User Guide](docs/userguides/01_sqlite_studio.md)          | Full desktop-database workflow: live totals row, quick filter bar, report generator, backup/dump, QBE designer with cardinality badges. | `bun run app:sqlite`    |
 | **02** | **System & Package Workstation**   | [User Guide](docs/userguides/02_system_package_studio.md)    | Hardware telemetry (RAM/CPUs/Uptime), Bun global cache analysis, npm/bun registry search.                                   | `bun run app:system`    |
 | **03** | **Task Watcher Studio**            | [User Guide](docs/userguides/03_task_watcher_studio.md)      | Native `fs.watch` event pipeline, extension filters, ignore rules, continuous build console.                                | `bun run app:watcher`   |
@@ -688,6 +695,10 @@ In addition to RAD form design and UI demos, Bun RAD Studio provides a comprehen
 | **39** | **Tic Tac Toe Master**             | [User Guide](docs/userguides/39_tictactoe_studio.md)         | Unbeatable Minimax AI mode, casual mode & local 2-player battle with scoreboard and glowing neon visuals.                   | `bun run app:tictactoe` |
 | **40** | **RAD Utilities Studio Pro**       | [Feature Docs](src/features/rad/README.md)                   | 44 high-velocity development modules for Rapid Application Development with live playground, recipes & benchmark suite.      | `bun run app:rad`       |
 | **41** | **MySQL Studio Pro**               | [User Guide](docs/userguides/41_mysql_studio.md)             | Enterprise MySQL database workstation, query IDE, schema visualizer & InnoDB performance suite via native Bun SQL.          | `bun run app:mysql`     |
+| **42** | **PostgreSQL Studio Pro**          | [User Guide](docs/userguides/42_postgres_studio.md)          | Enterprise PostgreSQL workstation with schema browser, QBE visual designer, EXPLAIN analyzer, JSONB inspector & pg_dump.     | `bun run app:postgres`  |
+| **43** | **Codecaine File Manager**         | [User Guide](docs/userguides/43_file_manager.md)             | All-in-one desktop file manager with folder tabs, color tags, Quick Look, Dual-Pane, batch convert, AmpDeck, Databases & 24 games. | `bun run app:files`     |
+| **44** | **Redis Studio Pro**               | [Workbench Docs](docs/databases/workbench.md)                | Key-value workstation for Strings, Hashes, Lists, Sets, Sorted Sets & Streams with inline editing, CLI & Pub/Sub monitor.    | `bun run app:redis`     |
+| **45** | **Media Player Studio Pro**        | [User Guide](docs/userguides/43_file_manager.md)             | AmpDeck audio & video workstation with 10-band Web Audio EQ, 108 visualizers, 3-layer FX mixer, M3U playlists & LRC lyrics. | `bun run app:player`    |
 
 <a id="application-visual-gallery--screenshots"></a>
 
@@ -695,12 +706,13 @@ In addition to RAD form design and UI demos, Bun RAD Studio provides a comprehen
 
 > **Want the pictures first?** [SHOWCASE.md](SHOWCASE.md) presents every application with its screenshot, what it does and how to start it.
 
-Explore live desktop and responsive viewport previews for all 28 enterprise production workstations:
+Explore live desktop and responsive viewport previews for all enterprise production workstations:
 
 #### 🔍 Filesystem, Search & Process Operations
 
 | Workstation | Desktop Preview (1200×850) | Responsive Preview (960×720) |
 | :--- | :--- | :--- |
+| **Codecaine File Manager**<br>[User Guide](docs/userguides/43_file_manager.md)<br>`bun run app:files` | ![Codecaine File Manager Desktop](screenshots/apps/file_manager_studio_desktop.png) | ![Codecaine File Manager Responsive](screenshots/apps/file_manager_studio_responsive.png) |
 | **Fd Studio Pro**<br>[User Guide](docs/userguides/17_fd_studio.md)<br>`bun run app:fd` | ![Fd Studio Desktop](screenshots/apps/fd_studio_desktop.png) | ![Fd Studio Responsive](screenshots/apps/fd_studio_responsive.png) |
 | **Rip Studio Pro**<br>[User Guide](docs/userguides/18_rip_studio.md)<br>`bun run app:rip` | ![Rip Studio Desktop](screenshots/apps/rip_studio_desktop.png) | ![Rip Studio Responsive](screenshots/apps/rip_studio_responsive.png) |
 | **Sd Studio Pro**<br>[User Guide](docs/userguides/19_sd_studio.md)<br>`bun run app:sd` | ![Sd Studio Desktop](screenshots/apps/sd_studio_desktop.png) | ![Sd Studio Responsive](screenshots/apps/sd_studio_responsive.png) |
@@ -711,11 +723,14 @@ Explore live desktop and responsive viewport previews for all 28 enterprise prod
 #### 🗄️ Data, Storage & Query Engines
 
 | Workstation | Desktop Preview (1200×850) | Responsive Preview (960×720) |
+| :--- | :--- | :--- |
 | **SQLite Studio Pro**<br>[User Guide](docs/userguides/01_sqlite_studio.md)<br>`bun run app:sqlite` | ![SQLite Totals Row & Quick Filter Bar](screenshots/apps/sqlite_totals_filter_verified.png) | ![Visual Query Designer](screenshots/apps/sqlite_visual_designer_cardinality_verified.png) |
 | **MySQL Studio Pro**<br>[User Guide](docs/userguides/41_mysql_studio.md)<br>`bun run app:mysql` | ![MySQL Studio Desktop](screenshots/apps/mysql_studio_desktop.png) | ![MySQL Studio Responsive](screenshots/apps/mysql_studio_responsive.png) |
+| **PostgreSQL Studio Pro**<br>[User Guide](docs/userguides/42_postgres_studio.md)<br>`bun run app:postgres` | ![PostgreSQL Studio Desktop](screenshots/apps/postgres_studio_desktop.png) | ![PostgreSQL Studio Responsive](screenshots/apps/postgres_studio_responsive.png) |
+| **Redis Studio Pro**<br>[Workbench Docs](docs/databases/workbench.md)<br>`bun run app:redis` | ![Redis Studio Desktop](screenshots/apps/redis_studio_desktop.png) | ![Redis Studio Responsive](screenshots/apps/redis_studio_responsive.png) |
 | **JSON Query Studio Pro**<br>[User Guide](docs/userguides/04_json_query_studio.md)<br>`bun run app:json` | ![JSON Query Studio Desktop](screenshots/apps/json_studio_desktop.png) | ![JSON Query Studio Responsive](screenshots/apps/json_studio_responsive.png) |
 | **Data Converter Studio**<br>[User Guide](docs/userguides/08_data_converter_studio.md)<br>`bun run app:convert` | ![Data Converter Studio Desktop](screenshots/apps/dataconvert_studio_desktop.png) | ![Data Converter Studio Responsive](screenshots/apps/dataconvert_studio_responsive.png) |
-bu
+
 #### 🌐 Networking, DNS & Security Forensics
 
 | Workstation | Desktop Preview (1200×850) | Responsive Preview (960×720) |
@@ -732,6 +747,11 @@ bu
 | Workstation | Desktop Preview (1200×850) | Responsive Preview (960×720) |
 | :--- | :--- | :--- |
 | **DevTools Studio Pro (6-in-1)**<br>[User Guide](docs/userguides/05_devtools_studio.md)<br>`bun run app:devtools` | ![DevTools Studio Desktop](screenshots/apps/devtools_studio_desktop.png) | ![DevTools Studio Responsive](screenshots/apps/devtools_studio_responsive.png) |
+| **Code Studio Pro**<br>`bun run app:code` | ![Code Studio Desktop](screenshots/apps/code_studio_desktop.png) | ![Code Studio Responsive](screenshots/apps/code_studio_responsive.png) |
+| **Media Player Studio Pro**<br>[User Guide](docs/userguides/43_file_manager.md)<br>`bun run app:player` | ![Media Player Studio Desktop](screenshots/apps/media_player_studio_desktop.png) | ![Media Player Studio Responsive](screenshots/apps/media_player_studio_responsive.png) |
+| **Paint Studio Pro**<br>`bun run app:paint` | ![Paint Studio Desktop](screenshots/apps/paint_studio_desktop.png) | ![Paint Studio Responsive](screenshots/apps/paint_studio_responsive.png) |
+| **RAD Utilities Studio Pro**<br>[Feature Docs](src/features/rad/README.md)<br>`bun run app:rad` | ![RAD Studio Desktop](screenshots/apps/rad_studio_desktop.png) | ![RAD Studio Responsive](screenshots/apps/rad_studio_responsive.png) |
+| **Subprocess Pipe Studio**<br>`bun run app:pipe` | ![Subprocess Pipe Studio Desktop](screenshots/apps/subprocess_pipe_studio_desktop.png) | ![Subprocess Pipe Studio Responsive](screenshots/apps/subprocess_pipe_studio_responsive.png) |
 | **System & Package Workstation**<br>[User Guide](docs/userguides/02_system_package_studio.md)<br>`bun run app:system` | ![System Studio Desktop](screenshots/apps/system_studio_desktop.png) | ![System Studio Responsive](screenshots/apps/system_studio_responsive.png) |
 | **Task Watcher Studio**<br>[User Guide](docs/userguides/03_task_watcher_studio.md)<br>`bun run app:watcher` | ![Watcher Studio Desktop](screenshots/apps/watcher_studio_desktop.png) | ![Watcher Studio Responsive](screenshots/apps/watcher_studio_responsive.png) |
 | **Process Monitor Studio**<br>[User Guide](docs/userguides/06_process_monitor_studio.md)<br>`bun run app:process` | ![Process Monitor Desktop](screenshots/apps/process_studio_desktop.png) | ![Process Monitor Responsive](screenshots/apps/process_studio_responsive.png) |
@@ -760,6 +780,20 @@ bu
 | **Maze Generator & Solver**<br>[User Guide](docs/userguides/37_maze_generator_studio.md)<br>`bun run app:maze` | ![Maze Generator Desktop](screenshots/apps/maze_generator_desktop.png) | ![Maze Generator Responsive](screenshots/apps/maze_generator_responsive.png) |
 | **Cyber Pong Neo**<br>[User Guide](docs/userguides/38_pong_arcade.md)<br>`bun run app:pong` | ![Cyber Pong Desktop](screenshots/apps/pong_desktop.png) | ![Cyber Pong Responsive](screenshots/apps/pong_responsive.png) |
 | **Tic Tac Toe Master**<br>[User Guide](docs/userguides/39_tictactoe_studio.md)<br>`bun run app:tictactoe` | ![Tic Tac Toe Desktop](screenshots/apps/tictactoe_desktop.png) | ![Tic Tac Toe Responsive](screenshots/apps/tictactoe_responsive.png) |
+| **Tetris Ultra Deluxe**<br>`bun run app:tetris` | ![Tetris Desktop](screenshots/apps/tetris_desktop.png) | ![Tetris Responsive](screenshots/apps/tetris_responsive.png) |
+| **Neon Snake Deluxe**<br>`bun run app:snake` | ![Snake Desktop](screenshots/apps/snake_desktop.png) | ![Snake Responsive](screenshots/apps/snake_responsive.png) |
+| **Cyber Breakout Deluxe**<br>`bun run app:breakout` | ![Breakout Desktop](screenshots/apps/breakout_desktop.png) | ![Breakout Responsive](screenshots/apps/breakout_responsive.png) |
+| **CyberFrog Deluxe**<br>`bun run app:frogger` | ![Frogger Desktop](screenshots/apps/frogger_desktop.png) | ![Frogger Responsive](screenshots/apps/frogger_responsive.png) |
+| **CyberFlap Deluxe**<br>`bun run app:flappy_bird` | ![Flappy Bird Desktop](screenshots/apps/flappy_bird_desktop.png) | ![Flappy Bird Responsive](screenshots/apps/flappy_bird_responsive.png) |
+| **SkiFree Alpine Deluxe**<br>`bun run app:skifree` | ![SkiFree Desktop](screenshots/apps/skifree_desktop.png) | ![SkiFree Responsive](screenshots/apps/skifree_responsive.png) |
+| **Math Munchers Deluxe**<br>`bun run app:math_munchers` | ![Math Munchers Desktop](screenshots/apps/math_munchers_desktop.png) | ![Math Munchers Responsive](screenshots/apps/math_munchers_responsive.png) |
+| **Minesweeper Deluxe**<br>`bun run app:minesweeper` | ![Minesweeper Desktop](screenshots/apps/minesweeper_desktop.png) | ![Minesweeper Responsive](screenshots/apps/minesweeper_responsive.png) |
+| **Typing Speed Studio**<br>`bun run app:typing` | ![Typing Desktop](screenshots/apps/typing_desktop.png) | ![Typing Responsive](screenshots/apps/typing_responsive.png) |
+| **Joker Royale (Balatro Deluxe)**<br>`bun run app:balatro` | ![Balatro Desktop](screenshots/apps/balatro_desktop.png) | ![Balatro Responsive](screenshots/apps/balatro_responsive.png) |
+| **Poker Royale**<br>`bun run app:poker` | ![Poker Desktop](screenshots/apps/poker_desktop.png) | ![Poker Responsive](screenshots/apps/poker_responsive.png) |
+| **Blackjack Royale VIP**<br>`bun run app:blackjack` | ![Blackjack Desktop](screenshots/apps/blackjack_desktop.png) | ![Blackjack Responsive](screenshots/apps/blackjack_responsive.png) |
+| **Egyptian Rat Screw Royale**<br>`bun run app:rat_screw` | ![Rat Screw Desktop](screenshots/apps/rat_screw_desktop.png) | ![Rat Screw Responsive](screenshots/apps/rat_screw_responsive.png) |
+| **Yahtzee Royale Deluxe**<br>`bun run app:yahtzee` | ![Yahtzee Desktop](screenshots/apps/yahtzee_desktop.png) | ![Yahtzee Responsive](screenshots/apps/yahtzee_responsive.png) |
 
 ---
 
