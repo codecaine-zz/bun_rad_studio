@@ -19,7 +19,7 @@ export const state = {
     showHidden: false, showInfoPanel: false, theme: "auto", palette: "", textSize: 100, lastPath: "", seenWelcome: false, terminalFollow: true,
     terminalOpen: false, terminalHeight: 300, terminalPath: "",
     workspace: "files", startWith: "files", splitSide: "right", splitSize: 50, sidebarCollapsed: false, focusMode: false,
-    activeTool: "", splitTool: "", dualPath: "", typeWarnings: true, backspaceDeletes: false, shortcutsCantClose: false, serveOptions: { kind: "auto", liveReload: true, openBrowser: true }, deleteTo: "bin", dbShortcut: "window", mediaOpensIn: "manager",
+    activeTool: "", splitTool: "", dualPath: "", typeWarnings: true, backspaceDeletes: true, shortcutsCantClose: false, serveOptions: { kind: "auto", liveReload: true, openBrowser: true }, deleteTo: "bin", dbShortcut: "window", mediaOpensIn: "manager",
     columns: [], groupBy: "none", tags: {}, treeExpanded: false,
   },
   /** Ids of queued jobs that came from a reviewed plan (planDialog.js reports on those itself). */

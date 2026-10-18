@@ -10,7 +10,7 @@ const byId = new Map(ACTIONS.map((a) => [a.id, a]));
 
 function refresh() {
   const overrides = state.settings?.shortcuts ?? {};
-  const backspace = state.settings?.backspaceDeletes === true;
+  const backspace = state.settings?.backspaceDeletes !== false;
   const next = `${state.platform}|${backspace}|${JSON.stringify(overrides)}`;
   if (next === signature) return;
   signature = next;

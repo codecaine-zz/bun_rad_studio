@@ -95,6 +95,24 @@ const REQUIRED: Record<string, boolean> = {
     st_elmos_corona: true,
     van_de_graaff_day: false,
     cern_control_day: false,
+    ef5_debris_tornado: true,
+    inferno_fire_folders: true,
+    toxic_slime_ooze: true,
+    urban_street_cyclone: true,
+    autumn_noreaster_gale: true,
+    supercell_emerald_vortex: true,
+    category_5_eyewall: true,
+    mesosphere_red_sprite: true,
+    cryo_icicle_blizzard: true,
+    scrapyard_shrapnel_vortex: true,
+    jovian_red_spot_storm: true,
+    neptune_diamond_squall: true,
+    tahoe_studio_3d: true,
+    m4_pro_display_xdr: true,
+    win11_rtx_fluent_3d: true,
+    hdr_cinema_gallery: true,
+    linux_workstation_hidpi: true,
+    studio_architect_minimal: false,
 };
 
 describe("fx themes: registration", () => {
@@ -160,11 +178,11 @@ describe("fx themes: registration", () => {
             expect(fx.blur, key).toBeLessThanOrEqual(32);
             expect(fx.glass, key).toBeGreaterThanOrEqual(0);
             expect(fx.glass, key).toBeLessThanOrEqual(1);
-            expect(["none", "soft", "neon"]).toContain(fx.glow);
-            expect(["sharp", "soft", "round", "pill"]).toContain(fx.radius);
-            expect(["flat", "gradient", "metal"]).toContain(fx.border);
-            expect(["calm", "spring", "snappy"]).toContain(fx.motion);
-            expect(["none", "subtle"]).toContain(fx.scanlines);
+            expect(["none", "soft", "neon", "aurora", "plasma", "ember", "laser", "bloom"]).toContain(fx.glow);
+            expect(["sharp", "soft", "round", "pill", "squircle", "bevel"]).toContain(fx.radius);
+            expect(["flat", "gradient", "metal", "neon", "iridescent", "double", "bevel", "crystal", "hologram"]).toContain(fx.border);
+            expect(["calm", "spring", "snappy", "elastic", "cinematic", "hyper", "zen"]).toContain(fx.motion);
+            expect(["none", "subtle", "crt", "fine", "grid", "diagonal"]).toContain(fx.scanlines);
             expect(/^#[0-9a-f]{6}$/i.test(fx.glowColor), key).toBe(true);
         }
     });
@@ -213,8 +231,8 @@ describe("fx themes: tokens", () => {
             const grain = Number(/--fx-grain-opacity:\s*([\d.]+)/.exec(css)![1]);
             expect(scan, key).toBeLessThanOrEqual(0.04);
             expect(grain, key).toBeLessThanOrEqual(0.04);
-            expect(scan > 0, key).toBe(t.fx!.scanlines === "subtle");
-            expect(grain > 0, key).toBe(t.fx!.grain === "subtle");
+            expect(scan > 0, key).toBe(t.fx!.scanlines !== "none");
+            expect(grain > 0, key).toBe(t.fx!.grain !== "none");
         }
     });
 

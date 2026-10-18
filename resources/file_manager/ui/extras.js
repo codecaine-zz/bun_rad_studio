@@ -193,6 +193,7 @@ function shortcuts() {
     ["Show or hide the Details panel", K("view.info")],
     ["Show or hide the terminal", K("terminal.toggle")],
     ["Open the terminal in the selected folder (or this one)", K("terminal.here")],
+    ["Paste into the terminal (or Ctrl+V / Ctrl+Shift+V / ⌘V in the terminal)", K("terminal.paste")],
     ["Change the view", `${K("view.details")}  ·  ${K("view.list")}  ·  ${K("view.icons")}`],
     ["Switch window view: Files, Home, Tools, Split, Dual", `${alt}1  ·  ${alt}2  ·  ${alt}3  ·  ${alt}4  ·  ${alt}5`],
     ["Focus (hide toolbar and side panels), Esc to leave", `${alt}6`],

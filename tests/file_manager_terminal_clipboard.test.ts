@@ -118,19 +118,23 @@ describe("terminal selection and clipboard controls", () => {
     expect(f.term.focused).toBe(true);
   });
 
-  test("copy and select-all shortcuts never replace Ctrl+C, Ctrl+A or native paste", async () => {
+  test("copy, paste and select-all shortcuts work on all platforms while leaving Ctrl+C and Ctrl+A to the shell", async () => {
     for (const platform of ["linux", "win32", "darwin"]) {
       const f = fixture(platform);
-      for (const key of ["a", "c", "v"]) {
+      for (const key of ["a", "c"]) {
         expect(f.key(key, { ctrlKey: true })).toEqual({ result: true, prevented: false, stopped: false });
       }
-      expect(f.key("v", { ctrlKey: true, shiftKey: true }).result).toBe(true);
+      expect(f.key("v", { ctrlKey: true })).toEqual({ result: false, prevented: true, stopped: true });
+      expect(f.key("v", { ctrlKey: true, shiftKey: true })).toEqual({ result: false, prevented: true, stopped: true });
+      expect(f.key("v", { metaKey: true })).toEqual({ result: false, prevented: true, stopped: true });
+      expect(f.key("Insert", { shiftKey: true })).toEqual({ result: false, prevented: true, stopped: true });
+      await Promise.resolve();
+      expect(f.pasted).toEqual(["clipboard\ntext", "clipboard\ntext", "clipboard\ntext", "clipboard\ntext"]);
       expect(f.key("a", { ctrlKey: true, shiftKey: true })).toEqual({ result: false, prevented: true, stopped: true });
       expect(f.key("c", { ctrlKey: true, shiftKey: true }).result).toBe(false);
       await Promise.resolve();
       expect(f.copied).toEqual(["all output\nincluding scrollback"]);
       expect(f.key("c", { metaKey: true }).result).toBe(platform !== "darwin");
-      expect(f.key("v", { metaKey: true }).result).toBe(true);
       expect(f.key("c", { ctrlKey: true, shiftKey: true, altKey: true }).result).toBe(true);
     }
   });

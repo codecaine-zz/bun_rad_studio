@@ -6,7 +6,7 @@ import { debounce, h } from "./dom.js";
 import { toast } from "./menus.js";
 import { saveSettings } from "./nav.js";
 import { emit, on, state } from "./state.js";
-import { applyPalette, forgetThemeList, paint } from "./themes.js";
+import { applyPalette, extractPaletteFromPixels, forgetThemeList, paint, pasteImportThemesFromClipboard, runBulkThemeImportFlow } from "./themes.js";
 import { ATMOSPHERE_IDS, ATMOSPHERE_MIX_PRESETS } from "./atmosphereCatalog.js";
 
 const EXPORT_FORMAT = "bun-rad-studio-file-manager-theme";
@@ -116,14 +116,144 @@ export const EDITOR_FX_PRESETS = [
   { id: "zen_matte", label: "🪨 Zen Matte Studio", fx: { glass: 0, blur: 0, glow: "none", radius: "soft", border: "flat", motion: "calm", backdropStyle: "matte", cursorEffect: "none", vignette: "none", scanlines: "none", grain: "none", sheen: false, noise: false, chromatic: false, ambient: false } },
 ];
 
+/** 1-Click Theme Hacker Mutators for deep nostalgic Linux/Compiz, Retro Workstation, and Extreme Storm personalization. */
+export const THEME_HACK_MUTATORS = [
+  {
+    id: "compiz_burn",
+    label: "🔥 Compiz Burn & Inferno",
+    desc: "Classic Linux Compiz Fusion 'Burn' plugin homage: blazing folders & toolbars, molten inferno icons, and volcanic ash lightning.",
+    colors: { background: "#0b0402", card: "#180804", text: "#ffefe6", accent: "#ff5500", secondary: "#ffbb00", border: "#4d1a08", danger: "#ff3300", warning: "#ffaa00", success: "#34d399", info: "#ff7733" },
+    dark: true,
+    fx: { glow: "ember", glowColor: "#ff5500", glowColor2: "#ffbb00", glowIntensity: 0.95, blur: 20, glass: 0.62, border: "neon", borderOpacity: 0.45, radius: "round", motion: "spring", backdropStyle: "glass", cursorEffect: "spotlight", sheen: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "volcanic_lightning+embers", uiElementFx: "fire_folders", iconPackStyle: "inferno", iconGlow: "hyper" },
+    customCss: ".row.is-folder:hover { transform: translateY(-1px) scale(1.006); }",
+  },
+  {
+    id: "bio_slime",
+    label: "🧪 Bio-Slime & Acid Vat",
+    desc: "Radioactive neon-green ooze dripping from folders, toolbars, and breadcrumbs with bio-vat flask icons.",
+    colors: { background: "#040d06", card: "#091a0d", text: "#e6ffeb", accent: "#39ff14", secondary: "#a3e635", border: "#194222", danger: "#ff5577", warning: "#facc15", success: "#22c55e", info: "#38bdf8" },
+    dark: true,
+    fx: { glow: "plasma", glowColor: "#39ff14", glowColor2: "#a3e635", glowIntensity: 0.92, blur: 22, glass: 0.64, border: "neon", borderOpacity: 0.42, radius: "squircle", motion: "elastic", backdropStyle: "liquid", cursorEffect: "ripple", sheen: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "abyssal_trench+fireflies", uiElementFx: "slime_drip", iconPackStyle: "slime", iconGlow: "neon" },
+    customCss: "#toolbar-row, .row.is-folder { border-color: rgba(57, 255, 20, 0.5); }",
+  },
+  {
+    id: "ef5_storm",
+    label: "🌪️ EF5 Cyclone & Debris",
+    desc: "Full M4 storm immersion: tumbling leaves, flying newspapers, shingles & twigs with wind-buffeted folders.",
+    colors: { background: "#070c10", card: "#101920", text: "#e6f2f5", accent: "#2dd4bf", secondary: "#94a3b8", border: "#233642", danger: "#f87171", warning: "#fbbf24", success: "#34d399", info: "#38bdf8" },
+    dark: true,
+    fx: { glow: "aurora", glowColor: "#2dd4bf", glowColor2: "#38bdf8", glowIntensity: 0.85, blur: 24, glass: 0.66, border: "iridescent", borderOpacity: 0.35, radius: "round", motion: "spring", backdropStyle: "frosted", cursorEffect: "magnetic", sheen: true, innerGlow: true, ambient: true, atmosphere: "debris_tornado_ef5+derecho_squall+cyberstorm", uiElementFx: "storm_wind", iconPackStyle: "storm_tempest", iconGlow: "neon" },
+    customCss: "",
+  },
+  {
+    id: "cryo_shatter",
+    label: "❄️ Cryo-Glacier & Icicles",
+    desc: "Sub-zero glacier blizzard with frosted rim folders, hanging icicle crystals, and polar aurora ribbons.",
+    colors: { background: "#050d18", card: "#0b1a2e", text: "#e8f6ff", accent: "#38bdf8", secondary: "#7dd3fc", border: "#1e3a5f", danger: "#fb7185", warning: "#fcd34d", success: "#34d399", info: "#38bdf8" },
+    dark: true,
+    fx: { glow: "aurora", glowColor: "#38bdf8", glowColor2: "#7dd3fc", glowIntensity: 0.88, blur: 28, glass: 0.72, border: "crystal", borderOpacity: 0.42, radius: "round", motion: "calm", backdropStyle: "frosted", cursorEffect: "prism", frostedRim: true, innerGlow: true, sheen: true, ambient: true, atmosphere: "cryo_blizzard_2126+aurora_ribbons", uiElementFx: "cryo_frost", iconPackStyle: "cryo_crystal", iconGlow: "neon" },
+    customCss: "",
+  },
+  {
+    id: "retro_linux_cde",
+    label: "🐧 90s Linux / CDE / BeOS Chisel",
+    desc: "Nostalgic Unix workstation & classic WindowMaker / CDE / BeOS 3D bevels, sharp tactical corners, and pixel icons.",
+    colors: { background: "#24303c", card: "#324152", text: "#f2f5f8", accent: "#ffbe0b", secondary: "#3a86ff", border: "#5c7085", danger: "#ff6b6b", warning: "#ffd166", success: "#06d6a0", info: "#4cc9f0" },
+    dark: true,
+    fx: { glow: "soft", glowColor: "#ffbe0b", glowColor2: "#3a86ff", glowIntensity: 0.35, blur: 0, glass: 0.1, border: "bevel", borderOpacity: 0.65, radius: "sharp", motion: "snappy", backdropStyle: "matte", cursorEffect: "none", sheen: false, ambient: false, atmosphere: "none", uiElementFx: "off", iconPackStyle: "retro_pixel", fontProfile: "terminal", cornerProfile: "sharp", customVars: { "--radius": "0px" } },
+    customCss: "#toolbar-row, .row, .tool, .crumb { box-shadow: inset 1px 1px 0 rgba(255,255,255,0.28), inset -1px -1px 0 rgba(0,0,0,0.65); }",
+  },
+  {
+    id: "amiga_workbench",
+    label: "🕹️ Amiga Workbench & Copper Bars",
+    desc: "Classic Amiga Workbench royal-blue & safety-orange aesthetic with retro pixel icons and crisp beveled chrome.",
+    colors: { background: "#0055aa", card: "#004488", text: "#ffffff", accent: "#ff8800", secondary: "#000022", border: "#ffffff", danger: "#ff4444", warning: "#ffcc00", success: "#44ff88", info: "#88ccff" },
+    dark: true,
+    fx: { glow: "soft", glowColor: "#ff8800", glowColor2: "#ffffff", glowIntensity: 0.45, blur: 0, glass: 0.15, border: "bevel", borderOpacity: 0.85, radius: "sharp", motion: "snappy", backdropStyle: "matte", cursorEffect: "none", sheen: false, ambient: false, atmosphere: "retro_grid", uiElementFx: "off", iconPackStyle: "retro_pixel", fontProfile: "terminal", cornerProfile: "sharp", customVars: { "--radius": "0px" } },
+    customCss: "#toolbar-row, .row, .tool { border-style: outset; }",
+  },
+  {
+    id: "crt_hacker",
+    label: "📺 Green-Phosphor CRT Hacker",
+    desc: "Old-school VT100 / Matrix terminal phosphor bloom, CRT scanlines, monospace HUD font, and holo-glitch folders.",
+    colors: { background: "#020804", card: "#051409", text: "#b8ffcc", accent: "#00ff66", secondary: "#00cc52", border: "#0d381a", danger: "#ff4d4d", warning: "#ffcc00", success: "#00ff66", info: "#00e5ff" },
+    dark: true,
+    fx: { glow: "laser", glowColor: "#00ff66", glowColor2: "#00e5ff", glowIntensity: 0.9, blur: 12, glass: 0.45, border: "double", borderOpacity: 0.5, radius: "sharp", motion: "snappy", scanlines: "crt", grain: "film", crtCurve: true, neonPulse: true, backdropStyle: "oled", atmosphere: "matrix+omega_matrix", uiElementFx: "holo_glitch", iconPackStyle: "neon_cyber", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "hyper" },
+    customCss: ".name-text, .crumb, .tool .tl { text-shadow: 0 0 6px rgba(0, 255, 102, 0.55); }",
+  },
+  {
+    id: "cyber_overdrive",
+    label: "⚡ Tesla Cyber Overdrive",
+    desc: "High-voltage violet/cyan Tesla coil arcs on folders & toolbars, chromatic hologram edges, and 2.1x saturation.",
+    colors: { background: "#06040f", card: "#110a26", text: "#f3eeff", accent: "#00f5d4", secondary: "#f15bb5", border: "#3b2370", danger: "#ff4d6d", warning: "#fee440", success: "#00f5d4", info: "#00bbf9" },
+    dark: true,
+    fx: { glow: "plasma", glowColor: "#00f5d4", glowColor2: "#f15bb5", glowIntensity: 1, blur: 26, glass: 0.7, saturation: 2.1, border: "hologram", borderOpacity: 0.5, radius: "round", motion: "spring", chromatic: true, prismEdge: true, innerGlow: true, neonPulse: true, sheen: true, ambient: true, backdropStyle: "liquid", atmosphere: "plasma_storm+cyberstorm", uiElementFx: "tesla_arcs", iconPackStyle: "xenotech_2126", iconGlow: "hyper" },
+    customCss: "",
+  },
+];
+
+export const CUSTOM_CSS_SNIPPETS = [
+  { id: "compiz_wobbly", label: "+ Compiz Wobbly Hover", css: ".row:hover { transform: perspective(500px) rotateX(2deg) scale(1.008) !important; transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1) !important; }" },
+  { id: "retro_bevel", label: "+ SGI / CDE 3D Chisel Bevels", css: "#toolbar-row, .row, .tool, .crumb { border: 1px outset rgba(255,255,255,0.28); box-shadow: inset 1px 1px 0 rgba(255,255,255,0.32), inset -1px -1px 0 rgba(0,0,0,0.7) !important; }" },
+  { id: "neon_folders", label: "+ Neon Pulsing Folders", css: ".row.is-folder .name-text { text-shadow: 0 0 8px var(--accent), 0 0 18px var(--accent); font-weight: 700; }" },
+  { id: "scanline_bar", label: "+ Retro Scanline Addressbar", css: "#addressbar { background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.28) 0px, rgba(0,0,0,0.28) 1px, transparent 1px, transparent 3px) !important; }" },
+  { id: "ultra_glass", label: "+ Ultra Glass Floating Rows", css: ".row { margin-block: 2px; border-radius: 8px; backdrop-filter: blur(12px); }" },
+];
+
+export const PREBUILT_WALLPAPER_SCENES = [
+  {
+    id: "tahoe_aerial_coast",
+    label: "🍎 Tahoe Aerial Coast 8K",
+    dark: true,
+    colors: { background: "#060e1c", card: "#0d1b30", text: "#eef6ff", accent: "#00c8ff", secondary: "#3b82f6", border: "#1f385c", danger: "#ff6b81", warning: "#fbbf24", success: "#34d399", info: "#38bdf8" },
+    fx: { uiElementFx: "tahoe_glass_folders", iconPackStyle: "macos_tahoe_3d", backdropStyle: "liquid", radius: "squircle", glow: "bloom", glowColor: "#00c8ff", glowColor2: "#3b82f6", blur: 28, glass: 0.68, sheen: true, frostedRim: true },
+  },
+  {
+    id: "pro_display_xdr_nebula",
+    label: "💻 Pro Display XDR Nebula",
+    dark: true,
+    colors: { background: "#05060a", card: "#0d1018", text: "#f5f7ff", accent: "#5e9eff", secondary: "#a855f7", border: "#242c40", danger: "#ff6b81", warning: "#fbbf24", success: "#34d399", info: "#38bdf8" },
+    fx: { uiElementFx: "xdr_titanium_folders", iconPackStyle: "pro_studio_xdr", backdropStyle: "oled", radius: "round", glow: "bloom", glowColor: "#5e9eff", glowColor2: "#a855f7", blur: 26, glass: 0.6, sheen: true, frostedRim: true, innerGlow: true },
+  },
+  {
+    id: "win11_bloom_rtx",
+    label: "🪟 Win 11 Bloom RTX 5090",
+    dark: true,
+    colors: { background: "#080d1a", card: "#10192e", text: "#eef4ff", accent: "#60cdff", secondary: "#8b5cf6", border: "#243556", danger: "#ff7b72", warning: "#f2cc60", success: "#3fb950", info: "#58a6ff" },
+    fx: { uiElementFx: "fluent_mica_folders", iconPackStyle: "win11_fluent_pro", backdropStyle: "mica", radius: "round", glow: "aurora", glowColor: "#60cdff", glowColor2: "#8b5cf6", blur: 28, glass: 0.62, sheen: true, frostedRim: true },
+  },
+  {
+    id: "hasselblad_golden_hour",
+    label: "📸 8K Hasselblad Golden Hour",
+    dark: true,
+    colors: { background: "#0b0907", card: "#16120e", text: "#faf4ed", accent: "#f59e0b", secondary: "#ec4899", border: "#332920", danger: "#fb7185", warning: "#fbbf24", success: "#34d399", info: "#38bdf8" },
+    fx: { uiElementFx: "xdr_titanium_folders", iconPackStyle: "hdr_photo_studio", backdropStyle: "frosted", radius: "round", glow: "bloom", glowColor: "#f59e0b", glowColor2: "#ec4899", blur: 24, glass: 0.56, sheen: true, frostedRim: true },
+  },
+  {
+    id: "dolomites_alpine_light",
+    label: "🏔️ Dolomites Studio Daylight",
+    dark: false,
+    colors: { background: "#f5f8fc", card: "#ffffff", text: "#0f172a", accent: "#0284c7", secondary: "#4f46e5", border: "#cbd5e1", danger: "#dc2626", warning: "#d97706", success: "#059669", info: "#0284c7" },
+    fx: { uiElementFx: "tahoe_glass_folders", iconPackStyle: "nordic_minimal", backdropStyle: "liquid", radius: "round", glow: "soft", glowColor: "#0284c7", glowColor2: "#4f46e5", blur: 24, glass: 0.52, sheen: true, frostedRim: true },
+  },
+  {
+    id: "linux_papirus_workstation",
+    label: "🐧 Linux Papirus 4K HiDPI",
+    dark: true,
+    colors: { background: "#0d131a", card: "#151f2b", text: "#e6edf3", accent: "#10b981", secondary: "#06b6d4", border: "#26374a", danger: "#f87171", warning: "#fbbf24", success: "#34d399", info: "#38bdf8" },
+    fx: { uiElementFx: "tahoe_glass_folders", iconPackStyle: "linux_papirus_pro", backdropStyle: "frosted", radius: "round", glow: "soft", glowColor: "#10b981", glowColor2: "#06b6d4", blur: 20, glass: 0.54, sheen: true },
+  },
+];
+
 async function loadStart(key) {
   if (STANDARD[key]) return { ...structuredClone(STANDARD[key]), base: STANDARD[key].name, editingId: null };
   const r = await call("themes/get", { key });
   const custom = r.custom;
-  return { name: custom ? custom.name : `${r.theme.name} (mine)`, dark: r.source.dark, colors: { ...r.source.colors }, fx: r.source.fx ? { ...r.source.fx } : undefined, base: custom ? custom.base : r.theme.name, editingId: custom ? custom.id : null };
+  return { name: custom ? custom.name : `${r.theme.name} (mine)`, dark: r.source.dark, colors: { ...r.source.colors }, fx: r.source.fx ? structuredClone(r.source.fx) : undefined, base: custom ? custom.base : r.theme.name, editingId: custom ? custom.id : null };
 }
 
-async function openEditor({ from = "" } = {}) {
+export async function openEditor({ from = "", seedKey = "" } = {}) {
+  const initialKey = from || seedKey;
   let themes;
   try {
     themes = (await call("themes/list")).themes;
@@ -134,7 +264,7 @@ async function openEditor({ from = "" } = {}) {
   const isDark = document.documentElement.dataset.theme === "dark" || (!document.documentElement.dataset.theme && window.matchMedia?.("(prefers-color-scheme: dark)").matches);
   let start;
   try {
-    start = await loadStart(from || (isDark ? "standard-dark" : "standard-light"));
+    start = await loadStart(initialKey || (isDark ? "standard-dark" : "standard-light"));
   } catch {
     start = await loadStart("standard-dark");
   }
@@ -146,12 +276,18 @@ async function openEditor({ from = "" } = {}) {
     blur: 16, glass: 0.4, glowIntensity: 1, borderOpacity: 0.16,
     grain: "none", scanlines: "none", sheen: false, radius: "soft", border: "flat", motion: "calm",
     noise: false, chromatic: false, ambient: false, atmosphere: "none",
+    uiElementFx: "off", iconPackStyle: "default", fontProfile: "default", cornerProfile: "default", iconGlow: "off",
   });
   const FIELD_FALLBACKS = {
     backdropStyle: "glass",
     cursorEffect: "spotlight",
     vignette: "none",
     saturation: 1.35,
+    uiElementFx: "off",
+    iconPackStyle: "default",
+    fontProfile: "default",
+    cornerProfile: "default",
+    iconGlow: "off",
   };
 
   // -- the form ----------------------------------------------------------------------------------------------------
@@ -224,11 +360,162 @@ async function openEditor({ from = "" } = {}) {
     effectField("grain", "Film grain", ["none", "subtle", "film", "halftone"]),
     effectField("scanlines", "Scanlines", ["none", "subtle", "crt", "interlace"]),
     effectField("atmosphere", "Atmospheric effect", [...ATMOSPHERE_IDS, ...ATMOSPHERE_MIX_PRESETS.map((m) => m.id)]),
+    effectField("uiElementFx", "Folder & toolbar shader", ["off", "tahoe_glass_folders", "fluent_mica_folders", "xdr_titanium_folders", "fire_folders", "slime_drip", "storm_wind", "cryo_frost", "tesla_arcs", "mercury_chrome", "holo_glitch", "void_tentacles"]),
+    effectField("iconPackStyle", "Custom icon pack", ["default", "macos_tahoe_3d", "win11_fluent_pro", "pro_studio_xdr", "hdr_photo_studio", "linux_papirus_pro", "nordic_minimal", "inferno", "slime", "storm_tempest", "neon_cyber", "liquid_gems", "cryo_crystal", "retro_pixel", "xenotech_2126"]),
+    effectField("fontProfile", "Typography profile", ["default", "scifi", "terminal", "editorial", "rounded"]),
+    effectField("cornerProfile", "Corner geometry", ["default", "sharp", "rounded", "pill"]),
+    effectField("iconGlow", "Icon glow", ["off", "subtle", "neon", "hyper"]),
   );
+
+  // -- Theme Hacker Studio: Deep CSS Token Overrides (customVars) & Personal Custom CSS (customCss) ----------------
+  const HACKABLE_TOKENS = [
+    ["surface-elevated", "Elevated surface (--surface-elevated)"],
+    ["surface-sunken", "Sunken surface (--surface-sunken)"],
+    ["selected", "Selected row fill (--selected)"],
+    ["selected-text", "Selected row text (--selected-text)"],
+    ["hover", "Row hover fill (--hover)"],
+    ["border-strong", "Strong border (--border-strong)"],
+    ["shadow", "Window shadow (--shadow)"],
+  ];
+  const customVarInputs = new Map();
+  const customVarGrid = h("div", { class: "theme-hacker-tokens" },
+    ...HACKABLE_TOKENS.map(([tokenKey, labelText]) => {
+      const inp = h("input", {
+        type: "text",
+        class: "prop-input",
+        "data-custom-var": tokenKey,
+        "aria-label": labelText,
+        maxlength: "120",
+        placeholder: "Auto (or #hex / rgba / shadow)…",
+      });
+      inp.addEventListener("input", () => {
+        effectsEnabled.checked = true;
+        effectControls.disabled = false;
+        draft.fx ??= defaultEffects();
+        draft.fx.customVars ??= {};
+        const val = inp.value.trim();
+        if (val) draft.fx.customVars[tokenKey] = val;
+        else delete draft.fx.customVars[tokenKey];
+        if (!Object.keys(draft.fx.customVars).length) delete draft.fx.customVars;
+        refresh();
+      });
+      customVarInputs.set(tokenKey, inp);
+      return h("label", { class: "field" }, h("span", { class: "field-label" }, labelText), inp);
+    }),
+  );
+
+  const customCssInput = h("textarea", {
+    class: "prop-input theme-export",
+    rows: "4",
+    "data-custom-css-input": "true",
+    "aria-label": "Personal custom CSS overrides",
+    maxlength: "6000",
+    placeholder: "/* Hack any File Manager selector! e.g. .row.is-folder, #toolbar-row, .c-icon */\n.row.is-folder:hover { transform: scale(1.01); }",
+  });
+  customCssInput.addEventListener("input", () => {
+    effectsEnabled.checked = true;
+    effectControls.disabled = false;
+    draft.fx ??= defaultEffects();
+    const val = customCssInput.value.trim();
+    if (val) draft.fx.customCss = val;
+    else delete draft.fx.customCss;
+    refresh();
+  });
+
+  const syncHackerInputs = () => {
+    const cv = draft.fx?.customVars ?? {};
+    for (const [k, inp] of customVarInputs) {
+      inp.value = cv[k] ?? "";
+    }
+    customCssInput.value = draft.fx?.customCss ?? "";
+  };
+
+  const applyHackMutator = (mut) => {
+    effectsEnabled.checked = true;
+    effectControls.disabled = false;
+    draft.dark = mut.dark;
+    darkBox.checked = mut.dark;
+    draft.colors = { ...draft.colors, ...mut.colors };
+    draft.fx = {
+      ...defaultEffects(),
+      ...(draft.fx ?? {}),
+      ...structuredClone(mut.fx),
+      ...(mut.customCss ? { customCss: mut.customCss } : {}),
+    };
+    for (const [key, { picker, text }] of rows) {
+      const v = draft.colors[key] ?? "";
+      text.removeAttribute("aria-invalid");
+      text.value = v;
+      if (isHex(v)) picker.value = v;
+    }
+    for (const read of effectInputs.values()) read();
+    syncHackerInputs();
+    refresh();
+    toast(`Injected hack preset: ${mut.label}`, { kind: "info" });
+  };
+
+  const hackerStudio = h("details", { class: "theme-hacker-studio", "data-hacker-studio": "true", open: true },
+    h("summary", { class: "theme-hacker-summary" }, "🛠️ Theme Hacker Lab — 1-Click Nostalgia/Storm Mutators, Deep Token Overrides & Custom CSS"),
+    h("p", { class: "hint" }, "Hack any premade or custom theme to death! Inject Compiz burning folders, 90s Linux/CDE bevels, green-phosphor CRT shaders, override internal --* design tokens, or write custom CSS rules that travel with your theme when shared."),
+    h("div", { class: "theme-preset-strip", role: "group", "aria-label": "1-Click Theme Hacker Mutators" },
+      ...THEME_HACK_MUTATORS.map((mut) =>
+        h("button", {
+          type: "button",
+          class: "theme-preset-pill",
+          "data-hack-mutate": mut.id,
+          "data-hack-mutator": mut.id,
+          title: mut.desc,
+          onclick: () => applyHackMutator(mut),
+        }, mut.label),
+      ),
+      h("button", {
+        type: "button",
+        class: "theme-preset-pill",
+        "data-hack-mutate": "chaos_hack",
+        title: "Randomize colors, multi-layer weather/storm FX, folder shader, and icon pack for a 1-of-a-kind personal creation.",
+        onclick: () => {
+          const rndMut = THEME_HACK_MUTATORS[Math.floor(Math.random() * THEME_HACK_MUTATORS.length)];
+          const rndHue = Math.floor(Math.random() * 360);
+          const nextCols = harmonizeFromAccent(hslToHex(rndHue, 90, 60), true);
+          applyHackMutator({
+            ...rndMut,
+            label: "🎲 Chaos Hack",
+            colors: nextCols,
+            fx: { ...rndMut.fx, glowColor: nextCols.accent, glowColor2: nextCols.secondary },
+          });
+        },
+      }, "🎲 Total Chaos Mutator"),
+    ),
+    customVarGrid,
+    h("div", { class: "theme-hacker-css-wrap" },
+      h("div", { class: "theme-pill-row" },
+        h("span", { class: "theme-pill-label" }, "💉 Inject CSS Snippet:"),
+        ...CUSTOM_CSS_SNIPPETS.map((snip) =>
+          h("button", {
+            type: "button",
+            class: "theme-filter-pill",
+            "data-css-snippet": snip.id || snip.label,
+            onclick: () => {
+              effectsEnabled.checked = true;
+              effectControls.disabled = false;
+              draft.fx ??= defaultEffects();
+              const cur = customCssInput.value.trim();
+              customCssInput.value = cur ? `${cur}\n${snip.css}` : snip.css;
+              draft.fx.customCss = customCssInput.value;
+              refresh();
+            },
+          }, snip.label),
+        ),
+      ),
+      customCssInput,
+    ),
+  );
+
   effectsEnabled.addEventListener("change", () => {
     draft.fx = effectsEnabled.checked ? defaultEffects() : undefined;
     effectControls.disabled = !draft.fx;
     for (const read of effectInputs.values()) read();
+    syncHackerInputs();
     refresh();
   });
 
@@ -268,6 +555,40 @@ async function openEditor({ from = "" } = {}) {
     refresh();
   };
 
+  // Wallpaper / Image Chameleon Palette Extractor input
+  const imageInput = h("input", {
+    type: "file",
+    accept: "image/*",
+    "data-extract-image-input": "true",
+    "aria-label": "Choose an image or wallpaper to extract theme colors from",
+    style: "display:none",
+  });
+  imageInput.addEventListener("change", () => {
+    const file = imageInput.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const c = document.createElement("canvas");
+          c.width = 64;
+          c.height = 64;
+          const ctx2d = c.getContext("2d");
+          ctx2d.drawImage(img, 0, 0, 64, 64);
+          const pixels = ctx2d.getImageData(0, 0, 64, 64).data;
+          const extracted = extractPaletteFromPixels(pixels, { name: file.name.replace(/\.[^.]+$/, "").slice(0, 32) || "Wallpaper Theme" });
+          applyColorHarmony(extracted.colors, extracted.dark);
+          toast(`Extracted theme palette from "${file.name}"!`, { kind: "success" });
+        } catch {
+          toast("Could not sample image pixels.", { kind: "error" });
+        }
+      };
+      img.src = String(reader.result || "");
+    };
+    reader.readAsDataURL(file);
+  });
+
   const harmonyBar = h("div", { class: "theme-harmony-bar", role: "group", "aria-label": "Color harmony tools" },
     h("span", { class: "theme-pill-label" }, "Palette tools:"),
     h("button", {
@@ -297,6 +618,54 @@ async function openEditor({ from = "" } = {}) {
         applyColorHarmony(harmonizeFromAccent(rndAccent, darkBox.checked), darkBox.checked);
       },
     }, "🎲 Randomize palette"),
+    h("button", {
+      type: "button",
+      class: "btn",
+      "data-extract-image-btn": "true",
+      title: "Pick any wallpaper or image file to automatically extract a matching OKLab theme palette.",
+      onclick: () => imageInput.click(),
+    }, "🖼️ Extract from Wallpaper…"),
+    h("button", {
+      type: "button",
+      class: "btn",
+      "data-editor-paste-theme": "true",
+      title: "Paste a CCFM-THEME-v1 code, CCFM-PACK-v1 bundle, or Theme JSON directly from your clipboard (⌘V / Ctrl+V).",
+      onclick: async () => {
+        await pasteImportThemesFromClipboard({
+          applyFirst: false,
+          onImported: (res) => {
+            if (res?.first) {
+              load({ name: res.first.name, dark: res.first.dark, colors: { ...draft.colors, ...res.first.colors }, fx: res.first.fx, base: res.first.base || "Clipboard Paste", editingId: res.first.id });
+            }
+          },
+        });
+      },
+    }, "📋 Paste Theme (⌘V)"),
+    imageInput,
+  );
+
+  const prebuiltPictureStrip = h("div", { class: "theme-preset-strip", role: "group", "aria-label": "Pre-built high-end picture and wallpaper palettes" },
+    h("span", { class: "theme-pill-label" }, "🖼️ Pre-Built Studio Pictures & 3D Folders:"),
+    ...PREBUILT_WALLPAPER_SCENES.map((scene) =>
+      h("button", {
+        type: "button",
+        class: "theme-preset-pill",
+        "data-prebuilt-picture": scene.id,
+        title: `Apply pre-built ${scene.label} wallpaper palette + matching 3D Regular Folder & Picture Icon Pack with zero manual setup.`,
+        onclick: () => {
+          effectsEnabled.checked = true;
+          effectControls.disabled = false;
+          draft.fx = {
+            ...defaultEffects(),
+            ...(draft.fx ?? {}),
+            ...structuredClone(scene.fx),
+          };
+          applyColorHarmony(scene.colors, scene.dark);
+          syncHackerInputs();
+          toast(`Applied pre-built studio picture & 3D folder kit: ${scene.label}`, { kind: "success" });
+        },
+      }, scene.label),
+    ),
   );
 
   const presetStrip = h("div", { class: "theme-preset-strip", role: "group", "aria-label": "Effect style presets" },
@@ -318,6 +687,7 @@ async function openEditor({ from = "" } = {}) {
             ...(curAtmo && curAtmo !== "none" ? { atmosphere: curAtmo } : {}),
           };
           for (const read of effectInputs.values()) read();
+          syncHackerInputs();
           refresh();
         },
       }, preset.label),
@@ -332,6 +702,7 @@ async function openEditor({ from = "" } = {}) {
     effectsEnabled.checked = !!draft.fx;
     effectControls.disabled = !draft.fx;
     for (const read of effectInputs.values()) read();
+    syncHackerInputs();
     for (const [key, { picker, text }] of rows) {
       const v = draft.colors[key] ?? "";
       text.removeAttribute("aria-invalid");
@@ -409,6 +780,7 @@ async function openEditor({ from = "" } = {}) {
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Start from"), startSelect),
       h("label", { class: "check" }, darkBox, h("span", {}, "This is a dark theme"))),
     harmonyBar,
+    prebuiltPictureStrip,
     h("div", { class: "theme-fields" }, FIELDS.map(field)),
     contrastBar,
     h("h3", {}, "Glass, glow, materials and motion"),
@@ -416,6 +788,7 @@ async function openEditor({ from = "" } = {}) {
     presetStrip,
     h("label", { class: "check" }, effectsEnabled, h("span", {}, "Enable visual effects")),
     effectControls,
+    hackerStudio,
     h("p", { class: "hint" }, "Opacity affects panels, not text or the native window. The preview raises opacity when needed for readable text. Motion follows your computer's reduced-motion preference."),
     h("div", { class: "theme-sample", "aria-label": "Sample of the colors" },
       h("button", { type: "button", class: "btn primary", tabindex: "-1" }, "Main button"),
@@ -484,6 +857,18 @@ async function openEditor({ from = "" } = {}) {
       type: "button", class: "btn theme-export-tab", "aria-pressed": "true",
       onclick: () => { setActiveTab(jsonBtn); box.value = jsonText; },
     }, "Theme JSON");
+    const codeBtn = h("button", {
+      type: "button", class: "btn theme-export-tab", "aria-pressed": "false",
+      onclick: async () => {
+        setActiveTab(codeBtn);
+        try {
+          const { shareCode } = await call("themes/custom/export", { theme: currentDraft });
+          box.value = shareCode;
+        } catch (err) {
+          toast(err instanceof ApiError ? err.message : "Couldn't generate share code.", { kind: "error" });
+        }
+      },
+    }, "1-Line Share Code (CCFM-THEME-v1)");
     const cssBtn = h("button", {
       type: "button", class: "btn theme-export-tab", "aria-pressed": "false",
       onclick: async () => {
@@ -508,8 +893,8 @@ async function openEditor({ from = "" } = {}) {
         }
       },
     }, "Theme pack (all my themes)");
-    const tabs = h("div", { class: "theme-export-tabs" }, jsonBtn, cssBtn, packBtn);
-    const d = openDialog({ title: "Export theme", body: [h("p", {}, "Copy this text to keep or share the theme, export a standalone CSS variables block, or export all your custom themes as a pack."), tabs, box], buttons: [{ label: "Close", value: false }, { label: "Copy", value: true, primary: true }], initialFocus: box });
+    const tabs = h("div", { class: "theme-export-tabs" }, jsonBtn, codeBtn, cssBtn, packBtn);
+    const d = openDialog({ title: "Export theme", body: [h("p", {}, "Copy this text or 1-line CCFM-THEME-v1 Share Code to share with any Codecaine File Manager user, export standalone CSS, or export all your custom themes as a pack."), tabs, box], buttons: [{ label: "Close", value: false }, { label: "Copy", value: true, primary: true }], initialFocus: box });
     if (await d.result) {
       try {
         await call("copytext", { text: box.value });
@@ -521,26 +906,31 @@ async function openEditor({ from = "" } = {}) {
   }
 
   async function importText() {
-    const box = h("textarea", { class: "prop-input theme-export", rows: "10", "aria-label": "Theme text to import", title: "Paste text that was made with Export…", placeholder: "Paste the theme or theme pack JSON here" });
-    const d = openDialog({ title: "Import theme", body: [h("p", {}, "Paste a single theme or a multi-theme pack that was exported from this editor. You can look at a single theme and change it before saving, or import a whole pack at once."), box], buttons: [{ label: "Cancel", value: false }, { label: "Use this theme", value: true, primary: true }], initialFocus: box });
+    const box = h("textarea", { class: "prop-input theme-export", rows: "10", "aria-label": "Theme text to import", title: "Paste text or CCFM-THEME-v1 / CCFM-PACK-v1 codes that were made with Export…", placeholder: "Paste one or more CCFM-THEME-v1:... share codes, CCFM-PACK-v1:... bundle codes, or theme JSON here" });
+    const d = openDialog({ title: "Import theme", body: [h("p", {}, "Paste a 1-line CCFM-THEME-v1 share code, a single theme JSON, or a multi-theme pack from any Codecaine File Manager user. Bulk imports automatically prompt to resolve any name conflicts."), box], buttons: [{ label: "Cancel", value: false }, { label: "Use this theme", value: true, primary: true }], initialFocus: box });
     if (!(await d.result)) return;
+    const rawText = box.value.trim();
     let parsed = null;
     try {
-      parsed = JSON.parse(box.value);
-    } catch { /* let the server return its plain-words error */ }
-    if (parsed && typeof parsed === "object" && parsed.format === "bun-rad-studio-file-manager-theme-pack" && Array.isArray(parsed.themes) && parsed.themes.length > 1) {
-      try {
-        const res = await call("themes/custom/import-pack", { text: box.value });
-        forgetThemeList();
-        if (res.first) {
-          load({ name: res.first.name, dark: res.first.dark, colors: { ...draft.colors, ...res.first.colors }, fx: res.first.fx, base: res.first.base || "an imported theme pack", editingId: res.first.id });
-        }
-        toast(`Imported ${res.count} themes into My themes.`, { kind: "success" });
-        return;
-      } catch (err) {
-        toast(err instanceof ApiError ? err.message : "That theme pack couldn't be imported.", { kind: "error" });
-        return;
-      }
+      parsed = JSON.parse(rawText);
+    } catch { /* may be a CCFM-THEME-v1 or CCFM-PACK-v1 code */ }
+    const shareCodeCount = [...rawText.matchAll(/CCFM-(?:THEME|PACK)-v1:[A-Za-z0-9+/=_-]+/g)].length;
+    const isBulk =
+      rawText.startsWith("CCFM-PACK-v1:") ||
+      shareCodeCount > 1 ||
+      Array.isArray(parsed) ||
+      (parsed && typeof parsed === "object" && parsed.format === "bun-rad-studio-file-manager-theme-pack" && Array.isArray(parsed.themes) && parsed.themes.length > 1);
+    if (isBulk) {
+      const out = await runBulkThemeImportFlow(box.value, {
+        applyFirst: false,
+        onImported: (res) => {
+          if (res?.first) {
+            load({ name: res.first.name, dark: res.first.dark, colors: { ...draft.colors, ...res.first.colors }, fx: res.first.fx, base: res.first.base || "an imported theme pack", editingId: res.first.id });
+          }
+        },
+      });
+      if (out?.completed) return;
+      return;
     }
     try {
       const { theme } = await call("themes/custom/import", { text: box.value });
@@ -560,4 +950,6 @@ async function openEditor({ from = "" } = {}) {
   }
 }
 
-on("theme-editor", (detail) => { openEditor(detail ?? {}); });
+  on("theme-editor", (detail) => { openEditor(detail ?? {}); });
+export const openThemeEditor = openEditor;
+

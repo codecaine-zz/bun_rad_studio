@@ -50,7 +50,7 @@ function buttonSpecs() {
     ],
     [
       { id: "rename", icon: "✏️", label: "Rename", get tip() { return `Rename${hintOf("file.rename")}`; }, run: ops.renameSelection, enabled: () => sel() > 0, hide: inTrash },
-      { id: "delete", icon: "🗑️", label: "Delete", get tip() { return `Move to the Recycle Bin (${state.platform === "darwin" ? "⌘⌫ or Fn+Delete" : "Delete"}). You can undo this.`; }, run: ops.trashSelection, enabled: () => sel() > 0, hide: inTrash },
+      { id: "delete", icon: "🗑️", label: "Delete", get tip() { return `Move to the Recycle Bin (${state.platform === "darwin" ? "⌫, ⌘⌫ or Fn+Delete" : state.settings?.backspaceDeletes !== false ? "Delete or Backspace" : "Delete"}). You can undo this.`; }, run: ops.trashSelection, enabled: () => sel() > 0, hide: inTrash },
       { id: "restore", icon: "↩️", label: "Restore", tip: "Put the selected items back where they were", run: ops.restoreFromBin, enabled: () => sel() > 0, show: inTrash, primary: true },
       { id: "deleteForever", icon: "❌", label: "Delete forever", tip: "Delete the selected items permanently", run: ops.trashSelection, enabled: () => sel() > 0, show: inTrash },
       { id: "empty", icon: "🧹", label: "Empty bin", tip: "Delete everything in the Recycle Bin", run: ops.emptyBin, enabled: () => state.trashCount > 0, show: inTrash },

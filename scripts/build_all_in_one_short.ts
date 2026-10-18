@@ -198,27 +198,27 @@ const scenes: Scene[] = [
   },
   {
     id: "13_themes_gallery",
-    badge: "14 / 19 · 180 THEMES & RETRO OS LOOKS",
-    title: "180 THEMES.\nBeOS TO NEON GLASS.",
-    label: "BeOS · OS/2 WARP · PALM OS · ORBITAL ICE · EMBER GRID",
-    extra: "Rare Classic Systems · Frosted Glass · Living Neon Glow",
-    bullets: ["Rare Classic OS Themes", "Frosted Glass & Neon Edges", "Instant Keyboard Theme Cycling"],
-    say: "Switch between a hundred and eighty themes: classic BeOS, O S 2 Warp, and Palm O S, or futuristic frosted glass like Orbital Ice and Ember Grid.",
+    badge: "14 / 19 · 200+ THEMES, COMPARATOR & SOLAR CYCLE",
+    title: "200+ THEMES.\nBeOS TO TESLA PLASMA.",
+    label: "5-ROW FILTERS · FOLDER PINNING · SPLIT COMPARATOR · SOLAR CYCLE",
+    extra: "Tesla Plasma · Tokamak · Hawking · BeOS · OS/2 Warp · Palm OS",
+    bullets: ["200+ Themes & 5-Row Filter Pills", "Folder Pinning & Split Comparator", "4-Stage Solar Cycle Schedule"],
+    say: "Switch across two hundred themes with five-row filter pills, pin themes to folders, compare two looks side by side, or schedule a four-stage Solar Cycle.",
     file: "22_themes",
-    start: 58,
-    length: 28,
+    start: 75,
+    length: 85,
   },
   {
     id: "14_theme_editor",
-    badge: "15 / 19 · LIVE CUSTOM THEME DESIGNER",
-    title: "YOUR GLASS.\nYOUR SHORTCUTS.",
-    label: "OPACITY · GLASS BLUR · GLOW · CUSTOM KEYS",
-    extra: "Slide Panel Opacity & Blur Live · Remap Any Keyboard Shortcut",
-    bullets: ["Live Opacity & Glass Blur", "Scanlines, Sheen & Grain", "Customizable Shortcuts & Close Lock"],
-    say: "Or open the live theme editor to dial in panel opacity, glass blur, neon borders, and scanlines, and customize every keyboard shortcut.",
+    badge: "15 / 19 · 194 LIVE SHADERS & THEME EDITOR v2",
+    title: "194 LIVE SHADERS.\n6-LAYER FX MIXER.",
+    label: "EF5 TORNADOES · 4D TESSERACT · 6-LAYER MIXER · THEME EDITOR",
+    extra: "M4 120Hz Shaders · Reactive Physics · 12 Style Presets · WCAG Contrast",
+    bullets: ["194 Shaders (EF5 Tornado, 4D, Tesla)", "6-Layer Mixer & 48 Signature Mixes", "Theme Editor v2 & Custom Shortcuts"],
+    say: "Unleash one hundred and ninety-four live shaders with a six-layer mixer, from EF5 Tornadoes to 4D Tesseracts, or design custom Liquid Glass themes.",
     file: "22_themes",
-    start: 168.8,
-    length: 21,
+    start: 183,
+    length: 103,
   },
   {
     id: "15_databases_clone",
@@ -344,8 +344,8 @@ function notesMarkdown(seconds: number, tempo: number, sceneMarks: Array<{ at: n
 ## YouTube Short Titles (Pick One)
 
 1. **This Free File Manager Replaced 15 Developer Tools?! (Full 2h Course Below) #Shorts**
-2. **Codecaine File Manager: Dual Pane, Synced Terminal, 180 Themes & 4 Databases #Shorts**
-3. **180 Themes, 4 Databases, Task Manager, System Info & Media Studios in One File Manager?! #Shorts**
+2. **Codecaine File Manager: Dual Pane, Synced Terminal, 200+ Themes & 4 Databases #Shorts**
+3. **200+ Themes, 194 Live Shaders, 4 Databases, Task Manager & Media Studios in One File Manager?! #Shorts**
 
 ## YouTube Short Description (Copy & Paste)
 
@@ -368,7 +368,7 @@ WHAT'S INSIDE CODECAINE FILE MANAGER & BUN RAD STUDIO:
 • Live Web & PHP Server, Watch Automation, Crypto, Secrets Vault, World Clocks & Built-in CLI Utilities
 • Process & Task Manager (Live Processes, Process Tree, TCP Port Bindings) + System Information & Hardware Telemetry (Per-Core CPU, GPU, Disks, Baseline Diff)
 • Batch Converter, Image Studio, Media Studio, Presets, AmpDeck Media Player (Synced Lyrics), Paint Studio & 24 Arcade Games
-• 180 Themes (BeOS, OS/2 Warp, Orbital Ice, Ember Grid) + Live Custom Theme Editor (Opacity, Glass Blur, Neon Glow) & Custom Shortcuts
+• 200+ Themes (5-Row Filter Pills, Folder Pinning, Split Comparator, 4-Stage Solar Cycle, Tesla Coil Plasma, Tokamak Fusion, BeOS, OS/2 Warp) + 194 Live Shaders (EF5 Debris Tornadoes, 4D Tesseract, 11D Calabi-Yau, 6-Layer Mixer) + Theme Editor v2 & Custom Shortcuts
 • All 4 Databases Built In (SQLite, MySQL, PostgreSQL, Redis) + Cross-Engine Database & Redis Hash Cloning
 • Bun JavaScript & Visual Macro Studio + 15-Format Staging Import Wizard + Studio IDE v2 (ER Diagrams, Schema Diff & 5-Language Codegen)
 • SimpleGUI TypeScript RAD Framework + SimpleGUI Visual Designer (No-Code App Builder)!

@@ -11,6 +11,18 @@ export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
 // Styled through the CSSOM / Web Animations API only: the app's CSP blocks injected <style> elements.
 const CURSOR_SCRIPT = `(() => {
+  try {
+    Object.defineProperty(navigator, "deviceMemory", { get: () => 64, configurable: true });
+    Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 16, configurable: true });
+    if (typeof WebGLRenderingContext !== "undefined") {
+      const origGetParam = WebGLRenderingContext.prototype.getParameter;
+      WebGLRenderingContext.prototype.getParameter = function(p) {
+        if (p === 37445) return "Apple Inc.";
+        if (p === 37446) return "Apple M4 Max GPU (Pro Display XDR · 120Hz ProMotion)";
+        return origGetParam.call(this, p);
+      };
+    }
+  } catch {}
   if (window.__cc) return;
   const mk = (css, html) => { const d = document.createElement("div"); d.style.cssText = css; if (html) d.innerHTML = html; document.documentElement.appendChild(d); return d; };
   const cur = mk("position:fixed;left:0;top:0;width:28px;height:28px;z-index:2147483647;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.55));will-change:transform;transform:translate(960px,540px)",
@@ -65,12 +77,14 @@ export class Cdp {
   static async launch(port: number, userDir: string, width = 1920, height = 1080): Promise<Cdp> {
     const c = new Cdp();
     c.height = height;
+    const isRetinaShowcase = width === 1920 && height < 1080;
+    const dpr = isRetinaShowcase ? 2 : 1;
     // A stale browser on the same debugging port would silently answer instead of ours.
     try { await fetch(`http://127.0.0.1:${port}/json/version`); throw new Error(`port ${port} is already in use by another browser`); } catch (e) { if ((e as Error).message.includes("already in use")) throw e; }
     rmSync(userDir, { recursive: true, force: true });
     c.proc = Bun.spawn(
       [CHROME, "--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${userDir}`, `--window-size=${width},${height}`,
-        "--force-device-scale-factor=1", "--hide-scrollbars", "--no-first-run", "--no-default-browser-check", "--disable-gpu", "about:blank"],
+        `--force-device-scale-factor=${dpr}`, "--force-color-profile=display-p3", "--enable-gpu-rasterization", "--ignore-gpu-blocklist", "--hide-scrollbars", "--no-first-run", "--no-default-browser-check", "about:blank"],
       { stdout: "ignore", stderr: "ignore" },
     );
     let target: any;
@@ -109,7 +123,13 @@ export class Cdp {
     await c.send("Runtime.enable");
     await c.send("Target.setDiscoverTargets", { discover: true });
     await c.send("Target.setAutoAttach", { autoAttach: true, waitForDebuggerOnStart: false, flatten: true });
-    await c.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: false });
+    await c.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: dpr, mobile: false });
+    await c.send("Emulation.setEmulatedMedia", {
+      features: [
+        { name: "color-gamut", value: "p3" },
+        { name: "dynamic-range", value: "high" },
+      ],
+    }).catch(() => {});
     await c.send("Page.addScriptToEvaluateOnNewDocument", { source: CURSOR_SCRIPT });
     return c;
   }
@@ -317,7 +337,7 @@ export class Cdp {
   async startRecording() {
     this.frames = [];
     this.recording = true;
-    await this.send("Page.startScreencast", { format: "jpeg", quality: 88, maxWidth: 1920, maxHeight: this.height, everyNthFrame: 1 });
+    await this.send("Page.startScreencast", { format: "jpeg", quality: 94, maxWidth: 1920, maxHeight: this.height, everyNthFrame: 1 });
     // The first frame only arrives after something repaints.
     await this.eval(`window.__cc.move(window.__cc.state.x + 1, window.__cc.state.y, 50)`);
   }
@@ -345,7 +365,7 @@ export class Cdp {
     const speed = recordedSec > seconds + 0.2 ? Math.min(1.35, recordedSec / seconds) : 1;
     const retime = speed > 1 ? `setpts=PTS/${speed.toFixed(4)},` : "";
     const p = Bun.spawnSync([FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", list, "-vf", `fps=30,${retime}tpad=stop_mode=clone:stop_duration=${seconds},scale=1920:${this.height},format=yuv420p`,
-      "-t", seconds.toFixed(3), "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", outPath], { stdout: "ignore", stderr: "pipe" });
+      "-t", seconds.toFixed(3), "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", outPath], { stdout: "ignore", stderr: "pipe" });
     if (p.exitCode !== 0) throw new Error(`clip encode failed: ${p.stderr.toString().slice(-400)}`);
     rmSync(workDir, { recursive: true, force: true });
     return { frames: frames.length, recordedSeconds: recordedSec, speed };

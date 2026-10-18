@@ -343,6 +343,49 @@ describe("links clicked inside an embedded app (link/open)", () => {
   });
 });
 
+describe("clipboard text API (copytext / pastetext)", () => {
+  test("copytext and pastetext round-trip clipboard text via context clipboard hooks", async () => {
+    let clip = "initial clipboard text";
+    const s = startFileManagerServer({
+      port: 0,
+      host: "127.0.0.1",
+      token: TOKEN,
+      context: {
+        home,
+        dataDir: join(root, "data-clip"),
+        clipboard: {
+          writeText: (text: string) => { clip = text; return true; },
+          readText: () => clip,
+        },
+      },
+    });
+    try {
+      const read1 = await (await fetch(`http://127.0.0.1:${s.port}/api/pastetext`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-fm-token": TOKEN },
+        body: "{}",
+      })).json() as any;
+      expect(read1).toEqual({ ok: true, text: "initial clipboard text" });
+
+      const write1 = await (await fetch(`http://127.0.0.1:${s.port}/api/copytext`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-fm-token": TOKEN },
+        body: JSON.stringify({ text: "bun test --watch" }),
+      })).json() as any;
+      expect(write1).toEqual({ ok: true, copied: true });
+
+      const read2 = await (await fetch(`http://127.0.0.1:${s.port}/api/pastetext`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-fm-token": TOKEN },
+        body: "{}",
+      })).json() as any;
+      expect(read2).toEqual({ ok: true, text: "bun test --watch" });
+    } finally {
+      s.stop(true);
+    }
+  });
+});
+
 describe("picture previews (/api/raw)", () => {
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
   const raw = (path: string, token = TOKEN) => fetch(`${base}/api/raw?path=${encodeURIComponent(path)}&token=${token}`);

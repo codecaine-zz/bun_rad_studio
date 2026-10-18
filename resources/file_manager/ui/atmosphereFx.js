@@ -63,6 +63,12 @@ export const HARDWARE_TIERS = [
     badge: "Apple Silicon · ARM64 · Out of This World",
     desc: "Multi-layer parallax depth, volumetric bokeh sprites, cursor vortex physics and harmonic theme shaders.",
   },
+  {
+    id: "extreme",
+    label: "M4 Max / Extreme Uncapped",
+    badge: "120Hz ProMotion · 3.2x Debris & Physics",
+    desc: "Uncapped 120Hz ProMotion frame pacing, 3.2x 3D-tumbling storm debris density, multi-vortex turbulence, and high-DPI Retina canvas resolution.",
+  },
 ];
 
 export const ATMOSPHERE_SECTIONS = [
@@ -80,9 +86,9 @@ export const ATMOSPHERE_SECTIONS = [
   },
   {
     tier: "ultra",
-    title: "High-End & Modern ARM — Sci-Fi Physics, Tesla Coils & Relativistic Shaders",
-    subtitle: "Unleashes unified-memory ARM64 / Apple Silicon and high-end GPUs with interactive Tesla coil plasma arcs, Tokamak fusion toruses, CERN hadron colliders, Lorenz strange attractors, ferrofluid spikes, Hawking event horizons, and Year-2126 4D/11D hyper-dimensional projections.",
-    badge: "ARM64 / Ultra Tier · 77 Effects",
+    title: "High-End & Modern ARM / M4 Max — Extreme Debris Storms, Sci-Fi Physics & Year 2126",
+    subtitle: "Unleashes unified-memory ARM64 / M4 Apple Silicon and high-end GPUs with EF5 debris tornadoes (leaves, flying papers, roof tin, twigs & sparks), Category 5 hurricanes, Tesla coils, Tokamak fusion, and Year-2126 4D/11D hyper-dimensional projections.",
+    badge: "ARM64 / M4 Extreme Tier · 99 Effects",
   },
 ];
 
@@ -97,19 +103,19 @@ export const REACTIVE_MODES = [
     id: "activity",
     label: "⚡ Typing & Cursor Velocity",
     badge: "Interactive Surge",
-    desc: "Tesla arcs, Tokamak plasma, and particles surge dynamically as you type, click, or sweep the cursor.",
+    desc: "Tesla arcs, Tokamak plasma, and storm debris surge dynamically as you type, click, or sweep the cursor.",
   },
   {
     id: "telemetry",
     label: "📊 System Telemetry Pulse",
     badge: "Harmonic Load",
-    desc: "Modulates arc branching, collider cadence, and glow with real-time system telemetry harmonics.",
+    desc: "Modulates arc branching, wind-gust cadence, and glow with real-time system telemetry harmonics.",
   },
   {
     id: "audio",
     label: "🎵 Audio & Synth Beat",
     badge: "Rhythmic",
-    desc: "Pulses high-voltage arcs, ferrofluid spikes, and aurora waves to rhythmic bass and synth harmonics.",
+    desc: "Pulses high-voltage arcs, storm lightning, ferrofluid spikes, and aurora waves to rhythmic bass and synth harmonics.",
   },
 ];
 
@@ -118,10 +124,11 @@ const VALID_REACTIVE_MODES = new Set(REACTIVE_MODES.map((m) => m.id));
 const DEFAULT_GLYPHS = "0123456789ABCDEFZ<>:+*=-ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ";
 
 export const TIER_PROFILES = {
-  low: { density: 0.5, dpr: 1, bloom: false, interactive: false, lightning: false, ribbons: 2 },
-  medium: { density: 0.85, dpr: 1, bloom: true, interactive: true, lightning: true, ribbons: 3 },
-  high: { density: 1.15, dpr: 1, bloom: true, interactive: true, lightning: true, ribbons: 4 },
-  ultra: { density: 1.45, dpr: 1, bloom: true, interactive: true, lightning: true, ribbons: 5 },
+  low: { density: 0.5, dpr: 1, bloom: false, interactive: false, lightning: false, ribbons: 2, frameIntervalMs: 32 },
+  medium: { density: 0.85, dpr: 1, bloom: true, interactive: true, lightning: true, ribbons: 3, frameIntervalMs: 24 },
+  high: { density: 1.15, dpr: 1, bloom: true, interactive: true, lightning: true, ribbons: 4, frameIntervalMs: 18 },
+  ultra: { density: 1.55, dpr: 1, bloom: true, interactive: true, lightning: true, ribbons: 5, frameIntervalMs: 14 },
+  extreme: { density: 3.2, dpr: 2, bloom: true, interactive: true, lightning: true, ribbons: 8, frameIntervalMs: 8 },
 };
 
 /** Natural back-to-front rendering order when mixing multiple effects simultaneously. */
@@ -142,11 +149,12 @@ const ENGINE_DEPTH_ORDER = {
   dna: 14,
   circuit: 15,
   tesla: 16,
-  precip: 17,
-  snow: 18,
-  ember: 19,
-  orbs: 20,
-  glyph: 21,
+  weather_storm: 17,
+  precip: 18,
+  snow: 19,
+  ember: 20,
+  orbs: 21,
+  glyph: 22,
 };
 
 const MAX_CANVAS_W = 1440;
@@ -156,6 +164,7 @@ const FRAME_INTERVAL_MS = 30;
 let rafId = 0;
 let activeEffect = "none";
 let activeLayers = [];
+let activeLayerMods = {};
 let activeIntensity = 60;
 let activeTier = "medium";
 let activeReactiveMode = "off";
@@ -531,13 +540,17 @@ function ensureLayer() {
 function syncCanvasSize() {
   const canvas = document.getElementById("fm-atmosphere-canvas");
   if (!canvas) return { w: 1280, h: 800, dpr: 1 };
-  const rawW = Math.max(320, window.innerWidth || 1280);
-  const rawH = Math.max(240, window.innerHeight || 800);
-  const w = Math.min(MAX_CANVAS_W, rawW);
-  const h = Math.min(MAX_CANVAS_H, rawH);
+  const profile = TIER_PROFILES[activeTier] || TIER_PROFILES.medium;
+  const dprScale = profile.dpr === 2 ? Math.min(2, Number(window.devicePixelRatio) || 1.5) : 1;
+  const maxW = profile.dpr === 2 ? 2560 : MAX_CANVAS_W;
+  const maxH = profile.dpr === 2 ? 1600 : MAX_CANVAS_H;
+  const rawW = Math.max(320, Math.round((window.innerWidth || 1280) * dprScale));
+  const rawH = Math.max(240, Math.round((window.innerHeight || 800) * dprScale));
+  const w = Math.min(maxW, rawW);
+  const h = Math.min(maxH, rawH);
   if (canvas.width !== w) canvas.width = w;
   if (canvas.height !== h) canvas.height = h;
-  return { w, h, dpr: 1 };
+  return { w, h, dpr: dprScale };
 }
 
 function createLightningBolt(w, h) {
@@ -925,6 +938,47 @@ function seedSingleLayer(opt, w, h, baseDensity) {
         tone: i % 3,
       });
     }
+  } else if (engine === "weather_storm") {
+    const mode = params.mode || "debris_tornado";
+    const count = Math.max(36, Math.round(92 * density));
+    const pickDebrisKind = (i) => {
+      if (mode === "leaf_gale") return i % 10 < 7 ? "leaf" : i % 10 < 9 ? "twig" : "rain";
+      if (mode === "urban_debris") return ["paper", "leaf", "bag", "paper", "twig", "spark", "rain"][i % 7];
+      if (mode === "junkyard_vortex") return ["tin", "spark", "tin", "twig", "paper", "spark"][i % 6];
+      if (mode === "canopy_tempest") return ["leaf", "leaf", "twig", "hail", "leaf", "rain"][i % 6];
+      if (mode === "cyber_typhoon") return ["paper", "leaf", "spark", "bag", "rain", "paper"][i % 6];
+      if (mode === "debris_tornado" || mode === "tornado") return ["leaf", "paper", "tin", "twig", "bag", "spark", "rain"][i % 7];
+      if (mode === "hail_mammatus" || mode === "diamond_squall" || mode === "ice_storm" || mode === "thundersnow") {
+        return i % 3 === 0 ? "rain" : i % 5 === 0 ? "leaf" : "hail";
+      }
+      if (mode === "haboob" || mode === "volcanic_storm" || mode === "venus_storm") {
+        return i % 3 === 0 ? "spark" : i % 2 === 0 ? "tin" : "leaf";
+      }
+      return ["rain", "rain", "leaf", "spark", "twig", "paper"][i % 6];
+    };
+    for (let i = 0; i < count; i++) {
+      const kind = pickDebrisKind(i);
+      const elev = Math.random();
+      particles.push({
+        kind,
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (3.5 + Math.random() * 7.5) * (mode === "hurricane" || mode === "jupiter_spot" || mode === "saturn_hex" ? (Math.random() - 0.5) : 1),
+        vy: kind === "hail" || kind === "rain" ? 7 + Math.random() * 11 : (Math.random() - 0.42) * 3.8,
+        size: kind === "paper" ? 9 + Math.random() * 9 : kind === "tin" ? 8 + Math.random() * 8 : kind === "leaf" ? 6 + Math.random() * 7 : 5 + Math.random() * 6,
+        yaw: Math.random() * Math.PI * 2,
+        pitch: Math.random() * Math.PI * 2,
+        roll: Math.random() * Math.PI * 2,
+        vyaw: (Math.random() - 0.5) * 0.14,
+        vpitch: 0.04 + Math.random() * 0.12,
+        vroll: (Math.random() - 0.5) * 0.11,
+        flutterPhase: Math.random() * Math.PI * 2,
+        elev,
+        orbitAngle: (i / count) * Math.PI * 2 + Math.random(),
+        orbitSpeed: (0.025 + Math.random() * 0.045) * (1.2 - elev * 0.5),
+        tone: i % 3,
+      });
+    }
   }
 
   return {
@@ -1023,15 +1077,27 @@ function drawBotanicalShape(ctx, kind, x, y, r, angle, rgb, alpha) {
   ctx.restore();
 }
 
-function drawSingleLayer(ctx, layer, w, h, scale, profile) {
+function drawSingleLayer(ctx, layer, w, h, rawScale, profile) {
   const { engine, params, particles, ripples, lightningBolts, meteors } = layer;
-  const { isDark, accent, secondary, tertiary, highlight } = cachedColors;
+  const mod = activeLayerMods?.[layer.id] || {};
+  const opacityMul = typeof mod.opacity === "number" ? Math.max(0.1, Math.min(1.5, mod.opacity / 100)) : 1;
+  const speedMul = typeof mod.speed === "number" ? Math.max(0.25, Math.min(3.0, mod.speed)) : 1;
+  const scale = rawScale * opacityMul;
+  const savedTick = frameTick;
+  if (speedMul !== 1) frameTick = Math.round(savedTick * speedMul);
+
+  const customRgb = typeof mod.color === "string" && /^#[0-9a-fA-F]{6}$/.test(mod.color) ? parseCssRgb(mod.color) : null;
+  const { isDark, highlight } = cachedColors;
+  const accent = customRgb || cachedColors.accent;
+  const secondary = customRgb ? shiftHueRgb(customRgb, 48, 1.05) : cachedColors.secondary;
+  const tertiary = customRgb ? shiftHueRgb(customRgb, -52, 1.05) : cachedColors.tertiary;
   const [ar, ag, ab] = accent;
   const [sr, sg, sb] = secondary;
   const [tr, tg, tb] = tertiary;
   const [hr, hg, hb] = highlight;
   const toneRgb = (tone) => (tone === 1 ? secondary : tone === 2 ? tertiary : accent);
 
+  try {
   if (engine === "precip") {
     const isCyber = !!params.cyber;
     ctx.lineCap = "round";
@@ -2405,6 +2471,320 @@ function drawSingleLayer(ctx, layer, w, h, scale, profile) {
         drawBokehSprite(ctx, spriteBank?.orbPrimary, px, py, p.r * 2, toneRgb(p.tone), 0.78 * scale);
       }
     }
+  } else if (engine === "weather_storm") {
+    const mode = params.mode || "debris_tornado";
+    const t = frameTick * 0.032;
+    const isVortex = ["tornado", "debris_tornado", "junkyard_vortex", "waterspout"].includes(mode);
+    const isCyclone = ["hurricane", "jupiter_spot", "saturn_hex"].includes(mode);
+    const cx = profile.interactive && pointer.active ? w * 0.5 + (pointer.x - w * 0.5) * 0.32 : w * 0.5;
+    const cy = profile.interactive && pointer.active ? h * 0.5 + (pointer.y - h * 0.5) * 0.25 : h * 0.5;
+
+    // 1. Macro-scale storm structure (Funnels, Eyewalls, Red Sprites, Mammatus, or Aurora Curtains)
+    if (isVortex) {
+      const funnels = mode === "waterspout" ? 2 : 1;
+      for (let f = 0; f < funnels; f++) {
+        const baseX = cx + (funnels === 2 ? (f === 0 ? -w * 0.16 : w * 0.16) : 0);
+        const rings = 34;
+        for (let r = 0; r < rings; r++) {
+          const u = r / (rings - 1); // 0 = top wall cloud, 1 = ground touch-down
+          const sway = Math.sin(t * 1.4 + u * 5.2 + f * 2) * (18 + (1 - u) * 32);
+          const fx = baseX + sway;
+          const fy = h * (0.04 + u * 0.9);
+          const radX = (mode === "debris_tornado" ? 165 : 115) * Math.pow(1 - u * 0.76, 1.35) + 14;
+          const radY = radX * 0.26;
+          const [cr, cg, cb] = toneRgb((r + f) % 3);
+          ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${(0.18 + (1 - u) * 0.26) * scale})`;
+          ctx.lineWidth = mode === "debris_tornado" ? 2.4 : 1.7;
+          ctx.beginPath();
+          ctx.ellipse(fx, fy, radX, radY, Math.sin(t + u * 3) * 0.08, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        // Ground debris cloud bowl
+        drawBokehSprite(ctx, spriteBank?.cloudPrimary, baseX + Math.sin(t * 1.4 + 5.2) * 18, h * 0.92, 130, secondary, 0.48 * scale);
+      }
+    } else if (isCyclone) {
+      const maxR = Math.min(w, h) * 0.45;
+      const arms = mode === "saturn_hex" ? 6 : 5;
+      for (let a = 0; a < arms; a++) {
+        const [cr, cg, cb] = toneRgb(a % 3);
+        ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.38 * scale})`;
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        if (mode === "saturn_hex") {
+          const ringR = maxR * (0.32 + a * 0.11);
+          for (let s = 0; s <= 6; s++) {
+            const ang = (s / 6) * Math.PI * 2 + t * 0.35 * (a % 2 === 0 ? 1 : -0.7);
+            const px = cx + Math.cos(ang) * ringR;
+            const py = cy + Math.sin(ang) * ringR;
+            if (s === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+        } else {
+          for (let s = 0; s <= 65; s++) {
+            const u = s / 65;
+            const r = maxR * (0.12 + u * 0.88);
+            const ang = (a / arms) * Math.PI * 2 + u * 4.5 - t * 0.95;
+            const px = cx + Math.cos(ang) * r * (mode === "jupiter_spot" ? 1.35 : 1);
+            const py = cy + Math.sin(ang) * r * (mode === "jupiter_spot" ? 0.72 : 1);
+            if (s === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+        }
+        ctx.stroke();
+      }
+      drawBokehSprite(ctx, spriteBank?.orbPrimary, cx, cy, 38, highlight, 0.42 * scale);
+    } else if (mode === "red_sprites") {
+      // Ionospheric ELVES ring + Mesospheric crimson jellyfish sprites + Blue starter jets
+      ctx.strokeStyle = `rgba(255, 58, 92, ${0.42 * scale})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(cx, h * 0.1, w * (0.28 + 0.08 * Math.sin(t * 2)), 18, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      for (let sp = 0; sp < 5; sp++) {
+        const sx = w * (0.16 + sp * 0.17) + Math.sin(t * 1.7 + sp) * 24;
+        const sy = h * (0.16 + (sp % 2) * 0.05);
+        drawBokehSprite(ctx, spriteBank?.orbSecondary, sx, sy, 36, [255, 48, 88], 0.78 * scale);
+        ctx.strokeStyle = `rgba(255, 72, 110, ${0.68 * scale})`;
+        ctx.lineWidth = 1.6;
+        for (let tnd = -3; tnd <= 3; tnd++) {
+          ctx.beginPath();
+          ctx.moveTo(sx + tnd * 5, sy);
+          ctx.quadraticCurveTo(sx + tnd * 14 + Math.sin(t * 3 + tnd) * 8, sy + 55, sx + tnd * 20, sy + 115);
+          ctx.stroke();
+        }
+      }
+    } else if (mode === "hail_mammatus" || mode === "aurora_squall" || mode === "haboob") {
+      // Mammatus cloud pouches / Haboob rolling sand front / Sub-auroral storm curtain
+      for (let m = 0; m < 9; m++) {
+        const mx = (m / 8) * w + Math.sin(t * 0.8 + m) * 28;
+        const my = mode === "haboob" ? h * (0.35 + 0.18 * Math.sin(m + t * 0.5)) : h * 0.12 + Math.cos(t + m) * 16;
+        drawBokehSprite(ctx, m % 2 === 0 ? spriteBank?.cloudPrimary : spriteBank?.cloudSecondary, mx, my, 110, toneRgb(m % 3), 0.36 * scale);
+      }
+    }
+
+    // 2. Frequent branching storm lightning & transformer arc flashes
+    if (profile.lightning) {
+      const boltCap = activeTier === "extreme" ? 4 : 2;
+      const boltRate = (mode === "volcanic_storm" || mode === "debris_tornado" || mode === "derecho" ? 0.065 : 0.038) * scale;
+      if (lightningBolts.length < boltCap && Math.random() < boltRate) {
+        lightningBolts.push(createLightningBolt(w, h));
+      }
+      for (let i = lightningBolts.length - 1; i >= 0; i--) {
+        const bolt = lightningBolts[i];
+        for (const seg of bolt.segments) {
+          ctx.strokeStyle = seg.branch
+            ? `rgba(${sr}, ${sg}, ${sb}, ${bolt.alpha * 0.55})`
+            : `rgba(${hr}, ${hg}, ${hb}, ${bolt.alpha * 0.92})`;
+          ctx.lineWidth = seg.branch ? 1.8 : 3.4;
+          ctx.beginPath();
+          ctx.moveTo(seg.x1, seg.y1);
+          ctx.lineTo(seg.x2, seg.y2);
+          ctx.stroke();
+        }
+        bolt.alpha -= 0.075;
+        if (bolt.alpha <= 0) lightningBolts.splice(i, 1);
+      }
+    }
+
+    // 3. 3D-Tumbling Storm Debris (Leaves, Flying Newspapers/Flyers, Twigs, Roof Tin Shingles, Trash Wrappers, Hail & Sparks)
+    const windGust = 1 + 0.35 * Math.sin(t * 1.3);
+    for (const p of particles) {
+      if (profile.interactive) applyPointerForce(p, 2.2);
+      p.yaw += p.vyaw;
+      p.pitch += p.vpitch;
+      p.roll += p.vroll;
+      p.flutterPhase += 0.11;
+
+      if (isVortex) {
+        p.orbitAngle += p.orbitSpeed * windGust;
+        p.elev = (p.elev - 0.0035 + 1) % 1;
+        const funnelR = (mode === "debris_tornado" ? 195 : 140) * Math.pow(1 - p.elev * 0.72, 1.2) + 18 + Math.sin(p.flutterPhase) * 16;
+        const sway = Math.sin(t * 1.4 + p.elev * 5.2) * (18 + (1 - p.elev) * 32);
+        p.x = cx + sway + Math.cos(p.orbitAngle) * funnelR;
+        p.y = h * (0.05 + p.elev * 0.89) + Math.sin(p.orbitAngle) * funnelR * 0.26;
+      } else if (isCyclone) {
+        p.orbitAngle += p.orbitSpeed * 0.85;
+        const rad = Math.min(w, h) * (0.08 + p.elev * 0.42);
+        p.x = cx + Math.cos(p.orbitAngle) * rad * (mode === "jupiter_spot" ? 1.35 : 1);
+        p.y = cy + Math.sin(p.orbitAngle) * rad * (mode === "jupiter_spot" ? 0.72 : 1);
+      } else {
+        p.x += p.vx * windGust + Math.cos(p.flutterPhase) * 1.6;
+        p.y += p.vy + (p.kind === "leaf" || p.kind === "paper" || p.kind === "bag" ? Math.sin(p.flutterPhase) * 1.9 : 0);
+        if (p.x > w + 40) p.x = -35;
+        if (p.x < -40) p.x = w + 35;
+        if (p.y > h - 10) {
+          if (p.kind === "hail" && p.vy > 2) {
+            p.y = h - 12;
+            p.vy = -p.vy * 0.46;
+            if (ripples.length < 28) {
+              ripples.push({ x: p.x, y: h - 8, rx: 2, maxRx: 14, alpha: 0.65 * scale, tone: p.tone });
+            }
+          } else {
+            p.y = -20;
+            p.x = Math.random() * w;
+            if (p.kind === "hail") p.vy = 8 + Math.random() * 10;
+          }
+        }
+        if (p.y < -30) p.y = h - 15;
+      }
+
+      const [cr, cg, cb] = toneRgb(p.tone);
+      const cosPitch = Math.cos(p.pitch);
+      const scale3dY = Math.max(0.18, Math.abs(cosPitch));
+      const sz = p.size;
+
+      if (p.kind === "rain") {
+        ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.55 * scale})`;
+        ctx.lineWidth = 1.25;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x + p.vx * 1.9, p.y + 18);
+        ctx.stroke();
+      } else if (p.kind === "leaf") {
+        // 3D-tumbling serrated autumn/canopy leaf with midrib stem
+        const leafRgb = mode === "leaf_gale" || mode === "urban_debris"
+          ? (p.tone === 0 ? [238, 122, 44] : p.tone === 1 ? [214, 62, 48] : [232, 182, 52])
+          : [cr, cg, cb];
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.yaw);
+        ctx.scale(1, scale3dY);
+        ctx.fillStyle = `rgba(${leafRgb[0]}, ${leafRgb[1]}, ${leafRgb[2]}, ${0.84 * scale})`;
+        ctx.strokeStyle = `rgba(${hr}, ${hg}, ${hb}, ${0.42 * scale})`;
+        ctx.lineWidth = 0.85;
+        ctx.beginPath();
+        ctx.moveTo(0, -sz * 1.3);
+        ctx.lineTo(sz * 0.55, -sz * 0.65);
+        ctx.lineTo(sz * 0.95, -sz * 0.25);
+        ctx.lineTo(sz * 0.48, sz * 0.2);
+        ctx.lineTo(sz * 0.72, sz * 0.75);
+        ctx.lineTo(0, sz * 1.15);
+        ctx.lineTo(-sz * 0.72, sz * 0.75);
+        ctx.lineTo(-sz * 0.48, sz * 0.2);
+        ctx.lineTo(-sz * 0.95, -sz * 0.25);
+        ctx.lineTo(-sz * 0.55, -sz * 0.65);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(0, -sz * 1.25);
+        ctx.lineTo(0, sz * 1.45);
+        ctx.stroke();
+        ctx.restore();
+      } else if (p.kind === "paper") {
+        // Fluttering newspaper / flyer sheet with curled corner & printed lines
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.yaw);
+        ctx.scale(1, scale3dY);
+        const pw = sz * 1.25, ph = sz * 0.92;
+        const curl = Math.sin(p.flutterPhase) * 3.2;
+        ctx.fillStyle = `rgba(${hr}, ${hg}, ${hb}, ${0.76 * scale})`;
+        ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.65 * scale})`;
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        ctx.moveTo(-pw, -ph);
+        ctx.lineTo(pw - 3, -ph + curl);
+        ctx.lineTo(pw, ph);
+        ctx.lineTo(-pw, ph - curl * 0.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        // Printed headline & text lines on the flying paper
+        ctx.beginPath();
+        ctx.moveTo(-pw * 0.65, -ph * 0.4);
+        ctx.lineTo(pw * 0.55, -ph * 0.4);
+        ctx.moveTo(-pw * 0.65, 0);
+        ctx.lineTo(pw * 0.65, 0);
+        ctx.moveTo(-pw * 0.65, ph * 0.4);
+        ctx.lineTo(pw * 0.35, ph * 0.4);
+        ctx.stroke();
+        ctx.restore();
+      } else if (p.kind === "tin") {
+        // Corrugated roof shingle / metallic scrap shard with specular glint
+        const glint = Math.abs(cosPitch) > 0.86 || lightningBolts.length > 0;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.yaw);
+        ctx.scale(1, scale3dY);
+        ctx.fillStyle = glint ? `rgba(${hr}, ${hg}, ${hb}, ${0.92 * scale})` : `rgba(${cr}, ${cg}, ${cb}, ${0.68 * scale})`;
+        ctx.strokeStyle = `rgba(${hr}, ${hg}, ${hb}, ${0.75 * scale})`;
+        ctx.lineWidth = 1.0;
+        ctx.beginPath();
+        ctx.moveTo(-sz, -sz * 0.55);
+        ctx.lineTo(sz * 0.85, -sz * 0.75);
+        ctx.lineTo(sz * 1.1, sz * 0.45);
+        ctx.lineTo(-sz * 0.6, sz * 0.8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      } else if (p.kind === "twig") {
+        // Spinning forked wooden branch / twig
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.yaw);
+        ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.78 * scale})`;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(-sz * 1.35, 0);
+        ctx.lineTo(sz * 1.35, 0);
+        ctx.moveTo(sz * 0.15, 0);
+        ctx.lineTo(sz * 0.85, -sz * 0.68);
+        ctx.stroke();
+        ctx.restore();
+      } else if (p.kind === "bag") {
+        // Billowing translucent wind-blown wrapper / plastic bag
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.yaw);
+        ctx.fillStyle = `rgba(${sr}, ${sg}, ${sb}, ${0.32 * scale})`;
+        ctx.strokeStyle = `rgba(${hr}, ${hg}, ${hb}, ${0.55 * scale})`;
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        ctx.arc(0, 0, sz * 0.95, 0, Math.PI * 1.35);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      } else if (p.kind === "hail") {
+        // Faceted ice hailstone / diamond shard
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.yaw);
+        ctx.fillStyle = `rgba(${hr}, ${hg}, ${hb}, ${0.85 * scale})`;
+        ctx.strokeStyle = `rgba(${ar}, ${ag}, ${ab}, ${0.72 * scale})`;
+        ctx.lineWidth = 1.0;
+        ctx.beginPath();
+        for (let s = 0; s < 6; s++) {
+          const a = (s / 6) * Math.PI * 2;
+          const r = sz * (s % 2 === 0 ? 0.85 : 0.65);
+          if (s === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+          else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      } else {
+        // Transformer / powerline arc spark
+        drawBokehSprite(ctx, spriteBank?.orbPrimary, p.x, p.y, sz * 1.35, highlight, 0.88 * scale);
+      }
+    }
+
+    for (let i = ripples.length - 1; i >= 0; i--) {
+      const rp = ripples[i];
+      const progress = rp.rx / rp.maxRx;
+      ctx.strokeStyle = `rgba(${hr}, ${hg}, ${hb}, ${rp.alpha * (1 - progress)})`;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.ellipse(rp.x, rp.y, rp.rx, rp.rx * 0.3, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      rp.rx += 0.95;
+      if (rp.rx >= rp.maxRx) ripples.splice(i, 1);
+    }
+  }
+  } finally {
+    frameTick = savedTick;
   }
 }
 
@@ -2447,7 +2827,9 @@ function startLoop() {
       rafId = 0;
       return;
     }
-    if (now >= scrollPauseUntil && (!lastFrameAt || now - lastFrameAt >= FRAME_INTERVAL_MS)) {
+    const profile = TIER_PROFILES[activeTier] || TIER_PROFILES.medium;
+    const minInterval = profile.frameIntervalMs || FRAME_INTERVAL_MS;
+    if (now >= scrollPauseUntil && (!lastFrameAt || now - lastFrameAt >= minInterval)) {
       lastFrameAt = now;
       if (!drawFrame()) {
         rafId = 0;
@@ -2459,8 +2841,8 @@ function startLoop() {
   if (typeof requestAnimationFrame === "function") rafId = requestAnimationFrame(tick);
 }
 
-/** Applies the chosen atmospheric effect (or `+`-combined multi-effect mix), graphics hardware tier, and reactive physics mode. */
-export function applyAtmosphere(overrideEffect, overrideIntensity, overrideTier, overrideReactive) {
+/** Applies the chosen atmospheric effect (or `+`-combined multi-effect mix), graphics hardware tier, reactive physics mode, and per-layer modifiers. */
+export function applyAtmosphere(overrideEffect, overrideIntensity, overrideTier, overrideReactive, overrideLayerMods) {
   const effect = overrideEffect !== undefined
     ? normalizeAtmosphereSpec(overrideEffect)
     : effectiveAtmosphere();
@@ -2480,6 +2862,9 @@ export function applyAtmosphere(overrideEffect, overrideIntensity, overrideTier,
   activeIntensity = intensity;
   activeTier = TIER_PROFILES[resolvedTier] ? resolvedTier : "medium";
   activeReactiveMode = resolvedReactive;
+  activeLayerMods = overrideLayerMods !== undefined
+    ? (overrideLayerMods && typeof overrideLayerMods === "object" ? overrideLayerMods : {})
+    : (state.settings?.atmosphereLayerMods && typeof state.settings.atmosphereLayerMods === "object" ? state.settings.atmosphereLayerMods : {});
   const root = document.documentElement;
 
   refreshThemeColors();
@@ -2514,20 +2899,23 @@ export function applyAtmosphere(overrideEffect, overrideIntensity, overrideTier,
   startLoop();
 }
 
-/** Opens the interactive Atmospheric Special Effects Studio with 160 effects, Multi-Effect Layer Mixer, Signature Mixes, Reactive Physics, and Tier/Animation filtering. */
+/** Opens the interactive Atmospheric Special Effects Studio with 194 effects, 6-Layer Mixer with per-layer controls, Signature Mixes, Reactive Physics, and Tier/Animation filtering. */
 export async function showAtmosphereDialog() {
   const savedEffect = normalizeAtmosphereSpec(state.settings?.atmosphere || "none");
   const savedIntensity = effectiveAtmosphereIntensity();
   const savedTier = VALID_TIERS.has(state.settings?.atmosphereTier) ? state.settings.atmosphereTier : "auto";
   const savedReactive = effectiveAtmosphereReactive();
+  const savedLayerMods = JSON.parse(JSON.stringify(state.settings?.atmosphereLayerMods || {}));
   const detectedTier = detectHardwareTier();
   let pickedEffect = savedEffect;
   let pickedIntensity = savedIntensity;
   let pickedTier = savedTier;
   let pickedReactive = savedReactive;
+  let pickedLayerMods = JSON.parse(JSON.stringify(savedLayerMods));
   let mixMode = parseAtmosphereIds(savedEffect).length > 1;
   let activeCat = "all";
   let searchQuery = "";
+  let showCodeBox = false;
 
   refreshThemeColors();
 
@@ -2561,7 +2949,7 @@ export async function showAtmosphereDialog() {
   intensitySlider.addEventListener("input", () => {
     pickedIntensity = Number(intensitySlider.value);
     intensityOut.textContent = `${pickedIntensity}%`;
-    applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+    applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
   });
 
   const tierBar = h("div", { class: "fm-atmo-tier-bar", role: "radiogroup", "aria-label": "Hardware graphics tier" });
@@ -2588,7 +2976,7 @@ export async function showAtmosphereDialog() {
           pickedTier = tier.id;
           renderTiers();
           updateTierHint();
-          applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+          applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
         },
       },
       h("span", { class: "fm-atmo-tier-name" }, tier.label),
@@ -2606,7 +2994,7 @@ export async function showAtmosphereDialog() {
     title: "Discharge an immediate high-voltage / relativistic energy impulse across active layers",
     onclick: () => {
       if (pickedEffect === "none") pickedEffect = "tesla_megacoil";
-      applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+      applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
       triggerReactiveImpulse(1.55);
       renderMixer();
       renderCards();
@@ -2631,7 +3019,7 @@ export async function showAtmosphereDialog() {
             pickedReactive = rm.id;
             renderReactiveBar();
             updateReactiveHint();
-            applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+            applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
           },
         },
         h("span", { class: "fm-atmo-tier-name" }, rm.label),
@@ -2648,8 +3036,15 @@ export async function showAtmosphereDialog() {
     class: "prop-input fm-atmo-preset-name-input",
     "data-user-preset-name": "true",
     maxlength: "48",
-    placeholder: "Name your custom effect preset (e.g. Hyper-Tesla 2126)…",
+    placeholder: "Name your custom effect preset (e.g. EF5 Debris Tornado 2126)…",
     "aria-label": "Custom special effect preset name",
+  });
+  const presetCodeTextarea = h("textarea", {
+    class: "prop-input fm-atmo-preset-code-box",
+    "data-preset-code-box": "true",
+    rows: "2",
+    placeholder: "Paste a shareable preset JSON code here and click Apply Imported Code…",
+    "aria-label": "Shareable preset code JSON",
   });
 
   const handleSaveUserPreset = async () => {
@@ -2662,6 +3057,7 @@ export async function showAtmosphereDialog() {
       intensity: pickedIntensity,
       tier: pickedTier,
       reactive: pickedReactive,
+      layerMods: pickedLayerMods,
     });
     presetNameInput.value = "";
     renderMixer();
@@ -2676,6 +3072,13 @@ export async function showAtmosphereDialog() {
     }
   });
 
+  const updateLayerMod = (layerId, patch) => {
+    const cur = { ...(pickedLayerMods[layerId] || {}), ...patch };
+    if (cur.color === "") delete cur.color;
+    pickedLayerMods[layerId] = cur;
+    applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
+  };
+
   const renderMixer = () => {
     const activeIds = parseAtmosphereIds(pickedEffect);
     const mixToggleBtn = h("button", {
@@ -2687,23 +3090,23 @@ export async function showAtmosphereDialog() {
         renderMixer();
         syncCardStates();
       },
-    }, mixMode ? `🔀 Mix Mode: ON (${activeIds.length}/${MAX_ATMOSPHERE_LAYERS} layers)` : "🔀 Mix Mode: Layer up to 4 effects");
+    }, mixMode ? `🔀 Mix Mode: ON (${activeIds.length}/${MAX_ATMOSPHERE_LAYERS} layers)` : `🔀 Mix Mode: Layer up to ${MAX_ATMOSPHERE_LAYERS} effects`);
 
     const surpriseBtn = h("button", {
       type: "button",
       class: "fm-atmo-random-mix",
       title: "Generate a creative 3-layer atmospheric combination",
       onclick: () => {
-        const backdrops = ATMOSPHERE_OPTIONS.filter((o) => ["grid", "nebula", "aurora", "waves", "beams", "portal", "radar", "physics", "future2126"].includes(o.engine));
-        const mids = ATMOSPHERE_OPTIONS.filter((o) => ["stars", "mist", "network", "geometry", "dna", "circuit", "tesla", "future2126"].includes(o.engine));
-        const fronts = ATMOSPHERE_OPTIONS.filter((o) => ["precip", "snow", "ember", "orbs", "glyph", "tesla"].includes(o.engine));
+        const backdrops = ATMOSPHERE_OPTIONS.filter((o) => ["grid", "nebula", "aurora", "waves", "beams", "portal", "radar", "physics", "future2126", "weather_storm"].includes(o.engine));
+        const mids = ATMOSPHERE_OPTIONS.filter((o) => ["stars", "mist", "network", "geometry", "dna", "circuit", "tesla", "future2126", "weather_storm"].includes(o.engine));
+        const fronts = ATMOSPHERE_OPTIONS.filter((o) => ["precip", "snow", "ember", "orbs", "glyph", "tesla", "weather_storm"].includes(o.engine));
         const pick = (arr) => arr[Math.floor(Math.random() * arr.length)]?.id;
         const combo = [pick(backdrops), pick(mids), pick(fronts)].filter(Boolean);
         mixMode = true;
         pickedEffect = combo.join("+");
         renderMixer();
         syncCardStates();
-        applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+        applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
       },
     }, "🎲 Surprise Mix");
 
@@ -2712,21 +3115,78 @@ export async function showAtmosphereDialog() {
         ? h("span", { class: "fm-atmo-layer-empty" }, "No active layers — pick any effect below, click + Mix on cards, or try a Signature Mix.")
         : activeIds.map((id, idx) => {
             const opt = ATMOSPHERE_BY_ID.get(id);
-            return h("button", {
-              type: "button",
-              class: "fm-atmo-layer-chip",
-              "data-layer-id": id,
-              title: `Remove ${opt?.label || id} from mix`,
-              onclick: () => {
-                toggleLayerInMix(id);
-                renderMixer();
-                syncCardStates();
-                applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+            const mod = pickedLayerMods[id] || {};
+            const curOpacity = mod.opacity ?? 100;
+            const curSpeed = mod.speed ?? 1;
+            const curColor = mod.color || "";
+            return h("div", { class: "fm-atmo-layer-item", "data-layer-row": id },
+              h("button", {
+                type: "button",
+                class: "fm-atmo-layer-chip",
+                "data-layer-id": id,
+                title: `Remove ${opt?.label || id} from mix`,
+                onclick: () => {
+                  toggleLayerInMix(id);
+                  renderMixer();
+                  syncCardStates();
+                  applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
+                },
               },
-            },
-            h("span", { class: "fm-atmo-layer-num" }, String(idx + 1)),
-            h("span", {}, `${opt?.icon || "✨"} ${opt?.label || id}`),
-            h("span", { class: "fm-atmo-layer-remove", "aria-hidden": "true" }, "×"));
+              h("span", { class: "fm-atmo-layer-num" }, String(idx + 1)),
+              h("span", {}, `${opt?.icon || "✨"} ${opt?.label || id}`),
+              h("span", { class: "fm-atmo-layer-remove", "aria-hidden": "true" }, "×")),
+              h("span", { class: "fm-atmo-layer-mods", title: `Fine-tune opacity, speed, and color tint for ${opt?.label || id}` },
+                h("input", {
+                  type: "range",
+                  class: "fm-atmo-layer-opacity",
+                  "data-layer-opacity": id,
+                  min: "10",
+                  max: "150",
+                  step: "5",
+                  value: String(curOpacity),
+                  title: `Layer opacity (${curOpacity}%)`,
+                  "aria-label": `${opt?.label || id} layer opacity`,
+                  oninput: (e) => {
+                    updateLayerMod(id, { opacity: Number(e.target.value) });
+                  },
+                }),
+                h("select", {
+                  class: "prop-input fm-atmo-layer-speed",
+                  "data-layer-speed": id,
+                  title: "Layer animation speed multiplier",
+                  "aria-label": `${opt?.label || id} layer speed`,
+                  onchange: (e) => {
+                    updateLayerMod(id, { speed: Number(e.target.value) });
+                  },
+                },
+                ...[0.5, 0.75, 1, 1.5, 2, 3].map((spd) =>
+                  h("option", { value: String(spd), selected: Math.abs(curSpeed - spd) < 0.05 ? "selected" : null }, `${spd}x`),
+                )),
+                h("input", {
+                  type: "color",
+                  class: "fm-atmo-layer-color",
+                  "data-layer-color": id,
+                  value: curColor || "#38bdf8",
+                  title: curColor ? `Custom tint ${curColor}` : "Pick a custom color tint for this layer",
+                  "aria-label": `${opt?.label || id} custom color tint`,
+                  oninput: (e) => {
+                    updateLayerMod(id, { color: e.target.value });
+                  },
+                }),
+                curColor
+                  ? h("button", {
+                      type: "button",
+                      class: "fm-atmo-layer-color-reset",
+                      "data-layer-color-reset": id,
+                      title: "Reset layer color to theme palette",
+                      onclick: () => {
+                        updateLayerMod(id, { color: "" });
+                        renderMixer();
+                      },
+                    }, "↺")
+                  : null,
+              ),
+            );
           }),
     );
 
@@ -2744,7 +3204,7 @@ export async function showAtmosphereDialog() {
             pickedEffect = preset.id;
             renderMixer();
             syncCardStates();
-            applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+            applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
           },
         }, h("span", { class: "fm-atmo-preset-icon" }, preset.icon), h("span", {}, preset.label));
       }),
@@ -2755,9 +3215,64 @@ export async function showAtmosphereDialog() {
       type: "button",
       class: "btn fm-atmo-save-preset-btn",
       "data-save-user-preset": "true",
-      title: "Save current effect, layer mix, intensity, tier, and reactive mode as a named preset",
+      title: "Save current effect, layer mix, intensity, tier, reactive mode, and per-layer settings as a named preset",
       onclick: () => { void handleSaveUserPreset(); },
     }, "💾 Save Preset");
+
+    const exportPresetBtn = h("button", {
+      type: "button",
+      class: "btn fm-atmo-save-preset-btn",
+      "data-export-user-presets": "true",
+      title: "Export current preset configuration as shareable JSON code",
+      onclick: () => {
+        showCodeBox = true;
+        presetCodeTextarea.value = exportAtmospherePresetCode({
+          name: presetNameInput.value.trim() || formatAtmosphereLabel(pickedEffect),
+          effect: pickedEffect,
+          intensity: pickedIntensity,
+          tier: pickedTier,
+          reactive: pickedReactive,
+          layerMods: pickedLayerMods,
+        });
+        renderMixer();
+      },
+    }, "📤 Export Code");
+
+    const importPresetBtn = h("button", {
+      type: "button",
+      class: "btn fm-atmo-save-preset-btn",
+      "data-import-user-preset": "true",
+      title: "Import a shareable preset JSON code",
+      onclick: async () => {
+        if (!showCodeBox || !presetCodeTextarea.value.trim()) {
+          showCodeBox = true;
+          renderMixer();
+          presetCodeTextarea.focus();
+          return;
+        }
+        try {
+          const imported = await importAtmospherePresetCode(presetCodeTextarea.value);
+          pickedEffect = imported.effect;
+          pickedIntensity = imported.intensity;
+          pickedTier = imported.tier;
+          pickedReactive = imported.reactive;
+          pickedLayerMods = JSON.parse(JSON.stringify(imported.layerMods || {}));
+          mixMode = parseAtmosphereIds(pickedEffect).length > 1;
+          intensitySlider.value = String(pickedIntensity);
+          intensityOut.textContent = `${pickedIntensity}%`;
+          renderTiers();
+          updateTierHint();
+          renderReactiveBar();
+          updateReactiveHint();
+          renderMixer();
+          syncCardStates();
+          applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
+          toast(`Imported preset "${imported.name}".`, { kind: "info" });
+        } catch (err) {
+          toast(err?.message || "Invalid preset code.", { kind: "error" });
+        }
+      },
+    }, "📥 Import Code");
 
     const userPresetsList = h("div", { class: "fm-atmo-user-presets-list", role: "group", "aria-label": "My saved special effects presets" },
       userPresets.length === 0
@@ -2777,6 +3292,9 @@ export async function showAtmosphereDialog() {
                   pickedIntensity = Math.max(10, Math.min(100, Number(up.intensity) || 60));
                   if (up.tier && VALID_TIERS.has(up.tier)) pickedTier = up.tier;
                   if (up.reactive && VALID_REACTIVE_MODES.has(up.reactive)) pickedReactive = up.reactive;
+                  if (up.layerMods && typeof up.layerMods === "object") {
+                    pickedLayerMods = JSON.parse(JSON.stringify(up.layerMods));
+                  }
                   mixMode = parseAtmosphereIds(pickedEffect).length > 1;
                   intensitySlider.value = String(pickedIntensity);
                   intensityOut.textContent = `${pickedIntensity}%`;
@@ -2786,7 +3304,7 @@ export async function showAtmosphereDialog() {
                   updateReactiveHint();
                   renderMixer();
                   syncCardStates();
-                  applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+                  applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
                 },
               },
               h("span", { class: "fm-atmo-user-preset-star" }, "⭐"),
@@ -2814,13 +3332,16 @@ export async function showAtmosphereDialog() {
         h("strong", { class: "fm-atmo-user-presets-label" }, "💾 My Custom Presets:"),
         presetNameInput,
         savePresetBtn,
+        exportPresetBtn,
+        importPresetBtn,
       ),
+      showCodeBox ? presetCodeTextarea : null,
       userPresetsList,
     );
 
     mixerDock.replaceChildren(
       h("div", { class: "fm-atmo-mixer-head" },
-        h("strong", {}, "Multi-Effect Layer Mixer — Combine up to 4 effects simultaneously"),
+        h("strong", {}, `Multi-Effect Layer Mixer — Combine up to ${MAX_ATMOSPHERE_LAYERS} effects with per-layer speed, opacity & tint`),
         h("div", { class: "fm-atmo-mixer-actions" }, mixToggleBtn, surpriseBtn),
       ),
       activeLayersRow,
@@ -2834,14 +3355,15 @@ export async function showAtmosphereDialog() {
   let activeAnimFilter = "all";
 
   const ATMO_TIER_FILTERS = [
-    { id: "all", label: "All Tiers (172)" },
-    { id: "ultra", label: "🚀 Ultra / Modern ARM Tier (77)" },
+    { id: "all", label: "All Tiers (194)" },
+    { id: "ultra", label: "🚀 Ultra / M4 Extreme Tier (99)" },
     { id: "medium", label: "✨ Medium / Balanced Tier (55)" },
     { id: "low", label: "⚡ Low / Eco Tier (40)" },
   ];
 
   const ATMO_ANIM_FILTERS = [
     { id: "all", label: "All Animations" },
+    { id: "weather_storm", label: "🌪️ Supercells, Tornadoes & Debris Storms" },
     { id: "future2126", label: "🛸 Year 2126 Hyper-Dimensional" },
     { id: "tesla", label: "⚡ High-Voltage Arcs (Tesla)" },
     { id: "physics", label: "⚛️ Relativistic & Chaos Physics" },
@@ -2854,11 +3376,12 @@ export async function showAtmosphereDialog() {
   const matchesAtmoAnim = (opt, anim) => {
     if (!anim || anim === "all" || opt.id === "none") return true;
     const e = opt.engine;
+    if (anim === "weather_storm") return e === "weather_storm" || opt.cat === "weather";
     if (anim === "future2126") return e === "future2126";
     if (anim === "tesla") return e === "tesla";
     if (anim === "physics") return e === "physics";
-    if (anim === "interactive") return ["tesla", "physics", "future2126", "orbs", "network", "portal", "radar"].includes(e);
-    if (anim === "particles") return ["precip", "snow", "ember", "stars", "glyph"].includes(e);
+    if (anim === "interactive") return ["tesla", "physics", "future2126", "weather_storm", "orbs", "network", "portal", "radar"].includes(e);
+    if (anim === "particles") return ["precip", "snow", "ember", "stars", "glyph", "weather_storm"].includes(e);
     if (anim === "waves") return ["waves", "beams", "aurora", "nebula", "mist"].includes(e);
     if (anim === "rings") return ["grid", "portal", "radar", "dna", "circuit", "geometry"].includes(e);
     return true;
@@ -2867,7 +3390,7 @@ export async function showAtmosphereDialog() {
   const searchInput = h("input", {
     type: "search",
     class: "prop-input fm-atmo-search",
-    placeholder: "Search 172 effects (e.g. tesseract, calabi-yau, penrose, klein, tesla, tokamak, cherenkov, collider)…",
+    placeholder: "Search 194 effects (e.g. tornado, hurricane, leaves, debris, red sprite, derecho, tesseract, tesla)…",
     "aria-label": "Search atmospheric effects",
   });
   const catBar = h("div", { class: "fm-atmo-cat-bar", role: "tablist", "aria-label": "Effect categories" });
@@ -3000,7 +3523,7 @@ export async function showAtmosphereDialog() {
                   if (parseAtmosphereIds(pickedEffect).length > 1) mixMode = true;
                   renderMixer();
                   syncCardStates();
-                  applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+                  applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
                 },
               }, layerIdx >= 0 ? `Layer ${layerIdx + 1}` : "+ Mix")
             : null;
@@ -3021,7 +3544,7 @@ export async function showAtmosphereDialog() {
               }
               renderMixer();
               syncCardStates();
-              applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+              applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
             },
           },
           h("div", { class: "fm-atmo-preview", "data-preview": opt.id, "data-engine": opt.engine, "aria-hidden": "true" },
@@ -3055,7 +3578,7 @@ export async function showAtmosphereDialog() {
     pickedEffect = id;
     renderMixer();
     syncCardStates();
-    applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+    applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
     if (focusIt) {
       card.setAttribute("tabindex", "0");
       card.focus({ preventScroll: true });
@@ -3105,7 +3628,7 @@ export async function showAtmosphereDialog() {
       pickedEffect = id;
       renderMixer();
       syncCardStates();
-      applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+      applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
     }
   });
 
@@ -3126,7 +3649,7 @@ export async function showAtmosphereDialog() {
         if (parseAtmosphereIds(pickedEffect).length > 1) mixMode = true;
         renderMixer();
         syncCardStates();
-        applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+        applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
       }
       return;
     }
@@ -3136,7 +3659,7 @@ export async function showAtmosphereDialog() {
       pickedIntensity = Math.max(10, Math.min(100, pickedIntensity + step));
       intensitySlider.value = String(pickedIntensity);
       intensityOut.textContent = `${pickedIntensity}%`;
-      applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+      applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
     }
   });
 
@@ -3185,7 +3708,7 @@ export async function showAtmosphereDialog() {
       h("span", { class: "fm-atmo-sync-dot fm-atmo-sync-dot-2" }),
       h("span", { class: "fm-atmo-sync-dot fm-atmo-sync-dot-3" }),
     ),
-    h("span", { class: "fm-atmo-sync-text" }, "172 Procedural Effects + 36 Signature Mixes · Harmonized with your active theme’s palette"),
+    h("span", { class: "fm-atmo-sync-text" }, "194 Procedural Effects + 48 Signature Mixes · Harmonized with your active theme’s palette"),
   );
 
   const filterBar = h("div", { class: "fm-atmo-filter-bar" },
@@ -3232,7 +3755,7 @@ export async function showAtmosphereDialog() {
   const dialogEl = sectionsContainer.closest(".modal-backdrop") || sectionsContainer.parentElement;
   dialogEl?.addEventListener("keydown", (e) => {
     if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
-    if (e.target === searchInput || e.target === presetNameInput) return;
+    if (e.target === searchInput || e.target === presetNameInput || e.target === presetCodeTextarea) return;
     if (e.key === "[" || e.key === "]") {
       e.preventDefault();
       stepByDelta(e.key === "]" ? 1 : -1);
@@ -3241,17 +3764,23 @@ export async function showAtmosphereDialog() {
 
   const choice = await dlg.result;
   if (choice === "save") {
-    await saveSettings({ atmosphere: pickedEffect, atmosphereIntensity: pickedIntensity, atmosphereTier: pickedTier, atmosphereReactive: pickedReactive });
-    applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive);
+    await saveSettings({
+      atmosphere: pickedEffect,
+      atmosphereIntensity: pickedIntensity,
+      atmosphereTier: pickedTier,
+      atmosphereReactive: pickedReactive,
+      atmosphereLayerMods: pickedLayerMods,
+    });
+    applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
     const label = formatAtmosphereLabel(pickedEffect);
     const tierLabel = HARDWARE_TIERS.find((t) => t.id === (pickedTier === "auto" ? detectedTier : pickedTier))?.label || pickedTier;
     toast(pickedEffect === "none" ? "Atmospheric effects turned off." : `Atmosphere set to ${label} (${tierLabel}).`, { kind: "info" });
   } else if (choice === "off") {
     await saveSettings({ atmosphere: "none" });
-    applyAtmosphere("none", pickedIntensity, pickedTier, pickedReactive);
+    applyAtmosphere("none", pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
     toast("Atmospheric effects turned off.", { kind: "info" });
   } else {
-    applyAtmosphere(savedEffect, savedIntensity, savedTier, savedReactive);
+    applyAtmosphere(savedEffect, savedIntensity, savedTier, savedReactive, savedLayerMods);
   }
 }
 
@@ -3272,13 +3801,14 @@ export function savedAtmospherePresets() {
     const intensity = Math.max(10, Math.min(100, Math.round(Number(item.intensity) || 60)));
     const tier = typeof item.tier === "string" && VALID_TIERS.has(item.tier) ? item.tier : "auto";
     const reactive = typeof item.reactive === "string" && VALID_REACTIVE_MODES.has(item.reactive) ? item.reactive : "off";
-    out.push({ name, effect, intensity, tier, reactive });
+    const layerMods = item.layerMods && typeof item.layerMods === "object" ? item.layerMods : undefined;
+    out.push(layerMods ? { name, effect, intensity, tier, reactive, layerMods } : { name, effect, intensity, tier, reactive });
   }
   return out;
 }
 
 /** Saves or updates a user-named custom atmospheric preset in `state.settings.atmospherePresets` and persists to server. */
-export async function saveCustomAtmospherePreset({ name, effect, intensity, tier, reactive } = {}) {
+export async function saveCustomAtmospherePreset({ name, effect, intensity, tier, reactive, layerMods } = {}) {
   const cleanName = typeof name === "string" ? name.trim().slice(0, 48) : "";
   if (!cleanName) return savedAtmospherePresets();
   const entry = {
@@ -3288,6 +3818,9 @@ export async function saveCustomAtmospherePreset({ name, effect, intensity, tier
     tier: typeof tier === "string" && VALID_TIERS.has(tier) ? tier : (state.settings?.atmosphereTier || "auto"),
     reactive: typeof reactive === "string" && VALID_REACTIVE_MODES.has(reactive) ? reactive : effectiveAtmosphereReactive(),
   };
+  if (layerMods && typeof layerMods === "object" && Object.keys(layerMods).length > 0) {
+    entry.layerMods = JSON.parse(JSON.stringify(layerMods));
+  }
   const existing = savedAtmospherePresets().filter((p) => p.name.toLowerCase() !== cleanName.toLowerCase());
   const next = [entry, ...existing].slice(0, 50);
   if (state.settings) state.settings.atmospherePresets = next;
@@ -3302,6 +3835,50 @@ export async function deleteCustomAtmospherePreset(name) {
   if (state.settings) state.settings.atmospherePresets = next;
   await saveSettings({ atmospherePresets: next });
   return next;
+}
+
+/** Serializes a custom atmospheric preset (including multi-layer mix and per-layer modifiers) into a shareable JSON string. */
+export function exportAtmospherePresetCode(preset = {}) {
+  const effect = normalizeAtmosphereSpec(preset.effect ?? effectiveAtmosphere());
+  const payload = {
+    format: "bun-rad-studio-atmosphere-preset",
+    version: 1,
+    name: (typeof preset.name === "string" && preset.name.trim() ? preset.name.trim() : formatAtmosphereLabel(effect)).slice(0, 48),
+    effect,
+    intensity: Math.max(10, Math.min(100, Math.round(Number(preset.intensity ?? effectiveIntensity()) || 60))),
+    tier: typeof preset.tier === "string" && VALID_TIERS.has(preset.tier) ? preset.tier : (state.settings?.atmosphereTier || "auto"),
+    reactive: typeof preset.reactive === "string" && VALID_REACTIVE_MODES.has(preset.reactive) ? preset.reactive : effectiveAtmosphereReactive(),
+  };
+  if (preset.layerMods && typeof preset.layerMods === "object" && Object.keys(preset.layerMods).length > 0) {
+    payload.layerMods = preset.layerMods;
+  }
+  return JSON.stringify(payload);
+}
+
+/** Parses, validates, saves, and applies a shareable atmospheric preset JSON string. */
+export async function importAtmospherePresetCode(text) {
+  if (typeof text !== "string" || !text.trim()) throw new Error("Paste a preset code first.");
+  let parsed = null;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error("That text isn't valid preset JSON.");
+  }
+  if (!parsed || typeof parsed !== "object" || (parsed.format && parsed.format !== "bun-rad-studio-atmosphere-preset")) {
+    throw new Error("That JSON isn't a File Manager atmospheric preset.");
+  }
+  const effect = normalizeAtmosphereSpec(parsed.effect);
+  if (!effect || effect === "none") {
+    throw new Error("Preset does not contain any valid atmospheric effects.");
+  }
+  const name = (typeof parsed.name === "string" && parsed.name.trim() ? parsed.name.trim() : formatAtmosphereLabel(effect)).slice(0, 48);
+  const intensity = Math.max(10, Math.min(100, Math.round(Number(parsed.intensity) || 60)));
+  const tier = typeof parsed.tier === "string" && VALID_TIERS.has(parsed.tier) ? parsed.tier : "auto";
+  const reactive = typeof parsed.reactive === "string" && VALID_REACTIVE_MODES.has(parsed.reactive) ? parsed.reactive : "off";
+  const layerMods = parsed.layerMods && typeof parsed.layerMods === "object" ? parsed.layerMods : undefined;
+  await saveCustomAtmospherePreset({ name, effect, intensity, tier, reactive, layerMods });
+  applyAtmosphere(effect, intensity, tier, reactive, layerMods);
+  return { name, effect, intensity, tier, reactive, layerMods };
 }
 
 /** Rapidly cycles to the next (`direction = 1`) or previous (`direction = -1`) atmospheric effect and persists it. */
@@ -3338,5 +3915,6 @@ on("theme-changed", () => {
 });
 
 on("atmosphere-picker", () => { void showAtmosphereDialog(); });
+
 
 

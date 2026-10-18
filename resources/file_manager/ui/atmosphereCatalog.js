@@ -3,7 +3,7 @@
 // parameters so every effect renders a distinct, theme-harmonized animation.
 
 export const ATMOSPHERE_CATEGORIES = [
-  { id: "all", label: "All effects (188)" },
+  { id: "all", label: "All effects (194)" },
   { id: "weather", label: "⛈️ Weather, Supercells & Storms" },
   { id: "future2126", label: "🛸 Year 2126 / Hyper-Dimensional" },
   { id: "physics", label: "Tesla, Plasma & Sci-Fi Physics" },
@@ -251,14 +251,24 @@ export const ATMOSPHERE_OPTIONS = [
   fx("venus_acid_lightning", "ultra", "weather", "🟡", "Venusian Sulfuric Vortex & Cloud Flash", "Super-Rotating Deck", "Dense golden-amber super-rotating cloud deck with horizontal sulfuric virga and warm baritone cloud-to-cloud discharges.", "weather_storm", { mode: "venus_storm" }),
   fx("aurora_thunder_squall", "ultra", "weather", "🌌", "Geomagnetic Aurora Super-Squall", "Sub-Auroral Gale", "High-latitude storm where a violently dancing sub-auroral green/violet curtain collides with a driving coastal rain squall.", "weather_storm", { mode: "aurora_squall" }),
   fx("monsoon_microburst", "ultra", "weather", "🌧️", "Tropical Monsoon Cloudburst & Downburst", "Torrential Sheet", "Torrential vertical cloudburst sheets with multi-ring surface hydro-splashes, rolling mist banks, and warm sheet lightning.", "weather_storm", { mode: "microburst" }),
+  fx("debris_tornado_ef5", "ultra", "weather", "🏚️", "EF5 Wedge Tornado: Leaves, Shingles & Debris", "M4 Extreme · 300 MPH", "Multi-vortex EF5 wedge tornado tearing 3D-tumbling leaves, wooden splinters, corrugated tin roof shards, papers, and powerline sparks into a rotating debris cloud.", "weather_storm", { mode: "debris_tornado" }),
+  fx("urban_cyclone_debris", "ultra", "weather", "📰", "Street-Canyon Cyclone: Flying Papers, Leaves & Trash", "M4 Extreme · Urban Gale", "Howling street-canyon gale whipping fluttering newspaper pages, autumn leaves, cardboard fragments, wrappers, and blown transformer arcs across wet asphalt.", "weather_storm", { mode: "urban_debris" }),
+  fx("autumn_noreaster_gale", "ultra", "weather", "🍁", "October Nor'easter: 1,000-Leaf Gale & Squall", "M4 Extreme · Foliage", "Ferocious autumn tempest hurling hundreds of 3D-spinning maple/oak leaves, broken twigs, pine needles, and diagonal rain curtains through turbulent wind gusts.", "weather_storm", { mode: "leaf_gale" }),
+  fx("junkyard_maelstrom", "ultra", "weather", "⚙️", "Scrapyard Magnetic Maelstrom & Shrapnel Vortex", "M4 Extreme · Shrapnel", "Industrial storm vortex lifting spinning sheet-metal shards, bolts, loose wires, rust flakes, and high-voltage transformer arcs into a blinding lightning funnel.", "weather_storm", { mode: "junkyard_vortex" }),
+  fx("forest_canopy_tempest", "ultra", "weather", "🌲", "Timberline Derecho: Stripped Foliage, Bark & Hail", "M4 Extreme · Canopy", "Violent timberline squall stripping green canopy leaves, twigs, bark chips, and bouncing hailstones under continuous anvil-crawler lightning.", "weather_storm", { mode: "canopy_tempest" }),
+  fx("cyber_alley_typhoon", "ultra", "weather", "🏮", "Neo-Tokyo Typhoon: Neon Flyers, Petals & Arcs", "M4 Extreme · Typhoon", "Cyberpunk super-typhoon whipping wet neon flyers, cherry petals, street litter, sparks from blown junction boxes, and torrential rain curtains across the screen.", "weather_storm", { mode: "cyber_typhoon" }),
 ];
 
 export const ATMOSPHERE_BY_ID = new Map(ATMOSPHERE_OPTIONS.map((o) => [o.id, o]));
 export const ATMOSPHERE_IDS = ATMOSPHERE_OPTIONS.map((o) => o.id);
-export const MAX_ATMOSPHERE_LAYERS = 4;
+export const MAX_ATMOSPHERE_LAYERS = 6;
 
 /** Curated multi-layer atmospheric combinations users can activate with one click or customize in the Mixer. */
 export const ATMOSPHERE_MIX_PRESETS = [
+  { id: "debris_tornado_ef5+urban_cyclone_debris+hail_supercell+derecho_squall", icon: "🏚️🌪️", label: "M4 Max: EF5 Debris Apocalypse", desc: "EF5 Wedge Debris Tornado + Urban Flying Papers/Leaves + Hail + 100 MPH Derecho" },
+  { id: "autumn_noreaster_gale+forest_canopy_tempest+monsoon_microburst", icon: "🍁⛈️", label: "M4 Max: 1,000-Leaf Nor'easter", desc: "October Leaf Gale + Stripped Canopy Timberline Squall + Monsoon Downburst" },
+  { id: "junkyard_maelstrom+tesla_megacoil+supercell_tornado", icon: "⚙️⚡", label: "M4 Max: Shrapnel & Mega-Tesla", desc: "Scrapyard Shrapnel Vortex + Wardenclyffe Mega-Tesla + EF5 Mesocyclone" },
+  { id: "cyber_alley_typhoon+derecho_squall+cyberstorm", icon: "🏮🌧️", label: "M4 Max: Neo-Tokyo Super-Typhoon", desc: "Flying Neon Flyers & Petals + Derecho Wind Shear + Cyber Lightning Storm" },
   { id: "supercell_tornado+hail_supercell+cyberstorm", icon: "🌪️⚡", label: "Storm: Tornado Alley EF5", desc: "EF5 Supercell Tornado + Emerald Hailstorm + Fork Lightning" },
   { id: "category5_hurricane+waterspout_vortex+monsoon_microburst", icon: "🌀🌊", label: "Storm: Category 5 Landfall", desc: "Cat-5 Hurricane Eyewall + Marine Waterspout + Monsoon Cloudburst" },
   { id: "red_sprite_storm+derecho_squall+plasma_storm", icon: "🦑⛈️", label: "Storm: Mesospheric Red Sprites", desc: "Red Sprites & Blue Jets + Derecho Bow-Echo + Tesla Plasma" },

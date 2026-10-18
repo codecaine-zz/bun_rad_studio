@@ -1294,3 +1294,869 @@
     repeating-linear-gradient(60deg, color-mix(in oklab, var(--fm-atmo-c2, var(--accent)) 32%, transparent) 0 2px, transparent 2px 10px);
 }
 
+/* Weather & Storm 3D Debris Card Preview */
+.fm-atmo-preview[data-engine="weather_storm"] .fm-atmo-preview-a {
+  background:
+    conic-gradient(from 210deg at 45% 58%, color-mix(in oklab, var(--fm-atmo-c1, var(--accent)) 55%, transparent), transparent 35%, color-mix(in oklab, var(--fm-atmo-c2, var(--accent)) 48%, transparent) 68%, transparent),
+    repeating-linear-gradient(-24deg, color-mix(in oklab, var(--fm-atmo-c3, #ffffff) 32%, transparent) 0 2px, transparent 2px 9px);
+  animation: fmAtmoSpin 5.5s linear infinite;
+}
+.fm-atmo-preview[data-engine="weather_storm"] .fm-atmo-preview-b {
+  background:
+    radial-gradient(circle at 28% 36%, color-mix(in oklab, #f59e0b 85%, var(--fm-atmo-c1, var(--accent))) 0 2.5px, transparent 3.5px),
+    radial-gradient(circle at 72% 62%, color-mix(in oklab, #e2e8f0 85%, var(--fm-atmo-c2, var(--accent))) 0 2px, transparent 3px),
+    radial-gradient(circle at 54% 25%, color-mix(in oklab, #84cc16 80%, var(--fm-atmo-c1, var(--accent))) 0 2.2px, transparent 3.2px);
+}
+
+/* Per-Layer Controls & Preset Code Box */
+.fm-atmo-layer-chip-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  padding: 0.22rem 0.48rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--fm-atmo-c1, var(--accent)) 42%, var(--border));
+  background: color-mix(in oklab, var(--panel) 84%, transparent);
+  font-size: 0.73rem;
+}
+.fm-atmo-layer-mods {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding-left: 0.25rem;
+  border-left: 1px solid var(--border-subtle, var(--border));
+}
+.fm-atmo-layer-color {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+.fm-atmo-layer-range {
+  width: 48px;
+  accent-color: var(--fm-atmo-c1, var(--accent));
+}
+.fm-atmo-preset-code-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.38rem;
+  flex-wrap: wrap;
+}
+.fm-atmo-preset-code-input {
+  flex: 1 1 220px;
+  min-width: 160px;
+  padding: 0.26rem 0.52rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Theme Gallery Immersion Studio Bar & Quick Share Button */
+.theme-immersion-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  padding: 0.55rem 0.72rem;
+  margin-bottom: 0.55rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklab, var(--accent) 34%, var(--border));
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--accent) 12%, var(--panel)), color-mix(in oklab, var(--panel) 94%, transparent));
+}
+.theme-immersion-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+.theme-immersion-label {
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-right: 0.15rem;
+}
+.theme-immersion-select {
+  padding: 0.24rem 0.48rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.74rem;
+}
+.theme-share-quick {
+  position: absolute;
+  top: 0.42rem;
+  right: 2.15rem;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle, var(--border));
+  background: color-mix(in oklab, var(--panel) 86%, transparent);
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  cursor: pointer;
+  opacity: 0.78;
+  transition: opacity 0.14s ease, transform 0.14s ease, border-color 0.14s ease;
+  z-index: 3;
+}
+.theme-share-quick:hover {
+  opacity: 1;
+  transform: scale(1.08);
+  border-color: var(--accent);
+  color: var(--text);
+}
+.theme-uifx-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18rem;
+  padding: 0.08rem 0.38rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: color-mix(in oklab, var(--accent) 22%, var(--panel));
+  color: var(--text);
+  border: 1px solid color-mix(in oklab, var(--accent) 42%, transparent);
+}
+
+/* Theme Blender Bar in Side-by-Side Compare Dialog */
+.theme-blender-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  padding: 0.55rem 0.72rem;
+  margin-top: 0.55rem;
+  border-radius: 9px;
+  border: 1px solid color-mix(in oklab, var(--accent) 36%, var(--border));
+  background: color-mix(in oklab, var(--panel) 90%, transparent);
+}
+
+/* Theme Hacker Lab in Theme Editor */
+.theme-hacker-studio {
+  margin-top: 0.75rem;
+  padding: 0.72rem 0.82rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklab, var(--accent) 42%, var(--border));
+  background:
+    linear-gradient(155deg, color-mix(in oklab, var(--accent) 10%, var(--panel)), color-mix(in oklab, var(--bg) 92%, transparent));
+}
+.theme-hacker-mutators,
+.theme-hacker-snippets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.42rem 0;
+}
+.theme-hacker-vars-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+  gap: 0.42rem;
+  margin: 0.48rem 0;
+}
+.theme-hacker-var-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.16rem;
+  font-size: 0.71rem;
+}
+.theme-hacker-var-field input {
+  padding: 0.24rem 0.45rem;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+}
+.theme-hacker-css-textarea {
+  width: 100%;
+  min-height: 76px;
+  padding: 0.45rem 0.58rem;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.73rem;
+  resize: vertical;
+}
+
+/* ============================================================================
+ * Typography, Corner Sharpness & Icon Glow Profiles
+ * ============================================================================ */
+html[data-font-profile=" cyberpunk"],
+html[data-font-profile="cyberpunk"] body {
+  font-family: "Orbitron", "Rajdhani", "Eurostile", "SF Pro Display", system-ui, sans-serif;
+  letter-spacing: 0.025em;
+}
+html[data-font-profile="terminal"] body {
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: 0.01em;
+}
+html[data-font-profile="editorial"] body {
+  font-family: "Instrument Serif", "Playfair Display", Georgia, Cambria, serif;
+}
+html[data-font-profile="technical"] body {
+  font-family: "Inter", "IBM Plex Sans", "SF Pro Text", system-ui, sans-serif;
+  font-feature-settings: "tnum" 1, "zero" 1;
+}
+
+html[data-corner-profile="sharp"] .tool,
+html[data-corner-profile="sharp"] .crumb,
+html[data-corner-profile="sharp"] .side-item,
+html[data-corner-profile="sharp"] .row,
+html[data-corner-profile="sharp"] .dialog,
+html[data-corner-profile="sharp"] .btn {
+  border-radius: 0px !important;
+}
+html[data-corner-profile="chamfer"] .tool,
+html[data-corner-profile="chamfer"] .crumb,
+html[data-corner-profile="chamfer"] .side-item,
+html[data-corner-profile="chamfer"] .row,
+html[data-corner-profile="chamfer"] .btn {
+  border-radius: 3px !important;
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+}
+html[data-corner-profile="pill"] .tool,
+html[data-corner-profile="pill"] .crumb,
+html[data-corner-profile="pill"] .side-item,
+html[data-corner-profile="pill"] .btn {
+  border-radius: 999px !important;
+}
+html[data-corner-profile="organic"] .row,
+html[data-corner-profile="organic"] .side-item,
+html[data-corner-profile="organic"] .tool {
+  border-radius: 14px 6px 14px 6px !important;
+}
+
+html[data-icon-glow="soft"] .c-icon,
+html[data-icon-glow="soft"] .ti,
+html[data-icon-glow="soft"] .si {
+  filter: drop-shadow(0 0 5px color-mix(in oklab, var(--accent) 60%, transparent));
+}
+html[data-icon-glow="neon"] .c-icon,
+html[data-icon-glow="neon"] .ti,
+html[data-icon-glow="neon"] .si,
+html[data-icon-glow="neon"] .info-icon {
+  filter:
+    drop-shadow(0 0 6px var(--accent))
+    drop-shadow(0 0 13px color-mix(in oklab, var(--accent) 72%, #ffffff));
+}
+html[data-icon-glow="plasma"] .c-icon,
+html[data-icon-glow="plasma"] .ti,
+html[data-icon-glow="plasma"] .si,
+html[data-icon-glow="plasma"] .info-icon {
+  filter:
+    drop-shadow(0 0 7px var(--fm-atmo-c1, var(--accent)))
+    drop-shadow(0 0 16px var(--fm-atmo-c2, #ec4899));
+  animation: fmIconPlasmaPulse 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes fmIconPlasmaPulse {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.09) rotate(-2deg); }
+}
+
+/* ============================================================================
+ * Custom Icon Pack Visual Badges & 3D Treatment
+ * ============================================================================ */
+html[data-icon-pack]:not([data-icon-pack="default"]) .row .c-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 6px;
+  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), filter 0.16s ease, box-shadow 0.16s ease;
+}
+html[data-icon-pack="neon_cyber"] .row .c-icon {
+  background: radial-gradient(circle at 30% 30%, color-mix(in oklab, #00f5d4 28%, transparent), transparent 72%);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, #00f5d4 48%, transparent), 0 0 10px color-mix(in oklab, #00f5d4 35%, transparent);
+}
+html[data-icon-pack="inferno_burn"] .row .c-icon {
+  background: radial-gradient(circle at 50% 80%, rgba(251, 146, 60, 0.36), rgba(220, 38, 38, 0.12) 70%);
+  box-shadow: inset 0 0 0 1px rgba(251, 146, 60, 0.45), 0 -2px 10px rgba(249, 115, 22, 0.42);
+}
+html[data-icon-pack="bio_slime"] .row .c-icon {
+  background: radial-gradient(circle at 50% 30%, rgba(163, 230, 53, 0.35), rgba(22, 163, 74, 0.14) 75%);
+  box-shadow: inset 0 0 0 1px rgba(132, 204, 22, 0.5), 0 3px 9px rgba(132, 204, 22, 0.38);
+  border-radius: 50% 50% 42% 58%;
+}
+html[data-icon-pack="storm_weather"] .row .c-icon {
+  background: linear-gradient(145deg, rgba(56, 189, 248, 0.25), rgba(148, 163, 184, 0.12));
+  box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.4);
+}
+html[data-icon-pack="cryo_crystal"] .row .c-icon {
+  background: linear-gradient(135deg, rgba(224, 242, 254, 0.34), rgba(56, 189, 248, 0.14));
+  box-shadow: inset 0 0 0 1px rgba(186, 230, 253, 0.65), 0 0 10px rgba(56, 189, 248, 0.35);
+}
+html[data-icon-pack="liquid_chrome"] .row .c-icon {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.42), rgba(148, 163, 184, 0.15) 55%, rgba(255, 255, 255, 0.32));
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.75), 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+html[data-icon-pack="retro_pixel"] .row .c-icon {
+  border-radius: 0 !important;
+  box-shadow: 2px 2px 0 var(--border), inset 1px 1px 0 rgba(255, 255, 255, 0.35);
+}
+html[data-icon-pack="arcane_glyphs"] .row .c-icon {
+  background: radial-gradient(circle, rgba(192, 132, 252, 0.3), transparent 72%);
+  box-shadow: inset 0 0 0 1px rgba(192, 132, 252, 0.48), 0 0 11px rgba(168, 85, 247, 0.38);
+}
+
+/* ============================================================================
+ * Interactive File Manager Element FX (Folders, Toolbars, Crumbs, Sidebar, Rows)
+ * ============================================================================ */
+
+@keyframes fmFireFlicker {
+  0% {
+    box-shadow:
+      0 -3px 12px rgba(249, 115, 22, 0.52),
+      0 -8px 22px rgba(220, 38, 38, 0.36),
+      inset 0 -2px 8px rgba(251, 146, 60, 0.38);
+  }
+  50% {
+    box-shadow:
+      0 -5px 16px rgba(251, 191, 36, 0.65),
+      0 -12px 28px rgba(239, 68, 68, 0.48),
+      inset 0 -3px 11px rgba(254, 215, 170, 0.45);
+  }
+  100% {
+    box-shadow:
+      0 -2px 10px rgba(234, 88, 12, 0.48),
+      0 -7px 19px rgba(185, 28, 28, 0.34),
+      inset 0 -2px 7px rgba(251, 146, 60, 0.32);
+  }
+}
+
+@keyframes fmSlimeOoze {
+  0%, 100% {
+    box-shadow:
+      0 4px 0 -1px rgba(132, 204, 22, 0.65),
+      0 9px 14px -2px rgba(74, 222, 128, 0.42),
+      inset 0 2px 6px rgba(163, 230, 53, 0.34);
+  }
+  50% {
+    box-shadow:
+      0 7px 0 -1px rgba(163, 230, 53, 0.78),
+      0 14px 20px -2px rgba(34, 197, 94, 0.55),
+      inset 0 3px 9px rgba(190, 242, 100, 0.46);
+  }
+}
+
+@keyframes fmWindGustBuffet {
+  0%, 100% { transform: translateX(0px) skewX(0deg); }
+  35% { transform: translateX(2.5px) skewX(-1.4deg); }
+  70% { transform: translateX(1px) skewX(-0.6deg); }
+}
+
+@keyframes fmTeslaArcPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 8px rgba(56, 189, 248, 0.55),
+      inset 0 0 6px rgba(168, 85, 247, 0.35);
+  }
+  50% {
+    box-shadow:
+      0 0 16px rgba(125, 211, 252, 0.85),
+      0 0 28px rgba(192, 132, 252, 0.48),
+      inset 0 0 10px rgba(56, 189, 248, 0.52);
+  }
+}
+
+@keyframes fmHoloGlitchJitter {
+  0%, 92%, 100% { transform: translate(0, 0); filter: none; }
+  94% { transform: translate(-2px, 0.5px); filter: drop-shadow(2px 0 #00f5d4) drop-shadow(-2px 0 #ff007f); }
+  97% { transform: translate(2px, -0.5px); filter: drop-shadow(-2px 0 #00f5d4) drop-shadow(2px 0 #ff007f); }
+}
+
+/* 1. 🔥 Folders on Fire & Smoldering Toolbars (fire_folders) */
+html[data-ui-fx="fire_folders"] #toolbar-row,
+html[data-ui-fx="fire_folders"] #addressbar {
+  background:
+    linear-gradient(180deg, color-mix(in oklab, #f97316 18%, var(--panel)), color-mix(in oklab, #dc2626 10%, var(--panel))) !important;
+  border-bottom: 1px solid rgba(251, 146, 60, 0.58) !important;
+  box-shadow: 0 3px 16px rgba(234, 88, 12, 0.28), inset 0 -1px 0 rgba(253, 186, 116, 0.5);
+}
+html[data-ui-fx="fire_folders"] .tool,
+html[data-ui-fx="fire_folders"] .crumb {
+  border-color: rgba(251, 146, 60, 0.45) !important;
+  box-shadow: 0 -2px 9px rgba(249, 115, 22, 0.28), inset 0 -1px 4px rgba(251, 146, 60, 0.25);
+}
+html[data-ui-fx="fire_folders"] .tool:hover,
+html[data-ui-fx="fire_folders"] .crumb:hover,
+html[data-ui-fx="fire_folders"] .side-item:hover {
+  animation: fmFireFlicker 1.1s ease-in-out infinite alternate;
+  border-color: #fb923c !important;
+}
+html[data-ui-fx="fire_folders"] .row.is-folder {
+  position: relative;
+  background:
+    linear-gradient(90deg, rgba(249, 115, 22, 0.16), rgba(220, 38, 38, 0.08) 55%, transparent) !important;
+  border-left: 3px solid #fb923c !important;
+  animation: fmFireFlicker 1.8s ease-in-out infinite alternate;
+}
+html[data-ui-fx="fire_folders"] .row.is-folder .c-icon {
+  filter: drop-shadow(0 -2px 6px #f97316) drop-shadow(0 -5px 12px #ef4444);
+}
+html[data-ui-fx="fire_folders"] .row:hover {
+  background:
+    linear-gradient(90deg, rgba(251, 146, 60, 0.28), rgba(239, 68, 68, 0.15) 70%, transparent) !important;
+  box-shadow: 0 -3px 14px rgba(249, 115, 22, 0.45);
+}
+
+/* 2. 🧪 Dripping Toxic Slime & Ooze (slime_drip) */
+html[data-ui-fx="slime_drip"] #toolbar-row,
+html[data-ui-fx="slime_drip"] #addressbar {
+  background:
+    linear-gradient(180deg, color-mix(in oklab, #84cc16 20%, var(--panel)), color-mix(in oklab, #16a34a 10%, var(--panel))) !important;
+  border-bottom: 2px solid rgba(163, 230, 53, 0.68) !important;
+  box-shadow: 0 5px 15px rgba(132, 204, 22, 0.32);
+}
+html[data-ui-fx="slime_drip"] .tool,
+html[data-ui-fx="slime_drip"] .crumb {
+  border-color: rgba(132, 204, 22, 0.52) !important;
+  box-shadow: 0 3px 0 rgba(101, 163, 13, 0.55), 0 6px 12px rgba(74, 222, 128, 0.28);
+}
+html[data-ui-fx="slime_drip"] .row.is-folder {
+  position: relative;
+  background:
+    linear-gradient(90deg, rgba(132, 204, 22, 0.18), rgba(34, 197, 94, 0.08) 60%, transparent) !important;
+  border-left: 3px solid #a3e635 !important;
+  animation: fmSlimeOoze 2.4s ease-in-out infinite;
+}
+html[data-ui-fx="slime_drip"] .row.is-folder .c-icon {
+  filter: drop-shadow(0 3px 6px #84cc16) drop-shadow(0 6px 11px #22c55e);
+}
+html[data-ui-fx="slime_drip"] .row:hover,
+html[data-ui-fx="slime_drip"] .side-item:hover {
+  animation: fmSlimeOoze 1.4s ease-in-out infinite;
+}
+
+/* 3. 🌪️ Wind-Buffeted Storm & Debris (storm_wind) */
+html[data-ui-fx="storm_wind"] #toolbar-row,
+html[data-ui-fx="storm_wind"] #addressbar {
+  background:
+    repeating-linear-gradient(-18deg, rgba(148, 163, 184, 0.1) 0 8px, transparent 8px 20px),
+    var(--panel) !important;
+  border-bottom: 1px solid rgba(125, 211, 252, 0.45) !important;
+}
+html[data-ui-fx="storm_wind"] .row.is-folder,
+html[data-ui-fx="storm_wind"] .tool,
+html[data-ui-fx="storm_wind"] .crumb {
+  animation: fmWindGustBuffet 3.2s ease-in-out infinite;
+  border-left: 2px solid rgba(125, 211, 252, 0.55);
+}
+html[data-ui-fx="storm_wind"] .row:hover {
+  transform: translateX(4px) skewX(-2deg);
+  box-shadow: -6px 2px 14px rgba(56, 189, 248, 0.28);
+}
+
+/* 4. ❄️ Cryo Permafrost & Icicle Rime (cryo_frost) */
+html[data-ui-fx="cryo_frost"] #toolbar-row,
+html[data-ui-fx="cryo_frost"] #addressbar,
+html[data-ui-fx="cryo_frost"] .tool,
+html[data-ui-fx="cryo_frost"] .crumb,
+html[data-ui-fx="cryo_frost"] .row.is-folder {
+  background:
+    linear-gradient(135deg, rgba(224, 242, 254, 0.2), rgba(56, 189, 248, 0.08) 65%, transparent) !important;
+  border-color: rgba(186, 230, 253, 0.62) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 3px 10px rgba(56, 189, 248, 0.24);
+}
+html[data-ui-fx="cryo_frost"] .row.is-folder .c-icon {
+  filter: drop-shadow(0 0 7px #bae6fd) drop-shadow(0 3px 8px #38bdf8);
+}
+
+/* 5. ⚡ High-Voltage Tesla Arcs (tesla_arcs) */
+html[data-ui-fx="tesla_arcs"] .tool,
+html[data-ui-fx="tesla_arcs"] .crumb,
+html[data-ui-fx="tesla_arcs"] .row.is-folder {
+  border-color: rgba(125, 211, 252, 0.6) !important;
+  animation: fmTeslaArcPulse 2s ease-in-out infinite;
+}
+html[data-ui-fx="tesla_arcs"] .row:hover,
+html[data-ui-fx="tesla_arcs"] .side-item:hover {
+  box-shadow:
+    0 0 14px rgba(56, 189, 248, 0.78),
+    0 0 26px rgba(168, 85, 247, 0.52),
+    inset 0 0 8px rgba(125, 211, 252, 0.45);
+}
+
+/* 6. 🪞 Liquid Mercury Chrome Bevel (mercury_chrome) */
+html[data-ui-fx="mercury_chrome"] .tool,
+html[data-ui-fx="mercury_chrome"] .crumb,
+html[data-ui-fx="mercury_chrome"] .row.is-folder {
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.26), rgba(148, 163, 184, 0.08) 50%, rgba(255, 255, 255, 0.18)) !important;
+  border-color: rgba(226, 232, 240, 0.65) !important;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.8),
+    0 2px 8px rgba(15, 23, 42, 0.35);
+}
+
+/* 7. 👾 Holographic Scanline & Glitch (holo_glitch) */
+html[data-ui-fx="holo_glitch"] .row.is-folder,
+html[data-ui-fx="holo_glitch"] .tool,
+html[data-ui-fx="holo_glitch"] .crumb {
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 245, 212, 0.08) 0 1px, transparent 1px 3px),
+    var(--panel) !important;
+  border-color: rgba(0, 245, 212, 0.48) !important;
+  animation: fmHoloGlitchJitter 4.2s steps(2, end) infinite;
+}
+
+/* 8. 🕳️ Eldritch Void Tendrils (void_tentacles) */
+html[data-ui-fx="void_tentacles"] .row.is-folder,
+html[data-ui-fx="void_tentacles"] .tool,
+html[data-ui-fx="void_tentacles"] .crumb {
+  background:
+    radial-gradient(circle at 12% 50%, rgba(168, 85, 247, 0.24), rgba(15, 23, 42, 0.4) 70%) !important;
+  border-color: rgba(192, 132, 252, 0.5) !important;
+  box-shadow: 0 0 16px rgba(126, 34, 206, 0.38), inset 0 0 12px rgba(88, 28, 135, 0.45);
+}
+
+/* ============================================================================
+ * 🎬 Theme Show & Screensaver Studio
+ * ============================================================================ */
+.theme-show-mode-grid,
+.theme-show-channel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.5rem;
+}
+.theme-show-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.26rem;
+  padding: 0.62rem 0.72rem;
+  text-align: left;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--panel) 88%, transparent);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+}
+.theme-show-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+}
+.theme-show-card.is-active {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 16%, var(--panel));
+  box-shadow: 0 0 0 1px var(--accent), 0 6px 18px color-mix(in oklab, var(--accent) 24%, transparent);
+}
+.theme-show-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+}
+.theme-show-card-icon {
+  font-size: 1.05rem;
+}
+.theme-show-card-desc {
+  font-size: 0.71rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.fm-theme-show-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9850;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 1.4rem;
+}
+.fm-theme-show-hud {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+  flex-wrap: wrap;
+  max-width: min(96vw, 1100px);
+  padding: 0.78rem 1.15rem;
+  border-radius: 16px;
+  border: 1px solid color-mix(in oklab, var(--accent) 48%, rgba(255, 255, 255, 0.22));
+  background: color-mix(in oklab, var(--panel) 78%, rgba(6, 10, 18, 0.82));
+  backdrop-filter: blur(22px) saturate(165%);
+  box-shadow:
+    0 18px 46px rgba(0, 0, 0, 0.52),
+    0 0 28px color-mix(in oklab, var(--accent) 32%, transparent);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+.fm-theme-show-overlay.is-mode-pure_canvas .fm-theme-show-hud {
+  opacity: 0.16;
+  transform: translateY(6px);
+}
+.fm-theme-show-overlay.is-mode-pure_canvas .fm-theme-show-hud:hover {
+  opacity: 1;
+  transform: translateY(0);
+}
+.fm-theme-show-clock-box {
+  display: flex;
+  flex-direction: column;
+  padding-right: 1rem;
+  border-right: 1px solid var(--border);
+}
+.fm-theme-show-clock-time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  text-shadow: 0 0 14px color-mix(in oklab, var(--accent) 65%, transparent);
+  line-height: 1.05;
+}
+.fm-theme-show-clock-date {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.fm-theme-show-info-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.16rem;
+  min-width: 220px;
+  flex: 1 1 260px;
+}
+.fm-theme-show-channel-pill {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 0.1rem 0.48rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: color-mix(in oklab, var(--accent) 24%, transparent);
+  color: var(--accent);
+  border: 1px solid color-mix(in oklab, var(--accent) 48%, transparent);
+}
+.fm-theme-show-scene-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.fm-theme-show-scene-meta {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.fm-theme-show-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.38rem;
+  flex-wrap: wrap;
+}
+
+/* Pure Zen Canvas hides File Manager chrome so the atmospheric canvas fills 100% of the screen */
+html[data-theme-show="pure_canvas"] #toolbar-row,
+html[data-theme-show="pure_canvas"] #addressbar,
+html[data-theme-show="pure_canvas"] #main,
+html[data-theme-show="pure_canvas"] #statusbar {
+  opacity: 0.04 !important;
+  filter: blur(8px);
+  transition: opacity 0.45s ease, filter 0.45s ease;
+}
+
+/* Living Desktop mode highlights folders and toolbars during the show */
+html[data-theme-show="living_desktop"] .row.is-folder {
+  transform: translateX(3px);
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
+}
+
+/* Retro After Dark / XScreenSaver bouncing phosphor OSD */
+@keyframes fmRetroOsdFloat {
+  0% { transform: translate(-26vw, -30vh); }
+  25% { transform: translate(24vw, -18vh); }
+  50% { transform: translate(20vw, 22vh); }
+  75% { transform: translate(-22vw, 16vh); }
+  100% { transform: translate(-26vw, -30vh); }
+}
+.fm-theme-show-retro-floater {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  padding: 0.65rem 1.05rem;
+  border: 2px solid #22c55e;
+  background: rgba(2, 12, 6, 0.86);
+  color: #4ade80;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  box-shadow: 0 0 22px rgba(34, 197, 94, 0.45), inset 0 0 10px rgba(34, 197, 94, 0.25);
+  animation: fmRetroOsdFloat 22s linear infinite;
+}
+.fm-theme-show-retro-title {
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.fm-theme-show-retro-sub {
+  font-size: 0.68rem;
+  opacity: 0.88;
+  margin-top: 0.2rem;
+}
+
+/* Glitch cut transition flash */
+html[data-theme-show-glitch="true"] body {
+  animation: fmHoloGlitchJitter 0.32s steps(3, end);
+}
+
+/* ============================================================================
+ * 📦 Bulk Theme Import & Conflict Resolution Dialog
+ * ============================================================================ */
+.theme-conflict-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+.theme-conflict-stat {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-elevated, var(--panel));
+}
+.theme-conflict-stat.is-clean {
+  border-color: color-mix(in srgb, var(--good, #22c55e) 50%, var(--border));
+}
+.theme-conflict-stat.is-warn {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+  background: color-mix(in srgb, var(--accent) 14%, var(--panel));
+}
+.theme-conflict-bulk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.65rem;
+  margin-bottom: 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-sunken, var(--panel));
+}
+.theme-conflict-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 0.2rem;
+}
+.theme-conflict-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.8rem;
+  background: var(--surface-elevated, var(--panel));
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.theme-conflict-title-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+.theme-conflict-name {
+  font-size: 0.9rem;
+}
+.theme-conflict-badge {
+  font-size: 0.72rem;
+  padding: 0.16rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+.theme-conflict-badge.is-diff {
+  background: color-mix(in srgb, var(--accent) 16%, var(--panel));
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+.theme-conflict-badge.is-identical {
+  opacity: 0.8;
+}
+.theme-conflict-compare {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.theme-conflict-side {
+  flex: 1 1 220px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle, var(--border));
+  background: var(--panel);
+  font-size: 0.75rem;
+}
+.theme-conflict-role {
+  font-weight: 600;
+  color: var(--muted);
+}
+.theme-conflict-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+.theme-conflict-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+}
+.theme-conflict-fx-tag {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: var(--accent-soft, rgba(110, 168, 255, 0.15));
+}
+.theme-conflict-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: flex-end;
+}
+.theme-conflict-clean-section {
+  margin-top: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+}
+.theme-conflict-clean-section > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+.theme-conflict-clean-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+.theme-conflict-clean-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.8rem;
+}

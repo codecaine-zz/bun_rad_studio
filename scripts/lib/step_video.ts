@@ -2,7 +2,7 @@
 // The voice starts, the action starts a moment later, and the step ends when both are finished. The recording is
 // 1920x972 and sits above its own caption strip, so nothing is ever drawn over the program.
 //   <script> list | audio [--shard i/n] | record [ids,...] | build | all
-import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "fs";
 import { createHash } from "crypto";
 import { join } from "path";
 import { Cdp, sleep } from "./cdp_recorder";
@@ -297,15 +297,23 @@ function assemble() {
     const tlFile = join(TIMELINES, `${ch.id}.json`);
     if (!existsSync(tlFile)) throw new Error(`chapter ${ch.id} has not been recorded`);
     const tl: Timeline = JSON.parse(readFileSync(tlFile, "utf8"));
+    const tlMtime = statSync(tlFile).mtimeMs;
+    const force = only.includes(ch.id);
     if (ch.kind !== "card") {
-      const card = chapterCard(ch, numbered.indexOf(ch) + 1, numbered.length);
+      const cardPath = join(SEG, `${ch.id}_card.mp4`);
+      const card = !force && existsSync(cardPath) && statSync(cardPath).mtimeMs >= tlMtime
+        ? cardPath
+        : chapterCard(ch, numbered.indexOf(ch) + 1, numbered.length);
       marks.push({ at, title: ch.title });
       list.push(`file '${card}'`);
       at += 3.5;
     } else {
       marks.push({ at, title: ch.title });
     }
-    const seg = buildChapter(ch, tl);
+    const segPath = join(SEG, `${ch.id}.mp4`);
+    const seg = !force && existsSync(segPath) && statSync(segPath).mtimeMs >= tlMtime
+      ? segPath
+      : buildChapter(ch, tl);
     list.push(`file '${seg}'`);
     at += durationOf(seg);
     console.log(`  ✓ ${ch.id}  ${fmtTime(at)}`);

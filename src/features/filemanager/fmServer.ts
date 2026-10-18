@@ -15,7 +15,7 @@ import { randomBytes, timingSafeEqual } from "crypto";
 import { existsSync, promises as fsp, readFileSync, realpathSync } from "fs";
 import * as nodePath from "path";
 import { gunzipSync } from "zlib";
-import { guardLocalRequest, writeClipboardSync } from "../../localGuard";
+import { guardLocalRequest, readClipboardTextSync, writeClipboardSync } from "../../localGuard";
 import { absolutePath, createContext, pathApi, type FmContext, type FmContextOptions, type FmHandler } from "./fmCore";
 import { codeOperations } from "./fmCodeOps";
 import { checkOperations } from "./fmCheckOps";
@@ -489,9 +489,13 @@ const operations: Record<string, Handler> = {
     const st = await fsp.stat(path).catch(() => null);
     return { path, exists: !!st, isDir: !!st?.isDirectory() };
   },
-  async copytext(_ctx, b) {
+  async copytext(ctx, b) {
     if (typeof b.text !== "string" || b.text.length > 100_000) throw new FmError("BAD_REQUEST", "Nothing to copy.");
-    return { copied: writeClipboardSync(b.text) };
+    return { copied: ctx.clipboard.writeText ? ctx.clipboard.writeText(b.text) : writeClipboardSync(b.text) };
+  },
+  async pastetext(ctx) {
+    const text = ctx.clipboard.readText ? ctx.clipboard.readText() : readClipboardTextSync();
+    return { ok: text !== null, text: text ?? "" };
   },
 };
 

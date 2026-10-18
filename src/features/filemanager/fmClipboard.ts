@@ -11,11 +11,13 @@
 import { mkdtempSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import * as nodePath from "path";
-import { writeClipboardSync } from "../../localGuard";
+import { readClipboardTextSync, writeClipboardSync } from "../../localGuard";
 
 export interface ClipboardHooks {
   /** Puts text on the clipboard; false when no clipboard tool worked. */
   writeText(text: string): boolean;
+  /** Reads text from the clipboard; null when no clipboard tool worked. */
+  readText?(): string | null;
   /** Puts a picture file on the clipboard; false when it could not be done. */
   writeImage(file: string, mime: string): Promise<boolean>;
 }
@@ -68,6 +70,7 @@ async function linuxImage(file: string, mime: string): Promise<boolean> {
 export function defaultClipboard(): ClipboardHooks {
   return {
     writeText: (text) => writeClipboardSync(text),
+    readText: () => readClipboardTextSync(),
     writeImage: async (file, mime) => (process.platform === "darwin" ? macImage(file, mime) : process.platform === "win32" ? windowsImage(file) : linuxImage(file, mime)),
   };
 }

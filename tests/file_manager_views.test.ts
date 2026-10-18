@@ -1082,7 +1082,7 @@ describe("the Dual view's right pane has the same options as the left one", () =
     key($("#dual-list"), "h");
     expect($("#dual-list .row.focused .name-text").textContent).toBe("three.md");
     expect($("#dual-list .row.selected .name-text").textContent).toBe("three.md");
-    key($("#dual-list"), process.platform === "darwin" ? "ArrowUp" : "Backspace", process.platform === "darwin" ? { altKey: true } : {});
+    key($("#dual-list"), "ArrowUp", { altKey: true });
     await until(() => $("#dual-crumbs .crumb.current").textContent === "parity", "the right pane to go up");
     expect(rowNames("#list")).toContain("one.txt");
     await openOnRight(other);
@@ -2380,7 +2380,7 @@ describe("the review dialog, Compare, Projects and duplicate cleanup", () => {
     await waitFor(() => ![...doc.querySelectorAll(".act-card")].some((c: any) => c.textContent.includes("Friend's recipe")));
   });
 
-  test("Backspace goes up a folder by default (with a one-time hint); with the Mac-keyboard setting it deletes instead", async () => {
+  test("Backspace deletes by default on Windows, Linux, and macOS; turning the Mac-keyboard setting off makes Backspace go up a folder", async () => {
     const dir = join(lab, "bs", "inner");
     const f = put(join(dir, "victim.txt"), "bye");
     put(join(dir, "keeper.txt"), "stay");
@@ -2394,16 +2394,7 @@ describe("the review dialog, Compare, Projects and duplicate cleanup", () => {
       win.localStorage.removeItem("fm_backspace_hint");
       await nav.goTo(dir);
       await sleep(300);
-      // default on Windows/Linux: Backspace = up one folder, and the hint appears once
-      key($("#list"), "Backspace");
-      await waitFor(() => here() === join(lab, "bs"));
-      expect(here()).toBe(join(lab, "bs"));
-      expect(toasts()).toContain("Delete key is Backspace");
-      expect(existsSync(f)).toBe(true);
-      // the setting (Windows/Linux) or Mac default: Backspace moves the selected file to the Recycle Bin and stays in the folder
-      await nav.saveSettings({ backspaceDeletes: true });
-      await nav.goTo(dir);
-      await sleep(300);
+      // default on Windows/Linux/macOS: Backspace moves the selected file to the Recycle Bin and stays in the folder
       (activePane() as any).selection.clear();
       (activePane() as any).selection.add(f);
       key($("#list"), "Backspace");
@@ -2411,9 +2402,15 @@ describe("the review dialog, Compare, Projects and duplicate cleanup", () => {
       expect(existsSync(f)).toBe(false);
       expect(existsSync(join(dir, "keeper.txt"))).toBe(true);
       expect(here()).toBe(dir);
+      // with the setting turned off on Windows/Linux: Backspace = up one folder, and the hint appears once
+      await nav.saveSettings({ backspaceDeletes: false });
+      key($("#list"), "Backspace");
+      await waitFor(() => here() === join(lab, "bs"));
+      expect(here()).toBe(join(lab, "bs"));
+      expect(toasts()).toContain("Delete key is Backspace");
     } finally {
       shared.platform = prevPlatform;
-      await nav.saveSettings({ backspaceDeletes: false });
+      await nav.saveSettings({ backspaceDeletes: true });
     }
   });
 });
@@ -2798,7 +2795,7 @@ describe("tool screen room toggles and universal window/browser actions", () => 
     // Embedded and nested studio iframe postMessage bridge can toggle/exit Ultra Focus, focus app filter, and copy text
     win.dispatchEvent(new win.MessageEvent("message", { data: { fmEscapeExpand: true }, source: win }));
     expect(app().classList.contains("power-max")).toBe(false);
-    win.dispatchEvent(new win.MessageEvent("message", { data: { fmToggleExpand: true }, origin: "http://127.0.0.1:54321" }));
+    win.dispatchEvent(new win.MessageEvent("message", { data: { fmToggleExpand: true }, origin: win.location.origin }));
     expect(app().classList.contains("power-max")).toBe(true);
     win.dispatchEvent(new win.MessageEvent("message", { data: { fmFilterTools: true }, source: win }));
     expect(app().classList.contains("power-max")).toBe(false);

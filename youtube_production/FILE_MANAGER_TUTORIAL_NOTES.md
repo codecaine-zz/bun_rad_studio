@@ -1,13 +1,13 @@
-# Codecaine File Manager: the complete, step-by-step guide (1:43:47)
+# Codecaine File Manager: the complete, step-by-step guide (1:45:45)
 
 ## YouTube title
 
-Codecaine File Manager Full Tutorial: Terminal, Media Studios, 180 Themes & Databases
+Codecaine File Manager Full Tutorial: Terminal, Media Studios, 212 Themes, 194 Shaders & Databases
 
 ## YouTube description (copy and paste)
 
 ```text
-The complete, step-by-step guide to the Codecaine File Manager: a free, open-source, keyboard-friendly file manager for macOS, Windows and Linux, with its own terminal, picture and media studios, developer tools, 180 themes and full SQLite and MySQL studios built in. Every click is shown in real time, on a throwaway folder of sample files, so you can follow along at your own pace.
+The complete, step-by-step guide to the Codecaine File Manager: a free, open-source, keyboard-friendly file manager for macOS, Windows and Linux, with its own terminal, picture and media studios, developer tools, 212 themes with 194 live procedural shaders, and full SQLite, MySQL, PostgreSQL, and Redis studios built in. Every click is shown in real time, on a throwaway folder of sample files, so you can follow along at your own pace.
 
 ⬇️ Download (free): https://github.com/codecaine-zz/bun_rad_studio/releases/latest
 ⭐ Source code: https://github.com/codecaine-zz/bun_rad_studio
@@ -17,7 +17,7 @@ WHAT YOU WILL LEARN
 ⌨️ Terminal + files together: the file list follows your cd, "Open terminal here", and selected files and folders typed into the terminal as safely quoted paths. On Windows it works with PowerShell, the Command Prompt, Git Bash and WSL (C:\Users becomes /mnt/c/Users), no external terminal needed.
 🧰 Every tool: Convert, Find and bulk rename, Review, Compare, Projects, Actions, QR codes, the code editor, Replace across files with Undo, the Dev tab (code stats, Git, TODOs), Watch, Serve, Crypto, Secrets, Env, Network, Downloads, Calculator, Timer, API, Bundler, the Graveyard, Calendar & World Clocks, CLI Utilities, Process & Task Manager, and System Information & Hardware Telemetry.
 🎬 Pictures, songs, videos, paint & games: one-click edits, the Image Studio and Media Studio with live sliders, trim, speed and fades, presets for many files at once, a built-in viewer and player, Media Deck (10-band EQ & 108 visualizers), Paint Studio, and 24 built-in arcade games.
-🎨 Make it yours: 180 themes, with glass, glow, living atmosphere and motion effects, futuristic looks and rare classic systems (BeOS, OS/2 Warp, Palm OS, Zune and more), an effects filter, your own themes with panel opacity and blur, ⌘⇧T to open themes, and every keyboard shortcut changeable.
+🎨 Make it yours: 212 themes with 5-row filter pills, hardware tier auto-matching, Folder/Toolbar/Icon Immersion Studio (folders on fire, dripping slime, storm leaves & 9 custom icon packs), extreme weather & sci-fi physics themes (Inferno Blazing Folders, Radioactive Slime Bio-Vat, EF5 Debris Tornado, Tesla Coil Plasma, Tokamak Fusion, Hawking Event Horizon, Tahoe Liquid Glass), rare classic OS themes (BeOS, OS/2 Warp, Palm OS, Zune, Solaris CDE), per-folder pinned themes, Universal Share & Import Hub (1-line CCFM-THEME-v1 & CCFM-PACK-v1 share codes), side-by-side split-screen comparator + Live OKLab Theme Blender, 4-stage Solar Cycle schedule + Ambient Playlist auto-rotation, 194 live atmospheric shaders with a 6-layer mixer, per-layer tint/speed modifiers & 48 signature mixes, Theme Show & Screensaver Studio (Cinema HUD, Living File Manager & Retro XScreenSaver OSD), and Theme Editor v2 with Wallpaper Chameleon extractor, WCAG contrast inspector, 12 effect style presets, and Theme Hacker Lab (Compiz Burn, 90s Linux CDE bevels, custom --* tokens & CSS snippets).
 🗄️ Databases: complete Databases & Cross-Engine Cloning Masterclass (SQLite, MySQL, PostgreSQL, Redis, Bun JS & Visual Macros, 15-format staging import, Studio IDE v2), plus dedicated SQLite Studio and MySQL Studio walkthroughs.
 
 CHAPTERS
@@ -53,45 +53,45 @@ CHAPTERS
 52:03 Save a preset, then edit many files at once
 53:26 Recent files and media open right here
 54:42 Media Deck, Paint Studio & 24 Built-in Arcade Games
-55:31 Make it yours: themes, effects and shortcuts
-1:00:57 The database studios
-1:01:59 Databases Hub: SQLite files in the file list & one-click sample databases
-1:02:53 Databases Hub: Connecting SQLite, MySQL, PostgreSQL and Redis
-1:03:39 Databases Hub: Cloning databases and tables across SQLite, PostgreSQL and MySQL
-1:05:02 Databases Hub: Cloning SQL tables into Redis Hashes & back into a new SQLite file
-1:05:53 Databases Hub: The Bun JavaScript & Visual Macro Studio across all engines
-1:07:15 Databases Hub: Universal 15-format import & the 5-step Staging Wizard
-1:08:11 Databases Hub: Per-column filter bar, Side Row Inspector, FK jump & backups
-1:09:03 Databases Hub: Multi-tab SQL IDE, Full ER Diagram, Schema Diff & Code Generation
-1:10:15 Databases Hub: Live PostgreSQL, MySQL and Redis Studios & the Open Studios Switcher
-1:11:05 SQLite: A database in the file list
-1:12:00 SQLite: Saving and testing a connection
-1:13:25 SQLite: A sample database in one click
-1:14:02 SQLite: SQLite Studio inside the File Manager
-1:15:19 SQLite: Browsing a table
-1:16:33 SQLite: Add, edit and delete rows without SQL
-1:17:39 SQLite: Designing tables visually
-1:18:39 SQLite: The SQL editor
-1:19:59 SQLite: The visual query designer
-1:21:07 SQLite: Building and running a macro
-1:22:18 SQLite: Inspect, tune and maintain
-1:23:12 SQLite: Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen
-1:24:15 SQLite: Export and one-click backup
-1:24:56 SQLite: Import with staging, from the file list
-1:26:24 SQLite: Production connections and shortcuts
-1:27:01 MySQL: Find the connection and save it
-1:28:33 MySQL: Test it, see where every value comes from
-1:30:06 MySQL: Open MySQL Studio inside the window
-1:31:17 MySQL: The studio's own connection workbench
-1:32:16 MySQL: The data grid: browse, filter, total and edit rows
-1:33:48 MySQL: The S Q L editor, presets, and one-click backup
-1:35:04 MySQL: Design queries and schemas visually
-1:36:44 MySQL: Live activity, locks, plans and maintenance
-1:38:25 MySQL: Automate it: build and run a macro
-1:39:27 MySQL: Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen
-1:40:31 MySQL: Load a CSV file with staging, from the file list
-1:42:17 MySQL: Back to the File Manager: stop, shortcuts and safety
-1:43:08 That is the tour
+55:31 Make it yours: 212 themes, 194 shaders, fire & slime folders, OKLab blender, bulk import & hacker lab
+1:02:55 The database studios
+1:03:57 Databases Hub: SQLite files in the file list & one-click sample databases
+1:04:51 Databases Hub: Connecting SQLite, MySQL, PostgreSQL and Redis
+1:05:37 Databases Hub: Cloning databases and tables across SQLite, PostgreSQL and MySQL
+1:07:00 Databases Hub: Cloning SQL tables into Redis Hashes & back into a new SQLite file
+1:07:51 Databases Hub: The Bun JavaScript & Visual Macro Studio across all engines
+1:09:13 Databases Hub: Universal 15-format import & the 5-step Staging Wizard
+1:10:10 Databases Hub: Per-column filter bar, Side Row Inspector, FK jump & backups
+1:11:01 Databases Hub: Multi-tab SQL IDE, Full ER Diagram, Schema Diff & Code Generation
+1:12:14 Databases Hub: Live PostgreSQL, MySQL and Redis Studios & the Open Studios Switcher
+1:13:03 SQLite: A database in the file list
+1:13:58 SQLite: Saving and testing a connection
+1:15:23 SQLite: A sample database in one click
+1:16:01 SQLite: SQLite Studio inside the File Manager
+1:17:17 SQLite: Browsing a table
+1:18:32 SQLite: Add, edit and delete rows without SQL
+1:19:37 SQLite: Designing tables visually
+1:20:37 SQLite: The SQL editor
+1:21:57 SQLite: The visual query designer
+1:23:05 SQLite: Building and running a macro
+1:24:16 SQLite: Inspect, tune and maintain
+1:25:10 SQLite: Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen
+1:26:14 SQLite: Export and one-click backup
+1:26:54 SQLite: Import with staging, from the file list
+1:28:22 SQLite: Production connections and shortcuts
+1:28:59 MySQL: Find the connection and save it
+1:30:31 MySQL: Test it, see where every value comes from
+1:32:05 MySQL: Open MySQL Studio inside the window
+1:33:15 MySQL: The studio's own connection workbench
+1:34:14 MySQL: The data grid: browse, filter, total and edit rows
+1:35:47 MySQL: The S Q L editor, presets, and one-click backup
+1:37:02 MySQL: Design queries and schemas visually
+1:38:42 MySQL: Live activity, locks, plans and maintenance
+1:40:23 MySQL: Automate it: build and run a macro
+1:41:25 MySQL: Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen
+1:42:30 MySQL: Load a CSV file with staging, from the file list
+1:44:15 MySQL: Back to the File Manager: stop, shortcuts and safety
+1:45:07 That is the tour
 
 #FileManager #OpenSource #Tutorial
 ```

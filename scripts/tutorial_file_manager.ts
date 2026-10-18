@@ -103,12 +103,12 @@ function notesText(marks: Array<{ at: number; title: string }>, total: number): 
 
 ## YouTube title
 
-Codecaine File Manager Full Tutorial: Terminal, Media Studios, 200+ Themes, 172 Shaders & Databases
+Codecaine File Manager Full Tutorial: Terminal, Media Studios, 212 Themes, 194 Shaders & Databases
 
 ## YouTube description (copy and paste)
 
 \`\`\`text
-The complete, step-by-step guide to the Codecaine File Manager: a free, open-source, keyboard-friendly file manager for macOS, Windows and Linux, with its own terminal, picture and media studios, developer tools, 200+ themes with 172 live procedural shaders, and full SQLite, MySQL, PostgreSQL, and Redis studios built in. Every click is shown in real time, on a throwaway folder of sample files, so you can follow along at your own pace.
+The complete, step-by-step guide to the Codecaine File Manager: a free, open-source, keyboard-friendly file manager for macOS, Windows and Linux, with its own terminal, picture and media studios, developer tools, 212 themes with 194 live procedural shaders, and full SQLite, MySQL, PostgreSQL, and Redis studios built in. Every click is shown in real time, on a throwaway folder of sample files, so you can follow along at your own pace.
 
 ⬇️ Download (free): ${REPO}/releases/latest
 ⭐ Source code: ${REPO}
@@ -118,7 +118,7 @@ WHAT YOU WILL LEARN
 ⌨️ Terminal + files together: the file list follows your cd, "Open terminal here", and selected files and folders typed into the terminal as safely quoted paths. On Windows it works with PowerShell, the Command Prompt, Git Bash and WSL (C:\\Users becomes /mnt/c/Users), no external terminal needed.
 🧰 Every tool: Convert, Find and bulk rename, Review, Compare, Projects, Actions, QR codes, the code editor, Replace across files with Undo, the Dev tab (code stats, Git, TODOs), Watch, Serve, Crypto, Secrets, Env, Network, Downloads, Calculator, Timer, API, Bundler, the Graveyard, Calendar & World Clocks, CLI Utilities, Process & Task Manager, and System Information & Hardware Telemetry.
 🎬 Pictures, songs, videos, paint & games: one-click edits, the Image Studio and Media Studio with live sliders, trim, speed and fades, presets for many files at once, a built-in viewer and player, Media Deck (10-band EQ & 108 visualizers), Paint Studio, and 24 built-in arcade games.
-🎨 Make it yours: 200+ themes with 5-row filter pills, hardware tier auto-matching, sci-fi physics & rare classic OS themes (BeOS, OS/2 Warp, Palm OS, Zune, Tesla Coil Plasma, Tokamak Fusion, Tahoe Liquid Glass), per-folder pinned themes, a side-by-side split-screen comparator, a 4-stage Solar Cycle schedule, 172 live atmospheric shaders with a 4-layer mixer & 36 signature mixes, Theme Editor v2 with auto-harmony, WCAG contrast inspector & 12 effect style presets, ⌘⇧T to open themes, and every keyboard shortcut changeable.
+🎨 Make it yours: 212 themes with 5-row filter pills, hardware tier auto-matching, Folder/Toolbar/Icon Immersion Studio (folders on fire, dripping slime, storm leaves & 9 custom icon packs), extreme weather & sci-fi physics themes (Inferno Blazing Folders, Radioactive Slime Bio-Vat, EF5 Debris Tornado, Tesla Coil Plasma, Tokamak Fusion, Hawking Event Horizon, Tahoe Liquid Glass), rare classic OS themes (BeOS, OS/2 Warp, Palm OS, Zune, Solaris CDE), per-folder pinned themes, Universal Share & Import Hub (1-line CCFM-THEME-v1 & CCFM-PACK-v1 share codes), side-by-side split-screen comparator + Live OKLab Theme Blender, 4-stage Solar Cycle schedule + Ambient Playlist auto-rotation, 194 live atmospheric shaders with a 6-layer mixer, per-layer tint/speed modifiers & 48 signature mixes, Theme Show & Screensaver Studio (Cinema HUD, Living File Manager & Retro XScreenSaver OSD), and Theme Editor v2 with Wallpaper Chameleon extractor, WCAG contrast inspector, 12 effect style presets, and Theme Hacker Lab (Compiz Burn, 90s Linux CDE bevels, custom --* tokens & CSS snippets).
 🗄️ Databases: complete Databases & Cross-Engine Cloning Masterclass (SQLite, MySQL, PostgreSQL, Redis, Bun JS & Visual Macros, 15-format staging import, Studio IDE v2), plus dedicated SQLite Studio and MySQL Studio walkthroughs.
 
 CHAPTERS

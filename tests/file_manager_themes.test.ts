@@ -700,10 +700,10 @@ describe("the theme editor in the page", () => {
     expect(themes.terminalTheme().background).toBe("#1e1e1e");
   });
 
-  test("Atmospheric Special Effects engine supports 172 effects (including Year-2126 Hyper-Dimensional presets) across Low, Medium, and Modern ARM Ultra tiers plus Multi-Effect Layer Mixing and User-Named Custom Presets", async () => {
+  test("Atmospheric Special Effects engine supports 194 effects (including Weather/Storm 3D Debris and Year-2126 Hyper-Dimensional presets) across Low, Medium, Modern ARM Ultra, and M4 Max Extreme tiers plus 6-Layer Mixing and User-Named Custom Presets", async () => {
     const atmo = await import("../resources/file_manager/ui/atmosphereFx.js");
-    expect(atmo.ATMOSPHERE_OPTIONS.length).toBe(172);
-    expect(atmo.ATMOSPHERE_MIX_PRESETS.length).toBe(36);
+    expect(atmo.ATMOSPHERE_OPTIONS.length).toBe(194);
+    expect(atmo.ATMOSPHERE_MIX_PRESETS.length).toBe(48);
 
     // Hardware tier auto-detection
     expect(atmo.detectHardwareTier({ hardwareConcurrency: 2, userAgent: "Linux x86_64" }, { devicePixelRatio: 1 })).toBe("low");
@@ -723,19 +723,24 @@ describe("the theme editor in the page", () => {
     expect(sections[2].textContent).toContain("Modern ARM");
 
     const tierBtns = doc.querySelectorAll(".fm-atmo-tier-btn");
-    expect(tierBtns.length).toBe(5);
-    expect(doc.querySelectorAll(".fm-atmo-card .fm-atmo-preview").length).toBe(172);
+    expect(tierBtns.length).toBe(6);
+    expect(doc.querySelectorAll(".fm-atmo-card .fm-atmo-preview").length).toBe(194);
     expect(doc.querySelector(".fm-atmo-theme-sync")).toBeTruthy();
     expect(doc.querySelector(".fm-atmo-mixer-dock")).toBeTruthy();
 
-    // Select Modern ARM / Ultra tier and test effects across multiple procedural engines including Tesla, Sci-Fi Physics, and Year-2126 Hyper-Dimensional
+    // Select Modern ARM / Ultra tier and test effects across multiple procedural engines including Weather/Storm Debris, Tesla, Sci-Fi Physics, and Year-2126 Hyper-Dimensional
     doc.querySelector('.fm-atmo-tier-btn[data-tier="ultra"]').click();
-    for (const effectId of ["rain", "smoke", "cyberstorm", "nebula", "aurora", "outrun_grid", "neural_nexus", "dna_helix", "quantum_cpu", "black_hole", "liquid_glass_caustics", "m4_raytrace_prism", "win11_mica_bloom", "plasma_storm", "tesla_megacoil", "jacobs_ladder", "plasma_globe", "tokamak_fusion", "lorentz_attractor", "hadron_collider", "cherenkov_glow", "ferrofluid_spikes", "gravitational_waves", "hawking_horizon", "tesseract_4d", "calabi_yau", "penrose_quasicrystal", "klein_mobius", "chronos_retrocausal", "eigen_consciousness", "strangelet_condensate", "metric_fold_origami", "tachyon_braid_2126", "void_metamaterial", "omega_point_2126", "xenotech_biolith"]) {
+    for (const effectId of ["rain", "smoke", "cyberstorm", "nebula", "aurora", "outrun_grid", "neural_nexus", "dna_helix", "quantum_cpu", "black_hole", "liquid_glass_caustics", "m4_raytrace_prism", "win11_mica_bloom", "plasma_storm", "tesla_megacoil", "jacobs_ladder", "plasma_globe", "tokamak_fusion", "lorentz_attractor", "hadron_collider", "cherenkov_glow", "ferrofluid_spikes", "gravitational_waves", "hawking_horizon", "tesseract_4d", "calabi_yau", "penrose_quasicrystal", "klein_mobius", "chronos_retrocausal", "eigen_consciousness", "strangelet_condensate", "metric_fold_origami", "tachyon_braid_2126", "void_metamaterial", "omega_point_2126", "xenotech_biolith", "supercell_tornado", "category5_hurricane", "derecho_squall", "debris_tornado_ef5", "urban_cyclone_debris", "autumn_noreaster_gale", "junkyard_maelstrom", "forest_canopy_tempest", "cyber_alley_typhoon"]) {
       doc.querySelector(`.fm-atmo-card[data-atmo="${effectId}"]`).click();
       expect(doc.documentElement.dataset.atmosphere).toBe(effectId);
       expect(doc.documentElement.dataset.atmosphereTier).toBe("ultra");
       expect(doc.getElementById("fm-atmosphere-layer")?.getAttribute("data-effect")).toBe(effectId);
     }
+
+    // Select M4 Max / Extreme Uncapped tier
+    doc.querySelector('.fm-atmo-tier-btn[data-tier="extreme"]').click();
+    expect(doc.documentElement.dataset.atmosphereTier).toBe("extreme");
+    doc.querySelector('.fm-atmo-tier-btn[data-tier="ultra"]').click();
 
     // Multi-effect layer mixing: click a Signature Mix preset (3 simultaneous layers)
     doc.querySelector('.fm-atmo-preset-btn[data-mix="sakura+fireflies+aurora"]').click();
@@ -785,27 +790,31 @@ describe("the theme editor in the page", () => {
     doc.querySelector('.fm-atmo-preset-btn[data-mix="sakura+fireflies+aurora"]').click();
     doc.querySelector('.fm-atmo-card[data-atmo="rain"] .fm-atmo-mix-chip').click();
 
-    // Category filter narrows the visible cards (including Year 2126) and "all" restores all 172
+    // Category filter narrows the visible cards (including Year 2126 and Weather/Storms) and "all" restores all 194
     doc.querySelector('.fm-atmo-cat-btn[data-cat="future2126"]').click();
     expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(13); // "none" + 12 Year-2126 effects
+    doc.querySelector('.fm-atmo-cat-btn[data-cat="weather"]').click();
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(37); // "none" + 36 Weather & Storm effects
     doc.querySelector('.fm-atmo-cat-btn[data-cat="physics"]').click();
     expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(27);
     doc.querySelector('.fm-atmo-cat-btn[data-cat="cosmic"]').click();
     expect(doc.querySelectorAll(".fm-atmo-card").length).toBeLessThan(45);
     doc.querySelector('.fm-atmo-cat-btn[data-cat="all"]').click();
-    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(172);
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(194);
 
-    // Tier filter and Animation Engine filter narrow sections/cards and "all" restores all 172
+    // Tier filter and Animation Engine filter narrow sections/cards and "all" restores all 194
     doc.querySelector('[data-tier-filter="ultra"]').click();
     expect(doc.querySelectorAll(".fm-atmo-section").length).toBe(1);
-    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(77);
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(99);
     doc.querySelector('[data-tier-filter="medium"]').click();
     expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(55);
     doc.querySelector('[data-tier-filter="low"]').click();
     expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(40);
     doc.querySelector('[data-tier-filter="all"]').click();
-    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(172);
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(194);
 
+    doc.querySelector('[data-anim-filter="weather_storm"]').click();
+    expect(doc.querySelectorAll('.fm-atmo-card[data-atmo-engine="weather_storm"]').length).toBe(22);
     doc.querySelector('[data-anim-filter="future2126"]').click();
     expect(doc.querySelectorAll('.fm-atmo-card[data-atmo-engine="future2126"]').length).toBe(12);
     doc.querySelector('[data-anim-filter="tesla"]').click();
@@ -813,7 +822,7 @@ describe("the theme editor in the page", () => {
     doc.querySelector('[data-anim-filter="physics"]').click();
     expect(doc.querySelectorAll('.fm-atmo-card[data-atmo-engine="physics"]').length).toBeGreaterThanOrEqual(14);
     doc.querySelector('[data-anim-filter="all"]').click();
-    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(172);
+    expect(doc.querySelectorAll(".fm-atmo-card").length).toBe(194);
 
     // Switching themes automatically re-harmonizes --fm-atmo-c1, --fm-atmo-c2, and --fm-atmo-c3
     const c1Before = doc.documentElement.style.getPropertyValue("--fm-atmo-c1");
@@ -1059,5 +1068,227 @@ describe("the theme editor in the page", () => {
     state.settings.palette = "";
     closeDialogs();
   });
-});
 
+  test("Weather & 3D Debris Storms, File Manager UI Element FX, Custom Icon Packs, Per-Layer Modifiers, Shareable Preset Codes, Universal Premade/Custom Theme Share Codes (CCFM-THEME-v1 / CCFM-PACK-v1), and Theme Hacker Lab work end-to-end", async () => {
+    const atmo = await import("../resources/file_manager/ui/atmosphereFx.js") as any;
+    const domMod = await import("../resources/file_manager/ui/dom.js") as any;
+    const themeStore = await import("../src/features/filemanager/fmThemeStore.ts");
+
+    // 1. Export & import shareable Atmospheric Preset Codes with per-layer modifiers
+    const presetCode = atmo.exportAtmospherePresetCode({
+      name: "EF5 Leaf & Newspaper Squall",
+      effect: "debris_tornado_ef5+autumn_noreaster_gale+urban_cyclone_debris",
+      intensity: 94,
+      tier: "extreme",
+      reactive: "activity",
+      layerMods: {
+        debris_tornado_ef5: { color: "#38bdf8", opacity: 120, speed: 150 },
+        autumn_noreaster_gale: { color: "#f97316", opacity: 105, speed: 135 },
+      },
+    });
+    expect(presetCode).toContain('"format":"bun-rad-studio-atmosphere-preset"');
+    const importedPreset = await atmo.importAtmospherePresetCode(presetCode);
+    expect(importedPreset).toBeTruthy();
+    expect(importedPreset.name).toBe("EF5 Leaf & Newspaper Squall");
+    expect(importedPreset.effect).toBe("debris_tornado_ef5+autumn_noreaster_gale+urban_cyclone_debris");
+    expect(importedPreset.tier).toBe("extreme");
+    expect(importedPreset.layerMods.debris_tornado_ef5.color).toBe("#38bdf8");
+    expect(importedPreset.layerMods.autumn_noreaster_gale.speed).toBe(135);
+
+    // 2. Built-in Weather/Storm & Visceral File Manager Themes apply UI Element FX & Custom Icon Packs
+    await themes.applyPalette("inferno_fire_folders");
+    expect(doc.documentElement.getAttribute("data-ui-fx")).toBe("fire_folders");
+    expect(doc.documentElement.getAttribute("data-icon-pack")).toBe("inferno");
+    expect(domMod.iconForEntry({ isDirectory: true, name: "src" })).toBe("🔥");
+    expect(domMod.iconForEntry({ isDirectory: false, name: "main.ts" })).toBe("⚡");
+
+    await themes.applyPalette("toxic_slime_ooze");
+    expect(doc.documentElement.getAttribute("data-ui-fx")).toBe("slime_drip");
+    expect(doc.documentElement.getAttribute("data-icon-pack")).toBe("slime");
+    expect(domMod.iconForEntry({ isDirectory: true, name: "mutants" })).toBe("🧪");
+
+    await themes.applyPalette("ef5_debris_tornado");
+    expect(doc.documentElement.getAttribute("data-ui-fx")).toBe("storm_wind");
+    expect(doc.documentElement.getAttribute("data-icon-pack")).toBe("storm_tempest");
+    expect(domMod.iconForEntry({ isDirectory: true, name: "tornado_alley" })).toBe("🌪️");
+
+    // 3. Universal Premade & Custom Theme Share Codes (CCFM-THEME-v1 & CCFM-PACK-v1)
+    const premadeExport = await api.call("themes/custom/export", { key: "inferno_fire_folders" });
+    expect(premadeExport.shareCode?.startsWith("CCFM-THEME-v1:")).toBe(true);
+    expect(premadeExport.theme.name).toContain("Inferno");
+
+    // Anyone with Codecaine File Manager can import that 1-line CCFM-THEME-v1 share code directly
+    const importedFromCode = await api.call("themes/custom/import", { json: premadeExport.shareCode });
+    expect(importedFromCode.importedCount).toBe(1);
+    expect(importedFromCode.theme.fx?.uiElementFx).toBe("fire_folders");
+    expect(importedFromCode.theme.fx?.iconPackStyle).toBe("inferno");
+
+    // Export a curated Storm & Debris Pack as CCFM-PACK-v1 and import it
+    const packExport = await api.call("themes/custom/export-pack", {
+      keys: ["ef5_debris_tornado", "inferno_fire_folders", "toxic_slime_ooze", "urban_street_cyclone"],
+      packName: "Storm & Visceral Pack",
+    });
+    expect(packExport.count).toBe(4);
+    expect(packExport.shareCode?.startsWith("CCFM-PACK-v1:")).toBe(true);
+    const reimportedPack = await api.call("themes/custom/import-pack", { json: packExport.shareCode });
+    expect(reimportedPack.importedCount).toBe(4);
+
+    // 4. Theme Hacker Lab: customVars, customCss sanitization, and 1-click nostalgic mutators
+    expect(themeStore.validateCustomVars({
+      "--row-h": "32px",
+      "--radius": "0px",
+      "--toolbar-bg": "linear-gradient(90deg, #ff4500, #111)",
+    })).toEqual({
+      "row-h": "32px",
+      radius: "0px",
+      "toolbar-bg": "linear-gradient(90deg, #ff4500, #111)",
+    });
+    expect(() => themeStore.validateCustomVars({ "--evil": "url(javascript:alert(1))" })).toThrow(/disallowed/i);
+
+    const cleanCss = themeStore.sanitizeCustomCss(".row.is-folder { transform: skewX(-3deg); }");
+    expect(cleanCss).toContain("skewX(-3deg)");
+    const strippedImport = themeStore.sanitizeCustomCss("@import url('https://evil.example/x.css'); .row { opacity: 0.95; }");
+    expect(strippedImport).not.toContain("@import");
+    expect(strippedImport).toContain("opacity: 0.95");
+
+    // Open Theme Editor and test the 🛠️ Theme Hacker Lab + 1-click Mutators + customVars + customCss
+    const editorMod = await import("../resources/file_manager/ui/themeEditor.js") as any;
+    expect(editorMod.THEME_HACK_MUTATORS.length).toBeGreaterThanOrEqual(7);
+
+    void editorMod.openThemeEditor({ seedKey: "ef5_debris_tornado" });
+    await sleep(300);
+    expect(doc.querySelector(".theme-hacker-studio")).toBeTruthy();
+
+    // Click the "🐧 90s Linux / CDE / BeOS Chisel" nostalgic mutator
+    const retroMutator = doc.querySelector('[data-hack-mutator="retro_linux_cde"]') as any;
+    expect(retroMutator).toBeTruthy();
+    retroMutator.click();
+    await sleep(250);
+    expect(doc.documentElement.getAttribute("data-icon-pack")).toBe("retro_pixel");
+    expect(doc.documentElement.getAttribute("data-corner-profile")).toBe("sharp");
+
+    // Append a CSS snippet chip and save the hacked theme
+    const snippetBtn = doc.querySelector('[data-css-snippet="retro_bevel"]') as any;
+    expect(snippetBtn).toBeTruthy();
+    snippetBtn.click();
+
+    const nameInput = doc.querySelector(".theme-editor input[type='text']") as any;
+    nameInput.value = "My Nostalgic CDE Hacked Theme";
+    nameInput.dispatchEvent(new doc.defaultView.Event("input", { bubbles: true }));
+
+    editorButton("Save theme").click();
+    await sleep(350);
+    closeDialogs();
+
+    const savedCustom = await api.call("themes/list", {});
+    const hacked = savedCustom.themes.find((t: any) => t.name === "My Nostalgic CDE Hacked Theme");
+    expect(hacked).toBeTruthy();
+    const hackedDetail = await api.call("themes/get", { key: hacked.key });
+    expect(hackedDetail.source?.fx?.iconPackStyle).toBe("retro_pixel");
+    expect(hackedDetail.source?.fx?.customVars?.radius).toBe("0px");
+    expect(hackedDetail.source?.fx?.customCss).toContain("inset 1px 1px 0");
+
+    // 5. 🎬 Theme Show & Screensaver Studio (modes, channels, HUD, stepping, pause/resume, and restore on exit)
+    expect((themes as any).THEME_SHOW_MODES_META.length).toBe(4);
+    expect((themes as any).THEME_SHOW_CHANNELS_META.length).toBe(7);
+
+    void (themes as any).showThemeShowDialog();
+    await sleep(200);
+    expect(doc.querySelector(".dialog-title")?.textContent).toBe("Theme Show & Screensaver Studio");
+    expect(doc.querySelectorAll("[data-show-mode-card]").length).toBe(4);
+    expect(doc.querySelectorAll("[data-show-channel-card]").length).toBe(7);
+    (doc.querySelector('[data-show-mode-card="retro_afterdark"]') as any).click();
+    (doc.querySelector('[data-show-channel-card="storms_debris"]') as any).click();
+    editorButton("🎬 Launch Theme Show Now").click();
+    await sleep(350);
+
+    expect((themes as any).isThemeShowActive()).toBe(true);
+    expect(doc.documentElement.dataset.themeShow).toBe("retro_afterdark");
+    expect(doc.getElementById("fm-theme-show-overlay")).toBeTruthy();
+    expect(doc.querySelector("[data-theme-show-retro-badge]")).toBeTruthy();
+    expect(doc.querySelector("[data-theme-show-clock]")?.textContent).toMatch(/^\d{2}:\d{2}:\d{2}$/);
+
+    const firstSceneText = doc.querySelector("[data-theme-show-now-playing]")?.textContent;
+    await (themes as any).stepThemeShow(1);
+    const secondSceneText = doc.querySelector("[data-theme-show-now-playing]")?.textContent;
+    expect(secondSceneText).not.toBe(firstSceneText);
+
+    expect((themes as any).togglePauseThemeShow()).toBe(true);
+    expect(doc.querySelector("[data-theme-show-pause]")?.textContent).toContain("Resume");
+    expect((themes as any).togglePauseThemeShow()).toBe(false);
+
+    await (themes as any).stopThemeShow({ keepCurrent: false });
+    expect((themes as any).isThemeShowActive()).toBe(false);
+    expect(doc.getElementById("fm-theme-show-overlay")).toBeNull();
+    expect(doc.documentElement.dataset.themeShow).toBeUndefined();
+
+    // 6. 📦 Bulk Theme Import & Auto-Prompt Conflict Resolution (replace, keep_both/rename, merge_fx, skip)
+    const codeA = themeStore.encodeThemeShareCode(validateDraft({
+      name: "My Nostalgic CDE Hacked Theme", // Conflicts with existing custom theme!
+      dark: true,
+      colors: { background: "#05070a", card: "#101622", text: "#f0f6ff", accent: "#00ffaa" },
+      fx: { glow: "plasma", glowColor: "#00ffaa", glowColor2: "#00ffaa", blur: 24, glass: 0.65, glowIntensity: 0.9, borderOpacity: 0.4, grain: "none", scanlines: "none", radius: "round", border: "neon", motion: "spring", sheen: true, noise: false, chromatic: true, ambient: true, atmosphere: "debris_tornado_ef5+cyberstorm", uiElementFx: "fire_folders", iconPackStyle: "inferno" },
+    }));
+    const codeB = themeStore.encodeThemeShareCode(validateDraft({
+      name: "Brand New Storm Theme", // Clean (no conflict)
+      dark: true,
+      colors: { background: "#080c14", card: "#121a28", text: "#e8f0ff", accent: "#38bdf8" },
+    }));
+    const codeDuplicateB = themeStore.encodeThemeShareCode(validateDraft({
+      name: "Brand New Storm Theme", // Batch duplicate conflict!
+      dark: true,
+      colors: { background: "#0a101d", card: "#162032", text: "#ffffff", accent: "#f43f5e" },
+    }));
+
+    const multiLineBulkPayload = `${codeA}\n${codeB}\n${codeDuplicateB}`;
+    const inspection = await api.call("themes/custom/inspect-pack", { text: multiLineBulkPayload });
+    expect(inspection.totalCount).toBe(3);
+    expect(inspection.conflictCount).toBe(2);
+    expect(inspection.cleanCount).toBe(1);
+    expect(inspection.items[0].conflictKind).toBe("existing_custom");
+    expect(inspection.items[0].changedColors).toContain("accent");
+    expect(inspection.items[1].conflictKind).toBe("none");
+    expect(inspection.items[2].conflictKind).toBe("batch_duplicate");
+
+    // Trigger runBulkThemeImportFlow: since conflictCount > 0, it MUST auto-prompt the Conflict Resolution Dialog!
+    const flowPromise = (themes as any).runBulkThemeImportFlow(multiLineBulkPayload, { applyFirst: false });
+    await sleep(250);
+
+    expect(doc.querySelector("[data-conflict-summary]")).toBeTruthy();
+    expect(doc.querySelectorAll("[data-conflict-row]").length).toBe(2);
+
+    // Choose "keep_both" with custom rename for item 0, and "skip" for item 2 (batch duplicate)
+    const select0 = doc.querySelector('[data-conflict-action="0"]') as any;
+    const rename0 = doc.querySelector('[data-conflict-rename="0"]') as any;
+    expect(select0).toBeTruthy();
+    select0.value = "keep_both";
+    select0.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
+    expect(rename0.disabled).toBe(false);
+    rename0.value = "My Nostalgic CDE (Storm Edition)";
+
+    const select2 = doc.querySelector('[data-conflict-action="2"]') as any;
+    select2.value = "skip";
+    select2.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
+
+    editorButton("✅ Apply Resolutions & Import").click();
+    const flowOut = await flowPromise;
+    expect(flowOut.completed).toBe(true);
+    expect(flowOut.result.addedCount).toBe(2);
+    expect(flowOut.result.renamedCount).toBe(1);
+    expect(flowOut.result.skippedCount).toBe(1);
+
+    // Also test "replace" and "merge_fx" resolution policies via themes/custom/import-pack
+    const replaceRes = await api.call("themes/custom/import-pack", {
+      text: codeA,
+      resolutions: [{ index: 0, action: "merge_fx" }],
+    });
+    expect(replaceRes.mergedCount).toBe(1);
+    const mergedDetail = await api.call("themes/get", { key: hacked.key });
+    expect(mergedDetail.source?.fx?.uiElementFx).toBe("fire_folders");
+    expect(mergedDetail.source?.colors?.accent).toBe("#ffbe0b"); // Kept existing CDE accent color while merging Inferno FX!
+
+    await themes.applyPalette("");
+    atmo.applyAtmosphere("none");
+    closeDialogs();
+  });
+});

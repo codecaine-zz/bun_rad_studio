@@ -1,6 +1,21 @@
 # Changelog
 
-All notable changes. Version 1.4.6 is the fifteenth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4 and 1.4.5 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.4.7 is the sixteenth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.4.5 and 1.4.6 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+
+## 1.4.7 (18 October 2026)
+
+### Added
+
+- **Cross-platform Terminal Paste Keyboard Shortcuts & Native Clipboard Read Endpoint (`/api/pastetext`).** Paste directly into the File Manager terminal using `Ctrl+V`, `Ctrl+Shift+V`, `Command+V` (`⌘V`), or `Shift+Insert` when the terminal is focused, or press `Ctrl+Alt+V` (`⌘⌥V` on macOS) from anywhere in the File Manager to open/focus the terminal and paste clipboard text without using the mouse. Backed by a cross-platform server-side clipboard reader (`readClipboardTextSync`: `pbpaste` on macOS, UTF-8 `Get-Clipboard -Raw` on Windows, and `wl-paste`/`xclip`/`xsel` on Linux) with browser clipboard fallback so pasting works reliably inside Linux WebKitGTK and Windows/macOS webviews.
+- **218 Built-in Themes, Extreme-Weather & 3D Studio Themes, and Custom SVG Icon Packs.** Expand the shared and File Manager theme catalog to 218 built-in themes (75 Futuristic FX themes) with 18 new Extreme-Weather, Planetary Storm, and 3D Studio themes (`ef5_debris_tornado`, `inferno_fire_folders`, `toxic_slime_ooze`, `urban_street_cyclone`, `autumn_noreaster_gale`, `supercell_emerald_vortex`, `category_5_eyewall`, `mesosphere_red_sprite`, `cryo_icicle_blizzard`, `scrapyard_shrapnel_vortex`, `jovian_red_spot_storm`, `neptune_diamond_squall`, `tahoe_studio_3d`, `m4_pro_display_xdr`, `win11_rtx_fluent_3d`, `hdr_cinema_gallery`, `linux_workstation_hidpi`, `studio_architect_minimal`), plus 15 bespoke SVG file/folder icon pack styles (`macos_tahoe_3d`, `pro_studio_xdr`, `win11_fluent_pro`, `hdr_photo_studio`, `linux_papirus_pro`, `blazing_folders`, `bio_slime_vats`, `tornado_vortex`, `cryo_ice_crystals`, `liquid_gems`, and more).
+
+### Fixed
+
+- **Delete / Backspace Key File Deletion Across Windows, Linux, and Virtual Machines.** Enable `backspaceDeletes` by default on Windows and Linux (matching macOS) and automatically migrate legacy `file_manager.json` settings that had the old `false` default, so pressing the physical `Delete` key (`Backspace` or `Delete`) on Mac keyboards inside Linux or Windows virtual machines moves selected items to the Recycle Bin (`Shift+Backspace` for permanent delete, `Alt+Backspace` for Graveyard) in both the File list and the Code tab's file tree without holding `Fn`.
+
+### Improved
+
+- **Cross-platform release refresh (`v1.4.7`).** Recompile and package the standalone Codecaine File Manager, full application and CLI suite, and macOS `.app` bundles across all supported macOS, Linux, and Windows targets.
 
 ## 1.4.6 (18 October 2026)
 

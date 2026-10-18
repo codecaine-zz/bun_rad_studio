@@ -142,6 +142,13 @@ function validateEffects(input: unknown, accent: string): ThemeFx {
   const cursorEffect = r.cursorEffect !== undefined ? choice("cursorEffect", ["none", "spotlight", "ripple", "magnetic", "prism"], "spotlight") : undefined;
   const vignette = r.vignette !== undefined ? choice("vignette", ["none", "subtle", "cinema", "ambient"], "none") : undefined;
   const saturation = r.saturation !== undefined ? number("saturation", 2.5, 1.35) : undefined;
+  const uiElementFx = r.uiElementFx !== undefined ? choice("uiElementFx", ["off", "tahoe_glass_folders", "fluent_mica_folders", "xdr_titanium_folders", "fire_folders", "slime_drip", "cryo_frost", "tesla_arcs", "storm_wind", "mercury_chrome", "holo_glitch", "void_tentacles"], "off") : undefined;
+  const iconPackStyle = r.iconPackStyle !== undefined ? choice("iconPackStyle", ["default", "macos_tahoe_3d", "win11_fluent_pro", "pro_studio_xdr", "hdr_photo_studio", "linux_papirus_pro", "nordic_minimal", "inferno", "slime", "storm_tempest", "neon_cyber", "liquid_gems", "cryo_crystal", "retro_pixel", "xenotech_2126"], "default") : undefined;
+  const fontProfile = r.fontProfile !== undefined ? choice("fontProfile", ["default", "scifi", "terminal", "editorial", "rounded"], "default") : undefined;
+  const cornerProfile = r.cornerProfile !== undefined ? choice("cornerProfile", ["default", "sharp", "rounded", "pill"], "default") : undefined;
+  const iconGlow = r.iconGlow !== undefined ? choice("iconGlow", ["off", "subtle", "neon", "hyper"], "off") : undefined;
+  const customVars = r.customVars !== undefined ? validateCustomVars(r.customVars) : undefined;
+  const customCss = r.customCss !== undefined ? sanitizeCustomCss(r.customCss) : undefined;
   return {
     glow: choice("glow", ["none", "soft", "neon", "bloom", "aurora", "laser", "plasma", "ember"], "soft"),
     glowColor: color("glowColor", accent), glowColor2: color("glowColor2", accent),
@@ -158,6 +165,13 @@ function validateEffects(input: unknown, accent: string): ThemeFx {
     ...(cursorEffect !== undefined ? { cursorEffect } : {}),
     ...(vignette !== undefined ? { vignette } : {}),
     ...(saturation !== undefined ? { saturation } : {}),
+    ...(uiElementFx && uiElementFx !== "off" ? { uiElementFx } : {}),
+    ...(iconPackStyle && iconPackStyle !== "default" ? { iconPackStyle } : {}),
+    ...(fontProfile && fontProfile !== "default" ? { fontProfile } : {}),
+    ...(cornerProfile && cornerProfile !== "default" ? { cornerProfile } : {}),
+    ...(iconGlow && iconGlow !== "off" ? { iconGlow } : {}),
+    ...(customVars && Object.keys(customVars).length ? { customVars } : {}),
+    ...(customCss ? { customCss } : {}),
     ...(r.prismEdge !== undefined ? { prismEdge: flag("prismEdge") } : {}),
     ...(r.innerGlow !== undefined ? { innerGlow: flag("innerGlow") } : {}),
     ...(r.frostedRim !== undefined ? { frostedRim: flag("frostedRim") } : {}),
@@ -165,6 +179,97 @@ function validateEffects(input: unknown, accent: string): ThemeFx {
     ...(r.crtCurve !== undefined ? { crtCurve: flag("crtCurve") } : {}),
     ...(r.parallax !== undefined ? { parallax: flag("parallax") } : {}),
   };
+}
+
+const SAFE_VAR_KEY = /^[a-z][a-z0-9-]{0,48}$/i;
+const UNSAFE_CSS_VALUE = /[;{}<>]|url\s*\(|javascript:|expression\s*\(|@import/i;
+
+/** Validates per-token CSS custom property overrides (`customVars`) for deep theme hacking. */
+export function validateCustomVars(raw: unknown): Record<string, string> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new FmError("BAD_REQUEST", "Custom variable overrides must be an object.");
+  const out: Record<string, string> = {};
+  const entries = Object.entries(raw as Record<string, unknown>);
+  if (entries.length > 64) throw new FmError("BAD_REQUEST", "Keep custom variable overrides to 64 tokens or fewer.");
+  for (const [rawKey, rawVal] of entries) {
+    const key = String(rawKey).trim().replace(/^--/, "");
+    if (!SAFE_VAR_KEY.test(key)) throw new FmError("BAD_REQUEST", `Invalid CSS variable name "--${key}".`);
+    if (rawVal === undefined || rawVal === null || rawVal === "") continue;
+    if (typeof rawVal !== "string") throw new FmError("BAD_REQUEST", `The value for "--${key}" must be a string.`);
+    const val = clean(rawVal).slice(0, 160);
+    if (!val) continue;
+    if (UNSAFE_CSS_VALUE.test(val)) throw new FmError("BAD_REQUEST", `The value for "--${key}" contains disallowed CSS syntax.`);
+    out[key] = val;
+  }
+  return out;
+}
+
+/** Sanitizes personal CSS overrides (`customCss`) so users can hack selectors, keyframes, and shaders safely without XSS/external requests. */
+export function sanitizeCustomCss(raw: unknown): string {
+  if (raw === undefined || raw === null || raw === "") return "";
+  if (typeof raw !== "string") throw new FmError("BAD_REQUEST", "Custom CSS must be text.");
+  if (raw.length > 8000) throw new FmError("BAD_REQUEST", "Keep custom CSS overrides under 8,000 characters.");
+  const stripped = raw
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, "")
+    .replace(/<\/?\s*style[^>]*>/gi, "")
+    .replace(/<\/?\s*script[^>]*>/gi, "")
+    .replace(/@import\b[^;{}]*;?/gi, "")
+    .replace(/url\s*\(\s*['"]?\s*(?:https?:|ftp:|data:text\/html|javascript:|vbscript:|file:|\/\/)[^)]*\)/gi, "none")
+    .replace(/expression\s*\([^)]*\)/gi, "none")
+    .replace(/-moz-binding\s*:[^;{}]*/gi, "")
+    .replace(/behavior\s*:[^;{}]*/gi, "")
+    .replace(/javascript\s*:/gi, "")
+    .trim();
+  return stripped;
+}
+
+export const THEME_SHARE_CODE_PREFIX = "CCFM-THEME-v1:";
+export const PACK_SHARE_CODE_PREFIX = "CCFM-PACK-v1:";
+
+/** Encodes any ThemeDraft (premade or custom/hacked) into a compact one-line shareable code (`CCFM-THEME-v1:...`). */
+export function encodeThemeShareCode(t: ThemeDraft): string {
+  const payload = {
+    format: EXPORT_FORMAT,
+    version: 1,
+    name: t.name,
+    dark: t.dark,
+    ...(t.base ? { base: t.base } : {}),
+    colors: t.colors,
+    ...(t.fx ? { fx: t.fx } : {}),
+  };
+  return `${THEME_SHARE_CODE_PREFIX}${Buffer.from(JSON.stringify(payload), "utf8").toString("base64url")}`;
+}
+
+/** Encodes an array of ThemeDrafts (premade + custom bundle) into a compact one-line shareable pack code (`CCFM-PACK-v1:...`). */
+export function encodeThemePackShareCode(themes: ThemeDraft[]): string {
+  const payload = {
+    format: EXPORT_PACK_FORMAT,
+    version: 1,
+    themes: themes.map((t) => ({
+      name: t.name,
+      dark: t.dark,
+      ...(t.base ? { base: t.base } : {}),
+      colors: t.colors,
+      ...(t.fx ? { fx: t.fx } : {}),
+    })),
+  };
+  return `${PACK_SHARE_CODE_PREFIX}${Buffer.from(JSON.stringify(payload), "utf8").toString("base64url")}`;
+}
+
+/** Decodes a `CCFM-THEME-v1:...` or `CCFM-PACK-v1:...` share code into a JSON string, or returns the input unchanged if not a share code. */
+export function decodeShareCodeToJson(raw: string): string {
+  const trimmed = raw.trim();
+  for (const prefix of [THEME_SHARE_CODE_PREFIX, PACK_SHARE_CODE_PREFIX]) {
+    if (trimmed.startsWith(prefix)) {
+      const b64 = trimmed.slice(prefix.length).trim();
+      if (!b64) throw new FmError("BAD_REQUEST", "That share code is incomplete.");
+      try {
+        return Buffer.from(b64, "base64url").toString("utf8");
+      } catch {
+        throw new FmError("BAD_REQUEST", "That share code couldn't be decoded.");
+      }
+    }
+  }
+  return trimmed;
 }
 
 /** The shape the built-in themes have, so one code path makes the page colors for both. */
@@ -251,10 +356,10 @@ export async function deleteCustom(ctx: FmContext, id: unknown): Promise<void> {
 }
 
 /** The text a person can copy to share a theme. */
-export const exportTheme = (t: ThemeDraft): string => JSON.stringify({ format: EXPORT_FORMAT, version: 1, name: t.name, dark: t.dark, colors: t.colors, ...(t.fx ? { fx: t.fx } : {}) }, null, 2);
+export const exportTheme = (t: ThemeDraft): string => JSON.stringify({ format: EXPORT_FORMAT, version: 1, name: t.name, dark: t.dark, ...(t.base ? { base: t.base } : {}), colors: t.colors, ...(t.fx ? { fx: t.fx } : {}) }, null, 2);
 
-/** Formats computed theme tokens as a standalone `:root` CSS custom properties stylesheet. */
-export function exportThemeCss(name: string, scheme: "light" | "dark", vars: Record<string, string>, effectsCss?: string): string {
+/** Formats computed theme tokens as a standalone `:root` CSS custom properties stylesheet (including personal customCss rules). */
+export function exportThemeCss(name: string, scheme: "light" | "dark", vars: Record<string, string>, effectsCss?: string, customCss?: string): string {
   const safeName = clean(name || "Custom Theme");
   const lines = [
     `/* ${safeName} (${scheme}) — exported from File Manager */`,
@@ -268,6 +373,9 @@ export function exportThemeCss(name: string, scheme: "light" | "dark", vars: Rec
     }
   }
   lines.push("}");
+  if (customCss && customCss.trim()) {
+    lines.push("", "/* Personal Custom CSS Overrides */", sanitizeCustomCss(customCss));
+  }
   return lines.join("\n");
 }
 
@@ -286,13 +394,14 @@ export function exportThemePack(themes: ThemeDraft[]): string {
   }, null, 2);
 }
 
-/** Reads shared theme text. Accepts the exported form, a legacy/SimpleGUI object, or a bare `{ name, dark, colors }`. */
+/** Reads shared theme text or `CCFM-THEME-v1:` / `CCFM-PACK-v1:` share code. Accepts the exported form, a legacy/SimpleGUI object, or a bare `{ name, dark, colors }`. */
 export function parseShared(text: unknown): ThemeDraft {
   if (typeof text !== "string" || !text.trim()) throw new FmError("BAD_REQUEST", "Paste the theme text first.");
   if (text.length > MAX_IMPORT_BYTES) throw new FmError("BAD_REQUEST", "That text is too long to be a theme.");
+  const decoded = decodeShareCodeToJson(text);
   let data: unknown;
   try {
-    data = JSON.parse(text);
+    data = JSON.parse(decoded);
   } catch {
     throw new FmError("BAD_REQUEST", "That text isn't a theme. Copy the whole text from Export.");
   }
@@ -303,17 +412,77 @@ export function parseShared(text: unknown): ThemeDraft {
   return validateDraft(migrateThemeInput(data));
 }
 
-/** Parses either a multi-theme pack or a single theme JSON string into an array of validated ThemeDrafts. */
-export function parseThemePack(text: unknown): ThemeDraft[] {
-  if (typeof text !== "string" || !text.trim()) throw new FmError("BAD_REQUEST", "Paste the theme pack text first.");
-  if (text.length > MAX_PACK_IMPORT_BYTES) throw new FmError("BAD_REQUEST", "That text is too long to be a theme pack.");
+/**
+ * Parses any bulk theme input into an array of validated ThemeDrafts:
+ * - Multiple `CCFM-THEME-v1:...` and/or `CCFM-PACK-v1:...` share codes on separate lines or mixed in text
+ * - A Theme Pack JSON object (`{ format: "bun-rad-studio-file-manager-theme-pack", themes: [...] }`)
+ * - A JSON array of theme objects (`[ { name, dark, colors, fx }, ... ]`)
+ * - Newline-delimited JSON objects (NDJSON)
+ * - A single Theme JSON object (`{ format: "bun-rad-studio-file-manager-theme", ... }`)
+ */
+export function parseThemePack(input: unknown): ThemeDraft[] {
+  if (Array.isArray(input)) {
+    if (!input.length) throw new FmError("BAD_REQUEST", "That theme pack has no themes in it.");
+    return input.slice(0, MAX_CUSTOM_THEMES).map((item) => validateDraft(migrateThemeInput(item)));
+  }
+  if (typeof input !== "string" || !input.trim()) throw new FmError("BAD_REQUEST", "Paste the theme pack text first.");
+  if (input.length > MAX_PACK_IMPORT_BYTES) throw new FmError("BAD_REQUEST", "That text is too long to be a theme pack.");
+
+  const trimmed = input.trim();
+
+  // Check if multiple CCFM share codes are present in the text
+  const shareCodeMatches = [...trimmed.matchAll(/CCFM-(?:THEME|PACK)-v1:[A-Za-z0-9+/=_-]+/g)].map((m) => m[0]);
+  if (shareCodeMatches.length > 1 || (shareCodeMatches.length === 1 && !trimmed.startsWith("{") && !trimmed.startsWith("["))) {
+    const collected: ThemeDraft[] = [];
+    for (const token of shareCodeMatches) {
+      const jsonStr = decodeShareCodeToJson(token);
+      let parsedToken: unknown;
+      try {
+        parsedToken = JSON.parse(jsonStr);
+      } catch {
+        throw new FmError("BAD_REQUEST", "One of the share codes couldn't be decoded.");
+      }
+      const list = parsedToken && typeof parsedToken === "object" && Array.isArray((parsedToken as any).themes)
+        ? (parsedToken as any).themes
+        : [parsedToken];
+      for (const item of list) {
+        if (collected.length >= MAX_CUSTOM_THEMES) break;
+        collected.push(validateDraft(migrateThemeInput(item)));
+      }
+    }
+    if (!collected.length) throw new FmError("BAD_REQUEST", "That theme pack has no themes in it.");
+    return collected;
+  }
+
+  const decoded = decodeShareCodeToJson(trimmed);
   let data: unknown;
   try {
-    data = JSON.parse(text);
+    data = JSON.parse(decoded);
   } catch {
+    // Support newline-delimited JSON objects (NDJSON) pasted together
+    const lines = decoded.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length > 1 && lines.every((l) => l.startsWith("{") && l.endsWith("}"))) {
+      const ndjsonDrafts: ThemeDraft[] = [];
+      for (const line of lines.slice(0, MAX_CUSTOM_THEMES)) {
+        try {
+          const obj = JSON.parse(line);
+          const sub = obj && typeof obj === "object" && Array.isArray((obj as any).themes) ? (obj as any).themes : [obj];
+          for (const item of sub) {
+            if (ndjsonDrafts.length < MAX_CUSTOM_THEMES) ndjsonDrafts.push(validateDraft(migrateThemeInput(item)));
+          }
+        } catch {
+          throw new FmError("BAD_REQUEST", "That text isn't valid JSON. Copy the whole text from Export.");
+        }
+      }
+      if (ndjsonDrafts.length) return ndjsonDrafts;
+    }
     throw new FmError("BAD_REQUEST", "That text isn't valid JSON. Copy the whole text from Export.");
   }
   if (!data || typeof data !== "object") throw new FmError("BAD_REQUEST", "That text isn't a theme pack.");
+  if (Array.isArray(data)) {
+    if (!data.length) throw new FmError("BAD_REQUEST", "That theme pack has no themes in it.");
+    return data.slice(0, MAX_CUSTOM_THEMES).map((item) => validateDraft(migrateThemeInput(item)));
+  }
   const r = data as Record<string, unknown>;
   if (r.format !== undefined && r.format !== EXPORT_PACK_FORMAT && r.format !== EXPORT_FORMAT) {
     throw new FmError("BAD_REQUEST", "That isn't a File Manager theme or theme pack.");
@@ -327,21 +496,331 @@ export function parseThemePack(text: unknown): ThemeDraft[] {
   return drafts;
 }
 
-/** Imports a Theme Pack (or single theme) and saves all of them into the user's custom themes. */
-export async function importThemePack(ctx: FmContext, text: unknown): Promise<CustomTheme[]> {
-  const drafts = parseThemePack(text);
-  const all = await loadCustom(ctx);
-  if (all.length + drafts.length > MAX_CUSTOM_THEMES) {
-    throw new FmError("TOO_MANY", `You can keep up to ${MAX_CUSTOM_THEMES} themes of your own (you have ${all.length}, and this pack has ${drafts.length}).`);
+export const parseBulkThemes = parseThemePack;
+
+export type ThemeConflictStrategy = "replace" | "keep_both" | "skip" | "merge_fx";
+
+export interface BulkThemeInspectItem {
+  index: number;
+  draft: ThemeDraft;
+  hasConflict: boolean;
+  conflictKind: "none" | "existing_custom" | "batch_duplicate";
+  existingCustom?: {
+    id: string;
+    name: string;
+    dark: boolean;
+    colors: ThemeDraft["colors"];
+    fx?: ThemeFx;
+  };
+  batchDuplicateIndex?: number;
+  identical: boolean;
+  changedColors: string[];
+  changedFx: boolean;
+  suggestedRename: string;
+  recommendedAction: ThemeConflictStrategy;
+}
+
+export interface BulkThemeInspection {
+  totalCount: number;
+  conflictCount: number;
+  cleanCount: number;
+  existingCustomCount: number;
+  maxCustomThemes: number;
+  items: BulkThemeInspectItem[];
+}
+
+export interface BulkItemResolution {
+  index?: number;
+  name?: string;
+  action: ThemeConflictStrategy | "add";
+  renameTo?: string;
+  targetId?: string;
+}
+
+export interface BulkImportOptions {
+  /** Default strategy when a conflict occurs and no per-item resolution is specified. */
+  onConflict?: ThemeConflictStrategy | "prompt";
+  /** Per-item resolution choices keyed by item index or theme name. */
+  resolutions?: BulkItemResolution[] | Record<string, BulkItemResolution | ThemeConflictStrategy>;
+  /** Optional subset of batch indices to include. */
+  includeIndices?: number[];
+  /** When true under keep_both, automatically renames conflicting themes using suggestedRename so names stay unique. */
+  autoRenameConflicts?: boolean;
+}
+
+export interface BulkImportReport {
+  imported: CustomTheme[];
+  count: number;
+  importedCount: number;
+  addedCount: number;
+  replacedCount: number;
+  renamedCount: number;
+  mergedCount: number;
+  skippedCount: number;
+  requiresResolution: boolean;
+  inspection: BulkThemeInspection;
+  first: CustomTheme | null;
+}
+
+const normName = (name: string) => clean(name).toLowerCase();
+
+function nextUniqueThemeName(baseName: string, takenLowerNames: Set<string>): string {
+  const root = clean(baseName).replace(/\s*\(\d+\)$/, "").slice(0, 33) || "Imported Theme";
+  for (let n = 2; n <= 99; n++) {
+    const candidate = `${root} (${n})`.slice(0, MAX_THEME_NAME);
+    if (!takenLowerNames.has(normName(candidate))) {
+      return candidate;
+    }
   }
-  const created: CustomTheme[] = [];
-  for (const draft of drafts) {
+  return `${root.slice(0, 31)} (${randomBytes(2).toString("hex")})`;
+}
+
+function diffDrafts(existing: ThemeDraft, incoming: ThemeDraft): { identical: boolean; changedColors: string[]; changedFx: boolean } {
+  const changedColors: string[] = [];
+  for (const k of COLOUR_KEYS) {
+    const a = (existing.colors[k] ?? "").toLowerCase();
+    const b = (incoming.colors[k] ?? "").toLowerCase();
+    if (a !== b) changedColors.push(k);
+  }
+  const changedDark = existing.dark !== incoming.dark;
+  const changedFx = JSON.stringify(existing.fx ?? null) !== JSON.stringify(incoming.fx ?? null);
+  const identical = !changedDark && changedColors.length === 0 && !changedFx;
+  return { identical, changedColors, changedFx };
+}
+
+/** Pre-flight inspection of a bulk theme import to detect name collisions against existing custom themes or within the batch itself. */
+export async function inspectBulkThemeImport(ctx: FmContext, input: unknown): Promise<BulkThemeInspection> {
+  const drafts = parseThemePack(input);
+  const existing = await loadCustom(ctx);
+  const takenNames = new Set<string>(existing.map((t) => normName(t.name)));
+  const seenBatchNames = new Map<string, number>();
+
+  const items: BulkThemeInspectItem[] = drafts.map((draft, index) => {
+    const key = normName(draft.name);
+    const matchExisting = existing.find((t) => normName(t.name) === key);
+    const earlierBatchIdx = seenBatchNames.get(key);
+    seenBatchNames.set(key, earlierBatchIdx ?? index);
+
+    if (matchExisting) {
+      const { identical, changedColors, changedFx } = diffDrafts(matchExisting, draft);
+      const suggestedRename = nextUniqueThemeName(draft.name, takenNames);
+      takenNames.add(normName(suggestedRename));
+      return {
+        index,
+        draft,
+        hasConflict: true,
+        conflictKind: "existing_custom",
+        existingCustom: {
+          id: matchExisting.id,
+          name: matchExisting.name,
+          dark: matchExisting.dark,
+          colors: matchExisting.colors,
+          ...(matchExisting.fx ? { fx: matchExisting.fx } : {}),
+        },
+        identical,
+        changedColors,
+        changedFx,
+        suggestedRename,
+        recommendedAction: identical ? "skip" : "replace",
+      };
+    }
+
+    if (earlierBatchIdx !== undefined) {
+      const earlierDraft = drafts[earlierBatchIdx]!;
+      const { identical, changedColors, changedFx } = diffDrafts(earlierDraft, draft);
+      const suggestedRename = nextUniqueThemeName(draft.name, takenNames);
+      takenNames.add(normName(suggestedRename));
+      return {
+        index,
+        draft,
+        hasConflict: true,
+        conflictKind: "batch_duplicate",
+        batchDuplicateIndex: earlierBatchIdx,
+        identical,
+        changedColors,
+        changedFx,
+        suggestedRename,
+        recommendedAction: identical ? "skip" : "keep_both",
+      };
+    }
+
+    takenNames.add(key);
+    return {
+      index,
+      draft,
+      hasConflict: false,
+      conflictKind: "none",
+      identical: false,
+      changedColors: [],
+      changedFx: false,
+      suggestedRename: draft.name,
+      recommendedAction: "keep_both",
+    };
+  });
+
+  const conflictCount = items.filter((i) => i.hasConflict).length;
+  return {
+    totalCount: items.length,
+    conflictCount,
+    cleanCount: items.length - conflictCount,
+    existingCustomCount: existing.length,
+    maxCustomThemes: MAX_CUSTOM_THEMES,
+    items,
+  };
+}
+
+function lookupItemResolution(
+  item: BulkThemeInspectItem,
+  options?: BulkImportOptions,
+): { action: ThemeConflictStrategy | "add"; renameTo?: string; targetId?: string } {
+  const res = options?.resolutions;
+  if (Array.isArray(res)) {
+    const byIdx = res.find((r) => r && r.index === item.index);
+    if (byIdx) return { action: byIdx.action, renameTo: byIdx.renameTo, targetId: byIdx.targetId };
+    const byName = res.find((r) => r && r.index === undefined && typeof r.name === "string" && normName(r.name) === normName(item.draft.name));
+    if (byName) return { action: byName.action, renameTo: byName.renameTo, targetId: byName.targetId };
+  } else if (res && typeof res === "object") {
+    const raw = (res as Record<string, any>)[String(item.index)] ?? (res as Record<string, any>)[item.draft.name] ?? (res as Record<string, any>)[normName(item.draft.name)];
+    if (typeof raw === "string" && ["replace", "keep_both", "skip", "merge_fx"].includes(raw)) {
+      return { action: raw as ThemeConflictStrategy };
+    }
+    if (raw && typeof raw === "object" && typeof raw.action === "string") {
+      return { action: raw.action, renameTo: raw.renameTo, targetId: raw.targetId };
+    }
+  }
+  if (!item.hasConflict) return { action: "add" };
+  const fallback = options?.onConflict && options.onConflict !== "prompt" ? options.onConflict : "keep_both";
+  return { action: fallback };
+}
+
+/** Imports a Theme Pack (or bulk list of themes) with conflict resolution strategies (`replace`, `keep_both`, `merge_fx`, `skip`). */
+export async function importThemePackWithReport(
+  ctx: FmContext,
+  input: unknown,
+  options?: BulkImportOptions,
+): Promise<BulkImportReport> {
+  const inspection = await inspectBulkThemeImport(ctx, input);
+  const hasExplicitResolutions =
+    (Array.isArray(options?.resolutions) && options!.resolutions.length > 0) ||
+    (options?.resolutions && typeof options.resolutions === "object" && Object.keys(options.resolutions).length > 0);
+
+  if (options?.onConflict === "prompt" && inspection.conflictCount > 0 && !hasExplicitResolutions) {
+    return {
+      imported: [],
+      count: 0,
+      importedCount: 0,
+      addedCount: 0,
+      replacedCount: 0,
+      renamedCount: 0,
+      mergedCount: 0,
+      skippedCount: 0,
+      requiresResolution: true,
+      inspection,
+      first: null,
+    };
+  }
+
+  const includeSet = Array.isArray(options?.includeIndices) ? new Set(options!.includeIndices) : null;
+  const all = await loadCustom(ctx);
+  const imported: CustomTheme[] = [];
+  let addedCount = 0;
+  let replacedCount = 0;
+  let renamedCount = 0;
+  let mergedCount = 0;
+  let skippedCount = 0;
+
+  for (const item of inspection.items) {
+    if (includeSet && !includeSet.has(item.index)) {
+      skippedCount++;
+      continue;
+    }
+
+    const { action, renameTo, targetId } = lookupItemResolution(item, options);
+    if (action === "skip") {
+      skippedCount++;
+      continue;
+    }
+
+    const draft = item.draft;
+    const existingIdx = targetId
+      ? all.findIndex((t) => t.id === targetId)
+      : all.findIndex((t) => normName(t.name) === normName(draft.name));
+
+    if (action === "replace" && existingIdx >= 0) {
+      const prev = all[existingIdx]!;
+      const updated: CustomTheme = { id: prev.id, ...draft, name: prev.name };
+      all[existingIdx] = updated;
+      imported.push(updated);
+      replacedCount++;
+      continue;
+    }
+
+    if (action === "merge_fx" && existingIdx >= 0) {
+      const prev = all[existingIdx]!;
+      const mergedFx: ThemeFx | undefined = draft.fx
+        ? {
+            ...(prev.fx ?? {}),
+            ...draft.fx,
+            glowColor: prev.colors.accent || draft.fx.glowColor,
+            glowColor2: prev.colors.secondary || prev.colors.accent || draft.fx.glowColor2,
+          }
+        : prev.fx;
+      const updated: CustomTheme = {
+        ...prev,
+        ...(mergedFx ? { fx: mergedFx } : {}),
+      };
+      all[existingIdx] = updated;
+      imported.push(updated);
+      mergedCount++;
+      continue;
+    }
+
+    // Add new custom theme (either clean or keep_both)
+    if (all.length >= MAX_CUSTOM_THEMES) {
+      throw new FmError("TOO_MANY", `You can keep up to ${MAX_CUSTOM_THEMES} themes of your own (you currently have ${all.length}).`);
+    }
+
+    let finalName = draft.name;
+    const shouldRename =
+      Boolean(renameTo && clean(renameTo)) ||
+      (existingIdx >= 0 && (hasExplicitResolutions || options?.autoRenameConflicts === true || options?.onConflict === "keep_both"));
+
+    if (renameTo && clean(renameTo)) {
+      finalName = clean(renameTo).slice(0, MAX_THEME_NAME);
+      if (normName(finalName) !== normName(draft.name)) renamedCount++;
+    } else if (shouldRename && existingIdx >= 0) {
+      const takenNow = new Set(all.map((t) => normName(t.name)));
+      finalName = nextUniqueThemeName(draft.name, takenNow);
+      renamedCount++;
+    }
+
     let id = `custom_${randomBytes(4).toString("hex")}`;
     while (all.some((t) => t.id === id)) id = `custom_${randomBytes(4).toString("hex")}`;
-    const made: CustomTheme = { id, ...draft };
+    const made: CustomTheme = { id, ...draft, name: finalName };
     all.push(made);
-    created.push(made);
+    imported.push(made);
+    addedCount++;
   }
+
   await saveAll(ctx, all);
-  return created;
+  return {
+    imported,
+    count: imported.length,
+    importedCount: imported.length,
+    addedCount,
+    replacedCount,
+    renamedCount,
+    mergedCount,
+    skippedCount,
+    requiresResolution: false,
+    inspection,
+    first: imported[0] ?? null,
+  };
 }
+
+/** Imports a Theme Pack (or single theme) and saves all of them into the user's custom themes. */
+export async function importThemePack(ctx: FmContext, text: unknown, options?: BulkImportOptions): Promise<CustomTheme[]> {
+  const report = await importThemePackWithReport(ctx, text, options);
+  return report.imported;
+}
+

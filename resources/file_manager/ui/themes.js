@@ -2,10 +2,107 @@
 // SimpleGUI table into this page's color variables (and checks that every text and background pair is readable).
 import { ApiError, call } from "./api.js";
 import { openDialog } from "./dialogs.js";
-import { debounce, h } from "./dom.js";
+import { debounce, h, syncVisibleIcons } from "./dom.js";
 import { toast } from "./menus.js";
 import { saveSettings } from "./nav.js";
 import { currentPath, emit, on, state } from "./state.js";
+
+/** Interactive File Manager UI element shaders for folders, toolbars, breadcrumbs, and rows. */
+export const UI_ELEMENT_FX_OPTIONS = [
+  { id: "off", label: "⏹️ Off", desc: "Standard clean File Manager folders and toolbars" },
+  { id: "auto", label: "✨ Follow Theme", desc: "Automatically activate the theme's signature folder & toolbar shader" },
+  { id: "tahoe_glass_folders", label: "🍎 macOS Tahoe 3D Glass Folders", desc: "Sculpted 3D translucent Liquid Glass regular folders with Display-P3 specular rims & gallery picture frames" },
+  { id: "fluent_mica_folders", label: "🪟 Win 11 Fluent 3D Folders", desc: "Layered Windows 11 Fluent 3D amber/cobalt regular folders, DirectX 12 Mica cards & framed photo tiles" },
+  { id: "xdr_titanium_folders", label: "💻 M4 Max / RTX XDR Titanium Folders", desc: "Space-Black machined titanium regular folders with 1600-nit XDR rim lighting & 8K RAW studio picture plates" },
+  { id: "fire_folders", label: "🔥 Folders & Toolbars on Fire", desc: "Blazing molten flames, rising embers, and heat-shimmer borders on folders & toolbars" },
+  { id: "slime_drip", label: "🧪 Dripping Slime", desc: "Glowing radioactive neon-green slime dripping from folders, toolbars & breadcrumbs" },
+  { id: "storm_wind", label: "🌪️ Storm Wind, Leaves & Rain", desc: "Hurricane wind gusts buffeting folders & toolbars with clinging autumn leaves & rain streaks" },
+  { id: "cryo_frost", label: "🧊 Cryo-Icicles & Frost", desc: "Frozen glacier icicles hanging off toolbars and folders with crystalline diamond rime" },
+  { id: "tesla_arcs", label: "⚡ Toolbar & Folder Tesla Arcs", desc: "High-voltage violet-cyan plasma filaments crackling across folder rows and toolbars" },
+  { id: "mercury_chrome", label: "💧 Liquid Mercury Chrome", desc: "Mirror-polished liquid metal chrome bevels and sliding mercury droplets" },
+  { id: "holo_glitch", label: "📺 Cyber Holo-Glitch", desc: "Chromatic RGB hologram split, laser scanbars, and tactical HUD reticles on folders" },
+  { id: "void_tentacles", label: "🦑 2126 Eldritch Void Spores", desc: "Bioluminescent abyssal tendrils and floating quantum spores around folders & icons" },
+];
+
+/** Custom Icon Pack styles that transform folder and file icons across the File Manager. */
+export const ICON_PACK_OPTIONS = [
+  { id: "default", label: "📁 Standard", desc: "Classic system file & folder icons" },
+  { id: "macos_tahoe_3d", label: "🍎 macOS Tahoe 3D & Pictures", desc: "High-end macOS Tahoe 3D regular folders with semantic topic badges & studio-framed picture icons" },
+  { id: "win11_fluent_pro", label: "🪟 Win 11 Fluent 3D Pro", desc: "Layered Windows 11 Fluent 3D folders, framed gallery pictures & DirectX 12 workstation glyphs" },
+  { id: "pro_studio_xdr", label: "💻 M4 Max / RTX Studio XDR", desc: "Pro Display XDR titanium regular folders, 8K RAW camera picture plates & cinema production icons" },
+  { id: "hdr_photo_studio", label: "📸 8K HDR Photo & Cinema", desc: "Color-calibrated darkroom & cinema suite with gallery-framed pictures, 35mm contact sheets & lens icons" },
+  { id: "linux_papirus_pro", label: "🐧 Linux Papirus HiDPI", desc: "Crisp KDE Breeze & Papirus HiDPI regular folders, developer topic badges & workstation picture tiles" },
+  { id: "nordic_minimal", label: "🏛️ Studio Architect Minimal", desc: "Tactile 3D paper-and-glass regular folders, architectural picture frames & clean daylight glyphs" },
+  { id: "inferno", label: "🔥 Blazing Inferno", desc: "Molten fire chests, lightning code glyphs, and ember-shielded icons" },
+  { id: "slime", label: "🧪 Toxic Slime-Drip", desc: "Bio-vat flasks, DNA helices, and dripping radioactive gel capsules" },
+  { id: "storm_tempest", label: "🌪️ Storm & Cyclone", desc: "Tornado vortex folders, lightning scripts, and wind-swept barometric badges" },
+  { id: "neon_cyber", label: "🔮 Neon Cyber HUD", desc: "Holographic diamond nodes and glowing cyan/magenta wireframe reticles" },
+  { id: "liquid_gems", label: "💎 3D Liquid Gems", desc: "Faceted 3D crystal jewels with specular macOS Tahoe refraction" },
+  { id: "cryo_crystal", label: "❄️ Cryo-Crystal", desc: "Sub-zero ice cubes, snowflake code glyphs, and frosted glacier prisms" },
+  { id: "retro_pixel", label: "👾 Retro Arcade", desc: "16-bit arcade invaders, joystick scripts, and bevelled cartridge tiles" },
+  { id: "xenotech_2126", label: "🛸 2126 Xenotech", desc: "Hyper-dimensional UFO vaults, atomic code cores, and rotating hex-glyphs" },
+];
+
+export const FONT_PROFILES = [
+  { id: "default", label: "System UI" },
+  { id: "scifi", label: "Sci-Fi Geometric" },
+  { id: "terminal", label: "Monospace HUD" },
+  { id: "editorial", label: "Editorial Serif" },
+  { id: "rounded", label: "Soft Rounded" },
+];
+
+export const CORNER_PROFILES = [
+  { id: "default", label: "Theme Default" },
+  { id: "sharp", label: "Tactical Sharp" },
+  { id: "rounded", label: "Smooth Rounded" },
+  { id: "pill", label: "Liquid Pill" },
+];
+
+export const ICON_GLOW_PROFILES = [
+  { id: "off", label: "Off" },
+  { id: "subtle", label: "Subtle Halo" },
+  { id: "neon", label: "Neon Bloom" },
+  { id: "hyper", label: "Hyper Plasma" },
+];
+
+/** Applies File Manager UI Element FX (burning folders, dripping slime, etc.), Custom Icon Pack, Typography, Corner Geometry, and Icon Glow to the root element. */
+export function applyUiImmersionProfiles(overrides = {}) {
+  if (typeof document === "undefined" || !document.documentElement) return;
+  const root = document.documentElement;
+  const s = { ...(state.settings ?? {}), ...overrides };
+  const themeElFx = root.getAttribute("data-fx-element") || "";
+  const themeIconPack = root.getAttribute("data-fx-icon-pack") || "";
+  const themeFontProf = root.getAttribute("data-fx-font-profile") || "";
+  const themeCornerProf = root.getAttribute("data-fx-corner-profile") || "";
+  const themeIconGlow = root.getAttribute("data-fx-icon-glow") || "";
+
+  const rawUiFx = s.uiElementFx || "off";
+  const effectiveUiFx = rawUiFx === "auto" ? (themeElFx || "off") : (rawUiFx !== "off" ? rawUiFx : (themeElFx || "off"));
+  if (effectiveUiFx && effectiveUiFx !== "off") root.dataset.uiFx = effectiveUiFx;
+  else delete root.dataset.uiFx;
+
+  const rawIconPack = s.iconPackStyle || "default";
+  const effectiveIconPack = rawIconPack !== "default" ? rawIconPack : (themeIconPack || "default");
+  if (effectiveIconPack && effectiveIconPack !== "default") root.dataset.iconPack = effectiveIconPack;
+  else delete root.dataset.iconPack;
+
+  const rawFont = s.themeFontProfile || "default";
+  const effectiveFont = rawFont !== "default" ? rawFont : (themeFontProf || "default");
+  if (effectiveFont && effectiveFont !== "default") root.dataset.fontProfile = effectiveFont;
+  else delete root.dataset.fontProfile;
+
+  const rawCorner = s.themeCornerProfile || "default";
+  const effectiveCorner = rawCorner !== "default" ? rawCorner : (themeCornerProf || "default");
+  if (effectiveCorner && effectiveCorner !== "default") root.dataset.cornerProfile = effectiveCorner;
+  else delete root.dataset.cornerProfile;
+
+  const rawGlow = s.themeIconGlow || "off";
+  const effectiveGlow = rawGlow !== "off" ? rawGlow : (themeIconGlow || "off");
+  if (effectiveGlow && effectiveGlow !== "off") root.dataset.iconGlow = effectiveGlow;
+  else delete root.dataset.iconGlow;
+
+  syncVisibleIcons(document);
+}
 
 /** The variables a theme sets, so they can be taken off again. */
 let applied = [];
@@ -128,6 +225,7 @@ function clearPalette() {
   root.style.removeProperty("color-scheme");
   delete root.dataset.palette;
   wanted = "";
+  applyUiImmersionProfiles();
   emit("theme-changed", currentThemePayload());
 }
 
@@ -193,12 +291,13 @@ export function paint(theme, key) {
     style.id = "fm-theme-effects";
     const nonce = document.querySelector('meta[name="fm-nonce"]')?.content;
     if (nonce) style.setAttribute("nonce", nonce);
-    style.textContent = `:root { ${theme.effects.css} }`;
+    style.textContent = `:root { ${theme.effects.css} }${theme.effects.customCss ? `\n${theme.effects.customCss}` : ""}`;
     document.head.append(style);
     for (const [name, value] of Object.entries(theme.effects.attrs)) root.setAttribute(name, value);
     root.setAttribute("data-fx-tier", hw.tier);
     if (hw.fxMode !== "on") root.setAttribute("data-fx", hw.fxMode);
   }
+  applyUiImmersionProfiles();
   emit("theme-changed", currentThemePayload());
 }
 
@@ -209,6 +308,7 @@ export function forgetThemeList() {
 
 /** Applies the theme `key`, or goes back to the plain Light/Dark/automatic choice (or Day/Night pair) when `key` is empty or unknown. Resolves the theme's name or "". */
 export async function applyPalette(key) {
+  ensureGlobalThemeShortcutsBound();
   const root = document.documentElement;
   const resolvedKey = key || resolveFolderPalette() || effectiveAutoPalette();
   if (!resolvedKey) {
@@ -270,6 +370,576 @@ function parseHexRgb(hex) {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
+function rgbToHex([r, g, b]) {
+  const ch = (v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0");
+  return `#${ch(r)}${ch(g)}${ch(b)}`;
+}
+
+function srgbToLinear(c) {
+  const v = c / 255;
+  return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+}
+
+function linearToSrgb(v) {
+  const clamped = Math.max(0, Math.min(1, v));
+  const s = clamped <= 0.0031308 ? 12.92 * clamped : 1.055 * (clamped ** (1 / 2.4)) - 0.055;
+  return Math.round(Math.max(0, Math.min(255, s * 255)));
+}
+
+function rgbToOklab([r, g, b]) {
+  const lr = srgbToLinear(r), lg = srgbToLinear(g), lb = srgbToLinear(b);
+  const l = Math.cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb);
+  const m = Math.cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb);
+  const s = Math.cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb);
+  return [
+    0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+    1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+    0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s,
+  ];
+}
+
+function oklabToRgb([L, a, b]) {
+  const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+  const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+  const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+  const l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
+  return [
+    linearToSrgb(+4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
+    linearToSrgb(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
+    linearToSrgb(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s),
+  ];
+}
+
+/** Perceptually interpolates two hex colors in OKLab space (`t` in 0..1). */
+export function mixHexOklab(hexA, hexB, t = 0.5) {
+  const ratio = Math.max(0, Math.min(1, Number(t) || 0));
+  const labA = rgbToOklab(parseHexRgb(hexA));
+  const labB = rgbToOklab(parseHexRgb(hexB));
+  return rgbToHex(oklabToRgb([
+    labA[0] + (labB[0] - labA[0]) * ratio,
+    labA[1] + (labB[1] - labA[1]) * ratio,
+    labA[2] + (labB[2] - labA[2]) * ratio,
+  ]));
+}
+
+/**
+ * Perceptually blends two theme sources (`{ dark, colors, fx, name }`) at `ratio` (0 = 100% A, 1 = 100% B)
+ * in OKLab color space and interpolates shader parameters (`blur`, `glass`, `glowIntensity`, `borderOpacity`, `saturation`).
+ */
+export function blendThemePair(sourceA, sourceB, ratio = 0.5, customName = "") {
+  const t = Math.max(0, Math.min(1, Number(ratio) || 0));
+  const aCols = sourceA?.colors ?? {};
+  const bCols = sourceB?.colors ?? {};
+  const colorKeys = ["background", "card", "text", "accent", "secondary", "border", "danger", "warning", "success", "info"];
+  const colors = {};
+  for (const k of colorKeys) {
+    const ca = aCols[k] || aCols.accent || "#6ea8ff";
+    const cb = bCols[k] || bCols.accent || "#6ea8ff";
+    colors[k] = mixHexOklab(ca, cb, t);
+  }
+  const bgLum = rgbToOklab(parseHexRgb(colors.background))[0];
+  const dark = t < 0.5 ? Boolean(sourceA?.dark ?? bgLum < 0.55) : Boolean(sourceB?.dark ?? bgLum < 0.55);
+  const fxA = sourceA?.fx;
+  const fxB = sourceB?.fx;
+  let fx;
+  if (fxA || fxB) {
+    const dom = t < 0.5 ? (fxA || fxB) : (fxB || fxA);
+    const sub = t < 0.5 ? (fxB || fxA) : (fxA || fxB);
+    const num = (key, def) => {
+      const va = typeof fxA?.[key] === "number" ? fxA[key] : def;
+      const vb = typeof fxB?.[key] === "number" ? fxB[key] : def;
+      return Math.round((va + (vb - va) * t) * 100) / 100;
+    };
+    const atmoA = fxA?.atmosphere && fxA.atmosphere !== "none" ? fxA.atmosphere : "";
+    const atmoB = fxB?.atmosphere && fxB.atmosphere !== "none" ? fxB.atmosphere : "";
+    const blendedAtmo = atmoA && atmoB && atmoA !== atmoB ? `${atmoA}+${atmoB}` : (dom?.atmosphere || sub?.atmosphere || "none");
+    fx = {
+      glow: dom?.glow || "soft",
+      glowColor: mixHexOklab(fxA?.glowColor || colors.accent, fxB?.glowColor || colors.accent, t),
+      glowColor2: mixHexOklab(fxA?.glowColor2 || colors.secondary, fxB?.glowColor2 || colors.secondary, t),
+      blur: Math.round(num("blur", 16)),
+      glass: Math.min(1, Math.max(0, num("glass", 0.45))),
+      glowIntensity: Math.min(1, Math.max(0, num("glowIntensity", 0.8))),
+      borderOpacity: Math.min(1, Math.max(0, num("borderOpacity", 0.2))),
+      grain: dom?.grain || "none",
+      scanlines: dom?.scanlines || "none",
+      radius: dom?.radius || "soft",
+      border: dom?.border || "gradient",
+      motion: dom?.motion || "spring",
+      sheen: Boolean(dom?.sheen ?? sub?.sheen),
+      noise: Boolean(dom?.noise),
+      chromatic: Boolean(dom?.chromatic),
+      ambient: Boolean(dom?.ambient ?? true),
+      ...(blendedAtmo && blendedAtmo !== "none" ? { atmosphere: blendedAtmo } : {}),
+      ...(dom?.backdropStyle ? { backdropStyle: dom.backdropStyle } : {}),
+      ...(dom?.cursorEffect ? { cursorEffect: dom.cursorEffect } : {}),
+      ...(dom?.vignette ? { vignette: dom.vignette } : {}),
+      ...(dom?.uiElementFx ? { uiElementFx: dom.uiElementFx } : {}),
+      ...(dom?.iconPackStyle ? { iconPackStyle: dom.iconPackStyle } : {}),
+    };
+  }
+  const name = (customName || "").trim() || `${sourceA?.name || "Theme A"} × ${sourceB?.name || "Theme B"} (${Math.round(t * 100)}%)`.slice(0, 40);
+  return {
+    name,
+    dark,
+    base: `${sourceA?.name || "Theme A"} + ${sourceB?.name || "Theme B"}`.slice(0, 40),
+    colors,
+    ...(fx ? { fx } : {}),
+  };
+}
+
+/**
+ * Extracts a harmonious File Manager theme palette from raw RGBA image pixels (`Uint8ClampedArray` or `number[]`).
+ * Used by the "Chameleon Wallpaper Theme Generator" in the Theme Editor.
+ */
+export function extractPaletteFromPixels(rgbaData, opts = {}) {
+  const data = ArrayBuffer.isView(rgbaData) || Array.isArray(rgbaData) ? rgbaData : [];
+  const totalPixels = Math.floor(data.length / 4);
+  if (totalPixels <= 0) {
+    return {
+      name: opts.name || "Wallpaper Chameleon",
+      dark: true,
+      base: "Image Palette",
+      colors: { background: "#0d131a", card: "#16202b", text: "#eaf2f8", accent: "#38bdf8", secondary: "#a855f7", border: "#2c3e50", danger: "#ff6b81", warning: "#fbbf24", success: "#34d399", info: "#38bdf8" },
+    };
+  }
+  const step = Math.max(1, Math.floor(totalPixels / 2048));
+  const buckets = new Array(12).fill(null).map(() => ({ count: 0, r: 0, g: 0, b: 0, sSum: 0 }));
+  let rTotal = 0, gTotal = 0, bTotal = 0, lSum = 0, samples = 0;
+
+  for (let i = 0; i < totalPixels; i += step) {
+    const idx = i * 4;
+    const a = data[idx + 3] ?? 255;
+    if (a < 128) continue;
+    const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+    const { h, s, l } = rgbHueSatLum([r, g, b]);
+    rTotal += r; gTotal += g; bTotal += b; lSum += l; samples++;
+    if (s >= 0.18 && l >= 0.15 && l <= 0.88) {
+      const bi = Math.floor(((h % 360) / 30)) % 12;
+      const weight = 1 + s * 2.5;
+      buckets[bi].count += weight;
+      buckets[bi].r += r * weight;
+      buckets[bi].g += g * weight;
+      buckets[bi].b += b * weight;
+      buckets[bi].sSum += s * weight;
+    }
+  }
+  const meanL = samples > 0 ? lSum / samples : 0.25;
+  const dark = opts.dark !== undefined ? Boolean(opts.dark) : meanL < 0.55;
+  const sortedBuckets = [...buckets].sort((a, b) => b.count - a.count);
+  const top1 = sortedBuckets[0]?.count > 0
+    ? [sortedBuckets[0].r / sortedBuckets[0].count, sortedBuckets[0].g / sortedBuckets[0].count, sortedBuckets[0].b / sortedBuckets[0].count]
+    : [rTotal / Math.max(1, samples), gTotal / Math.max(1, samples), bTotal / Math.max(1, samples)];
+  const top2 = sortedBuckets[1]?.count > 0
+    ? [sortedBuckets[1].r / sortedBuckets[1].count, sortedBuckets[1].g / sortedBuckets[1].count, sortedBuckets[1].b / sortedBuckets[1].count]
+    : [top1[2], top1[0], top1[1]];
+
+  const rawAccentHex = rgbToHex(top1);
+  const rawSecHex = rgbToHex(top2);
+  const accentHex = dark ? mixHexOklab(rawAccentHex, "#ffffff", 0.16) : mixHexOklab(rawAccentHex, "#000000", 0.18);
+  const secondaryHex = dark ? mixHexOklab(rawSecHex, "#ffffff", 0.18) : mixHexOklab(rawSecHex, "#000000", 0.16);
+  const bgHex = dark ? mixHexOklab(rawAccentHex, "#07090e", 0.86) : mixHexOklab(rawAccentHex, "#f8fafc", 0.9);
+  const cardHex = dark ? mixHexOklab(rawAccentHex, "#121824", 0.8) : mixHexOklab(rawAccentHex, "#ffffff", 0.86);
+  const textHex = dark ? mixHexOklab(rawAccentHex, "#f8fafc", 0.92) : mixHexOklab(rawAccentHex, "#0f172a", 0.9);
+  const borderHex = dark ? mixHexOklab(accentHex, cardHex, 0.68) : mixHexOklab(accentHex, cardHex, 0.72);
+
+  return {
+    name: String(opts.name || "Wallpaper Chameleon").slice(0, 40),
+    dark,
+    base: "Extracted from Image",
+    colors: {
+      background: bgHex,
+      card: cardHex,
+      text: textHex,
+      accent: accentHex,
+      secondary: secondaryHex,
+      border: borderHex,
+      danger: dark ? "#ff6b81" : "#b42318",
+      warning: dark ? "#fbbf24" : "#b45309",
+      success: dark ? "#34d399" : "#166534",
+      info: dark ? "#38bdf8" : "#0369a1",
+    },
+    fx: {
+      glow: "bloom",
+      glowColor: accentHex,
+      glowColor2: secondaryHex,
+      blur: 24,
+      glass: 0.58,
+      glowIntensity: 0.8,
+      borderOpacity: 0.24,
+      grain: "none",
+      scanlines: "none",
+      radius: "round",
+      border: "gradient",
+      motion: "spring",
+      sheen: true,
+      ambient: true,
+      backdropStyle: "liquid",
+    },
+  };
+}
+
+let playlistTimerId = 0;
+let playlistIndex = 0;
+
+/** Advances the Ambient Playlist by 1 step across the configured theme/atmosphere pool. */
+export async function stepAmbientPlaylist() {
+  const s = state.settings ?? {};
+  const target = s.ambientPlaylistTarget || "both";
+  const poolKind = s.ambientPlaylistPool || "favorites";
+  let nextThemeKey = null;
+  let nextAtmoSpec = null;
+
+  if (target === "themes" || target === "both") {
+    const all = await themeList().catch(() => []);
+    let pool = all;
+    if (poolKind === "favorites") {
+      const favs = favoriteKeys();
+      pool = all.filter((t) => favs.includes(t.key));
+    } else if (poolKind === "ultra") {
+      pool = all.filter((t) => resolveTemplateTier(t) === "ultra");
+    }
+    if (!pool.length) pool = all;
+    if (pool.length) {
+      const curIdx = pool.findIndex((t) => t.key === s.palette);
+      const next = pool[(curIdx + 1 + playlistIndex) % pool.length];
+      if (next) {
+        nextThemeKey = next.key;
+        await chooseTheme(next.key);
+        await applyPalette(next.key);
+      }
+    }
+  }
+
+  if (target === "atmosphere" || target === "both") {
+    try {
+      const atmoMod = await import("./atmosphereFx.js");
+      const userPresets = atmoMod.savedAtmospherePresets?.() ?? [];
+      if (poolKind === "presets" && userPresets.length) {
+        const p = userPresets[playlistIndex % userPresets.length];
+        if (p) {
+          nextAtmoSpec = p.effect;
+          atmoMod.applyAtmosphere(p.effect, p.intensity, p.tier, p.reactive, p.layerMods);
+          await saveSettings({ atmosphere: p.effect, atmosphereIntensity: p.intensity, atmosphereTier: p.tier, atmosphereReactive: p.reactive });
+        }
+      } else {
+        const cycled = await atmoMod.cycleAtmosphere(1, poolKind === "ultra" ? { tier: "ultra" } : {});
+        if (cycled) nextAtmoSpec = cycled.id;
+      }
+    } catch {}
+  }
+  playlistIndex++;
+  return { theme: nextThemeKey, atmosphere: nextAtmoSpec };
+}
+
+export function syncAmbientPlaylistTimer() {
+  if (playlistTimerId) {
+    clearInterval(playlistTimerId);
+    playlistTimerId = 0;
+  }
+  const s = state.settings;
+  if (!s?.ambientPlaylistEnabled) return;
+  const mins = Math.max(1, Math.min(240, Number(s.ambientPlaylistIntervalMin) || 15));
+  playlistTimerId = setInterval(() => {
+    void stepAmbientPlaylist();
+  }, mins * 60_000);
+}
+
+/**
+ * 1-Click Jumpstart Workstation Kits:
+ * Lets users transform their entire File Manager (Theme Palette + 3D Regular Folders + Picture Icon Pack + Typography + Corners + Atmosphere FX)
+ * right from the jump with zero manual setup.
+ */
+export const JUMPSTART_WORKSTATION_KITS = [
+  {
+    id: "macos_tahoe_3d_kit",
+    label: "🍎 macOS Tahoe 3D Glass & Pictures",
+    desc: "macOS Tahoe 3D Liquid Glass regular folders, studio-framed picture icons, Display-P3 caustics & soft rounded typography",
+    palette: "tahoe_studio_3d",
+    uiElementFx: "tahoe_glass_folders",
+    iconPackStyle: "macos_tahoe_3d",
+    themeFontProfile: "rounded",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "subtle",
+    atmosphere: "liquid_glass_caustics+prism_spectrum",
+  },
+  {
+    id: "m4_max_xdr_kit",
+    label: "💻 M4 Max Pro Display XDR Studio",
+    desc: "Space-Black machined titanium workstation with 1600-nit XDR rim folders, 8K RAW camera picture plates & 120Hz raytraced prisms",
+    palette: "m4_pro_display_xdr",
+    uiElementFx: "xdr_titanium_folders",
+    iconPackStyle: "pro_studio_xdr",
+    themeFontProfile: "default",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "subtle",
+    atmosphere: "m4_raytrace_prism",
+  },
+  {
+    id: "win11_rtx_3d_kit",
+    label: "🪟 Win 11 Fluent 3D & RTX Mica",
+    desc: "Layered Windows 11 Fluent 3D amber/cobalt regular folders, DirectX 12 Mica & Acrylic cards, and framed gallery pictures",
+    palette: "win11_rtx_fluent_3d",
+    uiElementFx: "fluent_mica_folders",
+    iconPackStyle: "win11_fluent_pro",
+    themeFontProfile: "default",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "subtle",
+    atmosphere: "aurora",
+  },
+  {
+    id: "hdr_photo_cinema_kit",
+    label: "📸 8K HDR Photo & Cinema Darkroom",
+    desc: "Color-calibrated darkroom & cinema suite with gallery-framed picture icons, 35mm contact-sheet folders & warm specular highlights",
+    palette: "hdr_cinema_gallery",
+    uiElementFx: "tahoe_glass_folders",
+    iconPackStyle: "hdr_photo_studio",
+    themeFontProfile: "editorial",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "subtle",
+    atmosphere: "liquid_glass_caustics",
+  },
+  {
+    id: "linux_hidpi_kit",
+    label: "🐧 Linux Papirus HiDPI Workstation",
+    desc: "Crisp KDE Breeze & Papirus HiDPI regular folders with emerald/teal developer badges and low-latency glass",
+    palette: "linux_workstation_hidpi",
+    uiElementFx: "tahoe_glass_folders",
+    iconPackStyle: "linux_papirus_pro",
+    themeFontProfile: "default",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "subtle",
+    atmosphere: "northern_pillars",
+  },
+  {
+    id: "studio_minimal_kit",
+    label: "🏛️ Studio Architect Daylight",
+    desc: "Bright architectural studio with tactile 3D paper-and-glass regular folders, gallery picture frames & calm daylight ergonomics",
+    palette: "studio_architect_minimal",
+    uiElementFx: "fluent_mica_folders",
+    iconPackStyle: "nordic_minimal",
+    themeFontProfile: "rounded",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "off",
+    atmosphere: "none",
+  },
+  {
+    id: "storm_overdrive_kit",
+    label: "🌪️ EF5 Tornado & Storm Debris",
+    desc: "Full M4 storm showcase: tumbling autumn leaves, flying newspapers, shingles & twigs with wind-buffeted folders",
+    palette: "ef5_debris_tornado",
+    uiElementFx: "storm_wind",
+    iconPackStyle: "storm_tempest",
+    themeFontProfile: "scifi",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "neon",
+    atmosphere: "debris_tornado_ef5+urban_cyclone_debris",
+  },
+  {
+    id: "compiz_inferno_kit",
+    label: "🔥 Compiz Fire Folders & Inferno",
+    desc: "Nostalgic Linux Compiz 'Burn' homage: blazing molten folders & toolbars, inferno icons, and volcanic lightning",
+    palette: "inferno_fire_folders",
+    uiElementFx: "fire_folders",
+    iconPackStyle: "inferno",
+    themeFontProfile: "scifi",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "hyper",
+    atmosphere: "volcanic_lightning+embers",
+  },
+];
+
+/** Applies a 1-Click Jumpstart Workstation Kit (theme palette + 3D folder FX + picture/icon pack + typography + corners + atmosphere). */
+export async function applyJumpstartKit(kitId) {
+  const kit = JUMPSTART_WORKSTATION_KITS.find((k) => k.id === kitId);
+  if (!kit) return null;
+  const patch = {
+    palette: kit.palette,
+    uiElementFx: kit.uiElementFx,
+    iconPackStyle: kit.iconPackStyle,
+    themeFontProfile: kit.themeFontProfile,
+    themeCornerProfile: kit.themeCornerProfile,
+    themeIconGlow: kit.themeIconGlow,
+    ...(kit.atmosphere ? { atmosphere: kit.atmosphere } : {}),
+  };
+  if (state.settings) Object.assign(state.settings, patch);
+  rememberTheme(kit.palette);
+  await applyPalette(kit.palette);
+  applyUiImmersionProfiles(patch);
+  try {
+    if (kit.atmosphere) {
+      const atmoMod = await import("./atmosphereFx.js");
+      atmoMod.applyAtmosphere(kit.atmosphere, state.settings?.atmosphereIntensity ?? 78, state.settings?.atmosphereTier || "auto");
+    }
+  } catch {}
+  await saveSettings(patch);
+  toast(`Applied Jumpstart Kit: ${kit.label}`, { kind: "success" });
+  return kit;
+}
+
+/** Builds the interactive "🔥 Folder, Toolbar & Icon Immersion Studio" bar for the Theme Gallery and Atmosphere Studio. */
+export function buildImmersionStudioBar() {
+  const curUiFx = () => state.settings?.uiElementFx || "off";
+  const curIconPack = () => state.settings?.iconPackStyle || "default";
+  const curFont = () => state.settings?.themeFontProfile || "default";
+  const curCorner = () => state.settings?.themeCornerProfile || "default";
+  const curGlow = () => state.settings?.themeIconGlow || "off";
+  const curKit = () => {
+    const p = state.settings?.palette || "";
+    const u = curUiFx();
+    const ic = curIconPack();
+    return JUMPSTART_WORKSTATION_KITS.find((k) => k.palette === p && k.uiElementFx === u && k.iconPackStyle === ic)?.id || "";
+  };
+
+  const jumpstartButtons = JUMPSTART_WORKSTATION_KITS.map((kit) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill theme-jumpstart-pill${curKit() === kit.id ? " is-active" : ""}`,
+      "data-jumpstart-kit": kit.id,
+      "aria-pressed": String(curKit() === kit.id),
+      title: `${kit.desc} (1-click zero-manual-work setup)`,
+      onclick: async () => {
+        await applyJumpstartKit(kit.id);
+        syncBarState();
+      },
+    }, kit.label),
+  );
+
+  const uiFxButtons = UI_ELEMENT_FX_OPTIONS.map((opt) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${curUiFx() === opt.id ? " is-active" : ""}`,
+      "data-ui-fx": opt.id,
+      "aria-pressed": String(curUiFx() === opt.id),
+      title: opt.desc,
+      onclick: async () => {
+        if (state.settings) state.settings.uiElementFx = opt.id;
+        applyUiImmersionProfiles({ uiElementFx: opt.id });
+        syncBarState();
+        await saveSettings({ uiElementFx: opt.id });
+      },
+    }, opt.label),
+  );
+
+  const iconPackButtons = ICON_PACK_OPTIONS.map((opt) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${curIconPack() === opt.id ? " is-active" : ""}`,
+      "data-icon-pack": opt.id,
+      "aria-pressed": String(curIconPack() === opt.id),
+      title: opt.desc,
+      onclick: async () => {
+        if (state.settings) state.settings.iconPackStyle = opt.id;
+        applyUiImmersionProfiles({ iconPackStyle: opt.id });
+        syncBarState();
+        await saveSettings({ iconPackStyle: opt.id });
+      },
+    }, opt.label),
+  );
+
+  const fontButtons = FONT_PROFILES.map((opt) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${curFont() === opt.id ? " is-active" : ""}`,
+      "data-font-profile": opt.id,
+      "aria-pressed": String(curFont() === opt.id),
+      onclick: async () => {
+        if (state.settings) state.settings.themeFontProfile = opt.id;
+        applyUiImmersionProfiles({ themeFontProfile: opt.id });
+        syncBarState();
+        await saveSettings({ themeFontProfile: opt.id });
+      },
+    }, opt.label),
+  );
+
+  const cornerButtons = CORNER_PROFILES.map((opt) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${curCorner() === opt.id ? " is-active" : ""}`,
+      "data-corner-profile": opt.id,
+      "aria-pressed": String(curCorner() === opt.id),
+      onclick: async () => {
+        if (state.settings) state.settings.themeCornerProfile = opt.id;
+        applyUiImmersionProfiles({ themeCornerProfile: opt.id });
+        syncBarState();
+        await saveSettings({ themeCornerProfile: opt.id });
+      },
+    }, opt.label),
+  );
+
+  const glowButtons = ICON_GLOW_PROFILES.map((opt) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${curGlow() === opt.id ? " is-active" : ""}`,
+      "data-icon-glow": opt.id,
+      "aria-pressed": String(curGlow() === opt.id),
+      onclick: async () => {
+        if (state.settings) state.settings.themeIconGlow = opt.id;
+        applyUiImmersionProfiles({ themeIconGlow: opt.id });
+        syncBarState();
+        await saveSettings({ themeIconGlow: opt.id });
+      },
+    }, opt.label),
+  );
+
+  function syncBarState() {
+    const activeKit = curKit();
+    for (const b of jumpstartButtons) {
+      const on = b.dataset.jumpstartKit === activeKit;
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
+    for (const b of uiFxButtons) {
+      const on = b.dataset.uiFx === curUiFx();
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
+    for (const b of iconPackButtons) {
+      const on = b.dataset.iconPack === curIconPack();
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
+    for (const b of fontButtons) {
+      const on = b.dataset.fontProfile === curFont();
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
+    for (const b of cornerButtons) {
+      const on = b.dataset.cornerProfile === curCorner();
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
+    for (const b of glowButtons) {
+      const on = b.dataset.iconGlow === curGlow();
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
+  }
+
+  return h("div", { class: "theme-immersion-bar", role: "region", "aria-label": "File Manager folder, toolbar and icon immersion effects" },
+    h("div", { class: "theme-pill-row theme-jumpstart-row" },
+      h("span", { class: "theme-pill-label" }, "⚡ 1-Click Jumpstart Kits"),
+      ...jumpstartButtons,
+    ),
+    h("div", { class: "theme-pill-row" },
+      h("span", { class: "theme-pill-label" }, "🔥 Folder & Toolbar FX"),
+      ...uiFxButtons,
+    ),
+    h("div", { class: "theme-pill-row" },
+      h("span", { class: "theme-pill-label" }, "🎭 Custom Icon Pack"),
+      ...iconPackButtons,
+    ),
+    h("div", { class: "theme-pill-row" },
+      h("span", { class: "theme-pill-label" }, "🔤 Typography"),
+      ...fontButtons,
+      h("span", { class: "theme-pill-label", style: "margin-left:0.6rem" }, "📐 Corners"),
+      ...cornerButtons,
+      h("span", { class: "theme-pill-label", style: "margin-left:0.6rem" }, "💡 Icon Glow"),
+      ...glowButtons,
+    ),
+  );
+}
+
 function rgbHueSatLum([r, g, b]) {
   const rf = r / 255, gf = g / 255, bf = b / 255;
   const max = Math.max(rf, gf, bf), min = Math.min(rf, gf, bf);
@@ -315,7 +985,7 @@ export function themeMatchesTier(t, tier) {
   return resolveTemplateTier(t) === tier;
 }
 
-const PHYSICS_ATMO_RE = /tesla|plasma|tokamak|cherenkov|collider|hadron|lorenz|lorentz|ferrofluid|hawking|black_hole|dyson|casimir|alcubierre|superconductor|antimatter|magnetar|soliton|sonolum|fusion|wormhole|quantum|relativ|synchrotron|pulsar|quasar|event_horizon|bose_einstein|tachyon|dirac|schwarzschild|zero_point|higgs|strange_matter|jacobs_ladder|ball_lightning|van_de_graaff/i;
+const PHYSICS_ATMO_RE = /tesla|plasma|tokamak|cherenkov|collider|hadron|lorenz|lorentz|ferrofluid|hawking|black_hole|dyson|casimir|alcubierre|superconductor|antimatter|magnetar|soliton|sonolum|fusion|wormhole|quantum|relativ|synchrotron|pulsar|quasar|event_horizon|bose_einstein|tachyon|dirac|schwarzschild|zero_point|higgs|strange_matter|jacobs_ladder|ball_lightning|van_de_graaff|tornado|hurricane|supercell|sprite|derecho|thundersnow|haboob|waterspout|volcanic|jupiter|saturn|neptune|venus|microburst|cyclone|noreaster|maelstrom|tempest|typhoon/i;
 
 /** Filters a template by its animation / motion profile ("all", "atmosphere", "physics", "spring", "snappy", "calm", "static"). */
 export function themeMatchesAnimation(t, anim) {
@@ -507,17 +1177,214 @@ export async function chooseTheme(key) {
   await saveSettings({ palette: key });
 }
 
+/**
+ * Curated Flagship Selection Templates for the `Right ⌥ + ] / [` (`Alt+] / Alt+[`) Quick-Switcher HUD:
+ * Highlights modern 3D Regular Folder & Picture Studios, M4 Max / RTX Ultra shaders, Extreme Storms, and Beloved Classics.
+ */
+export const OPTION_BRACKET_SHOWCASE_TEMPLATES = [
+  { key: "tahoe_studio_3d", badge: "🍎 Tahoe 3D Folders & Pictures" },
+  { key: "m4_pro_display_xdr", badge: "💻 M4 Max XDR Titanium" },
+  { key: "win11_rtx_fluent_3d", badge: "🪟 Win11 Fluent 3D & RTX" },
+  { key: "hdr_cinema_gallery", badge: "📸 8K HDR Photo Studio" },
+  { key: "linux_workstation_hidpi", badge: "🐧 Linux Papirus HiDPI" },
+  { key: "studio_architect_minimal", badge: "🏛️ Studio Architect Light" },
+  { key: "prism_reactor", badge: "💎 Prism Reactor XDR" },
+  { key: "ef5_debris_tornado", badge: "🌪️ EF5 Tornado Debris" },
+  { key: "inferno_fire_folders", badge: "🔥 Blazing Fire Folders" },
+  { key: "toxic_slime_ooze", badge: "🧪 Dripping Slime Ooze" },
+  { key: "tesla_coil_plasma", badge: "⚡ Tesla Coil Plasma" },
+  { key: "tokamak_fusion", badge: "⚛️ Tokamak Fusion" },
+  { key: "dracula", badge: "🧛 Dracula Classic" },
+  { key: "nord", badge: "❄️ Nord Arctic" },
+  { key: "win95", badge: "🪟 Windows 95 Retro" },
+  { key: "beos_r5", badge: "💎 BeOS R5 Classic" },
+];
+
+let quickHudTimer = 0;
+
+/** Dismisses the floating `Right ⌥ + ] / [` Quick-Switcher HUD. */
+export function hideQuickCycleHud() {
+  if (quickHudTimer) {
+    clearTimeout(quickHudTimer);
+    quickHudTimer = 0;
+  }
+  if (typeof document !== "undefined") {
+    document.getElementById("fm-quick-cycle-hud")?.remove();
+  }
+}
+
+/**
+ * Renders the interactive floating `Right ⌥ + ] / [` (`Alt+] / Alt+[`) Theme Selection Template HUD (`#fm-quick-cycle-hud`)
+ * with live miniature window swatch previews, 3D Folder/Picture pack badges, prev/next cards, and 1-click Flagship Templates.
+ */
+export function showQuickCycleHud(activeKey, allThemes = [], { index = 0, total = 1 } = {}) {
+  if (typeof document === "undefined" || !document.body) return null;
+  if (quickHudTimer) clearTimeout(quickHudTimer);
+
+  const curTheme = activeKey ? allThemes.find((t) => t.key === activeKey) : null;
+  const keys = ["", ...allThemes.map((t) => t.key)];
+  const curIdx = Math.max(0, keys.indexOf(activeKey || ""));
+  const prevKey = keys[(curIdx - 1 + keys.length) % keys.length];
+  const nextKey = keys[(curIdx + 1) % keys.length];
+  const prevTheme = prevKey ? allThemes.find((t) => t.key === prevKey) : null;
+  const nextTheme = nextKey ? allThemes.find((t) => t.key === nextKey) : null;
+
+  const tier = curTheme ? resolveTemplateTier(curTheme) : "low";
+  const tierLabel = tier === "ultra" ? "🚀 Ultra Tier" : tier === "medium" ? "✨ Medium Glass" : "⚡ Standard / Eco";
+  const folderFxBadge = curTheme?.uiElementFx || state.settings?.uiElementFx || "auto";
+  const iconPackBadge = curTheme?.iconPackStyle || state.settings?.iconPackStyle || "default";
+
+  const showcaseChips = OPTION_BRACKET_SHOWCASE_TEMPLATES.map((tpl) => {
+    const tObj = allThemes.find((t) => t.key === tpl.key);
+    if (!tObj) return null;
+    const isCurrent = (activeKey || "") === tpl.key;
+    const [bg, , accent, text] = tObj.swatch ?? ["#16191d", "#1e2329", "#6ea8ff", "#e8eaed"];
+    return h("button", {
+      type: "button",
+      class: `fm-quick-cycle-tpl-chip${isCurrent ? " is-active" : ""}`,
+      "data-quick-template": tpl.key,
+      "aria-pressed": String(isCurrent),
+      title: `${tObj.name} — ${tObj.description || tpl.badge}`,
+      onclick: async (e) => {
+        e.stopPropagation();
+        await chooseTheme(tpl.key);
+        await applyPalette(tpl.key);
+        showQuickCycleHud(tpl.key, allThemes, { index: keys.indexOf(tpl.key), total: keys.length });
+      },
+    },
+      h("span", { class: "fm-quick-cycle-tpl-dot", style: `background:${accent};box-shadow:0 0 0 2px ${bg}, 0 0 8px ${accent}` }),
+      h("span", {}, tpl.badge),
+    );
+  }).filter(Boolean);
+
+  const hud = h("div", {
+    id: "fm-quick-cycle-hud",
+    class: "fm-quick-cycle-hud",
+    role: "region",
+    "aria-label": "Option + Bracket Theme Quick-Switcher HUD",
+    "data-active-theme": activeKey || "standard",
+    onmouseenter: () => {
+      if (quickHudTimer) {
+        clearTimeout(quickHudTimer);
+        quickHudTimer = 0;
+      }
+    },
+    onmouseleave: () => {
+      quickHudTimer = setTimeout(hideQuickCycleHud, 3600);
+    },
+  },
+    h("div", { class: "fm-quick-cycle-head" },
+      h("span", { class: "fm-quick-cycle-kbd" }, "⌨️ Right ⌥ + [ / ] · Quick Theme Switcher"),
+      h("span", { class: "fm-quick-cycle-pos" }, `${index + 1} / ${total}`),
+      h("div", { class: "fm-quick-cycle-head-actions" },
+        h("button", {
+          type: "button",
+          class: "btn fm-quick-cycle-mini-btn",
+          "data-quick-hud-paste": "true",
+          title: "Paste a shared CCFM-THEME-v1 / CCFM-PACK-v1 code or JSON from clipboard (⌘V / ⌘⇧V)",
+          onclick: (e) => {
+            e.stopPropagation();
+            void pasteImportThemesFromClipboard();
+          },
+        }, "📋 Paste Theme (⌘V)"),
+        h("button", {
+          type: "button",
+          class: "btn fm-quick-cycle-mini-btn",
+          "data-quick-hud-gallery": "true",
+          onclick: (e) => {
+            e.stopPropagation();
+            hideQuickCycleHud();
+            void showThemePicker();
+          },
+        }, "🎨 Full Gallery"),
+        h("button", {
+          type: "button",
+          class: "btn fm-quick-cycle-mini-btn",
+          "data-quick-hud-close": "true",
+          "aria-label": "Close Quick-Switcher HUD",
+          onclick: (e) => {
+            e.stopPropagation();
+            hideQuickCycleHud();
+          },
+        }, "✕"),
+      ),
+    ),
+    h("div", { class: "fm-quick-cycle-stage" },
+      h("button", {
+        type: "button",
+        class: "fm-quick-cycle-step-card is-neighbor",
+        "data-quick-cycle-step": "-1",
+        title: "Previous theme (Right ⌥ + [)",
+        onclick: (e) => {
+          e.stopPropagation();
+          void cycleTheme(-1);
+        },
+      },
+        h("span", { class: "fm-quick-cycle-dir" }, "◀ ⌥ + ["),
+        h("strong", { class: "fm-quick-cycle-neighbor-name" }, prevTheme ? prevTheme.name : "Standard"),
+      ),
+      h("div", { class: "fm-quick-cycle-active-card" },
+        curTheme ? swatch(curTheme) : defaultSwatch(),
+        h("div", { class: "fm-quick-cycle-active-info" },
+          h("div", { class: "fm-quick-cycle-active-title-row" },
+            h("strong", { class: "fm-quick-cycle-active-name", "data-quick-cycle-name": "true" }, curTheme ? curTheme.name : "Standard (System Default)"),
+            h("span", { class: "fm-quick-cycle-badge" }, tierLabel),
+            folderFxBadge && folderFxBadge !== "off" ? h("span", { class: "fm-quick-cycle-badge" }, `📁 ${folderFxBadge}`) : null,
+            iconPackBadge && iconPackBadge !== "default" ? h("span", { class: "fm-quick-cycle-badge" }, `🎭 ${iconPackBadge}`) : null,
+          ),
+          h("div", { class: "fm-quick-cycle-active-desc" }, curTheme?.description || "Clean native light or dark appearance following your computer settings."),
+        ),
+      ),
+      h("button", {
+        type: "button",
+        class: "fm-quick-cycle-step-card is-neighbor",
+        "data-quick-cycle-step": "1",
+        title: "Next theme (Right ⌥ + ])",
+        onclick: (e) => {
+          e.stopPropagation();
+          void cycleTheme(1);
+        },
+      },
+        h("span", { class: "fm-quick-cycle-dir" }, "⌥ + ] ▶"),
+        h("strong", { class: "fm-quick-cycle-neighbor-name" }, nextTheme ? nextTheme.name : "Standard"),
+      ),
+    ),
+    h("div", { class: "fm-quick-cycle-templates", role: "group", "aria-label": "Built-in Option + ] Flagship Selection Templates" },
+      h("span", { class: "fm-quick-cycle-tpl-label" }, "🌟 Built-In Flagship Templates:"),
+      ...showcaseChips,
+    ),
+  );
+
+  document.getElementById("fm-quick-cycle-hud")?.remove();
+  document.body.appendChild(hud);
+  quickHudTimer = setTimeout(hideQuickCycleHud, 4200);
+  return hud;
+}
+
 let cycling = false;
-export async function cycleTheme(direction) {
+export async function cycleTheme(direction, opts = {}) {
   if (cycling) return;
   cycling = true;
   try {
     const themes = await themeList();
-    const keys = ["", ...themes.map((theme) => theme.key)];
+    let keys;
+    if (opts.pool === "showcase") {
+      keys = OPTION_BRACKET_SHOWCASE_TEMPLATES.map((t) => t.key).filter((k) => themes.some((th) => th.key === k));
+    } else if (opts.pool === "favorites") {
+      const favs = favoriteKeys().filter((k) => themes.some((th) => th.key === k));
+      keys = favs.length ? favs : ["", ...themes.map((theme) => theme.key)];
+    } else {
+      keys = ["", ...themes.map((theme) => theme.key)];
+    }
     const current = keys.indexOf(state.settings.palette || "");
     const next = current < 0 ? (direction > 0 ? 0 : keys.length - 1)
       : (current + direction + keys.length) % keys.length;
-    await chooseTheme(keys[next]);
+    const nextKey = keys[next];
+    await chooseTheme(nextKey);
+    await applyPalette(nextKey);
+    if (opts.showHud !== false) {
+      showQuickCycleHud(nextKey, themes, { index: next, total: keys.length });
+    }
   } catch (err) {
     toast(err?.message || "The theme couldn't be changed.", { kind: "error" });
   } finally {
@@ -750,25 +1617,49 @@ export async function showThemePicker() {
       : t.hasEffects && t.motion && t.motion !== "none" && t.motion !== "zero"
         ? h("span", { class: "theme-anim-badge", "data-anim-badge": t.motion, title: `UI motion profile: ${t.motion}` }, t.motion === "spring" ? "🌊 Spring" : t.motion === "snappy" ? "⚡ Snappy" : "🍃 Calm")
         : null;
+    const uiFxBadgeLabel = t.uiElementFx === "fire_folders" ? "🔥 Fire UI"
+      : t.uiElementFx === "slime_drip" ? "🧪 Slime UI"
+      : t.uiElementFx === "storm_wind" ? "🌪️ Storm UI"
+      : t.uiElementFx === "cryo_frost" ? "🧊 Cryo UI"
+      : t.uiElementFx === "tesla_arcs" ? "⚡ Tesla UI"
+      : t.uiElementFx === "mercury_chrome" ? "💧 Chrome UI"
+      : t.uiElementFx === "holo_glitch" ? "📺 Holo UI"
+      : t.uiElementFx === "void_tentacles" ? "🦑 Void UI"
+      : "";
+    const uiFxBadge = uiFxBadgeLabel
+      ? h("span", { class: "theme-uifx-badge", "data-uifx-badge": t.uiElementFx, title: `Includes interactive File Manager folder & toolbar shader (${t.uiElementFx})` }, uiFxBadgeLabel)
+      : null;
     const b = h("button", { type: "button", class: "theme-card", "data-key": t.key, "data-tier": tier, "aria-pressed": String(on), title: `${t.name}: ${t.description}`, onclick: () => pick(t.key) },
       swatch(t), h("span", { class: "theme-name" }, t.name), h("span", { class: "theme-kind" }, t.dark ? "Dark" : "Light"),
       h("span", { class: "theme-card-badges" },
         t.hasEffects ? h("span", { class: "theme-fx-badge", title: "This theme has special effects: glass, glow, motion and texture." }, "✨ Effects") : h("span", { class: "theme-plain-badge" }, "Colors only"),
         h("span", { class: `theme-tier-badge theme-tier-${tier}`, "data-tier-badge": tier, title: `Template Tier: ${tierLabel}` }, tierLabel),
         animBadge,
+        uiFxBadge,
       ));
     const editBtn = h("button", {
       type: "button",
       class: "theme-edit-quick",
       "data-edit-key": t.key,
       "aria-label": `Customize ${t.name}`,
-      title: `Customize ${t.name} in the Theme Editor…`,
+      title: `Clone & hack ${t.name} in the Theme Editor…`,
       onclick: (e) => {
         e.stopPropagation();
         dialogRef?.close();
         emit("theme-editor", { from: t.key });
       },
     }, "✎");
+    const shareBtn = h("button", {
+      type: "button",
+      class: "theme-share-quick",
+      "data-share-key": t.key,
+      "aria-label": `Share ${t.name}`,
+      title: `Share ${t.name} with other Codecaine File Manager users (1-line Share Code, JSON, Pack, or CSS)…`,
+      onclick: (e) => {
+        e.stopPropagation();
+        void showThemeShareDialog(t.key, themes);
+      },
+    }, "🔗");
     const pin = h("button", {
       type: "button",
       class: "theme-pin",
@@ -789,7 +1680,7 @@ export async function showThemePicker() {
         list.querySelector(`.theme-pin[data-pin-key="${t.key}"]`)?.focus({ preventScroll: true });
       },
     }, pinned ? "★" : "☆");
-    const wrap = h("div", { class: `theme-card-item${!supportsHas && pinned ? " is-pinned" : ""}` }, b, editBtn, pin);
+    const wrap = h("div", { class: `theme-card-item${!supportsHas && pinned ? " is-pinned" : ""}` }, b, shareBtn, editBtn, pin);
     return wrap;
   };
   const defaultCard = () => {
@@ -844,7 +1735,7 @@ export async function showThemePicker() {
       && themeMatchesAnimation(t, anim)
       && themeMatchesMaterial(t, activeMaterial)
       && themeMatchesVibe(t, activeVibe)
-      && (!q || `${t.name} ${t.group} ${t.key} ${t.description} ${resolveTemplateTier(t)} ${t.motion || ""} ${t.atmosphere || ""} ${t.backdropStyle || ""} ${favSet.has(t.key) ? "favorite favorite pinned star" : ""} ${t.hasEffects ? "effects special effects fx glow glass motion" : "plain"}`.toLowerCase().includes(q)));
+      && (!q || `${t.name} ${t.group} ${t.key} ${t.description} ${resolveTemplateTier(t)} ${t.motion || ""} ${t.atmosphere || ""} ${t.backdropStyle || ""} ${t.uiElementFx || ""} ${t.iconPackStyle || ""} ${favSet.has(t.key) ? "favorite favorite pinned star" : ""} ${t.hasEffects ? "effects special effects fx glow glass motion" : "plain"}`.toLowerCase().includes(q)));
     if (sortBy === "ultra-first") {
       shown.sort((a, b) => (TIER_RANK[resolveTemplateTier(b)] - TIER_RANK[resolveTemplateTier(a)]) || a.name.localeCompare(b.name));
     } else if (sortBy === "eco-first") {
@@ -1002,6 +1893,7 @@ export async function showThemePicker() {
   }, "📁 Pin to Folder");
   updatePinFolderLabel(pinFolderBtn);
 
+  const immersionBar = buildImmersionStudioBar();
   const dialog = openDialog({
     title: "Themes",
     wide: true,
@@ -1039,19 +1931,52 @@ export async function showThemePicker() {
           type: "button",
           class: "btn theme-compare-btn",
           "data-compare-themes": "true",
-          title: "Compare any two themes side-by-side with a live interactive split-screen slider and shader/tier specification table.",
+          title: "Compare any two themes side-by-side with a live interactive split-screen slider, spec table, and OKLab Theme Blender.",
           onclick: () => {
             const firstKey = previewKey || state.settings.palette || lastShown[0]?.key || themes[0]?.key || "";
             const secondCandidate = (lastShown.length > 1 ? lastShown : themes).find((t) => t.key !== firstKey);
             void showThemeCompareDialog(themes, firstKey, secondCandidate?.key || firstKey);
           },
-        }, "⚖️ Compare 2 Themes…"),
+        }, "⚖️ Compare & Blend…"),
+        h("button", {
+          type: "button",
+          class: "btn theme-share-hub-btn",
+          "data-share-hub": "true",
+          title: "Share any premade or custom theme (or multi-theme bundle pack) with other Codecaine File Manager users, or import a shared theme code.",
+          onclick: () => {
+            const activeKey = previewKey || state.settings.palette || lastShown[0]?.key || themes[0]?.key || "";
+            void showThemeShareDialog(activeKey, themes);
+          },
+        }, "📤 Share / Import…"),
+        h("button", {
+          type: "button",
+          class: "btn theme-paste-btn",
+          "data-paste-theme-btn": "true",
+          title: "Instant Paste Theme Import (⌘V / Ctrl+V or ⌘⇧V) — paste any CCFM-THEME-v1 code, CCFM-PACK-v1 bundle, or Theme JSON directly from your clipboard with automatic conflict resolution.",
+          onclick: async () => {
+            const out = await pasteImportThemesFromClipboard({ applyFirst: true });
+            if (out?.completed) {
+              previewKey = state.settings?.palette || null;
+              dialog.close(true);
+            }
+          },
+        }, "📋 Paste Theme (⌘V)"),
+        h("button", {
+          type: "button",
+          class: "btn theme-show-launch-btn",
+          "data-theme-show-btn": "true",
+          title: "Launch the interactive Theme Show & Screensaver Studio — cycle themes, storms, 4D tesseracts, fire folders, and retro XScreenSaver OSDs with idle timer and cinema HUD.",
+          onclick: () => {
+            dialog.close();
+            void showThemeShowDialog(themes);
+          },
+        }, "🎬 Theme Show / Screensaver…"),
         pinFolderBtn,
-        h("button", { type: "button", class: "btn", title: "Add weather or particle effects like rain, smoke screen, digital rain, cyber storm or aurora — with Low, Medium and Modern ARM Ultra graphics profiles.", onclick: () => { emit("atmosphere-picker"); } }, "Atmosphere FX…"),
-        h("button", { type: "button", class: "btn", title: "Choose a Light theme for daytime, a Dark theme for nighttime, or a 4-stage Solar Cycle schedule.", onclick: () => { void showDayNightPairDialog(themes); } }, "Day / Night pair…"),
-        h("button", { type: "button", class: "btn", title: "Make your own theme, or start from one of these and change its colors.", onclick: () => { dialog.close(); emit("theme-editor", { from: state.settings.palette || "" }); } }, "Create or edit a theme…")),
-      navBar, count, list,
-      h("p", { class: "hint" }, "A theme applies as soon as you click it, and is remembered. Use ← ↑ ↓ →, PgUp/PgDn, or [ / ] to rapid-preview themes live; press Enter to keep the focused theme, ☆ to pin to Favorites, ✎ to customize, ⚖️ Compare 2 Themes to inspect side-by-side, or 📁 Pin to Folder."),
+        h("button", { type: "button", class: "btn", title: "Add weather, storm debris, or particle effects like EF5 Tornado, Hurricane, Slime, or Digital Rain — with Low, Medium, Modern ARM Ultra & M4 Max Extreme graphics profiles.", onclick: () => { emit("atmosphere-picker"); } }, "Atmosphere FX…"),
+        h("button", { type: "button", class: "btn", title: "Choose a Light theme for daytime, a Dark theme for nighttime, a 4-stage Solar Cycle schedule, or an Ambient Auto-Rotation Playlist.", onclick: () => { void showDayNightPairDialog(themes); } }, "Day / Night & Playlist…"),
+        h("button", { type: "button", class: "btn", title: "Make your own theme, extract colors from an image/wallpaper, or hack any premade theme to death.", onclick: () => { dialog.close(); emit("theme-editor", { from: state.settings.palette || "" }); } }, "Create or edit a theme…")),
+      navBar, immersionBar, count, list,
+      h("p", { class: "hint" }, "A theme applies as soon as you click it, and is remembered. Use ← ↑ ↓ →, PgUp/PgDn, or [ / ] to rapid-preview themes live; use 🔥 Folder & Toolbar FX and 🎭 Custom Icon Pack to transform File Manager folders, toolbars, and icons; click 🔗 to share any premade or custom theme, ✎ to clone & hack it in the Theme Editor, or ☆ to pin to Favorites."),
     ],
     buttons: [{ label: "Done", primary: true, value: true }],
     initialFocus: search,
@@ -1114,7 +2039,7 @@ function buildComparePane(theme, sideLabel) {
   );
 }
 
-/** Side-by-Side Split-Screen Theme Comparator dialog with interactive wipe slider and spec matrix. */
+/** Side-by-Side Split-Screen Theme Comparator & Live OKLab Theme Blender dialog. */
 export async function showThemeCompareDialog(existingThemes, initialA = "", initialB = "") {
   let themes = existingThemes;
   if (!themes) {
@@ -1156,11 +2081,63 @@ export async function showThemeCompareDialog(existingThemes, initialA = "", init
   });
   const specTable = h("table", { class: "theme-compare-table", "aria-label": "Side-by-side theme specification table" });
 
+  // Live OKLab Theme Blender controls
+  const blendRatioLabel = h("span", { class: "hint" }, "50% A / 50% B");
+  const blendSwatchPreview = h("div", { class: "theme-blender-swatches", "data-blend-swatches": "true" });
+  const blendSlider = h("input", {
+    type: "range",
+    class: "prop-input",
+    "data-blend-ratio": "true",
+    "aria-label": "OKLab Theme Blend Ratio (0% = A, 100% = B)",
+    min: "0",
+    max: "100",
+    step: "5",
+    value: "50",
+  });
+  const blendNameInput = h("input", {
+    type: "text",
+    class: "prop-input",
+    "data-blend-name": "true",
+    "aria-label": "Blended custom theme name",
+    maxlength: "40",
+    placeholder: "Blended theme name…",
+  });
+
+  const refreshBlendSwatches = () => {
+    const r = Number(blendSlider.value) / 100;
+    const pctB = Math.round(r * 100);
+    blendRatioLabel.textContent = `${100 - pctB}% A / ${pctB}% B`;
+    const swA = themeA.swatch ?? ["#16191d", "#1e2329", "#6ea8ff", "#e8eaed"];
+    const swB = themeB.swatch ?? ["#16191d", "#1e2329", "#6ea8ff", "#e8eaed"];
+    const mixed = [0, 1, 2, 3].map((idx) => mixHexOklab(swA[idx], swB[idx], r));
+    blendSwatchPreview.replaceChildren(...mixed.map((hex, idx) =>
+      h("span", {
+        class: "theme-compare-hex-pill",
+        style: `background:${hex};color:${idx < 2 ? mixed[3] : mixed[0]};border:1px solid ${mixed[3]}44`,
+      }, hex)));
+  };
+
+  blendSlider.addEventListener("input", refreshBlendSwatches);
+
+  const computeBlendedPayload = async () => {
+    const [{ theme: fullA }, { theme: fullB }] = await Promise.all([
+      call("themes/get", { key: selectA.value }),
+      call("themes/get", { key: selectB.value }),
+    ]);
+    const ratio = Number(blendSlider.value) / 100;
+    return blendThemePair(fullA.source, fullB.source, ratio, blendNameInput.value.trim());
+  };
+
   const renderComparison = () => {
     themeA = findOrFirst(selectA.value, 0);
     themeB = findOrFirst(selectB.value, 1);
     paneA.replaceChildren(buildComparePane(themeA, "A · Left"));
     paneB.replaceChildren(buildComparePane(themeB, "B · Right"));
+    if (!blendNameInput.value.trim() || blendNameInput.dataset.autoName === "true") {
+      blendNameInput.value = `${themeA.name} × ${themeB.name}`.slice(0, 40);
+      blendNameInput.dataset.autoName = "true";
+    }
+    refreshBlendSwatches();
     const rows = [
       ["Template Tier", resolveTemplateTier(themeA).toUpperCase(), resolveTemplateTier(themeB).toUpperCase()],
       ["Category", themeA.group, themeB.group],
@@ -1168,7 +2145,7 @@ export async function showThemeCompareDialog(existingThemes, initialA = "", init
       ["Surface Shader", themeA.backdropStyle || themeA.preview?.backdrop || (themeA.hasEffects ? "glass" : "solid"), themeB.backdropStyle || themeB.preview?.backdrop || (themeB.hasEffects ? "glass" : "solid")],
       ["Glow & Border", `${themeA.preview?.glow || "none"} / ${themeA.preview?.border || "solid"}`, `${themeB.preview?.glow || "none"} / ${themeB.preview?.border || "solid"}`],
       ["Live Canvas FX", themeA.atmosphere && themeA.atmosphere !== "none" ? `🌌 ${themeA.atmosphere}` : "None", themeB.atmosphere && themeB.atmosphere !== "none" ? `🌌 ${themeB.atmosphere}` : "None"],
-      ["Motion Profile", themeA.motion || (themeA.hasEffects ? "smooth" : "static"), themeB.motion || (themeB.hasEffects ? "smooth" : "static")],
+      ["Motion & UI FX", `${themeA.motion || (themeA.hasEffects ? "smooth" : "static")}${themeA.uiElementFx ? ` · ${themeA.uiElementFx}` : ""}`, `${themeB.motion || (themeB.hasEffects ? "smooth" : "static")}${themeB.uiElementFx ? ` · ${themeB.uiElementFx}` : ""}`],
     ];
     specTable.replaceChildren(
       h("thead", {}, h("tr", {}, h("th", {}, "Specification"), h("th", {}, `A: ${themeA.name}`), h("th", {}, `B: ${themeB.name}`))),
@@ -1181,6 +2158,7 @@ export async function showThemeCompareDialog(existingThemes, initialA = "", init
     );
   };
 
+  blendNameInput.addEventListener("input", () => { blendNameInput.dataset.autoName = "false"; });
   selectA.addEventListener("change", renderComparison);
   selectB.addEventListener("change", renderComparison);
   renderComparison();
@@ -1190,6 +2168,53 @@ export async function showThemeCompareDialog(existingThemes, initialA = "", init
     const name = await applyPalette(key);
     if (name) toast(`Theme: ${name}`);
   };
+
+  const blenderSection = h("div", { class: "theme-blender-bar", role: "region", "aria-label": "Live OKLab Theme Blender" },
+    h("div", { class: "theme-blender-head" },
+      h("strong", {}, "🧬 Live OKLab Theme Blender (Crossfade A × B)"),
+      blendRatioLabel,
+    ),
+    h("div", { class: "theme-blender-controls" },
+      blendSlider,
+      blendSwatchPreview,
+      blendNameInput,
+      h("button", {
+        type: "button",
+        class: "btn",
+        "data-preview-blend": "true",
+        title: "Live-preview the perceptually blended theme on the File Manager right now.",
+        onclick: async () => {
+          try {
+            const payload = await computeBlendedPayload();
+            const { theme } = await call("themes/preview", payload);
+            paint(theme, "preview");
+            toast(`Live previewing OKLab blend: ${payload.name}`, { kind: "info" });
+          } catch (err) {
+            toast(err?.message || "Could not preview blended theme.", { kind: "error" });
+          }
+        },
+      }, "👁️ Preview Blend"),
+      h("button", {
+        type: "button",
+        class: "btn primary",
+        "data-save-blend": "true",
+        title: "Save this OKLab blended hybrid as a new theme in My Themes and apply it.",
+        onclick: async () => {
+          try {
+            const payload = await computeBlendedPayload();
+            const { theme } = await call("themes/custom/save", payload);
+            forgetThemeList();
+            paint(theme, theme.key);
+            await saveSettings({ palette: theme.key, recentPalettes: [theme.key, ...(state.settings.recentPalettes ?? []).filter((k) => k !== theme.key)].slice(0, 12) });
+            toast(`Saved blended theme "${theme.name}"!`, { kind: "success" });
+            dlg.close("blend");
+          } catch (err) {
+            toast(err?.message || "Could not save blended theme.", { kind: "error" });
+          }
+        },
+      }, "💾 Save Blended Theme"),
+    ),
+  );
 
   const dlg = openDialog({
     title: "Compare themes side-by-side",
@@ -1218,6 +2243,7 @@ export async function showThemeCompareDialog(existingThemes, initialA = "", init
           splitSlider,
         ),
       ),
+      blenderSection,
       specTable,
       h("div", { class: "theme-compare-actions" },
         h("button", {
@@ -1246,7 +2272,7 @@ export async function showThemeCompareDialog(existingThemes, initialA = "", init
   return dlg.result;
 }
 
-/** Dialog to configure automatic Day (Light) and Night (Dark) themes + 4-Stage Solar Cycle Schedule. */
+/** Dialog to configure automatic Day (Light) and Night (Dark) themes, 4-Stage Solar Cycle Schedule, and Ambient Auto-Rotation Playlist. */
 export async function showDayNightPairDialog(existingThemes) {
   let themes = existingThemes;
   if (!themes) {
@@ -1313,6 +2339,50 @@ export async function showDayNightPairDialog(existingThemes) {
     },
   }, "✨ Auto-Fill Sci-Fi Solar Cycle");
 
+  // Ambient Playlist & Auto-Rotation controls
+  const playlistEnabled = h("input", {
+    type: "checkbox",
+    "data-playlist-enabled": "true",
+    "aria-label": "Enable Ambient Playlist auto-rotation",
+  });
+  playlistEnabled.checked = Boolean(state.settings?.ambientPlaylistEnabled);
+  const playlistInterval = h("select", { class: "prop-input", "data-playlist-interval": "true", "aria-label": "Playlist rotation interval" },
+    h("option", { value: "1" }, "Every 1 minute"),
+    h("option", { value: "5" }, "Every 5 minutes"),
+    h("option", { value: "15" }, "Every 15 minutes"),
+    h("option", { value: "30" }, "Every 30 minutes"),
+    h("option", { value: "60" }, "Every 60 minutes"),
+  );
+  playlistInterval.value = String(state.settings?.ambientPlaylistIntervalMin || 15);
+  const playlistTarget = h("select", { class: "prop-input", "data-playlist-target": "true", "aria-label": "Playlist rotation target" },
+    h("option", { value: "both" }, "Themes + Atmosphere FX"),
+    h("option", { value: "themes" }, "Themes only"),
+    h("option", { value: "atmosphere" }, "Atmosphere FX only"),
+  );
+  playlistTarget.value = state.settings?.ambientPlaylistTarget || "both";
+  const playlistPool = h("select", { class: "prop-input", "data-playlist-pool": "true", "aria-label": "Playlist rotation pool" },
+    h("option", { value: "favorites" }, "★ Favorites & Saved Presets"),
+    h("option", { value: "ultra" }, "🚀 Ultra & Storm Tier Showcase"),
+    h("option", { value: "presets" }, "💾 Saved Atmosphere Presets"),
+    h("option", { value: "all" }, "All Themes & Effects"),
+  );
+  playlistPool.value = state.settings?.ambientPlaylistPool || "favorites";
+
+  const stepNowBtn = h("button", {
+    type: "button",
+    class: "btn",
+    "data-playlist-step-now": "true",
+    title: "Advance the Ambient Playlist immediately to preview the next theme/effect in the rotation.",
+    onclick: async () => {
+      if (state.settings) {
+        state.settings.ambientPlaylistTarget = playlistTarget.value;
+        state.settings.ambientPlaylistPool = playlistPool.value;
+      }
+      await stepAmbientPlaylist();
+      toast("Advanced Ambient Playlist to next item.", { kind: "info" });
+    },
+  }, "⏭️ Step Playlist Now");
+
   const body = [
     h("p", { class: "hint" }, "Pick a Light theme for daytime and a Dark theme for nighttime. When \"Follow my computer\" is active, the File Manager switches between your pair automatically."),
     h("div", { class: "theme-daynight-grid" },
@@ -1334,14 +2404,28 @@ export async function showDayNightPairDialog(existingThemes) {
         h("label", { class: "field" }, h("span", { class: "field-label" }, "🌌 Deep Midnight (21:00 – 04:59)"), nightSelect),
       ),
     ),
+    h("div", { class: "theme-solar-section" },
+      h("div", { class: "theme-solar-header" },
+        h("label", { class: "theme-solar-toggle" },
+          playlistEnabled,
+          h("span", {}, "📻 Enable Ambient Playlist Auto-Rotation"),
+        ),
+        stepNowBtn,
+      ),
+      h("div", { class: "theme-solar-grid" },
+        h("label", { class: "field" }, h("span", { class: "field-label" }, "⏱️ Rotation Interval"), playlistInterval),
+        h("label", { class: "field" }, h("span", { class: "field-label" }, "🎯 Rotate Target"), playlistTarget),
+        h("label", { class: "field" }, h("span", { class: "field-label" }, "🎵 Playlist Pool"), playlistPool),
+      ),
+    ),
   ];
   const answer = await openDialog({
-    title: "Day / Night theme pair",
+    title: "Day / Night, Solar Schedule & Ambient Playlist",
     body,
     buttons: [
       { label: "Cancel", value: "cancel" },
       { label: "Clear pair", value: "clear" },
-      { label: "Use Day / Night pair", value: "save", primary: true },
+      { label: "Save Schedule & Playlist", value: "save", primary: true },
     ],
     initialFocus: lightSelect,
   }).result;
@@ -1354,9 +2438,11 @@ export async function showDayNightPairDialog(existingThemes) {
       solarDayPalette: "",
       solarDuskPalette: "",
       solarNightPalette: "",
+      ambientPlaylistEnabled: false,
     });
+    syncAmbientPlaylistTimer();
     await applyPalette(state.settings?.palette || "");
-    toast("Day / Night theme pair and Solar Cycle cleared.", { kind: "info" });
+    toast("Day / Night theme pair, Solar Cycle, and Ambient Playlist cleared.", { kind: "info" });
   } else if (answer === "save") {
     const light = lightSelect.value;
     const dark = darkSelect.value;
@@ -1370,10 +2456,1290 @@ export async function showDayNightPairDialog(existingThemes) {
       solarDayPalette: daySelect.value,
       solarDuskPalette: duskSelect.value,
       solarNightPalette: nightSelect.value,
+      ambientPlaylistEnabled: Boolean(playlistEnabled.checked),
+      ambientPlaylistIntervalMin: Number(playlistInterval.value) || 15,
+      ambientPlaylistTarget: playlistTarget.value,
+      ambientPlaylistPool: playlistPool.value,
     });
+    syncAmbientPlaylistTimer();
     await applyPalette("");
-    toast(solarEnabled.checked ? "4-Stage Solar Cycle schedule active." : "Day / Night theme pair active — following your computer's light and dark schedule.", { kind: "success" });
+    toast(playlistEnabled.checked ? "Ambient Playlist & Schedule active." : solarEnabled.checked ? "4-Stage Solar Cycle schedule active." : "Day / Night theme pair active — following your computer's light and dark schedule.", { kind: "success" });
   }
+}
+
+/**
+ * Universal Codecaine Theme Share & Import Hub:
+ * Lets any Codecaine File Manager user share ANY premade built-in theme, custom hacked theme, or curated bundle pack
+ * via a 1-line Share Code (`CCFM-THEME-v1:...` / `CCFM-PACK-v1:...`), portable JSON, or standalone CSS — and import
+ * codes/packs shared by other users.
+ */
+export async function showThemeShareDialog(initialKey = "", existingThemes) {
+  let themes = existingThemes;
+  if (!themes) {
+    try {
+      themes = await themeList();
+    } catch (err) {
+      toast(err?.message || "The themes couldn't be loaded.", { kind: "error" });
+      return;
+    }
+  }
+  if (!themes?.length) return;
+  const startKey = initialKey && themes.some((t) => t.key === initialKey)
+    ? initialKey
+    : (state.settings?.palette && themes.some((t) => t.key === state.settings.palette) ? state.settings.palette : themes[0].key);
+
+  const themeSelect = h("select", { class: "prop-input", "aria-label": "Select premade or custom theme to share", "data-share-theme-select": "true" },
+    ...GROUP_ORDER.map((grp) => {
+      const inGrp = themes.filter((t) => t.group === grp);
+      return inGrp.length ? h("optgroup", { label: grp }, ...inGrp.map((t) => h("option", { value: t.key }, `${t.name} (${t.key})`))) : null;
+    }).filter(Boolean),
+  );
+  themeSelect.value = startKey;
+
+  const exportBox = h("textarea", {
+    class: "prop-input theme-export",
+    readonly: true,
+    rows: "7",
+    "data-share-export-box": "true",
+    "aria-label": "Shareable theme code or JSON",
+  });
+
+  let activeFormat = "code"; // "code" | "json" | "css" | "pack-weather" | "pack-nostalgia" | "pack-favs"
+  const formatButtons = [];
+  const makeFmtBtn = (id, label, title) => {
+    const b = h("button", {
+      type: "button",
+      class: "btn theme-export-tab",
+      "data-share-format": id,
+      "aria-pressed": String(id === activeFormat),
+      title,
+      onclick: () => {
+        activeFormat = id;
+        for (const btn of formatButtons) btn.setAttribute("aria-pressed", String(btn === b));
+        void refreshExport();
+      },
+    }, label);
+    formatButtons.push(b);
+    return b;
+  };
+
+  const tabs = h("div", { class: "theme-export-tabs" },
+    makeFmtBtn("code", "🔑 1-Line Share Code (CCFM-THEME-v1)", "Compact 1-line share code for Discord, Slack, GitHub, or messages"),
+    makeFmtBtn("json", "📄 Portable Theme JSON", "Full human-readable JSON that can be edited or hacked before importing"),
+    makeFmtBtn("css", "🎨 Standalone CSS (:root)", "Ready-to-use CSS variables & custom shader rules"),
+    makeFmtBtn("pack-weather", "🌪️ Weather & Storm Pack", "Shareable bundle of extreme Weather, Tornado, Hurricane, Fire & Slime themes"),
+    makeFmtBtn("pack-nostalgia", "🐧 Linux & Retro OS Pack", "Shareable bundle of nostalgic Linux, BeOS, Solaris CDE, Amiga, OS/2 & Win95 themes"),
+    makeFmtBtn("pack-favs", "★ Favorites & Custom Pack", "Shareable bundle of all your pinned Favorite themes and My Themes"),
+  );
+
+  async function refreshExport() {
+    const selectedKey = themeSelect.value || themes[0].key;
+    try {
+      if (activeFormat === "code" || activeFormat === "json") {
+        const res = await call("themes/custom/export", { key: selectedKey });
+        exportBox.value = activeFormat === "code" ? res.shareCode : res.text;
+      } else if (activeFormat === "css") {
+        const res = await call("themes/custom/export-css", { key: selectedKey });
+        exportBox.value = res.css;
+      } else if (activeFormat === "pack-weather") {
+        const keys = ["ef5_debris_tornado", "inferno_fire_folders", "toxic_slime_ooze", "urban_street_cyclone", "autumn_noreaster_gale", "supercell_emerald_vortex", "category_5_eyewall", "cryo_icicle_blizzard"].filter((k) => themes.some((t) => t.key === k));
+        const res = await call("themes/custom/export-pack", { keys });
+        exportBox.value = res.shareCode;
+      } else if (activeFormat === "pack-nostalgia") {
+        const keys = themes.filter((t) => t.group === "Linux" || t.group === "Rare and beloved systems" || t.key === "win95" || t.key === "dracula").slice(0, 12).map((t) => t.key);
+        const res = await call("themes/custom/export-pack", { keys });
+        exportBox.value = res.shareCode;
+      } else if (activeFormat === "pack-favs") {
+        const customKeys = themes.filter((t) => t.group === "My themes").map((t) => t.key);
+        const favs = favoriteKeys();
+        const combined = [...new Set([...customKeys, ...favs, selectedKey])].slice(0, 25);
+        const res = await call("themes/custom/export-pack", { keys: combined });
+        exportBox.value = res.shareCode;
+      }
+    } catch (err) {
+      exportBox.value = err?.message || "Could not generate share code.";
+    }
+  }
+
+  themeSelect.addEventListener("change", () => { void refreshExport(); });
+  await refreshExport();
+
+  const importBox = h("textarea", {
+    class: "prop-input theme-export",
+    rows: "5",
+    "data-share-import-box": "true",
+    "aria-label": "Paste shared CCFM-THEME-v1 codes, CCFM-PACK-v1 codes, or theme JSON",
+    placeholder: "Paste one or more CCFM-THEME-v1:... codes (even multiple lines!), CCFM-PACK-v1:... bundle codes, or Theme JSON / JSON arrays…",
+  });
+
+  const fileInput = h("input", {
+    type: "file",
+    multiple: true,
+    accept: ".json,.txt,.ccfm,application/json,text/plain",
+    "data-share-import-file-input": "true",
+    style: "display:none",
+  });
+  fileInput.addEventListener("change", async () => {
+    const files = [...(fileInput.files ?? [])];
+    if (!files.length) return;
+    try {
+      const contents = await Promise.all(files.map((f) => f.text()));
+      const merged = [importBox.value.trim(), ...contents.map((c) => c.trim())].filter(Boolean).join("\n");
+      importBox.value = merged;
+      toast(`Loaded ${files.length} theme file${files.length === 1 ? "" : "s"} into the bulk import queue.`, { kind: "info" });
+    } catch {
+      toast("Could not read one of the selected theme files.", { kind: "error" });
+    }
+  });
+
+  const dlg = openDialog({
+    title: "Share & Bulk Import Codecaine Themes (Premade, Custom & Bundles)",
+    wide: true,
+    body: [
+      h("p", { class: "hint" }, "Every Codecaine File Manager user can share any premade theme, custom hacked theme, or multi-theme bundle pack. Copy the 1-line Share Code or JSON below, or bulk import multiple themes at once with automatic conflict resolution!"),
+      h("div", { class: "theme-compare-controls" },
+        h("label", { class: "field", style: "flex:1" }, h("span", { class: "field-label" }, "📤 Choose any Premade or Custom Theme to Share"), themeSelect),
+        h("button", {
+          type: "button",
+          class: "btn",
+          "data-share-copy-btn": "true",
+          onclick: async () => {
+            try {
+              await call("copytext", { text: exportBox.value });
+              toast("Copied share code / theme text to clipboard!", { kind: "success" });
+            } catch {
+              toast("Select the text and copy it manually.", { kind: "info" });
+            }
+          },
+        }, "📋 Copy Share Code / Text"),
+        h("button", {
+          type: "button",
+          class: "btn",
+          "data-share-hack-selected": "true",
+          title: "Clone this premade or custom theme into the Theme Editor & Hacker Studio so you can personalize every color, shader, token, and CSS rule.",
+          onclick: () => {
+            const k = themeSelect.value;
+            dlg.close("hack");
+            dialogRef?.close();
+            emit("theme-editor", { from: k });
+          },
+        }, "🛠️ Clone & Hack This Theme…"),
+      ),
+      tabs,
+      exportBox,
+      h("hr", { style: "border:0;border-top:1px solid var(--border);margin:0.75rem 0" }),
+      h("div", { class: "theme-compare-controls", style: "justify-content:space-between;align-items:center" },
+        h("h3", { style: "margin:0;font-size:13px" }, "📥 Bulk Import Shared Theme Codes, JSON Packs, or Multiple Files (or press ⌘V / Ctrl+V anywhere!)"),
+        h("div", { style: "display:flex;gap:0.4rem;align-items:center" },
+          fileInput,
+          h("button", {
+            type: "button",
+            class: "btn",
+            "data-share-paste-clipboard-btn": "true",
+            title: "Read theme share codes or JSON directly from your clipboard and import (⌘V / Ctrl+V).",
+            onclick: async () => {
+              try {
+                const clip = await navigator?.clipboard?.readText?.();
+                if (clip && clip.trim()) {
+                  importBox.value = clip.trim();
+                  const out = await runBulkThemeImportFlow(clip.trim(), { applyFirst: true, forcePrompt: false });
+                  if (out?.completed) dlg.close("imported");
+                  return;
+                }
+              } catch { /* fallback to focus importBox */ }
+              importBox.focus();
+              toast("Press ⌘V / Ctrl+V in the box below to paste your theme code.", { kind: "info" });
+            },
+          }, "📋 Paste from Clipboard (⌘V)"),
+          h("button", {
+            type: "button",
+            class: "btn",
+            "data-share-import-files-btn": "true",
+            title: "Select one or more .json / .txt / .ccfm theme files from your computer to bulk import.",
+            onclick: () => fileInput.click(),
+          }, "📂 Load Theme Files…"),
+        ),
+      ),
+      importBox,
+      h("div", { class: "theme-compare-actions" },
+        h("button", {
+          type: "button",
+          class: "btn",
+          "data-share-inspect-btn": "true",
+          title: "Inspect all themes in the bulk import queue and choose per-theme actions before importing.",
+          onclick: async () => {
+            const raw = importBox.value.trim();
+            if (!raw) {
+              toast("Paste one or more CCFM-THEME-v1 / CCFM-PACK-v1 codes or JSON first.", { kind: "info" });
+              return;
+            }
+            const out = await runBulkThemeImportFlow(raw, { applyFirst: true, forcePrompt: true });
+            if (out?.completed) dlg.close("imported");
+          },
+        }, "🔍 Inspect Batch & Resolve Conflicts…"),
+        h("button", {
+          type: "button",
+          class: "btn primary",
+          "data-share-import-apply": "true",
+          onclick: async () => {
+            const raw = importBox.value.trim();
+            if (!raw) {
+              toast("Paste a CCFM-THEME-v1 code, CCFM-PACK-v1 code, or JSON first.", { kind: "info" });
+              return;
+            }
+            const out = await runBulkThemeImportFlow(raw, { applyFirst: true, forcePrompt: false });
+            if (out?.completed) dlg.close("imported");
+          },
+        }, "📥 Import into My Themes & Apply"),
+      ),
+    ],
+    buttons: [{ label: "Close", primary: true, value: "close" }],
+    initialFocus: themeSelect,
+  });
+  return dlg.result;
+}
+
+function renderMiniThemeBadge(themeObj, roleLabel) {
+  const c = themeObj?.colors ?? {};
+  const dots = [c.background, c.card, c.text, c.accent].filter(Boolean).map((hexColor) => {
+    const s = h("span", { class: "theme-conflict-dot", title: hexColor });
+    s.style.background = hexColor;
+    return s;
+  });
+  const fxParts = [];
+  if (themeObj?.fx?.atmosphere && themeObj.fx.atmosphere !== "none") fxParts.push(`🌌 ${themeObj.fx.atmosphere}`);
+  if (themeObj?.fx?.uiElementFx && themeObj.fx.uiElementFx !== "off") fxParts.push(`🔥 ${themeObj.fx.uiElementFx}`);
+  if (themeObj?.fx?.iconPackStyle && themeObj.fx.iconPackStyle !== "default") fxParts.push(`🎨 ${themeObj.fx.iconPackStyle}`);
+  return h("div", { class: "theme-conflict-side" },
+    h("span", { class: "theme-conflict-role" }, roleLabel),
+    h("span", { class: "theme-conflict-dots" }, ...dots),
+    h("span", { class: "theme-conflict-meta" }, themeObj?.dark ? "Dark" : "Light"),
+    fxParts.length ? h("span", { class: "theme-conflict-fx-tag" }, fxParts.join(" · ")) : null,
+  );
+}
+
+/**
+ * Opens an interactive Bulk Import & Conflict Resolution modal when incoming themes collide with existing custom
+ * themes (or duplicate names within the same batch), allowing per-theme or 1-click bulk resolution:
+ * - `replace`: Overwrite existing custom theme in place (preserving its ID)
+ * - `keep_both`: Keep existing and save incoming under a new or auto-incremented name
+ * - `merge_fx`: Keep existing colors and merge incoming FX/shaders/icons
+ * - `skip`: Skip importing the conflicting theme
+ */
+export async function openThemeConflictDialog(inspection, rawText, { applyFirst = true, onImported = null } = {}) {
+  const conflictItems = (inspection?.items ?? []).filter((i) => i.hasConflict);
+  const cleanItems = (inspection?.items ?? []).filter((i) => !i.hasConflict);
+
+  const actionSelects = new Map();
+  const renameInputs = new Map();
+  const cleanCheckboxes = new Map();
+
+  const applyBulkPolicy = (policy) => {
+    for (const item of conflictItems) {
+      const sel = actionSelects.get(item.index);
+      const ren = renameInputs.get(item.index);
+      if (sel) {
+        if (policy === "replace" && item.conflictKind === "batch_duplicate") {
+          sel.value = "keep_both";
+        } else {
+          sel.value = policy;
+        }
+      }
+      if (ren) {
+        ren.disabled = sel?.value !== "keep_both";
+      }
+    }
+  };
+
+  const conflictRows = conflictItems.map((item) => {
+    const initialAction = item.recommendedAction || "replace";
+    const select = h("select", {
+      class: "prop-input theme-conflict-select",
+      "data-conflict-action": String(item.index),
+      "aria-label": `Conflict resolution for ${item.draft.name}`,
+    },
+      ...(item.conflictKind === "existing_custom"
+        ? [
+            h("option", { value: "replace" }, "🔄 Replace / Overwrite Existing Theme"),
+            h("option", { value: "keep_both" }, "➕ Keep Both (Save Under New Name)"),
+            h("option", { value: "merge_fx" }, "✨ Merge Incoming FX & Shaders into Existing Colors"),
+            h("option", { value: "skip" }, "⏭️ Skip Incoming Theme (Keep Existing)"),
+          ]
+        : [
+            h("option", { value: "keep_both" }, "➕ Keep Both (Auto-Rename Duplicate in Batch)"),
+            h("option", { value: "skip" }, "⏭️ Skip Duplicate in Batch"),
+          ]),
+    );
+    select.value = initialAction;
+
+    const renameInput = h("input", {
+      type: "text",
+      class: "prop-input theme-conflict-rename",
+      "data-conflict-rename": String(item.index),
+      "aria-label": `New name for ${item.draft.name}`,
+      maxlength: "40",
+      value: item.suggestedRename || `${item.draft.name} (2)`,
+      disabled: select.value !== "keep_both",
+      placeholder: "New theme name…",
+    });
+
+    select.addEventListener("change", () => {
+      renameInput.disabled = select.value !== "keep_both";
+    });
+
+    actionSelects.set(item.index, select);
+    renameInputs.set(item.index, renameInput);
+
+    const diffLabel = item.identical
+      ? "Identical to existing theme"
+      : [
+          item.changedColors?.length ? `Colors (${item.changedColors.join(", ")})` : "",
+          item.changedFx ? "FX / Shaders" : "",
+        ].filter(Boolean).join(" + ") || "Modified";
+
+    return h("div", {
+      class: "theme-conflict-card",
+      "data-conflict-row": String(item.index),
+      "data-conflict-name": item.draft.name,
+    },
+      h("div", { class: "theme-conflict-card-head" },
+        h("div", { class: "theme-conflict-title-wrap" },
+          h("strong", { class: "theme-conflict-name" }, item.draft.name),
+          h("span", {
+            class: `theme-conflict-badge ${item.identical ? "is-identical" : "is-diff"}`,
+            "data-conflict-diff": String(item.index),
+          }, item.conflictKind === "batch_duplicate" ? `Duplicate in batch · ${diffLabel}` : `Conflicts with "${item.existingCustom?.name || item.draft.name}" · ${diffLabel}`),
+        ),
+      ),
+      h("div", { class: "theme-conflict-compare" },
+        item.existingCustom ? renderMiniThemeBadge(item.existingCustom, "Existing in My Themes") : null,
+        renderMiniThemeBadge(item.draft, "Incoming Theme"),
+      ),
+      h("div", { class: "theme-conflict-controls" },
+        h("label", { class: "field", style: "flex:1.3" },
+          h("span", { class: "field-label" }, "Resolution Action"),
+          select,
+        ),
+        h("label", { class: "field", style: "flex:1" },
+          h("span", { class: "field-label" }, "Name When Keeping Both"),
+          renameInput,
+        ),
+      ),
+    );
+  });
+
+  const cleanRows = cleanItems.map((item) => {
+    const cb = h("input", {
+      type: "checkbox",
+      checked: true,
+      "data-clean-include": String(item.index),
+    });
+    cleanCheckboxes.set(item.index, cb);
+    return h("label", { class: "theme-conflict-clean-item", "data-clean-row": String(item.index) },
+      cb,
+      h("strong", {}, item.draft.name),
+      renderMiniThemeBadge(item.draft, "New"),
+    );
+  });
+
+  let outcome = { completed: false, result: null };
+
+  const dlg = openDialog({
+    title: conflictItems.length > 0
+      ? `Resolve Theme Import Conflicts (${conflictItems.length} Conflict${conflictItems.length === 1 ? "" : "s"} Found)`
+      : `Bulk Theme Import Inspector (${inspection?.totalCount || 0} Themes)`,
+    wide: true,
+    body: [
+      h("div", { class: "theme-conflict-summary", "data-conflict-summary": "true" },
+        h("span", { class: "theme-conflict-stat" }, `📦 Total in Batch: ${inspection?.totalCount || 0}`),
+        h("span", { class: "theme-conflict-stat is-clean" }, `✅ New (No Conflict): ${cleanItems.length}`),
+        h("span", { class: `theme-conflict-stat ${conflictItems.length ? "is-warn" : ""}` }, `⚠️ Conflicts Found: ${conflictItems.length}`),
+      ),
+      conflictItems.length > 0
+        ? h("div", { class: "theme-conflict-bulk-bar", role: "group", "aria-label": "Apply resolution to all conflicts" },
+            h("span", { class: "theme-pill-label" }, "Apply to all conflicts:"),
+            h("button", {
+              type: "button",
+              class: "btn",
+              "data-conflict-bulk": "replace",
+              onclick: () => applyBulkPolicy("replace"),
+            }, "🔄 Replace All Existing"),
+            h("button", {
+              type: "button",
+              class: "btn",
+              "data-conflict-bulk": "keep_both",
+              onclick: () => applyBulkPolicy("keep_both"),
+            }, "➕ Keep Both for All (Auto-Rename)"),
+            h("button", {
+              type: "button",
+              class: "btn",
+              "data-conflict-bulk": "merge_fx",
+              onclick: () => applyBulkPolicy("merge_fx"),
+            }, "✨ Merge Incoming FX into All"),
+            h("button", {
+              type: "button",
+              class: "btn",
+              "data-conflict-bulk": "skip",
+              onclick: () => applyBulkPolicy("skip"),
+            }, "⏭️ Skip All Conflicts"),
+          )
+        : null,
+      conflictItems.length > 0
+        ? h("div", { class: "theme-conflict-list", "data-conflict-list": "true" }, ...conflictRows)
+        : null,
+      cleanItems.length > 0
+        ? h("details", { class: "theme-conflict-clean-section", open: conflictItems.length === 0 },
+            h("summary", {}, `✅ Ready to Import Without Conflicts (${cleanItems.length} theme${cleanItems.length === 1 ? "" : "s"})`),
+            h("div", { class: "theme-conflict-clean-list" }, ...cleanRows),
+          )
+        : null,
+    ].filter(Boolean),
+    buttons: [
+      { label: "Cancel", value: "cancel" },
+      { label: "✅ Apply Resolutions & Import", value: "confirm", primary: true },
+    ],
+  });
+
+  const answer = await dlg.result;
+  if (answer !== "confirm") return outcome;
+
+  const resolutions = conflictItems.map((item) => {
+    const action = actionSelects.get(item.index)?.value || "keep_both";
+    const renameTo = (renameInputs.get(item.index)?.value || "").trim() || item.suggestedRename;
+    return {
+      index: item.index,
+      name: item.draft.name,
+      action,
+      ...(action === "keep_both" ? { renameTo } : {}),
+      ...(item.existingCustom?.id ? { targetId: item.existingCustom.id } : {}),
+    };
+  });
+
+  const includeIndices = [];
+  for (const item of conflictItems) includeIndices.push(item.index);
+  for (const item of cleanItems) {
+    if (cleanCheckboxes.get(item.index)?.checked !== false) includeIndices.push(item.index);
+  }
+
+  try {
+    const res = await call("themes/custom/import-pack", {
+      text: rawText,
+      resolutions,
+      includeIndices,
+    });
+    forgetThemeList();
+    if (applyFirst && res.first?.id) {
+      await saveSettings({
+        palette: res.first.id,
+        recentPalettes: [res.first.id, ...(state.settings.recentPalettes ?? []).filter((k) => k !== res.first.id)].slice(0, 12),
+      });
+      await applyPalette(res.first.id);
+    }
+    if (typeof onImported === "function") onImported(res);
+    const parts = [];
+    if (res.addedCount) parts.push(`${res.addedCount} added`);
+    if (res.replacedCount) parts.push(`${res.replacedCount} replaced`);
+    if (res.renamedCount) parts.push(`${res.renamedCount} renamed`);
+    if (res.mergedCount) parts.push(`${res.mergedCount} FX-merged`);
+    if (res.skippedCount) parts.push(`${res.skippedCount} skipped`);
+    toast(`Bulk Import complete (${parts.join(", ") || `${res.count} processed`})!`, { kind: "success" });
+    outcome = { completed: true, result: res };
+  } catch (err) {
+    toast(err?.message || "Could not complete bulk theme import.", { kind: "error" });
+  }
+  return outcome;
+}
+
+/**
+ * Inspects a bulk theme import payload first and automatically opens the Conflict Resolution Dialog
+ * whenever conflicts are detected (or when `forcePrompt` is true); otherwise imports immediately.
+ */
+export async function runBulkThemeImportFlow(rawText, { applyFirst = true, forcePrompt = false, onImported = null } = {}) {
+  try {
+    const inspection = await call("themes/custom/inspect-pack", { text: rawText });
+    if (inspection.conflictCount > 0 || forcePrompt) {
+      return await openThemeConflictDialog(inspection, rawText, { applyFirst, onImported });
+    }
+    const res = await call("themes/custom/import-pack", { text: rawText });
+    forgetThemeList();
+    if (applyFirst && res.first?.id) {
+      await saveSettings({
+        palette: res.first.id,
+        recentPalettes: [res.first.id, ...(state.settings.recentPalettes ?? []).filter((k) => k !== res.first.id)].slice(0, 12),
+      });
+      await applyPalette(res.first.id);
+    }
+    if (typeof onImported === "function") onImported(res);
+    toast(`Imported ${res.count} shared theme${res.count === 1 ? "" : "s"} into My Themes${res.first?.name ? ` and applied "${res.first.name}"` : ""}!`, { kind: "success" });
+    return { completed: true, result: res };
+  } catch (err) {
+    toast(err?.message || "Could not import shared theme code.", { kind: "error" });
+    return { completed: false, result: null };
+  }
+}
+
+/**
+ * Fast heuristic to detect whether clipboard text or a pasted string is a Codecaine Theme share payload:
+ * - `CCFM-THEME-v1:...` single theme share code(s)
+ * - `CCFM-PACK-v1:...` multi-theme bundle code(s)
+ * - Portable theme JSON object (`bun-rad-studio-file-manager-theme`, `bun-rad-studio-file-manager-theme-pack`, or `{ name, colors: { background, accent } }`)
+ * - JSON array of theme objects
+ */
+export function looksLikeThemeImportPayload(rawText) {
+  if (typeof rawText !== "string") return false;
+  const trimmed = rawText.trim();
+  if (!trimmed || trimmed.length < 12 || trimmed.length > 600_000) return false;
+  if (/CCFM-(?:THEME|PACK)-v1:[A-Za-z0-9+/=_-]{8,}/.test(trimmed)) return true;
+  if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      const isThemeObj = (o) =>
+        Boolean(
+          o &&
+          typeof o === "object" &&
+          (o.format === "bun-rad-studio-file-manager-theme" ||
+            (typeof o.name === "string" &&
+              o.colors &&
+              typeof o.colors === "object" &&
+              typeof o.colors.background === "string" &&
+              typeof o.colors.accent === "string")),
+        );
+      if (isThemeObj(parsed)) return true;
+      if (parsed && typeof parsed === "object" && parsed.format === "bun-rad-studio-file-manager-theme-pack" && Array.isArray(parsed.themes)) {
+        return true;
+      }
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed.every(isThemeObj)) return true;
+      if (parsed && typeof parsed === "object" && Array.isArray(parsed.themes) && parsed.themes.length > 0 && parsed.themes.every(isThemeObj)) {
+        return true;
+      }
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+/**
+ * Validates and imports one or more themes from raw text (`CCFM-THEME-v1:...`, `CCFM-PACK-v1:...`, or JSON),
+ * automatically prompting the Conflict Resolution Modal if any names collide.
+ */
+export async function pasteImportThemesFromText(rawText, { applyFirst = true, forcePrompt = false, onImported = null, quietIfInvalid = false } = {}) {
+  const text = String(rawText ?? "").trim();
+  if (!text) {
+    if (!quietIfInvalid) toast("Clipboard is empty — copy a CCFM-THEME-v1 code, CCFM-PACK-v1 bundle, or Theme JSON first.", { kind: "info" });
+    return { completed: false, result: null };
+  }
+  if (!looksLikeThemeImportPayload(text)) {
+    if (!quietIfInvalid) {
+      toast("Clipboard does not contain a valid CCFM-THEME-v1 / CCFM-PACK-v1 share code or Theme JSON.", { kind: "info" });
+    }
+    return { completed: false, result: null };
+  }
+  return await runBulkThemeImportFlow(text, { applyFirst, forcePrompt, onImported });
+}
+
+/**
+ * Reads the system clipboard (or opens a quick paste box if clipboard read permission is blocked)
+ * and imports any single theme or bulk theme pack with automatic conflict resolution.
+ */
+export async function pasteImportThemesFromClipboard(opts = {}) {
+  try {
+    if (typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.readText === "function") {
+      const clipText = await navigator.clipboard.readText();
+      if (clipText && clipText.trim()) {
+        if (looksLikeThemeImportPayload(clipText)) {
+          return await pasteImportThemesFromText(clipText, opts);
+        }
+        toast("Clipboard text doesn't look like a CCFM-THEME-v1 / CCFM-PACK-v1 code or Theme JSON — opening Share & Import Hub.", { kind: "info" });
+      }
+    }
+  } catch {
+    /* Clipboard API read permission denied or unavailable; fall through to quick paste modal */
+  }
+  await showThemeShareDialog(state.settings?.palette || "");
+  return { completed: false, result: null };
+}
+
+/* ============================================================================
+ * 🎬 Theme Show & Screensaver Studio
+ * ============================================================================ */
+
+export const THEME_SHOW_MODES_META = [
+  {
+    id: "cinema_hud",
+    icon: "🎬",
+    label: "Cinema HUD & Clock",
+    desc: "Full-bleed multi-layer atmospheric FX + live theme showcase with a floating translucent glass clock, now-playing badge, and transport controls.",
+  },
+  {
+    id: "pure_canvas",
+    icon: "🌌",
+    label: "Pure Zen Canvas (Zero UI)",
+    desc: "Hides all File Manager chrome so 120Hz storms, 4D tesseracts, and Tesla coils fill 100% of the screen like a native OS screensaver.",
+  },
+  {
+    id: "living_desktop",
+    icon: "🔥",
+    label: "Living File Manager Showcase",
+    desc: "Showcases folders on fire, dripping slime, wind-buffeted toolbars, and custom icon packs with spotlight row highlights across your workspace.",
+  },
+  {
+    id: "retro_afterdark",
+    icon: "📺",
+    label: "Retro After Dark / XScreenSaver OSD",
+    desc: "Nostalgic 90s Linux xscreensaver-demo & CRT green/amber phosphor corner OSD with live telemetry and a bouncing retro badge.",
+  },
+];
+
+export const THEME_SHOW_CHANNELS_META = [
+  {
+    id: "all_ultra",
+    icon: "🚀",
+    label: "M4 Max & Ultra Showcase",
+    desc: "All Ultra-tier themes paired with multi-layer signature atmospheric mixes.",
+    themes: ["ef5_debris_tornado", "inferno_fire_folders", "toxic_slime_ooze", "urban_street_cyclone", "tesla_coil_plasma", "tokamak_fusion", "hawking_horizon", "m4_space_black", "tahoe_liquid_glass"],
+    mixes: [
+      "debris_tornado_ef5+urban_cyclone_debris+hail_supercell+derecho_squall",
+      "tesseract_4d+calabi_yau+chronos_retrocausal",
+      "plasma_storm+tesla_megacoil+ball_lightning",
+      "liquid_glass_caustics+m4_raytrace_prism+aurora",
+      "autumn_noreaster_gale+forest_canopy_tempest+monsoon_microburst",
+    ],
+  },
+  {
+    id: "storms_debris",
+    icon: "🌪️",
+    label: "Extreme Storms, Leaves & 3D Debris",
+    desc: "EF5 wedge tornadoes, 1,000-leaf October nor'easters, street-canyon newspaper cyclones, Cat-5 hurricanes, and mesospheric red sprites.",
+    themes: ["ef5_debris_tornado", "urban_street_cyclone", "autumn_noreaster_gale", "supercell_emerald_vortex", "category_5_eyewall", "mesosphere_red_sprite", "cryo_icicle_blizzard", "scrapyard_shrapnel_vortex", "jovian_red_spot_storm", "neptune_diamond_squall"],
+    mixes: [
+      "debris_tornado_ef5+urban_cyclone_debris+hail_supercell+derecho_squall",
+      "autumn_noreaster_gale+forest_canopy_tempest+monsoon_microburst",
+      "junkyard_maelstrom+tesla_megacoil+supercell_tornado",
+      "cyber_alley_typhoon+derecho_squall+cyberstorm",
+      "category5_hurricane+waterspout_vortex+monsoon_microburst",
+      "thundersnow_gale+blizzard+freezing_ice_storm",
+    ],
+  },
+  {
+    id: "year_2126",
+    icon: "🛸",
+    label: "Year 2126 Hyper-Dimensional",
+    desc: "4D Tesseracts, 11D Calabi-Yau manifolds, Penrose quasicrystals, Klein bottles, Matrioshka brains, and retrocausal time loops.",
+    themes: ["hawking_horizon", "alcubierre_warp_drive", "kardashev_dyson_swarm", "quark_gluon_plasma", "m4_space_black", "cyberpunk_neon"],
+    mixes: [
+      "tesseract_4d+calabi_yau+chronos_retrocausal",
+      "eigen_consciousness+tachyon_braid_2126+dyson_swarm",
+      "klein_mobius+penrose_quasicrystal+void_metamaterial",
+      "xenotech_biolith+strangelet_condensate+ferrofluid_spikes",
+      "omega_point_2126+hawking_horizon+tesla_megacoil",
+      "metric_fold_origami+alcubierre_warp+gravitational_waves",
+    ],
+  },
+  {
+    id: "tesla_physics",
+    icon: "⚡",
+    label: "High-Voltage Tesla & CERN Physics",
+    desc: "Wardenclyffe magnifying transmitters, ITER tokamak fusion toruses, CERN hadron colliders, and ferrofluid spikes.",
+    themes: ["tesla_coil_plasma", "tokamak_fusion", "cern_lhc_detector", "ferrofluid_magnetics", "meissner_superconductor", "cherenkov_reactor"],
+    mixes: [
+      "plasma_storm+tesla_megacoil+ball_lightning",
+      "tokamak_fusion+plasma_storm+arc_reactor_core",
+      "hadron_collider+antimatter_trap+cherenkov_glow",
+      "ferrofluid_spikes+meissner_levitation+plasma_globe",
+      "jacobs_ladder+st_elmos_corona+faraday_cage",
+    ],
+  },
+  {
+    id: "visceral_fx",
+    icon: "🔥",
+    label: "Visceral Folders: Fire, Slime & Frost",
+    desc: "Showcases interactive File Manager UI element shaders: folders on fire, dripping radioactive slime, wind-buffeted rows, cryo rime, and Tesla arcs.",
+    themes: ["inferno_fire_folders", "toxic_slime_ooze", "ef5_debris_tornado", "cryo_icicle_blizzard", "tesla_coil_plasma", "scrapyard_shrapnel_vortex"],
+    mixes: [
+      "dragon_forge+plasma_storm+embers",
+      "abyssal_trench+caustics+jellyfish_glow",
+      "debris_tornado_ef5+autumn_noreaster_gale",
+      "thundersnow_gale+freezing_ice_storm",
+    ],
+    uiFxCycle: ["fire_folders", "slime_drip", "storm_wind", "cryo_frost", "tesla_arcs", "mercury_chrome", "holo_glitch", "void_tentacles"],
+    iconPackCycle: ["inferno_burn", "bio_slime", "storm_weather", "cryo_crystal", "neon_cyber", "liquid_chrome", "retro_pixel", "arcane_glyphs"],
+  },
+  {
+    id: "linux_retro",
+    icon: "🐧",
+    label: "Nostalgic Linux, Compiz & Retro OS",
+    desc: "A love letter to Compiz Fusion desktop cube burn, Solaris CDE, SGI IRIX, BeOS, Amiga Workbench, OS/2 Warp, and CRT terminals.",
+    themes: ["inferno_fire_folders", "ubuntu_yaru_dark", "arch_btw", "solaris_cde", "sgi_irix_indigo", "beos_yellowtab", "amiga_workbench", "win95", "dracula", "gruvbox_dark"],
+    mixes: [
+      "matrix+neural_nexus+pcb_traces",
+      "dragon_forge+embers",
+      "outrun_grid+hyperspace+laser_show",
+      "radar_sweep+constellations",
+    ],
+  },
+  {
+    id: "favorites",
+    icon: "★",
+    label: "My Favorites & Custom Hacked Themes",
+    desc: "Cycles through your pinned Favorite themes, custom hacked themes in My Themes, and saved atmospheric presets.",
+    themes: [],
+    mixes: [],
+  },
+];
+
+let activeShowState = null;
+let idleWatcherTimer = 0;
+let idleListenersBound = false;
+let lastUserActivityAt = Date.now();
+
+/** Returns true if the Theme Show / Screensaver is currently active. */
+export function isThemeShowActive() {
+  return Boolean(activeShowState?.active);
+}
+
+function formatShowClock(now = new Date()) {
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  const ss = String(now.getSeconds()).padStart(2, "0");
+  const dateStr = now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  return { time: `${hh}:${mm}:${ss}`, date: dateStr };
+}
+
+/** Advances or steps backward in the active Theme Show / Screensaver by `delta` scenes (`1` or `-1`). */
+export async function stepThemeShow(delta = 1) {
+  if (!activeShowState?.active) return null;
+  const st = activeShowState;
+  st.sceneIndex = (st.sceneIndex + (delta >= 0 ? 1 : -1) + Math.max(1, st.scenes.length)) % Math.max(1, st.scenes.length);
+  const scene = st.scenes[st.sceneIndex] || { themeKey: "ef5_debris_tornado", themeName: "EF5 Debris Tornado", atmo: "debris_tornado_ef5+urban_cyclone_debris", uiFx: "storm_wind", iconPack: "storm_tempest" };
+  st.currentScene = scene;
+
+  const root = document.documentElement;
+  if (st.options.transition === "glitch_cut") {
+    root.dataset.themeShowGlitch = "true";
+    setTimeout(() => { delete root.dataset.themeShowGlitch; }, 360);
+  }
+
+  await applyPalette(scene.themeKey);
+  if (scene.uiFx) {
+    root.setAttribute("data-ui-fx", scene.uiFx);
+  }
+  if (scene.iconPack) {
+    root.setAttribute("data-icon-pack", scene.iconPack);
+    syncVisibleIcons(document);
+  }
+
+  try {
+    const atmoMod = await import("./atmosphereFx.js");
+    const effectiveTier = st.options.boostTier === "keep"
+      ? (state.settings?.atmosphereTier || "ultra")
+      : (st.options.boostTier || "extreme");
+    if (scene.atmo && scene.atmo !== "none") {
+      atmoMod.applyAtmosphere(scene.atmo, 92, effectiveTier, "telemetry");
+      if (st.options.transition === "arc_surge") {
+        atmoMod.triggerReactiveImpulse?.(1.65);
+      }
+    }
+  } catch {}
+
+  st.updateHud?.();
+  return scene;
+}
+
+/** Pauses or resumes automatic scene cycling in the active Theme Show. */
+export function togglePauseThemeShow() {
+  if (!activeShowState?.active) return false;
+  activeShowState.paused = !activeShowState.paused;
+  activeShowState.updateHud?.();
+  return activeShowState.paused;
+}
+
+/** Stops the active Theme Show / Screensaver and restores the user's previous theme & FX unless `keepCurrent` is true. */
+export async function stopThemeShow({ keepCurrent = false } = {}) {
+  if (!activeShowState) return;
+  const st = activeShowState;
+  activeShowState = null;
+  if (st.intervalId) clearInterval(st.intervalId);
+  if (st.clockId) clearInterval(st.clockId);
+  if (st.cleanupListeners) st.cleanupListeners();
+
+  const root = document.documentElement;
+  delete root.dataset.themeShow;
+  delete root.dataset.themeShowTransition;
+  delete root.dataset.themeShowGlitch;
+  document.getElementById("fm-theme-show-overlay")?.remove();
+
+  if (keepCurrent && st.currentScene) {
+    const sc = st.currentScene;
+    await saveSettings({
+      palette: sc.themeKey,
+      ...(sc.atmo ? { atmosphere: sc.atmo, atmosphereIntensity: 90 } : {}),
+      ...(sc.uiFx ? { uiElementFx: sc.uiFx } : {}),
+      ...(sc.iconPack ? { iconPackStyle: sc.iconPack } : {}),
+    });
+    toast(`Kept Theme Show scene: ${sc.themeName}!`, { kind: "success" });
+    return;
+  }
+
+  // Restore pre-show user state
+  if (state.settings && st.savedSnapshot) {
+    Object.assign(state.settings, st.savedSnapshot);
+  }
+  await applyPalette(st.savedSnapshot?.palette || "");
+  try {
+    const atmoMod = await import("./atmosphereFx.js");
+    atmoMod.applyAtmosphere(
+      st.savedSnapshot?.atmosphere || "none",
+      st.savedSnapshot?.atmosphereIntensity ?? 60,
+      st.savedSnapshot?.atmosphereTier || "auto",
+      st.savedSnapshot?.atmosphereReactive || "off",
+      st.savedSnapshot?.atmosphereLayerMods || {},
+    );
+  } catch {}
+}
+
+/** Starts the full-window Theme Show & Screensaver with the chosen presentation mode, channel, interval, and options. */
+export async function startThemeShow(customOptions = {}) {
+  if (activeShowState?.active) {
+    await stopThemeShow();
+  }
+  const s = state.settings ?? {};
+  const options = {
+    mode: customOptions.mode || s.themeShowMode || "cinema_hud",
+    channel: customOptions.channel || s.themeShowChannel || "all_ultra",
+    intervalSec: Math.max(5, Math.min(600, Number(customOptions.intervalSec ?? s.themeShowIntervalSec) || 15)),
+    transition: customOptions.transition || s.themeShowTransition || "oklab_morph",
+    exitOnMove: customOptions.exitOnMove !== undefined ? Boolean(customOptions.exitOnMove) : Boolean(s.themeShowExitOnMove),
+    showClock: customOptions.showClock !== undefined ? Boolean(customOptions.showClock) : (s.themeShowClock !== false),
+    boostTier: customOptions.boostTier || s.themeShowBoostTier || "extreme",
+  };
+
+  const allThemes = await themeList().catch(() => []);
+  const chanMeta = THEME_SHOW_CHANNELS_META.find((c) => c.id === options.channel) || THEME_SHOW_CHANNELS_META[0];
+
+  let candidateKeys = [];
+  if (options.channel === "favorites") {
+    const favs = favoriteKeys();
+    const customKeys = allThemes.filter((t) => t.group === "My themes").map((t) => t.key);
+    candidateKeys = [...new Set([...customKeys, ...favs])];
+  } else {
+    candidateKeys = (chanMeta.themes || []).filter((k) => allThemes.some((t) => t.key === k));
+  }
+  if (!candidateKeys.length) {
+    candidateKeys = allThemes.filter((t) => resolveTemplateTier(t) === "ultra").map((t) => t.key);
+  }
+  if (!candidateKeys.length) {
+    candidateKeys = allThemes.slice(0, 12).map((t) => t.key);
+  }
+
+  const mixes = chanMeta.mixes?.length
+    ? chanMeta.mixes
+    : ["debris_tornado_ef5+urban_cyclone_debris", "tesseract_4d+calabi_yau+chronos_retrocausal", "plasma_storm+tesla_megacoil"];
+
+  const scenes = candidateKeys.map((themeKey, idx) => {
+    const tObj = allThemes.find((t) => t.key === themeKey);
+    const atmo = (tObj?.atmosphere && tObj.atmosphere !== "none")
+      ? tObj.atmosphere
+      : mixes[idx % mixes.length];
+    const uiFx = chanMeta.uiFxCycle
+      ? chanMeta.uiFxCycle[idx % chanMeta.uiFxCycle.length]
+      : (tObj?.uiElementFx || "");
+    const iconPack = chanMeta.iconPackCycle
+      ? chanMeta.iconPackCycle[idx % chanMeta.iconPackCycle.length]
+      : (tObj?.iconPackStyle || "");
+    return {
+      themeKey,
+      themeName: tObj?.name || themeKey,
+      atmo,
+      uiFx,
+      iconPack,
+    };
+  });
+
+  const savedSnapshot = {
+    palette: s.palette || "",
+    atmosphere: s.atmosphere || "none",
+    atmosphereIntensity: s.atmosphereIntensity ?? 60,
+    atmosphereTier: s.atmosphereTier || "auto",
+    atmosphereReactive: s.atmosphereReactive || "off",
+    atmosphereLayerMods: JSON.parse(JSON.stringify(s.atmosphereLayerMods || {})),
+    uiElementFx: s.uiElementFx || "off",
+    iconPackStyle: s.iconPackStyle || "default",
+  };
+
+  const root = document.documentElement;
+  root.dataset.themeShow = options.mode;
+  root.dataset.themeShowTransition = options.transition;
+
+  const clockTimeEl = h("div", { class: "fm-theme-show-clock-time", "data-theme-show-clock": "true" });
+  const clockDateEl = h("div", { class: "fm-theme-show-clock-date" });
+  const nowPlayingTitle = h("div", { class: "fm-theme-show-scene-title", "data-theme-show-now-playing": "true" });
+  const nowPlayingMeta = h("div", { class: "fm-theme-show-scene-meta", "data-theme-show-meta": "true" });
+  const pauseBtn = h("button", {
+    type: "button",
+    class: "btn fm-theme-show-btn",
+    "data-theme-show-pause": "true",
+    onclick: (e) => {
+      e.stopPropagation();
+      togglePauseThemeShow();
+    },
+  }, "⏸ Pause");
+
+  const retroBadge = options.mode === "retro_afterdark"
+    ? h("div", { class: "fm-theme-show-retro-floater", "data-theme-show-retro-badge": "true" },
+        h("div", { class: "fm-theme-show-retro-title" }, "🐧 XSCREENSAVER // CODECAINE RAD STUDIO"),
+        h("div", { class: "fm-theme-show-retro-sub", "data-theme-show-retro-sub": "true" }, "CHANNEL: READY · 120HZ GPU SHADER PIPELINE"),
+      )
+    : null;
+
+  const overlay = h("div", {
+    id: "fm-theme-show-overlay",
+    class: `fm-theme-show-overlay is-mode-${options.mode}`,
+    "data-theme-show-mode": options.mode,
+    role: "region",
+    "aria-label": "Theme Show and Screensaver overlay",
+  },
+    retroBadge,
+    h("div", { class: "fm-theme-show-hud" },
+      options.showClock
+        ? h("div", { class: "fm-theme-show-clock-box" }, clockTimeEl, clockDateEl)
+        : null,
+      h("div", { class: "fm-theme-show-info-box" },
+        h("div", { class: "fm-theme-show-channel-pill" }, `${chanMeta.icon} ${chanMeta.label}`),
+        nowPlayingTitle,
+        nowPlayingMeta,
+      ),
+      h("div", { class: "fm-theme-show-controls" },
+        h("button", {
+          type: "button",
+          class: "btn fm-theme-show-btn",
+          "data-theme-show-prev": "true",
+          title: "Previous Scene (Left Arrow or [)",
+          onclick: (e) => { e.stopPropagation(); void stepThemeShow(-1); },
+        }, "◀ Prev"),
+        pauseBtn,
+        h("button", {
+          type: "button",
+          class: "btn fm-theme-show-btn",
+          "data-theme-show-next": "true",
+          title: "Next Scene (Right Arrow or ])",
+          onclick: (e) => { e.stopPropagation(); void stepThemeShow(1); },
+        }, "Next ▶"),
+        h("button", {
+          type: "button",
+          class: "btn fm-theme-show-btn",
+          "data-theme-show-surge": "true",
+          title: "Discharge an immediate High-Voltage / Debris Surge (S)",
+          onclick: async (e) => {
+            e.stopPropagation();
+            try {
+              const atmoMod = await import("./atmosphereFx.js");
+              atmoMod.triggerReactiveImpulse?.(1.85);
+            } catch {}
+          },
+        }, "⚡ Surge"),
+        h("button", {
+          type: "button",
+          class: "btn fm-theme-show-btn",
+          "data-theme-show-keep": "true",
+          title: "Exit the Theme Show and keep the currently playing theme & atmospheric FX on your workspace",
+          onclick: (e) => { e.stopPropagation(); void stopThemeShow({ keepCurrent: true }); },
+        }, "📌 Keep This Scene"),
+        h("button", {
+          type: "button",
+          class: "btn primary fm-theme-show-btn",
+          "data-theme-show-exit": "true",
+          title: "Exit Theme Show and restore your previous workspace theme (Esc)",
+          onclick: (e) => { e.stopPropagation(); void stopThemeShow({ keepCurrent: false }); },
+        }, "✕ Exit Show"),
+      ),
+    ),
+  );
+
+  document.getElementById("fm-theme-show-overlay")?.remove();
+  document.body.appendChild(overlay);
+
+  const startedAt = Date.now();
+  const onKeyDown = (e) => {
+    if (!activeShowState?.active) return;
+    if (e.key === "Escape") {
+      e.preventDefault();
+      void stopThemeShow({ keepCurrent: false });
+      return;
+    }
+    if (e.key === "ArrowRight" || e.key === "]") {
+      e.preventDefault();
+      void stepThemeShow(1);
+      return;
+    }
+    if (e.key === "ArrowLeft" || e.key === "[") {
+      e.preventDefault();
+      void stepThemeShow(-1);
+      return;
+    }
+    if (e.key === " ") {
+      e.preventDefault();
+      togglePauseThemeShow();
+      return;
+    }
+    if (e.key === "s" || e.key === "S") {
+      e.preventDefault();
+      void import("./atmosphereFx.js").then((m) => m.triggerReactiveImpulse?.(1.85)).catch(() => {});
+      return;
+    }
+    if (options.exitOnMove && Date.now() - startedAt > 1200) {
+      void stopThemeShow({ keepCurrent: false });
+    }
+  };
+
+  const onPointerMove = (e) => {
+    if (!activeShowState?.active || !options.exitOnMove) return;
+    if (Date.now() - startedAt < 1400) return;
+    if (e.target?.closest?.(".fm-theme-show-hud")) return;
+    void stopThemeShow({ keepCurrent: false });
+  };
+
+  window.addEventListener("keydown", onKeyDown, true);
+  window.addEventListener("mousemove", onPointerMove, { passive: true });
+
+  const updateClock = () => {
+    const { time, date } = formatShowClock();
+    clockTimeEl.textContent = time;
+    clockDateEl.textContent = date;
+  };
+  updateClock();
+
+  activeShowState = {
+    active: true,
+    paused: false,
+    options,
+    scenes,
+    sceneIndex: -1,
+    currentScene: null,
+    savedSnapshot,
+    cleanupListeners: () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("mousemove", onPointerMove);
+    },
+    updateHud: () => {
+      if (!activeShowState) return;
+      const sc = activeShowState.currentScene;
+      pauseBtn.textContent = activeShowState.paused ? "▶ Resume" : "⏸ Pause";
+      pauseBtn.setAttribute("aria-pressed", String(activeShowState.paused));
+      if (sc) {
+        nowPlayingTitle.textContent = `${sc.themeName} (${activeShowState.sceneIndex + 1}/${scenes.length})`;
+        const tierTxt = (options.boostTier === "keep" ? (state.settings?.atmosphereTier || "ultra") : options.boostTier).toUpperCase();
+        nowPlayingMeta.textContent = `🌌 FX: ${sc.atmo || "none"}${sc.uiFx ? ` · 🔥 UI: ${sc.uiFx}` : ""}${sc.iconPack ? ` · 🎭 Icons: ${sc.iconPack}` : ""} · ⚡ Tier: ${tierTxt}`;
+        const retroSub = overlay.querySelector("[data-theme-show-retro-sub]");
+        if (retroSub) {
+          retroSub.textContent = `THEME: ${sc.themeKey.toUpperCase()} // FX: ${(sc.atmo || "NONE").toUpperCase()} // TIER: ${tierTxt}`;
+        }
+      }
+    },
+  };
+
+  await stepThemeShow(1);
+
+  activeShowState.clockId = setInterval(updateClock, 1000);
+  activeShowState.intervalId = setInterval(() => {
+    if (activeShowState?.active && !activeShowState.paused) {
+      void stepThemeShow(1);
+    }
+  }, options.intervalSec * 1000);
+
+  return activeShowState;
+}
+
+/** Syncs the automatic idle screensaver timer (`themeShowIdleMinutes`). */
+export function syncThemeShowIdleWatcher() {
+  if (idleWatcherTimer) {
+    clearInterval(idleWatcherTimer);
+    idleWatcherTimer = 0;
+  }
+  const idleMin = Number(state.settings?.themeShowIdleMinutes) || 0;
+  if (idleMin <= 0 || typeof window === "undefined") return;
+
+  if (!idleListenersBound) {
+    idleListenersBound = true;
+    const markActive = () => { lastUserActivityAt = Date.now(); };
+    window.addEventListener("mousemove", markActive, { passive: true });
+    window.addEventListener("keydown", markActive, { passive: true });
+    window.addEventListener("mousedown", markActive, { passive: true });
+  }
+
+  lastUserActivityAt = Date.now();
+  idleWatcherTimer = setInterval(() => {
+    const mins = Number(state.settings?.themeShowIdleMinutes) || 0;
+    if (mins <= 0 || isThemeShowActive()) return;
+    if (Date.now() - lastUserActivityAt >= mins * 60 * 1000) {
+      void startThemeShow();
+    }
+  }, 5000);
+}
+
+/** Opens the interactive 🎬 Theme Show & Screensaver Studio configuration and launcher dialog. */
+export async function showThemeShowDialog(existingThemes) {
+  let themes = existingThemes;
+  if (!themes) {
+    themes = await themeList().catch(() => []);
+  }
+  const s = state.settings ?? {};
+  let pickedMode = s.themeShowMode || "cinema_hud";
+  let pickedChannel = s.themeShowChannel || "all_ultra";
+
+  const modeCardsWrap = h("div", { class: "theme-show-mode-grid", role: "radiogroup", "aria-label": "Theme Show visual mode" });
+  const renderModeCards = () => {
+    modeCardsWrap.replaceChildren(...THEME_SHOW_MODES_META.map((m) => {
+      const active = pickedMode === m.id;
+      return h("button", {
+        type: "button",
+        class: `theme-show-card${active ? " is-active" : ""}`,
+        "data-show-mode-card": m.id,
+        "aria-pressed": String(active),
+        onclick: () => {
+          pickedMode = m.id;
+          renderModeCards();
+        },
+      },
+        h("div", { class: "theme-show-card-head" }, h("span", { class: "theme-show-card-icon" }, m.icon), h("strong", {}, m.label)),
+        h("div", { class: "theme-show-card-desc" }, m.desc),
+      );
+    }));
+  };
+  renderModeCards();
+
+  const channelCardsWrap = h("div", { class: "theme-show-channel-grid", role: "radiogroup", "aria-label": "Theme Show channel" });
+  const renderChannelCards = () => {
+    channelCardsWrap.replaceChildren(...THEME_SHOW_CHANNELS_META.map((ch) => {
+      const active = pickedChannel === ch.id;
+      return h("button", {
+        type: "button",
+        class: `theme-show-card${active ? " is-active" : ""}`,
+        "data-show-channel-card": ch.id,
+        "aria-pressed": String(active),
+        onclick: () => {
+          pickedChannel = ch.id;
+          renderChannelCards();
+        },
+      },
+        h("div", { class: "theme-show-card-head" }, h("span", { class: "theme-show-card-icon" }, ch.icon), h("strong", {}, ch.label)),
+        h("div", { class: "theme-show-card-desc" }, ch.desc),
+      );
+    }));
+  };
+  renderChannelCards();
+
+  const intervalSelect = h("select", { class: "prop-input", "data-show-interval": "true", "aria-label": "Scene switch interval" },
+    h("option", { value: "8" }, "Every 8 seconds (Fast Demo Showcase)"),
+    h("option", { value: "15" }, "Every 15 seconds (Recommended)"),
+    h("option", { value: "30" }, "Every 30 seconds"),
+    h("option", { value: "60" }, "Every 60 seconds (1 minute)"),
+    h("option", { value: "180" }, "Every 3 minutes"),
+    h("option", { value: "300" }, "Every 5 minutes"),
+  );
+  intervalSelect.value = String(s.themeShowIntervalSec || 15);
+
+  const transitionSelect = h("select", { class: "prop-input", "data-show-transition": "true", "aria-label": "Scene transition style" },
+    h("option", { value: "oklab_morph" }, "🌈 Smooth OKLab Color Morph"),
+    h("option", { value: "arc_surge" }, "⚡ High-Voltage Arc & Debris Surge Cut"),
+    h("option", { value: "glitch_cut" }, "👾 Holographic Scanline Glitch Cut"),
+  );
+  transitionSelect.value = s.themeShowTransition || "oklab_morph";
+
+  const boostTierSelect = h("select", { class: "prop-input", "data-show-boost-tier": "true", "aria-label": "Screensaver GPU hardware tier boost" },
+    h("option", { value: "extreme" }, "🔥 M4 Max / Extreme Uncapped (120Hz · 3.2x Density · 6 Layers)"),
+    h("option", { value: "ultra" }, "🚀 Modern ARM / Ultra Tier"),
+    h("option", { value: "keep" }, "Keep Current Workspace Tier"),
+  );
+  boostTierSelect.value = s.themeShowBoostTier || "extreme";
+
+  const idleSelect = h("select", { class: "prop-input", "data-show-idle-minutes": "true", "aria-label": "Auto-launch screensaver after idle minutes" },
+    h("option", { value: "0" }, "Off (Launch manually only)"),
+    h("option", { value: "1" }, "After 1 minute of inactivity"),
+    h("option", { value: "3" }, "After 3 minutes of inactivity"),
+    h("option", { value: "5" }, "After 5 minutes of inactivity"),
+    h("option", { value: "10" }, "After 10 minutes of inactivity"),
+    h("option", { value: "15" }, "After 15 minutes of inactivity"),
+    h("option", { value: "30" }, "After 30 minutes of inactivity"),
+  );
+  idleSelect.value = String(s.themeShowIdleMinutes || 0);
+
+  const exitOnMoveCheck = h("input", {
+    type: "checkbox",
+    "data-show-exit-on-move": "true",
+    "aria-label": "Wake / exit screensaver immediately on mouse move or keypress",
+  });
+  exitOnMoveCheck.checked = Boolean(s.themeShowExitOnMove);
+
+  const showClockCheck = h("input", {
+    type: "checkbox",
+    "data-show-clock-toggle": "true",
+    "aria-label": "Display ambient digital clock and now-playing telemetry HUD",
+  });
+  showClockCheck.checked = s.themeShowClock !== false;
+
+  const persistOptions = async () => {
+    const patch = {
+      themeShowMode: pickedMode,
+      themeShowChannel: pickedChannel,
+      themeShowIntervalSec: Number(intervalSelect.value) || 15,
+      themeShowTransition: transitionSelect.value,
+      themeShowBoostTier: boostTierSelect.value,
+      themeShowIdleMinutes: Number(idleSelect.value) || 0,
+      themeShowExitOnMove: Boolean(exitOnMoveCheck.checked),
+      themeShowClock: Boolean(showClockCheck.checked),
+    };
+    await saveSettings(patch);
+    syncThemeShowIdleWatcher();
+    return patch;
+  };
+
+  const dlg = openDialog({
+    title: "Theme Show & Screensaver Studio",
+    wide: true,
+    body: [
+      h("p", { class: "hint" }, "Turn your File Manager into a living DemoScene / XScreenSaver / M4 Max storm showcase. Choose a presentation mode, a curated theme + multi-layer FX channel, and modern screensaver options below."),
+      h("h3", { style: "margin:0.4rem 0 0.3rem;font-size:13px" }, "1. Presentation Mode"),
+      modeCardsWrap,
+      h("h3", { style: "margin:0.65rem 0 0.3rem;font-size:13px" }, "2. Curated Show Channel (Themes + Multi-Layer Atmosphere + Folder FX)"),
+      channelCardsWrap,
+      h("h3", { style: "margin:0.65rem 0 0.3rem;font-size:13px" }, "3. Modern Screensaver & Hardware Options"),
+      h("div", { class: "theme-solar-grid" },
+        h("label", { class: "field" }, h("span", { class: "field-label" }, "⏱️ Scene Duration"), intervalSelect),
+        h("label", { class: "field" }, h("span", { class: "field-label" }, "✨ Transition FX"), transitionSelect),
+        h("label", { class: "field" }, h("span", { class: "field-label" }, "🚀 GPU Tier During Show"), boostTierSelect),
+        h("label", { class: "field" }, h("span", { class: "field-label" }, "💤 Auto-Start Screensaver When Idle"), idleSelect),
+      ),
+      h("div", { style: "display:flex;gap:1.2rem;flex-wrap:wrap;margin-top:0.55rem" },
+        h("label", { class: "theme-solar-toggle" }, showClockCheck, h("span", {}, "🕰️ Show Ambient Digital Clock & Now-Playing Telemetry HUD")),
+        h("label", { class: "theme-solar-toggle" }, exitOnMoveCheck, h("span", {}, "🖱️ Classic Screensaver Wake (Exit immediately on mouse move)")),
+      ),
+    ],
+    buttons: [
+      { label: "Cancel", value: "cancel" },
+      { label: "Save Settings", value: "save" },
+      { label: "🎬 Launch Theme Show Now", value: "launch", primary: true },
+    ],
+    initialFocus: intervalSelect,
+  });
+
+  const answer = await dlg.result;
+  if (answer === "save") {
+    await persistOptions();
+    toast("Saved Theme Show & Screensaver preferences.", { kind: "success" });
+  } else if (answer === "launch") {
+    const saved = await persistOptions();
+    await startThemeShow({
+      mode: saved.themeShowMode,
+      channel: saved.themeShowChannel,
+      intervalSec: saved.themeShowIntervalSec,
+      transition: saved.themeShowTransition,
+      boostTier: saved.themeShowBoostTier,
+      exitOnMove: saved.themeShowExitOnMove,
+      showClock: saved.themeShowClock,
+    });
+  }
+  return answer;
 }
 
 try {
@@ -1383,7 +3749,69 @@ try {
   });
 } catch { /* matchMedia unavailable */ }
 
+const boundShortcutWindows = typeof WeakSet !== "undefined" ? new WeakSet() : null;
+
+/**
+ * Ensures the current `window` has global listeners for:
+ * 1. Instant Paste Theme Import (`⌘V` / `Ctrl+V` anywhere when clipboard holds a `CCFM-THEME-v1:` / `CCFM-PACK-v1:` / Theme JSON payload,
+ *    even when the Theme Gallery search input is focused, without interfering with normal text editing or dedicated import textareas).
+ * 2. Explicit Keyboard Shortcut Paste Theme Import (`⌘⇧V` / `Ctrl+Shift+V`).
+ * 3. `Right ⌥ + ]` / `Right ⌥ + [` (`Alt + ]` / `Alt + [`) instant theme quick-switcher with live HUD.
+ */
+export function ensureGlobalThemeShortcutsBound() {
+  if (typeof window === "undefined" || typeof window.addEventListener !== "function") return;
+  if (boundShortcutWindows?.has(window)) return;
+  boundShortcutWindows?.add(window);
+
+  window.addEventListener("paste", (e) => {
+    if (e.defaultPrevented) return;
+    const target = e.target;
+    const isDedicatedImportBox = Boolean(
+      target?.closest?.("[data-share-import-box], [data-custom-css-input], .theme-export"),
+    );
+    if (isDedicatedImportBox) return;
+
+    const clipText = e.clipboardData?.getData?.("text/plain") || e.clipboardData?.getData?.("text") || "";
+    if (!looksLikeThemeImportPayload(clipText)) return;
+
+    // Allow pasting a theme code even when the Theme Picker search box is focused, or anywhere outside regular text inputs
+    const isSearchBox = Boolean(target?.classList?.contains?.("theme-search"));
+    const tag = target?.tagName;
+    const isEditableField = !isSearchBox && (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target?.isContentEditable);
+    if (isEditableField) return;
+
+    e.preventDefault();
+    void pasteImportThemesFromText(clipText, { applyFirst: true });
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.defaultPrevented) return;
+    // Cmd+Shift+V / Ctrl+Shift+V -> Instant Paste Theme from Clipboard anywhere
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && !e.altKey && (e.key === "v" || e.key === "V" || e.code === "KeyV")) {
+      const target = e.target;
+      const isDedicatedImportBox = Boolean(target?.closest?.("[data-share-import-box], [data-custom-css-input], .theme-export"));
+      if (!isDedicatedImportBox) {
+        e.preventDefault();
+        void pasteImportThemesFromClipboard({ applyFirst: true });
+        return;
+      }
+    }
+    // Option + ] / Option + [ (Alt + BracketRight / BracketLeft) -> Cycle Themes with Quick-Switcher HUD
+    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.code === "BracketRight" || e.code === "BracketLeft" || e.key === "]" || e.key === "[")) {
+      const target = e.target;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target?.isContentEditable) return;
+      e.preventDefault();
+      const dir = (e.code === "BracketRight" || e.key === "]") ? 1 : -1;
+      void cycleTheme(dir, { showcaseOnly: Boolean(e.shiftKey) });
+    }
+  });
+}
+
+ensureGlobalThemeShortcutsBound();
+
 on("view", () => {
+  ensureGlobalThemeShortcutsBound();
   const map = state.settings?.folderThemes;
   if (!map || typeof map !== "object" || !Object.keys(map).length) return;
   const folderKey = resolveFolderPalette();
@@ -1392,6 +3820,11 @@ on("view", () => {
     void applyPalette(target);
   }
 });
-on("theme-picker", () => showThemePicker());
+on("theme-picker", () => { ensureGlobalThemeShortcutsBound(); void showThemePicker(); });
 on("theme-day-night", () => showDayNightPairDialog());
 on("theme-compare", (detail) => showThemeCompareDialog(undefined, detail?.a || "", detail?.b || ""));
+on("theme-share", (detail) => showThemeShareDialog(detail?.key || ""));
+on("theme-show", () => showThemeShowDialog());
+on("theme-paste-import", (detail) => { void pasteImportThemesFromClipboard(detail || {}); });
+
+

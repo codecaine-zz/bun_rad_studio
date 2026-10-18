@@ -63,18 +63,24 @@ export function writeClipboardSync(text: string): boolean {
   return false;
 }
 
-/** Cross-platform clipboard read (macOS pbpaste, Windows Get-Clipboard, Linux wl-paste/xclip). Returns empty string on failure. */
-export function readClipboardSync(): string {
+/** Cross-platform clipboard read (macOS pbpaste, Windows Get-Clipboard, Linux wl-paste/xclip/xsel). Returns null when no clipboard tool succeeded. */
+export function readClipboardTextSync(): string | null {
   try {
     if (process.platform === "darwin") {
       const proc = Bun.spawnSync(["pbpaste"]);
       if (proc.exitCode === 0) return proc.stdout.toString();
     } else if (process.platform === "win32") {
-      const proc = Bun.spawnSync(["powershell.exe", "-NoProfile", "-Command", "Get-Clipboard"]);
+      const proc = Bun.spawnSync([
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "[Console]::OutputEncoding = [Text.Encoding]::UTF8; $t = Get-Clipboard -Raw; if ($null -ne $t) { [Console]::Out.Write($t) }",
+      ]);
       if (proc.exitCode === 0) return proc.stdout.toString().replace(/\r\n/g, "\n");
     } else {
       const candidates: string[][] = [
-        ["wl-paste"],
+        ["wl-paste", "--no-newline"],
         ["xclip", "-selection", "clipboard", "-o"],
         ["xsel", "--clipboard", "--output"],
       ];
@@ -86,5 +92,11 @@ export function readClipboardSync(): string {
       }
     }
   } catch {}
-  return "";
+  return null;
 }
+
+/** Cross-platform clipboard read (macOS pbpaste, Windows Get-Clipboard, Linux wl-paste/xclip). Returns empty string on failure. */
+export function readClipboardSync(): string {
+  return readClipboardTextSync() ?? "";
+}
+

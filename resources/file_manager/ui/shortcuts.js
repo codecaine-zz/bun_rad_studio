@@ -58,6 +58,7 @@ export const ACTIONS = [
   { id: "app.expandTool", scope: "global", group: "Window", label: "Expand or restore the tool (ultra focus)", keys: ["F11", "Mod+F11", "Ctrl+F11", "Mod+Shift+U"] },
   { id: "terminal.toggle", scope: "global", group: "Window", label: "Show or hide the terminal", keys: ["Ctrl+`"] },
   { id: "terminal.here", scope: "global", group: "Window", label: "Open the terminal in the selected folder (or this one)", keys: ["Mod+Alt+T"] },
+  { id: "terminal.paste", scope: "global", group: "Window", label: "Paste into the terminal", keys: ["Mod+Alt+V"] },
   c("undo", "Undo"), c("redo", "Redo"), c("save", "Save"), c("saveAs", "Save as…"), c("saveAll", "Save all"), c("newFile", "New file"), c("closeTab", "Close the tab"),
   c("quickOpen", "Go to file…"), c("palette", "Command palette"), c("find", "Find"), c("replace", "Replace"), c("findNext", "Find next"), c("findPrev", "Find previous"),
   c("goToLine", "Go to line…"), c("goToSymbol", "Go to symbol…"), c("complete", "Show suggestions"), c("findInFiles", "Find in files"),
@@ -97,14 +98,15 @@ const specIsMac = (spec) => spec.startsWith("mac:");
 const specIsOther = (spec) => spec.startsWith("other:");
 export const specWithoutPlatform = (spec) => spec.replace(/^(mac|other):/, "");
 
-let backspaceDeletes = false;
+let backspaceDeletes = true;
 
 /**
- * For a Mac keyboard on Windows or Linux (a virtual machine, say): its Delete key sends Backspace. With this on, Backspace
- * moves to the Recycle Bin (Shift+Backspace deletes for good) and no longer goes up a folder. Macs are not affected.
+ * For a Mac keyboard on Windows or Linux (a virtual machine, say): its Delete key sends Backspace. With this on (the default),
+ * Backspace moves to the Recycle Bin (Shift+Backspace deletes for good, Alt+Backspace buries in the Graveyard) instead of going
+ * up a folder. Turning it off makes Backspace go up one folder on Windows and Linux. Macs are not affected.
  */
 export function setBackspaceDeletes(on) {
-  backspaceDeletes = on === true;
+  backspaceDeletes = on !== false;
 }
 
 /** The default shortcuts of an action on a platform. */
@@ -115,6 +117,7 @@ export function defaultsFor(action, platform) {
     if (action.id === "nav.up") keys = keys.filter((k) => k !== "Backspace");
     else if (action.id === "file.trash") keys = [...keys, "Backspace"];
     else if (action.id === "file.deleteForever") keys = [...keys, "Shift+Backspace"];
+    else if (action.id === "file.bury") keys = [...keys, "Alt+Backspace"];
   }
   return keys;
 }

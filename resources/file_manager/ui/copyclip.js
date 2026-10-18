@@ -46,6 +46,35 @@ export async function copyToClipboard(text, { what = "", secret = false, shorten
   return true;
 }
 
+/**
+ * Reads text from the system clipboard (via the server's `pastetext` operation) or the browser clipboard as fallback.
+ * @returns {Promise<string>}
+ */
+export async function readFromClipboard() {
+  let serverOk = false;
+  let serverText = "";
+  try {
+    const r = await call("pastetext", {});
+    if (r && r.ok === true && typeof r.text === "string") {
+      serverOk = true;
+      serverText = r.text;
+      if (serverText !== "") return serverText;
+    }
+  } catch {
+    serverOk = false;
+  }
+  if (typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.readText === "function") {
+    try {
+      return await navigator.clipboard.readText();
+    } catch (err) {
+      if (serverOk) return serverText;
+      throw err;
+    }
+  }
+  if (serverOk) return serverText;
+  throw new Error("Couldn't read the clipboard.");
+}
+
 /** Shows "Copied ✓" on a button for a moment, then puts its words back. */
 export function flashCopied(button, copiedText = "Copied ✓") {
   if (typeof document === "undefined" || !button.isConnected) return;

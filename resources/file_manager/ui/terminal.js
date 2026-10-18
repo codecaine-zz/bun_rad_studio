@@ -214,6 +214,8 @@ function goToFolder(folder = targetFolder()) {
   term.focus();
 }
 
+let clipboard = null;
+
 function ensureTerminal() {
   if (term) return;
   term = new Terminal({
@@ -227,7 +229,7 @@ function ensureTerminal() {
   fit = new FitAddon();
   term.loadAddon(fit);
   term.open($("#terminal-host"));
-  wireTerminalClipboard(term, $("#terminal-host"));
+  clipboard = wireTerminalClipboard(term, $("#terminal-host"));
   term.onData((data) => {
     if (ended && data === "\r") return restart();
     send({ type: "input", data });
@@ -469,15 +471,27 @@ export function wireTerminal() {
   $("#terminal-close").addEventListener("click", () => hideTerminal());
   wireResizer();
   window.addEventListener("resize", () => state.terminalOpen && applyHeight());
-  // The terminal keys (Ctrl+` and Cmd/Ctrl+Alt+T unless changed in Settings) work everywhere, also while typing in the terminal.
+  // The terminal keys (Ctrl+`, Cmd/Ctrl+Alt+T, and Cmd/Ctrl+Alt+V unless changed in Settings) work everywhere, also while typing in the terminal.
   document.addEventListener("keydown", (e) => {
     const toggle = matchesAction(e, "terminal.toggle");
     const here = !toggle && matchesAction(e, "terminal.here");
-    if (!toggle && !here) return;
+    const paste = !toggle && !here && matchesAction(e, "terminal.paste");
+    if (!toggle && !here && !paste) return;
     if (document.querySelector(".modal-backdrop")) return;
     e.preventDefault();
     e.stopPropagation();
     if (toggle) toggleTerminal();
-    else openHere();
+    else if (here) openHere();
+    else {
+      if (!terminalAvailable()) return toast("The terminal isn't supported on this system.", { kind: "error" });
+      if (!state.terminalOpen) showTerminal();
+      const run = () => {
+        if (clipboard && typeof clipboard.paste === "function") void clipboard.paste();
+        else $("#terminal-paste")?.click();
+      };
+      if (socket && socket.readyState === WebSocket.CONNECTING) socket.addEventListener("open", run, { once: true });
+      else run();
+    }
   }, true);
 }
+

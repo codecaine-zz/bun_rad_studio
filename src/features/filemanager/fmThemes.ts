@@ -26,7 +26,28 @@ import { OS_THEME_KEYS, RARE_OS_THEME_KEYS } from "../../shared/osThemes";
 import { buildSemanticPalette, contrastRatio, overridesForTheme, parseColor, toHex } from "../../shared/themeSemantic";
 import { FmError } from "./fmPaths";
 import type { FmContext, FmHandler } from "./fmCore";
-import { deleteCustom, exportTheme, exportThemeCss, exportThemePack, importThemePack, isCustomKey, loadCustom, parseShared, saveCustom, toSimpleTheme, validateDraft, type CustomTheme, type ThemeDraft } from "./fmThemeStore";
+import {
+  deleteCustom,
+  encodeThemePackShareCode,
+  encodeThemeShareCode,
+  exportTheme,
+  exportThemeCss,
+  exportThemePack,
+  importThemePack,
+  importThemePackWithReport,
+  inspectBulkThemeImport,
+  isCustomKey,
+  loadCustom,
+  parseShared,
+  sanitizeCustomCss,
+  saveCustom,
+  toSimpleTheme,
+  validateCustomVars,
+  validateDraft,
+  type BulkImportOptions,
+  type CustomTheme,
+  type ThemeDraft,
+} from "./fmThemeStore";
 
 type RGB = [number, number, number];
 
@@ -80,6 +101,10 @@ export interface ThemeSummary {
   cursorEffect?: string;
   /** Surface backdrop shader style, if any. */
   backdropStyle?: string;
+  /** Built-in File Manager UI element shader (e.g., "fire_folders", "slime_drip", "storm_wind"), if any. */
+  uiElementFx?: string;
+  /** Built-in File Manager custom icon pack style (e.g., "inferno", "slime", "storm_tempest"), if any. */
+  iconPackStyle?: string;
   /** Lightweight non-FX fallback theme key when the system cannot sustain GPU glass/glow shaders. */
   fallbackKey?: string;
   /** Display name of the lightweight non-FX fallback theme. */
@@ -93,7 +118,7 @@ export interface ThemeVars {
   notes: string[];
   /** WCAG contrast telemetry for key foreground/surface pairs. */
   contrast: ThemeContrastItem[];
-  effects?: { css: string; attrs: Record<string, string> };
+  effects?: { css: string; attrs: Record<string, string>; customCss?: string };
 }
 
 const WHITE: RGB = [255, 255, 255];
@@ -196,9 +221,11 @@ export function themeVars(theme: SimpleGUITheme): ThemeVars {
     const mutedReport = glassReport({ ...safe, font_color: muted, fx: theme.fx });
     const opacity = Math.max(report.alpha, mutedReport.alpha);
     const [r, g, b] = parseColor(panel);
+    const cleanedCustomCss = theme.fx.customCss ? sanitizeCustomCss(theme.fx.customCss) : "";
     effects = {
       css: fxCssVars(safe) + ` --fx-glass-bg: rgba(${r}, ${g}, ${b}, ${opacity}); --fx-glass-alpha: ${opacity};`,
       attrs: fxRootAttrs(safe),
+      ...(cleanedCustomCss ? { customCss: cleanedCustomCss } : {}),
     };
     if (opacity > report.requestedAlpha) notes.push(`Panel opacity was raised to ${Math.round(opacity * 100)}% to keep text readable.`);
   }
@@ -220,6 +247,15 @@ export function themeVars(theme: SimpleGUITheme): ThemeVars {
     good, "warn-bg": warnBg, "warn-text": warnText,
     shadow: dark ? "0 8px 28px rgba(0, 0, 0, 0.6)" : "0 8px 28px rgba(15, 23, 42, 0.22)",
   };
+
+  if (theme.fx?.customVars && typeof theme.fx.customVars === "object") {
+    try {
+      const overrides = validateCustomVars(theme.fx.customVars);
+      for (const [k, v] of Object.entries(overrides)) {
+        vars[k] = v;
+      }
+    } catch {}
+  }
 
   return {
     scheme: dark ? "dark" : "light",
@@ -306,7 +342,7 @@ function fallbackMetaFor(key: string, theme: SimpleGUITheme): { fallbackKey?: st
   return { fallbackKey: resolvedKey, fallbackName: fbTheme?.name ?? resolvedKey };
 }
 
-function templateTierMeta(key: string, theme: SimpleGUITheme): Pick<ThemeSummary, "tier" | "motion" | "atmosphere" | "cursorEffect" | "backdropStyle"> {
+function templateTierMeta(key: string, theme: SimpleGUITheme): Pick<ThemeSummary, "tier" | "motion" | "atmosphere" | "cursorEffect" | "backdropStyle" | "uiElementFx" | "iconPackStyle"> {
   const fx = theme.fx;
   if (!fx) {
     return { tier: "low", motion: "none", backdropStyle: "solid" };
@@ -333,12 +369,15 @@ function templateTierMeta(key: string, theme: SimpleGUITheme): Pick<ThemeSummary
     || fx.glow === "laser"
     || fx.glow === "bloom"
     || Boolean(fx.prismEdge)
-    || Boolean(fx.chromatic);
+    || Boolean(fx.chromatic)
+    || Boolean(fx.uiElementFx && fx.uiElementFx !== "off");
   return {
     tier: isUltra ? "ultra" : "medium",
     motion: fx.motion ?? "calm",
     ...(hasAtmo ? { atmosphere: fx.atmosphere } : {}),
     ...(fx.cursorEffect && fx.cursorEffect !== "none" ? { cursorEffect: fx.cursorEffect } : {}),
+    ...(fx.uiElementFx && fx.uiElementFx !== "off" ? { uiElementFx: fx.uiElementFx } : {}),
+    ...(fx.iconPackStyle && fx.iconPackStyle !== "default" ? { iconPackStyle: fx.iconPackStyle } : {}),
     backdropStyle,
   };
 }
@@ -487,6 +526,23 @@ async function resolve(ctx: FmContext, key: unknown): Promise<{ colours: ThemeSu
   return colours ? { colours, source: sourceOf(entries().get(key as string)!.theme) } : null;
 }
 
+/** Converts any resolved theme (premade built-in or custom) into a portable ThemeDraft for sharing/exporting. */
+async function resolveShareableDraft(ctx: FmContext, keyOrId: unknown): Promise<ThemeDraft | null> {
+  const r = await resolve(ctx, keyOrId);
+  if (!r) return null;
+  if (r.draft) {
+    const { id: _id, ...draft } = r.draft;
+    return draft;
+  }
+  return validateDraft({
+    name: r.colours.name.slice(0, 40),
+    dark: r.source.dark,
+    base: r.colours.name.slice(0, 40),
+    colors: r.source.colors,
+    ...(r.source.fx ? { fx: r.source.fx } : {}),
+  });
+}
+
 export const themeOperations: Record<string, FmHandler> = {
   async "themes/list"(ctx) {
     return { themes: [...(await loadCustom(ctx)).map(customSummary), ...listThemes()] };
@@ -505,54 +561,94 @@ export const themeOperations: Record<string, FmHandler> = {
   },
   /** Works out the colors of a theme that isn't saved yet, so the editor can show it live. */
   async "themes/preview"(_ctx, b) {
-    const draft = validateDraft(b.theme);
+    const raw = b.theme !== undefined ? b.theme : b;
+    const draft = validateDraft(raw);
     const c = themeVars(toSimpleTheme(draft));
     return { theme: { key: "preview", name: draft.name, dark: draft.dark, ...c } };
   },
   async "themes/custom/save"(ctx, b) {
-    const saved = await saveCustom(ctx, b.theme, b.id);
-    return { id: saved.id, name: saved.name };
+    const raw = b.theme !== undefined ? b.theme : b;
+    const saved = await saveCustom(ctx, raw, b.id);
+    const full = summaryOf(saved.id, toSimpleTheme(saved), "My themes");
+    return { id: saved.id, name: saved.name, theme: full };
   },
   async "themes/custom/delete"(ctx, b) {
     await deleteCustom(ctx, b.id);
     return {};
   },
+  /** Exports any custom theme OR any premade built-in theme (or inline draft) as shareable JSON and a compact CCFM-THEME-v1 share code. */
   async "themes/custom/export"(ctx, b) {
-    const t = isCustomKey(b.id) ? (await loadCustom(ctx)).find((x) => x.id === b.id) : null;
-    if (!t) throw new FmError("NOT_FOUND", "That theme isn't one of yours.");
-    return { text: exportTheme(t) };
+    if (b.theme && typeof b.theme === "object") {
+      const draft = validateDraft(b.theme);
+      return { text: exportTheme(draft), shareCode: encodeThemeShareCode(draft), name: draft.name, theme: draft };
+    }
+    const targetKey = b.id ?? b.key;
+    const draft = await resolveShareableDraft(ctx, targetKey);
+    if (!draft) throw new FmError("NOT_FOUND", "That theme isn't available.");
+    return { text: exportTheme(draft), shareCode: encodeThemeShareCode(draft), name: draft.name, theme: draft };
   },
-  /** Exports any theme draft or saved theme key as a standalone `:root` CSS variables stylesheet. */
+  /** Exports any theme draft or saved/premade theme key as a standalone `:root` CSS variables stylesheet. */
   async "themes/custom/export-css"(ctx, b) {
     if (b.theme && typeof b.theme === "object") {
       const draft = validateDraft(b.theme);
       const c = themeVars(toSimpleTheme(draft));
-      return { css: exportThemeCss(draft.name, c.scheme, c.vars, c.effects?.css) };
+      return { css: exportThemeCss(draft.name, c.scheme, c.vars, c.effects?.css, c.effects?.customCss) };
     }
     const r = await resolve(ctx, b.key ?? b.id);
     if (!r) throw new FmError("NOT_FOUND", "That theme isn't available.");
-    return { css: exportThemeCss(r.colours.name, r.colours.scheme, r.colours.vars, r.colours.effects?.css) };
+    return { css: exportThemeCss(r.colours.name, r.colours.scheme, r.colours.vars, r.colours.effects?.css, r.colours.effects?.customCss) };
   },
-  /** Exports all custom themes (or a subset by IDs) as a shareable Theme Pack JSON string. */
+  /** Exports custom themes and/or selected premade themes as a shareable Theme Pack JSON string + compact CCFM-PACK-v1 share code. */
   async "themes/custom/export-pack"(ctx, b) {
+    if (Array.isArray(b.keys) && b.keys.length > 0) {
+      const drafts: ThemeDraft[] = [];
+      for (const k of b.keys.slice(0, 50)) {
+        const d = await resolveShareableDraft(ctx, k);
+        if (d) drafts.push(d);
+      }
+      if (!drafts.length) throw new FmError("NOT_FOUND", "None of the selected themes were found.");
+      return { text: exportThemePack(drafts), shareCode: encodeThemePackShareCode(drafts), count: drafts.length };
+    }
     const all = await loadCustom(ctx);
     const ids = Array.isArray(b.ids) ? b.ids.filter(isCustomKey) : null;
     const picked = ids && ids.length ? all.filter((t) => ids.includes(t.id)) : all;
     if (!picked.length && b.theme && typeof b.theme === "object") {
       const draft = validateDraft(b.theme);
-      return { text: exportThemePack([draft]), count: 1 };
+      return { text: exportThemePack([draft]), shareCode: encodeThemePackShareCode([draft]), count: 1 };
     }
     if (!picked.length) throw new FmError("NOT_FOUND", "Save at least one custom theme first to export a pack.");
-    return { text: exportThemePack(picked), count: picked.length };
+    return { text: exportThemePack(picked), shareCode: encodeThemePackShareCode(picked), count: picked.length };
   },
-  /** Imports a Theme Pack (or single theme) and saves all themes into the user's custom themes. */
+  /** Pre-flight inspects a bulk theme import to detect name conflicts against existing custom themes or within the batch. */
+  async "themes/custom/inspect-pack"(ctx, b) {
+    return await inspectBulkThemeImport(ctx, b.text ?? b.json ?? b.themes);
+  },
+  /** Imports a Theme Pack (or bulk list of themes/share codes) with optional conflict resolution strategies. */
   async "themes/custom/import-pack"(ctx, b) {
-    const created = await importThemePack(ctx, b.text);
-    return { imported: created.map((t) => ({ id: t.id, name: t.name })), count: created.length, first: created[0] ?? null };
+    const opts: BulkImportOptions = {
+      ...(typeof b.onConflict === "string" ? { onConflict: b.onConflict as BulkImportOptions["onConflict"] } : {}),
+      ...(b.resolutions !== undefined ? { resolutions: b.resolutions as BulkImportOptions["resolutions"] } : {}),
+      ...(Array.isArray(b.includeIndices) ? { includeIndices: b.includeIndices.filter((n: unknown) => typeof n === "number") } : {}),
+      ...(b.autoRenameConflicts === true ? { autoRenameConflicts: true } : {}),
+    };
+    const report = await importThemePackWithReport(ctx, b.text ?? b.json ?? b.themes, opts);
+    return {
+      imported: report.imported.map((t) => ({ id: t.id, name: t.name, dark: t.dark, colors: t.colors, fx: t.fx, base: t.base })),
+      count: report.count,
+      importedCount: report.importedCount,
+      addedCount: report.addedCount,
+      replacedCount: report.replacedCount,
+      renamedCount: report.renamedCount,
+      mergedCount: report.mergedCount,
+      skippedCount: report.skippedCount,
+      requiresResolution: report.requiresResolution,
+      inspection: report.inspection,
+      first: report.first ?? null,
+    };
   },
-  /** Reads shared theme text and returns it as a draft for the editor (nothing is saved yet). */
+  /** Reads shared theme text or CCFM-THEME-v1 share code and returns it as a draft for the editor (nothing is saved yet). */
   async "themes/custom/import"(_ctx, b) {
-    const draft: ThemeDraft = parseShared(b.text);
-    return { theme: draft };
+    const draft: ThemeDraft = parseShared(b.text ?? b.json);
+    return { theme: draft, importedCount: 1 };
   },
 };

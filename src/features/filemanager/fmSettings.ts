@@ -52,8 +52,44 @@ export interface Settings {
   atmosphereTier: AtmosphereTier;
   /** Real-time reactive physics modulation mode ("off", "activity", "telemetry", "audio"). */
   atmosphereReactive: AtmosphereReactiveMode;
-  /** User-saved custom named atmospheric special effect presets (single effect or multi-layer mix + intensity + tier + reactive mode). */
+  /** User-saved custom named atmospheric special effect presets (single effect or multi-layer mix + intensity + tier + reactive mode + per-layer modifiers). */
   atmospherePresets: AtmospherePreset[];
+  /** Per-layer opacity (10..150), speed (0.25..3.0), and custom hex color tint (#rrggbb) for atmospheric effects. */
+  atmosphereLayerMods: Record<string, AtmosphereLayerMod>;
+  /** Whether the Ambient Playlist automatic rotation of themes and/or atmospheric effects is enabled. */
+  ambientPlaylistEnabled: boolean;
+  /** Rotation interval in minutes (1..240) for the Ambient Playlist. */
+  ambientPlaylistIntervalMin: number;
+  /** What the Ambient Playlist rotates ("themes" | "atmosphere" | "both"). */
+  ambientPlaylistTarget: AmbientPlaylistTarget;
+  /** Which pool of themes/effects the Ambient Playlist draws from ("favorites" | "presets" | "ultra" | "all"). */
+  ambientPlaylistPool: AmbientPlaylistPool;
+  /** Typography font pairing profile ("default" | "scifi" | "terminal" | "editorial" | "rounded"). */
+  themeFontProfile: ThemeFontProfile;
+  /** UI corner sharpness profile ("default" | "sharp" | "rounded" | "pill"). */
+  themeCornerProfile: ThemeCornerProfile;
+  /** File & folder icon neon drop-shadow glow profile ("off" | "subtle" | "neon" | "hyper"). */
+  themeIconGlow: ThemeIconGlow;
+  /** Interactive File Manager UI element shader applied to folders, toolbars, breadcrumbs, and rows. */
+  uiElementFx: UiElementFx;
+  /** Custom visual icon pack style that transforms folder, file, and toolbar icons across the File Manager. */
+  iconPackStyle: IconPackStyle;
+  /** Visual presentation mode for the built-in Theme Show / Screensaver. */
+  themeShowMode: ThemeShowMode;
+  /** Curated theme & special effects channel for the Theme Show / Screensaver. */
+  themeShowChannel: ThemeShowChannel;
+  /** Seconds per theme/scene in the Theme Show / Screensaver (5..600, default 15). */
+  themeShowIntervalSec: number;
+  /** Minutes of user inactivity before auto-starting the Theme Show screensaver (0 = off, 1..120). */
+  themeShowIdleMinutes: number;
+  /** Transition style between scenes in the Theme Show ("oklab_morph" | "arc_surge" | "glitch_cut"). */
+  themeShowTransition: ThemeShowTransition;
+  /** Whether mouse movement or key press immediately wakes/exits the Theme Show (classic screensaver behavior). */
+  themeShowExitOnMove: boolean;
+  /** Whether to display the ambient digital clock, date, and now-playing theme telemetry badge during the Theme Show. */
+  themeShowClock: boolean;
+  /** Hardware tier override while the Theme Show is active ("extreme" | "ultra" | "keep"). */
+  themeShowBoostTier: ThemeShowBoostTier;
   textSize: number;
   lastPath: string;
   seenWelcome: boolean;
@@ -133,24 +169,54 @@ export interface StudioPreset {
   options: Record<string, string | number | boolean>;
 }
 
+export interface AtmosphereLayerMod {
+  opacity?: number;
+  speed?: number;
+  color?: string;
+}
+
 export interface AtmospherePreset {
   name: string;
   effect: AtmosphereEffect;
   intensity: number;
   tier: AtmosphereTier;
   reactive: AtmosphereReactiveMode;
+  layerMods?: Record<string, AtmosphereLayerMod>;
 }
 
 export const WORKSPACES = ["files", "home", "tools", "split", "dual"] as const;
 export type Workspace = (typeof WORKSPACES)[number];
 export const ATMOSPHERE_EFFECTS: readonly string[] = ATMOSPHERE_IDS;
 export type AtmosphereEffect = string;
-export const ATMOSPHERE_TIERS = ["auto", "low", "medium", "high", "ultra"] as const;
+export const ATMOSPHERE_TIERS = ["auto", "low", "medium", "high", "ultra", "extreme"] as const;
 export type AtmosphereTier = (typeof ATMOSPHERE_TIERS)[number];
 export const ATMOSPHERE_REACTIVE_MODES = ["off", "activity", "telemetry", "audio"] as const;
 export type AtmosphereReactiveMode = (typeof ATMOSPHERE_REACTIVE_MODES)[number];
+export const AMBIENT_PLAYLIST_TARGETS = ["themes", "atmosphere", "both"] as const;
+export type AmbientPlaylistTarget = (typeof AMBIENT_PLAYLIST_TARGETS)[number];
+export const AMBIENT_PLAYLIST_POOLS = ["favorites", "presets", "ultra", "all"] as const;
+export type AmbientPlaylistPool = (typeof AMBIENT_PLAYLIST_POOLS)[number];
+export const THEME_FONT_PROFILES = ["default", "scifi", "cyberpunk", "terminal", "editorial", "technical", "rounded"] as const;
+export type ThemeFontProfile = (typeof THEME_FONT_PROFILES)[number];
+export const THEME_CORNER_PROFILES = ["default", "sharp", "chamfer", "rounded", "pill", "organic"] as const;
+export type ThemeCornerProfile = (typeof THEME_CORNER_PROFILES)[number];
+export const THEME_ICON_GLOWS = ["off", "subtle", "soft", "neon", "plasma", "hyper"] as const;
+export type ThemeIconGlow = (typeof THEME_ICON_GLOWS)[number];
+export const UI_ELEMENT_FX_MODES = ["auto", "off", "tahoe_glass_folders", "fluent_mica_folders", "xdr_titanium_folders", "fire_folders", "slime_drip", "cryo_frost", "tesla_arcs", "storm_wind", "mercury_chrome", "holo_glitch", "void_tentacles"] as const;
+export type UiElementFx = (typeof UI_ELEMENT_FX_MODES)[number];
+export const ICON_PACK_STYLES = ["auto", "default", "macos_tahoe_3d", "win11_fluent_pro", "pro_studio_xdr", "hdr_photo_studio", "linux_papirus_pro", "nordic_minimal", "inferno", "inferno_burn", "slime", "bio_slime", "storm_tempest", "storm_weather", "neon_cyber", "liquid_gems", "liquid_chrome", "cryo_crystal", "retro_pixel", "arcane_glyphs", "xenotech_2126"] as const;
+export type IconPackStyle = (typeof ICON_PACK_STYLES)[number];
+export const THEME_SHOW_MODES = ["cinema_hud", "pure_canvas", "living_desktop", "retro_afterdark"] as const;
+export type ThemeShowMode = (typeof THEME_SHOW_MODES)[number];
+export const THEME_SHOW_CHANNELS = ["all_ultra", "storms_debris", "year_2126", "tesla_physics", "visceral_fx", "linux_retro", "favorites"] as const;
+export type ThemeShowChannel = (typeof THEME_SHOW_CHANNELS)[number];
+export const THEME_SHOW_TRANSITIONS = ["oklab_morph", "arc_surge", "glitch_cut"] as const;
+export type ThemeShowTransition = (typeof THEME_SHOW_TRANSITIONS)[number];
+export const THEME_SHOW_BOOST_TIERS = ["extreme", "ultra", "keep"] as const;
+export type ThemeShowBoostTier = (typeof THEME_SHOW_BOOST_TIERS)[number];
 export const MAX_FOLDER_THEMES = 100;
 export const MAX_ATMOSPHERE_PRESETS = 50;
+export const MAX_LAYER_MODS = 32;
 export const SPLIT_MIN = 20;
 export const SPLIT_MAX = 80;
 export const TERMINAL_HEIGHT_MIN = 120;
@@ -185,6 +251,24 @@ export const DEFAULT_SETTINGS: Settings = {
   atmosphereTier: "auto",
   atmosphereReactive: "off",
   atmospherePresets: [],
+  atmosphereLayerMods: {},
+  ambientPlaylistEnabled: false,
+  ambientPlaylistIntervalMin: 15,
+  ambientPlaylistTarget: "both",
+  ambientPlaylistPool: "favorites",
+  themeFontProfile: "default",
+  themeCornerProfile: "default",
+  themeIconGlow: "off",
+  uiElementFx: "off",
+  iconPackStyle: "default",
+  themeShowMode: "cinema_hud",
+  themeShowChannel: "all_ultra",
+  themeShowIntervalSec: 15,
+  themeShowIdleMinutes: 0,
+  themeShowTransition: "oklab_morph",
+  themeShowExitOnMove: false,
+  themeShowClock: true,
+  themeShowBoostTier: "extreme",
   textSize: 100,
   lastPath: "",
   seenWelcome: false,
@@ -202,7 +286,7 @@ export const DEFAULT_SETTINGS: Settings = {
   splitTool: "",
   dualPath: "",
   typeWarnings: true,
-  backspaceDeletes: false,
+  backspaceDeletes: true,
   shortcutsCantClose: false,
   editor: "default",
   serveOptions: { kind: "auto", liveReload: true, openBrowser: true },
@@ -309,6 +393,24 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     atmosphereTier: oneOf(r.atmosphereTier, ATMOSPHERE_TIERS, DEFAULT_SETTINGS.atmosphereTier),
     atmosphereReactive: oneOf(r.atmosphereReactive, ATMOSPHERE_REACTIVE_MODES, DEFAULT_SETTINGS.atmosphereReactive),
     atmospherePresets: sanitizeAtmospherePresets(r.atmospherePresets),
+    atmosphereLayerMods: sanitizeAtmosphereLayerMods(r.atmosphereLayerMods),
+    ambientPlaylistEnabled: typeof r.ambientPlaylistEnabled === "boolean" ? r.ambientPlaylistEnabled : DEFAULT_SETTINGS.ambientPlaylistEnabled,
+    ambientPlaylistIntervalMin: typeof r.ambientPlaylistIntervalMin === "number" && isFinite(r.ambientPlaylistIntervalMin) ? Math.round(Math.min(240, Math.max(1, r.ambientPlaylistIntervalMin))) : DEFAULT_SETTINGS.ambientPlaylistIntervalMin,
+    ambientPlaylistTarget: oneOf(r.ambientPlaylistTarget, AMBIENT_PLAYLIST_TARGETS, DEFAULT_SETTINGS.ambientPlaylistTarget),
+    ambientPlaylistPool: oneOf(r.ambientPlaylistPool, AMBIENT_PLAYLIST_POOLS, DEFAULT_SETTINGS.ambientPlaylistPool),
+    themeFontProfile: oneOf(r.themeFontProfile, THEME_FONT_PROFILES, DEFAULT_SETTINGS.themeFontProfile),
+    themeCornerProfile: oneOf(r.themeCornerProfile, THEME_CORNER_PROFILES, DEFAULT_SETTINGS.themeCornerProfile),
+    themeIconGlow: oneOf(r.themeIconGlow, THEME_ICON_GLOWS, DEFAULT_SETTINGS.themeIconGlow),
+    uiElementFx: oneOf(r.uiElementFx, UI_ELEMENT_FX_MODES, DEFAULT_SETTINGS.uiElementFx),
+    iconPackStyle: oneOf(r.iconPackStyle, ICON_PACK_STYLES, DEFAULT_SETTINGS.iconPackStyle),
+    themeShowMode: oneOf(r.themeShowMode, THEME_SHOW_MODES, DEFAULT_SETTINGS.themeShowMode),
+    themeShowChannel: oneOf(r.themeShowChannel, THEME_SHOW_CHANNELS, DEFAULT_SETTINGS.themeShowChannel),
+    themeShowIntervalSec: typeof r.themeShowIntervalSec === "number" && isFinite(r.themeShowIntervalSec) ? Math.round(Math.min(600, Math.max(5, r.themeShowIntervalSec))) : DEFAULT_SETTINGS.themeShowIntervalSec,
+    themeShowIdleMinutes: typeof r.themeShowIdleMinutes === "number" && isFinite(r.themeShowIdleMinutes) ? Math.round(Math.min(120, Math.max(0, r.themeShowIdleMinutes))) : DEFAULT_SETTINGS.themeShowIdleMinutes,
+    themeShowTransition: oneOf(r.themeShowTransition, THEME_SHOW_TRANSITIONS, DEFAULT_SETTINGS.themeShowTransition),
+    themeShowExitOnMove: typeof r.themeShowExitOnMove === "boolean" ? r.themeShowExitOnMove : DEFAULT_SETTINGS.themeShowExitOnMove,
+    themeShowClock: typeof r.themeShowClock === "boolean" ? r.themeShowClock : DEFAULT_SETTINGS.themeShowClock,
+    themeShowBoostTier: oneOf(r.themeShowBoostTier, THEME_SHOW_BOOST_TIERS, DEFAULT_SETTINGS.themeShowBoostTier),
     textSize: size,
     lastPath: isPath(r.lastPath) ? p.resolve(r.lastPath) : "",
     seenWelcome: typeof r.seenWelcome === "boolean" ? r.seenWelcome : DEFAULT_SETTINGS.seenWelcome,
@@ -343,6 +445,30 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
   };
 }
 
+function sanitizeAtmosphereLayerMods(raw: unknown): Record<string, AtmosphereLayerMod> {
+  const out: Record<string, AtmosphereLayerMod> = {};
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+  for (const [id, val] of Object.entries(raw as Record<string, unknown>)) {
+    if (Object.keys(out).length >= MAX_LAYER_MODS) break;
+    if (!id || id === "none" || !ATMOSPHERE_EFFECTS.includes(id) || !val || typeof val !== "object") continue;
+    const v = val as Record<string, unknown>;
+    const mod: AtmosphereLayerMod = {};
+    if (typeof v.opacity === "number" && isFinite(v.opacity)) {
+      mod.opacity = Math.round(Math.min(150, Math.max(10, v.opacity)));
+    }
+    if (typeof v.speed === "number" && isFinite(v.speed)) {
+      mod.speed = Math.round(Math.min(3.0, Math.max(0.25, v.speed)) * 100) / 100;
+    }
+    if (typeof v.color === "string" && /^#[0-9a-fA-F]{6}$/.test(v.color.trim())) {
+      mod.color = v.color.trim().toLowerCase();
+    }
+    if (mod.opacity !== undefined || mod.speed !== undefined || mod.color !== undefined) {
+      out[id] = mod;
+    }
+  }
+  return out;
+}
+
 function sanitizeAtmospherePresets(raw: unknown): AtmospherePreset[] {
   const out: AtmospherePreset[] = [];
   for (const item of Array.isArray(raw) ? raw : []) {
@@ -355,7 +481,8 @@ function sanitizeAtmospherePresets(raw: unknown): AtmospherePreset[] {
     const intensity = typeof x.intensity === "number" && isFinite(x.intensity) ? Math.round(Math.min(100, Math.max(10, x.intensity))) : DEFAULT_SETTINGS.atmosphereIntensity;
     const tier = oneOf(x.tier, ATMOSPHERE_TIERS, DEFAULT_SETTINGS.atmosphereTier);
     const reactive = oneOf(x.reactive, ATMOSPHERE_REACTIVE_MODES, DEFAULT_SETTINGS.atmosphereReactive);
-    out.push({ name, effect, intensity, tier, reactive });
+    const layerMods = sanitizeAtmosphereLayerMods(x.layerMods);
+    out.push(Object.keys(layerMods).length ? { name, effect, intensity, tier, reactive, layerMods } : { name, effect, intensity, tier, reactive });
   }
   return out;
 }
@@ -401,7 +528,11 @@ let writing: Promise<unknown> = Promise.resolve();
 
 async function readSettingsRaw(ctx: FmContext): Promise<Settings> {
   try {
-    return sanitizeSettings(JSON.parse(await fsp.readFile(settingsFile(ctx), "utf8")), ctx);
+    const raw = JSON.parse(await fsp.readFile(settingsFile(ctx), "utf8"));
+    if (raw && typeof raw === "object" && !Array.isArray(raw) && raw.backspaceDeletes === false && raw.backspaceGoesUp !== true) {
+      delete raw.backspaceDeletes;
+    }
+    return sanitizeSettings(raw, ctx);
   } catch {
     return sanitizeSettings({}, ctx);
   }
@@ -423,7 +554,8 @@ export async function updateSettings(ctx: FmContext, change: unknown): Promise<S
     const next = sanitizeSettings(merged, ctx);
     await fsp.mkdir(ctx.dataDir, { recursive: true });
     const tmp = `${settingsFile(ctx)}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
-    const body = JSON.stringify(next, null, 2);
+    const stored = next.backspaceDeletes === false ? { ...next, backspaceGoesUp: true } : next;
+    const body = JSON.stringify(stored, null, 2);
     await fsp.writeFile(tmp, body, { mode: 0o600 });
     try {
       await fsp.rename(tmp, settingsFile(ctx));

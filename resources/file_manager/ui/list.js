@@ -3,7 +3,7 @@
 import { ApiError } from "./api.js";
 import { showBackgroundMenu, showEntryMenu } from "./contextmenu.js";
 import { attachDropTarget, drag, endDrag, startDrag } from "./dnd.js";
-import { clear, h, iconFor } from "./dom.js";
+import { classifyIconKind, clear, h, iconForEntry } from "./dom.js";
 import { wireMarquee } from "./marquee.js";
 import { toast } from "./menus.js";
 import { saveSettings, visibleEntries } from "./nav.js";
@@ -99,10 +99,17 @@ function makeRow(pane, entry, index) {
     class: `row${entry.isDir ? " is-folder" : ""}${entry.hidden ? " hidden-item" : ""}${cut ? " cut" : ""}${entry.broken ? " broken" : ""}`,
     role: "option", id: `${pane.ids.row}-${index}`, "aria-selected": String(pane.selection.has(entry.path)),
     draggable: trash ? null : "true",
-    dataset: { key: entry.path, index: String(index), ...(tag ? { tag: tag.id } : {}) },
+    dataset: {
+      key: entry.path,
+      index: String(index),
+      entryName: entry.name || "",
+      isDir: entry.isDir ? "1" : "0",
+      defaultIcon: entry.icon || "",
+      ...(tag ? { tag: tag.id } : {}),
+    },
     title: entry.path && !trash ? entry.path : entry.name,
   },
-    h("span", { class: "c-icon", "aria-hidden": "true" }, entry.icon || iconFor(entry.name, entry.isDir)),
+    h("span", { class: "c-icon", "aria-hidden": "true", dataset: { iconKind: classifyIconKind(entry.name, entry.isDir) } }, iconForEntry(entry)),
     h("span", { class: "c-name" },
       tag ? h("span", { class: `tag-dot tag-${tag.id}`, title: `Tagged ${tag.label}`, "aria-label": `Tagged ${tag.label}` }) : null,
       h("span", { class: "name-text" }, entry.name)),

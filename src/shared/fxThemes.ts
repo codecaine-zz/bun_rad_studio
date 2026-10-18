@@ -64,6 +64,20 @@ export interface ThemeFx {
     parallax?: boolean;
     /** Backdrop saturation percentage (50 to 250). */
     saturation?: number;
+    /** Built-in File Manager UI element shader ("fire_folders", "slime_drip", "cryo_frost", "tesla_arcs", "storm_wind", "mercury_chrome", "holo_glitch", "void_tentacles"). */
+    uiElementFx?: string;
+    /** Built-in File Manager custom icon pack look ("inferno", "slime", "storm_tempest", "neon_cyber", "liquid_gems", "cryo_crystal", "retro_pixel", "xenotech_2126"). */
+    iconPackStyle?: string;
+    /** Per-theme typography profile ("default", "scifi", "terminal", "editorial", "rounded"). */
+    fontProfile?: string;
+    /** Per-theme corner geometry profile ("default", "sharp", "rounded", "pill"). */
+    cornerProfile?: string;
+    /** Per-theme icon glow intensity ("off", "subtle", "neon", "hyper"). */
+    iconGlow?: string;
+    /** Direct per-token overrides for any File Manager `--*` CSS custom property. */
+    customVars?: Record<string, string>;
+    /** Personal custom CSS / keyframe shader overrides injected when this theme is active. */
+    customCss?: string;
 }
 
 /** The page-level effects switch: Full = "on", Reduced keeps looks but no motion, Off removes everything. */
@@ -89,7 +103,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#59759c",
         description: "A cyan reactor core in prismatic glass, magenta edge light, soft round panels and a slow holographic atmosphere",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#53f4ff", glowColor2: "#ff67d8", glowIntensity: 0.8, blur: 28, glass: 0.8, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", borderOpacity: 0.35, motion: "spring", ambient: true, chromatic: true },
+        fx: { glow: "neon", glowColor: "#53f4ff", glowColor2: "#ff67d8", glowIntensity: 0.8, blur: 28, glass: 0.8, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", borderOpacity: 0.35, motion: "spring", ambient: true, chromatic: true, backdropStyle: "liquid", cursorEffect: "prism", vignette: "ambient", prismEdge: true, innerGlow: true, frostedRim: true, neonPulse: true, parallax: true, atmosphere: "m4_raytrace_prism+prism_spectrum", uiElementFx: "holo_glitch", iconPackStyle: "liquid_gems", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "hyper" },
     }),
     orbital_ice: T({
         name: "Orbital Ice",
@@ -102,7 +116,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#64849e",
         description: "A bright orbital observatory with ice-blue frosted glass, polished metal borders and calm, readable instrumentation",
         is_dark: false,
-        fx: { glow: "soft", glowColor: "#165ba3", glowColor2: "#7255a8", glowIntensity: 0.45, blur: 24, glass: 0.7, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "metal", borderOpacity: 0.3, motion: "calm", ambient: true },
+        fx: { glow: "soft", glowColor: "#165ba3", glowColor2: "#7255a8", glowIntensity: 0.45, blur: 24, glass: 0.7, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "metal", borderOpacity: 0.3, motion: "calm", ambient: true, backdropStyle: "frosted", cursorEffect: "spotlight", vignette: "subtle", frostedRim: true, innerGlow: true, atmosphere: "northern_pillars+snow", uiElementFx: "cryo_frost", iconPackStyle: "cryo_crystal", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "subtle" },
     }),
     ember_grid: T({
         name: "Ember Grid",
@@ -115,7 +129,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#98603b",
         description: "An amber command deck with sharp copper edges, low scanlines, restrained glow and fast tactical controls",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#ffb454", glowColor2: "#ff6178", glowIntensity: 0.65, blur: 8, glass: 0.25, grain: "subtle", scanlines: "subtle", sheen: false, radius: "sharp", border: "gradient", borderOpacity: 0.5, motion: "snappy", ambient: true },
+        fx: { glow: "neon", glowColor: "#ffb454", glowColor2: "#ff6178", glowIntensity: 0.65, blur: 8, glass: 0.25, grain: "subtle", scanlines: "subtle", sheen: false, radius: "sharp", border: "gradient", borderOpacity: 0.5, motion: "snappy", ambient: true, backdropStyle: "oled", cursorEffect: "magnetic", vignette: "subtle", innerGlow: true, neonPulse: true, iconPackStyle: "inferno", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "neon" },
     }),
     cyberpunk_hologram: T({
         name: "Cyberpunk Hologram",
@@ -129,7 +143,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         description: "Translucent holographic glass over deep navy with cyan and magenta edge glow, a faint scanline layer and chromatic-aberration headings",
         is_dark: true,
         semantic: { danger: "#ff4d6d", warning: "#ffc233", success: "#2dffa4", info: "#4dc3ff" },
-        fx: { glow: "neon", glowColor: "#00e5ff", glowColor2: "#ff4fd8", blur: 16, glass: 0.55, grain: "none", scanlines: "subtle", sheen: true, radius: "soft", border: "gradient", motion: "snappy", chromatic: true, ambient: true },
+        fx: { glow: "neon", glowColor: "#00e5ff", glowColor2: "#ff4fd8", blur: 16, glass: 0.55, grain: "none", scanlines: "subtle", sheen: true, radius: "soft", border: "gradient", motion: "snappy", chromatic: true, ambient: true, backdropStyle: "glass", cursorEffect: "prism", vignette: "cinema", prismEdge: true, innerGlow: true, neonPulse: true, parallax: true, atmosphere: "cyberstorm+outrun_grid", uiElementFx: "holo_glitch", iconPackStyle: "neon_cyber", fontProfile: "scifi", cornerProfile: "sharp", iconGlow: "hyper" },
     }),
     neon_hud: T({
         name: "Neon HUD",
@@ -143,7 +157,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         description: "Tactical heads-up display: square corners, teal and magenta edge light, scanlines and instant, snappy motion",
         is_dark: true,
         semantic: { danger: "#ff4466", warning: "#ffd23d", success: "#3dff9a", info: "#3ddcff" },
-        fx: { glow: "neon", glowColor: "#19f5d6", glowColor2: "#ff3d8b", blur: 10, glass: 0.45, grain: "none", scanlines: "subtle", sheen: false, radius: "sharp", border: "gradient", motion: "snappy", chromatic: true },
+        fx: { glow: "neon", glowColor: "#19f5d6", glowColor2: "#ff3d8b", blur: 10, glass: 0.45, grain: "none", scanlines: "subtle", sheen: false, radius: "sharp", border: "gradient", motion: "snappy", chromatic: true, backdropStyle: "oled", cursorEffect: "magnetic", vignette: "cinema", innerGlow: true, neonPulse: true, atmosphere: "tactical_hud", uiElementFx: "holo_glitch", iconPackStyle: "neon_cyber", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "neon" },
     }),
     quantum_obsidian: T({
         name: "Quantum Obsidian",
@@ -157,7 +171,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         description: "OLED pure black with teal and violet bioluminescent gradients, deep glass and a slow living backdrop",
         is_dark: true,
         semantic: { danger: "#ff6b81", warning: "#fbbf24", success: "#34d399", info: "#60a5fa" },
-        fx: { glow: "soft", glowColor: "#2dd4bf", glowColor2: "#a78bfa", blur: 20, glass: 0.6, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "spring", noise: true, ambient: true },
+        fx: { glow: "soft", glowColor: "#2dd4bf", glowColor2: "#a78bfa", blur: 20, glass: 0.6, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "spring", noise: true, ambient: true, backdropStyle: "oled", cursorEffect: "spotlight", vignette: "subtle", frostedRim: true, innerGlow: true, parallax: true, atmosphere: "singularity_core+quantum_foam", uiElementFx: "void_tentacles", iconPackStyle: "xenotech_2126", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "neon" },
     }),
     deep_space: T({
         name: "Deep Space",
@@ -171,7 +185,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         description: "Blue-black void with nebula violet light, soft glow and a faint star-grain texture",
         is_dark: true,
         semantic: { danger: "#fb7185", warning: "#fcd34d", success: "#6ee7b7", info: "#7dd3fc" },
-        fx: { glow: "soft", glowColor: "#a78bfa", glowColor2: "#60a5fa", blur: 18, glass: 0.5, grain: "subtle", scanlines: "none", sheen: false, radius: "round", border: "gradient", motion: "spring", ambient: true },
+        fx: { glow: "soft", glowColor: "#a78bfa", glowColor2: "#60a5fa", blur: 18, glass: 0.5, grain: "subtle", scanlines: "none", sheen: false, radius: "round", border: "gradient", motion: "spring", ambient: true, backdropStyle: "oled", cursorEffect: "spotlight", vignette: "cinema", innerGlow: true, parallax: true, atmosphere: "nebula+wormhole_transit", uiElementFx: "void_tentacles", iconPackStyle: "xenotech_2126", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "neon" },
     }),
     liquid_metal: T({
         name: "Liquid Metal",
@@ -185,7 +199,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         description: "Brushed titanium gradients with frosted glass and a fluid sheen that drifts along the metal borders",
         is_dark: true,
         semantic: { danger: "#ff7a7a", warning: "#f5c04a", success: "#5fd38d", info: "#6cb6ff" },
-        fx: { glow: "soft", glowColor: "#c9d4e0", glowColor2: "#7fb0e0", blur: 14, glass: 0.35, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "spring", noise: true },
+        fx: { glow: "soft", glowColor: "#c9d4e0", glowColor2: "#7fb0e0", blur: 14, glass: 0.35, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "spring", noise: true, backdropStyle: "liquid", cursorEffect: "magnetic", vignette: "subtle", frostedRim: true, innerGlow: true, parallax: true, atmosphere: "ferrofluid_spikes", uiElementFx: "mercury_chrome", iconPackStyle: "liquid_gems", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "subtle" },
     }),
     titanium_aurora: T({
         name: "Titanium Aurora",
@@ -199,7 +213,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         description: "Cool steel surfaces lit by an aurora of green and violet, calm motion and a drifting backdrop",
         is_dark: true,
         semantic: { danger: "#fb7185", warning: "#fbbf24", success: "#4ade80", info: "#67e8f9" },
-        fx: { glow: "soft", glowColor: "#34d399", glowColor2: "#a78bfa", blur: 20, glass: 0.5, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "calm", ambient: true },
+        fx: { glow: "soft", glowColor: "#34d399", glowColor2: "#a78bfa", blur: 20, glass: 0.5, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "calm", ambient: true, backdropStyle: "mica", cursorEffect: "spotlight", vignette: "ambient", frostedRim: true, innerGlow: true, atmosphere: "aurora+northern_pillars", uiElementFx: "mercury_chrome", iconPackStyle: "cryo_crystal", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "neon" },
     }),
     liquid_metal_light: T({
         name: "Liquid Metal Light",
@@ -212,7 +226,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#79848f",
         description: "Polished brushed-steel light theme: frosted white glass, a deep steel-blue accent and a gentle metal sheen",
         is_dark: false,
-        fx: { glow: "none", glowColor: "#2b4a6b", glowColor2: "#7a8a9a", blur: 16, glass: 0.4, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "spring", noise: true },
+        fx: { glow: "none", glowColor: "#2b4a6b", glowColor2: "#7a8a9a", blur: 16, glass: 0.4, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "spring", noise: true, backdropStyle: "liquid", cursorEffect: "spotlight", vignette: "subtle", frostedRim: true, atmosphere: "liquid_glass_caustics", uiElementFx: "mercury_chrome", iconPackStyle: "liquid_gems", fontProfile: "default", cornerProfile: "rounded", iconGlow: "subtle" },
     }),
     neo_tokyo_dark: T({
         name: "Neo-Tokyo Dark",
@@ -226,7 +240,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         description: "Cyber-cool night city in indigo with pink neon and teal highlights, tuned for code",
         is_dark: true,
         semantic: { danger: "#ff5c7a", warning: "#ffcb6b", success: "#2de2c9", info: "#7aa2ff" },
-        fx: { glow: "soft", glowColor: "#ff6ac1", glowColor2: "#2de2c9", blur: 12, glass: 0.4, grain: "none", scanlines: "none", sheen: false, radius: "soft", border: "gradient", motion: "snappy" },
+        fx: { glow: "soft", glowColor: "#ff6ac1", glowColor2: "#2de2c9", blur: 12, glass: 0.4, grain: "none", scanlines: "none", sheen: false, radius: "soft", border: "gradient", motion: "snappy", backdropStyle: "acrylic", cursorEffect: "spotlight", vignette: "subtle", innerGlow: true, neonPulse: true, iconPackStyle: "neon_cyber", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "neon" },
     }),
     synthetic_solar: T({
         name: "Synthetic Solar",
@@ -240,7 +254,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         description: "Cyber-warm: amber and coral light with magenta edges on warm black, with a hint of film grain",
         is_dark: true,
         semantic: { danger: "#ff6b6b", warning: "#ffd166", success: "#8de06b", info: "#6ec1ff" },
-        fx: { glow: "soft", glowColor: "#ffb347", glowColor2: "#ff5fa2", blur: 12, glass: 0.4, grain: "subtle", scanlines: "none", sheen: false, radius: "soft", border: "gradient", motion: "snappy", ambient: true },
+        fx: { glow: "soft", glowColor: "#ffb347", glowColor2: "#ff5fa2", blur: 12, glass: 0.4, grain: "subtle", scanlines: "none", sheen: false, radius: "soft", border: "gradient", motion: "snappy", ambient: true, backdropStyle: "frosted", cursorEffect: "spotlight", vignette: "cinema", innerGlow: true, frostedRim: true, iconPackStyle: "inferno", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "subtle" },
     }),
     neo_tokyo_day: T({
         name: "Neo-Tokyo Day",
@@ -253,7 +267,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#8683b8",
         description: "Neo-Tokyo in daylight: lavender paper, deep pink and teal accents with soft frosted glass",
         is_dark: false,
-        fx: { glow: "soft", glowColor: "#b3135f", glowColor2: "#4f46e5", blur: 14, glass: 0.35, grain: "none", scanlines: "none", sheen: false, radius: "soft", border: "gradient", motion: "spring" },
+        fx: { glow: "soft", glowColor: "#b3135f", glowColor2: "#4f46e5", blur: 14, glass: 0.35, grain: "none", scanlines: "none", sheen: false, radius: "soft", border: "gradient", motion: "spring", backdropStyle: "mica", cursorEffect: "ripple", vignette: "subtle", frostedRim: true, iconPackStyle: "liquid_gems", fontProfile: "rounded", cornerProfile: "rounded", iconGlow: "subtle" },
     }),
     aurora_glass: T({
         name: "Aurora Glass",
@@ -267,7 +281,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         description: "Deep-sea glass in mint and periwinkle with heavy blur, a drifting aurora behind it and a slow border sheen",
         is_dark: true,
         semantic: { danger: "#ff7b8b", warning: "#ffd27a", success: "#5ef2a0", info: "#7ad0ff" },
-        fx: { glow: "soft", glowColor: "#5ef2d0", glowColor2: "#7aa8ff", blur: 24, glass: 0.62, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "spring", ambient: true },
+        fx: { glow: "soft", glowColor: "#5ef2d0", glowColor2: "#7aa8ff", blur: 24, glass: 0.62, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "spring", ambient: true, backdropStyle: "liquid", cursorEffect: "ripple", vignette: "ambient", frostedRim: true, innerGlow: true, prismEdge: true, atmosphere: "aurora_australis+caustics", uiElementFx: "cryo_frost", iconPackStyle: "liquid_gems", fontProfile: "rounded", cornerProfile: "rounded", iconGlow: "neon" },
     }),
     plasma_violet: T({
         name: "Plasma Violet",
@@ -281,7 +295,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         description: "Electric violet plasma with rose edge light, pill-shaped controls and a bold neon glow",
         is_dark: true,
         semantic: { danger: "#ff5c8a", warning: "#ffc861", success: "#5be8a8", info: "#7fb4ff" },
-        fx: { glow: "neon", glowColor: "#d28bff", glowColor2: "#ff6b9d", blur: 14, glass: 0.45, grain: "none", scanlines: "none", sheen: true, radius: "pill", border: "gradient", motion: "spring", ambient: true },
+        fx: { glow: "neon", glowColor: "#d28bff", glowColor2: "#ff6b9d", blur: 14, glass: 0.45, grain: "none", scanlines: "none", sheen: true, radius: "pill", border: "gradient", motion: "spring", ambient: true, backdropStyle: "acrylic", cursorEffect: "magnetic", vignette: "ambient", innerGlow: true, neonPulse: true, iconPackStyle: "neon_cyber", fontProfile: "rounded", cornerProfile: "pill", iconGlow: "neon" },
     }),
     synthwave_sunset: T({
         name: "Synthwave Sunset",
@@ -294,7 +308,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#9a6fd0",
         description: "Outrun nights: a purple sky, hot pink neon and mint edges with scanlines, chromatic headings and a drifting sunset glow",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#ff7edb", glowColor2: "#72f1b8", glowIntensity: 0.85, blur: 14, glass: 0.45, grain: "none", scanlines: "subtle", sheen: true, radius: "soft", border: "gradient", motion: "snappy", ambient: true, chromatic: true },
+        fx: { glow: "neon", glowColor: "#ff7edb", glowColor2: "#72f1b8", glowIntensity: 0.85, blur: 14, glass: 0.45, grain: "none", scanlines: "subtle", sheen: true, radius: "soft", border: "gradient", motion: "snappy", ambient: true, chromatic: true, backdropStyle: "acrylic", cursorEffect: "prism", vignette: "cinema", prismEdge: true, innerGlow: true, neonPulse: true, crtCurve: true, atmosphere: "outrun_grid+laser_show", uiElementFx: "holo_glitch", iconPackStyle: "retro_pixel", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "hyper" },
     }),
     matrix_rain: T({
         name: "Matrix Rain",
@@ -307,7 +321,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#3a9a56",
         description: "A green phosphor terminal: square corners, bright code-green glow, scanlines and film grain over pitch black",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#39ff6a", glowColor2: "#00c8a0", glowIntensity: 0.7, blur: 6, glass: 0.3, grain: "subtle", scanlines: "subtle", sheen: false, radius: "sharp", border: "flat", motion: "snappy", chromatic: true },
+        fx: { glow: "neon", glowColor: "#39ff6a", glowColor2: "#00c8a0", glowIntensity: 0.7, blur: 6, glass: 0.3, grain: "subtle", scanlines: "subtle", sheen: false, radius: "sharp", border: "flat", motion: "snappy", chromatic: true, backdropStyle: "oled", cursorEffect: "magnetic", vignette: "cinema", crtCurve: true, innerGlow: true, neonPulse: true, atmosphere: "omega_matrix", uiElementFx: "holo_glitch", iconPackStyle: "neon_cyber", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "hyper" },
     }),
     amber_phosphor: T({
         name: "Amber Phosphor",
@@ -320,7 +334,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#9a6c24",
         description: "A warm amber monitor from the 1980s: soft phosphor glow, scanlines and grain, sharp edges and calm motion",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#ffb000", glowColor2: "#ff8a2a", glowIntensity: 0.6, blur: 4, glass: 0.2, grain: "subtle", scanlines: "subtle", sheen: false, radius: "sharp", border: "flat", motion: "calm" },
+        fx: { glow: "soft", glowColor: "#ffb000", glowColor2: "#ff8a2a", glowIntensity: 0.6, blur: 4, glass: 0.2, grain: "subtle", scanlines: "subtle", sheen: false, radius: "sharp", border: "flat", motion: "calm", backdropStyle: "oled", cursorEffect: "spotlight", vignette: "cinema", crtCurve: true, innerGlow: true, iconPackStyle: "retro_pixel", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "subtle" },
     }),
     midnight_glass: T({
         name: "Midnight Glass",
@@ -333,7 +347,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#5d6a8a",
         description: "Pure glassmorphism at night: heavy frosted blur, very clear panels, periwinkle light and a slow drifting glow",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#8ab4ff", glowColor2: "#c4a1ff", glowIntensity: 0.6, blur: 30, glass: 0.8, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", borderOpacity: 0.3, motion: "spring", ambient: true, noise: true },
+        fx: { glow: "soft", glowColor: "#8ab4ff", glowColor2: "#c4a1ff", glowIntensity: 0.6, blur: 30, glass: 0.8, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", borderOpacity: 0.3, motion: "spring", ambient: true, noise: true, backdropStyle: "liquid", cursorEffect: "prism", vignette: "subtle", frostedRim: true, innerGlow: true, prismEdge: true, parallax: true, atmosphere: "liquid_glass_caustics+aurora", uiElementFx: "mercury_chrome", iconPackStyle: "liquid_gems", fontProfile: "rounded", cornerProfile: "rounded", iconGlow: "neon" },
     }),
     abyss_bloom: T({
         name: "Abyss Bloom",
@@ -346,7 +360,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#2f8099",
         description: "Bioluminescent deep sea: cyan and violet creatures glowing through dark water glass, with a slow living backdrop",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#3cf0ff", glowColor2: "#b06bff", glowIntensity: 0.75, blur: 22, glass: 0.6, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "calm", ambient: true },
+        fx: { glow: "soft", glowColor: "#3cf0ff", glowColor2: "#b06bff", glowIntensity: 0.75, blur: 22, glass: 0.6, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "calm", ambient: true, backdropStyle: "liquid", cursorEffect: "ripple", vignette: "ambient", innerGlow: true, frostedRim: true, neonPulse: true, atmosphere: "abyssal_trench+jellyfish_glow", uiElementFx: "void_tentacles", iconPackStyle: "slime", fontProfile: "rounded", cornerProfile: "rounded", iconGlow: "neon" },
     }),
     cosmic_nebula: T({
         name: "Cosmic Nebula",
@@ -359,7 +373,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#7258aa",
         description: "A pink and blue galaxy: star-grain texture, neon nebula glow, chromatic headings and pill-shaped controls",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#ff9ef5", glowColor2: "#7cc4ff", glowIntensity: 0.75, blur: 18, glass: 0.55, grain: "subtle", scanlines: "none", sheen: true, radius: "pill", border: "gradient", motion: "spring", ambient: true, chromatic: true },
+        fx: { glow: "neon", glowColor: "#ff9ef5", glowColor2: "#7cc4ff", glowIntensity: 0.75, blur: 18, glass: 0.55, grain: "subtle", scanlines: "none", sheen: true, radius: "pill", border: "gradient", motion: "spring", ambient: true, chromatic: true, backdropStyle: "glass", cursorEffect: "prism", vignette: "ambient", prismEdge: true, innerGlow: true, neonPulse: true, parallax: true, atmosphere: "spiral_galaxy+supernova", uiElementFx: "void_tentacles", iconPackStyle: "xenotech_2126", fontProfile: "rounded", cornerProfile: "pill", iconGlow: "hyper" },
     }),
     obsidian_gold: T({
         name: "Obsidian Gold",
@@ -372,7 +386,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#8f7849",
         description: "Luxury black and gold: polished metal borders, a slow gold sheen, soft warm glow and calm motion",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#e6c068", glowColor2: "#d39a62", glowIntensity: 0.55, blur: 12, glass: 0.35, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "calm", noise: true },
+        fx: { glow: "soft", glowColor: "#e6c068", glowColor2: "#d39a62", glowIntensity: 0.55, blur: 12, glass: 0.35, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "calm", noise: true, backdropStyle: "oled", cursorEffect: "spotlight", vignette: "subtle", frostedRim: true, innerGlow: true, iconPackStyle: "liquid_gems", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle" },
     }),
     crimson_eclipse: T({
         name: "Crimson Eclipse",
@@ -385,7 +399,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#a8505a",
         description: "A blood moon: red and ember neon over black, sharp edges, grain and a dark drifting glow",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#ff5c6c", glowColor2: "#ff9a3d", glowIntensity: 0.75, blur: 10, glass: 0.35, grain: "subtle", scanlines: "none", sheen: false, radius: "sharp", border: "gradient", motion: "snappy", ambient: true },
+        fx: { glow: "neon", glowColor: "#ff5c6c", glowColor2: "#ff9a3d", glowIntensity: 0.75, blur: 10, glass: 0.35, grain: "subtle", scanlines: "none", sheen: false, radius: "sharp", border: "gradient", motion: "snappy", ambient: true, backdropStyle: "oled", cursorEffect: "magnetic", vignette: "cinema", innerGlow: true, neonPulse: true, iconPackStyle: "inferno", fontProfile: "scifi", cornerProfile: "sharp", iconGlow: "neon" },
     }),
     acid_reactor: T({
         name: "Acid Reactor",
@@ -398,7 +412,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#64922a",
         description: "Toxic lime and aqua neon: a hazard-lab console with scanlines, chromatic headings and fast controls",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#b6ff3b", glowColor2: "#3bffd0", glowIntensity: 0.8, blur: 8, glass: 0.35, grain: "none", scanlines: "subtle", sheen: false, radius: "sharp", border: "gradient", motion: "snappy", chromatic: true },
+        fx: { glow: "neon", glowColor: "#b6ff3b", glowColor2: "#3bffd0", glowIntensity: 0.8, blur: 8, glass: 0.35, grain: "none", scanlines: "subtle", sheen: false, radius: "sharp", border: "gradient", motion: "snappy", chromatic: true, backdropStyle: "oled", cursorEffect: "magnetic", vignette: "cinema", innerGlow: true, neonPulse: true, atmosphere: "molecular_lattice+quantum_cpu", uiElementFx: "slime_drip", iconPackStyle: "slime", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "hyper" },
     }),
     polar_night: T({
         name: "Polar Night",
@@ -411,7 +425,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#527a99",
         description: "Arctic night: icy frosted glass, metal borders, a cold blue glow and a slow drifting aurora",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#8fe3ff", glowColor2: "#b9c7ff", glowIntensity: 0.6, blur: 24, glass: 0.65, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "calm", ambient: true },
+        fx: { glow: "soft", glowColor: "#8fe3ff", glowColor2: "#b9c7ff", glowIntensity: 0.6, blur: 24, glass: 0.65, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "calm", ambient: true, backdropStyle: "frosted", cursorEffect: "spotlight", vignette: "ambient", frostedRim: true, innerGlow: true, atmosphere: "blizzard+aurora_australis", uiElementFx: "cryo_frost", iconPackStyle: "cryo_crystal", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "neon" },
     }),
     emerald_grove: T({
         name: "Emerald Grove",
@@ -424,7 +438,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#3b8262",
         description: "A glowing forest at night: emerald and lime light, soft textured glass, round corners and gentle motion",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#4ff0a0", glowColor2: "#c3f56a", glowIntensity: 0.6, blur: 16, glass: 0.5, grain: "none", scanlines: "none", sheen: false, radius: "round", border: "gradient", motion: "calm", ambient: true, noise: true },
+        fx: { glow: "soft", glowColor: "#4ff0a0", glowColor2: "#c3f56a", glowIntensity: 0.6, blur: 16, glass: 0.5, grain: "none", scanlines: "none", sheen: false, radius: "round", border: "gradient", motion: "calm", ambient: true, noise: true, backdropStyle: "frosted", cursorEffect: "ripple", vignette: "ambient", innerGlow: true, frostedRim: true, iconPackStyle: "slime", fontProfile: "rounded", cornerProfile: "rounded", iconGlow: "subtle" },
     }),
     brass_engine: T({
         name: "Brass Engine",
@@ -437,7 +451,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#937048",
         description: "Steampunk brass and copper: metal borders, film grain, a soft furnace glow and steady, calm motion",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#e0a85a", glowColor2: "#d48a5c", glowIntensity: 0.5, blur: 6, glass: 0.25, grain: "subtle", scanlines: "none", sheen: true, radius: "sharp", border: "metal", motion: "calm" },
+        fx: { glow: "soft", glowColor: "#e0a85a", glowColor2: "#d48a5c", glowIntensity: 0.5, blur: 6, glass: 0.25, grain: "subtle", scanlines: "none", sheen: true, radius: "sharp", border: "metal", motion: "calm", backdropStyle: "matte", cursorEffect: "spotlight", vignette: "cinema", frostedRim: true, innerGlow: true, iconPackStyle: "retro_pixel", fontProfile: "editorial", cornerProfile: "sharp", iconGlow: "subtle" },
     }),
     focus_glow: T({
         name: "Focus Glow",
@@ -450,7 +464,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#6b7284",
         description: "Effects for people who want them quiet: a faint blue glow and light glass, with no moving light, texture or sheen",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#7fb2ff", glowColor2: "#a8c7fa", glowIntensity: 0.3, blur: 10, glass: 0.3, grain: "none", scanlines: "none", sheen: false, radius: "soft", border: "flat", motion: "calm" },
+        fx: { glow: "soft", glowColor: "#7fb2ff", glowColor2: "#a8c7fa", glowIntensity: 0.3, blur: 10, glass: 0.3, grain: "none", scanlines: "none", sheen: false, radius: "soft", border: "flat", motion: "calm", backdropStyle: "matte", cursorEffect: "spotlight", vignette: "subtle", frostedRim: true, fontProfile: "default", cornerProfile: "rounded", iconGlow: "subtle" },
     }),
     neon_max: T({
         name: "Neon Max",
@@ -463,7 +477,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#9a9a9a",
         description: "Maximum contrast neon: white text on pure black with full-strength cyan and magenta glow and instant motion",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#00ffff", glowColor2: "#ff4dff", glowIntensity: 1, blur: 0, glass: 0, grain: "none", scanlines: "none", sheen: false, radius: "sharp", border: "gradient", motion: "snappy" },
+        fx: { glow: "neon", glowColor: "#00ffff", glowColor2: "#ff4dff", glowIntensity: 1, blur: 0, glass: 0, grain: "none", scanlines: "none", sheen: false, radius: "sharp", border: "gradient", motion: "snappy", backdropStyle: "oled", cursorEffect: "magnetic", vignette: "none", neonPulse: true, iconPackStyle: "neon_cyber", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "hyper" },
     }),
     vaporwave_dream: T({
         name: "Vaporwave Dream",
@@ -476,7 +490,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#9f7cc9",
         description: "A 90s vaporwave mall: pastel pink and aqua neon on purple, pill controls, grain, scanlines and a dreamy glow",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#ff9de2", glowColor2: "#8ef6e4", glowIntensity: 0.7, blur: 14, glass: 0.45, grain: "subtle", scanlines: "subtle", sheen: true, radius: "pill", border: "gradient", motion: "spring", ambient: true },
+        fx: { glow: "soft", glowColor: "#ff9de2", glowColor2: "#8ef6e4", glowIntensity: 0.7, blur: 14, glass: 0.45, grain: "subtle", scanlines: "subtle", sheen: true, radius: "pill", border: "gradient", motion: "spring", ambient: true, backdropStyle: "acrylic", cursorEffect: "prism", vignette: "ambient", innerGlow: true, neonPulse: true, iconPackStyle: "retro_pixel", fontProfile: "rounded", cornerProfile: "pill", iconGlow: "neon" },
     }),
     frosted_glass: T({
         name: "Frosted Glass",
@@ -489,7 +503,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#7c8aa3",
         description: "Bright glassmorphism: clear frosted white panels, heavy blur, a blue and violet glow and a soft moving light",
         is_dark: false,
-        fx: { glow: "soft", glowColor: "#2457c5", glowColor2: "#7a4fc4", glowIntensity: 0.45, blur: 28, glass: 0.7, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", borderOpacity: 0.35, motion: "spring", ambient: true },
+        fx: { glow: "soft", glowColor: "#2457c5", glowColor2: "#7a4fc4", glowIntensity: 0.45, blur: 28, glass: 0.7, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", borderOpacity: 0.35, motion: "spring", ambient: true, backdropStyle: "liquid", cursorEffect: "prism", vignette: "subtle", frostedRim: true, innerGlow: true, prismEdge: true, atmosphere: "liquid_glass_caustics+win11_mica_bloom", uiElementFx: "cryo_frost", iconPackStyle: "liquid_gems", fontProfile: "rounded", cornerProfile: "rounded", iconGlow: "subtle" },
     }),
     sakura_glass: T({
         name: "Sakura Glass",
@@ -502,7 +516,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#a37f8e",
         description: "Cherry blossom light: pink frosted glass, a soft petal glow, round corners and a calm drifting light",
         is_dark: false,
-        fx: { glow: "soft", glowColor: "#b0245e", glowColor2: "#6b4fa8", glowIntensity: 0.4, blur: 20, glass: 0.6, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "calm", ambient: true },
+        fx: { glow: "soft", glowColor: "#b0245e", glowColor2: "#6b4fa8", glowIntensity: 0.4, blur: 20, glass: 0.6, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "calm", ambient: true, backdropStyle: "frosted", cursorEffect: "ripple", vignette: "subtle", frostedRim: true, innerGlow: true, atmosphere: "sakura+fireflies", uiElementFx: "storm_wind", iconPackStyle: "liquid_gems", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle" },
     }),
     pearl_hologram: T({
         name: "Pearl Hologram",
@@ -515,7 +529,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#8a86ad",
         description: "Iridescent pearl: a light holographic theme with violet and teal shimmer, pill controls and a moving sheen",
         is_dark: false,
-        fx: { glow: "soft", glowColor: "#6a3fd1", glowColor2: "#00808a", glowIntensity: 0.45, blur: 18, glass: 0.55, grain: "none", scanlines: "none", sheen: true, radius: "pill", border: "gradient", motion: "spring", ambient: true },
+        fx: { glow: "soft", glowColor: "#6a3fd1", glowColor2: "#00808a", glowIntensity: 0.45, blur: 18, glass: 0.55, grain: "none", scanlines: "none", sheen: true, radius: "pill", border: "gradient", motion: "spring", ambient: true, backdropStyle: "liquid", cursorEffect: "prism", vignette: "ambient", prismEdge: true, frostedRim: true, innerGlow: true, atmosphere: "bifrost+prism_spectrum", uiElementFx: "holo_glitch", iconPackStyle: "liquid_gems", fontProfile: "rounded", cornerProfile: "pill", iconGlow: "neon" },
     }),
     rose_gold: T({
         name: "Rose Gold",
@@ -528,7 +542,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#977468",
         description: "Soft rose gold: warm light glass, polished metal borders, a gentle sheen and calm motion",
         is_dark: false,
-        fx: { glow: "soft", glowColor: "#9c4a3a", glowColor2: "#c08a6a", glowIntensity: 0.35, blur: 14, glass: 0.45, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "calm", noise: true },
+        fx: { glow: "soft", glowColor: "#9c4a3a", glowColor2: "#c08a6a", glowIntensity: 0.35, blur: 14, glass: 0.45, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "calm", noise: true, backdropStyle: "mica", cursorEffect: "spotlight", vignette: "subtle", frostedRim: true, innerGlow: true, iconPackStyle: "liquid_gems", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle" },
     }),
     daylight_hud: T({
         name: "Daylight HUD",
@@ -541,7 +555,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#6f8f88",
         description: "A light tactical display: sharp corners, crisp teal edge light, faint scanlines and fast motion",
         is_dark: false,
-        fx: { glow: "soft", glowColor: "#0b6e5f", glowColor2: "#8a2d6b", glowIntensity: 0.4, blur: 8, glass: 0.3, grain: "none", scanlines: "subtle", sheen: false, radius: "sharp", border: "gradient", motion: "snappy" },
+        fx: { glow: "soft", glowColor: "#0b6e5f", glowColor2: "#8a2d6b", glowIntensity: 0.4, blur: 8, glass: 0.3, grain: "none", scanlines: "subtle", sheen: false, radius: "sharp", border: "gradient", motion: "snappy", backdropStyle: "acrylic", cursorEffect: "magnetic", vignette: "subtle", frostedRim: true, iconPackStyle: "neon_cyber", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "subtle" },
     }),
     tesla_coil_plasma: T({
         name: "Tesla Coil Plasma",
@@ -554,7 +568,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#7652a8",
         description: "High-voltage Tesla coil discharge: branching violet and electric-cyan corona filaments over dark dielectric glass",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#c77dff", glowColor2: "#3bf0ff", glowIntensity: 0.9, blur: 18, glass: 0.5, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "gradient", motion: "snappy", chromatic: true, ambient: true, atmosphere: "plasma_storm" },
+        fx: { glow: "neon", glowColor: "#c77dff", glowColor2: "#3bf0ff", glowIntensity: 0.9, blur: 18, glass: 0.5, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "gradient", motion: "snappy", chromatic: true, ambient: true, backdropStyle: "glass", cursorEffect: "magnetic", vignette: "ambient", innerGlow: true, neonPulse: true, parallax: true, atmosphere: "plasma_storm", uiElementFx: "tesla_arcs", iconPackStyle: "neon_cyber", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "hyper" },
     }),
     wardenclyffe_tower: T({
         name: "Wardenclyffe Megacoil",
@@ -567,7 +581,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#85639e",
         description: "Nikola Tesla's magnifying transmitter: 12-million-volt lavender plasma arcs and spun brass toroid terminals",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#e09eff", glowColor2: "#ffb84d", glowIntensity: 0.85, blur: 16, glass: 0.45, grain: "subtle", scanlines: "none", sheen: true, radius: "sharp", border: "metal", motion: "snappy", ambient: true, atmosphere: "tesla_megacoil" },
+        fx: { glow: "neon", glowColor: "#e09eff", glowColor2: "#ffb84d", glowIntensity: 0.85, blur: 16, glass: 0.45, grain: "subtle", scanlines: "none", sheen: true, radius: "sharp", border: "metal", motion: "snappy", ambient: true, backdropStyle: "oled", cursorEffect: "magnetic", vignette: "cinema", innerGlow: true, neonPulse: true, frostedRim: true, atmosphere: "tesla_megacoil", uiElementFx: "tesla_arcs", iconPackStyle: "inferno", fontProfile: "editorial", cornerProfile: "sharp", iconGlow: "hyper" },
     }),
     nikola_plasma_globe: T({
         name: "Nikola Plasma Sphere",
@@ -580,7 +594,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#8f4f99",
         description: "Noble-gas dielectric plasma orb: neon rose-magenta and xenon-blue tendrils that lock onto your cursor",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#ff66d9", glowColor2: "#66d9ff", glowIntensity: 0.85, blur: 22, glass: 0.58, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "spring", ambient: true, atmosphere: "plasma_globe" },
+        fx: { glow: "neon", glowColor: "#ff66d9", glowColor2: "#66d9ff", glowIntensity: 0.85, blur: 22, glass: 0.58, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "spring", ambient: true, backdropStyle: "liquid", cursorEffect: "magnetic", vignette: "ambient", innerGlow: true, neonPulse: true, prismEdge: true, parallax: true, atmosphere: "plasma_globe", uiElementFx: "tesla_arcs", iconPackStyle: "liquid_gems", fontProfile: "rounded", cornerProfile: "rounded", iconGlow: "hyper" },
     }),
     jacobs_ladder_arc: T({
         name: "Jacob's Ladder Arc",
@@ -593,7 +607,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#8f6d3d",
         description: "Climbing high-voltage electric arcs rising between diverging V-shaped copper electrodes in ionized ozone air",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#ffbe55", glowColor2: "#9d7bff", glowIntensity: 0.8, blur: 12, glass: 0.4, grain: "subtle", scanlines: "none", sheen: true, radius: "sharp", border: "metal", motion: "snappy", atmosphere: "jacobs_ladder" },
+        fx: { glow: "neon", glowColor: "#ffbe55", glowColor2: "#9d7bff", glowIntensity: 0.8, blur: 12, glass: 0.4, grain: "subtle", scanlines: "none", sheen: true, radius: "sharp", border: "metal", motion: "snappy", backdropStyle: "oled", cursorEffect: "magnetic", vignette: "cinema", innerGlow: true, neonPulse: true, atmosphere: "jacobs_ladder", uiElementFx: "tesla_arcs", iconPackStyle: "inferno", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "neon" },
     }),
     ball_lightning_storm: T({
         name: "Ball Lightning Plasmoid",
@@ -606,7 +620,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#4f78a6",
         description: "Autonomous spherical ball-lightning plasmoids crackling with internal filaments and inter-orb voltage arcs",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#66e3ff", glowColor2: "#ff94e8", glowIntensity: 0.85, blur: 20, glass: 0.52, grain: "none", scanlines: "none", sheen: true, radius: "pill", border: "gradient", motion: "spring", ambient: true, atmosphere: "ball_lightning" },
+        fx: { glow: "neon", glowColor: "#66e3ff", glowColor2: "#ff94e8", glowIntensity: 0.85, blur: 20, glass: 0.52, grain: "none", scanlines: "none", sheen: true, radius: "pill", border: "gradient", motion: "spring", ambient: true, backdropStyle: "glass", cursorEffect: "magnetic", vignette: "ambient", innerGlow: true, neonPulse: true, parallax: true, atmosphere: "ball_lightning", uiElementFx: "tesla_arcs", iconPackStyle: "storm_tempest", fontProfile: "scifi", cornerProfile: "pill", iconGlow: "hyper" },
     }),
     tokamak_fusion: T({
         name: "Tokamak Fusion Torus",
@@ -619,7 +633,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#964b6a",
         description: "ITER magnetic fusion confinement: 150-million-kelvin deuterium-tritium plasma spiraling inside superconducting field coils",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#ff6b9d", glowColor2: "#4de8ff", glowIntensity: 0.9, blur: 18, glass: 0.48, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "snappy", chromatic: true, ambient: true, atmosphere: "tokamak_fusion" },
+        fx: { glow: "neon", glowColor: "#ff6b9d", glowColor2: "#4de8ff", glowIntensity: 0.9, blur: 18, glass: 0.48, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "snappy", chromatic: true, ambient: true, backdropStyle: "glass", cursorEffect: "magnetic", vignette: "ambient", innerGlow: true, neonPulse: true, prismEdge: true, atmosphere: "tokamak_fusion", uiElementFx: "fire_folders", iconPackStyle: "inferno", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "hyper" },
     }),
     cherenkov_reactor: T({
         name: "Cherenkov Blue Reactor",
@@ -632,7 +646,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#3d76a8",
         description: "Submerged nuclear core: phase-coherent Cerenkov radiation blue shockcones and heavy-water refraction",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#38b6ff", glowColor2: "#5ce1e6", glowIntensity: 0.85, blur: 22, glass: 0.58, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "gradient", motion: "calm", ambient: true, atmosphere: "cherenkov_glow" },
+        fx: { glow: "neon", glowColor: "#38b6ff", glowColor2: "#5ce1e6", glowIntensity: 0.85, blur: 22, glass: 0.58, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "gradient", motion: "calm", ambient: true, backdropStyle: "liquid", cursorEffect: "ripple", vignette: "ambient", innerGlow: true, frostedRim: true, neonPulse: true, atmosphere: "cherenkov_glow", uiElementFx: "cryo_frost", iconPackStyle: "cryo_crystal", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "hyper" },
     }),
     cern_synchrotron: T({
         name: "CERN Hadron Collider",
@@ -645,7 +659,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#5a7394",
         description: "Relativistic proton beam collisions bursting into curved Lorentz-force bubble-chamber decay spirals",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#ffd15c", glowColor2: "#4ddbff", glowIntensity: 0.8, blur: 14, glass: 0.42, grain: "none", scanlines: "subtle", sheen: true, radius: "sharp", border: "metal", motion: "snappy", atmosphere: "hadron_collider" },
+        fx: { glow: "neon", glowColor: "#ffd15c", glowColor2: "#4ddbff", glowIntensity: 0.8, blur: 14, glass: 0.42, grain: "none", scanlines: "subtle", sheen: true, radius: "sharp", border: "metal", motion: "snappy", backdropStyle: "acrylic", cursorEffect: "magnetic", vignette: "subtle", innerGlow: true, frostedRim: true, atmosphere: "hadron_collider", uiElementFx: "tesla_arcs", iconPackStyle: "xenotech_2126", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "neon" },
     }),
     lorentz_chaos: T({
         name: "Lorenz Strange Attractor",
@@ -658,7 +672,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#3d8573",
         description: "Chaotic phase-space butterfly trajectories integrated in real time with glowing phosphor emerald and amber ribbons",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#3df5c4", glowColor2: "#ffb86c", glowIntensity: 0.75, blur: 16, glass: 0.48, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "spring", ambient: true, atmosphere: "lorentz_attractor" },
+        fx: { glow: "soft", glowColor: "#3df5c4", glowColor2: "#ffb86c", glowIntensity: 0.75, blur: 16, glass: 0.48, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "spring", ambient: true, backdropStyle: "glass", cursorEffect: "prism", vignette: "ambient", innerGlow: true, parallax: true, atmosphere: "lorentz_attractor", uiElementFx: "void_tentacles", iconPackStyle: "xenotech_2126", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "neon" },
     }),
     ferrofluid_spike: T({
         name: "Ferrofluid Neodymium",
@@ -671,7 +685,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#5e6a82",
         description: "Rosensweig instability liquid-metal magnetic peaks that bristle and orient toward your cursor's magnetic dipole",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#94b8ff", glowColor2: "#d4a5ff", glowIntensity: 0.65, blur: 16, glass: 0.45, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "spring", noise: true, atmosphere: "ferrofluid_spikes" },
+        fx: { glow: "soft", glowColor: "#94b8ff", glowColor2: "#d4a5ff", glowIntensity: 0.65, blur: 16, glass: 0.45, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "spring", noise: true, backdropStyle: "liquid", cursorEffect: "magnetic", vignette: "subtle", frostedRim: true, innerGlow: true, parallax: true, atmosphere: "ferrofluid_spikes", uiElementFx: "mercury_chrome", iconPackStyle: "liquid_gems", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "neon" },
     }),
     hawking_horizon: T({
         name: "Hawking Event Horizon",
@@ -684,7 +698,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#6d578f",
         description: "Schwarzschild black hole boundary with Doppler-beamed accretion gold and quantum Hawking pair radiation",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#ffa654", glowColor2: "#b388ff", glowIntensity: 0.85, blur: 20, glass: 0.52, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "calm", ambient: true, atmosphere: "hawking_horizon" },
+        fx: { glow: "neon", glowColor: "#ffa654", glowColor2: "#b388ff", glowIntensity: 0.85, blur: 20, glass: 0.52, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "calm", ambient: true, backdropStyle: "oled", cursorEffect: "magnetic", vignette: "cinema", innerGlow: true, prismEdge: true, parallax: true, atmosphere: "hawking_horizon", uiElementFx: "void_tentacles", iconPackStyle: "xenotech_2126", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "hyper" },
     }),
     ligo_gravwave: T({
         name: "LIGO Spacetime Wave",
@@ -697,7 +711,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#3f7894",
         description: "Binary black-hole merger quadrupolar spacetime metric ripples measured by orthogonal Fabry-Perot laser arms",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#47e5bc", glowColor2: "#7ab8ff", glowIntensity: 0.7, blur: 14, glass: 0.45, grain: "none", scanlines: "subtle", sheen: false, radius: "sharp", border: "gradient", motion: "snappy", ambient: true, atmosphere: "gravitational_waves" },
+        fx: { glow: "soft", glowColor: "#47e5bc", glowColor2: "#7ab8ff", glowIntensity: 0.7, blur: 14, glass: 0.45, grain: "none", scanlines: "subtle", sheen: false, radius: "sharp", border: "gradient", motion: "snappy", ambient: true, backdropStyle: "glass", cursorEffect: "ripple", vignette: "subtle", innerGlow: true, atmosphere: "gravitational_waves", uiElementFx: "holo_glitch", iconPackStyle: "neon_cyber", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "neon" },
     }),
     meissner_superconductor: T({
         name: "Meissner Levitation",
@@ -710,7 +724,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#457f99",
         description: "Cryogenic liquid-nitrogen YBCO superconductor with Abrikosov flux pinning and diamagnetic levitation",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#6ef2ff", glowColor2: "#a3b8ff", glowIntensity: 0.7, blur: 24, glass: 0.62, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "spring", ambient: true, atmosphere: "meissner_levitation" },
+        fx: { glow: "soft", glowColor: "#6ef2ff", glowColor2: "#a3b8ff", glowIntensity: 0.7, blur: 24, glass: 0.62, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "spring", ambient: true, backdropStyle: "frosted", cursorEffect: "magnetic", vignette: "ambient", frostedRim: true, innerGlow: true, parallax: true, atmosphere: "meissner_levitation", uiElementFx: "cryo_frost", iconPackStyle: "cryo_crystal", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "neon" },
     }),
     antimatter_penning: T({
         name: "Antimatter Penning Trap",
@@ -723,7 +737,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#994964",
         description: "High-vacuum quadrupole magnetic bottle confining positrons and antiprotons with gamma annihilation flashes",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#ff5c8a", glowColor2: "#70e1ff", glowIntensity: 0.9, blur: 16, glass: 0.46, grain: "none", scanlines: "none", sheen: true, radius: "sharp", border: "gradient", motion: "snappy", chromatic: true, ambient: true, atmosphere: "antimatter_trap" },
+        fx: { glow: "neon", glowColor: "#ff5c8a", glowColor2: "#70e1ff", glowIntensity: 0.9, blur: 16, glass: 0.46, grain: "none", scanlines: "none", sheen: true, radius: "sharp", border: "gradient", motion: "snappy", chromatic: true, ambient: true, backdropStyle: "oled", cursorEffect: "magnetic", vignette: "cinema", innerGlow: true, neonPulse: true, prismEdge: true, atmosphere: "antimatter_trap", uiElementFx: "tesla_arcs", iconPackStyle: "xenotech_2126", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "hyper" },
     }),
     dyson_megastructure: T({
         name: "Dyson Sphere Swarm",
@@ -736,7 +750,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#8f6834",
         description: "Kardashev Type-II stellar harvesting megastructure with orbital solar-collector mirrors and power beams",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#ffc44d", glowColor2: "#ff7b54", glowIntensity: 0.75, blur: 14, glass: 0.42, grain: "subtle", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "calm", ambient: true, atmosphere: "dyson_swarm" },
+        fx: { glow: "soft", glowColor: "#ffc44d", glowColor2: "#ff7b54", glowIntensity: 0.75, blur: 14, glass: 0.42, grain: "subtle", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "calm", ambient: true, backdropStyle: "oled", cursorEffect: "spotlight", vignette: "cinema", innerGlow: true, frostedRim: true, atmosphere: "dyson_swarm", uiElementFx: "fire_folders", iconPackStyle: "inferno", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "neon" },
     }),
     alcubierre_metric: T({
         name: "Alcubierre Warp Drive",
@@ -749,7 +763,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#4d699e",
         description: "Superluminal Alcubierre metric tensor: blue-shifted contracting bow wave and red-shifted expanding spacetime wake",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#6ba4ff", glowColor2: "#ff7a90", glowIntensity: 0.85, blur: 18, glass: 0.5, grain: "none", scanlines: "none", sheen: true, radius: "pill", border: "gradient", motion: "snappy", chromatic: true, ambient: true, atmosphere: "alcubierre_warp" },
+        fx: { glow: "neon", glowColor: "#6ba4ff", glowColor2: "#ff7a90", glowIntensity: 0.85, blur: 18, glass: 0.5, grain: "none", scanlines: "none", sheen: true, radius: "pill", border: "gradient", motion: "snappy", chromatic: true, ambient: true, backdropStyle: "liquid", cursorEffect: "prism", vignette: "ambient", prismEdge: true, innerGlow: true, neonPulse: true, parallax: true, atmosphere: "alcubierre_warp", uiElementFx: "void_tentacles", iconPackStyle: "xenotech_2126", fontProfile: "scifi", cornerProfile: "pill", iconGlow: "hyper" },
     }),
     lissajous_scope: T({
         name: "Tektronix Vector Scope",
@@ -762,7 +776,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#398768",
         description: "P31 phosphor X-Y vector oscilloscope rendering phase-locked 3D Lissajous harmonic laser figures",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#2ef2a0", glowColor2: "#6be8ff", glowIntensity: 0.8, blur: 10, glass: 0.35, grain: "none", scanlines: "subtle", sheen: false, radius: "sharp", border: "gradient", motion: "snappy", atmosphere: "lissajous_harmonics" },
+        fx: { glow: "neon", glowColor: "#2ef2a0", glowColor2: "#6be8ff", glowIntensity: 0.8, blur: 10, glass: 0.35, grain: "none", scanlines: "subtle", sheen: false, radius: "sharp", border: "gradient", motion: "snappy", backdropStyle: "oled", cursorEffect: "spotlight", vignette: "cinema", crtCurve: true, innerGlow: true, neonPulse: true, atmosphere: "lissajous_harmonics", uiElementFx: "holo_glitch", iconPackStyle: "retro_pixel", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "neon" },
     }),
     quark_chromodynamics: T({
         name: "Quark-Gluon Plasma",
@@ -775,7 +789,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#7c549e",
         description: "Primordial relativistic color-charge confinement with snapping gluon flux tubes and hadronization jets",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#ff75d8", glowColor2: "#59f0c8", glowIntensity: 0.85, blur: 18, glass: 0.5, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "spring", chromatic: true, ambient: true, atmosphere: "quark_gluon_plasma" },
+        fx: { glow: "neon", glowColor: "#ff75d8", glowColor2: "#59f0c8", glowIntensity: 0.85, blur: 18, glass: 0.5, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "spring", chromatic: true, ambient: true, backdropStyle: "glass", cursorEffect: "prism", vignette: "ambient", prismEdge: true, innerGlow: true, neonPulse: true, atmosphere: "quark_gluon_plasma", uiElementFx: "void_tentacles", iconPackStyle: "xenotech_2126", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "hyper" },
     }),
     arc_reactor_mk: T({
         name: "Palladium Arc Reactor",
@@ -788,7 +802,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#467c9e",
         description: "Toroidal palladium induction core with ten segmented copper-iridium coils and radial high-current plasma arcs",
         is_dark: true,
-        fx: { glow: "neon", glowColor: "#52dcff", glowColor2: "#a6e3ff", glowIntensity: 0.9, blur: 16, glass: 0.5, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "metal", motion: "snappy", ambient: true, atmosphere: "arc_reactor_core" },
+        fx: { glow: "neon", glowColor: "#52dcff", glowColor2: "#a6e3ff", glowIntensity: 0.9, blur: 16, glass: 0.5, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "metal", motion: "snappy", ambient: true, backdropStyle: "glass", cursorEffect: "magnetic", vignette: "subtle", frostedRim: true, innerGlow: true, neonPulse: true, atmosphere: "arc_reactor_core", uiElementFx: "tesla_arcs", iconPackStyle: "neon_cyber", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "hyper" },
     }),
     st_elmos_corona: T({
         name: "St. Elmo's Brush Fire",
@@ -801,7 +815,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#546896",
         description: "Atmospheric masthead brush corona: luminous periwinkle-blue and violet electric plumes in stormy air",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#8caeff", glowColor2: "#d19cff", glowIntensity: 0.7, blur: 18, glass: 0.5, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "gradient", motion: "calm", ambient: true, atmosphere: "st_elmos_corona" },
+        fx: { glow: "soft", glowColor: "#8caeff", glowColor2: "#d19cff", glowIntensity: 0.7, blur: 18, glass: 0.5, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "gradient", motion: "calm", ambient: true, backdropStyle: "frosted", cursorEffect: "spotlight", vignette: "ambient", innerGlow: true, frostedRim: true, atmosphere: "st_elmos_corona", uiElementFx: "tesla_arcs", iconPackStyle: "storm_tempest", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "neon" },
     }),
     van_de_graaff_day: T({
         name: "Van de Graaff Lab Light",
@@ -814,7 +828,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#8c7b68",
         description: "Daylight high-voltage electrostatics lab: porcelain insulators, spun copper spheres and crisp violet-amber sparks",
         is_dark: false,
-        fx: { glow: "soft", glowColor: "#9e4700", glowColor2: "#5c33a8", glowIntensity: 0.4, blur: 14, glass: 0.45, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "metal", motion: "snappy", atmosphere: "static_sparks" },
+        fx: { glow: "soft", glowColor: "#9e4700", glowColor2: "#5c33a8", glowIntensity: 0.4, blur: 14, glass: 0.45, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "metal", motion: "snappy", backdropStyle: "mica", cursorEffect: "magnetic", vignette: "subtle", frostedRim: true, atmosphere: "static_sparks", uiElementFx: "tesla_arcs", iconPackStyle: "liquid_gems", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle" },
     }),
     cern_control_day: T({
         name: "CERN Control Room Light",
@@ -827,7 +841,241 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#6e8499",
         description: "Bright accelerator control deck: high-contrast cobalt and teal telemetry, crisp vector borders and oscilloscope traces",
         is_dark: false,
-        fx: { glow: "soft", glowColor: "#0058a6", glowColor2: "#007060", glowIntensity: 0.4, blur: 12, glass: 0.4, grain: "none", scanlines: "subtle", sheen: false, radius: "sharp", border: "gradient", motion: "snappy", atmosphere: "oscilloscope_lite" },
+        fx: { glow: "soft", glowColor: "#0058a6", glowColor2: "#007060", glowIntensity: 0.4, blur: 12, glass: 0.4, grain: "none", scanlines: "subtle", sheen: false, radius: "sharp", border: "gradient", motion: "snappy", backdropStyle: "acrylic", cursorEffect: "spotlight", vignette: "subtle", frostedRim: true, atmosphere: "oscilloscope_lite", uiElementFx: "holo_glitch", iconPackStyle: "neon_cyber", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "subtle" },
+    }),
+    ef5_debris_tornado: T({
+        name: "EF5 Debris Tornado",
+        short_name: "EF5 Tornado",
+        background_color: "#040d09",
+        font_color: "#e8fff2",
+        accent_color: "#34d399",
+        secondary_accent: "#38bdf8",
+        card_background: "#0b1c14",
+        card_border: "#2d7a58",
+        description: "Violent EF5 wedge tornado with 3D-tumbling leaves, shingles, flyers, lightning strobes, and wind-buffeted folders & toolbars",
+        is_dark: true,
+        fx: { glow: "plasma", glowColor: "#34d399", glowColor2: "#38bdf8", glowIntensity: 0.9, blur: 22, glass: 0.56, grain: "film", scanlines: "none", sheen: true, radius: "soft", border: "neon", motion: "elastic", chromatic: true, ambient: true, backdropStyle: "glass", cursorEffect: "magnetic", vignette: "cinema", innerGlow: true, neonPulse: true, parallax: true, atmosphere: "debris_tornado_ef5", uiElementFx: "storm_wind", iconPackStyle: "storm_tempest", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "hyper" },
+    }),
+    inferno_fire_folders: T({
+        name: "Inferno Blazing Folders",
+        short_name: "Fire Folders",
+        background_color: "#110502",
+        font_color: "#fff1e6",
+        accent_color: "#ff6b1a",
+        secondary_accent: "#fbbf24",
+        card_background: "#220c05",
+        card_border: "#a84414",
+        description: "Molten volcanic forge where File Manager folders, toolbars, breadcrumbs, and icons visibly burn with rising ember flames",
+        is_dark: true,
+        fx: { glow: "ember", glowColor: "#ff6b1a", glowColor2: "#fbbf24", glowIntensity: 0.95, blur: 18, glass: 0.5, grain: "subtle", scanlines: "none", sheen: true, radius: "soft", border: "neon", motion: "snappy", ambient: true, backdropStyle: "oled", cursorEffect: "spotlight", vignette: "cinema", innerGlow: true, neonPulse: true, atmosphere: "volcanic_lightning", uiElementFx: "fire_folders", iconPackStyle: "inferno", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "hyper" },
+    }),
+    toxic_slime_ooze: T({
+        name: "Radioactive Slime Bio-Vat",
+        short_name: "Slime Drip",
+        background_color: "#050f04",
+        font_color: "#ecfccb",
+        accent_color: "#a3e635",
+        secondary_accent: "#22c55e",
+        card_background: "#0d210a",
+        card_border: "#4d8f26",
+        description: "Glowing neon-chartreuse radioactive slime dripping off folders, toolbars, and breadcrumbs with bio-gel capsule icons",
+        is_dark: true,
+        fx: { glow: "neon", glowColor: "#a3e635", glowColor2: "#22c55e", glowIntensity: 0.9, blur: 20, glass: 0.55, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "elastic", ambient: true, backdropStyle: "liquid", cursorEffect: "ripple", vignette: "ambient", innerGlow: true, neonPulse: true, atmosphere: "venus_acid_lightning", uiElementFx: "slime_drip", iconPackStyle: "slime", fontProfile: "rounded", cornerProfile: "rounded", iconGlow: "hyper" },
+    }),
+    urban_street_cyclone: T({
+        name: "Street-Canyon Cyclone",
+        short_name: "Street Cyclone",
+        background_color: "#060b12",
+        font_color: "#eaf4ff",
+        accent_color: "#38bdf8",
+        secondary_accent: "#f59e0b",
+        card_background: "#0f1926",
+        card_border: "#3b6994",
+        description: "Downtown urban wind-tunnel tempest whipping flying newspapers, leaves, trash wrappers, and transformer arcs across toolbars",
+        is_dark: true,
+        fx: { glow: "neon", glowColor: "#38bdf8", glowColor2: "#f59e0b", glowIntensity: 0.85, blur: 20, glass: 0.52, grain: "subtle", scanlines: "none", sheen: true, radius: "soft", border: "gradient", motion: "snappy", ambient: true, backdropStyle: "acrylic", cursorEffect: "magnetic", vignette: "cinema", innerGlow: true, parallax: true, atmosphere: "urban_cyclone_debris", uiElementFx: "storm_wind", iconPackStyle: "storm_tempest", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "neon" },
+    }),
+    autumn_noreaster_gale: T({
+        name: "October Nor'easter Leaf Gale",
+        short_name: "Leaf Gale",
+        background_color: "#120904",
+        font_color: "#fff3e6",
+        accent_color: "#f97316",
+        secondary_accent: "#eab308",
+        card_background: "#211209",
+        card_border: "#9c5928",
+        description: "Howling Atlantic autumn gale blowing 1,000 3D-tumbling maple & oak leaves, twigs, and rain sheets across the File Manager",
+        is_dark: true,
+        fx: { glow: "ember", glowColor: "#f97316", glowColor2: "#eab308", glowIntensity: 0.8, blur: 18, glass: 0.48, grain: "subtle", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "spring", ambient: true, backdropStyle: "frosted", cursorEffect: "ripple", vignette: "cinema", innerGlow: true, parallax: true, atmosphere: "autumn_noreaster_gale", uiElementFx: "storm_wind", iconPackStyle: "storm_tempest", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "neon" },
+    }),
+    supercell_emerald_vortex: T({
+        name: "Supercell Mesocyclone",
+        short_name: "Supercell",
+        background_color: "#04100d",
+        font_color: "#e6fff8",
+        accent_color: "#10b981",
+        secondary_accent: "#6ee7b7",
+        card_background: "#0a211b",
+        card_border: "#2e7d67",
+        description: "Rotating hail-core green mesocyclone with barometric radar HUD borders, wall-cloud lightning, and storm-swept folders",
+        is_dark: true,
+        fx: { glow: "neon", glowColor: "#10b981", glowColor2: "#6ee7b7", glowIntensity: 0.85, blur: 20, glass: 0.54, grain: "subtle", scanlines: "subtle", sheen: true, radius: "sharp", border: "neon", motion: "snappy", chromatic: true, ambient: true, backdropStyle: "glass", cursorEffect: "magnetic", vignette: "cinema", innerGlow: true, neonPulse: true, parallax: true, atmosphere: "supercell_tornado", uiElementFx: "storm_wind", iconPackStyle: "storm_tempest", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "hyper" },
+    }),
+    category_5_eyewall: T({
+        name: "Category 5 Hurricane Eyewall",
+        short_name: "Cat-5 Eyewall",
+        background_color: "#030c17",
+        font_color: "#e8f6ff",
+        accent_color: "#00d4ff",
+        secondary_accent: "#60a5fa",
+        card_background: "#091b2e",
+        card_border: "#2e6d9e",
+        description: "Deep oceanic cyclone stadium eyewall with 185-mph whiteout sea-spray squalls, pressure isobars, and rain-slicked glass",
+        is_dark: true,
+        fx: { glow: "bloom", glowColor: "#00d4ff", glowColor2: "#60a5fa", glowIntensity: 0.85, blur: 26, glass: 0.62, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "iridescent", motion: "spring", backdropStyle: "liquid", cursorEffect: "ripple", vignette: "cinema", ambient: true, frostedRim: true, innerGlow: true, parallax: true, atmosphere: "category5_hurricane", uiElementFx: "storm_wind", iconPackStyle: "storm_tempest", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "neon" },
+    }),
+    mesosphere_red_sprite: T({
+        name: "Mesosphere Red Sprite Storm",
+        short_name: "Red Sprite",
+        background_color: "#09030d",
+        font_color: "#ffeef4",
+        accent_color: "#ff3366",
+        secondary_accent: "#60a5fa",
+        card_background: "#170821",
+        card_border: "#b84372",
+        description: "Upper-atmospheric 80-km crimson jellyfish sprites and blue starter jets discharging above a nocturnal anvil storm",
+        is_dark: true,
+        fx: { glow: "laser", glowColor: "#ff3366", glowColor2: "#60a5fa", glowIntensity: 0.9, blur: 20, glass: 0.52, grain: "none", scanlines: "subtle", sheen: true, radius: "sharp", border: "hologram", motion: "snappy", chromatic: true, ambient: true, backdropStyle: "oled", cursorEffect: "prism", vignette: "cinema", prismEdge: true, innerGlow: true, neonPulse: true, atmosphere: "red_sprite_storm", uiElementFx: "tesla_arcs", iconPackStyle: "neon_cyber", fontProfile: "scifi", cornerProfile: "sharp", iconGlow: "hyper" },
+    }),
+    cryo_icicle_blizzard: T({
+        name: "Cryo-Glacier Icicle Storm",
+        short_name: "Cryo Icicles",
+        background_color: "#030e18",
+        font_color: "#ecfeff",
+        accent_color: "#67e8f9",
+        secondary_accent: "#93c5fd",
+        card_background: "#081e30",
+        card_border: "#3b82a6",
+        description: "Sub-zero freezing ice storm with crystalline icicles hanging off toolbars and folders, diamond rime, and cryo-crystal icons",
+        is_dark: true,
+        fx: { glow: "aurora", glowColor: "#67e8f9", glowColor2: "#93c5fd", glowIntensity: 0.8, blur: 28, glass: 0.65, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "iridescent", motion: "calm", backdropStyle: "frosted", cursorEffect: "spotlight", vignette: "ambient", ambient: true, frostedRim: true, innerGlow: true, prismEdge: true, atmosphere: "freezing_ice_storm", uiElementFx: "cryo_frost", iconPackStyle: "cryo_crystal", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "neon" },
+    }),
+    scrapyard_shrapnel_vortex: T({
+        name: "Junkyard Magnetic Maelstrom",
+        short_name: "Scrap Maelstrom",
+        background_color: "#0d0906",
+        font_color: "#f5efe6",
+        accent_color: "#fb923c",
+        secondary_accent: "#38bdf8",
+        card_background: "#1c140e",
+        card_border: "#8c6749",
+        description: "Industrial electromagnet maelstrom ripping corrugated metal shingles, copper arcs, and welding sparks across steel chrome",
+        is_dark: true,
+        fx: { glow: "plasma", glowColor: "#fb923c", glowColor2: "#38bdf8", glowIntensity: 0.85, blur: 16, glass: 0.45, grain: "film", scanlines: "none", sheen: true, radius: "sharp", border: "metal", motion: "snappy", ambient: true, backdropStyle: "oled", cursorEffect: "magnetic", vignette: "cinema", innerGlow: true, frostedRim: true, parallax: true, atmosphere: "junkyard_maelstrom", uiElementFx: "tesla_arcs", iconPackStyle: "inferno", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "neon" },
+    }),
+    jovian_red_spot_storm: T({
+        name: "Jupiter Great Red Spot",
+        short_name: "Jovian Storm",
+        background_color: "#120704",
+        font_color: "#fff2eb",
+        accent_color: "#ff7849",
+        secondary_accent: "#fbbf24",
+        card_background: "#24100a",
+        card_border: "#a8573c",
+        description: "400-year anticyclonic gas-giant vortex with turbulent ammonia cloud bands, Galilean super-bolts, and liquid-mercury chrome",
+        is_dark: true,
+        fx: { glow: "bloom", glowColor: "#ff7849", glowColor2: "#fbbf24", glowIntensity: 0.85, blur: 22, glass: 0.52, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "calm", ambient: true, backdropStyle: "liquid", cursorEffect: "magnetic", vignette: "ambient", innerGlow: true, frostedRim: true, parallax: true, atmosphere: "jupiter_red_spot", uiElementFx: "mercury_chrome", iconPackStyle: "liquid_gems", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "neon" },
+    }),
+    neptune_diamond_squall: T({
+        name: "Neptune Supersonic Diamond Rain",
+        short_name: "Diamond Rain",
+        background_color: "#02081a",
+        font_color: "#eef6ff",
+        accent_color: "#60a5fa",
+        secondary_accent: "#c084fc",
+        card_background: "#071433",
+        card_border: "#3b62a6",
+        description: "2,000-km/h ice-giant methane gale precipitating glittering octahedral diamond crystals and 3D liquid-gem icons",
+        is_dark: true,
+        fx: { glow: "aurora", glowColor: "#60a5fa", glowColor2: "#c084fc", glowIntensity: 0.85, blur: 24, glass: 0.6, grain: "none", scanlines: "none", sheen: true, radius: "squircle", border: "iridescent", motion: "spring", backdropStyle: "liquid", cursorEffect: "prism", vignette: "ambient", prismEdge: true, frostedRim: true, innerGlow: true, parallax: true, ambient: true, atmosphere: "neptune_diamond_rain", uiElementFx: "cryo_frost", iconPackStyle: "liquid_gems", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "hyper" },
+    }),
+    tahoe_studio_3d: T({
+        name: "macOS Tahoe 3D Glass & Picture Studio",
+        short_name: "Tahoe 3D Studio",
+        background_color: "#081426",
+        font_color: "#f2f8ff",
+        accent_color: "#38bdf8",
+        secondary_accent: "#818cf8",
+        card_background: "#10233d",
+        card_border: "#4b83bd",
+        description: "High-end macOS Tahoe 3D sculpted regular folders with translucent Liquid Glass pockets, studio-framed picture icons, and Display-P3 caustics",
+        is_dark: true,
+        fx: { glow: "bloom", glowColor: "#38bdf8", glowColor2: "#818cf8", glowIntensity: 0.8, blur: 30, glass: 0.72, grain: "none", scanlines: "none", sheen: true, radius: "squircle", border: "iridescent", motion: "spring", backdropStyle: "liquid", cursorEffect: "prism", vignette: "ambient", prismEdge: true, frostedRim: true, innerGlow: true, parallax: true, ambient: true, atmosphere: "liquid_glass_caustics+prism_spectrum", uiElementFx: "tahoe_glass_folders", iconPackStyle: "macos_tahoe_3d", fontProfile: "rounded", cornerProfile: "rounded", iconGlow: "subtle" },
+    }),
+    m4_pro_display_xdr: T({
+        name: "M4 Max Pro Display XDR Titanium",
+        short_name: "M4 Max XDR",
+        background_color: "#050609",
+        font_color: "#f4f7fb",
+        accent_color: "#60a5fa",
+        secondary_accent: "#c084fc",
+        card_background: "#0d111a",
+        card_border: "#566890",
+        description: "Space-Black machined titanium workstation with 1600-nit XDR specular rim folders, 8K RAW camera picture plates, and 120Hz ProMotion raytraced prisms",
+        is_dark: true,
+        fx: { glow: "soft", glowColor: "#60a5fa", glowColor2: "#c084fc", glowIntensity: 0.75, blur: 28, glass: 0.64, grain: "subtle", scanlines: "none", sheen: true, radius: "round", border: "metal", motion: "spring", backdropStyle: "oled", cursorEffect: "spotlight", vignette: "subtle", prismEdge: true, frostedRim: true, innerGlow: true, parallax: true, ambient: true, atmosphere: "m4_raytrace_prism", uiElementFx: "xdr_titanium_folders", iconPackStyle: "pro_studio_xdr", fontProfile: "default", cornerProfile: "rounded", iconGlow: "subtle" },
+    }),
+    win11_rtx_fluent_3d: T({
+        name: "Windows 11 Fluent 3D & RTX Studio",
+        short_name: "Win11 Fluent 3D",
+        background_color: "#0b101b",
+        font_color: "#f1f5f9",
+        accent_color: "#60cdff",
+        secondary_accent: "#fbbf24",
+        card_background: "#151e30",
+        card_border: "#5271a3",
+        description: "Layered Windows 11 Fluent 3D amber-and-cobalt regular folders, DirectX 12 Mica & Acrylic depth cards, and framed gallery picture icons",
+        is_dark: true,
+        fx: { glow: "bloom", glowColor: "#60cdff", glowColor2: "#fbbf24", glowIntensity: 0.78, blur: 26, glass: 0.62, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "spring", backdropStyle: "mica", cursorEffect: "spotlight", vignette: "ambient", frostedRim: true, innerGlow: true, parallax: true, ambient: true, atmosphere: "aurora", uiElementFx: "fluent_mica_folders", iconPackStyle: "win11_fluent_pro", fontProfile: "default", cornerProfile: "rounded", iconGlow: "subtle" },
+    }),
+    hdr_cinema_gallery: T({
+        name: "8K HDR Photo & Cinema Studio",
+        short_name: "8K Photo Studio",
+        background_color: "#09080c",
+        font_color: "#f8f5ff",
+        accent_color: "#f59e0b",
+        secondary_accent: "#38bdf8",
+        card_background: "#15131c",
+        card_border: "#856f56",
+        description: "Color-calibrated darkroom & cinema suite with gallery-framed picture icons, 35mm contact-sheet folders, and Display-P3 warm specular highlights",
+        is_dark: true,
+        fx: { glow: "soft", glowColor: "#f59e0b", glowColor2: "#38bdf8", glowIntensity: 0.72, blur: 24, glass: 0.58, grain: "subtle", scanlines: "none", sheen: true, radius: "round", border: "metal", motion: "cinematic", backdropStyle: "frosted", cursorEffect: "spotlight", vignette: "cinema", frostedRim: true, innerGlow: true, ambient: true, atmosphere: "liquid_glass_caustics", uiElementFx: "tahoe_glass_folders", iconPackStyle: "hdr_photo_studio", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle" },
+    }),
+    linux_workstation_hidpi: T({
+        name: "Linux Papirus HiDPI Workstation",
+        short_name: "Linux HiDPI",
+        background_color: "#0c1418",
+        font_color: "#ecfdf5",
+        accent_color: "#10b981",
+        secondary_accent: "#38bdf8",
+        card_background: "#132229",
+        card_border: "#3c8c84",
+        description: "Crisp Linux KDE Breeze & Papirus HiDPI workstation with emerald/teal regular folders, developer topic badges, and low-latency snappy glass",
+        is_dark: true,
+        fx: { glow: "soft", glowColor: "#10b981", glowColor2: "#38bdf8", glowIntensity: 0.74, blur: 22, glass: 0.56, grain: "none", scanlines: "none", sheen: true, radius: "soft", border: "gradient", motion: "snappy", backdropStyle: "glass", cursorEffect: "spotlight", vignette: "subtle", frostedRim: true, innerGlow: true, ambient: true, atmosphere: "northern_pillars", uiElementFx: "tahoe_glass_folders", iconPackStyle: "linux_papirus_pro", fontProfile: "default", cornerProfile: "rounded", iconGlow: "subtle" },
+    }),
+    studio_architect_minimal: T({
+        name: "Studio Architect Minimal",
+        short_name: "Studio Minimal",
+        background_color: "#f4f6f9",
+        font_color: "#111827",
+        accent_color: "#0369a1",
+        secondary_accent: "#4f46e5",
+        card_background: "#ffffff",
+        card_border: "#5b6b82",
+        description: "Bright architectural studio with tactile 3D paper-and-glass regular folders, gallery picture frames, and calm daylight ergonomics",
+        is_dark: false,
+        fx: { glow: "soft", glowColor: "#0369a1", glowColor2: "#4f46e5", glowIntensity: 0.45, blur: 22, glass: 0.68, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "metal", motion: "calm", backdropStyle: "frosted", cursorEffect: "spotlight", vignette: "subtle", frostedRim: true, innerGlow: true, ambient: true, uiElementFx: "fluent_mica_folders", iconPackStyle: "nordic_minimal", fontProfile: "rounded", cornerProfile: "rounded", iconGlow: "off" },
     }),
 };
 
@@ -890,6 +1138,24 @@ export const FX_THEME_ALIASES: Record<string, string> = {
     alcubierre: "alcubierre_metric",
     lissajous: "lissajous_scope",
     arc_reactor: "arc_reactor_mk",
+    tornado: "ef5_debris_tornado",
+    fire_folders: "inferno_fire_folders",
+    slime: "toxic_slime_ooze",
+    cyclone: "urban_street_cyclone",
+    noreaster: "autumn_noreaster_gale",
+    supercell: "supercell_emerald_vortex",
+    hurricane: "category_5_eyewall",
+    red_sprite: "mesosphere_red_sprite",
+    icicle: "cryo_icicle_blizzard",
+    maelstrom: "scrapyard_shrapnel_vortex",
+    jupiter: "jovian_red_spot_storm",
+    neptune: "neptune_diamond_squall",
+    tahoe_3d: "tahoe_studio_3d",
+    m4_xdr: "m4_pro_display_xdr",
+    win11_3d: "win11_rtx_fluent_3d",
+    photo_studio: "hdr_cinema_gallery",
+    linux_hidpi: "linux_workstation_hidpi",
+    studio_minimal: "studio_architect_minimal",
 };
 
 /**
@@ -955,6 +1221,24 @@ export const FX_FALLBACK_THEMES: Record<string, string> = {
     st_elmos_corona: "tokyo_night",
     van_de_graaff_day: "solarized_light",
     cern_control_day: "github_light",
+    ef5_debris_tornado: "sonoma_emerald",
+    inferno_fire_folders: "sunset_orange",
+    toxic_slime_ooze: "matrix_phosphor",
+    urban_street_cyclone: "tokyo_night",
+    autumn_noreaster_gale: "ventura_amber",
+    supercell_emerald_vortex: "emerald",
+    category_5_eyewall: "midnight",
+    mesosphere_red_sprite: "rose_pine",
+    cryo_icicle_blizzard: "nord",
+    scrapyard_shrapnel_vortex: "amber_crt",
+    jovian_red_spot_storm: "sunset_orange",
+    neptune_diamond_squall: "abyss",
+    tahoe_studio_3d: "apple_dark",
+    m4_pro_display_xdr: "oled_black",
+    win11_rtx_fluent_3d: "midnight",
+    hdr_cinema_gallery: "ventura_amber",
+    linux_workstation_hidpi: "sonoma_emerald",
+    studio_architect_minimal: "nordic_paper",
 };
 
 const keyOf = (s: string) => s.toLowerCase().trim().replace(/[\s\-_]+/g, "_");
@@ -1536,6 +1820,11 @@ export function fxRootAttrs(theme: SimpleGUITheme | undefined | null, mode: FxMo
     if (fx.neonPulse) a["data-fx-pulse"] = "on";
     if (fx.crtCurve) a["data-fx-crt"] = "on";
     if (fx.parallax) a["data-fx-parallax"] = "on";
+    if (fx.uiElementFx && fx.uiElementFx !== "off") a["data-fx-element"] = fx.uiElementFx;
+    if (fx.iconPackStyle && fx.iconPackStyle !== "default") a["data-fx-icon-pack"] = fx.iconPackStyle;
+    if (fx.fontProfile && fx.fontProfile !== "default") a["data-fx-font-profile"] = fx.fontProfile;
+    if (fx.cornerProfile && fx.cornerProfile !== "default") a["data-fx-corner-profile"] = fx.cornerProfile;
+    if (fx.iconGlow && fx.iconGlow !== "off") a["data-fx-icon-glow"] = fx.iconGlow;
     return a;
 }
 

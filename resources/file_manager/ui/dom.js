@@ -56,28 +56,195 @@ export function announce(message) {
 export const say = announce;
 
 const ICONS = [
-  ["🖼️", "png jpg jpeg gif webp bmp svg ico tif tiff heic avif raw psd"],
-  ["🎞️", "mp4 mov mkv avi webm wmv flv m4v mpg mpeg"],
-  ["🎵", "mp3 wav flac aac ogg m4a wma opus aiff mid midi"],
-  ["📕", "pdf"],
-  ["📄", "doc docx odt rtf pages epub mobi"],
-  ["📊", "xls xlsx ods csv tsv numbers"],
-  ["📽️", "ppt pptx odp key"],
-  ["🗜️", "zip rar 7z tar gz tgz bz2 xz zst cab iso"],
-  ["💻", "js mjs cjs ts tsx jsx py rb go rs java kt swift c h cpp hpp cs php html htm css scss json xml yaml yml toml sql lua dart vue svelte ps1 bat cmd sh bash zsh v vsh vv zig nim ex exs erl hs ml clj scala groovy r jl pl pm fs fsx vb asm s m mm cc cxx hh hxx mts cts jsonc less sass graphql proto cmake gradle tf sol wat fish ksh"],
-  ["📝", "txt md markdown log ini cfg conf env rst tex nfo"],
-  ["⚙️", "exe msi app command jar apk appimage scr com run vbs deb rpm pkg"],
-  ["💿", "dmg img vhd vmdk"],
-  ["🔤", "ttf otf woff woff2 eot"],
+  ["🖼️", "png jpg jpeg gif webp bmp svg ico tif tiff heic avif raw psd", "image"],
+  ["🎞️", "mp4 mov mkv avi webm wmv flv m4v mpg mpeg", "video"],
+  ["🎵", "mp3 wav flac aac ogg m4a wma opus aiff mid midi", "audio"],
+  ["📕", "pdf", "pdf"],
+  ["📄", "doc docx odt rtf pages epub mobi", "doc"],
+  ["📊", "xls xlsx ods csv tsv numbers", "sheet"],
+  ["📽️", "ppt pptx odp key", "slide"],
+  ["🗜️", "zip rar 7z tar gz tgz bz2 xz zst cab iso", "archive"],
+  ["💻", "js mjs cjs ts tsx jsx py rb go rs java kt swift c h cpp hpp cs php html htm css scss json xml yaml yml toml sql lua dart vue svelte ps1 bat cmd sh bash zsh v vsh vv zig nim ex exs erl hs ml clj scala groovy r jl pl pm fs fsx vb asm s m mm cc cxx hh hxx mts cts jsonc less sass graphql proto cmake gradle tf sol wat fish ksh", "code"],
+  ["📝", "txt md markdown log ini cfg conf env rst tex nfo", "text"],
+  ["⚙️", "exe msi app command jar apk appimage scr com run vbs deb rpm pkg", "exec"],
+  ["💿", "dmg img vhd vmdk", "disk"],
+  ["🔤", "ttf otf woff woff2 eot", "font"],
 ];
 const ICON_BY_EXT = new Map(ICONS.flatMap(([icon, exts]) => exts.split(" ").map((e) => [e, icon])));
+const KIND_BY_EXT = new Map(ICONS.flatMap(([, exts, kind]) => exts.split(" ").map((e) => [e, kind])));
 
-/** A picture-word for a file name, for places (like the Recycle Bin) where the server didn't classify it. */
-export function iconFor(name, isDir) {
+export const ICON_PACK_GLYPHS = {
+  default: {
+    folder: "📁", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "🗜️", code: "💻", text: "📝", exec: "⚙️",
+    disk: "💿", font: "🔤", file: "📃",
+  },
+  macos_tahoe_3d: {
+    folder: "📂", image: "🏞️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📘",
+    sheet: "📊", slide: "🖼️", archive: "📦", code: "🧑‍💻", text: "🗒️", exec: "🚀",
+    disk: "💿", font: "🔤", file: "📄",
+    topics: { pictures: "🏞️", videos: "🎬", music: "🎧", code: "💠", docs: "📚", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️" },
+  },
+  win11_fluent_pro: {
+    folder: "🗂️", image: "🖼️", video: "📽️", audio: "🎵", pdf: "📕", doc: "📃",
+    sheet: "📈", slide: "📊", archive: "🧳", code: "💻", text: "📝", exec: "⚡",
+    disk: "💽", font: "🔤", file: "📄",
+    topics: { pictures: "🖼️", videos: "📽️", music: "🎵", code: "💻", docs: "🗂️", downloads: "⬇️", archive: "🧳", cloud: "☁️", database: "🛢️" },
+  },
+  pro_studio_xdr: {
+    folder: "🗄️", image: "📸", video: "🎞️", audio: "🎚️", pdf: "📋", doc: "📑",
+    sheet: "📐", slide: "🖥️", archive: "🧰", code: "⚡", text: "🗒️", exec: "🎛️",
+    disk: "💽", font: "🔡", file: "📄",
+    topics: { pictures: "📸", videos: "🎞️", music: "🎚️", code: "⚡", docs: "📑", downloads: "📡", archive: "🧰", cloud: "🛰️", database: "🗄️" },
+  },
+  hdr_photo_studio: {
+    folder: "📸", image: "🌅", video: "🎥", audio: "🎙️", pdf: "🎞️", doc: "🖼️",
+    sheet: "🎨", slide: "📽️", archive: "🎞️", code: "✨", text: "📝", exec: "🎬",
+    disk: "💿", font: "🔤", file: "🖼️",
+    topics: { pictures: "🌅", videos: "🎥", music: "🎙️", code: "✨", docs: "🖼️", downloads: "📥", archive: "🎞️", cloud: "☁️", database: "🗄️" },
+  },
+  linux_papirus_pro: {
+    folder: "📂", image: "🖼️", video: "🎞️", audio: "🎶", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "🐧", text: "📝", exec: "⚙️",
+    disk: "💽", font: "🔤", file: "📃",
+    topics: { pictures: "🖼️", videos: "🎞️", music: "🎶", code: "🐧", docs: "📚", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️" },
+  },
+  nordic_minimal: {
+    folder: "📁", image: "🎨", video: "🎞️", audio: "🎵", pdf: "📓", doc: "📄",
+    sheet: "📊", slide: "🖼️", archive: "📦", code: "🧩", text: "📝", exec: "⚙️",
+    disk: "💿", font: "🔤", file: "📃",
+    topics: { pictures: "🎨", videos: "🎞️", music: "🎵", code: "🧩", docs: "📓", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️" },
+  },
+  inferno: {
+    folder: "🔥", image: "🌅", video: "🎬", audio: "🎸", pdf: "📜", doc: "🏮",
+    sheet: "📈", slide: "🎆", archive: "💣", code: "⚡", text: "🕯️", exec: "☄️",
+    disk: "🌋", font: "🔱", file: "🧨",
+  },
+  slime: {
+    folder: "🧪", image: "🦠", video: "👁️", audio: "🫧", pdf: "🧫", doc: "📋",
+    sheet: "🧬", slide: "🔬", archive: "🛢️", code: "🧬", text: "🧪", exec: "☣️",
+    disk: "🟢", font: "🦠", file: "💧",
+  },
+  storm_tempest: {
+    folder: "🌪️", image: "🌈", video: "🌩️", audio: "🌬️", pdf: "⚡", doc: "🍃",
+    sheet: "🧭", slide: "⛈️", archive: "🌊", code: "⚡", text: "🍂", exec: "🌀",
+    disk: "🛟", font: "💨", file: "🌧️",
+  },
+  neon_cyber: {
+    folder: "💠", image: "🔮", video: "📡", audio: "🎛️", pdf: "🪪", doc: "📟",
+    sheet: "📉", slide: "🛰️", archive: "🧊", code: "⚡", text: "💾", exec: "🚀",
+    disk: "💽", font: "🔣", file: "🔹",
+  },
+  liquid_gems: {
+    folder: "💎", image: "🔮", video: "🪩", audio: "🎐", pdf: "👑", doc: "💠",
+    sheet: "✨", slide: "🌟", archive: "💍", code: "🔷", text: "🫧", exec: "⚜️",
+    disk: "💿", font: "💠", file: "🔹",
+  },
+  cryo_crystal: {
+    folder: "🧊", image: "❄️", video: "🏔️", audio: "🎐", pdf: "🌨️", doc: "📃",
+    sheet: "🧊", slide: "🌌", archive: "🏔️", code: "❄️", text: "🌬️", exec: "⛷️",
+    disk: "💿", font: "❄️", file: "🧊",
+  },
+  retro_pixel: {
+    folder: "👾", image: "🎨", video: "📺", audio: "📻", pdf: "📕", doc: "📜",
+    sheet: "🧮", slide: "🕹️", archive: "📦", code: "🕹️", text: "📟", exec: "🪙",
+    disk: "💾", font: "🔤", file: "📼",
+  },
+  xenotech_2126: {
+    folder: "🛸", image: "🌌", video: "🪐", audio: "〰️", pdf: "🧿", doc: "📡",
+    sheet: "⚛️", slide: "🔭", archive: "🕳️", code: "⚛️", text: "🧬", exec: "🚀",
+    disk: "🪐", font: "🔯", file: "✨",
+  },
+};
+ICON_PACK_GLYPHS.inferno_burn = ICON_PACK_GLYPHS.inferno;
+ICON_PACK_GLYPHS.bio_slime = ICON_PACK_GLYPHS.slime;
+ICON_PACK_GLYPHS.storm_weather = ICON_PACK_GLYPHS.storm_tempest;
+ICON_PACK_GLYPHS.liquid_chrome = ICON_PACK_GLYPHS.liquid_gems;
+ICON_PACK_GLYPHS.arcane_glyphs = ICON_PACK_GLYPHS.xenotech_2126;
+
+/** Classifies a folder's semantic purpose (pictures, videos, music, code, docs, downloads, database, cloud, archive) for high-end 3D folder badges. */
+export function classifyFolderTopic(name) {
+  const n = String(name || "").trim().toLowerCase();
+  if (!n) return "general";
+  if (/^(pictures|photos|images|img|wallpapers|screenshots|camera|raw|renders|gallery|art|icons|avatars|thumbnails)$/.test(n)) return "pictures";
+  if (/^(videos|movies|films|clips|footage|cinema|recordings|captures)$/.test(n)) return "videos";
+  if (/^(music|audio|sounds|podcasts|tracks|stems|samples|sfx)$/.test(n)) return "music";
+  if (/^(src|lib|app|components|scripts|packages|server|client|api|hooks|utils|tests|test|__tests__|spec|bin|\.git|\.github)$/.test(n)) return "code";
+  if (/^(docs|documentation|notes|guides|manuals|papers|books|wiki|readme)$/.test(n)) return "docs";
+  if (/^(downloads|inbox|incoming|temp|tmp)$/.test(n)) return "downloads";
+  if (/^(db|database|databases|sql|migrations|data|prisma|seeds)$/.test(n)) return "database";
+  if (/^(cloud|sync|icloud|dropbox|drive|onedrive|shared)$/.test(n)) return "cloud";
+  if (/^(archive|archives|backups|backup|dist|build|out|release|releases|vendor|node_modules)$/.test(n)) return "archive";
+  return "general";
+}
+
+export function classifyIconKind(name, isDir) {
+  if (isDir) return "folder";
+  const s = String(name || "");
+  const dot = s.lastIndexOf(".");
+  const ext = dot > 0 ? s.slice(dot + 1).toLowerCase() : "";
+  return KIND_BY_EXT.get(ext) ?? "file";
+}
+
+export function activeIconPackStyle() {
+  try {
+    const p = typeof document !== "undefined" ? document.documentElement?.dataset?.iconPack : "";
+    return p && ICON_PACK_GLYPHS[p] ? p : "default";
+  } catch {
+    return "default";
+  }
+}
+
+/** A picture-word for a file name, for places (like the Recycle Bin) where the server didn't classify it, or when a custom Icon Pack is active. */
+export function iconFor(name, isDir, packOverride) {
+  const pack = packOverride && ICON_PACK_GLYPHS[packOverride] ? packOverride : activeIconPackStyle();
+  if (pack !== "default") {
+    const def = ICON_PACK_GLYPHS[pack];
+    if (isDir && def?.topics) {
+      const topic = classifyFolderTopic(name);
+      if (topic !== "general" && def.topics[topic]) return def.topics[topic];
+    }
+    const kind = classifyIconKind(name, isDir);
+    return def?.[kind] ?? def?.file ?? "📁";
+  }
   if (isDir) return "📁";
   const dot = name.lastIndexOf(".");
   const ext = dot > 0 ? name.slice(dot + 1).toLowerCase() : "";
   return ICON_BY_EXT.get(ext) ?? "📃";
+}
+
+/** Resolves the display icon for a File Manager entry, respecting custom Icon Pack styles when active. */
+export function iconForEntry(entry, packOverride) {
+  const isDir = Boolean(entry?.isDir || entry?.isDirectory);
+  const pack = packOverride && ICON_PACK_GLYPHS[packOverride] ? packOverride : activeIconPackStyle();
+  if (pack !== "default") {
+    return iconFor(entry?.name || "", isDir, pack);
+  }
+  return entry?.icon || iconFor(entry?.name || "", isDir, "default");
+}
+
+/** Updates all visible `.row .c-icon` elements in place when the active Icon Pack changes. */
+export function syncVisibleIcons(root = typeof document !== "undefined" ? document : null) {
+  if (!root?.querySelectorAll) return;
+  const pack = activeIconPackStyle();
+  root.querySelectorAll(".row").forEach((row) => {
+    const ico = row.querySelector(".c-icon");
+    if (!ico) return;
+    const isDir = row.classList.contains("is-folder") || row.dataset.isDir === "1";
+    const name = row.dataset.entryName || row.querySelector(".name-text")?.textContent || "";
+    const kind = classifyIconKind(name, isDir);
+    ico.dataset.iconKind = kind;
+    if (isDir) {
+      const topic = classifyFolderTopic(name);
+      row.dataset.folderTopic = topic;
+      ico.dataset.folderTopic = topic;
+    }
+    if (pack === "default") {
+      ico.textContent = row.dataset.defaultIcon || iconFor(name, isDir, "default");
+    } else {
+      ico.textContent = iconFor(name, isDir, pack);
+    }
+  });
 }
 
 /** Runs `fn` at most once per `ms` after the last call. */

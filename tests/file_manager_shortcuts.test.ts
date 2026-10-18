@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { createContext } from "../src/features/filemanager/fmCore";
@@ -49,11 +49,14 @@ describe("the table of shortcuts", () => {
     expect(defaultsFor(action("nav.address"), "linux")).toEqual(["Mod+L", "Alt+D"]);
     expect(defaultsFor(action("nav.address"), "darwin")).toEqual(["Mod+L"]);
   });
-  test("the terminal has two shortcuts and neither is a key people can't type", () => {
+  test("the terminal has shortcuts for toggle, open here, and paste", () => {
     expect(defaultsFor(action("terminal.toggle"), "darwin")).toEqual(["Ctrl+`"]);
     expect(defaultsFor(action("terminal.here"), "linux")).toEqual(["Mod+Alt+T"]);
+    expect(defaultsFor(action("terminal.paste"), "linux")).toEqual(["Mod+Alt+V"]);
     expect(formatShortcut("Mod+Alt+T", "darwin")).toBe("⌘⌥T");
     expect(formatShortcut("Mod+Alt+T", "linux")).toBe("Ctrl+Alt+T");
+    expect(formatShortcut("Mod+Alt+V", "darwin")).toBe("⌘⌥V");
+    expect(formatShortcut("Mod+Alt+V", "linux")).toBe("Ctrl+Alt+V");
     expect(formatShortcut("Ctrl+`", "darwin")).toBe("⌃`");
   });
   test("the fixed theme-cycle shortcuts are displayed in both directions", () => {
@@ -218,46 +221,59 @@ describe("the saved settings", () => {
 });
 
 describe("a Mac keyboard on Windows or Linux (its Delete key sends Backspace)", () => {
-  test("by default Backspace goes up a folder and Delete deletes, as in Explorer", () => {
+  test("by default on Windows, Linux, and macOS, both Delete and Backspace delete", () => {
     for (const platform of ["win32", "linux"]) {
-      expect(defaultsFor(action("nav.up"), platform)).toContain("Backspace");
-      expect(defaultsFor(action("file.trash"), platform)).toEqual(["Delete"]);
-      expect(defaultsFor(action("file.deleteForever"), platform)).toEqual(["Shift+Delete"]);
+      expect(defaultsFor(action("file.trash"), platform)).toEqual(["Delete", "Backspace"]);
+      expect(defaultsFor(action("file.deleteForever"), platform)).toEqual(["Shift+Delete", "Shift+Backspace"]);
+      expect(defaultsFor(action("file.bury"), platform)).toEqual(["Alt+Delete", "Alt+Backspace"]);
+      expect(defaultsFor(action("nav.up"), platform)).toEqual(["Alt+ArrowUp"]);
     }
+    expect(defaultsFor(action("file.trash"), "darwin")).toEqual(["Delete", "Backspace", "Mod+Backspace"]);
+    expect(defaultsFor(action("file.deleteForever"), "darwin")).toEqual(["Shift+Delete", "Shift+Backspace"]);
+    expect(defaultsFor(action("nav.up"), "darwin")).toEqual(["Alt+ArrowUp", "Mod+ArrowUp"]);
   });
 
-  test("with the setting on, Backspace deletes, Shift+Backspace deletes for good, and Backspace no longer goes up", () => {
-    setBackspaceDeletes(true);
+  test("with the setting turned off, Backspace goes up a folder on Windows and Linux while Mac is untouched", () => {
+    setBackspaceDeletes(false);
     try {
       for (const platform of ["win32", "linux"]) {
-        expect(defaultsFor(action("file.trash"), platform)).toEqual(["Delete", "Backspace"]);
-        expect(defaultsFor(action("file.deleteForever"), platform)).toEqual(["Shift+Delete", "Shift+Backspace"]);
-        expect(defaultsFor(action("nav.up"), platform)).toEqual(["Alt+ArrowUp"]);
-        // still a clean table: nothing is bound twice, and every spec is valid
+        expect(defaultsFor(action("nav.up"), platform)).toContain("Backspace");
+        expect(defaultsFor(action("file.trash"), platform)).toEqual(["Delete"]);
+        expect(defaultsFor(action("file.deleteForever"), platform)).toEqual(["Shift+Delete"]);
         const keys = defaults(platform);
         for (const a of ACTIONS as any[]) for (const spec of keys.get(a.id) as string[]) {
           expect(isValidSpec(spec), `${a.id} ${spec}`).toBe(true);
           expect(checkAssign(a, spec, keys, platform), `${platform} ${a.id} ${spec}`).toBeNull();
         }
       }
-      // the Mac is untouched: its Delete key already is Backspace, so Backspace and Cmd+Backspace both delete there
       expect(defaultsFor(action("file.trash"), "darwin")).toEqual(["Delete", "Backspace", "Mod+Backspace"]);
       expect(defaultsFor(action("file.deleteForever"), "darwin")).toEqual(["Shift+Delete", "Shift+Backspace"]);
       expect(defaultsFor(action("nav.up"), "darwin")).toEqual(["Alt+ArrowUp", "Mod+ArrowUp"]);
     } finally {
-      setBackspaceDeletes(false);
+      setBackspaceDeletes(true);
     }
-    expect(defaultsFor(action("nav.up"), "win32")).toContain("Backspace");
+    expect(defaultsFor(action("file.trash"), "win32")).toEqual(["Delete", "Backspace"]);
   });
 
-  test("the setting is saved, validated and off by default", async () => {
-    expect(DEFAULT_SETTINGS.backspaceDeletes).toBe(false);
+  test("the setting is saved, validated, on by default, and upgrades legacy settings files that had the old false default", async () => {
+    expect(DEFAULT_SETTINGS.backspaceDeletes).toBe(true);
     const root = mkdtempSync(join(tmpdir(), "fm-bs-"));
     try {
-      const ctx = createContext({ home: join(root, "home"), dataDir: join(root, "data"), platform: "win32" });
-      expect((await updateSettings(ctx, { backspaceDeletes: true })).backspaceDeletes).toBe(true);
+      const dataDir = join(root, "data");
+      mkdirSync(dataDir, { recursive: true });
+      const ctx = createContext({ home: join(root, "home"), dataDir, platform: "linux" });
       expect((await loadSettings(ctx)).backspaceDeletes).toBe(true);
-      expect((await updateSettings(ctx, { backspaceDeletes: "yes" })).backspaceDeletes).toBe(false);
+
+      // Simulate an older version's saved file_manager.json where backspaceDeletes defaulted to false on Linux/Windows
+      writeFileSync(join(dataDir, "file_manager.json"), JSON.stringify({ theme: "dark", backspaceDeletes: false }, null, 2));
+      expect((await loadSettings(ctx)).backspaceDeletes).toBe(true);
+      expect((await updateSettings(ctx, { view: "icons" })).backspaceDeletes).toBe(true);
+
+      // Explicitly turning it off persists across loads and unrelated updates
+      expect((await updateSettings(ctx, { backspaceDeletes: false })).backspaceDeletes).toBe(false);
+      expect((await loadSettings(ctx)).backspaceDeletes).toBe(false);
+      expect((await updateSettings(ctx, { view: "details" })).backspaceDeletes).toBe(false);
+      expect((await updateSettings(ctx, { backspaceDeletes: "yes" })).backspaceDeletes).toBe(true);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
