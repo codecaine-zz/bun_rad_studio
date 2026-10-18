@@ -1,6 +1,18 @@
 # Changelog
 
-All notable changes. Version 1.4.7 is the sixteenth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.4.5 and 1.4.6 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.4.8 is the seventeenth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.4.5, 1.4.6 and 1.4.7 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+
+## 1.4.8 (18 October 2026)
+
+### Added
+
+- **Universal Compressed File Extraction & Keyboard Shortcut (`Cmd+Shift+E` / `Ctrl+Shift+E`, `Cmd+U` / `Ctrl+U`).** Extract any selected compressed files or archives directly from the keyboard, toolbar, or right-click menu with full Undo (`Cmd+Z` / `Ctrl+Z`) support. Supports built-in Zip-family archives (`.zip`, `.cbz`, `.whl`, `.jar`, `.apk`, `.ipa`, `.xpi`), Tar archives (`.tar`, `.tar.gz`, `.tgz`, `.tar.zst`, `.tzst`), single-file compressed streams (`.gz`, `.svgz`, `.zst`, `.br`), and external-tool archives (`7-Zip` / `unar` / `bsdtar` fallback for `.7z`, `.rar`, `.tar.xz`, `.txz`, `.tar.bz2`, `.tbz2`, `.tbz`, `.tar.lzma`, `.tlz`, `.tar.lz4`, `.iso`, `.cab`, `.dmg`, `.cpio`, `.lzh`, `.lha`, `.xar`, `.ar`, `.rpm`, `.bz2`, `.xz`, `.lzma`, `.lz4`, `.z`). Selecting a mixed set of files and folders automatically extracts every compressed item in the selection into its own conflict-free sibling folder or file while skipping non-archive items.
+- **17 New Configurable File Manager Keyboard Shortcuts.** Add customizable, conflict-free shortcuts for **Extract / uncompress selected archives** (`Cmd+Shift+E` / `Cmd+U`), **Compress selection to `.zip`** (`Cmd+Shift+Z` / `Cmd+Opt+Z`), **Convert / process selected items** (`Cmd+Shift+O`), **Lock or unlock with password** (`Cmd+Opt+L`), **Open in your code editor** (`Cmd+O`), **Copy full path** (`Cmd+Shift+C`), **Copy `file://` address** (`Cmd+Opt+U`), **Show in Finder / Explorer** (`Cmd+Opt+S`), **Bookmark or unbookmark folder** (`Cmd+Opt+B`), **New dated folder (`YYYY-MM-DD`)** (`Cmd+Opt+Shift+N`), **New dated note (`YYYY-MM-DD.md`)** (`Cmd+Shift+J`), **Invert selection** (`Cmd+Shift+I`), **Go to Home folder** (`Opt+Home` / `Cmd+Opt+H`), **Open Recent files** (`Cmd+Opt+Y`), **Duplicate folder tab** (`Cmd+Opt+D`), **Activity & tasks** (`Cmd+Shift+Y`), and **Customize keyboard shortcuts** (`Cmd+Shift+/`).
+- **3D Regular Folders, Framed Picture Icon Packs, Jumpstart Workstation Kits, & Quick-Cycle HUD.** Add interactive UI Element FX shaders (`tahoe_glass_folders`, `fluent_mica_folders`, `xdr_titanium_folders`, `fire_folders`, `slime_drip`, `storm_wind`, `cryo_frost`, `tesla_arcs`, `mercury_chrome`, `holo_glitch`, `void_tentacles`), 1-click Jumpstart Workstation Kits, and a live bottom-right Quick-Cycle HUD badge (`Ctrl+Shift+[` / `Ctrl+Shift+]`) with updated keyboard shortcut documentation in the File Manager tutorial and in-app help.
+
+### Improved
+
+- **Cross-platform release refresh (`v1.4.8`).** Recompile and package the standalone Codecaine File Manager, full application and CLI suite, and macOS `.app` bundles across all supported macOS, Linux, and Windows targets.
 
 ## 1.4.7 (18 October 2026)
 

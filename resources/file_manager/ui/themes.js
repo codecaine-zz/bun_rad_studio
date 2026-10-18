@@ -1,6 +1,7 @@
 // Color themes for the page: applying one, and the gallery to choose from. The server turns each theme of the
 // SimpleGUI table into this page's color variables (and checks that every text and background pair is readable).
 import { ApiError, call } from "./api.js";
+import { applyAtmosphere, cycleAtmosphere, savedAtmospherePresets, triggerReactiveImpulse } from "./atmosphereFx.js";
 import { openDialog } from "./dialogs.js";
 import { debounce, h, syncVisibleIcons } from "./dom.js";
 import { toast } from "./menus.js";
@@ -613,17 +614,16 @@ export async function stepAmbientPlaylist() {
 
   if (target === "atmosphere" || target === "both") {
     try {
-      const atmoMod = await import("./atmosphereFx.js");
-      const userPresets = atmoMod.savedAtmospherePresets?.() ?? [];
+      const userPresets = savedAtmospherePresets?.() ?? [];
       if (poolKind === "presets" && userPresets.length) {
         const p = userPresets[playlistIndex % userPresets.length];
         if (p) {
           nextAtmoSpec = p.effect;
-          atmoMod.applyAtmosphere(p.effect, p.intensity, p.tier, p.reactive, p.layerMods);
+          applyAtmosphere(p.effect, p.intensity, p.tier, p.reactive, p.layerMods);
           await saveSettings({ atmosphere: p.effect, atmosphereIntensity: p.intensity, atmosphereTier: p.tier, atmosphereReactive: p.reactive });
         }
       } else {
-        const cycled = await atmoMod.cycleAtmosphere(1, poolKind === "ultra" ? { tier: "ultra" } : {});
+        const cycled = await cycleAtmosphere(1, poolKind === "ultra" ? { tier: "ultra" } : {});
         if (cycled) nextAtmoSpec = cycled.id;
       }
     } catch {}
@@ -768,8 +768,7 @@ export async function applyJumpstartKit(kitId) {
   applyUiImmersionProfiles(patch);
   try {
     if (kit.atmosphere) {
-      const atmoMod = await import("./atmosphereFx.js");
-      atmoMod.applyAtmosphere(kit.atmosphere, state.settings?.atmosphereIntensity ?? 78, state.settings?.atmosphereTier || "auto");
+      applyAtmosphere(kit.atmosphere, state.settings?.atmosphereIntensity ?? 78, state.settings?.atmosphereTier || "auto");
     }
   } catch {}
   await saveSettings(patch);
@@ -2639,7 +2638,7 @@ export async function showThemeShareDialog(initialKey = "", existingThemes) {
             type: "button",
             class: "btn",
             "data-share-paste-clipboard-btn": "true",
-            title: "Read theme share codes or JSON directly from your clipboard and import (⌘V / Ctrl+V).",
+            title: "Read theme share codes or JSON directly from your clipboard and import via ⌘V / Ctrl+V.",
             onclick: async () => {
               try {
                 const clip = await navigator?.clipboard?.readText?.();
@@ -3233,14 +3232,13 @@ export async function stepThemeShow(delta = 1) {
   }
 
   try {
-    const atmoMod = await import("./atmosphereFx.js");
     const effectiveTier = st.options.boostTier === "keep"
       ? (state.settings?.atmosphereTier || "ultra")
       : (st.options.boostTier || "extreme");
     if (scene.atmo && scene.atmo !== "none") {
-      atmoMod.applyAtmosphere(scene.atmo, 92, effectiveTier, "telemetry");
+      applyAtmosphere(scene.atmo, 92, effectiveTier, "telemetry");
       if (st.options.transition === "arc_surge") {
-        atmoMod.triggerReactiveImpulse?.(1.65);
+        triggerReactiveImpulse?.(1.65);
       }
     }
   } catch {}
@@ -3290,8 +3288,7 @@ export async function stopThemeShow({ keepCurrent = false } = {}) {
   }
   await applyPalette(st.savedSnapshot?.palette || "");
   try {
-    const atmoMod = await import("./atmosphereFx.js");
-    atmoMod.applyAtmosphere(
+    applyAtmosphere(
       st.savedSnapshot?.atmosphere || "none",
       st.savedSnapshot?.atmosphereIntensity ?? 60,
       st.savedSnapshot?.atmosphereTier || "auto",
@@ -3433,11 +3430,10 @@ export async function startThemeShow(customOptions = {}) {
           class: "btn fm-theme-show-btn",
           "data-theme-show-surge": "true",
           title: "Discharge an immediate High-Voltage / Debris Surge (S)",
-          onclick: async (e) => {
+          onclick: (e) => {
             e.stopPropagation();
             try {
-              const atmoMod = await import("./atmosphereFx.js");
-              atmoMod.triggerReactiveImpulse?.(1.85);
+              triggerReactiveImpulse?.(1.85);
             } catch {}
           },
         }, "⚡ Surge"),
@@ -3487,7 +3483,9 @@ export async function startThemeShow(customOptions = {}) {
     }
     if (e.key === "s" || e.key === "S") {
       e.preventDefault();
-      void import("./atmosphereFx.js").then((m) => m.triggerReactiveImpulse?.(1.85)).catch(() => {});
+      try {
+        triggerReactiveImpulse?.(1.85);
+      } catch {}
       return;
     }
     if (options.exitOnMove && Date.now() - startedAt > 1200) {

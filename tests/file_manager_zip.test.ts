@@ -4,7 +4,8 @@ import { tmpdir } from "os";
 import { join } from "path";
 import * as zlib from "zlib";
 import { createContext } from "../src/features/filemanager/fmCore";
-import { createZip, extractZip, safeEntryPath } from "../src/features/filemanager/fmZip";
+import { brotliFile, createTarGzFrom, createTarZstFrom, gzipFile, zstdFile } from "../src/features/filemanager/fmConvArchive";
+import { archiveExtensionOf, createZip, extractArchive, extractItems, extractZip, isExtractableName, safeEntryPath } from "../src/features/filemanager/fmZip";
 
 const posix = process.platform !== "win32";
 const hasTool = (name: string) => !!Bun.which(name);
@@ -345,3 +346,119 @@ describe("safeEntryPath", () => {
     expect(safeEntryPath("what?.txt", "win32")).toEqual({ skip: expect.stringContaining("can't be used") });
   });
 });
+
+describe("extractArchive and extractItems (universal archive & compressed file extraction)", () => {
+  test("recognizes compound and single archive extensions case-insensitively", () => {
+    expect(archiveExtensionOf("backup.tar.gz")).toBe("tar.gz");
+    expect(archiveExtensionOf("BACKUP.TAR.ZST")).toBe("tar.zst");
+    expect(archiveExtensionOf("archive.tar.xz")).toBe("tar.xz");
+    expect(archiveExtensionOf("archive.tar.bz2")).toBe("tar.bz2");
+    expect(archiveExtensionOf("archive.tar.lzma")).toBe("tar.lzma");
+    expect(archiveExtensionOf("comic.cbz")).toBe("cbz");
+    expect(archiveExtensionOf("package.whl")).toBe("whl");
+    expect(archiveExtensionOf("icon.svgz")).toBe("svgz");
+    expect(archiveExtensionOf("notes.txt")).toBe("txt");
+    expect(archiveExtensionOf("README")).toBe("");
+    expect(isExtractableName("bundle.tgz")).toBe(true);
+    expect(isExtractableName("bundle.7z")).toBe(true);
+    expect(isExtractableName("bundle.rar")).toBe(true);
+    expect(isExtractableName("bundle.zst")).toBe(true);
+    expect(isExtractableName("bundle.br")).toBe(true);
+    expect(isExtractableName("plain.md")).toBe(false);
+  });
+
+  test("extracts .zip, .cbz, .tar, .tar.gz, .tgz, .tar.zst, .gz, .svgz, .zst, and .br", async () => {
+    const { ctx, work } = sandbox();
+    const srcFile = put(join(work, "src", "hello.txt"), "Hello from multi-format archive!");
+    const svgFile = put(join(work, "src", "badge.svg"), "<svg><circle r='5'/></svg>");
+
+    // 1. .cbz (zip family)
+    const zipMade = await createZip(ctx, [srcFile], "comic.zip");
+    const cbzPath = join(work, "src", "comic.cbz");
+    writeFileSync(cbzPath, readFileSync(zipMade.zipPath));
+    const cbzOut = await extractArchive(ctx, cbzPath);
+    expect(cbzOut.isFolder).toBe(true);
+    expect(cbzOut.output).toBe(join(work, "src", "comic"));
+    expect(readFileSync(join(cbzOut.output, "hello.txt"), "utf8")).toBe("Hello from multi-format archive!");
+
+    // 2. .tar.gz and .tgz
+    const tgzPath = join(work, "release.tar.gz");
+    await createTarGzFrom([srcFile], tgzPath);
+    const tgzOut = await extractArchive(ctx, tgzPath);
+    expect(tgzOut.isFolder).toBe(true);
+    expect(tgzOut.output).toBe(join(work, "release"));
+    expect(readFileSync(join(tgzOut.output, "hello.txt"), "utf8")).toBe("Hello from multi-format archive!");
+
+    // 3. .tar (uncompressed tar)
+    const tarPath = join(work, "bundle.tar");
+    writeFileSync(tarPath, zlib.gunzipSync(readFileSync(tgzPath)));
+    const tarOut = await extractArchive(ctx, tarPath);
+    expect(tarOut.isFolder).toBe(true);
+    expect(tarOut.output).toBe(join(work, "bundle"));
+    expect(readFileSync(join(tarOut.output, "hello.txt"), "utf8")).toBe("Hello from multi-format archive!");
+
+    // 4. .tar.zst
+    const tzstPath = join(work, "snapshot.tar.zst");
+    await createTarZstFrom([srcFile], tzstPath);
+    const tzstOut = await extractArchive(ctx, tzstPath);
+    expect(tzstOut.isFolder).toBe(true);
+    expect(tzstOut.output).toBe(join(work, "snapshot"));
+    expect(readFileSync(join(tzstOut.output, "hello.txt"), "utf8")).toBe("Hello from multi-format archive!");
+
+    // 5. .gz and .svgz (single-file compressed streams)
+    const gzPath = join(work, "hello.txt.gz");
+    await gzipFile(srcFile, gzPath);
+    const gzOut = await extractArchive(ctx, gzPath);
+    expect(gzOut.isFolder).toBe(false);
+    expect(gzOut.output).toBe(join(work, "hello.txt"));
+    expect(readFileSync(gzOut.output, "utf8")).toBe("Hello from multi-format archive!");
+
+    const svgzPath = join(work, "vector.svgz");
+    await gzipFile(svgFile, svgzPath);
+    const svgzOut = await extractArchive(ctx, svgzPath);
+    expect(svgzOut.isFolder).toBe(false);
+    expect(svgzOut.output).toBe(join(work, "vector.svg"));
+    expect(readFileSync(svgzOut.output, "utf8")).toBe("<svg><circle r='5'/></svg>");
+
+    // 6. .zst and .br (single-file compressed streams)
+    const zstPath = join(work, "notes.txt.zst");
+    await zstdFile(srcFile, zstPath);
+    const zstOut = await extractArchive(ctx, zstPath);
+    expect(zstOut.isFolder).toBe(false);
+    expect(zstOut.output).toBe(join(work, "notes.txt"));
+    expect(readFileSync(zstOut.output, "utf8")).toBe("Hello from multi-format archive!");
+
+    const brSrc = put(join(work, "src", "compressed.txt"), "Brotli payload");
+    const brPath = join(work, "compressed.txt.br");
+    await brotliFile(brSrc, brPath);
+    const brOut = await extractArchive(ctx, brPath);
+    expect(brOut.isFolder).toBe(false);
+    expect(brOut.output).toBe(join(work, "compressed.txt"));
+    expect(readFileSync(brOut.output, "utf8")).toBe("Brotli payload");
+  });
+
+  test("extractItems extracts only the compressed files in a mixed selection and skips ordinary files/folders", async () => {
+    const { ctx, work } = sandbox();
+    const aFile = put(join(work, "raw", "alpha.txt"), "Alpha");
+    const bFile = put(join(work, "raw", "beta.txt"), "Beta");
+    const zip1 = await createZip(ctx, [aFile], "one.zip");
+    const tgz2 = join(work, "raw", "two.tar.gz");
+    await createTarGzFrom([bFile], tgz2);
+    const subDir = join(work, "raw", "plain-folder");
+    mkdirSync(subDir);
+
+    const batch = await extractItems(ctx, [
+      aFile,         // plain file -> skipped
+      subDir,        // folder -> skipped
+      zip1.zipPath,  // .zip -> extracted
+      tgz2,          // .tar.gz -> extracted
+    ]);
+
+    expect(batch.skippedCount).toBe(2);
+    expect(batch.errors).toEqual([]);
+    expect(batch.results.map((r) => r.output)).toEqual([join(work, "raw", "one"), join(work, "raw", "two")]);
+    expect(readFileSync(join(work, "raw", "one", "alpha.txt"), "utf8")).toBe("Alpha");
+    expect(readFileSync(join(work, "raw", "two", "beta.txt"), "utf8")).toBe("Beta");
+  });
+});
+

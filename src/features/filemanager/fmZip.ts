@@ -467,3 +467,15 @@ export async function readZipEntry(handle: fsp.FileHandle, fileSize: number, e: 
   if (data.length !== e.usize || (zlib.crc32(data) >>> 0) !== e.crc) throw new FmError("BAD_ZIP", `"${e.name}" is damaged (its checksum doesn't match).`);
   return data;
 }
+
+export {
+  EXTRACTABLE_EXTENSIONS,
+  archiveExtensionOf,
+  extractArchive,
+  extractItems,
+  isExtractableName,
+  type ArchiveExtracted,
+  type ExtractBatchResult,
+  type ExtractItemResult,
+} from "./fmExtract";
+

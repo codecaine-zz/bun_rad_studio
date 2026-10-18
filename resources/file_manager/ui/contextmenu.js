@@ -10,7 +10,7 @@ import { canCompareData, showCompareData } from "./datacompare.js";
 import { showProperties } from "./extras.js";
 import { copyFileUrls, copyTerminalPaths, openInEditor } from "./fileurl.js";
 import { showMoreInfo } from "./fileinfo.js";
-import { selectAll } from "./selection.js";
+import { invertSelection, selectAll } from "./selection.js";
 import { activePane, currentPath, inTrash, isFolderView, left, right } from "./pane.js";
 import { emit, state } from "./state.js";
 import { openFolderInCode, openInCode } from "./code.js";
@@ -23,7 +23,7 @@ import { importFileMenuItems } from "./dbStaging.js";
 import { showOpenWith } from "./openwith.js";
 import { folderServeItems, serveMenuItems } from "./serveActions.js";
 import { showToolsDialog } from "./tools.js";
-import { extensionOf, parentOf } from "./util.js";
+import { extensionOf, extractableEntries, parentOf } from "./util.js";
 import { labelOf } from "./keymap.js";
 import { openQuickLook } from "./quicklook.js";
 import { canCopyImage, canCopyText, copyImageFile, copyTextFile } from "./clipfile.js";
@@ -129,7 +129,7 @@ function entryItems(entries) {
       { label: "Empty Recycle Bin…", danger: true, action: ops.emptyBin },
     ];
   }
-  const isZip = one && !e.isDir && extensionOf(e.name) === "zip";
+  const extractable = extractableEntries(entries);
   const clip = !!state.clipboard;
   const convertible = entries.length > 0;
   return [
@@ -151,19 +151,19 @@ function entryItems(entries) {
     one && e.isDir && !searching ? { label: "New SQLite database in this folder", icon: "🗄️", tip: "Make a new, empty SQLite database file inside this folder, open that folder, and select it to rename or open in SQLite Studio.", action: () => ops.newSqliteIn(e.path) } : null,
     one && e.isDir ? { label: "Code statistics…", icon: "📊", action: () => openPower("dev", { root: e.path, section: "stats" }) } : null,
     ...serveMenuItems(entries),
-    entries.some((x) => !x.isDir) ? { label: "Open with…", icon: "🧩", action: () => showOpenWith(entries) } : null,
+    entries.some((x) => !x.isDir) ? { label: "Open with…", icon: "🧩", shortcut: labelOf("file.openWith"), action: () => showOpenWith(entries) } : null,
     ...sqliteMenuItems(entries),
     ...cloneSqliteMenuItems(entries),
     ...macroSqliteMenuItems(entries),
     ...envFileMenuItems(entries),
     ...importFileMenuItems(entries),
-    isZip ? { label: "Extract here", icon: "📦", disabled: searching, action: () => ops.unzipEntry(e) } : null,
-    one ? { label: `Show in ${state.fmName === "your file manager" ? "file manager" : state.fmName}`, icon: "🔎", action: () => ops.revealEntry(e) } : null,
-    one && e.isDir ? { label: ops.isFavorite(e.path) ? "Remove from Favorites" : "Add to Favorites", icon: "⭐", action: () => ops.toggleFavorite(e.path) } : null,
-    convertible ? { label: "Convert or process…", icon: "🧰", action: showToolsDialog } : null,
+    extractable.length > 0 ? { label: extractable.length === 1 ? "Extract here" : `Extract here (${extractable.length} items)`, icon: "📦", shortcut: labelOf("file.extract"), disabled: searching, tip: "Unpack the selected compressed files or archives into new folders or files right here, without overwriting anything.", action: () => ops.extractSelection(entries) } : null,
+    one ? { label: `Show in ${state.fmName === "your file manager" ? "file manager" : state.fmName}`, icon: "🔎", shortcut: labelOf("file.reveal"), action: () => ops.revealEntry(e) } : null,
+    one && e.isDir ? { label: ops.isFavorite(e.path) ? "Remove from Favorites" : "Add to Favorites", icon: "⭐", shortcut: labelOf("file.toggleFavorite"), action: () => ops.toggleFavorite(e.path) } : null,
+    convertible ? { label: "Convert or process…", icon: "🧰", shortcut: labelOf("file.convert"), action: showToolsDialog } : null,
     ...quickMediaMenuItems(entries),
-    canLock(entries) ? { label: "Encrypt…", icon: "🔒", action: () => lockEntries(entries) } : null,
-    canUnlock(entries) ? { label: "Decrypt…", icon: "🔓", action: () => unlockEntries(entries) } : null,
+    canLock(entries) ? { label: "Encrypt…", icon: "🔒", shortcut: labelOf("file.lock"), action: () => lockEntries(entries) } : null,
+    canUnlock(entries) ? { label: "Decrypt…", icon: "🔓", shortcut: labelOf("file.lock"), action: () => unlockEntries(entries) } : null,
     one && !e.isDir && extensionOf(e.name) === "radsec" ? { label: "Open in Secrets", icon: "🗝️", tip: "Open the Secrets tool, where this encrypted vault backup can be restored (you will be asked for its master password).", action: () => openPower("secrets", { restorePath: e.path }) } : null,
     { separator: true },
     { label: "Cut", icon: "✂️", shortcut: labelOf("file.cut"), action: ops.cutSelection },
@@ -176,9 +176,9 @@ function entryItems(entries) {
     ...otherPaneItems(),
     { separator: true },
     { label: one ? "Rename" : `Rename ${entries.length} items…`, icon: "✏️", shortcut: one ? labelOf("file.rename") : "", action: ops.renameSelection },
-    { label: "Compress to zip", icon: "🗜️", disabled: searching, action: ops.zipSelection },
-    { label: "Copy path", icon: "🔗", action: () => ops.copyPathOf(entries) },
-    { label: "Copy path as a file:// address", icon: "🌐", tip: "Copy the location as a file:// web address (spaces become %20), the form browsers and some programs understand.", action: () => copyFileUrls(entries) },
+    { label: "Compress to zip", icon: "🗜️", shortcut: labelOf("file.zip"), disabled: searching, action: ops.zipSelection },
+    { label: "Copy path", icon: "🔗", shortcut: labelOf("file.copyPath"), action: () => ops.copyPathOf(entries) },
+    { label: "Copy path as a file:// address", icon: "🌐", shortcut: labelOf("file.copyFileUrl"), tip: "Copy the location as a file:// web address (spaces become %20), the form browsers and some programs understand.", action: () => copyFileUrls(entries) },
     { separator: true },
     { label: "Move to Recycle Bin", icon: "🗑️", danger: true, shortcut: toGraveyard() ? "" : labelOf("file.trash"), action: ops.moveSelectionToBin },
     { label: "Bury (Rip)", icon: "🪦", danger: true, tip: "Move to the Rip graveyard instead of deleting. You can undo it, and bring it back later from Find & more → Graveyard. Rip Studio shares this graveyard.", shortcut: toGraveyard() ? `${del()}  or  ${buryKey()}` : buryKey(), action: ops.burySelection },
@@ -206,6 +206,7 @@ export function backgroundItems() {
       { label: "Open Graveyard", icon: "🪦", tip: "Go to the Graveyard tool: see what you buried, restore it to where it came from, or delete it for good.", action: () => openPower("grave") },
       { separator: true },
       { label: "Select all", shortcut: labelOf("file.selectAll"), action: selectAll },
+      { label: "Invert selection", shortcut: labelOf("file.invertSelection"), action: () => invertSelection() },
       { label: "Refresh", shortcut: labelOf("nav.refresh"), action: () => refresh() },
     ];
   }
@@ -213,6 +214,7 @@ export function backgroundItems() {
     return [
       { label: "Clear search", icon: "✕", action: clearSearch },
       { label: "Select all", shortcut: labelOf("file.selectAll"), action: selectAll },
+      { label: "Invert selection", shortcut: labelOf("file.invertSelection"), action: () => invertSelection() },
       { separator: true },
       ...viewMenuItems(),
     ];
@@ -222,11 +224,12 @@ export function backgroundItems() {
     { label: "New folder", icon: "📁", shortcut: labelOf("file.newFolder"), action: ops.newFolder },
     { label: "New file", icon: "📄", shortcut: labelOf("file.newFile"), action: ops.newFile },
     { label: "New SQLite database", icon: "🗄️", shortcut: labelOf("file.newSqlite"), tip: "Make a new, empty SQLite database file here. Open it in SQLite Studio, add it as a connection, or fill it with a sample database.", action: ops.newSqlite },
-    { label: `New dated folder (${ops.localDateStamp()})`, icon: "📅", tip: "Make a new folder here named with today's YYYY-MM-DD date, ready for organizing daily work or backups.", action: () => ops.newDatedFolder() },
-    { label: `New dated note (${ops.localDateStamp()}.md)`, icon: "📝", tip: "Make a new Markdown note here named with today's YYYY-MM-DD.md date.", action: () => ops.newDatedNote() },
+    { label: `New dated folder (${ops.localDateStamp()})`, icon: "📅", shortcut: labelOf("file.newDatedFolder"), tip: "Make a new folder here named with today's YYYY-MM-DD date, ready for organizing daily work or backups.", action: () => ops.newDatedFolder() },
+    { label: `New dated note (${ops.localDateStamp()}.md)`, icon: "📝", shortcut: labelOf("file.newDatedNote"), tip: "Make a new Markdown note here named with today's YYYY-MM-DD.md date.", action: () => ops.newDatedNote() },
     { separator: true },
     { label: "Paste", icon: "📥", shortcut: labelOf("file.paste"), disabled: !state.clipboard, action: ops.paste },
     { label: "Select all", shortcut: labelOf("file.selectAll"), action: selectAll },
+    { label: "Invert selection", shortcut: labelOf("file.invertSelection"), action: () => invertSelection() },
     { label: "Refresh", shortcut: labelOf("nav.refresh"), action: () => refresh() },
     { separator: true },
     { label: "Open terminal here", icon: "⌨️", shortcut: labelOf("terminal.here"), tip: "Show the terminal and move it to this folder.", action: () => emit("terminal-here", here) },

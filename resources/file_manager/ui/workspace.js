@@ -4,10 +4,12 @@
 import { $, clear, h } from "./dom.js";
 import { enterDual } from "./dual.js";
 import { renderHome } from "./home.js";
-import { menuIsOpen } from "./menus.js";
+import { hintOf } from "./keymap.js";
+import { menuIsOpen, showMenu } from "./menus.js";
 import { saveSettings } from "./nav.js";
 import { activePowerTab, concealPower, listPowerTabs, powerIsOpen, revealPower, setPowerHost, togglePowerExpanded } from "./power.js";
 import { emit, on, state } from "./state.js";
+import { themeMenuItems } from "./themeMenu.js";
 
 const mac = () => state.platform === "darwin";
 const altKey = () => (mac() ? "⌥" : "Alt+");
@@ -280,6 +282,11 @@ function wireShortcuts() {
   });
 }
 
+function syncThemesButton() {
+  const btn = $("#viewbar-themes");
+  if (btn) btn.title = `Change the colors: standard light or dark, themes you used lately, or all of them${hintOf("app.themes")}`;
+}
+
 export function wireWorkspace() {
   renderSwitch();
   wireSwitchKeys();
@@ -288,6 +295,14 @@ export function wireWorkspace() {
   $("#focus-toggle").addEventListener("click", toggleFocusMode);
   $("#sidebar-toggle").addEventListener("click", toggleSidebar);
   $("#split-orient").addEventListener("click", () => setSplitSide(state.settings.splitSide === "bottom" ? "right" : "bottom"));
+  const themesBtn = $("#viewbar-themes");
+  if (themesBtn) {
+    syncThemesButton();
+    on("settings", syncThemesButton);
+    themesBtn.addEventListener("click", async () => {
+      showMenu(await themeMenuItems(), { anchor: themesBtn, label: "Themes" });
+    });
+  }
   // The tools panel asks us to put it somewhere when something (a button, Ctrl+Shift+F, the code editor) opens it.
   setPowerHost({
     open: (tool, opts) => setWorkspace("tools", { tool, opts, save: true }),

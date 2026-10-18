@@ -165,9 +165,9 @@ What is **only on the left**, because it needs a place the right pane does not h
 - **Rename**: F2. Choose several items and press F2 for **bulk rename**: pick a pattern (for example "Album {n}") and a **live preview** shows every new name before anything changes. If any one rename fails, all of them are put back.
 - **Delete**: Delete moves items to the **Recycle Bin**. Open the Recycle Bin from the sidebar to **Restore** an item (to where it came from), **Delete forever**, or **Empty bin**. *Delete permanently* (Shift+Delete) and emptying the bin always ask first. If you prefer, **Settings → When I press Delete, use → The Rip graveyard** makes Delete bury items instead, and right-click → **Bury (Rip)** (Alt+Delete) always does; see [Graveyard (Rip)](#graveyard-rip).
 - **Undo**: Ctrl/⌘+Z undoes the last new item, rename, copy, move, delete, restore, zip or unzip, one step at a time.
-- **Compress and extract**: right-click → *Compress to zip*, or on a `.zip` file → *Extract here* (it makes a new folder, so nothing is overwritten).
+- **Compress and extract**: right-click → *Compress to zip* (**Ctrl/⌘+Shift+Z** or **Ctrl/⌘+Alt+Z**), or select one or more compressed files or archives of any supported format (`.zip`, `.cbz`, `.whl`, `.jar`, `.apk`, `.ipa`, `.xpi`, `.tar`, `.tar.gz`, `.tgz`, `.tar.zst`, `.tzst`, `.gz`, `.svgz`, `.zst`, `.br`, and with 7-Zip / unar / bsdtar installed also `.7z`, `.rar`, `.tar.xz`, `.txz`, `.tar.bz2`, `.tbz2`, `.tar.lzma`, `.tlz`, `.tar.lz4`, `.iso`, `.cab`, `.dmg`, `.cpio`, `.lzh`, `.lha`, `.xar`, `.ar`, `.rpm`, `.bz2`, `.xz`, `.lzma`, `.lz4`, `.z`) and press **Ctrl/⌘+Shift+E** (or **Ctrl/⌘+U**) or right-click → *Extract here*. If your selection mixes compressed files with ordinary files or folders, all compressed files in the selection are extracted into new sibling folders or files (never overwriting anything) and can be undone with **Ctrl/⌘+Z**.
 - **Terminal**: click **Terminal** in the toolbar or the **⌨️ Terminal** button at the bottom of the window (always visible, shows the key), press Ctrl+` (Control on every system), or press Ctrl+Alt+T (⌘⌥T on a Mac) to open the terminal **in the folder you selected** (or the one you are looking at); right-click a folder, a file or the empty space → **Open terminal here** does the same. The keys can be changed in Settings. Ctrl+` is hard to type on some keyboard layouts, which is why there are three ways. The terminal opens a real terminal at the bottom, **already in the folder you are looking at**. **Go to this folder** moves the shell to the folder you have selected in the list (or, with nothing selected, wherever you are browsing); **Restart** starts a fresh shell there. **Follow terminal** (on by default, remembered) makes the file list move to the same folder whenever you change folder in the terminal with `cd`; untick it to keep the list where it is. (On macOS and Linux the server asks the system where the shell is, a moment after you press Enter and every few seconds; a symlinked folder shows up as its real path.) The ✕ only hides the panel, so a command that is running keeps running; type `exit` (or press Enter after it ends) to finish it. Drag the thin bar above it, or use its up and down arrow keys, to change the height. See [the terminal's safety notes](#the-terminal).
-- **Favorites** (places you can jump to): click the **★** at the right of the address bar to add the folder you are in (click again to remove it), or right-click a folder → *Add to Favorites*. The sidebar's **Favorites** section lists them (**＋** adds a typed path such as `~/Projects`, **⚙** opens *Manage favorites*); the **⭐ Favorites** toolbar button (Ctrl/⌘+Shift+B) shows the same list as a menu. *Manage favorites* lets you rename (a name is only a label), reorder, remove and add; a folder that has since gone is marked as missing. Up to 100, saved in your settings.
+- **Favorites** (places you can jump to): click the **★** at the right of the address bar to add the folder you are in (click again to remove it), press **Ctrl/⌘+Alt+B**, or right-click a folder → *Add to Favorites*. The sidebar's **Favorites** section lists them (**＋** adds a typed path such as `~/Projects`, **⚙** opens *Manage favorites*); the **⭐ Favorites** toolbar button (Ctrl/⌘+Shift+B) shows the same list as a menu. *Manage favorites* lets you rename (a name is only a label), reorder, remove and add; a folder that has since gone is marked as missing. Up to 100, saved in your settings.
 - **Properties**: Alt+Enter or the Properties button: size (folders are counted, with a limit), dates, location.
 - **More info**: Alt+Shift+Enter, right-click → *More info…*, or the *More info…* button in Properties and in the Details panel: every detail about a file, picture, folder or selection, including the hidden ones (see [More info and metadata](#more-info-and-metadata)).
 - **Themes**: the **🎨 Themes** button in the ribbon (next to Settings) opens a menu with *Standard: follow my computer*, *Standard light*, *Standard dark*, the themes you used lately (the one in use is ticked), **All themes…** and **Make my own theme…**. Settings → *Choose a theme…* (or Home → **Themes**) opens the gallery, grouped into Futuristic, Editors and classics, Linux, Windows, macOS and **Rare and beloved systems** (BeOS, Haiku, OS/2 Warp, Solaris CDE, SGI IRIX, Atari GEM, RISC OS, QNX Photon, Symbian, Palm OS, webOS, Windows Phone, Zune, Android Holo, Longhorn, Media Center, Plan 9 Acme, SerenityOS, KDE 3 Keramik, Bluecurve, Ubuntu Human and Window Maker). Search by name, filter by light/dark, and click to apply and remember a theme. Every card says **✨ Effects** (glass, glow, motion or texture) or **Colors only**; the **effects** menu next to the light/dark filter shows *With or without effects*, *✨ Special effects only* or *Plain colors only*, and the count line says how many of each are showing. Typing *effects*, *glow* or *plain* in the search box works too. **Open the gallery from anywhere** with **⌘⇧T** (Ctrl+Shift+T on Windows and Linux; change it under *Change keyboard shortcuts…*) or **Right Option+T** in the desktop app. From the keyboard, **↓** from the search box enters the cards, and the **arrow keys**, **Home** and **End** move between them with each theme previewed on the whole window as you go. **Enter**/**Space** or **Done** keeps the previewed theme; **Escape** or clicking outside puts the saved theme back. **Right Option+] / [** cycles through all themes in the desktop app. **Make your own:** *Create or edit a theme…* starts from any theme, with color pickers and hex fields for the background, panels, text, accent, borders and status colors. **Enable visual effects** adds panel opacity (40–100%), glass blur (0–32px), glow style, intensity and colors, border strength/style, corner style, animation feel, ambient light, sheen, grain, scanlines and chromatic headings. The preview raises opacity when necessary for readable text; text itself and the native window never become transparent. Effects reach the whole window: a softly drifting ambient light behind the file list, see-through glass panels (sidebar, details, ribbon, status bar), glowing panel edges, selection and dialogs, gradient or metal borders, a sweeping sheen on the ribbon, and faint scanlines or grain. Text sits on panels whose opacity is raised as needed to stay readable; the terminal and code editor stay solid, and animation respects reduced-motion preferences. There are 35 ready-made effects themes for every taste: neon (Synthwave Sunset, Neon Max, Acid Reactor, Plasma Violet), retro screens (Matrix Rain, Amber Phosphor, Vaporwave Dream), pure glass (Midnight Glass, Frosted Glass, Aurora Glass), nature and space (Abyss Bloom, Emerald Grove, Cosmic Nebula, Polar Night), luxury and metal (Obsidian Gold, Rose Gold, Brass Engine, Liquid Metal), light themes (Sakura Glass, Pearl Hologram, Daylight HUD, Orbital Ice) and **Focus Glow** for people who want effects quiet and still. Try **Prism Reactor**, **Orbital Ice** or **Ember Grid** for examples. *Save theme* adds it to **My themes** (up to 50); *Save* replaces your theme and *Save as a copy* keeps both. *Export…* and *Import…* preserve colors and effects; older color-only exports still work. Themes are kept in `file_manager_themes.json` in the app's data folder. The built-in terminal stays dark.
@@ -218,43 +218,61 @@ The same permissions are also shown as **digits** and **letters**, and the three
 
 > **Mac keyboard on Windows or Linux (for example in Parallels)?** A Mac keyboard's Delete key sends Backspace, and on Windows and Linux Backspace means *up one folder*. In **Settings**, turn on **My keyboard's Delete key is Backspace**: Backspace then moves the selection to the Recycle Bin, **Shift+Backspace** deletes for good (after the review window), and **Alt+Up** still goes up. The first time Backspace goes up, a one-time hint tells you about this. On a Mac nothing changes.
 
-On a Mac, use ⌘ where this table says Ctrl. Press F1 in the app for the same list (it always shows the keys that are in force).
+On a Mac, use ⌘ where this table says Ctrl. Press F1 in the app for the same list (it always shows the keys that are in force), or press **Ctrl+Shift+/** (**⌘⇧/** on a Mac) to open the **Keyboard shortcuts** customization dialog directly.
 
-**You can change almost every shortcut.** Open **Settings → Change keyboard shortcuts…** (also a button in Help). Click a shortcut, press the keys you want, and it is saved at once. Each action can have up to three shortcuts; ✕ removes one, **Reset** puts an action back, **Reset all** puts everything back, and the search box finds an action or a key. **Two actions can never share a key**: the dialog refuses a key that is already used (naming the action that has it), a plain letter or digit (they are for typing and jumping to files), arrows and Enter without a modifier, keys the text needs in the Code editor, keys your computer keeps (such as Alt+F4 or ⌘Tab) and the fixed keys listed at the bottom of the dialog. The file list and the Code editor are separate places, so they may use the same keys; the terminal keys work everywhere and so can't be shared with anything. Changes are stored in `file_manager.json` as `shortcuts`; a hand-edited file that would put two actions on one key is cleaned when it is loaded, so the clash never takes effect. Menus, tooltips and the Help list follow your changes.
+**You can change almost every shortcut.** Open **Settings → Change keyboard shortcuts…** (also a button in Help, or **Ctrl/⌘+Shift+/**). Click a shortcut, press the keys you want, and it is saved at once. Each action can have up to three shortcuts; ✕ removes one, **Reset** puts an action back, **Reset all** puts everything back, and the search box finds an action or a key. **Two actions can never share a key**: the dialog refuses a key that is already used (naming the action that has it), a plain letter or digit (they are for typing and jumping to files), arrows and Enter without a modifier, keys the text needs in the Code editor, keys your computer keeps (such as Alt+F4 or ⌘Tab) and the fixed keys listed at the bottom of the dialog. The file list and the Code editor are separate places, so they may use the same keys; the terminal keys work everywhere and so can't be shared with anything. Changes are stored in `file_manager.json` as `shortcuts`; a hand-edited file that would put two actions on one key is cleaned when it is loaded, so the clash never takes effect. Menus, tooltips and the Help list follow your changes.
 
 | What | Keys |
 |---|---|
 | Open | Enter, or double-click |
-| Up one folder | Backspace, or Alt+↑ |
-| Back, Forward | Alt+←, Alt+→ |
+| Open with another program | Ctrl+O |
+| Quick Look (preview without opening) | Space |
+| Up one folder | Backspace, or Alt+↑ (⌘↑ on a Mac) |
+| Go to Home folder | Alt+Home, or Ctrl+Alt+H |
+| Back, Forward | Alt+←, Alt+→ (⌘\[, ⌘\] on a Mac) |
+| Folder tabs: New tab, Duplicate tab, Close tab, Cycle tabs | Ctrl+T, Ctrl+Alt+D, Ctrl+Alt+W, Ctrl+Tab / Ctrl+Shift+Tab |
 | Copy, Cut, Paste | Ctrl+C, Ctrl+X, Ctrl+V |
 | Duplicate | Ctrl+D |
+| Extract or uncompress selected items (`.zip`, `.tar.gz`, `.7z`, `.rar`, `.zst`, `.gz`, `.xz`, `.bz2`…) | Ctrl+Shift+E, or Ctrl+U |
+| Compress to zip | Ctrl+Shift+Z, or Ctrl+Alt+Z |
+| Convert or process… | Ctrl+Shift+O |
+| Encrypt or decrypt (Lock) | Ctrl+Alt+L |
+| Edit in the Code editor | Ctrl+E |
 | Rename | F2, or Ctrl+Shift+R |
+| Copy path, Copy `file://` address | Ctrl+Shift+C, Ctrl+Alt+U |
+| Show in system file manager (Finder / File Explorer) | Ctrl+Alt+S |
 | Move to Recycle Bin | Delete (⌘⌫ on a Mac) |
 | Delete permanently | Shift+Delete |
 | Bury in the Rip graveyard | Alt+Delete (⌥⌫ on a Mac) |
 | Undo | Ctrl+Z |
-| Select all | Ctrl+A |
-| New folder, New file | Ctrl+Shift+N, Ctrl+Alt+N (right-click empty space also offers **New SQLite database**) |
-| Search, type a location | Ctrl+F, Ctrl+L |
+| Select all, Invert selection | Ctrl+A, Ctrl+Shift+I |
+| New folder, New dated folder (`YYYY-MM-DD`) | Ctrl+Shift+N, Ctrl+Alt+Shift+N |
+| New file, New dated note (`YYYY-MM-DD.md`), New SQLite database | Ctrl+Alt+N, Ctrl+Shift+J, Ctrl+Shift+D |
+| Search, type a location | Ctrl+F, Ctrl+L (or Alt+D on Windows/Linux) |
+| Favorites menu, Star / unstar folder | Ctrl+Shift+B, Ctrl+Alt+B |
+| Recent files menu | Ctrl+Alt+Y |
 | Refresh | F5, or Ctrl+R (in the Dual view F5 copies) |
 | Hidden files, Details panel | Ctrl+Shift+H, Ctrl+I |
-| List views | Ctrl+1, Ctrl+2, Ctrl+3 |
+| List views (Details, List, Icons) | Ctrl+1, Ctrl+2, Ctrl+3 |
 | Window views: Files, Home, Tools, Split, Dual | Alt+1, Alt+2, Alt+3, Alt+4, Alt+5 (⌥ on a Mac) |
 | Focus (hide toolbar and side panels), leave with Esc | Alt+6 |
 | Fold the sidebar away | Alt+7 |
+| Expand or restore the tool (ultra focus), leave with Esc | F11, Ctrl+F11, Ctrl+Shift+U, or Alt+8 |
+| Filter tools and apps | Ctrl+K |
 | Open Find in the Tools view | Ctrl+Shift+F |
 | Dual view: switch side, copy, move | Tab, F5 or Ctrl+Alt+C, F6 or Ctrl+Alt+M |
 | Resize the Split divider | ←/→ (↑/↓ when stacked), Shift for bigger steps, Home to reset |
 | Properties | Alt+Enter |
-| Help | F1, Ctrl+/ or ? |
 | More info and hidden details | Alt+Shift+Enter (Ctrl+I stays "Details panel") |
+| Activity (operation history), Settings, Themes gallery | Ctrl+Shift+Y, Ctrl+,, Ctrl+Shift+T |
+| Keyboard shortcuts customization dialog | Ctrl+Shift+/ |
 | Copy the section you are in | Alt+Shift+C (⌥⇧C on a Mac) |
-| Show or hide the terminal | Ctrl+` (Control on a Mac too), or the **⌨️ Terminal** button in the status bar |
+| Show or hide the terminal | Ctrl+\` (Control on a Mac too), or the **⌨️ Terminal** button in the status bar |
 | Open the terminal in the selected folder (or the one you are looking at) | Ctrl+Alt+T (⌘⌥T on a Mac), or right-click → **Open terminal here** |
-| Context menu | Shift+F10 or the Menu key |
+| Paste into the terminal | Ctrl+Alt+V |
+| Context menu | Shift+F10, Ctrl+Shift+M, or the Menu key |
 | Jump to an item | Start typing its name |
-| Help | F1 or ? |
+| Help | F1, Ctrl+/ or ? |
 
 Everything can be done from the keyboard: the page has a "Skip to the files" link, dialogs trap focus and close with Escape, and the focused item has a visible outline.
 

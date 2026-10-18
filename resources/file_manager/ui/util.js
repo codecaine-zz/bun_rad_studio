@@ -183,6 +183,40 @@ export function extensionOf(name) {
   return dot > 0 && dot < name.length - 1 ? name.slice(dot + 1).toLowerCase() : "";
 }
 
+export const EXTRACTABLE_EXTENSIONS = [
+  "zip", "cbz", "whl", "jar", "apk", "ipa", "xpi",
+  "tar", "tar.gz", "tgz", "tar.zst", "tzst",
+  "gz", "svgz", "zst", "br",
+  "tar.bz2", "tbz2", "tbz", "tar.xz", "txz", "tar.lz4", "tar.lzma", "tlz",
+  "7z", "rar", "iso", "cab", "dmg", "cpio", "lzh", "lha", "xar", "ar", "rpm",
+  "bz2", "xz", "lzma", "lz4", "z",
+];
+
+const EXTRACTABLE_SET = new Set(EXTRACTABLE_EXTENSIONS);
+
+/** Lowercase extension of `name`, keeping compound `.tar.*` extensions intact. */
+export function archiveExtensionOf(name) {
+  if (typeof name !== "string") return "";
+  const double = /\.(tar\.(?:gz|bz2|xz|zst|lz4|lzma))$/i.exec(name);
+  if (double && double.index > 0) return double[1].toLowerCase();
+  return extensionOf(name);
+}
+
+/** True when `name` is an archive or compressed file that can be extracted or uncompressed. */
+export function isExtractableName(name) {
+  return EXTRACTABLE_SET.has(archiveExtensionOf(name));
+}
+
+/** True when `entry` is a file that can be extracted or uncompressed. */
+export function isExtractableEntry(entry) {
+  return Boolean(entry && !entry.isDir && isExtractableName(entry.name));
+}
+
+/** Filters `entries` to only those files that can be extracted or uncompressed. */
+export function extractableEntries(entries) {
+  return Array.isArray(entries) ? entries.filter(isExtractableEntry) : [];
+}
+
 /** One sentence about the selection, for the status bar and screen readers. */
 export function describeSelection(selected) {
   if (selected.length === 0) return "";

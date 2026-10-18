@@ -1,4 +1,4 @@
-# Codecaine File Manager: the complete, step-by-step guide (1:45:45)
+# Codecaine File Manager: the complete, step-by-step guide (1:46:00)
 
 ## YouTube title
 
@@ -53,45 +53,45 @@ CHAPTERS
 52:03 Save a preset, then edit many files at once
 53:26 Recent files and media open right here
 54:42 Media Deck, Paint Studio & 24 Built-in Arcade Games
-55:31 Make it yours: 212 themes, 194 shaders, fire & slime folders, OKLab blender, bulk import & hacker lab
-1:02:55 The database studios
-1:03:57 Databases Hub: SQLite files in the file list & one-click sample databases
-1:04:51 Databases Hub: Connecting SQLite, MySQL, PostgreSQL and Redis
-1:05:37 Databases Hub: Cloning databases and tables across SQLite, PostgreSQL and MySQL
-1:07:00 Databases Hub: Cloning SQL tables into Redis Hashes & back into a new SQLite file
-1:07:51 Databases Hub: The Bun JavaScript & Visual Macro Studio across all engines
-1:09:13 Databases Hub: Universal 15-format import & the 5-step Staging Wizard
-1:10:10 Databases Hub: Per-column filter bar, Side Row Inspector, FK jump & backups
-1:11:01 Databases Hub: Multi-tab SQL IDE, Full ER Diagram, Schema Diff & Code Generation
-1:12:14 Databases Hub: Live PostgreSQL, MySQL and Redis Studios & the Open Studios Switcher
-1:13:03 SQLite: A database in the file list
-1:13:58 SQLite: Saving and testing a connection
-1:15:23 SQLite: A sample database in one click
-1:16:01 SQLite: SQLite Studio inside the File Manager
-1:17:17 SQLite: Browsing a table
-1:18:32 SQLite: Add, edit and delete rows without SQL
-1:19:37 SQLite: Designing tables visually
-1:20:37 SQLite: The SQL editor
-1:21:57 SQLite: The visual query designer
-1:23:05 SQLite: Building and running a macro
-1:24:16 SQLite: Inspect, tune and maintain
-1:25:10 SQLite: Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen
-1:26:14 SQLite: Export and one-click backup
-1:26:54 SQLite: Import with staging, from the file list
-1:28:22 SQLite: Production connections and shortcuts
-1:28:59 MySQL: Find the connection and save it
-1:30:31 MySQL: Test it, see where every value comes from
-1:32:05 MySQL: Open MySQL Studio inside the window
-1:33:15 MySQL: The studio's own connection workbench
-1:34:14 MySQL: The data grid: browse, filter, total and edit rows
-1:35:47 MySQL: The S Q L editor, presets, and one-click backup
-1:37:02 MySQL: Design queries and schemas visually
-1:38:42 MySQL: Live activity, locks, plans and maintenance
-1:40:23 MySQL: Automate it: build and run a macro
-1:41:25 MySQL: Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen
-1:42:30 MySQL: Load a CSV file with staging, from the file list
-1:44:15 MySQL: Back to the File Manager: stop, shortcuts and safety
-1:45:07 That is the tour
+55:31 Make it yours: 218 themes, 3D folders & pictures, 1-click jumpstart kits, ⌘V paste import, OKLab blender & hacker lab
+1:03:10 The database studios
+1:04:11 Databases Hub: SQLite files in the file list & one-click sample databases
+1:05:06 Databases Hub: Connecting SQLite, MySQL, PostgreSQL and Redis
+1:05:52 Databases Hub: Cloning databases and tables across SQLite, PostgreSQL and MySQL
+1:07:14 Databases Hub: Cloning SQL tables into Redis Hashes & back into a new SQLite file
+1:08:06 Databases Hub: The Bun JavaScript & Visual Macro Studio across all engines
+1:09:27 Databases Hub: Universal 15-format import & the 5-step Staging Wizard
+1:10:24 Databases Hub: Per-column filter bar, Side Row Inspector, FK jump & backups
+1:11:15 Databases Hub: Multi-tab SQL IDE, Full ER Diagram, Schema Diff & Code Generation
+1:12:28 Databases Hub: Live PostgreSQL, MySQL and Redis Studios & the Open Studios Switcher
+1:13:17 SQLite: A database in the file list
+1:14:12 SQLite: Saving and testing a connection
+1:15:38 SQLite: A sample database in one click
+1:16:15 SQLite: SQLite Studio inside the File Manager
+1:17:32 SQLite: Browsing a table
+1:18:46 SQLite: Add, edit and delete rows without SQL
+1:19:51 SQLite: Designing tables visually
+1:20:51 SQLite: The SQL editor
+1:22:12 SQLite: The visual query designer
+1:23:20 SQLite: Building and running a macro
+1:24:31 SQLite: Inspect, tune and maintain
+1:25:25 SQLite: Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen
+1:26:28 SQLite: Export and one-click backup
+1:27:09 SQLite: Import with staging, from the file list
+1:28:37 SQLite: Production connections and shortcuts
+1:29:13 MySQL: Find the connection and save it
+1:30:46 MySQL: Test it, see where every value comes from
+1:32:19 MySQL: Open MySQL Studio inside the window
+1:33:29 MySQL: The studio's own connection workbench
+1:34:29 MySQL: The data grid: browse, filter, total and edit rows
+1:36:01 MySQL: The S Q L editor, presets, and one-click backup
+1:37:17 MySQL: Design queries and schemas visually
+1:38:56 MySQL: Live activity, locks, plans and maintenance
+1:40:38 MySQL: Automate it: build and run a macro
+1:41:40 MySQL: Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen
+1:42:44 MySQL: Load a CSV file with staging, from the file list
+1:44:30 MySQL: Back to the File Manager: stop, shortcuts and safety
+1:45:21 That is the tour
 
 #FileManager #OpenSource #Tutorial
 ```

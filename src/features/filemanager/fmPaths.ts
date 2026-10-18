@@ -60,7 +60,7 @@ export function validateName(name: unknown, platform: Platform = platformName())
 
 /** Splits "photo.final.jpg" into ["photo.final", ".jpg"]; ".bashrc" and "README" have no extension; ".tar.gz" counts as one. */
 export function splitName(name: string): [string, string] {
-  const double = /\.(tar\.(?:gz|bz2|xz|zst|lz4))$/i.exec(name);
+  const double = /\.(tar\.(?:gz|bz2|xz|zst|lz4|lzma))$/i.exec(name);
   if (double && double.index > 0) return [name.slice(0, double.index), name.slice(double.index)];
   const dot = name.lastIndexOf(".");
   if (dot <= 0 || dot === name.length - 1) return [name, ""];
@@ -237,7 +237,7 @@ const EXT_GROUPS: Array<[FileKind["kind"], string, string, string[]]> = [
   ["document", "📄", "document", ["doc", "docx", "odt", "rtf", "pages", "epub", "mobi", "fb2"]],
   ["spreadsheet", "📊", "spreadsheet", ["xls", "xlsx", "xlsm", "ods", "csv", "tsv", "numbers"]],
   ["presentation", "📽️", "presentation", ["ppt", "pptx", "ppsx", "odp", "key"]],
-  ["archive", "🗜️", "archive", ["zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "xz", "zst", "cab", "iso", "whl", "cbz"]],
+  ["archive", "🗜️", "archive", ["zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "tbz2", "tbz", "xz", "txz", "zst", "tzst", "lzma", "tlz", "lz4", "br", "z", "cab", "iso", "whl", "cbz", "cpio", "lzh", "lha", "xar", "ar", "ipa", "xpi"]],
   ["code", "💻", "source file", ["js", "mjs", "cjs", "ts", "tsx", "jsx", "py", "rb", "go", "rs", "java", "kt", "swift", "c", "h", "cpp", "hpp", "cs", "php", "html", "htm", "css", "scss", "json", "xml", "yaml", "yml", "toml", "sql", "lua", "dart", "vue", "svelte", "ps1", "bat", "cmd", "sh", "bash", "zsh", "v", "vsh", "vv", "zig", "nim", "ex", "exs", "erl", "hs", "ml", "clj", "scala", "groovy", "r", "jl", "pl", "pm", "fs", "fsx", "vb", "asm", "s", "m", "mm", "cc", "cxx", "hh", "hxx", "mts", "cts", "jsonc", "less", "sass", "graphql", "proto", "cmake", "gradle", "tf", "sol", "wat", "fish", "ksh"]],
   ["text", "📝", "text file", ["txt", "md", "markdown", "log", "ini", "cfg", "conf", "env", "gitignore", "rst", "tex", "nfo"]],
   ["program", "⚙️", "program", ["exe", "msi", "app", "command", "jar", "apk", "appimage", "scr", "com", "run", "vbs", "deb", "rpm", "pkg"]],

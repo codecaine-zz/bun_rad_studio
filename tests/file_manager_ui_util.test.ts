@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
-  baseName, collapseCrumbs, describeSelection, driveFor, extensionOf, formatDate, formatSize, isInside, isModifier, isWindowsPath, joinPath,
-  kindsForName, naturalCompare, parentOf, plural, rangeIndexes, sortEntries, splitPath, summarizeCount, typeaheadFind, wantsCopy,
+  EXTRACTABLE_EXTENSIONS, archiveExtensionOf, baseName, collapseCrumbs, describeSelection, driveFor, extensionOf,
+  extractableEntries, formatDate, formatSize, isExtractableEntry, isExtractableName, isInside, isModifier, isWindowsPath,
+  joinPath, kindsForName, naturalCompare, parentOf, plural, rangeIndexes, sortEntries, splitPath, summarizeCount,
+  typeaheadFind, wantsCopy,
 } from "../resources/file_manager/ui/util.js";
 import { ACTIONS, kindsFor } from "../src/features/filemanager/fmTools";
 
@@ -131,6 +133,28 @@ describe("extensionOf", () => {
     expect(extensionOf(".bashrc")).toBe("");
     expect(extensionOf("README")).toBe("");
     expect(extensionOf("trailing.")).toBe("");
+  });
+
+  test("archiveExtensionOf and extractableEntries detect all extractable compressed formats and skip folders/plain files", () => {
+    expect(EXTRACTABLE_EXTENSIONS.includes("tar.gz")).toBe(true);
+    expect(EXTRACTABLE_EXTENSIONS.includes("7z")).toBe(true);
+    expect(archiveExtensionOf("archive.tar.gz")).toBe("tar.gz");
+    expect(archiveExtensionOf("archive.TAR.ZST")).toBe("tar.zst");
+    expect(archiveExtensionOf("photo.JPG")).toBe("jpg");
+    expect(archiveExtensionOf("README")).toBe("");
+    expect(isExtractableName("data.xz")).toBe(true);
+    expect(isExtractableName("data.txt")).toBe(false);
+
+    const items = [
+      e("archive.zip"),
+      e("bundle.tar.gz"),
+      e("folder.zip", { isDir: true }),
+      e("notes.md"),
+      e("package.7z"),
+    ];
+    expect(isExtractableEntry(items[0])).toBe(true);
+    expect(isExtractableEntry(items[2])).toBe(false);
+    expect(extractableEntries(items).map((x) => x.name)).toEqual(["archive.zip", "bundle.tar.gz", "package.7z"]);
   });
 });
 

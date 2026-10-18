@@ -18,7 +18,7 @@ import { selectKeys, selectedEntries } from "./selection.js";
 import { AUDIO_EXTS, VIDEO_EXTS } from "./mediacore.js";
 import { emit, on, state } from "./state.js";
 import { announceVerdict, askOpenAnyway, skipMismatchGuard } from "./typecheck.js";
-import { baseName, parentOf, plural } from "./util.js";
+import { baseName, extractableEntries, parentOf, plural } from "./util.js";
 import { isLocked, unlockEntries } from "./vault.js";
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -622,18 +622,58 @@ export async function zipSelection() {
 }
 
 export async function unzipEntry(entry) {
+  await extractSelection([entry]);
+}
+
+export async function extractSelection(entriesInput) {
   if (!needFolder("extracting")) return;
   const pane = activePane();
+  const raw = Array.isArray(entriesInput) ? entriesInput : selectedEntries(pane);
+  const items = extractableEntries(raw);
+  if (!items.length) {
+    toast(
+      raw.length
+        ? "None of the selected items is a compressed file or archive that can be extracted."
+        : "Select a compressed file or archive to extract.",
+      { kind: "info" },
+    );
+    return;
+  }
   try {
-    const r = await busy(() => call("unzip", { path: entry.path }));
-    pushUndo(`extract "${entry.name}"`, async () => {
-      const { failed } = await trashPaths([r.folder]);
-      if (failed.length) throw new Error(failed[0]);
-    });
-    toast(`Extracted ${plural(r.files, "file")} into "${baseName(r.folder, state.sep)}".`, { kind: "success", action: { label: "Undo", run: undo } });
-    await refresh({ keepSelection: false, pane });
-    selectKeys([r.folder], pane);
-    if (r.skipped.length) await problemsBox("Some items were skipped", "These items were not extracted, to keep your computer safe:", r.skipped.slice(0, 20));
+    const r = await busy(() => call("extract", { paths: items.map((e) => e.path) }));
+    const results = Array.isArray(r.results) ? r.results : [];
+    const createdPaths = results.map((it) => it.output || it.folder).filter(Boolean);
+    if (createdPaths.length) {
+      const undoLabel = items.length === 1 ? `extract "${items[0].name}"` : `extract ${plural(createdPaths.length, "archive")}`;
+      pushUndo(undoLabel, async () => {
+        const { failed } = await trashPaths(createdPaths);
+        if (failed.length) throw new Error(failed[0]);
+      });
+      if (results.length === 1) {
+        const first = results[0];
+        const targetName = baseName(first.output || first.folder, state.sep);
+        const msg = first.isFolder === false
+          ? `Uncompressed "${targetName}".`
+          : `Extracted ${plural(first.files, "file")} into "${targetName}".`;
+        toast(msg, { kind: "success", action: { label: "Undo", run: undo } });
+      } else {
+        const totalFiles = results.reduce((sum, it) => sum + (Number(it.files) || 0), 0);
+        toast(
+          `Extracted ${plural(results.length, "archive")} (${plural(totalFiles, "file")}).`,
+          { kind: "success", action: { label: "Undo", run: undo } },
+        );
+      }
+      await refresh({ keepSelection: false, pane });
+      selectKeys(createdPaths, pane);
+    }
+    const allSkipped = results.flatMap((it) => it.skipped || []);
+    if (allSkipped.length) {
+      await problemsBox("Some items were skipped", "These items were not extracted, to keep your computer safe:", allSkipped.slice(0, 20));
+    }
+    const errMsgs = Array.isArray(r.errors) ? r.errors.map((e) => `${baseName(e.path, state.sep)}: ${e.message}`) : [];
+    if (errMsgs.length) {
+      await reportFailures(errMsgs, "extracted");
+    }
   } catch (err) {
     fail(err);
   }

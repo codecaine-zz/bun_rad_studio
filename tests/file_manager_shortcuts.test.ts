@@ -69,6 +69,29 @@ describe("the table of shortcuts", () => {
       expect(checkAssign(action("file.copy"), "Alt+]", defaults(platform), platform)?.reason).toContain("fixed key");
     }
   });
+  test("archive extraction, zip compression, invert selection, and productivity shortcuts are registered and formatted", () => {
+    expect(defaultsFor(action("file.extract"), "darwin")).toEqual(["Mod+Shift+E", "Mod+U"]);
+    expect(defaultsFor(action("file.zip"), "darwin")).toEqual(["Mod+Shift+Z", "Mod+Alt+Z"]);
+    expect(defaultsFor(action("file.invertSelection"), "darwin")).toEqual(["Mod+Shift+I"]);
+    expect(defaultsFor(action("file.copyPath"), "darwin")).toEqual(["Mod+Shift+C"]);
+    expect(defaultsFor(action("file.copyFileUrl"), "darwin")).toEqual(["Mod+Alt+U"]);
+    expect(defaultsFor(action("file.reveal"), "darwin")).toEqual(["Mod+Alt+S"]);
+    expect(defaultsFor(action("file.toggleFavorite"), "darwin")).toEqual(["Mod+Alt+B"]);
+    expect(defaultsFor(action("file.newDatedFolder"), "darwin")).toEqual(["Mod+Alt+Shift+N"]);
+    expect(defaultsFor(action("file.newDatedNote"), "darwin")).toEqual(["Mod+Shift+J"]);
+    expect(defaultsFor(action("file.convert"), "darwin")).toEqual(["Mod+Shift+O"]);
+    expect(defaultsFor(action("file.lock"), "darwin")).toEqual(["Mod+Alt+L"]);
+    expect(defaultsFor(action("file.openWith"), "darwin")).toEqual(["Mod+O"]);
+    expect(defaultsFor(action("nav.home"), "darwin")).toEqual(["Alt+Home", "Mod+Alt+H"]);
+    expect(defaultsFor(action("nav.recents"), "darwin")).toEqual(["Mod+Alt+Y"]);
+    expect(defaultsFor(action("nav.duplicateTab"), "darwin")).toEqual(["Mod+Alt+D"]);
+    expect(defaultsFor(action("app.activity"), "darwin")).toEqual(["Mod+Shift+Y"]);
+    expect(defaultsFor(action("app.shortcuts"), "darwin")).toEqual(["Mod+Shift+/"]);
+    expect(formatShortcut("Mod+Shift+E", "darwin")).toBe("⌘⇧E");
+    expect(formatShortcut("Mod+Shift+E", "linux")).toBe("Ctrl+Shift+E");
+    expect(formatShortcut("Mod+U", "darwin")).toBe("⌘U");
+    expect(formatShortcut("Mod+U", "linux")).toBe("Ctrl+U");
+  });
 });
 
 describe("matching key presses", () => {

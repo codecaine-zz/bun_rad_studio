@@ -10,6 +10,7 @@
 .vb-btn:hover { background: var(--hover); border-color: color-mix(in oklab, var(--border) 75%, transparent); }
 .vb-btn[aria-pressed="true"] { background: var(--selected); color: var(--selected-text); }
 .vb-icon { font-size: 1.05rem; line-height: 1; }
+.vb-caret { font-size: 0.72rem; opacity: 0.75; margin-left: -0.1rem; line-height: 1; }
 #view-switch { display: flex; gap: 0.15rem; padding: 0.15rem; border: 1px solid color-mix(in oklab, var(--border) 78%, transparent); border-radius: 0.65rem; background: var(--bg); }
 .vb-view[aria-checked="true"], .vb-view[aria-checked="true"]:hover { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 650; }
 #view-extras { margin-left: auto; display: flex; align-items: center; gap: 0.35rem; }

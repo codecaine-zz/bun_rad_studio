@@ -6,20 +6,26 @@ import { confirmBox } from "./dialogs.js";
 import { showFavoritesMenu } from "./favorites.js";
 import { showHelp, showProperties, showSettings } from "./extras.js";
 import { showMoreInfo } from "./fileinfo.js";
+import { copyFileUrls } from "./fileurl.js";
 import { focusPowerFilter, openPower, togglePowerExpanded } from "./power.js";
 import { menuIsOpen, toast } from "./menus.js";
 import { openQuickLook, quickLookIsOpen } from "./quicklook.js";
-import { canGoUpIn, clearSearch, goBack, goForward, goUpIn, refresh, saveSettings } from "./nav.js";
+import { canGoUpIn, clearSearch, goBack, goForward, goToIn, goUpIn, refresh, saveSettings, visibleEntries } from "./nav.js";
+import { showOpenWith } from "./openwith.js";
+import { showOperationHistory } from "./opHistory.js";
 import * as ops from "./ops.js";
-import { clearSelection, focusIndex, focusedIndex, selectAll, selectedEntries, toggleKey } from "./selection.js";
+import { showRecentsMenu } from "./recents.js";
+import { clearSelection, focusIndex, focusedIndex, invertSelection, selectAll, selectedEntries, toggleKey } from "./selection.js";
+import { showShortcutsDialog } from "./shortcutsDialog.js";
 import { editAddress, focusSearch } from "./toolbar.js";
+import { showToolsDialog } from "./tools.js";
 import { iconsPerLine, isRenaming } from "./list.js";
 import { activePane, currentPath } from "./pane.js";
 import { emit, state } from "./state.js";
 import { actionFor } from "./keymap.js";
 import { isModifier, typeaheadFind } from "./util.js";
-import { visibleEntries } from "./nav.js";
-import { closeTab, cycleTab, openNewTab } from "./tabs.js";
+import { closeTab, cycleTab, duplicateTab, openNewTab } from "./tabs.js";
+import { lockSelection } from "./vault.js";
 import { goRightBack, goRightForward } from "./dual.js";
 
 /** On Windows and Linux, Backspace goes up a folder. Someone on a Mac keyboard pressed their Delete key: say once how to change it. */
@@ -122,6 +128,8 @@ const MORE_INFO = () => { const items = selectedEntries(); return void showMoreI
 /** What each changeable shortcut does. The keys come from the table in shortcuts.js (and the person's changes), not from here. */
 const FILE_ACTIONS = {
   "app.help": () => showHelp(),
+  "app.shortcuts": () => void showShortcutsDialog(),
+  "app.activity": () => void showOperationHistory(),
   "nav.refresh": () => void refresh(),
   "file.rename": () => void ops.renameSelection(),
   "file.properties": PROPERTIES,
@@ -135,20 +143,57 @@ const FILE_ACTIONS = {
   "nav.back": () => void (activePane().side === "left" ? goBack() : goRightBack()),
   "nav.forward": () => void (activePane().side === "left" ? goForward() : goRightForward()),
   "nav.up": () => void (canGoUpIn(activePane()) ? goUpIn(activePane()) : null),
+  "nav.home": () => void (state.home ? goToIn(activePane(), state.home) : null),
   "nav.address": () => editAddress(),
   "nav.favorites": () => showFavoritesMenu({ x: 40, y: 90 }),
+  "nav.recents": () => showRecentsMenu(document.getElementById("tool-recent") ?? { x: 80, y: 90 }),
   "nav.newTab": () => void openNewTab(),
+  "nav.duplicateTab": () => void duplicateTab(),
   "nav.closeTab": () => void closeTab(),
   "file.editInCode": () => editInCode(),
   "nav.search": () => focusSearch(),
   "file.selectAll": () => selectAll(),
+  "file.invertSelection": () => invertSelection(),
   "file.copy": () => ops.copySelection(),
   "file.cut": () => ops.cutSelection(),
   "file.paste": () => void ops.paste(),
   "file.duplicate": () => void ops.duplicateSelection(),
   "file.undo": () => void ops.undo(),
+  "file.extract": () => void ops.extractSelection(),
+  "file.zip": () => void ops.zipSelection(),
+  "file.convert": () => void showToolsDialog(),
+  "file.lock": () => void lockSelection(),
+  "file.openWith": () => {
+    const items = selectedEntries().filter((x) => !x.isDir);
+    if (items.length) void showOpenWith(items);
+    else toast("Select a file to choose which program opens it.", { kind: "info" });
+  },
+  "file.copyPath": () => {
+    const items = selectedEntries();
+    const here = currentPath();
+    if (items.length) void ops.copyPathOf(items);
+    else if (here) void ops.copyPathOf([{ path: here }]);
+  },
+  "file.copyFileUrl": () => {
+    const items = selectedEntries();
+    const here = currentPath();
+    if (items.length) void copyFileUrls(items);
+    else if (here) void copyFileUrls([{ path: here }]);
+  },
+  "file.reveal": () => {
+    const items = selectedEntries();
+    const target = items[0]?.path ?? currentPath();
+    if (target) void ops.revealEntry({ path: target });
+  },
+  "file.toggleFavorite": () => {
+    const items = selectedEntries();
+    const folder = items.length === 1 && items[0].isDir ? items[0].path : currentPath();
+    if (folder) void ops.toggleFavorite(folder);
+  },
   "file.newFolder": () => void ops.newFolder(),
+  "file.newDatedFolder": () => void ops.newDatedFolder(),
   "file.newFile": () => void ops.newFile(),
+  "file.newDatedNote": () => void ops.newDatedNote(),
   "file.newSqlite": () => void ops.newSqlite(),
   "file.deleteForever": () => void ops.deleteForever(),
   "file.trash": () => void ops.trashSelection(),
@@ -159,9 +204,9 @@ const FILE_ACTIONS = {
   "view.icons": () => void saveSettings({ view: "icons" }),
 };
 /** Work wherever you are, even with a button focused. */
-const EVERYWHERE = ["app.help", "nav.refresh", "file.rename", "file.properties", "file.moreInfo", "app.expandTool"];
+const EVERYWHERE = ["app.help", "app.shortcuts", "nav.refresh", "file.rename", "file.properties", "file.moreInfo", "app.expandTool"];
 /** Also work inside the tools panel, the Home page and the other panes. */
-const IN_PANES = ["nav.findTool", "nav.filterTools", "app.settings", "app.themes", "app.expandTool"];
+const IN_PANES = ["nav.findTool", "nav.filterTools", "app.settings", "app.shortcuts", "app.activity", "app.themes", "app.expandTool"];
 const IN_LISTS = Object.keys(FILE_ACTIONS).filter((id) => !EVERYWHERE.includes(id));
 
 export function wireKeys() {

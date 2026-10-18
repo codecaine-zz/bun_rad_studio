@@ -1965,13 +1965,26 @@ describe("the Themes button in the ribbon", () => {
   };
   const stateNow = async () => (await import("../resources/file_manager/ui/state.js")).state;
 
-  test("there is a Themes button next to Settings, with a tip and an icon", () => {
+  test("there is a Themes button next to Settings and a quick-access Themes button next to Dual in the top bar", async () => {
     const btn = $("#tool-themes");
     expect(btn).toBeTruthy();
     expect(btn.getAttribute("aria-label")).toBe("Themes");
     expect(btn.title).toContain("colors");
     expect(btn.querySelector(".ti").textContent).toBe("🎨");
     expect(btn.nextElementSibling?.id).toBe("tool-settings");
+
+    const vbBtn = $("#viewbar-themes");
+    expect(vbBtn).toBeTruthy();
+    expect(vbBtn.getAttribute("aria-label")).toBe("Themes");
+    expect(vbBtn.title).toContain("colors");
+    expect(vbBtn.previousElementSibling?.id).toBe("view-switch");
+    expect(vbBtn.querySelector(".vb-icon").textContent).toBe("🎨");
+    expect(vbBtn.querySelector(".vb-label").textContent).toBe("Themes");
+    vbBtn.click();
+    await sleep(150);
+    expect(labels().join("|")).toContain("All themes…");
+    key(doc.activeElement ?? doc.body, "Escape");
+    await sleep(60);
   });
 
   test("the menu changes between standard light and dark without Settings", async () => {

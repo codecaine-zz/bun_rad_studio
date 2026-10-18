@@ -2,7 +2,7 @@
 
 ## Video Files
 
-- **Short MP4 (< 3 min)**: `youtube_production/codecaine-file-manager-themes-short.mp4` (176.6s, 1080×1920 vertical, 30 fps, 2x Retina Display-P3 super-sampled)
+- **Short MP4 (< 3 min)**: `youtube_production/codecaine-file-manager-themes-short.mp4` (176.5s, 1080×1920 vertical, 30 fps, 2x Retina Display-P3 super-sampled)
 - **Standalone Long-Form Themes Masterclass MP4**: `youtube_production/codecaine-file-manager-themes-tutorial.mp4` (1920×1080 16:9, recorded on High-End Apple M4 Max Pro Display XDR 2x Retina profile)
 - **Full File Manager Master Tutorial MP4**: `youtube_production/file_manager_tutorial.mp4`
 - **All-in-One Complete Suite Master Tutorial MP4**: `youtube_production/all_in_one_tutorial.mp4`
@@ -37,23 +37,23 @@ WHAT'S NEW IN THE THEMES & ATMOSPHERIC SHADER STUDIO:
 • 🎨 Theme Editor v2 & 🛠️ Theme Hacker Lab: Auto-Harmonize from Accent, 🖼️ Wallpaper Chameleon image extractor, live WCAG AA/AAA Contrast Inspector, 12 Effect Style Presets, Compiz Burn & 90s Linux CDE mutators, custom --* CSS tokens & snippet injectors, and Right ⌥ + ] / [ live desktop cycling
 
 SHORT TIMESTAMPS
-0:00 RIBBON SWITCHER · FAVORITES · RECENT · 1-CLICK TOOLS
-0:09 🚀 ULTRA · 🔥 FIRE UI · 🧪 SLIME UI · [ / ] RAPID KEY PREVIEW
-0:18 5-ROW FILTER PILLS · 🔥 FOLDER FX · 🎭 9 CUSTOM ICON PACKS
-0:28 INFERNO BLAZING FOLDERS · SLIME BIO-VAT · EF5 TORNADO · TESLA
-0:38 BeOS R5 · OS/2 WARP 4 · PALM OS · SOLARIS CDE · NeXTSTEP
-0:49 📁 PIN TO FOLDER · 📦 BULK IMPORT · ⚠️ AUTO CONFLICT MODAL
-1:00 ⚖️ SPLIT-SCREEN WIPE · 🧬 LIVE OKLAB THEME BLENDER
-1:09 🌅 DAWN · ☀️ DAY · 🌆 DUSK · 🌌 MIDNIGHT · 📻 AUTO-PLAYLIST
-1:19 M4 MAX EXTREME 120HZ · EF5 DEBRIS TORNADO · NOR'EASTER GALE
-1:31 🛸 YEAR 2126 HYPER-DIMENSIONAL · ⚡ SCI-FI PHYSICS
-1:43 ⚡ TYPING VELOCITY · 📊 TELEMETRY PULSE · 🎵 SYNTH BEAT
-1:53 🔀 6-LAYER MIXER · PER-LAYER COLOR/SPEED · 48 SIGNATURE MIXES
-2:03 🎬 4 SHOW MODES · 7 CHANNELS · RETRO XSCREENSAVER OSD · ⌘⇧T
-2:13 🎨 ACCENT HARMONY · 🖼️ WALLPAPER CHAMELEON · WCAG AA/AAA
-2:24 🛠️ THEME HACKER LAB · 7 MUTATORS · --* TOKENS · CUSTOM CSS
-2:35 ATTACH ANY OF 194 SHADERS OR 48 MIXES · CCFM-THEME-v1 EXPORT
-2:45 INSTANT DESKTOP THEME CYCLING · CLOSE LOCK · REMAP ANY KEY
+0:00 RIBBON SWITCHER · ⌘V PASTE IMPORT · FAVORITES · 1-CLICK TOOLS
+0:10 📋 PASTE THEME (⌘V) · 🚀 ULTRA · 🔥 FIRE UI · [ / ] PREVIEW
+0:19 ⚡ 8 JUMPSTART KITS · 🍎 TAHOE 3D · 💻 M4 XDR · 🪟 WIN11 FLUENT
+0:31 TAHOE 3D STUDIO · INFERNO FIRE · SLIME BIO-VAT · EF5 TORNADO
+0:42 BeOS R5 · OS/2 WARP 4 · PALM OS · SOLARIS CDE · LINUX PAPIRUS
+0:53 📋 ⌘V CLIPBOARD PASTE · 📦 BULK IMPORT · ⚠️ AUTO CONFLICT MODAL
+1:01 ⚖️ SPLIT-SCREEN WIPE · 🧬 LIVE OKLAB THEME BLENDER
+1:11 🌅 DAWN · ☀️ DAY · 🌆 DUSK · 🌌 MIDNIGHT · 📻 AUTO-PLAYLIST
+1:21 M4 MAX EXTREME 120HZ · EF5 DEBRIS TORNADO · NOR'EASTER GALE
+1:33 🛸 YEAR 2126 HYPER-DIMENSIONAL · ⚡ SCI-FI PHYSICS
+1:45 ⚡ TYPING VELOCITY · 📊 TELEMETRY PULSE · 🎵 SYNTH BEAT
+1:55 🔀 6-LAYER MIXER · PER-LAYER COLOR/SPEED · 48 SIGNATURE MIXES
+2:04 🎬 4 SHOW MODES · 7 CHANNELS · RETRO XSCREENSAVER OSD · ⌘⇧T
+2:14 🖼️ PRE-BUILT 8K STUDIO PICTURES · 🎨 HARMONY · WCAG AA/AAA
+2:26 🛠️ THEME HACKER LAB · 8 MUTATORS · --* TOKENS · CUSTOM CSS
+2:37 ATTACH ANY OF 194 SHADERS OR 48 MIXES · CCFM-THEME-v1 EXPORT
+2:47 🎛️ RIGHT ⌥ + ] SELECTION TEMPLATES HUD · CLOSE LOCK · REMAP KEYS
 
 #FileManager #Themes #Shaders #UIUX #LiquidGlass #MacBookPro #M4Max #Linux #OpenSource #Bun #TypeScript #Shorts
 ```
@@ -61,5 +61,5 @@ SHORT TIMESTAMPS
 ## Build Notes
 
 - Rebuild: `bun scripts/build_themes_short.ts`
-- Duration: 176.59 seconds (<180s YouTube Shorts limit), 1080×1920 vertical, 30 fps, H.264 High + 48kHz stereo AAC.
-- Narrator: en-US-AvaMultilingualNeural, +3% delivery rate, 0.22s sentence gaps, pace factor 1.158x.
+- Duration: 176.52 seconds (<180s YouTube Shorts limit), 1080×1920 vertical, 30 fps, H.264 High + 48kHz stereo AAC.
+- Narrator: en-US-AvaMultilingualNeural, +3% delivery rate, 0.22s sentence gaps, pace factor 1.154x.

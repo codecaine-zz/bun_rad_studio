@@ -58,6 +58,15 @@ export function clearSelection(pane = activePane()) {
   changed();
 }
 
+export function invertSelection(pane = activePane()) {
+  const list = visibleEntries(pane);
+  const next = new Set(list.filter((e) => !pane.selection.has(e.path)).map((e) => e.path));
+  pane.selection = next;
+  if (next.size && !next.has(pane.focusKey)) pane.focusKey = [...next][0];
+  pane.anchorKey = pane.focusKey;
+  changed();
+}
+
 export function selectKeys(keys, pane = activePane()) {
   pane.selection = new Set(keys);
   pane.focusKey = keys[0] ?? pane.focusKey;

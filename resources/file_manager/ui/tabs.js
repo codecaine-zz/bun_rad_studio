@@ -4,6 +4,7 @@ import { state, on, currentPath, inTrash } from "./state.js";
 import { goTo, showTrash } from "./nav.js";
 import { setActivePane } from "./pane.js";
 import { selectKeys } from "./selection.js";
+import { hintOf } from "./keymap.js";
 import { baseName } from "./util.js";
 
 let nextTabSeq = 1;
@@ -182,7 +183,7 @@ export function renderTabs() {
         ? h("button", {
             type: "button",
             class: "fm-tab-close",
-            title: `Close the ${label} tab (Ctrl+Alt+W)`,
+            title: `Close the ${label} tab${hintOf("nav.closeTab")}`,
             "aria-label": `Close ${label} tab`,
             onclick: (e) => {
               e.stopPropagation();
@@ -197,14 +198,14 @@ export function renderTabs() {
     h("button", {
       type: "button",
       class: "fm-tab-btn fm-tab-dup",
-      title: "Duplicate the current folder tab so you can browse from here in a second tab",
+      title: `Duplicate the current folder tab so you can browse from here in a second tab${hintOf("nav.duplicateTab")}`,
       "aria-label": "Duplicate current folder tab",
       onclick: () => duplicateTab(),
     }, "⧉"),
     h("button", {
       type: "button",
       class: "fm-tab-btn fm-tab-add",
-      title: "Open a new folder tab in the current folder (Ctrl+T)",
+      title: `Open a new folder tab in the current folder${hintOf("nav.newTab")}`,
       "aria-label": "Open a new folder tab",
       onclick: () => openNewTab(),
     }, "+"),

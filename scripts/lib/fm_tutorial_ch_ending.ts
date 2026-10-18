@@ -69,7 +69,7 @@ export const ending: Chapter[] = [
         act: async (d) => {
           await d.click('[data-jumpstart-kit="macos_tahoe_3d_kit"]', { pause: 1500 }).catch(() => {});
           await d.click('[data-jumpstart-kit="m4_max_xdr_kit"]', { pause: 1500 }).catch(() => {});
-          await d.click('[data-jumpstart-kit="win11_rtx_fluent_kit"]', { pause: 1500 }).catch(() => {});
+          await d.click('[data-jumpstart-kit="win11_rtx_3d_kit"]', { pause: 1500 }).catch(() => {});
           await d.click('[data-jumpstart-kit="hdr_photo_cinema_kit"]', { pause: 1400 }).catch(() => {});
           await d.click('.theme-immersion-bar [data-ui-fx="fire_folders"]', { pause: 1200 }).catch(() => {});
           await d.click('.theme-immersion-bar [data-icon-pack="inferno"]', { pause: 1200 }).catch(() => {});
@@ -347,7 +347,7 @@ export const ending: Chapter[] = [
       },
       {
         cap: "Right ⌥ + ] / [ Selection Templates HUD, close lock & custom shortcuts",
-        say: "Finally, hold Right Option and press the closing or opening square bracket to summon the live Selection Templates Quick-Switcher H U D—showing miniature window swatches, 3D folder and picture badges, and one-click flagship studio templates—or press Right Option and slash for full screen. In Settings, you can lock the window close button, and in Help under Change keyboard shortcuts, you can remap any key.",
+        say: "Finally, hold Right Option and press the closing or opening square bracket to summon the live Selection Templates Quick-Switcher H U D—showing miniature window swatches, 3D folder and picture badges, and one-click flagship studio templates—or press Right Option and slash for full screen. In Settings, you can lock the window close button, and in Help under Change keyboard shortcuts—or by pressing Command Shift Slash—you can see and remap every shortcut, including Command Shift E or Command U to extract any compressed archive in your selection, Command Shift Z to compress to zip, Command Shift I to invert selection, and Command Shift C to copy paths.",
         act: async (d) => {
           await closeDialogs(d);
           for (let i = 0; i < 3; i++) {

@@ -67,7 +67,7 @@ import { addRecent, clearRecents, loadSettings, pruneRecents, removeRecent, upda
 import { windowOperations } from "./fmWindow";
 import { MAX_INPUT_BYTES, clampSize, createTerminalHub, shellFolder, terminalSupported, type TerminalSession } from "./fmTerminal";
 import { deleteFromTrash, deletePermanently, listTrash, moveToTrash, restoreFromTrash } from "./fmTrash";
-import { createZip, extractZip } from "./fmZip";
+import { archiveExtensionOf, createZip, extractArchive, extractItems, extractZip, isExtractableName } from "./fmZip";
 
 export const APP_ID = "file_manager_studio";
 /** The product name: the window title, the page title and the health answer. */
@@ -426,7 +426,14 @@ const operations: Record<string, Handler> = {
     return await createZip(ctx, b.paths, b.name);
   },
   async unzip(ctx, b) {
+    if (typeof b.path === "string" && isExtractableName(b.path) && archiveExtensionOf(b.path) !== "zip") {
+      return await extractArchive(ctx, b.path, b.dest);
+    }
     return await extractZip(ctx, b.path, b.dest);
+  },
+  async extract(ctx, b) {
+    const paths = Array.isArray(b.paths) ? b.paths : typeof b.path === "string" ? [b.path] : [];
+    return await extractItems(ctx, paths, b.dest);
   },
   async bulkrename(ctx, b) {
     return await bulkRename(ctx, b.folder, b.names, b.spec, b.apply === true);
