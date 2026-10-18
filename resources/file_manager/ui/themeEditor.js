@@ -1,12 +1,13 @@
 // The theme editor: make your own color theme, or start from any other theme and change it. The whole window shows
 // the theme while you edit (the server keeps text and buttons readable), and nothing is kept until you press Save.
 import { ApiError, call } from "./api.js";
+import { copyToClipboard, flashCopied, readFromClipboard } from "./copyclip.js";
 import { confirmBox, openDialog } from "./dialogs.js";
 import { debounce, h } from "./dom.js";
 import { toast } from "./menus.js";
 import { saveSettings } from "./nav.js";
 import { emit, on, state } from "./state.js";
-import { applyPalette, extractPaletteFromPixels, forgetThemeList, paint, pasteImportThemesFromClipboard, runBulkThemeImportFlow } from "./themes.js";
+import { applyPalette, downloadThemeFileInBrowser, extractPaletteFromPixels, forgetThemeList, paint, pasteImportThemesFromClipboard, runBulkThemeImportFlow, saveThemeFileToFolder } from "./themes.js";
 import { ATMOSPHERE_IDS, ATMOSPHERE_MIX_PRESETS } from "./atmosphereCatalog.js";
 
 const EXPORT_FORMAT = "bun-rad-studio-file-manager-theme";
@@ -629,10 +630,10 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
       type: "button",
       class: "btn",
       "data-editor-paste-theme": "true",
-      title: "Paste a CCFM-THEME-v1 code, CCFM-PACK-v1 bundle, or Theme JSON directly from your clipboard (⌘V / Ctrl+V).",
+      title: "Paste a CCFM-THEME-v1 code, CCFM-PACK-v1 bundle, CSS, or Theme JSON directly from your clipboard (⌘V / Ctrl+V).",
       onclick: async () => {
         await pasteImportThemesFromClipboard({
-          applyFirst: false,
+          applyFirst: true,
           onImported: (res) => {
             if (res?.first) {
               load({ name: res.first.name, dark: res.first.dark, colors: { ...draft.colors, ...res.first.colors }, fx: res.first.fx, base: res.first.base || "Clipboard Paste", editingId: res.first.id });
@@ -641,6 +642,40 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
         });
       },
     }, "📋 Paste Theme (⌘V)"),
+    h("button", {
+      type: "button",
+      class: "btn",
+      "data-editor-copy-share": "true",
+      title: "Copy a 1-line CCFM-THEME-v1 share code for the theme you are currently editing to your clipboard.",
+      onclick: async (e) => {
+        try {
+          const currentDraft = { ...draftBody(), name: nameInput.value.trim() || "Untitled" };
+          const { shareCode } = await call("themes/custom/export", { theme: currentDraft });
+          const ok = await copyToClipboard(shareCode);
+          if (ok) {
+            flashCopied(e.currentTarget, "✓ Copied Code!");
+            toast("Copied 1-line CCFM-THEME-v1 share code to clipboard!", { kind: "success" });
+          } else {
+            await exportText();
+          }
+        } catch (err) {
+          toast(err?.message || "Could not copy share code.", { kind: "error" });
+        }
+      },
+    }, "📤 Copy Share Code"),
+    h("button", {
+      type: "button",
+      class: "btn",
+      "data-editor-save-file": "true",
+      title: "Save the current theme as a .theme.json file directly into your active folder.",
+      onclick: async (e) => {
+        const currentDraft = { ...draftBody(), name: nameInput.value.trim() || "Untitled" };
+        const jsonText = JSON.stringify({ format: EXPORT_FORMAT, version: 1, ...currentDraft }, null, 2);
+        const slug = (currentDraft.name || "custom-theme").toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "custom-theme";
+        const saved = await saveThemeFileToFolder({ filename: `${slug}.theme.json`, content: jsonText });
+        if (saved) flashCopied(e.currentTarget, "✓ Saved File!");
+      },
+    }, "💾 Save .theme.json"),
     imageInput,
   );
 
@@ -849,18 +884,27 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
   async function exportText() {
     const currentDraft = { ...draftBody(), name: nameInput.value.trim() || "Untitled" };
     const jsonText = JSON.stringify({ format: EXPORT_FORMAT, version: 1, ...currentDraft }, null, 2);
-    const box = h("textarea", { class: "prop-input theme-export", readonly: true, rows: "10", "aria-label": "The theme as text", title: "Copy this text and keep it, or send it to someone. Import… turns it back into a theme." }, jsonText);
-    const setActiveTab = (activeBtn) => {
+    let currentExt = ".theme.json";
+    const box = h("textarea", {
+      class: "prop-input theme-export",
+      readonly: true,
+      rows: "10",
+      "aria-label": "The theme as text",
+      title: "Copy this text and keep it, or send it to someone. Import… turns it back into a theme.",
+      onclick: () => box.select?.(),
+    }, jsonText);
+    const setActiveTab = (activeBtn, ext) => {
+      currentExt = ext;
       for (const b of tabs.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b === activeBtn));
     };
     const jsonBtn = h("button", {
       type: "button", class: "btn theme-export-tab", "aria-pressed": "true",
-      onclick: () => { setActiveTab(jsonBtn); box.value = jsonText; },
+      onclick: () => { setActiveTab(jsonBtn, ".theme.json"); box.value = jsonText; },
     }, "Theme JSON");
     const codeBtn = h("button", {
       type: "button", class: "btn theme-export-tab", "aria-pressed": "false",
       onclick: async () => {
-        setActiveTab(codeBtn);
+        setActiveTab(codeBtn, ".ccfm.txt");
         try {
           const { shareCode } = await call("themes/custom/export", { theme: currentDraft });
           box.value = shareCode;
@@ -872,7 +916,7 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
     const cssBtn = h("button", {
       type: "button", class: "btn theme-export-tab", "aria-pressed": "false",
       onclick: async () => {
-        setActiveTab(cssBtn);
+        setActiveTab(cssBtn, ".theme.css");
         try {
           const { css } = await call("themes/custom/export-css", { theme: currentDraft });
           box.value = css;
@@ -884,7 +928,7 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
     const packBtn = h("button", {
       type: "button", class: "btn theme-export-tab", "aria-pressed": "false",
       onclick: async () => {
-        setActiveTab(packBtn);
+        setActiveTab(packBtn, ".theme-pack.json");
         try {
           const { text } = await call("themes/custom/export-pack", { theme: currentDraft });
           box.value = text;
@@ -893,36 +937,94 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
         }
       },
     }, "Theme pack (all my themes)");
-    const tabs = h("div", { class: "theme-export-tabs" }, jsonBtn, codeBtn, cssBtn, packBtn);
-    const d = openDialog({ title: "Export theme", body: [h("p", {}, "Copy this text or 1-line CCFM-THEME-v1 Share Code to share with any Codecaine File Manager user, export standalone CSS, or export all your custom themes as a pack."), tabs, box], buttons: [{ label: "Close", value: false }, { label: "Copy", value: true, primary: true }], initialFocus: box });
+    const saveFileBtn = h("button", {
+      type: "button",
+      class: "btn",
+      "data-export-save-file": "true",
+      onclick: async () => {
+        const slug = (currentDraft.name || "custom-theme").toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "custom-theme";
+        await saveThemeFileToFolder({ filename: `${slug}${currentExt}`, content: box.value });
+      },
+    }, "💾 Save to Folder");
+    const downloadFileBtn = h("button", {
+      type: "button",
+      class: "btn",
+      "data-export-download-file": "true",
+      onclick: () => {
+        const slug = (currentDraft.name || "custom-theme").toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "custom-theme";
+        downloadThemeFileInBrowser(`${slug}${currentExt}`, box.value);
+      },
+    }, "⬇️ Download File");
+    const tabs = h("div", { class: "theme-export-tabs" }, jsonBtn, codeBtn, cssBtn, packBtn, saveFileBtn, downloadFileBtn);
+    const d = openDialog({ title: "Export theme", body: [h("p", {}, "Copy this text or 1-line CCFM-THEME-v1 Share Code to share with any user, or save it directly to your folder / download as a file."), tabs, box], buttons: [{ label: "Close", value: false }, { label: "Copy", value: true, primary: true }], initialFocus: box });
     if (await d.result) {
-      try {
-        await call("copytext", { text: box.value });
+      const ok = await copyToClipboard(box.value);
+      if (ok) {
         toast("The theme text was copied.", { kind: "success" });
-      } catch {
+      } else {
         toast("Couldn't copy. Select the text and copy it yourself.", { kind: "error" });
       }
     }
   }
 
   async function importText() {
-    const box = h("textarea", { class: "prop-input theme-export", rows: "10", "aria-label": "Theme text to import", title: "Paste text or CCFM-THEME-v1 / CCFM-PACK-v1 codes that were made with Export…", placeholder: "Paste one or more CCFM-THEME-v1:... share codes, CCFM-PACK-v1:... bundle codes, or theme JSON here" });
-    const d = openDialog({ title: "Import theme", body: [h("p", {}, "Paste a 1-line CCFM-THEME-v1 share code, a single theme JSON, or a multi-theme pack from any Codecaine File Manager user. Bulk imports automatically prompt to resolve any name conflicts."), box], buttons: [{ label: "Cancel", value: false }, { label: "Use this theme", value: true, primary: true }], initialFocus: box });
+    const box = h("textarea", { class: "prop-input theme-export", rows: "10", "aria-label": "Theme text to import", title: "Paste text or CCFM-THEME-v1 / CCFM-PACK-v1 codes that were made with Export…", placeholder: "Paste one or more CCFM-THEME-v1:... share codes, CCFM-PACK-v1:... bundle codes, CSS, or theme JSON here" });
+    const filePicker = h("input", {
+      type: "file",
+      accept: ".json,.txt,.ccfm,.css,application/json,text/plain,text/css",
+      style: "display:none",
+    });
+    const quickBar = h("div", { class: "theme-export-tabs" },
+      filePicker,
+      h("button", {
+        type: "button",
+        class: "btn",
+        "data-import-paste-clipboard": "true",
+        onclick: async () => {
+          const clip = (await readFromClipboard())?.trim();
+          if (clip) {
+            box.value = clip;
+            d.close(true);
+            return;
+          }
+          box.focus();
+          toast("Press ⌘V / Ctrl+V in the box below to paste your theme.", { kind: "info" });
+        },
+      }, "📋 Paste from Clipboard & Import"),
+      h("button", {
+        type: "button",
+        class: "btn",
+        "data-import-choose-file": "true",
+        onclick: () => filePicker.click(),
+      }, "📂 Choose Theme File…"),
+    );
+    filePicker.addEventListener("change", async () => {
+      const f = filePicker.files?.[0];
+      if (!f) return;
+      try {
+        box.value = (await f.text()).trim();
+        if (box.value) d.close(true);
+      } catch {
+        toast("Could not read the selected file.", { kind: "error" });
+      }
+    });
+    const d = openDialog({ title: "Import theme", body: [h("p", {}, "Paste a 1-line CCFM-THEME-v1 share code, a single theme JSON, standalone CSS, or a multi-theme pack — or click a button below to import from your clipboard or a file."), quickBar, box], buttons: [{ label: "Cancel", value: false }, { label: "Use this theme", value: true, primary: true }], initialFocus: box });
     if (!(await d.result)) return;
     const rawText = box.value.trim();
+    if (!rawText) return;
     let parsed = null;
     try {
       parsed = JSON.parse(rawText);
-    } catch { /* may be a CCFM-THEME-v1 or CCFM-PACK-v1 code */ }
-    const shareCodeCount = [...rawText.matchAll(/CCFM-(?:THEME|PACK)-v1:[A-Za-z0-9+/=_-]+/g)].length;
+    } catch { /* may be a CCFM-THEME-v1, CCFM-PACK-v1, or CSS */ }
+    const shareCodeCount = [...rawText.matchAll(/CCFM-(?:THEME|PACK)-v1:\s*[A-Za-z0-9+/=_-]+/g)].length;
     const isBulk =
-      rawText.startsWith("CCFM-PACK-v1:") ||
+      rawText.includes("CCFM-PACK-v1:") ||
       shareCodeCount > 1 ||
       Array.isArray(parsed) ||
       (parsed && typeof parsed === "object" && parsed.format === "bun-rad-studio-file-manager-theme-pack" && Array.isArray(parsed.themes) && parsed.themes.length > 1);
     if (isBulk) {
       const out = await runBulkThemeImportFlow(box.value, {
-        applyFirst: false,
+        applyFirst: true,
         onImported: (res) => {
           if (res?.first) {
             load({ name: res.first.name, dark: res.first.dark, colors: { ...draft.colors, ...res.first.colors }, fx: res.first.fx, base: res.first.base || "an imported theme pack", editingId: res.first.id });

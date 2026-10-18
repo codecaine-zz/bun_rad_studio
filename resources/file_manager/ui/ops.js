@@ -1,6 +1,7 @@
 // Everything the person can do to files, with Undo. Each operation calls the server, explains problems in plain
 // words, offers Undo where it is possible, and refreshes the view.
 import { ApiError, call } from "./api.js";
+import { readFromClipboard } from "./copyclip.js";
 import { chooseConflict, confirmBox, problemsBox } from "./dialogs.js";
 import { announce } from "./dom.js";
 import { toast } from "./menus.js";
@@ -17,6 +18,7 @@ import { openPower } from "./power.js";
 import { selectKeys, selectedEntries } from "./selection.js";
 import { AUDIO_EXTS, VIDEO_EXTS } from "./mediacore.js";
 import { emit, on, state } from "./state.js";
+import { looksLikeThemeImportPayload, pasteImportThemesFromText } from "./themes.js";
 import { announceVerdict, askOpenAnyway, skipMismatchGuard } from "./typecheck.js";
 import { baseName, extractableEntries, parentOf, plural } from "./util.js";
 import { isLocked, unlockEntries } from "./vault.js";
@@ -135,11 +137,34 @@ async function isPlainTextInside(entry) {
   }
 }
 
+export function isThemeFileEntry(entry) {
+  if (!entry || entry.isDir || typeof entry.name !== "string") return false;
+  const lower = entry.name.toLowerCase();
+  return (
+    lower.endsWith(".ccfm") ||
+    lower.endsWith(".ccfm.txt") ||
+    lower.endsWith(".theme.json") ||
+    lower.endsWith(".theme-pack.json") ||
+    lower.endsWith(".theme.css")
+  );
+}
+
 /** `viewer: false` (Quick Look's own Open) always hands pictures, sound and video to the computer's program. */
 export async function openEntry(entry, { viewer = true } = {}) {
   if (inTrash()) return toast("Items in the Recycle Bin can't be opened. Restore one first (right-click, then Restore).");
   if (entry.isDir) return goToIn(activePane(), entry.path);
   if (isLocked(entry)) return unlockEntries([entry]);
+  if (isThemeFileEntry(entry)) {
+    try {
+      const { text } = await call("themes/custom/read-file", { path: entry.path });
+      if (text && looksLikeThemeImportPayload(text)) {
+        await pasteImportThemesFromText(text, { applyFirst: true });
+        return;
+      }
+    } catch {
+      /* fall through to standard open if reading as theme fails */
+    }
+  }
   const entryParent = parentOf(entry.path, state.sep);
   if (!entry.isDir && state.cliUtilsDir && entryParent === state.cliUtilsDir && /^[A-Za-z0-9._-]+$/.test(entry.name)) {
     const cmd = `${state.platform === "win32" ? ".\\" : "./"}${entry.name} `;
@@ -181,7 +206,7 @@ export async function openPath(path) {
   } catch (err) {
     return fail(err);
   }
-  if (entry.isDir || isLocked(entry) || textOpensInEditor(entry) || (await isPlainTextInside(entry))) return openEntry(entry);
+  if (entry.isDir || isLocked(entry) || isThemeFileEntry(entry) || textOpensInEditor(entry) || (await isPlainTextInside(entry))) return openEntry(entry);
   const parent = parentOf(entry.path, state.sep);
   if (!parent) return openEntry(entry);
   await goTo(parent, { select: entry.path });
@@ -387,7 +412,18 @@ export function cutSelection() {
 }
 
 export async function paste() {
-  if (!state.clipboard) return toast("There's nothing to paste yet. Select items and choose Copy or Cut first.");
+  if (!state.clipboard) {
+    try {
+      const clipText = await readFromClipboard();
+      if (clipText && looksLikeThemeImportPayload(clipText)) {
+        await pasteImportThemesFromText(clipText, { applyFirst: true });
+        return;
+      }
+    } catch {
+      /* ignore clipboard read errors and show standard message */
+    }
+    return toast("There's nothing to paste yet. Select items and choose Copy or Cut first (or copy a CCFM-THEME-v1 theme code to import it).");
+  }
   if (!needFolder("pasting")) return;
   await pasteInto(currentPath());
 }

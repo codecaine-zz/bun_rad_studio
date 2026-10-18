@@ -78,7 +78,13 @@
   box-shadow: 0 4px 18px -6px rgba(0, 0, 0, 0.32), inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
 }
 :root[data-fx]:not([data-fx-glow="none"]) .dialog { box-shadow: var(--fx-shadow-3, var(--shadow)), var(--fx-glow-med); }
-:root[data-fx]:not([data-fx-glow="none"]) :is(.row.selected, .side-item.active, .tool[aria-pressed="true"]) { box-shadow: var(--fx-glow-soft); }
+:root[data-fx]:not([data-fx-glow="none"]) :is(.side-item.active, .tool[aria-pressed="true"]) { box-shadow: var(--fx-glow-soft); }
+:root[data-fx]:not([data-fx-glow="none"]) :is(.row.selected, .row[aria-selected="true"]) {
+  box-shadow:
+    inset 4px 0 0 0 var(--accent),
+    inset 0 0 0 1.5px var(--accent),
+    var(--fx-glow-soft);
+}
 :root[data-fx]:not([data-fx-glow="none"]) :is(.tool, .btn):hover { box-shadow: var(--fx-glow-med); }
 :root[data-fx] :is(.row, .side-item, .tool, .dialog, #toolbar-row) { border-radius: var(--fx-radius-sm); }
 :root[data-fx] #toolbar-row { border-radius: 0; }
@@ -2412,4 +2418,83 @@ html[data-theme-show-glitch="true"] body {
   transform: translateY(-1px);
   box-shadow: 0 0 0 2px var(--accent);
 }
+
+/* ============================================================================
+ * ✅ Universal High-Visibility File & Folder Selection (Single & Multi-Select)
+ * Ensures .row.selected and .row[aria-selected="true"] override all [data-fx],
+ * [data-ui-fx], and 3D folder shaders across Details, List, and Icons views.
+ * ============================================================================ */
+:root .row.selected,
+:root .row[aria-selected="true"],
+:root[data-fx] .row.selected,
+:root[data-fx] .row[aria-selected="true"],
+html[data-ui-fx] .row.selected,
+html[data-ui-fx] .row[aria-selected="true"],
+html[data-ui-fx] .row.is-folder.selected,
+html[data-ui-fx] .row.is-folder[aria-selected="true"],
+:root[data-ui-fx] .row.is-folder.selected,
+:root[data-ui-fx] .row.is-folder[aria-selected="true"] {
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--accent) 34%, var(--selected)) 0%,
+      color-mix(in oklab, var(--accent) 18%, var(--selected)) 55%,
+      var(--selected) 100%
+    ) !important;
+  color: var(--selected-text) !important;
+  border-color: var(--accent) !important;
+  box-shadow:
+    inset 4px 0 0 0 var(--accent),
+    inset 0 0 0 1.5px color-mix(in oklab, var(--accent) 85%, var(--selected-text)),
+    0 2px 12px -2px color-mix(in oklab, var(--accent) 45%, transparent) !important;
+}
+
+:root .row.selected:hover,
+:root .row[aria-selected="true"]:hover,
+:root[data-fx] .row.selected:hover,
+:root[data-fx] .row[aria-selected="true"]:hover,
+html[data-ui-fx] .row.selected:hover,
+html[data-ui-fx] .row[aria-selected="true"]:hover,
+html[data-ui-fx] .row.is-folder.selected:hover,
+html[data-ui-fx] .row.is-folder[aria-selected="true"]:hover {
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--accent) 44%, var(--selected)) 0%,
+      color-mix(in oklab, var(--accent) 26%, var(--selected)) 60%,
+      color-mix(in oklab, var(--accent) 14%, var(--selected)) 100%
+    ) !important;
+  box-shadow:
+    inset 5px 0 0 0 var(--accent),
+    inset 0 0 0 2px var(--accent),
+    0 4px 16px -2px color-mix(in oklab, var(--accent) 58%, transparent) !important;
+}
+
+/* Selected item in Icons Grid View gets a full-card glowing ring + top accent bar */
+#list.view-icons .row.selected,
+#list.view-icons .row[aria-selected="true"],
+#dual-list.view-icons .row.selected,
+#dual-list.view-icons .row[aria-selected="true"] {
+  box-shadow:
+    inset 0 3px 0 0 var(--accent),
+    inset 0 0 0 2px var(--accent),
+    0 6px 18px -4px color-mix(in oklab, var(--accent) 52%, transparent) !important;
+}
+
+/* Guarantee every column & badge inside a selected row uses high-contrast --selected-text */
+:root .row.selected :is(.name-text, .c-name, .c-where, .c-date, .c-type, .c-size, .c-ext, .c-perms),
+:root .row[aria-selected="true"] :is(.name-text, .c-name, .c-where, .c-date, .c-type, .c-size, .c-ext, .c-perms) {
+  color: var(--selected-text) !important;
+}
+
+/* Highlight icon plate when a row is selected in 3D Icon Packs */
+:root[data-icon-pack] .row.selected .c-icon,
+:root[data-icon-pack] .row[aria-selected="true"] .c-icon {
+  border-color: var(--selected-text) !important;
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 4px 12px color-mix(in oklab, var(--accent) 55%, rgba(0, 0, 0, 0.45)) !important;
+  transform: scale(1.06);
+}
+
 

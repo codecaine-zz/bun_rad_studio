@@ -217,10 +217,21 @@ button:disabled { cursor: default; }
 .searching .row .c-where, .in-trash .row .c-where { display: block; }
 .view-details .row { min-height: 2.15rem; }
 .row:hover { background: var(--hover); }
-.row.selected { background: var(--selected); color: var(--selected-text); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent); }
-.row.selected .c-where, .row.selected .c-date, .row.selected .c-type, .row.selected .c-size { color: var(--selected-text); }
+.row.selected, .row[aria-selected="true"] {
+  background: var(--selected);
+  color: var(--selected-text);
+  box-shadow:
+    inset 4px 0 0 0 var(--accent),
+    inset 0 0 0 1.5px color-mix(in oklab, var(--accent) 72%, var(--selected-text));
+}
+.row.selected:hover, .row[aria-selected="true"]:hover {
+  background: color-mix(in oklab, var(--accent) 18%, var(--selected));
+}
+.row.selected .name-text, .row[aria-selected="true"] .name-text { font-weight: 600; color: var(--selected-text); }
+.row.selected .c-where, .row.selected .c-date, .row.selected .c-type, .row.selected .c-size, .row.selected .c-ext, .row.selected .c-perms,
+.row[aria-selected="true"] .c-where, .row[aria-selected="true"] .c-date, .row[aria-selected="true"] .c-type, .row[aria-selected="true"] .c-size, .row[aria-selected="true"] .c-ext, .row[aria-selected="true"] .c-perms { color: var(--selected-text); }
 .row.focused { outline: 2px solid var(--accent); outline-offset: -2px; }
-#list:not(:focus) .row.focused, #dual-list:not(:focus) .row.focused { outline-color: var(--border); }
+#list:not(:focus) .row.focused, #dual-list:not(:focus) .row.focused { outline-color: color-mix(in oklab, var(--accent) 55%, var(--border)); }
 .row.cut { opacity: 0.5; }
 .row.hidden-item { opacity: 0.7; }
 .row.broken .name-text { text-decoration: line-through; }

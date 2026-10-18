@@ -299,6 +299,7 @@ export function wirePane(pane) {
     if (!row) return;
     const key = row.dataset.key;
     mine();
+    container.focus?.({ preventScroll: true });
     if (isModifier(e, state.platform)) toggleKey(key, pane);
     else if (e.shiftKey) selectRangeTo(key, pane);
     else selectOnly(key, pane);

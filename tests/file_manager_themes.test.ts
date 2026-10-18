@@ -1338,6 +1338,12 @@ describe("the theme editor in the page", () => {
     expect(pasteOut.result.first.name).toBe("Pasted Instant Mac XDR Theme");
     expect(state.settings.palette).toBe(pasteOut.result.first.id);
 
+    // 8. Verify single-select and multi-select visibility rules exist in themeEffects.css and style.css
+    const fxCss = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "ui", "themeEffects.css"), "utf8");
+    expect(fxCss).toContain("html[data-ui-fx] .row.is-folder.selected");
+    expect(fxCss).toContain(":root[data-ui-fx] .row.is-folder.selected");
+    expect(fxCss).toContain("#list.view-icons .row.selected");
+
     await themes.applyPalette("");
     atmo.applyAtmosphere("none");
     closeDialogs();

@@ -2,10 +2,11 @@
 // SimpleGUI table into this page's color variables (and checks that every text and background pair is readable).
 import { ApiError, call } from "./api.js";
 import { applyAtmosphere, cycleAtmosphere, savedAtmospherePresets, triggerReactiveImpulse } from "./atmosphereFx.js";
+import { copyToClipboard, flashCopied, readFromClipboard } from "./copyclip.js";
 import { openDialog } from "./dialogs.js";
 import { debounce, h, syncVisibleIcons } from "./dom.js";
 import { toast } from "./menus.js";
-import { saveSettings } from "./nav.js";
+import { refresh as refreshPane, saveSettings } from "./nav.js";
 import { currentPath, emit, on, state } from "./state.js";
 
 /** Interactive File Manager UI element shaders for folders, toolbars, breadcrumbs, and rows. */
@@ -1400,6 +1401,7 @@ if (typeof window !== "undefined") {
 }
 
 const choose = chooseTheme;
+let activePickerRefresh = null;
 
 /** The theme gallery: search, filter by light or dark, category, template tier, animations, surface material, color vibe or effects, pin favorites, and click a theme to try it. */
 export async function showThemePicker() {
@@ -1410,7 +1412,7 @@ export async function showThemePicker() {
     toast(err?.message || "The themes couldn't be loaded.", { kind: "error" });
     return;
   }
-  const search = h("input", { type: "search", class: "prop-input", placeholder: "Search themes", "aria-label": "Search themes", title: "Type part of a theme's name, like dark, nord, m4, tahoe, tesla, tokamak or windows." });
+  const search = h("input", { type: "search", class: "prop-input theme-search", placeholder: "Search themes (or press ⌘V to paste a theme code)", "aria-label": "Search themes", title: "Type part of a theme's name, like dark, nord, m4, tahoe, tesla, tokamak or windows — or press ⌘V / Ctrl+V to paste a shared theme code." });
   const mode = h("select", { class: "prop-input", "aria-label": "Show light or dark themes", title: "Show only light themes, only dark ones, or both." },
     [["all", "Light and dark"], ["light", "Light only"], ["dark", "Dark only"]].map(([v, l]) => h("option", { value: v }, l)));
   const categoryOptions = [
@@ -1656,9 +1658,16 @@ export async function showThemePicker() {
       class: "theme-share-quick",
       "data-share-key": t.key,
       "aria-label": `Share ${t.name}`,
-      title: `Share ${t.name} with other Codecaine File Manager users (1-line Share Code, JSON, Pack, or CSS)…`,
-      onclick: (e) => {
+      title: `Copy 1-line Share Code for ${t.name} & open Export / Import Studio…`,
+      onclick: async (e) => {
         e.stopPropagation();
+        try {
+          const exp = await call("themes/custom/export", { key: t.key });
+          if (exp?.shareCode) {
+            await copyToClipboard(exp.shareCode, { what: `${t.name} share code`, quiet: true });
+            flashCopied(shareBtn, "✓");
+          }
+        } catch {}
         void showThemeShareDialog(t.key, themes);
       },
     }, "🔗");
@@ -1787,6 +1796,18 @@ export async function showThemePicker() {
   // Keyboard: the arrow keys, PageUp/PageDown, Home, End, and [ / ] move between cards and show each theme straight away (not saved yet).
   // Enter or Space keeps the focused theme, Done keeps the one on show, and Escape goes back to the saved theme.
   let previewKey = null;
+  const reloadGalleryThemes = async () => {
+    try {
+      themes = await themeList();
+      previewKey = null;
+      if (themes.some((t) => t.group === "My themes") && ![...groupFilter.options].some((o) => o.value === "My themes")) {
+        const opt = h("option", { value: "My themes" }, "My themes");
+        groupFilter.insertBefore(opt, groupFilter.options[3] || null);
+      }
+      draw();
+    } catch {}
+  };
+  activePickerRefresh = reloadGalleryThemes;
   const cards = () => [...list.querySelectorAll(".theme-card")];
   const preview = debounce((key) => { if (previewKey === key) applyPalette(key); }, 20);
   async function pick(key) {
@@ -1856,7 +1877,16 @@ export async function showThemePicker() {
   };
   search.addEventListener("keydown", enterCards);
 
-  search.addEventListener("input", debounce(draw, 120));
+  search.addEventListener("input", debounce(async () => {
+    const val = search.value.trim();
+    if (looksLikeThemeImportPayload(val)) {
+      search.value = "";
+      await pasteImportThemesFromText(val, { applyFirst: true });
+      await reloadGalleryThemes();
+      return;
+    }
+    draw();
+  }, 120));
   mode.addEventListener("change", draw);
   groupFilter.addEventListener("change", draw);
   fxFilter.addEventListener("change", draw);
@@ -1944,10 +1974,11 @@ export async function showThemePicker() {
           type: "button",
           class: "btn theme-share-hub-btn",
           "data-share-hub": "true",
-          title: "Share any premade or custom theme (or multi-theme bundle pack) with other Codecaine File Manager users, or import a shared theme code.",
-          onclick: () => {
+          title: "Export or Import themes (1-line Share Code, JSON, CSS, Save to File, Load File, or Bulk Import).",
+          onclick: async () => {
             const activeKey = previewKey || state.settings.palette || lastShown[0]?.key || themes[0]?.key || "";
-            void showThemeShareDialog(activeKey, themes);
+            await showThemeShareDialog(activeKey, themes);
+            await reloadGalleryThemes();
           },
         }, "📤 Share / Import…"),
         h("button", {
@@ -1958,8 +1989,7 @@ export async function showThemePicker() {
           onclick: async () => {
             const out = await pasteImportThemesFromClipboard({ applyFirst: true });
             if (out?.completed) {
-              previewKey = state.settings?.palette || null;
-              dialog.close(true);
+              await reloadGalleryThemes();
             }
           },
         }, "📋 Paste Theme (⌘V)"),
@@ -1978,13 +2008,34 @@ export async function showThemePicker() {
         h("button", { type: "button", class: "btn", title: "Choose a Light theme for daytime, a Dark theme for nighttime, a 4-stage Solar Cycle schedule, or an Ambient Auto-Rotation Playlist.", onclick: () => { void showDayNightPairDialog(themes); } }, "Day / Night & Playlist…"),
         h("button", { type: "button", class: "btn", title: "Make your own theme, extract colors from an image/wallpaper, or hack any premade theme to death.", onclick: () => { dialog.close(); emit("theme-editor", { from: state.settings.palette || "" }); } }, "Create or edit a theme…")),
       navBar, immersionBar, count, list,
-      h("p", { class: "hint" }, "A theme applies as soon as you click it, and is remembered. Use ← ↑ ↓ →, PgUp/PgDn, or [ / ] to rapid-preview themes live; use 🔥 Folder & Toolbar FX and 🎭 Custom Icon Pack to transform File Manager folders, toolbars, and icons; click 🔗 to share any premade or custom theme, ✎ to clone & hack it in the Theme Editor, or ☆ to pin to Favorites."),
+      h("p", { class: "hint" }, "A theme applies as soon as you click it, and is remembered. Press ⌘V / Ctrl+V or drop a .theme.json / .ccfm file anywhere to import; click 🔗 on any card to copy its share code in 1 click, ✎ to clone & hack it in the Theme Editor, or ☆ to pin to Favorites."),
     ],
     buttons: [{ label: "Done", primary: true, value: true }],
     initialFocus: search,
   });
   dialogRef = dialog;
   const dialogWrap = list.closest(".modal-backdrop") || list.parentElement;
+  dialogWrap?.addEventListener("dragover", (e) => {
+    if (e.dataTransfer?.types?.includes?.("Files")) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+    }
+  });
+  dialogWrap?.addEventListener("drop", async (e) => {
+    const files = [...(e.dataTransfer?.files ?? [])];
+    if (!files.length) return;
+    e.preventDefault();
+    try {
+      const texts = await Promise.all(files.map((f) => f.text()));
+      const combined = texts.map((t) => t.trim()).filter(Boolean).join("\n");
+      if (combined) {
+        await runBulkThemeImportFlow(combined, { applyFirst: true });
+        await reloadGalleryThemes();
+      }
+    } catch {
+      toast("Could not read dropped theme file.", { kind: "error" });
+    }
+  });
   dialogWrap?.addEventListener("keydown", (e) => {
     if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.target === search) return;
@@ -1994,6 +2045,7 @@ export async function showThemePicker() {
     }
   });
   dialog.result.then(async (value) => {
+    if (activePickerRefresh === reloadGalleryThemes) activePickerRefresh = null;
     const key = previewKey;
     previewKey = null;
     if (key === null) return;
@@ -2470,10 +2522,53 @@ export async function showDayNightPairDialog(existingThemes) {
 }
 
 /**
+ * Helper to save any exported theme text or code directly as a file in the currently open folder
+ * (with automatic fallback to the user's home directory and pane refresh).
+ */
+export async function saveThemeFileToFolder({ filename, content, folder = "" } = {}) {
+  const targetFolder = folder || state.left?.path || state.home || "";
+  try {
+    const res = await call("themes/custom/save-file", {
+      folder: targetFolder,
+      filename,
+      content,
+    });
+    void refreshPane();
+    toast(`Saved theme file "${res.name}" to ${res.path}`, { kind: "success" });
+    return res;
+  } catch (err) {
+    toast(err?.message || "Could not save theme file to folder.", { kind: "error" });
+    return null;
+  }
+}
+
+/**
+ * Helper to trigger a browser file download of a theme file (.theme.json, .ccfm.txt, .theme.css).
+ */
+export function downloadThemeFileInBrowser(filename, content) {
+  try {
+    const safeName = String(filename || "codecaine-theme.theme.json").replace(/[^A-Za-z0-9._ -]+/g, "-");
+    const blob = new Blob([String(content ?? "")], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = safeName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    toast(`Downloaded "${safeName}"`, { kind: "success" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Universal Codecaine Theme Share & Import Hub:
  * Lets any Codecaine File Manager user share ANY premade built-in theme, custom hacked theme, or curated bundle pack
- * via a 1-line Share Code (`CCFM-THEME-v1:...` / `CCFM-PACK-v1:...`), portable JSON, or standalone CSS — and import
- * codes/packs shared by other users.
+ * via a 1-line Share Code (`CCFM-THEME-v1:...` / `CCFM-PACK-v1:...`), portable JSON, standalone CSS, or direct `.theme.json` file —
+ * and import codes/packs/files shared by other users in 1 click.
  */
 export async function showThemeShareDialog(initialKey = "", existingThemes) {
   let themes = existingThemes;
@@ -2504,6 +2599,7 @@ export async function showThemeShareDialog(initialKey = "", existingThemes) {
     rows: "7",
     "data-share-export-box": "true",
     "aria-label": "Shareable theme code or JSON",
+    onclick: () => exportBox.select?.(),
   });
 
   let activeFormat = "code"; // "code" | "json" | "css" | "pack-weather" | "pack-nostalgia" | "pack-favs"
@@ -2528,11 +2624,24 @@ export async function showThemeShareDialog(initialKey = "", existingThemes) {
   const tabs = h("div", { class: "theme-export-tabs" },
     makeFmtBtn("code", "🔑 1-Line Share Code (CCFM-THEME-v1)", "Compact 1-line share code for Discord, Slack, GitHub, or messages"),
     makeFmtBtn("json", "📄 Portable Theme JSON", "Full human-readable JSON that can be edited or hacked before importing"),
-    makeFmtBtn("css", "🎨 Standalone CSS (:root)", "Ready-to-use CSS variables & custom shader rules"),
+    makeFmtBtn("css", "🎨 Standalone CSS (:root)", "Ready-to-use CSS variables & custom shader rules (round-trip importable!)"),
     makeFmtBtn("pack-weather", "🌪️ Weather & Storm Pack", "Shareable bundle of extreme Weather, Tornado, Hurricane, Fire & Slime themes"),
     makeFmtBtn("pack-nostalgia", "🐧 Linux & Retro OS Pack", "Shareable bundle of nostalgic Linux, BeOS, Solaris CDE, Amiga, OS/2 & Win95 themes"),
     makeFmtBtn("pack-favs", "★ Favorites & Custom Pack", "Shareable bundle of all your pinned Favorite themes and My Themes"),
   );
+
+  function suggestedExportFilename() {
+    const selectedKey = themeSelect.value || themes[0].key;
+    const found = themes.find((t) => t.key === selectedKey);
+    const slug = String(found?.name || selectedKey || "codecaine-theme")
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "codecaine-theme";
+    if (activeFormat === "css") return `${slug}.theme.css`;
+    if (activeFormat === "code") return `${slug}.ccfm.txt`;
+    if (activeFormat.startsWith("pack-")) return `${activeFormat}.theme-pack.json`;
+    return `${slug}.theme.json`;
+  }
 
   async function refreshExport() {
     const selectedKey = themeSelect.value || themes[0].key;
@@ -2570,14 +2679,14 @@ export async function showThemeShareDialog(initialKey = "", existingThemes) {
     class: "prop-input theme-export",
     rows: "5",
     "data-share-import-box": "true",
-    "aria-label": "Paste shared CCFM-THEME-v1 codes, CCFM-PACK-v1 codes, or theme JSON",
-    placeholder: "Paste one or more CCFM-THEME-v1:... codes (even multiple lines!), CCFM-PACK-v1:... bundle codes, or Theme JSON / JSON arrays…",
+    "aria-label": "Paste shared CCFM-THEME-v1 codes, CCFM-PACK-v1 codes, CSS, or theme JSON",
+    placeholder: "Paste any CCFM-THEME-v1:... code, CCFM-PACK-v1:... pack, Theme JSON, or :root CSS here — or drop a .json/.ccfm/.css file anywhere on this window!",
   });
 
   const fileInput = h("input", {
     type: "file",
     multiple: true,
-    accept: ".json,.txt,.ccfm,application/json,text/plain",
+    accept: ".json,.txt,.ccfm,.css,application/json,text/plain,text/css",
     "data-share-import-file-input": "true",
     style: "display:none",
   });
@@ -2588,32 +2697,72 @@ export async function showThemeShareDialog(initialKey = "", existingThemes) {
       const contents = await Promise.all(files.map((f) => f.text()));
       const merged = [importBox.value.trim(), ...contents.map((c) => c.trim())].filter(Boolean).join("\n");
       importBox.value = merged;
-      toast(`Loaded ${files.length} theme file${files.length === 1 ? "" : "s"} into the bulk import queue.`, { kind: "info" });
+      const out = await runBulkThemeImportFlow(merged, { applyFirst: true, forcePrompt: false });
+      if (out?.completed) dlg.close("imported");
     } catch {
       toast("Could not read one of the selected theme files.", { kind: "error" });
     }
   });
 
+  const copyBtn = h("button", {
+    type: "button",
+    class: "btn primary",
+    "data-share-copy-btn": "true",
+    onclick: async () => {
+      const ok = await copyToClipboard(exportBox.value);
+      if (ok) {
+        flashCopied(copyBtn, "✓ Copied!");
+        toast("Copied share code / theme text to clipboard!", { kind: "success" });
+      } else {
+        exportBox.focus();
+        exportBox.select?.();
+        toast("Select the text and copy it manually.", { kind: "info" });
+      }
+    },
+  }, "📋 Copy Share Code / Text");
+
+  const saveFolderBtn = h("button", {
+    type: "button",
+    class: "btn",
+    "data-share-save-folder-btn": "true",
+    title: "Save this theme directly as a file in your currently open File Manager folder",
+    onclick: async () => {
+      let content = exportBox.value;
+      let filename = suggestedExportFilename();
+      if (activeFormat === "code") {
+        try {
+          const selectedKey = themeSelect.value || themes[0].key;
+          const res = await call("themes/custom/export", { key: selectedKey });
+          content = res.text;
+          filename = filename.replace(/\.ccfm\.txt$/, ".theme.json");
+        } catch { /* keep share code */ }
+      }
+      const saved = await saveThemeFileToFolder({ filename, content });
+      if (saved) flashCopied(saveFolderBtn, "✓ Saved to Folder!");
+    },
+  }, "💾 Save File to Folder");
+
+  const downloadBtn = h("button", {
+    type: "button",
+    class: "btn",
+    "data-share-download-btn": "true",
+    title: "Download this theme as a standalone file",
+    onclick: () => {
+      downloadThemeFileInBrowser(suggestedExportFilename(), exportBox.value);
+      flashCopied(downloadBtn, "✓ Downloaded!");
+    },
+  }, "⬇️ Download File");
+
   const dlg = openDialog({
-    title: "Share & Bulk Import Codecaine Themes (Premade, Custom & Bundles)",
+    title: "Share, Export & Import Themes (1-Click Copy, Save File, or Paste)",
     wide: true,
     body: [
-      h("p", { class: "hint" }, "Every Codecaine File Manager user can share any premade theme, custom hacked theme, or multi-theme bundle pack. Copy the 1-line Share Code or JSON below, or bulk import multiple themes at once with automatic conflict resolution!"),
-      h("div", { class: "theme-compare-controls" },
-        h("label", { class: "field", style: "flex:1" }, h("span", { class: "field-label" }, "📤 Choose any Premade or Custom Theme to Share"), themeSelect),
-        h("button", {
-          type: "button",
-          class: "btn",
-          "data-share-copy-btn": "true",
-          onclick: async () => {
-            try {
-              await call("copytext", { text: exportBox.value });
-              toast("Copied share code / theme text to clipboard!", { kind: "success" });
-            } catch {
-              toast("Select the text and copy it manually.", { kind: "info" });
-            }
-          },
-        }, "📋 Copy Share Code / Text"),
+      h("p", { class: "hint" }, "Share any premade theme, custom theme, or bundle pack in 1 click: copy the Share Code, save a `.theme.json` file straight to your current folder, or paste / drag-and-drop any theme code, JSON, or CSS below!"),
+      h("div", { class: "theme-compare-controls", style: "flex-wrap:wrap;gap:0.45rem" },
+        h("label", { class: "field", style: "flex:1;min-width:220px" }, h("span", { class: "field-label" }, "📤 Choose any Premade or Custom Theme to Share / Export"), themeSelect),
+        copyBtn,
+        saveFolderBtn,
+        downloadBtn,
         h("button", {
           type: "button",
           class: "btn",
@@ -2630,36 +2779,34 @@ export async function showThemeShareDialog(initialKey = "", existingThemes) {
       tabs,
       exportBox,
       h("hr", { style: "border:0;border-top:1px solid var(--border);margin:0.75rem 0" }),
-      h("div", { class: "theme-compare-controls", style: "justify-content:space-between;align-items:center" },
-        h("h3", { style: "margin:0;font-size:13px" }, "📥 Bulk Import Shared Theme Codes, JSON Packs, or Multiple Files (or press ⌘V / Ctrl+V anywhere!)"),
-        h("div", { style: "display:flex;gap:0.4rem;align-items:center" },
+      h("div", { class: "theme-compare-controls", style: "justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.45rem" },
+        h("h3", { style: "margin:0;font-size:13px" }, "📥 Import Theme Code, JSON, CSS, or File (Paste, Drop File, or Choose File)"),
+        h("div", { style: "display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap" },
           fileInput,
           h("button", {
             type: "button",
-            class: "btn",
+            class: "btn primary",
             "data-share-paste-clipboard-btn": "true",
-            title: "Read theme share codes or JSON directly from your clipboard and import via ⌘V / Ctrl+V.",
+            title: "Read theme share codes, JSON, or CSS directly from your system clipboard and import immediately.",
             onclick: async () => {
-              try {
-                const clip = await navigator?.clipboard?.readText?.();
-                if (clip && clip.trim()) {
-                  importBox.value = clip.trim();
-                  const out = await runBulkThemeImportFlow(clip.trim(), { applyFirst: true, forcePrompt: false });
-                  if (out?.completed) dlg.close("imported");
-                  return;
-                }
-              } catch { /* fallback to focus importBox */ }
+              const clip = (await readFromClipboard())?.trim();
+              if (clip) {
+                importBox.value = clip;
+                const out = await runBulkThemeImportFlow(clip, { applyFirst: true, forcePrompt: false });
+                if (out?.completed) dlg.close("imported");
+                return;
+              }
               importBox.focus();
               toast("Press ⌘V / Ctrl+V in the box below to paste your theme code.", { kind: "info" });
             },
-          }, "📋 Paste from Clipboard (⌘V)"),
+          }, "📋 Paste & Import from Clipboard"),
           h("button", {
             type: "button",
             class: "btn",
             "data-share-import-files-btn": "true",
-            title: "Select one or more .json / .txt / .ccfm theme files from your computer to bulk import.",
+            title: "Select one or more .json / .txt / .ccfm / .css theme files from your computer to import immediately.",
             onclick: () => fileInput.click(),
-          }, "📂 Load Theme Files…"),
+          }, "📂 Load Theme File(s)…"),
         ),
       ),
       importBox,
@@ -2672,7 +2819,7 @@ export async function showThemeShareDialog(initialKey = "", existingThemes) {
           onclick: async () => {
             const raw = importBox.value.trim();
             if (!raw) {
-              toast("Paste one or more CCFM-THEME-v1 / CCFM-PACK-v1 codes or JSON first.", { kind: "info" });
+              toast("Paste one or more CCFM-THEME-v1 / CCFM-PACK-v1 codes, CSS, or JSON first.", { kind: "info" });
               return;
             }
             const out = await runBulkThemeImportFlow(raw, { applyFirst: true, forcePrompt: true });
@@ -2686,7 +2833,7 @@ export async function showThemeShareDialog(initialKey = "", existingThemes) {
           onclick: async () => {
             const raw = importBox.value.trim();
             if (!raw) {
-              toast("Paste a CCFM-THEME-v1 code, CCFM-PACK-v1 code, or JSON first.", { kind: "info" });
+              toast("Paste a CCFM-THEME-v1 code, CCFM-PACK-v1 code, CSS, or JSON first.", { kind: "info" });
               return;
             }
             const out = await runBulkThemeImportFlow(raw, { applyFirst: true, forcePrompt: false });
@@ -2698,6 +2845,30 @@ export async function showThemeShareDialog(initialKey = "", existingThemes) {
     buttons: [{ label: "Close", primary: true, value: "close" }],
     initialFocus: themeSelect,
   });
+
+  dlg.el?.addEventListener("dragover", (e) => {
+    if (e.dataTransfer?.types?.includes?.("Files")) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+    }
+  });
+  dlg.el?.addEventListener("drop", async (e) => {
+    const files = [...(e.dataTransfer?.files ?? [])];
+    if (!files.length) return;
+    e.preventDefault();
+    try {
+      const contents = await Promise.all(files.map((f) => f.text()));
+      const merged = contents.map((c) => c.trim()).filter(Boolean).join("\n");
+      if (merged) {
+        importBox.value = merged;
+        const out = await runBulkThemeImportFlow(merged, { applyFirst: true, forcePrompt: false });
+        if (out?.completed) dlg.close("imported");
+      }
+    } catch {
+      toast("Could not read the dropped theme file.", { kind: "error" });
+    }
+  });
+
   return dlg.result;
 }
 
@@ -2937,6 +3108,7 @@ export async function openThemeConflictDialog(inspection, rawText, { applyFirst 
       });
       await applyPalette(res.first.id);
     }
+    await activePickerRefresh?.();
     if (typeof onImported === "function") onImported(res);
     const parts = [];
     if (res.addedCount) parts.push(`${res.addedCount} added`);
@@ -2971,6 +3143,7 @@ export async function runBulkThemeImportFlow(rawText, { applyFirst = true, force
       });
       await applyPalette(res.first.id);
     }
+    await activePickerRefresh?.();
     if (typeof onImported === "function") onImported(res);
     toast(`Imported ${res.count} shared theme${res.count === 1 ? "" : "s"} into My Themes${res.first?.name ? ` and applied "${res.first.name}"` : ""}!`, { kind: "success" });
     return { completed: true, result: res };
@@ -2982,16 +3155,22 @@ export async function runBulkThemeImportFlow(rawText, { applyFirst = true, force
 
 /**
  * Fast heuristic to detect whether clipboard text or a pasted string is a Codecaine Theme share payload:
- * - `CCFM-THEME-v1:...` single theme share code(s)
+ * - `CCFM-THEME-v1:...` single theme share code(s) (including line-wrapped or embedded in comments)
  * - `CCFM-PACK-v1:...` multi-theme bundle code(s)
  * - Portable theme JSON object (`bun-rad-studio-file-manager-theme`, `bun-rad-studio-file-manager-theme-pack`, or `{ name, colors: { background, accent } }`)
- * - JSON array of theme objects
+ * - JSON array of theme objects or Markdown code-fenced JSON
+ * - Standalone CSS stylesheet containing `:root` with `--bg:` and `--accent:`
  */
 export function looksLikeThemeImportPayload(rawText) {
   if (typeof rawText !== "string") return false;
-  const trimmed = rawText.trim();
+  let trimmed = rawText.trim();
   if (!trimmed || trimmed.length < 12 || trimmed.length > 600_000) return false;
-  if (/CCFM-(?:THEME|PACK)-v1:[A-Za-z0-9+/=_-]{8,}/.test(trimmed)) return true;
+  const fenceMatch = trimmed.match(/^```(?:json|css|txt|ccfm)?\s*([\s\S]*?)\s*```$/i);
+  if (fenceMatch) trimmed = fenceMatch[1].trim();
+  if (/CCFM-(?:THEME|PACK)-v1:\s*[A-Za-z0-9+/=_-]{8,}/.test(trimmed)) return true;
+  if (trimmed.includes(":root") && /--bg\s*:\s*#[0-9a-fA-F]{3,8}/.test(trimmed) && /--accent\s*:\s*#[0-9a-fA-F]{3,8}/.test(trimmed)) {
+    return true;
+  }
   if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
     try {
       const parsed = JSON.parse(trimmed);
@@ -3000,8 +3179,7 @@ export function looksLikeThemeImportPayload(rawText) {
           o &&
           typeof o === "object" &&
           (o.format === "bun-rad-studio-file-manager-theme" ||
-            (typeof o.name === "string" &&
-              o.colors &&
+            (o.colors &&
               typeof o.colors === "object" &&
               typeof o.colors.background === "string" &&
               typeof o.colors.accent === "string")),
@@ -3022,7 +3200,7 @@ export function looksLikeThemeImportPayload(rawText) {
 }
 
 /**
- * Validates and imports one or more themes from raw text (`CCFM-THEME-v1:...`, `CCFM-PACK-v1:...`, or JSON),
+ * Validates and imports one or more themes from raw text (`CCFM-THEME-v1:...`, `CCFM-PACK-v1:...`, CSS, or JSON),
  * automatically prompting the Conflict Resolution Modal if any names collide.
  */
 export async function pasteImportThemesFromText(rawText, { applyFirst = true, forcePrompt = false, onImported = null, quietIfInvalid = false } = {}) {
@@ -3033,7 +3211,7 @@ export async function pasteImportThemesFromText(rawText, { applyFirst = true, fo
   }
   if (!looksLikeThemeImportPayload(text)) {
     if (!quietIfInvalid) {
-      toast("Clipboard does not contain a valid CCFM-THEME-v1 / CCFM-PACK-v1 share code or Theme JSON.", { kind: "info" });
+      toast("Clipboard does not contain a valid CCFM-THEME-v1 / CCFM-PACK-v1 share code, CSS, or Theme JSON.", { kind: "info" });
     }
     return { completed: false, result: null };
   }
@@ -3041,22 +3219,20 @@ export async function pasteImportThemesFromText(rawText, { applyFirst = true, fo
 }
 
 /**
- * Reads the system clipboard (or opens a quick paste box if clipboard read permission is blocked)
+ * Reads the native OS / browser clipboard via `readFromClipboard()` (or opens the Share & Import Hub if empty)
  * and imports any single theme or bulk theme pack with automatic conflict resolution.
  */
 export async function pasteImportThemesFromClipboard(opts = {}) {
   try {
-    if (typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.readText === "function") {
-      const clipText = await navigator.clipboard.readText();
-      if (clipText && clipText.trim()) {
-        if (looksLikeThemeImportPayload(clipText)) {
-          return await pasteImportThemesFromText(clipText, opts);
-        }
-        toast("Clipboard text doesn't look like a CCFM-THEME-v1 / CCFM-PACK-v1 code or Theme JSON — opening Share & Import Hub.", { kind: "info" });
+    const clipText = await readFromClipboard();
+    if (clipText && clipText.trim()) {
+      if (looksLikeThemeImportPayload(clipText)) {
+        return await pasteImportThemesFromText(clipText, opts);
       }
+      toast("Clipboard text doesn't look like a theme code or JSON — opening Share & Import Hub.", { kind: "info" });
     }
   } catch {
-    /* Clipboard API read permission denied or unavailable; fall through to quick paste modal */
+    /* Fall through to Share & Import Hub */
   }
   await showThemeShareDialog(state.settings?.palette || "");
   return { completed: false, result: null };

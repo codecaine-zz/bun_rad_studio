@@ -3,6 +3,8 @@
  * there can be picked here. Each one is turned into the page's own color variables, and every text and background
  * pair is nudged until it passes the contrast checks that tests/file_manager_themes.test.ts runs on all of them.
  */
+import { promises as fsp } from "fs";
+import * as nodePath from "path";
 import type { SimpleGUITheme } from "../../simplegui";
 import { SIMPLEGUI_THEMES } from "../../shared/simpleguiThemes";
 import {
@@ -519,8 +521,9 @@ const customSummary = (t: CustomTheme): ThemeSummary => {
 
 async function resolve(ctx: FmContext, key: unknown): Promise<{ colours: ThemeSummary & ThemeVars; source: ThemeSource; draft?: CustomTheme } | null> {
   if (isCustomKey(key)) {
-    const t = (await loadCustom(ctx)).find((x) => x.id === key);
-    return t ? { colours: summaryOf(t.id, toSimpleTheme(t), "My themes"), source: sourceOf(toSimpleTheme(t)), draft: t } : null;
+    const customList = await loadCustom(ctx);
+    const found = customList.find((x) => x.id === key);
+    return found ? { colours: summaryOf(found.id, toSimpleTheme(found), "My themes"), source: sourceOf(toSimpleTheme(found)), draft: found } : null;
   }
   const colours = getThemeColours(key);
   return colours ? { colours, source: sourceOf(entries().get(key as string)!.theme) } : null;
@@ -528,7 +531,10 @@ async function resolve(ctx: FmContext, key: unknown): Promise<{ colours: ThemeSu
 
 /** Converts any resolved theme (premade built-in or custom) into a portable ThemeDraft for sharing/exporting. */
 async function resolveShareableDraft(ctx: FmContext, keyOrId: unknown): Promise<ThemeDraft | null> {
-  const r = await resolve(ctx, keyOrId);
+  const effectiveKey = (keyOrId === "" || keyOrId === "standard" || keyOrId === "default" || keyOrId === undefined || keyOrId === null)
+    ? "tahoe_studio_3d"
+    : keyOrId;
+  const r = (await resolve(ctx, effectiveKey)) ?? (effectiveKey === "tahoe_studio_3d" ? await resolve(ctx, "dracula") : null);
   if (!r) return null;
   if (r.draft) {
     const { id: _id, ...draft } = r.draft;
@@ -541,6 +547,14 @@ async function resolveShareableDraft(ctx: FmContext, keyOrId: unknown): Promise<
     colors: r.source.colors,
     ...(r.source.fx ? { fx: r.source.fx } : {}),
   });
+}
+
+function safeFileSlug(name: string): string {
+  return (name || "theme")
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "theme";
 }
 
 export const themeOperations: Record<string, FmHandler> = {
@@ -592,11 +606,13 @@ export const themeOperations: Record<string, FmHandler> = {
     if (b.theme && typeof b.theme === "object") {
       const draft = validateDraft(b.theme);
       const c = themeVars(toSimpleTheme(draft));
-      return { css: exportThemeCss(draft.name, c.scheme, c.vars, c.effects?.css, c.effects?.customCss) };
+      return { css: exportThemeCss(draft.name, c.scheme, c.vars, c.effects?.css, c.effects?.customCss, encodeThemeShareCode(draft)) };
     }
-    const r = await resolve(ctx, b.key ?? b.id);
+    const targetKey = b.key ?? b.id;
+    const r = (await resolve(ctx, targetKey)) ?? ((targetKey === "" || targetKey === "standard" || targetKey === undefined) ? await resolve(ctx, "tahoe_studio_3d") : null);
     if (!r) throw new FmError("NOT_FOUND", "That theme isn't available.");
-    return { css: exportThemeCss(r.colours.name, r.colours.scheme, r.colours.vars, r.colours.effects?.css, r.colours.effects?.customCss) };
+    const draft = await resolveShareableDraft(ctx, targetKey);
+    return { css: exportThemeCss(r.colours.name, r.colours.scheme, r.colours.vars, r.colours.effects?.css, r.colours.effects?.customCss, draft ? encodeThemeShareCode(draft) : undefined) };
   },
   /** Exports custom themes and/or selected premade themes as a shareable Theme Pack JSON string + compact CCFM-PACK-v1 share code. */
   async "themes/custom/export-pack"(ctx, b) {
@@ -611,13 +627,72 @@ export const themeOperations: Record<string, FmHandler> = {
     }
     const all = await loadCustom(ctx);
     const ids = Array.isArray(b.ids) ? b.ids.filter(isCustomKey) : null;
-    const picked = ids && ids.length ? all.filter((t) => ids.includes(t.id)) : all;
-    if (!picked.length && b.theme && typeof b.theme === "object") {
+    const picked: ThemeDraft[] = (ids && ids.length ? all.filter((t) => ids.includes(t.id)) : all).map(({ id: _id, ...d }) => d);
+    if (b.theme && typeof b.theme === "object") {
       const draft = validateDraft(b.theme);
-      return { text: exportThemePack([draft]), shareCode: encodeThemePackShareCode([draft]), count: 1 };
+      if (!picked.some((t) => t.name.toLowerCase() === draft.name.toLowerCase())) {
+        picked.unshift(draft);
+      }
     }
     if (!picked.length) throw new FmError("NOT_FOUND", "Save at least one custom theme first to export a pack.");
     return { text: exportThemePack(picked), shareCode: encodeThemePackShareCode(picked), count: picked.length };
+  },
+  /** Saves an exported theme or theme pack directly as a file on disk inside `b.folder` (or the user's home folder). */
+  async "themes/custom/save-file"(ctx, b) {
+    const rawFolder = typeof b.folder === "string" && b.folder.trim() ? b.folder.trim() : ctx.home;
+    const targetDir = nodePath.resolve(rawFolder);
+    await fsp.mkdir(targetDir, { recursive: true });
+
+    const fmt = typeof b.format === "string" ? b.format : "json";
+    let content = typeof b.content === "string" ? b.content : "";
+    let baseSlug = typeof b.name === "string" && b.name.trim() ? safeFileSlug(b.name) : "codecaine-theme";
+    let ext = ".theme.json";
+
+    if (!content) {
+      if (fmt === "pack" || Array.isArray(b.keys)) {
+        const packRes = (await themeOperations["themes/custom/export-pack"]!(ctx, b)) as { text: string; shareCode: string };
+        content = fmt === "pack-code" ? packRes.shareCode : packRes.text;
+        baseSlug = safeFileSlug(typeof b.name === "string" && b.name.trim() ? b.name : "codecaine-theme-pack");
+        ext = fmt === "pack-code" ? ".ccfm-pack.txt" : ".theme-pack.json";
+      } else if (fmt === "css") {
+        const cssRes = (await themeOperations["themes/custom/export-css"]!(ctx, b)) as { css: string };
+        content = cssRes.css;
+        ext = ".theme.css";
+      } else {
+        const expRes = (await themeOperations["themes/custom/export"]!(ctx, b)) as { text: string; shareCode: string; name: string };
+        baseSlug = safeFileSlug(expRes.name);
+        content = fmt === "code" ? expRes.shareCode : expRes.text;
+        ext = fmt === "code" ? ".ccfm.txt" : ".theme.json";
+      }
+    } else {
+      if (fmt === "css") ext = ".theme.css";
+      else if (fmt === "code") ext = ".ccfm.txt";
+      else if (fmt.startsWith("pack")) ext = ".theme-pack.json";
+    }
+
+    let fileName = `${baseSlug}${ext}`;
+    let fullPath = nodePath.join(targetDir, fileName);
+    for (let i = 2; i < 200; i++) {
+      try {
+        await fsp.access(fullPath);
+        fileName = `${baseSlug}-${i}${ext}`;
+        fullPath = nodePath.join(targetDir, fileName);
+      } catch {
+        break;
+      }
+    }
+    await fsp.writeFile(fullPath, content, "utf8");
+    return { path: fullPath, name: fileName, bytes: Buffer.byteLength(content, "utf8") };
+  },
+  /** Reads a `.theme.json`, `.ccfm`, `.json`, `.txt`, or `.css` file from disk and returns its text for theme import. */
+  async "themes/custom/read-file"(_ctx, b) {
+    if (typeof b.path !== "string" || !b.path.trim()) throw new FmError("BAD_REQUEST", "Choose a theme file first.");
+    const resolved = nodePath.resolve(b.path.trim());
+    const st = await fsp.stat(resolved).catch(() => null);
+    if (!st || !st.isFile()) throw new FmError("NOT_FOUND", "That theme file could not be found.");
+    if (st.size > 600_000) throw new FmError("BAD_REQUEST", "That file is too large to be a theme file.");
+    const text = await fsp.readFile(resolved, "utf8");
+    return { path: resolved, name: nodePath.basename(resolved), text };
   },
   /** Pre-flight inspects a bulk theme import to detect name conflicts against existing custom themes or within the batch. */
   async "themes/custom/inspect-pack"(ctx, b) {

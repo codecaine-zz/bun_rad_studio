@@ -255,18 +255,116 @@ export function encodeThemePackShareCode(themes: ThemeDraft[]): string {
   return `${PACK_SHARE_CODE_PREFIX}${Buffer.from(JSON.stringify(payload), "utf8").toString("base64url")}`;
 }
 
+/** Strips surrounding markdown code fences (```json ... ```), backticks, or quotes from pasted text. */
+function unwrapPastedEnvelope(raw: string): string {
+  let s = raw.trim();
+  const fenceMatch = s.match(/^```(?:json|css|txt|text|ccfm)?\s*([\s\S]*?)\s*```$/i);
+  if (fenceMatch && fenceMatch[1]) s = fenceMatch[1].trim();
+  if ((s.startsWith("`") && s.endsWith("`")) || (s.startsWith('"') && s.endsWith('"') && !s.startsWith('"{')) || (s.startsWith("'") && s.endsWith("'"))) {
+    s = s.slice(1, -1).trim();
+  }
+  return s;
+}
+
+/** Parses a standalone `:root { --bg: #...; --text: #...; --accent: #... }` CSS variables block into a ThemeDraft. */
+function tryParseCssTheme(raw: string): ThemeDraft | null {
+  if (!raw.includes(":root") && !raw.includes("--bg") && !raw.includes("--background")) return null;
+  const headerMatch = raw.match(/\/\*\s*([^*(\n]+?)\s*(?:\((dark|light)\))?\s*(?:—|-)\s*exported from File Manager/i);
+  const name = clean(headerMatch?.[1] || "Imported CSS Theme").slice(0, MAX_THEME_NAME) || "Imported CSS Theme";
+  const schemeMatch = raw.match(/color-scheme\s*:\s*(dark|light)/i);
+  const dark = (headerMatch?.[2] || schemeMatch?.[1] || "dark").toLowerCase() !== "light";
+
+  const pickHexVar = (...varNames: string[]): string | undefined => {
+    for (const vn of varNames) {
+      const m = raw.match(new RegExp(`--${vn}\\s*:\\s*(#[0-9a-fA-F]{3,6})\\b`));
+      if (m && m[1]) {
+        const exp = expandHex(m[1]);
+        if (typeof exp === "string" && HEX.test(exp)) return exp.toLowerCase();
+      }
+    }
+    return undefined;
+  };
+
+  const background = pickHexVar("bg", "background", "window-bg");
+  const text = pickHexVar("text", "fg", "foreground");
+  const accent = pickHexVar("accent", "primary", "focus-ring");
+  if (!background || !text || !accent) return null;
+
+  const card = pickHexVar("panel", "card", "surface-elevated");
+  const border = pickHexVar("border", "border-subtle");
+  const danger = pickHexVar("danger");
+  const good = pickHexVar("good", "success");
+
+  let customCss = "";
+  const customSplit = raw.split(/\/\*\s*Personal Custom CSS Overrides\s*\*\//i);
+  if (customSplit.length > 1 && customSplit[1]?.trim()) {
+    customCss = sanitizeCustomCss(customSplit[1].trim());
+  }
+
+  return validateDraft({
+    name,
+    dark,
+    base: "CSS Import",
+    colors: {
+      background,
+      text,
+      accent,
+      ...(card ? { card } : {}),
+      ...(border ? { border } : {}),
+      ...(danger ? { danger } : {}),
+      ...(good ? { success: good } : {}),
+    },
+    ...(customCss
+      ? {
+          fx: {
+            glow: "soft",
+            glowColor: accent,
+            glowColor2: accent,
+            blur: 16,
+            glass: 0.4,
+            glowIntensity: 1,
+            borderOpacity: 0.16,
+            grain: "none",
+            scanlines: "none",
+            radius: "soft",
+            border: "flat",
+            motion: "calm",
+            sheen: false,
+            noise: false,
+            chromatic: false,
+            ambient: false,
+            customCss,
+          },
+        }
+      : {}),
+  });
+}
+
 /** Decodes a `CCFM-THEME-v1:...` or `CCFM-PACK-v1:...` share code into a JSON string, or returns the input unchanged if not a share code. */
 export function decodeShareCodeToJson(raw: string): string {
-  const trimmed = raw.trim();
+  const trimmed = unwrapPastedEnvelope(raw);
   for (const prefix of [THEME_SHARE_CODE_PREFIX, PACK_SHARE_CODE_PREFIX]) {
     if (trimmed.startsWith(prefix)) {
-      const b64 = trimmed.slice(prefix.length).trim();
+      // Collapse any accidental line wraps or spaces inside a single share code
+      const b64 = trimmed.slice(prefix.length).replace(/\s+/g, "");
       if (!b64) throw new FmError("BAD_REQUEST", "That share code is incomplete.");
       try {
         return Buffer.from(b64, "base64url").toString("utf8");
       } catch {
         throw new FmError("BAD_REQUEST", "That share code couldn't be decoded.");
       }
+    }
+  }
+  // Also check if a single CCFM share code is embedded inside a CSS comment or chat message
+  const embedded = trimmed.match(/CCFM-(?:THEME|PACK)-v1:[A-Za-z0-9+/=_-]{8,}/);
+  if (embedded && !trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+    const token = embedded[0];
+    const pfx = token.startsWith(THEME_SHARE_CODE_PREFIX) ? THEME_SHARE_CODE_PREFIX : PACK_SHARE_CODE_PREFIX;
+    const b64 = token.slice(pfx.length).trim();
+    if (b64) {
+      try {
+        return Buffer.from(b64, "base64url").toString("utf8");
+      } catch { /* fall through */ }
     }
   }
   return trimmed;
@@ -359,10 +457,11 @@ export async function deleteCustom(ctx: FmContext, id: unknown): Promise<void> {
 export const exportTheme = (t: ThemeDraft): string => JSON.stringify({ format: EXPORT_FORMAT, version: 1, name: t.name, dark: t.dark, ...(t.base ? { base: t.base } : {}), colors: t.colors, ...(t.fx ? { fx: t.fx } : {}) }, null, 2);
 
 /** Formats computed theme tokens as a standalone `:root` CSS custom properties stylesheet (including personal customCss rules). */
-export function exportThemeCss(name: string, scheme: "light" | "dark", vars: Record<string, string>, effectsCss?: string, customCss?: string): string {
+export function exportThemeCss(name: string, scheme: "light" | "dark", vars: Record<string, string>, effectsCss?: string, customCss?: string, shareCode?: string): string {
   const safeName = clean(name || "Custom Theme");
   const lines = [
     `/* ${safeName} (${scheme}) — exported from File Manager */`,
+    ...(shareCode ? [`/* ${shareCode} */`] : []),
     ":root {",
     `  color-scheme: ${scheme};`,
   ];
@@ -394,7 +493,7 @@ export function exportThemePack(themes: ThemeDraft[]): string {
   }, null, 2);
 }
 
-/** Reads shared theme text or `CCFM-THEME-v1:` / `CCFM-PACK-v1:` share code. Accepts the exported form, a legacy/SimpleGUI object, or a bare `{ name, dark, colors }`. */
+/** Reads shared theme text or `CCFM-THEME-v1:` / `CCFM-PACK-v1:` share code. Accepts the exported form, a legacy/SimpleGUI object, `:root` CSS, or a bare `{ name, dark, colors }`. */
 export function parseShared(text: unknown): ThemeDraft {
   if (typeof text !== "string" || !text.trim()) throw new FmError("BAD_REQUEST", "Paste the theme text first.");
   if (text.length > MAX_IMPORT_BYTES) throw new FmError("BAD_REQUEST", "That text is too long to be a theme.");
@@ -403,7 +502,12 @@ export function parseShared(text: unknown): ThemeDraft {
   try {
     data = JSON.parse(decoded);
   } catch {
+    const cssTheme = tryParseCssTheme(decoded);
+    if (cssTheme) return cssTheme;
     throw new FmError("BAD_REQUEST", "That text isn't a theme. Copy the whole text from Export.");
+  }
+  if (Array.isArray(data) && data.length > 0) {
+    return validateDraft(migrateThemeInput(data[0]));
   }
   if (data && typeof data === "object" && (data as any).format === EXPORT_PACK_FORMAT && Array.isArray((data as any).themes) && (data as any).themes.length > 0) {
     return validateDraft(migrateThemeInput((data as any).themes[0]));
@@ -419,6 +523,7 @@ export function parseShared(text: unknown): ThemeDraft {
  * - A JSON array of theme objects (`[ { name, dark, colors, fx }, ... ]`)
  * - Newline-delimited JSON objects (NDJSON)
  * - A single Theme JSON object (`{ format: "bun-rad-studio-file-manager-theme", ... }`)
+ * - A standalone `:root` CSS variables stylesheet
  */
 export function parseThemePack(input: unknown): ThemeDraft[] {
   if (Array.isArray(input)) {
@@ -428,7 +533,7 @@ export function parseThemePack(input: unknown): ThemeDraft[] {
   if (typeof input !== "string" || !input.trim()) throw new FmError("BAD_REQUEST", "Paste the theme pack text first.");
   if (input.length > MAX_PACK_IMPORT_BYTES) throw new FmError("BAD_REQUEST", "That text is too long to be a theme pack.");
 
-  const trimmed = input.trim();
+  const trimmed = unwrapPastedEnvelope(input);
 
   // Check if multiple CCFM share codes are present in the text
   const shareCodeMatches = [...trimmed.matchAll(/CCFM-(?:THEME|PACK)-v1:[A-Za-z0-9+/=_-]+/g)].map((m) => m[0]);
@@ -476,6 +581,8 @@ export function parseThemePack(input: unknown): ThemeDraft[] {
       }
       if (ndjsonDrafts.length) return ndjsonDrafts;
     }
+    const cssTheme = tryParseCssTheme(decoded);
+    if (cssTheme) return [cssTheme];
     throw new FmError("BAD_REQUEST", "That text isn't valid JSON. Copy the whole text from Export.");
   }
   if (!data || typeof data !== "object") throw new FmError("BAD_REQUEST", "That text isn't a theme pack.");
