@@ -109,8 +109,10 @@ export const ending: Chapter[] = [
         cap: "🎆 18 Animated US Holiday Celebrations (⌥H), Nerd Complete, Horror & Classic OS",
         say: "Explore specialized worlds for every mood: eighteen super-special U S Holiday themes with bespoke multi-layer animations, custom 3D folder holiday crests, and interactive firework and confetti celebration bursts via Option H! Plus ten Nerd Complete themes like D and D Arcane Grimoire and Starfleet L C A R S Bridge, ten Horror themes, Real-World Mahogany Clockwork, and classic systems like BeOS R 5 and O S 2 Warp 4.",
         act: async (d) => {
-          await d.click('[data-picker-holiday="holiday_4th_of_july_pyrotechnics"]', { pause: 1300 }).catch(() => {});
-          await d.click('[data-picker-holiday="holiday_christmas_nutcracker_hearth"]', { pause: 1300 }).catch(() => {});
+          await d.eval(`(() => { const det = document.querySelector('[data-fx-studio-drawer="true"]'); if (det) det.open = true; })()`);
+          await d.click('[data-holiday-pill="holiday_fourth_of_july_fireworks"]', { pause: 1300 }).catch(() => {});
+          await d.click('[data-holiday-pill="holiday_christmas_nutcracker_hearth"]', { pause: 1300 }).catch(() => {});
+          await d.eval(`(() => { const det = document.querySelector('[data-fx-studio-drawer="true"]'); if (det) det.open = false; })()`);
           await search(d, "grimoire");
           await d.click('.theme-card[data-key="nerd_dnd_arcane_grimoire"]', { pause: 1400 }).catch(() => {});
           await search(d, "lcars");

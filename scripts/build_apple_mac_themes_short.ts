@@ -290,9 +290,9 @@ const sceneSpecs: SceneSpec[] = [
     record: async (c) => {
       await c.click('[data-collection-pill="all"]', { pause: 450 });
       await showAppleKeynoteBanner(c, "AAA 10-Engine Production Studio (⌥M)", "Cupertino M4 Ultra Keynote · 3D Stage Tilt · 24K Gold & Liquid Glass Icons");
-      await c.click('[data-picker-director-cut="singularity_3099_imax"]', { pause: 950 });
-      await c.click('[data-picker-icon-finish="gold_24k_foil"]', { pause: 750 });
-      await c.click('[data-picker-stage-mode="curved_ultrawide"]', { pause: 750 });
+      await c.click('[data-aaa-director-preset]', { pause: 950 });
+      await c.click('[data-icon-finish-pill]', { pause: 750 });
+      await c.click('[data-stage-mode-pill]', { pause: 750 });
       await showAppleKeynoteBanner(c, "Keep Active FX — Swap Colors Only (⌥C) & Shuffle 49 Icons (⌥I)", "Change Theme Colors Instantly While Preserving All Shaders & 3D Folders");
       await c.click('[data-swap-color-only="dracula"]', { pause: 850 });
       await c.click('[data-picker-shuffle-icons="true"]', { pause: 850 });
@@ -300,7 +300,7 @@ const sceneSpecs: SceneSpec[] = [
       // Apply Compiz Inferno Kit so multiple distinct FX pills are clearly visible, then remove individual pills
       await c.eval(`(async () => {
         const tm = await import('/ui/themes.js');
-        await tm.applyWorkspaceStageMode('flat', { quiet: true });
+        await tm.applyWorkspaceStageMode('off', { quiet: true });
         await tm.applyJumpstartKit('compiz_inferno_kit');
       })()`);
       await c.click('.theme-card[data-key="inferno_fire_folders"]', { pause: 750 });
@@ -322,8 +322,8 @@ const sceneSpecs: SceneSpec[] = [
     say: "Celebrate all eighteen U S Holidays with bespoke multi-layer animations, custom 3D folder holiday crests, and interactive firework, confetti, snow, and shamrock celebration bursts via Option H! Then push Apple Silicon's eighty-core G P U with E F 5 Tornado Debris, Compiz Fire Folders, and Kaleidoscope Fractal Mandala.",
     record: async (c) => {
       await showAppleKeynoteBanner(c, "18 Animated US Holiday Themes & Particle Bursts (⌥H)", "Custom Folder Holiday Crests · Fireworks, Snowflakes & Confetti Finale");
-      await c.click('[data-picker-holiday="holiday_4th_of_july_pyrotechnics"]', { pause: 1200 });
-      await c.click('[data-picker-holiday="holiday_christmas_nutcracker_hearth"]', { pause: 1200 });
+      await c.click('[data-holiday-pill="holiday_fourth_of_july_fireworks"]', { pause: 1200 });
+      await c.click('[data-holiday-pill="holiday_christmas_nutcracker_hearth"]', { pause: 1200 });
       await showAppleKeynoteBanner(c, "EF5 Tornado & 3D Storm Debris", "Tumbling Leaves, Newspapers & Wind-Buffeted Folders at 120Hz");
       await c.click('[data-jumpstart-kit="storm_overdrive_kit"]', { pause: 1300 });
       await showAppleKeynoteBanner(c, "Compiz Fire Folders & Kaleidoscope Mandala", "Blazing Molten Folders, Inferno Icons & 11D Prism Refraction");
@@ -526,7 +526,7 @@ const sceneSpecs: SceneSpec[] = [
       await c.eval(`(async () => {
         const tm = await import('/ui/themes.js');
         await tm.applyScreenFilter('off', { quiet: true });
-        await tm.applyAaaDirectorCut('cupertino_m4_keynote', { quiet: true });
+        await tm.applyAaaDirectorCutPreset(tm.AAA_DIRECTOR_CUT_PRESETS[0].id, { quiet: true });
         const cp = await import('/ui/commandPalette.js');
         cp.openCommandPalette?.("");
       })()`);
