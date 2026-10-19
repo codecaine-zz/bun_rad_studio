@@ -62,7 +62,7 @@ const sceneSpecs: SceneSpec[] = [
     label: "🍎 MAC METAL · 🪟 WIN11 DX12 · 🐧 UBUNTU/VM · 📟 VFD TELEMETRY",
     extra: "1-Click Optimize for Mac, Windows & Linux/VM + Pop-Out VFD Telemetry HUD",
     bullets: ["🍎 Optimize for Mac M4 ProMotion", "🪟 Optimize for Windows 11 DX12", "🐧 Optimize for Ubuntu Linux & VM"],
-    say: "Open All Themes to browse three hundred and ten zero-lag themes with one-click Optimize for Mac, Windows, and Ubuntu Linux V M buttons, a live Hardware V F D Oscilloscope Deck, and rapid bracket-key preview.",
+    say: "Browse three hundred and ten zero-lag themes with one-click Optimize for Mac, Windows, and Linux buttons, plus a live V F D Telemetry Deck.",
   },
   {
     id: "03_filter_pills",
@@ -212,7 +212,7 @@ const sceneSpecs: SceneSpec[] = [
     label: "🎲 ⌥R ANY · ✨ ⌥E FX · ⏹️ ⌥P PLAIN · 🚀 ⌥U ULTRA · 🛑 ⌥0 TOGGLE · ⌥] HUD",
     extra: "Zero-Dialog Instant Random Themes + Watch Full Master Tutorial Below!",
     bullets: ["🎲 ⌥R Random · ✨ ⌥E FX · ⏹️ ⌥P Plain", "🚀 ⌥U Ultra · 🛑 ⌥0 Toggle FX", "🎛️ Right ⌥ + ] Live Swatch HUD"],
-    say: "Press Option R for an instant random theme, Option E for random F X, Option P for random plain, Option Zero to toggle effects, or Right Option and brackets for the live H U D—with zero dialogs needed! Tap the link below for the full master tutorial!",
+    say: "Press Option R, E, P, or Zero for instant random themes with zero dialogs, or Right Option and brackets for the live H U D! Tap below for the full tutorial!",
   },
 ];
 
