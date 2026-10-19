@@ -44,11 +44,21 @@ test("Ctrl+click selects multiple folders in either Windows pane without opening
         expect(menus).toHaveLength(0);
       }
       expect([...pane.selection]).toEqual(["C:\\first", "C:\\second"]);
+      // Even if a VM or native Linux/Windows webview translates Ctrl+left-click into mousedown(button=2, ctrlKey=true) + contextmenu(button=2, ctrlKey=true),
+      // it must toggle selection instead of opening the right-click context menu!
       second!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 2, ctrlKey: true }));
       second!.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, button: 2, ctrlKey: true }));
-      expect(menus.pop()).toEqual(["C:\\first", "C:\\second"]);
+      expect(menus).toHaveLength(0);
+      expect([...pane.selection]).toEqual(["C:\\first"]);
+      // Re-select second via VM-translated Ctrl+click
+      second!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 2, ctrlKey: true }));
+      second!.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, button: 2, ctrlKey: true }));
+      expect(menus).toHaveLength(0);
+      expect([...pane.selection]).toEqual(["C:\\first", "C:\\second"]);
+      // Plain right-click (no ctrlKey) opens the context menu on Windows and Linux
       second!.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
       expect(menus.pop()).toEqual(["C:\\first", "C:\\second"]);
+      // On macOS (darwin), Ctrl+click is the standard secondary-click gesture and DOES open the context menu
       state.platform = "darwin";
       second!.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, ctrlKey: true }));
       expect(menus.pop()).toEqual(["C:\\first", "C:\\second"]);

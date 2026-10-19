@@ -290,9 +290,13 @@ export function wirePane(pane) {
   const entryOf = (row) => visibleEntries(pane).find((e) => e.path === row.dataset.key);
   const mine = () => setActivePane(pane.side);
   let primarySelection = false;
+  let handledByClick = false;
+  let toggledOnCtrlContext = false;
   wrap.addEventListener("mousedown", (e) => {
     primarySelection = state.platform !== "darwin" && e.button === 0 && e.ctrlKey;
-  });
+    handledByClick = false;
+    toggledOnCtrlContext = false;
+  }, true);
 
   container.addEventListener("click", (e) => {
     const row = rowOf(e.target);
@@ -300,6 +304,11 @@ export function wirePane(pane) {
     const key = row.dataset.key;
     mine();
     container.focus?.({ preventScroll: true });
+    handledByClick = true;
+    if (toggledOnCtrlContext) {
+      toggledOnCtrlContext = false;
+      return;
+    }
     if (isModifier(e, state.platform)) toggleKey(key, pane);
     else if (e.shiftKey) selectRangeTo(key, pane);
     else selectOnly(key, pane);
@@ -322,8 +331,23 @@ export function wirePane(pane) {
 
   wrap.addEventListener("contextmenu", (e) => {
     e.preventDefault();
-    // Some Windows hosts also report Ctrl+left-click as a context-menu gesture.
-    if (state.platform !== "darwin" && e.ctrlKey && (e.button === 0 || primarySelection)) return;
+    // On Windows and Linux, Ctrl+left-click is the standard multi-select gesture.
+    // Native GTK/WebKitGTK, WebView2, and macOS hypervisors (Parallels/UTM/VMware) often translate
+    // Ctrl+left-click into a contextmenu event (with e.button === 0 or e.button === 2).
+    // Therefore on non-macOS platforms, whenever Ctrl is held (or a Ctrl+left mousedown initiated the gesture),
+    // treat it as multi-selection and never open the right-click context menu.
+    if (state.platform !== "darwin" && (e.ctrlKey || primarySelection)) {
+      primarySelection = false;
+      const row = rowOf(e.target);
+      if (row && !handledByClick && !toggledOnCtrlContext) {
+        mine();
+        container.focus?.({ preventScroll: true });
+        toggleKey(row.dataset.key, pane);
+        toggledOnCtrlContext = true;
+      }
+      return;
+    }
+    primarySelection = false;
     const row = rowOf(e.target);
     mine();
     if (row) {

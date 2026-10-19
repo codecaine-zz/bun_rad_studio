@@ -11,6 +11,10 @@ All notable changes. Version 1.4.8 is the seventeenth release (1.0.0, 1.1.0, 1.2
 - **3D Regular Folders, Framed Picture Icon Packs, Jumpstart Workstation Kits, & Quick-Cycle HUD.** Add interactive UI Element FX shaders (`tahoe_glass_folders`, `fluent_mica_folders`, `xdr_titanium_folders`, `fire_folders`, `slime_drip`, `storm_wind`, `cryo_frost`, `tesla_arcs`, `mercury_chrome`, `holo_glitch`, `void_tentacles`), 1-click Jumpstart Workstation Kits, and a live bottom-right Quick-Cycle HUD badge (`Ctrl+Shift+[` / `Ctrl+Shift+]`) with updated keyboard shortcut documentation in the File Manager tutorial and in-app help.
 - **Seamless 1-Click Theme Import / Export & Universal Selection Visibility.** Support importing `.json` / `.txt` / `.css` theme files directly from the Files list, OS drag-and-drop, clipboard paste (`Cmd+V` / `Ctrl+V`), or Markdown-wrapped share codes (`CCFM-THEME-v1:` / `CCFM-PACK-v1:` / `CCFM-FX-v1:` / `:root` CSS variables), plus 1-click file download and clipboard copy for all built-in and custom themes. Ensure single-select and multi-select file/folder rows remain unmistakably visible across all 222 themes, 3D folder shaders, and icon packs.
 
+### Fixed
+
+- **Windows & Linux `Ctrl + Left-Click` Multi-Selection Without Context Menu Popup.** Prevent `Ctrl + Left-Click` on Windows and Linux (including inside macOS hypervisors such as Parallels, UTM, and VMware where `Ctrl + Left-Click` can synthesize a secondary-button `contextmenu` event) from opening the right-click context menu in the File Manager panes, Code Explorer tree, Folder Tree, and Sidebar, while ensuring `Ctrl + Left-Click` reliably toggles multi-selection.
+
 ### Improved
 
 - **Cross-platform release refresh (`v1.4.8`).** Recompile and package the standalone Codecaine File Manager, full application and CLI suite, and macOS `.app` bundles across all supported macOS, Linux, and Windows targets.

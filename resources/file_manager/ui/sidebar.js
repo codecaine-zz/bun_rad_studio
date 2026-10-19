@@ -16,7 +16,11 @@ function sideItem({ icon, label, title, active, onClick, onMenu, dropPath, trash
     h("span", { class: "si", "aria-hidden": "true" }, icon),
     h("span", { class: "sl" }, label, badge !== null ? h("span", { class: "badge" }, String(badge)) : null),
     extra);
-  if (onMenu) btn.addEventListener("contextmenu", (e) => { e.preventDefault(); onMenu({ x: e.clientX, y: e.clientY }); });
+  if (onMenu) btn.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    if (state.platform !== "darwin" && e.ctrlKey) return;
+    onMenu({ x: e.clientX, y: e.clientY });
+  });
   if (dropPath || trash) attachDropTarget(btn, { getPath: () => dropPath ?? null, trash });
   return btn;
 }

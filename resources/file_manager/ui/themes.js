@@ -6,7 +6,7 @@ import { copyToClipboard, flashCopied, readFromClipboard } from "./copyclip.js";
 import { openDialog } from "./dialogs.js";
 import { debounce, h, syncVisibleIcons } from "./dom.js";
 import { toast } from "./menus.js";
-import { refresh as refreshPane, saveSettings } from "./nav.js";
+import { refresh, saveSettings } from "./nav.js";
 import { currentPath, emit, on, state } from "./state.js";
 
 /** Interactive File Manager UI element shaders for folders, toolbars, breadcrumbs, and rows. */
@@ -78,28 +78,33 @@ export function applyUiImmersionProfiles(overrides = {}) {
   const themeCornerProf = root.getAttribute("data-fx-corner-profile") || "";
   const themeIconGlow = root.getAttribute("data-fx-icon-glow") || "";
 
-  const rawUiFx = s.uiElementFx || "off";
-  const effectiveUiFx = rawUiFx === "auto" ? (themeElFx || "off") : (rawUiFx !== "off" ? rawUiFx : (themeElFx || "off"));
+  const explicitOff = overrides && Object.prototype.hasOwnProperty.call(overrides, "uiElementFx") && overrides.uiElementFx === "off";
+  const rawUiFx = s.uiElementFx || "auto";
+  const effectiveUiFx = explicitOff ? "off" : (rawUiFx === "auto" || rawUiFx === "off" ? (themeElFx || "off") : rawUiFx);
   if (effectiveUiFx && effectiveUiFx !== "off") root.dataset.uiFx = effectiveUiFx;
   else delete root.dataset.uiFx;
 
+  const explicitIconDefault = overrides && Object.prototype.hasOwnProperty.call(overrides, "iconPackStyle") && overrides.iconPackStyle === "default";
   const rawIconPack = s.iconPackStyle || "default";
-  const effectiveIconPack = rawIconPack !== "default" ? rawIconPack : (themeIconPack || "default");
+  const effectiveIconPack = explicitIconDefault ? "default" : (rawIconPack !== "default" ? rawIconPack : (themeIconPack || "default"));
   if (effectiveIconPack && effectiveIconPack !== "default") root.dataset.iconPack = effectiveIconPack;
   else delete root.dataset.iconPack;
 
+  const explicitFontDefault = overrides && Object.prototype.hasOwnProperty.call(overrides, "themeFontProfile") && overrides.themeFontProfile === "default";
   const rawFont = s.themeFontProfile || "default";
-  const effectiveFont = rawFont !== "default" ? rawFont : (themeFontProf || "default");
+  const effectiveFont = explicitFontDefault ? "default" : (rawFont !== "default" ? rawFont : (themeFontProf || "default"));
   if (effectiveFont && effectiveFont !== "default") root.dataset.fontProfile = effectiveFont;
   else delete root.dataset.fontProfile;
 
+  const explicitCornerDefault = overrides && Object.prototype.hasOwnProperty.call(overrides, "themeCornerProfile") && overrides.themeCornerProfile === "default";
   const rawCorner = s.themeCornerProfile || "default";
-  const effectiveCorner = rawCorner !== "default" ? rawCorner : (themeCornerProf || "default");
+  const effectiveCorner = explicitCornerDefault ? "default" : (rawCorner !== "default" ? rawCorner : (themeCornerProf || "default"));
   if (effectiveCorner && effectiveCorner !== "default") root.dataset.cornerProfile = effectiveCorner;
   else delete root.dataset.cornerProfile;
 
+  const explicitGlowOff = overrides && Object.prototype.hasOwnProperty.call(overrides, "themeIconGlow") && overrides.themeIconGlow === "off";
   const rawGlow = s.themeIconGlow || "off";
-  const effectiveGlow = rawGlow !== "off" ? rawGlow : (themeIconGlow || "off");
+  const effectiveGlow = explicitGlowOff ? "off" : (rawGlow !== "off" ? rawGlow : (themeIconGlow || "off"));
   if (effectiveGlow && effectiveGlow !== "off") root.dataset.iconGlow = effectiveGlow;
   else delete root.dataset.iconGlow;
 
@@ -2533,7 +2538,7 @@ export async function saveThemeFileToFolder({ filename, content, folder = "" } =
       filename,
       content,
     });
-    void refreshPane();
+    void refresh();
     toast(`Saved theme file "${res.name}" to ${res.path}`, { kind: "success" });
     return res;
   } catch (err) {

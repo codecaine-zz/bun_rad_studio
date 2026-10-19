@@ -1344,8 +1344,56 @@ describe("the theme editor in the page", () => {
     expect(fxCss).toContain(":root[data-ui-fx] .row.is-folder.selected");
     expect(fxCss).toContain("#list.view-icons .row.selected");
 
+    // 9. Verify Markdown-wrapped share codes, :root CSS variable blocks, built-in theme export, and disk file export/import
+    const mdWrappedCode = "Here is my theme:\n```text\n" + pasteShareCode + "\n```\nEnjoy!";
+    expect((themes as any).looksLikeThemeImportPayload(mdWrappedCode)).toBe(true);
+    const mdImport = await api.call("themes/custom/import-pack", { text: mdWrappedCode });
+    expect(mdImport.inspection.conflictCount).toBe(1);
+
+    const cssBlock = `:root {\n  /* Cyber Sunset CSS — exported from File Manager */\n  --bg: #0b0716;\n  --panel: #161029;\n  --text: #f8f5ff;\n  --accent: #f43f5e;\n  --border: #2e1d4a;\n}`;
+    expect((themes as any).looksLikeThemeImportPayload(cssBlock)).toBe(true);
+    const cssImported = await api.call("themes/custom/import-pack", { text: cssBlock });
+    expect(cssImported.addedCount).toBe(1);
+    expect(cssImported.first?.colors?.accent).toBe("#f43f5e");
+
+    // Exporting a built-in theme (e.g. tahoe_studio_3d) works via themes/custom/export
+    const builtinExport = await api.call("themes/custom/export", { id: "tahoe_studio_3d" });
+    expect(builtinExport.shareCode).toStartWith("CCFM-THEME-v1:");
+    expect(builtinExport.text).toContain("Tahoe");
+
+    // Saving a theme file directly to disk via themes/custom/save-file and reading it via themes/custom/read-file
+    const savedFile = await api.call("themes/custom/save-file", {
+      folder: root,
+      name: "test-exported-theme",
+      content: builtinExport.text,
+    });
+    expect(savedFile.path).toContain("test-exported-theme.theme.json");
+    const readBack = await api.call("themes/custom/read-file", { path: savedFile.path });
+    expect(readBack.text).toContain("Tahoe");
+    const importedFromFile = await api.call("themes/custom/import-pack", { text: readBack.text });
+    expect(importedFromFile.addedCount + importedFromFile.inspection.conflictCount).toBeGreaterThanOrEqual(1);
+
+    // 10. Verify every UI_ELEMENT_FX_OPTIONS & ICON_PACK_OPTIONS applies cleanly with single-select & multi-select rows
+    for (const fxOpt of (themes as any).UI_ELEMENT_FX_OPTIONS) {
+      (themes as any).applyUiImmersionProfiles({ uiElementFx: fxOpt.id });
+      if (fxOpt.id === "off") {
+        expect(doc.documentElement.hasAttribute("data-ui-fx")).toBe(false);
+      } else if (fxOpt.id !== "auto") {
+        expect(doc.documentElement.getAttribute("data-ui-fx")).toBe(fxOpt.id);
+      }
+    }
+    for (const iconOpt of (themes as any).ICON_PACK_OPTIONS) {
+      (themes as any).applyUiImmersionProfiles({ iconPackStyle: iconOpt.id });
+      if (iconOpt.id === "default") {
+        expect(doc.documentElement.hasAttribute("data-icon-pack")).toBe(false);
+      } else {
+        expect(doc.documentElement.getAttribute("data-icon-pack")).toBe(iconOpt.id);
+      }
+    }
+
     await themes.applyPalette("");
     atmo.applyAtmosphere("none");
+    (themes as any).applyUiImmersionProfiles({ uiElementFx: "off", iconPackStyle: "default" });
     closeDialogs();
   });
 });

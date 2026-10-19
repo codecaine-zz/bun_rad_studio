@@ -108,6 +108,10 @@ function renderBranch(folderPath, label, depth, activePath) {
 
   btn.addEventListener("contextmenu", (e) => {
     e.preventDefault();
+    if (state.platform !== "darwin" && e.ctrlKey) {
+      openNewTab(folderPath);
+      return;
+    }
     showMenu([
       { label: "Open", icon: "📂", tip: "Show this folder in the current tab", action: () => goTo(folderPath) },
       { label: "Open in new tab", icon: "🗂️", tip: "Open this folder in a new folder tab at the top of the file list", action: () => openNewTab(folderPath) },

@@ -61,7 +61,14 @@ export function createExplorer({ onOpen, onRenamed, onDeleted, onRootChanged }) 
       title: entry.isDir ? `${entry.name} — folder` : `${entry.name} — click to open`,
       dataset: { path: entry.path },
       onclick: () => activate(entry),
-      oncontextmenu: (e) => { e.preventDefault(); menuFor(entry, { x: e.clientX, y: e.clientY }); },
+      oncontextmenu: (e) => {
+        e.preventDefault();
+        if (state.platform !== "darwin" && e.ctrlKey) {
+          activate(entry);
+          return;
+        }
+        menuFor(entry, { x: e.clientX, y: e.clientY });
+      },
     }, h("span", { class: "code-tn-chev", "aria-hidden": "true" }, entry.isDir ? (open ? "▾" : "▸") : ""), h("span", { class: "code-tn-icon", "aria-hidden": "true" }, entry.isDir ? (open ? "📂" : "📁") : entry.icon ?? "📄"), h("span", { class: "code-tn-name" }, entry.name));
     b.entry = entry;
     return b;
