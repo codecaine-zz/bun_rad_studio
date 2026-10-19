@@ -113,6 +113,24 @@ const REQUIRED: Record<string, boolean> = {
     hdr_cinema_gallery: true,
     linux_workstation_hidpi: true,
     studio_architect_minimal: false,
+    mac_studio_m4_ultra: true,
+    mac_pro_rack_xdr: true,
+    macbook_pro_space_black: true,
+    apple_studio_display_5k: false,
+    imac_m4_spectrum_p3: true,
+    macos_sequoia_redwood_xdr: true,
+    macos_vision_spatial_mac: true,
+    mac_mini_m4_pro_carbon: true,
+    kaleidoscope_mandala: true,
+    lava_lamp_groovy_69: true,
+    dmt_hyperspace_lattice: true,
+    holographic_oil_slick: true,
+    electric_mycelium_forest: true,
+    optical_moire_hypnosis: true,
+    acid_house_rave_92: true,
+    mobius_wormhole_odyssey: true,
+    pastel_dreamcore_cloud: false,
+    solarpunk_kaleidoscope_day: false,
 };
 
 describe("fx themes: registration", () => {
@@ -182,7 +200,7 @@ describe("fx themes: registration", () => {
             expect(["sharp", "soft", "round", "pill", "squircle", "bevel"]).toContain(fx.radius);
             expect(["flat", "gradient", "metal", "neon", "iridescent", "double", "bevel", "crystal", "hologram"]).toContain(fx.border);
             expect(["calm", "spring", "snappy", "elastic", "cinematic", "hyper", "zen"]).toContain(fx.motion);
-            expect(["none", "subtle", "crt", "fine", "grid", "diagonal"]).toContain(fx.scanlines);
+            expect(["none", "subtle", "crt", "fine", "grid", "diagonal", "interlace"]).toContain(fx.scanlines);
             expect(/^#[0-9a-f]{6}$/i.test(fx.glowColor), key).toBe(true);
         }
     });

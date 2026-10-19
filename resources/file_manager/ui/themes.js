@@ -24,6 +24,11 @@ export const UI_ELEMENT_FX_OPTIONS = [
   { id: "mercury_chrome", label: "💧 Liquid Mercury Chrome", desc: "Mirror-polished liquid metal chrome bevels and sliding mercury droplets" },
   { id: "holo_glitch", label: "📺 Cyber Holo-Glitch", desc: "Chromatic RGB hologram split, laser scanbars, and tactical HUD reticles on folders" },
   { id: "void_tentacles", label: "🦑 2126 Eldritch Void Spores", desc: "Bioluminescent abyssal tendrils and floating quantum spores around folders & icons" },
+  { id: "kaleidoscope_prism", label: "🌈 Kaleidoscope Prism & Mandala", desc: "Animated prismatic rainbow borders, sacred fractal geometry & refracted folder cards" },
+  { id: "lava_wax", label: "🫧 1969 Lava-Lamp Wax Blobs", desc: "Groovy morphing molten orange & magenta wax blobs undulating across folders & toolbars" },
+  { id: "acid_warp", label: "🌀 Op-Art Moiré & Acid Warp", desc: "Hypnotic Op-Art wave interference, chromatic RGB split & UV blacklight pulse" },
+  { id: "oil_slick_chrome", label: "🛢️ Iridescent Oil-Slick Dichroic", desc: "Thin-film rainbow petrol iridescence and dichroic glass shimmer on folders & toolbars" },
+  { id: "shroom_spores", label: "🍄 Bioluminescent Mycelium Spores", desc: "Ultraviolet fungal spore halos and pulsing neon-cyan/violet bioluminescent folder rows" },
 ];
 
 /** Custom Icon Pack styles that transform folder and file icons across the File Manager. */
@@ -43,6 +48,9 @@ export const ICON_PACK_OPTIONS = [
   { id: "cryo_crystal", label: "❄️ Cryo-Crystal", desc: "Sub-zero ice cubes, snowflake code glyphs, and frosted glacier prisms" },
   { id: "retro_pixel", label: "👾 Retro Arcade", desc: "16-bit arcade invaders, joystick scripts, and bevelled cartridge tiles" },
   { id: "xenotech_2126", label: "🛸 2126 Xenotech", desc: "Hyper-dimensional UFO vaults, atomic code cores, and rotating hex-glyphs" },
+  { id: "psychedelic_trip", label: "🍄 Psychedelic Kaleidoscope", desc: "Sacred lotus mandalas, bioluminescent mushrooms, third-eye crystals & rainbow prisms" },
+  { id: "lava_groovy", label: "🫧 1969 Lava Lamp & Vinyl", desc: "Groovy lava-wax orbs, disco mirrors, peace badges, sunflowers & analog vinyl glyphs" },
+  { id: "op_art_illusion", label: "🌀 Op-Art Hypnotic Portal", desc: "Kinetic vortex spirals, Moiré infinity loops, optical eyes & non-Euclidean prisms" },
 ];
 
 export const FONT_PROFILES = [
@@ -682,6 +690,54 @@ export const JUMPSTART_WORKSTATION_KITS = [
     atmosphere: "m4_raytrace_prism",
   },
   {
+    id: "mac_studio_m4_ultra_kit",
+    label: "🧊 Mac Studio M4 Ultra Silver Vault",
+    desc: "CNC-machined anodized silver-graphite Mac Studio M4 Ultra with 32-core Neural Engine bloom, Thunderbolt 5 cobalt-ice telemetry & 3D titanium XDR folders",
+    palette: "mac_studio_m4_ultra",
+    uiElementFx: "xdr_titanium_folders",
+    iconPackStyle: "pro_studio_xdr",
+    themeFontProfile: "default",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "subtle",
+    atmosphere: "m4_raytrace_prism+liquid_glass_caustics",
+  },
+  {
+    id: "mac_pro_xdr_kit",
+    label: "🖥️ Mac Pro Afterburner & 6K XDR",
+    desc: "Stainless-steel lattice Mac Pro tower & rack workstation paired with Pro Display XDR 6K 1600-nit reference mastering & PCIe Gen5 gold bus accents",
+    palette: "mac_pro_rack_xdr",
+    uiElementFx: "xdr_titanium_folders",
+    iconPackStyle: "pro_studio_xdr",
+    themeFontProfile: "terminal",
+    themeCornerProfile: "sharp",
+    themeIconGlow: "subtle",
+    atmosphere: "quantum_cpu+m4_raytrace_prism",
+  },
+  {
+    id: "macbook_pro_space_black_kit",
+    label: "🖤 MacBook Pro 16 M4 Max Space Black",
+    desc: "Anodized Space Black MacBook Pro 16-inch M4 Max with 120Hz ProMotion Liquid Retina XDR mini-LED deep blacks & Display-P3 indigo-violet bloom",
+    palette: "macbook_pro_space_black",
+    uiElementFx: "xdr_titanium_folders",
+    iconPackStyle: "pro_studio_xdr",
+    themeFontProfile: "default",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "subtle",
+    atmosphere: "m4_raytrace_prism+starlight_velvet",
+  },
+  {
+    id: "apple_studio_display_5k_kit",
+    label: "☀️ Apple Studio Display 5K Daylight",
+    desc: "600-nit 5K Retina Apple Studio Display daylight reference with nano-texture anti-reflective glass, True Tone balance & macOS Tahoe 3D folders",
+    palette: "apple_studio_display_5k",
+    uiElementFx: "tahoe_glass_folders",
+    iconPackStyle: "macos_tahoe_3d",
+    themeFontProfile: "rounded",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "off",
+    atmosphere: "liquid_glass_caustics",
+  },
+  {
     id: "win11_rtx_3d_kit",
     label: "🪟 Win 11 Fluent 3D & RTX Mica",
     desc: "Layered Windows 11 Fluent 3D amber/cobalt regular folders, DirectX 12 Mica & Acrylic cards, and framed gallery pictures",
@@ -752,6 +808,54 @@ export const JUMPSTART_WORKSTATION_KITS = [
     themeCornerProfile: "rounded",
     themeIconGlow: "hyper",
     atmosphere: "volcanic_lightning+embers",
+  },
+  {
+    id: "kaleidoscope_trip_kit",
+    label: "🌈 Kaleidoscope Fractal Mandala",
+    desc: "Sacred lotus geometry, 11D Calabi-Yau prism refraction, iridescent kaleidoscope folder borders & psychedelic icons",
+    palette: "kaleidoscope_mandala",
+    uiElementFx: "kaleidoscope_prism",
+    iconPackStyle: "psychedelic_trip",
+    themeFontProfile: "scifi",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "hyper",
+    atmosphere: "sacred_mandala+calabi_yau+prism_spectrum",
+  },
+  {
+    id: "lava_lamp_groovy_kit",
+    label: "🫧 1969 Psychedelic Lava Lamp",
+    desc: "Groovy molten orange & hot-magenta wax blobs undulating through warm violet oil with morphing lava-lamp folders",
+    palette: "lava_lamp_groovy_69",
+    uiElementFx: "lava_wax",
+    iconPackStyle: "lava_groovy",
+    themeFontProfile: "rounded",
+    themeCornerProfile: "pill",
+    themeIconGlow: "neon",
+    atmosphere: "will_o_wisp+cinema_bokeh+aurora",
+  },
+  {
+    id: "mycelium_spore_kit",
+    label: "🍄 Bioluminescent Mycelium Spores",
+    desc: "Ultraviolet forest-floor fungal neural network pulsing with neon cyan & violet spores and glowing mushroom icons",
+    palette: "electric_mycelium_forest",
+    uiElementFx: "shroom_spores",
+    iconPackStyle: "psychedelic_trip",
+    themeFontProfile: "rounded",
+    themeCornerProfile: "pill",
+    themeIconGlow: "hyper",
+    atmosphere: "mycelium_net+fairy_glade+jellyfish_glow",
+  },
+  {
+    id: "op_art_hypnosis_kit",
+    label: "🌀 Op-Art Moiré & Acid Warp",
+    desc: "Kinetic Op-Art wave interference, Chladni cymatics, chromatic RGB split & hypnotic vortex portal icons",
+    palette: "optical_moire_hypnosis",
+    uiElementFx: "acid_warp",
+    iconPackStyle: "op_art_illusion",
+    themeFontProfile: "scifi",
+    themeCornerProfile: "sharp",
+    themeIconGlow: "hyper",
+    atmosphere: "cymatics+lissajous_harmonics+chrono_portal",
   },
 ];
 
@@ -1189,6 +1293,14 @@ export async function chooseTheme(key) {
 export const OPTION_BRACKET_SHOWCASE_TEMPLATES = [
   { key: "tahoe_studio_3d", badge: "🍎 Tahoe 3D Folders & Pictures" },
   { key: "m4_pro_display_xdr", badge: "💻 M4 Max XDR Titanium" },
+  { key: "mac_studio_m4_ultra", badge: "🧊 Mac Studio M4 Ultra" },
+  { key: "mac_pro_rack_xdr", badge: "🖥️ Mac Pro 6K XDR" },
+  { key: "macbook_pro_space_black", badge: "🖤 MBP 16 Space Black" },
+  { key: "apple_studio_display_5k", badge: "☀️ Studio Display 5K" },
+  { key: "imac_m4_spectrum_p3", badge: "🌈 iMac 24 M4 4.5K P3" },
+  { key: "macos_sequoia_redwood_xdr", badge: "🌲 Sequoia XDR Redwood" },
+  { key: "macos_vision_spatial_mac", badge: "🥽 Mac Spatial Vision 8K" },
+  { key: "mac_mini_m4_pro_carbon", badge: "⚡ Mac mini M4 Pro" },
   { key: "win11_rtx_fluent_3d", badge: "🪟 Win11 Fluent 3D & RTX" },
   { key: "hdr_cinema_gallery", badge: "📸 8K HDR Photo Studio" },
   { key: "linux_workstation_hidpi", badge: "🐧 Linux Papirus HiDPI" },
@@ -1199,6 +1311,14 @@ export const OPTION_BRACKET_SHOWCASE_TEMPLATES = [
   { key: "toxic_slime_ooze", badge: "🧪 Dripping Slime Ooze" },
   { key: "tesla_coil_plasma", badge: "⚡ Tesla Coil Plasma" },
   { key: "tokamak_fusion", badge: "⚛️ Tokamak Fusion" },
+  { key: "kaleidoscope_mandala", badge: "🌈 Kaleidoscope Mandala" },
+  { key: "lava_lamp_groovy_69", badge: "🫧 1969 Lava Lamp" },
+  { key: "dmt_hyperspace_lattice", badge: "🪷 Hyperspace Lattice" },
+  { key: "holographic_oil_slick", badge: "🛢️ Oil-Slick Dichroic" },
+  { key: "electric_mycelium_forest", badge: "🍄 Mycelium Spore Trip" },
+  { key: "optical_moire_hypnosis", badge: "🌀 Op-Art Moiré Hypnosis" },
+  { key: "acid_house_rave_92", badge: "🔊 Acid House UV '92" },
+  { key: "pastel_dreamcore_cloud", badge: "☁️ Lucid Dreamcore Prism" },
   { key: "dracula", badge: "🧛 Dracula Classic" },
   { key: "nord", badge: "❄️ Nord Arctic" },
   { key: "win95", badge: "🪟 Windows 95 Retro" },
@@ -1634,6 +1754,11 @@ export async function showThemePicker() {
       : t.uiElementFx === "mercury_chrome" ? "💧 Chrome UI"
       : t.uiElementFx === "holo_glitch" ? "📺 Holo UI"
       : t.uiElementFx === "void_tentacles" ? "🦑 Void UI"
+      : t.uiElementFx === "kaleidoscope_prism" ? "🌈 Kaleido UI"
+      : t.uiElementFx === "lava_wax" ? "🫧 Lava UI"
+      : t.uiElementFx === "acid_warp" ? "🌀 Acid UI"
+      : t.uiElementFx === "oil_slick_chrome" ? "🛢️ Oil-Slick UI"
+      : t.uiElementFx === "shroom_spores" ? "🍄 Spore UI"
       : "";
     const uiFxBadge = uiFxBadgeLabel
       ? h("span", { class: "theme-uifx-badge", "data-uifx-badge": t.uiElementFx, title: `Includes interactive File Manager folder & toolbar shader (${t.uiElementFx})` }, uiFxBadgeLabel)
@@ -3280,8 +3405,9 @@ export const THEME_SHOW_CHANNELS_META = [
     icon: "🚀",
     label: "M4 Max & Ultra Showcase",
     desc: "All Ultra-tier themes paired with multi-layer signature atmospheric mixes.",
-    themes: ["ef5_debris_tornado", "inferno_fire_folders", "toxic_slime_ooze", "urban_street_cyclone", "tesla_coil_plasma", "tokamak_fusion", "hawking_horizon", "m4_space_black", "tahoe_liquid_glass"],
+    themes: ["mac_studio_m4_ultra", "mac_pro_rack_xdr", "macbook_pro_space_black", "imac_m4_spectrum_p3", "macos_sequoia_redwood_xdr", "macos_vision_spatial_mac", "ef5_debris_tornado", "inferno_fire_folders", "toxic_slime_ooze", "urban_street_cyclone", "tesla_coil_plasma", "tokamak_fusion", "hawking_horizon", "m4_space_black", "tahoe_liquid_glass"],
     mixes: [
+      "m4_raytrace_prism+liquid_glass_caustics",
       "debris_tornado_ef5+urban_cyclone_debris+hail_supercell+derecho_squall",
       "tesseract_4d+calabi_yau+chronos_retrocausal",
       "plasma_storm+tesla_megacoil+ball_lightning",

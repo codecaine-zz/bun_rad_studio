@@ -155,6 +155,24 @@ export const ICON_PACK_GLYPHS = {
     sheet: "⚛️", slide: "🔭", archive: "🕳️", code: "⚛️", text: "🧬", exec: "🚀",
     disk: "🪐", font: "🔯", file: "✨",
   },
+  psychedelic_trip: {
+    folder: "🍄", image: "🌈", video: "🔮", audio: "🎶", pdf: "🧿", doc: "📜",
+    sheet: "🦋", slide: "🪷", archive: "🪐", code: "🧬", text: "✨", exec: "🚀",
+    disk: "💿", font: "🔯", file: "🌸",
+    topics: { pictures: "🌈", video: "🔮", videos: "🔮", music: "🎶", code: "🧬", "3d": "🪷", docs: "🧿", downloads: "🦋", archive: "🪐", cloud: "☁️", database: "🍄" },
+  },
+  lava_groovy: {
+    folder: "🫧", image: "🌻", video: "🪩", audio: "🎸", pdf: "☮️", doc: "🌺",
+    sheet: "🌈", slide: "🪩", archive: "🧳", code: "⚡", text: "✌️", exec: "🚀",
+    disk: "💿", font: "🔤", file: "🌼",
+    topics: { pictures: "🌻", video: "🪩", videos: "🪩", music: "🎸", code: "⚡", "3d": "🫧", docs: "☮️", downloads: "🌈", archive: "🧳", cloud: "☁️", database: "🪩" },
+  },
+  op_art_illusion: {
+    folder: "🌀", image: "👁️", video: "🎞️", audio: "〰️", pdf: "💠", doc: "📐",
+    sheet: "📊", slide: "🔮", archive: "🧊", code: "♾️", text: "📝", exec: "⚡",
+    disk: "💿", font: "🔣", file: "🔹",
+    topics: { pictures: "👁️", video: "🌀", videos: "🌀", music: "〰️", code: "♾️", "3d": "🧊", docs: "📐", downloads: "💠", archive: "🧊", cloud: "🌀", database: "🔮" },
+  },
 };
 ICON_PACK_GLYPHS.inferno_burn = ICON_PACK_GLYPHS.inferno;
 ICON_PACK_GLYPHS.bio_slime = ICON_PACK_GLYPHS.slime;

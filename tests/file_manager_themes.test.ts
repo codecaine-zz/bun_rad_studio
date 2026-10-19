@@ -1305,15 +1305,37 @@ describe("the theme editor in the page", () => {
     expect(entryIcon({ isDirectory: true, name: "Photos_RAW" })).toBe("📸");
     expect(entryIcon({ isDirectory: false, kind: "image", name: "portrait.cr3" })).toBe("🖼️");
 
-    // 1-Click Jumpstart Workstation Kits
-    expect((themes as any).JUMPSTART_WORKSTATION_KITS.length).toBeGreaterThanOrEqual(8);
+    // 1-Click Jumpstart Workstation Kits (including Flagship Mac Computers)
+    expect((themes as any).JUMPSTART_WORKSTATION_KITS.length).toBeGreaterThanOrEqual(12);
     const kitApplied = await (themes as any).applyJumpstartKit("macos_tahoe_3d_kit");
     expect(kitApplied?.palette).toBe("tahoe_studio_3d");
     expect(doc.documentElement.getAttribute("data-ui-fx")).toBe("tahoe_glass_folders");
     expect(doc.documentElement.getAttribute("data-icon-pack")).toBe("macos_tahoe_3d");
 
+    const macStudioKit = await (themes as any).applyJumpstartKit("mac_studio_m4_ultra_kit");
+    expect(macStudioKit?.palette).toBe("mac_studio_m4_ultra");
+    expect(doc.documentElement.getAttribute("data-ui-fx")).toBe("xdr_titanium_folders");
+    expect(doc.documentElement.getAttribute("data-icon-pack")).toBe("pro_studio_xdr");
+
+    const studioDisplayKit = await (themes as any).applyJumpstartKit("apple_studio_display_5k_kit");
+    expect(studioDisplayKit?.palette).toBe("apple_studio_display_5k");
+    expect(doc.documentElement.getAttribute("data-ui-fx")).toBe("tahoe_glass_folders");
+    expect(doc.documentElement.getAttribute("data-icon-pack")).toBe("macos_tahoe_3d");
+
     // Option + ] / [ Quick-Switcher HUD & Flagship Selection Templates
-    expect((themes as any).OPTION_BRACKET_SHOWCASE_TEMPLATES.length).toBeGreaterThanOrEqual(12);
+    expect((themes as any).OPTION_BRACKET_SHOWCASE_TEMPLATES.length).toBeGreaterThanOrEqual(20);
+    expect((themes as any).OPTION_BRACKET_SHOWCASE_TEMPLATES.map((t: any) => t.key)).toEqual(
+      expect.arrayContaining([
+        "mac_studio_m4_ultra",
+        "mac_pro_rack_xdr",
+        "macbook_pro_space_black",
+        "apple_studio_display_5k",
+        "imac_m4_spectrum_p3",
+        "macos_sequoia_redwood_xdr",
+        "macos_vision_spatial_mac",
+        "mac_mini_m4_pro_carbon",
+      ]),
+    );
     const cycledName = await themes.cycleTheme(1, { showcaseOnly: true, showHud: true });
     expect(cycledName.length).toBeGreaterThan(0);
     const quickHud = doc.getElementById("fm-quick-cycle-hud");
@@ -1390,6 +1412,39 @@ describe("the theme editor in the page", () => {
         expect(doc.documentElement.getAttribute("data-icon-pack")).toBe(iconOpt.id);
       }
     }
+
+    // 11. Verify Tripped & Psychedelic themes, UI shaders, Icon Packs, Jumpstart Kits, and Theme Hacker Mutators
+    const trippyKeys = [
+      "kaleidoscope_mandala",
+      "lava_lamp_groovy_69",
+      "dmt_hyperspace_lattice",
+      "holographic_oil_slick",
+      "electric_mycelium_forest",
+      "optical_moire_hypnosis",
+      "acid_house_rave_92",
+      "mobius_wormhole_odyssey",
+      "pastel_dreamcore_cloud",
+      "solarpunk_kaleidoscope_day",
+    ];
+    const { themes: allThemes } = await api.call("themes/list");
+    for (const tk of trippyKeys) {
+      const found = allThemes.find((t: any) => t.key === tk);
+      expect(found).toBeDefined();
+      expect(found!.hasEffects).toBe(true);
+      expect(found!.tier).toBe("ultra");
+    }
+    const kaleidoKit = await (themes as any).applyJumpstartKit("kaleidoscope_trip_kit");
+    expect(kaleidoKit?.palette).toBe("kaleidoscope_mandala");
+    expect(doc.documentElement.getAttribute("data-ui-fx")).toBe("kaleidoscope_prism");
+    expect(doc.documentElement.getAttribute("data-icon-pack")).toBe("psychedelic_trip");
+    expect(domMod.iconFor("Photos", true, "psychedelic_trip")).toBe("🌈");
+    expect(domMod.iconFor("Music", true, "lava_groovy")).toBe("🎸");
+    expect(domMod.iconFor("Videos", true, "op_art_illusion")).toBe("🌀");
+    expect(fxCss).toContain('html[data-ui-fx="kaleidoscope_prism"]');
+    expect(fxCss).toContain('html[data-ui-fx="lava_wax"]');
+    expect(fxCss).toContain('html[data-ui-fx="acid_warp"]');
+    expect(fxCss).toContain('html[data-ui-fx="oil_slick_chrome"]');
+    expect(fxCss).toContain('html[data-ui-fx="shroom_spores"]');
 
     await themes.applyPalette("");
     atmo.applyAtmosphere("none");

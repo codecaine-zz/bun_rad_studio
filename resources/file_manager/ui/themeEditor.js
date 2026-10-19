@@ -191,6 +191,42 @@ export const THEME_HACK_MUTATORS = [
     fx: { glow: "plasma", glowColor: "#00f5d4", glowColor2: "#f15bb5", glowIntensity: 1, blur: 26, glass: 0.7, saturation: 2.1, border: "hologram", borderOpacity: 0.5, radius: "round", motion: "spring", chromatic: true, prismEdge: true, innerGlow: true, neonPulse: true, sheen: true, ambient: true, backdropStyle: "liquid", atmosphere: "plasma_storm+cyberstorm", uiElementFx: "tesla_arcs", iconPackStyle: "xenotech_2126", iconGlow: "hyper" },
     customCss: "",
   },
+  {
+    id: "kaleidoscope_mandala_hack",
+    label: "🌈 Kaleidoscope Fractal Mandala",
+    desc: "Sacred lotus geometry, 11D Calabi-Yau prism refraction, iridescent kaleidoscope folder borders, and psychedelic icons.",
+    colors: { background: "#0b0318", card: "#17072e", text: "#fdf4ff", accent: "#ff2a85", secondary: "#00f5d4", border: "#a855f7", danger: "#ff4d6d", warning: "#facc15", success: "#00f5d4", info: "#38bdf8" },
+    dark: true,
+    fx: { glow: "aurora", glowColor: "#ff2a85", glowColor2: "#00f5d4", glowIntensity: 0.95, blur: 28, glass: 0.68, saturation: 2.05, border: "iridescent", borderOpacity: 0.48, radius: "squircle", motion: "elastic", chromatic: true, prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, sheen: true, ambient: true, backdropStyle: "liquid", cursorEffect: "prism", atmosphere: "sacred_mandala+calabi_yau+prism_spectrum", uiElementFx: "kaleidoscope_prism", iconPackStyle: "psychedelic_trip", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "hyper" },
+    customCss: ".row.is-folder { background-image: linear-gradient(125deg, rgba(255,42,133,0.16), rgba(0,245,212,0.12), rgba(168,85,247,0.16)); }",
+  },
+  {
+    id: "lava_lamp_groovy_hack",
+    label: "🫧 1969 Psychedelic Lava Lamp",
+    desc: "Groovy molten orange & hot-magenta wax blobs undulating through warm violet oil with morphing lava-lamp folder cards.",
+    colors: { background: "#140414", card: "#260926", text: "#fff5eb", accent: "#ff6b00", secondary: "#ff1493", border: "#f97316", danger: "#ff4d6d", warning: "#facc15", success: "#34d399", info: "#ff7733" },
+    dark: true,
+    fx: { glow: "bloom", glowColor: "#ff6b00", glowColor2: "#ff1493", glowIntensity: 0.92, blur: 30, glass: 0.66, saturation: 1.9, border: "gradient", borderOpacity: 0.44, radius: "pill", motion: "elastic", frostedRim: true, innerGlow: true, neonPulse: true, sheen: true, ambient: true, backdropStyle: "liquid", cursorEffect: "ripple", atmosphere: "will_o_wisp+cinema_bokeh+aurora", uiElementFx: "lava_wax", iconPackStyle: "lava_groovy", fontProfile: "rounded", cornerProfile: "pill", iconGlow: "neon" },
+    customCss: "",
+  },
+  {
+    id: "acid_moire_hypnosis_hack",
+    label: "🌀 Op-Art Moiré & Acid Warp",
+    desc: "Kinetic Op-Art wave interference, Chladni cymatics, UV blacklight chromatic split, and hypnotic portal icons.",
+    colors: { background: "#07070c", card: "#12121f", text: "#ffffff", accent: "#00ffcc", secondary: "#ff007f", border: "#00ffcc", danger: "#ff3366", warning: "#ccff00", success: "#00ffcc", info: "#38bdf8" },
+    dark: true,
+    fx: { glow: "laser", glowColor: "#00ffcc", glowColor2: "#ff007f", glowIntensity: 0.94, blur: 20, glass: 0.58, saturation: 1.95, grain: "halftone", scanlines: "interlace", border: "double", borderOpacity: 0.52, radius: "sharp", motion: "snappy", chromatic: true, prismEdge: true, neonPulse: true, sheen: true, ambient: true, backdropStyle: "oled", cursorEffect: "magnetic", atmosphere: "cymatics+lissajous_harmonics+chrono_portal", uiElementFx: "acid_warp", iconPackStyle: "op_art_illusion", fontProfile: "scifi", cornerProfile: "sharp", iconGlow: "hyper" },
+    customCss: "",
+  },
+  {
+    id: "mycelium_spore_hack",
+    label: "🍄 Bioluminescent Mycelium Spores",
+    desc: "Ultraviolet forest-floor fungal neural network pulsing with neon cyan & violet spores and bioluminescent folder halos.",
+    colors: { background: "#040c12", card: "#0a1c28", text: "#ecfeff", accent: "#00f5d4", secondary: "#a855f7", border: "#22d3ee", danger: "#fb7185", warning: "#facc15", success: "#2dd4bf", info: "#38bdf8" },
+    dark: true,
+    fx: { glow: "plasma", glowColor: "#00f5d4", glowColor2: "#a855f7", glowIntensity: 0.92, blur: 26, glass: 0.66, saturation: 1.88, border: "neon", borderOpacity: 0.42, radius: "squircle", motion: "elastic", frostedRim: true, innerGlow: true, neonPulse: true, sheen: true, ambient: true, backdropStyle: "liquid", cursorEffect: "ripple", atmosphere: "mycelium_net+fairy_glade+jellyfish_glow", uiElementFx: "shroom_spores", iconPackStyle: "psychedelic_trip", fontProfile: "rounded", cornerProfile: "pill", iconGlow: "hyper" },
+    customCss: "",
+  },
 ];
 
 export const CUSTOM_CSS_SNIPPETS = [
@@ -199,6 +235,8 @@ export const CUSTOM_CSS_SNIPPETS = [
   { id: "neon_folders", label: "+ Neon Pulsing Folders", css: ".row.is-folder .name-text { text-shadow: 0 0 8px var(--accent), 0 0 18px var(--accent); font-weight: 700; }" },
   { id: "scanline_bar", label: "+ Retro Scanline Addressbar", css: "#addressbar { background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.28) 0px, rgba(0,0,0,0.28) 1px, transparent 1px, transparent 3px) !important; }" },
   { id: "ultra_glass", label: "+ Ultra Glass Floating Rows", css: ".row { margin-block: 2px; border-radius: 8px; backdrop-filter: blur(12px); }" },
+  { id: "kaleidoscope_rainbow", label: "+ Kaleidoscope Prismatic Foil", css: "#toolbar-row, .row.is-folder { background-image: linear-gradient(125deg, rgba(255,42,133,0.18), rgba(0,245,212,0.15) 35%, rgba(250,204,21,0.14) 70%, rgba(168,85,247,0.2)) !important; }" },
+  { id: "op_art_moire", label: "+ Op-Art Moiré Interference", css: ".row.is-folder { background-image: repeating-radial-gradient(circle at 15% 50%, rgba(0,255,204,0.12) 0 4px, transparent 4px 9px) !important; }" },
 ];
 
 export const PREBUILT_WALLPAPER_SCENES = [
@@ -243,6 +281,20 @@ export const PREBUILT_WALLPAPER_SCENES = [
     dark: true,
     colors: { background: "#0d131a", card: "#151f2b", text: "#e6edf3", accent: "#10b981", secondary: "#06b6d4", border: "#26374a", danger: "#f87171", warning: "#fbbf24", success: "#34d399", info: "#38bdf8" },
     fx: { uiElementFx: "tahoe_glass_folders", iconPackStyle: "linux_papirus_pro", backdropStyle: "frosted", radius: "round", glow: "soft", glowColor: "#10b981", glowColor2: "#06b6d4", blur: 20, glass: 0.54, sheen: true },
+  },
+  {
+    id: "kaleidoscope_mandala_dome",
+    label: "🌈 Kaleidoscope Mandala Dome",
+    dark: true,
+    colors: { background: "#0b0318", card: "#17072e", text: "#fdf4ff", accent: "#ff2a85", secondary: "#00f5d4", border: "#a855f7", danger: "#ff4d6d", warning: "#facc15", success: "#00f5d4", info: "#38bdf8" },
+    fx: { uiElementFx: "kaleidoscope_prism", iconPackStyle: "psychedelic_trip", backdropStyle: "liquid", radius: "squircle", glow: "aurora", glowColor: "#ff2a85", glowColor2: "#00f5d4", blur: 28, glass: 0.68, sheen: true, chromatic: true, prismEdge: true, frostedRim: true, atmosphere: "sacred_mandala+calabi_yau+prism_spectrum" },
+  },
+  {
+    id: "lava_lamp_lounge_69",
+    label: "🫧 1969 Lava Lamp Lounge",
+    dark: true,
+    colors: { background: "#140414", card: "#260926", text: "#fff5eb", accent: "#ff6b00", secondary: "#ff1493", border: "#f97316", danger: "#ff4d6d", warning: "#facc15", success: "#34d399", info: "#ff7733" },
+    fx: { uiElementFx: "lava_wax", iconPackStyle: "lava_groovy", backdropStyle: "liquid", radius: "pill", glow: "bloom", glowColor: "#ff6b00", glowColor2: "#ff1493", blur: 30, glass: 0.66, sheen: true, frostedRim: true, innerGlow: true, atmosphere: "will_o_wisp+cinema_bokeh+aurora" },
   },
 ];
 
@@ -361,8 +413,8 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
     effectField("grain", "Film grain", ["none", "subtle", "film", "halftone"]),
     effectField("scanlines", "Scanlines", ["none", "subtle", "crt", "interlace"]),
     effectField("atmosphere", "Atmospheric effect", [...ATMOSPHERE_IDS, ...ATMOSPHERE_MIX_PRESETS.map((m) => m.id)]),
-    effectField("uiElementFx", "Folder & toolbar shader", ["off", "tahoe_glass_folders", "fluent_mica_folders", "xdr_titanium_folders", "fire_folders", "slime_drip", "storm_wind", "cryo_frost", "tesla_arcs", "mercury_chrome", "holo_glitch", "void_tentacles"]),
-    effectField("iconPackStyle", "Custom icon pack", ["default", "macos_tahoe_3d", "win11_fluent_pro", "pro_studio_xdr", "hdr_photo_studio", "linux_papirus_pro", "nordic_minimal", "inferno", "slime", "storm_tempest", "neon_cyber", "liquid_gems", "cryo_crystal", "retro_pixel", "xenotech_2126"]),
+    effectField("uiElementFx", "Folder & toolbar shader", ["off", "tahoe_glass_folders", "fluent_mica_folders", "xdr_titanium_folders", "fire_folders", "slime_drip", "storm_wind", "cryo_frost", "tesla_arcs", "mercury_chrome", "holo_glitch", "void_tentacles", "kaleidoscope_prism", "lava_wax", "acid_warp", "oil_slick_chrome", "shroom_spores"]),
+    effectField("iconPackStyle", "Custom icon pack", ["default", "macos_tahoe_3d", "win11_fluent_pro", "pro_studio_xdr", "hdr_photo_studio", "linux_papirus_pro", "nordic_minimal", "inferno", "slime", "storm_tempest", "neon_cyber", "liquid_gems", "cryo_crystal", "retro_pixel", "xenotech_2126", "psychedelic_trip", "lava_groovy", "op_art_illusion"]),
     effectField("fontProfile", "Typography profile", ["default", "scifi", "terminal", "editorial", "rounded"]),
     effectField("cornerProfile", "Corner geometry", ["default", "sharp", "rounded", "pill"]),
     effectField("iconGlow", "Icon glow", ["off", "subtle", "neon", "hyper"]),
