@@ -7,7 +7,7 @@ import { debounce, h, iconFor } from "./dom.js";
 import { toast } from "./menus.js";
 import { saveSettings } from "./nav.js";
 import { emit, on, state } from "./state.js";
-import { applyPalette, applyUiImmersionProfiles, closeTelemetryPopoutHud, downloadThemeFileInBrowser, estimateThemeResourceTelemetry, extractPaletteFromPixels, forgetThemeList, ICON_PACK_OPTIONS, paint, pasteImportThemesFromClipboard, runBulkThemeImportFlow, saveThemeFileToFolder, UI_ELEMENT_FX_OPTIONS } from "./themes.js";
+import { applyPalette, applyUiImmersionProfiles, closeTelemetryPopoutHud, downloadThemeFileInBrowser, downloadThemePosterCard, estimateThemeResourceTelemetry, extractPaletteFromPixels, forgetThemeList, ICON_PACK_OPTIONS, paint, pasteImportThemesFromClipboard, runBulkThemeImportFlow, saveThemeFileToFolder, startThemePeekCompare, stopThemePeekCompare, syncSubStudioThemeTokens, toggleThemePeekCompare, UI_ELEMENT_FX_OPTIONS } from "./themes.js";
 import { ATMOSPHERE_IDS, ATMOSPHERE_MIX_PRESETS, ATMOSPHERE_OPTIONS, formatAtmosphereLabel, normalizeAtmosphereSpec, parseAtmosphereIds } from "./atmosphereCatalog.js";
 import { applyAtmosphere } from "./atmosphereFx.js";
 
@@ -2161,6 +2161,31 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
           onclick: () => setPreviewDock("mini"),
         }, "🔽 Compact"),
         peekBtn,
+        h("button", {
+          type: "button",
+          class: "theme-filter-pill",
+          "data-editor-peek-plain-btn": "true",
+          "data-theme-peek-btn": "true",
+          title: "Hold (or click) to temporarily strip glass, filters & shaders and inspect raw text readability",
+          onpointerdown: () => startThemePeekCompare("plain"),
+          onpointerup: () => stopThemePeekCompare(),
+          onpointerleave: () => stopThemePeekCompare(),
+          onclick: () => toggleThemePeekCompare("plain"),
+        }, "👁️ Hold to Peek Plain"),
+        h("button", {
+          type: "button",
+          class: "theme-filter-pill",
+          "data-editor-export-poster": "true",
+          title: "Download a 1920×1080 vector SVG Theme Poster Card for your current draft theme",
+          onclick: async () => {
+            const out = await downloadThemePosterCard({
+              name: nameInput.value.trim() || draft.name || "Custom Theme",
+              dark: darkBox.checked,
+              colors: draft.colors,
+            });
+            toast(`📸 Exported 1920×1080 Theme Poster Card: ${out.filename}`, { kind: "success" });
+          },
+        }, "📸 Poster Card"),
       ),
     ),
     previewWindowCanvas,
@@ -2277,6 +2302,17 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
       cornerProfile: cornerProf,
       iconGlow,
     });
+    syncSubStudioThemeTokens({
+      bg,
+      panel: card,
+      text,
+      accent,
+      selected: secondary,
+      danger,
+      warning,
+      ok: success,
+      info,
+    }, darkBox.checked);
     applyAtmosphere(fx ? atmo : "none");
   };
 
@@ -3117,6 +3153,7 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
     await run();
   } finally {
     closed = true;
+    stopThemePeekCompare();
     for (const mb of document.querySelectorAll(".modal-backdrop[data-editor-peek]")) {
       mb.removeAttribute("data-editor-peek");
     }

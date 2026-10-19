@@ -92,6 +92,12 @@ export interface Settings {
   folderSpringMode: FolderSpringMode;
   /** Procedural 8K desktop wallpaper backplate scene ("off" | "sequoia_redwood_dawn" | "tahoe_alpine_lake" | "win11_bloom_sculpture" | "tokyo_neon_rain_alley" | "cern_quantum_chamber" | "deep_space_jwst_pillars" | "holiday_winter_village"). */
   desktopWallpaperScene: DesktopWallpaperScene;
+  /** Dual-pane active vs. target visual distinction mode ("off" | "spotlight" | "neon_rim" | "dim_inactive" | "source_target_badges"). */
+  dualPaneFocusMode: DualPaneFocusMode;
+  /** Chameleon folder mood auto-accent mode ("off" | "auto" | "code" | "media" | "data" | "docs" | "archives" | "security"). */
+  chameleonFolderMode: ChameleonFolderMode;
+  /** Smart unfocused window & battery zero-watt governor mode ("auto" | "always_120hz" | "eco_saver"). */
+  zeroWattGovernorMode: ZeroWattGovernorMode;
   /** Visual presentation mode for the built-in Theme Show / Screensaver. */
   themeShowMode: ThemeShowMode;
   /** Curated theme & special effects channel for the Theme Show / Screensaver. */
@@ -246,6 +252,12 @@ export const FOLDER_SPRING_MODE_IDS = ["off", "macos_spring_loaded", "spatial_gl
 export type FolderSpringMode = (typeof FOLDER_SPRING_MODE_IDS)[number];
 export const DESKTOP_WALLPAPER_SCENE_IDS = ["off", "sequoia_redwood_dawn", "tahoe_alpine_lake", "win11_bloom_sculpture", "tokyo_neon_rain_alley", "cern_quantum_chamber", "deep_space_jwst_pillars", "holiday_winter_village"] as const;
 export type DesktopWallpaperScene = (typeof DESKTOP_WALLPAPER_SCENE_IDS)[number];
+export const DUAL_PANE_FOCUS_MODE_IDS = ["off", "spotlight", "neon_rim", "dim_inactive", "source_target_badges"] as const;
+export type DualPaneFocusMode = (typeof DUAL_PANE_FOCUS_MODE_IDS)[number];
+export const CHAMELEON_FOLDER_MODE_IDS = ["off", "auto", "code", "media", "data", "docs", "archives", "security"] as const;
+export type ChameleonFolderMode = (typeof CHAMELEON_FOLDER_MODE_IDS)[number];
+export const ZERO_WATT_GOVERNOR_MODE_IDS = ["auto", "always_120hz", "eco_saver"] as const;
+export type ZeroWattGovernorMode = (typeof ZERO_WATT_GOVERNOR_MODE_IDS)[number];
 export const THEME_SHOW_MODES = ["cinema_hud", "pure_canvas", "living_desktop", "retro_afterdark"] as const;
 export type ThemeShowMode = (typeof THEME_SHOW_MODES)[number];
 export const THEME_SHOW_CHANNELS = ["all_ultra", "storms_debris", "year_2126", "tesla_physics", "visceral_fx", "linux_retro", "us_holidays", "nerd_complete", "horror_nightmare", "realworld_objects", "favorites"] as const;
@@ -310,6 +322,9 @@ export const DEFAULT_SETTINGS: Settings = {
   cursorTrailMode: "off",
   folderSpringMode: "off",
   desktopWallpaperScene: "off",
+  dualPaneFocusMode: "spotlight",
+  chameleonFolderMode: "off",
+  zeroWattGovernorMode: "auto",
   themeShowMode: "cinema_hud",
   themeShowChannel: "all_ultra",
   themeShowIntervalSec: 15,
@@ -462,6 +477,9 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     cursorTrailMode: oneOf(r.cursorTrailMode, CURSOR_TRAIL_MODE_IDS, DEFAULT_SETTINGS.cursorTrailMode),
     folderSpringMode: oneOf(r.folderSpringMode, FOLDER_SPRING_MODE_IDS, DEFAULT_SETTINGS.folderSpringMode),
     desktopWallpaperScene: oneOf(r.desktopWallpaperScene, DESKTOP_WALLPAPER_SCENE_IDS, DEFAULT_SETTINGS.desktopWallpaperScene),
+    dualPaneFocusMode: oneOf(r.dualPaneFocusMode, DUAL_PANE_FOCUS_MODE_IDS, DEFAULT_SETTINGS.dualPaneFocusMode),
+    chameleonFolderMode: oneOf(r.chameleonFolderMode, CHAMELEON_FOLDER_MODE_IDS, DEFAULT_SETTINGS.chameleonFolderMode),
+    zeroWattGovernorMode: oneOf(r.zeroWattGovernorMode, ZERO_WATT_GOVERNOR_MODE_IDS, DEFAULT_SETTINGS.zeroWattGovernorMode),
     themeShowMode: oneOf(r.themeShowMode, THEME_SHOW_MODES, DEFAULT_SETTINGS.themeShowMode),
     themeShowChannel: oneOf(r.themeShowChannel, THEME_SHOW_CHANNELS, DEFAULT_SETTINGS.themeShowChannel),
     themeShowIntervalSec: typeof r.themeShowIntervalSec === "number" && isFinite(r.themeShowIntervalSec) ? Math.round(Math.min(600, Math.max(5, r.themeShowIntervalSec))) : DEFAULT_SETTINGS.themeShowIntervalSec,

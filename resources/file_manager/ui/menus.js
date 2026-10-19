@@ -62,6 +62,10 @@ export function showMenu(items, { x = 0, y = 0, anchor, label = "Menu" } = {}) {
 
   const enabled = () => buttons.filter((b) => !b.disabled);
   const onKey = (e) => {
+    if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && (/^Digit[1-8]$/.test(e.code ?? "") || /^[1-8]$/.test(e.key ?? ""))) {
+      closeMenu();
+      return;
+    }
     const list = enabled();
     const i = list.indexOf(document.activeElement);
     if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); closeMenu(); }

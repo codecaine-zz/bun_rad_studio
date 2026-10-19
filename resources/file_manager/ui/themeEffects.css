@@ -2312,6 +2312,7 @@ html[data-theme-show-glitch="true"] body {
  * 🍎 High-End 3D Regular Folders & Framed Picture Studios (macOS Tahoe / Win11 Fluent / M4 Pro XDR)
  * ============================================================================ */
 
+:root[data-ui-fx="tahoe_glass_folders"] :is(#viewbar, #toolbar-row),
 :root[data-ui-fx="tahoe_glass_folders"] .row.is-folder,
 :root[data-ui-fx="tahoe_glass_folders"] .card.is-folder {
   background:
@@ -2330,6 +2331,7 @@ html[data-theme-show-glitch="true"] body {
     0 10px 24px -6px color-mix(in oklab, var(--accent) 44%, rgba(0, 0, 0, 0.45));
 }
 
+:root[data-ui-fx="fluent_mica_folders"] :is(#viewbar, #toolbar-row),
 :root[data-ui-fx="fluent_mica_folders"] .row.is-folder,
 :root[data-ui-fx="fluent_mica_folders"] .card.is-folder {
   background:
@@ -2340,6 +2342,7 @@ html[data-theme-show-glitch="true"] body {
     0 5px 16px -5px rgba(0, 0, 0, 0.36);
 }
 
+:root[data-ui-fx="xdr_titanium_folders"] :is(#viewbar, #toolbar-row),
 :root[data-ui-fx="xdr_titanium_folders"] .row.is-folder,
 :root[data-ui-fx="xdr_titanium_folders"] .card.is-folder {
   background:
@@ -2351,6 +2354,7 @@ html[data-theme-show-glitch="true"] body {
     0 8px 22px -6px rgba(0, 0, 0, 0.65);
 }
 
+:root[data-ui-fx="google_material_folders"] :is(#viewbar, #toolbar-row),
 :root[data-ui-fx="google_material_folders"] .row.is-folder,
 :root[data-ui-fx="google_material_folders"] .card.is-folder {
   background:
@@ -6540,4 +6544,187 @@ html[data-wallpaper-scene="holiday_winter_village"] body {
     animation: none !important;
   }
 }
+
+/* ============================================================================
+ * 🧭 UPGRADE 2: DUAL-PANE "SOURCE VS. TARGET" ACTIVE FOCUS SPOTLIGHT
+ * ============================================================================ */
+html[data-dual-focus="spotlight"] #app[data-dual="true"] .pane.active,
+html[data-dual-focus="spotlight"] .dual-pane.is-active {
+  box-shadow: inset 0 0 0 1.5px var(--accent, #38bdf8), 0 8px 24px -10px color-mix(in oklab, var(--accent, #38bdf8) 42%, transparent);
+  transition: box-shadow 160ms ease, opacity 160ms ease;
+}
+
+html[data-dual-focus="spotlight"] #app[data-dual="true"] .pane:not(.active),
+html[data-dual-focus="spotlight"] .dual-pane:not(.is-active) {
+  opacity: 0.82;
+  transition: opacity 160ms ease;
+}
+
+html[data-dual-focus="neon_rim"] #app[data-dual="true"] .pane.active,
+html[data-dual-focus="neon_rim"] .dual-pane.is-active {
+  box-shadow:
+    inset 0 0 0 2px var(--accent, #38bdf8),
+    0 0 22px -4px color-mix(in oklab, var(--accent, #38bdf8) 68%, transparent);
+}
+
+html[data-dual-focus="dim_inactive"] #app[data-dual="true"] .pane:not(.active),
+html[data-dual-focus="dim_inactive"] .dual-pane:not(.is-active) {
+  opacity: 0.58;
+  filter: saturate(0.65);
+  transition: opacity 160ms ease, filter 160ms ease;
+}
+
+html[data-dual-focus="source_target_badges"] #app[data-dual="true"] .pane {
+  position: relative;
+}
+
+html[data-dual-focus="source_target_badges"] #app[data-dual="true"] .pane.active::before {
+  content: "🎯 SOURCE (ACTIVE)";
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  z-index: 6;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  background: var(--accent, #38bdf8);
+  color: #060911;
+  pointer-events: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+html[data-dual-focus="source_target_badges"] #app[data-dual="true"] .pane:not(.active)::before {
+  content: "📥 TARGET";
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  z-index: 6;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: color-mix(in oklab, var(--panel, #1e2329) 85%, var(--border, #353c46));
+  color: var(--text, #e8eaed);
+  border: 1px solid var(--border, #353c46);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+/* ============================================================================
+ * 🦎 UPGRADE 3: CHAMELEON FOLDER MOOD (AUTO-ACCENT BY FOLDER CONTENTS)
+ * ============================================================================ */
+html[data-chameleon-mood] .row.selected,
+html[data-chameleon-mood] .card.selected {
+  border-color: var(--fm-chameleon-accent, var(--accent, #38bdf8)) !important;
+  box-shadow: inset 3px 0 0 var(--fm-chameleon-accent, var(--accent, #38bdf8)), 0 4px 16px -6px var(--fm-chameleon-glow, rgba(56, 189, 248, 0.32));
+}
+
+html[data-chameleon-mood] .row.is-folder .c-icon,
+html[data-chameleon-mood] .card.is-folder .c-icon {
+  text-shadow: 0 0 10px var(--fm-chameleon-glow, rgba(56, 189, 248, 0.34));
+}
+
+/* ============================================================================
+ * 👁️ UPGRADE 5: INSTANT "HOLD TO PEEK ORIGINAL / PLAIN" READABILITY CHECK
+ * ============================================================================ */
+html[data-theme-peek="plain"],
+html[data-theme-peek="plain"] body,
+html[data-theme-peek="plain"] #app,
+html[data-theme-peek="plain"] .row,
+html[data-theme-peek="plain"] .card,
+html[data-theme-peek="plain"] .toolbar,
+html[data-theme-peek="plain"] .sidebar,
+html[data-theme-peek="plain"] .c-icon,
+html[data-theme-peek="plain"] .t-icon {
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  animation: none !important;
+  transform: none !important;
+  text-shadow: none !important;
+}
+
+html[data-theme-peek="plain"] #fm-atmosphere-canvas,
+html[data-theme-peek="plain"] #fm-cursor-spotlight-layer,
+html[data-theme-peek="plain"] #fm-holiday-celebration-burst,
+html[data-theme-peek="plain"] body::before,
+html[data-theme-peek="plain"] body::after {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* ============================================================================
+ * 🎨 UPGRADE 6: DEEP SUB-STUDIO THEME SYNC (CODE, MARKDOWN & DATABASE STUDIOS)
+ * ============================================================================ */
+html[data-sub-studio-sync="active"] :is(.code-editor, .code-pane, .fm-code-surface) {
+  background-color: var(--fm-code-bg, var(--bg));
+  color: var(--text);
+}
+
+html[data-sub-studio-sync="active"] :is(.code-gutter, .line-numbers) {
+  background-color: var(--fm-code-gutter-bg, var(--panel));
+  border-right-color: var(--border);
+}
+
+html[data-sub-studio-sync="active"] :is(.code-line.is-active, .cm-activeLine) {
+  background-color: var(--fm-code-line-active, rgba(56, 189, 248, 0.1));
+}
+
+html[data-sub-studio-sync="active"] :is(.tok-keyword, .hl-keyword) {
+  color: var(--fm-syntax-keyword, var(--accent));
+}
+
+html[data-sub-studio-sync="active"] :is(.tok-string, .hl-string) {
+  color: var(--fm-syntax-string, #34d399);
+}
+
+html[data-sub-studio-sync="active"] :is(.tok-function, .hl-function) {
+  color: var(--fm-syntax-function, #38bdf8);
+}
+
+html[data-sub-studio-sync="active"] :is(.tok-number, .hl-number) {
+  color: var(--fm-syntax-number, #fbbf24);
+}
+
+html[data-sub-studio-sync="active"] :is(.tok-comment, .hl-comment) {
+  color: var(--fm-syntax-comment, #64748b);
+}
+
+html[data-sub-studio-sync="active"] :is(.md-preview h1, .md-preview h2, .md-preview h3, .markdown-body h1, .markdown-body h2) {
+  color: var(--fm-md-heading, var(--accent));
+}
+
+html[data-sub-studio-sync="active"] :is(.md-preview pre, .md-preview code, .markdown-body pre, .markdown-body code) {
+  background-color: var(--fm-md-code-bg, var(--panel));
+}
+
+html[data-sub-studio-sync="active"] :is(.md-preview blockquote, .markdown-body blockquote) {
+  border-left-color: var(--fm-md-quote-border, var(--accent));
+}
+
+html[data-sub-studio-sync="active"] :is(.db-table th, .sql-grid th) {
+  background-color: var(--fm-db-header-bg, var(--panel));
+}
+
+html[data-sub-studio-sync="active"] :is(.db-table tr:nth-child(even), .sql-grid tr:nth-child(even)) {
+  background-color: var(--fm-db-row-alt, transparent);
+}
+
+html[data-sub-studio-sync="active"] :is(.db-null, .sql-null) {
+  color: var(--fm-db-null-fg, #64748b);
+}
+
+/* ============================================================================
+ * 🔋 UPGRADE 7: SMART UNFOCUSED WINDOW & BATTERY ZERO-WATT GOVERNOR
+ * ============================================================================ */
+html[data-zero-watt-paused="true"],
+html[data-zero-watt-paused="true"] *,
+html[data-zero-watt-paused="true"] *::before,
+html[data-zero-watt-paused="true"] *::after {
+  animation-play-state: paused !important;
+}
+
 

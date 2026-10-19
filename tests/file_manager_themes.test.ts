@@ -2707,5 +2707,177 @@ describe("the theme editor in the page", () => {
     closeDialogs();
     await themes.applyPalette("");
   });
+
+  test("7 Pro Theme Studio Upgrades: 25-Step Undo/Redo History, Dual-Pane Focus Spotlight, Chameleon Folder Mood, 1920x1080 Poster Card SVG, Hold to Peek Plain, Deep Sub-Studio Sync & Smart Zero-Watt Governor", async () => {
+    // 1. ⏪ 25-Step Theme & Random-Roll Undo / Redo History Stack
+    (themes as any).clearThemeHistory();
+    expect((themes as any).THEME_HISTORY_LIMIT).toBe(25);
+    await themes.chooseTheme("dracula");
+    await themes.applyPalette("dracula");
+    await themes.chooseTheme("nord");
+    await themes.applyPalette("nord");
+    await themes.chooseTheme("tokyo_night");
+    await themes.applyPalette("tokyo_night");
+
+    const hist1 = (themes as any).getThemeHistoryState();
+    expect(hist1.canUndo).toBe(true);
+    expect(hist1.undoCount).toBeGreaterThanOrEqual(2);
+
+    const undone1 = await (themes as any).undoThemeHistory({ quiet: true });
+    expect(undone1).toBeTruthy();
+    expect(undone1.palette).toBe("nord");
+    expect(state.settings.palette).toBe("nord");
+
+    const undone2 = await (themes as any).undoThemeHistory({ quiet: true });
+    expect(undone2).toBeTruthy();
+    expect(undone2.palette).toBe("dracula");
+    expect(state.settings.palette).toBe("dracula");
+
+    const redone1 = await (themes as any).redoThemeHistory({ quiet: true });
+    expect(redone1).toBeTruthy();
+    expect(redone1.palette).toBe("nord");
+    expect(state.settings.palette).toBe("nord");
+
+    // 2. 🧭 Dual-Pane "Source vs. Target" Active Focus Spotlight
+    expect((themes as any).DUAL_PANE_FOCUS_MODES.length).toBe(5);
+    const focusApplied = await (themes as any).applyDualPaneFocusMode("neon_rim", { quiet: true });
+    expect(focusApplied.id).toBe("neon_rim");
+    expect(doc.documentElement.dataset.dualFocus).toBe("neon_rim");
+    expect(state.settings.dualPaneFocusMode).toBe("neon_rim");
+
+    const focusCycled = await (themes as any).cycleDualPaneFocusMode(1, { quiet: true });
+    expect(focusCycled.id).toBe("dim_inactive");
+    expect(doc.documentElement.dataset.dualFocus).toBe("dim_inactive");
+
+    // 3. 🦎 Chameleon Folder Mood (Auto-Accent by Folder Contents)
+    expect((themes as any).CHAMELEON_FOLDER_MOODS.length).toBe(8);
+    const codeMood = (themes as any).detectFolderMoodFromEntries(
+      [{ name: "main.ts", isDir: false }, { name: "Cargo.toml", isDir: false }, { name: "app.rs", isDir: false }],
+      "/workspace/src",
+    );
+    expect(codeMood.detectedMood).toBe("code");
+
+    const mediaMood = (themes as any).detectFolderMoodFromEntries(
+      [{ name: "hero.png", isDir: false }, { name: "trailer.mp4", isDir: false }, { name: "song.flac", isDir: false }],
+      "/workspace/media",
+    );
+    expect(mediaMood.detectedMood).toBe("media");
+
+    const dataMood = (themes as any).detectFolderMoodFromEntries(
+      [{ name: "metrics.parquet", isDir: false }, { name: "llama.gguf", isDir: false }, { name: "analytics.duckdb", isDir: false }],
+      "/workspace/data",
+    );
+    expect(dataMood.detectedMood).toBe("data");
+
+    const vaultMood = (themes as any).detectFolderMoodFromEntries(
+      [{ name: ".env.production", isDir: false }, { name: "id_ed25519", isDir: false }, { name: "secrets.kdbx", isDir: false }],
+      "/workspace/vault",
+    );
+    expect(vaultMood.detectedMood).toBe("security");
+
+    const chamApplied = await (themes as any).applyChameleonFolderMood("auto", {
+      quiet: true,
+      entries: [{ name: "photo1.heic", isDir: false }, { name: "video.mov", isDir: false }],
+      folderPath: "/Users/codecaine/Pictures",
+    });
+    expect(chamApplied.id).toBe("media");
+    expect(doc.documentElement.dataset.chameleonMood).toBe("media");
+    expect(doc.documentElement.style.getPropertyValue("--fm-chameleon-accent")).toBe("#f472b6");
+
+    await (themes as any).applyChameleonFolderMood("off", { quiet: true });
+    expect(doc.documentElement.dataset.chameleonMood).toBeUndefined();
+
+    // 4. 📸 1-Click "Export Theme Poster Card" (1920x1080 Vector SVG Social Card)
+    const posterOut = await (themes as any).downloadThemePosterCard({
+      key: "dracula",
+      name: "Dracula Studio Master",
+      download: false,
+    });
+    expect(posterOut.filename).toBe("dracula-studio-master.poster.svg");
+    expect(posterOut.svg).toContain('viewBox="0 0 1920 1080"');
+    expect(posterOut.svg).toContain("Dracula Studio Master");
+    expect(posterOut.svg).toContain("STUDIO FIDELITY GRADE");
+    expect(posterOut.svg).toContain("CCFM-THEME-v1:");
+
+    // 5. 👁️ Instant "Hold to Peek Original / Plain" Readability Check
+    expect((themes as any).isThemePeekCompareActive()).toBe(false);
+    (themes as any).startThemePeekCompare("plain");
+    expect((themes as any).isThemePeekCompareActive()).toBe(true);
+    expect(doc.documentElement.dataset.themePeek).toBe("plain");
+    (themes as any).stopThemePeekCompare();
+    expect((themes as any).isThemePeekCompareActive()).toBe(false);
+    expect(doc.documentElement.dataset.themePeek).toBeUndefined();
+    (themes as any).toggleThemePeekCompare("plain");
+    expect(doc.documentElement.dataset.themePeek).toBe("plain");
+    (themes as any).toggleThemePeekCompare("plain");
+    expect(doc.documentElement.dataset.themePeek).toBeUndefined();
+
+    // 6. 🎨 Deep Sub-Studio Theme Sync (Code Editor, Markdown Preview, Database Studio Grids)
+    const subTokens = (themes as any).syncSubStudioThemeTokens({
+      bg: "#0b101b",
+      panel: "#131c2e",
+      text: "#ecf2ff",
+      accent: "#38bdf8",
+      selected: "#a855f7",
+      danger: "#ff6b81",
+      warning: "#fbbf24",
+      ok: "#34d399",
+      info: "#38bdf8",
+    }, true);
+    expect(subTokens["--fm-code-bg"]).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(subTokens["--fm-syntax-keyword"]).toBe("#38bdf8");
+    expect(subTokens["--fm-syntax-string"]).toBe("#34d399");
+    expect(subTokens["--fm-md-heading"]).toBe("#38bdf8");
+    expect(subTokens["--fm-db-header-bg"]).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(doc.documentElement.dataset.subStudioSync).toBe("active");
+    expect(doc.documentElement.style.getPropertyValue("--fm-syntax-keyword")).toBe("#38bdf8");
+
+    // 7. 🔋 Smart Unfocused Window & Battery Zero-Watt Governor
+    const atmo = await import("../resources/file_manager/ui/atmosphereFx.js") as any;
+    expect((themes as any).ZERO_WATT_GOVERNOR_MODES.length).toBe(3);
+    await (themes as any).setZeroWattGovernorMode("auto", { quiet: true });
+    const focusedState = (themes as any).simulateWindowFocusState(true);
+    expect(focusedState.paused).toBe(false);
+    expect(doc.documentElement.dataset.zeroWattPaused).toBeUndefined();
+
+    const blurredState = (themes as any).simulateWindowFocusState(false);
+    expect(blurredState.paused).toBe(true);
+    expect(doc.documentElement.dataset.zeroWattPaused).toBe("true");
+    expect(atmo.isAtmosphereZeroWattPaused()).toBe(true);
+
+    // Refocusing resumes 120Hz immediately
+    const refocusedState = (themes as any).simulateWindowFocusState(true);
+    expect(refocusedState.paused).toBe(false);
+    expect(doc.documentElement.dataset.zeroWattPaused).toBeUndefined();
+    expect(atmo.isAtmosphereZeroWattPaused()).toBe(false);
+
+    // Eco Saver mode pauses even when focused
+    const ecoState = await (themes as any).setZeroWattGovernorMode("eco_saver", { quiet: true });
+    expect(ecoState.paused).toBe(true);
+    expect(doc.documentElement.dataset.zeroWattPaused).toBe("true");
+
+    // 8. Verify Option+1, Option+2, Option+3 (Alt+1..3) are reserved for the top toolbar and never hijacked by theme shortcuts, while Option+9 (Alt+9) cycles 3D folders
+    await themes.disableAllThemeAnimations({ quiet: true });
+    const w = doc.defaultView as any;
+    for (const d of [1, 2, 3]) {
+      const ev = new w.KeyboardEvent("keydown", { key: String(d), code: `Digit${d}`, altKey: true, bubbles: true, cancelable: true });
+      w.dispatchEvent(ev);
+      expect(ev.defaultPrevented).toBe(false);
+    }
+    expect(doc.documentElement.dataset.iconAnim).toBeUndefined();
+    const ev9 = new w.KeyboardEvent("keydown", { key: "9", code: "Digit9", altKey: true, bubbles: true, cancelable: true });
+    w.dispatchEvent(ev9);
+    expect(ev9.defaultPrevented).toBe(true);
+    await sleep(40);
+    expect(doc.documentElement.dataset.iconAnim).toBeTruthy();
+
+    // Restore auto mode
+    await (themes as any).setZeroWattGovernorMode("auto", { quiet: true });
+    (themes as any).simulateWindowFocusState(true);
+    closeDialogs();
+    await themes.disableAllThemeAnimations({ quiet: true });
+    await themes.applyPalette("");
+  });
 });
+
 

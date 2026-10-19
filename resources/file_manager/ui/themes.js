@@ -2,7 +2,7 @@
 // SimpleGUI table into this page's color variables (and checks that every text and background pair is readable).
 import { ApiError, call } from "./api.js";
 import { formatAtmosphereLabel, normalizeAtmosphereSpec, parseAtmosphereIds } from "./atmosphereCatalog.js";
-import { applyAtmosphere, cycleAtmosphere, effectiveAtmosphere, savedAtmospherePresets, triggerReactiveImpulse } from "./atmosphereFx.js";
+import { applyAtmosphere, cycleAtmosphere, effectiveAtmosphere, isAtmosphereZeroWattPaused, savedAtmospherePresets, setAtmosphereZeroWattPaused, triggerReactiveImpulse } from "./atmosphereFx.js";
 import { copyToClipboard, flashCopied, readFromClipboard } from "./copyclip.js";
 import { openDialog } from "./dialogs.js";
 import { HOLIDAY_THEME_CRESTS, buttonIconFor, debounce, h, iconForEntry, resolveHolidayCrestForPalette, syncVisibleIcons } from "./dom.js";
@@ -457,6 +457,50 @@ export const AAA_DIRECTOR_CUT_PRESETS = [
   },
 ];
 
+/** Dual-Pane "Source vs. Target" Active Focus Spotlight Modes (`data-dual-focus`). */
+export const DUAL_PANE_FOCUS_MODES = [
+  { id: "off", label: "⏹️ Off", desc: "Equal visual weight on both panes in dual-pane mode" },
+  { id: "spotlight", label: "🔦 Active Pane Spotlight", desc: "Illuminates the active pane with a crisp accent border while subtly dimming the inactive target pane" },
+  { id: "neon_rim", label: "⚡ Neon Source Rim", desc: "High-contrast Display-P3 neon rim around the active source pane with glowing header telemetry" },
+  { id: "dim_inactive", label: "🌑 Dim Inactive Pane", desc: "Desaturates and lowers opacity on the inactive pane so you never mix up left vs. right" },
+  { id: "source_target_badges", label: "🏷️ Source / Target HUD Badges", desc: "Displays explicit SOURCE (ACTIVE) and TARGET HUD badges in dual-pane headers with accent rims" },
+];
+
+/** Chameleon Folder Mood — Auto-Accent by Folder Contents (`data-chameleon-mood`). */
+export const CHAMELEON_FOLDER_MOODS = [
+  { id: "off", label: "⏹️ Off", accent: "", glow: "", badge: "", desc: "Keep theme's standard accent color in every folder" },
+  { id: "auto", label: "🦎 Auto-Detect by Folder Contents", accent: "auto", glow: "auto", badge: "🦎 Auto Mood", desc: "Automatically shifts accent glow based on dominant files in the active folder (Code, Media, Data, Docs, Archives, Security)" },
+  { id: "code", label: "💻 Code & Engineering", accent: "#38bdf8", glow: "rgba(56, 189, 248, 0.34)", badge: "💻 Code Mood", desc: "Electric cyan-indigo engineering accent for source code & repositories" },
+  { id: "media", label: "🎬 Media, Photos & Audio", accent: "#f472b6", glow: "rgba(244, 114, 182, 0.34)", badge: "🎬 Media Mood", desc: "Vibrant magenta-coral studio accent for photography, video, and audio folders" },
+  { id: "data", label: "📊 Data, AI & Databases", accent: "#34d399", glow: "rgba(52, 211, 153, 0.34)", badge: "📊 Data & AI Mood", desc: "Emerald-mint telemetry accent for datasets, SQLite/DuckDB, and AI model weights" },
+  { id: "docs", label: "📑 Documents & Publishing", accent: "#fbbf24", glow: "rgba(251, 191, 36, 0.32)", badge: "📑 Docs Mood", desc: "Warm amber editorial accent for Markdown, PDFs, notes, and office documents" },
+  { id: "archives", label: "📦 Archives & Packages", accent: "#a78bfa", glow: "rgba(167, 139, 250, 0.34)", badge: "📦 Archive Mood", desc: "Royal violet accent for compressed bundles, disk images, and installers" },
+  { id: "security", label: "🔐 Keys, Vaults & Config", accent: "#fb7185", glow: "rgba(251, 113, 133, 0.34)", badge: "🔐 Vault Mood", desc: "Crimson-rose tactical accent for SSH keys, certificates, and encrypted vaults" },
+];
+
+/** Smart Unfocused Window & Battery Zero-Watt Governor Modes (`data-zero-watt-mode`). */
+export const ZERO_WATT_GOVERNOR_MODES = [
+  { id: "auto", label: "🔋 Smart Zero-Watt (Auto Pause on Blur)", desc: "Runs at full 120Hz while focused and automatically pauses GPU shaders & infinite CSS animations when the window is unfocused or minimized (0.0% idle GPU)" },
+  { id: "always_120hz", label: "🚀 Always Uncapped 120Hz", desc: "Keeps all background shaders and animations running continuously even when the window is in the background" },
+  { id: "eco_saver", label: "🍃 Battery Eco Saver (Always Paused)", desc: "Pauses continuous background particle loops and infinite CSS animations immediately to maximize laptop battery life" },
+];
+
+export const THEME_HISTORY_LIMIT = 25;
+let themeHistoryUndoStack = [];
+let themeHistoryRedoStack = [];
+let isRestoringThemeHistory = false;
+let isWindowCurrentlyFocused = true;
+let zeroWattListenersBound = false;
+
+const CHAMELEON_EXT_BUCKETS = {
+  code: new Set(["ts", "tsx", "js", "jsx", "mjs", "cjs", "py", "rs", "go", "c", "cpp", "h", "hpp", "java", "zig", "swift", "kt", "sh", "bash", "zsh", "css", "scss", "html", "vue", "svelte", "lua", "rb", "php"]),
+  media: new Set(["png", "jpg", "jpeg", "gif", "webp", "avif", "heic", "svg", "ico", "bmp", "tiff", "raw", "cr2", "nef", "mp4", "mov", "mkv", "webm", "avi", "mp3", "wav", "flac", "ogg", "m4a", "aac", "aiff"]),
+  data: new Set(["json", "jsonl", "csv", "tsv", "parquet", "arrow", "db", "sqlite", "sqlite3", "duckdb", "sql", "gguf", "safetensors", "onnx", "pt", "pth", "ipynb", "xml", "yaml", "yml", "toml"]),
+  docs: new Set(["md", "markdown", "txt", "pdf", "doc", "docx", "rtf", "epub", "pages", "odt", "tex", "org", "rst", "pptx", "xlsx"]),
+  archives: new Set(["zip", "tar", "gz", "tgz", "bz2", "xz", "zst", "7z", "rar", "dmg", "iso", "pkg", "deb", "rpm", "appimage", "msi", "exe"]),
+  security: new Set(["pem", "key", "crt", "cer", "pub", "gpg", "asc", "sig", "env", "kdbx", "vault", "p12", "pfx"]),
+};
+
 /** Ensures the interactive pointer reveal spotlight & cursor trail overlay (`#fm-cursor-spotlight-layer`) is mounted and bound. */
 let cursorTrailBound = false;
 let lastTrailParticleTs = 0;
@@ -714,6 +758,32 @@ export function applyUiImmersionProfiles(overrides = {}) {
   } else {
     delete root.dataset.wallpaperScene;
   }
+
+  // Sync Dual-Pane Active vs. Target Focus Spotlight (`data-dual-focus`)
+  const rawDualFocus = (overrides && Object.prototype.hasOwnProperty.call(overrides, "dualPaneFocusMode"))
+    ? overrides.dualPaneFocusMode
+    : (s.dualPaneFocusMode || "spotlight");
+  if (rawDualFocus && rawDualFocus !== "off") {
+    root.dataset.dualFocus = rawDualFocus;
+  } else {
+    delete root.dataset.dualFocus;
+  }
+
+  // Sync Chameleon Folder Mood (`data-chameleon-mood`)
+  const rawChameleon = (overrides && Object.prototype.hasOwnProperty.call(overrides, "chameleonFolderMode"))
+    ? overrides.chameleonFolderMode
+    : (s.chameleonFolderMode || "off");
+  syncChameleonFolderMood(overrides?.entries, overrides?.folderPath, rawChameleon);
+
+  // Sync Smart Unfocused Window & Battery Zero-Watt Governor (`data-zero-watt-mode`)
+  const rawZeroWatt = (overrides && Object.prototype.hasOwnProperty.call(overrides, "zeroWattGovernorMode"))
+    ? overrides.zeroWattGovernorMode
+    : (s.zeroWattGovernorMode || "auto");
+  root.dataset.zeroWattMode = rawZeroWatt;
+  applyZeroWattGovernorToDom(rawZeroWatt);
+
+  // Sync Deep Sub-Studio Theme Tokens (Code Editor, Markdown Preview, Database Studio)
+  syncSubStudioThemeTokens();
 
   syncVisibleIcons(document);
 }
@@ -2195,6 +2265,7 @@ export const JUMPSTART_WORKSTATION_KITS = [
 export async function applyJumpstartKit(kitId) {
   const kit = JUMPSTART_WORKSTATION_KITS.find((k) => k.id === kitId);
   if (!kit) return null;
+  pushThemeHistorySnapshot();
   const patch = {
     palette: kit.palette,
     uiElementFx: kit.uiElementFx,
@@ -2215,6 +2286,7 @@ export async function applyJumpstartKit(kitId) {
     }
   } catch {}
   await saveSettings(patch);
+  pushThemeHistorySnapshot(patch, kit.label);
   toast(`Applied Jumpstart Kit: ${kit.label}`, { kind: "success" });
   return kit;
 }
@@ -2355,7 +2427,8 @@ export async function applyHolidayCelebrationTheme(holidayKey, opts = {}) {
   const target = HOLIDAY_CELEBRATION_CATALOG.find((hItem) => hItem.key === holidayKey)
     || detectCalendarHolidayTheme(opts.date || new Date());
   if (!target) return null;
-  await chooseTheme(target.key);
+  pushThemeHistorySnapshot();
+  await chooseTheme(target.key, { skipHistory: true });
   await applyPalette(target.key);
   const patch = {
     palette: target.key,
@@ -2367,6 +2440,7 @@ export async function applyHolidayCelebrationTheme(holidayKey, opts = {}) {
   if (state.settings) Object.assign(state.settings, patch);
   applyUiImmersionProfiles(patch);
   await saveSettings(patch);
+  pushThemeHistorySnapshot(patch, target.label);
   if (opts.burst !== false) {
     triggerHolidayCelebrationBurst(target.key);
   }
@@ -2540,6 +2614,684 @@ export async function cycleDesktopWallpaperScene(delta = 1, opts = {}) {
   return applyDesktopWallpaperScene(DESKTOP_WALLPAPER_SCENES[nextIdx].id, opts);
 }
 
+// =====================================================================================================================
+// UPGRADE 1: ⏪ 25-Step Theme & Random-Roll Undo / Redo History Stack
+// =====================================================================================================================
+
+function buildLookHistorySignature(snap) {
+  if (!snap || typeof snap !== "object") return "";
+  return [
+    snap.palette || "",
+    snap.uiElementFx || "off",
+    snap.iconPackStyle || "default",
+    snap.iconFinishMode || "off",
+    snap.themeFontProfile || "default",
+    snap.themeCornerProfile || "default",
+    snap.themeIconGlow || "off",
+    snap.themeIconAnimation || "off",
+    snap.screenFilter || "off",
+    snap.workspaceStageMode || "off",
+    snap.cursorTrailMode || "off",
+    snap.folderSpringMode || "off",
+    snap.desktopWallpaperScene || "off",
+    snap.uiSoundProfile || "off",
+    snap.dualPaneFocusMode || "spotlight",
+    snap.chameleonFolderMode || "off",
+    snap.zeroWattGovernorMode || "auto",
+    snap.atmosphere || "none",
+  ].join("|");
+}
+
+/** Captures the complete current look state (theme palette + all 10+ engines) as a normalized history entry. */
+export function captureCurrentLookHistoryEntry(labelOverride = "") {
+  const root = typeof document !== "undefined" ? document.documentElement : null;
+  const s = state.settings ?? {};
+  const palette = (root?.dataset?.palette && root.dataset.palette !== "preview")
+    ? root.dataset.palette
+    : (s.palette || "");
+  const entry = {
+    palette,
+    uiElementFx: s.uiElementFx || root?.dataset?.uiFx || "off",
+    iconPackStyle: s.iconPackStyle || root?.dataset?.iconPack || "default",
+    iconFinishMode: s.iconFinishMode || root?.dataset?.iconFinish || "off",
+    themeFontProfile: s.themeFontProfile || root?.dataset?.fontProfile || "default",
+    themeCornerProfile: s.themeCornerProfile || root?.dataset?.cornerProfile || "default",
+    themeIconGlow: s.themeIconGlow || root?.dataset?.iconGlow || "off",
+    themeIconAnimation: s.themeIconAnimation || root?.dataset?.iconAnim || "off",
+    screenFilter: s.screenFilter || root?.dataset?.screenFilter || "off",
+    workspaceStageMode: s.workspaceStageMode || root?.dataset?.stageMode || "off",
+    cursorTrailMode: s.cursorTrailMode || root?.dataset?.cursorTrail || "off",
+    folderSpringMode: s.folderSpringMode || root?.dataset?.folderSpring || "off",
+    desktopWallpaperScene: s.desktopWallpaperScene || root?.dataset?.wallpaperScene || "off",
+    uiSoundProfile: s.uiSoundProfile || root?.dataset?.soundProfile || "off",
+    dualPaneFocusMode: s.dualPaneFocusMode || root?.dataset?.dualFocus || "spotlight",
+    chameleonFolderMode: s.chameleonFolderMode || root?.dataset?.chameleonMood || "off",
+    zeroWattGovernorMode: s.zeroWattGovernorMode || root?.dataset?.zeroWattMode || "auto",
+    atmosphere: s.atmosphere || root?.dataset?.atmosphere || "none",
+    atmosphereIntensity: Number(s.atmosphereIntensity) || 60,
+    atmosphereTier: s.atmosphereTier || "auto",
+    label: String(labelOverride || palette || "Standard Look"),
+    timestamp: Date.now(),
+  };
+  entry.signature = buildLookHistorySignature(entry);
+  return entry;
+}
+
+/** Updates any mounted `⏪ Undo Look` / `⏩ Redo Look` buttons in the DOM. */
+export function syncThemeHistoryButtons(rootEl = typeof document !== "undefined" ? document : null) {
+  if (!rootEl || typeof rootEl.querySelectorAll !== "function") return;
+  const st = getThemeHistoryState();
+  for (const btn of rootEl.querySelectorAll('[data-theme-history-undo="true"]')) {
+    btn.disabled = !st.canUndo;
+    btn.setAttribute("aria-disabled", String(!st.canUndo));
+    const prevItem = st.undoStack.length >= 2 ? st.undoStack[st.undoStack.length - 2] : st.undoStack[0];
+    btn.textContent = st.undoCount > 0 ? `⏪ Undo (${st.undoCount})` : "⏪ Undo Look";
+    btn.title = prevItem
+      ? `Undo to previous look: ${prevItem.label || prevItem.palette || "Standard"} (Alt+Z / ⌥Z)`
+      : "Undo to previous theme / FX roll (Alt+Z / ⌥Z)";
+  }
+  for (const btn of rootEl.querySelectorAll('[data-theme-history-redo="true"]')) {
+    btn.disabled = !st.canRedo;
+    btn.setAttribute("aria-disabled", String(!st.canRedo));
+    const nextItem = st.redoStack[st.redoStack.length - 1];
+    btn.textContent = st.redoCount > 0 ? `⏩ Redo (${st.redoCount})` : "⏩ Redo Look";
+    btn.title = nextItem
+      ? `Redo look: ${nextItem.label || nextItem.palette || "Standard"} (Alt+Shift+Z / ⌥⇧Z)`
+      : "Redo theme / FX roll (Alt+Shift+Z / ⌥⇧Z)";
+  }
+}
+
+/** Pushes a look snapshot onto the 25-step Undo History Stack (deduplicated) and clears the Redo stack. */
+export function pushThemeHistorySnapshot(snapshotOverride = null, labelOverride = "") {
+  if (isRestoringThemeHistory) return getThemeHistoryState();
+  const base = captureCurrentLookHistoryEntry(labelOverride);
+  const merged = snapshotOverride && typeof snapshotOverride === "object"
+    ? { ...base, ...snapshotOverride, label: String(labelOverride || snapshotOverride.label || snapshotOverride.palette || base.label) }
+    : base;
+  merged.signature = buildLookHistorySignature(merged);
+  const top = themeHistoryUndoStack[themeHistoryUndoStack.length - 1];
+  if (top && top.signature === merged.signature) {
+    if (labelOverride) top.label = String(labelOverride);
+    syncThemeHistoryButtons();
+    return getThemeHistoryState();
+  }
+  themeHistoryUndoStack.push(merged);
+  if (themeHistoryUndoStack.length > THEME_HISTORY_LIMIT) {
+    themeHistoryUndoStack = themeHistoryUndoStack.slice(themeHistoryUndoStack.length - THEME_HISTORY_LIMIT);
+  }
+  themeHistoryRedoStack = [];
+  syncThemeHistoryButtons();
+  return getThemeHistoryState();
+}
+
+/** Applies a saved history snapshot without clobbering the Undo/Redo stacks. */
+export async function applyThemeHistorySnapshot(snap, opts = {}) {
+  if (!snap || typeof snap !== "object") return null;
+  isRestoringThemeHistory = true;
+  try {
+    const patch = {
+      palette: snap.palette || "",
+      uiElementFx: snap.uiElementFx || "off",
+      iconPackStyle: snap.iconPackStyle || "default",
+      iconFinishMode: snap.iconFinishMode || "off",
+      themeFontProfile: snap.themeFontProfile || "default",
+      themeCornerProfile: snap.themeCornerProfile || "default",
+      themeIconGlow: snap.themeIconGlow || "off",
+      themeIconAnimation: snap.themeIconAnimation || "off",
+      screenFilter: snap.screenFilter || "off",
+      workspaceStageMode: snap.workspaceStageMode || "off",
+      cursorTrailMode: snap.cursorTrailMode || "off",
+      folderSpringMode: snap.folderSpringMode || "off",
+      desktopWallpaperScene: snap.desktopWallpaperScene || "off",
+      uiSoundProfile: snap.uiSoundProfile || "off",
+      dualPaneFocusMode: snap.dualPaneFocusMode || "spotlight",
+      chameleonFolderMode: snap.chameleonFolderMode || "off",
+      zeroWattGovernorMode: snap.zeroWattGovernorMode || "auto",
+      atmosphere: snap.atmosphere || "none",
+      atmosphereIntensity: Number(snap.atmosphereIntensity) || 60,
+      atmosphereTier: snap.atmosphereTier || "auto",
+    };
+    if (state.settings) Object.assign(state.settings, patch);
+    await applyPalette(patch.palette);
+    applyUiImmersionProfiles(patch);
+    try {
+      applyAtmosphere(patch.atmosphere, patch.atmosphereIntensity, patch.atmosphereTier);
+    } catch {}
+    await saveSettings(patch);
+    emit("theme-changed", currentThemePayload());
+    return snap;
+  } finally {
+    isRestoringThemeHistory = false;
+    syncThemeHistoryButtons();
+  }
+}
+
+/** Undoes the last theme / random roll / FX change (`Alt+Z` / `⌥Z`). */
+export async function undoThemeHistory(opts = {}) {
+  if (!themeHistoryUndoStack.length) return null;
+  const currentLook = captureCurrentLookHistoryEntry();
+  const top = themeHistoryUndoStack[themeHistoryUndoStack.length - 1];
+  let targetSnap = null;
+  if (themeHistoryUndoStack.length >= 2) {
+    const popped = themeHistoryUndoStack.pop();
+    themeHistoryRedoStack.push(popped);
+    if (themeHistoryRedoStack.length > THEME_HISTORY_LIMIT) {
+      themeHistoryRedoStack = themeHistoryRedoStack.slice(themeHistoryRedoStack.length - THEME_HISTORY_LIMIT);
+    }
+    targetSnap = themeHistoryUndoStack[themeHistoryUndoStack.length - 1];
+  } else if (top && top.signature !== currentLook.signature) {
+    themeHistoryRedoStack.push(currentLook);
+    targetSnap = top;
+  } else {
+    if (!opts.quiet) toast("Already at the oldest look in Undo history.", { kind: "info" });
+    syncThemeHistoryButtons();
+    return null;
+  }
+  await applyThemeHistorySnapshot(targetSnap, opts);
+  if (!opts.quiet) {
+    toast(`⏪ Undid Look → ${targetSnap.label || targetSnap.palette || "Standard"}`, { kind: "info" });
+  }
+  return targetSnap;
+}
+
+/** Redoes a previously undone theme / random roll / FX change (`Alt+Shift+Z` / `⌥⇧Z`). */
+export async function redoThemeHistory(opts = {}) {
+  if (!themeHistoryRedoStack.length) {
+    if (!opts.quiet) toast("Nothing to redo in Theme history.", { kind: "info" });
+    syncThemeHistoryButtons();
+    return null;
+  }
+  const nextSnap = themeHistoryRedoStack.pop();
+  themeHistoryUndoStack.push(nextSnap);
+  if (themeHistoryUndoStack.length > THEME_HISTORY_LIMIT) {
+    themeHistoryUndoStack = themeHistoryUndoStack.slice(themeHistoryUndoStack.length - THEME_HISTORY_LIMIT);
+  }
+  await applyThemeHistorySnapshot(nextSnap, opts);
+  if (!opts.quiet) {
+    toast(`⏩ Redid Look → ${nextSnap.label || nextSnap.palette || "Standard"}`, { kind: "info" });
+  }
+  return nextSnap;
+}
+
+/** Returns the current state of the 25-step Theme Undo/Redo History Stack. */
+export function getThemeHistoryState() {
+  const currentLook = captureCurrentLookHistoryEntry();
+  const top = themeHistoryUndoStack[themeHistoryUndoStack.length - 1];
+  const undoCount = themeHistoryUndoStack.length >= 2
+    ? themeHistoryUndoStack.length - 1
+    : (top && top.signature !== currentLook.signature ? 1 : 0);
+  const redoCount = themeHistoryRedoStack.length;
+  return {
+    undoCount,
+    redoCount,
+    canUndo: undoCount > 0,
+    canRedo: redoCount > 0,
+    limit: THEME_HISTORY_LIMIT,
+    undoStack: [...themeHistoryUndoStack],
+    redoStack: [...themeHistoryRedoStack],
+  };
+}
+
+/** Clears the Theme Undo/Redo History Stack. */
+export function clearThemeHistory() {
+  themeHistoryUndoStack = [];
+  themeHistoryRedoStack = [];
+  syncThemeHistoryButtons();
+  return getThemeHistoryState();
+}
+
+// =====================================================================================================================
+// UPGRADE 2: 🧭 Dual-Pane "Source vs. Target" Active Focus Spotlight
+// =====================================================================================================================
+
+/** Applies one of the 5 Dual-Pane Active vs. Target Focus Spotlight modes (`DUAL_PANE_FOCUS_MODES`). */
+export async function applyDualPaneFocusMode(modeId = "spotlight", opts = {}) {
+  const spec = DUAL_PANE_FOCUS_MODES.find((m) => m.id === modeId) || DUAL_PANE_FOCUS_MODES[0];
+  if (state.settings) state.settings.dualPaneFocusMode = spec.id;
+  applyUiImmersionProfiles({ dualPaneFocusMode: spec.id });
+  await saveSettings({ dualPaneFocusMode: spec.id });
+  if (!opts.quiet) {
+    toast(`Dual-Pane Focus Mode: ${spec.label}`, { kind: "info" });
+  }
+  return spec;
+}
+
+/** Cycles through the 5 Dual-Pane Focus Spotlight modes (`DUAL_PANE_FOCUS_MODES`). */
+export async function cycleDualPaneFocusMode(delta = 1, opts = {}) {
+  const cur = (typeof document !== "undefined" && document.documentElement?.dataset?.dualFocus) || state.settings?.dualPaneFocusMode || "off";
+  const idx = DUAL_PANE_FOCUS_MODES.findIndex((m) => m.id === cur);
+  const step = Number(delta) || 1;
+  const nextIdx = (Math.max(0, idx) + step + DUAL_PANE_FOCUS_MODES.length) % DUAL_PANE_FOCUS_MODES.length;
+  return applyDualPaneFocusMode(DUAL_PANE_FOCUS_MODES[nextIdx].id, opts);
+}
+
+// =====================================================================================================================
+// UPGRADE 3: 🦎 Chameleon Folder Mood (Auto-Accent by Folder Contents)
+// =====================================================================================================================
+
+/** Detects the dominant Chameleon Folder Mood (`code`, `media`, `data`, `docs`, `archives`, `security`) from a list of directory entries. */
+export function detectFolderMoodFromEntries(entries = [], folderPath = "") {
+  const counts = { code: 0, media: 0, data: 0, docs: 0, archives: 0, security: 0 };
+  const list = Array.isArray(entries) ? entries : [];
+  for (const item of list) {
+    const rawName = typeof item === "string" ? item : String(item?.name || "");
+    if (!rawName || item?.isDir) continue;
+    const lower = rawName.toLowerCase();
+    if (lower === ".env" || lower.startsWith(".env.") || lower === "id_rsa" || lower === "id_ed25519") {
+      counts.security += 2;
+      continue;
+    }
+    if (lower === "dockerfile" || lower === "makefile" || lower === "cargo.toml" || lower === "package.json") {
+      counts.code += 1.5;
+    }
+    const dotIdx = lower.lastIndexOf(".");
+    if (dotIdx <= 0) continue;
+    const ext = lower.slice(dotIdx + 1);
+    for (const [moodId, extSet] of Object.entries(CHAMELEON_EXT_BUCKETS)) {
+      if (extSet.has(ext)) {
+        counts[moodId] += 1;
+      }
+    }
+  }
+  const pathLower = String(folderPath || "").toLowerCase();
+  if (/\/(src|lib|components|pkg|crates|scripts|tests)\b/.test(pathLower)) counts.code += 0.5;
+  if (/\/(pictures|photos|images|media|videos|music|audio|youtube_production)\b/.test(pathLower)) counts.media += 0.5;
+  if (/\/(data|datasets|models|db|sql)\b/.test(pathLower)) counts.data += 0.5;
+  if (/\/(docs|documents|notes|papers)\b/.test(pathLower)) counts.docs += 0.5;
+  if (/\/(downloads|releases|dist|archives)\b/.test(pathLower)) counts.archives += 0.5;
+  if (/\/(\.ssh|keys|certs|vault|secrets)\b/.test(pathLower)) counts.security += 0.5;
+
+  let bestId = "code";
+  let bestScore = 0;
+  for (const [moodId, score] of Object.entries(counts)) {
+    if (score > bestScore) {
+      bestScore = score;
+      bestId = moodId;
+    }
+  }
+  const spec = CHAMELEON_FOLDER_MOODS.find((m) => m.id === bestId) || CHAMELEON_FOLDER_MOODS[2];
+  return {
+    ...spec,
+    detectedMood: spec.id,
+    totalMatched: bestScore,
+    counts,
+  };
+}
+
+/** Syncs the active Chameleon Folder Mood (`data-chameleon-mood`, `--fm-chameleon-accent`, `--fm-chameleon-glow`) onto `document.documentElement`. */
+export function syncChameleonFolderMood(entriesOverride = null, folderPathOverride = "", modeOverride = undefined) {
+  if (typeof document === "undefined" || !document.documentElement) return null;
+  const root = document.documentElement;
+  const mode = modeOverride !== undefined
+    ? modeOverride
+    : (state.settings?.chameleonFolderMode || "off");
+  if (!mode || mode === "off") {
+    delete root.dataset.chameleonMood;
+    delete root.dataset.chameleonBadge;
+    root.style.removeProperty("--fm-chameleon-accent");
+    root.style.removeProperty("--fm-chameleon-glow");
+    return { id: "off", active: false };
+  }
+  let resolvedSpec = null;
+  if (mode === "auto") {
+    const activeSide = state.active === "right" ? state.right : state.left;
+    const entries = entriesOverride || activeSide?.entries || state.left?.entries || [];
+    const folderPath = folderPathOverride || activeSide?.path || currentPath() || state.cwd || "";
+    resolvedSpec = detectFolderMoodFromEntries(entries, folderPath);
+  } else {
+    resolvedSpec = CHAMELEON_FOLDER_MOODS.find((m) => m.id === mode && m.id !== "off" && m.id !== "auto") || CHAMELEON_FOLDER_MOODS[2];
+  }
+  root.dataset.chameleonMood = resolvedSpec.id;
+  root.dataset.chameleonBadge = resolvedSpec.badge || resolvedSpec.label;
+  root.style.setProperty("--fm-chameleon-accent", resolvedSpec.accent || "#38bdf8");
+  root.style.setProperty("--fm-chameleon-glow", resolvedSpec.glow || "rgba(56, 189, 248, 0.34)");
+  return { ...resolvedSpec, mode, active: true };
+}
+
+/** Applies a Chameleon Folder Mood mode (`"off" | "auto" | "code" | "media" | "data" | "docs" | "archives" | "security"`). */
+export async function applyChameleonFolderMood(modeId = "off", opts = {}) {
+  const spec = CHAMELEON_FOLDER_MOODS.find((m) => m.id === modeId) || CHAMELEON_FOLDER_MOODS[0];
+  if (state.settings) state.settings.chameleonFolderMode = spec.id;
+  syncChameleonFolderMood(opts.entries, opts.folderPath, spec.id);
+  await saveSettings({ chameleonFolderMode: spec.id });
+  const appliedMood = syncChameleonFolderMood(opts.entries, opts.folderPath, spec.id);
+  if (!opts.quiet) {
+    toast(spec.id === "off" ? "Chameleon Folder Mood: Off" : `🦎 Chameleon Folder Mood: ${spec.label}`, { kind: "info" });
+  }
+  return appliedMood || spec;
+}
+
+/** Cycles through the Chameleon Folder Mood modes (`CHAMELEON_FOLDER_MOODS`). */
+export async function cycleChameleonFolderMood(delta = 1, opts = {}) {
+  const cur = state.settings?.chameleonFolderMode || "off";
+  const idx = CHAMELEON_FOLDER_MOODS.findIndex((m) => m.id === cur);
+  const step = Number(delta) || 1;
+  const nextIdx = (Math.max(0, idx) + step + CHAMELEON_FOLDER_MOODS.length) % CHAMELEON_FOLDER_MOODS.length;
+  return applyChameleonFolderMood(CHAMELEON_FOLDER_MOODS[nextIdx].id, opts);
+}
+
+// =====================================================================================================================
+// UPGRADE 4: 📸 1-Click "Export Theme Poster Card" (1920×1080 Vector SVG Social Card)
+// =====================================================================================================================
+
+function escapeXmlText(raw) {
+  return String(raw ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+/** Generates a 1920×1080 high-resolution SVG Theme Poster Card showcasing the theme's colors, 3D folders, AAA Fidelity Score, and 1-line Share Code. */
+export function generateThemePosterSvg(opts = {}) {
+  const root = typeof document !== "undefined" ? document.documentElement : null;
+  const s = state.settings ?? {};
+  const themeName = opts.name || opts.theme?.name || s.palette || root?.dataset?.palette || "Codecaine Studio Master";
+  const themeKey = opts.key || opts.theme?.key || s.palette || root?.dataset?.palette || "standard";
+  const themeGroup = opts.group || opts.theme?.group || "Workstation Master";
+  const isDark = opts.dark !== undefined ? Boolean(opts.dark) : (opts.theme?.dark !== undefined ? Boolean(opts.theme.dark) : (root?.dataset?.theme !== "light"));
+  const cols = opts.colors || opts.theme?.source?.colors || {
+    background: currentVars.bg || (isDark ? "#0b101b" : "#f4f6fb"),
+    card: currentVars.panel || (isDark ? "#131c2e" : "#ffffff"),
+    text: currentVars.text || (isDark ? "#ecf2ff" : "#0f172a"),
+    accent: currentVars.accent || "#38bdf8",
+    secondary: currentVars.selected || "#a855f7",
+    border: currentVars.border || "#28364f",
+    danger: currentVars.danger || "#ff6b81",
+    warning: currentVars.warning || "#fbbf24",
+    success: currentVars.ok || "#34d399",
+    info: currentVars.info || "#38bdf8",
+  };
+  const bg = cols.background || "#0b101b";
+  const card = cols.card || "#131c2e";
+  const text = cols.text || "#ecf2ff";
+  const accent = cols.accent || "#38bdf8";
+  const secondary = cols.secondary || "#a855f7";
+  const border = cols.border || "#28364f";
+  const danger = cols.danger || "#ff6b81";
+  const warning = cols.warning || "#fbbf24";
+  const success = cols.success || "#34d399";
+  const info = cols.info || "#38bdf8";
+
+  const aaa = computeAaaProductionScore(opts);
+  const holidaySpec = resolveHolidayCrestForPalette(themeKey);
+  const crestGlyph = holidaySpec?.crest || "✨";
+  const shareCode = opts.shareCode || `CCFM-THEME-v1:${themeKey}`;
+  const swatches = [
+    ["BG", bg],
+    ["CARD", card],
+    ["TEXT", text],
+    ["ACCENT", accent],
+    ["SECOND", secondary],
+    ["DANGER", danger],
+    ["WARN", warning],
+    ["OK", success],
+    ["INFO", info],
+  ];
+
+  const swatchRects = swatches.map(([label, hex], idx) => {
+    const x = 110 + idx * 190;
+    return `<g transform="translate(${x}, 790)">
+      <rect width="174" height="96" rx="18" fill="${escapeXmlText(hex)}" stroke="${escapeXmlText(text)}" stroke-opacity="0.24" stroke-width="2"/>
+      <rect y="54" width="174" height="42" rx="12" fill="#050811" fill-opacity="0.76"/>
+      <text x="16" y="79" fill="#ffffff" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" font-weight="700">${escapeXmlText(label)} · ${escapeXmlText(hex)}</text>
+    </g>`;
+  }).join("\n");
+
+  const folderCards = [
+    { name: "src/", meta: "TypeScript · 120Hz Engine", x: 140 },
+    { name: "shaders/", meta: "Display-P3 Liquid Glass", x: 560 },
+    { name: "models/", meta: "Neural & 3D Assets", x: 980 },
+    { name: "themes/", meta: "310+ Built-in Palettes", x: 1400 },
+  ].map((f) => `<g transform="translate(${f.x}, 430)">
+    <rect width="380" height="210" rx="24" fill="${escapeXmlText(card)}" stroke="${escapeXmlText(accent)}" stroke-opacity="0.55" stroke-width="2.5"/>
+    <path d="M 28 48 L 116 48 L 136 68 L 352 68 L 352 178 L 28 178 Z" fill="${escapeXmlText(accent)}" fill-opacity="0.18" stroke="${escapeXmlText(accent)}" stroke-width="2"/>
+    <text x="48" y="122" fill="${escapeXmlText(text)}" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="800">📁 ${escapeXmlText(f.name)}</text>
+    <text x="48" y="156" fill="${escapeXmlText(accent)}" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="600">${escapeXmlText(f.meta)}</text>
+  </g>`).join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080" role="img" aria-label="${escapeXmlText(themeName)} Theme Poster Card">
+  <defs>
+    <linearGradient id="poster-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="${escapeXmlText(bg)}"/>
+      <stop offset="55%" stop-color="${escapeXmlText(card)}"/>
+      <stop offset="100%" stop-color="${escapeXmlText(bg)}"/>
+    </linearGradient>
+    <linearGradient id="poster-accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="${escapeXmlText(accent)}"/>
+      <stop offset="100%" stop-color="${escapeXmlText(secondary)}"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#poster-bg)"/>
+  <circle cx="1620" cy="210" r="360" fill="${escapeXmlText(accent)}" fill-opacity="0.12"/>
+  <circle cx="310" cy="880" r="420" fill="${escapeXmlText(secondary)}" fill-opacity="0.12"/>
+  <rect x="70" y="64" width="1780" height="952" rx="36" fill="${escapeXmlText(bg)}" fill-opacity="0.78" stroke="url(#poster-accent)" stroke-width="3"/>
+  <text x="116" y="152" fill="${escapeXmlText(accent)}" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="21" font-weight="700" letter-spacing="2">CODECAINE FILE MANAGER · AAA THEME STUDIO SHOWCASE</text>
+  <text x="116" y="232" fill="${escapeXmlText(text)}" font-family="system-ui, -apple-system, sans-serif" font-size="64" font-weight="900">${escapeXmlText(crestGlyph)} ${escapeXmlText(themeName)}</text>
+  <text x="116" y="284" fill="${escapeXmlText(text)}" fill-opacity="0.78" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="600">Category: ${escapeXmlText(themeGroup)} · Mode: ${isDark ? "Dark Studio" : "Daylight Studio"} · Key: ${escapeXmlText(themeKey)}</text>
+  <g transform="translate(1410, 118)">
+    <rect width="390" height="118" rx="22" fill="${escapeXmlText(card)}" stroke="${escapeXmlText(accent)}" stroke-width="2.5"/>
+    <text x="28" y="48" fill="${escapeXmlText(accent)}" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="700">STUDIO FIDELITY GRADE</text>
+    <text x="28" y="92" fill="${escapeXmlText(text)}" font-family="system-ui, -apple-system, sans-serif" font-size="34" font-weight="900">${escapeXmlText(aaa.grade)} (${aaa.score}/100)</text>
+  </g>
+  <rect x="110" y="340" width="1700" height="340" rx="28" fill="${escapeXmlText(card)}" fill-opacity="0.58" stroke="${escapeXmlText(border)}" stroke-width="2"/>
+  <text x="142" y="392" fill="${escapeXmlText(text)}" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="700">3D WORKSPACE &amp; FOLDER SHADER SPECIMENS (${aaa.activeCount} ACTIVE ENGINES)</text>
+  ${folderCards}
+  <text x="116" y="762" fill="${escapeXmlText(text)}" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="700">SEMANTIC COLOR PALETTE SWATCHES</text>
+  ${swatchRects}
+  <rect x="110" y="916" width="1700" height="68" rx="16" fill="${escapeXmlText(card)}" stroke="${escapeXmlText(accent)}" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="136" y="958" fill="${escapeXmlText(accent)}" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="19" font-weight="700">${escapeXmlText(shareCode.slice(0, 112))}</text>
+</svg>`;
+}
+
+/** Downloads (or saves to the current folder) a 1920×1080 `.poster.svg` Theme Poster Card for the specified or active theme. */
+export async function downloadThemePosterCard(opts = {}) {
+  const targetKey = opts.key || state.settings?.palette || (typeof document !== "undefined" ? document.documentElement?.dataset?.palette : "") || "";
+  let themeObj = opts.theme || null;
+  let shareCode = opts.shareCode || "";
+  if (targetKey && !themeObj) {
+    try {
+      const got = await call("themes/get", { key: targetKey });
+      themeObj = got?.theme || null;
+    } catch {}
+  }
+  if (targetKey && !shareCode) {
+    try {
+      const exp = await call("themes/custom/export", { key: targetKey });
+      shareCode = exp?.shareCode || "";
+    } catch {}
+  }
+  const svg = generateThemePosterSvg({
+    ...opts,
+    key: targetKey || "standard",
+    theme: themeObj,
+    shareCode,
+  });
+  const slug = String(opts.name || themeObj?.name || targetKey || "codecaine-theme")
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "codecaine-theme";
+  const filename = `${slug}.poster.svg`;
+  if (opts.saveToFolder) {
+    await saveThemeFileToFolder({ filename, content: svg, folder: opts.folder || "" });
+  } else if (opts.download !== false) {
+    downloadThemeFileInBrowser(filename, svg);
+  }
+  return { filename, svg, key: targetKey || "standard" };
+}
+
+// =====================================================================================================================
+// UPGRADE 5: 👁️ Instant "Hold to Peek Original / Plain" Readability Check
+// =====================================================================================================================
+
+/** Activates the instant "Hold to Peek Plain / Original" readability comparison mode (`data-theme-peek="plain"`). */
+export function startThemePeekCompare(mode = "plain") {
+  if (typeof document === "undefined" || !document.documentElement) return false;
+  document.documentElement.dataset.themePeek = String(mode || "plain");
+  return true;
+}
+
+/** Stops the "Hold to Peek Plain / Original" readability comparison mode and restores all active theme effects. */
+export function stopThemePeekCompare() {
+  if (typeof document === "undefined" || !document.documentElement) return false;
+  delete document.documentElement.dataset.themePeek;
+  return false;
+}
+
+/** Toggles "Peek Plain / Original" readability comparison mode on or off. */
+export function toggleThemePeekCompare(mode = "plain") {
+  if (isThemePeekCompareActive()) {
+    stopThemePeekCompare();
+    return false;
+  }
+  return startThemePeekCompare(mode);
+}
+
+/** Returns true when "Peek Plain / Original" readability mode is currently active. */
+export function isThemePeekCompareActive() {
+  return Boolean(typeof document !== "undefined" && document.documentElement?.dataset?.themePeek);
+}
+
+// =====================================================================================================================
+// UPGRADE 6: 🎨 Deep Sub-Studio Theme Sync (Code Editor, Markdown Preview, Database Studio Grids)
+// =====================================================================================================================
+
+/** Computes harmonized syntax highlighting, code gutter, Markdown preview, and Database Studio CSS variables from the active theme palette. */
+export function computeSubStudioThemeTokens(vars = currentVars, isDark = isSystemDark()) {
+  const v = vars && typeof vars === "object" ? vars : {};
+  const bg = v.bg || (isDark ? "#0f141c" : "#f8fafc");
+  const panel = v.panel || v["surface-sunken"] || (isDark ? "#161d2a" : "#ffffff");
+  const text = v.text || (isDark ? "#e6edf3" : "#0f172a");
+  const accent = v.accent || "#38bdf8";
+  const selected = v.selected || accent;
+  const danger = v.danger || (isDark ? "#ff6b81" : "#dc2626");
+  const warning = v.warning || (isDark ? "#fbbf24" : "#d97706");
+  const success = v.ok || (isDark ? "#34d399" : "#16a34a");
+  const info = v.info || accent;
+
+  const codeBg = mixHexOklab(bg, isDark ? "#05070c" : "#ffffff", 0.28);
+  const gutterBg = mixHexOklab(panel, bg, 0.55);
+  const lineActive = mixHexOklab(codeBg, accent, isDark ? 0.14 : 0.1);
+  const selection = mixHexOklab(codeBg, selected, isDark ? 0.32 : 0.24);
+  const comment = mixHexOklab(text, bg, 0.48);
+  const dbHeaderBg = mixHexOklab(panel, accent, isDark ? 0.16 : 0.12);
+  const dbRowAlt = mixHexOklab(bg, panel, 0.45);
+
+  return {
+    "--fm-code-bg": codeBg,
+    "--fm-code-gutter-bg": gutterBg,
+    "--fm-code-line-active": lineActive,
+    "--fm-code-selection": selection,
+    "--fm-syntax-keyword": accent,
+    "--fm-syntax-string": success,
+    "--fm-syntax-function": info,
+    "--fm-syntax-number": warning,
+    "--fm-syntax-comment": comment,
+    "--fm-syntax-type": danger,
+    "--fm-md-heading": accent,
+    "--fm-md-code-bg": gutterBg,
+    "--fm-md-quote-border": accent,
+    "--fm-db-header-bg": dbHeaderBg,
+    "--fm-db-row-alt": dbRowAlt,
+    "--fm-db-cell-focus": accent,
+    "--fm-db-null-fg": comment,
+  };
+}
+
+/** Applies the Deep Sub-Studio Theme Tokens (`--fm-code-*`, `--fm-syntax-*`, `--fm-md-*`, `--fm-db-*`) onto `document.documentElement`. */
+export function syncSubStudioThemeTokens(varsOverride = null, isDarkOverride = undefined) {
+  if (typeof document === "undefined" || !document.documentElement) return null;
+  const root = document.documentElement;
+  const isDark = isDarkOverride !== undefined
+    ? Boolean(isDarkOverride)
+    : (root.dataset.theme ? root.dataset.theme === "dark" : isSystemDark());
+  const tokens = computeSubStudioThemeTokens(varsOverride || currentVars, isDark);
+  for (const [k, val] of Object.entries(tokens)) {
+    root.style.setProperty(k, val);
+  }
+  root.dataset.subStudioSync = "active";
+  return tokens;
+}
+
+// =====================================================================================================================
+// UPGRADE 7: 🔋 Smart Unfocused Window & Battery Zero-Watt Governor
+// =====================================================================================================================
+
+/** Evaluates and applies the Smart Zero-Watt Governor pause state to the DOM (`data-zero-watt-paused`) and `atmosphereFx` loop. */
+export function applyZeroWattGovernorToDom(modeOverride) {
+  const mode = modeOverride || state.settings?.zeroWattGovernorMode || (typeof document !== "undefined" ? document.documentElement?.dataset?.zeroWattMode : "") || "auto";
+  const shouldPause = mode === "eco_saver" || (mode === "auto" && !isWindowCurrentlyFocused);
+  if (typeof document !== "undefined" && document.documentElement) {
+    document.documentElement.dataset.zeroWattMode = mode;
+    if (shouldPause) {
+      document.documentElement.dataset.zeroWattPaused = "true";
+    } else {
+      delete document.documentElement.dataset.zeroWattPaused;
+    }
+  }
+  setAtmosphereZeroWattPaused(shouldPause);
+  return {
+    mode,
+    paused: shouldPause,
+    windowFocused: isWindowCurrentlyFocused,
+  };
+}
+
+/** Returns the current state of the Smart Zero-Watt Governor (`{ mode, paused, windowFocused }`). */
+export function getZeroWattGovernorState() {
+  const mode = state.settings?.zeroWattGovernorMode || (typeof document !== "undefined" ? document.documentElement?.dataset?.zeroWattMode : "") || "auto";
+  return {
+    mode,
+    paused: isAtmosphereZeroWattPaused(),
+    windowFocused: isWindowCurrentlyFocused,
+  };
+}
+
+/** Sets the Smart Unfocused Window & Battery Zero-Watt Governor mode (`"auto" | "always_120hz" | "eco_saver"`). */
+export async function setZeroWattGovernorMode(modeId = "auto", opts = {}) {
+  const spec = ZERO_WATT_GOVERNOR_MODES.find((m) => m.id === modeId) || ZERO_WATT_GOVERNOR_MODES[0];
+  if (state.settings) state.settings.zeroWattGovernorMode = spec.id;
+  const st = applyZeroWattGovernorToDom(spec.id);
+  await saveSettings({ zeroWattGovernorMode: spec.id });
+  if (!opts.quiet) {
+    toast(`🔋 Power Governor: ${spec.label}`, { kind: "info" });
+  }
+  return { ...spec, ...st };
+}
+
+/** Cycles through the 3 Smart Zero-Watt Governor modes (`ZERO_WATT_GOVERNOR_MODES`). */
+export async function cycleZeroWattGovernorMode(delta = 1, opts = {}) {
+  const cur = state.settings?.zeroWattGovernorMode || "auto";
+  const idx = ZERO_WATT_GOVERNOR_MODES.findIndex((m) => m.id === cur);
+  const step = Number(delta) || 1;
+  const nextIdx = (Math.max(0, idx) + step + ZERO_WATT_GOVERNOR_MODES.length) % ZERO_WATT_GOVERNOR_MODES.length;
+  return setZeroWattGovernorMode(ZERO_WATT_GOVERNOR_MODES[nextIdx].id, opts);
+}
+
+/** Updates (or simulates in tests) the window focus / visibility state and triggers the Smart Zero-Watt Governor. */
+export function simulateWindowFocusState(focused = true) {
+  isWindowCurrentlyFocused = Boolean(focused);
+  return applyZeroWattGovernorToDom();
+}
+
+export function ensureZeroWattWindowListenersBound() {
+  if (zeroWattListenersBound || typeof window === "undefined" || typeof window.addEventListener !== "function") return;
+  zeroWattListenersBound = true;
+  window.addEventListener("blur", () => {
+    simulateWindowFocusState(false);
+  }, { passive: true });
+  window.addEventListener("focus", () => {
+    simulateWindowFocusState(true);
+  }, { passive: true });
+  if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+    document.addEventListener("visibilitychange", () => {
+      simulateWindowFocusState(!document.hidden);
+    }, { passive: true });
+  }
+}
+
 /**
  * Computes a live AAA Production Studio Fidelity Score (`0..100`) and studio grade (`"S+ AAA Master"`, `"A+ Studio Pro"`, `"B Standard"`, etc.)
  * across all active visual, spatial, icon, filter, and audio engines.
@@ -2558,6 +3310,8 @@ export function computeAaaProductionScore(overrides = {}) {
   const folderSpring = s.folderSpringMode || root?.dataset?.folderSpring || "off";
   const wallpaper = s.desktopWallpaperScene || root?.dataset?.wallpaperScene || "off";
   const sound = s.uiSoundProfile || root?.dataset?.soundProfile || "off";
+  const dualFocus = s.dualPaneFocusMode || root?.dataset?.dualFocus || "off";
+  const chameleon = s.chameleonFolderMode || root?.dataset?.chameleonMood || "off";
 
   const activeEngines = [];
   let score = 20; // Baseline professional computer icon & semantic palette foundation
@@ -2572,6 +3326,8 @@ export function computeAaaProductionScore(overrides = {}) {
   if (folderSpring && folderSpring !== "off") { score += 5; activeEngines.push("folderSpringMode"); }
   if (wallpaper && wallpaper !== "off") { score += 5; activeEngines.push("desktopWallpaperScene"); }
   if (sound && sound !== "off") { score += 5; activeEngines.push("uiSoundProfile"); }
+  if (dualFocus && dualFocus !== "off") { score += 3; activeEngines.push("dualPaneFocusMode"); }
+  if (chameleon && chameleon !== "off") { score += 4; activeEngines.push("chameleonFolderMode"); }
   score = Math.min(100, score);
 
   const grade = score >= 90 ? "S+ AAA Master"
@@ -2593,7 +3349,8 @@ export function computeAaaProductionScore(overrides = {}) {
 export async function applyAaaDirectorCutPreset(presetId, opts = {}) {
   const preset = AAA_DIRECTOR_CUT_PRESETS.find((p) => p.id === presetId) || AAA_DIRECTOR_CUT_PRESETS[0];
   if (!preset) return null;
-  await chooseTheme(preset.palette);
+  pushThemeHistorySnapshot();
+  await chooseTheme(preset.palette, { skipHistory: true });
   await applyPalette(preset.palette);
   const patch = {
     palette: preset.palette,
@@ -2612,6 +3369,7 @@ export async function applyAaaDirectorCutPreset(presetId, opts = {}) {
   if (state.settings) Object.assign(state.settings, patch);
   applyUiImmersionProfiles(patch);
   await saveSettings(patch);
+  pushThemeHistorySnapshot(patch, preset.label);
   if (preset.palette.startsWith("holiday_") && opts.burst !== false) {
     triggerHolidayCelebrationBurst(preset.palette);
   }
@@ -2847,6 +3605,52 @@ export function buildImmersionStudioBar() {
     }, opt.label),
   );
 
+  const curDualFocus = () => (typeof document !== "undefined" && document.documentElement?.dataset?.dualFocus) || state.settings?.dualPaneFocusMode || "spotlight";
+  const curChameleon = () => state.settings?.chameleonFolderMode || (typeof document !== "undefined" && document.documentElement?.dataset?.chameleonMood) || "off";
+  const curZeroWatt = () => state.settings?.zeroWattGovernorMode || (typeof document !== "undefined" && document.documentElement?.dataset?.zeroWattMode) || "auto";
+
+  const dualFocusButtons = DUAL_PANE_FOCUS_MODES.map((opt) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${curDualFocus() === opt.id ? " is-active" : ""}`,
+      "data-dual-focus-pill": opt.id,
+      "aria-pressed": String(curDualFocus() === opt.id),
+      title: opt.desc,
+      onclick: async () => {
+        await applyDualPaneFocusMode(opt.id);
+        syncBarState();
+      },
+    }, opt.label),
+  );
+
+  const chameleonButtons = CHAMELEON_FOLDER_MOODS.map((opt) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${curChameleon() === opt.id ? " is-active" : ""}`,
+      "data-chameleon-mode-pill": opt.id,
+      "aria-pressed": String(curChameleon() === opt.id),
+      title: opt.desc,
+      onclick: async () => {
+        await applyChameleonFolderMood(opt.id);
+        syncBarState();
+      },
+    }, opt.label),
+  );
+
+  const zeroWattButtons = ZERO_WATT_GOVERNOR_MODES.map((opt) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${curZeroWatt() === opt.id ? " is-active" : ""}`,
+      "data-zero-watt-pill": opt.id,
+      "aria-pressed": String(curZeroWatt() === opt.id),
+      title: opt.desc,
+      onclick: async () => {
+        await setZeroWattGovernorMode(opt.id);
+        syncBarState();
+      },
+    }, opt.label),
+  );
+
   const fontButtons = FONT_PROFILES.map((opt) =>
     h("button", {
       type: "button",
@@ -2908,12 +3712,12 @@ export function buildImmersionStudioBar() {
     type: "button",
     class: "theme-filter-pill theme-random-fx-pill",
     "data-toggle-3d-spinning-folders": "true",
-    title: "High-End GPU Mode: Cycle 3D Spinning Folder Turntable, Futuristic Flash 2Advanced Vector HUD, 3D Pop-Up Origami Flip & Gyro Cube Spin (Alt+3 / ⌥3)!",
+    title: "High-End GPU Mode: Cycle 3D Spinning Folder Turntable, Futuristic Flash 2Advanced Vector HUD, 3D Pop-Up Origami Flip & Gyro Cube Spin (Alt+9 / ⌥9)!",
     onclick: async () => {
       await cycleHighEnd3dFolderAnimation(1);
       syncBarState();
     },
-  }, "🌪️ 3D Spinning Folders & Flash HUD (⌥3)");
+  }, "🌪️ 3D Spinning Folders & Flash HUD (⌥9)");
 
   const lockIconsBtn = h("button", {
     type: "button",
@@ -3061,6 +3865,21 @@ export function buildImmersionStudioBar() {
       b.classList.toggle("is-active", on);
       b.setAttribute("aria-pressed", String(on));
     }
+    for (const b of dualFocusButtons) {
+      const on = b.dataset.dualFocusPill === curDualFocus();
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
+    for (const b of chameleonButtons) {
+      const on = b.dataset.chameleonModePill === curChameleon();
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
+    for (const b of zeroWattButtons) {
+      const on = b.dataset.zeroWattPill === curZeroWatt();
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
     for (const b of fontButtons) {
       const on = b.dataset.fontProfile === curFont();
       b.classList.toggle("is-active", on);
@@ -3201,6 +4020,18 @@ export function buildImmersionStudioBar() {
     h("div", { class: "theme-pill-row", "data-sound-profile-bar": "true" },
       h("span", { class: "theme-pill-label" }, `🔊 Tactile UI Soundscape (${UI_SOUND_PROFILES.length})`),
       ...soundProfileButtons,
+    ),
+    h("div", { class: "theme-pill-row", "data-dual-focus-bar": "true" },
+      h("span", { class: "theme-pill-label" }, `🧭 Dual-Pane Source/Target Focus (${DUAL_PANE_FOCUS_MODES.length})`),
+      ...dualFocusButtons,
+    ),
+    h("div", { class: "theme-pill-row", "data-chameleon-mood-bar": "true" },
+      h("span", { class: "theme-pill-label" }, `🦎 Chameleon Folder Mood (${CHAMELEON_FOLDER_MOODS.length})`),
+      ...chameleonButtons,
+    ),
+    h("div", { class: "theme-pill-row", "data-zero-watt-bar": "true" },
+      h("span", { class: "theme-pill-label" }, `🔋 Smart Zero-Watt Power Governor (${ZERO_WATT_GOVERNOR_MODES.length})`),
+      ...zeroWattButtons,
     ),
     h("div", { class: "theme-pill-row" },
       h("span", { class: "theme-pill-label" }, "🔤 Typography"),
@@ -4375,6 +5206,9 @@ export async function recentThemes() {
 
 /** Chooses a theme by its key (an empty key goes back to the standard colors) and remembers it as a recent one. */
 export async function chooseTheme(key, opts = {}) {
+  if (!opts?.skipHistory && !isRestoringThemeHistory) {
+    pushThemeHistorySnapshot();
+  }
   plainStaticLockKey = null;
   if (!keepCurrentEffectsLock && !opts?.keepEffectsOnly) {
     keptEffectsForKey = null;
@@ -4385,6 +5219,9 @@ export async function chooseTheme(key, opts = {}) {
   }
   rememberTheme(key);
   await saveSettings({ palette: key });
+  if (!opts?.skipHistory && !isRestoringThemeHistory) {
+    pushThemeHistorySnapshot({ palette: key }, key || "Standard");
+  }
 }
 
 /** Curated 1-click Plain & Static Themes (Zero Animations, Zero GPU Shaders) for instant access in the Theme Gallery & Menu. */
@@ -4460,12 +5297,13 @@ export async function disableAllThemeAnimations(opts = {}) {
       clearEffects();
     }
   }
+  const preserveIcons = Boolean(opts.preserveLockedIcons && keepCurrentIconsLock && lockedIconsSnapshot);
   const patch = {
     atmosphere: "none",
     uiElementFx: "off",
-    iconPackStyle: "default",
-    themeIconGlow: "off",
-    themeIconAnimation: "off",
+    iconPackStyle: preserveIcons ? (lockedIconsSnapshot.iconPackStyle || "default") : "default",
+    themeIconGlow: preserveIcons ? (lockedIconsSnapshot.themeIconGlow || "off") : "off",
+    themeIconAnimation: preserveIcons ? (lockedIconsSnapshot.themeIconAnimation || "off") : "off",
     screenFilter: "off",
     cursorTrailMode: "off",
     folderSpringMode: "off",
@@ -4692,6 +5530,47 @@ export function showQuickCycleHud(activeKey, allThemes = [], { index = 0, total 
         h("button", {
           type: "button",
           class: "btn fm-quick-cycle-mini-btn",
+          "data-theme-history-undo": "true",
+          title: "Undo to previous theme / FX roll (Alt+Z / ⌥Z)",
+          onclick: (e) => {
+            e.stopPropagation();
+            void undoThemeHistory();
+          },
+        }, "⏪ Undo Look"),
+        h("button", {
+          type: "button",
+          class: "btn fm-quick-cycle-mini-btn",
+          "data-theme-history-redo": "true",
+          title: "Redo theme / FX roll (Alt+Shift+Z / ⌥⇧Z)",
+          onclick: (e) => {
+            e.stopPropagation();
+            void redoThemeHistory();
+          },
+        }, "⏩ Redo Look"),
+        h("button", {
+          type: "button",
+          class: "btn fm-quick-cycle-mini-btn",
+          "data-theme-peek-btn": "true",
+          title: "Hold (or click) to temporarily strip glass, filters & shaders and inspect raw text readability",
+          onpointerdown: (e) => {
+            e.stopPropagation();
+            startThemePeekCompare("plain");
+          },
+          onpointerup: (e) => {
+            e.stopPropagation();
+            stopThemePeekCompare();
+          },
+          onpointerleave: () => {
+            stopThemePeekCompare();
+          },
+          onclick: (e) => {
+            e.stopPropagation();
+            toggleThemePeekCompare("plain");
+          },
+        }, "👁️ Peek Plain"),
+        h("button", {
+          type: "button",
+          class: "btn fm-quick-cycle-mini-btn",
           "data-quick-hud-random": "any",
           title: "Pick a random theme from all 310 themes immediately (Alt+R / ⌥R — no dialog needed)",
           onclick: (e) => {
@@ -4753,12 +5632,12 @@ export function showQuickCycleHud(activeKey, allThemes = [], { index = 0, total 
           type: "button",
           class: "btn fm-quick-cycle-mini-btn",
           "data-quick-hud-3d-folders": "true",
-          title: "Cycle High-End 3D Spinning Folders & Futuristic Flash-Reloaded 3000 120Hz Animations (Alt+3 / ⌥3)",
+          title: "Cycle High-End 3D Spinning Folders & Futuristic Flash-Reloaded 3000 120Hz Animations (Alt+9 / ⌥9)",
           onclick: (e) => {
             e.stopPropagation();
             void cycleHighEnd3dFolderAnimation(1);
           },
-        }, "💿 3D Spin & Flash (⌥3)"),
+        }, "💿 3D Spin & Flash (⌥9)"),
         h("button", {
           type: "button",
           class: "btn fm-quick-cycle-mini-btn",
@@ -4909,6 +5788,7 @@ export function showQuickCycleHud(activeKey, allThemes = [], { index = 0, total 
     quickHudOutsideListener = null;
   }
   document.body.appendChild(hud);
+  syncThemeHistoryButtons(hud);
   quickHudOutsideListener = (e) => {
     const el = document.getElementById("fm-quick-cycle-hud");
     if (!el) {
@@ -6282,12 +7162,12 @@ export async function showThemePicker(opts = {}) {
           type: "button",
           class: "theme-filter-pill theme-random-fx-pill",
           "data-picker-cycle-3d-folders": "true",
-          title: "Cycle High-End 3D Spinning Folders & Futuristic Flash-Reloaded 3000 120Hz Animations (Alt+3 / ⌥3)!",
+          title: "Cycle High-End 3D Spinning Folders & Futuristic Flash-Reloaded 3000 120Hz Animations (Alt+9 / ⌥9)!",
           onclick: async () => {
             await cycleHighEnd3dFolderAnimation(1);
             renderActiveFxStrip();
           },
-        }, "💿 3D Spinning Folders & Flash 3000 (⌥3)"),
+        }, "💿 3D Spinning Folders & Flash 3000 (⌥9)"),
         h("button", {
           type: "button",
           class: "theme-filter-pill theme-random-fx-pill",
@@ -6584,8 +7464,9 @@ export async function showThemePicker(opts = {}) {
       title: `${t.name}: ${t.description} (Click to preview/apply · Shift+Click or 🌈 to swap colors while keeping your current active effects · Double-click to apply & close)`,
       onclick: (e) => pick(t.key, { keepEffectsOnly: Boolean(e?.shiftKey || keepCurrentEffectsLock) }),
       ondblclick: async (e) => {
-        await pick(t.key, { keepEffectsOnly: Boolean(e?.shiftKey || keepCurrentEffectsLock) });
+        previewKey = null;
         dialogRef?.close(true);
+        await pick(t.key, { keepEffectsOnly: Boolean(e?.shiftKey || keepCurrentEffectsLock) });
       },
     },
       swatch(t), h("span", { class: "theme-name" }, t.name), h("span", { class: "theme-kind" }, t.dark ? "Dark" : "Light"),
@@ -7163,6 +8044,56 @@ export async function showThemePicker(opts = {}) {
         }, "Next ▶"),
         h("button", {
           type: "button",
+          class: "btn theme-history-undo-btn",
+          "data-theme-history-undo": "true",
+          title: "Undo to previous theme / FX roll (Alt+Z / ⌥Z)",
+          onclick: async () => {
+            const snap = await undoThemeHistory();
+            if (snap) {
+              previewKey = snap.palette || "";
+              draw();
+              updatePinFolderLabel(pinFolderBtn);
+            }
+          },
+        }, "⏪ Undo Look"),
+        h("button", {
+          type: "button",
+          class: "btn theme-history-redo-btn",
+          "data-theme-history-redo": "true",
+          title: "Redo theme / FX roll (Alt+Shift+Z / ⌥⇧Z)",
+          onclick: async () => {
+            const snap = await redoThemeHistory();
+            if (snap) {
+              previewKey = snap.palette || "";
+              draw();
+              updatePinFolderLabel(pinFolderBtn);
+            }
+          },
+        }, "⏩ Redo Look"),
+        h("button", {
+          type: "button",
+          class: "btn theme-peek-plain-btn",
+          "data-theme-peek-btn": "true",
+          title: "Hold (or click) to temporarily strip glass, filters & shaders and inspect raw text readability",
+          onpointerdown: () => startThemePeekCompare("plain"),
+          onpointerup: () => stopThemePeekCompare(),
+          onpointerleave: () => stopThemePeekCompare(),
+          onclick: () => toggleThemePeekCompare("plain"),
+        }, "👁️ Hold to Peek Plain"),
+        h("button", {
+          type: "button",
+          class: "btn theme-poster-export-btn",
+          "data-export-theme-poster": "svg",
+          title: "Export a 1920×1080 vector SVG Theme Poster Card with 3D folder specimens, AAA Studio Score, and 1-line Share Code",
+          onclick: async () => {
+            const activeKey = previewKey || state.settings.palette || lastShown[0]?.key || themes[0]?.key || "";
+            const activeTheme = themes.find((t) => t.key === activeKey) || null;
+            const out = await downloadThemePosterCard({ key: activeKey, theme: activeTheme });
+            toast(`📸 Exported 1920×1080 Theme Poster Card: ${out.filename}`, { kind: "success" });
+          },
+        }, "📸 Poster Card"),
+        h("button", {
+          type: "button",
           class: "btn theme-random-btn",
           "data-random-any-btn": "true",
           title: "Pick a random theme from the currently shown themes (or press Alt+R / ⌥R anywhere with no dialog needed).",
@@ -7264,6 +8195,7 @@ export async function showThemePicker(opts = {}) {
   dialogRef = dialog;
   activePickerDialog = dialog;
   const dialogWrap = list.closest(".modal-backdrop") || list.parentElement;
+  syncThemeHistoryButtons(dialogWrap || document);
   dialogWrap?.addEventListener("dragover", (e) => {
     if (e.dataTransfer?.types?.includes?.("Files")) {
       e.preventDefault();
@@ -8032,6 +8964,24 @@ export async function showThemeShareDialog(initialKey = "", existingThemes) {
         copyBtn,
         saveFolderBtn,
         downloadBtn,
+        h("button", {
+          type: "button",
+          class: "btn",
+          "data-share-export-poster": "true",
+          title: "Download a 1920×1080 vector SVG Theme Poster Card with 3D folder specimens, AAA Studio Score, and 1-line Share Code",
+          onclick: async (e) => {
+            const btn = e.currentTarget;
+            const selectedKey = themeSelect.value || themes[0]?.key || "";
+            const selectedTheme = themes.find((t) => t.key === selectedKey) || null;
+            const out = await downloadThemePosterCard({
+              key: selectedKey,
+              theme: selectedTheme,
+              shareCode: activeFormat === "code" ? exportBox.value : "",
+            });
+            flashCopied(btn, "✓ Poster Exported!");
+            toast(`📸 Exported 1920×1080 Theme Poster Card: ${out.filename}`, { kind: "success" });
+          },
+        }, "📸 Download Theme Poster Card (.svg)"),
         h("button", {
           type: "button",
           class: "btn",
@@ -9285,6 +10235,7 @@ export function ensureGlobalThemeShortcutsBound() {
   if (typeof document !== "undefined" && document.documentElement && !document.documentElement.dataset.platform) {
     syncRootPlatform(document.documentElement, state.settings?.platformProfile || probeClientHardware().platform);
   }
+  ensureZeroWattWindowListenersBound();
   if (typeof window === "undefined" || typeof window.addEventListener !== "function") return;
   if (boundShortcutWindows?.has(window)) return;
   boundShortcutWindows?.add(window);
@@ -9366,6 +10317,14 @@ export function ensureGlobalThemeShortcutsBound() {
     const code = e.code || "";
     const lowKey = typeof e.key === "string" ? e.key.toLowerCase() : "";
 
+    // Alt + Z / Alt + Shift + Z -> 25-Step Theme & Random-Roll Undo / Redo History Stack
+    if (code === "KeyZ" || lowKey === "z" || e.key === "Ω" || e.key === "¸") {
+      e.preventDefault();
+      if (e.shiftKey) void redoThemeHistory();
+      else void undoThemeHistory();
+      return;
+    }
+
     // Alt + E or Alt + Shift + R -> Quick Random FX Theme (with effects, no dialog)
     if ((!e.shiftKey && (code === "KeyE" || lowKey === "e")) || (e.shiftKey && (code === "KeyR" || lowKey === "r"))) {
       e.preventDefault();
@@ -9408,8 +10367,19 @@ export function ensureGlobalThemeShortcutsBound() {
       toggleKeepIconsOnThemeSwitchMode();
       return;
     }
-    // Alt + 3 -> Cycle High-End 3D Spinning Folders & Futuristic Flash-Reloaded 3000 120Hz Animations (no dialog)
-    if (code === "Digit3" || lowKey === "3" || e.key === "£" || e.key === "#") {
+    // Reserve unshifted Option+1..8 (Alt+1..8) exclusively for the top toolbar / viewbar switcher (Files, Home, Tools, Split, Dual, Focus, Places, Ultra Focus)
+    if (!e.shiftKey && (/^Digit[1-8]$/.test(code) || /^[1-8]$/.test(lowKey))) {
+      if (hudEl && !hasModal) hideQuickCycleHud();
+      return;
+    }
+
+    // Alt + 9 (or Alt + Shift + 3) -> Cycle High-End 3D Spinning Folders & Futuristic Flash-Reloaded 3000 120Hz Animations (no dialog)
+    if (
+      code === "Digit9" ||
+      lowKey === "9" ||
+      e.key === "ª" ||
+      (e.shiftKey && (code === "Digit3" || lowKey === "3" || e.key === "£" || e.key === "#" || e.key === "‹"))
+    ) {
       e.preventDefault();
       void cycleHighEnd3dFolderAnimation(e.shiftKey ? -1 : 1);
       return;
@@ -9468,6 +10438,7 @@ ensureGlobalThemeShortcutsBound();
 
 on("view", () => {
   ensureGlobalThemeShortcutsBound();
+  syncChameleonFolderMood();
   const map = state.settings?.folderThemes;
   if (!map || typeof map !== "object" || !Object.keys(map).length) return;
   const folderKey = resolveFolderPalette();
@@ -9477,6 +10448,9 @@ on("view", () => {
   }
 });
 on("theme-picker", (detail) => { ensureGlobalThemeShortcutsBound(); void showThemePicker(detail || {}); });
+on("theme-undo", (detail) => { ensureGlobalThemeShortcutsBound(); void undoThemeHistory(detail || {}); });
+on("theme-redo", (detail) => { ensureGlobalThemeShortcutsBound(); void redoThemeHistory(detail || {}); });
+on("theme-export-poster", (detail) => { ensureGlobalThemeShortcutsBound(); void downloadThemePosterCard(detail || {}); });
 on("theme-random", (detail) => { ensureGlobalThemeShortcutsBound(); void randomTheme(detail || {}); });
 on("theme-random-colors-keep-fx", (detail) => { ensureGlobalThemeShortcutsBound(); void randomColorsKeepCurrentEffects(detail || {}); });
 on("theme-toggle-keep-fx-lock", () => { ensureGlobalThemeShortcutsBound(); toggleKeepEffectsColorSwapMode(); });

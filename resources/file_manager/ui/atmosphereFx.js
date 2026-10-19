@@ -2846,12 +2846,34 @@ function drawFrame(tickStep = 1) {
   return true;
 }
 
+let zeroWattPaused = false;
+
+/** Pauses or resumes the 120Hz atmospheric shader loop when the Smart Zero-Watt Governor detects an unfocused/minimized window or Eco Saver mode. */
+export function setAtmosphereZeroWattPaused(paused = false) {
+  zeroWattPaused = Boolean(paused);
+  if (typeof document !== "undefined" && document.documentElement) {
+    if (zeroWattPaused) document.documentElement.dataset.zeroWattPaused = "true";
+    else delete document.documentElement.dataset.zeroWattPaused;
+  }
+  if (zeroWattPaused) {
+    stopLoop();
+  } else if (activeEffect !== "none" && activeLayers.length) {
+    startLoop();
+  }
+  return zeroWattPaused;
+}
+
+export function isAtmosphereZeroWattPaused() {
+  return Boolean(zeroWattPaused || (typeof document !== "undefined" && document.documentElement?.dataset?.zeroWattPaused === "true"));
+}
+
 function startLoop() {
   stopLoop();
   if (activeEffect === "none" || !activeLayers.length) return;
+  if (isAtmosphereZeroWattPaused()) return;
   if (!drawFrame(1) || reducedMotion()) return;
   const tick = (now = 0) => {
-    if (activeEffect === "none" || document.hidden) {
+    if (activeEffect === "none" || document.hidden || isAtmosphereZeroWattPaused()) {
       rafId = 0;
       return;
     }

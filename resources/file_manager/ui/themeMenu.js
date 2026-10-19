@@ -1,7 +1,7 @@
 // The Themes menu of the ribbon: standard light and dark, the themes used lately, and the way into the gallery and the editor,
 // so colors can be changed without going through Settings.
 import { saveSettings } from "./nav.js";
-import { applyThemeColorsKeepingCurrentEffects, chooseTheme, cycleHighEnd3dFolderAnimation, cycleScreenFilter, disableAllThemeAnimations, favoriteThemes, isKeepEffectsColorSwapMode, isKeepIconsOnThemeSwitchMode, isTelemetryPopoutHudOpen, pasteImportThemesFromClipboard, randomColorsKeepCurrentEffects, randomScreenFilter, randomTheme, recentThemes, shuffleSystemIconsKeepTheme, toggleCurrentThemeEffects, toggleKeepEffectsColorSwapMode, toggleKeepIconsOnThemeSwitchMode, toggleTelemetryPopoutHud } from "./themes.js";
+import { applyThemeColorsKeepingCurrentEffects, chooseTheme, cycleChameleonFolderMood, cycleDualPaneFocusMode, cycleHighEnd3dFolderAnimation, cycleScreenFilter, cycleZeroWattGovernorMode, disableAllThemeAnimations, downloadThemePosterCard, favoriteThemes, getThemeHistoryState, isKeepEffectsColorSwapMode, isKeepIconsOnThemeSwitchMode, isTelemetryPopoutHudOpen, pasteImportThemesFromClipboard, randomColorsKeepCurrentEffects, randomScreenFilter, randomTheme, recentThemes, redoThemeHistory, shuffleSystemIconsKeepTheme, toggleCurrentThemeEffects, toggleKeepEffectsColorSwapMode, toggleKeepIconsOnThemeSwitchMode, toggleTelemetryPopoutHud, undoThemeHistory } from "./themes.js";
 import { emit, state } from "./state.js";
 
 /** The items of the menu for the colors in force now. */
@@ -10,11 +10,17 @@ export async function themeMenuItems() {
   const custom = !!s.palette;
   const keepFxLocked = isKeepEffectsColorSwapMode();
   const keepIconsLocked = isKeepIconsOnThemeSwitchMode();
+  const hist = getThemeHistoryState();
   const standard = (value, label) => ({
     label,
     checked: !custom && s.theme === value,
     action: async () => {
-      await disableAllThemeAnimations({ quiet: true, stripThemeEffects: true });
+      if (isKeepEffectsColorSwapMode()) {
+        await saveSettings({ palette: "", theme: value });
+        await applyThemeColorsKeepingCurrentEffects("");
+        return;
+      }
+      await disableAllThemeAnimations({ quiet: true, stripThemeEffects: true, preserveLockedIcons: true });
       await saveSettings({ palette: "", theme: value });
     },
   });
@@ -22,6 +28,21 @@ export async function themeMenuItems() {
     standard("auto", "Standard: follow my computer"),
     standard("light", "Standard light"),
     standard("dark", "Standard dark"),
+    { separator: true },
+    {
+      label: hist.undoCount > 0 ? `Undo previous theme / FX roll (${hist.undoCount} · ⌥Z)` : "Undo previous theme / FX roll (⌥Z)",
+      icon: "⏪",
+      disabled: !hist.canUndo,
+      tip: "Step backward through up to 25 previous theme switches, random rolls, and FX changes (Alt+Z / ⌥Z).",
+      action: () => { void undoThemeHistory(); },
+    },
+    {
+      label: hist.redoCount > 0 ? `Redo theme / FX roll (${hist.redoCount} · ⌥⇧Z)` : "Redo theme / FX roll (⌥⇧Z)",
+      icon: "⏩",
+      disabled: !hist.canRedo,
+      tip: "Step forward to restore an undone theme or FX roll (Alt+Shift+Z / ⌥⇧Z).",
+      action: () => { void redoThemeHistory(); },
+    },
     { separator: true },
     {
       label: "Swap random colors — keep current effects (⌥C)",
@@ -50,9 +71,9 @@ export async function themeMenuItems() {
       action: () => { toggleKeepIconsOnThemeSwitchMode(); },
     },
     {
-      label: "3D Spinning Folders & Futuristic Flash 3000 (⌥3)",
+      label: "3D Spinning Folders & Futuristic Flash 3000 (⌥9)",
       icon: "💿",
-      tip: "Cycle High-End 120Hz 3D Spinning Folder Turntables, 2Advanced v3 Vector HUDs, Gyro Cube Matrices & Liquid Metal Morphs (Alt+3 / ⌥3).",
+      tip: "Cycle High-End 120Hz 3D Spinning Folder Turntables, 2Advanced v3 Vector HUDs, Gyro Cube Matrices & Liquid Metal Morphs (Alt+9 / ⌥9).",
       action: () => { void cycleHighEnd3dFolderAnimation(1); },
     },
     {
@@ -66,6 +87,24 @@ export async function themeMenuItems() {
       icon: "🎞️",
       tip: "Apply a random CRT, Cinema, Retro Handheld, Analog or Optical Screen Filter (Alt+Shift+F / ⌥⇧F).",
       action: () => { void randomScreenFilter(); },
+    },
+    {
+      label: "Cycle Dual-Pane Active Focus Spotlight",
+      icon: "🧭",
+      tip: "Cycle Dual-Pane Source vs. Target Active Focus Spotlight modes (Spotlight, Neon Rim, Dim Inactive, Source/Target Badges, Off).",
+      action: () => { void cycleDualPaneFocusMode(1); },
+    },
+    {
+      label: "Cycle Chameleon Folder Mood (Auto-Accent)",
+      icon: "🦎",
+      tip: "Cycle Chameleon Folder Mood (Auto-Detect by Folder Contents, Code, Media, Data & AI, Docs, Archives, Security Vault, Off).",
+      action: () => { void cycleChameleonFolderMood(1); },
+    },
+    {
+      label: "Cycle Smart Zero-Watt Power Governor",
+      icon: "🔋",
+      tip: "Cycle Smart Unfocused Window & Battery Zero-Watt Governor (Smart Auto Pause on Blur, Always 120Hz, Battery Eco Saver).",
+      action: () => { void cycleZeroWattGovernorMode(1); },
     },
     { separator: true },
     { label: "Quick random theme (any · ⌥R)", icon: "🎲", tip: "Instantly apply a random theme from all 310 themes with no dialog needed (Alt+R / ⌥R).", action: () => { void randomTheme({ mode: "any" }); } },
@@ -103,6 +142,7 @@ export async function themeMenuItems() {
       tip: "Toggle the floating VFD & Oscilloscope Telemetry HUD on or off.",
       action: () => { void toggleTelemetryPopoutHud(); },
     },
+    { label: "Export 1920×1080 Theme Poster Card (.svg)…", icon: "📸", tip: "Download a 1920×1080 high-resolution vector SVG Theme Poster Card with 3D folder specimens, AAA Studio Score, and 1-line Share Code.", action: () => { void downloadThemePosterCard(); } },
     { label: "Paste theme from clipboard (⌘V / ⌘⇧V)…", icon: "📋", tip: "Instantly import and apply any CCFM-THEME-v1 share code, CCFM-PACK-v1 bundle, or Theme JSON copied to your clipboard.", action: () => { void pasteImportThemesFromClipboard({ applyFirst: true }); } },
     { label: "Share / Bulk Import themes…", icon: "📤", tip: "Share any premade or custom theme code, export bundles, or bulk-import themes with automatic conflict resolution.", action: () => emit("theme-share", {}) },
     { label: "Theme Show & Screensaver Studio…", icon: "🎬", tip: "Launch the interactive Theme Show & Screensaver Studio — cycle themes, storms, 4D tesseracts, and retro XScreenSaver OSDs.", action: () => emit("theme-show") },
