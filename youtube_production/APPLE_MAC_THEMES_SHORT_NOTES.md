@@ -35,3 +35,9 @@ TIMESTAMPS
 
 #MacStudio #M4Ultra #macOS #AppleSilicon #ProDisplayXDR #FileManager #UIUX #Themes #Shaders #DeveloperTools #OpenSource #Bun #TypeScript #Shorts
 ```
+
+## YouTube Short Tags (< 500 chars, Copy & Paste into YouTube Studio Tags Box)
+
+```text
+shorts,youtube shorts,mac studio m4 ultra,pro display xdr 6k,macos tahoe 3d glass,codecaine file manager,310 themes,120hz promotion,3d spinning folders,flash 2advanced hud,cinema 4d mograph,crt screen filter,holiday themes,custom icon packs,apple silicon m4 ultra,developer tools,open source file manager,macos apps,linux file manager,windows 11 file manager,bun typescript,ui ux animation,shader studio
+```
