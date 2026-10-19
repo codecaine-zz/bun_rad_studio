@@ -1869,12 +1869,18 @@ describe("the theme editor in the page", () => {
     expect(platformPresets.map((p) => p.id)).toEqual(["macos", "windows", "linux"]);
     await (themes as any).applyPlatformOptimizationPreset("linux", { quiet: true });
     expect(doc.documentElement.dataset.platform).toBe("linux");
+    expect(doc.documentElement.classList.contains("rad-linux")).toBe(true);
+    expect(state.settings.platformProfile).toBe("linux");
     expect(state.settings.atmosphereTier).toBe("medium");
     await (themes as any).applyPlatformOptimizationPreset("windows", { quiet: true });
     expect(doc.documentElement.dataset.platform).toBe("windows");
+    expect(doc.documentElement.classList.contains("rad-windows")).toBe(true);
+    expect(state.settings.platformProfile).toBe("windows");
     expect(state.settings.atmosphereTier).toBe("high");
     await (themes as any).applyPlatformOptimizationPreset("macos", { quiet: true });
     expect(doc.documentElement.dataset.platform).toBe("macos");
+    expect(doc.documentElement.classList.contains("rad-macos")).toBe(true);
+    expect(state.settings.platformProfile).toBe("macos");
     expect(state.settings.atmosphereTier).toBe("ultra");
 
     // Dialog-free Quick Random Themes (Any, With Effects, Plain No-Effects, Ultra) & Toggle FX (Alt+R / Alt+E / Alt+P / Alt+U / Alt+0)

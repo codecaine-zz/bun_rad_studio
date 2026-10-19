@@ -1131,6 +1131,18 @@ describe("high-end M4 Pro / Windows DirectX enhancements and hardware fallbacks"
         expect(winRtx.isWindowsHighEnd).toBe(true);
         expect(winRtx.nativeBackdrop).toBe("acrylic");
         expect(winRtx.shouldUseFallbackTheme).toBe(false);
+
+        const winParallelsM4 = detectThemeHardware({
+            gpuRenderer: "ANGLE (Parallels, Parallels Display Adapter (WDDM) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+            platform: "win32",
+            cores: 6,
+            memoryGb: 16,
+            devicePixelRatio: 2,
+        });
+        expect(winParallelsM4.tier).toBe("ultra");
+        expect(winParallelsM4.isWindowsHighEnd).toBe(true);
+        expect(winParallelsM4.recommendedFxMode).toBe("on");
+        expect(winParallelsM4.shouldUseFallbackTheme).toBe(false);
     });
 
     test("automatically reverts FX themes to lightweight fallback themes on software GPUs, Windows RDP, Forced Colors, or low-resource systems", () => {

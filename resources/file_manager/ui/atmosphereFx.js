@@ -196,14 +196,14 @@ export function detectHardwareTier(navOverride, winOverride) {
     const ua = rawUa.replace(/like\s+android/g, "");
     const isLinux = /\blinux\b|\bx11\b|\bwayland\b|\bubuntu\b/.test(ua) && !/\bandroid\b/.test(ua);
     const isAppleSilicon = (!isLinux && (/mac/.test(ua) && (/arm|aarch64|apple\s*m[1-9]/.test(ua) || (dpr >= 2 && cores >= 8)))) || (!isLinux && /\b(arm64|aarch64)\b/.test(ua));
-    if (isAppleSilicon && cores >= 8) return "ultra";
+    if (isAppleSilicon && cores >= 6) return "ultra";
     if (!isLinux && (cores >= 12 || (cores >= 8 && dpr >= 2 && mem >= 8))) return "ultra";
     if (isLinux) {
       if (cores <= 2) return "low";
       if (cores <= 6) return "medium";
       return dpr >= 2 && cores >= 12 ? "ultra" : "high";
     }
-    if (cores >= 8 || mem >= 8) return "high";
+    if (cores >= 6 || mem >= 8) return "high";
     if (cores >= 4) return "medium";
     return "low";
   } catch {
@@ -569,9 +569,9 @@ function syncCanvasSize() {
   const platform = typeof document !== "undefined" ? (document.documentElement?.dataset?.platform || "") : "";
   const isLinux = platform === "linux";
   const isWindows = platform === "windows";
-  const dprScale = (!isLinux && profile.dpr === 2) ? Math.min(1.5, Number(window.devicePixelRatio) || 1.25) : 1;
-  const maxW = isLinux ? 960 : (profile.dpr === 2 ? 1440 : isWindows ? 1080 : MAX_CANVAS_W);
-  const maxH = isLinux ? 600 : (profile.dpr === 2 ? 900 : isWindows ? 680 : MAX_CANVAS_H);
+  const dprScale = (!isLinux && !isWindows && profile.dpr === 2) ? Math.min(1.5, Number(window.devicePixelRatio) || 1.25) : 1;
+  const maxW = isLinux ? 960 : (profile.dpr === 2 ? 1440 : MAX_CANVAS_W);
+  const maxH = isLinux ? 600 : (profile.dpr === 2 ? 900 : MAX_CANVAS_H);
   const rawW = Math.max(320, Math.round((window.innerWidth || 1280) * dprScale));
   const rawH = Math.max(240, Math.round((window.innerHeight || 800) * dprScale));
   const w = Math.min(maxW, rawW);

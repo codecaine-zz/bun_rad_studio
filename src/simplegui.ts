@@ -1106,6 +1106,9 @@ export class SimpleWindow {
                     if (/Linux|X11|Wayland|Ubuntu/i.test(_ua) && !/Android/i.test(_ua)) {
                         document.documentElement.classList.add('rad-linux');
                         document.documentElement.setAttribute('data-platform', 'linux');
+                    } else if (/\\bWin(dows|32|64)\\b/i.test(_ua)) {
+                        document.documentElement.classList.add('rad-windows');
+                        document.documentElement.setAttribute('data-platform', 'windows');
                     }
                     document.documentElement.style.setProperty('--accent', '${colors.accent}');
                     document.documentElement.style.setProperty('--accent-secondary', '${secAccent}');
@@ -1211,7 +1214,8 @@ export class SimpleWindow {
                         /* Linux (WebKitGTK) draws list boxes and some controls itself; tell it which scheme the theme uses (see the page CSS in index.ts). */
                         html.rad-linux { color-scheme: ${isLight ? 'light' : 'dark'} !important; }
                         html.rad-linux input[type=range] { background: ${isLight ? 'rgba(15, 23, 42, 0.22)' : 'rgba(255, 255, 255, 0.22)'} !important; }
-                        html.rad-linux, html.rad-linux *, html.rad-linux *::before, html.rad-linux *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+                        html.rad-linux, html.rad-linux *, html.rad-linux *::before, html.rad-linux *::after,
+                        html.rad-windows, html.rad-windows *, html.rad-windows *::before, html.rad-windows *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 
                         input:not([type="checkbox"]):not([type="radio"]), textarea, select {
                             background-color: ${inputBg} !important;

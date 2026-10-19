@@ -316,6 +316,16 @@ function clearEffects() {
   document.getElementById("fm-theme-effects")?.remove();
 }
 
+function syncRootPlatform(root, platform) {
+  if (!root || !platform) return;
+  root.dataset.platform = platform;
+  if (root.classList) {
+    root.classList.toggle("rad-linux", platform === "linux");
+    root.classList.toggle("rad-windows", platform === "windows");
+    root.classList.toggle("rad-macos", platform === "macos");
+  }
+}
+
 function clearPalette() {
   clearEffects();
   const root = document.documentElement;
@@ -326,7 +336,7 @@ function clearPalette() {
   delete root.dataset.palette;
   wanted = "";
   const hw = probeClientHardware();
-  if (!root.dataset.platform) root.dataset.platform = state.settings?.platformProfile || hw.platform;
+  if (!root.dataset.platform) syncRootPlatform(root, state.settings?.platformProfile || hw.platform);
   applyUiImmersionProfiles();
   emit("theme-changed", currentThemePayload());
 }
@@ -372,11 +382,11 @@ export function probeClientHardware() {
   const saveData = Boolean(nav.connection?.saveData);
   const swGpu = /basic render driver|microsoft basic|\bwarp\b|d3d11 warp|gdi generic|rdpudd|citrix/i.test(gpu);
   const shouldFallback = forcedColors || reducedTransparency || saveData || swGpu || (cores > 0 && cores <= 2) || (mem > 0 && mem <= 2);
-  const ultra = !shouldFallback && (/apple\s+m[1-9]|rtx\s*[345]\d{2,3}|radeon\s+rx\s+[6789]\d{2,3}|intel.*arc\s+[ab]\d{3}|adreno\s+x1|snapdragon\s+x/i.test(gpu) || (p3 && hdr && cores >= 8) || (platform === "linux" && cores >= 8));
+  const ultra = !shouldFallback && (/apple\s+m[1-9]|apple\s+silicon|parallels\s+display|rtx\s*[345]\d{2,3}|radeon\s+rx\s+[6789]\d{2,3}|intel.*arc\s+[ab]\d{3}|adreno\s+x1|snapdragon\s+x/i.test(gpu) || (p3 && hdr && cores >= 8) || (platform === "linux" && cores >= 8) || (platform === "windows" && cores >= 6));
   cachedHw = {
     platform,
     isVm,
-    tier: shouldFallback ? "low" : ultra ? "ultra" : (cores >= 8 || p3 || dpr >= 1.5) ? "high" : "balanced",
+    tier: shouldFallback ? "low" : ultra ? "ultra" : (cores >= 6 || p3 || dpr >= 1.5) ? "high" : "balanced",
     fxMode: (forcedColors || swGpu) ? "off" : (shouldFallback || reducedMotion) ? "reduced" : "on",
     shouldFallback,
     gpu,
@@ -400,7 +410,7 @@ export const OPTIMIZE_PLATFORM_PRESETS = [
   {
     id: "windows",
     label: "🪟 Optimize for Windows",
-    title: "Optimize for Windows 11/10 (DirectX 12 · DirectComposition WebView2 · Single-Pass Mica/Acrylic)",
+    title: "Optimize for Windows 11/10 & Parallels Desktop (DirectX 12 · DirectComposition WebView2 Zero-Readback Compositor · 60–120 FPS Locked)",
     atmosphereTier: "high",
   },
   {
@@ -418,7 +428,7 @@ export async function applyPlatformOptimizationPreset(platformId, opts = {}) {
     : probeClientHardware().platform;
   const preset = OPTIMIZE_PLATFORM_PRESETS.find((p) => p.id === cleanId) || OPTIMIZE_PLATFORM_PRESETS[0];
   if (typeof document !== "undefined" && document.documentElement) {
-    document.documentElement.dataset.platform = preset.id;
+    syncRootPlatform(document.documentElement, preset.id);
   }
   const patch = {
     platformProfile: preset.id,
@@ -443,7 +453,7 @@ export function paint(theme, key) {
   clearEffects();
   const root = document.documentElement;
   const hw = probeClientHardware();
-  root.dataset.platform = state.settings?.platformProfile || hw.platform;
+  syncRootPlatform(root, state.settings?.platformProfile || hw.platform);
   for (const name of applied) root.style.removeProperty(`--${name}`);
   applied = Object.keys(theme.vars);
   currentVars = { ...theme.vars };

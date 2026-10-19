@@ -50,6 +50,8 @@ export interface Settings {
   atmosphereIntensity: number;
   /** Hardware graphics tier for atmospheric effects: "auto" detects Apple Silicon / modern ARM / CPU cores, or manual "low" | "medium" | "high" | "ultra". */
   atmosphereTier: AtmosphereTier;
+  /** Optional cross-platform compositor profile override ("" = auto-detect OS, or "macos" | "windows" | "linux"). */
+  platformProfile: PlatformProfile;
   /** Real-time reactive physics modulation mode ("off", "activity", "telemetry", "audio"). */
   atmosphereReactive: AtmosphereReactiveMode;
   /** User-saved custom named atmospheric special effect presets (single effect or multi-layer mix + intensity + tier + reactive mode + per-layer modifiers). */
@@ -190,6 +192,8 @@ export const ATMOSPHERE_EFFECTS: readonly string[] = ATMOSPHERE_IDS;
 export type AtmosphereEffect = string;
 export const ATMOSPHERE_TIERS = ["auto", "low", "medium", "high", "ultra", "extreme"] as const;
 export type AtmosphereTier = (typeof ATMOSPHERE_TIERS)[number];
+export const PLATFORM_PROFILES = ["", "macos", "windows", "linux"] as const;
+export type PlatformProfile = (typeof PLATFORM_PROFILES)[number];
 export const ATMOSPHERE_REACTIVE_MODES = ["off", "activity", "telemetry", "audio"] as const;
 export type AtmosphereReactiveMode = (typeof ATMOSPHERE_REACTIVE_MODES)[number];
 export const AMBIENT_PLAYLIST_TARGETS = ["themes", "atmosphere", "both"] as const;
@@ -249,6 +253,7 @@ export const DEFAULT_SETTINGS: Settings = {
   atmosphere: "none",
   atmosphereIntensity: 60,
   atmosphereTier: "auto",
+  platformProfile: "",
   atmosphereReactive: "off",
   atmospherePresets: [],
   atmosphereLayerMods: {},
@@ -391,6 +396,7 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     atmosphere: normalizeAtmosphereSpec(r.atmosphere) || DEFAULT_SETTINGS.atmosphere,
     atmosphereIntensity,
     atmosphereTier: oneOf(r.atmosphereTier, ATMOSPHERE_TIERS, DEFAULT_SETTINGS.atmosphereTier),
+    platformProfile: oneOf(r.platformProfile === "auto" ? "" : r.platformProfile, PLATFORM_PROFILES, DEFAULT_SETTINGS.platformProfile),
     atmosphereReactive: oneOf(r.atmosphereReactive, ATMOSPHERE_REACTIVE_MODES, DEFAULT_SETTINGS.atmosphereReactive),
     atmospherePresets: sanitizeAtmospherePresets(r.atmospherePresets),
     atmosphereLayerMods: sanitizeAtmosphereLayerMods(r.atmosphereLayerMods),

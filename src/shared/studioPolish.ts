@@ -209,7 +209,8 @@ export const STUDIO_POLISH_STYLE = `
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
     }
-    :root[data-platform="linux"], :root[data-platform="linux"] *, :root[data-platform="linux"] *::before, :root[data-platform="linux"] *::after {
+    :root[data-platform="linux"], :root[data-platform="linux"] *, :root[data-platform="linux"] *::before, :root[data-platform="linux"] *::after,
+    :root[data-platform="windows"], :root[data-platform="windows"] *, :root[data-platform="windows"] *::before, :root[data-platform="windows"] *::after {
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
     }
@@ -222,6 +223,9 @@ function studioPolishClient() {
     if (/linux|x11|wayland|ubuntu/i.test(ua) && !/android/i.test(ua)) {
       document.documentElement.setAttribute("data-platform", "linux");
       document.documentElement.classList.add("rad-linux");
+    } else if (/\bwin(dows|32|64)\b/i.test(ua)) {
+      document.documentElement.setAttribute("data-platform", "windows");
+      document.documentElement.classList.add("rad-windows");
     }
   } catch (_) {}
 

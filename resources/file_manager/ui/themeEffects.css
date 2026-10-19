@@ -2939,7 +2939,7 @@ html[data-ui-fx] .row.is-folder[aria-selected="true"]:hover {
   animation: fmScreenMeltIconDrip 4.2s ease-in-out infinite;
 }
 
-:root:not([data-platform="linux"])[data-ui-fx="screen_melt_ooze"] .row:hover {
+:root:not([data-platform="linux"]):not([data-platform="windows"])[data-ui-fx="screen_melt_ooze"] .row:hover {
   filter: url(#fm-filter-screen-melt);
 }
 
@@ -2958,7 +2958,7 @@ html[data-ui-fx] .row.is-folder[aria-selected="true"]:hover {
   animation: fmScreenMeltIconDrip 4.8s ease-in-out infinite;
 }
 
-:root:not([data-platform="linux"])[data-ui-fx="molten_lava_melt"] .row:hover {
+:root:not([data-platform="linux"]):not([data-platform="windows"])[data-ui-fx="molten_lava_melt"] .row:hover {
   filter: url(#fm-filter-molten-glass);
 }
 
@@ -4210,24 +4210,33 @@ html[data-icon-pack="godmode_chrono"] .c-icon,
   box-shadow: none !important;
 }
 
-/* Windows 11 / 10 DirectX 12 & DirectComposition WebView2 Optimization:
- * Caps Gaussian blur radius to single-pass Direct2D hardware threshold and eliminates
- * nested per-row backdrop readbacks for locked 60-144Hz smoothness. */
-:root[data-platform="windows"] {
-  --fx-blur: 10px;
-}
-
-:root[data-platform="windows"] .row,
-:root[data-platform="windows"] .theme-card {
+/* Windows 11 / 10 DirectX 12, DirectComposition WebView2 & Parallels Desktop WDDM Optimization:
+ * Eliminates D3D11/WDDM framebuffer readback from backdrop-filter over animated canvas and full-viewport
+ * inset box-shadow re-rasterization while preserving full theme animations, keyframes, gradients, specular borders, and 60-120fps canvas FX. */
+:root[data-platform="windows"],
+:root[data-platform="windows"] *,
+:root[data-platform="windows"] *::before,
+:root[data-platform="windows"] *::after,
+html.rad-windows,
+html.rad-windows *,
+html.rad-windows *::before,
+html.rad-windows *::after {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
+:root[data-platform="windows"] body,
+html.rad-windows body {
+  box-shadow: none !important;
+}
 
-/* macOS Apple Silicon (M1-M4 Pro/Max/Ultra) Metal ProMotion 120Hz Optimization */
+/* macOS Apple Silicon (M1-M4 Pro/Max/Ultra), Windows DirectComposition & Linux GPU Layer Promotion */
 :root[data-platform="macos"] #list-wrap,
 :root[data-platform="windows"] #list-wrap,
-:root[data-platform="linux"] #list-wrap {
+:root[data-platform="linux"] #list-wrap,
+:root[data-platform="windows"] .fm-atmosphere-layer,
+:root[data-platform="linux"] .fm-atmosphere-layer {
   transform: translateZ(0);
   backface-visibility: hidden;
 }
+
 
