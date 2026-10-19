@@ -106,19 +106,21 @@ export const ending: Chapter[] = [
         },
       },
       {
-        cap: "US Holidays, Nerd Complete, Horror, Real-World Objects & Classic OS",
-        say: "Explore specialized worlds for every mood: eighteen U S Holiday themes, ten Nerd Complete themes like D and D Arcane Grimoire and Starfleet L C A R S Bridge, ten Horror themes with Dalí screen-melting ooze, Real-World Mahogany Clockwork and Stained Glass, plus classic systems like BeOS R 5 and O S 2 Warp 4.",
+        cap: "🎆 18 Animated US Holiday Celebrations (⌥H), Nerd Complete, Horror & Classic OS",
+        say: "Explore specialized worlds for every mood: eighteen super-special U S Holiday themes with bespoke multi-layer animations, custom 3D folder holiday crests, and interactive firework and confetti celebration bursts via Option H! Plus ten Nerd Complete themes like D and D Arcane Grimoire and Starfleet L C A R S Bridge, ten Horror themes, Real-World Mahogany Clockwork, and classic systems like BeOS R 5 and O S 2 Warp 4.",
         act: async (d) => {
+          await d.click('[data-picker-holiday="holiday_4th_of_july_pyrotechnics"]', { pause: 1300 }).catch(() => {});
+          await d.click('[data-picker-holiday="holiday_christmas_nutcracker_hearth"]', { pause: 1300 }).catch(() => {});
           await search(d, "grimoire");
-          await d.click('.theme-card[data-key="nerd_dnd_arcane_grimoire"]', { pause: 1700 }).catch(() => {});
+          await d.click('.theme-card[data-key="nerd_dnd_arcane_grimoire"]', { pause: 1400 }).catch(() => {});
           await search(d, "lcars");
-          await d.click('.theme-card[data-key="nerd_starfleet_lcars_bridge"]', { pause: 1700 }).catch(() => {});
+          await d.click('.theme-card[data-key="nerd_starfleet_lcars_bridge"]', { pause: 1400 }).catch(() => {});
           await search(d, "rare");
-          await d.click('.theme-card[data-key="beos_r5"]', { pause: 1700 });
-          await d.click('.theme-card[data-key="os2_warp"]', { pause: 1700 });
+          await d.click('.theme-card[data-key="beos_r5"]', { pause: 1300 });
+          await d.click('.theme-card[data-key="os2_warp"]', { pause: 1300 });
           await search(d, "");
-          await d.click(".theme-random-btn", { pause: 1300 });
-          await d.click('[data-theme-step="1"]', { pause: 1100 });
+          await d.click(".theme-random-btn", { pause: 1100 });
+          await d.click('[data-theme-step="1"]', { pause: 900 });
         },
       },
       {
@@ -380,46 +382,68 @@ export const ending: Chapter[] = [
         },
       },
       {
-        cap: "Zero-Dialog Shortcuts: ⌥R Random, ⌥E FX, ⌥P Plain, ⌥0 Toggle & ⌥]/[ HUD",
-        say: "Finally, you can switch or randomize themes from anywhere with zero dialogs needed. Press Option R for an instant random theme, Option E for a random animated F X theme, Option P for a random zero-G P U plain theme, Option U for a random Ultra God-Mode theme, or Option Zero to toggle effects on and off on the spot. Hold Right Option with the square brackets for the Selection Templates Quick-Switcher H U D, or open Settings and Help to lock the window close button and customize every keyboard shortcut.",
+        cap: "🏆 AAA 10-Engine Director's Cut (⌥M), ⌥3 3D Spin & Flash 3000, ⌥F 34 Filters & Hotkeys",
+        say: "Finally, experience the ten-engine Triple-A Production Studio directly from the keyboard with zero dialogs needed. Press Option M for the Master Director's Cut presets, Option 3 for fourteen 3D Spinning Folder and Futuristic Flash Two-Advanced animations, Option F for thirty-four Sony Trinitron C R T and cinema screen filters, Option S for 3D Desktop Stage tilt, Option T for holographic cursor trails, Option W for 8K Wallpaper backplates, Option H for holiday firework bursts, Option C to swap colors while keeping your active effects, or Option I to shuffle forty-nine icon packs. Plus Option R, Option E, Option P, Option U, and Option Zero for instant theme control.",
         act: async (d) => {
           await closeDialogs(d);
+          await showKeys(d, ["⌥", "M"]);
+          await d.eval(`window.cycleAppAaaDirectorCut?.(1)`);
+          await d.wait(1000);
+          await showKeys(d, ["⌥", "3"]);
+          await d.eval(`window.cycleAppHighEndAnimation?.(1)`);
+          await d.wait(1000);
+          await showKeys(d, ["⌥", "3"]);
+          await d.eval(`window.cycleAppHighEndAnimation?.(1)`);
+          await d.wait(1000);
+          await showKeys(d, ["⌥", "F"]);
+          await d.eval(`window.cycleAppScreenFilter?.(1)`);
+          await d.wait(1000);
+          await d.eval(`import('/ui/themes.js').then((m) => m.applyScreenFilter('off', { quiet: true }))`);
+          await showKeys(d, ["⌥", "S"]);
+          await d.eval(`window.cycleAppStageMode?.(1)`);
+          await d.wait(950);
+          await d.eval(`import('/ui/themes.js').then((m) => m.applyWorkspaceStageMode('flat', { quiet: true }))`);
+          await showKeys(d, ["⌥", "T"]);
+          await d.eval(`window.cycleAppCursorTrailMode?.(1)`);
+          await d.wait(950);
+          await showKeys(d, ["⌥", "W"]);
+          await d.eval(`window.cycleAppWallpaperScene?.(1)`);
+          await d.wait(950);
+          await showKeys(d, ["⌥", "H"]);
+          await d.eval(`window.cycleAppHolidayTheme?.(1)`);
+          await d.wait(1100);
+          await showKeys(d, ["⌥", "C"]);
+          await d.eval(`window.cycleAppColorKeepFx?.(1)`);
+          await d.wait(950);
+          await showKeys(d, ["⌥", "I"]);
+          await d.eval(`window.shuffleAppIconPack?.()`);
+          await d.wait(950);
           await showKeys(d, ["⌥", "R"]);
           await d.eval(`window.randomAppTheme("any")`);
-          await d.wait(1100);
+          await d.wait(900);
           await showKeys(d, ["⌥", "E"]);
           await d.eval(`window.randomAppTheme("fx")`);
-          await d.wait(1100);
-          await showKeys(d, ["⌥", "P"]);
-          await d.eval(`window.randomAppTheme("plain")`);
-          await d.wait(1100);
+          await d.wait(900);
           await showKeys(d, ["⌥", "U"]);
           await d.eval(`window.randomAppTheme("ultra")`);
-          await d.wait(1100);
-          await showKeys(d, ["⌥", "0"]);
-          await d.eval(`window.toggleAppThemeFx()`);
           await d.wait(900);
           await showKeys(d, ["Right ⌥", "]"]);
           await d.eval(`window.cycleAppTheme(1, { showcaseOnly: true, showHud: true })`);
-          await d.wait(1100);
-          await showKeys(d, ["Right ⌥", "["]);
-          await d.eval(`window.cycleAppTheme(-1, { showcaseOnly: true, showHud: true })`);
-          await d.wait(1100);
+          await d.wait(1000);
           await d.eval(`document.querySelector('[data-quick-hud-close]')?.click()`).catch(() => {});
-          await showKeys(d, ["Right ⌥", "/"]); await d.wait(900);
           await d.eval(`(() => { if (typeof window.closeApp !== 'function') window.closeApp = () => {}; })()`);
           await d.key("Meta+,", "⌘+,");
           await d.wait(800);
           if (!(await d.eval<boolean>(`!!document.querySelector('.modal-backdrop')`))) await d.eval(`import('/ui/extras.js').then((m) => m.showSettings())`);
-          await d.wait(900);
+          await d.wait(800);
           const sel = ".dialog label >> Only close the window";
           await d.eval(`[...document.querySelectorAll('.dialog label')].find((l) => l.textContent.includes('Only close the window'))?.scrollIntoView({ block: 'center' })`);
-          await d.click(sel, { pause: 1300 }).catch(() => {});
+          await d.click(sel, { pause: 1100 }).catch(() => {});
           await closeDialogs(d);
           await d.key("F1", "F1");
           await d.waitFor(".dialog", 6000);
-          await d.click(".dialog .btn >> Change keyboard shortcuts", { pause: 1500 }).catch(() => {});
-          await d.hover(".dialog", 1800);
+          await d.click(".dialog .btn >> Change keyboard shortcuts", { pause: 1300 }).catch(() => {});
+          await d.hover(".dialog", 1500);
         },
       },
     ],

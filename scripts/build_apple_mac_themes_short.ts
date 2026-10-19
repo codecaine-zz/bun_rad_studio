@@ -277,54 +277,58 @@ const sceneSpecs: SceneSpec[] = [
   },
   {
     id: "04_random_fx_finder_1click_remover",
-    badge: "04 / 10 · RANDOM FX FINDER & 1-CLICK FX REMOVER",
-    title: "ROLL RANDOM FX.\nREMOVE ANY LAYER.",
-    label: "🎲 ROLL RANDOM FX · 🚀 ROLL ULTRA · ✕ REMOVE INDIVIDUAL EFFECTS",
-    extra: "Love a Theme's Colors & Glass, But Want to Drop One Effect? Click ✕!",
+    badge: "04 / 10 · AAA 10-ENGINE DIRECTOR'S CUT, ⌥C SWAP COLORS & ⌥I ICONS",
+    title: "AAA 10-ENGINE STUDIO,\n⌥C COLORS & ⌥I ICONS.",
+    label: "🏆 ⌥M DIRECTOR'S CUT · 🌈 ⌥C KEEP FX SWAP COLORS · 🎭 ⌥I 49 ICON PACKS",
+    extra: "6 Icon Material Finishes, 3D Desktop Stage (⌥S), 8K Wallpapers (⌥W) & 1-Click FX Remover",
     bullets: [
-      "🎲 1-Click Roll Random FX or 🚀 Roll Random Ultra",
-      "🔥 Click ✕ on Any Active Effect Pill to Drop It",
-      "🪟 Keep Your Colors, Glass & Remaining FX Intact",
+      "🏆 10-Engine AAA Director's Cut Switchboard (⌥M)",
+      "🌈 Swap Colors Keep FX (⌥C) & 49 Icon Packs (⌥I)",
+      "💎 6 Icon Material Finishes, 3D Stage (⌥S) & 8K Wallpapers",
     ],
-    say: "In Full Theme Mode, finding and customizing effects is effortless. Click Roll Random F X Theme or Roll Random Ultra in the new Active Effects bar. Every active effect—weather layers, folder shaders, custom icons, or glass glow—shows up as a removable pill. Click X on any effect you don't want to drop it instantly while keeping everything else!",
+    say: "Inside the ten-engine Triple-A Production Studio, click any Master Director's Cut preset or press Option M to orchestrate 3D Desktop Stage tilt, Ambilux backlight, 8K Wallpaper backplates, and six computer icon material finishes like 24-Karat Gold and Liquid Glass. Press Option C to swap colors while keeping your active effects, press Option I to shuffle forty-nine icon packs, or click X on any effect pill to drop it!",
     record: async (c) => {
-      await c.click('[data-collection-pill="all"]', { pause: 500 });
-      await showAppleKeynoteBanner(c, "Random FX Finder in Full Theme Mode", "Roll Random FX Themes & Inspect Every Active Layer Live");
-      await c.click('[data-picker-roll-random-fx="true"]', { pause: 1200 });
-      await c.click('[data-picker-roll-random-ultra="true"]', { pause: 1200 });
+      await c.click('[data-collection-pill="all"]', { pause: 450 });
+      await showAppleKeynoteBanner(c, "AAA 10-Engine Production Studio (⌥M)", "Cupertino M4 Ultra Keynote · 3D Stage Tilt · 24K Gold & Liquid Glass Icons");
+      await c.click('[data-picker-director-cut="singularity_3099_imax"]', { pause: 950 });
+      await c.click('[data-picker-icon-finish="gold_24k_foil"]', { pause: 750 });
+      await c.click('[data-picker-stage-mode="curved_ultrawide"]', { pause: 750 });
+      await showAppleKeynoteBanner(c, "Keep Active FX — Swap Colors Only (⌥C) & Shuffle 49 Icons (⌥I)", "Change Theme Colors Instantly While Preserving All Shaders & 3D Folders");
+      await c.click('[data-swap-color-only="dracula"]', { pause: 850 });
+      await c.click('[data-picker-shuffle-icons="true"]', { pause: 850 });
 
       // Apply Compiz Inferno Kit so multiple distinct FX pills are clearly visible, then remove individual pills
       await c.eval(`(async () => {
         const tm = await import('/ui/themes.js');
+        await tm.applyWorkspaceStageMode('flat', { quiet: true });
         await tm.applyJumpstartKit('compiz_inferno_kit');
       })()`);
-      await c.click('.theme-card[data-key="inferno_fire_folders"]', { pause: 900 });
+      await c.click('.theme-card[data-key="inferno_fire_folders"]', { pause: 750 });
       await showAppleKeynoteBanner(c, "1-Click Individual Effect Removal", "Click ✕ on Any Active FX Pill to Strip Only What You Don't Want");
-      await c.click('[data-remove-active-fx="uiElementFx"]', { pause: 1100 });
-      await c.click('[data-remove-active-fx="atmoLayer"]', { pause: 1100 });
+      await c.click('[data-remove-active-fx="uiElementFx"]', { pause: 850 });
     },
   },
   {
     id: "05_extreme_120hz_storms_tiedye",
-    badge: "05 / 10 · 120HZ STORMS, TESLA & KALEIDOSCOPE",
-    title: "EF5 TORNADO, TESLA\n& 120HZ TIE-DYE.",
-    label: "🌪️ EF5 DEBRIS TORNADO · ⚡ TESLA COIL · 🔥 COMPIZ BURN · 🌈 MANDALA",
-    extra: "6-Layer 3D Debris Cyclones, High-Voltage Plasma Arcs & Sacred Geometry",
+    badge: "05 / 10 · 18 ANIMATED HOLIDAY BURSTS (⌥H), TORNADO & TIE-DYE",
+    title: "18 HOLIDAY BURSTS (⌥H),\nEF5 TORNADO & TIE-DYE.",
+    label: "🎆 ⌥H 18 HOLIDAY CELEBRATIONS · 🌪️ EF5 TORNADO · 🔥 COMPIZ · 🌈 MANDALA",
+    extra: "Interactive Holiday Firework & Confetti Bursts, Custom Holiday Crests & 120Hz Physics",
     bullets: [
-      "🌪️ EF5 Tornado Debris & Swirling Autumn Leaves",
-      "⚡ Wardenclyffe Tesla Coil & Blazing Fire Folders",
+      "🎆 18 Animated US Holiday Themes + Particle Bursts (⌥H)",
+      "🌪️ EF5 Tornado Debris & Compiz Blazing Fire Folders",
       "🌈 Kaleidoscope Fractal Mandala & '67 Tie-Dye",
     ],
-    say: "Push Apple Silicon's eighty-core G P U with one-hundred-and-twenty-Hertz physics: launch E F 5 Tornado Debris with tumbling leaves and wind-buffeted folders, ignite Compiz Fire Folders, fire up Kaleidoscope Fractal Mandala, or groove to Haight-Ashbury Tie-Dye sixty-seven.",
+    say: "Celebrate all eighteen U S Holidays with bespoke multi-layer animations, custom 3D folder holiday crests, and interactive firework, confetti, snow, and shamrock celebration bursts via Option H! Then push Apple Silicon's eighty-core G P U with E F 5 Tornado Debris, Compiz Fire Folders, and Kaleidoscope Fractal Mandala.",
     record: async (c) => {
+      await showAppleKeynoteBanner(c, "18 Animated US Holiday Themes & Particle Bursts (⌥H)", "Custom Folder Holiday Crests · Fireworks, Snowflakes & Confetti Finale");
+      await c.click('[data-picker-holiday="holiday_4th_of_july_pyrotechnics"]', { pause: 1200 });
+      await c.click('[data-picker-holiday="holiday_christmas_nutcracker_hearth"]', { pause: 1200 });
       await showAppleKeynoteBanner(c, "EF5 Tornado & 3D Storm Debris", "Tumbling Leaves, Newspapers & Wind-Buffeted Folders at 120Hz");
-      await c.click('[data-jumpstart-kit="storm_overdrive_kit"]', { pause: 1500 });
-      await showAppleKeynoteBanner(c, "Compiz Fire Folders & Inferno", "Blazing Molten Folders, Inferno Icons & Volcanic Lightning");
-      await c.click('[data-jumpstart-kit="compiz_inferno_kit"]', { pause: 1450 });
-      await showAppleKeynoteBanner(c, "Kaleidoscope Fractal Mandala", "Sacred Lotus Geometry · 11D Calabi-Yau Prism Refraction");
-      await c.click('[data-jumpstart-kit="kaleidoscope_trip_kit"]', { pause: 1450 });
-      await showAppleKeynoteBanner(c, "1969 Psychedelic Lava Lamp & '67 Tie-Dye", "Zero-Lag GPU Composited Spiral Silk & Molten Wax Blobs");
-      await c.click('[data-jumpstart-kit="lava_lamp_groovy_kit"]', { pause: 1350 });
+      await c.click('[data-jumpstart-kit="storm_overdrive_kit"]', { pause: 1300 });
+      await showAppleKeynoteBanner(c, "Compiz Fire Folders & Kaleidoscope Mandala", "Blazing Molten Folders, Inferno Icons & 11D Prism Refraction");
+      await c.click('[data-jumpstart-kit="compiz_inferno_kit"]', { pause: 1200 });
+      await c.click('[data-jumpstart-kit="kaleidoscope_trip_kit"]', { pause: 1200 });
     },
   },
   {
@@ -493,36 +497,41 @@ const sceneSpecs: SceneSpec[] = [
   },
   {
     id: "10_mac_hotkeys_command_palette_cta",
-    badge: "10 / 10 · ZERO-DIALOG MAC HOTKEYS & COMMAND PALETTE",
-    title: "⌥U ULTRA, ⌘⇧P OMNIBAR\n& FREE MAC DOWNLOAD.",
-    label: "🚀 ⌥U ULTRA · ✨ ⌥E FX · ⏹️ ⌥P PLAIN · 🛑 ⌥0 TOGGLE · ⌘⇧P PALETTE",
-    extra: "Instant Dialog-Free Theme Hotkeys + Universal Command Palette & Smart Chips",
+    badge: "10 / 10 · ⌥3 3D SPIN & FLASH 3000, ⌥F CRT, ⌥T TRAILS & ⌘⇧P",
+    title: "⌥3 3D SPIN & FLASH,\n⌥F CRT & ⌥T TRAILS.",
+    label: "💿 ⌥3 3D FOLDERS · 📺 ⌥F 34 FILTERS · 🌠 ⌥T CURSOR TRAILS · 🏆 ⌥M",
+    extra: "3D Spinning Folders, Flash 2Advanced 3000, 34 Screen Filters & Cursor Trails",
     bullets: [
-      "🚀 ⌥U Random Ultra · ✨ ⌥E FX · ⏹️ ⌥P Plain · 🛑 ⌥0 Toggle",
-      "⌘⇧P Universal Command Palette & Smart Kind-Chips",
-      "⬇️ Free Open-Source Download for Mac, Windows & Linux",
+      "💿 ⌥3 3D Spinning Folders, Flash 3000 & C4D MoGraph",
+      "📺 ⌥F 34 Screen Filters (Trinitron CRT, ACEScct, VHS)",
+      "🌠 ⌥T Cursor Trails · 🎆 ⌥H Holiday Burst · 🏆 ⌥M",
     ],
-    say: "Back on your workspace, switch themes at the speed of thought with zero dialogs: press Option U for a random Ultra theme, Option E for random effects, Option P for zero-G P U plain colors, Option Zero to toggle animations, or Command Shift P for the Universal Command Palette. Download Codecaine File Manager free on GitHub today!",
+    say: "On high-end Macs, press Option 3 to cycle fourteen one-hundred-and-twenty-Hertz 3D folder and motion-designer animations—including 3D Spinning Folder Turntables and Futuristic Flash Two-Advanced Vector H U D. Press Option F for thirty-four screen filters like Sony Trinitron C R T, Option T for holographic cursor trails, Option H for holiday firework bursts, or Command Shift P for the Universal Command Palette. Download Codecaine File Manager v1.5.0 free on GitHub today!",
     record: async (c) => {
       const fireAltKey = async (label: string, key: string, code: string) => {
         await c.eval(`window.__cc.keys(${JSON.stringify([label])})`);
         await c.eval(`window.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, code: ${JSON.stringify(code)}, altKey: true, bubbles: true }))`);
-        await sleep(1150);
+        await sleep(780);
       };
-      await showAppleKeynoteBanner(c, "Zero-Dialog Mac Keyboard Shortcuts", "⌥U Ultra · ⌥E FX · ⌥P Plain (0% GPU) · ⌥0 Toggle FX · ⌥] Cycle");
-      await fireAltKey("⌥ + U  (Random Ultra Theme)", "u", "KeyU");
-      await fireAltKey("⌥ + E  (Random FX Theme)", "e", "KeyE");
-      await fireAltKey("⌥ + 0  (Toggle Animations & FX)", "0", "Digit0");
+      await showAppleKeynoteBanner(c, "High-End 3D Folders, Flash 3000 & C4D MoGraph (⌥3)", "3D Spinning Folder Turntable · 2Advanced Vector HUD · C4D Step-Effector");
+      await fireAltKey("⌥ + 3  (3D Spinning Folder Turntable)", "3", "Digit3");
+      await fireAltKey("⌥ + 3  (Futuristic Flash 2Advanced HUD)", "3", "Digit3");
 
-      // Re-apply our custom theme or Mac Studio M4 Ultra kit and open Command Palette (⌘⇧P)
+      await showAppleKeynoteBanner(c, "34 Screen Filters (⌥F), Cursor Trails (⌥T) & Holiday Burst (⌥H)", "Sony Trinitron CRT '95 · Holographic Cursor Spotlight · Holiday Fireworks");
+      await fireAltKey("⌥ + F  (Sony Trinitron CRT '95 Filter)", "f", "KeyF");
+      await fireAltKey("⌥ + T  (Holographic Cursor Trail)", "t", "KeyT");
+      await fireAltKey("⌥ + H  (Holiday Celebration Burst)", "h", "KeyH");
+
+      // Clear screen filter, apply Cupertino M4 Ultra Keynote Director's Cut and open Command Palette (⌘⇧P)
       await c.eval(`(async () => {
         const tm = await import('/ui/themes.js');
-        await tm.applyJumpstartKit('mac_studio_m4_ultra_kit');
+        await tm.applyScreenFilter('off', { quiet: true });
+        await tm.applyAaaDirectorCut('cupertino_m4_keynote', { quiet: true });
         const cp = await import('/ui/commandPalette.js');
         cp.openCommandPalette?.("");
       })()`);
-      await showAppleKeynoteBanner(c, "Universal Command Palette (⌘⇧P)", "Search Actions, Starter Templates, Places, Tools & 310 Themes");
-      await sleep(1600);
+      await showAppleKeynoteBanner(c, "Universal Command Palette (⌘⇧P) — v1.5.0 AAA Release", "Search Actions, Starter Templates, Places, Tools & 310 Themes");
+      await sleep(1400);
     },
   },
 ];
@@ -535,7 +544,7 @@ body{
   background:
     radial-gradient(980px 580px at 50% -4%, rgba(56,189,248,0.28), transparent 70%),
     radial-gradient(820px 520px at 85% 100%, rgba(168,85,247,0.24), transparent 70%),
-    #05070c;
+  #05070c;
   color:#f8fafc;
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif;
 }
@@ -602,8 +611,8 @@ body{
 </div>
 ${
   isLast
-    ? `<div class="cta"><strong>▶ FREE DOWNLOAD FOR MAC, WINDOWS &amp; LINUX</strong><p>310 Themes · 194 Live 120Hz Shaders · Zero-Lag Apple Metal 3 Engine</p><p class="sub">${esc(REPO)}/releases/tag/v1.4.9</p></div>`
-    : `<div class="cta"><strong>▶ CODECAINE FILE MANAGER — CUPERTINO XDR EDITION (v1.4.9)</strong><p>Create Custom Themes · 1-Click Active FX Remover · 310 Built-In Themes</p><p class="sub">${esc(REPO)}/releases/latest · MIT Open Source</p></div>`
+    ? `<div class="cta"><strong>▶ FREE DOWNLOAD FOR MAC, WINDOWS &amp; LINUX</strong><p>310 Themes · 10 AAA Engines · 194 Live 120Hz Shaders · 34 Screen Filters</p><p class="sub">${esc(REPO)}/releases/tag/v1.5.0</p></div>`
+    : `<div class="cta"><strong>▶ CODECAINE FILE MANAGER — AAA 10-ENGINE EDITION (v1.5.0)</strong><p>18 Holiday Celebrations (⌥H) · 3D Spin &amp; Flash 3000 (⌥3) · 34 Filters (⌥F)</p><p class="sub">${esc(REPO)}/releases/latest · MIT Open Source</p></div>`
 }`;
 }
 
@@ -613,26 +622,26 @@ function notesMarkdown(seconds: number, tempo: number, sceneMarks: Array<{ at: n
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
   const stamps = sceneMarks.map((m, i) => `${fmt(i === 0 ? 0 : m.at)} ${m.scene.label}`).join("\n");
-  return `# Codecaine File Manager on Mac Studio M4 Ultra 6K XDR — Creating & Using the Coolest 120Hz Themes (Apple Keynote Edition Short, ${fmt(seconds)})
+  return `# Codecaine File Manager v1.5.0 on Mac Studio M4 Ultra 6K XDR — AAA 10-Engine Theme Studio, 18 Holiday Celebrations & 120Hz Shaders (Short, ${fmt(seconds)})
 
-## Video Files (100% Freshly Recorded, Zero Reused Clips)
+## Video Files (100% Freshly Recorded at Highest Quality CRF 14, Zero Reused Clips)
 
-- **Apple Mac Keynote Short MP4 (< 3 min)**: \`youtube_production/codecaine-file-manager-apple-mac-themes-short.mp4\` (${seconds.toFixed(1)}s, 1080×1920 vertical, 30 fps, 2x Retina Display-P3 super-sampled)
+- **Apple Mac Keynote Short MP4 (< 3 min)**: \`youtube_production/codecaine-file-manager-apple-mac-themes-short.mp4\` (${seconds.toFixed(1)}s, 1080×1920 vertical, 30 fps, 2x Retina Display-P3 super-sampled, CRF 14 / 256k AAC)
 - **Themes Short Mirror MP4**: \`youtube_production/codecaine-file-manager-themes-short.mp4\`
 
 ## YouTube Short Titles (Pick One)
 
-1. **If Apple Made a 120Hz Theme Engine: Mac Studio M4 Ultra 6K XDR & 310 Themes! 🍎✨ #Shorts**
-2. **Creating & Using the Coolest Mac Themes on M4 Ultra 6K XDR (310 Themes + 194 Shaders) #Shorts**
-3. **Mac Studio M4 Ultra File Manager: Tahoe 3D Glass, Year 3000+ Themes & 1-Click FX Studio #Shorts**
+1. **If Apple Made a 120Hz AAA Theme Engine: Mac Studio M4 Ultra 6K XDR & 310 Themes! 🍎✨ #Shorts**
+2. **Codecaine File Manager v1.5.0: 10 AAA Engines, 18 Animated Holidays & 3D Spinning Folders #Shorts**
+3. **Mac Studio M4 Ultra File Manager: Tahoe 3D Glass, Flash 2Advanced 3000 & 34 Screen Filters #Shorts**
 
 ## YouTube Short Description (< 5,000 chars, Copy & Paste)
 
 \`\`\`text
-Recorded 100% live from scratch on a flagship Mac Studio M4 Ultra (80-Core GPU · 192GB Unified Memory · Pro Display XDR 6K · 120Hz ProMotion Display-P3 HDR): see how to browse, customize, strip unwanted effects in one click, and create your own custom macOS masterpiece in Codecaine File Manager v1.4.9!
+Recorded 100% live from scratch at master quality (2x Retina Display-P3 HDR · CRF 14) on a flagship Mac Studio M4 Ultra (80-Core GPU · 192GB Unified Memory · Pro Display XDR 6K · 120Hz ProMotion): experience the v1.5.0 AAA 10-Engine Production Studio, 18 Super-Special Animated US Holiday Themes with particle bursts (⌥H), 14 High-End 3D Folder & Flash 2Advanced 3000 animations (⌥3), 34 CRT/Cinema/VFX Screen Filters (⌥F), Keep FX Color Swap (⌥C), 49 System Icon Packs (⌥I), and 8 Master Director's Cut presets (⌥M)!
 
 ⬇️ Free Download for macOS (Apple Silicon & Intel), Windows (x64 & ARM64) & Linux:
-${REPO}/releases/tag/v1.4.9
+${REPO}/releases/tag/v1.5.0
 ⭐ Source Code (MIT Open Source):
 ${REPO}
 
@@ -805,13 +814,13 @@ async function main() {
         "-preset",
         "medium",
         "-crf",
-        "18",
+        "14",
         "-r",
         "30",
         "-c:a",
         "aac",
         "-b:a",
-        "192k",
+        "256k",
         segment,
       ]);
       sceneMarks.push({ at, scene });
@@ -845,13 +854,13 @@ async function main() {
     "-preset",
     "medium",
     "-crf",
-    "18",
+    "14",
     "-r",
     "30",
     "-c:a",
     "aac",
     "-b:a",
-    "192k",
+    "256k",
     "-ar",
     "48000",
     "-ac",

@@ -2,7 +2,7 @@
 
 ## Video Files (100% Freshly Recorded, Zero Reused Clips)
 
-- **Apple Mac Keynote Short MP4 (< 3 min)**: `youtube_production/codecaine-file-manager-apple-mac-themes-short.mp4` (173.1s, 1080×1920 vertical, 30 fps, 2x Retina Display-P3 super-sampled)
+- **Apple Mac Keynote Short MP4 (< 3 min)**: `youtube_production/codecaine-file-manager-apple-mac-themes-short.mp4` (173.0s, 1080×1920 vertical, 30 fps, 2x Retina Display-P3 super-sampled)
 - **Themes Short Mirror MP4**: `youtube_production/codecaine-file-manager-themes-short.mp4`
 
 ## YouTube Short Titles (Pick One)
@@ -23,15 +23,15 @@ https://github.com/codecaine-zz/bun_rad_studio
 
 TIMESTAMPS
 0:00  MAC STUDIO M4 ULTRA · 80-CORE GPU · 120HZ PROMOTION
-0:19 🖥️ MAC PRO 6K XDR · ☀️ 5K STUDIO DISPLAY · 🥽 VISION SPATIAL 8K
+0:18 🖥️ MAC PRO 6K XDR · ☀️ 5K STUDIO DISPLAY · 🥽 VISION SPATIAL 8K
 0:33 🌌 OMEGA POINT · 💎 PHOTONIC 3099 · ☀️ DYSON BRAIN · ⏳ AETHELGARD
-0:49 🎲 ROLL RANDOM FX · 🚀 ROLL ULTRA · ✕ REMOVE INDIVIDUAL EFFECTS
-1:08 🌪️ EF5 DEBRIS TORNADO · ⚡ TESLA COIL · 🔥 COMPIZ BURN · 🌈 MANDALA
-1:22 🏷️ STICKY NAME BAR (N/40) · 🖼️ VISUAL STARTING TEMPLATES GRID
-1:42 ⚡ GOD-MODE STYLE PRESET · 🎲 RANDOM FX MIX · ✕ TRIM FX · 💾 SAVE
-1:59 🌌 194 PROCEDURAL SHADERS · 📟 P/E CORES & 16-BAND SPECTRUM
-2:18 ⚖️ SPLIT-SCREEN COMPARATOR · 🧬 OKLAB BLEND · 🎬 CINEMA HUD SHOW
-2:34 🚀 ⌥U ULTRA · ✨ ⌥E FX · ⏹️ ⌥P PLAIN · 🛑 ⌥0 TOGGLE · ⌘⇧P PALETTE
+0:47 🌈 ⌥C COLOR SWAP KEEP FX · 🎭 ⌥I SHUFFLE ICONS · ✕ 1-CLICK FX REMOVER
+1:03 🌪️ EF5 DEBRIS TORNADO · ⚡ TESLA COIL · 🔥 COMPIZ BURN · 🌈 MANDALA
+1:16 🏷️ STICKY NAME BAR (N/40) · 🖼️ VISUAL STARTING TEMPLATES GRID
+1:36 ⚡ GOD-MODE STYLE PRESET · 🎲 RANDOM FX MIX · ✕ TRIM FX · 💾 SAVE
+1:52 🌌 194 PROCEDURAL SHADERS · 📟 P/E CORES & 16-BAND SPECTRUM
+2:11 ⚖️ SPLIT-SCREEN COMPARATOR · 🧬 OKLAB BLEND · 🎬 CINEMA HUD SHOW
+2:27 💿 ⌥3 3D FOLDERS & C4D · 📺 ⌥F 34 SCREEN FILTERS · 🌈 ⌥C · 🎭 ⌥I
 
 #MacStudio #M4Ultra #macOS #AppleSilicon #ProDisplayXDR #FileManager #UIUX #Themes #Shaders #DeveloperTools #OpenSource #Bun #TypeScript #Shorts
 ```

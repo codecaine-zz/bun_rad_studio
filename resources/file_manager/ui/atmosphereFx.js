@@ -321,6 +321,8 @@ function shiftHarmony(rgb, hueDelta, minSat = 0.65, targetLight = 0.62) {
   const [h, s, l] = rgbToHsl(rgb[0], rgb[1], rgb[2]);
   return hslToRgb(h + hueDelta, Math.max(minSat, Math.min(0.95, s * 1.15)), Math.max(0.42, Math.min(0.76, (l + targetLight) / 2)));
 }
+const parseCssRgb = parseColorRgb;
+const shiftHueRgb = shiftHarmony;
 
 function colorDist(a, b) {
   if (!a || !b) return 0;
@@ -1112,11 +1114,11 @@ function drawSingleLayer(ctx, layer, w, h, rawScale, profile) {
   const savedTick = frameTick;
   if (speedMul !== 1) frameTick = Math.round(savedTick * speedMul);
 
-  const customRgb = typeof mod.color === "string" && /^#[0-9a-fA-F]{6}$/.test(mod.color) ? parseCssRgb(mod.color) : null;
+  const customRgb = typeof mod.color === "string" && /^#[0-9a-fA-F]{6}$/.test(mod.color) ? parseColorRgb(mod.color) : null;
   const { isDark, highlight } = cachedColors;
   const accent = customRgb || cachedColors.accent;
-  const secondary = customRgb ? shiftHueRgb(customRgb, 48, 1.05) : cachedColors.secondary;
-  const tertiary = customRgb ? shiftHueRgb(customRgb, -52, 1.05) : cachedColors.tertiary;
+  const secondary = customRgb ? shiftHarmony(customRgb, 48) : cachedColors.secondary;
+  const tertiary = customRgb ? shiftHarmony(customRgb, -52) : cachedColors.tertiary;
   const [ar, ag, ab] = accent;
   const [sr, sg, sb] = secondary;
   const [tr, tg, tb] = tertiary;

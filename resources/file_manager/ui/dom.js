@@ -460,41 +460,41 @@ export const ICON_PACK_GLYPHS = {
   },
   win11_fluent_pro: {
     folder: "🗂️", image: "🖼️", video: "📽️", audio: "🎵", pdf: "📕", doc: "📃",
-    sheet: "📈", slide: "📊", archive: "🧳", code: "💻", text: "📝", exec: "⚡",
+    sheet: "📈", slide: "📊", archive: "📦", code: "💻", text: "📝", exec: "⚡",
     disk: "💽", font: "🔤", file: "📄", buttonPreset: "fluent", useExact: true,
-    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "📽️", videos: "📽️", music: "🎵", code: "💻", "3d": "🧊", docs: "🗂️", downloads: "⬇️", archive: "🧳", cloud: "☁️", database: "🛢️", ai_ml: "🧠", security: "🛡️", docker: "🐳", kubernetes: "☸️", git: "🔀", config: "⚙️", tests: "🧪", scripts: "⚡", fonts: "🔤", design: "🎨", games: "🎮", mobile: "📱", desktop: "🖥️", web: "🌐", api: "🔌", logs: "📋", temp: "⏳", trash: "🗑️", system: "🏛️", network: "📡", crypto: "⛓️", notebooks: "📓", workflows: "🔄", plugins: "🧩", themes: "🌈", shaders: "🔮", audio_stems: "🎚️", camera_raw: "📸", cad: "📐", finance: "💹", legal: "⚖️", science: "🧬", quantum: "⚛️", home: "🏠" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "📽️", videos: "📽️", music: "🎵", code: "💻", "3d": "🧊", docs: "🗂️", downloads: "⬇️", archive: "📦", cloud: "☁️", database: "🛢️", ai_ml: "🧠", security: "🛡️", docker: "🐳", kubernetes: "☸️", git: "🔀", config: "⚙️", tests: "🧪", scripts: "⚡", fonts: "🔤", design: "🎨", games: "🎮", mobile: "📱", desktop: "🖥️", web: "🌐", api: "🔌", logs: "📋", temp: "⏳", trash: "🗑️", system: "🏛️", network: "📡", crypto: "⛓️", notebooks: "📓", workflows: "🔄", plugins: "🧩", themes: "🌈", shaders: "🔮", audio_stems: "🎚️", camera_raw: "📸", cad: "📐", finance: "💹", legal: "⚖️", science: "🧬", quantum: "⚛️", home: "🏠" },
   },
   pro_studio_xdr: {
-    folder: "🗄️", image: "📸", video: "🎞️", audio: "🎚️", pdf: "📋", doc: "📑",
-    sheet: "📐", slide: "🖥️", archive: "🧰", code: "⚡", text: "🗒️", exec: "🎛️",
+    folder: "🗂️", image: "📸", video: "🎞️", audio: "🎚️", pdf: "📕", doc: "📄",
+    sheet: "📐", slide: "📽️", archive: "📦", code: "💻", text: "🗒️", exec: "🎛️",
     disk: "💽", font: "🔡", file: "📄", buttonPreset: "studio", useExact: true,
-    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "📸", video: "🎞️", videos: "🎞️", music: "🎚️", code: "⚡", "3d": "🧊", docs: "📑", downloads: "📡", archive: "🧰", cloud: "🛰️", database: "🗄️", ai_ml: "🧠", security: "🔐", docker: "🐳", kubernetes: "☸️", git: "🌿", config: "🎛️", tests: "🧪", scripts: "⚡", fonts: "🔡", design: "🎨", games: "🕹️", mobile: "📱", desktop: "🖥️", web: "🌐", api: "🛰️", logs: "📈", temp: "⏳", trash: "🗑️", system: "⚙️", network: "📡", crypto: "💎", notebooks: "📓", workflows: "🚀", plugins: "🧩", themes: "🌈", shaders: "🔮", audio_stems: "🎚️", camera_raw: "📸", cad: "📐", finance: "💹", legal: "⚖️", science: "🧬", quantum: "⚛️", home: "🏠" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "📸", video: "🎞️", videos: "🎞️", music: "🎚️", code: "💻", "3d": "🧊", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", ai_ml: "🧠", security: "🔐", docker: "🐳", kubernetes: "☸️", git: "🌿", config: "🎛️", tests: "🧪", scripts: "⚡", fonts: "🔡", design: "🎨", games: "🕹️", mobile: "📱", desktop: "🖥️", web: "🌐", api: "🛰️", logs: "📈", temp: "⏳", trash: "🗑️", system: "⚙️", network: "📡", crypto: "💎", notebooks: "📓", workflows: "🚀", plugins: "🧩", themes: "🌈", shaders: "🔮", audio_stems: "🎚️", camera_raw: "📸", cad: "📐", finance: "💹", legal: "⚖️", science: "🧬", quantum: "⚛️", home: "🏠" },
   },
   hdr_photo_studio: {
-    folder: "📸", image: "🖼️", video: "🎥", audio: "🎙️", pdf: "🎞️", doc: "🖼️",
-    sheet: "🎨", slide: "📽️", archive: "🎞️", code: "✨", text: "📝", exec: "🎬",
-    disk: "💿", font: "🔤", file: "🖼️", buttonPreset: "studio",
-    topics: { pictures: "📸", video: "🎥", videos: "🎥", music: "🎙️", code: "✨", "3d": "🧊", docs: "🖼️", downloads: "📥", archive: "🎞️", cloud: "☁️", database: "🗄️", camera_raw: "📸", design: "🎨", shaders: "🔮" },
+    folder: "📁", image: "🖼️", video: "🎥", audio: "🎧", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "🎬",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "studio", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "📸", video: "🎥", videos: "🎥", music: "🎧", code: "💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", camera_raw: "📸", design: "🎨", shaders: "🔮" },
   },
   linux_papirus_pro: {
     folder: "📂", image: "🖼️", video: "🎞️", audio: "🎶", pdf: "📕", doc: "📄",
-    sheet: "📊", slide: "📽️", archive: "📦", code: "🐧", text: "📝", exec: "⚙️",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
     disk: "💽", font: "🔤", file: "📃", buttonPreset: "fluent", useExact: true,
-    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎶", code: "🐧", "3d": "🧊", docs: "📚", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", docker: "🐳", kubernetes: "☸️", git: "🌿", config: "⚙️", scripts: "🐚", system: "🐧" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎶", code: "🐧", "3d": "🧊", docs: "📂", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", docker: "🐳", kubernetes: "☸️", git: "🌿", config: "⚙️", scripts: "🐚", system: "🐧" },
   },
   nordic_minimal: {
-    folder: "📁", image: "🎨", video: "🎞️", audio: "🎵", pdf: "📓", doc: "📄",
-    sheet: "📊", slide: "🖼️", archive: "📦", code: "🧩", text: "📝", exec: "⚙️",
-    disk: "💿", font: "🔤", file: "📃", buttonPreset: "macos",
-    topics: { pictures: "🎨", video: "🎞️", videos: "🎞️", music: "🎵", code: "🧩", "3d": "🧊", docs: "📓", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️" },
+    folder: "📁", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
+    disk: "💿", font: "🔤", file: "📃", buttonPreset: "macos", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️" },
   },
   google_material_3d: {
     folder: "📁", image: "🏞️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📘",
-    sheet: "📈", slide: "📽️", archive: "📦", code: "✨", text: "🗒️", exec: "🚀",
+    sheet: "📈", slide: "📽️", archive: "📦", code: "💻", text: "🗒️", exec: "🚀",
     disk: "💽", font: "🔤", file: "📄", buttonPreset: "fluent", useGoogle3d: true,
     topics: {
       ...ALL_GOOGLE_3D_FOLDER_TOPICS,
-      pictures: "🏞️", video: "🎬", videos: "🎬", music: "🎧", code: "✨", "3d": "🧊",
+      pictures: "🏞️", video: "🎬", videos: "🎬", music: "🎧", code: "💻", "3d": "🧊",
       docs: "📘", downloads: "⬇️", archive: "📦", cloud: "☁️", database: "🛢️",
       ai_ml: "✨", security: "🛡️", docker: "🐳", kubernetes: "☸️", git: "🔀",
       config: "🎛️", tests: "🧪", scripts: "⚡", fonts: "🔡", design: "🎨",
@@ -506,268 +506,276 @@ export const ICON_PACK_GLYPHS = {
     },
   },
   inferno: {
-    folder: "🔥", image: "🌅", video: "🎬", audio: "🎸", pdf: "📜", doc: "🏮",
-    sheet: "📈", slide: "🎆", archive: "💣", code: "⚡", text: "🕯️", exec: "☄️",
-    disk: "🌋", font: "🔱", file: "🧨", buttonPreset: "inferno",
+    folder: "📁", image: "🖼️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📄",
+    sheet: "📈", slide: "📽️", archive: "📦", code: "⚡", text: "📝", exec: "⚙️",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "inferno", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, code: "🔥", docs: "📁", pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎧", downloads: "📥", archive: "📦" },
   },
   slime: {
-    folder: "🧪", image: "🦠", video: "👁️", audio: "🫧", pdf: "🧫", doc: "📋",
-    sheet: "🧬", slide: "🔬", archive: "🛢️", code: "🧬", text: "🧪", exec: "☣️",
-    disk: "🟢", font: "🦠", file: "💧", buttonPreset: "slime",
+    folder: "📁", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "slime", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, biohazard_vat: "🧪", science: "🧬", tests: "🧪", docs: "📁", pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", downloads: "📥", archive: "📦" },
   },
   storm_tempest: {
-    folder: "🌪️", image: "🌈", video: "🌩️", audio: "🌬️", pdf: "⚡", doc: "🍃",
-    sheet: "🧭", slide: "⛈️", archive: "🌊", code: "⚡", text: "🍂", exec: "🌀",
-    disk: "🛟", font: "💨", file: "🌧️", buttonPreset: "storm",
+    folder: "🗂️", image: "🖼️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
+    disk: "💽", font: "🔤", file: "📄", buttonPreset: "storm", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, storm_vortex: "🌪️", docs: "🗂️", pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎧", downloads: "📥", archive: "📦" },
   },
   neon_cyber: {
-    folder: "💠", image: "🔮", video: "📡", audio: "🎛️", pdf: "🪪", doc: "📟",
-    sheet: "📉", slide: "🛰️", archive: "🧊", code: "⚡", text: "💾", exec: "🚀",
-    disk: "💽", font: "🔣", file: "🔹", buttonPreset: "cyber",
+    folder: "🗂️", image: "🖼️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📄",
+    sheet: "📈", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "🚀",
+    disk: "💽", font: "🔤", file: "📄", buttonPreset: "cyber", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "🗂️", pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎧", code: "💻", downloads: "📥", archive: "📦" },
   },
   liquid_gems: {
-    folder: "💎", image: "🔮", video: "🪩", audio: "🎐", pdf: "👑", doc: "💠",
-    sheet: "✨", slide: "🌟", archive: "💍", code: "🔷", text: "🫧", exec: "⚜️",
-    disk: "💿", font: "💠", file: "🔹", buttonPreset: "royal",
+    folder: "📁", image: "🏞️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📘",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "royal", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📁", pictures: "🏞️", video: "🎬", videos: "🎬", music: "🎧", code: "💻", downloads: "📥", archive: "📦" },
   },
   cryo_crystal: {
-    folder: "🧊", image: "❄️", video: "🏔️", audio: "🎐", pdf: "🌨️", doc: "📃",
-    sheet: "🧊", slide: "🌌", archive: "🏔️", code: "❄️", text: "🌬️", exec: "⛷️",
-    disk: "💿", font: "❄️", file: "🧊", buttonPreset: "cryo",
+    folder: "📁", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📃",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "cryo", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📁", pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", downloads: "📥", archive: "📦" },
   },
   retro_pixel: {
-    folder: "👾", image: "🎨", video: "📺", audio: "📻", pdf: "📕", doc: "📜",
-    sheet: "🧮", slide: "🕹️", archive: "📦", code: "🕹️", text: "📟", exec: "🪙",
-    disk: "💾", font: "🔤", file: "📼", buttonPreset: "cyber",
+    folder: "📂", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
+    disk: "💾", font: "🔤", file: "📃", buttonPreset: "cyber", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📂", pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", games: "🕹️", roms: "👾", downloads: "📥", archive: "📦" },
   },
   xenotech_2126: {
-    folder: "🛸", image: "🌌", video: "🪐", audio: "〰️", pdf: "🧿", doc: "📡",
-    sheet: "⚛️", slide: "🔭", archive: "🕳️", code: "⚛️", text: "🧬", exec: "🚀",
-    disk: "🪐", font: "🔯", file: "✨", buttonPreset: "godmode",
+    folder: "🗂️", image: "🖼️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📄",
+    sheet: "📈", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "🚀",
+    disk: "💽", font: "🔤", file: "📄", buttonPreset: "godmode", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "🗂️", pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎧", code: "💻", downloads: "📥", archive: "📦" },
   },
   psychedelic_trip: {
-    folder: "🍄", image: "🌈", video: "🔮", audio: "🎶", pdf: "🧿", doc: "📜",
-    sheet: "🦋", slide: "🪷", archive: "🪐", code: "🧬", text: "✨", exec: "🚀",
-    disk: "💿", font: "🔯", file: "🌸", buttonPreset: "arcane",
-    topics: { pictures: "🌈", video: "🔮", videos: "🔮", music: "🎶", code: "🧬", "3d": "🪷", docs: "🧿", downloads: "🦋", archive: "🪐", cloud: "☁️", database: "🍄" },
+    folder: "📁", image: "🖼️", video: "🎬", audio: "🎶", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "🚀",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "arcane", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🌈", video: "🎬", videos: "🎬", music: "🎶", code: "💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️" },
   },
   lava_groovy: {
-    folder: "🫧", image: "🌻", video: "🪩", audio: "🎸", pdf: "☮️", doc: "🌺",
-    sheet: "🌈", slide: "🪩", archive: "🧳", code: "⚡", text: "✌️", exec: "🚀",
-    disk: "💿", font: "🔤", file: "🌼", buttonPreset: "inferno",
-    topics: { pictures: "🌻", video: "🪩", videos: "🪩", music: "🎸", code: "⚡", "3d": "🫧", docs: "☮️", downloads: "🌈", archive: "🧳", cloud: "☁️", database: "🪩" },
+    folder: "📁", image: "🖼️", video: "🎬", audio: "🎸", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "🚀",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "inferno", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎸", code: "💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️" },
   },
   op_art_illusion: {
-    folder: "🌀", image: "👁️", video: "🎞️", audio: "〰️", pdf: "💠", doc: "📐",
-    sheet: "📊", slide: "🔮", archive: "🧊", code: "♾️", text: "📝", exec: "⚡",
-    disk: "💿", font: "🔣", file: "🔹", buttonPreset: "cyber",
-    topics: { pictures: "👁️", video: "🌀", videos: "🌀", music: "〰️", code: "♾️", "3d": "🧊", docs: "📐", downloads: "💠", archive: "🧊", cloud: "🌀", database: "🔮" },
+    folder: "🗂️", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚡",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "cyber", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "🌀", videos: "🌀", music: "🎵", code: "💻", "3d": "🧊", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️" },
   },
   us_holidays_festive: {
     folder: "📁", image: "🖼️", video: "🎬", audio: "🎵", pdf: "📕", doc: "📄",
     sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
     disk: "💿", font: "🔤", file: "📄", buttonPreset: "royal", useExact: true,
-    topics: { pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎵", code: "💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", games: "🎮" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎵", code: "💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", games: "🎮" },
   },
   nerd_rpg_arcane: {
     folder: "📁", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
     sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
     disk: "💿", font: "🔤", file: "📄", buttonPreset: "arcane", useExact: true,
-    topics: { pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", games: "🎮" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", games: "🎮" },
   },
   nerd_scifi_fleet: {
     folder: "🗂️", image: "🖼️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📄",
     sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
     disk: "💿", font: "🔤", file: "📄", buttonPreset: "cyber", useExact: true,
-    topics: { pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎧", code: "💻", "3d": "🧊", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", games: "🎮" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎧", code: "💻", "3d": "🧊", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", games: "🎮" },
   },
   nerd_hacker_retro: {
     folder: "📂", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
     sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
     disk: "💾", font: "🔤", file: "📃", buttonPreset: "cyber", useExact: true,
-    topics: { pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", docs: "📂", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", games: "🕹️", security: "🔐" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", docs: "📂", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", games: "🕹️", security: "🔐" },
   },
   horror_crypt: {
     folder: "📁", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
     sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📃", exec: "⚙️",
     disk: "💿", font: "🔤", file: "📃", buttonPreset: "arcane", useExact: true,
-    topics: { pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", security: "🔐" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", security: "🔐" },
   },
   realworld_objects: {
     folder: "📁", image: "🖼️", video: "📽️", audio: "🎵", pdf: "📕", doc: "📄",
     sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
     disk: "💿", font: "🔤", file: "📄", buttonPreset: "royal", useExact: true,
-    topics: { pictures: "🖼️", video: "📽️", videos: "📽️", music: "🎵", code: "💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", games: "🎮" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "📽️", videos: "📽️", music: "🎵", code: "💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", games: "🎮" },
   },
   cupertino_hig_studio: {
     folder: "📁", image: "🏞️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📘",
     sheet: "📊", slide: "📽️", archive: "📦", code: "🧑‍💻", text: "📝", exec: "🚀",
     disk: "💿", font: "🔤", file: "📄", buttonPreset: "macos", useExact: true,
-    topics: { pictures: "🏞️", video: "🎬", videos: "🎬", music: "🎧", code: "🧑‍💻", "3d": "🧊", docs: "📚", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", ai_ml: "🧠", security: "🔐", design: "🎨", mobile: "📱", desktop: "🖥️", home: "🏠" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🏞️", video: "🎬", videos: "🎬", music: "🎧", code: "🧑‍💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", ai_ml: "🧠", security: "🔐", design: "🎨", mobile: "📱", desktop: "🖥️", home: "🏠" },
   },
   swiss_horology_gold: {
     folder: "🗂️", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
     sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
     disk: "💿", font: "🔤", file: "📄", buttonPreset: "royal", useExact: true,
-    topics: { pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", finance: "💹", legal: "⚖️", security: "🔐" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", finance: "💹", legal: "⚖️", security: "🔐" },
   },
   teenage_field_synth: {
     folder: "📁", image: "🖼️", video: "🎞️", audio: "🎚️", pdf: "📕", doc: "📄",
     sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "🎛️",
     disk: "💽", font: "🔤", file: "📄", buttonPreset: "studio", useExact: true,
-    topics: { pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎚️", audio_stems: "🎚️", code: "💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", config: "🎛️" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎚️", audio_stems: "🎚️", code: "💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", config: "🎛️" },
   },
   blueprint_cad_pro: {
     folder: "🗂️", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
     sheet: "📐", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
     disk: "💽", font: "🔤", file: "📄", buttonPreset: "studio", useExact: true,
-    topics: { pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", cad: "📐", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", science: "🧬" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", cad: "📐", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", science: "🧬" },
   },
   kyoto_zen_ink: {
     folder: "📁", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
     sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
     disk: "💿", font: "🔤", file: "📃", buttonPreset: "macos", useExact: true,
-    topics: { pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", docs: "📚", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", home: "🏠" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", home: "🏠" },
   },
   carbon_aerospace: {
     folder: "🗂️", image: "🖼️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📄",
     sheet: "📈", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "🚀",
     disk: "💽", font: "🔤", file: "📄", buttonPreset: "studio", useExact: true,
-    topics: { pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎧", code: "💻", "3d": "🧊", cad: "📐", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "🛰️", database: "🗄️", logs: "📈" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎧", code: "💻", "3d": "🧊", cad: "📐", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "🛰️", database: "🗄️", logs: "📈" },
   },
   godmode_celestial: {
-    folder: "🪐", image: "🖼️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📄",
-    sheet: "📊", slide: "📽️", archive: "📦", code: "⚡", text: "📝", exec: "✨",
+    folder: "📁", image: "🖼️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "⚡", text: "📝", exec: "🚀",
     disk: "💿", font: "🔤", file: "📄", buttonPreset: "godmode", useExact: true,
-    topics: { pictures: "🌌", video: "🎬", videos: "🎬", music: "🎼", code: "✨", "3d": "🪐", ai_ml: "🧠", quantum: "⚛️", shaders: "🔮", science: "🧬", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", home: "🏛️" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, singularity_core: "🪐", pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎧", code: "💻", "3d": "🧊", ai_ml: "🧠", quantum: "⚛️", shaders: "🔮", science: "🧬", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", home: "🏛️" },
   },
   godmode_photonic: {
-    folder: "💎", image: "🏞️", video: "🎞️", audio: "🎚️", pdf: "📕", doc: "📄",
-    sheet: "📈", slide: "📽️", archive: "📦", code: "💠", text: "📝", exec: "⚡",
+    folder: "🗂️", image: "🏞️", video: "🎞️", audio: "🎚️", pdf: "📕", doc: "📄",
+    sheet: "📈", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚡",
     disk: "💿", font: "🔤", file: "📄", buttonPreset: "godmode", useExact: true,
-    topics: { pictures: "💎", video: "🎞️", videos: "🎞️", music: "🎧", code: "💠", "3d": "🧊", ai_ml: "✨", quantum: "⚛️", shaders: "🌈", science: "🔬", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "🛰️", database: "🗄️", themes: "🌈" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🏞️", video: "🎞️", videos: "🎞️", music: "🎧", code: "💻", "3d": "🧊", ai_ml: "🧠", quantum: "⚛️", shaders: "🔮", science: "🔬", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "🛰️", database: "🗄️", themes: "🌈" },
   },
   godmode_quantum: {
-    folder: "⚛️", image: "🖼️", video: "🎬", audio: "🎵", pdf: "📕", doc: "📄",
-    sheet: "📊", slide: "📽️", archive: "📦", code: "⚛️", text: "📝", exec: "⚛️",
+    folder: "🗂️", image: "🖼️", video: "🎬", audio: "🎵", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
     disk: "💽", font: "🔤", file: "📄", buttonPreset: "godmode", useExact: true,
-    topics: { pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎵", code: "⚛️", "3d": "🧊", ai_ml: "🧠", quantum: "⚛️", shaders: "🔮", science: "🧬", cad: "📐", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "🛰️", database: "🛢️" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎵", code: "💻", "3d": "🧊", ai_ml: "🧠", quantum: "⚛️", shaders: "🔮", science: "🧬", cad: "📐", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "🛰️", database: "🛢️" },
   },
   godmode_chrono: {
-    folder: "⏳", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
-    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⏳",
+    folder: "🗂️", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
     disk: "💿", font: "🔤", file: "📄", buttonPreset: "godmode", useExact: true,
-    topics: { pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", ai_ml: "🧠", quantum: "⏳", shaders: "🔮", science: "🧬", docs: "📂", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", logs: "⏳" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, security: "⏳", pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", ai_ml: "🧠", quantum: "⏳", shaders: "🔮", science: "🧬", docs: "📂", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", logs: "📈" },
   },
   // ── 10 New Flagship & God-Mode Custom Icon Packs ──────────────────────────
   godmode_omni_pantheon: {
-    folder: "🪐", image: "🏞️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📘",
-    sheet: "📈", slide: "📽️", archive: "📦", code: "⚡", text: "📝", exec: "🚀",
-    disk: "💿", font: "🔤", file: "✨", buttonPreset: "godmode", useExact: true, useGoogle3d: true,
-    topics: { ...ALL_GOOGLE_3D_FOLDER_TOPICS, pictures: "🏞️", video: "🎬", videos: "🎬", music: "🎧", code: "⚡", "3d": "🧊", ai_ml: "🧠", quantum: "⚛️", shaders: "🔮", science: "🧬", cad: "📐", docs: "📘", downloads: "⬇️", archive: "📦", cloud: "🛰️", database: "🛢️", security: "🛡️", home: "🏛️" },
+    folder: "📁", image: "🏞️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📘",
+    sheet: "📈", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "🚀",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "godmode", useExact: true, useGoogle3d: true,
+    topics: { ...ALL_GOOGLE_3D_FOLDER_TOPICS, pictures: "🏞️", video: "🎬", videos: "🎬", music: "🎧", code: "💻", "3d": "🧊", ai_ml: "🧠", quantum: "⚛️", shaders: "🔮", science: "🧬", cad: "📐", docs: "📁", downloads: "⬇️", archive: "📦", cloud: "🛰️", database: "🛢️", security: "🛡️", home: "🏛️" },
   },
   macos_sequoia_hig: {
     folder: "📁", image: "🏞️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📘",
     sheet: "📊", slide: "🖼️", archive: "📦", code: "🧑‍💻", text: "🗒️", exec: "🚀",
     disk: "💿", font: "🔤", file: "📄", buttonPreset: "macos", useExact: true,
-    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎧", code: "🧑‍💻", "3d": "🧊", docs: "📚", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", apple: "🍎", applications: "🚀", home: "🏠" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎧", code: "🧑‍💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", apple: "🍎", applications: "🚀", home: "🏠" },
   },
   apple_vision_glass_3d: {
-    folder: "🫧", image: "🏞️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📘",
-    sheet: "📈", slide: "🥽", archive: "📦", code: "💠", text: "🗒️", exec: "🚀",
-    disk: "💿", font: "🔤", file: "🫧", buttonPreset: "macos", useExact: true,
-    topics: { ...ALL_GOOGLE_3D_FOLDER_TOPICS, pictures: "🏞️", video: "🎬", videos: "🎬", music: "🎧", code: "💠", "3d": "🥽", vr_spatial: "🥽", docs: "📘", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", home: "🏠" },
+    folder: "📁", image: "🏞️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📘",
+    sheet: "📈", slide: "📽️", archive: "📦", code: "💻", text: "🗒️", exec: "🚀",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "macos", useExact: true,
+    topics: { ...ALL_GOOGLE_3D_FOLDER_TOPICS, pictures: "🏞️", video: "🎬", videos: "🎬", music: "🎧", code: "💻", "3d": "🥽", vr_spatial: "🥽", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", home: "🏠" },
   },
   dev_polyglot_pro: {
     folder: "🗂️", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📘",
     sheet: "📊", slide: "📽️", archive: "📦", code: "🧑‍💻", text: "📝", exec: "🚀",
     disk: "💽", font: "🔤", file: "📄", buttonPreset: "studio", useExact: true,
-    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, code: "🧑‍💻", rust: "🦀", bun: "🥟", python: "🐍", golang: "🐹", docker: "🐳", kubernetes: "☸️", git: "🔀", ai_ml: "🧠", prompts: "✨", database: "🛢️", terraform: "🏗️", tests: "🧪" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "🗂️", code: "🧑‍💻", rust: "🦀", bun: "🥟", python: "🐍", golang: "🐹", docker: "🐳", kubernetes: "☸️", git: "🔀", ai_ml: "🧠", prompts: "✨", database: "🛢️", terraform: "🏗️", tests: "🧪" },
   },
   creative_cinema_8k: {
-    folder: "🎬", image: "📸", video: "🎥", audio: "🎚️", pdf: "📋", doc: "📑",
-    sheet: "🎨", slide: "📽️", archive: "🎞️", code: "✨", text: "📝", exec: "🎛️",
-    disk: "💽", font: "🔡", file: "🎞️", buttonPreset: "studio", useExact: true,
-    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "📸", camera_raw: "📸", video: "🎥", videos: "🎥", cinema_raw: "🎥", vfx: "🎞️", music: "🎚️", audio_stems: "🎚️", samples: "🎹", "3d": "🧊", design: "🎨", shaders: "🔮" },
+    folder: "🗂️", image: "📸", video: "🎥", audio: "🎚️", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "🎛️",
+    disk: "💽", font: "🔡", file: "📄", buttonPreset: "studio", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "🗂️", pictures: "📸", camera_raw: "📸", video: "🎥", videos: "🎥", cinema_raw: "🎥", vfx: "🎞️", music: "🎚️", audio_stems: "🎚️", samples: "🎹", "3d": "🧊", design: "🎨", shaders: "🔮" },
   },
   cyberdeck_matrix_hud: {
-    folder: "📟", image: "🔮", video: "📡", audio: "🎛️", pdf: "🪪", doc: "📟",
-    sheet: "📉", slide: "🛰️", archive: "🧊", code: "⚡", text: "💾", exec: "🚀",
-    disk: "💾", font: "🔣", file: "🔹", buttonPreset: "cyber", useExact: true,
-    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, code: "⚡", security: "🛡️", pentest: "🕵️", network: "📡", ai_ml: "🧠", crypto: "⛓️", docker: "🐳", kubernetes: "☸️", database: "🧊", home: "🛸" },
+    folder: "📂", image: "🖼️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📄",
+    sheet: "📈", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "🚀",
+    disk: "💾", font: "🔤", file: "📄", buttonPreset: "cyber", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📂", code: "💻", security: "🛡️", pentest: "🕵️", network: "📡", ai_ml: "🧠", crypto: "⛓️", docker: "🐳", kubernetes: "☸️", database: "🗄️", home: "🏠" },
   },
   royal_24k_gold_obsidian: {
-    folder: "👑", image: "🖼️", video: "🎬", audio: "🎼", pdf: "📜", doc: "📘",
-    sheet: "💹", slide: "📽️", archive: "💍", code: "💎", text: "✒️", exec: "⚜️",
-    disk: "💿", font: "🔤", file: "💎", buttonPreset: "royal", useExact: true,
-    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, finance: "💹", legal: "⚖️", crypto: "💎", security: "🔐", docs: "📚", pictures: "🖼️", home: "🏛️" },
+    folder: "🗂️", image: "🖼️", video: "🎬", audio: "🎵", pdf: "📕", doc: "📘",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "royal", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "🗂️", finance: "💹", legal: "⚖️", crypto: "💎", security: "🔐", pictures: "🖼️", home: "🏛️" },
   },
   anime_mecha_neon: {
-    folder: "⛩️", image: "🌸", video: "🎬", audio: "🎧", pdf: "📕", doc: "📘",
-    sheet: "📊", slide: "📽️", archive: "📦", code: "⚡", text: "📝", exec: "🤖",
-    disk: "💿", font: "🔤", file: "✨", buttonPreset: "cyber", useExact: true,
-    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, anime: "⛩️", comics: "🗯️", games: "🎮", roms: "🕹️", robotics: "🤖", pictures: "🌸", video: "🎬", music: "🎧", code: "⚡" },
+    folder: "📁", image: "🖼️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📘",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "🚀",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "cyber", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📁", anime: "⛩️", comics: "🗯️", games: "🎮", roms: "🕹️", robotics: "🤖", pictures: "🖼️", video: "🎬", music: "🎧", code: "💻" },
   },
   steampunk_brass_clockwork: {
-    folder: "⚙️", image: "🖼️", video: "🎞️", audio: "📻", pdf: "📜", doc: "📜",
-    sheet: "🧭", slide: "📽️", archive: "🧳", code: "⚙️", text: "🪶", exec: "🚂",
-    disk: "🕰️", font: "🔤", file: "📜", buttonPreset: "arcane", useExact: true,
-    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, cad: "📐", electronics: "🔌", science: "🔬", docs: "📜", archive: "🧳", config: "⚙️", backups: "🕰️", home: "🏰" },
+    folder: "🗂️", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
+    sheet: "📐", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "arcane", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "🗂️", cad: "📐", electronics: "🔌", science: "🔬", archive: "📦", config: "⚙️", backups: "🕰️", home: "🏠" },
   },
   bioluminescent_eden: {
-    folder: "🌿", image: "🌸", video: "🦋", audio: "🎐", pdf: "🍃", doc: "🌱",
-    sheet: "🧬", slide: "🪷", archive: "🌰", code: "🧬", text: "🍃", exec: "✨",
-    disk: "💿", font: "🔤", file: "🌱", buttonPreset: "slime", useExact: true,
-    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, science: "🧬", medical: "🩺", recipes: "🍳", travel: "🗺️", pictures: "🌸", music: "🎐", git: "🌿", home: "🏡" },
+    folder: "📁", image: "🖼️", video: "🎬", audio: "🎵", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "slime", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📁", science: "🧬", medical: "🩺", recipes: "🍳", travel: "🗺️", pictures: "🖼️", music: "🎵", git: "🌿", home: "🏡" },
   },
   // ── 8 Ultra-Detailed Collectors & Studio Custom Icon Packs ────────────────
   holo_prismatic_foil: {
-    folder: "💎", image: "🌈", video: "🪩", audio: "🎐", pdf: "🔮", doc: "💠",
-    sheet: "✨", slide: "🌟", archive: "💍", code: "⚡", text: "🫧", exec: "🚀",
-    disk: "💿", font: "🔤", file: "✨", buttonPreset: "godmode", useExact: true, useGoogle3d: true,
-    topics: { ...ALL_GOOGLE_3D_FOLDER_TOPICS, pictures: "🌈", video: "🪩", videos: "🪩", music: "🎐", code: "💠", "3d": "💎", themes: "🌈", shaders: "🔮", ai_ml: "✨", home: "🏛️" },
+    folder: "📁", image: "🏞️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📘",
+    sheet: "📈", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "🚀",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "godmode", useExact: true, useGoogle3d: true,
+    topics: { ...ALL_GOOGLE_3D_FOLDER_TOPICS, docs: "📁", pictures: "🏞️", video: "🎬", videos: "🎬", music: "🎧", code: "💻", "3d": "🧊", themes: "🌈", shaders: "🔮", ai_ml: "✨", home: "🏛️" },
   },
   stained_glass_cathedral_pro: {
-    folder: "🏰", image: "🎭", video: "🕯️", audio: "🔔", pdf: "📜", doc: "📖",
-    sheet: "🧭", slide: "🌅", archive: "🏺", code: "⚜️", text: "🪶", exec: "👑",
-    disk: "💿", font: "🔤", file: "📜", buttonPreset: "arcane", useExact: true,
-    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🎭", video: "🕯️", music: "🔔", docs: "📖", legal: "⚖️", archive: "🏺", home: "🏰" },
+    folder: "🗂️", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📘",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "arcane", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "🗂️", pictures: "🖼️", video: "🎞️", music: "🎵", legal: "⚖️", archive: "📦", home: "🏠" },
   },
   synthwave_outrun_1984: {
-    folder: "🌆", image: "🌴", video: "📼", audio: "🎹", pdf: "🕶️", doc: "📟",
-    sheet: "📉", slide: "🕹️", archive: "🧊", code: "⚡", text: "💾", exec: "🏎️",
-    disk: "💾", font: "🔣", file: "🔹", buttonPreset: "cyber", useExact: true,
-    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🌴", video: "📼", videos: "📼", music: "🎹", games: "🕹️", roms: "👾", retro_arcade: "👾", code: "⚡", home: "🌆" },
+    folder: "📂", image: "🖼️", video: "🎞️", audio: "🎧", pdf: "📕", doc: "📄",
+    sheet: "📈", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "🚀",
+    disk: "💾", font: "🔤", file: "📄", buttonPreset: "cyber", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📂", pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎧", games: "🕹️", roms: "👾", retro_arcade: "👾", code: "💻", home: "🏠" },
   },
   nasa_apollo_telemetry: {
-    folder: "🛰️", image: "🔭", video: "📡", audio: "🎙️", pdf: "📋", doc: "📑",
-    sheet: "📐", slide: "🪐", archive: "🧰", code: "⚛️", text: "🗒️", exec: "🚀",
+    folder: "🗂️", image: "🖼️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📄",
+    sheet: "📐", slide: "📽️", archive: "📦", code: "💻", text: "🗒️", exec: "🚀",
     disk: "💽", font: "🔡", file: "📄", buttonPreset: "studio", useExact: true,
-    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, astronomy: "🔭", astronomy_space: "🛰️", quantum: "⚛️", cad: "📐", electronics: "🔌", robotics: "🤖", fpv_drones: "🚁", logs: "📈", home: "🏛️" },
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "🗂️", astronomy: "🔭", astronomy_space: "🛰️", quantum: "⚛️", cad: "📐", electronics: "🔌", robotics: "🤖", fpv_drones: "🚁", logs: "📈", home: "🏠" },
   },
   obsidian_blood_ruby: {
-    folder: "🩸", image: "🌹", video: "🎬", audio: "🎻", pdf: "📕", doc: "📜",
-    sheet: "💹", slide: "🎭", archive: "💍", code: "🗡️", text: "✒️", exec: "🔥",
-    disk: "💿", font: "🔤", file: "💎", buttonPreset: "inferno", useExact: true,
-    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, security: "🛡️", cybersecurity_vault: "🛡️", pentest: "🕵️", obsidian_pkms: "💎", games: "🎮", home: "🏰" },
+    folder: "📁", image: "🖼️", video: "🎬", audio: "🎵", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "inferno", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📁", security: "🛡️", cybersecurity_vault: "🛡️", pentest: "🕵️", obsidian_pkms: "💎", games: "🎮", home: "🏠" },
   },
   aurora_nordic_ice: {
-    folder: "🧊", image: "🌌", video: "🏔️", audio: "🎐", pdf: "❄️", doc: "📘",
-    sheet: "📊", slide: "🌌", archive: "📦", code: "❄️", text: "🗒️", exec: "⛷️",
-    disk: "💿", font: "🔤", file: "🧊", buttonPreset: "cryo", useExact: true,
-    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🌌", video: "🏔️", music: "🎐", cloud: "☁️", cryo: "❄️", home: "🏡" },
+    folder: "📁", image: "🏞️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📘",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "🗒️", exec: "⚙️",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "cryo", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📁", pictures: "🏞️", video: "🎬", music: "🎧", cloud: "☁️", home: "🏡" },
   },
   vaporwave_marble_plaza: {
-    folder: "🏛️", image: "🌺", video: "📺", audio: "🌊", pdf: "🌴", doc: "📜",
-    sheet: "📊", slide: "🪩", archive: "🏺", code: "💎", text: "🌸", exec: "🐬",
-    disk: "💿", font: "🔤", file: "🌸", buttonPreset: "royal", useExact: true,
-    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, pictures: "🌺", video: "📺", music: "🌊", design: "🎨", themes: "🌈", home: "🏛️" },
+    folder: "📁", image: "🖼️", video: "🎞️", audio: "🎧", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
+    disk: "💿", font: "🔤", file: "📄", buttonPreset: "royal", useExact: true,
+    topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📁", pictures: "🖼️", video: "🎞️", music: "🎧", design: "🎨", themes: "🌈", home: "🏛️" },
   },
   quantum_superconductor: {
-    folder: "⚛️", image: "🔮", video: "📡", audio: "〰️", pdf: "📋", doc: "📘",
-    sheet: "📈", slide: "🪐", archive: "🧊", code: "⚛️", text: "🧬", exec: "⚡",
-    disk: "💽", font: "🔤", file: "✨", buttonPreset: "godmode", useExact: true, useGoogle3d: true,
-    topics: { ...ALL_GOOGLE_3D_FOLDER_TOPICS, quantum: "⚛️", quantum_sim: "🌌", shaders_compute: "⚡", ai_ml: "🧠", biotech_crispr: "🧬", science: "🔬", home: "🏛️" },
+    folder: "🗂️", image: "🏞️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📘",
+    sheet: "📈", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚡",
+    disk: "💽", font: "🔤", file: "📄", buttonPreset: "godmode", useExact: true, useGoogle3d: true,
+    topics: { ...ALL_GOOGLE_3D_FOLDER_TOPICS, docs: "🗂️", quantum: "⚛️", quantum_sim: "🌌", shaders_compute: "⚡", ai_ml: "🧠", biotech_crispr: "🧬", science: "🔬", home: "🏛️" },
   },
 };
 ICON_PACK_GLYPHS.inferno_burn = ICON_PACK_GLYPHS.inferno;
@@ -775,6 +783,34 @@ ICON_PACK_GLYPHS.bio_slime = ICON_PACK_GLYPHS.slime;
 ICON_PACK_GLYPHS.storm_weather = ICON_PACK_GLYPHS.storm_tempest;
 ICON_PACK_GLYPHS.liquid_chrome = ICON_PACK_GLYPHS.liquid_gems;
 ICON_PACK_GLYPHS.arcane_glyphs = ICON_PACK_GLYPHS.xenotech_2126;
+
+/** Bespoke Holiday Crest Badges & Festive Celebrations for all 18 US Holiday Themes (`holiday_*`). */
+export const HOLIDAY_THEME_CRESTS = {
+  holiday_new_years_times_square: { crest: "🥂", badge: "🎆", label: "New Year's Eve Ball Drop", month: 1, day: 1, anim: "raytraced_caustic_refraction", particles: ["🥂", "🎆", "✨", "🎊", "🍾"] },
+  holiday_mlk_dream_memorial: { crest: "🕊️", badge: "🕯️", label: "MLK Jr. Day Memorial", month: 1, day: 19, anim: "orbital_halo_spin", particles: ["🕊️", "🕯️", "✨", "🌟"] },
+  holiday_valentines_velvet_rose: { crest: "💝", badge: "🌹", label: "Valentine's Velvet Rose", month: 2, day: 14, anim: "heartbeat_biolum", particles: ["💝", "🌹", "💖", "✨", "💘"] },
+  holiday_presidents_mount_rushmore: { crest: "🦅", badge: "🏛️", label: "Presidents' Day Heritage", month: 2, day: 16, anim: "c4d_mograph_cloner_wave", particles: ["🦅", "⭐", "🏛️", "✨"] },
+  holiday_st_patricks_emerald_clover: { crest: "☘️", badge: "🍀", label: "St. Patrick's Emerald Clover", month: 3, day: 17, anim: "holo_foil_shimmer", particles: ["☘️", "🍀", "🪙", "🌈", "✨"] },
+  holiday_easter_pastel_egg_hunt: { crest: "🥚", badge: "🐣", label: "Easter Pastel Egg Hunt", month: 4, day: 5, anim: "spring_pop_3d", particles: ["🥚", "🐣", "🌷", "🐰", "✨"] },
+  holiday_mothers_day_botanical_tea: { crest: "🌸", badge: "🫖", label: "Mother's Day Botanical Tea", month: 5, day: 10, anim: "blender_geometry_nodes_bloom", particles: ["🌸", "🌺", "🫖", "💐", "✨"] },
+  holiday_memorial_day_poppy_honor: { crest: "🌺", badge: "🎖️", label: "Memorial Day Poppy Honor", month: 5, day: 25, anim: "orbital_halo_spin", particles: ["🌺", "⭐", "🕯️", "🎖️"] },
+  holiday_juneteenth_jubilee_star: { crest: "🌟", badge: "🎆", label: "Juneteenth Jubilee Star", month: 6, day: 19, anim: "houdini_vex_particle_burst", particles: ["🌟", "🎆", "✨", "🎊"] },
+  holiday_fathers_day_leather_den: { crest: "⌚", badge: "🧭", label: "Father's Day Horology Den", month: 6, day: 21, anim: "clockwork_gear_tick", particles: ["⌚", "🧭", "🥃", "⚙️"] },
+  holiday_fourth_of_july_fireworks: { crest: "🎆", badge: "🗽", label: "4th of July Grand Fireworks", month: 7, day: 4, anim: "houdini_vex_particle_burst", particles: ["🎆", "🎇", "🗽", "⭐", "🦅"] },
+  holiday_labor_day_rivet_forge: { crest: "⚒️", badge: "⚙️", label: "Labor Day Rivet Forge", month: 9, day: 7, anim: "fire_ember_flicker", particles: ["⚒️", "⚙️", "🔥", "✨"] },
+  holiday_halloween_jack_o_lantern: { crest: "🎃", badge: "🦇", label: "Halloween Jack-O'-Lantern", month: 10, day: 31, anim: "jelly_squish_3d", particles: ["🎃", "🦇", "👻", "🕯️", "🕸️"] },
+  holiday_dia_de_los_muertos_marigold: { crest: "🌼", badge: "💀", label: "Día de los Muertos Marigold", month: 11, day: 2, anim: "blender_geometry_nodes_bloom", particles: ["🌼", "💀", "🕯️", "🦋", "🌺"] },
+  holiday_veterans_day_valor_medallion: { crest: "🎖️", badge: "🦅", label: "Veterans Day Valor Medallion", month: 11, day: 11, anim: "c4d_mograph_cloner_wave", particles: ["🎖️", "🦅", "⭐", "✨"] },
+  holiday_thanksgiving_harvest_hearth: { crest: "🦃", badge: "🍁", label: "Thanksgiving Harvest Hearth", month: 11, day: 26, anim: "fire_ember_flicker", particles: ["🦃", "🍁", "🥧", "🍂", "🌽"] },
+  holiday_hanukkah_menorah_sapphire: { crest: "🕎", badge: "✡️", label: "Hanukkah Menorah Sapphire", month: 12, day: 14, anim: "raytraced_caustic_refraction", particles: ["🕎", "🕯️", "🪙", "✨", "💙"] },
+  holiday_christmas_nutcracker_hearth: { crest: "🎄", badge: "🎅", label: "Christmas Nutcracker Hearth", month: 12, day: 25, anim: "godmode_pantheon_ascend", particles: ["🎄", "🎅", "❄️", "🎁", "🔔"] },
+};
+
+/** Returns the Holiday Crest definition when a `holiday_*` theme is active. */
+export function resolveHolidayCrestForPalette(paletteKey) {
+  const key = String(paletteKey || (typeof document !== "undefined" ? document.documentElement?.dataset?.palette : "") || "").trim();
+  return HOLIDAY_THEME_CRESTS[key] || null;
+}
 
 const FOLDER_TOPIC_CACHE = new Map();
 const ICON_KIND_CACHE = new Map();
@@ -786,7 +822,10 @@ export function classifyFolderTopic(name) {
   const cached = FOLDER_TOPIC_CACHE.get(n);
   if (cached !== undefined) return cached;
   let topic = "general";
-  if (/(?:^|[\s_.-])(3dprint|3d_printing|stl_files|gcode|cura|bambu|prusa|slicer)(?:$|[\s_.-])/.test(n)) topic = "3dprint";
+  if (/(?:^|[\s_.-])(mutants?|biohazard_?vat|ooze_?lab)(?:$|[\s_.-])/.test(n)) topic = "biohazard_vat";
+  else if (/(?:^|[\s_.-])(tornado_?alley|storm_?vortex|cyclone_?eye)(?:$|[\s_.-])/.test(n)) topic = "storm_vortex";
+  else if (/(?:^|[\s_.-])(singularity|event_?horizon|omega_?core)(?:$|[\s_.-])/.test(n)) topic = "singularity_core";
+  else if (/(?:^|[\s_.-])(3dprint|3d_printing|stl_files|gcode|cura|bambu|prusa|slicer)(?:$|[\s_.-])/.test(n)) topic = "3dprint";
   else if (/(?:^|[\s_.-])(blender_3d_studio|geometry_?nodes|houdini_?fx)(?:$|[\s_.-])|^blender_3d$/.test(n)) topic = "blender_3d";
   else if (/(?:^|[\s_.-])(3d|blender|maya|zbrush|cinema4d|houdini|meshes|rigging|usd|usdz|gltf)(?:$|[\s_.-])/.test(n)) topic = "3d";
   else if (/(?:^|[\s_.-])(pcb|kicad|eagle|fpga|verilog|vhdl|electronics|circuits?)(?:$|[\s_.-])/.test(n)) topic = "electronics";
@@ -955,7 +994,7 @@ export function iconFor(name, isDir, packOverride, kindHint) {
   if (pack !== "default") {
     const def = ICON_PACK_GLYPHS[pack];
     if (isDir && def?.topics) {
-      const topic = sysEntry?.topic || classifyFolderTopic(name);
+      const topic = sysEntry?.topic && sysEntry.topic !== "general" ? sysEntry.topic : classifyFolderTopic(name);
       if (topic !== "general" && def.topics[topic]) return def.topics[topic];
     }
     if (!isDir && (pack === "google_material_3d" || def?.useGoogle3d) && sysEntry?.google3d) {
@@ -1018,11 +1057,23 @@ export const entryIcon = iconForEntry;
 export function syncVisibleIcons(root = typeof document !== "undefined" ? document : null) {
   if (!root?.querySelectorAll) return;
   const pack = activeIconPackStyle();
+  const activePalette = typeof document !== "undefined" ? (document.documentElement?.dataset?.palette || "") : "";
+  const holidaySpec = HOLIDAY_THEME_CRESTS[activePalette] || null;
+  const holidayCrest = holidaySpec?.crest || "";
   root.querySelectorAll(".row").forEach((row) => {
     const ico = row.querySelector(".c-icon");
     if (!ico) return;
     const isDir = row.classList.contains("is-folder") || row.dataset.isDir === "1";
     const name = row.dataset.entryName || row.querySelector(".name-text")?.textContent || "";
+    if (isDir) {
+      if (holidayCrest) {
+        if (row.dataset.holidayCrest !== holidayCrest) row.dataset.holidayCrest = holidayCrest;
+        if (ico.dataset.holidayCrest !== holidayCrest) ico.dataset.holidayCrest = holidayCrest;
+      } else {
+        if (row.dataset.holidayCrest) delete row.dataset.holidayCrest;
+        if (ico.dataset.holidayCrest) delete ico.dataset.holidayCrest;
+      }
+    }
     if (ico.dataset.appliedPack === pack && ico.dataset.appliedName === name && ico.dataset.iconKind) {
       return;
     }
@@ -1036,7 +1087,7 @@ export function syncVisibleIcons(root = typeof document !== "undefined" ? docume
       ico.dataset.systemIcon = sysEntry.id;
     }
     if (isDir) {
-      const topic = sysEntry?.topic || classifyFolderTopic(name);
+      const topic = sysEntry?.topic && sysEntry.topic !== "general" ? sysEntry.topic : classifyFolderTopic(name);
       if (row.dataset.folderTopic !== topic) row.dataset.folderTopic = topic;
       if (row.dataset.topic !== topic) row.dataset.topic = topic;
       if (ico.dataset.folderTopic !== topic) ico.dataset.folderTopic = topic;

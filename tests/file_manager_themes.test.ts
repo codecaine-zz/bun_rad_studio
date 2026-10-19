@@ -1823,10 +1823,11 @@ describe("the theme editor in the page", () => {
     collapseBasicsBtn.click();
     expect(doc.querySelector('[data-editor-section="basics"]')?.getAttribute("data-section-collapsed")).toBe("false");
 
+    closeDialogs();
+    await sleep(160);
     await themes.applyPalette("");
     atmo.applyAtmosphere("none");
     (themes as any).applyUiImmersionProfiles({ uiElementFx: "off", iconPackStyle: "default" });
-    closeDialogs();
   });
 
   test("God-Mode Year 3000+ post-singularity themes, shaders, 3D icon packs, and workstation kits apply cleanly", async () => {
@@ -2171,7 +2172,7 @@ describe("the theme editor in the page", () => {
     expect(Object.keys(domMod.SYSTEM_ICON_CATALOG).length).toBeGreaterThanOrEqual(240);
     expect(Object.keys(domMod.BUTTON_ICON_CATALOG).length).toBeGreaterThanOrEqual(65);
     expect(themes.ICON_PACK_OPTIONS.length).toBeGreaterThanOrEqual(49);
-    expect(themes.ICON_ANIMATION_PROFILES.length).toBe(12);
+    expect(themes.ICON_ANIMATION_PROFILES.length).toBe(26);
 
     // 2. Verify new semantic folder topics, exact filenames, and file extensions resolve rich icons
     expect(domMod.classifyFolderTopic("kubernetes")).toBe("kubernetes");
@@ -2345,7 +2346,8 @@ describe("the theme editor in the page", () => {
     const nordChip = doc.querySelector('[data-swap-color-only="nord"]') as any;
     expect(nordChip).toBeTruthy();
     nordChip.click();
-    await sleep(80);
+    await waitForSavedPalette("nord");
+    await sleep(40);
     expect(doc.documentElement.dataset.palette).toBe("nord");
     expect(doc.documentElement.dataset.iconPack).toBe("holo_prismatic_foil");
     expect(doc.documentElement.dataset.uiFx).toBe("xdr_titanium_folders");
@@ -2354,17 +2356,21 @@ describe("the theme editor in the page", () => {
     const tokyoKeepFxBtn = doc.querySelector('[data-keep-fx-color-key="tokyo_night"]') as any;
     expect(tokyoKeepFxBtn).toBeTruthy();
     tokyoKeepFxBtn.click();
-    await sleep(80);
+    await waitForSavedPalette("tokyo_night");
+    await sleep(40);
     expect(doc.documentElement.dataset.palette).toBe("tokyo_night");
     expect(doc.documentElement.dataset.iconPack).toBe("holo_prismatic_foil");
 
     // Enable Lock FX mode and click a plain card ("gruvbox") — effects must stay preserved!
-    lockBtn.click();
+    const liveLockBtn = doc.querySelector('[data-keep-fx-lock="true"]') as any;
+    expect(liveLockBtn).toBeTruthy();
+    liveLockBtn.click();
     expect(themes.isKeepEffectsColorSwapMode()).toBe(true);
     const gruvboxCard = doc.querySelector('.theme-card[data-key="gruvbox"]') as any;
     expect(gruvboxCard).toBeTruthy();
     gruvboxCard.click();
-    await sleep(80);
+    await waitForSavedPalette("gruvbox");
+    await sleep(40);
     expect(doc.documentElement.dataset.palette).toBe("gruvbox");
     expect(doc.documentElement.dataset.iconPack).toBe("holo_prismatic_foil");
     expect(doc.documentElement.dataset.uiFx).toBe("xdr_titanium_folders");
@@ -2372,7 +2378,8 @@ describe("the theme editor in the page", () => {
     closeDialogs();
 
     // 4. Verify Theme Editor also has "🔒 Lock Current FX (Swap Colors Only)" and "🌈 Random Colors (Keep FX)"
-    state.emit("theme-editor", { from: "mac_studio_m4_ultra" });
+    const { emit } = await import("../resources/file_manager/ui/state.js");
+    emit("theme-editor", { from: "mac_studio_m4_ultra" });
     await sleep(150);
     const editorLockBtn = doc.querySelector('[data-editor-keep-fx-lock="true"]') as any;
     const editorRollColorsBtn = doc.querySelector('[data-editor-roll-colors-keep-fx="true"]') as any;
@@ -2385,6 +2392,259 @@ describe("the theme editor in the page", () => {
     expect(doc.querySelector('[data-editor-remove-all-fx="true"]')).toBeTruthy();
 
     closeDialogs();
+    await themes.disableAllThemeAnimations({ quiet: true });
+    await themes.applyPalette("");
+  });
+
+  test("Shuffle System Icons (Keep Theme Colors & FX), Lock Icons Mode, High-End 3D Spinning Folders & Master Motion-Designer / Flash 3000 FX, and 34 Built-In Screen Filters work end-to-end", async () => {
+    closeDialogs();
+
+    // 1. Shuffle System Icons while keeping active theme colors & effects intact
+    await themes.chooseTheme("mac_studio_m4_ultra");
+    await themes.applyPalette("mac_studio_m4_ultra");
+    const initialPack = doc.documentElement.dataset.iconPack || "pro_studio_xdr";
+    const shuffled = await (themes as any).shuffleSystemIconsKeepTheme({ quiet: true, includeAnimation: true });
+    expect(shuffled.iconPackStyle).toBeTruthy();
+    expect(shuffled.iconPackStyle).not.toBe(initialPack);
+    expect(doc.documentElement.dataset.palette).toBe("mac_studio_m4_ultra");
+    expect(doc.documentElement.dataset.iconPack).toBe(shuffled.iconPackStyle);
+
+    // 2. Lock System Icons on Theme Switch (setKeepIconsOnThemeSwitchMode)
+    const lockedPack = shuffled.iconPackStyle;
+    (themes as any).setKeepIconsOnThemeSwitchMode(true);
+    expect((themes as any).isKeepIconsOnThemeSwitchMode()).toBe(true);
+    await themes.chooseTheme("dracula");
+    await themes.applyPalette("dracula");
+    expect(doc.documentElement.dataset.palette).toBe("dracula");
+    expect(doc.documentElement.dataset.iconPack).toBe(lockedPack);
+    (themes as any).setKeepIconsOnThemeSwitchMode(false);
+    expect((themes as any).isKeepIconsOnThemeSwitchMode()).toBe(false);
+
+    // 3. High-End 3D Spinning Folders, Futuristic Flash 3000 & Master Motion-Designer Animations (⌥3)
+    expect((themes as any).HIGH_END_3D_FOLDER_ANIMATION_IDS.length).toBe(14);
+    expect((themes as any).HIGH_END_3D_FOLDER_ANIMATION_IDS).toEqual(
+      expect.arrayContaining([
+        "folder_3d_spin_turntable",
+        "flash_2advanced_vector_hud",
+        "folder_3d_flip_origami",
+        "gyro_3d_cube_matrix",
+        "flash_fwa_kinetic_eq",
+        "c4d_mograph_cloner_wave",
+        "houdini_vex_particle_burst",
+        "after_effects_graph_overshoot",
+        "unreal_nanite_mesh_lod",
+        "blender_geometry_nodes_bloom",
+        "raytraced_caustic_refraction",
+      ]),
+    );
+
+    const animStep1 = await (themes as any).cycleHighEnd3dFolderAnimation(1, { quiet: true });
+    expect(animStep1.id).toBeTruthy();
+    expect(doc.documentElement.dataset.iconAnim).toBe(animStep1.id);
+
+    // Explicitly test Futuristic Flash 2Advanced Vector HUD and Cinema 4D MoGraph Cloner Wave
+    themes.applyUiImmersionProfiles({
+      uiElementFx: "flash_3000_vector_hud",
+      themeIconAnimation: "flash_2advanced_vector_hud",
+      themeIconGlow: "neon",
+    });
+    expect(doc.documentElement.dataset.uiFx).toBe("flash_3000_vector_hud");
+    expect(doc.documentElement.dataset.iconAnim).toBe("flash_2advanced_vector_hud");
+
+    themes.applyUiImmersionProfiles({
+      uiElementFx: "c4d_mograph_extrude_folders",
+      themeIconAnimation: "c4d_mograph_cloner_wave",
+      themeIconGlow: "xdr_specular",
+    });
+    expect(doc.documentElement.dataset.uiFx).toBe("c4d_mograph_extrude_folders");
+    expect(doc.documentElement.dataset.iconAnim).toBe("c4d_mograph_cloner_wave");
+
+    // 4. Built-In Screen Filters (CRT, VHS, Retro, Sci-Fi, Cinema & VFX Colorist — 34 presets)
+    expect((themes as any).SCREEN_FILTER_PRESETS.length).toBe(34);
+    const crtApplied = await (themes as any).applyScreenFilter("crt_trinitron_95", { quiet: true });
+    expect(crtApplied.id).toBe("crt_trinitron_95");
+    expect(doc.documentElement.dataset.screenFilter).toBe("crt_trinitron_95");
+    expect(state.settings.screenFilter).toBe("crt_trinitron_95");
+
+    const cycledFilter = await (themes as any).cycleScreenFilter(1, { quiet: true });
+    expect(cycledFilter.id).toBe("crt_amber_monochrome");
+    expect(doc.documentElement.dataset.screenFilter).toBe("crt_amber_monochrome");
+
+    const acesFilter = await (themes as any).applyScreenFilter("davinci_aces_cct_grade", { quiet: true });
+    expect(acesFilter.id).toBe("davinci_aces_cct_grade");
+    expect(doc.documentElement.dataset.screenFilter).toBe("davinci_aces_cct_grade");
+
+    const randomFilter = await (themes as any).randomScreenFilter({ quiet: true });
+    expect(randomFilter.id).not.toBe("off");
+    expect(doc.documentElement.dataset.screenFilter).toBe(randomFilter.id);
+
+    // Clear Screen Filter
+    await (themes as any).applyScreenFilter("off", { quiet: true });
+    expect(doc.documentElement.dataset.screenFilter).toBeUndefined();
+    expect(state.settings.screenFilter).toBe("off");
+
+    closeDialogs();
+    await themes.disableAllThemeAnimations({ quiet: true });
+    await themes.applyPalette("");
+  });
+
+  test("Professional Computer Folder & File Icons across all prebuilt packs, 18 Super-Special Animated US Holiday Themes with Celebration Bursts & Crests, AAA Computer Icon Material Finishes, 3D Workspace Stage & Ambilux Modes, and WebAudio Tactile Foley Engine work end-to-end", async () => {
+    closeDialogs();
+    const domMod = await import("../resources/file_manager/ui/dom.js") as any;
+    const { FX_THEMES } = await import("../src/shared/fxThemes.ts");
+
+    // 1. Every prebuilt icon pack in ICON_PACK_GLYPHS resolves authentic computer folder glyphs (📁 / 🗂️ / 📂) and computer file glyphs
+    const packIds = Object.keys(domMod.ICON_PACK_GLYPHS);
+    expect(packIds.length).toBeGreaterThanOrEqual(38);
+    const validComputerFolderGlyphs = new Set(["📁", "🗂️", "📂"]);
+    for (const packId of packIds) {
+      doc.documentElement.setAttribute("data-icon-pack", packId);
+      const folderGlyph = domMod.entryIcon({ isDirectory: true, name: "My_Computer_Documents_2026" });
+      expect(validComputerFolderGlyphs.has(folderGlyph)).toBe(true);
+      const openFolderGlyph = domMod.entryIcon({ isDirectory: true, isOpen: true, name: "My_Computer_Documents_2026" });
+      expect(validComputerFolderGlyphs.has(openFolderGlyph)).toBe(true);
+      const pdfGlyph = domMod.entryIcon({ isDirectory: false, kind: "pdf", name: "report.pdf" });
+      expect(["📕", "📘", "📄", "📃"].includes(pdfGlyph)).toBe(true);
+      const zipGlyph = domMod.entryIcon({ isDirectory: false, kind: "archive", name: "bundle.zip" });
+      expect(["📦", "🗜️"].includes(zipGlyph)).toBe(true);
+    }
+
+    // 2. All 18 US Holiday prebuilt themes have holiday_festive_glow, us_holidays_festive icon pack, bespoke 3D iconAnimation, and crest badges
+    const holidayThemes = Object.entries(FX_THEMES).filter(([key]) => key.startsWith("holiday_"));
+    expect(holidayThemes.length).toBe(18);
+    for (const [key, ht] of holidayThemes) {
+      expect(ht.fx?.uiElementFx).toBe("holiday_festive_glow");
+      expect(ht.fx?.iconPackStyle).toBe("us_holidays_festive");
+      expect(ht.fx?.iconAnimation).toBeTruthy();
+      expect(ht.fx?.iconAnimation).not.toBe("none");
+      expect(domMod.resolveHolidayCrestForPalette(key)?.crest.length).toBeGreaterThan(0);
+    }
+
+    // Calendar date auto-detection for US Holidays
+    expect((themes as any).detectCalendarHolidayTheme(new Date(2026, 0, 1))?.key).toBe("holiday_new_years_times_square");
+    expect((themes as any).detectCalendarHolidayTheme(new Date(2026, 1, 14))?.key).toBe("holiday_valentines_velvet_rose");
+    expect((themes as any).detectCalendarHolidayTheme(new Date(2026, 6, 4))?.key).toBe("holiday_fourth_of_july_fireworks");
+    expect((themes as any).detectCalendarHolidayTheme(new Date(2026, 9, 31))?.key).toBe("holiday_halloween_jack_o_lantern");
+    expect((themes as any).detectCalendarHolidayTheme(new Date(2026, 11, 25))?.key).toBe("holiday_christmas_nutcracker_hearth");
+
+    // Apply a Holiday Celebration Theme and verify DOM attributes, folder crest badges, and particle burst overlay
+    const appliedHoliday = await (themes as any).applyHolidayCelebrationTheme("holiday_christmas_nutcracker_hearth", { quiet: true, burst: true });
+    expect(appliedHoliday.key).toBe("holiday_christmas_nutcracker_hearth");
+    expect(doc.documentElement.dataset.palette).toBe("holiday_christmas_nutcracker_hearth");
+    expect(doc.documentElement.dataset.holidayTheme).toBe("active");
+    expect(doc.documentElement.dataset.holidayCrest).toBe("🎄");
+    expect(doc.documentElement.dataset.uiFx).toBe("holiday_festive_glow");
+    expect(doc.documentElement.dataset.iconPack).toBe("us_holidays_festive");
+    expect(doc.documentElement.dataset.iconAnim).toBe("godmode_pantheon_ascend");
+    expect(doc.getElementById("fm-holiday-celebration-burst")).toBeTruthy();
+
+    // Cycle to next US Holiday theme (⌥H / Alt+H)
+    const nextHoliday = await (themes as any).cycleHolidayTheme(1, { quiet: true });
+    expect(nextHoliday.key).toBe("holiday_new_years_times_square");
+    expect(doc.documentElement.dataset.holidayCrest).toBe("🥂");
+
+    // 3. AAA Computer Icon Material Finish Engine (6 physical OS icon finishes)
+    expect((themes as any).COMPUTER_ICON_FINISH_MODES.length).toBe(6);
+    const finishApplied = await (themes as any).applyComputerIconFinish("pro_titanium_anodized", { quiet: true });
+    expect(finishApplied.id).toBe("pro_titanium_anodized");
+    expect(doc.documentElement.dataset.iconFinish).toBe("pro_titanium_anodized");
+    expect(state.settings.iconFinishMode).toBe("pro_titanium_anodized");
+
+    const finishCycled = await (themes as any).cycleComputerIconFinish(1, { quiet: true });
+    expect(finishCycled.id).toBe("neumorphic_tactile_studio");
+    expect(doc.documentElement.dataset.iconFinish).toBe("neumorphic_tactile_studio");
+
+    // 4. AAA Interactive 3D Desktop Stage & Ambilux Backlight Engine (8 spatial stage modes, ⌥S / Alt+S)
+    expect((themes as any).WORKSPACE_STAGE_MODES.length).toBe(8);
+    const stageApplied = await (themes as any).applyWorkspaceStageMode("stage_manager_3d_tilt", { quiet: true });
+    expect(stageApplied.id).toBe("stage_manager_3d_tilt");
+    expect(doc.documentElement.dataset.stageMode).toBe("stage_manager_3d_tilt");
+    expect(state.settings.workspaceStageMode).toBe("stage_manager_3d_tilt");
+
+    const stageCycled = await (themes as any).cycleWorkspaceStageMode(1, { quiet: true });
+    expect(stageCycled.id).toBe("coverflow_3d_reflection");
+    expect(doc.documentElement.dataset.stageMode).toBe("coverflow_3d_reflection");
+
+    await (themes as any).applyWorkspaceStageMode("off", { quiet: true });
+    expect(doc.documentElement.dataset.stageMode).toBeUndefined();
+
+    // 5. AAA Procedural WebAudio Tactile Soundscape & UI Foley Engine (8 synthesizer profiles)
+    expect((themes as any).UI_SOUND_PROFILES.length).toBe(8);
+    const soundApplied = await (themes as any).setUiSoundProfile("apple_hig_tactile", { quiet: true });
+    expect(soundApplied.id).toBe("apple_hig_tactile");
+    expect(doc.documentElement.dataset.soundProfile).toBe("apple_hig_tactile");
+    expect(state.settings.uiSoundProfile).toBe("apple_hig_tactile");
+
+    const soundCycled = await (themes as any).cycleUiSoundProfile(1, { quiet: true });
+    expect(soundCycled.id).toBe("mechanical_thock_pro");
+    expect(doc.documentElement.dataset.soundProfile).toBe("mechanical_thock_pro");
+
+    await (themes as any).setUiSoundProfile("off", { quiet: true });
+    expect(doc.documentElement.dataset.soundProfile).toBeUndefined();
+
+    // 6. AAA Holographic Pointer Reveal & 120Hz Cursor Trail Engine (8 modes, ⌥T / Alt+T)
+    expect((themes as any).CURSOR_TRAIL_MODES.length).toBe(8);
+    const trailApplied = await (themes as any).applyCursorTrailMode("stardust_comet_tail", { quiet: true });
+    expect(trailApplied.id).toBe("stardust_comet_tail");
+    expect(doc.documentElement.dataset.cursorTrail).toBe("stardust_comet_tail");
+    expect(state.settings.cursorTrailMode).toBe("stardust_comet_tail");
+    expect(doc.getElementById("fm-cursor-spotlight-layer")?.classList.contains("is-active")).toBe(true);
+
+    const trailCycled = await (themes as any).cycleCursorTrailMode(1, { quiet: true });
+    expect(trailCycled.id).toBe("flash_2advanced_crosshair");
+    expect(doc.documentElement.dataset.cursorTrail).toBe("flash_2advanced_crosshair");
+
+    // 7. AAA Spring-Loaded 3D Folder Hover & Peek Engine (6 modes, including macOS Dock Magnification via :has())
+    expect((themes as any).FOLDER_SPRING_MODES.length).toBe(6);
+    const springApplied = await (themes as any).applyFolderSpringMode("magnetic_dock_magnify", { quiet: true });
+    expect(springApplied.id).toBe("magnetic_dock_magnify");
+    expect(doc.documentElement.dataset.folderSpring).toBe("magnetic_dock_magnify");
+    expect(state.settings.folderSpringMode).toBe("magnetic_dock_magnify");
+
+    const springCycled = await (themes as any).cycleFolderSpringMode(1, { quiet: true });
+    expect(springCycled.id).toBe("xray_content_wireframe");
+    expect(doc.documentElement.dataset.folderSpring).toBe("xray_content_wireframe");
+
+    // 8. AAA Procedural 8K Desktop Wallpaper Backplate Engine (8 horizon scenes, ⌥W / Alt+W)
+    expect((themes as any).DESKTOP_WALLPAPER_SCENES.length).toBe(8);
+    const wallApplied = await (themes as any).applyDesktopWallpaperScene("sequoia_redwood_dawn", { quiet: true });
+    expect(wallApplied.id).toBe("sequoia_redwood_dawn");
+    expect(doc.documentElement.dataset.wallpaperScene).toBe("sequoia_redwood_dawn");
+    expect(state.settings.desktopWallpaperScene).toBe("sequoia_redwood_dawn");
+
+    const wallCycled = await (themes as any).cycleDesktopWallpaperScene(1, { quiet: true });
+    expect(wallCycled.id).toBe("tahoe_alpine_lake");
+    expect(doc.documentElement.dataset.wallpaperScene).toBe("tahoe_alpine_lake");
+
+    // 9. Master AAA Director's Cut 10-Engine Switchboard Presets (⌥M / Alt+M) & Live AAA Production Fidelity Score
+    expect((themes as any).AAA_DIRECTOR_CUT_PRESETS.length).toBe(8);
+    const directorApplied = await (themes as any).applyAaaDirectorCutPreset("cupertino_keynote_xdr", { quiet: true });
+    expect(directorApplied.id).toBe("cupertino_keynote_xdr");
+    expect(state.settings.palette).toBe("mac_studio_m4_ultra");
+    expect(doc.documentElement.dataset.uiFx).toBe("tahoe_glass_folders");
+    expect(doc.documentElement.dataset.iconPack).toBe("macos_tahoe_3d");
+    expect(doc.documentElement.dataset.iconFinish).toBe("macos_aqua_glass");
+    expect(doc.documentElement.dataset.iconAnim).toBe("folder_3d_spin_turntable");
+    expect(doc.documentElement.dataset.stageMode).toBe("stage_manager_3d_tilt");
+    expect(doc.documentElement.dataset.cursorTrail).toBe("holo_prism_spotlight");
+    expect(doc.documentElement.dataset.folderSpring).toBe("macos_spring_loaded");
+    expect(doc.documentElement.dataset.wallpaperScene).toBe("tahoe_alpine_lake");
+    expect(doc.documentElement.dataset.soundProfile).toBe("apple_hig_tactile");
+
+    const aaaTelemetry = (themes as any).computeAaaProductionScore(state.settings);
+    expect(aaaTelemetry.score).toBeGreaterThanOrEqual(92);
+    expect(aaaTelemetry.grade).toBe("S+ AAA Master");
+    expect(aaaTelemetry.activeCount).toBeGreaterThanOrEqual(9);
+    expect(aaaTelemetry.activeEngines.length).toBeGreaterThanOrEqual(9);
+
+    const directorCycled = await (themes as any).cycleAaaDirectorCutPreset(1, { quiet: true });
+    expect(directorCycled.id).toBe("win11_fluent_workstation");
+    expect(doc.documentElement.dataset.iconFinish).toBe("win11_fluent_acrylic");
+
+    closeDialogs();
+    await (themes as any).applyCursorTrailMode("off", { quiet: true });
+    await (themes as any).applyFolderSpringMode("off", { quiet: true });
+    await (themes as any).applyDesktopWallpaperScene("off", { quiet: true });
     await themes.disableAllThemeAnimations({ quiet: true });
     await themes.applyPalette("");
   });

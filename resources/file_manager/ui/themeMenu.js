@@ -1,7 +1,7 @@
 // The Themes menu of the ribbon: standard light and dark, the themes used lately, and the way into the gallery and the editor,
 // so colors can be changed without going through Settings.
 import { saveSettings } from "./nav.js";
-import { applyThemeColorsKeepingCurrentEffects, chooseTheme, disableAllThemeAnimations, favoriteThemes, isKeepEffectsColorSwapMode, isTelemetryPopoutHudOpen, pasteImportThemesFromClipboard, randomColorsKeepCurrentEffects, randomTheme, recentThemes, toggleCurrentThemeEffects, toggleKeepEffectsColorSwapMode, toggleTelemetryPopoutHud } from "./themes.js";
+import { applyThemeColorsKeepingCurrentEffects, chooseTheme, cycleHighEnd3dFolderAnimation, cycleScreenFilter, disableAllThemeAnimations, favoriteThemes, isKeepEffectsColorSwapMode, isKeepIconsOnThemeSwitchMode, isTelemetryPopoutHudOpen, pasteImportThemesFromClipboard, randomColorsKeepCurrentEffects, randomScreenFilter, randomTheme, recentThemes, shuffleSystemIconsKeepTheme, toggleCurrentThemeEffects, toggleKeepEffectsColorSwapMode, toggleKeepIconsOnThemeSwitchMode, toggleTelemetryPopoutHud } from "./themes.js";
 import { emit, state } from "./state.js";
 
 /** The items of the menu for the colors in force now. */
@@ -9,6 +9,7 @@ export async function themeMenuItems() {
   const s = state.settings;
   const custom = !!s.palette;
   const keepFxLocked = isKeepEffectsColorSwapMode();
+  const keepIconsLocked = isKeepIconsOnThemeSwitchMode();
   const standard = (value, label) => ({
     label,
     checked: !custom && s.theme === value,
@@ -34,6 +35,37 @@ export async function themeMenuItems() {
       checked: keepFxLocked,
       tip: "When locked, picking any theme from Favorites, Recent, or the Theme Gallery changes ONLY the color palette while keeping your current active effects!",
       action: () => { toggleKeepEffectsColorSwapMode(); },
+    },
+    {
+      label: "Shuffle system icons — keep current theme & FX (⌥I)",
+      icon: "🎭",
+      tip: "Shuffle across 49 custom system icon packs, 3D icon glows & animations while keeping your current theme colors and effects intact (Alt+I / ⌥I).",
+      action: () => { void shuffleSystemIconsKeepTheme(); },
+    },
+    {
+      label: keepIconsLocked ? "Unlock system icons on theme switch (⌥⇧I)" : "Lock system icons on theme switch (⌥⇧I)",
+      icon: keepIconsLocked ? "🔒" : "📌",
+      checked: keepIconsLocked,
+      tip: "When locked, switching themes preserves your chosen system icon pack, icon glow, and 3D icon animation (Alt+Shift+I / ⌥⇧I).",
+      action: () => { toggleKeepIconsOnThemeSwitchMode(); },
+    },
+    {
+      label: "3D Spinning Folders & Futuristic Flash 3000 (⌥3)",
+      icon: "💿",
+      tip: "Cycle High-End 120Hz 3D Spinning Folder Turntables, 2Advanced v3 Vector HUDs, Gyro Cube Matrices & Liquid Metal Morphs (Alt+3 / ⌥3).",
+      action: () => { void cycleHighEnd3dFolderAnimation(1); },
+    },
+    {
+      label: "Cycle CRT / Cinema / Retro Screen Filter (⌥F)",
+      icon: "📺",
+      tip: "Cycle built-in CRT Trinitron, Green/Amber Phosphor, 1999 VHS, Game Boy DMG, Cyber NVG, Matrix & Thermal Screen Filters (Alt+F / ⌥F).",
+      action: () => { void cycleScreenFilter(1); },
+    },
+    {
+      label: "Random CRT / Cinema / Retro Screen Filter (⌥⇧F)",
+      icon: "🎞️",
+      tip: "Apply a random CRT, Cinema, Retro Handheld, Analog or Optical Screen Filter (Alt+Shift+F / ⌥⇧F).",
+      action: () => { void randomScreenFilter(); },
     },
     { separator: true },
     { label: "Quick random theme (any · ⌥R)", icon: "🎲", tip: "Instantly apply a random theme from all 310 themes with no dialog needed (Alt+R / ⌥R).", action: () => { void randomTheme({ mode: "any" }); } },

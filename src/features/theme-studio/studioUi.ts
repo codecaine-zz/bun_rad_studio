@@ -1035,7 +1035,7 @@ export function mountThemeStudio(
             <span class="ts-badge ts-badge-success">● System Healthy</span>
             <span class="ts-badge ts-badge-warning">▲ Latency 42ms</span>
             <span class="ts-badge ts-badge-danger">✖ 2 Build Alerts</span>
-            <span class="ts-badge ts-badge-info">ℹ v1.4.9 Active</span>
+            <span class="ts-badge ts-badge-info">ℹ v1.5.0 Active</span>
           </div>
         </div>
 

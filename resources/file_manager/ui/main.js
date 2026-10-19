@@ -81,7 +81,11 @@ function applySettings() {
   const appEl = document.getElementById("app");
   if (appEl) appEl.dataset.density = s.rowDensity || "comfortable";
   $("#info").hidden = !s.showInfoPanel;
-  applyAtmosphere();
+  try {
+    applyAtmosphere();
+  } catch (err) {
+    console.warn("Atmosphere shader skipped:", err);
+  }
 }
 
 function showFatal(message) {

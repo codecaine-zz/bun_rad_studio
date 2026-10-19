@@ -5258,5 +5258,1208 @@ html.rad-macos body {
   box-shadow: 0 0 10px -1px color-mix(in oklab, var(--accent, #38bdf8) 65%, transparent);
 }
 
+/* ============================================================================
+ * 🌀⚡🎬 14 HIGH-END 3D, FUTURISTIC FLASH-3000 & MASTER MOTION-DESIGNER
+ * ICON & FOLDER CHOREOGRAPHIES (120Hz ProMotion GPU Keyframes)
+ * ============================================================================ */
 
+@keyframes fmIconFolder3dSpinTurntable {
+  0% {
+    transform: perspective(340px) rotateY(0deg) rotateX(6deg) translateZ(2px) scale(1.04);
+    filter: drop-shadow(0 4px 8px color-mix(in oklab, var(--accent, #38bdf8) 55%, rgba(0, 0, 0, 0.5))) brightness(1.05);
+  }
+  25% {
+    transform: perspective(340px) rotateY(90deg) rotateX(0deg) translateZ(6px) scale(1.12);
+    filter: drop-shadow(4px 5px 12px rgba(0, 245, 255, 0.72)) brightness(1.26);
+  }
+  50% {
+    transform: perspective(340px) rotateY(180deg) rotateX(-6deg) translateZ(4px) scale(1.08);
+    filter: drop-shadow(0 6px 14px rgba(168, 85, 247, 0.72)) brightness(1.18);
+  }
+  75% {
+    transform: perspective(340px) rotateY(270deg) rotateX(0deg) translateZ(6px) scale(1.12);
+    filter: drop-shadow(-4px 5px 12px rgba(56, 189, 248, 0.75)) brightness(1.28);
+  }
+  100% {
+    transform: perspective(340px) rotateY(360deg) rotateX(6deg) translateZ(2px) scale(1.04);
+    filter: drop-shadow(0 4px 8px color-mix(in oklab, var(--accent, #38bdf8) 55%, rgba(0, 0, 0, 0.5))) brightness(1.05);
+  }
+}
+
+@keyframes fmIconFlash2AdvancedVectorHud {
+  0%, 100% {
+    transform: perspective(320px) scale(1) rotateZ(0deg) skewX(0deg);
+    filter: drop-shadow(0 0 6px rgba(0, 240, 255, 0.65));
+  }
+  16% {
+    transform: perspective(320px) scale(1.2) rotateZ(-6deg) skewX(-6deg);
+    filter: drop-shadow(-3px 0 8px #00f0ff) drop-shadow(3px 0 8px #f59e0b) brightness(1.35);
+  }
+  28% {
+    transform: perspective(320px) scale(0.94) rotateZ(4deg) skewX(4deg);
+    filter: drop-shadow(0 0 12px #38bdf8) brightness(1.15);
+  }
+  42% {
+    transform: perspective(320px) scale(1.14) translateY(-2px) rotateY(24deg);
+    filter: drop-shadow(0 0 16px #00f0ff) drop-shadow(0 0 24px #f59e0b) brightness(1.28);
+  }
+  60% {
+    transform: perspective(320px) scale(1.03) translateY(0) rotateY(0deg);
+  }
+}
+
+@keyframes fmIconFolder3dFlipOrigami {
+  0%, 100% {
+    transform: perspective(340px) rotateX(0deg) rotateY(0deg) scale(1);
+    filter: drop-shadow(0 3px 7px rgba(0, 0, 0, 0.4));
+  }
+  35% {
+    transform: perspective(340px) rotateX(180deg) rotateY(18deg) translateY(-2px) scale(1.14);
+    filter: drop-shadow(0 8px 14px color-mix(in oklab, var(--accent, #38bdf8) 72%, transparent)) brightness(1.25);
+  }
+  70% {
+    transform: perspective(340px) rotateX(360deg) rotateY(-12deg) scale(1.06);
+    filter: drop-shadow(0 5px 10px rgba(236, 72, 153, 0.58)) brightness(1.12);
+  }
+}
+
+@keyframes fmIconGyro3dCubeMatrix {
+  0% {
+    transform: perspective(300px) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1);
+  }
+  33% {
+    transform: perspective(300px) rotateX(28deg) rotateY(120deg) rotateZ(8deg) scale(1.12);
+    filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.75)) brightness(1.22);
+  }
+  66% {
+    transform: perspective(300px) rotateX(-24deg) rotateY(240deg) rotateZ(-8deg) scale(1.12);
+    filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.75)) brightness(1.22);
+  }
+  100% {
+    transform: perspective(300px) rotateX(0deg) rotateY(360deg) rotateZ(0deg) scale(1);
+  }
+}
+
+@keyframes fmIconFlashFwaKineticEq {
+  0%, 100% {
+    transform: translateY(0) scaleX(1) scaleY(1);
+    filter: drop-shadow(0 0 5px var(--accent, #38bdf8));
+  }
+  20% {
+    transform: translateY(-4px) scaleX(0.92) scaleY(1.24);
+    filter: drop-shadow(0 4px 12px #00f5d4) brightness(1.3);
+  }
+  40% {
+    transform: translateY(1px) scaleX(1.15) scaleY(0.86);
+    filter: drop-shadow(0 0 8px #f43f5e);
+  }
+  65% {
+    transform: translateY(-3px) scaleX(0.95) scaleY(1.18);
+    filter: drop-shadow(0 3px 10px #facc15) brightness(1.22);
+  }
+  82% {
+    transform: translateY(0.5px) scaleX(1.06) scaleY(0.94);
+  }
+}
+
+@keyframes fmIconHologram3dProjectorBeam {
+  0%, 100% {
+    transform: perspective(320px) translateY(0) rotateY(-10deg) scale(1);
+    filter: drop-shadow(0 -4px 10px rgba(0, 245, 255, 0.7)) hue-rotate(0deg);
+    opacity: 0.96;
+  }
+  45% {
+    transform: perspective(320px) translateY(-4px) rotateY(14deg) scale(1.12);
+    filter: drop-shadow(0 -8px 18px rgba(0, 245, 255, 0.95)) drop-shadow(0 4px 12px rgba(56, 189, 248, 0.65)) brightness(1.32);
+    opacity: 1;
+  }
+  48% {
+    opacity: 0.78;
+    transform: perspective(320px) translateY(-3.5px) skewX(5deg) scale(1.1);
+  }
+  52% {
+    opacity: 1;
+  }
+}
+
+@keyframes fmIconQuantum3dPhaseSplit {
+  0%, 100% {
+    transform: perspective(300px) translate3d(0, 0, 0) scale(1);
+    filter: drop-shadow(-2px 0 0 rgba(255, 0, 90, 0.72)) drop-shadow(2px 0 0 rgba(0, 245, 255, 0.72));
+  }
+  50% {
+    transform: perspective(300px) translate3d(0, -2.5px, 10px) rotateY(20deg) scale(1.13);
+    filter: drop-shadow(-4px -1px 2px rgba(255, 0, 128, 0.9)) drop-shadow(4px 1px 2px rgba(0, 245, 255, 0.9)) brightness(1.25);
+  }
+}
+
+@keyframes fmIconM4LiquidMetalMorph {
+  0%, 100% {
+    transform: perspective(320px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1);
+    filter: contrast(1.18) brightness(1.1) drop-shadow(0 3px 8px rgba(255, 255, 255, 0.35));
+  }
+  35% {
+    transform: perspective(320px) rotateX(14deg) rotateY(-18deg) scale3d(1.14, 0.92, 1.1);
+    filter: contrast(1.35) brightness(1.36) drop-shadow(0 6px 14px rgba(148, 163, 184, 0.75));
+  }
+  70% {
+    transform: perspective(320px) rotateX(-10deg) rotateY(18deg) scale3d(0.94, 1.14, 1.1);
+    filter: contrast(1.28) brightness(1.25) drop-shadow(0 5px 12px rgba(56, 189, 248, 0.65));
+  }
+}
+
+@keyframes fmIconC4dMographClonerWave {
+  0%, 100% {
+    transform: perspective(360px) translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg) scale(1);
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.38));
+  }
+  40% {
+    transform: perspective(360px) translate3d(0, -4.5px, 14px) rotateX(18deg) rotateY(-22deg) scale(1.16);
+    filter: drop-shadow(0 10px 16px color-mix(in oklab, var(--accent, #38bdf8) 72%, rgba(0, 0, 0, 0.5))) brightness(1.28);
+  }
+  72% {
+    transform: perspective(360px) translate3d(0, 1.2px, -3px) rotateX(-6deg) rotateY(8deg) scale(0.96);
+  }
+}
+
+@keyframes fmIconHoudiniVexParticleBurst {
+  0%, 100% {
+    transform: perspective(320px) translate3d(0, 0, 0) rotateZ(0deg) scale(1);
+    filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.65)) drop-shadow(0 0 12px rgba(168, 85, 247, 0.45));
+  }
+  30% {
+    transform: perspective(320px) translate3d(1.5px, -3.5px, 10px) rotateZ(-8deg) rotateY(20deg) scale(1.18);
+    filter: drop-shadow(-3px -4px 10px #f97316) drop-shadow(3px 4px 14px #ec4899) drop-shadow(0 0 20px #38bdf8) brightness(1.35);
+  }
+  65% {
+    transform: perspective(320px) translate3d(-1.5px, -1.5px, 4px) rotateZ(6deg) rotateY(-14deg) scale(1.08);
+    filter: drop-shadow(2px -3px 10px #facc15) drop-shadow(-2px 3px 12px #8b5cf6) brightness(1.2);
+  }
+}
+
+@keyframes fmIconAfterEffectsGraphOvershoot {
+  0%, 100% {
+    transform: perspective(320px) translateX(0) scale3d(1, 1, 1) skewX(0deg);
+  }
+  18% {
+    transform: perspective(320px) translateX(-3px) scale3d(0.86, 1.16, 1) skewX(10deg);
+  }
+  34% {
+    transform: perspective(320px) translateX(4.5px) translateY(-2.5px) scale3d(1.22, 0.88, 1) skewX(-12deg);
+    filter: drop-shadow(-5px 2px 10px color-mix(in oklab, var(--accent, #38bdf8) 75%, transparent)) brightness(1.3);
+  }
+  52% {
+    transform: perspective(320px) translateX(-1.5px) scale3d(0.95, 1.05, 1) skewX(4deg);
+  }
+  68% {
+    transform: perspective(320px) translateX(0.6px) scale3d(1.03, 0.98, 1) skewX(-1deg);
+  }
+}
+
+@keyframes fmIconUnrealNaniteMeshLod {
+  0%, 100% {
+    transform: perspective(340px) rotateY(0deg) translateZ(0) scale(1);
+    filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.55)) contrast(1.1);
+  }
+  45% {
+    transform: perspective(340px) rotateY(24deg) rotateX(10deg) translateZ(10px) scale(1.14);
+    filter: drop-shadow(0 0 12px rgba(0, 245, 212, 0.85)) drop-shadow(0 4px 16px rgba(251, 191, 36, 0.55)) contrast(1.28) brightness(1.25);
+  }
+}
+
+@keyframes fmIconBlenderGeoNodesBloom {
+  0%, 100% {
+    transform: perspective(340px) scale(1) rotateZ(0deg) rotateY(0deg);
+    filter: drop-shadow(0 0 6px rgba(232, 121, 249, 0.55));
+  }
+  38% {
+    transform: perspective(340px) scale(1.17) rotateZ(7deg) rotateY(22deg);
+    filter: drop-shadow(0 0 14px rgba(232, 121, 249, 0.9)) drop-shadow(0 0 24px rgba(56, 189, 248, 0.7)) brightness(1.32);
+  }
+  72% {
+    transform: perspective(340px) scale(0.96) rotateZ(-4deg) rotateY(-10deg);
+  }
+}
+
+@keyframes fmIconRaytracedCausticRefraction {
+  0%, 100% {
+    transform: perspective(320px) translateY(0) rotateY(0deg) scale(1);
+    filter: hue-rotate(0deg) drop-shadow(-2px -1px 6px rgba(56, 189, 248, 0.65)) drop-shadow(2px 2px 8px rgba(244, 114, 182, 0.65));
+  }
+  50% {
+    transform: perspective(320px) translateY(-3px) rotateY(-20deg) rotateX(10deg) scale(1.14);
+    filter: hue-rotate(65deg) drop-shadow(-4px -2px 12px rgba(0, 245, 212, 0.88)) drop-shadow(4px 3px 14px rgba(250, 204, 21, 0.85)) brightness(1.3);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:is([data-icon-anim="folder_3d_spin_turntable"], [data-fx-icon-anim="folder_3d_spin_turntable"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconFolder3dSpinTurntable 3.2s linear infinite;
+    transform-style: preserve-3d;
+  }
+  :root:is([data-icon-anim="flash_2advanced_vector_hud"], [data-fx-icon-anim="flash_2advanced_vector_hud"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconFlash2AdvancedVectorHud 2.1s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  }
+  :root:is([data-icon-anim="folder_3d_flip_origami"], [data-fx-icon-anim="folder_3d_flip_origami"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconFolder3dFlipOrigami 3.4s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+    transform-style: preserve-3d;
+  }
+  :root:is([data-icon-anim="gyro_3d_cube_matrix"], [data-fx-icon-anim="gyro_3d_cube_matrix"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconGyro3dCubeMatrix 3.8s ease-in-out infinite;
+    transform-style: preserve-3d;
+  }
+  :root:is([data-icon-anim="flash_fwa_kinetic_eq"], [data-fx-icon-anim="flash_fwa_kinetic_eq"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconFlashFwaKineticEq 1.65s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+  :root:is([data-icon-anim="hologram_3d_projector_beam"], [data-fx-icon-anim="hologram_3d_projector_beam"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconHologram3dProjectorBeam 2.7s ease-in-out infinite;
+  }
+  :root:is([data-icon-anim="quantum_3d_phase_split"], [data-fx-icon-anim="quantum_3d_phase_split"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconQuantum3dPhaseSplit 2.4s ease-in-out infinite;
+  }
+  :root:is([data-icon-anim="m4_liquid_metal_morph"], [data-fx-icon-anim="m4_liquid_metal_morph"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconM4LiquidMetalMorph 2.9s ease-in-out infinite;
+  }
+  :root:is([data-icon-anim="c4d_mograph_cloner_wave"], [data-fx-icon-anim="c4d_mograph_cloner_wave"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconC4dMographClonerWave 2.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+    transform-style: preserve-3d;
+  }
+  /* Stagger Cinema 4D MoGraph Step-Effector wave across rows */
+  :root:is([data-icon-anim="c4d_mograph_cloner_wave"], [data-fx-icon-anim="c4d_mograph_cloner_wave"]) .row:nth-child(4n+2) .c-icon {
+    animation-delay: 140ms;
+  }
+  :root:is([data-icon-anim="c4d_mograph_cloner_wave"], [data-fx-icon-anim="c4d_mograph_cloner_wave"]) .row:nth-child(4n+3) .c-icon {
+    animation-delay: 280ms;
+  }
+  :root:is([data-icon-anim="c4d_mograph_cloner_wave"], [data-fx-icon-anim="c4d_mograph_cloner_wave"]) .row:nth-child(4n+4) .c-icon {
+    animation-delay: 420ms;
+  }
+  :root:is([data-icon-anim="houdini_vex_particle_burst"], [data-fx-icon-anim="houdini_vex_particle_burst"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconHoudiniVexParticleBurst 2.3s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+  :root:is([data-icon-anim="after_effects_graph_overshoot"], [data-fx-icon-anim="after_effects_graph_overshoot"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconAfterEffectsGraphOvershoot 2.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  }
+  :root:is([data-icon-anim="unreal_nanite_mesh_lod"], [data-fx-icon-anim="unreal_nanite_mesh_lod"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconUnrealNaniteMeshLod 2.8s ease-in-out infinite;
+    transform-style: preserve-3d;
+  }
+  :root:is([data-icon-anim="blender_geometry_nodes_bloom"], [data-fx-icon-anim="blender_geometry_nodes_bloom"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconBlenderGeoNodesBloom 2.6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  }
+  :root:is([data-icon-anim="raytraced_caustic_refraction"], [data-fx-icon-anim="raytraced_caustic_refraction"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconRaytracedCausticRefraction 3s ease-in-out infinite;
+  }
+}
+
+/* ============================================================================
+ * ⚡🌀🎬 FUTURISTIC FLASH 3000, 3D SPINNING HOLO FOLDERS, C4D MOGRAPH & HOUDINI VEX
+ * UI ELEMENT SHADERS (data-ui-fx)
+ * ============================================================================ */
+
+/* 1. ⚡ Futuristic Flash 3000 Vector HUD (flash_3000_vector_hud) */
+:root[data-ui-fx="flash_3000_vector_hud"] :is(#toolbar-row, #addressbar, .row.is-folder, .card.is-folder) {
+  position: relative;
+  background:
+    linear-gradient(90deg, rgba(0, 240, 255, 0.16) 0%, transparent 18%, transparent 82%, rgba(245, 158, 11, 0.16) 100%),
+    repeating-linear-gradient(90deg, rgba(0, 240, 255, 0.045) 0 1px, transparent 1px 18px),
+    linear-gradient(155deg, color-mix(in oklab, var(--accent, #00f0ff) 22%, var(--panel)) 0%, color-mix(in oklab, #060b16 45%, var(--panel)) 100%);
+  border: 1px solid color-mix(in oklab, var(--accent, #00f0ff) 68%, #38bdf8);
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  box-shadow:
+    inset 0 0 14px rgba(0, 240, 255, 0.24),
+    inset 3px 0 0 #00f0ff,
+    inset -3px 0 0 #f59e0b,
+    0 6px 20px -4px rgba(0, 240, 255, 0.38);
+  transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 140ms ease;
+}
+:root[data-ui-fx="flash_3000_vector_hud"] :is(.row.is-folder, .card.is-folder):hover {
+  transform: perspective(500px) translateX(3px) rotateY(-2.5deg) scale(1.012);
+  box-shadow:
+    inset 0 0 22px rgba(0, 240, 255, 0.42),
+    inset 4px 0 0 #00f0ff,
+    inset -4px 0 0 #f59e0b,
+    0 10px 28px -4px rgba(0, 240, 255, 0.62);
+}
+
+/* 2. 🌀 3D Spinning Holo-Folder Studio (spinning_3d_holo_folders) */
+:root[data-ui-fx="spinning_3d_holo_folders"] :is(.row.is-folder, .card.is-folder) {
+  position: relative;
+  transform-style: preserve-3d;
+  background:
+    radial-gradient(circle at 22% 50%, rgba(0, 245, 255, 0.26), transparent 55%),
+    radial-gradient(circle at 82% 50%, rgba(168, 85, 247, 0.24), transparent 58%),
+    linear-gradient(145deg, color-mix(in oklab, var(--accent, #38bdf8) 26%, var(--panel)) 0%, color-mix(in oklab, #080d1a 38%, var(--panel)) 100%);
+  border: 1.5px solid color-mix(in oklab, var(--accent, #38bdf8) 70%, rgba(255, 255, 255, 0.55));
+  border-radius: 12px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 8px 24px -5px rgba(0, 245, 255, 0.45),
+    0 0 18px -3px rgba(168, 85, 247, 0.38);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease;
+}
+:root[data-ui-fx="spinning_3d_holo_folders"] :is(.row.is-folder, .card.is-folder) .c-icon {
+  animation: fmIconFolder3dSpinTurntable 3.2s linear infinite;
+  transform-style: preserve-3d;
+}
+:root[data-ui-fx="spinning_3d_holo_folders"] :is(.row.is-folder, .card.is-folder):hover {
+  transform: perspective(580px) translateY(-2px) rotateX(4deg) rotateY(-4deg) scale(1.015);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 14px 32px -4px rgba(0, 245, 255, 0.65),
+    0 0 26px -2px rgba(232, 121, 249, 0.55);
+}
+
+/* 3. 🎬 Cinema 4D MoGraph 3D Bevel-Extrude Folders (c4d_mograph_extrude_folders) */
+:root[data-ui-fx="c4d_mograph_extrude_folders"] :is(.row.is-folder, .card.is-folder) {
+  background:
+    radial-gradient(circle at 15% 15%, rgba(255, 255, 255, 0.25), transparent 45%),
+    linear-gradient(165deg, color-mix(in oklab, var(--accent, #38bdf8) 32%, var(--panel)) 0%, color-mix(in oklab, #0f172a 42%, var(--panel)) 100%);
+  border: 1.5px solid color-mix(in oklab, var(--accent, #38bdf8) 65%, rgba(255, 255, 255, 0.5));
+  border-radius: 11px;
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, 0.55),
+    0 3px 0 color-mix(in oklab, var(--accent, #38bdf8) 55%, #090d16),
+    0 6px 0 color-mix(in oklab, var(--accent, #38bdf8) 32%, #05080f),
+    0 12px 24px -4px rgba(0, 0, 0, 0.65);
+  transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 180ms ease;
+}
+:root[data-ui-fx="c4d_mograph_extrude_folders"] :is(.row.is-folder, .card.is-folder):hover {
+  transform: perspective(560px) translateY(-3px) rotateX(5deg) scale(1.014);
+}
+
+/* 4. 🌪️ SideFX Houdini VEX Procedural Wireframe HUD (houdini_procedural_vex_hud) */
+:root[data-ui-fx="houdini_procedural_vex_hud"] :is(#toolbar-row, #addressbar, .row.is-folder, .card.is-folder) {
+  background:
+    radial-gradient(circle at 18% 50%, rgba(249, 115, 22, 0.22), transparent 52%),
+    radial-gradient(circle at 84% 50%, rgba(56, 189, 248, 0.22), transparent 55%),
+    repeating-linear-gradient(45deg, rgba(249, 115, 22, 0.045) 0 1px, transparent 1px 12px),
+    linear-gradient(155deg, color-mix(in oklab, #f97316 18%, var(--panel)) 0%, color-mix(in oklab, #090d16 48%, var(--panel)) 100%);
+  border: 1px solid color-mix(in oklab, #f97316 65%, #38bdf8);
+  box-shadow:
+    inset 0 0 14px rgba(249, 115, 22, 0.22),
+    0 6px 20px -4px rgba(249, 115, 22, 0.38);
+}
+
+/* ============================================================================
+ * 📺🎞️🌈 BUILT-IN SCREEN FILTERS (CRT / VHS / Retro Handheld / Cinema / VFX / Colorist)
+ * Activated via `Alt+F` / `⌥F` (`data-screen-filter="..."` on `<html>`)
+ * Preserves 100% clickability & zero layout shift via `pointer-events: none`.
+ * ============================================================================ */
+
+html[data-screen-filter]:not([data-screen-filter="off"]) body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9990;
+  pointer-events: none;
+  opacity: 0.78;
+}
+
+/* 1. Sony Trinitron CRT '95 (crt_trinitron_95) */
+html:is([data-screen-filter="crt_trinitron_95"], [data-screen-filter="crt_trinitron_scanlines"]) {
+  filter: contrast(1.12) saturate(1.18) brightness(1.04);
+}
+html:is([data-screen-filter="crt_trinitron_95"], [data-screen-filter="crt_trinitron_scanlines"]) body::before {
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.26) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(255, 0, 60, 0.04) 0 1px, rgba(0, 255, 120, 0.04) 1px 2px, rgba(0, 140, 255, 0.04) 2px 3px),
+    radial-gradient(circle at 50% 50%, transparent 64%, rgba(0, 0, 0, 0.42) 100%);
+}
+
+/* 2. IBM 5151 Amber Phosphor CRT (crt_amber_monochrome) */
+html:is([data-screen-filter="crt_amber_monochrome"], [data-screen-filter="crt_amber_p3_terminal"]) {
+  filter: sepia(0.92) hue-rotate(-14deg) saturate(2.5) contrast(1.18) brightness(1.02);
+}
+html:is([data-screen-filter="crt_amber_monochrome"], [data-screen-filter="crt_amber_p3_terminal"]) body::before {
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.3) 0 1px, transparent 1px 3px),
+    radial-gradient(circle at 50% 50%, rgba(251, 191, 36, 0.08), rgba(0, 0, 0, 0.48) 100%);
+}
+
+/* 3. Apple II / VT100 Green P1 CRT (crt_green_p1_apple2) */
+html:is([data-screen-filter="crt_green_p1_apple2"], [data-screen-filter="crt_green_p1_phosphor"]) {
+  filter: sepia(0.88) hue-rotate(68deg) saturate(2.6) contrast(1.2) brightness(1.02);
+}
+html:is([data-screen-filter="crt_green_p1_apple2"], [data-screen-filter="crt_green_p1_phosphor"]) body::before {
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.3) 0 1px, transparent 1px 3px),
+    radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.08), rgba(0, 0, 0, 0.48) 100%);
+}
+
+/* 4. 1984 Coin-Op Arcade Bubble CRT (vhs_arcade_crt_curvature) */
+html:is([data-screen-filter="vhs_arcade_crt_curvature"], [data-screen-filter="arcade_1982_vector_glow"]) {
+  filter: contrast(1.26) saturate(1.42) brightness(1.08) drop-shadow(0 0 4px rgba(56, 189, 248, 0.32));
+}
+html:is([data-screen-filter="vhs_arcade_crt_curvature"], [data-screen-filter="arcade_1982_vector_glow"]) body::before {
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.28) 0 1px, transparent 1px 3px),
+    radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.08), rgba(0, 0, 0, 0.48) 100%);
+}
+
+/* 5. 1994 Hi8 VHS Camcorder (vhs_camcorder_1994) */
+html:is([data-screen-filter="vhs_camcorder_1994"], [data-screen-filter="vhs_1986_tracking_bleed"]) {
+  filter: contrast(1.08) saturate(1.38) brightness(1.04) drop-shadow(-1.5px 0 0 rgba(255, 0, 90, 0.28)) drop-shadow(1.5px 0 0 rgba(0, 240, 255, 0.28));
+}
+html:is([data-screen-filter="vhs_camcorder_1994"], [data-screen-filter="vhs_1986_tracking_bleed"]) body::before {
+  background:
+    linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.08) 14%, transparent 15.5%, transparent 82%, rgba(255, 0, 128, 0.1) 84%, transparent 86%),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px);
+}
+
+/* 6. 1989 Game Boy DMG-01 LCD (gameboy_dmg_olive) */
+html:is([data-screen-filter="gameboy_dmg_olive"], [data-screen-filter="gameboy_dmg_01_olive"]) {
+  filter: grayscale(0.85) sepia(0.75) hue-rotate(34deg) saturate(1.85) contrast(1.22);
+}
+html:is([data-screen-filter="gameboy_dmg_olive"], [data-screen-filter="gameboy_dmg_01_olive"]) body::before {
+  background:
+    repeating-linear-gradient(0deg, rgba(15, 56, 15, 0.16) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(15, 56, 15, 0.16) 0 1px, transparent 1px 3px);
+}
+
+/* 7. 1995 Virtual Boy Red LED Array (virtual_boy_red_led) */
+html:is([data-screen-filter="virtual_boy_red_led"], [data-screen-filter="virtual_boy_red_matrix"]) {
+  filter: sepia(1) hue-rotate(-50deg) saturate(4.2) contrast(1.32) brightness(0.96);
+}
+html:is([data-screen-filter="virtual_boy_red_led"], [data-screen-filter="virtual_boy_red_matrix"]) body::before {
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.35) 0 1px, transparent 1px 3px),
+    radial-gradient(circle at 50% 50%, rgba(255, 0, 40, 0.12), rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* 8. 1974 Kodachrome 64 Film (kodachrome_64_film) */
+html:is([data-screen-filter="kodachrome_64_film"], [data-screen-filter="kodak_portra_400_warm"]) {
+  filter: sepia(0.24) saturate(1.32) contrast(1.12) brightness(1.04);
+}
+html:is([data-screen-filter="kodachrome_64_film"], [data-screen-filter="kodak_portra_400_warm"]) body::before {
+  background: linear-gradient(160deg, rgba(251, 191, 36, 0.12) 0%, rgba(244, 63, 94, 0.08) 100%);
+}
+
+/* 9. 1952 3-Strip Technicolor (technicolor_3strip) */
+html[data-screen-filter="technicolor_3strip"] {
+  filter: saturate(1.68) contrast(1.18) brightness(1.05);
+}
+html[data-screen-filter="technicolor_3strip"] body::before {
+  background: radial-gradient(circle at 50% 50%, rgba(250, 204, 21, 0.08), rgba(225, 29, 72, 0.1) 100%);
+}
+
+/* 10. IMAX 70mm & Anamorphic Flare (imax_70mm_anamorphic) */
+html:is([data-screen-filter="imax_70mm_anamorphic"], [data-screen-filter="imax_70mm_bleach_bypass"]) {
+  filter: contrast(1.24) saturate(1.18) brightness(1.05);
+}
+html:is([data-screen-filter="imax_70mm_anamorphic"], [data-screen-filter="imax_70mm_bleach_bypass"]) body::before {
+  background:
+    linear-gradient(180deg, transparent 22%, rgba(56, 189, 248, 0.12) 24%, transparent 26%),
+    radial-gradient(circle at 50% 50%, transparent 60%, rgba(0, 0, 0, 0.42) 100%);
+}
+
+/* 11. 1940s Silver-Halide Film Noir (noir_sin_city_ink) */
+html:is([data-screen-filter="noir_sin_city_ink"], [data-screen-filter="noir_1940_silver_nitrate"]) {
+  filter: grayscale(0.96) contrast(1.38) brightness(1.02);
+}
+html:is([data-screen-filter="noir_sin_city_ink"], [data-screen-filter="noir_1940_silver_nitrate"]) body::before {
+  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.04) 40%, rgba(0, 0, 0, 0.54) 100%);
+}
+
+/* 12. 1888 Silver Daguerreotype Sepia (sepia_daguerreotype_1888) */
+html[data-screen-filter="sepia_daguerreotype_1888"] {
+  filter: grayscale(0.6) sepia(0.88) contrast(1.18) brightness(0.98);
+}
+html[data-screen-filter="sepia_daguerreotype_1888"] body::before {
+  background: radial-gradient(circle at 50% 50%, rgba(251, 191, 36, 0.08) 40%, rgba(28, 25, 23, 0.55) 100%);
+}
+
+/* 13. DaVinci Resolve ACEScct Master Grade (davinci_aces_cct_grade) */
+html[data-screen-filter="davinci_aces_cct_grade"] {
+  filter: contrast(1.18) saturate(1.28) brightness(1.04);
+}
+html[data-screen-filter="davinci_aces_cct_grade"] body::before {
+  background:
+    linear-gradient(135deg, rgba(14, 165, 233, 0.1) 0%, transparent 48%, rgba(249, 115, 22, 0.12) 100%);
+}
+
+/* 14. Foundry Nuke 2.39:1 Anamorphic Streak (nuke_anamorphic_flare_streak) */
+html[data-screen-filter="nuke_anamorphic_flare_streak"] {
+  filter: contrast(1.16) saturate(1.3) brightness(1.07);
+}
+html[data-screen-filter="nuke_anamorphic_flare_streak"] body::before {
+  background:
+    linear-gradient(180deg, transparent 18%, rgba(0, 240, 255, 0.16) 20%, transparent 22%, transparent 56%, rgba(56, 189, 248, 0.14) 58%, transparent 60%),
+    radial-gradient(ellipse 90% 12% at 50% 20%, rgba(0, 240, 255, 0.22), transparent 75%);
+}
+
+/* 15. OctaneRender Spectral Thin-Film Iridescence (octane_spectral_iridescence) */
+html[data-screen-filter="octane_spectral_iridescence"] {
+  filter: saturate(1.48) contrast(1.15) brightness(1.07);
+}
+html[data-screen-filter="octane_spectral_iridescence"] body::before {
+  background:
+    conic-gradient(from 45deg at 50% 50%, rgba(0, 245, 212, 0.08), rgba(56, 189, 248, 0.08), rgba(232, 121, 249, 0.1), rgba(250, 204, 21, 0.08), rgba(0, 245, 212, 0.08));
+}
+
+/* 16. RED V-Raptor 8K VV IPP2 Cinema Grade (red_v_raptor_8k_log) */
+html[data-screen-filter="red_v_raptor_8k_log"] {
+  filter: contrast(1.14) saturate(1.22) brightness(1.05);
+}
+html[data-screen-filter="red_v_raptor_8k_log"] body::before {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(251, 191, 36, 0.05), rgba(0, 0, 0, 0.32) 100%);
+}
+
+/* 17. Fortiche Arcane Hand-Painted Oil & Rim (arcane_painterly_brushwork) */
+html[data-screen-filter="arcane_painterly_brushwork"] {
+  filter: contrast(1.24) saturate(1.46) brightness(1.05) drop-shadow(-1px 1px 0 rgba(0, 245, 255, 0.25)) drop-shadow(1px -1px 0 rgba(244, 63, 94, 0.25));
+}
+html[data-screen-filter="arcane_painterly_brushwork"] body::before {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+  background-size: 6px 6px;
+}
+
+/* 18. Substance 3D PBR Specular & Normal Map (substance_pbr_albedo_normal) */
+html[data-screen-filter="substance_pbr_albedo_normal"] {
+  filter: contrast(1.22) saturate(1.18) brightness(1.07);
+}
+html[data-screen-filter="substance_pbr_albedo_normal"] body::before {
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.08) 0%, transparent 40%, rgba(56, 189, 248, 0.08) 100%);
+}
+
+/* 19. Spider-Verse Ben-Day Halftone (halftone_comic_spiderverse) */
+html[data-screen-filter="halftone_comic_spiderverse"] {
+  filter: contrast(1.28) saturate(1.52) brightness(1.05) drop-shadow(-1.5px 0 0 rgba(255, 0, 90, 0.32)) drop-shadow(1.5px 0 0 rgba(0, 245, 255, 0.32));
+}
+html[data-screen-filter="halftone_comic_spiderverse"] body::before {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1.2px, transparent 1.2px);
+  background-size: 5px 5px;
+}
+
+/* 20. Cyberpunk Chromatic RGB Lens (cyberpunk_chromatic_rgb) */
+html:is([data-screen-filter="cyberpunk_chromatic_rgb"], [data-screen-filter="cyberpunk_chromatic_prism"]) {
+  filter: contrast(1.16) saturate(1.48) brightness(1.06) drop-shadow(-1.5px 0 0 rgba(255, 0, 90, 0.35)) drop-shadow(1.5px 0 0 rgba(0, 245, 255, 0.35));
+}
+html:is([data-screen-filter="cyberpunk_chromatic_rgb"], [data-screen-filter="cyberpunk_chromatic_prism"]) body::before {
+  background:
+    linear-gradient(135deg, rgba(255, 0, 128, 0.09) 0%, transparent 45%, rgba(0, 245, 255, 0.09) 100%),
+    repeating-linear-gradient(0deg, rgba(0, 245, 255, 0.04) 0 1px, transparent 1px 4px);
+}
+
+/* 21. 1999 Nebuchadnezzar Matrix Grade (matrix_code_phosphor) */
+html:is([data-screen-filter="matrix_code_phosphor"], [data-screen-filter="matrix_construct_green"]) {
+  filter: sepia(0.45) hue-rotate(64deg) saturate(1.9) contrast(1.22);
+}
+html:is([data-screen-filter="matrix_code_phosphor"], [data-screen-filter="matrix_construct_green"]) body::before {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.08), rgba(0, 0, 0, 0.42) 100%),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.2) 0 1px, transparent 1px 3px);
+}
+
+/* 22. Star Wars Holo-Projector Scan (hologram_pepper_ghost) */
+html[data-screen-filter="hologram_pepper_ghost"] {
+  filter: sepia(0.55) hue-rotate(155deg) saturate(2.3) contrast(1.18) brightness(1.08);
+}
+html[data-screen-filter="hologram_pepper_ghost"] body::before {
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 240, 255, 0.09) 0 1px, transparent 1px 3px),
+    radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.1), rgba(0, 0, 0, 0.45) 100%);
+}
+
+/* 23. Gen-3 Tactical Night Vision NVG (night_vision_gen3) */
+html:is([data-screen-filter="night_vision_gen3"], [data-screen-filter="night_vision_gen3_nvg"]) {
+  filter: sepia(0.82) hue-rotate(76deg) saturate(2.3) contrast(1.24) brightness(1.08);
+}
+html:is([data-screen-filter="night_vision_gen3"], [data-screen-filter="night_vision_gen3_nvg"]) body::before {
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px),
+    radial-gradient(circle at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.65) 100%);
+}
+
+/* 24. FLIR Thermal Infrared Camera (flir_thermal_infrared) */
+html:is([data-screen-filter="flir_thermal_infrared"], [data-screen-filter="thermal_flir_predator"]) {
+  filter: hue-rotate(195deg) saturate(2.4) contrast(1.28) brightness(1.06);
+}
+html:is([data-screen-filter="flir_thermal_infrared"], [data-screen-filter="thermal_flir_predator"]) body::before {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(250, 204, 21, 0.1), rgba(236, 72, 153, 0.14) 55%, rgba(30, 27, 75, 0.35) 100%);
+}
+
+/* 25. X-Ray & Cyanotype Radiograph (blueprint_xray_neg) */
+html:is([data-screen-filter="blueprint_xray_neg"], [data-screen-filter="blueprint_cyanotype_cad"]) {
+  filter: sepia(0.85) hue-rotate(155deg) saturate(2.2) contrast(1.18);
+}
+html:is([data-screen-filter="blueprint_xray_neg"], [data-screen-filter="blueprint_cyanotype_cad"]) body::before {
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 24px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 24px);
+}
+
+/* 26. Kindle E-Ink Carta Matte Paper (e_ink_carta_paper) */
+html:is([data-screen-filter="e_ink_carta_paper"], [data-screen-filter="e_ink_carta_1300_paper"]) {
+  filter: grayscale(0.92) sepia(0.14) contrast(1.15) brightness(1.04);
+}
+
+/* 27. 2700K Candlelight Eye Shield (night_shift_warm_2700k) */
+html[data-screen-filter="night_shift_warm_2700k"] {
+  filter: sepia(0.36) hue-rotate(-10deg) saturate(1.16) brightness(0.98);
+}
+html[data-screen-filter="night_shift_warm_2700k"] body::before {
+  background: radial-gradient(circle at 50% 50%, rgba(251, 146, 60, 0.12), rgba(245, 158, 11, 0.08) 100%);
+}
+
+/* 28. Pro Display XDR 1600-Nit Vivid (pro_display_xdr_vivid) */
+html:is([data-screen-filter="pro_display_xdr_vivid"], [data-screen-filter="apple_xdr_1600_nit_vivid"]) {
+  filter: contrast(1.18) saturate(1.32) brightness(1.09);
+}
+html:is([data-screen-filter="pro_display_xdr_vivid"], [data-screen-filter="apple_xdr_1600_nit_vivid"]) body::before {
+  background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.08), transparent 60%);
+}
+
+/* 29. Apple Studio Nano-Texture Matte (nano_texture_matte_glass) */
+html[data-screen-filter="nano_texture_matte_glass"] {
+  filter: contrast(1.04) saturate(1.06) brightness(1.03);
+}
+html[data-screen-filter="nano_texture_matte_glass"] body::before {
+  background: radial-gradient(circle at 50% 25%, rgba(255, 255, 255, 0.05), transparent 70%);
+}
+
+/* 30. Tiffen Black Pro-Mist 1/4 Bloom (dreamcore_bloom_soft) */
+html[data-screen-filter="dreamcore_bloom_soft"] {
+  filter: contrast(1.05) saturate(1.22) brightness(1.07) drop-shadow(0 0 6px rgba(255, 255, 255, 0.18));
+}
+html[data-screen-filter="dreamcore_bloom_soft"] body::before {
+  background: radial-gradient(circle at 50% 30%, rgba(244, 114, 182, 0.1), rgba(56, 189, 248, 0.08) 100%);
+}
+
+/* 31. Deep-Sea Submersible Caustic Lens (underwater_aquatic_refraction) */
+html[data-screen-filter="underwater_aquatic_refraction"] {
+  filter: hue-rotate(8deg) saturate(1.32) contrast(1.12);
+}
+html[data-screen-filter="underwater_aquatic_refraction"] body::before {
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(0, 245, 212, 0.12), transparent 55%),
+    radial-gradient(ellipse at 75% 80%, rgba(14, 165, 233, 0.14), rgba(0, 0, 0, 0.35) 100%);
+}
+
+/* 32. 1984 Outrun Magenta-Cyan Grade (synthwave_sunset_grade) */
+html:is([data-screen-filter="synthwave_sunset_grade"], [data-screen-filter="vaporwave_vhs_sunset"]) {
+  filter: hue-rotate(14deg) saturate(1.52) contrast(1.14);
+}
+html:is([data-screen-filter="synthwave_sunset_grade"], [data-screen-filter="vaporwave_vhs_sunset"]) body::before {
+  background:
+    linear-gradient(180deg, rgba(244, 63, 94, 0.12) 0%, rgba(168, 85, 247, 0.08) 50%, rgba(0, 240, 255, 0.12) 100%);
+}
+
+/* 33. Dichroic Prism Chromatic Lens (kaleidoscope_prism_lens) */
+html:is([data-screen-filter="kaleidoscope_prism_lens"], [data-screen-filter="holo_iridescent_foil"]) {
+  filter: saturate(1.48) contrast(1.14) brightness(1.06);
+}
+html:is([data-screen-filter="kaleidoscope_prism_lens"], [data-screen-filter="holo_iridescent_foil"]) body::before {
+  background:
+    linear-gradient(125deg, rgba(255, 0, 128, 0.1) 0%, rgba(250, 204, 21, 0.09) 28%, rgba(0, 245, 212, 0.1) 56%, rgba(56, 189, 248, 0.1) 78%, rgba(168, 85, 247, 0.12) 100%);
+}
+
+/* ============================================================================
+   AAA COMPUTER ICON MATERIAL FINISH ENGINE (data-icon-finish)
+   Mirrors authentic macOS Aqua/Tahoe, Windows 11 Fluent, Pro Titanium,
+   Neumorphic Keycap, Prismatic Collector Foil & Holiday Ornament silhouettes.
+   Applies identity individual transforms (translate / rotate / scale) on base
+   icon elements so hover/active/animation state changes composite on GPU.
+   ============================================================================ */
+.row .c-icon,
+.theme-icon-stage-specimen .c-icon {
+  translate: 0px 0px;
+  rotate: 0deg;
+  scale: 1;
+  transition: translate 180ms cubic-bezier(0.22, 1, 0.36, 1), rotate 180ms cubic-bezier(0.22, 1, 0.36, 1), scale 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease;
+}
+.row:hover .c-icon {
+  translate: 0px -1.5px;
+  scale: 1.07;
+}
+
+/* 1. macOS Aqua & Tahoe 3D Glass (macos_aqua_glass) */
+html[data-icon-finish="macos_aqua_glass"] .row.is-folder .c-icon {
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.34) 0%, rgba(14, 165, 233, 0.22) 52%, rgba(2, 132, 199, 0.32) 100%);
+  border: 1px solid rgba(186, 230, 253, 0.58);
+  border-radius: 8px;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.72),
+    inset 0 -2px 4px rgba(3, 105, 161, 0.35),
+    0 4px 10px -2px rgba(14, 165, 233, 0.32);
+}
+html[data-icon-finish="macos_aqua_glass"] .row:not(.is-folder) .c-icon {
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.24) 0%, rgba(148, 163, 184, 0.14) 100%);
+  border: 1px solid rgba(226, 232, 240, 0.45);
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), 0 3px 8px -2px rgba(15, 23, 42, 0.25);
+}
+
+/* 2. Windows 11 Fluent Acrylic & Mica (win11_fluent_acrylic) */
+html[data-icon-finish="win11_fluent_acrylic"] .row.is-folder .c-icon {
+  background: linear-gradient(145deg, rgba(251, 191, 36, 0.34) 0%, rgba(245, 158, 11, 0.24) 60%, rgba(56, 189, 248, 0.25) 100%);
+  border: 1px solid rgba(253, 224, 71, 0.52);
+  border-radius: 7px;
+  box-shadow:
+    inset 0 1px 0 rgba(254, 249, 195, 0.65),
+    0 4px 11px -2px rgba(245, 158, 11, 0.28);
+}
+
+/* 3. Pro Studio CNC Anodized Titanium (pro_titanium_anodized) */
+html[data-icon-finish="pro_titanium_anodized"] .row .c-icon {
+  background: linear-gradient(160deg, rgba(71, 85, 105, 0.44) 0%, rgba(15, 23, 42, 0.68) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.48);
+  border-radius: 7px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 0 10px -2px rgba(56, 189, 248, 0.28);
+}
+
+/* 4. Tactile Neumorphic Studio Keycap (neumorphic_tactile_studio) */
+html[data-icon-finish="neumorphic_tactile_studio"] .row .c-icon {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.14), rgba(0, 0, 0, 0.26));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9px;
+  box-shadow:
+    3px 3px 7px rgba(0, 0, 0, 0.42),
+    -2px -2px 5px rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+/* 5. Collector-Grade Prismatic Foil (holographic_collector_grade) */
+html[data-icon-finish="holographic_collector_grade"] .row .c-icon {
+  background: linear-gradient(135deg, rgba(244, 114, 182, 0.3) 0%, rgba(250, 204, 21, 0.26) 33%, rgba(52, 211, 153, 0.28) 66%, rgba(56, 189, 248, 0.34) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  border-radius: 8px;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.72),
+    0 0 12px -2px rgba(236, 72, 153, 0.38);
+}
+
+/* 6. Holiday Grand Celebration Ornament (holiday_grand_celebration) */
+html[data-icon-finish="holiday_grand_celebration"] .row.is-folder .c-icon {
+  background: radial-gradient(circle at 32% 28%, rgba(254, 240, 138, 0.45) 0%, rgba(239, 68, 68, 0.28) 52%, rgba(16, 185, 129, 0.3) 100%);
+  border: 1px solid rgba(250, 204, 21, 0.65);
+  border-radius: 9px;
+  box-shadow:
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.78),
+    0 0 14px -2px rgba(250, 204, 21, 0.45);
+}
+
+/* ============================================================================
+   SUPER-SPECIAL US HOLIDAY THEMES (holiday_* / data-holiday-theme="active")
+   Animated C9 fairy-light toolbar garland, floating per-holiday folder crests,
+   and GPU-composited festive celebration burst particles.
+   ============================================================================ */
+@keyframes fm-holiday-garland-twinkle {
+  0%, 100% {
+    filter: brightness(1) drop-shadow(0 0 5px rgba(250, 204, 21, 0.55));
+  }
+  50% {
+    filter: brightness(1.22) drop-shadow(0 0 10px rgba(244, 63, 94, 0.72));
+  }
+}
+
+@keyframes fm-holiday-crest-bob {
+  0%, 100% {
+    translate: 0px 0px;
+    rotate: -6deg;
+    scale: 1;
+  }
+  50% {
+    translate: 0px -2.5px;
+    rotate: 8deg;
+    scale: 1.14;
+  }
+}
+
+@keyframes fm-holiday-burst-fall {
+  0% {
+    opacity: 0;
+    translate: 0px -24px;
+    rotate: -18deg;
+    scale: 0.55;
+  }
+  15% {
+    opacity: 1;
+    scale: 1.18;
+  }
+  80% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    translate: var(--holiday-drift-x, 24px) 82vh;
+    rotate: 340deg;
+    scale: 0.82;
+  }
+}
+
+html:is([data-holiday-theme="active"], [data-palette^="holiday_"]) .toolbar,
+html:is([data-holiday-theme="active"], [data-palette^="holiday_"]) .crumbs {
+  position: relative;
+  border-bottom: 1.5px solid rgba(250, 204, 21, 0.48);
+  box-shadow:
+    0 4px 18px -4px rgba(250, 204, 21, 0.25),
+    inset 0 -1px 0 rgba(250, 204, 21, 0.35);
+}
+
+html:is([data-holiday-theme="active"], [data-palette^="holiday_"]) .toolbar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 3px;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    90deg,
+    #facc15 0 10px,
+    transparent 10px 18px,
+    #fb7185 18px 28px,
+    transparent 28px 36px,
+    #34d399 36px 46px,
+    transparent 46px 54px,
+    #38bdf8 54px 64px,
+    transparent 64px 72px
+  );
+  animation: fm-holiday-garland-twinkle 2.4s ease-in-out infinite;
+}
+
+.row.is-folder[data-holiday-crest] .c-icon {
+  position: relative;
+}
+
+.row.is-folder[data-holiday-crest] .c-icon::after {
+  content: attr(data-holiday-crest);
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  font-size: 10px;
+  line-height: 1;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.65));
+  translate: 0px 0px;
+  rotate: 0deg;
+  scale: 1;
+  animation: fm-holiday-crest-bob 2.6s ease-in-out infinite;
+}
+
+.fm-holiday-celebration-burst {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  overflow: hidden;
+}
+
+.fm-holiday-burst-particle {
+  position: absolute;
+  top: -12px;
+  font-size: 22px;
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
+  translate: 0px 0px;
+  rotate: 0deg;
+  scale: 1;
+  filter: drop-shadow(0 2px 8px rgba(250, 204, 21, 0.55));
+  animation-name: fm-holiday-burst-fall;
+  animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
+  animation-fill-mode: forwards;
+}
+
+/* ============================================================================
+   AAA 3D DESKTOP STAGE & AMBILUX BACKLIGHT MODES (data-stage-mode)
+   ============================================================================ */
+html[data-stage-mode="ambilux_xdr_halo"] body {
+  box-shadow:
+    inset 0 0 55px -12px var(--fx-glow-color, var(--accent, #38bdf8)),
+    inset 0 0 95px -28px var(--fx-glow-color-2, #a855f7);
+}
+
+html[data-stage-mode="stage_manager_3d_tilt"] .main,
+html[data-stage-mode="stage_manager_3d_tilt"] .workspace-shell {
+  transform: perspective(1600px) rotateY(-1.25deg) rotateX(0.6deg);
+  transform-origin: center center;
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html[data-stage-mode="coverflow_3d_reflection"] .row.is-folder .c-icon {
+  -webkit-box-reflect: below 1px linear-gradient(transparent 55%, rgba(255, 255, 255, 0.22));
+}
+
+html[data-stage-mode="anamorphic_cinema_letterbox"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9990;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0 10px, transparent 10px calc(100% - 10px), rgba(0, 0, 0, 0.55) calc(100% - 10px) 100%),
+    linear-gradient(90deg, transparent 15%, rgba(56, 189, 248, 0.08) 50%, transparent 85%);
+}
+
+html[data-stage-mode="isometric_architect_table"] .main {
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+html[data-stage-mode="holodeck_grid_horizon"] body {
+  background-image:
+    radial-gradient(circle at 50% 100%, rgba(56, 189, 248, 0.16), transparent 60%),
+    repeating-linear-gradient(90deg, rgba(56, 189, 248, 0.05) 0 1px, transparent 1px 36px);
+}
+
+html[data-stage-mode="holiday_snowglobe_dome"] body {
+  box-shadow:
+    inset 0 0 65px -10px rgba(250, 204, 21, 0.32),
+    inset 0 0 120px -24px rgba(56, 189, 248, 0.25);
+}
+
+/* ============================================================================
+   AAA HOLOGRAPHIC POINTER REVEAL & 120HZ CURSOR TRAIL ENGINE (data-cursor-trail)
+   Uses @property --fm-spot-inner & --fm-spot-outer radial-gradient masks
+   ============================================================================ */
+@property --fm-spot-inner {
+  syntax: "<length-percentage>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --fm-spot-outer {
+  syntax: "<length-percentage>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+.fm-cursor-spotlight-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9997;
+  overflow: hidden;
+  --fm-spot-inner: 0px;
+  --fm-spot-outer: 0px;
+  transition:
+    --fm-spot-inner 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    --fm-spot-outer 460ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fm-cursor-spotlight-layer.is-active {
+  --fm-spot-inner: 26px;
+  --fm-spot-outer: 240px;
+}
+
+.fm-cursor-spotlight-layer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at var(--fm-mouse-x, 50%) var(--fm-mouse-y, 50%),
+      color-mix(in oklab, var(--fx-glow-color, var(--accent, #38bdf8)) 26%, transparent) 0%,
+      color-mix(in oklab, var(--fx-glow-color-2, #a855f7) 14%, transparent) 42%,
+      transparent 75%
+    );
+  -webkit-mask-image: radial-gradient(
+    circle at var(--fm-mouse-x, 50%) var(--fm-mouse-y, 50%),
+    black var(--fm-spot-inner, 0px),
+    transparent var(--fm-spot-outer, 0px)
+  );
+  mask-image: radial-gradient(
+    circle at var(--fm-mouse-x, 50%) var(--fm-mouse-y, 50%),
+    black var(--fm-spot-inner, 0px),
+    transparent var(--fm-spot-outer, 0px)
+  );
+  mix-blend-mode: screen;
+}
+
+html[data-cursor-trail="flash_2advanced_crosshair"] .fm-cursor-spotlight-layer::after {
+  content: "";
+  position: absolute;
+  left: var(--fm-mouse-x, -100px);
+  top: var(--fm-mouse-y, -100px);
+  width: 34px;
+  height: 34px;
+  margin-left: -17px;
+  margin-top: -17px;
+  border: 1px dashed rgba(56, 189, 248, 0.72);
+  border-radius: 50%;
+  pointer-events: none;
+  translate: 0px 0px;
+  rotate: 0deg;
+  scale: 1;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.45);
+  animation: fm-cursor-crosshair-spin 4.2s linear infinite;
+}
+
+@keyframes fm-cursor-crosshair-spin {
+  0% { rotate: 0deg; scale: 1; }
+  50% { rotate: 180deg; scale: 1.08; }
+  100% { rotate: 360deg; scale: 1; }
+}
+
+.fm-cursor-trail-particle {
+  position: absolute;
+  margin-left: -8px;
+  margin-top: -8px;
+  font-size: 13px;
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
+  translate: 0px 0px;
+  rotate: 0deg;
+  scale: 1;
+  filter: drop-shadow(0 0 8px var(--fx-glow-color, var(--accent, #38bdf8)));
+  animation: fm-cursor-particle-drift 680ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes fm-cursor-particle-drift {
+  0% {
+    opacity: 0.95;
+    translate: 0px 0px;
+    rotate: 0deg;
+    scale: 1.1;
+  }
+  100% {
+    opacity: 0;
+    translate: var(--fm-trail-dx, 14px) var(--fm-trail-dy, -22px);
+    rotate: var(--fm-trail-rot, 65deg);
+    scale: 0.25;
+  }
+}
+
+/* ============================================================================
+   AAA SPRING-LOADED 3D FOLDER HOVER & PEEK ENGINE (data-folder-spring)
+   Uses individual transform properties with identity transforms on base rows
+   ============================================================================ */
+html[data-folder-spring]:not([data-folder-spring="off"]) .row.is-folder,
+html[data-folder-spring]:not([data-folder-spring="off"]) .row.is-folder .c-icon {
+  translate: 0px 0px;
+  rotate: 0deg;
+  scale: 1;
+  transition:
+    translate 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    rotate 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    scale 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 220ms ease,
+    box-shadow 220ms ease;
+}
+
+html[data-folder-spring="macos_spring_loaded"] .row.is-folder:hover .c-icon {
+  translate: 0px -3px;
+  rotate: -8deg;
+  scale: 1.24;
+  filter: drop-shadow(0 6px 14px rgba(56, 189, 248, 0.55));
+}
+
+html[data-folder-spring="spatial_glass_extrude"] .row.is-folder:hover {
+  translate: 4px -2px;
+  scale: 1.012;
+  box-shadow:
+    0 10px 26px -8px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.24);
+}
+html[data-folder-spring="spatial_glass_extrude"] .row.is-folder:hover .c-icon {
+  translate: 0px -4px;
+  rotate: 0 1 0.2 14deg;
+  scale: 1.28;
+}
+
+/* macOS Dock Bell-Curve Magnification using modern :has() sibling combinators */
+html[data-folder-spring="magnetic_dock_magnify"] .row.is-folder:hover .c-icon {
+  translate: 0px -3px;
+  scale: 1.38;
+  filter: drop-shadow(0 6px 16px var(--fx-glow-color, var(--accent, #38bdf8)));
+}
+html[data-folder-spring="magnetic_dock_magnify"] .row.is-folder:has(+ .row.is-folder:hover) .c-icon,
+html[data-folder-spring="magnetic_dock_magnify"] .row.is-folder:hover + .row.is-folder .c-icon {
+  translate: 0px -1px;
+  scale: 1.18;
+}
+
+html[data-folder-spring="xray_content_wireframe"] .row.is-folder:hover {
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.65), inset 0 0 18px rgba(56, 189, 248, 0.18);
+}
+html[data-folder-spring="xray_content_wireframe"] .row.is-folder:hover .c-icon {
+  scale: 1.22;
+  filter: contrast(1.35) saturate(1.4) drop-shadow(0 0 10px rgba(56, 189, 248, 0.85));
+}
+
+html[data-folder-spring="holiday_gift_unwrap"] .row.is-folder:hover .c-icon {
+  translate: 0px -4px;
+  rotate: 10deg;
+  scale: 1.32;
+  filter: drop-shadow(0 0 14px rgba(250, 204, 21, 0.85)) drop-shadow(0 0 22px rgba(244, 63, 94, 0.55));
+}
+
+/* ============================================================================
+   AAA PROCEDURAL 8K DESKTOP WALLPAPER BACKPLATE ENGINE (data-wallpaper-scene)
+   ============================================================================ */
+html[data-wallpaper-scene="sequoia_redwood_dawn"] body {
+  background-image:
+    radial-gradient(ellipse 90% 55% at 50% 0%, rgba(251, 146, 60, 0.24), transparent 65%),
+    radial-gradient(ellipse 80% 60% at 20% 100%, rgba(16, 185, 129, 0.18), transparent 70%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.35) 0%, rgba(6, 78, 59, 0.22) 100%);
+  background-attachment: fixed;
+}
+
+html[data-wallpaper-scene="tahoe_alpine_lake"] body {
+  background-image:
+    radial-gradient(ellipse 85% 50% at 50% 8%, rgba(56, 189, 248, 0.26), transparent 68%),
+    radial-gradient(ellipse 95% 55% at 50% 100%, rgba(14, 165, 233, 0.22), transparent 65%),
+    linear-gradient(180deg, rgba(12, 74, 110, 0.28) 0%, rgba(15, 23, 42, 0.35) 100%);
+  background-attachment: fixed;
+}
+
+html[data-wallpaper-scene="win11_bloom_sculpture"] body {
+  background-image:
+    radial-gradient(circle 460px at 32% 38%, rgba(37, 99, 235, 0.28), transparent 72%),
+    radial-gradient(circle 420px at 68% 58%, rgba(139, 92, 246, 0.24), transparent 72%),
+    radial-gradient(circle 340px at 50% 48%, rgba(56, 189, 248, 0.2), transparent 68%);
+  background-attachment: fixed;
+}
+
+html[data-wallpaper-scene="tokyo_neon_rain_alley"] body {
+  background-image:
+    radial-gradient(circle 480px at 22% 20%, rgba(236, 72, 153, 0.25), transparent 70%),
+    radial-gradient(circle 520px at 78% 82%, rgba(6, 182, 212, 0.25), transparent 70%),
+    repeating-linear-gradient(102deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 18px);
+  background-attachment: fixed;
+}
+
+html[data-wallpaper-scene="cern_quantum_chamber"] body {
+  background-image:
+    radial-gradient(circle 520px at 50% 50%, rgba(56, 189, 248, 0.2), rgba(245, 158, 11, 0.08) 48%, transparent 72%),
+    repeating-radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.04) 0 1px, transparent 1px 44px);
+  background-attachment: fixed;
+}
+
+html[data-wallpaper-scene="deep_space_jwst_pillars"] body {
+  background-image:
+    radial-gradient(ellipse 70% 55% at 28% 32%, rgba(217, 119, 6, 0.22), transparent 68%),
+    radial-gradient(ellipse 75% 60% at 74% 68%, rgba(99, 102, 241, 0.24), transparent 70%),
+    radial-gradient(circle 280px at 52% 46%, rgba(236, 72, 153, 0.16), transparent 65%);
+  background-attachment: fixed;
+}
+
+html[data-wallpaper-scene="holiday_winter_village"] body {
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(56, 189, 248, 0.24), transparent 66%),
+    radial-gradient(ellipse 70% 50% at 30% 95%, rgba(250, 204, 21, 0.2), transparent 65%),
+    radial-gradient(ellipse 70% 50% at 75% 95%, rgba(239, 68, 68, 0.18), transparent 65%);
+  background-attachment: fixed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-cursor-spotlight-layer,
+  .fm-cursor-trail-particle,
+  html[data-folder-spring]:not([data-folder-spring="off"]) .row.is-folder,
+  html[data-folder-spring]:not([data-folder-spring="off"]) .row.is-folder .c-icon {
+    transition: none !important;
+    animation: none !important;
+  }
+}
 

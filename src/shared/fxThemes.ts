@@ -1579,7 +1579,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#eab308",
         description: "Waterford crystal Times Square ball drop at midnight with champagne bubbles, confetti blizzards, and golden countdown pyrotechnics",
         is_dark: true,
-        fx: { glow: "bloom", glowColor: "#facc15", glowColor2: "#38bdf8", glowIntensity: 0.92, blur: 26, glass: 0.66, saturation: 1.85, grain: "none", scanlines: "none", sheen: true, chromatic: true, radius: "squircle", border: "iridescent", motion: "spring", backdropStyle: "glass", cursorEffect: "prism", vignette: "cinema", prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, parallax: true, ambient: true, atmosphere: "fireworks+confetti+starlight_velvet", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "hyper" },
+        fx: { glow: "bloom", glowColor: "#facc15", glowColor2: "#38bdf8", glowIntensity: 0.92, blur: 26, glass: 0.66, saturation: 1.85, grain: "none", scanlines: "none", sheen: true, chromatic: true, radius: "squircle", border: "iridescent", motion: "spring", backdropStyle: "glass", cursorEffect: "prism", vignette: "cinema", prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, parallax: true, ambient: true, atmosphere: "fireworks+confetti+starlight_velvet", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "hyper", iconAnimation: "raytraced_caustic_refraction" },
     }),
     holiday_mlk_dream_memorial: T({
         name: "MLK Day Lincoln Memorial Sunrise",
@@ -1592,7 +1592,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#d97706",
         description: "Reflecting Pool dawn at the Martin Luther King Jr. Stone of Hope memorial with warm marble sunbeams, olive branch doves, and bell-of-freedom bronze",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#f59e0b", glowColor2: "#60a5fa", glowIntensity: 0.72, blur: 24, glass: 0.6, saturation: 1.5, grain: "subtle", scanlines: "none", sheen: true, radius: "soft", border: "gradient", motion: "calm", backdropStyle: "glass", cursorEffect: "spotlight", vignette: "subtle", frostedRim: true, innerGlow: true, ambient: true, atmosphere: "sunbeams+dust_motes+starlight_velvet", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle" },
+        fx: { glow: "soft", glowColor: "#f59e0b", glowColor2: "#60a5fa", glowIntensity: 0.72, blur: 24, glass: 0.6, saturation: 1.5, grain: "subtle", scanlines: "none", sheen: true, radius: "soft", border: "gradient", motion: "calm", backdropStyle: "glass", cursorEffect: "spotlight", vignette: "subtle", frostedRim: true, innerGlow: true, ambient: true, atmosphere: "sunbeams+dust_motes+starlight_velvet", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle", iconAnimation: "orbital_halo_spin" },
     }),
     holiday_valentines_velvet_rose: T({
         name: "Valentine's Day Velvet Rose & Truffle",
@@ -1605,7 +1605,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#f43f5e",
         description: "Long-stem crimson Baccara roses, gold-leaf Belgian chocolate truffle boxes, silk ribbon wax seals, and floating rose-petal bokeh",
         is_dark: true,
-        fx: { glow: "bloom", glowColor: "#fb7185", glowColor2: "#f472b6", glowIntensity: 0.85, blur: 26, glass: 0.65, saturation: 1.8, grain: "none", scanlines: "none", sheen: true, radius: "pill", border: "gradient", motion: "spring", backdropStyle: "liquid", cursorEffect: "ripple", vignette: "ambient", prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "sakura+cinema_bokeh+starlight_velvet", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "pill", iconGlow: "neon" },
+        fx: { glow: "bloom", glowColor: "#fb7185", glowColor2: "#f472b6", glowIntensity: 0.85, blur: 26, glass: 0.65, saturation: 1.8, grain: "none", scanlines: "none", sheen: true, radius: "pill", border: "gradient", motion: "spring", backdropStyle: "liquid", cursorEffect: "ripple", vignette: "ambient", prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "sakura+cinema_bokeh+starlight_velvet", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "pill", iconGlow: "neon", iconAnimation: "heartbeat_biolum" },
     }),
     holiday_presidents_mount_rushmore: T({
         name: "Presidents' Day Capitol Rotunda & Brass",
@@ -1618,7 +1618,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#eab308",
         description: "Historic Resolute Desk mahogany, Great Seal eagle brass medallions, parchment quill scrolls, and Washington Monument twilight stars",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#fbbf24", glowColor2: "#ef4444", glowIntensity: 0.74, blur: 22, glass: 0.58, saturation: 1.55, grain: "subtle", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "calm", backdropStyle: "glass", cursorEffect: "spotlight", vignette: "cinema", frostedRim: true, innerGlow: true, ambient: true, atmosphere: "starlight_velvet+sunbeams+dust_motes", uiElementFx: "realworld_mahogany_brass", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle" },
+        fx: { glow: "soft", glowColor: "#fbbf24", glowColor2: "#ef4444", glowIntensity: 0.74, blur: 22, glass: 0.58, saturation: 1.55, grain: "subtle", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "calm", backdropStyle: "glass", cursorEffect: "spotlight", vignette: "cinema", frostedRim: true, innerGlow: true, ambient: true, atmosphere: "starlight_velvet+sunbeams+dust_motes", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle", iconAnimation: "c4d_mograph_cloner_wave" },
     }),
     holiday_st_patricks_emerald_clover: T({
         name: "St. Patrick's Celtic Emerald & Gold Coin",
@@ -1631,7 +1631,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#10b981",
         description: "Dew-kissed four-leaf shamrocks, wrought-iron pot of leprechaun gold doubloons, illuminated Book of Kells knotwork, and rainbow prism mist",
         is_dark: true,
-        fx: { glow: "aurora", glowColor: "#10b981", glowColor2: "#facc15", glowIntensity: 0.88, blur: 24, glass: 0.64, saturation: 1.85, grain: "none", scanlines: "none", sheen: true, radius: "squircle", border: "iridescent", motion: "spring", backdropStyle: "liquid", cursorEffect: "prism", vignette: "ambient", prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "bifrost+fireflies+autumn_leaves", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "rounded", cornerProfile: "rounded", iconGlow: "neon" },
+        fx: { glow: "aurora", glowColor: "#10b981", glowColor2: "#facc15", glowIntensity: 0.88, blur: 24, glass: 0.64, saturation: 1.85, grain: "none", scanlines: "none", sheen: true, radius: "squircle", border: "iridescent", motion: "spring", backdropStyle: "liquid", cursorEffect: "prism", vignette: "ambient", prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "bifrost+fireflies+autumn_leaves", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "rounded", cornerProfile: "rounded", iconGlow: "neon", iconAnimation: "holo_foil_shimmer" },
     }),
     holiday_easter_pastel_egg_hunt: T({
         name: "Easter Sunday Fabergé & Pastel Meadow",
@@ -1644,7 +1644,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#7e22ce",
         description: "Sunlit spring crocus meadow with hand-painted porcelain Fabergé eggs, woven willow baskets, marshmallow bunnies, and floating pastel confetti",
         is_dark: false,
-        fx: { glow: "soft", glowColor: "#a855f7", glowColor2: "#14b8a6", glowIntensity: 0.56, blur: 24, glass: 0.74, saturation: 1.55, grain: "none", scanlines: "none", sheen: true, radius: "pill", border: "gradient", motion: "spring", backdropStyle: "acrylic", cursorEffect: "ripple", vignette: "subtle", prismEdge: true, frostedRim: true, innerGlow: true, ambient: true, atmosphere: "sakura+confetti+sunbeams", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "rounded", cornerProfile: "pill", iconGlow: "subtle" },
+        fx: { glow: "soft", glowColor: "#a855f7", glowColor2: "#14b8a6", glowIntensity: 0.56, blur: 24, glass: 0.74, saturation: 1.55, grain: "none", scanlines: "none", sheen: true, radius: "pill", border: "gradient", motion: "spring", backdropStyle: "acrylic", cursorEffect: "ripple", vignette: "subtle", prismEdge: true, frostedRim: true, innerGlow: true, ambient: true, atmosphere: "sakura+confetti+sunbeams", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "rounded", cornerProfile: "pill", iconGlow: "subtle", iconAnimation: "spring_pop_3d" },
     }),
     holiday_mothers_day_botanical_tea: T({
         name: "Mother's Day Peony Conservatory & Porcelain",
@@ -1657,7 +1657,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#be185d",
         description: "Victorian glass conservatory overflowing with pink Sarah Bernhardt peonies, Wedgwood bone-china teacups, pearl brooches, and warm sunbeams",
         is_dark: false,
-        fx: { glow: "soft", glowColor: "#ec4899", glowColor2: "#f59e0b", glowIntensity: 0.52, blur: 24, glass: 0.75, saturation: 1.5, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "calm", backdropStyle: "acrylic", cursorEffect: "ripple", vignette: "subtle", prismEdge: true, frostedRim: true, innerGlow: true, ambient: true, atmosphere: "sakura+sunbeams+cinema_bokeh", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle" },
+        fx: { glow: "soft", glowColor: "#ec4899", glowColor2: "#f59e0b", glowIntensity: 0.52, blur: 24, glass: 0.75, saturation: 1.5, grain: "none", scanlines: "none", sheen: true, radius: "round", border: "gradient", motion: "calm", backdropStyle: "acrylic", cursorEffect: "ripple", vignette: "subtle", prismEdge: true, frostedRim: true, innerGlow: true, ambient: true, atmosphere: "sakura+sunbeams+cinema_bokeh", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle", iconAnimation: "blender_geometry_nodes_bloom" },
     }),
     holiday_memorial_day_poppy_honor: T({
         name: "Memorial Day Arlington Red Poppy & Taps",
@@ -1670,7 +1670,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#ef4444",
         description: "Flanders red remembrance poppies against white headstone marble, brass bugle Taps salute, folded Old Glory stars, and golden dusk rays",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#ef4444", glowColor2: "#fbbf24", glowIntensity: 0.72, blur: 22, glass: 0.58, saturation: 1.5, grain: "subtle", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "calm", backdropStyle: "glass", cursorEffect: "spotlight", vignette: "cinema", frostedRim: true, innerGlow: true, ambient: true, atmosphere: "sunbeams+sakura+starlight_velvet", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle" },
+        fx: { glow: "soft", glowColor: "#ef4444", glowColor2: "#fbbf24", glowIntensity: 0.72, blur: 22, glass: 0.58, saturation: 1.5, grain: "subtle", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "calm", backdropStyle: "glass", cursorEffect: "spotlight", vignette: "cinema", frostedRim: true, innerGlow: true, ambient: true, atmosphere: "sunbeams+sakura+starlight_velvet", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle", iconAnimation: "orbital_halo_spin" },
     }),
     holiday_juneteenth_jubilee_star: T({
         name: "Juneteenth Freedom Starburst & Jubilee",
@@ -1683,7 +1683,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#f59e0b",
         description: "Pan-African red, black, green, and Galveston lone-star gold freedom celebration with brass djembe drums, hibiscus punch, and sky-bursting fireworks",
         is_dark: true,
-        fx: { glow: "bloom", glowColor: "#fbbf24", glowColor2: "#ef4444", glowIntensity: 0.88, blur: 24, glass: 0.62, saturation: 1.85, grain: "none", scanlines: "none", sheen: true, radius: "squircle", border: "gradient", motion: "spring", backdropStyle: "glass", cursorEffect: "prism", vignette: "ambient", prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "fireworks+confetti+embers", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "neon" },
+        fx: { glow: "bloom", glowColor: "#fbbf24", glowColor2: "#ef4444", glowIntensity: 0.88, blur: 24, glass: 0.62, saturation: 1.85, grain: "none", scanlines: "none", sheen: true, radius: "squircle", border: "gradient", motion: "spring", backdropStyle: "glass", cursorEffect: "prism", vignette: "ambient", prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "fireworks+confetti+embers", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "neon", iconAnimation: "houdini_vex_particle_burst" },
     }),
     holiday_fathers_day_leather_den: T({
         name: "Father's Day Walnut Workshop & Chronograph",
@@ -1696,7 +1696,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#ea580c",
         description: "Hand-rubbed saddle leather armchair, burl walnut woodworking planes, mechanical Swiss chronograph gears, and warm bourbon-amber desk lamp glow",
         is_dark: true,
-        fx: { glow: "ember", glowColor: "#fb923c", glowColor2: "#38bdf8", glowIntensity: 0.75, blur: 20, glass: 0.54, saturation: 1.5, grain: "subtle", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "calm", backdropStyle: "matte", cursorEffect: "spotlight", vignette: "cinema", frostedRim: true, innerGlow: true, ambient: true, atmosphere: "dust_motes+sunbeams+embers", uiElementFx: "realworld_mahogany_brass", iconPackStyle: "realworld_objects", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle" },
+        fx: { glow: "ember", glowColor: "#fb923c", glowColor2: "#38bdf8", glowIntensity: 0.75, blur: 20, glass: 0.54, saturation: 1.5, grain: "subtle", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "calm", backdropStyle: "matte", cursorEffect: "spotlight", vignette: "cinema", frostedRim: true, innerGlow: true, ambient: true, atmosphere: "dust_motes+sunbeams+embers", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle", iconAnimation: "clockwork_gear_tick" },
     }),
     holiday_fourth_of_july_fireworks: T({
         name: "4th of July Independence Sky Fireworks",
@@ -1709,7 +1709,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#60a5fa",
         description: "Grand finale chrysanthemum fireworks over the Statue of Liberty harbor with crackling magnesium sparklers, Liberty Bell brass, and red-white-blue trails",
         is_dark: true,
-        fx: { glow: "plasma", glowColor: "#38bdf8", glowColor2: "#ef4444", glowIntensity: 0.94, blur: 24, glass: 0.64, saturation: 1.95, grain: "none", scanlines: "none", sheen: true, chromatic: true, radius: "squircle", border: "iridescent", motion: "snappy", backdropStyle: "glass", cursorEffect: "prism", vignette: "cinema", prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, parallax: true, ambient: true, atmosphere: "fireworks+embers+starfield", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "rounded", cornerProfile: "rounded", iconGlow: "hyper" },
+        fx: { glow: "plasma", glowColor: "#38bdf8", glowColor2: "#ef4444", glowIntensity: 0.94, blur: 24, glass: 0.64, saturation: 1.95, grain: "none", scanlines: "none", sheen: true, chromatic: true, radius: "squircle", border: "iridescent", motion: "snappy", backdropStyle: "glass", cursorEffect: "prism", vignette: "cinema", prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, parallax: true, ambient: true, atmosphere: "fireworks+embers+starfield", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "rounded", cornerProfile: "rounded", iconGlow: "hyper", iconAnimation: "houdini_vex_particle_burst" },
     }),
     holiday_labor_day_rivet_forge: T({
         name: "Labor Day Steelworker Forge & Rivet",
@@ -1722,7 +1722,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#f97316",
         description: "American industrial riveted steel girders, selvedge workwear denim stitch, glowing blacksmith anvil sparks, and locomotive brass gauges",
         is_dark: true,
-        fx: { glow: "ember", glowColor: "#f97316", glowColor2: "#3b82f6", glowIntensity: 0.82, blur: 18, glass: 0.52, saturation: 1.6, grain: "film", scanlines: "none", sheen: true, radius: "sharp", border: "metal", motion: "snappy", backdropStyle: "matte", cursorEffect: "spotlight", vignette: "cinema", frostedRim: true, innerGlow: true, ambient: true, atmosphere: "embers+shrapnel_sparks+dust_motes", uiElementFx: "realworld_mahogany_brass", iconPackStyle: "us_holidays_festive", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "subtle" },
+        fx: { glow: "ember", glowColor: "#f97316", glowColor2: "#3b82f6", glowIntensity: 0.82, blur: 18, glass: 0.52, saturation: 1.6, grain: "film", scanlines: "none", sheen: true, radius: "sharp", border: "metal", motion: "snappy", backdropStyle: "matte", cursorEffect: "spotlight", vignette: "cinema", frostedRim: true, innerGlow: true, ambient: true, atmosphere: "embers+shrapnel_sparks+dust_motes", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "subtle", iconAnimation: "fire_ember_flicker" },
     }),
     holiday_halloween_jack_o_lantern: T({
         name: "Halloween Carved Jack-O'-Lantern & Witching Hour",
@@ -1735,7 +1735,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#f97316",
         description: "Flickering candlelit Jack-O'-Lantern pumpkins on a cobblestone porch, candy corn buckets, gothic wrought-iron gates, and swirling autumn leaves",
         is_dark: true,
-        fx: { glow: "ember", glowColor: "#ff7b00", glowColor2: "#a855f7", glowIntensity: 0.92, blur: 24, glass: 0.62, saturation: 1.9, grain: "film", scanlines: "none", sheen: true, chromatic: true, radius: "squircle", border: "neon", motion: "elastic", backdropStyle: "glass", cursorEffect: "magnetic", vignette: "cinema", prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, parallax: true, ambient: true, atmosphere: "autumn_leaves+embers+fireflies", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "hyper" },
+        fx: { glow: "ember", glowColor: "#ff7b00", glowColor2: "#a855f7", glowIntensity: 0.92, blur: 24, glass: 0.62, saturation: 1.9, grain: "film", scanlines: "none", sheen: true, chromatic: true, radius: "squircle", border: "neon", motion: "elastic", backdropStyle: "glass", cursorEffect: "magnetic", vignette: "cinema", prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, parallax: true, ambient: true, atmosphere: "autumn_leaves+embers+fireflies", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "hyper", iconAnimation: "jelly_squish_3d" },
     }),
     holiday_dia_de_los_muertos_marigold: T({
         name: "Día de los Muertos Cempasúchil Ofrenda",
@@ -1748,7 +1748,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#f59e0b",
         description: "Glowing cempasúchil marigold petal bridges, intricately painted calavera sugar skulls, cut-paper papel picado banners, and warm copal altar candles",
         is_dark: true,
-        fx: { glow: "bloom", glowColor: "#ff9e00", glowColor2: "#ec4899", glowIntensity: 0.9, blur: 26, glass: 0.64, saturation: 1.95, grain: "none", scanlines: "none", sheen: true, chromatic: true, radius: "round", border: "iridescent", motion: "spring", backdropStyle: "glass", cursorEffect: "prism", vignette: "ambient", prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "autumn_leaves+embers+cinema_bokeh", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "hyper" },
+        fx: { glow: "bloom", glowColor: "#ff9e00", glowColor2: "#ec4899", glowIntensity: 0.9, blur: 26, glass: 0.64, saturation: 1.95, grain: "none", scanlines: "none", sheen: true, chromatic: true, radius: "round", border: "iridescent", motion: "spring", backdropStyle: "glass", cursorEffect: "prism", vignette: "ambient", prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "autumn_leaves+embers+cinema_bokeh", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "hyper", iconAnimation: "blender_geometry_nodes_bloom" },
     }),
     holiday_veterans_day_valor_medallion: T({
         name: "Veterans Day Bronze Star & Dress Blue",
@@ -1761,7 +1761,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#ca8a04",
         description: "Cast bronze valor medallions, dress-blue wool bullion braid, engraved dog-tag steel plates, and ceremonial 21-gun salute sunbeams",
         is_dark: true,
-        fx: { glow: "soft", glowColor: "#eab308", glowColor2: "#3b82f6", glowIntensity: 0.74, blur: 20, glass: 0.56, saturation: 1.5, grain: "subtle", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "calm", backdropStyle: "glass", cursorEffect: "spotlight", vignette: "cinema", frostedRim: true, innerGlow: true, ambient: true, atmosphere: "sunbeams+starlight_velvet+dust_motes", uiElementFx: "realworld_mahogany_brass", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle" },
+        fx: { glow: "soft", glowColor: "#eab308", glowColor2: "#3b82f6", glowIntensity: 0.74, blur: 20, glass: 0.56, saturation: 1.5, grain: "subtle", scanlines: "none", sheen: true, radius: "soft", border: "metal", motion: "calm", backdropStyle: "glass", cursorEffect: "spotlight", vignette: "cinema", frostedRim: true, innerGlow: true, ambient: true, atmosphere: "sunbeams+starlight_velvet+dust_motes", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle", iconAnimation: "c4d_mograph_cloner_wave" },
     }),
     holiday_thanksgiving_harvest_hearth: T({
         name: "Thanksgiving New England Harvest Hearth",
@@ -1774,7 +1774,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#d97706",
         description: "Crackling fieldstone hearth fireplace, woven horn-of-plenty cornucopia, copper stockpots, spiced pumpkin pie crust, and drifting maple leaves",
         is_dark: true,
-        fx: { glow: "ember", glowColor: "#f59e0b", glowColor2: "#dc2626", glowIntensity: 0.84, blur: 22, glass: 0.58, saturation: 1.65, grain: "subtle", scanlines: "none", sheen: true, radius: "soft", border: "gradient", motion: "calm", backdropStyle: "matte", cursorEffect: "spotlight", vignette: "cinema", frostedRim: true, innerGlow: true, ambient: true, atmosphere: "autumn_leaves+embers+dust_motes", uiElementFx: "realworld_mahogany_brass", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle" },
+        fx: { glow: "ember", glowColor: "#f59e0b", glowColor2: "#dc2626", glowIntensity: 0.84, blur: 22, glass: 0.58, saturation: 1.65, grain: "subtle", scanlines: "none", sheen: true, radius: "soft", border: "gradient", motion: "calm", backdropStyle: "matte", cursorEffect: "spotlight", vignette: "cinema", frostedRim: true, innerGlow: true, ambient: true, atmosphere: "autumn_leaves+embers+dust_motes", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle", iconAnimation: "fire_ember_flicker" },
     }),
     holiday_hanukkah_menorah_sapphire: T({
         name: "Hanukkah Silver Menorah & Dreidel Sapphire",
@@ -1787,7 +1787,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#0ea5e9",
         description: "Polished sterling-silver hanukkiah with nine dancing olive-oil flames, spinning cobalt-glass dreidels, foil-wrapped gelt coins, and starlight",
         is_dark: true,
-        fx: { glow: "bloom", glowColor: "#38bdf8", glowColor2: "#facc15", glowIntensity: 0.88, blur: 26, glass: 0.66, saturation: 1.75, grain: "none", scanlines: "none", sheen: true, radius: "squircle", border: "gradient", motion: "spring", backdropStyle: "glass", cursorEffect: "prism", vignette: "ambient", prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "starlight_velvet+embers+cinema_bokeh", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "neon" },
+        fx: { glow: "bloom", glowColor: "#38bdf8", glowColor2: "#facc15", glowIntensity: 0.88, blur: 26, glass: 0.66, saturation: 1.75, grain: "none", scanlines: "none", sheen: true, radius: "squircle", border: "gradient", motion: "spring", backdropStyle: "glass", cursorEffect: "prism", vignette: "ambient", prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "starlight_velvet+embers+cinema_bokeh", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "neon", iconAnimation: "raytraced_caustic_refraction" },
     }),
     holiday_christmas_nutcracker_hearth: T({
         name: "Christmas Eve Nutcracker Pine & Evergreen",
@@ -1800,7 +1800,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#22c55e",
         description: "Douglas fir boughs strung with warm C9 incandescent fairy lights, hand-blown mercury glass ornaments, peppermint candy canes, and gently falling snow",
         is_dark: true,
-        fx: { glow: "bloom", glowColor: "#ef4444", glowColor2: "#22c55e", glowIntensity: 0.9, blur: 26, glass: 0.66, saturation: 1.85, grain: "none", scanlines: "none", sheen: true, radius: "squircle", border: "gradient", motion: "spring", backdropStyle: "glass", cursorEffect: "prism", vignette: "cinema", prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, parallax: true, ambient: true, atmosphere: "snow+cinema_bokeh+embers", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "hyper" },
+        fx: { glow: "bloom", glowColor: "#ef4444", glowColor2: "#22c55e", glowIntensity: 0.9, blur: 26, glass: 0.66, saturation: 1.85, grain: "none", scanlines: "none", sheen: true, radius: "squircle", border: "gradient", motion: "spring", backdropStyle: "glass", cursorEffect: "prism", vignette: "cinema", prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, parallax: true, ambient: true, atmosphere: "snow+cinema_bokeh+embers", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "hyper", iconAnimation: "godmode_pantheon_ascend" },
     }),
 
     // -----------------------------------------------------------------------------------------------------------------

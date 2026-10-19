@@ -72,10 +72,10 @@ const stepId = (ch: Chapter, i: number) => `${ch.id}_${String(i).padStart(2, "0"
 
 interface Spoken { file: string; seconds: number }
 
-async function makeAudio(shard: [number, number] | null) {
+async function makeAudio(shard: [number, number] | null, targetChapters: Chapter[] = chapters) {
   mkdirSync(AUDIO, { recursive: true });
   let n = 0;
-  for (const ch of chapters) {
+  for (const ch of targetChapters) {
     for (let i = 0; i < ch.steps.length; i++) {
       if (shard && n++ % shard[1] !== shard[0]) continue;
       const id = stepId(ch, i);
@@ -223,13 +223,13 @@ function buildChapter(ch: Chapter, tl: Timeline): string {
   });
   writeFileSync(join(work, "list.txt"), lines.join("\n"));
   const audio = join(work, "audio.m4a");
-  sh([FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", join(work, "list.txt"), "-c:a", "aac", "-b:a", "192k", audio], { quiet: true });
+  sh([FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", join(work, "list.txt"), "-c:a", "aac", "-b:a", "256k", audio], { quiet: true });
 
   const total = tl.steps.at(-1)!.end;
   if (ch.kind === "card") {
     const png = join(ASSETS, `card_${ch.id}.png`);
     screenshotHtml(cardHtml(ch.card!.kicker, ch.card!.title, ch.card!.lines), png, ASSETS);
-    sh([FFMPEG, "-y", "-loop", "1", "-i", png, "-i", audio, "-c:v", "libx264", "-tune", "stillimage", "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p", "-t", total.toFixed(3), "-r", "30", out], { quiet: true });
+    sh([FFMPEG, "-y", "-loop", "1", "-i", png, "-i", audio, "-c:v", "libx264", "-tune", "stillimage", "-crf", "14", "-c:a", "aac", "-b:a", "256k", "-pix_fmt", "yuv420p", "-t", total.toFixed(3), "-r", "30", out], { quiet: true });
   } else {
     const strips = tl.steps.map((st, i) => ({ png: stripPng(ch.chapter, ch.title, st.cap, i + 1, tl.steps.length), st }));
     const inputs = ["-i", tl.clip, ...strips.flatMap((s) => ["-i", s.png]), "-i", audio];
@@ -239,7 +239,7 @@ function buildChapter(ch: Chapter, tl: Timeline): string {
       const t2 = i === strips.length - 1 ? total + 1 : s.st.end;
       graph += `;[b${i}][${i + 1}:v]overlay=0:0:enable='between(t,${t1.toFixed(3)},${t2.toFixed(3)})'[b${i + 1}]`;
     });
-    sh([FFMPEG, "-y", ...inputs, "-filter_complex", graph, "-map", `[b${strips.length}]`, "-map", `${strips.length + 1}:a`, "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-t", total.toFixed(3), out], { quiet: true });
+    sh([FFMPEG, "-y", ...inputs, "-filter_complex", graph, "-map", `[b${strips.length}]`, "-map", `${strips.length + 1}:a`, "-c:v", "libx264", "-preset", "medium", "-crf", "14", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "256k", "-t", total.toFixed(3), out], { quiet: true });
   }
   rmSync(work, { recursive: true, force: true });
   return out;
@@ -250,7 +250,7 @@ function chapterCard(ch: Chapter, n: number, of: number): string {
   const out = join(SEG, `${ch.id}_card.mp4`);
   const png = join(ASSETS, `chapter_${ch.id}.png`);
   screenshotHtml(cardHtml(`Chapter ${n} of ${of}`, ch.title, ch.blurb ? [ch.blurb] : []), png, ASSETS);
-  sh([FFMPEG, "-y", "-loop", "1", "-i", png, "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-c:v", "libx264", "-tune", "stillimage", "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p", "-t", "3.5", "-r", "30", out], { quiet: true });
+  sh([FFMPEG, "-y", "-loop", "1", "-i", png, "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-c:v", "libx264", "-tune", "stillimage", "-crf", "14", "-c:a", "aac", "-b:a", "256k", "-pix_fmt", "yuv420p", "-t", "3.5", "-r", "30", out], { quiet: true });
   return out;
 }
 
@@ -344,10 +344,22 @@ if (phase === "list") {
 } else {
   mkdirSync(OUT, { recursive: true });
   const selected = chapters.filter((c) => !only.length || only.includes(c.id));
-  if (phase === "audio" || phase === "all") await makeAudio(shard);
+  if (phase === "audio" || phase === "all") await makeAudio(shard, selected);
   if (phase === "record" || phase === "all") {
     await S.start();
     try { for (const ch of selected) await recordChapter(ch); } finally { S.stop(); }
+  }
+  if (phase === "segments") {
+    const numbered = chapters.filter((c) => c.kind !== "card");
+    for (const ch of selected) {
+      if (ch.kind === "external") continue;
+      const tlFile = join(TIMELINES, `${ch.id}.json`);
+      if (!existsSync(tlFile)) throw new Error(`chapter ${ch.id} has not been recorded`);
+      const tl: Timeline = JSON.parse(readFileSync(tlFile, "utf8"));
+      if (ch.kind !== "card") chapterCard(ch, numbered.indexOf(ch) + 1, numbered.length);
+      const seg = buildChapter(ch, tl);
+      console.log(`  ✓ segment ${ch.id}  ${fmtTime(durationOf(seg))} -> ${seg}`);
+    }
   }
   if (phase === "build" || phase === "all") assemble();
   void chmodSync;

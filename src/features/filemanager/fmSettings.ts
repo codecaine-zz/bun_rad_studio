@@ -78,6 +78,20 @@ export interface Settings {
   uiElementFx: UiElementFx;
   /** Custom visual icon pack style that transforms folder, file, and toolbar icons across the File Manager. */
   iconPackStyle: IconPackStyle;
+  /** Optional display & camera lens screen filter (CRT Trinitron, Amber/Green Phosphor, VHS, Game Boy, Kodachrome, Night Vision, FLIR Thermal, E-Ink, XDR Vivid, etc.) layered on top of any theme. */
+  screenFilter: ScreenFilterMode;
+  /** Physical OS computer icon material finish ("off" | "macos_aqua_glass" | "win11_fluent_acrylic" | "pro_titanium_anodized" | "neumorphic_tactile_studio" | "holographic_collector_grade" | "holiday_grand_celebration"). */
+  iconFinishMode: IconFinishMode;
+  /** Interactive 3D Desktop Stage & Ambilux Backlight mode ("off" | "ambilux_xdr_halo" | "stage_manager_3d_tilt" | "coverflow_3d_reflection" | "anamorphic_cinema_letterbox" | "isometric_architect_table" | "holodeck_grid_horizon" | "holiday_snowglobe_dome"). */
+  workspaceStageMode: WorkspaceStageMode;
+  /** Procedural WebAudio tactile UI soundscape & foley profile ("off" | "apple_hig_tactile" | "mechanical_thock_pro" | "teenage_synth_op1" | "scifi_lcars_bridge" | "retro_crt_arcade" | "cinema_sub_boom" | "holiday_chimes_festive"). */
+  uiSoundProfile: UiSoundProfile;
+  /** Interactive holographic pointer spotlight & 120Hz cursor trail mode ("off" | "holo_prism_spotlight" | "stardust_comet_tail" | "flash_2advanced_crosshair" | "matrix_digital_wake" | "cyber_plasma_arc" | "sakura_petal_breeze" | "holiday_magic_wand"). */
+  cursorTrailMode: CursorTrailMode;
+  /** Spring-loaded 3D folder hover/selection behavior ("off" | "macos_spring_loaded" | "spatial_glass_extrude" | "magnetic_dock_magnify" | "xray_content_wireframe" | "holiday_gift_unwrap"). */
+  folderSpringMode: FolderSpringMode;
+  /** Procedural 8K desktop wallpaper backplate scene ("off" | "sequoia_redwood_dawn" | "tahoe_alpine_lake" | "win11_bloom_sculpture" | "tokyo_neon_rain_alley" | "cern_quantum_chamber" | "deep_space_jwst_pillars" | "holiday_winter_village"). */
+  desktopWallpaperScene: DesktopWallpaperScene;
   /** Visual presentation mode for the built-in Theme Show / Screensaver. */
   themeShowMode: ThemeShowMode;
   /** Curated theme & special effects channel for the Theme Show / Screensaver. */
@@ -212,12 +226,26 @@ export const THEME_CORNER_PROFILES = ["default", "sharp", "chamfer", "chamfered"
 export type ThemeCornerProfile = (typeof THEME_CORNER_PROFILES)[number];
 export const THEME_ICON_GLOWS = ["off", "subtle", "soft", "ambient_p3", "xdr_specular", "neon", "plasma", "hyper"] as const;
 export type ThemeIconGlow = (typeof THEME_ICON_GLOWS)[number];
-export const THEME_ICON_ANIMATIONS = ["off", "spring_pop_3d", "levitate_float", "holo_foil_shimmer", "orbital_halo_spin", "cyber_glitch_pulse", "heartbeat_biolum", "clockwork_gear_tick", "liquid_jelly_morph", "plasma_arc_surge", "fire_ember_flicker", "godmode_pantheon_ascend"] as const;
+export const THEME_ICON_ANIMATIONS = ["off", "spring_pop_3d", "levitate_float", "holo_foil_shimmer", "orbital_halo_spin", "cyber_glitch_pulse", "heartbeat_biolum", "clockwork_gear_tick", "liquid_jelly_morph", "jelly_squish_3d", "plasma_arc_surge", "fire_ember_flicker", "godmode_pantheon_ascend", "folder_3d_spin_turntable", "flash_2advanced_vector_hud", "folder_3d_flip_origami", "gyro_3d_cube_matrix", "flash_fwa_kinetic_eq", "hologram_3d_projector_beam", "quantum_3d_phase_split", "m4_liquid_metal_morph", "houdini_vex_particle_burst", "c4d_mograph_cloner_wave", "after_effects_graph_overshoot", "unreal_nanite_mesh_lod", "blender_geometry_nodes_bloom", "raytraced_caustic_refraction"] as const;
 export type ThemeIconAnimation = (typeof THEME_ICON_ANIMATIONS)[number];
-export const UI_ELEMENT_FX_MODES = ["auto", "off", "tahoe_glass_folders", "fluent_mica_folders", "xdr_titanium_folders", "google_material_folders", "cupertino_ceramic_bevel", "swiss_sapphire_chronograph", "teenage_field_anodized", "blueprint_cad_cyanotype", "kyoto_washi_sumi", "carbon_kevlar_weave", "fire_folders", "slime_drip", "cryo_frost", "tesla_arcs", "storm_wind", "mercury_chrome", "holo_glitch", "void_tentacles", "kaleidoscope_prism", "lava_wax", "acid_warp", "oil_slick_chrome", "shroom_spores", "holiday_festive_glow", "nerd_arcane_runes", "nerd_lcars_hud", "horror_blood_moon", "horror_vhs_static", "realworld_mahogany_brass", "realworld_stained_glass", "screen_melt_ooze", "molten_lava_melt", "crt_magnetic_warp", "fever_dream_ripple", "godmode_omega_halo", "godmode_photonic_crystal", "godmode_dyson_lattice", "godmode_chrono_crystal", "godmode_neural_synapse", "godmode_zero_point_arc"] as const;
+export const UI_ELEMENT_FX_MODES = ["auto", "off", "tahoe_glass_folders", "fluent_mica_folders", "xdr_titanium_folders", "google_material_folders", "cupertino_ceramic_bevel", "swiss_sapphire_chronograph", "teenage_field_anodized", "blueprint_cad_cyanotype", "kyoto_washi_sumi", "carbon_kevlar_weave", "fire_folders", "slime_drip", "cryo_frost", "tesla_arcs", "storm_wind", "mercury_chrome", "holo_glitch", "void_tentacles", "kaleidoscope_prism", "lava_wax", "acid_warp", "oil_slick_chrome", "shroom_spores", "holiday_festive_glow", "nerd_arcane_runes", "nerd_lcars_hud", "horror_blood_moon", "horror_vhs_static", "realworld_mahogany_brass", "realworld_stained_glass", "screen_melt_ooze", "molten_lava_melt", "crt_magnetic_warp", "fever_dream_ripple", "godmode_omega_halo", "godmode_photonic_crystal", "godmode_dyson_lattice", "godmode_chrono_crystal", "godmode_neural_synapse", "godmode_zero_point_arc", "flash_3000_vector_hud", "spinning_3d_holo_folders", "c4d_mograph_extrude_folders", "houdini_procedural_vex_hud"] as const;
 export type UiElementFx = (typeof UI_ELEMENT_FX_MODES)[number];
 export const ICON_PACK_STYLES = ["auto", "default", "macos_tahoe_3d", "win11_fluent_pro", "pro_studio_xdr", "hdr_photo_studio", "linux_papirus_pro", "nordic_minimal", "google_material_3d", "cupertino_hig_studio", "swiss_horology_gold", "teenage_field_synth", "blueprint_cad_pro", "kyoto_zen_ink", "carbon_aerospace", "inferno", "inferno_burn", "slime", "bio_slime", "storm_tempest", "storm_weather", "neon_cyber", "liquid_gems", "liquid_chrome", "cryo_crystal", "retro_pixel", "arcane_glyphs", "xenotech_2126", "psychedelic_trip", "lava_groovy", "op_art_illusion", "us_holidays_festive", "nerd_rpg_arcane", "nerd_scifi_fleet", "nerd_hacker_retro", "horror_crypt", "realworld_objects", "godmode_celestial", "godmode_photonic", "godmode_quantum", "godmode_chrono", "godmode_omni_pantheon", "macos_sequoia_hig", "apple_vision_glass_3d", "dev_polyglot_pro", "creative_cinema_8k", "cyberdeck_matrix_hud", "royal_24k_gold_obsidian", "anime_mecha_neon", "steampunk_brass_clockwork", "bioluminescent_eden", "holo_prismatic_foil", "stained_glass_cathedral_pro", "synthwave_outrun_1984", "nasa_apollo_telemetry", "obsidian_blood_ruby", "aurora_nordic_ice", "vaporwave_marble_plaza", "quantum_superconductor"] as const;
 export type IconPackStyle = (typeof ICON_PACK_STYLES)[number];
+export const SCREEN_FILTER_MODES = ["off", "crt_trinitron_95", "crt_amber_monochrome", "crt_green_p1_apple2", "vhs_camcorder_1994", "gameboy_dmg_olive", "virtual_boy_red_led", "kodachrome_64_film", "technicolor_3strip", "imax_70mm_anamorphic", "cyberpunk_chromatic_rgb", "night_vision_gen3", "flir_thermal_infrared", "blueprint_xray_neg", "sepia_daguerreotype_1888", "noir_sin_city_ink", "e_ink_carta_paper", "night_shift_warm_2700k", "pro_display_xdr_vivid", "nano_texture_matte_glass", "dreamcore_bloom_soft", "vhs_arcade_crt_curvature", "matrix_code_phosphor", "halftone_comic_spiderverse", "underwater_aquatic_refraction", "synthwave_sunset_grade", "hologram_pepper_ghost", "kaleidoscope_prism_lens", "davinci_aces_cct_grade", "nuke_anamorphic_flare_streak", "octane_spectral_iridescence", "red_v_raptor_8k_log", "arcane_painterly_brushwork", "substance_pbr_albedo_normal"] as const;
+export type ScreenFilterMode = (typeof SCREEN_FILTER_MODES)[number];
+export const ICON_FINISH_MODES = ["off", "macos_aqua_glass", "win11_fluent_acrylic", "pro_titanium_anodized", "neumorphic_tactile_studio", "holographic_collector_grade", "holiday_grand_celebration"] as const;
+export type IconFinishMode = (typeof ICON_FINISH_MODES)[number];
+export const WORKSPACE_STAGE_MODE_IDS = ["off", "ambilux_xdr_halo", "stage_manager_3d_tilt", "coverflow_3d_reflection", "anamorphic_cinema_letterbox", "isometric_architect_table", "holodeck_grid_horizon", "holiday_snowglobe_dome"] as const;
+export type WorkspaceStageMode = (typeof WORKSPACE_STAGE_MODE_IDS)[number];
+export const UI_SOUND_PROFILE_IDS = ["off", "apple_hig_tactile", "mechanical_thock_pro", "teenage_synth_op1", "scifi_lcars_bridge", "retro_crt_arcade", "cinema_sub_boom", "holiday_chimes_festive"] as const;
+export type UiSoundProfile = (typeof UI_SOUND_PROFILE_IDS)[number];
+export const CURSOR_TRAIL_MODE_IDS = ["off", "holo_prism_spotlight", "stardust_comet_tail", "flash_2advanced_crosshair", "matrix_digital_wake", "cyber_plasma_arc", "sakura_petal_breeze", "holiday_magic_wand"] as const;
+export type CursorTrailMode = (typeof CURSOR_TRAIL_MODE_IDS)[number];
+export const FOLDER_SPRING_MODE_IDS = ["off", "macos_spring_loaded", "spatial_glass_extrude", "magnetic_dock_magnify", "xray_content_wireframe", "holiday_gift_unwrap"] as const;
+export type FolderSpringMode = (typeof FOLDER_SPRING_MODE_IDS)[number];
+export const DESKTOP_WALLPAPER_SCENE_IDS = ["off", "sequoia_redwood_dawn", "tahoe_alpine_lake", "win11_bloom_sculpture", "tokyo_neon_rain_alley", "cern_quantum_chamber", "deep_space_jwst_pillars", "holiday_winter_village"] as const;
+export type DesktopWallpaperScene = (typeof DESKTOP_WALLPAPER_SCENE_IDS)[number];
 export const THEME_SHOW_MODES = ["cinema_hud", "pure_canvas", "living_desktop", "retro_afterdark"] as const;
 export type ThemeShowMode = (typeof THEME_SHOW_MODES)[number];
 export const THEME_SHOW_CHANNELS = ["all_ultra", "storms_debris", "year_2126", "tesla_physics", "visceral_fx", "linux_retro", "us_holidays", "nerd_complete", "horror_nightmare", "realworld_objects", "favorites"] as const;
@@ -275,6 +303,13 @@ export const DEFAULT_SETTINGS: Settings = {
   themeIconAnimation: "off",
   uiElementFx: "off",
   iconPackStyle: "default",
+  screenFilter: "off",
+  iconFinishMode: "off",
+  workspaceStageMode: "off",
+  uiSoundProfile: "off",
+  cursorTrailMode: "off",
+  folderSpringMode: "off",
+  desktopWallpaperScene: "off",
   themeShowMode: "cinema_hud",
   themeShowChannel: "all_ultra",
   themeShowIntervalSec: 15,
@@ -420,6 +455,13 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     themeIconAnimation: oneOf(r.themeIconAnimation, THEME_ICON_ANIMATIONS, DEFAULT_SETTINGS.themeIconAnimation),
     uiElementFx: oneOf(r.uiElementFx, UI_ELEMENT_FX_MODES, DEFAULT_SETTINGS.uiElementFx),
     iconPackStyle: oneOf(r.iconPackStyle, ICON_PACK_STYLES, DEFAULT_SETTINGS.iconPackStyle),
+    screenFilter: oneOf(r.screenFilter, SCREEN_FILTER_MODES, DEFAULT_SETTINGS.screenFilter),
+    iconFinishMode: oneOf(r.iconFinishMode, ICON_FINISH_MODES, DEFAULT_SETTINGS.iconFinishMode),
+    workspaceStageMode: oneOf(r.workspaceStageMode, WORKSPACE_STAGE_MODE_IDS, DEFAULT_SETTINGS.workspaceStageMode),
+    uiSoundProfile: oneOf(r.uiSoundProfile, UI_SOUND_PROFILE_IDS, DEFAULT_SETTINGS.uiSoundProfile),
+    cursorTrailMode: oneOf(r.cursorTrailMode, CURSOR_TRAIL_MODE_IDS, DEFAULT_SETTINGS.cursorTrailMode),
+    folderSpringMode: oneOf(r.folderSpringMode, FOLDER_SPRING_MODE_IDS, DEFAULT_SETTINGS.folderSpringMode),
+    desktopWallpaperScene: oneOf(r.desktopWallpaperScene, DESKTOP_WALLPAPER_SCENE_IDS, DEFAULT_SETTINGS.desktopWallpaperScene),
     themeShowMode: oneOf(r.themeShowMode, THEME_SHOW_MODES, DEFAULT_SETTINGS.themeShowMode),
     themeShowChannel: oneOf(r.themeShowChannel, THEME_SHOW_CHANNELS, DEFAULT_SETTINGS.themeShowChannel),
     themeShowIntervalSec: typeof r.themeShowIntervalSec === "number" && isFinite(r.themeShowIntervalSec) ? Math.round(Math.min(600, Math.max(5, r.themeShowIntervalSec))) : DEFAULT_SETTINGS.themeShowIntervalSec,

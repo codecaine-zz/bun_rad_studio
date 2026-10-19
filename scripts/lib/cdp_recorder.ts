@@ -340,7 +340,7 @@ export class Cdp {
   async startRecording() {
     this.frames = [];
     this.recording = true;
-    await this.send("Page.startScreencast", { format: "jpeg", quality: 94, maxWidth: 1920, maxHeight: this.height, everyNthFrame: 1 });
+    await this.send("Page.startScreencast", { format: "jpeg", quality: 98, maxWidth: 1920, maxHeight: this.height, everyNthFrame: 1 });
     // The first frame only arrives after something repaints.
     await this.eval(`window.__cc.move(window.__cc.state.x + 1, window.__cc.state.y, 50)`);
   }
@@ -367,8 +367,8 @@ export class Cdp {
     const recordedSec = (frames[frames.length - 1]!.t - frames[0]!.t) / 1000;
     const speed = recordedSec > seconds + 0.2 ? Math.min(1.35, recordedSec / seconds) : 1;
     const retime = speed > 1 ? `setpts=PTS/${speed.toFixed(4)},` : "";
-    const p = Bun.spawnSync([FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", list, "-vf", `fps=30,${retime}tpad=stop_mode=clone:stop_duration=${seconds},scale=1920:${this.height},format=yuv420p`,
-      "-t", seconds.toFixed(3), "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", outPath], { stdout: "ignore", stderr: "pipe" });
+    const p = Bun.spawnSync([FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", list, "-vf", `fps=30,${retime}tpad=stop_mode=clone:stop_duration=${seconds},scale=1920:${this.height}:flags=lanczos,format=yuv420p`,
+      "-t", seconds.toFixed(3), "-c:v", "libx264", "-preset", "medium", "-crf", "14", outPath], { stdout: "ignore", stderr: "pipe" });
     if (p.exitCode !== 0) throw new Error(`clip encode failed: ${p.stderr.toString().slice(-400)}`);
     rmSync(workDir, { recursive: true, force: true });
     return { frames: frames.length, recordedSeconds: recordedSec, speed };

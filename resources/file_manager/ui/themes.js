@@ -5,7 +5,7 @@ import { formatAtmosphereLabel, normalizeAtmosphereSpec, parseAtmosphereIds } fr
 import { applyAtmosphere, cycleAtmosphere, effectiveAtmosphere, savedAtmospherePresets, triggerReactiveImpulse } from "./atmosphereFx.js";
 import { copyToClipboard, flashCopied, readFromClipboard } from "./copyclip.js";
 import { openDialog } from "./dialogs.js";
-import { buttonIconFor, debounce, h, iconForEntry, syncVisibleIcons } from "./dom.js";
+import { HOLIDAY_THEME_CRESTS, buttonIconFor, debounce, h, iconForEntry, resolveHolidayCrestForPalette, syncVisibleIcons } from "./dom.js";
 import { toast } from "./menus.js";
 import { refresh, saveSettings } from "./nav.js";
 import { currentPath, emit, on, state } from "./state.js";
@@ -54,6 +54,10 @@ export const UI_ELEMENT_FX_OPTIONS = [
   { id: "godmode_chrono_crystal", label: "⏳ God-Mode Chrono-Crystalline Vault", desc: "Time-dilated horological sapphire crystal folders with golden astrolabe indices & retrocausal phase shimmer" },
   { id: "godmode_neural_synapse", label: "🧠 God-Mode Akashic Neural Noosphere", desc: "Living bioluminescent synaptic dendrite borders, planetary consciousness pulses & emerald-cyan axon waveguides" },
   { id: "godmode_zero_point_arc", label: "⚛️ God-Mode Zero-Point Vacuum Genesis", desc: "Casimir-cavity quantum vacuum energy arcs, ultraviolet Cherenkov rim glow & sub-atomic femtotech containment" },
+  { id: "flash_3000_vector_hud", label: "⚡ Futuristic Flash 3000 Vector HUD (2Advanced)", desc: "Golden-era 2000s FWA / 2Advanced Flash UI reborn for Year 3000: chamfered vector HUD folder doors, laser scan-brackets & kinetic telemetry sweeps" },
+  { id: "spinning_3d_holo_folders", label: "🌪️ High-End 3D Spinning & Holo-Tilt Folders", desc: "Built for M4 Max / Ultra & RTX workstations: 3D perspective folder cards with continuous 3D turntable emblems, deep parallax shadows & specular rims" },
+  { id: "c4d_mograph_extrude_folders", label: "🎛️ Cinema 4D MoGraph Bevel & Step-Effector", desc: "Master motion-design studio: multi-extruded filleted 3D folder caps, step-effector wave cascade & softbox area-light reflections" },
+  { id: "houdini_procedural_vex_hud", label: "💥 Houdini VEX Procedural Wireframe & Spline HUD", desc: "Master VFX technical director look: procedural VEX bezier splines, normal-vector tangents & volumetric pyro rim glow" },
 ];
 
 /** Custom Icon Pack styles that transform folder and file icons across the File Manager. */
@@ -142,9 +146,23 @@ export const ICON_GLOW_PROFILES = [
   { id: "hyper", label: "Hyper Plasma" },
 ];
 
-/** 12 3D & Shader Icon Animation Choreographies for folders, files, sidebar places, and toolbar action buttons. */
+/** 26 Master Animation, 3D GPU & Futuristic Flash-Reloaded Icon Animation Choreographies for folders, files, sidebar places, and toolbar action buttons. */
 export const ICON_ANIMATION_PROFILES = [
   { id: "off", label: "⏹️ Static (Off)", desc: "Crisp static 3D icons with zero continuous animation" },
+  { id: "folder_3d_spin_turntable", label: "🌪️ 3D Spinning Folder Turntable (Pro GPU)", highEnd3d: true, desc: "High-end 120Hz 3D Y-axis turntable rotation on folders & icons with perspective depth and specular rim flash" },
+  { id: "flash_2advanced_vector_hud", label: "⚡ Futuristic Flash 2Advanced HUD", highEnd3d: true, desc: "2000s FWA / 2Advanced Flash UI evolved to Year 3000: mechanical 3D snap-open, vector targeting reticle & laser scan sweep" },
+  { id: "folder_3d_flip_origami", label: "📂 3D Pop-Up Folder Vault Flip", highEnd3d: true, desc: "3D hinged perspective folder door that swings open along a 3D axis while fanning out holographic documents" },
+  { id: "gyro_3d_cube_matrix", label: "🧊 3D Gyroscopic Gimbal & Cube Spin", highEnd3d: true, desc: "Multi-axis 3D gimbal rotation (rotateX + rotateY + rotateZ) with floating volumetric shadow projection" },
+  { id: "flash_fwa_kinetic_eq", label: "📊 Futuristic Flash Audio-Pulse EQ", highEnd3d: true, desc: "Rhythmic Flash-era graphic equalizer & bass-impulse 3D icon bounce with neon spectrum afterglow" },
+  { id: "hologram_3d_projector_beam", label: "📽️ 3D Hologram Emitter & Laser Scan", highEnd3d: true, desc: "Folders and icons levitate in a 3D hologram projection cone with vertical cyan/gold laser sweeps" },
+  { id: "quantum_3d_phase_split", label: "⚛️ 3D Quantum Stereo Parallax Split", highEnd3d: true, desc: "High-end GPU twin-ghost 3D stereo depth separation where folders phase across parallel planes" },
+  { id: "m4_liquid_metal_morph", label: "💧 M4 Ultra 3D Liquid Mercury Morph", highEnd3d: true, desc: "120Hz liquid-chrome 3D undulation with Display-P3 XDR specular light-bar reflections" },
+  { id: "c4d_mograph_cloner_wave", label: "🎛️ Cinema 4D MoGraph Step-Effector Wave", highEnd3d: true, desc: "Master motion-designer effector cascade: sinusoidal 3D rotation, scale & spring delay across folders and icons" },
+  { id: "houdini_vex_particle_burst", label: "💥 Houdini VEX Curl-Noise Vector Burst", highEnd3d: true, desc: "Procedural VEX curl-noise vector field & micro-fragmentation energy pulse on folders and action buttons" },
+  { id: "after_effects_graph_overshoot", label: "📈 After Effects Speed-Graph Overshoot", highEnd3d: true, desc: "Master animator cubic-bezier velocity-curve snap with Disney-style squash-and-stretch & secondary follow-through" },
+  { id: "unreal_nanite_mesh_lod", label: "🎮 Unreal 5 Nanite Mesh & PBR Clear-Coat", highEnd3d: true, desc: "Real-time micro-polygon wireframe scan transitioning into anisotropic clear-coat 3D specular reflections" },
+  { id: "blender_geometry_nodes_bloom", label: "💠 Blender Geometry Nodes Instance Bloom", highEnd3d: true, desc: "Procedural geometry-nodes radial petal unfolding, normal-mapped rim light & harmonic 3D oscillation" },
+  { id: "raytraced_caustic_refraction", label: "💎 Path-Traced Diamond Caustic Dispersion", highEnd3d: true, desc: "IOR 2.42 diamond prism dispersion with chromatic RGB specular glints and caustic light projection" },
   { id: "spring_pop_3d", label: "🏀 3D Spring Pop & Tilt", desc: "Tactile 3D perspective spring-pop, folder lid opening & specular tilt on hover/focus" },
   { id: "levitate_float", label: "🛸 Zero-G Levitation Float", desc: "Gentle phase-staggered antigravity bobbing & floating drop-shadow depth across folders and files" },
   { id: "holo_foil_shimmer", label: "🌈 Holographic Foil Sweep", desc: "Iridescent 1st-edition collector foil & Display-P3 dichroic light sweep across icon plates" },
@@ -155,8 +173,362 @@ export const ICON_ANIMATION_PROFILES = [
   { id: "liquid_jelly_morph", label: "🫧 Liquid Glass Jelly Morph", desc: "Elastic surface-tension squash-and-stretch with refractive caustic wobble" },
   { id: "plasma_arc_surge", label: "🌩️ High-Voltage Plasma Surge", desc: "Tesla coil electric corona discharge & high-voltage arc flicker around active icons" },
   { id: "fire_ember_flicker", label: "🔥 Forged Ember & Thermal Flicker", desc: "Rising forge heat-haze, dancing ember glow & molten rim pulsation on folders and buttons" },
-  { id: "godmode_pantheon_ascend", label: "👑 God-Mode Pantheon Ascension", desc: "Ultimate multi-layered 3D levitation, prismatic foil sweep, orbital crown halo & responsive spring physics" },
+  { id: "godmode_pantheon_ascend", label: "👑 God-Mode Pantheon Ascension", highEnd3d: true, desc: "Ultimate multi-layered 3D levitation, prismatic foil sweep, orbital crown halo & responsive spring physics" },
 ];
+
+/**
+ * 34 Beloved Built-In Display, CRT, Master Colorist, VFX Compositor, Retro Handheld, Analog Film & Camera Lens Screen Filters (`data-screen-filter`).
+ * Can be toggled or cycled anytime (`Alt+F` / `⌥F` or `Alt+Shift+F` / `⌥⇧F`) on top of ANY theme without altering colors or icons!
+ */
+export const SCREEN_FILTER_PRESETS = [
+  { id: "off", label: "⏹️ Off (Native Display)", category: "Standard", desc: "Unfiltered native Display-P3 / sRGB precision output" },
+  { id: "crt_trinitron_95", label: "📺 Sony Trinitron CRT '95", category: "Retro CRT", desc: "Aperture-grille RGB phosphor triads, fine scanlines, warm 6500K halation & curved glass bezel vignette" },
+  { id: "crt_amber_monochrome", label: "🟠 IBM 5151 Amber Phosphor CRT", category: "Retro CRT", desc: "Classic 1983 warm amber P3 monochrome terminal phosphor glow & horizontal raster scanlines" },
+  { id: "crt_green_p1_apple2", label: "🟢 Apple II / VT100 Green P1 CRT", category: "Retro CRT", desc: "Iconic emerald-green P1 phosphor persistence, scanline grille & vintage terminal bloom" },
+  { id: "vhs_arcade_crt_curvature", label: "🕹️ 1984 Coin-Op Arcade Bubble CRT", category: "Retro CRT", desc: "Deep arcade cabinet shadow-mask RGB dots, neon phosphor bloom & high-punch contrast" },
+  { id: "vhs_camcorder_1994", label: "📼 1994 Hi8 VHS Camcorder", category: "Analog & Tape", desc: "Analog magnetic tape color bleed, chroma shift, soft luma & nostalgic 90s home-video warmth" },
+  { id: "gameboy_dmg_olive", label: "🎮 1989 Game Boy DMG-01 LCD", category: "Retro Handheld", desc: "Nostalgic 4-shade olive-green reflective dot-matrix pixel grid & crisp handheld contrast" },
+  { id: "virtual_boy_red_led", label: "🕶️ 1995 Virtual Boy Red LED Array", category: "Retro Handheld", desc: "Deep ruby-red oscillating LED scanline matrix & high-contrast pitch-black depth" },
+  { id: "kodachrome_64_film", label: "🎞️ 1974 Kodachrome 64 Film", category: "Cinema & Film", desc: "Legendary analog slide film: rich golden highlights, warm skin/wood tones & organic celluloid grain" },
+  { id: "technicolor_3strip", label: "🎬 1952 3-Strip Technicolor", category: "Cinema & Film", desc: "Glorious Hollywood dye-transfer Technicolor saturation with jewel-toned reds, greens & blues" },
+  { id: "imax_70mm_anamorphic", label: "📽️ IMAX 70mm & Anamorphic Flare", category: "Cinema & Film", desc: "Blockbuster 70mm theatrical contrast, cool cyan shadows, warm highlights & anamorphic lens streak" },
+  { id: "noir_sin_city_ink", label: "🕵️ 1940s Silver-Halide Film Noir", category: "Cinema & Film", desc: "High-contrast chiaroscuro silver-gelatin monochrome with dramatic shadow roll-off" },
+  { id: "sepia_daguerreotype_1888", label: "🕰️ 1888 Silver Daguerreotype Sepia", category: "Cinema & Film", desc: "Warm antique archival sepia plate tone with soft vignette & Victorian heirloom patina" },
+  { id: "davinci_aces_cct_grade", label: "🎨 DaVinci Resolve ACEScct Master Grade", category: "Master Colorist & VFX", desc: "Hollywood DI color-grading suite: wide-gamut ACEScct highlight roll-off, rich shadow toe & film halation" },
+  { id: "nuke_anamorphic_flare_streak", label: "💠 Foundry Nuke 2.39:1 Anamorphic Streak", category: "Master Colorist & VFX", desc: "Horizontal cyan/cobalt anamorphic lens flare streaks, oval bokeh edge vignette & optical bloom" },
+  { id: "octane_spectral_iridescence", label: "🌈 Octane Spectral Thin-Film Iridescence", category: "Master Colorist & VFX", desc: "Path-traced spectral thin-film interference with pearlescent soap-bubble & titanium-oxide sheen" },
+  { id: "red_v_raptor_8k_log", label: "🎥 RED V-Raptor 8K VV IPP2 Cinema", category: "Master Colorist & VFX", desc: "Large-format 8K VistaVision cinema sensor dynamic range with subtle 35mm Kodak 2383 print LUT" },
+  { id: "arcane_painterly_brushwork", label: "🖌️ Fortiche Arcane Hand-Painted Oil & Rim", category: "Master Colorist & VFX", desc: "Stylized hand-painted gouache & oil concept-art contrast with electric neon rim-light accents" },
+  { id: "substance_pbr_albedo_normal", label: "🧱 Substance 3D PBR Specular & Normal Map", category: "Master Colorist & VFX", desc: "Physically based rendering (PBR) micro-surface normal relief, metallic roughness & Fresnel rim light" },
+  { id: "halftone_comic_spiderverse", label: "💥 Spider-Verse Ben-Day Halftone", category: "Pop Art & Anime", desc: "Pop-art CMYK Ben-Day halftone dot screen, punchy ink contrast & comic-book energy" },
+  { id: "cyberpunk_chromatic_rgb", label: "⚡ Cyberpunk Chromatic RGB Lens", category: "Sci-Fi & Tactical", desc: "High-energy neon boost, holographic micro-scanlines & cybernetic optical clarity" },
+  { id: "matrix_code_phosphor", label: "💻 1999 Nebuchadnezzar Matrix Grade", category: "Sci-Fi & Tactical", desc: "Signature emerald-jade cinema color grade with deep digital phosphor blacks" },
+  { id: "hologram_pepper_ghost", label: "🛸 Star Wars Holo-Projector Scan", category: "Sci-Fi & Tactical", desc: "Translucent cyan-blue holographic transmission lines, subtle flicker & volumetric rim glow" },
+  { id: "night_vision_gen3", label: "🔭 Gen-3 Tactical Night Vision (NVG)", category: "Sci-Fi & Tactical", desc: "Mil-spec green-phosphor image intensifier tube, circular NVG scope vignette & tactical grain" },
+  { id: "flir_thermal_infrared", label: "🌡️ FLIR Thermal Infrared Camera", category: "Sci-Fi & Tactical", desc: "False-color thermal infrared imaging camera grade with high-contrast heat-signature pop" },
+  { id: "blueprint_xray_neg", label: "🩻 X-Ray & Cyanotype Radiograph", category: "Sci-Fi & Tactical", desc: "Inverted radiographic blueprint & medical X-ray light-table inspection lens" },
+  { id: "e_ink_carta_paper", label: "📖 Kindle E-Ink Carta Matte Paper", category: "Eye Care & Studio", desc: "Zero-glare paper-white & carbon-ink matte e-reader look for effortless all-day reading" },
+  { id: "night_shift_warm_2700k", label: "🕯️ 2700K Candlelight Eye Shield", category: "Eye Care & Studio", desc: "Soothing late-night warm amber blue-light shield that eliminates harsh blue wavelengths" },
+  { id: "pro_display_xdr_vivid", label: "💎 Pro Display XDR 1600-Nit Vivid", category: "Eye Care & Studio", desc: "Reference micro-contrast boost, Display-P3 vibrancy punch & studio mastering clarity" },
+  { id: "nano_texture_matte_glass", label: "☀️ Apple Studio Nano-Texture Matte", category: "Eye Care & Studio", desc: "Soft anti-reflective micro-etched silica glass diffusion with zero harsh specular glare" },
+  { id: "dreamcore_bloom_soft", label: "☁️ Tiffen Black Pro-Mist 1/4 Bloom", category: "Optical & Art", desc: "Dreamy halation glow around highlights, pastel shadow lift & cinematic silk diffusion" },
+  { id: "underwater_aquatic_refraction", label: "🌊 Deep-Sea Submersible Caustic Lens", category: "Optical & Art", desc: "Bioluminescent abyssal aqua-teal optical refraction & gentle underwater caustic shimmer" },
+  { id: "synthwave_sunset_grade", label: "🌴 1984 Outrun Magenta-Cyan Grade", category: "Optical & Art", desc: "Retro-futuristic neon magenta & electric cyan split-toning with sunset warmth" },
+  { id: "kaleidoscope_prism_lens", label: "🌈 Dichroic Prism Chromatic Lens", category: "Optical & Art", desc: "Iridescent spectral edge dispersion, crystal saturation & diamond optical clarity" },
+];
+
+/**
+ * 6 Professional OS Computer Icon Material Finishes (`data-icon-finish`).
+ * Ensures every folder (`📁`/`🗂️`/`📂`) and file (`📄`/`💻`/`🖼️`/`📦`) mirrors an authentic, studio-crafted computer icon silhouette.
+ */
+export const COMPUTER_ICON_FINISH_MODES = [
+  { id: "macos_aqua_glass", label: "🍎 macOS Aqua & Tahoe 3D Glass", desc: "Sculpted macOS sky-blue 3D folder lip, inner Display-P3 glass highlight, and crisp document corner fold" },
+  { id: "win11_fluent_acrylic", label: "🪟 Windows 11 Fluent Acrylic & Mica", desc: "Warm amber/cobalt Windows 11 Fluent layered folder tab with frosted acrylic document plate" },
+  { id: "pro_titanium_anodized", label: "💻 Pro Studio CNC Anodized Titanium", desc: "Space-Black bead-blasted titanium computer icon bevel with 1600-nit XDR specular rim light" },
+  { id: "neumorphic_tactile_studio", label: "🎛️ Tactile Neumorphic Studio Keycap", desc: "Precision dual-shadow hardware keycap relief with recessed studio icon well" },
+  { id: "holographic_collector_grade", label: "💎 Collector-Grade Prismatic Foil", desc: "PSA-10 1st-Edition dichroic rainbow foil sheen with diamond edge refraction on computer folders & files" },
+  { id: "holiday_grand_celebration", label: "🎄 Holiday Grand Celebration Ornament", desc: "Hand-blown mercury-glass ornament finish, 24K gold ribbon trim & animated holiday crest badge" },
+];
+
+/**
+ * 18 Super-Special US Holiday Celebration Themes (`holiday_*`) with calendar dates, animated crests, and particle bursts.
+ */
+export const HOLIDAY_CELEBRATION_CATALOG = Object.entries(HOLIDAY_THEME_CRESTS).map(([key, spec]) => ({
+  key,
+  label: spec.label,
+  crest: spec.crest,
+  badge: spec.badge,
+  month: spec.month,
+  day: spec.day,
+  anim: spec.anim,
+  particles: spec.particles,
+}));
+
+/**
+ * 8 Procedural Zero-Asset WebAudio UI Soundscape & Tactile Foley Profiles (`data-sound-profile`).
+ */
+export const UI_SOUND_PROFILES = [
+  { id: "off", label: "🔇 Silent (Off)", desc: "Zero audio output" },
+  { id: "apple_hig_tactile", label: "🍎 Apple HIG Tactile Glass & Taptic", baseFreq: 520, wave: "sine", desc: "Subtle macOS / visionOS damped glass tap and warm harmonic chime" },
+  { id: "mechanical_thock_pro", label: "⌨️ Custom Gasket Mechanical Thock (PBT)", baseFreq: 185, wave: "triangle", desc: "Deep lubed Holy Panda / Topre PBT keycap thock on folder and theme actions" },
+  { id: "teenage_synth_op1", label: "🎛️ Teenage Engineering OP-1 Tape Synth", baseFreq: 660, wave: "triangle", desc: "Playful Swedish portable synthesizer micro-arpeggio and tape click" },
+  { id: "scifi_lcars_bridge", label: "🖖 Starfleet LCARS Bridge Telemetry", baseFreq: 880, wave: "sine", desc: "24th-century starship console chirp and tactical confirmation tone" },
+  { id: "retro_crt_arcade", label: "🕹️ 1984 Coin-Op 8-Bit Arcade Chiptune", baseFreq: 440, wave: "square", desc: "Nostalgic square-wave coin-op arcade blip and level-up arpeggio" },
+  { id: "cinema_sub_boom", label: "🎬 IMAX Braaam & Sub-Bass Foley", baseFreq: 110, wave: "sawtooth", desc: "Warm theatrical sub-bass swell and anamorphic shutter click" },
+  { id: "holiday_chimes_festive", label: "🎄 Holiday Sleigh Bells & Celesta Chimes", baseFreq: 784, wave: "sine", desc: "Sparkling Tchaikovsky celesta bell harmonic and festive sleigh chime" },
+];
+
+/**
+ * 8 Interactive 3D Desktop Stage & Ambilux Backlight Modes (`data-stage-mode`, shortcut `Alt+S` / `⌥S`).
+ */
+export const WORKSPACE_STAGE_MODES = [
+  { id: "off", label: "⏹️ Standard Flat Workspace", desc: "Classic zero-tilt 2D desktop workspace" },
+  { id: "ambilux_xdr_halo", label: "🌈 Ambilux XDR Bias Backlight Halo", desc: "Projects a dynamic Display-P3 ambient bias-light halo around the File Manager stage" },
+  { id: "stage_manager_3d_tilt", label: "🖥️ macOS Stage Manager 3D Perspective", desc: "Subtle 3D architectural perspective stage with floating depth shadow and specular bezel" },
+  { id: "coverflow_3d_reflection", label: "💿 3D CoverFlow Mirror Floor Reflection", desc: "Polished obsidian studio floor reflection with theatrical spotlighting" },
+  { id: "anamorphic_cinema_letterbox", label: "🎬 2.39:1 Anamorphic Cinema Director Stage", desc: "Panavision widescreen director framing with horizontal anamorphic lens flare rim" },
+  { id: "isometric_architect_table", label: "📐 Isometric CAD Light-Table Tilt", desc: "Precision drafting light-table perspective with vernier scale edge markers" },
+  { id: "holodeck_grid_horizon", label: "🛸 Year 3000 Holodeck Laser Grid Horizon", desc: "Futuristic 3D holodeck horizon grid with volumetric cyan/gold emitter rails" },
+  { id: "holiday_snowglobe_dome", label: "🎄 Festive Glass Snowglobe & Garland Stage", desc: "Enchanted holiday snowglobe crystal dome with warm C9 fairy-light garland border" },
+];
+
+/**
+ * 8 Interactive Holographic Pointer Reveal & 120Hz Cursor Trail Modes (`data-cursor-trail`, shortcut `Alt+T` / `⌥T`).
+ * Uses `@property --fm-spot-inner` & `--fm-spot-outer` radial-gradient masks (`interactive-content-reveal`) + GPU trail particles.
+ */
+export const CURSOR_TRAIL_MODES = [
+  { id: "off", label: "⏹️ Standard OS Pointer (Off)", glyphs: [], desc: "Standard native OS pointer with zero trail or spotlight overlay" },
+  { id: "holo_prism_spotlight", label: "💎 Prismatic Foil Reveal Spotlight", glyphs: ["✦", "✧", "💠"], desc: "Reveals a holographic rainbow foil circuit lattice under your pointer via @property radial mask interpolation" },
+  { id: "stardust_comet_tail", label: "✨ 120Hz Stardust Comet Trail", glyphs: ["✨", "⋆", "✦", "·"], desc: "Leaves a shimmering wake of golden-cyan stardust particles as your pointer glides across folders" },
+  { id: "flash_2advanced_crosshair", label: "🎯 Flash 3000 Vector Telemetry Reticle", glyphs: ["⌖", "⊹", "⏣"], desc: "2Advanced Studios vector locking crosshair with live pointer spotlight and tactical telemetry ticks" },
+  { id: "matrix_digital_wake", label: "🟩 Matrix Katakana Digital Wake", glyphs: ["ｱ", "ｶ", "ｻ", "0", "1", "⚡"], desc: "Spawns cascading emerald katakana and hex code glyphs in the wake of your cursor" },
+  { id: "cyber_plasma_arc", label: "⚡ Tesla Plasma Arc Wake", glyphs: ["⚡", "✦", "◈"], desc: "Crackling high-voltage violet and cyan plasma nodes trailing your pointer" },
+  { id: "sakura_petal_breeze", label: "🌸 Kyoto Sakura Petal Breeze", glyphs: ["🌸", "💮", "🍃"], desc: "Gentle drifting cherry-blossom petals stirred by pointer velocity" },
+  { id: "holiday_magic_wand", label: "🎄 Holiday Magic Sparkler Wand", glyphs: ["🎄", "❄️", "✨", "🎁", "🌟"], desc: "Festive seasonal sparklers, snowflakes, and holiday crests trailing your pointer" },
+];
+
+/**
+ * 6 Spring-Loaded 3D Folder Hover & Peek Behaviors (`data-folder-spring`).
+ */
+export const FOLDER_SPRING_MODES = [
+  { id: "off", label: "⏹️ Standard Folder Rows", desc: "Classic flat folder hover state" },
+  { id: "macos_spring_loaded", label: "🍎 macOS Spring-Loaded Folder Pop", desc: "Folders pop forward in 3D space with a double-pulse spring animation and glowing tab lip when hovered" },
+  { id: "spatial_glass_extrude", label: "🥽 visionOS Spatial Glass Extrusion", desc: "Multi-layer parallax glass depth shadow with floating specular folder badge elevation" },
+  { id: "magnetic_dock_magnify", label: "🧲 macOS Dock Neighbor Magnification", desc: "Hovered folder row and adjacent sibling rows smoothly scale along a bell-curve like the macOS Dock" },
+  { id: "xray_content_wireframe", label: "🔬 X-Ray Blueprint Folder Peek", desc: "Reveals a glowing technical blueprint grid and micro-telemetry rim inside hovered folder rows" },
+  { id: "holiday_gift_unwrap", label: "🎁 Holiday Ribbon Shimmer & Unwrap", desc: "Festive gold silk ribbon bow shimmer and warm ornament glow on hovered folders" },
+];
+
+/**
+ * 8 Procedural 8K Desktop Wallpaper Backplate Scenes (`data-wallpaper-scene`, shortcut `Alt+W` / `⌥W`).
+ * Provides rich multi-stop architectural & horizon depth behind translucent glass/liquid/mica themes.
+ */
+export const DESKTOP_WALLPAPER_SCENES = [
+  { id: "off", label: "⏹️ Solid Theme Canvas (Off)", desc: "Pure theme background color without a procedural scenic backplate" },
+  { id: "sequoia_redwood_dawn", label: "🌲 macOS Sequoia Redwood Dawn Horizon", desc: "Layered mountain silhouettes with warm golden-hour rim light and misty valleys" },
+  { id: "tahoe_alpine_lake", label: "🏔️ macOS Tahoe Emerald Alpine Lake", desc: "Crystal cobalt-emerald lake reflections with sunlit Sierra granite peaks" },
+  { id: "win11_bloom_sculpture", label: "🪟 Windows 11 Silk Bloom Sculpture", desc: "Flowing cobalt-azure 3D satin folds with soft volumetric studio lighting" },
+  { id: "tokyo_neon_rain_alley", label: "🏮 Neo-Tokyo Cyber Rain Horizon", desc: "Outrun magenta/cyan neon skyline reflections on wet obsidian pavement" },
+  { id: "cern_quantum_chamber", label: "⚛️ CERN LHC Detector Cavern", desc: "Concentric golden particle-detector rings with Cherenkov blue core glow" },
+  { id: "deep_space_jwst_pillars", label: "🔭 JWST Pillars of Creation Nebula", desc: "Deep-field infrared gold & crimson cosmic dust pillars with diffraction spikes" },
+  { id: "holiday_winter_village", label: "🎄 Enchanted Holiday Winter Village", desc: "Warm candlelit alpine cottages, snow-covered pines, and northern lights" },
+];
+
+/**
+ * 8 Master AAA Director's Cut Presets (`AAA_DIRECTOR_CUT_PRESETS`, shortcut `Alt+M` / `⌥M`).
+ * Orchestrates all 10 visual, spatial, icon, filter, and audio engines simultaneously in a single click.
+ */
+export const AAA_DIRECTOR_CUT_PRESETS = [
+  {
+    id: "cupertino_keynote_xdr",
+    label: "🍎 Cupertino Keynote M4 Max XDR Master",
+    desc: "Mac Studio M4 Ultra palette + Tahoe 3D Glass icons + Aqua Glass finish + Stage Manager 3D tilt + Tahoe Lake wallpaper + Apple HIG Taptic sound",
+    palette: "mac_studio_m4_ultra",
+    uiElementFx: "tahoe_glass_folders",
+    iconPackStyle: "macos_tahoe_3d",
+    iconFinishMode: "macos_aqua_glass",
+    themeIconAnimation: "folder_3d_spin_turntable",
+    themeIconGlow: "xdr_specular",
+    screenFilter: "pro_display_xdr_vivid",
+    workspaceStageMode: "stage_manager_3d_tilt",
+    cursorTrailMode: "holo_prism_spotlight",
+    folderSpringMode: "macos_spring_loaded",
+    desktopWallpaperScene: "tahoe_alpine_lake",
+    uiSoundProfile: "apple_hig_tactile",
+  },
+  {
+    id: "win11_fluent_workstation",
+    label: "🪟 Windows 11 Fluent Studio Master",
+    desc: "Windows 11 Acrylic + Fluent 3D folders + Fluent Acrylic finish + Ambilux XDR halo + Silk Bloom wallpaper + Mechanical Thock sound",
+    palette: "tahoe_studio_3d",
+    uiElementFx: "fluent_mica_folders",
+    iconPackStyle: "win11_fluent_pro",
+    iconFinishMode: "win11_fluent_acrylic",
+    themeIconAnimation: "spring_pop_3d",
+    themeIconGlow: "ambient_p3",
+    screenFilter: "off",
+    workspaceStageMode: "ambilux_xdr_halo",
+    cursorTrailMode: "stardust_comet_tail",
+    folderSpringMode: "spatial_glass_extrude",
+    desktopWallpaperScene: "win11_bloom_sculpture",
+    uiSoundProfile: "mechanical_thock_pro",
+  },
+  {
+    id: "flash_2advanced_3000",
+    label: "⚡ 2Advanced Studios Year-3000 Master",
+    desc: "Prism Reactor + Flash 3000 Vector HUD + 2Advanced Vector motion + Holodeck Grid stage + Vector Telemetry Reticle + OP-1 Synth sound",
+    palette: "prism_reactor",
+    uiElementFx: "flash_3000_vector_hud",
+    iconPackStyle: "cyberdeck_matrix_hud",
+    iconFinishMode: "holographic_collector_grade",
+    themeIconAnimation: "flash_2advanced_vector_hud",
+    themeIconGlow: "neon",
+    screenFilter: "hologram_pepper_ghost",
+    workspaceStageMode: "holodeck_grid_horizon",
+    cursorTrailMode: "flash_2advanced_crosshair",
+    folderSpringMode: "xray_content_wireframe",
+    desktopWallpaperScene: "cern_quantum_chamber",
+    uiSoundProfile: "teenage_synth_op1",
+  },
+  {
+    id: "c4d_mograph_director",
+    label: "🎬 Cinema 4D & Octane Render Studio Master",
+    desc: "Pro Display XDR + C4D MoGraph Extrude folders + Cloner Wave 3D + DaVinci ACEScct grade + CoverFlow 3D floor + IMAX Foley sound",
+    palette: "m4_pro_display_xdr",
+    uiElementFx: "c4d_mograph_extrude_folders",
+    iconPackStyle: "creative_cinema_8k",
+    iconFinishMode: "pro_titanium_anodized",
+    themeIconAnimation: "c4d_mograph_cloner_wave",
+    themeIconGlow: "xdr_specular",
+    screenFilter: "davinci_aces_cct_grade",
+    workspaceStageMode: "coverflow_3d_reflection",
+    cursorTrailMode: "stardust_comet_tail",
+    folderSpringMode: "magnetic_dock_magnify",
+    desktopWallpaperScene: "sequoia_redwood_dawn",
+    uiSoundProfile: "cinema_sub_boom",
+  },
+  {
+    id: "blade_runner_crt_noir",
+    label: "📺 Blade Runner 2049 Analog CRT Master",
+    desc: "Tokyo Night + Holo Glitch UI + Sony Trinitron CRT filter + Anamorphic 2.39:1 stage + Matrix Digital Wake + 1984 Coin-Op Arcade sound",
+    palette: "tokyo_night",
+    uiElementFx: "holo_glitch",
+    iconPackStyle: "synthwave_outrun_1984",
+    iconFinishMode: "neumorphic_tactile_studio",
+    themeIconAnimation: "cyber_glitch_pulse",
+    themeIconGlow: "neon",
+    screenFilter: "crt_trinitron_95",
+    workspaceStageMode: "anamorphic_cinema_letterbox",
+    cursorTrailMode: "matrix_digital_wake",
+    folderSpringMode: "xray_content_wireframe",
+    desktopWallpaperScene: "tokyo_neon_rain_alley",
+    uiSoundProfile: "retro_crt_arcade",
+  },
+  {
+    id: "godmode_omega_pantheon",
+    label: "🌌 God-Mode Year 3000 Omega Pantheon Master",
+    desc: "Omega Point Singularity + Omega Halo UI + Omni-Pantheon 3D icons + Raytraced Caustic motion + JWST Nebula wallpaper + LCARS Bridge sound",
+    palette: "omega_point_singularity",
+    uiElementFx: "godmode_omega_halo",
+    iconPackStyle: "godmode_omni_pantheon",
+    iconFinishMode: "holographic_collector_grade",
+    themeIconAnimation: "raytraced_caustic_refraction",
+    themeIconGlow: "hyper",
+    screenFilter: "octane_spectral_iridescence",
+    workspaceStageMode: "holodeck_grid_horizon",
+    cursorTrailMode: "cyber_plasma_arc",
+    folderSpringMode: "spatial_glass_extrude",
+    desktopWallpaperScene: "deep_space_jwst_pillars",
+    uiSoundProfile: "scifi_lcars_bridge",
+  },
+  {
+    id: "holiday_winter_wonderland",
+    label: "🎄 Grand Holiday Winter Wonderland Master",
+    desc: "Christmas Nutcracker Hearth + Festive C9 Garland + Holiday Ornament finish + Snowglobe Dome stage + Magic Sparkler Wand + Sleigh Bell Chimes",
+    palette: "holiday_christmas_nutcracker_hearth",
+    uiElementFx: "holiday_festive_glow",
+    iconPackStyle: "us_holidays_festive",
+    iconFinishMode: "holiday_grand_celebration",
+    themeIconAnimation: "godmode_pantheon_ascend",
+    themeIconGlow: "hyper",
+    screenFilter: "dreamcore_bloom_soft",
+    workspaceStageMode: "holiday_snowglobe_dome",
+    cursorTrailMode: "holiday_magic_wand",
+    folderSpringMode: "holiday_gift_unwrap",
+    desktopWallpaperScene: "holiday_winter_village",
+    uiSoundProfile: "holiday_chimes_festive",
+  },
+  {
+    id: "holiday_july4_spectacular",
+    label: "🎆 Grand 4th of July Fireworks Master",
+    desc: "4th of July Sky Fireworks + Houdini VEX Particle Burst + Holiday Ornament finish + Ambilux XDR Halo + Stardust Comet Trail + Celesta Chimes",
+    palette: "holiday_fourth_of_july_fireworks",
+    uiElementFx: "holiday_festive_glow",
+    iconPackStyle: "us_holidays_festive",
+    iconFinishMode: "holiday_grand_celebration",
+    themeIconAnimation: "houdini_vex_particle_burst",
+    themeIconGlow: "hyper",
+    screenFilter: "pro_display_xdr_vivid",
+    workspaceStageMode: "ambilux_xdr_halo",
+    cursorTrailMode: "holiday_magic_wand",
+    folderSpringMode: "holiday_gift_unwrap",
+    desktopWallpaperScene: "deep_space_jwst_pillars",
+    uiSoundProfile: "holiday_chimes_festive",
+  },
+];
+
+/** Ensures the interactive pointer reveal spotlight & cursor trail overlay (`#fm-cursor-spotlight-layer`) is mounted and bound. */
+let cursorTrailBound = false;
+let lastTrailParticleTs = 0;
+
+export function ensureCursorSpotlightLayer(activeMode = "off") {
+  if (typeof document === "undefined" || !document.body) return null;
+  let layer = document.getElementById("fm-cursor-spotlight-layer");
+  if (!activeMode || activeMode === "off") {
+    if (layer) layer.remove();
+    return null;
+  }
+  if (!layer) {
+    layer = h("div", {
+      id: "fm-cursor-spotlight-layer",
+      class: "fm-cursor-spotlight-layer is-active",
+      "aria-hidden": "true",
+      "data-trail-mode": activeMode,
+    });
+    document.body.append(layer);
+  } else {
+    layer.classList.add("is-active");
+    layer.setAttribute("data-trail-mode", activeMode);
+  }
+  if (!cursorTrailBound && typeof window !== "undefined") {
+    cursorTrailBound = true;
+    window.addEventListener("pointermove", (e) => {
+      const mode = document.documentElement?.dataset?.cursorTrail || "off";
+      if (mode === "off") return;
+      const root = document.documentElement;
+      const w = Math.max(1, window.innerWidth || 1280);
+      const hPx = Math.max(1, window.innerHeight || 800);
+      const xPct = ((e.clientX / w) * 100).toFixed(2);
+      const yPct = ((e.clientY / hPx) * 100).toFixed(2);
+      root.style.setProperty("--fm-mouse-x", `${xPct}%`);
+      root.style.setProperty("--fm-mouse-y", `${yPct}%`);
+      const now = Date.now();
+      if (now - lastTrailParticleTs >= 36) {
+        lastTrailParticleTs = now;
+        spawnCursorTrailParticle(e.clientX, e.clientY, mode);
+      }
+    }, { passive: true });
+  }
+  return layer;
+}
+
+/** Spawns a single GPU-composited cursor trail particle at `(clientX, clientY)` for the active `CURSOR_TRAIL_MODES` mode. */
+export function spawnCursorTrailParticle(clientX = 240, clientY = 180, modeOverride) {
+  if (typeof document === "undefined" || !document.body) return null;
+  const modeId = modeOverride || document.documentElement?.dataset?.cursorTrail || state.settings?.cursorTrailMode || "off";
+  const spec = CURSOR_TRAIL_MODES.find((m) => m.id === modeId);
+  if (!spec || spec.id === "off" || !spec.glyphs?.length) return null;
+  const layer = ensureCursorSpotlightLayer(spec.id);
+  if (!layer) return null;
+  const glyph = spec.glyphs[Math.floor(Math.random() * spec.glyphs.length)] || "✨";
+  const dx = ((Math.random() - 0.5) * 34).toFixed(1);
+  const dy = (-14 - Math.random() * 28).toFixed(1);
+  const particle = h("span", {
+    class: "fm-cursor-trail-particle",
+    "data-trail-glyph": glyph,
+    style: `left:${Math.round(clientX)}px;top:${Math.round(clientY)}px;--trail-dx:${dx}px;--trail-dy:${dy}px;`,
+  }, glyph);
+  layer.append(particle);
+  while (layer.childNodes.length > 28) {
+    layer.firstChild?.remove();
+  }
+  if (typeof setTimeout === "function") {
+    setTimeout(() => {
+      if (particle.parentNode) particle.remove();
+    }, 650);
+  }
+  return particle;
+}
 
 /** Ensures the hidden SVG displacement filter bank (`#fm-svg-distortion-filters`) is present in the DOM for screen-melting & optical warp effects. */
 export function ensureDistortionSvgFilters() {
@@ -188,7 +560,7 @@ export function ensureDistortionSvgFilters() {
   return svg;
 }
 
-/** Applies File Manager UI Element FX (burning folders, dripping slime, screen-melting distortion, etc.), Custom Icon Pack, Typography, Corner Geometry, Icon Glow, and Icon Animation Choreography to the root element. */
+/** Applies File Manager UI Element FX (burning folders, dripping slime, screen-melting distortion, etc.), Custom Icon Pack, Typography, Corner Geometry, Icon Glow, Icon Animation Choreography, Screen Filter, Computer Icon Finish, 3D Stage Mode, Cursor Trail, Folder Spring, and Desktop Wallpaper Scene to the root element. */
 export function applyUiImmersionProfiles(overrides = {}) {
   if (typeof document === "undefined" || !document.documentElement) return;
   const root = document.documentElement;
@@ -200,6 +572,7 @@ export function applyUiImmersionProfiles(overrides = {}) {
   const themeCornerProf = root.getAttribute("data-fx-corner-profile") || "";
   const themeIconGlow = root.getAttribute("data-fx-icon-glow") || "";
   const themeIconAnim = root.getAttribute("data-fx-icon-anim") || "";
+  const themeScreenFilter = root.getAttribute("data-fx-screen-filter") || "";
 
   const explicitUiFx = overrides && Object.prototype.hasOwnProperty.call(overrides, "uiElementFx");
   const rawUiFx = explicitUiFx ? overrides.uiElementFx : (isPreview ? "auto" : (s.uiElementFx || "auto"));
@@ -246,6 +619,92 @@ export function applyUiImmersionProfiles(overrides = {}) {
   } else {
     delete root.dataset.iconAnim;
     if (explicitAnimOff) root.removeAttribute("data-fx-icon-anim");
+  }
+
+  const explicitFilterOff = overrides && Object.prototype.hasOwnProperty.call(overrides, "screenFilter") && overrides.screenFilter === "off";
+  const rawFilter = (overrides && Object.prototype.hasOwnProperty.call(overrides, "screenFilter")) ? overrides.screenFilter : (isPreview ? "off" : (s.screenFilter || "off"));
+  const effectiveFilter = explicitFilterOff ? "off" : (rawFilter !== "off" ? rawFilter : (themeScreenFilter || "off"));
+  if (effectiveFilter && effectiveFilter !== "off") {
+    root.dataset.screenFilter = effectiveFilter;
+    root.setAttribute("data-fx-screen-filter", effectiveFilter);
+  } else {
+    delete root.dataset.screenFilter;
+    root.removeAttribute("data-fx-screen-filter");
+  }
+
+  // Sync Holiday Celebration Crest & Garland state when a `holiday_*` theme is active
+  const activePaletteKey = root.dataset.palette || "";
+  const holidaySpec = resolveHolidayCrestForPalette(activePaletteKey);
+  if (holidaySpec) {
+    root.dataset.holidayTheme = "active";
+    root.dataset.holidayCrest = holidaySpec.crest;
+    root.dataset.holidayBadge = holidaySpec.badge;
+  } else {
+    delete root.dataset.holidayTheme;
+    delete root.dataset.holidayCrest;
+    delete root.dataset.holidayBadge;
+  }
+
+  // Sync Computer Icon Material Finish (`data-icon-finish`)
+  const rawFinish = (overrides && Object.prototype.hasOwnProperty.call(overrides, "iconFinishMode"))
+    ? overrides.iconFinishMode
+    : (s.iconFinishMode || (holidaySpec ? "holiday_grand_celebration" : ""));
+  if (rawFinish && rawFinish !== "off") {
+    root.dataset.iconFinish = rawFinish;
+  } else {
+    delete root.dataset.iconFinish;
+  }
+
+  // Sync 3D Workspace Stage Mode (`data-stage-mode`)
+  const rawStage = (overrides && Object.prototype.hasOwnProperty.call(overrides, "workspaceStageMode"))
+    ? overrides.workspaceStageMode
+    : (s.workspaceStageMode || "off");
+  if (rawStage && rawStage !== "off") {
+    root.dataset.stageMode = rawStage;
+  } else {
+    delete root.dataset.stageMode;
+  }
+
+  // Sync Tactile UI Soundscape (`data-sound-profile`)
+  const rawSound = (overrides && Object.prototype.hasOwnProperty.call(overrides, "uiSoundProfile"))
+    ? overrides.uiSoundProfile
+    : (s.uiSoundProfile || "off");
+  if (rawSound && rawSound !== "off") {
+    root.dataset.soundProfile = rawSound;
+  } else {
+    delete root.dataset.soundProfile;
+  }
+
+  // Sync Interactive Pointer Reveal & Cursor Trail (`data-cursor-trail`)
+  const rawTrail = (overrides && Object.prototype.hasOwnProperty.call(overrides, "cursorTrailMode"))
+    ? overrides.cursorTrailMode
+    : (s.cursorTrailMode || "off");
+  if (rawTrail && rawTrail !== "off") {
+    root.dataset.cursorTrail = rawTrail;
+    ensureCursorSpotlightLayer(rawTrail);
+  } else {
+    delete root.dataset.cursorTrail;
+    ensureCursorSpotlightLayer("off");
+  }
+
+  // Sync Spring-Loaded 3D Folder Peek (`data-folder-spring`)
+  const rawSpring = (overrides && Object.prototype.hasOwnProperty.call(overrides, "folderSpringMode"))
+    ? overrides.folderSpringMode
+    : (s.folderSpringMode || "off");
+  if (rawSpring && rawSpring !== "off") {
+    root.dataset.folderSpring = rawSpring;
+  } else {
+    delete root.dataset.folderSpring;
+  }
+
+  // Sync Procedural 8K Desktop Wallpaper Backplate (`data-wallpaper-scene`)
+  const rawWallpaper = (overrides && Object.prototype.hasOwnProperty.call(overrides, "desktopWallpaperScene"))
+    ? overrides.desktopWallpaperScene
+    : (s.desktopWallpaperScene || "off");
+  if (rawWallpaper && rawWallpaper !== "off") {
+    root.dataset.wallpaperScene = rawWallpaper;
+  } else {
+    delete root.dataset.wallpaperScene;
   }
 
   syncVisibleIcons(document);
@@ -497,6 +956,11 @@ let plainStaticLockKey = null;
 let suppressedFxForKey = "";
 const suppressedFxKinds = new Set();
 const suppressedAtmoLayers = new Set();
+let lastPaintedKey = null;
+let keptEffectsForKey = null;
+let keptEffectsSnapshot = null;
+let keepCurrentIconsLock = false;
+let lockedIconsSnapshot = null;
 
 function resetSuppressedFx() {
   suppressedFxForKey = "";
@@ -525,6 +989,11 @@ function applySuppressedFxToDom(root) {
     root.removeAttribute("data-fx-icon-anim");
     if (root.dataset) delete root.dataset.iconAnim;
     if (state.settings) state.settings.themeIconAnimation = "off";
+  }
+  if (suppressedFxKinds.has("screenFilter")) {
+    root.removeAttribute("data-fx-screen-filter");
+    if (root.dataset) delete root.dataset.screenFilter;
+    if (state.settings) state.settings.screenFilter = "off";
   }
   if (suppressedFxKinds.has("fontProfile")) {
     root.removeAttribute("data-fx-font-profile");
@@ -566,6 +1035,7 @@ export function paint(theme, key) {
   if (key && key !== "preview" && suppressedFxForKey && suppressedFxForKey !== key) {
     resetSuppressedFx();
   }
+  const switchingKey = Boolean(key && key !== "preview" && key !== lastPaintedKey);
   clearEffects();
   const root = document.documentElement;
   const hw = probeClientHardware();
@@ -578,7 +1048,40 @@ export function paint(theme, key) {
   root.dataset.theme = theme.scheme;
   root.dataset.palette = key;
   wanted = key;
-  if (theme.effects && !(plainStaticLockKey && plainStaticLockKey === key)) {
+
+  const activeKeptSnap = (keepCurrentEffectsLock && lockedEffectsSnapshot)
+    ? lockedEffectsSnapshot
+    : (keptEffectsForKey !== null && keptEffectsForKey === key && keptEffectsSnapshot ? keptEffectsSnapshot : null);
+
+  if (activeKeptSnap && !(plainStaticLockKey && plainStaticLockKey === key)) {
+    const accentHex = theme.vars?.accent || "#38bdf8";
+    const secondaryHex = theme.vars?.selected || theme.vars?.accent || "#a855f7";
+    if (activeKeptSnap.fxCss) {
+      const style = document.createElement("style");
+      style.id = "fm-theme-effects";
+      const nonce = document.querySelector('meta[name="fm-nonce"]')?.content;
+      if (nonce) style.setAttribute("nonce", nonce);
+      style.textContent = activeKeptSnap.fxCss
+        .replace(/--fx-glow-color\s*:\s*[^;]+/g, `--fx-glow-color:${accentHex}`)
+        .replace(/--fx-glow-color-2\s*:\s*[^;]+/g, `--fx-glow-color-2:${secondaryHex}`);
+      document.head.append(style);
+    }
+    for (const [attrName, attrVal] of Object.entries(activeKeptSnap.fxAttrs || {})) {
+      root.setAttribute(attrName, attrVal);
+    }
+    if (keepCurrentEffectsLock) root.dataset.keepFxLock = "true";
+    if (keepCurrentIconsLock) root.dataset.keepIconsLock = "true";
+    if (state.settings) {
+      state.settings.atmosphere = activeKeptSnap.atmosphere || "none";
+      state.settings.uiElementFx = activeKeptSnap.uiElementFx || "off";
+      state.settings.iconPackStyle = activeKeptSnap.iconPackStyle || "default";
+      state.settings.themeIconGlow = activeKeptSnap.themeIconGlow || "off";
+      state.settings.themeIconAnimation = activeKeptSnap.themeIconAnimation || "off";
+      state.settings.themeFontProfile = activeKeptSnap.themeFontProfile || "default";
+      state.settings.themeCornerProfile = activeKeptSnap.themeCornerProfile || "default";
+      if (activeKeptSnap.screenFilter) state.settings.screenFilter = activeKeptSnap.screenFilter;
+    }
+  } else if (theme.effects && !(plainStaticLockKey && plainStaticLockKey === key)) {
     const style = document.createElement("style");
     style.id = "fm-theme-effects";
     const nonce = document.querySelector('meta[name="fm-nonce"]')?.content;
@@ -588,23 +1091,29 @@ export function paint(theme, key) {
     for (const [name, value] of Object.entries(theme.effects.attrs)) root.setAttribute(name, value);
     root.setAttribute("data-fx-tier", hw.tier);
     if (hw.fxMode !== "on") root.setAttribute("data-fx", hw.fxMode);
-    if (key && key !== "preview" && state.settings) {
+    if (switchingKey && state.settings) {
       if (theme.effects.attrs["data-fx-element"]) state.settings.uiElementFx = "auto";
-      if (theme.effects.attrs["data-fx-icon-pack"]) state.settings.iconPackStyle = "default";
+      if (!keepCurrentIconsLock) {
+        if (theme.effects.attrs["data-fx-icon-pack"]) state.settings.iconPackStyle = "default";
+        if (theme.effects.attrs["data-fx-icon-glow"]) state.settings.themeIconGlow = "off";
+        if (theme.effects.attrs["data-fx-icon-anim"]) state.settings.themeIconAnimation = "off";
+      }
       if (theme.effects.attrs["data-fx-font-profile"]) state.settings.themeFontProfile = "default";
       if (theme.effects.attrs["data-fx-corner-profile"]) state.settings.themeCornerProfile = "default";
-      if (theme.effects.attrs["data-fx-icon-glow"]) state.settings.themeIconGlow = "off";
-      if (theme.effects.attrs["data-fx-icon-anim"]) state.settings.themeIconAnimation = "off";
       if (theme.effects.attrs["data-fx-atmosphere"]) state.settings.atmosphere = "none";
     }
     if (key && key === suppressedFxForKey) {
       applySuppressedFxToDom(root);
     }
-  } else if (key && key !== "preview" && state.settings) {
-    state.settings.uiElementFx = "off";
-    state.settings.iconPackStyle = "default";
-    state.settings.themeIconGlow = "off";
-    state.settings.themeIconAnimation = "off";
+  }
+  if (keepCurrentIconsLock && lockedIconsSnapshot && state.settings) {
+    state.settings.iconPackStyle = lockedIconsSnapshot.iconPackStyle || state.settings.iconPackStyle || "default";
+    state.settings.themeIconGlow = lockedIconsSnapshot.themeIconGlow || state.settings.themeIconGlow || "off";
+    state.settings.themeIconAnimation = lockedIconsSnapshot.themeIconAnimation || state.settings.themeIconAnimation || "off";
+    root.dataset.keepIconsLock = "true";
+  }
+  if (key && key !== "preview") {
+    lastPaintedKey = key;
   }
   applyUiImmersionProfiles(
     key && key === suppressedFxForKey && suppressedFxKinds.has("uiElementFx")
@@ -1611,6 +2120,32 @@ export const JUMPSTART_WORKSTATION_KITS = [
     themeIconGlow: "ambient_p3",
     atmosphere: "sunbeams+prism_spectrum+fairy_glade",
   },
+  {
+    id: "flash_3000_2advanced_kit",
+    label: "⚡ Futuristic Flash 3000 (2Advanced HUD)",
+    desc: "2000s FWA / 2Advanced Flash UI hyper-evolved for Year 3000: chamfered vector HUD folder doors, laser targeting reticles & kinetic 120Hz icon sweeps",
+    palette: "cyberpunk_hologram",
+    uiElementFx: "flash_3000_vector_hud",
+    iconPackStyle: "cyberdeck_matrix_hud",
+    themeIconAnimation: "flash_2advanced_vector_hud",
+    themeFontProfile: "scifi",
+    themeCornerProfile: "chamfered",
+    themeIconGlow: "hyper",
+    atmosphere: "hud_reticle+laser_show+circuit_traces",
+  },
+  {
+    id: "spinning_3d_holo_vault_kit",
+    label: "🌪️ High-End 3D Spinning Folder Turntable",
+    desc: "Built for M4 Max / Ultra & RTX high-end machines: 120Hz 3D spinning folder turntables, holographic foil icons & raytraced 4D tesseract depth",
+    palette: "photonic_metamaterial_3099",
+    uiElementFx: "spinning_3d_holo_folders",
+    iconPackStyle: "holo_prismatic_foil",
+    themeIconAnimation: "folder_3d_spin_turntable",
+    themeFontProfile: "scifi",
+    themeCornerProfile: "squircle_hig",
+    themeIconGlow: "hyper",
+    atmosphere: "m4_raytrace_prism+prism_spectrum+tesseract_4d",
+  },
 ];
 
 /** Applies a 1-Click Jumpstart Workstation Kit (theme palette + 3D folder FX + picture/icon pack + typography + corners + atmosphere). */
@@ -1663,6 +2198,399 @@ const PREVIEW_STAGE_BUTTONS = [
   { id: "sb.zip", label: "Zip" },
 ];
 
+/**
+ * Applies one of the 6 Professional Computer Icon Material Finishes (`COMPUTER_ICON_FINISH_MODES`)
+ * to `document.documentElement.dataset.iconFinish` and persists `state.settings.iconFinishMode`.
+ */
+export async function applyComputerIconFinish(modeId, opts = {}) {
+  const clean = String(modeId || "").trim();
+  const found = COMPUTER_ICON_FINISH_MODES.find((m) => m.id === clean) || null;
+  const resolvedId = found ? found.id : "off";
+  if (state.settings) state.settings.iconFinishMode = resolvedId;
+  applyUiImmersionProfiles({ iconFinishMode: resolvedId });
+  await saveSettings({ iconFinishMode: resolvedId });
+  if (!opts.quiet) {
+    toast(found ? `Computer Icon Finish: ${found.label}` : "Computer Icon Finish reset to theme default.", { kind: "info" });
+  }
+  return found || { id: "off", label: "Default Finish" };
+}
+
+/** Cycles through the 6 Professional Computer Icon Material Finishes (`COMPUTER_ICON_FINISH_MODES`). */
+export async function cycleComputerIconFinish(delta = 1, opts = {}) {
+  const cur = (typeof document !== "undefined" && document.documentElement?.dataset?.iconFinish) || state.settings?.iconFinishMode || "";
+  const idx = COMPUTER_ICON_FINISH_MODES.findIndex((m) => m.id === cur);
+  const step = Number(delta) || 1;
+  const nextIdx = idx < 0 ? 0 : (idx + step + COMPUTER_ICON_FINISH_MODES.length) % COMPUTER_ICON_FINISH_MODES.length;
+  const chosen = COMPUTER_ICON_FINISH_MODES[nextIdx] || COMPUTER_ICON_FINISH_MODES[0];
+  return applyComputerIconFinish(chosen.id, opts);
+}
+
+/**
+ * Resolves the closest or matching US Holiday theme from `HOLIDAY_CELEBRATION_CATALOG` for any calendar `Date`
+ * (or `{ month, day }` object), enabling 1-click "📅 Match Today's Holiday" celebration mode.
+ */
+export function detectCalendarHolidayTheme(dateOrSpec = new Date()) {
+  let month = 12;
+  let day = 25;
+  if (dateOrSpec instanceof Date && !Number.isNaN(dateOrSpec.getTime())) {
+    month = dateOrSpec.getMonth() + 1;
+    day = dateOrSpec.getDate();
+  } else if (dateOrSpec && typeof dateOrSpec === "object") {
+    month = Number(dateOrSpec.month) || 12;
+    day = Number(dateOrSpec.day) || 25;
+  }
+  const targetDayOfYear = month * 31 + day;
+  let best = HOLIDAY_CELEBRATION_CATALOG[0];
+  let bestDist = Infinity;
+  for (const item of HOLIDAY_CELEBRATION_CATALOG) {
+    const itemDayOfYear = item.month * 31 + item.day;
+    const directDist = Math.abs(itemDayOfYear - targetDayOfYear);
+    const wrapDist = Math.min(directDist, 372 - directDist);
+    if (wrapDist < bestDist) {
+      bestDist = wrapDist;
+      best = item;
+    }
+  }
+  return best;
+}
+
+/**
+ * Triggers a GPU-composited Holiday Celebration Particle Burst (`#fm-holiday-celebration-burst`)
+ * with bespoke holiday emblems (`🥂`, `💝`, `☘️`, `🎆`, `🎃`, `🦃`, `🕎`, `🎄`, etc.).
+ */
+export function triggerHolidayCelebrationBurst(holidayKeyOrOpts = {}) {
+  const rawKey = typeof holidayKeyOrOpts === "string"
+    ? holidayKeyOrOpts
+    : (holidayKeyOrOpts?.key || (typeof document !== "undefined" ? document.documentElement?.dataset?.palette : "") || "holiday_christmas_nutcracker_hearth");
+  const spec = HOLIDAY_THEME_CRESTS[rawKey] || HOLIDAY_THEME_CRESTS.holiday_christmas_nutcracker_hearth;
+  const count = Math.max(8, Math.min(36, Number(holidayKeyOrOpts?.count) || 18));
+  if (typeof document !== "undefined" && document.body) {
+    document.getElementById("fm-holiday-celebration-burst")?.remove();
+    const container = h("div", {
+      id: "fm-holiday-celebration-burst",
+      class: "fm-holiday-celebration-burst",
+      "data-holiday-burst-key": rawKey,
+      "data-holiday-crest": spec.crest,
+      "aria-hidden": "true",
+    });
+    for (let i = 0; i < count; i++) {
+      const glyph = spec.particles[i % spec.particles.length] || spec.crest;
+      const leftPct = Math.round(((i + 0.5) / count) * 96 + ((i * 17) % 5) - 2);
+      const delayMs = (i * 55) % 650;
+      const durMs = 1550 + ((i * 130) % 900);
+      const driftPx = ((i % 2 === 0 ? 1 : -1) * (18 + ((i * 11) % 44)));
+      const p = h("span", {
+        class: "fm-holiday-burst-particle",
+        "data-particle-glyph": glyph,
+        style: `left:${leftPct}%;animation-delay:${delayMs}ms;animation-duration:${durMs}ms;--holiday-drift-x:${driftPx}px;`,
+      }, glyph);
+      container.append(p);
+    }
+    document.body.append(container);
+    setTimeout(() => {
+      if (container.parentNode) container.remove();
+    }, 2800);
+  }
+  try {
+    triggerReactiveImpulse(1.25);
+  } catch {}
+  return {
+    key: rawKey,
+    crest: spec.crest,
+    badge: spec.badge,
+    label: spec.label,
+    anim: spec.anim,
+    particleCount: count,
+  };
+}
+
+/**
+ * Applies one of the 18 Super-Special US Holiday Themes (`holiday_*`) with its bespoke 3D icon choreography,
+ * festive C9 fairy-light toolbar garland, animated folder crest badges, and celebration burst!
+ */
+export async function applyHolidayCelebrationTheme(holidayKey, opts = {}) {
+  const target = HOLIDAY_CELEBRATION_CATALOG.find((hItem) => hItem.key === holidayKey)
+    || detectCalendarHolidayTheme(opts.date || new Date());
+  if (!target) return null;
+  await chooseTheme(target.key);
+  await applyPalette(target.key);
+  const patch = {
+    palette: target.key,
+    uiElementFx: "holiday_festive_glow",
+    iconPackStyle: "us_holidays_festive",
+    themeIconAnimation: target.anim,
+    iconFinishMode: "holiday_grand_celebration",
+  };
+  if (state.settings) Object.assign(state.settings, patch);
+  applyUiImmersionProfiles(patch);
+  await saveSettings(patch);
+  if (opts.burst !== false) {
+    triggerHolidayCelebrationBurst(target.key);
+  }
+  if (state.settings?.uiSoundProfile && state.settings.uiSoundProfile !== "off") {
+    playUiSound("celebrate");
+  }
+  if (!opts.quiet) {
+    toast(`${target.crest} Holiday Special Activated: ${target.label} (${target.anim})`, { kind: "success" });
+  }
+  return target;
+}
+
+/** Cycles through all 18 Super-Special US Holiday Themes (`holiday_*`) in calendar order (`Alt+H` / `⌥H`). */
+export async function cycleHolidayTheme(delta = 1, opts = {}) {
+  const curKey = (typeof document !== "undefined" && document.documentElement?.dataset?.palette) || state.settings?.palette || "";
+  const curIdx = HOLIDAY_CELEBRATION_CATALOG.findIndex((item) => item.key === curKey);
+  const step = Number(delta) || 1;
+  const nextIdx = curIdx < 0
+    ? 0
+    : (curIdx + step + HOLIDAY_CELEBRATION_CATALOG.length) % HOLIDAY_CELEBRATION_CATALOG.length;
+  const chosen = HOLIDAY_CELEBRATION_CATALOG[nextIdx] || HOLIDAY_CELEBRATION_CATALOG[0];
+  return applyHolidayCelebrationTheme(chosen.key, opts);
+}
+
+let sharedAudioCtx = null;
+
+/** Synthesizes a zero-asset procedural WebAudio UI sound effect for the active `UI_SOUND_PROFILES` profile. */
+export function playUiSound(eventType = "click", opts = {}) {
+  const profileId = opts.profile || state.settings?.uiSoundProfile || (typeof document !== "undefined" ? document.documentElement?.dataset?.soundProfile : "") || "off";
+  const spec = UI_SOUND_PROFILES.find((p) => p.id === profileId) || UI_SOUND_PROFILES[0];
+  if (!spec || spec.id === "off") {
+    return { played: false, profile: "off", eventType, freqHz: 0 };
+  }
+  const base = Number(spec.baseFreq) || 440;
+  const mult = eventType === "celebrate" ? 1.5
+    : eventType === "theme" ? 1.25
+    : eventType === "folder" ? 1.12
+    : eventType === "hover" ? 0.88
+    : 1;
+  const freqHz = Math.round(base * mult);
+  try {
+    const AudioCtx = typeof window !== "undefined" ? (window.AudioContext || window.webkitAudioContext) : null;
+    if (AudioCtx) {
+      if (!sharedAudioCtx) sharedAudioCtx = new AudioCtx();
+      const ctx = sharedAudioCtx;
+      const now = ctx.currentTime || 0;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = spec.wave || "sine";
+      osc.frequency.setValueAtTime(freqHz, now);
+      if (eventType === "celebrate" || spec.id === "holiday_chimes_festive") {
+        osc.frequency.exponentialRampToValueAtTime(freqHz * 1.33, now + 0.11);
+      }
+      gain.gain.setValueAtTime(0.035, now);
+      gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.12);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.125);
+    }
+  } catch {}
+  return { played: true, profile: spec.id, eventType, freqHz };
+}
+
+/** Sets the active Procedural WebAudio Tactile Soundscape profile (`UI_SOUND_PROFILES`). */
+export async function setUiSoundProfile(profileId, opts = {}) {
+  const spec = UI_SOUND_PROFILES.find((p) => p.id === profileId) || UI_SOUND_PROFILES[0];
+  if (state.settings) state.settings.uiSoundProfile = spec.id;
+  applyUiImmersionProfiles({ uiSoundProfile: spec.id });
+  await saveSettings({ uiSoundProfile: spec.id });
+  if (spec.id !== "off" && !opts.quiet) {
+    playUiSound("theme", { profile: spec.id });
+    toast(`Tactile UI Soundscape: ${spec.label}`, { kind: "info" });
+  }
+  return spec;
+}
+
+/** Cycles through the 8 Procedural WebAudio Tactile Soundscape profiles (`UI_SOUND_PROFILES`). */
+export async function cycleUiSoundProfile(delta = 1, opts = {}) {
+  const cur = state.settings?.uiSoundProfile || (typeof document !== "undefined" ? document.documentElement?.dataset?.soundProfile : "") || "off";
+  const idx = UI_SOUND_PROFILES.findIndex((p) => p.id === cur);
+  const step = Number(delta) || 1;
+  const nextIdx = (Math.max(0, idx) + step + UI_SOUND_PROFILES.length) % UI_SOUND_PROFILES.length;
+  return setUiSoundProfile(UI_SOUND_PROFILES[nextIdx].id, opts);
+}
+
+/** Applies one of the 8 Interactive 3D Desktop Stage & Ambilux Backlight modes (`WORKSPACE_STAGE_MODES`). */
+export async function applyWorkspaceStageMode(modeId, opts = {}) {
+  const spec = WORKSPACE_STAGE_MODES.find((m) => m.id === modeId) || WORKSPACE_STAGE_MODES[0];
+  if (state.settings) state.settings.workspaceStageMode = spec.id;
+  applyUiImmersionProfiles({ workspaceStageMode: spec.id });
+  await saveSettings({ workspaceStageMode: spec.id });
+  if (!opts.quiet) {
+    toast(`3D Workspace Stage: ${spec.label}`, { kind: "info" });
+  }
+  return spec;
+}
+
+/** Cycles through the 8 Interactive 3D Desktop Stage & Ambilux Backlight modes (`Alt+S` / `⌥S`). */
+export async function cycleWorkspaceStageMode(delta = 1, opts = {}) {
+  const cur = (typeof document !== "undefined" && document.documentElement?.dataset?.stageMode) || state.settings?.workspaceStageMode || "off";
+  const idx = WORKSPACE_STAGE_MODES.findIndex((m) => m.id === cur);
+  const step = Number(delta) || 1;
+  const nextIdx = (Math.max(0, idx) + step + WORKSPACE_STAGE_MODES.length) % WORKSPACE_STAGE_MODES.length;
+  return applyWorkspaceStageMode(WORKSPACE_STAGE_MODES[nextIdx].id, opts);
+}
+
+/** Applies one of the 8 Interactive Holographic Pointer Reveal & 120Hz Cursor Trail modes (`CURSOR_TRAIL_MODES`). */
+export async function applyCursorTrailMode(modeId, opts = {}) {
+  const spec = CURSOR_TRAIL_MODES.find((m) => m.id === modeId) || CURSOR_TRAIL_MODES[0];
+  if (state.settings) state.settings.cursorTrailMode = spec.id;
+  applyUiImmersionProfiles({ cursorTrailMode: spec.id });
+  await saveSettings({ cursorTrailMode: spec.id });
+  if (spec.id !== "off" && opts.spawnSample !== false) {
+    spawnCursorTrailParticle(320, 200, spec.id);
+  }
+  if (!opts.quiet) {
+    toast(`Pointer Spotlight & Trail: ${spec.label}`, { kind: "info" });
+  }
+  return spec;
+}
+
+/** Cycles through the 8 Interactive Holographic Pointer Reveal & 120Hz Cursor Trail modes (`Alt+T` / `⌥T`). */
+export async function cycleCursorTrailMode(delta = 1, opts = {}) {
+  const cur = (typeof document !== "undefined" && document.documentElement?.dataset?.cursorTrail) || state.settings?.cursorTrailMode || "off";
+  const idx = CURSOR_TRAIL_MODES.findIndex((m) => m.id === cur);
+  const step = Number(delta) || 1;
+  const nextIdx = (Math.max(0, idx) + step + CURSOR_TRAIL_MODES.length) % CURSOR_TRAIL_MODES.length;
+  return applyCursorTrailMode(CURSOR_TRAIL_MODES[nextIdx].id, opts);
+}
+
+/** Applies one of the 6 Spring-Loaded 3D Folder Hover & Peek modes (`FOLDER_SPRING_MODES`). */
+export async function applyFolderSpringMode(modeId, opts = {}) {
+  const spec = FOLDER_SPRING_MODES.find((m) => m.id === modeId) || FOLDER_SPRING_MODES[0];
+  if (state.settings) state.settings.folderSpringMode = spec.id;
+  applyUiImmersionProfiles({ folderSpringMode: spec.id });
+  await saveSettings({ folderSpringMode: spec.id });
+  if (!opts.quiet) {
+    toast(`3D Folder Spring Mode: ${spec.label}`, { kind: "info" });
+  }
+  return spec;
+}
+
+/** Cycles through the 6 Spring-Loaded 3D Folder Hover & Peek modes (`FOLDER_SPRING_MODES`). */
+export async function cycleFolderSpringMode(delta = 1, opts = {}) {
+  const cur = (typeof document !== "undefined" && document.documentElement?.dataset?.folderSpring) || state.settings?.folderSpringMode || "off";
+  const idx = FOLDER_SPRING_MODES.findIndex((m) => m.id === cur);
+  const step = Number(delta) || 1;
+  const nextIdx = (Math.max(0, idx) + step + FOLDER_SPRING_MODES.length) % FOLDER_SPRING_MODES.length;
+  return applyFolderSpringMode(FOLDER_SPRING_MODES[nextIdx].id, opts);
+}
+
+/** Applies one of the 8 Procedural 8K Desktop Wallpaper Backplate Scenes (`DESKTOP_WALLPAPER_SCENES`). */
+export async function applyDesktopWallpaperScene(sceneId, opts = {}) {
+  const spec = DESKTOP_WALLPAPER_SCENES.find((s) => s.id === sceneId) || DESKTOP_WALLPAPER_SCENES[0];
+  if (state.settings) state.settings.desktopWallpaperScene = spec.id;
+  applyUiImmersionProfiles({ desktopWallpaperScene: spec.id });
+  await saveSettings({ desktopWallpaperScene: spec.id });
+  if (!opts.quiet) {
+    toast(`8K Desktop Wallpaper Scene: ${spec.label}`, { kind: "info" });
+  }
+  return spec;
+}
+
+/** Cycles through the 8 Procedural 8K Desktop Wallpaper Backplate Scenes (`Alt+W` / `⌥W`). */
+export async function cycleDesktopWallpaperScene(delta = 1, opts = {}) {
+  const cur = (typeof document !== "undefined" && document.documentElement?.dataset?.wallpaperScene) || state.settings?.desktopWallpaperScene || "off";
+  const idx = DESKTOP_WALLPAPER_SCENES.findIndex((s) => s.id === cur);
+  const step = Number(delta) || 1;
+  const nextIdx = (Math.max(0, idx) + step + DESKTOP_WALLPAPER_SCENES.length) % DESKTOP_WALLPAPER_SCENES.length;
+  return applyDesktopWallpaperScene(DESKTOP_WALLPAPER_SCENES[nextIdx].id, opts);
+}
+
+/**
+ * Computes a live AAA Production Studio Fidelity Score (`0..100`) and studio grade (`"S+ AAA Master"`, `"A+ Studio Pro"`, `"B Standard"`, etc.)
+ * across all active visual, spatial, icon, filter, and audio engines.
+ */
+export function computeAaaProductionScore(overrides = {}) {
+  const root = typeof document !== "undefined" ? document.documentElement : null;
+  const s = { ...(state.settings ?? {}), ...overrides };
+  const palette = s.palette || root?.dataset?.palette || "";
+  const uiFx = s.uiElementFx || root?.dataset?.uiFx || "off";
+  const iconPack = s.iconPackStyle || root?.dataset?.iconPack || "default";
+  const iconFinish = s.iconFinishMode || root?.dataset?.iconFinish || "off";
+  const iconAnim = s.themeIconAnimation || root?.dataset?.iconAnim || "off";
+  const screenFilter = s.screenFilter || root?.dataset?.screenFilter || "off";
+  const stageMode = s.workspaceStageMode || root?.dataset?.stageMode || "off";
+  const cursorTrail = s.cursorTrailMode || root?.dataset?.cursorTrail || "off";
+  const folderSpring = s.folderSpringMode || root?.dataset?.folderSpring || "off";
+  const wallpaper = s.desktopWallpaperScene || root?.dataset?.wallpaperScene || "off";
+  const sound = s.uiSoundProfile || root?.dataset?.soundProfile || "off";
+
+  const activeEngines = [];
+  let score = 20; // Baseline professional computer icon & semantic palette foundation
+  if (palette) { score += 10; activeEngines.push("palette"); }
+  if (uiFx && uiFx !== "off" && uiFx !== "auto") { score += 10; activeEngines.push("uiElementFx"); }
+  if (iconPack && iconPack !== "default" && iconPack !== "auto") { score += 10; activeEngines.push("iconPackStyle"); }
+  if (iconFinish && iconFinish !== "off") { score += 10; activeEngines.push("iconFinishMode"); }
+  if (iconAnim && iconAnim !== "off") { score += 10; activeEngines.push("themeIconAnimation"); }
+  if (screenFilter && screenFilter !== "off") { score += 6; activeEngines.push("screenFilter"); }
+  if (stageMode && stageMode !== "off") { score += 8; activeEngines.push("workspaceStageMode"); }
+  if (cursorTrail && cursorTrail !== "off") { score += 6; activeEngines.push("cursorTrailMode"); }
+  if (folderSpring && folderSpring !== "off") { score += 5; activeEngines.push("folderSpringMode"); }
+  if (wallpaper && wallpaper !== "off") { score += 5; activeEngines.push("desktopWallpaperScene"); }
+  if (sound && sound !== "off") { score += 5; activeEngines.push("uiSoundProfile"); }
+  score = Math.min(100, score);
+
+  const grade = score >= 90 ? "S+ AAA Master"
+    : score >= 75 ? "A+ Studio Pro"
+    : score >= 55 ? "A Workstation"
+    : "B Standard";
+  return {
+    score,
+    grade,
+    activeEngines,
+    activeCount: activeEngines.length,
+  };
+}
+
+/**
+ * Applies one of the 8 Master AAA Director's Cut Presets (`AAA_DIRECTOR_CUT_PRESETS`),
+ * orchestrating all 10 visual, spatial, icon, filter, wallpaper, and audio engines in a single click.
+ */
+export async function applyAaaDirectorCutPreset(presetId, opts = {}) {
+  const preset = AAA_DIRECTOR_CUT_PRESETS.find((p) => p.id === presetId) || AAA_DIRECTOR_CUT_PRESETS[0];
+  if (!preset) return null;
+  await chooseTheme(preset.palette);
+  await applyPalette(preset.palette);
+  const patch = {
+    palette: preset.palette,
+    uiElementFx: preset.uiElementFx,
+    iconPackStyle: preset.iconPackStyle,
+    iconFinishMode: preset.iconFinishMode,
+    themeIconAnimation: preset.themeIconAnimation,
+    themeIconGlow: preset.themeIconGlow,
+    screenFilter: preset.screenFilter,
+    workspaceStageMode: preset.workspaceStageMode,
+    cursorTrailMode: preset.cursorTrailMode,
+    folderSpringMode: preset.folderSpringMode,
+    desktopWallpaperScene: preset.desktopWallpaperScene,
+    uiSoundProfile: preset.uiSoundProfile,
+  };
+  if (state.settings) Object.assign(state.settings, patch);
+  applyUiImmersionProfiles(patch);
+  await saveSettings(patch);
+  if (preset.palette.startsWith("holiday_") && opts.burst !== false) {
+    triggerHolidayCelebrationBurst(preset.palette);
+  }
+  if (!opts.quiet) {
+    const report = computeAaaProductionScore(patch);
+    toast(`🎬 AAA Director's Cut: ${preset.label} (${report.grade} · ${report.score}/100)`, { kind: "success" });
+  }
+  return preset;
+}
+
+/** Cycles through the 8 Master AAA Director's Cut Presets (`Alt+M` / `⌥M`). */
+export async function cycleAaaDirectorCutPreset(delta = 1, opts = {}) {
+  const curPalette = (typeof document !== "undefined" && document.documentElement?.dataset?.palette) || state.settings?.palette || "";
+  const curStage = (typeof document !== "undefined" && document.documentElement?.dataset?.stageMode) || state.settings?.workspaceStageMode || "";
+  const curIdx = AAA_DIRECTOR_CUT_PRESETS.findIndex((p) => p.palette === curPalette && p.workspaceStageMode === curStage);
+  const step = Number(delta) || 1;
+  const nextIdx = curIdx < 0
+    ? 0
+    : (curIdx + step + AAA_DIRECTOR_CUT_PRESETS.length) % AAA_DIRECTOR_CUT_PRESETS.length;
+  return applyAaaDirectorCutPreset(AAA_DIRECTOR_CUT_PRESETS[nextIdx].id, opts);
+}
+
 /** Builds the interactive "🔥 Folder, Toolbar & Icon Immersion Studio" bar for the Theme Gallery and Atmosphere Studio. */
 export function buildImmersionStudioBar() {
   const curUiFx = () => state.settings?.uiElementFx || "off";
@@ -1671,12 +2599,34 @@ export function buildImmersionStudioBar() {
   const curCorner = () => state.settings?.themeCornerProfile || "default";
   const curGlow = () => state.settings?.themeIconGlow || "off";
   const curAnim = () => state.settings?.themeIconAnimation || "off";
+  const curScreenFilter = () => state.settings?.screenFilter || "off";
+  const curIconFinish = () => (typeof document !== "undefined" && document.documentElement?.dataset?.iconFinish) || state.settings?.iconFinishMode || "";
+  const curStageMode = () => (typeof document !== "undefined" && document.documentElement?.dataset?.stageMode) || state.settings?.workspaceStageMode || "off";
+  const curSoundProfile = () => (typeof document !== "undefined" && document.documentElement?.dataset?.soundProfile) || state.settings?.uiSoundProfile || "off";
+  const curCursorTrail = () => (typeof document !== "undefined" && document.documentElement?.dataset?.cursorTrail) || state.settings?.cursorTrailMode || "off";
+  const curFolderSpring = () => (typeof document !== "undefined" && document.documentElement?.dataset?.folderSpring) || state.settings?.folderSpringMode || "off";
+  const curWallpaper = () => (typeof document !== "undefined" && document.documentElement?.dataset?.wallpaperScene) || state.settings?.desktopWallpaperScene || "off";
+  const curPalette = () => (typeof document !== "undefined" && document.documentElement?.dataset?.palette) || state.settings?.palette || "";
   const curKit = () => {
     const p = state.settings?.palette || "";
     const u = curUiFx();
     const ic = curIconPack();
     return JUMPSTART_WORKSTATION_KITS.find((k) => k.palette === p && k.uiElementFx === u && k.iconPackStyle === ic)?.id || "";
   };
+
+  const directorCutButtons = AAA_DIRECTOR_CUT_PRESETS.map((preset) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill theme-jumpstart-pill${curPalette() === preset.palette && curStageMode() === preset.workspaceStageMode ? " is-active" : ""}`,
+      "data-aaa-director-preset": preset.id,
+      "aria-pressed": String(curPalette() === preset.palette && curStageMode() === preset.workspaceStageMode),
+      title: `${preset.desc} (1-click 10-engine AAA Master Preset · Alt+M / ⌥M)`,
+      onclick: async () => {
+        await applyAaaDirectorCutPreset(preset.id);
+        syncBarState();
+      },
+    }, preset.label),
+  );
 
   const jumpstartButtons = JUMPSTART_WORKSTATION_KITS.map((kit) =>
     h("button", {
@@ -1717,6 +2667,7 @@ export function buildImmersionStudioBar() {
       title: opt.desc,
       onclick: async () => {
         if (state.settings) state.settings.iconPackStyle = opt.id;
+        if (keepCurrentIconsLock && lockedIconsSnapshot) lockedIconsSnapshot.iconPackStyle = opt.id;
         applyUiImmersionProfiles({ iconPackStyle: opt.id });
         syncBarState();
         await saveSettings({ iconPackStyle: opt.id });
@@ -1727,15 +2678,128 @@ export function buildImmersionStudioBar() {
   const animButtons = ICON_ANIMATION_PROFILES.map((opt) =>
     h("button", {
       type: "button",
-      class: `theme-filter-pill${curAnim() === opt.id ? " is-active" : ""}`,
+      class: `theme-filter-pill${opt.highEnd3d ? " is-high-end-3d-pill" : ""}${curAnim() === opt.id ? " is-active" : ""}`,
       "data-icon-anim": opt.id,
       "aria-pressed": String(curAnim() === opt.id),
       title: opt.desc,
       onclick: async () => {
         if (state.settings) state.settings.themeIconAnimation = opt.id;
+        if (keepCurrentIconsLock && lockedIconsSnapshot) lockedIconsSnapshot.themeIconAnimation = opt.id;
         applyUiImmersionProfiles({ themeIconAnimation: opt.id });
         syncBarState();
         await saveSettings({ themeIconAnimation: opt.id });
+      },
+    }, opt.label),
+  );
+
+  const screenFilterButtons = SCREEN_FILTER_PRESETS.map((opt) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${curScreenFilter() === opt.id ? " is-active" : ""}`,
+      "data-screen-filter": opt.id,
+      "aria-pressed": String(curScreenFilter() === opt.id),
+      title: `${opt.label} (${opt.category}): ${opt.desc}`,
+      onclick: async () => {
+        await applyScreenFilter(opt.id);
+        syncBarState();
+      },
+    }, opt.label),
+  );
+
+  const iconFinishButtons = COMPUTER_ICON_FINISH_MODES.map((opt) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${curIconFinish() === opt.id ? " is-active" : ""}`,
+      "data-icon-finish-pill": opt.id,
+      "aria-pressed": String(curIconFinish() === opt.id),
+      title: opt.desc,
+      onclick: async () => {
+        await applyComputerIconFinish(curIconFinish() === opt.id ? "off" : opt.id);
+        syncBarState();
+      },
+    }, opt.label),
+  );
+
+  const holidayButtons = HOLIDAY_CELEBRATION_CATALOG.map((item) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill theme-holiday-pill${curPalette() === item.key ? " is-active" : ""}`,
+      "data-holiday-pill": item.key,
+      "aria-pressed": String(curPalette() === item.key),
+      title: `${item.crest} ${item.label} — Activates bespoke ${item.anim} 3D animation, C9 fairy-light toolbar garland, folder crest badge & festive celebration burst!`,
+      onclick: async () => {
+        await applyHolidayCelebrationTheme(item.key);
+        syncBarState();
+      },
+    }, `${item.crest} ${item.label}`),
+  );
+
+  const stageModeButtons = WORKSPACE_STAGE_MODES.map((opt) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${curStageMode() === opt.id ? " is-active" : ""}`,
+      "data-stage-mode-pill": opt.id,
+      "aria-pressed": String(curStageMode() === opt.id),
+      title: opt.desc,
+      onclick: async () => {
+        await applyWorkspaceStageMode(opt.id);
+        syncBarState();
+      },
+    }, opt.label),
+  );
+
+  const cursorTrailButtons = CURSOR_TRAIL_MODES.map((opt) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${curCursorTrail() === opt.id ? " is-active" : ""}`,
+      "data-cursor-trail-pill": opt.id,
+      "aria-pressed": String(curCursorTrail() === opt.id),
+      title: opt.desc,
+      onclick: async () => {
+        await applyCursorTrailMode(opt.id);
+        syncBarState();
+      },
+    }, opt.label),
+  );
+
+  const folderSpringButtons = FOLDER_SPRING_MODES.map((opt) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${curFolderSpring() === opt.id ? " is-active" : ""}`,
+      "data-folder-spring-pill": opt.id,
+      "aria-pressed": String(curFolderSpring() === opt.id),
+      title: opt.desc,
+      onclick: async () => {
+        await applyFolderSpringMode(opt.id);
+        syncBarState();
+      },
+    }, opt.label),
+  );
+
+  const wallpaperButtons = DESKTOP_WALLPAPER_SCENES.map((opt) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${curWallpaper() === opt.id ? " is-active" : ""}`,
+      "data-wallpaper-scene-pill": opt.id,
+      "aria-pressed": String(curWallpaper() === opt.id),
+      title: opt.desc,
+      onclick: async () => {
+        await applyDesktopWallpaperScene(opt.id);
+        syncBarState();
+      },
+    }, opt.label),
+  );
+
+  const soundProfileButtons = UI_SOUND_PROFILES.map((opt) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${curSoundProfile() === opt.id ? " is-active" : ""}`,
+      "data-sound-profile-pill": opt.id,
+      "aria-pressed": String(curSoundProfile() === opt.id),
+      title: opt.desc,
+      onclick: async () => {
+        await setUiSoundProfile(opt.id);
+        syncBarState();
       },
     }, opt.label),
   );
@@ -1778,12 +2842,47 @@ export function buildImmersionStudioBar() {
       "aria-pressed": String(curGlow() === opt.id),
       onclick: async () => {
         if (state.settings) state.settings.themeIconGlow = opt.id;
+        if (keepCurrentIconsLock && lockedIconsSnapshot) lockedIconsSnapshot.themeIconGlow = opt.id;
         applyUiImmersionProfiles({ themeIconGlow: opt.id });
         syncBarState();
         await saveSettings({ themeIconGlow: opt.id });
       },
     }, opt.label),
   );
+
+  const shuffleIconsBtn = h("button", {
+    type: "button",
+    class: "theme-filter-pill theme-random-fx-pill",
+    "data-shuffle-icons-keep-theme": "true",
+    title: "Shuffle system icons, custom icon pack & 3D icon choreography while keeping 100% of your current theme colors & effects (Alt+I / ⌥I)!",
+    onclick: async () => {
+      await shuffleSystemIconsKeepTheme();
+      syncBarState();
+    },
+  }, "🎲 Shuffle System Icons (Keep Theme · ⌥I)");
+
+  const spin3dFoldersBtn = h("button", {
+    type: "button",
+    class: "theme-filter-pill theme-random-fx-pill",
+    "data-toggle-3d-spinning-folders": "true",
+    title: "High-End GPU Mode: Cycle 3D Spinning Folder Turntable, Futuristic Flash 2Advanced Vector HUD, 3D Pop-Up Origami Flip & Gyro Cube Spin (Alt+3 / ⌥3)!",
+    onclick: async () => {
+      await cycleHighEnd3dFolderAnimation(1);
+      syncBarState();
+    },
+  }, "🌪️ 3D Spinning Folders & Flash HUD (⌥3)");
+
+  const lockIconsBtn = h("button", {
+    type: "button",
+    class: `theme-filter-pill${keepCurrentIconsLock ? " is-active" : ""}`,
+    "data-keep-icons-lock": "true",
+    "aria-pressed": String(keepCurrentIconsLock),
+    title: "Lock your current Custom Icon Pack, Icon Glow & 3D Icon Animation so switching themes never overwrites your icons (Alt+Shift+I / ⌥⇧I)!",
+    onclick: () => {
+      toggleKeepIconsOnThemeSwitchMode();
+      syncBarState();
+    },
+  }, keepCurrentIconsLock ? "🔒 Icons Locked" : "🔓 Lock My Icons (⌥⇧I)");
 
   const previewStageStatus = h("span", { class: "theme-icon-stage-status", "data-icon-stage-status": "true" });
   const previewStageRowItems = PREVIEW_STAGE_ENTRIES.map((item) => {
@@ -1795,7 +2894,7 @@ export function buildImmersionStudioBar() {
       "data-stage-specimen": item.name,
       "data-is-dir": String(item.isDir),
       "data-icon-kind": kind,
-      title: `Live 3D Icon Specimen: ${item.label} (hover to test 3D folder pocket & click to cycle icon choreography)`,
+      title: `Live 3D Icon Specimen: ${item.label} (hover to test 3D folder pocket & click to cycle 20 icon choreographies)`,
       onclick: async () => {
         const activeList = ICON_ANIMATION_PROFILES.filter((p) => p.id !== "off" && p.id !== "auto");
         const curIdx = activeList.findIndex((p) => p.id === curAnim());
@@ -1837,8 +2936,13 @@ export function buildImmersionStudioBar() {
     "aria-label": "Live 3D Folder, File and Toolbar Button Icon Preview Stage",
   },
     h("div", { class: "theme-icon-stage-head" },
-      h("strong", {}, "🔬 Live 3D Icon, Folder-Pocket & Button Choreography Stage (260+ System Icons · 49 Packs · 12 Animations)"),
-      previewStageStatus,
+      h("strong", {}, `🔬 Live 3D Icon, Spinning Folder & Futuristic Flash Stage (260+ Icons · ${ICON_PACK_OPTIONS.length} Packs · ${ICON_ANIMATION_PROFILES.length} Animations)`),
+      h("div", { class: "theme-icon-stage-quick-actions" },
+        shuffleIconsBtn,
+        spin3dFoldersBtn,
+        lockIconsBtn,
+        previewStageStatus,
+      ),
     ),
     h("div", { class: "theme-icon-stage-grid" },
       ...previewStageRowItems,
@@ -1848,6 +2952,12 @@ export function buildImmersionStudioBar() {
 
   function syncBarState() {
     const activeKit = curKit();
+    for (const b of directorCutButtons) {
+      const preset = AAA_DIRECTOR_CUT_PRESETS.find((p) => p.id === b.dataset.aaaDirectorPreset);
+      const on = Boolean(preset && curPalette() === preset.palette && curStageMode() === preset.workspaceStageMode);
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
     for (const b of jumpstartButtons) {
       const on = b.dataset.jumpstartKit === activeKit;
       b.classList.toggle("is-active", on);
@@ -1868,6 +2978,46 @@ export function buildImmersionStudioBar() {
       b.classList.toggle("is-active", on);
       b.setAttribute("aria-pressed", String(on));
     }
+    for (const b of screenFilterButtons) {
+      const on = b.dataset.screenFilter === curScreenFilter();
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
+    for (const b of iconFinishButtons) {
+      const on = b.dataset.iconFinishPill === curIconFinish();
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
+    for (const b of holidayButtons) {
+      const on = b.dataset.holidayPill === curPalette();
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
+    for (const b of stageModeButtons) {
+      const on = b.dataset.stageModePill === curStageMode();
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
+    for (const b of cursorTrailButtons) {
+      const on = b.dataset.cursorTrailPill === curCursorTrail();
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
+    for (const b of folderSpringButtons) {
+      const on = b.dataset.folderSpringPill === curFolderSpring();
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
+    for (const b of wallpaperButtons) {
+      const on = b.dataset.wallpaperScenePill === curWallpaper();
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
+    for (const b of soundProfileButtons) {
+      const on = b.dataset.soundProfilePill === curSoundProfile();
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
     for (const b of fontButtons) {
       const on = b.dataset.fontProfile === curFont();
       b.classList.toggle("is-active", on);
@@ -1883,18 +3033,79 @@ export function buildImmersionStudioBar() {
       b.classList.toggle("is-active", on);
       b.setAttribute("aria-pressed", String(on));
     }
+    lockIconsBtn.classList.toggle("is-active", keepCurrentIconsLock);
+    lockIconsBtn.setAttribute("aria-pressed", String(keepCurrentIconsLock));
+    lockIconsBtn.textContent = keepCurrentIconsLock ? "🔒 Icons Locked" : "🔓 Lock My Icons (⌥⇧I)";
     const packObj = ICON_PACK_OPTIONS.find((o) => o.id === curIconPack()) || ICON_PACK_OPTIONS[0];
     const animObj = ICON_ANIMATION_PROFILES.find((o) => o.id === curAnim()) || ICON_ANIMATION_PROFILES[0];
-    previewStageStatus.textContent = `Pack: ${packObj.label} · Motion: ${animObj.label} · Glow: ${curGlow().toUpperCase()}`;
+    const filterObj = SCREEN_FILTER_PRESETS.find((o) => o.id === curScreenFilter()) || SCREEN_FILTER_PRESETS[0];
+    const aaaReport = computeAaaProductionScore();
+    previewStageStatus.textContent = `Pack: ${packObj.label} · Motion: ${animObj.label} · Filter: ${filterObj.label} · Studio: ${aaaReport.grade} (${aaaReport.score}/100)`;
     syncVisibleIcons(previewStage);
   }
   syncBarState();
 
   return h("div", { class: "theme-immersion-bar", role: "region", "aria-label": "File Manager folder, toolbar and icon immersion effects" },
     previewStage,
+    h("div", { class: "theme-pill-row theme-jumpstart-row", "data-aaa-director-bar": "true" },
+      h("span", { class: "theme-pill-label" }, `🎬 AAA Director's Cut Master Presets (${AAA_DIRECTOR_CUT_PRESETS.length} · ⌥M)`),
+      h("button", {
+        type: "button",
+        class: "theme-filter-pill theme-random-fx-pill",
+        "data-aaa-director-cycle": "1",
+        title: "Cycle through all 8 Master AAA Director's Cut Presets that orchestrate all 10 engines simultaneously (Alt+M / ⌥M)!",
+        onclick: async () => {
+          await cycleAaaDirectorCutPreset(1);
+          syncBarState();
+        },
+      }, "⏭️ Next AAA Master (⌥M)"),
+      ...directorCutButtons,
+    ),
     h("div", { class: "theme-pill-row theme-jumpstart-row" },
       h("span", { class: "theme-pill-label" }, "⚡ 1-Click Jumpstart Kits"),
       ...jumpstartButtons,
+    ),
+    h("div", { class: "theme-pill-row", "data-holiday-studio-bar": "true" },
+      h("span", { class: "theme-pill-label" }, `🎄 Super-Special Holiday Celebrations (${HOLIDAY_CELEBRATION_CATALOG.length} · ⌥H)`),
+      h("button", {
+        type: "button",
+        class: "theme-filter-pill theme-random-fx-pill",
+        "data-holiday-match-today": "true",
+        title: "Automatically detect and activate the closest US Holiday theme for today's calendar date with bespoke 3D animations & celebration burst!",
+        onclick: async () => {
+          const matched = detectCalendarHolidayTheme(new Date());
+          if (matched) await applyHolidayCelebrationTheme(matched.key);
+          syncBarState();
+        },
+      }, "📅 Today's Holiday"),
+      h("button", {
+        type: "button",
+        class: "theme-filter-pill theme-random-fx-pill",
+        "data-holiday-cycle-next": "true",
+        title: "Cycle through all 18 Super-Special US Holiday themes in calendar order (Alt+H / ⌥H)!",
+        onclick: async () => {
+          await cycleHolidayTheme(1);
+          syncBarState();
+        },
+      }, "⏭️ Next Holiday (⌥H)"),
+      h("button", {
+        type: "button",
+        class: "theme-filter-pill theme-random-fx-pill",
+        "data-holiday-celebrate-burst": "true",
+        title: "Launch a festive Holiday Celebration Burst across your screen!",
+        onclick: () => {
+          triggerHolidayCelebrationBurst();
+        },
+      }, "🎉 Celebrate Burst!"),
+      ...holidayButtons,
+    ),
+    h("div", { class: "theme-pill-row", "data-icon-finish-bar": "true" },
+      h("span", { class: "theme-pill-label" }, `🖥️ Computer Icon Finish (${COMPUTER_ICON_FINISH_MODES.length})`),
+      ...iconFinishButtons,
+    ),
+    h("div", { class: "theme-pill-row", "data-folder-spring-bar": "true" },
+      h("span", { class: "theme-pill-label" }, `🗂️ 3D Folder Spring & Peek (${FOLDER_SPRING_MODES.length})`),
+      ...folderSpringButtons,
     ),
     h("div", { class: "theme-pill-row" },
       h("span", { class: "theme-pill-label" }, "🔥 Folder & Toolbar FX"),
@@ -1905,8 +3116,48 @@ export function buildImmersionStudioBar() {
       ...iconPackButtons,
     ),
     h("div", { class: "theme-pill-row" },
-      h("span", { class: "theme-pill-label" }, "🎬 Icon Animation"),
+      h("span", { class: "theme-pill-label" }, `🎬 3D Icon & Flash Animation (${ICON_ANIMATION_PROFILES.length})`),
       ...animButtons,
+    ),
+    h("div", { class: "theme-pill-row", "data-screen-filter-bar": "true" },
+      h("span", { class: "theme-pill-label" }, `📺 CRT, Cinema & Optical Screen Filters (${SCREEN_FILTER_PRESETS.length} · ⌥F)`),
+      h("button", {
+        type: "button",
+        class: "theme-filter-pill theme-random-fx-pill",
+        "data-cycle-screen-filter": "1",
+        title: "Cycle through all 34 built-in CRT, VHS, Game Boy, Kodachrome, IMAX, Night Vision, X-Ray, E-Ink & XDR screen filters (Alt+F / ⌥F)!",
+        onclick: async () => {
+          await cycleScreenFilter(1);
+          syncBarState();
+        },
+      }, "⏭️ Next Screen Filter (⌥F)"),
+      h("button", {
+        type: "button",
+        class: "theme-filter-pill theme-random-fx-pill",
+        "data-random-screen-filter": "true",
+        title: "Pick a random built-in CRT, Cinema, Retro Handheld, or Optical Lens screen filter (Alt+Shift+F / ⌥⇧F)!",
+        onclick: async () => {
+          await randomScreenFilter();
+          syncBarState();
+        },
+      }, "🎲 Random Filter (⌥⇧F)"),
+      ...screenFilterButtons,
+    ),
+    h("div", { class: "theme-pill-row", "data-stage-mode-bar": "true" },
+      h("span", { class: "theme-pill-label" }, `🎭 3D Desktop Stage & Ambilux (${WORKSPACE_STAGE_MODES.length} · ⌥S)`),
+      ...stageModeButtons,
+    ),
+    h("div", { class: "theme-pill-row", "data-cursor-trail-bar": "true" },
+      h("span", { class: "theme-pill-label" }, `🔦 Pointer Spotlight & 120Hz Trail (${CURSOR_TRAIL_MODES.length} · ⌥T)`),
+      ...cursorTrailButtons,
+    ),
+    h("div", { class: "theme-pill-row", "data-wallpaper-scene-bar": "true" },
+      h("span", { class: "theme-pill-label" }, `🌅 8K Desktop Wallpaper Backplate (${DESKTOP_WALLPAPER_SCENES.length} · ⌥W)`),
+      ...wallpaperButtons,
+    ),
+    h("div", { class: "theme-pill-row", "data-sound-profile-bar": "true" },
+      h("span", { class: "theme-pill-label" }, `🔊 Tactile UI Soundscape (${UI_SOUND_PROFILES.length})`),
+      ...soundProfileButtons,
     ),
     h("div", { class: "theme-pill-row" },
       h("span", { class: "theme-pill-label" }, "🔤 Typography"),
@@ -3082,6 +4333,10 @@ export async function recentThemes() {
 /** Chooses a theme by its key (an empty key goes back to the standard colors) and remembers it as a recent one. */
 export async function chooseTheme(key, opts = {}) {
   plainStaticLockKey = null;
+  if (!keepCurrentEffectsLock && !opts?.keepEffectsOnly) {
+    keptEffectsForKey = null;
+    keptEffectsSnapshot = null;
+  }
   if (!opts?.preserveSuppressedFx) {
     resetSuppressedFx();
   }
@@ -3142,6 +4397,8 @@ export async function disableAllThemeAnimations(opts = {}) {
   try {
     applyAtmosphere("none");
   } catch {}
+  keptEffectsForKey = null;
+  keptEffectsSnapshot = null;
   if (!opts.keepTelemetryHud) {
     closeTelemetryPopoutHud();
     if (typeof document !== "undefined") {
@@ -3162,6 +4419,7 @@ export async function disableAllThemeAnimations(opts = {}) {
     iconPackStyle: "default",
     themeIconGlow: "off",
     themeIconAnimation: "off",
+    screenFilter: "off",
     ...(opts.stripThemeEffects !== false ? { themeFontProfile: "default", themeCornerProfile: "default" } : {}),
     ...(opts.palette !== undefined ? { palette: opts.palette } : {}),
   };
@@ -3423,6 +4681,37 @@ export function showQuickCycleHud(activeKey, allThemes = [], { index = 0, total 
             void randomColorsKeepCurrentEffects();
           },
         }, "🌈 Swap Color Keep FX (⌥C)"),
+        h("button", {
+          type: "button",
+          class: "btn fm-quick-cycle-mini-btn",
+          "data-quick-hud-shuffle-icons": "true",
+          title: "Shuffle System Icon Packs, 3D Icon Glow & Animations while keeping your current theme & FX (Alt+I / ⌥I)",
+          onclick: (e) => {
+            e.stopPropagation();
+            void shuffleSystemIconsKeepTheme();
+          },
+        }, "🎭 Shuffle Icons (⌥I)"),
+        h("button", {
+          type: "button",
+          class: "btn fm-quick-cycle-mini-btn",
+          "data-quick-hud-3d-folders": "true",
+          title: "Cycle High-End 3D Spinning Folders & Futuristic Flash-Reloaded 3000 120Hz Animations (Alt+3 / ⌥3)",
+          onclick: (e) => {
+            e.stopPropagation();
+            void cycleHighEnd3dFolderAnimation(1);
+          },
+        }, "💿 3D Spin & Flash (⌥3)"),
+        h("button", {
+          type: "button",
+          class: "btn fm-quick-cycle-mini-btn",
+          "data-quick-hud-screen-filter": "true",
+          title: "Cycle built-in CRT, Cinema, Retro Handheld, Analog & Optical Screen Filters (Alt+F / ⌥F · Shift+Click for Random ⌥⇧F)",
+          onclick: (e) => {
+            e.stopPropagation();
+            if (e.shiftKey) void randomScreenFilter();
+            else void cycleScreenFilter(1);
+          },
+        }, "📺 Screen Filter (⌥F)"),
         h("button", {
           type: "button",
           class: "btn fm-quick-cycle-mini-btn",
@@ -3781,6 +5070,16 @@ export function getActiveWorkspaceEffects() {
       title: `Click to reset corner geometry (${cornerProfile}) back to Default`,
     });
   }
+  const screenFilter = root.dataset?.screenFilter || root.getAttribute("data-screen-filter") || "";
+  if (screenFilter && screenFilter !== "off") {
+    const presetMeta = SCREEN_FILTER_PRESETS.find((f) => f.id === screenFilter);
+    items.push({
+      kind: "screenFilter",
+      id: screenFilter,
+      label: `${presetMeta?.label || `📺 Filter: ${screenFilter}`}`,
+      title: `Click to turn off screen filter (${presetMeta?.label || screenFilter})`,
+    });
+  }
   const hasRetroGlitch = Boolean(
     (root.getAttribute("data-fx-scanlines") && root.getAttribute("data-fx-scanlines") !== "none")
     || (root.getAttribute("data-fx-grain") && root.getAttribute("data-fx-grain") !== "none")
@@ -3819,7 +5118,7 @@ export function getActiveWorkspaceEffects() {
 
 /**
  * Removes a single active effect (`"atmoLayer"`, `"atmosphere"`, `"uiElementFx"`, `"iconPackStyle"`, `"iconGlow"`, `"iconAnimation"`,
- * `"fontProfile"`, `"cornerProfile"`, `"retroGlitch"`, `"glassGlow"`, or `"all"`) from the live workspace in 1 click.
+ * `"fontProfile"`, `"cornerProfile"`, `"screenFilter"`, `"retroGlitch"`, `"glassGlow"`, or `"all"`) from the live workspace in 1 click.
  */
 export async function removeActiveWorkspaceEffect(kind, value = "", opts = {}) {
   const root = typeof document !== "undefined" ? document.documentElement : null;
@@ -3909,6 +5208,14 @@ export async function removeActiveWorkspaceEffect(kind, value = "", opts = {}) {
     root?.removeAttribute("data-fx-corner-profile");
     root?.removeAttribute("data-fx-radius");
     if (root?.dataset) delete root.dataset.cornerProfile;
+  } else if (kind === "screenFilter") {
+    root?.removeAttribute("data-screen-filter");
+    if (root?.dataset) delete root.dataset.screenFilter;
+    if (state.settings) Object.assign(state.settings, { ...palettePatch, screenFilter: "off" });
+    applyUiImmersionProfiles({ screenFilter: "off" });
+    await saveSettings({ ...palettePatch, screenFilter: "off" });
+    root?.removeAttribute("data-screen-filter");
+    if (root?.dataset) delete root.dataset.screenFilter;
   } else if (kind === "retroGlitch") {
     for (const attr of ["data-fx-scanlines", "data-fx-grain", "data-fx-chromatic", "data-fx-noise", "data-fx-crt"]) {
       root?.removeAttribute(attr);
@@ -3945,14 +5252,14 @@ let lockedEffectsSnapshot = null;
 
 /**
  * Captures a complete snapshot of the user's currently active workspace effects (atmosphere shaders,
- * 3D folder/toolbar shader, custom icon pack, icon glow, 3D icon animation, font/corner profiles, and glass/glow DOM attributes).
+ * 3D folder/toolbar shader, custom icon pack, icon glow, 3D icon animation, font/corner profiles, screen filter, and glass/glow DOM attributes).
  */
 export function captureCurrentWorkspaceEffectsSnapshot() {
   const root = typeof document !== "undefined" ? document.documentElement : null;
   const fxAttrs = {};
   if (root) {
     for (const attr of [...root.attributes]) {
-      if (attr.name.startsWith("data-fx")) {
+      if (attr.name.startsWith("data-fx") || attr.name === "data-screen-filter") {
         fxAttrs[attr.name] = attr.value;
       }
     }
@@ -3966,6 +5273,7 @@ export function captureCurrentWorkspaceEffectsSnapshot() {
   const themeIconAnimation = root?.dataset?.iconAnim || root?.getAttribute?.("data-fx-icon-anim") || state.settings?.themeIconAnimation || "off";
   const themeFontProfile = root?.dataset?.fontProfile || root?.getAttribute?.("data-fx-font-profile") || state.settings?.themeFontProfile || "default";
   const themeCornerProfile = root?.dataset?.cornerProfile || root?.getAttribute?.("data-fx-corner-profile") || state.settings?.themeCornerProfile || "default";
+  const screenFilter = root?.dataset?.screenFilter || root?.getAttribute?.("data-screen-filter") || state.settings?.screenFilter || "off";
   return {
     atmosphere: atmoSpec || "none",
     uiElementFx: uiElementFx || "off",
@@ -3974,6 +5282,7 @@ export function captureCurrentWorkspaceEffectsSnapshot() {
     themeIconAnimation: themeIconAnimation || "off",
     themeFontProfile: themeFontProfile || "default",
     themeCornerProfile: themeCornerProfile || "default",
+    screenFilter: screenFilter || "off",
     fxAttrs,
     fxCss,
   };
@@ -4012,7 +5321,7 @@ export function toggleKeepEffectsColorSwapMode(opts = {}) {
 /**
  * Applies ONLY the color palette from theme `key` (`--bg`, `--panel`, `--text`, `--accent`, etc.)
  * while preserving 100% of the user's currently active effects (atmosphere weather/shader layers,
- * 3D folder/toolbar shader, custom icon pack, icon glow, 3D icon animation, font/corner profiles, and glass/glow).
+ * 3D folder/toolbar shader, custom icon pack, icon glow, 3D icon animation, font/corner profiles, screen filter, and glass/glow).
  */
 export async function applyThemeColorsKeepingCurrentEffects(key, opts = {}) {
   ensureGlobalThemeShortcutsBound();
@@ -4023,6 +5332,8 @@ export async function applyThemeColorsKeepingCurrentEffects(key, opts = {}) {
   plainStaticLockKey = null;
   resetSuppressedFx();
   rememberTheme(key);
+  keptEffectsForKey = key;
+  keptEffectsSnapshot = snap;
 
   const root = typeof document !== "undefined" ? document.documentElement : null;
   let themeName = "Standard";
@@ -4093,6 +5404,7 @@ export async function applyThemeColorsKeepingCurrentEffects(key, opts = {}) {
     themeIconAnimation: snap.themeIconAnimation || "off",
     themeFontProfile: snap.themeFontProfile || "default",
     themeCornerProfile: snap.themeCornerProfile || "default",
+    screenFilter: snap.screenFilter || "off",
   };
   if (state.settings) Object.assign(state.settings, immersionPatch);
   applyUiImmersionProfiles(immersionPatch);
@@ -4105,7 +5417,7 @@ export async function applyThemeColorsKeepingCurrentEffects(key, opts = {}) {
   if (!opts.quiet) {
     toast(`🎨 Swapped colors to "${themeName}" while keeping your active effects!`, { kind: "success" });
   }
-  return { key, name: themeName, snapshot: snap };
+  return { ...snap, key, name: themeName, snapshot: snap };
 }
 
 /**
@@ -4129,12 +5441,265 @@ export async function randomColorsKeepCurrentEffects(opts = {}) {
   return chosen;
 }
 
+/** Returns true when "Lock System Icons on Theme Switch" mode is active. */
+export function isKeepIconsOnThemeSwitchMode() {
+  return Boolean(keepCurrentIconsLock);
+}
+
+/**
+ * Enables or disables "Lock System Icons on Theme Switch" mode (`Alt+Shift+I` / `⌥⇧I`).
+ * When enabled, switching themes preserves the user's chosen `iconPackStyle`, `themeIconGlow`, and `themeIconAnimation`.
+ */
+export function setKeepIconsOnThemeSwitchMode(enabled, opts = {}) {
+  keepCurrentIconsLock = Boolean(enabled);
+  const root = typeof document !== "undefined" ? document.documentElement : null;
+  if (keepCurrentIconsLock) {
+    lockedIconsSnapshot = {
+      iconPackStyle: root?.dataset?.iconPack || root?.getAttribute?.("data-fx-icon-pack") || state.settings?.iconPackStyle || "default",
+      themeIconGlow: root?.dataset?.iconGlow || root?.getAttribute?.("data-fx-icon-glow") || state.settings?.themeIconGlow || "off",
+      themeIconAnimation: root?.dataset?.iconAnim || root?.getAttribute?.("data-fx-icon-anim") || state.settings?.themeIconAnimation || "off",
+    };
+    if (root?.dataset) root.dataset.keepIconsLock = "true";
+    if (!opts.quiet) {
+      toast("🔒 Icons Locked — switching themes now keeps your custom system icon pack, icon glow & 3D icon animation!", { kind: "success" });
+    }
+  } else {
+    lockedIconsSnapshot = null;
+    if (root?.dataset) delete root.dataset.keepIconsLock;
+    if (!opts.quiet) {
+      toast("🔓 Icons Unlocked — switching themes applies each theme's default icon pack.", { kind: "info" });
+    }
+  }
+  return keepCurrentIconsLock;
+}
+
+/** Toggles "Lock System Icons on Theme Switch" mode on or off (`Alt+Shift+I` / `⌥⇧I`). */
+export function toggleKeepIconsOnThemeSwitchMode(opts = {}) {
+  return setKeepIconsOnThemeSwitchMode(!keepCurrentIconsLock, opts);
+}
+
+/**
+ * Instant 1-click / `Alt+I` (`⌥I`) System Icon Pack Shuffler:
+ * Shuffles the 49 custom system icon packs (plus matching 3D icon glow & optional 3D icon animation)
+ * while keeping 100% of the user's current theme colors, atmosphere weather shaders, and glass effects intact!
+ */
+export async function shuffleSystemIconsKeepTheme(opts = {}) {
+  ensureGlobalThemeShortcutsBound();
+  const root = typeof document !== "undefined" ? document.documentElement : null;
+  const activeKey = (root?.dataset?.palette && root.dataset.palette !== "preview")
+    ? root.dataset.palette
+    : (wanted || state.settings?.palette || "");
+  const curPack = root?.dataset?.iconPack || root?.getAttribute?.("data-fx-icon-pack") || state.settings?.iconPackStyle || "default";
+  const packs = ICON_PACK_OPTIONS.filter((p) => p.id !== "default");
+  const pool = packs.length > 1 ? packs.filter((p) => p.id !== curPack) : packs;
+  const chosenPack = pool[Math.floor(Math.random() * pool.length)] || packs[0];
+  if (!chosenPack) return null;
+
+  const glows = ICON_GLOW_PROFILES.filter((g) => g.id !== "off");
+  const curGlow = root?.dataset?.iconGlow || root?.getAttribute?.("data-fx-icon-glow") || state.settings?.themeIconGlow || "off";
+  const chosenGlow = opts.keepGlow && curGlow !== "off"
+    ? ICON_GLOW_PROFILES.find((g) => g.id === curGlow) || glows[0]
+    : glows[Math.floor(Math.random() * glows.length)] || glows[0];
+
+  const anims = ICON_ANIMATION_PROFILES.filter((a) => a.id !== "off");
+  const curAnim = root?.dataset?.iconAnim || root?.getAttribute?.("data-fx-icon-anim") || state.settings?.themeIconAnimation || "off";
+  const chosenAnim = opts.keepAnimation && curAnim !== "off"
+    ? ICON_ANIMATION_PROFILES.find((a) => a.id === curAnim) || anims[0]
+    : (opts.shuffleAnimation !== false
+        ? anims[Math.floor(Math.random() * anims.length)] || anims[0]
+        : (ICON_ANIMATION_PROFILES.find((a) => a.id === curAnim) || anims[0]));
+
+  const patch = {
+    ...(activeKey && state.settings && state.settings.palette !== activeKey ? { palette: activeKey } : {}),
+    iconPackStyle: chosenPack.id,
+    themeIconGlow: chosenGlow?.id || "neon",
+    themeIconAnimation: chosenAnim?.id || "spring_pop_3d",
+  };
+  if (keepCurrentIconsLock) {
+    lockedIconsSnapshot = {
+      iconPackStyle: patch.iconPackStyle,
+      themeIconGlow: patch.themeIconGlow,
+      themeIconAnimation: patch.themeIconAnimation,
+    };
+  }
+  if (state.settings) Object.assign(state.settings, patch);
+  applyUiImmersionProfiles(patch);
+  await saveSettings(patch);
+  applyUiImmersionProfiles(patch);
+  try {
+    refreshFileManagerIconsForPack(chosenPack.id);
+  } catch {}
+  emit("theme-changed", currentThemePayload());
+  if (!opts.quiet) {
+    toast(`🎭 Shuffled System Icons → ${chosenPack.label} · ${chosenAnim?.label || patch.themeIconAnimation} (Theme & FX kept!)`, { kind: "success" });
+  }
+  return {
+    id: chosenPack.id,
+    iconPackStyle: patch.iconPackStyle,
+    themeIconGlow: patch.themeIconGlow,
+    themeIconAnimation: patch.themeIconAnimation,
+    packLabel: chosenPack.label,
+    animLabel: chosenAnim?.label || patch.themeIconAnimation,
+  };
+}
+
+/** 14 High-End 3D, Master Motion-Designer & Futuristic Flash-Reloaded 3000 120Hz Folder/Icon Choreographies (`Alt+3` / `⌥3`). */
+export const HIGH_END_3D_FOLDER_ANIMATION_IDS = [
+  "folder_3d_spin_turntable",
+  "flash_2advanced_vector_hud",
+  "folder_3d_flip_origami",
+  "gyro_3d_cube_matrix",
+  "flash_fwa_kinetic_eq",
+  "hologram_3d_projector_beam",
+  "quantum_3d_phase_split",
+  "m4_liquid_metal_morph",
+  "c4d_mograph_cloner_wave",
+  "houdini_vex_particle_burst",
+  "after_effects_graph_overshoot",
+  "unreal_nanite_mesh_lod",
+  "blender_geometry_nodes_bloom",
+  "raytraced_caustic_refraction",
+];
+
+/**
+ * Cycles through the 14 High-End 3D Spinning Folder, Master Motion-Designer & Futuristic Flash-Reloaded 3000 120Hz animations (`Alt+3` / `⌥3`)
+ * and pairs them with the matching 3D Holo Turntable, Cinema 4D MoGraph, Houdini VEX, or Futuristic Flash 3000 Vector HUD UI shader while keeping the user's current theme!
+ */
+export async function cycleHighEnd3dFolderAnimation(direction = 1, opts = {}) {
+  ensureGlobalThemeShortcutsBound();
+  const root = typeof document !== "undefined" ? document.documentElement : null;
+  const activeKey = (root?.dataset?.palette && root.dataset.palette !== "preview")
+    ? root.dataset.palette
+    : (wanted || state.settings?.palette || "");
+  const curAnim = root?.dataset?.iconAnim || root?.getAttribute?.("data-fx-icon-anim") || state.settings?.themeIconAnimation || "off";
+  const idx = HIGH_END_3D_FOLDER_ANIMATION_IDS.indexOf(curAnim);
+  const nextIdx = idx < 0
+    ? 0
+    : (idx + (direction >= 0 ? 1 : -1) + HIGH_END_3D_FOLDER_ANIMATION_IDS.length) % HIGH_END_3D_FOLDER_ANIMATION_IDS.length;
+  const nextAnimId = opts.animationId && HIGH_END_3D_FOLDER_ANIMATION_IDS.includes(opts.animationId)
+    ? opts.animationId
+    : HIGH_END_3D_FOLDER_ANIMATION_IDS[nextIdx];
+  const profile = ICON_ANIMATION_PROFILES.find((a) => a.id === nextAnimId) || ICON_ANIMATION_PROFILES[1];
+  const isFlash = nextAnimId.startsWith("flash_");
+  const isC4d = nextAnimId === "c4d_mograph_cloner_wave" || nextAnimId === "after_effects_graph_overshoot";
+  const isHoudini = nextAnimId === "houdini_vex_particle_burst" || nextAnimId === "unreal_nanite_mesh_lod";
+  const curUiFx = root?.dataset?.uiFx || root?.getAttribute?.("data-fx-element") || state.settings?.uiElementFx || "auto";
+  const nextUiFx = opts.keepUiFx && curUiFx !== "auto" && curUiFx !== "off"
+    ? curUiFx
+    : isFlash
+      ? "flash_3000_vector_hud"
+      : isC4d
+        ? "c4d_mograph_extrude_folders"
+        : isHoudini
+          ? "houdini_procedural_vex_hud"
+          : "spinning_3d_holo_folders";
+  const curGlow = root?.dataset?.iconGlow || root?.getAttribute?.("data-fx-icon-glow") || state.settings?.themeIconGlow || "off";
+  const nextGlow = curGlow !== "off" ? curGlow : (isFlash || isHoudini ? "neon" : "xdr_specular");
+
+  const patch = {
+    ...(activeKey && state.settings && state.settings.palette !== activeKey ? { palette: activeKey } : {}),
+    themeIconAnimation: nextAnimId,
+    themeIconGlow: nextGlow,
+    uiElementFx: nextUiFx,
+  };
+  if (keepCurrentIconsLock && lockedIconsSnapshot) {
+    lockedIconsSnapshot.themeIconAnimation = nextAnimId;
+    lockedIconsSnapshot.themeIconGlow = nextGlow;
+  }
+  if (state.settings) Object.assign(state.settings, patch);
+  applyUiImmersionProfiles(patch);
+  await saveSettings(patch);
+  applyUiImmersionProfiles(patch);
+  emit("theme-changed", currentThemePayload());
+  if (!opts.quiet) {
+    toast(`💿 High-End 3D & Flash 3000 FX → ${profile.label} (120Hz GPU)`, { kind: "success" });
+  }
+  return {
+    id: nextAnimId,
+    themeIconAnimation: nextAnimId,
+    uiElementFx: nextUiFx,
+    themeIconGlow: nextGlow,
+    label: profile.label,
+  };
+}
+
+/**
+ * Applies a built-in Screen Filter (`"crt_trinitron_95"`, `"crt_amber_monochrome"`, `"vhs_camcorder_1994"`, `"gameboy_dmg_olive"`, `"davinci_aces_cct_grade"`, `"off"`, etc.)
+ * to `document.documentElement` (`data-screen-filter`) and persists it in `state.settings.screenFilter`.
+ */
+export async function applyScreenFilter(filterId = "off", opts = {}) {
+  ensureGlobalThemeShortcutsBound();
+  const root = typeof document !== "undefined" ? document.documentElement : null;
+  const validPreset = SCREEN_FILTER_PRESETS.find((f) => f.id === filterId) || SCREEN_FILTER_PRESETS[0];
+  const nextFilter = validPreset.id;
+  const activeKey = (root?.dataset?.palette && root.dataset.palette !== "preview")
+    ? root.dataset.palette
+    : (wanted || state.settings?.palette || "");
+  const patch = {
+    ...(activeKey && state.settings && state.settings.palette !== activeKey ? { palette: activeKey } : {}),
+    screenFilter: nextFilter,
+  };
+  if (keepCurrentEffectsLock && lockedEffectsSnapshot) {
+    lockedEffectsSnapshot.screenFilter = nextFilter;
+    if (nextFilter && nextFilter !== "off") {
+      lockedEffectsSnapshot.fxAttrs = { ...(lockedEffectsSnapshot.fxAttrs || {}), "data-screen-filter": nextFilter };
+    } else if (lockedEffectsSnapshot.fxAttrs) {
+      delete lockedEffectsSnapshot.fxAttrs["data-screen-filter"];
+    }
+  }
+  if (state.settings) Object.assign(state.settings, patch);
+  applyUiImmersionProfiles(patch);
+  await saveSettings(patch);
+  applyUiImmersionProfiles(patch);
+  emit("theme-changed", currentThemePayload());
+  if (!opts.quiet) {
+    if (nextFilter === "off") {
+      toast("📺 Screen Filter OFF — restored pure display output.", { kind: "info" });
+    } else {
+      toast(`📺 Screen Filter → ${validPreset.label} (${validPreset.desc})`, { kind: "success" });
+    }
+  }
+  return validPreset;
+}
+
+/**
+ * Cycles to the next or previous built-in Screen Filter (`Alt+F` / `⌥F`).
+ */
+export async function cycleScreenFilter(direction = 1, opts = {}) {
+  const root = typeof document !== "undefined" ? document.documentElement : null;
+  const cur = root?.dataset?.screenFilter || root?.getAttribute?.("data-screen-filter") || state.settings?.screenFilter || "off";
+  const ids = SCREEN_FILTER_PRESETS.map((f) => f.id);
+  const idx = ids.indexOf(cur);
+  const nextIdx = idx < 0
+    ? 1
+    : (idx + (direction >= 0 ? 1 : -1) + ids.length) % ids.length;
+  return await applyScreenFilter(ids[nextIdx], opts);
+}
+
+/**
+ * Picks a random non-off Screen Filter (`Alt+Shift+F` / `⌥⇧F`) from the 33 CRT, Master Colorist, Cinema, Retro Handheld, Analog & Optical filters.
+ */
+export async function randomScreenFilter(opts = {}) {
+  const root = typeof document !== "undefined" ? document.documentElement : null;
+  const cur = root?.dataset?.screenFilter || root?.getAttribute?.("data-screen-filter") || state.settings?.screenFilter || "off";
+  const activePresets = SCREEN_FILTER_PRESETS.filter((f) => f.id !== "off");
+  const pool = activePresets.length > 1 ? activePresets.filter((f) => f.id !== cur) : activePresets;
+  const chosen = pool[Math.floor(Math.random() * pool.length)] || activePresets[0];
+  return await applyScreenFilter(chosen?.id || "crt_trinitron_95", opts);
+}
+
 if (typeof window !== "undefined") {
   window.cycleAppTheme = cycleTheme;
   window.randomAppTheme = (mode, opts) => randomTheme({ ...(opts || {}), mode: mode || "any" });
   window.randomAppColorsKeepFx = (opts) => randomColorsKeepCurrentEffects(opts || {});
   window.applyAppColorsKeepFx = (key, opts) => applyThemeColorsKeepingCurrentEffects(key, opts || {});
   window.toggleAppKeepFxLock = (opts) => toggleKeepEffectsColorSwapMode(opts || {});
+  window.shuffleAppSystemIcons = (opts) => shuffleSystemIconsKeepTheme(opts || {});
+  window.toggleAppKeepIconsLock = (opts) => toggleKeepIconsOnThemeSwitchMode(opts || {});
+  window.cycleApp3dFolderAnimation = (dir, opts) => cycleHighEnd3dFolderAnimation(dir ?? 1, opts || {});
+  window.applyAppScreenFilter = (id, opts) => applyScreenFilter(id, opts || {});
+  window.cycleAppScreenFilter = (dir, opts) => cycleScreenFilter(dir ?? 1, opts || {});
+  window.randomAppScreenFilter = (opts) => randomScreenFilter(opts || {});
   window.toggleAppThemeFx = toggleCurrentThemeEffects;
   window.removeAppThemeFx = removeActiveWorkspaceEffect;
   window.openAppThemes = (opts) => showThemePicker(opts);
@@ -4220,6 +5785,7 @@ export async function showThemePicker(opts = {}) {
   let activeCollection = "all";
   let lastShown = themes;
   let dialogRef = null;
+  let latestPickSeq = 0;
   const list = h("div", { class: "theme-list" });
   const sectionJumpBar = h("div", { class: "theme-section-jump-bar", role: "navigation", "aria-label": "Jump to theme section" });
   const count = h("p", { class: "hint theme-count-bar", role: "status" });
@@ -4505,6 +6071,48 @@ export async function showThemePicker(opts = {}) {
             }
           },
         }, "🎲 Random Colors (Keep FX · ⌥C)"),
+        h("button", {
+          type: "button",
+          class: "theme-filter-pill theme-random-fx-pill",
+          "data-picker-shuffle-icons": "true",
+          title: "Shuffle System Icon Packs, 3D Icon Glow & Animations while keeping your current theme & FX (Alt+I / ⌥I)!",
+          onclick: async () => {
+            await shuffleSystemIconsKeepTheme();
+            renderActiveFxStrip();
+          },
+        }, "🎭 Shuffle System Icons (Keep Theme · ⌥I)"),
+        h("button", {
+          type: "button",
+          class: `theme-filter-pill theme-keep-fx-lock-btn${keepCurrentIconsLock ? " is-active" : ""}`,
+          "data-picker-keep-icons-lock": "true",
+          "aria-pressed": String(keepCurrentIconsLock),
+          title: "Lock your chosen System Icon Pack & 3D Icon Animation so switching themes never overwrites your icons (Alt+Shift+I / ⌥⇧I)!",
+          onclick: () => {
+            toggleKeepIconsOnThemeSwitchMode();
+            renderActiveFxStrip();
+          },
+        }, keepCurrentIconsLock ? "🔒 Icons Locked" : "🔓 Lock Icons (⌥⇧I)"),
+        h("button", {
+          type: "button",
+          class: "theme-filter-pill theme-random-fx-pill",
+          "data-picker-cycle-3d-folders": "true",
+          title: "Cycle High-End 3D Spinning Folders & Futuristic Flash-Reloaded 3000 120Hz Animations (Alt+3 / ⌥3)!",
+          onclick: async () => {
+            await cycleHighEnd3dFolderAnimation(1);
+            renderActiveFxStrip();
+          },
+        }, "💿 3D Spinning Folders & Flash 3000 (⌥3)"),
+        h("button", {
+          type: "button",
+          class: "theme-filter-pill theme-random-fx-pill",
+          "data-picker-cycle-screen-filter": "true",
+          title: "Cycle CRT Trinitron, Amber/Green Phosphor, 1999 VHS, Game Boy DMG, Cyber NVG, Matrix & Thermal Screen Filters (Alt+F / ⌥F · Shift+Click for Random ⌥⇧F)!",
+          onclick: async (e) => {
+            if (e?.shiftKey) await randomScreenFilter();
+            else await cycleScreenFilter(1);
+            renderActiveFxStrip();
+          },
+        }, "📺 CRT / Screen Filter (⌥F)"),
         ...colorSwatchChips,
       ),
     );
@@ -4763,6 +6371,8 @@ export async function showThemePicker(opts = {}) {
       : t.uiElementFx === "godmode_chrono_crystal" ? "⏳ Chrono-Crystal UI"
       : t.uiElementFx === "godmode_akashic_synapse" ? "🧬 Akashic UI"
       : t.uiElementFx === "godmode_tachyon_warp" ? "🚀 Tachyon Warp UI"
+      : t.uiElementFx === "flash_3000_vector_hud" ? "⚡ Flash 3000 Vector UI"
+      : t.uiElementFx === "spinning_3d_holo_folders" ? "💿 3D Spinning Holo UI"
       : t.uiElementFx === "xdr_titanium_folders" ? "🖥️ XDR Titanium UI"
       : t.uiElementFx === "tahoe_glass_folders" ? "🌊 Tahoe 3D Glass UI"
       : t.uiElementFx === "fluent_mica_folders" ? "🪟 Fluent 3D UI"
@@ -4808,10 +6418,7 @@ export async function showThemePicker(opts = {}) {
       title: `🌈 Keep My Current Effects, Swap Colors to ${t.name} (changes only the color palette while preserving your active background weather, 3D folders, icon pack & icon animations!)`,
       onclick: async (e) => {
         e.stopPropagation();
-        previewKey = null;
-        await applyThemeColorsKeepingCurrentEffects(t.key);
-        telemetryDeck?.inspectTheme?.(t.key);
-        draw();
+        await pick(t.key, { keepEffectsOnly: true });
       },
     }, "🌈");
     const plainOnlyBtn = t.hasEffects
@@ -4823,6 +6430,7 @@ export async function showThemePicker(opts = {}) {
           title: `Apply ${t.name} as Plain Colors Only (turns off all animations, glass blur & 3D FX — drops GPU usage to 0.0%)`,
           onclick: async (e) => {
             e.stopPropagation();
+            latestPickSeq++;
             previewKey = null;
             await applyThemePlainColorsOnly(t.key);
             telemetryDeck?.inspectTheme?.(t.key);
@@ -5116,6 +6724,7 @@ export async function showThemePicker(opts = {}) {
     }
   }, 20);
   async function pick(key, pickOpts = {}) {
+    const mySeq = ++latestPickSeq;
     previewKey = null;
     if (Boolean(pickOpts.keepEffectsOnly || keepCurrentEffectsLock)) {
       await applyThemeColorsKeepingCurrentEffects(key, { quiet: Boolean(pickOpts.quiet) });
@@ -5138,6 +6747,7 @@ export async function showThemePicker(opts = {}) {
       await choose(key);
       await applyPalette(key);
     }
+    if (mySeq !== latestPickSeq) return;
     telemetryDeck?.inspectTheme?.(key);
     renderActiveFxStrip();
     if (groupFilter.value === "recent") {
@@ -7600,6 +9210,66 @@ export function ensureGlobalThemeShortcutsBound() {
       void randomColorsKeepCurrentEffects();
       return;
     }
+    // Alt + I -> Shuffle System Icon Packs & 3D Icon Glow/Animations while keeping current theme & FX (no dialog)
+    if (!e.shiftKey && (code === "KeyI" || lowKey === "i")) {
+      e.preventDefault();
+      void shuffleSystemIconsKeepTheme();
+      return;
+    }
+    // Alt + Shift + I -> Toggle Lock System Icons on Theme Switch (no dialog)
+    if (e.shiftKey && (code === "KeyI" || lowKey === "i")) {
+      e.preventDefault();
+      toggleKeepIconsOnThemeSwitchMode();
+      return;
+    }
+    // Alt + 3 -> Cycle High-End 3D Spinning Folders & Futuristic Flash-Reloaded 3000 120Hz Animations (no dialog)
+    if (code === "Digit3" || lowKey === "3" || e.key === "£" || e.key === "#") {
+      e.preventDefault();
+      void cycleHighEnd3dFolderAnimation(e.shiftKey ? -1 : 1);
+      return;
+    }
+    // Alt + F -> Cycle CRT / Cinema / Retro Handheld / Analog / Optical Screen Filter (no dialog)
+    if (!e.shiftKey && (code === "KeyF" || lowKey === "f")) {
+      e.preventDefault();
+      void cycleScreenFilter(1);
+      return;
+    }
+    // Alt + Shift + F -> Random CRT / Cinema / Retro Handheld / Analog / Optical Screen Filter (no dialog)
+    if (e.shiftKey && (code === "KeyF" || lowKey === "f")) {
+      e.preventDefault();
+      void randomScreenFilter();
+      return;
+    }
+    // Alt + H -> Cycle Super-Special US Holiday Themes with festive animations & celebration burst (no dialog)
+    if (code === "KeyH" || lowKey === "h") {
+      e.preventDefault();
+      void cycleHolidayTheme(e.shiftKey ? -1 : 1);
+      return;
+    }
+    // Alt + S -> Cycle 3D Desktop Stage & Ambilux Backlight Mode (no dialog)
+    if (code === "KeyS" || lowKey === "s") {
+      e.preventDefault();
+      void cycleWorkspaceStageMode(e.shiftKey ? -1 : 1);
+      return;
+    }
+    // Alt + T -> Cycle Holographic Pointer Reveal & 120Hz Cursor Trail Mode (no dialog)
+    if (code === "KeyT" || lowKey === "t") {
+      e.preventDefault();
+      void cycleCursorTrailMode(e.shiftKey ? -1 : 1);
+      return;
+    }
+    // Alt + W -> Cycle Procedural 8K Desktop Wallpaper Backplate Scene (no dialog)
+    if (code === "KeyW" || lowKey === "w") {
+      e.preventDefault();
+      void cycleDesktopWallpaperScene(e.shiftKey ? -1 : 1);
+      return;
+    }
+    // Alt + M -> Cycle Master AAA Director's Cut 10-Engine Switchboard Preset (no dialog)
+    if (code === "KeyM" || lowKey === "m") {
+      e.preventDefault();
+      void cycleAaaDirectorCutPreset(e.shiftKey ? -1 : 1);
+      return;
+    }
     // Alt + 0 -> Instant Toggle / Turn Off Animations & FX on current theme (no dialog)
     if (!e.shiftKey && (code === "Digit0" || lowKey === "0")) {
       e.preventDefault();
@@ -7624,11 +9294,23 @@ on("theme-picker", (detail) => { ensureGlobalThemeShortcutsBound(); void showThe
 on("theme-random", (detail) => { ensureGlobalThemeShortcutsBound(); void randomTheme(detail || {}); });
 on("theme-random-colors-keep-fx", (detail) => { ensureGlobalThemeShortcutsBound(); void randomColorsKeepCurrentEffects(detail || {}); });
 on("theme-toggle-keep-fx-lock", () => { ensureGlobalThemeShortcutsBound(); toggleKeepEffectsColorSwapMode(); });
+on("theme-shuffle-icons", (detail) => { ensureGlobalThemeShortcutsBound(); void shuffleSystemIconsKeepTheme(detail || {}); });
+on("theme-toggle-keep-icons-lock", () => { ensureGlobalThemeShortcutsBound(); toggleKeepIconsOnThemeSwitchMode(); });
+on("theme-cycle-3d-folders", (detail) => { ensureGlobalThemeShortcutsBound(); void cycleHighEnd3dFolderAnimation(detail?.direction ?? 1, detail || {}); });
+on("theme-cycle-screen-filter", (detail) => { ensureGlobalThemeShortcutsBound(); void cycleScreenFilter(detail?.direction ?? 1, detail || {}); });
+on("theme-random-screen-filter", (detail) => { ensureGlobalThemeShortcutsBound(); void randomScreenFilter(detail || {}); });
+on("theme-cycle-holiday", (detail) => { ensureGlobalThemeShortcutsBound(); void cycleHolidayTheme(detail?.direction ?? 1, detail || {}); });
+on("theme-cycle-stage-mode", (detail) => { ensureGlobalThemeShortcutsBound(); void cycleWorkspaceStageMode(detail?.direction ?? 1, detail || {}); });
+on("theme-cycle-cursor-trail", (detail) => { ensureGlobalThemeShortcutsBound(); void cycleCursorTrailMode(detail?.direction ?? 1, detail || {}); });
+on("theme-cycle-wallpaper", (detail) => { ensureGlobalThemeShortcutsBound(); void cycleDesktopWallpaperScene(detail?.direction ?? 1, detail || {}); });
+on("theme-cycle-director-cut", (detail) => { ensureGlobalThemeShortcutsBound(); void cycleAaaDirectorCutPreset(detail?.direction ?? 1, detail || {}); });
 on("theme-toggle-fx", (detail) => { ensureGlobalThemeShortcutsBound(); void toggleCurrentThemeEffects(detail || {}); });
 on("theme-day-night", () => showDayNightPairDialog());
 on("theme-compare", (detail) => showThemeCompareDialog(undefined, detail?.a || "", detail?.b || ""));
 on("theme-share", (detail) => showThemeShareDialog(detail?.key || ""));
 on("theme-show", () => showThemeShowDialog());
 on("theme-paste-import", (detail) => { void pasteImportThemesFromClipboard(detail || {}); });
+
+
 
 
