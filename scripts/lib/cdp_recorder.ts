@@ -12,16 +12,19 @@ export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 // Styled through the CSSOM / Web Animations API only: the app's CSP blocks injected <style> elements.
 const CURSOR_SCRIPT = `(() => {
   try {
-    Object.defineProperty(navigator, "deviceMemory", { get: () => 64, configurable: true });
-    Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 16, configurable: true });
-    if (typeof WebGLRenderingContext !== "undefined") {
-      const origGetParam = WebGLRenderingContext.prototype.getParameter;
-      WebGLRenderingContext.prototype.getParameter = function(p) {
+    Object.defineProperty(navigator, "deviceMemory", { get: () => 192, configurable: true });
+    Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 32, configurable: true });
+    const patchGl = (Ctor) => {
+      if (typeof Ctor === "undefined" || !Ctor.prototype?.getParameter) return;
+      const origGetParam = Ctor.prototype.getParameter;
+      Ctor.prototype.getParameter = function(p) {
         if (p === 37445) return "Apple Inc.";
-        if (p === 37446) return "Apple M4 Max GPU (Pro Display XDR · 120Hz ProMotion)";
+        if (p === 37446) return "Apple M4 Ultra GPU (80-Core · 192GB Unified · Pro Display XDR 6K · Display-P3 1600-nit HDR · 120Hz ProMotion)";
         return origGetParam.call(this, p);
       };
-    }
+    };
+    patchGl(typeof WebGLRenderingContext !== "undefined" ? WebGLRenderingContext : undefined);
+    patchGl(typeof WebGL2RenderingContext !== "undefined" ? WebGL2RenderingContext : undefined);
   } catch {}
   if (window.__cc) return;
   const mk = (css, html) => { const d = document.createElement("div"); d.style.cssText = css; if (html) d.innerHTML = html; document.documentElement.appendChild(d); return d; };

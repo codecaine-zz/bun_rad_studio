@@ -6,6 +6,7 @@
 export * from "./simplecli/index.ts";
 export * from "./simplegui.ts";
 export * from "./features/rad/index.ts";
+export * from "./features/theme-studio/index.ts";
 
 // Names that more than one of the libraries above define, each with different behavior. They used to be
 // exported as `undefined`; each now refers to one definition on purpose (decision recorded in D-027).
@@ -13,3 +14,10 @@ export * from "./features/rad/index.ts";
 // `cacheutils.LRUCache`, `fileutils.writeFileAtomic` (asynchronous, unlike SimpleGUI's).
 export { LRUCache, Logger, LogLevel, TreeNode } from "./simplecli/index.ts";
 export { writeFileAtomic } from "./simplegui.ts";
+export {
+  type RGB,
+  type HSL,
+  rgbToHex,
+  rgbToHsl,
+  hslToRgb,
+} from "./features/theme-studio/index.ts";

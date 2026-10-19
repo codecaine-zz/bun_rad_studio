@@ -208,7 +208,7 @@ button:disabled { cursor: default; }
 #list-wrap { position: relative; flex: 1; min-height: 0; overflow: auto; }
 #list, #dual-list { min-height: 100%; padding-bottom: 2rem; }
 
-.row { position: relative; border-radius: 0.45rem; cursor: default; user-select: none; -webkit-user-select: none; contain: layout style; }
+.row { position: relative; border-radius: 0.45rem; cursor: default; user-select: none; -webkit-user-select: none; contain: layout style paint; }
 .row .c-icon { font-size: 1.25rem; text-align: center; }
 .row .c-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row .name-text { overflow: hidden; text-overflow: ellipsis; }

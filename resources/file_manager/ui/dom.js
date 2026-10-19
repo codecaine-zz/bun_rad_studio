@@ -375,6 +375,66 @@ export const ICON_PACK_GLYPHS = {
     disk: "💿", font: "🔤", file: "📄",
     topics: { pictures: "🖼️", video: "📽️", videos: "📽️", music: "🎵", code: "💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", games: "🎮" },
   },
+  cupertino_hig_studio: {
+    folder: "📁", image: "🏞️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📘",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "🧑‍💻", text: "📝", exec: "🚀",
+    disk: "💿", font: "🔤", file: "📄",
+    topics: { pictures: "🏞️", video: "🎬", videos: "🎬", music: "🎧", code: "🧑‍💻", "3d": "🧊", docs: "📚", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", ai_ml: "🧠", security: "🔐", design: "🎨", mobile: "📱", desktop: "🖥️", home: "🏠" },
+  },
+  swiss_horology_gold: {
+    folder: "🗂️", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
+    disk: "💿", font: "🔤", file: "📄",
+    topics: { pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", finance: "💹", legal: "⚖️", security: "🔐" },
+  },
+  teenage_field_synth: {
+    folder: "📁", image: "🖼️", video: "🎞️", audio: "🎚️", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "🎛️",
+    disk: "💽", font: "🔤", file: "📄",
+    topics: { pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎚️", audio_stems: "🎚️", code: "💻", "3d": "🧊", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", config: "🎛️" },
+  },
+  blueprint_cad_pro: {
+    folder: "🗂️", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
+    sheet: "📐", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
+    disk: "💽", font: "🔤", file: "📄",
+    topics: { pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", cad: "📐", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", science: "🧬" },
+  },
+  kyoto_zen_ink: {
+    folder: "📁", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
+    disk: "💿", font: "🔤", file: "📃",
+    topics: { pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", docs: "📚", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", home: "🏠" },
+  },
+  carbon_aerospace: {
+    folder: "🗂️", image: "🖼️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📄",
+    sheet: "📈", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "🚀",
+    disk: "💽", font: "🔤", file: "📄",
+    topics: { pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎧", code: "💻", "3d": "🧊", cad: "📐", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "🛰️", database: "🗄️", logs: "📈" },
+  },
+  godmode_celestial: {
+    folder: "🪐", image: "🖼️", video: "🎬", audio: "🎧", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "⚡", text: "📝", exec: "✨",
+    disk: "💿", font: "🔤", file: "📄",
+    topics: { pictures: "🌌", video: "🎬", videos: "🎬", music: "🎼", code: "✨", "3d": "🪐", ai_ml: "🧠", quantum: "⚛️", shaders: "🔮", science: "🧬", docs: "📁", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", home: "🏛️" },
+  },
+  godmode_photonic: {
+    folder: "💎", image: "🏞️", video: "🎞️", audio: "🎚️", pdf: "📕", doc: "📄",
+    sheet: "📈", slide: "📽️", archive: "📦", code: "💠", text: "📝", exec: "⚡",
+    disk: "💿", font: "🔤", file: "📄",
+    topics: { pictures: "💎", video: "🎞️", videos: "🎞️", music: "🎧", code: "💠", "3d": "🧊", ai_ml: "✨", quantum: "⚛️", shaders: "🌈", science: "🔬", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "🛰️", database: "🗄️", themes: "🌈" },
+  },
+  godmode_quantum: {
+    folder: "⚛️", image: "🖼️", video: "🎬", audio: "🎵", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "⚛️", text: "📝", exec: "⚛️",
+    disk: "💽", font: "🔤", file: "📄",
+    topics: { pictures: "🖼️", video: "🎬", videos: "🎬", music: "🎵", code: "⚛️", "3d": "🧊", ai_ml: "🧠", quantum: "⚛️", shaders: "🔮", science: "🧬", cad: "📐", docs: "🗂️", downloads: "📥", archive: "📦", cloud: "🛰️", database: "🛢️" },
+  },
+  godmode_chrono: {
+    folder: "⏳", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
+    sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⏳",
+    disk: "💿", font: "🔤", file: "📄",
+    topics: { pictures: "🖼️", video: "🎞️", videos: "🎞️", music: "🎵", code: "💻", "3d": "🧊", ai_ml: "🧠", quantum: "⏳", shaders: "🔮", science: "🧬", docs: "📂", downloads: "📥", archive: "📦", cloud: "☁️", database: "🗄️", logs: "⏳" },
+  },
 };
 ICON_PACK_GLYPHS.inferno_burn = ICON_PACK_GLYPHS.inferno;
 ICON_PACK_GLYPHS.bio_slime = ICON_PACK_GLYPHS.slime;
@@ -382,55 +442,63 @@ ICON_PACK_GLYPHS.storm_weather = ICON_PACK_GLYPHS.storm_tempest;
 ICON_PACK_GLYPHS.liquid_chrome = ICON_PACK_GLYPHS.liquid_gems;
 ICON_PACK_GLYPHS.arcane_glyphs = ICON_PACK_GLYPHS.xenotech_2126;
 
+const FOLDER_TOPIC_CACHE = new Map();
+const ICON_KIND_CACHE = new Map();
+
 /** Classifies a folder's semantic purpose across 45+ high-class workstation topics for 3D folder badges and system icon templates. */
 export function classifyFolderTopic(name) {
   const n = String(name || "").trim().toLowerCase();
   if (!n) return "general";
-  if (/(?:^|[\s_.-])(3d|blender|maya|zbrush|cinema4d|houdini|meshes|rigging|usd|usdz|gltf)(?:$|[\s_.-])/.test(n)) return "3d";
-  if (/(?:^|[\s_.-])(cad|blueprints?|pcb|gerber|schematics?|autocad|solidworks|freecad)(?:$|[\s_.-])/.test(n)) return "cad";
-  if (/(?:^|[\s_.-])(raw|dng|negatives?|cr2|cr3|nef|arw|lightroom|captureone)(?:$|[\s_.-])/.test(n)) return "camera_raw";
-  if (/(?:^|[\s_.-])(pictures?|photos?|images?|img|wallpapers?|screenshots?|camera|renders?|gallery|art|icons?|avatars?|thumbnails?)(?:$|[\s_.-])/.test(n)) return "pictures";
-  if (/(?:^|[\s_.-])(videos?|movies?|films?|clips?|footage|cinema|recordings?|captures?|premiere|davinci|finalcut)(?:$|[\s_.-])/.test(n)) return "video";
-  if (/(?:^|[\s_.-])(stems?|daw|ableton|logic|protools|flstudio|vst|synths?|samples?|loops?)(?:$|[\s_.-])/.test(n)) return "audio_stems";
-  if (/(?:^|[\s_.-])(music|audio|sounds?|podcasts?|tracks?|sfx|playlists?)(?:$|[\s_.-])/.test(n)) return "music";
-  if (/(?:^|[\s_.-])(ai|ml|models?|llm|weights|checkpoints?|neural|gemini|deepmind|vertex|tensors?|lora|embeddings?)(?:$|[\s_.-])/.test(n)) return "ai_ml";
-  if (/(?:^|[\s_.-])(quantum|qubits?|willow|cirq|qiskit)(?:$|[\s_.-])/.test(n)) return "quantum";
-  if (/(?:^|[\s_.-])(science|genomics?|bio|protein|alphafold|chemistry|lab|research|datasets?)(?:$|[\s_.-])/.test(n)) return "science";
-  if (/(?:^|[\s_.-])(notebooks?|jupyter|colab|ipynb)(?:$|[\s_.-])/.test(n)) return "notebooks";
-  if (/(?:^|[\s_.-])(shaders?|glsl|wgsl|hlsl|vulkan|metal|raytracing)(?:$|[\s_.-])/.test(n)) return "shaders";
-  if (/(?:^|[\s_.-])(docker|containers?|compose|podman)(?:$|[\s_.-])/.test(n)) return "docker";
-  if (/(?:^|[\s_.-])(k8s|kubernetes|helm|clusters?|manifests?)(?:$|[\s_.-])/.test(n)) return "kubernetes";
-  if (/(?:^|[\s_.-])(\.git|\.github|git|repos?|branches|patches)(?:$|[\s_.-])/.test(n)) return "git";
-  if (/(?:^|[\s_.-])(workflows?|ci|cd|pipelines?|actions|jenkins|cloudbuild)(?:$|[\s_.-])/.test(n)) return "workflows";
-  if (/(?:^|[\s_.-])(tests?|__tests__|spec|specs|e2e|benchmarks?|coverage|cypress|playwright)(?:$|[\s_.-])/.test(n)) return "tests";
-  if (/(?:^|[\s_.-])(scripts?|bin|tools|automation|cron|hooks)(?:$|[\s_.-])/.test(n)) return "scripts";
-  if (/(?:^|[\s_.-])(api|graphql|grpc|proto|routes|endpoints|controllers|handlers|webhooks)(?:$|[\s_.-])/.test(n)) return "api";
-  if (/(?:^|[\s_.-])(web|public|static|www|pages|views|frontend|client|ui)(?:$|[\s_.-])/.test(n)) return "web";
-  if (/(?:^|[\s_.-])(mobile|android|ios|flutter|react-native|apk|ipa)(?:$|[\s_.-])/.test(n)) return "mobile";
-  if (/(?:^|[\s_.-])(games?|unity|unreal|godot|roms?|saves?|mods?)(?:$|[\s_.-])/.test(n)) return "games";
-  if (/(?:^|[\s_.-])(plugins?|extensions?|addons?|mods|widgets?)(?:$|[\s_.-])/.test(n)) return "plugins";
-  if (/(?:^|[\s_.-])(themes?|palettes?|styles?|tokens?|skins?)(?:$|[\s_.-])/.test(n)) return "themes";
-  if (/(?:^|[\s_.-])(design|figma|sketch|brand|ux|wireframes?|mockups?|vectors?)(?:$|[\s_.-])/.test(n)) return "design";
-  if (/(?:^|[\s_.-])(fonts?|typography|typefaces?)(?:$|[\s_.-])/.test(n)) return "fonts";
-  if (/(?:^|[\s_.-])(security|keys?|certs?|certificates?|ssh|gpg|vault|secrets?|auth|ssl)(?:$|[\s_.-])/.test(n)) return "security";
-  if (/(?:^|[\s_.-])(crypto|web3|blockchain|contracts?|wallets?|solidity)(?:$|[\s_.-])/.test(n)) return "crypto";
-  if (/(?:^|[\s_.-])(config|configs|configuration|settings|etc|\.config|\.vscode|\.idx)(?:$|[\s_.-])/.test(n)) return "config";
-  if (/(?:^|[\s_.-])(src|lib|app|components|packages|server|core|shared|features|modules|crates|cmd|internal|pkg)(?:$|[\s_.-])/.test(n)) return "code";
-  if (/(?:^|[\s_.-])(docs?|documentation|notes|guides|manuals|papers|books|wiki|readme|rfcs?)(?:$|[\s_.-])/.test(n)) return "docs";
-  if (/(?:^|[\s_.-])(finance|invoices?|taxes|accounting|budget|billing|receipts?|ledger)(?:$|[\s_.-])/.test(n)) return "finance";
-  if (/(?:^|[\s_.-])(legal|contracts?|licenses?|patents?|compliance|terms|privacy)(?:$|[\s_.-])/.test(n)) return "legal";
-  if (/(?:^|[\s_.-])(logs?|telemetry|metrics|traces|audit|crash)(?:$|[\s_.-])/.test(n)) return "logs";
-  if (/(?:^|[\s_.-])(temp|tmp|cache|\.cache|scratch|staging)(?:$|[\s_.-])/.test(n)) return "temp";
-  if (/(?:^|[\s_.-])(trash|recycle|\.trash|deleted)(?:$|[\s_.-])/.test(n)) return "trash";
-  if (/(?:^|[\s_.-])(downloads?|inbox|incoming)(?:$|[\s_.-])/.test(n)) return "downloads";
-  if (/(?:^|[\s_.-])(db|databases?|sql|migrations|data|prisma|seeds|postgres|sqlite|bigquery)(?:$|[\s_.-])/.test(n)) return "database";
-  if (/(?:^|[\s_.-])(cloud|sync|icloud|dropbox|drive|onedrive|shared|gcloud|s3|buckets?)(?:$|[\s_.-])/.test(n)) return "cloud";
-  if (/(?:^|[\s_.-])(network|dns|vpn|proxy|nginx|caddy|sockets?|firewall)(?:$|[\s_.-])/.test(n)) return "network";
-  if (/(?:^|[\s_.-])(system|os|kernel|drivers?|firmware|boot|usr|var|opt)(?:$|[\s_.-])/.test(n)) return "system";
-  if (/(?:^|[\s_.-])(desktop)(?:$|[\s_.-])/.test(n)) return "desktop";
-  if (/(?:^|[\s_.-])(home|users?)(?:$|[\s_.-])/.test(n)) return "home";
-  if (/(?:^|[\s_.-])(archives?|backups?|dist|build|out|releases?|vendor|node_modules|target)(?:$|[\s_.-])/.test(n)) return "archive";
-  return "general";
+  const cached = FOLDER_TOPIC_CACHE.get(n);
+  if (cached !== undefined) return cached;
+  let topic = "general";
+  if (/(?:^|[\s_.-])(3d|blender|maya|zbrush|cinema4d|houdini|meshes|rigging|usd|usdz|gltf)(?:$|[\s_.-])/.test(n)) topic = "3d";
+  else if (/(?:^|[\s_.-])(cad|blueprints?|pcb|gerber|schematics?|autocad|solidworks|freecad)(?:$|[\s_.-])/.test(n)) topic = "cad";
+  else if (/(?:^|[\s_.-])(raw|dng|negatives?|cr2|cr3|nef|arw|lightroom|captureone)(?:$|[\s_.-])/.test(n)) topic = "camera_raw";
+  else if (/(?:^|[\s_.-])(pictures?|photos?|images?|img|wallpapers?|screenshots?|camera|renders?|gallery|art|icons?|avatars?|thumbnails?)(?:$|[\s_.-])/.test(n)) topic = "pictures";
+  else if (/(?:^|[\s_.-])(videos?|movies?|films?|clips?|footage|cinema|recordings?|captures?|premiere|davinci|finalcut)(?:$|[\s_.-])/.test(n)) topic = "video";
+  else if (/(?:^|[\s_.-])(stems?|daw|ableton|logic|protools|flstudio|vst|synths?|samples?|loops?)(?:$|[\s_.-])/.test(n)) topic = "audio_stems";
+  else if (/(?:^|[\s_.-])(music|audio|sounds?|podcasts?|tracks?|sfx|playlists?)(?:$|[\s_.-])/.test(n)) topic = "music";
+  else if (/(?:^|[\s_.-])(ai|ml|models?|llm|weights|checkpoints?|neural|gemini|deepmind|vertex|tensors?|lora|embeddings?)(?:$|[\s_.-])/.test(n)) topic = "ai_ml";
+  else if (/(?:^|[\s_.-])(quantum|qubits?|willow|cirq|qiskit)(?:$|[\s_.-])/.test(n)) topic = "quantum";
+  else if (/(?:^|[\s_.-])(science|genomics?|bio|protein|alphafold|chemistry|lab|research|datasets?)(?:$|[\s_.-])/.test(n)) topic = "science";
+  else if (/(?:^|[\s_.-])(notebooks?|jupyter|colab|ipynb)(?:$|[\s_.-])/.test(n)) topic = "notebooks";
+  else if (/(?:^|[\s_.-])(shaders?|glsl|wgsl|hlsl|vulkan|metal|raytracing)(?:$|[\s_.-])/.test(n)) topic = "shaders";
+  else if (/(?:^|[\s_.-])(docker|containers?|compose|podman)(?:$|[\s_.-])/.test(n)) topic = "docker";
+  else if (/(?:^|[\s_.-])(k8s|kubernetes|helm|clusters?|manifests?)(?:$|[\s_.-])/.test(n)) topic = "kubernetes";
+  else if (/(?:^|[\s_.-])(\.git|\.github|git|repos?|branches|patches)(?:$|[\s_.-])/.test(n)) topic = "git";
+  else if (/(?:^|[\s_.-])(workflows?|ci|cd|pipelines?|actions|jenkins|cloudbuild)(?:$|[\s_.-])/.test(n)) topic = "workflows";
+  else if (/(?:^|[\s_.-])(tests?|__tests__|spec|specs|e2e|benchmarks?|coverage|cypress|playwright)(?:$|[\s_.-])/.test(n)) topic = "tests";
+  else if (/(?:^|[\s_.-])(scripts?|bin|tools|automation|cron|hooks)(?:$|[\s_.-])/.test(n)) topic = "scripts";
+  else if (/(?:^|[\s_.-])(api|graphql|grpc|proto|routes|endpoints|controllers|handlers|webhooks)(?:$|[\s_.-])/.test(n)) topic = "api";
+  else if (/(?:^|[\s_.-])(web|public|static|www|pages|views|frontend|client|ui)(?:$|[\s_.-])/.test(n)) topic = "web";
+  else if (/(?:^|[\s_.-])(mobile|android|ios|flutter|react-native|apk|ipa)(?:$|[\s_.-])/.test(n)) topic = "mobile";
+  else if (/(?:^|[\s_.-])(games?|unity|unreal|godot|roms?|saves?|mods?)(?:$|[\s_.-])/.test(n)) topic = "games";
+  else if (/(?:^|[\s_.-])(plugins?|extensions?|addons?|mods|widgets?)(?:$|[\s_.-])/.test(n)) topic = "plugins";
+  else if (/(?:^|[\s_.-])(themes?|palettes?|styles?|tokens?|skins?)(?:$|[\s_.-])/.test(n)) topic = "themes";
+  else if (/(?:^|[\s_.-])(design|figma|sketch|brand|ux|wireframes?|mockups?|vectors?)(?:$|[\s_.-])/.test(n)) topic = "design";
+  else if (/(?:^|[\s_.-])(fonts?|typography|typefaces?)(?:$|[\s_.-])/.test(n)) topic = "fonts";
+  else if (/(?:^|[\s_.-])(security|keys?|certs?|certificates?|ssh|gpg|vault|secrets?|auth|ssl)(?:$|[\s_.-])/.test(n)) topic = "security";
+  else if (/(?:^|[\s_.-])(crypto|web3|blockchain|contracts?|wallets?|solidity)(?:$|[\s_.-])/.test(n)) topic = "crypto";
+  else if (/(?:^|[\s_.-])(config|configs|configuration|settings|etc|\.config|\.vscode|\.idx)(?:$|[\s_.-])/.test(n)) topic = "config";
+  else if (/(?:^|[\s_.-])(src|lib|app|components|packages|server|core|shared|features|modules|crates|cmd|internal|pkg)(?:$|[\s_.-])/.test(n)) topic = "code";
+  else if (/(?:^|[\s_.-])(docs?|documentation|notes|guides|manuals|papers|books|wiki|readme|rfcs?)(?:$|[\s_.-])/.test(n)) topic = "docs";
+  else if (/(?:^|[\s_.-])(finance|invoices?|taxes|accounting|budget|billing|receipts?|ledger)(?:$|[\s_.-])/.test(n)) topic = "finance";
+  else if (/(?:^|[\s_.-])(legal|contracts?|licenses?|patents?|compliance|terms|privacy)(?:$|[\s_.-])/.test(n)) topic = "legal";
+  else if (/(?:^|[\s_.-])(logs?|telemetry|metrics|traces|audit|crash)(?:$|[\s_.-])/.test(n)) topic = "logs";
+  else if (/(?:^|[\s_.-])(temp|tmp|cache|\.cache|scratch|staging)(?:$|[\s_.-])/.test(n)) topic = "temp";
+  else if (/(?:^|[\s_.-])(trash|recycle|\.trash|deleted)(?:$|[\s_.-])/.test(n)) topic = "trash";
+  else if (/(?:^|[\s_.-])(downloads?|inbox|incoming)(?:$|[\s_.-])/.test(n)) topic = "downloads";
+  else if (/(?:^|[\s_.-])(db|databases?|sql|migrations|data|prisma|seeds|postgres|sqlite|bigquery)(?:$|[\s_.-])/.test(n)) topic = "database";
+  else if (/(?:^|[\s_.-])(cloud|sync|icloud|dropbox|drive|onedrive|shared|gcloud|s3|buckets?)(?:$|[\s_.-])/.test(n)) topic = "cloud";
+  else if (/(?:^|[\s_.-])(network|dns|vpn|proxy|nginx|caddy|sockets?|firewall)(?:$|[\s_.-])/.test(n)) topic = "network";
+  else if (/(?:^|[\s_.-])(system|os|kernel|drivers?|firmware|boot|usr|var|opt)(?:$|[\s_.-])/.test(n)) topic = "system";
+  else if (/(?:^|[\s_.-])(desktop)(?:$|[\s_.-])/.test(n)) topic = "desktop";
+  else if (/(?:^|[\s_.-])(home|users?)(?:$|[\s_.-])/.test(n)) topic = "home";
+  else if (/(?:^|[\s_.-])(archives?|backups?|dist|build|out|releases?|vendor|node_modules|target)(?:$|[\s_.-])/.test(n)) topic = "archive";
+  if (FOLDER_TOPIC_CACHE.size > 4096) FOLDER_TOPIC_CACHE.clear();
+  FOLDER_TOPIC_CACHE.set(n, topic);
+  return topic;
 }
 
 /** Resolves the rich semantic metadata entry from `SYSTEM_ICON_CATALOG` (120+ system icons) for any file or folder name. */
@@ -438,7 +506,7 @@ export function resolveSystemIcon(name, isDir = false) {
   const raw = String(name || "").trim();
   const lower = raw.toLowerCase();
   if (isDir) {
-    const topic = classifyFolderTopic(raw);
+    const topic = classifyFolderTopic(lower);
     return FOLDER_SYSTEM_ICON_BY_TOPIC.get(topic) || FOLDER_SYSTEM_ICON_BY_TOPIC.get("general");
   }
   const exact = EXACT_SYSTEM_ICON_BY_NAME.get(lower);
@@ -455,13 +523,21 @@ export function resolveSystemIcon(name, isDir = false) {
 
 export function classifyIconKind(name, isDir) {
   if (isDir) return "folder";
-  const s = String(name || "").trim();
-  const lower = s.toLowerCase();
+  const lower = String(name || "").trim().toLowerCase();
+  const cached = ICON_KIND_CACHE.get(lower);
+  if (cached !== undefined) return cached;
   const exact = EXACT_SYSTEM_ICON_BY_NAME.get(lower);
-  if (exact?.kind && ICON_PACK_GLYPHS.default[exact.kind]) return exact.kind;
-  const dot = lower.lastIndexOf(".");
-  const ext = dot > 0 ? lower.slice(dot + 1) : "";
-  return KIND_BY_EXT.get(ext) ?? "file";
+  let kind;
+  if (exact?.kind && ICON_PACK_GLYPHS.default[exact.kind]) {
+    kind = exact.kind;
+  } else {
+    const dot = lower.lastIndexOf(".");
+    const ext = dot > 0 ? lower.slice(dot + 1) : "";
+    kind = KIND_BY_EXT.get(ext) ?? "file";
+  }
+  if (ICON_KIND_CACHE.size > 4096) ICON_KIND_CACHE.clear();
+  ICON_KIND_CACHE.set(lower, kind);
+  return kind;
 }
 
 export function activeIconPackStyle() {
@@ -480,13 +556,13 @@ export function iconFor(name, isDir, packOverride, kindHint) {
   if (pack !== "default") {
     const def = ICON_PACK_GLYPHS[pack];
     if (isDir && def?.topics) {
-      const topic = classifyFolderTopic(name);
+      const topic = sysEntry?.topic || classifyFolderTopic(name);
       if (topic !== "general" && def.topics[topic]) return def.topics[topic];
     }
     if (!isDir && pack === "google_material_3d" && sysEntry?.google3d) {
       return sysEntry.google3d;
     }
-    if (!isDir && sysEntry?.category === "exact" && (pack === "macos_tahoe_3d" || pack === "win11_fluent_pro" || pack === "pro_studio_xdr" || pack === "linux_papirus_pro" || pack === "us_holidays_festive" || pack === "nerd_rpg_arcane" || pack === "nerd_scifi_fleet" || pack === "nerd_hacker_retro" || pack === "horror_crypt" || pack === "realworld_objects")) {
+    if (!isDir && sysEntry?.category === "exact" && (pack === "macos_tahoe_3d" || pack === "win11_fluent_pro" || pack === "pro_studio_xdr" || pack === "linux_papirus_pro" || pack === "us_holidays_festive" || pack === "nerd_rpg_arcane" || pack === "nerd_scifi_fleet" || pack === "nerd_hacker_retro" || pack === "horror_crypt" || pack === "realworld_objects" || pack === "cupertino_hig_studio" || pack === "swiss_horology_gold" || pack === "teenage_field_synth" || pack === "blueprint_cad_pro" || pack === "kyoto_zen_ink" || pack === "carbon_aerospace" || pack === "godmode_celestial" || pack === "godmode_photonic" || pack === "godmode_quantum" || pack === "godmode_chrono")) {
       return sysEntry.icon;
     }
     const kind = isDir ? "folder" : (kindHint && def?.[kindHint] ? kindHint : classifyIconKind(name, false));
@@ -522,24 +598,29 @@ export function syncVisibleIcons(root = typeof document !== "undefined" ? docume
     if (!ico) return;
     const isDir = row.classList.contains("is-folder") || row.dataset.isDir === "1";
     const name = row.dataset.entryName || row.querySelector(".name-text")?.textContent || "";
+    if (ico.dataset.appliedPack === pack && ico.dataset.appliedName === name && ico.dataset.iconKind) {
+      return;
+    }
     const kind = classifyIconKind(name, isDir);
     const sysEntry = resolveSystemIcon(name, isDir);
-    ico.dataset.iconKind = kind;
-    ico.dataset.isFolder = isDir ? "1" : "0";
-    row.dataset.iconKind = kind;
-    if (sysEntry?.id) {
+    const isFolderStr = isDir ? "1" : "0";
+    if (ico.dataset.iconKind !== kind) ico.dataset.iconKind = kind;
+    if (ico.dataset.isFolder !== isFolderStr) ico.dataset.isFolder = isFolderStr;
+    if (row.dataset.iconKind !== kind) row.dataset.iconKind = kind;
+    if (sysEntry?.id && ico.dataset.systemIcon !== sysEntry.id) {
       ico.dataset.systemIcon = sysEntry.id;
     }
     if (isDir) {
-      const topic = classifyFolderTopic(name);
-      row.dataset.folderTopic = topic;
-      ico.dataset.folderTopic = topic;
+      const topic = sysEntry?.topic || classifyFolderTopic(name);
+      if (row.dataset.folderTopic !== topic) row.dataset.folderTopic = topic;
+      if (ico.dataset.folderTopic !== topic) ico.dataset.folderTopic = topic;
     }
-    if (pack === "default") {
-      ico.textContent = row.dataset.defaultIcon || iconFor(name, isDir, "default");
-    } else {
-      ico.textContent = iconFor(name, isDir, pack);
-    }
+    const nextGlyph = pack === "default"
+      ? (row.dataset.defaultIcon || iconFor(name, isDir, "default", kind))
+      : iconFor(name, isDir, pack, kind);
+    if (ico.textContent !== nextGlyph) ico.textContent = nextGlyph;
+    ico.dataset.appliedPack = pack;
+    ico.dataset.appliedName = name;
   });
 }
 

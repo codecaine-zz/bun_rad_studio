@@ -263,6 +263,45 @@ export const ATMOSPHERE_BY_ID = new Map(ATMOSPHERE_OPTIONS.map((o) => [o.id, o])
 export const ATMOSPHERE_IDS = ATMOSPHERE_OPTIONS.map((o) => o.id);
 export const MAX_ATMOSPHERE_LAYERS = 6;
 
+/** Alias map for shorthand / wizard / studio-kit atmosphere IDs so every preset and custom recipe resolves cleanly. */
+export const ATMOSPHERE_ALIASES = {
+  steampunk_gears: "astrolabe",
+  god_rays: "sunbeams",
+  prism_spectrum: "m4_raytrace_prism",
+  starburst: "firework_sparks",
+  runes: "ancient_runes",
+  warp_speed: "hyperspace",
+  starfield: "stars",
+  crimson_ash: "volcano_ash",
+  abyssal_trench: "jellyfish_glow",
+  vhs_tracking: "radar_sweep_lite",
+  static_snow: "static_sparks",
+  tahoe_caustics: "liquid_glass_caustics",
+  hud_reticle: "tactical_hud",
+  sakura_drift: "sakura",
+  cryo_blizzard_2126: "blizzard",
+  aurora_ribbons: "aurora",
+  aurora_borealis: "aurora",
+  retro_grid: "outrun_grid",
+  omega_matrix: "matrix",
+  red_sprites: "red_sprite_storm",
+  toxic_slime: "acid_rain",
+  bio_spores: "mycelium_net",
+  fireworks: "firework_sparks",
+  confetti: "confetti_lite",
+  warp_tunnel: "wormhole_transit",
+  plasma_arcs: "plasma_storm",
+  matrix_code: "matrix",
+  circuit_traces: "pcb_traces",
+  thunderstorm: "cyberstorm",
+};
+
+export function resolveAtmosphereToken(tok) {
+  const clean = typeof tok === "string" ? tok.trim() : "";
+  if (!clean) return "";
+  return ATMOSPHERE_ALIASES[clean] || clean;
+}
+
 /** Curated multi-layer atmospheric combinations users can activate with one click or customize in the Mixer. */
 export const ATMOSPHERE_MIX_PRESETS = [
   { id: "debris_tornado_ef5+urban_cyclone_debris+hail_supercell+derecho_squall", icon: "🏚️🌪️", label: "M4 Max: EF5 Debris Apocalypse", desc: "EF5 Wedge Debris Tornado + Urban Flying Papers/Leaves + Hail + 100 MPH Derecho" },
@@ -326,8 +365,9 @@ export function parseAtmosphereIds(raw) {
       ? raw.split(/[+,]/).map((s) => s.trim()).filter(Boolean)
       : [];
   const out = [];
-  for (const id of parts) {
-    if (id === "none") continue;
+  for (const rawId of parts) {
+    const id = resolveAtmosphereToken(rawId);
+    if (!id || id === "none") continue;
     if (ATMOSPHERE_BY_ID.has(id) && !out.includes(id)) {
       out.push(id);
       if (out.length >= MAX_ATMOSPHERE_LAYERS) break;
@@ -343,7 +383,7 @@ export function parseAtmosphereIds(raw) {
 export function normalizeAtmosphereSpec(raw, { strict = false } = {}) {
   if (strict) {
     if (typeof raw !== "string" || !raw.trim()) return null;
-    const tokens = raw.split(/[+,]/).map((s) => s.trim()).filter(Boolean);
+    const tokens = raw.split(/[+,]/).map((s) => resolveAtmosphereToken(s)).filter(Boolean);
     if (!tokens.length || tokens.length > MAX_ATMOSPHERE_LAYERS) return null;
     for (const tok of tokens) {
       if (!ATMOSPHERE_BY_ID.has(tok)) return null;

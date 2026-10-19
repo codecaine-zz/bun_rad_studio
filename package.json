@@ -1,6 +1,6 @@
 {
   "name": "bun_rad_studio",
-  "version": "1.4.8",
+  "version": "1.4.9",
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -175,6 +175,7 @@
     "app:dataconvert": "bun run applications/dataconvert_studio.ts",
     "rad": "bun run src/features/rad/radCli.ts",
     "rad:cookbook": "bun run examples/rad_cookbook.ts",
+    "theme:studio": "bun run examples/theme_studio_demo.ts",
     "cli:database": "bun run cli_apps/database_cli.ts",
     "cli:sqlite": "bun run cli_apps/database_cli.ts",
     "cli:system": "bun run cli_apps/system_cli.ts",

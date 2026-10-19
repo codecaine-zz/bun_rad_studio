@@ -157,9 +157,9 @@ const ENGINE_DEPTH_ORDER = {
   glyph: 22,
 };
 
-const MAX_CANVAS_W = 1440;
-const MAX_CANVAS_H = 900;
-const FRAME_INTERVAL_MS = 30;
+const MAX_CANVAS_W = 1120;
+const MAX_CANVAS_H = 700;
+const FRAME_INTERVAL_MS = 24;
 
 let rafId = 0;
 let activeEffect = "none";
@@ -181,9 +181,10 @@ let cachedColors = {
   highlight: [235, 246, 255],
 };
 let spriteBank = null;
+let lastSpriteColorKey = "";
 const pointer = { x: -9999, y: -9999, vx: 0, vy: 0, active: false };
 
-/** Detects the machine's graphics tier (`"low" | "medium" | "high" | "ultra"`), recognizing Apple Silicon & modern ARM64 systems. */
+/** Detects the machine's graphics tier (`"low" | "medium" | "high" | "ultra"`), recognizing Apple Silicon, Windows DirectX 12, and Linux / VM systems. */
 export function detectHardwareTier(navOverride, winOverride) {
   try {
     const nav = navOverride || (typeof navigator !== "undefined" ? navigator : {});
@@ -192,9 +193,15 @@ export function detectHardwareTier(navOverride, winOverride) {
     const mem = Number(nav.deviceMemory) || 0;
     const dpr = Number(win.devicePixelRatio) || 1;
     const ua = `${nav.userAgent || ""} ${nav.platform || ""} ${nav.userAgentData?.architecture || ""} ${nav.userAgentData?.platform || ""}`.toLowerCase();
-    const isModernArm = /arm|aarch64|apple/.test(ua) || (/mac/.test(ua) && dpr >= 2 && cores >= 8);
-    if (isModernArm && cores >= 8) return "ultra";
-    if (cores >= 12 || (cores >= 8 && dpr >= 2 && mem >= 8)) return "ultra";
+    const isLinux = /\blinux\b|\bx11\b|\bwayland\b|\bubuntu\b/.test(ua) && !/android/.test(ua);
+    const isAppleSilicon = (!isLinux && (/mac/.test(ua) && (/arm|aarch64|apple\s*m[1-9]/.test(ua) || (dpr >= 2 && cores >= 8)))) || (!isLinux && /\b(arm64|aarch64)\b/.test(ua));
+    if (isAppleSilicon && cores >= 8) return "ultra";
+    if (!isLinux && (cores >= 12 || (cores >= 8 && dpr >= 2 && mem >= 8))) return "ultra";
+    if (isLinux) {
+      if (cores <= 2) return "low";
+      if (cores <= 6) return "medium";
+      return dpr >= 2 && cores >= 12 ? "ultra" : "high";
+    }
     if (cores >= 8 || mem >= 8) return "high";
     if (cores >= 4) return "medium";
     return "low";
@@ -206,7 +213,11 @@ export function detectHardwareTier(navOverride, winOverride) {
 export function effectiveAtmosphereTier() {
   const raw = state.settings?.atmosphereTier;
   if (typeof raw === "string" && VALID_TIERS.has(raw) && raw !== "auto") return raw;
-  return detectHardwareTier();
+  const detected = detectHardwareTier();
+  if (typeof document !== "undefined" && document.documentElement?.dataset?.platform === "linux") {
+    return detected === "low" ? "low" : "medium";
+  }
+  return detected;
 }
 
 export function effectiveAtmosphereReactive() {
@@ -424,15 +435,23 @@ function buildSpriteBank(colors) {
   };
 }
 
-function refreshThemeColors() {
+function refreshThemeColors(needSprites = activeEffect !== "none") {
   const root = document.documentElement;
   const fxStyleText = document.getElementById("fm-theme-effects")?.textContent || "";
   const fromFxCss = (name) => {
+    if (!fxStyleText) return "";
     const m = fxStyleText.match(new RegExp(`${name}\\s*:\\s*([^;\\}]+)`, "i"));
     return m ? m[1].trim() : "";
   };
-  const cs = typeof getComputedStyle === "function" ? getComputedStyle(root) : null;
-  const get = (name) => root.style.getPropertyValue(name)?.trim() || fromFxCss(name) || cs?.getPropertyValue(name)?.trim() || "";
+  let cs = null;
+  const get = (name) => {
+    const inlineVal = root.style.getPropertyValue(name)?.trim();
+    if (inlineVal) return inlineVal;
+    const fxVal = fromFxCss(name);
+    if (fxVal) return fxVal;
+    if (!cs && typeof getComputedStyle === "function") cs = getComputedStyle(root);
+    return cs?.getPropertyValue(name)?.trim() || "";
+  };
   const bgRgb = parseColorRgb(get("--bg"), null);
   const isDark = bgRgb
     ? (0.299 * bgRgb[0] + 0.587 * bgRgb[1] + 0.114 * bgRgb[2]) < 140
@@ -451,10 +470,19 @@ function refreshThemeColors() {
   ];
 
   cachedColors = { isDark, accent, secondary, tertiary, highlight };
-  root.style.setProperty("--fm-atmo-c1", `rgb(${accent[0]}, ${accent[1]}, ${accent[2]})`);
-  root.style.setProperty("--fm-atmo-c2", `rgb(${secondary[0]}, ${secondary[1]}, ${secondary[2]})`);
-  root.style.setProperty("--fm-atmo-c3", `rgb(${tertiary[0]}, ${tertiary[1]}, ${tertiary[2]})`);
-  spriteBank = buildSpriteBank(cachedColors);
+  const c1 = `rgb(${accent[0]}, ${accent[1]}, ${accent[2]})`;
+  const c2 = `rgb(${secondary[0]}, ${secondary[1]}, ${secondary[2]})`;
+  const c3 = `rgb(${tertiary[0]}, ${tertiary[1]}, ${tertiary[2]})`;
+  root.style.setProperty("--fm-atmo-c1", c1);
+  root.style.setProperty("--fm-atmo-c2", c2);
+  root.style.setProperty("--fm-atmo-c3", c3);
+  if (needSprites) {
+    const colorKey = `${isDark ? 1 : 0}|${c1}|${c2}|${c3}`;
+    if (!spriteBank || lastSpriteColorKey !== colorKey) {
+      lastSpriteColorKey = colorKey;
+      spriteBank = buildSpriteBank(cachedColors);
+    }
+  }
   return cachedColors;
 }
 
@@ -539,11 +567,14 @@ function ensureLayer() {
 
 function syncCanvasSize() {
   const canvas = document.getElementById("fm-atmosphere-canvas");
-  if (!canvas) return { w: 1280, h: 800, dpr: 1 };
+  if (!canvas) return { w: 1120, h: 700, dpr: 1 };
   const profile = TIER_PROFILES[activeTier] || TIER_PROFILES.medium;
-  const dprScale = profile.dpr === 2 ? Math.min(2, Number(window.devicePixelRatio) || 1.5) : 1;
-  const maxW = profile.dpr === 2 ? 2560 : MAX_CANVAS_W;
-  const maxH = profile.dpr === 2 ? 1600 : MAX_CANVAS_H;
+  const platform = typeof document !== "undefined" ? (document.documentElement?.dataset?.platform || "") : "";
+  const isLinux = platform === "linux";
+  const isWindows = platform === "windows";
+  const dprScale = (!isLinux && profile.dpr === 2) ? Math.min(1.5, Number(window.devicePixelRatio) || 1.25) : 1;
+  const maxW = isLinux ? 960 : (profile.dpr === 2 ? 1440 : isWindows ? 1080 : MAX_CANVAS_W);
+  const maxH = isLinux ? 600 : (profile.dpr === 2 ? 900 : isWindows ? 680 : MAX_CANVAS_H);
   const rawW = Math.max(320, Math.round((window.innerWidth || 1280) * dprScale));
   const rawH = Math.max(240, Math.round((window.innerHeight || 800) * dprScale));
   const w = Math.min(maxW, rawW);
@@ -995,7 +1026,7 @@ function seedSingleLayer(opt, w, h, baseDensity) {
 
 function seedAllLayers(layerIds, w, h, scale) {
   const profile = TIER_PROFILES[activeTier] || TIER_PROFILES.medium;
-  const multiBalance = layerIds.length > 1 ? 1 / Math.pow(layerIds.length, 0.45) : 1;
+  const multiBalance = layerIds.length > 1 ? 1 / Math.pow(layerIds.length, 0.72) : 1;
   const baseDensity = scale * profile.density * multiBalance;
   const defs = layerIds
     .map((id) => ATMOSPHERE_BY_ID.get(id))
@@ -1123,11 +1154,7 @@ function drawSingleLayer(ctx, layer, w, h, rawScale, profile) {
       const y2 = params.horizontal ? p.y : p.y + p.len;
       const alpha = Math.min(0.9, p.alpha * scale);
 
-      const grad = ctx.createLinearGradient(p.x, p.y, x2, y2);
-      grad.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, 0)`);
-      grad.addColorStop(0.72, `rgba(${cr}, ${cg}, ${cb}, ${alpha * 0.72})`);
-      grad.addColorStop(1, `rgba(${hr}, ${hg}, ${hb}, ${Math.min(1, alpha * 1.15)})`);
-      ctx.strokeStyle = grad;
+      ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${alpha * 0.78})`;
       ctx.lineWidth = p.thick;
       ctx.beginPath();
       ctx.moveTo(p.x, p.y);
@@ -1523,11 +1550,7 @@ function drawSingleLayer(ctx, layer, w, h, rawScale, profile) {
         const y2 = cy + Math.sin(p.angle) * p.dist;
         const [cr, cg, cb] = toneRgb(p.tone);
         const a = Math.min(0.95, p.alpha * scale * Math.min(1, p.dist / 85));
-        const grad = ctx.createLinearGradient(x1, y1, x2, y2);
-        grad.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, 0)`);
-        grad.addColorStop(0.7, `rgba(${cr}, ${cg}, ${cb}, ${a * 0.7})`);
-        grad.addColorStop(1, `rgba(${hr}, ${hg}, ${hb}, ${a})`);
-        ctx.strokeStyle = grad;
+        ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${a * 0.82})`;
         ctx.lineWidth = p.r;
         ctx.lineCap = "round";
         ctx.beginPath();
@@ -1541,9 +1564,10 @@ function drawSingleLayer(ctx, layer, w, h, rawScale, profile) {
       }
     }
   } else if (engine === "aurora") {
-    const ribbons = Math.min(params.ribbons || profile.ribbons || 4, (profile.ribbons || 4) + 1);
+    const maxRibbons = activeLayers.length > 1 ? 3 : 4;
+    const ribbons = Math.min(params.ribbons || profile.ribbons || 3, maxRibbons);
     const t = frameTick * 0.016;
-    const stepX = Math.max(28, Math.floor(w / 16));
+    const stepX = Math.max(36, Math.floor(w / 14));
     for (let r = 0; r < ribbons; r++) {
       const baseY = h * (0.2 + r * 0.12);
       const curtainHeight = h * ((params.curtainHeight || 0.25) + (r % 2) * 0.05);
@@ -2808,7 +2832,8 @@ function drawFrame() {
   const { isDark } = cachedColors;
 
   ctx.clearRect(0, 0, w, h);
-  ctx.globalCompositeOperation = isDark && profile.bloom ? "screen" : "source-over";
+  const isLinux = typeof document !== "undefined" && document.documentElement?.dataset?.platform === "linux";
+  ctx.globalCompositeOperation = !isLinux && isDark && profile.bloom ? "screen" : "source-over";
 
   for (const layer of activeLayers) {
     drawSingleLayer(ctx, layer, w, h, scale, profile);
@@ -2853,7 +2878,7 @@ export function applyAtmosphere(overrideEffect, overrideIntensity, overrideTier,
   const rawTier = overrideTier !== undefined && VALID_TIERS.has(overrideTier)
     ? overrideTier
     : (state.settings?.atmosphereTier || "auto");
-  const resolvedTier = rawTier === "auto" ? detectHardwareTier() : rawTier;
+  const resolvedTier = rawTier === "auto" ? effectiveAtmosphereTier() : rawTier;
   const resolvedReactive = overrideReactive !== undefined && VALID_REACTIVE_MODES.has(overrideReactive)
     ? overrideReactive
     : effectiveAtmosphereReactive();
@@ -2867,7 +2892,7 @@ export function applyAtmosphere(overrideEffect, overrideIntensity, overrideTier,
     : (state.settings?.atmosphereLayerMods && typeof state.settings.atmosphereLayerMods === "object" ? state.settings.atmosphereLayerMods : {});
   const root = document.documentElement;
 
-  refreshThemeColors();
+  refreshThemeColors(activeEffect !== "none");
 
   if (activeEffect === "none") {
     stopLoop();
@@ -3905,12 +3930,14 @@ if (typeof window !== "undefined") {
 }
 
 on("theme-changed", () => {
-  refreshThemeColors();
   const next = effectiveAtmosphere();
   if (next !== activeEffect) {
     applyAtmosphere();
   } else if (activeEffect !== "none") {
+    refreshThemeColors(true);
     drawFrame();
+  } else {
+    refreshThemeColors(false);
   }
 });
 

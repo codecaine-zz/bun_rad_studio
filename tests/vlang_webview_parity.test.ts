@@ -299,6 +299,18 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         'realworld_murano_blown_glass_day',
         'realworld_katana_urushi_forge',
         'realworld_pinball_wizard_arcade',
+        'omega_point_singularity',
+        'matrioshka_dyson_brain',
+        'photonic_metamaterial_3099',
+        'chrono_crystalline_aethelgard',
+        'akashic_neural_noosphere',
+        'zero_point_vacuum_genesis',
+        'kardashev_type_iii_galactic',
+        'transcendent_seraphim_halo',
+        'femtotech_picomatter_forge',
+        'holographic_holodeck_continuum',
+        'hyperborean_aether_sanctum_day',
+        'eden_solarpunk_archology_3000',
     ];
     // Rare and beloved systems (RARE_OS_THEME_KEYS in src/shared/osThemes.ts).
     const RARE_OS_THEMES = [
@@ -327,9 +339,9 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
     ];
     const EXPECTED_76_THEMES = [...BASE_76_THEMES, ...OS_VERSION_THEMES, ...RARE_OS_THEMES, ...FUTURISTIC_THEMES].sort((a, b) => a.localeCompare(b));
 
-    it("1. getThemeNames() and getThemes() return all 298 canonical themes sorted alphabetically", () => {
+    it("1. getThemeNames() and getThemes() return all 310 canonical themes sorted alphabetically", () => {
         const names = getThemeNames();
-        expect(names.length).toBe(298);
+        expect(names.length).toBe(310);
         expect(names).toEqual(EXPECTED_76_THEMES);
 
         const namesSnake = get_theme_names();
@@ -350,7 +362,7 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         expect(isSorted(listThemes())).toBe(true);
     });
 
-    it("2. getTheme() resolves every one of the 298 themes with valid palettes", () => {
+    it("2. getTheme() resolves every one of the 310 themes with valid palettes", () => {
         for (const name of EXPECTED_76_THEMES) {
             const theme = getTheme(name);
             expect(theme).toBeDefined();
@@ -571,17 +583,17 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         const sortedListThemes = [...listThemesArr].sort((a, b) => a.localeCompare(b));
         expect(listThemesArr).toEqual(sortedListThemes);
 
-        // 4. Demo 25 theme dropdown has exactly 298 unique themes with zero duplicates
+        // 4. Demo 25 theme dropdown has exactly 310 unique themes with zero duplicates
         const demo25Win = createVlangShowcase();
         const demo25Html = demo25Win.getHtml();
         const themeMatch = demo25Html.match(/<select[^>]*id="dd_theme_selector"[^>]*>([\s\S]*?)<\/select>/);
         expect(themeMatch).toBeTruthy();
         const demo25Options = [...themeMatch![1]!.matchAll(/<option[^>]*value="([^"]*)"[^>]*>([^<]*)<\/option>/g)].map(x => ({ val: x[1], text: x[2] }));
-        expect(demo25Options.length).toBe(298);
+        expect(demo25Options.length).toBe(310);
         const uniqueValues = new Set(demo25Options.map(o => o.val));
         const uniqueTexts = new Set(demo25Options.map(o => o.text));
-        expect(uniqueValues.size).toBe(298);
-        expect(uniqueTexts.size).toBe(298);
+        expect(uniqueValues.size).toBe(310);
+        expect(uniqueTexts.size).toBe(310);
     });
 });
 

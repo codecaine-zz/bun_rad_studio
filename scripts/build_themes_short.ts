@@ -47,52 +47,52 @@ const sceneSpecs: SceneSpec[] = [
   {
     id: "01_hook_menu",
     stepIndex: 0,
-    badge: "01 / 17 · THEMES & SHADER STUDIO",
-    title: "218 THEMES.\n194 LIVE SHADERS.",
-    label: "RIBBON SWITCHER · ⌘V PASTE IMPORT · FAVORITES · 1-CLICK TOOLS",
-    extra: "Recorded on Apple M4 Max Pro Display XDR · Windows, macOS & Linux",
-    bullets: ["218 Themes + 3D Folders & Pictures", "📋 ⌘V Instant Paste Theme Import", "194 Live Procedural Shaders"],
-    say: "Wait until you see the new Theme and Atmospheric Shader Studio in the Codecaine File Manager. Two hundred and eighteen themes, 3D regular folders, and one hundred and ninety-four live shaders are built right in.",
+    badge: "01 / 17 · GOD-MODE THEMES & SHADER STUDIO",
+    title: "310 THEMES.\n194 LIVE SHADERS.",
+    label: "APPLE M4 ULTRA 80-CORE · 192GB RAM · PRO DISPLAY XDR 6K 120HZ",
+    extra: "Recorded on Flagship Mac Studio M4 Ultra 6K XDR · Windows, macOS & Linux",
+    bullets: ["310 Themes + Year 3000+ God-Mode", "🍎 Flagship Mac M4 Ultra 6K XDR", "⚡ 120Hz ProMotion Zero-Lag Shaders"],
+    say: "Wait until you see the new God-Mode Theme and Shader Studio in the Codecaine File Manager, recorded on an Apple M4 Ultra six-K Pro Display X D R with three hundred and ten themes and one hundred and ninety-four live shaders.",
   },
   {
     id: "02_gallery_badges",
     stepIndex: 1,
-    badge: "02 / 17 · GALLERY, ⌘V PASTE & [ / ] PREVIEW",
-    title: "3D FOLDERS, ⌘V PASTE\n& [ / ] PREVIEW.",
-    label: "📋 PASTE THEME (⌘V) · 🚀 ULTRA · 🔥 FIRE UI · [ / ] PREVIEW",
-    extra: "Every Card Shows Swatch, Tier, Motion, UI FX + [ / ] Rapid Preview",
-    bullets: ["📋 1-Click / ⌘V Paste Theme Import", "🚀 Ultra / ✨ Medium / ⚡ Eco", "⌨️ [ / ] & Arrow Rapid Preview"],
-    say: "Open the All Themes gallery for hardware tier and U I Element badges, click Paste Theme or press Command V anywhere, and use the bracket keys to rapid-preview themes live.",
+    badge: "02 / 17 · MAC, WINDOWS & LINUX ZERO-LAG",
+    title: "MAC, WIN & LINUX\nZERO-LAG + VFD.",
+    label: "🍎 MAC METAL · 🪟 WIN11 DX12 · 🐧 UBUNTU/VM · 📟 VFD TELEMETRY",
+    extra: "1-Click Optimize for Mac, Windows & Linux/VM + Pop-Out VFD Telemetry HUD",
+    bullets: ["🍎 Optimize for Mac M4 ProMotion", "🪟 Optimize for Windows 11 DX12", "🐧 Optimize for Ubuntu Linux & VM"],
+    say: "Open All Themes to browse three hundred and ten zero-lag themes with one-click Optimize for Mac, Windows, and Ubuntu Linux V M buttons, a live Hardware V F D Oscilloscope Deck, and rapid bracket-key preview.",
   },
   {
     id: "03_filter_pills",
     stepIndex: 2,
-    badge: "03 / 17 · 1-CLICK JUMPSTART KITS & 3D FOLDERS",
-    title: "1-CLICK JUMPSTART\n& 3D PICTURES.",
-    label: "⚡ 8 JUMPSTART KITS · 🍎 TAHOE 3D · 💻 M4 XDR · 🪟 WIN11 FLUENT",
-    extra: "Zero Manual Setup: 1-Click 3D Regular Folders, Framed Pictures & Shaders",
-    bullets: ["⚡ 8 1-Click Jumpstart Kits", "🍎 Tahoe 3D & 💻 M4 XDR Folders", "📸 Framed 8K Picture Icon Packs"],
-    say: "Zero manual work needed: click any One-Click Jumpstart Kit for macOS Tahoe 3D Glass and Pictures, M4 Max Pro Display X D R, Windows 11 Fluent 3D, or Blazing Fire folders.",
+    badge: "03 / 17 · YEAR 3000+ & FLAGSHIP MAC KITS",
+    title: "YEAR 3000+ KITS &\nMAC M4 ULTRA 6K.",
+    label: "🪐 OMEGA SINGULARITY · 💎 PHOTONIC 3099 · 🖥️ M4 ULTRA 6K XDR",
+    extra: "1-Click Workstation Jumpstart Kits for Year 3000+ & Flagship Mac Displays",
+    bullets: ["🪐 Year 3000+ Omega & Photonic Kits", "🖥️ Mac Studio M4 Ultra 6K XDR Kit", "🍎 5K Studio Display & Tahoe 3D"],
+    say: "Click any One-Click Jumpstart Kit to transform your entire desktop: try Year Three Thousand Omega Point Singularity and Photonic Metamaterial, or Mac Studio M4 Ultra six-K X D R and five-K Studio Display.",
   },
   {
     id: "04_scifi_liquid_glass",
     stepIndex: 3,
-    badge: "04 / 17 · STUDIO 3D, FIRE, SLIME & TORNADO",
-    title: "TAHOE 3D, FIRE, SLIME\n& EF5 TORNADO.",
-    label: "TAHOE 3D STUDIO · INFERNO FIRE · SLIME BIO-VAT · EF5 TORNADO",
-    extra: "Sculpted 3D Regular Folders, Visceral Shaders & Multi-Layer Storms",
-    bullets: ["🍎 Tahoe 3D Folders & Pictures", "🔥 Inferno Fire & 🧪 Slime Ooze", "🌪️ EF5 Debris Tornado & ⚡ Tesla"],
-    say: "Try Tahoe 3D Folders and Pictures, Inferno Blazing Folders with molten flames, Radioactive Slime Bio-Vat with dripping ooze, E F 5 Debris Tornado, and Tesla Coil Plasma.",
+    badge: "04 / 17 · SINGULARITY, M4 XDR & 120HZ TIE-DYE",
+    title: "OMEGA 3000, M4 XDR\n& 120HZ TIE-DYE.",
+    label: "OMEGA POINT · MATRIOSHKA DYSON · M4 ULTRA · 120HZ TIE-DYE '67",
+    extra: "Post-Singularity Hyper-Materials, 120Hz Lava-Wax Tie-Dye & EF5 Tornado",
+    bullets: ["🪐 Omega Point & Dyson Brain 3000", "🫧 120Hz Haight-Ashbury Tie-Dye '67", "🔥 Inferno Fire & 🌪️ EF5 Tornado"],
+    say: "Test Omega Point Singularity and Matrioshka Dyson Brain, switch to Mac Studio M4 Ultra, then run Haight-Ashbury Tie-Dye sixty-seven at a locked one hundred and twenty Hertz alongside Inferno Fire and E F 5 Tornado.",
   },
   {
     id: "05_rare_classic_os",
     stepIndex: 4,
-    badge: "05 / 17 · RARE & BELOVED CLASSIC SYSTEMS",
-    title: "BeOS, OS/2 WARP\n& SURPRISE ME.",
-    label: "BeOS R5 · OS/2 WARP 4 · PALM OS · SOLARIS CDE · LINUX PAPIRUS",
-    extra: "Classic Computing Nostalgia + 🎲 Surprise Me Randomizer",
-    bullets: ["BeOS R5 & OS/2 Warp 4", "Linux Papirus HiDPI & Solaris CDE", "🎲 Surprise Me & Prev / Next"],
-    say: "Miss classic computers? The Linux and Rare systems groups bring back BeOS R 5, O S 2 Warp 4, Solaris C D E, and Linux Papirus Hi D P I, plus a Surprise Me button.",
+    badge: "05 / 17 · NERD, HOLIDAYS, HORROR & CLASSICS",
+    title: "D&D GRIMOIRE, LCARS,\nBeOS & OS/2 WARP.",
+    label: "🎲 NERD COMPLETE · 🎄 18 US HOLIDAYS · 🧛 HORROR · 🕹️ CLASSIC OS",
+    extra: "D&D Arcane Grimoire, Starfleet LCARS, BeOS R5, OS/2 Warp & Surprise Me",
+    bullets: ["🎲 D&D Grimoire & Starfleet LCARS", "🎄 18 US Holidays & 🧛 Screen-Melt", "🕹️ BeOS R5, OS/2 Warp & Surprise Me"],
+    say: "Explore eighteen U S Holiday themes, ten Nerd Complete themes like D and D Arcane Grimoire and Starfleet L C A R S Bridge, Horror screen-melt themes, and classics like BeOS R 5 and O S 2 Warp 4.",
   },
   {
     id: "06_pin_to_folder",
@@ -207,12 +207,12 @@ const sceneSpecs: SceneSpec[] = [
   {
     id: "17_desktop_cycling_cta",
     stepIndex: 16,
-    badge: "17 / 17 · RIGHT ⌥ + ] QUICK-SWITCHER HUD",
-    title: "RIGHT ⌥ + ] LIVE HUD.\nWATCH FULL GUIDE!",
-    label: "🎛️ RIGHT ⌥ + ] SELECTION TEMPLATES HUD · CLOSE LOCK · REMAP KEYS",
-    extra: "Watch the Full Step-by-Step Master Tutorial — Tap the Link Below!",
-    bullets: ["🎛️ Right ⌥ + ] Live Swatch HUD", "16 Flagship Selection Templates", "Remap Any Keyboard Shortcut"],
-    say: "Hold Right Option and press brackets to summon the live Selection Templates Quick-Switcher H U D anytime. Tap the related video below my name for the full master tutorial!",
+    badge: "17 / 17 · ⌥R / ⌥E / ⌥P RANDOM & ⌥] HUD",
+    title: "⌥R / ⌥E / ⌥P RANDOM\n& ⌥] LIVE HUD!",
+    label: "🎲 ⌥R ANY · ✨ ⌥E FX · ⏹️ ⌥P PLAIN · 🚀 ⌥U ULTRA · 🛑 ⌥0 TOGGLE · ⌥] HUD",
+    extra: "Zero-Dialog Instant Random Themes + Watch Full Master Tutorial Below!",
+    bullets: ["🎲 ⌥R Random · ✨ ⌥E FX · ⏹️ ⌥P Plain", "🚀 ⌥U Ultra · 🛑 ⌥0 Toggle FX", "🎛️ Right ⌥ + ] Live Swatch HUD"],
+    say: "Press Option R for an instant random theme, Option E for random F X, Option P for random plain, Option Zero to toggle effects, or Right Option and brackets for the live H U D—with zero dialogs needed! Tap the link below for the full master tutorial!",
   },
 ];
 
@@ -260,7 +260,7 @@ body{background:radial-gradient(900px 600px at 50% 0%,#31104b,transparent),#090d
 ${
   isLast
     ? `<div class="cta"><strong>▶ FULL STEP-BY-STEP MASTER TUTORIAL (106 CHAPTERS)</strong><p>Tap the related video link right below my channel name!</p><p class="sub">${esc(REPO)}</p></div>`
-    : `<div class="cta"><strong>▶ FULL 200+ THEMES & SHADERS GUIDE BELOW</strong><p>200+ Themes · 194 Shaders · 6-Layer Mixer · Theme Editor v2</p><p class="sub">Tap the related video below my channel name · Free & Open Source</p></div>`
+    : `<div class="cta"><strong>▶ FULL 310 THEMES & GOD-MODE SHADERS GUIDE BELOW</strong><p>310 Themes · Year 3000+ God-Mode · M4 Ultra 6K XDR · 194 Shaders</p><p class="sub">Tap the related video below my channel name · Free & Open Source</p></div>`
 }`;
 }
 
@@ -275,25 +275,25 @@ function notesMarkdown(seconds: number, tempo: number, sceneMarks: Array<{ at: n
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
   const stamps = sceneMarks.map((m, i) => `${fmt(i === 0 ? 0 : m.at)} ${m.scene.label}`).join("\n");
-  return `# Codecaine File Manager — 212 Themes & 194 Atmospheric Shaders Deep-Dive Short (${fmt(seconds)})
+  return `# Codecaine File Manager — 310 Themes, Year 3000+ God-Mode & Flagship Mac M4 Ultra 6K XDR Short (${fmt(seconds)})
 
 ## Video Files
 
-- **Short MP4 (< 3 min)**: \`youtube_production/codecaine-file-manager-themes-short.mp4\` (${seconds.toFixed(1)}s, 1080×1920 vertical, 30 fps, 2x Retina Display-P3 super-sampled)
-- **Standalone Long-Form Themes Masterclass MP4**: \`youtube_production/codecaine-file-manager-themes-tutorial.mp4\` (1920×1080 16:9, recorded on High-End Apple M4 Max Pro Display XDR 2x Retina profile)
+- **Short MP4 (< 3 min)**: \`youtube_production/codecaine-file-manager-themes-short.mp4\` (${seconds.toFixed(1)}s, 1080×1920 vertical, 30 fps, 2x Retina Display-P3 HDR super-sampled)
+- **Standalone Long-Form Themes Masterclass MP4**: \`youtube_production/codecaine-file-manager-themes-tutorial.mp4\` (1920×1080 16:9, recorded on Flagship Apple M4 Ultra 80-Core GPU · 192GB Unified Memory · Pro Display XDR 6K 120Hz ProMotion profile)
 - **Full File Manager Master Tutorial MP4**: \`youtube_production/file_manager_tutorial.mp4\`
 - **All-in-One Complete Suite Master Tutorial MP4**: \`youtube_production/all_in_one_tutorial.mp4\`
 
 ## YouTube Short Titles (Pick One)
 
-1. **212 Themes & 194 Live Shaders in a File Manager?! (EF5 Tornadoes, Fire Folders, Bulk Import & Hacker Lab) #Shorts**
-2. **Inside Codecaine File Manager’s New Theme & 6-Layer Shader Studio (Recorded on M4 Max Pro Display XDR) #Shorts**
-3. **From BeOS & 90s Linux CDE to 11D Calabi-Yau, Fire Folders & Bulk Share Codes — 212 Themes Showcase #Shorts**
+1. **310 Themes & 194 Live Shaders on an M4 Ultra 6K Pro Display XDR?! (Year 3000+ God-Mode & 120Hz Tie-Dye) #Shorts**
+2. **Inside Codecaine File Manager’s God-Mode Theme & 6-Layer Shader Studio (Apple M4 Ultra 6K XDR) #Shorts**
+3. **From Year 3000+ Omega Singularity & Mac Studio M4 Ultra to 120Hz Tie-Dye '67 & BeOS — 310 Themes #Shorts**
 
 ## YouTube Short Description (Copy & Paste)
 
 \`\`\`text
-A complete 3-minute high-end Retina showcase of the newly upgraded Themes & Atmospheric Shader Studio in the Codecaine File Manager — recorded on an Apple M4 Max Pro Display XDR (120Hz Display-P3 HDR) profile and built to push both high-end Macs and Windows RTX workstations!
+A complete 3-minute flagship Retina showcase of the God-Mode Themes & Atmospheric Shader Studio in the Codecaine File Manager — recorded on an Apple M4 Ultra (80-Core GPU · 192GB Unified Memory · Pro Display XDR 6K · 5K Studio Display · Display-P3 1600-nit HDR · 120Hz ProMotion) profile!
 
 ▶ WATCH THE FULL STEP-BY-STEP MASTER TUTORIAL:
 Tap the clickable Related Video link right below my channel name in the Shorts player!
@@ -301,22 +301,18 @@ Tap the clickable Related Video link right below my channel name in the Shorts p
 ⬇️ Free Download (Windows, macOS & Linux · x64 & ARM64): ${REPO}/releases/latest
 ⭐ Source Code (MIT): ${REPO}
 
-WHAT'S NEW IN THE THEMES & ATMOSPHERIC SHADER STUDIO:
-• 212 Built-in Themes with live card badges for Shader Mode (✨ Effects / Colors only), Hardware Template Tier (🚀 Ultra, ✨ Medium, ⚡ Low Eco), Motion Profile, and UI Element Shaders (🔥 Fire UI, 🧪 Slime UI, 🌪️ Storm UI) + [ / ] rapid keyboard preview
-• 5-Row Quick Filter Pill Bar & Folder/Toolbar/Icon Immersion Studio: slice by Category, Template Tier + 🎯 For My System hardware auto-match, Animations, Surface Shader (💧 Liquid Glass, 🪟 Mica & Acrylic, 🧊 Frosted), and Color Vibe — or set folders & toolbars on fire, drip radioactive slime, and swap across 9 custom icon packs live
-• Visceral Storm, Sci-Fi Physics & Classic OS Themes: Inferno Blazing Folders, Radioactive Slime Bio-Vat, EF5 Debris Tornado, Tesla Coil Plasma, Tokamak Fusion, Tahoe Liquid Glass, BeOS R5, OS/2 Warp 4, Palm OS, Solaris CDE, NeXTSTEP + ★ Favorite Pinning & 🎲 Surprise Me
-• 📁 Pin to Folder & 📤 Universal Share / Bulk Import with Auto-Prompt Conflict Resolution: generate 1-line CCFM-THEME-v1 or CCFM-PACK-v1 codes, bulk import multiple codes/JSON/files at once, and resolve conflicts interactively with Replace, Keep Both (Auto-Rename), Merge Incoming FX, or Skip
-• ⚖️ Compare & Blend 2 Themes Side-by-Side: interactive split-screen wipe slider, ⇄ Swap A/B, specification diff table, and 🧬 Live OKLab Perceptual Theme Blender
-• 🌅 Day / Night Pair, 4-Stage Solar Cycle Schedule & 📻 Ambient Playlist Auto-Rotation
-• 🌌 194 Live Procedural Atmospheric Shaders across Low, Medium, Modern ARM Ultra, and M4 Max Extreme Uncapped 120Hz tiers — including 🌪️ Severe Storms (EF5 Debris Tornadoes with 3D-tumbling leaves, roof shingles & flying papers), 🛸 Year 2126 Hyper-Dimensional (4D Tesseract, 11D Calabi-Yau), and ⚡ Tesla / Sci-Fi Physics
-• ⚡ Reactive Physics Modulation: shaders respond live to Typing & Cursor Velocity, System CPU Telemetry Pulse, or Audio & Synth Beat + ⚡ Trigger Arc Surge impulse button
-• 🔀 6-Layer Multi-Effect Mixer with Per-Layer Color Tint/Opacity/Speed Modifiers, 48 Curated Signature Mixes & 💾 Named Custom Presets
-• 🎨 Theme Editor v2 & 🛠️ Theme Hacker Lab: Auto-Harmonize from Accent, 🖼️ Wallpaper Chameleon image extractor, live WCAG AA/AAA Contrast Inspector, 12 Effect Style Presets, Compiz Burn & 90s Linux CDE mutators, custom --* CSS tokens & snippet injectors, and Right ⌥ + ] / [ live desktop cycling
+WHAT'S NEW IN v1.4.9 GOD-MODE THEMES & SHADER STUDIO:
+• 310 Built-in Themes (168 Futuristic FX Themes) engineered for zero-lag 120Hz ProMotion on Apple Silicon M4 Pro / Max / Ultra and Windows RTX workstations
+• 🌌 Year 3000+ Post-Singularity Collection (12 Themes): Omega Point Singularity, Matrioshka Dyson Brain, Photonic Metamaterial 3099, Chrono-Crystalline Aethelgard, Akashic Neural Noosphere, Zero-Point Vacuum Genesis, Kardashev Type III Citadel, Hyperborean Aether Sanctum, Tachyon Slipstream Navigator, Seraphim Halo Relativity, Quantum Superposition Cathedral & Eden Solarpunk Archology 3000
+• 🍎 Flagship Mac Computers & XDR Displays (10 Themes): Mac Studio M4 Ultra 6K XDR, Mac Pro Rack XDR, MacBook Pro M4 Max Space Black, Apple Studio Display 5K, iMac M4 Spectrum P3, macOS Sequoia Redwood XDR, Vision Spatial Mac & Mac mini M4 Pro Carbon
+• ⚡ 120Hz Zero-Lag GPU Optimization: silky-smooth Haight-Ashbury Tie-Dye '67 lava-wax folders, Kaleidoscope Mandala, Dalí Screen-Melt Ooze, Inferno Blazing Folders, Radioactive Slime Bio-Vat & EF5 Debris Tornadoes
+• 📟 Hardware VFD & Oscilloscope Live CPU/GPU Telemetry Deck + Floating Pop-Out Monitor
+• ⚡ 24 1-Click Workstation Jumpstart Kits, 194 Live Procedural Shaders, 6-Layer Multi-Effect Mixer, 🪄 Special Effects Design Wizard & 🛠️ Theme Hacker Lab
 
 SHORT TIMESTAMPS
 ${stamps}
 
-#FileManager #Themes #Shaders #UIUX #LiquidGlass #MacBookPro #M4Max #Linux #OpenSource #Bun #TypeScript #Shorts
+#FileManager #Themes #Shaders #AppleM4 #MacBookPro #MacStudio #ProDisplayXDR #UIUX #LiquidGlass #OpenSource #Bun #TypeScript #Shorts
 \`\`\`
 
 ## Build Notes

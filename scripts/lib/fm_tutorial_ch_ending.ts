@@ -36,74 +36,89 @@ async function pick(d: Do, label: string, value: string) {
 /** Chapters 22 to 26: themes and shortcuts, the database studios (joined from their own tutorials), and the goodbye. */
 export const ending: Chapter[] = [
   {
-    id: "22_themes", chapter: "YOUR WAY", title: "Make it yours: 218 themes, 3D folders & pictures, 1-click jumpstart kits, ⌘V paste import, OKLab blender & hacker lab", blurb: "1-click Jumpstart Kits, 3D Regular Folders & Framed Picture Studios, ⌘V instant clipboard paste import with conflict resolution, Right ⌥ + ] Quick-Switcher HUD, 194 shaders, Theme Show screensaver, and Theme Hacker Lab",
+    id: "22_themes", chapter: "YOUR WAY", title: "God-Mode Theme & Shader Studio: 310 themes, Year 3000+ Singularity, Flagship Mac M4 Ultra 6K XDR, 120Hz Tie-Dye & 194 Shaders", blurb: "310 built-in themes, Year 3000+ God-Mode hyper-materials, Flagship Mac Studio M4 Ultra & Pro Display XDR 6K / 5K Studio Display, 120Hz ProMotion zero-lag shaders, 1-click Jumpstart Kits, ⌘V paste import, OKLab blender & Theme Hacker Lab",
     path: "<HOME>/Projects/shop-app",
     steps: [
       {
-        cap: "The Themes menu, ⌘V Instant Paste Import & Quick Switcher",
-        say: "Let's explore the complete Themes and Atmospheric Shader Studio, recorded live on a high-end Mac Pro Display X D R. Clicking the Themes button in the ribbon gives you one-click access to your Favorites, Recent themes, Instant Paste Theme from Clipboard with Command V, Share and Bulk Import, the Theme Show and Screensaver Studio, Atmospheric Effects, Day and Night pairs, and the Theme Editor.",
+        cap: "The Themes menu, M4 Ultra 6K XDR Specs, ⌘V Paste & Live Telemetry",
+        say: "Welcome to the God-Mode Themes and Atmospheric Shader Studio, recorded on a flagship Apple M4 Ultra eighty-core G P U workstation with one hundred and ninety-two gigabytes of unified memory and a six-K Pro Display X D R at one hundred and twenty Hertz ProMotion. Clicking the Themes button in the ribbon gives you instant access to three hundred and ten built-in themes, Plain No-Animation themes, Instant Paste Theme with Command V, Share and Bulk Import, the Theme Show Screensaver, one hundred and ninety-four Atmospheric Shaders, and the Theme Editor.",
         act: async (d) => { await d.click("#tool-themes", { pause: 1800 }); await d.hover(".menu", 2400); },
       },
       {
-        cap: "218 themes, 3D Folder & Picture Studios, & [ / ] rapid preview",
-        say: "I choose All themes to open the gallery of two hundred and eighteen built-in themes. Every card shows a live window swatch, hardware tier from Low Eco to Medium Glass and M4 Ultra, motion profile, and U I Element badges. Right at the top toolbar, you can also click Paste Theme or press Command V anywhere to import a theme from your clipboard instantly, or press the bracket keys to rapid-preview themes live.",
+        cap: "310 themes, Cross-Platform Mac/Windows/Linux Optimizer & VFD Telemetry Deck",
+        say: "I choose All themes to open the gallery of three hundred and ten built-in themes. Every theme is hardware-optimized for zero lag across Apple Silicon M4 Pro, Max, and Ultra ProMotion displays, Windows DirectX 12 WebView2, and Ubuntu Linux on bare metal or Parallels VMs—with one-click Optimize for Mac, Optimize for Windows, and Optimize for Linux buttons right in the top bar, plus a live Hardware V F D and Oscilloscope Telemetry Deck.",
         act: async (d) => {
           await d.menu("All themes", { pause: 1600 });
           await d.waitFor(".theme-card", 6000);
-          await d.hover('[data-paste-theme-btn="true"]', 1100).catch(() => {});
-          await d.hover(".dialog .theme-fx-badge", 900).catch(() => {});
-          await d.hover(".dialog .theme-tier-badge", 900).catch(() => {});
-          await d.hover(".dialog .theme-uifx-badge", 1000).catch(() => {});
+          await d.click('[data-optimize-platform="linux"]', { pause: 800 }).catch(() => {});
+          await d.click('[data-optimize-platform="windows"]', { pause: 800 }).catch(() => {});
+          await d.click('[data-optimize-platform="macos"]', { pause: 800 }).catch(() => {});
+          await d.hover('[data-paste-theme-btn="true"]', 900).catch(() => {});
+          await d.click('[data-open-telemetry-studio="true"]', { pause: 1100 }).catch(() => {});
+          await d.click('[data-telemetry-skin-btn="winamp_spectrum"]', { pause: 900 }).catch(() => {});
+          await d.click('[data-open-telemetry-studio="true"]', { pause: 700 }).catch(() => {});
           await showKeys(d, ["]"]);
           await d.click('[data-theme-step="1"]', { pause: 900 }).catch(() => {});
           await showKeys(d, ["["]);
           await d.click('[data-theme-step="-1"]', { pause: 900 }).catch(() => {});
           await d.scroll(".theme-list", 600, 6).catch(() => {});
-          await d.wait(800);
+          await d.wait(700);
           await d.scroll(".theme-list", -600, 6).catch(() => {});
         },
       },
       {
-        cap: "⚡ 1-Click Jumpstart Kits, 3D Regular Folders & Framed Picture Packs",
-        say: "Zero manual work is required. Right below the five-row filter bar, the new One-Click Jumpstart Kits transform your entire workstation—theme palette, sculpted 3D regular folders, framed picture icons, typography, corners, and shaders—in a single click. Try macOS Tahoe 3D Glass and Pictures, M4 Max Pro Display X D R Studio, Windows 11 Fluent 3D and R T X, 8K H D R Photo Studio, or visceral Blazing Fire and Bio-Slime folders.",
+        cap: "🌌 Year 3000+ God-Mode, 🍎 Flagship Mac M4 Ultra 6K XDR & ⚡ Jumpstart Kits",
+        say: "Zero manual setup is required. Click any One-Click Jumpstart Workstation Kit to transform your entire desktop—palette, 3D folders, framed picture icons, typography, and shaders—in a single click. Try the new Year Three Thousand God-Mode kits like Omega Point Singularity and Photonic Metamaterial thirty-ninety-nine, or Flagship Mac kits like Mac Studio M4 Ultra six-K X D R, Apple Studio Display five-K, and macOS Tahoe 3D Glass.",
         act: async (d) => {
-          await d.click('[data-jumpstart-kit="macos_tahoe_3d_kit"]', { pause: 1500 }).catch(() => {});
-          await d.click('[data-jumpstart-kit="m4_max_xdr_kit"]', { pause: 1500 }).catch(() => {});
-          await d.click('[data-jumpstart-kit="win11_rtx_3d_kit"]', { pause: 1500 }).catch(() => {});
-          await d.click('[data-jumpstart-kit="hdr_photo_cinema_kit"]', { pause: 1400 }).catch(() => {});
-          await d.click('.theme-immersion-bar [data-ui-fx="fire_folders"]', { pause: 1200 }).catch(() => {});
-          await d.click('.theme-immersion-bar [data-icon-pack="inferno"]', { pause: 1200 }).catch(() => {});
-          await d.click('.theme-immersion-bar [data-ui-fx="tahoe_glass_folders"]', { pause: 1100 }).catch(() => {});
-          await d.click('.theme-immersion-bar [data-icon-pack="macos_tahoe_3d"]', { pause: 1100 }).catch(() => {});
+          await d.eval(`(() => { const det = document.querySelector('[data-fx-studio-drawer="true"]'); if (det) det.open = true; })()`);
+          await d.wait(300);
+          await d.click('[data-jumpstart-kit="godmode_omega_singularity_kit"]', { pause: 1400 }).catch(() => {});
+          await d.click('[data-jumpstart-kit="godmode_photonic_3099_kit"]', { pause: 1400 }).catch(() => {});
+          await d.click('[data-jumpstart-kit="mac_studio_m4_ultra_kit"]', { pause: 1400 }).catch(() => {});
+          await d.click('[data-jumpstart-kit="apple_studio_display_5k_kit"]', { pause: 1300 }).catch(() => {});
+          await d.click('[data-jumpstart-kit="macos_tahoe_3d_kit"]', { pause: 1300 }).catch(() => {});
+          await d.eval(`(() => { const det = document.querySelector('[data-fx-studio-drawer="true"]'); if (det) det.open = false; })()`);
+          await d.wait(300);
+          await d.click('[data-collection-pill="god_mode_3000"]', { pause: 1300 }).catch(() => {});
+          await d.click('[data-collection-pill="flagship_mac_xdr"]', { pause: 1300 }).catch(() => {});
+          await d.click('[data-collection-pill="all"]', { pause: 900 }).catch(() => {});
         },
       },
       {
-        cap: "Tahoe 3D Studio, Inferno Fire, Slime Bio-Vat, EF5 Tornado & Tesla Plasma",
-        say: "Let's test our flagship studio and extreme themes. I search for tahoe to apply Tahoe 3D Folders and Pictures, then try Inferno Blazing Folders with molten flames, Radioactive Slime Bio-Vat with glowing green ooze, E F 5 Debris Tornado with wind-swept folders, and Tesla Coil Plasma, pinning Tesla to Favorites.",
+        cap: "Omega Singularity, Mac Studio M4 Ultra, 120Hz Tie-Dye '67, Fire & Tornado",
+        say: "Let's test our God-Mode, Flagship Mac, and high-velocity shader themes. I apply Omega Point Singularity and Matrioshka Dyson Brain from the Year Three Thousand collection, switch to Mac Studio M4 Ultra and MacBook Pro Space Black X D R, then test Haight-Ashbury Tie-Dye sixty-seven with silky-smooth one hundred and twenty Hertz lava-wax folders, Inferno Blazing Folders, E F 5 Debris Tornado, and Tesla Coil Plasma.",
         act: async (d) => {
-          await search(d, "tahoe");
-          await d.click('.theme-card[data-key="tahoe_studio_3d"]', { pause: 1900 }).catch(() => {});
+          await search(d, "omega");
+          await d.click('.theme-card[data-key="omega_point_singularity"]', { pause: 1700 }).catch(() => {});
+          await search(d, "dyson");
+          await d.click('.theme-card[data-key="matrioshka_dyson_brain"]', { pause: 1700 }).catch(() => {});
+          await search(d, "m4 ultra");
+          await d.click('.theme-card[data-key="mac_studio_m4_ultra"]', { pause: 1700 }).catch(() => {});
+          await search(d, "tie-dye");
+          await d.click('.theme-card[data-key="summer_of_love_tiedye_67"]', { pause: 1700 }).catch(() => {});
           await search(d, "inferno");
-          await d.click('.theme-card[data-key="inferno_fire_folders"]', { pause: 1900 });
-          await search(d, "slime");
-          await d.click('.theme-card[data-key="toxic_slime_ooze"]', { pause: 1900 });
+          await d.click('.theme-card[data-key="inferno_fire_folders"]', { pause: 1700 });
           await search(d, "tornado");
-          await d.click('.theme-card[data-key="ef5_debris_tornado"]', { pause: 1900 });
+          await d.click('.theme-card[data-key="ef5_debris_tornado"]', { pause: 1700 });
           await search(d, "tesla");
-          await d.click('.theme-card[data-key="tesla_coil_plasma"]', { pause: 1900 });
-          await d.click('.theme-pin[data-pin-key="tesla_coil_plasma"]', { pause: 1000 }).catch(() => {});
+          await d.click('.theme-card[data-key="tesla_coil_plasma"]', { pause: 1700 });
+          await d.click('.theme-pin[data-pin-key="tesla_coil_plasma"]', { pause: 900 }).catch(() => {});
         },
       },
       {
-        cap: "Rare classic systems (BeOS, OS/2 Warp, Linux CDE) & Surprise Me",
-        say: "For Linux and classic computing fans, the Linux and Rare systems groups recreate nostalgic desktops like BeOS R 5, O S 2 Warp 4, Palm O S, Solaris C D E, and Linux Papirus Hi D P I. You can also click Surprise me to jump to a random theme, or use Previous and Next to step through the list.",
+        cap: "US Holidays, Nerd Complete, Horror, Real-World Objects & Classic OS",
+        say: "Explore specialized worlds for every mood: eighteen U S Holiday themes, ten Nerd Complete themes like D and D Arcane Grimoire and Starfleet L C A R S Bridge, ten Horror themes with Dalí screen-melting ooze, Real-World Mahogany Clockwork and Stained Glass, plus classic systems like BeOS R 5 and O S 2 Warp 4.",
         act: async (d) => {
+          await search(d, "grimoire");
+          await d.click('.theme-card[data-key="nerd_dnd_arcane_grimoire"]', { pause: 1700 }).catch(() => {});
+          await search(d, "lcars");
+          await d.click('.theme-card[data-key="nerd_starfleet_lcars_bridge"]', { pause: 1700 }).catch(() => {});
           await search(d, "rare");
-          await d.click('.theme-card[data-key="beos_r5"]', { pause: 2100 });
-          await d.click('.theme-card[data-key="os2_warp"]', { pause: 2100 });
+          await d.click('.theme-card[data-key="beos_r5"]', { pause: 1700 });
+          await d.click('.theme-card[data-key="os2_warp"]', { pause: 1700 });
           await search(d, "");
-          await d.click(".theme-random-btn", { pause: 1500 });
-          await d.click('[data-theme-step="1"]', { pause: 1300 });
+          await d.click(".theme-random-btn", { pause: 1300 });
+          await d.click('[data-theme-step="1"]', { pause: 1100 });
         },
       },
       {
@@ -192,14 +207,26 @@ export const ending: Chapter[] = [
           await slide(d, "OKLab Theme Blend Ratio (0% = A, 100% = B)", 50, 65, 5).catch(() => {});
           await d.click('[data-preview-blend="true"]', { pause: 1500 }).catch(() => {});
           await d.hover(".theme-compare-table", 1500);
-          await d.click('[data-apply-compare="a"]', { pause: 1500 });
+          await d.click('[data-apply-compare="a"]', { pause: 1200 }).catch(() => {});
+          await d.eval(`(() => {
+            const applyBtn = document.querySelector('[data-apply-compare="a"]');
+            if (applyBtn) applyBtn.click();
+          })()`);
+          await d.wait(500);
         },
       },
       {
         cap: "Day / Night, 4-Stage Solar Cycle & Ambient Playlist Auto-Rotation",
         say: "Next, click Day Night and Playlist. Pair a light daytime theme with a dark nighttime theme, click Auto-Fill Sci-Fi Solar Cycle to assign Dawn, Solar Day, Golden Dusk, and Deep Midnight, or enable the new Ambient Playlist Auto-Rotation to cycle through your Favorites or Ultra Storm showcase on a timer.",
         act: async (d) => {
-          await d.click(".dialog button >> Day / Night", { pause: 1600 });
+          await d.eval(`(() => {
+            const backdrops = [...document.querySelectorAll('.modal-backdrop')];
+            while (backdrops.length > 1) {
+              const top = backdrops.pop();
+              top?.querySelector('button[value="close"], button[value="cancel"]')?.click();
+            }
+          })()`);
+          await d.click(".theme-tools button >> Day / Night", { pause: 1600 });
           await d.waitFor('[data-solar-preset="scifi"]', 6000);
           await d.hover('select[aria-label="Daytime (Light) theme"]', 1000);
           await d.click('[data-solar-preset="scifi"]', { pause: 1600 });
@@ -215,7 +242,14 @@ export const ending: Chapter[] = [
         cap: "Atmosphere FX: 194 shaders, M4 Extreme 120Hz & EF5 Tornadoes",
         say: "Now click Atmosphere FX to open the live procedural shader studio. It includes one hundred and ninety-four real-time effects across Low Eco, Medium, Modern ARM Ultra, and M4 Max Extreme Uncapped 120 Hertz tiers, including E F 5 Debris Tornadoes with 3D-tumbling autumn leaves, roof shingles, flying newspapers, and Category 5 Hurricanes.",
         act: async (d) => {
-          await d.click(".dialog button >> Atmosphere FX", { pause: 1800 });
+          await d.eval(`(() => {
+            const backdrops = [...document.querySelectorAll('.modal-backdrop')];
+            while (backdrops.length > 1) {
+              const top = backdrops.pop();
+              top?.querySelector('button[value="close"], button[value="cancel"]')?.click();
+            }
+          })()`);
+          await d.click(".theme-tools button >> Atmosphere FX", { pause: 1800 });
           await d.waitFor(".fm-atmo-card", 6000);
           await d.click('.fm-atmo-tier-btn[data-tier="extreme"]', { pause: 1400 });
           await d.click('.fm-atmo-cat-btn[data-cat="weather"]', { pause: 1200 });
@@ -346,33 +380,46 @@ export const ending: Chapter[] = [
         },
       },
       {
-        cap: "Right ⌥ + ] / [ Selection Templates HUD, close lock & custom shortcuts",
-        say: "Finally, hold Right Option and press the closing or opening square bracket to summon the live Selection Templates Quick-Switcher H U D—showing miniature window swatches, 3D folder and picture badges, and one-click flagship studio templates—or press Right Option and slash for full screen. In Settings, you can lock the window close button, and in Help under Change keyboard shortcuts—or by pressing Command Shift Slash—you can see and remap every shortcut, including Command Shift E or Command U to extract any compressed archive in your selection, Command Shift Z to compress to zip, Command Shift I to invert selection, and Command Shift C to copy paths.",
+        cap: "Zero-Dialog Shortcuts: ⌥R Random, ⌥E FX, ⌥P Plain, ⌥0 Toggle & ⌥]/[ HUD",
+        say: "Finally, you can switch or randomize themes from anywhere with zero dialogs needed. Press Option R for an instant random theme, Option E for a random animated F X theme, Option P for a random zero-G P U plain theme, Option U for a random Ultra God-Mode theme, or Option Zero to toggle effects on and off on the spot. Hold Right Option with the square brackets for the Selection Templates Quick-Switcher H U D, or open Settings and Help to lock the window close button and customize every keyboard shortcut.",
         act: async (d) => {
           await closeDialogs(d);
-          for (let i = 0; i < 3; i++) {
-            await showKeys(d, ["Right ⌥", "]"]);
-            await d.eval(`window.cycleAppTheme(1, { showcaseOnly: true, showHud: true })`);
-            await d.wait(1400);
-          }
+          await showKeys(d, ["⌥", "R"]);
+          await d.eval(`window.randomAppTheme("any")`);
+          await d.wait(1100);
+          await showKeys(d, ["⌥", "E"]);
+          await d.eval(`window.randomAppTheme("fx")`);
+          await d.wait(1100);
+          await showKeys(d, ["⌥", "P"]);
+          await d.eval(`window.randomAppTheme("plain")`);
+          await d.wait(1100);
+          await showKeys(d, ["⌥", "U"]);
+          await d.eval(`window.randomAppTheme("ultra")`);
+          await d.wait(1100);
+          await showKeys(d, ["⌥", "0"]);
+          await d.eval(`window.toggleAppThemeFx()`);
+          await d.wait(900);
+          await showKeys(d, ["Right ⌥", "]"]);
+          await d.eval(`window.cycleAppTheme(1, { showcaseOnly: true, showHud: true })`);
+          await d.wait(1100);
           await showKeys(d, ["Right ⌥", "["]);
           await d.eval(`window.cycleAppTheme(-1, { showcaseOnly: true, showHud: true })`);
-          await d.wait(1400);
-          await d.eval(`document.querySelector('[data-quick-cycle-close]')?.click()`).catch(() => {});
-          await showKeys(d, ["Right ⌥", "/"]); await d.wait(1200);
+          await d.wait(1100);
+          await d.eval(`document.querySelector('[data-quick-hud-close]')?.click()`).catch(() => {});
+          await showKeys(d, ["Right ⌥", "/"]); await d.wait(900);
           await d.eval(`(() => { if (typeof window.closeApp !== 'function') window.closeApp = () => {}; })()`);
           await d.key("Meta+,", "⌘+,");
-          await d.wait(900);
+          await d.wait(800);
           if (!(await d.eval<boolean>(`!!document.querySelector('.modal-backdrop')`))) await d.eval(`import('/ui/extras.js').then((m) => m.showSettings())`);
-          await d.wait(1000);
+          await d.wait(900);
           const sel = ".dialog label >> Only close the window";
           await d.eval(`[...document.querySelectorAll('.dialog label')].find((l) => l.textContent.includes('Only close the window'))?.scrollIntoView({ block: 'center' })`);
-          await d.click(sel, { pause: 1600 }).catch(() => {});
+          await d.click(sel, { pause: 1300 }).catch(() => {});
           await closeDialogs(d);
           await d.key("F1", "F1");
           await d.waitFor(".dialog", 6000);
-          await d.click(".dialog .btn >> Change keyboard shortcuts", { pause: 1600 }).catch(() => {});
-          await d.hover(".dialog", 2000);
+          await d.click(".dialog .btn >> Change keyboard shortcuts", { pause: 1500 }).catch(() => {});
+          await d.hover(".dialog", 1800);
         },
       },
     ],

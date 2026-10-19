@@ -193,6 +193,18 @@ const REQUIRED: Record<string, boolean> = {
     realworld_murano_blown_glass_day: false,
     realworld_katana_urushi_forge: true,
     realworld_pinball_wizard_arcade: true,
+    omega_point_singularity: true,
+    matrioshka_dyson_brain: true,
+    photonic_metamaterial_3099: true,
+    chrono_crystalline_aethelgard: true,
+    akashic_neural_noosphere: true,
+    zero_point_vacuum_genesis: true,
+    kardashev_type_iii_galactic: true,
+    transcendent_seraphim_halo: true,
+    femtotech_picomatter_forge: true,
+    holographic_holodeck_continuum: true,
+    hyperborean_aether_sanctum_day: false,
+    eden_solarpunk_archology_3000: false,
 };
 
 describe("fx themes: registration", () => {
@@ -1203,7 +1215,7 @@ describe("high-end M4 Pro / Windows DirectX enhancements and hardware fallbacks"
     });
 
     test("FX_STYLE_PRESETS and expanded ThemeFx materials, borders, glows, scanlines, grains, vignettes, and optical flags produce valid CSS and root attrs", () => {
-        expect(FX_STYLE_PRESETS.length).toBe(12);
+        expect(FX_STYLE_PRESETS.length).toBe(16);
         const base = FX_THEMES.prism_reactor!;
         for (const preset of FX_STYLE_PRESETS) {
             const custom = {

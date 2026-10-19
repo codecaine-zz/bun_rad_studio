@@ -136,6 +136,11 @@ const FILE_ACTIONS = {
   "file.moreInfo": MORE_INFO,
   "app.settings": () => showSettings(),
   "app.themes": () => emit("theme-picker"),
+  "app.randomTheme": () => emit("theme-random", { mode: "any" }),
+  "app.randomFxTheme": () => emit("theme-random", { mode: "fx" }),
+  "app.randomPlainTheme": () => emit("theme-random", { mode: "plain" }),
+  "app.randomUltraTheme": () => emit("theme-random", { mode: "ultra" }),
+  "app.toggleThemeFx": () => emit("theme-toggle-fx", {}),
   "app.expandTool": () => togglePowerExpanded(),
   "nav.findTool": () => openPower("find"),
   "nav.filterTools": () => focusPowerFilter(),
@@ -204,9 +209,9 @@ const FILE_ACTIONS = {
   "view.icons": () => void saveSettings({ view: "icons" }),
 };
 /** Work wherever you are, even with a button focused. */
-const EVERYWHERE = ["app.help", "app.shortcuts", "nav.refresh", "file.rename", "file.properties", "file.moreInfo", "app.expandTool"];
+const EVERYWHERE = ["app.help", "app.shortcuts", "nav.refresh", "file.rename", "file.properties", "file.moreInfo", "app.expandTool", "app.randomTheme", "app.randomFxTheme", "app.randomPlainTheme", "app.randomUltraTheme", "app.toggleThemeFx"];
 /** Also work inside the tools panel, the Home page and the other panes. */
-const IN_PANES = ["nav.findTool", "nav.filterTools", "app.settings", "app.shortcuts", "app.activity", "app.themes", "app.expandTool"];
+const IN_PANES = ["nav.findTool", "nav.filterTools", "app.settings", "app.shortcuts", "app.activity", "app.themes", "app.expandTool", "app.randomTheme", "app.randomFxTheme", "app.randomPlainTheme", "app.randomUltraTheme", "app.toggleThemeFx"];
 const IN_LISTS = Object.keys(FILE_ACTIONS).filter((id) => !EVERYWHERE.includes(id));
 
 export function wireKeys() {

@@ -17,6 +17,12 @@ export const UI_ELEMENT_FX_OPTIONS = [
   { id: "fluent_mica_folders", label: "🪟 Win 11 Fluent 3D Folders", desc: "Layered Windows 11 Fluent 3D amber/cobalt regular folders, DirectX 12 Mica cards & framed photo tiles" },
   { id: "xdr_titanium_folders", label: "💻 M4 Max / RTX XDR Titanium Folders", desc: "Space-Black machined titanium regular folders with 1600-nit XDR rim lighting & 8K RAW studio picture plates" },
   { id: "google_material_folders", label: "✨ Google Material 3 & Gemini 3D Folders", desc: "Sculpted Material 3 Expressive squircle folders with 4-color Gemini AI sparkle refraction & tonal surface elevation" },
+  { id: "cupertino_ceramic_bevel", label: "🍎 Cupertino Ceramic & Titanium Bevel", desc: "Apple HIG continuous-squircle ceramic folders & sheets with 0.5px specular hairline rims and multi-stop ambient shadows" },
+  { id: "swiss_sapphire_chronograph", label: "⌚ Swiss Horology Sapphire & Rose Gold", desc: "Haute-horlogerie anti-reflective sapphire crystal folders with rose-gold guilloché bevels and chronograph indices" },
+  { id: "teenage_field_anodized", label: "🎛️ Swedish Field Synth Anodized Aluminum", desc: "Bead-blasted CNC anodized aluminum folders & tactile industrial keycap rows with international-orange accents" },
+  { id: "blueprint_cad_cyanotype", label: "📐 Architectural Cyanotype & CAD Grid", desc: "Precision Prussian-blue cyanotype drafting folders with 0.5px micrometer vernier hairlines and technical callouts" },
+  { id: "kyoto_washi_sumi", label: "🎋 Kyoto Washi Paper & Sumi Ink Seal", desc: "Handmade mulberry washi paper folders with warm cedar woodgrain borders and vermilion hanko seal accents" },
+  { id: "carbon_kevlar_weave", label: "🏎️ Autoclave Forged Carbon & Alcantara", desc: "Dry-autoclave 3K twill carbon fiber folders with titanium countersunk fasteners and racing telemetry accents" },
   { id: "fire_folders", label: "🔥 Folders & Toolbars on Fire", desc: "Blazing molten flames, rising embers, and heat-shimmer borders on folders & toolbars" },
   { id: "slime_drip", label: "🧪 Dripping Slime", desc: "Glowing radioactive neon-green slime dripping from folders, toolbars & breadcrumbs" },
   { id: "storm_wind", label: "🌪️ Storm Wind, Leaves & Rain", desc: "Hurricane wind gusts buffeting folders & toolbars with clinging autumn leaves & rain streaks" },
@@ -41,6 +47,12 @@ export const UI_ELEMENT_FX_OPTIONS = [
   { id: "molten_lava_melt", label: "🌋 Molten Glass & Magma Melt", desc: "Superheated furnace glass melt: glowing orange-crimson thermal sag and heat-mirage wave distortion across folders & files" },
   { id: "crt_magnetic_warp", label: "🧲 CRT Magnet De-Gauss Distortion", desc: "Magnetic field screen warp with RGB chromatic separation, de-gaussing wave bend, and scanline tear" },
   { id: "fever_dream_ripple", label: "🌊 Hallucinogenic Liquid Ripple", desc: "Refractive underwater & desert mirage displacement ripples gently bending folders, files, and toolbars" },
+  { id: "godmode_omega_halo", label: "🌌 God-Mode Omega Singularity Halo", desc: "Post-singularity 24K celestial gold & violet event-horizon refraction with rotating crown halos on folders & toolbars" },
+  { id: "godmode_photonic_crystal", label: "💎 God-Mode 3099 Photonic Metamaterial", desc: "Negative-index photonic crystal folders with Display-P3 dichroic dispersion, laser caustics & zero-latency refraction" },
+  { id: "godmode_dyson_lattice", label: "☀️ God-Mode Matrioshka Dyson Lattice", desc: "Kardashev Type-II stellar megastructure hex-collector bevels, solar-corona plasma filaments & computronium waveguides" },
+  { id: "godmode_chrono_crystal", label: "⏳ God-Mode Chrono-Crystalline Vault", desc: "Time-dilated horological sapphire crystal folders with golden astrolabe indices & retrocausal phase shimmer" },
+  { id: "godmode_neural_synapse", label: "🧠 God-Mode Akashic Neural Noosphere", desc: "Living bioluminescent synaptic dendrite borders, planetary consciousness pulses & emerald-cyan axon waveguides" },
+  { id: "godmode_zero_point_arc", label: "⚛️ God-Mode Zero-Point Vacuum Genesis", desc: "Casimir-cavity quantum vacuum energy arcs, ultraviolet Cherenkov rim glow & sub-atomic femtotech containment" },
 ];
 
 /** Custom Icon Pack styles that transform folder and file icons across the File Manager. */
@@ -53,6 +65,12 @@ export const ICON_PACK_OPTIONS = [
   { id: "linux_papirus_pro", label: "🐧 Linux Papirus HiDPI", desc: "Crisp KDE Breeze & Papirus HiDPI regular folders, developer topic badges & workstation picture tiles" },
   { id: "nordic_minimal", label: "🏛️ Studio Architect Minimal", desc: "Tactile 3D paper-and-glass regular folders, architectural picture frames & clean daylight glyphs" },
   { id: "google_material_3d", label: "✨ Google Material 3 & Gemini 3D", desc: "Google Material 3 Expressive & Gemini 3D semantic folders, AI/Cloud developer badges & 120+ system glyphs" },
+  { id: "cupertino_hig_studio", label: "🍎 Cupertino HIG Ceramic Studio", desc: "Apple Human Interface Guidelines squircle 3D folders & crisp document sheets with Display-P3 specular rims" },
+  { id: "swiss_horology_gold", label: "⌚ Swiss Horology & Sapphire", desc: "Chronograph sapphire-crystal folders & precision ledger documents with brushed rose-gold indices" },
+  { id: "teenage_field_synth", label: "🎛️ Swedish Field Synthesizer", desc: "Tactile anodized aluminum folders & studio stem files inspired by precision portable hardware synths" },
+  { id: "blueprint_cad_pro", label: "📐 Architectural CAD & Cyanotype", desc: "Precision engineering blueprint folders & specification sheets with micrometer scale markings" },
+  { id: "kyoto_zen_ink", label: "🎋 Kyoto Washi & Sumi Ink", desc: "Artisan mulberry paper folders & calligraphy scroll documents with vermilion hanko seal badges" },
+  { id: "carbon_aerospace", label: "🏎️ Forged Carbon & Telemetry", desc: "Aerospace carbon-weave folders & flight-deck telemetry files with titanium hardware accents" },
   { id: "inferno", label: "🔥 Blazing Inferno", desc: "Molten fire chests, lightning code glyphs, and ember-shielded icons" },
   { id: "slime", label: "🧪 Toxic Slime-Drip", desc: "Bio-vat flasks, DNA helices, and dripping radioactive gel capsules" },
   { id: "storm_tempest", label: "🌪️ Storm & Cyclone", desc: "Tornado vortex folders, lightning scripts, and wind-swept barometric badges" },
@@ -70,10 +88,17 @@ export const ICON_PACK_OPTIONS = [
   { id: "nerd_hacker_retro", label: "🕹️ Nerd 16-Bit & DEFCON", desc: "Retro cartridge 3D folders & mainframe files with pixel bevels & cipher glow" },
   { id: "horror_crypt", label: "🧛 Horror Crypt & Nightmare", desc: "Gothic obsidian 3D folders & blood-ink vellum files with candlelit crimson bevels" },
   { id: "realworld_objects", label: "🕰️ Real-World Tactile Objects", desc: "Hand-rubbed mahogany & brass 3D folders and linen parchment files with physical bevels" },
+  { id: "godmode_celestial", label: "🌌 God-Mode Celestial Crown", desc: "Post-singularity 3D folders & files crowned with 24K celestial gold halos & event-horizon optics" },
+  { id: "godmode_photonic", label: "💎 God-Mode 3099 Photonic", desc: "Year 3099 negative-index photonic crystal 3D folders & holographic light-field document plates" },
+  { id: "godmode_quantum", label: "⚛️ God-Mode Quantum Forge", desc: "Kardashev Dyson & femtotech quantum-lattice 3D folders with zero-point Casimir containment badges" },
+  { id: "godmode_chrono", label: "⏳ God-Mode Chrono & Noosphere", desc: "Time-crystal horological 3D folders & Akashic neural noosphere files with retrocausal phase seals" },
 ];
 
 export const FONT_PROFILES = [
   { id: "default", label: "System UI" },
+  { id: "humanist_hig", label: "🍎 Apple HIG Humanist" },
+  { id: "swiss_grotesk", label: "🇨🇭 Swiss Neo-Grotesk" },
+  { id: "drafting_cad", label: "📐 CAD Precision Mono" },
   { id: "scifi", label: "Sci-Fi Geometric" },
   { id: "terminal", label: "Monospace HUD" },
   { id: "editorial", label: "Editorial Serif" },
@@ -82,6 +107,8 @@ export const FONT_PROFILES = [
 
 export const CORNER_PROFILES = [
   { id: "default", label: "Theme Default" },
+  { id: "squircle_hig", label: "🍎 Apple HIG Squircle" },
+  { id: "chamfered", label: "💎 Machined Chamfer" },
   { id: "sharp", label: "Tactical Sharp" },
   { id: "rounded", label: "Smooth Rounded" },
   { id: "pill", label: "Liquid Pill" },
@@ -90,6 +117,8 @@ export const CORNER_PROFILES = [
 export const ICON_GLOW_PROFILES = [
   { id: "off", label: "Off" },
   { id: "subtle", label: "Subtle Halo" },
+  { id: "ambient_p3", label: "🌈 Display-P3 Ambient" },
+  { id: "xdr_specular", label: "💎 XDR Specular Rim" },
   { id: "neon", label: "Neon Bloom" },
   { id: "hyper", label: "Hyper Plasma" },
 ];
@@ -107,22 +136,16 @@ export function ensureDistortionSvgFilters() {
   svg.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute;width:0;height:0">
     <defs>
       <filter id="fm-filter-screen-melt" x="-8%" y="-8%" width="116%" height="124%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.012 0.045" numOctaves="2" seed="7" result="meltNoise">
-          <animate attributeName="baseFrequency" values="0.012 0.045;0.018 0.068;0.012 0.045" dur="7s" repeatCount="indefinite" />
-        </feTurbulence>
-        <feDisplacementMap in="SourceGraphic" in2="meltNoise" scale="7" xChannelSelector="R" yChannelSelector="G" />
+        <feTurbulence type="fractalNoise" baseFrequency="0.012 0.045" numOctaves="1" seed="7" result="meltNoise" />
+        <feDisplacementMap in="SourceGraphic" in2="meltNoise" scale="5" xChannelSelector="R" yChannelSelector="G" />
       </filter>
       <filter id="fm-filter-molten-glass" x="-6%" y="-6%" width="112%" height="118%">
-        <feTurbulence type="turbulence" baseFrequency="0.02 0.06" numOctaves="2" seed="19" result="lavaNoise">
-          <animate attributeName="baseFrequency" values="0.02 0.06;0.028 0.085;0.02 0.06" dur="5.5s" repeatCount="indefinite" />
-        </feTurbulence>
-        <feDisplacementMap in="SourceGraphic" in2="lavaNoise" scale="5.5" xChannelSelector="R" yChannelSelector="B" />
+        <feTurbulence type="turbulence" baseFrequency="0.02 0.06" numOctaves="1" seed="19" result="lavaNoise" />
+        <feDisplacementMap in="SourceGraphic" in2="lavaNoise" scale="4.5" xChannelSelector="R" yChannelSelector="B" />
       </filter>
       <filter id="fm-filter-liquid-ripple" x="-5%" y="-5%" width="110%" height="110%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.025 0.025" numOctaves="2" seed="3" result="rippleNoise">
-          <animate attributeName="baseFrequency" values="0.025 0.025;0.036 0.018;0.025 0.025" dur="6s" repeatCount="indefinite" />
-        </feTurbulence>
-        <feDisplacementMap in="SourceGraphic" in2="rippleNoise" scale="4.5" xChannelSelector="G" yChannelSelector="R" />
+        <feTurbulence type="fractalNoise" baseFrequency="0.025 0.025" numOctaves="1" seed="3" result="rippleNoise" />
+        <feDisplacementMap in="SourceGraphic" in2="rippleNoise" scale="3.5" xChannelSelector="G" yChannelSelector="R" />
       </filter>
     </defs>
   </svg>`;
@@ -302,13 +325,15 @@ function clearPalette() {
   root.style.removeProperty("color-scheme");
   delete root.dataset.palette;
   wanted = "";
+  const hw = probeClientHardware();
+  if (!root.dataset.platform) root.dataset.platform = state.settings?.platformProfile || hw.platform;
   applyUiImmersionProfiles();
   emit("theme-changed", currentThemePayload());
 }
 
 let cachedHw = null;
 
-/** Probes client GPU, display gamut/HDR, and accessibility/power constraints once per session. */
+/** Probes client OS platform (macOS / Windows / Linux), VM renderer (Parallels / VirtIO / Hyper-V / VMware), GPU, display gamut/HDR, and accessibility constraints once per session. */
 export function probeClientHardware() {
   if (cachedHw) return cachedHw;
   const nav = typeof navigator !== "undefined" ? navigator : {};
@@ -327,6 +352,13 @@ export function probeClientHardware() {
       }
     }
   } catch {}
+  const ua = `${nav.userAgent || ""} ${nav.platform || ""} ${nav.userAgentData?.platform || ""}`.toLowerCase();
+  const platform = /\blinux\b|\bx11\b|\bwayland\b|\bubuntu\b/.test(ua) && !/android/.test(ua)
+    ? "linux"
+    : /\bwin(dows|32|64)\b/.test(ua)
+      ? "windows"
+      : "macos";
+  const isVm = /parallels|virtio|virgl|vmware|virtualbox|vbox|hyper-v|qemu|qxl|llvmpipe|softpipe/i.test(`${gpu} ${ua}`);
   const cores = typeof nav.hardwareConcurrency === "number" ? nav.hardwareConcurrency : 8;
   const mem = typeof nav.deviceMemory === "number" ? nav.deviceMemory : 8;
   const dpr = typeof window !== "undefined" && typeof window.devicePixelRatio === "number" ? window.devicePixelRatio : 1;
@@ -338,9 +370,11 @@ export function probeClientHardware() {
   const saveData = Boolean(nav.connection?.saveData);
   const swGpu = /swiftshader|llvmpipe|softpipe|basic render driver|microsoft basic|\bwarp\b|d3d11 warp|gdi generic|hyper-v|rdpudd|citrix|virtualbox|vmware/i.test(gpu);
   const shouldFallback = forcedColors || reducedTransparency || saveData || swGpu || (cores > 0 && cores <= 2) || (mem > 0 && mem <= 2);
-  const ultra = !shouldFallback && (/apple\s+m[1-9]|rtx\s*[345]\d{2,3}|radeon\s+rx\s+[6789]\d{2,3}|intel.*arc\s+[ab]\d{3}|adreno\s+x1|snapdragon\s+x/i.test(gpu) || (p3 && hdr && cores >= 8));
+  const ultra = !shouldFallback && !isVm && platform !== "linux" && (/apple\s+m[1-9]|rtx\s*[345]\d{2,3}|radeon\s+rx\s+[6789]\d{2,3}|intel.*arc\s+[ab]\d{3}|adreno\s+x1|snapdragon\s+x/i.test(gpu) || (p3 && hdr && cores >= 8));
   cachedHw = {
-    tier: shouldFallback ? "low" : ultra ? "ultra" : (cores >= 8 || p3 || dpr >= 1.5) ? "high" : "balanced",
+    platform,
+    isVm,
+    tier: shouldFallback ? "low" : ultra ? "ultra" : (platform === "linux" || isVm) ? "balanced" : (cores >= 8 || p3 || dpr >= 1.5) ? "high" : "balanced",
     fxMode: (forcedColors || swGpu) ? "off" : (shouldFallback || reducedMotion) ? "reduced" : "on",
     shouldFallback,
     gpu,
@@ -350,10 +384,67 @@ export function probeClientHardware() {
   return cachedHw;
 }
 
+/**
+ * 1-Click Cross-Platform Hardware Optimization Presets for macOS (Apple Silicon Metal / ProMotion XDR),
+ * Windows 11/10 (DirectX 12 / DirectComposition WebView2), and Linux / Ubuntu (WebKitGTK & Parallels Desktop VM).
+ */
+export const OPTIMIZE_PLATFORM_PRESETS = [
+  {
+    id: "macos",
+    label: "🍎 Optimize for Mac",
+    title: "Optimize for macOS (Apple Silicon M1–M4 Pro/Max/Ultra · 120Hz ProMotion Metal & Display-P3 XDR)",
+    atmosphereTier: "ultra",
+  },
+  {
+    id: "windows",
+    label: "🪟 Optimize for Windows",
+    title: "Optimize for Windows 11/10 (DirectX 12 · DirectComposition WebView2 · Single-Pass Mica/Acrylic)",
+    atmosphereTier: "high",
+  },
+  {
+    id: "linux",
+    label: "🐧 Optimize for Linux / VM",
+    title: "Optimize for Ubuntu Linux & Parallels Desktop VM (WebKitGTK Zero-Readback Compositor · 60 FPS Locked)",
+    atmosphereTier: "medium",
+  },
+];
+
+/** Applies cross-platform compositor, blur, and canvas particle optimizations for `"macos"`, `"windows"`, or `"linux"`. */
+export async function applyPlatformOptimizationPreset(platformId, opts = {}) {
+  const cleanId = platformId === "windows" || platformId === "linux" || platformId === "macos"
+    ? platformId
+    : probeClientHardware().platform;
+  const preset = OPTIMIZE_PLATFORM_PRESETS.find((p) => p.id === cleanId) || OPTIMIZE_PLATFORM_PRESETS[0];
+  if (typeof document !== "undefined" && document.documentElement) {
+    document.documentElement.dataset.platform = preset.id;
+  }
+  const patch = {
+    platformProfile: preset.id,
+    atmosphereTier: preset.atmosphereTier,
+  };
+  if (preset.id === "linux" && state.settings?.uiElementFx && HEAVY_DISTORTION_FX_SET.has(state.settings.uiElementFx)) {
+    patch.uiElementFx = "cupertino_ceramic_bevel";
+  }
+  if (state.settings) Object.assign(state.settings, patch);
+  applyUiImmersionProfiles(patch);
+  try {
+    applyAtmosphere(undefined, undefined, preset.atmosphereTier);
+  } catch {}
+  await saveSettings(patch);
+  if (!opts.quiet) {
+    toast(`Applied ${preset.label} hardware compositor profile (${preset.atmosphereTier.toUpperCase()} tier).`, { kind: "success" });
+  }
+  return preset;
+}
+
+let plainStaticLockKey = null;
+
 /** Puts a theme's color variables on the page. `key` marks which saved theme it is ("preview" while editing). */
 export function paint(theme, key) {
   clearEffects();
   const root = document.documentElement;
+  const hw = probeClientHardware();
+  root.dataset.platform = state.settings?.platformProfile || hw.platform;
   for (const name of applied) root.style.removeProperty(`--${name}`);
   applied = Object.keys(theme.vars);
   currentVars = { ...theme.vars };
@@ -362,8 +453,7 @@ export function paint(theme, key) {
   root.dataset.theme = theme.scheme;
   root.dataset.palette = key;
   wanted = key;
-  if (theme.effects) {
-    const hw = probeClientHardware();
+  if (theme.effects && !(plainStaticLockKey && plainStaticLockKey === key)) {
     const style = document.createElement("style");
     style.id = "fm-theme-effects";
     const nonce = document.querySelector('meta[name="fm-nonce"]')?.content;
@@ -379,7 +469,12 @@ export function paint(theme, key) {
       if (theme.effects.attrs["data-fx-font-profile"]) state.settings.themeFontProfile = "default";
       if (theme.effects.attrs["data-fx-corner-profile"]) state.settings.themeCornerProfile = "default";
       if (theme.effects.attrs["data-fx-icon-glow"]) state.settings.themeIconGlow = "off";
+      if (theme.effects.attrs["data-fx-atmosphere"]) state.settings.atmosphere = "none";
     }
+  } else if (key && key !== "preview" && state.settings) {
+    state.settings.uiElementFx = "off";
+    state.settings.iconPackStyle = "default";
+    state.settings.themeIconGlow = "off";
   }
   applyUiImmersionProfiles();
   emit("theme-changed", currentThemePayload());
@@ -1142,6 +1237,246 @@ export const JUMPSTART_WORKSTATION_KITS = [
     themeIconGlow: "hyper",
     atmosphere: "starburst+cinema_bokeh",
   },
+  {
+    id: "cupertino_ceramic_hig_kit",
+    label: "🍎 Cupertino Ceramic & Titanium HIG",
+    desc: "Apple Human Interface Guidelines ceramic squircle 3D folders, 0.5px specular hairlines, SF humanist typography & Display-P3 ambient halo",
+    palette: "apple_studio_display_5k",
+    uiElementFx: "cupertino_ceramic_bevel",
+    iconPackStyle: "cupertino_hig_studio",
+    themeFontProfile: "humanist_hig",
+    themeCornerProfile: "squircle_hig",
+    themeIconGlow: "ambient_p3",
+    atmosphere: "tahoe_caustics+cinema_bokeh",
+  },
+  {
+    id: "swiss_horology_sapphire_kit",
+    label: "⌚ Swiss Horology Sapphire & Rose Gold",
+    desc: "Geneva haute-horlogerie sapphire-crystal 3D folders, rose-gold guilloché bezels, Swiss Neo-Grotesk typography & precision ledger icons",
+    palette: "realworld_grandfather_clockwork_mahogany",
+    uiElementFx: "swiss_sapphire_chronograph",
+    iconPackStyle: "swiss_horology_gold",
+    themeFontProfile: "swiss_grotesk",
+    themeCornerProfile: "chamfered",
+    themeIconGlow: "xdr_specular",
+    atmosphere: "cinema_bokeh+starburst",
+  },
+  {
+    id: "teenage_field_synth_kit",
+    label: "🎛️ Swedish Field Synth Anodized",
+    desc: "Bead-blasted CNC anodized aluminum 3D folders, tactile hardware keycap rows, international-orange accents & studio stem icons",
+    palette: "titanium_slate",
+    uiElementFx: "teenage_field_anodized",
+    iconPackStyle: "teenage_field_synth",
+    themeFontProfile: "swiss_grotesk",
+    themeCornerProfile: "chamfered",
+    themeIconGlow: "subtle",
+    atmosphere: "none",
+  },
+  {
+    id: "blueprint_cad_cyanotype_kit",
+    label: "📐 Architectural Cyanotype & CAD",
+    desc: "Prussian-blue cyanotype drafting 3D folders, 0.5px micrometer vernier hairlines, CAD monospace typography & engineering spec icons",
+    palette: "sapphire",
+    uiElementFx: "blueprint_cad_cyanotype",
+    iconPackStyle: "blueprint_cad_pro",
+    themeFontProfile: "drafting_cad",
+    themeCornerProfile: "sharp",
+    themeIconGlow: "xdr_specular",
+    atmosphere: "hud_reticle",
+  },
+  {
+    id: "kyoto_washi_sumi_kit",
+    label: "🎋 Kyoto Washi Paper & Sumi Ink",
+    desc: "Handmade mulberry washi 3D folders, warm hinoki cedar borders, vermilion hanko seal badges & editorial serif typography",
+    palette: "kyoto_zen_karesansui_day",
+    uiElementFx: "kyoto_washi_sumi",
+    iconPackStyle: "kyoto_zen_ink",
+    themeFontProfile: "editorial",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "subtle",
+    atmosphere: "sakura_drift+sunbeams",
+  },
+  {
+    id: "carbon_kevlar_telemetry_kit",
+    label: "🏎️ Forged Carbon & Telemetry XDR",
+    desc: "Autoclave 3K twill carbon-fiber 3D folders, Alcantara crimson stitch borders, titanium countersunk fasteners & aerospace telemetry icons",
+    palette: "mac_mini_m4_pro_carbon",
+    uiElementFx: "carbon_kevlar_weave",
+    iconPackStyle: "carbon_aerospace",
+    themeFontProfile: "drafting_cad",
+    themeCornerProfile: "chamfered",
+    themeIconGlow: "xdr_specular",
+    atmosphere: "hud_reticle+embers",
+  },
+  {
+    id: "crt_degauss_magnet_kit",
+    label: "🧲 CRT Magnet De-Gauss & VHS Warp",
+    desc: "Magnetic coil screen bend, RGB aperture-grille separation, de-gaussing wave distortion & retro phosphor folder icons",
+    palette: "horror_vhs_found_footage_1999",
+    uiElementFx: "crt_magnetic_warp",
+    iconPackStyle: "nerd_hacker_retro",
+    themeFontProfile: "terminal",
+    themeCornerProfile: "sharp",
+    themeIconGlow: "neon",
+    atmosphere: "hud_reticle+dust_motes",
+  },
+  {
+    id: "mirage_liquid_ripple_kit",
+    label: "🌊 Hallucinogenic Liquid Mirage Ripple",
+    desc: "Refractive underwater & desert mirage displacement ripples gently bending 3D folders, files, and toolbars",
+    palette: "horror_cursed_carnival_calliope",
+    uiElementFx: "fever_dream_ripple",
+    iconPackStyle: "liquid_gems",
+    themeFontProfile: "rounded",
+    themeCornerProfile: "squircle_hig",
+    themeIconGlow: "ambient_p3",
+    atmosphere: "caustics+aurora_borealis",
+  },
+  {
+    id: "plain_cupertino_daylight_kit",
+    label: "⏹️ Plain Cupertino Daylight (No FX)",
+    desc: "Zero-animation Apple HIG daylight paper setup: crisp SF humanist typography, squircle corners, standard folders & 0% GPU overhead",
+    palette: "apple_light",
+    uiElementFx: "off",
+    iconPackStyle: "default",
+    themeFontProfile: "humanist_hig",
+    themeCornerProfile: "squircle_hig",
+    themeIconGlow: "off",
+    atmosphere: "none",
+  },
+  {
+    id: "plain_xdr_darkroom_kit",
+    label: "⏹️ Plain Cupertino Darkroom (No FX)",
+    desc: "Zero-animation Apple Dark Mode reference setup: neutral titanium dark cards, SF humanist typography & pure static legibility",
+    palette: "apple_dark",
+    uiElementFx: "off",
+    iconPackStyle: "default",
+    themeFontProfile: "humanist_hig",
+    themeCornerProfile: "squircle_hig",
+    themeIconGlow: "off",
+    atmosphere: "none",
+  },
+  {
+    id: "plain_tokyo_night_pro_kit",
+    label: "⏹️ Plain Tokyo Night IDE (No FX)",
+    desc: "Zero-animation Tokyo Night developer setup: clean indigo slate surfaces, CAD monospace typography & zero moving particles",
+    palette: "tokyo_night",
+    uiElementFx: "off",
+    iconPackStyle: "default",
+    themeFontProfile: "drafting_cad",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "off",
+    atmosphere: "none",
+  },
+  {
+    id: "plain_nordic_architect_kit",
+    label: "⏹️ Plain Nordic Architect (No FX)",
+    desc: "Zero-animation Scandinavian editorial paper setup: warm daylight contrast, Swiss Neo-Grotesk type & distraction-free folders",
+    palette: "nordic_paper",
+    uiElementFx: "off",
+    iconPackStyle: "default",
+    themeFontProfile: "swiss_grotesk",
+    themeCornerProfile: "squircle_hig",
+    themeIconGlow: "off",
+    atmosphere: "none",
+  },
+  {
+    id: "plain_dracula_studio_kit",
+    label: "⏹️ Plain Dracula Studio (No FX)",
+    desc: "Zero-animation Dracula classic setup: high-contrast purple & pink syntax palette with crisp static rows and zero motion",
+    palette: "dracula",
+    uiElementFx: "off",
+    iconPackStyle: "default",
+    themeFontProfile: "humanist_hig",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "off",
+    atmosphere: "none",
+  },
+  {
+    id: "plain_solarized_editorial_kit",
+    label: "⏹️ Plain Solarized Editorial (No FX)",
+    desc: "Zero-animation Ethan Schoonover Solarized Light setup with literary editorial serif typography for all-day reading comfort",
+    palette: "solarized_light",
+    uiElementFx: "off",
+    iconPackStyle: "default",
+    themeFontProfile: "editorial",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "off",
+    atmosphere: "none",
+  },
+  {
+    id: "godmode_omega_singularity_kit",
+    label: "🌌 God-Mode Omega Singularity",
+    desc: "Post-singularity cosmological workstation: 24K celestial gold event-horizon refraction, Omega halo folders & 11D Calabi-Yau manifold",
+    palette: "omega_point_singularity",
+    uiElementFx: "godmode_omega_halo",
+    iconPackStyle: "godmode_celestial",
+    themeFontProfile: "scifi",
+    themeCornerProfile: "squircle_hig",
+    themeIconGlow: "hyper",
+    atmosphere: "omega_point_2126+calabi_yau+hawking_horizon",
+  },
+  {
+    id: "godmode_photonic_3099_kit",
+    label: "💎 God-Mode 3099 Photonic Crystal",
+    desc: "Year 3099 negative-index photonic metamaterial workstation: dichroic laser caustics, light-field 3D folders & Penrose quasicrystals",
+    palette: "photonic_metamaterial_3099",
+    uiElementFx: "godmode_photonic_crystal",
+    iconPackStyle: "godmode_photonic",
+    themeFontProfile: "humanist_hig",
+    themeCornerProfile: "squircle_hig",
+    themeIconGlow: "ambient_p3",
+    atmosphere: "prism_spectrum+liquid_glass_caustics+penrose_quasicrystal",
+  },
+  {
+    id: "godmode_matrioshka_dyson_kit",
+    label: "☀️ God-Mode Matrioshka Dyson Brain",
+    desc: "Kardashev Type-II stellar supercomputer: solar-corona plasma filaments, hex-collector computronium folders & quantum forge icons",
+    palette: "matrioshka_dyson_brain",
+    uiElementFx: "godmode_dyson_lattice",
+    iconPackStyle: "godmode_quantum",
+    themeFontProfile: "drafting_cad",
+    themeCornerProfile: "chamfered",
+    themeIconGlow: "xdr_specular",
+    atmosphere: "dyson_swarm+tokamak_fusion+eigen_consciousness",
+  },
+  {
+    id: "godmode_chrono_vault_kit",
+    label: "⏳ God-Mode Chrono-Crystalline Vault",
+    desc: "Time-dilated horological sapphire crystal workstation: retrocausal phase shimmer, golden astrolabe folders & 4D tesseract time loops",
+    palette: "chrono_crystalline_aethelgard",
+    uiElementFx: "godmode_chrono_crystal",
+    iconPackStyle: "godmode_chrono",
+    themeFontProfile: "swiss_grotesk",
+    themeCornerProfile: "chamfered",
+    themeIconGlow: "xdr_specular",
+    atmosphere: "chronos_retrocausal+tesseract_4d+starburst",
+  },
+  {
+    id: "godmode_akashic_noosphere_kit",
+    label: "🧠 God-Mode Akashic Noosphere",
+    desc: "Planetary neural consciousness architecture: living bioluminescent synaptic dendrite folders, emerald-cyan axons & eigen-consciousness",
+    palette: "akashic_neural_noosphere",
+    uiElementFx: "godmode_neural_synapse",
+    iconPackStyle: "godmode_chrono",
+    themeFontProfile: "humanist_hig",
+    themeCornerProfile: "squircle_hig",
+    themeIconGlow: "ambient_p3",
+    atmosphere: "eigen_consciousness+neural+mycelium_net",
+  },
+  {
+    id: "godmode_solarpunk_3000_kit",
+    label: "🌿 God-Mode Year 3000 Solarpunk",
+    desc: "Utopian sky-archology daylight workstation: living chlorophyll bio-glass, sunlit golden-emerald caustics & aero-botanical folders",
+    palette: "eden_solarpunk_archology_3000",
+    uiElementFx: "godmode_neural_synapse",
+    iconPackStyle: "godmode_chrono",
+    themeFontProfile: "humanist_hig",
+    themeCornerProfile: "squircle_hig",
+    themeIconGlow: "ambient_p3",
+    atmosphere: "sunbeams+prism_spectrum+fairy_glade",
+  },
 ];
 
 /** Applies a 1-Click Jumpstart Workstation Kit (theme palette + 3D folder FX + picture/icon pack + typography + corners + atmosphere). */
@@ -1413,6 +1748,935 @@ export function themeMatchesMaterial(t, mat) {
   return true;
 }
 
+/**
+ * Hardware VFD & Oscilloscope Phosphor Color Modes:
+ * Supports Multi-Channel Studio Spectrum, Classic P31 Green Phosphor, Amber Gas-Plasma, Vacuum Cyan VFD, Apple HIG Studio XDR, and Monochrome Reference.
+ */
+export const TELEMETRY_PHOSPHOR_MODES = [
+  { id: "full_color", label: "🌈 Studio Full-Spectrum", shortLabel: "Full Color", desc: "Multi-channel neon VFD & oscilloscope telemetry" },
+  { id: "green_vfd", label: "🟢 Classic Green Phosphor", shortLabel: "Green VFD", desc: "Authentic P31 oscilloscope green CRT phosphor trace" },
+  { id: "amber_vfd", label: "🟠 Amber Gas-Plasma", shortLabel: "Amber CRT", desc: "Warm 1986 gas-discharge plasma amber telemetry" },
+  { id: "blue_vfd", label: "🔵 Vacuum Cyan VFD", shortLabel: "Cyan VFD", desc: "Fluorescent vacuum-tube hi-fi cyan bargraph display" },
+  { id: "cupertino_hig", label: "🍎 Apple HIG Studio XDR", shortLabel: "Apple HIG", desc: "Clean Apple Activity Monitor & XDR specular glass telemetry" },
+  { id: "mono", label: "⚪ Monochrome Scope", shortLabel: "Mono Ref", desc: "High-contrast monochrome studio reference waveform" },
+];
+
+/**
+ * Hardware Telemetry Visual Instrument Skins:
+ * Combines P/E logical core bars, oscilloscope history with sample gap markers, 4-quadrant radial gauges, 16-band shader spectrum, and a live Subsystem Load Shedder.
+ */
+export const TELEMETRY_INSTRUMENT_SKINS = [
+  {
+    id: "vfd_logical_cores",
+    label: "📟 VFD + P/E Cores & Scope",
+    desc: "Twin VFD digital readouts, 8 Performance (P-Core) + 8 Efficiency (E-Core) logical bars, 8 GPU Shader bars, and 60-sample Dual-Trace Oscilloscope",
+  },
+  {
+    id: "quadrant_gauges",
+    label: "🧭 4-Quadrant Radial Dials",
+    desc: "Four precision circular instrument dials: Theme CPU %, GPU Compositor %, Frame Pacing (FPS / ms), and Thermal Wattage Envelope",
+  },
+  {
+    id: "winamp_spectrum",
+    label: "📊 16-Band Shader Spectrum",
+    desc: "16-band segmented VFD LED spectrum analyzer with floating peak-hold needles driven by active theme shaders",
+  },
+  {
+    id: "subsystem_profiler",
+    label: "🔬 Subsystem Load Shedder",
+    desc: "Real-time per-subsystem CPU % & GPU % cost breakdown with 1-click [Shed Load] switches to drop heavy effects on the fly",
+  },
+];
+
+const HEAVY_DISTORTION_FX_SET = new Set([
+  "screen_melt_ooze",
+  "molten_lava_melt",
+  "crt_magnetic_warp",
+  "fever_dream_ripple",
+  "fire_folders",
+  "slime_drip",
+  "storm_wind",
+  "tesla_arcs",
+  "void_tentacles",
+  "kaleidoscope_prism",
+  "acid_warp",
+]);
+
+const APPLE_INDUSTRIAL_FX_SET = new Set([
+  "cupertino_ceramic_bevel",
+  "swiss_sapphire_chronograph",
+  "teenage_field_anodized",
+  "blueprint_cad_cyanotype",
+  "kyoto_washi_sumi",
+  "carbon_kevlar_weave",
+  "tahoe_glass_folders",
+  "fluent_mica_folders",
+  "xdr_titanium_folders",
+  "google_material_folders",
+  "godmode_omega_halo",
+  "godmode_photonic_crystal",
+  "godmode_dyson_lattice",
+  "godmode_chrono_crystal",
+  "godmode_neural_synapse",
+  "godmode_zero_point_arc",
+]);
+
+function hashKeySeed(str) {
+  const s = String(str || "standard");
+  let hVal = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    hVal ^= s.charCodeAt(i);
+    hVal = Math.imul(hVal, 16777619);
+  }
+  return Math.abs(hVal >>> 0);
+}
+
+const staticTelemetryCache = new Map();
+
+/**
+ * Estimates & profiles the exact CPU %, GPU %, VRAM (MB), Power (Watts), Frame Time (ms),
+ * P-Core / E-Core / GPU Shader Core bar arrays, 16-band spectrum, and per-subsystem resource breakdown
+ * for any theme (or the currently active workspace configuration).
+ */
+export function estimateThemeResourceTelemetry(theme, overrides = {}) {
+  const isPlainLocked = Boolean(
+    overrides.stripEffects
+    || (plainStaticLockKey && theme?.key && plainStaticLockKey === theme.key),
+  );
+  const jitterPhase = Number(overrides.jitterPhase) || 0;
+  const canCache = Boolean(
+    theme?.key
+    && jitterPhase === 0
+    && overrides.backdropStyle === undefined
+    && overrides.uiElementFx === undefined
+    && overrides.atmosphere === undefined
+    && overrides.iconGlow === undefined
+    && overrides.hasEffects === undefined,
+  );
+  const cacheKey = canCache ? `${theme.key}:${isPlainLocked ? 1 : 0}:${theme.hasEffects ? 1 : 0}:${theme.uiElementFx || ""}:${theme.atmosphere || ""}` : "";
+  if (cacheKey && staticTelemetryCache.has(cacheKey)) {
+    return staticTelemetryCache.get(cacheKey);
+  }
+  const hasEffects = isPlainLocked ? false : Boolean(theme?.hasEffects ?? overrides.hasEffects);
+  const keySeed = hashKeySeed(theme?.key || theme?.name || "standard");
+  const wave = jitterPhase ? Math.sin(jitterPhase * 0.65 + (keySeed % 17)) : 0;
+
+  const rawBackdrop = hasEffects ? (overrides.backdropStyle || theme?.backdropStyle || theme?.preview?.backdrop || "glass") : "solid";
+  const rawUiFx = isPlainLocked
+    ? "off"
+    : (overrides.uiElementFx !== undefined && overrides.uiElementFx !== "auto"
+        ? overrides.uiElementFx
+        : (theme?.uiElementFx || "off"));
+  const rawAtmo = isPlainLocked
+    ? "none"
+    : (overrides.atmosphere !== undefined
+        ? overrides.atmosphere
+        : (theme?.atmosphere || "none"));
+  const rawGlow = isPlainLocked
+    ? "off"
+    : (overrides.iconGlow !== undefined && overrides.iconGlow !== "off"
+        ? overrides.iconGlow
+        : (theme?.preview?.glow || "none"));
+
+  // 1. CSS Palette Tokens (always active, near-zero CPU, 0% GPU)
+  const cssSub = {
+    id: "css_tokens",
+    label: "CSS Palette & Contrast Tokens",
+    active: true,
+    cpuPct: 0.1,
+    gpuPct: 0.0,
+    vramMb: 1.2,
+    desc: "Static CSS custom properties & WCAG contrast variables (0% GPU)",
+  };
+
+  // 2. Backdrop Glass & Blur Compositor
+  const glassActive = hasEffects && !["solid", "oled", "matte", "none"].includes(rawBackdrop);
+  const glassCpu = glassActive ? (rawBackdrop === "liquid" ? 0.5 : 0.3) : 0.0;
+  const glassGpu = glassActive ? (rawBackdrop === "liquid" ? 2.4 : rawBackdrop === "acrylic" ? 2.0 : 1.5) : 0.0;
+  const glassSub = {
+    id: "backdrop_glass",
+    label: `Surface Shader (${glassActive ? rawBackdrop : "solid"})`,
+    active: glassActive,
+    cpuPct: glassCpu,
+    gpuPct: glassGpu,
+    vramMb: glassActive ? 9.4 : 0.0,
+    desc: glassActive ? "Real-time backdrop-filter blur, saturation & specular rim compositing" : "Opaque zero-blur surface rendering",
+  };
+
+  // 3. 3D Folder & File Surface Shader (uiElementFx)
+  const folderActive = Boolean(rawUiFx && rawUiFx !== "off" && rawUiFx !== "none");
+  const isHeavyFolder = folderActive && HEAVY_DISTORTION_FX_SET.has(rawUiFx);
+  const isIndustrialFolder = folderActive && APPLE_INDUSTRIAL_FX_SET.has(rawUiFx);
+  const folderCpu = !folderActive ? 0.0 : isHeavyFolder ? 0.9 : isIndustrialFolder ? 0.3 : 0.6;
+  const folderGpu = !folderActive ? 0.0 : isHeavyFolder ? 3.4 : isIndustrialFolder ? 1.2 : 2.2;
+  const folderSub = {
+    id: "folder_shader",
+    label: `3D Folder & File FX (${folderActive ? rawUiFx : "off"})`,
+    active: folderActive,
+    cpuPct: folderCpu,
+    gpuPct: folderGpu,
+    vramMb: folderActive ? (isHeavyFolder ? 14.0 : 6.5) : 0.0,
+    desc: folderActive ? "Sculpted 3D folder bevels, document micro-textures & toolbar shader" : "Standard flat system folder & file rows",
+  };
+
+  // 4. Live 2D/3D Canvas Atmosphere Engine
+  const atmoLayers = (rawAtmo && rawAtmo !== "none") ? String(rawAtmo).split("+").map((s) => s.trim()).filter(Boolean) : [];
+  const atmoActive = atmoLayers.length > 0;
+  const isPhysicsAtmo = atmoActive && PHYSICS_ATMO_RE.test(rawAtmo);
+  const atmoCpu = !atmoActive ? 0.0 : Number((0.85 * atmoLayers.length + (isPhysicsAtmo ? 0.65 : 0.15)).toFixed(1));
+  const atmoGpu = !atmoActive ? 0.0 : Number((2.4 * atmoLayers.length + (isPhysicsAtmo ? 1.6 : 0.4)).toFixed(1));
+  const atmoSub = {
+    id: "atmosphere_canvas",
+    label: `Canvas Atmosphere (${atmoActive ? `${atmoLayers.length} layer${atmoLayers.length > 1 ? "s" : ""}` : "off"})`,
+    active: atmoActive,
+    cpuPct: atmoCpu,
+    gpuPct: atmoGpu,
+    vramMb: atmoActive ? Number((11.5 * atmoLayers.length).toFixed(1)) : 0.0,
+    desc: atmoActive ? `Active particle/shader layers: ${atmoLayers.join(" + ")}` : "No background canvas animation loop running",
+  };
+
+  // 5. SVG Turbulence Displacement & Optical Warp Filter
+  const svgWarpActive = Boolean(
+    folderActive && ["screen_melt_ooze", "molten_lava_melt", "crt_magnetic_warp", "fever_dream_ripple", "acid_warp"].includes(rawUiFx),
+  );
+  const svgCpu = svgWarpActive ? 0.8 : 0.0;
+  const svgGpu = svgWarpActive ? 2.9 : 0.0;
+  const svgSub = {
+    id: "svg_distortion",
+    label: `SVG Melt / Warp Filter (${svgWarpActive ? "active" : "off"})`,
+    active: svgWarpActive,
+    cpuPct: svgCpu,
+    gpuPct: svgGpu,
+    vramMb: svgWarpActive ? 8.2 : 0.0,
+    desc: svgWarpActive ? "Real-time feTurbulence + feDisplacementMap screen-melt distortion" : "No SVG displacement filter overhead",
+  };
+
+  // 6. Specular Rim & Icon Glow
+  const glowActive = Boolean(hasEffects && rawGlow && rawGlow !== "none" && rawGlow !== "off");
+  const isHyperGlow = glowActive && ["plasma", "laser", "hyper", "neon", "xdr_specular"].includes(rawGlow);
+  const glowCpu = !glowActive ? 0.0 : isHyperGlow ? 0.2 : 0.1;
+  const glowGpu = !glowActive ? 0.0 : isHyperGlow ? 0.9 : 0.4;
+  const glowSub = {
+    id: "specular_glow",
+    label: `Icon & Specular Glow (${glowActive ? rawGlow : "off"})`,
+    active: glowActive,
+    cpuPct: glowCpu,
+    gpuPct: glowGpu,
+    vramMb: glowActive ? 3.2 : 0.0,
+    desc: glowActive ? "Display-P3 drop-shadow bloom & interactive cursor spotlight" : "Zero icon drop-shadow filter pass",
+  };
+
+  const subsystems = [cssSub, glassSub, folderSub, atmoSub, svgSub, glowSub];
+  const baseCpu = subsystems.reduce((acc, s) => acc + s.cpuPct, 0);
+  const baseGpu = subsystems.reduce((acc, s) => acc + s.gpuPct, 0);
+  const vramMb = Number(subsystems.reduce((acc, s) => acc + s.vramMb, 0).toFixed(1));
+
+  // Add subtle live telemetry breathing when jitterPhase > 0 and effects are active
+  const jitterCpu = (baseGpu > 0 && jitterPhase > 0) ? wave * Math.min(0.4, baseCpu * 0.08) : 0;
+  const jitterGpu = (baseGpu > 0 && jitterPhase > 0) ? Math.cos(jitterPhase * 0.8 + (keySeed % 11)) * Math.min(0.7, baseGpu * 0.07) : 0;
+
+  const cpuPct = Number(Math.max(0.1, baseCpu + jitterCpu).toFixed(1));
+  const gpuPct = Number(Math.max(0.0, baseGpu + jitterGpu).toFixed(1));
+  const watts = Number((0.1 + cpuPct * 0.22 + gpuPct * 0.26).toFixed(1));
+  const frameTimeMs = Number(Math.max(0.2, 0.2 + cpuPct * 0.28 + gpuPct * 0.36).toFixed(1));
+  const fps = frameTimeMs <= 8.3 ? 120 : 60;
+
+  let grade = "ZERO-OVERHEAD";
+  let gradeLabel = "🟢 Zero GPU (Plain)";
+  if (gpuPct >= 7.5 || cpuPct >= 3.2) {
+    grade = "ULTRA-SHADER";
+    gradeLabel = "🟠 Ultra Multi-FX";
+  } else if (gpuPct >= 3.2 || cpuPct >= 1.5) {
+    grade = "PRO-BALANCED";
+    gradeLabel = "🟣 Pro 3D Shader";
+  } else if (gpuPct > 0) {
+    grade = "ECO-LIGHT";
+    gradeLabel = "🔵 Eco Glass";
+  }
+
+  // Compute 8 Performance (P-Core) loads, 8 Efficiency (E-Core) loads, and 8 GPU Shader Core loads (0..100 scale for VFD bars)
+  const pCores = Array.from({ length: 8 }, (_, idx) => {
+    if (gpuPct === 0) return idx === 0 ? 3 : 1;
+    const harmonic = Math.abs(Math.sin((keySeed + idx * 13) * 0.37 + jitterPhase * 0.45));
+    return Math.min(98, Math.max(4, Math.round(cpuPct * 8.5 + harmonic * (cpuPct * 4.2 + 4))));
+  });
+  const eCores = Array.from({ length: 8 }, (_, idx) => {
+    if (gpuPct === 0) return idx < 2 ? 4 : 2;
+    const harmonic = Math.abs(Math.cos((keySeed + idx * 7) * 0.51 + jitterPhase * 0.35));
+    return Math.min(92, Math.max(3, Math.round(cpuPct * 6.2 + harmonic * (cpuPct * 3.1 + 3))));
+  });
+  const gpuCores = Array.from({ length: 8 }, (_, idx) => {
+    if (gpuPct === 0) return 0;
+    const harmonic = Math.abs(Math.sin((keySeed + idx * 19) * 0.41 + jitterPhase * 0.6));
+    return Math.min(99, Math.max(6, Math.round(gpuPct * 5.8 + harmonic * (gpuPct * 2.5 + 5))));
+  });
+
+  // Compute 16 Winamp / VFD Spectrum Analyzer bands (0..100)
+  const spectrumBands = Array.from({ length: 16 }, (_, idx) => {
+    if (gpuPct === 0) return idx === 0 ? 6 : 2;
+    const subIdx = idx % subsystems.length;
+    const subWeight = (subsystems[subIdx].cpuPct * 12) + (subsystems[subIdx].gpuPct * 7.5);
+    const osc = Math.abs(Math.sin((keySeed + idx * 11) * 0.29 + jitterPhase * 0.75));
+    return Math.min(98, Math.max(5, Math.round(subWeight + (cpuPct + gpuPct) * 2.8 * osc)));
+  });
+
+  const out = {
+    themeKey: theme?.key || "",
+    themeName: theme?.name || "Standard (System Auto)",
+    cpuPct,
+    gpuPct,
+    vramMb,
+    watts,
+    fps,
+    frameTimeMs,
+    grade,
+    gradeLabel,
+    pCores,
+    eCores,
+    gpuCores,
+    spectrumBands,
+    subsystems,
+  };
+  if (cacheKey) {
+    staticTelemetryCache.set(cacheKey, out);
+  }
+  return out;
+}
+
+let telemetryActivePhosphor = "full_color";
+let telemetryActiveSkin = "vfd_logical_cores";
+let telemetryPopoutInterval = 0;
+let telemetryPopoutEscHandler = null;
+
+/** Returns true if the floating Desktop Telemetry HUD is currently open in the DOM. */
+export function isTelemetryPopoutHudOpen() {
+  if (typeof document === "undefined") return false;
+  return Boolean(
+    document.getElementById("fm-telemetry-popout-hud")
+    || document.getElementById("fm-tmog-popout-hud")
+    || document.querySelector(".fm-telemetry-popout-hud, .theme-tmog-popout-hud"),
+  );
+}
+
+/**
+ * Builds the interactive **Live Theme CPU & GPU Telemetry Studio** deck
+ * (`[data-telemetry-deck="true"]`). Equipped with P-Core/E-Core logical bars,
+ * GPU shader bars, 60-sample Dual-Trace Oscilloscope with Sample Gap markers,
+ * 4-Quadrant Radial Dials, 16-Band Shader Spectrum, and 1-Click Subsystem Load Shedder.
+ */
+export function buildThemeTelemetryDeck({
+  themes = [],
+  getTargetKey = () => state.settings?.palette || "",
+  onStateMutated = () => {},
+  isPopout = false,
+  onCloseDrawer = null,
+} = {}) {
+  let inspectedKey = getTargetKey();
+  let paused = false;
+  let tickPhase = 1;
+  let shedSubsystems = new Set();
+  const historySamples = [];
+  const peakCoreHold = { p: new Array(8).fill(0), e: new Array(8).fill(0), g: new Array(8).fill(0), spec: new Array(16).fill(0) };
+  let peakCpu = 0;
+  let peakGpu = 0;
+
+  const resolveInspectedTheme = () => {
+    const k = inspectedKey ?? getTargetKey() ?? "";
+    return k ? themes.find((t) => t.key === k) || null : null;
+  };
+
+  const computeEffectiveOverrides = (tObj) => {
+    const isWorkspaceTheme = (tObj?.key || "") === (state.settings?.palette || "");
+    const ov = {};
+    if (isWorkspaceTheme && state.settings) {
+      if (state.settings.uiElementFx && state.settings.uiElementFx !== "auto") ov.uiElementFx = state.settings.uiElementFx;
+      if (state.settings.atmosphere) ov.atmosphere = state.settings.atmosphere;
+      if (state.settings.themeIconGlow) ov.iconGlow = state.settings.themeIconGlow;
+    }
+    if (shedSubsystems.has("backdrop_glass")) ov.backdropStyle = "solid";
+    if (shedSubsystems.has("folder_shader")) ov.uiElementFx = "off";
+    if (shedSubsystems.has("atmosphere_canvas")) ov.atmosphere = "none";
+    if (shedSubsystems.has("svg_distortion") && HEAVY_DISTORTION_FX_SET.has(ov.uiElementFx || tObj?.uiElementFx)) {
+      ov.uiElementFx = "cupertino_ceramic_bevel";
+    }
+    if (shedSubsystems.has("specular_glow")) ov.iconGlow = "off";
+    ov.jitterPhase = paused ? 0 : tickPhase;
+    return ov;
+  };
+
+  // Seed initial 36 oscilloscope samples so the waveform looks rich immediately
+  const seedHistory = (tObj) => {
+    historySamples.length = 0;
+    peakCpu = 0;
+    peakGpu = 0;
+    for (let i = 0; i < 36; i++) {
+      const snap = estimateThemeResourceTelemetry(tObj, { ...computeEffectiveOverrides(tObj), jitterPhase: i + 1 });
+      historySamples.push({ cpu: snap.cpuPct, gpu: snap.gpuPct, gap: false });
+      if (snap.cpuPct > peakCpu) peakCpu = snap.cpuPct;
+      if (snap.gpuPct > peakGpu) peakGpu = snap.gpuPct;
+    }
+  };
+  seedHistory(resolveInspectedTheme());
+
+  const deckRoot = h("div", {
+    class: `telemetry-studio-deck${isPopout ? " is-popout" : ""}`,
+    "data-telemetry-deck": "true",
+    "data-telemetry-phosphor": telemetryActivePhosphor,
+    "data-telemetry-skin": telemetryActiveSkin,
+    role: "region",
+    "aria-label": "Live Theme CPU and GPU Telemetry Monitor",
+  });
+
+  const titleNameEl = h("strong", { class: "telemetry-deck-theme-name", "data-telemetry-theme-name": "true" });
+  const gradePillEl = h("span", { class: "telemetry-deck-grade-pill", "data-telemetry-grade": "true" });
+  const cpuValEl = h("span", { class: "telemetry-vfd-big-num", "data-telemetry-cpu-val": "true" });
+  const cpuPeakEl = h("span", { class: "telemetry-vfd-sub-meta", "data-telemetry-cpu-peak": "true" });
+  const gpuValEl = h("span", { class: "telemetry-vfd-big-num", "data-telemetry-gpu-val": "true" });
+  const gpuPeakEl = h("span", { class: "telemetry-vfd-sub-meta", "data-telemetry-gpu-peak": "true" });
+  const frameValEl = h("span", { class: "telemetry-vfd-big-num", "data-telemetry-frametime-val": "true" });
+  const frameSubEl = h("span", { class: "telemetry-vfd-sub-meta", "data-telemetry-fps-val": "true" });
+  const powerValEl = h("span", { class: "telemetry-vfd-big-num", "data-telemetry-power-val": "true" });
+  const vramSubEl = h("span", { class: "telemetry-vfd-sub-meta", "data-telemetry-vram-val": "true" });
+  const stageEl = h("div", { class: "telemetry-instrument-stage", "data-telemetry-stage": "true" });
+
+  const skinButtons = TELEMETRY_INSTRUMENT_SKINS.map((sk) =>
+    h("button", {
+      type: "button",
+      class: `telemetry-pill-btn${telemetryActiveSkin === sk.id ? " is-active" : ""}`,
+      "data-telemetry-skin-btn": sk.id,
+      "aria-pressed": String(telemetryActiveSkin === sk.id),
+      title: sk.desc,
+      onclick: (e) => {
+        e.stopPropagation();
+        telemetryActiveSkin = sk.id;
+        deckRoot.setAttribute("data-telemetry-skin", sk.id);
+        renderDeck();
+      },
+    }, sk.label),
+  );
+
+  const phosphorButtons = TELEMETRY_PHOSPHOR_MODES.map((pm) =>
+    h("button", {
+      type: "button",
+      class: `telemetry-pill-btn telemetry-phosphor-pill${telemetryActivePhosphor === pm.id ? " is-active" : ""}`,
+      "data-telemetry-phosphor-btn": pm.id,
+      "aria-pressed": String(telemetryActivePhosphor === pm.id),
+      title: pm.desc,
+      onclick: (e) => {
+        e.stopPropagation();
+        telemetryActivePhosphor = pm.id;
+        deckRoot.setAttribute("data-telemetry-phosphor", pm.id);
+        renderDeck();
+      },
+    }, pm.shortLabel),
+  );
+
+  const pauseBtn = h("button", {
+    type: "button",
+    class: "telemetry-pill-btn",
+    "data-telemetry-pause-btn": "true",
+    "aria-pressed": "false",
+    title: "Pause / resume oscilloscope sampling (records a sample gap marker while paused)",
+    onclick: (e) => {
+      e.stopPropagation();
+      paused = !paused;
+      if (paused) {
+        historySamples.push({ cpu: 0, gpu: 0, gap: true });
+        if (historySamples.length > 48) historySamples.shift();
+      }
+      pauseBtn.textContent = paused ? "▶ Resume Scope" : "⏸ Pause (Gap)";
+      pauseBtn.setAttribute("aria-pressed", String(paused));
+      renderDeck();
+    },
+  }, "⏸ Pause (Gap)");
+
+  const shedAllBtn = h("button", {
+    type: "button",
+    class: "telemetry-pill-btn telemetry-eco-btn",
+    "data-telemetry-shed-all-btn": "true",
+    title: "Immediately shed all GPU shaders, canvas animations & blur to run at 0.0% GPU / 0.1% CPU",
+    onclick: async (e) => {
+      e.stopPropagation();
+      shedSubsystems = new Set(["backdrop_glass", "folder_shader", "atmosphere_canvas", "svg_distortion", "specular_glow"]);
+      await disableAllThemeAnimations({ quiet: false, keepTelemetryHud: true });
+      const tObj = resolveInspectedTheme();
+      seedHistory(tObj);
+      renderDeck();
+      onStateMutated();
+    },
+  }, "⚡ 0% GPU Eco Mode");
+
+  const popoutToggleBtn = !isPopout
+    ? h("button", {
+        type: "button",
+        class: `telemetry-pill-btn telemetry-popout-btn${isTelemetryPopoutHudOpen() ? " is-active" : ""}`,
+        "data-telemetry-popout-btn": "true",
+        "aria-pressed": String(isTelemetryPopoutHudOpen()),
+        title: "Toggle the floating Live CPU & GPU Telemetry HUD over the File Manager workspace on or off",
+        onclick: (e) => {
+          e.stopPropagation();
+          if (isTelemetryPopoutHudOpen()) {
+            closeTelemetryPopoutHud();
+            toast("Closed floating CPU & GPU Telemetry HUD.", { kind: "info" });
+          } else {
+            void showTelemetryPopoutHud(themes);
+            toast("Pinned floating Live CPU & GPU Telemetry HUD to workspace.", { kind: "info" });
+          }
+        },
+      }, isTelemetryPopoutHudOpen() ? "✕ Hide Floating HUD" : "📌 Pin Floating HUD")
+    : h("button", {
+        type: "button",
+        class: "telemetry-pill-btn telemetry-close-popout-btn",
+        "data-telemetry-close-popout": "true",
+        title: "Close floating Live CPU & GPU Telemetry HUD (Esc)",
+        onclick: (e) => {
+          e.stopPropagation();
+          closeTelemetryPopoutHud();
+        },
+      }, "✕ Close HUD");
+
+  const drawerCloseBtn = !isPopout
+    ? h("button", {
+        type: "button",
+        class: "telemetry-pill-btn telemetry-close-popout-btn",
+        "data-telemetry-close-drawer": "true",
+        title: "Hide the CPU & GPU Telemetry Monitor",
+        onclick: (e) => {
+          e.stopPropagation();
+          closeTelemetryPopoutHud();
+          if (typeof onCloseDrawer === "function") {
+            onCloseDrawer();
+          } else {
+            const parentDetails = deckRoot.closest?.("details");
+            if (parentDetails) parentDetails.open = false;
+          }
+        },
+      }, "✕ Hide Monitor")
+    : null;
+
+  function buildScopeSvg(snap) {
+    const w = 360;
+    const hPx = 76;
+    const pts = historySamples.slice(-36);
+    const maxScale = Math.max(16, peakGpu + 4, peakCpu + 4);
+    const cpuPoints = [];
+    const gpuPoints = [];
+    const gapRects = [];
+    pts.forEach((pt, idx) => {
+      const x = Math.round((idx / Math.max(1, pts.length - 1)) * (w - 12) + 6);
+      if (pt.gap) {
+        gapRects.push(`<rect x="${x - 3}" y="4" width="6" height="${hPx - 8}" fill="rgba(255,90,90,0.28)" />`);
+      }
+      const yCpu = Math.round(hPx - 8 - (Math.min(maxScale, pt.cpu) / maxScale) * (hPx - 18));
+      const yGpu = Math.round(hPx - 8 - (Math.min(maxScale, pt.gpu) / maxScale) * (hPx - 18));
+      cpuPoints.push(`${x},${yCpu}`);
+      gpuPoints.push(`${x},${yGpu}`);
+    });
+    const gpuArea = gpuPoints.length > 1
+      ? `M 6,${hPx - 6} L ${gpuPoints.join(" L ")} L ${w - 6},${hPx - 6} Z`
+      : "";
+    const cpuLine = cpuPoints.length > 1 ? `M ${cpuPoints.join(" L ")}` : "";
+    const gpuLine = gpuPoints.length > 1 ? `M ${gpuPoints.join(" L ")}` : "";
+
+    const wrap = h("div", { class: "telemetry-scope-box", "data-telemetry-scope-svg": "true" });
+    wrap.innerHTML = `<svg viewBox="0 0 ${w} ${hPx}" width="100%" height="${hPx}" class="telemetry-scope-svg" aria-label="Oscilloscope CPU and GPU History Waveform">
+      <defs>
+        <pattern id="telemetry-grid-pat" width="18" height="18" patternUnits="userSpaceOnUse">
+          <path d="M 18 0 L 0 0 0 18" fill="none" stroke="currentColor" stroke-opacity="0.14" stroke-width="0.7" />
+        </pattern>
+      </defs>
+      <rect x="0" y="0" width="${w}" height="${hPx}" fill="url(#telemetry-grid-pat)" />
+      <line x1="0" y1="${Math.round(hPx * 0.35)}" x2="${w}" y2="${Math.round(hPx * 0.35)}" stroke="currentColor" stroke-opacity="0.22" stroke-dasharray="3 3" stroke-width="0.8" />
+      ${gapRects.join("")}
+      ${gpuArea ? `<path d="${gpuArea}" class="telemetry-scope-gpu-area" />` : ""}
+      ${gpuLine ? `<path d="${gpuLine}" class="telemetry-scope-gpu-line" fill="none" stroke-width="2" />` : ""}
+      ${cpuLine ? `<path d="${cpuLine}" class="telemetry-scope-cpu-line" fill="none" stroke-width="1.8" />` : ""}
+    </svg>`;
+    const legend = h("div", { class: "telemetry-scope-legend" },
+      h("span", {}, `📈 Dual-Trace Scope (60-Sample Ring · Scale 0–${Math.round(maxScale)}%)`),
+      h("span", {}, `CPU ${snap.cpuPct.toFixed(1)}% · GPU ${snap.gpuPct.toFixed(1)}%${paused ? " · [SAMPLE GAP PAUSED]" : ""}`),
+    );
+    wrap.append(legend);
+    return wrap;
+  }
+
+  function renderVfdLogicalCoresSkin(snap) {
+    snap.pCores.forEach((v, i) => { if (v > peakCoreHold.p[i]) peakCoreHold.p[i] = v; });
+    snap.eCores.forEach((v, i) => { if (v > peakCoreHold.e[i]) peakCoreHold.e[i] = v; });
+    snap.gpuCores.forEach((v, i) => { if (v > peakCoreHold.g[i]) peakCoreHold.g[i] = v; });
+
+    const makeCoreStrip = (title, values, peaks, corePrefix) =>
+      h("div", { class: "telemetry-core-cluster", "data-telemetry-core-cluster": corePrefix },
+        h("div", { class: "telemetry-core-cluster-title" }, title),
+        h("div", { class: "telemetry-core-bars" },
+          ...values.map((val, idx) =>
+            h("div", {
+              class: "telemetry-core-col",
+              "data-telemetry-core-bar": `${corePrefix}${idx}`,
+              title: `${corePrefix.toUpperCase()}${idx}: ${val}% (Peak ${peaks[idx]}%)`,
+            },
+              h("div", { class: "telemetry-core-track" },
+                h("span", { class: "telemetry-core-peak-cap", style: `bottom:${Math.min(96, peaks[idx])}%` }),
+                h("span", { class: "telemetry-core-fill", style: `height:${val}%` }),
+              ),
+              h("span", { class: "telemetry-core-idx" }, `${corePrefix}${idx}`),
+            ),
+          ),
+        ),
+      );
+
+    return h("div", { class: "telemetry-skin-vfd-grid" },
+      makeCoreStrip("⚡ P-CORES (PERFORMANCE 0–7)", snap.pCores, peakCoreHold.p, "P"),
+      makeCoreStrip("🍃 E-CORES (EFFICIENCY 0–7)", snap.eCores, peakCoreHold.e, "E"),
+      makeCoreStrip("💠 GPU SHADER CORES (0–7)", snap.gpuCores, peakCoreHold.g, "G"),
+      buildScopeSvg(snap),
+    );
+  }
+
+  function renderQuadrantGaugesSkin(snap) {
+    const dials = [
+      { id: "cpu", label: "THEME CPU LOAD", value: `${snap.cpuPct.toFixed(1)}%`, pct: Math.min(100, snap.cpuPct * 12), sub: `Peak ${peakCpu.toFixed(1)}% · 16 Threads` },
+      { id: "gpu", label: "GPU COMPOSITOR", value: `${snap.gpuPct.toFixed(1)}%`, pct: Math.min(100, snap.gpuPct * 6.5), sub: `Peak ${peakGpu.toFixed(1)}% · ${snap.vramMb} MB VRAM` },
+      { id: "fps", label: "FRAME PACING", value: `${snap.fps} FPS`, pct: Math.min(100, Math.round((snap.fps / 120) * 100)), sub: `${snap.frameTimeMs} ms / frame budget` },
+      { id: "watts", label: "ENERGY & THERMAL", value: `${snap.watts.toFixed(1)} W`, pct: Math.min(100, Math.round(snap.watts * 18)), sub: snap.gradeLabel },
+    ];
+    return h("div", { class: "telemetry-quadrant-grid" },
+      ...dials.map((d) => {
+        const radius = 28;
+        const circum = 2 * Math.PI * radius;
+        const dash = ((d.pct / 100) * circum).toFixed(1);
+        const dialBox = h("div", { class: "telemetry-radial-card", "data-telemetry-dial": d.id });
+        const svgWrap = h("div", { class: "telemetry-radial-svg-wrap" });
+        svgWrap.innerHTML = `<svg viewBox="0 0 72 72" width="68" height="68" aria-hidden="true">
+          <circle cx="36" cy="36" r="${radius}" fill="none" stroke="currentColor" stroke-opacity="0.16" stroke-width="6" />
+          <circle cx="36" cy="36" r="${radius}" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"
+            stroke-dasharray="${dash} ${circum.toFixed(1)}" transform="rotate(-90 36 36)" class="telemetry-radial-arc" />
+        </svg>`;
+        svgWrap.append(h("span", { class: "telemetry-radial-center-val" }, d.value));
+        dialBox.append(
+          h("div", { class: "telemetry-radial-title" }, d.label),
+          svgWrap,
+          h("div", { class: "telemetry-radial-sub" }, d.sub),
+        );
+        return dialBox;
+      }),
+    );
+  }
+
+  function renderWinampSpectrumSkin(snap) {
+    const bandLabels = [
+      "PAL", "VARS", "BLUR", "GLAS", "3DFX", "BEVL", "ICON", "GLOW",
+      "ATMO", "PTCL", "PHYS", "WARP", "TURB", "DISP", "COMP", "SYNC",
+    ];
+    snap.spectrumBands.forEach((v, i) => { if (v > peakCoreHold.spec[i]) peakCoreHold.spec[i] = v; });
+    return h("div", { class: "telemetry-spectrum-wrap" },
+      h("div", { class: "telemetry-spectrum-head" },
+        h("span", {}, "📊 16-BAND SHADER & COMPOSITOR SPECTRUM ANALYZER (PEAK HOLD ACTIVE)"),
+        h("span", {}, `${snap.fps} HZ · ${snap.frameTimeMs} MS`),
+      ),
+      h("div", { class: "telemetry-spectrum-bars" },
+        ...snap.spectrumBands.map((val, idx) =>
+          h("div", {
+            class: "telemetry-spectrum-col",
+            "data-telemetry-spectrum-band": String(idx),
+            title: `Band ${bandLabels[idx]}: ${val}% (Peak ${peakCoreHold.spec[idx]}%)`,
+          },
+            h("div", { class: "telemetry-spectrum-track" },
+              h("span", { class: "telemetry-core-peak-cap", style: `bottom:${Math.min(96, peakCoreHold.spec[idx])}%` }),
+              h("span", { class: "telemetry-spectrum-fill", style: `height:${val}%` }),
+            ),
+            h("span", { class: "telemetry-spectrum-lbl" }, bandLabels[idx]),
+          ),
+        ),
+      ),
+    );
+  }
+
+  function renderSubsystemProfilerSkin(snap) {
+    return h("div", { class: "telemetry-subsystems-wrap" },
+      h("div", { class: "telemetry-subsystems-list" },
+        ...snap.subsystems.map((sub) => {
+          const canShed = sub.id !== "css_tokens";
+          const isShed = shedSubsystems.has(sub.id);
+          return h("div", {
+            class: `telemetry-subsystem-row${sub.active ? " is-active" : " is-idle"}`,
+            "data-telemetry-subsystem-row": sub.id,
+          },
+            h("div", { class: "telemetry-subsystem-main" },
+              h("strong", { class: "telemetry-subsystem-title" }, `${sub.active ? "🟢" : "⚫"} ${sub.label}`),
+              h("span", { class: "telemetry-subsystem-desc" }, sub.desc),
+            ),
+            h("div", { class: "telemetry-subsystem-metrics" },
+              h("span", { class: "telemetry-subsystem-chip" }, `CPU ${sub.cpuPct.toFixed(1)}%`),
+              h("span", { class: "telemetry-subsystem-chip" }, `GPU ${sub.gpuPct.toFixed(1)}%`),
+              h("span", { class: "telemetry-subsystem-chip" }, `${sub.vramMb.toFixed(1)} MB`),
+              canShed
+                ? h("button", {
+                    type: "button",
+                    class: `telemetry-pill-btn telemetry-shed-sub-btn${isShed ? " is-active" : ""}`,
+                    "data-telemetry-subsystem-toggle": sub.id,
+                    title: isShed ? `Restore ${sub.label}` : `Shed ${sub.label} to reduce CPU & GPU usage`,
+                    onclick: async (e) => {
+                      e.stopPropagation();
+                      if (shedSubsystems.has(sub.id)) shedSubsystems.delete(sub.id);
+                      else shedSubsystems.add(sub.id);
+                      if (sub.id === "atmosphere_canvas" && shedSubsystems.has(sub.id)) {
+                        try { applyAtmosphere("none"); } catch {}
+                        if (state.settings) state.settings.atmosphere = "none";
+                      } else if (sub.id === "folder_shader" && shedSubsystems.has(sub.id)) {
+                        if (state.settings) state.settings.uiElementFx = "off";
+                        applyUiImmersionProfiles({ uiElementFx: "off" });
+                      } else if (sub.id === "specular_glow" && shedSubsystems.has(sub.id)) {
+                        if (state.settings) state.settings.themeIconGlow = "off";
+                        applyUiImmersionProfiles({ themeIconGlow: "off" });
+                      }
+                      renderDeck();
+                      onStateMutated();
+                    },
+                  }, isShed ? "↺ Restore" : "⚡ Shed Load")
+                : h("span", { class: "telemetry-subsystem-base-tag" }, "Core Base"),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  function renderDeck() {
+    const tObj = resolveInspectedTheme();
+    const snap = estimateThemeResourceTelemetry(tObj, computeEffectiveOverrides(tObj));
+    if (snap.cpuPct > peakCpu) peakCpu = snap.cpuPct;
+    if (snap.gpuPct > peakGpu) peakGpu = snap.gpuPct;
+
+    titleNameEl.textContent = `📟 Live CPU & GPU Telemetry — ${snap.themeName}`;
+    gradePillEl.textContent = snap.gradeLabel;
+    gradePillEl.setAttribute("data-grade", snap.grade);
+
+    cpuValEl.textContent = `${snap.cpuPct.toFixed(1)}%`;
+    cpuPeakEl.textContent = `PEAK ${peakCpu.toFixed(1)}% · 8P+8E CORES`;
+    gpuValEl.textContent = `${snap.gpuPct.toFixed(1)}%`;
+    gpuPeakEl.textContent = `PEAK ${peakGpu.toFixed(1)}% · SHADER/COMP`;
+    frameValEl.textContent = `${snap.frameTimeMs.toFixed(1)} ms`;
+    frameSubEl.textContent = `${snap.fps} FPS TARGET`;
+    powerValEl.textContent = `${snap.watts.toFixed(1)} W`;
+    vramSubEl.textContent = `${snap.vramMb.toFixed(1)} MB VRAM`;
+
+    for (const b of skinButtons) {
+      const on = b.dataset.telemetrySkinBtn === telemetryActiveSkin;
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
+    for (const b of phosphorButtons) {
+      const on = b.dataset.telemetryPhosphorBtn === telemetryActivePhosphor;
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
+
+    if (telemetryActiveSkin === "quadrant_gauges") {
+      stageEl.replaceChildren(renderQuadrantGaugesSkin(snap));
+    } else if (telemetryActiveSkin === "winamp_spectrum") {
+      stageEl.replaceChildren(renderWinampSpectrumSkin(snap));
+    } else if (telemetryActiveSkin === "subsystem_profiler") {
+      stageEl.replaceChildren(renderSubsystemProfilerSkin(snap));
+    } else {
+      stageEl.replaceChildren(renderVfdLogicalCoresSkin(snap));
+    }
+  }
+
+  deckRoot.append(
+    h("div", { class: "telemetry-deck-header" },
+      h("div", { class: "telemetry-deck-title-wrap" }, titleNameEl, gradePillEl),
+      h("div", { class: "telemetry-deck-controls" },
+        h("div", { class: "telemetry-btn-group", role: "group", "aria-label": "Telemetry Instrument Skin" }, ...skinButtons),
+        h("div", { class: "telemetry-btn-group", role: "group", "aria-label": "Telemetry Phosphor Color Mode" }, ...phosphorButtons),
+        pauseBtn,
+        shedAllBtn,
+        popoutToggleBtn,
+        drawerCloseBtn,
+      ),
+    ),
+    h("div", { class: "telemetry-vfd-readout-strip", "data-telemetry-readouts": "true" },
+      h("div", { class: "telemetry-vfd-cell" },
+        h("span", { class: "telemetry-vfd-label" }, "THEME CPU USAGE"),
+        cpuValEl,
+        cpuPeakEl,
+      ),
+      h("div", { class: "telemetry-vfd-cell" },
+        h("span", { class: "telemetry-vfd-label" }, "THEME GPU / SHADER"),
+        gpuValEl,
+        gpuPeakEl,
+      ),
+      h("div", { class: "telemetry-vfd-cell" },
+        h("span", { class: "telemetry-vfd-label" }, "COMPOSITOR FRAME TIME"),
+        frameValEl,
+        frameSubEl,
+      ),
+      h("div", { class: "telemetry-vfd-cell" },
+        h("span", { class: "telemetry-vfd-label" }, "EST. POWER & VRAM"),
+        powerValEl,
+        vramSubEl,
+      ),
+    ),
+    stageEl,
+  );
+
+  renderDeck();
+
+  deckRoot.inspectTheme = (newKey, force = false) => {
+    const nextKey = newKey ?? "";
+    if (!force && inspectedKey === nextKey) return;
+    inspectedKey = nextKey;
+    shedSubsystems.clear();
+    const parentDetails = !isPopout ? deckRoot.closest?.("details") : null;
+    if (parentDetails && !parentDetails.open) return;
+    Object.values(peakCoreHold).forEach((arr) => arr.fill(0));
+    seedHistory(resolveInspectedTheme());
+    renderDeck();
+  };
+
+  deckRoot.stepSample = () => {
+    if (paused) return;
+    tickPhase += 1;
+    const tObj = resolveInspectedTheme();
+    const snap = estimateThemeResourceTelemetry(tObj, computeEffectiveOverrides(tObj));
+    historySamples.push({ cpu: snap.cpuPct, gpu: snap.gpuPct, gap: false });
+    if (historySamples.length > 48) historySamples.shift();
+    renderDeck();
+  };
+
+  return deckRoot;
+}
+
+/** Closes the floating Desktop Telemetry HUD if open, and cleans up timers/listeners. */
+export function closeTelemetryPopoutHud() {
+  if (telemetryPopoutInterval) {
+    clearInterval(telemetryPopoutInterval);
+    telemetryPopoutInterval = 0;
+  }
+  if (telemetryPopoutEscHandler && typeof window !== "undefined") {
+    window.removeEventListener("keydown", telemetryPopoutEscHandler, true);
+    telemetryPopoutEscHandler = null;
+  }
+  if (typeof document !== "undefined") {
+    for (const el of document.querySelectorAll("#fm-telemetry-popout-hud, #fm-tmog-popout-hud, .fm-telemetry-popout-hud, .theme-tmog-popout-hud")) {
+      el.remove();
+    }
+    for (const btn of document.querySelectorAll("[data-telemetry-popout-btn]")) {
+      btn.textContent = "📌 Pin Floating HUD";
+      btn.classList.remove("is-active");
+      btn.setAttribute("aria-pressed", "false");
+    }
+  }
+}
+
+/** Toggles the floating Desktop Telemetry HUD open or closed. */
+export async function toggleTelemetryPopoutHud(existingThemes) {
+  if (isTelemetryPopoutHudOpen()) {
+    closeTelemetryPopoutHud();
+    return null;
+  }
+  return showTelemetryPopoutHud(existingThemes);
+}
+
+/**
+ * Launches or updates the floating desktop **Live Theme CPU & GPU Telemetry Popout HUD**
+ * (`#fm-telemetry-popout-hud`) over the File Manager workspace so users can monitor theme CPU/GPU usage live.
+ */
+export async function showTelemetryPopoutHud(existingThemes) {
+  if (typeof document === "undefined" || !document.body) return null;
+  closeTelemetryPopoutHud();
+  let themes = existingThemes;
+  if (!Array.isArray(themes) || !themes.length) {
+    try {
+      themes = await themeList();
+    } catch {
+      themes = [];
+    }
+  }
+  const deck = buildThemeTelemetryDeck({
+    themes,
+    getTargetKey: () => state.settings?.palette || "",
+    isPopout: true,
+  });
+
+  let minimized = false;
+  const minBtn = h("button", {
+    type: "button",
+    class: "telemetry-pill-btn telemetry-top-min-btn",
+    "data-telemetry-minimize": "true",
+    title: "Minimize or expand the floating CPU & GPU Telemetry HUD",
+    onclick: (e) => {
+      e.stopPropagation();
+      minimized = !minimized;
+      wrap.classList.toggle("is-minimized", minimized);
+      minBtn.textContent = minimized ? "➕ Expand" : "➖ Minimize";
+    },
+  }, "➖ Minimize");
+
+  const topBar = h("div", { class: "fm-telemetry-popout-topbar" },
+    h("div", { class: "fm-telemetry-popout-title" },
+      h("button", {
+        type: "button",
+        class: "traffic-dot is-red telemetry-traffic-close",
+        "data-telemetry-traffic-close": "true",
+        "aria-label": "Close CPU and GPU Telemetry HUD",
+        title: "Close CPU & GPU Telemetry HUD (Esc)",
+        onclick: (e) => {
+          e.stopPropagation();
+          closeTelemetryPopoutHud();
+        },
+      }),
+      h("span", {}, "📟 CPU & GPU Hardware Monitor"),
+    ),
+    h("div", { class: "fm-telemetry-popout-actions" },
+      minBtn,
+      h("button", {
+        type: "button",
+        class: "telemetry-pill-btn telemetry-close-popout-btn telemetry-top-close-btn",
+        "data-telemetry-top-close": "true",
+        "aria-label": "Close CPU and GPU Telemetry HUD",
+        title: "Close floating CPU & GPU Telemetry HUD (Esc)",
+        onclick: (e) => {
+          e.stopPropagation();
+          closeTelemetryPopoutHud();
+        },
+      }, "✕ Close (Esc)"),
+    ),
+  );
+
+  const wrap = h("aside", {
+    id: "fm-telemetry-popout-hud",
+    class: "fm-telemetry-popout-hud",
+    role: "complementary",
+    "aria-label": "Floating Live CPU and GPU Telemetry HUD",
+  }, topBar, deck);
+  document.body.appendChild(wrap);
+
+  for (const btn of document.querySelectorAll("[data-telemetry-popout-btn]")) {
+    btn.textContent = "✕ Hide Floating HUD";
+    btn.classList.add("is-active");
+    btn.setAttribute("aria-pressed", "true");
+  }
+
+  if (typeof window !== "undefined") {
+    telemetryPopoutEscHandler = (e) => {
+      if (e.key === "Escape") {
+        closeTelemetryPopoutHud();
+      }
+    };
+    window.addEventListener("keydown", telemetryPopoutEscHandler, true);
+  }
+
+  telemetryPopoutInterval = setInterval(() => {
+    if (!document.getElementById("fm-telemetry-popout-hud")) {
+      closeTelemetryPopoutHud();
+      return;
+    }
+    deck.stepSample?.();
+  }, 1200);
+  return wrap;
+}
+
 function swatch(theme) {
   const [sBg, sPanel, sAccent, sText] = theme.swatch ?? ["#16191d", "#1e2329", "#6ea8ff", "#e8eaed"];
   const p = theme.preview ?? {
@@ -1567,8 +2831,112 @@ export async function recentThemes() {
 
 /** Chooses a theme by its key (an empty key goes back to the standard colors) and remembers it as a recent one. */
 export async function chooseTheme(key) {
+  plainStaticLockKey = null;
   rememberTheme(key);
   await saveSettings({ palette: key });
+}
+
+/** Curated 1-click Plain & Static Themes (Zero Animations, Zero GPU Shaders) for instant access in the Theme Gallery & Menu. */
+export const POPULAR_PLAIN_THEME_PICKS = [
+  { key: "", label: "🖥️ Standard (System Auto)" },
+  { key: "apple_light", label: "🍎 Apple HIG Light" },
+  { key: "apple_dark", label: "🍎 Apple HIG Dark" },
+  { key: "sonoma_dark", label: "🍎 macOS Sonoma Dark" },
+  { key: "sonoma_light", label: "☀️ macOS Sonoma Light" },
+  { key: "tahoe_glass", label: "🍎 macOS Tahoe Light" },
+  { key: "sequoia_dark", label: "🌲 macOS Sequoia Dark" },
+  { key: "midnight", label: "🌌 Midnight Space Gray" },
+  { key: "titanium_slate", label: "🩶 Titanium Slate Pro" },
+  { key: "oled_black", label: "⚫ Pure OLED Black" },
+  { key: "dark", label: "🌙 Default Dark" },
+  { key: "light", label: "☀️ Default Light" },
+  { key: "dracula", label: "🧛 Dracula" },
+  { key: "nord", label: "❄️ Nord Arctic" },
+  { key: "tokyo_night", label: "🌃 Tokyo Night" },
+  { key: "catppuccin_mocha", label: "☕ Catppuccin Mocha" },
+  { key: "one_dark", label: "⚛️ One Dark Pro" },
+  { key: "sublime_text", label: "🎨 Monokai Pro" },
+  { key: "jetbrains_darcula", label: "🧠 JetBrains Darcula" },
+  { key: "gruvbox", label: "🪵 Gruvbox Dark" },
+  { key: "gruvbox_light", label: "☀️ Gruvbox Light" },
+  { key: "solarized_dark", label: "🌑 Solarized Dark" },
+  { key: "solarized_light", label: "☀️ Solarized Light" },
+  { key: "rose_pine", label: "🌹 Rosé Pine" },
+  { key: "everforest", label: "🌲 Everforest Dark" },
+  { key: "kanagawa", label: "🌊 Kanagawa Wave" },
+  { key: "cobalt2", label: "⚡ Cobalt2 Navy" },
+  { key: "github_dark", label: "🐙 GitHub Dark" },
+  { key: "github_light", label: "☀️ GitHub Light" },
+  { key: "raycast_dark", label: "🚀 Raycast Dark" },
+  { key: "linear_dark", label: "📐 Linear Studio" },
+  { key: "vercel_dark", label: "▲ Vercel Geist" },
+  { key: "nordic_paper", label: "📜 Nordic Paper Light" },
+  { key: "fluent_dark", label: "🪟 Windows 11 Dark" },
+  { key: "fluent_light", label: "🪟 Windows 11 Light" },
+  { key: "win95", label: "🪟 Windows 95" },
+  { key: "adwaita_dark", label: "🐧 GNOME Adwaita" },
+  { key: "kde_breeze_dark", label: "🐧 KDE Breeze Dark" },
+  { key: "nextstep", label: "🧊 NeXTSTEP 1989" },
+  { key: "irix_indigo_magic", label: "🔮 SGI IRIX Indigo" },
+  { key: "beos_r5", label: "💎 BeOS R5" },
+];
+
+/**
+ * Turns off all live background canvas animations (`atmosphere`), 3D folder/toolbar shaders (`uiElementFx`),
+ * custom icon packs, icon glow, and theme special effects while preserving the current theme's readable color palette.
+ */
+export async function disableAllThemeAnimations(opts = {}) {
+  try {
+    applyAtmosphere("none");
+  } catch {}
+  if (!opts.keepTelemetryHud) {
+    closeTelemetryPopoutHud();
+    if (typeof document !== "undefined") {
+      for (const d of document.querySelectorAll('details[data-telemetry-studio-drawer="true"]')) {
+        d.open = false;
+      }
+    }
+  }
+  if (opts.stripThemeEffects !== false) {
+    plainStaticLockKey = opts.lockKey ?? state.settings?.palette ?? wanted ?? null;
+    if (typeof document !== "undefined" && document.documentElement) {
+      clearEffects();
+    }
+  }
+  const patch = {
+    atmosphere: "none",
+    uiElementFx: "off",
+    iconPackStyle: "default",
+    themeIconGlow: "off",
+    ...(opts.palette !== undefined ? { palette: opts.palette } : {}),
+  };
+  if (state.settings) Object.assign(state.settings, patch);
+  applyUiImmersionProfiles(patch);
+  await saveSettings(patch);
+  if (opts.stripThemeEffects !== false && typeof document !== "undefined" && document.documentElement) {
+    clearEffects();
+    applyUiImmersionProfiles(patch);
+  }
+  if (!opts.quiet) {
+    toast("Turned off all animations, atmosphere particles & 3D folder FX — plain static colors active.", { kind: "info" });
+  }
+  return patch;
+}
+
+/**
+ * Applies any theme `key` (even a Futuristic/Holiday/Nerd/Horror FX theme) as a 100% Plain Static Color Theme
+ * with all animations, canvas particles, glass blur, and 3D folder effects turned off.
+ */
+export async function applyThemePlainColorsOnly(key, opts = {}) {
+  plainStaticLockKey = key;
+  rememberTheme(key);
+  await disableAllThemeAnimations({ quiet: true, stripThemeEffects: true, lockKey: key, palette: key });
+  await applyPalette(key);
+  clearEffects();
+  applyUiImmersionProfiles({ uiElementFx: "off", iconPackStyle: "default", themeIconGlow: "off" });
+  if (!opts.quiet) {
+    toast("Applied plain colors only (all animations & special effects turned off).", { kind: "success" });
+  }
 }
 
 /**
@@ -1645,10 +3013,25 @@ export const OPTION_BRACKET_SHOWCASE_TEMPLATES = [
   { key: "realworld_stained_glass_cathedral", badge: "🪟 Stained-Glass Rose" },
   { key: "realworld_katana_urushi_forge", badge: "⚔️ Tamahagane Katana Forge" },
   { key: "realworld_pinball_wizard_arcade", badge: "🕹️ 1978 Pinball Backglass" },
+  { key: "apple_light", badge: "⏹️ Apple HIG Light (Plain)" },
+  { key: "apple_dark", badge: "⏹️ Apple HIG Dark (Plain)" },
+  { key: "tokyo_night", badge: "⏹️ Tokyo Night (Plain)" },
   { key: "dracula", badge: "🧛 Dracula Classic" },
   { key: "nord", badge: "❄️ Nord Arctic" },
   { key: "win95", badge: "🪟 Windows 95 Retro" },
   { key: "beos_r5", badge: "💎 BeOS R5 Classic" },
+  { key: "omega_point_singularity", badge: "🌌 Omega Point Singularity" },
+  { key: "matrioshka_dyson_brain", badge: "☀️ Matrioshka Dyson Brain" },
+  { key: "photonic_metamaterial_3099", badge: "💎 3099 Photonic Crystal" },
+  { key: "chrono_crystalline_aethelgard", badge: "⏳ Chrono-Crystalline Vault" },
+  { key: "akashic_neural_noosphere", badge: "🧠 Akashic Neural Noosphere" },
+  { key: "zero_point_vacuum_genesis", badge: "⚛️ Zero-Point Vacuum Genesis" },
+  { key: "kardashev_type_iii_galactic", badge: "🌀 Kardashev Type-III Core" },
+  { key: "transcendent_seraphim_halo", badge: "👼 Seraphim Halo Engine" },
+  { key: "femtotech_picomatter_forge", badge: "🔬 Femtotech Quark Forge" },
+  { key: "holographic_holodeck_continuum", badge: "🌐 Continuum 16K Holodeck" },
+  { key: "hyperborean_aether_sanctum_day", badge: "🏛️ Hyperborean Aether Day" },
+  { key: "eden_solarpunk_archology_3000", badge: "🌿 Year 3000 Solarpunk Day" },
 ];
 
 let quickHudTimer = 0;
@@ -1684,12 +3067,13 @@ export function showQuickCycleHud(activeKey, allThemes = [], { index = 0, total 
   const tierLabel = tier === "ultra" ? "🚀 Ultra Tier" : tier === "medium" ? "✨ Medium Glass" : "⚡ Standard / Eco";
   const folderFxBadge = curTheme?.uiElementFx || state.settings?.uiElementFx || "auto";
   const iconPackBadge = curTheme?.iconPackStyle || state.settings?.iconPackStyle || "default";
+  const curTele = estimateThemeResourceTelemetry(curTheme);
 
   const showcaseChips = OPTION_BRACKET_SHOWCASE_TEMPLATES.map((tpl) => {
     const tObj = allThemes.find((t) => t.key === tpl.key);
     if (!tObj) return null;
     const isCurrent = (activeKey || "") === tpl.key;
-    const [bg, , accent, text] = tObj.swatch ?? ["#16191d", "#1e2329", "#6ea8ff", "#e8eaed"];
+    const [bg, , accent] = tObj.swatch ?? ["#16191d", "#1e2329", "#6ea8ff", "#e8eaed"];
     return h("button", {
       type: "button",
       class: `fm-quick-cycle-tpl-chip${isCurrent ? " is-active" : ""}`,
@@ -1726,9 +3110,80 @@ export function showQuickCycleHud(activeKey, allThemes = [], { index = 0, total 
     },
   },
     h("div", { class: "fm-quick-cycle-head" },
-      h("span", { class: "fm-quick-cycle-kbd" }, "⌨️ Right ⌥ + [ / ] · Quick Theme Switcher"),
+      h("span", { class: "fm-quick-cycle-kbd" }, "⌨️ Right ⌥ + [ / ] · ⌥R Random · ⌥E FX · ⌥P Plain · ⌥0 Toggle FX"),
       h("span", { class: "fm-quick-cycle-pos" }, `${index + 1} / ${total}`),
       h("div", { class: "fm-quick-cycle-head-actions" },
+        h("button", {
+          type: "button",
+          class: "btn fm-quick-cycle-mini-btn",
+          "data-quick-hud-random": "any",
+          title: "Pick a random theme from all 310 themes immediately (Alt+R / ⌥R — no dialog needed)",
+          onclick: (e) => {
+            e.stopPropagation();
+            void randomTheme({ mode: "any" });
+          },
+        }, "🎲 Random (⌥R)"),
+        h("button", {
+          type: "button",
+          class: "btn fm-quick-cycle-mini-btn",
+          "data-quick-hud-random": "fx",
+          title: "Pick a random animated / 3D FX theme immediately (Alt+E / ⌥E or ⌥⇧R — no dialog needed)",
+          onclick: (e) => {
+            e.stopPropagation();
+            void randomTheme({ mode: "fx" });
+          },
+        }, "✨ Random FX (⌥E)"),
+        h("button", {
+          type: "button",
+          class: "btn fm-quick-cycle-mini-btn",
+          "data-quick-hud-random": "plain",
+          title: "Pick a random Plain / No-Animation theme immediately (Alt+P / ⌥P — 0.0% GPU, no dialog needed)",
+          onclick: (e) => {
+            e.stopPropagation();
+            void randomTheme({ mode: "plain" });
+          },
+        }, "⏹️ Random Plain (⌥P)"),
+        h("button", {
+          type: "button",
+          class: "btn fm-quick-cycle-mini-btn",
+          "data-quick-hud-random": "ultra",
+          title: "Pick a random Ultra / Year 3000+ God-Mode theme immediately (Alt+U / ⌥U — no dialog needed)",
+          onclick: (e) => {
+            e.stopPropagation();
+            void randomTheme({ mode: "ultra" });
+          },
+        }, "🚀 Random Ultra (⌥U)"),
+        h("button", {
+          type: "button",
+          class: "btn fm-quick-cycle-mini-btn",
+          "data-quick-hud-toggle-fx": "true",
+          title: "Instantly toggle or strip animations & FX on the current theme (Alt+0 / ⌥0 — no dialog needed)",
+          onclick: (e) => {
+            e.stopPropagation();
+            void toggleCurrentThemeEffects();
+          },
+        }, "🛑 Toggle FX (⌥0)"),
+        h("button", {
+          type: "button",
+          class: "btn fm-quick-cycle-mini-btn",
+          "data-quick-hud-telemetry": "true",
+          title: "Toggle the floating Live CPU & GPU Telemetry Monitor HUD",
+          onclick: (e) => {
+            e.stopPropagation();
+            void toggleTelemetryPopoutHud(allThemes);
+          },
+        }, isTelemetryPopoutHudOpen() ? "✕ Hide CPU/GPU HUD" : "📟 CPU/GPU HUD"),
+        h("button", {
+          type: "button",
+          class: "btn fm-quick-cycle-mini-btn",
+          "data-quick-hud-plain": "true",
+          title: "Open Theme Gallery filtered to Plain Themes (No Animations)",
+          onclick: (e) => {
+            e.stopPropagation();
+            hideQuickCycleHud();
+            void showThemePicker({ filter: "plain" });
+          },
+        }, "⏹️ Plain Themes"),
         h("button", {
           type: "button",
           class: "btn fm-quick-cycle-mini-btn",
@@ -1781,6 +3236,7 @@ export function showQuickCycleHud(activeKey, allThemes = [], { index = 0, total 
           h("div", { class: "fm-quick-cycle-active-title-row" },
             h("strong", { class: "fm-quick-cycle-active-name", "data-quick-cycle-name": "true" }, curTheme ? curTheme.name : "Standard (System Default)"),
             h("span", { class: "fm-quick-cycle-badge" }, tierLabel),
+            h("span", { class: "fm-quick-cycle-badge fm-quick-cycle-telemetry-badge", "data-quick-hud-telemetry": "true" }, `📟 CPU ${curTele.cpuPct.toFixed(1)}% · GPU ${curTele.gpuPct.toFixed(1)}% · ${curTele.watts.toFixed(1)}W`),
             folderFxBadge && folderFxBadge !== "off" ? h("span", { class: "fm-quick-cycle-badge" }, `📁 ${folderFxBadge}`) : null,
             iconPackBadge && iconPackBadge !== "default" ? h("span", { class: "fm-quick-cycle-badge" }, `🎭 ${iconPackBadge}`) : null,
           ),
@@ -1822,6 +3278,10 @@ export async function cycleTheme(direction, opts = {}) {
     let keys;
     if (opts.pool === "showcase" || opts.showcaseOnly) {
       keys = OPTION_BRACKET_SHOWCASE_TEMPLATES.map((t) => t.key).filter((k) => themes.some((th) => th.key === k));
+    } else if (opts.pool === "plain") {
+      keys = ["", ...themes.filter((th) => !th.hasEffects).map((th) => th.key)];
+    } else if (opts.pool === "fx") {
+      keys = themes.filter((th) => Boolean(th.hasEffects)).map((th) => th.key);
     } else if (opts.pool === "favorites") {
       const favs = favoriteKeys().filter((k) => themes.some((th) => th.key === k));
       keys = favs.length ? favs : ["", ...themes.map((theme) => theme.key)];
@@ -1846,16 +3306,109 @@ export async function cycleTheme(direction, opts = {}) {
   }
 }
 
+/**
+ * Instant dialog-free Quick Random Theme switcher (`Alt+R`, `Alt+E`, `Alt+P`, `Alt+U`).
+ * Picks and applies a random theme from the requested pool (`"any"` | `"fx"` | `"plain"` | `"ultra"`)
+ * with zero modal dialogs required.
+ */
+export async function randomTheme(opts = {}) {
+  if (cycling) return null;
+  cycling = true;
+  try {
+    const themes = await themeList();
+    if (!themes.length) return null;
+    const mode = String(opts.mode || "any").toLowerCase();
+    let pool;
+    if (mode === "fx" || mode === "effects") {
+      pool = themes.filter((t) => Boolean(t.hasEffects));
+    } else if (mode === "plain" || mode === "no-fx" || mode === "static") {
+      pool = themes.filter((t) => !t.hasEffects);
+    } else if (mode === "ultra" || mode === "godmode") {
+      pool = themes.filter((t) => resolveTemplateTier(t) === "ultra");
+    } else {
+      pool = themes;
+    }
+    if (!pool.length) pool = themes;
+    const currentKey = state.settings?.palette || "";
+    const candidates = pool.length > 1 ? pool.filter((t) => t.key !== currentKey) : pool;
+    const chosen = candidates[Math.floor(Math.random() * candidates.length)] || pool[0];
+    if (!chosen) return null;
+
+    if (mode === "plain" || mode === "no-fx" || mode === "static" || !chosen.hasEffects) {
+      await disableAllThemeAnimations({ quiet: true, stripThemeEffects: false });
+    }
+    await chooseTheme(chosen.key);
+    await applyPalette(chosen.key);
+
+    if (opts.showHud !== false) {
+      const idx = Math.max(0, themes.findIndex((t) => t.key === chosen.key) + 1);
+      showQuickCycleHud(chosen.key, themes, { index: idx, total: themes.length + 1 });
+    }
+    if (!opts.quiet) {
+      const prefix = (mode === "fx" || mode === "effects")
+        ? "✨ Random FX Theme"
+        : (mode === "plain" || mode === "no-fx" || mode === "static")
+          ? "⏹️ Random Plain Theme (No FX)"
+          : (mode === "ultra" || mode === "godmode")
+            ? "🚀 Random Ultra Theme"
+            : `🎲 Random Theme (${chosen.hasEffects ? "✨ FX" : "⏹️ Plain"})`;
+      toast(`${prefix}: ${chosen.name}`, { kind: "info" });
+    }
+    return chosen;
+  } catch (err) {
+    toast(err?.message || "Could not pick a random theme.", { kind: "error" });
+    return null;
+  } finally {
+    cycling = false;
+  }
+}
+
+/**
+ * Instant dialog-free toggle between Plain Colors Only (0.0% GPU, no animations)
+ * and Full Animated FX on the currently active theme (`Alt+0` / `⌥0`).
+ */
+export async function toggleCurrentThemeEffects(opts = {}) {
+  const root = typeof document !== "undefined" ? document.documentElement : null;
+  const fxActive = Boolean(
+    root?.dataset?.fx
+    || (root?.dataset?.fxAtmosphere && root.dataset.fxAtmosphere !== "none")
+    || (state.settings?.atmosphere && state.settings.atmosphere !== "none")
+    || (state.settings?.uiElementFx && state.settings.uiElementFx !== "off"),
+  );
+  if (fxActive) {
+    await disableAllThemeAnimations({ quiet: Boolean(opts.quiet), stripThemeEffects: true });
+    return { fxEnabled: false, key: state.settings?.palette || "" };
+  }
+  const curKey = state.settings?.palette || "";
+  const themes = await themeList();
+  const curTheme = curKey ? themes.find((t) => t.key === curKey) : null;
+  if (curTheme?.hasEffects) {
+    await chooseTheme(curKey);
+    await applyPalette(curKey);
+    if (opts.showHud !== false) {
+      showQuickCycleHud(curKey, themes, { index: themes.indexOf(curTheme) + 1, total: themes.length + 1 });
+    }
+    if (!opts.quiet) {
+      toast(`✨ Restored full animations & 3D FX for "${curTheme.name}".`, { kind: "success" });
+    }
+    return { fxEnabled: true, key: curKey };
+  }
+  const picked = await randomTheme({ mode: "fx", showHud: opts.showHud, quiet: opts.quiet });
+  return { fxEnabled: true, key: picked?.key || "" };
+}
+
 if (typeof window !== "undefined") {
   window.cycleAppTheme = cycleTheme;
-  window.openAppThemes = () => showThemePicker();
+  window.randomAppTheme = (mode, opts) => randomTheme({ ...(opts || {}), mode: mode || "any" });
+  window.toggleAppThemeFx = toggleCurrentThemeEffects;
+  window.openAppThemes = (opts) => showThemePicker(opts);
 }
 
 const choose = chooseTheme;
 let activePickerRefresh = null;
 
 /** The theme gallery: search, filter by light or dark, category, template tier, animations, surface material, color vibe or effects, pin favorites, and click a theme to try it. */
-export async function showThemePicker() {
+export async function showThemePicker(opts = {}) {
   let themes;
   try {
     themes = await themeList();
@@ -1863,7 +3416,7 @@ export async function showThemePicker() {
     toast(err?.message || "The themes couldn't be loaded.", { kind: "error" });
     return;
   }
-  const search = h("input", { type: "search", class: "prop-input theme-search", placeholder: "Search themes (or press ⌘V to paste a theme code)", "aria-label": "Search themes", title: "Type part of a theme's name, like dark, nord, m4, tahoe, tesla, tokamak or windows — or press ⌘V / Ctrl+V to paste a shared theme code." });
+  const search = h("input", { type: "search", class: "prop-input theme-search", placeholder: "Search themes (e.g. plain, dracula, nord, macos, win95 — or press ⌘V to paste)", "aria-label": "Search themes", title: "Type part of a theme's name, like plain, dark, nord, dracula, m4, tahoe, or windows — or press ⌘V / Ctrl+V to paste a shared theme code." });
   const mode = h("select", { class: "prop-input", "aria-label": "Show light or dark themes", title: "Show only light themes, only dark ones, or both." },
     [["all", "Light and dark"], ["light", "Light only"], ["dark", "Dark only"]].map(([v, l]) => h("option", { value: v }, l)));
   const categoryOptions = [
@@ -1899,9 +3452,11 @@ export async function showThemePicker() {
       ["calm", "🍃 Calm Ambient Drift"],
       ["static", "⏹️ Static (No Motion)"],
     ].map(([v, l]) => h("option", { value: v }, l)));
-  const sortFilter = h("select", { class: "prop-input", "aria-label": "Sort templates", title: "Sort templates by default category groups, Ultra tier first, Lightweight Eco tier first, or alphabetically." },
+  const sortFilter = h("select", { class: "prop-input", "aria-label": "Sort templates", title: "Sort templates by default category groups, Lowest CPU & GPU load, Highest GPU Shader load, Ultra tier first, Lightweight Eco tier first, or alphabetically." },
     [
       ["group", "Sort: Default groups"],
+      ["cpu-asc", "Sort: 📟 Lowest CPU & GPU Load"],
+      ["gpu-desc", "Sort: 🔥 Highest GPU Shader Load"],
       ["ultra-first", "Sort: 🚀 Ultra tier first"],
       ["eco-first", "Sort: ⚡ Low / Eco first"],
       ["name-asc", "Sort: Name (A–Z)"],
@@ -1912,11 +3467,162 @@ export async function showThemePicker() {
   let lastShown = themes;
   let dialogRef = null;
   const list = h("div", { class: "theme-list" });
-  const count = h("p", { class: "hint", role: "status" });
+  const sectionJumpBar = h("div", { class: "theme-section-jump-bar", role: "navigation", "aria-label": "Jump to theme section" });
+  const count = h("p", { class: "hint theme-count-bar", role: "status" });
   const supportsHas = typeof CSS !== "undefined" && typeof CSS.supports === "function" && CSS.supports("selector(:has(*))");
+
+  const plainThemesList = themes.filter((t) => !t.hasEffects);
+  const plainDarkCount = plainThemesList.filter((t) => t.dark).length;
+  const plainLightCount = plainThemesList.filter((t) => !t.dark).length;
+  const plainEditorsCount = plainThemesList.filter((t) => t.group === "Editors and classics").length;
+  const plainOsCount = plainThemesList.filter((t) => ["macOS", "Windows", "Linux", "Rare and beloved systems"].includes(t.group)).length;
+  const fxThemesCount = themes.filter((t) => t.hasEffects).length;
+
+  const browseModesDef = [
+    ["all", `🌐 All Themes (${themes.length})`, "Show all plain and animated themes"],
+    ["plain", `⏹️ Plain Themes — No Animations (${plainThemesList.length})`, "Show only clean, static color themes with zero animations or GPU effects"],
+    ["plain-dark", `🌙 Plain Dark (${plainDarkCount})`, "Show only dark plain themes without animations"],
+    ["plain-light", `☀️ Plain Light (${plainLightCount})`, "Show only light plain themes without animations"],
+    ["plain-editors", `⌨️ Plain IDEs & Classics (${plainEditorsCount})`, "Show classic code editor and terminal color schemes (Dracula, Nord, Tokyo Night, Gruvbox, Solarized…)"],
+    ["plain-os", `🖥️ Plain OS Classics (${plainOsCount})`, "Show classic macOS, Windows, Linux, and retro operating system themes without animations"],
+    ["fx", `✨ Animated & 3D FX (${fxThemesCount})`, "Show themes with 3D glass, glow, storms, and live canvas effects"],
+  ];
+
+  const resolveActiveBrowseMode = () => {
+    if (fxFilter.value === "plain" && activeCollection === "plain_os") return "plain-os";
+    if (fxFilter.value === "plain" && groupFilter.value === "Editors and classics") return "plain-editors";
+    if (fxFilter.value === "plain" && mode.value === "dark") return "plain-dark";
+    if (fxFilter.value === "plain" && mode.value === "light") return "plain-light";
+    if (fxFilter.value === "plain" || activeCollection === "plain_static") return "plain";
+    if (fxFilter.value === "fx") return "fx";
+    return "all";
+  };
+
+  const applyBrowseMode = (bm) => {
+    search.value = "";
+    tierFilter.value = "all";
+    animFilter.value = "all";
+    activeVibe = "all";
+    activeMaterial = "all";
+    if (bm === "plain") {
+      fxFilter.value = "plain";
+      mode.value = "all";
+      groupFilter.value = "all";
+      activeCollection = "all";
+    } else if (bm === "plain-dark") {
+      fxFilter.value = "plain";
+      mode.value = "dark";
+      groupFilter.value = "all";
+      activeCollection = "all";
+    } else if (bm === "plain-light") {
+      fxFilter.value = "plain";
+      mode.value = "light";
+      groupFilter.value = "all";
+      activeCollection = "all";
+    } else if (bm === "plain-editors") {
+      fxFilter.value = "plain";
+      mode.value = "all";
+      groupFilter.value = "Editors and classics";
+      activeCollection = "all";
+    } else if (bm === "plain-os") {
+      fxFilter.value = "plain";
+      mode.value = "all";
+      groupFilter.value = "all";
+      activeCollection = "plain_os";
+    } else if (bm === "fx") {
+      fxFilter.value = "fx";
+      mode.value = "all";
+      groupFilter.value = "all";
+      activeCollection = "all";
+    } else {
+      fxFilter.value = "any";
+      mode.value = "all";
+      groupFilter.value = "all";
+      activeCollection = "all";
+    }
+    draw();
+  };
+
+  const browseModeButtons = browseModesDef.map(([bm, label, tip]) =>
+    h("button", {
+      type: "button",
+      class: `theme-browse-mode-btn${bm === "all" ? " is-active" : ""}`,
+      "data-browse-mode": bm,
+      "aria-pressed": String(bm === "all"),
+      title: tip,
+      onclick: () => applyBrowseMode(bm),
+    }, label),
+  );
+
+  const killAnimationsBtn = h("button", {
+    type: "button",
+    class: "theme-browse-mode-btn theme-kill-anim-btn",
+    "data-kill-animations": "true",
+    title: "Immediately turn off all background animations, floating particles, 3D folder distortions, and special effects while keeping your current colors.",
+    onclick: async () => {
+      await disableAllThemeAnimations();
+      draw();
+    },
+  }, "🛑 Turn Off All Animations & FX");
+
+  const activePlatformProfile = () => state.settings?.platformProfile || document.documentElement?.dataset?.platform || probeClientHardware().platform;
+  const platformOptimizeButtons = OPTIMIZE_PLATFORM_PRESETS.map((preset) =>
+    h("button", {
+      type: "button",
+      class: `theme-browse-mode-btn theme-platform-opt-btn${activePlatformProfile() === preset.id ? " is-active" : ""}`,
+      "data-optimize-platform": preset.id,
+      "aria-pressed": String(activePlatformProfile() === preset.id),
+      title: preset.title,
+      onclick: async () => {
+        await applyPlatformOptimizationPreset(preset.id);
+        for (const btn of platformOptimizeButtons) {
+          const on = btn.dataset.optimizePlatform === preset.id;
+          btn.classList.toggle("is-active", on);
+          btn.setAttribute("aria-pressed", String(on));
+        }
+      },
+    }, preset.label),
+  );
+
+  const plainQuickButtons = POPULAR_PLAIN_THEME_PICKS.map((item) => {
+    const tObj = item.key ? themes.find((t) => t.key === item.key) : null;
+    if (item.key && !tObj) return null;
+    const [, , accent] = tObj?.swatch ?? ["#16191d", "#1e2329", "#6ea8ff", "#e8eaed"];
+    return h("button", {
+      type: "button",
+      class: "theme-filter-pill theme-plain-quick-chip",
+      "data-plain-quick": item.key,
+      "aria-pressed": String((state.settings?.palette || "") === item.key),
+      title: tObj ? `${tObj.name} (${tObj.dark ? "Dark" : "Light"} · Plain colors only, no animations)` : "Standard system light/dark colors (no animations)",
+      onclick: async () => {
+        await disableAllThemeAnimations({ quiet: true, stripThemeEffects: false });
+        await pick(item.key);
+      },
+    },
+      tObj ? h("span", { class: "theme-plain-quick-dot", style: `background:${accent}` }) : null,
+      h("span", {}, item.label),
+    );
+  }).filter(Boolean);
+
+  const browseModeBar = h("div", { class: "theme-browse-mode-bar", role: "region", "aria-label": "Browse Plain Themes or Animated Effects" },
+    h("div", { class: "theme-browse-mode-tabs" },
+      h("span", { class: "theme-browse-mode-title" }, "🧭 Browse Mode:"),
+      ...browseModeButtons,
+      ...platformOptimizeButtons,
+      killAnimationsBtn,
+    ),
+    h("div", { class: "theme-plain-quick-strip" },
+      h("span", { class: "theme-pill-label" }, "⭐ Instant Plain Themes (No Animations):"),
+      ...plainQuickButtons,
+    ),
+  );
 
   const collectionPillsDef = [
     ["all", "All Collections"],
+    ["god_mode_3000", "🌌 God-Mode 3000+ (12)"],
+    ["flagship_mac_xdr", "🍎 Flagship Mac XDR (10)"],
+    ["plain_static", `⏹️ Plain & Static (${plainThemesList.length})`],
+    ["plain_os", `🖥️ Classic OS (${plainOsCount})`],
     ["us_holidays", "🎄 US Holidays (18)"],
     ["nerd_complete", "🎲 Nerd Complete (10)"],
     ["horror_nightmare", "🧛 Horror & Crypt (10)"],
@@ -1930,6 +3636,8 @@ export async function showThemePicker() {
       "aria-pressed": String(val === "all"),
       onclick: () => {
         activeCollection = val;
+        if (val === "plain_static" || val === "plain_os") fxFilter.value = "plain";
+        else if (fxFilter.value === "plain") fxFilter.value = "any";
         draw();
       },
     }, label),
@@ -1940,12 +3648,12 @@ export async function showThemePicker() {
     ["favorites", "★ Favorites"],
     ["recent", "⏱ Recent"],
     ...(themes.some((t) => t.group === "My themes") ? [["My themes", "🎨 My themes"]] : []),
-    ["Futuristic", "✨ Futuristic"],
+    ["Editors and classics", "⌨️ Editors"],
     ["macOS", "🍎 macOS"],
     ["Windows", "🪟 Windows"],
     ["Linux", "🐧 Linux"],
-    ["Editors and classics", "⌨️ Editors"],
     ["Rare and beloved systems", "💎 Rare"],
+    ["Futuristic", "✨ Futuristic"],
   ];
   const catPillButtons = catPillsDef.map(([val, label]) =>
     h("button", {
@@ -2077,12 +3785,15 @@ export async function showThemePicker() {
   }, "↺ Reset Filters");
 
   const navBar = h("div", { class: "theme-nav-bar", role: "region", "aria-label": "Quick theme filters" },
-    h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Category"), ...catPillButtons),
+    h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Category"), ...catPillButtons, resetFiltersBtn),
     h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Collections"), ...collectionPillButtons),
+  );
+
+  const advancedFiltersNav = h("div", { class: "theme-advanced-filters-grid" },
     h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Template Tier"), ...tierPillButtons, hwMatchBtn),
     h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Animations"), ...animPillButtons),
     h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Surface Shader"), ...materialPillButtons),
-    h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Color Vibe"), ...vibePillButtons, resetFiltersBtn),
+    h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Color Vibe"), ...vibePillButtons),
   );
 
   const card = (t) => {
@@ -2090,6 +3801,7 @@ export async function showThemePicker() {
     const pinned = isFavoriteTheme(t.key);
     const tier = resolveTemplateTier(t);
     const tierLabel = tier === "ultra" ? "🚀 Ultra" : tier === "medium" ? "✨ Medium" : "⚡ Low";
+    const tele = estimateThemeResourceTelemetry(t);
     const animBadge = t.atmosphere && t.atmosphere !== "none"
       ? h("span", { class: "theme-anim-badge", "data-anim-badge": t.atmosphere, title: `Built-in live canvas animation: ${t.atmosphere}` }, "🌌 Live FX")
       : t.hasEffects && t.motion && t.motion !== "none" && t.motion !== "zero"
@@ -2119,18 +3831,59 @@ export async function showThemePicker() {
       : t.uiElementFx === "molten_lava_melt" ? "🌋 Molten-Melt UI"
       : t.uiElementFx === "crt_magnetic_warp" ? "🧲 CRT-Warp UI"
       : t.uiElementFx === "fever_dream_ripple" ? "🌊 Mirage-Ripple UI"
+      : t.uiElementFx === "cupertino_ceramic_bevel" ? "🍎 Ceramic HIG UI"
+      : t.uiElementFx === "swiss_sapphire_chronograph" ? "⌚ Sapphire UI"
+      : t.uiElementFx === "teenage_field_anodized" ? "🎛️ Field-Synth UI"
+      : t.uiElementFx === "blueprint_cad_cyanotype" ? "📐 Cyanotype CAD UI"
+      : t.uiElementFx === "kyoto_washi_sumi" ? "🎋 Kyoto Washi UI"
+      : t.uiElementFx === "carbon_kevlar_weave" ? "🏎️ Forged Carbon UI"
+      : t.uiElementFx === "godmode_omega_halo" ? "✨ Omega Halo UI"
+      : t.uiElementFx === "godmode_photonic_crystal" ? "💎 Photonic 3099 UI"
+      : t.uiElementFx === "godmode_dyson_lattice" ? "🌞 Dyson Lattice UI"
+      : t.uiElementFx === "godmode_chrono_crystal" ? "⏳ Chrono-Crystal UI"
+      : t.uiElementFx === "godmode_akashic_synapse" ? "🧬 Akashic UI"
+      : t.uiElementFx === "godmode_tachyon_warp" ? "🚀 Tachyon Warp UI"
+      : t.uiElementFx === "xdr_titanium_folders" ? "🖥️ XDR Titanium UI"
+      : t.uiElementFx === "tahoe_glass_folders" ? "🌊 Tahoe 3D Glass UI"
+      : t.uiElementFx === "fluent_mica_folders" ? "🪟 Fluent 3D UI"
+      : t.uiElementFx === "google_material_folders" ? "🎨 Material 3D UI"
       : "";
     const uiFxBadge = uiFxBadgeLabel
       ? h("span", { class: "theme-uifx-badge", "data-uifx-badge": t.uiElementFx, title: `Includes interactive File Manager folder & toolbar shader (${t.uiElementFx})` }, uiFxBadgeLabel)
       : null;
+    const telemetryBadge = h("span", {
+      class: `theme-telemetry-badge is-grade-${tele.grade.toLowerCase()}`,
+      "data-theme-telemetry": t.key,
+      "data-theme-cpu": String(tele.cpuPct),
+      "data-theme-gpu": String(tele.gpuPct),
+      "data-telemetry-grade": tele.grade,
+      title: `Live Hardware Resource Telemetry — CPU: ${tele.cpuPct.toFixed(1)}% · GPU: ${tele.gpuPct.toFixed(1)}% · VRAM: ${tele.vramMb} MB · Power: ${tele.watts} W · ${tele.fps} FPS (${tele.frameTimeMs} ms)`,
+    }, `📟 CPU ${tele.cpuPct.toFixed(1)}% · GPU ${tele.gpuPct.toFixed(1)}%`);
     const b = h("button", { type: "button", class: "theme-card", "data-key": t.key, "data-tier": tier, "aria-pressed": String(on), title: `${t.name}: ${t.description}`, onclick: () => pick(t.key) },
       swatch(t), h("span", { class: "theme-name" }, t.name), h("span", { class: "theme-kind" }, t.dark ? "Dark" : "Light"),
       h("span", { class: "theme-card-badges" },
         t.hasEffects ? h("span", { class: "theme-fx-badge", title: "This theme has special effects: glass, glow, motion and texture." }, "✨ Effects") : h("span", { class: "theme-plain-badge" }, "Colors only"),
         h("span", { class: `theme-tier-badge theme-tier-${tier}`, "data-tier-badge": tier, title: `Template Tier: ${tierLabel}` }, tierLabel),
+        telemetryBadge,
         animBadge,
         uiFxBadge,
       ));
+    const plainOnlyBtn = t.hasEffects
+      ? h("button", {
+          type: "button",
+          class: "theme-plain-only-quick",
+          "data-plain-only-key": t.key,
+          "aria-label": `Apply ${t.name} colors only without animations`,
+          title: `Apply ${t.name} as Plain Colors Only (turns off all animations, glass blur & 3D FX — drops GPU usage to 0.0%)`,
+          onclick: async (e) => {
+            e.stopPropagation();
+            previewKey = null;
+            await applyThemePlainColorsOnly(t.key);
+            telemetryDeck?.inspectTheme?.(t.key);
+            draw();
+          },
+        }, "⏹️")
+      : null;
     const editBtn = h("button", {
       type: "button",
       class: "theme-edit-quick",
@@ -2181,20 +3934,41 @@ export async function showThemePicker() {
         list.querySelector(`.theme-pin[data-pin-key="${t.key}"]`)?.focus({ preventScroll: true });
       },
     }, pinned ? "★" : "☆");
-    const wrap = h("div", { class: `theme-card-item${!supportsHas && pinned ? " is-pinned" : ""}` }, b, shareBtn, editBtn, pin);
+    const wrap = h("div", { class: `theme-card-item${!supportsHas && pinned ? " is-pinned" : ""}` }, b, plainOnlyBtn, shareBtn, editBtn, pin);
     return wrap;
   };
   const defaultCard = () => {
     const on = !state.settings.palette;
     return h("div", { class: "theme-card-item" },
       h("button", { type: "button", class: "theme-card", "data-key": "", "aria-pressed": String(on), title: "The standard colors: they follow your computer's light or dark setting, or the Colors choice in Settings.", onclick: () => pick("") },
-        defaultSwatch(), h("span", { class: "theme-name" }, "Standard"), h("span", { class: "theme-kind" }, "Light or dark")));
+        defaultSwatch(),
+        h("span", { class: "theme-name" }, "Standard"),
+        h("span", { class: "theme-kind" }, "Light or dark"),
+        h("span", { class: "theme-card-badges" },
+          h("span", { class: "theme-plain-badge" }, "Colors only"),
+          h("span", { class: "theme-telemetry-badge is-grade-zero-overhead", "data-theme-telemetry": "", "data-theme-cpu": "0.1", "data-theme-gpu": "0" }, "📟 CPU 0.1% · GPU 0.0%"),
+        ),
+      ));
   };
 
+  const GOD_MODE_COLLECTION_KEYS = new Set([
+    "omega_point_singularity", "matrioshka_dyson_brain", "photonic_metamaterial_3099", "chrono_crystalline_aethelgard",
+    "akashic_neural_noosphere", "zero_point_vacuum_genesis", "kardashev_type_iii_citadel", "hyperborean_aether_sanctum_day",
+    "tachyon_slipstream_navigator", "seraphim_halo_relativity", "quantum_superposition_cathedral", "eden_solarpunk_archology_3000",
+  ]);
+  const FLAGSHIP_MAC_COLLECTION_KEYS = new Set([
+    "mac_studio_m4_ultra", "mac_pro_rack_xdr", "macbook_pro_space_black", "apple_studio_display_5k",
+    "imac_m4_spectrum_p3", "macos_sequoia_redwood_xdr", "macos_vision_spatial_mac", "mac_mini_m4_pro_carbon",
+    "m4_pro_display_xdr", "tahoe_studio_3d",
+  ]);
   const TIER_RANK = { ultra: 3, medium: 2, low: 1 };
   const matchesCollection = (t) => {
     if (activeCollection === "all") return true;
+    if (activeCollection === " plain_static" || activeCollection === "plain_static") return !t.hasEffects;
+    if (activeCollection === "plain_os") return !t.hasEffects && ["macOS", "Windows", "Linux", "Rare and beloved systems"].includes(t.group);
     const k = String(t.key || "");
+    if (activeCollection === "god_mode_3000") return GOD_MODE_COLLECTION_KEYS.has(k);
+    if (activeCollection === "flagship_mac_xdr") return FLAGSHIP_MAC_COLLECTION_KEYS.has(k);
     if (activeCollection === "us_holidays") return k.startsWith("holiday_");
     if (activeCollection === "nerd_complete") return k.startsWith("nerd_");
     if (activeCollection === "horror_nightmare") return k.startsWith("horror_");
@@ -2210,6 +3984,17 @@ export async function showThemePicker() {
     const tier = tierFilter.value;
     const anim = animFilter.value;
     const sortBy = sortFilter.value;
+    const activeBm = resolveActiveBrowseMode();
+    for (const btn of browseModeButtons) {
+      const active = btn.dataset.browseMode === activeBm;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-pressed", String(active));
+    }
+    for (const chip of plainQuickButtons) {
+      const active = (state.settings?.palette || "") === (chip.dataset.plainQuick || "");
+      chip.classList.toggle("is-active", active);
+      chip.setAttribute("aria-pressed", String(active));
+    }
     for (const btn of catPillButtons) {
       const active = btn.dataset.catPill === grp;
       btn.classList.toggle("is-active", active);
@@ -2251,8 +4036,20 @@ export async function showThemePicker() {
       && themeMatchesAnimation(t, anim)
       && themeMatchesMaterial(t, activeMaterial)
       && themeMatchesVibe(t, activeVibe)
-      && (!q || `${t.name} ${t.group} ${t.key} ${t.description} ${resolveTemplateTier(t)} ${t.motion || ""} ${t.atmosphere || ""} ${t.backdropStyle || ""} ${t.uiElementFx || ""} ${t.iconPackStyle || ""} ${favSet.has(t.key) ? "favorite favorite pinned star" : ""} ${t.hasEffects ? "effects special effects fx glow glass motion" : "plain"}`.toLowerCase().includes(q)));
-    if (sortBy === "ultra-first") {
+      && (!q || `${t.name} ${t.group} ${t.key} ${t.description} ${resolveTemplateTier(t)} ${t.motion || ""} ${t.atmosphere || ""} ${t.backdropStyle || ""} ${t.uiElementFx || ""} ${t.iconPackStyle || ""} ${favSet.has(t.key) ? "favorite favorite pinned star" : ""} ${t.hasEffects ? "effects special effects fx glow glass motion" : "plain static no animation simple clean classic zero gpu"}`.toLowerCase().includes(q)));
+    if (sortBy === "cpu-asc") {
+      shown.sort((a, b) => {
+        const ta = estimateThemeResourceTelemetry(a);
+        const tb = estimateThemeResourceTelemetry(b);
+        return ((ta.cpuPct + ta.gpuPct) - (tb.cpuPct + tb.gpuPct)) || a.name.localeCompare(b.name);
+      });
+    } else if (sortBy === "gpu-desc") {
+      shown.sort((a, b) => {
+        const ta = estimateThemeResourceTelemetry(a);
+        const tb = estimateThemeResourceTelemetry(b);
+        return ((tb.gpuPct + tb.cpuPct) - (ta.gpuPct + ta.cpuPct)) || a.name.localeCompare(b.name);
+      });
+    } else if (sortBy === "ultra-first") {
       shown.sort((a, b) => (TIER_RANK[resolveTemplateTier(b)] - TIER_RANK[resolveTemplateTier(a)]) || a.name.localeCompare(b.name));
     } else if (sortBy === "eco-first") {
       shown.sort((a, b) => (TIER_RANK[resolveTemplateTier(a)] - TIER_RANK[resolveTemplateTier(b)]) || a.name.localeCompare(b.name));
@@ -2261,33 +4058,69 @@ export async function showThemePicker() {
     }
     lastShown = shown;
     const sections = [];
+    const jumpTargets = [];
+    const addSection = (secEl, label, secId) => {
+      secEl.dataset.sectionId = secId;
+      sections.push(secEl);
+      jumpTargets.push({ label, secEl, secId });
+    };
     const favShown = favoriteKeys().map((k) => shown.find((t) => t.key === k)).filter(Boolean);
     if ((grp === "all" || grp === "favorites") && favShown.length && sortBy === "group") {
-      sections.push(h("section", { class: "theme-section-favorites" }, h("h3", {}, `Favorites (${favShown.length})`), h("div", { class: "theme-grid" }, favShown.map(card))));
+      addSection(h("section", { class: "theme-section-favorites" }, h("h3", {}, `Favorites (${favShown.length})`), h("div", { class: "theme-grid" }, favShown.map(card))), `★ Favorites (${favShown.length})`, "favorites");
     }
     if (grp === "recent") {
       const recShown = recKeys.map((k) => shown.find((t) => t.key === k)).filter(Boolean);
       if (recShown.length) {
-        sections.push(h("section", { class: "theme-section-recent" }, h("h3", {}, `Recently used (${recShown.length})`), h("div", { class: "theme-grid" }, recShown.map(card))));
+        addSection(h("section", { class: "theme-section-recent" }, h("h3", {}, `Recently used (${recShown.length})`), h("div", { class: "theme-grid" }, recShown.map(card))), `⏱ Recent (${recShown.length})`, "recent");
       }
     }
-    if (!q && m === "all" && fx !== "fx" && grp === "all" && activeCollection === "all" && activeVibe === "all" && activeMaterial === "all" && tier === "all" && anim === "all" && sortBy === "group") {
-      sections.push(h("section", {}, h("h3", {}, "Default"), h("div", { class: "theme-grid" }, defaultCard())));
+    if (!q && m === "all" && fx !== "fx" && grp === "all" && (activeCollection === "all" || activeCollection === "plain_static") && activeVibe === "all" && activeMaterial === "all" && tier === "all" && anim === "all" && sortBy === "group") {
+      addSection(h("section", {}, h("h3", {}, "Default"), h("div", { class: "theme-grid" }, defaultCard())), "Default", "default");
     }
     if (grp !== "favorites" && grp !== "recent") {
       if (sortBy !== "group") {
         if (shown.length) {
-          const sortHeading = sortBy === "ultra-first" ? "Sorted by Tier (🚀 Ultra First)" : sortBy === "eco-first" ? "Sorted by Tier (⚡ Low / Eco First)" : "All Matching Themes (A–Z)";
-          sections.push(h("section", {}, h("h3", {}, `${sortHeading} (${shown.length})`), h("div", { class: "theme-grid" }, shown.map(card))));
+          const sortHeading = sortBy === "cpu-asc"
+            ? "Sorted by Lowest CPU & GPU Load (📟 Zero-GPU First)"
+            : sortBy === "gpu-desc"
+              ? "Sorted by Highest GPU Shader Load (🔥 Ultra FX First)"
+              : sortBy === "ultra-first"
+                ? "Sorted by Tier (🚀 Ultra First)"
+                : sortBy === "eco-first"
+                  ? "Sorted by Tier (⚡ Low / Eco First)"
+                  : "All Matching Themes (A–Z)";
+          addSection(h("section", {}, h("h3", {}, `${sortHeading} (${shown.length})`), h("div", { class: "theme-grid" }, shown.map(card))), `${sortHeading} (${shown.length})`, "sorted");
         }
       } else {
         for (const group of GROUP_ORDER) {
           const inGroup = shown.filter((t) => t.group === group);
-          if (inGroup.length) sections.push(h("section", {}, h("h3", {}, `${group} (${inGroup.length})`), h("div", { class: "theme-grid" }, inGroup.map(card))));
+          if (inGroup.length) {
+            addSection(h("section", {}, h("h3", {}, `${group} (${inGroup.length})`), h("div", { class: "theme-grid" }, inGroup.map(card))), `${group} (${inGroup.length})`, group);
+          }
         }
       }
     } else if (grp === "favorites" && sortBy !== "group" && favShown.length) {
-      sections.push(h("section", { class: "theme-section-favorites" }, h("h3", {}, `Favorites (${favShown.length})`), h("div", { class: "theme-grid" }, favShown.map(card))));
+      addSection(h("section", { class: "theme-section-favorites" }, h("h3", {}, `Favorites (${favShown.length})`), h("div", { class: "theme-grid" }, favShown.map(card))), `★ Favorites (${favShown.length})`, "favorites");
+    }
+    if (jumpTargets.length > 1) {
+      sectionJumpBar.hidden = false;
+      sectionJumpBar.replaceChildren(
+        h("span", { class: "theme-pill-label" }, "Jump to section:"),
+        ...jumpTargets.map((jt) =>
+          h("button", {
+            type: "button",
+            class: "theme-filter-pill theme-jump-section-pill",
+            "data-jump-section": jt.secId,
+            title: `Scroll directly to ${jt.label}`,
+            onclick: () => {
+              jt.secEl.scrollIntoView?.({ behavior: "smooth", block: "start" });
+            },
+          }, jt.label),
+        ),
+      );
+    } else {
+      sectionJumpBar.hidden = true;
+      sectionJumpBar.replaceChildren();
     }
     const emptyMsg = grp === "favorites" && !favSet.size
       ? "No favorite themes yet. Click ☆ on any theme card to pin it here."
@@ -2301,6 +4134,7 @@ export async function showThemePicker() {
   // Keyboard: the arrow keys, PageUp/PageDown, Home, End, and [ / ] move between cards and show each theme straight away (not saved yet).
   // Enter or Space keeps the focused theme, Done keeps the one on show, and Escape goes back to the saved theme.
   let previewKey = null;
+  let telemetryDeck = null;
   const reloadGalleryThemes = async () => {
     try {
       themes = await themeList();
@@ -2317,14 +4151,41 @@ export async function showThemePicker() {
   const preview = debounce((key) => { if (previewKey === key) applyPalette(key); }, 20);
   async function pick(key) {
     previewKey = null;
+    const pickedTheme = key ? themes.find((t) => t.key === key) : null;
+    if (!key || !pickedTheme?.hasEffects) {
+      // Choosing Standard or any Plain Theme automatically stops leftover background canvas atmospheres & folder FX
+      try {
+        applyAtmosphere("none");
+      } catch {}
+      if (state.settings) {
+        state.settings.atmosphere = "none";
+        state.settings.uiElementFx = "off";
+        state.settings.iconPackStyle = "default";
+        state.settings.themeIconGlow = "off";
+      }
+      applyUiImmersionProfiles({ uiElementFx: "off", iconPackStyle: "default", themeIconGlow: "off" });
+    }
     await choose(key);
-    draw();
+    telemetryDeck?.inspectTheme?.(key);
+    if (groupFilter.value === "recent") {
+      draw();
+    } else {
+      for (const c of list.querySelectorAll(".theme-card")) {
+        c.setAttribute("aria-pressed", String((c.dataset.key ?? "") === key));
+      }
+      for (const chip of plainQuickButtons) {
+        const active = (chip.dataset.plainQuick || "") === key;
+        chip.classList.toggle("is-active", active);
+        chip.setAttribute("aria-pressed", String(active));
+      }
+    }
     cards().find((c) => (c.dataset.key ?? "") === key)?.focus({ preventScroll: true });
   }
   list.addEventListener("focusin", (e) => {
     const c = e.target.closest?.(".theme-card");
     if (!c) return;
     const key = c.dataset.key ?? "";
+    telemetryDeck?.inspectTheme?.(key);
     if (key === (state.settings.palette || "") && previewKey === null) return;
     previewKey = key;
     preview(key);
@@ -2357,6 +4218,7 @@ export async function showThemePicker() {
     if (!targetCard) return;
     const key = targetCard.dataset.key ?? "";
     previewKey = key;
+    telemetryDeck?.inspectTheme?.(key);
     void applyPalette(key);
     targetCard.focus({ preventScroll: true });
     targetCard.scrollIntoView?.({ block: "nearest", inline: "nearest" });
@@ -2398,7 +4260,13 @@ export async function showThemePicker() {
   tierFilter.addEventListener("change", draw);
   animFilter.addEventListener("change", draw);
   sortFilter.addEventListener("change", draw);
-  draw();
+
+  if (opts?.filter && ["plain", "plain-dark", "plain-light", "plain-editors", "plain-os", "fx", "all"].includes(opts.filter)) {
+    applyBrowseMode(opts.filter);
+  } else {
+    draw();
+  }
+
   const activeFolderPath = normalizeFolderKey(currentPath() || state.cwd || "");
   const updatePinFolderLabel = (btn) => {
     if (!btn) return;
@@ -2430,11 +4298,84 @@ export async function showThemePicker() {
   }, "📁 Pin to Folder");
   updatePinFolderLabel(pinFolderBtn);
 
+  let telemetryCollapsibleTray = null;
+  let telemetryStudioBtn = null;
+  const syncTelemetryBtnLabel = () => {
+    if (!telemetryStudioBtn) return;
+    const isOpen = Boolean(telemetryCollapsibleTray?.open) || isTelemetryPopoutHudOpen();
+    telemetryStudioBtn.classList.toggle("is-active", isOpen);
+    telemetryStudioBtn.setAttribute("aria-pressed", String(isOpen));
+    telemetryStudioBtn.textContent = isOpen ? "✕ Hide CPU/GPU Monitor" : "📟 CPU/GPU Monitor";
+  };
+
+  telemetryDeck = buildThemeTelemetryDeck({
+    themes,
+    getTargetKey: () => previewKey ?? state.settings?.palette ?? "",
+    onStateMutated: () => draw(),
+    onCloseDrawer: () => {
+      if (telemetryCollapsibleTray) telemetryCollapsibleTray.open = false;
+      closeTelemetryPopoutHud();
+      syncTelemetryBtnLabel();
+    },
+  });
+  telemetryCollapsibleTray = h("details", {
+    class: "theme-collapsible-tray telemetry-collapsible-tray",
+    "data-telemetry-studio-drawer": "true",
+    open: Boolean(opts?.openTelemetry),
+    ontoggle: () => {
+      if (telemetryCollapsibleTray?.open) {
+        telemetryDeck?.inspectTheme?.(previewKey ?? state.settings?.palette ?? "", true);
+      }
+      syncTelemetryBtnLabel();
+    },
+  },
+    h("summary", { class: "theme-collapsible-summary telemetry-collapsible-summary" },
+      "📟 Live Theme CPU & GPU Telemetry Studio — VFD P/E Core Bars, Oscilloscope Trace, 4-Quadrant Dials & Load Shedder",
+    ),
+    telemetryDeck,
+  );
+
   const immersionBar = buildImmersionStudioBar();
+  const studioCollapsibleTray = h("details", {
+    class: "theme-collapsible-tray",
+    "data-fx-studio-drawer": "true",
+  },
+    h("summary", { class: "theme-collapsible-summary" },
+      "🎛️ Advanced Shader Filters, 1-Click 3D Jumpstart Kits & Folder/Icon FX Studio (Click to expand/collapse)",
+    ),
+    advancedFiltersNav,
+    immersionBar,
+  );
+
+  telemetryStudioBtn = h("button", {
+    type: "button",
+    class: "btn theme-telemetry-btn",
+    "data-open-telemetry-studio": "true",
+    "aria-pressed": String(Boolean(opts?.openTelemetry) || isTelemetryPopoutHudOpen()),
+    title: "Toggle the Live Theme CPU & GPU Telemetry Studio (or close any open CPU/GPU HUD).",
+    onclick: () => {
+      if (isTelemetryPopoutHudOpen() && !telemetryCollapsibleTray.open) {
+        closeTelemetryPopoutHud();
+        syncTelemetryBtnLabel();
+        return;
+      }
+      telemetryCollapsibleTray.open = !telemetryCollapsibleTray.open;
+      if (telemetryCollapsibleTray.open) {
+        telemetryDeck.stepSample?.();
+        telemetryCollapsibleTray.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+      } else {
+        closeTelemetryPopoutHud();
+      }
+      syncTelemetryBtnLabel();
+    },
+  }, "📟 CPU/GPU Monitor");
+  syncTelemetryBtnLabel();
+
   const dialog = openDialog({
     title: "Themes",
     wide: true,
     body: [
+      browseModeBar,
       h("div", { class: "theme-tools" },
         search, mode, groupFilter, fxFilter, tierFilter, animFilter, sortFilter,
         h("button", {
@@ -2454,7 +4395,8 @@ export async function showThemePicker() {
         h("button", {
           type: "button",
           class: "btn theme-random-btn",
-          title: "Pick a random theme from the currently shown themes.",
+          "data-random-any-btn": "true",
+          title: "Pick a random theme from the currently shown themes (or press Alt+R / ⌥R anywhere with no dialog needed).",
           onclick: async () => {
             const pool = lastShown.length ? lastShown : themes;
             if (!pool.length) return;
@@ -2463,7 +4405,39 @@ export async function showThemePicker() {
             if (chosen) await pick(chosen.key);
             updatePinFolderLabel(pinFolderBtn);
           },
-        }, "🎲 Surprise me"),
+        }, "🎲 Surprise me (⌥R)"),
+        h("button", {
+          type: "button",
+          class: "btn theme-random-fx-btn",
+          "data-random-fx-btn": "true",
+          title: "Pick a random animated / 3D FX theme (or press Alt+E / ⌥E or ⌥⇧R anywhere with no dialog needed).",
+          onclick: async () => {
+            const pool = (lastShown.length ? lastShown : themes).filter((t) => Boolean(t.hasEffects));
+            const fallback = pool.length ? pool : themes.filter((t) => Boolean(t.hasEffects));
+            if (!fallback.length) return;
+            const candidates = fallback.filter((t) => t.key !== state.settings.palette);
+            const chosen = (candidates.length ? candidates : fallback)[Math.floor(Math.random() * (candidates.length || fallback.length))];
+            if (chosen) await pick(chosen.key);
+            updatePinFolderLabel(pinFolderBtn);
+          },
+        }, "✨ Random FX (⌥E)"),
+        h("button", {
+          type: "button",
+          class: "btn theme-random-plain-btn",
+          "data-random-plain-btn": "true",
+          title: "Pick a random Plain / No-Animation theme with 0.0% GPU load (or press Alt+P / ⌥P anywhere with no dialog needed).",
+          onclick: async () => {
+            await disableAllThemeAnimations({ quiet: true, stripThemeEffects: false });
+            const pool = (lastShown.length ? lastShown : themes).filter((t) => !t.hasEffects);
+            const fallback = pool.length ? pool : themes.filter((t) => !t.hasEffects);
+            if (!fallback.length) return;
+            const candidates = fallback.filter((t) => t.key !== state.settings.palette);
+            const chosen = (candidates.length ? candidates : fallback)[Math.floor(Math.random() * (candidates.length || fallback.length))];
+            if (chosen) await pick(chosen.key);
+            updatePinFolderLabel(pinFolderBtn);
+          },
+        }, "⏹️ Random Plain (⌥P)"),
+        telemetryStudioBtn,
         h("button", {
           type: "button",
           class: "btn theme-compare-btn",
@@ -2512,8 +4486,8 @@ export async function showThemePicker() {
         h("button", { type: "button", class: "btn", title: "Add weather, storm debris, or particle effects like EF5 Tornado, Hurricane, Slime, or Digital Rain — with Low, Medium, Modern ARM Ultra & M4 Max Extreme graphics profiles.", onclick: () => { emit("atmosphere-picker"); } }, "Atmosphere FX…"),
         h("button", { type: "button", class: "btn", title: "Choose a Light theme for daytime, a Dark theme for nighttime, a 4-stage Solar Cycle schedule, or an Ambient Auto-Rotation Playlist.", onclick: () => { void showDayNightPairDialog(themes); } }, "Day / Night & Playlist…"),
         h("button", { type: "button", class: "btn", title: "Make your own theme, extract colors from an image/wallpaper, or hack any premade theme to death.", onclick: () => { dialog.close(); emit("theme-editor", { from: state.settings.palette || "" }); } }, "Create or edit a theme…")),
-      navBar, immersionBar, count, list,
-      h("p", { class: "hint" }, "A theme applies as soon as you click it, and is remembered. Press ⌘V / Ctrl+V or drop a .theme.json / .ccfm file anywhere to import; click 🔗 on any card to copy its share code in 1 click, ✎ to clone & hack it in the Theme Editor, or ☆ to pin to Favorites."),
+      navBar, telemetryCollapsibleTray, studioCollapsibleTray, sectionJumpBar, count, list,
+      h("p", { class: "hint" }, "A theme applies as soon as you click it, and is remembered. Click ⏹️ Plain Themes at the top for zero-animation themes, or click ⏹️ on any FX card to use its colors without animations. Press ⌘V / Ctrl+V to import a shared theme code."),
     ],
     buttons: [{ label: "Done", primary: true, value: true }],
     initialFocus: search,
@@ -2697,6 +4671,8 @@ export async function showThemeCompareDialog(existingThemes, initialA = "", init
       blendNameInput.dataset.autoName = "true";
     }
     refreshBlendSwatches();
+    const teleA = estimateThemeResourceTelemetry(themeA);
+    const teleB = estimateThemeResourceTelemetry(themeB);
     const rows = [
       ["Template Tier", resolveTemplateTier(themeA).toUpperCase(), resolveTemplateTier(themeB).toUpperCase()],
       ["Category", themeA.group, themeB.group],
@@ -2706,9 +4682,19 @@ export async function showThemeCompareDialog(existingThemes, initialA = "", init
       ["Live Canvas FX", themeA.atmosphere && themeA.atmosphere !== "none" ? `🌌 ${themeA.atmosphere}` : "None", themeB.atmosphere && themeB.atmosphere !== "none" ? `🌌 ${themeB.atmosphere}` : "None"],
       ["Motion & UI FX", `${themeA.motion || (themeA.hasEffects ? "smooth" : "static")}${themeA.uiElementFx ? ` · ${themeA.uiElementFx}` : ""}`, `${themeB.motion || (themeB.hasEffects ? "smooth" : "static")}${themeB.uiElementFx ? ` · ${themeB.uiElementFx}` : ""}`],
     ];
+    const telemetryFooterRows = [
+      ["📟 CPU / GPU Load", `CPU ${teleA.cpuPct.toFixed(1)}% · GPU ${teleA.gpuPct.toFixed(1)}% (${teleA.gradeLabel})`, `CPU ${teleB.cpuPct.toFixed(1)}% · GPU ${teleB.gpuPct.toFixed(1)}% (${teleB.gradeLabel})`],
+      ["⚡ Power, VRAM & Pacing", `${teleA.watts.toFixed(1)} W · ${teleA.vramMb.toFixed(1)} MB · ${teleA.fps} FPS (${teleA.frameTimeMs}ms)`, `${teleB.watts.toFixed(1)} W · ${teleB.vramMb.toFixed(1)} MB · ${teleB.fps} FPS (${teleB.frameTimeMs}ms)`],
+    ];
     specTable.replaceChildren(
       h("thead", {}, h("tr", {}, h("th", {}, "Specification"), h("th", {}, `A: ${themeA.name}`), h("th", {}, `B: ${themeB.name}`))),
       h("tbody", {}, ...rows.map(([label, valA, valB]) =>
+        h("tr", { class: valA !== valB ? "is-diff" : "" },
+          h("td", { class: "spec-name" }, label),
+          h("td", {}, valA),
+          h("td", {}, valB),
+        ))),
+      h("tfoot", {}, ...telemetryFooterRows.map(([label, valA, valB]) =>
         h("tr", { class: valA !== valB ? "is-diff" : "" },
           h("td", { class: "spec-name" }, label),
           h("td", {}, valA),
@@ -3780,7 +5766,7 @@ export const THEME_SHOW_CHANNELS_META = [
     icon: "🚀",
     label: "M4 Max & Ultra Showcase",
     desc: "All Ultra-tier themes paired with multi-layer signature atmospheric mixes.",
-    themes: ["mac_studio_m4_ultra", "mac_pro_rack_xdr", "macbook_pro_space_black", "imac_m4_spectrum_p3", "macos_sequoia_redwood_xdr", "macos_vision_spatial_mac", "ef5_debris_tornado", "inferno_fire_folders", "toxic_slime_ooze", "urban_street_cyclone", "tesla_coil_plasma", "tokamak_fusion", "hawking_horizon", "m4_space_black", "tahoe_liquid_glass"],
+    themes: ["omega_point_singularity", "photonic_metamaterial_3099", "matrioshka_dyson_brain", "chrono_crystalline_aethelgard", "akashic_neural_noosphere", "zero_point_vacuum_genesis", "mac_studio_m4_ultra", "mac_pro_rack_xdr", "macbook_pro_space_black", "imac_m4_spectrum_p3", "macos_sequoia_redwood_xdr", "macos_vision_spatial_mac", "ef5_debris_tornado", "inferno_fire_folders", "toxic_slime_ooze", "urban_street_cyclone", "tesla_coil_plasma", "tokamak_fusion", "hawking_horizon", "m4_space_black", "tahoe_liquid_glass"],
     mixes: [
       "m4_raytrace_prism+liquid_glass_caustics",
       "debris_tornado_ef5+urban_cyclone_debris+hail_supercell+derecho_squall",
@@ -3808,9 +5794,9 @@ export const THEME_SHOW_CHANNELS_META = [
   {
     id: "year_2126",
     icon: "🛸",
-    label: "Year 2126 Hyper-Dimensional",
-    desc: "4D Tesseracts, 11D Calabi-Yau manifolds, Penrose quasicrystals, Klein bottles, Matrioshka brains, and retrocausal time loops.",
-    themes: ["hawking_horizon", "alcubierre_warp_drive", "kardashev_dyson_swarm", "quark_gluon_plasma", "m4_space_black", "cyberpunk_neon"],
+    label: "Year 2126 & 3099 God-Mode",
+    desc: "Post-Singularity Omega Point, 3099 Photonic Metamaterials, Matrioshka Dyson Brains, 4D Tesseracts, 11D Calabi-Yau manifolds, and retrocausal time loops.",
+    themes: ["omega_point_singularity", "photonic_metamaterial_3099", "matrioshka_dyson_brain", "chrono_crystalline_aethelgard", "akashic_neural_noosphere", "zero_point_vacuum_genesis", "kardashev_type_iii_galactic", "transcendent_seraphim_halo", "femtotech_picomatter_forge", "holographic_holodeck_continuum", "hawking_horizon", "alcubierre_warp_drive", "kardashev_dyson_swarm", "quark_gluon_plasma", "m4_space_black", "cyberpunk_neon"],
     mixes: [
       "tesseract_4d+calabi_yau+chronos_retrocausal",
       "eigen_consciousness+tachyon_braid_2126+dyson_swarm",
@@ -4510,6 +6496,12 @@ const boundShortcutWindows = typeof WeakSet !== "undefined" ? new WeakSet() : nu
  *    even when the Theme Gallery search input is focused, without interfering with normal text editing or dedicated import textareas).
  * 2. Explicit Keyboard Shortcut Paste Theme Import (`⌘⇧V` / `Ctrl+Shift+V`).
  * 3. `Right ⌥ + ]` / `Right ⌥ + [` (`Alt + ]` / `Alt + [`) instant theme quick-switcher with live HUD.
+ * 4. Dialog-free Quick Random Theme & FX Toggle shortcuts:
+ *    - `Alt+R` (`⌥R`): Quick Random Theme (any theme, no dialog)
+ *    - `Alt+E` / `Alt+Shift+R` (`⌥E` / `⌥⇧R`): Quick Random FX Theme (with effects, no dialog)
+ *    - `Alt+P` / `Alt+Shift+P` (`⌥P` / `⌥⇧P`): Quick Random Plain Theme (no effects / 0.0% GPU, no dialog)
+ *    - `Alt+U` (`⌥U`): Quick Random Ultra / God-Mode Theme (no dialog)
+ *    - `Alt+0` (`⌥0`): Toggle or turn off animations & FX on current theme (no dialog)
  */
 export function ensureGlobalThemeShortcutsBound() {
   if (typeof window === "undefined" || typeof window.addEventListener !== "function") return;
@@ -4549,14 +6541,50 @@ export function ensureGlobalThemeShortcutsBound() {
         return;
       }
     }
+    if (!e.altKey || e.ctrlKey || e.metaKey) return;
+    const target = e.target;
+    const tag = target?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target?.isContentEditable) return;
+
     // Option + ] / Option + [ (Alt + BracketRight / BracketLeft) -> Cycle Themes with Quick-Switcher HUD
-    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.code === "BracketRight" || e.code === "BracketLeft" || e.key === "]" || e.key === "[")) {
-      const target = e.target;
-      const tag = target?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target?.isContentEditable) return;
+    if (e.code === "BracketRight" || e.code === "BracketLeft" || e.key === "]" || e.key === "[") {
       e.preventDefault();
       const dir = (e.code === "BracketRight" || e.key === "]") ? 1 : -1;
       void cycleTheme(dir, { showcaseOnly: Boolean(e.shiftKey) });
+      return;
+    }
+
+    const code = e.code || "";
+    const lowKey = typeof e.key === "string" ? e.key.toLowerCase() : "";
+
+    // Alt + E or Alt + Shift + R -> Quick Random FX Theme (with effects, no dialog)
+    if ((!e.shiftKey && (code === "KeyE" || lowKey === "e")) || (e.shiftKey && (code === "KeyR" || lowKey === "r"))) {
+      e.preventDefault();
+      void randomTheme({ mode: "fx" });
+      return;
+    }
+    // Alt + R -> Quick Random Theme (any theme, no dialog)
+    if (!e.shiftKey && (code === "KeyR" || lowKey === "r")) {
+      e.preventDefault();
+      void randomTheme({ mode: "any" });
+      return;
+    }
+    // Alt + P or Alt + Shift + P -> Quick Random Plain Theme (no effects / 0.0% GPU, no dialog)
+    if (code === "KeyP" || lowKey === "p") {
+      e.preventDefault();
+      void randomTheme({ mode: "plain" });
+      return;
+    }
+    // Alt + U -> Quick Random Ultra / God-Mode Theme (no dialog)
+    if (!e.shiftKey && (code === "KeyU" || lowKey === "u")) {
+      e.preventDefault();
+      void randomTheme({ mode: "ultra" });
+      return;
+    }
+    // Alt + 0 -> Instant Toggle / Turn Off Animations & FX on current theme (no dialog)
+    if (!e.shiftKey && (code === "Digit0" || lowKey === "0")) {
+      e.preventDefault();
+      void toggleCurrentThemeEffects();
     }
   });
 }
@@ -4573,7 +6601,9 @@ on("view", () => {
     void applyPalette(target);
   }
 });
-on("theme-picker", () => { ensureGlobalThemeShortcutsBound(); void showThemePicker(); });
+on("theme-picker", (detail) => { ensureGlobalThemeShortcutsBound(); void showThemePicker(detail || {}); });
+on("theme-random", (detail) => { ensureGlobalThemeShortcutsBound(); void randomTheme(detail || {}); });
+on("theme-toggle-fx", (detail) => { ensureGlobalThemeShortcutsBound(); void toggleCurrentThemeEffects(detail || {}); });
 on("theme-day-night", () => showDayNightPairDialog());
 on("theme-compare", (detail) => showThemeCompareDialog(undefined, detail?.a || "", detail?.b || ""));
 on("theme-share", (detail) => showThemeShareDialog(detail?.key || ""));

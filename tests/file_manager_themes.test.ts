@@ -912,7 +912,7 @@ describe("the theme editor in the page", () => {
     await sleep(450);
 
     expect(doc.querySelector(".dialog-title").textContent).toBe("Theme editor");
-    expect(doc.querySelectorAll("[data-fx-preset]").length).toBe(12);
+    expect(doc.querySelectorAll("[data-fx-preset]").length).toBe(16);
     expect(doc.querySelectorAll("[data-harmony]").length).toBe(3);
 
     // Click Tahoe Liquid Glass preset and Auto-harmonize from Accent
@@ -1587,11 +1587,341 @@ describe("the theme editor in the page", () => {
       ]),
     );
 
+    // 13. Plain Themes (No Animations) Browse Mode Bar, Instant Plain Picks, Section Jump Bar, Kill Animations button & Themes Menu
+    const menuMod = await import("../resources/file_manager/ui/themeMenu.js") as any;
+    const menuItems = await menuMod.themeMenuItems();
+    const menuLabels = menuItems.map((it: any) => it.label).filter(Boolean);
+    expect(menuLabels).toContain("Plain themes (no animations)…");
+    expect(menuLabels).toContain("Plain dark themes (no FX)…");
+    expect(menuLabels).toContain("Plain light themes (no FX)…");
+    expect(menuLabels).toContain("Turn off all animations & FX");
+
+    // Open Theme Gallery directly in Plain Themes mode
+    closeDialogs();
+    await (themes as any).showThemePicker({ filter: "plain" });
+    await sleep(120);
+    expect(doc.querySelector('[data-browse-mode="plain"]')?.getAttribute("aria-pressed")).toBe("true");
+    expect(doc.querySelector("details[data-fx-studio-drawer]")?.hasAttribute("open")).toBe(false);
+    expect(doc.querySelectorAll("[data-plain-quick]").length).toBeGreaterThanOrEqual(15);
+    expect(doc.querySelectorAll("[data-jump-section]").length).toBeGreaterThanOrEqual(5);
+
+    const plainGalleryCards = [...doc.querySelectorAll(".theme-card")];
+    expect(plainGalleryCards.length).toBeGreaterThanOrEqual(140);
+    expect(plainGalleryCards.some((c: any) => c.querySelector(".theme-fx-badge"))).toBe(false);
+    const plainHeadings = [...doc.querySelectorAll(".theme-list h3")].map((h: any) => h.textContent);
+    expect(plainHeadings.some((h: string) => h.startsWith("Futuristic"))).toBe(false);
+    expect(plainHeadings.some((h: string) => h.startsWith("Editors and classics"))).toBe(true);
+
+    // Switch to Plain Dark, Plain Light, Plain Editors, and Plain OS Classics via 1-click Browse Mode tabs
+    (doc.querySelector('[data-browse-mode="plain-dark"]') as any).click();
+    await sleep(80);
+    const plainDarkCards = [...doc.querySelectorAll(".theme-card")];
+    expect(plainDarkCards.length).toBeGreaterThanOrEqual(100);
+    expect(plainDarkCards.every((c: any) => c.querySelector(".theme-kind")?.textContent === "Dark")).toBe(true);
+
+    (doc.querySelector('[data-browse-mode="plain-light"]') as any).click();
+    await sleep(80);
+    const plainLightCards = [...doc.querySelectorAll(".theme-card")];
+    expect(plainLightCards.length).toBeGreaterThanOrEqual(25);
+    expect(plainLightCards.every((c: any) => c.querySelector(".theme-kind")?.textContent === "Light")).toBe(true);
+
+    (doc.querySelector('[data-browse-mode="plain-os"]') as any).click();
+    await sleep(80);
+    const plainOsHeadings = [...doc.querySelectorAll(".theme-list h3")].map((h: any) => h.textContent);
+    expect(plainOsHeadings.some((h: string) => h.startsWith("macOS"))).toBe(true);
+    expect(plainOsHeadings.some((h: string) => h.startsWith("Windows"))).toBe(true);
+    expect(plainOsHeadings.some((h: string) => h.startsWith("Futuristic"))).toBe(false);
+
+    // Apply an FX theme's colors only (without animations or special effects) via applyThemePlainColorsOnly
+    await (themes as any).applyThemePlainColorsOnly("holiday_christmas_nutcracker_hearth", { quiet: true });
+    expect(state.settings.palette).toBe("holiday_christmas_nutcracker_hearth");
+    expect(doc.documentElement.dataset.fx).toBeUndefined();
+    expect(doc.getElementById("fm-theme-effects")).toBeNull();
+    expect(doc.documentElement.hasAttribute("data-ui-fx")).toBe(false);
+    expect(doc.documentElement.dataset.atmosphere).toBeUndefined();
+
+    // Activate an animated Jumpstart Kit, then click an Instant Plain Theme chip ([data-plain-quick="dracula"]) and verify all animations stop
+    await (themes as any).applyJumpstartKit("screen_melt_distortion_kit");
+    expect(doc.documentElement.getAttribute("data-ui-fx")).toBe("screen_melt_ooze");
+    (doc.querySelector('[data-plain-quick="dracula"]') as any).click();
+    await sleep(120);
+    expect(state.settings.palette).toBe("dracula");
+    expect(doc.documentElement.hasAttribute("data-ui-fx")).toBe(false);
+    expect(doc.documentElement.dataset.atmosphere).toBeUndefined();
+    expect(doc.documentElement.dataset.fx).toBeUndefined();
+
+    // 14. Massive Apple-Level Customization Pack (Shaders, Icon Packs, Typography/Corner/Glow Profiles, Mutators, Snippets, Wizards, Wallpapers)
+    for (const appleFx of [
+      "cupertino_ceramic_bevel",
+      "swiss_sapphire_chronograph",
+      "teenage_field_anodized",
+      "blueprint_cad_cyanotype",
+      "kyoto_washi_sumi",
+      "carbon_kevlar_weave",
+    ]) {
+      (themes as any).applyUiImmersionProfiles({ uiElementFx: appleFx });
+      expect(doc.documentElement.getAttribute("data-ui-fx")).toBe(appleFx);
+      expect(fxCss).toContain(`[data-ui-fx="${appleFx}"]`);
+    }
+    for (const applePack of [
+      "cupertino_hig_studio",
+      "swiss_horology_gold",
+      "teenage_field_synth",
+      "blueprint_cad_pro",
+      "kyoto_zen_ink",
+      "carbon_aerospace",
+    ]) {
+      (themes as any).applyUiImmersionProfiles({ iconPackStyle: applePack });
+      expect(doc.documentElement.getAttribute("data-icon-pack")).toBe(applePack);
+      expect(["📁", "📂", "🗂️"]).toContain(domMod.iconFor("Projects", true, applePack));
+      expect(["💻", "🧑‍💻", "📄"]).toContain(domMod.iconFor("main.ts", false, applePack));
+    }
+    for (const fp of ["humanist_hig", "swiss_grotesk", "drafting_cad"]) {
+      (themes as any).applyUiImmersionProfiles({ themeFontProfile: fp });
+      expect(doc.documentElement.getAttribute("data-font-profile")).toBe(fp);
+      expect(fxCss).toContain(`[data-font-profile="${fp}"]`);
+    }
+    for (const cp of ["squircle_hig", "chamfered"]) {
+      (themes as any).applyUiImmersionProfiles({ themeCornerProfile: cp });
+      expect(doc.documentElement.getAttribute("data-corner-profile")).toBe(cp);
+      expect(fxCss).toContain(`[data-corner-profile="${cp}"]`);
+    }
+    for (const gp of ["ambient_p3", "xdr_specular"]) {
+      (themes as any).applyUiImmersionProfiles({ themeIconGlow: gp });
+      expect(doc.documentElement.getAttribute("data-icon-glow")).toBe(gp);
+      expect(fxCss).toContain(`[data-icon-glow="${gp}"]`);
+    }
+    expect(editorMod.THEME_HACK_MUTATORS.length).toBeGreaterThanOrEqual(16);
+    expect(editorMod.CUSTOM_CSS_SNIPPETS.length).toBeGreaterThanOrEqual(12);
+    expect(editorMod.SPECIAL_EFFECTS_DESIGN_WIZARD_RECIPES.length).toBeGreaterThanOrEqual(20);
+    expect(editorMod.PREBUILT_WALLPAPER_SCENES.length).toBeGreaterThanOrEqual(20);
+
+    // 15. Live CPU & GPU Telemetry Studio (VFD P/E Core Bars, Oscilloscope, 4-Quadrant Dials, 16-Band Spectrum, Load Shedder — Zero TMOG references)
+    expect((themes as any).TELEMETRY_PHOSPHOR_MODES.length).toBe(6);
+    expect((themes as any).TELEMETRY_INSTRUMENT_SKINS.length).toBe(4);
+    expect(JSON.stringify((themes as any).TELEMETRY_PHOSPHOR_MODES).toLowerCase()).not.toContain("tmog");
+    expect(JSON.stringify((themes as any).TELEMETRY_INSTRUMENT_SKINS).toLowerCase()).not.toContain("tmog");
+
+    const plainTele = (themes as any).estimateThemeResourceTelemetry({ key: "dracula", name: "Dracula", hasEffects: false });
+    expect(plainTele.gpuPct).toBe(0);
+    expect(plainTele.grade).toBe("ZERO-OVERHEAD");
+    expect(plainTele.pCores.length).toBe(8);
+    expect(plainTele.eCores.length).toBe(8);
+    expect(plainTele.gpuCores.length).toBe(8);
+    expect(plainTele.spectrumBands.length).toBe(16);
+
+    const fxTele = (themes as any).estimateThemeResourceTelemetry({
+      key: "macos_tahoe_liquid_aurora",
+      name: "macOS Tahoe Liquid Aurora",
+      hasEffects: true,
+      backdropStyle: "liquid",
+      uiElementFx: "cupertino_ceramic_bevel",
+      atmosphere: "aurora_borealis",
+    });
+    expect(fxTele.gpuPct).toBeGreaterThan(plainTele.gpuPct);
+    expect(fxTele.cpuPct).toBeGreaterThan(plainTele.cpuPct);
+
+    const hudEl = await (themes as any).showTelemetryPopoutHud();
+    expect(hudEl).toBeTruthy();
+    expect(doc.getElementById("fm-telemetry-popout-hud")).toBeTruthy();
+    expect((themes as any).isTelemetryPopoutHudOpen()).toBe(true);
+    expect(hudEl.textContent.toLowerCase()).not.toContain("tmog");
+    const skinBtns = [...hudEl.querySelectorAll("[data-telemetry-skin-btn]")];
+    expect(skinBtns.length).toBe(4);
+    (hudEl.querySelector('[data-telemetry-skin-btn="quadrant_gauges"]') as any).click();
+    expect(hudEl.querySelectorAll("[data-telemetry-dial]").length).toBe(4);
+    (hudEl.querySelector('[data-telemetry-skin-btn="winamp_spectrum"]') as any).click();
+    expect(hudEl.querySelectorAll("[data-telemetry-spectrum-band]").length).toBe(16);
+    (hudEl.querySelector('[data-telemetry-skin-btn="subsystem_profiler"]') as any).click();
+    expect(hudEl.querySelectorAll("[data-telemetry-subsystem-row]").length).toBe(6);
+
+    // Top close button dismisses the floating HUD immediately
+    const topCloseBtn = hudEl.querySelector('[data-telemetry-top-close="true"]') as any;
+    expect(topCloseBtn).toBeTruthy();
+    topCloseBtn.click();
+    expect(doc.getElementById("fm-telemetry-popout-hud")).toBeNull();
+    expect((themes as any).isTelemetryPopoutHudOpen()).toBe(false);
+
+    // toggleTelemetryPopoutHud opens when closed and closes when open
+    await (themes as any).toggleTelemetryPopoutHud();
+    expect((themes as any).isTelemetryPopoutHudOpen()).toBe(true);
+    await (themes as any).toggleTelemetryPopoutHud();
+    expect((themes as any).isTelemetryPopoutHudOpen()).toBe(false);
+    expect(doc.getElementById("fm-telemetry-popout-hud")).toBeNull();
+
+    // disableAllThemeAnimations also dismisses any open floating HUD
+    await (themes as any).showTelemetryPopoutHud();
+    expect(doc.getElementById("fm-telemetry-popout-hud")).toBeTruthy();
+    await (themes as any).disableAllThemeAnimations();
+    expect(doc.getElementById("fm-telemetry-popout-hud")).toBeNull();
+
+    // 16. Apple-Style Live Custom Theme Preview Stage & Section Focus / View Mover in Theme Editor
+    closeDialogs();
+    void editorMod.openThemeEditor({ from: "dracula" });
+    await sleep(120);
+
+    const livePreviewStage = doc.querySelector('[data-editor-live-preview="true"]') as any;
+    expect(livePreviewStage).toBeTruthy();
+    expect(doc.querySelectorAll("[data-preview-row]").length).toBe(5);
+    expect(doc.querySelectorAll("button[data-preview-dock]").length).toBe(3);
+    expect(doc.querySelector('[data-editor-peek-btn="true"]')).toBeTruthy();
+
+    // Clicking a sample file row in the Live Preview Stage updates selection state immediately
+    const secondPreviewRow = doc.querySelectorAll("[data-preview-row]")[1] as any;
+    secondPreviewRow.click();
+    expect(secondPreviewRow.classList.contains("selected")).toBe(true);
+    expect(secondPreviewRow.getAttribute("aria-pressed")).toBe("true");
+
+    // Switching Live Preview dock mode (Top Stage -> Split View -> Compact)
+    const splitDockBtn = doc.querySelector('button[data-preview-dock="split"]') as any;
+    splitDockBtn.click();
+    expect(doc.querySelector(".theme-editor")?.getAttribute("data-preview-dock")).toBe("split");
+    const topDockBtn = doc.querySelector('button[data-preview-dock="top"]') as any;
+    topDockBtn.click();
+    expect(doc.querySelector(".theme-editor")?.getAttribute("data-preview-dock")).toBe("top");
+
+    // Toggling Peek Full Workspace makes dialog translucent so background File Manager is visible
+    const peekBtn = doc.querySelector('[data-editor-peek-btn="true"]') as any;
+    peekBtn.click();
+    expect(peekBtn.getAttribute("aria-pressed")).toBe("true");
+    peekBtn.click();
+    expect(peekBtn.getAttribute("aria-pressed")).toBe("false");
+
+    // Section Focus & View Mover: supports Apple Simple Essentials mode (basics + colors + effects focused, hacker unfocused)
+    expect(editorMod.EDITOR_FOCUS_SECTIONS.length).toBe(7);
+    expect(doc.querySelector('[data-editor-focus-tab="all"]')?.getAttribute("aria-pressed")).toBe("true");
+    (doc.querySelector('[data-editor-focus-tab="simple"]') as any).click();
+    expect(doc.querySelector('[data-editor-focus-tab="simple"]')?.getAttribute("aria-pressed")).toBe("true");
+    expect(doc.querySelector('[data-editor-section="basics"]')?.getAttribute("data-section-focused")).toBe("true");
+    expect(doc.querySelector('[data-editor-section="colors"]')?.getAttribute("data-section-focused")).toBe("true");
+    expect(doc.querySelector('[data-editor-section="hacker"]')?.getAttribute("data-section-focused")).toBe("false");
+    expect(doc.querySelector('[data-editor-section="hacker"]')?.classList.contains("is-unfocused-section")).toBe(true);
+
+    // Focusing a specific section ("effects") isolates that section when Isolate mode is active
+    (doc.querySelector('[data-editor-focus-tab="effects"]') as any).click();
+    expect(doc.querySelector('[data-editor-section="effects"]')?.getAttribute("data-section-focused")).toBe("true");
+    expect(doc.querySelector('[data-editor-section="basics"]')?.getAttribute("data-section-focused")).toBe("false");
+
+    // Next Section ▶ and ◀ Prev Section buttons move the user's view between sections
+    (doc.querySelector('[data-editor-next-section="true"]') as any).click();
+    expect(doc.querySelector(".theme-editor")?.getAttribute("data-editor-focus")).toBe("wizard");
+    expect(doc.querySelector('[data-editor-section="wizard"]')?.getAttribute("data-section-focused")).toBe("true");
+
+    (doc.querySelector('[data-editor-prev-section="true"]') as any).click();
+    expect(doc.querySelector(".theme-editor")?.getAttribute("data-editor-focus")).toBe("effects");
+
+    // Clicking "All Sections" shows all 5 editor sections at once
+    (doc.querySelector('[data-editor-focus-tab="all"]') as any).click();
+    for (const secId of ["basics", "colors", "effects", "wizard", "hacker"]) {
+      expect(doc.querySelector(`[data-editor-section="${secId}"]`)?.getAttribute("data-section-focused")).toBe("true");
+    }
+
+    // Per-section Collapse/Expand button works cleanly
+    const collapseBasicsBtn = doc.querySelector('[data-collapse-section-btn="basics"]') as any;
+    collapseBasicsBtn.click();
+    expect(doc.querySelector('[data-editor-section="basics"]')?.getAttribute("data-section-collapsed")).toBe("true");
+    collapseBasicsBtn.click();
+    expect(doc.querySelector('[data-editor-section="basics"]')?.getAttribute("data-section-collapsed")).toBe("false");
+
     await themes.applyPalette("");
     atmo.applyAtmosphere("none");
     (themes as any).applyUiImmersionProfiles({ uiElementFx: "off", iconPackStyle: "default" });
     closeDialogs();
   });
-});
 
+  test("God-Mode Year 3000+ post-singularity themes, shaders, 3D icon packs, and workstation kits apply cleanly", async () => {
+    const kits = (themes as any).JUMPSTART_WORKSTATION_KITS as any[];
+    const omegaKit = kits.find((k) => k.id === "godmode_omega_singularity_kit");
+    expect(omegaKit).toBeDefined();
+    expect(omegaKit.palette).toBe("omega_point_singularity");
+    expect(omegaKit.uiElementFx).toBe("godmode_omega_halo");
+    expect(omegaKit.iconPackStyle).toBe("godmode_celestial");
+
+    const photonicKit = kits.find((k) => k.id === "godmode_photonic_3099_kit");
+    expect(photonicKit).toBeDefined();
+    expect(photonicKit.palette).toBe("photonic_metamaterial_3099");
+    expect(photonicKit.uiElementFx).toBe("godmode_photonic_crystal");
+    expect(photonicKit.iconPackStyle).toBe("godmode_photonic");
+
+    await themes.applyPalette("omega_point_singularity");
+    (themes as any).applyUiImmersionProfiles({
+      uiElementFx: "godmode_omega_halo",
+      iconPackStyle: "godmode_celestial",
+    });
+    expect(doc.documentElement.getAttribute("data-palette")).toBe("omega_point_singularity");
+    expect(doc.documentElement.getAttribute("data-ui-fx")).toBe("godmode_omega_halo");
+    expect(doc.documentElement.getAttribute("data-icon-pack")).toBe("godmode_celestial");
+
+    const domMod = await import("../resources/file_manager/ui/dom.js");
+    expect(domMod.iconForEntry({ isDirectory: true, name: "singularity" })).toBe("🪐");
+    expect(domMod.iconForEntry({ isDirectory: false, name: "kernel.ts" })).toBe("⚡");
+
+    (themes as any).applyUiImmersionProfiles({
+      uiElementFx: "godmode_chrono_crystal",
+      iconPackStyle: "godmode_chrono",
+    });
+    expect(doc.documentElement.getAttribute("data-ui-fx")).toBe("godmode_chrono_crystal");
+    expect(doc.documentElement.getAttribute("data-icon-pack")).toBe("godmode_chrono");
+    expect(domMod.iconForEntry({ isDirectory: true, name: "vault" })).toBe("⏳");
+
+    // Cross-platform hardware optimization presets (macOS Metal, Windows DirectX 12, Linux WebKitGTK / Parallels VM)
+    const platformPresets = (themes as any).OPTIMIZE_PLATFORM_PRESETS as any[];
+    expect(platformPresets.map((p) => p.id)).toEqual(["macos", "windows", "linux"]);
+    await (themes as any).applyPlatformOptimizationPreset("linux", { quiet: true });
+    expect(doc.documentElement.dataset.platform).toBe("linux");
+    expect(state.settings.atmosphereTier).toBe("medium");
+    await (themes as any).applyPlatformOptimizationPreset("windows", { quiet: true });
+    expect(doc.documentElement.dataset.platform).toBe("windows");
+    expect(state.settings.atmosphereTier).toBe("high");
+    await (themes as any).applyPlatformOptimizationPreset("macos", { quiet: true });
+    expect(doc.documentElement.dataset.platform).toBe("macos");
+    expect(state.settings.atmosphereTier).toBe("ultra");
+
+    // Dialog-free Quick Random Themes (Any, With Effects, Plain No-Effects, Ultra) & Toggle FX (Alt+R / Alt+E / Alt+P / Alt+U / Alt+0)
+    closeDialogs();
+    expect(doc.querySelector(".modal-backdrop")).toBeNull();
+
+    const fxPicked = await (themes as any).randomTheme({ mode: "fx", quiet: true });
+    expect(fxPicked).toBeTruthy();
+    expect(fxPicked.hasEffects).toBe(true);
+    expect(state.settings.palette).toBe(fxPicked.key);
+    expect(doc.documentElement.getAttribute("data-fx")).toBe("on");
+    expect(doc.querySelector(".modal-backdrop")).toBeNull();
+    expect(doc.getElementById("fm-quick-cycle-hud")).toBeTruthy();
+
+    // Toggle FX off (Alt+0) strips effects while keeping colors and opening no modal dialog
+    const toggledOff = await (themes as any).toggleCurrentThemeEffects({ quiet: true });
+    expect(toggledOff.fxEnabled).toBe(false);
+    expect(doc.documentElement.getAttribute("data-fx")).toBeNull();
+    expect(doc.querySelector(".modal-backdrop")).toBeNull();
+
+    // Toggle FX back on (Alt+0) restores full effects on the current FX theme
+    const toggledOn = await (themes as any).toggleCurrentThemeEffects({ quiet: true });
+    expect(toggledOn.fxEnabled).toBe(true);
+    expect(doc.documentElement.getAttribute("data-fx")).toBe("on");
+
+    // Quick Random Plain Theme (Alt+P) picks a static theme with hasEffects=false and clears all FX
+    const plainPicked = await (themes as any).randomTheme({ mode: "plain", quiet: true });
+    expect(plainPicked).toBeTruthy();
+    expect(plainPicked.hasEffects).toBe(false);
+    expect(state.settings.palette).toBe(plainPicked.key);
+    expect(doc.documentElement.getAttribute("data-fx")).toBeNull();
+    expect(doc.querySelector(".modal-backdrop")).toBeNull();
+
+    // Quick Random Ultra Theme (Alt+U) picks an Ultra-tier theme
+    const ultraPicked = await (themes as any).randomTheme({ mode: "ultra", quiet: true });
+    expect(ultraPicked).toBeTruthy();
+    expect((themes as any).resolveTemplateTier(ultraPicked)).toBe("ultra");
+    expect(doc.querySelector(".modal-backdrop")).toBeNull();
+
+    // Quick Random Any Theme (Alt+R)
+    const anyPicked = await (themes as any).randomTheme({ mode: "any", quiet: true });
+    expect(anyPicked).toBeTruthy();
+    expect(doc.querySelector(".modal-backdrop")).toBeNull();
+
+    (themes as any).hideQuickCycleHud();
+    await themes.applyPalette("");
+    (themes as any).applyUiImmersionProfiles({ uiElementFx: "off", iconPackStyle: "default" });
+  });
+});
 
