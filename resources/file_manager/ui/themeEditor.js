@@ -2184,15 +2184,54 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
     ...[...groups].map(([group, list]) => h("optgroup", { label: group }, list.map((t) => h("option", { value: t.key }, t.name)))),
   );
   startSelect.value = STANDARD[from] || themes.some((t) => t.key === from) ? from : isDark ? "standard-dark" : "standard-light";
+
+  let keepCurrentFxOnColorSwap = false;
+
+  /**
+   * Applies ONLY the color palette (`colors` + `dark`) from `next` while keeping `draft.fx` and `draft.name` intact,
+   * and harmonizes `draft.fx.glowColor` / `glowColor2` with the new accent & secondary colors.
+   */
+  const applyTemplateColorsKeepingDraftFx = (next, sourceName = "") => {
+    if (!next || !next.colors) return;
+    draft.colors = { ...draft.colors, ...next.colors };
+    draft.dark = Boolean(next.dark);
+    darkBox.checked = draft.dark;
+    if (draft.fx) {
+      draft.fx = {
+        ...draft.fx,
+        glowColor: draft.colors.accent || draft.fx.glowColor || "#6ea8ff",
+        glowColor2: draft.colors.secondary || draft.colors.accent || draft.fx.glowColor2 || "#a855f7",
+      };
+      for (const read of effectInputs.values()) read();
+      syncHackerInputs();
+    }
+    for (const [key, { picker, text }] of rows) {
+      const v = draft.colors[key] ?? "";
+      text.removeAttribute("aria-invalid");
+      text.value = v;
+      if (isHex(v)) picker.value = v;
+    }
+    renderTemplateBrowserCards();
+    refresh();
+    if (sourceName) {
+      toast(`🌈 Applied "${sourceName}" colors while keeping your current active effects!`, { kind: "info" });
+    }
+  };
+
   startSelect.addEventListener("change", async () => {
     try {
-      load(await loadStart(startSelect.value));
+      const loaded = await loadStart(startSelect.value);
+      if (keepCurrentFxOnColorSwap) {
+        applyTemplateColorsKeepingDraftFx(loaded, loaded.name || startSelect.value);
+      } else {
+        load(loaded);
+      }
     } catch (err) {
       toast(err?.message || "That theme couldn't be loaded.", { kind: "error" });
     }
   });
 
-  // Quick Random FX Rollers inside the Theme Editor
+  // Quick Random FX & Color-Only Rollers inside the Theme Editor
   const rollRandomTemplateInEditor = async (mode = "fx") => {
     const pool = mode === "plain"
       ? themes.filter((t) => !t.hasEffects)
@@ -2206,9 +2245,28 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
     const picked = filtered[Math.floor(Math.random() * filtered.length)] || candidates[0];
     startSelect.value = picked.key;
     try {
-      load(await loadStart(picked.key));
+      const loaded = await loadStart(picked.key);
+      if (keepCurrentFxOnColorSwap && mode !== "fx") {
+        applyTemplateColorsKeepingDraftFx(loaded, picked.name);
+      } else {
+        load(loaded);
+      }
     } catch (err) {
       toast(err?.message || "Couldn't load random template.", { kind: "error" });
+    }
+  };
+
+  const rollRandomColorsKeepDraftFx = async () => {
+    if (!themes.length) return;
+    const currentKey = startSelect.value;
+    const filtered = themes.length > 1 ? themes.filter((t) => t.key !== currentKey) : themes;
+    const picked = filtered[Math.floor(Math.random() * filtered.length)] || themes[0];
+    startSelect.value = picked.key;
+    try {
+      const loaded = await loadStart(picked.key);
+      applyTemplateColorsKeepingDraftFx(loaded, picked.name);
+    } catch (err) {
+      toast(err?.message || "Couldn't load random color palette.", { kind: "error" });
     }
   };
 
@@ -2243,6 +2301,22 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
     syncAllEffectControlsFromDraft();
   };
 
+  const keepFxLockBtn = h("button", {
+    type: "button",
+    class: "theme-filter-pill theme-keep-fx-lock-btn",
+    "data-editor-keep-fx-lock": "true",
+    "aria-pressed": "false",
+    title: "When locked, picking any starting template or template card swaps ONLY the color palette while keeping your current active effects, 3D folders, and icons unchanged!",
+    onclick: () => {
+      keepCurrentFxOnColorSwap = !keepCurrentFxOnColorSwap;
+      keepFxLockBtn.classList.toggle("is-active", keepCurrentFxOnColorSwap);
+      keepFxLockBtn.setAttribute("aria-pressed", String(keepCurrentFxOnColorSwap));
+      keepFxLockBtn.textContent = keepCurrentFxOnColorSwap
+        ? "🔒 FX Locked (Template = Colors Only)"
+        : "🔓 Lock Current FX (Swap Colors Only)";
+    },
+  }, "🔓 Lock Current FX (Swap Colors Only)");
+
   // Always-Visible Top Identity & Active FX Bar (stays visible across ALL section tabs!)
   const editorIdentityBar = h("section", {
     class: "theme-editor-identity-bar",
@@ -2252,6 +2326,14 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
     h("div", { class: "theme-editor-identity-top" },
       heading,
       h("div", { class: "theme-editor-quick-rollers", role: "group", "aria-label": "Quick Random FX Rollers" },
+        keepFxLockBtn,
+        h("button", {
+          type: "button",
+          class: "theme-filter-pill",
+          "data-editor-roll-colors-keep-fx": "true",
+          title: "Pick a random color palette from all 310 templates while keeping your current special effects, weather, 3D folders, and icons unchanged!",
+          onclick: () => { void rollRandomColorsKeepDraftFx(); },
+        }, "🌈 Random Colors (Keep FX)"),
         h("button", {
           type: "button",
           class: "theme-filter-pill",
@@ -2326,11 +2408,16 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
           class: `theme-editor-template-card${isCurrent ? " is-active" : ""}`,
           "data-editor-template-card": t.key,
           "aria-pressed": String(isCurrent),
-          title: `${t.name} (${t.group || "Template"})${t.hasEffects ? " · ✨ Has FX" : " · Plain"} — Click to load as starting template`,
-          onclick: async () => {
+          title: `${t.name} (${t.group || "Template"})${t.hasEffects ? " · ✨ Has FX" : " · Plain"} — Click to load template · Shift+Click (or Lock FX) to apply ONLY its colors while keeping your current effects`,
+          onclick: async (e) => {
             startSelect.value = t.key;
             try {
-              load(await loadStart(t.key));
+              const loaded = await loadStart(t.key);
+              if (Boolean(e?.shiftKey || keepCurrentFxOnColorSwap)) {
+                applyTemplateColorsKeepingDraftFx(loaded, t.name);
+              } else {
+                load(loaded);
+              }
             } catch (err) {
               toast(err?.message || "Couldn't load template.", { kind: "error" });
             }

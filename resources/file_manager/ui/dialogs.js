@@ -15,7 +15,21 @@ export function openDialog({ title, body, buttons = [{ label: "OK", primary: tru
   const titleId = `dlg-title-${++active}`;
   const errorBox = h("p", { class: "dialog-error", role: "alert", hidden: true });
   const buttonEls = buttons.map((b) =>
-    h("button", { type: "button", class: `btn${b.primary ? " primary" : ""}${b.danger ? " danger" : ""}`, disabled: b.disabled, onclick: () => close(b.value ?? null) }, b.label),
+    h(
+      "button",
+      {
+        type: "button",
+        class: `btn${b.primary ? " primary" : ""}${b.danger ? " danger" : ""}`,
+        "data-dialog-btn": String(b.value ?? ""),
+        ...(b.primary ? { "data-dialog-primary": "true" } : {}),
+        disabled: b.disabled,
+        onclick: (e) => {
+          e?.stopPropagation?.();
+          close(b.value ?? null);
+        },
+      },
+      b.label,
+    ),
   );
   const dialog = h("div", { class: `dialog${wide ? " wide" : ""}`, role: "dialog", "aria-modal": "true", "aria-labelledby": titleId, "aria-describedby": describe ? `${titleId}-d` : null },
     h("h2", { id: titleId, class: "dialog-title" }, title),

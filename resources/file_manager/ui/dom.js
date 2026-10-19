@@ -235,7 +235,7 @@ export const SYSTEM_ICON_CATALOG = [
   { id: "exact_davinci_drp", category: "exact", match: ["timeline.drp", "colorgrade.cube", "aces_config.ocio"], kind: "video", label: "DaVinci Resolve & ACES Color Pipeline", icon: "🎬", google3d: "🎬" },
   { id: "exact_wireshark_pcap", category: "exact", match: ["capture.pcap", "traffic.pcapng", "handshake.cap", "yara.rules"], kind: "secret", label: "Packet Capture & Threat Signatures", icon: "🦈", google3d: "🛡️" },
   { id: "exact_hardhat_foundry", category: "exact", match: ["foundry.toml", "hardhat.config.ts", "hardhat.config.js", "anchor.toml", "remappings.txt"], kind: "code", label: "Foundry / Hardhat Smart Contract Suite", icon: "⚒️", google3d: "💎" },
-  { id: "exact_huggingface", category: "exact", match: ["model.safetensors", "tokenizer.json", "tokenizer_config.json", "adapter_config.json"], kind: "ai", label: "HuggingFace Tokenizer & LoRA Adapter", icon: "🤗", google3d: "✨" },
+  { id: "exact_huggingface", category: "exact", match: ["model.safetensors.index.json", "tokenizer.json", "tokenizer_config.json", "adapter_config.json"], kind: "ai", label: "HuggingFace Tokenizer & LoRA Adapter", icon: "🤗", google3d: "✨" },
   { id: "exact_litestream_duckdb", category: "exact", match: ["litestream.yml", "duckdb.conf", "turso.toml", "wrangler.d1.toml"], kind: "database", label: "Edge Database & Replica Config", icon: "🦆", google3d: "🛢️" },
   { id: "exact_systemd_unit", category: "exact", match: ["docker.service", "nginx.service", "caddy.service", "crontab.root"], kind: "system", label: "Linux Systemd Service Unit", icon: "🐧", google3d: "⚙️" },
   { id: "exact_apple_entitlements", category: "exact", match: ["app.entitlements", "privacyinfo.xcprivacy", "package.swift", "project.pbxproj"], kind: "code", label: "Swift Package & Apple Privacy Manifest", icon: "🍎", google3d: "🍎" },
@@ -787,7 +787,7 @@ export function classifyFolderTopic(name) {
   if (cached !== undefined) return cached;
   let topic = "general";
   if (/(?:^|[\s_.-])(3dprint|3d_printing|stl_files|gcode|cura|bambu|prusa|slicer)(?:$|[\s_.-])/.test(n)) topic = "3dprint";
-  else if (/(?:^|[\s_.-])(blender_3d|geometry_?nodes|houdini_?fx)(?:$|[\s_.-])/.test(n)) topic = "blender_3d";
+  else if (/(?:^|[\s_.-])(blender_3d_studio|geometry_?nodes|houdini_?fx)(?:$|[\s_.-])|^blender_3d$/.test(n)) topic = "blender_3d";
   else if (/(?:^|[\s_.-])(3d|blender|maya|zbrush|cinema4d|houdini|meshes|rigging|usd|usdz|gltf)(?:$|[\s_.-])/.test(n)) topic = "3d";
   else if (/(?:^|[\s_.-])(pcb|kicad|eagle|fpga|verilog|vhdl|electronics|circuits?)(?:$|[\s_.-])/.test(n)) topic = "electronics";
   else if (/(?:^|[\s_.-])(fpv_?drones?|betaflight|cinewhoop|mavlink)(?:$|[\s_.-])/.test(n)) topic = "fpv_drones";

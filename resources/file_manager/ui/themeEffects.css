@@ -3056,6 +3056,7 @@ html[data-ui-fx] .row.is-folder[aria-selected="true"]:hover {
   max-height: 95vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   overscroll-behavior: contain;
 }
 .dialog.wide:has(.theme-list) .dialog-body,
@@ -3063,20 +3064,37 @@ html[data-ui-fx] .row.is-folder[aria-selected="true"]:hover {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  flex: 1 1 auto;
+  flex: 1 1 0%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
 }
 .dialog.wide:has(.theme-list) .theme-list {
-  min-height: clamp(24rem, 58vh, 56rem);
-  max-height: calc(94vh - 13.5rem);
-  flex: 1 1 auto;
+  min-height: 16rem;
+  max-height: none;
+  flex: 1 1 22rem;
+  overflow-y: auto;
   overscroll-behavior: contain;
   scroll-behavior: smooth;
 }
 .dialog.wide:has(.theme-editor) .theme-editor {
-  min-height: clamp(28rem, 66vh, 62rem);
-  max-height: calc(94vh - 8.5rem);
-  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  flex: 1 1 0%;
+  overflow-y: auto;
   overscroll-behavior: contain;
+}
+.dialog.wide:has(.theme-list) .dialog-buttons,
+.dialog.wide:has(.theme-editor) .dialog-buttons {
+  flex: 0 0 auto;
+  position: sticky;
+  bottom: 0;
+  z-index: 50;
+  margin-top: 0.5rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  pointer-events: auto;
 }
 .theme-browse-mode-bar {
   display: flex;
@@ -3142,6 +3160,30 @@ html[data-ui-fx] .row.is-folder[aria-selected="true"]:hover {
 .theme-kill-anim-btn:hover {
   border-color: var(--danger, #ef4444);
   background: color-mix(in oklab, var(--danger, #ef4444) 24%, var(--bg));
+}
+.theme-picker-top-done-btn {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text, var(--bg));
+  font-weight: 750;
+  box-shadow: 0 2px 10px -2px color-mix(in oklab, var(--accent) 55%, transparent);
+}
+.theme-picker-top-done-btn:hover {
+  filter: brightness(1.08);
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text, var(--bg));
+}
+.fm-quick-cycle-done-btn {
+  border-color: var(--accent) !important;
+  background: var(--accent) !important;
+  color: var(--accent-text, var(--bg)) !important;
+  font-weight: 750 !important;
+  padding: 0.24rem 0.68rem !important;
+  box-shadow: 0 2px 10px -2px color-mix(in oklab, var(--accent) 55%, transparent);
+}
+.fm-quick-cycle-active-card {
+  cursor: pointer;
 }
 .theme-plain-quick-strip {
   display: flex;
@@ -4706,4 +4748,515 @@ html.rad-macos body {
   font-size: 0.68rem;
   color: var(--muted);
 }
+
+/* ============================================================================
+ * 🏛️ GOD-MODE 3D ICON STUDIO: LIVE PREVIEW STAGE, 8 COLLECTOR ICON PACK PLATES,
+ *    3D FOLDER-POCKET PAPER-PEEK & 12 ICON ANIMATION CHOREOGRAPHIES
+ * ============================================================================ */
+
+/* 1. Live 3D Icon, Folder-Pocket & Button Choreography Stage */
+.theme-icon-preview-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.48rem;
+  padding: 0.58rem 0.72rem;
+  border-radius: 11px;
+  border: 1px solid color-mix(in oklab, var(--accent) 42%, var(--border));
+  background:
+    radial-gradient(120% 100% at 15% 0%, color-mix(in oklab, var(--accent) 14%, transparent), transparent 65%),
+    color-mix(in oklab, var(--bg) 62%, var(--panel));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 6px 18px rgba(0, 0, 0, 0.22);
+}
+.theme-icon-stage-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.75rem;
+}
+.theme-icon-stage-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+.theme-icon-stage-meta {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.14rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--accent) 16%, var(--panel));
+  border: 1px solid color-mix(in oklab, var(--accent) 42%, var(--border));
+  color: var(--text);
+}
+.theme-icon-stage-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.38rem;
+}
+.theme-icon-stage-specimen {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34rem;
+  padding: 0.26rem 0.54rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, var(--accent) 32%, var(--border));
+  background: color-mix(in oklab, var(--panel) 88%, var(--bg));
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+  transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 160ms ease,
+    box-shadow 180ms ease,
+    background-color 160ms ease;
+}
+.theme-icon-stage-specimen:hover {
+  transform: translateY(-2px) scale(1.04);
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 18%, var(--panel));
+  box-shadow: 0 6px 16px color-mix(in oklab, var(--accent) 32%, rgba(0, 0, 0, 0.35));
+}
+.theme-icon-stage-specimen .c-icon {
+  font-size: 1.05rem;
+}
+.theme-icon-stage-label {
+  font-size: 0.72rem;
+  opacity: 0.92;
+}
+.theme-icon-stage-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.24rem 0.56rem;
+  font-size: 0.73rem;
+  font-weight: 650;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, var(--accent) 46%, var(--border));
+  background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 20%, var(--panel)), color-mix(in oklab, var(--accent) 8%, var(--panel)));
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 160ms ease;
+}
+.theme-icon-stage-btn:hover {
+  transform: translateY(-1.5px) scale(1.03);
+  box-shadow: 0 5px 14px color-mix(in oklab, var(--accent) 35%, rgba(0, 0, 0, 0.3));
+}
+
+/* 2. 3D Folder-Pocket Paper-Peek & Button Micro-Physics across File Manager */
+.c-icon[data-is-folder="true"] {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 180ms ease,
+    box-shadow 180ms ease;
+}
+.c-icon[data-is-folder="true"]::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: 20%;
+  right: 20%;
+  height: 3px;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.85), color-mix(in oklab, var(--accent) 45%, #ffffff));
+  opacity: 0;
+  transform: translateY(3px) scaleX(0.75);
+  transition: opacity 180ms ease, transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+.row:hover .c-icon[data-is-folder="true"]::before,
+.row.selected .c-icon[data-is-folder="true"]::before,
+.theme-icon-stage-specimen:hover .c-icon[data-is-folder="true"]::before {
+  opacity: 0.92;
+  transform: translateY(-1.5px) scaleX(1);
+}
+.row:hover .c-icon[data-is-folder="true"],
+.TreeNode:hover .t-icon[data-is-folder="true"],
+.tree-row:hover .t-icon[data-is-folder="true"] {
+  transform: perspective(260px) translateY(-1.5px) rotateX(-8deg) scale(1.1);
+}
+:is(.tool, .qbtn, .chip, .sb-item, .tab):hover [data-btn-icon] {
+  display: inline-block;
+  transform: translateY(-1px) scale(1.12);
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 3. 8 New Collector & Studio 3D Custom Icon Pack Plates */
+
+/* 🌈 Holographic Prismatic Foil (holo_prismatic_foil) */
+:root:is([data-icon-pack="holo_prismatic_foil"], [data-fx-icon-pack="holo_prismatic_foil"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  padding: 1px 5px;
+  background:
+    linear-gradient(135deg, rgba(255, 0, 128, 0.28) 0%, rgba(0, 245, 212, 0.28) 36%, rgba(250, 204, 21, 0.26) 68%, rgba(168, 85, 247, 0.32) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 3px 11px rgba(0, 245, 212, 0.32),
+    0 0 14px rgba(232, 121, 249, 0.26);
+}
+
+/*  stained_glass_cathedral_pro — Gothic Rose-Window Stained Glass */
+:root:is([data-icon-pack="stained_glass_cathedral_pro"], [data-fx-icon-pack="stained_glass_cathedral_pro"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px 8px 4px 4px;
+  padding: 1px 5px;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(251, 191, 36, 0.38), rgba(225, 29, 72, 0.28) 52%, rgba(30, 58, 138, 0.42) 100%);
+  border: 1.5px solid rgba(251, 191, 36, 0.68);
+  box-shadow:
+    inset 0 0 8px rgba(251, 191, 36, 0.38),
+    0 3px 10px rgba(0, 0, 0, 0.48);
+}
+
+/* 🌇 1984 OutRun Sunset Chrome (synthwave_outrun_1984) */
+:root:is([data-icon-pack="synthwave_outrun_1984"], [data-fx-icon-pack="synthwave_outrun_1984"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  padding: 1px 5px;
+  background:
+    linear-gradient(180deg, rgba(255, 0, 127, 0.36) 0%, rgba(255, 140, 0, 0.3) 55%, rgba(0, 245, 255, 0.34) 100%);
+  border: 1px solid rgba(0, 245, 255, 0.68);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 0 12px rgba(255, 0, 127, 0.42),
+    0 3px 9px rgba(0, 245, 255, 0.28);
+}
+
+/* 🚀 NASA Apollo Houston Telemetry (nasa_apollo_telemetry) */
+:root:is([data-icon-pack="nasa_apollo_telemetry"], [data-fx-icon-pack="nasa_apollo_telemetry"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 1px 5px;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.92));
+  border: 1px solid rgba(56, 189, 248, 0.65);
+  box-shadow:
+    inset 0 0 6px rgba(56, 189, 248, 0.28),
+    0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+/* 🩸 Obsidian Blood-Ruby Royal (obsidian_blood_ruby) */
+:root:is([data-icon-pack="obsidian_blood_ruby"], [data-fx-icon-pack="obsidian_blood_ruby"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 1px 5px;
+  background:
+    linear-gradient(145deg, rgba(15, 5, 10, 0.92), rgba(159, 18, 57, 0.48) 65%, rgba(244, 63, 94, 0.32));
+  border: 1px solid rgba(244, 63, 94, 0.68);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 228, 230, 0.4),
+    0 3px 12px rgba(225, 29, 72, 0.45);
+}
+
+/* 🌌 Aurora Borealis Nordic Ice (aurora_nordic_ice) */
+:root:is([data-icon-pack="aurora_nordic_ice"], [data-fx-icon-pack="aurora_nordic_ice"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  padding: 1px 5px;
+  background:
+    linear-gradient(135deg, rgba(45, 212, 191, 0.28), rgba(56, 189, 248, 0.26) 52%, rgba(168, 85, 247, 0.26));
+  border: 1px solid rgba(125, 211, 252, 0.62);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 3px 11px rgba(45, 212, 191, 0.3);
+}
+
+/* 🏛️ Vaporwave Helios Marble Plaza (vaporwave_marble_plaza) */
+:root:is([data-icon-pack="vaporwave_marble_plaza"], [data-fx-icon-pack="vaporwave_marble_plaza"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  padding: 1px 5px;
+  background:
+    linear-gradient(135deg, rgba(244, 114, 182, 0.32), rgba(45, 212, 191, 0.3) 55%, rgba(192, 132, 252, 0.32));
+  border: 1px solid rgba(244, 114, 182, 0.65);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    -2px 2px 0 rgba(45, 212, 191, 0.45),
+    2px -2px 0 rgba(244, 114, 182, 0.45);
+}
+
+/* ⚛️ Quantum Superconductor Qubit (quantum_superconductor) */
+:root:is([data-icon-pack="quantum_superconductor"], [data-fx-icon-pack="quantum_superconductor"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 1px 6px;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(251, 191, 36, 0.38), rgba(14, 165, 233, 0.32) 60%, rgba(15, 23, 42, 0.85));
+  border: 1px solid rgba(251, 191, 36, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 0 12px rgba(56, 189, 248, 0.42),
+    0 0 20px rgba(251, 191, 36, 0.24);
+}
+
+/* ============================================================================
+ * 🎬 12 ICON ANIMATION CHOREOGRAPHIES (data-icon-anim / data-fx-icon-anim)
+ * ============================================================================ */
+
+@keyframes fmIconSpringPop3d {
+  0%, 100% {
+    transform: perspective(280px) translateY(0) rotateX(0deg) rotateY(0deg) scale(1);
+  }
+  45% {
+    transform: perspective(280px) translateY(-2.2px) rotateX(10deg) rotateY(-8deg) scale(1.1);
+  }
+  75% {
+    transform: perspective(280px) translateY(0.5px) rotateX(-3deg) rotateY(4deg) scale(0.98);
+  }
+}
+
+@keyframes fmIconLevitateFloat {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.28));
+  }
+  50% {
+    transform: translateY(-3px) scale(1.06);
+    filter: drop-shadow(0 7px 10px color-mix(in oklab, var(--accent) 50%, rgba(0, 0, 0, 0.42)));
+  }
+}
+
+@keyframes fmIconHoloFoilShimmer {
+  0%, 100% {
+    filter: hue-rotate(0deg) brightness(1.04) drop-shadow(0 0 6px rgba(0, 245, 212, 0.45));
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    filter: hue-rotate(145deg) brightness(1.22) drop-shadow(0 0 11px rgba(232, 121, 249, 0.65));
+    transform: scale(1.08) rotate(-3deg);
+  }
+}
+
+@keyframes fmIconOrbitalHaloSpin {
+  0% {
+    transform: perspective(260px) rotateY(0deg) rotateZ(0deg) scale(1);
+  }
+  50% {
+    transform: perspective(260px) rotateY(22deg) rotateZ(5deg) scale(1.08);
+  }
+  100% {
+    transform: perspective(260px) rotateY(0deg) rotateZ(0deg) scale(1);
+  }
+}
+
+@keyframes fmIconCyberGlitchPulse {
+  0%, 86%, 100% {
+    transform: translate(0, 0) skewX(0deg);
+    filter: drop-shadow(0 0 4px var(--accent));
+  }
+  89% {
+    transform: translate(-1.8px, 0.8px) skewX(-8deg);
+    filter: drop-shadow(-2px 0 #00f5ff) drop-shadow(2px 0 #ff0055);
+  }
+  93% {
+    transform: translate(1.8px, -0.8px) skewX(8deg);
+    filter: drop-shadow(2px 0 #00ff9d) drop-shadow(-2px 0 #ff00aa);
+  }
+}
+
+@keyframes fmIconHeartbeatBiolum {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.38));
+  }
+  18% {
+    transform: scale(1.14);
+    filter: drop-shadow(0 0 11px rgba(0, 245, 212, 0.78));
+  }
+  32% {
+    transform: scale(0.97);
+  }
+  48% {
+    transform: scale(1.09);
+    filter: drop-shadow(0 0 9px rgba(168, 85, 247, 0.68));
+  }
+}
+
+@keyframes fmIconClockworkTick {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(9deg) scale(1.05); }
+  50% { transform: rotate(0deg) scale(1); }
+  75% { transform: rotate(-9deg) scale(1.05); }
+}
+
+@keyframes fmIconLiquidJellyMorph {
+  0%, 100% { transform: scale3d(1, 1, 1); }
+  30% { transform: scale3d(1.16, 0.86, 1); }
+  50% { transform: scale3d(0.9, 1.14, 1); }
+  70% { transform: scale3d(1.06, 0.95, 1); }
+}
+
+@keyframes fmIconPlasmaArcSurge {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px #38bdf8) brightness(1.05);
+    transform: scale(1);
+  }
+  45% {
+    filter: drop-shadow(0 0 12px #38bdf8) drop-shadow(0 0 20px #a855f7) brightness(1.26);
+    transform: scale(1.1) translateY(-1px);
+  }
+}
+
+@keyframes fmIconFireEmberFlicker {
+  0%, 100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+    filter: drop-shadow(0 -2px 6px rgba(249, 115, 22, 0.62));
+  }
+  35% {
+    transform: translateY(-2px) scale(1.08) rotate(-2.5deg);
+    filter: drop-shadow(0 -5px 11px rgba(239, 68, 68, 0.85)) brightness(1.16);
+  }
+  70% {
+    transform: translateY(-1px) scale(1.04) rotate(2deg);
+    filter: drop-shadow(0 -4px 9px rgba(251, 191, 36, 0.75));
+  }
+}
+
+@keyframes fmIconGodmodePantheonAscend {
+  0%, 100% {
+    transform: perspective(300px) translateY(0) rotateY(0deg) scale(1);
+    filter: drop-shadow(0 0 7px rgba(251, 191, 36, 0.55)) drop-shadow(0 0 14px rgba(56, 189, 248, 0.38));
+  }
+  50% {
+    transform: perspective(300px) translateY(-3px) rotateY(16deg) scale(1.12);
+    filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.88)) drop-shadow(0 0 22px rgba(232, 121, 249, 0.62)) brightness(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:is([data-icon-anim="spring_pop_3d"], [data-fx-icon-anim="spring_pop_3d"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconSpringPop3d 2.8s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  }
+  :root:is([data-icon-anim="levitate_float"], [data-fx-icon-anim="levitate_float"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconLevitateFloat 3.1s ease-in-out infinite;
+  }
+  :root:is([data-icon-anim="holo_foil_shimmer"], [data-fx-icon-anim="holo_foil_shimmer"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconHoloFoilShimmer 3.4s ease-in-out infinite;
+  }
+  :root:is([data-icon-anim="orbital_halo_spin"], [data-fx-icon-anim="orbital_halo_spin"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconOrbitalHaloSpin 3.6s ease-in-out infinite;
+  }
+  :root:is([data-icon-anim="cyber_glitch_pulse"], [data-fx-icon-anim="cyber_glitch_pulse"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconCyberGlitchPulse 2.4s steps(2, end) infinite;
+  }
+  :root:is([data-icon-anim="heartbeat_biolum"], [data-fx-icon-anim="heartbeat_biolum"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconHeartbeatBiolum 2.2s ease-in-out infinite;
+  }
+  :root:is([data-icon-anim="clockwork_gear_tick"], [data-fx-icon-anim="clockwork_gear_tick"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconClockworkTick 2s steps(4, end) infinite;
+  }
+  :root:is([data-icon-anim="liquid_jelly_morph"], [data-fx-icon-anim="liquid_jelly_morph"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconLiquidJellyMorph 2.6s ease-in-out infinite;
+  }
+  :root:is([data-icon-anim="plasma_arc_surge"], [data-fx-icon-anim="plasma_arc_surge"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconPlasmaArcSurge 2.3s ease-in-out infinite;
+  }
+  :root:is([data-icon-anim="fire_ember_flicker"], [data-fx-icon-anim="fire_ember_flicker"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconFireEmberFlicker 1.9s ease-in-out infinite;
+  }
+  :root:is([data-icon-anim="godmode_pantheon_ascend"], [data-fx-icon-anim="godmode_pantheon_ascend"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+    animation: fmIconGodmodePantheonAscend 3.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+}
+
+/* ============================================================================
+ * 🌈 Keep Current Effects — Swap Colors Only Bar & Per-Card Quick Button
+ * ============================================================================ */
+.theme-keep-fx-color-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.38rem;
+  width: 100%;
+  margin-top: 0.35rem;
+  padding-top: 0.42rem;
+  border-top: 1px dashed color-mix(in oklab, var(--accent, #38bdf8) 32%, var(--border, #2a313c));
+}
+
+.theme-keep-fx-lock-btn {
+  font-weight: 700;
+  border-color: color-mix(in oklab, var(--accent, #38bdf8) 55%, var(--border, #2a313c));
+  background: color-mix(in oklab, var(--accent, #38bdf8) 14%, var(--panel, #181c22));
+}
+
+.theme-keep-fx-lock-btn.is-active,
+.theme-keep-fx-lock-btn[aria-pressed="true"] {
+  background: linear-gradient(135deg, color-mix(in oklab, var(--accent, #38bdf8) 34%, var(--panel, #181c22)), color-mix(in oklab, #a855f7 28%, var(--panel, #181c22)));
+  border-color: var(--accent, #38bdf8);
+  box-shadow: 0 0 12px -2px color-mix(in oklab, var(--accent, #38bdf8) 65%, transparent);
+}
+
+.theme-color-swap-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  font-size: 0.72rem;
+  padding: 0.18rem 0.48rem;
+}
+
+.theme-color-swap-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex: 0 0 10px;
+  display: inline-block;
+}
+
+.theme-keep-fx-color-quick {
+  position: absolute;
+  top: 0.38rem;
+  right: 5.95rem;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--accent, #38bdf8) 42%, var(--border, #2a313c));
+  background: color-mix(in oklab, var(--panel, #181c22) 88%, transparent);
+  color: var(--text, #e8eaed);
+  font-size: 0.78rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.86;
+  z-index: 3;
+  transition: transform 130ms ease, opacity 130ms ease, border-color 130ms ease, box-shadow 130ms ease;
+}
+
+.theme-keep-fx-color-quick:hover,
+.theme-keep-fx-color-quick:focus-visible {
+  opacity: 1;
+  transform: scale(1.12);
+  border-color: var(--accent, #38bdf8);
+  box-shadow: 0 0 10px -1px color-mix(in oklab, var(--accent, #38bdf8) 65%, transparent);
+}
+
+
 

@@ -2163,6 +2163,229 @@ describe("the theme editor in the page", () => {
     closeDialogs();
     await themes.applyPalette("");
   });
+
+  test("God-Mode Icon Catalog (260+ system icons, 68 button icons, 49 custom icon packs, 12 3D icon animations, and Live 3D Icon Preview Stage)", async () => {
+    const domMod = await import("../resources/file_manager/ui/dom.js");
+
+    // 1. Verify catalog counts
+    expect(Object.keys(domMod.SYSTEM_ICON_CATALOG).length).toBeGreaterThanOrEqual(240);
+    expect(Object.keys(domMod.BUTTON_ICON_CATALOG).length).toBeGreaterThanOrEqual(65);
+    expect(themes.ICON_PACK_OPTIONS.length).toBeGreaterThanOrEqual(49);
+    expect(themes.ICON_ANIMATION_PROFILES.length).toBe(12);
+
+    // 2. Verify new semantic folder topics, exact filenames, and file extensions resolve rich icons
+    expect(domMod.classifyFolderTopic("kubernetes")).toBe("kubernetes");
+    expect(domMod.classifyFolderTopic("shaders")).toBe("shaders");
+    expect(domMod.classifyFolderTopic("Prompts")).toBe("prompts");
+    expect(domMod.classifyFolderTopic("benchmarks")).toBe("tests");
+    expect(domMod.iconForEntry({ name: "Dockerfile", isDirectory: false })).toBe("🐳");
+    expect(domMod.iconForEntry({ name: "bun.lockb", isDirectory: false })).toBe("🥟");
+    expect(domMod.iconForEntry({ name: "llama3.safetensors", isDirectory: false, ext: "safetensors" })).toBe("🧠");
+    expect(domMod.iconForEntry({ name: "shader.wgsl", isDirectory: false, ext: "wgsl" })).toBe("🔮");
+
+    // 3. Verify switching between the 8 new Collector & Studio custom icon packs updates folder, file & button glyphs
+    const newPacks = [
+      "holo_prismatic_foil",
+      "stained_glass_cathedral_pro",
+      "synthwave_outrun_1984",
+      "nasa_apollo_telemetry",
+      "obsidian_blood_ruby",
+      "aurora_nordic_ice",
+      "vaporwave_marble_plaza",
+      "quantum_superconductor",
+    ];
+    for (const packId of newPacks) {
+      expect(themes.ICON_PACK_OPTIONS.some((p: any) => p.id === packId)).toBe(true);
+      themes.applyUiImmersionProfiles({ iconPackStyle: packId });
+      expect(doc.documentElement.dataset.iconPack).toBe(packId);
+      expect(domMod.buttonIconFor("theme", packId)).toBeTruthy();
+      expect(domMod.iconForEntry({ name: "Pictures", isDirectory: true }, packId)).toBeTruthy();
+    }
+
+    // 4. Verify 12 Icon Animation choreographies and Live 3D Icon Preview Stage inside Theme Picker
+    closeDialogs();
+    await themes.showThemePicker();
+    await sleep(120);
+
+    const previewStage = doc.querySelector('[data-icon-preview-stage="true"]') as any;
+    expect(previewStage).toBeTruthy();
+    const specimens = previewStage.querySelectorAll("[data-stage-specimen]");
+    expect(specimens.length).toBeGreaterThanOrEqual(8);
+
+    const animBtn = doc.querySelector('[data-icon-anim="godmode_pantheon_ascend"]') as any;
+    expect(animBtn).toBeTruthy();
+    animBtn.click();
+    await sleep(80);
+    expect(doc.documentElement.dataset.iconAnim).toBe("godmode_pantheon_ascend");
+    expect(doc.documentElement.getAttribute("data-fx-icon-anim")).toBe("godmode_pantheon_ascend");
+    expect(themes.getActiveWorkspaceEffects().some((e: any) => e.kind === "iconAnimation" && e.id === "godmode_pantheon_ascend")).toBe(true);
+
+    // Clicking a specimen cycles to the next choreography
+    (specimens[0] as any).click();
+    await sleep(80);
+    expect(doc.documentElement.dataset.iconAnim).toBeTruthy();
+
+    await themes.removeActiveWorkspaceEffect("iconAnimation");
+    expect(doc.documentElement.dataset.iconAnim).toBeUndefined();
+    themes.applyUiImmersionProfiles({ iconPackStyle: "default", themeIconAnimation: "off" });
+    closeDialogs();
+  });
+
+  test("Theme Picker Done buttons (bottom & top) and Option+] Quick-Cycle HUD exit immediately without stacked dialogs", async () => {
+    closeDialogs();
+    const win = (doc as any).defaultView || globalThis.window;
+
+    // 1. Opening showThemePicker multiple times never stacks multiple .modal-backdrop dialogs
+    await themes.showThemePicker();
+    await sleep(60);
+    await themes.showThemePicker();
+    await sleep(60);
+    expect(doc.querySelectorAll(".modal-backdrop").length).toBe(1);
+
+    // Clicking the bottom "Done" button immediately closes the dialog
+    const bottomDoneBtn = [...doc.querySelectorAll(".dialog-buttons button")].find(
+      (b: any) => b.textContent.trim() === "Done",
+    ) as any;
+    expect(bottomDoneBtn).toBeTruthy();
+    bottomDoneBtn.click();
+    await sleep(60);
+    expect(doc.querySelectorAll(".modal-backdrop").length).toBe(0);
+
+    // 2. Clicking the top-right "✓ Done (Esc)" button in browseModeBar immediately closes the dialog
+    await themes.showThemePicker();
+    await sleep(60);
+    const topDoneBtn = doc.querySelector('[data-theme-picker-done="true"]') as any;
+    expect(topDoneBtn).toBeTruthy();
+    topDoneBtn.click();
+    await sleep(60);
+    expect(doc.querySelectorAll(".modal-backdrop").length).toBe(0);
+
+    // 3. Double-clicking any theme card applies the theme and immediately closes the dialog
+    await themes.showThemePicker();
+    await sleep(60);
+    const draculaCard = doc.querySelector('.theme-card[data-key="dracula"]') as any;
+    expect(draculaCard).toBeTruthy();
+    draculaCard.dispatchEvent(new win.MouseEvent("dblclick", { bubbles: true, cancelable: true }));
+    await sleep(80);
+    expect(doc.querySelectorAll(".modal-backdrop").length).toBe(0);
+    expect(doc.documentElement.dataset.palette).toBe("dracula");
+
+    // 4. Option + ] (#fm-quick-cycle-hud) exits via Escape, Enter, Done button, active card click, or outside click
+    await themes.cycleTheme(1);
+    await sleep(60);
+    expect(doc.getElementById("fm-quick-cycle-hud")).toBeTruthy();
+
+    // Exit via Escape key
+    win.dispatchEvent(new win.KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    expect(doc.getElementById("fm-quick-cycle-hud")).toBeNull();
+
+    // Re-open and exit via Enter key
+    await themes.cycleTheme(1);
+    await sleep(60);
+    expect(doc.getElementById("fm-quick-cycle-hud")).toBeTruthy();
+    win.dispatchEvent(new win.KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+    expect(doc.getElementById("fm-quick-cycle-hud")).toBeNull();
+
+    // Re-open and exit via prominent "✓ Done (Esc)" button
+    await themes.cycleTheme(1);
+    await sleep(60);
+    const hudDoneBtn = doc.querySelector('[data-quick-hud-done="true"]') as any;
+    expect(hudDoneBtn).toBeTruthy();
+    hudDoneBtn.click();
+    expect(doc.getElementById("fm-quick-cycle-hud")).toBeNull();
+
+    // Re-open and exit by clicking the center active theme card
+    await themes.cycleTheme(1);
+    await sleep(60);
+    const hudActiveCard = doc.querySelector('[data-quick-hud-confirm="true"]') as any;
+    expect(hudActiveCard).toBeTruthy();
+    hudActiveCard.click();
+    expect(doc.getElementById("fm-quick-cycle-hud")).toBeNull();
+
+    // Re-open and exit by clicking outside on document.body
+    await themes.cycleTheme(1);
+    await sleep(60);
+    expect(doc.getElementById("fm-quick-cycle-hud")).toBeTruthy();
+    doc.body.dispatchEvent(new win.MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+    expect(doc.getElementById("fm-quick-cycle-hud")).toBeNull();
+  });
+
+  test("Keep Current Effects — Swap Colors Only (Gallery Color Swap Bar, Per-Card 🌈 Button, Lock FX Mode, and Theme Editor FX Lock)", async () => {
+    closeDialogs();
+
+    // 1. Start with a rich 3D FX theme (e.g., mac_studio_m4_ultra) plus custom icon pack & animation
+    await themes.chooseTheme("mac_studio_m4_ultra");
+    await themes.applyPalette("mac_studio_m4_ultra");
+    themes.applyUiImmersionProfiles({
+      uiElementFx: "xdr_titanium_folders",
+      iconPackStyle: "holo_prismatic_foil",
+      themeIconGlow: "hyper",
+      themeIconAnimation: "holo_foil_shimmer",
+    });
+    state.settings.atmosphere = "aurora_ribbons";
+    doc.documentElement.setAttribute("data-fx-atmosphere", "aurora_ribbons");
+
+    // 2. Apply Dracula's colors while keeping all current effects intact
+    const snap = await themes.applyThemeColorsKeepingCurrentEffects("dracula", { quiet: true });
+    expect(doc.documentElement.dataset.palette).toBe("dracula");
+    expect(doc.documentElement.dataset.uiFx).toBe("xdr_titanium_folders");
+    expect(doc.documentElement.dataset.iconPack).toBe("holo_prismatic_foil");
+    expect(doc.documentElement.dataset.iconGlow).toBe("hyper");
+    expect(doc.documentElement.dataset.iconAnim).toBe("holo_foil_shimmer");
+    expect(doc.documentElement.getAttribute("data-fx-atmosphere")).toBe("aurora_ribbons");
+    expect(snap.iconPackStyle).toBe("holo_prismatic_foil");
+
+    // 3. Open Theme Picker and verify Keep FX Color Swap Bar, Lock button, 12 color chips, and per-card 🌈 button
+    await themes.showThemePicker();
+    await sleep(100);
+    const keepFxBar = doc.querySelector('[data-keep-fx-color-bar="true"]') as any;
+    expect(keepFxBar).toBeTruthy();
+    const lockBtn = doc.querySelector('[data-keep-fx-lock="true"]') as any;
+    expect(lockBtn).toBeTruthy();
+    const nordChip = doc.querySelector('[data-swap-color-only="nord"]') as any;
+    expect(nordChip).toBeTruthy();
+    nordChip.click();
+    await sleep(80);
+    expect(doc.documentElement.dataset.palette).toBe("nord");
+    expect(doc.documentElement.dataset.iconPack).toBe("holo_prismatic_foil");
+    expect(doc.documentElement.dataset.uiFx).toBe("xdr_titanium_folders");
+
+    // Click per-card 🌈 button on Tokyo Night
+    const tokyoKeepFxBtn = doc.querySelector('[data-keep-fx-color-key="tokyo_night"]') as any;
+    expect(tokyoKeepFxBtn).toBeTruthy();
+    tokyoKeepFxBtn.click();
+    await sleep(80);
+    expect(doc.documentElement.dataset.palette).toBe("tokyo_night");
+    expect(doc.documentElement.dataset.iconPack).toBe("holo_prismatic_foil");
+
+    // Enable Lock FX mode and click a plain card ("gruvbox") — effects must stay preserved!
+    lockBtn.click();
+    expect(themes.isKeepEffectsColorSwapMode()).toBe(true);
+    const gruvboxCard = doc.querySelector('.theme-card[data-key="gruvbox"]') as any;
+    expect(gruvboxCard).toBeTruthy();
+    gruvboxCard.click();
+    await sleep(80);
+    expect(doc.documentElement.dataset.palette).toBe("gruvbox");
+    expect(doc.documentElement.dataset.iconPack).toBe("holo_prismatic_foil");
+    expect(doc.documentElement.dataset.uiFx).toBe("xdr_titanium_folders");
+    themes.setKeepEffectsColorSwapMode(false);
+    closeDialogs();
+
+    // 4. Verify Theme Editor also has "🔒 Lock Current FX (Swap Colors Only)" and "🌈 Random Colors (Keep FX)"
+    state.emit("theme-editor", { from: "mac_studio_m4_ultra" });
+    await sleep(150);
+    const editorLockBtn = doc.querySelector('[data-editor-keep-fx-lock="true"]') as any;
+    const editorRollColorsBtn = doc.querySelector('[data-editor-roll-colors-keep-fx="true"]') as any;
+    expect(editorLockBtn).toBeTruthy();
+    expect(editorRollColorsBtn).toBeTruthy();
+    editorLockBtn.click();
+    expect(editorLockBtn.getAttribute("aria-pressed")).toBe("true");
+    editorRollColorsBtn.click();
+    await sleep(120);
+    expect(doc.querySelector('[data-editor-remove-all-fx="true"]')).toBeTruthy();
+
+    closeDialogs();
+    await themes.disableAllThemeAnimations({ quiet: true });
+    await themes.applyPalette("");
+  });
 });
-
-

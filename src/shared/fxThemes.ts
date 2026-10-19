@@ -74,6 +74,8 @@ export interface ThemeFx {
     cornerProfile?: string;
     /** Per-theme icon glow intensity ("off", "subtle", "neon", "hyper"). */
     iconGlow?: string;
+    /** Per-theme 3D & shader icon animation choreography ("off", "spring_pop_3d", "levitate_float", "holo_foil_shimmer", "orbital_halo_spin", "cyber_glitch_pulse", "heartbeat_biolum", "clockwork_gear_tick", "liquid_jelly_morph", "plasma_arc_surge", "fire_ember_flicker", "godmode_pantheon_ascend"). */
+    iconAnimation?: string;
     /** Direct per-token overrides for any File Manager `--*` CSS custom property. */
     customVars?: Record<string, string>;
     /** Personal custom CSS / keyframe shader overrides injected when this theme is active. */
@@ -3289,6 +3291,7 @@ export function fxRootAttrs(theme: SimpleGUITheme | undefined | null, mode: FxMo
     if (fx.fontProfile && fx.fontProfile !== "default") a["data-fx-font-profile"] = fx.fontProfile;
     if (fx.cornerProfile && fx.cornerProfile !== "default") a["data-fx-corner-profile"] = fx.cornerProfile;
     if (fx.iconGlow && fx.iconGlow !== "off") a["data-fx-icon-glow"] = fx.iconGlow;
+    if (fx.iconAnimation && fx.iconAnimation !== "off") a["data-fx-icon-anim"] = fx.iconAnimation;
     return a;
 }
 

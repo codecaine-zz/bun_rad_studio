@@ -72,6 +72,8 @@ export interface Settings {
   themeCornerProfile: ThemeCornerProfile;
   /** File & folder icon neon drop-shadow glow profile ("off" | "subtle" | "neon" | "hyper"). */
   themeIconGlow: ThemeIconGlow;
+  /** Interactive 3D & shader animation choreography for file, folder, and toolbar icons. */
+  themeIconAnimation: ThemeIconAnimation;
   /** Interactive File Manager UI element shader applied to folders, toolbars, breadcrumbs, and rows. */
   uiElementFx: UiElementFx;
   /** Custom visual icon pack style that transforms folder, file, and toolbar icons across the File Manager. */
@@ -210,9 +212,11 @@ export const THEME_CORNER_PROFILES = ["default", "sharp", "chamfer", "chamfered"
 export type ThemeCornerProfile = (typeof THEME_CORNER_PROFILES)[number];
 export const THEME_ICON_GLOWS = ["off", "subtle", "soft", "ambient_p3", "xdr_specular", "neon", "plasma", "hyper"] as const;
 export type ThemeIconGlow = (typeof THEME_ICON_GLOWS)[number];
+export const THEME_ICON_ANIMATIONS = ["off", "spring_pop_3d", "levitate_float", "holo_foil_shimmer", "orbital_halo_spin", "cyber_glitch_pulse", "heartbeat_biolum", "clockwork_gear_tick", "liquid_jelly_morph", "plasma_arc_surge", "fire_ember_flicker", "godmode_pantheon_ascend"] as const;
+export type ThemeIconAnimation = (typeof THEME_ICON_ANIMATIONS)[number];
 export const UI_ELEMENT_FX_MODES = ["auto", "off", "tahoe_glass_folders", "fluent_mica_folders", "xdr_titanium_folders", "google_material_folders", "cupertino_ceramic_bevel", "swiss_sapphire_chronograph", "teenage_field_anodized", "blueprint_cad_cyanotype", "kyoto_washi_sumi", "carbon_kevlar_weave", "fire_folders", "slime_drip", "cryo_frost", "tesla_arcs", "storm_wind", "mercury_chrome", "holo_glitch", "void_tentacles", "kaleidoscope_prism", "lava_wax", "acid_warp", "oil_slick_chrome", "shroom_spores", "holiday_festive_glow", "nerd_arcane_runes", "nerd_lcars_hud", "horror_blood_moon", "horror_vhs_static", "realworld_mahogany_brass", "realworld_stained_glass", "screen_melt_ooze", "molten_lava_melt", "crt_magnetic_warp", "fever_dream_ripple", "godmode_omega_halo", "godmode_photonic_crystal", "godmode_dyson_lattice", "godmode_chrono_crystal", "godmode_neural_synapse", "godmode_zero_point_arc"] as const;
 export type UiElementFx = (typeof UI_ELEMENT_FX_MODES)[number];
-export const ICON_PACK_STYLES = ["auto", "default", "macos_tahoe_3d", "win11_fluent_pro", "pro_studio_xdr", "hdr_photo_studio", "linux_papirus_pro", "nordic_minimal", "google_material_3d", "cupertino_hig_studio", "swiss_horology_gold", "teenage_field_synth", "blueprint_cad_pro", "kyoto_zen_ink", "carbon_aerospace", "inferno", "inferno_burn", "slime", "bio_slime", "storm_tempest", "storm_weather", "neon_cyber", "liquid_gems", "liquid_chrome", "cryo_crystal", "retro_pixel", "arcane_glyphs", "xenotech_2126", "psychedelic_trip", "lava_groovy", "op_art_illusion", "us_holidays_festive", "nerd_rpg_arcane", "nerd_scifi_fleet", "nerd_hacker_retro", "horror_crypt", "realworld_objects", "godmode_celestial", "godmode_photonic", "godmode_quantum", "godmode_chrono", "godmode_omni_pantheon", "macos_sequoia_hig", "apple_vision_glass_3d", "dev_polyglot_pro", "creative_cinema_8k", "cyberdeck_matrix_hud", "royal_24k_gold_obsidian", "anime_mecha_neon", "steampunk_brass_clockwork", "bioluminescent_eden"] as const;
+export const ICON_PACK_STYLES = ["auto", "default", "macos_tahoe_3d", "win11_fluent_pro", "pro_studio_xdr", "hdr_photo_studio", "linux_papirus_pro", "nordic_minimal", "google_material_3d", "cupertino_hig_studio", "swiss_horology_gold", "teenage_field_synth", "blueprint_cad_pro", "kyoto_zen_ink", "carbon_aerospace", "inferno", "inferno_burn", "slime", "bio_slime", "storm_tempest", "storm_weather", "neon_cyber", "liquid_gems", "liquid_chrome", "cryo_crystal", "retro_pixel", "arcane_glyphs", "xenotech_2126", "psychedelic_trip", "lava_groovy", "op_art_illusion", "us_holidays_festive", "nerd_rpg_arcane", "nerd_scifi_fleet", "nerd_hacker_retro", "horror_crypt", "realworld_objects", "godmode_celestial", "godmode_photonic", "godmode_quantum", "godmode_chrono", "godmode_omni_pantheon", "macos_sequoia_hig", "apple_vision_glass_3d", "dev_polyglot_pro", "creative_cinema_8k", "cyberdeck_matrix_hud", "royal_24k_gold_obsidian", "anime_mecha_neon", "steampunk_brass_clockwork", "bioluminescent_eden", "holo_prismatic_foil", "stained_glass_cathedral_pro", "synthwave_outrun_1984", "nasa_apollo_telemetry", "obsidian_blood_ruby", "aurora_nordic_ice", "vaporwave_marble_plaza", "quantum_superconductor"] as const;
 export type IconPackStyle = (typeof ICON_PACK_STYLES)[number];
 export const THEME_SHOW_MODES = ["cinema_hud", "pure_canvas", "living_desktop", "retro_afterdark"] as const;
 export type ThemeShowMode = (typeof THEME_SHOW_MODES)[number];
@@ -268,6 +272,7 @@ export const DEFAULT_SETTINGS: Settings = {
   themeFontProfile: "default",
   themeCornerProfile: "default",
   themeIconGlow: "off",
+  themeIconAnimation: "off",
   uiElementFx: "off",
   iconPackStyle: "default",
   themeShowMode: "cinema_hud",
@@ -412,6 +417,7 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     themeFontProfile: oneOf(r.themeFontProfile, THEME_FONT_PROFILES, DEFAULT_SETTINGS.themeFontProfile),
     themeCornerProfile: oneOf(r.themeCornerProfile, THEME_CORNER_PROFILES, DEFAULT_SETTINGS.themeCornerProfile),
     themeIconGlow: oneOf(r.themeIconGlow, THEME_ICON_GLOWS, DEFAULT_SETTINGS.themeIconGlow),
+    themeIconAnimation: oneOf(r.themeIconAnimation, THEME_ICON_ANIMATIONS, DEFAULT_SETTINGS.themeIconAnimation),
     uiElementFx: oneOf(r.uiElementFx, UI_ELEMENT_FX_MODES, DEFAULT_SETTINGS.uiElementFx),
     iconPackStyle: oneOf(r.iconPackStyle, ICON_PACK_STYLES, DEFAULT_SETTINGS.iconPackStyle),
     themeShowMode: oneOf(r.themeShowMode, THEME_SHOW_MODES, DEFAULT_SETTINGS.themeShowMode),

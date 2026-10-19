@@ -1,13 +1,14 @@
 // The Themes menu of the ribbon: standard light and dark, the themes used lately, and the way into the gallery and the editor,
 // so colors can be changed without going through Settings.
 import { saveSettings } from "./nav.js";
-import { chooseTheme, disableAllThemeAnimations, favoriteThemes, isTelemetryPopoutHudOpen, pasteImportThemesFromClipboard, randomTheme, recentThemes, toggleCurrentThemeEffects, toggleTelemetryPopoutHud } from "./themes.js";
+import { applyThemeColorsKeepingCurrentEffects, chooseTheme, disableAllThemeAnimations, favoriteThemes, isKeepEffectsColorSwapMode, isTelemetryPopoutHudOpen, pasteImportThemesFromClipboard, randomColorsKeepCurrentEffects, randomTheme, recentThemes, toggleCurrentThemeEffects, toggleKeepEffectsColorSwapMode, toggleTelemetryPopoutHud } from "./themes.js";
 import { emit, state } from "./state.js";
 
 /** The items of the menu for the colors in force now. */
 export async function themeMenuItems() {
   const s = state.settings;
   const custom = !!s.palette;
+  const keepFxLocked = isKeepEffectsColorSwapMode();
   const standard = (value, label) => ({
     label,
     checked: !custom && s.theme === value,
@@ -20,6 +21,20 @@ export async function themeMenuItems() {
     standard("auto", "Standard: follow my computer"),
     standard("light", "Standard light"),
     standard("dark", "Standard dark"),
+    { separator: true },
+    {
+      label: "Swap random colors — keep current effects (⌥C)",
+      icon: "🌈",
+      tip: "Pick a random color palette from all 310 themes while keeping your active background weather, 3D folder shader, icon pack, and icon animations unchanged (Alt+C / ⌥C).",
+      action: () => { void randomColorsKeepCurrentEffects(); },
+    },
+    {
+      label: keepFxLocked ? "Unlock current effects (normal theme switch)" : "Lock current effects (swap colors only)",
+      icon: keepFxLocked ? "🔒" : "🔓",
+      checked: keepFxLocked,
+      tip: "When locked, picking any theme from Favorites, Recent, or the Theme Gallery changes ONLY the color palette while keeping your current active effects!",
+      action: () => { toggleKeepEffectsColorSwapMode(); },
+    },
     { separator: true },
     { label: "Quick random theme (any · ⌥R)", icon: "🎲", tip: "Instantly apply a random theme from all 310 themes with no dialog needed (Alt+R / ⌥R).", action: () => { void randomTheme({ mode: "any" }); } },
     { label: "Quick random FX theme (with effects · ⌥E)", icon: "✨", tip: "Instantly apply a random animated / 3D FX theme with no dialog needed (Alt+E / ⌥E or ⌥⇧R).", action: () => { void randomTheme({ mode: "fx" }); } },
@@ -34,15 +49,16 @@ export async function themeMenuItems() {
   ];
   const favorites = await favoriteThemes();
   const favKeys = new Set(favorites.map((t) => t.key));
+  const pickMenuTheme = (key) => (keepFxLocked ? applyThemeColorsKeepingCurrentEffects(key) : chooseTheme(key));
   if (favorites.length) {
     items.push({ separator: true }, { header: "Favorites" });
-    for (const t of favorites) items.push({ label: t.name, icon: "★", checked: s.palette === t.key, tip: t.description, action: () => chooseTheme(t.key) });
+    for (const t of favorites) items.push({ label: t.name, icon: "★", checked: s.palette === t.key, tip: t.description, action: () => pickMenuTheme(t.key) });
   }
   const recent = (await recentThemes()).filter((t) => !favKeys.has(t.key));
   if (recent.length) {
     items.push({ separator: true });
     if (favorites.length) items.push({ header: "Recent" });
-    for (const t of recent) items.push({ label: t.name, checked: s.palette === t.key, tip: t.description, action: () => chooseTheme(t.key) });
+    for (const t of recent) items.push({ label: t.name, checked: s.palette === t.key, tip: t.description, action: () => pickMenuTheme(t.key) });
   }
   const hudOpen = isTelemetryPopoutHudOpen();
   items.push(
