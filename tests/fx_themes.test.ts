@@ -1156,6 +1156,31 @@ describe("high-end M4 Pro / Windows DirectX enhancements and hardware fallbacks"
         expect(macWkWebViewM4.supportsProMotion).toBe(true);
         expect(macWkWebViewM4.recommendedFxMode).toBe("on");
         expect(macWkWebViewM4.shouldUseFallbackTheme).toBe(false);
+
+        const linuxMesaRadv = detectThemeHardware({
+            gpuRenderer: "AMD Radeon RX 7900 XTX (radeonsi, navi31, LLVM 17.0.6, DRM 3.57, 6.8.0-45-generic) Mesa RADV",
+            platform: "linux",
+            cores: 16,
+            memoryGb: 32,
+            devicePixelRatio: 2,
+        });
+        expect(linuxMesaRadv.tier).toBe("ultra");
+        expect(linuxMesaRadv.isLinuxHighEnd).toBe(true);
+        expect(linuxMesaRadv.reason).toBe("linux-vulkan-ultra");
+        expect(linuxMesaRadv.recommendedFxMode).toBe("on");
+        expect(linuxMesaRadv.shouldUseFallbackTheme).toBe(false);
+
+        const linuxParallelsVirtio = detectThemeHardware({
+            gpuRenderer: "Mesa virgl (Parallels Display Adapter, virtio-gpu)",
+            platform: "linux",
+            cores: 8,
+            memoryGb: 16,
+            devicePixelRatio: 2,
+        });
+        expect(linuxParallelsVirtio.tier).toBe("ultra");
+        expect(linuxParallelsVirtio.isLinuxHighEnd).toBe(true);
+        expect(linuxParallelsVirtio.recommendedFxMode).toBe("on");
+        expect(linuxParallelsVirtio.shouldUseFallbackTheme).toBe(false);
     });
 
     test("automatically reverts FX themes to lightweight fallback themes on software GPUs, Windows RDP, Forced Colors, or low-resource systems", () => {

@@ -4469,11 +4469,16 @@ html[data-icon-pack]:not([data-icon-pack="default"]) .row.is-folder[data-folder-
 :root[data-platform="linux"],
 :root[data-platform="linux"] *,
 :root[data-platform="linux"] *::before,
-:root[data-platform="linux"] *::after {
+:root[data-platform="linux"] *::after,
+html.rad-linux,
+html.rad-linux *,
+html.rad-linux *::before,
+html.rad-linux *::after {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
-:root[data-platform="linux"] body {
+:root[data-platform="linux"] body,
+html.rad-linux body {
   box-shadow: none !important;
 }
 
@@ -4519,9 +4524,15 @@ html.rad-macos body {
 :root[data-platform="macos"] #list-wrap,
 :root[data-platform="windows"] #list-wrap,
 :root[data-platform="linux"] #list-wrap,
+html.rad-macos #list-wrap,
+html.rad-windows #list-wrap,
+html.rad-linux #list-wrap,
 :root[data-platform="macos"] .fm-atmosphere-layer,
 :root[data-platform="windows"] .fm-atmosphere-layer,
-:root[data-platform="linux"] .fm-atmosphere-layer {
+:root[data-platform="linux"] .fm-atmosphere-layer,
+html.rad-macos .fm-atmosphere-layer,
+html.rad-windows .fm-atmosphere-layer,
+html.rad-linux .fm-atmosphere-layer {
   transform: translateZ(0);
   backface-visibility: hidden;
 }
@@ -4713,6 +4724,9 @@ html.rad-macos body {
   color: var(--text);
   text-align: left;
   cursor: pointer;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 64px;
+  contain: layout style paint;
   transition: border-color 120ms ease, background-color 120ms ease, transform 120ms ease;
 }
 .theme-editor-template-card:hover {
@@ -5653,6 +5667,7 @@ html[data-screen-filter]:not([data-screen-filter="off"]) body::before {
   inset: 0;
   z-index: 9990;
   pointer-events: none;
+  contain: strict;
   opacity: 0.78;
 }
 
@@ -6149,6 +6164,7 @@ html:is([data-holiday-theme="active"], [data-palette^="holiday_"]) .toolbar::aft
   pointer-events: none;
   z-index: 9998;
   overflow: hidden;
+  contain: strict;
 }
 
 .fm-holiday-burst-particle {
@@ -6193,6 +6209,7 @@ html[data-stage-mode="anamorphic_cinema_letterbox"] body::after {
   inset: 0;
   pointer-events: none;
   z-index: 9990;
+  contain: strict;
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0 10px, transparent 10px calc(100% - 10px), rgba(0, 0, 0, 0.55) calc(100% - 10px) 100%),
     linear-gradient(90deg, transparent 15%, rgba(56, 189, 248, 0.08) 50%, transparent 85%);
@@ -6239,6 +6256,7 @@ html[data-stage-mode="holiday_snowglobe_dome"] body {
   pointer-events: none;
   z-index: 9997;
   overflow: hidden;
+  contain: strict;
   --fm-spot-inner: 0px;
   --fm-spot-outer: 0px;
   transition:
@@ -6325,7 +6343,7 @@ html[data-cursor-trail="flash_2advanced_crosshair"] .fm-cursor-spotlight-layer::
   }
   100% {
     opacity: 0;
-    translate: var(--fm-trail-dx, 14px) var(--fm-trail-dy, -22px);
+    translate: var(--fm-trail-dx, var(--trail-dx, 14px)) var(--fm-trail-dy, var(--trail-dy, -22px));
     rotate: var(--fm-trail-rot, 65deg);
     scale: 0.25;
   }
@@ -6451,6 +6469,66 @@ html[data-wallpaper-scene="holiday_winter_village"] body {
     radial-gradient(ellipse 70% 50% at 30% 95%, rgba(250, 204, 21, 0.2), transparent 65%),
     radial-gradient(ellipse 70% 50% at 75% 95%, rgba(239, 68, 68, 0.18), transparent 65%);
   background-attachment: fixed;
+}
+
+/* ============================================================================
+   🐧 LINUX / UBUNTU WEBKITGTK & VIRTIO GPU 60-120HZ AAA STUDIO OPTIMIZATIONS
+   Eliminates per-frame Cairo/Skia Gaussian filter convolution, full-viewport
+   drop-shadow alpha passes, software blend-mode readbacks, and fixed-background
+   repaint stalls while preserving 100% of 3D transforms, keyframes, and colors.
+   ============================================================================ */
+
+/* 1. Animated 3D Icons, Spinning Holo Folders, Holiday Crests & Particles:
+ *    Keep 60-120fps 3D transform/translate/rotate/scale keyframes hardware-accelerated,
+ *    and replace per-frame `filter: drop-shadow(...)` convolution with crisp `text-shadow`. */
+:is(:root[data-platform="linux"], html.rad-linux):is([data-icon-anim], [data-fx-icon-anim]):not([data-icon-anim="off"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon], .row.is-folder .c-icon, .card.is-folder .c-icon),
+:is(:root[data-platform="linux"], html.rad-linux):is([data-ui-fx="spinning_3d_holo_folders"], [data-fx-element="spinning_3d_holo_folders"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon),
+:is(:root[data-platform="linux"], html.rad-linux)[data-folder-spring]:not([data-folder-spring="off"]) .row.is-folder:hover .c-icon,
+:is(:root[data-platform="linux"], html.rad-linux) .row.is-folder[data-holiday-crest] .c-icon::after,
+:is(:root[data-platform="linux"], html.rad-linux) .fm-holiday-burst-particle,
+:is(:root[data-platform="linux"], html.rad-linux) .fm-cursor-trail-particle {
+  filter: none !important;
+  text-shadow: 0 0 8px var(--fx-glow-color, var(--accent, #38bdf8));
+}
+
+:is(:root[data-platform="linux"], html.rad-linux):is([data-holiday-theme="active"], [data-palette^="holiday_"]) .toolbar::after {
+  filter: none !important;
+}
+
+/* 2. Root Screen Filters on Linux:
+ *    Keep fast color-matrix LUT grading (contrast/saturate/brightness/sepia/hue-rotate)
+ *    and strip full-viewport `drop-shadow(...)` on `<html>` to avoid full-DOM alpha convolution. */
+:is(html[data-platform="linux"], html.rad-linux)[data-screen-filter="vhs_arcade_crt_curvature"] {
+  filter: contrast(1.22) saturate(1.38) brightness(1.06);
+}
+:is(html[data-platform="linux"], html.rad-linux):is([data-screen-filter="vhs_camcorder_1994"], [data-screen-filter="vhs_tracking_glitch"]) {
+  filter: contrast(1.08) saturate(1.32) hue-rotate(-6deg);
+}
+:is(html[data-platform="linux"], html.rad-linux)[data-screen-filter="arcane_painterly_brushwork"] {
+  filter: contrast(1.24) saturate(1.48) brightness(1.03);
+}
+:is(html[data-platform="linux"], html.rad-linux)[data-screen-filter="halftone_comic_spiderverse"] {
+  filter: contrast(1.26) saturate(1.52);
+}
+:is(html[data-platform="linux"], html.rad-linux)[data-screen-filter="cyberpunk_chromatic_rgb"] {
+  filter: contrast(1.16) saturate(1.42);
+}
+:is(html[data-platform="linux"], html.rad-linux)[data-screen-filter="dreamcore_bloom_soft"] {
+  filter: contrast(0.95) saturate(1.32) brightness(1.06);
+}
+
+/* 3. 3D Stage Modes, Cursor Spotlight & 8K Desktop Wallpaper Backplates on Linux:
+ *    Prevent software box-reflection passes, full-viewport blend-mode readback, and fixed-background scroll repaints. */
+:is(html[data-platform="linux"], html.rad-linux)[data-stage-mode="coverflow_3d_reflection"] .row.is-folder .c-icon {
+  -webkit-box-reflect: none !important;
+}
+
+:is(:root[data-platform="linux"], html.rad-linux) .fm-cursor-spotlight-layer::before {
+  mix-blend-mode: normal;
+}
+
+:is(html[data-platform="linux"], html.rad-linux)[data-wallpaper-scene]:not([data-wallpaper-scene="off"]) body {
+  background-attachment: scroll !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

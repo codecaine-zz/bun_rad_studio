@@ -2786,6 +2786,7 @@ export interface FxHardwareProfile {
     supportsProMotion: boolean;
     isAppleSiliconPro: boolean;
     isWindowsHighEnd: boolean;
+    isLinuxHighEnd: boolean;
     nativeBackdrop: FxNativeBackdrop;
     reason: string;
 }
@@ -2795,11 +2796,14 @@ const SOFTWARE_GPU_RE =
 const APPLE_SILICON_RE = /apple\s+m[1-9](\s+(pro|max|ultra))?|apple\s+silicon|apple\s+gpu|macintosh.*arm64/i;
 const WINDOWS_HIGH_END_GPU_RE =
     /rtx\s*[345]\d{2,3}|radeon\s+rx\s+[6789]\d{2,3}|intel.*arc\s+[ab]\d{3}|adreno\s+x1|snapdragon\s+x|parallels\s+display|apple\s+m[1-9]|apple\s+silicon/i;
+const LINUX_HIGH_END_GPU_RE =
+    /rtx\s*[2345]\d{2,3}|radeon\s+rx\s+[6789]\d{2,3}|intel.*arc\s+[ab]\d{3}|mesa.*(radv|nvk|iris|anv|radeonsi)|virgl|virtio[\s-]*gpu|venus|parallels\s+display|apple\s+m[1-9]|apple\s+silicon/i;
 
 /**
- * Evaluates system capability across macOS (M1–M4 Pro/Max/Ultra, WKWebView Metal 3, Liquid Retina XDR) and Windows 11/10 (DirectX 12 RTX/Radeon/Arc,
- * Parallels Desktop WDDM on Apple Silicon M1–M4 Pro/Max, DWM Mica/Acrylic, Windows HDR, or fallback cases like Microsoft
- * Basic Render Driver, WARP, Remote Desktop, and High Contrast).
+ * Evaluates system capability across macOS (M1–M4 Pro/Max/Ultra, WKWebView Metal 3, Liquid Retina XDR),
+ * Windows 11/10 (DirectX 12 RTX/Radeon/Arc, Parallels Desktop WDDM on Apple Silicon, DWM Mica/Acrylic),
+ * and Ubuntu / Linux (WebKitGTK, Wayland/X11, Vulkan/Mesa RADV/NVK/Iris, NVIDIA RTX, Parallels/VirtIO GPU),
+ * or fallback cases like llvmpipe, Microsoft Basic Render Driver, WARP, Remote Desktop, and High Contrast.
  */
 export function detectThemeHardware(input: FxHardwareInput = {}): FxHardwareProfile {
     const nav: any = typeof globalThis !== "undefined" ? (globalThis as any).navigator : undefined;
@@ -2818,8 +2822,9 @@ export function detectThemeHardware(input: FxHardwareInput = {}): FxHardwareProf
     const gpu = input.gpuRenderer ?? "";
     const ua = input.userAgent ?? (typeof nav?.userAgent === "string" ? nav.userAgent : "");
     const plat = (input.platform ?? (typeof nav?.platform === "string" ? nav.platform : typeof process !== "undefined" ? process.platform : "")).toLowerCase();
-    const isWin = plat.includes("win") || /windows/i.test(ua);
-    const isMac = plat.includes("mac") || plat.includes("darwin") || /macintosh|mac os x/i.test(ua);
+    const isMac = plat.includes("mac") || plat.includes("darwin") || (!input.platform && /macintosh|mac os x/i.test(ua));
+    const isWin = !isMac && (plat.includes("win") || (!input.platform && /windows/i.test(ua)));
+    const isLinux = !isMac && !isWin && (plat.includes("linux") || (!input.platform && /linux|ubuntu|x11|wayland/i.test(ua))) && !/android/i.test(ua);
 
     const p3 = input.colorGamutP3 ?? mm("(color-gamut: p3)");
     const hdr = input.hdrDynamicRange ?? mm("(dynamic-range: high)");
@@ -2860,6 +2865,7 @@ export function detectThemeHardware(input: FxHardwareInput = {}): FxHardwareProf
             supportsProMotion: false,
             isAppleSiliconPro: false,
             isWindowsHighEnd: false,
+            isLinuxHighEnd: false,
             nativeBackdrop: "none",
             reason,
         };
@@ -2877,20 +2883,30 @@ export function detectThemeHardware(input: FxHardwareInput = {}): FxHardwareProf
             supportsProMotion: false,
             isAppleSiliconPro: false,
             isWindowsHighEnd: false,
+            isLinuxHighEnd: false,
             nativeBackdrop: isMac ? "vibrancy" : isWin ? "mica-alt" : "none",
             reason: "prefers-reduced-motion",
         };
     }
 
     const isAppleSiliconPro =
-        APPLE_SILICON_RE.test(`${gpu} ${ua}`) ||
+        (!isLinux && !isWin && APPLE_SILICON_RE.test(`${gpu} ${ua}`)) ||
         (isMac && (p3 || hdr) && cores >= 6 && dpr >= 2);
     const isWindowsHighEnd =
-        WINDOWS_HIGH_END_GPU_RE.test(gpu) ||
-        (isWin && (hdr || p3) && cores >= 6) ||
-        (isWin && /parallels/i.test(`${gpu} ${ua}`) && cores >= 4);
+        !isLinux && !isMac && (
+            WINDOWS_HIGH_END_GPU_RE.test(gpu) ||
+            (isWin && (hdr || p3) && cores >= 6) ||
+            (isWin && /parallels/i.test(`${gpu} ${ua}`) && cores >= 4)
+        );
+    const isLinuxHighEnd =
+        isLinux && (
+            LINUX_HIGH_END_GPU_RE.test(gpu) ||
+            (/parallels|virtio|virgl/i.test(`${gpu} ${ua}`) && cores >= 4) ||
+            ((hdr || p3) && cores >= 6) ||
+            (cores >= 8 && dpr >= 1.5)
+        );
 
-    if (isAppleSiliconPro || isWindowsHighEnd || (p3 && hdr && cores >= 8)) {
+    if (isAppleSiliconPro || isWindowsHighEnd || isLinuxHighEnd || (p3 && hdr && cores >= 8)) {
         return {
             tier: "ultra",
             recommendedFxMode: "on",
@@ -2902,12 +2918,15 @@ export function detectThemeHardware(input: FxHardwareInput = {}): FxHardwareProf
             supportsProMotion: true,
             isAppleSiliconPro,
             isWindowsHighEnd,
+            isLinuxHighEnd,
             nativeBackdrop: isMac || isAppleSiliconPro ? "vibrancy" : isWin || isWindowsHighEnd ? "acrylic" : "none",
             reason: isAppleSiliconPro
                 ? "apple-silicon-xdr"
                 : isWindowsHighEnd
                   ? "windows-directx-ultra"
-                  : "wide-gamut-hdr-high-core",
+                  : isLinuxHighEnd
+                    ? "linux-vulkan-ultra"
+                    : "wide-gamut-hdr-high-core",
         };
     }
 
@@ -2923,6 +2942,7 @@ export function detectThemeHardware(input: FxHardwareInput = {}): FxHardwareProf
             supportsProMotion: dpr >= 1.25 && cores >= 8,
             isAppleSiliconPro: false,
             isWindowsHighEnd: false,
+            isLinuxHighEnd: false,
             nativeBackdrop: isMac ? "vibrancy" : isWin ? "mica-alt" : "none",
             reason: "capable-gpu",
         };
@@ -2939,6 +2959,7 @@ export function detectThemeHardware(input: FxHardwareInput = {}): FxHardwareProf
         supportsProMotion: false,
         isAppleSiliconPro: false,
         isWindowsHighEnd: false,
+        isLinuxHighEnd: false,
         nativeBackdrop: isMac ? "vibrancy" : isWin ? "mica-alt" : "none",
         reason: "standard-hardware",
     };

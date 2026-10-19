@@ -2641,11 +2641,71 @@ describe("the theme editor in the page", () => {
     expect(directorCycled.id).toBe("win11_fluent_workstation");
     expect(doc.documentElement.dataset.iconFinish).toBe("win11_fluent_acrylic");
 
-    closeDialogs();
-    await (themes as any).applyCursorTrailMode("off", { quiet: true });
-    await (themes as any).applyFolderSpringMode("off", { quiet: true });
-    await (themes as any).applyDesktopWallpaperScene("off", { quiet: true });
+    // 10. Ubuntu / Linux WebKitGTK & VirtIO GPU 60-120Hz AAA Studio Optimization & Full 10-Engine Lifecycle
+    const linuxPreset = await (themes as any).applyPlatformOptimizationPreset("linux", { applyRecommendedTheme: false });
+    expect(linuxPreset.id).toBe("linux");
+    expect(doc.documentElement.dataset.platform).toBe("linux");
+    expect(doc.documentElement.classList.contains("rad-linux")).toBe(true);
+
+    // Apply full 10-Engine Director's Cut on Linux and verify getActiveWorkspaceEffects lists all AAA engines
+    await (themes as any).applyAaaDirectorCutPreset("cupertino_keynote_xdr", { quiet: true });
+    const activeOnLinux = themes.getActiveWorkspaceEffects();
+    const activeKinds = activeOnLinux.map((e: any) => e.kind);
+    expect(activeKinds).toEqual(
+      expect.arrayContaining([
+        "uiElementFx",
+        "iconPackStyle",
+        "iconFinishMode",
+        "iconAnimation",
+        "workspaceStageMode",
+        "cursorTrailMode",
+        "folderSpringMode",
+        "desktopWallpaperScene",
+        "uiSoundProfile",
+        "screenFilter",
+      ]),
+    );
+
+    // Swap colors to Dracula while keeping all 10 AAA engines active on Linux
+    const keptSnap = await themes.applyThemeColorsKeepingCurrentEffects("dracula", { quiet: true });
+    expect(doc.documentElement.dataset.palette).toBe("dracula");
+    expect(keptSnap.iconFinishMode).toBe("macos_aqua_glass");
+    expect(keptSnap.workspaceStageMode).toBe("stage_manager_3d_tilt");
+    expect(keptSnap.cursorTrailMode).toBe("holo_prism_spotlight");
+    expect(keptSnap.folderSpringMode).toBe("macos_spring_loaded");
+    expect(keptSnap.desktopWallpaperScene).toBe("tahoe_alpine_lake");
+    expect(doc.documentElement.dataset.iconFinish).toBe("macos_aqua_glass");
+    expect(doc.documentElement.dataset.stageMode).toBe("stage_manager_3d_tilt");
+    expect(doc.documentElement.dataset.cursorTrail).toBe("holo_prism_spotlight");
+    expect(doc.documentElement.dataset.folderSpring).toBe("macos_spring_loaded");
+    expect(doc.documentElement.dataset.wallpaperScene).toBe("tahoe_alpine_lake");
+
+    // Remove individual v1.5.0 AAA engines via removeActiveWorkspaceEffect
+    await themes.removeActiveWorkspaceEffect("cursorTrail", "", { quiet: true });
+    expect(doc.documentElement.dataset.cursorTrail).toBeUndefined();
+    await themes.removeActiveWorkspaceEffect("stageMode", "", { quiet: true });
+    expect(doc.documentElement.dataset.stageMode).toBeUndefined();
+
+    // Verify themeEffects.css contains the Linux zero-readback 60-120Hz compositor rules
+    const fxCssText = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "ui", "themeEffects.css"), "utf8");
+    expect(fxCssText).toContain("LINUX / UBUNTU WEBKITGTK & VIRTIO GPU 60-120HZ AAA STUDIO OPTIMIZATIONS");
+    expect(fxCssText).toContain(':is(:root[data-platform="linux"], html.rad-linux):is([data-icon-anim], [data-fx-icon-anim])');
+    expect(fxCssText).toContain(':is(html[data-platform="linux"], html.rad-linux)[data-stage-mode="coverflow_3d_reflection"]');
+    expect(fxCssText).toContain(':is(html[data-platform="linux"], html.rad-linux)[data-wallpaper-scene]:not([data-wallpaper-scene="off"]) body');
+    expect(fxCssText).toContain("content-visibility: auto");
+
+    // disableAllThemeAnimations resets all 10 AAA Studio engines cleanly
     await themes.disableAllThemeAnimations({ quiet: true });
+    expect(doc.documentElement.dataset.iconAnim).toBeUndefined();
+    expect(doc.documentElement.dataset.stageMode).toBeUndefined();
+    expect(doc.documentElement.dataset.cursorTrail).toBeUndefined();
+    expect(doc.documentElement.dataset.folderSpring).toBeUndefined();
+    expect(doc.documentElement.dataset.wallpaperScene).toBeUndefined();
+    expect(doc.documentElement.dataset.screenFilter).toBeUndefined();
+    expect(doc.documentElement.dataset.holidayTheme).toBeUndefined();
+
+    closeDialogs();
     await themes.applyPalette("");
   });
 });
+

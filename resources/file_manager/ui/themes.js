@@ -460,6 +460,7 @@ export const AAA_DIRECTOR_CUT_PRESETS = [
 /** Ensures the interactive pointer reveal spotlight & cursor trail overlay (`#fm-cursor-spotlight-layer`) is mounted and bound. */
 let cursorTrailBound = false;
 let lastTrailParticleTs = 0;
+let lastCursorStyleTs = 0;
 
 export function ensureCursorSpotlightLayer(activeMode = "off") {
   if (typeof document === "undefined" || !document.body) return null;
@@ -485,14 +486,21 @@ export function ensureCursorSpotlightLayer(activeMode = "off") {
     window.addEventListener("pointermove", (e) => {
       const mode = document.documentElement?.dataset?.cursorTrail || "off";
       if (mode === "off") return;
-      const root = document.documentElement;
+      const now = Date.now();
       const w = Math.max(1, window.innerWidth || 1280);
       const hPx = Math.max(1, window.innerHeight || 800);
       const xPct = ((e.clientX / w) * 100).toFixed(2);
       const yPct = ((e.clientY / hPx) * 100).toFixed(2);
-      root.style.setProperty("--fm-mouse-x", `${xPct}%`);
-      root.style.setProperty("--fm-mouse-y", `${yPct}%`);
-      const now = Date.now();
+      const activeLayer = document.getElementById("fm-cursor-spotlight-layer");
+      if (activeLayer) {
+        activeLayer.style.setProperty("--fm-mouse-x", `${xPct}%`);
+        activeLayer.style.setProperty("--fm-mouse-y", `${yPct}%`);
+      }
+      if (now - lastCursorStyleTs >= 16) {
+        lastCursorStyleTs = now;
+        document.documentElement?.style?.setProperty("--fm-mouse-x", `${xPct}%`);
+        document.documentElement?.style?.setProperty("--fm-mouse-y", `${yPct}%`);
+      }
       if (now - lastTrailParticleTs >= 36) {
         lastTrailParticleTs = now;
         spawnCursorTrailParticle(e.clientX, e.clientY, mode);
@@ -516,7 +524,7 @@ export function spawnCursorTrailParticle(clientX = 240, clientY = 180, modeOverr
   const particle = h("span", {
     class: "fm-cursor-trail-particle",
     "data-trail-glyph": glyph,
-    style: `left:${Math.round(clientX)}px;top:${Math.round(clientY)}px;--trail-dx:${dx}px;--trail-dy:${dy}px;`,
+    style: `left:${Math.round(clientX)}px;top:${Math.round(clientY)}px;--trail-dx:${dx}px;--trail-dy:${dy}px;--fm-trail-dx:${dx}px;--fm-trail-dy:${dy}px;`,
   }, glyph);
   layer.append(particle);
   while (layer.childNodes.length > 28) {
@@ -888,7 +896,7 @@ export function probeClientHardware() {
   const saveData = Boolean(nav.connection?.saveData);
   const swGpu = /basic render driver|microsoft basic|\bwarp\b|d3d11 warp|gdi generic|rdpudd|citrix/i.test(gpu);
   const shouldFallback = forcedColors || reducedTransparency || saveData || swGpu || (cores > 0 && cores <= 2) || (mem > 0 && mem <= 2);
-  const ultra = !shouldFallback && (/apple\s+m[1-9]|apple\s+silicon|apple\s+gpu|parallels\s+display|rtx\s*[345]\d{2,3}|radeon\s+rx\s+[6789]\d{2,3}|intel.*arc\s+[ab]\d{3}|adreno\s+x1|snapdragon\s+x/i.test(gpu) || (p3 && hdr && cores >= 8) || (platform === "macos" && cores >= 6) || (platform === "linux" && cores >= 8) || (platform === "windows" && cores >= 6));
+  const ultra = !shouldFallback && (/apple\s+m[1-9]|apple\s+silicon|apple\s+gpu|parallels\s+display|virgl|virtio[\s-]*gpu|venus|mesa.*(radv|nvk|iris|anv|radeonsi)|rtx\s*[2345]\d{2,3}|radeon\s+rx\s+[6789]\d{2,3}|intel.*arc\s+[ab]\d{3}|adreno\s+x1|snapdragon\s+x/i.test(gpu) || (p3 && hdr && cores >= 8) || (platform === "macos" && cores >= 6) || (platform === "linux" && cores >= 6) || (platform === "windows" && cores >= 6));
   cachedHw = {
     platform,
     isVm,
@@ -992,8 +1000,34 @@ function applySuppressedFxToDom(root) {
   }
   if (suppressedFxKinds.has("screenFilter")) {
     root.removeAttribute("data-fx-screen-filter");
+    root.removeAttribute("data-screen-filter");
     if (root.dataset) delete root.dataset.screenFilter;
     if (state.settings) state.settings.screenFilter = "off";
+  }
+  if (suppressedFxKinds.has("iconFinishMode")) {
+    if (root.dataset) delete root.dataset.iconFinish;
+    if (state.settings) state.settings.iconFinishMode = "off";
+  }
+  if (suppressedFxKinds.has("workspaceStageMode")) {
+    if (root.dataset) delete root.dataset.stageMode;
+    if (state.settings) state.settings.workspaceStageMode = "off";
+  }
+  if (suppressedFxKinds.has("cursorTrailMode")) {
+    if (root.dataset) delete root.dataset.cursorTrail;
+    if (state.settings) state.settings.cursorTrailMode = "off";
+    ensureCursorSpotlightLayer("off");
+  }
+  if (suppressedFxKinds.has("folderSpringMode")) {
+    if (root.dataset) delete root.dataset.folderSpring;
+    if (state.settings) state.settings.folderSpringMode = "off";
+  }
+  if (suppressedFxKinds.has("desktopWallpaperScene")) {
+    if (root.dataset) delete root.dataset.wallpaperScene;
+    if (state.settings) state.settings.desktopWallpaperScene = "off";
+  }
+  if (suppressedFxKinds.has("uiSoundProfile")) {
+    if (root.dataset) delete root.dataset.soundProfile;
+    if (state.settings) state.settings.uiSoundProfile = "off";
   }
   if (suppressedFxKinds.has("fontProfile")) {
     root.removeAttribute("data-fx-font-profile");
@@ -1080,6 +1114,12 @@ export function paint(theme, key) {
       state.settings.themeFontProfile = activeKeptSnap.themeFontProfile || "default";
       state.settings.themeCornerProfile = activeKeptSnap.themeCornerProfile || "default";
       if (activeKeptSnap.screenFilter) state.settings.screenFilter = activeKeptSnap.screenFilter;
+      if (activeKeptSnap.iconFinishMode) state.settings.iconFinishMode = activeKeptSnap.iconFinishMode;
+      if (activeKeptSnap.workspaceStageMode) state.settings.workspaceStageMode = activeKeptSnap.workspaceStageMode;
+      if (activeKeptSnap.cursorTrailMode) state.settings.cursorTrailMode = activeKeptSnap.cursorTrailMode;
+      if (activeKeptSnap.folderSpringMode) state.settings.folderSpringMode = activeKeptSnap.folderSpringMode;
+      if (activeKeptSnap.desktopWallpaperScene) state.settings.desktopWallpaperScene = activeKeptSnap.desktopWallpaperScene;
+      if (activeKeptSnap.uiSoundProfile) state.settings.uiSoundProfile = activeKeptSnap.uiSoundProfile;
     }
   } else if (theme.effects && !(plainStaticLockKey && plainStaticLockKey === key)) {
     const style = document.createElement("style");
@@ -1102,15 +1142,15 @@ export function paint(theme, key) {
       if (theme.effects.attrs["data-fx-corner-profile"]) state.settings.themeCornerProfile = "default";
       if (theme.effects.attrs["data-fx-atmosphere"]) state.settings.atmosphere = "none";
     }
-    if (key && key === suppressedFxForKey) {
-      applySuppressedFxToDom(root);
-    }
   }
   if (keepCurrentIconsLock && lockedIconsSnapshot && state.settings) {
     state.settings.iconPackStyle = lockedIconsSnapshot.iconPackStyle || state.settings.iconPackStyle || "default";
     state.settings.themeIconGlow = lockedIconsSnapshot.themeIconGlow || state.settings.themeIconGlow || "off";
     state.settings.themeIconAnimation = lockedIconsSnapshot.themeIconAnimation || state.settings.themeIconAnimation || "off";
     root.dataset.keepIconsLock = "true";
+  }
+  if (key && key === suppressedFxForKey) {
+    applySuppressedFxToDom(root);
   }
   if (key && key !== "preview") {
     lastPaintedKey = key;
@@ -1120,6 +1160,9 @@ export function paint(theme, key) {
       ? { uiElementFx: "off" }
       : undefined,
   );
+  if (key && key === suppressedFxForKey) {
+    applySuppressedFxToDom(root);
+  }
   emit("theme-changed", currentThemePayload());
 }
 
@@ -4407,6 +4450,10 @@ export async function disableAllThemeAnimations(opts = {}) {
       }
     }
   }
+  if (typeof document !== "undefined") {
+    document.getElementById("fm-holiday-celebration-burst")?.remove();
+    document.getElementById("fm-cursor-spotlight-layer")?.remove();
+  }
   if (opts.stripThemeEffects !== false) {
     plainStaticLockKey = opts.lockKey ?? state.settings?.palette ?? wanted ?? null;
     if (typeof document !== "undefined" && document.documentElement) {
@@ -4420,7 +4467,18 @@ export async function disableAllThemeAnimations(opts = {}) {
     themeIconGlow: "off",
     themeIconAnimation: "off",
     screenFilter: "off",
-    ...(opts.stripThemeEffects !== false ? { themeFontProfile: "default", themeCornerProfile: "default" } : {}),
+    cursorTrailMode: "off",
+    folderSpringMode: "off",
+    ...(opts.stripThemeEffects !== false
+      ? {
+          themeFontProfile: "default",
+          themeCornerProfile: "default",
+          iconFinishMode: "off",
+          workspaceStageMode: "off",
+          desktopWallpaperScene: "off",
+          uiSoundProfile: "off",
+        }
+      : {}),
     ...(opts.palette !== undefined ? { palette: opts.palette } : {}),
   };
   if (state.settings) Object.assign(state.settings, patch);
@@ -5080,6 +5138,66 @@ export function getActiveWorkspaceEffects() {
       title: `Click to turn off screen filter (${presetMeta?.label || screenFilter})`,
     });
   }
+  const iconFinish = root.dataset?.iconFinish || "";
+  if (iconFinish && iconFinish !== "off") {
+    const finishMeta = COMPUTER_ICON_FINISH_MODES.find((m) => m.id === iconFinish);
+    items.push({
+      kind: "iconFinishMode",
+      id: iconFinish,
+      label: `${finishMeta?.label || `🖥️ Icon Finish: ${iconFinish}`}`,
+      title: `Click to reset computer icon finish (${finishMeta?.label || iconFinish})`,
+    });
+  }
+  const stageMode = root.dataset?.stageMode || "";
+  if (stageMode && stageMode !== "off") {
+    const stageMeta = WORKSPACE_STAGE_MODES.find((m) => m.id === stageMode);
+    items.push({
+      kind: "workspaceStageMode",
+      id: stageMode,
+      label: `${stageMeta?.label || `🎭 Stage: ${stageMode}`}`,
+      title: `Click to turn off 3D desktop stage mode (${stageMeta?.label || stageMode})`,
+    });
+  }
+  const cursorTrail = root.dataset?.cursorTrail || "";
+  if (cursorTrail && cursorTrail !== "off") {
+    const trailMeta = CURSOR_TRAIL_MODES.find((m) => m.id === cursorTrail);
+    items.push({
+      kind: "cursorTrailMode",
+      id: cursorTrail,
+      label: `${trailMeta?.label || `🔦 Trail: ${cursorTrail}`}`,
+      title: `Click to turn off pointer spotlight & cursor trail (${trailMeta?.label || cursorTrail})`,
+    });
+  }
+  const folderSpring = root.dataset?.folderSpring || "";
+  if (folderSpring && folderSpring !== "off") {
+    const springMeta = FOLDER_SPRING_MODES.find((m) => m.id === folderSpring);
+    items.push({
+      kind: "folderSpringMode",
+      id: folderSpring,
+      label: `${springMeta?.label || `🗂️ Folder Spring: ${folderSpring}`}`,
+      title: `Click to turn off 3D folder spring hover (${springMeta?.label || folderSpring})`,
+    });
+  }
+  const wallpaperScene = root.dataset?.wallpaperScene || "";
+  if (wallpaperScene && wallpaperScene !== "off") {
+    const wallMeta = DESKTOP_WALLPAPER_SCENES.find((s) => s.id === wallpaperScene);
+    items.push({
+      kind: "desktopWallpaperScene",
+      id: wallpaperScene,
+      label: `${wallMeta?.label || `🌅 Wallpaper: ${wallpaperScene}`}`,
+      title: `Click to turn off 8K desktop wallpaper backplate (${wallMeta?.label || wallpaperScene})`,
+    });
+  }
+  const soundProfile = root.dataset?.soundProfile || "";
+  if (soundProfile && soundProfile !== "off") {
+    const soundMeta = UI_SOUND_PROFILES.find((p) => p.id === soundProfile);
+    items.push({
+      kind: "uiSoundProfile",
+      id: soundProfile,
+      label: `${soundMeta?.label || `🔊 Sound: ${soundProfile}`}`,
+      title: `Click to mute UI tactile soundscape (${soundMeta?.label || soundProfile})`,
+    });
+  }
   const hasRetroGlitch = Boolean(
     (root.getAttribute("data-fx-scanlines") && root.getAttribute("data-fx-scanlines") !== "none")
     || (root.getAttribute("data-fx-grain") && root.getAttribute("data-fx-grain") !== "none")
@@ -5118,9 +5236,20 @@ export function getActiveWorkspaceEffects() {
 
 /**
  * Removes a single active effect (`"atmoLayer"`, `"atmosphere"`, `"uiElementFx"`, `"iconPackStyle"`, `"iconGlow"`, `"iconAnimation"`,
- * `"fontProfile"`, `"cornerProfile"`, `"screenFilter"`, `"retroGlitch"`, `"glassGlow"`, or `"all"`) from the live workspace in 1 click.
+ * `"fontProfile"`, `"cornerProfile"`, `"screenFilter"`, `"iconFinishMode"`, `"workspaceStageMode"`, `"cursorTrailMode"`,
+ * `"folderSpringMode"`, `"desktopWallpaperScene"`, `"uiSoundProfile"`, `"retroGlitch"`, `"glassGlow"`, or `"all"`) from the live workspace in 1 click.
  */
-export async function removeActiveWorkspaceEffect(kind, value = "", opts = {}) {
+export async function removeActiveWorkspaceEffect(rawKind, value = "", opts = {}) {
+  const KIND_ALIASES = {
+    iconPack: "iconPackStyle",
+    iconFinish: "iconFinishMode",
+    stageMode: "workspaceStageMode",
+    cursorTrail: "cursorTrailMode",
+    folderSpring: "folderSpringMode",
+    wallpaperScene: "desktopWallpaperScene",
+    soundProfile: "uiSoundProfile",
+  };
+  const kind = KIND_ALIASES[rawKind] || rawKind;
   const root = typeof document !== "undefined" ? document.documentElement : null;
   if (kind === "all") {
     await disableAllThemeAnimations({ quiet: Boolean(opts.quiet), stripThemeEffects: true });
@@ -5210,12 +5339,51 @@ export async function removeActiveWorkspaceEffect(kind, value = "", opts = {}) {
     if (root?.dataset) delete root.dataset.cornerProfile;
   } else if (kind === "screenFilter") {
     root?.removeAttribute("data-screen-filter");
+    root?.removeAttribute("data-fx-screen-filter");
     if (root?.dataset) delete root.dataset.screenFilter;
     if (state.settings) Object.assign(state.settings, { ...palettePatch, screenFilter: "off" });
     applyUiImmersionProfiles({ screenFilter: "off" });
     await saveSettings({ ...palettePatch, screenFilter: "off" });
     root?.removeAttribute("data-screen-filter");
+    root?.removeAttribute("data-fx-screen-filter");
     if (root?.dataset) delete root.dataset.screenFilter;
+  } else if (kind === "iconFinishMode") {
+    if (root?.dataset) delete root.dataset.iconFinish;
+    if (state.settings) Object.assign(state.settings, { ...palettePatch, iconFinishMode: "off" });
+    applyUiImmersionProfiles({ iconFinishMode: "off" });
+    await saveSettings({ ...palettePatch, iconFinishMode: "off" });
+    if (root?.dataset) delete root.dataset.iconFinish;
+  } else if (kind === "workspaceStageMode") {
+    if (root?.dataset) delete root.dataset.stageMode;
+    if (state.settings) Object.assign(state.settings, { ...palettePatch, workspaceStageMode: "off" });
+    applyUiImmersionProfiles({ workspaceStageMode: "off" });
+    await saveSettings({ ...palettePatch, workspaceStageMode: "off" });
+    if (root?.dataset) delete root.dataset.stageMode;
+  } else if (kind === "cursorTrailMode") {
+    if (root?.dataset) delete root.dataset.cursorTrail;
+    if (state.settings) Object.assign(state.settings, { ...palettePatch, cursorTrailMode: "off" });
+    applyUiImmersionProfiles({ cursorTrailMode: "off" });
+    await saveSettings({ ...palettePatch, cursorTrailMode: "off" });
+    if (root?.dataset) delete root.dataset.cursorTrail;
+    ensureCursorSpotlightLayer("off");
+  } else if (kind === "folderSpringMode") {
+    if (root?.dataset) delete root.dataset.folderSpring;
+    if (state.settings) Object.assign(state.settings, { ...palettePatch, folderSpringMode: "off" });
+    applyUiImmersionProfiles({ folderSpringMode: "off" });
+    await saveSettings({ ...palettePatch, folderSpringMode: "off" });
+    if (root?.dataset) delete root.dataset.folderSpring;
+  } else if (kind === "desktopWallpaperScene") {
+    if (root?.dataset) delete root.dataset.wallpaperScene;
+    if (state.settings) Object.assign(state.settings, { ...palettePatch, desktopWallpaperScene: "off" });
+    applyUiImmersionProfiles({ desktopWallpaperScene: "off" });
+    await saveSettings({ ...palettePatch, desktopWallpaperScene: "off" });
+    if (root?.dataset) delete root.dataset.wallpaperScene;
+  } else if (kind === "uiSoundProfile") {
+    if (root?.dataset) delete root.dataset.soundProfile;
+    if (state.settings) Object.assign(state.settings, { ...palettePatch, uiSoundProfile: "off" });
+    applyUiImmersionProfiles({ uiSoundProfile: "off" });
+    await saveSettings({ ...palettePatch, uiSoundProfile: "off" });
+    if (root?.dataset) delete root.dataset.soundProfile;
   } else if (kind === "retroGlitch") {
     for (const attr of ["data-fx-scanlines", "data-fx-grain", "data-fx-chromatic", "data-fx-noise", "data-fx-crt"]) {
       root?.removeAttribute(attr);
@@ -5274,6 +5442,12 @@ export function captureCurrentWorkspaceEffectsSnapshot() {
   const themeFontProfile = root?.dataset?.fontProfile || root?.getAttribute?.("data-fx-font-profile") || state.settings?.themeFontProfile || "default";
   const themeCornerProfile = root?.dataset?.cornerProfile || root?.getAttribute?.("data-fx-corner-profile") || state.settings?.themeCornerProfile || "default";
   const screenFilter = root?.dataset?.screenFilter || root?.getAttribute?.("data-screen-filter") || state.settings?.screenFilter || "off";
+  const iconFinishMode = root?.dataset?.iconFinish || state.settings?.iconFinishMode || "off";
+  const workspaceStageMode = root?.dataset?.stageMode || state.settings?.workspaceStageMode || "off";
+  const cursorTrailMode = root?.dataset?.cursorTrail || state.settings?.cursorTrailMode || "off";
+  const folderSpringMode = root?.dataset?.folderSpring || state.settings?.folderSpringMode || "off";
+  const desktopWallpaperScene = root?.dataset?.wallpaperScene || state.settings?.desktopWallpaperScene || "off";
+  const uiSoundProfile = root?.dataset?.soundProfile || state.settings?.uiSoundProfile || "off";
   return {
     atmosphere: atmoSpec || "none",
     uiElementFx: uiElementFx || "off",
@@ -5283,6 +5457,12 @@ export function captureCurrentWorkspaceEffectsSnapshot() {
     themeFontProfile: themeFontProfile || "default",
     themeCornerProfile: themeCornerProfile || "default",
     screenFilter: screenFilter || "off",
+    iconFinishMode: iconFinishMode || "off",
+    workspaceStageMode: workspaceStageMode || "off",
+    cursorTrailMode: cursorTrailMode || "off",
+    folderSpringMode: folderSpringMode || "off",
+    desktopWallpaperScene: desktopWallpaperScene || "off",
+    uiSoundProfile: uiSoundProfile || "off",
     fxAttrs,
     fxCss,
   };
@@ -5405,6 +5585,12 @@ export async function applyThemeColorsKeepingCurrentEffects(key, opts = {}) {
     themeFontProfile: snap.themeFontProfile || "default",
     themeCornerProfile: snap.themeCornerProfile || "default",
     screenFilter: snap.screenFilter || "off",
+    iconFinishMode: snap.iconFinishMode || "off",
+    workspaceStageMode: snap.workspaceStageMode || "off",
+    cursorTrailMode: snap.cursorTrailMode || "off",
+    folderSpringMode: snap.folderSpringMode || "off",
+    desktopWallpaperScene: snap.desktopWallpaperScene || "off",
+    uiSoundProfile: snap.uiSoundProfile || "off",
   };
   if (state.settings) Object.assign(state.settings, immersionPatch);
   applyUiImmersionProfiles(immersionPatch);
