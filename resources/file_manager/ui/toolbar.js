@@ -9,7 +9,7 @@ import { showToolsDialog } from "./tools.js";
 import { openPower, togglePower } from "./power.js";
 import { lockSelection } from "./vault.js";
 import { showOperationHistory } from "./opHistory.js";
-import { $, clear, h } from "./dom.js";
+import { $, buttonIconFor, clear, h } from "./dom.js";
 import { showMenu, toast } from "./menus.js";
 import { canGoUpIn, clearSearch, goBack, goForward, goTo, goUpIn, refresh, runSearch } from "./nav.js";
 import * as ops from "./ops.js";
@@ -42,6 +42,7 @@ function buttonSpecs() {
       { id: "newFolder", icon: "📁", label: "New folder", get tip() { return `Make a new folder${hintOf("file.newFolder")}`; }, run: ops.newFolder, enabled: folderView, hide: inTrash },
       { id: "newFile", icon: "📄", label: "New file", get tip() { return `Make a new empty file${hintOf("file.newFile")}`; }, run: ops.newFile, enabled: folderView, hide: inTrash },
       { id: "newSqlite", icon: "🪶", label: "New SQLite", get tip() { return `Make a new SQLite database file${hintOf("file.newSqlite")}`; }, run: ops.newSqlite, enabled: folderView, hide: inTrash },
+      { id: "newTemplate", icon: "✨", label: "Template", get tip() { return `Make a new file from a starter template${hintOf("file.newTemplate")}`; }, run: () => emit("new-template-dialog"), enabled: folderView, hide: inTrash },
     ],
     [
       { id: "cut", icon: "✂️", label: "Cut", get tip() { return `Cut${hintOf("file.cut")}`; }, run: ops.cutSelection, enabled: () => sel() > 0, hide: inTrash },
@@ -86,7 +87,7 @@ export function buildToolbar() {
     const g = h("div", { class: "tool-group", role: "group" });
     for (const spec of group) {
       const btn = h("button", { type: "button", class: `tool${spec.primary ? " primary" : ""}`, id: `tool-${spec.id}`, title: spec.tip, "aria-label": spec.label, onclick: () => spec.run(btn) },
-        h("span", { class: "ti", "aria-hidden": "true" }, spec.icon),
+        h("span", { class: "ti", "aria-hidden": "true", dataset: { btnIcon: spec.id, defaultIcon: spec.icon } }, buttonIconFor(spec.id, undefined, spec.icon)),
         h("span", { class: "tl" }, spec.label),
         spec.menu ? h("span", { class: "caret", "aria-hidden": "true" }, "▾") : null);
       buttons.set(spec.id, { btn, spec });
@@ -111,6 +112,7 @@ export function updateToolbar() {
     }
   }
   document.querySelectorAll(".tool-group").forEach((g) => (g.hidden = ![...g.children].some((c) => !c.hidden)));
+  updateAddressButtons();
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -120,8 +122,47 @@ export function updateToolbar() {
 const crumbsEl = () => $("#crumbs");
 const addressInput = () => $("#address-input");
 
+export function updateAddressButtons() {
+  const pinBtn = $("#pin-folder");
+  const copyBtn = $("#copy-address");
+  const folderOk = !inTrash() && !state.search && Boolean(state.location.path);
+  if (pinBtn) {
+    pinBtn.hidden = !folderOk;
+    const pinned = folderOk && ops.isFavorite(state.location.path);
+    pinBtn.setAttribute("aria-pressed", String(pinned));
+    pinBtn.classList.toggle("pinned", pinned);
+    pinBtn.textContent = pinned ? "★" : "☆";
+    pinBtn.title = `${pinned ? "Remove this folder from Favorites" : "Pin this folder to Favorites"}${hintOf("file.toggleFavorite")}`;
+  }
+  if (copyBtn) {
+    copyBtn.hidden = !folderOk;
+    copyBtn.title = `Copy current folder path${hintOf("file.copyPath")}`;
+  }
+}
+
+async function showChildFoldersMenu(folderPath, anchorOrPoint) {
+  try {
+    const res = await call("list", { path: folderPath, showHidden: state.settings.showHidden });
+    const dirs = (res.entries ?? []).filter((e) => e.isDir).slice(0, 40);
+    if (!dirs.length) {
+      toast(`No subfolders inside "${baseName(folderPath, state.sep) || folderPath}".`, { kind: "info" });
+      return;
+    }
+    const items = dirs.map((d) => ({
+      label: d.name,
+      icon: "📂",
+      checked: state.location.path === d.path || state.location.path.startsWith(d.path + state.sep),
+      action: () => goTo(d.path),
+    }));
+    showMenu(items, { ...(anchorOrPoint instanceof Element ? { anchor: anchorOrPoint } : anchorOrPoint), label: `Subfolders of ${baseName(folderPath, state.sep) || folderPath}` });
+  } catch {
+    toast("Couldn't list subfolders.", { kind: "error" });
+  }
+}
+
 export function renderAddress() {
   const box = clear(crumbsEl());
+  updateAddressButtons();
   if (inTrash()) {
     box.append(h("span", { class: "crumb current static" }, "🗑️ Recycle Bin"));
     return;
@@ -134,10 +175,33 @@ export function renderAddress() {
   parts.forEach((c, i) => {
     const last = i === parts.length - 1;
     const label = c.root && state.sep === "/" ? "💻 Computer" : c.name;
-    const el = h("button", { type: "button", class: `crumb${last ? " current" : ""}`, title: c.path, "aria-current": last ? "page" : null, onclick: () => goTo(c.path) }, label);
+    const el = h("button", {
+      type: "button",
+      class: `crumb${last ? " current" : ""}`,
+      title: c.path,
+      "aria-current": last ? "page" : null,
+      onclick: () => goTo(c.path),
+      oncontextmenu: (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const parent = parentOf(c.path, state.sep);
+        void showChildFoldersMenu(parent || c.path, { x: e.clientX, y: e.clientY });
+      },
+    }, label);
     attachDropTarget(el, { getPath: () => c.path });
     box.append(el);
-    if (!last) box.append(h("span", { class: "crumb-sep", "aria-hidden": "true" }, "›"));
+    if (!last) {
+      const sepEl = h("span", {
+        class: "crumb-sep",
+        "aria-hidden": "true",
+        title: `Browse folders inside ${c.name || c.path}`,
+        onclick: (e) => {
+          e.stopPropagation();
+          void showChildFoldersMenu(c.path, sepEl);
+        },
+      }, "›");
+      box.append(sepEl);
+    }
   });
 }
 
@@ -190,6 +254,12 @@ export function wireAddress() {
   });
   input.addEventListener("blur", () => setTimeout(hideAddressEditor, 120));
   $("#edit-address").addEventListener("click", showAddressEditor);
+  $("#pin-folder")?.addEventListener("click", () => {
+    if (!inTrash() && state.location.path) void ops.toggleFavorite(state.location.path);
+  });
+  $("#copy-address")?.addEventListener("click", () => {
+    if (!inTrash() && state.location.path) void ops.copyPathOf([{ path: state.location.path }]);
+  });
 }
 
 // ---------------------------------------------------------------------------------------------------------------

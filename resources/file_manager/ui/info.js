@@ -6,7 +6,7 @@ import { isSqliteFile, openInSqliteStudio } from "./dbFiles.js";
 import { showProperties } from "./extras.js";
 import { showMoreInfo } from "./fileinfo.js";
 import { mayHavePhotoDetails, photoStrip } from "./fileinfoPhoto.js";
-import { $, clear, h, iconFor } from "./dom.js";
+import { $, clear, h, iconForEntry } from "./dom.js";
 import { saveSettings, visibleEntries } from "./nav.js";
 import { octalOf, symbolicOf } from "./permsModel.js";
 import { selectedEntries } from "./selection.js";
@@ -67,9 +67,14 @@ export async function renderInfo() {
   if (items.length === 0) {
     const entries = visibleEntries();
     const files = entries.filter((e) => !e.isDir);
+    const folderLabel = inTrash() ? "Recycle Bin" : baseName(state.location.path, state.sep) || state.location.path;
     box.append(
-      h("div", { class: "info-icon", "aria-hidden": "true" }, inTrash() ? "🗑️" : "📂"),
-      h("h2", { class: "info-name" }, inTrash() ? "Recycle Bin" : baseName(state.location.path, state.sep) || state.location.path),
+      h("div", {
+        class: "info-icon",
+        "aria-hidden": "true",
+        dataset: { entryName: folderLabel, isDir: "1", defaultIcon: inTrash() ? "🗑️" : "📂" },
+      }, inTrash() ? "🗑️" : iconForEntry({ name: folderLabel, isDir: true, icon: "📂" })),
+      h("h2", { class: "info-name" }, folderLabel),
       h("p", { class: "hint" }, "Select an item to see details about it."),
       h("dl", { class: "info-facts" }, ...fact("Items", plural(entries.length, "item")), ...fact("Total size of files", files.length ? formatSize(files.reduce((n, e) => n + e.size, 0)) : "")),
     );
@@ -90,7 +95,11 @@ export async function renderInfo() {
   const e = items[0];
   // Node.append turns a null into the text "null", so the parts that don't apply are left out first.
   box.append(...[
-    h("div", { class: "info-icon", "aria-hidden": "true" }, e.icon || iconFor(e.name, e.isDir)),
+    h("div", {
+      class: "info-icon",
+      "aria-hidden": "true",
+      dataset: { entryName: e.name || "", isDir: e.isDir ? "1" : "0", defaultIcon: e.icon || "" },
+    }, iconForEntry(e)),
     h("h2", { class: "info-name" }, e.name),
     h("dl", { class: "info-facts" },
       ...fact("Type", e.label), ...fact("Size", e.isDir ? "" : formatSize(e.size)), ...fact(inTrash() ? "Deleted" : "Modified", formatDate(e.mtimeMs)),

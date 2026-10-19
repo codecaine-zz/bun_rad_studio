@@ -79,6 +79,39 @@ export function openDialog({ title, body, buttons = [{ label: "OK", primary: tru
   backdrop.addEventListener("mousedown", (e) => {
     if (e.target === backdrop) close(null);
   });
+  backdrop.addEventListener("wheel", (e) => {
+    const dy = e.deltaY;
+    const dx = e.deltaX;
+    let el = e.target instanceof HTMLElement ? e.target : null;
+    while (el && el !== backdrop) {
+      const style = window.getComputedStyle?.(el);
+      const oy = style?.overflowY;
+      const ox = style?.overflowX;
+      const scrollableY = (oy === "auto" || oy === "scroll") && el.scrollHeight > el.clientHeight + 1;
+      const scrollableX = (ox === "auto" || ox === "scroll") && el.scrollWidth > el.clientWidth + 1;
+      if (scrollableY && Math.abs(dy) >= Math.abs(dx)) {
+        const canDown = dy > 0 && el.scrollTop + el.clientHeight < el.scrollHeight - 1;
+        const canUp = dy < 0 && el.scrollTop > 0;
+        if (canDown || canUp) {
+          e.stopPropagation();
+          return;
+        }
+        break;
+      }
+      if (scrollableX && Math.abs(dx) > Math.abs(dy)) {
+        const canRight = dx > 0 && el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+        const canLeft = dx < 0 && el.scrollLeft > 0;
+        if (canRight || canLeft) {
+          e.stopPropagation();
+          return;
+        }
+        break;
+      }
+      el = el.parentElement;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+  }, { passive: false });
 
   queueMicrotask(() => {
     const target = initialFocus ?? dialog.querySelector("[autofocus]") ?? buttonEls[buttons.findIndex((b) => b.primary)] ?? focusables()[0];

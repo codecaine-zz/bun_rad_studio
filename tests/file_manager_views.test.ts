@@ -3018,5 +3018,183 @@ describe("core file browsing & pane ergonomics (tabs, marquee, folder tree, colu
     emit("workspace-go", "files");
     await sleep(60);
   });
+
+  test("rowDensity setting sanitizes to compact/comfortable/spacious and updates document data-density and quickbar pill", async () => {
+    const { DEFAULT_SETTINGS } = await import("../src/features/filemanager/fmSettings.ts");
+    const { goTo, saveSettings } = await import("../resources/file_manager/ui/nav.js");
+
+    expect(DEFAULT_SETTINGS.rowDensity).toBe("comfortable");
+    expect(sanitizeSettings({ rowDensity: "compact" }, ctx).rowDensity).toBe("compact");
+    expect(sanitizeSettings({ rowDensity: "spacious" }, ctx).rowDensity).toBe("spacious");
+    expect(sanitizeSettings({ rowDensity: "invalid-density" }, ctx).rowDensity).toBe("comfortable");
+
+    await goTo(home);
+    await saveSettings({ rowDensity: "compact" });
+    await sleep(40);
+    expect(doc.documentElement.dataset.density).toBe("compact");
+    expect($("#qb-density-btn")?.textContent).toContain("Compact");
+
+    await saveSettings({ rowDensity: "spacious" });
+    await sleep(40);
+    expect(doc.documentElement.dataset.density).toBe("spacious");
+    expect($("#qb-density-btn")?.textContent).toContain("Spacious");
+
+    await saveSettings({ rowDensity: "comfortable" });
+    await sleep(40);
+    expect(doc.documentElement.dataset.density).toBe("comfortable");
+  });
+
+  test("Smart Kind-Chips Bar and Live Folder Filter filter visible entries immediately and reset on folder navigation", async () => {
+    const { state, emit } = await import("../resources/file_manager/ui/state.js");
+    const { goTo, entryMatchesKindFilter } = await import("../resources/file_manager/ui/nav.js");
+
+    expect(entryMatchesKindFilter({ name: "app.ts", ext: ".ts", isDir: false, category: "code" }, "code")).toBe(true);
+    expect(entryMatchesKindFilter({ name: "readme.md", ext: ".md", isDir: false, category: "document" }, "docs")).toBe(true);
+    expect(entryMatchesKindFilter({ name: "sub", ext: "", isDir: true, category: "folder" }, "folders")).toBe(true);
+    expect(entryMatchesKindFilter({ name: "photo.png", ext: ".png", isDir: false, category: "image" }, "images")).toBe(true);
+    expect(entryMatchesKindFilter({ name: "data.sqlite", ext: ".sqlite", isDir: false, category: "other" }, "data")).toBe(true);
+    expect(entryMatchesKindFilter({ name: "bundle.zip", ext: ".zip", isDir: false, category: "archive" }, "archives")).toBe(true);
+
+    writeFileSync(join(home, "script-rad.ts"), "export const x = 1;\n");
+    await goTo(home);
+    await sleep(50);
+
+    expect(rowNames("#list")).toContain("script-rad.ts");
+    expect(rowNames("#list")).toContain("a.txt");
+
+    // Click the Code kind chip
+    const codeChip = doc.querySelector('#kind-chips [data-kind="code"]') as any;
+    expect(codeChip).not.toBeNull();
+    codeChip.click();
+    await sleep(40);
+    expect(state.kindFilter).toBe("code");
+    expect(rowNames("#list")).toContain("script-rad.ts");
+    expect(rowNames("#list")).not.toContain("a.txt");
+
+    // Live folder filter narrows further
+    const qInput = $("#quick-filter") as any;
+    qInput.value = "nomatch-xyz";
+    qInput.dispatchEvent(new win.Event("input", { bubbles: true }));
+    await sleep(40);
+    expect(state.quickFilter).toBe("nomatch-xyz");
+    expect(rowNames("#list").length).toBe(0);
+
+    // Navigating to another folder resets both filters
+    await goTo(dest);
+    expect(state.kindFilter).toBe("all");
+    expect(state.quickFilter).toBe("");
+    await goTo(home);
+    rmSync(join(home, "script-rad.ts"), { force: true });
+    emit("view");
+  });
+
+  test("Context-Aware Floating Selection Action Bar appears on selection with inline color tags and context actions", async () => {
+    const { state } = await import("../resources/file_manager/ui/state.js");
+    const { goTo } = await import("../resources/file_manager/ui/nav.js");
+    const { selectOnly, clearSelection } = await import("../resources/file_manager/ui/selection.js");
+    const { setTagForPaths } = await import("../resources/file_manager/ui/tags.js");
+
+    await goTo(home);
+    clearSelection();
+    await sleep(30);
+    expect($("#selection-bar")?.hidden).toBe(true);
+
+    const fileA = join(home, "a.txt");
+    selectOnly(fileA);
+    await sleep(40);
+
+    const bar = $("#selection-bar");
+    expect(bar?.hidden).toBe(false);
+    expect(bar?.querySelector(".sb-summary")?.textContent).toContain("1 file selected");
+
+    // Click blue color tag dot inside the floating selection bar
+    const blueTagBtn = bar?.querySelector(".sb-tag-btn.tag-blue") as any;
+    expect(blueTagBtn).not.toBeNull();
+    blueTagBtn.click();
+    await sleep(50);
+    expect((state.settings.tags as Record<string, string>)[fileA]).toBe("blue");
+
+    await setTagForPaths([fileA], "");
+    clearSelection();
+    await sleep(30);
+    expect($("#selection-bar")?.hidden).toBe(true);
+  });
+
+  test("Address bar favorite pin star toggles folder favorite state and updates aria-pressed", async () => {
+    const { goTo } = await import("../resources/file_manager/ui/nav.js");
+    const ops = await import("../resources/file_manager/ui/ops.js");
+
+    await goTo(dest);
+    await sleep(40);
+    const pinBtn = $("#pin-folder");
+    expect(pinBtn).not.toBeNull();
+    expect(pinBtn.hidden).toBe(false);
+
+    const wasFav = ops.isFavorite(dest);
+    pinBtn.click();
+    await sleep(60);
+    expect(ops.isFavorite(dest)).toBe(!wasFav);
+    expect(pinBtn.getAttribute("aria-pressed")).toBe(String(!wasFav));
+
+    // Toggle back to restore original state
+    pinBtn.click();
+    await sleep(60);
+    expect(ops.isFavorite(dest)).toBe(wasFav);
+    await goTo(home);
+  });
+
+  test("RAD File Templates create starter files with content and support the template picker modal", async () => {
+    const { goTo } = await import("../resources/file_manager/ui/nav.js");
+    const { RAD_FILE_TEMPLATES, newFromTemplate, showNewTemplateDialog } = await import("../resources/file_manager/ui/quickbar.js");
+
+    expect(RAD_FILE_TEMPLATES.length).toBeGreaterThanOrEqual(10);
+    await goTo(home);
+
+    const created = await newFromTemplate("typescript", "rad_helper.ts");
+    expect(created?.path).toBe(join(home, "rad_helper.ts"));
+    expect(existsSync(created!.path)).toBe(true);
+    expect(readFileSync(created!.path, "utf8")).toContain("export async function main(");
+
+    // Verify template picker modal opens and renders template cards
+    showNewTemplateDialog();
+    await sleep(40);
+    const cards = doc.querySelectorAll("#overlay .tpl-card");
+    expect(cards.length).toBe(RAD_FILE_TEMPLATES.length);
+    const cancelBtn = [...doc.querySelectorAll("#overlay .modal-buttons .btn")].find((b: any) => b.textContent === "Cancel") as any;
+    cancelBtn?.click();
+    await sleep(30);
+
+    rmSync(created!.path, { force: true });
+    await goTo(home);
+  });
+
+  test("Universal Command Palette opens, filters across categories and prefixes, and runs commands", async () => {
+    const { openCommandPalette } = await import("../resources/file_manager/ui/commandPalette.js");
+
+    const dlg = openCommandPalette();
+    await sleep(40);
+    const input = doc.querySelector("#overlay .cp-input") as any;
+    expect(input).not.toBeNull();
+    expect(doc.querySelectorAll("#overlay .cp-item").length).toBeGreaterThan(5);
+
+    // Filter with '+' prefix for RAD templates
+    input.value = "+ typescript";
+    input.dispatchEvent(new win.Event("input", { bubbles: true }));
+    await sleep(40);
+    const rows = [...doc.querySelectorAll("#overlay .cp-item")];
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows[0].textContent).toContain("TypeScript Script");
+
+    // Filter with '#' prefix for View & Density settings
+    input.value = "# compact";
+    input.dispatchEvent(new win.Event("input", { bubbles: true }));
+    await sleep(40);
+    const densityRows = [...doc.querySelectorAll("#overlay .cp-item")];
+    expect(densityRows.some((r: any) => r.textContent.includes("Row Density: Compact"))).toBe(true);
+
+    dlg?.close(null);
+    await sleep(30);
+  });
 });
+
 

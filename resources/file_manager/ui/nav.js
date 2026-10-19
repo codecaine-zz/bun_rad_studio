@@ -22,7 +22,9 @@ export async function busy(fn) {
   }
 }
 
-const saveLastPath = debounce((path) => saveSettings({ lastPath: path }).catch(() => {}), 600);
+const saveLastPath = debounce((path) => {
+  if (typeof document !== "undefined") saveSettings({ lastPath: path }).catch(() => {});
+}, 600);
 let settingsSave = Promise.resolve();
 let settingsRevision = 0;
 
@@ -69,6 +71,24 @@ export async function refreshTrashCount() {
   }
 }
 
+/** Classifies whether an entry matches a Quick-Chip kind filter ("all" | "folder" | "folders" | "image" | "images" | "media" | "document" | "docs" | "code" | "archive" | "archives" | "data"). */
+export function entryMatchesKindFilter(entry, kind) {
+  if (!kind || kind === "all") return true;
+  if (kind === "folder" || kind === "folders") return !!entry.isDir;
+  if (entry.isDir) return false;
+  const k = String(entry.kind || entry.category || "").toLowerCase();
+  const n = String(entry.name || "").toLowerCase();
+  const dot = n.lastIndexOf(".");
+  const ext = dot > 0 ? n.slice(dot + 1) : String(entry.ext || "").replace(/^\./, "").toLowerCase();
+  if (kind === "image" || kind === "images") return k === "image" || /^(png|jpe?g|gif|webp|svg|bmp|ico|avif|tiff?|heic)$/.test(ext);
+  if (kind === "media") return k === "audio" || k === "video" || /^(mp3|wav|ogg|flac|m4a|aac|opus|mp4|mkv|webm|mov|avi|m3u8?)$/.test(ext);
+  if (kind === "document" || kind === "docs") return k === "pdf" || k === "document" || /^(pdf|md|txt|rtf|doc|docx|odt|pages|epub|tex)$/.test(ext);
+  if (kind === "code") return k === "code" || /^(ts|tsx|js|jsx|mjs|cjs|py|rs|go|c|cpp|h|hpp|java|kt|swift|rb|php|sh|zsh|bash|html?|css|scss|less|vue|svelte|astro|sql|lua|zig|toml|ya?ml)$/.test(ext) || /^(dockerfile|makefile|justfile|\.gitignore|\.env.*)$/.test(n);
+  if (kind === "archive" || kind === "archives") return k === "archive" || /^(zip|tar|gz|tgz|bz2|xz|7z|rar|zst|radenc)$/.test(ext);
+  if (kind === "data") return /^(json|jsonl|csv|tsv|parquet|sqlite|sqlite3|db|ddb|duckdb|xml|ini|conf|env|lock)$/.test(ext);
+  return true;
+}
+
 /** What a list shows (the left one unless a pane is given), sorted by the person's choice. Search results replace the folder while searching. */
 export function visibleEntries(pane = left) {
   const { sortBy, sortDir, foldersFirst } = state.settings;
@@ -76,6 +96,15 @@ export function visibleEntries(pane = left) {
   let raw = pane.search ? pane.search.entries : pane.entries;
   if (state.tagFilter && state.settings?.tags) {
     raw = raw.filter((e) => state.settings.tags[e.path] === state.tagFilter);
+  }
+  if (pane.side !== "right") {
+    if (state.kindFilter && state.kindFilter !== "all") {
+      raw = raw.filter((e) => entryMatchesKindFilter(e, state.kindFilter));
+    }
+    if (state.quickFilter) {
+      const q = state.quickFilter.trim().toLowerCase();
+      if (q) raw = raw.filter((e) => (e.name || "").toLowerCase().includes(q) || (e.label || "").toLowerCase().includes(q));
+    }
   }
   return sortEntries(raw, { by: sortBy, dir: sortDir, foldersFirst });
 }
@@ -117,6 +146,10 @@ export async function goTo(path, { push = true, select = null } = {}) {
       const here = state.location;
       const moved = !(here.kind === "folder" && here.path === res.path);
       if (push && moved && (here.kind === "trash" || here.path)) pushHistory(here);
+      if (moved) {
+        state.quickFilter = "";
+        state.kindFilter = "all";
+      }
       state.location = { kind: "folder", path: res.path };
       state.entries = res.entries;
       state.total = res.total;
@@ -148,6 +181,8 @@ export async function showTrash({ push = true } = {}) {
       const res = await call("trash/list");
       if (mine !== navigation) return false;
       if (push && !(state.location.kind === "trash")) pushHistory(state.location);
+      state.quickFilter = "";
+      state.kindFilter = "all";
       state.location = { kind: "trash" };
       state.trashItems = res.items.map((r) => ({
         path: r.id, id: r.id, name: r.name, isDir: r.isDir, size: r.size ?? 0, mtimeMs: Date.parse(r.deletedAt) || 0,

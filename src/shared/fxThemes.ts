@@ -3384,7 +3384,7 @@ export const FX_STYLE_PRESETS: readonly FxStylePreset[] = [
         id: "godmode_omega_singularity",
         label: "God-Mode: Omega Singularity",
         summary: "Post-singularity hyper-crystal prism refraction, plasma halo, spectral edge dispersion, and pulsing event-horizon aura",
-        fx: { glass: 0.78, blur: 40, glow: "plasma", radius: "round", border: "iridescent", motion: "elastic", backdropStyle: "crystal", cursorEffect: "magnetic", vignette: "cinema", sheen: true, prismEdge: true, innerGlow: true, frostedRim: true, neonPulse: true, ambient: true, parallax: true, chromatic: true },
+        fx: { glass: 0.78, blur: 40, glow: "plasma", radius: "round", border: "iridescent", motion: "elastic", backdropStyle: "frosted", cursorEffect: "magnetic", vignette: "cinema", sheen: true, prismEdge: true, innerGlow: true, frostedRim: true, neonPulse: true, ambient: true, parallax: true, chromatic: true },
     },
     {
         id: "godmode_photonic_3099",
@@ -3396,13 +3396,13 @@ export const FX_STYLE_PRESETS: readonly FxStylePreset[] = [
         id: "godmode_dyson_matrioshka",
         label: "God-Mode: Matrioshka Dyson Lattice",
         summary: "Solar-forged obsidian neutronium shell with precision laser borders, fine telemetry scanlines, and magnetic cursor lock",
-        fx: { glass: 0.56, blur: 28, glow: "plasma", radius: "sharp", border: "neon", motion: "snappy", backdropStyle: "obsidian", cursorEffect: "magnetic", scanlines: "fine", vignette: "cinema", sheen: true, innerGlow: true, frostedRim: true, neonPulse: true, ambient: true, parallax: true },
+        fx: { glass: 0.56, blur: 28, glow: "plasma", radius: "sharp", border: "neon", motion: "snappy", backdropStyle: "oled", cursorEffect: "magnetic", scanlines: "subtle", vignette: "cinema", sheen: true, innerGlow: true, frostedRim: true, neonPulse: true, ambient: true, parallax: true },
     },
     {
         id: "godmode_chrono_crystal",
         label: "God-Mode: Chrono-Crystalline Temporal",
         summary: "Birefringent quartz time-crystal lattice with subtle interference grain, prismatic rims, and cinematic time-dilated easing",
-        fx: { glass: 0.72, blur: 36, glow: "bloom", radius: "round", border: "iridescent", motion: "cinematic", backdropStyle: "crystal", cursorEffect: "spotlight", grain: "subtle", vignette: "ambient", sheen: true, prismEdge: true, innerGlow: true, frostedRim: true, ambient: true, parallax: true, chromatic: true },
+        fx: { glass: 0.72, blur: 36, glow: "bloom", radius: "round", border: "iridescent", motion: "cinematic", backdropStyle: "frosted", cursorEffect: "spotlight", grain: "subtle", vignette: "ambient", sheen: true, prismEdge: true, innerGlow: true, frostedRim: true, ambient: true, parallax: true, chromatic: true },
     },
 ];
 

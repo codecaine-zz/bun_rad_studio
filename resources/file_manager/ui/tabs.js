@@ -1,5 +1,5 @@
 // Folder tabs for the main file pane: open multiple folders at once, switch between them, duplicate, or close tabs.
-import { $, h, clear, announce } from "./dom.js";
+import { $, activeIconPackStyle, h, clear, announce, iconFor, placeIconFor } from "./dom.js";
 import { state, on, currentPath, inTrash } from "./state.js";
 import { goTo, showTrash } from "./nav.js";
 import { setActivePane } from "./pane.js";
@@ -156,7 +156,11 @@ export function renderTabs() {
   for (const tab of state.tabs) {
     const isCurrent = tab.id === state.activeTabId;
     const label = tabLabel(tab.location);
-    const icon = tab.location?.kind === "trash" ? "🗑️" : "📁";
+    const isTrash = tab.location?.kind === "trash";
+    const defaultIcon = isTrash ? "🗑️" : "📁";
+    const icon = isTrash
+      ? placeIconFor("recycle", "Recycle Bin", undefined, defaultIcon)
+      : (activeIconPackStyle() === "default" ? defaultIcon : iconFor(label, true));
     const item = h("div", {
       class: `fm-tab${isCurrent ? " active" : ""}`,
       role: "tab",
@@ -176,7 +180,7 @@ export function renderTabs() {
           }
         },
       },
-        h("span", { class: "fm-tab-icon", "aria-hidden": "true" }, icon),
+        h("span", { class: "fm-tab-icon", "aria-hidden": "true", dataset: { tabIcon: isTrash ? "recycle" : "folder", tabName: label, defaultIcon } }, icon),
         h("span", { class: "fm-tab-label" }, label),
       ),
       state.tabs.length > 1

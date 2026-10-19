@@ -401,8 +401,9 @@ async function captureFileManager() {
     })()`);
     await sleep(1200);
     await page.eval(`(() => {
+      document.querySelector('.code-root')?.classList.add('code-no-side');
       const side = document.querySelector('.code-root .code-side');
-      if (side) side.hidden = true;
+      if (side) { side.hidden = true; side.style.display = 'none'; }
       const prevBtn = [...document.querySelectorAll('.code-root button')].find(b => b.textContent?.includes('Preview') && b.getAttribute('aria-pressed') === 'false');
       prevBtn?.click();
       window.dispatchEvent(new Event('resize'));
@@ -418,7 +419,8 @@ async function captureFileManager() {
     await sleep(1000);
     await page.shot(join(OUT, "file_manager_studio_games.png"), "codecaine_file_manager_09_24_arcade_games.png");
 
-    // 10. The 180 Themes gallery, narrowed to special-effects themes with a live glass/glow theme applied.
+    // 10. The 310 Themes & 194 Shaders gallery with Mac/Windows/Linux Zero-Lag optimizer & live FX theme applied.
+    await page.size(1280, 1080);
     await page.eval(`(async () => {
       const nav = await import('/ui/nav.js');
       const ws = await import('/ui/workspace.js');
@@ -428,11 +430,16 @@ async function captureFileManager() {
     await sleep(500);
     await page.eval("window.openAppThemes()");
     await page.eval("new Promise(r => { let n = 0; const t = setInterval(() => { if (document.querySelector('.theme-list .theme-card') || ++n > 60) { clearInterval(t); r(true); } }, 100); })");
-    await page.eval("(() => { const f = document.querySelector('[aria-label=\"Show themes with or without special effects\"]'); f.value = 'fx'; f.dispatchEvent(new Event('change', { bubbles: true })); })()");
-    await sleep(400);
-    await page.eval("(() => { const card = [...document.querySelectorAll('.theme-list .theme-card')].find(c => c.textContent?.includes('Cyberpunk Hologram')) || document.querySelector('.theme-list .theme-card'); card?.click(); })()");
-    await sleep(600);
-    await page.shot(join(OUT, "file_manager_studio_themes.png"), "codecaine_file_manager_10_180_themes_glass_fx.png");
+    await page.eval(`(() => {
+      const pill = document.querySelector('[data-collection-pill="god_mode_3000"]');
+      if (pill) pill.click();
+      const card = document.querySelector('.theme-card[data-key="omega_point_singularity"]') || document.querySelector('.theme-card[data-key="tesla_coil_plasma"]') || document.querySelector('.theme-list .theme-card');
+      card?.click();
+      const plainStrip = document.querySelector('.theme-plain-quick-strip');
+      if (plainStrip) plainStrip.style.display = 'none';
+    })()`);
+    await sleep(700);
+    await page.shot(join(OUT, "file_manager_studio_themes.png"), "codecaine_file_manager_10_310_themes_194_shaders_fx.png");
     ws.close();
     console.log("  ✔ file_manager_studio: 10 promotional screenshots captured into screenshots/apps/ and ~/Downloads/");
   } finally {

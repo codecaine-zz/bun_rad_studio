@@ -46,6 +46,7 @@
       <button id="sidebar-toggle" type="button" class="vb-btn" aria-controls="sidebar" aria-expanded="true" title="Show or hide the list of places on the left (Alt+7)"><span aria-hidden="true">☰</span><span class="vb-label">Places</span></button>
       <div id="view-switch" role="radiogroup" aria-label="Choose a view of the window. Use the arrow keys to move between them."></div>
       <button id="viewbar-themes" type="button" class="vb-btn" aria-haspopup="menu" aria-label="Themes" title="Change the colors: standard light or dark, themes you used lately, or all of them"><span class="vb-icon" aria-hidden="true">🎨</span><span class="vb-label">Themes</span><span class="vb-caret" aria-hidden="true">▾</span></button>
+      <button id="viewbar-palette" type="button" class="vb-btn" aria-haspopup="dialog" aria-label="Command Palette" title="Open the Command Palette & Quick Jump (Mod+Shift+P or Mod+P)"><span class="vb-icon" aria-hidden="true">⚡</span><span class="vb-label">Command</span></button>
       <div id="view-extras">
         <button id="split-orient" type="button" class="vb-btn" hidden></button>
         <button id="focus-toggle" type="button" class="vb-btn" aria-pressed="false" title="Hide the toolbar and side panels so the list or tool has the whole window (Alt+6). Press Esc to bring them back."><span aria-hidden="true">⛶</span><span class="vb-label">Focus</span></button>
@@ -64,6 +65,8 @@
       <div class="address-main">
         <nav id="crumbs" aria-label="Where you are. Click an empty part to type a location."></nav>
         <input id="address-input" type="text" class="address-input" aria-label="Type a folder location and press Enter" spellcheck="false" autocomplete="off" hidden>
+        <button id="pin-folder" type="button" class="icon-btn pin-folder-btn" aria-pressed="false" title="Pin or unpin this folder in Favorites" aria-label="Pin folder to Favorites">☆</button>
+        <button id="copy-address" type="button" class="icon-btn" title="Copy current folder path" aria-label="Copy current folder path">📋</button>
         <button id="edit-address" type="button" class="icon-btn" title="Type a location (Ctrl+L)" aria-label="Type a location">✎</button>
       </div>
       <div class="search" role="search">
@@ -79,6 +82,19 @@
       <main id="main">
         <div id="tasks" class="tasks" role="region" aria-label="Background tasks" hidden></div>
         <div id="banner" class="banner" hidden></div>
+        <div id="quickbar" class="quickbar" role="region" aria-label="Quick filter and view controls">
+          <div class="qb-filter-wrap">
+            <span class="qb-filter-icon" aria-hidden="true">⚡</span>
+            <input id="quick-filter" type="search" class="qb-filter-input" placeholder="Filter this folder…" aria-label="Filter items in this folder by name or type" spellcheck="false" autocomplete="off">
+            <button id="quick-filter-clear" type="button" class="qb-clear-btn" title="Clear folder filter (Esc)" aria-label="Clear folder filter" hidden>✕</button>
+          </div>
+          <div id="kind-chips" class="qb-chips" role="toolbar" aria-label="Filter by file category"></div>
+          <div class="qb-controls" role="group" aria-label="Layout and grouping">
+            <button id="qb-group-btn" type="button" class="qb-pill" aria-haspopup="menu" title="Group items in this folder by Kind, Date, or Size">Group: None ▾</button>
+            <button id="qb-density-btn" type="button" class="qb-pill" aria-haspopup="menu" title="Change row spacing density (Compact, Comfortable, Spacious)">Comfortable ▾</button>
+            <button id="qb-template-btn" type="button" class="qb-pill qb-pill-accent" title="Create a new file from a starter template">+ Template</button>
+          </div>
+        </div>
         <div id="list-head" class="list-head" hidden>
           <span class="h-icon"></span>
           <button type="button" class="h-name" data-sort="name">Name</button>
@@ -93,6 +109,7 @@
           <div id="list" role="listbox" tabindex="0" aria-multiselectable="true" aria-label="Files and folders"></div>
           <div id="empty" class="empty" hidden></div>
         </div>
+        <div id="selection-bar" class="selection-bar" role="toolbar" aria-label="Selected items actions" hidden></div>
       </main>
 
       <aside id="info" aria-label="Details" data-copy="Details panel" data-copy-inner="off" hidden></aside>

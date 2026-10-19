@@ -151,6 +151,8 @@ export interface Settings {
   columns: ExtraColumn[];
   /** How items in a folder are grouped ("none", "kind", "date", "size"). */
   groupBy: GroupByMode;
+  /** Row spacing density in file lists ("compact", "comfortable", "spacious"). */
+  rowDensity: RowDensity;
   /** Color tags assigned to files or folders: absolute path -> tag color key. */
   tags: Record<string, TagColor>;
   /** Whether the collapsible Folder Tree section in the sidebar is expanded. */
@@ -161,6 +163,8 @@ export const EXTRA_COLUMNS = ["permissions", "ext"] as const;
 export type ExtraColumn = (typeof EXTRA_COLUMNS)[number];
 export const GROUP_BY_MODES = ["none", "kind", "date", "size"] as const;
 export type GroupByMode = (typeof GROUP_BY_MODES)[number];
+export const ROW_DENSITIES = ["compact", "comfortable", "spacious"] as const;
+export type RowDensity = (typeof ROW_DENSITIES)[number];
 export const TAG_COLORS = ["red", "orange", "yellow", "green", "blue", "purple", "gray"] as const;
 export type TagColor = (typeof TAG_COLORS)[number];
 export const MAX_TAGS = 500;
@@ -208,7 +212,7 @@ export const THEME_ICON_GLOWS = ["off", "subtle", "soft", "ambient_p3", "xdr_spe
 export type ThemeIconGlow = (typeof THEME_ICON_GLOWS)[number];
 export const UI_ELEMENT_FX_MODES = ["auto", "off", "tahoe_glass_folders", "fluent_mica_folders", "xdr_titanium_folders", "google_material_folders", "cupertino_ceramic_bevel", "swiss_sapphire_chronograph", "teenage_field_anodized", "blueprint_cad_cyanotype", "kyoto_washi_sumi", "carbon_kevlar_weave", "fire_folders", "slime_drip", "cryo_frost", "tesla_arcs", "storm_wind", "mercury_chrome", "holo_glitch", "void_tentacles", "kaleidoscope_prism", "lava_wax", "acid_warp", "oil_slick_chrome", "shroom_spores", "holiday_festive_glow", "nerd_arcane_runes", "nerd_lcars_hud", "horror_blood_moon", "horror_vhs_static", "realworld_mahogany_brass", "realworld_stained_glass", "screen_melt_ooze", "molten_lava_melt", "crt_magnetic_warp", "fever_dream_ripple", "godmode_omega_halo", "godmode_photonic_crystal", "godmode_dyson_lattice", "godmode_chrono_crystal", "godmode_neural_synapse", "godmode_zero_point_arc"] as const;
 export type UiElementFx = (typeof UI_ELEMENT_FX_MODES)[number];
-export const ICON_PACK_STYLES = ["auto", "default", "macos_tahoe_3d", "win11_fluent_pro", "pro_studio_xdr", "hdr_photo_studio", "linux_papirus_pro", "nordic_minimal", "google_material_3d", "cupertino_hig_studio", "swiss_horology_gold", "teenage_field_synth", "blueprint_cad_pro", "kyoto_zen_ink", "carbon_aerospace", "inferno", "inferno_burn", "slime", "bio_slime", "storm_tempest", "storm_weather", "neon_cyber", "liquid_gems", "liquid_chrome", "cryo_crystal", "retro_pixel", "arcane_glyphs", "xenotech_2126", "psychedelic_trip", "lava_groovy", "op_art_illusion", "us_holidays_festive", "nerd_rpg_arcane", "nerd_scifi_fleet", "nerd_hacker_retro", "horror_crypt", "realworld_objects", "godmode_celestial", "godmode_photonic", "godmode_quantum", "godmode_chrono"] as const;
+export const ICON_PACK_STYLES = ["auto", "default", "macos_tahoe_3d", "win11_fluent_pro", "pro_studio_xdr", "hdr_photo_studio", "linux_papirus_pro", "nordic_minimal", "google_material_3d", "cupertino_hig_studio", "swiss_horology_gold", "teenage_field_synth", "blueprint_cad_pro", "kyoto_zen_ink", "carbon_aerospace", "inferno", "inferno_burn", "slime", "bio_slime", "storm_tempest", "storm_weather", "neon_cyber", "liquid_gems", "liquid_chrome", "cryo_crystal", "retro_pixel", "arcane_glyphs", "xenotech_2126", "psychedelic_trip", "lava_groovy", "op_art_illusion", "us_holidays_festive", "nerd_rpg_arcane", "nerd_scifi_fleet", "nerd_hacker_retro", "horror_crypt", "realworld_objects", "godmode_celestial", "godmode_photonic", "godmode_quantum", "godmode_chrono", "godmode_omni_pantheon", "macos_sequoia_hig", "apple_vision_glass_3d", "dev_polyglot_pro", "creative_cinema_8k", "cyberdeck_matrix_hud", "royal_24k_gold_obsidian", "anime_mecha_neon", "steampunk_brass_clockwork", "bioluminescent_eden"] as const;
 export type IconPackStyle = (typeof ICON_PACK_STYLES)[number];
 export const THEME_SHOW_MODES = ["cinema_hud", "pure_canvas", "living_desktop", "retro_afterdark"] as const;
 export type ThemeShowMode = (typeof THEME_SHOW_MODES)[number];
@@ -303,6 +307,7 @@ export const DEFAULT_SETTINGS: Settings = {
   studioPresets: { image: [], media: [] },
   columns: [],
   groupBy: "none",
+  rowDensity: "comfortable",
   tags: {},
   treeExpanded: false,
 };
@@ -446,6 +451,7 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     studioPresets: sanitizeStudioPresets(r.studioPresets),
     columns,
     groupBy: oneOf(r.groupBy, GROUP_BY_MODES, DEFAULT_SETTINGS.groupBy),
+    rowDensity: oneOf(r.rowDensity, ROW_DENSITIES, DEFAULT_SETTINGS.rowDensity),
     tags,
     treeExpanded: typeof r.treeExpanded === "boolean" ? r.treeExpanded : DEFAULT_SETTINGS.treeExpanded,
   };

@@ -264,7 +264,7 @@ export function createIntervalTimerStudio(options: IntervalTimerStudioOptions = 
       const html = generateIntervalTimerStudioHtml({ apiUrl: app.url });
 
       try {
-        const { SizeHint, Webview } = require("webview-bun") as typeof import("webview-bun");
+        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,

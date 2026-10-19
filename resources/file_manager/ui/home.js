@@ -2,7 +2,7 @@
 // with registerHomeTile(); the tools in the Power panel get a tile each automatically (see homeTiles.js).
 import { call } from "./api.js";
 import { openCalendarDialog, updateClock } from "./chrome.js";
-import { $, clear, h } from "./dom.js";
+import { $, buttonIconFor, clear, h, placeIconFor } from "./dom.js";
 import { showMenu, toast } from "./menus.js";
 import { goTo, runSearch } from "./nav.js";
 import * as ops from "./ops.js";
@@ -101,9 +101,10 @@ function tileButton(tile) {
     h("span", { class: "ht-go", "aria-hidden": "true" }, tile.cta ?? "Open →"));
 }
 
-function placeButton({ icon, label, title, onClick, extra = null }) {
+function placeButton({ icon, label, title, onClick, extra = null, placeId = null }) {
+  const resolvedIcon = placeId ? placeIconFor(placeId, label, undefined, icon) : icon;
   return h("li", {}, h("button", { type: "button", class: "home-place", title, onclick: onClick },
-    h("span", { class: "hp-icon", "aria-hidden": "true" }, icon), h("span", { class: "hp-body" }, h("span", { class: "hp-label" }, label), extra)));
+    h("span", { class: "hp-icon", "aria-hidden": "true", ...(placeId ? { dataset: { placeIcon: placeId, placeName: label, defaultIcon: icon } } : {}) }, resolvedIcon), h("span", { class: "hp-body" }, h("span", { class: "hp-label" }, label), extra)));
 }
 
 function spaceBar(d) {
@@ -126,12 +127,12 @@ function card(id, title, hint, content) {
 function pinned() {
   const favs = state.settings.favorites;
   if (!favs.length) return card("pinned", "⭐ Pinned folders", null, h("p", { class: "hint" }, "Nothing pinned yet. Right-click a folder and choose “Add to Favorites”, and it will be here."));
-  return card("pinned", "⭐ Pinned folders", null, h("ul", { class: "home-list" }, favs.map((p) => placeButton({ icon: "⭐", label: baseName(p, state.sep) || p, title: p, onClick: () => openFolder(p), extra: h("span", { class: "hp-note" }, p) }))));
+  return card("pinned", "⭐ Pinned folders", null, h("ul", { class: "home-list" }, favs.map((p) => placeButton({ icon: "⭐", label: baseName(p, state.sep) || p, placeId: "favorites", title: p, onClick: () => openFolder(p), extra: h("span", { class: "hp-note" }, p) }))));
 }
 
 function placesCard() {
   const items = [
-    ...state.places.map((p) => placeButton({ icon: p.icon, label: p.name, title: p.path, onClick: () => openFolder(p.path) })),
+    ...state.places.map((p) => placeButton({ icon: p.icon, label: p.name, placeId: p.name.toLowerCase(), title: p.path, onClick: () => openFolder(p.path) })),
     ...state.drives.map((d) => placeButton({ icon: d.icon, label: d.name, title: d.path, onClick: () => openFolder(d.path), extra: spaceBar(d) })),
   ];
   return card("places", "💽 Places and drives", null, h("ul", { class: "home-list" }, items));
@@ -202,14 +203,21 @@ function recent() {
 }
 
 function quick() {
-  const act = (label, icon, tip, run, disabled = false) => h("button", { type: "button", class: "btn home-quick", title: tip, disabled, onclick: () => inFiles(run) }, h("span", { "aria-hidden": "true" }, icon), ` ${label}`);
+  const act = (label, icon, btnId, tip, run, disabled = false) => h(
+    "button",
+    { type: "button", class: "btn home-quick", title: tip, disabled, onclick: () => inFiles(run) },
+    h("span", { class: "hq-icon", "aria-hidden": "true", ...(btnId ? { dataset: { btnIcon: btnId, defaultIcon: icon } } : {}) }, btnId ? buttonIconFor(btnId, undefined, icon) : icon),
+    ` ${label}`,
+  );
   return card("quick", "⚡ Quick actions", "These work in the folder you were last looking at.", h("div", { class: "home-actions" },
-    act("New folder", "📁", "Make a new folder in the folder you were looking at", ops.newFolder),
-    act("New file", "📄", "Make a new empty file in the folder you were looking at", ops.newFile),
-    act("Dated folder", "📅", "Make a new folder named with today's YYYY-MM-DD date in the folder you were looking at", () => ops.newDatedFolder()),
-    act("Paste", "📥", state.clipboard ? "Paste what you copied or cut into the folder you were looking at" : "Nothing has been copied or cut yet", ops.paste, !state.clipboard),
-    act("Undo", "↶", state.undoStack.length ? "Undo the last thing you did" : "Nothing to undo yet", ops.undo, !state.undoStack.length),
-    act("Empty Recycle Bin…", "🧹", state.trashCount ? "Permanently delete everything in the Recycle Bin (it asks first)" : "The Recycle Bin is already empty", ops.emptyBin, !state.trashCount)));
+    act("New folder", "📁", "newFolder", "Make a new folder in the folder you were looking at", ops.newFolder),
+    act("New file", "📄", "newFile", "Make a new empty file in the folder you were looking at", ops.newFile),
+    act("From template…", "✨", null, "Create a Markdown, TypeScript, Python, HTML, JSON, SQL, or config file from a starter template", () => emit("new-template-dialog")),
+    act("Dated folder", "📅", null, "Make a new folder named with today's YYYY-MM-DD date in the folder you were looking at", () => ops.newDatedFolder()),
+    h("button", { type: "button", class: "btn home-quick", title: "Open the Universal Command Palette & Quick Jump (Mod+Shift+P)", onclick: () => emit("command-palette", "") }, h("span", { class: "hq-icon", "aria-hidden": "true", dataset: { btnIcon: "power", defaultIcon: "⚡" } }, buttonIconFor("power", undefined, "⚡")), " Command Palette"),
+    act("Paste", "📥", "paste", state.clipboard ? "Paste what you copied or cut into the folder you were looking at" : "Nothing has been copied or cut yet", ops.paste, !state.clipboard),
+    act("Undo", "↶", "undo", state.undoStack.length ? "Undo the last thing you did" : "Nothing to undo yet", ops.undo, !state.undoStack.length),
+    act("Empty Recycle Bin…", "🧹", "empty", state.trashCount ? "Permanently delete everything in the Recycle Bin (it asks first)" : "The Recycle Bin is already empty", ops.emptyBin, !state.trashCount)));
 }
 
 function tips() {

@@ -5,15 +5,16 @@ import { favoriteMenuItems, favoriteName, favoritesSection } from "./favorites.j
 import { folderTreeSection } from "./folderTree.js";
 import { recentSection } from "./recents.js";
 import { tagsSection } from "./tags.js";
-import { $, clear, h } from "./dom.js";
+import { $, clear, h, placeIconFor } from "./dom.js";
 import { goTo, showTrash } from "./nav.js";
 import * as ops from "./ops.js";
 import { emit, inTrash, on, state } from "./state.js";
 import { driveFor, formatSize, plural } from "./util.js";
 
-function sideItem({ icon, label, title, active, onClick, onMenu, dropPath, trash = false, extra = null, badge = null, ariaLabel = null }) {
+function sideItem({ icon, label, title, active, onClick, onMenu, dropPath, trash = false, extra = null, badge = null, ariaLabel = null, placeId = null }) {
+  const resolvedIcon = placeId ? placeIconFor(placeId, label, undefined, icon) : icon;
   const btn = h("button", { type: "button", class: `side-item${active ? " active" : ""}`, title, "aria-label": ariaLabel, "aria-current": active ? "page" : null, onclick: onClick },
-    h("span", { class: "si", "aria-hidden": "true" }, icon),
+    h("span", { class: "si", "aria-hidden": "true", ...(placeId ? { dataset: { placeIcon: placeId, placeName: label, defaultIcon: icon } } : {}) }, resolvedIcon),
     h("span", { class: "sl" }, label, badge !== null ? h("span", { class: "badge" }, String(badge)) : null),
     extra);
   if (onMenu) btn.addEventListener("contextmenu", (e) => {
@@ -43,14 +44,15 @@ export function renderSidebar() {
   const here = state.location.kind === "folder" ? state.location.path : null;
   const same = (p) => here !== null && (state.sep === "\\" ? p.toLowerCase() === here.toLowerCase() : p === here);
   const favorites = state.settings.favorites.map((path) => sideItem({
-    icon: "⭐", label: favoriteName(path), title: path, active: same(path), dropPath: path, onClick: () => goTo(path),
+    icon: "⭐", label: favoriteName(path), title: path, active: same(path), dropPath: path, placeId: "favorites", onClick: () => goTo(path),
     onMenu: (pt) => showMenu(favoriteMenuItems(path), { ...pt, label: "Favorite" }),
   }));
-  const places = state.places.map((p) => sideItem({ icon: p.icon, label: p.name, title: p.path, active: same(p.path), dropPath: p.path, onClick: () => goTo(p.path) }));
+  const places = state.places.map((p) => sideItem({ icon: p.icon, label: p.name, title: p.path, active: same(p.path), dropPath: p.path, placeId: p.name.toLowerCase(), onClick: () => goTo(p.path) }));
   if (state.cliUtilsDir) {
     places.push(sideItem({
       icon: "🛠️",
       label: "CLI Utilities",
+      placeId: "scripts",
       title: `${state.cliUtilsDir} — Built-in RAD Studio CLI utilities (open terminal here and run ./<tool-name>)`,
       active: same(state.cliUtilsDir),
       onClick: () => {
@@ -70,7 +72,7 @@ export function renderSidebar() {
     icon: d.icon, label: d.name, title: d.path, active: same(d.path) || (!placeMatch && activeDrive?.path === d.path && !inTrash()), dropPath: d.path, onClick: () => goTo(d.path), extra: driveSpace(d),
   }));
   const bin = sideItem({
-    icon: "🗑️", label: "Recycle Bin", title: state.trashCount ? `${plural(state.trashCount, "deleted item")}` : "Empty", active: inTrash(), trash: true, badge: state.trashCount || null,
+    icon: "🗑️", label: "Recycle Bin", placeId: "recycle", title: state.trashCount ? `${plural(state.trashCount, "deleted item")}` : "Empty", active: inTrash(), trash: true, badge: state.trashCount || null,
     ariaLabel: state.trashCount ? `Recycle Bin, ${plural(state.trashCount, "item")}` : "Recycle Bin, empty", onClick: () => showTrash(),
     onMenu: (pt) => showMenu([{ label: "Open Recycle Bin", action: () => showTrash() }, { label: "Empty Recycle Bin…", danger: true, disabled: !state.trashCount, action: ops.emptyBin }], { ...pt, label: "Recycle Bin" }),
   });

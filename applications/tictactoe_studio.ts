@@ -263,7 +263,7 @@ export function createTicTacToeStudio(options: TicTacToeStudioOptions = {}): Tic
       }
 
       try {
-        const { SizeHint, Webview } = require("webview-bun") as typeof import("webview-bun");
+        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,

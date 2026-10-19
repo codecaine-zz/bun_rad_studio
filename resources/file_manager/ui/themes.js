@@ -1,7 +1,8 @@
 // Color themes for the page: applying one, and the gallery to choose from. The server turns each theme of the
 // SimpleGUI table into this page's color variables (and checks that every text and background pair is readable).
 import { ApiError, call } from "./api.js";
-import { applyAtmosphere, cycleAtmosphere, savedAtmospherePresets, triggerReactiveImpulse } from "./atmosphereFx.js";
+import { formatAtmosphereLabel, normalizeAtmosphereSpec, parseAtmosphereIds } from "./atmosphereCatalog.js";
+import { applyAtmosphere, cycleAtmosphere, effectiveAtmosphere, savedAtmospherePresets, triggerReactiveImpulse } from "./atmosphereFx.js";
 import { copyToClipboard, flashCopied, readFromClipboard } from "./copyclip.js";
 import { openDialog } from "./dialogs.js";
 import { debounce, h, syncVisibleIcons } from "./dom.js";
@@ -92,6 +93,16 @@ export const ICON_PACK_OPTIONS = [
   { id: "godmode_photonic", label: "💎 God-Mode 3099 Photonic", desc: "Year 3099 negative-index photonic crystal 3D folders & holographic light-field document plates" },
   { id: "godmode_quantum", label: "⚛️ God-Mode Quantum Forge", desc: "Kardashev Dyson & femtotech quantum-lattice 3D folders with zero-point Casimir containment badges" },
   { id: "godmode_chrono", label: "⏳ God-Mode Chrono & Noosphere", desc: "Time-crystal horological 3D folders & Akashic neural noosphere files with retrocausal phase seals" },
+  { id: "godmode_omni_pantheon", label: "⚡ God-Mode Omni-Pantheon Supreme", desc: "The ultimate all-in-one 3D icon & button pack with 230+ semantic folder/file badges & prismatic toolbar plates" },
+  { id: "macos_sequoia_hig", label: "🍎 macOS Sequoia & Tahoe Super-Folders", desc: "Apple HIG sky-blue 3D embossed folders, Finder QuickAction toolbar buttons & SF-inspired file plates" },
+  { id: "apple_vision_glass_3d", label: "🥽 Apple visionOS Spatial Glass 3D", desc: "Spatial computing specular glass pills, volumetric depth orbs & optical spatial toolbar buttons" },
+  { id: "dev_polyglot_pro", label: "🧑‍💻 Polyglot Dev, AI & DevOps Master", desc: "Precision Rust, Bun, Python, Kubernetes, Docker, AI/LLM & terminal action icons for engineering workstations" },
+  { id: "creative_cinema_8k", label: "🎬 8K Cinema, DAW Audio & 3D Studio", desc: "Master colorist, DaVinci/Premiere NLE, Ableton/Logic synth & Blender/CAD 3D production icons & buttons" },
+  { id: "cyberdeck_matrix_hud", label: "📟 Cyberdeck Matrix & Netrunner HUD", desc: "Phosphor green/cyan netrunner deck glyphs, ICE-breaker toolbar buttons & encrypted data shards" },
+  { id: "royal_24k_gold_obsidian", label: "👑 24K Royal Gold & Obsidian Vault", desc: "Sovereign 24K gold bullion folders, diamond-cut file seals & crown-gilded toolbar action buttons" },
+  { id: "anime_mecha_neon", label: "🤖 Mecha Evangelion & Anime Studio", desc: "NERV tactical hex badges, mecha/anime studio folders & Tokyo-3 neon toolbar action buttons" },
+  { id: "steampunk_brass_clockwork", label: "⚙️ Steampunk Brass & Clockwork", desc: "Victorian brass gears, pressure-gauge 3D folders, telegraph scrolls & clockwork action buttons" },
+  { id: "bioluminescent_eden", label: "🌿 Solarpunk Bioluminescent Eden", desc: "Living mycelial crystal folders, botanical seed-vault files & solar-bloom toolbar action buttons" },
 ];
 
 export const FONT_PROFILES = [
@@ -447,9 +458,73 @@ export async function applyPlatformOptimizationPreset(platformId, opts = {}) {
 }
 
 let plainStaticLockKey = null;
+let suppressedFxForKey = "";
+const suppressedFxKinds = new Set();
+const suppressedAtmoLayers = new Set();
+
+function resetSuppressedFx() {
+  suppressedFxForKey = "";
+  suppressedFxKinds.clear();
+  suppressedAtmoLayers.clear();
+}
+
+function applySuppressedFxToDom(root) {
+  if (!root) return;
+  if (suppressedFxKinds.has("uiElementFx")) {
+    root.removeAttribute("data-fx-element");
+    if (root.dataset) delete root.dataset.uiFx;
+    if (state.settings) state.settings.uiElementFx = "off";
+  }
+  if (suppressedFxKinds.has("iconPackStyle")) {
+    root.removeAttribute("data-fx-icon-pack");
+    if (root.dataset) delete root.dataset.iconPack;
+    if (state.settings) state.settings.iconPackStyle = "default";
+  }
+  if (suppressedFxKinds.has("iconGlow")) {
+    root.removeAttribute("data-fx-icon-glow");
+    if (root.dataset) delete root.dataset.iconGlow;
+    if (state.settings) state.settings.themeIconGlow = "off";
+  }
+  if (suppressedFxKinds.has("fontProfile")) {
+    root.removeAttribute("data-fx-font-profile");
+    if (root.dataset) delete root.dataset.fontProfile;
+    if (state.settings) state.settings.themeFontProfile = "default";
+  }
+  if (suppressedFxKinds.has("cornerProfile")) {
+    root.removeAttribute("data-fx-corner-profile");
+    root.removeAttribute("data-fx-radius");
+    if (root.dataset) delete root.dataset.cornerProfile;
+    if (state.settings) state.settings.themeCornerProfile = "default";
+  }
+  if (suppressedFxKinds.has("retroGlitch")) {
+    for (const attr of ["data-fx-scanlines", "data-fx-grain", "data-fx-chromatic", "data-fx-noise", "data-fx-crt"]) {
+      root.removeAttribute(attr);
+    }
+  }
+  if (suppressedFxKinds.has("glassGlow")) {
+    for (const attr of ["data-fx-glow", "data-fx-border", "data-fx-sheen", "data-fx-ambient", "data-fx-prism", "data-fx-inner-glow", "data-fx-frosted-rim", "data-fx-neon-pulse", "data-fx-backdrop", "data-fx"]) {
+      root.removeAttribute(attr);
+    }
+  }
+  if (suppressedFxKinds.has("atmosphere")) {
+    root.removeAttribute("data-fx-atmosphere");
+    if (state.settings) state.settings.atmosphere = "none";
+  } else if (suppressedAtmoLayers.size > 0) {
+    const rawAtmo = root.getAttribute("data-fx-atmosphere") || "";
+    if (rawAtmo) {
+      const nextLayers = parseAtmosphereIds(rawAtmo).filter((id) => !suppressedAtmoLayers.has(id));
+      const nextSpec = normalizeAtmosphereSpec(nextLayers);
+      if (nextSpec && nextSpec !== "none") root.setAttribute("data-fx-atmosphere", nextSpec);
+      else root.removeAttribute("data-fx-atmosphere");
+    }
+  }
+}
 
 /** Puts a theme's color variables on the page. `key` marks which saved theme it is ("preview" while editing). */
 export function paint(theme, key) {
+  if (key && key !== "preview" && suppressedFxForKey && suppressedFxForKey !== key) {
+    resetSuppressedFx();
+  }
   clearEffects();
   const root = document.documentElement;
   const hw = probeClientHardware();
@@ -480,12 +555,19 @@ export function paint(theme, key) {
       if (theme.effects.attrs["data-fx-icon-glow"]) state.settings.themeIconGlow = "off";
       if (theme.effects.attrs["data-fx-atmosphere"]) state.settings.atmosphere = "none";
     }
+    if (key && key === suppressedFxForKey) {
+      applySuppressedFxToDom(root);
+    }
   } else if (key && key !== "preview" && state.settings) {
     state.settings.uiElementFx = "off";
     state.settings.iconPackStyle = "default";
     state.settings.themeIconGlow = "off";
   }
-  applyUiImmersionProfiles();
+  applyUiImmersionProfiles(
+    key && key === suppressedFxForKey && suppressedFxKinds.has("uiElementFx")
+      ? { uiElementFx: "off" }
+      : undefined,
+  );
   emit("theme-changed", currentThemePayload());
 }
 
@@ -2841,6 +2923,7 @@ export async function recentThemes() {
 /** Chooses a theme by its key (an empty key goes back to the standard colors) and remembers it as a recent one. */
 export async function chooseTheme(key) {
   plainStaticLockKey = null;
+  resetSuppressedFx();
   rememberTheme(key);
   await saveSettings({ palette: key });
 }
@@ -2917,6 +3000,7 @@ export async function disableAllThemeAnimations(opts = {}) {
     uiElementFx: "off",
     iconPackStyle: "default",
     themeIconGlow: "off",
+    ...(opts.stripThemeEffects !== false ? { themeFontProfile: "default", themeCornerProfile: "default" } : {}),
     ...(opts.palette !== undefined ? { palette: opts.palette } : {}),
   };
   if (state.settings) Object.assign(state.settings, patch);
@@ -3406,10 +3490,206 @@ export async function toggleCurrentThemeEffects(opts = {}) {
   return { fxEnabled: true, key: picked?.key || "" };
 }
 
+/**
+ * Returns a structured list of all currently active visual effects on the workspace (`document.documentElement` & `state.settings`)
+ * so the user can see and strip individual unwanted effects in 1 click.
+ */
+export function getActiveWorkspaceEffects() {
+  const root = typeof document !== "undefined" ? document.documentElement : null;
+  if (!root) return [];
+  const items = [];
+  const atmoSpec = effectiveAtmosphere();
+  const atmoLayers = parseAtmosphereIds(atmoSpec);
+  for (const layerId of atmoLayers) {
+    items.push({
+      kind: "atmoLayer",
+      id: layerId,
+      label: `🌌 ${formatAtmosphereLabel(layerId)}`,
+      title: `Click to remove weather/particle layer "${formatAtmosphereLabel(layerId)}"`,
+    });
+  }
+  const uiFx = root.dataset?.uiFx || root.getAttribute("data-fx-element") || "";
+  if (uiFx && uiFx !== "off") {
+    items.push({
+      kind: "uiElementFx",
+      id: uiFx,
+      label: `🔥 Folder/UI: ${uiFx}`,
+      title: `Click to turn off 3D folder/screen effect (${uiFx})`,
+    });
+  }
+  const iconPack = root.dataset?.iconPack || root.getAttribute("data-fx-icon-pack") || "";
+  if (iconPack && iconPack !== "default") {
+    items.push({
+      kind: "iconPackStyle",
+      id: iconPack,
+      label: `🎭 Icons: ${iconPack}`,
+      title: `Click to reset custom icon pack (${iconPack}) back to Default`,
+    });
+  }
+  const iconGlow = root.dataset?.iconGlow || root.getAttribute("data-fx-icon-glow") || "";
+  if (iconGlow && iconGlow !== "off") {
+    items.push({
+      kind: "iconGlow",
+      id: iconGlow,
+      label: `💫 Icon Glow: ${iconGlow}`,
+      title: `Click to turn off icon glow (${iconGlow})`,
+    });
+  }
+  const fontProfile = root.dataset?.fontProfile || root.getAttribute("data-fx-font-profile") || "";
+  if (fontProfile && fontProfile !== "default") {
+    items.push({
+      kind: "fontProfile",
+      id: fontProfile,
+      label: `🔤 Font: ${fontProfile}`,
+      title: `Click to reset font profile (${fontProfile}) back to Default`,
+    });
+  }
+  const cornerProfile = root.dataset?.cornerProfile || root.getAttribute("data-fx-corner-profile") || "";
+  if (cornerProfile && cornerProfile !== "default") {
+    items.push({
+      kind: "cornerProfile",
+      id: cornerProfile,
+      label: `📐 Corners: ${cornerProfile}`,
+      title: `Click to reset corner geometry (${cornerProfile}) back to Default`,
+    });
+  }
+  const hasRetroGlitch = Boolean(
+    (root.getAttribute("data-fx-scanlines") && root.getAttribute("data-fx-scanlines") !== "none")
+    || (root.getAttribute("data-fx-grain") && root.getAttribute("data-fx-grain") !== "none")
+    || root.hasAttribute("data-fx-chromatic")
+    || root.hasAttribute("data-fx-noise")
+    || root.hasAttribute("data-fx-crt"),
+  );
+  if (hasRetroGlitch) {
+    items.push({
+      kind: "retroGlitch",
+      id: "retro",
+      label: "📺 Scanlines / CRT / Glitch",
+      title: "Click to remove scanlines, film grain, noise, CRT curvature, and chromatic RGB split",
+    });
+  }
+  const glowStyle = root.getAttribute("data-fx-glow") || "";
+  const hasGlassGlow = Boolean(
+    (glowStyle && glowStyle !== "none")
+    || root.hasAttribute("data-fx-sheen")
+    || root.hasAttribute("data-fx-ambient")
+    || root.hasAttribute("data-fx-prism")
+    || root.hasAttribute("data-fx-neon-pulse")
+    || root.getAttribute("data-fx") === "on"
+    || root.getAttribute("data-fx") === "reduced",
+  );
+  if (hasGlassGlow) {
+    items.push({
+      kind: "glassGlow",
+      id: glowStyle || "glass",
+      label: `🪟 Glass & Glow${glowStyle && glowStyle !== "none" ? ` (${glowStyle})` : ""}`,
+      title: "Click to remove glass blur, neon glow, animated border, and sheen while keeping your colors and other active effects",
+    });
+  }
+  return items;
+}
+
+/**
+ * Removes a single active effect (`"atmoLayer"`, `"atmosphere"`, `"uiElementFx"`, `"iconPackStyle"`, `"iconGlow"`,
+ * `"fontProfile"`, `"cornerProfile"`, `"retroGlitch"`, `"glassGlow"`, or `"all"`) from the live workspace in 1 click.
+ */
+export async function removeActiveWorkspaceEffect(kind, value = "", opts = {}) {
+  const root = typeof document !== "undefined" ? document.documentElement : null;
+  if (kind === "all") {
+    await disableAllThemeAnimations({ quiet: Boolean(opts.quiet), stripThemeEffects: true });
+    return getActiveWorkspaceEffects();
+  }
+  const activeKey = (root?.dataset?.palette && root.dataset.palette !== "preview")
+    ? root.dataset.palette
+    : (wanted || state.settings?.palette || "");
+  if (activeKey) {
+    if (suppressedFxForKey !== activeKey) {
+      suppressedFxForKey = activeKey;
+      suppressedFxKinds.clear();
+      suppressedAtmoLayers.clear();
+    }
+    if (kind === "atmoLayer" && value) suppressedAtmoLayers.add(value);
+    else suppressedFxKinds.add(kind);
+  }
+  const palettePatch = (activeKey && state.settings && state.settings.palette !== activeKey)
+    ? { palette: activeKey }
+    : {};
+
+  if (kind === "atmoLayer") {
+    const currentLayers = parseAtmosphereIds(effectiveAtmosphere());
+    const nextLayers = currentLayers.filter((id) => id !== value);
+    const nextSpec = normalizeAtmosphereSpec(nextLayers);
+    if (root) {
+      if (nextSpec && nextSpec !== "none") root.setAttribute("data-fx-atmosphere", nextSpec);
+      else root.removeAttribute("data-fx-atmosphere");
+    }
+    if (state.settings) Object.assign(state.settings, { ...palettePatch, atmosphere: nextSpec });
+    try { applyAtmosphere(nextSpec); } catch {}
+    await saveSettings({ ...palettePatch, atmosphere: nextSpec });
+  } else if (kind === "atmosphere") {
+    root?.removeAttribute("data-fx-atmosphere");
+    if (state.settings) Object.assign(state.settings, { ...palettePatch, atmosphere: "none" });
+    try { applyAtmosphere("none"); } catch {}
+    await saveSettings({ ...palettePatch, atmosphere: "none" });
+  } else if (kind === "uiElementFx") {
+    root?.removeAttribute("data-fx-element");
+    if (root?.dataset) delete root.dataset.uiFx;
+    if (state.settings) Object.assign(state.settings, { ...palettePatch, uiElementFx: "off" });
+    applyUiImmersionProfiles({ uiElementFx: "off" });
+    await saveSettings({ ...palettePatch, uiElementFx: "off" });
+    root?.removeAttribute("data-fx-element");
+    if (root?.dataset) delete root.dataset.uiFx;
+  } else if (kind === "iconPackStyle") {
+    root?.removeAttribute("data-fx-icon-pack");
+    if (root?.dataset) delete root.dataset.iconPack;
+    if (state.settings) Object.assign(state.settings, { ...palettePatch, iconPackStyle: "default" });
+    applyUiImmersionProfiles({ iconPackStyle: "default" });
+    await saveSettings({ ...palettePatch, iconPackStyle: "default" });
+    root?.removeAttribute("data-fx-icon-pack");
+    if (root?.dataset) delete root.dataset.iconPack;
+  } else if (kind === "iconGlow") {
+    root?.removeAttribute("data-fx-icon-glow");
+    if (root?.dataset) delete root.dataset.iconGlow;
+    if (state.settings) Object.assign(state.settings, { ...palettePatch, themeIconGlow: "off" });
+    applyUiImmersionProfiles({ themeIconGlow: "off" });
+    await saveSettings({ ...palettePatch, themeIconGlow: "off" });
+    root?.removeAttribute("data-fx-icon-glow");
+    if (root?.dataset) delete root.dataset.iconGlow;
+  } else if (kind === "fontProfile") {
+    root?.removeAttribute("data-fx-font-profile");
+    if (root?.dataset) delete root.dataset.fontProfile;
+    if (state.settings) Object.assign(state.settings, { ...palettePatch, themeFontProfile: "default" });
+    applyUiImmersionProfiles({ themeFontProfile: "default" });
+    await saveSettings({ ...palettePatch, themeFontProfile: "default" });
+    root?.removeAttribute("data-fx-font-profile");
+    if (root?.dataset) delete root.dataset.fontProfile;
+  } else if (kind === "cornerProfile") {
+    root?.removeAttribute("data-fx-corner-profile");
+    root?.removeAttribute("data-fx-radius");
+    if (root?.dataset) delete root.dataset.cornerProfile;
+    if (state.settings) Object.assign(state.settings, { ...palettePatch, themeCornerProfile: "default" });
+    applyUiImmersionProfiles({ themeCornerProfile: "default" });
+    await saveSettings({ ...palettePatch, themeCornerProfile: "default" });
+    root?.removeAttribute("data-fx-corner-profile");
+    root?.removeAttribute("data-fx-radius");
+    if (root?.dataset) delete root.dataset.cornerProfile;
+  } else if (kind === "retroGlitch") {
+    for (const attr of ["data-fx-scanlines", "data-fx-grain", "data-fx-chromatic", "data-fx-noise", "data-fx-crt"]) {
+      root?.removeAttribute(attr);
+    }
+  } else if (kind === "glassGlow") {
+    for (const attr of ["data-fx-glow", "data-fx-border", "data-fx-sheen", "data-fx-ambient", "data-fx-prism", "data-fx-inner-glow", "data-fx-frosted-rim", "data-fx-neon-pulse", "data-fx-backdrop", "data-fx"]) {
+      root?.removeAttribute(attr);
+    }
+  }
+  return getActiveWorkspaceEffects();
+}
+
 if (typeof window !== "undefined") {
   window.cycleAppTheme = cycleTheme;
   window.randomAppTheme = (mode, opts) => randomTheme({ ...(opts || {}), mode: mode || "any" });
   window.toggleAppThemeFx = toggleCurrentThemeEffects;
+  window.removeAppThemeFx = removeActiveWorkspaceEffect;
   window.openAppThemes = (opts) => showThemePicker(opts);
 }
 
@@ -3613,6 +3893,103 @@ export async function showThemePicker(opts = {}) {
     );
   }).filter(Boolean);
 
+  // 🎲 Random FX Finder & ⚡ Active Effects 1-Click Remover Strip in Full Theme Mode
+  const activeFxStrip = h("div", {
+    class: "theme-active-fx-strip",
+    "data-active-fx-strip": "true",
+    role: "region",
+    "aria-label": "Random FX Finder and 1-Click Active Effect Remover",
+  });
+
+  const rollRandomInPicker = async (poolMode = "fx") => {
+    const basePool = lastShown.length ? lastShown : themes;
+    let pool = basePool;
+    if (poolMode === "fx") {
+      pool = basePool.filter((t) => Boolean(t.hasEffects));
+      if (!pool.length) pool = themes.filter((t) => Boolean(t.hasEffects));
+    } else if (poolMode === "ultra") {
+      pool = basePool.filter((t) => resolveTemplateTier(t) === "ultra");
+      if (!pool.length) pool = themes.filter((t) => resolveTemplateTier(t) === "ultra");
+    } else if (poolMode === "plain") {
+      await disableAllThemeAnimations({ quiet: true, stripThemeEffects: false });
+      pool = basePool.filter((t) => !t.hasEffects);
+      if (!pool.length) pool = themes.filter((t) => !t.hasEffects);
+    }
+    if (!pool.length) pool = themes;
+    const curKey = previewKey ?? state.settings?.palette ?? "";
+    const candidates = pool.length > 1 ? pool.filter((t) => t.key !== curKey) : pool;
+    const chosen = candidates[Math.floor(Math.random() * candidates.length)] || pool[0];
+    if (chosen) {
+      await pick(chosen.key);
+      updatePinFolderLabel(pinFolderBtn);
+    }
+  };
+
+  function renderActiveFxStrip() {
+    const activeEffects = getActiveWorkspaceEffects();
+    const curKey = previewKey ?? state.settings?.palette ?? "";
+    const curTheme = curKey ? themes.find((t) => t.key === curKey) : null;
+    const themeLabel = curTheme ? curTheme.name : "Standard";
+    const fxPills = activeEffects.map((eff) =>
+      h("button", {
+        type: "button",
+        class: "theme-filter-pill theme-fx-remove-pill",
+        "data-remove-active-fx": eff.kind,
+        "data-remove-active-fx-id": eff.id,
+        title: eff.title,
+        onclick: async () => {
+          await removeActiveWorkspaceEffect(eff.kind, eff.id);
+          renderActiveFxStrip();
+        },
+      }, `${eff.label} ✕`),
+    );
+
+    activeFxStrip.replaceChildren(
+      h("div", { class: "theme-active-fx-rollers" },
+        h("span", { class: "theme-pill-label" }, "🎲 Random FX Finder:"),
+        h("button", {
+          type: "button",
+          class: "theme-filter-pill theme-random-fx-pill",
+          "data-picker-roll-random-fx": "true",
+          title: "Roll a random theme with animated 3D / weather effects (⌥E) — then click any ✕ pill on the right to remove effects you don't want!",
+          onclick: () => rollRandomInPicker("fx"),
+        }, "🎲 Roll Random FX Theme"),
+        h("button", {
+          type: "button",
+          class: "theme-filter-pill theme-random-fx-pill",
+          "data-picker-roll-random-ultra": "true",
+          title: "Roll a random Ultra / God-Mode theme (⌥U) — then click any ✕ pill on the right to strip effects you don't want!",
+          onclick: () => rollRandomInPicker("ultra"),
+        }, "🚀 Roll Random Ultra / God-Mode"),
+        h("button", {
+          type: "button",
+          class: "theme-filter-pill",
+          "data-picker-roll-random-plain": "true",
+          title: "Roll a random clean static theme with zero effects (⌥P).",
+          onclick: () => rollRandomInPicker("plain"),
+        }, "⏹️ Roll Random Plain"),
+      ),
+      h("div", { class: "theme-active-fx-pills", "data-active-fx-pills-list": "true" },
+        h("span", { class: "theme-pill-label" }, `⚡ Active FX on "${themeLabel}":`),
+        ...(fxPills.length
+          ? [
+              ...fxPills,
+              h("button", {
+                type: "button",
+                class: "theme-filter-pill theme-fx-remove-all-pill",
+                "data-remove-all-active-fx": "true",
+                title: "Strip all active effects at once and keep only the current color palette.",
+                onclick: async () => {
+                  await removeActiveWorkspaceEffect("all");
+                  renderActiveFxStrip();
+                },
+              }, "🛑 Strip All FX (Keep Colors)"),
+            ]
+          : [h("span", { class: "hint" }, "None (0.0% GPU Plain Colors — click 🎲 Roll Random FX Theme to try effects)")]),
+      ),
+    );
+  }
+
   const browseModeBar = h("div", { class: "theme-browse-mode-bar", role: "region", "aria-label": "Browse Plain Themes or Animated Effects" },
     h("div", { class: "theme-browse-mode-tabs" },
       h("span", { class: "theme-browse-mode-title" }, "🧭 Browse Mode:"),
@@ -3620,6 +3997,7 @@ export async function showThemePicker(opts = {}) {
       ...platformOptimizeButtons,
       killAnimationsBtn,
     ),
+    activeFxStrip,
     h("div", { class: "theme-plain-quick-strip" },
       h("span", { class: "theme-pill-label" }, "⭐ Instant Plain Themes (No Animations):"),
       ...plainQuickButtons,
@@ -4139,6 +4517,7 @@ export async function showThemePicker(opts = {}) {
     list.replaceChildren(...(sections.length ? sections : [h("p", { class: "hint" }, emptyMsg)]));
     const withFx = shown.filter((t) => t.hasEffects).length;
     count.textContent = `${shown.length} of ${themes.length} themes · ${withFx} with special effects ✨, ${shown.length - withFx} plain colors`;
+    renderActiveFxStrip();
   }
   // Keyboard: the arrow keys, PageUp/PageDown, Home, End, and [ / ] move between cards and show each theme straight away (not saved yet).
   // Enter or Space keeps the focused theme, Done keeps the one on show, and Escape goes back to the saved theme.
@@ -4157,7 +4536,11 @@ export async function showThemePicker(opts = {}) {
   };
   activePickerRefresh = reloadGalleryThemes;
   const cards = () => [...list.querySelectorAll(".theme-card")];
-  const preview = debounce((key) => { if (previewKey === key) applyPalette(key); }, 20);
+  const preview = debounce((key) => {
+    if (previewKey === key) {
+      void applyPalette(key).then(() => renderActiveFxStrip());
+    }
+  }, 20);
   async function pick(key) {
     previewKey = null;
     const pickedTheme = key ? themes.find((t) => t.key === key) : null;
@@ -4175,7 +4558,9 @@ export async function showThemePicker(opts = {}) {
       applyUiImmersionProfiles({ uiElementFx: "off", iconPackStyle: "default", themeIconGlow: "off" });
     }
     await choose(key);
+    await applyPalette(key);
     telemetryDeck?.inspectTheme?.(key);
+    renderActiveFxStrip();
     if (groupFilter.value === "recent") {
       draw();
     } else {
@@ -4228,7 +4613,7 @@ export async function showThemePicker(opts = {}) {
     const key = targetCard.dataset.key ?? "";
     previewKey = key;
     telemetryDeck?.inspectTheme?.(key);
-    void applyPalette(key);
+    void applyPalette(key).then(() => renderActiveFxStrip());
     targetCard.focus({ preventScroll: true });
     targetCard.scrollIntoView?.({ block: "nearest", inline: "nearest" });
   };

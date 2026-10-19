@@ -7,8 +7,8 @@ import { debounce, h, iconFor } from "./dom.js";
 import { toast } from "./menus.js";
 import { saveSettings } from "./nav.js";
 import { emit, on, state } from "./state.js";
-import { applyPalette, applyUiImmersionProfiles, closeTelemetryPopoutHud, downloadThemeFileInBrowser, estimateThemeResourceTelemetry, extractPaletteFromPixels, forgetThemeList, paint, pasteImportThemesFromClipboard, runBulkThemeImportFlow, saveThemeFileToFolder } from "./themes.js";
-import { ATMOSPHERE_IDS, ATMOSPHERE_MIX_PRESETS, formatAtmosphereLabel } from "./atmosphereCatalog.js";
+import { applyPalette, applyUiImmersionProfiles, closeTelemetryPopoutHud, downloadThemeFileInBrowser, estimateThemeResourceTelemetry, extractPaletteFromPixels, forgetThemeList, ICON_PACK_OPTIONS, paint, pasteImportThemesFromClipboard, runBulkThemeImportFlow, saveThemeFileToFolder, UI_ELEMENT_FX_OPTIONS } from "./themes.js";
+import { ATMOSPHERE_IDS, ATMOSPHERE_MIX_PRESETS, ATMOSPHERE_OPTIONS, formatAtmosphereLabel, normalizeAtmosphereSpec, parseAtmosphereIds } from "./atmosphereCatalog.js";
 import { applyAtmosphere } from "./atmosphereFx.js";
 
 const EXPORT_FORMAT = "bun-rad-studio-file-manager-theme";
@@ -829,11 +829,29 @@ export const PREBUILT_WALLPAPER_SCENES = [
   },
 ];
 
+export const MAX_THEME_NAME_LEN = 40;
+
+export function fitThemeName(baseName, suffix = "") {
+  const cleanBase = String(baseName || "").replace(/[\u0000-\u001f\u007f-\u009f]/g, " ").replace(/\s+/g, " ").trim() || "Custom Theme";
+  const sfx = String(suffix || "");
+  if (!sfx) return cleanBase.slice(0, MAX_THEME_NAME_LEN).trim() || "Custom Theme";
+  const maxBase = Math.max(1, MAX_THEME_NAME_LEN - sfx.length);
+  const trimmedBase = cleanBase.length > maxBase ? cleanBase.slice(0, maxBase).trim() : cleanBase;
+  return `${trimmedBase}${sfx}`.slice(0, MAX_THEME_NAME_LEN).trim() || "Custom Theme";
+}
+
 async function loadStart(key) {
-  if (STANDARD[key]) return { ...structuredClone(STANDARD[key]), base: STANDARD[key].name, editingId: null };
+  if (STANDARD[key]) return { ...structuredClone(STANDARD[key]), name: fitThemeName(STANDARD[key].name), base: fitThemeName(STANDARD[key].name), editingId: null };
   const r = await call("themes/get", { key });
   const custom = r.custom;
-  return { name: custom ? custom.name : `${r.theme.name} (mine)`, dark: r.source.dark, colors: { ...r.source.colors }, fx: r.source.fx ? structuredClone(r.source.fx) : undefined, base: custom ? custom.base : r.theme.name, editingId: custom ? custom.id : null };
+  return {
+    name: custom ? fitThemeName(custom.name) : fitThemeName(r.theme.name, " (mine)"),
+    dark: r.source.dark,
+    colors: { ...r.source.colors },
+    fx: r.source.fx ? structuredClone(r.source.fx) : undefined,
+    base: fitThemeName(custom ? custom.base : r.theme.name),
+    editingId: custom ? custom.id : null,
+  };
 }
 
 export async function openEditor({ from = "", seedKey = "" } = {}) {
@@ -876,12 +894,13 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
   };
 
   // -- the form ----------------------------------------------------------------------------------------------------
-  const nameInput = h("input", { type: "text", class: "prop-input", maxlength: "40", "aria-label": "Theme name", title: "The name shown in the theme gallery.", value: draft.name });
-  const darkBox = h("input", { type: "checkbox", checked: draft.dark, title: "Tick this when the background is dark. It decides the shadows and the color of the browser's own controls." });
+  const nameInput = h("input", { type: "text", class: "prop-input theme-name-primary-input", maxlength: "40", placeholder: "Type a theme name (up to 40 letters)…", "aria-label": "Theme name", title: "The name shown in the theme gallery (up to 40 characters).", value: fitThemeName(draft.name) });
+  const nameCharCountEl = h("span", { class: "theme-name-char-count", "data-theme-name-count": "true", title: "Maximum 40 characters" }, `${fitThemeName(draft.name).length}/${MAX_THEME_NAME_LEN}`);
+  const darkBox = h("input", { type: "checkbox", checked: draft.dark, "aria-label": "This is a dark theme", title: "Tick this when the background is dark. It decides the shadows and the color of the browser's own controls." });
   const notes = h("p", { class: "hint theme-notes", role: "status" });
   const status = h("p", { class: "dialog-error", role: "alert", hidden: true });
-  const startSelect = h("select", { class: "prop-input", "aria-label": "Start from", title: "Copy the colors of another theme to work from." });
-  const heading = h("p", { class: "hint" });
+  const startSelect = h("select", { class: "prop-input", "aria-label": "Start from", title: "Copy the colors and effects of another theme template to work from." });
+  const heading = h("p", { class: "hint theme-editor-heading-note" });
   const effectsEnabled = h("input", { type: "checkbox", checked: !!draft.fx, "aria-label": "Enable visual effects" });
   const effectControls = h("fieldset", { class: "theme-effect-controls" });
   const effectInputs = new Map();
@@ -1602,10 +1621,20 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
     ),
   );
 
+  const syncNameCharCount = () => {
+    const len = nameInput.value.length;
+    nameCharCountEl.textContent = `${len}/${MAX_THEME_NAME_LEN}`;
+    nameCharCountEl.classList.toggle("is-near-limit", len >= 36);
+  };
+
   /** Fills the form from `next` (a theme to start from, or imported text). */
   const load = (next) => {
-    draft = next;
+    draft = {
+      ...next,
+      name: fitThemeName(next?.name || "My Custom Theme", ""),
+    };
     nameInput.value = draft.name;
+    syncNameCharCount();
     darkBox.checked = draft.dark;
     effectsEnabled.checked = !!draft.fx;
     effectControls.disabled = !draft.fx;
@@ -1618,6 +1647,7 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
       if (isHex(v)) picker.value = v;
     }
     heading.textContent = draft.editingId ? `You are changing your theme "${draft.name}". Save replaces it; Save as a copy keeps it.` : draft.base ? `This is a new theme, started from ${draft.base}.` : "This is a new theme.";
+    renderTemplateBrowserCards();
     refresh();
   };
 
@@ -1646,7 +1676,188 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
     );
   };
 
-  const draftBody = () => ({ name: nameInput.value, dark: darkBox.checked, base: draft.base ?? "", colors: draft.colors, ...(draft.fx ? { fx: draft.fx } : {}) });
+  const draftBody = () => {
+    const safeName = fitThemeName(nameInput.value.trim() || draft.name || "My Custom Theme", "");
+    return { name: safeName, dark: darkBox.checked, base: draft.base ?? "", colors: draft.colors, ...(draft.fx ? { fx: draft.fx } : {}) };
+  };
+
+  // -- 1-Click Active Effects Remover & Quick Random FX Helpers in Theme Editor -------------------------------------
+  const editorActiveFxStrip = h("div", {
+    class: "theme-editor-active-fx-strip",
+    "data-editor-active-fx-strip": "true",
+    role: "region",
+    "aria-label": "Active theme effects — click any pill to remove that effect",
+  });
+
+  const syncAllEffectControlsFromDraft = () => {
+    effectsEnabled.checked = !!draft.fx;
+    effectControls.disabled = !draft.fx;
+    for (const read of effectInputs.values()) read();
+    syncHackerInputs();
+    refresh();
+  };
+
+  const removeSingleDraftEffect = (kind, value = "") => {
+    if (!draft.fx) return;
+    const fx = { ...draft.fx };
+    if (kind === "atmoLayer") {
+      const nextLayers = parseAtmosphereIds(fx.atmosphere || "none").filter((id) => id !== value);
+      fx.atmosphere = normalizeAtmosphereSpec(nextLayers);
+    } else if (kind === "atmosphere") {
+      fx.atmosphere = "none";
+    } else if (kind === "uiElementFx") {
+      fx.uiElementFx = "off";
+    } else if (kind === "iconPackStyle") {
+      fx.iconPackStyle = "default";
+    } else if (kind === "iconGlow") {
+      fx.iconGlow = "off";
+    } else if (kind === "fontProfile") {
+      fx.fontProfile = "default";
+    } else if (kind === "cornerProfile") {
+      fx.cornerProfile = "default";
+      fx.radius = "round";
+    } else if (kind === "retroGlitch") {
+      fx.scanlines = "none";
+      fx.grain = "none";
+      fx.chromatic = false;
+      fx.noise = false;
+      fx.crtCurve = false;
+    } else if (kind === "glowSheen") {
+      fx.glow = "none";
+      fx.glowIntensity = 0;
+      fx.sheen = false;
+      fx.ambient = false;
+      fx.border = "flat";
+    } else if (kind === "customCss") {
+      fx.customCss = "";
+      fx.customVars = {};
+    }
+    draft.fx = fx;
+    syncAllEffectControlsFromDraft();
+  };
+
+  const removeAllDraftEffects = () => {
+    draft.fx = null;
+    syncAllEffectControlsFromDraft();
+    toast("Removed all visual effects — keeping your color palette clean.", { kind: "info" });
+  };
+
+  const renderEditorActiveFxStrip = () => {
+    const fx = draft.fx;
+    if (!fx) {
+      editorActiveFxStrip.replaceChildren(
+        h("span", { class: "theme-pill-label" }, "⚡ Active FX: None (Clean Static Colors)"),
+        h("button", {
+          type: "button",
+          class: "theme-filter-pill",
+          "data-editor-enable-fx-quick": "true",
+          title: "Turn visual effects back on for this draft.",
+          onclick: () => {
+            draft.fx = defaultEffects();
+            syncAllEffectControlsFromDraft();
+          },
+        }, "✨ Enable Visual Effects"),
+      );
+      return;
+    }
+
+    const pills = [];
+    const atmoLayers = parseAtmosphereIds(fx.atmosphere || "none");
+    for (const layerId of atmoLayers) {
+      pills.push(h("button", {
+        type: "button",
+        class: "theme-filter-pill theme-fx-remove-pill",
+        "data-editor-remove-atmo-layer": layerId,
+        "data-editor-remove-fx": "atmoLayer",
+        title: `Click to remove weather/particle layer "${formatAtmosphereLabel(layerId)}"`,
+        onclick: () => removeSingleDraftEffect("atmoLayer", layerId),
+      }, `🌌 ${formatAtmosphereLabel(layerId)} ✕`));
+    }
+    if (fx.uiElementFx && fx.uiElementFx !== "off") {
+      pills.push(h("button", {
+        type: "button",
+        class: "theme-filter-pill theme-fx-remove-pill",
+        "data-editor-remove-fx": "uiElementFx",
+        title: `Click to turn off 3D folder/screen effect (${fx.uiElementFx})`,
+        onclick: () => removeSingleDraftEffect("uiElementFx"),
+      }, `🔥 Folder/UI: ${fx.uiElementFx} ✕`));
+    }
+    if (fx.iconPackStyle && fx.iconPackStyle !== "default") {
+      pills.push(h("button", {
+        type: "button",
+        class: "theme-filter-pill theme-fx-remove-pill",
+        "data-editor-remove-fx": "iconPackStyle",
+        title: `Click to reset icon pack (${fx.iconPackStyle}) back to Default`,
+        onclick: () => removeSingleDraftEffect("iconPackStyle"),
+      }, `🎭 Icons: ${fx.iconPackStyle} ✕`));
+    }
+    if (fx.iconGlow && fx.iconGlow !== "off") {
+      pills.push(h("button", {
+        type: "button",
+        class: "theme-filter-pill theme-fx-remove-pill",
+        "data-editor-remove-fx": "iconGlow",
+        title: `Click to turn off icon glow (${fx.iconGlow})`,
+        onclick: () => removeSingleDraftEffect("iconGlow"),
+      }, `💫 Icon Glow: ${fx.iconGlow} ✕`));
+    }
+    if (fx.fontProfile && fx.fontProfile !== "default") {
+      pills.push(h("button", {
+        type: "button",
+        class: "theme-filter-pill theme-fx-remove-pill",
+        "data-editor-remove-fx": "fontProfile",
+        title: `Click to reset font profile (${fx.fontProfile}) back to Default`,
+        onclick: () => removeSingleDraftEffect("fontProfile"),
+      }, `🔤 Font: ${fx.fontProfile} ✕`));
+    }
+    if ((fx.cornerProfile && fx.cornerProfile !== "default") || (fx.radius && fx.radius !== "round" && fx.radius !== "soft")) {
+      pills.push(h("button", {
+        type: "button",
+        class: "theme-filter-pill theme-fx-remove-pill",
+        "data-editor-remove-fx": "cornerProfile",
+        title: "Click to reset corner geometry back to Standard Rounded",
+        onclick: () => removeSingleDraftEffect("cornerProfile"),
+      }, `📐 Corners: ${fx.cornerProfile && fx.cornerProfile !== "default" ? fx.cornerProfile : fx.radius} ✕`));
+    }
+    if ((fx.scanlines && fx.scanlines !== "none") || (fx.grain && fx.grain !== "none") || fx.chromatic || fx.noise || fx.crtCurve) {
+      pills.push(h("button", {
+        type: "button",
+        class: "theme-filter-pill theme-fx-remove-pill",
+        "data-editor-remove-fx": "retroGlitch",
+        title: "Click to remove scanlines, film grain, noise, CRT curvature, and chromatic RGB split",
+        onclick: () => removeSingleDraftEffect("retroGlitch"),
+      }, "📺 Scanlines / Grain / Glitch ✕"));
+    }
+    if ((fx.glow && fx.glow !== "none" && (fx.glowIntensity ?? 1) > 0) || fx.sheen || (fx.border && fx.border !== "flat")) {
+      pills.push(h("button", {
+        type: "button",
+        class: "theme-filter-pill theme-fx-remove-pill",
+        "data-editor-remove-fx": "glowSheen",
+        title: "Click to turn off neon glow, animated border, and glass sheen",
+        onclick: () => removeSingleDraftEffect("glowSheen"),
+      }, `✨ Glow & Border (${fx.glow || "flat"}) ✕`));
+    }
+    if ((fx.customCss && fx.customCss.trim()) || (fx.customVars && Object.keys(fx.customVars).length > 0)) {
+      pills.push(h("button", {
+        type: "button",
+        class: "theme-filter-pill theme-fx-remove-pill",
+        "data-editor-remove-fx": "customCss",
+        title: "Click to clear custom CSS rules and --* token overrides",
+        onclick: () => removeSingleDraftEffect("customCss"),
+      }, "🛠️ Custom CSS/Tokens ✕"));
+    }
+
+    editorActiveFxStrip.replaceChildren(
+      h("span", { class: "theme-pill-label" }, "⚡ Active Effects (click ✕ to remove any effect you don't want):"),
+      ...(pills.length ? pills : [h("span", { class: "hint" }, "Subtle glass blur only")]),
+      h("button", {
+        type: "button",
+        class: "theme-filter-pill theme-fx-remove-all-pill",
+        "data-editor-remove-all-fx": "true",
+        title: "Strip all visual effects at once and keep only your color palette",
+        onclick: removeAllDraftEffects,
+      }, "🛑 Remove All FX (Keep Colors)"),
+    );
+  };
 
   // -- Apple-Style Live Interactive Custom Theme Preview Stage ------------------------------------------------------
   const PREVIEW_SAMPLE_ENTRIES = [
@@ -1920,6 +2131,8 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
       }
     }
 
+    renderEditorActiveFxStrip();
+
     // Also update document immersion profiles and live atmosphere immediately so the real workspace behind the dialog stays in sync!
     applyUiImmersionProfiles({
       uiElementFx: uiFx,
@@ -1935,7 +2148,7 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
     if (closed) return;
     const version = ++previewVersion;
     try {
-      const { theme } = await call("themes/preview", { theme: { ...draftBody(), name: nameInput.value.trim() || "Untitled" } });
+      const { theme } = await call("themes/preview", { theme: draftBody() });
       if (closed || version !== previewVersion) return;
       paint(theme, "preview");
       renderContrast(theme.contrast);
@@ -1955,7 +2168,14 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
   };
 
   darkBox.addEventListener("change", () => { draft.dark = darkBox.checked; refresh(); });
-  nameInput.addEventListener("input", () => { draft.name = nameInput.value; paintInstantDraftPreview(); });
+  nameInput.addEventListener("input", () => {
+    if (nameInput.value.length > MAX_THEME_NAME_LEN) {
+      nameInput.value = nameInput.value.slice(0, MAX_THEME_NAME_LEN);
+    }
+    draft.name = nameInput.value;
+    syncNameCharCount();
+    paintInstantDraftPreview();
+  });
 
   const groups = new Map();
   for (const t of themes) groups.set(t.group, [...(groups.get(t.group) ?? []), t]);
@@ -1971,6 +2191,212 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
       toast(err?.message || "That theme couldn't be loaded.", { kind: "error" });
     }
   });
+
+  // Quick Random FX Rollers inside the Theme Editor
+  const rollRandomTemplateInEditor = async (mode = "fx") => {
+    const pool = mode === "plain"
+      ? themes.filter((t) => !t.hasEffects)
+      : mode === "fx"
+        ? themes.filter((t) => t.hasEffects)
+        : themes;
+    const candidates = pool.length ? pool : themes;
+    if (!candidates.length) return;
+    const currentKey = startSelect.value;
+    const filtered = candidates.length > 1 ? candidates.filter((t) => t.key !== currentKey) : candidates;
+    const picked = filtered[Math.floor(Math.random() * filtered.length)] || candidates[0];
+    startSelect.value = picked.key;
+    try {
+      load(await loadStart(picked.key));
+    } catch (err) {
+      toast(err?.message || "Couldn't load random template.", { kind: "error" });
+    }
+  };
+
+  const rollRandomFxMixOnCurrentDraft = () => {
+    const atmoOptions = ATMOSPHERE_OPTIONS.filter((o) => o.id !== "none");
+    const uiFxOptions = UI_ELEMENT_FX_OPTIONS.filter((o) => o.id !== "off" && o.id !== "auto");
+    const iconOptions = ICON_PACK_OPTIONS.filter((o) => o.id !== "default");
+    const glowOptions = ["soft", "neon", "bloom", "aurora", "laser", "plasma", "ember"];
+    const pickOne = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const a1 = pickOne(atmoOptions)?.id || "stars";
+    const a2 = Math.random() > 0.45 ? pickOne(atmoOptions)?.id : null;
+    const combinedAtmo = normalizeAtmosphereSpec(a2 && a2 !== a1 ? [a1, a2] : [a1]);
+    const uiFx = pickOne(uiFxOptions)?.id || "tahoe_glass_folders";
+    const iconPack = pickOne(iconOptions)?.id || "macos_tahoe_3d";
+    const glow = pickOne(glowOptions);
+    draft.fx = {
+      ...defaultEffects(),
+      ...(draft.fx || {}),
+      glow,
+      glowColor: draft.colors.accent || "#38bdf8",
+      glowColor2: draft.colors.secondary || draft.colors.accent || "#a855f7",
+      glowIntensity: 0.9,
+      blur: 22,
+      glass: 0.62,
+      sheen: true,
+      ambient: true,
+      atmosphere: combinedAtmo,
+      uiElementFx: uiFx,
+      iconPackStyle: iconPack,
+      iconGlow: Math.random() > 0.4 ? "neon" : "hyper",
+    };
+    syncAllEffectControlsFromDraft();
+  };
+
+  // Always-Visible Top Identity & Active FX Bar (stays visible across ALL section tabs!)
+  const editorIdentityBar = h("section", {
+    class: "theme-editor-identity-bar",
+    "data-editor-identity-bar": "true",
+    "aria-label": "Theme Name, Starting Template, Random FX Rollers, and Active Effect Remover",
+  },
+    h("div", { class: "theme-editor-identity-top" },
+      heading,
+      h("div", { class: "theme-editor-quick-rollers", role: "group", "aria-label": "Quick Random FX Rollers" },
+        h("button", {
+          type: "button",
+          class: "theme-filter-pill",
+          "data-editor-random-fx-template": "true",
+          title: "Load a random FX template into the editor — then click any ✕ pill below to strip effects you don't want!",
+          onclick: () => rollRandomTemplateInEditor("fx"),
+        }, "🎲 Random FX Template"),
+        h("button", {
+          type: "button",
+          class: "theme-filter-pill",
+          "data-editor-random-fx-mix": "true",
+          title: "Keep your current colors & name, and roll a fresh random combination of weather/particles, 3D folder shader, and icon pack!",
+          onclick: rollRandomFxMixOnCurrentDraft,
+        }, "🎰 Random FX Mix"),
+        h("button", {
+          type: "button",
+          class: "theme-filter-pill",
+          "data-editor-random-plain-template": "true",
+          title: "Load a random clean/static template with zero visual effects.",
+          onclick: () => rollRandomTemplateInEditor("plain"),
+        }, "⏹️ Random Plain Template"),
+      ),
+    ),
+    h("div", { class: "theme-meta" },
+      h("label", { class: "field theme-name-field" },
+        h("span", { class: "field-label theme-name-label-row" },
+          h("span", {}, "Theme Name (1–40 chars)"),
+          nameCharCountEl,
+        ),
+        nameInput,
+      ),
+      h("label", { class: "field" }, h("span", { class: "field-label" }, "Start from template"), startSelect),
+      h("label", { class: "check" }, darkBox, h("span", {}, "This is a dark theme")),
+    ),
+    editorActiveFxStrip,
+  );
+
+  // Visual Starting Templates Browser Grid inside Section 1 so users can visually see & browse templates
+  let templateBrowserFilter = "all"; // "all" | "fx" | "plain" | "dark" | "light"
+  let templateBrowserQuery = "";
+  const templateGridContainer = h("div", {
+    class: "theme-editor-template-grid",
+    "data-editor-template-grid": "true",
+    role: "list",
+    "aria-label": "Visual starting templates",
+  });
+  const templateCountLabel = h("span", { class: "hint", "data-editor-template-count": "true" }, "");
+
+  function renderTemplateBrowserCards() {
+    const allTemplates = [
+      { key: "standard-dark", name: "Standard (dark)", group: "Plain", dark: true, hasEffects: false, preview: STANDARD["standard-dark"].colors },
+      { key: "standard-light", name: "Standard (light)", group: "Plain", dark: false, hasEffects: false, preview: STANDARD["standard-light"].colors },
+      ...themes,
+    ];
+    const q = templateBrowserQuery.trim().toLowerCase();
+    const filtered = allTemplates.filter((t) => {
+      if (templateBrowserFilter === "fx" && !t.hasEffects) return false;
+      if (templateBrowserFilter === "plain" && t.hasEffects) return false;
+      if (templateBrowserFilter === "dark" && !t.dark) return false;
+      if (templateBrowserFilter === "light" && t.dark) return false;
+      if (q && !(`${t.name} ${t.group || ""} ${t.atmosphere || ""} ${t.uiElementFx || ""}`).toLowerCase().includes(q)) return false;
+      return true;
+    });
+    templateCountLabel.textContent = `Showing ${Math.min(filtered.length, 48)} of ${filtered.length} templates`;
+    templateGridContainer.replaceChildren(
+      ...filtered.slice(0, 48).map((t) => {
+        const isCurrent = startSelect.value === t.key;
+        const p = t.preview || {};
+        return h("button", {
+          type: "button",
+          role: "listitem",
+          class: `theme-editor-template-card${isCurrent ? " is-active" : ""}`,
+          "data-editor-template-card": t.key,
+          "aria-pressed": String(isCurrent),
+          title: `${t.name} (${t.group || "Template"})${t.hasEffects ? " · ✨ Has FX" : " · Plain"} — Click to load as starting template`,
+          onclick: async () => {
+            startSelect.value = t.key;
+            try {
+              load(await loadStart(t.key));
+            } catch (err) {
+              toast(err?.message || "Couldn't load template.", { kind: "error" });
+            }
+          },
+        },
+          h("span", { class: "theme-swatches" },
+            h("span", { class: "swatch", style: `background:${p.background || "#16191d"}` }),
+            h("span", { class: "swatch", style: `background:${p.card || "#1e2329"}` }),
+            h("span", { class: "swatch", style: `background:${p.text || "#e8eaed"}` }),
+            h("span", { class: "swatch", style: `background:${p.accent || "#6ea8ff"}` }),
+          ),
+          h("span", { class: "theme-editor-template-card-name" }, t.name),
+          h("span", { class: "theme-editor-template-card-meta" },
+            t.hasEffects ? "✨ FX" : "⏹️ Plain",
+            " · ",
+            t.dark ? "🌙" : "☀️",
+          ),
+        );
+      }),
+    );
+  }
+
+  const templateSearchInput = h("input", {
+    type: "search",
+    class: "prop-input theme-editor-template-search",
+    placeholder: "Search starting templates (e.g., cyberpunk, matrix, tornado, glass, nord)…",
+    "aria-label": "Search starting templates",
+    oninput: () => {
+      templateBrowserQuery = templateSearchInput.value;
+      renderTemplateBrowserCards();
+    },
+  });
+
+  const makeTemplateFilterBtn = (id, label) => h("button", {
+    type: "button",
+    class: "theme-filter-pill",
+    "data-editor-template-filter": id,
+    "aria-pressed": String(templateBrowserFilter === id),
+    onclick: (e) => {
+      templateBrowserFilter = id;
+      const bar = e.currentTarget.parentElement;
+      if (bar) {
+        for (const b of bar.querySelectorAll("[data-editor-template-filter]")) {
+          b.setAttribute("aria-pressed", String(b.getAttribute("data-editor-template-filter") === id));
+        }
+      }
+      renderTemplateBrowserCards();
+    },
+  }, label);
+
+  const templateBrowserWrap = h("div", {
+    class: "theme-editor-template-browser",
+    "data-editor-template-browser": "true",
+  },
+    h("div", { class: "theme-editor-template-browser-bar" },
+      h("span", { class: "theme-pill-label" }, "🗂️ Browse Starting Templates:"),
+      makeTemplateFilterBtn("all", "All"),
+      makeTemplateFilterBtn("fx", "✨ FX Templates"),
+      makeTemplateFilterBtn("plain", "⏹️ Plain"),
+      makeTemplateFilterBtn("dark", "🌙 Dark"),
+      makeTemplateFilterBtn("light", "☀️ Light"),
+      templateSearchInput,
+      templateCountLabel,
+    ),
+    templateGridContainer,
+  );
 
   // -- Apple-Style Section Focus & View Mover System ---------------------------------------------------------------
   const SECTION_ORDER = ["basics", "colors", "effects", "wizard", "hacker"];
@@ -2060,14 +2486,9 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
     id: "basics",
     icon: "🏷️",
     title: "1. Theme Identity & Pre-Built Studio Kits",
-    subtitle: "Name your custom theme, pick a starting template, or apply a 1-click Pre-Built Studio Picture & 3D Folder Kit.",
+    subtitle: "Pick a starting template from the visual gallery below, or apply a 1-click Pre-Built Studio Picture & 3D Folder Kit.",
     contentNodes: [
-      heading,
-      h("div", { class: "theme-meta" },
-        h("label", { class: "field" }, h("span", { class: "field-label" }, "Name"), nameInput),
-        h("label", { class: "field" }, h("span", { class: "field-label" }, "Start from"), startSelect),
-        h("label", { class: "check" }, darkBox, h("span", {}, "This is a dark theme")),
-      ),
+      templateBrowserWrap,
       prebuiltPictureStrip,
     ],
   });
@@ -2250,6 +2671,7 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
     "data-editor-isolate": "true",
     "data-preview-dock": "top",
   },
+    editorIdentityBar,
     livePreviewStage,
     focusNavStrip,
     sectionsContainer,
@@ -2278,7 +2700,11 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
   };
   async function save(asCopy) {
     try {
-      const res = await call("themes/custom/save", { theme: draftBody(), id: asCopy ? undefined : draft.editingId ?? undefined });
+      const payload = draftBody();
+      nameInput.value = payload.name;
+      draft.name = payload.name;
+      syncNameCharCount();
+      const res = await call("themes/custom/save", { theme: payload, id: asCopy ? undefined : draft.editingId ?? undefined });
       forgetThemeList();
       await saveSettings({ palette: res.id });
       toast(`Saved the theme "${res.name}".`, { kind: "success" });

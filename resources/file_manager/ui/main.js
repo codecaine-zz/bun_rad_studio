@@ -53,14 +53,16 @@ import "./sysinfo.js";
 import "./games.js";
 import "./themeEditor.js";
 import { applyAtmosphere } from "./atmosphereFx.js";
+import { wireCommandPalette } from "./commandPalette.js";
 import { startQuietDetect } from "./dbDetect.js";
+import { wireQuickbar } from "./quickbar.js";
 import { wireTabs } from "./tabs.js";
 import { wireTerminal } from "./terminal.js";
 import { wireTools } from "./tools.js";
 import { renderAddress, renderBanner, updateSearchBox, updateToolbar, wireToolbar } from "./toolbar.js";
 
 /** The settings that change how the list looks or is ordered. */
-const LIST_SETTINGS = ["view", "sortBy", "sortDir", "foldersFirst", "columns", "groupBy", "tags"];
+const LIST_SETTINGS = ["view", "sortBy", "sortDir", "foldersFirst", "columns", "groupBy", "rowDensity", "tags"];
 
 function applySettings() {
   const s = state.settings;
@@ -75,6 +77,9 @@ function applySettings() {
   else if (s.theme === "auto") delete root.dataset.theme;
   else root.dataset.theme = s.theme;
   root.style.setProperty("--fm-scale", String(s.textSize / 100));
+  root.dataset.density = s.rowDensity || "comfortable";
+  const appEl = document.getElementById("app");
+  if (appEl) appEl.dataset.density = s.rowDensity || "comfortable";
   $("#info").hidden = !s.showInfoPanel;
   applyAtmosphere();
 }
@@ -94,6 +99,8 @@ async function start() {
   applySettings();
   wireToolbar();
   wireTabs();
+  wireQuickbar();
+  wireCommandPalette();
   wireList();
   wireSidebar();
   wireFavorites();

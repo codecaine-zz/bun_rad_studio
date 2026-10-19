@@ -348,7 +348,8 @@ const operations: Record<string, Handler> = {
     return await makeFolder(ctx, b.parent, b.name);
   },
   async newfile(ctx, b) {
-    return await makeFile(ctx, b.parent, b.name);
+    const content = typeof b.content === "string" && b.content.length <= 256_000 ? b.content : "";
+    return await makeFile(ctx, b.parent, b.name, content);
   },
   async newsqlite(ctx, b) {
     return await makeSqliteFile(ctx, b.parent, b.name, {

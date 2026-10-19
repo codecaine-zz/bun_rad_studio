@@ -567,6 +567,50 @@ ${DESKTOP_SHORTCUTS_SCRIPT}
         };
     }
 
+    // Universal Web Audio auto-unlocker for all 24 built-in games across macOS WKWebView, Linux WebKitGTK (including VMs), and Windows WebView2
+    if (!window.__radAudioUnlockerInstalled) {
+        window.__radAudioUnlockerInstalled = true;
+        var trackedAudioContexts = [];
+        var OrigAudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (OrigAudioCtx) {
+            var PatchedAudioCtx = function() {
+                var ctx = new (Function.prototype.bind.apply(OrigAudioCtx, [null].concat(Array.prototype.slice.call(arguments))))();
+                trackedAudioContexts.push(ctx);
+                return ctx;
+            };
+            PatchedAudioCtx.prototype = OrigAudioCtx.prototype;
+            Object.setPrototypeOf(PatchedAudioCtx, OrigAudioCtx);
+            window.AudioContext = PatchedAudioCtx;
+            if (window.webkitAudioContext) window.webkitAudioContext = PatchedAudioCtx;
+        }
+        var unlockAllAudio = function() {
+            try {
+                if (window.sound && typeof window.sound.init === "function") window.sound.init();
+                if (window.sound && typeof window.sound.resume === "function") window.sound.resume();
+            } catch (_) {}
+            for (var i = 0; i < trackedAudioContexts.length; i++) {
+                var c = trackedAudioContexts[i];
+                if (!c) continue;
+                try {
+                    if (c.state === "suspended" || c.state === "interrupted") {
+                        c.resume().catch(function() {});
+                    }
+                    if (!c.__radHardwareUnlocked) {
+                        var buf = c.createBuffer(1, 1, 22050);
+                        var src = c.createBufferSource();
+                        src.buffer = buf;
+                        src.connect(c.destination);
+                        src.start(0);
+                        if (c.state === "running") c.__radHardwareUnlocked = true;
+                    }
+                } catch (_) {}
+            }
+        };
+        ["pointerdown", "mousedown", "keydown", "touchstart", "click", "focus"].forEach(function(evt) {
+            window.addEventListener(evt, unlockAllAudio, { capture: true, passive: true });
+        });
+    }
+
     let lastAltTime = 0;
     let zoomLevel = 1.0;
     let isFnPressed = false;

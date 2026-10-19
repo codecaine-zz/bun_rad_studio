@@ -730,8 +730,17 @@ const tracks = {
 
 function scheduleMusic() {
   if (!audioCtx || currentTrack === 'none' || gameState !== 'playing') return;
+  if (audioCtx.state !== 'running') {
+    audioCtx.resume().catch(() => {});
+    nextNoteTime = audioCtx.currentTime + 0.08;
+    musicTimerID = setTimeout(scheduleMusic, 40);
+    return;
+  }
   const track = tracks[currentTrack];
   if (!track) return;
+  if (nextNoteTime < audioCtx.currentTime) {
+    nextNoteTime = audioCtx.currentTime + 0.04;
+  }
   const lookahead = 0.12;
   while (nextNoteTime < audioCtx.currentTime + lookahead) {
     const note = track.notes[currentNoteIndex];
@@ -759,7 +768,10 @@ function scheduleMusic() {
 
 function startMusic() {
   stopMusic();
-  if (!audioCtx || currentTrack === 'none' || audioCtx.state === 'suspended') return;
+  if (!audioCtx || currentTrack === 'none') return;
+  if (audioCtx.state !== 'running') {
+    audioCtx.resume().catch(() => {});
+  }
   nextNoteTime = audioCtx.currentTime + 0.08;
   currentNoteIndex = 0;
   scheduleMusic();

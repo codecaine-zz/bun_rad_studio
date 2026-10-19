@@ -20,7 +20,7 @@ export const state = {
     terminalOpen: false, terminalHeight: 300, terminalPath: "",
     workspace: "files", startWith: "files", splitSide: "right", splitSize: 50, sidebarCollapsed: false, focusMode: false,
     activeTool: "", splitTool: "", dualPath: "", typeWarnings: true, backspaceDeletes: true, shortcutsCantClose: false, serveOptions: { kind: "auto", liveReload: true, openBrowser: true }, deleteTo: "bin", dbShortcut: "window", mediaOpensIn: "manager",
-    columns: [], groupBy: "none", tags: {}, treeExpanded: false,
+    columns: [], groupBy: "none", rowDensity: "comfortable", tags: {}, treeExpanded: false,
   },
   /** Ids of queued jobs that came from a reviewed plan (planDialog.js reports on those itself). */
   planJobs: new Set(),
@@ -40,6 +40,12 @@ export const state = {
   loading: false,
   /** Active color tag filter in the current session ("" = show all). */
   tagFilter: "",
+  /** Live instant folder filter text in the current session ("" = show all). */
+  quickFilter: "",
+  /** Active file kind chip filter in the current session ("all" = show all). */
+  kindFilter: "all",
+  /** Recently executed Command Palette item IDs in this session. */
+  recentCommands: [],
   /** Open folder tabs in the primary pane: Array<{ id, location, history, future, selection, scrollTop }>. */
   tabs: [],
   activeTabId: 0,

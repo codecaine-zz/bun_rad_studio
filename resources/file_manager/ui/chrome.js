@@ -1,7 +1,7 @@
 // Friendlier chrome: the toolbar keeps to one tidy row (buttons that don't fit move into a "More" menu), and the status
 // bar has quick buttons for how the file list looks (Details, List, Icons).
 import { dateMetrics, showCalendarDialog, showClockMenu } from "./clockTools.js";
-import { $, debounce } from "./dom.js";
+import { $, buttonIconFor, debounce } from "./dom.js";
 import { showMenu } from "./menus.js";
 import { saveSettings } from "./nav.js";
 import { hintOf } from "./keymap.js";
@@ -106,9 +106,12 @@ function buildStatusViews() {
     btn.dataset.view = id;
     btn.title = `${tip}${hintOf(`view.${id}`)}`;
     btn.setAttribute("aria-pressed", "false");
+    const btnIconId = `view.${id}`;
     const i = document.createElement("span");
     i.setAttribute("aria-hidden", "true");
-    i.textContent = icon;
+    i.dataset.btnIcon = btnIconId;
+    i.dataset.defaultIcon = icon;
+    i.textContent = buttonIconFor(btnIconId, undefined, icon);
     const l = document.createElement("span");
     l.className = "sv-label";
     l.textContent = label;

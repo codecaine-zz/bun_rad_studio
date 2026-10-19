@@ -1925,9 +1925,244 @@ describe("the theme editor in the page", () => {
     expect(anyPicked).toBeTruthy();
     expect(doc.querySelector(".modal-backdrop")).toBeNull();
 
+    // Expanded God-Mode System Icon Catalog (210+ semantic folder topics, exact filenames & extensions)
+    expect(domMod.SYSTEM_ICON_CATALOG.length).toBeGreaterThanOrEqual(210);
+    expect(domMod.classifyFolderTopic("blender")).toBe("3d");
+    expect(domMod.classifyFolderTopic("3d_printing")).toBe("3dprint");
+    expect(domMod.classifyFolderTopic("kicad")).toBe("electronics");
+    expect(domMod.classifyFolderTopic("robotics")).toBe("robotics");
+    expect(domMod.classifyFolderTopic("visionos")).toBe("vr_spatial");
+    expect(domMod.classifyFolderTopic("wallpapers")).toBe("wallpapers");
+    expect(domMod.classifyFolderTopic("screenshots")).toBe("screenshots");
+    expect(domMod.classifyFolderTopic("anime")).toBe("anime");
+    expect(domMod.classifyFolderTopic("podcasts")).toBe("podcasts");
+    expect(domMod.classifyFolderTopic("prompts")).toBe("prompts");
+    expect(domMod.classifyFolderTopic("datasets")).toBe("datasets");
+    expect(domMod.classifyFolderTopic("rust")).toBe("rust");
+    expect(domMod.classifyFolderTopic("bun")).toBe("bun");
+    expect(domMod.classifyFolderTopic("python")).toBe("python");
+    expect(domMod.classifyFolderTopic("terraform")).toBe("terraform");
+    expect(domMod.classifyFolderTopic("pentest")).toBe("pentest");
+    expect(domMod.classifyFolderTopic("ebooks")).toBe("ebooks");
+    expect(domMod.classifyFolderTopic("recipes")).toBe("recipes");
+    expect(domMod.classifyFolderTopic("astronomy")).toBe("astronomy");
+    expect(domMod.classifyFolderTopic("homelab")).toBe("homelab");
+    expect(domMod.classifyFolderTopic("dotfiles")).toBe("dotfiles");
+
+    // Exact filenames & new extension groups
+    expect(domMod.resolveSystemIcon(".zshrc", false)?.icon).toBe("🐚");
+    expect(domMod.resolveSystemIcon("init.lua", false)?.icon).toBe("🌙");
+    expect(domMod.resolveSystemIcon("wezterm.lua", false)?.icon).toBe("🖥️");
+    expect(domMod.resolveSystemIcon("Brewfile", false)?.icon).toBe("🍎");
+    expect(domMod.resolveSystemIcon("deno.json", false)?.icon).toBe("🦕");
+    expect(domMod.resolveSystemIcon("turbo.json", false)?.icon).toBe("⚡");
+    expect(domMod.resolveSystemIcon("wrangler.toml", false)?.icon).toBe("☁️");
+    expect(domMod.resolveSystemIcon("vitest.config.ts", false)?.icon).toBe("🧪");
+    expect(domMod.resolveSystemIcon("tauri.conf.json", false)?.icon).toBe("📱");
+    expect(domMod.resolveSystemIcon("openapi.yaml", false)?.icon).toBe("📡");
+    expect(domMod.resolveSystemIcon("bench.gcode", false)?.icon).toBe("📐");
+    expect(domMod.resolveSystemIcon("synth_board.kicad_pcb", false)?.icon).toBe("🔌");
+    expect(domMod.resolveSystemIcon("core.sv", false)?.icon).toBe("🎛️");
+    expect(domMod.resolveSystemIcon("trail.gpx", false)?.icon).toBe("🗺️");
+    expect(domMod.resolveSystemIcon("zelda.sfc", false)?.icon).toBe("🕹️");
+    expect(domMod.resolveSystemIcon("level.unitypackage", false)?.icon).toBe("🎮");
+    expect(domMod.resolveSystemIcon("lead.sfz", false)?.icon).toBe("🎚️");
+    expect(domMod.resolveSystemIcon("grade.drp", false)?.icon).toBe("🎬");
+    expect(domMod.resolveSystemIcon("movie.srt", false)?.icon).toBe("💬");
+    expect(domMod.resolveSystemIcon("secret.radenc", false)?.icon).toBe("🔐");
+    expect(domMod.resolveSystemIcon("custom.ccfm", false)?.icon).toBe("🌈");
+    expect(domMod.resolveSystemIcon("ubuntu.torrent", false)?.icon).toBe("🧲");
+
+    // 10 New Flagship & God-Mode Custom Icon Packs + Button/Place Icon Theming
+    const newPacks = [
+      "godmode_omni_pantheon",
+      "macos_sequoia_hig",
+      "apple_vision_glass_3d",
+      "dev_polyglot_pro",
+      "creative_cinema_8k",
+      "cyberdeck_matrix_hud",
+      "royal_24k_gold_obsidian",
+      "anime_mecha_neon",
+      "steampunk_brass_clockwork",
+      "bioluminescent_eden",
+    ] as const;
+    for (const packId of newPacks) {
+      expect((themes as any).ICON_PACK_OPTIONS.some((o: any) => o.id === packId)).toBe(true);
+      (themes as any).applyUiImmersionProfiles({ iconPackStyle: packId });
+      expect(doc.documentElement.getAttribute("data-icon-pack")).toBe(packId);
+      expect(domMod.iconFor("src", true, packId).length).toBeGreaterThan(0);
+      expect(domMod.iconFor("main.ts", false, packId).length).toBeGreaterThan(0);
+      expect(domMod.buttonIconFor("newFolder", packId).length).toBeGreaterThan(0);
+      expect(domMod.buttonIconFor("newFile", packId).length).toBeGreaterThan(0);
+      expect(domMod.buttonIconFor("delete", packId).length).toBeGreaterThan(0);
+      expect(domMod.placeIconFor("home", "Home", packId).length).toBeGreaterThan(0);
+      expect(domMod.placeIconFor("recycle", "Recycle Bin", packId).length).toBeGreaterThan(0);
+    }
+
+    // Verify BUTTON_ICON_CATALOG & live toolbar/sidebar/tab/tree DOM sync via syncVisibleIcons
+    expect(domMod.BUTTON_ICON_CATALOG.length).toBeGreaterThanOrEqual(35);
+    expect(domMod.buttonIconFor("newFolder", "default", "📁+")).toBe("📁+");
+    expect(domMod.buttonIconFor("newFolder", "godmode_omni_pantheon", "📁+")).toBe("🪐+");
+    expect(domMod.buttonIconFor("newFolder", "cyberdeck_matrix_hud", "📁+")).toBe("💠+");
+    expect(domMod.buttonIconFor("newFolder", "royal_24k_gold_obsidian", "📁+")).toBe("👑+");
+    expect(domMod.buttonIconFor("delete", "inferno", "🗑")).toBe("💣");
+    expect(domMod.buttonIconFor("delete", "slime", "🗑")).toBe("☣️");
+
+    const testBar = doc.createElement("div");
+    testBar.innerHTML = `
+      <span class="ti" data-btn-icon="newFolder" data-default-icon="📁+">📁+</span>
+      <span class="si" data-place-icon="recycle" data-place-name="Recycle Bin" data-default-icon="🗑️">🗑️</span>
+      <span class="si" data-tree-name="Pictures" data-default-icon="📁">📁</span>
+      <span class="fm-tab-icon" data-tab-icon="folder" data-tab-name="Music" data-default-icon="📁">📁</span>
+    `;
+    doc.body.appendChild(testBar);
+    (themes as any).applyUiImmersionProfiles({ iconPackStyle: "godmode_omni_pantheon" });
+    domMod.syncVisibleIcons(testBar);
+    expect(testBar.querySelector('[data-btn-icon="newFolder"]')?.textContent).toBe("🪐+");
+    expect(testBar.querySelector('[data-place-icon="recycle"]')?.textContent).toBe("🕳️");
+    expect(testBar.querySelector('[data-tree-name="Pictures"]')?.textContent).toBe("🏞️");
+    expect(testBar.querySelector('[data-tab-icon="folder"]')?.textContent).toBe("🎧");
+
+    (themes as any).applyUiImmersionProfiles({ iconPackStyle: "default" });
+    domMod.syncVisibleIcons(testBar);
+    expect(testBar.querySelector('[data-btn-icon="newFolder"]')?.textContent).toBe("📁+");
+    expect(testBar.querySelector('[data-place-icon="recycle"]')?.textContent).toBe("🗑️");
+    expect(testBar.querySelector('[data-tree-name="Pictures"]')?.textContent).toBe("📁");
+    expect(testBar.querySelector('[data-tab-icon="folder"]')?.textContent).toBe("📁");
+    testBar.remove();
+
     (themes as any).hideQuickCycleHud();
     await themes.applyPalette("");
     (themes as any).applyUiImmersionProfiles({ uiElementFx: "off", iconPackStyle: "default" });
   });
+
+  test("Menu & Dialog scroll isolation, 40-char Theme Name auto-fit, Always-Visible Identity Bar, Visual Template Grid, and 1-Click Random FX Remover work end-to-end", async () => {
+    const menusMod = await import("../resources/file_manager/ui/menus.js");
+    const themeEditorMod = await import("../resources/file_manager/ui/themeEditor.js");
+
+    // 1. fitThemeName clamps long theme names + "(mine)" to <= 40 characters
+    expect(themeEditorMod.MAX_THEME_NAME_LEN).toBe(40);
+    const fittedStainedGlass = themeEditorMod.fitThemeName("Chartres Stained-Glass Rose Window", " (mine)");
+    expect(fittedStainedGlass.length).toBeLessThanOrEqual(40);
+    expect(fittedStainedGlass.endsWith("(mine)")).toBe(true);
+    const fittedOmega = themeEditorMod.fitThemeName("God-Mode Omega Singularity Event Horizon", " (mine)");
+    expect(fittedOmega.length).toBeLessThanOrEqual(40);
+    expect(fittedOmega.endsWith("(mine)")).toBe(true);
+
+    // 2. Menu scroll isolation: wheel events inside .menu do not pass through to #list-wrap
+    const anchor = doc.getElementById("btn-theme") || doc.body;
+    menusMod.showMenu([
+      { label: "Theme Item 1", run: () => {} },
+      { label: "Theme Item 2", run: () => {} },
+    ], { anchor });
+    const menuEl = doc.querySelector(".menu") as any;
+    expect(menuEl).toBeTruthy();
+    expect(doc.body.classList.contains("menu-open")).toBe(true);
+    const wheelOnMenu = new doc.defaultView.Event("wheel", { bubbles: true, cancelable: true });
+    Object.defineProperty(wheelOnMenu, "deltaY", { value: 120 });
+    menuEl.dispatchEvent(wheelOnMenu);
+    expect(wheelOnMenu.defaultPrevented).toBe(true);
+    menusMod.closeMenu();
+    expect(doc.body.classList.contains("menu-open")).toBe(false);
+
+    // 3. Full Theme Mode: Random FX Finder & 1-Click Individual Effect Removal
+    closeDialogs();
+    await themes.showThemePicker();
+    await sleep(120);
+    const backdropEl = doc.querySelector(".modal-backdrop") as any;
+    expect(backdropEl).toBeTruthy();
+
+    // Wheel event on non-scrollable dialog area is prevented from chaining to #list-wrap
+    const wheelOnBackdrop = new doc.defaultView.Event("wheel", { bubbles: true, cancelable: true });
+    Object.defineProperty(wheelOnBackdrop, "deltaY", { value: 100 });
+    backdropEl.dispatchEvent(wheelOnBackdrop);
+    expect(wheelOnBackdrop.defaultPrevented).toBe(true);
+
+    const activeFxStrip = doc.querySelector('[data-active-fx-strip="true"]') as any;
+    expect(activeFxStrip).toBeTruthy();
+    const rollRandomFxBtn = activeFxStrip.querySelector('[data-picker-roll-random-fx="true"]') as any;
+    expect(rollRandomFxBtn).toBeTruthy();
+    rollRandomFxBtn.click();
+    await sleep(220);
+
+    // Verify active effects are detected and can be individually removed in 1 click
+    await themes.applyPalette("omega_point_singularity");
+    await sleep(100);
+    const activeEffectsBefore = themes.getActiveWorkspaceEffects();
+    expect(activeEffectsBefore.length).toBeGreaterThanOrEqual(2);
+    expect(activeEffectsBefore.some((e: any) => e.kind === "uiElementFx")).toBe(true);
+
+    await themes.removeActiveWorkspaceEffect("uiElementFx");
+    expect(doc.documentElement.getAttribute("data-fx-element")).toBeNull();
+    const activeEffectsAfterUiRemoval = themes.getActiveWorkspaceEffects();
+    expect(activeEffectsAfterUiRemoval.some((e: any) => e.kind === "uiElementFx")).toBe(false);
+    // Glass/glow or other effects remain active until stripped
+    expect(activeEffectsAfterUiRemoval.length).toBeGreaterThanOrEqual(1);
+
+    await themes.removeActiveWorkspaceEffect("all", "", { quiet: true });
+    expect(themes.getActiveWorkspaceEffects().length).toBe(0);
+    closeDialogs();
+
+    // 4. Theme Editor: Starting from a 40-char built-in theme clamps name, keeps Identity Bar visible on all tabs, and saves cleanly
+    void themeEditorMod.openEditor({});
+    await sleep(300);
+    const identityBar = doc.querySelector('[data-editor-identity-bar="true"]') as any;
+    expect(identityBar).toBeTruthy();
+    const nameInput = doc.querySelector('.theme-editor [aria-label="Theme name"]') as any;
+    expect(nameInput).toBeTruthy();
+    expect(identityBar.contains(nameInput)).toBe(true);
+    const charCount = doc.querySelector('[data-theme-name-count="true"]') as any;
+    expect(charCount).toBeTruthy();
+
+    // Visual template browser grid inside section 1
+    const templateBrowser = doc.querySelector('[data-editor-template-browser="true"]') as any;
+    expect(templateBrowser).toBeTruthy();
+    const templateCards = templateBrowser.querySelectorAll("[data-editor-template-card]");
+    expect(templateCards.length).toBeGreaterThan(25);
+
+    // Switch to a starting theme with a very long name ("Chartres Stained-Glass Rose Window")
+    const startSel = doc.querySelector('.theme-editor [aria-label="Start from"]') as any;
+    startSel.value = "realworld_stained_glass_cathedral";
+    startSel.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
+    await sleep(300);
+    expect(nameInput.value.length).toBeLessThanOrEqual(40);
+    expect(nameInput.value.endsWith("(mine)")).toBe(true);
+
+    // Switch section focus tabs ("effects", "wizard", "hacker", "all") — Identity Bar with Theme Name stays visible at the top!
+    for (const secId of ["effects", "wizard", "hacker", "all"]) {
+      const tab = doc.querySelector(`[data-editor-focus-tab="${secId}"]`) as any;
+      expect(tab).toBeTruthy();
+      tab.click();
+      expect(identityBar.hidden).toBeFalsy();
+      expect(identityBar.contains(nameInput)).toBe(true);
+    }
+
+    // Roll Random FX Mix inside Theme Editor and remove an individual effect in 1 click
+    const rollMixBtn = doc.querySelector('[data-editor-random-fx-mix="true"]') as any;
+    expect(rollMixBtn).toBeTruthy();
+    rollMixBtn.click();
+    await sleep(100);
+    const editorFxPills = doc.querySelectorAll("[data-editor-remove-fx]");
+    expect(editorFxPills.length).toBeGreaterThanOrEqual(2);
+    (editorFxPills[0] as any).click();
+    await sleep(50);
+    expect(doc.querySelectorAll("[data-editor-remove-fx]").length).toBeLessThan(editorFxPills.length);
+
+    // Save the theme started from the long template name without any 40-char error
+    const saveBtn = [...doc.querySelectorAll(".modal-backdrop button")].find((b: any) => b.textContent.trim() === "Save theme" || b.textContent.trim() === "Save") as any;
+    expect(saveBtn).toBeTruthy();
+    saveBtn.click();
+    await sleep(350);
+    expect(doc.querySelector(".dialog-error")?.textContent || "").toBe("");
+
+    // Clean up saved custom theme
+    const customList = (await api.call("themes/list")).themes.filter((t: any) => t.group === "My themes");
+    for (const ct of customList) {
+      await api.call("themes/custom/delete", { id: ct.key });
+    }
+    closeDialogs();
+    await themes.applyPalette("");
+  });
 });
+
 

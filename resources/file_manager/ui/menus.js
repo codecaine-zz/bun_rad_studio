@@ -9,6 +9,7 @@ export function closeMenu() {
   current = null;
   off();
   el.remove();
+  document.body?.classList.remove("menu-open");
   if (opener instanceof HTMLElement && document.contains(opener)) opener.focus();
 }
 
@@ -41,15 +42,23 @@ export function showMenu(items, { x = 0, y = 0, anchor, label = "Menu" } = {}) {
     }),
   );
   $("#overlay").append(menu);
+  document.body?.classList.add("menu-open");
 
   const rect = anchor?.getBoundingClientRect();
   let left = rect ? rect.left : x;
   let top = rect ? rect.bottom + 2 : y;
   const { width, height } = menu.getBoundingClientRect();
   left = Math.max(4, Math.min(left, window.innerWidth - width - 4));
-  top = Math.max(4, Math.min(top, window.innerHeight - height - 4));
+  top = Math.max(4, Math.min(top, window.innerHeight - Math.min(height, window.innerHeight - 8) - 4));
   menu.style.left = `${left}px`;
   menu.style.top = `${top}px`;
+  if (window.innerHeight > 0) {
+    menu.style.maxHeight = `${Math.max(160, window.innerHeight - top - 8)}px`;
+  }
+
+  for (const evt of ["mousedown", "mouseup", "pointerdown", "pointerup", "mousemove", "pointermove", "contextmenu"]) {
+    menu.addEventListener(evt, (e) => e.stopPropagation());
+  }
 
   const enabled = () => buttons.filter((b) => !b.disabled);
   const onKey = (e) => {
@@ -64,11 +73,27 @@ export function showMenu(items, { x = 0, y = 0, anchor, label = "Menu" } = {}) {
     else if (e.key === "Tab") { e.preventDefault(); closeMenu(); }
   };
   const onOutside = (e) => { if (!menu.contains(e.target)) closeMenu(); };
+  const onWheel = (e) => {
+    if (!menu.contains(e.target)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    const dy = e.deltaY;
+    const canDown = dy > 0 && menu.scrollTop + menu.clientHeight < menu.scrollHeight - 1;
+    const canUp = dy < 0 && menu.scrollTop > 0;
+    if (!canDown && !canUp) {
+      e.preventDefault();
+    }
+    e.stopPropagation();
+  };
   document.addEventListener("keydown", onKey, true);
+  document.addEventListener("wheel", onWheel, { passive: false, capture: true });
   setTimeout(() => document.addEventListener("mousedown", onOutside, true), 0);
   window.addEventListener("blur", closeMenu);
   const off = () => {
     document.removeEventListener("keydown", onKey, true);
+    document.removeEventListener("wheel", onWheel, { capture: true });
     document.removeEventListener("mousedown", onOutside, true);
     window.removeEventListener("blur", closeMenu);
   };

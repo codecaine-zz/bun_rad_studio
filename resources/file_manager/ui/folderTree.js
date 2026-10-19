@@ -1,7 +1,7 @@
 // Expandable folder tree in the sidebar: lazy-loads subfolders on demand and lets you navigate or drop files into any branch.
 import { call } from "./api.js";
 import { attachDropTarget } from "./dnd.js";
-import { h } from "./dom.js";
+import { activeIconPackStyle, h, iconFor } from "./dom.js";
 import { showMenu } from "./menus.js";
 import { goTo, saveSettings } from "./nav.js";
 import { emit, state, currentPath } from "./state.js";
@@ -94,6 +94,8 @@ function renderBranch(folderPath, label, depth, activePath) {
     },
   }, isOpen ? "▾" : "▸");
 
+  const defaultGlyph = isOpen ? "📂" : "📁";
+  const treeGlyph = activeIconPackStyle() === "default" ? defaultGlyph : iconFor(label, true);
   const btn = h("button", {
     type: "button",
     class: `tree-item${isActive ? " active" : ""}`,
@@ -102,7 +104,7 @@ function renderBranch(folderPath, label, depth, activePath) {
     "aria-current": isActive ? "page" : null,
     onclick: () => goTo(folderPath),
   },
-    h("span", { class: "si", "aria-hidden": "true" }, isOpen ? "📂" : "📁"),
+    h("span", { class: "si", "aria-hidden": "true", dataset: { treeName: label, defaultIcon: defaultGlyph } }, treeGlyph),
     h("span", { class: "sl" }, label),
   );
 

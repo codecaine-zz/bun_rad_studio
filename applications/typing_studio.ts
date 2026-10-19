@@ -128,7 +128,7 @@ export function createTypingStudio(options: TypingStudioOptions = {}): TypingStu
       }
 
       try {
-        const { SizeHint, Webview } = require("webview-bun") as typeof import("webview-bun");
+        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -190,7 +190,7 @@ export class TypingStudio {
     console.log(`⚡ Background server active at: http://127.0.0.1:${this.port}`);
 
     try {
-      const { SizeHint, Webview } = require("webview-bun") as typeof import("webview-bun");
+      const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
       this.webview = new Webview(true, {
         width: 1280,
         height: 800,

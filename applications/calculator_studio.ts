@@ -549,7 +549,7 @@ export function createCalculatorStudio(options: CalculatorStudioOptions = {}): C
       // Native Webview Window (debug: false prevents developer tools / inspect element)
       try {
         const debug = options.debug ?? false;
-        const { SizeHint, Webview } = require("webview-bun") as typeof import("webview-bun");
+        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(debug, {
           width,
           height,

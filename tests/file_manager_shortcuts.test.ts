@@ -87,6 +87,11 @@ describe("the table of shortcuts", () => {
     expect(defaultsFor(action("nav.duplicateTab"), "darwin")).toEqual(["Mod+Alt+D"]);
     expect(defaultsFor(action("app.activity"), "darwin")).toEqual(["Mod+Shift+Y"]);
     expect(defaultsFor(action("app.shortcuts"), "darwin")).toEqual(["Mod+Shift+/"]);
+    expect(defaultsFor(action("app.commandPalette"), "darwin")).toEqual(["Mod+Shift+P", "Mod+P"]);
+    expect(defaultsFor(action("nav.quickFilter"), "darwin")).toEqual(["Mod+Alt+F"]);
+    expect(defaultsFor(action("file.newTemplate"), "darwin")).toEqual(["Mod+Alt+K"]);
+    expect(formatShortcut("Mod+Shift+P", "darwin")).toBe("⌘⇧P");
+    expect(formatShortcut("Mod+Shift+P", "linux")).toBe("Ctrl+Shift+P");
     expect(formatShortcut("Mod+Shift+E", "darwin")).toBe("⌘⇧E");
     expect(formatShortcut("Mod+Shift+E", "linux")).toBe("Ctrl+Shift+E");
     expect(formatShortcut("Mod+U", "darwin")).toBe("⌘U");

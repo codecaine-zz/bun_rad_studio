@@ -3,7 +3,7 @@
 import { ApiError } from "./api.js";
 import { showBackgroundMenu, showEntryMenu } from "./contextmenu.js";
 import { attachDropTarget, drag, endDrag, startDrag } from "./dnd.js";
-import { classifyIconKind, clear, h, iconForEntry } from "./dom.js";
+import { classifyFolderTopic, classifyIconKind, clear, h, iconForEntry, resolveSystemIcon } from "./dom.js";
 import { wireMarquee } from "./marquee.js";
 import { toast } from "./menus.js";
 import { saveSettings, visibleEntries } from "./nav.js";
@@ -35,6 +35,9 @@ function emptyMessage(pane) {
   if (state.tagFilter) {
     const t = tagInfo(state.tagFilter);
     return [`No ${t ? t.label.toLowerCase() : "tagged"} items here`, "No files or folders in this location have that color tag. Click the tag again in the sidebar to show all items."];
+  }
+  if (pane.side !== "right" && ((state.quickFilter && state.quickFilter.trim()) || (state.kindFilter && state.kindFilter !== "all"))) {
+    return ["No matching items in this folder", "Nothing in this folder matches your active quick filter or category chip. Clear the filter above to show all items."];
   }
   return ["This folder is empty", "Drag files here, or use New folder / New file in the toolbar."];
 }
@@ -95,6 +98,9 @@ function makeRow(pane, entry, index) {
   const cols = Array.isArray(state.settings.columns) ? state.settings.columns : [];
   const extText = entry.isDir ? "—" : (entry.ext ? String(entry.ext).replace(/^\./, "").toUpperCase() : "—");
   const permsText = entry.mode || (entry.writable === false ? "r--r--r--" : entry.isDir ? "rwxr-xr-x" : "rw-r--r--");
+  const iconKind = classifyIconKind(entry.name, entry.isDir);
+  const folderTopic = entry.isDir ? classifyFolderTopic(entry.name) : "";
+  const sysIcon = resolveSystemIcon(entry.name, entry.isDir);
   const row = h("div", {
     class: `row${entry.isDir ? " is-folder" : ""}${entry.hidden ? " hidden-item" : ""}${cut ? " cut" : ""}${entry.broken ? " broken" : ""}`,
     role: "option", id: `${pane.ids.row}-${index}`, "aria-selected": String(pane.selection.has(entry.path)),
@@ -104,12 +110,23 @@ function makeRow(pane, entry, index) {
       index: String(index),
       entryName: entry.name || "",
       isDir: entry.isDir ? "1" : "0",
+      iconKind,
       defaultIcon: entry.icon || "",
+      ...(folderTopic ? { folderTopic, topic: folderTopic } : {}),
       ...(tag ? { tag: tag.id } : {}),
     },
     title: entry.path && !trash ? entry.path : entry.name,
   },
-    h("span", { class: "c-icon", "aria-hidden": "true", dataset: { iconKind: classifyIconKind(entry.name, entry.isDir) } }, iconForEntry(entry)),
+    h("span", {
+      class: "c-icon",
+      "aria-hidden": "true",
+      dataset: {
+        iconKind,
+        isFolder: entry.isDir ? "1" : "0",
+        ...(folderTopic ? { folderTopic, topic: folderTopic } : {}),
+        ...(sysIcon?.id ? { systemIcon: sysIcon.id } : {}),
+      },
+    }, iconForEntry(entry)),
     h("span", { class: "c-name" },
       tag ? h("span", { class: `tag-dot tag-${tag.id}`, title: `Tagged ${tag.label}`, "aria-label": `Tagged ${tag.label}` }) : null,
       h("span", { class: "name-text" }, entry.name)),

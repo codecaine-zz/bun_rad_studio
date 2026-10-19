@@ -3047,23 +3047,36 @@ html[data-ui-fx] .row.is-folder[aria-selected="true"]:hover {
   line-height: 1.25;
 }
 
-/* ---- Plain Themes Browse Mode Bar, Section Jump Bar & Spacious Gallery Layout ---- */
-.dialog.wide:has(.theme-list) {
-  width: min(74rem, 96vw);
-  max-height: 92vh;
+/* ---- Plain Themes Browse Mode Bar, Section Jump Bar & Spacious Big-Screen Gallery/Editor Layout ---- */
+.dialog.wide:has(.theme-list),
+.dialog.wide:has(.theme-editor) {
+  width: min(96vw, 1780px);
+  max-width: 96vw;
+  height: min(94vh, 1320px);
+  max-height: 95vh;
   display: flex;
   flex-direction: column;
+  overscroll-behavior: contain;
 }
-.dialog.wide:has(.theme-list) .dialog-body {
+.dialog.wide:has(.theme-list) .dialog-body,
+.dialog.wide:has(.theme-editor) .dialog-body {
   display: flex;
   flex-direction: column;
   min-height: 0;
   flex: 1 1 auto;
 }
 .dialog.wide:has(.theme-list) .theme-list {
-  max-height: min(60vh, 38rem);
+  min-height: clamp(24rem, 58vh, 56rem);
+  max-height: calc(94vh - 13.5rem);
   flex: 1 1 auto;
+  overscroll-behavior: contain;
   scroll-behavior: smooth;
+}
+.dialog.wide:has(.theme-editor) .theme-editor {
+  min-height: clamp(28rem, 66vh, 62rem);
+  max-height: calc(94vh - 8.5rem);
+  flex: 1 1 auto;
+  overscroll-behavior: contain;
 }
 .theme-browse-mode-bar {
   display: flex;
@@ -3737,41 +3750,48 @@ html[data-icon-glow="xdr_specular"] .c-icon {
 }
 .theme-editor[data-preview-dock="split"] {
   display: grid;
-  grid-template-columns: minmax(290px, 42%) 1fr;
-  grid-template-rows: auto 1fr;
+  grid-template-columns: minmax(310px, 38%) 1fr;
+  grid-template-rows: auto auto 1fr;
   gap: 0.85rem;
   align-items: start;
 }
+.theme-editor[data-preview-dock="split"] > .theme-editor-identity-bar {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
 .theme-editor[data-preview-dock="split"] > .theme-editor-live-preview {
   grid-column: 1;
-  grid-row: 1 / span 2;
+  grid-row: 2 / span 2;
   position: sticky;
   top: 0;
 }
 .theme-editor[data-preview-dock="split"] > .theme-editor-section-nav {
   grid-column: 2;
-  grid-row: 1;
+  grid-row: 2;
 }
 .theme-editor[data-preview-dock="split"] > .theme-editor-sections-pane {
   grid-column: 2;
-  grid-row: 2;
+  grid-row: 3;
 }
 
 .theme-editor-live-preview {
-  position: sticky;
-  top: 0;
-  z-index: 30;
+  position: relative;
+  z-index: 5;
   border-radius: 14px;
   border: 1.5px solid color-mix(in oklab, var(--preview-accent, var(--accent)) 52%, var(--border));
   background: color-mix(in oklab, var(--panel) 94%, var(--bg));
-  backdrop-filter: blur(22px) saturate(1.5);
-  padding: 0.6rem 0.75rem;
+  padding: 0.55rem 0.72rem;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.24),
-    0 14px 32px -12px rgba(0, 0, 0, 0.55);
+    0 10px 24px -12px rgba(0, 0, 0, 0.45);
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.42rem;
+}
+.theme-editor-live-preview[data-preview-dock="mini"] {
+  position: sticky;
+  top: 0;
+  z-index: 25;
 }
 .theme-editor-live-preview[data-preview-dock="mini"] .theme-live-preview-window {
   display: none;
@@ -4175,6 +4195,219 @@ html[data-icon-pack="godmode_chrono"] .c-icon,
   text-shadow: 0 1px 2px rgba(204, 251, 241, 0.65), 0 2px 8px rgba(45, 212, 191, 0.52);
 }
 
+/* ============================================================================
+ * ⚡👑🥽 10 Flagship & God-Mode Custom Icon Pack 3D Plates & Toolbar Button Skins
+ * ============================================================================ */
+
+/* 1. ⚡ God-Mode: Omni-Pantheon Supreme (godmode_omni_pantheon) */
+html[data-icon-pack="godmode_omni_pantheon"] .row .c-icon,
+:root[data-icon-pack="godmode_omni_pantheon"] .row .c-icon {
+  background:
+    radial-gradient(circle at 28% 22%, rgba(254, 240, 138, 0.52), transparent 58%),
+    linear-gradient(145deg, rgba(168, 85, 247, 0.36) 0%, rgba(56, 189, 248, 0.28) 52%, rgba(251, 191, 36, 0.34) 100%);
+  border: 1px solid rgba(253, 224, 71, 0.68);
+  border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 3px 10px -2px rgba(168, 85, 247, 0.48),
+    0 0 12px -3px rgba(251, 191, 36, 0.45);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.42), 0 0 8px rgba(253, 224, 71, 0.55);
+}
+
+/* 2. 🍎 macOS Sequoia & Tahoe Super-Folders (macos_sequoia_hig) */
+html[data-icon-pack="macos_sequoia_hig"] .row.is-folder .c-icon,
+:root[data-icon-pack="macos_sequoia_hig"] .row.is-folder .c-icon {
+  background: linear-gradient(180deg, rgba(125, 211, 252, 0.48) 0%, rgba(14, 165, 233, 0.36) 55%, rgba(2, 132, 199, 0.44) 100%);
+  border: 1px solid rgba(186, 230, 253, 0.72);
+  border-radius: 7px;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.82),
+    0 3px 8px -2px rgba(2, 132, 199, 0.42);
+}
+html[data-icon-pack="macos_sequoia_hig"] .row:not(.is-folder) .c-icon,
+:root[data-icon-pack="macos_sequoia_hig"] .row:not(.is-folder) .c-icon {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(226, 232, 240, 0.16) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 2px 5px rgba(15, 23, 42, 0.24);
+}
+
+/* 3. 🥽 Apple visionOS Spatial Glass 3D (apple_vision_glass_3d) */
+html[data-icon-pack="apple_vision_glass_3d"] .row .c-icon,
+:root[data-icon-pack="apple_vision_glass_3d"] .row .c-icon {
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.56), transparent 60%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.26), rgba(148, 163, 184, 0.14));
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 999px;
+  box-shadow:
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.85),
+    inset 0 -1px 2px rgba(15, 23, 42, 0.22),
+    0 4px 10px -2px rgba(15, 23, 42, 0.35);
+}
+
+/* 4. 🧑‍💻 Polyglot Dev, AI & DevOps Master (dev_polyglot_pro) */
+html[data-icon-pack="dev_polyglot_pro"] .row .c-icon,
+:root[data-icon-pack="dev_polyglot_pro"] .row .c-icon {
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.26) 0%, rgba(59, 130, 246, 0.24) 55%, rgba(15, 23, 42, 0.42) 100%);
+  border: 1px solid rgba(52, 211, 153, 0.55);
+  border-radius: 6px;
+  box-shadow:
+    inset 0 1px 0 rgba(167, 243, 208, 0.55),
+    0 2px 7px rgba(6, 78, 59, 0.35);
+}
+
+/* 5. 🎬 8K Cinema, DAW Audio & 3D Studio (creative_cinema_8k) */
+html[data-icon-pack="creative_cinema_8k"] .row .c-icon,
+:root[data-icon-pack="creative_cinema_8k"] .row .c-icon {
+  background: linear-gradient(145deg, rgba(244, 63, 94, 0.32) 0%, rgba(245, 158, 11, 0.28) 55%, rgba(17, 24, 39, 0.48) 100%);
+  border: 1px solid rgba(251, 113, 133, 0.58);
+  border-radius: 7px;
+  box-shadow:
+    inset 0 1px 0 rgba(254, 205, 211, 0.55),
+    0 3px 8px rgba(159, 18, 57, 0.36);
+}
+
+/* 6. 📟 Cyberdeck Matrix & Netrunner HUD (cyberdeck_matrix_hud) */
+html[data-icon-pack="cyberdeck_matrix_hud"] .row .c-icon,
+:root[data-icon-pack="cyberdeck_matrix_hud"] .row .c-icon {
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.24) 0%, rgba(6, 182, 212, 0.18) 100%);
+  border: 1px solid rgba(52, 211, 153, 0.68);
+  border-radius: 3px;
+  box-shadow:
+    inset 0 0 6px rgba(16, 185, 129, 0.32),
+    0 0 9px rgba(16, 185, 129, 0.38);
+  text-shadow: 0 0 6px rgba(52, 211, 153, 0.72);
+}
+
+/* 7. 👑 24K Royal Gold & Obsidian Vault (royal_24k_gold_obsidian) */
+html[data-icon-pack="royal_24k_gold_obsidian"] .row .c-icon,
+:root[data-icon-pack="royal_24k_gold_obsidian"] .row .c-icon {
+  background: linear-gradient(145deg, rgba(250, 204, 21, 0.38) 0%, rgba(180, 83, 9, 0.34) 55%, rgba(24, 24, 27, 0.65) 100%);
+  border: 1px solid rgba(253, 224, 71, 0.72);
+  border-radius: 7px;
+  box-shadow:
+    inset 0 1px 0 rgba(254, 249, 195, 0.82),
+    0 3px 9px rgba(120, 53, 15, 0.45);
+}
+
+/* 8. 🤖 Mecha Evangelion & Anime Studio (anime_mecha_neon) */
+html[data-icon-pack="anime_mecha_neon"] .row .c-icon,
+:root[data-icon-pack="anime_mecha_neon"] .row .c-icon {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.36) 0%, rgba(132, 204, 22, 0.28) 58%, rgba(249, 115, 22, 0.3) 100%);
+  border: 1px solid rgba(192, 132, 252, 0.68);
+  border-radius: 6px;
+  box-shadow:
+    inset 0 1px 0 rgba(233, 213, 255, 0.65),
+    0 2px 8px rgba(126, 34, 206, 0.42);
+}
+
+/* 9. ⚙️ Steampunk Brass & Clockwork (steampunk_brass_clockwork) */
+html[data-icon-pack="steampunk_brass_clockwork"] .row .c-icon,
+:root[data-icon-pack="steampunk_brass_clockwork"] .row .c-icon {
+  background: linear-gradient(145deg, rgba(217, 119, 6, 0.38) 0%, rgba(120, 53, 15, 0.42) 60%, rgba(69, 26, 3, 0.58) 100%);
+  border: 1px solid rgba(251, 191, 36, 0.62);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 1px 0 rgba(253, 230, 138, 0.68),
+    0 2px 7px rgba(69, 26, 3, 0.52);
+}
+
+/* 10. 🌿 Solarpunk Bioluminescent Eden (bioluminescent_eden) */
+html[data-icon-pack="bioluminescent_eden"] .row .c-icon,
+:root[data-icon-pack="bioluminescent_eden"] .row .c-icon {
+  background: linear-gradient(145deg, rgba(52, 211, 153, 0.34) 0%, rgba(45, 212, 191, 0.26) 55%, rgba(6, 78, 59, 0.45) 100%);
+  border: 1px solid rgba(110, 231, 183, 0.65);
+  border-radius: 9px 4px 9px 4px;
+  box-shadow:
+    inset 0 1px 0 rgba(209, 250, 229, 0.72),
+    0 2px 9px rgba(16, 185, 129, 0.38);
+}
+
+/* ============================================================================
+ * 🎛️ Sculpted 3D Toolbar Button, Sidebar Place, Folder Tree, Tab & Home Badges
+ * Automatically themes all action buttons (.tool .ti), sidebar items (.side-item .si),
+ * folder tree nodes (.tree-item .si), folder tabs (.fm-tab-icon), and quick actions
+ * (.home-quick .hq-icon) whenever a custom Icon Pack is active.
+ * ============================================================================ */
+html[data-icon-pack]:not([data-icon-pack="default"]) #toolbar .tool .ti,
+html[data-icon-pack]:not([data-icon-pack="default"]) #sidebar .side-item .si,
+html[data-icon-pack]:not([data-icon-pack="default"]) .tree-item .si,
+html[data-icon-pack]:not([data-icon-pack="default"]) #tabbar .fm-tab-icon,
+html[data-icon-pack]:not([data-icon-pack="default"]) .home-quick .hq-icon,
+html[data-icon-pack]:not([data-icon-pack="default"]) .home-place .hp-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding: 0 0.22rem;
+  border-radius: 6px;
+  background: linear-gradient(
+    155deg,
+    color-mix(in oklab, var(--accent, #38bdf8) 24%, rgba(255, 255, 255, 0.14)) 0%,
+    color-mix(in oklab, var(--panel, #1e293b) 82%, rgba(0, 0, 0, 0.2)) 100%
+  );
+  border: 1px solid color-mix(in oklab, var(--accent, #38bdf8) 44%, rgba(255, 255, 255, 0.26));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 2px 5px -1px rgba(0, 0, 0, 0.28);
+  transition: transform 0.14s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.14s ease, border-color 0.14s ease;
+}
+
+html[data-icon-pack]:not([data-icon-pack="default"]) #toolbar .tool:hover:not(:disabled) .ti,
+html[data-icon-pack]:not([data-icon-pack="default"]) #sidebar .side-item:hover .si,
+html[data-icon-pack]:not([data-icon-pack="default"]) .tree-item:hover .si,
+html[data-icon-pack]:not([data-icon-pack="default"]) #tabbar .fm-tab:hover .fm-tab-icon,
+html[data-icon-pack]:not([data-icon-pack="default"]) .home-quick:hover:not(:disabled) .hq-icon,
+html[data-icon-pack]:not([data-icon-pack="default"]) .home-place:hover .hp-icon {
+  transform: translateY(-1px) scale(1.06);
+  border-color: color-mix(in oklab, var(--accent, #38bdf8) 72%, #ffffff);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.68),
+    0 3px 8px -1px color-mix(in oklab, var(--accent, #38bdf8) 38%, rgba(0, 0, 0, 0.35));
+}
+
+/* Danger / Destructive Toolbar Button Icon Highlight (Delete, Empty Bin, Delete Forever) */
+html[data-icon-pack]:not([data-icon-pack="default"]) #toolbar .tool .ti[data-btn-icon="delete"],
+html[data-icon-pack]:not([data-icon-pack="default"]) #toolbar .tool .ti[data-btn-icon="deleteForever"],
+html[data-icon-pack]:not([data-icon-pack="default"]) #toolbar .tool .ti[data-btn-icon="empty"] {
+  background: linear-gradient(155deg, rgba(244, 63, 94, 0.28) 0%, rgba(136, 19, 55, 0.24) 100%);
+  border-color: rgba(251, 113, 133, 0.52);
+}
+
+/* Create / Primary Action Button Icon Highlight (New Folder, New File, New SQLite) */
+html[data-icon-pack]:not([data-icon-pack="default"]) #toolbar .tool .ti[data-btn-icon="newFolder"],
+html[data-icon-pack]:not([data-icon-pack="default"]) #toolbar .tool .ti[data-btn-icon="newFile"],
+html[data-icon-pack]:not([data-icon-pack="default"]) #toolbar .tool .ti[data-btn-icon="newSqlite"] {
+  background: linear-gradient(155deg, color-mix(in oklab, var(--accent, #38bdf8) 36%, rgba(255, 255, 255, 0.22)) 0%, color-mix(in oklab, var(--accent, #38bdf8) 18%, var(--panel)) 100%);
+  border-color: color-mix(in oklab, var(--accent, #38bdf8) 65%, rgba(255, 255, 255, 0.45));
+}
+
+/* Semantic Folder Topic 3D Specular Rim Accents */
+html[data-icon-pack]:not([data-icon-pack="default"]) .row.is-folder[data-folder-topic="ai_ml"] .c-icon,
+html[data-icon-pack]:not([data-icon-pack="default"]) .row.is-folder[data-folder-topic="prompts"] .c-icon,
+html[data-icon-pack]:not([data-icon-pack="default"]) .row.is-folder[data-folder-topic="quantum"] .c-icon {
+  box-shadow: inset 0 1px 0 rgba(245, 208, 254, 0.78), 0 2px 8px -1px rgba(192, 132, 252, 0.46);
+}
+html[data-icon-pack]:not([data-icon-pack="default"]) .row.is-folder[data-folder-topic="security"] .c-icon,
+html[data-icon-pack]:not([data-icon-pack="default"]) .row.is-folder[data-folder-topic="pentest"] .c-icon,
+html[data-icon-pack]:not([data-icon-pack="default"]) .row.is-folder[data-folder-topic="encrypted"] .c-icon {
+  box-shadow: inset 0 1px 0 rgba(253, 224, 71, 0.78), 0 2px 8px -1px rgba(245, 158, 11, 0.46);
+}
+html[data-icon-pack]:not([data-icon-pack="default"]) .row.is-folder[data-folder-topic="docker"] .c-icon,
+html[data-icon-pack]:not([data-icon-pack="default"]) .row.is-folder[data-folder-topic="kubernetes"] .c-icon,
+html[data-icon-pack]:not([data-icon-pack="default"]) .row.is-folder[data-folder-topic="cloud"] .c-icon,
+html[data-icon-pack]:not([data-icon-pack="default"]) .row.is-folder[data-folder-topic="terraform"] .c-icon {
+  box-shadow: inset 0 1px 0 rgba(186, 230, 253, 0.78), 0 2px 8px -1px rgba(56, 189, 248, 0.46);
+}
+html[data-icon-pack]:not([data-icon-pack="default"]) .row.is-folder[data-folder-topic="games"] .c-icon,
+html[data-icon-pack]:not([data-icon-pack="default"]) .row.is-folder[data-folder-topic="roms"] .c-icon,
+html[data-icon-pack]:not([data-icon-pack="default"]) .row.is-folder[data-folder-topic="minecraft"] .c-icon,
+html[data-icon-pack]:not([data-icon-pack="default"]) .row.is-folder[data-folder-topic="anime"] .c-icon {
+  box-shadow: inset 0 1px 0 rgba(251, 207, 232, 0.78), 0 2px 8px -1px rgba(244, 114, 182, 0.46);
+}
+
 /* 120Hz ProMotion Theme Gallery Card Virtualization & Paint Containment */
 .theme-list .theme-card {
   content-visibility: auto;
@@ -4250,3 +4483,227 @@ html.rad-macos body {
   transform: translateZ(0);
   backface-visibility: hidden;
 }
+
+/* ============================================================================
+ * 🏷️ Always-Visible Theme Editor Identity Bar, Visual Template Grid &
+ * ⚡ 1-Click Random FX Finder / Active Effect Remover Strip
+ * ============================================================================ */
+.theme-editor-identity-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  border: 1.5px solid color-mix(in oklab, var(--accent) 52%, var(--border));
+  background: color-mix(in oklab, var(--panel) 96%, var(--bg));
+  box-shadow: 0 8px 22px -10px rgba(0, 0, 0, 0.45);
+}
+.theme-editor-identity-top-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.theme-editor-identity-heading {
+  font-size: 0.88rem;
+  color: var(--text);
+}
+.theme-editor-quick-fx-rollers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+.theme-editor-identity-fields {
+  display: grid;
+  grid-template-columns: minmax(14rem, 1.3fr) minmax(14rem, 1.3fr) auto;
+  gap: 0.65rem;
+  align-items: end;
+}
+@media (max-width: 900px) {
+  .theme-editor-identity-fields {
+    grid-template-columns: 1fr;
+  }
+}
+.theme-name-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.theme-name-char-count {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.74rem;
+  font-weight: 650;
+  color: var(--muted);
+  padding: 0.06rem 0.38rem;
+  border-radius: 999px;
+  background: var(--surface-sunken, var(--bg));
+  border: 1px solid var(--border);
+}
+.theme-name-char-count[data-near-limit="true"] {
+  color: var(--warn-text, #f59e0b);
+  border-color: var(--warn-text, #f59e0b);
+}
+.theme-dark-check-field {
+  margin: 0 0 0.35rem;
+  white-space: nowrap;
+}
+
+.theme-active-fx-strip,
+.theme-editor-active-fx-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem 0.75rem;
+  padding: 0.42rem 0.65rem;
+  border-radius: 9px;
+  border: 1px solid color-mix(in oklab, var(--accent) 36%, var(--border));
+  background: color-mix(in oklab, var(--bg) 72%, var(--panel));
+}
+.theme-active-fx-rollers,
+.theme-active-fx-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.32rem;
+}
+.theme-random-fx-pill {
+  border-color: color-mix(in oklab, var(--accent) 55%, var(--border));
+  background: color-mix(in oklab, var(--accent) 14%, var(--panel));
+  font-weight: 650;
+}
+.theme-random-fx-pill:hover {
+  background: color-mix(in oklab, var(--accent) 26%, var(--panel));
+}
+.theme-fx-remove-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid color-mix(in oklab, var(--accent) 48%, var(--border));
+  background: color-mix(in oklab, var(--accent) 14%, var(--panel));
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+.theme-fx-remove-pill:hover {
+  border-color: var(--danger, #ef4444);
+  background: color-mix(in oklab, var(--danger, #ef4444) 22%, var(--panel));
+  transform: translateY(-1px);
+}
+.theme-fx-remove-all-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.18rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid color-mix(in oklab, var(--danger, #ef4444) 58%, var(--border));
+  background: color-mix(in oklab, var(--danger, #ef4444) 16%, var(--panel));
+  color: var(--text);
+  cursor: pointer;
+}
+.theme-fx-remove-all-pill:hover {
+  border-color: var(--danger, #ef4444);
+  background: color-mix(in oklab, var(--danger, #ef4444) 28%, var(--panel));
+}
+
+/* Visual Starting Templates Browser inside Theme Editor */
+.theme-editor-template-browser {
+  display: flex;
+  flex-direction: column;
+  gap: 0.48rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklab, var(--accent) 32%, var(--border));
+  background: color-mix(in oklab, var(--bg) 65%, var(--panel));
+}
+.theme-editor-template-browser-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.theme-editor-template-browser-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.theme-editor-template-search {
+  min-width: 15rem;
+  padding: 0.28rem 0.55rem;
+  font-size: 0.8rem;
+}
+.theme-editor-template-filter {
+  padding: 0.28rem 0.5rem;
+  font-size: 0.8rem;
+}
+.theme-editor-template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
+  gap: 0.42rem;
+  max-height: clamp(14rem, 32vh, 26rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.25rem;
+}
+.theme-editor-template-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.22rem;
+  padding: 0.42rem 0.55rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease, transform 120ms ease;
+}
+.theme-editor-template-card:hover {
+  border-color: var(--accent);
+  background: var(--hover);
+  transform: translateY(-1px);
+}
+.theme-editor-template-card.is-active,
+.theme-editor-template-card[aria-pressed="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  background: color-mix(in oklab, var(--accent) 14%, var(--panel));
+}
+.theme-editor-template-swatches {
+  display: flex;
+  align-items: center;
+  gap: 0.22rem;
+}
+.theme-editor-template-dot {
+  width: 0.68rem;
+  height: 0.68rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  display: inline-block;
+}
+.theme-editor-template-name {
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.theme-editor-template-meta {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+

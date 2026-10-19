@@ -1536,13 +1536,13 @@ export function createMediaPlayerStudio(options: MediaPlayerStudioOptions = {}):
     height,
     fullscreen,
     generateHtml: () => generateMediaPlayerStudioHtml(),
-    run() {
+    async run() {
       const { server, url } = startMediaPlayerStudioServer({ port, host, rootDir: options.rootDir });
       this.server = server;
       this.port = server.port;
       this.url = url;
 
-      const { SizeHint, Webview } = require("webview-bun") as typeof import("webview-bun");
+      const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
       const webview = new Webview();
       this.webview = webview;
       webview.title = title;

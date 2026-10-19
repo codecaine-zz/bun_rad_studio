@@ -476,46 +476,75 @@
       init() {
         if (this.ctx) return;
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
         this.ctx = new AudioCtx();
+
+        // Studio Dynamics Compressor / Peak Limiter for punchy VM & desktop output
+        this.compressor = this.ctx.createDynamicsCompressor();
+        this.compressor.threshold.setValueAtTime(-14, this.ctx.currentTime);
+        this.compressor.knee.setValueAtTime(12, this.ctx.currentTime);
+        this.compressor.ratio.setValueAtTime(3.5, this.ctx.currentTime);
+        this.compressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
+        this.compressor.release.setValueAtTime(0.12, this.ctx.currentTime);
+        this.compressor.connect(this.ctx.destination);
 
         // Master Lowpass Filter for pause muffle and overdrive acid sweep
         this.lowPassFilter = this.ctx.createBiquadFilter();
         this.lowPassFilter.type = 'lowpass';
         this.lowPassFilter.frequency.setValueAtTime(20000, this.ctx.currentTime);
         this.lowPassFilter.Q.setValueAtTime(1.2, this.ctx.currentTime);
+        this.lowPassFilter.connect(this.compressor);
 
         // Master gain
         this.masterGain = this.ctx.createGain();
-        this.masterGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+        this.masterGain.gain.setValueAtTime(0.85, this.ctx.currentTime);
         this.masterGain.connect(this.lowPassFilter);
-        this.lowPassFilter.connect(this.ctx.destination);
 
         // Music bus
         this.musicGain = this.ctx.createGain();
-        this.musicGain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+        this.musicGain.gain.setValueAtTime(0.55, this.ctx.currentTime);
         this.musicGain.connect(this.masterGain);
 
         // SFX bus
         this.sfxGain = this.ctx.createGain();
-        this.sfxGain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+        this.sfxGain.gain.setValueAtTime(0.78, this.ctx.currentTime);
         this.sfxGain.connect(this.masterGain);
       }
 
       resume() {
-        if (this.ctx && this.ctx.state === 'suspended') {
-          this.ctx.resume();
+        if (!this.ctx) this.init();
+        if (!this.ctx) return;
+        if (this.ctx.state !== 'running') {
+          try {
+            const p = this.ctx.resume();
+            if (p && typeof p.catch === 'function') p.catch(() => {});
+          } catch (e) {}
+        }
+        if (!this._unlocked && this.ctx) {
+          try {
+            const buf = this.ctx.createBuffer(1, 1, 22050);
+            const src = this.ctx.createBufferSource();
+            src.buffer = buf;
+            src.connect(this.ctx.destination);
+            src.start(0);
+            if (this.ctx.state === 'running') this._unlocked = true;
+          } catch (e) {}
         }
       }
 
       setPauseMuffle(isPaused) {
         if (!this.ctx || !this.lowPassFilter) return;
-        const t = this.ctx.currentTime;
-        this.lowPassFilter.frequency.cancelScheduledValues(t);
-        if (isPaused) {
-          this.lowPassFilter.frequency.exponentialRampToValueAtTime(300, t + 0.15);
-        } else {
-          this.lowPassFilter.frequency.exponentialRampToValueAtTime(20000, t + 0.15);
-        }
+        try {
+          const t = this.ctx.currentTime;
+          const cur = Math.max(50, Math.min(20000, this.lowPassFilter.frequency.value || 20000));
+          this.lowPassFilter.frequency.cancelScheduledValues(t);
+          this.lowPassFilter.frequency.setValueAtTime(cur, t);
+          if (isPaused) {
+            this.lowPassFilter.frequency.exponentialRampToValueAtTime(350, t + 0.15);
+          } else {
+            this.lowPassFilter.frequency.exponentialRampToValueAtTime(20000, t + 0.15);
+          }
+        } catch (e) {}
       }
 
       setOverdrive(enabled) {
@@ -523,23 +552,25 @@
         if (!this.ctx || !this.lowPassFilter) return;
         try {
           const t = this.ctx.currentTime;
+          const curFreq = Math.max(50, Math.min(20000, this.lowPassFilter.frequency.value || 20000));
+          const curQ = Math.max(0.1, Math.min(20, this.lowPassFilter.Q.value || 1.2));
           this.lowPassFilter.frequency.cancelScheduledValues(t);
           this.lowPassFilter.Q.cancelScheduledValues(t);
           if (enabled) {
-            this.lowPassFilter.frequency.setValueAtTime(this.lowPassFilter.frequency.value, t);
+            this.lowPassFilter.frequency.setValueAtTime(curFreq, t);
             this.lowPassFilter.frequency.exponentialRampToValueAtTime(14000, t + 0.15);
-            this.lowPassFilter.Q.setValueAtTime(this.lowPassFilter.Q.value, t);
+            this.lowPassFilter.Q.setValueAtTime(curQ, t);
             this.lowPassFilter.Q.linearRampToValueAtTime(4.0, t + 0.15);
             if (this.musicGain) {
-              this.musicGain.gain.setValueAtTime(0.32, t);
+              this.musicGain.gain.setValueAtTime(0.68, t);
             }
           } else {
-            this.lowPassFilter.frequency.setValueAtTime(this.lowPassFilter.frequency.value, t);
+            this.lowPassFilter.frequency.setValueAtTime(curFreq, t);
             this.lowPassFilter.frequency.exponentialRampToValueAtTime(20000, t + 0.15);
-            this.lowPassFilter.Q.setValueAtTime(this.lowPassFilter.Q.value, t);
+            this.lowPassFilter.Q.setValueAtTime(curQ, t);
             this.lowPassFilter.Q.linearRampToValueAtTime(1.2, t + 0.15);
             if (this.musicGain) {
-              this.musicGain.gain.setValueAtTime(0.25, t);
+              this.musicGain.gain.setValueAtTime(0.55, t);
             }
           }
         } catch (e) {}
@@ -556,16 +587,25 @@
       }
 
       // Play polyphonic note with optional stereo pan
-      playNote(freq, type = 'square', duration = 0.12, gainVal = 0.2, dest = null, pan = 0) {
-        if (this.muted || !this.ctx || freq <= 0) return;
+      playNote(freq, type = 'square', duration = 0.12, gainVal = 0.28, dest = null, pan = 0) {
+        if (this.muted || freq <= 0) return;
+        if (!this.ctx) this.init();
+        if (!this.ctx) return;
+        if (this.ctx.state !== 'running') {
+          this.resume();
+          return;
+        }
         try {
+          const t = this.ctx.currentTime;
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = type;
-          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          osc.frequency.setValueAtTime(freq, t);
 
-          gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+          const sustainEnd = t + duration * 0.65;
+          gain.gain.setValueAtTime(gainVal, t);
+          gain.gain.setValueAtTime(gainVal * 0.85, sustainEnd);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
 
           const target = dest || this.sfxGain;
           const panner = this.getPanner(pan);
@@ -578,30 +618,33 @@
             gain.connect(target);
           }
 
-          osc.start();
-          osc.stop(this.ctx.currentTime + duration);
+          osc.start(t);
+          osc.stop(t + duration + 0.01);
         } catch(e){}
       }
 
       // Drum noise synthesizer for rhythm channel
       playDrum(type = 'snare', duration = 0.08) {
-        if (this.muted || !this.ctx || !this.musicEnabled) return;
+        if (this.muted || !this.musicEnabled) return;
+        if (!this.ctx) this.init();
+        if (!this.ctx || this.ctx.state !== 'running') return;
         try {
+          const t = this.ctx.currentTime;
           if (type === 'kick') {
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
             osc.type = 'triangle';
-            osc.frequency.setValueAtTime(120, this.ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.12);
-            gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
+            osc.frequency.setValueAtTime(135, t);
+            osc.frequency.exponentialRampToValueAtTime(32, t + 0.12);
+            gain.gain.setValueAtTime(0.42, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
             osc.connect(gain);
             gain.connect(this.musicGain);
-            osc.start();
-            osc.stop(this.ctx.currentTime + 0.12);
+            osc.start(t);
+            osc.stop(t + 0.13);
           } else {
             // Snare / HiHat Noise
-            const bufferSize = this.ctx.sampleRate * duration;
+            const bufferSize = Math.max(1, Math.floor(this.ctx.sampleRate * duration));
             const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
             const data = buffer.getChannelData(0);
             for (let i = 0; i < bufferSize; i++) {
@@ -611,14 +654,14 @@
             noise.buffer = buffer;
             const filter = this.ctx.createBiquadFilter();
             filter.type = type === 'hihat' ? 'highpass' : 'bandpass';
-            filter.frequency.setValueAtTime(type === 'hihat' ? 5000 : 1200, this.ctx.currentTime);
+            filter.frequency.setValueAtTime(type === 'hihat' ? 5000 : 1200, t);
             const gain = this.ctx.createGain();
-            gain.gain.setValueAtTime(type === 'hihat' ? 0.08 : 0.18, this.ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+            gain.gain.setValueAtTime(type === 'hihat' ? 0.14 : 0.28, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
             noise.connect(filter);
             filter.connect(gain);
             gain.connect(this.musicGain);
-            noise.start();
+            noise.start(t);
           }
         } catch(e){}
       }
@@ -846,19 +889,21 @@
 
         this.bgmTimer = setInterval(() => {
           if (!this.musicEnabled || this.muted || this.currentTrack === 'off') return;
+          if (!this.ctx) this.init();
+          if (!this.ctx || this.ctx.state !== 'running') return;
           const beat = score[this.step % score.length];
 
           // Lead melody (square wave with slight pulse envelope)
           if (beat.lead > 0) {
-            this.playNote(beat.lead, 'square', 0.11, 0.16, this.musicGain);
+            this.playNote(beat.lead, 'square', 0.12, 0.22, this.musicGain);
           }
           // Harmony counterpoint (triangle/square)
           if (beat.harm > 0) {
-            this.playNote(beat.harm, 'triangle', 0.12, 0.12, this.musicGain);
+            this.playNote(beat.harm, 'triangle', 0.13, 0.16, this.musicGain);
           }
           // Walking bass (punchy low triangle)
           if (beat.bass > 0) {
-            this.playNote(beat.bass, 'triangle', 0.15, 0.22, this.musicGain);
+            this.playNote(beat.bass, 'triangle', 0.15, 0.28, this.musicGain);
           }
           // Chiptune Percussion (kick / snare / hi-hat)
           if (beat.drum) {
@@ -2613,6 +2658,17 @@
       }
     }, { passive: false });
 
+    // Universal pointer / mouse / click audio unlockers for WebKitGTK (Linux VM), macOS WKWebView, and Chromium
+    const unlockGameAudio = () => {
+      sound.init();
+      sound.resume();
+    };
+    window.addEventListener('pointerdown', unlockGameAudio, { passive: true });
+    window.addEventListener('mousedown', unlockGameAudio, { passive: true });
+    window.addEventListener('click', unlockGameAudio, { passive: true });
+    window.addEventListener('touchstart', unlockGameAudio, { passive: true });
+    window.addEventListener('focus', unlockGameAudio, { passive: true });
+
     // Keyboard handlers
     window.addEventListener('keydown', (e) => {
       sound.init();
@@ -2668,6 +2724,8 @@
     });
 
     function togglePause() {
+      sound.init();
+      sound.resume();
       if (gameState === 'PLAYING') {
         gameState = 'PAUSED';
         sound.setPauseMuffle(true);
@@ -2682,6 +2740,7 @@
 
     function toggleMute() {
       sound.init();
+      sound.resume();
       sound.muted = !sound.muted;
       document.getElementById('soundIconOn').classList.toggle('hidden', sound.muted);
       document.getElementById('soundIconOff').classList.toggle('hidden', !sound.muted);

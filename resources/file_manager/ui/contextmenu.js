@@ -72,9 +72,11 @@ export function viewMenuItems() {
   const s = state.settings;
   const cols = Array.isArray(s.columns) ? s.columns : [];
   const groupBy = s.groupBy || "none";
+  const density = s.rowDensity || "comfortable";
   const view = (v, label) => ({ label, checked: s.view === v, shortcut: labelOf(`view.${v}`), action: () => saveSettings({ view: v }) });
   const sort = (by, label) => ({ label, checked: s.sortBy === by, action: () => saveSettings({ sortBy: by }) });
   const group = (g, label, tip) => ({ label: `Group by: ${label}`, checked: groupBy === g, tip, action: () => saveSettings({ groupBy: g }) });
+  const dens = (d, label, tip) => ({ label: `Density: ${label}`, checked: density === d, tip, action: () => saveSettings({ rowDensity: d }) });
   return [
     { header: "View as" },
     view("details", "Details"),
@@ -96,6 +98,11 @@ export function viewMenuItems() {
     group("kind", "Kind", "Group items under section headers for Folders and each file type."),
     group("date", "Date", "Group items by when they were modified: Today, Yesterday, Earlier this week, Earlier this month, or Older."),
     group("size", "Size", "Group files by size bucket: Empty, Tiny (< 10 KB), Small (< 1 MB), Medium (< 100 MB), or Large (> 100 MB)."),
+    { separator: true },
+    { header: "Row density" },
+    dens("compact", "Compact", "Tighter row spacing so more files fit on screen at once."),
+    dens("comfortable", "Comfortable", "Balanced default spacing for everyday browsing."),
+    dens("spacious", "Spacious", "Taller rows for high readability or touch displays."),
     { separator: true },
     { header: "Details columns" },
     { label: "Column: Extension", checked: cols.includes("ext"), tip: "Show or hide the file extension column in the Details view.", action: () => toggleColumn("ext") },
@@ -223,6 +230,7 @@ export function backgroundItems() {
   return [
     { label: "New folder", icon: "📁", shortcut: labelOf("file.newFolder"), action: ops.newFolder },
     { label: "New file", icon: "📄", shortcut: labelOf("file.newFile"), action: ops.newFile },
+    { label: "New file from template…", icon: "✨", shortcut: labelOf("file.newTemplate"), tip: "Create a Markdown, TypeScript, Python, HTML, JSON, SQL, or config file from a starter template.", action: () => emit("new-template-dialog") },
     { label: "New SQLite database", icon: "🗄️", shortcut: labelOf("file.newSqlite"), tip: "Make a new, empty SQLite database file here. Open it in SQLite Studio, add it as a connection, or fill it with a sample database.", action: ops.newSqlite },
     { label: `New dated folder (${ops.localDateStamp()})`, icon: "📅", shortcut: labelOf("file.newDatedFolder"), tip: "Make a new folder here named with today's YYYY-MM-DD date, ready for organizing daily work or backups.", action: () => ops.newDatedFolder() },
     { label: `New dated note (${ops.localDateStamp()}.md)`, icon: "📝", shortcut: labelOf("file.newDatedNote"), tip: "Make a new Markdown note here named with today's YYYY-MM-DD.md date.", action: () => ops.newDatedNote() },

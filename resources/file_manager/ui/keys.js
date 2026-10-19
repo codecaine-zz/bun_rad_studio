@@ -128,6 +128,7 @@ const MORE_INFO = () => { const items = selectedEntries(); return void showMoreI
 /** What each changeable shortcut does. The keys come from the table in shortcuts.js (and the person's changes), not from here. */
 const FILE_ACTIONS = {
   "app.help": () => showHelp(),
+  "app.commandPalette": () => emit("command-palette", ""),
   "app.shortcuts": () => void showShortcutsDialog(),
   "app.activity": () => void showOperationHistory(),
   "nav.refresh": () => void refresh(),
@@ -157,6 +158,7 @@ const FILE_ACTIONS = {
   "nav.closeTab": () => void closeTab(),
   "file.editInCode": () => editInCode(),
   "nav.search": () => focusSearch(),
+  "nav.quickFilter": () => emit("focus-quick-filter"),
   "file.selectAll": () => selectAll(),
   "file.invertSelection": () => invertSelection(),
   "file.copy": () => ops.copySelection(),
@@ -200,6 +202,7 @@ const FILE_ACTIONS = {
   "file.newFile": () => void ops.newFile(),
   "file.newDatedNote": () => void ops.newDatedNote(),
   "file.newSqlite": () => void ops.newSqlite(),
+  "file.newTemplate": () => emit("new-template-dialog"),
   "file.deleteForever": () => void ops.deleteForever(),
   "file.trash": () => void ops.trashSelection(),
   "view.hidden": () => void saveSettings({ showHidden: !state.settings.showHidden }),
@@ -209,9 +212,9 @@ const FILE_ACTIONS = {
   "view.icons": () => void saveSettings({ view: "icons" }),
 };
 /** Work wherever you are, even with a button focused. */
-const EVERYWHERE = ["app.help", "app.shortcuts", "nav.refresh", "file.rename", "file.properties", "file.moreInfo", "app.expandTool", "app.randomTheme", "app.randomFxTheme", "app.randomPlainTheme", "app.randomUltraTheme", "app.toggleThemeFx"];
+const EVERYWHERE = ["app.help", "app.commandPalette", "app.shortcuts", "nav.refresh", "file.rename", "file.properties", "file.moreInfo", "app.expandTool", "app.randomTheme", "app.randomFxTheme", "app.randomPlainTheme", "app.randomUltraTheme", "app.toggleThemeFx"];
 /** Also work inside the tools panel, the Home page and the other panes. */
-const IN_PANES = ["nav.findTool", "nav.filterTools", "app.settings", "app.shortcuts", "app.activity", "app.themes", "app.expandTool", "app.randomTheme", "app.randomFxTheme", "app.randomPlainTheme", "app.randomUltraTheme", "app.toggleThemeFx"];
+const IN_PANES = ["app.commandPalette", "nav.findTool", "nav.filterTools", "app.settings", "app.shortcuts", "app.activity", "app.themes", "app.expandTool", "app.randomTheme", "app.randomFxTheme", "app.randomPlainTheme", "app.randomUltraTheme", "app.toggleThemeFx"];
 const IN_LISTS = Object.keys(FILE_ACTIONS).filter((id) => !EVERYWHERE.includes(id));
 
 export function wireKeys() {
