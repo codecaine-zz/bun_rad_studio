@@ -1190,13 +1190,13 @@ describe("the theme editor in the page", () => {
 
     // 5. 🎬 Theme Show & Screensaver Studio (modes, channels, HUD, stepping, pause/resume, and restore on exit)
     expect((themes as any).THEME_SHOW_MODES_META.length).toBe(4);
-    expect((themes as any).THEME_SHOW_CHANNELS_META.length).toBe(7);
+    expect((themes as any).THEME_SHOW_CHANNELS_META.length).toBe(11);
 
     void (themes as any).showThemeShowDialog();
     await sleep(200);
     expect(doc.querySelector(".dialog-title")?.textContent).toBe("Theme Show & Screensaver Studio");
     expect(doc.querySelectorAll("[data-show-mode-card]").length).toBe(4);
-    expect(doc.querySelectorAll("[data-show-channel-card]").length).toBe(7);
+    expect(doc.querySelectorAll("[data-show-channel-card]").length).toBe(11);
     (doc.querySelector('[data-show-mode-card="retro_afterdark"]') as any).click();
     (doc.querySelector('[data-show-channel-card="storms_debris"]') as any).click();
     editorButton("🎬 Launch Theme Show Now").click();
@@ -1413,8 +1413,8 @@ describe("the theme editor in the page", () => {
       }
     }
 
-    // 11. Verify Tripped & Psychedelic themes, UI shaders, Icon Packs, Jumpstart Kits, and Theme Hacker Mutators
-    const trippyKeys = [
+    // 11. Verify Tripped & Psychedelic themes, Google Flagship themes, Unique Complete Worlds, 120+ System Icons, Jumpstart Kits, and Theme Hacker Mutators
+    const trippyAndUniqueKeys = [
       "kaleidoscope_mandala",
       "lava_lamp_groovy_69",
       "dmt_hyperspace_lattice",
@@ -1425,14 +1425,44 @@ describe("the theme editor in the page", () => {
       "mobius_wormhole_odyssey",
       "pastel_dreamcore_cloud",
       "solarpunk_kaleidoscope_day",
+      "google_gemini_ultra",
+      "google_material_you_3d",
+      "google_pixel_amoled",
+      "google_deepmind_quantum",
+      "google_cloud_vertex_pro",
+      "google_project_idx_studio",
+      "google_chromeos_aurora",
+      "google_workspace_daylight",
+      "ayahuasca_vine_vision",
+      "alex_grey_astral_cathedral",
+      "summer_of_love_tiedye_67",
+      "vaporwave_mall_plaza_95",
+      "frutiger_aero_aqua_2007",
+      "steampunk_chronometer_foundry",
+      "art_deco_metropolis_1929",
+      "synth_arcade_crt_1984",
+      "mariana_bioluminescent_trench",
+      "kyoto_zen_karesansui_day",
     ];
     const { themes: allThemes } = await api.call("themes/list");
-    for (const tk of trippyKeys) {
+    for (const tk of trippyAndUniqueKeys) {
       const found = allThemes.find((t: any) => t.key === tk);
       expect(found).toBeDefined();
       expect(found!.hasEffects).toBe(true);
-      expect(found!.tier).toBe("ultra");
     }
+    expect((domMod as any).SYSTEM_ICON_CATALOG.length).toBeGreaterThanOrEqual(120);
+    expect((domMod as any).resolveSystemIcon("Dockerfile", false)?.id).toBe("exact_dockerfile");
+    expect((domMod as any).resolveSystemIcon("bun.lockb", false)?.id).toBe("exact_bun_lock");
+    expect((domMod as any).resolveSystemIcon("model.safetensors", false)?.id).toBe("ext_ai_weights");
+    expect((domMod as any).resolveSystemIcon("kubernetes", true)?.topic).toBe("kubernetes");
+    expect(domMod.iconFor("Dockerfile", false, "google_material_3d")).toBe("🐳");
+    expect(domMod.iconFor("models", true, "google_material_3d")).toBe("✨");
+
+    const geminiKit = await (themes as any).applyJumpstartKit("google_gemini_ultra_kit");
+    expect(geminiKit?.palette).toBe("google_gemini_ultra");
+    expect(doc.documentElement.getAttribute("data-ui-fx")).toBe("google_material_folders");
+    expect(doc.documentElement.getAttribute("data-icon-pack")).toBe("google_material_3d");
+
     const kaleidoKit = await (themes as any).applyJumpstartKit("kaleidoscope_trip_kit");
     expect(kaleidoKit?.palette).toBe("kaleidoscope_mandala");
     expect(doc.documentElement.getAttribute("data-ui-fx")).toBe("kaleidoscope_prism");
@@ -1445,6 +1475,117 @@ describe("the theme editor in the page", () => {
     expect(fxCss).toContain('html[data-ui-fx="acid_warp"]');
     expect(fxCss).toContain('html[data-ui-fx="oil_slick_chrome"]');
     expect(fxCss).toContain('html[data-ui-fx="shroom_spores"]');
+    expect(fxCss).toContain(':root[data-ui-fx="google_material_folders"]');
+
+    // 12. Verify US Holidays (18), Nerd Complete (10), Horror (10), Real-World Objects (6), Authentic Folder/File Silhouettes, Screen-Melting Distortion, and Special Effects Design Wizard
+    const newExpansionKeys = [
+      // US Holidays (18)
+      "holiday_new_years_times_square",
+      "holiday_mlk_dream_memorial",
+      "holiday_valentines_velvet_rose",
+      "holiday_presidents_mount_rushmore",
+      "holiday_st_patricks_emerald_clover",
+      "holiday_easter_pastel_egg_hunt",
+      "holiday_mothers_day_botanical_tea",
+      "holiday_memorial_day_poppy_honor",
+      "holiday_juneteenth_jubilee_star",
+      "holiday_fathers_day_leather_den",
+      "holiday_fourth_of_july_fireworks",
+      "holiday_labor_day_rivet_forge",
+      "holiday_halloween_jack_o_lantern",
+      "holiday_dia_de_los_muertos_marigold",
+      "holiday_veterans_day_valor_medallion",
+      "holiday_thanksgiving_harvest_hearth",
+      "holiday_hanukkah_menorah_sapphire",
+      "holiday_christmas_nutcracker_hearth",
+      // Nerd Complete (10)
+      "nerd_dnd_arcane_grimoire",
+      "nerd_starfleet_lcars_bridge",
+      "nerd_kyber_holocron_forge",
+      "nerd_lotr_mithril_elven",
+      "nerd_mecha_eva_nerv_hud",
+      "nerd_defcon_blackhat_mainframe",
+      "nerd_16bit_snes_jrpg_cartridge",
+      "nerd_golden_age_comic_halftone",
+      "nerd_apollo_11_dsky_guidance",
+      "nerd_enigma_bletchley_cipher",
+      // Horror (10)
+      "horror_nosferatu_blood_moon",
+      "horror_lovecraft_eldritch_rlyeh",
+      "horror_vhs_found_footage_1999",
+      "horror_silent_fog_asylum",
+      "horror_biohazard_containment_lab",
+      "horror_camp_crystal_slasher_80s",
+      "horror_haunted_victorian_seance",
+      "horror_necronomicon_parchment_day",
+      "horror_thalassophobia_abyssal_jaw",
+      "horror_cursed_carnival_calliope",
+      // Real-World Tactile Objects (6)
+      "realworld_grandfather_clockwork_mahogany",
+      "realworld_vinyl_jukebox_wurlitzer",
+      "realworld_stained_glass_cathedral",
+      "realworld_murano_blown_glass_day",
+      "realworld_katana_urushi_forge",
+      "realworld_pinball_wizard_arcade",
+    ];
+    for (const nk of newExpansionKeys) {
+      const found = allThemes.find((t: any) => t.key === nk);
+      expect(found).toBeDefined();
+      expect(found!.hasEffects).toBe(true);
+      expect(found!.uiElementFx).toBeTruthy();
+      expect(found!.iconPackStyle).toBeTruthy();
+    }
+
+    // Verify all prebuilt EDITOR_FX_PRESETS and PREBUILT_WALLPAPER_SCENES have 3D effects baked in out of the box
+    for (const preset of editorMod.EDITOR_FX_PRESETS) {
+      if (preset.id !== "off") {
+        expect(preset.fx?.uiElementFx).toBeTruthy();
+        expect(preset.fx?.iconPackStyle).toBeTruthy();
+      }
+    }
+    expect(editorMod.PREBUILT_WALLPAPER_SCENES.length).toBeGreaterThanOrEqual(16);
+    for (const scene of editorMod.PREBUILT_WALLPAPER_SCENES) {
+      expect(scene.fx?.uiElementFx).toBeTruthy();
+      expect(scene.fx?.iconPackStyle).toBeTruthy();
+    }
+
+    // Authentic Folder & File Silhouettes: folders remain recognizable folders (📁/📂/🗂️) and files remain recognizable files (📄/📝/🖼️/💻/📦)
+    for (const pack of ["us_holidays_festive", "nerd_rpg_arcane", "nerd_scifi_fleet", "nerd_hacker_retro", "horror_crypt", "realworld_objects"]) {
+      expect(["📁", "📂", "🗂️"]).toContain(domMod.iconFor("Documents", true, pack));
+      expect(["📁", "📂", "🗂️"]).toContain(domMod.iconFor("RegularFolder", true, pack));
+      expect(["📄", "📃", "📝"]).toContain(domMod.iconFor("notes.txt", false, pack));
+      expect(["💻", "📄"]).toContain(domMod.iconFor("index.ts", false, pack));
+      expect(["📦"]).toContain(domMod.iconFor("archive.zip", false, pack));
+    }
+    expect(fxCss).toContain('.row.is-folder .c-icon[data-is-folder="1"]::before');
+    expect(fxCss).toContain('.row:not(.is-folder) .c-icon[data-is-folder="0"]::after');
+
+    // Screen-Melting & Optical Distortion Shaders + SVG Displacement Filters
+    const meltKit = await (themes as any).applyJumpstartKit("screen_melt_distortion_kit");
+    expect(meltKit?.palette).toBe("horror_biohazard_containment_lab");
+    expect(doc.documentElement.getAttribute("data-ui-fx")).toBe("screen_melt_ooze");
+    expect(doc.getElementById("fm-svg-distortion-filters")).toBeTruthy();
+    expect(doc.getElementById("fm-filter-screen-melt")).toBeTruthy();
+    expect(doc.getElementById("fm-filter-molten-glass")).toBeTruthy();
+    expect(doc.getElementById("fm-filter-liquid-ripple")).toBeTruthy();
+    expect(fxCss).toContain(':root[data-ui-fx="screen_melt_ooze"]');
+    expect(fxCss).toContain(':root[data-ui-fx="molten_lava_melt"]');
+    expect(fxCss).toContain(':root[data-ui-fx="crt_magnetic_warp"]');
+    expect(fxCss).toContain(':root[data-ui-fx="fever_dream_ripple"]');
+
+    // Special Effects Design Wizard recipes
+    expect(editorMod.SPECIAL_EFFECTS_DESIGN_WIZARD_RECIPES.length).toBeGreaterThanOrEqual(12);
+    expect(editorMod.SPECIAL_EFFECTS_DESIGN_WIZARD_RECIPES.map((r: any) => r.id)).toEqual(
+      expect.arrayContaining([
+        "wizard_mahogany_clockwork",
+        "wizard_cathedral_stained_glass",
+        "wizard_holiday_fireworks_gala",
+        "wizard_dnd_arcane_grimoire",
+        "wizard_nosferatu_blood_moon",
+        "wizard_dali_screen_melt",
+        "wizard_molten_furnace_melt",
+      ]),
+    );
 
     await themes.applyPalette("");
     atmo.applyAtmosphere("none");
@@ -1452,4 +1593,5 @@ describe("the theme editor in the page", () => {
     closeDialogs();
   });
 });
+
 

@@ -103,18 +103,18 @@ export function harmonizeFromAccent(accentHex, dark = true) {
 }
 
 export const EDITOR_FX_PRESETS = [
-  { id: "liquid_glass", label: "✨ Tahoe Liquid Glass", fx: { glass: 0.68, blur: 28, glow: "bloom", radius: "squircle", border: "iridescent", motion: "spring", backdropStyle: "liquid", cursorEffect: "prism", vignette: "subtle", sheen: true, frostedRim: true, innerGlow: true, ambient: true } },
-  { id: "m4_xdr_pro", label: "🍎 M4 Space Black XDR", fx: { glass: 0.56, blur: 24, glow: "soft", radius: "round", border: "metal", motion: "spring", backdropStyle: "oled", cursorEffect: "spotlight", vignette: "subtle", sheen: true, noise: true, frostedRim: true, ambient: true } },
-  { id: "win11_mica", label: "🪟 Win 11 Mica Alt", fx: { glass: 0.52, blur: 26, glow: "soft", radius: "soft", border: "bevel", motion: "calm", backdropStyle: "mica", cursorEffect: "spotlight", vignette: "none", sheen: false, noise: true, ambient: true, saturation: 1.55 } },
-  { id: "win11_acrylic", label: "🪟 Win 11 Acrylic", fx: { glass: 0.62, blur: 22, glow: "soft", radius: "soft", border: "gradient", motion: "snappy", backdropStyle: "acrylic", cursorEffect: "ripple", grain: "subtle", sheen: true, noise: true, frostedRim: true } },
-  { id: "cyber_hologram", label: "🔮 Cyberpunk Hologram", fx: { glass: 0.58, blur: 20, glow: "laser", radius: "sharp", border: "hologram", motion: "snappy", backdropStyle: "glass", cursorEffect: "prism", vignette: "cinema", scanlines: "subtle", chromatic: true, prismEdge: true, neonPulse: true, sheen: true } },
-  { id: "prismatic_crystal", label: "💎 Prismatic Crystal", fx: { glass: 0.65, blur: 26, glow: "aurora", radius: "round", border: "iridescent", motion: "elastic", backdropStyle: "frosted", cursorEffect: "prism", vignette: "ambient", chromatic: true, prismEdge: true, innerGlow: true, frostedRim: true, sheen: true } },
-  { id: "retro_crt", label: "📺 Retro CRT Phosphor", fx: { glass: 0.35, blur: 10, glow: "ember", radius: "soft", border: "double", motion: "snappy", backdropStyle: "oled", cursorEffect: "spotlight", vignette: "cinema", scanlines: "crt", grain: "film", crtCurve: true, innerGlow: true, neonPulse: true } },
-  { id: "plasma_reactor", label: "⚡ Plasma Reactor", fx: { glass: 0.55, blur: 24, glow: "plasma", radius: "round", border: "neon", motion: "elastic", backdropStyle: "glass", cursorEffect: "magnetic", vignette: "ambient", sheen: true, innerGlow: true, neonPulse: true, ambient: true, parallax: true } },
-  { id: "velvet_cinema", label: "🎬 Velvet Cinema", fx: { glass: 0.45, blur: 20, glow: "bloom", radius: "round", border: "gradient", motion: "cinematic", backdropStyle: "frosted", cursorEffect: "spotlight", vignette: "cinema", grain: "film", ambient: true, innerGlow: true } },
-  { id: "halftone_zine", label: "📰 Halftone Pop Zine", fx: { glass: 0.25, blur: 8, glow: "neon", radius: "sharp", border: "double", motion: "snappy", backdropStyle: "matte", cursorEffect: "magnetic", grain: "halftone", chromatic: true } },
-  { id: "aurora_silk", label: "🌌 Aurora Silk", fx: { glass: 0.6, blur: 30, glow: "aurora", radius: "pill", border: "gradient", motion: "calm", backdropStyle: "liquid", cursorEffect: "spotlight", vignette: "ambient", sheen: true, innerGlow: true, ambient: true } },
-  { id: "zen_matte", label: "🪨 Zen Matte Studio", fx: { glass: 0, blur: 0, glow: "none", radius: "soft", border: "flat", motion: "calm", backdropStyle: "matte", cursorEffect: "none", vignette: "none", scanlines: "none", grain: "none", sheen: false, noise: false, chromatic: false, ambient: false } },
+  { id: "liquid_glass", label: "✨ Tahoe Liquid Glass", fx: { glass: 0.68, blur: 28, glow: "bloom", radius: "squircle", border: "iridescent", motion: "spring", backdropStyle: "liquid", cursorEffect: "prism", vignette: "subtle", sheen: true, frostedRim: true, innerGlow: true, ambient: true, uiElementFx: "tahoe_glass_folders", iconPackStyle: "macos_tahoe_3d", iconGlow: "neon" } },
+  { id: "m4_xdr_pro", label: "🍎 M4 Space Black XDR", fx: { glass: 0.56, blur: 24, glow: "soft", radius: "round", border: "metal", motion: "spring", backdropStyle: "oled", cursorEffect: "spotlight", vignette: "subtle", sheen: true, noise: true, frostedRim: true, ambient: true, uiElementFx: "xdr_titanium_folders", iconPackStyle: "pro_studio_xdr", iconGlow: "subtle" } },
+  { id: "win11_mica", label: "🪟 Win 11 Mica Alt", fx: { glass: 0.52, blur: 26, glow: "soft", radius: "soft", border: "bevel", motion: "calm", backdropStyle: "mica", cursorEffect: "spotlight", vignette: "none", sheen: false, noise: true, ambient: true, saturation: 1.55, uiElementFx: "fluent_mica_folders", iconPackStyle: "win11_fluent_pro", iconGlow: "subtle" } },
+  { id: "win11_acrylic", label: "🪟 Win 11 Acrylic", fx: { glass: 0.62, blur: 22, glow: "soft", radius: "soft", border: "gradient", motion: "snappy", backdropStyle: "acrylic", cursorEffect: "ripple", grain: "subtle", sheen: true, noise: true, frostedRim: true, uiElementFx: "fluent_mica_folders", iconPackStyle: "win11_fluent_pro", iconGlow: "subtle" } },
+  { id: "cyber_hologram", label: "🔮 Cyberpunk Hologram", fx: { glass: 0.58, blur: 20, glow: "laser", radius: "sharp", border: "hologram", motion: "snappy", backdropStyle: "glass", cursorEffect: "prism", vignette: "cinema", scanlines: "subtle", chromatic: true, prismEdge: true, neonPulse: true, sheen: true, uiElementFx: "holo_glitch", iconPackStyle: "neon_cyber", iconGlow: "hyper" } },
+  { id: "prismatic_crystal", label: "💎 Prismatic Crystal", fx: { glass: 0.65, blur: 26, glow: "aurora", radius: "round", border: "iridescent", motion: "elastic", backdropStyle: "frosted", cursorEffect: "prism", vignette: "ambient", chromatic: true, prismEdge: true, innerGlow: true, frostedRim: true, sheen: true, uiElementFx: "kaleidoscope_prism", iconPackStyle: "liquid_gems", iconGlow: "hyper" } },
+  { id: "retro_crt", label: "📺 Retro CRT Phosphor", fx: { glass: 0.35, blur: 10, glow: "ember", radius: "soft", border: "double", motion: "snappy", backdropStyle: "oled", cursorEffect: "spotlight", vignette: "cinema", scanlines: "crt", grain: "film", crtCurve: true, innerGlow: true, neonPulse: true, uiElementFx: "horror_vhs_static", iconPackStyle: "nerd_hacker_retro", iconGlow: "neon" } },
+  { id: "plasma_reactor", label: "⚡ Plasma Reactor", fx: { glass: 0.55, blur: 24, glow: "plasma", radius: "round", border: "neon", motion: "elastic", backdropStyle: "glass", cursorEffect: "magnetic", vignette: "ambient", sheen: true, innerGlow: true, neonPulse: true, ambient: true, parallax: true, uiElementFx: "tesla_arcs", iconPackStyle: "xenotech_2126", iconGlow: "hyper" } },
+  { id: "velvet_cinema", label: "🎬 Velvet Cinema", fx: { glass: 0.45, blur: 20, glow: "bloom", radius: "round", border: "gradient", motion: "cinematic", backdropStyle: "frosted", cursorEffect: "spotlight", vignette: "cinema", grain: "film", ambient: true, innerGlow: true, uiElementFx: "realworld_mahogany_brass", iconPackStyle: "hdr_photo_studio", iconGlow: "subtle" } },
+  { id: "halftone_zine", label: "📰 Halftone Pop Zine", fx: { glass: 0.25, blur: 8, glow: "neon", radius: "sharp", border: "double", motion: "snappy", backdropStyle: "matte", cursorEffect: "magnetic", grain: "halftone", chromatic: true, uiElementFx: "acid_warp", iconPackStyle: "nerd_hacker_retro", iconGlow: "neon" } },
+  { id: "aurora_silk", label: "🌌 Aurora Silk", fx: { glass: 0.6, blur: 30, glow: "aurora", radius: "pill", border: "gradient", motion: "calm", backdropStyle: "liquid", cursorEffect: "spotlight", vignette: "ambient", sheen: true, innerGlow: true, ambient: true, uiElementFx: "tahoe_glass_folders", iconPackStyle: "cryo_crystal", iconGlow: "neon" } },
+  { id: "zen_matte", label: "🪨 Zen Matte Studio", fx: { glass: 0, blur: 0, glow: "none", radius: "soft", border: "flat", motion: "calm", backdropStyle: "matte", cursorEffect: "none", vignette: "none", scanlines: "none", grain: "none", sheen: false, noise: false, chromatic: false, ambient: false, uiElementFx: "tahoe_glass_folders", iconPackStyle: "nordic_minimal", iconGlow: "off" } },
 ];
 
 /** 1-Click Theme Hacker Mutators for deep nostalgic Linux/Compiz, Retro Workstation, and Extreme Storm personalization. */
@@ -227,6 +227,51 @@ export const THEME_HACK_MUTATORS = [
     fx: { glow: "plasma", glowColor: "#00f5d4", glowColor2: "#a855f7", glowIntensity: 0.92, blur: 26, glass: 0.66, saturation: 1.88, border: "neon", borderOpacity: 0.42, radius: "squircle", motion: "elastic", frostedRim: true, innerGlow: true, neonPulse: true, sheen: true, ambient: true, backdropStyle: "liquid", cursorEffect: "ripple", atmosphere: "mycelium_net+fairy_glade+jellyfish_glow", uiElementFx: "shroom_spores", iconPackStyle: "psychedelic_trip", fontProfile: "rounded", cornerProfile: "pill", iconGlow: "hyper" },
     customCss: "",
   },
+  {
+    id: "realworld_mahogany_clock_hack",
+    label: "🕰️ Grandfather Mahogany & Brass Gears",
+    desc: "Hand-rubbed Honduran mahogany woodgrain folders, riveted horology brass plaques, and ticking escapement gears.",
+    colors: { background: "#120905", card: "#21110a", text: "#fdf5e6", accent: "#e5a93c", secondary: "#cd7f32", border: "#6e4223", danger: "#ef4444", warning: "#f59e0b", success: "#34d399", info: "#38bdf8" },
+    dark: true,
+    fx: { glow: "ember", glowColor: "#e5a93c", glowColor2: "#cd7f32", glowIntensity: 0.84, blur: 18, glass: 0.52, saturation: 1.5, border: "metal", borderOpacity: 0.56, radius: "soft", motion: "calm", frostedRim: true, innerGlow: true, sheen: true, ambient: true, backdropStyle: "acrylic", cursorEffect: "spotlight", atmosphere: "steampunk_gears+dust_motes", uiElementFx: "realworld_mahogany_brass", iconPackStyle: "realworld_objects", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle" },
+    customCss: "",
+  },
+  {
+    id: "holiday_christmas_hack",
+    label: "🎄 Christmas Hearth & Fairy Lights",
+    desc: "Festive pine-needle velvet, warm fireplace embers, twinkling gold/crimson string lights, and holiday gift icons.",
+    colors: { background: "#07140c", card: "#0e2416", text: "#f7fee7", accent: "#ef4444", secondary: "#facc15", border: "#15803d", danger: "#f87171", warning: "#facc15", success: "#22c55e", info: "#38bdf8" },
+    dark: true,
+    fx: { glow: "bloom", glowColor: "#ef4444", glowColor2: "#facc15", glowIntensity: 0.9, blur: 24, glass: 0.62, saturation: 1.75, border: "iridescent", borderOpacity: 0.45, radius: "round", motion: "spring", frostedRim: true, innerGlow: true, neonPulse: true, sheen: true, ambient: true, backdropStyle: "frosted", cursorEffect: "spotlight", atmosphere: "snow+embers+fireflies", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "rounded", cornerProfile: "rounded", iconGlow: "neon" },
+    customCss: "",
+  },
+  {
+    id: "nerd_dnd_grimoire_hack",
+    label: "🎲 D&D 5e Eldritch Grimoire & d20",
+    desc: "Gilded arcane spellbook runes, natural-20 critical hit gold filigree, and tabletop RPG polyhedral dice icons.",
+    colors: { background: "#11091c", card: "#1d1030", text: "#faf5ff", accent: "#f59e0b", secondary: "#c084fc", border: "#6b21a8", danger: "#f43f5e", warning: "#f59e0b", success: "#34d399", info: "#38bdf8" },
+    dark: true,
+    fx: { glow: "aurora", glowColor: "#f59e0b", glowColor2: "#c084fc", glowIntensity: 0.92, blur: 24, glass: 0.6, saturation: 1.8, border: "double", borderOpacity: 0.5, radius: "soft", motion: "spring", frostedRim: true, innerGlow: true, neonPulse: true, sheen: true, ambient: true, backdropStyle: "glass", cursorEffect: "prism", atmosphere: "runes+embers", uiElementFx: "nerd_arcane_runes", iconPackStyle: "nerd_rpg_arcane", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "hyper" },
+    customCss: "",
+  },
+  {
+    id: "horror_blood_moon_hack",
+    label: "🧛 Nosferatu Gothic Blood Moon",
+    desc: "Carpathian midnight obsidian, pulsing crimson artery borders, sinister candlelight vignette, and gothic crypt icons.",
+    colors: { background: "#090204", card: "#160509", text: "#ffe4e6", accent: "#e11d48", secondary: "#9f1239", border: "#881337", danger: "#f43f5e", warning: "#f59e0b", success: "#10b981", info: "#fb7185" },
+    dark: true,
+    fx: { glow: "ember", glowColor: "#e11d48", glowColor2: "#9f1239", glowIntensity: 0.95, blur: 22, glass: 0.58, saturation: 1.75, border: "double", borderOpacity: 0.52, radius: "sharp", motion: "cinematic", vignette: "cinema", innerGlow: true, neonPulse: true, sheen: true, ambient: true, backdropStyle: "oled", cursorEffect: "spotlight", atmosphere: "crimson_ash+embers", uiElementFx: "horror_blood_moon", iconPackStyle: "horror_crypt", fontProfile: "editorial", cornerProfile: "sharp", iconGlow: "hyper" },
+    customCss: "",
+  },
+  {
+    id: "screen_melt_hack",
+    label: "🫠 Screen-Melting Distortion & Ooze",
+    desc: "Surreal Dalí-style melting folders & files, SVG liquid displacement optics, sagging candle-wax borders, and fever-dream warp.",
+    colors: { background: "#090414", card: "#160a2c", text: "#fdf4ff", accent: "#ff2a85", secondary: "#a3e635", border: "#9333ea", danger: "#fb7185", warning: "#facc15", success: "#4ade80", info: "#38bdf8" },
+    dark: true,
+    fx: { glow: "plasma", glowColor: "#ff2a85", glowColor2: "#a3e635", glowIntensity: 0.96, blur: 24, glass: 0.66, saturation: 1.95, border: "iridescent", borderOpacity: 0.52, radius: "squircle", motion: "elastic", chromatic: true, prismEdge: true, frostedRim: true, innerGlow: true, neonPulse: true, sheen: true, ambient: true, backdropStyle: "liquid", cursorEffect: "ripple", atmosphere: "will_o_wisp+abyssal_trench", uiElementFx: "screen_melt_ooze", iconPackStyle: "horror_crypt", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "hyper" },
+    customCss: "",
+  },
 ];
 
 export const CUSTOM_CSS_SNIPPETS = [
@@ -237,7 +282,144 @@ export const CUSTOM_CSS_SNIPPETS = [
   { id: "ultra_glass", label: "+ Ultra Glass Floating Rows", css: ".row { margin-block: 2px; border-radius: 8px; backdrop-filter: blur(12px); }" },
   { id: "kaleidoscope_rainbow", label: "+ Kaleidoscope Prismatic Foil", css: "#toolbar-row, .row.is-folder { background-image: linear-gradient(125deg, rgba(255,42,133,0.18), rgba(0,245,212,0.15) 35%, rgba(250,204,21,0.14) 70%, rgba(168,85,247,0.2)) !important; }" },
   { id: "op_art_moire", label: "+ Op-Art Moiré Interference", css: ".row.is-folder { background-image: repeating-radial-gradient(circle at 15% 50%, rgba(0,255,204,0.12) 0 4px, transparent 4px 9px) !important; }" },
+  { id: "realworld_brass_plaque", label: "+ Riveted Brass & Mahogany Bevel", css: "#toolbar-row, .row.is-folder { border: 1px solid rgba(217, 160, 91, 0.55) !important; box-shadow: inset 0 1px 0 rgba(255, 232, 185, 0.35), inset 0 -2px 6px rgba(20, 8, 2, 0.75) !important; }" },
+  { id: "stained_glass_cames", label: "+ Stained-Glass Lead Cames", css: ".row.is-folder, .tool { border: 1.5px solid rgba(24, 24, 32, 0.85) !important; box-shadow: inset 0 0 0 1px rgba(255, 215, 0, 0.42), 0 4px 14px rgba(139, 92, 246, 0.25) !important; }" },
+  { id: "horror_blood_vignette", label: "+ Gothic Crimson Pulse Edge", css: "#file-list { box-shadow: inset 0 0 48px rgba(185, 28, 28, 0.28) !important; }" },
+  { id: "screen_melt_drip", label: "+ Dalí Screen-Melting Drip Warp", css: "#toolbar-row, .row.is-folder { filter: url(#fm-filter-screen-melt); animation: fmScreenMeltSag 5.5s ease-in-out infinite alternate !important; }" },
 ];
+
+/**
+ * 🪄 Special Effects Design Wizard — Guided multi-layer tactile object, shader, icon-pack, and particle alchemy recipes.
+ */
+export const SPECIAL_EFFECTS_DESIGN_WIZARD_RECIPES = [
+  {
+    id: "wizard_mahogany_clockwork",
+    label: "🕰️ Grandfather Mahogany & Brass Clockwork",
+    category: "Real-World Objects",
+    desc: "Hand-rubbed Honduran mahogany woodgrain folders, solid horology brass rivets, ticking escapement gears & floating dust motes.",
+    dark: true,
+    colors: { background: "#120905", card: "#21110a", text: "#fdf5e6", accent: "#e5a93c", secondary: "#cd7f32", border: "#6e4223", danger: "#ef4444", warning: "#f59e0b", success: "#34d399", info: "#38bdf8" },
+    fx: { glow: "ember", glowColor: "#e5a93c", glowColor2: "#cd7f32", glowIntensity: 0.85, blur: 18, glass: 0.52, saturation: 1.5, border: "metal", borderOpacity: 0.56, radius: "soft", motion: "calm", backdropStyle: "acrylic", cursorEffect: "spotlight", vignette: "subtle", sheen: true, frostedRim: true, innerGlow: true, ambient: true, atmosphere: "steampunk_gears+dust_motes", uiElementFx: "realworld_mahogany_brass", iconPackStyle: "realworld_objects", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "subtle" },
+  },
+  {
+    id: "wizard_cathedral_stained_glass",
+    label: "⛪ Chartres Stained-Glass Rose Window",
+    category: "Real-World Objects",
+    desc: "Jewel-toned cobalt, ruby & amber leaded stained glass with sun-drenched volumetric god rays and prismatic edge dispersion.",
+    dark: true,
+    colors: { background: "#090714", card: "#141029", text: "#fefce8", accent: "#fbbf24", secondary: "#38bdf8", border: "#6d28d9", danger: "#f43f5e", warning: "#f59e0b", success: "#34d399", info: "#38bdf8" },
+    fx: { glow: "aurora", glowColor: "#fbbf24", glowColor2: "#38bdf8", glowIntensity: 0.94, blur: 26, glass: 0.68, saturation: 1.95, border: "iridescent", borderOpacity: 0.52, radius: "round", motion: "calm", backdropStyle: "liquid", cursorEffect: "prism", vignette: "ambient", chromatic: true, prismEdge: true, sheen: true, frostedRim: true, innerGlow: true, ambient: true, atmosphere: "prism_spectrum+god_rays", uiElementFx: "realworld_stained_glass", iconPackStyle: "realworld_objects", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "hyper" },
+  },
+  {
+    id: "wizard_vinyl_jukebox_tubes",
+    label: "📻 1959 Vinyl Jukebox & Vacuum Tubes",
+    category: "Real-World Objects",
+    desc: "Warm glowing 12AX7 vacuum tube filaments, sunburst cherry veneer, chrome diner trim, and analog bokeh embers.",
+    dark: true,
+    colors: { background: "#140806", card: "#26100b", text: "#fff7ed", accent: "#fb923c", secondary: "#f43f5e", border: "#7c2d12", danger: "#f87171", warning: "#fbbf24", success: "#34d399", info: "#38bdf8" },
+    fx: { glow: "ember", glowColor: "#fb923c", glowColor2: "#f43f5e", glowIntensity: 0.9, blur: 22, glass: 0.58, saturation: 1.75, border: "metal", borderOpacity: 0.5, radius: "pill", motion: "spring", backdropStyle: "glass", cursorEffect: "spotlight", vignette: "cinema", grain: "subtle", sheen: true, frostedRim: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "embers+cinema_bokeh", uiElementFx: "realworld_mahogany_brass", iconPackStyle: "realworld_objects", fontProfile: "rounded", cornerProfile: "pill", iconGlow: "neon" },
+  },
+  {
+    id: "wizard_pinball_arcade_backglass",
+    label: "🕹️ 1978 Electro-Mechanical Pinball Backglass",
+    category: "Real-World Objects",
+    desc: "Silverball chrome bumpers, incandescent playfield inserts, retro score reels, and starburst arcade optics.",
+    dark: true,
+    colors: { background: "#090617", card: "#160f30", text: "#fefce8", accent: "#facc15", secondary: "#ec4899", border: "#4c1d95", danger: "#f43f5e", warning: "#facc15", success: "#22c55e", info: "#38bdf8" },
+    fx: { glow: "neon", glowColor: "#facc15", glowColor2: "#ec4899", glowIntensity: 0.94, blur: 20, glass: 0.56, saturation: 1.9, border: "neon", borderOpacity: 0.5, radius: "round", motion: "elastic", backdropStyle: "glass", cursorEffect: "magnetic", vignette: "ambient", chromatic: true, sheen: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "starburst+cinema_bokeh", uiElementFx: "realworld_stained_glass", iconPackStyle: "realworld_objects", fontProfile: "scifi", cornerProfile: "rounded", iconGlow: "hyper" },
+  },
+  {
+    id: "wizard_holiday_fireworks_gala",
+    label: "🎆 US Holiday Fireworks & String Lights",
+    category: "US Holidays",
+    desc: "Grand finale chrysanthemum fireworks, twinkling warm fairy string lights on folders, and celebratory holiday icons.",
+    dark: true,
+    colors: { background: "#060b19", card: "#0e172e", text: "#f8fafc", accent: "#f43f5e", secondary: "#38bdf8", border: "#1e3a8a", danger: "#fb7185", warning: "#facc15", success: "#34d399", info: "#38bdf8" },
+    fx: { glow: "bloom", glowColor: "#f43f5e", glowColor2: "#38bdf8", glowIntensity: 0.92, blur: 24, glass: 0.62, saturation: 1.85, border: "iridescent", borderOpacity: 0.46, radius: "round", motion: "spring", backdropStyle: "liquid", cursorEffect: "prism", vignette: "subtle", sheen: true, frostedRim: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "starburst+fireflies+embers", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "rounded", cornerProfile: "rounded", iconGlow: "hyper" },
+  },
+  {
+    id: "wizard_christmas_hearth_blizzard",
+    label: "🎄 Christmas Evergreen Hearth & Snowfall",
+    category: "US Holidays",
+    desc: "Gently falling winter snowflakes over warm fireplace embers with evergreen & gold ornament 3D folder plates.",
+    dark: true,
+    colors: { background: "#07140c", card: "#0e2416", text: "#f7fee7", accent: "#ef4444", secondary: "#facc15", border: "#15803d", danger: "#f87171", warning: "#facc15", success: "#22c55e", info: "#38bdf8" },
+    fx: { glow: "bloom", glowColor: "#ef4444", glowColor2: "#facc15", glowIntensity: 0.9, blur: 26, glass: 0.64, saturation: 1.75, border: "iridescent", borderOpacity: 0.45, radius: "round", motion: "calm", backdropStyle: "frosted", cursorEffect: "spotlight", vignette: "ambient", sheen: true, frostedRim: true, innerGlow: true, ambient: true, atmosphere: "snow+embers+fireflies", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "rounded", cornerProfile: "rounded", iconGlow: "neon" },
+  },
+  {
+    id: "wizard_halloween_lantern_mist",
+    label: "🎃 All Hallows' Jack-O'-Lantern Mist",
+    category: "US Holidays",
+    desc: "Carved pumpkin candlelight, drifting autumn leaves, eerie graveyard will-o'-wisps, and festive Halloween icons.",
+    dark: true,
+    colors: { background: "#0d0604", card: "#1c0d08", text: "#fff7ed", accent: "#f97316", secondary: "#a855f7", border: "#7c2d12", danger: "#ef4444", warning: "#f59e0b", success: "#22c55e", info: "#c084fc" },
+    fx: { glow: "ember", glowColor: "#f97316", glowColor2: "#a855f7", glowIntensity: 0.92, blur: 22, glass: 0.58, saturation: 1.8, border: "neon", borderOpacity: 0.48, radius: "round", motion: "elastic", backdropStyle: "glass", cursorEffect: "spotlight", vignette: "cinema", sheen: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "will_o_wisp+embers+autumn_leaves", uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "hyper" },
+  },
+  {
+    id: "wizard_dnd_arcane_grimoire",
+    label: "🎲 D&D 5e Arcane Grimoire & Natural 20",
+    category: "Nerd Complete",
+    desc: "Gilded eldritch rune borders, floating spell sigils, dragonfire embers, and polyhedral d20 / potion / scroll icons.",
+    dark: true,
+    colors: { background: "#11091c", card: "#1d1030", text: "#faf5ff", accent: "#f59e0b", secondary: "#c084fc", border: "#6b21a8", danger: "#f43f5e", warning: "#f59e0b", success: "#34d399", info: "#38bdf8" },
+    fx: { glow: "aurora", glowColor: "#f59e0b", glowColor2: "#c084fc", glowIntensity: 0.92, blur: 24, glass: 0.6, saturation: 1.8, border: "double", borderOpacity: 0.5, radius: "soft", motion: "spring", backdropStyle: "glass", cursorEffect: "prism", vignette: "ambient", sheen: true, frostedRim: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "runes+embers", uiElementFx: "nerd_arcane_runes", iconPackStyle: "nerd_rpg_arcane", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "hyper" },
+  },
+  {
+    id: "wizard_starfleet_lcars_bridge",
+    label: "🖖 Starfleet LCARS Warp-Core Bridge HUD",
+    category: "Nerd Complete",
+    desc: "24th-century Enterprise-D tactical elbow sweeps, amber/lavender LCARS telemetry pills, and relativistic warp stars.",
+    dark: true,
+    colors: { background: "#05070f", card: "#0d1224", text: "#f8fafc", accent: "#ff9900", secondary: "#cc99cc", border: "#ff9900", danger: "#f43f5e", warning: "#fbbf24", success: "#34d399", info: "#38bdf8" },
+    fx: { glow: "laser", glowColor: "#ff9900", glowColor2: "#cc99cc", glowIntensity: 0.9, blur: 18, glass: 0.54, saturation: 1.75, border: "neon", borderOpacity: 0.55, radius: "pill", motion: "snappy", backdropStyle: "oled", cursorEffect: "magnetic", vignette: "subtle", sheen: true, innerGlow: true, ambient: true, atmosphere: "warp_speed+starfield", uiElementFx: "nerd_lcars_hud", iconPackStyle: "nerd_scifi_fleet", fontProfile: "scifi", cornerProfile: "pill", iconGlow: "neon" },
+  },
+  {
+    id: "wizard_nosferatu_blood_moon",
+    label: "🧛 Nosferatu Gothic Blood Moon & Crypt",
+    category: "Horror Nightmare",
+    desc: "Carpathian obsidian velvet, pulsing arterial crimson borders, drifting blood-ash embers, and gothic crypt icons.",
+    dark: true,
+    colors: { background: "#090204", card: "#160509", text: "#ffe4e6", accent: "#e11d48", secondary: "#9f1239", border: "#881337", danger: "#f43f5e", warning: "#f59e0b", success: "#10b981", info: "#fb7185" },
+    fx: { glow: "ember", glowColor: "#e11d48", glowColor2: "#9f1239", glowIntensity: 0.95, blur: 22, glass: 0.58, saturation: 1.75, border: "double", borderOpacity: 0.52, radius: "sharp", motion: "cinematic", backdropStyle: "oled", cursorEffect: "spotlight", vignette: "cinema", sheen: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "crimson_ash+embers", uiElementFx: "horror_blood_moon", iconPackStyle: "horror_crypt", fontProfile: "editorial", cornerProfile: "sharp", iconGlow: "hyper" },
+  },
+  {
+    id: "wizard_eldritch_rlyeh_abyss",
+    label: "🐙 Lovecraft Eldritch R'lyeh Non-Euclidean",
+    category: "Horror Nightmare",
+    desc: "Cyclopean deep-trench bioluminescence, writhing void tentacles on folders, and cosmic madness geometry.",
+    dark: true,
+    colors: { background: "#030b09", card: "#071714", text: "#ecfdf5", accent: "#10b981", secondary: "#8b5cf6", border: "#047857", danger: "#f43f5e", warning: "#eab308", success: "#10b981", info: "#2dd4bf" },
+    fx: { glow: "plasma", glowColor: "#10b981", glowColor2: "#8b5cf6", glowIntensity: 0.94, blur: 24, glass: 0.62, saturation: 1.85, border: "hologram", borderOpacity: 0.48, radius: "squircle", motion: "elastic", backdropStyle: "liquid", cursorEffect: "ripple", vignette: "cinema", chromatic: true, sheen: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "abyssal_trench+mycelium_net", uiElementFx: "void_tentacles", iconPackStyle: "horror_crypt", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "hyper" },
+  },
+  {
+    id: "wizard_vhs_analog_nightmare",
+    label: "📼 1999 Found-Footage Hi8 VHS Glitch",
+    category: "Horror Nightmare",
+    desc: "Corrupted magnetic tape tracking bars, chromatic RGB bleed, CRT curvature, and haunted broadcast static.",
+    dark: true,
+    colors: { background: "#070908", card: "#111614", text: "#e2e8f0", accent: "#22c55e", secondary: "#ef4444", border: "#334155", danger: "#ef4444", warning: "#facc15", success: "#22c55e", info: "#38bdf8" },
+    fx: { glow: "laser", glowColor: "#22c55e", glowColor2: "#ef4444", glowIntensity: 0.88, blur: 12, glass: 0.46, saturation: 1.4, grain: "film", scanlines: "crt", border: "double", borderOpacity: 0.5, radius: "sharp", motion: "snappy", backdropStyle: "oled", cursorEffect: "none", vignette: "cinema", chromatic: true, crtCurve: true, neonPulse: true, ambient: true, atmosphere: "vhs_tracking+static_snow", uiElementFx: "horror_vhs_static", iconPackStyle: "horror_crypt", fontProfile: "terminal", cornerProfile: "sharp", iconGlow: "neon" },
+  },
+  {
+    id: "wizard_dali_screen_melt",
+    label: "🫠 Dalí Surreal Screen-Melting Ooze",
+    category: "Screen Distortion",
+    desc: "Folders, files, and toolbars visibly sag, drip, and warp like melting clocks and viscous neon wax across the screen.",
+    dark: true,
+    colors: { background: "#090414", card: "#160a2c", text: "#fdf4ff", accent: "#ff2a85", secondary: "#a3e635", border: "#9333ea", danger: "#fb7185", warning: "#facc15", success: "#4ade80", info: "#38bdf8" },
+    fx: { glow: "plasma", glowColor: "#ff2a85", glowColor2: "#a3e635", glowIntensity: 0.96, blur: 26, glass: 0.68, saturation: 1.95, border: "iridescent", borderOpacity: 0.5, radius: "squircle", motion: "elastic", backdropStyle: "liquid", cursorEffect: "ripple", vignette: "cinema", chromatic: true, prismEdge: true, sheen: true, frostedRim: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "will_o_wisp+abyssal_trench", uiElementFx: "screen_melt_ooze", iconPackStyle: "horror_crypt", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "hyper" },
+  },
+  {
+    id: "wizard_molten_furnace_melt",
+    label: "🌋 Molten Glass & Magma Screen Melt",
+    category: "Screen Distortion",
+    desc: "Incandescent 1,200°C furnace heat distortion where folder plates and file sheets sag and glow like molten blown glass.",
+    dark: true,
+    colors: { background: "#0d0402", card: "#1f0904", text: "#fff7ed", accent: "#ff5500", secondary: "#facc15", border: "#9a3412", danger: "#ef4444", warning: "#facc15", success: "#34d399", info: "#fb923c" },
+    fx: { glow: "ember", glowColor: "#ff5500", glowColor2: "#facc15", glowIntensity: 0.96, blur: 24, glass: 0.64, saturation: 1.9, border: "neon", borderOpacity: 0.54, radius: "round", motion: "elastic", backdropStyle: "liquid", cursorEffect: "spotlight", vignette: "cinema", sheen: true, frostedRim: true, innerGlow: true, neonPulse: true, ambient: true, atmosphere: "embers+cinema_bokeh", uiElementFx: "molten_lava_melt", iconPackStyle: "realworld_objects", fontProfile: "editorial", cornerProfile: "rounded", iconGlow: "hyper" },
+  },
+];
+
 
 export const PREBUILT_WALLPAPER_SCENES = [
   {
@@ -295,6 +477,62 @@ export const PREBUILT_WALLPAPER_SCENES = [
     dark: true,
     colors: { background: "#140414", card: "#260926", text: "#fff5eb", accent: "#ff6b00", secondary: "#ff1493", border: "#f97316", danger: "#ff4d6d", warning: "#facc15", success: "#34d399", info: "#ff7733" },
     fx: { uiElementFx: "lava_wax", iconPackStyle: "lava_groovy", backdropStyle: "liquid", radius: "pill", glow: "bloom", glowColor: "#ff6b00", glowColor2: "#ff1493", blur: 30, glass: 0.66, sheen: true, frostedRim: true, innerGlow: true, atmosphere: "will_o_wisp+cinema_bokeh+aurora" },
+  },
+  {
+    id: "mahogany_clockwork_study",
+    label: "🕰️ Grandfather Mahogany Clockwork",
+    dark: true,
+    colors: { background: "#120905", card: "#21110a", text: "#fdf5e6", accent: "#e5a93c", secondary: "#cd7f32", border: "#6e4223", danger: "#ef4444", warning: "#f59e0b", success: "#34d399", info: "#38bdf8" },
+    fx: { uiElementFx: "realworld_mahogany_brass", iconPackStyle: "realworld_objects", backdropStyle: "acrylic", radius: "soft", border: "metal", glow: "ember", glowColor: "#e5a93c", glowColor2: "#cd7f32", blur: 18, glass: 0.52, sheen: true, frostedRim: true, innerGlow: true, iconGlow: "subtle", atmosphere: "steampunk_gears+dust_motes" },
+  },
+  {
+    id: "cathedral_rose_window",
+    label: "⛪ Chartres Stained-Glass Rose Window",
+    dark: true,
+    colors: { background: "#090714", card: "#141029", text: "#fefce8", accent: "#fbbf24", secondary: "#38bdf8", border: "#6d28d9", danger: "#f43f5e", warning: "#f59e0b", success: "#34d399", info: "#38bdf8" },
+    fx: { uiElementFx: "realworld_stained_glass", iconPackStyle: "realworld_objects", backdropStyle: "liquid", radius: "round", border: "iridescent", glow: "aurora", glowColor: "#fbbf24", glowColor2: "#38bdf8", blur: 26, glass: 0.68, sheen: true, chromatic: true, prismEdge: true, frostedRim: true, innerGlow: true, iconGlow: "hyper", atmosphere: "prism_spectrum+god_rays" },
+  },
+  {
+    id: "christmas_evergreen_hearth",
+    label: "🎄 Christmas Evergreen & Fairy Lights",
+    dark: true,
+    colors: { background: "#07140c", card: "#0e2416", text: "#f7fee7", accent: "#ef4444", secondary: "#facc15", border: "#15803d", danger: "#f87171", warning: "#facc15", success: "#22c55e", info: "#38bdf8" },
+    fx: { uiElementFx: "holiday_festive_glow", iconPackStyle: "us_holidays_festive", backdropStyle: "frosted", radius: "round", border: "iridescent", glow: "bloom", glowColor: "#ef4444", glowColor2: "#facc15", blur: 26, glass: 0.64, sheen: true, frostedRim: true, innerGlow: true, iconGlow: "neon", atmosphere: "snow+embers+fireflies" },
+  },
+  {
+    id: "dnd_arcane_grimoire",
+    label: "🎲 D&D 5e Arcane Grimoire & d20",
+    dark: true,
+    colors: { background: "#11091c", card: "#1d1030", text: "#faf5ff", accent: "#f59e0b", secondary: "#c084fc", border: "#6b21a8", danger: "#f43f5e", warning: "#f59e0b", success: "#34d399", info: "#38bdf8" },
+    fx: { uiElementFx: "nerd_arcane_runes", iconPackStyle: "nerd_rpg_arcane", backdropStyle: "glass", radius: "soft", border: "double", glow: "aurora", glowColor: "#f59e0b", glowColor2: "#c084fc", blur: 24, glass: 0.6, sheen: true, frostedRim: true, innerGlow: true, iconGlow: "hyper", atmosphere: "runes+embers" },
+  },
+  {
+    id: "starfleet_lcars_bridge",
+    label: "🖖 Starfleet LCARS Galaxy Bridge",
+    dark: true,
+    colors: { background: "#05070f", card: "#0d1224", text: "#f8fafc", accent: "#ff9900", secondary: "#cc99cc", border: "#ff9900", danger: "#f43f5e", warning: "#fbbf24", success: "#34d399", info: "#38bdf8" },
+    fx: { uiElementFx: "nerd_lcars_hud", iconPackStyle: "nerd_scifi_fleet", backdropStyle: "oled", radius: "pill", border: "neon", glow: "laser", glowColor: "#ff9900", glowColor2: "#cc99cc", blur: 18, glass: 0.54, sheen: true, innerGlow: true, iconGlow: "neon", atmosphere: "warp_speed+starfield" },
+  },
+  {
+    id: "nosferatu_gothic_crypt",
+    label: "🧛 Nosferatu Gothic Blood Moon",
+    dark: true,
+    colors: { background: "#090204", card: "#160509", text: "#ffe4e6", accent: "#e11d48", secondary: "#9f1239", border: "#881337", danger: "#f43f5e", warning: "#f59e0b", success: "#10b981", info: "#fb7185" },
+    fx: { uiElementFx: "horror_blood_moon", iconPackStyle: "horror_crypt", backdropStyle: "oled", radius: "sharp", border: "double", glow: "ember", glowColor: "#e11d48", glowColor2: "#9f1239", blur: 22, glass: 0.58, sheen: true, innerGlow: true, iconGlow: "hyper", atmosphere: "crimson_ash+embers" },
+  },
+  {
+    id: "dali_screen_melt_surreal",
+    label: "🫠 Dalí Screen-Melting Distortion",
+    dark: true,
+    colors: { background: "#090414", card: "#160a2c", text: "#fdf4ff", accent: "#ff2a85", secondary: "#a3e635", border: "#9333ea", danger: "#fb7185", warning: "#facc15", success: "#4ade80", info: "#38bdf8" },
+    fx: { uiElementFx: "screen_melt_ooze", iconPackStyle: "horror_crypt", backdropStyle: "liquid", radius: "squircle", border: "iridescent", glow: "plasma", glowColor: "#ff2a85", glowColor2: "#a3e635", blur: 26, glass: 0.68, sheen: true, chromatic: true, prismEdge: true, frostedRim: true, innerGlow: true, iconGlow: "hyper", atmosphere: "will_o_wisp+abyssal_trench" },
+  },
+  {
+    id: "molten_furnace_magma",
+    label: "🌋 Molten Glass & Magma Melt",
+    dark: true,
+    colors: { background: "#0d0402", card: "#1f0904", text: "#fff7ed", accent: "#ff5500", secondary: "#facc15", border: "#9a3412", danger: "#ef4444", warning: "#facc15", success: "#34d399", info: "#fb923c" },
+    fx: { uiElementFx: "molten_lava_melt", iconPackStyle: "realworld_objects", backdropStyle: "liquid", radius: "round", border: "neon", glow: "ember", glowColor: "#ff5500", glowColor2: "#facc15", blur: 24, glass: 0.64, sheen: true, frostedRim: true, innerGlow: true, iconGlow: "hyper", atmosphere: "embers+cinema_bokeh" },
   },
 ];
 
@@ -413,8 +651,62 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
     effectField("grain", "Film grain", ["none", "subtle", "film", "halftone"]),
     effectField("scanlines", "Scanlines", ["none", "subtle", "crt", "interlace"]),
     effectField("atmosphere", "Atmospheric effect", [...ATMOSPHERE_IDS, ...ATMOSPHERE_MIX_PRESETS.map((m) => m.id)]),
-    effectField("uiElementFx", "Folder & toolbar shader", ["off", "tahoe_glass_folders", "fluent_mica_folders", "xdr_titanium_folders", "fire_folders", "slime_drip", "storm_wind", "cryo_frost", "tesla_arcs", "mercury_chrome", "holo_glitch", "void_tentacles", "kaleidoscope_prism", "lava_wax", "acid_warp", "oil_slick_chrome", "shroom_spores"]),
-    effectField("iconPackStyle", "Custom icon pack", ["default", "macos_tahoe_3d", "win11_fluent_pro", "pro_studio_xdr", "hdr_photo_studio", "linux_papirus_pro", "nordic_minimal", "inferno", "slime", "storm_tempest", "neon_cyber", "liquid_gems", "cryo_crystal", "retro_pixel", "xenotech_2126", "psychedelic_trip", "lava_groovy", "op_art_illusion"]),
+    effectField("uiElementFx", "Folder & toolbar shader", [
+      "off",
+      "tahoe_glass_folders",
+      "fluent_mica_folders",
+      "xdr_titanium_folders",
+      "realworld_mahogany_brass",
+      "realworld_stained_glass",
+      "holiday_festive_glow",
+      "nerd_arcane_runes",
+      "nerd_lcars_hud",
+      "horror_blood_moon",
+      "horror_vhs_static",
+      "screen_melt_ooze",
+      "molten_lava_melt",
+      "crt_magnetic_warp",
+      "fever_dream_ripple",
+      "fire_folders",
+      "slime_drip",
+      "storm_wind",
+      "cryo_frost",
+      "tesla_arcs",
+      "mercury_chrome",
+      "holo_glitch",
+      "void_tentacles",
+      "kaleidoscope_prism",
+      "lava_wax",
+      "acid_warp",
+      "oil_slick_chrome",
+      "shroom_spores",
+    ]),
+    effectField("iconPackStyle", "Custom icon pack", [
+      "default",
+      "macos_tahoe_3d",
+      "win11_fluent_pro",
+      "pro_studio_xdr",
+      "hdr_photo_studio",
+      "linux_papirus_pro",
+      "nordic_minimal",
+      "realworld_objects",
+      "us_holidays_festive",
+      "nerd_rpg_arcane",
+      "nerd_scifi_fleet",
+      "nerd_hacker_retro",
+      "horror_crypt",
+      "inferno",
+      "slime",
+      "storm_tempest",
+      "neon_cyber",
+      "liquid_gems",
+      "cryo_crystal",
+      "retro_pixel",
+      "xenotech_2126",
+      "psychedelic_trip",
+      "lava_groovy",
+      "op_art_illusion",
+    ]),
     effectField("fontProfile", "Typography profile", ["default", "scifi", "terminal", "editorial", "rounded"]),
     effectField("cornerProfile", "Corner geometry", ["default", "sharp", "rounded", "pill"]),
     effectField("iconGlow", "Icon glow", ["off", "subtle", "neon", "hyper"]),
@@ -506,6 +798,207 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
     refresh();
     toast(`Injected hack preset: ${mut.label}`, { kind: "info" });
   };
+
+  // -- 🪄 Special Effects Design Wizard ---------------------------------------------------------------------------
+  const WIZARD_SURFACE_SHADERS = [
+    ["screen_melt_ooze", "🫠 Dalí Screen-Melting Ooze"],
+    ["molten_lava_melt", "🌋 Molten Glass & Magma Melt"],
+    ["crt_magnetic_warp", "🧲 CRT Degauss Magnetic Warp"],
+    ["fever_dream_ripple", "🌊 Hallucinogenic Liquid Ripple"],
+    ["realworld_mahogany_brass", "🕰️ Mahogany & Brass"],
+    ["realworld_stained_glass", "⛪ Stained Glass & Lead"],
+    ["holiday_festive_glow", "🎄 Holiday Fairy Lights"],
+    ["nerd_arcane_runes", "🎲 Arcane Gold Runes"],
+    ["nerd_lcars_hud", "🖖 Starfleet LCARS HUD"],
+    ["horror_blood_moon", "🧛 Gothic Blood Moon"],
+    ["horror_vhs_static", "📼 VHS Tracking Glitch"],
+    ["tahoe_glass_folders", "🍎 Tahoe Liquid Glass"],
+    ["xdr_titanium_folders", "💎 M4 XDR Titanium"],
+    ["fire_folders", "🔥 Compiz Inferno"],
+    ["slime_drip", "🧪 Bio-Slime Ooze"],
+    ["kaleidoscope_prism", "🌈 Kaleidoscope Prism"],
+  ];
+
+  const WIZARD_ICON_PACKS = [
+    ["realworld_objects", "🕰️ Real-World Objects"],
+    ["us_holidays_festive", "🎄 US Holidays Festive"],
+    ["nerd_rpg_arcane", "🎲 D&D & Arcane RPG"],
+    ["nerd_scifi_fleet", "🖖 Starfleet & Sci-Fi"],
+    ["nerd_hacker_retro", "🕹️ Hacker & 16-Bit Retro"],
+    ["horror_crypt", "🧛 Gothic Horror Crypt"],
+    ["macos_tahoe_3d", "🍎 macOS Tahoe 3D"],
+    ["pro_studio_xdr", "💎 Pro Studio XDR"],
+  ];
+
+  const WIZARD_PARTICLE_LAYERS = [
+    ["none", "None"],
+    ["steampunk_gears", "⚙️ Clockwork Brass Gears"],
+    ["dust_motes", "✨ Sunlit Dust Motes"],
+    ["prism_spectrum", "🌈 Stained-Glass Prism Rays"],
+    ["god_rays", "☀️ Volumetric God Rays"],
+    ["embers", "🔥 Hearth & Forge Embers"],
+    ["snow", "❄️ Winter Snowfall"],
+    ["fireflies", "🏮 Festive Fairy Fireflies"],
+    ["starburst", "🎆 Fireworks Starburst"],
+    ["autumn_leaves", "🍂 Autumn Harvest Leaves"],
+    ["sakura", "🌸 Spring Blossoms"],
+    ["runes", "🔮 Arcane Spell Runes"],
+    ["warp_speed", "🚀 Relativistic Warp Stars"],
+    ["matrix", "💻 Mainframe Cipher Rain"],
+    ["crimson_ash", "🩸 Gothic Crimson Ash"],
+    ["will_o_wisp", "🎃 Haunted Will-o'-Wisps"],
+    ["vhs_tracking", "📼 VHS Tracking Static"],
+    ["abyssal_trench", "🐙 Abyssal Trench Biolume"],
+    ["cinema_bokeh", "🎬 85mm Anamorphic Bokeh"],
+  ];
+
+  const wizardAtmo1 = h("select", { class: "prop-input", "data-sfx-wizard-atmo-layer1": "true", "aria-label": "Primary particle layer" },
+    WIZARD_PARTICLE_LAYERS.map(([id, label]) => h("option", { value: id }, label)),
+  );
+  const wizardAtmo2 = h("select", { class: "prop-input", "data-sfx-wizard-atmo-layer2": "true", "aria-label": "Secondary particle layer" },
+    WIZARD_PARTICLE_LAYERS.map(([id, label]) => h("option", { value: id }, label)),
+  );
+  const wizardAtmo3 = h("select", { class: "prop-input", "data-sfx-wizard-atmo-layer3": "true", "aria-label": "Tertiary particle layer" },
+    WIZARD_PARTICLE_LAYERS.map(([id, label]) => h("option", { value: id }, label)),
+  );
+  wizardAtmo1.value = "steampunk_gears";
+  wizardAtmo2.value = "dust_motes";
+  wizardAtmo3.value = "none";
+
+  const applyWizardRecipe = (recipe) => {
+    effectsEnabled.checked = true;
+    effectControls.disabled = false;
+    draft.dark = recipe.dark;
+    darkBox.checked = recipe.dark;
+    draft.colors = { ...draft.colors, ...recipe.colors };
+    draft.fx = {
+      ...defaultEffects(),
+      ...(draft.fx ?? {}),
+      ...structuredClone(recipe.fx),
+    };
+    const parts = String(recipe.fx.atmosphere || "").split("+").filter(Boolean);
+    if (parts[0] && WIZARD_PARTICLE_LAYERS.some(([k]) => k === parts[0])) wizardAtmo1.value = parts[0];
+    if (parts[1] && WIZARD_PARTICLE_LAYERS.some(([k]) => k === parts[1])) wizardAtmo2.value = parts[1];
+    else wizardAtmo2.value = "none";
+    if (parts[2] && WIZARD_PARTICLE_LAYERS.some(([k]) => k === parts[2])) wizardAtmo3.value = parts[2];
+    else wizardAtmo3.value = "none";
+    for (const [key, { picker, text }] of rows) {
+      const v = draft.colors[key] ?? "";
+      text.removeAttribute("aria-invalid");
+      text.value = v;
+      if (isHex(v)) picker.value = v;
+    }
+    for (const read of effectInputs.values()) read();
+    syncHackerInputs();
+    refresh();
+    toast(`🪄 Special Effects Wizard applied: ${recipe.label}`, { kind: "success" });
+  };
+
+  const sfxDesignWizard = h("details", { class: "theme-sfx-wizard", "data-sfx-wizard": "true", open: true },
+    h("summary", { class: "theme-sfx-wizard-summary" }, "🪄 Special Effects Design Wizard — Real-World Objects, Tactile Shaders & Multi-Layer Particle Alchemy"),
+    h("p", { class: "hint" }, "Compose rich, tactile real-world objects (Mahogany Clockwork, Stained Glass, Vinyl Jukebox, Pinball Backglass), US Holiday lights, Nerd RPG/Sci-Fi HUDs, or Gothic Horror effects in 4 guided steps — or launch any 1-click Wizard Recipe below."),
+    h("div", { class: "theme-sfx-wizard-steps" },
+      h("div", { class: "theme-sfx-wizard-step" },
+        h("div", { class: "theme-sfx-wizard-step-title" }, "Step 1 · Tactile Object & Folder Surface Shader"),
+        h("div", { class: "theme-preset-strip", role: "group", "aria-label": "Wizard surface shaders" },
+          ...WIZARD_SURFACE_SHADERS.map(([shaderId, shaderLabel]) =>
+            h("button", {
+              type: "button",
+              class: "theme-filter-pill",
+              "data-sfx-wizard-surface": shaderId,
+              onclick: () => {
+                effectsEnabled.checked = true;
+                effectControls.disabled = false;
+                draft.fx ??= defaultEffects();
+                draft.fx.uiElementFx = shaderId;
+                draft.fx.sheen = true;
+                draft.fx.frostedRim = true;
+                draft.fx.innerGlow = true;
+                for (const read of effectInputs.values()) read();
+                refresh();
+                toast(`Surface shader set to ${shaderLabel}`, { kind: "info" });
+              },
+            }, shaderLabel),
+          ),
+        ),
+      ),
+      h("div", { class: "theme-sfx-wizard-step" },
+        h("div", { class: "theme-sfx-wizard-step-title" }, "Step 2 · 3D Object & Collection Icon Pack"),
+        h("div", { class: "theme-preset-strip", role: "group", "aria-label": "Wizard 3D icon packs" },
+          ...WIZARD_ICON_PACKS.map(([packId, packLabel]) =>
+            h("button", {
+              type: "button",
+              class: "theme-filter-pill",
+              "data-sfx-wizard-icons": packId,
+              onclick: () => {
+                effectsEnabled.checked = true;
+                effectControls.disabled = false;
+                draft.fx ??= defaultEffects();
+                draft.fx.iconPackStyle = packId;
+                if (!draft.fx.iconGlow || draft.fx.iconGlow === "off") draft.fx.iconGlow = "neon";
+                for (const read of effectInputs.values()) read();
+                refresh();
+                toast(`3D Icon Pack set to ${packLabel}`, { kind: "info" });
+              },
+            }, packLabel),
+          ),
+        ),
+      ),
+      h("div", { class: "theme-sfx-wizard-step" },
+        h("div", { class: "theme-sfx-wizard-step-title" }, "Step 3 · Multi-Layer Atmospheric Particle Combiner"),
+        h("div", { class: "theme-sfx-wizard-atmo-row" },
+          h("label", { class: "field" }, h("span", { class: "field-label" }, "Layer 1 (Primary)"), wizardAtmo1),
+          h("label", { class: "field" }, h("span", { class: "field-label" }, "Layer 2 (Overlay)"), wizardAtmo2),
+          h("label", { class: "field" }, h("span", { class: "field-label" }, "Layer 3 (Accent)"), wizardAtmo3),
+          h("button", {
+            type: "button",
+            class: "btn primary",
+            "data-sfx-wizard-combine-atmo": "true",
+            onclick: () => {
+              effectsEnabled.checked = true;
+              effectControls.disabled = false;
+              draft.fx ??= defaultEffects();
+              const chosen = [...new Set([wizardAtmo1.value, wizardAtmo2.value, wizardAtmo3.value].filter((v) => v && v !== "none"))];
+              draft.fx.atmosphere = chosen.length ? chosen.join("+") : "none";
+              draft.fx.ambient = chosen.length > 0;
+              for (const read of effectInputs.values()) read();
+              refresh();
+              toast(`Combined particle stack: ${draft.fx.atmosphere}`, { kind: "success" });
+            },
+          }, "✨ Fuse Particle Stack"),
+        ),
+      ),
+      h("div", { class: "theme-sfx-wizard-step" },
+        h("div", { class: "theme-sfx-wizard-step-title" }, "Step 4 · 1-Click Special Effects Wizard Recipes"),
+        h("div", { class: "theme-sfx-wizard-grid", role: "group", "aria-label": "Special Effects Design Wizard recipes" },
+          ...SPECIAL_EFFECTS_DESIGN_WIZARD_RECIPES.map((recipe) =>
+            h("button", {
+              type: "button",
+              class: "theme-sfx-wizard-card",
+              "data-sfx-wizard-recipe": recipe.id,
+              title: recipe.desc,
+              onclick: () => applyWizardRecipe(recipe),
+            },
+              h("span", { class: "theme-sfx-wizard-card-cat" }, recipe.category),
+              h("strong", { class: "theme-sfx-wizard-card-title" }, recipe.label),
+              h("span", { class: "theme-sfx-wizard-card-desc" }, recipe.desc),
+            ),
+          ),
+        ),
+        h("div", { class: "theme-pill-row" },
+          h("button", {
+            type: "button",
+            class: "btn",
+            "data-sfx-wizard-random": "true",
+            onclick: () => {
+              const rndRecipe = SPECIAL_EFFECTS_DESIGN_WIZARD_RECIPES[Math.floor(Math.random() * SPECIAL_EFFECTS_DESIGN_WIZARD_RECIPES.length)];
+              applyWizardRecipe(rndRecipe);
+            },
+          }, "🎲 Surprise Wizard Alchemy"),
+        ),
+      ),
+    ),
+  );
 
   const hackerStudio = h("details", { class: "theme-hacker-studio", "data-hacker-studio": "true", open: true },
     h("summary", { class: "theme-hacker-summary" }, "🛠️ Theme Hacker Lab — 1-Click Nostalgia/Storm Mutators, Deep Token Overrides & Custom CSS"),
@@ -875,6 +1368,7 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
     presetStrip,
     h("label", { class: "check" }, effectsEnabled, h("span", {}, "Enable visual effects")),
     effectControls,
+    sfxDesignWizard,
     hackerStudio,
     h("p", { class: "hint" }, "Opacity affects panels, not text or the native window. The preview raises opacity when needed for readable text. Motion follows your computer's reduced-motion preference."),
     h("div", { class: "theme-sample", "aria-label": "Sample of the colors" },

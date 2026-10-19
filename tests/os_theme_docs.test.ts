@@ -30,7 +30,7 @@ describe("docs/THEMES.md futuristic themes block", () => {
             expect(existsSync(join(root, "screenshots", "themes", `${key}.png`)), key).toBe(true);
             expect(doc, key).toContain(`<a id="theme-${key}"></a>`);
         }
-        expect(doc).toContain("(236 Themes)");
+        expect(doc).toContain("(298 Themes)");
     });
 
     test("the interaction-state captures exist", () => {

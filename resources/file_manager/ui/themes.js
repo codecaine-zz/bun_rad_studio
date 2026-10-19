@@ -16,6 +16,7 @@ export const UI_ELEMENT_FX_OPTIONS = [
   { id: "tahoe_glass_folders", label: "🍎 macOS Tahoe 3D Glass Folders", desc: "Sculpted 3D translucent Liquid Glass regular folders with Display-P3 specular rims & gallery picture frames" },
   { id: "fluent_mica_folders", label: "🪟 Win 11 Fluent 3D Folders", desc: "Layered Windows 11 Fluent 3D amber/cobalt regular folders, DirectX 12 Mica cards & framed photo tiles" },
   { id: "xdr_titanium_folders", label: "💻 M4 Max / RTX XDR Titanium Folders", desc: "Space-Black machined titanium regular folders with 1600-nit XDR rim lighting & 8K RAW studio picture plates" },
+  { id: "google_material_folders", label: "✨ Google Material 3 & Gemini 3D Folders", desc: "Sculpted Material 3 Expressive squircle folders with 4-color Gemini AI sparkle refraction & tonal surface elevation" },
   { id: "fire_folders", label: "🔥 Folders & Toolbars on Fire", desc: "Blazing molten flames, rising embers, and heat-shimmer borders on folders & toolbars" },
   { id: "slime_drip", label: "🧪 Dripping Slime", desc: "Glowing radioactive neon-green slime dripping from folders, toolbars & breadcrumbs" },
   { id: "storm_wind", label: "🌪️ Storm Wind, Leaves & Rain", desc: "Hurricane wind gusts buffeting folders & toolbars with clinging autumn leaves & rain streaks" },
@@ -29,17 +30,29 @@ export const UI_ELEMENT_FX_OPTIONS = [
   { id: "acid_warp", label: "🌀 Op-Art Moiré & Acid Warp", desc: "Hypnotic Op-Art wave interference, chromatic RGB split & UV blacklight pulse" },
   { id: "oil_slick_chrome", label: "🛢️ Iridescent Oil-Slick Dichroic", desc: "Thin-film rainbow petrol iridescence and dichroic glass shimmer on folders & toolbars" },
   { id: "shroom_spores", label: "🍄 Bioluminescent Mycelium Spores", desc: "Ultraviolet fungal spore halos and pulsing neon-cyan/violet bioluminescent folder rows" },
+  { id: "holiday_festive_glow", label: "🎄 US Holiday Festive Fairy-Light Glow", desc: "Warm C9 fairy-light bokeh, festive ribbon rims, and holiday sparkle on folders & toolbars" },
+  { id: "nerd_arcane_runes", label: "🎲 D&D Arcane Grimoire & d20 Runes", desc: "Gold-tooled dragonhide double-borders, eldritch spell runes & polyhedral d20 glow on folders" },
+  { id: "nerd_lcars_hud", label: "🖖 Starfleet LCARS & Tactical HUD", desc: "24th-century swept-elbow LCARS pill bars, tactical telemetry brackets & holocron scanlines" },
+  { id: "horror_blood_moon", label: "🧛 Gothic Blood Moon & Crimson Crypt", desc: "Eclipsed blood-moon crimson vignette, gargoyle stone bevels & candlelit crypt shadows" },
+  { id: "horror_vhs_static", label: "📼 1999 Found-Footage VHS Glitch", desc: "Hi8 magnetic tracking-head static, RGB chromatic bleed & rusted chainlink borders" },
+  { id: "realworld_mahogany_brass", label: "🕰️ Hand-Carved Mahogany, Brass & Lacquer", desc: "Tactile woodgrain inlay, polished brass bevels, saddle leather & maki-e urushi lacquer folders" },
+  { id: "realworld_stained_glass", label: "🪟 Cathedral Stained Glass & Murano Crystal", desc: "Soldered lead-came jewel glass panels and hand-blown Venetian Murano crystal refraction" },
+  { id: "screen_melt_ooze", label: "🫠 Screen-Melting Dalí & Wax Drip", desc: "Surrealist screen-melting distortion: sagging folders, files & toolbars with viscous dripping droplets and SVG displacement" },
+  { id: "molten_lava_melt", label: "🌋 Molten Glass & Magma Melt", desc: "Superheated furnace glass melt: glowing orange-crimson thermal sag and heat-mirage wave distortion across folders & files" },
+  { id: "crt_magnetic_warp", label: "🧲 CRT Magnet De-Gauss Distortion", desc: "Magnetic field screen warp with RGB chromatic separation, de-gaussing wave bend, and scanline tear" },
+  { id: "fever_dream_ripple", label: "🌊 Hallucinogenic Liquid Ripple", desc: "Refractive underwater & desert mirage displacement ripples gently bending folders, files, and toolbars" },
 ];
 
 /** Custom Icon Pack styles that transform folder and file icons across the File Manager. */
 export const ICON_PACK_OPTIONS = [
-  { id: "default", label: "📁 Standard", desc: "Classic system file & folder icons" },
+  { id: "default", label: "📁 Standard", desc: "Classic system file & folder icons (120+ semantic system icons)" },
   { id: "macos_tahoe_3d", label: "🍎 macOS Tahoe 3D & Pictures", desc: "High-end macOS Tahoe 3D regular folders with semantic topic badges & studio-framed picture icons" },
   { id: "win11_fluent_pro", label: "🪟 Win 11 Fluent 3D Pro", desc: "Layered Windows 11 Fluent 3D folders, framed gallery pictures & DirectX 12 workstation glyphs" },
   { id: "pro_studio_xdr", label: "💻 M4 Max / RTX Studio XDR", desc: "Pro Display XDR titanium regular folders, 8K RAW camera picture plates & cinema production icons" },
   { id: "hdr_photo_studio", label: "📸 8K HDR Photo & Cinema", desc: "Color-calibrated darkroom & cinema suite with gallery-framed pictures, 35mm contact sheets & lens icons" },
   { id: "linux_papirus_pro", label: "🐧 Linux Papirus HiDPI", desc: "Crisp KDE Breeze & Papirus HiDPI regular folders, developer topic badges & workstation picture tiles" },
   { id: "nordic_minimal", label: "🏛️ Studio Architect Minimal", desc: "Tactile 3D paper-and-glass regular folders, architectural picture frames & clean daylight glyphs" },
+  { id: "google_material_3d", label: "✨ Google Material 3 & Gemini 3D", desc: "Google Material 3 Expressive & Gemini 3D semantic folders, AI/Cloud developer badges & 120+ system glyphs" },
   { id: "inferno", label: "🔥 Blazing Inferno", desc: "Molten fire chests, lightning code glyphs, and ember-shielded icons" },
   { id: "slime", label: "🧪 Toxic Slime-Drip", desc: "Bio-vat flasks, DNA helices, and dripping radioactive gel capsules" },
   { id: "storm_tempest", label: "🌪️ Storm & Cyclone", desc: "Tornado vortex folders, lightning scripts, and wind-swept barometric badges" },
@@ -51,6 +64,12 @@ export const ICON_PACK_OPTIONS = [
   { id: "psychedelic_trip", label: "🍄 Psychedelic Kaleidoscope", desc: "Sacred lotus mandalas, bioluminescent mushrooms, third-eye crystals & rainbow prisms" },
   { id: "lava_groovy", label: "🫧 1969 Lava Lamp & Vinyl", desc: "Groovy lava-wax orbs, disco mirrors, peace badges, sunflowers & analog vinyl glyphs" },
   { id: "op_art_illusion", label: "🌀 Op-Art Hypnotic Portal", desc: "Kinetic vortex spirals, Moiré infinity loops, optical eyes & non-Euclidean prisms" },
+  { id: "us_holidays_festive", label: "🎄 US Holidays Festive", desc: "Festive 3D folders & files with holiday ribbon trim, fireworks pictures & Christmas glow" },
+  { id: "nerd_rpg_arcane", label: "🎲 Nerd RPG & Grimoire", desc: "Arcane gilded 3D folders & scroll files with D&D d20 filigree & spellbook illumination" },
+  { id: "nerd_scifi_fleet", label: "🖖 Nerd Starfleet & Sci-Fi", desc: "Starfleet LCARS 3D folders & tactical data-pad files with bridge telemetry accents" },
+  { id: "nerd_hacker_retro", label: "🕹️ Nerd 16-Bit & DEFCON", desc: "Retro cartridge 3D folders & mainframe files with pixel bevels & cipher glow" },
+  { id: "horror_crypt", label: "🧛 Horror Crypt & Nightmare", desc: "Gothic obsidian 3D folders & blood-ink vellum files with candlelit crimson bevels" },
+  { id: "realworld_objects", label: "🕰️ Real-World Tactile Objects", desc: "Hand-rubbed mahogany & brass 3D folders and linen parchment files with physical bevels" },
 ];
 
 export const FONT_PROFILES = [
@@ -75,10 +94,47 @@ export const ICON_GLOW_PROFILES = [
   { id: "hyper", label: "Hyper Plasma" },
 ];
 
-/** Applies File Manager UI Element FX (burning folders, dripping slime, etc.), Custom Icon Pack, Typography, Corner Geometry, and Icon Glow to the root element. */
+/** Ensures the hidden SVG displacement filter bank (`#fm-svg-distortion-filters`) is present in the DOM for screen-melting & optical warp effects. */
+export function ensureDistortionSvgFilters() {
+  if (typeof document === "undefined" || !document.body) return null;
+  let svg = document.getElementById("fm-svg-distortion-filters");
+  if (svg) return svg;
+  svg = h("div", {
+    id: "fm-svg-distortion-filters",
+    "aria-hidden": "true",
+    style: "position:fixed;width:0;height:0;overflow:hidden;pointer-events:none;z-index:-1;",
+  });
+  svg.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute;width:0;height:0">
+    <defs>
+      <filter id="fm-filter-screen-melt" x="-8%" y="-8%" width="116%" height="124%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.012 0.045" numOctaves="2" seed="7" result="meltNoise">
+          <animate attributeName="baseFrequency" values="0.012 0.045;0.018 0.068;0.012 0.045" dur="7s" repeatCount="indefinite" />
+        </feTurbulence>
+        <feDisplacementMap in="SourceGraphic" in2="meltNoise" scale="7" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+      <filter id="fm-filter-molten-glass" x="-6%" y="-6%" width="112%" height="118%">
+        <feTurbulence type="turbulence" baseFrequency="0.02 0.06" numOctaves="2" seed="19" result="lavaNoise">
+          <animate attributeName="baseFrequency" values="0.02 0.06;0.028 0.085;0.02 0.06" dur="5.5s" repeatCount="indefinite" />
+        </feTurbulence>
+        <feDisplacementMap in="SourceGraphic" in2="lavaNoise" scale="5.5" xChannelSelector="R" yChannelSelector="B" />
+      </filter>
+      <filter id="fm-filter-liquid-ripple" x="-5%" y="-5%" width="110%" height="110%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.025 0.025" numOctaves="2" seed="3" result="rippleNoise">
+          <animate attributeName="baseFrequency" values="0.025 0.025;0.036 0.018;0.025 0.025" dur="6s" repeatCount="indefinite" />
+        </feTurbulence>
+        <feDisplacementMap in="SourceGraphic" in2="rippleNoise" scale="4.5" xChannelSelector="G" yChannelSelector="R" />
+      </filter>
+    </defs>
+  </svg>`;
+  document.body.append(svg);
+  return svg;
+}
+
+/** Applies File Manager UI Element FX (burning folders, dripping slime, screen-melting distortion, etc.), Custom Icon Pack, Typography, Corner Geometry, and Icon Glow to the root element. */
 export function applyUiImmersionProfiles(overrides = {}) {
   if (typeof document === "undefined" || !document.documentElement) return;
   const root = document.documentElement;
+  const isPreview = root.dataset.palette === "preview";
   const s = { ...(state.settings ?? {}), ...overrides };
   const themeElFx = root.getAttribute("data-fx-element") || "";
   const themeIconPack = root.getAttribute("data-fx-icon-pack") || "";
@@ -86,32 +142,38 @@ export function applyUiImmersionProfiles(overrides = {}) {
   const themeCornerProf = root.getAttribute("data-fx-corner-profile") || "";
   const themeIconGlow = root.getAttribute("data-fx-icon-glow") || "";
 
-  const explicitOff = overrides && Object.prototype.hasOwnProperty.call(overrides, "uiElementFx") && overrides.uiElementFx === "off";
-  const rawUiFx = s.uiElementFx || "auto";
-  const effectiveUiFx = explicitOff ? "off" : (rawUiFx === "auto" || rawUiFx === "off" ? (themeElFx || "off") : rawUiFx);
-  if (effectiveUiFx && effectiveUiFx !== "off") root.dataset.uiFx = effectiveUiFx;
-  else delete root.dataset.uiFx;
+  const explicitUiFx = overrides && Object.prototype.hasOwnProperty.call(overrides, "uiElementFx");
+  const rawUiFx = explicitUiFx ? overrides.uiElementFx : (isPreview ? "auto" : (s.uiElementFx || "auto"));
+  const effectiveUiFx = (explicitUiFx && overrides.uiElementFx === "off") ? "off" : (rawUiFx === "auto" || rawUiFx === "off" ? (themeElFx || "off") : rawUiFx);
+  if (effectiveUiFx && effectiveUiFx !== "off") {
+    root.dataset.uiFx = effectiveUiFx;
+    if (effectiveUiFx === "screen_melt_ooze" || effectiveUiFx === "molten_lava_melt" || effectiveUiFx === "crt_magnetic_warp" || effectiveUiFx === "fever_dream_ripple") {
+      ensureDistortionSvgFilters();
+    }
+  } else {
+    delete root.dataset.uiFx;
+  }
 
   const explicitIconDefault = overrides && Object.prototype.hasOwnProperty.call(overrides, "iconPackStyle") && overrides.iconPackStyle === "default";
-  const rawIconPack = s.iconPackStyle || "default";
+  const rawIconPack = (overrides && Object.prototype.hasOwnProperty.call(overrides, "iconPackStyle")) ? overrides.iconPackStyle : (isPreview ? "default" : (s.iconPackStyle || "default"));
   const effectiveIconPack = explicitIconDefault ? "default" : (rawIconPack !== "default" ? rawIconPack : (themeIconPack || "default"));
   if (effectiveIconPack && effectiveIconPack !== "default") root.dataset.iconPack = effectiveIconPack;
   else delete root.dataset.iconPack;
 
   const explicitFontDefault = overrides && Object.prototype.hasOwnProperty.call(overrides, "themeFontProfile") && overrides.themeFontProfile === "default";
-  const rawFont = s.themeFontProfile || "default";
+  const rawFont = (overrides && Object.prototype.hasOwnProperty.call(overrides, "themeFontProfile")) ? overrides.themeFontProfile : (isPreview ? "default" : (s.themeFontProfile || "default"));
   const effectiveFont = explicitFontDefault ? "default" : (rawFont !== "default" ? rawFont : (themeFontProf || "default"));
   if (effectiveFont && effectiveFont !== "default") root.dataset.fontProfile = effectiveFont;
   else delete root.dataset.fontProfile;
 
   const explicitCornerDefault = overrides && Object.prototype.hasOwnProperty.call(overrides, "themeCornerProfile") && overrides.themeCornerProfile === "default";
-  const rawCorner = s.themeCornerProfile || "default";
+  const rawCorner = (overrides && Object.prototype.hasOwnProperty.call(overrides, "themeCornerProfile")) ? overrides.themeCornerProfile : (isPreview ? "default" : (s.themeCornerProfile || "default"));
   const effectiveCorner = explicitCornerDefault ? "default" : (rawCorner !== "default" ? rawCorner : (themeCornerProf || "default"));
   if (effectiveCorner && effectiveCorner !== "default") root.dataset.cornerProfile = effectiveCorner;
   else delete root.dataset.cornerProfile;
 
   const explicitGlowOff = overrides && Object.prototype.hasOwnProperty.call(overrides, "themeIconGlow") && overrides.themeIconGlow === "off";
-  const rawGlow = s.themeIconGlow || "off";
+  const rawGlow = (overrides && Object.prototype.hasOwnProperty.call(overrides, "themeIconGlow")) ? overrides.themeIconGlow : (isPreview ? "off" : (s.themeIconGlow || "off"));
   const effectiveGlow = explicitGlowOff ? "off" : (rawGlow !== "off" ? rawGlow : (themeIconGlow || "off"));
   if (effectiveGlow && effectiveGlow !== "off") root.dataset.iconGlow = effectiveGlow;
   else delete root.dataset.iconGlow;
@@ -311,6 +373,13 @@ export function paint(theme, key) {
     for (const [name, value] of Object.entries(theme.effects.attrs)) root.setAttribute(name, value);
     root.setAttribute("data-fx-tier", hw.tier);
     if (hw.fxMode !== "on") root.setAttribute("data-fx", hw.fxMode);
+    if (key && key !== "preview" && state.settings) {
+      if (theme.effects.attrs["data-fx-element"]) state.settings.uiElementFx = "auto";
+      if (theme.effects.attrs["data-fx-icon-pack"]) state.settings.iconPackStyle = "default";
+      if (theme.effects.attrs["data-fx-font-profile"]) state.settings.themeFontProfile = "default";
+      if (theme.effects.attrs["data-fx-corner-profile"]) state.settings.themeCornerProfile = "default";
+      if (theme.effects.attrs["data-fx-icon-glow"]) state.settings.themeIconGlow = "off";
+    }
   }
   applyUiImmersionProfiles();
   emit("theme-changed", currentThemePayload());
@@ -857,6 +926,222 @@ export const JUMPSTART_WORKSTATION_KITS = [
     themeIconGlow: "hyper",
     atmosphere: "cymatics+lissajous_harmonics+chrono_portal",
   },
+  {
+    id: "google_gemini_ultra_kit",
+    label: "✨ Google Gemini Ultra 3D",
+    desc: "Google Gemini Ultra 2.5 deep-space studio with 4-color AI sparkle refraction, Material 3D folders & 120+ system icons",
+    palette: "google_gemini_ultra",
+    uiElementFx: "google_material_folders",
+    iconPackStyle: "google_material_3d",
+    themeFontProfile: "rounded",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "neon",
+    atmosphere: "neural_nexus+aurora+prism_spectrum",
+  },
+  {
+    id: "google_deepmind_quantum_kit",
+    label: "⚛️ Google DeepMind Willow Quantum",
+    desc: "Google DeepMind Willow dilution-cryostat quantum lab with superconducting gold interconnects & Material 3D icons",
+    palette: "google_deepmind_quantum",
+    uiElementFx: "google_material_folders",
+    iconPackStyle: "google_material_3d",
+    themeFontProfile: "scifi",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "hyper",
+    atmosphere: "quantum_cpu+qubit_stream+tachyon_braid_2126",
+  },
+  {
+    id: "google_workspace_daylight_kit",
+    label: "☀️ Google Material 3 Daylight",
+    desc: "Clean alabaster Google Workspace & Material 3 Daylight studio with porcelain cards, Royal Blue accents & 3D folders",
+    palette: "google_workspace_daylight",
+    uiElementFx: "google_material_folders",
+    iconPackStyle: "google_material_3d",
+    themeFontProfile: "rounded",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "off",
+    atmosphere: "liquid_glass_caustics+pollen_glow",
+  },
+  {
+    id: "ayahuasca_shipibo_kit",
+    label: "🐍 Ayahuasca Shipibo Vision",
+    desc: "Amazonian Shipibo sacred geometric songlines, bioluminescent rainforest vines, emerald-magenta fractals & spore folders",
+    palette: "ayahuasca_vine_vision",
+    uiElementFx: "shroom_spores",
+    iconPackStyle: "psychedelic_trip",
+    themeFontProfile: "rounded",
+    themeCornerProfile: "pill",
+    themeIconGlow: "hyper",
+    atmosphere: "mycelium_net+sacred_mandala+fireflies",
+  },
+  {
+    id: "frutiger_aero_aqua_kit",
+    label: "🐬 Frutiger Aero Reef '07",
+    desc: "Utopian 2007 glossy aqua glass orbs, tropical coral reef water caustics, sunlit emerald horizons & 3D jewel icons",
+    palette: "frutiger_aero_aqua_2007",
+    uiElementFx: "tahoe_glass_folders",
+    iconPackStyle: "liquid_gems",
+    themeFontProfile: "rounded",
+    themeCornerProfile: "pill",
+    themeIconGlow: "subtle",
+    atmosphere: "liquid_glass_caustics+caustics+sunbeams",
+  },
+  {
+    id: "holiday_christmas_kit",
+    label: "🎄 Christmas Nutcracker Hearth",
+    desc: "Douglas fir boughs, C9 fairy lights, falling snow, peppermint candy canes & festive wrapped gift folders",
+    palette: "holiday_christmas_nutcracker_hearth",
+    uiElementFx: "holiday_festive_glow",
+    iconPackStyle: "us_holidays_festive",
+    themeFontProfile: "editorial",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "hyper",
+    atmosphere: "snow+cinema_bokeh+embers",
+  },
+  {
+    id: "holiday_fourth_july_kit",
+    label: "🎆 4th of July Sky Fireworks",
+    desc: "Grand finale Independence Day fireworks, crackling sparklers, Liberty Bell brass & festive US holiday icons",
+    palette: "holiday_fourth_of_july_fireworks",
+    uiElementFx: "holiday_festive_glow",
+    iconPackStyle: "us_holidays_festive",
+    themeFontProfile: "rounded",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "hyper",
+    atmosphere: "fireworks+embers+starfield",
+  },
+  {
+    id: "holiday_halloween_kit",
+    label: "🎃 Halloween Jack-O'-Lantern",
+    desc: "Flickering carved Jack-O'-Lantern pumpkins, swirling autumn leaves, candlelit embers & spooky holiday icons",
+    palette: "holiday_halloween_jack_o_lantern",
+    uiElementFx: "holiday_festive_glow",
+    iconPackStyle: "us_holidays_festive",
+    themeFontProfile: "editorial",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "hyper",
+    atmosphere: "autumn_leaves+embers+fireflies",
+  },
+  {
+    id: "nerd_dnd_grimoire_kit",
+    label: "🎲 D&D 5e Arcane Grimoire & d20",
+    desc: "Gold-tooled dragonhide spellbook, critical Natural 20 polyhedral dice folders, eldritch runes & fantasy map icons",
+    palette: "nerd_dnd_arcane_grimoire",
+    uiElementFx: "nerd_arcane_runes",
+    iconPackStyle: "nerd_rpg_arcane",
+    themeFontProfile: "editorial",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "hyper",
+    atmosphere: "sacred_mandala+embers+fireflies",
+  },
+  {
+    id: "nerd_starfleet_lcars_kit",
+    label: "🖖 Starfleet LCARS Galaxy Bridge",
+    desc: "24th-century Enterprise-D swept-elbow LCARS tactical console, warp starlight streaks & Starfleet bridge icons",
+    palette: "nerd_starfleet_lcars_bridge",
+    uiElementFx: "nerd_lcars_hud",
+    iconPackStyle: "nerd_scifi_fleet",
+    themeFontProfile: "scifi",
+    themeCornerProfile: "pill",
+    themeIconGlow: "hyper",
+    atmosphere: "warp_tunnel+starfield+hud_reticle",
+  },
+  {
+    id: "horror_nosferatu_kit",
+    label: "🧛 Nosferatu Gothic Blood Moon",
+    desc: "Carpathian vampire cathedral under an eclipsed crimson blood moon with coffin folders & dripping candelabra wax",
+    palette: "horror_nosferatu_blood_moon",
+    uiElementFx: "horror_blood_moon",
+    iconPackStyle: "horror_crypt",
+    themeFontProfile: "editorial",
+    themeCornerProfile: "sharp",
+    themeIconGlow: "hyper",
+    atmosphere: "embers+red_sprites+starlight_velvet",
+  },
+  {
+    id: "horror_eldritch_kit",
+    label: "🦑 Lovecraft Eldritch R'lyeh Abyss",
+    desc: "Cyclopean sunken monoliths of R'lyeh, writhing cosmic void tentacles, deep-sea ichor & forbidden tome icons",
+    palette: "horror_lovecraft_eldritch_rlyeh",
+    uiElementFx: "void_tentacles",
+    iconPackStyle: "horror_crypt",
+    themeFontProfile: "editorial",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "hyper",
+    atmosphere: "abyssal_trench+jellyfish_glow+bio_spores",
+  },
+  {
+    id: "realworld_clockwork_kit",
+    label: "🕰️ Grandfather Mahogany Clockwork",
+    desc: "Hand-carved Honduras mahogany case, swinging brass pendulum, bevelled glass doors & real-world tactile object icons",
+    palette: "realworld_grandfather_clockwork_mahogany",
+    uiElementFx: "realworld_mahogany_brass",
+    iconPackStyle: "realworld_objects",
+    themeFontProfile: "editorial",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "subtle",
+    atmosphere: "dust_motes+sunbeams+embers",
+  },
+  {
+    id: "realworld_stained_glass_kit",
+    label: "🪟 Cathedral Stained-Glass Rose",
+    desc: "Soldered lead-came Gothic rose window casting jewel-toned sunbeams across stained-glass folders & tactile objects",
+    palette: "realworld_stained_glass_cathedral",
+    uiElementFx: "realworld_stained_glass",
+    iconPackStyle: "realworld_objects",
+    themeFontProfile: "editorial",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "hyper",
+    atmosphere: "sunbeams+prism_spectrum+sacred_mandala",
+  },
+  {
+    id: "screen_melt_distortion_kit",
+    label: "🫠 Screen-Melting Distortion & Drip",
+    desc: "Surrealist Dalí screen-melting distortion: sagging folders, files & toolbars with viscous dripping ooze and SVG displacement",
+    palette: "horror_biohazard_containment_lab",
+    uiElementFx: "screen_melt_ooze",
+    iconPackStyle: "horror_crypt",
+    themeFontProfile: "terminal",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "hyper",
+    atmosphere: "toxic_slime+bio_spores+hud_reticle",
+  },
+  {
+    id: "molten_furnace_melt_kit",
+    label: "🌋 Molten Glass & Magma Melt",
+    desc: "1,200°C furnace heat distortion where 3D folders & file sheets sag and glow like molten blown glass",
+    palette: "horror_silent_fog_asylum",
+    uiElementFx: "molten_lava_melt",
+    iconPackStyle: "realworld_objects",
+    themeFontProfile: "editorial",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "hyper",
+    atmosphere: "embers+cinema_bokeh",
+  },
+  {
+    id: "realworld_jukebox_kit",
+    label: "📻 1959 Wurlitzer Vinyl Jukebox",
+    desc: "Warm glowing vacuum tubes, sunburst cherry woodgrain 3D folders, chrome diner trim & tactile vinyl icons",
+    palette: "realworld_vinyl_jukebox_wurlitzer",
+    uiElementFx: "realworld_mahogany_brass",
+    iconPackStyle: "realworld_objects",
+    themeFontProfile: "rounded",
+    themeCornerProfile: "pill",
+    themeIconGlow: "neon",
+    atmosphere: "embers+cinema_bokeh",
+  },
+  {
+    id: "realworld_pinball_kit",
+    label: "🕹️ 1978 Arcade Pinball Backglass",
+    desc: "Silverball chrome bumpers, incandescent playfield inserts, stained-glass 3D folders & tactile arcade icons",
+    palette: "realworld_pinball_wizard_arcade",
+    uiElementFx: "realworld_stained_glass",
+    iconPackStyle: "realworld_objects",
+    themeFontProfile: "scifi",
+    themeCornerProfile: "rounded",
+    themeIconGlow: "hyper",
+    atmosphere: "starburst+cinema_bokeh",
+  },
 ];
 
 /** Applies a 1-Click Jumpstart Workstation Kit (theme palette + 3D folder FX + picture/icon pack + typography + corners + atmosphere). */
@@ -872,9 +1157,9 @@ export async function applyJumpstartKit(kitId) {
     themeIconGlow: kit.themeIconGlow,
     ...(kit.atmosphere ? { atmosphere: kit.atmosphere } : {}),
   };
-  if (state.settings) Object.assign(state.settings, patch);
   rememberTheme(kit.palette);
   await applyPalette(kit.palette);
+  if (state.settings) Object.assign(state.settings, patch);
   applyUiImmersionProfiles(patch);
   try {
     if (kit.atmosphere) {
@@ -1319,6 +1604,47 @@ export const OPTION_BRACKET_SHOWCASE_TEMPLATES = [
   { key: "optical_moire_hypnosis", badge: "🌀 Op-Art Moiré Hypnosis" },
   { key: "acid_house_rave_92", badge: "🔊 Acid House UV '92" },
   { key: "pastel_dreamcore_cloud", badge: "☁️ Lucid Dreamcore Prism" },
+  { key: "google_gemini_ultra", badge: "✨ Google Gemini Ultra" },
+  { key: "google_material_you_3d", badge: "🎨 Google Material 3 3D" },
+  { key: "google_pixel_amoled", badge: "📱 Pixel 10 Pro OLED" },
+  { key: "google_deepmind_quantum", badge: "⚛️ DeepMind Willow Quantum" },
+  { key: "google_cloud_vertex_pro", badge: "☁️ Google Cloud Vertex AI" },
+  { key: "google_project_idx_studio", badge: "🔥 Project IDX & Firebase" },
+  { key: "google_chromeos_aurora", badge: "🌐 ChromeOS Project Astra" },
+  { key: "google_workspace_daylight", badge: "☀️ Google Daylight M3" },
+  { key: "ayahuasca_vine_vision", badge: "🐍 Ayahuasca Shipibo Vision" },
+  { key: "alex_grey_astral_cathedral", badge: "👁️ Astral Chakra Cathedral" },
+  { key: "summer_of_love_tiedye_67", badge: "☮️ Tie-Dye Summer of '67" },
+  { key: "vaporwave_mall_plaza_95", badge: "🌴 Vaporwave Mall '95" },
+  { key: "frutiger_aero_aqua_2007", badge: "🐬 Frutiger Aero Reef '07" },
+  { key: "steampunk_chronometer_foundry", badge: "⚙️ Steampunk Brass Foundry" },
+  { key: "art_deco_metropolis_1929", badge: "🏛️ 1929 Art Deco Gold" },
+  { key: "synth_arcade_crt_1984", badge: "🕹️ 1984 Vector Arcade CRT" },
+  { key: "mariana_bioluminescent_trench", badge: "🪼 Mariana Abyssal Trench" },
+  { key: "kyoto_zen_karesansui_day", badge: "🎋 Kyoto Zen Garden Day" },
+  { key: "holiday_new_years_times_square", badge: "🎆 New Year's Ball Drop" },
+  { key: "holiday_valentines_velvet_rose", badge: "🌹 Valentine Velvet Rose" },
+  { key: "holiday_st_patricks_emerald_clover", badge: "🍀 St. Patrick's Clover" },
+  { key: "holiday_easter_pastel_egg_hunt", badge: "🥚 Easter Fabergé Meadow" },
+  { key: "holiday_fourth_of_july_fireworks", badge: "🎆 4th of July Fireworks" },
+  { key: "holiday_halloween_jack_o_lantern", badge: "🎃 Halloween Jack-O'-Lantern" },
+  { key: "holiday_thanksgiving_harvest_hearth", badge: "🦃 Thanksgiving Hearth" },
+  { key: "holiday_christmas_nutcracker_hearth", badge: "🎄 Christmas Nutcracker" },
+  { key: "nerd_dnd_arcane_grimoire", badge: "🎲 D&D d20 Grimoire" },
+  { key: "nerd_starfleet_lcars_bridge", badge: "🖖 Starfleet LCARS Bridge" },
+  { key: "nerd_kyber_holocron_forge", badge: "⚔️ Kyber Lightsaber Holocron" },
+  { key: "nerd_mecha_eva_nerv_hud", badge: "🤖 Mecha Unit-01 NERV HUD" },
+  { key: "horror_nosferatu_blood_moon", badge: "🧛 Nosferatu Blood Moon" },
+  { key: "horror_lovecraft_eldritch_rlyeh", badge: "🦑 Lovecraft Eldritch R'lyeh" },
+  { key: "horror_vhs_found_footage_1999", badge: "📼 1999 Found-Footage VHS" },
+  { key: "horror_biohazard_containment_lab", badge: "🫠 Screen-Melting Biohazard" },
+  { key: "horror_silent_fog_asylum", badge: "🌋 Molten-Melt Silent Fog" },
+  { key: "horror_cursed_carnival_calliope", badge: "🌊 Mirage-Ripple Carnival" },
+  { key: "realworld_grandfather_clockwork_mahogany", badge: "🕰️ Mahogany Clockwork" },
+  { key: "realworld_vinyl_jukebox_wurlitzer", badge: "📻 1959 Vinyl Jukebox" },
+  { key: "realworld_stained_glass_cathedral", badge: "🪟 Stained-Glass Rose" },
+  { key: "realworld_katana_urushi_forge", badge: "⚔️ Tamahagane Katana Forge" },
+  { key: "realworld_pinball_wizard_arcade", badge: "🕹️ 1978 Pinball Backglass" },
   { key: "dracula", badge: "🧛 Dracula Classic" },
   { key: "nord", badge: "❄️ Nord Arctic" },
   { key: "win95", badge: "🪟 Windows 95 Retro" },
@@ -1582,11 +1908,32 @@ export async function showThemePicker() {
     ].map(([v, l]) => h("option", { value: v }, l)));
   let activeVibe = "all";
   let activeMaterial = "all";
+  let activeCollection = "all";
   let lastShown = themes;
   let dialogRef = null;
   const list = h("div", { class: "theme-list" });
   const count = h("p", { class: "hint", role: "status" });
   const supportsHas = typeof CSS !== "undefined" && typeof CSS.supports === "function" && CSS.supports("selector(:has(*))");
+
+  const collectionPillsDef = [
+    ["all", "All Collections"],
+    ["us_holidays", "🎄 US Holidays (18)"],
+    ["nerd_complete", "🎲 Nerd Complete (10)"],
+    ["horror_nightmare", "🧛 Horror & Crypt (10)"],
+    ["realworld_objects", "🕰️ Real-World Objects (6)"],
+  ];
+  const collectionPillButtons = collectionPillsDef.map(([val, label]) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${val === "all" ? " is-active" : ""}`,
+      "data-collection-pill": val,
+      "aria-pressed": String(val === "all"),
+      onclick: () => {
+        activeCollection = val;
+        draw();
+      },
+    }, label),
+  );
 
   const catPillsDef = [
     ["all", "All"],
@@ -1724,12 +2071,14 @@ export async function showThemePicker() {
       sortFilter.value = "group";
       activeVibe = "all";
       activeMaterial = "all";
+      activeCollection = "all";
       draw();
     },
   }, "↺ Reset Filters");
 
   const navBar = h("div", { class: "theme-nav-bar", role: "region", "aria-label": "Quick theme filters" },
     h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Category"), ...catPillButtons),
+    h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Collections"), ...collectionPillButtons),
     h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Template Tier"), ...tierPillButtons, hwMatchBtn),
     h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Animations"), ...animPillButtons),
     h("div", { class: "theme-pill-row" }, h("span", { class: "theme-pill-label" }, "Surface Shader"), ...materialPillButtons),
@@ -1759,6 +2108,17 @@ export async function showThemePicker() {
       : t.uiElementFx === "acid_warp" ? "🌀 Acid UI"
       : t.uiElementFx === "oil_slick_chrome" ? "🛢️ Oil-Slick UI"
       : t.uiElementFx === "shroom_spores" ? "🍄 Spore UI"
+      : t.uiElementFx === "holiday_festive_glow" ? "🎄 Holiday UI"
+      : t.uiElementFx === "nerd_arcane_runes" ? "🎲 Arcane UI"
+      : t.uiElementFx === "nerd_lcars_hud" ? "🖖 LCARS UI"
+      : t.uiElementFx === "horror_blood_moon" ? "🧛 Crypt UI"
+      : t.uiElementFx === "horror_vhs_static" ? "📼 VHS UI"
+      : t.uiElementFx === "realworld_mahogany_brass" ? "🕰️ Mahogany UI"
+      : t.uiElementFx === "realworld_stained_glass" ? "🪟 Stained-Glass UI"
+      : t.uiElementFx === "screen_melt_ooze" ? "🫠 Screen-Melt UI"
+      : t.uiElementFx === "molten_lava_melt" ? "🌋 Molten-Melt UI"
+      : t.uiElementFx === "crt_magnetic_warp" ? "🧲 CRT-Warp UI"
+      : t.uiElementFx === "fever_dream_ripple" ? "🌊 Mirage-Ripple UI"
       : "";
     const uiFxBadge = uiFxBadgeLabel
       ? h("span", { class: "theme-uifx-badge", "data-uifx-badge": t.uiElementFx, title: `Includes interactive File Manager folder & toolbar shader (${t.uiElementFx})` }, uiFxBadgeLabel)
@@ -1832,6 +2192,15 @@ export async function showThemePicker() {
   };
 
   const TIER_RANK = { ultra: 3, medium: 2, low: 1 };
+  const matchesCollection = (t) => {
+    if (activeCollection === "all") return true;
+    const k = String(t.key || "");
+    if (activeCollection === "us_holidays") return k.startsWith("holiday_");
+    if (activeCollection === "nerd_complete") return k.startsWith("nerd_");
+    if (activeCollection === "horror_nightmare") return k.startsWith("horror_");
+    if (activeCollection === "realworld_objects") return k.startsWith("realworld_");
+    return true;
+  };
 
   function draw() {
     const q = search.value.trim().toLowerCase();
@@ -1843,6 +2212,11 @@ export async function showThemePicker() {
     const sortBy = sortFilter.value;
     for (const btn of catPillButtons) {
       const active = btn.dataset.catPill === grp;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-pressed", String(active));
+    }
+    for (const btn of collectionPillButtons) {
+      const active = btn.dataset.collectionPill === activeCollection;
       btn.classList.toggle("is-active", active);
       btn.setAttribute("aria-pressed", String(active));
     }
@@ -1872,6 +2246,7 @@ export async function showThemePicker() {
     const shown = themes.filter((t) => (m === "all" || (m === "dark") === t.dark)
       && (fx === "any" || (fx === "fx") === !!t.hasEffects)
       && (grp === "all" || (grp === "favorites" ? favSet.has(t.key) : grp === "recent" ? recSet.has(t.key) : t.group === grp))
+      && matchesCollection(t)
       && themeMatchesTier(t, tier)
       && themeMatchesAnimation(t, anim)
       && themeMatchesMaterial(t, activeMaterial)
@@ -1896,7 +2271,7 @@ export async function showThemePicker() {
         sections.push(h("section", { class: "theme-section-recent" }, h("h3", {}, `Recently used (${recShown.length})`), h("div", { class: "theme-grid" }, recShown.map(card))));
       }
     }
-    if (!q && m === "all" && fx !== "fx" && grp === "all" && activeVibe === "all" && activeMaterial === "all" && tier === "all" && anim === "all" && sortBy === "group") {
+    if (!q && m === "all" && fx !== "fx" && grp === "all" && activeCollection === "all" && activeVibe === "all" && activeMaterial === "all" && tier === "all" && anim === "all" && sortBy === "group") {
       sections.push(h("section", {}, h("h3", {}, "Default"), h("div", { class: "theme-grid" }, defaultCard())));
     }
     if (grp !== "favorites" && grp !== "recent") {
@@ -3485,6 +3860,76 @@ export const THEME_SHOW_CHANNELS_META = [
       "dragon_forge+embers",
       "outrun_grid+hyperspace+laser_show",
       "radar_sweep+constellations",
+    ],
+  },
+  {
+    id: "us_holidays",
+    icon: "🎄",
+    label: "Complete US Holidays Showcase",
+    desc: "All 18 US Federal & major cultural holidays: New Year's Ball Drop, MLK Dawn, Valentine's Rose, Presidents' Brass, St. Patrick's Clover, Easter Meadow, Mother's & Father's Day, Memorial & Veterans Day, Juneteenth, 4th of July Fireworks, Labor Day Forge, Halloween, Día de los Muertos, Thanksgiving, Hanukkah & Christmas.",
+    themes: [
+      "holiday_new_years_times_square", "holiday_mlk_dream_memorial", "holiday_valentines_velvet_rose", "holiday_presidents_mount_rushmore",
+      "holiday_st_patricks_emerald_clover", "holiday_easter_pastel_egg_hunt", "holiday_mothers_day_botanical_tea", "holiday_memorial_day_poppy_honor",
+      "holiday_juneteenth_jubilee_star", "holiday_fathers_day_leather_den", "holiday_fourth_of_july_fireworks", "holiday_labor_day_rivet_forge",
+      "holiday_halloween_jack_o_lantern", "holiday_dia_de_los_muertos_marigold", "holiday_veterans_day_valor_medallion", "holiday_thanksgiving_harvest_hearth",
+      "holiday_hanukkah_menorah_sapphire", "holiday_christmas_nutcracker_hearth",
+    ],
+    mixes: [
+      "fireworks+confetti+starlight_velvet",
+      "snow+cinema_bokeh+embers",
+      "autumn_leaves+embers+fireflies",
+      "sakura+confetti+sunbeams",
+    ],
+  },
+  {
+    id: "nerd_complete",
+    icon: "🎲",
+    label: "Nerd Complete Theme Sets",
+    desc: "D&D 5e Arcane Grimoire & d20, Starfleet LCARS Galaxy Bridge, Jedi/Sith Kyber Holocron, Rivendell Mithril, Mecha Unit-01 NERV HUD, DEFCON Mainframe, 16-Bit SNES JRPG, Comic Book Halftone, NASA Apollo 11 DSKY & Bletchley Enigma.",
+    themes: [
+      "nerd_dnd_arcane_grimoire", "nerd_starfleet_lcars_bridge", "nerd_kyber_holocron_forge", "nerd_lotr_mithril_elven",
+      "nerd_mecha_eva_nerv_hud", "nerd_defcon_blackhat_mainframe", "nerd_16bit_snes_jrpg_cartridge", "nerd_golden_age_comic_halftone",
+      "nerd_apollo_11_dsky_guidance", "nerd_enigma_bletchley_cipher",
+    ],
+    mixes: [
+      "sacred_mandala+embers+fireflies",
+      "warp_tunnel+starfield+hud_reticle",
+      "laser_show+starfield+plasma_arcs",
+      "matrix_code+circuit_traces+hud_reticle",
+    ],
+  },
+  {
+    id: "horror_nightmare",
+    icon: "🧛",
+    label: "Horror, Crypt & Nightmare Cinema",
+    desc: "Nosferatu Gothic Blood Moon, Lovecraft Non-Euclidean R'lyeh, 1999 Found-Footage Hi8 VHS, Silent Fog Asylum, Level-4 Biohazard Breach, 1980 Camp Slasher, Victorian Ouija Séance, Necronomicon Folio, Thalassophobia Leviathan & Cursed Carnival.",
+    themes: [
+      "horror_nosferatu_blood_moon", "horror_lovecraft_eldritch_rlyeh", "horror_vhs_found_footage_1999", "horror_silent_fog_asylum",
+      "horror_biohazard_containment_lab", "horror_camp_crystal_slasher_80s", "horror_haunted_victorian_seance", "horror_necronomicon_parchment_day",
+      "horror_thalassophobia_abyssal_jaw", "horror_cursed_carnival_calliope",
+    ],
+    mixes: [
+      "embers+red_sprites+starlight_velvet",
+      "abyssal_trench+jellyfish_glow+bio_spores",
+      "thunderstorm+rain+red_sprites",
+      "toxic_slime+bio_spores+hud_reticle",
+    ],
+  },
+  {
+    id: "realworld_objects",
+    icon: "🕰️",
+    label: "Real-World Tactile Objects & Masterpiece Materials",
+    desc: "Grandfather Mahogany Clockwork & Pendulum, 1959 Wurlitzer Vinyl Jukebox, Chartres Stained-Glass Rose Window, Venetian Murano Blown Glass, Tamahagane Katana & Urushi Lacquer, and 1978 Pinball Backglass.",
+    themes: [
+      "realworld_grandfather_clockwork_mahogany", "realworld_vinyl_jukebox_wurlitzer", "realworld_stained_glass_cathedral",
+      "realworld_murano_blown_glass_day", "realworld_katana_urushi_forge", "realworld_pinball_wizard_arcade",
+      "steampunk_chronometer_foundry", "art_deco_metropolis_1929", "kyoto_zen_karesansui_day",
+    ],
+    mixes: [
+      "dust_motes+sunbeams+embers",
+      "sunbeams+prism_spectrum+sacred_mandala",
+      "liquid_glass_caustics+sunbeams+prism_spectrum",
+      "cinema_bokeh+prism_spectrum+embers",
     ],
   },
   {

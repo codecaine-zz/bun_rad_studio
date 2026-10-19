@@ -371,8 +371,7 @@ function templateTierMeta(key: string, theme: SimpleGUITheme): Pick<ThemeSummary
     || fx.glow === "laser"
     || fx.glow === "bloom"
     || Boolean(fx.prismEdge)
-    || Boolean(fx.chromatic)
-    || Boolean(fx.uiElementFx && fx.uiElementFx !== "off");
+    || Boolean(fx.chromatic);
   return {
     tier: isUltra ? "ultra" : "medium",
     motion: fx.motion ?? "calm",

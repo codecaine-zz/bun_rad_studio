@@ -2346,13 +2346,36 @@ html[data-theme-show-glitch="true"] body {
     0 8px 22px -6px rgba(0, 0, 0, 0.65);
 }
 
+:root[data-ui-fx="google_material_folders"] .row.is-folder,
+:root[data-ui-fx="google_material_folders"] .card.is-folder {
+  background:
+    radial-gradient(circle at 14% 20%, color-mix(in oklab, #4285f4 20%, transparent), transparent 52%),
+    radial-gradient(circle at 88% 80%, color-mix(in oklab, #c084fc 16%, transparent), transparent 54%),
+    linear-gradient(145deg, color-mix(in oklab, var(--accent) 16%, var(--panel)) 0%, color-mix(in oklab, var(--panel) 94%, transparent) 100%);
+  border: 1px solid color-mix(in oklab, var(--accent) 42%, rgba(255, 255, 255, 0.26));
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    0 6px 20px -6px color-mix(in oklab, var(--accent) 32%, rgba(0, 0, 0, 0.36));
+  backdrop-filter: blur(22px) saturate(1.65);
+  transition: transform 180ms cubic-bezier(0.2, 0, 0, 1), box-shadow 180ms ease;
+}
+:root[data-ui-fx="google_material_folders"] .row.is-folder:hover,
+:root[data-ui-fx="google_material_folders"] .card.is-folder:hover {
+  transform: translateY(-1px) scale(1.005);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 10px 26px -6px color-mix(in oklab, var(--accent) 48%, rgba(0, 0, 0, 0.44));
+}
+
 /* 3D Sculpted Regular Folder & Framed Picture Icon Styling */
 :root[data-icon-pack="macos_tahoe_3d"] .c-icon,
 :root[data-icon-pack="win11_fluent_pro"] .c-icon,
 :root[data-icon-pack="pro_studio_xdr"] .c-icon,
 :root[data-icon-pack="hdr_photo_studio"] .c-icon,
 :root[data-icon-pack="linux_papirus_pro"] .c-icon,
-:root[data-icon-pack="nordic_minimal"] .c-icon {
+:root[data-icon-pack="nordic_minimal"] .c-icon,
+:root[data-icon-pack="google_material_3d"] .c-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2371,7 +2394,8 @@ html[data-theme-show-glitch="true"] body {
 :root[data-icon-pack="pro_studio_xdr"] .row:hover .c-icon,
 :root[data-icon-pack="hdr_photo_studio"] .row:hover .c-icon,
 :root[data-icon-pack="linux_papirus_pro"] .row:hover .c-icon,
-:root[data-icon-pack="nordic_minimal"] .row:hover .c-icon {
+:root[data-icon-pack="nordic_minimal"] .row:hover .c-icon,
+:root[data-icon-pack="google_material_3d"] .row:hover .c-icon {
   transform: translateY(-1px) scale(1.08);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.6),
@@ -2384,7 +2408,8 @@ html[data-theme-show-glitch="true"] body {
 :root[data-icon-pack="pro_studio_xdr"] .c-icon[data-icon-kind="image"],
 :root[data-icon-pack="hdr_photo_studio"] .c-icon[data-icon-kind="image"],
 :root[data-icon-pack="linux_papirus_pro"] .c-icon[data-icon-kind="image"],
-:root[data-icon-pack="nordic_minimal"] .c-icon[data-icon-kind="image"] {
+:root[data-icon-pack="nordic_minimal"] .c-icon[data-icon-kind="image"],
+:root[data-icon-pack="google_material_3d"] .c-icon[data-icon-kind="image"] {
   background:
     radial-gradient(circle at 28% 26%, rgba(255, 214, 102, 0.42), transparent 48%),
     linear-gradient(155deg, color-mix(in oklab, var(--accent) 38%, #1e293b) 0%, color-mix(in oklab, #ec4899 28%, var(--panel)) 100%);
@@ -2630,5 +2655,410 @@ html[data-ui-fx] .row.is-folder[aria-selected="true"]:hover {
     0 4px 12px color-mix(in oklab, var(--accent) 55%, rgba(0, 0, 0, 0.45)) !important;
   transform: scale(1.06);
 }
+
+/* ============================================================================
+ * 🎄🎲🧛🕰️ US Holidays, Nerd Complete, Horror & Real-World Object UI Element Shaders
+ * ============================================================================ */
+
+:root[data-ui-fx="holiday_festive_glow"] .row.is-folder,
+:root[data-ui-fx="holiday_festive_glow"] .card.is-folder {
+  background:
+    radial-gradient(circle at 12% 20%, color-mix(in oklab, var(--fx-glow-color, var(--accent)) 26%, transparent), transparent 52%),
+    radial-gradient(circle at 88% 78%, color-mix(in oklab, var(--fx-glow-color-2, #facc15) 22%, transparent), transparent 56%),
+    linear-gradient(145deg, color-mix(in oklab, var(--accent) 18%, var(--panel)) 0%, color-mix(in oklab, var(--panel) 92%, transparent) 100%);
+  border: 1px solid color-mix(in oklab, var(--accent) 48%, rgba(255, 255, 255, 0.35));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 6px 20px -5px color-mix(in oklab, var(--accent) 38%, rgba(0, 0, 0, 0.4));
+  backdrop-filter: blur(20px) saturate(1.75);
+}
+
+:root[data-ui-fx="nerd_arcane_runes"] .row.is-folder,
+:root[data-ui-fx="nerd_arcane_runes"] .card.is-folder {
+  background:
+    radial-gradient(circle at 18% 50%, color-mix(in oklab, #fbbf24 22%, transparent), transparent 50%),
+    linear-gradient(155deg, color-mix(in oklab, var(--accent) 20%, var(--panel)) 0%, color-mix(in oklab, #7e22ce 16%, var(--panel)) 100%);
+  border: 1.5px double color-mix(in oklab, var(--accent) 62%, #fbbf24);
+  box-shadow:
+    inset 0 0 14px color-mix(in oklab, var(--accent) 22%, transparent),
+    0 6px 18px -4px rgba(0, 0, 0, 0.52);
+}
+
+:root[data-ui-fx="nerd_lcars_hud"] .row.is-folder,
+:root[data-ui-fx="nerd_lcars_hud"] .card.is-folder {
+  background:
+    linear-gradient(90deg, color-mix(in oklab, var(--accent) 32%, var(--panel)) 0%, color-mix(in oklab, var(--panel) 94%, transparent) 18%, var(--panel) 100%);
+  border: 1px solid color-mix(in oklab, var(--accent) 58%, var(--border));
+  border-left: 6px solid var(--accent);
+  border-radius: 999px 12px 12px 999px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 4px 16px -4px color-mix(in oklab, var(--accent) 36%, rgba(0, 0, 0, 0.48));
+}
+
+:root[data-ui-fx="horror_blood_moon"] .row.is-folder,
+:root[data-ui-fx="horror_blood_moon"] .card.is-folder {
+  background:
+    radial-gradient(circle at 82% 22%, rgba(225, 29, 72, 0.26), transparent 54%),
+    linear-gradient(165deg, color-mix(in oklab, #991b1b 26%, var(--panel)) 0%, color-mix(in oklab, #000000 32%, var(--panel)) 100%);
+  border: 1px solid color-mix(in oklab, var(--accent) 56%, #7f1d1d);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 100, 120, 0.22),
+    inset 0 -2px 8px rgba(0, 0, 0, 0.65),
+    0 8px 22px -6px rgba(153, 27, 27, 0.48);
+}
+
+:root[data-ui-fx="horror_vhs_static"] .row.is-folder,
+:root[data-ui-fx="horror_vhs_static"] .card.is-folder {
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.03) 0px, rgba(255, 255, 255, 0.03) 1px, transparent 1px, transparent 3px),
+    linear-gradient(135deg, color-mix(in oklab, var(--accent) 16%, var(--panel)) 0%, var(--panel) 100%);
+  border: 1px dashed color-mix(in oklab, var(--accent) 58%, var(--border));
+  text-shadow: -1px 0 rgba(255, 0, 85, 0.32), 1px 0 rgba(0, 240, 255, 0.32);
+}
+
+:root[data-ui-fx="realworld_mahogany_brass"] .row.is-folder,
+:root[data-ui-fx="realworld_mahogany_brass"] .card.is-folder {
+  background:
+    repeating-linear-gradient(12deg, rgba(251, 191, 36, 0.035) 0px, rgba(251, 191, 36, 0.035) 2px, transparent 2px, transparent 9px),
+    linear-gradient(160deg, color-mix(in oklab, #b45309 24%, var(--panel)) 0%, color-mix(in oklab, #451a03 28%, var(--panel)) 100%);
+  border: 1.5px solid color-mix(in oklab, #f59e0b 62%, var(--border));
+  box-shadow:
+    inset 0 1px 0 rgba(254, 243, 199, 0.38),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.55),
+    0 7px 18px -5px rgba(0, 0, 0, 0.58);
+}
+
+:root[data-ui-fx="realworld_stained_glass"] .row.is-folder,
+:root[data-ui-fx="realworld_stained_glass"] .card.is-folder {
+  background:
+    conic-gradient(from 40deg at 20% 50%, rgba(251, 191, 36, 0.18), rgba(56, 189, 248, 0.18), rgba(236, 72, 153, 0.18), rgba(34, 197, 94, 0.16), rgba(251, 191, 36, 0.18)),
+    linear-gradient(145deg, color-mix(in oklab, var(--accent) 18%, var(--panel)) 0%, var(--panel) 100%);
+  border: 2px solid color-mix(in oklab, var(--accent) 55%, #1e293b);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.45),
+    0 8px 22px -6px color-mix(in oklab, var(--accent) 44%, rgba(0, 0, 0, 0.45));
+  backdrop-filter: blur(22px) saturate(1.9);
+}
+
+/* 3D Icon Plates for US Holidays, Nerd Complete, Horror & Real-World Objects */
+:root[data-icon-pack="us_holidays_festive"] .c-icon,
+:root[data-icon-pack="nerd_rpg_arcane"] .c-icon,
+:root[data-icon-pack="nerd_scifi_fleet"] .c-icon,
+:root[data-icon-pack="nerd_hacker_retro"] .c-icon,
+:root[data-icon-pack="horror_crypt"] .c-icon,
+:root[data-icon-pack="realworld_objects"] .c-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-radius: 7px;
+  padding: 2px 5px;
+  background: linear-gradient(145deg, color-mix(in oklab, var(--accent) 28%, var(--panel)), color-mix(in oklab, var(--panel) 84%, #000));
+  border: 1px solid color-mix(in oklab, var(--accent) 54%, rgba(255, 255, 255, 0.34));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 3px 9px rgba(0, 0, 0, 0.36);
+  transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 150ms ease;
+}
+
+/* ============================================================================
+ * 📁📄 Authentic Enhanced Folder-Tab & File-Sheet Silhouettes Across All Themes
+ * Guarantees folders ALWAYS look like recognizable 3D folders (with top folder tab
+ * & front pocket bevel) and files ALWAYS look like recognizable 3D document sheets
+ * (with dog-eared top-right corner fold), enhanced with the active theme's materials.
+ * ============================================================================ */
+:root[data-fx] .row.is-folder .c-icon,
+:root[data-icon-pack] .row.is-folder .c-icon,
+.row.is-folder .c-icon[data-is-folder="1"] {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px 8px 7px 7px;
+  padding: 2px 6px;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--accent) 34%, rgba(255, 255, 255, 0.22)) 0%, color-mix(in oklab, var(--accent) 20%, var(--panel)) 42%, color-mix(in oklab, var(--panel) 85%, #000) 100%);
+  border: 1px solid color-mix(in oklab, var(--accent) 56%, rgba(255, 255, 255, 0.36));
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.42),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.35),
+    0 3px 8px -2px color-mix(in oklab, var(--accent) 35%, rgba(0, 0, 0, 0.42));
+}
+
+/* Sculpted top-left 3D Folder Tab on every folder icon */
+:root[data-fx] .row.is-folder .c-icon::before,
+:root[data-icon-pack] .row.is-folder .c-icon::before,
+.row.is-folder .c-icon[data-is-folder="1"]::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 2px;
+  width: 44%;
+  height: 4px;
+  border-radius: 3px 4px 0 0;
+  background: linear-gradient(90deg, var(--accent), color-mix(in oklab, var(--accent) 68%, #ffffff));
+  border: 1px solid color-mix(in oklab, var(--accent) 72%, rgba(255, 255, 255, 0.48));
+  border-bottom: none;
+  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+}
+
+/* Sculpted 3D File Document Sheet with Dog-Eared Corner Fold on every file icon */
+:root[data-fx] .row:not(.is-folder) .c-icon,
+:root[data-icon-pack] .row:not(.is-folder) .c-icon,
+.row:not(.is-folder) .c-icon[data-is-folder="0"] {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px 9px 5px 5px;
+  padding: 2px 5px;
+  background:
+    linear-gradient(155deg, color-mix(in oklab, #ffffff 16%, var(--panel)) 0%, color-mix(in oklab, var(--accent) 14%, var(--panel)) 100%);
+  border: 1px solid color-mix(in oklab, var(--accent) 38%, var(--border));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    0 2px 6px -1px rgba(0, 0, 0, 0.32);
+}
+
+/* Top-right dog-eared page fold on every file icon */
+:root[data-fx] .row:not(.is-folder) .c-icon::after,
+:root[data-icon-pack] .row:not(.is-folder) .c-icon::after,
+.row:not(.is-folder) .c-icon[data-is-folder="0"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 6px;
+  background: linear-gradient(225deg, color-mix(in oklab, var(--bg) 75%, transparent) 46%, color-mix(in oklab, var(--accent) 75%, #ffffff) 50%, color-mix(in oklab, var(--accent) 45%, var(--panel)) 100%);
+  border-bottom-left-radius: 3px;
+  box-shadow: -1px 1px 2px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+}
+
+/* ============================================================================
+ * 🫠🌋🧲🌊 Screen-Melting & Optical Distortion Shaders (uiElementFx)
+ * Makes folders, files, toolbars, and panels look like they are melting,
+ * dripping, or warping across the screen while preserving clickability.
+ * ============================================================================ */
+
+@keyframes fmScreenMeltSag {
+  0% {
+    transform: perspective(700px) skewX(-0.6deg) scaleY(1);
+    border-radius: 10px 10px 20px 28px / 8px 8px 14px 24px;
+  }
+  50% {
+    transform: perspective(700px) skewX(0.9deg) translateY(2px) scaleY(1.035);
+    border-radius: 14px 8px 34px 18px / 8px 10px 28px 16px;
+  }
+  100% {
+    transform: perspective(700px) skewX(-0.4deg) translateY(1px) scaleY(1.02);
+    border-radius: 8px 14px 24px 36px / 10px 8px 20px 30px;
+  }
+}
+
+@keyframes fmScreenMeltIconDrip {
+  0%, 100% {
+    transform: translateY(0) scaleY(1) skewX(0deg);
+  }
+  50% {
+    transform: translateY(2.5px) scaleY(1.12) scaleX(0.95) skewX(3deg);
+  }
+}
+
+@keyframes fmMoltenGlassSag {
+  0%, 100% {
+    transform: perspective(650px) rotateX(1deg) scaleY(1);
+    box-shadow:
+      inset 0 2px 6px rgba(255, 200, 60, 0.42),
+      0 8px 24px -4px rgba(255, 69, 0, 0.48);
+  }
+  50% {
+    transform: perspective(650px) rotateX(-1.5deg) translateY(2px) scaleY(1.03);
+    box-shadow:
+      inset 0 3px 10px rgba(255, 230, 100, 0.58),
+      0 14px 30px -4px rgba(255, 40, 0, 0.65);
+  }
+}
+
+@keyframes fmCrtMagneticWarp {
+  0%, 100% {
+    transform: perspective(580px) rotateY(-0.8deg) skewX(-0.8deg) scaleX(1);
+  }
+  50% {
+    transform: perspective(580px) rotateY(0.8deg) skewX(1.1deg) scaleX(1.008);
+  }
+}
+
+@keyframes fmFeverDreamWave {
+  0%, 100% {
+    transform: translateX(0) skewX(-0.7deg) scaleY(1);
+  }
+  33% {
+    transform: translateX(1.5px) skewX(0.9deg) scaleY(1.02);
+  }
+  66% {
+    transform: translateX(-1.5px) skewX(-0.5deg) scaleY(0.99);
+  }
+}
+
+/* 1. 🫠 Dalí Screen-Melting Ooze (screen_melt_ooze) */
+:root[data-ui-fx="screen_melt_ooze"] :is(#toolbar-row, #addressbar, .row.is-folder, .card.is-folder) {
+  position: relative;
+  background:
+    radial-gradient(ellipse 55% 80% at 24% 100%, color-mix(in oklab, var(--fx-glow-color, var(--accent)) 36%, transparent), transparent 70%),
+    radial-gradient(ellipse 45% 90% at 76% 100%, color-mix(in oklab, var(--fx-glow-color-2, #a3e635) 32%, transparent), transparent 72%),
+    linear-gradient(172deg, color-mix(in oklab, var(--accent) 22%, var(--panel)) 0%, color-mix(in oklab, var(--panel) 90%, #05020a) 100%);
+  border: 1.5px solid color-mix(in oklab, var(--accent) 62%, rgba(255, 255, 255, 0.35));
+  border-radius: 10px 10px 26px 32px / 8px 8px 18px 26px;
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.35),
+    0 10px 24px -6px color-mix(in oklab, var(--accent) 52%, rgba(0, 0, 0, 0.6));
+  animation: fmScreenMeltSag 6s ease-in-out infinite alternate;
+}
+
+/* Dripping wax/ooze droplets hanging off the bottom of folders & toolbar in screen_melt_ooze */
+:root[data-ui-fx="screen_melt_ooze"] :is(#toolbar-row, .row.is-folder)::after {
+  content: "";
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: -7px;
+  height: 8px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 12% 0%, var(--accent) 0 4px, transparent 5px),
+    radial-gradient(circle at 31% 0%, color-mix(in oklab, var(--fx-glow-color-2, var(--accent)) 80%, #fff) 0 5.5px, transparent 6.5px),
+    radial-gradient(circle at 58% 0%, var(--accent) 0 3.5px, transparent 4.5px),
+    radial-gradient(circle at 83% 0%, color-mix(in oklab, var(--accent) 75%, var(--fx-glow-color-2, #fff)) 0 5px, transparent 6px);
+  filter: drop-shadow(0 3px 4px color-mix(in oklab, var(--accent) 50%, rgba(0, 0, 0, 0.5)));
+  opacity: 0.92;
+}
+
+:root[data-ui-fx="screen_melt_ooze"] .row .c-icon {
+  animation: fmScreenMeltIconDrip 4.2s ease-in-out infinite;
+  filter: url(#fm-filter-screen-melt);
+}
+
+:root[data-ui-fx="screen_melt_ooze"] .row:hover {
+  filter: url(#fm-filter-screen-melt);
+}
+
+/* 2. 🌋 Molten Glass & Magma Screen Melt (molten_lava_melt) */
+:root[data-ui-fx="molten_lava_melt"] :is(#toolbar-row, #addressbar, .row.is-folder, .card.is-folder) {
+  position: relative;
+  background:
+    radial-gradient(ellipse 65% 75% at 50% 105%, rgba(255, 115, 0, 0.38), transparent 70%),
+    linear-gradient(175deg, color-mix(in oklab, #ff5500 28%, var(--panel)) 0%, color-mix(in oklab, #facc15 16%, var(--panel)) 55%, color-mix(in oklab, #450a0a 40%, var(--panel)) 100%);
+  border: 1.5px solid color-mix(in oklab, #ff6b00 68%, #fde047);
+  border-radius: 12px 12px 28px 22px / 8px 8px 22px 18px;
+  animation: fmMoltenGlassSag 5.2s ease-in-out infinite;
+}
+
+:root[data-ui-fx="molten_lava_melt"] .row .c-icon {
+  animation: fmScreenMeltIconDrip 4.8s ease-in-out infinite;
+  filter: url(#fm-filter-molten-glass);
+}
+
+:root[data-ui-fx="molten_lava_melt"] .row:hover {
+  filter: url(#fm-filter-molten-glass);
+}
+
+/* 3. 🧲 CRT Degauss Magnetic Warp (crt_magnetic_warp) */
+:root[data-ui-fx="crt_magnetic_warp"] :is(#toolbar-row, #addressbar, .row.is-folder, .card.is-folder) {
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 0, 85, 0.05) 0 2px, rgba(0, 255, 170, 0.05) 2px 4px, rgba(0, 180, 255, 0.05) 4px 6px),
+    linear-gradient(145deg, color-mix(in oklab, var(--accent) 20%, var(--panel)) 0%, var(--panel) 100%);
+  border: 1px solid color-mix(in oklab, var(--accent) 60%, #ec4899);
+  box-shadow:
+    -2px 0 0 rgba(255, 0, 90, 0.38),
+    2px 0 0 rgba(0, 235, 255, 0.38),
+    0 6px 18px -4px rgba(0, 0, 0, 0.55);
+  text-shadow: -1.2px 0 rgba(255, 0, 90, 0.42), 1.2px 0 rgba(0, 235, 255, 0.42);
+  animation: fmCrtMagneticWarp 4.4s ease-in-out infinite;
+}
+
+/* 4. 🌊 Hallucinogenic Liquid Ripple (fever_dream_ripple) */
+:root[data-ui-fx="fever_dream_ripple"] :is(#toolbar-row, #addressbar, .row.is-folder, .card.is-folder) {
+  background:
+    radial-gradient(circle at 20% 50%, color-mix(in oklab, var(--accent) 28%, transparent), transparent 60%),
+    radial-gradient(circle at 80% 50%, color-mix(in oklab, var(--fx-glow-color-2, #ec4899) 28%, transparent), transparent 60%),
+    linear-gradient(135deg, color-mix(in oklab, var(--accent) 18%, var(--panel)) 0%, var(--panel) 100%);
+  border: 1px solid color-mix(in oklab, var(--accent) 55%, rgba(255, 255, 255, 0.38));
+  border-radius: 16px 8px 20px 10px;
+  animation: fmFeverDreamWave 5s ease-in-out infinite;
+}
+
+:root[data-ui-fx="fever_dream_ripple"] .row .c-icon,
+:root[data-ui-fx="fever_dream_ripple"] .row:hover {
+  filter: url(#fm-filter-liquid-ripple);
+}
+
+/* ============================================================================
+ * 🪄 Special Effects Design Wizard UI (in Theme Editor & Theme Gallery)
+ * ============================================================================ */
+.theme-sfx-wizard-box {
+  margin-top: 0.75rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 12px;
+  border: 1.5px solid color-mix(in oklab, var(--accent) 52%, var(--border));
+  background:
+    radial-gradient(circle at 92% 12%, color-mix(in oklab, var(--accent) 18%, transparent), transparent 55%),
+    linear-gradient(155deg, color-mix(in oklab, var(--accent) 10%, var(--panel)), var(--panel));
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.theme-sfx-wizard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.theme-sfx-wizard-title {
+  font-weight: 700;
+  font-size: 0.88rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.theme-sfx-wizard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+  gap: 0.45rem;
+}
+.theme-sfx-wizard-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 9px;
+  border: 1px solid color-mix(in oklab, var(--accent) 34%, var(--border));
+  background: color-mix(in oklab, var(--bg) 65%, var(--panel));
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+.theme-sfx-wizard-card:hover,
+.theme-sfx-wizard-card.is-active {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+  box-shadow: 0 4px 14px -4px color-mix(in oklab, var(--accent) 45%, transparent);
+}
+.theme-sfx-wizard-card-title {
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+.theme-sfx-wizard-card-sub {
+  font-size: 0.68rem;
+  color: var(--muted);
+  line-height: 1.25;
+}
+
 
 

@@ -237,6 +237,68 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         'mobius_wormhole_odyssey',
         'pastel_dreamcore_cloud',
         'solarpunk_kaleidoscope_day',
+        'google_gemini_ultra',
+        'google_material_you_3d',
+        'google_pixel_amoled',
+        'google_deepmind_quantum',
+        'google_cloud_vertex_pro',
+        'google_project_idx_studio',
+        'google_chromeos_aurora',
+        'google_workspace_daylight',
+        'ayahuasca_vine_vision',
+        'alex_grey_astral_cathedral',
+        'summer_of_love_tiedye_67',
+        'vaporwave_mall_plaza_95',
+        'frutiger_aero_aqua_2007',
+        'steampunk_chronometer_foundry',
+        'art_deco_metropolis_1929',
+        'synth_arcade_crt_1984',
+        'mariana_bioluminescent_trench',
+        'kyoto_zen_karesansui_day',
+        'holiday_new_years_times_square',
+        'holiday_mlk_dream_memorial',
+        'holiday_valentines_velvet_rose',
+        'holiday_presidents_mount_rushmore',
+        'holiday_st_patricks_emerald_clover',
+        'holiday_easter_pastel_egg_hunt',
+        'holiday_mothers_day_botanical_tea',
+        'holiday_memorial_day_poppy_honor',
+        'holiday_juneteenth_jubilee_star',
+        'holiday_fathers_day_leather_den',
+        'holiday_fourth_of_july_fireworks',
+        'holiday_labor_day_rivet_forge',
+        'holiday_halloween_jack_o_lantern',
+        'holiday_dia_de_los_muertos_marigold',
+        'holiday_veterans_day_valor_medallion',
+        'holiday_thanksgiving_harvest_hearth',
+        'holiday_hanukkah_menorah_sapphire',
+        'holiday_christmas_nutcracker_hearth',
+        'nerd_dnd_arcane_grimoire',
+        'nerd_starfleet_lcars_bridge',
+        'nerd_kyber_holocron_forge',
+        'nerd_lotr_mithril_elven',
+        'nerd_mecha_eva_nerv_hud',
+        'nerd_defcon_blackhat_mainframe',
+        'nerd_16bit_snes_jrpg_cartridge',
+        'nerd_golden_age_comic_halftone',
+        'nerd_apollo_11_dsky_guidance',
+        'nerd_enigma_bletchley_cipher',
+        'horror_nosferatu_blood_moon',
+        'horror_lovecraft_eldritch_rlyeh',
+        'horror_vhs_found_footage_1999',
+        'horror_silent_fog_asylum',
+        'horror_biohazard_containment_lab',
+        'horror_camp_crystal_slasher_80s',
+        'horror_haunted_victorian_seance',
+        'horror_necronomicon_parchment_day',
+        'horror_thalassophobia_abyssal_jaw',
+        'horror_cursed_carnival_calliope',
+        'realworld_grandfather_clockwork_mahogany',
+        'realworld_vinyl_jukebox_wurlitzer',
+        'realworld_stained_glass_cathedral',
+        'realworld_murano_blown_glass_day',
+        'realworld_katana_urushi_forge',
+        'realworld_pinball_wizard_arcade',
     ];
     // Rare and beloved systems (RARE_OS_THEME_KEYS in src/shared/osThemes.ts).
     const RARE_OS_THEMES = [
@@ -265,9 +327,9 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
     ];
     const EXPECTED_76_THEMES = [...BASE_76_THEMES, ...OS_VERSION_THEMES, ...RARE_OS_THEMES, ...FUTURISTIC_THEMES].sort((a, b) => a.localeCompare(b));
 
-    it("1. getThemeNames() and getThemes() return all 236 canonical themes sorted alphabetically", () => {
+    it("1. getThemeNames() and getThemes() return all 298 canonical themes sorted alphabetically", () => {
         const names = getThemeNames();
-        expect(names.length).toBe(236);
+        expect(names.length).toBe(298);
         expect(names).toEqual(EXPECTED_76_THEMES);
 
         const namesSnake = get_theme_names();
@@ -288,7 +350,7 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         expect(isSorted(listThemes())).toBe(true);
     });
 
-    it("2. getTheme() resolves every one of the 236 themes with valid palettes", () => {
+    it("2. getTheme() resolves every one of the 298 themes with valid palettes", () => {
         for (const name of EXPECTED_76_THEMES) {
             const theme = getTheme(name);
             expect(theme).toBeDefined();
@@ -509,17 +571,17 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         const sortedListThemes = [...listThemesArr].sort((a, b) => a.localeCompare(b));
         expect(listThemesArr).toEqual(sortedListThemes);
 
-        // 4. Demo 25 theme dropdown has exactly 236 unique themes with zero duplicates
+        // 4. Demo 25 theme dropdown has exactly 298 unique themes with zero duplicates
         const demo25Win = createVlangShowcase();
         const demo25Html = demo25Win.getHtml();
         const themeMatch = demo25Html.match(/<select[^>]*id="dd_theme_selector"[^>]*>([\s\S]*?)<\/select>/);
         expect(themeMatch).toBeTruthy();
         const demo25Options = [...themeMatch![1]!.matchAll(/<option[^>]*value="([^"]*)"[^>]*>([^<]*)<\/option>/g)].map(x => ({ val: x[1], text: x[2] }));
-        expect(demo25Options.length).toBe(236);
+        expect(demo25Options.length).toBe(298);
         const uniqueValues = new Set(demo25Options.map(o => o.val));
         const uniqueTexts = new Set(demo25Options.map(o => o.text));
-        expect(uniqueValues.size).toBe(236);
-        expect(uniqueTexts.size).toBe(236);
+        expect(uniqueValues.size).toBe(298);
+        expect(uniqueTexts.size).toBe(298);
     });
 });
 
