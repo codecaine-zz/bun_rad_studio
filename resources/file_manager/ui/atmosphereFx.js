@@ -124,10 +124,10 @@ const VALID_REACTIVE_MODES = new Set(REACTIVE_MODES.map((m) => m.id));
 const DEFAULT_GLYPHS = "0123456789ABCDEFZ<>:+*=-ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ";
 
 export const TIER_PROFILES = {
-  low: { density: 0.5, dpr: 1, bloom: false, interactive: false, lightning: false, ribbons: 2, frameIntervalMs: 32 },
-  medium: { density: 0.85, dpr: 1, bloom: true, interactive: true, lightning: true, ribbons: 3, frameIntervalMs: 24 },
-  high: { density: 1.15, dpr: 1, bloom: true, interactive: true, lightning: true, ribbons: 4, frameIntervalMs: 18 },
-  ultra: { density: 1.55, dpr: 1, bloom: true, interactive: true, lightning: true, ribbons: 5, frameIntervalMs: 14 },
+  low: { density: 0.55, dpr: 1, bloom: false, interactive: false, lightning: false, ribbons: 2, frameIntervalMs: 15 },
+  medium: { density: 0.9, dpr: 1, bloom: true, interactive: true, lightning: true, ribbons: 3, frameIntervalMs: 14 },
+  high: { density: 1.15, dpr: 1, bloom: true, interactive: true, lightning: true, ribbons: 4, frameIntervalMs: 14 },
+  ultra: { density: 1.55, dpr: 1, bloom: true, interactive: true, lightning: true, ribbons: 5, frameIntervalMs: 12 },
   extreme: { density: 3.2, dpr: 2, bloom: true, interactive: true, lightning: true, ribbons: 8, frameIntervalMs: 8 },
 };
 
@@ -159,7 +159,7 @@ const ENGINE_DEPTH_ORDER = {
 
 const MAX_CANVAS_W = 1120;
 const MAX_CANVAS_H = 700;
-const FRAME_INTERVAL_MS = 24;
+const FRAME_INTERVAL_MS = 14;
 
 let rafId = 0;
 let activeEffect = "none";
@@ -192,8 +192,9 @@ export function detectHardwareTier(navOverride, winOverride) {
     const cores = Number(nav.hardwareConcurrency) || 4;
     const mem = Number(nav.deviceMemory) || 0;
     const dpr = Number(win.devicePixelRatio) || 1;
-    const ua = `${nav.userAgent || ""} ${nav.platform || ""} ${nav.userAgentData?.architecture || ""} ${nav.userAgentData?.platform || ""}`.toLowerCase();
-    const isLinux = /\blinux\b|\bx11\b|\bwayland\b|\bubuntu\b/.test(ua) && !/android/.test(ua);
+    const rawUa = `${nav.userAgent || ""} ${nav.platform || ""} ${nav.userAgentData?.architecture || ""} ${nav.userAgentData?.platform || ""}`.toLowerCase();
+    const ua = rawUa.replace(/like\s+android/g, "");
+    const isLinux = /\blinux\b|\bx11\b|\bwayland\b|\bubuntu\b/.test(ua) && !/\bandroid\b/.test(ua);
     const isAppleSilicon = (!isLinux && (/mac/.test(ua) && (/arm|aarch64|apple\s*m[1-9]/.test(ua) || (dpr >= 2 && cores >= 8)))) || (!isLinux && /\b(arm64|aarch64)\b/.test(ua));
     if (isAppleSilicon && cores >= 8) return "ultra";
     if (!isLinux && (cores >= 12 || (cores >= 8 && dpr >= 2 && mem >= 8))) return "ultra";
@@ -213,11 +214,7 @@ export function detectHardwareTier(navOverride, winOverride) {
 export function effectiveAtmosphereTier() {
   const raw = state.settings?.atmosphereTier;
   if (typeof raw === "string" && VALID_TIERS.has(raw) && raw !== "auto") return raw;
-  const detected = detectHardwareTier();
-  if (typeof document !== "undefined" && document.documentElement?.dataset?.platform === "linux") {
-    return detected === "low" ? "low" : "medium";
-  }
-  return detected;
+  return detectHardwareTier();
 }
 
 export function effectiveAtmosphereReactive() {
@@ -1026,7 +1023,7 @@ function seedSingleLayer(opt, w, h, baseDensity) {
 
 function seedAllLayers(layerIds, w, h, scale) {
   const profile = TIER_PROFILES[activeTier] || TIER_PROFILES.medium;
-  const multiBalance = layerIds.length > 1 ? 1 / Math.pow(layerIds.length, 0.72) : 1;
+  const multiBalance = layerIds.length > 1 ? 1 / Math.pow(layerIds.length, 0.5) : 1;
   const baseDensity = scale * profile.density * multiBalance;
   const defs = layerIds
     .map((id) => ATMOSPHERE_BY_ID.get(id))
@@ -1154,7 +1151,11 @@ function drawSingleLayer(ctx, layer, w, h, rawScale, profile) {
       const y2 = params.horizontal ? p.y : p.y + p.len;
       const alpha = Math.min(0.9, p.alpha * scale);
 
-      ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${alpha * 0.78})`;
+      const grad = ctx.createLinearGradient(p.x, p.y, x2, y2);
+      grad.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, 0)`);
+      grad.addColorStop(0.72, `rgba(${cr}, ${cg}, ${cb}, ${alpha * 0.72})`);
+      grad.addColorStop(1, `rgba(${hr}, ${hg}, ${hb}, ${Math.min(1, alpha * 1.15)})`);
+      ctx.strokeStyle = grad;
       ctx.lineWidth = p.thick;
       ctx.beginPath();
       ctx.moveTo(p.x, p.y);
@@ -1550,7 +1551,11 @@ function drawSingleLayer(ctx, layer, w, h, rawScale, profile) {
         const y2 = cy + Math.sin(p.angle) * p.dist;
         const [cr, cg, cb] = toneRgb(p.tone);
         const a = Math.min(0.95, p.alpha * scale * Math.min(1, p.dist / 85));
-        ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${a * 0.82})`;
+        const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+        grad.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, 0)`);
+        grad.addColorStop(0.7, `rgba(${cr}, ${cg}, ${cb}, ${a * 0.7})`);
+        grad.addColorStop(1, `rgba(${hr}, ${hg}, ${hb}, ${a})`);
+        ctx.strokeStyle = grad;
         ctx.lineWidth = p.r;
         ctx.lineCap = "round";
         ctx.beginPath();
@@ -1564,10 +1569,9 @@ function drawSingleLayer(ctx, layer, w, h, rawScale, profile) {
       }
     }
   } else if (engine === "aurora") {
-    const maxRibbons = activeLayers.length > 1 ? 3 : 4;
-    const ribbons = Math.min(params.ribbons || profile.ribbons || 3, maxRibbons);
+    const ribbons = Math.min(params.ribbons || profile.ribbons || 4, (profile.ribbons || 4) + 1);
     const t = frameTick * 0.016;
-    const stepX = Math.max(36, Math.floor(w / 14));
+    const stepX = Math.max(28, Math.floor(w / 16));
     for (let r = 0; r < ribbons; r++) {
       const baseY = h * (0.2 + r * 0.12);
       const curtainHeight = h * ((params.curtainHeight || 0.25) + (r % 2) * 0.05);
@@ -2812,7 +2816,7 @@ function drawSingleLayer(ctx, layer, w, h, rawScale, profile) {
   }
 }
 
-function drawFrame() {
+function drawFrame(tickStep = 1) {
   if (typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent || "")) return false;
   const canvas = document.getElementById("fm-atmosphere-canvas");
   if (!canvas || typeof canvas.getContext !== "function") return false;
@@ -2823,7 +2827,7 @@ function drawFrame() {
     return false;
   }
   if (!ctx) return false;
-  frameTick++;
+  frameTick += tickStep;
   const profile = TIER_PROFILES[activeTier] || TIER_PROFILES.medium;
   const w = canvas.width;
   const h = canvas.height;
@@ -2832,8 +2836,7 @@ function drawFrame() {
   const { isDark } = cachedColors;
 
   ctx.clearRect(0, 0, w, h);
-  const isLinux = typeof document !== "undefined" && document.documentElement?.dataset?.platform === "linux";
-  ctx.globalCompositeOperation = !isLinux && isDark && profile.bloom ? "screen" : "source-over";
+  ctx.globalCompositeOperation = isDark && profile.bloom ? "screen" : "source-over";
 
   for (const layer of activeLayers) {
     drawSingleLayer(ctx, layer, w, h, scale, profile);
@@ -2846,7 +2849,7 @@ function drawFrame() {
 function startLoop() {
   stopLoop();
   if (activeEffect === "none" || !activeLayers.length) return;
-  if (!drawFrame() || reducedMotion()) return;
+  if (!drawFrame(1) || reducedMotion()) return;
   const tick = (now = 0) => {
     if (activeEffect === "none" || document.hidden) {
       rafId = 0;
@@ -2854,9 +2857,11 @@ function startLoop() {
     }
     const profile = TIER_PROFILES[activeTier] || TIER_PROFILES.medium;
     const minInterval = profile.frameIntervalMs || FRAME_INTERVAL_MS;
-    if (now >= scrollPauseUntil && (!lastFrameAt || now - lastFrameAt >= minInterval)) {
+    const elapsed = lastFrameAt ? now - lastFrameAt : 16.67;
+    if (now >= scrollPauseUntil && (!lastFrameAt || elapsed >= minInterval)) {
       lastFrameAt = now;
-      if (!drawFrame()) {
+      const step = elapsed > 24 && elapsed < 200 ? Math.min(3, Math.max(1, Math.round(elapsed / 16.667))) : 1;
+      if (!drawFrame(step)) {
         rafId = 0;
         return;
       }

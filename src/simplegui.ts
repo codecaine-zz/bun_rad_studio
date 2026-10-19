@@ -1102,6 +1102,11 @@ export class SimpleWindow {
 
             this.evalJS(`
                 (function() {
+                    var _ua = ((navigator.userAgent || '') + ' ' + (navigator.platform || '')).replace(/like\\s+Android[^;)]*/gi, '');
+                    if (/Linux|X11|Wayland|Ubuntu/i.test(_ua) && !/Android/i.test(_ua)) {
+                        document.documentElement.classList.add('rad-linux');
+                        document.documentElement.setAttribute('data-platform', 'linux');
+                    }
                     document.documentElement.style.setProperty('--accent', '${colors.accent}');
                     document.documentElement.style.setProperty('--accent-secondary', '${secAccent}');
                     document.documentElement.style.setProperty('--btn-bg', '${btnBg}');
@@ -1206,6 +1211,7 @@ export class SimpleWindow {
                         /* Linux (WebKitGTK) draws list boxes and some controls itself; tell it which scheme the theme uses (see the page CSS in index.ts). */
                         html.rad-linux { color-scheme: ${isLight ? 'light' : 'dark'} !important; }
                         html.rad-linux input[type=range] { background: ${isLight ? 'rgba(15, 23, 42, 0.22)' : 'rgba(255, 255, 255, 0.22)'} !important; }
+                        html.rad-linux, html.rad-linux *, html.rad-linux *::before, html.rad-linux *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 
                         input:not([type="checkbox"]):not([type="radio"]), textarea, select {
                             background-color: ${inputBg} !important;
@@ -1380,6 +1386,7 @@ export class SimpleWindow {
                         document.head.appendChild(noMotion);
                         void document.body.offsetHeight;
                         var themeFg = rgba(norm('${colors.fg}'));
+                        var updates = [];
                         document.querySelectorAll('[style]').forEach(function(el) {
                             if (!el.style.color || el.tagName === 'SCRIPT' || el.tagName === 'STYLE') return;
                             var isField = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT';
@@ -1388,8 +1395,9 @@ export class SimpleWindow {
                             var fg = rgba(getComputedStyle(el).color);
                             var bg = surface(el);
                             if (!fg || !bg || ratio(fg, bg) >= 3) return;
-                            el.style.color = themeFg && ratio(themeFg, bg) >= 3 ? '${colors.fg}' : (lum(bg) > 0.4 ? '#0f172a' : '#f8fafc');
+                            updates.push([el, themeFg && ratio(themeFg, bg) >= 3 ? '${colors.fg}' : (lum(bg) > 0.4 ? '#0f172a' : '#f8fafc')]);
                         });
+                        for (var u = 0; u < updates.length; u++) updates[u][0].style.color = updates[u][1];
                         noMotion.remove();
                     })();
                     var tTitle = document.getElementById("lbl_theme_title");

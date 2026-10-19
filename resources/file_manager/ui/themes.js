@@ -352,13 +352,15 @@ export function probeClientHardware() {
       }
     }
   } catch {}
-  const ua = `${nav.userAgent || ""} ${nav.platform || ""} ${nav.userAgentData?.platform || ""}`.toLowerCase();
-  const platform = /\blinux\b|\bx11\b|\bwayland\b|\bubuntu\b/.test(ua) && !/android/.test(ua)
+  const rawUa = `${nav.userAgent || ""} ${nav.platform || ""} ${nav.userAgentData?.platform || ""}`.toLowerCase();
+  const cleanUa = rawUa.replace(/like\s+android/g, "");
+  const metaPlatform = typeof document !== "undefined" ? (document.querySelector('meta[name="fm-platform"]')?.content || "").toLowerCase() : "";
+  const platform = metaPlatform === "linux" || (/\blinux\b|\bx11\b|\bwayland\b|\bubuntu\b/.test(cleanUa) && !/\bandroid\b/.test(cleanUa))
     ? "linux"
-    : /\bwin(dows|32|64)\b/.test(ua)
+    : metaPlatform === "win32" || metaPlatform === "windows" || /\bwin(dows|32|64)\b/.test(cleanUa)
       ? "windows"
       : "macos";
-  const isVm = /parallels|virtio|virgl|vmware|virtualbox|vbox|hyper-v|qemu|qxl|llvmpipe|softpipe/i.test(`${gpu} ${ua}`);
+  const isVm = /parallels|virtio|virgl|vmware|virtualbox|vbox|hyper-v|qemu|qxl|llvmpipe|softpipe/i.test(`${gpu} ${cleanUa}`);
   const cores = typeof nav.hardwareConcurrency === "number" ? nav.hardwareConcurrency : 8;
   const mem = typeof nav.deviceMemory === "number" ? nav.deviceMemory : 8;
   const dpr = typeof window !== "undefined" && typeof window.devicePixelRatio === "number" ? window.devicePixelRatio : 1;
@@ -368,13 +370,13 @@ export function probeClientHardware() {
   const reducedTransparency = mm("(prefers-reduced-transparency: reduce)");
   const forcedColors = mm("(forced-colors: active)");
   const saveData = Boolean(nav.connection?.saveData);
-  const swGpu = /swiftshader|llvmpipe|softpipe|basic render driver|microsoft basic|\bwarp\b|d3d11 warp|gdi generic|hyper-v|rdpudd|citrix|virtualbox|vmware/i.test(gpu);
+  const swGpu = /basic render driver|microsoft basic|\bwarp\b|d3d11 warp|gdi generic|rdpudd|citrix/i.test(gpu);
   const shouldFallback = forcedColors || reducedTransparency || saveData || swGpu || (cores > 0 && cores <= 2) || (mem > 0 && mem <= 2);
-  const ultra = !shouldFallback && !isVm && platform !== "linux" && (/apple\s+m[1-9]|rtx\s*[345]\d{2,3}|radeon\s+rx\s+[6789]\d{2,3}|intel.*arc\s+[ab]\d{3}|adreno\s+x1|snapdragon\s+x/i.test(gpu) || (p3 && hdr && cores >= 8));
+  const ultra = !shouldFallback && (/apple\s+m[1-9]|rtx\s*[345]\d{2,3}|radeon\s+rx\s+[6789]\d{2,3}|intel.*arc\s+[ab]\d{3}|adreno\s+x1|snapdragon\s+x/i.test(gpu) || (p3 && hdr && cores >= 8) || (platform === "linux" && cores >= 8));
   cachedHw = {
     platform,
     isVm,
-    tier: shouldFallback ? "low" : ultra ? "ultra" : (platform === "linux" || isVm) ? "balanced" : (cores >= 8 || p3 || dpr >= 1.5) ? "high" : "balanced",
+    tier: shouldFallback ? "low" : ultra ? "ultra" : (cores >= 8 || p3 || dpr >= 1.5) ? "high" : "balanced",
     fxMode: (forcedColors || swGpu) ? "off" : (shouldFallback || reducedMotion) ? "reduced" : "on",
     shouldFallback,
     gpu,
@@ -422,9 +424,6 @@ export async function applyPlatformOptimizationPreset(platformId, opts = {}) {
     platformProfile: preset.id,
     atmosphereTier: preset.atmosphereTier,
   };
-  if (preset.id === "linux" && state.settings?.uiElementFx && HEAVY_DISTORTION_FX_SET.has(state.settings.uiElementFx)) {
-    patch.uiElementFx = "cupertino_ceramic_bevel";
-  }
   if (state.settings) Object.assign(state.settings, patch);
   applyUiImmersionProfiles(patch);
   try {
@@ -6504,6 +6503,9 @@ const boundShortcutWindows = typeof WeakSet !== "undefined" ? new WeakSet() : nu
  *    - `Alt+0` (`⌥0`): Toggle or turn off animations & FX on current theme (no dialog)
  */
 export function ensureGlobalThemeShortcutsBound() {
+  if (typeof document !== "undefined" && document.documentElement && !document.documentElement.dataset.platform) {
+    document.documentElement.dataset.platform = state.settings?.platformProfile || probeClientHardware().platform;
+  }
   if (typeof window === "undefined" || typeof window.addEventListener !== "function") return;
   if (boundShortcutWindows?.has(window)) return;
   boundShortcutWindows?.add(window);

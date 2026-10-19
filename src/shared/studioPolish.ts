@@ -209,10 +209,21 @@ export const STUDIO_POLISH_STYLE = `
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
     }
+    :root[data-platform="linux"], :root[data-platform="linux"] *, :root[data-platform="linux"] *::before, :root[data-platform="linux"] *::after {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
 `;
 
 function studioPolishClient() {
   if (window.StudioPolish || typeof document === "undefined" || typeof document.querySelector !== "function") return;
+  try {
+    const ua = ((navigator.userAgent || "") + " " + (navigator.platform || "")).replace(/like\s+android[^;)]*/gi, "");
+    if (/linux|x11|wayland|ubuntu/i.test(ua) && !/android/i.test(ua)) {
+      document.documentElement.setAttribute("data-platform", "linux");
+      document.documentElement.classList.add("rad-linux");
+    }
+  } catch (_) {}
 
   const NUM = /^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/;
   const NUM_TYPE = /(int|serial|real|float|double|numeric|decimal|number|money|fixed)/i;

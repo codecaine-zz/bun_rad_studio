@@ -925,6 +925,18 @@ html, body {
   flex-direction: column;
   gap: var(--density-gap-md);
 }
+
+:root[data-platform="linux"] .ts-topbar,
+:root[data-platform="linux"] .ts-panel,
+:root[data-platform="linux"] .ts-preview-navbar,
+:root[data-platform="linux"] .ts-modal-backdrop,
+html.rad-linux .ts-topbar,
+html.rad-linux .ts-panel,
+html.rad-linux .ts-preview-navbar,
+html.rad-linux .ts-modal-backdrop {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
 `.trim();
 }
 

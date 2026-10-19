@@ -3118,7 +3118,7 @@ export const FX_TOKEN_NAMES = [
 ] as const;
 
 const NOISE_URI =
-    "url(\"data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0.14 0 0 0 -0.03'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E\")";
+    "url(\"data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='3' cy='5' r='0.8' fill='rgba(255,255,255,0.06)'/%3E%3Ccircle cx='15' cy='11' r='0.7' fill='rgba(0,0,0,0.06)'/%3E%3Ccircle cx='9' cy='19' r='0.8' fill='rgba(255,255,255,0.05)'/%3E%3Ccircle cx='21' cy='21' r='0.7' fill='rgba(0,0,0,0.05)'/%3E%3C/svg%3E\")";
 
 /** The per-theme custom properties (`--fx-*`) as CSS declarations; empty for a theme without `fx`. */
 export function fxCssVars(theme: SimpleGUITheme | undefined | null): string {

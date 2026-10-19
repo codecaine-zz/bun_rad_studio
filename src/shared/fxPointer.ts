@@ -19,7 +19,9 @@ export const FX_POINTER_FUNCTION = `(function (win) {
   var MAGNET = ${JSON.stringify(FX_MAGNET_TARGETS)};
   var BARS = ${JSON.stringify(FX_PILL_BARS)};
   var root = doc.documentElement, nav = win.navigator || {};
-  var pending = null, raf = 0, current = null, cur = {}, lastTs = 0, lag = 0;
+  var ua = ((nav.userAgent || "") + " " + (nav.platform || "")).toLowerCase().replace(/like\\s+android/g, "");
+  if ((/\\blinux\\b|\\bx11\\b|\\bwayland\\b|\\bubuntu\\b/.test(ua) && !/\\bandroid\\b/.test(ua))) { if (!root.hasAttribute("data-platform")) root.setAttribute("data-platform", "linux"); if (root.classList) root.classList.add("rad-linux"); }
+  var pending = null, raf = 0, current = null, cur = {};
   var mm = function (q) { try { return !!(win.matchMedia && win.matchMedia(q).matches); } catch (_) { return false; } };
   var forced = mm("(forced-colors: active)");
   var low = forced || mm("(prefers-reduced-transparency: reduce)") || !!(nav.connection && nav.connection.saveData) || (nav.hardwareConcurrency > 0 && nav.hardwareConcurrency <= 2) || (nav.deviceMemory > 0 && nav.deviceMemory <= 2) || root.getAttribute("data-fx-tier") === "low";
@@ -42,14 +44,8 @@ export const FX_POINTER_FUNCTION = `(function (win) {
     cur[name] = value;
     el.style.setProperty(name, value);
   }
-  function frame(ts) {
+  function frame() {
     raf = 0;
-    if (typeof ts === "number" && lastTs > 0) {
-      var dt = ts - lastTs;
-      if (dt > 55 && dt < 500) { if (++lag >= 8) { downgrade(false); clear(current); current = null; cur = {}; return; } }
-      else if (dt < 32) lag = 0;
-    }
-    if (typeof ts === "number") lastTs = ts;
     var e = pending; pending = null;
     if (!e || !on(e.target)) return;
     var t = e.target;
