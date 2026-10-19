@@ -1143,6 +1143,19 @@ describe("high-end M4 Pro / Windows DirectX enhancements and hardware fallbacks"
         expect(winParallelsM4.isWindowsHighEnd).toBe(true);
         expect(winParallelsM4.recommendedFxMode).toBe("on");
         expect(winParallelsM4.shouldUseFallbackTheme).toBe(false);
+
+        const macWkWebViewM4 = detectThemeHardware({
+            gpuRenderer: "Apple GPU",
+            platform: "darwin",
+            cores: 14,
+            memoryGb: 48,
+            devicePixelRatio: 2,
+        });
+        expect(macWkWebViewM4.tier).toBe("ultra");
+        expect(macWkWebViewM4.isAppleSiliconPro).toBe(true);
+        expect(macWkWebViewM4.supportsProMotion).toBe(true);
+        expect(macWkWebViewM4.recommendedFxMode).toBe("on");
+        expect(macWkWebViewM4.shouldUseFallbackTheme).toBe(false);
     });
 
     test("automatically reverts FX themes to lightweight fallback themes on software GPUs, Windows RDP, Forced Colors, or low-resource systems", () => {

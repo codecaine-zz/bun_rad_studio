@@ -934,6 +934,10 @@ html, body {
 :root[data-platform="windows"] .ts-panel,
 :root[data-platform="windows"] .ts-preview-navbar,
 :root[data-platform="windows"] .ts-modal-backdrop,
+:root[data-platform="macos"] .ts-topbar,
+:root[data-platform="macos"] .ts-panel,
+:root[data-platform="macos"] .ts-preview-navbar,
+:root[data-platform="macos"] .ts-modal-backdrop,
 html.rad-linux .ts-topbar,
 html.rad-linux .ts-panel,
 html.rad-linux .ts-preview-navbar,
@@ -941,7 +945,11 @@ html.rad-linux .ts-modal-backdrop,
 html.rad-windows .ts-topbar,
 html.rad-windows .ts-panel,
 html.rad-windows .ts-preview-navbar,
-html.rad-windows .ts-modal-backdrop {
+html.rad-windows .ts-modal-backdrop,
+html.rad-macos .ts-topbar,
+html.rad-macos .ts-panel,
+html.rad-macos .ts-preview-navbar,
+html.rad-macos .ts-modal-backdrop {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }

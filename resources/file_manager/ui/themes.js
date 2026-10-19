@@ -382,7 +382,7 @@ export function probeClientHardware() {
   const saveData = Boolean(nav.connection?.saveData);
   const swGpu = /basic render driver|microsoft basic|\bwarp\b|d3d11 warp|gdi generic|rdpudd|citrix/i.test(gpu);
   const shouldFallback = forcedColors || reducedTransparency || saveData || swGpu || (cores > 0 && cores <= 2) || (mem > 0 && mem <= 2);
-  const ultra = !shouldFallback && (/apple\s+m[1-9]|apple\s+silicon|parallels\s+display|rtx\s*[345]\d{2,3}|radeon\s+rx\s+[6789]\d{2,3}|intel.*arc\s+[ab]\d{3}|adreno\s+x1|snapdragon\s+x/i.test(gpu) || (p3 && hdr && cores >= 8) || (platform === "linux" && cores >= 8) || (platform === "windows" && cores >= 6));
+  const ultra = !shouldFallback && (/apple\s+m[1-9]|apple\s+silicon|apple\s+gpu|parallels\s+display|rtx\s*[345]\d{2,3}|radeon\s+rx\s+[6789]\d{2,3}|intel.*arc\s+[ab]\d{3}|adreno\s+x1|snapdragon\s+x/i.test(gpu) || (p3 && hdr && cores >= 8) || (platform === "macos" && cores >= 6) || (platform === "linux" && cores >= 8) || (platform === "windows" && cores >= 6));
   cachedHw = {
     platform,
     isVm,
@@ -404,7 +404,7 @@ export const OPTIMIZE_PLATFORM_PRESETS = [
   {
     id: "macos",
     label: "🍎 Optimize for Mac",
-    title: "Optimize for macOS (Apple Silicon M1–M4 Pro/Max/Ultra · 120Hz ProMotion Metal & Display-P3 XDR)",
+    title: "Optimize for macOS Apple Silicon M1–M4 Pro/Max/Ultra (Metal 3 Zero-Readback Compositor · 120Hz ProMotion & Display-P3 XDR)",
     atmosphereTier: "ultra",
   },
   {
@@ -6514,7 +6514,7 @@ const boundShortcutWindows = typeof WeakSet !== "undefined" ? new WeakSet() : nu
  */
 export function ensureGlobalThemeShortcutsBound() {
   if (typeof document !== "undefined" && document.documentElement && !document.documentElement.dataset.platform) {
-    document.documentElement.dataset.platform = state.settings?.platformProfile || probeClientHardware().platform;
+    syncRootPlatform(document.documentElement, state.settings?.platformProfile || probeClientHardware().platform);
   }
   if (typeof window === "undefined" || typeof window.addEventListener !== "function") return;
   if (boundShortcutWindows?.has(window)) return;

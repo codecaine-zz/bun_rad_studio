@@ -2790,12 +2790,12 @@ export interface FxHardwareProfile {
 
 const SOFTWARE_GPU_RE =
     /swiftshader|llvmpipe|softpipe|software|basic render driver|microsoft basic|\bwarp\b|d3d11 warp|gdi generic|hyper-v|rdpudd|citrix/i;
-const APPLE_SILICON_RE = /apple\s+m[1-9](\s+(pro|max|ultra))?|macintosh.*arm64/i;
+const APPLE_SILICON_RE = /apple\s+m[1-9](\s+(pro|max|ultra))?|apple\s+silicon|apple\s+gpu|macintosh.*arm64/i;
 const WINDOWS_HIGH_END_GPU_RE =
     /rtx\s*[345]\d{2,3}|radeon\s+rx\s+[6789]\d{2,3}|intel.*arc\s+[ab]\d{3}|adreno\s+x1|snapdragon\s+x|parallels\s+display|apple\s+m[1-9]|apple\s+silicon/i;
 
 /**
- * Evaluates system capability across macOS (M4 Pro/Max, Liquid Retina XDR) and Windows 11/10 (DirectX 12 RTX/Radeon/Arc,
+ * Evaluates system capability across macOS (M1–M4 Pro/Max/Ultra, WKWebView Metal 3, Liquid Retina XDR) and Windows 11/10 (DirectX 12 RTX/Radeon/Arc,
  * Parallels Desktop WDDM on Apple Silicon M1–M4 Pro/Max, DWM Mica/Acrylic, Windows HDR, or fallback cases like Microsoft
  * Basic Render Driver, WARP, Remote Desktop, and High Contrast).
  */
@@ -2882,7 +2882,7 @@ export function detectThemeHardware(input: FxHardwareInput = {}): FxHardwareProf
 
     const isAppleSiliconPro =
         APPLE_SILICON_RE.test(`${gpu} ${ua}`) ||
-        (isMac && p3 && hdr && cores >= 8 && dpr >= 2);
+        (isMac && (p3 || hdr) && cores >= 6 && dpr >= 2);
     const isWindowsHighEnd =
         WINDOWS_HIGH_END_GPU_RE.test(gpu) ||
         (isWin && (hdr || p3) && cores >= 6) ||

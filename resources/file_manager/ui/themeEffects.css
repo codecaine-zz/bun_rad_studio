@@ -2939,10 +2939,6 @@ html[data-ui-fx] .row.is-folder[aria-selected="true"]:hover {
   animation: fmScreenMeltIconDrip 4.2s ease-in-out infinite;
 }
 
-:root:not([data-platform="linux"]):not([data-platform="windows"])[data-ui-fx="screen_melt_ooze"] .row:hover {
-  filter: url(#fm-filter-screen-melt);
-}
-
 /* 2. 🌋 Molten Glass & Magma Screen Melt (molten_lava_melt) */
 :root[data-ui-fx="molten_lava_melt"] :is(#toolbar-row, #addressbar, .row.is-folder, .card.is-folder) {
   position: relative;
@@ -2956,10 +2952,6 @@ html[data-ui-fx] .row.is-folder[aria-selected="true"]:hover {
 
 :root[data-ui-fx="molten_lava_melt"] .row .c-icon {
   animation: fmScreenMeltIconDrip 4.8s ease-in-out infinite;
-}
-
-:root:not([data-platform="linux"]):not([data-platform="windows"])[data-ui-fx="molten_lava_melt"] .row:hover {
-  filter: url(#fm-filter-molten-glass);
 }
 
 /* 3. 🧲 CRT Degauss Magnetic Warp (crt_magnetic_warp) */
@@ -4229,14 +4221,32 @@ html.rad-windows body {
   box-shadow: none !important;
 }
 
+/* macOS Apple Silicon (M1–M4 Pro/Max/Ultra) WKWebView & Metal 3 ProMotion 120Hz Optimization:
+ * Eliminates CoreAnimation/Metal CABackdropLayer readbacks over animated 120fps canvas and full-viewport
+ * inset box-shadow re-rasterization while preserving full theme animations, keyframes, gradients, specular borders, and 120fps canvas FX. */
+:root[data-platform="macos"],
+:root[data-platform="macos"] *,
+:root[data-platform="macos"] *::before,
+:root[data-platform="macos"] *::after,
+html.rad-macos,
+html.rad-macos *,
+html.rad-macos *::before,
+html.rad-macos *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+:root[data-platform="macos"] body,
+html.rad-macos body {
+  box-shadow: none !important;
+}
+
 /* macOS Apple Silicon (M1-M4 Pro/Max/Ultra), Windows DirectComposition & Linux GPU Layer Promotion */
 :root[data-platform="macos"] #list-wrap,
 :root[data-platform="windows"] #list-wrap,
 :root[data-platform="linux"] #list-wrap,
+:root[data-platform="macos"] .fm-atmosphere-layer,
 :root[data-platform="windows"] .fm-atmosphere-layer,
 :root[data-platform="linux"] .fm-atmosphere-layer {
   transform: translateZ(0);
   backface-visibility: hidden;
 }
-
-

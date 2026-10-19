@@ -210,7 +210,8 @@ export const STUDIO_POLISH_STYLE = `
       *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
     }
     :root[data-platform="linux"], :root[data-platform="linux"] *, :root[data-platform="linux"] *::before, :root[data-platform="linux"] *::after,
-    :root[data-platform="windows"], :root[data-platform="windows"] *, :root[data-platform="windows"] *::before, :root[data-platform="windows"] *::after {
+    :root[data-platform="windows"], :root[data-platform="windows"] *, :root[data-platform="windows"] *::before, :root[data-platform="windows"] *::after,
+    :root[data-platform="macos"], :root[data-platform="macos"] *, :root[data-platform="macos"] *::before, :root[data-platform="macos"] *::after {
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
     }
@@ -226,6 +227,9 @@ function studioPolishClient() {
     } else if (/\bwin(dows|32|64)\b/i.test(ua)) {
       document.documentElement.setAttribute("data-platform", "windows");
       document.documentElement.classList.add("rad-windows");
+    } else if (/\bmac(intosh|os|\s+os\s+x)\b/i.test(ua)) {
+      document.documentElement.setAttribute("data-platform", "macos");
+      document.documentElement.classList.add("rad-macos");
     }
   } catch (_) {}
 

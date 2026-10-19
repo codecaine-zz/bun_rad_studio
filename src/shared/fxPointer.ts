@@ -22,6 +22,7 @@ export const FX_POINTER_FUNCTION = `(function (win) {
   var ua = ((nav.userAgent || "") + " " + (nav.platform || "")).toLowerCase().replace(/like\\s+android/g, "");
   if ((/\\blinux\\b|\\bx11\\b|\\bwayland\\b|\\bubuntu\\b/.test(ua) && !/\\bandroid\\b/.test(ua))) { if (!root.hasAttribute("data-platform")) root.setAttribute("data-platform", "linux"); if (root.classList) root.classList.add("rad-linux"); }
   else if (/\\bwin(dows|32|64)\\b/.test(ua)) { if (!root.hasAttribute("data-platform")) root.setAttribute("data-platform", "windows"); if (root.classList) root.classList.add("rad-windows"); }
+  else if (/\\bmac(intosh|os|\\s+os\\s+x)\\b/.test(ua)) { if (!root.hasAttribute("data-platform")) root.setAttribute("data-platform", "macos"); if (root.classList) root.classList.add("rad-macos"); }
   var pending = null, raf = 0, current = null, cur = {};
   var mm = function (q) { try { return !!(win.matchMedia && win.matchMedia(q).matches); } catch (_) { return false; } };
   var forced = mm("(forced-colors: active)");

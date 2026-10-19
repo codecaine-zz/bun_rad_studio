@@ -312,22 +312,22 @@ ${reduced(RM).replace(/^/, "")}
   display: none !important;
 }
 
-[data-fx]:is([data-platform="linux"],[data-platform="windows"],.rad-linux,.rad-windows), :is([data-platform="linux"],[data-platform="windows"],.rad-linux,.rad-windows) [data-fx] {
+[data-fx]:is([data-platform="linux"],[data-platform="windows"],[data-platform="macos"],.rad-linux,.rad-windows,.rad-macos), :is([data-platform="linux"],[data-platform="windows"],[data-platform="macos"],.rad-linux,.rad-windows,.rad-macos) [data-fx] {
   --fx-blur-sm: 0px; --fx-blur-md: 0px; --fx-blur-lg: 0px; --fx-blur-ultra: 0px;
 }
-[data-fx]:is([data-platform="linux"],[data-platform="windows"],.rad-linux,.rad-windows) ${SURF}${NF}, [data-fx]:is([data-platform="linux"],[data-platform="windows"],.rad-linux,.rad-windows) ${BAR}${NF}, [data-fx]:is([data-platform="linux"],[data-platform="windows"],.rad-linux,.rad-windows) ${MODAL}${NF}, :is([data-platform="linux"],[data-platform="windows"],.rad-linux,.rad-windows) ${both(SURF, NF)}, :is([data-platform="linux"],[data-platform="windows"],.rad-linux,.rad-windows) ${both(BAR, NF)}, :is([data-platform="linux"],[data-platform="windows"],.rad-linux,.rad-windows) ${V} ${MODAL}${NF} {
+[data-fx]:is([data-platform="linux"],[data-platform="windows"],[data-platform="macos"],.rad-linux,.rad-windows,.rad-macos) ${SURF}${NF}, [data-fx]:is([data-platform="linux"],[data-platform="windows"],[data-platform="macos"],.rad-linux,.rad-windows,.rad-macos) ${BAR}${NF}, [data-fx]:is([data-platform="linux"],[data-platform="windows"],[data-platform="macos"],.rad-linux,.rad-windows,.rad-macos) ${MODAL}${NF}, :is([data-platform="linux"],[data-platform="windows"],[data-platform="macos"],.rad-linux,.rad-windows,.rad-macos) ${both(SURF, NF)}, :is([data-platform="linux"],[data-platform="windows"],[data-platform="macos"],.rad-linux,.rad-windows,.rad-macos) ${both(BAR, NF)}, :is([data-platform="linux"],[data-platform="windows"],[data-platform="macos"],.rad-linux,.rad-windows,.rad-macos) ${V} ${MODAL}${NF} {
   -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
 }
-[data-fx]:is([data-platform="linux"],[data-platform="windows"],.rad-linux,.rad-windows) body {
+[data-fx]:is([data-platform="linux"],[data-platform="windows"],[data-platform="macos"],.rad-linux,.rad-windows,.rad-macos) body {
   box-shadow: none !important;
 }
-[data-fx]:is([data-platform="linux"],[data-platform="windows"],.rad-linux,.rad-windows) body::after, [data-fx]:is([data-platform="linux"],[data-platform="windows"],.rad-linux,.rad-windows)::after {
+[data-fx]:is([data-platform="linux"],[data-platform="windows"],[data-platform="macos"],.rad-linux,.rad-windows,.rad-macos) body::after, [data-fx]:is([data-platform="linux"],[data-platform="windows"],[data-platform="macos"],.rad-linux,.rad-windows,.rad-macos)::after {
   z-index: -1 !important; contain: strict;
 }
-[data-fx]:is([data-platform="linux"],[data-platform="windows"],.rad-linux,.rad-windows) body::before {
+[data-fx]:is([data-platform="linux"],[data-platform="windows"],[data-platform="macos"],.rad-linux,.rad-windows,.rad-macos) body::before {
   contain: strict;
 }
-[data-fx]:is([data-platform="linux"],[data-platform="windows"],.rad-linux,.rad-windows) ${SURF}:not(:hover)::after {
+[data-fx]:is([data-platform="linux"],[data-platform="windows"],[data-platform="macos"],.rad-linux,.rad-windows,.rad-macos) ${SURF}:not(:hover)::after {
   display: none !important;
 }
 

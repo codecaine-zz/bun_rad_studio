@@ -1109,6 +1109,9 @@ export class SimpleWindow {
                     } else if (/\\bWin(dows|32|64)\\b/i.test(_ua)) {
                         document.documentElement.classList.add('rad-windows');
                         document.documentElement.setAttribute('data-platform', 'windows');
+                    } else if (/\\bMac(intosh|OS|\\s+OS\\s+X)\\b/i.test(_ua)) {
+                        document.documentElement.classList.add('rad-macos');
+                        document.documentElement.setAttribute('data-platform', 'macos');
                     }
                     document.documentElement.style.setProperty('--accent', '${colors.accent}');
                     document.documentElement.style.setProperty('--accent-secondary', '${secAccent}');
@@ -1215,7 +1218,8 @@ export class SimpleWindow {
                         html.rad-linux { color-scheme: ${isLight ? 'light' : 'dark'} !important; }
                         html.rad-linux input[type=range] { background: ${isLight ? 'rgba(15, 23, 42, 0.22)' : 'rgba(255, 255, 255, 0.22)'} !important; }
                         html.rad-linux, html.rad-linux *, html.rad-linux *::before, html.rad-linux *::after,
-                        html.rad-windows, html.rad-windows *, html.rad-windows *::before, html.rad-windows *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+                        html.rad-windows, html.rad-windows *, html.rad-windows *::before, html.rad-windows *::after,
+                        html.rad-macos, html.rad-macos *, html.rad-macos *::before, html.rad-macos *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 
                         input:not([type="checkbox"]):not([type="radio"]), textarea, select {
                             background-color: ${inputBg} !important;
