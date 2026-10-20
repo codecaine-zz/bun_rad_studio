@@ -8,6 +8,7 @@
 - [What was checked](#what-was-checked)
 - [What the source contains](#what-the-source-contains)
 - [Database features: placeholders only](#database-features-placeholders-only)
+- [Autosave and restore](#autosave-and-restore)
 - [Exporting](#exporting)
 - [What is missing from this guide and why](#what-is-missing-from-this-guide-and-why)
 - [See also](#see-also)

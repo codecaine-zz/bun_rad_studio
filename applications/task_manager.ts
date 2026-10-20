@@ -256,6 +256,9 @@ const procRow = (p: ProcessItem): string[] => [
 ];
 
 function systemLine(tel: TelemetrySummary): string {
+  if (process.env.SCREENSHOT_MODE) {
+    return `Load avg: 1.42 / 1.18 / 1.05  |  Cores: 12  |  Process CPU sum: ${tel.totalCpu}%  |  RSS sum: ${(tel.totalRssMb / 1024).toFixed(1)} of 32 GB  |  Mac up 3d 4h`;
+  }
   const load = os.loadavg().map((n) => n.toFixed(2)).join(" / ");
   const totalGb = os.totalmem() / 1024 ** 3;
   const rssGb = tel.totalRssMb / 1024;

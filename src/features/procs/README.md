@@ -8,7 +8,7 @@ A modern replacement for `ps` that presents system processes in clean, color-cod
 
 ```bash
 # View process table
-bun run procs [keyword]
+bun run cli:procs [keyword]
 
 # Common Flags
 -i, --interactive       Launch interactive TUI process explorer (arrow navigation, kill, refresh)
@@ -28,7 +28,7 @@ bun run procs [keyword]
 
 ### Interactive TUI Controls
 
-When running `bun run procs -i [keyword]` in a terminal:
+When running `bun run cli:procs -i [keyword]` in a terminal:
 
 | Key | Action |
 | :--- | :--- |

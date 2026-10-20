@@ -147,7 +147,7 @@ function validateEffects(input: unknown, accent: string): ThemeFx {
   const fontProfile = r.fontProfile !== undefined ? choice("fontProfile", ["default", "scifi", "terminal", "editorial", "rounded", "humanist_hig", "swiss_grotesk", "drafting_cad"], "default") : undefined;
   const cornerProfile = r.cornerProfile !== undefined ? choice("cornerProfile", ["default", "sharp", "chamfered", "rounded", "squircle_hig", "pill"], "default") : undefined;
   const iconGlow = r.iconGlow !== undefined ? choice("iconGlow", ["off", "subtle", "ambient_p3", "xdr_specular", "neon", "hyper"], "off") : undefined;
-  const iconAnimation = r.iconAnimation !== undefined ? choice("iconAnimation", ["off", "spring_pop_3d", "levitate_float", "holo_foil_shimmer", "orbital_halo_spin", "cyber_glitch_pulse", "heartbeat_biolum", "clockwork_gear_tick", "liquid_jelly_morph", "plasma_arc_surge", "fire_ember_flicker", "godmode_pantheon_ascend", "folder_3d_spin_turntable", "flash_2advanced_vector_hud", "folder_3d_flip_origami", "gyro_3d_cube_matrix", "flash_fwa_kinetic_eq", "hologram_3d_projector_beam", "quantum_3d_phase_split", "m4_liquid_metal_morph", "houdini_vex_particle_burst", "c4d_mograph_cloner_wave", "after_effects_graph_overshoot", "unreal_nanite_mesh_lod", "blender_geometry_nodes_bloom", "raytraced_caustic_refraction"], "off") : undefined;
+  const iconAnimation = r.iconAnimation !== undefined ? choice("iconAnimation", ["off", "spring_pop_3d", "levitate_float", "holo_foil_shimmer", "orbital_halo_spin", "cyber_glitch_pulse", "heartbeat_biolum", "clockwork_gear_tick", "liquid_jelly_morph", "jelly_squish_3d", "plasma_arc_surge", "fire_ember_flicker", "godmode_pantheon_ascend", "folder_3d_spin_turntable", "flash_2advanced_vector_hud", "folder_3d_flip_origami", "gyro_3d_cube_matrix", "flash_fwa_kinetic_eq", "hologram_3d_projector_beam", "quantum_3d_phase_split", "m4_liquid_metal_morph", "houdini_vex_particle_burst", "c4d_mograph_cloner_wave", "after_effects_graph_overshoot", "unreal_nanite_mesh_lod", "blender_geometry_nodes_bloom", "raytraced_caustic_refraction"], "off") : undefined;
   const customVars = r.customVars !== undefined ? validateCustomVars(r.customVars) : undefined;
   const customCss = r.customCss !== undefined ? sanitizeCustomCss(r.customCss) : undefined;
   return {
@@ -537,9 +537,9 @@ export function parseThemePack(input: unknown): ThemeDraft[] {
 
   const trimmed = unwrapPastedEnvelope(input);
 
-  // Check if multiple CCFM share codes are present in the text
+  // Check if one or more CCFM share codes are present in non-JSON text
   const shareCodeMatches = [...trimmed.matchAll(/CCFM-(?:THEME|PACK)-v1:[A-Za-z0-9+/=_-]+/g)].map((m) => m[0]);
-  if (shareCodeMatches.length > 1 || (shareCodeMatches.length === 1 && !trimmed.startsWith("{") && !trimmed.startsWith("["))) {
+  if (shareCodeMatches.length >= 1 && !trimmed.startsWith("{") && !trimmed.startsWith("[")) {
     const collected: ThemeDraft[] = [];
     for (const token of shareCodeMatches) {
       const jsonStr = decodeShareCodeToJson(token);

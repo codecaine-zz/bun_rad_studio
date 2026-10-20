@@ -1,105 +1,117 @@
-# Codecaine File Manager: the complete, step-by-step guide (1:46:28)
+# Codecaine File Manager: the complete, step-by-step MacAcademy-style guide (1:49:52)
 
-## YouTube title
+## Reference & Hardware Workstation Mark
 
-Codecaine File Manager Full Tutorial: Terminal, Media Studios, 310 Themes, 194 Shaders & Databases
+- **Tutorial Style:** Calm, methodical, unhurried "show every click" walkthrough inspired by the classic 1989 MacAcademy training series
+- **Workstation Hardware Mark:** `🍎 Apple Mac Studio M4 Ultra · 32-Core CPU (24P + 8E) · 80-Core GPU · 32-Core Neural Engine · 192GB Unified Memory (819 GB/s LPDDR5X) · Apple Pro Display XDR 6K (6016×3384) @ 120Hz ProMotion · Display-P3 1600-nit HDR`
 
-## YouTube description (copy and paste)
+## YouTube title (92 chars — under YouTube's 100-char limit)
+
+Codecaine File Manager Full Tutorial (Mac Studio M4 Ultra 6K): Every Tool, Theme & DB Studio
+
+## YouTube description (copy and paste — strictly under 5,000 chars with all 72 chapter timestamps)
 
 ```text
-The complete, step-by-step guide to the Codecaine File Manager: a free, open-source, keyboard-friendly file manager for macOS, Windows and Linux, with its own terminal, picture and media studios, developer tools, 310 themes with 194 live procedural shaders, cross-platform Mac/Windows/Linux zero-lag hardware optimization, zero-dialog random theme shortcuts (⌥R / ⌥E / ⌥P / ⌥U / ⌥0), and full SQLite, MySQL, PostgreSQL, and Redis studios built in. Every click is shown in real time, on a throwaway folder of sample files, so you can follow along at your own pace.
+The complete, step-by-step MacAcademy-style guide to the Codecaine File Manager — recorded on an Apple Mac Studio M4 Ultra (32-Core CPU · 80-Core GPU · 192GB Unified Memory · Apple Pro Display XDR 6K @ 120Hz ProMotion). Free & open-source for macOS, Windows, and Linux.
 
 ⬇️ Download (free): https://github.com/codecaine-zz/bun_rad_studio/releases/latest
-⭐ Source code: https://github.com/codecaine-zz/bun_rad_studio
+🎨 Custom Themes Vault (Low/Med/High/Ultra + 41 Screenshots): https://github.com/codecaine-zz/bun_rad_studio/tree/main/custom_themes
+📐 Theme Design Style Guide: https://github.com/codecaine-zz/bun_rad_studio/blob/main/custom_themes/THEME_DESIGN_STYLE_GUIDE.md
+⭐ Source Code: https://github.com/codecaine-zz/bun_rad_studio
 
-WHAT YOU WILL LEARN
-📁 The basics: the window, getting around, views, folder tabs, sidebar folder tree, color tags, selecting, copy and move with progress, Cancel and Retry, name clashes, the Recycle Bin, Undo, Quick Look, permissions and AES-256-GCM file encryption.
-⌨️ Terminal + files together: the file list follows your cd, "Open terminal here", and selected files and folders typed into the terminal as safely quoted paths. On Windows it works with PowerShell, the Command Prompt, Git Bash and WSL (C:\Users becomes /mnt/c/Users), no external terminal needed.
-🧰 Every tool: Convert, Find and bulk rename, Review, Compare, Projects, Actions, QR codes, the code editor, Replace across files with Undo, the Dev tab (code stats, Git, TODOs), Watch, Serve, Crypto, Secrets, Env, Network, Downloads, Calculator, Timer, API, Bundler, the Graveyard, Calendar & World Clocks, CLI Utilities, Process & Task Manager, and System Information & Hardware Telemetry.
-🎬 Pictures, songs, videos, paint & games: one-click edits, the Image Studio and Media Studio with live sliders, trim, speed and fades, presets for many files at once, a built-in viewer and player, Media Deck (10-band EQ & 108 visualizers), Paint Studio, and 24 built-in arcade games.
-🎨 Make it yours: 310 themes with 1-click Optimize for Mac (Apple Silicon M4 Pro/Max/Ultra 120Hz), Optimize for Windows (DirectX 12 WebView2), and Optimize for Linux / Parallels VM, zero-dialog quick random shortcuts (⌥R Random Any, ⌥E Random FX, ⌥P Random Plain 0% GPU, ⌥U Random Ultra, ⌥0 Toggle FX, Right ⌥ + ] / [ HUD), Year 3000+ Post-Singularity & Flagship Mac 6K XDR collections, 194 live atmospheric shaders with a 6-layer mixer & 48 signature mixes, ⌘V clipboard paste & bulk import with conflict resolution, side-by-side split-screen comparator + Live OKLab Theme Blender, 4-stage Solar Cycle schedule + Ambient Playlist auto-rotation, Theme Show & Screensaver Studio, and Theme Editor v2 with Theme Hacker Lab.
-🗄️ Databases: complete Databases & Cross-Engine Cloning Masterclass (SQLite, MySQL, PostgreSQL, Redis, Bun JS & Visual Macros, 15-format staging import, Studio IDE v2), plus dedicated SQLite Studio and MySQL Studio walkthroughs.
+HIGHLIGHTS
+• 🎃 Unobstructed Icons View (#list.view-icons) showcase: Halloween Ultra intro, Polar Night & Cryo-Glacier, all 18 US Holiday Celebration Ultra themes (⌥H), 120Hz 3D spinning folders (⌥9), 20 Master Custom Themes across Low/Medium/High/Ultra tiers, Single & Bulk Folder Import (📁 Load Current Folder Themes), and 🤖 Google Gemini AI Theme Customizer
+• 📁 8 Views (⌥1–⌥8), Tabs, Folder Tree, Color Tags, Quick-Filter Bar (⌘⌥F), Command Palette (⌘⇧P), 12 Starter Templates (⌘⌥K), Archive Extract (⌘⇧E), Recycle Bin, Undo, Quick Look, Disguised-File Sniffing, Open With & AES-256-GCM Encryption
+• ⌨️ Two-way synced Terminal + Code Editor IDE (70+ conversions, Outline, Git, History, TODOs, Split & Live Preview), Folder & Data Compare, Find & Bulk Rename, Image/Media/Paint Studios, AmpDeck (10-band EQ & 108 visualizers), 24 Arcade Games, and SQLite, MySQL, PostgreSQL & Redis Studios
 
 CHAPTERS
 0:00 Welcome
-0:51 The window, piece by piece
-5:06 Getting around
-7:14 How the list looks
-8:48 Choosing files, and making new ones
-10:47 Folder tabs, the sidebar folder tree, color tags and grouping
-11:56 Copying files, and name clashes
-14:24 Big jobs: progress, Cancel, Retry and Activity
-16:49 Moving files: cut, drag, and two panes
-18:24 Deleting safely: the Recycle Bin
-19:49 Look without opening: Quick Look and copy to clipboard
-21:49 More info, permissions and password encryption
-23:00 Convert and process files
-24:32 Find files, and rename the matches
-25:47 Review before anything changes
-27:57 Compare two folders
-29:55 Projects: get back to where you were
-31:28 Actions: saved recipes
-33:11 Make and read QR codes
-34:17 The built-in code editor, and text conversions
-35:36 The terminal and your files, working together
-40:05 Replace across files, and the Dev tab
-42:17 Watch and Serve: let the computer do the routine
-43:35 The rest of the toolbox
-45:33 Home view, Split view, Calendar & World Clocks, and CLI Utilities
-46:37 Process & Task Manager, and System Information
-47:48 One-click picture, video and sound edits
-49:09 Image Studio: edit a picture with sliders
-50:36 Media Studio: trim, speed, sound and video
-52:03 Save a preset, then edit many files at once
-53:26 Recent files and media open right here
-54:42 Media Deck, Paint Studio & 24 Built-in Arcade Games
-55:31 God-Mode Theme & Shader Studio: 310 themes, Year 3000+ Singularity, Flagship Mac M4 Ultra 6K XDR, 120Hz Tie-Dye & 194 Shaders
-1:03:38 The database studios
-1:04:40 Databases Hub: SQLite files in the file list & one-click sample databases
-1:05:34 Databases Hub: Connecting SQLite, MySQL, PostgreSQL and Redis
-1:06:20 Databases Hub: Cloning databases and tables across SQLite, PostgreSQL and MySQL
-1:07:43 Databases Hub: Cloning SQL tables into Redis Hashes & back into a new SQLite file
-1:08:34 Databases Hub: The Bun JavaScript & Visual Macro Studio across all engines
-1:09:56 Databases Hub: Universal 15-format import & the 5-step Staging Wizard
-1:10:52 Databases Hub: Per-column filter bar, Side Row Inspector, FK jump & backups
-1:11:44 Databases Hub: Multi-tab SQL IDE, Full ER Diagram, Schema Diff & Code Generation
-1:12:56 Databases Hub: Live PostgreSQL, MySQL and Redis Studios & the Open Studios Switcher
-1:13:46 SQLite: A database in the file list
-1:14:41 SQLite: Saving and testing a connection
-1:16:06 SQLite: A sample database in one click
-1:16:44 SQLite: SQLite Studio inside the File Manager
-1:18:00 SQLite: Browsing a table
-1:19:14 SQLite: Add, edit and delete rows without SQL
-1:20:20 SQLite: Designing tables visually
-1:21:20 SQLite: The SQL editor
-1:22:40 SQLite: The visual query designer
-1:23:48 SQLite: Building and running a macro
-1:24:59 SQLite: Inspect, tune and maintain
-1:25:53 SQLite: Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen
-1:26:56 SQLite: Export and one-click backup
-1:27:37 SQLite: Import with staging, from the file list
-1:29:05 SQLite: Production connections and shortcuts
-1:29:42 MySQL: Find the connection and save it
-1:31:14 MySQL: Test it, see where every value comes from
-1:32:48 MySQL: Open MySQL Studio inside the window
-1:33:58 MySQL: The studio's own connection workbench
-1:34:57 MySQL: The data grid: browse, filter, total and edit rows
-1:36:29 MySQL: The S Q L editor, presets, and one-click backup
-1:37:45 MySQL: Design queries and schemas visually
-1:39:25 MySQL: Live activity, locks, plans and maintenance
-1:41:06 MySQL: Automate it: build and run a macro
-1:42:08 MySQL: Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen
-1:43:12 MySQL: Load a CSV file with staging, from the file list
-1:44:58 MySQL: Back to the File Manager: stop, shortcuts and safety
-1:45:50 That is the tour
+1:26 The window, piece by piece
+6:01 Getting around
+8:09 How the list looks
+9:43 Choosing files, and making new ones
+11:41 Folder tabs, the sidebar folder tree, color tags and grouping
+12:51 The Quick-Filter Bar, Command Palette, Starter Templates, Selection Bar & Archive Extraction
+15:49 Copying files, and name clashes
+18:16 Big jobs: progress, Cancel, Retry and Activity
+20:41 Moving files: cut, drag, and two panes
+22:17 Deleting safely: the Recycle Bin
+23:41 Look without opening: Quick Look and copy to clipboard
+25:42 More info, permissions and password encryption
+27:02 Convert and process files
+28:33 Find files, and rename the matches
+29:49 Review before anything changes
+31:58 Compare two folders
+34:10 Projects: get back to where you were
+35:43 Actions: saved recipes
+37:26 Make and read QR codes
+38:32 The built-in code editor, and text conversions
+40:21 The terminal and your files, working together
+44:50 Replace across files, and the Dev tab
+47:02 Watch and Serve: let the computer do the routine
+48:20 The rest of the toolbox
+50:19 Home view, Split view, Calendar & World Clocks, and CLI Utilities
+51:23 Process & Task Manager, and System Information
+52:35 One-click picture, video and sound edits
+53:55 Image Studio: edit a picture with sliders
+55:22 Media Studio: trim, speed, sound and video
+56:49 Save a preset, then edit many files at once
+58:13 Recent files and media open right here
+59:28 Media Deck, Paint Studio & 24 Built-in Arcade Games
+1:00:18 God-Mode Theme & Shader Studio: Unobstructed Icons View, All 18 US Holidays, Polar Night, 20 Custom Themes (Low–Ultra) & Gemini AI
+1:06:57 The database studios
+1:07:59 Databases Hub: SQLite files in the file list & one-click sample databases
+1:08:53 Databases Hub: Connecting SQLite, MySQL, PostgreSQL and Redis
+1:09:39 Databases Hub: Cloning databases and tables across SQLite, PostgreSQL and MySQL
+1:11:02 Databases Hub: Cloning SQL tables into Redis Hashes & back into a new SQLite file
+1:11:53 Databases Hub: The Bun JavaScript & Visual Macro Studio across all engines
+1:13:15 Databases Hub: Universal 15-format import & the 5-step Staging Wizard
+1:14:11 Databases Hub: Per-column filter bar, Side Row Inspector, FK jump & backups
+1:15:02 Databases Hub: Multi-tab SQL IDE, Full ER Diagram, Schema Diff & Code Generation
+1:16:15 Databases Hub: Live PostgreSQL, MySQL and Redis Studios & the Open Studios Switcher
+1:17:04 SQLite: A database in the file list
+1:17:59 SQLite: Saving and testing a connection
+1:19:25 SQLite: A sample database in one click
+1:20:02 SQLite: SQLite Studio inside the File Manager
+1:21:19 SQLite: Browsing a table
+1:22:33 SQLite: Add, edit and delete rows without SQL
+1:23:38 SQLite: Designing tables visually
+1:24:39 SQLite: The SQL editor
+1:25:59 SQLite: The visual query designer
+1:27:07 SQLite: Building and running a macro
+1:28:18 SQLite: Inspect, tune and maintain
+1:29:12 SQLite: Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen
+1:30:15 SQLite: Export and one-click backup
+1:30:56 SQLite: Import with staging, from the file list
+1:32:24 SQLite: Production connections and shortcuts
+1:33:00 MySQL: Find the connection and save it
+1:34:33 MySQL: Test it, see where every value comes from
+1:36:06 MySQL: Open MySQL Studio inside the window
+1:37:17 MySQL: The studio's own connection workbench
+1:38:16 MySQL: The data grid: browse, filter, total and edit rows
+1:39:48 MySQL: The S Q L editor, presets, and one-click backup
+1:41:04 MySQL: Design queries and schemas visually
+1:42:44 MySQL: Live activity, locks, plans and maintenance
+1:44:25 MySQL: Automate it: build and run a macro
+1:45:27 MySQL: Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen
+1:46:31 MySQL: Load a CSV file with staging, from the file list
+1:48:17 MySQL: Back to the File Manager: stop, shortcuts and safety
+1:49:08 That is the tour
 
-#FileManager #OpenSource #Tutorial
+#FileManager #MacStudio #M4Ultra #OpenSource #Tutorial #Themes #GoogleGemini #SQLite #MySQL #PostgreSQL #Redis #BunJS
+```
+
+## YouTube tags (copy and paste — comma-separated, under 500 chars)
+
+```text
+Codecaine File Manager, File Manager Tutorial, MacAcademy Tutorial, Mac Studio M4 Ultra, Pro Display XDR 6K 120Hz, Open Source File Manager, Dual Pane File Manager, File Manager Themes, Unobstructed Icons View, Halloween Theme, Polar Night Theme, US Holiday Themes, Custom Themes GitHub, Google Gemini AI Theme, 3D Folder Icons, SQLite Studio, MySQL Studio, PostgreSQL Studio, Redis Studio, Bun RAD Studio
 ```
 
 ## Notes
 
 - Recorded from the real program in headless Chrome with a visible cursor; nothing is faked. Each chapter starts from a fresh throwaway world in /tmp, so no real file or setting appears. The terminal uses a throwaway shell profile.
-- The SQLite and MySQL chapters are the recorded chapters of `sqlite_studio_tutorial` and `mysql_studio_tutorial`, joined in without their own intro and outro (build those first).
+- Every chapter card and caption strip is marked with `🍎 Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K 120Hz`.
+- The Databases Masterclass, SQLite, and MySQL chapters are the recorded chapters of `databases_masterclass_tutorial`, `sqlite_studio_tutorial`, and `mysql_studio_tutorial`, joined in without their own intro and outro.
 - The desktop-only keys (Right Option + ] / [ / /, Command+Q) are shown on screen; the theme change is the real one.
 - The picture is 1920x972 above its own caption strip, so the captions never cover the program.
 - Narration: Edge neural voice (en-US-AvaMultilingualNeural, female) at +3% speed with 0.45s between sentences, cleaned up with a gentle compressor and loudness normalized to -16 LUFS.

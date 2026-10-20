@@ -1181,7 +1181,7 @@ import { sysutils } from "./src/features/rad/index.ts";
 const info = sysutils.getSystemInfo();
 console.log(`OS: ${info.platform} (${info.arch}) | Cores: ${info.cpuCount} | RAM: ${(info.totalMem / 1e9).toFixed(1)} GB`);
 
-await sysutils.copyToClipboard("Token: bun-rad-2026");
+await sysutils.copyToClipboard("Clipboard text: bun-rad-2026");
 const clip = await sysutils.readFromClipboard();
 ```
 
@@ -1498,7 +1498,7 @@ import { urlutils } from "./src/features/rad/index.ts";
 #### Example
 ```typescript
 const cleanUrl = urlutils.joinUrl("https://api.dev", "v1", "users", "101");
-const safeLog = urlutils.redactCredentials("postgres://admin:supersecret@db.internal:5432/main");
+const safeLog = urlutils.redactCredentials("postgres://admin:your-password@db.internal:5432/main");
 // => "postgres://admin:***@db.internal:5432/main"
 ```
 

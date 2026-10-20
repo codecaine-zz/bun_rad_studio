@@ -21,6 +21,12 @@ import { seedDemoWorkspace } from "./lib/demo_workspace";
 import { EDGE_VOICE, FFMPEG, fmtTime, sh } from "./lib/video_pipeline";
 import { runTutorial, type Suite, type Do } from "./lib/step_video";
 import { FM_HOME, chapters, type Chapter, type World } from "./lib/fm_tutorial_script";
+import {
+  MASTER_CUSTOM_THEMES,
+  getMasterCustomThemeExports,
+  getMasterCustomThemesPackJson,
+  getMasterCustomThemesPackShareCode,
+} from "../src/features/filemanager/fmMasterCustomThemes";
 
 export type { Do };
 const ROOT = process.cwd();
@@ -63,11 +69,93 @@ function seedWorld(): World {
   truncateSync(big, 12 * 1024 * 1024 * 1024);
   mkdirSync(join(HOME, "Desktop", "Archive"), { recursive: true });
   mkdirSync(join(HOME, "Desktop", "Copies"), { recursive: true });
+  // Seed custom_themes folder (in both HOME and Projects/shop-app) with single & bulk custom theme files across Low/Medium/High/Ultra tiers
+  const customExports = getMasterCustomThemeExports();
+  for (const baseDir of [join(HOME, "custom_themes"), join(HOME, "Projects", "shop-app", "custom_themes")]) {
+    mkdirSync(baseDir, { recursive: true });
+    for (const item of customExports) {
+      writeFileSync(join(baseDir, `${item.slug}.json`), JSON.stringify(item.jsonPayload, null, 2) + "\n");
+    }
+    writeFileSync(join(baseDir, "master_all_systems_20_themes_pack.json"), JSON.stringify(getMasterCustomThemesPackJson(), null, 2) + "\n");
+    writeFileSync(join(baseDir, "master_all_systems_20_themes_pack.ccfm.txt"), getMasterCustomThemesPackShareCode() + "\n");
+    writeFileSync(join(baseDir, "pack_tier_1_low_featherweight.json"), JSON.stringify(getMasterCustomThemesPackJson("low"), null, 2) + "\n");
+    writeFileSync(join(baseDir, "pack_tier_2_medium_balanced_60fps.json"), JSON.stringify(getMasterCustomThemesPackJson("medium"), null, 2) + "\n");
+    writeFileSync(join(baseDir, "pack_tier_3_high_spec_120hz.json"), JSON.stringify(getMasterCustomThemesPackJson("high"), null, 2) + "\n");
+    writeFileSync(join(baseDir, "pack_tier_4_ultra_6k_xdr_120hz.json"), JSON.stringify(getMasterCustomThemesPackJson("ultra"), null, 2) + "\n");
+  }
   // The terminal's shell reads this instead of the real ~/.zshrc: a short, clean prompt and no history written anywhere real.
   mkdirSync(ZDOT, { recursive: true });
-  writeFileSync(join(ZDOT, ".zshrc"), `HISTFILE=${ZDOT}/.history\nPROMPT='%F{cyan}%1~%f %F{magenta}❯%f '\nRPROMPT=''\n`);
+  writeFileSync(join(ZDOT, ".zshrc"), `HISTFILE=${ZDOT}/.history\nPROMPT='%F{blue}%1~%f %F{magenta}❯%f '\nRPROMPT=''\n`);
+  mkdirSync(DATA, { recursive: true });
+  writeFileSync(join(DATA, "file_manager_themes.json"), JSON.stringify({
+    version: 1,
+    themes: MASTER_CUSTOM_THEMES,
+  }, null, 2));
+  writeFileSync(join(DATA, "file_manager.json"), JSON.stringify({
+    theme: "dark",
+    palette: "holiday_halloween_jack_o_lantern",
+    preferredLightPalette: "orbital_ice",
+    preferredDarkPalette: "holiday_halloween_jack_o_lantern",
+    atmosphereTier: "ultra",
+    themeIconAnimation: "folder_3d_spin_turntable",
+    favoriteThemes: [
+      "holiday_halloween_jack_o_lantern",
+      "polar_night",
+      "mac_studio_m4_ultra",
+      "custom_0000000d",
+      "custom_0000000e",
+      "holiday_christmas_nutcracker_hearth",
+      "holiday_fourth_of_july_fireworks",
+      "holiday_thanksgiving_harvest_hearth",
+    ],
+    seenWelcome: false,
+  }, null, 2));
   return { home: HOME, data: DATA, put, big };
 }
+
+/**
+ * Curated 100% Ultra-Tier (`tier: "ultra"`) theme + 120Hz 3D icon animation rotation across every chapter
+ * on our Apple Mac Studio M4 Ultra (32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K @ 120Hz):
+ * - Starts on `holiday_halloween_jack_o_lantern` for Halloween month!
+ * - Features `polar_night` (`Polar Night` Ultra) and `cryo_icicle_blizzard`
+ * - Showcases all 18 US Holiday Celebration Ultra themes (`holiday_*`) and our Master Designer Ultra Custom Themes!
+ */
+const CHAPTER_ULTRA_THEME_MAP: Record<string, { palette: string; anim: string }> = {
+  "01_window":                              { palette: "holiday_halloween_jack_o_lantern",    anim: "folder_3d_spin_turntable" },
+  "02_moving":                              { palette: "polar_night",                         anim: "raytraced_caustic_refraction" },
+  "03_views":                               { palette: "mac_studio_m4_ultra",                 anim: "m4_liquid_metal_morph" },
+  "04_select_create":                       { palette: "holiday_christmas_nutcracker_hearth", anim: "godmode_pantheon_ascend" },
+  "04b_tabs_tree_tags":                     { palette: "custom_0000000e",                     anim: "raytraced_caustic_refraction" },
+  "04c_quickbar_palette_templates_extract": { palette: "holiday_fourth_of_july_fireworks",    anim: "houdini_vex_particle_burst" },
+  "05_copy":                                { palette: "holiday_thanksgiving_harvest_hearth", anim: "fire_ember_flicker" },
+  "06_queue":                               { palette: "cryo_icicle_blizzard",                anim: "raytraced_caustic_refraction" },
+  "07_move":                                { palette: "holiday_new_years_times_square",      anim: "raytraced_caustic_refraction" },
+  "08_delete":                              { palette: "horror_nosferatu_blood_moon",         anim: "folder_3d_flip_origami" },
+  "09_quicklook":                           { palette: "holiday_valentines_velvet_rose",      anim: "heartbeat_biolum" },
+  "09b_perms_info_lock":                    { palette: "holiday_st_patricks_emerald_clover",  anim: "holo_foil_shimmer" },
+  "10_convert":                             { palette: "holiday_dia_de_los_muertos_marigold", anim: "blender_geometry_nodes_bloom" },
+  "11_find":                                { palette: "holiday_mlk_dream_memorial",          anim: "orbital_halo_spin" },
+  "12_review":                              { palette: "holiday_presidents_mount_rushmore",   anim: "c4d_mograph_cloner_wave" },
+  "13_compare":                             { palette: "custom_0000000f",                     anim: "folder_3d_spin_turntable" },
+  "14_projects":                            { palette: "holiday_easter_pastel_egg_hunt",      anim: "spring_pop_3d" },
+  "15_actions":                             { palette: "holiday_mothers_day_botanical_tea",   anim: "blender_geometry_nodes_bloom" },
+  "16_qr":                                  { palette: "holiday_memorial_day_poppy_honor",    anim: "orbital_halo_spin" },
+  "17_code":                                { palette: "custom_00000010",                     anim: "m4_liquid_metal_morph" },
+  "18_terminal":                            { palette: "flash_2advanced_v3_studio",           anim: "flash_2advanced_vector_hud" },
+  "19_dev":                                 { palette: "holiday_juneteenth_jubilee_star",     anim: "houdini_vex_particle_burst" },
+  "20_automate":                            { palette: "holiday_fathers_day_leather_den",     anim: "clockwork_gear_tick" },
+  "21_toolbox":                             { palette: "holiday_labor_day_rivet_forge",       anim: "fire_ember_flicker" },
+  "21a_home_split_clock_cli":               { palette: "holiday_veterans_day_valor_medallion",anim: "c4d_mograph_cloner_wave" },
+  "21aa_tasks_sysinfo":                     { palette: "holiday_hanukkah_menorah_sapphire",   anim: "raytraced_caustic_refraction" },
+  "21b_convert_more":                       { palette: "custom_00000011",                     anim: "folder_3d_flip_origami" },
+  "21c_image_studio":                       { palette: "c4d_mograph_studio",                  anim: "c4d_mograph_cloner_wave" },
+  "21d_media_studio":                       { palette: "custom_00000012",                     anim: "fire_ember_flicker" },
+  "21e_presets_bulk":                       { palette: "ef5_debris_tornado",                  anim: "gyro_3d_cube_matrix" },
+  "21f_recent":                             { palette: "custom_00000013",                     anim: "liquid_jelly_morph" },
+  "21g_player_paint_games":                 { palette: "custom_00000014",                     anim: "godmode_pantheon_ascend" },
+  "22_themes":                              { palette: "holiday_halloween_jack_o_lantern",    anim: "folder_3d_spin_turntable" },
+  "23_databases":                           { palette: "custom_0000000d",                     anim: "folder_3d_spin_turntable" },
+};
 
 class Env {
   c!: Cdp;
@@ -81,9 +169,29 @@ class Env {
   async open(ch: Chapter, world: World) {
     this.stopServer();
     await sleep(500);
+    const themeSpec = CHAPTER_ULTRA_THEME_MAP[ch.id] ?? { palette: "holiday_halloween_jack_o_lantern", anim: "folder_3d_spin_turntable" };
+    writeFileSync(join(DATA, "file_manager.json"), JSON.stringify({
+      theme: "dark",
+      palette: themeSpec.palette,
+      preferredLightPalette: "orbital_ice",
+      preferredDarkPalette: "holiday_halloween_jack_o_lantern",
+      atmosphereTier: "ultra",
+      themeIconAnimation: themeSpec.anim,
+      favoriteThemes: [
+        "holiday_halloween_jack_o_lantern",
+        "polar_night",
+        "mac_studio_m4_ultra",
+        "custom_0000000d",
+        "custom_0000000e",
+        "holiday_christmas_nutcracker_hearth",
+        "holiday_fourth_of_july_fireworks",
+        "holiday_thanksgiving_harvest_hearth",
+      ],
+      seenWelcome: !ch.welcome,
+    }, null, 2));
     const path = ch.path ?? `${HOME}/Projects/shop-app`;
     this.fm = Bun.spawn([process.execPath, join(ROOT, "applications", "file_manager_studio.ts"), "--server", "--port", String(FM_PORT), "--home", HOME, "--data-dir", DATA, "--path", path],
-      { cwd: "/tmp", stdout: "ignore", stderr: "ignore", env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", GRAVEYARD: GRAVE, SHELL: "/bin/zsh", ZDOTDIR: ZDOT } });
+      { cwd: "/tmp", stdout: "ignore", stderr: "ignore", env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", GRAVEYARD: GRAVE, SHELL: "/bin/zsh", ZDOTDIR: ZDOT, FM_SHOWCASE_MAC_ULTRA: "1" } });
     for (let i = 0; i < 80; i++) { try { if ((await fetch(`http://127.0.0.1:${FM_PORT}/`)).ok) break; } catch {} await sleep(250); }
     await this.c.goto(`http://127.0.0.1:${FM_PORT}/`);
     if (!ch.welcome) {
@@ -99,38 +207,49 @@ class Env {
 function notesText(marks: Array<{ at: number; title: string }>, total: number): string {
   const REPO = "https://github.com/codecaine-zz/bun_rad_studio";
   const chaptersText = marks.map((m, i) => `${fmtTime(i === 0 ? 0 : m.at)} ${m.title}`).join("\n");
-  return `# Codecaine File Manager: the complete, step-by-step guide (${fmtTime(total)})
+  return `# Codecaine File Manager: the complete, step-by-step MacAcademy-style guide (${fmtTime(total)})
 
-## YouTube title
+## Reference & Hardware Workstation Mark
 
-Codecaine File Manager Full Tutorial: Terminal, Media Studios, 310 Themes, 194 Shaders & Databases
+- **Tutorial Style:** Calm, methodical, unhurried "show every click" walkthrough inspired by the classic 1989 MacAcademy training series
+- **Workstation Hardware Mark:** \`🍎 Apple Mac Studio M4 Ultra · 32-Core CPU (24P + 8E) · 80-Core GPU · 32-Core Neural Engine · 192GB Unified Memory (819 GB/s LPDDR5X) · Apple Pro Display XDR 6K (6016×3384) @ 120Hz ProMotion · Display-P3 1600-nit HDR\`
 
-## YouTube description (copy and paste)
+## YouTube title (92 chars — under YouTube's 100-char limit)
+
+Codecaine File Manager Full Tutorial (Mac Studio M4 Ultra 6K): Every Tool, Theme & DB Studio
+
+## YouTube description (copy and paste — strictly under 5,000 chars with all 72 chapter timestamps)
 
 \`\`\`text
-The complete, step-by-step guide to the Codecaine File Manager: a free, open-source, keyboard-friendly file manager for macOS, Windows and Linux, with its own terminal, picture and media studios, developer tools, 310 themes with 194 live procedural shaders, cross-platform Mac/Windows/Linux zero-lag hardware optimization, zero-dialog random theme shortcuts (⌥R / ⌥E / ⌥P / ⌥U / ⌥0), and full SQLite, MySQL, PostgreSQL, and Redis studios built in. Every click is shown in real time, on a throwaway folder of sample files, so you can follow along at your own pace.
+The complete, step-by-step MacAcademy-style guide to the Codecaine File Manager — recorded on an Apple Mac Studio M4 Ultra (32-Core CPU · 80-Core GPU · 192GB Unified Memory · Apple Pro Display XDR 6K @ 120Hz ProMotion). Free & open-source for macOS, Windows, and Linux.
 
 ⬇️ Download (free): ${REPO}/releases/latest
-⭐ Source code: ${REPO}
+🎨 Custom Themes Vault (Low/Med/High/Ultra + 41 Screenshots): ${REPO}/tree/main/custom_themes
+📐 Theme Design Style Guide: ${REPO}/blob/main/custom_themes/THEME_DESIGN_STYLE_GUIDE.md
+⭐ Source Code: ${REPO}
 
-WHAT YOU WILL LEARN
-📁 The basics: the window, getting around, views, folder tabs, sidebar folder tree, color tags, selecting, copy and move with progress, Cancel and Retry, name clashes, the Recycle Bin, Undo, Quick Look, permissions and AES-256-GCM file encryption.
-⌨️ Terminal + files together: the file list follows your cd, "Open terminal here", and selected files and folders typed into the terminal as safely quoted paths. On Windows it works with PowerShell, the Command Prompt, Git Bash and WSL (C:\\Users becomes /mnt/c/Users), no external terminal needed.
-🧰 Every tool: Convert, Find and bulk rename, Review, Compare, Projects, Actions, QR codes, the code editor, Replace across files with Undo, the Dev tab (code stats, Git, TODOs), Watch, Serve, Crypto, Secrets, Env, Network, Downloads, Calculator, Timer, API, Bundler, the Graveyard, Calendar & World Clocks, CLI Utilities, Process & Task Manager, and System Information & Hardware Telemetry.
-🎬 Pictures, songs, videos, paint & games: one-click edits, the Image Studio and Media Studio with live sliders, trim, speed and fades, presets for many files at once, a built-in viewer and player, Media Deck (10-band EQ & 108 visualizers), Paint Studio, and 24 built-in arcade games.
-🎨 Make it yours: 310 themes with 1-click Optimize for Mac (Apple Silicon M4 Pro/Max/Ultra 120Hz), Optimize for Windows (DirectX 12 WebView2), and Optimize for Linux / Parallels VM, zero-dialog quick random shortcuts (⌥R Random Any, ⌥E Random FX, ⌥P Random Plain 0% GPU, ⌥U Random Ultra, ⌥0 Toggle FX, Right ⌥ + ] / [ HUD), Year 3000+ Post-Singularity & Flagship Mac 6K XDR collections, 194 live atmospheric shaders with a 6-layer mixer & 48 signature mixes, ⌘V clipboard paste & bulk import with conflict resolution, side-by-side split-screen comparator + Live OKLab Theme Blender, 4-stage Solar Cycle schedule + Ambient Playlist auto-rotation, Theme Show & Screensaver Studio, and Theme Editor v2 with Theme Hacker Lab.
-🗄️ Databases: complete Databases & Cross-Engine Cloning Masterclass (SQLite, MySQL, PostgreSQL, Redis, Bun JS & Visual Macros, 15-format staging import, Studio IDE v2), plus dedicated SQLite Studio and MySQL Studio walkthroughs.
+HIGHLIGHTS
+• 🎃 Unobstructed Icons View (#list.view-icons) showcase: Halloween Ultra intro, Polar Night & Cryo-Glacier, all 18 US Holiday Celebration Ultra themes (⌥H), 120Hz 3D spinning folders (⌥9), 20 Master Custom Themes across Low/Medium/High/Ultra tiers, Single & Bulk Folder Import (📁 Load Current Folder Themes), and 🤖 Google Gemini AI Theme Customizer
+• 📁 8 Views (⌥1–⌥8), Tabs, Folder Tree, Color Tags, Quick-Filter Bar (⌘⌥F), Command Palette (⌘⇧P), 12 Starter Templates (⌘⌥K), Archive Extract (⌘⇧E), Recycle Bin, Undo, Quick Look, Disguised-File Sniffing, Open With & AES-256-GCM Encryption
+• ⌨️ Two-way synced Terminal + Code Editor IDE (70+ conversions, Outline, Git, History, TODOs, Split & Live Preview), Folder & Data Compare, Find & Bulk Rename, Image/Media/Paint Studios, AmpDeck (10-band EQ & 108 visualizers), 24 Arcade Games, and SQLite, MySQL, PostgreSQL & Redis Studios
 
 CHAPTERS
 ${chaptersText}
 
-#FileManager #OpenSource #Tutorial
+#FileManager #MacStudio #M4Ultra #OpenSource #Tutorial #Themes #GoogleGemini #SQLite #MySQL #PostgreSQL #Redis #BunJS
+\`\`\`
+
+## YouTube tags (copy and paste — comma-separated, under 500 chars)
+
+\`\`\`text
+Codecaine File Manager, File Manager Tutorial, MacAcademy Tutorial, Mac Studio M4 Ultra, Pro Display XDR 6K 120Hz, Open Source File Manager, Dual Pane File Manager, File Manager Themes, Unobstructed Icons View, Halloween Theme, Polar Night Theme, US Holiday Themes, Custom Themes GitHub, Google Gemini AI Theme, 3D Folder Icons, SQLite Studio, MySQL Studio, PostgreSQL Studio, Redis Studio, Bun RAD Studio
 \`\`\`
 
 ## Notes
 
 - Recorded from the real program in headless Chrome with a visible cursor; nothing is faked. Each chapter starts from a fresh throwaway world in /tmp, so no real file or setting appears. The terminal uses a throwaway shell profile.
-- The SQLite and MySQL chapters are the recorded chapters of \`sqlite_studio_tutorial\` and \`mysql_studio_tutorial\`, joined in without their own intro and outro (build those first).
+- Every chapter card and caption strip is marked with \`🍎 Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K 120Hz\`.
+- The Databases Masterclass, SQLite, and MySQL chapters are the recorded chapters of \`databases_masterclass_tutorial\`, \`sqlite_studio_tutorial\`, and \`mysql_studio_tutorial\`, joined in without their own intro and outro.
 - The desktop-only keys (Right Option + ] / [ / /, Command+Q) are shown on screen; the theme change is the real one.
 - The picture is 1920x972 above its own caption strip, so the captions never cover the program.
 - Narration: Edge neural voice (${EDGE_VOICE}, female) at ${RATE} speed with ${GAP}s between sentences, cleaned up with a gentle compressor and loudness normalized to -16 LUFS.
@@ -151,6 +270,7 @@ const suite: Suite = {
   rate: RATE,
   gap: GAP,
   viewHeight: VIEW_H,
+  rigMark: "🍎 Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K 120Hz",
 };
 
 await runTutorial(suite, process.argv.slice(2));

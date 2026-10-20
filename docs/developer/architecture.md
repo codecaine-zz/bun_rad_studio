@@ -23,9 +23,9 @@ Every program is a Bun script that opens a native window (through the `webview-b
                  └──────────────────────────────────────────────┘
                                       │ runs
    ┌────────────────┬─────────────────┼───────────────────┬──────────────────┐
-   │ index.ts        │ applications/   │ cli_apps/          │ demos/           │
-   │ visual designer │ 65 studios the  │ 78 command-line    │ 27 examples      │
-   │ + window helpers│ launcher lists  │ tools (no window)  │ of SimpleGUI     │
+   │ index.ts       │ applications/   │ cli_apps/         │ demos/           │
+   │ visual designer│ 67 studios the  │ 79 command-line   │ 27 examples      │
+   │ + window helpers│ launcher lists  │ tools (no window) │ of SimpleGUI     │
    └───────┬────────┴───────┬─────────┴─────────┬─────────┴────────┬─────────┘
            │ uses           │ uses              │ uses             │ uses
            ▼                ▼                   ▼                  ▼
@@ -117,11 +117,11 @@ It is mounted inside the SQLite, MySQL and PostgreSQL studio servers under `/wor
 
 ## Persistent data
 
-See [Data and files](../reference/data-and-files.md) for the full list. In short: layouts live only in the open designer page until you copy the JSON; Workbench profiles are in `~/.bun_rad_studio/connections.json`; the launcher keeps `.launcher_history.json`; games keep their state in local files or browser storage; exports go to `exported_project`.
+See [Data and files](../reference/data-and-files.md) for the full list. In short: layouts live in the open designer page and an autosaved draft (`~/.bun_rad_studio/designer_draft.json`) until you copy the JSON; Workbench profiles are in `~/.bun_rad_studio/connections.json`; the launcher keeps `.launcher_history.json`; games keep their state in local files or browser storage; exports go to `exported_project`.
 
 ## Size and shape of the code
 
-Measured on 13 October 2026 with `wc -l` and `ls`: `src/simplegui.ts` 11,612 lines, `index.ts` about 4,600, `src/ide.html` 7,285 (the script is lines 2,262 to 7,283; it is now edited as 20 script parts in `src/ide/`, the largest 1,224 lines). 85 files in `applications/` (65 listed as studios by the launcher), 78 in `cli_apps/`, 27 demos, 101 test files and 1,285 tests.
+Measured on 13 October 2026 with `wc -l` and `ls`: `src/simplegui.ts` 11,612 lines, `index.ts` about 4,600, `src/ide.html` 7,285 (the script is lines 2,262 to 7,283; it is now edited as 20 script parts in `src/ide/`, the largest 1,224 lines). `applications/` has 67 studios listed by the launcher (plus helper modules), `cli_apps/` has 79 command-line tools, and `demos/` has 27 demos.
 
 ## Known structural problems
 

@@ -1064,6 +1064,7 @@ const suite: Suite = {
   cdp: () => cdp,
   notes,
   viewHeight: VIEW_H,
+  rigMark: "🍎 Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K 120Hz",
 };
 
 await runTutorial(suite, process.argv.slice(2));

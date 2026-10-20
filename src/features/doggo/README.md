@@ -8,14 +8,14 @@ A modern, human-friendly command-line DNS client and modern `dig` alternative wr
 
 ```bash
 # Query DNS records
-bun run doggo [domain] [type] [@nameserver]
+bun run cli:doggo [domain] [type] [@nameserver]
 
 # Examples
-bun run doggo example.com
-bun run doggo example.com MX
-bun run doggo example.com TXT @8.8.8.8
-bun run doggo example.com --short
-bun run doggo example.com -j
+bun run cli:doggo example.com
+bun run cli:doggo example.com MX
+bun run cli:doggo example.com TXT @8.8.8.8
+bun run cli:doggo example.com --short
+bun run cli:doggo example.com -j
 
 # Common Flags
 -t, --type <type>        DNS record type (A, AAAA, CNAME, MX, TXT, NS, SOA, CAA, PTR, SRV)

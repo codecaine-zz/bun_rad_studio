@@ -108,10 +108,11 @@ export function createOmnitoolStudio(options: { headless?: boolean; screenshotPa
   win.endCard();
 
   // Search & Target Directory Controls
+  const defaultTargetPath = process.env.SCREENSHOT_MODE ? "." : process.cwd();
   win.beginGroupBox("Query & Target Path Configuration");
   win.beginRow();
   win.addLabel("lbl_path", "Target Path:");
-  win.addInput("txt_search_path", process.cwd());
+  win.addInput("txt_search_path", defaultTargetPath);
   win.addButton("btn_browse_folder", "📁 Folder...");
   win.addButton("btn_browse_target_file", "📄 File...");
   win.addLabel("lbl_query", "Pattern / Expression:");
@@ -158,7 +159,7 @@ export function createOmnitoolStudio(options: { headless?: boolean; screenshotPa
   win.beginGroupBox("Execution Output Stream");
   win.addTextarea(
     "txt_results",
-    `[OmniTool Studio Pro Initialized]\nLoaded 6 unified developer engines powered natively by Bun.\nTarget path: ${process.cwd()}\nZero Homebrew dependencies required.\n`
+    `[OmniTool Studio Pro Initialized]\nLoaded 6 unified developer engines powered natively by Bun.\nTarget path: ${defaultTargetPath}\nZero Homebrew dependencies required.\n`
   );
   win.endGroupBox();
 

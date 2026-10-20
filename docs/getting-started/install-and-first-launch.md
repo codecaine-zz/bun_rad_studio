@@ -55,7 +55,7 @@ bun run cli:launcher --list
 ```
 
 *What it does:* the launcher's command-line companion scans the repository and prints every tool it finds.
-*Expected result:* a summary that includes `Total Detected: 175 tools` (70 studios, 78 command-line tools, 27 demos), followed by the list. Add `--search sqlite` to filter, or `--json` for machine-readable output.
+*Expected result:* a summary that includes `Total Detected: 173 tools` (67 studios, 79 command-line tools, 27 demos), followed by the list. Add `--search sqlite` to filter, or `--json` for machine-readable output.
 
 The same list is in the [application index](../reference/application-index.md).
 
@@ -104,7 +104,7 @@ bun run build
 
 ## Things that do not work yet
 
-- **`bun start` (the visual form designer)** now opens its window and the page works (see [what was checked](../visual-designer/index.md#what-was-checked)); before 13 October 2026 it crashed ([D-001](../documentation-maintenance/discrepancies.md#d-001)) and its page did nothing ([D-016](../documentation-maintenance/discrepancies.md#d-016)). The designer cannot save a layout, so this page still uses a code example for the first project that you can save and reopen.
+- **`bun start` (the visual form designer)** now opens its window and the page works (see [what was checked](../visual-designer/index.md#what-was-checked)); before 13 October 2026 it crashed ([D-001](../documentation-maintenance/discrepancies.md#d-001)) and its page did nothing ([D-016](../documentation-maintenance/discrepancies.md#d-016)). The designer has no named Save-as/Open command (only a single autosaved draft in `~/.bun_rad_studio/designer_draft.json` and JSON copy/Import), so this page still uses a code example for the first project that you can save and reopen.
 - Windows ARM: the source build and extracted File Manager's native window were verified on Windows 11 ARM64 on 16 October 2026. Linux ARM64 native startup and sandbox setup were verified on Ubuntu 24.04; see [release verification](../developer/releasing.md#what-was-verified). Other hardware and every app's UI have not all been manually tested.
 
 ## When something fails

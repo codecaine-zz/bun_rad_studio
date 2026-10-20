@@ -1060,7 +1060,9 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
   `);
 
   // Initial population
-  refreshGraveyard();
+  if (!process.env.SCREENSHOT_MODE) {
+    refreshGraveyard();
+  }
 
   return win;
 }

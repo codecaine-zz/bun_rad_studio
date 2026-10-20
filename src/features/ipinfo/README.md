@@ -8,7 +8,7 @@ Lookup geolocation, autonomous system number (ASN), organization, city, region, 
 
 ```bash
 # Lookup IP, CIDR subnet, or local interfaces
-bun run ipinfo [<ip|cidr>] [options]
+bun run cli:ipinfo [<ip|cidr>] [options]
 
 # Common Flags
 -l, --local             Show local network interfaces and assigned IPs

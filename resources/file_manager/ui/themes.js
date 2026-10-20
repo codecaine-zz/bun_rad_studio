@@ -8954,6 +8954,228 @@ export async function showThemeShareDialog(initialKey = "", existingThemes) {
     },
   }, "⬇️ Download File");
 
+  const geminiPromptInput = h("input", {
+    type: "text",
+    class: "prop-input",
+    "data-gemini-theme-prompt": "true",
+    "aria-label": "Describe the theme you want Google Gemini to create or customize",
+    value: "Halloween Jack-O'-Lantern & Polar Aurora Borealis 6K XDR mashup with 120Hz 3D spinning folders",
+    placeholder: "e.g., Halloween Jack-O'-Lantern & Polar Aurora mashup with 120Hz 3D spinning folders…",
+  });
+  const geminiTierSelect = h("select", {
+    class: "prop-input",
+    "data-gemini-theme-tier": "true",
+    "aria-label": "Target system hardware tier for Google Gemini theme generation",
+    style: "max-width:250px",
+  },
+    h("option", { value: "ultra" }, "🔴 Ultra Flagship (120Hz 6K XDR · M4 Ultra)"),
+    h("option", { value: "high" }, "🟠 High-Spec (60–120Hz · Dual Shaders)"),
+    h("option", { value: "medium" }, "🟡 Medium Balanced (60fps · 1-Layer FX)"),
+    h("option", { value: "low" }, "🟢 Low-End Featherweight (0% GPU · Zero Blur)"),
+  );
+
+  function synthesizeGeminiThemeFromPrompt(promptText, tierValue) {
+    const p = String(promptText || "").toLowerCase();
+    const isLight = /\b(light|daylight|paper|e-ink|glacier day|white)\b/.test(p);
+    const isHalloween = /\b(halloween|pumpkin|jack-o|october|spooky|witch|ember)\b/.test(p);
+    const isPolar = /\b(polar|aurora|ice|glacier|cryo|arctic|frost|snow)\b/.test(p);
+    const isFire = /\b(fire|hellfire|inferno|compiz|lava|flame)\b/.test(p);
+    const isGold = /\b(gold|sapphire|luxury|rolex|swiss|24k)\b/.test(p);
+
+    const colors = isLight
+      ? {
+          background: "#f2f8ff",
+          text: "#071b2f",
+          accent: isHalloween ? "#d95f02" : "#0066cc",
+          secondary: "#0097a7",
+          card: "#ffffff",
+          border: "#b8d8f8",
+          danger: "#c62828",
+          warning: "#ef6c00",
+          success: "#00796b",
+          info: "#0277bd",
+        }
+      : isHalloween && isPolar
+      ? {
+          background: "#080b18",
+          text: "#fff6ec",
+          accent: "#ff7700",
+          secondary: "#64ffda",
+          card: "#11172b",
+          border: "#2d3b66",
+          danger: "#ff3d00",
+          warning: "#ffab00",
+          success: "#64ffda",
+          info: "#80d8ff",
+        }
+      : isHalloween
+      ? {
+          background: "#0d0614",
+          text: "#fff4e6",
+          accent: "#ff6d00",
+          secondary: "#b388ff",
+          card: "#170b24",
+          border: "#3b1d54",
+          danger: "#ff3d00",
+          warning: "#ffab00",
+          success: "#00e676",
+          info: "#b388ff",
+        }
+      : isPolar
+      ? {
+          background: "#050d17",
+          text: "#eef9ff",
+          accent: "#64ffda",
+          secondary: "#80d8ff",
+          card: "#0a1829",
+          border: "#1c3b5e",
+          danger: "#ff6e7f",
+          warning: "#ffd740",
+          success: "#64ffda",
+          info: "#80d8ff",
+        }
+      : isFire
+      ? {
+          background: "#120603",
+          text: "#fff5eb",
+          accent: "#ff5722",
+          secondary: "#ffd54f",
+          card: "#1f0b05",
+          border: "#5c220e",
+          danger: "#ff1744",
+          warning: "#ffd54f",
+          success: "#69f0ae",
+          info: "#ff9100",
+        }
+      : isGold
+      ? {
+          background: "#070912",
+          text: "#fffbf0",
+          accent: "#ffd54f",
+          secondary: "#64b5f6",
+          card: "#0f1324",
+          border: "#3d351e",
+          danger: "#ff5252",
+          warning: "#ffd54f",
+          success: "#69f0ae",
+          info: "#64b5f6",
+        }
+      : {
+          background: "#080c16",
+          text: "#f0f7ff",
+          accent: "#38bdf8",
+          secondary: "#a855f7",
+          card: "#11192c",
+          border: "#28395c",
+          danger: "#f43f5e",
+          warning: "#fbbf24",
+          success: "#10b981",
+          info: "#38bdf8",
+        };
+
+    const tierCfg =
+      tierValue === "low"
+        ? { blur: 0, glass: 0, glowIntensity: 0.25, motion: "zero", atmo: "none", anim: "off" }
+        : tierValue === "medium"
+        ? {
+            blur: 12,
+            glass: 0.52,
+            glowIntensity: 0.65,
+            motion: "spring",
+            atmo: isHalloween ? "autumn_leaves" : isPolar ? "snow" : "cinema_bokeh",
+            anim: "spring_pop_3d",
+          }
+        : tierValue === "high"
+        ? {
+            blur: 22,
+            glass: 0.66,
+            glowIntensity: 0.85,
+            motion: "spring",
+            atmo: isHalloween ? "autumn_leaves+embers" : isPolar ? "snow+aurora" : "aurora+cinema_bokeh",
+            anim: "orbital_halo_spin",
+          }
+        : {
+            blur: 28,
+            glass: 0.74,
+            glowIntensity: 1,
+            motion: "spring",
+            atmo:
+              isHalloween && isPolar
+                ? "autumn_leaves+embers+aurora_australis"
+                : isHalloween
+                ? "autumn_leaves+embers+fireflies"
+                : isPolar
+                ? "blizzard+aurora_australis"
+                : isFire
+                ? "dragon_forge+embers+solar_flare"
+                : "m4_raytrace_prism+cinema_bokeh",
+            anim: "folder_3d_spin_turntable",
+          };
+
+    const cleanTitle =
+      String(promptText || "Gemini Custom Studio")
+        .replace(/[^a-zA-Z0-9 '-]+/g, " ")
+        .trim()
+        .slice(0, 26)
+        .trim() || "Gemini Custom";
+    const tierSuffix = tierValue === "ultra" ? "6K Ultra" : tierValue === "high" ? "High" : tierValue === "medium" ? "60fps" : "Lite";
+    const themeName = `${cleanTitle} ${tierSuffix}`.slice(0, 40);
+
+    return {
+      format: "bun-rad-studio-file-manager-theme",
+      version: 1,
+      name: themeName,
+      dark: !isLight,
+      base: "Google Gemini AI Studio",
+      colors,
+      fx: {
+        glow: isHalloween || isFire ? "ember" : isPolar ? "aurora" : "bloom",
+        glowColor: colors.accent,
+        glowColor2: colors.secondary,
+        blur: tierCfg.blur,
+        glass: tierCfg.glass,
+        glowIntensity: tierCfg.glowIntensity,
+        borderOpacity: 0.34,
+        grain: tierValue === "low" ? "none" : "subtle",
+        scanlines: "none",
+        radius: "squircle",
+        border: tierValue === "low" ? "flat" : "iridescent",
+        motion: tierCfg.motion,
+        sheen: tierValue !== "low",
+        noise: tierValue === "ultra",
+        chromatic: false,
+        ambient: tierValue !== "low",
+        atmosphere: tierCfg.atmo,
+        backdropStyle: tierValue === "low" ? "matte" : "liquid",
+        cursorEffect: tierValue === "low" ? "none" : "spotlight",
+        vignette: tierValue === "low" ? "none" : "cinema",
+        saturation: tierValue === "low" ? 1.15 : 1.5,
+        uiElementFx: isHalloween ? "holiday_festive_glow" : isPolar ? "cryo_frost" : isFire ? "fire_folders" : isGold ? "swiss_sapphire_chronograph" : "xdr_titanium_folders",
+        iconPackStyle: isHalloween ? "us_holidays_festive" : isPolar ? "aurora_nordic_ice" : isFire ? "inferno_burn" : isGold ? "royal_24k_gold_obsidian" : "pro_studio_xdr",
+        fontProfile: "humanist_hig",
+        cornerProfile: "squircle_hig",
+        iconGlow: tierValue === "low" ? "off" : "xdr_specular",
+        iconAnimation: tierCfg.anim,
+        prismEdge: tierValue !== "low",
+        innerGlow: tierValue !== "low",
+        frostedRim: tierValue !== "low",
+      },
+    };
+  }
+
+  function buildGeminiMasterPromptText() {
+    const tierValue = geminiTierSelect.value || "ultra";
+    const userGoal = geminiPromptInput.value.trim() || "Create a high-contrast 6K XDR Ultra theme with 3D spinning folders";
+    return [
+      "You are a Master UI/UX Theme Architect for the Codecaine File Manager.",
+      `Target Hardware Tier: ${tierValue.toUpperCase()} (${tierValue === "low" ? "blur: 0, glass: 0, atmosphere: 'none', iconAnimation: 'off'" : tierValue === "medium" ? "blur: 12, glass: 0.5, 1 atmosphere layer" : tierValue === "high" ? "blur: 22, glass: 0.66, 2 atmosphere layers" : "blur: 28-32, glass: 0.74, 3 atmosphere layers, 120Hz 3D iconAnimation"}).`,
+      `User Request: "${userGoal}"`,
+      "",
+      "Return ONLY valid JSON matching this schema (name <= 40 chars, WCAG AA/AAA contrast >= 7:1 between background/card and text):",
+      JSON.stringify(synthesizeGeminiThemeFromPrompt(userGoal, tierValue), null, 2),
+    ].join("\n");
+  }
+
   const dlg = openDialog({
     title: "Share, Export & Import Themes (1-Click Copy, Save File, or Paste)",
     wide: true,
@@ -8998,8 +9220,45 @@ export async function showThemeShareDialog(initialKey = "", existingThemes) {
       tabs,
       exportBox,
       h("hr", { style: "border:0;border-top:1px solid var(--border);margin:0.75rem 0" }),
+      h("div", { class: "theme-compare-controls", style: "flex-wrap:wrap;gap:0.45rem;align-items:flex-end;margin-bottom:0.55rem" },
+        h("label", { class: "field", style: "flex:1;min-width:260px" },
+          h("span", { class: "field-label" }, "🤖 Google Gemini AI Theme Customizer & Prompt Studio (Low · Medium · High · Ultra)"),
+          geminiPromptInput
+        ),
+        h("label", { class: "field" },
+          h("span", { class: "field-label" }, "System Hardware Tier"),
+          geminiTierSelect
+        ),
+        h("button", {
+          type: "button",
+          class: "btn primary",
+          "data-gemini-generate-btn": "true",
+          title: "Synthesize a custom theme from your prompt for the selected hardware tier (Low, Medium, High, Ultra) and load it into the import box",
+          onclick: async (e) => {
+            const btn = e.currentTarget;
+            const generated = synthesizeGeminiThemeFromPrompt(geminiPromptInput.value, geminiTierSelect.value);
+            importBox.value = JSON.stringify(generated, null, 2);
+            flashCopied(btn, "✨ Synthesized!");
+            toast(`✨ Google Gemini synthesized "${generated.name}" (${geminiTierSelect.value.toUpperCase()} tier) — click Import or Inspect below!`, { kind: "success" });
+          },
+        }, "✨ Generate with Gemini AI"),
+        h("button", {
+          type: "button",
+          class: "btn",
+          "data-gemini-copy-prompt-btn": "true",
+          title: "Copy a complete schema-aware Google Gemini LLM prompt so you can customize this theme in gemini.google.com and paste the JSON reply back with ⌘V",
+          onclick: async (e) => {
+            const btn = e.currentTarget;
+            const promptStr = buildGeminiMasterPromptText();
+            await copyToClipboard(promptStr);
+            importBox.value = JSON.stringify(synthesizeGeminiThemeFromPrompt(geminiPromptInput.value, geminiTierSelect.value), null, 2);
+            flashCopied(btn, "✓ Gemini Prompt Copied!");
+            toast("📋 Copied Master Prompt for Google Gemini Chat (gemini.google.com) — paste Gemini's JSON response here!", { kind: "success" });
+          },
+        }, "📋 Copy Prompt for Gemini Chat"),
+      ),
       h("div", { class: "theme-compare-controls", style: "justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.45rem" },
-        h("h3", { style: "margin:0;font-size:13px" }, "📥 Import Theme Code, JSON, CSS, or File (Paste, Drop File, or Choose File)"),
+        h("h3", { style: "margin:0;font-size:13px" }, "📥 Import Theme Code, JSON, CSS, or Folder (Single & Bulk Import)"),
         h("div", { style: "display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap" },
           fileInput,
           h("button", {
@@ -9026,6 +9285,93 @@ export async function showThemeShareDialog(initialKey = "", existingThemes) {
             title: "Select one or more .json / .txt / .ccfm / .css theme files from your computer to import immediately.",
             onclick: () => fileInput.click(),
           }, "📂 Load Theme File(s)…"),
+          h("button", {
+            type: "button",
+            class: "btn",
+            "data-share-import-current-folder-btn": "true",
+            title: "Bulk-import all .json, .ccfm.txt, and .theme.css files from the currently open File Manager folder (e.g. custom_themes/).",
+            onclick: async () => {
+              let dir = currentPath();
+              try {
+                let listed = await call("list", { path: dir, showHidden: false });
+                const isThemeEntry = (e) =>
+                  !e.isDir &&
+                  /\.(?:theme\.json|ccfm\.txt|theme\.css|json|ccfm)$/i.test(e.name) &&
+                  !/^(?:readme|package|tsconfig|manifest)/i.test(e.name);
+                let themeEntries = (listed?.entries || [])
+                  .filter(isThemeEntry)
+                  .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+                if (!themeEntries.length) {
+                  const subFolder = (listed?.entries || []).find((e) => e.isDir && /^custom[_-]?themes$/i.test(e.name));
+                  if (subFolder?.path) {
+                    dir = subFolder.path;
+                    listed = await call("list", { path: dir, showHidden: false });
+                    themeEntries = (listed?.entries || [])
+                      .filter(isThemeEntry)
+                      .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+                  }
+                }
+                if (!themeEntries.length) {
+                  toast("No .json or .ccfm theme files found in the current folder.", { kind: "info" });
+                  return;
+                }
+                const collectedThemes = [];
+                const seenNames = new Set();
+                const rawTokens = [];
+                for (const entry of themeEntries.slice(0, 35)) {
+                  try {
+                    const r = await call("themes/custom/read-file", { path: entry.path });
+                    const raw = typeof r?.text === "string" ? r.text.trim() : typeof r?.content === "string" ? r.content.trim() : "";
+                    if (!raw) continue;
+                    if (raw.startsWith("{") || raw.startsWith("[")) {
+                      try {
+                        const parsed = JSON.parse(raw);
+                        const list = Array.isArray(parsed)
+                          ? parsed
+                          : parsed && typeof parsed === "object" && Array.isArray(parsed.themes)
+                          ? parsed.themes
+                          : [parsed];
+                        for (const item of list) {
+                          if (item && typeof item === "object" && typeof item.name === "string" && item.colors) {
+                            const key = item.name.trim().toLowerCase();
+                            if (!seenNames.has(key)) {
+                              seenNames.add(key);
+                              const { shareCode: _sc, ...cleanItem } = item;
+                              collectedThemes.push(cleanItem);
+                            }
+                          }
+                        }
+                        continue;
+                      } catch { /* fall through to rawTokens */ }
+                    }
+                    rawTokens.push(raw);
+                  } catch { /* skip unreadable file */ }
+                }
+                if (!collectedThemes.length && !rawTokens.length) {
+                  toast("Could not read theme files from the current folder.", { kind: "error" });
+                  return;
+                }
+                const folderName = dir.split("/").pop() || dir;
+                if (collectedThemes.length > 0) {
+                  importBox.value = JSON.stringify(
+                    {
+                      format: "bun-rad-studio-file-manager-theme-pack",
+                      version: 1,
+                      themes: collectedThemes,
+                    },
+                    null,
+                    2,
+                  );
+                  toast(`Loaded ${collectedThemes.length} theme(s) from folder "${folderName}" into bulk import queue.`, { kind: "success" });
+                } else {
+                  importBox.value = rawTokens.join("\n");
+                  toast(`Loaded ${rawTokens.length} theme file(s) from folder "${folderName}" into bulk import queue.`, { kind: "success" });
+                }
+              } catch (err) {
+                toast(err?.message || "Could not scan current folder for themes.", { kind: "error" });
+              }
+            },
+          }, "📁 Load Current Folder Themes"),
         ),
       ),
       importBox,

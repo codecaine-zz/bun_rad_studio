@@ -63,6 +63,8 @@ export const sqliteStudioTips: HelpTips = {
   "#macroDlgOk": "Confirms your answer and closes the dialog.",
   "text^:Python · sqlite3": "Shows this code as a Python script using the built-in sqlite3 module.",
   "text^:Bun · bun:sqlite": "Shows this code as a Bun script using the built-in bun:sqlite module.",
+  "text^:Bun.sql · Native": "Shows this code as a Bun script using the native Bun.sql tagged-template client.",
+  "text^:TypeScript · Types": "Shows TypeScript row interfaces and typed helper functions for the tables and query.",
   "text^:V · db.sqlite": "Shows this code as a V program using the db.sqlite module.",
   "#macroCodeText": "The generated code. You can select and copy it, or use the buttons below.",
   "text:Download": "Saves the generated code as a file.",

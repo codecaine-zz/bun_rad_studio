@@ -55,6 +55,19 @@ export const finale: Chapter[] = [
         act: async (d) => { await d.click(".code-root textarea", { pause: 600 }); await d.key("Meta+z", "⌘ Z"); await d.wait(1500); },
       },
       {
+        cap: "Outline, Git, History, TODOs, Split & Live Preview",
+        say: "On the left, the side bar has tabs for Files, Search, Outline of functions and headings, Bookmarks, TO DO markers, Git changes, and local file History snapshots. In the top bar, you can open a side-by-side Split editor, or click Preview to see a live Markdown, H T M L, J S O N, or C S V preview and code inspector right next to your text, plus Run and Build buttons when editing a script.",
+        act: async (d) => {
+          await d.click('.code-side-tab[data-panel="outline"]', { pause: 900 }).catch(() => {});
+          await d.click('.code-side-tab[data-panel="todos"]', { pause: 900 }).catch(() => {});
+          await d.click('.code-side-tab[data-panel="git"]', { pause: 900 }).catch(() => {});
+          await d.click('.code-side-tab[data-panel="history"]', { pause: 900 }).catch(() => {});
+          await d.click('.code-side-tab[data-panel="files"]', { pause: 700 }).catch(() => {});
+          await d.click("#power-body button >> Preview", { pause: 1600 }).catch(() => {});
+          await d.click("#power-body button >> Preview", { pause: 900 }).catch(() => {});
+        },
+      },
+      {
         cap: "Zen mode",
         say: "And when you want nothing else on the screen, zen mode hides everything except your text. There is always a visible way out. A button that says Leave zen mode, and the Escape key.",
         act: async (d) => {

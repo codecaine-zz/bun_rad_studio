@@ -51,7 +51,7 @@ Everything the project reads or writes on your computer, sorted by how much it m
 
 ## Things that surprise people
 
-- **The designer cannot save a layout.** There is no Save or Open command in the toolbar. Closing the window loses the layout unless you copied the JSON tab. **Import** reads that JSON back. (Source: toolbar in `src/ide.html`; no save code exists.)
+- **The designer has no named Save or Open command.** Only the latest form is autosaved as a single draft in `~/.bun_rad_studio/designer_draft.json` ([D-039](../documentation-maintenance/discrepancies.md#d-039)). To keep named copies of layouts, copy the **JSON** tab into a file of your own and use **Import** to load it back.
 - **Uploading a SQLite file in SQLite Studio works on a copy** in `.sqlite_uploads/`. Your original is not modified. Uploading another file with the same name replaces the earlier copy.
 - **Several files are created in the folder you start from**, not in the project folder: `.env` is read from it, and `exported_project/`, `.rad_preview/`, `.launcher_history.json` and `.sqlite_uploads/` are written to it. Starting the same studio from two folders gives two separate sets.
 - **Rip Studio's graveyard lives outside the project.** Deleting the repository does not delete it, and it may hold files you meant to throw away or keep. Check it before cleaning up.

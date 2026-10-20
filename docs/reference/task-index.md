@@ -18,6 +18,7 @@ Find a page by what you want to do. A status in brackets says how far to trust i
 | Install it | [Install and first launch](../getting-started/install-and-first-launch.md#step-3-install-the-packages) (verified) |
 | See every tool and how to start it | [Application index](application-index.md) |
 | Open the launcher | [Step 5](../getting-started/install-and-first-launch.md#step-5-open-the-launcher) (verified) |
+| Manage files, archives, media, terminals and databases in one app | [Codecaine File Manager](../userguides/43_file_manager.md) (verified) |
 | Update or uninstall | [Update and remove](../getting-started/update-and-remove.md) |
 
 ## Databases
@@ -30,7 +31,8 @@ Find a page by what you want to do. A status in brackets says how far to trust i
 | Run SQL, use transactions | [Workbench: SQL editor and transactions](../databases/workbench.md#sql-editor-and-transactions) (verified) |
 | Stop myself damaging data | [Workbench: safety](../databases/workbench.md#safety) (verified) |
 | Export a table / back up a SQLite file | [Import/export versus backup/restore](../databases/workbench.md#importexport-versus-backuprestore) (verified) |
-| Import a CSV file | The Workbench cannot yet (planned); legacy studios have a basic import (not verified) |
+| Import a CSV, TSV, JSON, NDJSON or SQL file safely | [Import with staging](../databases/staging-import.md) (verified) |
+| Clone a database between SQLite, MySQL and PostgreSQL, or generate synthetic sample databases | [Complete guide to databases in the File Manager](../databases/complete-databases-guide.md) and [Sample databases](../databases/sample-datasets.md) (verified) |
 | Fix a connection error | [Workbench troubleshooting table](../databases/workbench.md#troubleshooting) |
 | Compare SQLite, MySQL and PostgreSQL | [Databases overview](../databases/index.md#the-three-engines-at-a-glance) |
 
@@ -39,8 +41,8 @@ Find a page by what you want to do. A status in brackets says how far to trust i
 | I want to… | Go to |
 |---|---|
 | Open a window from code | [First program](../getting-started/install-and-first-launch.md#step-6-run-your-first-program) (launch verified) and [SIMPLEGUI_API.md](../SIMPLEGUI_API.md) |
-| Design a form visually | [Visual designer](../visual-designer/index.md) (starts; interface not yet verified, D-001) |
-| Export an application | [Generated applications](../generated-applications/index.md) (not verified) |
+| Design a form visually | [Visual designer](../visual-designer/index.md) (partly verified; see [what was checked](../visual-designer/index.md#what-was-checked)) |
+| Export an application | [Generated applications](../generated-applications/index.md) (`exportProjectHelper` verified) |
 | Generate a database-backed application | Not available (planned) |
 | Build the library | [Step 8](../getting-started/install-and-first-launch.md#step-8-build-the-library-optional) (verified) |
 

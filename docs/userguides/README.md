@@ -6,12 +6,12 @@ Every application in this suite is built to 30-year enterprise standards: **zero
 
 ---
 
-## 📑 Complete 40-Application Directory & Master Launcher
+## 📑 Complete Application Directory & Master Launcher
 
 ### ⚡ 0. Master Workstation Launcher & Dispatcher
 | # | Application Guide | Focus Area | GUI Launch | CLI Launch |
 | :-: | :--- | :--- | :--- | :--- |
-| **00** | [Launcher Studio Pro](00_launcher_studio.md) | Unified command cockpit for all 169+ tools with **Pinned Favorites**, 1-click execution for 16 studios & 8 CLI tools, category filtering, and Return-key auto-launch. | `bun run app:launcher` | `bun run cli:launcher` |
+| **00** | [Launcher Studio Pro](00_launcher_studio.md) | Unified command cockpit for all 173 tools with **Pinned Favorites**, 1-click execution for 16 studios & 8 CLI tools, category filtering, and Return-key auto-launch. | `bun run app:launcher` | `bun run cli:launcher` |
 
 ### 🗄️ 1. Core Systems & Workstations
 | # | Application Guide | Focus Area | GUI Launch | CLI Launch |
@@ -25,6 +25,7 @@ Every application in this suite is built to 30-year enterprise standards: **zero
 | **40** | [Redis Studio Pro](40_redis_studio.md) | Key browser with sort/filter, typed editors, export/import backup, bulk delete, duplicate, CLI history with safety prompts, telemetry, Pub/Sub. | `bun run applications/redis_studio.ts` | — |
 | **41** | [MySQL Studio Pro](41_mysql_studio.md) | Enterprise MySQL database workstation, query IDE, schema visualizer & InnoDB performance suite via native Bun SQL. | `bun run app:mysql` | — |
 | **42** | [Postgres Studio Pro](42_postgres_studio.md) | Enterprise PostgreSQL database workstation, schemas, materialized views, extensions & process diagnostics via native Bun SQL. | `bun run app:postgres` | — |
+| **43** | [Codecaine File Manager](43_file_manager.md) | Full-featured desktop file manager with dual panes, tabs, built-in terminal, media player, 40+ converters, database workbench, and 310+ themes. See also the [Complete Step-by-Step MacAcademy Tutorial Manual](file-manager-macacademy-complete-tutorial.md) and [Themes & Atmospheric Shaders Tutorial](file-manager-themes-complete-tutorial.md). | `bun run app:files` | — |
 
 ### 🛠️ 2. Developer Utilities & Data Engineering
 | # | Application Guide | Focus Area | GUI Launch | CLI Launch |
@@ -82,6 +83,7 @@ Every application in this suite is built to 30-year enterprise standards: **zero
 ### 🖼️ Desktop GUI Applications
 ```bash
 # Core Workstations
+bun run app:files           # Codecaine File Manager
 bun run app:sqlite          # SQLite Studio Pro
 bun run app:database        # SQLite Studio Pro (alias)
 bun run app:mysql           # MySQL Studio Pro

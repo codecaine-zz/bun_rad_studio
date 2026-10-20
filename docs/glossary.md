@@ -58,10 +58,10 @@ A statement of what a connected database engine supports (for example transactio
 A signed document that proves a server is who it claims to be, checked during [TLS](#tls-transport-layer-security). **Why it matters:** the Workbench keeps certificate checking on; a custom certificate authority can be supplied in the profile. **Related:** [TLS](#tls-transport-layer-security). **See:** [Workbench guide](databases/workbench.md#connections-and-credentials).
 
 ### CLI tool (command-line interface)
-A program you run by typing a command, with no window. **Why it matters:** the project has about 78 of them in `cli_apps/`. They run when started, so they cannot be loaded as modules by tests. **Related:** [Studio](#studio). **See:** [Application index](reference/application-index.md#command-line-tools).
+A program you run by typing a command, with no window. **Why it matters:** the project has 79 of them in `cli_apps/`. They run when started, so they cannot be loaded as modules by tests. **Related:** [Studio](#studio). **See:** [Application index](reference/application-index.md#command-line-tools).
 
 ### Code translation
-Turning a macro, saved query or SQL text into a standalone program (Python, Bun or V) that uses that language's own SQLite driver. **Why it matters:** values typed by a user are always passed as parameters, never glued into SQL; constructs that cannot be translated are reported as warnings. The generated text is checked by tests but not executed. **Related:** [Macro](#macro), [Generated code](#generated-code). **See:** `applications/studio_codegen.ts`, [Generated applications](generated-applications/index.md).
+Turning a macro, saved query or SQL text into a standalone program (Python, Bun `bun:sqlite`, native `Bun.sql`, TypeScript types or V) that uses that language's database driver. **Why it matters:** values typed by a user are always passed as parameters, never glued into SQL; constructs that cannot be translated are reported as warnings. The generated text is checked by tests but not executed. **Related:** [Macro](#macro), [Generated code](#generated-code). **See:** `applications/studio_codegen.ts`, [Generated applications](generated-applications/index.md).
 
 ### Column
 One named field of a [table](#table), for example `email`. **Related:** [Row](#row), [Primary key](#primary-key).
@@ -331,7 +331,7 @@ The project's word for a windowed application, such as SQLite Studio Pro or Code
 Rows and columns of data in a database. In the designer, `table` is also a control.
 
 ### Theme
-A named set of colors (form, controls, buttons) for a form or window. **Why it matters:** the designer applies one to every control, and since [D-019](documentation-maintenance/discrepancies.md#d-019) its button text always reaches the [contrast](#wcag-contrast) rule. The framework has 76 named themes (151 keys with aliases); the designer's theme list is a 51-item subset ([D-028](documentation-maintenance/discrepancies.md#d-028)). **See:** [THEMES.md](THEMES.md).
+A named set of colors (form, controls, buttons) for a form or window. **Why it matters:** the designer applies one to every control, and since [D-019](documentation-maintenance/discrepancies.md#d-019) its button text always reaches the [contrast](#wcag-contrast) rule. The framework has 310 themes across classic, OS and futuristic categories (initially 76 named themes, 151 keys with aliases; [D-028](documentation-maintenance/discrepancies.md#d-028)). **See:** [THEMES.md](THEMES.md), [Futuristic themes](developer/fx-themes.md).
 
 ### Throwaway database
 A temporary database created for one test and removed afterwards, so tests never touch real data. **See:** [Database tests](testing/database-tests.md).

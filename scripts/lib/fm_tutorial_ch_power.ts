@@ -234,6 +234,9 @@ export const power: Chapter[] = [
     id: "21_toolbox", chapter: "THE TOOLBOX", title: "The rest of the toolbox", blurb: "Security, network and handy tools, all one click away",
     path: "<HOME>/Projects/shop-app",
     view: "#view-tools",
+    setup: (w) => {
+      w.put("Projects/shop-app/old-draft-to-bury.txt", "Temporary draft that will be buried into the Rip Graveyard and restored.\n");
+    },
     steps: [
       {
         cap: "Crypto: hashes, passwords, encryption",
@@ -256,9 +259,20 @@ export const power: Chapter[] = [
         act: async (d) => { await tab(d, "calc", 2000); await tab(d, "timer", 1600); await tab(d, "api", 1500); await tab(d, "bundler", 1500); },
       },
       {
-        cap: "Graveyard: buried files, never lost",
-        say: "Finally, Graveyard. If you choose to bury files instead of deleting them, this is where they rest. You can see what is there, bring things back, or remove them for good. Every tool you have seen works on the folder you have open, so the File Manager is always the starting point.",
-        act: async (d) => { await tab(d, "grave", 2600); await d.click("#view-files", { pause: 1500 }); },
+        cap: "Graveyard: bury (Rip), inspect, and restore in one click",
+        say: "Finally, Graveyard, shared with Rip Studio and the rip command line tool. When you right-click a file and choose Bury, it rests safely in the graveyard instead of being lost. Here in the Graveyard tab, you see its original folder and size, and clicking Select all and Restore brings it right back to its home folder.",
+        act: async (d) => {
+          await d.eval(`(async () => {
+            const { call } = await import('/ui/api.js');
+            const { currentPath } = await import('/ui/state.js');
+            const folder = currentPath();
+            if (folder) await call('grave/bury', { paths: [folder + '/old-draft-to-bury.txt'] }).catch(() => {});
+          })()`);
+          await tab(d, "grave", 1800);
+          await d.click("#power-body .pw-btn >> Select all", { pause: 1000 }).catch(() => {});
+          await d.click("#power-body .pw-btn >> Restore", { pause: 1400 }).catch(() => {});
+          await d.click("#view-files", { pause: 1500 });
+        },
       },
     ],
   },

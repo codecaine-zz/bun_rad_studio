@@ -8,7 +8,7 @@ A fast, intuitive, and user-friendly alternative to `find` built natively in Typ
 
 ```bash
 # Basic search
-bun run fd <pattern> [path]
+bun run cli:fd <pattern> [path]
 
 # Common Flags
 -t, --type <f|d|l|x>    Filter by entry type (file, directory, symlink, executable)

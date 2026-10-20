@@ -19,7 +19,7 @@ This page lists what you need before installing, and what was actually checked. 
 | Linux | **Not verified** | The libraries the project depends on need extra system packages (see below). Two project documents disagree about which ones; see [D-005](../documentation-maintenance/discrepancies.md#d-005). |
 | Windows | **Not verified** | The project ships `run.ps1`, `run.cmd` and a script that copies `WebView2Loader.dll` after install. The Microsoft Edge WebView2 runtime must be installed. |
 
-Command-line tools (the 78 tools whose names end in `_cli`) need no window system, but only a few were run for this handbook (see the [coverage matrix](../documentation-maintenance/coverage-matrix.md)).
+Command-line tools (the 79 tools whose names end in `_cli`) need no window system, but only a few were run for this handbook (see the [coverage matrix](../documentation-maintenance/coverage-matrix.md)).
 
 ## Required software
 

@@ -1,25 +1,33 @@
 import { spawn } from "child_process";
-import { writeFileSync } from "fs";
+import { writeFileSync, copyFileSync, existsSync, mkdirSync } from "fs";
+import { join } from "path";
 import { startMysqlStudioServer } from "../applications/mysql_studio_server.ts";
+import { startMysql, seedShop, stopMysql, MYSQL_PORT } from "./lib/mysql_tutorial_env.ts";
 
 const CHROME_BIN = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const PORT = 9225;
 const BRAIN_DIR = "/Users/codecaine/.gemini/antigravity-ide/brain/4205c847-f2cc-4335-96b0-60138148d8af";
+const SCREENSHOTS_DIR = join(process.cwd(), "screenshots", "apps");
+mkdirSync(SCREENSHOTS_DIR, { recursive: true });
 
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function main() {
+  console.log("Starting throwaway MySQL Server & seeding shop DB...");
+  await startMysql();
+  await seedShop();
   console.log("Starting background MySQL Studio Server on port 33333...");
   const server = startMysqlStudioServer({
     port: 33333,
+    initialDbPath: "shop",
     config: {
-      host: "localhost",
-      port: 3306,
+      host: "127.0.0.1",
+      port: MYSQL_PORT,
       user: "root",
-      password: process.env.MSQL_PASSWORD,
-      database: "my_app_dev",
+      password: "",
+      database: "shop",
     },
   });
   const serverUrl = `http://127.0.0.1:${server.port}/`;
@@ -100,10 +108,15 @@ async function main() {
   // Helper to capture
   async function capture(name: string) {
     const shot = await send("Page.captureScreenshot", { format: "png" });
-    const p = `${BRAIN_DIR}/${name}.png`;
-    writeFileSync(p, Buffer.from(shot.data, "base64"));
-    console.log(`✅ Saved: ${name}.png`);
-    return p;
+    const pApp = `${SCREENSHOTS_DIR}/${name}.png`;
+    writeFileSync(pApp, Buffer.from(shot.data, "base64"));
+    if (existsSync(BRAIN_DIR)) {
+      try {
+        copyFileSync(pApp, `${BRAIN_DIR}/${name}.png`);
+      } catch {}
+    }
+    console.log(`✅ Saved: ${pApp}`);
+    return pApp;
   }
 
   // 1. Data Grid with Totals Row & Quick Filter Bar Active
@@ -210,6 +223,7 @@ async function main() {
   ws.close();
   chromeProc.kill();
   server.stop(true);
+  await stopMysql();
   console.log("🎉 All MySQL Studio visual verification screenshots captured successfully!");
   process.exit(0);
 }

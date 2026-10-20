@@ -8,7 +8,7 @@ Fast code counter calculating total files, blank lines, comments, and lines of c
 
 ```bash
 # Count lines of code in paths
-bun run tokei [paths...]
+bun run cli:tokei [paths...]
 
 # Common Flags
 -s, --sort <col>        Sort table by: files, lines, blank, comment, code (default: "code")

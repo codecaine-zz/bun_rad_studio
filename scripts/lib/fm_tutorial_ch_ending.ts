@@ -33,406 +33,400 @@ async function pick(d: Do, label: string, value: string) {
   await d.wait(900);
 }
 
+/**
+ * Applies a theme while the Theme Picker modal is CLOSED so the viewer can see the
+ * entire File Manager in Icons View (#list.view-icons) with zero modal obstruction!
+ */
+async function showThemeUnobstructed(
+  d: Do,
+  key: string,
+  bannerTitle: string,
+  bannerSub: string,
+  opts: { anim?: string; holidayBurst?: boolean; hoverRow?: string; waitMs?: number } = {},
+) {
+  const anim = opts.anim || "folder_3d_spin_turntable";
+  const waitMs = opts.waitMs ?? 1250;
+  await d.eval(`(async () => {
+    const backdrops = [...document.querySelectorAll('.modal-backdrop')];
+    for (const b of backdrops) b.remove();
+    const { state } = await import('/ui/state.js');
+    const { applyPalette, triggerHolidayCelebrationBurst } = await import('/ui/themes.js');
+    const { applyAtmosphere } = await import('/ui/atmosphereFx.js');
+    const { syncVisibleIcons } = await import('/ui/dom.js');
+    if (state?.settings) {
+      state.settings.atmosphereTier = 'ultra';
+      state.settings.themeIconAnimation = ${JSON.stringify(anim)};
+    }
+    document.documentElement.dataset.fmIconAnim = ${JSON.stringify(anim)};
+    applyPalette?.(${JSON.stringify(key)});
+    if (${Boolean(opts.holidayBurst)}) {
+      triggerHolidayCelebrationBurst?.(${JSON.stringify(key)});
+    }
+    try { applyAtmosphere?.(); } catch {}
+    const listEl = document.getElementById('list');
+    if (listEl) syncVisibleIcons(listEl);
+
+    let banner = document.getElementById('fm-unobstructed-theme-hud');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'fm-unobstructed-theme-hud';
+      banner.style.cssText = 'position:fixed;top:10px;right:18px;z-index:9999;pointer-events:none;padding:8px 14px;border-radius:12px;background:rgba(9,13,24,0.88);border:1.5px solid var(--accent, #ff8c1a);color:#fff;font-family:system-ui,-apple-system,sans-serif;box-shadow:0 12px 28px rgba(0,0,0,0.55);backdrop-filter:blur(12px);max-width:460px;transition:all 0.2s ease;';
+      document.body.appendChild(banner);
+    }
+    banner.innerHTML = '<div style="font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent, #ff8c1a);">🔴 UNOBSTRUCTED 6K XDR ICONS VIEW · 120Hz ULTRA</div>'
+      + '<div style="font-size:14px;font-weight:800;margin-top:2px;color:#ffffff;">' + ${JSON.stringify(bannerTitle)} + '</div>'
+      + '<div style="font-size:11px;opacity:0.86;margin-top:1px;color:#cbd5e1;">' + ${JSON.stringify(bannerSub)} + '</div>';
+  })()`);
+  if (opts.hoverRow) {
+    await d.hover(`#list .row[data-name=${JSON.stringify(opts.hoverRow)}]`, Math.min(700, waitMs)).catch(() => {});
+    await d.wait(Math.max(250, waitMs - 700));
+  } else {
+    await d.wait(waitMs);
+  }
+}
+
+async function clearUnobstructedBanner(d: Do) {
+  await d.eval(`document.getElementById('fm-unobstructed-theme-hud')?.remove()`);
+}
+
 /** Chapters 22 to 26: themes and shortcuts, the database studios (joined from their own tutorials), and the goodbye. */
 export const ending: Chapter[] = [
   {
-    id: "22_themes", chapter: "YOUR WAY", title: "God-Mode Theme & Shader Studio: 310 themes, Year 3000+ Singularity, Flagship Mac M4 Ultra 6K XDR, 120Hz Tie-Dye & 194 Shaders", blurb: "310 built-in themes, Year 3000+ God-Mode hyper-materials, Flagship Mac Studio M4 Ultra & Pro Display XDR 6K / 5K Studio Display, 120Hz ProMotion zero-lag shaders, 1-click Jumpstart Kits, ⌘V paste import, OKLab blender & Theme Hacker Lab",
+    id: "22_themes", chapter: "YOUR WAY", title: "God-Mode Theme & Shader Studio: Unobstructed Icons View, All 18 US Holidays, Polar Night, 20 Custom Themes (Low–Ultra) & Gemini AI", blurb: "Unobstructed Icons View showcase, Halloween & Polar Night Ultra, all 18 US Holiday themes, 20 Master Custom Themes across Low/Medium/High/Ultra tiers, Single & Bulk Folder Import, Google Gemini AI Theme Customizer & 194 Shaders",
     path: "<HOME>/Projects/shop-app",
+    setup: (w) => {
+      // Seed rich semantic folders so Icons View (#list.view-icons) showcases 14+ distinct 3D animated folders & crests
+      w.put("Projects/shop-app/ai-models/README.md", "# AI Models\n");
+      w.put("Projects/shop-app/camera-raw/README.md", "# Camera RAW\n");
+      w.put("Projects/shop-app/docker/README.md", "# Docker\n");
+      w.put("Projects/shop-app/games/README.md", "# Games\n");
+      w.put("Projects/shop-app/music-stems/README.md", "# Music Stems\n");
+      w.put("Projects/shop-app/security-vault/README.md", "# Security Vault\n");
+      w.put("Projects/shop-app/shaders/README.md", "# Shaders\n");
+    },
     steps: [
       {
-        cap: "The Themes menu, M4 Ultra 6K XDR Specs, ⌘V Paste & Live Telemetry",
-        say: "Welcome to the God-Mode Themes and Atmospheric Shader Studio, recorded on a flagship Apple M4 Ultra eighty-core G P U workstation with one hundred and ninety-two gigabytes of unified memory and a six-K Pro Display X D R at one hundred and twenty Hertz ProMotion. Clicking the Themes button in the ribbon gives you instant access to three hundred and ten built-in themes, Plain No-Animation themes, Instant Paste Theme with Command V, Share and Bulk Import, the Theme Show Screensaver, one hundred and ninety-four Atmospheric Shaders, and the Theme Editor.",
-        act: async (d) => { await d.click("#tool-themes", { pause: 1800 }); await d.hover(".menu", 2400); },
-      },
-      {
-        cap: "310 themes, Cross-Platform Mac/Windows/Linux Optimizer & VFD Telemetry Deck",
-        say: "I choose All themes to open the gallery of three hundred and ten built-in themes. Every theme is hardware-optimized for zero lag across Apple Silicon M4 Pro, Max, and Ultra ProMotion displays, Windows DirectX 12 WebView2, and Ubuntu Linux on bare metal or Parallels VMs—with one-click Optimize for Mac, Optimize for Windows, and Optimize for Linux buttons right in the top bar, plus a live Hardware V F D and Oscilloscope Telemetry Deck.",
+        cap: "Icons View First: Unobstructed 120Hz 3D Folder & Icon Animations",
+        say: "Welcome to the God-Mode Themes and Atmospheric Shader Studio, recorded on our flagship Apple Mac Studio M4 Ultra with an eighty-core G P U and a six-K Pro Display X D R at one hundred and twenty Hertz ProMotion. Before opening any dialog, I switch the File Manager to Icons View so you can see every theme, 3D folder shader, and animated icon pack across the full screen without a large dialog window blocking your view.",
         act: async (d) => {
-          await d.menu("All themes", { pause: 1600 });
-          await d.waitFor(".theme-card", 6000);
-          await d.click('[data-optimize-platform="linux"]', { pause: 800 }).catch(() => {});
-          await d.click('[data-optimize-platform="windows"]', { pause: 800 }).catch(() => {});
-          await d.click('[data-optimize-platform="macos"]', { pause: 800 }).catch(() => {});
-          await d.hover('[data-paste-theme-btn="true"]', 900).catch(() => {});
-          await d.click('[data-open-telemetry-studio="true"]', { pause: 1100 }).catch(() => {});
-          await d.click('[data-telemetry-skin-btn="winamp_spectrum"]', { pause: 900 }).catch(() => {});
-          await d.click('[data-open-telemetry-studio="true"]', { pause: 700 }).catch(() => {});
-          await showKeys(d, ["]"]);
-          await d.click('[data-theme-step="1"]', { pause: 900 }).catch(() => {});
-          await showKeys(d, ["["]);
-          await d.click('[data-theme-step="-1"]', { pause: 900 }).catch(() => {});
-          await d.scroll(".theme-list", 600, 6).catch(() => {});
-          await d.wait(700);
-          await d.scroll(".theme-list", -600, 6).catch(() => {});
+          await d.click("#status-views button >> Icons", { pause: 1400 });
+          await showThemeUnobstructed(
+            d,
+            "holiday_halloween_jack_o_lantern",
+            "🎃 Halloween Carved Jack-O'-Lantern & Witching Hour",
+            "3D Spinning Turntable Folders · Floating Jack-O'-Lantern Crests · 120Hz Fireflies",
+            { anim: "folder_3d_spin_turntable", holidayBurst: true, hoverRow: "custom_themes", waitMs: 2200 },
+          );
+          await d.hover('#list .row[data-name="shaders"]', 1400).catch(() => {});
+          await d.hover('#list .row[data-name="ai-models"]', 1400).catch(() => {});
         },
       },
       {
-        cap: "🌌 Year 3000+ God-Mode, 🍎 Flagship Mac M4 Ultra 6K XDR & ⚡ Jumpstart Kits",
-        say: "Zero manual setup is required. Click any One-Click Jumpstart Workstation Kit to transform your entire desktop—palette, 3D folders, framed picture icons, typography, and shaders—in a single click. Try the new Year Three Thousand God-Mode kits like Omega Point Singularity and Photonic Metamaterial thirty-ninety-nine, or Flagship Mac kits like Mac Studio M4 Ultra six-K X D R, Apple Studio Display five-K, and macOS Tahoe 3D Glass.",
+        cap: "🎃 Halloween Ultra & ❄️ Polar Night / Cryo-Glacier Unobstructed Showcase",
+        say: "With the theme window closed, watch how every folder and file icon transforms in real time. We start with our Halloween Jack-O'-Lantern Ultra theme and Nosferatu Crimson Blood-Moon Crypt, then switch to two favorites: Polar Night with shimmering Nordic aurora ribbons and frost-rimmed glass cards, and Sub-Zero Cryo-Glacier with hanging 3D ice spikes and crystalline folders.",
         act: async (d) => {
-          await d.eval(`(() => { const det = document.querySelector('[data-fx-studio-drawer="true"]'); if (det) det.open = true; })()`);
-          await d.wait(300);
-          await d.click('[data-jumpstart-kit="godmode_omega_singularity_kit"]', { pause: 1400 }).catch(() => {});
-          await d.click('[data-jumpstart-kit="godmode_photonic_3099_kit"]', { pause: 1400 }).catch(() => {});
-          await d.click('[data-jumpstart-kit="mac_studio_m4_ultra_kit"]', { pause: 1400 }).catch(() => {});
-          await d.click('[data-jumpstart-kit="apple_studio_display_5k_kit"]', { pause: 1300 }).catch(() => {});
-          await d.click('[data-jumpstart-kit="macos_tahoe_3d_kit"]', { pause: 1300 }).catch(() => {});
-          await d.eval(`(() => { const det = document.querySelector('[data-fx-studio-drawer="true"]'); if (det) det.open = false; })()`);
-          await d.wait(300);
-          await d.click('[data-collection-pill="god_mode_3000"]', { pause: 1300 }).catch(() => {});
-          await d.click('[data-collection-pill="flagship_mac_xdr"]', { pause: 1300 }).catch(() => {});
+          await showThemeUnobstructed(
+            d,
+            "horror_nosferatu_blood_moon",
+            "🧛 Nosferatu Crimson Blood-Moon Vampire",
+            "Gothic Obsidian Velvet · 3D Levitating Crypt Folders · Blood-Moon Eclipse",
+            { anim: "neon_levitate_3d", hoverRow: "security-vault", waitMs: 2200 },
+          );
+          await showThemeUnobstructed(
+            d,
+            "polar_night",
+            "🌌 Polar Night (Nordic Aurora & Cryo-Frost Ultra)",
+            "Arctic Midnight Slate · Shimmering Aurora Ribbons · Cryo-Frost 3D Folders",
+            { anim: "folder_3d_spin_turntable", hoverRow: "camera-raw", waitMs: 2600 },
+          );
+          await showThemeUnobstructed(
+            d,
+            "cryo_icicle_blizzard",
+            "🧊 Sub-Zero Cryo-Glacier & Hanging Icicles",
+            "Glacial Cyan Ice · Hanging 3D Icicles on Every Folder · Whiteout Blizzard",
+            { anim: "cube_3d_rotate", hoverRow: "music-stems", waitMs: 2400 },
+          );
+        },
+      },
+      {
+        cap: "🎆 All 18 US Holiday Celebration Ultra Themes — Unobstructed Icons Tour (Part 1)",
+        say: "Codecaine Studio includes eighteen bespoke U S Holiday Celebration Ultra themes. Every holiday features its own multi-layer atmospheric shader, custom 3D corner crests on every folder, file badges, and an interactive celebration particle burst on Option H. Here in unobstructed Icons View are the first nine holidays: New Year's Midnight Champagne, Martin Luther King Junior Sunrise Dream, Valentine's Velvet Rose, Presidents' Day Constitutional Parchment, Saint Patrick's Emerald Clover, Easter Pastel Spring Bloom, Mother's Day Botanical Garden, Memorial Day Poppy Tribute, and Juneteenth Emancipation Starburst.",
+        act: async (d) => {
+          const part1: Array<[string, string, string, string]> = [
+            ["holiday_new_years_midnight_champagne", "🥂 1/18 · New Year's Eve Midnight Champagne", "3D 🥂 Folder Crests · Gold Firework Burst · Art-Deco Obsidian", "folder_3d_spin_turntable"],
+            ["holiday_mlk_dream_sunrise", "🕊️ 2/18 · MLK Jr. Day Sunrise Dream", "3D 🕊️ Peace Dove Crests · Warm Amber Dawn Aurora", "neon_levitate_3d"],
+            ["holiday_valentines_velvet_rose", "💝 3/18 · Valentine's Day Velvet Rose & Gold", "3D 💝 Ribbon Heart Crests · Rose-Petal Bokeh Shimmer", "jelly_squish_3d"],
+            ["holiday_presidents_day_parchment", "🦅 4/18 · Presidents' Day Constitutional Brass", "3D 🦅 Presidential Crest · Continental Navy & Gold Leaf", "origami_fold_flip"],
+            ["holiday_st_patricks_emerald_clover", "☘️ 5/18 · St. Patrick's Day Celtic Clover & Gold", "3D ☘️ Shamrock Crests · Rainbow Gold Shimmer", "folder_3d_spin_turntable"],
+            ["holiday_easter_pastel_bloom", "🥚 6/18 · Easter Sunday Pastel Egg & Spring", "3D 🥚 Painted Egg Crests · Cherry Blossom Breeze", "jelly_squish_3d"],
+            ["holiday_mothers_day_botanical_tea", "🌸 7/18 · Mother's Day Botanical Rose Garden", "3D 🌸 Peony Blossom Crests · Warm Sunbeam Dust", "neon_levitate_3d"],
+            ["holiday_memorial_day_poppy_honor", "🌺 8/18 · Memorial Day Red Poppy & Marble", "3D 🌺 Remembrance Poppy Crests · Twilight Starlight", "origami_fold_flip"],
+            ["holiday_juneteenth_freedom_starburst", "🌟 9/18 · Juneteenth Emancipation Pan-African Gold", "3D 🌟 Nova Star Crests · Pan-African Jubilee Fireworks", "folder_3d_spin_turntable"],
+          ];
+          for (const [key, title, sub, anim] of part1) {
+            await showThemeUnobstructed(d, key, title, sub, { anim, holidayBurst: true, waitMs: 1450 });
+          }
+        },
+      },
+      {
+        cap: "🎃🎄 All 18 US Holiday Celebration Ultra Themes — Unobstructed Icons Tour (Part 2)",
+        say: "Continuing through all eighteen U S Holidays in unobstructed Icons View: Father's Day Chronograph and Mahogany, Fourth of July Grand Finale Fireworks, Labor Day Steel Foundry Forge, Indigenous Peoples' and Columbus Day Autumn Star-Compass, Halloween Carved Jack-O'-Lantern, Veterans Day Valor Medal, Thanksgiving Harvest Cornucopia, Hanukkah Festival of Lights Menorah, and Christmas Nutcracker Fireside Hearth.",
+        act: async (d) => {
+          const part2: Array<[string, string, string, string]> = [
+            ["holiday_fathers_day_chronograph_denim", "⌚ 10/18 · Father's Day Chronograph & Mahogany", "3D ⌚ Tourbillon Gear Crests · Brushed Steel & Espresso", "cube_3d_rotate"],
+            ["holiday_fourth_of_july_fireworks", "🎆 11/18 · Fourth of July Grand Finale Fireworks", "3D 🎆 Liberty Rocket Crests · Red-White-Blue Sky Shells", "folder_3d_spin_turntable"],
+            ["holiday_labor_day_foundry_forge", "⚒️ 12/18 · Labor Day Steel Foundry & Rivet Forge", "3D ⚒️ Crossed Hammer Crests · Molten Spark Stream", "c4d_mograph_extrude"],
+            ["holiday_indigenous_autumn_compass", "🧭 13/18 · Indigenous Peoples' & Columbus Day Compass", "3D 🧭 Celestial Compass Crests · Terracotta Turquoise", "origami_fold_flip"],
+            ["holiday_halloween_jack_o_lantern", "🎃 14/18 · Halloween Carved Jack-O'-Lantern", "3D 🎃 Pumpkin & 🦇 Bat Crests · Witching Hour Fog", "folder_3d_spin_turntable"],
+            ["holiday_veterans_day_valor_medal", "🎖️ 15/18 · Veterans Day Bronze Star & Valor", "3D 🎖️ Dress Ribbon Crests · Honor Guard Gold", "neon_levitate_3d"],
+            ["holiday_thanksgiving_harvest_hearth", "🦃 16/18 · Thanksgiving Harvest Cornucopia", "3D 🦃 Autumn Maple Crests · Falling Leaves & Hearth", "origami_fold_flip"],
+            ["holiday_hanukkah_menorah_starlight", "🕎 17/18 · Hanukkah Festival of Lights Menorah", "3D 🕎 Nine-Branch Menorah Crests · Sapphire & Silver", "folder_3d_spin_turntable"],
+            ["holiday_christmas_nutcracker_hearth", "🎄 18/18 · Christmas Nutcracker Fireside Hearth", "3D 🎄 Evergreen Wreath Crests · Snowfall & Warm Ember", "folder_3d_spin_turntable"],
+          ];
+          for (const [key, title, sub, anim] of part2) {
+            await showThemeUnobstructed(d, key, title, sub, { anim, holidayBurst: true, waitMs: 1450 });
+          }
+        },
+      },
+      {
+        cap: "🔥 Visceral 3D Folder Shaders & 120Hz Icon Animations in Action",
+        say: "Now watch the visceral 3D folder shaders and 120 Hertz icon animations in full Icons View: Compiz Fusion Blazing Fire Folders with rising embers, Toxic Bio-Slime dripping neon green ooze, E F 5 Debris Tornado swirling folders in a vortex, Two-Advanced Year Three Thousand orbital HUD rings, Cinema 4D MoGraph extruded studios, and Omega Point Singularity.",
+        act: async (d) => {
+          await showThemeUnobstructed(d, "inferno_fire_folders", "🔥 Inferno Blazing Folders", "Compiz Fusion Flame Shader · 3D Extrude Icons", { anim: "c4d_mograph_extrude", hoverRow: "docker", waitMs: 1900 });
+          await showThemeUnobstructed(d, "toxic_slime_ooze", "🧪 Toxic Bio-Slime Ooze", "Dripping Radioactive Slime Folders · Jelly 3D Squish", { anim: "jelly_squish_3d", hoverRow: "games", waitMs: 1900 });
+          await showThemeUnobstructed(d, "ef5_debris_tornado", "🌪️ EF5 Debris Tornado Supercell", "Swirling Vortex Wind · 3D Gyro Cube Rotation", { anim: "cube_3d_rotate", hoverRow: "shaders", waitMs: 1900 });
+          await showThemeUnobstructed(d, "flash_2advanced_v3_studio", "⚡ 2Advanced Studios v3 (Year 3000 Flash HUD)", "Orbital Vector Sweeps · Flash-3000 3D Rings", { anim: "flash_3000_orbital", hoverRow: "ai-models", waitMs: 1900 });
+          await showThemeUnobstructed(d, "omega_point_singularity", "🌌 Omega Point Singularity (Year 3099)", "11D Calabi-Yau Manifold · 120Hz 3D Turntable Folders", { anim: "folder_3d_spin_turntable", hoverRow: "custom_themes", waitMs: 1900 });
+        },
+      },
+      {
+        cap: "👑 Master Designer Custom Themes: Low, Medium, High & Ultra System Tiers",
+        say: "As a master theme designer, we created twenty flagship Custom Themes organized across all four computer hardware tiers—Low Featherweight with zero G P U load, Medium Balanced sixty frames per second, High-Spec one hundred and twenty Hertz, and Ultra six-K X D R—all ready in the custom themes folder on GitHub. Watch our eight Ultra custom creations unobstructed in Icons View: All Hallows Eve six-K X D R Ultra, Polar Aurora Borealis six-K Ultra, Polar Daylight Glacier six-K Ultra, M4 Ultra Liquid Titanium, Crimson Blood-Moon Crypt Ultra, Compiz Hellfire Forge, Bio-Hazard Dalí Screen-Melt, and Omega Pantheon thirty-ninety-nine.",
+        act: async (d) => {
+          const masterUltras: Array<[string, string, string, string]> = [
+            ["custom_0000000d", "🎃 All Hallows Eve 6K XDR Ultra (Custom #13)", "Tier 4 ULTRA · 3-Layer Jack-O'-Lantern + Blood Moon + Fireflies · 3D Turntable", "folder_3d_spin_turntable"],
+            ["custom_0000000e", "🌌 Polar Aurora Borealis 6K Ultra (Custom #14)", "Tier 4 ULTRA · 3-Layer Aurora + Blizzard + Cryo-Frost Icicles · 3D Turntable", "folder_3d_spin_turntable"],
+            ["custom_0000000f", "🏔️ Polar Daylight Glacier 6K Ultra (Custom #15)", "Tier 4 ULTRA · High-Contrast Glacial Daylight + Raytraced Prism · Origami 3D", "origami_fold_flip"],
+            ["custom_00000010", "🍎 M4 Ultra Liquid Titanium 6K (Custom #16)", "Tier 4 ULTRA · Machined Space-Black Titanium + 6K XDR Caustics · C4D MoGraph", "c4d_mograph_extrude"],
+            ["custom_00000011", "🧛 Crimson Blood-Moon Crypt Ultra (Custom #17)", "Tier 4 ULTRA · Gothic Cathedral + Tesla Plasma + Blood Moon · 3D Levitate", "neon_levitate_3d"],
+            ["custom_00000012", "🔥 Compiz Hellfire Forge 120Hz (Custom #18)", "Tier 4 ULTRA · Blazing Fire Folders + Volcanic Lightning · 3D Gyro Cube", "cube_3d_rotate"],
+            ["custom_00000013", "🧪 Bio-Hazard Dalí Screen-Melt (Custom #19)", "Tier 4 ULTRA · Dripping Bio-Slime + Ferrofluid Spikes · 3D Jelly Squish", "jelly_squish_3d"],
+            ["custom_00000014", "🌌 Omega Pantheon 3099 Singularity (Custom #20)", "Tier 4 ULTRA · 11D Calabi-Yau + 4D Tesseract + Tokamak · Flash-3000 Orbital", "flash_3000_orbital"],
+          ];
+          for (const [key, title, sub, anim] of masterUltras) {
+            await showThemeUnobstructed(d, key, title, sub, { anim, hoverRow: "custom_themes", waitMs: 1650 });
+          }
+          await clearUnobstructedBanner(d);
+        },
+      },
+      {
+        cap: "The Theme Gallery, Hardware Tier Filters (Low/Medium/High/Ultra) & Telemetry",
+        say: "Now let's open the Themes menu briefly to see where everything lives. The gallery organizes over three hundred built-in themes plus your twenty Master Custom Themes, with one-click Optimize buttons for Mac, Windows, and Linux, a live Hardware V F D Telemetry Deck, and One-Click Jumpstart Kits.",
+        act: async (d) => {
+          await d.click("#tool-themes", { pause: 1100 });
+          await d.menu("All themes", { pause: 1400 });
+          await d.waitFor(".theme-card", 6000);
+          await d.click('[data-optimize-platform="macos"]', { pause: 800 }).catch(() => {});
+          await d.click('[data-open-telemetry-studio="true"]', { pause: 1000 }).catch(() => {});
+          await d.click('[data-open-telemetry-studio="true"]', { pause: 700 }).catch(() => {});
+          await d.click('[data-collection-pill="us_holidays"]', { pause: 1100 }).catch(() => {});
+          await d.click('[data-collection-pill="flagship_mac_xdr"]', { pause: 1100 }).catch(() => {});
           await d.click('[data-collection-pill="all"]', { pause: 900 }).catch(() => {});
         },
       },
       {
-        cap: "Omega Singularity, Mac Studio M4 Ultra, 120Hz Tie-Dye '67, Fire & Tornado",
-        say: "Let's test our God-Mode, Flagship Mac, and high-velocity shader themes. I apply Omega Point Singularity and Matrioshka Dyson Brain from the Year Three Thousand collection, switch to Mac Studio M4 Ultra and MacBook Pro Space Black X D R, then test Haight-Ashbury Tie-Dye sixty-seven with silky-smooth one hundred and twenty Hertz lava-wax folders, Inferno Blazing Folders, E F 5 Debris Tornado, and Tesla Coil Plasma.",
+        cap: "📄 Single Custom Theme Import & 📁 Bulk Folder Import from custom_themes/",
+        say: "Let's demonstrate both Single Theme Import and Bulk Folder Import using the custom themes folder included in the repository. First, I close the gallery and open the custom themes folder right in the File Manager, where you see individual J S O N and C C F M share files plus the Low, Medium, High, and Ultra tier packs. Then I open Share and Import: you can import a single theme file or paste a single C C F M code, or click Load Current Folder Themes to bulk-import every theme file in the open folder at once, with automatic Conflict Resolution—and then close the dialog to admire the imported theme unobstructed!",
         act: async (d) => {
-          await search(d, "omega");
-          await d.click('.theme-card[data-key="omega_point_singularity"]', { pause: 1700 }).catch(() => {});
-          await search(d, "dyson");
-          await d.click('.theme-card[data-key="matrioshka_dyson_brain"]', { pause: 1700 }).catch(() => {});
-          await search(d, "m4 ultra");
-          await d.click('.theme-card[data-key="mac_studio_m4_ultra"]', { pause: 1700 }).catch(() => {});
-          await search(d, "tie-dye");
-          await d.click('.theme-card[data-key="summer_of_love_tiedye_67"]', { pause: 1700 }).catch(() => {});
-          await search(d, "inferno");
-          await d.click('.theme-card[data-key="inferno_fire_folders"]', { pause: 1700 });
-          await search(d, "tornado");
-          await d.click('.theme-card[data-key="ef5_debris_tornado"]', { pause: 1700 });
-          await search(d, "tesla");
-          await d.click('.theme-card[data-key="tesla_coil_plasma"]', { pause: 1700 });
-          await d.click('.theme-pin[data-pin-key="tesla_coil_plasma"]', { pause: 900 }).catch(() => {});
-        },
-      },
-      {
-        cap: "🎆 18 Animated US Holiday Celebrations (⌥H), Nerd Complete, Horror & Classic OS",
-        say: "Explore specialized worlds for every mood: eighteen super-special U S Holiday themes with bespoke multi-layer animations, custom 3D folder holiday crests, and interactive firework and confetti celebration bursts via Option H! Plus ten Nerd Complete themes like D and D Arcane Grimoire and Starfleet L C A R S Bridge, ten Horror themes, Real-World Mahogany Clockwork, and classic systems like BeOS R 5 and O S 2 Warp 4.",
-        act: async (d) => {
-          await d.eval(`(() => { const det = document.querySelector('[data-fx-studio-drawer="true"]'); if (det) det.open = true; })()`);
-          await d.click('[data-holiday-pill="holiday_fourth_of_july_fireworks"]', { pause: 1300 }).catch(() => {});
-          await d.click('[data-holiday-pill="holiday_christmas_nutcracker_hearth"]', { pause: 1300 }).catch(() => {});
-          await d.eval(`(() => { const det = document.querySelector('[data-fx-studio-drawer="true"]'); if (det) det.open = false; })()`);
-          await search(d, "grimoire");
-          await d.click('.theme-card[data-key="nerd_dnd_arcane_grimoire"]', { pause: 1400 }).catch(() => {});
-          await search(d, "lcars");
-          await d.click('.theme-card[data-key="nerd_starfleet_lcars_bridge"]', { pause: 1400 }).catch(() => {});
-          await search(d, "rare");
-          await d.click('.theme-card[data-key="beos_r5"]', { pause: 1300 });
-          await d.click('.theme-card[data-key="os2_warp"]', { pause: 1300 });
-          await search(d, "");
-          await d.click(".theme-random-btn", { pause: 1100 });
-          await d.click('[data-theme-step="1"]', { pause: 900 });
-        },
-      },
-      {
-        cap: "📁 Pin to Folder, 📋 ⌘V Clipboard Paste & 📦 Bulk Import Conflict Resolution",
-        say: "Pick Prism Reactor and click Pin to Folder so this workspace automatically activates its theme whenever you open it. Next, click Share and Import: generate one-line C C F M Theme share codes, click Paste from Clipboard or press Command V anywhere, or bulk import multiple themes at once. When a theme conflicts with an existing custom theme, the Conflict Resolution modal automatically prompts you to Replace, Keep Both with auto-rename, Merge FX, or Skip.",
-        act: async (d) => {
-          await search(d, "prism");
-          await d.click('.theme-card[data-key="prism_reactor"]', { pause: 1400 });
-          await d.click(".theme-pin-folder-btn", { pause: 1300 });
-          await d.click(".theme-pin-folder-btn", { pause: 900 });
-          await search(d, "");
-          await d.eval(`(async () => {
-            await fetch('/api/themes/custom/save', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                theme: {
-                  name: 'Storm Custom',
-                  dark: true,
-                  colors: { background: '#0b0f17', card: '#141c2b', text: '#e8f0ff', accent: '#38bdf8', border: '#26344d', danger: '#ff6b81', warning: '#fbbf24', success: '#34d399', info: '#38bdf8' },
-                  fx: { atmosphere: 'debris_tornado_ef5', uiElementFx: 'storm_wind', iconPackStyle: 'storm_tempest' }
-                }
-              })
-            });
-          })()`);
-          await d.click('[data-share-hub="true"]', { pause: 1400 });
-          await d.waitFor('[data-share-format="code"]', 6000);
-          await d.click('[data-share-format="pack-weather"]', { pause: 1100 });
-          await d.click('[data-share-format="pack-nostalgia"]', { pause: 1100 });
-          await d.click('[data-share-format="code"]', { pause: 1000 });
-          await showKeys(d, ["⌘", "V"]);
-          await d.hover('[data-share-paste-clipboard-btn="true"]', 1000).catch(() => {});
-          await d.hover('[data-share-import-files-btn="true"]', 900).catch(() => {});
+          await closeDialogs(d);
+          await d.row("custom_themes", "dblclick", { pause: 1600 });
+          await d.hover('#list .row[data-name="13_ultra_all_hallows_eve_6k_xdr.json"]', 1200).catch(() => {});
+          await d.hover('#list .row[data-name="pack_tier_4_ultra_6k_xdr_120hz.json"]', 1200).catch(() => {});
+          await d.click("#tool-themes", { pause: 900 });
+          await d.menu("All themes", { pause: 1200 });
+          await d.click('[data-share-hub="true"]', { pause: 1300 });
+          await d.waitFor('[data-share-import-box="true"]', 6000);
+          // 1) Single Custom Theme Import example
           await d.eval(`(() => {
             const box = document.querySelector('[data-share-import-box="true"]');
             if (!box) return;
-            const payload = JSON.stringify([
-              {
-                name: 'Storm Custom',
-                dark: true,
-                colors: { background: '#1a090d', card: '#2d1018', text: '#ffe4e6', accent: '#ff2a85', border: '#4c1d2b', danger: '#ff6b81', warning: '#fbbf24', success: '#34d399', info: '#38bdf8' },
-                fx: { atmosphere: 'volcanic_lightning', uiElementFx: 'fire_folders', iconPackStyle: 'inferno' }
-              },
-              {
-                name: 'Storm Custom',
-                dark: true,
-                colors: { background: '#050814', card: '#0d152c', text: '#e0f2fe', accent: '#00f5d4', border: '#1e2f5c', danger: '#ff6b81', warning: '#fbbf24', success: '#34d399', info: '#38bdf8' },
-                fx: { atmosphere: 'tesseract_4d', uiElementFx: 'holo_glitch', iconPackStyle: 'xenotech_2126' }
+            box.value = JSON.stringify({
+              format: 'bun-rad-studio-file-manager-theme',
+              version: 1,
+              name: "Polar Jack-O'-Lantern 6K",
+              dark: true,
+              base: 'Custom Import',
+              colors: { background: '#070a12', card: '#101829', text: '#f4f8ff', accent: '#ff8c1a', secondary: '#38bdf8', border: '#38bdf8', danger: '#ff4d6d', warning: '#fbbf24', success: '#34d399', info: '#38bdf8' },
+              fx: {
+                glow: 'ember',
+                glowColor: '#ff8c1a',
+                glowColor2: '#38bdf8',
+                blur: 28,
+                glass: 0.74,
+                glowIntensity: 1,
+                borderOpacity: 0.34,
+                grain: 'subtle',
+                scanlines: 'none',
+                radius: 'squircle',
+                border: 'iridescent',
+                motion: 'spring',
+                sheen: true,
+                noise: true,
+                chromatic: false,
+                ambient: true,
+                atmosphere: 'autumn_leaves+embers+aurora_australis',
+                uiElementFx: 'holiday_festive_glow',
+                iconPackStyle: 'us_holidays_festive',
+                iconAnimation: 'folder_3d_spin_turntable'
               }
-            ]);
-            box.value = payload;
+            }, null, 2);
             box.dispatchEvent(new Event('input', { bubbles: true }));
           })()`);
-          await d.wait(900);
-          await d.click('[data-share-import-apply="true"]', { pause: 1500 });
-          await d.waitFor('[data-conflict-summary="true"]', 6000);
-          await d.hover('[data-conflict-row="0"]', 1100).catch(() => {});
-          await d.click('[data-conflict-bulk="keep_both"]', { pause: 1200 }).catch(() => {});
-          await d.click('.modal-backdrop:last-child .dialog button >> Apply Resolutions & Import', { pause: 1600 }).catch(() => {});
+          await d.wait(1000);
+          await d.click('[data-share-import-apply="true"]', { pause: 1300 });
+          if (await d.eval<boolean>(`!!document.querySelector('[data-conflict-summary="true"]')`)) {
+            await d.click('[data-conflict-bulk="replace"]', { pause: 700 }).catch(() => {});
+            await d.click('.modal-backdrop:last-child .dialog [data-dialog-btn="confirm"]', { pause: 1000 }).catch(() => {});
+          }
+          // 2) Bulk Folder Import from the open custom_themes/ folder
+          await closeDialogs(d);
+          await d.click("#tool-themes", { pause: 700 });
+          await d.menu("All themes", { pause: 900 });
+          await d.click('[data-share-hub="true"]', { pause: 1000 });
+          await d.waitFor('[data-share-import-current-folder-btn="true"]', 6000);
+          await d.hover('[data-share-import-current-folder-btn="true"]', 900).catch(() => {});
+          await d.click('[data-share-import-current-folder-btn="true"]', { pause: 1400 }).catch(() => {});
+          await d.click('[data-share-import-apply="true"]', { pause: 1400 }).catch(() => {});
+          if (await d.eval<boolean>(`!!document.querySelector('[data-conflict-summary="true"]')`)) {
+            await d.hover('[data-conflict-row="0"]', 800).catch(() => {});
+            await d.click('[data-conflict-bulk="replace"]', { pause: 1000 }).catch(() => {});
+            await d.click('.modal-backdrop:last-child .dialog [data-dialog-btn="confirm"]', { pause: 1400 }).catch(() => {});
+          }
+          // Close all dialogs so the viewer sees the imported theme unobstructed in Icons View!
+          await closeDialogs(d);
+          await d.click("#tool-up", { pause: 1200 }).catch(() => {});
+          await showThemeUnobstructed(
+            d,
+            "custom_0000000d",
+            "📦 Imported from custom_themes/ · All Hallows Eve 6K XDR Ultra",
+            "Single & Bulk Folder Import Complete · Unobstructed Icons View",
+            { anim: "folder_3d_spin_turntable", hoverRow: "custom_themes", waitMs: 1800 },
+          );
+          await clearUnobstructedBanner(d);
+        },
+      },
+      {
+        cap: "🤖 Google Gemini AI Theme Customizer & Master LLM Prompt Studio",
+        say: "Inside Share and Import, you also have the built-in Google Gemini A I Theme Customizer. Describe any theme you can imagine in plain English—like a Halloween Jack-O'-Lantern and Polar Night Aurora hybrid with one hundred and twenty Hertz 3D spinning folders—choose your system tier from Low to Ultra, and click Generate with Gemini A I to synthesize and apply a WCAG-verified theme on the spot, or click Copy Gemini L L M Master Prompt to paste our complete schema specification into Google AI Studio or Gemini Chat. Watch as we close the window to see our new Gemini-crafted theme across the full Icons View!",
+        act: async (d) => {
+          await d.click("#tool-themes", { pause: 900 });
+          await d.menu("All themes", { pause: 1200 });
+          await d.click('[data-share-hub="true"]', { pause: 1300 });
+          await d.waitFor('[data-gemini-theme-prompt="true"]', 6000);
           await d.eval(`(() => {
-            const backdrops = [...document.querySelectorAll('.modal-backdrop')];
-            while (backdrops.length > 1) {
-              const top = backdrops.pop();
-              top?.querySelector('button[value="close"], button[value="cancel"]')?.click();
+            const p = document.querySelector('[data-gemini-theme-prompt="true"]');
+            if (p) {
+              p.scrollIntoView({ behavior: 'instant', block: 'center' });
+              p.value = "Halloween Jack-O'-Lantern meets Polar Night Aurora with 120Hz 3D spinning folders";
+              p.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            const t = document.querySelector('[data-gemini-theme-tier="true"]');
+            if (t) {
+              t.value = 'ultra';
+              t.dispatchEvent(new Event('change', { bubbles: true }));
             }
           })()`);
-          await d.wait(700);
+          await d.wait(1000);
+          await d.hover('[data-gemini-copy-prompt-btn="true"]', 900).catch(() => {});
+          await d.click('[data-gemini-generate-btn="true"]', { pause: 1300 }).catch(() => {});
+          await d.click('[data-share-import-apply="true"]', { pause: 1300 }).catch(() => {});
+          if (await d.eval<boolean>(`!!document.querySelector('[data-conflict-summary="true"]')`)) {
+            await d.click('[data-conflict-bulk="replace"]', { pause: 700 }).catch(() => {});
+            await d.click('.modal-backdrop:last-child .dialog [data-dialog-btn="confirm"]', { pause: 1000 }).catch(() => {});
+          }
+          // Immediately close the modal so the Gemini-generated theme is visible unobstructed in Icons View!
+          await closeDialogs(d);
+          await d.hover('#list .row[data-name="shaders"]', 1500).catch(() => {});
+          await d.hover('#list .row[data-name="custom_themes"]', 1500).catch(() => {});
         },
       },
       {
         cap: "⚖️ Compare & Blend: split-screen wipe & Live OKLab Theme Blender",
-        say: "Click Compare and Blend to open the side-by-side stage. Drag the interactive wipe slider across Theme A and Theme B, swap sides, inspect the specification diff table, or use the Live O K Lab Theme Blender to perceptually crossfade any two themes at any ratio, preview the hybrid live, and apply or save your winner.",
+        say: "Click Compare and Blend to open the side-by-side stage. Drag the interactive wipe slider across Polar Night and Halloween Jack-O'-Lantern, inspect the specification diff table, or use the Live O K Lab Theme Blender to perceptually crossfade any two themes at any ratio.",
         act: async (d) => {
-          if (!(await d.eval<boolean>(`!!document.querySelector('[data-compare-themes="true"]')`))) {
-            await closeDialogs(d);
-            await d.click("#tool-themes", { pause: 900 });
-            await d.menu("All themes", { pause: 1200 });
-          }
-          await d.click('[data-compare-themes="true"]', { pause: 1600 });
+          await d.click("#tool-themes", { pause: 900 });
+          await d.menu("All themes", { pause: 1200 });
+          await d.click('[data-compare-themes="true"]', { pause: 1500 });
           await d.waitFor(".theme-compare-slider", 6000);
-          await pick(d, "Left theme (Theme A)", "tesla_coil_plasma");
-          await pick(d, "Right theme (Theme B)", "inferno_fire_folders");
+          await pick(d, "Left theme (Theme A)", "polar_night");
+          await pick(d, "Right theme (Theme B)", "holiday_halloween_jack_o_lantern");
           await slide(d, "Split comparison wipe position", 50, 22, 4);
           await slide(d, "Split comparison wipe position", 22, 78, 4);
           await slide(d, "Split comparison wipe position", 78, 50, 4);
           await slide(d, "OKLab Theme Blend Ratio (0% = A, 100% = B)", 50, 65, 5).catch(() => {});
-          await d.click('[data-preview-blend="true"]', { pause: 1500 }).catch(() => {});
-          await d.hover(".theme-compare-table", 1500);
-          await d.click('[data-apply-compare="a"]', { pause: 1200 }).catch(() => {});
-          await d.eval(`(() => {
-            const applyBtn = document.querySelector('[data-apply-compare="a"]');
-            if (applyBtn) applyBtn.click();
-          })()`);
-          await d.wait(500);
+          await d.click('[data-preview-blend="true"]', { pause: 1400 }).catch(() => {});
+          await closeDialogs(d);
+          await d.wait(800);
         },
       },
       {
-        cap: "Day / Night, 4-Stage Solar Cycle & Ambient Playlist Auto-Rotation",
-        say: "Next, click Day Night and Playlist. Pair a light daytime theme with a dark nighttime theme, click Auto-Fill Sci-Fi Solar Cycle to assign Dawn, Solar Day, Golden Dusk, and Deep Midnight, or enable the new Ambient Playlist Auto-Rotation to cycle through your Favorites or Ultra Storm showcase on a timer.",
+        cap: "Atmosphere FX: 194 Shaders, 6-Layer Mixer & Reactive Physics",
+        say: "In Atmosphere FX, you can mix up to six simultaneous real-time shaders from one hundred and ninety-four effects—including E F 5 Debris Tornadoes, 4D Hypercubes, Tesla Megacoils, and Liquid Glass Caustics—and modulate them by typing velocity, live C P U telemetry, or audio beat.",
         act: async (d) => {
-          await d.eval(`(() => {
-            const backdrops = [...document.querySelectorAll('.modal-backdrop')];
-            while (backdrops.length > 1) {
-              const top = backdrops.pop();
-              top?.querySelector('button[value="close"], button[value="cancel"]')?.click();
-            }
-          })()`);
-          await d.click(".theme-tools button >> Day / Night", { pause: 1600 });
-          await d.waitFor('[data-solar-preset="scifi"]', 6000);
-          await d.hover('select[aria-label="Daytime (Light) theme"]', 1000);
-          await d.click('[data-solar-preset="scifi"]', { pause: 1600 });
-          await d.hover('[data-solar-stage="dawn"]', 1000);
-          await d.hover('[data-solar-stage="night"]', 1000);
-          await d.click('[data-playlist-enabled="true"]', { pause: 1200 }).catch(() => {});
-          await d.hover('[data-playlist-pool="true"]', 1200).catch(() => {});
-          await d.key("Escape", "Esc");
+          await d.click("#tool-themes", { pause: 900 });
+          await d.menu("All themes", { pause: 1100 });
+          await d.click(".theme-tools button >> Atmosphere FX", { pause: 1400 });
+          await d.waitFor(".fm-atmo-card", 6000);
+          await d.click('.fm-atmo-tier-btn[data-tier="extreme"]', { pause: 1100 });
+          await d.click('.fm-atmo-preset-btn[data-mix="liquid_glass_caustics+m4_raytrace_prism+aurora"]', { pause: 1600 });
+          await d.click('[data-surge-btn="true"]', { pause: 1300 });
+          await d.click(".modal-backdrop:last-child .dialog button >> Apply effect", { pause: 1400 });
+          await closeDialogs(d);
           await d.wait(1000);
         },
       },
       {
-        cap: "Atmosphere FX: 194 shaders, M4 Extreme 120Hz & EF5 Tornadoes",
-        say: "Now click Atmosphere FX to open the live procedural shader studio. It includes one hundred and ninety-four real-time effects across Low Eco, Medium, Modern ARM Ultra, and M4 Max Extreme Uncapped 120 Hertz tiers, including E F 5 Debris Tornadoes with 3D-tumbling autumn leaves, roof shingles, flying newspapers, and Category 5 Hurricanes.",
+        cap: "Theme Editor, 🛠️ Theme Hacker Lab, WCAG Inspector & Save Theme",
+        say: "In Create or edit a theme, pick a pre-built 8K studio picture, check live W C A G contrast ratios, open the Theme Hacker Lab for one-click Compiz Burn and custom C S S snippets, and save your theme.",
         act: async (d) => {
-          await d.eval(`(() => {
-            const backdrops = [...document.querySelectorAll('.modal-backdrop')];
-            while (backdrops.length > 1) {
-              const top = backdrops.pop();
-              top?.querySelector('button[value="close"], button[value="cancel"]')?.click();
-            }
-          })()`);
-          await d.click(".theme-tools button >> Atmosphere FX", { pause: 1800 });
-          await d.waitFor(".fm-atmo-card", 6000);
-          await d.click('.fm-atmo-tier-btn[data-tier="extreme"]', { pause: 1400 });
-          await d.click('.fm-atmo-cat-btn[data-cat="weather"]', { pause: 1200 });
-          await d.click('.fm-atmo-card[data-atmo="debris_tornado_ef5"]', { pause: 2200 });
-          await d.click('.fm-atmo-card[data-atmo="autumn_noreaster_gale"]', { pause: 2000 });
-          await d.click('.fm-atmo-card[data-atmo="category5_hurricane"]', { pause: 2000 });
-          await d.click('.fm-atmo-tier-btn[data-tier="auto"]', { pause: 1200 });
-        },
-      },
-      {
-        cap: "🛸 Year 2126 Hyper-Dimensional & ⚡ Tesla / Sci-Fi Physics",
-        say: "Explore ten categories of effects. In Year 2126 Hyper-Dimensional, try the 4D Hypercube Stereographic Fold, the 11D Calabi-Yau String Manifold, or the Non-Orientable Klein Bottle. Switch to Tesla, Plasma and Sci-Fi Physics to unleash the Wardenclyffe Magnifying Transmitter, the ITER Tokamak Magnetic Torus, or Rosensweig Ferrofluid Spikes that bristle toward your cursor.",
-        act: async (d) => {
-          await d.click('.fm-atmo-cat-btn[data-cat="future2126"]', { pause: 1400 });
-          await d.click('.fm-atmo-card[data-atmo="tesseract_4d"]', { pause: 2200 });
-          await d.click('.fm-atmo-card[data-atmo="calabi_yau"]', { pause: 2200 });
-          await d.click('.fm-atmo-card[data-atmo="klein_mobius"]', { pause: 2000 });
-          await d.click('.fm-atmo-cat-btn[data-cat="physics"]', { pause: 1400 });
-          await d.click('.fm-atmo-card[data-atmo="tesla_megacoil"]', { pause: 2200 });
-          await d.click('.fm-atmo-card[data-atmo="tokamak_fusion"]', { pause: 2200 });
-          await d.click('.fm-atmo-card[data-atmo="ferrofluid_spikes"]', { pause: 2200 });
-        },
-      },
-      {
-        cap: "Reactive physics: Typing Velocity, Telemetry Pulse, Audio Beat & Surge",
-        say: "With Reactive Physics Modulation, effects respond to what you do. Choose Typing and Cursor Velocity so arcs and particles accelerate as you type and move, System Telemetry Pulse to breathe with live C P U load, or Audio and Synth Beat. And click Trigger Arc Surge anytime for an immediate high-voltage impulse.",
-        act: async (d) => {
-          await d.click('.fm-atmo-reactive-btn[data-reactive-mode="activity"]', { pause: 1500 });
-          await d.click('.fm-atmo-reactive-btn[data-reactive-mode="telemetry"]', { pause: 1500 });
-          await d.click('.fm-atmo-reactive-btn[data-reactive-mode="audio"]', { pause: 1500 });
-          await d.click('.fm-atmo-reactive-btn[data-reactive-mode="activity"]', { pause: 1200 });
-          await d.click('[data-surge-btn="true"]', { pause: 1800 });
-          await d.click('[data-surge-btn="true"]', { pause: 1800 });
-        },
-      },
-      {
-        cap: "6-Layer Mixer, Per-Layer Tint/Speed Modifiers & 48 Signature Mixes",
-        say: "The Multi-Effect Layer Mixer lets you combine up to six effects simultaneously, with per-layer color tint, opacity, and speed sliders plus shareable preset codes. Pick from forty-eight curated Signature Mixes like M4 Max E F 5 Debris Apocalypse, 2126 11D Hyperspace Fold, Wardenclyffe Overdrive, or Tahoe Liquid Glass Pro, save a custom preset, and click Apply effect.",
-        act: async (d) => {
-          await d.click('.fm-atmo-preset-btn[data-mix="debris_tornado_ef5+urban_cyclone_debris+hail_supercell+derecho_squall"]', { pause: 2200 });
-          await d.click('.fm-atmo-preset-btn[data-mix="tesseract_4d+calabi_yau+chronos_retrocausal"]', { pause: 2200 });
-          await d.click('.fm-atmo-preset-btn[data-mix="plasma_storm+tesla_megacoil+ball_lightning"]', { pause: 2200 });
-          await d.click('.fm-atmo-preset-btn[data-mix="liquid_glass_caustics+m4_raytrace_prism+aurora"]', { pause: 2200 });
-          await d.eval(`(() => { const e = document.querySelector(".fm-atmo-preset-name-input"); if (e) { e.value = ''; e.dispatchEvent(new Event('input', { bubbles: true })); e.focus(); } })()`);
-          await d.type("Hyper Glass 2126", 80);
-          await d.click('[data-save-user-preset="true"]', { pause: 1600 });
-          await d.hover(".fm-atmo-intensity input[type=range]", 1200);
-          await d.click(".modal-backdrop:last-child .dialog button >> Apply effect", { pause: 1800 });
-        },
-      },
-      {
-        cap: "🎬 Theme Show & Screensaver Studio + ⌘⇧T from anywhere",
-        say: "Back in the Themes gallery, click Theme Show and Screensaver to launch a full-bleed visual showcase with four presentation modes including Cinema H U D, Living File Manager, and Retro After Dark XScreenSaver O S D across seven curated channels. And from anywhere in the File Manager, Command Shift T or Right Option T opens the theme gallery immediately.",
-        act: async (d) => {
-          await d.click('[data-theme-show-btn="true"]', { pause: 1600 });
-          await d.waitFor('[data-show-mode-card="retro_afterdark"]', 6000);
-          await d.click('[data-show-mode-card="retro_afterdark"]', { pause: 1200 });
-          await d.click('[data-show-channel-card="storms_debris"]', { pause: 1200 });
-          await d.click(".dialog button >> Launch Theme Show Now", { pause: 2200 });
-          await d.click("[data-theme-show-next]", { pause: 1800 }).catch(() => {});
-          await d.click('[data-theme-show-exit="true"]', { pause: 1400 }).catch(() => {});
-          await d.eval(`document.querySelector('[data-theme-show-exit]')?.click()`);
-          await closeDialogs(d);
-          await d.key("Meta+Shift+T", "⌘+⇧+T");
-          await d.wait(1100);
-          if (!(await d.eval<boolean>(`!!document.querySelector('.theme-card')`))) await d.eval(`window.openAppThemes?.()`);
-          await d.wait(1500);
-          await closeDialogs(d);
-          await showKeys(d, ["Right ⌥", "T"]);
-          await d.wait(1500);
-        },
-      },
-      {
-        cap: "Theme Editor: Pre-Built Studio Pictures, Auto-Harmonize & WCAG Contrast",
-        say: "Now let's design and hack our own theme. In the gallery, I click Create or edit a theme. Along with Auto-harmonize, Invert, Randomize, Extract from Wallpaper, and Paste Theme with Command V, you get one-click Pre-Built Studio Pictures and 3D Folders like Tahoe Aerial Coast 8K, Pro Display X D R Nebula, and 8K Hasselblad Golden Hour. Below the colors, a live W C A G contrast inspector verifies every pair.",
-        act: async (d) => {
-          await d.click("#tool-themes", { pause: 1200 });
-          await d.menu("All themes", { pause: 1400 });
-          await d.click(".dialog button >> Create or edit a theme", { pause: 1800 });
+          await d.click("#tool-themes", { pause: 1000 });
+          await d.menu("All themes", { pause: 1200 });
+          await d.click(".dialog button >> Create or edit a theme", { pause: 1600 });
           await d.waitFor(".dialog input[aria-label='Theme name']", 6000);
-          await d.click('[data-prebuilt-picture="tahoe_aerial_coast"]', { pause: 1400 }).catch(() => {});
-          await d.click('[data-prebuilt-picture="pro_display_xdr_nebula"]', { pause: 1400 }).catch(() => {});
-          await d.click('[data-harmony="random"]', { pause: 1200 });
-          await d.click('[data-harmony="invert"]', { pause: 1200 });
-          await d.click('[data-harmony="invert"]', { pause: 1200 });
-          await d.click('[data-harmony="accent"]', { pause: 1200 });
-          await d.hover('[data-editor-paste-theme="true"]', 1000).catch(() => {});
-          await d.hover(".theme-contrast-inspector", 1600);
-        },
-      },
-      {
-        cap: "12 Style Presets, 🛠️ Theme Hacker Lab (Compiz Burn & CDE) & Custom CSS",
-        say: "In Glass, glow, materials and motion, pick from twelve Effect Style Presets like Cyberpunk Hologram, Plasma Reactor, or Tahoe Liquid Glass. Then scroll to the Theme Hacker Lab: inject one-click mutators like Compiz Burn and Inferno, Bio-Slime Vat, 90s Linux C D E Chisel, or Green-Phosphor C R T Hacker, override internal C S S design tokens, or inject custom C S S snippets like Wobbly Hover and Neon Pulsing Folders.",
-        act: async (d) => {
-          await d.click('[data-fx-preset="cyber_hologram"]', { pause: 1400 });
-          await d.click('[data-fx-preset="liquid_glass"]', { pause: 1400 });
-          await d.eval(`(() => {
-            const det = document.querySelector('[data-hacker-studio]');
-            if (det) {
-              det.open = true;
-              det.querySelector('summary')?.addEventListener('click', (e) => e.preventDefault());
-              det.scrollIntoView({ behavior: 'instant', block: 'center' });
-            }
-          })()`);
-          await d.wait(300);
-          await d.click('[data-hack-mutate="compiz_burn"]', { pause: 1800 });
-          await d.click('[data-hack-mutate="retro_linux_cde"]', { pause: 1800 });
-          await d.click('[data-hack-mutate="cyber_overdrive"]', { pause: 1800 });
-          await d.click('[data-css-snippet="compiz_wobbly"]', { pause: 1300 }).catch(() => {});
-          await d.click('[data-css-snippet="neon_folders"]', { pause: 1300 }).catch(() => {});
-          await slide(d, "Glass blur", 26, 32, 2);
-          await pick(d, "Surface material", "liquid");
-          await pick(d, "Border style", "iridescent");
-          await pick(d, "Cursor interaction", "prism");
-        },
-      },
-      {
-        cap: "Attach Shader Mixes, Export CCFM-THEME-v1 Code & Save Theme",
-        say: "You can attach any of the one hundred and ninety-four atmospheric effects or forty-eight multi-layer mixes directly to your custom theme, along with its 3D folder shader, picture icon pack, and custom C S S. I name our creation Midnight Liquid Glass, hover Export and Import for one-line C C F M Theme share codes and bulk conflict-resolved imports, and click Save theme.",
-        act: async (d) => {
-          await pick(d, "Atmospheric effect", "liquid_glass_caustics+m4_raytrace_prism+aurora");
-          await d.eval(`(() => { const e = document.querySelector(".dialog input[aria-label='Theme name']"); e.value = ''; e.dispatchEvent(new Event('input', { bubbles: true })); e.focus(); })()`);
-          await d.type("Midnight Liquid Glass", 85);
-          await d.hover(".dialog button >> Export", 1100);
-          await d.hover(".dialog button >> Import", 1100);
-          await d.dialog("Save theme", { pause: 2200 });
+          await d.click('[data-prebuilt-picture="pro_display_xdr_nebula"]', { pause: 1200 }).catch(() => {});
+          await d.click('[data-fx-preset="liquid_glass"]', { pause: 1200 });
+          await d.hover(".theme-contrast-inspector", 1200);
+          await d.eval(`(() => { const e = document.querySelector(".dialog input[aria-label='Theme name']"); if (e) { e.value = 'Midnight Liquid Glass Ultra'; e.dispatchEvent(new Event('input', { bubbles: true })); } })()`);
+          await d.click('.modal-backdrop:last-child .dialog [data-dialog-btn="save"]', { pause: 1800 });
           await closeDialogs(d);
         },
       },
       {
-        cap: "🏆 AAA 10-Engine Director's Cut (⌥M), ⌥3 3D Spin & Flash 3000, ⌥F 34 Filters & Hotkeys",
-        say: "Finally, experience the ten-engine Triple-A Production Studio directly from the keyboard with zero dialogs needed. Press Option M for the Master Director's Cut presets, Option 3 for fourteen 3D Spinning Folder and Futuristic Flash Two-Advanced animations, Option F for thirty-four Sony Trinitron C R T and cinema screen filters, Option S for 3D Desktop Stage tilt, Option T for holographic cursor trails, Option W for 8K Wallpaper backplates, Option H for holiday firework bursts, Option C to swap colors while keeping your active effects, or Option I to shuffle forty-nine icon packs. Plus Option R, Option E, Option P, Option U, and Option Zero for instant theme control.",
+        cap: "🏆 Zero-Dialog Keyboard Power-Ups (⌥M, ⌥9, ⌥H, ⌥F, ⌥S, ⌥Z) & F1 Help",
+        say: "Best of all, you can control the entire ten-engine Triple-A Theme Studio directly from the keyboard with zero dialogs blocking your view: press Option M for Master Director's Cut presets, Option 9 to cycle 3D spinning folder animations, Option H to cycle all eighteen U S Holiday themes with firework bursts, Option F for CRT and cinema screen filters, Option S for 3D stage tilt, or Option Z to undo—and press Command Comma for Settings or F1 anytime for the interactive keyboard shortcut guide.",
         act: async (d) => {
           await closeDialogs(d);
           await showKeys(d, ["⌥", "M"]);
           await d.eval(`window.cycleAppAaaDirectorCut?.(1)`);
-          await d.wait(1000);
-          await showKeys(d, ["⌥", "3"]);
+          await d.wait(1100);
+          await showKeys(d, ["⌥", "9"]);
           await d.eval(`window.cycleAppHighEndAnimation?.(1)`);
-          await d.wait(1000);
-          await showKeys(d, ["⌥", "3"]);
-          await d.eval(`window.cycleAppHighEndAnimation?.(1)`);
-          await d.wait(1000);
-          await showKeys(d, ["⌥", "F"]);
-          await d.eval(`window.cycleAppScreenFilter?.(1)`);
-          await d.wait(1000);
-          await d.eval(`import('/ui/themes.js').then((m) => m.applyScreenFilter('off', { quiet: true }))`);
-          await showKeys(d, ["⌥", "S"]);
-          await d.eval(`window.cycleAppStageMode?.(1)`);
-          await d.wait(950);
-          await d.eval(`import('/ui/themes.js').then((m) => m.applyWorkspaceStageMode('flat', { quiet: true }))`);
-          await showKeys(d, ["⌥", "T"]);
-          await d.eval(`window.cycleAppCursorTrailMode?.(1)`);
-          await d.wait(950);
-          await showKeys(d, ["⌥", "W"]);
-          await d.eval(`window.cycleAppWallpaperScene?.(1)`);
-          await d.wait(950);
+          await d.wait(1100);
           await showKeys(d, ["⌥", "H"]);
           await d.eval(`window.cycleAppHolidayTheme?.(1)`);
-          await d.wait(1100);
-          await showKeys(d, ["⌥", "C"]);
-          await d.eval(`window.cycleAppColorKeepFx?.(1)`);
-          await d.wait(950);
-          await showKeys(d, ["⌥", "I"]);
-          await d.eval(`window.shuffleAppIconPack?.()`);
-          await d.wait(950);
-          await showKeys(d, ["⌥", "R"]);
-          await d.eval(`window.randomAppTheme("any")`);
+          await d.wait(1200);
+          await showKeys(d, ["⌥", "Z"]);
+          await d.eval(`import('/ui/themes.js').then((m) => m.undoThemeHistory?.())`).catch(() => {});
           await d.wait(900);
-          await showKeys(d, ["⌥", "E"]);
-          await d.eval(`window.randomAppTheme("fx")`);
-          await d.wait(900);
-          await showKeys(d, ["⌥", "U"]);
-          await d.eval(`window.randomAppTheme("ultra")`);
-          await d.wait(900);
-          await showKeys(d, ["Right ⌥", "]"]);
-          await d.eval(`window.cycleAppTheme(1, { showcaseOnly: true, showHud: true })`);
-          await d.wait(1000);
-          await d.eval(`document.querySelector('[data-quick-hud-close]')?.click()`).catch(() => {});
+          await showThemeUnobstructed(
+            d,
+            "polar_night",
+            "❄️ Polar Night · Ready for Databases Masterclass",
+            "Unobstructed 6K XDR View · Switching back to List View",
+            { anim: "folder_3d_spin_turntable", waitMs: 1200 },
+          );
+          await clearUnobstructedBanner(d);
+          await d.click("#status-views button >> List", { pause: 900 }).catch(() => {});
           await d.eval(`(() => { if (typeof window.closeApp !== 'function') window.closeApp = () => {}; })()`);
           await d.key("Meta+,", "⌘+,");
           await d.wait(800);
@@ -440,12 +434,12 @@ export const ending: Chapter[] = [
           await d.wait(800);
           const sel = ".dialog label >> Only close the window";
           await d.eval(`[...document.querySelectorAll('.dialog label')].find((l) => l.textContent.includes('Only close the window'))?.scrollIntoView({ block: 'center' })`);
-          await d.click(sel, { pause: 1100 }).catch(() => {});
+          await d.click(sel, { pause: 1000 }).catch(() => {});
           await closeDialogs(d);
           await d.key("F1", "F1");
           await d.waitFor(".dialog", 6000);
-          await d.click(".dialog .btn >> Change keyboard shortcuts", { pause: 1300 }).catch(() => {});
-          await d.hover(".dialog", 1500);
+          await d.click(".dialog .btn >> Change keyboard shortcuts", { pause: 1200 }).catch(() => {});
+          await d.hover(".dialog", 1300);
         },
       },
     ],
@@ -499,7 +493,15 @@ export const ending: Chapter[] = [
 
   {
     id: "26_outro", chapter: "THE END", title: "That is the tour", kind: "card",
-    card: { kicker: "Free and open source", title: "Thank you for watching", lines: ["Download: github.com/codecaine-zz/bun_rad_studio", "Every guide is in the docs folder", "Press F1 inside the app any time"] },
+    card: {
+      kicker: "Free and open source · Recorded on Apple Mac Studio M4 Ultra · Pro Display XDR 6K 120Hz",
+      title: "Thank you for watching",
+      lines: [
+        "Download: github.com/codecaine-zz/bun_rad_studio",
+        "Every guide is in the docs folder · Press F1 or ⌘⇧P inside the app any time",
+        "🍎 Apple Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K 120Hz",
+      ],
+    },
     steps: [
       {
         cap: "Thank you for watching",

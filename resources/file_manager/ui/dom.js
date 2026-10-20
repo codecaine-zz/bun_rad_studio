@@ -1058,21 +1058,37 @@ export function syncVisibleIcons(root = typeof document !== "undefined" ? docume
   if (!root?.querySelectorAll) return;
   const pack = activeIconPackStyle();
   const activePalette = typeof document !== "undefined" ? (document.documentElement?.dataset?.palette || "") : "";
-  const holidaySpec = HOLIDAY_THEME_CRESTS[activePalette] || null;
+  const activeUiFx = typeof document !== "undefined" ? (document.documentElement?.dataset?.uiFx || "") : "";
+  const holidaySpec = HOLIDAY_THEME_CRESTS[activePalette] || (activeUiFx === "holiday_festive_glow" ? HOLIDAY_THEME_CRESTS.holiday_halloween_jack_o_lantern : null);
   const holidayCrest = holidaySpec?.crest || "";
   root.querySelectorAll(".row").forEach((row) => {
     const ico = row.querySelector(".c-icon");
     if (!ico) return;
+    const nameEl = row.querySelector(".name-text");
     const isDir = row.classList.contains("is-folder") || row.dataset.isDir === "1";
-    const name = row.dataset.entryName || row.querySelector(".name-text")?.textContent || "";
+    const name = row.dataset.entryName || nameEl?.textContent || "";
+    const holidayBadge = holidaySpec?.badge || "";
     if (isDir) {
       if (holidayCrest) {
         if (row.dataset.holidayCrest !== holidayCrest) row.dataset.holidayCrest = holidayCrest;
         if (ico.dataset.holidayCrest !== holidayCrest) ico.dataset.holidayCrest = holidayCrest;
+        if (nameEl && nameEl.dataset.holidayCrest !== holidayCrest) nameEl.dataset.holidayCrest = holidayCrest;
       } else {
         if (row.dataset.holidayCrest) delete row.dataset.holidayCrest;
         if (ico.dataset.holidayCrest) delete ico.dataset.holidayCrest;
+        if (nameEl?.dataset?.holidayCrest) delete nameEl.dataset.holidayCrest;
       }
+      if (row.dataset.holidayBadge) delete row.dataset.holidayBadge;
+      if (ico.dataset.holidayBadge) delete ico.dataset.holidayBadge;
+      if (nameEl?.dataset?.holidayBadge) delete nameEl.dataset.holidayBadge;
+    } else if (holidayBadge) {
+      if (row.dataset.holidayBadge !== holidayBadge) row.dataset.holidayBadge = holidayBadge;
+      if (ico.dataset.holidayBadge !== holidayBadge) ico.dataset.holidayBadge = holidayBadge;
+      if (nameEl && nameEl.dataset.holidayBadge !== holidayBadge) nameEl.dataset.holidayBadge = holidayBadge;
+    } else {
+      if (row.dataset.holidayBadge) delete row.dataset.holidayBadge;
+      if (ico.dataset.holidayBadge) delete ico.dataset.holidayBadge;
+      if (nameEl?.dataset?.holidayBadge) delete nameEl.dataset.holidayBadge;
     }
     if (ico.dataset.appliedPack === pack && ico.dataset.appliedName === name && ico.dataset.iconKind) {
       return;

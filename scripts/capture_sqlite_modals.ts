@@ -1,11 +1,13 @@
 import { spawn } from "child_process";
-import { writeFileSync, copyFileSync } from "fs";
+import { writeFileSync, copyFileSync, existsSync, mkdirSync } from "fs";
+import { join } from "path";
 import { startSqliteStudioServer } from "../applications/sqlite_studio_server.ts";
 
 const CHROME_BIN = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const PORT = 9226;
 const BRAIN_DIR = "/Users/codecaine/.gemini/antigravity-ide/brain/4205c847-f2cc-4335-96b0-60138148d8af";
-const SCREENSHOTS_DIR = "/Users/codecaine/bun_rad_studio/screenshots/apps";
+const SCREENSHOTS_DIR = join(process.cwd(), "screenshots", "apps");
+mkdirSync(SCREENSHOTS_DIR, { recursive: true });
 
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -95,14 +97,15 @@ async function main() {
   // Helper to capture and copy to screenshots/apps
   async function capture(name: string) {
     const shot = await send("Page.captureScreenshot", { format: "png" });
-    const pBrain = `${BRAIN_DIR}/${name}.png`;
     const pApp = `${SCREENSHOTS_DIR}/${name}.png`;
-    writeFileSync(pBrain, Buffer.from(shot.data, "base64"));
-    try {
-      copyFileSync(pBrain, pApp);
-    } catch {}
-    console.log(`✅ Saved: ${name}.png`);
-    return pBrain;
+    writeFileSync(pApp, Buffer.from(shot.data, "base64"));
+    if (existsSync(BRAIN_DIR)) {
+      try {
+        copyFileSync(pApp, `${BRAIN_DIR}/${name}.png`);
+      } catch {}
+    }
+    console.log(`✅ Saved: ${pApp}`);
+    return pApp;
   }
 
   // 1. Data Grid with Totals Row & Quick Filter Bar Active

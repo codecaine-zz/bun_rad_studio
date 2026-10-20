@@ -70,7 +70,7 @@
       "evidence": ["cli_apps/launcher_cli.ts"],
       "page": "applications/launcher-studio.md",
       "implementation": "Implemented and verified",
-      "verification": "`--help`, `--list --json`, `--search sqlite` run in a clean clone (2026-10-13); catalog count 175 (70 studios, 78 CLI tools, 27 demos).",
+      "verification": "`--help`, `--list --json`, `--search sqlite` run in a clean clone (2026-10-13); catalog count 173 (67 studios, 79 CLI tools, 27 demos).",
       "missing": "-"
     },
     {
@@ -92,12 +92,12 @@
       "missing": "Guides must describe only what is verified; older guides in userguides/ are unverified."
     },
     {
-      "name": "Macro designer and code translation (Python / Bun / V)",
+      "name": "Macro designer and code translation (Python / Bun / Bun.sql / TypeScript / V)",
       "audience": "Developers",
       "evidence": ["applications/studio_codegen.ts", "applications/studio_macros_server.ts", "tests/studio_codegen.test.ts"],
       "page": "databases/index.md",
       "implementation": "Implemented and verified",
-      "verification": "Automated tests pass (2026-10-13). Generated code is text-checked, not executed in each language runtime. Target database is SQLite for all three studios.",
+      "verification": "Automated tests pass (2026-10-13). Generated code is text-checked, not executed in each language runtime.",
       "missing": "Generated code execution in Python/V is not tested."
     },
     {

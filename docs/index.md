@@ -7,8 +7,8 @@
 Bun RAD Studio is a collection of desktop-style tools written in TypeScript and run with Bun (a program that runs JavaScript and TypeScript code). Windows are drawn with a Webview, which is a small browser window embedded in a normal desktop window. The repository contains:
 
 - a **launcher** that finds and starts every other tool,
-- **70 studios** (windowed applications: database tools, developer tools, system tools, games and more),
-- **78 command-line tools** and **27 demos**,
+- **67 studios** (windowed applications: database tools, developer tools, system tools, games and more),
+- **79 command-line tools** and **27 demos**,
 - a **visual form designer** (the "IDE") for laying out forms,
 - the **SimpleGUI** library for writing windows in code,
 - a shared **Database Workbench** for MySQL, PostgreSQL and SQLite.

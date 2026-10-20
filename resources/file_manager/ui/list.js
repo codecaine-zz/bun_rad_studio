@@ -3,7 +3,7 @@
 import { ApiError } from "./api.js";
 import { showBackgroundMenu, showEntryMenu } from "./contextmenu.js";
 import { attachDropTarget, drag, endDrag, startDrag } from "./dnd.js";
-import { classifyFolderTopic, classifyIconKind, clear, h, iconForEntry, resolveSystemIcon } from "./dom.js";
+import { classifyFolderTopic, classifyIconKind, clear, h, iconForEntry, resolveSystemIcon, syncVisibleIcons } from "./dom.js";
 import { wireMarquee } from "./marquee.js";
 import { toast } from "./menus.js";
 import { saveSettings, visibleEntries } from "./nav.js";
@@ -179,6 +179,7 @@ export function renderList(pane = left) {
     ));
   }
   clear(container).append(frag);
+  syncVisibleIcons(container);
 
   const empty = part(pane, "empty");
   const [title, text] = emptyMessage(pane);

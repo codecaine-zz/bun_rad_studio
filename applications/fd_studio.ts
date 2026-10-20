@@ -2117,7 +2117,9 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   process.on("beforeExit", () => stopAll());
 
   // Populate initial graveyard telemetry
-  refreshGraveyard();
+  if (!process.env.SCREENSHOT_MODE) {
+    refreshGraveyard();
+  }
 
   // Defer initial search so initial window HTML payload is ultra-compact (<250KB),
   // completely preventing Edge WebView2's 2MB NavigateToString limit on Windows from blanking the screen.

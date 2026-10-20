@@ -2871,6 +2871,17 @@ describe("the theme editor in the page", () => {
     await sleep(40);
     expect(doc.documentElement.dataset.iconAnim).toBeTruthy();
 
+    // 9. Verify parseThemePack parses all items in a JSON theme pack even when individual theme entries contain embedded shareCode fields
+    const { getMasterCustomThemeExports } = await import("../src/features/filemanager/fmMasterCustomThemes");
+    const exportsWithShareCodes = getMasterCustomThemeExports().map((e) => e.jsonPayload);
+    const packWithEmbeddedShareCodes = JSON.stringify({
+      format: "bun-rad-studio-file-manager-theme-pack",
+      version: 1,
+      themes: exportsWithShareCodes,
+    });
+    const parsedAll20 = themeStore.parseThemePack(packWithEmbeddedShareCodes);
+    expect(parsedAll20.length).toBe(20);
+
     // Restore auto mode
     await (themes as any).setZeroWattGovernorMode("auto", { quiet: true });
     (themes as any).simulateWindowFocusState(true);

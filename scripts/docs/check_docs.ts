@@ -30,11 +30,14 @@ export function readMarkdown(file: string): string {
   return target && text.trim() === target ? readFileSync(join(dirname(file), target), "utf8") : text;
 }
 
+const SKIP_WALK_DIRS = new Set(["node_modules", ".git", "dist", "release", "windows-x64", "linux-arm64", "linux-x64", "macos-arm64", ".temp_screens", ".rad_preview", "exported_project", "chrome-profile", "_work"]);
+
 export function walkMarkdown(dir: string, out: string[] = []): string[] {
-  for (const name of readdirSync(dir)) {
-    const p = join(dir, name);
-    if (statSync(p).isDirectory()) walkMarkdown(p, out);
-    else if (name.endsWith(".md")) out.push(p);
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (SKIP_WALK_DIRS.has(entry.name)) continue;
+    const p = join(dir, entry.name);
+    if (entry.isDirectory()) walkMarkdown(p, out);
+    else if (entry.name.endsWith(".md") && existsSync(p)) out.push(p);
   }
   return out;
 }
@@ -195,7 +198,7 @@ const NAV_EXEMPT = new Set<string>([]);
 
 export async function checkDocs(opts: { external?: boolean } = {}): Promise<{ issues: Issue[]; files: number; links: number }> {
   const issues: Issue[] = [];
-  const files = [...walkMarkdown(DOCS), join(ROOT, "README.md")].filter((f) => existsSync(f));
+  const files = walkMarkdown(ROOT).filter((f) => existsSync(f));
   const parsed = new Map<string, Parsed>();
   for (const f of files) parsed.set(f, parseMarkdown(readMarkdown(f)));
   const rel = (f: string) => relative(ROOT, f);

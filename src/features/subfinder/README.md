@@ -8,7 +8,7 @@ Fast passive subdomain enumeration tool querying multiple open public sources (c
 
 ```bash
 # Discover subdomains
-bun run subfinder -d <domain>
+bun run cli:subfinder -d <domain>
 
 # Common Flags
 -d, --domain <domain>        Target domain name

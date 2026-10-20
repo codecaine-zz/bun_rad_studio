@@ -8,7 +8,7 @@ A fast disk usage analyzer and mounted disk explorer written in TypeScript for B
 
 ```bash
 # Scan directory
-bun run gdu [directory_to_scan]
+bun run cli:gdu [directory_to_scan]
 
 # Common Flags
 -n, --non-interactive        Do not run in interactive mode (print report)

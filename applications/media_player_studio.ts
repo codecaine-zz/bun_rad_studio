@@ -84,6 +84,7 @@ const MIME_BY_EXT: Record<string, string> = {
 const SUB_AND_LYR_EXTS = new Set([".lrc", ".txt", ".srt", ".vtt"]);
 
 export function getDefaultMediaLibraryDir(): string {
+  if (process.env.SCREENSHOT_MODE) return "./music lyrics";
   const candidates = [
     resolve(process.cwd(), "music lyrics"),
     resolve(import.meta.dir, "../music lyrics"),

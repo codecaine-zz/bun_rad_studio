@@ -1730,6 +1730,40 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
     // Direct Native HTTP Client (Bypasses WebKit FFI Locks with 100% Reliability)
     // ---------------------------------------------------------------------------------------------
     async function apiRequest(endpoint, body) {
+      if (window.location.protocol === "file:") {
+        if (endpoint === "/api/kpis") {
+          return {
+            cpuCores: 12,
+            cpuBrand: "Workstation Silicon",
+            cpuSpeed: "3.5 GHz",
+            cpuLoadPct: "8.4",
+            memUsedGb: "8.2",
+            memTotalGb: "32.0",
+            memPct: "26",
+            netIface: "en0 (Protected)",
+            netGateway: "192.168.1.*** (Masked)",
+            hasBattery: true,
+            batteryPct: 96,
+            isCharging: true,
+            osDistro: "macOS (arm64)"
+          };
+        }
+        if (endpoint.startsWith("/api/execute")) {
+          return {
+            success: true,
+            elapsedMs: "1.4",
+            data: {
+              manufacturer: "Apple Inc.",
+              model: "Workstation Pro (Demo)",
+              version: "1.0",
+              serial: "🔒 [Protected / Masked]",
+              uuid: "🔒 [Protected / Masked]",
+              sku: "RAD-WORKSTATION",
+              virtual: false
+            }
+          };
+        }
+      }
       try {
         const opts = body 
           ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }

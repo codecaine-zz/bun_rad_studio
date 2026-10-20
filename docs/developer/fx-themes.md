@@ -1,14 +1,28 @@
 # Futuristic themes, effects tokens and the motion layer
 
-This page explains the `fx` layer: fifteen futuristic themes plus the tokens, CSS classes and one small pointer script that give any SimpleGUI page and the Visual Designer glass surfaces, edge glow and purposeful motion. It is written for people who add or change themes and controls.
+This page explains the `fx` layer: the futuristic themes (`FX_THEMES` — 35 core presets expanded to 168 total presets) plus the tokens, CSS classes and one small pointer script that give any SimpleGUI page and the Visual Designer glass surfaces, edge glow and purposeful motion. It is written for people who add or change themes and controls.
 
 The short version: a theme with an `fx` descriptor gets the layer; a theme without one gets no effects CSS or attributes. Hash tests guard the plain-theme output, including the shared desktop keyboard shortcuts.
+
+## Contents
+
+- [Where things live](#where-things-live)
+- [How a theme becomes effects](#how-a-theme-becomes-effects)
+- [Tokens](#tokens)
+- [The root switch](#the-root-switch)
+- [Classes](#classes)
+- [The pointer script](#the-pointer-script)
+- [Rules the layer follows](#rules-the-layer-follows)
+- [The Visual Designer](#the-visual-designer)
+- [Adding a theme](#adding-a-theme)
+- [Turning effects down or off](#turning-effects-down-or-off)
+- [Known limits](#known-limits)
 
 ## Where things live
 
 | File | What it holds |
 |---|---|
-| `src/shared/fxThemes.ts` | The 35 themes, the `ThemeFx` descriptor, `fxCssVars()` (descriptor to `--fx-*` variables), `findFxTheme()`, `glassReport()`, `syntaxPalette()` |
+| `src/shared/fxThemes.ts` | The 168 futuristic themes (including the original 35 core presets), the `ThemeFx` descriptor, `fxCssVars()` (descriptor to `--fx-*` variables), `findFxTheme()`, `glassReport()`, `syntaxPalette()` |
 | `src/shared/fxCss.ts` | `fxCss()`: the one CSS string every fx page and the Designer share |
 | `src/shared/fxSelectors.ts` | The selector groups (buttons, cards, panels, inputs, magnets, tab strips, modals, rows) used by both the CSS and the pointer script |
 | `src/shared/fxPointer.ts` | The pointer script as a source string, plus `installFxPointer(window)` for tests |

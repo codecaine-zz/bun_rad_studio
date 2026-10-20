@@ -8,7 +8,7 @@ Executes commands in response to file system modifications with debouncing, igno
 
 ```bash
 # Watch files and execute a command
-bun run watchexec [options] [--] <command...>
+bun run cli:watchexec [options] [--] <command...>
 
 # Common Flags
 -w, --watch <path>      Path(s) to watch (comma-separated, default: ".")

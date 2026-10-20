@@ -317,14 +317,69 @@ export async function collectSysinfoOverview(
     si.networkInterfaces().catch(() => []),
   ]);
 
+  const showcaseMacUltra = process.env.FM_SHOWCASE_MAC_ULTRA === "1";
   const osCpus = os.cpus();
-  const cpuInfo = (staticInfo.cpu || {}) as Record<string, any>;
-  const osInfo = (staticInfo.osInfo || {}) as Record<string, any>;
-  const gfxInfo = (staticInfo.graphics || { controllers: [], displays: [] }) as Record<string, any>;
+  const cpuInfo = showcaseMacUltra
+    ? {
+        ...(staticInfo.cpu || {}),
+        manufacturer: "Apple",
+        brand: "Apple M4 Ultra (32-Core CPU · 80-Core GPU · 32-Core Neural Engine)",
+        speed: 4.51,
+        speedMax: 4.51,
+        physicalCores: 32,
+        cores: 32,
+        processors: 1,
+        socket: "Apple Silicon UltraFusion SoC (Mac16,14)",
+      }
+    : ((staticInfo.cpu || {}) as Record<string, any>);
+  const osInfo = showcaseMacUltra
+    ? {
+        ...(staticInfo.osInfo || {}),
+        distro: "macOS Tahoe",
+        release: "26.4",
+        codename: "Mac Studio M4 Ultra Workstation",
+        arch: "arm64",
+        hostname: "Mac-Studio-M4-Ultra.local",
+        fqdn: "Mac-Studio-M4-Ultra.local",
+      }
+    : ((staticInfo.osInfo || {}) as Record<string, any>);
+  const gfxInfo = showcaseMacUltra
+    ? {
+        controllers: [
+          {
+            vendor: "Apple",
+            model: "Apple M4 Ultra 80-Core GPU (Hardware Ray Tracing · Metal 4)",
+            vram: 196608,
+            bus: "Apple UltraFusion Unified Fabric (819 GB/s)",
+            driverVersion: "Metal 4.0 (Display-P3 1600-nit XDR)",
+          },
+        ],
+        displays: [
+          {
+            model: "Apple Pro Display XDR (6K Retina · Nano-texture)",
+            main: true,
+            builtin: false,
+            connection: "Thunderbolt 5 (DisplayPort 2.1)",
+            resolutionX: 6016,
+            resolutionY: 3384,
+            currentRefreshRate: 120,
+          },
+          {
+            model: "Apple Studio Display (5K Retina)",
+            main: false,
+            builtin: false,
+            connection: "Thunderbolt 5",
+            resolutionX: 5120,
+            resolutionY: 2880,
+            currentRefreshRate: 120,
+          },
+        ],
+      }
+    : ((staticInfo.graphics || { controllers: [], displays: [] }) as Record<string, any>);
 
-  const totalMem = mem?.total ?? os.totalmem();
-  const freeMem = mem?.free ?? os.freemem();
-  const availMem = mem?.available ?? freeMem;
+  const totalMem = showcaseMacUltra ? 192 * 1024 * 1024 * 1024 : (mem?.total ?? os.totalmem());
+  const freeMem = showcaseMacUltra ? 148 * 1024 * 1024 * 1024 : (mem?.free ?? os.freemem());
+  const availMem = showcaseMacUltra ? 156 * 1024 * 1024 * 1024 : (mem?.available ?? freeMem);
   const activeMem = mem?.active ?? Math.max(0, totalMem - availMem);
   const usedMem = Math.max(0, totalMem - availMem);
   const usedPercent = totalMem > 0 ? Math.round((usedMem / totalMem) * 1000) / 10 : 0;
@@ -565,20 +620,38 @@ export async function collectSysinfoSection(
     };
   }
 
+  const showcaseMacUltra = process.env.FM_SHOWCASE_MAC_ULTRA === "1";
+
   if (section === "cpu") {
-    const [cpu, speed, load, temp] = await Promise.all([
+    const [rawCpu, speed, load, temp] = await Promise.all([
       si.cpu().catch(() => ({} as any)),
       si.cpuCurrentSpeed().catch(() => ({} as any)),
       si.currentLoad().catch(() => ({} as any)),
       si.cpuTemperature().catch(() => ({} as any)),
     ]);
+    const cpu = showcaseMacUltra
+      ? {
+          ...rawCpu,
+          manufacturer: "Apple",
+          brand: "M4 Ultra (32-Core CPU · 80-Core GPU · 32-Core Neural Engine)",
+          vendor: "Apple",
+          family: "Apple Silicon M4 Ultra",
+          model: "Mac16,14 (UltraFusion)",
+          physicalCores: 32,
+          cores: 32,
+          speed: 4.51,
+          speedMax: 4.51,
+          socket: "Apple UltraFusion SoC",
+          cache: { l1d: 192 * 1024, l1i: 192 * 1024, l2: 64 * 1024 * 1024, l3: 128 * 1024 * 1024 },
+        }
+      : rawCpu;
     const coresRows: Array<Array<string | number>> = (Array.isArray(load.cpus) ? load.cpus : []).map((c: any, idx: number) => [
       `Core #${idx + 1}`,
       `${(Number(c.load) || 0).toFixed(1)}%`,
       `${(Number(c.loadUser) || 0).toFixed(1)}%`,
       `${(Number(c.loadSystem) || 0).toFixed(1)}%`,
-      speed.cores?.[idx] ? `${speed.cores[idx]} GHz` : `${speed.avg || cpu.speed || "—"} GHz`,
-      temp.cores?.[idx] ? `${temp.cores[idx]} °C` : "—",
+      showcaseMacUltra ? "4.51 GHz" : (speed.cores?.[idx] ? `${speed.cores[idx]} GHz` : `${speed.avg || cpu.speed || "—"} GHz`),
+      temp.cores?.[idx] ? `${temp.cores[idx]} °C` : (showcaseMacUltra ? "39 °C" : "—"),
     ]);
     return {
       section,
@@ -590,11 +663,11 @@ export async function collectSysinfoSection(
         ["Vendor / Family / Model", `${cpu.vendor || "—"} / ${cpu.family || "—"} / ${cpu.model || "—"}`],
         ["Physical / Logical Cores", `${cpu.physicalCores || "—"} physical, ${cpu.cores || os.cpus().length} logical`],
         ["Base / Max Clock", `${cpu.speed || "—"} GHz (Max ${cpu.speedMax || cpu.speed || "—"} GHz)`],
-        ["Current Avg Clock", `${speed.avg || cpu.speed || "—"} GHz`],
+        ["Current Avg Clock", `${showcaseMacUltra ? 4.51 : (speed.avg || cpu.speed || "—")} GHz`],
         ["Socket / Governor", `${cpu.socket || "SoC"} / ${cpu.governor || "auto"}`],
         ["L1d / L1i Cache", `${formatBytes(Number(cpu.cache?.l1d) || 0)} / ${formatBytes(Number(cpu.cache?.l1i) || 0)}`],
         ["L2 / L3 Cache", `${formatBytes(Number(cpu.cache?.l2) || 0)} / ${formatBytes(Number(cpu.cache?.l3) || 0)}`],
-        ["Package Temperature", temp.main ? `${temp.main} °C (Max ${temp.max || temp.main} °C)` : "Not reported by OS"],
+        ["Package Temperature", temp.main ? `${temp.main} °C (Max ${temp.max || temp.main} °C)` : (showcaseMacUltra ? "39 °C (Max 44 °C)" : "Not reported by OS")],
       ],
       tables: [
         {
@@ -608,13 +681,19 @@ export async function collectSysinfoSection(
   }
 
   if (section === "memory") {
-    const [mem, layout] = await Promise.all([
+    const [mem, rawLayout] = await Promise.all([
       si.mem().catch(() => ({} as any)),
       si.memLayout().catch(() => [] as any[]),
     ]);
-    const total = Number(mem.total) || os.totalmem();
-    const avail = Number(mem.available) || Number(mem.free) || os.freemem();
+    const total = showcaseMacUltra ? 192 * 1024 * 1024 * 1024 : (Number(mem.total) || os.totalmem());
+    const avail = showcaseMacUltra ? 156 * 1024 * 1024 * 1024 : (Number(mem.available) || Number(mem.free) || os.freemem());
     const used = Math.max(0, total - avail);
+    const layout = showcaseMacUltra
+      ? [
+          { bank: "Unified Bank 0 (Die A)", size: 96 * 1024 * 1024 * 1024, type: "LPDDR5X-8533 (819 GB/s)", clockSpeed: 8533, formFactor: "Apple UltraFusion Package", manufacturer: "Apple / SK Hynix", partNum: "M4U-192GB-LP5X-A" },
+          { bank: "Unified Bank 1 (Die B)", size: 96 * 1024 * 1024 * 1024, type: "LPDDR5X-8533 (819 GB/s)", clockSpeed: 8533, formFactor: "Apple UltraFusion Package", manufacturer: "Apple / SK Hynix", partNum: "M4U-192GB-LP5X-B" },
+        ]
+      : rawLayout;
     return {
       section,
       platform,
@@ -624,8 +703,8 @@ export async function collectSysinfoSection(
         ["Total Physical RAM", formatBytes(total)],
         ["Used Memory", `${formatBytes(used)} (${total > 0 ? ((used / total) * 100).toFixed(1) : 0}%)`],
         ["Available Memory", formatBytes(avail)],
-        ["Free (Unallocated)", formatBytes(Number(mem.free) || 0)],
-        ["Active Memory", formatBytes(Number(mem.active) || 0)],
+        ["Free (Unallocated)", formatBytes(showcaseMacUltra ? 148 * 1024 * 1024 * 1024 : (Number(mem.free) || 0))],
+        ["Active Memory", formatBytes(showcaseMacUltra ? 36 * 1024 * 1024 * 1024 : (Number(mem.active) || 0))],
         ["Buffers / Cache", formatBytes(Number(mem.buffcache) || 0)],
         ["Swap Total", formatBytes(Number(mem.swaptotal) || 0)],
         ["Swap Used", formatBytes(Number(mem.swapused) || 0)],
@@ -766,10 +845,43 @@ export async function collectSysinfoSection(
   }
 
   if (section === "graphics") {
-    const [gfx, audio] = await Promise.all([
+    const [rawGfx, audio] = await Promise.all([
       si.graphics().catch(() => ({ controllers: [], displays: [] })),
       si.audio().catch(() => [] as any[]),
     ]);
+    const gfx = showcaseMacUltra
+      ? {
+          controllers: [
+            {
+              vendor: "Apple",
+              model: "Apple M4 Ultra 80-Core GPU (Hardware Ray Tracing · Metal 4)",
+              vram: 196608,
+              bus: "Apple UltraFusion Unified Fabric (819 GB/s)",
+              driverVersion: "Metal 4.0 (Display-P3 1600-nit XDR)",
+            },
+          ],
+          displays: [
+            {
+              model: "Apple Pro Display XDR (6K Retina · Nano-texture)",
+              main: true,
+              builtin: false,
+              connection: "Thunderbolt 5 (DisplayPort 2.1)",
+              resolutionX: 6016,
+              resolutionY: 3384,
+              currentRefreshRate: 120,
+            },
+            {
+              model: "Apple Studio Display (5K Retina)",
+              main: false,
+              builtin: false,
+              connection: "Thunderbolt 5",
+              resolutionX: 5120,
+              resolutionY: 2880,
+              currentRefreshRate: 120,
+            },
+          ],
+        }
+      : rawGfx;
     return {
       section,
       platform,

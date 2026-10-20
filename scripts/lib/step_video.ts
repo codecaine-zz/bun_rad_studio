@@ -26,6 +26,8 @@ export interface Suite {
   rate?: string;
   gap?: number;
   viewHeight?: number;
+  /** Optional flagship hardware rig mark displayed on chapter cards and the bottom caption strip. */
+  rigMark?: string;
 }
 
 /** The helpers a step's action can use. Anything that can't find what it was told to click stops the recording. */
@@ -188,20 +190,24 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 
 /** The caption strip: its own 108 pixel band under the recording. Nothing is drawn over the program. */
 function stripHtml(chapter: string, title: string, caption: string, n: number, of: number): string {
+  const rig = S.rigMark ? `<div class="rig">${esc(S.rigMark)}</div>` : "";
+  const capSize = caption.length > 62 ? 23 : caption.length > 48 ? 26 : 30;
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{width:1920px;height:1080px;background:transparent;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;position:relative;overflow:hidden}
-.strip{position:absolute;left:0;right:0;bottom:0;height:${1080 - VIEW_H}px;background:linear-gradient(180deg,#111a33,#0b1020);border-top:3px solid #6366f1;display:flex;align-items:center;gap:28px;padding:0 44px}
-.badge{flex:none;background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff;font-weight:800;font-size:17px;letter-spacing:.09em;padding:8px 16px;border-radius:10px;text-transform:uppercase}
+.strip{position:absolute;left:0;right:0;bottom:0;height:${1080 - VIEW_H}px;background:linear-gradient(180deg,#f8fafc,#eff6ff);border-top:3px solid #2563eb;display:flex;align-items:center;gap:22px;padding:0 36px}
+.badge{flex:none;background:#1d4ed8;color:#fff;font-weight:800;font-size:15px;letter-spacing:.08em;padding:8px 15px;border-radius:10px;text-transform:uppercase;box-shadow:0 2px 6px rgba(29,78,216,.25)}
 .col{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
-.title{color:#94a3b8;font-size:20px;font-weight:700;letter-spacing:.01em}
-.cap{color:#fff;font-size:34px;font-weight:700;letter-spacing:-.01em;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.n{flex:none;color:#38bdf8;font-size:20px;font-weight:700;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.3);padding:8px 16px;border-radius:12px}
-</style></head><body><div class="strip"><div class="badge">${esc(chapter)}</div><div class="col"><div class="title">${esc(title)}</div><div class="cap">${esc(caption)}</div></div><div class="n">Step ${n} of ${of}</div></div></body></html>`;
+.title{color:#334155;font-size:18px;font-weight:700;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cap{color:#0f172a;font-size:${capSize}px;font-weight:800;letter-spacing:-.01em;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.right{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.rig{color:#0f172a;font-size:13.5px;font-weight:800;letter-spacing:.01em;background:#fef3c7;border:1.5px solid #f59e0b;padding:4px 12px;border-radius:8px;white-space:nowrap}
+.n{flex:none;color:#1e40af;font-size:18px;font-weight:800;background:#dbeafe;border:1.5px solid #93c5fd;padding:5px 14px;border-radius:10px}
+</style></head><body><div class="strip"><div class="badge">${esc(chapter)}</div><div class="col"><div class="title">${esc(title)}</div><div class="cap">${esc(caption)}</div></div><div class="right">${rig}<div class="n">Step ${n} of ${of}</div></div></div></body></html>`;
 }
 
 function stripPng(chapter: string, title: string, caption: string, n: number, of: number): string {
-  const key = createHash("sha1").update(`${chapter}|${title}|${caption}|${n}|${of}|v3`).digest("hex").slice(0, 16);
+  const key = createHash("sha1").update(`${chapter}|${title}|${caption}|${n}|${of}|${S.rigMark ?? ""}|v5_light`).digest("hex").slice(0, 16);
   const png = join(ASSETS, `strip_${key}.png`);
   if (!existsSync(png)) screenshotHtml(stripHtml(chapter, title, caption, n, of), png, ASSETS);
   return png;
@@ -233,7 +239,7 @@ function buildChapter(ch: Chapter, tl: Timeline): string {
   } else {
     const strips = tl.steps.map((st, i) => ({ png: stripPng(ch.chapter, ch.title, st.cap, i + 1, tl.steps.length), st }));
     const inputs = ["-i", tl.clip, ...strips.flatMap((s) => ["-i", s.png]), "-i", audio];
-    let graph = `[0:v]fps=30,pad=1920:1080:0:0:color=0x0b1020[b0]`;
+    let graph = `[0:v]fps=30,pad=1920:1080:0:0:color=0xf8fafc[b0]`;
     strips.forEach((s, i) => {
       const t1 = i === 0 ? 0 : s.st.start;
       const t2 = i === strips.length - 1 ? total + 1 : s.st.end;
@@ -249,7 +255,8 @@ function buildChapter(ch: Chapter, tl: Timeline): string {
 function chapterCard(ch: Chapter, n: number, of: number): string {
   const out = join(SEG, `${ch.id}_card.mp4`);
   const png = join(ASSETS, `chapter_${ch.id}.png`);
-  screenshotHtml(cardHtml(`Chapter ${n} of ${of}`, ch.title, ch.blurb ? [ch.blurb] : []), png, ASSETS);
+  const lines = [...(ch.blurb ? [ch.blurb] : []), ...(S.rigMark ? [S.rigMark] : [])];
+  screenshotHtml(cardHtml(`Chapter ${n} of ${of}`, ch.title, lines), png, ASSETS);
   sh([FFMPEG, "-y", "-loop", "1", "-i", png, "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-c:v", "libx264", "-tune", "stillimage", "-crf", "14", "-c:a", "aac", "-b:a", "256k", "-pix_fmt", "yuv420p", "-t", "3.5", "-r", "30", out], { quiet: true });
   return out;
 }
@@ -276,6 +283,10 @@ function externalSegments(ch: Chapter): Array<{ file: string; title: string }> {
 
 function assemble() {
   mkdirSync(SEG, { recursive: true });
+  const rigStampFile = join(SEG, ".rigmark");
+  const stampValue = `${S.rigMark ?? ""}|v5_light`;
+  const prevRigMark = existsSync(rigStampFile) ? readFileSync(rigStampFile, "utf8") : "";
+  const rigChanged = prevRigMark !== stampValue;
   const list: string[] = [];
   const marks: Array<{ at: number; title: string }> = [];
   let at = 0;
@@ -298,7 +309,7 @@ function assemble() {
     if (!existsSync(tlFile)) throw new Error(`chapter ${ch.id} has not been recorded`);
     const tl: Timeline = JSON.parse(readFileSync(tlFile, "utf8"));
     const tlMtime = statSync(tlFile).mtimeMs;
-    const force = only.includes(ch.id);
+    const force = rigChanged || only.includes(ch.id);
     if (ch.kind !== "card") {
       const cardPath = join(SEG, `${ch.id}_card.mp4`);
       const card = !force && existsSync(cardPath) && statSync(cardPath).mtimeMs >= tlMtime
@@ -318,6 +329,7 @@ function assemble() {
     at += durationOf(seg);
     console.log(`  ✓ ${ch.id}  ${fmtTime(at)}`);
   }
+  writeFileSync(rigStampFile, stampValue);
   writeFileSync(join(SEG, "list.txt"), list.join("\n"));
   const merged = join(SEG, "merged.mp4");
   sh([FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", join(SEG, "list.txt"), "-c", "copy", merged]);

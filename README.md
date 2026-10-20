@@ -105,8 +105,33 @@ Downloaded a release instead? Open `Codecaine File Manager.app` on macOS, `Codec
 | 🪦 **Graveyard & Subdomains** | Bury files safely with Rip (`Alt+Delete`) and browse or restore them anytime; run passive multi-source subdomain discovery with opt-in DNS, HTTP and port checks. |
 | 📊 **Process & Task Manager + System Info** | Cross-platform **Tasks** monitor (live CPU/RAM/swap gauges, process search/sort, graceful vs. force kill, pause/resume, priority/renice, open listening ports, and 1-click jump to executable folder on Windows, macOS & Linux) and **System Information** dashboard (CPU, RAM, GPU/displays, storage volumes, network interfaces, battery health, toolchain versions, and 1-click Markdown/JSON report export). |
 | 🧑‍💻 **For developers (Studio IDE v2)** | A two-way synced terminal (`Ctrl+\``) that follows the current folder (and vice versa), a full **Code Editor** with live Markdown/CSV/JSON/SVG/HTML preview, Git/Outline/TODO/History panels, code statistics (Dev tab), API Client, App Bundler, and Bun utilities. |
-| 🌈 **180 themes** | The 178 named themes of the SimpleGUI apps plus *Default Dark* and *Default Light*, including special-effects themes with frosted glass, neon glow, animated motion layers, a theme editor, and a **Themes** button in the ribbon. |
+| 🌈 **310+ Built-in Themes + 20 Master Custom Themes (`custom_themes/`)** | **310+ built-in themes** (including **all 18 US Holiday Celebration Ultra themes** with 3D folder crests `🎃 🎄 🎆 🦃 ☘️`, **Polar Night** & **Sub-Zero Cryo-Glacier**, **Year 3000+ God-Mode**, and **Flagship Mac Studio M4 Ultra 6K XDR**) plus **20 Master Designer Custom Themes** across **all 4 system tiers** (`🟢 Low`, `🟡 Medium`, `🟠 High`, `🔴 Ultra 120Hz`), **194 real-time atmospheric shaders**, **120Hz 3D spinning folder & icon animations**, **Single & Bulk Folder Import (`📁 Load Current Folder Themes`)**, and a built-in **🤖 Google Gemini AI Theme Customizer**. [Browse Custom Themes & Screenshots](custom_themes/README.md) · [Theme Design Style Guide](custom_themes/THEME_DESIGN_STYLE_GUIDE.md) |
 | ℹ️ **Know your files** | Warns when a file isn't what its name says, and shows image and file details and metadata. |
+
+### 🎨 Download Custom Themes (`custom_themes/`) — Low, Medium, High & Ultra System Tiers + Google Gemini AI
+
+Browse the [**Custom Themes Vault (`custom_themes/README.md`)**](custom_themes/README.md) and the [**Professional Theme Design Style Guide (`custom_themes/THEME_DESIGN_STYLE_GUIDE.md`)**](custom_themes/THEME_DESIGN_STYLE_GUIDE.md) for **41 unobstructed Icons View screenshots**, per-hardware-tier packs, single & bulk folder import examples, and our **Google Gemini LLM Theme Prompt**:
+
+| 🎃 All Hallows Eve 6K XDR Ultra (`custom_0000000d`) | 🌌 Polar Aurora Borealis 6K Ultra (`custom_0000000e`) |
+| :---: | :---: |
+| ![All Hallows Eve 6K XDR Ultra](custom_themes/screenshots/13_ultra_all_hallows_eve_6k_xdr.png) | ![Polar Aurora Borealis 6K Ultra](custom_themes/screenshots/14_ultra_polar_aurora_borealis_6k.png) |
+| **🏔️ Polar Daylight Glacier 6K Ultra (`custom_0000000f`)** | **🍎 M4 Ultra Liquid Titanium 6K (`custom_00000010`)** |
+| ![Polar Daylight Glacier 6K Ultra](custom_themes/screenshots/15_ultra_polar_daylight_glacier_6k.png) | ![M4 Ultra Liquid Titanium 6K](custom_themes/screenshots/16_ultra_m4_liquid_titanium_6k.png) |
+
+```bash
+# Download the complete 20-Theme All-Systems Pack (Low + Medium + High + Ultra) + 18 US Holidays Pack:
+mkdir -p custom_themes && cd custom_themes
+curl -sSLO https://raw.githubusercontent.com/codecaine-zz/bun_rad_studio/main/custom_themes/master_all_systems_20_themes_pack.json
+curl -sSLO https://raw.githubusercontent.com/codecaine-zz/bun_rad_studio/main/custom_themes/pack_tier_1_low_featherweight.json
+curl -sSLO https://raw.githubusercontent.com/codecaine-zz/bun_rad_studio/main/custom_themes/pack_tier_2_medium_balanced_60fps.json
+curl -sSLO https://raw.githubusercontent.com/codecaine-zz/bun_rad_studio/main/custom_themes/pack_tier_3_high_spec_120hz.json
+curl -sSLO https://raw.githubusercontent.com/codecaine-zz/bun_rad_studio/main/custom_themes/pack_tier_4_ultra_6k_xdr_120hz.json
+curl -sSLO https://raw.githubusercontent.com/codecaine-zz/bun_rad_studio/main/custom_themes/us_holidays_18_ultra_pack.json
+```
+
+- **Single Theme Import:** Open **🎨 Themes → 📤 Share / Export / Import…**, click **📂 Import `.json` / `.ccfm` Files…** (or press `⌘V` / `Ctrl+V` anywhere) to import a single theme like `13_ultra_all_hallows_eve_6k_xdr.json` or `14_ultra_polar_aurora_borealis_6k.json`.
+- **Bulk Folder Import:** Navigate to `custom_themes/` in the File Manager, open **🎨 Themes → 📤 Share / Export / Import…**, and click **📁 Load Current Folder Themes** to bulk-import every `.json` and `.ccfm.txt` theme in the folder at once!
+- **🤖 Google Gemini AI Theme Customizer:** Type any natural-language theme description inside **Share / Export / Import…** (or copy our Master LLM Prompt into [Google Gemini](https://gemini.google.com)) to generate custom WCAG-verified themes tailored to your hardware tier (`low`, `medium`, `high`, or `ultra`).
 
 > Built with care but not independently audited. Read [what was and was not verified](docs/userguides/43_file_manager.md#what-was-verified-and-what-was-not) before trusting it with anything you cannot replace.
 

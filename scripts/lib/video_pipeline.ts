@@ -179,15 +179,16 @@ body{width:1920px;height:1080px;background:transparent;font-family:-apple-system
 
 /** A full-screen title card (intro, chapter break, outro). */
 export function cardHtml(kicker: string, title: string, lines: string[], accent = "#6366f1"): string {
+  const h1Size = title.length > 80 ? 68 : title.length > 52 ? 86 : 114;
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{width:1920px;height:1080px;overflow:hidden;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
-background:radial-gradient(1300px 800px at 15% 0%,${accent}66,transparent),radial-gradient(1100px 800px at 100% 100%,#0e7490aa,transparent),#0b1020;
-display:flex;flex-direction:column;justify-content:center;padding:0 150px;gap:26px}
-.k{font-size:30px;font-weight:800;letter-spacing:.2em;color:#93c5fd;text-transform:uppercase}
-h1{font-size:132px;line-height:1.02;font-weight:900;letter-spacing:-.03em;background:linear-gradient(90deg,#fff,#c7d2fe 60%,#7dd3fc);-webkit-background-clip:text;background-clip:text;color:transparent}
-p{font-size:44px;color:#cbd5e1;line-height:1.35;max-width:1500px}
-.pill{display:inline-block;margin:8px 12px 0 0;padding:10px 24px;border-radius:999px;border:2px solid #38bdf8aa;background:#0ea5e922;font-size:30px;font-weight:700;color:#e0f2fe}
+body{width:1920px;height:1080px;overflow:hidden;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+background:radial-gradient(1300px 800px at 15% 0%,${accent}28,transparent),radial-gradient(1100px 800px at 100% 100%,#0ea5e926,transparent),linear-gradient(180deg,#f8fafc,#eef2ff);
+display:flex;flex-direction:column;justify-content:center;padding:0 130px;gap:24px;border-top:8px solid #2563eb}
+.k{font-size:28px;font-weight:800;letter-spacing:.18em;color:#1d4ed8;text-transform:uppercase}
+h1{font-size:${h1Size}px;line-height:1.06;font-weight:900;letter-spacing:-.03em;color:#0f172a}
+p{font-size:40px;color:#1e293b;line-height:1.35;max-width:1550px}
+.pill{display:inline-block;margin:8px 12px 0 0;padding:10px 24px;border-radius:999px;border:2px solid #2563eb55;background:#ffffff;box-shadow:0 4px 14px rgba(15,23,42,.07);font-size:27px;font-weight:700;color:#0f172a}
 </style></head><body><div class="k">${esc(kicker)}</div><h1>${esc(title)}</h1>${lines.length ? `<div>${lines.map((l) => `<span class="pill">${esc(l)}</span>`).join("")}</div>` : ""}</body></html>`;
 }
 

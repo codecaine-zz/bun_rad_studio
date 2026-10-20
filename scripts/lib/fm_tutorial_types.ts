@@ -6,6 +6,8 @@ export interface World {
   data: string;
   put(rel: string, body: string): void;
   big: string;
+  dir?(rel: string): void;
+  bigFile?(rel: string, mb: number): void;
 }
 
 export interface Step {

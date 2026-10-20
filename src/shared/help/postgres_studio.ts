@@ -151,6 +151,8 @@ export const postgresStudioTips: HelpTips = {
   "text:OK": "Close this message.",
   "text:Python · sqlite3": "Show the program as Python using the built-in sqlite3 module.",
   "text:Bun · bun:sqlite": "Show the program as TypeScript for Bun using the built-in bun:sqlite driver.",
+  "text^:Bun.sql · Native": "Show the program as TypeScript for Bun using the native Bun.sql tagged-template client.",
+  "text^:TypeScript · Types": "Show TypeScript row interfaces and typed helper functions for the tables and query.",
   "text:V · db.sqlite": "Show the program as V code using the db.sqlite module.",
   "#macroCodeText": "The generated program, read-only. Copy it or download it with the buttons below.",
   "text:Download": "Save the generated program as a file through your browser.",

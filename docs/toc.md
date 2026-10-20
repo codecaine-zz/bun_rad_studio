@@ -107,6 +107,8 @@ Generated from [nav.json](nav.json): a page that is not listed there is reported
 - [Postgres Studio Pro -- Complete Production User Guide](userguides/42_postgres_studio.md)
 - [Codecaine File Manager](userguides/43_file_manager.md)
 - [Bun RAD Studio -- Enterprise Application User Guides (Master Hub)](userguides/README.md)
+- [Codecaine File Manager The Complete Step-by-Step MacAcademy Tutorial Manual](userguides/file-manager-macacademy-complete-tutorial.md)
+- [Codecaine File Manager Themes & Atmospheric Shaders Tutorial (Short & Full Masterclass)](userguides/file-manager-themes-complete-tutorial.md)
 
 ## Documentation maintenance
 

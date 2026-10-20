@@ -57,14 +57,19 @@ export function createBunSystemStudio(options: { fullscreen?: boolean; theme?: s
   win.endGroupBox();
 
   // Output View
+  const isShot = Boolean(process.env.SCREENSHOT_MODE);
+  const platformLine = isShot ? "Darwin (arm64)" : `${os.type()} ${os.release()} (${os.arch()})`;
+  const cpuLine = isShot ? "12 Cores (Workstation Silicon)" : `${os.cpus().length} Cores (${os.cpus()[0]?.model || "Apple Silicon / x86_64"})`;
+  const totalMemLine = isShot ? "32.00 GB" : `${(os.totalmem() / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  const freeMemLine = isShot ? "21.40 GB" : `${(os.freemem() / 1024 / 1024 / 1024).toFixed(2)} GB`;
   win.beginGroupBox("System & Package Details Output");
   win.addTextarea("txt_brew_out", `[Bun System & Package Workstation Initialized]
 Bun Version: ${bunVer} (${bunRev})
 Node Compatibility: ${process.version}
-Platform: ${os.type()} ${os.release()} (${os.arch()})
-CPUs: ${os.cpus().length} Cores (${os.cpus()[0]?.model || "Apple Silicon / x86_64"})
-Total Memory: ${(os.totalmem() / 1024 / 1024 / 1024).toFixed(2)} GB
-Free Memory: ${(os.freemem() / 1024 / 1024 / 1024).toFixed(2)} GB
+Platform: ${platformLine}
+CPUs: ${cpuLine}
+Total Memory: ${totalMemLine}
+Free Memory: ${freeMemLine}
 Zero Homebrew reliance: All operations powered by Bun built-in APIs.
 `);
   win.endGroupBox();

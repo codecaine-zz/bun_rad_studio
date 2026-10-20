@@ -6,8 +6,11 @@ export const toolsAndSafety: Chapter[] = [
     id: "09b_perms_info_lock",
     chapter: "INFO, PERMS & LOCK",
     title: "More info, permissions and password encryption",
-    blurb: "Deep metadata & color palettes, POSIX permissions & octal codes, and AES-256-GCM .radenc file locking",
+    blurb: "Deep metadata & color palettes, POSIX permissions & octal codes, disguised-file detection, Open with, and AES-256-GCM .radenc file locking",
     path: "<HOME>/Documents/Trip",
+    setup: (w) => {
+      w.put("Documents/Trip/receipt.pdf", "#!/bin/sh\necho \"disguised script\"\n");
+    },
     steps: [
       {
         cap: "More info: deep metadata, dominant color palette & fingerprints",
@@ -24,16 +27,24 @@ export const toolsAndSafety: Chapter[] = [
         },
       },
       {
-        cap: "Properties & Permissions: Owner, Group, Others, octal codes and presets",
-        say: "Right-click a file and choose Properties to see its size, dates, and the full Permissions editor. Checkboxes for Owner, Group, and Others stay in sync with the three-digit octal code like six four four and the symbolic r w x string, with quick presets and a live preview of what will change before you press Apply.",
+        cap: "Properties, Permissions, Disguised-File Sniffing & Open with…",
+        say: "Right-click a file and choose Properties to edit Owner, Group, and Others permissions in sync with the three-digit octal code. Notice also that receipt dot P D F has a red Danger badge: the File Manager automatically reads the magic bytes of every file on screen and warns you whenever a script or program is disguised as a document or picture! You can also right-click any file and choose Open with to pick which installed application opens it.",
         act: async (d) => {
           await d.row("itinerary.txt", "rclick", { pause: 800 });
-          await d.menu("Properties", { pause: 1500 });
+          await d.menu("Properties", { pause: 1400 });
           await d.waitFor(".dialog .perm-section", 6000);
-          await d.click(".dialog .perm-presets button", { pause: 1400 }).catch(() => {});
-          await d.hover(".dialog .perm-section", 1200);
+          await d.click(".dialog .perm-presets button", { pause: 1000 }).catch(() => {});
           await d.key("Escape", "Esc");
           await d.wait(500);
+          await d.click("#list .type-badge", { pause: 1500 }).catch(() => {});
+          await d.hover(".dialog", 1200).catch(() => {});
+          await d.key("Escape", "Esc");
+          await d.wait(500);
+          await d.row("itinerary.txt", "rclick", { pause: 700 });
+          await d.menu("Open with", { pause: 1300 }).catch(() => {});
+          await d.hover(".dialog", 1000).catch(() => {});
+          await d.key("Escape", "Esc");
+          await d.wait(400);
         },
       },
       {
@@ -210,6 +221,8 @@ export const toolsAndSafety: Chapter[] = [
       w.put("Desktop/Site-v2/about.html", "<h1>About us</h1>\n");
       w.put("Desktop/Site-v2/contact.html", "<h1>Contact</h1>\n");
       w.put("Desktop/Site-v2/css/site.css", "body { margin: 0 }\n");
+      w.put("Desktop/config-dev.json", JSON.stringify({ port: 3000, debug: true, db: { host: "localhost", pool: 5 } }, null, 2));
+      w.put("Desktop/config-prod.json", JSON.stringify({ db: { pool: 32, host: "db.internal" }, port: 8080, tls: true }, null, 2));
     },
     steps: [
       {
@@ -250,9 +263,22 @@ export const toolsAndSafety: Chapter[] = [
         },
       },
       {
-        cap: "Preview, approve, copy. Nothing is deleted",
-        say: "I press Copy the selected. It opens the same review window as before. It lists exactly what will be created in the right folder. Nothing is ever deleted from either side. There is no two way sync, and no mirror mode, on purpose. I press Apply.",
-        act: async (d) => { await d.click(".compare-actions .pw-btn.primary", { pause: 1800 }); await d.waitFor(".dialog .plan-summary", 6000); await d.hover(".plan-items", 2500); await d.click(".dialog .btn.primary", { pause: 2000 }); await d.wait(2000); },
+        cap: "Preview, approve, copy & Semantic Data File Compare (JSON / YAML / TOML)",
+        say: "I press Copy the selected. It opens the review window and lists what will be created in the right folder without deleting anything. I press Apply. And if you want to compare two structured data files, such as J S O N, Y A M L, or T O M L configs, switch to Files view, select both files, right-click, and choose Compare data files. It compares them by meaning, ignoring key order and whitespace, and lists every added, removed, or changed key.",
+        act: async (d) => {
+          await d.click(".compare-actions .pw-btn.primary", { pause: 1500 });
+          await d.waitFor(".dialog .plan-summary", 6000);
+          await d.click(".dialog .btn.primary", { pause: 1600 });
+          await d.wait(1200);
+          await d.click("#view-files", { pause: 900 });
+          await d.row("config-dev.json", "click", { pause: 600 });
+          await d.row("config-prod.json", "click", { extend: "ctrl", pause: 700 });
+          await d.row("config-prod.json", "rclick", { pause: 800 });
+          await d.menu("Compare data files", { pause: 1600 }).catch(() => {});
+          await d.hover(".dialog", 1500).catch(() => {});
+          await d.key("Escape", "Esc");
+          await d.wait(500);
+        },
       },
     ],
   },

@@ -8,10 +8,10 @@ An intuitive find & replace utility and modern `sed` alternative built natively 
 
 ```bash
 # In-place file replacement
-bun run sd <find> <replace> [files...]
+bun run cli:sd <find> <replace> [files...]
 
 # Stdin replacement
-echo "hello world" | bun run sd "world" "bun" -
+echo "hello world" | bun run cli:sd "world" "bun" -
 
 # Common Flags
 -s, --string-mode       Treat find pattern as literal string (disables regex)

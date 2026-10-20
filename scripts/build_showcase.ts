@@ -37,7 +37,7 @@ const CATEGORIES: Array<[string, string]> = [
 ];
 
 function slug(s: string): string {
-  return s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return s.toLowerCase().replace(/[`*_~]/g, "").replace(/[^\p{L}\p{N}\s-]/gu, "").replace(/\s/g, "-");
 }
 
 function titleCase(stem: string): string {

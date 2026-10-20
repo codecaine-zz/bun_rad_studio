@@ -8,7 +8,7 @@ A safe, fast alternative to `rm` that sends targets to a graveyard directory wit
 
 ```bash
 # Safely bury files or directories
-bun run rip <targets...>
+bun run cli:rip <targets...>
 
 # Common Flags
 -u, --unbury [item]     Restore the last buried item (or item matching query)

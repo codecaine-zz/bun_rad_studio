@@ -7,17 +7,17 @@
 ## Contents
 
 - [Featured: the File Manager](#featured-the-file-manager)
-- [File & Directory Tools](#file-and-directory-tools) (4)
+- [File & Directory Tools](#file--directory-tools) (4)
 - [Developer Tools](#developer-tools) (15)
-- [Database & Storage](#database-and-storage) (4)
-- [Network & Cloud](#network-and-cloud) (3)
-- [Security & Crypto](#security-and-crypto) (2)
-- [System & Hardware](#system-and-hardware) (5)
-- [Productivity & Text](#productivity-and-text) (5)
-- [Design & Media](#design-and-media) (1)
-- [Design & UX](#design-and-ux) (1)
+- [Database & Storage](#database--storage) (4)
+- [Network & Cloud](#network--cloud) (3)
+- [Security & Crypto](#security--crypto) (2)
+- [System & Hardware](#system--hardware) (5)
+- [Productivity & Text](#productivity--text) (5)
+- [Design & Media](#design--media) (1)
+- [Design & UX](#design--ux) (1)
 - [RAD Studio](#rad-studio) (2)
-- [Games & Entertainment](#games-and-entertainment) (24)
+- [Games & Entertainment](#games--entertainment) (24)
 
 ## Featured: the File Manager
 
