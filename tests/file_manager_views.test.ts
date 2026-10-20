@@ -3195,6 +3195,59 @@ describe("core file browsing & pane ergonomics (tabs, marquee, folder tree, colu
     dlg?.close(null);
     await sleep(30);
   });
+
+  test("clicking between files and folders in List and Icons views uses stable grid layout, floating selection bar, and surgical DOM selection updates without flicker", async () => {
+    const { goTo, saveSettings } = await import("../resources/file_manager/ui/nav.js");
+    const styleCss = readFileSync(new URL("../resources/file_manager/ui/style.css", import.meta.url), "utf8");
+    const viewsCss = readFileSync(new URL("../resources/file_manager/ui/views.css", import.meta.url), "utf8");
+
+    // 1. Verify List view uses a stable CSS Grid instead of height-sensitive newspaper columns
+    expect(styleCss).toContain("#list.view-list, #dual-list.view-list { display: grid;");
+    // 2. Verify selection-bar is floating (position: absolute) and nowrap so clicking between files and folders never resizes #list-wrap
+    expect(viewsCss).toMatch(/\.selection-bar\s*\{[^}]*position:\s*absolute/);
+    expect(viewsCss).toMatch(/\.selection-bar\s*\{[^}]*flex-wrap:\s*nowrap/);
+    // 3. Verify List and Icons views keep font-weight constant on selection so 2-line icon labels never wrap/unwrap on click
+    expect(styleCss).toContain(".view-list .row.selected .name-text");
+    expect(styleCss).toContain(".view-icons .row.selected .name-text");
+
+    // 4. Verify surgical DOM updates in List and Icons modes when clicking between a folder ("dest") and a file ("a.txt")
+    await goTo(home);
+    for (const mode of ["list", "icons"] as const) {
+      await saveSettings({ view: mode });
+      await sleep(30);
+      expect($("#list").classList.contains(`view-${mode}`)).toBe(true);
+
+      const folderRow = rowOf("#list", "dest");
+      const fileARow = rowOf("#list", "a.txt");
+      const fileBRow = rowOf("#list", "b.txt");
+      expect(folderRow).toBeDefined();
+      expect(fileARow).toBeDefined();
+      expect(fileBRow).toBeDefined();
+
+      // Click folder first
+      clickRow("#list", "dest");
+      expect(folderRow.classList.contains("selected")).toBe(true);
+      expect(fileARow.classList.contains("selected")).toBe(false);
+      expect(fileBRow.classList.contains("selected")).toBe(false);
+
+      // Spy on setAttribute of the untouched row ("b.txt") while clicking from folder ("dest") to file ("a.txt")
+      let untouchedAttrWrites = 0;
+      const origSetAttr = fileBRow.setAttribute.bind(fileBRow);
+      fileBRow.setAttribute = (name: string, val: string) => {
+        untouchedAttrWrites++;
+        return origSetAttr(name, val);
+      };
+      try {
+        clickRow("#list", "a.txt");
+        expect(fileARow.classList.contains("selected")).toBe(true);
+        expect(folderRow.classList.contains("selected")).toBe(false);
+        expect(untouchedAttrWrites).toBe(0);
+      } finally {
+        fileBRow.setAttribute = origSetAttr;
+      }
+    }
+    await saveSettings({ view: "details" });
+  });
 });
 
 

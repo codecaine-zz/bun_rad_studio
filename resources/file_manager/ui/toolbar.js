@@ -100,18 +100,27 @@ export function buildToolbar() {
 
 export function updateToolbar() {
   for (const { btn, spec } of buttons.values()) {
-    const hidden = (spec.hide?.() ?? false) || (spec.show ? !spec.show() : false);
-    btn.hidden = hidden;
-    btn.disabled = !spec.enabled();
-    if (spec.toggle) btn.setAttribute("aria-pressed", String(!!spec.toggle()));
-    btn.title = spec.tip;
-    if (spec.id === "delete") btn.title = state.settings.deleteTo === "graveyard" ? "Bury in the Rip graveyard (Delete, or Alt+Delete). You can undo this, and bring it back from Find & more → Graveyard." : spec.tip;
-    if (spec.id === "undo") {
-      const top = state.undoStack.at(-1);
-      btn.title = top ? `Undo: ${top.label} (${mod()}Z)` : `Nothing to undo (${mod()}Z)`;
+    const hidden = Boolean((spec.hide?.() ?? false) || (spec.show ? !spec.show() : false));
+    if (btn.hidden !== hidden) btn.hidden = hidden;
+    const disabled = !spec.enabled();
+    if (btn.disabled !== disabled) btn.disabled = disabled;
+    if (spec.toggle) {
+      const pressed = String(!!spec.toggle());
+      if (btn.getAttribute("aria-pressed") !== pressed) btn.setAttribute("aria-pressed", pressed);
     }
+    let nextTitle = spec.tip;
+    if (spec.id === "delete" && state.settings.deleteTo === "graveyard") {
+      nextTitle = "Bury in the Rip graveyard (Delete, or Alt+Delete). You can undo this, and bring it back from Find & more → Graveyard.";
+    } else if (spec.id === "undo") {
+      const top = state.undoStack.at(-1);
+      nextTitle = top ? `Undo: ${top.label} (${mod()}Z)` : `Nothing to undo (${mod()}Z)`;
+    }
+    if (btn.title !== nextTitle) btn.title = nextTitle;
   }
-  document.querySelectorAll(".tool-group").forEach((g) => (g.hidden = ![...g.children].some((c) => !c.hidden)));
+  document.querySelectorAll(".tool-group").forEach((g) => {
+    const groupHidden = ![...g.children].some((c) => !c.hidden);
+    if (g.hidden !== groupHidden) g.hidden = groupHidden;
+  });
   updateAddressButtons();
 }
 

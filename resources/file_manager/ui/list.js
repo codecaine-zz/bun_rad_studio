@@ -207,6 +207,8 @@ function updateHeaderSort(pane) {
   if (permsHead) permsHead.hidden = !cols.includes("permissions");
 }
 
+let pointerSelecting = false;
+
 /** Updates selected/focused marks without redrawing everything. */
 export function syncSelection(pane = left) {
   const container = list(pane);
@@ -214,20 +216,33 @@ export function syncSelection(pane = left) {
   const { rows } = viewOf(pane);
   for (const [key, row] of rows) {
     const selected = pane.selection.has(key);
-    row.classList.toggle("selected", selected);
-    row.setAttribute("aria-selected", String(selected));
-    row.classList.toggle("focused", key === pane.focusKey);
+    const selStr = String(selected);
+    if (row.classList.contains("selected") !== selected) row.classList.toggle("selected", selected);
+    if (row.getAttribute("aria-selected") !== selStr) row.setAttribute("aria-selected", selStr);
+    const isFocused = key === pane.focusKey;
+    if (row.classList.contains("focused") !== isFocused) row.classList.toggle("focused", isFocused);
   }
   const focused = pane.focusKey ? rows.get(pane.focusKey) : null;
   if (focused) {
-    container.setAttribute("aria-activedescendant", focused.id);
-    focused.scrollIntoView?.({ block: "nearest" });
-  } else container.removeAttribute("aria-activedescendant");
+    if (container.getAttribute("aria-activedescendant") !== focused.id) {
+      container.setAttribute("aria-activedescendant", focused.id);
+    }
+    if (!pointerSelecting) {
+      focused.scrollIntoView?.({ block: "nearest" });
+    }
+  } else if (container.hasAttribute("aria-activedescendant")) {
+    container.removeAttribute("aria-activedescendant");
+  }
   const count = pane.selection.size;
-  if (pane.side === "left") document.body.dataset.selected = String(count);
+  const countStr = String(count);
+  if (pane.side === "left" && document.body.dataset.selected !== countStr) {
+    document.body.dataset.selected = countStr;
+  }
   const total = visibleEntries(pane).length;
   const base = inTrash(pane) ? `${total} in the Recycle Bin` : pane.search ? `${total} search result${total === 1 ? "" : "s"}${pane.search.truncated ? " (stopped early)" : ""}` : summarizeCount(pane.total, total);
-  part(pane, "status").textContent = count ? `${describeSelection(selectedEntries(pane))} · ${base}` : base;
+  const statusText = count ? `${describeSelection(selectedEntries(pane))} · ${base}` : base;
+  const statusEl = part(pane, "status");
+  if (statusEl && statusEl.textContent !== statusText) statusEl.textContent = statusText;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -326,9 +341,14 @@ export function wirePane(pane) {
       toggledOnCtrlContext = false;
       return;
     }
-    if (isModifier(e, state.platform)) toggleKey(key, pane);
-    else if (e.shiftKey) selectRangeTo(key, pane);
-    else selectOnly(key, pane);
+    pointerSelecting = true;
+    try {
+      if (isModifier(e, state.platform)) toggleKey(key, pane);
+      else if (e.shiftKey) selectRangeTo(key, pane);
+      else selectOnly(key, pane);
+    } finally {
+      pointerSelecting = false;
+    }
   });
 
   wrap.addEventListener("click", (e) => {

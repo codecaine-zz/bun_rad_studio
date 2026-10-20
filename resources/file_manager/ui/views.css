@@ -354,16 +354,17 @@ body:not(.ready) #stage { visibility: hidden; }
 #app[data-density="spacious"] .view-icons .row { padding: 0.85rem 0.45rem; }
 
 /* ------------------------------------------- Context-Aware Floating Selection Action Bar */
-.selection-bar { display: flex; align-items: center; justify-content: space-between; gap: 0.55rem; padding: 0.38rem 0.75rem; background: color-mix(in oklab, var(--panel) 94%, var(--selected)); border-top: 1px solid color-mix(in oklab, var(--accent) 45%, var(--border)); box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1); flex-wrap: wrap; z-index: 5; user-select: none; -webkit-user-select: none; }
+.selection-bar { position: absolute; left: 0.65rem; right: 0.65rem; bottom: 0.45rem; display: flex; align-items: center; justify-content: space-between; gap: 0.55rem; padding: 0.36rem 0.75rem; background: color-mix(in oklab, var(--panel) 95%, var(--selected)); border: 1px solid color-mix(in oklab, var(--accent) 48%, var(--border)); border-radius: 0.55rem; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22); flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; z-index: 6; user-select: none; -webkit-user-select: none; }
+.selection-bar::-webkit-scrollbar { display: none; }
 .selection-bar[hidden] { display: none; }
-.sb-summary { font-size: 0.82rem; font-weight: 650; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.sb-tags { display: inline-flex; align-items: center; gap: 0.28rem; padding: 0.15rem 0.4rem; border: 1px solid color-mix(in oklab, var(--border) 72%, transparent); border-radius: 999px; background: var(--bg); }
+.sb-summary { font-size: 0.82rem; font-weight: 650; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; flex: none; }
+.sb-tags { display: inline-flex; align-items: center; gap: 0.28rem; padding: 0.15rem 0.4rem; border: 1px solid color-mix(in oklab, var(--border) 72%, transparent); border-radius: 999px; background: var(--bg); flex: none; }
 .sb-tag-btn { width: 0.82rem; height: 0.82rem; border-radius: 999px; border: 1.5px solid rgba(0, 0, 0, 0.22); padding: 0; cursor: pointer; transition: transform 0.12s ease; }
 .sb-tag-btn:hover { transform: scale(1.2); }
 .sb-tag-btn.active { outline: 2px solid var(--text); outline-offset: 1px; transform: scale(1.15); }
 .sb-tag-clear { border: 0; background: transparent; color: var(--muted); font-size: 0.72rem; padding: 0 0.2rem; cursor: pointer; line-height: 1; }
 .sb-tag-clear:hover { color: var(--danger); }
-.sb-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 0.3rem; margin-left: auto; }
+.sb-actions { display: flex; align-items: center; flex-wrap: nowrap; gap: 0.3rem; margin-left: auto; flex: none; }
 .sb-btn { display: inline-flex; align-items: center; gap: 0.28rem; padding: 0.22rem 0.58rem; border: 1px solid color-mix(in oklab, var(--border) 78%, transparent); border-radius: 0.42rem; background: var(--bg); color: var(--text); font-size: 0.78rem; font-weight: 550; cursor: pointer; white-space: nowrap; }
 .sb-btn:hover { background: var(--hover); border-color: var(--accent); }
 .sb-btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 650; }

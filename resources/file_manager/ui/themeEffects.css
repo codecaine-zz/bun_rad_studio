@@ -2404,7 +2404,8 @@ html[data-theme-show-glitch="true"] body {
 :root[data-icon-pack="linux_papirus_pro"] .row:hover .c-icon,
 :root[data-icon-pack="nordic_minimal"] .row:hover .c-icon,
 :root[data-icon-pack="google_material_3d"] .row:hover .c-icon {
-  transform: translateY(-1px) scale(1.08);
+  translate: 0px -1px;
+  scale: 1.07;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.6),
     0 5px 14px color-mix(in oklab, var(--accent) 45%, rgba(0, 0, 0, 0.4));
@@ -2614,6 +2615,7 @@ html[data-ui-fx] .row.is-folder[aria-selected="true"],
     inset 4px 0 0 0 var(--accent),
     inset 0 0 0 1.5px color-mix(in oklab, var(--accent) 85%, var(--selected-text)),
     0 2px 12px -2px color-mix(in oklab, var(--accent) 45%, transparent) !important;
+  transition: none !important;
 }
 
 :root .row.selected:hover,
@@ -2640,8 +2642,12 @@ html[data-ui-fx] .row.is-folder[aria-selected="true"]:hover {
 /* Selected item in Icons Grid View gets a full-card glowing ring + top accent bar */
 #list.view-icons .row.selected,
 #list.view-icons .row[aria-selected="true"],
+#list.view-icons .row.selected:hover,
+#list.view-icons .row[aria-selected="true"]:hover,
 #dual-list.view-icons .row.selected,
-#dual-list.view-icons .row[aria-selected="true"] {
+#dual-list.view-icons .row[aria-selected="true"],
+#dual-list.view-icons .row.selected:hover,
+#dual-list.view-icons .row[aria-selected="true"]:hover {
   box-shadow:
     inset 0 3px 0 0 var(--accent),
     inset 0 0 0 2px var(--accent),
@@ -2661,7 +2667,7 @@ html[data-ui-fx] .row.is-folder[aria-selected="true"]:hover {
   box-shadow:
     0 0 0 2px var(--accent),
     0 4px 12px color-mix(in oklab, var(--accent) 55%, rgba(0, 0, 0, 0.45)) !important;
-  transform: scale(1.06);
+  scale: 1.06;
 }
 
 /* ============================================================================
@@ -4900,7 +4906,8 @@ html.rad-linux .fm-atmosphere-layer {
 .row:hover .c-icon[data-is-folder="true"],
 .TreeNode:hover .t-icon[data-is-folder="true"],
 .tree-row:hover .t-icon[data-is-folder="true"] {
-  transform: perspective(260px) translateY(-1.5px) rotateX(-8deg) scale(1.1);
+  translate: 0px -1.5px;
+  scale: 1.07;
 }
 :is(.tool, .qbtn, .chip, .sb-item, .tab):hover [data-btn-icon] {
   display: inline-block;
