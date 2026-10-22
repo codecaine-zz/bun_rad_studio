@@ -458,7 +458,8 @@ describe("the Dev tab in a browser-like page", () => {
     await sleep(200);
     await openSection("versions");
     await click(button("Check this project"), 100);
-    await until(() => panel().querySelector("table") !== null || status().includes("✗"), "the requirements table", 30000);
+    // Wait for the table itself: the status line can still show a "✗" from the previous test while the check is running.
+    await until(() => panel().querySelector("table") !== null, "the requirements table", 30000);
     const table = panel().querySelector("table");
     const bun = rows(table).find((r: any) => cell(r, 0) === "bun");
     expect(cell(bun, 1)).toBe(">=999.0.0");
