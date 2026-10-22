@@ -1,6 +1,16 @@
 # Changelog
 
-All notable changes. Version 1.5.0 is the nineteenth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.4.5, 1.4.6, 1.4.7, 1.4.8 and 1.4.9 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.5.1 is the twentieth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.4.5, 1.4.6, 1.4.7, 1.4.8, 1.4.9 and 1.5.0 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+
+## 1.5.1 (22 October 2026)
+
+### Added
+
+- **18 New Icon Packs (67 total).** Classic OS (Win95 / Mac OS 9 / Workbench), Game Boy & NES, Art Deco, Bauhaus, Memphis 80s, Neo-Brutalist, Ukiyo-e, Pop-Art Comic, Chalkboard Sketch, Soft Clay 3D, Origami Papercraft, Low-Poly Isometric, Thin Line Duotone, High-Contrast Monochrome / E-Ink, Terminal ASCII TUI, Deep-Sea Bioluminescence, Desert Sandstone and Cottagecore Botanical. Each is wired into the picker, theme editor, settings and theme-pack validation (`scripts/add_icon_packs_batch2.ts`).
+
+### Improved
+
+- **Better text contrast in the Commodore 64 and Synthwave '84 themes, and a readable Charcoal accent.** Text now meets 4.5:1 against its background while keeping each theme's hues.
 
 ## 1.5.0 (19 October 2026)
 
@@ -19,7 +29,6 @@ All notable changes. Version 1.5.0 is the nineteenth release (1.0.0, 1.1.0, 1.2.
 - **Keep Active FX — Swap Colors Only (`Alt+C` / `⌥C`) & Shuffle 49 System Icon Packs (`Alt+I` / `⌥I`).** Swap only the color palette from any of the 310 built-in themes while preserving 100% of active atmospheric shaders, 3D folder FX, and icon packs (`applyColorPaletteOnly`, `cycleColorPaletteKeepFx`), or shuffle across all 49 bespoke SVG system icon packs (`shuffleIconPackKeepTheme`) with professional computer folder/file silhouettes across every pack.
 - **7 Pro Theme Studio Power-Up Features (`Alt+Z`, `Alt+Y`, `Alt+\` `, SVG Poster Card, Dual-Pane Focus Spotlight, Chameleon Folder Mood, Deep Sub-Studio Theme Sync, & Zero-Watt Governor).** Add a 25-step Theme & FX History Undo/Redo Time-Machine (`undoThemeHistory` / `redoThemeHistory`, `⌥Z` / `⌥Y`), Dual-Pane Active Focus Spotlight (`toggleDualPaneFocusSpotlight`), Chameleon Folder Mood auto-tinting by directory content (`toggleFolderChameleonMood`, `detectFolderChameleonMood`), 1920×1080 Vector SVG Theme Poster Card export (`generateThemePosterSvg`, `downloadCurrentThemePosterCard`), Hold-to-Peek Plain Readability Check (`⌥\` ` / `setPlainPeekActive`), Deep Sub-Studio Theme Sync (`getThemeLiveCssVarsPayload`), and Smart Zero-Watt Unfocused/Battery Governor (`toggleEcoZeroWattGovernor`).
 - **God-Mode v1.5.0 Masterclass Tutorial & Runnable RAD Examples (`bun run tutorial:godmode`).** Add a 100% live-recorded 15:44 Full-HD (`1920x1080` @ `30fps`) 14-chapter master tutorial (`scripts/tutorial_god_mode.ts`, `scripts/lib/god_mode_tutorial_script.ts`, `youtube_production/GOD_MODE_TUTORIAL_NOTES.md`) and 4 runnable SimpleGUI RAD example scripts (`examples/god_mode_tutorial/01_godmode_workstation_form.ts` through `04_rad_and_system_engines.ts`) covering Codecaine File Manager, SimpleGUI API, and Bun RAD Studio Visual Designer across macOS, Windows 11, and Linux.
-- **18 New Icon Packs (67 total).** Classic OS (Win95 / Mac OS 9 / Workbench), Game Boy & NES, Art Deco, Bauhaus, Memphis 80s, Neo-Brutalist, Ukiyo-e, Pop-Art Comic, Chalkboard Sketch, Soft Clay 3D, Origami Papercraft, Low-Poly Isometric, Thin Line Duotone, High-Contrast Monochrome / E-Ink, Terminal ASCII TUI, Deep-Sea Bioluminescence, Desert Sandstone and Cottagecore Botanical. Each is wired into the picker, theme editor, settings and theme-pack validation (`scripts/add_icon_packs_batch2.ts`).
 
 ### Fixed
 
@@ -29,7 +38,6 @@ All notable changes. Version 1.5.0 is the nineteenth release (1.0.0, 1.1.0, 1.2.
 
 ### Improved
 
-- **Better text contrast in the Commodore 64 and Synthwave '84 themes, and a readable Charcoal accent.** Text now meets 4.5:1 against its background while keeping each theme's hues.
 - **Cross-platform release refresh (`v1.5.0`) & Master-Quality 2x Retina Display-P3 HDR Showcase Videos.** Recompile and package the standalone Codecaine File Manager, full application and CLI suite, and macOS `.app` bundles across all supported macOS, Linux, and Windows targets, and record the new `v1.5.0` 3-minute vertical Short and Long-Form Themes Masterclass at highest quality (`CRF 14`, `lanczos` scaling, `256 kbps` stereo AAC).
 
 ## 1.4.9 (19 October 2026)
