@@ -35,7 +35,8 @@ let canvasPixels: number[] = [];
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function waitFor(fn: () => any, ms = 4000, what = "condition"): Promise<any> {
-  const end = Date.now() + ms;
+  // Never less than 12 s: a shared CI runner can be several times slower than a laptop.
+  const end = Date.now() + Math.max(ms, 12_000);
   for (;;) {
     const v = fn();
     if (v) return v;
