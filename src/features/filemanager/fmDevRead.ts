@@ -16,6 +16,8 @@ export type ReadResult =
 export async function readRegularFile(abs: string, maxBytes = MAX_READ_BYTES): Promise<ReadResult> {
   let handle: FileHandle | null = null;
   try {
+    const lst = await fsp.lstat(abs);
+    if (lst.isSymbolicLink() || !lst.isFile()) return { kind: "skip" };
     handle = await fsp.open(abs, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
     const st = await handle.stat();
     if (!st.isFile()) return { kind: "skip" };
@@ -39,6 +41,8 @@ export async function readRegularFile(abs: string, maxBytes = MAX_READ_BYTES): P
 export async function readHead(abs: string, bytes = 256): Promise<Buffer | null> {
   let handle: FileHandle | null = null;
   try {
+    const lst = await fsp.lstat(abs);
+    if (lst.isSymbolicLink() || !lst.isFile()) return null;
     handle = await fsp.open(abs, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
     const st = await handle.stat();
     if (!st.isFile()) return null;

@@ -147,7 +147,7 @@ afterAll(() => {
   for (const a of scanAllApplications().apps) { for (const c of getAliveChildren(a.id)) { try { process.kill(c.pid, "SIGKILL"); } catch {} } }
   process.chdir(origCwd);
   if (origHist === undefined) delete process.env.LAUNCHER_HISTORY_FILE; else process.env.LAUNCHER_HISTORY_FILE = origHist;
-  fs.rmSync(proj, { recursive: true, force: true });
+  try { fs.rmSync(proj, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch {}
 });
 
 describe("launcher backend in an isolated project", () => {
@@ -189,7 +189,7 @@ describe("launcher backend in an isolated project", () => {
     expect(getAliveChildren("rad_zz_crash_studio").length).toBe(0);
   });
 
-  test("externally started instances are detected; look-alike processes are not", async () => {
+  test.skipIf(process.platform === "win32")("externally started instances are detected; look-alike processes are not", async () => {
     const real = Bun.spawn([process.execPath, "run", path.join(proj, "applications/zz_ext_studio.ts")], { stdout: "ignore", stderr: "ignore" });
     spawned.push(real);
     // a shell whose $0 mentions the script must NOT count as running

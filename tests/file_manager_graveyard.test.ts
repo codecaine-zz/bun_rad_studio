@@ -165,8 +165,8 @@ describe("bury and restore round trips", () => {
         const payload = join(gy, "entries", id, "project");
         if (canSymlink) {
           expect(lstatSync(join(payload, "relative-link")).isSymbolicLink()).toBe(true);
-          expect(readlinkSync(join(payload, "relative-link"))).toBe("src/main.ts");
-          expect(readlinkSync(join(payload, "dangling-link"))).toBe("/definitely/not/here");
+          expect(readlinkSync(join(payload, "relative-link")).replace(/\\/g, "/")).toBe("src/main.ts");
+          expect(readlinkSync(join(payload, "dangling-link")).replace(/^[A-Za-z]:/, "").replace(/\\/g, "/")).toBe("/definitely/not/here");
         }
         const record = loadManifest(gy).items.find((i) => i.id === id)!;
         expect({ size: record.sizeBytes, files: record.fileCount, type: record.type }).toEqual({ size: engine.sizeBytes, files: engine.fileCount, type: "directory" });
@@ -858,7 +858,11 @@ describe("previews", () => {
     write(join(sub, "a.txt"));
     write(join(sub, "b", "c.txt"));
     const link = join(dir, "lnk");
-    if (canSymlink) symlinkSync("/etc/hosts", link);
+    let linkTarget = "/etc/hosts";
+    if (canSymlink) {
+      symlinkSync("/etc/hosts", link);
+      linkTarget = readlinkSync(link);
+    }
     await bury(canSymlink ? [txt, png, bin, sub, link] : [txt, png, bin, sub]);
     const view = async (p: string) => (await api("grave/preview", { id: await idOf(p) })).preview;
     expect(await view(txt)).toEqual({ kind: "text", text: "line one\nline two", truncated: false, bytes: 17 });
@@ -870,7 +874,7 @@ describe("previews", () => {
     expect(folderView).toMatchObject({ kind: "folder", total: 2 });
     expect(folderView.entries).toEqual([{ name: "a.txt", type: "file" }, { name: "b", type: "folder" }]);
     // a link is described, never opened
-    if (canSymlink) expect(await view(link)).toEqual({ kind: "link", target: "/etc/hosts" });
+    if (canSymlink) expect(await view(link)).toEqual({ kind: "link", target: linkTarget });
   });
 
   test("a long text file is cut short, and a missing item gives a plain answer", async () => {

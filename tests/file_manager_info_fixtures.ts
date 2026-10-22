@@ -8,7 +8,14 @@ const REPO = join(import.meta.dir, "..");
 /** A fresh scratch folder inside the project (never in a system temp folder). */
 export function scratchRoot(name: string): { dir: string; remove: () => void } {
   const dir = mkdtempSync(join(REPO, `scratch_info_${name}_`));
-  return { dir, remove: () => rmSync(dir, { recursive: true, force: true }) };
+  return {
+    dir,
+    remove: () => {
+      try {
+        rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+      } catch {}
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------

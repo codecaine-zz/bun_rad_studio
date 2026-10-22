@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, mock, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { dirname, join } from "path";
 // @ts-ignore (jsdom has no type declarations in every setup)
@@ -619,11 +619,12 @@ describe("previews and opening the original folder", () => {
     let linkTarget = "/etc/hosts";
     try {
       symlinkSync("/etc/hosts", join(dir, "lnk"));
+      linkTarget = readlinkSync(join(dir, "lnk"));
     } catch {
       const jt = join(dir, "jtarget");
       mkdirSync(jt, { recursive: true });
       symlinkSync(jt, join(dir, "lnk"), "junction");
-      linkTarget = jt;
+      linkTarget = readlinkSync(join(dir, "lnk"));
     }
     await buryByApi([txt, sub, join(dir, "lnk")]);
     await reloadTab();

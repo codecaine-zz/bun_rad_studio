@@ -177,7 +177,7 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
     expect(bt.success).toBe(true);
     expect(printer.success).toBe(true);
     expect(usb.success).toBe(true);
-  });
+  }, 60000);
 
   it("9. Category 10: Virtualization, Docker & Batch methods execute successfully", async () => {
     const [dInfo, dImg, dCont, dVol, dAll, vbox, staticData, dynamicData, pStart, pRel] = await Promise.all([

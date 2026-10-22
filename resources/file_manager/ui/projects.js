@@ -251,7 +251,7 @@ registerPowerTab({
         h("div", { class: "pw-row" },
           h("button", { type: "button", class: "pw-btn primary", title: "Go to the project's folders, view and tool", onclick: () => openProject(w) }, "Open"),
           h("button", { type: "button", class: "pw-btn", title: "See what is still there, its commands and what was done in its folders", onclick: () => showDetail(w) }, "Details"),
-          h("button", { type: "button", class: "pw-btn", disabled: readOnly, onclick: async () => { const saved = await editProject(w); if (saved) { await load(); showDetail(saved); } } }, "Edit…"),
+          h("button", { type: "button", class: "pw-btn", disabled: readOnly, onclick: async () => { const saved = await editProject(w); if (saved) { await load(); await showDetail(saved); } } }, "Edit…"),
           h("button", { type: "button", class: "pw-btn", onclick: () => showExport(w) }, "Share…"),
           h("button", { type: "button", class: "pw-btn danger", disabled: readOnly, title: "Forget this project. Your files are not touched.", onclick: () => remove(w) }, "Delete…")));
     }
@@ -315,7 +315,7 @@ registerPowerTab({
       const name = await promptBox({ title: "Save the current layout as a project", label: "Project name", confirmLabel: "Continue", hint: "You can change the folders, commands and everything else on the next screen.", submit: async (n) => n.trim() });
       if (!name) return;
       const saved = await editProject(null, { ...snapshot(), name });
-      if (saved) { await load(); showDetail(saved); }
+      if (saved) { await load(); await showDetail(saved); }
     }
 
     async function doImport() {
@@ -323,7 +323,7 @@ registerPowerTab({
       if (!res) return;
       toast(`Imported "${res.workspace.name}".${res.untrustedCommands ? ` Its ${plural(res.untrustedCommands, "command")} must be trusted before use.` : ""}`, { kind: "success" });
       await load();
-      showDetail(res.workspace);
+      await showDetail(res.workspace);
     }
 
     root.append(

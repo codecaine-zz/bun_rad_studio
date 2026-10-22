@@ -415,7 +415,7 @@ describe("Subprocess Pipe Pro - Shell Process Master & Multi-Stage Pipelining", 
         expect(env.BUN_RAD_SUDO_PASS).toBe("test_secret_123");
         expect(env.SUDO_ASKPASS).toBe(askpassPath);
 
-        const proc = Bun.spawn([askpassPath], { env: { ...process.env, ...env }, stdout: "pipe" });
+        const proc = Bun.spawn(process.platform === "win32" ? ["sh", askpassPath] : [askpassPath], { env: { ...process.env, ...env }, stdout: "pipe" });
         const out = await new Response(proc.stdout).text();
         await proc.exited;
         expect(out.trim()).toBe("test_secret_123");

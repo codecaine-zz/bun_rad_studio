@@ -2253,6 +2253,7 @@ describe("the review dialog, Compare, Projects and duplicate cleanup", () => {
     await waitFor(() => !doc.querySelector(".modal-backdrop"));
     await waitFor(() => !!doc.querySelector(".proj-card"));
     expect(doc.querySelector(".proj-card h3")!.textContent).toContain("Lab project");
+    await waitFor(() => (doc.querySelector(".proj-detail")?.textContent ?? "").includes("missing"));
     expect(doc.querySelector(".proj-detail")!.textContent).toContain("missing");
     expect(readFileSync(join(dataDir, "file_manager_workspaces.json"), "utf8")).not.toContain("hunter2");
     // opening reports the missing folder instead of failing

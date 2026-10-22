@@ -7,13 +7,13 @@
 import { promises as fsp } from "fs";
 import * as nodePath from "path";
 import { formatHumanSize, type GraveyardItem } from "../../../applications/rip_engine";
-import { absolutePath, assertFolder, lstatOrNull, pathApi, type FmContext, type FmHandler } from "./fmCore";
+import { absolutePath, assertCreatable, assertFolder, lstatOrNull, pathApi, type FmContext, type FmHandler } from "./fmCore";
 import { assertBuryable, buryOne, buryPaths, decomposeEverything, decomposeItems, moveEnv, payloadStatus, restoreItems, restoreTarget, type ConflictChoice, type DecomposeSummary, type Outcome, type RestoreOptions, type RestoreValue } from "./fmGraveyard";
 import { previewBuried, repairGraveyard, verifyGraveyard, quarantineDamaged } from "./fmGraveyardCheck";
 import { graveyardHooksOf } from "./fmGraveyardHooks";
 import { assertWritable, createRecorder, entriesDirOf, filterItems, graveStats, graveyardDirOf, parseQuery, payloadOf, pickByIds, readGrave, rowOf, runQuery } from "./fmGraveyardStore";
 import type { JobView } from "./fmJobs";
-import { FmError, describeFsError } from "./fmPaths";
+import { FmError, describeFsError, isSameOrInside } from "./fmPaths";
 
 const MAX_PATHS = 5000;
 const MAX_CHECK = 5000;
@@ -171,6 +171,8 @@ export const graveyardOperations: Record<string, FmHandler> = {
       let sameDisk = true;
       try {
         const { parent } = await restoreTarget(ctx, item, options.to);
+        assertCreatable(ctx, parent);
+        if (isSameOrInside(parent, dir, ctx.platform)) throw new FmError("PROTECTED", "Items can't be restored into the graveyard.");
         sameDisk = await hooks.sameDevice(payloadOf(dir, item), parent);
       } catch {
         // reported by the restore itself

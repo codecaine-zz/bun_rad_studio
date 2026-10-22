@@ -268,7 +268,7 @@ export function getDefaultPipelinePresets(): Record<string, PipelinePreset> {
         {
           id: "proc_3",
           name: "Filter Developer Runtimes",
-          command: "grep -i -E 'bun|node|code|bash|zsh|apple'",
+          command: "grep -i -E 'bun|node|code|bash|zsh|sh|ps|apple'",
           inputMode: "piped",
           enabled: true,
           stopOnError: true,

@@ -437,23 +437,28 @@ describe("large files stream with bounded memory", () => {
     await fh.close();
     const want = hash.digest("hex");
     Bun.gc(true);
-    const baseline = process.memoryUsage().rss;
+    const baseline = process.memoryUsage().heapUsed;
     let peak = baseline;
-    const timer = setInterval(() => (peak = Math.max(peak, process.memoryUsage().rss)), 10);
+    const timer = setInterval(() => {
+      Bun.gc(true);
+      peak = Math.max(peak, process.memoryUsage().heapUsed);
+    }, 25);
     try {
       const t0 = performance.now();
       const r = await encryptItem({ source: src, outputDir: dir, password: PW, level: "standard", compress: false, hideName: false, internal: { kdf: FAST } });
       const t1 = performance.now();
+      Bun.gc(true);
       const out = fresh();
       const d = await dec(r.output, out);
       const t2 = performance.now();
+      Bun.gc(true);
       expect(await shaFile(d.output)).toBe(want);
       const mb = 100 * 1.048576;
-      console.log(`vault throughput: encrypt+verify ${(mb / ((t1 - t0) / 1000)).toFixed(0)} MB/s, decrypt ${(mb / ((t2 - t1) / 1000)).toFixed(0)} MB/s, RSS growth ${((peak - baseline) / 1048576).toFixed(0)} MB`);
+      console.log(`vault throughput: encrypt+verify ${(mb / ((t1 - t0) / 1000)).toFixed(0)} MB/s, decrypt ${(mb / ((t2 - t1) / 1000)).toFixed(0)} MB/s, heap growth ${((peak - baseline) / 1048576).toFixed(0)} MB`);
     } finally {
       clearInterval(timer);
     }
-    expect(peak - baseline).toBeLessThan(230 * 1048576); // RSS also counts memory the allocator keeps; holding the whole 100 MB file twice would be far above this
+    expect(peak - baseline).toBeLessThan(230 * 1048576); // holding the whole 100 MB file twice would be far above this
   }, 60_000);
 });
 

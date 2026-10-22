@@ -180,7 +180,7 @@ describe("hashes", () => {
     expect(byId.crc32).toBe("cbf43926");
     for (const a of ["md5", "sha1", "sha256", "sha512"]) expect(byId[a]).toBe(sha(a, data));
     expect(byId.crc32).toBe((crc32(data) >>> 0).toString(16).padStart(8, "0"));
-    if (tool("shasum")) expect(sys(["shasum", "-a", "256", p]).stdout.toString().split(" ")[0]).toBe(byId.sha256);
+    if (tool("shasum")) expect(sys(["shasum", "-a", "256", p]).stdout.toString().split(" ")[0]!.replace(/^\\/, "")).toBe(byId.sha256!);
     if (tool("md5")) expect(sys(["md5", "-q", p]).stdout.toString().trim()).toBe(byId.md5!);
   });
 

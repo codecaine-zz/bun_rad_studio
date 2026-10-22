@@ -174,8 +174,8 @@ const NAME = `tmtest_${process.pid}`;
 const spawned: any[] = [];
 function sleeper(label = NAME, secs = "300") {
   const link = path.join(tmpDir, label);
-  if (!fs.existsSync(link)) fs.symlinkSync("/bin/sleep", link);
-  const p = Bun.spawn([link, secs], { stdout: "ignore", stderr: "ignore" });
+  if (!fs.existsSync(link)) fs.symlinkSync(process.execPath, link);
+  const p = Bun.spawn([link, "-e", `setTimeout(() => {}, ${Number(secs) * 1000})`], { stdout: "ignore", stderr: "ignore" });
   spawned.push(p);
   return p;
 }
@@ -188,7 +188,7 @@ afterAll(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-describe("Task Manager GUI against real processes", () => {
+describe.skipIf(process.platform === "win32")("Task Manager GUI against real processes", () => {
   const make = () => createTaskTracker({ fullscreen: false });
   const rows = (w: SimpleWindow) => w.getValue("tbl_procs") as string[][];
   const noConfirm = (w: SimpleWindow, answer: boolean) => { (w as any).confirm = async () => answer; };
@@ -214,6 +214,7 @@ describe("Task Manager GUI against real processes", () => {
     const proc = fetchProcesses().find((p) => p.pid === String(child.pid))!;
     expect(proc.isUserApp).toBe(true);
     expect(proc.name).toBe(NAME);
+    child.kill(9);
   });
 
   test("SIGTERM works without confirmation; SIGKILL needs it and honours a refusal", async () => {

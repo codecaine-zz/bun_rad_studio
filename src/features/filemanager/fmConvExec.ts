@@ -48,7 +48,8 @@ export class Stage {
   safeInput(source: string, base: string, ext: string): string {
     const target = nodePath.join(this.dir(), `${base}${ext ? `.${ext}` : ""}`);
     try {
-      symlinkSync(source, target);
+      if (process.platform === "win32") copyFileSync(source, target);
+      else symlinkSync(source, target);
     } catch {
       copyFileSync(source, target);
     }

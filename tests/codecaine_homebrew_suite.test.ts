@@ -17,7 +17,10 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
   });
 
   const runSubprocess = async (cmd: string[]): Promise<{ stdout: string; stderr: string; output: string; exitCode: number }> => {
-    const proc = Bun.spawn(cmd, {
+    const argv = process.platform === "win32" && cmd[0] && !cmd[0].endsWith(".exe") && cmd[0] !== process.execPath && cmd[0] !== "bash"
+      ? [process.execPath, ...cmd]
+      : cmd;
+    const proc = Bun.spawn(argv, {
       cwd: root,
       stdout: "pipe",
       stderr: "pipe",

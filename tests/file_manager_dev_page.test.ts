@@ -281,7 +281,8 @@ describe("the Dev tab in a browser-like page", () => {
     await click(dialogButton("Cancel"), 50);
     expect(field("dev-snap-list").options[0].textContent).toContain("before");
     await click(button("Delete snapshot"), 50);
-    await click(dialogButton("Delete snapshot"), 300);
+    await click(dialogButton("Delete snapshot"), 100);
+    await until(() => field("dev-snap-list").options[0]?.textContent === "No snapshots yet", "the snapshot list to empty");
     expect(field("dev-snap-list").options[0].textContent).toBe("No snapshots yet");
   });
 

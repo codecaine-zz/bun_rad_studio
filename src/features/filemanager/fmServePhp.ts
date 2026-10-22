@@ -174,8 +174,16 @@ export async function detectFolder(root: string): Promise<FolderKind> {
 
 function canConnect(host: string, port: number, ms = 800): Promise<boolean> {
   return new Promise((resolve) => {
+    let settled = false;
     const socket = connect({ host: host === "0.0.0.0" ? "127.0.0.1" : host, port });
-    const done = (v: boolean) => { socket.destroy(); resolve(v); };
+    const timer = setTimeout(() => done(false), ms);
+    const done = (v: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try { socket.destroy(); } catch {}
+      resolve(v);
+    };
     socket.setTimeout(ms, () => done(false));
     socket.once("connect", () => done(true));
     socket.once("error", () => done(false));
@@ -186,9 +194,18 @@ function canConnect(host: string, port: number, ms = 800): Promise<boolean> {
 export async function portInUse(host: string, port: number): Promise<boolean> {
   if (await canConnect(host, port)) return true;
   return new Promise<boolean>((resolve) => {
+    let settled = false;
     const srv = createServer();
-    srv.once("error", () => resolve(true));
-    srv.listen({ host, port, exclusive: true }, () => srv.close(() => resolve(false)));
+    const timer = setTimeout(() => finish(false), 800);
+    const finish = (v: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try { srv.close(); } catch {}
+      resolve(v);
+    };
+    srv.once("error", () => finish(true));
+    srv.listen({ host, port, exclusive: true }, () => srv.close(() => finish(false)));
   });
 }
 
@@ -207,7 +224,7 @@ function hookExit(): void {
 export function killTree(pid: number, signal: "SIGTERM" | "SIGKILL"): void {
   if (!pid || pid <= 0) return;
   if (process.platform === "win32") {
-    try { Bun.spawnSync(["taskkill", "/pid", String(pid), "/T", ...(signal === "SIGKILL" ? ["/F"] : [])], { stdout: "ignore", stderr: "ignore", stdin: "ignore", windowsHide: true }); } catch {}
+    try { process.kill(pid, signal); } catch {}
     return;
   }
   try {
@@ -316,7 +333,7 @@ export async function startPhp(o: PhpStartOptions): Promise<PhpProcess> {
       if (!done) {
         killTree(pid, "SIGKILL");
         try { proc.kill("SIGKILL"); } catch {}
-        await exited;
+        await Promise.race([exited, Bun.sleep(1000)]);
       }
     },
     killNow() {

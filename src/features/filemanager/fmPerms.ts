@@ -126,9 +126,11 @@ export async function getPerms(ctx: FmContext, hooks: PermsHooks, input: unknown
     const win = ctx.platform === "win32";
     const mode = win || isLink ? null : st.mode & MODE_MASK;
     let reason: string | null = null;
-    if (isLink) reason = "This is a link (shortcut). Its permissions aren't changed here, and neither are those of the item it points to.";
+    const prot = protectedChangeReason(ctx, path, false);
+    if (prot) reason = prot;
+    else if (isLink) reason = "This is a link (shortcut). Its permissions aren't changed here, and neither are those of the item it points to.";
     else if (!st.isDirectory() && !st.isFile()) reason = "This isn't an ordinary file or folder.";
-    else reason = protectedChangeReason(ctx, path, false) ?? (!win && !isOwner(hooks, st) ? "You aren't the owner of this item. Changing who may use it needs its owner or an administrator, and isn't done here." : null);
+    else reason = !win && !isOwner(hooks, st) ? "You aren't the owner of this item. Changing who may use it needs its owner or an administrator, and isn't done here." : null;
     let owner: string | null = null;
     let group: string | null = null;
     if (!win && lookups < 20) {

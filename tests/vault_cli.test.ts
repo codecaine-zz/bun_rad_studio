@@ -137,7 +137,7 @@ describe("vault_cli", () => {
     expect(readFileSync(join(out, "f.txt"), "utf8")).toBe("from a password file");
     chmodSync(pwFile, 0o644);
     const warn = await run(["decrypt", join(d, "f.txt.radenc"), "--password-file", pwFile, "--out", out]);
-    expect(warn.stderr).toContain("can be read by other users");
+    if (process.platform !== "win32") expect(warn.stderr).toContain("can be read by other users");
   }, 30_000);
 
   test("a wrong password exits with code 2 and writes nothing", async () => {

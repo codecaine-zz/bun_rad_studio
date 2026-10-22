@@ -190,6 +190,7 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
+  state.sep = process.platform === "win32" ? "\\" : "/";
   power.resetPower();
   const g = globalThis as any;
   for (const key of GLOBALS) {
