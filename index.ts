@@ -10,6 +10,7 @@ import { spawn, spawnSync } from "child_process";
 import { join, dirname } from "path";
 import { homedir } from "os";
 import { dlopen, FFIType } from "bun:ffi";
+import { writeClipboardSync, readClipboardSync } from "./src/localGuard";
 
 function getLinuxDisplaySizeFallback() {
     try {
@@ -467,6 +468,14 @@ export function attachWindowShortcuts(wv: Webview, options?: WindowShortcutOptio
             setWindowPositionNative(wv, pos);
             return { success: true, position: pos };
         });
+    } catch {}
+
+    // OS clipboard bridge for the in-page Cut/Copy/Paste shortcuts (see src/shared/desktopShortcuts.ts).
+    try {
+        wv.bind("__radClipboardWrite", (text: string) => ({ success: writeClipboardSync(String(text ?? "")) }));
+    } catch {}
+    try {
+        wv.bind("__radClipboardRead", () => readClipboardSync());
     } catch {}
 
     const lastOpenedUrls = new Map<string, number>();

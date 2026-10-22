@@ -1,9 +1,9 @@
 /**
- * 🐦 Flappy Bird Deluxe — Cyber Legends Arcade Studio
+ * 🐦 Codecaine CyberWing Deluxe — Cyber Legends Arcade Studio
  * 
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
- * - Authentic kinetic flappy flight physics with variable gravity, flap impulse & smooth tilt
+ * - Authentic kinetic cyber-wing flight physics with variable gravity, thrust impulse & smooth tilt
  * - Moving neon energy conduit pipes with oscillating gap heights & obstacle variations
  * - Dynamic parallax scrolling sky with neon city lights and moving cyber ground grid
  * - Triple-A procedural WebAudio synthesizer engine (flap whoosh, coin ping, crunch hit, die sweep)
@@ -79,7 +79,7 @@ export function generateFlappyBirdStudioHtml(): string {
   const assetsDir = getFlappyBirdAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Flappy Bird Deluxe</h1>";
+  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine CyberWing Deluxe</h1>";
 
   const storagePolyfill = `
   <script>
@@ -150,20 +150,20 @@ ${getWindowShortcutsScript()}
  */
 export function startFlappyBirdServer(options: FlappyBirdServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "flappy_bird_studio", name: "Codecaine Flappy Bird Deluxe — Cyber Legends Arcade", version: "1.0.0", assetsDir: getFlappyBirdAssetsDir(), generateHtml: generateFlappyBirdStudioHtml },
+    { app: "flappy_bird_studio", name: "Codecaine CyberWing Deluxe — Cyber Legends Arcade", version: "1.0.0", assetsDir: getFlappyBirdAssetsDir(), generateHtml: generateFlappyBirdStudioHtml },
     options,
   );
 }
 
 /**
- * Creates the complete native desktop instance of Flappy Bird Deluxe.
+ * Creates the complete native desktop instance of CyberWing Deluxe.
  */
 export function createFlappyBirdStudio(options: FlappyBirdStudioOptions = {}): FlappyBirdStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1100);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Codecaine Flappy Bird Deluxe — Cyber Legends Arcade";
+  const title = "Codecaine CyberWing Deluxe — Cyber Legends Arcade";
 
   const app: FlappyBirdStudioInstance = {
     title,
@@ -172,7 +172,7 @@ export function createFlappyBirdStudio(options: FlappyBirdStudioOptions = {}): F
     fullscreen,
     generateHtml: () => generateFlappyBirdStudioHtml(),
     run: async () => {
-      console.log("⚡ Launching Flappy Bird Deluxe...");
+      console.log("⚡ Launching Codecaine CyberWing Deluxe...");
       const html = generateFlappyBirdStudioHtml();
 
       let srv: any = null;

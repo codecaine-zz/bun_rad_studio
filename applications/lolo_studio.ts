@@ -1,5 +1,5 @@
 /**
- * ⚡ Adventures of Lolo - Cyberpunk Remaster Studio
+ * ⚡ Codecaine Adventures of Caine - Cyberpunk Remaster Studio
  * 
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
@@ -75,7 +75,7 @@ export function generateLoloStudioHtml(): string {
   const assetsDir = getLoloAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Adventures of Lolo</h1>";
+  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine Adventures of Caine</h1>";
 
   const storagePolyfill = `
   <script>
@@ -203,7 +203,7 @@ export function startLoloStudioServer(options: LoloServerOptions = {}) {
           {
             status: "ok",
             app: "lolo_studio",
-            name: "Codecaine Adventures of Lolo - Cyberpunk Remaster",
+            name: "Codecaine Adventures of Caine - Cyberpunk Remaster",
             version: "1.0.0",
             timestamp: Date.now(),
           },
@@ -236,7 +236,7 @@ export function createLoloStudio(options: LoloStudioOptions = {}): LoloStudioIns
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1280);
   const height = options.height ?? (fullscreen ? screen.height : 880);
-  const title = "Codecaine Adventures of Lolo - Cyberpunk Remaster";
+  const title = "Codecaine Adventures of Caine - Cyberpunk Remaster";
 
   const app: LoloStudioInstance = {
     title,
@@ -245,7 +245,7 @@ export function createLoloStudio(options: LoloStudioOptions = {}): LoloStudioIns
     fullscreen,
     generateHtml: () => generateLoloStudioHtml(),
     run: async () => {
-      console.log("⚡ Launching Adventures of Lolo Remaster...");
+      console.log("⚡ Launching Codecaine Adventures of Caine Remaster...");
       const html = generateLoloStudioHtml();
 
       let srv: any = null;

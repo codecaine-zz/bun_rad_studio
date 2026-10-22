@@ -1,9 +1,9 @@
 /**
- * ⚡ Rodent's Revenge - Deluxe Master Edition Studio
+ * ⚡ Codecaine CyberMouse Trap - Deluxe Master Edition Studio
  * 
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
- * - Deluxe arcade revival of the classic Rodent's Revenge puzzle game
+ * - Deluxe arcade revival of the classic mouse-and-cat block puzzle game
  * - Trap cats with movable blocks, collect cheese, unlock special powers
  * - Neon retro visuals, high-DPI canvas & responsive keyboard/touch controls
  */
@@ -76,7 +76,7 @@ export function generateRodentsRevengeStudioHtml(): string {
   const assetsDir = getRodentsRevengeAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Rodent's Revenge</h1>";
+  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine CyberMouse Trap</h1>";
 
   const desktopHooks = `
   <script>
@@ -113,20 +113,20 @@ ${getWindowShortcutsScript()}
  */
 export function startRodentsRevengeStudioServer(options: RodentsRevengeServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "rodents_revenge_studio", name: "Codecaine Rodent's Revenge - Deluxe Master Edition", version: "1.0.0", assetsDir: getRodentsRevengeAssetsDir(), generateHtml: generateRodentsRevengeStudioHtml },
+    { app: "rodents_revenge_studio", name: "Codecaine CyberMouse Trap - Deluxe Master Edition", version: "1.0.0", assetsDir: getRodentsRevengeAssetsDir(), generateHtml: generateRodentsRevengeStudioHtml },
     options,
   );
 }
 
 /**
- * Creates the complete native desktop instance of Rodent's Revenge.
+ * Creates the complete native desktop instance of Codecaine CyberMouse Trap.
  */
 export function createRodentsRevengeStudio(options: RodentsRevengeStudioOptions = {}): RodentsRevengeStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Codecaine Rodent's Revenge - Deluxe Master Edition";
+  const title = "Codecaine CyberMouse Trap - Deluxe Master Edition";
 
   const app: RodentsRevengeStudioInstance = {
     title,
@@ -135,7 +135,7 @@ export function createRodentsRevengeStudio(options: RodentsRevengeStudioOptions 
     fullscreen,
     generateHtml: () => generateRodentsRevengeStudioHtml(),
     run: async () => {
-      console.log("⚡ Launching Rodent's Revenge Deluxe...");
+      console.log("⚡ Launching Codecaine CyberMouse Trap Deluxe...");
       const html = generateRodentsRevengeStudioHtml();
 
       let srv: any = null;

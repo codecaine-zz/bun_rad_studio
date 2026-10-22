@@ -1,10 +1,10 @@
 /**
- * ⚡ Cyberpunk Pac-Man Arcade - Neon Remaster Studio
+ * ⚡ Codecaine CyberChomp Arcade - Neon Remaster Studio
  * 
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
- * - Production-level Cyberpunk Pac-Man arcade remaster
- * - Authentic 4-ghost AI personalities (Blinky, Pinky, Inky, Clyde)
+ * - Production-level Codecaine CyberChomp arcade remaster
+ * - Authentic 4-ghost AI personalities (Crimson, Pulse, Glitch, Amber)
  * - Power pellets, bonus fruit spawns, real-time sound synthesis & neon particle effects
  * - Responsive canvas, mobile touch D-pad & desktop arcade hotkeys
  */
@@ -71,13 +71,13 @@ export function getPacmanAssetsDir(): string {
 }
 
 /**
- * Generates the complete HTML for Cyberpunk Pac-Man with desktop shortcuts injected.
+ * Generates the complete HTML for Codecaine CyberChomp with desktop shortcuts injected.
  */
 export function generatePacmanStudioHtml(): string {
   const assetsDir = getPacmanAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Cyberpunk Pac-Man Arcade</h1>";
+  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine CyberChomp Arcade</h1>";
 
   const desktopHooks = `
   <script>
@@ -110,24 +110,24 @@ ${getWindowShortcutsScript()}
 }
 
 /**
- * Starts the Bun.serve server hosting Cyberpunk Pac-Man Arcade.
+ * Starts the Bun.serve server hosting Codecaine CyberChomp Arcade.
  */
 export function startPacmanStudioServer(options: PacmanServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "pacman_studio", name: "Codecaine Cyberpunk Pac-Man Arcade - Neon Remaster", version: "1.0.0", assetsDir: getPacmanAssetsDir(), generateHtml: generatePacmanStudioHtml },
+    { app: "pacman_studio", name: "Codecaine CyberChomp Arcade - Neon Remaster", version: "1.0.0", assetsDir: getPacmanAssetsDir(), generateHtml: generatePacmanStudioHtml },
     options,
   );
 }
 
 /**
- * Creates the complete native desktop instance of Cyberpunk Pac-Man.
+ * Creates the complete native desktop instance of Codecaine CyberChomp.
  */
 export function createPacmanStudio(options: PacmanStudioOptions = {}): PacmanStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
   const height = options.height ?? (fullscreen ? screen.height : 900);
-  const title = "Codecaine Cyberpunk Pac-Man Arcade - Neon Remaster";
+  const title = "Codecaine CyberChomp Arcade - Neon Remaster";
 
   const app: PacmanStudioInstance = {
     title,
@@ -136,7 +136,7 @@ export function createPacmanStudio(options: PacmanStudioOptions = {}): PacmanStu
     fullscreen,
     generateHtml: () => generatePacmanStudioHtml(),
     run: async () => {
-      console.log("⚡ Launching Cyberpunk Pac-Man Arcade...");
+      console.log("⚡ Launching Codecaine CyberChomp Arcade...");
       const html = generatePacmanStudioHtml();
 
       let srv: any = null;

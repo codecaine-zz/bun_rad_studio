@@ -419,43 +419,43 @@ Drag and drop a form together like Delphi or Visual Basic, set every property, a
 
 _Quick, polished games for a break._
 
-### 🃏 Codecaine Joker Royale (Balatro Deluxe)
+### 🃏 Codecaine Joker Royale Deluxe
 
 Roguelike poker deckbuilder with Ante & Blind runs, 30+ Jokers, 3D card tilt physics & synth audio.
 
-![Codecaine Joker Royale (Balatro Deluxe)](screenshots/apps/balatro_desktop.png)
+![Codecaine Joker Royale Deluxe](screenshots/apps/balatro_desktop.png)
 
 `bun run app:joker`
 
 ### 🪙 Codecaine Blackjack Royale VIP
 
-High-roller multi-hand VIP casino Blackjack with 3-spot betting, Bicycle vector cards, 6-deck shoe Hi-Lo telemetry, split/double, & side bets.
+High-roller multi-hand VIP casino Blackjack with 3-spot betting, Codecaine Royale vector cards, 6-deck shoe Hi-Lo telemetry, split/double, & side bets.
 
 ![Codecaine Blackjack Royale VIP](screenshots/apps/blackjack_desktop.png)
 
 `bun run app:21`
 
-### 🧱 Codecaine Cyber Breakout Deluxe
+### 🧱 Codecaine CyberBrick Breaker Deluxe
 
-Deluxe Breakout arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support.
+Deluxe CyberBrick Breaker arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support.
 
-![Codecaine Cyber Breakout Deluxe](screenshots/apps/breakout_desktop.png)
+![Codecaine CyberBrick Breaker Deluxe](screenshots/apps/breakout_desktop.png)
 
 `bun run app:arkanoid`
 
 ### 🍄 Codecaine Bros. Arcade
 
-Authentic 1983 Mario Bros. arcade remaster with high-speed bumping physics, POW block & 4-channel sound.
+Authentic 1983 Codecaine Bros. arcade remaster with high-speed bumping physics, POW block & 4-channel sound.
 
 ![Codecaine Bros. Arcade](screenshots/apps/codecaine_bros_desktop.png)
 
 `bun run app:codecaine_bros`  ·  [User guide](docs/userguides/35_codecaine_bros_arcade.md)
 
-### 🔴 Codecaine Cyberpunk Connect 4
+### 🔴 Codecaine Cyberpunk QuadLink 4
 
-Neon Connect 4 arcade with minimax AI heuristics, 2-player local battle & particle drop physics.
+Neon QuadLink 4 arcade with minimax AI heuristics, 2-player local battle & particle drop physics.
 
-![Codecaine Cyberpunk Connect 4](screenshots/apps/connect4_desktop.png)
+![Codecaine Cyberpunk QuadLink 4](screenshots/apps/connect4_desktop.png)
 
 `bun run app:connect4`  ·  [User guide](docs/userguides/36_connect4_studio.md)
 
@@ -467,11 +467,11 @@ Triple-A remastered Dr. Codecaine capsule puzzle game with polyphonic synthesize
 
 `bun run app:dr_codecaine`  ·  [User guide](docs/userguides/28_dr_codecaine_arcade.md)
 
-### 🐦 Codecaine Flappy Bird Deluxe
+### 🐦 Codecaine CyberWing Deluxe
 
-Cyberpunk kinetic Flappy Bird arcade with energy conduits, medal achievements, parallax sky & WebAudio synth.
+Cyberpunk kinetic CyberWing arcade with energy conduits, medal achievements, parallax sky & WebAudio synth.
 
-![Codecaine Flappy Bird Deluxe](screenshots/apps/flappy_bird_desktop.png)
+![Codecaine CyberWing Deluxe](screenshots/apps/flappy_bird_desktop.png)
 
 `bun run app:bird`
 
@@ -483,19 +483,19 @@ Navigate a cyberpunk highway and acid river with fluid interpolation physics.
 
 `bun run app:frogger`
 
-### 👾 Codecaine Adventures of Lolo Remaster
+### 👾 Codecaine Adventures of Caine Remaster
 
-Cyberpunk remastered Adventures of Lolo with procedural puzzles, sound engine & visual manual.
+Cyberpunk remastered Adventures of Caine with procedural puzzles, sound engine & visual manual.
 
-![Codecaine Adventures of Lolo Remaster](screenshots/apps/lolo_desktop.png)
+![Codecaine Adventures of Caine Remaster](screenshots/apps/lolo_desktop.png)
 
 `bun run app:lolo`  ·  [User guide](docs/userguides/30_lolo_remaster.md)
 
-### 👾 Codecaine Math Munchers Deluxe
+### 👾 Codecaine CyberMunch Math Deluxe
 
-Cyberpunk Math Munchers classic with Troggles AI, CRT shaders, pentatonic synth & multiple game modes.
+Cyberpunk CyberMunch Math classic with Glitchers AI, CRT shaders, pentatonic synth & multiple game modes.
 
-![Codecaine Math Munchers Deluxe](screenshots/apps/math_munchers_desktop.png)
+![Codecaine CyberMunch Math Deluxe](screenshots/apps/math_munchers_desktop.png)
 
 `bun run app:munch`
 
@@ -515,51 +515,51 @@ Championship Minesweeper with safe first-click, chord clearing, 3BV benchmark & 
 
 `bun run app:mines`
 
-### 🟡 Codecaine Cyberpunk Pac-Man Arcade
+### 🟡 Codecaine CyberChomp Arcade
 
-Authentic Cyberpunk Pac-Man arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects.
+Authentic CyberChomp arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects.
 
-![Codecaine Cyberpunk Pac-Man Arcade](screenshots/apps/pacman_desktop.png)
+![Codecaine CyberChomp Arcade](screenshots/apps/pacman_desktop.png)
 
 `bun run app:pacman`  ·  [User guide](docs/userguides/34_pacman_arcade.md)
 
 ### ♠️ Codecaine Texas Hold'em & 5-Card Draw Poker Royale
 
-Deluxe casino poker table featuring No-Limit Texas Hold'em and 5-Card Draw, 6-max AI personalities, Bicycle cards & hand evaluation.
+Deluxe casino poker table featuring No-Limit Texas Hold'em and 5-Card Draw, 6-max AI personalities, Codecaine Royale cards & hand evaluation.
 
 ![Codecaine Texas Hold'em & 5-Card Draw Poker Royale](screenshots/apps/poker_desktop.png)
 
 `bun run app:draw`
 
-### 🏓 Codecaine Neon Cyber Pong
+### 🏓 Codecaine Neon Cyber Paddle
 
-High-speed kinetic Pong with fluid spin physics, multi-tier AI opponents & local 2-player battle.
+High-speed kinetic Cyber Paddle with fluid spin physics, multi-tier AI opponents & local 2-player battle.
 
-![Codecaine Neon Cyber Pong](screenshots/apps/pong_desktop.png)
+![Codecaine Neon Cyber Paddle](screenshots/apps/pong_desktop.png)
 
 `bun run app:pong`  ·  [User guide](docs/userguides/38_pong_arcade.md)
 
 ### 🎴 Codecaine Egyptian Rat Screw Royale
 
-High-speed reflex card slapper with authentic Bicycle vector cards, face card challenges, customizable slap rules & multi-CPU AI.
+High-speed reflex card slapper with authentic Codecaine Royale vector cards, face card challenges, customizable slap rules & multi-CPU AI.
 
 ![Codecaine Egyptian Rat Screw Royale](screenshots/apps/rat_screw_desktop.png)
 
 `bun run app:ers`
 
-### 🧀 Codecaine Rodent's Revenge Deluxe
+### 🧀 Codecaine CyberMouse Trap Deluxe
 
-Deluxe arcade revival of Rodent's Revenge with neon retro maze, cat trapping & high scores.
+Deluxe arcade revival of CyberMouse Trap with neon retro maze, cat trapping & high scores.
 
-![Codecaine Rodent's Revenge Deluxe](screenshots/apps/rodents_revenge_desktop.png)
+![Codecaine CyberMouse Trap Deluxe](screenshots/apps/rodents_revenge_desktop.png)
 
 `bun run app:rodents_revenge`  ·  [User guide](docs/userguides/31_rodents_revenge_deluxe.md)
 
-### ⛷️ Codecaine SkiFree Deluxe
+### ⛷️ Codecaine CyberSki Deluxe
 
 Authentic downhill alpine skiing with freestyle tricks, slalom gates & the ravenous Yeti chase.
 
-![Codecaine SkiFree Deluxe](screenshots/apps/skifree_desktop.png)
+![Codecaine CyberSki Deluxe](screenshots/apps/skifree_desktop.png)
 
 `bun run app:ski`
 
@@ -571,11 +571,11 @@ High-speed glowing cyber snake with looping walls and combo multipliers.
 
 `bun run app:snake`
 
-### 🧱 Codecaine Tetris Ultra Deluxe
+### 🧱 Codecaine TetroGrid Ultra Deluxe
 
 Modern 7-bag SRS block puzzle with T-Spin/B2B telemetry, 4 modes, 3-next queue & synthwave themes.
 
-![Codecaine Tetris Ultra Deluxe](screenshots/apps/tetris_desktop.png)
+![Codecaine TetroGrid Ultra Deluxe](screenshots/apps/tetris_desktop.png)
 
 `bun run app:tetris`
 
@@ -589,7 +589,7 @@ Unbeatable Minimax AI and 2-player local versus battle with glowing neon canvas 
 
 ### ⌨️ Codecaine CyberType Deluxe
 
-Modern touch-typing academy with 10-step guided tutorial, 18-lesson curriculum, Keybr adaptive AI, multi-layout keyboard, and WebAudio switches.
+Modern touch-typing academy with 10-step guided tutorial, 18-lesson curriculum, Codecaine Adaptive AI, multi-layout keyboard, and WebAudio switches.
 
 ![Codecaine CyberType Deluxe](screenshots/apps/typing_desktop.png)
 
@@ -603,11 +603,11 @@ AAA cyber word search with Web Audio synthesizer, neon particle visual effects &
 
 `bun run app:word_search`  ·  [User guide](docs/userguides/32_word_search_labyrinth.md)
 
-### 🎲 Codecaine Yahtzee Royale Deluxe
+### 🎲 Codecaine Yacht Dice Royale Deluxe
 
-Deluxe classic Yahtzee dice board studio with 3D tactile dice, authentic Milton Bradley scorecard, +35 upper bonus, Yahtzee Jokers & AI opponent.
+Deluxe classic Yacht Dice board studio with 3D tactile dice, authentic Codecaine championship scorecard, +35 upper bonus, Yacht Jokers & AI opponent.
 
-![Codecaine Yahtzee Royale Deluxe](screenshots/apps/yahtzee_desktop.png)
+![Codecaine Yacht Dice Royale Deluxe](screenshots/apps/yahtzee_desktop.png)
 
 `bun run app:dice`
 

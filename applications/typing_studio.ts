@@ -1,5 +1,5 @@
 /**
- * ⚡ Codecaine CyberType Deluxe — Mavis Master Edition Studio
+ * ⚡ Codecaine CyberType Deluxe — Codecaine Master Edition Studio
  *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  */
@@ -87,7 +87,7 @@ export function startTypingServer(options: TypingServerOptions = {}) {
   return startStaticStudioServer(
     {
       app: "typing_studio",
-      name: "Codecaine CyberType Deluxe — Mavis Master Edition",
+      name: "Codecaine CyberType Deluxe — Codecaine Master Edition",
       version: "2.0.0",
       assetsDir: getTypingAssetsDir(),
       generateHtml: generateTypingStudioHtml,
@@ -101,7 +101,7 @@ export function createTypingStudio(options: TypingStudioOptions = {}): TypingStu
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1280);
   const height = options.height ?? (fullscreen ? screen.height : 820);
-  const title = "Codecaine CyberType Deluxe — Mavis Edition";
+  const title = "Codecaine CyberType Deluxe — Codecaine Edition";
 
   const app: TypingStudioInstance = {
     title,
@@ -196,7 +196,7 @@ export class TypingStudio {
         height: 800,
         hint: SizeHint.NONE,
       });
-      this.webview.title = "Codecaine CyberType Deluxe — Mavis Edition";
+      this.webview.title = "Codecaine CyberType Deluxe — Codecaine Edition";
       attachWindowShortcuts(this.webview, { fullscreen: false });
 
       const htmlContent = generateTypingStudioHtml();
@@ -227,7 +227,7 @@ export class TypingStudio {
               features: [
                 "interactive-10-step-tutorial",
                 "18-lesson-academy-curriculum",
-                "keybr-adaptive-ai",
+                "codecaine-adaptive-ai",
                 "multi-layout-keyboard",
                 "pace-ghost-runner",
                 "per-finger-telemetry",

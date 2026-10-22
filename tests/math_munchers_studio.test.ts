@@ -9,14 +9,14 @@ import {
 } from "../applications/math_munchers_studio.ts";
 import { scanWorkspaceApps } from "../applications/launcher_studio.ts";
 
-describe("👾 Math Munchers Deluxe — Cyber Legends Arcade Suite", () => {
+describe("👾 CyberMunch Math Deluxe — Cyber Legends Arcade Suite", () => {
   it("1. Static assets are present, readable, and properly structured", () => {
     const dir = getMathMunchersAssetsDir();
     expect(existsSync(join(dir, "index.html"))).toBe(true);
     expect(existsSync(join(dir, "favicon.svg"))).toBe(true);
 
     const html = readFileSync(join(dir, "index.html"), "utf8");
-    expect(html).toContain("Math Munchers");
+    expect(html).toContain("CyberMunch Math");
     expect(html).toContain("AudioEngine");
     expect(html).toContain("troggles");
     expect(html).toContain("gameCanvas");
@@ -25,14 +25,14 @@ describe("👾 Math Munchers Deluxe — Cyber Legends Arcade Suite", () => {
 
   it("2. generateMathMunchersStudioHtml injects desktop window shortcuts", () => {
     const html = generateMathMunchersStudioHtml();
-    expect(html).toContain("Math Munchers");
+    expect(html).toContain("CyberMunch Math");
     expect(html).toContain("window.addEventListener");
     expect(html).toContain("btnHub");
   });
 
   it("3. Studio factory generates correct defaults and instance contracts", () => {
     const app = createMathMunchersStudio({ fullscreen: false, width: 1100, height: 850 });
-    expect(app.title).toContain("Math Munchers Deluxe");
+    expect(app.title).toContain("CyberMunch Math Deluxe");
     expect(app.width).toBe(1100);
     expect(app.height).toBe(850);
     expect(app.fullscreen).toBe(false);
@@ -49,7 +49,7 @@ describe("👾 Math Munchers Deluxe — Cyber Legends Arcade Suite", () => {
       const resHtml = await fetch(`${base}/`);
       expect(resHtml.status).toBe(200);
       const textHtml = await resHtml.text();
-      expect(textHtml).toContain("Math Munchers");
+      expect(textHtml).toContain("CyberMunch Math");
 
       // Favicon endpoint
       const resFav = await fetch(`${base}/favicon.svg`);
@@ -62,19 +62,19 @@ describe("👾 Math Munchers Deluxe — Cyber Legends Arcade Suite", () => {
       const healthData = await resHealth.json() as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("math_munchers_studio");
-      expect(healthData.name).toContain("Math Munchers Deluxe");
+      expect(healthData.name).toContain("CyberMunch Math Deluxe");
     } finally {
       server.stop(true);
     }
   });
 
-  it("5. Launcher Studio automatically registers and surfaces Math Munchers", () => {
+  it("5. Launcher Studio automatically registers and surfaces CyberMunch Math", () => {
     const apps = scanWorkspaceApps();
     const found = apps.find((a) => a.name === "math_munchers_studio" || a.id === "rad_math_munchers_studio");
     expect(found).toBeDefined();
-    expect(found?.displayName).toBe("Codecaine Math Munchers Deluxe");
+    expect(found?.displayName).toBe("Codecaine CyberMunch Math Deluxe");
     expect(found?.icon).toBe("👾");
     expect(found?.category).toBe("Games & Entertainment");
-    expect(found?.description).toContain("Troggles");
+    expect(found?.description).toContain("Glitchers");
   });
 });

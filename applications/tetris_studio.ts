@@ -1,5 +1,5 @@
 /**
- * ⚡ Codecaine Tetris Ultra Deluxe — Cyber Grid Master Edition Studio
+ * ⚡ Codecaine TetroGrid Ultra Deluxe — Cyber Grid Master Edition Studio
  *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
@@ -73,7 +73,7 @@ export function generateTetrisStudioHtml(): string {
 
   let html = existsSync(indexPath)
     ? readFileSync(indexPath, "utf8")
-    : "<h1>Codecaine Tetris Ultra Deluxe</h1>";
+    : "<h1>Codecaine TetroGrid Ultra Deluxe</h1>";
 
   const storagePolyfill = `
   <script>
@@ -142,7 +142,7 @@ export function startTetrisServer(options: TetrisServerOptions = {}) {
   return startStaticStudioServer(
     {
       app: "tetris_studio",
-      name: "Codecaine Tetris Ultra Deluxe — Cyber Grid Master Edition",
+      name: "Codecaine TetroGrid Ultra Deluxe — Cyber Grid Master Edition",
       version: "2.0.0",
       assetsDir: getTetrisAssetsDir(),
       generateHtml: generateTetrisStudioHtml,
@@ -156,7 +156,7 @@ export function createTetrisStudio(options: TetrisStudioOptions = {}): TetrisStu
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1080);
   const height = options.height ?? (fullscreen ? screen.height : 820);
-  const title = "Codecaine Tetris Ultra Deluxe — Cyber Grid Master Edition";
+  const title = "Codecaine TetroGrid Ultra Deluxe — Cyber Grid Master Edition";
 
   const app: TetrisStudioInstance = {
     title,
@@ -165,7 +165,7 @@ export function createTetrisStudio(options: TetrisStudioOptions = {}): TetrisStu
     fullscreen,
     generateHtml: () => generateTetrisStudioHtml(),
     run: async () => {
-      console.log("⚡ Launching Codecaine Tetris Ultra Deluxe...");
+      console.log("⚡ Launching Codecaine TetroGrid Ultra Deluxe...");
       const html = generateTetrisStudioHtml();
 
       let srv: any = null;

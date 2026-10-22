@@ -3,7 +3,7 @@
  * 
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
- * - Authentic 1983 Mario Bros. arcade remaster with high-speed bumping physics
+ * - Authentic 1983 Codecaine Bros. arcade remaster with high-speed bumping physics
  * - 4-channel polyphonic arcade sound tracker with custom noise bursts & frequency sweeps
  * - Suspended interactive POW block, rocking flipped enemies & multiplier combos
  * - Responsive canvas with touch controls, gamepads & keyboard hotkeys

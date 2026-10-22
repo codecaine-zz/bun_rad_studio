@@ -1,9 +1,9 @@
 /**
- * 🃏 Joker Royale — Balatro Deluxe Roguelike Poker Studio
+ * 🃏 Codecaine Joker Royale — Cyber Deckbuilder Studio
  * 
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
- * - Authentic, high-fidelity Balatro roguelike poker deckbuilder with Ante & Blind progression
+ * - Authentic, high-fidelity roguelike poker deckbuilder with Ante & Blind progression
  * - Dynamic 3D gyro card physics, procedural chiptune synth music & tactical sound effects
  * - 30+ synergistic Jokers (Blueprint, Cavendish, Baron, Bloodstone, Gros Michel, Cyber Quantum)
  * - Tarots, Celestial Planet hand level-ups, Boss Blinds (The Wall, The Hook, The Needle, The Eye)
@@ -149,7 +149,7 @@ ${getWindowShortcutsScript()}
  */
 export function startBalatroServer(options: BalatroServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "balatro_studio", name: "Codecaine Joker Royale — Balatro Deluxe", version: "1.0.0", assetsDir: getBalatroAssetsDir(), generateHtml: generateBalatroStudioHtml },
+    { app: "balatro_studio", name: "Codecaine Joker Royale Deluxe", version: "1.0.0", assetsDir: getBalatroAssetsDir(), generateHtml: generateBalatroStudioHtml },
     options,
   );
 }
@@ -162,7 +162,7 @@ export function createBalatroStudio(options: BalatroStudioOptions = {}): Balatro
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1240);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Codecaine Joker Royale — Balatro Deluxe Roguelike Poker Studio";
+  const title = "Codecaine Joker Royale — Cyber Deckbuilder Studio";
 
   const app: BalatroStudioInstance = {
     title,
@@ -171,7 +171,7 @@ export function createBalatroStudio(options: BalatroStudioOptions = {}): Balatro
     fullscreen,
     generateHtml: () => generateBalatroStudioHtml(),
     run: async () => {
-      console.log("⚡ Launching Joker Royale (Balatro Deluxe)...");
+      console.log("⚡ Launching Codecaine Joker Royale Deluxe...");
       const html = generateBalatroStudioHtml();
 
       let srv: any = null;

@@ -151,27 +151,27 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
   });
 
   // ---------------------------------------------------------------------------
-  // 3. Adventures of Lolo Remaster
+  // 3. Adventures of Caine Remaster
   // ---------------------------------------------------------------------------
-  describe("3. Adventures of Lolo Remaster", () => {
+  describe("3. Adventures of Caine Remaster", () => {
     it("Static assets are present and readable", () => {
       const dir = getLoloAssetsDir();
       expect(existsSync(join(dir, "index.html"))).toBe(true);
       expect(existsSync(join(dir, "manual.html"))).toBe(true);
       expect(existsSync(join(dir, "favicon.png"))).toBe(true);
       const html = readFileSync(join(dir, "index.html"), "utf8");
-      expect(html).toContain("Adventures of Lolo");
+      expect(html).toContain("Adventures of Caine");
     });
 
     it("HTML generation injects desktop shortcuts", () => {
       const html = generateLoloStudioHtml();
-      expect(html).toContain("Adventures of Lolo");
+      expect(html).toContain("Adventures of Caine");
       expect(html).toContain("requestInitialFullscreen");
     });
 
     it("Desktop instance initializes properly", () => {
       const studio = createLoloStudio({ fullscreen: true });
-      expect(studio.title).toContain("Adventures of Lolo");
+      expect(studio.title).toContain("Adventures of Caine");
       expect(studio.fullscreen).toBe(true);
     });
 
@@ -197,26 +197,26 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
   });
 
   // ---------------------------------------------------------------------------
-  // 4. Rodent's Revenge Deluxe
+  // 4. CyberMouse Trap Deluxe
   // ---------------------------------------------------------------------------
-  describe("4. Rodent's Revenge Deluxe", () => {
+  describe("4. CyberMouse Trap Deluxe", () => {
     it("Static assets are present and readable", () => {
       const dir = getRodentsRevengeAssetsDir();
       expect(existsSync(join(dir, "index.html"))).toBe(true);
       expect(existsSync(join(dir, "favicon.svg"))).toBe(true);
       const html = readFileSync(join(dir, "index.html"), "utf8");
-      expect(html).toContain("Rodent's Revenge");
+      expect(html).toContain("CyberMouse Trap");
     });
 
     it("HTML generation injects desktop shortcuts", () => {
       const html = generateRodentsRevengeStudioHtml();
-      expect(html).toContain("Rodent's Revenge");
+      expect(html).toContain("CyberMouse Trap");
       expect(html).toContain("requestInitialFullscreen");
     });
 
     it("Desktop instance initializes properly", () => {
       const studio = createRodentsRevengeStudio({ fullscreen: true });
-      expect(studio.title).toContain("Rodent's Revenge");
+      expect(studio.title).toContain("CyberMouse Trap");
       expect(studio.fullscreen).toBe(true);
     });
 
@@ -335,27 +335,27 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
   });
 
   // ---------------------------------------------------------------------------
-  // 6b. Cyberpunk Pac-Man Arcade
+  // 6b. CyberChomp Arcade
   // ---------------------------------------------------------------------------
-  describe("6b. Cyberpunk Pac-Man Arcade", () => {
+  describe("6b. CyberChomp Arcade", () => {
     it("Static assets are present and readable", () => {
       const dir = getPacmanAssetsDir();
       expect(existsSync(join(dir, "index.html"))).toBe(true);
       expect(existsSync(join(dir, "favicon.svg"))).toBe(true);
       const html = readFileSync(join(dir, "index.html"), "utf8");
-      expect(html).toContain("Pac-Man");
+      expect(html).toContain("CyberChomp");
       expect(html).not.toContain("<?=");
     });
 
     it("HTML generation injects desktop shortcuts", () => {
       const html = generatePacmanStudioHtml();
-      expect(html).toContain("Pac-Man");
+      expect(html).toContain("CyberChomp");
       expect(html).toContain("requestInitialFullscreen");
     });
 
     it("Desktop instance initializes properly", () => {
       const studio = createPacmanStudio({ fullscreen: true });
-      expect(studio.title).toContain("Pac-Man");
+      expect(studio.title).toContain("CyberChomp");
       expect(studio.fullscreen).toBe(true);
     });
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Codecaine Utility Suite - Codecaine Cyberpunk Pac-Man Arcade
+# Codecaine Utility Suite - Codecaine CyberChomp Arcade
 # Type: GUI | Script: applications/pacman_studio.ts
 # ==============================================================================
 set -e

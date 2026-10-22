@@ -4,7 +4,7 @@
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - High-roller multi-hand VIP casino Blackjack with 3 simultaneous betting spots (Left, Center Main, Right)
- * - Complete Authentic Bicycle/Bee casino-grade vector playing cards (12-figure French Court suite, Acanthus Aces, rosette backs)
+ * - Complete Authentic Codecaine Royale casino-grade vector playing cards (12-figure French Court suite, Acanthus Aces, rosette backs)
  * - 6-deck shoe with realistic shuffle penetration, cut card insertion, and real-time Hi-Lo card counting telemetry (Running & True Count)
  * - Classic Casino Rules: Natural 21 pays 3:2, Dealer stands on all 17s, Hole-card peek on Ace/10, Late Surrender (50% refund)
  * - Action-packed splitting (matching ranks), Double Down (any initial two cards), and Insurance against Dealer Ace

@@ -1,7 +1,7 @@
 {
   "suite": "Codecaine Utility Suite",
   "version": "1.0.0",
-  "generatedAt": "2026-10-22T13:10:11.294Z",
+  "generatedAt": "2026-10-22T18:59:26.055Z",
   "totalWrappers": 262,
   "commands": [
     {
@@ -1295,7 +1295,7 @@
     {
       "name": "codecaine-balatro-studio",
       "type": "gui",
-      "displayName": "Codecaine Joker Royale (Balatro Deluxe)",
+      "displayName": "Codecaine Joker Royale Deluxe",
       "category": "Games & Entertainment",
       "description": "Roguelike poker deckbuilder with Ante & Blind runs, 30+ Jokers, 3D card tilt physics & synth audio",
       "targetScript": "applications/balatro_studio.ts"
@@ -1303,7 +1303,7 @@
     {
       "name": "codecaine-balatro",
       "type": "gui",
-      "displayName": "Codecaine Joker Royale (Balatro Deluxe)",
+      "displayName": "Codecaine Joker Royale Deluxe",
       "category": "Games & Entertainment",
       "description": "Roguelike poker deckbuilder with Ante & Blind runs, 30+ Jokers, 3D card tilt physics & synth audio",
       "targetScript": "applications/balatro_studio.ts"
@@ -1313,7 +1313,7 @@
       "type": "gui",
       "displayName": "Codecaine Blackjack Royale VIP",
       "category": "Games & Entertainment",
-      "description": "High-roller multi-hand VIP casino Blackjack with 3-spot betting, Bicycle vector cards, 6-deck shoe Hi-Lo telemetry, split/double, & side bets",
+      "description": "High-roller multi-hand VIP casino Blackjack with 3-spot betting, Codecaine Royale vector cards, 6-deck shoe Hi-Lo telemetry, split/double, & side bets",
       "targetScript": "applications/blackjack_studio.ts"
     },
     {
@@ -1321,23 +1321,23 @@
       "type": "gui",
       "displayName": "Codecaine Blackjack Royale VIP",
       "category": "Games & Entertainment",
-      "description": "High-roller multi-hand VIP casino Blackjack with 3-spot betting, Bicycle vector cards, 6-deck shoe Hi-Lo telemetry, split/double, & side bets",
+      "description": "High-roller multi-hand VIP casino Blackjack with 3-spot betting, Codecaine Royale vector cards, 6-deck shoe Hi-Lo telemetry, split/double, & side bets",
       "targetScript": "applications/blackjack_studio.ts"
     },
     {
       "name": "codecaine-breakout-studio",
       "type": "gui",
-      "displayName": "Codecaine Cyber Breakout Deluxe",
+      "displayName": "Codecaine CyberBrick Breaker Deluxe",
       "category": "Games & Entertainment",
-      "description": "Deluxe Breakout arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support",
+      "description": "Deluxe CyberBrick Breaker arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support",
       "targetScript": "applications/breakout_studio.ts"
     },
     {
       "name": "codecaine-breakout",
       "type": "gui",
-      "displayName": "Codecaine Cyber Breakout Deluxe",
+      "displayName": "Codecaine CyberBrick Breaker Deluxe",
       "category": "Games & Entertainment",
-      "description": "Deluxe Breakout arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support",
+      "description": "Deluxe CyberBrick Breaker arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support",
       "targetScript": "applications/breakout_studio.ts"
     },
     {
@@ -1377,7 +1377,7 @@
       "type": "gui",
       "displayName": "Codecaine Bros. Arcade",
       "category": "Games & Entertainment",
-      "description": "Authentic 1983 Mario Bros. arcade remaster with high-speed bumping physics, POW block & 4-channel sound",
+      "description": "Authentic 1983 Codecaine Bros. arcade remaster with high-speed bumping physics, POW block & 4-channel sound",
       "targetScript": "applications/codecaine_bros_studio.ts"
     },
     {
@@ -1385,7 +1385,7 @@
       "type": "gui",
       "displayName": "Codecaine Bros. Arcade",
       "category": "Games & Entertainment",
-      "description": "Authentic 1983 Mario Bros. arcade remaster with high-speed bumping physics, POW block & 4-channel sound",
+      "description": "Authentic 1983 Codecaine Bros. arcade remaster with high-speed bumping physics, POW block & 4-channel sound",
       "targetScript": "applications/codecaine_bros_studio.ts"
     },
     {
@@ -1393,7 +1393,7 @@
       "type": "gui",
       "displayName": "Codecaine Bros Arcade",
       "category": "Games & Entertainment",
-      "description": "Authentic 1983 Mario Bros. arcade remaster with high-speed bumping physics, POW block & 4-channel sound",
+      "description": "Authentic 1983 Codecaine Bros. arcade remaster with high-speed bumping physics, POW block & 4-channel sound",
       "targetScript": "applications/codecaine_bros_studio.ts"
     },
     {
@@ -1407,17 +1407,17 @@
     {
       "name": "codecaine-connect4-studio",
       "type": "gui",
-      "displayName": "Codecaine Cyberpunk Connect 4",
+      "displayName": "Codecaine Cyberpunk QuadLink 4",
       "category": "Games & Entertainment",
-      "description": "Neon Connect 4 arcade with minimax AI heuristics, 2-player local battle & particle drop physics",
+      "description": "Neon QuadLink 4 arcade with minimax AI heuristics, 2-player local battle & particle drop physics",
       "targetScript": "applications/connect4_studio.ts"
     },
     {
       "name": "codecaine-connect4",
       "type": "gui",
-      "displayName": "Codecaine Cyberpunk Connect 4",
+      "displayName": "Codecaine Cyberpunk QuadLink 4",
       "category": "Games & Entertainment",
-      "description": "Neon Connect 4 arcade with minimax AI heuristics, 2-player local battle & particle drop physics",
+      "description": "Neon QuadLink 4 arcade with minimax AI heuristics, 2-player local battle & particle drop physics",
       "targetScript": "applications/connect4_studio.ts"
     },
     {
@@ -1527,17 +1527,17 @@
     {
       "name": "codecaine-flappy-bird-studio",
       "type": "gui",
-      "displayName": "Codecaine Flappy Bird Deluxe",
+      "displayName": "Codecaine CyberWing Deluxe",
       "category": "Games & Entertainment",
-      "description": "Cyberpunk kinetic Flappy Bird arcade with energy conduits, medal achievements, parallax sky & WebAudio synth",
+      "description": "Cyberpunk kinetic CyberWing arcade with energy conduits, medal achievements, parallax sky & WebAudio synth",
       "targetScript": "applications/flappy_bird_studio.ts"
     },
     {
       "name": "codecaine-flappy-bird",
       "type": "gui",
-      "displayName": "Codecaine Flappy Bird Deluxe",
+      "displayName": "Codecaine CyberWing Deluxe",
       "category": "Games & Entertainment",
-      "description": "Cyberpunk kinetic Flappy Bird arcade with energy conduits, medal achievements, parallax sky & WebAudio synth",
+      "description": "Cyberpunk kinetic CyberWing arcade with energy conduits, medal achievements, parallax sky & WebAudio synth",
       "targetScript": "applications/flappy_bird_studio.ts"
     },
     {
@@ -1615,17 +1615,17 @@
     {
       "name": "codecaine-lolo-studio",
       "type": "gui",
-      "displayName": "Codecaine Adventures of Lolo Remaster",
+      "displayName": "Codecaine Adventures of Caine Remaster",
       "category": "Games & Entertainment",
-      "description": "Cyberpunk remastered Adventures of Lolo with procedural puzzles, sound engine & visual manual",
+      "description": "Cyberpunk remastered Adventures of Caine with procedural puzzles, sound engine & visual manual",
       "targetScript": "applications/lolo_studio.ts"
     },
     {
       "name": "codecaine-lolo",
       "type": "gui",
-      "displayName": "Codecaine Adventures of Lolo Remaster",
+      "displayName": "Codecaine Adventures of Caine Remaster",
       "category": "Games & Entertainment",
-      "description": "Cyberpunk remastered Adventures of Lolo with procedural puzzles, sound engine & visual manual",
+      "description": "Cyberpunk remastered Adventures of Caine with procedural puzzles, sound engine & visual manual",
       "targetScript": "applications/lolo_studio.ts"
     },
     {
@@ -1639,17 +1639,17 @@
     {
       "name": "codecaine-math-munchers-studio",
       "type": "gui",
-      "displayName": "Codecaine Math Munchers Deluxe",
+      "displayName": "Codecaine CyberMunch Math Deluxe",
       "category": "Games & Entertainment",
-      "description": "Cyberpunk Math Munchers classic with Troggles AI, CRT shaders, pentatonic synth & multiple game modes",
+      "description": "Cyberpunk CyberMunch Math classic with Glitchers AI, CRT shaders, pentatonic synth & multiple game modes",
       "targetScript": "applications/math_munchers_studio.ts"
     },
     {
       "name": "codecaine-math-munchers",
       "type": "gui",
-      "displayName": "Codecaine Math Munchers Deluxe",
+      "displayName": "Codecaine CyberMunch Math Deluxe",
       "category": "Games & Entertainment",
-      "description": "Cyberpunk Math Munchers classic with Troggles AI, CRT shaders, pentatonic synth & multiple game modes",
+      "description": "Cyberpunk CyberMunch Math classic with Glitchers AI, CRT shaders, pentatonic synth & multiple game modes",
       "targetScript": "applications/math_munchers_studio.ts"
     },
     {
@@ -1743,17 +1743,17 @@
     {
       "name": "codecaine-pacman-studio",
       "type": "gui",
-      "displayName": "Codecaine Cyberpunk Pac-Man Arcade",
+      "displayName": "Codecaine CyberChomp Arcade",
       "category": "Games & Entertainment",
-      "description": "Authentic Cyberpunk Pac-Man arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects",
+      "description": "Authentic CyberChomp arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects",
       "targetScript": "applications/pacman_studio.ts"
     },
     {
       "name": "codecaine-pacman",
       "type": "gui",
-      "displayName": "Codecaine Cyberpunk Pac-Man Arcade",
+      "displayName": "Codecaine CyberChomp Arcade",
       "category": "Games & Entertainment",
-      "description": "Authentic Cyberpunk Pac-Man arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects",
+      "description": "Authentic CyberChomp arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects",
       "targetScript": "applications/pacman_studio.ts"
     },
     {
@@ -1777,7 +1777,7 @@
       "type": "gui",
       "displayName": "Codecaine Texas Hold'em & 5-Card Draw Poker Royale",
       "category": "Games & Entertainment",
-      "description": "Deluxe casino poker table featuring No-Limit Texas Hold'em and 5-Card Draw, 6-max AI personalities, Bicycle cards & hand evaluation",
+      "description": "Deluxe casino poker table featuring No-Limit Texas Hold'em and 5-Card Draw, 6-max AI personalities, Codecaine Royale cards & hand evaluation",
       "targetScript": "applications/poker_studio.ts"
     },
     {
@@ -1785,23 +1785,23 @@
       "type": "gui",
       "displayName": "Codecaine Texas Hold'em & 5-Card Draw Poker Royale",
       "category": "Games & Entertainment",
-      "description": "Deluxe casino poker table featuring No-Limit Texas Hold'em and 5-Card Draw, 6-max AI personalities, Bicycle cards & hand evaluation",
+      "description": "Deluxe casino poker table featuring No-Limit Texas Hold'em and 5-Card Draw, 6-max AI personalities, Codecaine Royale cards & hand evaluation",
       "targetScript": "applications/poker_studio.ts"
     },
     {
       "name": "codecaine-pong-studio",
       "type": "gui",
-      "displayName": "Codecaine Neon Cyber Pong",
+      "displayName": "Codecaine Neon Cyber Paddle",
       "category": "Games & Entertainment",
-      "description": "High-speed kinetic Pong with fluid spin physics, multi-tier AI opponents & local 2-player battle",
+      "description": "High-speed kinetic Cyber Paddle with fluid spin physics, multi-tier AI opponents & local 2-player battle",
       "targetScript": "applications/pong_studio.ts"
     },
     {
       "name": "codecaine-pong",
       "type": "gui",
-      "displayName": "Codecaine Neon Cyber Pong",
+      "displayName": "Codecaine Neon Cyber Paddle",
       "category": "Games & Entertainment",
-      "description": "High-speed kinetic Pong with fluid spin physics, multi-tier AI opponents & local 2-player battle",
+      "description": "High-speed kinetic Cyber Paddle with fluid spin physics, multi-tier AI opponents & local 2-player battle",
       "targetScript": "applications/pong_studio.ts"
     },
     {
@@ -1849,7 +1849,7 @@
       "type": "gui",
       "displayName": "Codecaine Egyptian Rat Screw Royale",
       "category": "Games & Entertainment",
-      "description": "High-speed reflex card slapper with authentic Bicycle vector cards, face card challenges, customizable slap rules & multi-CPU AI",
+      "description": "High-speed reflex card slapper with authentic Codecaine Royale vector cards, face card challenges, customizable slap rules & multi-CPU AI",
       "targetScript": "applications/rat_screw_studio.ts"
     },
     {
@@ -1857,7 +1857,7 @@
       "type": "gui",
       "displayName": "Codecaine Egyptian Rat Screw Royale",
       "category": "Games & Entertainment",
-      "description": "High-speed reflex card slapper with authentic Bicycle vector cards, face card challenges, customizable slap rules & multi-CPU AI",
+      "description": "High-speed reflex card slapper with authentic Codecaine Royale vector cards, face card challenges, customizable slap rules & multi-CPU AI",
       "targetScript": "applications/rat_screw_studio.ts"
     },
     {
@@ -1887,17 +1887,17 @@
     {
       "name": "codecaine-rodents-revenge-studio",
       "type": "gui",
-      "displayName": "Codecaine Rodent's Revenge Deluxe",
+      "displayName": "Codecaine CyberMouse Trap Deluxe",
       "category": "Games & Entertainment",
-      "description": "Deluxe arcade revival of Rodent's Revenge with neon retro maze, cat trapping & high scores",
+      "description": "Deluxe arcade revival of CyberMouse Trap with neon retro maze, cat trapping & high scores",
       "targetScript": "applications/rodents_revenge_studio.ts"
     },
     {
       "name": "codecaine-rodents-revenge",
       "type": "gui",
-      "displayName": "Codecaine Rodent's Revenge Deluxe",
+      "displayName": "Codecaine CyberMouse Trap Deluxe",
       "category": "Games & Entertainment",
-      "description": "Deluxe arcade revival of Rodent's Revenge with neon retro maze, cat trapping & high scores",
+      "description": "Deluxe arcade revival of CyberMouse Trap with neon retro maze, cat trapping & high scores",
       "targetScript": "applications/rodents_revenge_studio.ts"
     },
     {
@@ -1911,7 +1911,7 @@
     {
       "name": "codecaine-skifree-studio",
       "type": "gui",
-      "displayName": "Codecaine SkiFree Deluxe",
+      "displayName": "Codecaine CyberSki Deluxe",
       "category": "Games & Entertainment",
       "description": "Authentic downhill alpine skiing with freestyle tricks, slalom gates & the ravenous Yeti chase",
       "targetScript": "applications/skifree_studio.ts"
@@ -1919,7 +1919,7 @@
     {
       "name": "codecaine-skifree",
       "type": "gui",
-      "displayName": "Codecaine SkiFree Deluxe",
+      "displayName": "Codecaine CyberSki Deluxe",
       "category": "Games & Entertainment",
       "description": "Authentic downhill alpine skiing with freestyle tricks, slalom gates & the ravenous Yeti chase",
       "targetScript": "applications/skifree_studio.ts"
@@ -1983,7 +1983,7 @@
     {
       "name": "codecaine-tetris-studio",
       "type": "gui",
-      "displayName": "Codecaine Tetris Ultra Deluxe",
+      "displayName": "Codecaine TetroGrid Ultra Deluxe",
       "category": "Games & Entertainment",
       "description": "Modern 7-bag SRS block puzzle with T-Spin/B2B telemetry, 4 modes, 3-next queue & synthwave themes",
       "targetScript": "applications/tetris_studio.ts"
@@ -1991,7 +1991,7 @@
     {
       "name": "codecaine-tetris",
       "type": "gui",
-      "displayName": "Codecaine Tetris Ultra Deluxe",
+      "displayName": "Codecaine TetroGrid Ultra Deluxe",
       "category": "Games & Entertainment",
       "description": "Modern 7-bag SRS block puzzle with T-Spin/B2B telemetry, 4 modes, 3-next queue & synthwave themes",
       "targetScript": "applications/tetris_studio.ts"
@@ -2025,7 +2025,7 @@
       "type": "gui",
       "displayName": "Codecaine CyberType Deluxe",
       "category": "Games & Entertainment",
-      "description": "Modern touch-typing academy with 10-step guided tutorial, 18-lesson curriculum, Keybr adaptive AI, multi-layout keyboard, and WebAudio switches.",
+      "description": "Modern touch-typing academy with 10-step guided tutorial, 18-lesson curriculum, Codecaine Adaptive AI, multi-layout keyboard, and WebAudio switches.",
       "targetScript": "applications/typing_studio.ts"
     },
     {
@@ -2033,7 +2033,7 @@
       "type": "gui",
       "displayName": "Codecaine CyberType Deluxe",
       "category": "Games & Entertainment",
-      "description": "Modern touch-typing academy with 10-step guided tutorial, 18-lesson curriculum, Keybr adaptive AI, multi-layout keyboard, and WebAudio switches.",
+      "description": "Modern touch-typing academy with 10-step guided tutorial, 18-lesson curriculum, Codecaine Adaptive AI, multi-layout keyboard, and WebAudio switches.",
       "targetScript": "applications/typing_studio.ts"
     },
     {
@@ -2087,17 +2087,17 @@
     {
       "name": "codecaine-yahtzee-studio",
       "type": "gui",
-      "displayName": "Codecaine Yahtzee Royale Deluxe",
+      "displayName": "Codecaine Yacht Dice Royale Deluxe",
       "category": "Games & Entertainment",
-      "description": "Deluxe classic Yahtzee dice board studio with 3D tactile dice, authentic Milton Bradley scorecard, +35 upper bonus, Yahtzee Jokers & AI opponent",
+      "description": "Deluxe classic Yacht Dice board studio with 3D tactile dice, authentic Codecaine championship scorecard, +35 upper bonus, Yacht Jokers & AI opponent",
       "targetScript": "applications/yahtzee_studio.ts"
     },
     {
       "name": "codecaine-yahtzee",
       "type": "gui",
-      "displayName": "Codecaine Yahtzee Royale Deluxe",
+      "displayName": "Codecaine Yacht Dice Royale Deluxe",
       "category": "Games & Entertainment",
-      "description": "Deluxe classic Yahtzee dice board studio with 3D tactile dice, authentic Milton Bradley scorecard, +35 upper bonus, Yahtzee Jokers & AI opponent",
+      "description": "Deluxe classic Yacht Dice board studio with 3D tactile dice, authentic Codecaine championship scorecard, +35 upper bonus, Yacht Jokers & AI opponent",
       "targetScript": "applications/yahtzee_studio.ts"
     }
   ]

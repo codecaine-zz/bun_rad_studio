@@ -3,7 +3,7 @@
     "title": "API Testing Studio Pro"
   },
   "lolo-studio": {
-    "title": "Codecaine Adventures of Lolo Remaster"
+    "title": "Codecaine Adventures of Caine Remaster"
   },
   "app-bundler-studio": {
     "title": "App Bundler Studio Pro"
@@ -30,7 +30,7 @@
     "title": "Cryptography & Hashing Studio"
   },
   "breakout-studio": {
-    "title": "Codecaine Cyber Breakout Deluxe"
+    "title": "Codecaine CyberBrick Breaker Deluxe"
   },
   "frogger-studio": {
     "title": "Codecaine CyberFrog Deluxe"
@@ -39,13 +39,13 @@
     "title": "Codecaine CyberType Deluxe"
   },
   "connect4-studio": {
-    "title": "Codecaine Cyberpunk Connect 4"
+    "title": "Codecaine Cyberpunk QuadLink 4"
   },
   "maze-generator-studio": {
     "title": "Codecaine Cyberpunk Maze Runner"
   },
   "pacman-studio": {
-    "title": "Codecaine Cyberpunk Pac-Man Arcade"
+    "title": "Codecaine CyberChomp Arcade"
   },
   "doggo-studio": {
     "title": "DNS Query Studio (Doggo)"
@@ -72,7 +72,7 @@
     "title": "Fd Studio Pro"
   },
   "flappy-bird-studio": {
-    "title": "Codecaine Flappy Bird Deluxe"
+    "title": "Codecaine CyberWing Deluxe"
   },
   "git-studio": {
     "title": "Git Version Control Studio"
@@ -90,7 +90,7 @@
     "title": "JQ JSON Query Studio"
   },
   "balatro-studio": {
-    "title": "Codecaine Joker Royale (Balatro Deluxe)"
+    "title": "Codecaine Joker Royale Deluxe"
   },
   "launcher-studio": {
     "title": "Launcher Studio Pro"
@@ -99,7 +99,7 @@
     "title": "Markdown Live Editor Studio"
   },
   "math-munchers-studio": {
-    "title": "Codecaine Math Munchers Deluxe"
+    "title": "Codecaine CyberMunch Math Deluxe"
   },
   "media-player-studio": {
     "title": "Media Player Studio Pro"
@@ -111,7 +111,7 @@
     "title": "MySQL Studio Pro"
   },
   "pong-studio": {
-    "title": "Codecaine Neon Cyber Pong"
+    "title": "Codecaine Neon Cyber Paddle"
   },
   "snake-studio": {
     "title": "Codecaine Neon Snake Deluxe"
@@ -153,13 +153,13 @@
     "title": "Rip Studio Pro"
   },
   "rodents-revenge-studio": {
-    "title": "Codecaine Rodent's Revenge Deluxe"
+    "title": "Codecaine CyberMouse Trap Deluxe"
   },
   "sqlite-studio": {
     "title": "SQLite Studio Pro"
   },
   "skifree-studio": {
-    "title": "Codecaine SkiFree Deluxe"
+    "title": "Codecaine CyberSki Deluxe"
   },
   "sd-studio": {
     "title": "Stream Editor Studio (SD)"
@@ -177,7 +177,7 @@
     "title": "Task Manager & Process Studio"
   },
   "tetris-studio": {
-    "title": "Codecaine Tetris Ultra Deluxe"
+    "title": "Codecaine TetroGrid Ultra Deluxe"
   },
   "poker-studio": {
     "title": "Codecaine Texas Hold'em & 5-Card Draw Poker Royale"
@@ -195,6 +195,6 @@
     "title": "World Time Zones Studio Pro"
   },
   "yahtzee-studio": {
-    "title": "Codecaine Yahtzee Royale Deluxe"
+    "title": "Codecaine Yacht Dice Royale Deluxe"
   }
 }

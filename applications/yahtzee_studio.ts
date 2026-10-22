@@ -1,16 +1,16 @@
 /**
- * 🎲 Yahtzee Royale Deluxe — Classic Dice Board Studio
+ * 🎲 Codecaine Yacht Dice Royale Deluxe — Classic Dice Board Studio
  * 
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
- * - Authentic Milton Bradley 13-category scorecard with upper subtotal bonus (+35 for 63+) and lower section combos
+ * - Authentic 13-category Championship scorecard with upper subtotal bonus (+35 for 63+) and lower section combos
  * - Tactile 3D dice physics and animations with customizable skins (Classic Vegas Red, Ivory Porcelain, Golden Sovereign, Cyberpunk Neon)
  * - Interactive felt rolling tray and kept dice tray with smooth hold/release toggles
  * - Live ghost score projections on scorecard predicting point yields in real-time
- * - Yahtzee Bonus (+100) and official Joker wild rules
+ * - Yacht Bonus (+100) and official Joker wild rules
  * - AI Opponent "The Professor" using probability expected value ($EV$) decision heuristics
  * - Pass & Play local 2-player mode and Solo high score challenge mode
- * - Polyphonic WebAudio synthesizer (cup shaker rattle, tumbling dice on felt, category stamp, Yahtzee victory fanfare)
+ * - Polyphonic WebAudio synthesizer (cup shaker rattle, tumbling dice on felt, category stamp, Yacht victory fanfare)
  * - Hall of Fame records & session statistics with persistent storage
  */
 
@@ -82,7 +82,7 @@ export function generateYahtzeeStudioHtml(): string {
   const assetsDir = getYahtzeeAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Yahtzee Royale Deluxe</h1>";
+  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine Yacht Dice Royale Deluxe</h1>";
 
   const storagePolyfill = `
   <script>
@@ -154,20 +154,20 @@ ${getWindowShortcutsScript()}
  */
 export function startYahtzeeServer(options: YahtzeeServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "yahtzee_studio", name: "Codecaine Yahtzee Royale Deluxe — Classic Dice Board Studio", version: "1.0.0", assetsDir: getYahtzeeAssetsDir(), generateHtml: generateYahtzeeStudioHtml },
+    { app: "yahtzee_studio", name: "Codecaine Yacht Dice Royale Deluxe — Classic Dice Board Studio", version: "1.0.0", assetsDir: getYahtzeeAssetsDir(), generateHtml: generateYahtzeeStudioHtml },
     options,
   );
 }
 
 /**
- * Creates the complete native desktop instance of Yahtzee Royale Deluxe.
+ * Creates the complete native desktop instance of Yacht Dice Royale Deluxe.
  */
 export function createYahtzeeStudio(options: YahtzeeStudioOptions = {}): YahtzeeStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1240);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Codecaine Yahtzee Royale Deluxe — Classic Dice Board Studio";
+  const title = "Codecaine Yacht Dice Royale Deluxe — Classic Dice Board Studio";
 
   const app: YahtzeeStudioInstance = {
     title,
@@ -176,7 +176,7 @@ export function createYahtzeeStudio(options: YahtzeeStudioOptions = {}): Yahtzee
     fullscreen,
     generateHtml: () => generateYahtzeeStudioHtml(),
     run: async () => {
-      console.log("🎲 Launching Yahtzee Royale Deluxe...");
+      console.log("🎲 Launching Codecaine Yacht Dice Royale Deluxe...");
       const html = generateYahtzeeStudioHtml();
 
       let srv: any = null;

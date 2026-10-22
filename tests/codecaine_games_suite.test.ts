@@ -29,9 +29,9 @@ describe("🕹️ Codecaine 24-Game Arcade Suite & File Manager Integration", ()
     }
   });
 
-  test("3. Upgraded Tetris, Snake, and Frogger studios serve HTML, favicon.svg, and /api/health", async () => {
+  test("3. Upgraded TetroGrid, Snake, and Frogger studios serve HTML, favicon.svg, and /api/health", async () => {
     const studios = [
-      { name: "Codecaine Tetris Ultra Deluxe", create: createTetrisStudio, start: startTetrisServer },
+      { name: "Codecaine TetroGrid Ultra Deluxe", create: createTetrisStudio, start: startTetrisServer },
       { name: "Codecaine Neon Snake Deluxe", create: createSnakeStudio, start: startSnakeServer },
       { name: "Codecaine CyberFrog Deluxe", create: createFroggerStudio, start: startFroggerServer },
     ];

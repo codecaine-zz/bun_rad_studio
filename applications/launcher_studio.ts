@@ -202,13 +202,13 @@ export const KNOWN_STUDIO_META: Record<
     displayName: "Codecaine Bros. Arcade",
     category: "Games & Entertainment",
     icon: "🍄",
-    description: "Authentic 1983 Mario Bros. arcade remaster with high-speed bumping physics, POW block & 4-channel sound",
+    description: "Authentic 1983 Codecaine Bros. arcade remaster with high-speed bumping physics, POW block & 4-channel sound",
   },
   connect4_studio: {
-    displayName: "Codecaine Cyberpunk Connect 4",
+    displayName: "Codecaine Cyberpunk QuadLink 4",
     category: "Games & Entertainment",
     icon: "🔴",
-    description: "Neon Connect 4 arcade with minimax AI heuristics, 2-player local battle & particle drop physics",
+    description: "Neon QuadLink 4 arcade with minimax AI heuristics, 2-player local battle & particle drop physics",
   },
   dr_codecaine_studio: {
     displayName: "Codecaine Dr. Codecaine Arcade",
@@ -229,10 +229,10 @@ export const KNOWN_STUDIO_META: Record<
     description: "Modular rack media player with 10-band graphic EQ, preamp, spectrum & radial visualizers, M3U8 playlists & karaoke LRC lyrics",
   },
   lolo_studio: {
-    displayName: "Codecaine Adventures of Lolo Remaster",
+    displayName: "Codecaine Adventures of Caine Remaster",
     category: "Games & Entertainment",
     icon: "👾",
-    description: "Cyberpunk remastered Adventures of Lolo with procedural puzzles, sound engine & visual manual",
+    description: "Cyberpunk remastered Adventures of Caine with procedural puzzles, sound engine & visual manual",
   },
   maze_generator_studio: {
     displayName: "Codecaine Cyberpunk Maze Runner",
@@ -241,25 +241,25 @@ export const KNOWN_STUDIO_META: Record<
     description: "Procedural neon labyrinth with Recursive Backtracking, Prim's, Wilson's, fog of war & A* AI solver",
   },
   pacman_studio: {
-    displayName: "Codecaine Cyberpunk Pac-Man Arcade",
+    displayName: "Codecaine CyberChomp Arcade",
     category: "Games & Entertainment",
     icon: "🟡",
-    description: "Authentic Cyberpunk Pac-Man arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects",
+    description: "Authentic CyberChomp arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects",
   },
   breakout_studio: {
-    displayName: "Codecaine Cyber Breakout Deluxe",
+    displayName: "Codecaine CyberBrick Breaker Deluxe",
     category: "Games & Entertainment",
     icon: "🧱",
-    description: "Deluxe Breakout arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support",
+    description: "Deluxe CyberBrick Breaker arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support",
   },
   skifree_studio: {
-    displayName: "Codecaine SkiFree Deluxe",
+    displayName: "Codecaine CyberSki Deluxe",
     category: "Games & Entertainment",
     icon: "⛷️",
     description: "Authentic downhill alpine skiing with freestyle tricks, slalom gates & the ravenous Yeti chase",
   },
   balatro_studio: {
-    displayName: "Codecaine Joker Royale (Balatro Deluxe)",
+    displayName: "Codecaine Joker Royale Deluxe",
     category: "Games & Entertainment",
     icon: "🃏",
     description: "Roguelike poker deckbuilder with Ante & Blind runs, 30+ Jokers, 3D card tilt physics & synth audio",
@@ -268,25 +268,25 @@ export const KNOWN_STUDIO_META: Record<
     displayName: "Codecaine Egyptian Rat Screw Royale",
     category: "Games & Entertainment",
     icon: "🎴",
-    description: "High-speed reflex card slapper with authentic Bicycle vector cards, face card challenges, customizable slap rules & multi-CPU AI",
+    description: "High-speed reflex card slapper with authentic Codecaine Royale vector cards, face card challenges, customizable slap rules & multi-CPU AI",
   },
   poker_studio: {
     displayName: "Codecaine Texas Hold'em & 5-Card Draw Poker Royale",
     category: "Games & Entertainment",
     icon: "♠️",
-    description: "Deluxe casino poker table featuring No-Limit Texas Hold'em and 5-Card Draw, 6-max AI personalities, Bicycle cards & hand evaluation",
+    description: "Deluxe casino poker table featuring No-Limit Texas Hold'em and 5-Card Draw, 6-max AI personalities, Codecaine Royale cards & hand evaluation",
   },
   blackjack_studio: {
     displayName: "Codecaine Blackjack Royale VIP",
     category: "Games & Entertainment",
     icon: "🪙",
-    description: "High-roller multi-hand VIP casino Blackjack with 3-spot betting, Bicycle vector cards, 6-deck shoe Hi-Lo telemetry, split/double, & side bets",
+    description: "High-roller multi-hand VIP casino Blackjack with 3-spot betting, Codecaine Royale vector cards, 6-deck shoe Hi-Lo telemetry, split/double, & side bets",
   },
   yahtzee_studio: {
-    displayName: "Codecaine Yahtzee Royale Deluxe",
+    displayName: "Codecaine Yacht Dice Royale Deluxe",
     category: "Games & Entertainment",
     icon: "🎲",
-    description: "Deluxe classic Yahtzee dice board studio with 3D tactile dice, authentic Milton Bradley scorecard, +35 upper bonus, Yahtzee Jokers & AI opponent",
+    description: "Deluxe classic Yacht Dice board studio with 3D tactile dice, authentic Codecaine championship scorecard, +35 upper bonus, Yacht Jokers & AI opponent",
   },
   paint_studio: {
     displayName: "Chroma Studio Pro",
@@ -301,22 +301,22 @@ export const KNOWN_STUDIO_META: Record<
     description: "Advanced developer-focused code editor & workstation with multi-file tabs, lexical syntax highlighting, interactive minimap, terminal runner, and split preview",
   },
   math_munchers_studio: {
-    displayName: "Codecaine Math Munchers Deluxe",
+    displayName: "Codecaine CyberMunch Math Deluxe",
     category: "Games & Entertainment",
     icon: "👾",
-    description: "Cyberpunk Math Munchers classic with Troggles AI, CRT shaders, pentatonic synth & multiple game modes",
+    description: "Cyberpunk CyberMunch Math classic with Glitchers AI, CRT shaders, pentatonic synth & multiple game modes",
   },
   flappy_bird_studio: {
-    displayName: "Codecaine Flappy Bird Deluxe",
+    displayName: "Codecaine CyberWing Deluxe",
     category: "Games & Entertainment",
     icon: "🐦",
-    description: "Cyberpunk kinetic Flappy Bird arcade with energy conduits, medal achievements, parallax sky & WebAudio synth",
+    description: "Cyberpunk kinetic CyberWing arcade with energy conduits, medal achievements, parallax sky & WebAudio synth",
   },
   typing_studio: {
     displayName: "Codecaine CyberType Deluxe",
     category: "Games & Entertainment",
     icon: "⌨️",
-    description: "Modern touch-typing academy with 10-step guided tutorial, 18-lesson curriculum, Keybr adaptive AI, multi-layout keyboard, and WebAudio switches.",
+    description: "Modern touch-typing academy with 10-step guided tutorial, 18-lesson curriculum, Codecaine Adaptive AI, multi-layout keyboard, and WebAudio switches.",
   },
   minesweeper_studio: {
     displayName: "Codecaine Minesweeper Pro Championship",
@@ -325,19 +325,19 @@ export const KNOWN_STUDIO_META: Record<
     description: "Championship Minesweeper with safe first-click, chord clearing, 3BV benchmark & multi-theme engine",
   },
   pong_studio: {
-    displayName: "Codecaine Neon Cyber Pong",
+    displayName: "Codecaine Neon Cyber Paddle",
     category: "Games & Entertainment",
     icon: "🏓",
-    description: "High-speed kinetic Pong with fluid spin physics, multi-tier AI opponents & local 2-player battle",
+    description: "High-speed kinetic Cyber Paddle with fluid spin physics, multi-tier AI opponents & local 2-player battle",
   },
   rodents_revenge_studio: {
-    displayName: "Codecaine Rodent's Revenge Deluxe",
+    displayName: "Codecaine CyberMouse Trap Deluxe",
     category: "Games & Entertainment",
     icon: "🧀",
-    description: "Deluxe arcade revival of Rodent's Revenge with neon retro maze, cat trapping & high scores",
+    description: "Deluxe arcade revival of CyberMouse Trap with neon retro maze, cat trapping & high scores",
   },
   tetris_studio: {
-    displayName: "Codecaine Tetris Ultra Deluxe",
+    displayName: "Codecaine TetroGrid Ultra Deluxe",
     category: "Games & Entertainment",
     icon: "🧱",
     description: "Modern 7-bag SRS block puzzle with T-Spin/B2B telemetry, 4 modes, 3-next queue & synthwave themes",
@@ -1834,8 +1834,8 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.beginRow();
   win.addButton("btn_quick_interval", "⏱️ Interval Timer");
   win.addButton("btn_quick_drcodecaine", "💊 Dr. Codecaine");
-  win.addButton("btn_quick_lolo", "👾 Lolo Arcade");
-  win.addButton("btn_quick_tetris", "🧱 Tetris Ultra");
+  win.addButton("btn_quick_lolo", "👾 Caine Arcade");
+  win.addButton("btn_quick_tetris", "🧱 TetroGrid Ultra");
   win.addButton("btn_quick_rad", "⚡ RAD Studio");
   win.addButton("btn_quick_calc", "🧮 Calculator");
   win.addButton("btn_quick_markdown", "📝 Markdown");

@@ -1,5 +1,5 @@
 /**
- * ⛷️ SkiFree Deluxe — Winter Legends Arcade Studio
+ * ⛷️ Codecaine CyberSki Deluxe — Winter Legends Arcade Studio
  * 
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
@@ -78,7 +78,7 @@ export function generateSkiFreeStudioHtml(): string {
   const assetsDir = getSkiFreeAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>SkiFree Deluxe</h1>";
+  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine CyberSki Deluxe</h1>";
 
   const storagePolyfill = `
   <script>
@@ -149,20 +149,20 @@ ${getWindowShortcutsScript()}
  */
 export function startSkiFreeServer(options: SkiFreeServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "skifree_studio", name: "Codecaine SkiFree Deluxe — Winter Legends Arcade", version: "1.0.0", assetsDir: getSkiFreeAssetsDir(), generateHtml: generateSkiFreeStudioHtml },
+    { app: "skifree_studio", name: "Codecaine CyberSki Deluxe — Winter Legends Arcade", version: "1.0.0", assetsDir: getSkiFreeAssetsDir(), generateHtml: generateSkiFreeStudioHtml },
     options,
   );
 }
 
 /**
- * Creates the complete native desktop instance of SkiFree Deluxe.
+ * Creates the complete native desktop instance of CyberSki Deluxe.
  */
 export function createSkiFreeStudio(options: SkiFreeStudioOptions = {}): SkiFreeStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Codecaine SkiFree Deluxe — Winter Legends Arcade";
+  const title = "Codecaine CyberSki Deluxe — Winter Legends Arcade";
 
   const app: SkiFreeStudioInstance = {
     title,
@@ -171,7 +171,7 @@ export function createSkiFreeStudio(options: SkiFreeStudioOptions = {}): SkiFree
     fullscreen,
     generateHtml: () => generateSkiFreeStudioHtml(),
     run: async () => {
-      console.log("⚡ Launching SkiFree Deluxe...");
+      console.log("⚡ Launching Codecaine CyberSki Deluxe...");
       const html = generateSkiFreeStudioHtml();
 
       let srv: any = null;

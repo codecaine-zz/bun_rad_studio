@@ -1,9 +1,9 @@
 /**
- * ⚡ Neon Cyber Pong - Kinetic Arcade Studio
+ * ⚡ Codecaine Neon Cyber Paddle - Kinetic Arcade Studio
  * 
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
- * - High-speed retro kinetic Pong with fluid spin physics and angle deflections
+ * - High-speed retro kinetic paddle rally with fluid spin physics and angle deflections
  * - Multi-tier AI opponent modes (Cadet, Cyber, Overclocked master)
  * - 2-Player local battle on shared keyboard or touch zones
  * - Audio synthesizers for distinct paddle collisions, wall ricochets, and scoring alerts
@@ -76,7 +76,7 @@ export function generatePongStudioHtml(): string {
   const assetsDir = getPongAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Neon Cyber Pong</h1>";
+  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine Neon Cyber Paddle</h1>";
 
   const storagePolyfill = `
   <script>
@@ -194,7 +194,7 @@ export function startPongStudioServer(options: PongServerOptions = {}) {
           {
             status: "ok",
             app: "pong_studio",
-            name: "Codecaine Neon Cyber Pong - Kinetic Arcade",
+            name: "Codecaine Neon Cyber Paddle - Kinetic Arcade",
             version: "1.0.0",
             timestamp: Date.now(),
           },
@@ -227,7 +227,7 @@ export function createPongStudio(options: PongStudioOptions = {}): PongStudioIns
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
   const height = options.height ?? (fullscreen ? screen.height : 900);
-  const title = "Codecaine Neon Cyber Pong - Kinetic Arcade";
+  const title = "Codecaine Neon Cyber Paddle - Kinetic Arcade";
 
   const app: PongStudioInstance = {
     title,
@@ -236,7 +236,7 @@ export function createPongStudio(options: PongStudioOptions = {}): PongStudioIns
     fullscreen,
     generateHtml: () => generatePongStudioHtml(),
     run: async () => {
-      console.log("⚡ Launching Neon Cyber Pong Arcade...");
+      console.log("⚡ Launching Codecaine Neon Cyber Paddle Arcade...");
       const html = generatePongStudioHtml();
 
       let srv: any = null;

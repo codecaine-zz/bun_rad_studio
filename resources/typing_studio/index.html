@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>⌨️ Codecaine CyberType Deluxe — Mavis Beacon Master Edition</title>
+  <title>⌨️ Codecaine CyberType Deluxe — Codecaine Master Edition</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 
   <script>
@@ -74,7 +74,7 @@
     }
 
     /* Themes */
-    body.theme-mavis {
+    body.theme-codecaine {
       --bg-dark: #0b1526;
       --bg-panel: rgba(16, 32, 60, 0.78);
       --bg-card: rgba(24, 48, 88, 0.55);
@@ -324,7 +324,7 @@
     }
     .tut-nav-btns { display: flex; align-items: center; gap: 0.35rem; flex-shrink: 0; }
 
-    /* Keybr-Style Per-Key Mastery Strip */
+    /* Codecaine Adaptive Per-Key Mastery Strip */
     .keybr-strip {
       display: none; align-items: center; justify-content: center; gap: 0.22rem;
       width: 100%; max-width: 980px; padding: 0.35rem 0.6rem; margin-bottom: 0.45rem;
@@ -346,7 +346,7 @@
       position: absolute; bottom: 0; left: 0; height: 3px; background: var(--neon-cyan); transition: width 0.25s;
     }
 
-    /* Coach / Finger Guidance Banner (Mavis Beacon Hallmark) */
+    /* Coach / Finger Guidance Banner (Codecaine Signature) */
     .coach-banner {
       display: flex; align-items: center; justify-content: space-between;
       width: 100%; max-width: 980px; padding: 0.34rem 0.9rem; margin-bottom: 0.4rem;
@@ -432,7 +432,7 @@
       color: var(--text-muted); font-size: 0.64rem;
     }
 
-    /* Interactive Hands Visualizer (Mavis Beacon Signature) */
+    /* Interactive Hands Visualizer (Codecaine Signature) */
     .hands-wrapper {
       display: flex; justify-content: space-around; align-items: center; width: 100%; max-width: 940px;
       margin-bottom: 0.35rem; transition: max-height 0.3s ease, opacity 0.3s ease;
@@ -701,7 +701,7 @@
         <path d="M 52 94 L 76 94" stroke="#00f3ff" stroke-width="6" stroke-linecap="round"/>
       </svg>
       <div class="brand-titles">
-        <h1>CyberType <span class="badge-deluxe">Mavis Master</span></h1>
+        <h1>CyberType <span class="badge-deluxe">Codecaine Master</span></h1>
         <div class="brand-meta">
           <span>Biometric Telemetry • Dual-Hand Posture Guide • Adaptive AI Curriculum</span>
           <button type="button" class="rank-pill" id="btnCareerModal" title="Open Career Profile & Finger Telemetry">
@@ -749,8 +749,8 @@
         <select id="selSound" aria-label="Mechanical Sound Profile">
           <option value="thock">Thock (Ink Black)</option>
           <option value="clicky">Clicky (Box White)</option>
-          <option value="panda">Tactile (Holy Panda)</option>
-          <option value="topre">Topre (45g Capacitive)</option>
+          <option value="panda">Tactile (Cyber Panda)</option>
+          <option value="topre">Capacitive (45g Dome)</option>
           <option value="typewriter">Typewriter (Bell)</option>
           <option value="cyber">Cyber Synth</option>
           <option value="mute">Muted</option>
@@ -762,7 +762,7 @@
         <span>🎨</span>
         <select id="selTheme" aria-label="Color Theme">
           <option value="theme-cyber">Cyber Neon</option>
-          <option value="theme-mavis">Mavis 90s</option>
+          <option value="theme-codecaine">Codecaine 90s</option>
           <option value="theme-matrix">Matrix Code</option>
           <option value="theme-synthwave">Synthwave</option>
           <option value="theme-nord">Nord Frost</option>
@@ -863,10 +863,10 @@
       </div>
     </section>
 
-    <!-- Keybr-Style Per-Key Confidence & Mastery Strip -->
+    <!-- Codecaine Adaptive Per-Key Confidence & Mastery Strip -->
     <div class="keybr-strip" id="keybrStrip" title="Per-Key Mastery & Confidence Telemetry"></div>
 
-    <!-- Mavis Beacon Coach & Target Guidance Banner -->
+    <!-- Codecaine Coach & Target Guidance Banner -->
     <div class="coach-banner" id="coachBanner">
       <div class="coach-instruction">
         <span>Target Key:</span>
@@ -894,7 +894,7 @@
       </div>
     </div>
 
-    <!-- Dual Hands Interactive Visualizer (Left & Right Hands - Mavis Beacon Signature) -->
+    <!-- Dual Hands Interactive Visualizer (Left & Right Hands - Codecaine Signature) -->
     <div class="hands-wrapper" id="handsWrapper">
       <!-- Left Hand -->
       <div class="hand-box">
@@ -1664,7 +1664,7 @@
     const elKeybrStrip = document.getElementById('keybrStrip');
 
     // -------------------------------------------------------------------------
-    // 5. Keybr-Style Adaptive Word Synthesizer & Mastery Strip
+    // 5. Codecaine Adaptive Word Synthesizer & Mastery Strip
     // -------------------------------------------------------------------------
     const phoneticOnsets = ["th", "ch", "sh", "st", "pr", "tr", "gr", "cr", "pl", "cl", "sp", "fl", "br", "dr", "fr", "t", "n", "s", "r", "l", "d", "c", "m", "p", "b", "v", "w", "k", "j", "qu", "z"];
     const phoneticVowels = ["a", "e", "i", "o", "u", "ea", "ou", "ai", "oo", "ee"];

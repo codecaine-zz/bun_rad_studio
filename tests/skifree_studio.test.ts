@@ -9,14 +9,14 @@ import {
 } from "../applications/skifree_studio.ts";
 import { scanWorkspaceApps } from "../applications/launcher_studio.ts";
 
-describe("⛷️ SkiFree Deluxe — Winter Legends Arcade Suite", () => {
+describe("⛷️ CyberSki Deluxe — Winter Legends Arcade Suite", () => {
   it("1. Static assets are present, readable, and properly structured", () => {
     const dir = getSkiFreeAssetsDir();
     expect(existsSync(join(dir, "index.html"))).toBe(true);
     expect(existsSync(join(dir, "favicon.svg"))).toBe(true);
 
     const html = readFileSync(join(dir, "index.html"), "utf8");
-    expect(html).toContain("SkiFree");
+    expect(html).toContain("CyberSki");
     expect(html).toContain("AudioEngine");
     expect(html).toContain("yeti");
     expect(html).toContain("gameCanvas");
@@ -25,14 +25,14 @@ describe("⛷️ SkiFree Deluxe — Winter Legends Arcade Suite", () => {
 
   it("2. generateSkiFreeStudioHtml injects desktop window shortcuts", () => {
     const html = generateSkiFreeStudioHtml();
-    expect(html).toContain("SkiFree");
+    expect(html).toContain("CyberSki");
     expect(html).toContain("window.addEventListener");
     expect(html).toContain("btnHub");
   });
 
   it("3. Studio factory generates correct defaults and instance contracts", () => {
     const app = createSkiFreeStudio({ fullscreen: false, width: 1000, height: 800 });
-    expect(app.title).toContain("SkiFree Deluxe");
+    expect(app.title).toContain("CyberSki Deluxe");
     expect(app.width).toBe(1000);
     expect(app.height).toBe(800);
     expect(app.fullscreen).toBe(false);
@@ -49,7 +49,7 @@ describe("⛷️ SkiFree Deluxe — Winter Legends Arcade Suite", () => {
       const resHtml = await fetch(`${base}/`);
       expect(resHtml.status).toBe(200);
       const textHtml = await resHtml.text();
-      expect(textHtml).toContain("SkiFree");
+      expect(textHtml).toContain("CyberSki");
 
       // Favicon endpoint
       const resFav = await fetch(`${base}/favicon.svg`);
@@ -62,17 +62,17 @@ describe("⛷️ SkiFree Deluxe — Winter Legends Arcade Suite", () => {
       const healthData = await resHealth.json() as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("skifree_studio");
-      expect(healthData.name).toContain("SkiFree Deluxe");
+      expect(healthData.name).toContain("CyberSki Deluxe");
     } finally {
       server.stop(true);
     }
   });
 
-  it("5. Launcher Studio automatically registers and surfaces SkiFree", () => {
+  it("5. Launcher Studio automatically registers and surfaces CyberSki", () => {
     const apps = scanWorkspaceApps();
     const found = apps.find((a) => a.name === "skifree_studio" || a.id === "rad_skifree_studio");
     expect(found).toBeDefined();
-    expect(found?.displayName).toBe("Codecaine SkiFree Deluxe");
+    expect(found?.displayName).toBe("Codecaine CyberSki Deluxe");
     expect(found?.icon).toBe("⛷️");
     expect(found?.category).toBe("Games & Entertainment");
     expect(found?.description).toContain("Yeti");

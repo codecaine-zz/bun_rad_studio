@@ -141,7 +141,6 @@
     "app:bird": "bun run applications/flappy_bird_studio.ts",
     "app:typing": "bun run applications/typing_studio.ts",
     "app:type": "bun run applications/typing_studio.ts",
-    "app:mavis": "bun run applications/typing_studio.ts",
     "app:tetris": "bun run applications/tetris_studio.ts",
     "app:snake": "bun run applications/snake_studio.ts",
     "app:frogger": "bun run applications/frogger_studio.ts",

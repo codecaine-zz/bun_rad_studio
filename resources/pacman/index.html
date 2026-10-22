@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Codecaine Cyberpunk Pac-Man Arcade - Neon Remaster</title>
-    <meta name="description" content="Production-level Cyberpunk Pac-Man arcade remaster. Features authentic 4-ghost AI personalities (Blinky, Pinky, Inky, Clyde), power pellets, fruit bonuses, sound synthesis, particle effects, and mobile D-pad.">
+    <title>Codecaine CyberChomp Arcade - Neon Remaster</title>
+    <meta name="description" content="Production-level Codecaine CyberChomp arcade remaster. Features authentic 4-ghost AI personalities (Crimson, Pulse, Glitch, Amber), power pellets, fruit bonuses, sound synthesis, particle effects, and mobile D-pad.">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -430,7 +430,7 @@
     <!-- Header Navigation -->
     <header class="arcade-nav">
         <div style="display:flex; align-items:center; gap:12px;">
-            <div class="brand-title">CYBER<span>_PACMAN</span></div>
+            <div class="brand-title">CYBER<span>_CHOMP</span></div>
         </div>
 
         <div style="display:flex; align-items:center; gap:10px;">
@@ -481,23 +481,23 @@
 
                 <!-- Start / Game Over Overlay -->
                 <div class="game-overlay" id="gameOverlay">
-                    <div class="overlay-title" id="overlayTitle">CYBER PAC-MAN</div>
+                    <div class="overlay-title" id="overlayTitle">CYBERCHOMP</div>
                     <div class="ghost-roster">
                         <div class="roster-ghost" style="color: #ff2a4b;">
                             <svg width="24" height="24" viewBox="0 0 24 24"><path fill="#ff2a4b" d="M12 2a8 8 0 0 0-8 8v11l3-2 3 2 2-2 2 2 3-2 3 2V10a8 8 0 0 0-8-8z"/><circle cx="9" cy="9" r="2" fill="#fff"/><circle cx="15" cy="9" r="2" fill="#fff"/><circle cx="10" cy="9" r="1" fill="#000"/><circle cx="16" cy="9" r="1" fill="#000"/></svg>
-                            Blinky
+                            Crimson
                         </div>
                         <div class="roster-ghost" style="color: #ff77cc;">
                             <svg width="24" height="24" viewBox="0 0 24 24"><path fill="#ff77cc" d="M12 2a8 8 0 0 0-8 8v11l3-2 3 2 2-2 2 2 3-2 3 2V10a8 8 0 0 0-8-8z"/><circle cx="9" cy="9" r="2" fill="#fff"/><circle cx="15" cy="9" r="2" fill="#fff"/><circle cx="10" cy="9" r="1" fill="#000"/><circle cx="16" cy="9" r="1" fill="#000"/></svg>
-                            Pinky
+                            Pulse
                         </div>
                         <div class="roster-ghost" style="color: #00f0ff;">
                             <svg width="24" height="24" viewBox="0 0 24 24"><path fill="#00f0ff" d="M12 2a8 8 0 0 0-8 8v11l3-2 3 2 2-2 2 2 3-2 3 2V10a8 8 0 0 0-8-8z"/><circle cx="9" cy="9" r="2" fill="#fff"/><circle cx="15" cy="9" r="2" fill="#fff"/><circle cx="10" cy="9" r="1" fill="#000"/><circle cx="16" cy="9" r="1" fill="#000"/></svg>
-                            Inky
+                            Glitch
                         </div>
                         <div class="roster-ghost" style="color: #ff8800;">
                             <svg width="24" height="24" viewBox="0 0 24 24"><path fill="#ff8800" d="M12 2a8 8 0 0 0-8 8v11l3-2 3 2 2-2 2 2 3-2 3 2V10a8 8 0 0 0-8-8z"/><circle cx="9" cy="9" r="2" fill="#fff"/><circle cx="15" cy="9" r="2" fill="#fff"/><circle cx="10" cy="9" r="1" fill="#000"/><circle cx="16" cy="9" r="1" fill="#000"/></svg>
-                            Clyde
+                            Amber
                         </div>
                     </div>
                     <p class="overlay-desc" id="overlayDesc">
@@ -1033,7 +1033,7 @@
         // 4 Ghosts with authentic arcade personalities and balanced speed (1.35px per 60Hz tick)
         const ghosts = [
             {
-                name: 'Blinky',
+                name: 'Crimson',
                 color: '#ff2a4b',
                 x: 13 * TILE_SIZE + TILE_SIZE / 2,
                 y: 11 * TILE_SIZE + TILE_SIZE / 2,
@@ -1047,7 +1047,7 @@
                 homeY: 14.5 * TILE_SIZE
             },
             {
-                name: 'Pinky',
+                name: 'Pulse',
                 color: '#ff77cc',
                 x: 13 * TILE_SIZE + TILE_SIZE / 2,
                 y: 14 * TILE_SIZE + TILE_SIZE / 2,
@@ -1061,7 +1061,7 @@
                 homeY: 14.5 * TILE_SIZE
             },
             {
-                name: 'Inky',
+                name: 'Glitch',
                 color: '#00f0ff',
                 x: 11 * TILE_SIZE + TILE_SIZE / 2,
                 y: 14 * TILE_SIZE + TILE_SIZE / 2,
@@ -1075,7 +1075,7 @@
                 homeY: 14.5 * TILE_SIZE
             },
             {
-                name: 'Clyde',
+                name: 'Amber',
                 color: '#ff8800',
                 x: 15 * TILE_SIZE + TILE_SIZE / 2,
                 y: 14 * TILE_SIZE + TILE_SIZE / 2,
@@ -1121,14 +1121,14 @@
             pacman.deathSpin = 0;
 
             const spawns = [
-                // Blinky: tile (13, 11) — directly above ghost house door, already outside
-                { name: 'Blinky', tx: 13, ty: 11, dx: -1, dy: 0, houseState: 'outside', delay: 0 },
-                // Pinky: tile (13, 14) — inside house, exits after 1.5s
-                { name: 'Pinky',  tx: 13, ty: 14, dx: 0,  dy: -1, houseState: 'exiting', delay: 90 },
-                // Inky: tile (11, 14) — inside house, bouncing for 4s
-                { name: 'Inky',   tx: 11, ty: 14, dx: 0,  dy: -1, houseState: 'bouncing', delay: 240 },
-                // Clyde: tile (15, 14) — inside house, bouncing for 7s
-                { name: 'Clyde',  tx: 15, ty: 14, dx: 0,  dy: 1,  houseState: 'bouncing', delay: 420 }
+                // Crimson: tile (13, 11) — directly above ghost house door, already outside
+                { name: 'Crimson', tx: 13, ty: 11, dx: -1, dy: 0, houseState: 'outside', delay: 0 },
+                // Pulse: tile (13, 14) — inside house, exits after 1.5s
+                { name: 'Pulse',  tx: 13, ty: 14, dx: 0,  dy: -1, houseState: 'exiting', delay: 90 },
+                // Glitch: tile (11, 14) — inside house, bouncing for 4s
+                { name: 'Glitch',   tx: 11, ty: 14, dx: 0,  dy: -1, houseState: 'bouncing', delay: 240 },
+                // Amber: tile (15, 14) — inside house, bouncing for 7s
+                { name: 'Amber',  tx: 15, ty: 14, dx: 0,  dy: 1,  houseState: 'bouncing', delay: 420 }
             ];
 
             ghosts.forEach((g, i) => {
@@ -1487,13 +1487,13 @@
                         targetX = ghost.scatterX;
                         targetY = ghost.scatterY;
                     } else {
-                        if (ghost.name === 'Blinky') {
+                        if (ghost.name === 'Crimson') {
                             targetX = pacTileX;
                             targetY = pacTileY;
-                        } else if (ghost.name === 'Pinky') {
+                        } else if (ghost.name === 'Pulse') {
                             targetX = pacTileX + pacman.dirX * 4;
                             targetY = pacTileY + pacman.dirY * 4;
-                        } else if (ghost.name === 'Inky') {
+                        } else if (ghost.name === 'Glitch') {
                             const blinky = ghosts[0];
                             const pivotX = pacTileX + pacman.dirX * 2;
                             const pivotY = pacTileY + pacman.dirY * 2;
@@ -1501,7 +1501,7 @@
                             const bTY = Math.round((blinky.y - TILE_SIZE / 2) / TILE_SIZE);
                             targetX = pivotX + (pivotX - bTX);
                             targetY = pivotY + (pivotY - bTY);
-                        } else if (ghost.name === 'Clyde') {
+                        } else if (ghost.name === 'Amber') {
                             const dist = Math.hypot(curTileX - pacTileX, curTileY - pacTileY);
                             targetX = dist > 8 ? pacTileX : ghost.scatterX;
                             targetY = dist > 8 ? pacTileY : ghost.scatterY;

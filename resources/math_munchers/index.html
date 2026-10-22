@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>👾 Codecaine Math Munchers Deluxe — Cyber Legends Arcade</title>
+  <title>👾 Codecaine CyberMunch Math Deluxe — Cyber Legends Arcade</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 
   <script>
@@ -807,20 +807,20 @@
         <rect x="68" y="76" width="10" height="8" fill="#ffffff"/>
       </svg>
       <div class="brand-titles">
-        <h1>Codecaine Math Munchers <span class="badge-deluxe">MECC Deluxe</span></h1>
-        <p>Authentic 1986 Number Munchers Tribute • 5 Troggle Species • Modern HD FX</p>
+        <h1>Codecaine CyberMunch Math <span class="badge-deluxe">Cyber Deluxe</span></h1>
+        <p>Retro Grid Math Arcade • 5 Glitcher Species • Modern HD FX</p>
       </div>
     </div>
     <div class="top-actions">
       <!-- Visual Palette Theme Selector -->
       <select id="themeSelect" class="retro-select" title="Visual Palette Theme" onchange="if(window.setVisualTheme)window.setVisualTheme(this.value)">
-        <option value="mecc">MECC Classic (1990)</option>
-        <option value="apple2">Apple II Green</option>
+        <option value="mecc">Codecaine Classic (1990)</option>
+        <option value="apple2">Phosphor Green</option>
         <option value="cyber">Cyber Neon</option>
       </select>
       <!-- Music Track Select -->
       <select id="musicSelect" class="retro-select" title="BGM Track" onchange="if(window.AudioEngine)AudioEngine.changeMusic(this.value)">
-        <option value="arcade">MECC Chiptune</option>
+        <option value="arcade">Classic Chiptune</option>
         <option value="matrix">Matrix Synth</option>
         <option value="retro">Cyber 8-Bit</option>
         <option value="none">Music Muted</option>
@@ -890,9 +890,9 @@
 
       <!-- Start Mission Overlay -->
       <div class="game-overlay show" id="startOverlay">
-        <h2 class="overlay-title" id="overlayTitle">NUMBER MUNCHERS DELUXE</h2>
+        <h2 class="overlay-title" id="overlayTitle">CYBERMUNCH MATH DELUXE</h2>
         <p class="overlay-subtitle" id="overlaySubtitle">
-          Guide the Green Muncher across the classic 6×5 MECC grid! Chomp numbers matching the top rule, watch the perimeter for incoming Troggles, and top the Hall of Fame!
+          Guide the Green Muncher across the classic 6×5 cyber grid! Chomp numbers matching the top rule, watch the perimeter for incoming Glitchers, and top the Hall of Fame!
         </p>
 
         <!-- Mode Select Grid -->
@@ -1040,17 +1040,17 @@
   <div class="modal-backdrop" id="manualModal">
     <div class="modal-dialog">
       <h2>
-        <span>📖 Original MECC Troggle &amp; Muncher Guide</span>
+        <span>📖 Codecaine Glitcher &amp; Muncher Guide</span>
         <button class="modal-close" id="btnCloseManual">✕</button>
       </h2>
 
       <div class="manual-section">
         <h3>How to Play</h3>
-        <p>Guide the green <b>Muncher</b> across the 6×5 grid and press <b>SPACE</b> to chomp numbers that match the rule at the top of the screen. Watch for flashing <b>TROGGLE!</b> arrows on the grid border before a Troggle enters!</p>
+        <p>Guide the green <b>Muncher</b> across the 6×5 grid and press <b>SPACE</b> to chomp numbers that match the rule at the top of the screen. Watch for flashing <b>ALERT!</b> arrows on the grid border before a Glitcher enters!</p>
       </div>
 
       <div class="manual-section">
-        <h3>The 5 Original MECC Troggle Species</h3>
+        <h3>The 5 Classic Glitcher Species</h3>
         <div class="manual-grid">
           <div class="manual-item">
             <b>👹 Reggie (Red)</b><br>
@@ -1093,7 +1093,7 @@
         <span style="color: var(--neon-yellow);">🏆 MUNCHER HALL OF FAME</span>
         <button class="modal-close" onclick="closeHallOfFame()">✕</button>
       </h2>
-      <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">Top Number Munchers champions recorded on this machine.</p>
+      <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">Top CyberMunch Math champions recorded on this machine.</p>
       <div id="hofList" style="display:flex; flex-direction:column; gap:8px;">
         <!-- Populated via renderHallOfFame() -->
       </div>

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <script>(function(){try{var s=window.localStorage;s.getItem("__bl__")}catch(e){var m={};var p={getItem:function(k){return Object.prototype.hasOwnProperty.call(m,k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}},key:function(i){return Object.keys(m)[i]||null},get length(){return Object.keys(m).length}};try{Object.defineProperty(window,"localStorage",{value:p,configurable:true,writable:true})}catch(_){}}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Codecaine Joker Royale — Balatro Deluxe Roguelike Poker Studio</title>
+  <title>Codecaine Joker Royale — Cyber Deckbuilder Studio</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2653,7 +2653,7 @@
       { id: "brainstorm", name: "Brainstorm", cost: 10, rarity: "rare", icon: "🧠", desc: "Copies ability of leftmost Joker" },
       { id: "golden_joker", name: "Golden Joker", cost: 6, rarity: "common", icon: "🥇", desc: "Earn $4 at end of round", onRoundEnd: () => 4 },
       { id: "triboulet", name: "Triboulet", cost: 12, rarity: "legendary", icon: "⚜️", desc: "Legendary: Played Kings and Queens each give ×2 Mult", onCardScored: (card, ctx) => { if (card.rank.id === "K" || card.rank.id === "Q") ctx.mult *= 2; } },
-      { id: "cyber_quantum", name: "Cyber Quantum", cost: 9, rarity: "rare", icon: "⚡", desc: "Balatro+ Exclusive: Played cards have 50% chance to double their chips & +4 Mult!", onCardScored: (card, ctx) => {
+      { id: "cyber_quantum", name: "Cyber Quantum", cost: 9, rarity: "rare", icon: "⚡", desc: "Codecaine+ Exclusive: Played cards have 50% chance to double their chips & +4 Mult!", onCardScored: (card, ctx) => {
         if (ctx.isPreview || Math.random() < 0.5) {
           ctx.chips += card.rank.chips;
           ctx.mult += 4;

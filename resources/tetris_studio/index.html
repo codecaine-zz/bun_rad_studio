@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <script>(function(){try{var s=window.localStorage;s.getItem("__tt__")}catch(e){var m={};var p={getItem:function(k){return Object.prototype.hasOwnProperty.call(m,k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}},key:function(i){return Object.keys(m)[i]||null},get length(){return Object.keys(m).length}};try{Object.defineProperty(window,"localStorage",{value:p,configurable:true,writable:true})}catch(_){}}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Codecaine Tetris Ultra Deluxe</title>
+  <title>Codecaine TetroGrid Ultra Deluxe</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600;700&display=swap');
@@ -510,9 +510,9 @@
 <div id="app-container">
   <div class="header-bar">
     <div class="brand-group">
-      <img src="favicon.svg" alt="Tetris Logo" class="brand-logo" onerror="this.style.display='none'">
+      <img src="favicon.svg" alt="TetroGrid Logo" class="brand-logo" onerror="this.style.display='none'">
       <div>
-        <h1 class="title">CODECAINE TETRIS ULTRA DELUXE</h1>
+        <h1 class="title">CODECAINE TETROGRID ULTRA DELUXE</h1>
         <div class="subtitle-row">
           <span>SRS 7-BAG ENGINE</span>
           <span>•</span>
@@ -593,7 +593,7 @@
         <canvas id="particles-canvas" width="300" height="600"></canvas>
 
         <div id="callout-banner">
-          <div class="callout-main" id="callout-main">TETRIS!</div>
+          <div class="callout-main" id="callout-main">QUAD CLEAR!</div>
           <div class="callout-sub" id="callout-sub">BACK-TO-BACK x1.5</div>
         </div>
 
@@ -1374,7 +1374,7 @@ function arenaSweep(isTSpin) {
     } else {
       const stdScores = [0, 100, 300, 500, 800];
       basePoints = stdScores[rowCount] || 800;
-      const names = ['', 'SINGLE', 'DOUBLE', 'TRIPLE', 'TETRIS!'];
+      const names = ['', 'SINGLE', 'DOUBLE', 'TRIPLE', 'QUAD CLEAR!'];
       label = names[rowCount];
       if (rowCount === 4) {
         sfx.tetris();

@@ -9,14 +9,14 @@ import {
 } from "../applications/breakout_studio.ts";
 import { scanWorkspaceApps } from "../applications/launcher_studio.ts";
 
-describe("⚡ Cyber Breakout Deluxe — Arcade Master Edition Suite", () => {
+describe("⚡ CyberBrick Breaker Deluxe — Arcade Master Edition Suite", () => {
   it("1. Static assets are present, readable, and properly structured", () => {
     const dir = getBreakoutAssetsDir();
     expect(existsSync(join(dir, "index.html"))).toBe(true);
     expect(existsSync(join(dir, "favicon.svg"))).toBe(true);
 
     const html = readFileSync(join(dir, "index.html"), "utf8");
-    expect(html).toContain("Cyber Breakout");
+    expect(html).toContain("CyberBrick Breaker");
     expect(html).toContain("SoundEngine");
     expect(html).toContain("applyPowerup");
     expect(html).toContain("gameCanvas");
@@ -25,14 +25,14 @@ describe("⚡ Cyber Breakout Deluxe — Arcade Master Edition Suite", () => {
 
   it("2. generateBreakoutStudioHtml injects desktop window shortcuts", () => {
     const html = generateBreakoutStudioHtml();
-    expect(html).toContain("Cyber Breakout");
+    expect(html).toContain("CyberBrick Breaker");
     expect(html).toContain("window.addEventListener");
     expect(html).toContain("btnHub");
   });
 
   it("3. Studio factory generates correct defaults and instance contracts", () => {
     const app = createBreakoutStudio({ fullscreen: false, width: 1000, height: 800 });
-    expect(app.title).toContain("Cyber Breakout Deluxe");
+    expect(app.title).toContain("CyberBrick Breaker Deluxe");
     expect(app.width).toBe(1000);
     expect(app.height).toBe(800);
     expect(app.fullscreen).toBe(false);
@@ -49,7 +49,7 @@ describe("⚡ Cyber Breakout Deluxe — Arcade Master Edition Suite", () => {
       const resHtml = await fetch(`${base}/`);
       expect(resHtml.status).toBe(200);
       const textHtml = await resHtml.text();
-      expect(textHtml).toContain("Cyber Breakout");
+      expect(textHtml).toContain("CyberBrick Breaker");
 
       // Favicon endpoint
       const resFav = await fetch(`${base}/favicon.svg`);
@@ -62,17 +62,17 @@ describe("⚡ Cyber Breakout Deluxe — Arcade Master Edition Suite", () => {
       const healthData = await resHealth.json() as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("breakout_studio");
-      expect(healthData.name).toContain("Cyber Breakout Deluxe");
+      expect(healthData.name).toContain("CyberBrick Breaker Deluxe");
     } finally {
       server.stop(true);
     }
   });
 
-  it("5. Launcher Studio automatically registers and surfaces Cyber Breakout", () => {
+  it("5. Launcher Studio automatically registers and surfaces CyberBrick Breaker", () => {
     const apps = scanWorkspaceApps();
     const found = apps.find((a) => a.name === "breakout_studio" || a.id === "rad_breakout_studio");
     expect(found).toBeDefined();
-    expect(found?.displayName).toBe("Codecaine Cyber Breakout Deluxe");
+    expect(found?.displayName).toBe("Codecaine CyberBrick Breaker Deluxe");
     expect(found?.icon).toBe("🧱");
     expect(found?.category).toBe("Games & Entertainment");
     expect(found?.description).toContain("continuous swept physics");

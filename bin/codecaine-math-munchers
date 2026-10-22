@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Codecaine Utility Suite - Codecaine Math Munchers Deluxe
+# Codecaine Utility Suite - Codecaine CyberMunch Math Deluxe
 # Type: GUI | Script: applications/math_munchers_studio.ts
 # ==============================================================================
 set -e

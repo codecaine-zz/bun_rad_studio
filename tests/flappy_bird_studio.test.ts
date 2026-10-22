@@ -9,14 +9,14 @@ import {
 } from "../applications/flappy_bird_studio.ts";
 import { scanWorkspaceApps } from "../applications/launcher_studio.ts";
 
-describe("🐦 Flappy Bird Deluxe — Cyber Legends Arcade Suite", () => {
+describe("🐦 CyberWing Deluxe — Cyber Legends Arcade Suite", () => {
   it("1. Static assets are present, readable, and properly structured", () => {
     const dir = getFlappyBirdAssetsDir();
     expect(existsSync(join(dir, "index.html"))).toBe(true);
     expect(existsSync(join(dir, "favicon.svg"))).toBe(true);
 
     const html = readFileSync(join(dir, "index.html"), "utf8");
-    expect(html).toContain("Flappy Bird");
+    expect(html).toContain("CyberWing");
     expect(html).toContain("AudioEngine");
     expect(html).toContain("triggerFlap");
     expect(html).toContain("gameCanvas");
@@ -25,14 +25,14 @@ describe("🐦 Flappy Bird Deluxe — Cyber Legends Arcade Suite", () => {
 
   it("2. generateFlappyBirdStudioHtml injects desktop window shortcuts", () => {
     const html = generateFlappyBirdStudioHtml();
-    expect(html).toContain("Flappy Bird");
+    expect(html).toContain("CyberWing");
     expect(html).toContain("window.addEventListener");
     expect(html).toContain("btnHub");
   });
 
   it("3. Studio factory generates correct defaults and instance contracts", () => {
     const app = createFlappyBirdStudio({ fullscreen: false, width: 950, height: 750 });
-    expect(app.title).toContain("Flappy Bird Deluxe");
+    expect(app.title).toContain("CyberWing Deluxe");
     expect(app.width).toBe(950);
     expect(app.height).toBe(750);
     expect(app.fullscreen).toBe(false);
@@ -49,7 +49,7 @@ describe("🐦 Flappy Bird Deluxe — Cyber Legends Arcade Suite", () => {
       const resHtml = await fetch(`${base}/`);
       expect(resHtml.status).toBe(200);
       const textHtml = await resHtml.text();
-      expect(textHtml).toContain("Flappy Bird");
+      expect(textHtml).toContain("CyberWing");
 
       // Favicon endpoint
       const resFav = await fetch(`${base}/favicon.svg`);
@@ -62,17 +62,17 @@ describe("🐦 Flappy Bird Deluxe — Cyber Legends Arcade Suite", () => {
       const healthData = await resHealth.json() as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("flappy_bird_studio");
-      expect(healthData.name).toContain("Flappy Bird Deluxe");
+      expect(healthData.name).toContain("CyberWing Deluxe");
     } finally {
       server.stop(true);
     }
   });
 
-  it("5. Launcher Studio automatically registers and surfaces Flappy Bird", () => {
+  it("5. Launcher Studio automatically registers and surfaces CyberWing", () => {
     const apps = scanWorkspaceApps();
     const found = apps.find((a) => a.name === "flappy_bird_studio" || a.id === "rad_flappy_bird_studio");
     expect(found).toBeDefined();
-    expect(found?.displayName).toBe("Codecaine Flappy Bird Deluxe");
+    expect(found?.displayName).toBe("Codecaine CyberWing Deluxe");
     expect(found?.icon).toBe("🐦");
     expect(found?.category).toBe("Games & Entertainment");
     expect(found?.description).toContain("kinetic");

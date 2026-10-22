@@ -53,9 +53,9 @@
     <circle cx="25" cy="26" r="3.2" fill="#0f172a"/>
   </g>
 
-  <!-- Gold Star YAHTZEE Banner Ribbon -->
+  <!-- Gold Star YACHT Banner Ribbon -->
   <g transform="translate(50, 84)" filter="url(#dropShadow)">
     <rect x="-38" y="-10" width="76" height="16" rx="4" fill="url(#goldRim)" stroke="#451a03" stroke-width="1"/>
-    <text x="0" y="2" text-anchor="middle" font-family="'Cinzel', serif, Arial" font-size="9" font-weight="900" fill="#26160c" letter-spacing="1.5">YAHTZEE</text>
+    <text x="0" y="2" text-anchor="middle" font-family="'Cinzel', serif, Arial" font-size="9" font-weight="900" fill="#26160c" letter-spacing="1.5">YACHT</text>
   </g>
 </svg>

@@ -4,7 +4,7 @@ import { join } from "path";
 import { JSDOM } from "jsdom";
 import { TypingStudio, createTypingStudio } from "../applications/typing_studio";
 
-describe("⌨️ CyberType Deluxe — Mavis Beacon Master Edition", () => {
+describe("⌨️ CyberType Deluxe — Codecaine Master Edition", () => {
   const resourceDir = join(import.meta.dir, "../resources/typing_studio");
 
   test("1. Static assets and core components are present and structured", () => {
@@ -16,13 +16,13 @@ describe("⌨️ CyberType Deluxe — Mavis Beacon Master Edition", () => {
 
     const html = readFileSync(htmlPath, "utf-8");
     expect(html).toContain("CyberType");
-    expect(html).toContain("Mavis Master");
+    expect(html).toContain("Codecaine Master");
     expect(html).toContain("keyboard-box");
     expect(html).toContain("resultsOverlay");
     expect(html).not.toContain("user-scalable=no");
   });
 
-  test("2. Signature Mavis Beacon Dual Hands posture guide and tactile homing anchors are wired", () => {
+  test("2. Signature Codecaine Dual Hands posture guide and tactile homing anchors are wired", () => {
     const html = readFileSync(join(resourceDir, "index.html"), "utf-8");
     expect(html).toContain('id="handsWrapper"');
     expect(html).toContain('data-finger="l-pinky"');
@@ -67,7 +67,7 @@ describe("⌨️ CyberType Deluxe — Mavis Beacon Master Edition", () => {
     expect(html).toContain('value="typewriter"');
     expect(html).toContain('value="cyber"');
     expect(html).toContain('value="theme-cyber"');
-    expect(html).toContain('value="theme-mavis"');
+    expect(html).toContain('value="theme-codecaine"');
     expect(html).toContain('value="theme-matrix"');
     expect(html).toContain('value="theme-synthwave"');
     expect(html).toContain('value="theme-nord"');

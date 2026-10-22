@@ -1,5 +1,5 @@
 /**
- * ⚡ Cyber Breakout Deluxe — Arcade Master Edition Studio
+ * ⚡ Codecaine CyberBrick Breaker Deluxe — Arcade Master Edition Studio
  * 
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
@@ -77,7 +77,7 @@ export function generateBreakoutStudioHtml(): string {
   const assetsDir = getBreakoutAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Cyber Breakout</h1>";
+  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine CyberBrick Breaker Deluxe</h1>";
 
   const storagePolyfill = `
   <script>
@@ -148,20 +148,20 @@ ${getWindowShortcutsScript()}
  */
 export function startBreakoutServer(options: BreakoutServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "breakout_studio", name: "Codecaine Cyber Breakout Deluxe — Arcade Master Edition", version: "1.0.0", assetsDir: getBreakoutAssetsDir(), generateHtml: generateBreakoutStudioHtml },
+    { app: "breakout_studio", name: "Codecaine CyberBrick Breaker Deluxe — Arcade Master Edition", version: "1.0.0", assetsDir: getBreakoutAssetsDir(), generateHtml: generateBreakoutStudioHtml },
     options,
   );
 }
 
 /**
- * Creates the complete native desktop instance of Cyber Breakout.
+ * Creates the complete native desktop instance of CyberBrick Breaker.
  */
 export function createBreakoutStudio(options: BreakoutStudioOptions = {}): BreakoutStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Codecaine Cyber Breakout Deluxe — Arcade Master Edition";
+  const title = "Codecaine CyberBrick Breaker Deluxe — Arcade Master Edition";
 
   const app: BreakoutStudioInstance = {
     title,
@@ -170,7 +170,7 @@ export function createBreakoutStudio(options: BreakoutStudioOptions = {}): Break
     fullscreen,
     generateHtml: () => generateBreakoutStudioHtml(),
     run: async () => {
-      console.log("⚡ Launching Cyber Breakout Deluxe...");
+      console.log("⚡ Launching Codecaine CyberBrick Breaker Deluxe...");
       const html = generateBreakoutStudioHtml();
 
       let srv: any = null;

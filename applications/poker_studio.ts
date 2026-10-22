@@ -6,7 +6,7 @@
  * - Dual Iconic Poker Engines: No-Limit Texas Hold'em (community board, 4 betting rounds, 7-choose-5 showdown)
  *   and classic 5-Card Draw (antes, pre-draw betting, interactive card discard/draw replacement phase, post-draw showdown)
  * - 6-Max casino table with legendary AI poker personalities (Doyle Brunson, Phil Hellmuth, Johnny Chan, Daniel Negreanu, Gus Hansen)
- * - Authentic Bicycle/Bee casino-grade vector playing cards (12-figure French Court suite, Acanthus Aces, rosette backs)
+ * - Authentic Codecaine Royale casino-grade vector playing cards (12-figure French Court suite, Acanthus Aces, rosette backs)
  * - Micro-precision poker hand evaluation across all 10 hand ranks with full tie-breaker kickers
  * - Interactive discard marking with red DISCARD stamps and smooth replacement animations
  * - Full WebAudio casino sound effects (card deals, chip clatters, check knocks, win fanfares)

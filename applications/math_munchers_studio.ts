@@ -1,11 +1,11 @@
 /**
- * 👾 Math Munchers Deluxe — Cyber Legends Arcade Studio
+ * 👾 Codecaine CyberMunch Math Deluxe — Cyber Legends Arcade Studio
  * 
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - Authentic procedural math matrix grid (Multiples, Factors, Primes, Equalities, Inequalities)
  * - Animated Cyber Muncher with directional facing, chomping mouth, and power-up shields
- * - Interactive Troggles AI: Reggie, Basher, Glitcher with lane rushes & grid corruption
+ * - Interactive Glitchers AI: Reggie, Basher, Glitcher with lane rushes & grid corruption
  * - Triple-A procedural Pentatonic WebAudio synthesizer engine (crunch chomps, fanfare, roars)
  * - CRT screen shader suite (Subtle, Heavy, Clean Arcade) with scanline post-processing
  * - Full Gamepad API, touch virtual D-pad, keyboard shortcuts & persistent SafeStorage
@@ -79,7 +79,7 @@ export function generateMathMunchersStudioHtml(): string {
   const assetsDir = getMathMunchersAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Math Munchers Deluxe</h1>";
+  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine CyberMunch Math Deluxe</h1>";
 
   const storagePolyfill = `
   <script>
@@ -150,20 +150,20 @@ ${getWindowShortcutsScript()}
  */
 export function startMathMunchersServer(options: MathMunchersServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "math_munchers_studio", name: "Codecaine Math Munchers Deluxe — Cyber Legends Arcade", version: "1.0.0", assetsDir: getMathMunchersAssetsDir(), generateHtml: generateMathMunchersStudioHtml },
+    { app: "math_munchers_studio", name: "Codecaine CyberMunch Math Deluxe — Cyber Legends Arcade", version: "1.0.0", assetsDir: getMathMunchersAssetsDir(), generateHtml: generateMathMunchersStudioHtml },
     options,
   );
 }
 
 /**
- * Creates the complete native desktop instance of Math Munchers Deluxe.
+ * Creates the complete native desktop instance of CyberMunch Math Deluxe.
  */
 export function createMathMunchersStudio(options: MathMunchersStudioOptions = {}): MathMunchersStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1240);
   const height = options.height ?? (fullscreen ? screen.height : 880);
-  const title = "Codecaine Math Munchers Deluxe — Cyber Legends Arcade";
+  const title = "Codecaine CyberMunch Math Deluxe — Cyber Legends Arcade";
 
   const app: MathMunchersStudioInstance = {
     title,
@@ -172,7 +172,7 @@ export function createMathMunchersStudio(options: MathMunchersStudioOptions = {}
     fullscreen,
     generateHtml: () => generateMathMunchersStudioHtml(),
     run: async () => {
-      console.log("⚡ Launching Math Munchers Deluxe...");
+      console.log("⚡ Launching Codecaine CyberMunch Math Deluxe...");
       const html = generateMathMunchersStudioHtml();
 
       let srv: any = null;

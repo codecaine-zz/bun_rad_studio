@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Codecaine Utility Suite - Codecaine Cyberpunk Connect 4
+# Codecaine Utility Suite - Codecaine Cyberpunk QuadLink 4
 # Type: GUI | Script: applications/connect4_studio.ts
 # ==============================================================================
 set -e

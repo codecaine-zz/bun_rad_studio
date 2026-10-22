@@ -317,21 +317,21 @@ $metadataRegistry = @{
     # Applications
     'launcher_studio'      = @{ Name = 'Launcher Studio Pro'; Category = 'System Hub'; Icon = '[Hub]'; Desc = 'Unified workstation hub to launch and monitor all project apps, demos and CLI tools' }
     'calculator_studio'    = @{ Name = 'Universal Calculator and STEM Studio'; Category = 'Productivity'; Icon = '[Calc]'; Desc = 'Apple-grade calculator, unit converter, 64-bit programmer lab and STEM simulations' }
-    'pacman_studio'        = @{ Name = 'Cyberpunk Pac-Man Arcade'; Category = 'Games'; Icon = '[Game]'; Desc = 'Authentic Pac-Man arcade with 4-ghost AI personalities, sound synthesis and particle effects' }
-    'codecaine_bros_studio'= @{ Name = 'Codecaine Bros. Arcade'; Category = 'Games'; Icon = '[Game]'; Desc = '1983 Mario Bros. arcade remaster with platform physics, POW block and 4-channel sound' }
-    'pong_studio'          = @{ Name = 'Neon Cyber Pong'; Category = 'Games'; Icon = '[Game]'; Desc = 'High-speed kinetic Pong with spin physics, multi-tier AI opponents and 2-player local battle' }
-    'connect4_studio'      = @{ Name = 'Cyberpunk Connect 4'; Category = 'Games'; Icon = '[Game]'; Desc = 'Neon Connect 4 arcade with minimax AI heuristics, 2-player battle and particle drop physics' }
+    'pacman_studio'        = @{ Name = 'Codecaine CyberChomp Arcade'; Category = 'Games'; Icon = '[Game]'; Desc = 'Authentic CyberChomp arcade with 4-ghost AI personalities, sound synthesis and particle effects' }
+    'codecaine_bros_studio'= @{ Name = 'Codecaine Bros. Arcade'; Category = 'Games'; Icon = '[Game]'; Desc = '1983 Codecaine Bros. arcade remaster with platform physics, POW block and 4-channel sound' }
+    'pong_studio'          = @{ Name = 'Codecaine Neon Cyber Paddle'; Category = 'Games'; Icon = '[Game]'; Desc = 'High-speed kinetic Cyber Paddle with spin physics, multi-tier AI opponents and 2-player local battle' }
+    'connect4_studio'      = @{ Name = 'Codecaine Cyberpunk QuadLink 4'; Category = 'Games'; Icon = '[Game]'; Desc = 'Neon QuadLink 4 arcade with minimax AI heuristics, 2-player battle and particle drop physics' }
     'dr_codecaine_studio'  = @{ Name = 'Dr. Codecaine Arcade'; Category = 'Games'; Icon = '[Game]'; Desc = 'Remastered capsule puzzle game with polyphonic synthesizers and pathogen AI' }
-    'lolo_studio'          = @{ Name = 'Adventures of Lolo Remaster'; Category = 'Games'; Icon = '[Game]'; Desc = 'Cyberpunk remastered Adventures of Lolo with procedural puzzles and sound engine' }
+    'lolo_studio'          = @{ Name = 'Codecaine Adventures of Caine Remaster'; Category = 'Games'; Icon = '[Game]'; Desc = 'Cyberpunk remastered Adventures of Caine with procedural puzzles and sound engine' }
     'maze_generator_studio'= @{ Name = 'Cyberpunk Maze Runner'; Category = 'Games'; Icon = '[Game]'; Desc = 'Procedural neon labyrinth with Recursive Backtracking, fog of war and A* AI solver' }
-    'rodents_revenge_studio'=@{ Name = 'Rodent''s Revenge Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Deluxe arcade revival of Rodent''s Revenge with retro maze and cat trapping' }
+    'rodents_revenge_studio'=@{ Name = 'Codecaine CyberMouse Trap Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Deluxe arcade revival of CyberMouse Trap with retro maze and cat trapping' }
     'minesweeper_studio'   = @{ Name = 'Minesweeper Pro Championship'; Category = 'Games'; Icon = '[Game]'; Desc = 'Championship Minesweeper with safe first-click, chord clearing, 3BV benchmark & multi-theme engine' }
-    'breakout_studio'      = @{ Name = 'Cyber Breakout Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Deluxe Breakout arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support' }
-    'skifree_studio'       = @{ Name = 'SkiFree Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Authentic downhill alpine skiing with freestyle tricks, slalom gates & the ravenous Yeti chase' }
-    'math_munchers_studio' = @{ Name = 'Math Munchers Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Cyberpunk Math Munchers classic with Troggles AI, CRT shaders, pentatonic synth & multiple game modes' }
-    'flappy_bird_studio'   = @{ Name = 'Flappy Bird Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Cyberpunk kinetic Flappy Bird arcade with energy conduits, medal achievements, parallax sky & WebAudio synth' }
-    'typing_studio'        = @{ Name = 'CyberType Deluxe — Mavis Edition'; Category = 'Games'; Icon = '[Game]'; Desc = 'Cyberpunk typing tutor with haptic WebAudio mechanics, live dynamic keyboard, and biometric telemetry.' }
-    'tetris_studio'        = @{ Name = 'Tetris Ultra Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Modern block puzzle with ghost piece, hold queue, SRS rotation, and neon synthwave theme.' }
+    'breakout_studio'      = @{ Name = 'Codecaine CyberBrick Breaker Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Deluxe CyberBrick Breaker arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support' }
+    'skifree_studio'       = @{ Name = 'Codecaine CyberSki Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Authentic downhill alpine skiing with freestyle tricks, slalom gates & the ravenous Yeti chase' }
+    'math_munchers_studio' = @{ Name = 'Codecaine CyberMunch Math Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Cyberpunk CyberMunch Math classic with Glitchers AI, CRT shaders, pentatonic synth & multiple game modes' }
+    'flappy_bird_studio'   = @{ Name = 'Codecaine CyberWing Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Cyberpunk kinetic CyberWing arcade with energy conduits, medal achievements, parallax sky & WebAudio synth' }
+    'typing_studio'        = @{ Name = 'Codecaine CyberType Deluxe — Codecaine Edition'; Category = 'Games'; Icon = '[Game]'; Desc = 'Cyberpunk typing tutor with haptic WebAudio mechanics, live dynamic keyboard, and biometric telemetry.' }
+    'tetris_studio'        = @{ Name = 'Codecaine TetroGrid Ultra Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Modern block puzzle with ghost piece, hold queue, SRS rotation, and neon synthwave theme.' }
     'snake_studio'         = @{ Name = 'Neon Snake Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'High-speed glowing cyber snake with looping walls and combo multipliers' }
     'frogger_studio'       = @{ Name = 'CyberFrog Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Navigate a cyberpunk highway and acid river with fluid interpolation physics' }
     'tictactoe_studio'     = @{ Name = 'Neon Tic-Tac-Toe Arcade'; Category = 'Games'; Icon = '[Game]'; Desc = 'Unbeatable Minimax AI and 2-player local battle with glowing neon canvas' }
@@ -590,7 +590,6 @@ function Resolve-CatalogItem {
         'bird'          = 'flappy_bird_studio'
         'typing'        = 'typing_studio'
         'type'          = 'typing_studio'
-        'mavis'         = 'typing_studio'
         'tetris'        = 'tetris_studio'
         'snake'         = 'snake_studio'
         'frogger'       = 'frogger_studio'

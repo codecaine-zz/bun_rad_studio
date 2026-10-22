@@ -1,5 +1,5 @@
 /**
- * ⚡ Cyberpunk Connect 4 - Neon AI & 2-Player Arcade Studio
+ * ⚡ Codecaine Cyberpunk QuadLink 4 - Neon AI & 2-Player Arcade Studio
  * 
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
@@ -76,7 +76,7 @@ export function generateConnect4StudioHtml(): string {
   const assetsDir = getConnect4AssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Cyberpunk Connect 4</h1>";
+  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine Cyberpunk QuadLink 4</h1>";
 
   const storagePolyfill = `
   <script>
@@ -203,7 +203,7 @@ export function startConnect4StudioServer(options: Connect4ServerOptions = {}) {
           {
             status: "ok",
             app: "connect4_studio",
-            name: "Codecaine Cyberpunk Connect 4 - Neon AI & 2-Player Arcade",
+            name: "Codecaine Cyberpunk QuadLink 4 - Neon AI & 2-Player Arcade",
             version: "1.0.0",
             timestamp: Date.now(),
           },
@@ -236,7 +236,7 @@ export function createConnect4Studio(options: Connect4StudioOptions = {}): Conne
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
   const height = options.height ?? (fullscreen ? screen.height : 900);
-  const title = "Codecaine Cyberpunk Connect 4 - Neon AI & 2-Player Arcade";
+  const title = "Codecaine Cyberpunk QuadLink 4 - Neon AI & 2-Player Arcade";
 
   const app: Connect4StudioInstance = {
     title,
@@ -245,7 +245,7 @@ export function createConnect4Studio(options: Connect4StudioOptions = {}): Conne
     fullscreen,
     generateHtml: () => generateConnect4StudioHtml(),
     run: async () => {
-      console.log("⚡ Launching Cyberpunk Connect 4 Arcade...");
+      console.log("⚡ Launching Codecaine Cyberpunk QuadLink 4 Arcade...");
       const html = generateConnect4StudioHtml();
 
       let srv: any = null;

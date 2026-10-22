@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <script>(function(){try{var s=window.localStorage;s.getItem("__yh__")}catch(e){var m={};var p={getItem:function(k){return Object.prototype.hasOwnProperty.call(m,k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}},key:function(i){return Object.keys(m)[i]||null},get length(){return Object.keys(m).length}};try{Object.defineProperty(window,"localStorage",{value:p,configurable:true,writable:true})}catch(_){}}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Codecaine Yahtzee Royale Deluxe — Classic Dice Board Studio</title>
+  <title>Codecaine Yacht Dice Royale Deluxe — Classic Dice Board Studio</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -533,7 +533,7 @@
       opacity: 0.6;
     }
 
-    /* Right: The Milton Bradley Authentic Scorecard */
+    /* Right: The Codecaine Championship Scorecard */
     .scorecard-panel {
       flex: 1;
       max-width: 480px;
@@ -876,13 +876,13 @@
 <body data-theme="emerald" class="skin-vegas">
 
   <canvas id="confettiCanvas"></canvas>
-  <div class="victory-toast" id="victoryToast">🎉 YAHTZEE! 50 POINTS! 🎉</div>
+  <div class="victory-toast" id="victoryToast">🎉 YACHT! 50 POINTS! 🎉</div>
 
   <!-- Header Navigation -->
   <header class="app-header">
     <div class="brand-title">
-      <img src="favicon.svg" alt="Yahtzee Royale">
-      <span>YAHTZEE ROYALE DELUXE</span>
+      <img src="favicon.svg" alt="Yacht Dice Royale">
+      <span>YACHT DICE ROYALE DELUXE</span>
     </div>
 
     <div class="header-center-info">
@@ -946,7 +946,7 @@
     <!-- Left / Center: Felt Tray Area -->
     <section class="tray-container">
       <div class="tray-felt">
-        <div class="felt-watermark">YAHTZEE</div>
+        <div class="felt-watermark">YACHT</div>
 
         <!-- Upper Section: Held / Kept Dice Tray -->
         <div class="kept-dice-section">
@@ -989,7 +989,7 @@
       </div>
     </section>
 
-    <!-- Right: Classic Milton Bradley Scorecard -->
+    <!-- Right: Codecaine Championship Scorecard -->
     <aside class="scorecard-panel">
       <div class="card-header-bar">
         <div class="card-header-title">
@@ -1104,7 +1104,7 @@
               <td class="score-cell ai-cell" id="score_p2_lg_straight" style="display:none;">-</td>
             </tr>
             <tr class="score-row clickable" id="row_yahtzee" onclick="handleCategorySelect('yahtzee')">
-              <td class="category-title">YAHTZEE</td>
+              <td class="category-title">YACHT</td>
               <td class="category-desc">5 of a Kind (Score 50)</td>
               <td class="score-cell" id="score_p1_yahtzee">-</td>
               <td class="score-cell ai-cell" id="score_p2_yahtzee" style="display:none;">-</td>
@@ -1116,8 +1116,8 @@
               <td class="score-cell ai-cell" id="score_p2_chance" style="display:none;">-</td>
             </tr>
             <tr class="summary-row">
-              <td class="category-title">YAHTZEE Bonus</td>
-              <td class="category-desc">100 pts per Extra Yahtzee</td>
+              <td class="category-title">YACHT Bonus</td>
+              <td class="category-desc">100 pts per Extra Yacht</td>
               <td class="score-cell" id="yahtzee_bonus_p1">0</td>
               <td class="score-cell ai-cell" id="yahtzee_bonus_p2" style="display:none;">0</td>
             </tr>
@@ -1145,7 +1145,7 @@
   <div class="modal-overlay" id="rulesModal">
     <div class="modal-card">
       <div class="modal-header">
-        <h3>📖 OFFICIAL YAHTZEE RULES & STRATEGY</h3>
+        <h3>📖 OFFICIAL YACHT DICE RULES & STRATEGY</h3>
         <button class="modal-close" onclick="closeRulesModal()">&times;</button>
       </div>
       <div class="modal-body">
@@ -1158,8 +1158,8 @@
         <h4>🏆 UPPER SECTION & 35-POINT BONUS</h4>
         <p>In the Upper Section (Aces through Sixes), you only count the dice matching that category number. If the total of your six Upper Section scores reaches <strong>63 or more</strong> (the equivalent of three of each number), you earn a valuable <strong>+35 point Bonus</strong>!</p>
 
-        <h4>✨ YAHTZEE BONUS & JOKER RULE</h4>
-        <p>A Yahtzee is 5 of a kind and scores <strong>50 points</strong>. If you roll an additional Yahtzee and your Yahtzee box already contains 50 points, you earn an extra <strong>+100 point Yahtzee Bonus</strong>! You may then use this wild Yahtzee as a Joker in the appropriate upper or lower section box (scoring Full House, Straight, etc.).</p>
+        <h4>✨ YACHT BONUS & JOKER RULE</h4>
+        <p>A Yacht is 5 of a kind and scores <strong>50 points</strong>. If you roll an additional Yacht and your Yacht box already contains 50 points, you earn an extra <strong>+100 point Yacht Bonus</strong>! You may then use this wild Yacht as a Joker in the appropriate upper or lower section box (scoring Full House, Straight, etc.).</p>
 
         <h4>💡 PRO STRATEGY TIPS</h4>
         <ul style="padding-left: 20px; margin-top: 6px;">
@@ -1185,7 +1185,7 @@
               <th>Rank</th>
               <th>Score</th>
               <th>Mode</th>
-              <th>Yahtzees</th>
+              <th>Yachts</th>
               <th>Date</th>
             </tr>
           </thead>
@@ -1590,7 +1590,7 @@
         const vals = gameState.dice.map(d => d.val);
         const isYahtzee = vals.every(v => v === vals[0]);
         if (isYahtzee) {
-          showVictoryToast("🎉 YAHTZEE! 50 POINTS! 🎉");
+          showVictoryToast("🎉 YACHT! 50 POINTS! 🎉");
           audio.playYahtzeeFanfare();
           launchConfetti();
         }
@@ -1691,10 +1691,10 @@
       const diceVals = gameState.dice.map(d => d.val);
       const isYahtzee = diceVals.every(v => v === diceVals[0]);
 
-      // Check Yahtzee Bonus (+100)
+      // Check Yacht Bonus (+100)
       if (isYahtzee && gameState.scores[p].yahtzee !== undefined && gameState.scores[p].yahtzee === 50) {
         gameState.yahtzeeBonuses[p] += 100;
-        showVictoryToast("🌟 YAHTZEE BONUS! +100 PTS! 🌟");
+        showVictoryToast("🌟 YACHT BONUS! +100 PTS! 🌟");
         audio.playBonusChime();
       }
 
@@ -2057,7 +2057,7 @@
     }
 
     function confirmNewGame() {
-      if (confirm("Start a new Yahtzee game? Current progress will be reset.")) {
+      if (confirm("Start a new Yacht Dice game? Current progress will be reset.")) {
         resetGame();
       }
     }

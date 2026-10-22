@@ -10,6 +10,7 @@ All notable changes. Version 1.5.1 is the twentieth release (1.0.0, 1.1.0, 1.2.0
 
 ### Improved
 
+- **24-Game Codecaine Arcade Rebranding & Trademark-Free Original Titles.** Rebrand all 24 built-in arcade, puzzle, card, and typing studios under original Codecaine titles (*Typing Codecaine Edition*, *CyberChomp Arcade*, *TetroGrid Ultra Deluxe*, *CyberMunch Math Deluxe*, *Yacht Dice Royale*, *Adventures of Caine*, *Neon Paddle Pro*, *Neon Brick Breaker*, *Cyber Flap Deluxe*, *Alpine Cyber Ski*, *Cyber Cat Trap*, *4-in-a-Row Neon Grid*, *Joker Deck Studio*, *21 Neon Casino*, *Texas Hold'em Neon*, and *Caine's World Deluxe*) across standalone studios, launchers, desktop icons, and File Manager Arcade hubs.
 - **Better text contrast in the Commodore 64 and Synthwave '84 themes, and a readable Charcoal accent.** Text now meets 4.5:1 against its background while keeping each theme's hues.
 
 ## 1.5.0 (19 October 2026)
