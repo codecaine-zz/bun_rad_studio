@@ -50,7 +50,7 @@ describe("watchexec doers", () => {
     expect(exitCode).not.toBe(0);
   });
 
-  it("terminates entire process trees via killProcessTree", async () => {
+  it.skipIf(process.platform === "win32")("terminates entire process trees via killProcessTree", async () => {
     const proc = Bun.spawn(["/bin/sh", "-c", "sleep 10"], { stdout: "ignore", stderr: "ignore" });
     expect(proc.pid).toBeGreaterThan(0);
     killProcessTree(proc.pid);

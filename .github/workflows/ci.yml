@@ -65,6 +65,12 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     steps:
+      # Windows would otherwise turn every text file into CRLF, and the tests that compare generated files, run shell
+      # scripts and parse Ruby would read something other than what is in the repository.
+      - name: Keep line endings as committed (Windows)
+        if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
+
       - uses: actions/checkout@v7
 
       - uses: oven-sh/setup-bun@v2
@@ -104,7 +110,7 @@ jobs:
           bun test --timeout 30000 @files
 
       - name: PHP server tests (Windows)
-        if: runner.os == 'Windows'
+        if: ${{ !cancelled() && runner.os == 'Windows' }}
         timeout-minutes: 5
         continue-on-error: true
         run: bun test --timeout 30000 tests/file_manager_serve_php.test.ts

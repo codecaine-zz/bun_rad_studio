@@ -9,7 +9,7 @@
 //
 // One shared runtime instead of a 60 MB executable per app keeps the whole suite near 30 MB per platform.
 import { chmodSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
-import { basename, join } from "path";
+import { basename, join, resolve } from "path";
 import { ROOT, SIDECAR_FILES, TARGETS, VERSION, defaultJobs, log, mapPool, run, shQuote, webviewLibSource, writeFileAtomic, zipEntries, type SourceApp, type Target } from "./common";
 import { LINUX_SANDBOX_WARNING, linuxSandboxSetup } from "./linuxSandbox";
 import { WINDOWS_SETUP, desktopInfo, embedWindowsIcon, stageDesktopIcons, windowsDesktopLauncher, windowsInstallCommand, windowsInstallScript } from "./desktop";
@@ -87,14 +87,14 @@ export async function bundleApps(apps: SourceApp[], outRoot = BUNDLE_DIR, jobs =
     const dir = join(outRoot, app.kind === "gui" ? "apps" : "cli");
     try {
       const out = await Bun.build({
-        entrypoints: [join(ROOT, app.entry)],
+        entrypoints: [resolve(ROOT, app.entry)],
         target: "bun",
         minify: true,
         plugins: [webviewPlugin(app.kind), {
           name: "release-entrypoint",
           setup(build) {
             build.onLoad({ filter: /\.[cm]?[jt]sx?$/ }, ({ path }) => {
-              if (path !== join(ROOT, app.entry)) return;
+              if (path !== resolve(ROOT, app.entry)) return;
               // Bun can misidentify UNC entrypoints when the file URL lowercases the server name.
               const source = readFileSync(path, "utf8").replace(/^#![^\r\n]*(?:\r?\n|$)/, "").replace(/\bimport\.meta\.main\b/g,
                 '(import.meta.main || import.meta.url === __releaseEntryUrl(Bun.main).href)');

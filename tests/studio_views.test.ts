@@ -7,6 +7,7 @@ import { createAdapter } from "../src/db";
 import { provisionTestDb, type TestDb } from "./helpers/testdb";
 import { viewTools, viewApi } from "../src/shared/studioViews";
 import { STUDIO_DIALOGS_SCRIPT } from "../src/shared/studioDialogs";
+import { rmDir } from "./helpers/rm";
 
 const storeDir = mkdtempSync(join(tmpdir(), "studio-views-macros-"));
 process.env.STUDIO_MACRO_STORE_DIR = storeDir;
@@ -16,7 +17,7 @@ const { generatePostgresStudioHtml } = await import("../applications/postgres_st
 const { startSqliteStudioServer } = await import("../applications/sqlite_studio_server.ts");
 const { startMysqlStudioServer } = await import("../applications/mysql_studio_server.ts");
 const { startPostgresStudioServer } = await import("../applications/postgres_studio_server.ts");
-afterAll(() => rmSync(storeDir, { recursive: true, force: true }));
+afterAll(() => rmDir(storeDir));
 
 const T = viewTools;
 
@@ -118,7 +119,7 @@ describe("SQLite studio: views through /api/view/*", () => {
   db.close();
   const server = startSqliteStudioServer({ port: 0, initialDbPath: path });
   const base = `http://127.0.0.1:${server.port}`;
-  afterAll(() => { server.stop(true); rmSync(dir, { recursive: true, force: true }); });
+  afterAll(() => { server.stop(true); rmDir(dir); });
 
   it("check explains problems in plain words and creates nothing", async () => {
     const ok = await post(base, "/api/view/check", { name: "v_ok", select: "SELECT id, name FROM t" });
@@ -337,7 +338,7 @@ const WIDE_ROWS = "INSERT INTO wide (id, sku, full_name) VALUES (1,'a','Ann'),(2
       expect(await runUi(`http://127.0.0.1:${server.port}`, "sqlite")).toBe(0);
     } finally {
       server.stop(true);
-      rmSync(dir, { recursive: true, force: true });
+      rmDir(dir);
     }
   }, 180_000);
 

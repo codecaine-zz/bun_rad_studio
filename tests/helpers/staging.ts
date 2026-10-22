@@ -9,6 +9,7 @@ import { join } from "path";
 import { createAdapter, type DbAdapter } from "../../src/db";
 import { AdapterStageDb, SqliteStageDb, type StageDb } from "../../src/db/staging/db";
 import { provisionTestDb, type TestDb } from "./testdb";
+import { rmDir } from "./rm";
 
 export interface Rig {
   name: "sqlite" | "mysql" | "postgres";
@@ -72,13 +73,13 @@ export async function makeRig(name: Rig["name"]): Promise<Rig | null> {
         }
       },
       async close() {
-        rmSync(dir, { recursive: true, force: true });
+        rmDir(dir);
       },
     };
   }
   const t: TestDb | null = await provisionTestDb(name);
   if (!t) {
-    rmSync(dir, { recursive: true, force: true });
+    rmDir(dir);
     return null;
   }
   const adapter: DbAdapter = createAdapter({ engine: name, ...t.config, ...(name === "mysql" ? { allowPublicKeyRetrieval: true } : { schema: "public" }), maxConnections: 4 });
@@ -96,7 +97,7 @@ export async function makeRig(name: Rig["name"]): Promise<Rig | null> {
     async close() {
       await adapter.close();
       await t.drop();
-      rmSync(dir, { recursive: true, force: true });
+      rmDir(dir);
     },
   };
 }

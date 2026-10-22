@@ -12,6 +12,7 @@ import { zipBuffer } from "../../src/features/filemanager/fmConvZip";
 import { IMPORT_EXTENSIONS } from "../../src/features/filemanager/fmDbImport";
 import { parseRedisImportPayload } from "../../src/redis_helpers";
 import { startSqliteStudioServer } from "../../applications/sqlite_studio_server";
+import { rmDir } from "../helpers/rm";
 
 function stringSource(text: string, name: string) {
   return memorySource(text, name);
@@ -69,7 +70,7 @@ describe("Universal Multi-Format Database Import Suite", () => {
   });
 
   afterEach(() => {
-    rmSync(dir, { recursive: true, force: true });
+    rmDir(dir);
   });
 
   test("1. Excel (.xlsx) & OpenDocument (.ods) spreadsheets (including multi-sheet selection)", async () => {

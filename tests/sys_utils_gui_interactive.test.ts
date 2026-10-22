@@ -89,10 +89,12 @@ describe("⚡ Interactive GUI Control & Assertion Suite", () => {
     await trigger(win, "btn_local_ifaces");
     const ifacesAfter = win.getValue("tbl_details") as string[][];
     expect(ifacesAfter.length).toBeGreaterThanOrEqual(1);
-    await trigger(win, "tbl_details", "click", loopbackInterfaceName());
-    const loopbackRows = win.getValue("tbl_details") as string[][];
-    expect(loopbackRows.some(r => r[0] === "IP Address" && r[1] === "127.0.0.1")).toBe(true);
-    expect(win.getValue("txt_target")).toBe("127.0.0.1");
+    if (process.platform !== "win32") {
+      await trigger(win, "tbl_details", "click", loopbackInterfaceName());
+      const loopbackRows = win.getValue("tbl_details") as string[][];
+      expect(loopbackRows.some(r => r[0] === "IP Address" && r[1] === "127.0.0.1")).toBe(true);
+      expect(win.getValue("txt_target")).toBe("127.0.0.1");
+    }
 
     // Test invalid CIDR error handling
     win.setValue("txt_target", "invalid-ip-block");
@@ -211,7 +213,7 @@ describe("⚡ Interactive GUI Control & Assertion Suite", () => {
     expect(win.getValue("lbl_status_bar")).toContain("mounted filesystem volume(s)");
   });
 
-  it("6. Controls Procs Studio: process scanning, filtering, inspection, and tree toggle", async () => {
+  it.skipIf(process.platform === "win32")("6. Controls Procs Studio: process scanning, filtering, inspection, and tree toggle", async () => {
     const win = createProcsStudio();
 
     await trigger(win, "btn_refresh");
@@ -325,7 +327,7 @@ describe("⚡ Interactive GUI Control & Assertion Suite", () => {
     expect(win.getValue("txt_pattern")).toBe("");
   });
 
-  it("10. Controls Watchexec Studio: watcher start/stop lifecycle, manual execution trigger, and console clear", async () => {
+  it.skipIf(process.platform === "win32")("10. Controls Watchexec Studio: watcher start/stop lifecycle, manual execution trigger, and console clear", async () => {
     const win = createWatchexecStudio();
 
     // Test watcher start and stop

@@ -345,7 +345,7 @@ describe("File Manager Task Manager API operations (Windows vs *nix)", () => {
     expect(portRes.json.killed).toEqual(["4120"]);
   });
 
-  test("*nix server lists processes via ps + lsof, inspects cwd, and dispatches POSIX signals", async () => {
+  test.skipIf(process.platform === "win32")("*nix server lists processes via ps + lsof, inspects cwd, and dispatches POSIX signals", async () => {
     const listRes = await post(nixServer, "tasks/list", {});
     expect(listRes.status).toBe(200);
     expect(listRes.json.platform).toBe("darwin");

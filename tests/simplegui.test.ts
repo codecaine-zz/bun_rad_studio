@@ -275,7 +275,7 @@ describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
         expect(win.getControlEnabled("txtA")).toBe(true);
 
         // Settings Persistence (JSON)
-        const tempPath = `/tmp/test_simplegui_settings_${Date.now()}.json`;
+        const tempPath = require("path").join(require("os").tmpdir(), `test_simplegui_settings_${Date.now()}.json`);
         win.saveValuesToFile(tempPath);
 
         win.setAll({ txtA: "Modified A", txtB: "Modified B" });

@@ -8,6 +8,7 @@ import { startMysqlStudioServer } from "../../applications/mysql_studio_server";
 import { startPostgresStudioServer } from "../../applications/postgres_studio_server";
 import { makeRig, type Rig } from "../helpers/staging";
 import { generateSqliteStudioHtml } from "../../applications/sqlite_studio";
+import { rmDir } from "../helpers/rm";
 
 const CSV = "\uFEFFCustomer ID;Full Name;E-mail Address;Age;Balance;Date joined;Active?;Plan\r\n1;Ann Lee;ann@example.com;30;\"1.510,00\";01/01/2020;yes;free\r\n2;Bobby Ray;bob@example.com;41;20,00;02/02/2021;no;pro\r\n3;\"Cy\nDee\";cy@example.com;x;5,5;31/12/2022;y;team\r\n4;Di Fox;ann@example.com;22;5,5;31/12/2022;1;team\r\n5;Ed Mo;ed@example.com;200;1,5;2022-12-31;y;free\r\n6;Fay;fay@example.com;33;\"2.000,25\";15/03/2023;N;pro\r\n7;Gus;gus@example.com;29;7;not a date;yes;gold\r\n8;short\r\n";
 
@@ -15,7 +16,7 @@ const dir = mkdtempSync(join(tmpdir(), "staging-ui-"));
 const servers: ReturnType<typeof Bun.serve>[] = [];
 afterAll(() => {
   for (const s of servers) s.stop(true);
-  rmSync(dir, { recursive: true, force: true });
+  rmDir(dir);
 });
 
 describe("Import with staging: studio page", () => {

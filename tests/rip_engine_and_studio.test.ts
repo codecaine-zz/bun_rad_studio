@@ -69,9 +69,11 @@ describe("🪦 Native Bun Rip Engine & Studio Specification Suite", () => {
     expect(isProtectedPath(".", { cwd: testWorkspace }).protected).toBe(true);
     expect(isProtectedPath("..", { cwd: testWorkspace }).protected).toBe(true);
     expect(isProtectedPath(os.homedir()).protected).toBe(true);
-    expect(isProtectedPath("/etc").protected).toBe(true);
-    expect(isProtectedPath("/System").protected).toBe(true);
-    expect(isProtectedPath("/usr/bin").protected).toBe(true);
+    if (process.platform !== "win32") {
+      expect(isProtectedPath("/etc").protected).toBe(true);
+      expect(isProtectedPath("/System").protected).toBe(true);
+      expect(isProtectedPath("/usr/bin").protected).toBe(true);
+    }
 
     // Graveyard itself is protected
     expect(isProtectedPath(testGraveyard, { graveyardDir: testGraveyard }).protected).toBe(true);
@@ -315,7 +317,7 @@ describe("🪦 Native Bun Rip Engine & Studio Specification Suite", () => {
 
     const [gyOut, gyCode] = Sys.exec("bun run cli_apps/rip_cli.ts graveyard");
     expect(gyCode).toBe(0);
-    expect(gyOut).toContain(".local/share/rip/graveyard");
+    expect(gyOut.replace(/\\/g, "/")).toContain(".local/share/rip/graveyard");
 
     const [compOut, compCode] = Sys.exec("bun run cli_apps/rip_cli.ts completions zsh");
     expect(compCode).toBe(0);

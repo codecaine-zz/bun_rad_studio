@@ -7,6 +7,7 @@ import { createAdapter } from "../src/db";
 import { provisionTestDb, type TestDb } from "./helpers/testdb";
 import { STUDIO_COLUMNS_SCRIPT, STUDIO_COLUMNS_STYLE } from "../src/shared/studioColumns";
 import { STUDIO_POLISH_SCRIPT, STUDIO_POLISH_STYLE } from "../src/shared/studioPolish";
+import { rmDir } from "./helpers/rm";
 
 const storeDir = mkdtempSync(join(tmpdir(), "studio-cols-macros-"));
 process.env.STUDIO_MACRO_STORE_DIR = storeDir;
@@ -17,7 +18,7 @@ const { startSqliteStudioServer } = await import("../applications/sqlite_studio_
 const { startMysqlStudioServer } = await import("../applications/mysql_studio_server.ts");
 const { startPostgresStudioServer } = await import("../applications/postgres_studio_server.ts");
 
-afterAll(() => rmSync(storeDir, { recursive: true, force: true }));
+afterAll(() => rmDir(storeDir));
 
 const COLS = ["id", "sku", "full_name", "email", "country", "balance", "qty", "is_active", "created_at", "notes", "rating", "tags", "city", "postal_code"];
 const rowsSql = (bool: (n: number) => string) =>
@@ -99,7 +100,7 @@ async function runUi(base: string, engine: string) {
       expect(await runUi(`http://127.0.0.1:${server.port}`, "sqlite")).toBe(0);
     } finally {
       server.stop(true);
-      rmSync(dir, { recursive: true, force: true });
+      rmDir(dir);
     }
   }, 180_000);
 

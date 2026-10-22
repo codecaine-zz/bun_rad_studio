@@ -181,7 +181,7 @@ describe("vault_cli", () => {
     expect(weak.code).toBe(1);
     expect(weak.stderr).toContain("too easy to guess");
     expect(files(d)).toEqual(["weak.txt"]);
-    expect((await run(["decrypt", join(d, "weak.txt"), "--out", "/etc"], { RADENC_PASSWORD: PW })).code).toBe(1);
+    if (process.platform !== "win32") expect((await run(["decrypt", join(d, "weak.txt"), "--out", "/etc"], { RADENC_PASSWORD: PW })).code).toBe(1);
   }, 30_000);
 
   test("--password is refused with an explanation, and its value is never echoed", async () => {

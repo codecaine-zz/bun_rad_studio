@@ -6,6 +6,7 @@ import { Database } from "bun:sqlite";
 import { createAdapter } from "../src/db";
 import { provisionTestDb } from "./helpers/testdb";
 import { STUDIO_FOCUS_SCRIPT } from "../src/shared/studioFocus";
+import { rmDir } from "./helpers/rm";
 
 const storeDir = mkdtempSync(join(tmpdir(), "studio-shortcuts-macros-"));
 process.env.STUDIO_MACRO_STORE_DIR = storeDir;
@@ -15,7 +16,7 @@ const { generatePostgresStudioHtml } = await import("../applications/postgres_st
 const { startSqliteStudioServer } = await import("../applications/sqlite_studio_server.ts");
 const { startMysqlStudioServer } = await import("../applications/mysql_studio_server.ts");
 const { startPostgresStudioServer } = await import("../applications/postgres_studio_server.ts");
-afterAll(() => rmSync(storeDir, { recursive: true, force: true }));
+afterAll(() => rmDir(storeDir));
 
 describe("Focus mode in the page sources", () => {
   const pages: [string, string][] = [
@@ -65,7 +66,7 @@ const ROWS = "INSERT INTO wide (id, sku, full_name) VALUES (1,'a','Ann'),(2,'b',
       expect(await runUi(`http://127.0.0.1:${server.port}`, "sqlite")).toBe(0);
     } finally {
       server.stop(true);
-      rmSync(dir, { recursive: true, force: true });
+      rmDir(dir);
     }
   }, 180_000);
 

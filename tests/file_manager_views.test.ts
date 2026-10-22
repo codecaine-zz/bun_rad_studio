@@ -2209,7 +2209,7 @@ describe("the review dialog, Compare, Projects and duplicate cleanup", () => {
     expect(dialogText()).toContain("only-left.txt");
     expect(existsSync(join(right, "only-left.txt"))).toBe(false);
     primary().click();
-    await waitFor(() => existsSync(join(right, "only-left.txt")));
+    await waitFor(() => existsSync(join(right, "only-left.txt")) && readFileSync(join(right, "only-left.txt"), "utf8") === "L");
     expect(readFileSync(join(right, "only-left.txt"), "utf8")).toBe("L");
     expect(existsSync(join(left, "only-left.txt"))).toBe(true);
     expect(existsSync(join(right, "only-right.txt"))).toBe(true);
