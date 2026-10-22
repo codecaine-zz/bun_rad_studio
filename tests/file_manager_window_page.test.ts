@@ -425,6 +425,8 @@ describe("Settings → Window", () => {
     choose(section, "remember");
     await until(() => called("save").length === 1, "the window to be saved");
     expect(called("save")[0]![1]).toMatchObject({ screenWidth: expect.any(Number), dpr: expect.any(Number) });
+    // Let anything the first choice is still doing finish, so a late call isn't counted in the second half.
+    await sleep(300);
     clearAll();
     writeWindowPrefs(dataDir, { mode: "fill", state: state() as any });
     installDesktop();
