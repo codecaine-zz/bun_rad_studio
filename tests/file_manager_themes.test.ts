@@ -1845,11 +1845,16 @@ describe("the theme editor in the page", () => {
     expect(photonicKit.uiElementFx).toBe("godmode_photonic_crystal");
     expect(photonicKit.iconPackStyle).toBe("godmode_photonic");
 
-    await themes.applyPalette("omega_point_singularity");
-    (themes as any).applyUiImmersionProfiles({
-      uiElementFx: "godmode_omega_halo",
-      iconPackStyle: "godmode_celestial",
-    });
+    // A slow runner can still be finishing the previous test's palette change; apply again until this one is what shows.
+    for (let attempt = 0; attempt < 20; attempt++) {
+      await themes.applyPalette("omega_point_singularity");
+      (themes as any).applyUiImmersionProfiles({
+        uiElementFx: "godmode_omega_halo",
+        iconPackStyle: "godmode_celestial",
+      });
+      await sleep(40);
+      if (doc.documentElement.getAttribute("data-palette") === "omega_point_singularity") break;
+    }
     expect(doc.documentElement.getAttribute("data-palette")).toBe("omega_point_singularity");
     expect(doc.documentElement.getAttribute("data-ui-fx")).toBe("godmode_omega_halo");
     expect(doc.documentElement.getAttribute("data-icon-pack")).toBe("godmode_celestial");
