@@ -2431,6 +2431,8 @@ describe("the theme editor in the page", () => {
     const shuffled = await (themes as any).shuffleSystemIconsKeepTheme({ quiet: true, includeAnimation: true });
     expect(shuffled.iconPackStyle).toBeTruthy();
     expect(shuffled.iconPackStyle).not.toBe(initialPack);
+    // A preview from the editor can still be handing the page back to the saved palette on a slow runner.
+    for (let i = 0; i < 100 && doc.documentElement.dataset.palette !== "mac_studio_m4_ultra"; i++) await sleep(30);
     expect(doc.documentElement.dataset.palette).toBe("mac_studio_m4_ultra");
     expect(doc.documentElement.dataset.iconPack).toBe(shuffled.iconPackStyle);
 
