@@ -2220,7 +2220,7 @@ describe("the theme editor in the page", () => {
       expect(domMod.buttonIconFor("theme", packId), packId).toBeTruthy();
       expect(domMod.iconForEntry({ name: "Pictures", isDirectory: true }, packId), packId).toBeTruthy();
       expect(domMod.iconForEntry({ name: "a.ts", isDirectory: false, ext: "ts" }, packId), packId).toBeTruthy();
-      expect(sanitizeSettings({ iconPackStyle: packId }, createContext({ platform: "linux", home: "/home/u", dataDir: "/tmp/x" })).iconPackStyle, `${packId} settings`).toBe(packId);
+      expect(sanitizeSettings({ iconPackStyle: packId }, createContext({ platform: "linux", home: "/home/u", dataDir: "/tmp/x" })).iconPackStyle, `${packId} settings`).toBe(packId as any);
     }
 
     // 4. Verify 12 Icon Animation choreographies and Live 3D Icon Preview Stage inside Theme Picker
