@@ -82,10 +82,19 @@ jobs:
         if: runner.os == 'Linux'
         # The mirror on the runners can be very slow (one run took 25 minutes to fetch 53 MB), so a stalled download is retried
         # instead of waited on.
+        # Each attempt is stopped after 5 minutes and tried again: apt keeps what it has already downloaded, so a slow
+        # or stalled mirror costs minutes, not the whole job.
         run: |
           APT="-o Acquire::Retries=5 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20"
-          sudo apt-get $APT update
-          sudo apt-get $APT install -y libwebkitgtk-6.0-4 libgtk-4-1 xvfb xclip
+          for attempt in 1 2 3 4; do
+            sudo timeout 300 apt-get $APT update && break
+            echo "apt-get update attempt $attempt did not finish"
+          done
+          for attempt in 1 2 3 4 5 6; do
+            sudo timeout 300 apt-get $APT install -y libwebkitgtk-6.0-4 libgtk-4-1 xvfb xclip && exit 0
+            echo "apt-get install attempt $attempt did not finish"
+          done
+          exit 1
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
