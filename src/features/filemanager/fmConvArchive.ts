@@ -39,12 +39,17 @@ class Out {
   private readonly head: NodeJS.WritableStream;
   /** True once this stream really created the file (an EEXIST means it is someone else's and must not be removed). */
   private created = false;
+  /** Rejects when the file stream fails, so nothing waiting for a drain or a finish is left waiting for an event that can't come. */
+  private readonly failure: Promise<never>;
   constructor(private readonly path: string, transform?: Transform) {
+    let fail: (e: Error) => void = () => {};
+    this.failure = new Promise<never>((_, reject) => (fail = reject));
+    this.failure.catch(() => {});
     this.file = fs.createWriteStream(path, { flags: "wx" });
     this.file.on("open", () => (this.created = true));
-    this.file.on("error", (e) => (this.error ??= e));
+    this.file.on("error", (e) => { this.error ??= e; fail(e); });
     if (transform) {
-      transform.on("error", (e) => (this.error ??= e));
+      transform.on("error", (e) => { this.error ??= e; fail(e); });
       transform.pipe(this.file);
       this.head = transform;
     } else this.head = this.file;
@@ -52,20 +57,41 @@ class Out {
   async write(buf: Buffer): Promise<void> {
     if (this.error) throw this.error;
     if (this.head.write(buf)) return;
-    await new Promise<void>((resolve, reject) => {
-      const onDrain = () => { this.head.off("error", onError); resolve(); };
-      const onError = (e: Error) => { this.head.off("drain", onDrain); reject(e); };
-      this.head.once("drain", onDrain);
-      this.head.once("error", onError);
-    });
+    let cleanup = () => {};
+    try {
+      await Promise.race([
+        new Promise<void>((resolve, reject) => {
+          const onDrain = () => resolve();
+          const onError = (e: Error) => reject(e);
+          cleanup = () => { this.head.off("drain", onDrain); this.head.off("error", onError); };
+          this.head.once("drain", onDrain);
+          this.head.once("error", onError);
+        }),
+        this.failure,
+      ]);
+    } finally {
+      cleanup();
+    }
     if (this.error) throw this.error;
   }
   async finish(): Promise<void> {
-    await new Promise<void>((resolve, reject) => {
-      this.file.once("finish", () => resolve());
-      this.file.once("error", reject);
-      this.head.end();
-    });
+    if (this.error) throw this.error;
+    let cleanup = () => {};
+    try {
+      await Promise.race([
+        new Promise<void>((resolve, reject) => {
+          const onFinish = () => resolve();
+          const onError = (e: Error) => reject(e);
+          cleanup = () => { this.file.off("finish", onFinish); this.file.off("error", onError); };
+          this.file.once("finish", onFinish);
+          this.file.once("error", onError);
+          this.head.end();
+        }),
+        this.failure,
+      ]);
+    } finally {
+      cleanup();
+    }
     if (this.error) throw this.error;
   }
   /** Stops and removes the file (it was created here with "wx", so it is ours). Resolves once the file is gone. */

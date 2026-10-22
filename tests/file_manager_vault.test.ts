@@ -424,41 +424,16 @@ describe("round trips", () => {
 
 describe("large files stream with bounded memory", () => {
   test("a 100 MB file encrypts, checks and decrypts without holding it in memory", async () => {
+    // Measured in a fresh process: after hundreds of test files the shared process has a large heap and allocator, and its
+    // RSS says nothing about this one job.
     const dir = fresh();
-    const src = join(dir, "big.bin");
-    const block = randomBytes(1 << 20);
-    const fh = await openFile(src, "w");
-    const hash = createHash("sha256");
-    for (let i = 0; i < 100; i++) {
-      block.writeUInt32BE(i, 0);
-      await fh.write(block);
-      hash.update(block);
-    }
-    await fh.close();
-    const want = hash.digest("hex");
-    Bun.gc(true);
-    const baseline = process.memoryUsage().heapUsed;
-    let peak = baseline;
-    const timer = setInterval(() => {
-      Bun.gc(true);
-      peak = Math.max(peak, process.memoryUsage().heapUsed);
-    }, 25);
-    try {
-      const t0 = performance.now();
-      const r = await encryptItem({ source: src, outputDir: dir, password: PW, level: "standard", compress: false, hideName: false, internal: { kdf: FAST } });
-      const t1 = performance.now();
-      Bun.gc(true);
-      const out = fresh();
-      const d = await dec(r.output, out);
-      const t2 = performance.now();
-      Bun.gc(true);
-      expect(await shaFile(d.output)).toBe(want);
-      const mb = 100 * 1.048576;
-      console.log(`vault throughput: encrypt+verify ${(mb / ((t1 - t0) / 1000)).toFixed(0)} MB/s, decrypt ${(mb / ((t2 - t1) / 1000)).toFixed(0)} MB/s, heap growth ${((peak - baseline) / 1048576).toFixed(0)} MB`);
-    } finally {
-      clearInterval(timer);
-    }
-    expect(peak - baseline).toBeLessThan(230 * 1048576); // holding the whole 100 MB file twice would be far above this
+    const probe = Bun.spawn([process.execPath, join(import.meta.dir, "helpers", "vault_memory_probe.ts"), dir], { stdout: "pipe", stderr: "pipe" });
+    const [out, err, code] = await Promise.all([new Response(probe.stdout).text(), new Response(probe.stderr).text(), probe.exited]);
+    expect(code, err).toBe(0);
+    const r = JSON.parse(out.trim().split("\n").at(-1)!);
+    console.log(`vault throughput: encrypt+verify ${r.encryptMBps.toFixed(0)} MB/s, decrypt ${r.decryptMBps.toFixed(0)} MB/s, RSS growth ${r.growthMB.toFixed(0)} MB`);
+    expect(r.ok).toBe(true);
+    expect(r.growthMB).toBeLessThan(230); // RSS also counts memory the allocator keeps; holding the whole 100 MB file twice would be far above this
   }, 60_000);
 });
 

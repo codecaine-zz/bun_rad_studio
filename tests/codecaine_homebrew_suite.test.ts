@@ -17,8 +17,9 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
   });
 
   const runSubprocess = async (cmd: string[]): Promise<{ stdout: string; stderr: string; output: string; exitCode: number }> => {
-    const argv = process.platform === "win32" && cmd[0] && !cmd[0].endsWith(".exe") && cmd[0] !== process.execPath && cmd[0] !== "bash"
-      ? [process.execPath, ...cmd]
+    // The files in bin/ are bash scripts: Windows can't start them directly, so Git Bash runs them (with forward slashes).
+    const argv = process.platform === "win32" && cmd[0]?.startsWith(binDir)
+      ? ["bash", cmd[0].replace(/\\/g, "/"), ...cmd.slice(1)]
       : cmd;
     const proc = Bun.spawn(argv, {
       cwd: root,
@@ -48,7 +49,8 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
   });
 
   it("2. Homebrew Formula syntax passes ruby linter", async () => {
-    if (!Bun.which("ruby")) return;
+    // Formula files are for Homebrew (macOS and Linux); a Windows checkout may turn their line endings into CRLF, which Ruby's heredocs reject.
+    if (process.platform === "win32" || !Bun.which("ruby")) return;
     const res = await runSubprocess(["ruby", "-c", formulaFile]);
     expect(res.exitCode).toBe(0);
     expect(res.output).toContain("Syntax OK");
