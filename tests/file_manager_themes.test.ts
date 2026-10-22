@@ -1645,7 +1645,7 @@ describe("the theme editor in the page", () => {
     expect(doc.documentElement.getAttribute("data-ui-fx")).toBe("screen_melt_ooze");
     (doc.querySelector('[data-plain-quick="dracula"]') as any).click();
     // The palette, the effects and the atmosphere are cleared one after another; wait for the last of them instead of a fixed time.
-    for (let i = 0; i < 100 && (state.settings.palette !== "dracula" || doc.documentElement.hasAttribute("data-ui-fx") || doc.documentElement.dataset.atmosphere !== undefined); i++) await sleep(30);
+    for (let i = 0; i < 100 && (state.settings.palette !== "dracula" || doc.documentElement.hasAttribute("data-ui-fx") || doc.documentElement.dataset.atmosphere !== undefined || doc.documentElement.dataset.fx !== undefined); i++) await sleep(30);
     expect(state.settings.palette).toBe("dracula");
     expect(doc.documentElement.hasAttribute("data-ui-fx")).toBe(false);
     expect(doc.documentElement.dataset.atmosphere).toBeUndefined();
