@@ -333,6 +333,8 @@ describe("working with items", () => {
     click(btn("Copy", row));
     await until(() => clip.text === M.pw, "the server's clipboard");
     expect(row.querySelector(".sx-value").textContent).toBe("••••••••");
+    // The server fills the clipboard before the page hears back, so the confirmation can arrive a moment later.
+    await until(() => !!(btn("Copied", row) ?? row.textContent.includes("Copied")), "the Copied confirmation");
     expect(btn("Copied", row) ?? row.textContent.includes("Copied")).toBeTruthy();
     expect(doc.querySelector("#live").textContent + toasts()).not.toContain(M.pw);
     expect(allText().includes(M.pw)).toBe(false);
