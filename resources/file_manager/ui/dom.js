@@ -783,6 +783,114 @@ ICON_PACK_GLYPHS.bio_slime = ICON_PACK_GLYPHS.slime;
 ICON_PACK_GLYPHS.storm_weather = ICON_PACK_GLYPHS.storm_tempest;
 ICON_PACK_GLYPHS.liquid_chrome = ICON_PACK_GLYPHS.liquid_gems;
 ICON_PACK_GLYPHS.arcane_glyphs = ICON_PACK_GLYPHS.xenotech_2126;
+ICON_PACK_GLYPHS.classic_os_win95 = {
+  folder: "📁", image: "🖼️", video: "📼", audio: "🔊", pdf: "📕", doc: "📄",
+  sheet: "📊", slide: "📽️", archive: "🗜️", code: "📟", text: "📝", exec: "💾",
+  disk: "💽", font: "🔤", file: "📃", buttonPreset: "studio", useExact: true,
+  topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📁", pictures: "🖼️", music: "🔊", video: "📼", downloads: "💾", home: "🖥️" },
+};
+ICON_PACK_GLYPHS.handheld_gameboy = {
+  folder: "📂", image: "👾", video: "📺", audio: "🎵", pdf: "📕", doc: "📜",
+  sheet: "🔢", slide: "🃏", archive: "📦", code: "🕹️", text: "💬", exec: "▶️",
+  disk: "💾", font: "🔠", file: "🟩", buttonPreset: "cyber", useExact: true,
+  topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, games: "🎮", roms: "👾", music: "🎵", downloads: "📥" },
+};
+ICON_PACK_GLYPHS.art_deco_gold = {
+  folder: "🗂️", image: "🖼️", video: "🎞️", audio: "🎺", pdf: "📕", doc: "📜",
+  sheet: "📈", slide: "🎭", archive: "📦", code: "💠", text: "🖋️", exec: "⚜️",
+  disk: "💿", font: "🔱", file: "📄", buttonPreset: "royal", useExact: true,
+  topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "🗂️", pictures: "🖼️", music: "🎺", home: "🏙️" },
+};
+ICON_PACK_GLYPHS.bauhaus_primary = {
+  folder: "📁", image: "🔵", video: "🔺", audio: "🟡", pdf: "📕", doc: "⬜",
+  sheet: "🟦", slide: "🔶", archive: "📦", code: "◼️", text: "▫️", exec: "▶️",
+  disk: "⚫", font: "🅰️", file: "⬜", buttonPreset: "studio", useExact: true,
+  topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📁", pictures: "🔵", music: "🟡", video: "🔺" },
+};
+ICON_PACK_GLYPHS.memphis_80s_pop = {
+  folder: "🗂️", image: "🌈", video: "📹", audio: "🎧", pdf: "📕", doc: "📃",
+  sheet: "📊", slide: "🎪", archive: "📦", code: "💻", text: "✏️", exec: "⚡",
+  disk: "💿", font: "🔤", file: "📄", buttonPreset: "cyber", useExact: true,
+  topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "🗂️", pictures: "🌈", music: "🎧", games: "🎪" },
+};
+ICON_PACK_GLYPHS.neo_brutalist_flat = {
+  folder: "📁", image: "🖼️", video: "🎬", audio: "🎵", pdf: "📕", doc: "📄",
+  sheet: "📊", slide: "📽️", archive: "📦", code: "⌨️", text: "📝", exec: "⚙️",
+  disk: "💽", font: "🔤", file: "📄", buttonPreset: "studio", useExact: true,
+  topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📁", pictures: "🖼️", music: "🎵" },
+};
+ICON_PACK_GLYPHS.ukiyoe_woodblock = {
+  folder: "📂", image: "🗻", video: "🎎", audio: "🎐", pdf: "📕", doc: "📜",
+  sheet: "🈷️", slide: "🎴", archive: "📦", code: "⛩️", text: "🖌️", exec: "🗡️",
+  disk: "💿", font: "🈁", file: "📃", buttonPreset: "macos", useExact: true,
+  topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📂", pictures: "🗻", music: "🎐", home: "🏯" },
+};
+ICON_PACK_GLYPHS.pop_art_comic = {
+  folder: "📁", image: "📸", video: "🎬", audio: "🔊", pdf: "📕", doc: "💬",
+  sheet: "📊", slide: "🗯️", archive: "📦", code: "⚡", text: "💭", exec: "💣",
+  disk: "💿", font: "🔤", file: "📄", buttonPreset: "cyber", useExact: true,
+  topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📁", pictures: "📸", music: "🔊", games: "🦸" },
+};
+ICON_PACK_GLYPHS.sketch_chalkboard = {
+  folder: "📂", image: "🖍️", video: "🎞️", audio: "🎶", pdf: "📕", doc: "📝",
+  sheet: "🧮", slide: "🪧", archive: "📦", code: "✍️", text: "✏️", exec: "🪄",
+  disk: "💿", font: "🔡", file: "📄", buttonPreset: "studio", useExact: true,
+  topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📂", pictures: "🖍️", music: "🎶" },
+};
+ICON_PACK_GLYPHS.clay_soft_3d = {
+  folder: "🗂️", image: "🌼", video: "🍿", audio: "🎈", pdf: "📕", doc: "🧁",
+  sheet: "🍬", slide: "🎠", archive: "📦", code: "🧩", text: "🍪", exec: "🚀",
+  disk: "🍩", font: "🔤", file: "🍞", buttonPreset: "macos", useExact: true,
+  topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "🗂️", pictures: "🌼", music: "🎈", games: "🧩" },
+};
+ICON_PACK_GLYPHS.origami_papercraft = {
+  folder: "🗂️", image: "🦋", video: "🎏", audio: "🎐", pdf: "📕", doc: "📃",
+  sheet: "🗒️", slide: "🪁", archive: "📦", code: "🧩", text: "✂️", exec: "🦢",
+  disk: "💿", font: "🔤", file: "📄", buttonPreset: "macos", useExact: true,
+  topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "🗂️", pictures: "🦋", music: "🎐" },
+};
+ICON_PACK_GLYPHS.lowpoly_isometric = {
+  folder: "📂", image: "🏔️", video: "🎞️", audio: "🎵", pdf: "📕", doc: "📄",
+  sheet: "📊", slide: "🔶", archive: "📦", code: "🔷", text: "📝", exec: "🔺",
+  disk: "💽", font: "🔤", file: "◽", buttonPreset: "fluent", useExact: true,
+  topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📂", pictures: "🏔️", music: "🎵" },
+};
+ICON_PACK_GLYPHS.thin_line_duotone = {
+  folder: "📁", image: "🖼️", video: "🎞️", audio: "🎵", pdf: "📄", doc: "📄",
+  sheet: "📊", slide: "📽️", archive: "🗜️", code: "⌨️", text: "📝", exec: "⚙️",
+  disk: "💽", font: "🔤", file: "📄", buttonPreset: "fluent", useExact: true,
+  topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📁", pictures: "🖼️" },
+};
+ICON_PACK_GLYPHS.mono_high_contrast = {
+  folder: "📁", image: "🖼️", video: "🎬", audio: "🎵", pdf: "📕", doc: "📄",
+  sheet: "📊", slide: "📽️", archive: "📦", code: "💻", text: "📝", exec: "⚙️",
+  disk: "💿", font: "🔤", file: "📄", buttonPreset: "studio", useExact: true,
+  topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📁", pictures: "🖼️" },
+};
+ICON_PACK_GLYPHS.terminal_ascii_tui = {
+  folder: "📂", image: "🖼️", video: "📼", audio: "🔈", pdf: "📕", doc: "📄",
+  sheet: "🧮", slide: "📽️", archive: "🗜️", code: "⌨️", text: "📝", exec: "▶️",
+  disk: "💾", font: "🔤", file: "📃", buttonPreset: "cyber", useExact: true,
+  topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📂", downloads: "📥" },
+};
+ICON_PACK_GLYPHS.deep_sea_biolum = {
+  folder: "🗂️", image: "🐠", video: "🐋", audio: "🐚", pdf: "📕", doc: "🐡",
+  sheet: "🪸", slide: "🦈", archive: "📦", code: "🦐", text: "🦀", exec: "⚓",
+  disk: "🫧", font: "🐟", file: "🐚", buttonPreset: "cryo", useExact: true,
+  topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "🗂️", pictures: "🐠", music: "🐚", home: "🌊" },
+};
+ICON_PACK_GLYPHS.desert_sandstone = {
+  folder: "📂", image: "🌵", video: "🐪", audio: "🪘", pdf: "📕", doc: "📜",
+  sheet: "🧱", slide: "🌄", archive: "📦", code: "🔥", text: "🪶", exec: "☀️",
+  disk: "💿", font: "🔤", file: "📃", buttonPreset: "inferno", useExact: true,
+  topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "📂", pictures: "🌵", music: "🪘", home: "🛖" },
+};
+ICON_PACK_GLYPHS.cottagecore_botanical = {
+  folder: "🗂️", image: "🌸", video: "🎞️", audio: "🐦", pdf: "📕", doc: "🍃",
+  sheet: "🌻", slide: "🌷", archive: "📦", code: "🍄", text: "🪶", exec: "🌱",
+  disk: "🫙", font: "🔤", file: "🍂", buttonPreset: "macos", useExact: true,
+  topics: { ...ALL_SEMANTIC_FOLDER_TOPICS, docs: "🗂️", pictures: "🌸", music: "🐦", home: "🏡" },
+};
 
 /** Bespoke Holiday Crest Badges & Festive Celebrations for all 18 US Holiday Themes (`holiday_*`). */
 export const HOLIDAY_THEME_CRESTS = {

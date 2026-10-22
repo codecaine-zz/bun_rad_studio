@@ -6854,3 +6854,223 @@ html[data-zero-watt-paused="true"] *::after {
 
 
 
+
+/* ============================================================================
+ * 🎭 ICON PACK BATCH 2: classic OS, art movements, render styles & accessibility
+ * ============================================================================ */
+
+/* 🖥️ Classic OS: Win95, Mac OS 9 & Workbench (classic_os_win95) */
+:root:is([data-icon-pack="classic_os_win95"], [data-fx-icon-pack="classic_os_win95"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  padding: 0 4px;
+  background: linear-gradient(135deg, #dfdfdf, #c0c0c0);
+  border: 2px outset #ffffff;
+  box-shadow: 1px 1px 0 #404040;
+}
+
+/* 🎮 Handheld Game Boy & NES Cartridge (handheld_gameboy) */
+:root:is([data-icon-pack="handheld_gameboy"], [data-fx-icon-pack="handheld_gameboy"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  padding: 1px 6px;
+  background: linear-gradient(180deg, #9bbc0f, #8bac0f 60%, #306230);
+  border: 2px solid #0f380f;
+  box-shadow: 2px 2px 0 #0f380f;
+}
+
+/* 🏛️ Art Deco Gilded Geometry (art_deco_gold) */
+:root:is([data-icon-pack="art_deco_gold"], [data-fx-icon-pack="art_deco_gold"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  padding: 1px 6px;
+  background: linear-gradient(135deg, #111111, #2a2210);
+  border: 1px solid #d4af37;
+  box-shadow: 0 0 0 1px #111, 0 0 0 2px #d4af37;
+}
+
+/* 🔺 Bauhaus Primary Shapes (bauhaus_primary) */
+:root:is([data-icon-pack="bauhaus_primary"], [data-fx-icon-pack="bauhaus_primary"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  padding: 1px 6px;
+  background: #f2e8cf;
+  border: 2px solid #111111;
+  box-shadow: 3px 3px 0 #d62828;
+}
+
+/* 🎉 Memphis 80s Squiggle Pop (memphis_80s_pop) */
+:root:is([data-icon-pack="memphis_80s_pop"], [data-fx-icon-pack="memphis_80s_pop"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 1px 6px;
+  background: linear-gradient(135deg, #ff9ff3, #feca57 50%, #48dbfb);
+  border: 2px dashed #1e1e1e;
+  box-shadow: 3px 3px 0 #ff6b6b;
+}
+
+/* ◼️ Neo-Brutalist Thick Outline (neo_brutalist_flat) */
+:root:is([data-icon-pack="neo_brutalist_flat"], [data-fx-icon-pack="neo_brutalist_flat"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 1px 6px;
+  background: #ffe14d;
+  border: 3px solid #000000;
+  box-shadow: 4px 4px 0 #000000;
+}
+
+/* 🌊 Ukiyo-e Woodblock Print (ukiyoe_woodblock) */
+:root:is([data-icon-pack="ukiyoe_woodblock"], [data-fx-icon-pack="ukiyoe_woodblock"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  padding: 1px 6px;
+  background: linear-gradient(180deg, #f4ecd8, #dfd3b0);
+  border: 1px solid #1d3557;
+  box-shadow: 2px 2px 0 #c1121f;
+}
+
+/* 💥 Pop-Art Comic Halftone (pop_art_comic) */
+:root:is([data-icon-pack="pop_art_comic"], [data-fx-icon-pack="pop_art_comic"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  padding: 1px 6px;
+  background: radial-gradient(circle, #ff3b3b 20%, #ffe600 21%);
+  border: 3px solid #000000;
+  box-shadow: 3px 3px 0 #0057ff;
+}
+
+/* ✏️ Hand-Drawn Sketch & Chalkboard (sketch_chalkboard) */
+:root:is([data-icon-pack="sketch_chalkboard"], [data-fx-icon-pack="sketch_chalkboard"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px 4px 12px 5px;
+  padding: 1px 6px;
+  background: #2f3e36;
+  border: 2px dashed #e8e8e0;
+  box-shadow: none;
+}
+
+/* 🧸 Claymation & Soft Clay 3D (clay_soft_3d) */
+:root:is([data-icon-pack="clay_soft_3d"], [data-fx-icon-pack="clay_soft_3d"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 1px 7px;
+  background: radial-gradient(circle at 30% 25%, #ffd6e0, #f9a8c0);
+  border: none;
+  box-shadow: inset -3px -4px 6px rgba(0,0,0,0.18), inset 3px 3px 6px rgba(255,255,255,0.7), 0 3px 6px rgba(0,0,0,0.2);
+}
+
+/* 🦢 Origami & Layered Papercraft (origami_papercraft) */
+:root:is([data-icon-pack="origami_papercraft"], [data-fx-icon-pack="origami_papercraft"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  padding: 1px 6px;
+  background: linear-gradient(135deg, #ffffff 50%, #e6e6fa 50%);
+  border: 1px solid #b8b8d8;
+  box-shadow: 2px 3px 0 rgba(0,0,0,0.18);
+}
+
+/* 🔷 Low-Poly Isometric Blocks (lowpoly_isometric) */
+:root:is([data-icon-pack="lowpoly_isometric"], [data-fx-icon-pack="lowpoly_isometric"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  padding: 1px 6px;
+  background: linear-gradient(135deg, #7ad7f0 50%, #3a8fd9 50%);
+  border: 1px solid #1c4e80;
+  box-shadow: 2px 2px 0 #1c4e80;
+}
+
+/* 〰️ Thin Line & Duotone Pro (thin_line_duotone) */
+:root:is([data-icon-pack="thin_line_duotone"], [data-fx-icon-pack="thin_line_duotone"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  padding: 1px 6px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--accent, #7aa2f7) 70%, transparent);
+  box-shadow: none;
+}
+
+/* ◐ High-Contrast Monochrome & E-Ink (mono_high_contrast) */
+:root:is([data-icon-pack="mono_high_contrast"], [data-fx-icon-pack="mono_high_contrast"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  padding: 1px 6px;
+  background: #ffffff;
+  border: 2px solid #000000;
+  box-shadow: none;
+}
+
+/* ⌨️ Terminal ASCII & TUI Box-Drawing (terminal_ascii_tui) */
+:root:is([data-icon-pack="terminal_ascii_tui"], [data-fx-icon-pack="terminal_ascii_tui"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  padding: 0 5px;
+  background: #000000;
+  border: 1px solid #33ff66;
+  box-shadow: 0 0 6px rgba(51,255,102,0.45);
+}
+
+/* 🐙 Deep-Sea Bioluminescence (deep_sea_biolum) */
+:root:is([data-icon-pack="deep_sea_biolum"], [data-fx-icon-pack="deep_sea_biolum"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 1px 6px;
+  background: radial-gradient(circle at 40% 30%, #0a4d68, #021b2b);
+  border: 1px solid #00e5ff;
+  box-shadow: 0 0 10px rgba(0,229,255,0.55);
+}
+
+/* 🏜️ Desert Sandstone & Canyon (desert_sandstone) */
+:root:is([data-icon-pack="desert_sandstone"], [data-fx-icon-pack="desert_sandstone"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  padding: 1px 6px;
+  background: linear-gradient(180deg, #e9c46a, #e76f51);
+  border: 1px solid #7f4f24;
+  box-shadow: 2px 2px 0 #7f4f24;
+}
+
+/* 🌿 Cottagecore Botanical Herbarium (cottagecore_botanical) */
+:root:is([data-icon-pack="cottagecore_botanical"], [data-fx-icon-pack="cottagecore_botanical"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  padding: 1px 6px;
+  background: linear-gradient(135deg, #f3ead8, #d9e4c8);
+  border: 1px solid #7a9a6a;
+  box-shadow: 0 2px 4px rgba(90,120,80,0.35);
+}

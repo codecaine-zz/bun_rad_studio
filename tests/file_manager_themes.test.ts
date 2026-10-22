@@ -1644,7 +1644,8 @@ describe("the theme editor in the page", () => {
     await (themes as any).applyJumpstartKit("screen_melt_distortion_kit");
     expect(doc.documentElement.getAttribute("data-ui-fx")).toBe("screen_melt_ooze");
     (doc.querySelector('[data-plain-quick="dracula"]') as any).click();
-    await sleep(120);
+    // The palette, the effects and the atmosphere are cleared one after another; wait for the last of them instead of a fixed time.
+    for (let i = 0; i < 100 && (state.settings.palette !== "dracula" || doc.documentElement.hasAttribute("data-ui-fx") || doc.documentElement.dataset.atmosphere !== undefined); i++) await sleep(30);
     expect(state.settings.palette).toBe("dracula");
     expect(doc.documentElement.hasAttribute("data-ui-fx")).toBe(false);
     expect(doc.documentElement.dataset.atmosphere).toBeUndefined();
@@ -2201,6 +2202,25 @@ describe("the theme editor in the page", () => {
       expect(doc.documentElement.dataset.iconPack).toBe(packId);
       expect(domMod.buttonIconFor("theme", packId)).toBeTruthy();
       expect(domMod.iconForEntry({ name: "Pictures", isDirectory: true }, packId)).toBeTruthy();
+    }
+
+    // 3b. Verify the 18 batch-2 packs (classic OS, art movements, render styles, accessibility) are wired end to end
+    const batch2 = [
+      "classic_os_win95", "handheld_gameboy", "art_deco_gold", "bauhaus_primary", "memphis_80s_pop", "neo_brutalist_flat",
+      "ukiyoe_woodblock", "pop_art_comic", "sketch_chalkboard", "clay_soft_3d", "origami_papercraft", "lowpoly_isometric",
+      "thin_line_duotone", "mono_high_contrast", "terminal_ascii_tui", "deep_sea_biolum", "desert_sandstone", "cottagecore_botanical",
+    ];
+    expect(themes.ICON_PACK_OPTIONS.length).toBeGreaterThanOrEqual(67);
+    const effectsCss = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "ui", "themeEffects.css"), "utf8");
+    for (const packId of batch2) {
+      expect(themes.ICON_PACK_OPTIONS.filter((p: any) => p.id === packId).length, packId).toBe(1);
+      expect(effectsCss.includes(`[data-icon-pack="${packId}"]`), `${packId} css`).toBe(true);
+      themes.applyUiImmersionProfiles({ iconPackStyle: packId });
+      expect(doc.documentElement.dataset.iconPack).toBe(packId);
+      expect(domMod.buttonIconFor("theme", packId), packId).toBeTruthy();
+      expect(domMod.iconForEntry({ name: "Pictures", isDirectory: true }, packId), packId).toBeTruthy();
+      expect(domMod.iconForEntry({ name: "a.ts", isDirectory: false, ext: "ts" }, packId), packId).toBeTruthy();
+      expect(sanitizeSettings({ iconPackStyle: packId }, createContext({ platform: "linux", home: "/home/u", dataDir: "/tmp/x" })).iconPackStyle, `${packId} settings`).toBe(packId);
     }
 
     // 4. Verify 12 Icon Animation choreographies and Live 3D Icon Preview Stage inside Theme Picker
