@@ -142,6 +142,7 @@ function entryItems(entries) {
   return [
     one ? { label: "Open", icon: e.isDir ? "📂" : "📄", shortcut: "Enter", action: () => ops.openEntry(e) } : null,
     one && e.isDir ? { label: "Open in new tab", icon: "🗂️", tip: "Open this folder in a new folder tab at the top of the file list.", action: () => openNewTab(e.path) } : null,
+    one && e.program ? { label: e.isDir ? "Open application" : "Run program", icon: "🚀", shortcut: labelOf("file.openApp"), tip: "Start this application or program (you are asked to confirm first). Press Enter on a Mac .app to browse inside it instead.", action: () => ops.openApplication(e) } : null,
     one ? { label: "Quick Look", icon: "👁️", shortcut: "Space", tip: "Look at a picture, play a sound or video, read a text file or see a document here, without opening another program.", action: () => openQuickLook(e) } : null,
     one && searching ? { label: "Open containing folder", icon: "📁", action: () => ops.goToContaining(e) } : null,
     ...studioMenuItems(entries),

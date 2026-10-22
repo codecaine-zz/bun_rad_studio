@@ -294,28 +294,42 @@ describe("the real PHP server", () => {
   });
 
   real("stopping ends the process and frees the port; the folder can be served again", async () => {
+    // The step markers are for the Windows CI run, where this test once stopped without any message.
+    const step = (what: string) => console.log(`[php-stop] ${what}`);
     const ctx = newCtx();
     const dir = folder();
     writeFileSync(join(dir, "index.php"), "<?php echo 'again';");
+    step("start");
     const { server } = await op(ctx, "serve/start", { root: dir, kind: "php" });
     const pid = server.pid as number;
+    step(`started pid ${pid}`);
     expect(alive(pid)).toBe(true);
     const started = Date.now();
+    step("stop");
     await op(ctx, "serve/stop", { id: server.id });
+    step("stopped");
     expect(Date.now() - started).toBeLessThan(2500);
     expect(alive(pid)).toBe(false);
+    step("port check");
     expect(await portInUse("127.0.0.1", server.port)).toBe(false);
+    step("fetch refused");
     await expect(fetch(server.url)).rejects.toBeDefined();
+    step("start again");
     const again = (await op(ctx, "serve/start", { root: dir, kind: "php" })).server;
     expect(again.pid).not.toBe(pid);
+    step("get page");
     expect(await text(again.url)).toBe("again");
     // Restart = stop and start with the same choices.
+    step("stop again");
     await op(ctx, "serve/stop", { id: again.id });
+    step("start on the same port");
     const third = (await op(ctx, "serve/start", { root: dir, kind: "php", port: again.port })).server;
     expect(third.port).toBe(again.port);
+    step("stop all");
     expect(await op(ctx, "serve/stopAll")).toEqual({ stopped: 1 });
     expect(alive(third.pid)).toBe(false);
-  });
+    step("done");
+  }, 20000);
 
   real("a PHP that dies by itself is shown as stopped, with the log kept, and can be removed or started again", async () => {
     const ctx = newCtx();

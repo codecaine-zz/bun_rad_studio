@@ -185,6 +185,12 @@ export async function openEntry(entry, { viewer = true } = {}) {
   await openFile(entry.path, false);
 }
 
+/** Runs an application or program (a macOS .app folder, .exe, AppImage, script ...) instead of browsing into it; asks first. */
+export async function openApplication(entry) {
+  if (inTrash()) return toast("Items in the Recycle Bin can't be opened. Restore one first (right-click, then Restore).");
+  await openFile(entry.path, false);
+}
+
 /** Files opened in the built-in editor are listed under Recent too (the ones opened by another program already are). */
 function rememberRecent(path) {
   if (state.settings.recentsEnabled === false) return;

@@ -16,6 +16,8 @@ import * as ops from "./ops.js";
 import { activePane, isFolderView } from "./pane.js";
 import { emit, inTrash, on, state } from "./state.js";
 import { hintOf } from "./keymap.js";
+import { selectAll, selectedEntries } from "./selection.js";
+import { copyTerminalPaths } from "./fileurl.js";
 import { themeMenuItems } from "./themeMenu.js";
 import { baseName, collapseCrumbs, parentOf, plural, splitPath } from "./util.js";
 
@@ -43,6 +45,10 @@ function buttonSpecs() {
       { id: "newFile", icon: "📄", label: "New file", get tip() { return `Make a new empty file${hintOf("file.newFile")}`; }, run: ops.newFile, enabled: folderView, hide: inTrash },
       { id: "newSqlite", icon: "🪶", label: "New SQLite", get tip() { return `Make a new SQLite database file${hintOf("file.newSqlite")}`; }, run: ops.newSqlite, enabled: folderView, hide: inTrash },
       { id: "newTemplate", icon: "✨", label: "Template", get tip() { return `Make a new file from a starter template${hintOf("file.newTemplate")}`; }, run: () => emit("new-template-dialog"), enabled: folderView, hide: inTrash },
+    ],
+    [
+      { id: "selectAll", icon: "☑️", label: "Select all", get tip() { return `Select every item in this folder${hintOf("file.selectAll")}`; }, run: () => selectAll(), enabled: () => folderView() && activePane().entries?.length !== 0, hide: inTrash },
+      { id: "toTerminal", icon: "⌨️", label: "To Terminal", get tip() { return `Copy the selected items' paths, quoted for a terminal${hintOf("file.copyTerminalPaths")}. Use Insert paths in Terminal from the right-click menu to type them into the built-in terminal.`; }, run: () => { const items = selectedEntries(); void copyTerminalPaths(items); }, enabled: () => sel() > 0 },
     ],
     [
       { id: "cut", icon: "✂️", label: "Cut", get tip() { return `Cut${hintOf("file.cut")}`; }, run: ops.cutSelection, enabled: () => sel() > 0, hide: inTrash },

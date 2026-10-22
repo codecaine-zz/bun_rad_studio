@@ -393,12 +393,14 @@ describe("downloading", () => {
     const size = 8 * 1024 * 1024;
     flakyLeft = 6;
     const [item] = manager.add([{ url: `${base}/file/${size}.bin?flaky=1`, folder: out, connections: 4 }]);
-    const v = await finished(manager, item!.id);
+    // Each drop is retried after a wait that doubles up to 8 s, and all six drops can land on one connection, so the
+    // allowance is longer than the usual 30 s (a slow CI runner needed more than that once).
+    const v = await until(manager, item!.id, (x) => x.state === "done" || x.state === "error" || x.state === "paused", 80000);
     expect(v.state).toBe("done");
     expect(flakyLeft).toBe(0);
     expect(fileSha(v.path)).toBe(sha(size));
     manager.closeAll();
-  }, 40000);
+  }, 90000);
 
   test("a pause keeps the progress and resume finishes the same file", async () => {
     const { manager, out } = workspace();

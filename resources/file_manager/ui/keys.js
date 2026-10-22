@@ -6,7 +6,7 @@ import { confirmBox } from "./dialogs.js";
 import { showFavoritesMenu } from "./favorites.js";
 import { showHelp, showProperties, showSettings } from "./extras.js";
 import { showMoreInfo } from "./fileinfo.js";
-import { copyFileUrls } from "./fileurl.js";
+import { copyFileUrls, copyTerminalPaths } from "./fileurl.js";
 import { focusPowerFilter, openPower, togglePowerExpanded } from "./power.js";
 import { menuIsOpen, toast } from "./menus.js";
 import { openQuickLook, quickLookIsOpen } from "./quicklook.js";
@@ -174,6 +174,23 @@ const FILE_ACTIONS = {
     const items = selectedEntries().filter((x) => !x.isDir);
     if (items.length) void showOpenWith(items);
     else toast("Select a file to choose which program opens it.", { kind: "info" });
+  },
+  "file.copyTerminalPaths": () => {
+    const items = selectedEntries();
+    const here = currentPath();
+    if (items.length) void copyTerminalPaths(items);
+    else if (here) void copyTerminalPaths([{ path: here }]);
+  },
+  "file.insertTerminalPaths": () => {
+    const items = selectedEntries();
+    const here = currentPath();
+    if (items.length) emit("terminal-insert-paths", items.map((x) => x.path));
+    else if (here) emit("terminal-insert-paths", [here]);
+  },
+  "file.openApp": () => {
+    const items = selectedEntries().filter((x) => x.program);
+    if (items.length) items.forEach((x) => void ops.openApplication(x));
+    else toast("Select an application or program to open it.", { kind: "info" });
   },
   "file.copyPath": () => {
     const items = selectedEntries();
