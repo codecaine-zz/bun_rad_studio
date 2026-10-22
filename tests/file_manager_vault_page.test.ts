@@ -30,7 +30,8 @@ const type = (el: any, value: string) => {
   el.value = value;
   el.dispatchEvent(new win.Event("input", { bubbles: true }));
 };
-const until = async (fn: () => boolean, ms = 8000) => {
+// Key derivation and decryption are slow on a shared CI runner, so the wait is long (each test still has its own 30 s limit).
+const until = async (fn: () => boolean, ms = 25_000) => {
   const end = Date.now() + ms;
   while (!fn()) {
     if (Date.now() > end) throw new Error(`timed out waiting. Dialog text: ${dialog()?.textContent?.slice(0, 600)}`);
