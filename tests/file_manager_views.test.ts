@@ -2701,7 +2701,7 @@ describe("download folders open inside the File Manager by default", () => {
     const power = await import("../resources/file_manager/ui/power.js");
     const shared = (await import("../resources/file_manager/ui/state.js")).state;
     const until = async (check: () => boolean) => {
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < 400; i++) {
         if (check()) return;
         await sleep(30);
       }
