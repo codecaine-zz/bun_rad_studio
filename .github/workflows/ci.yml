@@ -59,7 +59,8 @@ jobs:
   other-platforms:
     runs-on: ${{ matrix.os }}
     continue-on-error: true
-    timeout-minutes: 25
+    # The Linux package mirror has taken more than 20 minutes on some runs before the tests even start.
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:

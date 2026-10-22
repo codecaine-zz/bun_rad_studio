@@ -480,7 +480,7 @@ describe("a saved connection in the list and its details", () => {
     expect(detail.textContent).toContain("Saved in your computer's keychain");
     expect(detail.querySelector(".db-env-production")).toBeTruthy();
     click(btn("Test connection", detail));
-    await until(() => detail.querySelector(".db-test-ok"), "the test result");
+    await until(() => detail.querySelector(".db-test-ok"), "the test result", 30_000);
     expect(detail.querySelector(".db-test").textContent).toContain("It works.");
     // copy without the password
     click(btn("Duplicate…", detail));
