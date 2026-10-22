@@ -114,7 +114,7 @@ describe("right-click on empty space", () => {
     await goTo(work);
     contextmenu.showBackgroundMenu({ x: 5, y: 5 });
     expect(menuLabels()).toContain("New SQLite database");
-    expect(menuLabels().indexOf("New SQLite database")).toBe(menuLabels().indexOf("New file") + 1);
+    expect(menuLabels().indexOf("New SQLite database")).toBe(menuLabels().indexOf("New file from template…") + 1);
     expect(menuItem("New SQLite database").getAttribute("title").length).toBeGreaterThan(30);
     menuItem("New SQLite database").click();
     await waitFor(() => existsSync(join(work, "New database.sqlite")) && readFileSync(join(work, "New database.sqlite")).length >= 4096, 4000, "the initialized database file");

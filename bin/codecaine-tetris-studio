@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Codecaine Utility Suite - Tetris Ultra Deluxe
+# Codecaine Utility Suite - Codecaine Tetris Ultra Deluxe
 # Type: GUI | Script: applications/tetris_studio.ts
 # ==============================================================================
 set -e

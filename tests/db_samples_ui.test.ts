@@ -72,7 +72,11 @@ const dir = mkdtempSync(join(tmpdir(), "sdb-ui-"));
   const base = `http://127.0.0.1:${server.port}`;
   rigs.push({
     name: "SQLite", base, script: SAMPLES_SCRIPT_SQLITE,
-    cleanup: async () => { server.stop(true); rmSync(dir, { recursive: true, force: true }); },
+    cleanup: async () => {
+      server.stop(true);
+      if (process.platform === "win32") await Bun.sleep(200);
+      try { rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); } catch {}
+    },
     query: async (sql) => (await fetch(`${base}/api/query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sql }) })).json(),
     names: (tag) => `ui_${tag}.sqlite`,
     dropSample: async (target) => { rmSync(target, { force: true }); },

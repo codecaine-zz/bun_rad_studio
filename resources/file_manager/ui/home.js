@@ -349,7 +349,7 @@ function build() {
 
 /** Draws the Home view (or freshens it when it is shown again). */
 export function renderHome() {
-  if (!built) build();
+  if (!built || !byId("home-title")) build();
   else {
     byId("home-title").textContent = `${greeting()}!`;
     updateClock();

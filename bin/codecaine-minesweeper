@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Codecaine Utility Suite - Minesweeper Pro Championship
+# Codecaine Utility Suite - Codecaine Minesweeper Pro Championship
 # Type: GUI | Script: applications/minesweeper_studio.ts
 # ==============================================================================
 set -e

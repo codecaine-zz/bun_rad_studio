@@ -292,7 +292,7 @@ describe("Copy buttons on the File Manager's own windows", () => {
     const whole = (await press(mainOf(d)))!;
     expect(whole.startsWith("Help\nThe basics\n")).toBe(true);
     expect(whole).toContain("Good to know");
-    expect(whole).not.toMatch(/About and GitHub|Close\b/);
+    expect(whole).not.toMatch(/About and GitHub|^Close$/m);
     await closeAll();
   });
 

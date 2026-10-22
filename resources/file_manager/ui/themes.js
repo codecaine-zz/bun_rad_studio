@@ -582,6 +582,14 @@ export function spawnCursorTrailParticle(clientX = 240, clientY = 180, modeOverr
   return particle;
 }
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+function svgEl(tag, attrs = {}, ...children) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs)) if (v !== null && v !== undefined) el.setAttribute(k, String(v));
+  for (const c of children) if (c) el.append(c);
+  return el;
+}
+
 /** Ensures the hidden SVG displacement filter bank (`#fm-svg-distortion-filters`) is present in the DOM for screen-melting & optical warp effects. */
 export function ensureDistortionSvgFilters() {
   if (typeof document === "undefined" || !document.body) return null;
@@ -591,23 +599,24 @@ export function ensureDistortionSvgFilters() {
     id: "fm-svg-distortion-filters",
     "aria-hidden": "true",
     style: "position:fixed;width:0;height:0;overflow:hidden;pointer-events:none;z-index:-1;",
-  });
-  svg.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute;width:0;height:0">
-    <defs>
-      <filter id="fm-filter-screen-melt" x="-8%" y="-8%" width="116%" height="124%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.012 0.045" numOctaves="1" seed="7" result="meltNoise" />
-        <feDisplacementMap in="SourceGraphic" in2="meltNoise" scale="5" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
-      <filter id="fm-filter-molten-glass" x="-6%" y="-6%" width="112%" height="118%">
-        <feTurbulence type="turbulence" baseFrequency="0.02 0.06" numOctaves="1" seed="19" result="lavaNoise" />
-        <feDisplacementMap in="SourceGraphic" in2="lavaNoise" scale="4.5" xChannelSelector="R" yChannelSelector="B" />
-      </filter>
-      <filter id="fm-filter-liquid-ripple" x="-5%" y="-5%" width="110%" height="110%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.025 0.025" numOctaves="1" seed="3" result="rippleNoise" />
-        <feDisplacementMap in="SourceGraphic" in2="rippleNoise" scale="3.5" xChannelSelector="G" yChannelSelector="R" />
-      </filter>
-    </defs>
-  </svg>`;
+  },
+    svgEl("svg", { xmlns: SVG_NS, width: "0", height: "0" },
+      svgEl("defs", {},
+        svgEl("filter", { id: "fm-filter-screen-melt", x: "-8%", y: "-8%", width: "116%", height: "124%" },
+          svgEl("feTurbulence", { type: "fractalNoise", baseFrequency: "0.012 0.045", numOctaves: "1", seed: "7", result: "meltNoise" }),
+          svgEl("feDisplacementMap", { in: "SourceGraphic", in2: "meltNoise", scale: "5", xChannelSelector: "R", yChannelSelector: "G" }),
+        ),
+        svgEl("filter", { id: "fm-filter-molten-glass", x: "-6%", y: "-6%", width: "112%", height: "118%" },
+          svgEl("feTurbulence", { type: "turbulence", baseFrequency: "0.02 0.06", numOctaves: "1", seed: "19", result: "lavaNoise" }),
+          svgEl("feDisplacementMap", { in: "SourceGraphic", in2: "lavaNoise", scale: "4.5", xChannelSelector: "R", yChannelSelector: "B" }),
+        ),
+        svgEl("filter", { id: "fm-filter-liquid-ripple", x: "-5%", y: "-5%", width: "110%", height: "110%" },
+          svgEl("feTurbulence", { type: "fractalNoise", baseFrequency: "0.025 0.025", numOctaves: "1", seed: "3", result: "rippleNoise" }),
+          svgEl("feDisplacementMap", { in: "SourceGraphic", in2: "rippleNoise", scale: "3.5", xChannelSelector: "G", yChannelSelector: "R" }),
+        ),
+      ),
+    ),
+  );
   document.body.append(svg);
   return svg;
 }
@@ -4640,7 +4649,7 @@ export function buildThemeTelemetryDeck({
     pts.forEach((pt, idx) => {
       const x = Math.round((idx / Math.max(1, pts.length - 1)) * (w - 12) + 6);
       if (pt.gap) {
-        gapRects.push(`<rect x="${x - 3}" y="4" width="6" height="${hPx - 8}" fill="rgba(255,90,90,0.28)" />`);
+        gapRects.push(svgEl("rect", { x: x - 3, y: 4, width: 6, height: hPx - 8, fill: "rgba(255,90,90,0.28)" }));
       }
       const yCpu = Math.round(hPx - 8 - (Math.min(maxScale, pt.cpu) / maxScale) * (hPx - 18));
       const yGpu = Math.round(hPx - 8 - (Math.min(maxScale, pt.gpu) / maxScale) * (hPx - 18));
@@ -4653,20 +4662,21 @@ export function buildThemeTelemetryDeck({
     const cpuLine = cpuPoints.length > 1 ? `M ${cpuPoints.join(" L ")}` : "";
     const gpuLine = gpuPoints.length > 1 ? `M ${gpuPoints.join(" L ")}` : "";
 
-    const wrap = h("div", { class: "telemetry-scope-box", "data-telemetry-scope-svg": "true" });
-    wrap.innerHTML = `<svg viewBox="0 0 ${w} ${hPx}" width="100%" height="${hPx}" class="telemetry-scope-svg" aria-label="Oscilloscope CPU and GPU History Waveform">
-      <defs>
-        <pattern id="telemetry-grid-pat" width="18" height="18" patternUnits="userSpaceOnUse">
-          <path d="M 18 0 L 0 0 0 18" fill="none" stroke="currentColor" stroke-opacity="0.14" stroke-width="0.7" />
-        </pattern>
-      </defs>
-      <rect x="0" y="0" width="${w}" height="${hPx}" fill="url(#telemetry-grid-pat)" />
-      <line x1="0" y1="${Math.round(hPx * 0.35)}" x2="${w}" y2="${Math.round(hPx * 0.35)}" stroke="currentColor" stroke-opacity="0.22" stroke-dasharray="3 3" stroke-width="0.8" />
-      ${gapRects.join("")}
-      ${gpuArea ? `<path d="${gpuArea}" class="telemetry-scope-gpu-area" />` : ""}
-      ${gpuLine ? `<path d="${gpuLine}" class="telemetry-scope-gpu-line" fill="none" stroke-width="2" />` : ""}
-      ${cpuLine ? `<path d="${cpuLine}" class="telemetry-scope-cpu-line" fill="none" stroke-width="1.8" />` : ""}
-    </svg>`;
+    const wrap = h("div", { class: "telemetry-scope-box", "data-telemetry-scope-svg": "true" },
+      svgEl("svg", { viewBox: `0 0 ${w} ${hPx}`, width: "100%", height: hPx, class: "telemetry-scope-svg", "aria-label": "Oscilloscope CPU and GPU History Waveform" },
+        svgEl("defs", {},
+          svgEl("pattern", { id: "telemetry-grid-pat", width: "18", height: "18", patternUnits: "userSpaceOnUse" },
+            svgEl("path", { d: "M 18 0 L 0 0 0 18", fill: "none", stroke: "currentColor", "stroke-opacity": "0.14", "stroke-width": "0.7" }),
+          ),
+        ),
+        svgEl("rect", { x: "0", y: "0", width: w, height: hPx, fill: "url(#telemetry-grid-pat)" }),
+        svgEl("line", { x1: "0", y1: Math.round(hPx * 0.35), x2: w, y2: Math.round(hPx * 0.35), stroke: "currentColor", "stroke-opacity": "0.22", "stroke-dasharray": "3 3", "stroke-width": "0.8" }),
+        ...gapRects,
+        gpuArea ? svgEl("path", { d: gpuArea, class: "telemetry-scope-gpu-area" }) : null,
+        gpuLine ? svgEl("path", { d: gpuLine, class: "telemetry-scope-gpu-line", fill: "none", "stroke-width": "2" }) : null,
+        cpuLine ? svgEl("path", { d: cpuLine, class: "telemetry-scope-cpu-line", fill: "none", "stroke-width": "1.8" }) : null,
+      ),
+    );
     const legend = h("div", { class: "telemetry-scope-legend" },
       h("span", {}, `📈 Dual-Trace Scope (60-Sample Ring · Scale 0–${Math.round(maxScale)}%)`),
       h("span", {}, `CPU ${snap.cpuPct.toFixed(1)}% · GPU ${snap.gpuPct.toFixed(1)}%${paused ? " · [SAMPLE GAP PAUSED]" : ""}`),
@@ -4721,12 +4731,12 @@ export function buildThemeTelemetryDeck({
         const circum = 2 * Math.PI * radius;
         const dash = ((d.pct / 100) * circum).toFixed(1);
         const dialBox = h("div", { class: "telemetry-radial-card", "data-telemetry-dial": d.id });
-        const svgWrap = h("div", { class: "telemetry-radial-svg-wrap" });
-        svgWrap.innerHTML = `<svg viewBox="0 0 72 72" width="68" height="68" aria-hidden="true">
-          <circle cx="36" cy="36" r="${radius}" fill="none" stroke="currentColor" stroke-opacity="0.16" stroke-width="6" />
-          <circle cx="36" cy="36" r="${radius}" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"
-            stroke-dasharray="${dash} ${circum.toFixed(1)}" transform="rotate(-90 36 36)" class="telemetry-radial-arc" />
-        </svg>`;
+        const svgWrap = h("div", { class: "telemetry-radial-svg-wrap" },
+          svgEl("svg", { viewBox: "0 0 72 72", width: "68", height: "68", "aria-hidden": "true" },
+            svgEl("circle", { cx: "36", cy: "36", r: radius, fill: "none", stroke: "currentColor", "stroke-opacity": "0.16", "stroke-width": "6" }),
+            svgEl("circle", { cx: "36", cy: "36", r: radius, fill: "none", stroke: "currentColor", "stroke-width": "6", "stroke-linecap": "round", "stroke-dasharray": `${dash} ${circum.toFixed(1)}`, transform: "rotate(-90 36 36)", class: "telemetry-radial-arc" }),
+          ),
+        );
         svgWrap.append(h("span", { class: "telemetry-radial-center-val" }, d.value));
         dialBox.append(
           h("div", { class: "telemetry-radial-title" }, d.label),
@@ -9298,17 +9308,21 @@ export async function showThemeShareDialog(initialKey = "", existingThemes) {
                   !e.isDir &&
                   /\.(?:theme\.json|ccfm\.txt|theme\.css|json|ccfm)$/i.test(e.name) &&
                   !/^(?:readme|package|tsconfig|manifest)/i.test(e.name);
-                let themeEntries = (listed?.entries || [])
-                  .filter(isThemeEntry)
-                  .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+                const entryRank = (e) => {
+                  const n = String(e.name || "").toLowerCase();
+                  if (/^(?:master|pack|us_holidays)/i.test(n)) return 2;
+                  if (/\.json$/i.test(n)) return 0;
+                  return 1;
+                };
+                const sortThemeEntries = (arr) =>
+                  arr.filter(isThemeEntry).sort((a, b) => entryRank(a) - entryRank(b) || String(a.name || "").localeCompare(String(b.name || "")));
+                let themeEntries = sortThemeEntries(listed?.entries || []);
                 if (!themeEntries.length) {
                   const subFolder = (listed?.entries || []).find((e) => e.isDir && /^custom[_-]?themes$/i.test(e.name));
                   if (subFolder?.path) {
                     dir = subFolder.path;
                     listed = await call("list", { path: dir, showHidden: false });
-                    themeEntries = (listed?.entries || [])
-                      .filter(isThemeEntry)
-                      .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+                    themeEntries = sortThemeEntries(listed?.entries || []);
                   }
                 }
                 if (!themeEntries.length) {
@@ -9318,7 +9332,8 @@ export async function showThemeShareDialog(initialKey = "", existingThemes) {
                 const collectedThemes = [];
                 const seenNames = new Set();
                 const rawTokens = [];
-                for (const entry of themeEntries.slice(0, 35)) {
+                for (const entry of themeEntries.slice(0, 40)) {
+                  if (collectedThemes.length >= 20 && /^(?:master|pack|us_holidays)/i.test(String(entry.name || ""))) continue;
                   try {
                     const r = await call("themes/custom/read-file", { path: entry.path });
                     const raw = typeof r?.text === "string" ? r.text.trim() : typeof r?.content === "string" ? r.content.trim() : "";

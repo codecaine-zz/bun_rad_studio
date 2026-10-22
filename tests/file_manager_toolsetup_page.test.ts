@@ -67,6 +67,8 @@ beforeAll(async () => {
   const state = (await import("../resources/file_manager/ui/state.js")).state;
   state.platform = "linux";
   state.location = { kind: "folder", path: root };
+  state.entries = [];
+  state.selection = new Set();
   setup = await import("../resources/file_manager/ui/toolsetup.js");
   tools = await import("../resources/file_manager/ui/tools.js");
 });

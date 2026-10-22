@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Codecaine Utility Suite - Neon Word Search Labyrinth
+# Codecaine Utility Suite - Codecaine Neon Word Search Labyrinth
 # Type: GUI | Script: applications/word_search_studio.ts
 # ==============================================================================
 set -e

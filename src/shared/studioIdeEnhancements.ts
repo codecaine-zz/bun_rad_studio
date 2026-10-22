@@ -516,11 +516,11 @@ function studioIdeEnhancementsClient() {
         saveWorksheets();
         renderWorksheetTabs();
       });
-      btn.addEventListener("dblclick", () => {
+      btn.addEventListener("dblclick", async () => {
         const id = btn.getAttribute("data-ws-id");
         const target = worksheets.find((w) => w.id === id);
         if (!target) return;
-        const newName = typeof prompt === "function" ? prompt("Rename worksheet:", target.title) : null;
+        const newName = typeof studioPrompt === "function" ? await studioPrompt("Rename worksheet:", target.title) : null;
         if (newName && newName.trim()) {
           target.title = newName.trim();
           saveWorksheets();
@@ -960,7 +960,7 @@ function studioIdeEnhancementsClient() {
     const sorts = window.__studioSortColumns || [];
     if (!sorts.length) return;
     sorts.forEach((s, idx) => {
-      const th = thead.querySelector(`th[data-col="${CSS && CSS.escape ? CSS.escape(s.col) : s.col}"]`);
+      const th = thead.querySelector(`th[data-col="${typeof CSS !== "undefined" && CSS.escape ? CSS.escape(s.col) : s.col}"]`);
       if (th) {
         const badge = document.createElement("span");
         badge.className = "studio-multisort-badge";
@@ -975,7 +975,7 @@ function studioIdeEnhancementsClient() {
     if (!thead || thead.__studioMultiSortBound) return;
     thead.__studioMultiSortBound = true;
     thead.addEventListener("click", (e) => {
-      if (!e.shiftKey) return;
+      if (!e.shiftKey || thead.querySelector("th.sc-colsel")) return;
       const th = e.target && e.target.closest && e.target.closest("th[data-col]");
       if (!th || (e.target && e.target.closest(".sc-th-btn, .sc-rz"))) return;
       const col = th.getAttribute("data-col");
@@ -1050,7 +1050,7 @@ function studioIdeEnhancementsClient() {
     Array.from(tbody.querySelectorAll("tr")).forEach((tr, rIdx) => {
       const rowData = rows[Number(tr.getAttribute("data-row") ?? rIdx)] || {};
       fkCols.forEach((col) => {
-        const td = tr.querySelector(`td[data-col="${CSS && CSS.escape ? CSS.escape(col) : col}"]`);
+        const td = tr.querySelector(`td[data-col="${typeof CSS !== "undefined" && CSS.escape ? CSS.escape(col) : col}"]`);
         if (!td || td.querySelector(".studio-fk-jump") || td.classList.contains("cell-null") || td.classList.contains("sc-null")) return;
         const val = rowData[col] !== undefined ? rowData[col] : td.textContent.trim();
         if (val === null || val === undefined || val === "NULL" || val === "") return;

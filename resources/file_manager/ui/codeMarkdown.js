@@ -44,7 +44,25 @@ export function parseInline(src, depth = 0) {
     } else if (c === "[" || (c === "!" && src[i + 1] === "[")) {
       const image = c === "!";
       const open = image ? i + 1 : i;
-      const mid = src.indexOf("](", open);
+      let mid = -1;
+      let bDepth = 1;
+      for (let k = open + 1; k < n && k < open + 2048; k++) {
+        if (src[k] === "\n") break;
+        if (src[k] === "\\" && k + 1 < n) { k++; continue; }
+        if (src[k] === "`") {
+          let ticks = 1;
+          while (src[k + ticks] === "`") ticks++;
+          const endTick = src.indexOf("`".repeat(ticks), k + ticks);
+          if (endTick > 0) { k = endTick + ticks - 1; continue; }
+        }
+        if (src[k] === "[") bDepth++;
+        else if (src[k] === "]") {
+          if (--bDepth === 0) {
+            if (src[k + 1] === "(") mid = k;
+            break;
+          }
+        }
+      }
       let close = mid > open ? src.indexOf(")", mid + 2) : -1;
       if (close > mid && src.slice(mid + 2, close).includes("(")) {
         let paren = 1;

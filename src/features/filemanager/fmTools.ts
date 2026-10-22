@@ -247,9 +247,9 @@ function isRunnable(file: string, platform: FmContext["platform"]): boolean {
 /** The first program with one of these names in these folders, or null. */
 export function findExecutable(platform: FmContext["platform"], names: string[], dirs: string[], extensions?: string[]): string | null {
   const exts = extensions ?? (platform === "win32" ? [".exe", ".cmd", ".bat", ".com"] : [""]);
-  const p = platform === "win32" ? nodePath.win32 : nodePath.posix;
   for (const name of names) {
     for (const dir of dirs) {
+      const p = dir.includes("\\") ? nodePath.win32 : nodePath;
       for (const ext of exts) {
         const candidate = p.join(dir, name + ext);
         if (isRunnable(candidate, platform)) return candidate;

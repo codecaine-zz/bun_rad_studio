@@ -27,6 +27,7 @@ These pages are produced by `bun run docs:build`; do not edit them by hand.
 |---|---|---|
 | [API.md](../API.md) | The visual designer's control specification and the IPC functions of `index.ts` | Not diffed against the source |
 | [SIMPLEGUI_API.md](../SIMPLEGUI_API.md) | The SimpleGUI window/controls library (`src/simplegui.ts`) | Not diffed against the source; its quick start imports from `"bun_rad_studio"` ([D-007](../documentation-maintenance/discrepancies.md#d-007)) |
+| [CLI_API.md](../CLI_API.md) | The SimpleCLI headless console & RAD toolkit (`src/simplecli`) | Verified against `src/simplecli/` |
 | [SYSTEM_UTILITIES_API.md](../SYSTEM_UTILITIES_API.md) | The RAD utility modules (`src/features/rad`) | Not diffed against the source |
 | [THEMES.md](../THEMES.md) | Themes available to SimpleGUI | Theme count not verified |
 | [Database Workbench](../databases/workbench.md) | The HTTP interface under `/api/v2` is internal; the page documents behavior, not the endpoints | Behavior verified by tests |

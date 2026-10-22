@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Codecaine Utility Suite - CyberFrog Deluxe
+# Codecaine Utility Suite - Codecaine CyberFrog Deluxe
 # Type: GUI | Script: applications/frogger_studio.ts
 # ==============================================================================
 set -e

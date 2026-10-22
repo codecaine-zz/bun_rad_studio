@@ -2879,7 +2879,7 @@ describe("the theme editor in the page", () => {
       version: 1,
       themes: exportsWithShareCodes,
     });
-    const parsedAll20 = themeStore.parseThemePack(packWithEmbeddedShareCodes);
+    const parsedAll20 = parseThemePack(packWithEmbeddedShareCodes);
     expect(parsedAll20.length).toBe(20);
 
     // Restore auto mode

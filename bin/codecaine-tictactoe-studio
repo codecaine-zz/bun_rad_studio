@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Codecaine Utility Suite - Neon Tic-Tac-Toe Arcade
+# Codecaine Utility Suite - Codecaine Neon Tic-Tac-Toe Arcade
 # Type: GUI | Script: applications/tictactoe_studio.ts
 # ==============================================================================
 set -e

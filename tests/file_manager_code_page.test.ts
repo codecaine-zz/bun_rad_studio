@@ -716,17 +716,33 @@ describe("built-in developer power features in the UI", () => {
     await sleep(50);
   });
 
-  test("clicking links in Markdown preview opens web URLs in the browser, jumps to #headings, and opens relative files", async () => {
+  test("clicking links in Markdown preview opens web URLs in the browser, jumps to #headings (including GFM -- and emoji slugs), and opens relative files", async () => {
+    const { slugifyMarkdownHeading, normalizeMarkdownSlug } = await import("../resources/file_manager/ui/codePreview.js");
+    expect(slugifyMarkdownHeading("3. Console UI & RAD Components")).toBe("3-console-ui--rad-components");
+    expect(normalizeMarkdownSlug("3-console-ui--rad-components")).toBe("3-console-ui-rad-components");
+    expect(slugifyMarkdownHeading("🚀 How to Use Any Theme")).toBe("-how-to-use-any-theme");
+
     writeFileSync(
       join(work, "links.md"),
       [
         "# Overview",
         "",
         "Visit [Bun Docs](https://bun.sh/docs) or https://example.com/guide for more.",
-        "Jump to [Details section](#details-section) or open [Notes](./notes.txt).",
+        "Jump to [Details section](#details-section), [Console UI & RAD Components](#3-console-ui--rad-components), [How to Use](#-how-to-use-any-theme), [Quick Start](#custom-anchor), [Top](#top), or open [Notes](./notes.txt).",
         "",
         "## Details Section",
         "Line 7 content.",
+        "",
+        "## 3. Console UI & RAD Components",
+        "RAD content.",
+        "",
+        "## 🚀 How to Use Any Theme",
+        "Theme usage.",
+        "",
+        '<a id="custom-anchor"></a>',
+        "",
+        "## 1. 🐣 5-Minute Quick Start",
+        "Quick start steps.",
       ].join("\n"),
     );
     await openFile("links.md");
@@ -737,7 +753,18 @@ describe("built-in developer power features in the UI", () => {
     expect(pvPane.hidden).toBe(false);
 
     const links = [...pvPane.querySelectorAll('.code-md-link[role="link"]')];
-    expect(links.map((l: any) => l.textContent)).toEqual(["Bun Docs", "https://example.com/guide", "Details section", "Notes"]);
+    expect(links.map((l: any) => l.textContent)).toEqual([
+      "Bun Docs",
+      "https://example.com/guide",
+      "Details section",
+      "Console UI & RAD Components",
+      "How to Use",
+      "Quick Start",
+      "Top",
+      "Notes",
+    ]);
+    // Standalone <a id="custom-anchor"></a> is hidden in preview rather than shown as raw text
+    expect(pvPane.querySelector(".code-md-content").textContent).not.toContain('<a id="custom-anchor">');
 
     // 1. Click external web link -> opens in system browser
     const beforeLaunch = launched.length;
@@ -756,8 +783,31 @@ describe("built-in developer power features in the UI", () => {
     await sleep(50);
     expect(status("pos")).toContain("Ln 6");
 
-    // 4. Click relative file link ./notes.txt -> opens notes.txt tab in the editor
+    // 4. Click #3-console-ui--rad-components anchor -> jumps editor cursor to line 9 without error toast
     links[3].click();
+    await sleep(50);
+    expect(status("pos")).toContain("Ln 9");
+    expect(toasts().some((t) => t.includes("wasn't found"))).toBe(false);
+
+    // 5. Click #-how-to-use-any-theme anchor -> jumps editor cursor to line 12 without error toast
+    links[4].click();
+    await sleep(50);
+    expect(status("pos")).toContain("Ln 12");
+    expect(toasts().some((t) => t.includes("wasn't found"))).toBe(false);
+
+    // 6. Click #custom-anchor -> jumps to <a id="custom-anchor"></a> (line 15) without error toast
+    links[5].click();
+    await sleep(50);
+    expect(status("pos")).toContain("Ln 15");
+    expect(toasts().some((t) => t.includes("wasn't found"))).toBe(false);
+
+    // 7. Click #top anchor -> returns editor cursor to line 1
+    links[6].click();
+    await sleep(50);
+    expect(status("pos")).toContain("Ln 1");
+
+    // 8. Click relative file link ./notes.txt -> opens notes.txt tab in the editor
+    links[7].click();
     await until(() => doc.querySelector(".code-tab.active .code-tab-name")?.textContent === "notes.txt", "notes.txt to become active");
     pvBtn!.click();
     await sleep(50);

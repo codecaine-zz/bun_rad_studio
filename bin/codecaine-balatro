@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Codecaine Utility Suite - Joker Royale (Balatro Deluxe)
+# Codecaine Utility Suite - Codecaine Joker Royale (Balatro Deluxe)
 # Type: GUI | Script: applications/balatro_studio.ts
 # ==============================================================================
 set -e

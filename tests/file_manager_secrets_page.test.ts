@@ -138,6 +138,7 @@ beforeAll(async () => {
   sstate = (await import("../resources/file_manager/ui/state.js")).state;
   sstate.platform = "linux";
   sstate.home = home;
+  sstate.location = { kind: "folder", path: home };
   clockMod = await import("../resources/file_manager/ui/secretsClock.js");
   clockMod.setClock(fake);
   power = await import("../resources/file_manager/ui/power.js");

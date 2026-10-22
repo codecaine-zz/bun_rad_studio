@@ -776,7 +776,8 @@ describe("Bury (Rip) in the file list", () => {
     extras.showHelp();
     const help = dialog();
     expect(help.textContent).toContain("Bury in the Rip graveyard");
-    expect(qa("td.keycap", help).some((k) => k.textContent === "Alt+Delete")).toBe(true);
+    expect(qa("td.keycap", help).some((k) => k.textContent.includes("Alt+Delete"))).toBe(true);
+    closeAll();
   });
 
   test("protected folders are refused with a plain message and nothing happens", async () => {

@@ -189,6 +189,7 @@ function mount(root) {
       for (;;) {
         if (typeof document === "undefined" || S.hidden) return;
         const info = (await call("subdomains/status", { id: S.runId, since: S.rev, logFrom: S.logFrom })).run;
+        if (typeof document === "undefined" || S.hidden) return;
         apply(info);
         // The table is only redrawn when rows changed, so a focused row isn't lost on every poll.
         if (info.rows?.length || info.state !== "running") paint();
@@ -250,6 +251,7 @@ function mount(root) {
   }
 
   function paint() {
+    if (typeof document === "undefined") return;
     const all = [...S.rows.values()];
     S.view = sortRows(filterRows(all, filter()), S.sort.key, S.sort.dir);
     const empty = all.length ? "Nothing matches the filters above. Clear them to see every host." : S.running ? "Waiting for the sources…" : "No hosts yet. Type a domain and press Find subdomains.";

@@ -17,10 +17,9 @@ import { openInMediaDeck } from "./playerDeck.js";
 import { openPower } from "./power.js";
 import { openQuickLook } from "./quicklook.js";
 import { clearSelection, focusIndex, selectKeys, selectedEntries } from "./selection.js";
-import { emit, on, state } from "./state.js";
+import { on, state } from "./state.js";
 import { TAG_DEFS, setTagForPaths, tagForPath } from "./tags.js";
-import { showToolsDialog } from "./tools.js";
-import { baseName, describeSelection, extensionOf, extractableEntries, formatSize } from "./util.js";
+import { describeSelection, extensionOf, extractableEntries } from "./util.js";
 
 // ---------------------------------------------------------------------------------------------------------------
 // Kind Chips definitions
@@ -559,8 +558,8 @@ export function renderSelectionBar() {
     addAct("compare-dirs", "🆚", "Compare Folders", "Compare these two folders side by side in the Compare tool", () => {
       openPower("compare");
       setTimeout(() => {
-        const l = $("#compare-left");
-        const r = $("#compare-right");
+        const l = document.getElementById("compare-left");
+        const r = document.getElementById("compare-right");
         if (l && r) {
           l.value = items[0].path;
           r.value = items[1].path;

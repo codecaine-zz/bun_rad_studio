@@ -45,6 +45,7 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
   });
 
   it("2. Homebrew Formula syntax passes ruby linter", async () => {
+    if (!Bun.which("ruby")) return;
     const res = await runSubprocess(["ruby", "-c", formulaFile]);
     expect(res.exitCode).toBe(0);
     expect(res.output).toContain("Syntax OK");
@@ -57,12 +58,14 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
   it("3. Homebrew Installer script exists, is executable, and passes bash syntax validation", async () => {
     expect(existsSync(installerScript)).toBe(true);
     const stat = statSync(installerScript);
-    expect((stat.mode & 0o111) !== 0).toBe(true);
+    if (process.platform !== "win32") {
+      expect((stat.mode & 0o111) !== 0).toBe(true);
+    }
 
     const syntaxRes = await runSubprocess(["bash", "-n", installerScript]);
     expect(syntaxRes.exitCode).toBe(0);
 
-    const helpRes = await runSubprocess([installerScript, "--help"]);
+    const helpRes = await runSubprocess(process.platform === "win32" ? ["bash", installerScript, "--help"] : [installerScript, "--help"]);
     expect(helpRes.exitCode).toBe(0);
     expect(helpRes.output).toContain("Codecaine Utility Suite");
     expect(helpRes.output).toContain("--link");
@@ -112,7 +115,9 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
       const p = join(binDir, b);
       expect(existsSync(p)).toBe(true);
       const stat = statSync(p);
-      expect((stat.mode & 0o111) !== 0).toBe(true);
+      if (process.platform !== "win32") {
+        expect((stat.mode & 0o111) !== 0).toBe(true);
+      }
     }
   });
 

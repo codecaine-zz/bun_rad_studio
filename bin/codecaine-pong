@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Codecaine Utility Suite - Neon Cyber Pong
+# Codecaine Utility Suite - Codecaine Neon Cyber Pong
 # Type: GUI | Script: applications/pong_studio.ts
 # ==============================================================================
 set -e

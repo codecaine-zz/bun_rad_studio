@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Codecaine Utility Suite - Blackjack Royale VIP
+# Codecaine Utility Suite - Codecaine Blackjack Royale VIP
 # Type: GUI | Script: applications/blackjack_studio.ts
 # ==============================================================================
 set -e

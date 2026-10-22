@@ -770,6 +770,9 @@ describe("Markdown reader", () => {
     const p = tree("![alt text](http://x/y.png) [link](http://x/ \"t\")")[0].children;
     expect(p[0]).toEqual({ tag: "img", alt: "alt text", src: "http://x/y.png" });
     expect(p[2]).toMatchObject({ tag: "a", href: "http://x/" });
+    const p2 = tree("[1] First item — see [`arr[0]`](#indexing)")[0].children;
+    expect(p2[0]).toEqual({ tag: "#text", text: "[1] First item — see " });
+    expect(p2[1]).toMatchObject({ tag: "a", href: "#indexing" });
   });
 
   test("raw HTML stays text (never becomes markup)", () => {

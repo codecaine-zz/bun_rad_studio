@@ -145,8 +145,19 @@ async function openQuickLookMarkdownLink(entry, rawHref) {
       .catch(() => toast(`Link: ${href}`));
     return;
   }
-  let pathPart = href.split("#")[0];
+  const hashIdx = href.indexOf("#");
+  let pathPart = hashIdx >= 0 ? href.slice(0, hashIdx) : href;
+  let frag = hashIdx >= 0 ? href.slice(hashIdx + 1) : "";
   try { pathPart = decodeURIComponent(pathPart); } catch {}
+  try { frag = decodeURIComponent(frag); } catch {}
+  if (!pathPart && frag) {
+    if (ql?.mdController?.jumpToSlug?.(frag)) return;
+    if (entry?.path) {
+      closeQuickLook();
+      openInCode(entry.path, { frag });
+    }
+    return;
+  }
   const baseDir = entry?.path
     ? entry.path.slice(0, Math.max(entry.path.lastIndexOf("/"), entry.path.lastIndexOf("\\"))) || entry.path
     : state.home || "";
@@ -157,12 +168,12 @@ async function openQuickLookMarkdownLink(entry, rawHref) {
       return;
     }
     const idx = ql?.entries.findIndex((e) => e.path === resolved.path) ?? -1;
-    if (idx >= 0) {
+    if (idx >= 0 && !frag) {
       show(idx);
       return;
     }
     closeQuickLook();
-    openInCode(resolved.path);
+    openInCode(resolved.path, frag ? { frag } : undefined);
   } catch (err) {
     toast(err?.message || "Couldn't open that linked file.", { kind: "error" });
   }

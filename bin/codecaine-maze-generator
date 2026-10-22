@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Codecaine Utility Suite - Cyberpunk Maze Runner
+# Codecaine Utility Suite - Codecaine Cyberpunk Maze Runner
 # Type: GUI | Script: applications/maze_generator_studio.ts
 # ==============================================================================
 set -e

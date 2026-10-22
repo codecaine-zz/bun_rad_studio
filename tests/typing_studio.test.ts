@@ -98,7 +98,14 @@ describe("⌨️ CyberType Deluxe — Mavis Beacon Master Edition", () => {
     const doc = dom.window.document;
     const scripts = Array.from(doc.querySelectorAll("script")).map((s) => s.textContent || "");
     for (const code of scripts) {
-      new Function("window", "document", code)(dom.window, doc);
+      new Function("window", "document", "setInterval", "clearInterval", "setTimeout", "clearTimeout", code)(
+        dom.window,
+        doc,
+        dom.window.setInterval.bind(dom.window),
+        dom.window.clearInterval.bind(dom.window),
+        dom.window.setTimeout.bind(dom.window),
+        dom.window.clearTimeout.bind(dom.window),
+      );
     }
 
     // Initial words rendered in Time mode
@@ -162,6 +169,7 @@ describe("⌨️ CyberType Deluxe — Mavis Beacon Master Edition", () => {
 
     const svgRes = await fetch(`http://127.0.0.1:${port}/favicon.svg`);
     expect(svgRes.status).toBe(200);
+    try { (studio as any).server?.stop(); } catch {}
   });
 
   test("8. Gameplay regression suite: bare 'f' never triggers fullscreen, lesson advance preserves step, Colemak remaps hardware keys, and cross-word Backspace works", () => {
@@ -175,7 +183,14 @@ describe("⌨️ CyberType Deluxe — Mavis Beacon Master Edition", () => {
 
     const scripts = Array.from(doc.querySelectorAll("script")).map((s) => s.textContent || "");
     for (const code of scripts) {
-      new Function("window", "document", code)(dom.window, doc);
+      new Function("window", "document", "setInterval", "clearInterval", "setTimeout", "clearTimeout", code)(
+        dom.window,
+        doc,
+        dom.window.setInterval.bind(dom.window),
+        dom.window.clearInterval.bind(dom.window),
+        dom.window.setTimeout.bind(dom.window),
+        dom.window.clearTimeout.bind(dom.window),
+      );
     }
 
     // Switch to Tutorial Step 1 (which starts with "f")

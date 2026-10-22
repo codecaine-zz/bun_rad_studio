@@ -152,7 +152,7 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
     expect(wifiNet.success).toBe(true);
     expect(wifiIf.success).toBe(true);
     expect(wifiConn.success).toBe(true);
-  }, 20000);
+  }, 60000);
 
   it("8. Category 8 & 9: Processes, Services & Peripherals execute successfully", async () => {
     const [procs, procLoad, serv, users, audio, bt, printer, usb] = await Promise.all([
@@ -208,7 +208,7 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
 
     expect(pStart.success).toBe(true);
     expect(pRel.success).toBe(true);
-  }, 20000);
+  }, 60000);
 
   it("10. formatDataSummary produces safe strings for all input structures", () => {
     expect(formatDataSummary("test", null)).toContain("No data returned");

@@ -42,6 +42,7 @@
         { "title": "Script index (generated)", "path": "reference/script-index.md" },
         { "title": "Designer API (API.md)", "path": "API.md" },
         { "title": "SimpleGUI API", "path": "SIMPLEGUI_API.md" },
+        { "title": "SimpleCLI API", "path": "CLI_API.md" },
         { "title": "RAD utility modules API", "path": "SYSTEM_UTILITIES_API.md" },
         { "title": "Themes", "path": "THEMES.md" },
         { "title": "Themes (identical copy, see D-010)", "path": "theme.md" },

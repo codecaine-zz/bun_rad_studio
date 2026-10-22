@@ -21,7 +21,7 @@ import { createEditor } from "./codeEditor.js";
 import { createExplorer } from "./codeExplorer.js";
 import { createFindBar } from "./codeFindBar.js";
 import { createBookmarksPanel, createGitPanel, createHistoryPanel, createOutlinePanel, createSearchPanel, createTodosPanel } from "./codePanels.js";
-import { createZoomableImage, renderCodeInspectorPreview, renderCsvPreview, renderJsonPreview, renderMarkdown, renderNotebookPreview, renderSource, renderStructuredDataPreview, slugifyMarkdownHeading } from "./codePreview.js";
+import { createZoomableImage, normalizeMarkdownSlug, renderCodeInspectorPreview, renderCsvPreview, renderJsonPreview, renderMarkdown, renderNotebookPreview, renderSource, renderStructuredDataPreview, slugifyMarkdownHeading } from "./codePreview.js";
 import { createRunUi } from "./codeRunUi.js";
 import { createStatus } from "./codeStatus.js";
 import { renderTabs, renderWelcome, wireTabKeys } from "./codeTabs.js";
@@ -32,8 +32,8 @@ const docs = createDocs();
 export const codeHasUnsaved = () => docs.anyDirty();
 
 /** Opens the Power tools panel on the Code tab and opens `path` in the editor. */
-export function openInCode(path) {
-  openPower("code", { open: path });
+export function openInCode(path, opts) {
+  openPower("code", { open: path, ...(opts || {}) });
 }
 
 /** Opens the Power tools panel on the Code tab with `path` (a folder) as the Explorer's workspace folder. */
@@ -587,24 +587,84 @@ function mount(root) {
       return true;
     }
     const wanted = slugifyHeading(rawFrag);
-    if (!wanted) return false;
+    const wantedNorm = normalizeMarkdownSlug(rawFrag);
+    if (!wanted && !wantedNorm) return false;
+    if (targetDoc === doc() && !preview.hidden && mdController?.jumpToSlug) {
+      if (mdController.jumpToSlug(rawFrag)) return true;
+    }
     let found = false;
     if (targetDoc === doc() && !preview.hidden) {
-      const headingEl = [...previewBody.querySelectorAll("h1, h2, h3, h4, h5, h6")].find(
-        (el) => el.dataset.slug === wanted || slugifyHeading(el.textContent) === wanted || el.textContent.trim().toLowerCase() === rawFrag.toLowerCase(),
-      );
+      const allHeadings = [...previewBody.querySelectorAll("h1, h2, h3, h4, h5, h6")];
+      const headingEl =
+        allHeadings.find((el) => {
+          const elSlug = el.dataset.slug || "";
+          const rawHeadingText = el.textContent.replace(/^#/, "").trim();
+          return (
+            elSlug === wanted ||
+            (wantedNorm && normalizeMarkdownSlug(elSlug) === wantedNorm) ||
+            slugifyHeading(rawHeadingText) === wanted ||
+            (wantedNorm && normalizeMarkdownSlug(rawHeadingText) === wantedNorm) ||
+            rawHeadingText.toLowerCase() === rawFrag.toLowerCase()
+          );
+        }) ??
+        (wantedNorm && wantedNorm.length >= 3
+          ? allHeadings.find((el) => {
+              const elSlug = el.dataset.slug || "";
+              return elSlug.startsWith(`${wanted}-`) || normalizeMarkdownSlug(elSlug).startsWith(`${wantedNorm}-`);
+            })
+          : null);
       if (headingEl) {
         headingEl.scrollIntoView?.({ behavior: "smooth", block: "start" });
         found = true;
       }
     }
     if (targetDoc) {
-      const sym = extractSymbols(targetDoc.text, targetDoc.lang).find(
-        (s) => slugifyHeading(s.name) === wanted || s.name.trim().toLowerCase() === rawFrag.toLowerCase(),
-      );
+      const seenSlugs = new Map();
+      const syms = extractSymbols(targetDoc.text, targetDoc.lang);
+      const sym =
+        syms.find((s) => {
+          const base = slugifyHeading(s.name);
+          const seen = seenSlugs.get(base) ?? 0;
+          seenSlugs.set(base, seen + 1);
+          const fullSlug = seen === 0 ? base : `${base}-${seen}`;
+          return (
+            fullSlug === wanted ||
+            base === wanted ||
+            (wantedNorm && (normalizeMarkdownSlug(fullSlug) === wantedNorm || normalizeMarkdownSlug(base) === wantedNorm)) ||
+            s.name.trim().toLowerCase() === rawFrag.toLowerCase()
+          );
+        }) ??
+        (wantedNorm && wantedNorm.length >= 3
+          ? syms.find((s) => {
+              const base = slugifyHeading(s.name);
+              return base.startsWith(`${wanted}-`) || normalizeMarkdownSlug(base).startsWith(`${wantedNorm}-`);
+            })
+          : null);
       if (sym) {
         targetDoc.editor?.goTo(sym.line, 1);
         found = true;
+      }
+      if (!found && wantedNorm === "top") {
+        if (targetDoc === doc() && !preview.hidden) previewBody.scrollTop = 0;
+        targetDoc.editor?.goTo(1, 1);
+        return true;
+      }
+      if (!found && targetDoc.text) {
+        const esc = rawFrag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const anchorRe = new RegExp(`(?:id|name)=["']${esc}["']`, "i");
+        const srcLines = targetDoc.text.split(/\r\n|\r|\n/);
+        const anchorLineIdx = srcLines.findIndex((l) => anchorRe.test(l));
+        if (anchorLineIdx >= 0) {
+          const anchorLine = anchorLineIdx + 1;
+          if (targetDoc === doc() && !preview.hidden) {
+            const nearEl = [...previewBody.querySelectorAll("h1, h2, h3, h4, h5, h6")].find(
+              (el) => Number(el.dataset.line) >= anchorLine,
+            );
+            nearEl?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+          }
+          targetDoc.editor?.goTo(anchorLine, 1);
+          return true;
+        }
       }
     }
     return found;
@@ -955,7 +1015,10 @@ function mount(root) {
           await explorer.setRoot(opts.folder);
           showPanel("files");
         }
-        if (opts?.open) await open(opts.open, Number.isInteger(opts.line) && opts.line > 0 ? opts.line : 1);
+        if (opts?.open) {
+          await open(opts.open, Number.isInteger(opts.line) && opts.line > 0 ? opts.line : 1);
+          if (opts.frag) jumpToHeadingInDoc(doc(), opts.frag);
+        }
       } catch (err) {
         toast(err?.message || "The code editor couldn't start.", { kind: "error" });
       }

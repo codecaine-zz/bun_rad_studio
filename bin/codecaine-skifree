@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Codecaine Utility Suite - SkiFree Deluxe
+# Codecaine Utility Suite - Codecaine SkiFree Deluxe
 # Type: GUI | Script: applications/skifree_studio.ts
 # ==============================================================================
 set -e

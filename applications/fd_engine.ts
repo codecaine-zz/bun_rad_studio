@@ -283,10 +283,10 @@ export function interpolateExecCommand(cmdTemplate: string, filePath: string): s
   }
 
   const base = path.basename(filePath);
-  const dir = path.dirname(filePath);
+  const dir = filePath.includes("/") && !filePath.includes("\\") ? path.posix.dirname(filePath) : path.dirname(filePath);
   const ext = path.extname(filePath);
   const baseNoExt = base.slice(0, base.length - ext.length);
-  const pathNoExt = path.join(dir, baseNoExt);
+  const pathNoExt = ext ? filePath.slice(0, filePath.length - ext.length) : filePath;
 
   function quoteIfSpaced(val: string): string {
     if (/[\s"'$`\\;<>|&]/.test(val)) {
@@ -673,7 +673,10 @@ export function runFdCommand(commandTemplate: string, filePaths: string[]): { st
       ? expandBatchExecCommand(commandTemplate, filePaths)
       : interpolateExecCommand(commandTemplate, filePaths[0] || "");
 
-    const spawnResult = Bun.spawnSync(["/bin/sh", "-c", fullCommand], {
+    const shellArgv = process.platform === "win32"
+      ? [Bun.which("bash") || Bun.which("sh") || "cmd.exe", ...(Bun.which("bash") || Bun.which("sh") ? ["-c", fullCommand] : ["/d", "/s", "/c", fullCommand])]
+      : ["/bin/sh", "-c", fullCommand];
+    const spawnResult = Bun.spawnSync(shellArgv, {
       stdin: "ignore",
       stdout: "pipe",
       stderr: "pipe",

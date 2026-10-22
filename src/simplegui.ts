@@ -2,6 +2,12 @@ import { SIMPLEGUI_THEMES } from "./shared/simpleguiThemes";
 export { SIMPLEGUI_THEMES } from "./shared/simpleguiThemes";
 import type { SizeHint, Webview } from "webview-bun";
 const SIZE_HINT_NONE = 0 as SizeHint;
+let cachedWebviewCtor: (typeof import("webview-bun"))["Webview"] | null = null;
+try {
+    cachedWebviewCtor = (await import("webview-bun")).Webview;
+} catch {
+    // Allow importing SimpleWindow in headless/server environments where the native webview runtime is unavailable.
+}
 import { injectHelp } from "./shared/helpTips";
 import { DESKTOP_SHORTCUTS_SCRIPT } from "./shared/desktopShortcuts";
 import { OS_THEME_KEYS } from "./shared/osThemes";
@@ -6161,7 +6167,8 @@ export class SimpleWindow {
         }
 
         const html = this.generateHtml();
-        this.webview = this.hostedFactory ? (this.hostedFactory() as unknown as Webview) : new (require("webview-bun") as typeof import("webview-bun")).Webview();
+        const WebviewCtor = cachedWebviewCtor ?? (require("webview-bun") as typeof import("webview-bun")).Webview;
+        this.webview = this.hostedFactory ? (this.hostedFactory() as unknown as Webview) : new WebviewCtor();
         this.webview.title = this.title;
         this.webview.size = { width: this.width, height: this.height, hint: SIZE_HINT_NONE };
         if (this.fullscreen) {

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Codecaine Utility Suite - Dr. Codecaine Arcade
+# Codecaine Utility Suite - Codecaine Dr. Codecaine Arcade
 # Type: GUI | Script: applications/dr_codecaine_studio.ts
 # ==============================================================================
 set -e

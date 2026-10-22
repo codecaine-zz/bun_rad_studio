@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Codecaine Utility Suite - Egyptian Rat Screw Royale
+# Codecaine Utility Suite - Codecaine Egyptian Rat Screw Royale
 # Type: GUI | Script: applications/rat_screw_studio.ts
 # ==============================================================================
 set -e

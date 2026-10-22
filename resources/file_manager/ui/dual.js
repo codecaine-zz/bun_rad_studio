@@ -307,7 +307,7 @@ function build() {
 
 /** Called each time the Dual view is shown: builds the pane the first time, then freshens its folder. */
 export function enterDual() {
-  if (!built) build();
+  if (!built || !byId(right.ids.list)) build();
   applyActive();
   syncButtons();
   if (right.location.path) loadRight(right.location.path, { keep: true });

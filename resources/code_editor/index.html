@@ -4805,12 +4805,72 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         }
       }
 
+      function slugifyMarkdownHeading(raw) {
+        return String(raw || "")
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/`([^`]+)`/g, "$1")
+          .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+          .trim()
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N}\s_-]/gu, "")
+          .replace(/\s/g, "-");
+      }
+
+      function normalizeMarkdownSlug(raw) {
+        return slugifyMarkdownHeading(raw).replace(/-+/g, "-").replace(/^-+|-+$/g, "");
+      }
+
+      if (els.previewBody) {
+        els.previewBody.addEventListener("click", (e) => {
+          const link = e.target.closest && e.target.closest("a[href^='#']");
+          if (!link) return;
+          e.preventDefault();
+          const rawFrag = decodeURIComponent(link.getAttribute("href").slice(1)).trim();
+          if (!rawFrag) return;
+          const wanted = slugifyMarkdownHeading(rawFrag);
+          const wantedNorm = normalizeMarkdownSlug(rawFrag);
+          if (wantedNorm === "top") {
+            els.previewBody.scrollTop = 0;
+            return;
+          }
+          const candidates = [...els.previewBody.querySelectorAll("[data-slug], [id], h1, h2, h3, h4, h5, h6")];
+          const target =
+            candidates.find((el) => {
+              const s = el.getAttribute("data-slug") || el.id || "";
+              return (
+                s === rawFrag ||
+                s === wanted ||
+                (wantedNorm && normalizeMarkdownSlug(s) === wantedNorm)
+              );
+            }) ||
+            (wantedNorm && wantedNorm.length >= 3
+              ? candidates.find((el) => {
+                  const s = el.getAttribute("data-slug") || el.id || "";
+                  return s.startsWith(wanted + "-") || normalizeMarkdownSlug(s).startsWith(wantedNorm + "-");
+                })
+              : null);
+          if (target && target.scrollIntoView) {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        });
+      }
+
       function renderMarkdown(md) {
         let html = escapeHtml(md);
-
-        html = html.replace(/^### (.*$)/gim, "<h3>$1</h3>");
-        html = html.replace(/^## (.*$)/gim, "<h2>$1</h2>");
-        html = html.replace(/^# (.*$)/gim, "<h1>$1</h1>");
+        const seenSlugs = new Map();
+        html = html.replace(/^\s*&lt;a\s+(?:id|name)=&quot;([^&]+)&quot;\s*&gt;\s*&lt;\/a&gt;\s*$/gim, '<span id="$1" data-slug="$1"></span>');
+        html = html.replace(/^(#{1,6})\s+(.*?)\s*#*\s*$/gim, (_m, hashes, text) => {
+          const lvl = hashes.length;
+          const base = slugifyMarkdownHeading(text) || "section";
+          const count = seenSlugs.get(base) || 0;
+          seenSlugs.set(base, count + 1);
+          const slug = count === 0 ? base : `${base}-${count}`;
+          return `<h${lvl} id="${slug}" data-slug="${slug}">${text}</h${lvl}>`;
+        });
 
         html = html.replace(
           /&gt; \[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\r?\n&gt; ([^\n]*))+/gim,
@@ -4833,7 +4893,8 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
         html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
         html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
-        html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|#[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: var(--accent, #61afef); text-decoration: underline; cursor: pointer;">$1</a>');
+        html = html.replace(/\[([^\]]+)\]\((#[^\s)]+)\)/g, '<a href="$2" style="color: var(--accent, #61afef); text-decoration: underline; cursor: pointer;">$1</a>');
+        html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: var(--accent, #61afef); text-decoration: underline; cursor: pointer;">$1</a>');
 
         html = html.replace(/\|(.+)\|/gim, (row) => {
           if (row.includes("---")) return "";

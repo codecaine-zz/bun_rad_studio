@@ -15,7 +15,20 @@ function safeLinkHref(href) {
 }
 
 export function slugifyMarkdownHeading(text) {
-  return String(text ?? "").toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-");
+  return String(text ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/<[^>]+>/g, "")
+    .replace(/[^\p{L}\p{N}\s_-]/gu, "")
+    .replace(/\s/g, "-");
+}
+
+export function normalizeMarkdownSlug(text) {
+  return slugifyMarkdownHeading(text)
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 function nodePlainText(node) {
@@ -356,6 +369,17 @@ function build(node, ctx) {
         meta.el = el;
         return el;
       }
+      if (node.tag === "p" && onAnchorClick && node.children?.length === 1 && node.children[0].tag === "#text") {
+        const rawP = String(node.children[0].text ?? "");
+        const anchorMatch = /^\s*<a\s+(?:id|name)=["']([^"']+)["']\s*>\s*<\/a>\s*$/i.exec(rawP);
+        if (anchorMatch) {
+          return h("span", { class: "code-md-anchor-target", dataset: { anchorId: anchorMatch[1] }, hidden: true });
+        }
+        const linkMatch = /^\s*(?:<div[^>]*>\s*)?<a\s+href=["'](#[^"']+)["']\s*>([^<]+)<\/a>(?:\s*<\/div>)?\s*$/i.exec(rawP);
+        if (linkMatch) {
+          return h("p", {}, build({ tag: "a", href: linkMatch[1], children: [{ tag: "#text", text: linkMatch[2] }] }, ctx));
+        }
+      }
       if (PLAIN_TAGS.has(node.tag)) return h(node.tag, {}, (node.children ?? []).map((c) => build(c, ctx)));
       return h("span", {}, (node.children ?? []).map((c) => build(c, ctx)));
   }
@@ -428,25 +452,59 @@ export function renderMarkdown(container, source, options) {
     let frag = String(rawFrag ?? "").trim();
     try { frag = decodeURIComponent(frag); } catch {}
     const wanted = slugifyMarkdownHeading(frag);
-    if (!wanted) return false;
-    const found = headings.find((item) => item.slug === wanted || slugifyMarkdownHeading(item.text) === wanted || item.text.toLowerCase() === frag.toLowerCase());
-    if (!found) return false;
-    jumpToHeadingIndex(found.idx, { recordHistory: true });
-    return true;
+    const wantedNorm = normalizeMarkdownSlug(frag);
+    if (!wanted && !wantedNorm) return false;
+    const found =
+      headings.find(
+        (item) =>
+          item.slug === wanted ||
+          (wantedNorm && normalizeMarkdownSlug(item.slug) === wantedNorm) ||
+          slugifyMarkdownHeading(item.text) === wanted ||
+          (wantedNorm && normalizeMarkdownSlug(item.text) === wantedNorm) ||
+          item.text.toLowerCase() === frag.toLowerCase(),
+      ) ??
+      (wantedNorm && wantedNorm.length >= 3
+        ? headings.find(
+            (item) =>
+              item.slug.startsWith(`${wanted}-`) ||
+              normalizeMarkdownSlug(item.slug).startsWith(`${wantedNorm}-`),
+          )
+        : null);
+    if (found) {
+      jumpToHeadingIndex(found.idx, { recordHistory: true });
+      return true;
+    }
+    if (wantedNorm === "top") {
+      if (activeIdx >= 0) {
+        navStack.push(activeIdx);
+        backBtn.hidden = false;
+      }
+      activeIdx = -1;
+      container.scrollTop = 0;
+      contentEl.scrollTop = 0;
+      if (headings[0]?.el) headings[0].el.scrollIntoView?.({ behavior: "smooth", block: "start" });
+      updateNavState();
+      onGoLine?.(1, 1);
+      return true;
+    }
+    const esc = frag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const anchorRe = new RegExp(`(?:id|name)=["']${esc}["']`, "i");
+    const srcLines = String(source ?? "").split(/\r\n|\r|\n/);
+    const anchorLineIdx = srcLines.findIndex((l) => anchorRe.test(l));
+    if (anchorLineIdx >= 0) {
+      const anchorLine = anchorLineIdx + 1;
+      const near = headings.find((hItem) => hItem.line >= anchorLine) ?? headings.at(-1);
+      if (near) jumpToHeadingIndex(near.idx, { recordHistory: true });
+      onGoLine?.(anchorLine, 1);
+      return true;
+    }
+    return false;
   }
 
   const ctx = {
     onOpenLink,
     resolveImageSrc,
-    onAnchorClick: (frag) => {
-      const ok = jumpToSlug(frag);
-      if (ok && onOpenLink) {
-        // Also let the host editor sync its cursor line if needed
-        const hMeta = headings[activeIdx];
-        if (hMeta && onGoLine) onGoLine(hMeta.line, 1);
-      }
-      return ok;
-    },
+    onAnchorClick: (frag) => jumpToSlug(frag),
     nextHeadingMeta: nav ? nextHeadingMeta : null,
   };
 
@@ -618,6 +676,8 @@ export function renderMarkdown(container, source, options) {
     }
   }
 
+  let suppressSyncUntil = 0;
+
   function jumpToHeadingIndex(idx, { recordHistory = true } = {}) {
     const target = headings[idx];
     if (!target) return;
@@ -627,13 +687,14 @@ export function renderMarkdown(container, source, options) {
       backBtn.hidden = false;
     }
     activeIdx = idx;
+    suppressSyncUntil = Date.now() + 250;
     target.el?.scrollIntoView?.({ behavior: "smooth", block: "start" });
     updateNavState();
     onGoLine?.(target.line, 1);
   }
 
   function syncToEditor(topLine = 1, ratio = 0) {
-    if (!syncScrollOn) return;
+    if (!syncScrollOn || Date.now() < suppressSyncUntil) return;
     let bestIdx = -1;
     for (let i = 0; i < headings.length; i++) {
       if (headings[i].line <= topLine) bestIdx = i;
@@ -699,6 +760,7 @@ export function renderMarkdown(container, source, options) {
     getMode: () => currentMode,
     toggleMode: () => setMode(currentMode === "plain" ? "preview" : "plain"),
     syncToEditor,
+    jumpToSlug,
   };
 }
 

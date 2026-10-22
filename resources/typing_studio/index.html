@@ -2043,8 +2043,10 @@
       if (targetPaceWpm > 0 && isRunning && charsTyped > 0) {
         const diff = netWpm - targetPaceWpm;
         const deltaEl = document.getElementById('lblPaceDelta');
-        deltaEl.textContent = diff >= 0 ? `+${diff} WPM ahead` : `${diff} WPM behind`;
-        deltaEl.className = `pace-delta ${diff >= 0 ? 'ahead' : 'behind'}`;
+        if (deltaEl) {
+          deltaEl.textContent = diff >= 0 ? `+${diff} WPM ahead` : `${diff} WPM behind`;
+          deltaEl.className = `pace-delta ${diff >= 0 ? 'ahead' : 'behind'}`;
+        }
       }
 
       if (["words", "quote", "code", "weak", "paragraphs", "letters", "adaptive", "custom"].includes(currentMode)) {

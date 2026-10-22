@@ -38,6 +38,7 @@ Generated from [nav.json](nav.json): a page that is not listed there is reported
 - [Script index (generated)](reference/script-index.md)
 - [Designer API (API.md)](API.md)
 - [SimpleGUI API](SIMPLEGUI_API.md)
+- [SimpleCLI API](CLI_API.md)
 - [RAD utility modules API](SYSTEM_UTILITIES_API.md)
 - [Themes](THEMES.md)
 - [Themes (identical copy, see D-010)](theme.md)

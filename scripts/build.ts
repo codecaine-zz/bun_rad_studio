@@ -118,7 +118,7 @@ async function buildLib() {
     }
     const distDocs = join(DIST, "docs");
     mkdirSync(distDocs, { recursive: true });
-    for (const file of ["API.md", "SIMPLEGUI_API.md", "THEMES.md", "SYSTEM_UTILITIES_API.md"]) {
+    for (const file of ["API.md", "SIMPLEGUI_API.md", "CLI_API.md", "THEMES.md", "SYSTEM_UTILITIES_API.md"]) {
         const src = join(ROOT, "docs", file);
         if (existsSync(src)) {
             copyFileSync(src, join(distDocs, file));
