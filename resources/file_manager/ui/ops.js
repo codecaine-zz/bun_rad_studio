@@ -194,7 +194,7 @@ export async function openApplication(entry) {
 /** Files opened in the built-in editor are listed under Recent too (the ones opened by another program already are). */
 function rememberRecent(path) {
   if (state.settings.recentsEnabled === false) return;
-  call("recent/add", { path }).then((r) => { state.settings = r.settings; emit("settings", {}); }).catch(() => {});
+  call("recent/add", { path }).then((r) => { if (r?.settings?.recents) state.settings.recents = r.settings.recents; emit("settings", {}); }).catch(() => {});
 }
 
 on("recent-open", (path) => openPath(path));
@@ -225,7 +225,7 @@ async function openFile(path, confirmed, mismatchOk = false) {
   try {
     const res = await call("open", { path, confirmProgram: confirmed, confirmMismatch: mismatchOk || skipMismatchGuard() });
     finishOpen(res, path);
-    call("settings").then((r) => { state.settings = r.settings; emit("settings", {}); }).catch(() => {});
+    call("settings").then((r) => { if (r?.settings?.recents) state.settings.recents = r.settings.recents; emit("settings", {}); }).catch(() => {});
   } catch (err) {
     if (err instanceof ApiError && err.code === "TYPE_MISMATCH") {
       if (await askOpenAnyway(path, err)) await openFile(path, confirmed, true);

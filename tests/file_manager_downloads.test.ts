@@ -75,8 +75,7 @@ beforeAll(() => {
       const cutAt = flaky && flakyLeft > 0 && length > 100_000 ? (flakyLeft--, Math.floor(length * 0.4)) : Infinity;
       const body = new ReadableStream({
         async pull(controller) {
-          if (sent >= length) return controller.close();
-          if (sent >= cutAt) return controller.error(new Error("connection dropped"));
+          if (sent >= length || sent >= cutAt) return controller.close();
           const n = Math.min(65536, length - sent, cutAt - sent);
           controller.enqueue(bytes(start + sent, start + sent + n));
           sent += n;
@@ -84,6 +83,9 @@ beforeAll(() => {
         },
       });
       return new Response(body, { status, headers });
+    },
+    error() {
+      return new Response(null, { status: 500 });
     },
   });
   base = `http://127.0.0.1:${server.port}`;

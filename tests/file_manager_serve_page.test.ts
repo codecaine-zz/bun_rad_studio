@@ -107,6 +107,8 @@ beforeAll(async () => {
   state.sep = process.platform === "win32" ? "\\" : "/";
   state.settings = { ...(await api.call("settings")).settings };
   state.location = { kind: "folder", path: site };
+  store.resetServeStore();
+  actions.forgetHints();
   power.wirePower();
 });
 

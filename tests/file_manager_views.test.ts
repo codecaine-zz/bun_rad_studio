@@ -1132,6 +1132,8 @@ describe("the Dual view's right pane has the same options as the left one", () =
     focusList("dual-list");
     key($("#dual-list"), "v", MODIFIER);
     await until(() => rowNames("#dual-list").includes("left-only.txt"), "the pasted file");
+    await until(() => !doc.body.classList.contains("busy"), "paste refresh to finish");
+    await sleep(220);
     expect(existsSync(join(other, "left-only.txt"))).toBe(true);
     expect(existsSync(join(work, "left-only.txt"))).toBe(true);
   });
@@ -1142,6 +1144,8 @@ describe("the Dual view's right pane has the same options as the left one", () =
     const ev = key($("#dual-list"), "Delete");
     expect(ev.defaultPrevented).toBe(true);
     await until(() => !rowNames("#dual-list").includes("left-only.txt"), "the file to leave the right list");
+    await until(() => !doc.body.classList.contains("busy"), "delete refresh to finish");
+    await sleep(220);
     expect(existsSync(join(other, "left-only.txt"))).toBe(false);
     expect(existsSync(join(work, "left-only.txt"))).toBe(true);
     expect(rowNames("#list")).toContain("left-only.txt");
@@ -1740,26 +1744,30 @@ describe("Quick Look and copy to the clipboard", () => {
     test("Settings has the choice, saved as soon as it changes", async () => {
       const extras = await import("../resources/file_manager/ui/extras.js");
       extras.showSettings();
-      await waitFor(() => !!doc.querySelector(".modal-backdrop select[aria-label='Open text files with']"));
-      const select = doc.querySelector("select[aria-label='Open text files with']");
-      expect([...select.options].map((o: any) => o.value)).toEqual(["builtin", "editor", "system"]);
-      expect(select.value).toBe("builtin");
-      select.value = "system";
-      select.dispatchEvent(new win.Event("change", { bubbles: true }));
-      await savedWhen("textOpensIn", "system");
-      select.value = "builtin";
-      select.dispatchEvent(new win.Event("change", { bubbles: true }));
-      await savedWhen("textOpensIn", "builtin");
-      const media = doc.querySelector("select[aria-label='Open pictures, sound and video with']");
-      expect([...media.options].map((o: any) => o.value)).toEqual(["manager", "system"]);
-      expect(media.value).toBe("manager");
-      media.value = "system";
-      media.dispatchEvent(new win.Event("change", { bubbles: true }));
-      await savedWhen("mediaOpensIn", "system");
-      media.value = "manager";
-      media.dispatchEvent(new win.Event("change", { bubbles: true }));
-      await savedWhen("mediaOpensIn", "manager");
-      key(doc.activeElement ?? doc.body, "Escape");
+      try {
+        await waitFor(() => !!doc.querySelector(".modal-backdrop select[aria-label='Open text files with']"));
+        const select = doc.querySelector("select[aria-label='Open text files with']");
+        expect([...select.options].map((o: any) => o.value)).toEqual(["builtin", "editor", "system"]);
+        expect(select.value).toBe("builtin");
+        select.value = "system";
+        select.dispatchEvent(new win.Event("change", { bubbles: true }));
+        await savedWhen("textOpensIn", "system");
+        select.value = "builtin";
+        select.dispatchEvent(new win.Event("change", { bubbles: true }));
+        await savedWhen("textOpensIn", "builtin");
+        const media = doc.querySelector("select[aria-label='Open pictures, sound and video with']");
+        expect([...media.options].map((o: any) => o.value)).toEqual(["manager", "system"]);
+        expect(media.value).toBe("manager");
+        media.value = "system";
+        media.dispatchEvent(new win.Event("change", { bubbles: true }));
+        await savedWhen("mediaOpensIn", "system");
+        media.value = "manager";
+        media.dispatchEvent(new win.Event("change", { bubbles: true }));
+        await savedWhen("mediaOpensIn", "manager");
+        key(doc.activeElement ?? doc.body, "Escape");
+      } finally {
+        doc.querySelectorAll(".modal-backdrop").forEach((m: any) => m.remove());
+      }
     });
   });
 });

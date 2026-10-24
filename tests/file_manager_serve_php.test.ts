@@ -62,7 +62,7 @@ async function freePort(): Promise<number> {
   await s.stop(true);
   return port;
 }
-const text = async (url: string, init?: RequestInit) => (await fetch(url, init)).text();
+const text = async (url: string, init?: RequestInit) => (await fetch(url, { ...init, headers: { Connection: "close", ...(init?.headers as any) } })).text();
 
 afterEach(async () => {
   for (const ctx of contexts.splice(0)) await getServeRegistry(ctx).stopAll();

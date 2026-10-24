@@ -41,6 +41,7 @@ function applyActive() {
  * `keep` keeps the selection (for a refresh of the same folder); `select` selects one item after opening.
  */
 export async function loadRight(path, { keep = false, select = null, push = true } = {}) {
+  clearTimeout(refreshTimer);
   const mine = ++loadNumber;
   loading++;
   try {

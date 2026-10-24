@@ -49,7 +49,7 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
   it("3. Category 2: OS & Software Environment methods execute successfully", async () => {
     const [osInfo, versions, shell, time] = await Promise.all([
       executeSiMethod("osInfo"),
-      executeSiMethod("versions"),
+      executeSiMethod("versions", "node, git"),
       executeSiMethod("shell"),
       executeSiMethod("time"),
     ]);

@@ -255,7 +255,7 @@ describe("items: trash, history, search, filters and sorting", () => {
     await save(e, loginItem({ title: "alpha mail", favorite: true, fields: { username: "zed", password: "pw-mail-1!", url: "https://mail.test" }, notes: "needle-in-a-note" }));
     e.clock.advance(1000);
     await save(e, { type: "note", title: "Zebra", notes: "my plain note" });
-    await save(e, { type: "card", title: "Visa", fields: { cardholder: "A Person", number: "4111111111111111", cvv: "123" } });
+    await save(e, { type: "card", title: "Visa", fields: { cardholder: "A Person", number: "4111111111111111", cvv: "cvv-739-secret" } });
     const titles = async (b: Record<string, any>) => (await e.call("secrets/list", b)).items.map((i: any) => i.title);
     expect(await titles({ query: "carol" })).toEqual(["Bank"]);
     expect(await titles({ query: "SECURE.bank" })).toEqual(["Bank"]);
@@ -278,7 +278,7 @@ describe("items: trash, history, search, filters and sorting", () => {
     expect(facets.favorites).toBe(1);
     // the list never carries a secret
     const dump = JSON.stringify(await e.call("secrets/list", {}));
-    for (const secret of ["pw-bank-1!", "pw-mail-1!", "4111111111111111", "needle-in-a-note", "my plain note", "123"]) expect(dump.includes(secret), secret).toBe(false);
+    for (const secret of ["pw-bank-1!", "pw-mail-1!", "4111111111111111", "needle-in-a-note", "my plain note", "cvv-739-secret"]) expect(dump.includes(secret), secret).toBe(false);
   });
 
   test("a duplicate is a copy with a new id and no history", async () => {

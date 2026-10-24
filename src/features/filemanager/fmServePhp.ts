@@ -39,6 +39,13 @@ function phpDirs(ctx: Pick<FmContext, "platform" | "home" | "toolDirs">): string
   if (ctx.toolDirs) return dirs;
   if (ctx.platform === "darwin") dirs.push("/opt/homebrew/opt/php/bin", "/usr/local/opt/php/bin");
   if (ctx.platform === "win32") dirs.push("C:\\php", "C:\\tools\\php", nodePath.win32.join(ctx.home, "scoop", "apps", "php", "current"));
+  if (ctx.platform === process.platform) {
+    const whichPhp = Bun.which("php");
+    if (whichPhp) {
+      const dir = (ctx.platform === "win32" ? nodePath.win32 : nodePath.posix).dirname(whichPhp);
+      if (!dirs.includes(dir)) dirs.push(dir);
+    }
+  }
   return dirs;
 }
 
@@ -81,15 +88,16 @@ export async function detectPhp(ctx: FmContext, override?: string): Promise<PhpI
     if (!path) throw new FmError("NO_PHP", "There is no program at that PHP path, or it can't be run.");
   } else {
     path = findExecutable(ctx.platform, ["php"], phpDirs(ctx));
+    if (!path && !ctx.toolDirs && ctx.platform === process.platform) path = Bun.which("php");
     if (!path) return missing;
   }
   const mtime = mtimeOf(path);
   let cached = infoCache.get(path);
-  if (!cached || cached.mtime !== mtime) {
-    const asked = await capture([path, "-v"], phpEnv(ctx), 8000);
+  if (!cached || cached.mtime !== mtime || !cached.version) {
+    const asked = await capture([path, "-v"], phpEnv(ctx), 15000);
     const m = /^PHP\s+(\S+)\s+\((cli)\)/m.exec(asked.text);
     cached = { version: m ? `PHP ${m[1]} (${m[2]})` : null, mtime };
-    infoCache.set(path, cached);
+    if (cached.version) infoCache.set(path, cached);
   }
   // A program that isn't the command-line PHP can't run a server.
   if (!cached.version) {
@@ -314,8 +322,12 @@ export async function startPhp(o: PhpStartOptions): Promise<PhpProcess> {
   if (!ready) {
     const died = proc.exitCode !== null;
     if (!died) {
-      killTree(pid, "SIGKILL");
-      try { proc.kill("SIGKILL"); } catch {}
+      if (process.platform === "win32") {
+        try { process.kill(pid); } catch {}
+      } else {
+        killTree(pid, "SIGKILL");
+        try { proc.kill("SIGKILL"); } catch {}
+      }
     }
     await exited;
     throw new FmError(died ? "PHP_FAILED" : "PHP_NOT_READY", died ? explainPhpFailure(tail, o.host, o.port) : `PHP started but didn't answer on port ${o.port} within ${Math.round(readyMs / 1000)} seconds, so it was stopped.`);
@@ -327,6 +339,11 @@ export async function startPhp(o: PhpStartOptions): Promise<PhpProcess> {
     exitCode: () => code,
     async stop() {
       if (code !== null) return;
+      if (process.platform === "win32") {
+        try { process.kill(pid); } catch {}
+        await Promise.race([exited, Bun.sleep(1000)]);
+        return;
+      }
       killTree(pid, "SIGTERM");
       try { proc.kill("SIGTERM"); } catch {}
       const done = await Promise.race([exited.then(() => true), Bun.sleep(o.termGraceMs ?? PHP_TERM_GRACE_MS).then(() => false)]);
@@ -338,6 +355,10 @@ export async function startPhp(o: PhpStartOptions): Promise<PhpProcess> {
     },
     killNow() {
       if (code !== null) return;
+      if (process.platform === "win32") {
+        try { process.kill(pid); } catch {}
+        return;
+      }
       killTree(pid, "SIGKILL");
       try { proc.kill("SIGKILL"); } catch {}
     },

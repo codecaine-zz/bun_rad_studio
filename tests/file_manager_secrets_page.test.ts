@@ -344,6 +344,7 @@ describe("working with items", () => {
     const detail = pane().querySelector(".sx-detail");
     const row = [...detail.querySelectorAll(".sx-field")].find((r: any) => r.textContent.startsWith("One-time code"));
     expect(row.textContent).not.toMatch(/\d{3} \d{3}/);
+    if (30 - (Math.floor(Date.now() / 1000) % 30) <= 2) await sleep(2200);
     click(btn("Show code", row));
     await until(() => /^\d{3} \d{3}$/.test(row.querySelector(".sx-code").textContent), "the code");
     const ring = row.querySelector(".sx-ring");
