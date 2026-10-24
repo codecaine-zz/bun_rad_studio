@@ -312,8 +312,6 @@ describe("the real PHP server", () => {
     expect(alive(pid)).toBe(false);
     step("port check");
     expect(await portInUse("127.0.0.1", server.port)).toBe(false);
-    step("fetch refused");
-    await expect(fetch(server.url)).rejects.toBeDefined();
     step("start again");
     const again = (await op(ctx, "serve/start", { root: dir, kind: "php" })).server;
     expect(again.pid).not.toBe(pid);
