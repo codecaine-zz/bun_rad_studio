@@ -376,6 +376,11 @@ class Puller {
     this.buf = this.buf.subarray(n);
     return out;
   }
+  async close(): Promise<void> {
+    if (this.done) return;
+    this.done = true;
+    try { await this.it.return?.(); } catch {}
+  }
 }
 
 function tarNumber(h: Buffer, off: number, len: number): number {
@@ -391,83 +396,87 @@ function tarNumber(h: Buffer, off: number, len: number): number {
 /** Reads the items of a tar stream one by one. Names come from PAX and GNU long-name records as well as ustar. */
 export async function* tarItems(source: AsyncIterable<Buffer>, limits: ArchiveLimits): AsyncGenerator<TarItem> {
   const pull = new Puller(source);
-  let longName: string | null = null;
-  let paxSize: number | null = null;
-  let entries = 0;
-  let total = 0;
-  for (;;) {
-    const h = await pull.take(BLOCK);
-    if (h.length < BLOCK) {
-      if (h.length === 0) return;
-      throw new ConvError("This archive is damaged (it ends in the middle of an item).");
-    }
-    if (h.every((b) => b === 0)) return;
-    let sum = 0;
-    for (let i = 0; i < BLOCK; i++) sum += i >= 148 && i < 156 ? 32 : h[i]!;
-    if (tarNumber(h, 148, 8) !== sum) throw new ConvError("This isn't a valid tar archive (a header's checksum doesn't match). It may be damaged or a different kind of file.");
-    let size = tarNumber(h, 124, 12);
-    if (paxSize !== null) size = paxSize;
-    const flag = String.fromCharCode(h[156] || 48);
-    const padding = (BLOCK - (size % BLOCK)) % BLOCK;
-    const skipData = async () => { let left = size + padding; while (left > 0) { const c = await pull.some(Math.min(left, 1 << 20)); if (!c.length) throw new ConvError("This archive is damaged (it ends too early)."); left -= c.length; } };
-    if (flag === "x" || flag === "L" || flag === "K") {
-      if (size > 1 << 20) throw new ConvError("This archive is damaged (a name record is too big).");
-      const body = await pull.take(size);
-      await pull.take(padding);
-      if (flag === "x") {
-        for (const line of body.toString("utf8").split("\n")) {
-          const m = /^\d+ ([^=]+)=(.*)$/.exec(line);
-          if (m?.[1] === "path") longName = m[2]!;
-          if (m?.[1] === "size" && /^\d+$/.test(m[2]!)) paxSize = Number(m[2]);
-        }
-      } else if (flag === "L") longName = body.toString("utf8").replace(/\0+$/, "");
-      continue;
-    }
-    if (flag === "g") { await skipData(); continue; }
-    const base = h.toString("utf8", 0, 100).replace(/\0.*$/s, "");
-    const prefix = h.toString("ascii", 257, 262) === "ustar" ? h.toString("utf8", 345, 500).replace(/\0.*$/s, "") : "";
-    const name = longName ?? (prefix ? `${prefix}/${base}` : base);
-    longName = null;
-    paxSize = null;
-    const type = flag === "0" || flag === "7" ? "file" : flag === "5" ? "dir" : flag === "1" || flag === "2" ? "link" : "other";
-    if (++entries > limits.maxEntries) throw new ConvError(`This archive has too many items (more than ${limits.maxEntries}).`);
-    if (type === "file") {
-      total += size;
-      if (total > limits.maxBytes) throw new ConvError("Unpacking this would use more disk space than the safety limit allows.");
-    }
-    let remaining = type === "file" ? size : 0;
-    const dataLeft = type === "file" ? 0 : size;
-    let consumed = false;
-    yield {
-      name, type, size, mode: tarNumber(h, 100, 8), mtime: new Date(tarNumber(h, 136, 12) * 1000),
-      data: async function* () {
-        consumed = true;
-        while (remaining > 0) {
-          const c = await pull.some(Math.min(remaining, 1 << 20));
-          if (!c.length) throw new ConvError("This archive is damaged (it ends too early).");
-          remaining -= c.length;
-          yield c;
-        }
-        await pull.take(padding);
-      },
-    };
-    if (!consumed) {
-      let left = (type === "file" ? size : dataLeft) + padding;
-      while (left > 0) {
-        const c = await pull.some(Math.min(left, 1 << 20));
-        if (!c.length) throw new ConvError("This archive is damaged (it ends too early).");
-        left -= c.length;
+  try {
+    let longName: string | null = null;
+    let paxSize: number | null = null;
+    let entries = 0;
+    let total = 0;
+    for (;;) {
+      const h = await pull.take(BLOCK);
+      if (h.length < BLOCK) {
+        if (h.length === 0) return;
+        throw new ConvError("This archive is damaged (it ends in the middle of an item).");
       }
-    } else if (remaining > 0) throw new ConvError("An item was not read completely.");
+      if (h.every((b) => b === 0)) return;
+      let sum = 0;
+      for (let i = 0; i < BLOCK; i++) sum += i >= 148 && i < 156 ? 32 : h[i]!;
+      if (tarNumber(h, 148, 8) !== sum) throw new ConvError("This isn't a valid tar archive (a header's checksum doesn't match). It may be damaged or a different kind of file.");
+      let size = tarNumber(h, 124, 12);
+      if (paxSize !== null) size = paxSize;
+      const flag = String.fromCharCode(h[156] || 48);
+      const padding = (BLOCK - (size % BLOCK)) % BLOCK;
+      const skipData = async () => { let left = size + padding; while (left > 0) { const c = await pull.some(Math.min(left, 1 << 20)); if (!c.length) throw new ConvError("This archive is damaged (it ends too early)."); left -= c.length; } };
+      if (flag === "x" || flag === "L" || flag === "K") {
+        if (size > 1 << 20) throw new ConvError("This archive is damaged (a name record is too big).");
+        const body = await pull.take(size);
+        await pull.take(padding);
+        if (flag === "x") {
+          for (const line of body.toString("utf8").split("\n")) {
+            const m = /^\d+ ([^=]+)=(.*)$/.exec(line);
+            if (m?.[1] === "path") longName = m[2]!;
+            if (m?.[1] === "size" && /^\d+$/.test(m[2]!)) paxSize = Number(m[2]);
+          }
+        } else if (flag === "L") longName = body.toString("utf8").replace(/\0+$/, "");
+        continue;
+      }
+      if (flag === "g") { await skipData(); continue; }
+      const base = h.toString("utf8", 0, 100).replace(/\0.*$/s, "");
+      const prefix = h.toString("ascii", 257, 262) === "ustar" ? h.toString("utf8", 345, 500).replace(/\0.*$/s, "") : "";
+      const name = longName ?? (prefix ? `${prefix}/${base}` : base);
+      longName = null;
+      paxSize = null;
+      const type = flag === "0" || flag === "7" ? "file" : flag === "5" ? "dir" : flag === "1" || flag === "2" ? "link" : "other";
+      if (++entries > limits.maxEntries) throw new ConvError(`This archive has too many items (more than ${limits.maxEntries}).`);
+      if (type === "file") {
+        total += size;
+        if (total > limits.maxBytes) throw new ConvError("Unpacking this would use more disk space than the safety limit allows.");
+      }
+      let remaining = type === "file" ? size : 0;
+      const dataLeft = type === "file" ? 0 : size;
+      let consumed = false;
+      yield {
+        name, type, size, mode: tarNumber(h, 100, 8), mtime: new Date(tarNumber(h, 136, 12) * 1000),
+        data: async function* () {
+          consumed = true;
+          while (remaining > 0) {
+            const c = await pull.some(Math.min(remaining, 1 << 20));
+            if (!c.length) throw new ConvError("This archive is damaged (it ends too early).");
+            remaining -= c.length;
+            yield c;
+          }
+          await pull.take(padding);
+        },
+      };
+      if (!consumed) {
+        let left = (type === "file" ? size : dataLeft) + padding;
+        while (left > 0) {
+          const c = await pull.some(Math.min(left, 1 << 20));
+          if (!c.length) throw new ConvError("This archive is damaged (it ends too early).");
+          left -= c.length;
+        }
+      } else if (remaining > 0) throw new ConvError("An item was not read completely.");
+    }
+  } finally {
+    await pull.close();
   }
 }
 
 /** The bytes of a tar file: read as they are, or through gzip or zstd when the first bytes say it is compressed. */
 function tarSource(path: string, limits: ArchiveLimits): AsyncIterable<Buffer> {
-  const src = fs.createReadStream(path);
   const head = Buffer.alloc(4);
   const fd = fs.openSync(path, "r");
   try { fs.readSync(fd, head, 0, 4, 0); } finally { fs.closeSync(fd); }
+  const src = fs.createReadStream(path);
   const cap = limits.maxBytes + limits.maxEntries * 1024;
   if (head[0] === 0x1f && head[1] === 0x8b) return chain(src, zlib.createGunzip(), capped(cap, "This archive")) as unknown as AsyncIterable<Buffer>;
   if (ZSTD_MAGIC.every((b, i) => head[i] === b)) return chain(src, zstdCompleteness("This archive"), zlib.createZstdDecompress(), capped(cap, "This archive")) as unknown as AsyncIterable<Buffer>;

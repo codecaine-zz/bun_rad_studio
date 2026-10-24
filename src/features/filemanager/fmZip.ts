@@ -424,9 +424,10 @@ async function extractEntry(zipPath: string, e: CentralEntry, dataStart: number,
   const out = new SafeWriter(target);
   let crc = 0;
   let written = 0;
+  let raw: fs.ReadStream | null = null;
   try {
     if (e.csize > 0 || e.usize > 0) {
-      const raw = fs.createReadStream(zipPath, { start: dataStart, end: dataStart + Math.max(e.csize, 1) - 1 });
+      raw = fs.createReadStream(zipPath, { start: dataStart, end: dataStart + Math.max(e.csize, 1) - 1 });
       const stream: NodeJS.ReadableStream = e.method === 8 ? raw.pipe(zlib.createInflateRaw()) : raw;
       raw.on("error", (err) => (stream as any).destroy?.(err));
       for await (const chunk of stream) {
@@ -441,6 +442,7 @@ async function extractEntry(zipPath: string, e: CentralEntry, dataStart: number,
     if (written !== e.usize || (crc >>> 0) !== e.crc) throw new FmError("BAD_ZIP", `"${e.name}" is damaged (its checksum doesn't match).`);
     await out.finish();
   } catch (err: any) {
+    raw?.destroy();
     await out.abort();
     if (err?.code === "Z_DATA_ERROR" || err?.code === "Z_BUF_ERROR") throw new FmError("BAD_ZIP", `"${e.name}" is damaged and can't be read.`);
     throw err;
