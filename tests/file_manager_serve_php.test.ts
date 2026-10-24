@@ -357,6 +357,7 @@ describe("the real PHP server", () => {
     expect([alive(a.pid), alive(b.pid)]).toEqual([true, true]);
     for (const dispose of ctx.disposers.splice(0)) dispose();
     await until(() => !alive(a.pid) && !alive(b.pid), "both PHP processes to end", 3000);
+    await until(async () => !(await portInUse("127.0.0.1", a.port)), "port to be freed", 3000);
     expect(await portInUse("127.0.0.1", a.port)).toBe(false);
     expect((await op(ctx, "serve/status")).servers).toEqual([]);
   });
@@ -372,7 +373,7 @@ describe("the real PHP server", () => {
       const raw = await text(`${server.url}env.php`);
       expect(raw).not.toMatch(/super-secret-token|do-not-pass-on|FM_TOKEN|SECRET_THING/);
       const env = JSON.parse(raw);
-      expect(env.PATH).toBeTruthy();
+      expect(env.PATH ?? env.Path).toBeTruthy();
       // macOS adds __CF_USER_TEXT_ENCODING to every process by itself.
       expect(Object.keys(env).every((k) => ["PATH", "Path", "HOME", "LANG", "TMPDIR", "PWD", "SystemRoot", "TEMP", "TMP", "windir", "USERPROFILE", "__CF_USER_TEXT_ENCODING"].includes(k)), Object.keys(env).join(",")).toBe(true);
     } finally {

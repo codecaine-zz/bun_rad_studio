@@ -37,6 +37,7 @@ async function runTty(args: string[], answers: Array<[string, string]>, env: Rec
       if (Date.now() > end) throw new Error(`timed out waiting for "${needle}". Shown so far: ${out}`);
       await Bun.sleep(15);
     }
+    await Bun.sleep(20);
     proc.terminal!.write(text);
   }
   const code = await proc.exited;

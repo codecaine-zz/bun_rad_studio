@@ -98,10 +98,10 @@ function parseArgs(argv: string[]): Options | "help" {
 function promptHidden(label: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const stdin = process.stdin;
-    process.stderr.write(label);
     stdin.setRawMode(true);
     stdin.resume();
     stdin.setEncoding("utf8");
+    process.stderr.write(label);
     let text = "";
     const finish = (err?: Error) => {
       stdin.off("data", onData);
