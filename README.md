@@ -1289,6 +1289,7 @@ GitHub also shows a **Sponsor** button on the repository page (from `.github/FUN
 
 ## 📄 License
 
-MIT License © Jerome Scott. See [LICENSE](LICENSE).
+- **Software & Source Code:** MIT License © Jerome Scott. See [LICENSE](LICENSE).
+- **Original Music & Lyric Videos (`music lyrics` & `youtube_ready_mp3` release packs):** Licensed under [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/) © Codecaine (Jerome Scott). You are free to use, share, remix, and include these songs and lyric videos in your own videos, streams, games, and projects (including commercially) as long as you give credit to **Codecaine** (`Music by Codecaine — https://github.com/codecaine-zz/bun_rad_studio`).
 
 Dependencies installed by `bun install` (for example `webview-bun`) keep their own licenses. Third-party code or media inside `resources/` was **not** audited for license terms.

@@ -101,7 +101,7 @@ export function notes(files: Array<{ name: string; bytes: number }>, repo: strin
   }
   const music = files.filter((f) => KIND(f.name) === "music");
   if (music.length) {
-    L.push("## 🎵 Free music — CC BY 4.0", "", "These separate music archives contain Codecaine's original local lyric videos and MP3 songs extracted from those videos, with song-title filenames. No YouTube downloads are used. Each archive includes attribution and license details. The music is licensed under Creative Commons Attribution 4.0; it is not covered by the project's MIT license.", "", "| Format | Download |", "|---|---|");
+    L.push("## 🎵 Free music — CC BY 4.0", "", "These separate music archives contain Codecaine's original local lyric videos (`music lyrics`) and MP3 songs (`youtube_ready_mp3`) extracted from those videos, with song-title filenames. No YouTube downloads are used. Each archive includes attribution and license details. The music is licensed under [Creative Commons Attribution 4.0 (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/); it is not covered by the project's MIT license.", "", "**Free to use with credit:** You are free to use, share, and adapt these songs and lyric videos in your own videos, streams, games, and projects (including commercially) — just give credit to **Codecaine** (`Music by Codecaine — https://github.com/codecaine-zz/bun_rad_studio`).", "", "| Format | Download |", "|---|---|");
     for (const [kind, label] of [["lyrics-videos", "Original lyric videos (MP4/MOV)"], ["mp3", "MP3 songs (128 kbps)"]] as const) {
       const packs = music.filter((f) => f.name.includes(`-free-music-${kind}`));
       if (packs.length) L.push(`| ${label} | ${packs.map((f) => `[${f.name}](${url(f.name)}) (${mb(f.bytes)})`).join(" · ")} |`);

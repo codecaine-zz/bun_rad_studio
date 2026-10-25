@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { constants, copyFileSync, mkdirSync, mkdtempSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "fs";
+import { constants, copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "fs";
 import { extname, join } from "path";
 import { ROOT, VERSION, defaultJobs, mapPool, parseJobs, run } from "./release/common";
 import { createContext } from "../src/features/filemanager/fmCore";
@@ -7,6 +7,7 @@ import { createZip } from "../src/features/filemanager/fmZip";
 
 const RELEASE = join(ROOT, "release");
 const MUSIC = join(ROOT, "music lyrics");
+const READY_MP3 = join(ROOT, "youtube_ready_mp3");
 const VIDEO_EXTENSIONS = new Set([".mp4", ".mov", ".m4v", ".mkv", ".webm"]);
 const MAX_ARCHIVE_BYTES = 1_900_000_000;
 const VERSION_PREFIX = `bun-rad-studio-v${VERSION}-free-music-`;
@@ -29,10 +30,15 @@ function attribution(files: PackFile[], changes: string): string {
   return [
     "Free Music - Attribution and License",
     "",
-    "Creator: Codecaine",
+    "Creator: Codecaine (Jerome Scott)",
     'Source: original local lyric videos supplied in the local "music lyrics" folder.',
     "License: Creative Commons Attribution 4.0 International (CC BY 4.0)",
     "https://creativecommons.org/licenses/by/4.0/",
+    "",
+    "Permissions & Credit:",
+    "You are free to use, share, remix, and adapt these songs and lyric videos in your own videos, streams, games, apps, and projects (including commercially), as long as you give credit to Codecaine:",
+    '  "Music by Codecaine — https://github.com/codecaine-zz/bun_rad_studio (CC BY 4.0)"',
+    "",
     `Changes: ${changes}`,
     "",
     "Included works:",
@@ -131,11 +137,17 @@ export async function buildMusicRelease(sourceDir = MUSIC, releaseDir = RELEASE,
       const mp3 = titleFilename(title, "mp3", usedMp3Names);
       return { original, title, video, mp3 };
     });
+    const useReadyMp3 = sourceDir === MUSIC && existsSync(READY_MP3);
     const encode = async ({ original, title, video, mp3 }: typeof plans[number], index: number) => {
       const source = join(sourceDir, original);
       if (!statSync(source).size) throw new Error(`Empty lyric video: ${source}`);
       console.log(`[${index + 1}/${videos.length}] ${title}`);
       copyFileSync(source, join(videoDir, video), constants.COPYFILE_FICLONE);
+      const cached = useReadyMp3 ? [join(READY_MP3, `${title}.mp3`), join(READY_MP3, mp3)].find((p) => existsSync(p) && statSync(p).size > 0) : undefined;
+      if (cached) {
+        copyFileSync(cached, join(mp3Dir, mp3), constants.COPYFILE_FICLONE);
+        return;
+      }
       await run([
         "ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-n",
         "-i", source, "-map", "0:a:0", "-vn", "-map_metadata", "-1", "-map_chapters", "-1",
@@ -143,14 +155,27 @@ export async function buildMusicRelease(sourceDir = MUSIC, releaseDir = RELEASE,
         "-metadata", `title=${title}`, "-metadata", "artist=Codecaine",
         "-id3v2_version", "3", join(mp3Dir, mp3),
       ]);
+      if (useReadyMp3) copyFileSync(join(mp3Dir, mp3), join(READY_MP3, mp3), constants.COPYFILE_FICLONE);
     };
     // Settle every active conversion before cleaning its files up on failure.
     const results = await mapPool(plans, jobs, async (plan, index) => (await Promise.allSettled([encode(plan, index)]))[0]!);
     const errors = results.filter((result) => result.status === "rejected").map((result) => result.reason);
     if (errors.length) throw new AggregateError(errors, `Failed to convert local lyric videos: ${errors.map(String).join("; ")}`);
+    const mp3Items: PackFile[] = plans.map(({ mp3, title }) => ({ file: mp3, title }));
+    if (useReadyMp3) {
+      for (const extra of readdirSync(READY_MP3).filter((f) => f.toLowerCase().endsWith(".mp3") && !f.startsWith(".")).sort()) {
+        const extraTitle = extra.slice(0, -4);
+        if (plans.some((p) => p.title === extraTitle || p.mp3 === extra)) continue;
+        const safe = titleFilename(extraTitle, "mp3", usedMp3Names);
+        copyFileSync(join(READY_MP3, extra), join(mp3Dir, safe), constants.COPYFILE_FICLONE);
+        mp3Items.push({ file: safe, title: extraTitle });
+      }
+      writeFileSync(join(MUSIC, "ATTRIBUTION.txt"), attribution(plans.map(({ video, title }) => ({ file: video, title })), "none; original lyric videos, with filesystem-safe filenames"));
+      writeFileSync(join(READY_MP3, "ATTRIBUTION.txt"), attribution(mp3Items, "audio extracted from the local lyric videos and transcoded to MP3 at 128 kbps"));
+    }
     const packed = await Promise.allSettled([
       createArchives(stage, videoDir, "lyrics-videos", plans.map(({ video, title }) => ({ file: video, title })), "none; original lyric videos, with filesystem-safe filenames"),
-      createArchives(stage, mp3Dir, "mp3", plans.map(({ mp3, title }) => ({ file: mp3, title })), "audio extracted from the local lyric videos and transcoded to MP3 at 128 kbps"),
+      createArchives(stage, mp3Dir, "mp3", mp3Items, "audio extracted from the local lyric videos and transcoded to MP3 at 128 kbps"),
     ]);
     const videoResult = packed[0]!;
     const mp3Result = packed[1]!;
