@@ -144,7 +144,7 @@ afterAll(async () => {
   mock.restore();
   for (const s of (await call("db/studio/list")).studios ?? []) await call("db/studio/stop", { id: s.id });
   server?.stop(true);
-  rmSync(root, { recursive: true, force: true });
+  try { rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); } catch {}
 });
 
 describe("Databases tab: Import data with staging…", () => {

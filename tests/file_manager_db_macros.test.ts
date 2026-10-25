@@ -302,7 +302,7 @@ afterAll(() => {
   }
   mock.restore();
   server?.stop(true);
-  rmSync(root, { recursive: true, force: true });
+  try { rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); } catch {}
 });
 
 describe("File Manager Databases: Bun JS Macros Backend", () => {

@@ -32,7 +32,7 @@ try {
         $gitRc = Join-Path $helpers 'gitbash-rc.sh'
         [IO.File]::WriteAllText($gitRc, [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'windows-terminal-gitbash.sh')).Replace("`r`n", "`n"), $utf8)
 
-        $find = { param($name) Get-Command $name -CommandType Application -All -ErrorAction SilentlyContinue | Where-Object { $_.Extension -eq '.exe' } | Select-Object -First 1 }
+        $find = { param($name) Get-Command "$name.exe" -CommandType Application -TotalCount 1 -ErrorAction SilentlyContinue }
         $pwsh = & $find 'pwsh'
         $bash = & $find 'bash'
         $git = & $find 'git'

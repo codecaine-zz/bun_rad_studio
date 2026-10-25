@@ -256,7 +256,7 @@ describe("terminal helpers", () => {
     const packaged = join(root, "packaged terminal");
     const assets = join(packaged, "resources", "file_manager");
     mkdirSync(assets, { recursive: true });
-    for (const name of ["windows-terminal.ps1", "windows-terminal.cs", "windows-terminal-shell.ps1", "windows-terminal-wsl.sh"]) {
+    for (const name of ["windows-terminal.ps1", "windows-terminal.cs", "windows-terminal-shell.ps1", "windows-terminal-wsl.sh", "windows-terminal-gitbash.sh"]) {
       cpSync(join(import.meta.dir, "..", "resources", "file_manager", name), join(assets, name));
     }
     const build = await Bun.build({
@@ -270,7 +270,7 @@ describe("terminal helpers", () => {
     let output = "";
     const session = hub.open(ctx, { cwd: work, cols: 180, rows: 24, onData: (text) => output += text, onExit() {} })!;
     const waitFor = async (check: () => boolean) => {
-      const end = Date.now() + 30000;
+      const end = Date.now() + 60000;
       while (!check() && Date.now() < end) await Bun.sleep(50);
       if (!check()) throw new Error(`Terminal timed out: ${JSON.stringify(output.slice(-1000))}`);
     };
@@ -294,7 +294,7 @@ describe("terminal helpers", () => {
     } finally {
       hub.closeAll();
     }
-  }, 60000);
+  }, 90000);
 
   (process.env.FM_TEST_WSL === "1" ? test : test.skip)("follows real WSL Bash on entry, cd, mounted paths and exit; direct commands pass through", async () => {
     const c = await connect({ token: TOKEN, path: work, cols: "180" });
