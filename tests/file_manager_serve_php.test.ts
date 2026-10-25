@@ -372,8 +372,8 @@ describe("the real PHP server", () => {
       expect(raw).not.toMatch(/super-secret-token|do-not-pass-on|FM_TOKEN|SECRET_THING/);
       const env = JSON.parse(raw);
       expect(env.PATH ?? env.Path).toBeTruthy();
-      // macOS adds __CF_USER_TEXT_ENCODING to every process by itself.
-      expect(Object.keys(env).every((k) => ["PATH", "Path", "HOME", "LANG", "TMPDIR", "PWD", "SystemRoot", "TEMP", "TMP", "windir", "USERPROFILE", "__CF_USER_TEXT_ENCODING"].includes(k)), Object.keys(env).join(",")).toBe(true);
+      // macOS adds __CF_USER_TEXT_ENCODING to every process by itself; Windows PHP populates basic user/system vars from the process token.
+      expect(Object.keys(env).every((k) => ["PATH", "Path", "HOME", "LANG", "TMPDIR", "PWD", "SystemRoot", "TEMP", "TMP", "windir", "USERPROFILE", "HOMEDRIVE", "HOMEPATH", "LOGONSERVER", "SYSTEMDRIVE", "USERDOMAIN", "USERNAME", "__CF_USER_TEXT_ENCODING"].includes(k)), Object.keys(env).join(",")).toBe(true);
     } finally {
       delete process.env.FM_TOKEN_TEST;
       delete process.env.SECRET_THING;

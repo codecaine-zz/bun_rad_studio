@@ -341,12 +341,10 @@ describe("the view switcher", () => {
     alt(7);
     expect(app().classList.contains("sidebar-collapsed")).toBe(false);
     expect($("#sidebar-toggle").getAttribute("aria-expanded")).toBe("true");
-    await sleep(200);
-    expect((await savedSettings()).sidebarCollapsed).toBe(false);
+    await savedWhen("sidebarCollapsed", false);
     $("#sidebar-toggle").click();
     expect(app().classList.contains("sidebar-collapsed")).toBe(true);
-    await sleep(200);
-    expect((await savedSettings()).sidebarCollapsed).toBe(true);
+    await savedWhen("sidebarCollapsed", true);
   });
 });
 
@@ -486,13 +484,11 @@ describe("the Tools view", () => {
     alt(3);
     await sleep(150);
     $("#power-tab-ip").click();
-    await sleep(250);
-    expect((await savedSettings()).activeTool).toBe("ip");
+    await savedWhen("activeTool", "ip");
     alt(4);
     await sleep(150);
     $("#power-tab-watch").click();
-    await sleep(250);
-    expect((await savedSettings()).splitTool).toBe("watch");
+    await savedWhen("splitTool", "watch");
     alt(3);
     await sleep(150);
     expect($(".power-tab.active").id).toBe("power-tab-ip");
@@ -586,8 +582,7 @@ describe("the split", () => {
     await savedWhen("splitSize", 20);
     sep.dispatchEvent(new win.MouseEvent("dblclick", { bubbles: true }));
     expect(split()).toBe(50);
-    await sleep(250);
-    expect((await savedSettings()).splitSize).toBe(50);
+    await savedWhen("splitSize", 50);
   });
 
   test("dragging the divider resizes it and saves the size when released", async () => {
@@ -620,8 +615,7 @@ describe("the split", () => {
     expect(split()).toBe(52);
     key($("#splitter"), "ArrowLeft");
     expect(split()).toBe(52);
-    await sleep(250);
-    expect((await savedSettings()).splitSide).toBe("bottom");
+    await savedWhen("splitSide", "bottom");
     alt(1);
     await sleep(50);
     expect(button.hidden).toBe(true);
@@ -629,6 +623,7 @@ describe("the split", () => {
     await sleep(50);
     button.click();
     expect(app().dataset.splitSide).toBe("right");
+    await savedWhen("splitSide", "right");
   });
 });
 
@@ -641,13 +636,11 @@ describe("Focus", () => {
     button.click();
     expect(app().classList.contains("focus-mode")).toBe(true);
     expect(button.getAttribute("aria-pressed")).toBe("true");
-    await sleep(250);
-    expect((await savedSettings()).focusMode).toBe(true);
+    await savedWhen("focusMode", true);
     const ev = key(doc.body, "Escape");
     expect(ev.defaultPrevented).toBe(true);
     expect(app().classList.contains("focus-mode")).toBe(false);
-    await sleep(250);
-    expect((await savedSettings()).focusMode).toBe(false);
+    await savedWhen("focusMode", false);
     alt(6);
     expect(app().classList.contains("focus-mode")).toBe(true);
     alt(3);
@@ -659,14 +652,15 @@ describe("Focus", () => {
   });
 
   test("Places in Focus: the Places button and Alt+7 leave Focus and show the list, and both choices are saved", async () => {
-    alt(6);
+    if (!app().classList.contains("focus-mode")) alt(6);
     expect(app().classList.contains("focus-mode")).toBe(true);
     expect($("#sidebar-toggle").getAttribute("aria-expanded")).toBe("false");
     $("#sidebar-toggle").click();
     expect(app().classList.contains("focus-mode")).toBe(false);
     expect(app().classList.contains("sidebar-collapsed")).toBe(false);
     expect($("#sidebar-toggle").getAttribute("aria-expanded")).toBe("true");
-    await sleep(300);
+    await savedWhen("focusMode", false);
+    await savedWhen("sidebarCollapsed", false);
     expect(await savedSettings()).toMatchObject({ focusMode: false, sidebarCollapsed: false });
     alt(6);
     alt(7);
@@ -675,7 +669,8 @@ describe("Focus", () => {
     expect(app().classList.contains("sidebar-collapsed")).toBe(true);
     alt(7);
     expect(app().classList.contains("sidebar-collapsed")).toBe(false);
-    await sleep(300);
+    await savedWhen("focusMode", false);
+    await savedWhen("sidebarCollapsed", false);
     expect(await savedSettings()).toMatchObject({ focusMode: false, sidebarCollapsed: false });
   });
 
@@ -741,7 +736,7 @@ describe("the toolbar and the status bar", () => {
     expect(buttons.every((b: any) => b.title.length > 10 && b.textContent.trim().length > 2)).toBe(true);
     expect(buttons[0].getAttribute("aria-pressed")).toBe("true");
     buttons[1].click();
-    await sleep(250);
+    await savedWhen("view", "list");
     expect(buttons[1].getAttribute("aria-pressed")).toBe("true");
     expect(buttons[0].getAttribute("aria-pressed")).toBe("false");
     expect($("#list").className).toContain("view-list");
