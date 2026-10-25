@@ -80,9 +80,10 @@ describe("a running tool's page and socket", () => {
     expect((await fetch(`${primary}/app/hostedws/env?s=${encodeURIComponent(secret)}`, { headers: { Upgrade: "websocket", Connection: "Upgrade", "Sec-WebSocket-Key": "dGhlIHNhbXBsZSBub25jZQ==", "Sec-WebSocket-Version": "13", Origin: primary } })).status).toBe(404);
   });
   test("a missing or wrong secret gets nothing", async () => {
+    const wrong = `${secret.slice(0, -1)}${secret.endsWith("x") ? "y" : "x"}`;
     expect((await fetch(`${other}/app/hosted/env/`)).status).toBe(404);
     expect((await fetch(`${other}/app/hosted/env/?s=nope`)).status).toBe(404);
-    expect((await fetch(`${other}/app/hosted/env/?s=${secret.slice(0, -1)}x`)).status).toBe(404);
+    expect((await fetch(`${other}/app/hosted/env/?s=${wrong}`)).status).toBe(404);
   });
   test("an unknown tool or a tool that isn't running gets nothing", async () => {
     expect((await fetch(`${other}/app/hosted/api/?s=${encodeURIComponent(secret)}`)).status).toBe(404);
