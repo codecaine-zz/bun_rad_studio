@@ -91,7 +91,7 @@ function hslToHex([h, s, l]: [number, number, number]): string {
 /** The category's colors, turned by an amount that depends on the app's name so neighbours are still told apart (games turn furthest, so they span red to violet). */
 export function colorsFor(category: string, id: string): Palette {
   const base = PALETTES[category] ?? FALLBACK;
-  const range = category === "Games & Entertainment" ? 90 : 40;
+  const range = category === "Games & Entertainment" ? 359 : 40;
   const shift = (hash(id) % (range + 1)) - range / 2;
   const turn = (hex: string) => {
     const [h, s, l] = rgbToHsl(hexToRgb(hex));
