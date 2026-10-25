@@ -1094,16 +1094,24 @@ async function inspectSqliteRich(src: Source, path: string): Promise<RichSqliteP
   let db: Database | null = null;
   try {
     db = new Database(path, { readonly: true });
+    try { db.exec("PRAGMA trusted_schema = OFF; PRAGMA cell_size_check = ON;"); } catch {}
     const master = db
       .query("SELECT name, type, sql FROM sqlite_master WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%' ORDER BY type ASC, name ASC LIMIT 25")
       .all() as Array<{ name: string; type: "table" | "view"; sql?: string }>;
     for (const item of master) {
       const safeIdent = `"${item.name.replace(/"/g, '""')}"`;
       let rowCount = 0;
-      try {
-        const c = db.query(`SELECT COUNT(*) AS n FROM ${safeIdent}`).get() as { n?: number } | null;
-        rowCount = Number(c?.n ?? 0);
-      } catch {}
+      if (item.type === "table") {
+        try {
+          if (src.size > 16 * 1024 * 1024) {
+            const est = db.query(`SELECT COALESCE(MAX(_rowid_), 0) AS n FROM ${safeIdent}`).get() as { n?: number } | null;
+            rowCount = Number(est?.n ?? 0);
+          } else {
+            const c = db.query(`SELECT COUNT(*) AS n FROM ${safeIdent}`).get() as { n?: number } | null;
+            rowCount = Number(c?.n ?? 0);
+          }
+        } catch {}
+      }
       let columns: Array<{ name: string; type: string; pk: boolean; notnull: boolean }> = [];
       try {
         const cols = db.query(`PRAGMA table_info(${safeIdent})`).all() as Array<{ name: string; type: string; pk: number; notnull: number }>;
@@ -1115,22 +1123,24 @@ async function inspectSqliteRich(src: Source, path: string): Promise<RichSqliteP
         }));
       } catch {}
       const rows: string[][] = [];
-      try {
-        const rawRows = db.query(`SELECT * FROM ${safeIdent} LIMIT 50`).all() as Array<Record<string, unknown>>;
-        if (!columns.length && rawRows[0]) {
-          columns = Object.keys(rawRows[0]).map((k) => ({ name: k, type: "ANY", pk: false, notnull: false }));
-        }
-        for (const r of rawRows) {
-          rows.push(
-            columns.map((c) => {
-              const v = r[c.name];
-              if (v === null || v === undefined) return "—";
-              if (v instanceof Uint8Array || Buffer.isBuffer(v)) return `<BLOB ${v.byteLength} B>`;
-              return clip(String(v), 200);
-            }),
-          );
-        }
-      } catch {}
+      if (item.type === "table") {
+        try {
+          const rawRows = db.query(`SELECT * FROM ${safeIdent} LIMIT 50`).all() as Array<Record<string, unknown>>;
+          if (!columns.length && rawRows[0]) {
+            columns = Object.keys(rawRows[0]).map((k) => ({ name: k, type: "ANY", pk: false, notnull: false }));
+          }
+          for (const r of rawRows) {
+            rows.push(
+              columns.map((c) => {
+                const v = r[c.name];
+                if (v === null || v === undefined) return "—";
+                if (v instanceof Uint8Array || Buffer.isBuffer(v)) return `<BLOB ${v.byteLength} B>`;
+                return clip(String(v), 200);
+              }),
+            );
+          }
+        } catch {}
+      }
       tables.push({
         name: item.name,
         type: item.type,

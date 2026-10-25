@@ -199,7 +199,7 @@ function mountTasks(root) {
       }
       const groups = [];
       for (const [name, list] of byName) {
-        const top = [...list].sort((a, b) => b.cpu - a.cpu || b.rssKb - a.rssKb)[0];
+        const top = list.reduce((best, cur) => (cur.cpu > best.cpu || (cur.cpu === best.cpu && cur.rssKb > best.rssKb) ? cur : best), list[0]);
         const rssKb = list.reduce((s, x) => s + x.rssKb, 0);
         groups.push({
           ...top,

@@ -85,7 +85,9 @@ async function readText(src: Source): Promise<{ text: string; partial: boolean }
 function objectStreamText(text: string): string {
   const out: string[] = [];
   let at = 0;
-  for (let n = 0; n < 60; n++) {
+  let totalInflated = 0;
+  const maxTotal = 4 * 1024 * 1024;
+  for (let n = 0; n < 60 && totalInflated < maxTotal; n++) {
     const t = text.indexOf("/ObjStm", at);
     if (t < 0) break;
     at = t + 7;
@@ -94,8 +96,11 @@ function objectStreamText(text: string): string {
     const start = text[s + 6] === "\r" ? s + 8 : s + 7;
     const end = text.indexOf("endstream", start);
     if (end < 0) break;
+    if (end - start > 512 * 1024) continue;
     try {
-      out.push(inflateSync(Buffer.from(text.slice(start, end), "latin1"), { maxOutputLength: 4 * 1024 * 1024 }).toString("latin1"));
+      const inflated = inflateSync(Buffer.from(text.slice(start, end), "latin1"), { maxOutputLength: maxTotal - totalInflated });
+      totalInflated += inflated.length;
+      out.push(inflated.toString("latin1"));
     } catch {
       // not Flate data (or too big): skipped
     }

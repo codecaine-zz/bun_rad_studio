@@ -232,3 +232,28 @@ describe("describeFsError", () => {
     expect(describeFsError(new FmError("X", "Mine")).message).toBe("Mine");
   });
 });
+
+describe("symlink ancestor protection in assertModifiable and assertCreatable", () => {
+  test("blocks modifying or creating through a symlinked parent pointing into a protected system folder", () => {
+    const { mkdtempSync, symlinkSync, rmSync } = require("fs");
+    const { tmpdir } = require("os");
+    const { join } = require("path");
+    const { assertModifiable, assertCreatable, createContext } = require("../src/features/filemanager/fmCore");
+    const tmp = mkdtempSync(join(tmpdir(), "fm-symlink-guard-"));
+    try {
+      const ctx = createContext({ home: join(tmp, "home"), dataDir: join(tmp, "data") });
+      const linkToEtc = join(tmp, "etc-link");
+      try {
+        symlinkSync("/etc", linkToEtc);
+      } catch {
+        return;
+      }
+      expect(() => assertModifiable(ctx, join(linkToEtc, "hosts"))).toThrow(FmError);
+      expect(() => assertCreatable(ctx, linkToEtc)).toThrow(FmError);
+      // Deleting the symlink itself inside the user's folder remains allowed
+      expect(() => assertModifiable(ctx, linkToEtc)).not.toThrow();
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+});

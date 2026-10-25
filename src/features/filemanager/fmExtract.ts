@@ -14,7 +14,7 @@
  * Extraction never overwrites existing items: multi-file archives unpack into a new sibling folder named after the
  * archive (with "(2)" etc. when taken), and single-file compressed streams unpack to a new sibling file.
  */
-import { promises as fsp } from "fs";
+import { lstatSync, promises as fsp, readdirSync } from "fs";
 import * as nodePath from "path";
 import { absolutePath, assertCreatable, assertFolder, pathApi, type FmContext } from "./fmCore";
 import { extractTarGz, gunzipFile, unbrotliFile, unzstdFile } from "./fmConvArchive";
@@ -150,9 +150,13 @@ async function extractWithExternalTool(
         if (EXTERNAL_TAR_EXTS.has(ext)) {
           const tarDir = stage.subDir("tar");
           steps.push(
-            [bin, "x", "-y", "-bd", "-p", "-bb0", `-o${tarDir}`, "--", safeIn],
+            [bin, "x", "-y", "-bd", "-p", "-bb0", "-snl-", `-o${tarDir}`, "--", safeIn],
             () => {
-              const tarFile = nodePath.join(tarDir, "input.tar");
+              let tarFile = nodePath.join(tarDir, "input.tar");
+              try {
+                const found = readdirSync(tarDir).find((n: string) => lstatSync(nodePath.join(tarDir, n)).isFile());
+                if (found) tarFile = nodePath.join(tarDir, found);
+              } catch {}
               return [bin, "x", "-y", "-bd", "-p", "-bb0", "-snl-", `-o${work}`, "--", tarFile];
             },
           );
@@ -160,7 +164,7 @@ async function extractWithExternalTool(
           steps.push([bin, "x", "-y", "-bd", "-p", "-bb0", "-snl-", `-o${work}`, "--", safeIn]);
         }
       } else {
-        steps.push([bin, "-xf", safeIn, "-C", work]);
+        steps.push([bin, "--no-same-owner", "--no-same-permissions", "-xf", safeIn, "-C", work]);
       }
 
       await runCommands(steps, {

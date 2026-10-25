@@ -36,7 +36,7 @@ export function openCommand(platform: Platform, path: string): Command {
 /** The command that shows `path` in the system file manager, selected where the system can do that. */
 export function revealCommand(platform: Platform, path: string, isDir: boolean): Command & { selects: boolean } {
   if (platform === "darwin") return { command: "open", args: ["-R", path], selects: true };
-  if (platform === "win32") return { command: "explorer.exe", args: [`/select,"${path}"`], verbatim: true, selects: true };
+  if (platform === "win32") return { command: "explorer.exe", args: [`/select,"${path.replace(/"/g, "")}"`], verbatim: true, selects: true };
   return { command: "xdg-open", args: [isDir ? path : nodePath.posix.dirname(path)], selects: false };
 }
 

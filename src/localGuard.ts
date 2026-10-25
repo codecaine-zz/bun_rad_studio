@@ -20,6 +20,10 @@ export function guardLocalRequest(req: Request): Response | null {
   if (origin && origin.toLowerCase() !== `http://${host}`) {
     return new Response("Forbidden: cross-origin request blocked", { status: 403 });
   }
+  const fetchSite = (req.headers.get("sec-fetch-site") || "").toLowerCase();
+  if (fetchSite === "cross-site") {
+    return new Response("Forbidden: cross-site request blocked", { status: 403 });
+  }
   return null;
 }
 
@@ -28,11 +32,11 @@ export function writeClipboardSync(text: string): boolean {
   try {
     const inputBuf = Buffer.from(text, "utf8");
     if (process.platform === "darwin") {
-      const proc = Bun.spawnSync(["pbcopy"], { stdin: inputBuf });
+      const proc = Bun.spawnSync(["pbcopy"], { stdin: inputBuf, timeout: 3000 });
       return proc.exitCode === 0;
     } else if (process.platform === "win32") {
       if (text.length > 0 && /^[\t\r\n\x20-\x7e]+$/.test(text)) {
-        const clip = Bun.spawnSync(["clip"], { stdin: inputBuf });
+        const clip = Bun.spawnSync(["clip"], { stdin: inputBuf, timeout: 3000 });
         if (clip.exitCode === 0) return true;
       }
       // PowerShell and clip read a pipe in the console's old code page, which garbles accents and other Unicode.
@@ -40,9 +44,10 @@ export function writeClipboardSync(text: string): boolean {
       const ps = Bun.spawnSync(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
         "$b = [Console]::In.ReadToEnd().Trim(); Set-Clipboard -Value ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($b)))"], {
         stdin: Buffer.from(inputBuf.toString("base64"), "ascii"),
+        timeout: 3000,
       });
       if (ps.exitCode === 0) return true;
-      const clip = Bun.spawnSync(["clip"], { stdin: Buffer.from(`\ufeff${text}`, "utf16le") });
+      const clip = Bun.spawnSync(["clip"], { stdin: Buffer.from(`\ufeff${text}`, "utf16le"), timeout: 3000 });
       return clip.exitCode === 0;
     } else {
       const candidates: string[][] = [
@@ -54,7 +59,7 @@ export function writeClipboardSync(text: string): boolean {
         try {
           // Output is not captured: xclip and wl-copy leave a background process serving the clipboard, and it
           // keeps any pipe we gave them open, which would make this call wait until the clipboard changes.
-          const proc = Bun.spawnSync(cmd, { stdin: inputBuf, stdout: "ignore", stderr: "ignore" });
+          const proc = Bun.spawnSync(cmd, { stdin: inputBuf, stdout: "ignore", stderr: "ignore", timeout: 3000 });
           if (proc.exitCode === 0) return true;
         } catch {}
       }
@@ -67,7 +72,7 @@ export function writeClipboardSync(text: string): boolean {
 export function readClipboardTextSync(): string | null {
   try {
     if (process.platform === "darwin") {
-      const proc = Bun.spawnSync(["pbpaste"]);
+      const proc = Bun.spawnSync(["pbpaste"], { timeout: 3000 });
       if (proc.exitCode === 0) return proc.stdout.toString();
     } else if (process.platform === "win32") {
       const proc = Bun.spawnSync([
@@ -76,7 +81,7 @@ export function readClipboardTextSync(): string | null {
         "-NonInteractive",
         "-Command",
         "[Console]::OutputEncoding = [Text.Encoding]::UTF8; $t = Get-Clipboard -Raw; if ($null -ne $t) { [Console]::Out.Write($t) }",
-      ]);
+      ], { timeout: 3000 });
       if (proc.exitCode === 0) return proc.stdout.toString().replace(/\r\n/g, "\n");
     } else {
       const candidates: string[][] = [
@@ -86,7 +91,7 @@ export function readClipboardTextSync(): string | null {
       ];
       for (const cmd of candidates) {
         try {
-          const proc = Bun.spawnSync(cmd);
+          const proc = Bun.spawnSync(cmd, { timeout: 3000 });
           if (proc.exitCode === 0) return proc.stdout.toString();
         } catch {}
       }

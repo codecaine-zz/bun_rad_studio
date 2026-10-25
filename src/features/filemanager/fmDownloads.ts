@@ -174,13 +174,21 @@ export function nameFromUrl(url: string): string {
   }
 }
 
+function pathOccupied(p: string): boolean {
+  try {
+    return fs.lstatSync(p) !== undefined;
+  } catch {
+    return false;
+  }
+}
+
 /** A path in `folder` that nothing uses yet (also not as a `.part` file): `name.ext`, `name (1).ext`, `name (2).ext` ... */
 export function uniquePath(folder: string, name: string, taken: (path: string) => boolean = () => false): string {
   const ext = nodePath.extname(name);
   const stem = ext ? name.slice(0, -ext.length) : name;
   for (let i = 0; i < 10000; i++) {
     const candidate = nodePath.join(folder, i === 0 ? name : `${stem} (${i})${ext}`);
-    if (!fs.existsSync(candidate) && !fs.existsSync(`${candidate}.part`) && !fs.existsSync(`${candidate}.dlstate`) && !taken(candidate)) return candidate;
+    if (!pathOccupied(candidate) && !pathOccupied(`${candidate}.part`) && !pathOccupied(`${candidate}.dlstate`) && !taken(candidate)) return candidate;
   }
   throw new DlError("Couldn't find a free file name.");
 }
@@ -267,15 +275,18 @@ function httpProblem(status: number, retryAfter: string | null): DlError {
 
 const MAX_REDIRECTS = 10;
 
-/** Asks the server about a file with one tiny ranged request. Follows redirects itself, so logins never go to another site. */
-export async function probeUrl(url: string, headers: Record<string, string> | undefined, fetchFn: typeof fetch, signal?: AbortSignal): Promise<ProbeResult> {
-  const { url: clean, auth } = splitCredentials(parseWebUrl(url).toString());
-  const original = { url: clean, headers: { ...(headers ?? {}), ...(auth && !headers?.Authorization ? { Authorization: auth } : {}) } };
-  let current = clean;
-  let res: Response | null = null;
+async function fetchWithRedirects(
+  url: string,
+  originItem: { headers?: Record<string, string>; url?: string },
+  extraHeaders: Record<string, string>,
+  fetchFn: typeof fetch,
+  signal?: AbortSignal,
+): Promise<{ res: Response; finalUrl: string }> {
+  let current = url;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    let res: Response;
     try {
-      res = await fetchFn(current, { headers: requestHeaders(original, { Range: "bytes=0-0" }, current), redirect: "manual", signal });
+      res = await fetchFn(current, { headers: requestHeaders(originItem, extraHeaders, current), redirect: "manual", signal });
     } catch (err: any) {
       if (isAbort(err)) throw err;
       throw new DlError(`Couldn't reach the server: ${String(err?.message ?? err).split("\n")[0]}`, false);
@@ -290,13 +301,20 @@ export async function probeUrl(url: string, headers: Record<string, string> | un
       }
       if (next.protocol !== "http:" && next.protocol !== "https:") throw new DlError("The server redirected to an address that isn't a web address.");
       current = next.toString();
-      res = null;
       continue;
     }
-    break;
+    return { res, finalUrl: current };
   }
-  if (!res) throw new DlError("The address redirects too many times.");
-  const finalUrl = current;
+  throw new DlError("The address redirects too many times.");
+}
+
+/** Asks the server about a file with one tiny ranged request. Follows redirects itself, so logins never go to another site. */
+export async function probeUrl(url: string, headers: Record<string, string> | undefined, fetchFn: typeof fetch, signal?: AbortSignal): Promise<ProbeResult> {
+  const { url: clean, auth } = splitCredentials(parseWebUrl(url).toString());
+  const safe = cleanHeaders(headers);
+  const hasAuth = Object.keys(safe).some((k) => k.toLowerCase() === "authorization");
+  const original = { url: clean, headers: { ...safe, ...(auth && !hasAuth ? { Authorization: auth } : {}) } };
+  const { res, finalUrl } = await fetchWithRedirects(clean, original, { Range: "bytes=0-0" }, fetchFn, signal);
   const cd = res.headers.get("content-disposition");
   const name = safeFileName(nameFromDisposition(cd) ?? nameFromUrl(finalUrl));
   const common = { finalUrl, etag: res.headers.get("etag") ?? undefined, lastModified: res.headers.get("last-modified") ?? undefined, name, mime: res.headers.get("content-type")?.split(";")[0]?.trim() || undefined };
@@ -417,8 +435,9 @@ export class DownloadManager {
       const data = JSON.parse(fs.readFileSync(this.options.file, "utf8"));
       if (data?.settings) this.settings = this.cleanSettings({ ...this.settings, ...data.settings });
       for (const raw of Array.isArray(data?.items) ? data.items : []) {
-        if (!raw || typeof raw.id !== "string" || typeof raw.url !== "string" || typeof raw.path !== "string") continue;
-        const item: DlItem = { ...raw, speed: 0, eta: null, active: 0 };
+        if (!raw || typeof raw.id !== "string" || typeof raw.url !== "string" || typeof raw.path !== "string" || typeof raw.folder !== "string") continue;
+        if (nodePath.dirname(nodePath.resolve(raw.path)) !== nodePath.resolve(raw.folder)) continue;
+        const item: DlItem = { ...raw, name: safeFileName(typeof raw.name === "string" ? raw.name : nodePath.basename(raw.path)), speed: 0, eta: null, active: 0 };
         // Whatever was running when the program stopped is paused now; its progress is on disk.
         if (item.state === "downloading" || item.state === "probing" || item.state === "verifying" || item.state === "queued") {
           item.state = "paused";
@@ -524,7 +543,8 @@ export class DownloadManager {
     for (const item of added) this.items.set(item.id, item);
     this.persist();
     this.schedule();
-    return added.map((i) => this.list().find((v) => v.id === i.id)!);
+    const byId = new Map(this.list().map((v) => [v.id, v]));
+    return added.map((i) => byId.get(i.id)!);
   }
 
   pause(id: string) {
@@ -678,13 +698,23 @@ export class DownloadManager {
         saved = null;
       }
     }
-    const sameFile = (s: SavedState) => s.v === STATE_VERSION && probe.size === s.size && (!s.etag || !probe.etag || s.etag === probe.etag) && (!s.lastModified || !probe.lastModified || s.lastModified === probe.lastModified);
+    const sameFile = (s: SavedState) =>
+      s.v === STATE_VERSION &&
+      probe.size === s.size &&
+      Number.isSafeInteger(s.chunkSize) &&
+      s.chunkSize >= MIN_CHUNK &&
+      s.chunkSize <= MAX_CHUNK &&
+      Array.isArray(s.complete) &&
+      Array.isArray(s.partial) &&
+      (!s.etag || !probe.etag || s.etag === probe.etag) &&
+      (!s.lastModified || !probe.lastModified || s.lastModified === probe.lastModified);
     const hasPart = fs.existsSync(`${item.path}.part`);
     if (!(item.received > 0 && hasPart)) {
-      if (item.name === nameFromUrl(item.url) || !item.name) item.name = probe.name;
+      const defaultUrlName = safeFileName(nameFromUrl(item.url));
+      if (item.name === defaultUrlName || item.name === nameFromUrl(item.url) || !item.name) item.name = probe.name;
       // Choosing and claiming the name happen in the same step (no await between), so two downloads can't both pick it.
       if (this.claimed.get(item.path) === item.id) this.claimed.delete(item.path);
-      item.path = uniquePath(item.folder, safeFileName(item.name === nameFromUrl(item.url) ? probe.name : item.name), (c) => this.claimed.has(c));
+      item.path = uniquePath(item.folder, safeFileName(item.name === defaultUrlName || item.name === nameFromUrl(item.url) ? probe.name : item.name), (c) => this.claimed.has(c));
       this.claimed.set(item.path, item.id);
       item.name = nodePath.basename(item.path);
       saved = null;
@@ -740,7 +770,6 @@ export class DownloadManager {
       speed = speed === 0 ? instant : speed * 0.6 + instant * 0.4;
       item.speed = Math.max(0, Math.round(speed));
       item.eta = item.size && item.speed > 0 ? Math.max(0, Math.round((item.size - item.received) / item.speed)) : null;
-      this.persist();
     }, 500);
     job.sampler.unref?.();
   }
@@ -755,6 +784,7 @@ export class DownloadManager {
     const done = saved ? decodeProgress(saved, chunkSize, size) : new Array<number>(Math.ceil(size / chunkSize)).fill(0);
     item.received = done.reduce((a, b) => a + b, 0);
 
+    if (fs.lstatSync(partPath, { throwIfNoEntry: false })?.isSymbolicLink()) throw new DlError("Refusing to write through a symbolic link.");
     const fd = fs.openSync(partPath, fs.existsSync(partPath) && saved ? "r+" : "w+");
     job.fd = fd;
     if (fs.fstatSync(fd).size !== size) fs.ftruncateSync(fd, size);
@@ -793,7 +823,7 @@ export class DownloadManager {
         if (from > end) return;
         const before = done[idx]!;
         try {
-          const res = await this.fetchFn(probe.finalUrl, { headers: requestHeaders(item, { Range: `bytes=${from}-${end}`, ...ifRange(probe) }, probe.finalUrl), redirect: "follow", signal });
+          const { res } = await fetchWithRedirects(probe.finalUrl, item, { Range: `bytes=${from}-${end}`, ...ifRange(probe) }, this.fetchFn, signal);
           if (res.status !== 206) {
             res.body?.cancel().catch(() => {});
             if (res.status === 200 || res.status === 416) throw new DlError("The file changed on the server, or it stopped accepting ranges. Remove it and add it again.");
@@ -878,6 +908,7 @@ export class DownloadManager {
     let attempt = 0;
     let from = canResume && item.received > 0 && fs.existsSync(partPath) ? Math.min(item.received, fs.statSync(partPath).size) : 0;
     item.received = from;
+    if (fs.lstatSync(partPath, { throwIfNoEntry: false })?.isSymbolicLink()) throw new DlError("Refusing to write through a symbolic link.");
     const fd = fs.openSync(partPath, from > 0 ? "r+" : "w+");
     job.fd = fd;
     if (from === 0) fs.ftruncateSync(fd, 0);
@@ -885,7 +916,7 @@ export class DownloadManager {
     for (;;) {
       const before = item.received;
       try {
-        const res = await this.fetchFn(probe.finalUrl, { headers: requestHeaders(item, from > 0 ? { Range: `bytes=${from}-`, ...ifRange(probe) } : {}, probe.finalUrl), redirect: "follow", signal });
+        const { res } = await fetchWithRedirects(probe.finalUrl, item, from > 0 ? { Range: `bytes=${from}-`, ...ifRange(probe) } : {}, this.fetchFn, signal);
         if (from > 0 && res.status === 200) {
           // The server ignored the range: start from the top.
           from = 0;
@@ -946,7 +977,7 @@ export class DownloadManager {
     item.size = actual;
     item.received = actual;
     let finalPath = item.path;
-    if (fs.existsSync(finalPath)) finalPath = uniquePath(item.folder, nodePath.basename(item.path), (c) => this.claimed.has(c));
+    if (pathOccupied(finalPath)) finalPath = uniquePath(item.folder, nodePath.basename(item.path), (c) => this.claimed.has(c));
     fs.renameSync(part, finalPath);
     fs.rmSync(`${item.path}.dlstate`, { force: true });
     if (this.claimed.get(item.path) === item.id) this.claimed.delete(item.path);

@@ -27,7 +27,7 @@ import {
 import { OS_THEME_KEYS, RARE_OS_THEME_KEYS } from "../../shared/osThemes";
 import { buildSemanticPalette, contrastRatio, overridesForTheme, parseColor, toHex } from "../../shared/themeSemantic";
 import { FmError } from "./fmPaths";
-import type { FmContext, FmHandler } from "./fmCore";
+import { absolutePath, assertCreatable, type FmContext, type FmHandler } from "./fmCore";
 import {
   deleteCustom,
   encodeThemePackShareCode,
@@ -638,8 +638,8 @@ export const themeOperations: Record<string, FmHandler> = {
   },
   /** Saves an exported theme or theme pack directly as a file on disk inside `b.folder` (or the user's home folder). */
   async "themes/custom/save-file"(ctx, b) {
-    const rawFolder = typeof b.folder === "string" && b.folder.trim() ? b.folder.trim() : ctx.home;
-    const targetDir = nodePath.resolve(rawFolder);
+    const targetDir = typeof b.folder === "string" && b.folder.trim() ? absolutePath(ctx, b.folder) : ctx.home;
+    assertCreatable(ctx, targetDir);
     await fsp.mkdir(targetDir, { recursive: true });
 
     const fmt = typeof b.format === "string" ? b.format : "json";
@@ -664,31 +664,34 @@ export const themeOperations: Record<string, FmHandler> = {
         ext = fmt === "code" ? ".ccfm.txt" : ".theme.json";
       }
     } else {
+      if (content.length > 600_000) throw new FmError("BAD_REQUEST", "That theme content is too large to save.");
       if (fmt === "css") ext = ".theme.css";
       else if (fmt === "code") ext = ".ccfm.txt";
       else if (fmt.startsWith("pack")) ext = ".theme-pack.json";
     }
 
-    let fileName = `${baseSlug}${ext}`;
-    let fullPath = nodePath.join(targetDir, fileName);
-    for (let i = 2; i < 200; i++) {
+    for (let i = 1; i <= 200; i++) {
+      const fileName = i === 1 ? `${baseSlug}${ext}` : `${baseSlug}-${i}${ext}`;
+      const fullPath = nodePath.join(targetDir, fileName);
       try {
-        await fsp.access(fullPath);
-        fileName = `${baseSlug}-${i}${ext}`;
-        fullPath = nodePath.join(targetDir, fileName);
-      } catch {
-        break;
+        await fsp.writeFile(fullPath, content, { encoding: "utf8", flag: "wx" });
+        return { path: fullPath, name: fileName, bytes: Buffer.byteLength(content, "utf8") };
+      } catch (err: any) {
+        if (err?.code === "EEXIST") continue;
+        throw err;
       }
     }
-    await fsp.writeFile(fullPath, content, "utf8");
-    return { path: fullPath, name: fileName, bytes: Buffer.byteLength(content, "utf8") };
+    throw new FmError("EXISTS", "Could not find a free file name for that theme export.");
   },
   /** Reads a `.theme.json`, `.ccfm`, `.json`, `.txt`, or `.css` file from disk and returns its text for theme import. */
-  async "themes/custom/read-file"(_ctx, b) {
+  async "themes/custom/read-file"(ctx, b) {
     if (typeof b.path !== "string" || !b.path.trim()) throw new FmError("BAD_REQUEST", "Choose a theme file first.");
-    const resolved = nodePath.resolve(b.path.trim());
-    const st = await fsp.stat(resolved).catch(() => null);
-    if (!st || !st.isFile()) throw new FmError("NOT_FOUND", "That theme file could not be found.");
+    const resolved = absolutePath(ctx, b.path);
+    if (!/\.(?:json|txt|ccfm|css)$/i.test(resolved)) {
+      throw new FmError("BAD_REQUEST", "Only .json, .txt, .ccfm, and .css theme files can be imported.");
+    }
+    const st = await fsp.lstat(resolved).catch(() => null);
+    if (!st || st.isSymbolicLink() || !st.isFile()) throw new FmError("NOT_FOUND", "That theme file could not be found.");
     if (st.size > 600_000) throw new FmError("BAD_REQUEST", "That file is too large to be a theme file.");
     const text = await fsp.readFile(resolved, "utf8");
     return { path: resolved, name: nodePath.basename(resolved), text };

@@ -61,6 +61,7 @@ export function openDialog({ title, body, buttons = [{ label: "OK", primary: tru
   }
 
   function onKey(e) {
+    if (e.isComposing || e.keyCode === 229) return;
     if (!dialog.isConnected || backdrop !== [...document.querySelectorAll(".modal-backdrop")].at(-1)) return;
     if (e.key === "Escape") {
       e.preventDefault();

@@ -210,16 +210,24 @@ function orderRenames(ctx: FmContext, items: PlanItemInternal[]): Array<PlanItem
   const out: Array<PlanItemInternal | PlanItemInternal[]> = [];
   const insensitive = ctx.platform === "win32" || ctx.platform === "darwin";
   const key = (s: string) => (insensitive ? s.toLowerCase() : s);
+  const sourceCounts = new Map<string, number>();
+  for (const i of pending) {
+    const k = key(i.source!);
+    sourceCounts.set(k, (sourceCounts.get(k) ?? 0) + 1);
+  }
   let progressed = true;
   while (pending.size && progressed) {
     progressed = false;
-    const sources = new Set([...pending].map((i) => key(i.source!)));
-    for (const item of [...pending]) {
-      if (!sources.has(key(item.destination!)) || key(item.destination!) === key(item.source!)) {
+    for (const item of pending) {
+      const dstKey = key(item.destination!);
+      const srcKey = key(item.source!);
+      if ((sourceCounts.get(dstKey) ?? 0) === 0 || dstKey === srcKey) {
         out.push(item);
         pending.delete(item);
+        const rem = (sourceCounts.get(srcKey) ?? 1) - 1;
+        if (rem <= 0) sourceCounts.delete(srcKey);
+        else sourceCounts.set(srcKey, rem);
         progressed = true;
-        break;
       }
     }
   }

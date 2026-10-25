@@ -23,7 +23,9 @@ export function h(tag, attrs = {}, ...children) {
     if (key === "class") el.className = value;
     else if (key === "text") el.textContent = value;
     else if (key === "dataset") Object.assign(el.dataset, value);
-    else if (key.startsWith("on") && typeof value === "function") el.addEventListener(key.slice(2).toLowerCase(), value);
+    else if (key.startsWith("on")) {
+      if (typeof value === "function") el.addEventListener(key.slice(2).toLowerCase(), value);
+    }
     else if (value === true) el.setAttribute(key, "");
     else el.setAttribute(key, String(value));
   }

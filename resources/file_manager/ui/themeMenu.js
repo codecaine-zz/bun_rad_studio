@@ -1,7 +1,7 @@
 // The Themes menu of the ribbon: standard light and dark, the themes used lately, and the way into the gallery and the editor,
 // so colors can be changed without going through Settings.
 import { saveSettings } from "./nav.js";
-import { applyThemeColorsKeepingCurrentEffects, chooseTheme, cycleChameleonFolderMood, cycleDualPaneFocusMode, cycleHighEnd3dFolderAnimation, cycleScreenFilter, cycleZeroWattGovernorMode, disableAllThemeAnimations, downloadThemePosterCard, favoriteThemes, getThemeHistoryState, isKeepEffectsColorSwapMode, isKeepIconsOnThemeSwitchMode, isTelemetryPopoutHudOpen, pasteImportThemesFromClipboard, randomColorsKeepCurrentEffects, randomScreenFilter, randomTheme, recentThemes, redoThemeHistory, shuffleSystemIconsKeepTheme, toggleCurrentThemeEffects, toggleKeepEffectsColorSwapMode, toggleKeepIconsOnThemeSwitchMode, toggleTelemetryPopoutHud, undoThemeHistory } from "./themes.js";
+import { applyThemeColorsKeepingCurrentEffects, chooseTheme, cycleChameleonFolderMood, cycleColorTempMode, cycleColorVisionMode, cycleDualPaneFocusMode, cycleHighEnd3dFolderAnimation, cycleScreenFilter, cycleZeroWattGovernorMode, disableAllThemeAnimations, downloadThemePosterCard, favoriteThemes, getThemeHistoryState, isKeepEffectsColorSwapMode, isKeepIconsOnThemeSwitchMode, isTelemetryPopoutHudOpen, pasteImportThemesFromClipboard, randomColorsKeepCurrentEffects, randomScreenFilter, randomTheme, recentThemes, redoThemeHistory, shuffleSystemIconsKeepTheme, toggleCurrentThemeEffects, toggleKeepEffectsColorSwapMode, toggleKeepIconsOnThemeSwitchMode, toggleTelemetryPopoutHud, undoThemeHistory } from "./themes.js";
 import { emit, state } from "./state.js";
 
 /** The items of the menu for the colors in force now. */
@@ -105,6 +105,18 @@ export async function themeMenuItems() {
       icon: "🔋",
       tip: "Cycle Smart Unfocused Window & Battery Zero-Watt Governor (Smart Auto Pause on Blur, Always 120Hz, Battery Eco Saver).",
       action: () => { void cycleZeroWattGovernorMode(1); },
+    },
+    {
+      label: "Cycle Kelvin White-Point & OLED Mastering",
+      icon: "🌡️",
+      tip: "Cycle Color-Temperature Mastering across 2700K Candlelight, 3500K Golden Hour, 4300K Warm Halogen, 5000K D50 Print, 6500K D65 Neutral, 7500K Cyber Cool, 9300K Trinitron & True OLED Pitch-Black.",
+      action: () => { void cycleColorTempMode(1); },
+    },
+    {
+      label: "Cycle Color-Vision & AAA Contrast Guard",
+      icon: "👁️‍🗨️",
+      tip: "Cycle Daltonism-Safe & WCAG AAA High-Contrast Vision Modes (Protanopia Safe, Deuteranopia Safe, Tritanopia Safe, Monochromacy, WCAG AAA 7:1 High-Contrast, Standard Vision).",
+      action: () => { void cycleColorVisionMode(1); },
     },
     { separator: true },
     { label: "Quick random theme (any · ⌥R)", icon: "🎲", tip: "Instantly apply a random theme from all 310 themes with no dialog needed (Alt+R / ⌥R).", action: () => { void randomTheme({ mode: "any" }); } },

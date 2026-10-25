@@ -267,6 +267,7 @@ button:disabled { cursor: default; }
 .empty h2 { margin: 0; font-size: 1.2rem; color: var(--text); }
 .empty p { margin: 0; max-width: 28rem; }
 .empty-icon { font-size: 3.2rem; }
+.empty-reset-btn { pointer-events: auto; margin-top: 0.45rem; font-size: 0.85rem; }
 .fatal { padding: 2rem; }
 
 /* ------------------------------------------------------------------- details */
@@ -411,7 +412,7 @@ body.dragging .row:not(.is-folder) { cursor: no-drop; }
   #body, #body:has(#info:not([hidden])) { grid-template-columns: var(--side-w, 12rem) minmax(0, 1fr); }
   #info { display: none; }
   .list-head, .view-details .row { grid-template-columns: 2.2rem minmax(8rem, 1fr) 9rem 5.5rem; }
-  .list-head .h-type, .view-details .c-type { display: none; }
+  .list-head .h-type, .view-details .c-type, .list-head .h-ext, .view-details .c-ext, .list-head .h-perms, .view-details .c-perms { display: none; }
   .list-head:has(.h-where:not([hidden])), .view-details.searching .row, .view-details.in-trash .row { grid-template-columns: 2.2rem minmax(8rem, 1fr) minmax(6rem, 10rem) 9rem 5.5rem; }
 }
 

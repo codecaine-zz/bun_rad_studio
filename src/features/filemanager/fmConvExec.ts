@@ -155,7 +155,7 @@ export async function sanitizeExtracted(root: string, limits: TreeLimits): Promi
       const p = nodePath.join(dir, name);
       const st = await lstat(p);
       if (++entries > limits.maxEntries) throw new ConvError(`This archive has too many items (more than ${limits.maxEntries}).`);
-      if (st.isSymbolicLink()) { await unlink(p); removedLinks++; }
+      if (st.isSymbolicLink() || (!st.isFile() && !st.isDirectory())) { await unlink(p); removedLinks++; }
       else if (st.isDirectory()) stack.push(p);
       else if (st.isFile()) {
         files++;

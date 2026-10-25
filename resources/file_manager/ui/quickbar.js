@@ -10,16 +10,16 @@ import { isStudioPicture } from "./imageStudio.js";
 import { renderList } from "./list.js";
 import { isPlayableOrPlaylist } from "./mediacore.js";
 import { showMenu, toast } from "./menus.js";
-import { busy, entryMatchesKindFilter, refresh, saveSettings, visibleEntries } from "./nav.js";
+import { busy, calculateFolderSizes, entryMatchesKindFilter, refresh, saveSettings, visibleEntries } from "./nav.js";
 import * as ops from "./ops.js";
 import { activePane, currentPath, inTrash, isFolderView, left } from "./pane.js";
 import { openInMediaDeck } from "./playerDeck.js";
 import { openPower } from "./power.js";
 import { openQuickLook } from "./quicklook.js";
-import { clearSelection, focusIndex, selectKeys, selectedEntries } from "./selection.js";
+import { clearSelection, focusIndex, matchEntriesByPattern, selectByPattern, selectKeys, selectSameKindOrExt, selectedEntries } from "./selection.js";
 import { on, state } from "./state.js";
 import { TAG_DEFS, setTagForPaths, tagForPath } from "./tags.js";
-import { describeSelection, extensionOf, extractableEntries } from "./util.js";
+import { describeSelection, extensionOf, extractableEntries, formatSize, plural } from "./util.js";
 
 // ---------------------------------------------------------------------------------------------------------------
 // Kind Chips definitions
@@ -344,6 +344,132 @@ export async function showNewTemplateDialog(initialTemplateId = "markdown") {
   }
 }
 
+export const SELECT_PATTERN_PRESETS = [
+  { label: "💻 Code files", query: "kind:code", tip: "All source code, scripts, and markup files" },
+  { label: "🖼️ Pictures", query: "kind:image", tip: "All PNG, JPEG, WebP, SVG, and image files" },
+  { label: "📄 Documents", query: "kind:docs", tip: "All Markdown, text, PDF, and office documents" },
+  { label: "🗜️ Archives", query: "is:archive", tip: "All ZIP, TAR, GZ, 7Z, and archive files" },
+  { label: "📂 Folders only", query: "is:dir", tip: "All folders in this view" },
+  { label: "📄 Files only", query: "is:file", tip: "All files (excluding folders) in this view" },
+  { label: "🕒 Modified today", query: "date:today", tip: "Items modified since midnight today" },
+  { label: "📅 Modified this week", query: "date:week", tip: "Items modified within the last 7 days" },
+  { label: "📦 Large (> 1 MB)", query: "size:>1mb", tip: "Files (or measured folders) larger than 1 MB" },
+  { label: "🪶 Empty (0 B)", query: "is:empty", tip: "Empty 0-byte files" },
+  { label: "🏷️ Tagged items", query: "tag:any", tip: "Items with any color tag assigned" },
+];
+
+/**
+ * Opens the interactive "Select Items by Pattern or Criteria" modal dialog.
+ */
+export async function showSelectByPatternDialog(initialPattern = "") {
+  const pane = activePane();
+  const entries = visibleEntries(pane);
+  const patternInput = h("input", {
+    id: "sbp-pattern-input",
+    type: "text",
+    class: "text-input",
+    value: String(initialPattern || ""),
+    placeholder: "e.g. *.ts, ext:json,yaml, size:>1mb, date:today, -node_modules, or /^test_/i",
+    spellcheck: "false",
+    autocomplete: "off",
+    "aria-label": "Selection pattern or filter criteria",
+  });
+
+  const statusLine = h("div", { id: "sbp-match-status", class: "hint sbp-status", role: "status", "aria-live": "polite" });
+  const previewBox = h("div", { id: "sbp-preview-list", class: "sbp-preview" });
+
+  function updatePreview() {
+    const q = patternInput.value.trim();
+    clear(previewBox);
+    if (!q) {
+      statusLine.textContent = `Type a pattern or pick a preset below (${plural(entries.length, "item")} in this view).`;
+      return;
+    }
+    const matched = matchEntriesByPattern(entries, q);
+    statusLine.textContent = `Matches ${plural(matched.length, "item")} of ${entries.length} in this view.`;
+    for (const item of matched.slice(0, 12)) {
+      previewBox.append(
+        h("span", { class: "sbp-preview-chip", title: item.path },
+          h("span", { "aria-hidden": "true" }, item.isDir ? "📁" : "📄"),
+          h("span", {}, item.name),
+          !item.isDir || item.folderSizeCalculated ? h("span", { class: "sbp-chip-meta" }, formatSize(item.size)) : null,
+        ),
+      );
+    }
+    if (matched.length > 12) {
+      previewBox.append(h("span", { class: "sbp-preview-more" }, `+${matched.length - 12} more`));
+    }
+  }
+
+  patternInput.addEventListener("input", updatePreview);
+
+  const presetsGrid = h("div", { class: "sbp-presets", role: "group", "aria-label": "Selection presets" },
+    ...SELECT_PATTERN_PRESETS.map((p) =>
+      h("button", {
+        type: "button",
+        class: "qb-pill sbp-preset-btn",
+        dataset: { presetQuery: p.query },
+        title: `${p.tip} (${p.query})`,
+        onclick: () => {
+          patternInput.value = p.query;
+          updatePreview();
+          patternInput.focus();
+        },
+      }, p.label),
+    ),
+  );
+
+  const seeds = selectedEntries(pane);
+  const sameBtn = seeds.length > 0
+    ? h("button", {
+        type: "button",
+        class: "qb-pill qb-pill-accent",
+        title: "Immediately select all items sharing the same file extension or folder kind as your current selection",
+        onclick: () => {
+          const res = selectSameKindOrExt(pane);
+          dlg.close(null);
+          toast(`Selected ${plural(res.matched, "item")} (${res.label}).`, { kind: "ok" });
+        },
+      }, `☑️ Select all of same type (${seeds[0].isDir ? "folders" : extensionOf(seeds[0].name) ? `.${extensionOf(seeds[0].name)}` : "files"})`)
+    : null;
+
+  updatePreview();
+
+  const body = h("div", { class: "sbp-dialog-body" },
+    h("p", { class: "hint" }, "Use wildcards (*.ts), extensions (ext:jpg,png), sizes (size:>1mb), dates (date:today, date:week), tags (tag:red, tag:any), negation (-test), or /regex/i."),
+    h("label", { class: "field", for: "sbp-pattern-input" },
+      h("span", { class: "field-label" }, "Pattern or criteria"),
+      patternInput,
+    ),
+    presetsGrid,
+    sameBtn ? h("div", { class: "sbp-same-row" }, sameBtn) : null,
+    statusLine,
+    previewBox,
+  );
+
+  const dlg = openDialog({
+    title: "🎯 Select Items by Pattern or Criteria",
+    wide: true,
+    body,
+    initialFocus: patternInput,
+    buttons: [
+      { label: "Cancel", value: null },
+      { label: "Deselect Matching", value: "deselect" },
+      { label: "Add to Selection", value: "add" },
+      { label: "Select Matching", value: "replace", primary: true },
+    ],
+  });
+
+  const mode = await dlg.result;
+  if (!mode) return null;
+  const query = patternInput.value.trim();
+  if (!query) return null;
+  const res = selectByPattern(query, { mode, pane });
+  const verb = mode === "deselect" ? "Deselected" : mode === "add" ? "Added" : "Selected";
+  toast(`${verb} ${plural(res.matched, "matching item")} (${plural(res.selected, "item")} now selected).`, { kind: "ok" });
+  return res;
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Quickbar: Live Filter + Smart Kind-Chips + Group/Density Pills
 // ---------------------------------------------------------------------------------------------------------------
@@ -402,14 +528,15 @@ export function renderQuickbar() {
     baseEntries = baseEntries.filter((e) => state.settings.tags[e.path] === state.tagFilter);
   }
   const counts = new Map();
+  for (const def of KIND_CHIP_DEFS) counts.set(def.id, 0);
   counts.set("all", baseEntries.length);
-  for (const def of KIND_CHIP_DEFS) {
-    if (def.id === "all") continue;
-    let c = 0;
-    for (const e of baseEntries) {
-      if (entryMatchesKindFilter(e, def.id)) c++;
+  for (const e of baseEntries) {
+    for (const def of KIND_CHIP_DEFS) {
+      if (def.id === "all") continue;
+      if (entryMatchesKindFilter(e, def.id)) {
+        counts.set(def.id, (counts.get(def.id) || 0) + 1);
+      }
     }
-    counts.set(def.id, c);
   }
 
   const chipsBox = $("#kind-chips");
@@ -570,9 +697,16 @@ export function renderSelectionBar() {
 
   addAct("rename", "✏️", items.length > 1 ? `Bulk Rename (${items.length})` : "Rename", items.length > 1 ? "Batch rename all selected items with a live preview" : "Rename this item (F2)", () => ops.renameSelection());
   if (!left.search) {
+    addAct("folderize", "📁", "Group into Folder", "Create a new folder here and move the selected items into it (Mod+Shift+G)", () => ops.newFolderWithSelection(items));
     addAct("zip", "🗜️", "Zip", "Compress selected items into a .zip archive", () => ops.zipSelection());
   }
+  if (items.some((x) => x.isDir)) {
+    addAct("foldersize", "📐", "Folder Size", "Calculate total byte size and item counts for the selected folder(s)", () =>
+      calculateFolderSizes(left, items.filter((x) => x.isDir).map((x) => x.path)),
+    );
+  }
   addAct("copypath", "🔗", "Copy Path", "Copy full path(s) to the clipboard", () => ops.copyPathOf(items));
+  addAct("copynames", "🏷️", "Copy Names", "Copy only the filename(s) without directory paths", () => ops.copyNamesOf(items));
   addAct("delete", "🗑️", "Delete", "Move selected items to the Recycle Bin / Graveyard", () => ops.trashSelection(), { danger: true });
   addAct("clear", "✕", "Deselect", "Clear selection (Esc)", () => clearSelection(left));
 
@@ -594,6 +728,7 @@ export function wireQuickbar() {
       renderQuickbar();
     });
     input.addEventListener("keydown", (e) => {
+      if (e.isComposing || e.keyCode === 229) return;
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
@@ -638,11 +773,20 @@ export function wireQuickbar() {
     );
   });
 
+  const sizesBtn = $("#qb-sizes-btn");
+  sizesBtn?.addEventListener("click", () => void calculateFolderSizes(activePane()));
+
+  const selectBtn = $("#qb-select-btn");
+  selectBtn?.addEventListener("click", () => void showSelectByPatternDialog());
+
   const tplBtn = $("#qb-template-btn");
   tplBtn?.addEventListener("click", () => void showNewTemplateDialog());
 
   on("focus-quick-filter", () => focusQuickFilter());
+  on("quick-filter-clear", () => clearQuickFilters({ focusList: true }));
+  on("kind-filter-clear", () => setKindFilter("all"));
   on("new-template-dialog", (tplId) => void showNewTemplateDialog(typeof tplId === "string" ? tplId : "markdown"));
+  on("select-pattern-dialog", (pat) => void showSelectByPatternDialog(typeof pat === "string" ? pat : ""));
   on("view", () => {
     renderQuickbar();
     renderSelectionBar();

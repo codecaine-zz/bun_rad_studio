@@ -473,6 +473,116 @@ export const AAA_DIRECTOR_CUT_PRESETS = [
     desktopWallpaperScene: "deep_space_jwst_pillars",
     uiSoundProfile: "holiday_chimes_festive",
   },
+  {
+    id: "bauhaus_atelier_master",
+    label: "🔺 Bauhaus Dessau 1923 Atelier Master",
+    desc: "Studio Architect Minimal + Bauhaus Primary Icons + Cupertino Ceramic Bevel + Isometric Architect Table + Teenage Synth OP-1 sound",
+    palette: "studio_architect_minimal",
+    uiElementFx: "cupertino_ceramic_bevel",
+    iconPackStyle: "bauhaus_primary",
+    iconFinishMode: "neumorphic_tactile_studio",
+    themeIconAnimation: "folder_3d_flip_origami",
+    themeIconGlow: "subtle",
+    screenFilter: "kodachrome_64_film",
+    workspaceStageMode: "isometric_architect_table",
+    cursorTrailMode: "flash_2advanced_crosshair",
+    folderSpringMode: "macos_spring_loaded",
+    desktopWallpaperScene: "win11_bloom_sculpture",
+    uiSoundProfile: "teenage_synth_op1",
+  },
+  {
+    id: "kyoto_ukiyoe_master",
+    label: "🌊 Kyoto Ukiyo-e Woodblock & Sumi Master",
+    desc: "Kyoto Zen Karesansui + Ukiyo-e Woodblock Icons + Kyoto Washi Sumi Folders + Sakura Petal Breeze + Apple HIG Tactile sound",
+    palette: "kyoto_zen_karesansui_day",
+    uiElementFx: "kyoto_washi_sumi",
+    iconPackStyle: "ukiyoe_woodblock",
+    iconFinishMode: "neumorphic_tactile_studio",
+    themeIconAnimation: "levitate_float",
+    themeIconGlow: "subtle",
+    screenFilter: "nano_texture_matte_glass",
+    workspaceStageMode: "stage_manager_3d_tilt",
+    cursorTrailMode: "sakura_petal_breeze",
+    folderSpringMode: "macos_spring_loaded",
+    desktopWallpaperScene: "tahoe_alpine_lake",
+    uiSoundProfile: "apple_hig_tactile",
+  },
+  {
+    id: "art_deco_metropolis_master",
+    label: "🏛️ 1929 Art Deco Metropolis Gold Master",
+    desc: "Art Deco Metropolis 1929 + Art Deco Gold Icons + Swiss Sapphire Chronograph + Ambilux XDR Halo + Stardust Comet Tail + Cinema Sub Boom",
+    palette: "art_deco_metropolis_1929",
+    uiElementFx: "swiss_sapphire_chronograph",
+    iconPackStyle: "art_deco_gold",
+    iconFinishMode: "pro_titanium_anodized",
+    themeIconAnimation: "clockwork_gear_tick",
+    themeIconGlow: "xdr_specular",
+    screenFilter: "imax_70mm_anamorphic",
+    workspaceStageMode: "ambilux_xdr_halo",
+    cursorTrailMode: "stardust_comet_tail",
+    folderSpringMode: "magnetic_dock_magnify",
+    desktopWallpaperScene: "cern_quantum_chamber",
+    uiSoundProfile: "cinema_sub_boom",
+  },
+  {
+    id: "mariana_biolum_master",
+    label: "🪼 Mariana Abyssal Bioluminescence Master",
+    desc: "Mariana Bioluminescent Trench + Deep-Sea Biolum Icons + Void Tentacles + Underwater Aquatic Refraction + Holo Prism Spotlight",
+    palette: "mariana_bioluminescent_trench",
+    uiElementFx: "void_tentacles",
+    iconPackStyle: "deep_sea_biolum",
+    iconFinishMode: "holographic_collector_grade",
+    themeIconAnimation: "heartbeat_biolum",
+    themeIconGlow: "hyper",
+    screenFilter: "underwater_aquatic_refraction",
+    workspaceStageMode: "coverflow_3d_reflection",
+    cursorTrailMode: "holo_prism_spotlight",
+    folderSpringMode: "spatial_glass_extrude",
+    desktopWallpaperScene: "tahoe_alpine_lake",
+    uiSoundProfile: "scifi_lcars_bridge",
+  },
+];
+
+/** Studio Colorist Kelvin White-Point & OLED Mastering Modes (`data-color-temp`). */
+export const COLOR_TEMP_MODES = [
+  { id: "neutral_6500k", label: "⚖️ D65 Neutral (6500K)", kelvin: 6500, tint: "transparent", mixPct: 0, desc: "Calibrated D65 reference white point — zero color temperature shift" },
+  { id: "candle_2700k", label: "🕯️ Candlelight Warm (2700K)", kelvin: 2700, tint: "#ff8c24", mixPct: 14, desc: "Deep amber 2700K candlelight warmth for late-night eye comfort" },
+  { id: "golden_hour_3500k", label: "🌅 Golden Hour (3500K)", kelvin: 3500, tint: "#f59e0b", mixPct: 10, desc: "Warm tungsten-gold 3500K sunset grade in perceptual OKLab space" },
+  { id: "halogen_4300k", label: "💡 Studio Halogen (4300K)", kelvin: 4300, tint: "#fbbf24", mixPct: 7, desc: "Balanced 4300K analog gallery halogen illumination" },
+  { id: "daylight_d50_5000k", label: "☀️ Print Daylight D50 (5000K)", kelvin: 5000, tint: "#fef08a", mixPct: 5, desc: "ISO 3664 D50 prepress & editorial warm-daylight standard" },
+  { id: "cyber_cool_7500k", label: "❄️ Cyber Cool (7500K)", kelvin: 7500, tint: "#38bdf8", mixPct: 9, desc: "Crisp 7500K overcast cyan-blue engineering grade" },
+  { id: "arctic_blue_9300k", label: "🧊 CRT 9300K Japanese Broadcast", kelvin: 9300, tint: "#60a5fa", mixPct: 14, desc: "Classic 9300K Sony Trinitron broadcast blue-white point" },
+  { id: "oled_true_black", label: "⚫ OLED True-Black Pitch Mastering", kelvin: 6500, tint: "#000000", mixPct: 45, desc: "Deepens dark theme backgrounds toward #000000 zero-nit OLED pitch black while preserving AAA text contrast" },
+];
+
+/** Color-Vision Deficiency (Daltonism) & Forced-Contrast Accessibility Modes (`data-vision-mode`). */
+export const COLOR_VISION_MODES = [
+  { id: "off", label: "👁️ Standard Vision (Off)", svgFilter: "", desc: "Standard full-spectrum color rendering" },
+  { id: "protanopia_safe", label: "🔴 Protanopia Safe (Red-Weak)", svgFilter: "url(#fm-vision-protanopia)", desc: "Simulates & reinforces semantic contrast + non-color badges for Protanopia (red-cone deficiency)" },
+  { id: "deuteranopia_safe", label: "🟢 Deuteranopia Safe (Green-Weak)", svgFilter: "url(#fm-vision-deuteranopia)", desc: "Simulates & reinforces semantic contrast + non-color badges for Deuteranopia (green-cone deficiency)" },
+  { id: "tritanopia_safe", label: "🔵 Tritanopia Safe (Blue-Weak)", svgFilter: "url(#fm-vision-tritanopia)", desc: "Simulates & reinforces semantic contrast + non-color badges for Tritanopia (blue-yellow deficiency)" },
+  { id: "achromatopsia_mono", label: "⚪ Achromatopsia Monochrome Proof", svgFilter: "url(#fm-vision-achromatopsia)", desc: "Pure luminance-only grayscale proof to verify value hierarchy without relying on hue" },
+  { id: "high_contrast_aaa", label: "🛡️ WCAG AAA High-Contrast Guard", svgFilter: "", desc: "Reinforces all component borders (≥ 3:1), focus rings, and text legibility (≥ 7:1) with non-color state indicators" },
+];
+
+/** Classical Color Theory Harmony Chords (`computeColorHarmonyChord`). */
+export const COLOR_HARMONY_CHORDS = [
+  { id: "complementary", label: "🎯 Complementary (180°)", angles: [0, 180], desc: "Classical 180° opponent hue pair for maximum focal punch" },
+  { id: "split_complementary", label: "🔱 Split-Complementary (150°/210°)", angles: [0, 150, 210], desc: "Nuanced 150° & 210° dual-counterpoint without harsh tension" },
+  { id: "triadic", label: "🔺 Triadic (120°/240°)", angles: [0, 120, 240], desc: "Equilateral 120° color wheel triad for balanced studio vibrancy" },
+  { id: "analogous", label: "🌊 Analogous (±32°)", angles: [0, 32, 328], desc: "Adjacent-hue atmospheric gradient harmony" },
+  { id: "tetradic_studio", label: "💠 Tetradic Cinema (90°/180°/270°)", angles: [0, 90, 180, 270], desc: "Four-point Hollywood colorist chord (teal/amber/violet/emerald)" },
+  { id: "monochromatic_xdr", label: "💎 Monochromatic XDR", angles: [0, 0], desc: "Single-hue architectural tonal scale mixed in perceptual OKLab space" },
+  { id: "golden_ratio_phi", label: "🌀 Golden Ratio φ (137.5°)", angles: [0, 137.5, 275], desc: "Phyllotaxis golden-angle (137.508°) hue dispersion for zero visual fatigue" },
+];
+
+/** Modular Theme Aspects that can be grafted independently (`graftThemeAspect`). */
+export const THEME_GRAFT_ASPECTS = [
+  { id: "colors", label: "🎨 Graft Colors Only", desc: "Steal ONLY the color palette from this theme while keeping your current 3D folders, icons & atmosphere" },
+  { id: "folders", label: "🔥 Graft 3D Folders & Surface", desc: "Steal ONLY the 3D folder shader & glass surface from this theme onto your current colors" },
+  { id: "icons", label: "🎭 Graft Icon Pack & Motion", desc: "Steal ONLY the custom icon pack, icon glow & 3D icon choreography from this theme" },
+  { id: "atmosphere", label: "🌌 Graft Atmosphere Weather", desc: "Steal ONLY the live 120Hz canvas weather/particle layers from this theme" },
+  { id: "typography", label: "🔤 Graft Typography & Corners", desc: "Steal ONLY the font pairing & corner geometry from this theme" },
 ];
 
 /** Dual-Pane "Source vs. Target" Active Focus Spotlight Modes (`data-dual-focus`). */
@@ -631,6 +741,18 @@ export function ensureDistortionSvgFilters() {
         svgEl("filter", { id: "fm-filter-liquid-ripple", x: "-5%", y: "-5%", width: "110%", height: "110%" },
           svgEl("feTurbulence", { type: "fractalNoise", baseFrequency: "0.025 0.025", numOctaves: "1", seed: "3", result: "rippleNoise" }),
           svgEl("feDisplacementMap", { in: "SourceGraphic", in2: "rippleNoise", scale: "3.5", xChannelSelector: "G", yChannelSelector: "R" }),
+        ),
+        svgEl("filter", { id: "fm-vision-protanopia" },
+          svgEl("feColorMatrix", { type: "matrix", values: "0.567 0.433 0 0 0  0.558 0.442 0 0 0  0 0.242 0.758 0 0  0 0 0 1 0" }),
+        ),
+        svgEl("filter", { id: "fm-vision-deuteranopia" },
+          svgEl("feColorMatrix", { type: "matrix", values: "0.625 0.375 0 0 0  0.7 0.3 0 0 0  0 0.3 0.7 0 0  0 0 0 1 0" }),
+        ),
+        svgEl("filter", { id: "fm-vision-tritanopia" },
+          svgEl("feColorMatrix", { type: "matrix", values: "0.95 0.05 0 0 0  0 0.433 0.567 0 0  0 0.475 0.525 0 0  0 0 0 1 0" }),
+        ),
+        svgEl("filter", { id: "fm-vision-achromatopsia" },
+          svgEl("feColorMatrix", { type: "matrix", values: "0.299 0.587 0.114 0 0  0.299 0.587 0.114 0 0  0.299 0.587 0.114 0 0  0 0 0 1 0" }),
         ),
       ),
     ),
@@ -808,6 +930,37 @@ export function applyUiImmersionProfiles(overrides = {}) {
     : (s.zeroWattGovernorMode || "auto");
   root.dataset.zeroWattMode = rawZeroWatt;
   applyZeroWattGovernorToDom(rawZeroWatt);
+
+  // Sync Studio Colorist Kelvin White-Point & OLED Mastering (`data-color-temp`)
+  const rawColorTemp = (overrides && Object.prototype.hasOwnProperty.call(overrides, "colorTempMode"))
+    ? overrides.colorTempMode
+    : (s.colorTempMode || "neutral_6500k");
+  const tempSpec = COLOR_TEMP_MODES.find((m) => m.id === rawColorTemp) || COLOR_TEMP_MODES[0];
+  if (tempSpec && tempSpec.id !== "neutral_6500k") {
+    root.dataset.colorTemp = tempSpec.id;
+    root.style.setProperty("--fm-temp-tint", tempSpec.tint);
+    root.style.setProperty("--fm-temp-mix", `${tempSpec.mixPct}%`);
+    root.style.setProperty("--fm-temp-kelvin", `${tempSpec.kelvin}K`);
+  } else {
+    delete root.dataset.colorTemp;
+    root.style.removeProperty("--fm-temp-tint");
+    root.style.removeProperty("--fm-temp-mix");
+    root.style.removeProperty("--fm-temp-kelvin");
+  }
+
+  // Sync Color-Vision Deficiency (Daltonism) & AAA High-Contrast Accessibility Guard (`data-vision-mode`)
+  const rawVisionMode = (overrides && Object.prototype.hasOwnProperty.call(overrides, "colorVisionMode"))
+    ? overrides.colorVisionMode
+    : (s.colorVisionMode || "off");
+  const visionSpec = COLOR_VISION_MODES.find((m) => m.id === rawVisionMode) || COLOR_VISION_MODES[0];
+  if (visionSpec && visionSpec.id !== "off") {
+    root.dataset.visionMode = visionSpec.id;
+    if (visionSpec.svgFilter) {
+      ensureDistortionSvgFilters();
+    }
+  } else {
+    delete root.dataset.visionMode;
+  }
 
   // Sync Deep Sub-Studio Theme Tokens (Code Editor, Markdown Preview, Database Studio)
   syncSubStudioThemeTokens();
@@ -1306,7 +1459,7 @@ export async function applyPalette(key) {
   }
 }
 
-async function themeList() {
+export async function themeList() {
   if (!listCache) listCache = (await call("themes/list")).themes;
   return listCache;
 }
@@ -2665,6 +2818,8 @@ function buildLookHistorySignature(snap) {
     snap.dualPaneFocusMode || "spotlight",
     snap.chameleonFolderMode || "off",
     snap.zeroWattGovernorMode || "auto",
+    snap.colorTempMode || "neutral_6500k",
+    snap.colorVisionMode || "off",
     snap.atmosphere || "none",
   ].join("|");
 }
@@ -2694,6 +2849,8 @@ export function captureCurrentLookHistoryEntry(labelOverride = "") {
     dualPaneFocusMode: s.dualPaneFocusMode || root?.dataset?.dualFocus || "spotlight",
     chameleonFolderMode: s.chameleonFolderMode || root?.dataset?.chameleonMood || "off",
     zeroWattGovernorMode: s.zeroWattGovernorMode || root?.dataset?.zeroWattMode || "auto",
+    colorTempMode: s.colorTempMode || root?.dataset?.colorTemp || "neutral_6500k",
+    colorVisionMode: s.colorVisionMode || root?.dataset?.visionMode || "off",
     atmosphere: s.atmosphere || root?.dataset?.atmosphere || "none",
     atmosphereIntensity: Number(s.atmosphereIntensity) || 60,
     atmosphereTier: s.atmosphereTier || "auto",
@@ -2774,6 +2931,8 @@ export async function applyThemeHistorySnapshot(snap, opts = {}) {
       dualPaneFocusMode: snap.dualPaneFocusMode || "spotlight",
       chameleonFolderMode: snap.chameleonFolderMode || "off",
       zeroWattGovernorMode: snap.zeroWattGovernorMode || "auto",
+      colorTempMode: snap.colorTempMode || "neutral_6500k",
+      colorVisionMode: snap.colorVisionMode || "off",
       atmosphere: snap.atmosphere || "none",
       atmosphereIntensity: Number(snap.atmosphereIntensity) || 60,
       atmosphereTier: snap.atmosphereTier || "auto",
@@ -3319,6 +3478,322 @@ export function ensureZeroWattWindowListenersBound() {
   }
 }
 
+// =====================================================================================================================
+// UPGRADE 8: 🎨 Master Colorist Harmonies, Kelvin White-Point, Daltonism Vision Guard & Modular Theme Aspect Grafter
+// =====================================================================================================================
+
+function hslToHexMaster(hDeg, sPct, lPct) {
+  const hNorm = (((Number(hDeg) || 0) % 360) + 360) % 360;
+  const s = Math.max(0, Math.min(100, Number(sPct) || 0)) / 100;
+  const l = Math.max(0, Math.min(100, Number(lPct) || 0)) / 100;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((hNorm / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r = 0, g = 0, b = 0;
+  if (hNorm < 60) [r, g, b] = [c, x, 0];
+  else if (hNorm < 120) [r, g, b] = [x, c, 0];
+  else if (hNorm < 180) [r, g, b] = [0, c, x];
+  else if (hNorm < 240) [r, g, b] = [0, x, c];
+  else if (hNorm < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+  return rgbToHex([(r + m) * 255, (g + m) * 255, (b + m) * 255]);
+}
+
+function relativeLuminanceHex(hex) {
+  const [r, g, b] = parseHexRgb(hex);
+  const lr = srgbToLinear(r);
+  const lg = srgbToLinear(g);
+  const lb = srgbToLinear(b);
+  return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+}
+
+function contrastRatioHex(hexA, hexB) {
+  const l1 = relativeLuminanceHex(hexA);
+  const l2 = relativeLuminanceHex(hexB);
+  const hi = Math.max(l1, l2);
+  const lo = Math.min(l1, l2);
+  return Number(((hi + 0.05) / (lo + 0.05)).toFixed(2));
+}
+
+/**
+ * Generates a complete, WCAG-AAA verified 10-token color palette & dual shader glow pair
+ * from a seed `accentHex` using one of the 7 `COLOR_HARMONY_CHORDS` (`complementary`, `split_complementary`,
+ * `triadic`, `analogous`, `tetradic_studio`, `monochromatic_xdr`, `golden_ratio_phi`).
+ * Follows Modern Web Guidance (`color`): mixes surfaces in perceptual OKLab space rather than naive lightness channel clamping.
+ */
+export function computeColorHarmonyChord(accentHex = "#38bdf8", chordId = "complementary", dark = true) {
+  const chordSpec = COLOR_HARMONY_CHORDS.find((c) => c.id === chordId) || COLOR_HARMONY_CHORDS[0];
+  const rgb = parseHexRgb(accentHex);
+  const { h: baseH, s: rawS } = rgbHueSatLum(rgb);
+  const baseSatPct = Math.max(58, Math.min(94, Math.round(rawS * 100) || 78));
+  const angles = chordSpec.angles || [0, 180];
+  const secAngle = (baseH + (angles[1] ?? 180)) % 360;
+  const tertAngle = (baseH + (angles[2] ?? angles[1] ?? 120)) % 360;
+
+  const isMono = chordSpec.id === "monochromatic_xdr";
+  const primaryPure = hslToHexMaster(baseH, baseSatPct, dark ? 64 : 42);
+  const secondaryPure = isMono
+    ? mixHexOklab(primaryPure, dark ? "#e2e8f0" : "#1e293b", 0.34)
+    : hslToHexMaster(secAngle, Math.max(54, baseSatPct - 6), dark ? 66 : 44);
+  const tertiaryPure = isMono
+    ? mixHexOklab(primaryPure, dark ? "#94a3b8" : "#334155", 0.48)
+    : hslToHexMaster(tertAngle, Math.max(52, baseSatPct - 10), dark ? 62 : 42);
+
+  // Mix backgrounds & cards in perceptual OKLab space (Modern Web Guidance `color` rule)
+  const bgBase = dark ? "#080b12" : "#f8fafc";
+  const cardBase = dark ? "#121826" : "#ffffff";
+  const textBase = dark ? "#f1f5f9" : "#0f172a";
+
+  const background = mixHexOklab(bgBase, primaryPure, dark ? 0.08 : 0.05);
+  const card = mixHexOklab(cardBase, secondaryPure, dark ? 0.11 : 0.06);
+  let text = mixHexOklab(textBase, primaryPure, 0.06);
+  if (contrastRatioHex(text, background) < 7.5) {
+    text = dark ? "#f8fafc" : "#090d16";
+  }
+
+  // Ensure border has strong non-text contrast while remaining harmonious
+  const border = mixHexOklab(card, primaryPure, dark ? 0.36 : 0.38);
+
+  const colors = {
+    background,
+    card,
+    text,
+    accent: primaryPure,
+    secondary: secondaryPure,
+    border,
+    danger: dark ? "#ff6b81" : "#b42318",
+    warning: dark ? "#fbbf24" : "#b45309",
+    success: dark ? "#34d399" : "#166534",
+    info: tertiaryPure,
+  };
+
+  const textContrast = contrastRatioHex(colors.text, colors.background);
+  const accentContrast = Math.max(3.0, contrastRatioHex(colors.accent, colors.background));
+
+  return {
+    chordId: chordSpec.id,
+    label: chordSpec.label,
+    dark: Boolean(dark),
+    baseHue: Math.round(baseH),
+    secondaryHue: Math.round(secAngle),
+    tertiaryHue: Math.round(tertAngle),
+    textContrast,
+    accentContrast,
+    contrastRatio: textContrast,
+    uiContrastRatio: accentContrast,
+    colors,
+    glowColor: colors.accent,
+    glowColor2: colors.secondary,
+  };
+}
+
+/** Applies one of the 8 Studio Colorist Kelvin White-Point & OLED Mastering modes (`COLOR_TEMP_MODES`). */
+export async function applyColorTempMode(modeId = "neutral_6500k", opts = {}) {
+  const spec = COLOR_TEMP_MODES.find((m) => m.id === modeId) || COLOR_TEMP_MODES[0];
+  if (state.settings) state.settings.colorTempMode = spec.id;
+  applyUiImmersionProfiles({ colorTempMode: spec.id });
+  await saveSettings({ colorTempMode: spec.id });
+  if (!opts.quiet) {
+    toast(`🌡️ Color Temperature: ${spec.label}`, { kind: "info" });
+  }
+  return spec;
+}
+
+/** Cycles through the 8 Studio Colorist Kelvin White-Point & OLED Mastering modes (`COLOR_TEMP_MODES`). */
+export async function cycleColorTempMode(delta = 1, opts = {}) {
+  const cur = (typeof document !== "undefined" && document.documentElement?.dataset?.colorTemp) || state.settings?.colorTempMode || "neutral_6500k";
+  const idx = COLOR_TEMP_MODES.findIndex((m) => m.id === cur);
+  const step = Number(delta) || 1;
+  const nextIdx = (Math.max(0, idx) + step + COLOR_TEMP_MODES.length) % COLOR_TEMP_MODES.length;
+  return applyColorTempMode(COLOR_TEMP_MODES[nextIdx].id, opts);
+}
+
+/** Applies one of the 6 Color-Vision Deficiency (Daltonism) & AAA High-Contrast Accessibility modes (`COLOR_VISION_MODES`). */
+export async function applyColorVisionMode(modeId = "off", opts = {}) {
+  const spec = COLOR_VISION_MODES.find((m) => m.id === modeId) || COLOR_VISION_MODES[0];
+  if (state.settings) state.settings.colorVisionMode = spec.id;
+  applyUiImmersionProfiles({ colorVisionMode: spec.id });
+  await saveSettings({ colorVisionMode: spec.id });
+  if (!opts.quiet) {
+    toast(spec.id === "off" ? "👁️ Color-Vision Guard: Off (Standard Spectrum)" : `👁️‍🗨️ Color-Vision & Contrast Guard: ${spec.label}`, { kind: "info" });
+  }
+  return spec;
+}
+
+/** Cycles through the 6 Color-Vision Deficiency & High-Contrast Accessibility modes (`COLOR_VISION_MODES`). */
+export async function cycleColorVisionMode(delta = 1, opts = {}) {
+  const cur = (typeof document !== "undefined" && document.documentElement?.dataset?.visionMode) || state.settings?.colorVisionMode || "off";
+  const idx = COLOR_VISION_MODES.findIndex((m) => m.id === cur);
+  const step = Number(delta) || 1;
+  const nextIdx = (Math.max(0, idx) + step + COLOR_VISION_MODES.length) % COLOR_VISION_MODES.length;
+  return applyColorVisionMode(COLOR_VISION_MODES[nextIdx].id, opts);
+}
+
+/**
+ * Inspects a theme object (or resolves a theme key from `themeList()`) and computes its
+ * structural "Theme DNA" profile: color harmony classification, estimated Kelvin warmth,
+ * WCAG text/accent contrast ratios, and modular aspect breakdown (`colors`, `folders`, `icons`, `atmosphere`, `typography`).
+ */
+export function inspectThemeDna(themeObj) {
+  const t = themeObj && typeof themeObj === "object" ? themeObj : {};
+  const sw = t.swatch ?? ["#16191d", "#1e2329", "#38bdf8", "#e8eaed"];
+  const cols = t.source?.colors || t.colors || {
+    background: t.preview?.bg || sw[0] || "#16191d",
+    card: t.preview?.panel || sw[1] || "#1e2329",
+    accent: t.preview?.accent || sw[2] || "#38bdf8",
+    text: t.preview?.text || sw[3] || "#e8eaed",
+    secondary: t.preview?.selected || sw[2] || "#a855f7",
+    border: t.preview?.border || sw[1] || "#2a313c",
+  };
+  const { h: hAcc, s: sAcc } = rgbHueSatLum(parseHexRgb(cols.accent || "#38bdf8"));
+  const { h: hSec, s: sSec } = rgbHueSatLum(parseHexRgb(cols.secondary || cols.accent || "#a855f7"));
+  const hueDiff = Math.abs(hAcc - hSec);
+  const shortestArc = Math.min(hueDiff, 360 - hueDiff);
+
+  let harmonyType = "Complementary";
+  if (sAcc < 0.14 && sSec < 0.14) harmonyType = "Achromatic / Neutral";
+  else if (shortestArc <= 16) harmonyType = "Monochromatic XDR";
+  else if (shortestArc <= 48) harmonyType = "Analogous";
+  else if (shortestArc >= 110 && shortestArc <= 132) harmonyType = "Triadic (120°)";
+  else if (shortestArc >= 133 && shortestArc <= 144) harmonyType = "Golden Ratio φ (137.5°)";
+  else if (shortestArc >= 145 && shortestArc <= 164) harmonyType = "Split-Complementary";
+  else if (shortestArc >= 80 && shortestArc < 110) harmonyType = "Tetradic Cinema (90°)";
+
+  const kelvinEstimate = (hAcc >= 165 && hAcc <= 255)
+    ? 7500
+    : (hAcc < 65 || hAcc > 330)
+      ? 3500
+      : 5600;
+
+  const textContrast = contrastRatioHex(cols.text || "#e8eaed", cols.background || "#16191d");
+  const accentContrast = contrastRatioHex(cols.accent || "#38bdf8", cols.background || "#16191d");
+  const contrastGrade = textContrast >= 7.0 ? "WCAG AAA" : textContrast >= 4.5 ? "WCAG AA" : "Decorative";
+
+  const fx = t.source?.fx || t.fx || {};
+  return {
+    key: t.key || "custom",
+    name: t.name || "Custom Theme",
+    dark: Boolean(t.dark ?? true),
+    harmonyType,
+    hueDeltaDeg: Math.round(shortestArc),
+    kelvinEstimate,
+    textContrast,
+    accentContrast,
+    uiContrast: accentContrast,
+    contrastGrade,
+    wcagGrade: contrastGrade,
+    aspects: {
+      colors: {
+        background: cols.background,
+        card: cols.card,
+        text: cols.text,
+        accent: cols.accent,
+        secondary: cols.secondary || cols.accent,
+        border: cols.border || cols.card,
+      },
+      folders: {
+        uiElementFx: fx.uiElementFx || t.uiElementFx || "auto",
+        backdropStyle: fx.backdropStyle || t.backdropStyle || (t.hasEffects ? "glass" : "solid"),
+        glow: fx.glow || t.preview?.glow || "none",
+      },
+      icons: {
+        iconPackStyle: fx.iconPackStyle || t.iconPackStyle || "default",
+        iconGlow: fx.iconGlow || "off",
+        iconAnimation: fx.iconAnimation || "off",
+      },
+      atmosphere: {
+        atmosphere: fx.atmosphere || t.atmosphere || "none",
+      },
+      typography: {
+        fontProfile: fx.fontProfile || "default",
+        cornerProfile: fx.cornerProfile || fx.radius || t.preview?.radius || "default",
+      },
+    },
+  };
+}
+
+/**
+ * Modular Theme Aspect Grafter ("Steal Colors / Steal 3D Folders / Steal Icons / Steal Atmosphere / Steal Typography"):
+ * Grafts ONLY a single aspect (`"colors" | "folders" | "icons" | "atmosphere" | "typography"`) from `sourceKeyOrTheme`
+ * onto the user's currently active workspace look, recording a 25-step Undo History snapshot (`⌥Z`).
+ */
+export async function graftThemeAspect(sourceKeyOrTheme, aspect = "colors", opts = {}) {
+  ensureGlobalThemeShortcutsBound();
+  const cleanAspect = THEME_GRAFT_ASPECTS.some((a) => a.id === aspect) ? aspect : "colors";
+  let themeObj = typeof sourceKeyOrTheme === "object" && sourceKeyOrTheme ? sourceKeyOrTheme : null;
+  const targetKey = typeof sourceKeyOrTheme === "string" ? sourceKeyOrTheme : (themeObj?.key || "");
+
+  if (!themeObj && targetKey) {
+    try {
+      const got = await call("themes/get", { key: targetKey });
+      themeObj = got?.theme || null;
+    } catch {}
+    if (!themeObj) {
+      const list = await themeList().catch(() => []);
+      themeObj = list.find((t) => t.key === targetKey) || null;
+    }
+  }
+  if (!themeObj && !targetKey) return null;
+
+  pushThemeHistorySnapshot();
+  const dna = inspectThemeDna(themeObj || { key: targetKey, name: targetKey });
+  const sourceName = themeObj?.name || targetKey || "Source Theme";
+
+  if (cleanAspect === "colors") {
+    const res = await applyThemeColorsKeepingCurrentEffects(targetKey, { ...opts, quiet: true });
+    pushThemeHistorySnapshot({ palette: targetKey }, `Grafted Colors ← ${sourceName}`);
+    if (!opts.quiet) {
+      toast(`🎨 Grafted Colors from "${sourceName}" (kept your current 3D folders, icons & atmosphere)!`, { kind: "success" });
+    }
+    return { aspect: "colors", sourceKey: targetKey, sourceName, dna, applied: res };
+  }
+
+  const patch = {};
+  if (cleanAspect === "folders") {
+    const folderFx = dna.aspects.folders.uiElementFx && dna.aspects.folders.uiElementFx !== "auto"
+      ? dna.aspects.folders.uiElementFx
+      : "tahoe_glass_folders";
+    patch.uiElementFx = folderFx;
+  } else if (cleanAspect === "icons") {
+    patch.iconPackStyle = dna.aspects.icons.iconPackStyle !== "default" ? dna.aspects.icons.iconPackStyle : "macos_tahoe_3d";
+    if (dna.aspects.icons.iconGlow && dna.aspects.icons.iconGlow !== "off") {
+      patch.themeIconGlow = dna.aspects.icons.iconGlow;
+    }
+    if (dna.aspects.icons.iconAnimation && dna.aspects.icons.iconAnimation !== "off") {
+      patch.themeIconAnimation = dna.aspects.icons.iconAnimation;
+    }
+  } else if (cleanAspect === "atmosphere") {
+    const atmo = dna.aspects.atmosphere.atmosphere && dna.aspects.atmosphere.atmosphere !== "none"
+      ? dna.aspects.atmosphere.atmosphere
+      : "liquid_glass_caustics";
+    patch.atmosphere = atmo;
+    try {
+      applyAtmosphere(atmo, state.settings?.atmosphereIntensity ?? 72, state.settings?.atmosphereTier || "auto");
+    } catch {}
+  } else if (cleanAspect === "typography") {
+    const fp = dna.aspects.typography.fontProfile && dna.aspects.typography.fontProfile !== "default"
+      ? dna.aspects.typography.fontProfile
+      : "humanist_hig";
+    const cp = ["sharp", "chamfer", "chamfered", "rounded", "squircle_hig", "pill", "organic"].includes(dna.aspects.typography.cornerProfile)
+      ? dna.aspects.typography.cornerProfile
+      : "squircle_hig";
+    patch.themeFontProfile = fp;
+    patch.themeCornerProfile = cp;
+  }
+
+  if (state.settings) Object.assign(state.settings, patch);
+  applyUiImmersionProfiles(patch);
+  await saveSettings(patch);
+  pushThemeHistorySnapshot(patch, `Grafted ${cleanAspect} ← ${sourceName}`);
+  emit("theme-changed", currentThemePayload());
+
+  if (!opts.quiet) {
+    const aspectMeta = THEME_GRAFT_ASPECTS.find((a) => a.id === cleanAspect);
+    toast(`🧬 ${aspectMeta?.label || `Grafted ${cleanAspect}`} from "${sourceName}"!`, { kind: "success" });
+  }
+  return { aspect: cleanAspect, sourceKey: targetKey, sourceName, dna, patch };
+}
+
 /**
  * Computes a live AAA Production Studio Fidelity Score (`0..100`) and studio grade (`"S+ AAA Master"`, `"A+ Studio Pro"`, `"B Standard"`, etc.)
  * across all active visual, spatial, icon, filter, and audio engines.
@@ -3339,6 +3814,8 @@ export function computeAaaProductionScore(overrides = {}) {
   const sound = s.uiSoundProfile || root?.dataset?.soundProfile || "off";
   const dualFocus = s.dualPaneFocusMode || root?.dataset?.dualFocus || "off";
   const chameleon = s.chameleonFolderMode || root?.dataset?.chameleonMood || "off";
+  const colorTemp = s.colorTempMode || root?.dataset?.colorTemp || "neutral_6500k";
+  const visionMode = s.colorVisionMode || root?.dataset?.visionMode || "off";
 
   const activeEngines = [];
   let score = 20; // Baseline professional computer icon & semantic palette foundation
@@ -3355,6 +3832,8 @@ export function computeAaaProductionScore(overrides = {}) {
   if (sound && sound !== "off") { score += 5; activeEngines.push("uiSoundProfile"); }
   if (dualFocus && dualFocus !== "off") { score += 3; activeEngines.push("dualPaneFocusMode"); }
   if (chameleon && chameleon !== "off") { score += 4; activeEngines.push("chameleonFolderMode"); }
+  if (colorTemp && colorTemp !== "neutral_6500k") { score += 4; activeEngines.push("colorTempMode"); }
+  if (visionMode && visionMode !== "off") { score += 4; activeEngines.push("colorVisionMode"); }
   score = Math.min(100, score);
 
   const grade = score >= 90 ? "S+ AAA Master"
@@ -3635,6 +4114,36 @@ export function buildImmersionStudioBar() {
   const curDualFocus = () => (typeof document !== "undefined" && document.documentElement?.dataset?.dualFocus) || state.settings?.dualPaneFocusMode || "spotlight";
   const curChameleon = () => state.settings?.chameleonFolderMode || (typeof document !== "undefined" && document.documentElement?.dataset?.chameleonMood) || "off";
   const curZeroWatt = () => state.settings?.zeroWattGovernorMode || (typeof document !== "undefined" && document.documentElement?.dataset?.zeroWattMode) || "auto";
+  const curColorTemp = () => (typeof document !== "undefined" && document.documentElement?.dataset?.colorTemp) || state.settings?.colorTempMode || "neutral_6500k";
+  const curColorVision = () => (typeof document !== "undefined" && document.documentElement?.dataset?.visionMode) || state.settings?.colorVisionMode || "off";
+
+  const colorTempButtons = COLOR_TEMP_MODES.map((opt) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${curColorTemp() === opt.id ? " is-active" : ""}`,
+      "data-color-temp-pill": opt.id,
+      "aria-pressed": String(curColorTemp() === opt.id),
+      title: `${opt.desc} (${opt.kelvin}K)`,
+      onclick: async () => {
+        await applyColorTempMode(opt.id);
+        syncBarState();
+      },
+    }, opt.label),
+  );
+
+  const colorVisionButtons = COLOR_VISION_MODES.map((opt) =>
+    h("button", {
+      type: "button",
+      class: `theme-filter-pill${curColorVision() === opt.id ? " is-active" : ""}`,
+      "data-vision-mode-pill": opt.id,
+      "aria-pressed": String(curColorVision() === opt.id),
+      title: opt.desc,
+      onclick: async () => {
+        await applyColorVisionMode(opt.id);
+        syncBarState();
+      },
+    }, opt.label),
+  );
 
   const dualFocusButtons = DUAL_PANE_FOCUS_MODES.map((opt) =>
     h("button", {
@@ -3907,6 +4416,16 @@ export function buildImmersionStudioBar() {
       b.classList.toggle("is-active", on);
       b.setAttribute("aria-pressed", String(on));
     }
+    for (const b of colorTempButtons) {
+      const on = b.dataset.colorTempPill === curColorTemp();
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
+    for (const b of colorVisionButtons) {
+      const on = b.dataset.visionModePill === curColorVision();
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    }
     for (const b of fontButtons) {
       const on = b.dataset.fontProfile === curFont();
       b.classList.toggle("is-active", on);
@@ -4059,6 +4578,14 @@ export function buildImmersionStudioBar() {
     h("div", { class: "theme-pill-row", "data-zero-watt-bar": "true" },
       h("span", { class: "theme-pill-label" }, `🔋 Smart Zero-Watt Power Governor (${ZERO_WATT_GOVERNOR_MODES.length})`),
       ...zeroWattButtons,
+    ),
+    h("div", { class: "theme-pill-row", "data-color-temp-bar": "true" },
+      h("span", { class: "theme-pill-label" }, `🌡️ Kelvin White-Point & OLED Mastering (${COLOR_TEMP_MODES.length})`),
+      ...colorTempButtons,
+    ),
+    h("div", { class: "theme-pill-row", "data-vision-mode-bar": "true" },
+      h("span", { class: "theme-pill-label" }, `👁️‍🗨️ Color-Vision & AAA Contrast Guard (${COLOR_VISION_MODES.length})`),
+      ...colorVisionButtons,
     ),
     h("div", { class: "theme-pill-row" },
       h("span", { class: "theme-pill-label" }, "🔤 Typography"),
@@ -6106,6 +6633,26 @@ export function getActiveWorkspaceEffects() {
       title: `Click to mute UI tactile soundscape (${soundMeta?.label || soundProfile})`,
     });
   }
+  const colorTemp = root.dataset?.colorTemp || "";
+  if (colorTemp && colorTemp !== "neutral_6500k") {
+    const tempMeta = COLOR_TEMP_MODES.find((m) => m.id === colorTemp);
+    items.push({
+      kind: "colorTempMode",
+      id: colorTemp,
+      label: `${tempMeta?.label || `🌡️ White-Point: ${colorTemp}`}`,
+      title: `Click to reset Kelvin White-Point mastering (${tempMeta?.label || colorTemp}) back to Neutral 6500K`,
+    });
+  }
+  const visionMode = root.dataset?.visionMode || "";
+  if (visionMode && visionMode !== "off") {
+    const visionMeta = COLOR_VISION_MODES.find((m) => m.id === visionMode);
+    items.push({
+      kind: "colorVisionMode",
+      id: visionMode,
+      label: `${visionMeta?.label || `👁️‍🗨️ Vision: ${visionMode}`}`,
+      title: `Click to turn off Color-Vision & AAA Contrast Guard (${visionMeta?.label || visionMode})`,
+    });
+  }
   const hasRetroGlitch = Boolean(
     (root.getAttribute("data-fx-scanlines") && root.getAttribute("data-fx-scanlines") !== "none")
     || (root.getAttribute("data-fx-grain") && root.getAttribute("data-fx-grain") !== "none")
@@ -6156,6 +6703,8 @@ export async function removeActiveWorkspaceEffect(rawKind, value = "", opts = {}
     folderSpring: "folderSpringMode",
     wallpaperScene: "desktopWallpaperScene",
     soundProfile: "uiSoundProfile",
+    colorTemp: "colorTempMode",
+    visionMode: "colorVisionMode",
   };
   const kind = KIND_ALIASES[rawKind] || rawKind;
   const root = typeof document !== "undefined" ? document.documentElement : null;
@@ -6292,6 +6841,21 @@ export async function removeActiveWorkspaceEffect(rawKind, value = "", opts = {}
     applyUiImmersionProfiles({ uiSoundProfile: "off" });
     await saveSettings({ ...palettePatch, uiSoundProfile: "off" });
     if (root?.dataset) delete root.dataset.soundProfile;
+  } else if (kind === "colorTempMode") {
+    if (root?.dataset) delete root.dataset.colorTemp;
+    root?.style?.removeProperty("--fm-temp-tint");
+    root?.style?.removeProperty("--fm-temp-mix");
+    root?.style?.removeProperty("--fm-temp-kelvin");
+    if (state.settings) Object.assign(state.settings, { ...palettePatch, colorTempMode: "neutral_6500k" });
+    applyUiImmersionProfiles({ colorTempMode: "neutral_6500k" });
+    await saveSettings({ ...palettePatch, colorTempMode: "neutral_6500k" });
+    if (root?.dataset) delete root.dataset.colorTemp;
+  } else if (kind === "colorVisionMode") {
+    if (root?.dataset) delete root.dataset.visionMode;
+    if (state.settings) Object.assign(state.settings, { ...palettePatch, colorVisionMode: "off" });
+    applyUiImmersionProfiles({ colorVisionMode: "off" });
+    await saveSettings({ ...palettePatch, colorVisionMode: "off" });
+    if (root?.dataset) delete root.dataset.visionMode;
   } else if (kind === "retroGlitch") {
     for (const attr of ["data-fx-scanlines", "data-fx-grain", "data-fx-chromatic", "data-fx-noise", "data-fx-crt"]) {
       root?.removeAttribute(attr);
@@ -8411,6 +8975,8 @@ export async function showThemeCompareDialog(existingThemes, initialA = "", init
     refreshBlendSwatches();
     const teleA = estimateThemeResourceTelemetry(themeA);
     const teleB = estimateThemeResourceTelemetry(themeB);
+    const dnaA = inspectThemeDna(themeA);
+    const dnaB = inspectThemeDna(themeB);
     const rows = [
       ["Template Tier", resolveTemplateTier(themeA).toUpperCase(), resolveTemplateTier(themeB).toUpperCase()],
       ["Category", themeA.group, themeB.group],
@@ -8421,6 +8987,7 @@ export async function showThemeCompareDialog(existingThemes, initialA = "", init
       ["Motion & UI FX", `${themeA.motion || (themeA.hasEffects ? "smooth" : "static")}${themeA.uiElementFx ? ` · ${themeA.uiElementFx}` : ""}`, `${themeB.motion || (themeB.hasEffects ? "smooth" : "static")}${themeB.uiElementFx ? ` · ${themeB.uiElementFx}` : ""}`],
     ];
     const telemetryFooterRows = [
+      ["♿ WCAG Text & UI Contrast", `${dnaA.textContrast}:1 (${dnaA.wcagGrade}) · UI ${dnaA.uiContrast}:1 · ${dnaA.harmonyType}`, `${dnaB.textContrast}:1 (${dnaB.wcagGrade}) · UI ${dnaB.uiContrast}:1 · ${dnaB.harmonyType}`],
       ["📟 CPU / GPU Load", `CPU ${teleA.cpuPct.toFixed(1)}% · GPU ${teleA.gpuPct.toFixed(1)}% (${teleA.gradeLabel})`, `CPU ${teleB.cpuPct.toFixed(1)}% · GPU ${teleB.gpuPct.toFixed(1)}% (${teleB.gradeLabel})`],
       ["⚡ Power, VRAM & Pacing", `${teleA.watts.toFixed(1)} W · ${teleA.vramMb.toFixed(1)} MB · ${teleA.fps} FPS (${teleA.frameTimeMs}ms)`, `${teleB.watts.toFixed(1)} W · ${teleB.vramMb.toFixed(1)} MB · ${teleB.fps} FPS (${teleB.frameTimeMs}ms)`],
     ];
@@ -8499,6 +9066,46 @@ export async function showThemeCompareDialog(existingThemes, initialA = "", init
     ),
   );
 
+  const grafterSection = h("div", {
+    class: "theme-blender-bar",
+    "data-theme-dna-grafter": "true",
+    role: "region",
+    "aria-label": "Theme DNA & 1-Click Aspect Grafter",
+  },
+    h("div", { class: "theme-blender-head" },
+      h("strong", {}, "🧪 Theme DNA Aspect Grafter (Mix & Match Individual Layers from A or B)"),
+      h("span", { class: "hint" }, "Graft only Colors, 3D Folders, Icons, Atmosphere, or Typography without overwriting the rest of your look!"),
+    ),
+    h("div", { class: "theme-pill-row" },
+      h("span", { class: "theme-pill-label" }, "◀ Graft from Left (A):"),
+      ...THEME_GRAFT_ASPECTS.map((asp) =>
+        h("button", {
+          type: "button",
+          class: "theme-filter-pill",
+          "data-graft-a": asp.id,
+          title: `${asp.desc} from Theme A`,
+          onclick: async () => {
+            await graftThemeAspect(selectA.value, asp.id);
+          },
+        }, `${asp.label} (A)`),
+      ),
+    ),
+    h("div", { class: "theme-pill-row" },
+      h("span", { class: "theme-pill-label" }, "▶ Graft from Right (B):"),
+      ...THEME_GRAFT_ASPECTS.map((asp) =>
+        h("button", {
+          type: "button",
+          class: "theme-filter-pill",
+          "data-graft-b": asp.id,
+          title: `${asp.desc} from Theme B`,
+          onclick: async () => {
+            await graftThemeAspect(selectB.value, asp.id);
+          },
+        }, `${asp.label} (B)`),
+      ),
+    ),
+  );
+
   const dlg = openDialog({
     title: "Compare themes side-by-side",
     wide: true,
@@ -8527,6 +9134,7 @@ export async function showThemeCompareDialog(existingThemes, initialA = "", init
         ),
       ),
       blenderSection,
+      grafterSection,
       specTable,
       h("div", { class: "theme-compare-actions" },
         h("button", {

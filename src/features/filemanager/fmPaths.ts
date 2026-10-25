@@ -94,7 +94,7 @@ export interface ProtectContext {
 }
 
 /** Top-level folders that must not be moved, renamed or deleted themselves. */
-const POSIX_TOP = ["/bin", "/boot", "/dev", "/etc", "/lib", "/lib32", "/lib64", "/libexec", "/proc", "/root", "/run", "/sbin", "/sys", "/usr", "/var", "/home", "/Users", "/Volumes", "/System", "/Library", "/Applications", "/private", "/cores", "/opt", "/mnt", "/media", "/srv"];
+const POSIX_TOP = ["/bin", "/boot", "/dev", "/etc", "/lib", "/lib32", "/lib64", "/libexec", "/proc", "/root", "/run", "/sbin", "/sys", "/usr", "/var", "/home", "/Users", "/Volumes", "/System", "/Library", "/Applications", "/private", "/private/etc", "/private/var", "/private/tmp", "/cores", "/opt", "/mnt", "/media", "/srv"];
 /** Folders whose contents belong to the operating system: nothing inside may be changed from here. */
 const POSIX_SYSTEM_INSIDE = ["/bin", "/boot", "/dev", "/etc", "/lib", "/lib32", "/lib64", "/libexec", "/proc", "/sbin", "/sys", "/usr", "/System", "/private/etc"];
 const POSIX_SYSTEM_ALLOWED_INSIDE = ["/usr/local"];

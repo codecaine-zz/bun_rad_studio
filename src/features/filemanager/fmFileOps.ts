@@ -43,20 +43,41 @@ export async function measureTree(source: string, signal: AbortSignal, limit = M
   let files = 0;
   let bytes = 0;
   let seen = 0;
-  const walk = async (path: string): Promise<boolean> => {
-    signal.throwIfAborted();
-    if (++seen > limit) return false;
-    const st = await fsp.lstat(path);
-    if (st.isDirectory()) {
-      for (const name of await fsp.readdir(path)) if (!(await walk(nodePath.join(path, name)))) return false;
-    } else {
-      files++;
-      if (st.isFile()) bytes += st.size;
-    }
-    return true;
-  };
   try {
-    return (await walk(source)) ? { files, bytes } : null;
+    signal.throwIfAborted();
+    if (++seen > limit) return null;
+    const rootSt = await fsp.lstat(source);
+    if (!rootSt.isDirectory()) {
+      files++;
+      if (rootSt.isFile()) bytes += rootSt.size;
+      return { files, bytes };
+    }
+    const stack = [source];
+    while (stack.length) {
+      signal.throwIfAborted();
+      const dir = stack.pop()!;
+      const entries = await fsp.readdir(dir, { withFileTypes: true });
+      const regularFiles: string[] = [];
+      for (const d of entries) {
+        signal.throwIfAborted();
+        if (++seen > limit) return null;
+        const full = nodePath.join(dir, d.name);
+        if (d.isSymbolicLink()) {
+          files++;
+        } else if (d.isDirectory()) {
+          stack.push(full);
+        } else {
+          files++;
+          if (d.isFile()) regularFiles.push(full);
+        }
+      }
+      for (let i = 0; i < regularFiles.length; i += 64) {
+        signal.throwIfAborted();
+        const batch = await Promise.all(regularFiles.slice(i, i + 64).map((f) => fsp.lstat(f)));
+        for (const st of batch) if (st.isFile()) bytes += st.size;
+      }
+    }
+    return { files, bytes };
   } catch (err) {
     if (signal.aborted) throw err;
     return null;

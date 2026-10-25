@@ -37,7 +37,11 @@ function codeFor(svc: SecretsService, item: SecretItem, field: unknown) {
   const raw = secretValue(item, f);
   if (raw === null || raw === "") throw new FmError("BAD_TOTP", "There is no one-time code secret on this item yet.");
   const spec = parseTotp(raw);
-  return { ...totpAt(spec, svc.hooks.now()), ...(spec.issuer ? { issuer: spec.issuer } : {}) };
+  try {
+    return { ...totpAt(spec, svc.hooks.now()), ...(spec.issuer ? { issuer: spec.issuer } : {}) };
+  } finally {
+    spec.secret.fill(0);
+  }
 }
 
 const dedupeKey = (i: SecretItem): string => [i.type, i.title, i.fields.username ?? "", i.fields.url ?? "", i.fields.password ?? ""].join("\0");

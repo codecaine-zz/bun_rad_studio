@@ -177,8 +177,7 @@ function ancestorUnreadable(unreadable: Map<string, string>, relPath: string): s
 
 async function runCompare(job: DevJob, left: string, right: string, ignoreLines: string[], mode: CompareMode): Promise<CompareSummary> {
   const sets = (root: string) => (ignoreLines.length ? [ignoreSetFromText(root.replace(/\\/g, "/"), ignoreLines.join("\n"))] : []);
-  const l = await scanSide(left, sets(left), job, "left");
-  const r = await scanSide(right, sets(right), job, "right");
+  const [l, r] = await Promise.all([scanSide(left, sets(left), job, "left"), scanSide(right, sets(right), job, "right")]);
   if (job.cancelled) {
     job.data = { left, right, entries: [] } satisfies CompareData;
     return { left, right, mode, counts: { onlyLeft: 0, onlyRight: 0, different: 0, identical: 0, cannot: 0 }, unverifiedIdentical: 0, ignore: ignoreLines, cancelled: true, scannedLeft: l.entries.size, scannedRight: r.entries.size };

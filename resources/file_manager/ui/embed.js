@@ -27,10 +27,13 @@ export function syncFrameTheme(frame, payload = currentThemePayload()) {
 /** A link clicked inside an embedded app arrives here as a message from that app's frame; it opens in the system browser. */
 function onFrameMessage(e) {
   const url = e.data && typeof e.data === "object" ? e.data.fmOpenLink : null;
-  if (typeof url !== "string") return;
+  if (typeof url !== "string" || !/^https?:\/\//i.test(url.trim())) return;
+  for (const f of frames) {
+    if (!f.isConnected) frames.delete(f);
+  }
   const from = [...frames].find((f) => f.contentWindow === e.source);
   if (!from || e.origin !== new URL(from.src).origin) return;
-  call("link/open", { url }).catch((err) => toast(err?.message || "Couldn't open that link.", { kind: "error" }));
+  call("link/open", { url: url.trim() }).catch((err) => toast(err?.message || "Couldn't open that link.", { kind: "error" }));
 }
 
 /**

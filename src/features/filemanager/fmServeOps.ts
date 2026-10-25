@@ -112,6 +112,13 @@ async function parseStart(ctx: FmContext, input: Record<string, any>) {
   let phpVersion: string | null = null;
   let router = "";
   if (kind === "php") {
+    const docReal = realOr(docroot);
+    for (const own of ownFolders(ctx)) {
+      const ownReal = realOr(own);
+      if (isSameOrInside(docReal, ownReal, ctx.platform) || isSameOrInside(ownReal, docReal, ctx.platform)) {
+        throw new FmError("PROTECTED", "That folder holds the File Manager's own files, which are never served.");
+      }
+    }
     const info = await detectPhp(ctx, typeof b.phpPath === "string" && b.phpPath.trim() ? b.phpPath.trim() : undefined);
     if (!info.available) throw noPhpError(info);
     php = info.path!;

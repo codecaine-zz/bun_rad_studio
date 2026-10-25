@@ -56,7 +56,19 @@ export function assertBuryable(ctx: FmContext, path: string): void {
 
 async function sha256Of(file: string): Promise<string | undefined> {
   try {
-    return createHash("sha256").update(await fsp.readFile(file)).digest("hex");
+    const handle = await fsp.open(file, "r");
+    try {
+      const hash = createHash("sha256");
+      const buf = Buffer.allocUnsafe(64 * 1024);
+      for (;;) {
+        const { bytesRead } = await handle.read(buf, 0, buf.length, null);
+        if (bytesRead === 0) break;
+        hash.update(buf.subarray(0, bytesRead));
+      }
+      return hash.digest("hex");
+    } finally {
+      await handle.close();
+    }
   } catch {
     return undefined;
   }

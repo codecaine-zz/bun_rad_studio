@@ -14,7 +14,7 @@
 import { randomBytes, timingSafeEqual } from "crypto";
 import { existsSync, promises as fsp, readFileSync, realpathSync } from "fs";
 import * as nodePath from "path";
-import { gunzipSync } from "zlib";
+import { gunzip } from "zlib";
 import { guardLocalRequest, readClipboardTextSync, writeClipboardSync } from "../../localGuard";
 import { absolutePath, createContext, pathApi, type FmContext, type FmContextOptions, type FmHandler } from "./fmCore";
 import { codeOperations } from "./fmCodeOps";
@@ -51,7 +51,7 @@ import { sysinfoOperations } from "./fmSysinfoOps";
 import type { HostedPeer, HostedSession } from "../../simplegui_host";
 import { dbState } from "./fmDbState";
 import { watchOperations } from "./fmWatchOps";
-import { entryFor, listFolder, listPlaces, previewFile, propertiesOf, searchFolder } from "./fmList";
+import { calculateFolderSizes, entryFor, listFolder, listPlaces, previewFile, propertiesOf, searchFolder } from "./fmList";
 import { clipboardOperations } from "./fmClipboardOps";
 import { qrOperations } from "./fmQr";
 import { startRenames, startTransfer } from "./fmFileOps";
@@ -62,7 +62,7 @@ import { makeSqliteFile } from "./fmNewSqlite";
 import { overview, previewConvert, startConvert, startInstall, openToolWebsite } from "./fmBatch";
 import { openItem, revealItem } from "./fmOpen";
 import { openViaAssociation, openWithOperations } from "./fmOpenWith";
-import { FmError, classify, describeFsError, parseTypedPath, extensionOf } from "./fmPaths";
+import { FmError, classify, describeFsError, parseTypedPath, extensionOf, isSameOrInside } from "./fmPaths";
 import { addRecent, clearRecents, loadSettings, pruneRecents, removeRecent, updateSettings } from "./fmSettings";
 import { windowOperations } from "./fmWindow";
 import { MAX_INPUT_BYTES, clampSize, createTerminalHub, shellFolder, terminalSupported, type TerminalSession } from "./fmTerminal";
@@ -344,6 +344,9 @@ const operations: Record<string, Handler> = {
   async props(ctx, b) {
     return { properties: await propertiesOf(ctx, b.paths) };
   },
+  async foldersizes(ctx, b) {
+    return await calculateFolderSizes(ctx, b.paths);
+  },
   async mkdir(ctx, b) {
     return await makeFolder(ctx, b.parent, b.name);
   },
@@ -544,6 +547,9 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
 
   const terminals = createTerminalHub(undefined, assets);
   const primaryHostname = (options.host ?? "127.0.0.1").toLowerCase();
+  const startEncoded = options.startPath ? encodeURIComponent(nodePath.resolve(options.startPath)) : "";
+  let cachedIndexMtime = -1;
+  let cachedIndexTemplate = "";
 
   async function serveEmbedded(id: string, rel: string, host: string, query: URLSearchParams): Promise<Response> {
     const notFound = () => new Response("Not Found", { status: 404, headers: secureHeaders() });
@@ -561,21 +567,25 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
     const ext = /\.([a-z0-9]+)$/i.exec(name)?.[1]?.toLowerCase() ?? "";
     const type = EMBED_TYPES[ext];
     const file = nodePath.join(dir, name);
-    if (!type || !file.startsWith(dir + nodePath.sep) || !existsSync(file)) return notFound();
+    if (!type || !file.startsWith(dir + nodePath.sep)) return notFound();
+    const st = await fsp.stat(file).catch(() => null);
+    if (!st?.isFile()) return notFound();
+    const [realDir, realFile] = await Promise.all([fsp.realpath(dir).catch(() => ""), fsp.realpath(file).catch(() => "")]);
+    if (!realDir || !realFile || !realFile.startsWith(realDir + nodePath.sep)) return notFound();
     const headers = secureHeaders({ "Content-Type": type, "Content-Security-Policy": embeddedCsp(app, host) });
     if (name === "index.html") {
       // The timer asks its page address for its music playlist (a list of tracks kept in a file next to it).
       if (id === "timer" && query.get("action") === "sync_codecaine_playlist") {
         let tracks: unknown[] = [];
         try {
-          const parsed = JSON.parse(readFileSync(nodePath.join(dir, "cache", "codecaine_playlist.json"), "utf8"));
+          const parsed = JSON.parse(await fsp.readFile(nodePath.join(dir, "cache", "codecaine_playlist.json"), "utf8"));
           if (Array.isArray(parsed)) tracks = parsed;
         } catch {
           // no playlist file: an empty list
         }
         return json(200, { success: true, count: tracks.length, tracks });
       }
-      let html = readFileSync(file, "utf8");
+      let html = await fsp.readFile(realFile, "utf8");
       const headOpen = /<head[^>]*>/i.exec(html);
       if (headOpen) {
         const idx = headOpen.index + headOpen[0].length;
@@ -587,7 +597,7 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
       const styleTweak = `<style>${app.hideCss}</style>`;
       return new Response(at >= 0 ? html.slice(0, at) + styleTweak + html.slice(at) : html + styleTweak, { headers });
     }
-    return new Response(Bun.file(file), { headers });
+    return new Response(Bun.file(realFile), { headers });
   }
 
   const server = Bun.serve<TerminalSocketData | HostedSocketData>({
@@ -693,9 +703,9 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
         const embedded = /^\/app\/([a-z0-9_]+)\/(.*)$/.exec(path);
         if (embedded) {
           if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405, headers: secureHeaders() });
+          if (url.hostname.toLowerCase() === primaryHostname) return new Response("Not Found", { status: 404, headers: secureHeaders() });
           if (embedded[1] === "hosted" || embedded[1] === "hostedws") {
             // A tool's frame and its socket: only on the other loopback spelling, and only with that tool's secret.
-            if (url.hostname.toLowerCase() === primaryHostname) return new Response("Not Found", { status: 404, headers: secureHeaders() });
             const id = embedded[2]!.replace(/\/$/, "");
             const secret = url.searchParams.get("s");
             if (embedded[1] === "hosted") return hostedPageResponse(ctx, id, secret, url.host, alternateOrigin(url.host), secureHeaders);
@@ -707,7 +717,6 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           }
           if (embedded[1] === "dbstudio") {
             // Only on the other loopback spelling, like the other embedded apps: the File Manager's own origin never serves a studio frame.
-            if (url.hostname.toLowerCase() === primaryHostname) return new Response("Not Found", { status: 404, headers: secureHeaders() });
             return studioFrameResponse(dbState(ctx).studios, embedded[2]!.replace(/\/$/, ""), alternateOrigin(url.host), secureHeaders);
           }
           return await serveEmbedded(embedded[1]!, embedded[2]!, url.host, url.searchParams);
@@ -716,9 +725,18 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
         if (url.hostname.toLowerCase() !== primaryHostname) return new Response("Not Found", { status: 404, headers: secureHeaders() });
         if (req.method === "GET" && (path === "/" || path === "/index.html")) {
           const file = nodePath.join(assets, "index.html");
-          if (!existsSync(file)) return new Response("The File Manager page is missing.", { status: 500 });
+          const st = await fsp.stat(file).catch(() => null);
+          if (!st?.isFile()) return new Response("The File Manager page is missing.", { status: 500 });
+          if (st.mtimeMs !== cachedIndexMtime || !cachedIndexTemplate) {
+            const rawHtml = await fsp.readFile(file, "utf8");
+            cachedIndexTemplate = rawHtml
+              .replaceAll("__FM_TOKEN__", token)
+              .replaceAll("__FM_PLATFORM__", ctx.platform)
+              .replaceAll("__FM_START__", startEncoded);
+            cachedIndexMtime = st.mtimeMs;
+          }
           const nonce = randomBytes(16).toString("base64");
-          const html = readFileSync(file, "utf8").replaceAll("__FM_TOKEN__", token).replaceAll("__FM_NONCE__", nonce).replaceAll("__FM_PLATFORM__", ctx.platform).replaceAll("__FM_START__", options.startPath ? encodeURIComponent(nodePath.resolve(options.startPath)) : "");
+          const html = cachedIndexTemplate.replaceAll("__FM_NONCE__", nonce);
           return new Response(html, { headers: secureHeaders({ "Content-Type": MIME.html!, "Content-Security-Policy": pageCsp(url.host, nonce) }) });
         }
 
@@ -737,16 +755,18 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
         const vendor = /^\/vendor\/(xterm\.mjs|addon-fit\.mjs|xterm\.css|LICENSE-xterm\.txt)$/.exec(path);
         if (req.method === "GET" && vendor) {
           const file = nodePath.join(assets, "vendor", vendor[1]!);
-          if (!existsSync(file)) return new Response("Not Found", { status: 404 });
+          const bf = Bun.file(file);
+          if (!(await bf.exists())) return new Response("Not Found", { status: 404 });
           const type = vendor[1]!.endsWith(".css") ? MIME.css! : vendor[1]!.endsWith(".txt") ? "text/plain; charset=utf-8" : MIME.js!;
-          return new Response(Bun.file(file), { headers: secureHeaders({ "Content-Type": type, "Content-Security-Policy": CSP }) });
+          return new Response(bf, { headers: secureHeaders({ "Content-Type": type, "Content-Security-Policy": CSP }) });
         }
 
         const ui = /^\/ui\/([\w.-]+\.(js|css|svg|png))$/.exec(path);
         if (req.method === "GET" && ui) {
           const file = nodePath.join(assets, "ui", ui[1]!);
-          if (!existsSync(file)) return new Response("Not Found", { status: 404 });
-          return new Response(Bun.file(file), { headers: secureHeaders({ "Content-Type": MIME[ui[2]!]!, "Content-Security-Policy": CSP }) });
+          const bf = Bun.file(file);
+          if (!(await bf.exists())) return new Response("Not Found", { status: 404 });
+          return new Response(bf, { headers: secureHeaders({ "Content-Type": MIME[ui[2]!]!, "Content-Security-Policy": CSP }) });
         }
 
         if (req.method === "GET" && path === "/api/health") {
@@ -773,13 +793,18 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           if (!thumb && !media && !picture && !convertImg && !subtitle && !lyrics && !fontMime) return json(415, { ok: false, error: { code: "CANT_PREVIEW", message: "That kind of file can't be previewed this way." } });
           const st = await fsp.stat(file);
           if (!st.isFile()) return json(400, { ok: false, error: { code: "NOT_A_FILE", message: "That isn't a file." } });
+          const real = await fsp.realpath(file).catch(() => file);
+          const realTrash = await fsp.realpath(ctx.trashRoot).catch(() => ctx.trashRoot);
+          if (isSameOrInside(real, realTrash, ctx.platform)) {
+            return json(403, { ok: false, error: { code: "PROTECTED", message: "Items in the Recycle Bin cannot be read directly." } });
+          }
           if (fontMime) {
             if (st.size > 32 * 1024 * 1024) return json(413, { ok: false, error: { code: "TOO_BIG", message: "That font file is too big to preview." } });
-            return new Response(Bun.file(file), { headers: secureHeaders({ "Content-Type": fontMime, ...preview }) });
+            return new Response(Bun.file(real), { headers: secureHeaders({ "Content-Type": fontMime, ...preview }) });
           }
           if (lyrics) {
             if (st.size > 256 * 1024) return json(413, { ok: false, error: { code: "TOO_BIG", message: "That lyrics file exceeds the 256 KB display limit." } });
-            return new Response(Bun.file(file), { headers: secureHeaders({ "Content-Type": "text/plain; charset=utf-8", ...preview }) });
+            return new Response(Bun.file(real), { headers: secureHeaders({ "Content-Type": "text/plain; charset=utf-8", ...preview }) });
           }
           // A picture of a document that only the system's Quick Look can draw (macOS).
           if (thumb) {
@@ -788,10 +813,10 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
             return new Response(Bun.file(png), { headers: secureHeaders({ "Content-Type": "image/png", ...preview }) });
           }
           // Sound and video: streamed in pieces, so playing starts at once and seeking works.
-          if (media) return fileResponse(req, file, st.size, secureHeaders({ "Content-Type": media, ...preview, "Cache-Control": "private, max-age=3600" }));
+          if (media) return fileResponse(req, real, st.size, secureHeaders({ "Content-Type": media, ...preview, "Cache-Control": "private, max-age=3600" }));
           if (subtitle) {
             if (st.size > 2 * 1024 * 1024) return json(413, { ok: false, error: { code: "TOO_BIG", message: "That subtitle file is too big." } });
-            return new Response(Bun.file(file), { headers: secureHeaders({ "Content-Type": subtitle, ...preview }) });
+            return new Response(Bun.file(real), { headers: secureHeaders({ "Content-Type": subtitle, ...preview }) });
           }
           if (st.size > MAX_RAW_BYTES) return json(413, { ok: false, error: { code: "TOO_BIG", message: "That picture is too big to preview." } });
           if (convertImg) {
@@ -800,11 +825,13 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
             return new Response(Bun.file(png), { headers: secureHeaders({ "Content-Type": "image/png", ...preview }) });
           }
           if (ext === "svgz") {
-            const rawBytes = await fsp.readFile(file);
-            const svgBytes = gunzipSync(rawBytes, { maxOutputLength: 16 * 1024 * 1024 });
-            return new Response(svgBytes, { headers: secureHeaders({ "Content-Type": "image/svg+xml", ...preview }) });
+            const rawBytes = await fsp.readFile(real);
+            const svgBytes = await new Promise<Buffer>((resolve, reject) => {
+              gunzip(rawBytes, { maxOutputLength: 16 * 1024 * 1024 }, (err, out) => (err ? reject(err) : resolve(out)));
+            });
+            return new Response(new Uint8Array(svgBytes), { headers: secureHeaders({ "Content-Type": "image/svg+xml", ...preview }) });
           }
-          return new Response(Bun.file(file), { headers: secureHeaders({ "Content-Type": picture!, ...preview }) });
+          return new Response(Bun.file(real), { headers: secureHeaders({ "Content-Type": picture!, ...preview }) });
         }
 
         if (req.method === "POST" && path.startsWith("/api/")) {

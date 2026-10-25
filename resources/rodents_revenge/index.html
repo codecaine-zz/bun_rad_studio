@@ -2874,7 +2874,13 @@
         this.checkTrappedCats();
       }
 
-      // Authentic 1991 8-directional cat movement
+      isCatBlockedTile(x, y) {
+        if (x < 0 || x >= this.cols || y < 0 || y >= this.rows) return true;
+        const cell = this.grid[y][x];
+        return cell === WALL || cell === BLOCK || cell === SOLID_BLOCK || cell === MOUSE_HOLE;
+      }
+
+      // Authentic Rodent's Revenge cat movement (cannot clip or escape diagonally through blocks)
       getAvailableCatMoves(cx, cy, canLeapSinkholes = false) {
         const moves = [];
         const offsets = [
@@ -2890,6 +2896,13 @@
 
           if (nx < 0 || nx >= this.cols || ny < 0 || ny >= this.rows) continue;
 
+          // Prevent cats from escaping or squeezing diagonally past/between blocks
+          if (off.dx !== 0 && off.dy !== 0) {
+            if (this.isCatBlockedTile(cx + off.dx, cy) || this.isCatBlockedTile(cx, cy + off.dy)) {
+              continue;
+            }
+          }
+
           const cell = this.grid[ny][nx];
           // Can walk on EMPTY, SPRUNG_TRAP, TRAP, or CHEESE
           if (cell === EMPTY || cell === SPRUNG_TRAP || cell === TRAP || cell === CHEESE || cell === GOLD_CHEESE) {
@@ -2902,6 +2915,11 @@
               const leapX = nx + off.dx;
               const leapY = ny + off.dy;
               if (leapX >= 0 && leapX < this.cols && leapY >= 0 && leapY < this.rows) {
+                if (off.dx !== 0 && off.dy !== 0) {
+                  if (this.isCatBlockedTile(nx + off.dx, ny) || this.isCatBlockedTile(nx, ny + off.dy)) {
+                    continue;
+                  }
+                }
                 if ((this.grid[leapY][leapX] === EMPTY || this.grid[leapY][leapX] === SPRUNG_TRAP) && !this.cats.some(c => c.x === leapX && c.y === leapY)) {
                   moves.push({ x: leapX, y: leapY });
                 }
@@ -2917,7 +2935,7 @@
         return moves;
       }
 
-      // 8-way BFS flood-fill to analyze the cat's enclosed pocket
+      // BFS flood-fill to analyze the cat's enclosed pocket (respecting diagonal block boundaries)
       analyzeCatPocket(cat) {
         const visited = Array.from({ length: this.rows }, () => Array(this.cols).fill(false));
         const queue = [{ x: cat.x, y: cat.y }];
@@ -2952,8 +2970,12 @@
             const ny = cur.y + off.dy;
             if (nx <= 0 || nx >= this.cols - 1 || ny <= 0 || ny >= this.rows - 1) continue;
             if (visited[ny][nx]) continue;
-            const cell = this.grid[ny][nx];
-            if (cell !== WALL && cell !== BLOCK && cell !== SOLID_BLOCK && cell !== MOUSE_HOLE) {
+            if (off.dx !== 0 && off.dy !== 0) {
+              if (this.isCatBlockedTile(cur.x + off.dx, cur.y) || this.isCatBlockedTile(cur.x, cur.y + off.dy)) {
+                continue;
+              }
+            }
+            if (!this.isCatBlockedTile(nx, ny)) {
               visited[ny][nx] = true;
               queue.push({ x: nx, y: ny });
             }

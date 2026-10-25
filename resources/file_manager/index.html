@@ -85,11 +85,13 @@
         <div id="quickbar" class="quickbar" role="region" aria-label="Quick filter and view controls">
           <div class="qb-filter-wrap">
             <span class="qb-filter-icon" aria-hidden="true">⚡</span>
-            <input id="quick-filter" type="search" class="qb-filter-input" placeholder="Filter this folder…" aria-label="Filter items in this folder by name or type" spellcheck="false" autocomplete="off">
+            <input id="quick-filter" type="search" class="qb-filter-input" placeholder="Filter this folder… (name, *.ts, ext:json, size:>1mb, date:today)" title="Instant folder filter: type a name, wildcard (*.ts), negation (-node_modules), ext:ts,js, size:>1mb, date:today, tag:red, or is:dir" aria-label="Filter items in this folder by name or type" spellcheck="false" autocomplete="off">
             <button id="quick-filter-clear" type="button" class="qb-clear-btn" title="Clear folder filter (Esc)" aria-label="Clear folder filter" hidden>✕</button>
           </div>
           <div id="kind-chips" class="qb-chips" role="toolbar" aria-label="Filter by file category"></div>
           <div class="qb-controls" role="group" aria-label="Layout and grouping">
+            <button id="qb-sizes-btn" type="button" class="qb-pill" title="Calculate total byte sizes for folders in this view so they display in the Size column and sort by size">📐 Sizes</button>
+            <button id="qb-select-btn" type="button" class="qb-pill" title="Select or deselect items by pattern, extension, size, or date">🎯 Select…</button>
             <button id="qb-group-btn" type="button" class="qb-pill" aria-haspopup="menu" title="Group items in this folder by Kind, Date, or Size">Group: None ▾</button>
             <button id="qb-density-btn" type="button" class="qb-pill" aria-haspopup="menu" title="Change row spacing density (Compact, Comfortable, Spacious)">Comfortable ▾</button>
             <button id="qb-template-btn" type="button" class="qb-pill qb-pill-accent" title="Create a new file from a starter template">+ Template</button>

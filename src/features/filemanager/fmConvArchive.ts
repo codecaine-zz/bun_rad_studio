@@ -424,12 +424,20 @@ export async function* tarItems(source: AsyncIterable<Buffer>, limits: ArchiveLi
           for (const line of body.toString("utf8").split("\n")) {
             const m = /^\d+ ([^=]+)=(.*)$/.exec(line);
             if (m?.[1] === "path") longName = m[2]!;
-            if (m?.[1] === "size" && /^\d+$/.test(m[2]!)) paxSize = Number(m[2]);
+            if (m?.[1] === "size" && /^\d+$/.test(m[2]!)) {
+              const parsed = Number(m[2]);
+              if (Number.isSafeInteger(parsed) && parsed >= 0) paxSize = parsed;
+            }
           }
         } else if (flag === "L") longName = body.toString("utf8").replace(/\0+$/, "");
         continue;
       }
-      if (flag === "g") { await skipData(); continue; }
+      if (flag === "g") {
+        longName = null;
+        paxSize = null;
+        await skipData();
+        continue;
+      }
       const base = h.toString("utf8", 0, 100).replace(/\0.*$/s, "");
       const prefix = h.toString("ascii", 257, 262) === "ustar" ? h.toString("utf8", 345, 500).replace(/\0.*$/s, "") : "";
       const name = longName ?? (prefix ? `${prefix}/${base}` : base);
@@ -622,7 +630,14 @@ export async function extractTarGz(input: string, dest: string, platform: Platfo
       out.on("error", (e) => { failed ??= e; });
       try {
         for await (const chunk of item.data()) {
-          if (!out.write(chunk)) await new Promise<void>((res) => out.once("drain", res));
+          if (!out.write(chunk)) {
+            await new Promise<void>((res, rej) => {
+              const onDrain = () => { out.off("error", onErr); res(); };
+              const onErr = (e: Error) => { out.off("drain", onDrain); rej(e); };
+              out.once("drain", onDrain);
+              out.once("error", onErr);
+            });
+          }
           if (failed) throw failed;
         }
         await new Promise<void>((res, rej) => { out.once("finish", res); out.once("error", rej); out.end(); });

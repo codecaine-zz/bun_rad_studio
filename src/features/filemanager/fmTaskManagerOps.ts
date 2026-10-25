@@ -144,6 +144,10 @@ export const taskManagerOperations: Record<string, FmHandler> = {
     const exec = ctx.tasks?.execCommand ?? defaultExecCommand;
 
     if (action === "tree") {
+      const selfAncestors = new Set(ancestorsOf(snap.processes, snap.selfPid));
+      if (selfAncestors.has(pid)) {
+        throw new FmError("PROTECTED", "Refusing to terminate an ancestor of the File Manager process tree.");
+      }
       const descendants = descendantsOf(snap.processes, pid);
       if (ctx.platform === "win32") {
         // Windows has native kernel-level process tree termination via `taskkill /T /F /PID`
@@ -163,7 +167,6 @@ export const taskManagerOperations: Record<string, FmHandler> = {
         };
       }
       // *nix: walk descendants deepest-first, then the root process
-      const selfAncestors = new Set(ancestorsOf(snap.processes, snap.selfPid));
       const byPid = new Map(snap.processes.map((p) => [p.pid, p]));
       const targets = [...descendants, pid];
       const stopped: string[] = [];

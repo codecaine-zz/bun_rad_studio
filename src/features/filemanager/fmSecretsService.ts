@@ -523,9 +523,11 @@ export class SecretsService {
   async recovery(body: Creds & { action: unknown }): Promise<{ recoveryKey?: string; matches?: boolean; backupsDeleted?: number }> {
     if (body.action === "verify") {
       const s = this.requireSession();
+      this.checkThrottle();
       const key = parseRecoveryKey(body.recoveryKey);
       const ok = key !== null && recoveryKeyMatches(s.keys, key);
       key?.fill(0);
+      if (!ok) this.recordFailure();
       return { matches: ok };
     }
     return this.serial(async () => {

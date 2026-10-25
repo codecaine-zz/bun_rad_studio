@@ -770,6 +770,18 @@ describe("hostile archives", () => {
     const tgz = join(dir("out"), "l.tar.gz");
     expect(await createTarGzFrom([src], tgz)).toMatchObject({ skippedLinks: 1 });
   });
+
+  test("unflatten and parseTomlLite resist prototype pollution keys", () => {
+    const { unflatten } = require("../src/features/filemanager/fmConvCommon");
+    const { parseTomlLite } = require("../src/features/filemanager/fmDevManifest");
+    const res1 = unflatten({ "__proto__.polluted": "yes", "constructor.prototype.polluted": "yes", "safe.key": 42 });
+    expect(({} as any).polluted).toBeUndefined();
+    expect((res1 as any).safe.key).toBe(42);
+
+    const res2 = parseTomlLite("[__proto__]\npolluted = \"yes\"\n[dependencies]\nbun = \"1.0.0\"\n");
+    expect(({} as any).polluted).toBeUndefined();
+    expect(res2.dependencies?.bun).toBe("1.0.0");
+  });
 });
 
 import { dirname } from "path";

@@ -10,10 +10,10 @@ import { saveSettings, visibleEntries } from "./nav.js";
 import { commitRename, dropOnto, openEntry } from "./ops.js";
 import { inTrash, isFolderView, left, setActivePane } from "./pane.js";
 import { clearSelection, selectOnly, selectRangeTo, selectedEntries, toggleKey } from "./selection.js";
-import { on, state } from "./state.js";
+import { emit, on, state } from "./state.js";
 import { openNewTab } from "./tabs.js";
 import { tagForPath, tagInfo } from "./tags.js";
-import { describeSelection, formatDate, formatSize, isModifier, summarizeCount } from "./util.js";
+import { describeSelection, formatDate, formatSize, isModifier, plural, summarizeCount } from "./util.js";
 
 const PAGE = 500;
 /** pane -> { rows: key -> row element (for quick selection updates), renaming: { key, input } or null }. */
@@ -133,7 +133,10 @@ function makeRow(pane, entry, index) {
     h("span", { class: "c-where" }, whereText(pane, entry)),
     h("span", { class: "c-date" }, formatDate(entry.mtimeMs)),
     h("span", { class: "c-type" }, entry.label),
-    h("span", { class: "c-size" }, entry.isDir ? "" : formatSize(entry.size)),
+    h("span", {
+      class: entry.isDir && entry.folderSizeCalculated ? "c-size folder-size-badge" : "c-size",
+      ...(entry.isDir && entry.folderSizeCalculated ? { title: `${plural(entry.folderFiles ?? 0, "file")}, ${plural(entry.folderFolders ?? 0, "folder")} inside` } : {}),
+    }, entry.isDir ? (entry.folderSizeCalculated ? `${entry.folderSizePartial ? "≥ " : ""}${formatSize(entry.size)}` : "") : formatSize(entry.size)),
     h("span", { class: "c-ext", hidden: !cols.includes("ext") }, extText),
     h("span", { class: "c-perms", hidden: !cols.includes("permissions") }, permsText),
   );
@@ -184,7 +187,21 @@ export function renderList(pane = left) {
   const empty = part(pane, "empty");
   const [title, text] = emptyMessage(pane);
   empty.hidden = entries.length > 0 || (pane.side === "left" && state.loading);
-  empty.replaceChildren(h("div", { class: "empty-icon", "aria-hidden": "true" }, pane.search ? "🔍" : trash ? "🗑️" : "📂"), h("h2", {}, title), h("p", {}, text));
+  const hasFilter = !pane.search && !trash && Boolean(state.tagFilter || (pane.side !== "right" && ((state.quickFilter && state.quickFilter.trim()) || (state.kindFilter && state.kindFilter !== "all"))));
+  const resetBtn = hasFilter
+    ? h("button", {
+        type: "button",
+        class: "btn empty-reset-btn",
+        title: "Clear active quick filter, kind chip, and color tag filter",
+        onclick: () => {
+          state.tagFilter = "";
+          emit("quick-filter-clear");
+          emit("kind-filter-clear");
+          emit("view");
+        },
+      }, "Clear active filters")
+    : null;
+  empty.replaceChildren(h("div", { class: "empty-icon", "aria-hidden": "true" }, pane.search ? "🔍" : trash ? "🗑️" : "📂"), h("h2", {}, title), h("p", {}, text), ...(resetBtn ? [resetBtn] : []));
   part(pane, "head").hidden = state.settings.view !== "details" || entries.length === 0;
   updateHeaderSort(pane);
   syncSelection(pane);
@@ -295,6 +312,7 @@ export function beginRename(key, pane = left) {
     }
   };
   input.addEventListener("keydown", (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
     e.stopPropagation();
     if (e.key === "Enter") { e.preventDefault(); finish(true); }
     else if (e.key === "Escape") { e.preventDefault(); finish(false); }
@@ -472,16 +490,49 @@ export function wirePaneExtras(pane) {
   });
 }
 
-/** Entries per visual line in the icons view, so Up/Down can move by a whole line. */
+/** Entries per visual line in the icons or list grid view, so Up/Down can move by a whole line. */
 export function iconsPerLine(pane = left) {
-  if (state.settings.view !== "icons") return 1;
+  if (state.settings.view !== "icons" && state.settings.view !== "list") return 1;
   const rows = [...viewOf(pane).rows.values()];
   const first = rows[0];
   if (!first) return 1;
+  if (state.settings.view === "list" && rows.length > 1 && first.offsetTop === rows[rows.length - 1].offsetTop && first.offsetLeft === rows[1].offsetLeft) {
+    return 1;
+  }
   let n = 0;
   for (const row of rows) {
     if (row.offsetTop !== first.offsetTop) break;
     n++;
   }
   return Math.max(1, n);
+}
+
+/**
+ * Visual vertical neighbor in multi-column grid views (icons, list), especially when Group By headers split rows into uneven counts.
+ * Uses primary-axis vertical distance plus weighted cross-axis horizontal distance on the adjacent visual row.
+ */
+export function spatialVerticalTarget(pane = left, index = 0, dir = 1) {
+  const perLine = iconsPerLine(pane);
+  if (state.settings.view === "details" || index < 0) return index < 0 ? 0 : index + dir * perLine;
+  const rows = [...viewOf(pane).rows.values()];
+  const cur = rows[index];
+  if (!cur || rows.length < 2) return index + dir * perLine;
+  const firstTop = rows[0].offsetTop;
+  if (rows.every((r) => r.offsetTop === firstTop)) return index + dir * perLine;
+  const curTop = cur.offsetTop;
+  const curLeft = cur.offsetLeft;
+  let bestIdx = -1;
+  let bestScore = Infinity;
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    const dy = (r.offsetTop - curTop) * dir;
+    if (dy <= 0) continue;
+    const dx = Math.abs(r.offsetLeft - curLeft);
+    const score = dy * 1000 + dx;
+    if (score < bestScore) {
+      bestScore = score;
+      bestIdx = i;
+    }
+  }
+  return bestIdx >= 0 ? bestIdx : dir < 0 ? 0 : rows.length - 1;
 }

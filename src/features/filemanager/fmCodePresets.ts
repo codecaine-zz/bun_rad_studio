@@ -153,9 +153,14 @@ async function loadDoc(ctx: FmContext): Promise<{ doc: PresetDoc; corrupt: boole
 
 /** Oldest entries go first when there are too many, or the file would be too big. */
 export function prune(doc: PresetDoc): void {
-  const oldest = () => Object.entries(doc.files).sort((a, b) => Date.parse(a[1].touched) - Date.parse(b[1].touched))[0]?.[0];
-  while (Object.keys(doc.files).length > MAX_FILE_ENTRIES) delete doc.files[oldest()!];
-  while (JSON.stringify(doc).length > MAX_PRESET_BYTES && Object.keys(doc.files).length) delete doc.files[oldest()!];
+  const ordered = Object.entries(doc.files).sort((a, b) => Date.parse(a[1].touched) - Date.parse(b[1].touched));
+  let idx = 0;
+  while (ordered.length - idx > MAX_FILE_ENTRIES) {
+    delete doc.files[ordered[idx++]![0]];
+  }
+  while (idx < ordered.length && JSON.stringify(doc).length > MAX_PRESET_BYTES) {
+    delete doc.files[ordered[idx++]![0]];
+  }
   if (JSON.stringify(doc).length > MAX_PRESET_BYTES) throw new FmError("TOO_LARGE", "There are too many saved presets to remember. Delete some you don't need.");
 }
 

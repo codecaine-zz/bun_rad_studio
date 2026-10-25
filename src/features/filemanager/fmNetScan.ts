@@ -29,7 +29,11 @@ function register(state: NetState, kind: NetTask["kind"], mode: string, host: st
   return task;
 }
 
-const countOf = (task: NetTask, status: ScanRow["status"]) => task.results.filter((r) => r.status === status).length;
+const countOf = (task: NetTask, status: ScanRow["status"]) => {
+  let n = 0;
+  for (let i = 0; i < task.results.length; i++) if (task.results[i]!.status === status) n++;
+  return n;
+};
 
 function finish(task: NetTask, state: NetTask["state"]): void {
   task.state = state;

@@ -228,9 +228,17 @@ function checkCount(count: number): void {
 function nestedIn(ctx: FmContext, paths: string[]): Map<string, string> {
   const result = new Map<string, string>();
   const p = pathApi(ctx);
+  const all = new Set(paths);
   for (const path of paths) {
-    for (const other of paths) {
-      if (other !== path && path.startsWith(other.endsWith(p.sep) ? other : other + p.sep)) result.set(path, other);
+    let dir = p.dirname(path);
+    while (true) {
+      if (all.has(dir)) {
+        result.set(path, dir);
+        break;
+      }
+      const up = p.dirname(dir);
+      if (up === dir) break;
+      dir = up;
     }
   }
   return result;
@@ -310,10 +318,10 @@ async function planRenames(b: Builder, pairsInput: Array<{ path: string; name: s
   const insensitive = ctx.platform === "win32" || ctx.platform === "darwin";
   const key = (n: string) => (insensitive ? n.toLowerCase() : n);
   const finals = new Map<string, number>();
-  for (const r of renamePairs(ctx, pairsInput)) finals.set(key(r.destination), (finals.get(key(r.destination)) ?? 0) + 1);
-  for (const { path, name, destination } of renamePairs(ctx, pairsInput)) {
+  const mappedPairs = pairsInput.map(({ path, name, error }) => ({ path, name, error, destination: p.join(p.dirname(path), name) }));
+  for (const r of mappedPairs) finals.set(key(r.destination), (finals.get(key(r.destination)) ?? 0) + 1);
+  for (const { path, name, error: given, destination } of mappedPairs) {
     const old = p.basename(path);
-    const given = pairsInput.find((r) => r.path === path)?.error;
     if (given) { b.block(path, destination, "BAD_NAME", given); continue; }
     if (name === old) { b.skip(path, null, "The name stays the same."); continue; }
     const bad = validateName(name, ctx.platform);

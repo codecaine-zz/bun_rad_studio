@@ -48,6 +48,8 @@ export const state = {
   recentCommands: [],
   /** Open folder tabs in the primary pane: Array<{ id, location, history, future, selection, scrollTop }>. */
   tabs: [],
+  /** Stack of recently closed folder tabs in this session so they can be reopened. */
+  closedTabs: [],
   activeTabId: 0,
 
   /** Selected keys: paths for folders and search results, ids in the Recycle Bin. */

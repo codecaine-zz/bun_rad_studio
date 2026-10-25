@@ -58,7 +58,8 @@ function chosen(ctx: FmContext, p: SdPreview, paths: unknown, onlyChanged: boole
   if (paths === undefined || paths === null) return pool.map((f) => f.path);
   if (!Array.isArray(paths) || paths.length > SD_MAX_FILES) throw new FmError("BAD_REQUEST", "Choose which files you mean.");
   const wanted = new Set(paths.map((x: unknown) => absolutePath(ctx, x)));
-  for (const w of wanted) if (!p.files.some((f) => f.path === w)) throw new FmError("BAD_REQUEST", "One of those files isn't part of this result.");
+  const known = new Set(p.files.map((f) => f.path));
+  for (const w of wanted) if (!known.has(w)) throw new FmError("BAD_REQUEST", "One of those files isn't part of this result.");
   return pool.filter((f) => wanted.has(f.path)).map((f) => f.path);
 }
 

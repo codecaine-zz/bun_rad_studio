@@ -63,10 +63,12 @@ async function saveResults(ctx: FmContext, body: Record<string, any>) {
   const reason = validateName(`${wanted}.${format}`, ctx.platform);
   if (reason) throw new FmError("BAD_NAME", reason);
   const p = pathApi(ctx);
+  const ci = ctx.platform !== "linux";
+  const existing = new Set((await fsp.readdir(folder).catch(() => [] as string[])).map((n) => (ci ? n.toLowerCase() : n)));
   const raced = new Set<string>();
   const data = text.endsWith("\n") ? text : `${text}\n`;
   for (let attempt = 0; attempt < 25; attempt++) {
-    const name = uniqueName(`${wanted}.${format}`, (n) => raced.has(n) || taken(p.join(folder, n)));
+    const name = uniqueName(`${wanted}.${format}`, (n) => raced.has(n) || existing.has(ci ? n.toLowerCase() : n));
     try {
       await fsp.writeFile(p.join(folder, name), data, { flag: "wx", encoding: "utf8" });
       return { path: p.join(folder, name), name, folder, bytes: Buffer.byteLength(data) };

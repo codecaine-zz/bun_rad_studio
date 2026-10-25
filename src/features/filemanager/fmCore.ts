@@ -142,14 +142,53 @@ export function pathApi(ctx: Pick<FmContext, "platform"> & { home?: string; data
     : nodePath.posix;
 }
 
+function deepestRealPath(target: string): string | null {
+  try {
+    let cur = nodePath.resolve(target);
+    const tail: string[] = [];
+    for (let i = 0; i < 64; i++) {
+      try {
+        const real = fs.realpathSync(cur);
+        return tail.length ? nodePath.join(real, ...tail.reverse()) : real;
+      } catch {
+        const parent = nodePath.dirname(cur);
+        if (parent === cur) return null;
+        tail.push(nodePath.basename(cur));
+        cur = parent;
+      }
+    }
+  } catch {}
+  return null;
+}
+
 export function assertModifiable(ctx: FmContext, target: string): void {
   const reason = protectedReason(target, { platform: ctx.platform, home: ctx.home, extraProtected: [ctx.trashRoot] }, "modify");
   if (reason) throw new FmError("PROTECTED", reason);
+  if (ctx.platform === process.platform) {
+    const p = pathApi(ctx);
+    const parentReal = deepestRealPath(p.dirname(target));
+    if (parentReal) {
+      const realTarget = p.join(parentReal, p.basename(target));
+      const realHome = deepestRealPath(ctx.home) ?? ctx.home;
+      const realTrash = deepestRealPath(ctx.trashRoot) ?? ctx.trashRoot;
+      const realReason = protectedReason(realTarget, { platform: ctx.platform, home: realHome, extraProtected: [realTrash] }, "modify");
+      if (realReason) throw new FmError("PROTECTED", realReason);
+    }
+  }
 }
 
 export function assertCreatable(ctx: FmContext, parent: string): void {
   const reason = protectedReason(parent, { platform: ctx.platform, home: ctx.home, extraProtected: [ctx.trashRoot] }, "create");
   if (reason) throw new FmError("PROTECTED", reason);
+  if (ctx.platform === process.platform) {
+    const realParent = deepestRealPath(parent);
+    if (realParent) {
+      const realHome = deepestRealPath(ctx.home) ?? ctx.home;
+      const realTrash = deepestRealPath(ctx.trashRoot) ?? ctx.trashRoot;
+      const realReason = protectedReason(realParent, { platform: ctx.platform, home: realHome, extraProtected: [realTrash] }, "create");
+      if (realReason) throw new FmError("PROTECTED", realReason);
+    }
+  }
 }
 
 export async function lstatOrNull(target: string): Promise<fs.Stats | null> {
@@ -218,6 +257,13 @@ export async function sameEntry(a: string, b: string): Promise<boolean> {
 
 export function assertNotIntoItself(ctx: FmContext, source: string, destDir: string): void {
   if (isSameOrInside(destDir, source, ctx.platform)) throw new FmError("INTO_ITSELF", "A folder can't be placed inside itself.");
+  if (ctx.platform === process.platform) {
+    const realSource = deepestRealPath(source);
+    const realDest = deepestRealPath(destDir);
+    if (realSource && realDest && isSameOrInside(realDest, realSource, ctx.platform)) {
+      throw new FmError("INTO_ITSELF", "A folder can't be placed inside itself.");
+    }
+  }
 }
 
 /** Runs `fn` for each item, collecting a result or a plain-language error per item, so one failure doesn't stop the rest. */

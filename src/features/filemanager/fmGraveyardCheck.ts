@@ -41,7 +41,14 @@ async function hashOf(file: string): Promise<string | null> {
   try {
     const handle = await fsp.open(file, constants.O_RDONLY | NOFOLLOW);
     try {
-      return createHash("sha256").update(await handle.readFile()).digest("hex");
+      const hash = createHash("sha256");
+      const buf = Buffer.allocUnsafe(64 * 1024);
+      for (;;) {
+        const { bytesRead } = await handle.read(buf, 0, buf.length, null);
+        if (bytesRead === 0) break;
+        hash.update(buf.subarray(0, bytesRead));
+      }
+      return hash.digest("hex");
     } finally {
       await handle.close();
     }

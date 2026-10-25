@@ -98,6 +98,10 @@ export interface Settings {
   chameleonFolderMode: ChameleonFolderMode;
   /** Smart unfocused window & battery zero-watt governor mode ("auto" | "always_120hz" | "eco_saver"). */
   zeroWattGovernorMode: ZeroWattGovernorMode;
+  /** Studio colorist Kelvin white-point & OLED true-black mastering mode ("neutral_6500k" | "candle_2700k" | "golden_hour_3500k" | "halogen_4300k" | "daylight_d50_5000k" | "cyber_cool_7500k" | "arctic_blue_9300k" | "oled_true_black"). */
+  colorTempMode: ColorTempMode;
+  /** Color-vision deficiency (Daltonism) & high-contrast accessibility mode ("off" | "protanopia_safe" | "deuteranopia_safe" | "tritanopia_safe" | "achromatopsia_mono" | "high_contrast_aaa"). */
+  colorVisionMode: ColorVisionMode;
   /** Visual presentation mode for the built-in Theme Show / Screensaver. */
   themeShowMode: ThemeShowMode;
   /** Curated theme & special effects channel for the Theme Show / Screensaver. */
@@ -258,6 +262,10 @@ export const CHAMELEON_FOLDER_MODE_IDS = ["off", "auto", "code", "media", "data"
 export type ChameleonFolderMode = (typeof CHAMELEON_FOLDER_MODE_IDS)[number];
 export const ZERO_WATT_GOVERNOR_MODE_IDS = ["auto", "always_120hz", "eco_saver"] as const;
 export type ZeroWattGovernorMode = (typeof ZERO_WATT_GOVERNOR_MODE_IDS)[number];
+export const COLOR_TEMP_MODE_IDS = ["neutral_6500k", "candle_2700k", "golden_hour_3500k", "halogen_4300k", "daylight_d50_5000k", "cyber_cool_7500k", "arctic_blue_9300k", "oled_true_black"] as const;
+export type ColorTempMode = (typeof COLOR_TEMP_MODE_IDS)[number];
+export const COLOR_VISION_MODE_IDS = ["off", "protanopia_safe", "deuteranopia_safe", "tritanopia_safe", "achromatopsia_mono", "high_contrast_aaa"] as const;
+export type ColorVisionMode = (typeof COLOR_VISION_MODE_IDS)[number];
 export const THEME_SHOW_MODES = ["cinema_hud", "pure_canvas", "living_desktop", "retro_afterdark"] as const;
 export type ThemeShowMode = (typeof THEME_SHOW_MODES)[number];
 export const THEME_SHOW_CHANNELS = ["all_ultra", "storms_debris", "year_2126", "tesla_physics", "visceral_fx", "linux_retro", "us_holidays", "nerd_complete", "horror_nightmare", "realworld_objects", "favorites"] as const;
@@ -325,6 +333,8 @@ export const DEFAULT_SETTINGS: Settings = {
   dualPaneFocusMode: "spotlight",
   chameleonFolderMode: "off",
   zeroWattGovernorMode: "auto",
+  colorTempMode: "neutral_6500k",
+  colorVisionMode: "off",
   themeShowMode: "cinema_hud",
   themeShowChannel: "all_ultra",
   themeShowIntervalSec: 15,
@@ -480,6 +490,8 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     dualPaneFocusMode: oneOf(r.dualPaneFocusMode, DUAL_PANE_FOCUS_MODE_IDS, DEFAULT_SETTINGS.dualPaneFocusMode),
     chameleonFolderMode: oneOf(r.chameleonFolderMode, CHAMELEON_FOLDER_MODE_IDS, DEFAULT_SETTINGS.chameleonFolderMode),
     zeroWattGovernorMode: oneOf(r.zeroWattGovernorMode, ZERO_WATT_GOVERNOR_MODE_IDS, DEFAULT_SETTINGS.zeroWattGovernorMode),
+    colorTempMode: oneOf(r.colorTempMode, COLOR_TEMP_MODE_IDS, DEFAULT_SETTINGS.colorTempMode),
+    colorVisionMode: oneOf(r.colorVisionMode, COLOR_VISION_MODE_IDS, DEFAULT_SETTINGS.colorVisionMode),
     themeShowMode: oneOf(r.themeShowMode, THEME_SHOW_MODES, DEFAULT_SETTINGS.themeShowMode),
     themeShowChannel: oneOf(r.themeShowChannel, THEME_SHOW_CHANNELS, DEFAULT_SETTINGS.themeShowChannel),
     themeShowIntervalSec: typeof r.themeShowIntervalSec === "number" && isFinite(r.themeShowIntervalSec) ? Math.round(Math.min(600, Math.max(5, r.themeShowIntervalSec))) : DEFAULT_SETTINGS.themeShowIntervalSec,

@@ -652,7 +652,7 @@ export interface MacroValidationResult {
 }
 
 export const FORBIDDEN_MACRO_CODE_RE =
-  /\b(?:process\s*\.\s*(?:env|binding|dlopen|exit|kill|mainModule)|Bun\s*\.\s*(?:spawn|spawnSync|serve|file|write|mmap|dlopen|unsafe|plugin)|globalThis\b|require\s*\(|import\s*\(|child_process\b|Function\s*\(|eval\s*\()/;
+  /\b(?:process\s*\.\s*(?:env|binding|dlopen|exit|kill|mainModule)|Bun\s*\.\s*(?:spawn|spawnSync|serve|file|write|mmap|dlopen|unsafe|plugin)|globalThis\b|Reflect\b|Proxy\b|constructor\b|__proto__\b|prototype\b|import\s*\.\s*meta\b|require\s*\(|import\s*\(|child_process\b|Function\s*\(|eval\s*\()/;
 
 export function validateBunMacroCode(code: string): MacroValidationResult {
   const warnings: string[] = [];
@@ -755,6 +755,22 @@ export function validateMacroActions(actions: DbMacroActionRow[], knownMacroName
         }
       }
     }
+    if ((row.condition ?? "").trim()) {
+      const condCheck = validateBunMacroCode(row.condition!.replace(/\[([A-Za-z0-9_]+)\]/g, "TempVars.$1"));
+      if (!condCheck.valid) {
+        for (const e of condCheck.errors) {
+          errors.push({ message: `Step ${i + 1} (Condition): ${e.message}`, line: i + 1 });
+        }
+      }
+    }
+    if ((row.action === "SetTempVar" || row.action === "Assert") && (row.params.expression ?? "").trim()) {
+      const exprCheck = validateBunMacroCode(`return (${row.params.expression!});`);
+      if (!exprCheck.valid) {
+        for (const e of exprCheck.errors) {
+          errors.push({ message: `Step ${i + 1} (${row.action}): ${e.message}`, line: i + 1 });
+        }
+      }
+    }
   }
   return { valid: errors.length === 0, warnings, errors };
 }
@@ -786,6 +802,9 @@ export function macroActionsToBunJs(name: string, actions: DbMacroActionRow[]): 
 
     const rawCond = (row.condition ?? "").trim();
     const cond = rawCond.replace(/\[([A-Za-z0-9_]+)\]/g, "TempVars.$1");
+    if (cond && !validateBunMacroCode(cond).valid) {
+      throw new FmError("SYNTAX_ERROR", `Step ${i + 1}: Invalid condition expression.`);
+    }
     const indent = cond ? "  " : "";
     if (cond) {
       lines.push(`if (${cond}) {`);
@@ -847,9 +866,14 @@ export function macroActionsToBunJs(name: string, actions: DbMacroActionRow[]): 
       case "EmptyTable":
         lines.push(`${indent}await DoCmd.EmptyTable(${JSON.stringify(p.table ?? "")});`);
         break;
-      case "SetTempVar":
-        lines.push(`${indent}await DoCmd.SetTempVar(${JSON.stringify(p.name ?? "var")}, ${p.expression?.trim() || '""'});`);
+      case "SetTempVar": {
+        const expr = p.expression?.trim() || '""';
+        if (!validateBunMacroCode(`return (${expr});`).valid) {
+          throw new FmError("SYNTAX_ERROR", `Step ${i + 1} (SetTempVar): Invalid expression.`);
+        }
+        lines.push(`${indent}await DoCmd.SetTempVar(${JSON.stringify(p.name ?? "var")}, ${expr});`);
         break;
+      }
       case "RemoveTempVar":
         lines.push(`${indent}await DoCmd.RemoveTempVar(${JSON.stringify(p.name ?? "")});`);
         break;
@@ -864,11 +888,16 @@ export function macroActionsToBunJs(name: string, actions: DbMacroActionRow[]): 
       case "RunMacro":
         lines.push(`${indent}await DoCmd.RunMacro(${JSON.stringify(p.macroName ?? "")});`);
         break;
-      case "Assert":
+      case "Assert": {
+        const expr = p.expression?.trim() || "true";
+        if (!validateBunMacroCode(`return (${expr});`).valid) {
+          throw new FmError("SYNTAX_ERROR", `Step ${i + 1} (Assert): Invalid expression.`);
+        }
         lines.push(
-          `${indent}DoCmd.Assert(${p.expression?.trim() || "true"}, ${JSON.stringify(p.message ?? "Macro assertion failed")});`,
+          `${indent}DoCmd.Assert(${expr}, ${JSON.stringify(p.message ?? "Macro assertion failed")});`,
         );
         break;
+      }
       case "StopMacro":
         lines.push(`${indent}DoCmd.StopMacro(${JSON.stringify(p.reason ?? "Stopped by macro")});`);
         break;
@@ -1914,16 +1943,16 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
         let w = "";
         if (options?.where && options.where.trim()) {
           const interpolatedWhere = interpolateTemplate(options.where.trim(), tempVarsStore, inputParams, missingPrompts);
-          if (/;|--|\/\*/.test(interpolatedWhere)) {
-            throw new FmError("BAD_REQUEST", "Invalid OpenTable WHERE clause: statement separators and comments are not allowed.");
+          if (/;|--|\/\*|#|\bUNION\b/i.test(interpolatedWhere)) {
+            throw new FmError("BAD_REQUEST", "Invalid OpenTable WHERE clause: statement separators, UNION, and comments are not allowed.");
           }
           w = ` WHERE ${interpolatedWhere}`;
         }
         let o = "";
         if (options?.orderBy && options.orderBy.trim()) {
           const cleanOrder = options.orderBy.trim();
-          if (/;|--|\/\*/.test(cleanOrder)) {
-            throw new FmError("BAD_REQUEST", "Invalid OpenTable ORDER BY clause: statement separators and comments are not allowed.");
+          if (/;|--|\/\*|#|\bUNION\b/i.test(cleanOrder)) {
+            throw new FmError("BAD_REQUEST", "Invalid OpenTable ORDER BY clause: statement separators, UNION, and comments are not allowed.");
           }
           o = ` ORDER BY ${cleanOrder}`;
         }

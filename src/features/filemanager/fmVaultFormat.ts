@@ -218,19 +218,22 @@ export async function sealStream(source: AsyncIterable<Buffer>, key: Buffer, hea
     cipherBytes += sealed.length;
     await write(sealed);
   };
-  for await (const piece of source) {
-    let off = 0;
-    while (off < piece.length) {
-      if (fill === size) await flush(false);
-      const n = Math.min(size - fill, piece.length - off);
-      piece.copy(buf, fill, off, off + n);
-      fill += n;
-      off += n;
+  try {
+    for await (const piece of source) {
+      let off = 0;
+      while (off < piece.length) {
+        if (fill === size) await flush(false);
+        const n = Math.min(size - fill, piece.length - off);
+        piece.copy(buf, fill, off, off + n);
+        fill += n;
+        off += n;
+      }
     }
+    await flush(true);
+    return { chunks: counter, cipherBytes };
+  } finally {
+    buf.fill(0);
   }
-  await flush(true);
-  buf.fill(0);
-  return { chunks: counter, cipherBytes };
 }
 
 async function readExactly(fh: FileHandle, buf: Buffer, position: number): Promise<void> {
@@ -254,13 +257,17 @@ export async function* openBlocks(fh: FileHandle, fileSize: number, key: Buffer,
   const lastLen = body - (blocks - 1) * full;
   if (blocks > 0xffffffff || lastLen < TAG_SIZE) throw new VaultError("WRONG_PASSWORD", WRONG_OR_DAMAGED);
   const buf = Buffer.allocUnsafe(full);
-  for (let i = 0; i < blocks; i++) {
-    throwIfAborted(signal);
-    const last = i === blocks - 1;
-    const sealed = buf.subarray(0, last ? lastLen : full);
-    await readExactly(fh, sealed, HEADER_SIZE + i * full);
-    onBytes?.(sealed.length);
-    yield openChunk(key, raw, header.noncePrefix, i, last, sealed);
+  try {
+    for (let i = 0; i < blocks; i++) {
+      throwIfAborted(signal);
+      const last = i === blocks - 1;
+      const sealed = buf.subarray(0, last ? lastLen : full);
+      await readExactly(fh, sealed, HEADER_SIZE + i * full);
+      onBytes?.(sealed.length);
+      yield openChunk(key, raw, header.noncePrefix, i, last, sealed);
+    }
+  } finally {
+    buf.fill(0);
   }
 }
 

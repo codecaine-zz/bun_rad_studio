@@ -403,6 +403,7 @@ export function wirePower() {
   filter?.addEventListener("search", renderTabs);
   $("#power-filter-clear")?.addEventListener("click", clearFilter);
   filter?.addEventListener("keydown", (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
@@ -484,7 +485,7 @@ export function wirePower() {
           ? `${location.protocol}//${location.hostname === "127.0.0.1" ? "localhost" : "127.0.0.1"}${location.port ? `:${location.port}` : ""}`
           : "";
       const isAllowedOrigin =
-        !e.origin || e.origin === "null" || e.origin === ownOrigin || (Boolean(altOrigin) && e.origin === altOrigin);
+        !e.origin || e.origin === ownOrigin || (Boolean(altOrigin) && e.origin === altOrigin);
       const frames = [...document.querySelectorAll("#power-panel iframe")];
       const fromMountedFrame = frames.some((f) => {
         if (f.contentWindow === e.source) return true;

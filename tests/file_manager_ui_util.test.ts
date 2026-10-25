@@ -1,10 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import {
-  EXTRACTABLE_EXTENSIONS, archiveExtensionOf, baseName, collapseCrumbs, describeSelection, driveFor, extensionOf,
-  extractableEntries, formatDate, formatSize, isExtractableEntry, isExtractableName, isInside, isModifier, isWindowsPath,
-  joinPath, kindsForName, naturalCompare, parentOf, plural, rangeIndexes, sortEntries, splitPath, summarizeCount,
-  typeaheadFind, wantsCopy,
+  EXTRACTABLE_EXTENSIONS, archiveExtensionOf, baseName, collapseCrumbs, describeSelection, detectSnippetInfo, driveFor,
+  extensionOf, extractableEntries, formatDate, formatSize, isExtractableEntry, isExtractableName,
+  isInside, isModifier, isWindowsPath, joinPath, kindsForName, naturalCompare, parentOf, parseByteSizeToken, plural,
+  rangeIndexes, sortEntries, splitPath, summarizeCount, typeaheadFind, wantsCopy,
 } from "../resources/file_manager/ui/util.js";
+import { entryMatchesQuickFilter } from "../resources/file_manager/ui/nav.js";
 import { ACTIONS, kindsFor } from "../src/features/filemanager/fmTools";
 
 const e = (name: string, extra: object = {}) => ({ name, isDir: false, size: 0, mtimeMs: 0, label: "File", ...extra });
@@ -200,5 +201,73 @@ describe("convert and process: the page and the server agree on which files qual
       expect(kindsForName(n), n).toEqual([]);
       expect(kindsFor(n), n).toEqual([]);
     }
+  });
+});
+
+describe("power quick-filter, snippet auto-detection, and calculated folder sizes", () => {
+  const now = new Date(2026, 9, 24, 15, 0, 0).getTime();
+  const tsFile = e("server.ts", { path: "/work/server.ts", size: 4096, mtimeMs: now - 30 * 60_000, label: "TypeScript file", kind: "code" });
+  const bigVideo = e("demo.mp4", { path: "/work/demo.mp4", size: 25 * 1024 * 1024, mtimeMs: now - 5 * 86_400_000, label: "MP4 video", kind: "video" });
+  const emptyLog = e("debug.log", { path: "/work/debug.log", size: 0, mtimeMs: now - 86_400_000, label: "Log file", kind: "text" });
+  const hiddenEnv = e(".env", { path: "/work/.env", size: 128, hidden: true, mtimeMs: now - 10 * 60_000, label: "Configuration", kind: "code" });
+  const archivePkg = e("release.tar.gz", { path: "/work/release.tar.gz", size: 2 * 1024 * 1024, mtimeMs: now - 2 * 86_400_000, label: "Archive", kind: "archive" });
+  const dirNodeModules = e("node_modules", { path: "/work/node_modules", isDir: true, size: -1, mtimeMs: now - 86_400_000, label: "Folder", kind: "folder" });
+  const tags = { "/work/server.ts": "blue", "/work/demo.mp4": "red" };
+
+  test("parseByteSizeToken parses byte units accurately", () => {
+    expect(parseByteSizeToken("512")).toBe(512);
+    expect(parseByteSizeToken("1.5kb")).toBe(1536);
+    expect(parseByteSizeToken("10MB")).toBe(10 * 1024 * 1024);
+    expect(parseByteSizeToken("2gb")).toBe(2 * 1024 ** 3);
+    expect(parseByteSizeToken("invalid")).toBeNull();
+  });
+
+  test("entryMatchesQuickFilter supports wildcards, negation, ext:, size:, date:, tag:, is:, and kind:", () => {
+    expect(entryMatchesQuickFilter(tsFile, "*.ts", tags, now)).toBe(true);
+    expect(entryMatchesQuickFilter(tsFile, "*.js", tags, now)).toBe(false);
+    expect(entryMatchesQuickFilter(tsFile, "ext:js,ts", tags, now)).toBe(true);
+    expect(entryMatchesQuickFilter(dirNodeModules, "-node_modules", tags, now)).toBe(false);
+    expect(entryMatchesQuickFilter(tsFile, "-node_modules", tags, now)).toBe(true);
+    expect(entryMatchesQuickFilter(emptyLog, "!*.log", tags, now)).toBe(false);
+    expect(entryMatchesQuickFilter(bigVideo, "size:>10mb", tags, now)).toBe(true);
+    expect(entryMatchesQuickFilter(tsFile, "size:>10mb", tags, now)).toBe(false);
+    expect(entryMatchesQuickFilter(bigVideo, ">10mb", tags, now)).toBe(true);
+    expect(entryMatchesQuickFilter(emptyLog, "size:empty", tags, now)).toBe(true);
+    expect(entryMatchesQuickFilter(tsFile, "date:today", tags, now)).toBe(true);
+    expect(entryMatchesQuickFilter(bigVideo, "date:today", tags, now)).toBe(false);
+    expect(entryMatchesQuickFilter(bigVideo, "date:week", tags, now)).toBe(true);
+    expect(entryMatchesQuickFilter(tsFile, "age:<2h", tags, now)).toBe(true);
+    expect(entryMatchesQuickFilter(tsFile, "tag:blue", tags, now)).toBe(true);
+    expect(entryMatchesQuickFilter(tsFile, "tag:red", tags, now)).toBe(false);
+    expect(entryMatchesQuickFilter(emptyLog, "tag:none", tags, now)).toBe(true);
+    expect(entryMatchesQuickFilter(bigVideo, "tag:any", tags, now)).toBe(true);
+    expect(entryMatchesQuickFilter(dirNodeModules, "is:dir", tags, now)).toBe(true);
+    expect(entryMatchesQuickFilter(tsFile, "is:file", tags, now)).toBe(true);
+    expect(entryMatchesQuickFilter(hiddenEnv, "is:hidden", tags, now)).toBe(true);
+    expect(entryMatchesQuickFilter(archivePkg, "is:archive", tags, now)).toBe(true);
+    expect(entryMatchesQuickFilter(emptyLog, "is:empty", tags, now)).toBe(true);
+    expect(entryMatchesQuickFilter(tsFile, "kind:code size:>1kb date:today -debug", tags, now)).toBe(true);
+  });
+
+  test("detectSnippetInfo identifies JSON, Markdown, Shell, SQL, SVG, HTML, TypeScript, CSV, and plain text", () => {
+    expect(detectSnippetInfo('{"name":"rad","version":1}').ext).toBe("json");
+    expect(detectSnippetInfo("# Project Roadmap\n\n- item 1").ext).toBe("md");
+    expect(detectSnippetInfo("#!/usr/bin/env bash\necho hi").ext).toBe("sh");
+    expect(detectSnippetInfo("SELECT id, name FROM users WHERE active = 1;").ext).toBe("sql");
+    expect(detectSnippetInfo("<svg viewBox='0 0 10 10'></svg>").ext).toBe("svg");
+    expect(detectSnippetInfo("<!DOCTYPE html><html><body></body></html>").ext).toBe("html");
+    expect(detectSnippetInfo("export function greet(name: string) {\n  return name;\n}").ext).toBe("ts");
+    expect(detectSnippetInfo("id,name,role\n1,Ada,Engineer\n2,Grace,Admiral").ext).toBe("csv");
+    expect(detectSnippetInfo("just a quick note").ext).toBe("txt");
+  });
+
+  test("sortEntries and describeSelection use calculated folder sizes when available", () => {
+    const dirSmall = e("alpha_dir", { isDir: true, size: 1024, folderSizeCalculated: true });
+    const dirBig = e("beta_dir", { isDir: true, size: 50_000, folderSizeCalculated: true });
+    const dirUnknown = e("gamma_dir", { isDir: true, size: -1 });
+    const sortedDesc = sortEntries([dirSmall, dirBig, dirUnknown], { by: "size", dir: "desc", foldersFirst: true });
+    expect(sortedDesc.map((x) => x.name)).toEqual(["beta_dir", "alpha_dir", "gamma_dir"]);
+    expect(describeSelection([dirBig])).toContain("1 folder selected (");
+    expect(describeSelection([dirUnknown])).toBe("1 folder selected");
   });
 });

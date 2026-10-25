@@ -2644,7 +2644,7 @@ describe("the theme editor in the page", () => {
     expect(doc.documentElement.dataset.wallpaperScene).toBe("tahoe_alpine_lake");
 
     // 9. Master AAA Director's Cut 10-Engine Switchboard Presets (⌥M / Alt+M) & Live AAA Production Fidelity Score
-    expect((themes as any).AAA_DIRECTOR_CUT_PRESETS.length).toBe(8);
+    expect((themes as any).AAA_DIRECTOR_CUT_PRESETS.length).toBe(12);
     const directorApplied = await (themes as any).applyAaaDirectorCutPreset("cupertino_keynote_xdr", { quiet: true });
     expect(directorApplied.id).toBe("cupertino_keynote_xdr");
     expect(state.settings.palette).toBe("mac_studio_m4_ultra");
@@ -2912,6 +2912,94 @@ describe("the theme editor in the page", () => {
     // Restore auto mode
     await (themes as any).setZeroWattGovernorMode("auto", { quiet: true });
     (themes as any).simulateWindowFocusState(true);
+    closeDialogs();
+    await themes.disableAllThemeAnimations({ quiet: true });
+    await themes.applyPalette("");
+  });
+
+  test("Theme Master Upgrades: 7 Color Harmony Chords, 8 Kelvin White-Point & OLED Mastering Modes, 6 Color-Vision & AAA Contrast Guards, Theme DNA Inspector & 1-Click Aspect Grafter", async () => {
+    // 1. 🎼 7 Classical Color Theory Harmony Chords with WCAG 2.1 AA/AAA Contrast Enforcement
+    expect((themes as any).COLOR_HARMONY_CHORDS.length).toBe(7);
+    for (const chord of (themes as any).COLOR_HARMONY_CHORDS) {
+      const darkRes = (themes as any).computeColorHarmonyChord("#38bdf8", chord.id, true);
+      expect(darkRes.chordId).toBe(chord.id);
+      expect(darkRes.dark).toBe(true);
+      expect(darkRes.contrastRatio).toBeGreaterThanOrEqual(7);
+      expect(darkRes.uiContrastRatio).toBeGreaterThanOrEqual(3);
+      expect(darkRes.colors.background).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(darkRes.colors.secondary).toMatch(/^#[0-9a-f]{6}$/i);
+
+      const lightRes = (themes as any).computeColorHarmonyChord("#2563eb", chord.id, false);
+      expect(lightRes.dark).toBe(false);
+      expect(lightRes.contrastRatio).toBeGreaterThanOrEqual(7);
+      expect(lightRes.uiContrastRatio).toBeGreaterThanOrEqual(3);
+    }
+
+    // 2. 🌡️ 8 Kelvin White-Point & True OLED Pitch-Black Mastering Modes
+    expect((themes as any).COLOR_TEMP_MODES.length).toBe(8);
+    const candleMode = await (themes as any).applyColorTempMode("candle_2700k", { quiet: true });
+    expect(candleMode.id).toBe("candle_2700k");
+    expect(doc.documentElement.dataset.colorTemp).toBe("candle_2700k");
+    expect(doc.documentElement.style.getPropertyValue("--fm-temp-kelvin")).toBe("2700K");
+    expect(state.settings.colorTempMode).toBe("candle_2700k");
+
+    const cycledTemp = await (themes as any).cycleColorTempMode(1, { quiet: true });
+    expect(cycledTemp.id).toBe("golden_hour_3500k");
+    expect(doc.documentElement.dataset.colorTemp).toBe("golden_hour_3500k");
+
+    const oledMode = await (themes as any).applyColorTempMode("oled_true_black", { quiet: true });
+    expect(oledMode.id).toBe("oled_true_black");
+    expect(doc.documentElement.dataset.colorTemp).toBe("oled_true_black");
+
+    // 3. 👁️‍🗨️ 6 Color-Vision Deficiency (Daltonism) & WCAG AAA 7:1 Contrast Guard Modes
+    expect((themes as any).COLOR_VISION_MODES.length).toBe(6);
+    const deutMode = await (themes as any).applyColorVisionMode("deuteranopia_safe", { quiet: true });
+    expect(deutMode.id).toBe("deuteranopia_safe");
+    expect(doc.documentElement.dataset.visionMode).toBe("deuteranopia_safe");
+    expect(state.settings.colorVisionMode).toBe("deuteranopia_safe");
+    expect(doc.getElementById("fm-vision-deuteranopia")).toBeTruthy();
+
+    const cycledVision = await (themes as any).cycleColorVisionMode(1, { quiet: true });
+    expect(cycledVision.id).toBe("tritanopia_safe");
+    expect(doc.documentElement.dataset.visionMode).toBe("tritanopia_safe");
+
+    // Verify getActiveWorkspaceEffects and removeActiveWorkspaceEffect support colorTempMode & colorVisionMode
+    const activeFx = themes.getActiveWorkspaceEffects().map((x: any) => x.kind);
+    expect(activeFx).toContain("colorTempMode");
+    expect(activeFx).toContain("colorVisionMode");
+
+    await themes.removeActiveWorkspaceEffect("colorTemp", "", { quiet: true });
+    expect(doc.documentElement.dataset.colorTemp).toBeUndefined();
+    await themes.removeActiveWorkspaceEffect("visionMode", "", { quiet: true });
+    expect(doc.documentElement.dataset.visionMode).toBeUndefined();
+
+    // 4. 🧪 Theme DNA Inspector & 1-Click Modular Aspect Grafter
+    expect((themes as any).THEME_GRAFT_ASPECTS.length).toBe(5);
+    const list = await themes.themeList();
+    const sampleTheme = list.find((t: any) => t.key === "dracula") || list[0];
+    const dna = (themes as any).inspectThemeDna(sampleTheme);
+    expect(dna.key).toBe(sampleTheme.key);
+    expect(dna.textContrast).toBeGreaterThan(4.5);
+    expect(["WCAG AAA", "WCAG AA", "Decorative"]).toContain(dna.wcagGrade);
+
+    const graftedFolders = await (themes as any).graftThemeAspect("tahoe_studio_3d", "folders", { quiet: true });
+    expect(graftedFolders).toBeTruthy();
+    expect(graftedFolders.aspect).toBe("folders");
+    expect(doc.documentElement.dataset.uiFx).toBeTruthy();
+
+    const graftedIcons = await (themes as any).graftThemeAspect("cyberpunk_edgerunner", "icons", { quiet: true });
+    expect(graftedIcons).toBeTruthy();
+    expect(graftedIcons.aspect).toBe("icons");
+    expect(doc.documentElement.dataset.iconPack).toBeTruthy();
+
+    // 5. Verify 4 new Atelier Master Director's Cut Presets work end-to-end
+    for (const masterId of ["bauhaus_atelier_master", "kyoto_ukiyoe_master", "art_deco_metropolis_master", "mariana_biolum_master"]) {
+      const p = await (themes as any).applyAaaDirectorCutPreset(masterId, { quiet: true });
+      expect(p.id).toBe(masterId);
+      const rep = (themes as any).computeAaaProductionScore(state.settings);
+      expect(rep.score).toBeGreaterThanOrEqual(90);
+    }
+
     closeDialogs();
     await themes.disableAllThemeAnimations({ quiet: true });
     await themes.applyPalette("");

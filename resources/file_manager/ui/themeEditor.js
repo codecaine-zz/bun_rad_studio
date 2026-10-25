@@ -7,7 +7,7 @@ import { debounce, h, iconFor } from "./dom.js";
 import { toast } from "./menus.js";
 import { saveSettings } from "./nav.js";
 import { emit, on, state } from "./state.js";
-import { applyPalette, applyUiImmersionProfiles, closeTelemetryPopoutHud, downloadThemeFileInBrowser, downloadThemePosterCard, estimateThemeResourceTelemetry, extractPaletteFromPixels, forgetThemeList, ICON_PACK_OPTIONS, paint, pasteImportThemesFromClipboard, runBulkThemeImportFlow, saveThemeFileToFolder, startThemePeekCompare, stopThemePeekCompare, syncSubStudioThemeTokens, toggleThemePeekCompare, UI_ELEMENT_FX_OPTIONS } from "./themes.js";
+import { applyPalette, applyUiImmersionProfiles, closeTelemetryPopoutHud, COLOR_HARMONY_CHORDS, computeColorHarmonyChord, downloadThemeFileInBrowser, downloadThemePosterCard, estimateThemeResourceTelemetry, extractPaletteFromPixels, forgetThemeList, ICON_PACK_OPTIONS, paint, pasteImportThemesFromClipboard, runBulkThemeImportFlow, saveThemeFileToFolder, startThemePeekCompare, stopThemePeekCompare, syncSubStudioThemeTokens, toggleThemePeekCompare, UI_ELEMENT_FX_OPTIONS } from "./themes.js";
 import { ATMOSPHERE_IDS, ATMOSPHERE_MIX_PRESETS, ATMOSPHERE_OPTIONS, formatAtmosphereLabel, normalizeAtmosphereSpec, parseAtmosphereIds } from "./atmosphereCatalog.js";
 import { applyAtmosphere } from "./atmosphereFx.js";
 
@@ -357,6 +357,24 @@ export const THEME_HACK_MUTATORS = [
     colors: { background: "#020612", card: "#071026", text: "#f2f9ff", accent: "#00f5ff", secondary: "#ff2a85", border: "#38bdf8", danger: "#ff4d6d", warning: "#facc15", success: "#00f5d4", info: "#38bdf8" },
     dark: true,
     fx: { glow: "bloom", glowColor: "#00f5ff", glowColor2: "#ff2a85", glowIntensity: 0.96, blur: 30, glass: 0.74, saturation: 2.1, border: "iridescent", borderOpacity: 0.5, radius: "squircle", motion: "spring", chromatic: true, prismEdge: true, frostedRim: true, innerGlow: true, sheen: true, ambient: true, parallax: true, backdropStyle: "liquid", cursorEffect: "prism", atmosphere: "prism_spectrum+liquid_glass_caustics+penrose_quasicrystal", uiElementFx: "godmode_photonic_crystal", iconPackStyle: "godmode_photonic", fontProfile: "humanist_hig", cornerProfile: "squircle_hig", iconGlow: "ambient_p3" },
+    customCss: "",
+  },
+  {
+    id: "golden_ratio_harmony_hack",
+    label: "🌀 Fibonacci Golden-Ratio (137.5°)",
+    desc: "Mathematically ideal Phyllotaxis Golden-Angle (137.5°) color chord with WCAG AAA contrast, Swiss typography, and sacred geometry caustics.",
+    colors: { background: "#070b14", card: "#0f1726", text: "#f4f8ff", accent: "#38bdf8", secondary: "#f59e0b", border: "#1e3a5f", danger: "#f43f5e", warning: "#facc15", success: "#10b981", info: "#38bdf8" },
+    dark: true,
+    fx: { glow: "aurora", glowColor: "#38bdf8", glowColor2: "#f59e0b", glowIntensity: 0.86, blur: 24, glass: 0.62, saturation: 1.72, border: "iridescent", borderOpacity: 0.44, radius: "squircle", motion: "spring", frostedRim: true, innerGlow: true, sheen: true, ambient: true, backdropStyle: "glass", cursorEffect: "prism", atmosphere: "penrose_quasicrystal+sacred_mandala", uiElementFx: "cupertino_ceramic_bevel", iconPackStyle: "cupertino_hig_studio", fontProfile: "swiss_grotesk", cornerProfile: "squircle_hig", iconGlow: "ambient_p3" },
+    customCss: "",
+  },
+  {
+    id: "bauhaus_constructivist_hack",
+    label: "🟥 Bauhaus Dessau 1926 Atelier",
+    desc: "Kandinsky & Moholy-Nagy primary-triad constructivism: cadmium red, cobalt blue, and chrome yellow geometric folders with Swiss grid rules.",
+    colors: { background: "#121318", card: "#1c1e26", text: "#f7f5f0", accent: "#e63946", secondary: "#ffb703", border: "#457b9d", danger: "#e63946", warning: "#ffb703", success: "#2a9d8f", info: "#3a86ff" },
+    dark: true,
+    fx: { glow: "soft", glowColor: "#e63946", glowColor2: "#ffb703", glowIntensity: 0.64, blur: 16, glass: 0.36, saturation: 1.48, border: "double", borderOpacity: 0.58, radius: "sharp", motion: "snappy", sheen: true, ambient: false, backdropStyle: "matte", cursorEffect: "spotlight", atmosphere: "hud_reticle", uiElementFx: "teenage_field_anodized", iconPackStyle: "teenage_field_synth", fontProfile: "swiss_grotesk", cornerProfile: "chamfered", iconGlow: "xdr_specular" },
     customCss: "",
   },
   {
@@ -1683,6 +1701,19 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
         applyColorHarmony(harmonizeFromAccent(rndAccent, darkBox.checked), darkBox.checked);
       },
     }, "🎲 Randomize palette"),
+    ...COLOR_HARMONY_CHORDS.map((chord) =>
+      h("button", {
+        type: "button",
+        class: "theme-filter-pill",
+        "data-harmony-chord": chord.id,
+        title: `${chord.label}: ${chord.desc}`,
+        onclick: () => {
+          const res = computeColorHarmonyChord(draft.colors.accent || "#6ea8ff", chord.id, darkBox.checked);
+          applyColorHarmony(res.colors, res.dark);
+          toast(`${chord.label} applied (WCAG ${res.contrastRatio}:1 · UI ${res.uiContrastRatio}:1)`, { kind: "info" });
+        },
+      }, chord.label),
+    ),
     h("button", {
       type: "button",
       class: "btn",

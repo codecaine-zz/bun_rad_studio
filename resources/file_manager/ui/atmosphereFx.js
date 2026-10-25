@@ -2820,11 +2820,14 @@ function drawFrame(tickStep = 1) {
   if (typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent || "")) return false;
   const canvas = document.getElementById("fm-atmosphere-canvas");
   if (!canvas || typeof canvas.getContext !== "function") return false;
-  let ctx = null;
-  try {
-    ctx = canvas.getContext("2d");
-  } catch {
-    return false;
+  let ctx = canvas._fmCtx2d || null;
+  if (!ctx) {
+    try {
+      ctx = canvas.getContext("2d");
+      if (ctx) canvas._fmCtx2d = ctx;
+    } catch {
+      return false;
+    }
   }
   if (!ctx) return false;
   frameTick += tickStep;

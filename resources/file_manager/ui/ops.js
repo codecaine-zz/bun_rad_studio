@@ -20,7 +20,7 @@ import { AUDIO_EXTS, VIDEO_EXTS } from "./mediacore.js";
 import { emit, on, state } from "./state.js";
 import { looksLikeThemeImportPayload, pasteImportThemesFromText } from "./themes.js";
 import { announceVerdict, askOpenAnyway, skipMismatchGuard } from "./typecheck.js";
-import { baseName, extractableEntries, parentOf, plural } from "./util.js";
+import { baseName, detectSnippetInfo, extractableEntries, joinPath, parentOf, plural } from "./util.js";
 import { isLocked, unlockEntries } from "./vault.js";
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -270,6 +270,23 @@ export async function copyPathOf(entries) {
   }
 }
 
+/** Copies only the base filenames (without directory paths) of `entries` to the clipboard. */
+export async function copyNamesOf(entries = selectedEntries()) {
+  if (!Array.isArray(entries) || entries.length === 0) return;
+  const text = entries.map((e) => e.name || baseName(e.path, state.sep)).join("\n");
+  try {
+    const r = await call("copytext", { text });
+    toast(
+      r.copied
+        ? (entries.length === 1 ? `Copied filename "${text}".` : `Copied ${plural(entries.length, "filename")}.`)
+        : "Couldn't copy to the clipboard.",
+      { kind: r.copied ? "success" : "error" },
+    );
+  } catch (err) {
+    fail(err);
+  }
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // New folder / file, rename
 // ---------------------------------------------------------------------------------------------------------------
@@ -367,6 +384,101 @@ export async function newSqliteIn(folderPath) {
   await createItem("newsqlite", "SQLite database");
 }
 
+/**
+ * Groups the selected items (or provided paths/entries) into a newly created folder in the active pane,
+ * with full atomic Undo support and immediate inline rename when no explicit `customName` is given.
+ */
+export async function newFolderWithSelection(entriesOrPaths = null, customName = null) {
+  if (!needFolder("grouping items into a new folder")) return null;
+  const pane = activePane();
+  const rawList = Array.isArray(entriesOrPaths) && entriesOrPaths.length ? entriesOrPaths : selectedEntries(pane);
+  const paths = rawList.map((x) => (typeof x === "string" ? x : x?.path)).filter(Boolean);
+  if (paths.length === 0) {
+    toast("Select one or more items first to group them into a new folder.", { kind: "info" });
+    return null;
+  }
+  const stem = customName && String(customName).trim() ? String(customName).trim() : "New folder";
+  const folderName = uniqueInPane(pane, stem);
+  try {
+    return await busy(async () => {
+      const created = await call("mkdir", { parent: currentPath(pane), name: folderName });
+      const moveRes = await call("move", { sources: paths, dest: created.path, policy: "rename" });
+      const movedItems = (moveRes.results || [])
+        .filter((r) => r.ok && r.value?.destination)
+        .map((r) => ({ movedName: baseName(r.value.destination, state.sep), originalPath: r.value.source }));
+      lastCreated = { path: created.path };
+      const tracker = lastCreated;
+      pushUndo(`new folder with ${plural(movedItems.length, "item")}`, async () => {
+        const pairs = movedItems.map((it) => ({
+          from: joinPath(tracker.path, it.movedName, state.sep),
+          to: it.originalPath,
+        }));
+        if (pairs.length) {
+          ensureOk((await call("relocate", { pairs })).results, "undo move");
+        }
+        ensureOk((await trashPaths([tracker.path])).failed.map((m) => ({ ok: false, message: m })), "undo folder");
+      });
+      await refresh({ keepSelection: false, pane });
+      selectKeys([created.path], pane);
+      if (!customName) {
+        emit("rename-request", { key: created.path, pane });
+      }
+      toast(`Grouped ${plural(movedItems.length, "item")} into "${created.name}".`, {
+        kind: "success",
+        action: { label: "Undo", run: undo },
+      });
+      return { path: created.path, name: created.name, count: movedItems.length };
+    });
+  } catch (err) {
+    fail(err);
+    return null;
+  }
+}
+
+/**
+ * Creates a new file in the active folder from clipboard text (or `rawText`),
+ * auto-detecting JSON, Markdown, SQL, HTML, SVG, CSV, TypeScript, or Shell script extensions.
+ */
+export async function pasteTextAsFile(rawText = null, customName = null) {
+  if (!needFolder("saving clipboard text as a file")) return null;
+  const pane = activePane();
+  let text = rawText;
+  if (typeof text !== "string") {
+    try {
+      text = await readFromClipboard();
+    } catch {
+      text = "";
+    }
+  }
+  if (!text || !String(text).trim()) {
+    toast("The clipboard doesn't contain any text to save as a file.", { kind: "info" });
+    return null;
+  }
+  const info = detectSnippetInfo(text);
+  const name = customName && String(customName).trim()
+    ? String(customName).trim()
+    : uniqueInPane(pane, info.baseName, `.${info.ext}`);
+  try {
+    const r = await busy(() => call("newfile", { parent: currentPath(pane), name, content: String(text) }));
+    lastCreated = { path: r.path };
+    const tracker = lastCreated;
+    pushUndo(`pasted ${info.label} "${r.name}"`, async () => ensureOk((await trashPaths([tracker.path])).failed.map((m) => ({ ok: false, message: m })), "undo"));
+    await refresh({ keepSelection: false, pane });
+    selectKeys([r.path], pane);
+    if (!customName) {
+      emit("rename-request", { key: r.path, pane });
+    }
+    toast(`Created ${info.label} "${r.name}" from clipboard text.`, {
+      kind: "success",
+      action: { label: "Edit in Code", run: () => openInCode(tracker.path) },
+    });
+    return r;
+  } catch (err) {
+    fail(err);
+    return null;
+  }
+}
+
 /** Renames one item; throws an ApiError when the name isn't accepted (the caller shows it next to the name). */
 export async function commitRename(path, newName, pane = activePane()) {
   const r = await call("rename", { path, name: newName });
@@ -419,14 +531,22 @@ export function cutSelection() {
 
 export async function paste() {
   if (!state.clipboard) {
+    let clipText = "";
     try {
-      const clipText = await readFromClipboard();
+      clipText = (await readFromClipboard()) || "";
       if (clipText && looksLikeThemeImportPayload(clipText)) {
         await pasteImportThemesFromText(clipText, { applyFirst: true });
         return;
       }
     } catch {
       /* ignore clipboard read errors and show standard message */
+    }
+    if (clipText.trim() && canChangeHere()) {
+      const info = detectSnippetInfo(clipText);
+      return toast(`No copied files in clipboard, but clipboard has ${info.label}.`, {
+        kind: "info",
+        action: { label: `Save as .${info.ext} file`, run: () => void pasteTextAsFile(clipText) },
+      });
     }
     return toast("There's nothing to paste yet. Select items and choose Copy or Cut first (or copy a CCFM-THEME-v1 theme code to import it).");
   }

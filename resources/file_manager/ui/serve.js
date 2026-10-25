@@ -244,12 +244,29 @@ registerPowerTab({
 // So the right-click menu can say "Start PHP server here" without waiting, folders are looked at while the pointer
 // rests on them and when they are selected.
 if (typeof document !== "undefined") {
-  const primeFromEvent = (e) => {
+  let hoverTimer = null;
+  const primeFromHover = (e) => {
     const row = e.target?.closest?.(".row.is-folder[data-key]");
-    if (row) primeHint(row.dataset.key);
+    if (!row) return;
+    const key = row.dataset.key;
+    if (hoverTimer) clearTimeout(hoverTimer);
+    hoverTimer = setTimeout(() => {
+      hoverTimer = null;
+      primeHint(key);
+    }, 150);
   };
-  document.addEventListener("pointerover", primeFromEvent);
-  document.addEventListener("pointerdown", primeFromEvent, true);
+  const primeFromDown = (e) => {
+    const row = e.target?.closest?.(".row.is-folder[data-key]");
+    if (row) {
+      if (hoverTimer) {
+        clearTimeout(hoverTimer);
+        hoverTimer = null;
+      }
+      primeHint(row.dataset.key);
+    }
+  };
+  document.addEventListener("pointerover", primeFromHover);
+  document.addEventListener("pointerdown", primeFromDown, true);
   on("selection", () => {
     if (state.selection.size !== 1) return;
     const [key] = state.selection;

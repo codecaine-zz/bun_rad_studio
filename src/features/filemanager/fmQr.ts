@@ -39,7 +39,7 @@ function textBytes(data: unknown, kind: "svg" | "txt"): Buffer {
   const bytes = Buffer.from(data, "utf8");
   if (bytes.length > MAX_QR_TEXT_BYTES) throw new FmError("TOO_BIG", "That is too big to save.");
   if (kind === "svg" && !/^\s*(<\?xml[^>]*\?>\s*)?<svg[\s>]/.test(data)) throw new FmError("BAD_REQUEST", "That isn't an SVG picture.");
-  if (kind === "svg" && /<script|on\w+\s*=|javascript:/i.test(data)) throw new FmError("BAD_REQUEST", "That SVG contains active content and was not saved.");
+  if (kind === "svg" && (/<(?:script|foreignObject|iframe|object|embed|use|set|animate)\b|<!ENTITY\b|on\w+\s*=|javascript:/i.test(data))) throw new FmError("BAD_REQUEST", "That SVG contains active content and was not saved.");
   return bytes;
 }
 

@@ -473,7 +473,7 @@ function decodeTiff(buf: Buffer): Buffer | null {
     if (compression === 1) {
       decoded = slice;
     } else if (compression === 8 || compression === 32946) {
-      try { decoded = inflateSync(slice); } catch { return null; }
+      try { decoded = inflateSync(slice, { maxOutputLength: Math.max(expectedBytes, 64 * 1024) }); } catch { return null; }
     } else if (compression === 32773) {
       decoded = unpackBits(slice, expectedBytes);
     } else return null;
@@ -583,6 +583,8 @@ function decodePsd(buf: Buffer): Buffer | null {
 // ---------------------------------------------------------------------------------------------------------------
 
 function decodeXbm(buf: Buffer): Buffer | null {
+  const head = buf.subarray(0, Math.min(buf.length, 512)).toString("ascii");
+  if (!head.includes("#define")) return null;
   const text = buf.subarray(0, Math.min(buf.length, 512 * 1024)).toString("ascii");
   const wMatch = /#define\s+\w+_width\s+(\d+)/.exec(text);
   const hMatch = /#define\s+\w+_height\s+(\d+)/.exec(text);
@@ -640,6 +642,8 @@ function parseXpmColor(spec: string): [number, number, number, number] {
 }
 
 function decodeXpm(buf: Buffer): Buffer | null {
+  const head = buf.subarray(0, Math.min(buf.length, 512)).toString("ascii");
+  if (!head.includes("XPM") && !head.includes("static")) return null;
   const text = buf.subarray(0, Math.min(buf.length, 1024 * 1024)).toString("ascii");
   if (!text.includes("XPM") && !text.includes("static")) return null;
   const strings: string[] = [];

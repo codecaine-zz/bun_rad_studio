@@ -49,29 +49,41 @@ async function* walk(root: string, signal: AbortSignal | undefined, warnings: Wa
   async function* inner(dirAbs: string, dirRel: string, depth: number): AsyncGenerator<WalkEntry> {
     throwIfAborted(signal);
     const names = (await fsp.readdir(dirAbs)).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
-    for (const name of names) {
+    for (let i = 0; i < names.length; i += 64) {
       throwIfAborted(signal);
-      const rel = dirRel ? `${dirRel}/${name}` : name;
-      const problem = componentProblem(name);
-      if (problem) {
-        warnings.add(`Skipped "${short(rel)}": it has ${problem}.`);
-        continue;
-      }
-      const abs = nodePath.join(dirAbs, name);
-      const st = await fsp.lstat(abs);
-      if (st.isSymbolicLink()) {
-        warnings.add(`Skipped the link "${short(rel)}" (links are not stored).`);
-      } else if (st.isDirectory() || st.isFile()) {
-        if (depth + 1 > MAX_DEPTH) throw new VaultError("TOO_DEEP", `"${short(rel)}" is nested more than ${MAX_DEPTH} folders deep, which can't be stored.`);
-        if (bytesOf(rel) > MAX_PATH_BYTES) throw new VaultError("PATH_TOO_LONG", `The path "${short(rel)}" is too long to store (the limit is ${MAX_PATH_BYTES} bytes).`);
-        if (st.isDirectory()) {
-          yield { rel, abs, st, isDir: true };
-          yield* inner(abs, rel, depth + 1);
-        } else {
-          yield { rel, abs, st, isDir: false };
+      const batchNames = names.slice(i, i + 64);
+      const batchStats = await Promise.all(
+        batchNames.map(async (name) => {
+          const problem = componentProblem(name);
+          if (problem) return { name, problem, abs: "", st: null };
+          const abs = nodePath.join(dirAbs, name);
+          const st = await fsp.lstat(abs);
+          return { name, problem: null, abs, st };
+        }),
+      );
+      for (const item of batchStats) {
+        throwIfAborted(signal);
+        const rel = dirRel ? `${dirRel}/${item.name}` : item.name;
+        if (item.problem) {
+          warnings.add(`Skipped "${short(rel)}": it has ${item.problem}.`);
+          continue;
         }
-      } else {
-        warnings.add(`Skipped "${short(rel)}": it isn't an ordinary file or folder.`);
+        const st = item.st!;
+        const abs = item.abs;
+        if (st.isSymbolicLink()) {
+          warnings.add(`Skipped the link "${short(rel)}" (links are not stored).`);
+        } else if (st.isDirectory() || st.isFile()) {
+          if (depth + 1 > MAX_DEPTH) throw new VaultError("TOO_DEEP", `"${short(rel)}" is nested more than ${MAX_DEPTH} folders deep, which can't be stored.`);
+          if (bytesOf(rel) > MAX_PATH_BYTES) throw new VaultError("PATH_TOO_LONG", `The path "${short(rel)}" is too long to store (the limit is ${MAX_PATH_BYTES} bytes).`);
+          if (st.isDirectory()) {
+            yield { rel, abs, st, isDir: true };
+            yield* inner(abs, rel, depth + 1);
+          } else {
+            yield { rel, abs, st, isDir: false };
+          }
+        } else {
+          warnings.add(`Skipped "${short(rel)}": it isn't an ordinary file or folder.`);
+        }
       }
     }
   }

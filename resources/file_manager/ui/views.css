@@ -210,6 +210,7 @@ body:not(.ready) #stage { visibility: hidden; }
 #tabbar { display: flex; align-items: center; gap: 0.25rem; padding: 0.22rem 0.6rem; background: color-mix(in oklab, var(--panel) 88%, var(--bg)); border-bottom: 1px solid color-mix(in oklab, var(--border) 68%, transparent); overflow-x: auto; scrollbar-width: thin; }
 .fm-tab { display: inline-flex; align-items: center; max-width: 14rem; border: 1px solid color-mix(in oklab, var(--border) 75%, transparent); border-radius: 0.45rem; background: var(--bg); color: var(--muted); font-size: 0.82rem; overflow: hidden; flex: none; }
 .fm-tab.active { background: var(--selected); color: var(--selected-text); border-color: color-mix(in oklab, var(--accent) 55%, var(--border)); font-weight: 600; }
+.fm-tab.drop-target { outline: 2px dashed var(--accent); outline-offset: -2px; background: var(--selected); color: var(--selected-text); }
 .fm-tab-select { display: inline-flex; align-items: center; gap: 0.32rem; padding: 0.2rem 0.55rem; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; min-width: 0; max-width: 12rem; }
 .fm-tab-select:hover { background: var(--hover); }
 .fm-tab-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -250,6 +251,9 @@ body:not(.ready) #stage { visibility: hidden; }
 .list-head[data-cols="ext"]:not(:has(.h-where:not([hidden]))), .view-details[data-cols="ext"]:not(.searching):not(.in-trash) .row { grid-template-columns: 2.2rem minmax(10rem, 1fr) 11rem 9rem 6.5rem 5.5rem; }
 .list-head[data-cols="permissions"]:not(:has(.h-where:not([hidden]))), .view-details[data-cols="permissions"]:not(.searching):not(.in-trash) .row { grid-template-columns: 2.2rem minmax(10rem, 1fr) 11rem 9rem 6.5rem 7.5rem; }
 .list-head[data-cols="ext,permissions"]:not(:has(.h-where:not([hidden]))), .list-head[data-cols="permissions,ext"]:not(:has(.h-where:not([hidden]))), .view-details[data-cols="ext,permissions"]:not(.searching):not(.in-trash) .row, .view-details[data-cols="permissions,ext"]:not(.searching):not(.in-trash) .row { grid-template-columns: 2.2rem minmax(10rem, 1fr) 11rem 9rem 6.5rem 5.5rem 7.5rem; }
+.list-head[data-cols="ext"]:has(.h-where:not([hidden])), .view-details[data-cols="ext"].searching .row, .view-details[data-cols="ext"].in-trash .row { grid-template-columns: 2.2rem minmax(10rem, 1.3fr) minmax(8rem, 1fr) 10rem 8rem 6rem 5.5rem; }
+.list-head[data-cols="permissions"]:has(.h-where:not([hidden])), .view-details[data-cols="permissions"].searching .row, .view-details[data-cols="permissions"].in-trash .row { grid-template-columns: 2.2rem minmax(10rem, 1.3fr) minmax(8rem, 1fr) 10rem 8rem 6rem 7.5rem; }
+.list-head[data-cols="ext,permissions"]:has(.h-where:not([hidden])), .list-head[data-cols="permissions,ext"]:has(.h-where:not([hidden])), .view-details[data-cols="ext,permissions"].searching .row, .view-details[data-cols="ext,permissions"].in-trash .row, .view-details[data-cols="permissions,ext"].searching .row, .view-details[data-cols="permissions,ext"].in-trash .row { grid-template-columns: 2.2rem minmax(10rem, 1.3fr) minmax(8rem, 1fr) 10rem 8rem 6rem 5.5rem 7.5rem; }
 
 /* --------------------------------------------------------- the Dual view's right pane */
 #dual-pane { display: flex; flex-direction: column; background: var(--bg); container-type: inline-size; container-name: dualpane; }
@@ -275,18 +279,21 @@ body:not(.ready) #stage { visibility: hidden; }
 @container files (max-width: 440px) {
   .list-head, .view-details .row { grid-template-columns: 2.2rem minmax(5rem, 1fr) 5.5rem; }
   .list-head:has(.h-where:not([hidden])), .view-details.searching .row, .view-details.in-trash .row { grid-template-columns: 2.2rem minmax(5rem, 1fr) minmax(4rem, 7rem) 5.5rem; }
-  .list-head .h-date, .view-details .c-date { display: none; }
+  .list-head .h-date, .view-details .c-date, .list-head .h-ext, .view-details .c-ext, .list-head .h-perms, .view-details .c-perms { display: none; }
 }
 /* In the Dual view both lists are about half the window wide, so their columns step down by each list's own width, by the
    same rules for both: Name, Date modified, Type and Size; Type goes first when a list is narrower than 900px, then Date. */
 #app[data-workspace="dual"] .list-head:not(:has(.h-where:not([hidden]))), #app[data-workspace="dual"] .view-details:not(.searching):not(.in-trash) .row { grid-template-columns: 2.2rem minmax(8rem, 1fr) 10rem 8rem 6rem; }
+#app[data-workspace="dual"] .list-head[data-cols="ext"]:not(:has(.h-where:not([hidden]))), #app[data-workspace="dual"] .view-details[data-cols="ext"]:not(.searching):not(.in-trash) .row { grid-template-columns: 2.2rem minmax(8rem, 1fr) 10rem 8rem 6rem 5rem; }
+#app[data-workspace="dual"] .list-head[data-cols="permissions"]:not(:has(.h-where:not([hidden]))), #app[data-workspace="dual"] .view-details[data-cols="permissions"]:not(.searching):not(.in-trash) .row { grid-template-columns: 2.2rem minmax(8rem, 1fr) 10rem 8rem 6rem 7rem; }
+#app[data-workspace="dual"] .list-head[data-cols="ext,permissions"]:not(:has(.h-where:not([hidden]))), #app[data-workspace="dual"] .list-head[data-cols="permissions,ext"]:not(:has(.h-where:not([hidden]))), #app[data-workspace="dual"] .view-details[data-cols="ext,permissions"]:not(.searching):not(.in-trash) .row, #app[data-workspace="dual"] .view-details[data-cols="permissions,ext"]:not(.searching):not(.in-trash) .row { grid-template-columns: 2.2rem minmax(8rem, 1fr) 10rem 8rem 6rem 5rem 7rem; }
 @container files (max-width: 900px) {
   #app[data-workspace="dual"] .list-head:not(:has(.h-where:not([hidden]))), #app[data-workspace="dual"] .view-details:not(.searching):not(.in-trash) .row { grid-template-columns: 2.2rem minmax(6rem, 1fr) 10rem 6rem; }
-  #app[data-workspace="dual"] .list-head .h-type, #app[data-workspace="dual"] .view-details .c-type { display: none; }
+  #app[data-workspace="dual"] .list-head .h-type, #app[data-workspace="dual"] .view-details .c-type, #app[data-workspace="dual"] .list-head .h-ext, #app[data-workspace="dual"] .view-details .c-ext, #app[data-workspace="dual"] .list-head .h-perms, #app[data-workspace="dual"] .view-details .c-perms { display: none; }
 }
 @container dualpane (max-width: 900px) {
   #app[data-workspace="dual"] .list-head:not(:has(.h-where:not([hidden]))), #app[data-workspace="dual"] .view-details:not(.searching):not(.in-trash) .row { grid-template-columns: 2.2rem minmax(6rem, 1fr) 10rem 6rem; }
-  #app[data-workspace="dual"] .list-head .h-type, #app[data-workspace="dual"] .view-details .c-type { display: none; }
+  #app[data-workspace="dual"] .list-head .h-type, #app[data-workspace="dual"] .view-details .c-type, #app[data-workspace="dual"] .list-head .h-ext, #app[data-workspace="dual"] .view-details .c-ext, #app[data-workspace="dual"] .list-head .h-perms, #app[data-workspace="dual"] .view-details .c-perms { display: none; }
 }
 @container files (max-width: 440px) {
   #app[data-workspace="dual"] .list-head:not(:has(.h-where:not([hidden]))), #app[data-workspace="dual"] .view-details:not(.searching):not(.in-trash) .row { grid-template-columns: 2.2rem minmax(5rem, 1fr) 5.5rem; }
@@ -411,4 +418,19 @@ body:not(.ready) #stage { visibility: hidden; }
 .tpl-form-row { display: flex; flex-direction: column; gap: 0.55rem; }
 .tpl-preview-area { width: 100%; font-family: var(--mono); font-size: 0.8rem; padding: 0.5rem 0.65rem; border: 1px solid var(--border); border-radius: 0.45rem; background: var(--bg); color: var(--text); resize: vertical; }
 .tpl-preview-area:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ------------------------------------------- Folder Size Badges & Select-by-Pattern Dialog */
+.c-size.folder-size-badge { color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
+.row.selected .c-size.folder-size-badge { color: var(--selected-text); }
+.sbp-dialog-body { display: flex; flex-direction: column; gap: 0.7rem; }
+.sbp-presets { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.sbp-preset-btn { font-size: 0.76rem; }
+.sbp-same-row { display: flex; align-items: center; }
+.sbp-status { margin: 0; font-weight: 600; color: var(--text); }
+.sbp-preview { display: flex; flex-wrap: wrap; gap: 0.35rem; max-height: 9.5rem; overflow-y: auto; padding: 0.35rem; border: 1px solid color-mix(in oklab, var(--border) 72%, transparent); border-radius: 0.5rem; background: var(--bg); min-height: 2.5rem; align-items: center; }
+.sbp-preview:empty { display: none; }
+.sbp-preview-chip { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.18rem 0.5rem; border-radius: 999px; border: 1px solid color-mix(in oklab, var(--border) 80%, transparent); background: var(--panel); font-size: 0.78rem; color: var(--text); max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sbp-chip-meta { font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sbp-preview-more { font-size: 0.76rem; color: var(--muted); padding: 0.15rem 0.4rem; }
+
 

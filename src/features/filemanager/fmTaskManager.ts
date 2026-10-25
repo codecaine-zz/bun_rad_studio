@@ -1295,26 +1295,40 @@ export async function collectTaskSnapshot(
   const totalMemBytes = hooks.totalMemBytes ?? os.totalmem();
   const freeMemBytes = hooks.freeMemBytes ?? os.freemem();
 
-  const portMap = await collectPortMap(platform, exec);
-  let processes: TaskProcessItem[] = [];
-
   if (platform === "win32") {
-    const psRes = await exec(
-      ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", WINDOWS_PS_SNAPSHOT_SCRIPT],
-      platform,
-    );
-    processes = parseWindowsProcessJson(psRes.stdout, portMap, currentUser, totalMemBytes);
+    const [portMap, psRes] = await Promise.all([
+      collectPortMap(platform, exec),
+      exec(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", WINDOWS_PS_SNAPSHOT_SCRIPT], platform),
+    ]);
+    let processes = parseWindowsProcessJson(psRes.stdout, portMap, currentUser, totalMemBytes);
     if (processes.length === 0) {
       const tlRes = await exec(["tasklist", "/V", "/FO", "CSV"], platform);
       processes = parseWindowsTasklistCsv(tlRes.stdout, portMap, currentUser, totalMemBytes);
     }
-  } else {
-    let psRes = await exec(["ps", "-axo", "pid,ppid,pcpu,pmem,rss,state,user,etime,command"], platform);
-    if (psRes.exitCode !== 0 || !psRes.stdout.trim()) {
-      psRes = await exec(["ps", "-eo", "pid,ppid,pcpu,pmem,rss,stat,user,etime,args"], platform);
-    }
-    processes = parsePsOutput(psRes.stdout, portMap, currentUser, platform);
+    return finalizeTaskSnapshot(platform, processes, portMap, selfPid, parentPid, currentUser, totalMemBytes, freeMemBytes);
   }
+  const [portMap, firstPsRes] = await Promise.all([
+    collectPortMap(platform, exec),
+    exec(["ps", "-axo", "pid,ppid,pcpu,pmem,rss,state,user,etime,command"], platform),
+  ]);
+  let psRes = firstPsRes;
+  if (psRes.exitCode !== 0 || !psRes.stdout.trim()) {
+    psRes = await exec(["ps", "-eo", "pid,ppid,pcpu,pmem,rss,stat,user,etime,args"], platform);
+  }
+  const processes = parsePsOutput(psRes.stdout, portMap, currentUser, platform);
+  return finalizeTaskSnapshot(platform, processes, portMap, selfPid, parentPid, currentUser, totalMemBytes, freeMemBytes);
+}
+
+function finalizeTaskSnapshot(
+  platform: Platform,
+  processes: TaskProcessItem[],
+  portMap: Map<string, string[]>,
+  selfPid: string,
+  parentPid: string,
+  currentUser: string,
+  totalMemBytes: number,
+  freeMemBytes: number,
+) {
 
   const cpus = os.cpus();
   const cpuCores = Math.max(1, cpus.length);
@@ -1387,13 +1401,15 @@ export async function inspectTaskProcess(
       cwd = nodePath.win32.dirname(exePath);
     }
   } else {
-    const cwdRes = await exec(["lsof", "-a", "-p", pid, "-d", "cwd", "-Fn"], platform);
+    const [cwdRes, filesRes] = await Promise.all([
+      exec(["lsof", "-a", "-p", pid, "-d", "cwd", "-Fn"], platform),
+      exec(["lsof", "-p", pid, "-Fn"], platform),
+    ]);
     const cwdLine = cwdRes.stdout
       .split(/\r?\n/)
       .find((l) => l.startsWith("n/"));
     if (cwdLine) cwd = cwdLine.slice(1).trim();
 
-    const filesRes = await exec(["lsof", "-p", pid, "-Fn"], platform);
     if (filesRes.exitCode === 0 && filesRes.stdout.trim()) {
       const files = filesRes.stdout
         .split(/\r?\n/)

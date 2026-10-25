@@ -4,13 +4,13 @@ import { isStudioMedia } from "./mediaStudio.js";
 import { isPlayableOrPlaylist } from "./mediacore.js";
 import { openInMediaDeck } from "./playerDeck.js";
 import { showMenu } from "./menus.js";
-import { clearSearch, refresh, saveSettings } from "./nav.js";
+import { calculateFolderSizes, clearSearch, refresh, saveSettings } from "./nav.js";
 import * as ops from "./ops.js";
 import { canCompareData, showCompareData } from "./datacompare.js";
 import { showProperties } from "./extras.js";
 import { copyFileUrls, copyTerminalPaths, openInEditor } from "./fileurl.js";
 import { showMoreInfo } from "./fileinfo.js";
-import { invertSelection, selectAll } from "./selection.js";
+import { invertSelection, selectAll, selectSameKindOrExt } from "./selection.js";
 import { activePane, currentPath, inTrash, isFolderView, left, right } from "./pane.js";
 import { emit, state } from "./state.js";
 import { openFolderInCode, openInCode } from "./code.js";
@@ -109,6 +109,7 @@ export function viewMenuItems() {
     { label: "Column: Permissions", checked: cols.includes("permissions"), tip: "Show or hide the rwx permissions column in the Details view.", action: () => toggleColumn("permissions") },
     { separator: true },
     { label: "Show hidden files", checked: s.showHidden, shortcut: labelOf("view.hidden"), action: () => saveSettings({ showHidden: !s.showHidden }) },
+    { label: "Calculate folder sizes", icon: "📐", shortcut: labelOf("view.folderSizes"), tip: "Compute total byte size and item counts for folders in this view so they display in the Size column and sort by size.", action: () => calculateFolderSizes(activePane()) },
     { label: "Show details panel", checked: s.showInfoPanel, shortcut: labelOf("view.info"), action: () => saveSettings({ showInfoPanel: !s.showInfoPanel }) },
   ];
 }
@@ -184,9 +185,13 @@ function entryItems(entries) {
     ...otherPaneItems(),
     { separator: true },
     { label: one ? "Rename" : `Rename ${entries.length} items…`, icon: "✏️", shortcut: one ? labelOf("file.rename") : "", action: ops.renameSelection },
+    !searching ? { label: one ? "New folder with this item" : `New folder with ${entries.length} items`, icon: "📁", shortcut: labelOf("file.newFolderWithSelection"), tip: "Create a new folder right here and move the selected items into it in one undoable step.", action: () => ops.newFolderWithSelection(entries) } : null,
+    entries.some((x) => x.isDir) ? { label: entries.filter((x) => x.isDir).length === 1 ? "Calculate folder size" : "Calculate folder sizes", icon: "📐", shortcut: labelOf("view.folderSizes"), tip: "Measure total size and file/subfolder counts for the selected folder(s) and show them in the Size column.", action: () => calculateFolderSizes(activePane(), entries.filter((x) => x.isDir).map((x) => x.path)) } : null,
     { label: "Compress to zip", icon: "🗜️", shortcut: labelOf("file.zip"), disabled: searching, action: ops.zipSelection },
     { label: "Copy path", icon: "🔗", shortcut: labelOf("file.copyPath"), action: () => ops.copyPathOf(entries) },
+    { label: one ? "Copy filename" : `Copy ${entries.length} filenames`, icon: "🏷️", shortcut: labelOf("file.copyNames"), tip: "Copy only the file or folder names (without parent directory paths) to the clipboard.", action: () => ops.copyNamesOf(entries) },
     { label: "Copy path as a file:// address", icon: "🌐", shortcut: labelOf("file.copyFileUrl"), tip: "Copy the location as a file:// web address (spaces become %20), the form browsers and some programs understand.", action: () => copyFileUrls(entries) },
+    { label: one && e.isDir ? "Select all folders" : one && extensionOf(e.name) ? `Select all .${extensionOf(e.name)} files` : "Select all of same type", icon: "☑️", tip: "Select every item in this view that shares the same file extension or folder kind.", action: () => selectSameKindOrExt(activePane()) },
     { separator: true },
     { label: "Move to Recycle Bin", icon: "🗑️", danger: true, shortcut: toGraveyard() ? "" : labelOf("file.trash"), action: ops.moveSelectionToBin },
     { label: "Bury (Rip)", icon: "🪦", danger: true, tip: "Move to the Rip graveyard instead of deleting. You can undo it, and bring it back later from Find & more → Graveyard. Rip Studio shares this graveyard.", shortcut: toGraveyard() ? `${del()}  or  ${buryKey()}` : buryKey(), action: ops.burySelection },
@@ -237,8 +242,11 @@ export function backgroundItems() {
     { label: `New dated note (${ops.localDateStamp()}.md)`, icon: "📝", shortcut: labelOf("file.newDatedNote"), tip: "Make a new Markdown note here named with today's YYYY-MM-DD.md date.", action: () => ops.newDatedNote() },
     { separator: true },
     { label: "Paste", icon: "📥", shortcut: labelOf("file.paste"), disabled: !state.clipboard, action: ops.paste },
+    { label: "Paste clipboard text as file", icon: "📋", shortcut: labelOf("file.pasteTextAsFile"), tip: "Create a new file in this folder from the text on your clipboard (auto-detects JSON, Markdown, SQL, HTML, TypeScript, CSV, or text).", action: () => ops.pasteTextAsFile() },
     { label: "Select all", shortcut: labelOf("file.selectAll"), action: selectAll },
+    { label: "Select by pattern…", icon: "🎯", shortcut: labelOf("file.selectByPattern"), tip: "Select or deselect items matching a wildcard (*.ts), extension (ext:json), size (size:>1mb), or modification date (date:today).", action: () => emit("select-pattern-dialog") },
     { label: "Invert selection", shortcut: labelOf("file.invertSelection"), action: () => invertSelection() },
+    { label: "Calculate folder sizes", icon: "📐", shortcut: labelOf("view.folderSizes"), tip: "Calculate total byte sizes for all folders in this view.", action: () => calculateFolderSizes(activePane()) },
     { label: "Refresh", shortcut: labelOf("nav.refresh"), action: () => refresh() },
     { separator: true },
     { label: "Open terminal here", icon: "⌨️", shortcut: labelOf("terminal.here"), tip: "Show the terminal and move it to this folder.", action: () => emit("terminal-here", here) },

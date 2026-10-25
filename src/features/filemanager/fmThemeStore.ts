@@ -210,18 +210,21 @@ export function sanitizeCustomCss(raw: unknown): string {
   if (raw === undefined || raw === null || raw === "") return "";
   if (typeof raw !== "string") throw new FmError("BAD_REQUEST", "Custom CSS must be text.");
   if (raw.length > 8000) throw new FmError("BAD_REQUEST", "Keep custom CSS overrides under 8,000 characters.");
-  const stripped = raw
-    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, "")
-    .replace(/<\/?\s*style[^>]*>/gi, "")
-    .replace(/<\/?\s*script[^>]*>/gi, "")
-    .replace(/@import\b[^;{}]*;?/gi, "")
-    .replace(/url\s*\(\s*['"]?\s*(?:https?:|ftp:|data:text\/html|javascript:|vbscript:|file:|\/\/)[^)]*\)/gi, "none")
-    .replace(/expression\s*\([^)]*\)/gi, "none")
-    .replace(/-moz-binding\s*:[^;{}]*/gi, "")
-    .replace(/behavior\s*:[^;{}]*/gi, "")
-    .replace(/javascript\s*:/gi, "")
-    .trim();
-  return stripped;
+  let stripped = raw.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, "");
+  for (let pass = 0; pass < 4; pass++) {
+    const next = stripped
+      .replace(/<\/?\s*style[^>]*>/gi, "")
+      .replace(/<\/?\s*script[^>]*>/gi, "")
+      .replace(/@\\*i\\*m\\*p\\*o\\*r\\*t\b[^;{}]*;?/gi, "")
+      .replace(/u\\*r\\*l\s*\(\s*['"]?\s*(?:https?:|ftp:|data:text\/html|javascript:|vbscript:|file:|\/\/)[^)]*\)/gi, "none")
+      .replace(/expression\s*\([^)]*\)/gi, "none")
+      .replace(/-moz-binding\s*:[^;{}]*/gi, "")
+      .replace(/behavior\s*:[^;{}]*/gi, "")
+      .replace(/javascript\s*:/gi, "");
+    if (next === stripped) break;
+    stripped = next;
+  }
+  return stripped.trim();
 }
 
 export const THEME_SHARE_CODE_PREFIX = "CCFM-THEME-v1:";

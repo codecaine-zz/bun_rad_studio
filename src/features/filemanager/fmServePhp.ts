@@ -200,8 +200,7 @@ function canConnect(host: string, port: number, ms = 800): Promise<boolean> {
 
 /** True when something already accepts connections on the port, or it can't be bound. */
 export async function portInUse(host: string, port: number): Promise<boolean> {
-  if (await canConnect(host, port)) return true;
-  return new Promise<boolean>((resolve) => {
+  const bindFailed = await new Promise<boolean>((resolve) => {
     let settled = false;
     const srv = createServer();
     const timer = setTimeout(() => finish(false), 800);
@@ -215,6 +214,8 @@ export async function portInUse(host: string, port: number): Promise<boolean> {
     srv.once("error", () => finish(true));
     srv.listen({ host, port, exclusive: true }, () => srv.close(() => finish(false)));
   });
+  if (bindFailed) return true;
+  return canConnect(host, port);
 }
 
 const livePids = new Set<number>();
@@ -236,7 +237,7 @@ export function killTree(pid: number, signal: "SIGTERM" | "SIGKILL"): void {
     return;
   }
   try {
-    const found = Bun.spawnSync(["pgrep", "-P", String(pid)], { stdout: "pipe", stderr: "ignore", stdin: "ignore" });
+    const found = Bun.spawnSync(["pgrep", "-P", String(pid)], { stdout: "pipe", stderr: "ignore", stdin: "ignore", timeout: 2000 });
     for (const child of found.stdout.toString().split(/\s+/).map(Number).filter((n) => n > 0)) killTree(child, signal);
   } catch {}
   try { process.kill(pid, signal); } catch {}
@@ -280,7 +281,7 @@ export const DEV_INI = ["-d", "display_errors=1", "-d", "error_reporting=E_ALL",
 export async function startPhp(o: PhpStartOptions): Promise<PhpProcess> {
   hookExit();
   if (await portInUse(o.host, o.port)) throw new FmError("PORT_IN_USE", explainPhpFailure("Address already in use", o.host, o.port));
-  const argv = [o.php, ...DEV_INI, "-S", `${o.host}:${o.port}`, "-t", o.docroot, ...(o.router ? [o.router] : [])];
+  const argv = [o.php, ...DEV_INI, "-S", `${o.host}:${o.port}`, "-t", o.docroot, ...(o.router ? ["--", o.router] : [])];
   o.log.add(`$ ${argv.map((a) => (/[\s"']/.test(a) ? JSON.stringify(a) : a)).join(" ")}`);
   let proc: Subprocess<"ignore", "pipe", "pipe">;
   try {

@@ -80,18 +80,18 @@ export async function countDirs(root: string, cap: number, allowDotfiles = false
   let count = 1;
   const queue = [root];
   while (queue.length && count <= cap) {
-    const dir = queue.pop()!;
-    let entries;
-    try {
-      entries = await fsp.readdir(dir, { withFileTypes: true });
-    } catch {
-      continue;
-    }
-    for (const e of entries) {
-      if (!e.isDirectory() || IGNORED_DIRS.includes(e.name) || (!allowDotfiles && e.name.startsWith("."))) continue;
-      count++;
-      queue.push(`${dir}/${e.name}`);
-      if (count > cap) break;
+    const batch = queue.splice(0, 16);
+    const lists = await Promise.all(batch.map((dir) => fsp.readdir(dir, { withFileTypes: true }).catch(() => null)));
+    for (let i = 0; i < batch.length && count <= cap; i++) {
+      const entries = lists[i];
+      if (!entries) continue;
+      const dir = batch[i]!;
+      for (const e of entries) {
+        if (!e.isDirectory() || IGNORED_DIRS.includes(e.name) || (!allowDotfiles && e.name.startsWith("."))) continue;
+        count++;
+        queue.push(`${dir}/${e.name}`);
+        if (count > cap) break;
+      }
     }
   }
   return count;
@@ -123,6 +123,8 @@ export class LiveHub {
   private nextClient = 1;
   private watcher: FSWatcher | null = null;
   private pending = new Set<string>();
+  private pendingOverflow = 0;
+  private pendingNonCss = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private beat: ReturnType<typeof setInterval> | null = null;
   private stopped = false;
@@ -169,7 +171,12 @@ export class LiveHub {
   changed(rel: string): void {
     if (this.stopped || Date.now() < this.quietUntil) return;
     if (rel && isIgnoredChange(rel, this.opts.allowDotfiles)) return;
-    this.pending.add(rel);
+    if (!/\.css$/i.test(rel)) this.pendingNonCss = true;
+    if (this.pending.size < 256) {
+      this.pending.add(rel);
+    } else if (!this.pending.has(rel)) {
+      this.pendingOverflow++;
+    }
     if (this.timer) return;
     this.timer = setTimeout(() => this.flush(), this.opts.debounceMs ?? DEBOUNCE_MS);
   }
@@ -177,14 +184,17 @@ export class LiveHub {
   private flush(): void {
     this.timer = null;
     const files = [...this.pending];
+    const totalCount = files.length + this.pendingOverflow;
+    const cssOnly = !this.pendingNonCss && files.every((f) => /\.css$/i.test(f));
     this.pending.clear();
+    this.pendingOverflow = 0;
+    this.pendingNonCss = false;
     if (this.stopped || !files.length) return;
     if (!existsSync(this.opts.root)) {
       this.fail("The folder being served was deleted or moved, so there is nothing to show. Stop this server and start a new one.");
       return;
     }
-    const cssOnly = files.every((f) => /\.css$/i.test(f));
-    this.broadcast({ type: cssOnly ? "css" : "reload", files: files.slice(0, MAX_LISTED_FILES), more: Math.max(0, files.length - MAX_LISTED_FILES) });
+    this.broadcast({ type: cssOnly ? "css" : "reload", files: files.slice(0, MAX_LISTED_FILES), more: Math.max(0, totalCount - MAX_LISTED_FILES) });
   }
 
   private broadcast(message: Record<string, unknown>): void {

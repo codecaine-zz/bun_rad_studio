@@ -334,7 +334,8 @@ export function createActions(ctx) {
         ed.focus();
       },
       onOpenUrl: (url) => {
-        call("link/open", { url }).catch((err) => toast(problem(err), { kind: "error" }));
+        if (typeof url !== "string" || !/^https?:\/\//i.test(url.trim())) return;
+        call("link/open", { url: url.trim() }).catch((err) => toast(problem(err), { kind: "error" }));
       },
     });
   }

@@ -146,8 +146,8 @@ export async function findInFiles(ctx: FmContext, body: Record<string, any>): Pr
   const list = await listWorkspaceFiles(ctx, body.root, { hidden: body.hidden === true, timeMs: 3000 });
   let files = list.files;
   if (typeof body.include === "string" && body.include.trim()) {
-    const parts = body.include.split(",").map((s: string) => s.trim()).filter(Boolean).slice(0, 10);
-    const res = parts.map((g: string) => new RegExp(`(^|/)${g.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*\*/g, "\0").replace(/\*/g, "[^/]*").replace(/\0/g, ".*").replace(/\?/g, "[^/]")}$`));
+    const parts = body.include.slice(0, 256).split(",").map((s: string) => s.trim()).filter(Boolean).slice(0, 10);
+    const res = parts.map((g: string) => new RegExp(`(^|/)${g.replace(/\*{3,}/g, "**").replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*\*/g, "\0").replace(/\*/g, "[^/]*").replace(/\0/g, ".*").replace(/\?/g, "[^/]")}$`));
     files = files.filter((f) => res.some((r: RegExp) => r.test(f)));
   }
   const out = await searchWorkspace(ctx, list.root, files, { query: body.query, regex: body.regex === true, caseSensitive: body.caseSensitive === true, wholeWord: body.wholeWord === true }, Number.isFinite(body.timeMs) ? Math.min(12_000, Math.max(300, Number(body.timeMs))) : 12_000);

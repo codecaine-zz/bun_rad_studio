@@ -108,7 +108,9 @@ export function parseJson(source: string, lenient: boolean, notes: Notes): Value
         if (text[i] === '"' || (lenient && text[i] === "'")) key = string(text[i]!);
         else if (lenient && /^[\p{ID_Start}$_]|^\\u[0-9a-fA-F]{4}/u.test(text.slice(i, i + 6))) {
           // an unquoted JSON5 key is an identifier: letters of any language, digits, $ and _, and \uXXXX escapes
-          const m = /^(?:[\p{ID_Start}$_]|\\u[0-9a-fA-F]{4})(?:[\p{ID_Continue}$\u200c\u200d]|\\u[0-9a-fA-F]{4})*/u.exec(text.slice(i))!;
+          const identRe = /(?:[\p{ID_Start}$_]|\\u[0-9a-fA-F]{4})(?:[\p{ID_Continue}$\u200c\u200d]|\\u[0-9a-fA-F]{4})*/uy;
+          identRe.lastIndex = i;
+          const m = identRe.exec(text)!;
           key = m[0].replace(/\\u([0-9a-fA-F]{4})/g, (_w, h: string) => String.fromCharCode(parseInt(h, 16)));
           i += m[0].length;
         }

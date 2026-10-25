@@ -1619,63 +1619,74 @@ async function executeRedisToSqlClone(
       if (opts.contentMode !== "schema") {
         const keys = (byGroup.get(plan.sourceName) ?? []).slice(0, opts.rowLimit ?? Infinity);
         const isHashTable = obj.redisKeyType === "hash" && obj.columns.some((c) => c.name === "key_id");
+        const insertAction = plan.action === "append" || plan.action === "upsert" ? plan.action : "replace";
+        const batchSize = Math.max(1, Math.min(100, Math.floor(900 / Math.max(1, obj.columns.length))));
 
-        for (const k of keys) {
-          const rec = await readRedisKeyRecord(srcClient, k);
-          const stripped = srcPrefix && k.startsWith(srcPrefix) ? k.slice(srcPrefix.length) : k;
-          const idx = stripped.indexOf(":");
-          const keyId = idx > 0 ? stripped.slice(idx + 1) : stripped;
+        for (let kOff = 0; kOff < keys.length; kOff += batchSize) {
+          const sliceKeys = keys.slice(kOff, kOff + batchSize);
+          const records = await Promise.all(sliceKeys.map((k) => readRedisKeyRecord(srcClient, k)));
+          const batchParams: Param[] = [];
+          for (let i = 0; i < sliceKeys.length; i++) {
+            const k = sliceKeys[i]!;
+            const rec = records[i]!;
+            const stripped = srcPrefix && k.startsWith(srcPrefix) ? k.slice(srcPrefix.length) : k;
+            const idx = stripped.indexOf(":");
+            const keyId = idx > 0 ? stripped.slice(idx + 1) : stripped;
 
-          const rowValues: Record<string, WireValue> = {};
-          if (isHashTable) {
-            rowValues.redis_key = k;
-            rowValues.key_id = keyId;
-            rowValues.ttl_ms = rec.ttlMs;
-            const h = rec.hashVal ?? {};
-            for (const col of obj.columns) {
-              if (col.name === "redis_key" || col.name === "key_id" || col.name === "ttl_ms") continue;
-              rowValues[col.name] = h[col.name] ?? null;
-            }
-          } else {
-            rowValues.redis_key = k;
-            rowValues.redis_type = rec.type;
-            rowValues.ttl_ms = rec.ttlMs;
-            if (rec.type === "string") {
-              const str = rec.stringVal ?? "";
-              rowValues.value_text = str;
-              try {
-                JSON.parse(str);
-                rowValues.value_json = str;
-              } catch {
-                rowValues.value_json = JSON.stringify(str);
+            const rowValues: Record<string, WireValue> = {};
+            if (isHashTable) {
+              rowValues.redis_key = k;
+              rowValues.key_id = keyId;
+              rowValues.ttl_ms = rec.ttlMs;
+              const h = rec.hashVal ?? {};
+              for (const col of obj.columns) {
+                if (col.name === "redis_key" || col.name === "key_id" || col.name === "ttl_ms") continue;
+                rowValues[col.name] = h[col.name] ?? null;
               }
-            } else if (rec.type === "hash") {
-              rowValues.value_text = JSON.stringify(rec.hashVal ?? {});
-              rowValues.value_json = JSON.stringify(rec.hashVal ?? {});
-            } else if (rec.type === "list") {
-              rowValues.value_text = JSON.stringify(rec.listVal ?? []);
-              rowValues.value_json = JSON.stringify(rec.listVal ?? []);
-            } else if (rec.type === "set") {
-              rowValues.value_text = JSON.stringify(rec.setVal ?? []);
-              rowValues.value_json = JSON.stringify(rec.setVal ?? []);
-            } else if (rec.type === "zset") {
-              rowValues.value_text = JSON.stringify(rec.zsetVal ?? []);
-              rowValues.value_json = JSON.stringify(rec.zsetVal ?? []);
+            } else {
+              rowValues.redis_key = k;
+              rowValues.redis_type = rec.type;
+              rowValues.ttl_ms = rec.ttlMs;
+              if (rec.type === "string") {
+                const str = rec.stringVal ?? "";
+                rowValues.value_text = str;
+                try {
+                  JSON.parse(str);
+                  rowValues.value_json = str;
+                } catch {
+                  rowValues.value_json = JSON.stringify(str);
+                }
+              } else if (rec.type === "hash") {
+                rowValues.value_text = JSON.stringify(rec.hashVal ?? {});
+                rowValues.value_json = JSON.stringify(rec.hashVal ?? {});
+              } else if (rec.type === "list") {
+                rowValues.value_text = JSON.stringify(rec.listVal ?? []);
+                rowValues.value_json = JSON.stringify(rec.listVal ?? []);
+              } else if (rec.type === "set") {
+                rowValues.value_text = JSON.stringify(rec.setVal ?? []);
+                rowValues.value_json = JSON.stringify(rec.setVal ?? []);
+              } else if (rec.type === "zset") {
+                rowValues.value_text = JSON.stringify(rec.zsetVal ?? []);
+                rowValues.value_json = JSON.stringify(rec.zsetVal ?? []);
+              }
+            }
+
+            for (const col of obj.columns) {
+              batchParams.push(toTargetParam(rowValues[col.name] ?? null, col, dst.engine as Engine));
             }
           }
 
-          const params = obj.columns.map((col) => toTargetParam(rowValues[col.name] ?? null, col, dst.engine as Engine));
           const sql = buildInsertBatchSql(
             dst.engine as Engine,
             dst.schema,
             plan.targetName,
             obj.columns,
             obj.primaryKey,
-            1,
-            plan.action === "append" || plan.action === "upsert" ? plan.action : "replace",
+            sliceKeys.length,
+            insertAction,
           );
-          await dstAdapter.query(sql, params);
-          rowsCopied++;
+          await dstAdapter.query(sql, batchParams);
+          rowsCopied += sliceKeys.length;
         }
       }
 

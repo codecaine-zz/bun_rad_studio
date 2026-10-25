@@ -10,7 +10,8 @@ const PLAIN_TAGS = new Set(["h1", "h2", "h3", "h4", "h5", "h6", "p", "blockquote
 function safeLinkHref(href) {
   if (typeof href !== "string") return "";
   const trimmed = href.trim();
-  if (!trimmed || /^(?:javascript|vbscript|data):/i.test(trimmed)) return "";
+  const normalized = trimmed.replace(/[\u0000-\u0020]+/g, "");
+  if (!normalized || /^(?:javascript|vbscript|data|file|blob):/i.test(normalized)) return "";
   return trimmed;
 }
 

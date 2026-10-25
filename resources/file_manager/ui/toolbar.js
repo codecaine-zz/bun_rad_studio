@@ -17,6 +17,7 @@ import { activePane, isFolderView } from "./pane.js";
 import { emit, inTrash, on, state } from "./state.js";
 import { hintOf } from "./keymap.js";
 import { selectAll, selectedEntries } from "./selection.js";
+import { openNewTab } from "./tabs.js";
 import { copyTerminalPaths } from "./fileurl.js";
 import { themeMenuItems } from "./themeMenu.js";
 import { baseName, collapseCrumbs, parentOf, plural, splitPath } from "./util.js";
@@ -196,6 +197,12 @@ export function renderAddress() {
       title: c.path,
       "aria-current": last ? "page" : null,
       onclick: () => goTo(c.path),
+      onauxclick: (e) => {
+        if (e.button === 1) {
+          e.preventDefault();
+          void openNewTab(c.path);
+        }
+      },
       oncontextmenu: (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -254,6 +261,7 @@ export function wireAddress() {
     if (e.target === $("#crumbs")) showAddressEditor();
   });
   input.addEventListener("keydown", (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter") {
       e.preventDefault();
       const value = input.value;
@@ -300,6 +308,7 @@ export function updateSearchBox() {
 export function wireSearch() {
   const input = $("#search");
   input.addEventListener("keydown", async (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter") {
       e.preventDefault();
       if (!input.value.trim()) return clearSearch();

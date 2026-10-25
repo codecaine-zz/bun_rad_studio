@@ -289,24 +289,35 @@ class Site {
       return this.notFound(method);
     }
     const rows: Array<{ name: string; dir: boolean; size: number }> = [];
-    for (const e of entries) {
-      if (rows.length >= MAX_LISTING) break;
-      if (e.name.toLowerCase() === ".git" || (!this.o.dotfiles && e.name.startsWith(".")) || WINDOWS_RESERVED.test(e.name) || BAD_NAME.test(e.name)) continue;
-      const full = nodePath.join(dir, e.name);
-      let isDir = e.isDirectory();
-      let isFile = e.isFile();
-      let size = 0;
-      if (e.isSymbolicLink()) {
-        const checked = await this.inside(full, method);
-        if ("deny" in checked) continue;
-        const st = await fsp.stat(checked.real).catch(() => null);
-        isDir = !!st?.isDirectory();
-        isFile = !!st?.isFile();
-        size = st?.size ?? 0;
-      } else if (isFile) {
-        size = (await fsp.stat(full).catch(() => null))?.size ?? 0;
+    const candidates = entries.filter(
+      (e) => !(e.name.toLowerCase() === ".git" || (!this.o.dotfiles && e.name.startsWith(".")) || WINDOWS_RESERVED.test(e.name) || BAD_NAME.test(e.name)),
+    );
+    for (let i = 0; i < candidates.length && rows.length < MAX_LISTING; i += 64) {
+      const batch = candidates.slice(i, i + 64);
+      const resolved = await Promise.all(
+        batch.map(async (e) => {
+          const full = nodePath.join(dir, e.name);
+          let isDir = e.isDirectory();
+          let isFile = e.isFile();
+          let size = 0;
+          if (e.isSymbolicLink()) {
+            const checked = await this.inside(full, method);
+            if ("deny" in checked) return null;
+            const st = await fsp.stat(checked.real).catch(() => null);
+            isDir = !!st?.isDirectory();
+            isFile = !!st?.isFile();
+            size = st?.size ?? 0;
+          } else if (isFile) {
+            size = (await fsp.stat(full).catch(() => null))?.size ?? 0;
+          }
+          return isDir || isFile ? { name: e.name, dir: isDir, size } : null;
+        }),
+      );
+      for (const item of resolved) {
+        if (!item) continue;
+        rows.push(item);
+        if (rows.length >= MAX_LISTING) break;
       }
-      if (isDir || isFile) rows.push({ name: e.name, dir: isDir, size });
     }
     rows.sort((a, b) => Number(b.dir) - Number(a.dir) || a.name.localeCompare(b.name, "en", { numeric: true }));
     const here = `/${segs.map(encodeURIComponent).join("/")}${segs.length ? "/" : ""}`;

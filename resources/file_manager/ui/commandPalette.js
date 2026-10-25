@@ -5,18 +5,19 @@ import { openCalendarDialog } from "./chrome.js";
 import { openFolderInCode } from "./code.js";
 import { openDialog } from "./dialogs.js";
 import { $, clear, h, iconForEntry } from "./dom.js";
+import { swapDualPanes } from "./dual.js";
 import { showHelp, showSettings } from "./extras.js";
 import { labelOf } from "./keymap.js";
-import { goTo, saveSettings, showTrash, visibleEntries } from "./nav.js";
+import { calculateFolderSizes, goTo, saveSettings, showTrash, visibleEntries } from "./nav.js";
 import { showOperationHistory } from "./opHistory.js";
 import * as ops from "./ops.js";
-import { currentPath, left } from "./pane.js";
+import { activePane, currentPath, left } from "./pane.js";
 import { listPowerTabs, openPower } from "./power.js";
-import { KIND_CHIP_DEFS, RAD_FILE_TEMPLATES, focusQuickFilter, newFromTemplate, setKindFilter, showNewTemplateDialog } from "./quickbar.js";
-import { invertSelection, selectAll, selectOnly } from "./selection.js";
+import { KIND_CHIP_DEFS, RAD_FILE_TEMPLATES, focusQuickFilter, newFromTemplate, setKindFilter, showNewTemplateDialog, showSelectByPatternDialog } from "./quickbar.js";
+import { invertSelection, selectAll, selectOnly, selectSameKindOrExt } from "./selection.js";
 import { showShortcutsDialog } from "./shortcutsDialog.js";
 import { emit, on, state } from "./state.js";
-import { closeTab, duplicateTab, openNewTab, switchTab } from "./tabs.js";
+import { closeTab, duplicateTab, openNewTab, reopenClosedTab, switchTab } from "./tabs.js";
 import { TAG_DEFS } from "./tags.js";
 import { showToolsDialog } from "./tools.js";
 import { baseName } from "./util.js";
@@ -51,25 +52,33 @@ export function buildPaletteCatalog() {
   // 1. Core File & Folder Actions
   add({ id: "act.newTemplateDialog", category: "actions", icon: "✨", title: "New file from template…", subtitle: "Create a starter Markdown, TypeScript, Python, HTML, JSON, SQL, or config file", shortcut: labelOf("file.newTemplate"), keywords: "template starter boilerplate new file create code", run: () => inFiles(() => showNewTemplateDialog()) });
   add({ id: "act.newFolder", category: "actions", icon: "📁", title: "New folder", subtitle: "Create a new folder in the current location", shortcut: labelOf("file.newFolder"), keywords: "mkdir directory create folder", run: () => inFiles(() => ops.newFolder()) });
+  add({ id: "act.newFolderWithSelection", category: "actions", icon: "📁", title: "New folder with selection", subtitle: "Group the selected files and folders into a newly created folder", shortcut: labelOf("file.newFolderWithSelection"), keywords: "group folderize new folder selection move", run: () => inFiles(() => ops.newFolderWithSelection()) });
   add({ id: "act.newFile", category: "actions", icon: "📄", title: "New empty file", subtitle: "Create a blank text file in the current location", shortcut: labelOf("file.newFile"), keywords: "touch create file empty", run: () => inFiles(() => ops.newFile()) });
+  add({ id: "act.pasteTextAsFile", category: "actions", icon: "📋", title: "Paste clipboard text as new file", subtitle: "Create a new file from clipboard text (auto-detects JSON, Markdown, SQL, HTML, TypeScript, CSV, or text)", shortcut: labelOf("file.pasteTextAsFile"), keywords: "paste clipboard text snippet file create", run: () => inFiles(() => ops.pasteTextAsFile()) });
   add({ id: "act.newSqlite", category: "actions", icon: "🪶", title: "New SQLite database", subtitle: "Create a new SQLite database file and open in SQLite Studio", shortcut: labelOf("file.newSqlite"), keywords: "sqlite db database create", run: () => inFiles(() => ops.newSqlite()) });
   add({ id: "act.newDatedFolder", category: "actions", icon: "📅", title: `New dated folder (${ops.localDateStamp()})`, subtitle: "Create a folder named with today's YYYY-MM-DD date", shortcut: labelOf("file.newDatedFolder"), keywords: "date today folder daily", run: () => inFiles(() => ops.newDatedFolder()) });
   add({ id: "act.newDatedNote", category: "actions", icon: "📝", title: `New dated note (${ops.localDateStamp()}.md)`, subtitle: "Create a Markdown note named with today's YYYY-MM-DD date", shortcut: labelOf("file.newDatedNote"), keywords: "note markdown journal daily today", run: () => inFiles(() => ops.newDatedNote()) });
   add({ id: "act.quickFilter", category: "actions", icon: "⚡", title: "Filter items in current folder", subtitle: "Focus the live instant folder filter bar", keywords: "filter narrow search folder quickbar", run: () => inFiles(() => focusQuickFilter()) });
+  add({ id: "act.calculateFolderSizes", category: "actions", icon: "📐", title: "Calculate folder sizes", subtitle: "Measure total byte sizes and file counts for folders in this view", shortcut: labelOf("view.folderSizes"), keywords: "folder size bytes calculate measure disk usage", run: () => inFiles(() => calculateFolderSizes(activePane())) });
   add({ id: "act.openInCode", category: "actions", icon: "📝", title: "Open current folder in Code editor", subtitle: "Open the built-in multi-tab Code editor on this folder", shortcut: labelOf("file.editInCode"), keywords: "code editor ide edit folder", run: () => { const p = currentPath() || state.home; if (p) openFolderInCode(p); } });
   add({ id: "act.toggleTerminal", category: "actions", icon: "⌨️", title: "Toggle built-in Terminal", subtitle: "Show or hide the integrated terminal panel", shortcut: labelOf("terminal.toggle"), keywords: "terminal shell console bash zsh", run: () => emit("toggle-terminal") });
   add({ id: "act.terminalHere", category: "actions", icon: "⌨️", title: "Open Terminal in current folder", subtitle: "Show the terminal and cd to the active folder", shortcut: labelOf("terminal.here"), keywords: "terminal here cd shell folder", run: () => emit("terminal-here", currentPath() || state.home) });
   add({ id: "act.newTab", category: "actions", icon: "🗂️", title: "New folder tab", subtitle: "Open a new folder tab in the tab bar", shortcut: labelOf("nav.newTab"), keywords: "tab new open folder", run: () => inFiles(() => openNewTab()) });
   add({ id: "act.duplicateTab", category: "actions", icon: "🗂️", title: "Duplicate current folder tab", subtitle: "Clone the active folder tab", shortcut: labelOf("nav.duplicateTab"), keywords: "tab duplicate clone", run: () => inFiles(() => duplicateTab()) });
   add({ id: "act.closeTab", category: "actions", icon: "✕", title: "Close current folder tab", subtitle: "Close the active folder tab", shortcut: labelOf("nav.closeTab"), keywords: "tab close", run: () => inFiles(() => closeTab()) });
+  add({ id: "act.reopenTab", category: "actions", icon: "↺", title: "Reopen closed folder tab", subtitle: "Restore the most recently closed folder tab", shortcut: labelOf("nav.reopenTab"), keywords: "tab reopen restore closed undo", run: () => inFiles(() => reopenClosedTab()) });
+  add({ id: "act.swapDualPanes", category: "actions", icon: "⇌", title: "Dual view: Swap left and right pane folders", subtitle: "Exchange the folders open in the left and right panes", keywords: "dual pane swap exchange left right", run: () => { if (state.workspace !== "dual") emit("workspace-go", "dual"); void swapDualPanes(); } });
   add({ id: "act.toggleFavorite", category: "actions", icon: "⭐", title: "Pin or unpin current folder in Favorites", subtitle: currentPath() || "Current folder", shortcut: labelOf("file.toggleFavorite"), keywords: "favorite pin star bookmark folder", run: () => { const p = currentPath(); if (p) void ops.toggleFavorite(p); } });
   add({ id: "act.copyFolderPath", category: "actions", icon: "🔗", title: "Copy current folder path", subtitle: currentPath() || "", shortcut: labelOf("file.copyPath"), keywords: "copy path clipboard address pwd", run: () => { const p = currentPath(); if (p) void ops.copyPathOf([{ path: p }]); } });
+  add({ id: "act.copyNames", category: "actions", icon: "🏷️", title: "Copy selected filenames only", subtitle: "Copy only the base file/folder names without directory paths", shortcut: labelOf("file.copyNames"), keywords: "copy filename name base clipboard", run: () => inFiles(() => ops.copyNamesOf()) });
   add({ id: "act.convert", category: "actions", icon: "🧰", title: "Convert or batch process files…", subtitle: "Convert pictures, audio, video, and documents", shortcut: labelOf("file.convert"), keywords: "convert batch ffmpeg imagemagick shrink resize", run: () => showToolsDialog() });
   add({ id: "act.lock", category: "actions", icon: "🔒", title: "Encrypt or decrypt selected items (Lock)", subtitle: "Password-protect files or unlock .radenc files", shortcut: labelOf("file.lock"), keywords: "encrypt decrypt lock password vault security", run: () => void lockSelection() });
   add({ id: "act.rename", category: "actions", icon: "✏️", title: "Rename / Bulk Rename selection", subtitle: "Rename one item inline or batch rename multiple items with preview", shortcut: labelOf("file.rename"), keywords: "rename batch bulk", run: () => void ops.renameSelection() });
   add({ id: "act.zip", category: "actions", icon: "🗜️", title: "Compress selection to .zip", subtitle: "Create a zip archive from the selected items", shortcut: labelOf("file.zip"), keywords: "zip archive compress pack", run: () => void ops.zipSelection() });
   add({ id: "act.extract", category: "actions", icon: "📦", title: "Extract selected archive here", subtitle: "Unpack .zip, .tar.gz, .7z, or compressed files", shortcut: labelOf("file.extract"), keywords: "unzip extract unpack archive", run: () => void ops.extractSelection() });
   add({ id: "act.selectAll", category: "actions", icon: "☑️", title: "Select all items in folder", subtitle: "Select every visible item in the active pane", shortcut: labelOf("file.selectAll"), keywords: "select all", run: () => inFiles(() => selectAll()) });
+  add({ id: "act.selectByPattern", category: "actions", icon: "🎯", title: "Select items by pattern or criteria…", subtitle: "Select or deselect items matching a glob (*.ts), size (size:>1mb), date (date:today), or regex", shortcut: labelOf("file.selectByPattern"), keywords: "select pattern glob wildcard criteria filter regex", run: () => inFiles(() => showSelectByPatternDialog()) });
+  add({ id: "act.selectSameType", category: "actions", icon: "☑️", title: "Select all items of same type / extension", subtitle: "Select every item in this folder sharing the selected extension or folder kind", keywords: "select same extension type kind similar", run: () => inFiles(() => selectSameKindOrExt(activePane())) });
   add({ id: "act.invertSelection", category: "actions", icon: "🔄", title: "Invert selection", subtitle: "Flip which items are selected in the active pane", shortcut: labelOf("file.invertSelection"), keywords: "invert selection flip", run: () => inFiles(() => invertSelection()) });
   add({ id: "act.undo", category: "actions", icon: "↶", title: "Undo last file operation", subtitle: state.undoStack.at(-1)?.label ? `Undo: ${state.undoStack.at(-1).label}` : "Undo the most recent copy, move, rename, or delete", shortcut: labelOf("file.undo"), keywords: "undo revert restore", run: () => void ops.undo() });
   add({ id: "act.activity", category: "actions", icon: "🕘", title: "Activity & Operation History", subtitle: "Inspect past file transfers, renames, and jobs", shortcut: labelOf("app.activity"), keywords: "activity history log jobs operations", run: () => void showOperationHistory() });
@@ -450,6 +459,7 @@ export function openCommandPalette(initialQuery = "") {
   });
 
   input.addEventListener("keydown", (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
       if (visible.length) {

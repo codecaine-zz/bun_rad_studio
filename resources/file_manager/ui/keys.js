@@ -10,7 +10,7 @@ import { copyFileUrls, copyTerminalPaths } from "./fileurl.js";
 import { focusPowerFilter, openPower, togglePowerExpanded } from "./power.js";
 import { menuIsOpen, toast } from "./menus.js";
 import { openQuickLook, quickLookIsOpen } from "./quicklook.js";
-import { canGoUpIn, clearSearch, goBack, goForward, goToIn, goUpIn, refresh, saveSettings, visibleEntries } from "./nav.js";
+import { calculateFolderSizes, canGoUpIn, clearSearch, goBack, goForward, goToIn, goUpIn, refresh, saveSettings, visibleEntries } from "./nav.js";
 import { showOpenWith } from "./openwith.js";
 import { showOperationHistory } from "./opHistory.js";
 import * as ops from "./ops.js";
@@ -19,12 +19,12 @@ import { clearSelection, focusIndex, focusedIndex, invertSelection, selectAll, s
 import { showShortcutsDialog } from "./shortcutsDialog.js";
 import { editAddress, focusSearch } from "./toolbar.js";
 import { showToolsDialog } from "./tools.js";
-import { iconsPerLine, isRenaming } from "./list.js";
+import { iconsPerLine, isRenaming, spatialVerticalTarget } from "./list.js";
 import { activePane, currentPath } from "./pane.js";
 import { emit, state } from "./state.js";
 import { actionFor } from "./keymap.js";
 import { isModifier, typeaheadFind } from "./util.js";
-import { closeTab, cycleTab, duplicateTab, openNewTab } from "./tabs.js";
+import { closeTab, cycleTab, duplicateTab, openNewTab, reopenClosedTab } from "./tabs.js";
 import { lockSelection } from "./vault.js";
 import { goRightBack, goRightForward } from "./dual.js";
 
@@ -79,14 +79,15 @@ function showMenuForSelection() {
 function navigate(e, key) {
   const pane = activePane();
   const perLine = iconsPerLine(pane);
+  const isGrid = state.settings.view === "icons" || state.settings.view === "list";
   const i = focusedIndex(pane);
   const count = visibleEntries(pane).length;
   const opts = { extend: e.shiftKey, keepSelection: isModifier(e, state.platform) && !e.shiftKey, pane };
   let target = null;
-  if (key === "ArrowDown") target = i < 0 ? 0 : i + perLine;
-  else if (key === "ArrowUp") target = i < 0 ? 0 : i - perLine;
-  else if (key === "ArrowRight" && perLine > 1) target = i + 1;
-  else if (key === "ArrowLeft" && perLine > 1) target = i - 1;
+  if (key === "ArrowDown") target = i < 0 ? 0 : spatialVerticalTarget(pane, i, 1);
+  else if (key === "ArrowUp") target = i < 0 ? 0 : spatialVerticalTarget(pane, i, -1);
+  else if (key === "ArrowRight" && (perLine > 1 || isGrid)) target = i < 0 ? 0 : i + 1;
+  else if (key === "ArrowLeft" && (perLine > 1 || isGrid)) target = i < 0 ? 0 : i - 1;
   else if (key === "Home") target = 0;
   else if (key === "End") target = count - 1;
   else if (key === "PageDown") target = i < 0 ? 0 : i + pageSize();
@@ -156,10 +157,12 @@ const FILE_ACTIONS = {
   "nav.newTab": () => void openNewTab(),
   "nav.duplicateTab": () => void duplicateTab(),
   "nav.closeTab": () => void closeTab(),
+  "nav.reopenTab": () => void reopenClosedTab(),
   "file.editInCode": () => editInCode(),
   "nav.search": () => focusSearch(),
   "nav.quickFilter": () => emit("focus-quick-filter"),
   "file.selectAll": () => selectAll(),
+  "file.selectByPattern": () => emit("select-pattern-dialog"),
   "file.invertSelection": () => invertSelection(),
   "file.copy": () => ops.copySelection(),
   "file.cut": () => ops.cutSelection(),
@@ -198,6 +201,12 @@ const FILE_ACTIONS = {
     if (items.length) void ops.copyPathOf(items);
     else if (here) void ops.copyPathOf([{ path: here }]);
   },
+  "file.copyNames": () => {
+    const items = selectedEntries();
+    const here = currentPath();
+    if (items.length) void ops.copyNamesOf(items);
+    else if (here) void ops.copyNamesOf([{ path: here }]);
+  },
   "file.copyFileUrl": () => {
     const items = selectedEntries();
     const here = currentPath();
@@ -215,14 +224,17 @@ const FILE_ACTIONS = {
     if (folder) void ops.toggleFavorite(folder);
   },
   "file.newFolder": () => void ops.newFolder(),
+  "file.newFolderWithSelection": () => void ops.newFolderWithSelection(),
   "file.newDatedFolder": () => void ops.newDatedFolder(),
   "file.newFile": () => void ops.newFile(),
+  "file.pasteTextAsFile": () => void ops.pasteTextAsFile(),
   "file.newDatedNote": () => void ops.newDatedNote(),
   "file.newSqlite": () => void ops.newSqlite(),
   "file.newTemplate": () => emit("new-template-dialog"),
   "file.deleteForever": () => void ops.deleteForever(),
   "file.trash": () => void ops.trashSelection(),
   "view.hidden": () => void saveSettings({ showHidden: !state.settings.showHidden }),
+  "view.folderSizes": () => void calculateFolderSizes(activePane()),
   "view.info": () => emit("toggle-info"),
   "view.details": () => void saveSettings({ view: "details" }),
   "view.list": () => void saveSettings({ view: "list" }),
@@ -237,6 +249,7 @@ const IN_LISTS = Object.keys(FILE_ACTIONS).filter((id) => !EVERYWHERE.includes(i
 export function wireKeys() {
   if (typeof window.closeApp === "function") window.quitApp = closeWindow;
   document.addEventListener("keydown", (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.defaultPrevented || menuIsOpen() || document.querySelector(".modal-backdrop") || quickLookIsOpen() || isRenaming()) return;
     const target = e.target;
     const typing = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement;
@@ -276,8 +289,22 @@ export function wireKeys() {
     // Choosing and opening
     if (key === "Enter") { stop(); return openFocused(); }
     if (key === "Escape") {
-      if (activePane().search) clearSearch();
-      else clearSelection();
+      const pane = activePane();
+      if (pane.search) {
+        if (pane.side === "right") emit("dual-search-clear");
+        else clearSearch();
+      } else if (pane.selection.size > 0) {
+        clearSelection();
+      } else if (pane.side === "left" && state.quickFilter) {
+        emit("quick-filter-clear");
+      } else if (pane.side === "left" && state.kindFilter && state.kindFilter !== "all") {
+        emit("kind-filter-clear");
+      } else if (pane.side === "left" && state.tagFilter) {
+        state.tagFilter = "";
+        emit("view");
+      } else {
+        clearSelection();
+      }
       return;
     }
     if (key === "ContextMenu" || (e.shiftKey && key === "F10") || (mod && e.shiftKey && lower === "m")) { stop(); return showMenuForSelection(); }

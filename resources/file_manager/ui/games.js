@@ -404,7 +404,13 @@ registerPowerTab({
 
     if (typeof window !== "undefined") {
       window.addEventListener("message", (e) => {
-        if (e.data && typeof e.data === "object" && e.data.fmCloseGame && e.source === frame.contentWindow) {
+        if (
+          e.data &&
+          typeof e.data === "object" &&
+          e.data.fmCloseGame &&
+          e.source === frame.contentWindow &&
+          (!e.origin || e.origin !== "null")
+        ) {
           closeActiveGame();
         }
       });

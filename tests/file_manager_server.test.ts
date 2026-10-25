@@ -114,6 +114,15 @@ describe("who may call the API", () => {
     expect(host.status).toBe(403);
     const own = await fetch(`${base}/api/places`, { method: "POST", headers: { "Content-Type": "application/json", "x-fm-token": TOKEN, Origin: base }, body: "{}" });
     expect(own.status).toBe(200);
+    const crossSite = await fetch(`${base}/api/places`, { method: "POST", headers: { "Content-Type": "application/json", "x-fm-token": TOKEN, Origin: base, "Sec-Fetch-Site": "cross-site" }, body: "{}" });
+    expect(crossSite.status).toBe(403);
+  });
+
+  test("embedded apps under /app/<id>/ are refused on the primary origin and served on the alternate loopback origin", async () => {
+    const primaryRes = await fetch(`${base}/app/calc/`);
+    expect(primaryRes.status).toBe(404);
+    const altRes = await fetch(`http://localhost:${server.port}/app/calc/`);
+    expect(altRes.status).toBe(200);
   });
 
   test("only JSON is accepted for changes, so a plain-text 'simple request' from a web page is useless", async () => {
@@ -237,6 +246,10 @@ describe("the API works end to end", () => {
     expect((await api("search", { path: work, query: "needle" })).json.entries[0].name).toBe("needle.txt");
     expect((await api("preview", { path: join(work, "S", "inner", "needle.txt") })).json.preview).toMatchObject({ type: "text", text: "text inside" });
     expect((await api("props", { paths: [join(work, "S")] })).json.properties).toMatchObject({ isDir: true, files: 1, size: 11 });
+    const fsizes = await api("foldersizes", { paths: [join(work, "S"), join(work, "S", "inner", "needle.txt"), join(work, "no-such-dir")] });
+    expect(fsizes.json.ok).toBe(true);
+    expect(fsizes.json.sizes[join(work, "S")]).toMatchObject({ bytes: 11, files: 1, folders: 1, partial: false });
+    expect(fsizes.json.sizes[join(work, "S", "inner", "needle.txt")]).toBeUndefined();
     const zipped = await api("zip", { paths: [join(work, "S")] });
     expect(zipped.json.zipPath).toBe(join(work, "S.zip"));
     const unzipped = await api("unzip", { path: zipped.json.zipPath, dest: work });

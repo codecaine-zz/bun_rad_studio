@@ -31,13 +31,17 @@ export interface Entry {
 
 export const MAX_LIST_ENTRIES = 50_000;
 
-async function toEntry(ctx: FmContext, dir: string, name: string, p: typeof nodePath.posix): Promise<Entry | null> {
+async function toEntry(ctx: FmContext, dir: string, name: string, p: typeof nodePath.posix, preStat?: fs.Stats): Promise<Entry | null> {
   const full = p.join(dir, name);
   let st: fs.Stats;
-  try {
-    st = await fsp.lstat(full);
-  } catch {
-    return null; // vanished while listing
+  if (preStat) {
+    st = preStat;
+  } else {
+    try {
+      st = await fsp.lstat(full);
+    } catch {
+      return null; // vanished while listing
+    }
   }
   let isDir = st.isDirectory();
   let broken = false;
@@ -140,6 +144,7 @@ export async function folderStats(root: string, limits: { maxEntries?: number; t
     } catch {
       continue; // not readable: skip it
     }
+    const pendingFiles: string[] = [];
     for (const d of names) {
       if (++seen > maxEntries || Date.now() > deadline) {
         stats.partial = true;
@@ -155,14 +160,42 @@ export async function folderStats(root: string, limits: { maxEntries?: number; t
         stack.push(full);
       } else {
         stats.files++;
-        try {
-          stats.bytes += (await fsp.lstat(full)).size;
-        } catch {}
+        pendingFiles.push(full);
       }
       if (seen % 500 === 0) await tick();
     }
+    for (let i = 0; i < pendingFiles.length; i += 64) {
+      const batch = await Promise.all(pendingFiles.slice(i, i + 64).map((f) => fsp.lstat(f).catch(() => null)));
+      for (const st of batch) if (st) stats.bytes += st.size;
+    }
   }
   return stats;
+}
+
+/**
+ * Calculates total byte size, file count, and subfolder count for up to 200 folders on demand.
+ */
+export async function calculateFolderSizes(
+  ctx: FmContext,
+  inputs: unknown,
+  limits: { maxEntriesPerFolder?: number; timeMsPerFolder?: number } = {},
+): Promise<{ sizes: Record<string, FolderStats> }> {
+  if (!Array.isArray(inputs) || inputs.length === 0) throw new FmError("BAD_REQUEST", "Provide at least one folder path.");
+  const paths = inputs.slice(0, 200).map((i) => absolutePath(ctx, i));
+  const maxEntries = limits.maxEntriesPerFolder ?? 20_000;
+  const timeMs = limits.timeMsPerFolder ?? 2500;
+  const sizes: Record<string, FolderStats> = {};
+  for (const p of paths) {
+    try {
+      const lst = await fsp.lstat(p);
+      if (lst.isDirectory()) {
+        sizes[p] = await folderStats(p, { maxEntries, timeMs });
+      }
+    } catch {
+      // Skip folders that disappeared or cannot be read
+    }
+  }
+  return { sizes };
 }
 
 export interface Properties {
@@ -302,10 +335,16 @@ export function parseMountPoints(procMounts: string): Set<string> {
   return points;
 }
 
+let cachedNoBrowse: { at: number; set: Set<string> } | null = null;
+
 function readNoBrowse(): Set<string> {
+  const now = Date.now();
+  if (cachedNoBrowse && now - cachedNoBrowse.at < 5000) return cachedNoBrowse.set;
   try {
-    const out = Bun.spawnSync(["/sbin/mount"], { stdout: "pipe", stderr: "ignore" });
-    return out.exitCode === 0 ? parseNoBrowseMounts(out.stdout.toString()) : new Set();
+    const out = Bun.spawnSync(["/sbin/mount"], { stdout: "pipe", stderr: "ignore", timeout: 2000 });
+    const set = out.exitCode === 0 ? parseNoBrowseMounts(out.stdout.toString()) : new Set<string>();
+    cachedNoBrowse = { at: now, set };
+    return set;
   } catch {
     return new Set();
   }
@@ -477,14 +516,15 @@ export async function searchFolder(ctx: FmContext, rootInput: unknown, queryInpu
   const queue: Array<{ dir: string; depth: number }> = [{ dir: root, depth: 0 }];
   while (queue.length) {
     const { dir, depth } = queue.shift()!;
-    let names: string[];
+    let dirents: fs.Dirent[];
     try {
-      names = await fsp.readdir(dir);
+      dirents = await fsp.readdir(dir, { withFileTypes: true });
     } catch {
       result.skipped++;
       continue;
     }
-    for (const name of names) {
+    for (const d of dirents) {
+      const name = d.name;
       if (!options.showHidden && isHiddenName(name, ctx.platform)) continue;
       result.scanned++;
       if (Date.now() > deadline || result.entries.length >= maxResults) {
@@ -492,13 +532,10 @@ export async function searchFolder(ctx: FmContext, rootInput: unknown, queryInpu
         return result;
       }
       const full = p.join(dir, name);
-      let nameMatches = matches(name);
-      let lst: fs.Stats | null = null;
-      if (nameMatches || depth < maxDepth) {
-        lst = await fsp.lstat(full).catch(() => null);
-        if (!lst) continue;
+      const nameMatches = matches(name);
+      if (d.isDirectory() && !d.isSymbolicLink() && depth < maxDepth) {
+        queue.push({ dir: full, depth: depth + 1 });
       }
-      if (lst && lst.isDirectory() && depth < maxDepth) queue.push({ dir: full, depth: depth + 1 });
       if (nameMatches) {
         const entry = await toEntry(ctx, dir, name, p);
         if (entry && (!options.kind || entry.isDir || entry.kind === options.kind)) result.entries.push({ ...entry, folder: dir });

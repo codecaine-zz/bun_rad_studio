@@ -116,6 +116,7 @@ export function unflatten(flat: Obj, joiner = "."): Obj {
   const root = newObj();
   for (const [key, value] of Object.entries(flat)) {
     const parts = key.split(joiner);
+    if (parts.length > MAX_DEPTH) throw new ConvError("The data is nested too deeply (more than 200 levels).");
     let cur: Obj | Value[] = root;
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i]!;
@@ -125,14 +126,14 @@ export function unflatten(flat: Obj, joiner = "."): Obj {
         const idx = Number(part);
         if (last) cur[idx] = value;
         else {
-          const existing = cur[idx];
+          const existing = Object.prototype.hasOwnProperty.call(cur, idx) ? cur[idx] : undefined;
           cur[idx] = existing !== undefined && typeof existing === "object" && existing !== null ? existing : nextIsIndex ? [] : newObj();
           cur = cur[idx] as Obj | Value[];
         }
       } else if (last) {
         setKey(cur, part, value === "[]" ? [] : value === "{}" ? newObj() : value);
       } else {
-        const existing = cur[part];
+        const existing = Object.prototype.hasOwnProperty.call(cur, part) ? cur[part] : undefined;
         if (existing !== undefined && typeof existing === "object" && existing !== null) cur = existing as Obj | Value[];
         else {
           const created: Obj | Value[] = nextIsIndex ? [] : newObj();

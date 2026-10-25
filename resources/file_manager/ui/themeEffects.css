@@ -7074,3 +7074,91 @@ html[data-zero-watt-paused="true"] *::after {
   border: 1px solid #7a9a6a;
   box-shadow: 0 2px 4px rgba(90,120,80,0.35);
 }
+
+/* ==========================================================================
+   Theme Master Studio: Kelvin White-Point, OLED True-Black & Color-Vision Guard
+   ========================================================================== */
+
+/* 1. Kelvin White-Point Mastering (color-mix in oklab) */
+html[data-color-temp]:not([data-color-temp="neutral_6500k"]):not([data-color-temp="oled_true_black"]) body,
+html[data-color-temp]:not([data-color-temp="neutral_6500k"]):not([data-color-temp="oled_true_black"]) #app {
+  background-color: color-mix(in oklab, var(--bg, #16191d), var(--fm-temp-tint, #ffffff) var(--fm-temp-mix, 14%));
+}
+
+html[data-color-temp]:not([data-color-temp="neutral_6500k"]):not([data-color-temp="oled_true_black"]) :is(#toolbar-row, .sidebar, .pane, .dialog, .menu) {
+  background-color: color-mix(in oklab, var(--bg-panel, #1e2329), var(--fm-temp-tint, #ffffff) var(--fm-temp-mix, 14%));
+}
+
+/* 🖤 True OLED Pitch-Black Mastering (#000000 zero subpixel emission) */
+html[data-color-temp="oled_true_black"] {
+  --bg: #000000 !important;
+  --bg-panel: #050507 !important;
+  --bg-hover: #0e1015 !important;
+}
+html[data-color-temp="oled_true_black"] body,
+html[data-color-temp="oled_true_black"] #app,
+html[data-color-temp="oled_true_black"] .pane-list {
+  background: #000000 !important;
+}
+
+/* 2. Color-Vision Daltonism-Safe & WCAG AAA 7:1 Contrast Guard */
+html[data-vision-mode="protanopia_safe"] #app {
+  filter: url("#fm-vision-protanopia");
+}
+html[data-vision-mode="deuteranopia_safe"] #app {
+  filter: url("#fm-vision-deuteranopia");
+}
+html[data-vision-mode="tritanopia_safe"] #app {
+  filter: url("#fm-vision-tritanopia");
+}
+html[data-vision-mode="achromatopsia_mono"] #app {
+  filter: url("#fm-vision-achromatopsia") contrast(1.12);
+}
+
+/* Non-color shape & badge differentiation for Daltonism & High-Contrast modes */
+html[data-vision-mode] :is(.row.selected, .card.selected) {
+  outline: 2px solid var(--accent, #38bdf8) !important;
+  outline-offset: -2px;
+}
+html[data-vision-mode] .row.selected .name-text::before {
+  content: "◆ ";
+  color: var(--accent, #38bdf8);
+  font-weight: 700;
+}
+
+/* ♿ WCAG AAA High-Contrast Guard (7:1+ text & 3:1+ UI boundaries) */
+html[data-vision-mode="high_contrast_aaa"] :is(.row, .card, .tool, .qbtn, .chip, .btn, .prop-input, .menu-item) {
+  border-width: 1.5px !important;
+  border-color: color-mix(in oklab, var(--fg, #ffffff) 62%, var(--border, #6ea8ff)) !important;
+}
+html[data-vision-mode="high_contrast_aaa"] :is(.name-text, .tl, .crumb, .theme-field-label, .field-label) {
+  font-weight: 600;
+  text-shadow: none !important;
+}
+
+@media (prefers-contrast: more) {
+  :is(.row, .card, .tool, .qbtn, .chip, .btn, .prop-input) {
+    border-color: color-mix(in oklab, var(--fg, #ffffff) 55%, var(--border, #6ea8ff));
+  }
+}
+
+/* Forced Colors Mode (Windows High Contrast) System Keyword Fallbacks */
+@media (forced-colors: active) {
+  :root {
+    --bg: Canvas;
+    --bg-panel: Canvas;
+    --fg: CanvasText;
+    --accent: Highlight;
+    --border: ButtonBorder;
+  }
+  :is(.row, .card, .tool, .qbtn, .chip, .btn, .dialog, .menu) {
+    forced-color-adjust: auto;
+    border: 1px solid ButtonBorder !important;
+    box-shadow: none !important;
+  }
+  :is(.row.selected, .card.selected, .theme-filter-pill[aria-pressed="true"], .theme-filter-pill.is-active) {
+    outline: 2px solid Highlight !important;
+    background: Highlight !important;
+    color: HighlightText !important;
+  }
+}

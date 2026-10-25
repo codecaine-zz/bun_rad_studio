@@ -307,6 +307,7 @@ function build() {
   const input = h("input", { id: "home-search", type: "search", class: "home-search", placeholder: "Search for a file, or for something to do…", autocomplete: "off", spellcheck: "false", title: "Type part of a file name to search for it, or the name of something this app can do to find its tile. Alt+Enter opens the first matching tile.", "aria-label": "Search for files, or for something this app can do", "aria-describedby": "home-hint" });
   input.addEventListener("input", applyFilter);
   input.addEventListener("keydown", (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "ArrowDown") {
       const first = [...document.querySelectorAll("#home-grid .home-tile")].find((t) => !t.hidden);
       if (first) {

@@ -194,8 +194,16 @@ const LINUX_CANDIDATES: Array<[string, string]> = [
 ];
 const WINDOWS_CANDIDATES: Array<[string, string]> = [["Notepad", "notepad.exe"], ["Paint", "mspaint.exe"], ["WordPad", "wordpad.exe"], ["Visual Studio Code", "code"], ["VLC", "vlc"]];
 
+const cachedSuggestions = new Map<string, { at: number; items: Suggestion[] }>();
+
 /** Programs that seem to be installed, to offer as one-click choices. `appDirs` is for tests. */
 export function detectPrograms(platform: FmContext["platform"], home: string, appDirs?: string[]): Suggestion[] {
+  const cacheKey = !appDirs ? `${platform}:${home}` : "";
+  if (cacheKey) {
+    const hit = cachedSuggestions.get(cacheKey);
+    if (hit && Date.now() - hit.at < 30_000) return hit.items;
+  }
+  let result: Suggestion[];
   if (platform === "darwin") {
     const out: Suggestion[] = [];
     for (const dir of appDirs ?? ["/Applications", nodePath.join(home, "Applications")]) {
@@ -206,10 +214,13 @@ export function detectPrograms(platform: FmContext["platform"], home: string, ap
         // an unreadable folder just has no suggestions
       }
     }
-    return out.sort((a, b) => a.name.localeCompare(b.name));
+    result = out.sort((a, b) => a.name.localeCompare(b.name));
+  } else {
+    const list = platform === "win32" ? WINDOWS_CANDIDATES : LINUX_CANDIDATES;
+    result = list.filter(([, cmd]) => Bun.which(cmd)).map(([name, target]) => ({ name, kind: "command" as const, target }));
   }
-  const list = platform === "win32" ? WINDOWS_CANDIDATES : LINUX_CANDIDATES;
-  return list.filter(([, cmd]) => Bun.which(cmd)).map(([name, target]) => ({ name, kind: "command" as const, target }));
+  if (cacheKey) cachedSuggestions.set(cacheKey, { at: Date.now(), items: result });
+  return result;
 }
 
 export const openWithOperations: Record<string, FmHandler> = {

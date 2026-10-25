@@ -72,8 +72,9 @@ export async function applyPreview(ctx: FmContext, preview: SdPreview, options: 
     const rows: ApplyRow[] = [];
     const todo: Array<{ path: string; hash: string }> = [];
     const row = (path: string, status: RowStatus, message: string, replacements = 0, backup?: string) => rows.push({ path, status, message, replacements, ...(backup ? { backup } : {}) });
+    const fileByPath = new Map(preview.files.map((f) => [f.path, f]));
     for (const path of options.files) {
-      const file = preview.files.find((f) => f.path === path)!;
+      const file = fileByPath.get(path)!;
       if (preview.applied.has(path)) row(path, "already", "This file was already replaced from this preview.");
       else if (!file.changed) row(path, "unchanged", "Nothing would change in this file.");
       else {

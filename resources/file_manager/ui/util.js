@@ -48,7 +48,11 @@ export function sortEntries(entries, { by = "name", dir = "asc", foldersFirst = 
   const compare = (a, b) => {
     switch (by) {
       case "modified": return a.mtimeMs - b.mtimeMs;
-      case "size": return (a.isDir ? -1 : a.size) - (b.isDir ? -1 : b.size);
+      case "size": {
+        const sa = a.isDir && !a.folderSizeCalculated ? -1 : a.size;
+        const sb = b.isDir && !b.folderSizeCalculated ? -1 : b.size;
+        return sa - sb;
+      }
       case "type": return naturalCompare(a.label, b.label);
       default: return naturalCompare(a.name, b.name);
     }
@@ -222,11 +226,74 @@ export function describeSelection(selected) {
   if (selected.length === 0) return "";
   const files = selected.filter((e) => !e.isDir);
   const folders = selected.length - files.length;
-  const bytes = files.reduce((n, e) => n + e.size, 0);
+  const sizedFolders = selected.filter((e) => e.isDir && e.folderSizeCalculated);
+  const bytes = files.reduce((n, e) => n + e.size, 0) + sizedFolders.reduce((n, e) => n + e.size, 0);
+  const showBytes = files.length > 0 || sizedFolders.length > 0;
   const parts = [];
   if (folders) parts.push(plural(folders, "folder"));
   if (files.length) parts.push(plural(files.length, "file"));
-  return `${parts.join(" and ")} selected${files.length ? ` (${formatSize(bytes)})` : ""}`;
+  return `${parts.join(" and ")} selected${showBytes ? ` (${formatSize(bytes)})` : ""}`;
+}
+
+/**
+ * Parses a human size token like "500b", "10kb", "1.5mb", "2gb", "empty", or "0" into bytes, or null if invalid.
+ */
+export function parseByteSizeToken(raw) {
+  if (typeof raw !== "string") return null;
+  const s = raw.trim().toLowerCase();
+  if (s === "empty" || s === "0") return 0;
+  const m = /^(\d+(?:\.\d+)?)\s*(b|bytes?|k|kb|m|mb|g|gb|t|tb)?$/.exec(s);
+  if (!m) return null;
+  const num = Number(m[1]);
+  if (!Number.isFinite(num) || num < 0) return null;
+  const unit = m[2] || "b";
+  const mult = unit.startsWith("t") ? 1024 ** 4
+    : unit.startsWith("g") ? 1024 ** 3
+    : unit.startsWith("m") ? 1024 ** 2
+    : unit.startsWith("k") ? 1024
+    : 1;
+  return Math.round(num * mult);
+}
+
+/**
+ * Inspects clipboard text to suggest a smart filename, extension, and label when pasting text directly as a new file.
+ */
+export function detectSnippetInfo(text) {
+  const raw = typeof text === "string" ? text : "";
+  const trimmed = raw.trim();
+  if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+    try {
+      JSON.parse(trimmed);
+      return { ext: "json", baseName: "Pasted data", label: "JSON data" };
+    } catch { /* not valid JSON */ }
+  }
+  if (trimmed.startsWith("#!/")) {
+    return { ext: "sh", baseName: "Pasted script", label: "Shell script" };
+  }
+  if (/^<!doctype\s+html\b|^<html\b/i.test(trimmed)) {
+    return { ext: "html", baseName: "Pasted page", label: "HTML document" };
+  }
+  if (/^<svg\b[\s\S]*<\/svg>$/i.test(trimmed)) {
+    return { ext: "svg", baseName: "Pasted vector", label: "SVG image" };
+  }
+  if (/^\s*(SELECT|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM|CREATE\s+(?:TABLE|VIEW|INDEX)|ALTER\s+TABLE|WITH\s+\w+\s+AS)\b/i.test(trimmed)) {
+    return { ext: "sql", baseName: "Pasted query", label: "SQL query" };
+  }
+  if (/^(?:import\s+[\s\S]+?\s+from\s+["']|export\s+(?:const|let|function|async\s+function|class|default|interface|type)\s+)/m.test(trimmed)) {
+    return { ext: "ts", baseName: "Pasted module", label: "TypeScript module" };
+  }
+  if (/^#{1,6}\s+\S/m.test(trimmed) || /\[[^\]]+\]\(https?:\/\/[^)]+\)/.test(trimmed) || /^```[\w-]*$/m.test(trimmed)) {
+    return { ext: "md", baseName: "Pasted note", label: "Markdown note" };
+  }
+  const lines = trimmed.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length >= 2) {
+    const sample = lines.slice(0, 10);
+    const commas = sample.map((l) => l.split(",").length);
+    if (commas[0] >= 2 && commas.every((c) => c === commas[0])) {
+      return { ext: "csv", baseName: "Pasted table", label: "CSV table" };
+    }
+  }
+  return { ext: "txt", baseName: "Pasted text", label: "Text file" };
 }
 
 /**

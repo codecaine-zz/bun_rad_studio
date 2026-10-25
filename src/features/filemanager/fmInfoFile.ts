@@ -88,7 +88,15 @@ async function macExtras(ctx: FmContext, path: string, isDir: boolean, sniffed: 
   const rows = new Rows();
   const sec = new Rows();
   const names = ["kMDItemKind", "kMDItemWhereFroms", "kMDItemContentType", "kMDItemContentTypeTree", "kMDItemUserTags", "kMDItemFinderComment", "kMDItemDateAdded", "kMDItemLastUsedDate", "kMDItemUseCount"];
-  const mdls = existsSync("/usr/bin/mdls") ? await runProgram(["/usr/bin/mdls", ...names.flatMap((n) => ["-name", n]), path], env, { timeoutMs: 5000, maxBytes: 64 * 1024 }) : null;
+  const hasMdls = existsSync("/usr/bin/mdls");
+  const hasXattr = existsSync("/usr/bin/xattr");
+  const signable = (isDir ? ext === "app" : sniffed?.kind === "macho") && existsSync("/usr/bin/codesign");
+  const [mdls, q, list, c] = await Promise.all([
+    hasMdls ? runProgram(["/usr/bin/mdls", ...names.flatMap((n) => ["-name", n]), path], env, { timeoutMs: 5000, maxBytes: 64 * 1024 }) : Promise.resolve(null),
+    hasXattr ? runProgram(["/usr/bin/xattr", "-p", "com.apple.quarantine", path], env, { timeoutMs: 3000, maxBytes: 4096 }) : Promise.resolve(null),
+    hasXattr ? runProgram(["/usr/bin/xattr", path], env, { timeoutMs: 3000, maxBytes: 16 * 1024 }) : Promise.resolve(null),
+    signable ? runProgram(["/usr/bin/codesign", "-dv", "--verbose=2", path], env, { timeoutMs: 8000, maxBytes: 32 * 1024 }) : Promise.resolve(null),
+  ]);
   const md = mdls && mdls.code === 0 ? parseMdls(mdls.stdout) : {};
   rows.add("macOS kind", md.kMDItemKind?.[0], "The name the Finder shows for this kind of item.");
   rows.add("Content type", md.kMDItemContentType?.[0], "A technical type name macOS uses (a UTI), for example public.jpeg.");
@@ -99,17 +107,13 @@ async function macExtras(ctx: FmContext, path: string, isDir: boolean, sniffed: 
   rows.add("Finder comment", md.kMDItemFinderComment?.[0]);
   const from = md.kMDItemWhereFroms;
   if (from?.length) sec.add("Downloaded from", from.join("  ·  "), "The web addresses this file was downloaded from, saved by the browser. They can reveal where you were browsing.", "warn");
-  if (existsSync("/usr/bin/xattr")) {
-    const q = await runProgram(["/usr/bin/xattr", "-p", "com.apple.quarantine", path], env, { timeoutMs: 3000, maxBytes: 4096 });
+  if (q && list) {
     const parsed = q.code === 0 ? parseQuarantine(q.stdout) : null;
     sec.add("Quarantine", parsed ? `Marked as downloaded from the internet${parsed.app ? ` by ${parsed.app}` : ""}${parsed.when ? ` on ${parsed.when}` : ""}. macOS may ask before opening it.` : "Not marked", "macOS puts this flag on files that came from the internet and checks them before the first opening.", parsed ? "warn" : "good");
-    const list = await runProgram(["/usr/bin/xattr", path], env, { timeoutMs: 3000, maxBytes: 16 * 1024 });
     const attrs = list.code === 0 ? list.stdout.split(/\r?\n/).map((s) => s.trim()).filter(Boolean).slice(0, 40) : [];
     sec.add("Extended attributes", attrs.join(", "), "Small hidden labels the system or programs attach to a file, outside its content.");
   }
-  const signable = isDir ? ext === "app" : sniffed?.kind === "macho";
-  if (signable && existsSync("/usr/bin/codesign")) {
-    const c = await runProgram(["/usr/bin/codesign", "-dv", "--verbose=2", path], env, { timeoutMs: 8000, maxBytes: 32 * 1024 });
+  if (c) {
     const text = c.stderr + c.stdout;
     if (/not signed at all/i.test(text)) sec.add("Code signature", "Not signed", "A signature proves who made a program and that it wasn't changed afterwards.", "warn");
     else if (c.code === 0 || /Identifier=/.test(text)) {

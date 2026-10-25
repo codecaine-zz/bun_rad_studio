@@ -29,12 +29,18 @@ export function selectRowsInRect(pane, box, { additive = false, toggle = false, 
       else next.add(key);
     }
   }
+  const prevFocus = p.focusKey;
+  const nextFocus = hits.length ? hits[hits.length - 1] : p.focusKey;
+  const sameSelection =
+    next.size === p.selection.size &&
+    [...next].every((k) => p.selection.has(k)) &&
+    prevFocus === nextFocus;
   p.selection = next;
   if (hits.length) {
-    p.focusKey = hits[hits.length - 1];
+    p.focusKey = nextFocus;
     if (!p.anchorKey) p.anchorKey = hits[0];
   }
-  emit("selection");
+  if (!sameSelection) emit("selection");
   return hits;
 }
 

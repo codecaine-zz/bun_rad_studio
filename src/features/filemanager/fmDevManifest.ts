@@ -58,6 +58,8 @@ function splitList(body: string): string[] {
   return items;
 }
 
+const UNSAFE_TOML_KEY = new Set(["__proto__", "constructor", "prototype"]);
+
 /** Sections by dotted name (`[tool.poetry.dependencies]` -> "tool.poetry.dependencies"), each a map of key -> value. Never throws. */
 export function parseTomlLite(text: string): Record<string, Record<string, TomlValue>> {
   const out: Record<string, Record<string, TomlValue>> = { "": {} };
@@ -68,19 +70,21 @@ export function parseTomlLite(text: string): Record<string, Record<string, TomlV
     if (!line) continue;
     const head = /^\[\[?\s*([^\]]+?)\s*\]\]?$/.exec(line);
     if (head) {
-      section = head[1]!.replace(/\s*\.\s*/g, ".").replace(/"/g, "");
-      out[section] ??= {};
+      const nextSection = head[1]!.replace(/\s*\.\s*/g, ".").replace(/"/g, "");
+      section = UNSAFE_TOML_KEY.has(nextSection) ? "" : nextSection;
+      if (!Object.prototype.hasOwnProperty.call(out, section)) out[section] = {};
       continue;
     }
     const eq = line.indexOf("=");
     if (eq <= 0) continue;
     const key = line.slice(0, eq).trim().replace(/^["']|["']$/g, "");
+    if (UNSAFE_TOML_KEY.has(key)) continue;
     let value = line.slice(eq + 1).trim();
     if (value.startsWith("[") && !value.endsWith("]")) {
       // an array that continues on the next lines
       while (i + 1 < lines.length && !value.endsWith("]") && value.length < 20_000) value += ` ${stripComment(lines[++i]!).trim()}`;
     }
-    const table = out[section] ?? (out[section] = {});
+    const table = Object.prototype.hasOwnProperty.call(out, section) ? out[section]! : (out[section] = {});
     if (value.startsWith("[") && value.endsWith("]")) table[key] = splitList(value.slice(1, -1)).map((s) => String(scalar(s)));
     else if (value.startsWith("{")) table[key] = value;
     else table[key] = scalar(value);

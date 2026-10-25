@@ -43,10 +43,13 @@ export function mediaKindOf(name: string): "audio" | "video" | null {
 
 export const wantsThumbnail = (name: string) => THUMB_EXTS.has(extensionOf(name));
 
+let cachedHasQlmanage: boolean | null = null;
+
 /** Whether this computer can make the document pictures (macOS with its `qlmanage` tool). */
 export function thumbnailsAvailable(ctx: Pick<FmContext, "platform" | "toolDirs">): boolean {
   if (ctx.platform !== "darwin" || ctx.toolDirs) return false;
-  return !!Bun.which("qlmanage");
+  if (cachedHasQlmanage === null) cachedHasQlmanage = !!Bun.which("qlmanage");
+  return cachedHasQlmanage;
 }
 
 const THUMB_SIZE = 1400;
@@ -128,7 +131,13 @@ export async function imagePreviewFor(ctx: FmContext, pathInput: unknown): Promi
       // 2. ImageMagick (magick / convert)
       const magick = resolveTool(ctx, "imagemagick");
       if (magick) {
-        await runTool([magick, `${file}[0]`, "-auto-orient", "-thumbnail", `${THUMB_SIZE}x${THUMB_SIZE}>`, tmpTarget]);
+        const safeMagickIn = /[\[\]]/.test(file) ? nodePath.join(dir, `${key}.in.${ext || "img"}`) : file;
+        if (safeMagickIn !== file) await fsp.copyFile(file, safeMagickIn).catch(() => {});
+        try {
+          await runTool([magick, `${safeMagickIn}[0]`, "-auto-orient", "-thumbnail", `${THUMB_SIZE}x${THUMB_SIZE}>`, tmpTarget]);
+        } finally {
+          if (safeMagickIn !== file) await fsp.rm(safeMagickIn, { force: true }).catch(() => {});
+        }
         if ((await fsp.stat(tmpTarget).catch(() => null))?.size) {
           await fsp.rename(tmpTarget, target);
           await prune(dir).catch(() => {});
@@ -165,7 +174,7 @@ export async function imagePreviewFor(ctx: FmContext, pathInput: unknown): Promi
         const work = nodePath.join(dir, `${key}-ql`);
         await fsp.mkdir(work, { recursive: true });
         try {
-          await runTool(["qlmanage", "-t", "-s", String(THUMB_SIZE), "-o", work, file]);
+          await runTool(["qlmanage", "-t", "-s", String(THUMB_SIZE), "-o", work, "--", file]);
           const made = (await fsp.readdir(work)).find((n) => n.endsWith(".png"));
           if (made) {
             await fsp.rename(nodePath.join(work, made), target);
@@ -206,7 +215,7 @@ export async function thumbnailFor(ctx: FmContext, pathInput: unknown): Promise<
     const work = nodePath.join(dir, key);
     await fsp.mkdir(work, { recursive: true });
     try {
-      const proc = Bun.spawn(["qlmanage", "-t", "-s", String(THUMB_SIZE), "-o", work, file], { stdin: "ignore", stdout: "ignore", stderr: "ignore" });
+      const proc = Bun.spawn(["qlmanage", "-t", "-s", String(THUMB_SIZE), "-o", work, "--", file], { stdin: "ignore", stdout: "ignore", stderr: "ignore" });
       const timer = setTimeout(() => { try { proc.kill(); } catch { /* already over */ } }, THUMB_TIMEOUT_MS);
       await proc.exited;
       clearTimeout(timer);

@@ -1,7 +1,10 @@
 // Folder tabs for the main file pane: open multiple folders at once, switch between them, duplicate, or close tabs.
 import { $, activeIconPackStyle, h, clear, announce, iconFor, placeIconFor } from "./dom.js";
+import { attachDropTarget } from "./dnd.js";
+import { showMenu } from "./menus.js";
 import { state, on, currentPath, inTrash } from "./state.js";
 import { goTo, showTrash } from "./nav.js";
+import { copyPathOf, isFavorite, toggleFavorite } from "./ops.js";
 import { setActivePane } from "./pane.js";
 import { selectKeys } from "./selection.js";
 import { hintOf } from "./keymap.js";
@@ -123,7 +126,17 @@ export async function closeTab(tabId = state.activeTabId) {
   const idx = state.tabs.findIndex((t) => t.id === tabId);
   if (idx < 0) return;
   const closingActive = state.tabs[idx].id === state.activeTabId;
-  const closedLabel = tabLabel(state.tabs[idx].location);
+  const closedTab = state.tabs[idx];
+  const closedLabel = tabLabel(closedTab.location);
+  if (!Array.isArray(state.closedTabs)) state.closedTabs = [];
+  state.closedTabs.push({
+    location: cloneLoc(closedTab.location),
+    history: [...(closedTab.history ?? [])],
+    future: [...(closedTab.future ?? [])],
+    selection: [...(closedTab.selection ?? [])],
+    scrollTop: closedTab.scrollTop ?? 0,
+  });
+  if (state.closedTabs.length > 20) state.closedTabs.shift();
   state.tabs.splice(idx, 1);
   if (closingActive) {
     const next = state.tabs[Math.min(idx, state.tabs.length - 1)];
@@ -134,12 +147,64 @@ export async function closeTab(tabId = state.activeTabId) {
   announce(`Closed ${closedLabel} tab.`);
 }
 
+export async function closeOtherTabs(keepTabId = state.activeTabId) {
+  ensureInitialTab();
+  if (state.tabs.length <= 1) return;
+  const keep = state.tabs.find((t) => t.id === keepTabId) ?? state.tabs.find((t) => t.id === state.activeTabId) ?? state.tabs[0];
+  if (!keep) return;
+  saveCurrentTabSnapshot();
+  if (!Array.isArray(state.closedTabs)) state.closedTabs = [];
+  for (const t of state.tabs) {
+    if (t.id !== keep.id) {
+      state.closedTabs.push({
+        location: cloneLoc(t.location),
+        history: [...(t.history ?? [])],
+        future: [...(t.future ?? [])],
+        selection: [...(t.selection ?? [])],
+        scrollTop: t.scrollTop ?? 0,
+      });
+    }
+  }
+  if (state.closedTabs.length > 20) state.closedTabs.splice(0, state.closedTabs.length - 20);
+  state.tabs = [keep];
+  if (state.activeTabId !== keep.id) {
+    await activateTabObject(keep);
+  } else {
+    renderTabs();
+  }
+  announce(`Closed other tabs; kept ${tabLabel(keep.location)}.`);
+}
+
 export async function cycleTab(delta = 1) {
   ensureInitialTab();
   if (state.tabs.length <= 1) return;
   const idx = state.tabs.findIndex((t) => t.id === state.activeTabId);
   const nextIdx = ((idx < 0 ? 0 : idx) + delta + state.tabs.length) % state.tabs.length;
   await switchTab(state.tabs[nextIdx].id);
+}
+
+/** Reopens the most recently closed folder tab from `state.closedTabs`. */
+export async function reopenClosedTab() {
+  ensureInitialTab();
+  if (!Array.isArray(state.closedTabs) || state.closedTabs.length === 0) {
+    announce("No recently closed tabs to reopen.");
+    return null;
+  }
+  saveCurrentTabSnapshot();
+  const popped = state.closedTabs.pop();
+  const id = nextTabSeq++;
+  const restored = {
+    id,
+    location: cloneLoc(popped.location),
+    history: [...(popped.history ?? [])],
+    future: [...(popped.future ?? [])],
+    selection: [...(popped.selection ?? [])],
+    scrollTop: popped.scrollTop ?? 0,
+  };
+  state.tabs.push(restored);
+  await activateTabObject(restored);
+  announce(`Reopened ${tabLabel(restored.location)} tab.`);
+  return restored;
 }
 
 export function renderTabs() {
@@ -166,6 +231,23 @@ export function renderTabs() {
       role: "tab",
       "aria-selected": isCurrent ? "true" : "false",
       dataset: { tabId: String(tab.id), path: tab.location?.path || "" },
+      oncontextmenu: (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const folderPath = !isTrash ? (tab.location?.path || "") : "";
+        showMenu([
+          { label: "Switch to tab", icon: "📂", disabled: isCurrent, action: () => switchTab(tab.id) },
+          { label: "Duplicate tab", icon: "⧉", action: () => duplicateTab(tab.id) },
+          ...(folderPath ? [
+            { label: isFavorite(folderPath) ? "Remove from Favorites" : "Add to Favorites", icon: "⭐", action: () => toggleFavorite(folderPath) },
+            { label: "Copy folder path", icon: "🔗", action: () => copyPathOf([{ path: folderPath }]) },
+          ] : []),
+          { separator: true },
+          { label: "Reopen closed tab", icon: "↺", disabled: !(state.closedTabs && state.closedTabs.length > 0), action: () => reopenClosedTab() },
+          { label: "Close tab", icon: "✕", disabled: state.tabs.length <= 1, action: () => closeTab(tab.id) },
+          { label: "Close other tabs", icon: "🧹", disabled: state.tabs.length <= 1, action: () => closeOtherTabs(tab.id) },
+        ], { x: e.clientX, y: e.clientY, label: `${label} tab` });
+      },
     },
       h("button", {
         type: "button",
@@ -196,6 +278,9 @@ export function renderTabs() {
           }, "×")
         : null,
     );
+    if (!isTrash && tab.location?.path) {
+      attachDropTarget(item, { getPath: () => tab.location.path });
+    }
     bar.append(item);
   }
   bar.append(
@@ -217,6 +302,26 @@ export function renderTabs() {
 }
 
 export function wireTabs() {
+  const bar = $("#tabbar");
+  bar?.addEventListener("keydown", async (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
+    const tabEl = e.target instanceof Element ? e.target.closest(".fm-tab") : null;
+    if (!tabEl || state.tabs.length <= 1) return;
+    const curId = Number(tabEl.dataset.tabId);
+    const idx = state.tabs.findIndex((t) => t.id === curId);
+    if (idx < 0) return;
+    let nextIdx = -1;
+    if (e.key === "ArrowRight") nextIdx = (idx + 1) % state.tabs.length;
+    else if (e.key === "ArrowLeft") nextIdx = (idx - 1 + state.tabs.length) % state.tabs.length;
+    else if (e.key === "Home") nextIdx = 0;
+    else if (e.key === "End") nextIdx = state.tabs.length - 1;
+    if (nextIdx >= 0) {
+      e.preventDefault();
+      const nextTab = state.tabs[nextIdx];
+      await switchTab(nextTab.id);
+      bar.querySelector(`.fm-tab[data-tab-id="${nextTab.id}"] .fm-tab-select`)?.focus();
+    }
+  });
   on("view", renderTabs);
   renderTabs();
 }

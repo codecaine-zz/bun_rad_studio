@@ -322,6 +322,7 @@ export function normalizeDb(raw: unknown, now: number): Db {
   }
   db.audit = Array.isArray(r.audit) ? r.audit.filter((e: any) => e && typeof e.ev === "string").slice(-LIMITS.audit) : [];
   for (const [id, it] of Object.entries<any>(r.items ?? {})) {
+    if (id === "__proto__" || id === "constructor" || id === "prototype") continue;
     if (!it || typeof it !== "object" || !isItemType(it.type)) continue;
     db.items[id] = {
       id, type: it.type, title: String(it.title ?? ""), favorite: it.favorite === true,

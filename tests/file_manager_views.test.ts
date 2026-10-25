@@ -3167,7 +3167,7 @@ describe("core file browsing & pane ergonomics (tabs, marquee, folder tree, colu
     await sleep(40);
     const cards = doc.querySelectorAll("#overlay .tpl-card");
     expect(cards.length).toBe(RAD_FILE_TEMPLATES.length);
-    const cancelBtn = [...doc.querySelectorAll("#overlay .modal-buttons .btn")].find((b: any) => b.textContent === "Cancel") as any;
+    const cancelBtn = [...doc.querySelectorAll("#overlay .dialog-buttons .btn")].find((b: any) => b.textContent === "Cancel") as any;
     cancelBtn?.click();
     await sleep(30);
 
@@ -3255,6 +3255,237 @@ describe("core file browsing & pane ergonomics (tabs, marquee, folder tree, colu
     }
     await saveSettings({ view: "details" });
   });
+
+  test("IME composition Enter guard, spatial grid navigation, tab context menu & keyboard nav, dual Escape search reset, and 1-click filter empty reset", async () => {
+    const { state, emit } = (await import("../resources/file_manager/ui/state.js")) as any;
+    const { goTo, saveSettings } = (await import("../resources/file_manager/ui/nav.js")) as any;
+    const { beginRename, spatialVerticalTarget } = (await import("../resources/file_manager/ui/list.js")) as any;
+    const { left, right } = (await import("../resources/file_manager/ui/pane.js")) as any;
+    const tabs = (await import("../resources/file_manager/ui/tabs.js")) as any;
+    const dual = (await import("../resources/file_manager/ui/dual.js")) as any;
+
+    await goTo(home);
+    await sleep(30);
+
+    // 1. IME composition Enter guard during inline rename
+    const fileA = join(home, "a.txt");
+    beginRename(fileA);
+    const renameInput = $(".rename-input") as any;
+    expect(Boolean(renameInput)).toBe(true);
+    renameInput.value = "composing-cjk.txt";
+    // Dispatching Enter with isComposing: true must NOT commit the rename
+    key(renameInput, "Enter", { isComposing: true });
+    expect($(".rename-input") === renameInput).toBe(true);
+    expect(existsSync(join(home, "composing-cjk.txt"))).toBe(false);
+    // Cancel rename cleanly with Escape
+    key(renameInput, "Escape");
+    expect(Boolean($(".rename-input"))).toBe(false);
+
+    // 2. Spatial vertical navigation across multi-row grid layout
+    await saveSettings({ view: "icons" });
+    await sleep(30);
+    const rows = [...doc.querySelectorAll("#list .row")] as any[];
+    expect(rows.length).toBeGreaterThanOrEqual(3);
+    // Simulate an uneven multi-row grid layout: row 0 at (0,0), row 1 at (140,0), row 2 at (140,120), rest at top=240
+    rows.forEach((r, idx) => {
+      const top = idx < 2 ? 0 : idx === 2 ? 120 : 240;
+      const leftPos = idx === 0 ? 0 : 140;
+      Object.defineProperty(r, "offsetTop", { value: top, configurable: true });
+      Object.defineProperty(r, "offsetLeft", { value: leftPos, configurable: true });
+    });
+    expect(spatialVerticalTarget(left, 1, 1)).toBe(2);
+    expect(spatialVerticalTarget(left, 2, -1)).toBe(1);
+    await saveSettings({ view: "details" });
+
+    // 3. One-click Clear active filters button in empty state
+    const qInput = $("#quick-filter") as any;
+    qInput.value = "no-such-file-filter-xyz";
+    qInput.dispatchEvent(new win.Event("input", { bubbles: true }));
+    await sleep(30);
+    expect($("#empty").hidden).toBe(false);
+    const resetBtn = doc.querySelector("#empty .empty-reset-btn") as any;
+    expect(resetBtn).not.toBeNull();
+    resetBtn.click();
+    await sleep(30);
+    expect(state.quickFilter).toBe("");
+    expect(qInput.value).toBe("");
+    expect(rowNames("#list")).toContain("a.txt");
+
+    // 4. Folder tabs keyboard navigation & closeOtherTabs
+    await tabs.openNewTab(dest);
+    await tabs.openNewTab(home);
+    expect(state.tabs.length).toBeGreaterThanOrEqual(3);
+    const activeTabBtn = doc.querySelector(`#tabbar .fm-tab[data-tab-id="${state.activeTabId}"] .fm-tab-select`) as any;
+    expect(activeTabBtn).not.toBeNull();
+    key(activeTabBtn, "Home");
+    await sleep(40);
+    expect(state.activeTabId).toBe(state.tabs[0]!.id);
+    await tabs.closeOtherTabs(state.tabs[0]!.id);
+    expect(state.tabs.length).toBe(1);
+
+    // 5. Dual view: right address bar file path selects file in parent folder, and Escape clears right-pane search
+    emit("workspace-go", "dual");
+    await sleep(60);
+    await dual.loadRight(home, { push: false });
+    const rightAddr = $("#dual-address-input") as any;
+    rightAddr.hidden = false;
+    rightAddr.value = join(dest, "c.txt");
+    key(rightAddr, "Enter");
+    await sleep(80);
+    expect(right.location.path).toBe(dest);
+    expect(right.selection.has(join(dest, "c.txt"))).toBe(true);
+
+    // Search in right pane and press Escape on #dual-list to clear right.search
+    $("#dual-search").value = "c.txt";
+    await dual.runRightSearch("c.txt");
+    await sleep(50);
+    expect(right.search).not.toBeNull();
+    $("#dual-list").focus();
+    $("#dual-list").dispatchEvent(new win.Event("focusin", { bubbles: true }));
+    key($("#dual-list"), "Escape");
+    await sleep(40);
+    expect(right.search).toBeNull();
+    expect($("#dual-search").value).toBe("");
+
+    emit("workspace-go", "files");
+    await goTo(home);
+  });
+
+  test("File Manager Master enhancements: on-demand folder sizes, power quick-filter predicates, New Folder with Selection + undo, Paste Text as File + undo, Select by Pattern & Same Kind, Reopen Closed Tab, Middle-Click Breadcrumb, and Swap Dual Panes", async () => {
+    const { state, emit } = (await import("../resources/file_manager/ui/state.js")) as any;
+    const { goTo, calculateFolderSizes } = (await import("../resources/file_manager/ui/nav.js")) as any;
+    const { left, right } = (await import("../resources/file_manager/ui/pane.js")) as any;
+    const ops = (await import("../resources/file_manager/ui/ops.js")) as any;
+    const { selectByPattern, selectSameKindOrExt, clearSelection } = (await import("../resources/file_manager/ui/selection.js")) as any;
+    const { showSelectByPatternDialog } = (await import("../resources/file_manager/ui/quickbar.js")) as any;
+    const tabs = (await import("../resources/file_manager/ui/tabs.js")) as any;
+    const dual = (await import("../resources/file_manager/ui/dual.js")) as any;
+
+    await goTo(home);
+    await sleep(40);
+
+    // 1. On-demand Folder Size calculation renders .folder-size-badge on folder rows
+    const sizesRes = await calculateFolderSizes(left, [dest]);
+    expect(sizesRes.count).toBe(1);
+    expect(sizesRes.sizes[dest]).toBeDefined();
+    expect(sizesRes.sizes[dest].files).toBeGreaterThanOrEqual(1);
+    const destRow = rowOf("#list", "dest");
+    expect(destRow.querySelector(".c-size")?.classList.contains("folder-size-badge")).toBe(true);
+    expect(destRow.querySelector(".c-size")?.textContent.length).toBeGreaterThan(0);
+
+    // 2. Power Quick-Filter predicates in #quick-filter (ext:, negation, is:dir)
+    const qInput = $("#quick-filter") as any;
+    qInput.value = "ext:txt -b.txt";
+    qInput.dispatchEvent(new win.Event("input", { bubbles: true }));
+    await sleep(30);
+    expect(rowNames("#list")).toContain("a.txt");
+    expect(rowNames("#list")).not.toContain("b.txt");
+    expect(rowNames("#list")).not.toContain("dest");
+
+    qInput.value = "is:dir";
+    qInput.dispatchEvent(new win.Event("input", { bubbles: true }));
+    await sleep(30);
+    expect(rowNames("#list")).toContain("dest");
+    expect(rowNames("#list")).not.toContain("a.txt");
+
+    qInput.value = "";
+    qInput.dispatchEvent(new win.Event("input", { bubbles: true }));
+    await sleep(30);
+
+    // 3. Select by Pattern & Select Same Extension/Kind + Dialog
+    const patRes = selectByPattern("*.txt", { mode: "replace", pane: left });
+    expect(patRes.matched).toBeGreaterThanOrEqual(2);
+    expect(left.selection.has(join(home, "a.txt"))).toBe(true);
+    expect(left.selection.has(join(home, "b.txt"))).toBe(true);
+
+    selectByPattern("b.*", { mode: "deselect", pane: left });
+    expect(left.selection.has(join(home, "a.txt"))).toBe(true);
+    expect(left.selection.has(join(home, "b.txt"))).toBe(false);
+
+    const sameRes = selectSameKindOrExt(left);
+    expect(sameRes.matched).toBeGreaterThanOrEqual(2);
+    expect(left.selection.has(join(home, "b.txt"))).toBe(true);
+
+    showSelectByPatternDialog("replace");
+    await sleep(30);
+    expect(doc.querySelector("#overlay .dialog-title")?.textContent).toContain("Select Items by Pattern");
+    const closeBtn = [...doc.querySelectorAll("#overlay .dialog-buttons .btn")].find((b: any) => b.textContent === "Cancel") as any;
+    closeBtn?.click();
+    await sleep(30);
+    clearSelection();
+
+    // 4. New Folder with Selection + full atomic Undo
+    const g1 = join(home, "group_me_1.txt");
+    const g2 = join(home, "group_me_2.txt");
+    writeFileSync(g1, "g1");
+    writeFileSync(g2, "g2");
+    await goTo(home);
+    const grouped = await ops.newFolderWithSelection([g1, g2], "Bundled Items");
+    if ($(".rename-input")) key($(".rename-input"), "Escape");
+    expect(grouped?.path).toBe(join(home, "Bundled Items"));
+    expect(grouped?.count).toBe(2);
+    expect(existsSync(join(home, "Bundled Items", "group_me_1.txt"))).toBe(true);
+    expect(existsSync(join(home, "Bundled Items", "group_me_2.txt"))).toBe(true);
+    expect(existsSync(g1)).toBe(false);
+    expect(existsSync(g2)).toBe(false);
+
+    await ops.undo();
+    await sleep(40);
+    expect(existsSync(g1)).toBe(true);
+    expect(existsSync(g2)).toBe(true);
+    expect(existsSync(join(home, "Bundled Items"))).toBe(false);
+    rmSync(g1, { force: true });
+    rmSync(g2, { force: true });
+
+    // 5. Paste Clipboard Text as File + Undo
+    const pasted = await ops.pasteTextAsFile('{"hello":"world","master":true}', "clipboard_payload.json");
+    if ($(".rename-input")) key($(".rename-input"), "Escape");
+    expect(pasted?.path).toBe(join(home, "clipboard_payload.json"));
+    expect(existsSync(pasted!.path)).toBe(true);
+    expect(readFileSync(pasted!.path, "utf8")).toContain('"master":true');
+    await ops.undo();
+    await sleep(40);
+    expect(existsSync(pasted!.path)).toBe(false);
+
+    // 6. Reopen Closed Tab & Middle-Click Breadcrumb to open in new tab
+    await tabs.openNewTab(dest);
+    const closedTabId = state.activeTabId;
+    const tabsBeforeClose = state.tabs.length;
+    await tabs.closeTab(closedTabId);
+    expect(state.tabs.length).toBe(tabsBeforeClose - 1);
+    expect(state.closedTabs.length).toBeGreaterThanOrEqual(1);
+    const reopened = await tabs.reopenClosedTab();
+    expect(reopened?.location?.path).toBe(dest);
+    expect(state.tabs.length).toBe(tabsBeforeClose);
+    expect(state.location.path).toBe(dest);
+
+    // Middle-click parent breadcrumb in #crumbs opens parent folder in a new tab
+    const crumbs = [...doc.querySelectorAll("#crumbs .crumb")] as any[];
+    expect(crumbs.length).toBeGreaterThanOrEqual(2);
+    const parentCrumb = crumbs[crumbs.length - 2];
+    const tabsBeforeMiddle = state.tabs.length;
+    parentCrumb.dispatchEvent(new win.MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 }));
+    await sleep(60);
+    expect(state.tabs.length).toBe(tabsBeforeMiddle + 1);
+    await tabs.closeOtherTabs(state.tabs[0]!.id);
+    await goTo(home);
+
+    // 7. Swap Dual Panes exchanges left and right folder locations
+    emit("workspace-go", "dual");
+    await sleep(60);
+    await goTo(home);
+    await dual.loadRight(dest, { push: false });
+    expect(state.location.path).toBe(home);
+    expect(right.location.path).toBe(dest);
+    await dual.swapDualPanes();
+    await sleep(60);
+    expect(state.location.path).toBe(dest);
+    expect(right.location.path).toBe(home);
+
+    emit("workspace-go", "files");
+    await goTo(home);
+  });
 });
+
 
 
