@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine CyberReversi &amp; Checkers AI</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    :root {
+      --bg-dark: #040511;
+      --panel-bg: rgba(9, 13, 29, 0.92);
+      --cyan: #00f0ff;
+      --cyan-dim: rgba(0, 240, 255, 0.24);
+      --magenta: #ff0077;
+      --gold: #ffe600;
+      --emerald: #00ff9d;
+      --text: #eef7ff;
+      --muted: #829ec4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 20%, #150c2e 0%, #040511 78%);
+      color: var(--text);
+      font-family: 'Orbitron', 'Rajdhani', 'Courier New', monospace, system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 14px;
+      overflow: hidden;
+    }
+
+    .hud-header {
+      width: 100%;
+      max-width: 1180px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--panel-bg);
+      border: 1px solid var(--cyan-dim);
+      border-radius: 14px;
+      padding: 10px 16px;
+      box-shadow: 0 0 28px rgba(0, 240, 255, 0.12), inset 0 0 16px rgba(0, 0, 0, 0.65);
+      margin-bottom: 10px;
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      border: 1px solid var(--cyan);
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(255, 0, 119, 0.2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.35);
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      background: linear-gradient(90deg, #fff, var(--cyan), var(--magenta));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+    }
+
+    .brand-sub {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .mode-switcher {
+      display: flex;
+      gap: 5px;
+      background: rgba(3, 6, 16, 0.85);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--cyan-dim);
+    }
+
+    .switch-btn {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid transparent;
+      padding: 6px 12px;
+      border-radius: 7px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .switch-btn.active {
+      background: rgba(0, 240, 255, 0.18);
+      color: var(--cyan);
+      border-color: var(--cyan);
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.35);
+    }
+
+    .stats-strip {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      background: rgba(3, 7, 18, 0.85);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      border-radius: 10px;
+      padding: 5px 11px;
+      min-width: 82px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .stat-val {
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .action-bar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .hud-btn {
+      background: rgba(0, 240, 255, 0.1);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 240, 255, 0.35);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .hud-btn:hover {
+      background: rgba(0, 240, 255, 0.25);
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .hud-btn.gold {
+      border-color: var(--gold);
+      color: var(--gold);
+      background: rgba(255, 230, 0, 0.11);
+    }
+
+    .workspace {
+      width: 100%;
+      max-width: 1180px;
+      flex: 1;
+      display: flex;
+      gap: 14px;
+      min-height: 0;
+      align-items: stretch;
+    }
+
+    .board-stage {
+      flex: 1;
+      background: #030612;
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      border-radius: 18px;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), inset 0 0 30px rgba(0, 240, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      position: relative;
+    }
+
+    canvas {
+      display: block;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    .side-panel {
+      width: 280px;
+      background: var(--panel-bg);
+      border: 1px solid var(--cyan-dim);
+      border-radius: 18px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      box-shadow: 0 0 26px rgba(0, 0, 0, 0.75);
+    }
+
+    .panel-heading {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--cyan-dim);
+      padding-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Positional Advantage Bar */
+    .adv-box {
+      background: rgba(3, 8, 18, 0.85);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      border-radius: 11px;
+      padding: 10px 12px;
+    }
+
+    .adv-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .adv-track {
+      width: 100%;
+      height: 12px;
+      background: var(--magenta);
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+      box-shadow: 0 0 12px rgba(255, 0, 119, 0.35);
+    }
+
+    .adv-fill-cyan {
+      height: 100%;
+      width: 50%;
+      background: linear-gradient(90deg, #0088ff, var(--cyan));
+      box-shadow: 0 0 12px var(--cyan);
+      transition: width 0.25s ease;
+    }
+
+    .tier-group {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .tier-btn {
+      background: rgba(3, 8, 18, 0.85);
+      border: 1px solid rgba(0, 240, 255, 0.22);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 7px 6px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.14s;
+    }
+
+    .tier-btn.active {
+      border-color: var(--cyan);
+      color: #fff;
+      background: rgba(0, 240, 255, 0.2);
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+    }
+
+    .log-card {
+      background: rgba(3, 8, 18, 0.85);
+      border: 1px solid rgba(0, 240, 255, 0.18);
+      border-radius: 11px;
+      padding: 10px 12px;
+      font-size: 11.5px;
+      line-height: 1.5;
+      color: #cce6ff;
+      flex: 1;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 4, 12, 0.84);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    .modal-backdrop.hidden {
+      display: none;
+    }
+
+    .modal-card {
+      background: #080f24;
+      border: 1px solid var(--cyan);
+      border-radius: 16px;
+      padding: 22px 26px;
+      max-width: 540px;
+      width: 92%;
+      box-shadow: 0 0 40px rgba(0, 240, 255, 0.25);
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--cyan);
+      margin-bottom: 10px;
+      letter-spacing: 1.5px;
+    }
+
+    .key-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 7px 14px;
+      margin: 12px 0 16px;
+      background: rgba(0, 0, 0, 0.38);
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--cyan-dim);
+      font-size: 12px;
+    }
+
+    .kbd {
+      background: rgba(0, 240, 255, 0.15);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .workspace {
+        flex-direction: column;
+      }
+      .side-panel {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="hud-header">
+    <div class="brand-block">
+      <div class="brand-logo">⚪</div>
+      <div>
+        <div class="brand-title">Codecaine CyberReversi &amp; Checkers AI</div>
+        <div class="brand-sub">Dual 8×8 Strategy Workstation</div>
+      </div>
+    </div>
+
+    <div class="mode-switcher" role="group" aria-label="Board Game Mode Switcher">
+      <button class="switch-btn active" id="tab-reversi" onclick="switchGameMode('reversi')">⚪ CYBER REVERSI</button>
+      <button class="switch-btn" id="tab-checkers" onclick="switchGameMode('checkers')">👑 CYBER CHECKERS</button>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat-pill">
+        <div class="stat-label">Cyan (P1)</div>
+        <div class="stat-val" id="hud-p1" style="color:var(--cyan);">2</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-label">Magenta (P2)</div>
+        <div class="stat-val" id="hud-p2" style="color:var(--magenta);">2</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-label">Turn</div>
+        <div class="stat-val" id="hud-turn">CYAN</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-label">High Score</div>
+        <div class="stat-val" id="hud-best">0</div>
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <button class="hud-btn" onclick="undoMove()">⏪ UNDO (Z)</button>
+      <button class="hud-btn gold" onclick="requestBestHint()">🧠 HINT (H)</button>
+      <button class="hud-btn" onclick="startNewMatch()">NEW (N)</button>
+      <button class="hud-btn" id="btn-mute" onclick="toggleMute()">🔊 SFX</button>
+      <button class="hud-btn" onclick="toggleHelp()">? HELP</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <div class="board-stage" id="board-stage">
+      <canvas id="strategy-canvas" width="592" height="592"></canvas>
+    </div>
+
+    <aside class="side-panel">
+      <div class="panel-heading">
+        <span>Positional Advantage</span>
+        <span id="adv-pct-label">50% / 50%</span>
+      </div>
+
+      <div class="adv-box">
+        <div class="adv-header">
+          <span style="color:var(--cyan);">CYAN (<span id="bar-p1-count">2</span>)</span>
+          <span style="color:var(--magenta);">MAGENTA (<span id="bar-p2-count">2</span>)</span>
+        </div>
+        <div class="adv-track">
+          <div class="adv-fill-cyan" id="adv-fill-cyan"></div>
+        </div>
+        <div style="font-size:10px; color:var(--muted); margin-top:5px; text-align:center;" id="eval-verdict">
+          Balanced Opening Position
+        </div>
+      </div>
+
+      <div class="panel-heading" style="margin-top:4px;">
+        <span>Opponent &amp; AI Tier</span>
+      </div>
+
+      <div class="tier-group">
+        <button class="tier-btn" id="opp-1" onclick="setOpponentTier(1)">🤖 CADET AI</button>
+        <button class="tier-btn active" id="opp-2" onclick="setOpponentTier(2)">🧠 TACTICAL AI</button>
+        <button class="tier-btn" id="opp-3" onclick="setOpponentTier(3)">⚡ GRANDMASTER</button>
+        <button class="tier-btn" id="opp-0" onclick="setOpponentTier(0)">👥 2P VERSUS</button>
+      </div>
+
+      <div class="log-card" id="tactical-log">
+        <strong style="color:var(--cyan);">Tactical Telemetry:</strong><br/>
+        <span id="status-message">Place a Cyan disc to outflank Magenta horizontally, vertically, or diagonally.</span>
+      </div>
+
+      <div style="display:flex; gap:6px;">
+        <button class="hud-btn" style="flex:1;" onclick="undoMove()">⏪ UNDO (Z)</button>
+        <button class="hud-btn gold" style="flex:1;" onclick="requestBestHint()">🧠 AI HINT (H)</button>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Help Modal -->
+  <div class="modal-backdrop hidden" id="help-modal">
+    <div class="modal-card">
+      <div class="modal-title">⚪ CyberReversi &amp; Checkers AI Manual</div>
+      <div style="font-size:13px; line-height:1.55; color:#cbe5ff;">
+        <strong>1. CyberReversi (Othello):</strong> Place discs to outflank opponent lines in any of 8 directions. Valid move indicators display the exact number of discs each move will flip (`+1`, `+3`, etc.). Corners carry highest strategic weight!<br/><br/>
+        <strong>2. CyberCheckers (Draughts):</strong> Move diagonally on dark squares. Jump opponent pieces to capture (multi-jump chains are automatic when available). Reach the far back rank to crown a **King (`👑`)** that moves &amp; jumps both forward and backward!
+        <div class="key-grid">
+          <span class="kbd">Click / Tap</span><span>Select Piece or Execute Valid Move</span>
+          <span class="kbd">Arrows + Enter</span><span>Navigate 8×8 Cursor &amp; Confirm Move</span>
+          <span class="kbd">Z</span><span>Undo Last Turn</span>
+          <span class="kbd">H</span><span>Highlight Minimax AI Best Move Hint</span>
+          <span class="kbd">1 / 2</span><span>Switch between CyberReversi &amp; CyberCheckers</span>
+          <span class="kbd">N / M</span><span>New Match / Mute Synthesizer</span>
+        </div>
+      </div>
+      <button class="hud-btn" style="width:100%; padding:10px;" onclick="toggleHelp()">CLOSE MANUAL</button>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // WEB AUDIO SYNTHESIZER
+    // =========================================================================
+    class BoardSynth {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playPlace(isCyan = true) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(isCyan ? 320 : 250, now);
+        osc.frequency.exponentialRampToValueAtTime(isCyan ? 480 : 370, now + 0.08);
+        gain.gain.setValueAtTime(0.09, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      }
+
+      playFlipWave(count) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const steps = Math.min(8, Math.max(1, count));
+        for (let i = 0; i < steps; i++) {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(360 + i * 55, now + i * 0.04);
+          gain.gain.setValueAtTime(0.06, now + i * 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.04 + 0.09);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + i * 0.04);
+          osc.stop(now + i * 0.04 + 0.1);
+        }
+      }
+
+      playKingCrown() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        [440, 554.37, 659.25, 880].forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + i * 0.06);
+          gain.gain.setValueAtTime(0.11, now + i * 0.06);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.25);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + i * 0.06);
+          osc.stop(now + i * 0.06 + 0.26);
+        });
+      }
+    }
+
+    const sfx = new BoardSynth();
+
+    // =========================================================================
+    // CONSTANTS & GLOBAL STATE
+    // =========================================================================
+    const STORAGE_KEY = 'codecaine_reversi_checkers_best_v1';
+    const canvas = document.getElementById('strategy-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Positional weights for Reversi 8x8 board (corners = +120, X-squares = -40)
+    const REVERSI_WEIGHTS = [
+      [120, -25,  20,  10,  10,  20, -25, 120],
+      [-25, -45,  -5,  -5,  -5,  -5, -45, -25],
+      [ 20,  -5,  15,   5,   5,  15,  -5,  20],
+      [ 10,  -5,   5,   3,   3,   5,  -5,  10],
+      [ 10,  -5,   5,   3,   3,   5,  -5,  10],
+      [ 20,  -5,  15,   5,   5,  15,  -5,  20],
+      [-25, -45,  -5,  -5,  -5,  -5, -45, -25],
+      [120, -25,  20,  10,  10,  20, -25, 120]
+    ];
+
+    let gameMode = 'reversi'; // 'reversi' | 'checkers'
+    let opponentTier = 2;     // 0=2P, 1=Cadet, 2=Tactical, 3=Grandmaster
+    let highScore = Number(localStorage.getItem(STORAGE_KEY) || 0);
+
+    // Board values:
+    // Reversi: 0 = empty, 1 = Cyan (P1), 2 = Magenta (P2)
+    // Checkers: 0 = empty, 1 = Cyan Man, 3 = Cyan King, 2 = Magenta Man, 4 = Magenta King
+    let board = [];
+    let currentTurn = 1; // 1 = Cyan, 2 = Magenta
+    let historyStack = [];
+    let matchOver = false;
+    let winnerBanner = null;
+    let hintMove = null;
+    let aiThinking = false;
+
+    // Checkers selection state
+    let selectedPiece = null; // { r, c }
+    let forcedJumpPiece = null; // { r, c } during multi-jump chain
+
+    // Keyboard cursor
+    let cursor = { r: 2, c: 3 };
+
+    // Animated disc flip waves: key = "r,c" -> { startTime, delay, fromColor, toColor }
+    let flipAnimations = new Map();
+
+    // =========================================================================
+    // INITIALIZATION & MODE SWITCHING
+    // =========================================================================
+    function createEmpty8x8() {
+      return Array.from({ length: 8 }, () => Array(8).fill(0));
+    }
+
+    function clone8x8(b) {
+      return b.map(r => [...r]);
+    }
+
+    function switchGameMode(mode) {
+      gameMode = mode;
+      document.getElementById('tab-reversi').classList.toggle('active', mode === 'reversi');
+      document.getElementById('tab-checkers').classList.toggle('active', mode === 'checkers');
+      startNewMatch();
+    }
+    window.switchGameMode = switchGameMode;
+
+    function setOpponentTier(tier) {
+      opponentTier = tier;
+      [0, 1, 2, 3].forEach(t => {
+        const el = document.getElementById('opp-' + t);
+        if (el) el.classList.toggle('active', t === tier);
+      });
+      if (!matchOver && currentTurn === 2 && opponentTier > 0) {
+        scheduleAIMove();
+      }
+    }
+    window.setOpponentTier = setOpponentTier;
+
+    function startNewMatch() {
+      board = createEmpty8x8();
+      currentTurn = 1;
+      historyStack = [];
+      matchOver = false;
+      winnerBanner = null;
+      hintMove = null;
+      selectedPiece = null;
+      forcedJumpPiece = null;
+      flipAnimations.clear();
+      aiThinking = false;
+
+      if (gameMode === 'reversi') {
+        board[3][3] = 2;
+        board[3][4] = 1;
+        board[4][3] = 1;
+        board[4][4] = 2;
+        setStatus('CyberReversi: Place a Cyan disc on any numbered indicator to outflank Magenta.');
+      } else {
+        // Setup 12 Magenta pieces on top 3 rows (0..2) and 12 Cyan pieces on bottom 3 rows (5..7)
+        for (let r = 0; r < 8; r++) {
+          for (let c = 0; c < 8; c++) {
+            if ((r + c) % 2 === 1) {
+              if (r <= 2) board[r][c] = 2;
+              else if (r >= 5) board[r][c] = 1;
+            }
+          }
+        }
+        setStatus('CyberCheckers: Select a Cyan piece to advance diagonally or jump Magenta pieces.');
+      }
+
+      updateHUD();
+    }
+    window.startNewMatch = startNewMatch;
+
+    function saveStateForUndo() {
+      historyStack.push({
+        board: clone8x8(board),
+        currentTurn,
+        selectedPiece: selectedPiece ? { ...selectedPiece } : null,
+        forcedJumpPiece: forcedJumpPiece ? { ...forcedJumpPiece } : null
+      });
+      if (historyStack.length > 30) historyStack.shift();
+    }
+
+    function undoMove() {
+      if (aiThinking || historyStack.length === 0) return;
+      // If playing vs AI, pop back to human's turn if possible
+      let targetState = historyStack.pop();
+      if (opponentTier > 0 && targetState.currentTurn === 2 && historyStack.length > 0) {
+        targetState = historyStack.pop();
+      }
+      board = targetState.board;
+      currentTurn = targetState.currentTurn;
+      selectedPiece = targetState.selectedPiece;
+      forcedJumpPiece = targetState.forcedJumpPiece;
+      matchOver = false;
+      winnerBanner = null;
+      hintMove = null;
+      sfx.playPlace(true);
+      updateHUD();
+    }
+    window.undoMove = undoMove;
+
+    function setStatus(msg) {
+      const el = document.getElementById('status-message');
+      if (el) el.textContent = msg;
+    }
+
+    // =========================================================================
+    // 1. CYBER REVERSI (OTHELLO) RULES & AI
+    // =========================================================================
+    const DIRS_8 = [
+      [-1, -1], [-1, 0], [-1, 1],
+      [0, -1],           [0, 1],
+      [1, -1],  [1, 0],  [1, 1]
+    ];
+
+    function getReversiFlips(b, r, c, player) {
+      if (b[r][c] !== 0) return [];
+      const opp = player === 1 ? 2 : 1;
+      const allFlips = [];
+
+      for (const [dr, dc] of DIRS_8) {
+        let nr = r + dr;
+        let nc = c + dc;
+        const line = [];
+        while (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && b[nr][nc] === opp) {
+          line.push({ r: nr, c: nc });
+          nr += dr;
+          nc += dc;
+        }
+        if (line.length > 0 && nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && b[nr][nc] === player) {
+          allFlips.push(...line);
+        }
+      }
+      return allFlips;
+    }
+
+    function getReversiValidMoves(b, player) {
+      const moves = [];
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const flips = getReversiFlips(b, r, c, player);
+          if (flips.length > 0) {
+            moves.push({ r, c, flips });
+          }
+        }
+      }
+      return moves;
+    }
+
+    function executeReversiMove(r, c) {
+      const flips = getReversiFlips(board, r, c, currentTurn);
+      if (flips.length === 0) return false;
+
+      if (currentTurn === 1 || opponentTier === 0) {
+        saveStateForUndo();
+      }
+
+      const prevColor = currentTurn === 1 ? 2 : 1;
+      board[r][c] = currentTurn;
+      const now = performance.now();
+      flips.forEach((f, idx) => {
+        board[f.r][f.c] = currentTurn;
+        flipAnimations.set(`${f.r},${f.c}`, {
+          startTime: now + idx * 42,
+          fromColor: prevColor,
+          toColor: currentTurn
+        });
+      });
+
+      hintMove = null;
+      sfx.playPlace(currentTurn === 1);
+      sfx.playFlipWave(flips.length);
+
+      const pt = cellToPixels(r, c);
+      if (flips.length >= 4 || (r === 0 || r === 7) && (c === 0 || c === 7)) {
+        window.GameMasterFX?.burst?.(pt.x, pt.y, currentTurn === 1 ? '#00f0ff' : '#ff0077', 28);
+      }
+
+      // Advance turn (check if opponent has valid moves)
+      const nextPlayer = currentTurn === 1 ? 2 : 1;
+      const nextMoves = getReversiValidMoves(board, nextPlayer);
+      if (nextMoves.length > 0) {
+        currentTurn = nextPlayer;
+        setStatus(`${currentTurn === 1 ? 'Cyan' : 'Magenta'}'s turn (${nextMoves.length} legal moves available).`);
+      } else {
+        const curMovesAgain = getReversiValidMoves(board, currentTurn);
+        if (curMovesAgain.length > 0) {
+          setStatus(`${nextPlayer === 1 ? 'Cyan' : 'Magenta'} has no legal moves! ${currentTurn === 1 ? 'Cyan' : 'Magenta'} moves again.`);
+        } else {
+          concludeMatch();
+          updateHUD();
+          return true;
+        }
+      }
+
+      updateHUD();
+      if (!matchOver && currentTurn === 2 && opponentTier > 0) {
+        scheduleAIMove();
+      }
+      return true;
+    }
+
+    function evaluateReversiBoard(b, perspectivePlayer) {
+      const opp = perspectivePlayer === 1 ? 2 : 1;
+      let scoreVal = 0;
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (b[r][c] === perspectivePlayer) {
+            scoreVal += REVERSI_WEIGHTS[r][c] + 4;
+          } else if (b[r][c] === opp) {
+            scoreVal -= (REVERSI_WEIGHTS[r][c] + 4);
+          }
+        }
+      }
+      const myMobility = getReversiValidMoves(b, perspectivePlayer).length;
+      const oppMobility = getReversiValidMoves(b, opp).length;
+      return scoreVal + (myMobility - oppMobility) * 8;
+    }
+
+    function minimaxReversi(b, depth, alpha, beta, maximizing, aiPlayer) {
+      const opp = aiPlayer === 1 ? 2 : 1;
+      const activePlayer = maximizing ? aiPlayer : opp;
+      const moves = getReversiValidMoves(b, activePlayer);
+
+      if (depth === 0 || moves.length === 0) {
+        return { score: evaluateReversiBoard(b, aiPlayer), move: null };
+      }
+
+      let bestMove = moves[0];
+      if (maximizing) {
+        let maxEval = -Infinity;
+        for (const m of moves) {
+          const nextB = clone8x8(b);
+          nextB[m.r][m.c] = activePlayer;
+          for (const f of m.flips) nextB[f.r][f.c] = activePlayer;
+          const res = minimaxReversi(nextB, depth - 1, alpha, beta, false, aiPlayer);
+          if (res.score > maxEval) {
+            maxEval = res.score;
+            bestMove = m;
+          }
+          alpha = Math.max(alpha, res.score);
+          if (beta <= alpha) break;
+        }
+        return { score: maxEval, move: bestMove };
+      } else {
+        let minEval = Infinity;
+        for (const m of moves) {
+          const nextB = clone8x8(b);
+          nextB[m.r][m.c] = activePlayer;
+          for (const f of m.flips) nextB[f.r][f.c] = activePlayer;
+          const res = minimaxReversi(nextB, depth - 1, alpha, beta, true, aiPlayer);
+          if (res.score < minEval) {
+            minEval = res.score;
+            bestMove = m;
+          }
+          beta = Math.min(beta, res.score);
+          if (beta <= alpha) break;
+        }
+        return { score: minEval, move: bestMove };
+      }
+    }
+
+    // =========================================================================
+    // 2. CYBER CHECKERS (CHAMPIONSHIP DRAUGHTS) RULES & AI
+    // =========================================================================
+    function isPlayerPiece(cell, player) {
+      if (player === 1) return cell === 1 || cell === 3;
+      if (player === 2) return cell === 2 || cell === 4;
+      return false;
+    }
+
+    function isKingPiece(cell) {
+      return cell === 3 || cell === 4;
+    }
+
+    function getCheckersDirections(cell) {
+      if (cell === 1) return [[-1, -1], [-1, 1]]; // Cyan moves up
+      if (cell === 2) return [[1, -1], [1, 1]];   // Magenta moves down
+      return [[-1, -1], [-1, 1], [1, -1], [1, 1]]; // Kings move all 4 diagonals
+    }
+
+    function getCheckersPieceMoves(b, r, c) {
+      const cell = b[r][c];
+      if (cell === 0) return { steps: [], jumps: [] };
+      const player = (cell === 1 || cell === 3) ? 1 : 2;
+      const opp = player === 1 ? 2 : 1;
+      const dirs = getCheckersDirections(cell);
+      const steps = [];
+      const jumps = [];
+
+      for (const [dr, dc] of dirs) {
+        const nr = r + dr;
+        const nc = c + dc;
+        if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+          if (b[nr][nc] === 0) {
+            steps.push({ fromR: r, fromC: c, toR: nr, toC: nc, isJump: false });
+          } else if (isPlayerPiece(b[nr][nc], opp)) {
+            const jr = nr + dr;
+            const jc = nc + dc;
+            if (jr >= 0 && jr < 8 && jc >= 0 && jc < 8 && b[jr][jc] === 0) {
+              jumps.push({
+                fromR: r,
+                fromC: c,
+                toR: jr,
+                toC: jc,
+                capR: nr,
+                capC: nc,
+                isJump: true
+              });
+            }
+          }
+        }
+      }
+      return { steps, jumps };
+    }
+
+    function getAllCheckersMoves(b, player, onlyFromPiece = null) {
+      if (onlyFromPiece) {
+        const { jumps } = getCheckersPieceMoves(b, onlyFromPiece.r, onlyFromPiece.c);
+        return jumps;
+      }
+
+      const allJumps = [];
+      const allSteps = [];
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (isPlayerPiece(b[r][c], player)) {
+            const { steps, jumps } = getCheckersPieceMoves(b, r, c);
+            allJumps.push(...jumps);
+            allSteps.push(...steps);
+          }
+        }
+      }
+      // Mandatory capture rule when a jump is available
+      return allJumps.length > 0 ? allJumps : allSteps;
+    }
+
+    function executeCheckersMove(move) {
+      if ((currentTurn === 1 || opponentTier === 0) && !forcedJumpPiece) {
+        saveStateForUndo();
+      }
+
+      const piece = board[move.fromR][move.fromC];
+      board[move.fromR][move.fromC] = 0;
+      board[move.toR][move.toC] = piece;
+
+      if (move.isJump) {
+        board[move.capR][move.capC] = 0;
+        const capPt = cellToPixels(move.capR, move.capC);
+        window.GameMasterFX?.burst?.(capPt.x, capPt.y, '#ffe600', 22);
+      }
+
+      // Check King Crowning on back rank
+      let crownedNow = false;
+      if (piece === 1 && move.toR === 0) {
+        board[move.toR][move.toC] = 3;
+        crownedNow = true;
+      } else if (piece === 2 && move.toR === 7) {
+        board[move.toR][move.toC] = 4;
+        crownedNow = true;
+      }
+
+      if (crownedNow) {
+        sfx.playKingCrown();
+        const pt = cellToPixels(move.toR, move.toC);
+        window.GameMasterFX?.burst?.(pt.x, pt.y, '#ffe600', 38);
+      } else {
+        sfx.playPlace(currentTurn === 1);
+      }
+
+      hintMove = null;
+
+      // Multi-jump chain check (if jumped and didn't just crown)
+      if (move.isJump && !crownedNow) {
+        const followUps = getCheckersPieceMoves(board, move.toR, move.toC).jumps;
+        if (followUps.length > 0) {
+          forcedJumpPiece = { r: move.toR, c: move.toC };
+          selectedPiece = { r: move.toR, c: move.toC };
+          setStatus(`Multi-Jump Chain Active! Continue jumping with (${move.toR + 1}, ${move.toC + 1}).`);
+          updateHUD();
+          if (currentTurn === 2 && opponentTier > 0) {
+            scheduleAIMove();
+          }
+          return;
+        }
+      }
+
+      forcedJumpPiece = null;
+      selectedPiece = null;
+      currentTurn = currentTurn === 1 ? 2 : 1;
+
+      const nextMoves = getAllCheckersMoves(board, currentTurn);
+      if (nextMoves.length === 0) {
+        concludeMatch();
+        updateHUD();
+        return;
+      }
+
+      setStatus(`${currentTurn === 1 ? 'Cyan' : 'Magenta'}'s turn (${nextMoves.length} legal moves).`);
+      updateHUD();
+
+      if (!matchOver && currentTurn === 2 && opponentTier > 0) {
+        scheduleAIMove();
+      }
+    }
+
+    function evaluateCheckersBoard(b, aiPlayer) {
+      let scoreVal = 0;
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const v = b[r][c];
+          if (v === 0) continue;
+          let val = 0;
+          if (v === 1) val = 100 + (7 - r) * 6;
+          else if (v === 3) val = 175;
+          else if (v === 2) val = -(100 + r * 6);
+          else if (v === 4) val = -175;
+
+          // Center control bonus
+          if (c >= 2 && c <= 5 && r >= 2 && r <= 5) {
+            val += (v === 1 || v === 3) ? 8 : -8;
+          }
+          scoreVal += aiPlayer === 1 ? val : -val;
+        }
+      }
+      return scoreVal;
+    }
+
+    function applyCheckersMoveOnCopy(srcB, m) {
+      const b = clone8x8(srcB);
+      const p = b[m.fromR][m.fromC];
+      b[m.fromR][m.fromC] = 0;
+      b[m.toR][m.toC] = p;
+      if (m.isJump) b[m.capR][m.capC] = 0;
+      if (p === 1 && m.toR === 0) b[m.toR][m.toC] = 3;
+      if (p === 2 && m.toR === 7) b[m.toR][m.toC] = 4;
+      return b;
+    }
+
+    function minimaxCheckers(b, depth, alpha, beta, maximizing, aiPlayer) {
+      const opp = aiPlayer === 1 ? 2 : 1;
+      const activePlayer = maximizing ? aiPlayer : opp;
+      const moves = getAllCheckersMoves(b, activePlayer);
+
+      if (depth === 0 || moves.length === 0) {
+        return { score: evaluateCheckersBoard(b, aiPlayer), move: null };
+      }
+
+      let bestMove = moves[0];
+      if (maximizing) {
+        let maxEval = -Infinity;
+        for (const m of moves) {
+          const nextB = applyCheckersMoveOnCopy(b, m);
+          const res = minimaxCheckers(nextB, depth - 1, alpha, beta, false, aiPlayer);
+          if (res.score > maxEval) {
+            maxEval = res.score;
+            bestMove = m;
+          }
+          alpha = Math.max(alpha, res.score);
+          if (beta <= alpha) break;
+        }
+        return { score: maxEval, move: bestMove };
+      } else {
+        let minEval = Infinity;
+        for (const m of moves) {
+          const nextB = applyCheckersMoveOnCopy(b, m);
+          const res = minimaxCheckers(nextB, depth - 1, alpha, beta, true, aiPlayer);
+          if (res.score < minEval) {
+            minEval = res.score;
+            bestMove = m;
+          }
+          beta = Math.min(beta, res.score);
+          if (beta <= alpha) break;
+        }
+        return { score: minEval, move: bestMove };
+      }
+    }
+
+    // =========================================================================
+    // AI DISPATCH & BEST MOVE HINT (H)
+    // =========================================================================
+    function computeBestMoveForPlayer(player, tier) {
+      const depth = tier === 1 ? 1 : tier === 2 ? 3 : 5;
+      if (gameMode === 'reversi') {
+        const moves = getReversiValidMoves(board, player);
+        if (moves.length === 0) return null;
+        if (tier === 1) {
+          // Cadet picks highest immediate flip or random
+          moves.sort((a, b) => b.flips.length - a.flips.length);
+          return moves[0];
+        }
+        return minimaxReversi(board, depth, -Infinity, Infinity, true, player).move || moves[0];
+      } else {
+        const moves = getAllCheckersMoves(board, player, forcedJumpPiece);
+        if (moves.length === 0) return null;
+        if (forcedJumpPiece) return moves[0];
+        return minimaxCheckers(board, depth, -Infinity, Infinity, true, player).move || moves[0];
+      }
+    }
+
+    function scheduleAIMove() {
+      if (matchOver || opponentTier === 0 || currentTurn !== 2) return;
+      aiThinking = true;
+      setTimeout(() => {
+        aiThinking = false;
+        if (matchOver || currentTurn !== 2) return;
+        const move = computeBestMoveForPlayer(2, opponentTier);
+        if (!move) {
+          concludeMatch();
+          return;
+        }
+        if (gameMode === 'reversi') {
+          executeReversiMove(move.r, move.c);
+        } else {
+          executeCheckersMove(move);
+        }
+      }, 320);
+    }
+
+    function requestBestHint() {
+      if (matchOver || aiThinking) return;
+      hintMove = computeBestMoveForPlayer(currentTurn, 3);
+      sfx.playPlace(true);
+      if (hintMove) {
+        if (gameMode === 'reversi') {
+          setStatus(`AI Grandmaster Hint: Place disc at Row ${hintMove.r + 1}, Col ${hintMove.c + 1} (+${hintMove.flips.length} flips).`);
+        } else {
+          selectedPiece = { r: hintMove.fromR, c: hintMove.fromC };
+          setStatus(`AI Grandmaster Hint: Move (${hintMove.fromR + 1},${hintMove.fromC + 1}) → (${hintMove.toR + 1},${hintMove.toC + 1}).`);
+        }
+      }
+    }
+    window.requestBestHint = requestBestHint;
+
+    function countPieces() {
+      let p1 = 0;
+      let p2 = 0;
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const v = board[r][c];
+          if (v === 1 || v === 3) p1++;
+          else if (v === 2 || v === 4) p2++;
+        }
+      }
+      return { p1, p2 };
+    }
+
+    function concludeMatch() {
+      matchOver = true;
+      const { p1, p2 } = countPieces();
+      let title = 'STALEMATE DRAW';
+      let color = '#ffe600';
+      if (p1 > p2) {
+        title = 'CYAN VICTORY!';
+        color = '#00f0ff';
+        const matchPts = p1 * 25;
+        if (matchPts > highScore) {
+          highScore = matchPts;
+          localStorage.setItem(STORAGE_KEY, String(highScore));
+        }
+      } else if (p2 > p1) {
+        title = 'MAGENTA VICTORY!';
+        color = '#ff0077';
+      }
+      winnerBanner = {
+        title,
+        sub: `Final Count — Cyan: ${p1} • Magenta: ${p2}`,
+        color
+      };
+      window.GameMasterFX?.burst?.(canvas.width / 2, canvas.height / 2, color, 55);
+      window.GameMasterFX?.triggerShake?.(10);
+    }
+
+    // =========================================================================
+    // HUD & POSITIONAL ADVANTAGE BAR
+    // =========================================================================
+    function updateHUD() {
+      const { p1, p2 } = countPieces();
+      document.getElementById('hud-p1').textContent = String(p1);
+      document.getElementById('hud-p2').textContent = String(p2);
+      document.getElementById('bar-p1-count').textContent = String(p1);
+      document.getElementById('bar-p2-count').textContent = String(p2);
+      document.getElementById('hud-best').textContent = highScore.toLocaleString();
+
+      const turnEl = document.getElementById('hud-turn');
+      turnEl.textContent = currentTurn === 1 ? 'CYAN' : 'MAGENTA';
+      turnEl.style.color = currentTurn === 1 ? '#00f0ff' : '#ff0077';
+
+      const total = Math.max(1, p1 + p2);
+      const cyanPct = Math.round((p1 / total) * 100);
+      const magPct = 100 - cyanPct;
+      document.getElementById('adv-fill-cyan').style.width = `${cyanPct}%`;
+      document.getElementById('adv-pct-label').textContent = `${cyanPct}% / ${magPct}%`;
+
+      const verdict = document.getElementById('eval-verdict');
+      if (cyanPct > 58) verdict.textContent = 'Cyan Commanding Advantage';
+      else if (magPct > 58) verdict.textContent = 'Magenta Commanding Advantage';
+      else verdict.textContent = 'Balanced Tactical Equilibrium';
+    }
+
+    // =========================================================================
+    // CANVAS 8x8 RENDERING
+    // =========================================================================
+    function cellToPixels(r, c) {
+      const cell = canvas.width / 8;
+      return {
+        x: c * cell + cell / 2,
+        y: r * cell + cell / 2,
+        cell
+      };
+    }
+
+    function renderBoard(now) {
+      const W = canvas.width;
+      const H = canvas.height;
+      const cell = W / 8;
+
+      ctx.clearRect(0, 0, W, H);
+
+      // Draw 8x8 Squares
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const isDark = (r + c) % 2 === 1;
+          ctx.fillStyle = isDark ? '#071226' : '#0b1b36';
+          ctx.fillRect(c * cell, r * cell, cell, cell);
+
+          ctx.strokeStyle = 'rgba(0, 240, 255, 0.14)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(c * cell, r * cell, cell, cell);
+        }
+      }
+
+      // Highlight keyboard cursor
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(cursor.c * cell + 3, cursor.r * cell + 3, cell - 6, cell - 6);
+      ctx.restore();
+
+      // Mode-specific Valid Moves & Hints
+      if (gameMode === 'reversi' && !matchOver) {
+        const moves = getReversiValidMoves(board, currentTurn);
+        for (const m of moves) {
+          const cx = m.c * cell + cell / 2;
+          const cy = m.r * cell + cell / 2;
+          const isHint = hintMove && hintMove.r === m.r && hintMove.c === m.c;
+
+          ctx.save();
+          ctx.strokeStyle = isHint ? '#ffe600' : (currentTurn === 1 ? '#00f0ff' : '#ff0077');
+          ctx.fillStyle = isHint ? 'rgba(255, 230, 0, 0.24)' : 'rgba(0, 240, 255, 0.12)';
+          ctx.lineWidth = isHint ? 2.8 : 1.8;
+          ctx.beginPath();
+          ctx.arc(cx, cy, cell * 0.28, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Exact number of discs this move will flip
+          ctx.fillStyle = isHint ? '#ffe600' : '#ffffff';
+          ctx.font = `800 ${Math.floor(cell * 0.22)}px Orbitron, monospace`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`+${m.flips.length}`, cx, cy + 1);
+          ctx.restore();
+        }
+      } else if (gameMode === 'checkers' && !matchOver) {
+        const allMoves = getAllCheckersMoves(board, currentTurn, forcedJumpPiece);
+        // Highlight selectable pieces
+        for (const m of allMoves) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(0, 255, 157, 0.45)';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(m.fromC * cell + 4, m.fromR * cell + 4, cell - 8, cell - 8);
+          ctx.restore();
+        }
+
+        // Highlight selected piece & its target squares
+        if (selectedPiece) {
+          ctx.save();
+          ctx.strokeStyle = '#ffe600';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(selectedPiece.c * cell + 3, selectedPiece.r * cell + 3, cell - 6, cell - 6);
+          ctx.restore();
+
+          const pieceTargets = allMoves.filter(m => m.fromR === selectedPiece.r && m.fromC === selectedPiece.c);
+          for (const tm of pieceTargets) {
+            const cx = tm.toC * cell + cell / 2;
+            const cy = tm.toR * cell + cell / 2;
+            ctx.save();
+            ctx.fillStyle = tm.isJump ? 'rgba(255, 230, 0, 0.35)' : 'rgba(0, 255, 157, 0.28)';
+            ctx.strokeStyle = tm.isJump ? '#ffe600' : '#00ff9d';
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, cell * 0.24, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+      }
+
+      // Draw Discs / Checkers Pieces
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const val = board[r][c];
+          if (val === 0) continue;
+
+          const cx = c * cell + cell / 2;
+          const cy = r * cell + cell / 2;
+          let scaleX = 1.0;
+          let drawColor = (val === 1 || val === 3) ? 1 : 2;
+
+          // Check animated flip wave
+          const key = `${r},${c}`;
+          if (flipAnimations.has(key)) {
+            const anim = flipAnimations.get(key);
+            const elapsed = now - anim.startTime;
+            if (elapsed < 0) {
+              drawColor = anim.fromColor;
+            } else if (elapsed < 240) {
+              const p = elapsed / 240;
+              scaleX = Math.abs(Math.cos(p * Math.PI));
+              drawColor = p < 0.5 ? anim.fromColor : anim.toColor;
+            } else {
+              flipAnimations.delete(key);
+            }
+          }
+
+          drawDiscPiece(cx, cy, cell * 0.37, drawColor, isKingPiece(val), scaleX);
+        }
+      }
+
+      // Match Winner Banner
+      if (winnerBanner) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(3, 7, 18, 0.88)';
+        ctx.strokeStyle = winnerBanner.color;
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = winnerBanner.color;
+        ctx.shadowBlur = 22;
+        ctx.beginPath();
+        ctx.roundRect(60, H / 2 - 75, W - 120, 150, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = winnerBanner.color;
+        ctx.font = '900 24px Orbitron, sans-serif';
+        ctx.fillText(winnerBanner.title, W / 2, H / 2 - 22);
+
+        ctx.fillStyle = '#eef7ff';
+        ctx.font = '700 14px Orbitron, monospace';
+        ctx.fillText(winnerBanner.sub, W / 2, H / 2 + 12);
+
+        ctx.fillStyle = '#00f0ff';
+        ctx.font = '700 12px Orbitron, monospace';
+        ctx.fillText('PRESS [N] OR CLICK FOR REMATCH', W / 2, H / 2 + 48);
+        ctx.restore();
+      }
+    }
+
+    function drawDiscPiece(cx, cy, radius, playerColor, isKing, scaleX) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(Math.max(0.08, scaleX), 1.0);
+
+      const isCyan = playerColor === 1;
+      const mainColor = isCyan ? '#00f0ff' : '#ff0077';
+      const darkColor = isCyan ? '#05385c' : '#590532';
+
+      const grad = ctx.createRadialGradient(-radius * 0.25, -radius * 0.25, radius * 0.1, 0, 0, radius);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.35, mainColor);
+      grad.addColorStop(1, darkColor);
+
+      ctx.fillStyle = grad;
+      ctx.strokeStyle = isKing ? '#ffe600' : '#ffffff';
+      ctx.lineWidth = isKing ? 2.8 : 1.5;
+      ctx.shadowColor = mainColor;
+      ctx.shadowBlur = 14;
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Inner concentric ring for Checkers
+      if (gameMode === 'checkers') {
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 0.68, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      if (isKing) {
+        ctx.shadowBlur = 6;
+        ctx.fillStyle = '#ffe600';
+        ctx.font = `bold ${Math.floor(radius * 0.95)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('👑', 0, 2);
+      }
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // INTERACTION HANDLERS
+    // =========================================================================
+    function handleSquareAction(r, c) {
+      if (matchOver) {
+        startNewMatch();
+        return;
+      }
+      if (aiThinking || (opponentTier > 0 && currentTurn === 2)) return;
+
+      cursor = { r, c };
+
+      if (gameMode === 'reversi') {
+        executeReversiMove(r, c);
+      } else {
+        const allMoves = getAllCheckersMoves(board, currentTurn, forcedJumpPiece);
+        // Check if clicking a valid destination for currently selected piece
+        if (selectedPiece) {
+          const chosenMove = allMoves.find(
+            m => m.fromR === selectedPiece.r && m.fromC === selectedPiece.c && m.toR === r && m.toC === c
+          );
+          if (chosenMove) {
+            executeCheckersMove(chosenMove);
+            return;
+          }
+        }
+
+        // Otherwise check if clicking one of current player's movable pieces
+        if (allMoves.some(m => m.fromR === r && m.fromC === c)) {
+          selectedPiece = { r, c };
+          sfx.playPlace(true);
+        }
+      }
+    }
+
+    canvas.addEventListener('pointerdown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+      const cell = canvas.width / 8;
+      const c = Math.max(0, Math.min(7, Math.floor(x / cell)));
+      const r = Math.max(0, Math.min(7, Math.floor(y / cell)));
+      handleSquareAction(r, c);
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+        e.preventDefault();
+        cursor.r = (cursor.r + 7) % 8;
+      } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+        e.preventDefault();
+        cursor.r = (cursor.r + 1) % 8;
+      } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        cursor.c = (cursor.c + 7) % 8;
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        e.preventDefault();
+        cursor.c = (cursor.c + 1) % 8;
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handleSquareAction(cursor.r, cursor.c);
+      } else if (e.key === 'z' || e.key === 'Z') {
+        undoMove();
+      } else if (e.key === 'h' || e.key === 'H') {
+        requestBestHint();
+      } else if (e.key === 'n' || e.key === 'N') {
+        startNewMatch();
+      } else if (e.key === 'm' || e.key === 'M') {
+        toggleMute();
+      } else if (e.key === '1') {
+        switchGameMode('reversi');
+      } else if (e.key === '2') {
+        switchGameMode('checkers');
+      } else if (e.key === '?') {
+        toggleHelp();
+      }
+    });
+
+    function toggleMute() {
+      sfx.muted = !sfx.muted;
+      document.getElementById('btn-mute').textContent = sfx.muted ? '🔇 MUTE' : '🔊 SFX';
+    }
+    window.toggleMute = toggleMute;
+
+    function toggleHelp() {
+      document.getElementById('help-modal').classList.toggle('hidden');
+    }
+    window.toggleHelp = toggleHelp;
+
+    function handleResize() {
+      const stage = document.getElementById('board-stage');
+      if (!stage) return;
+      const rect = stage.getBoundingClientRect();
+      const dim = Math.max(320, Math.min(608, Math.floor(Math.min(rect.width, rect.height) - 24)));
+      const aligned = Math.floor(dim / 8) * 8;
+      if (Math.abs(canvas.width - aligned) > 4) {
+        canvas.width = aligned;
+        canvas.height = aligned;
+      }
+    }
+    window.addEventListener('resize', handleResize);
+
+    function loop(now) {
+      renderBoard(now);
+      requestAnimationFrame(loop);
+    }
+
+    handleResize();
+    startNewMatch();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

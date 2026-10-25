@@ -8,7 +8,33 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="format-detection" content="telephone=no">
   <title>Codecaine Bros. - Overclocked Retro Arcade</title>
-  <meta name="description" content="Triple-A evolved 1983 arcade classic Codecaine Bros. Features 4-channel polyphonic arcade tracker audio, responsive 60fps platform bumping physics, rocking flipped enemies, suspended POW block, and combos!">
+  <meta name="description" content="Triple-A evolved 1983 arcade classic Codecaine Bros. Features 6 lifetime-replayability modes, roguelike perks, boss rush colosseum, 90s parkour coin blitz, procedural biome architect, 2P versus battle royale, 4-channel polyphonic arcade tracker audio, and 60fps platform bumping physics!">
+  <script>
+    // Safe localStorage fallback IIFE for headless/sandboxed WebViews
+    (function() {
+      try {
+        var k = '__test__';
+        window.localStorage.setItem(k, '1');
+        window.localStorage.removeItem(k);
+      } catch(e) {
+        var mem = {};
+        try {
+          Object.defineProperty(window, 'localStorage', {
+            value: {
+              getItem: function(k) { return mem.hasOwnProperty(k) ? mem[k] : null; },
+              setItem: function(k, v) { mem[k] = String(v); },
+              removeItem: function(k) { delete mem[k]; },
+              clear: function() { mem = {}; },
+              key: function(i) { return Object.keys(mem)[i] || null; },
+              get length() { return Object.keys(mem).length; }
+            },
+            writable: true,
+            configurable: true
+          });
+        } catch(err) {}
+      }
+    })();
+  </script>
   <script>
     // Suppress cdn.tailwindcss development notice in console
     const _origWarn = console.warn;
@@ -117,7 +143,7 @@
       width: auto;
       max-width: 100%;
       height: auto;
-      max-height: max(360px, calc(100dvh - 165px));
+      max-height: max(320px, calc(100dvh - 215px));
       aspect-ratio: 4 / 3;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
@@ -128,8 +154,29 @@
         display: none;
       }
       #gameCanvas {
-        max-height: max(420px, calc(100dvh - 125px));
+        max-height: max(380px, calc(100dvh - 170px));
       }
+    }
+
+    .arena-mode-pill {
+      transition: all 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+      white-space: nowrap;
+    }
+    .arena-mode-pill.active-mode {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(255, 51, 102, 0.28));
+      border-color: rgba(251, 191, 36, 0.85);
+      color: #fde047;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .perk-card {
+      transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+    }
+    .perk-card:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 12px 30px rgba(0, 240, 255, 0.28);
+      border-color: #00f0ff;
     }
 
     body.low-res-mode * {
@@ -140,31 +187,38 @@
 <body class="w-full h-full flex flex-col justify-between items-center select-none text-slate-100">
 
   <!-- Top Navigation Bar -->
-  <header class="w-full max-w-4xl flex items-center justify-between py-1.5 px-3 bg-slate-900/90 rounded-2xl border border-slate-800 backdrop-blur shadow-lg flex-shrink-0">
-    <div class="flex items-center gap-2 sm:gap-3">
+  <header class="w-full max-w-5xl flex items-center justify-between py-1 px-2.5 sm:px-3 bg-slate-900/90 rounded-2xl border border-slate-800 backdrop-blur shadow-lg flex-shrink-0">
+    <div class="flex items-center gap-2 sm:gap-2.5">
       <a href="/" id="btnHub" data-close-game="true" class="hub-return-btn p-1.5 sm:p-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 active:bg-rose-600/40 text-rose-300 hover:text-white border border-rose-500/40 transition flex items-center gap-1.5 text-xs font-bold" title="Close Game & Return to Hub">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
         <span class="hidden sm:inline">Exit</span>
       </a>
 
-      <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-rose-500 via-amber-400 to-cyan-400 p-0.5 shadow-md flex items-center justify-center flex-shrink-0">
-        <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center text-lg sm:text-xl">
-          🕹️
+      <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-rose-500 via-amber-400 to-cyan-400 p-0.5 shadow-md flex items-center justify-center flex-shrink-0">
+        <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center text-base sm:text-lg">
+          🍄
         </div>
       </div>
 
       <div>
-        <h1 class="text-base sm:text-2xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-rose-400 to-cyan-300 fun-font leading-tight">
-          CODECAINE BROS. <span class="text-[10px] uppercase px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30 hidden xs:inline">Overclocked Deluxe</span>
+        <h1 class="text-sm sm:text-xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-rose-400 to-cyan-300 fun-font leading-tight">
+          CODECAINE BROS. <span class="text-[10px] uppercase px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30 hidden md:inline">AAA Lifetime Edition</span>
         </h1>
-        <p class="text-[11px] text-slate-400 hidden sm:block">Bump floors beneath pests, shatter Cryo-Freezies, slam the POW, and kick them out!</p>
+        <p class="text-[10px] text-slate-400 hidden lg:block">6 Modes • Roguelike Perks • Boss Rush • 90s Blitz • 6 Biomes • 2P Battle Royale</p>
       </div>
     </div>
 
-    <!-- Quick Audio, Mode & Game Actions -->
-    <div class="flex items-center gap-1.5 sm:gap-2">
+    <!-- Quick Audio, Career Suit, Mode & Game Actions -->
+    <div class="flex items-center gap-1 sm:gap-1.5 flex-wrap justify-end">
+      <!-- Career Rank & Hero Suit Locker Button -->
+      <button id="btnSuitLocker" class="px-2 py-1 rounded-xl bg-slate-950/90 hover:bg-slate-800 border border-amber-500/40 text-[10px] sm:text-xs font-bold text-amber-300 flex items-center gap-1.5 transition" title="Open Plumber Career Rank & 6 Hero Suits Locker (U)">
+        <span>👕</span>
+        <span id="hudSuitName" class="hidden sm:inline">Classic Red</span>
+        <span id="hudRankBadge" class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-200 font-mono text-[9px]">LV.1</span>
+      </button>
+
       <!-- POW Charges Indicator (HUD Mini) -->
-      <div class="flex items-center gap-1 bg-slate-950/80 px-2 py-1 rounded-xl border border-sky-500/30 text-xs font-bold mr-0.5" title="POW Block Shockwave Charges (Space/Bump)">
+      <div class="flex items-center gap-1 bg-slate-950/80 px-2 py-1 rounded-xl border border-sky-500/30 text-xs font-bold" title="POW Block Shockwave Charges (Space/Bump)">
         <span class="text-sky-400 text-[10px] sm:text-xs">POW</span>
         <div id="powLights" class="flex gap-1">
           <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#00f0ff]"></span>
@@ -173,58 +227,98 @@
         </div>
       </div>
 
-      <button id="btnQuickMode" class="px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-[10px] sm:text-xs font-bold text-amber-300 border border-slate-700 transition" title="Cycle Game Mode: 1P Solo / 1P + AI Caine / 2P Local Co-Op">
-        MODE: <span id="quickModeText">1P SOLO</span>
+      <button id="btnQuickMode" class="px-2 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-[10px] sm:text-xs font-bold text-amber-300 border border-slate-700 transition" title="Cycle Player Setup: 1P Solo / 1P + AI Caine / 2P Local">
+        <span id="quickModeText">1P SOLO</span>
       </button>
 
-      <button id="btnCrtToggle" class="px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-[10px] sm:text-xs font-bold text-cyan-300 border border-slate-700 transition" title="Toggle CRT Arcade Phosphor Shader (C)">
+      <button id="btnMusicToggle" class="px-2 py-1 rounded-xl bg-purple-950/80 hover:bg-purple-900/80 text-[10px] sm:text-xs font-bold text-purple-300 border border-purple-500/40 transition" title="Toggle Chiptune Soundtrack (B)">
+        🎶 MUSIC [B]: <span id="musicStateText">ON</span>
+      </button>
+
+      <button id="btnCrtToggle" class="px-2 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-[10px] sm:text-xs font-bold text-cyan-300 border border-slate-700 transition hidden sm:inline-block" title="Toggle CRT Arcade Phosphor Shader (C)">
         CRT: <span id="crtStateText">OFF</span>
       </button>
 
-      <button id="btnSoundToggle" class="p-2 sm:p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 border border-slate-700 transition" title="Toggle Sound (M)">
-        <svg id="soundIconOn" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
-        <svg id="soundIconOff" class="w-4 h-4 sm:w-5 sm:h-5 hidden text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
+      <button id="btnSoundToggle" class="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 border border-slate-700 transition" title="Toggle Master Audio (M)">
+        <svg id="soundIconOn" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+        <svg id="soundIconOff" class="w-4 h-4 hidden text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
       </button>
 
-      <button id="btnPause" class="p-2 sm:p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 border border-slate-700 transition" title="Pause Game (P)">
-        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <button id="btnPause" class="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 border border-slate-700 transition" title="Pause Game (P)">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </button>
 
-      <button id="btnSettings" class="p-2 sm:p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 border border-slate-700 transition" title="Game Settings">
-        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      <button id="btnSettings" class="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 border border-slate-700 transition" title="Game Settings">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       </button>
     </div>
   </header>
 
+  <!-- Sleek Top HUD 6-Mode Selector Bar ([1-6] Keys) -->
+  <nav id="arenaModeBar" class="w-full max-w-5xl flex items-center justify-between gap-1 px-2 py-1 bg-slate-900/85 rounded-xl border border-slate-800/90 overflow-x-auto flex-shrink-0 mt-0.5">
+    <button data-arena-mode="1" class="arena-mode-pill active-mode flex-1 px-2 py-1 rounded-lg border border-slate-700/80 bg-slate-950/70 text-[10px] sm:text-xs font-extrabold text-slate-300 flex items-center justify-center gap-1" title="Hotkey [1]: Authentic 1983 Sewer Arcade with Shellcreepers, Sidesteppers, Fighterflies & Slipice">
+      <span>🕹️</span> <span>[1] Classic 1983</span>
+    </button>
+    <button data-arena-mode="2" class="arena-mode-pill flex-1 px-2 py-1 rounded-lg border border-slate-700/80 bg-slate-950/70 text-[10px] sm:text-xs font-extrabold text-slate-300 flex items-center justify-center gap-1" title="Hotkey [2]: Endless Waves + Draft 1 of 3 Cyber-Plumber Roguelike Perks every 2 waves!">
+      <span>♾️</span> <span>[2] Roguelike Gauntlet</span>
+    </button>
+    <button data-arena-mode="3" class="arena-mode-pill flex-1 px-2 py-1 rounded-lg border border-slate-700/80 bg-slate-950/70 text-[10px] sm:text-xs font-extrabold text-slate-300 flex items-center justify-center gap-1" title="Hotkey [3]: Battle King Krabzilla, Mecha-Shell Juggernaut, Lord Frostbite & Inferno Dragon!">
+      <span>👑</span> <span>[3] Boss Rush</span>
+    </button>
+    <button data-arena-mode="4" class="arena-mode-pill flex-1 px-2 py-1 rounded-lg border border-slate-700/80 bg-slate-950/70 text-[10px] sm:text-xs font-extrabold text-slate-300 flex items-center justify-center gap-1" title="Hotkey [4]: 90s High-Speed Parkour Time Attack with Golden Coin Rings & x10 Multiplier!">
+      <span>⏱️</span> <span>[4] 90s Coin Blitz</span>
+    </button>
+    <button data-arena-mode="5" class="arena-mode-pill flex-1 px-2 py-1 rounded-lg border border-slate-700/80 bg-slate-950/70 text-[10px] sm:text-xs font-extrabold text-slate-300 flex items-center justify-center gap-1" title="Hotkey [5]: 6 Dynamic Worlds with Springboard Trampolines, Conveyor Belts & Moving Platforms!">
+      <span>🎲</span> <span>[5] Biome Architect</span>
+    </button>
+    <button data-arena-mode="6" class="arena-mode-pill flex-1 px-2 py-1 rounded-lg border border-slate-700/80 bg-slate-950/70 text-[10px] sm:text-xs font-extrabold text-slate-300 flex items-center justify-center gap-1" title="Hotkey [6]: 2P Co-Op Campaign & 2P Versus Coin Battle Royale (WASD vs Arrow Keys)!">
+      <span>👥</span> <span>[6] 2P Co-Op / Versus</span>
+    </button>
+  </nav>
+
   <!-- Main Arcade Stage -->
-  <main class="w-full max-w-4xl flex-1 flex flex-col items-center justify-center relative min-h-0 my-auto">
+  <main class="w-full max-w-5xl flex-1 flex flex-col items-center justify-center relative min-h-0 my-auto">
     
-    <!-- Top Stage Info Header (Score, High Score, Phase, Lives) -->
-    <div class="w-full flex items-center justify-between px-3 py-1 text-xs font-bold text-slate-300 flex-shrink-0">
+    <!-- Top Stage Info Header (Score, High Score, Phase, Biome/Perks, Lives) -->
+    <div class="w-full flex items-center justify-between px-3 py-0.5 text-xs font-bold text-slate-300 flex-shrink-0">
       <div class="flex items-center gap-3">
         <div>
-          <span class="text-[10px] text-slate-500 uppercase block font-mono">SCORE</span>
-          <span id="scoreVal" class="text-amber-300 font-extrabold text-sm sm:text-base font-mono">000000</span>
+          <span class="text-[9px] text-slate-500 uppercase block font-mono">SCORE</span>
+          <span id="scoreVal" class="text-amber-300 font-extrabold text-xs sm:text-base font-mono">000000</span>
         </div>
         <div>
-          <span class="text-[10px] text-slate-500 uppercase block font-mono">HIGH</span>
-          <span id="highScoreVal" class="text-slate-300 font-extrabold text-sm sm:text-base font-mono">025000</span>
+          <span class="text-[9px] text-slate-500 uppercase block font-mono">HIGH</span>
+          <span id="highScoreVal" class="text-slate-300 font-extrabold text-xs sm:text-base font-mono">025000</span>
         </div>
         <div>
-          <span class="text-[10px] text-slate-500 uppercase block font-mono">TIME</span>
-          <span id="timerVal" class="text-rose-400 font-extrabold text-sm sm:text-base font-mono">00:00.0</span>
+          <span class="text-[9px] text-slate-500 uppercase block font-mono">TIME</span>
+          <span id="timerVal" class="text-rose-400 font-extrabold text-xs sm:text-base font-mono">00:00.0</span>
+        </div>
+        <!-- Career XP Mini Readout -->
+        <div class="hidden md:block">
+          <span class="text-[9px] text-slate-500 uppercase block font-mono">CAREER XP</span>
+          <span id="careerXpVal" class="text-emerald-400 font-extrabold text-xs sm:text-sm font-mono">0 XP</span>
         </div>
       </div>
 
-      <!-- Combo Alert Badge -->
-      <div id="comboBadge" class="hidden px-2.5 py-0.5 rounded-full bg-gradient-to-r from-rose-500 to-amber-500 text-white font-extrabold text-xs shadow-md animate-pulse">
-        COMBO x2!
+      <!-- Center Dynamic Status: Active Perks, Biome Cycler, or 2P Sub-Mode Toggle -->
+      <div class="flex items-center gap-1.5 flex-wrap justify-center">
+        <div id="comboBadge" class="hidden px-2.5 py-0.5 rounded-full bg-gradient-to-r from-rose-500 to-amber-500 text-white font-extrabold text-xs shadow-md animate-pulse">
+          COMBO x2!
+        </div>
+        <button id="btnBiomeCycle" class="px-2 py-0.5 rounded-lg bg-slate-900 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold hover:bg-slate-800 transition" title="Click to Cycle Biome Topology (Twin Gap, Pyramid, Conveyor Factory, Springboard Spire, Ice Cavern, Orbital Sewer)">
+          🌍 BIOME: <span id="biomeNameText">Classic Sewer</span>
+        </button>
+        <button id="btn2PSubMode" class="hidden px-2.5 py-0.5 rounded-lg bg-rose-500/20 border border-rose-400/50 text-rose-200 text-[10px] font-extrabold hover:bg-rose-500/30 transition" title="Toggle between 2P Co-Op Campaign and 2P Versus Coin Battle Royale!">
+          ⚔️ SUB-MODE: <span id="subMode2PText">VERSUS BATTLE</span>
+        </button>
+        <div id="activePerksBar" class="flex items-center gap-1 text-xs"></div>
       </div>
 
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2.5">
         <div class="text-right">
-          <span class="text-[10px] text-slate-500 uppercase block font-mono">PHASE</span>
-          <span id="phaseVal" class="text-cyan-400 font-extrabold text-sm sm:text-base font-mono">PHASE 01</span>
+          <span class="text-[9px] text-slate-500 uppercase block font-mono">STAGE / MODE</span>
+          <span id="phaseVal" class="text-cyan-400 font-extrabold text-xs sm:text-base font-mono">PHASE 01</span>
         </div>
         <div class="flex items-center gap-1 bg-slate-900/90 px-2 py-1 rounded-xl border border-slate-800">
           <span class="text-[10px] text-slate-400 font-bold mr-1">LIVES</span>
@@ -238,10 +332,23 @@
     </div>
 
     <!-- Arcade Canvas Container -->
-    <div class="w-full relative flex items-center justify-center arcade-cabinet rounded-2xl p-1.5 sm:p-2 border-2 border-slate-800 shadow-2xl overflow-hidden">
+    <div class="w-full relative flex items-center justify-center arcade-cabinet rounded-2xl p-1 sm:p-1.5 border-2 border-slate-800 shadow-2xl overflow-hidden">
       
       <!-- Virtual Canvas 800 x 600 -->
       <canvas id="gameCanvas" width="800" height="600" class="block rounded-xl bg-slate-950 shadow-inner cursor-pointer"></canvas>
+
+      <!-- Top-Screen Boss HP Bar Overlay (Mode 3: Boss Rush Colosseum) -->
+      <div id="bossHpOverlay" class="hidden absolute top-3 inset-x-12 z-20 pointer-events-none flex flex-col items-center">
+        <div class="w-full max-w-lg bg-slate-950/90 border border-rose-500/60 rounded-xl px-3 py-1.5 shadow-[0_0_25px_rgba(244,63,94,0.4)]">
+          <div class="flex items-center justify-between text-[11px] font-black tracking-wider mb-1">
+            <span id="bossNameText" class="text-rose-400 fun-font uppercase">👑 KING KRABZILLA</span>
+            <span id="bossHpText" class="text-amber-300 font-mono">HP: 100 / 100</span>
+          </div>
+          <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-700">
+            <div id="bossHpFill" class="h-full bg-gradient-to-r from-rose-600 via-amber-500 to-yellow-300 transition-all duration-150" style="width: 100%"></div>
+          </div>
+        </div>
+      </div>
 
       <!-- Scanline effect overlay -->
       <div id="scanlineOverlay" class="absolute inset-0 scanlines opacity-20 pointer-events-none rounded-2xl"></div>
@@ -250,6 +357,14 @@
       <div id="stageBanner" class="absolute inset-x-0 top-1/3 flex flex-col items-center pointer-events-none transition-all duration-300 transform scale-0 opacity-0 z-20">
         <span id="bannerTitle" class="text-3xl sm:text-5xl font-black text-amber-300 fun-font drop-shadow-[0_4px_16px_rgba(245,158,11,0.9)]">PHASE 1</span>
         <span id="bannerSubtitle" class="text-xs sm:text-base font-bold text-white bg-slate-900/90 px-4 py-1 rounded-full border border-amber-500/50 mt-1 shadow-xl">BUMP &amp; KICK PESTS!</span>
+      </div>
+
+      <!-- Roguelike Upgrade Draft Card Overlay (Mode 2: Every 2 Waves) -->
+      <div id="perkDraftOverlay" class="absolute inset-0 bg-slate-950/92 backdrop-blur-md hidden flex flex-col items-center justify-center gap-3 z-35 p-4 text-center">
+        <div class="text-xs font-extrabold uppercase tracking-widest text-cyan-400 px-3 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-400/30">♾️ ROGUELIKE CYBER-ARMORY</div>
+        <div class="text-2xl sm:text-3xl font-black text-amber-300 fun-font">CHOOSE 1 OF 3 PERK UPGRADES</div>
+        <p class="text-slate-400 text-xs max-w-md">Click a card or press <span class="text-white font-mono font-bold">[1]</span>, <span class="text-white font-mono font-bold">[2]</span>, or <span class="text-white font-mono font-bold">[3]</span> to augment your plumber for the next Gauntlet waves!</p>
+        <div id="perkCardsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-2xl mt-1"></div>
       </div>
 
       <!-- Pause Overlay -->
@@ -269,10 +384,11 @@
         <div id="endGameTitle" class="text-3xl font-black text-amber-400 fun-font">STAGE CLEAR!</div>
         <p id="endGameDesc" class="text-slate-300 text-xs max-w-xs">All cyber pests expelled from the neon sewers!</p>
         
-        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 w-56 flex flex-col gap-1.5 text-xs shadow-inner">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 w-60 flex flex-col gap-1.5 text-xs shadow-inner">
           <div class="flex justify-between text-slate-400">Score: <span id="endScore" class="font-bold text-white font-mono">0</span></div>
-          <div class="flex justify-between text-slate-400">Phase: <span id="endPhase" class="font-bold text-cyan-400 font-mono">1</span></div>
-          <div class="flex justify-between text-slate-400">Kicked: <span id="endEnemies" class="font-bold text-amber-400 font-mono">0</span></div>
+          <div class="flex justify-between text-slate-400">Stage / Wave: <span id="endPhase" class="font-bold text-cyan-400 font-mono">1</span></div>
+          <div class="flex justify-between text-slate-400">Kicked / KO: <span id="endEnemies" class="font-bold text-amber-400 font-mono">0</span></div>
+          <div class="flex justify-between text-slate-400">Career Rank: <span id="endCareerRank" class="font-bold text-emerald-400 font-mono">Apprentice</span></div>
         </div>
 
         <div class="flex flex-col gap-2 w-56 mt-2">
@@ -286,31 +402,62 @@
   </main>
 
   <!-- Mobile Touch Virtual Controls Section -->
-  <section id="touchControlsSection" class="w-full max-w-lg flex flex-col gap-1 px-3 py-1 flex-shrink-0 z-10">
-    <div class="grid grid-cols-4 gap-2">
+  <section id="touchControlsSection" class="w-full max-w-xl flex flex-col gap-1 px-2 py-1 flex-shrink-0 z-10">
+    <div class="grid grid-cols-6 gap-1.5">
       <!-- D-Pad Left -->
-      <button id="touchLeft" class="arcade-btn h-12 sm:h-14 rounded-2xl bg-slate-800/90 border border-slate-700 flex items-center justify-center shadow-lg active:bg-slate-700">
-        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+      <button id="touchLeft" class="arcade-btn h-11 sm:h-12 rounded-xl bg-slate-800/90 border border-slate-700 flex items-center justify-center shadow-lg active:bg-slate-700">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
       </button>
 
       <!-- D-Pad Right -->
-      <button id="touchRight" class="arcade-btn h-12 sm:h-14 rounded-2xl bg-slate-800/90 border border-slate-700 flex items-center justify-center shadow-lg active:bg-slate-700">
-        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+      <button id="touchRight" class="arcade-btn h-11 sm:h-12 rounded-xl bg-slate-800/90 border border-slate-700 flex items-center justify-center shadow-lg active:bg-slate-700">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+      </button>
+
+      <!-- Fireball [F] -->
+      <button id="touchFire" class="arcade-btn h-11 sm:h-12 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 flex flex-col items-center justify-center shadow-lg text-white font-black text-[10px] border border-amber-400/40">
+        <span>🔥 FIRE</span>
+        <span class="text-[8px] font-normal text-amber-100">[F]</span>
+      </button>
+
+      <!-- Dash / Hammer [Shift/E] -->
+      <button id="touchDash" class="arcade-btn h-11 sm:h-12 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex flex-col items-center justify-center shadow-lg text-white font-black text-[10px] border border-purple-400/40">
+        <span>⚡ DASH</span>
+        <span class="text-[8px] font-normal text-purple-100">[SHIFT]</span>
       </button>
 
       <!-- POW Slam Button -->
-      <button id="touchPow" class="arcade-btn h-12 sm:h-14 rounded-2xl bg-gradient-to-tr from-sky-600 to-cyan-500 flex flex-col items-center justify-center shadow-lg text-white font-black text-xs border border-cyan-400/40">
+      <button id="touchPow" class="arcade-btn h-11 sm:h-12 rounded-xl bg-gradient-to-tr from-sky-600 to-cyan-500 flex flex-col items-center justify-center shadow-lg text-white font-black text-[10px] border border-cyan-400/40">
         <span class="tracking-wider">POW</span>
-        <span class="text-[9px] font-normal text-cyan-100">QUAKE</span>
+        <span class="text-[8px] font-normal text-cyan-100">QUAKE</span>
       </button>
 
       <!-- JUMP Button -->
-      <button id="touchJump" class="arcade-btn h-12 sm:h-14 rounded-2xl bg-gradient-to-tr from-rose-500 to-amber-500 flex flex-col items-center justify-center shadow-lg text-white font-black text-sm border border-amber-300/40">
+      <button id="touchJump" class="arcade-btn h-11 sm:h-12 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 flex flex-col items-center justify-center shadow-lg text-white font-black text-xs border border-amber-300/40">
         <span class="tracking-wider">JUMP</span>
-        <span class="text-[9px] font-normal text-amber-100">BUMP</span>
+        <span class="text-[8px] font-normal text-amber-100">BUMP</span>
       </button>
     </div>
   </section>
+
+  <!-- Plumber Career Progression & 6 Unlockable Hero Suits Modal -->
+  <div id="suitLockerModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl flex flex-col gap-3">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+        <div>
+          <h3 class="text-lg font-black text-amber-300 fun-font flex items-center gap-2">
+            <span>👕</span> Plumber Career &amp; Hero Suit Locker
+          </h3>
+          <p id="modalCareerSummary" class="text-xs text-slate-400">Rank: Apprentice Plumber • Career XP: 0</p>
+        </div>
+        <button id="btnCloseSuitLocker" class="text-slate-400 hover:text-white p-1.5 rounded-lg">✕</button>
+      </div>
+      <div id="suitGridContainer" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5"></div>
+      <div class="text-[11px] text-slate-400 bg-slate-950/80 rounded-xl p-2.5 border border-slate-800">
+        💡 <strong class="text-slate-200">Pro Controls:</strong> <span class="text-cyan-300 font-mono">Wall-Jump</span> against pipe/arena walls • <span class="text-amber-300 font-mono">Ground-Pound [Down/S in air]</span> • <span class="text-purple-300 font-mono">Air-Dash [Shift]</span> • <span class="text-rose-300 font-mono">Plasma Fireball [F]</span> • <span class="text-emerald-300 font-mono">Thunder Hammer [E]</span>!
+      </div>
+    </div>
+  </div>
 
   <!-- Settings Modal Dialog -->
   <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
@@ -927,6 +1074,59 @@
         setTimeout(() => this.playNote(1760, 'sine', 0.18, 0.3, null, pan), 100);
       }
 
+      playBossRoar(pan = 0) {
+        if (this.muted || !this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const mod = this.ctx.createOscillator();
+          const modGain = this.ctx.createGain();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(145, now);
+          osc.frequency.exponentialRampToValueAtTime(42, now + 0.55);
+          mod.type = 'square';
+          mod.frequency.setValueAtTime(32, now);
+          modGain.gain.setValueAtTime(65, now);
+          gain.gain.setValueAtTime(0.45, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.58);
+          mod.connect(modGain);
+          modGain.connect(osc.frequency);
+          const p = this.getPanner(pan);
+          if (p) { osc.connect(gain); gain.connect(p); p.connect(this.sfxGain); }
+          else { osc.connect(gain); gain.connect(this.sfxGain); }
+          osc.start(now);
+          mod.start(now);
+          osc.stop(now + 0.58);
+          mod.stop(now + 0.58);
+        } catch(e){}
+      }
+
+      playDash(pan = 0) {
+        if (this.muted || !this.ctx) return;
+        this.playNote(920, 'triangle', 0.07, 0.24, null, pan);
+        setTimeout(() => this.playNote(1480, 'sine', 0.09, 0.22, null, pan), 35);
+      }
+
+      playGroundPound(pan = 0) {
+        if (this.muted || !this.ctx) return;
+        this.playNote(180, 'sawtooth', 0.18, 0.42, null, pan);
+        this.playNote(62, 'sine', 0.26, 0.5, null, pan);
+      }
+
+      playSpringBounce(pan = 0) {
+        if (this.muted || !this.ctx) return;
+        this.playNote(240, 'triangle', 0.08, 0.28, null, pan);
+        setTimeout(() => this.playNote(480, 'triangle', 0.09, 0.28, null, pan), 45);
+        setTimeout(() => this.playNote(820, 'sine', 0.12, 0.28, null, pan), 90);
+      }
+
+      playPerkSelect() {
+        [523.25, 659.25, 783.99, 1046.5].forEach((f, idx) => {
+          setTimeout(() => this.playNote(f, 'square', 0.12, 0.26), idx * 65);
+        });
+      }
+
       playPhaseStart() {
         const notes = [261.63, 329.63, 392.00, 523.25, 659.25];
         notes.forEach((freq, idx) => {
@@ -1129,17 +1329,215 @@
       }
     }
 
-    // Authentic 1983 Arena Platform layout
-    const platforms = [
-      { id: 'floor', x: 0, y: 560, w: 800, h: 40, color: '#0ea5e9' },
-      { id: 't1_left', x: 0, y: 440, w: 320, h: 18, color: '#f59e0b' },
-      { id: 't1_right', x: 480, y: 440, w: 320, h: 18, color: '#f59e0b' },
-      { id: 't2_center', x: 220, y: 320, w: 360, h: 18, color: '#10b981' },
-      { id: 't2_left', x: 0, y: 320, w: 140, h: 18, color: '#10b981' },
-      { id: 't2_right', x: 660, y: 320, w: 140, h: 18, color: '#10b981' },
-      { id: 't3_left', x: 0, y: 200, w: 310, h: 18, color: '#a855f7' },
-      { id: 't3_right', x: 490, y: 200, w: 310, h: 18, color: '#a855f7' }
+    // ==========================================
+    // CAREER PROGRESSION, 6 HERO SUITS & 6 GAME MODES
+    // ==========================================
+    let arenaMode = 1; // 1: Classic, 2: Roguelike, 3: Boss Rush, 4: 90s Blitz, 5: Biome Architect, 6: 2P Co-Op/Versus
+    let subMode2P = 'VERSUS'; // 'VERSUS' or 'COOP'
+    let blitzTimeRemainingMs = 90000;
+    let blitzMultiplier = 1;
+    let blitzStreakTimer = 0;
+
+    let careerXp = parseInt(localStorage.getItem('codecaine_bros_career_xp') || '0', 10);
+    let selectedSuitId = localStorage.getItem('codecaine_bros_suit') || 'classic';
+
+    const HERO_SUITS = [
+      { id: 'classic',   name: 'Classic Red/Blue',      cap: '#ff3366', suit: '#00d2ff', visor: '#00f0ff', unlockXp: 0 },
+      { id: 'cyber',     name: 'Cyber Neon Gold',       cap: '#f59e0b', suit: '#fef08a', visor: '#38bdf8', unlockXp: 1500 },
+      { id: 'fire',      name: 'Fire Flower White/Red', cap: '#f8fafc', suit: '#ef4444', visor: '#fbbf24', unlockXp: 3500 },
+      { id: 'ice',       name: 'Ice Plumber Cyan',      cap: '#06b6d4', suit: '#cffafe', visor: '#3b82f6', unlockXp: 6000 },
+      { id: 'ninja',     name: 'Shadow Ninja',          cap: '#312e81', suit: '#6366f1', visor: '#f43f5e', unlockXp: 10000 },
+      { id: 'synthwave', name: 'Synthwave Chrome',      cap: '#d946ef', suit: '#2dd4bf', visor: '#fde047', unlockXp: 15000 }
     ];
+
+    function getPlumberRank(xp) {
+      if (xp >= 15000) return { title: 'Overclocked Legend', level: 6 };
+      if (xp >= 10000) return { title: 'Shadow Master', level: 5 };
+      if (xp >= 6000)  return { title: 'Cryo Vanguard', level: 4 };
+      if (xp >= 3500)  return { title: 'Plasma Specialist', level: 3 };
+      if (xp >= 1500)  return { title: 'Neon Journeyman', level: 2 };
+      return { title: 'Apprentice Plumber', level: 1 };
+    }
+
+    function addCareerXp(amount) {
+      careerXp += amount;
+      localStorage.setItem('codecaine_bros_career_xp', String(careerXp));
+      updateCareerHUD();
+    }
+
+    function updateCareerHUD() {
+      const rank = getPlumberRank(careerXp);
+      const suit = HERO_SUITS.find(s => s.id === selectedSuitId) || HERO_SUITS[0];
+      const xpEl = document.getElementById('careerXpVal');
+      if (xpEl) xpEl.textContent = `${careerXp.toLocaleString()} XP`;
+      const suitNameEl = document.getElementById('hudSuitName');
+      if (suitNameEl) suitNameEl.textContent = suit.name.split(' ')[0] + ' ' + (suit.name.split(' ')[1] || '');
+      const rankBadgeEl = document.getElementById('hudRankBadge');
+      if (rankBadgeEl) rankBadgeEl.textContent = `LV.${rank.level}`;
+      const endRankEl = document.getElementById('endCareerRank');
+      if (endRankEl) endRankEl.textContent = `${rank.title} (LV.${rank.level})`;
+      const modalSummary = document.getElementById('modalCareerSummary');
+      if (modalSummary) modalSummary.textContent = `Rank: ${rank.title} (LV.${rank.level}) • Career XP: ${careerXp.toLocaleString()} XP`;
+    }
+
+    // 6 Roguelike Cyber-Plumber Perks
+    const ROGUELIKE_PERKS = [
+      { id: 'double_jump',    icon: '👢', name: 'Jet-Boost Double Jump',  desc: 'Allows a mid-air double jump + jetpack hover!' },
+      { id: 'phase_dash',     icon: '⚡', name: 'Phase Dash [Shift]',     desc: 'Invulnerable horizontal air-dash with neon afterimages!' },
+      { id: 'plasma_glove',   icon: '🔥', name: 'Plasma Fireball Glove [F]', desc: 'Shoot bouncing plasma fireballs directly from your hands!' },
+      { id: 'thunder_hammer', icon: '🔨', name: 'Thunder Hammer [E]',     desc: 'Swing a heavy cyber-hammer or ground-pound [Down+Space] to flip enemies!' },
+      { id: 'coin_magnet',    icon: '🧲', name: 'Quantum Coin Magnet',    desc: 'Automatically pulls coins & bonus gems across the screen!' },
+      { id: 'pow_core',       icon: '🔄', name: 'Self-Charging POW Core', desc: 'Regenerates +1 POW Block charge every wave!' }
+    ];
+    let activePerks = new Set();
+    let currentDraftChoices = [];
+
+    function updatePerksHUD() {
+      const bar = document.getElementById('activePerksBar');
+      if (!bar) return;
+      bar.innerHTML = '';
+      ROGUELIKE_PERKS.forEach(p => {
+        if (activePerks.has(p.id)) {
+          const span = document.createElement('span');
+          span.className = 'px-1.5 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/50 text-[10px] font-bold text-cyan-200';
+          span.title = `${p.name}: ${p.desc}`;
+          span.textContent = p.icon;
+          bar.appendChild(span);
+        }
+      });
+    }
+
+    // 6 Procedural Biome Topologies
+    let currentBiomeIndex = 0;
+    let springboards = [];
+    let playerFireballs = [];
+    let ordnanceBlocks = [];
+    let activeBoss = null;
+
+    const BIOME_WORLDS = [
+      {
+        name: 'Twin Gap Sewer',
+        gravityScale: 1.0,
+        iceDefault: false,
+        platforms: [
+          { id: 'floor', x: 0, y: 560, w: 800, h: 40, color: '#0ea5e9' },
+          { id: 't1_left', x: 0, y: 440, w: 320, h: 18, color: '#f59e0b' },
+          { id: 't1_right', x: 480, y: 440, w: 320, h: 18, color: '#f59e0b' },
+          { id: 't2_center', x: 220, y: 320, w: 360, h: 18, color: '#10b981' },
+          { id: 't2_left', x: 0, y: 320, w: 140, h: 18, color: '#10b981' },
+          { id: 't2_right', x: 660, y: 320, w: 140, h: 18, color: '#10b981' },
+          { id: 't3_left', x: 0, y: 200, w: 310, h: 18, color: '#a855f7' },
+          { id: 't3_right', x: 490, y: 200, w: 310, h: 18, color: '#a855f7' }
+        ],
+        springs: []
+      },
+      {
+        name: 'Pyramid Citadel',
+        gravityScale: 1.0,
+        iceDefault: false,
+        platforms: [
+          { id: 'floor', x: 0, y: 560, w: 800, h: 40, color: '#0ea5e9' },
+          { id: 't1_pyr', x: 120, y: 445, w: 560, h: 18, color: '#f59e0b' },
+          { id: 't2_pyr', x: 210, y: 330, w: 380, h: 18, color: '#10b981' },
+          { id: 't2_sideL', x: 0, y: 330, w: 130, h: 18, color: '#10b981' },
+          { id: 't2_sideR', x: 670, y: 330, w: 130, h: 18, color: '#10b981' },
+          { id: 't3_left', x: 0, y: 205, w: 260, h: 18, color: '#a855f7' },
+          { id: 't3_right', x: 540, y: 205, w: 260, h: 18, color: '#a855f7' },
+          { id: 't3_top', x: 310, y: 185, w: 180, h: 18, color: '#f43f5e' }
+        ],
+        springs: [
+          { x: 45, y: 542, w: 36, h: 18, compression: 0 },
+          { x: 719, y: 542, w: 36, h: 18, compression: 0 }
+        ]
+      },
+      {
+        name: 'Conveyor Factory',
+        gravityScale: 1.0,
+        iceDefault: false,
+        platforms: [
+          { id: 'floor', x: 0, y: 560, w: 800, h: 40, color: '#0ea5e9' },
+          { id: 't1_left', x: 0, y: 440, w: 330, h: 18, color: '#f59e0b', conveyor: 1.45 },
+          { id: 't1_right', x: 470, y: 440, w: 330, h: 18, color: '#f59e0b', conveyor: -1.45 },
+          { id: 't2_center', x: 180, y: 320, w: 440, h: 18, color: '#eab308', conveyor: 1.75 },
+          { id: 't3_left', x: 0, y: 200, w: 320, h: 18, color: '#a855f7', conveyor: -1.35 },
+          { id: 't3_right', x: 480, y: 200, w: 320, h: 18, color: '#a855f7', conveyor: 1.35 }
+        ],
+        springs: [
+          { x: 382, y: 542, w: 36, h: 18, compression: 0 }
+        ]
+      },
+      {
+        name: 'Springboard Spire',
+        gravityScale: 0.96,
+        iceDefault: false,
+        platforms: [
+          { id: 'floor', x: 0, y: 560, w: 800, h: 40, color: '#0ea5e9' },
+          { id: 't1_left', x: 40, y: 445, w: 240, h: 18, color: '#f43f5e' },
+          { id: 't1_right', x: 520, y: 445, w: 240, h: 18, color: '#f43f5e' },
+          { id: 't2_center', x: 250, y: 330, w: 300, h: 18, color: '#10b981' },
+          { id: 't3_left', x: 0, y: 205, w: 290, h: 18, color: '#06b6d4' },
+          { id: 't3_right', x: 510, y: 205, w: 290, h: 18, color: '#06b6d4' }
+        ],
+        springs: [
+          { x: 140, y: 427, w: 36, h: 18, compression: 0 },
+          { x: 624, y: 427, w: 36, h: 18, compression: 0 },
+          { x: 382, y: 542, w: 36, h: 18, compression: 0 }
+        ]
+      },
+      {
+        name: 'Ice Cavern',
+        gravityScale: 1.0,
+        iceDefault: true,
+        platforms: [
+          { id: 'floor', x: 0, y: 560, w: 800, h: 40, color: '#38bdf8' },
+          { id: 't1_left', x: 0, y: 440, w: 310, h: 18, color: '#67e8f9' },
+          { id: 't1_right', x: 490, y: 440, w: 310, h: 18, color: '#67e8f9' },
+          { id: 't2_center', x: 200, y: 320, w: 400, h: 18, color: '#22d3ee' },
+          { id: 't2_left', x: 0, y: 320, w: 130, h: 18, color: '#22d3ee' },
+          { id: 't2_right', x: 670, y: 320, w: 130, h: 18, color: '#22d3ee' },
+          { id: 't3_left', x: 0, y: 200, w: 320, h: 18, color: '#a5f3fc' },
+          { id: 't3_right', x: 480, y: 200, w: 320, h: 18, color: '#a5f3fc' }
+        ],
+        springs: [
+          { x: 382, y: 302, w: 36, h: 18, compression: 0 }
+        ]
+      },
+      {
+        name: 'Low-G Orbital Sewer',
+        gravityScale: 0.66,
+        iceDefault: false,
+        platforms: [
+          { id: 'floor', x: 0, y: 560, w: 800, h: 40, color: '#8b5cf6' },
+          { id: 't1_left', x: 30, y: 440, w: 270, h: 18, color: '#c084fc', moving: true, baseX: 30, moveRange: 55, moveSpeed: 0.025 },
+          { id: 't1_right', x: 500, y: 440, w: 270, h: 18, color: '#c084fc', moving: true, baseX: 500, moveRange: -55, moveSpeed: 0.025 },
+          { id: 't2_center', x: 240, y: 315, w: 320, h: 18, color: '#38bdf8', moving: true, baseX: 240, moveRange: 80, moveSpeed: 0.03 },
+          { id: 't3_left', x: 0, y: 195, w: 300, h: 18, color: '#f472b6' },
+          { id: 't3_right', x: 500, y: 195, w: 300, h: 18, color: '#f472b6' }
+        ],
+        springs: [
+          { x: 80, y: 542, w: 36, h: 18, compression: 0 },
+          { x: 684, y: 542, w: 36, h: 18, compression: 0 }
+        ]
+      }
+    ];
+
+    // Authentic 1983 Arena Platform layout (mutated dynamically by Biome Architect)
+    let platforms = BIOME_WORLDS[0].platforms.map(p => ({ ...p }));
+
+    function applyBiomeTopology(index) {
+      currentBiomeIndex = ((index % BIOME_WORLDS.length) + BIOME_WORLDS.length) % BIOME_WORLDS.length;
+      const world = BIOME_WORLDS[currentBiomeIndex];
+      platforms = world.platforms.map(p => ({ ...p }));
+      springboards = world.springs.map(s => ({ ...s }));
+      frozenPlatforms.clear();
+      if (world.iceDefault) {
+        platforms.forEach(p => {
+          if (p.id !== 'floor') frozenPlatforms.add(p.id);
+        });
+      }
+      const biomeEl = document.getElementById('biomeNameText');
+      if (biomeEl) biomeEl.textContent = world.name;
+    }
 
     // Suspended POW Block centered at y = 390
     const powBlock = {
@@ -1160,17 +1558,120 @@
       { id: 'bot_right', x: 740, y: 510, w: 60, h: 50, dir: 1, type: 'exit' }
     ];
 
-    // Player Entity Class with Detailed Vector Pixel Art
+    // Player Hand-Thrown Plasma Fireball Projectile ([F] Key)
+    class PlayerFireball {
+      constructor(x, y, dir, isP1 = true) {
+        this.x = x;
+        this.y = y;
+        this.vx = dir * 8.2;
+        this.vy = 2.0;
+        this.radius = 7;
+        this.isP1 = isP1;
+        this.bounces = 0;
+        this.maxBounces = activePerks.has('plasma_glove') ? 6 : 4;
+        this.alive = true;
+      }
+
+      update() {
+        this.x += this.vx;
+        this.vy += GRAVITY * 0.65;
+        this.y += this.vy;
+
+        if (this.x < 10 || this.x > VW - 10) {
+          this.vx = -this.vx;
+          this.bounces++;
+        }
+
+        for (const p of platforms) {
+          if (
+            this.vy > 0 &&
+            this.x > p.x &&
+            this.x < p.x + p.w &&
+            this.y + this.radius >= p.y &&
+            this.y - this.radius <= p.y + p.h
+          ) {
+            this.y = p.y - this.radius;
+            this.vy = -5.8;
+            this.bounces++;
+            spawnSparkles(this.x, this.y, '#fbbf24', 3);
+          }
+        }
+
+        if (this.bounces > this.maxBounces || this.y > VH) {
+          this.alive = false;
+          return;
+        }
+
+        // Hit enemies
+        for (const en of enemies) {
+          if (en.state !== 'KICKED') {
+            if (Math.hypot((en.x + en.w / 2) - this.x, (en.y + en.h / 2) - this.y) < 22) {
+              if (en.state !== 'FLIPPED') {
+                en.flip(Math.sign(this.vx) * 2.5, 0.22);
+              } else {
+                en.kick(this.x - this.vx);
+                totalEnemiesKicked++;
+                addScore(800, en.x, en.y);
+                addCareerXp(40);
+              }
+              spawnComicStarburst(en.x + en.w / 2, en.y, 'PLASMA!');
+              this.alive = false;
+              return;
+            }
+          }
+        }
+
+        // Hit hazard fireballs
+        for (const fb of fireballs) {
+          if (fb.alive && Math.hypot(fb.x - this.x, fb.y - this.y) < 18) {
+            fb.kill();
+            this.alive = false;
+            return;
+          }
+        }
+
+        // Hit Boss in Mode 3
+        if (activeBoss && !activeBoss.dead) {
+          if (
+            this.x > activeBoss.x &&
+            this.x < activeBoss.x + activeBoss.w &&
+            this.y > activeBoss.y &&
+            this.y < activeBoss.y + activeBoss.h
+          ) {
+            activeBoss.takeDamage(activePerks.has('plasma_glove') ? 10 : 6, this.x);
+            this.alive = false;
+            return;
+          }
+        }
+      }
+
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.fillStyle = this.isP1 ? '#fbbf24' : '#34d399';
+        ctx.shadowColor = this.isP1 ? '#f43f5e' : '#10b981';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // Player Entity Class with Modern Platformer Tech (Wall-Jump, Double-Jump, Air-Dash, Ground-Pound, Fireball, Hammer)
     class Player {
       constructor(isP1 = true) {
         this.isP1 = isP1;
         this.w = 30;
         this.h = 36;
-        this.resetPosition();
         this.vx = 0;
         this.vy = 0;
-        this.speed = 4.2;
-        this.jumpForce = -11.6;
+        this.speed = 4.35;
+        this.jumpForce = -11.7;
         this.isGrounded = false;
         this.currentPlatformId = 'floor';
         this.facing = isP1 ? 1 : -1;
@@ -1182,6 +1683,17 @@
         this.jumpBufferTimer = 0;
         this.squashX = 1.0;
         this.squashY = 1.0;
+        this.doubleJumpsLeft = 1;
+        this.dashCooldown = 0;
+        this.dashTimer = 0;
+        this.fireCooldown = 0;
+        this.hammerTimer = 0;
+        this.isGroundPounding = false;
+        this.wallSlideSide = 0;
+        this.stunTimer = 0;
+        this.versusCoins = 0;
+        this.versusKOs = 0;
+        this.resetPosition();
       }
 
       resetPosition() {
@@ -1198,6 +1710,71 @@
         this.squashX = 1.0;
         this.squashY = 1.0;
         this.jumpHeld = false;
+        this.dashHeld = false;
+        this.fireHeld = false;
+        this.hammerHeld = false;
+        this.downHeld = false;
+        this.doubleJumpsLeft = 1;
+        this.dashTimer = 0;
+        this.isGroundPounding = false;
+        this.stunTimer = 0;
+      }
+
+      shootFireball() {
+        if (this.fireCooldown > 0 || this.dead || this.stunTimer > 0) return;
+        this.fireCooldown = activePerks.has('plasma_glove') ? 220 : 380;
+        const spawnX = this.x + (this.facing === 1 ? this.w + 4 : -4);
+        const spawnY = this.y + 14;
+        playerFireballs.push(new PlayerFireball(spawnX, spawnY, this.facing, this.isP1));
+        if (activePerks.has('plasma_glove')) {
+          const fb2 = new PlayerFireball(spawnX, spawnY - 6, this.facing * 1.12, this.isP1);
+          fb2.vy = -1.5;
+          playerFireballs.push(fb2);
+        }
+        const pan = (this.x - VW / 2) / (VW / 2);
+        sound.playFireball(pan);
+      }
+
+      triggerDash() {
+        if (this.dashCooldown > 0 || this.dead || this.stunTimer > 0) return;
+        this.dashTimer = 140;
+        this.dashCooldown = activePerks.has('phase_dash') ? 380 : 680;
+        this.invulnerable = Math.max(this.invulnerable, 240);
+        this.vx = this.facing * 11.5;
+        this.vy = 0;
+        this.squashX = 1.45;
+        this.squashY = 0.68;
+        const pan = (this.x - VW / 2) / (VW / 2);
+        sound.playDash(pan);
+        spawnSparkles(this.x + this.w / 2, this.y + this.h / 2, '#00f0ff', 10);
+      }
+
+      swingThunderHammer() {
+        if (this.hammerTimer > 0 || this.dead || this.stunTimer > 0) return;
+        this.hammerTimer = 320;
+        const pan = (this.x - VW / 2) / (VW / 2);
+        sound.playGroundPound(pan);
+        screenShake = Math.max(screenShake, 9);
+        const reach = activePerks.has('thunder_hammer') ? 220 : 125;
+        const hitCenterX = this.x + this.w / 2 + this.facing * 32;
+        shockwaves.push({
+          x: hitCenterX,
+          y: this.y + this.h,
+          radius: 8,
+          maxRadius: reach,
+          alpha: 0.95
+        });
+        spawnComicStarburst(hitCenterX, this.y + 8, 'HAMMER!');
+        for (const en of enemies) {
+          if (en.state !== 'KICKED' && Math.abs((en.x + en.w / 2) - hitCenterX) < reach && Math.abs(en.y - this.y) < 55) {
+            en.flip(this.facing * 3.2, this.facing * 0.25);
+          }
+        }
+        if (activeBoss && !activeBoss.dead) {
+          if (Math.hypot((activeBoss.x + activeBoss.w / 2) - hitCenterX, (activeBoss.y + activeBoss.h / 2) - this.y) < reach) {
+            activeBoss.takeDamage(14, hitCenterX);
+          }
+        }
       }
 
       update(keys, isAI = false) {
@@ -1205,9 +1782,26 @@
 
         if (this.invulnerable > 0) this.invulnerable -= 16;
         if (this.kickTimer > 0) this.kickTimer -= 16;
+        if (this.dashCooldown > 0) this.dashCooldown -= 16;
+        if (this.fireCooldown > 0) this.fireCooldown -= 16;
+        if (this.hammerTimer > 0) this.hammerTimer -= 16;
+
+        if (this.stunTimer > 0) {
+          this.stunTimer -= 16;
+          this.vx *= 0.88;
+          this.vy += GRAVITY;
+          this.x += this.vx;
+          this.y += this.vy;
+          this.checkPlatformCollisions();
+          return;
+        }
 
         let moveDir = 0;
         let wantJump = false;
+        let wantDash = false;
+        let wantFire = false;
+        let wantHammer = false;
+        let wantDown = false;
 
         if (!isAI) {
           if (gameMode === '2P') {
@@ -1217,12 +1811,26 @@
               const currentJumpInput = Boolean(keys['KeyW'] || keys['Space']);
               if (currentJumpInput && !this.jumpHeld) wantJump = true;
               this.jumpHeld = currentJumpInput;
+              wantDash = Boolean(keys['ShiftLeft']) && !this.dashHeld;
+              this.dashHeld = Boolean(keys['ShiftLeft']);
+              wantFire = Boolean(keys['KeyF']) && !this.fireHeld;
+              this.fireHeld = Boolean(keys['KeyF']);
+              wantHammer = Boolean(keys['KeyE']) && !this.hammerHeld;
+              this.hammerHeld = Boolean(keys['KeyE']);
+              wantDown = Boolean(keys['KeyS']) && !this.downHeld;
+              this.downHeld = Boolean(keys['KeyS']);
             } else {
-              if (keys['ArrowLeft']) moveDir = -1;
-              if (keys['ArrowRight']) moveDir = 1;
-              const currentJumpInput = Boolean(keys['ArrowUp'] || keys['Enter'] || keys['ShiftRight']);
+              if (keys['ArrowLeft'] || keys['KeyJ']) moveDir = -1;
+              if (keys['ArrowRight'] || keys['KeyL']) moveDir = 1;
+              const currentJumpInput = Boolean(keys['ArrowUp'] || keys['KeyI'] || keys['Enter']);
               if (currentJumpInput && !this.jumpHeld) wantJump = true;
               this.jumpHeld = currentJumpInput;
+              wantDash = Boolean(keys['ShiftRight']) && !this.dashHeld;
+              this.dashHeld = Boolean(keys['ShiftRight']);
+              wantFire = Boolean(keys['Slash'] || keys['KeyK']) && !this.fireHeld;
+              this.fireHeld = Boolean(keys['Slash'] || keys['KeyK']);
+              wantDown = Boolean(keys['ArrowDown']) && !this.downHeld;
+              this.downHeld = Boolean(keys['ArrowDown']);
             }
           } else {
             if (keys['ArrowLeft'] || keys['KeyA']) moveDir = -1;
@@ -1230,6 +1838,18 @@
             const currentJumpInput = Boolean(keys['ArrowUp'] || keys['KeyW'] || keys['Space']);
             if (currentJumpInput && !this.jumpHeld) wantJump = true;
             this.jumpHeld = currentJumpInput;
+            const dIn = Boolean(keys['ShiftLeft'] || keys['ShiftRight']);
+            wantDash = dIn && !this.dashHeld;
+            this.dashHeld = dIn;
+            const fIn = Boolean(keys['KeyF']);
+            wantFire = fIn && !this.fireHeld;
+            this.fireHeld = fIn;
+            const hIn = Boolean(keys['KeyE']);
+            wantHammer = hIn && !this.hammerHeld;
+            this.hammerHeld = hIn;
+            const dnIn = Boolean(keys['ArrowDown'] || keys['KeyS']);
+            wantDown = dnIn && !this.downHeld;
+            this.downHeld = dnIn;
           }
         } else {
           const ai = getAIDecision(this);
@@ -1237,15 +1857,31 @@
           wantJump = ai.wantJump;
         }
 
+        if (wantFire) this.shootFireball();
+        if (wantDash) this.triggerDash();
+        if (wantHammer) this.swingThunderHammer();
+
+        // Ground-Pound in mid-air ([Down/S] or [Down + Space])
+        if (!this.isGrounded && wantDown && !this.isGroundPounding) {
+          this.isGroundPounding = true;
+          this.vx = 0;
+          this.vy = 14.5;
+          this.squashX = 0.65;
+          this.squashY = 1.45;
+          sound.playJump((this.x - VW / 2) / (VW / 2));
+        }
+
         // Coyote Time & Jump Buffer Timers (Responsive Platformer Gold Standard)
         if (this.isGrounded) {
-          this.coyoteTimer = 6;
+          this.coyoteTimer = 7;
+          this.doubleJumpsLeft = activePerks.has('double_jump') ? 2 : 1;
+          this.isGroundPounding = false;
         } else if (this.coyoteTimer > 0) {
           this.coyoteTimer--;
         }
 
         if (wantJump) {
-          this.jumpBufferTimer = 6;
+          this.jumpBufferTimer = 7;
         } else if (this.jumpBufferTimer > 0) {
           this.jumpBufferTimer--;
         }
@@ -1255,28 +1891,59 @@
         this.squashY += (1.0 - this.squashY) * 0.18;
 
         const onIce = this.isGrounded && this.currentPlatformId && frozenPlatforms.has(this.currentPlatformId);
+        const currentPlatObj = platforms.find(p => p.id === this.currentPlatformId);
+        const conveyorPush = (this.isGrounded && currentPlatObj && currentPlatObj.conveyor) ? currentPlatObj.conveyor : 0;
 
-        if (moveDir !== 0) {
-          const wasSkidding = this.isGrounded && this.vx !== 0 && Math.sign(this.vx) !== moveDir && Math.abs(this.vx) > 2.0;
-          if (onIce) {
-            this.vx += moveDir * 0.36;
-            if (Math.abs(this.vx) > this.speed * 1.18) this.vx = moveDir * this.speed * 1.18;
+        if (this.dashTimer > 0) {
+          this.dashTimer -= 16;
+          this.vx = this.facing * 10.8;
+          this.vy = 0;
+          playerGhosts.push({
+            x: this.x,
+            y: this.y,
+            w: this.w,
+            h: this.h,
+            facing: this.facing,
+            squashX: this.squashX,
+            squashY: this.squashY,
+            alpha: 0.65,
+            color: '#00f0ff'
+          });
+        } else if (!this.isGroundPounding) {
+          if (moveDir !== 0) {
+            const wasSkidding = this.isGrounded && this.vx !== 0 && Math.sign(this.vx) !== moveDir && Math.abs(this.vx) > 2.0;
+            if (onIce) {
+              this.vx += moveDir * 0.36;
+              if (Math.abs(this.vx) > this.speed * 1.18) this.vx = moveDir * this.speed * 1.18;
+            } else {
+              this.vx = moveDir * this.speed + conveyorPush;
+            }
+            this.facing = moveDir;
+            this.animTimer += 0.25;
+
+            if (wasSkidding) {
+              spawnDust(this.x + this.w / 2, this.y + this.h, 6, onIce ? '#67e8f9' : '#f59e0b');
+              const pan = (this.x - VW / 2) / (VW / 2);
+              sound.playSkid(pan);
+            } else if (this.isGrounded && Math.random() < 0.2) {
+              spawnDust(this.x + this.w / 2, this.y + this.h, 1, onIce ? '#a5f3fc' : '#cbd5e1');
+            }
           } else {
-            this.vx = moveDir * this.speed;
+            this.vx = (this.vx * (onIce ? 0.94 : 0.75)) + conveyorPush * 0.35;
+            if (Math.abs(this.vx) < 0.15 && conveyorPush === 0) this.vx = 0;
           }
-          this.facing = moveDir;
-          this.animTimer += 0.25;
+        }
 
-          if (wasSkidding) {
-            spawnDust(this.x + this.w / 2, this.y + this.h, 6, onIce ? '#67e8f9' : '#f59e0b');
-            const pan = (this.x - VW / 2) / (VW / 2);
-            sound.playSkid(pan);
-          } else if (this.isGrounded && Math.random() < 0.2) {
-            spawnDust(this.x + this.w / 2, this.y + this.h, 1, onIce ? '#a5f3fc' : '#cbd5e1');
+        // Wall-Slide & Wall-Jump Detection near Arena Boundaries or Upper Warp Pipes
+        this.wallSlideSide = 0;
+        if (!this.isGrounded && this.vy > 0) {
+          if (this.x <= 14 && moveDir === -1) {
+            this.wallSlideSide = -1;
+            this.vy = Math.min(this.vy, 3.2);
+          } else if (this.x + this.w >= VW - 14 && moveDir === 1) {
+            this.wallSlideSide = 1;
+            this.vy = Math.min(this.vy, 3.2);
           }
-        } else {
-          this.vx *= onIce ? 0.94 : 0.75;
-          if (Math.abs(this.vx) < 0.15) this.vx = 0;
         }
 
         // Spawn neon speed ghost trail on fast movement / leaping
@@ -1294,21 +1961,46 @@
           });
         }
 
-        if (this.jumpBufferTimer > 0 && (this.isGrounded || this.coyoteTimer > 0)) {
-          this.vy = this.jumpForce;
-          this.isGrounded = false;
-          this.coyoteTimer = 0;
-          this.jumpBufferTimer = 0;
-          this.squashX = 0.72; // Stretch upward on jump launch
-          this.squashY = 1.35;
-          const pan = (this.x - VW / 2) / (VW / 2);
-          sound.playJump(pan);
-          spawnDust(this.x + this.w / 2, this.y + this.h, 4);
+        if (this.jumpBufferTimer > 0) {
+          if (this.isGrounded || this.coyoteTimer > 0) {
+            this.vy = this.jumpForce;
+            this.isGrounded = false;
+            this.coyoteTimer = 0;
+            this.jumpBufferTimer = 0;
+            this.squashX = 0.72;
+            this.squashY = 1.35;
+            const pan = (this.x - VW / 2) / (VW / 2);
+            sound.playJump(pan);
+            spawnDust(this.x + this.w / 2, this.y + this.h, 4);
+          } else if (this.wallSlideSide !== 0) {
+            // Wall-Jump!
+            this.vy = this.jumpForce * 0.96;
+            this.vx = -this.wallSlideSide * (this.speed * 1.45);
+            this.facing = -this.wallSlideSide;
+            this.jumpBufferTimer = 0;
+            this.squashX = 0.68;
+            this.squashY = 1.38;
+            sound.playJump(0);
+            spawnSparkles(this.x + this.w / 2, this.y + this.h / 2, '#00f0ff', 7);
+            spawnComicStarburst(this.x + this.w / 2, this.y, 'WALL JUMP!');
+          } else if (this.doubleJumpsLeft > 0) {
+            // Jet-Boost Double Jump!
+            this.doubleJumpsLeft--;
+            this.vy = this.jumpForce * 0.92;
+            this.jumpBufferTimer = 0;
+            this.squashX = 0.74;
+            this.squashY = 1.32;
+            sound.playJump((this.x - VW / 2) / (VW / 2));
+            spawnSparkles(this.x + this.w / 2, this.y + this.h, '#fde047', 8);
+          }
         }
 
-        this.vy += GRAVITY;
-        if (!isAI && !this.jumpHeld && this.vy < -3.5) this.vy *= 0.85;
-        if (this.vy > 12) this.vy = 12;
+        const worldGrav = (BIOME_WORLDS[currentBiomeIndex]?.gravityScale || 1.0) * GRAVITY;
+        // Jetpack hover when holding jump with Jet-Boost perk
+        const hoverFactor = (activePerks.has('double_jump') && this.jumpHeld && this.vy > 1.5) ? 0.45 : 1.0;
+        this.vy += worldGrav * hoverFactor;
+        if (!isAI && !this.jumpHeld && this.vy < -3.5 && !this.isGroundPounding) this.vy *= 0.85;
+        if (this.vy > 14.5) this.vy = 14.5;
 
         this.x += this.vx;
         this.y += this.vy;
@@ -1318,10 +2010,34 @@
         else if (this.x > VW) this.x = -this.w + 2;
 
         this.checkPlatformCollisions();
+        this.checkSpringboardCollisions();
         this.checkPowCollision();
       }
 
+      checkSpringboardCollisions() {
+        for (const sp of springboards) {
+          if (
+            this.vy >= 0 &&
+            this.x + this.w > sp.x &&
+            this.x < sp.x + sp.w &&
+            this.y + this.h >= sp.y &&
+            this.y + this.h <= sp.y + sp.h + 14
+          ) {
+            this.y = sp.y - this.h;
+            this.vy = this.jumpForce * 1.36;
+            this.isGrounded = false;
+            this.doubleJumpsLeft = activePerks.has('double_jump') ? 2 : 1;
+            this.squashX = 0.65;
+            this.squashY = 1.45;
+            sp.compression = 12;
+            sound.playSpringBounce((this.x - VW / 2) / (VW / 2));
+            spawnSparkles(sp.x + sp.w / 2, sp.y, '#10b981', 10);
+          }
+        }
+      }
+
       checkPlatformCollisions() {
+        const wasPounding = this.isGroundPounding;
         this.isGrounded = false;
         this.currentPlatformId = null;
 
@@ -1332,9 +2048,28 @@
             this.x + this.w - 6 > p.x &&
             this.x + 6 < p.x + p.w &&
             this.y + this.h >= p.y &&
-            this.y + this.h <= p.y + p.h + 12
+            this.y + this.h <= p.y + p.h + 15
           ) {
-            if (this.vy > 1.8) {
+            if (wasPounding) {
+              this.isGroundPounding = false;
+              this.squashX = 1.55;
+              this.squashY = 0.55;
+              const hitX = this.x + this.w / 2;
+              sound.playGroundPound((hitX - VW / 2) / (VW / 2));
+              screenShake = Math.max(screenShake, 11);
+              shockwaves.push({
+                x: hitX,
+                y: p.y,
+                radius: 10,
+                maxRadius: activePerks.has('thunder_hammer') ? 260 : 150,
+                alpha: 1.0
+              });
+              triggerPlatformBump(p, hitX);
+              spawnComicStarburst(hitX, p.y - 12, 'SLAM!');
+              if (activeBoss && !activeBoss.dead && Math.hypot((activeBoss.x + activeBoss.w / 2) - hitX, (activeBoss.y + activeBoss.h) - p.y) < 170) {
+                activeBoss.takeDamage(16, hitX);
+              }
+            } else if (this.vy > 1.8) {
               this.squashX = 1.35; // Squash on impact
               this.squashY = 0.70;
               spawnDust(this.x + this.w / 2, p.y, 3);
@@ -1350,7 +2085,7 @@
             this.x + this.w - 6 > p.x &&
             this.x + 6 < p.x + p.w &&
             this.y <= p.y + p.h &&
-            this.y >= p.y - 8
+            this.y >= p.y - 10
           ) {
             this.y = p.y + p.h;
             this.vy = 1;
@@ -1411,9 +2146,10 @@
         ctx.scale((this.facing === -1 ? -1 : 1) * this.squashX, this.squashY);
         ctx.translate(0, -this.h / 2);
 
+        const activeSuit = HERO_SUITS.find(s => s.id === selectedSuitId) || HERO_SUITS[0];
         const runBob = Math.sin(this.animTimer) * (this.isGrounded && Math.abs(this.vx) > 0.5 ? 2.5 : 0);
-        const capColor = this.isP1 ? '#ff3366' : '#10b981';
-        const suitColor = this.isP1 ? '#00d2ff' : '#f59e0b';
+        const capColor = this.isP1 ? activeSuit.cap : '#10b981';
+        const suitColor = this.isP1 ? activeSuit.suit : '#f59e0b';
 
         // Drop shadow
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
@@ -1488,6 +2224,20 @@
           }
         }
 
+        // Thunder Hammer swing arc visual
+        if (this.hammerTimer > 0) {
+          ctx.save();
+          ctx.rotate(Math.sin(this.hammerTimer * 0.04) * 1.2);
+          ctx.fillStyle = '#94a3b8';
+          ctx.fillRect(6, -22, 4, 20);
+          ctx.fillStyle = '#f59e0b';
+          ctx.strokeStyle = '#fef08a';
+          ctx.lineWidth = 1.5;
+          ctx.fillRect(0, -28, 18, 10);
+          ctx.strokeRect(0, -28, 18, 10);
+          ctx.restore();
+        }
+
         // Cybernetic Cap with aerodynamic tilt
         const capTilt = this.isGrounded ? Math.sin(this.animTimer) * 0.04 : (this.vy < 0 ? -0.1 : 0.08);
         ctx.save();
@@ -1506,12 +2256,28 @@
         // Neon Visor Eyes
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(1, -1, 9, 4);
-        ctx.fillStyle = this.isP1 ? '#00f0ff' : '#facc15';
+        ctx.fillStyle = this.isP1 ? activeSuit.visor : '#facc15';
         ctx.fillRect(4, -1, 6, 4);
 
         ctx.restore();
-
         ctx.restore();
+
+        // Stun stars or Versus Coin/KO Crown badge above player head
+        if (this.stunTimer > 0) {
+          ctx.save();
+          ctx.fillStyle = '#fde047';
+          ctx.font = 'bold 10px "Press Start 2P", monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('💫 STUN!', this.x + this.w / 2, this.y - 8);
+          ctx.restore();
+        } else if (arenaMode === 6 && subMode2P === 'VERSUS') {
+          ctx.save();
+          ctx.fillStyle = this.isP1 ? '#38bdf8' : '#34d399';
+          ctx.font = 'bold 9px "Press Start 2P", monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${this.isP1 ? 'P1' : 'P2'} 🪙${this.versusCoins} 💀${this.versusKOs}`, this.x + this.w / 2, this.y - 8);
+          ctx.restore();
+        }
       }
     }
 
@@ -2303,6 +3069,295 @@
     let enemiesRemainingInWave = 0;
     let waveSpawnTimer = 0;
 
+    // ==========================================
+    // MODE 3: BOSS RUSH COLOSSEUM (4 MULTI-PHASE BOSSES)
+    // ==========================================
+    const BOSS_ROSTER = [
+      { id: 'krabzilla',  name: 'KING KRABZILLA',         emoji: '🦀', color: '#f43f5e', trim: '#fbbf24', maxHp: 100, minionType: 'crab' },
+      { id: 'mechashell', name: 'MECHA-SHELL JUGGERNAUT', emoji: '🐢', color: '#10b981', trim: '#38bdf8', maxHp: 130, minionType: 'turtle' },
+      { id: 'frostbite',  name: 'LORD FROSTBITE',         emoji: '❄️', color: '#06b6d4', trim: '#ecfeff', maxHp: 150, minionType: 'freezie' },
+      { id: 'inferno',    name: 'INFERNO DRAGON',         emoji: '🐉', color: '#f97316', trim: '#fef08a', maxHp: 180, minionType: 'fly' }
+    ];
+
+    class Boss {
+      constructor(stageIndex = 0) {
+        const cfg = BOSS_ROSTER[stageIndex % BOSS_ROSTER.length];
+        this.cfg = cfg;
+        this.name = cfg.name;
+        this.w = 86;
+        this.h = 68;
+        this.x = VW / 2 - this.w / 2;
+        this.y = 252;
+        this.vx = 2.15 + stageIndex * 0.28;
+        this.vy = 0;
+        this.maxHp = cfg.maxHp + Math.floor(Math.max(0, phase - 1) * 15);
+        this.hp = this.maxHp;
+        this.dead = false;
+        this.flashTimer = 0;
+        this.attackTimer = 0;
+        this.minionTimer = 0;
+        this.animTimer = 0;
+        this.isGrounded = false;
+        sound.playBossRoar(0);
+        updateBossHUD(this);
+      }
+
+      takeDamage(amount, hitX = this.x) {
+        if (this.dead) return;
+        this.hp = Math.max(0, this.hp - amount);
+        this.flashTimer = 12;
+        this.vy = -5.5;
+        const pan = (this.x - VW / 2) / (VW / 2);
+        sound.playKick(pan);
+        addScore(amount * 50, this.x + this.w / 2, this.y);
+        addCareerXp(15);
+        spawnSparkles(this.x + this.w / 2, this.y + this.h / 2, this.cfg.trim, 12);
+        spawnComicStarburst(this.x + this.w / 2, this.y + 10, `-${amount} HP!`);
+        updateBossHUD(this);
+
+        if (this.hp <= 0) {
+          this.dead = true;
+          sound.playBossRoar(0);
+          sound.playVictory();
+          screenShake = 24;
+          chromaticAberration = 16;
+          addScore(5000, this.x + this.w / 2, this.y);
+          addCareerXp(250);
+          for (let i = 0; i < 8; i++) {
+            coins.push(new Coin(this.x + Math.random() * this.w, this.y));
+          }
+          updateBossHUD(null);
+          triggerPhaseClear();
+        }
+      }
+
+      update() {
+        if (this.dead) return;
+        this.animTimer += 0.12;
+        if (this.flashTimer > 0) this.flashTimer--;
+
+        const enraged = this.hp < this.maxHp * 0.45;
+        const speedMult = enraged ? 1.42 : 1.0;
+        this.x += this.vx * speedMult;
+
+        if (this.x < 90) {
+          this.x = 90;
+          this.vx = Math.abs(this.vx);
+        } else if (this.x + this.w > VW - 90) {
+          this.x = VW - 90 - this.w;
+          this.vx = -Math.abs(this.vx);
+        }
+
+        this.vy += GRAVITY * 0.75;
+        if (this.vy > 10) this.vy = 10;
+        this.y += this.vy;
+
+        this.isGrounded = false;
+        for (const p of platforms) {
+          if (
+            this.vy >= 0 &&
+            this.x + this.w - 10 > p.x &&
+            this.x + 10 < p.x + p.w &&
+            this.y + this.h >= p.y &&
+            this.y + this.h <= p.y + p.h + 14
+          ) {
+            if (this.vy > 4.5) {
+              screenShake = Math.max(screenShake, 10);
+              sound.playGroundPound(0);
+              shockwaves.push({
+                x: this.x + this.w / 2,
+                y: p.y,
+                radius: 15,
+                maxRadius: 210,
+                alpha: 0.9
+              });
+            }
+            this.y = p.y - this.h;
+            this.vy = 0;
+            this.isGrounded = true;
+          }
+        }
+
+        // Periodic Boss Jump / Shockwave & Fireball Attack
+        this.attackTimer += 16;
+        if (this.attackTimer > (enraged ? 2400 : 3400)) {
+          this.attackTimer = 0;
+          if (this.isGrounded && Math.random() < 0.65) {
+            this.vy = -10.2;
+            sound.playBossRoar((this.x - VW / 2) / (VW / 2));
+          } else {
+            const fb = new Fireball(this.cfg.id === 'frostbite' ? 'green' : 'red');
+            fb.x = this.x + this.w / 2;
+            fb.y = this.y + this.h / 2;
+            fb.vx = (p1.x < this.x ? -1 : 1) * 3.8;
+            fb.vy = -2.2;
+            fireballs.push(fb);
+          }
+          if (this.cfg.id === 'frostbite') {
+            platforms.forEach(p => { if (p.id !== 'floor' && Math.random() < 0.4) frozenPlatforms.add(p.id); });
+          }
+        }
+
+        // Summon Minions
+        this.minionTimer += 16;
+        if (this.minionTimer > 5200 && enemies.length < 4) {
+          this.minionTimer = 0;
+          const pipe = Math.random() < 0.5 ? pipes[0] : pipes[1];
+          enemies.push(new Enemy(this.cfg.minionType, pipe.x + 20, pipe.y + 10, pipe.dir));
+          sound.playPipeEmerge();
+        }
+
+        // Check collision with players
+        for (const pl of [p1, (coOpPartnerEnabled ? p2 : null)].filter(Boolean)) {
+          if (!pl.dead && pl.invulnerable <= 0) {
+            if (
+              pl.x < this.x + this.w - 8 &&
+              pl.x + pl.w > this.x + 8 &&
+              pl.y < this.y + this.h - 6 &&
+              pl.y + pl.h > this.y + 6
+            ) {
+              playerHit(pl);
+            }
+          }
+        }
+      }
+
+      draw() {
+        if (this.dead) return;
+        ctx.save();
+        ctx.translate(this.x + this.w / 2, this.y + this.h / 2);
+        const pulse = Math.sin(this.animTimer * 2) * 3;
+        const bodyCol = this.flashTimer % 2 === 1 ? '#ffffff' : this.cfg.color;
+
+        // Aura glow
+        ctx.shadowColor = this.cfg.color;
+        ctx.shadowBlur = 18;
+
+        // Armored Chassis
+        ctx.fillStyle = bodyCol;
+        ctx.beginPath();
+        ctx.roundRect(-this.w / 2, -this.h / 2 + pulse * 0.5, this.w, this.h, 14);
+        ctx.fill();
+        ctx.strokeStyle = this.cfg.trim;
+        ctx.lineWidth = 3.5;
+        ctx.stroke();
+
+        // Boss Crown & Horns / Claws
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.moveTo(-22, -this.h / 2 + pulse * 0.5);
+        ctx.lineTo(-14, -this.h / 2 - 16);
+        ctx.lineTo(-4, -this.h / 2 + pulse * 0.5);
+        ctx.lineTo(0, -this.h / 2 - 20);
+        ctx.lineTo(4, -this.h / 2 + pulse * 0.5);
+        ctx.lineTo(14, -this.h / 2 - 16);
+        ctx.lineTo(22, -this.h / 2 + pulse * 0.5);
+        ctx.closePath();
+        ctx.fill();
+
+        // Glowing Cyber Visor Eyes
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(-26, -12, 18, 10);
+        ctx.fillRect(8, -12, 18, 10);
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(-22, -10, 10, 6);
+        ctx.fillRect(12, -10, 10, 6);
+
+        // Mechanical Fangs / Grille
+        ctx.fillStyle = '#ffffff';
+        for (let fx = -20; fx <= 14; fx += 8) {
+          ctx.fillRect(fx, 10, 5, 8);
+        }
+
+        ctx.restore();
+      }
+    }
+
+    function updateBossHUD(boss) {
+      const overlay = document.getElementById('bossHpOverlay');
+      if (!overlay) return;
+      if (!boss || boss.dead || arenaMode !== 3) {
+        overlay.classList.add('hidden');
+        return;
+      }
+      overlay.classList.remove('hidden');
+      const nameEl = document.getElementById('bossNameText');
+      const hpEl = document.getElementById('bossHpText');
+      const fillEl = document.getElementById('bossHpFill');
+      if (nameEl) nameEl.textContent = `${boss.cfg.emoji} ${boss.name}`;
+      if (hpEl) hpEl.textContent = `HP: ${boss.hp} / ${boss.maxHp}`;
+      if (fillEl) fillEl.style.width = `${Math.max(0, (boss.hp / boss.maxHp) * 100)}%`;
+    }
+
+    // Mode 4: Spawn Golden Coin Ring Formations
+    function spawnParkourCoinRing() {
+      const ringCenters = [
+        { cx: 160, cy: 380 },
+        { cx: 640, cy: 380 },
+        { cx: 400, cy: 250 },
+        { cx: 160, cy: 140 },
+        { cx: 640, cy: 140 },
+        { cx: 400, cy: 485 }
+      ];
+      const pick = ringCenters[Math.floor(Math.random() * ringCenters.length)];
+      const radius = 44;
+      for (let i = 0; i < 6; i++) {
+        const ang = (i / 6) * Math.PI * 2;
+        const c = new Coin(pick.cx + Math.cos(ang) * radius - 9, pick.cy + Math.sin(ang) * radius - 9);
+        c.vx = 0;
+        c.vy = 0;
+        c.isRingCoin = true;
+        coins.push(c);
+      }
+    }
+
+    // Mode 2: Roguelike Upgrade Draft Card Overlay (Every 2 Waves)
+    function openPerkDraftModal() {
+      const overlay = document.getElementById('perkDraftOverlay');
+      const container = document.getElementById('perkCardsContainer');
+      if (!overlay || !container) {
+        startPhase(phase + 1);
+        return;
+      }
+      gameState = 'PERK_DRAFT';
+      const shuffled = [...ROGUELIKE_PERKS].sort(() => Math.random() - 0.5);
+      currentDraftChoices = shuffled.slice(0, 3);
+      container.innerHTML = '';
+
+      currentDraftChoices.forEach((perk, idx) => {
+        const owned = activePerks.has(perk.id);
+        const btn = document.createElement('button');
+        btn.className = 'perk-card bg-slate-900/95 border-2 border-cyan-500/50 rounded-2xl p-3.5 flex flex-col items-center gap-1.5 text-center cursor-pointer';
+        btn.innerHTML = `
+          <div class="text-xs font-mono font-bold text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-400/30">KEY [${idx + 1}] ${owned ? '• OVERCLOCK' : '• NEW PERK'}</div>
+          <div class="text-3xl my-0.5">${perk.icon}</div>
+          <div class="text-sm font-black text-white fun-font">${perk.name}</div>
+          <p class="text-[11px] text-slate-300 leading-snug">${perk.desc}</p>
+        `;
+        btn.addEventListener('click', () => selectPerkCard(idx));
+        container.appendChild(btn);
+      });
+
+      overlay.classList.remove('hidden');
+    }
+
+    function selectPerkCard(index) {
+      if (gameState !== 'PERK_DRAFT') return;
+      const chosen = currentDraftChoices[index];
+      if (!chosen) return;
+      activePerks.add(chosen.id);
+      if (chosen.id === 'pow_core') {
+        powCharges = Math.min(3, powCharges + 1);
+        updatePowHUD();
+      }
+      updatePerksHUD();
+      sound.playPerkSelect();
+      addCareerXp(100);
+      const overlay = document.getElementById('perkDraftOverlay');
+      if (overlay) overlay.classList.add('hidden');
+      startPhase(phase + 1);
+    }
+
     function triggerPlatformBump(platform, hitX) {
       platformBumps.push({
         platformId: platform.id,
@@ -2340,7 +3395,6 @@
           const deltaX = (en.x + en.w / 2) - hitX;
           const proximity = 1.0 - Math.min(1.0, Math.abs(deltaX) / 85);
 
-          // Kinetic horizontal impulse transfer based on impact offset
           let impulseX = 0;
           if (Math.abs(deltaX) < 8) {
             impulseX = (Math.random() < 0.5 ? -1 : 1) * (1.2 + Math.random() * 0.8);
@@ -2348,12 +3402,41 @@
             impulseX = Math.sign(deltaX) * (1.6 + (Math.abs(deltaX) / 85) * 2.2);
           }
 
-          // Angular spin velocity (torque) based on hit direction
           const rotSpeed = Math.sign(impulseX) * (0.16 + Math.random() * 0.08);
-
           en.flip(impulseX, rotSpeed);
-          en.vy = -(5.6 + proximity * 2.6); // Explosive vertical launch!
+          en.vy = -(5.6 + proximity * 2.6);
           en.isGrounded = false;
+        }
+      }
+
+      // Mode 3: Damage Boss if standing on this platform above the bump!
+      if (activeBoss && !activeBoss.dead) {
+        const bossCenterX = activeBoss.x + activeBoss.w / 2;
+        if (Math.abs(bossCenterX - hitX) < 105 && Math.abs((activeBoss.y + activeBoss.h) - platform.y) < 28) {
+          activeBoss.takeDamage(20, hitX);
+        }
+      }
+
+      // Mode 6: 2P Versus Coin Battle — Bump rival from below to stun & knock loose coins!
+      if (arenaMode === 6 && subMode2P === 'VERSUS' && coOpPartnerEnabled) {
+        for (const pl of [p1, p2]) {
+          const plCenterX = pl.x + pl.w / 2;
+          if (
+            !pl.dead &&
+            Math.abs(plCenterX - hitX) < 75 &&
+            Math.abs((pl.y + pl.h) - platform.y) < 20
+          ) {
+            pl.vy = -8.5;
+            pl.isGrounded = false;
+            pl.stunTimer = 2200;
+            sound.playFlip(0);
+            spawnComicStarburst(plCenterX, pl.y, 'STUNNED!');
+            const dropCount = Math.min(pl.versusCoins, 4);
+            pl.versusCoins -= dropCount;
+            for (let k = 0; k < Math.max(2, dropCount); k++) {
+              coins.push(new Coin(plCenterX + (Math.random() - 0.5) * 30, pl.y - 12));
+            }
+          }
         }
       }
 
@@ -2397,6 +3480,10 @@
           en.vy = -(6.2 + Math.random() * 1.8);
           en.isGrounded = false;
         }
+      }
+
+      if (activeBoss && !activeBoss.dead) {
+        activeBoss.takeDamage(18, powCenterX);
       }
     }
 
@@ -2505,15 +3592,59 @@
       }, duration);
     }
 
+    function selectArenaMode(modeNum) {
+      arenaMode = modeNum;
+      document.querySelectorAll('#arenaModeBar .arena-mode-pill').forEach(btn => {
+        const m = parseInt(btn.getAttribute('data-arena-mode'), 10);
+        btn.classList.toggle('active-mode', m === arenaMode);
+      });
+      const btn2PSub = document.getElementById('btn2PSubMode');
+      if (btn2PSub) btn2PSub.classList.toggle('hidden', arenaMode !== 6);
+      const perkDraftOverlay = document.getElementById('perkDraftOverlay');
+      if (perkDraftOverlay) perkDraftOverlay.classList.add('hidden');
+
+      if (arenaMode === 6) {
+        setGameMode('2P');
+        p1.versusCoins = 0;
+        p1.versusKOs = 0;
+        p2.versusCoins = 0;
+        p2.versusKOs = 0;
+      } else if (arenaMode === 1) {
+        applyBiomeTopology(0);
+      } else if (arenaMode === 5) {
+        applyBiomeTopology((currentBiomeIndex + 1) % BIOME_WORLDS.length);
+      } else if (arenaMode === 4) {
+        applyBiomeTopology(2); // Conveyor & Springboard Parkour Arena
+        blitzTimeRemainingMs = 90000;
+        blitzMultiplier = 1;
+      }
+      startPhase(1);
+    }
+
     function startPhase(targetPhase) {
       phase = targetPhase;
-      phaseVal.textContent = `PHASE ${String(phase).padStart(2, '0')}`;
+      const modePrefix = ['CLASSIC', 'GAUNTLET', 'BOSS', '90S BLITZ', 'BIOME', '2P ARENA'][arenaMode - 1] || 'PHASE';
+      phaseVal.textContent = `${modePrefix} ${String(phase).padStart(2, '0')}`;
       
       enemies = [];
       coins = [];
       fireballs = [];
+      playerFireballs = [];
       fireballTimer = 0;
-      frozenPlatforms.clear();
+      activeBoss = null;
+      updateBossHUD(null);
+
+      // Select Biome Topology based on Mode
+      if (arenaMode === 1) {
+        applyBiomeTopology(0);
+      } else if (arenaMode === 2 || arenaMode === 5) {
+        applyBiomeTopology((phase - 1) % BIOME_WORLDS.length);
+      } else if (arenaMode === 3) {
+        applyBiomeTopology(1); // Pyramid Citadel for Boss Rush
+      } else if (arenaMode === 4) {
+        applyBiomeTopology(2); // Conveyor Factory + Springboards for Parkour Blitz
+      }
+
       platformBumps = [];
       brickDebris = [];
       shockwaves = [];
@@ -2528,12 +3659,30 @@
       screenShake = 0;
       chromaticAberration = 0;
 
-      isBonusPhase = (phase % 3 === 0);
+      // Self-Charging POW Core Perk
+      if (activePerks.has('pow_core')) {
+        powCharges = Math.min(3, powCharges + 1);
+        updatePowHUD();
+      } else if (phase % 3 === 1) {
+        powCharges = 3;
+        updatePowHUD();
+      }
 
-      if (isBonusPhase) {
+      isBonusPhase = (arenaMode === 1 && phase % 3 === 0);
+
+      if (arenaMode === 3) {
+        // Mode 3: Boss Rush Colosseum
         enemiesRemainingInWave = 0;
-        bonusRoundTimer = 1100; // ~18 seconds Coin Mania!
-        // Spawn 14 golden coins across upper sewer platforms
+        activeBoss = new Boss(phase - 1);
+      } else if (arenaMode === 4) {
+        // Mode 4: 90s Parkour Coin Blitz
+        enemiesRemainingInWave = 2;
+        if (phase === 1) blitzTimeRemainingMs = 90000;
+        spawnParkourCoinRing();
+        spawnParkourCoinRing();
+      } else if (isBonusPhase) {
+        enemiesRemainingInWave = 0;
+        bonusRoundTimer = 1100;
         for (const p of platforms) {
           if (p.id === 'floor') continue;
           for (let bx = p.x + 35; bx < p.x + p.w - 20; bx += 65) {
@@ -2546,11 +3695,9 @@
         const totalFlies = phase >= 4 ? Math.min(6, phase - 2) : 0;
         const totalFreezies = phase >= 3 ? Math.min(3, Math.floor(phase / 2)) : 0;
         enemiesRemainingInWave = totalTurtles + totalCrabs + totalFlies + totalFreezies;
-      }
-
-      if (phase % 3 === 1) {
-        powCharges = 3;
-        updatePowHUD();
+        if (arenaMode === 6 && subMode2P === 'VERSUS') {
+          spawnParkourCoinRing();
+        }
       }
 
       p1.resetPosition();
@@ -2560,7 +3707,7 @@
 
       gameState = 'PLAYING';
       const initialSpawnInterval = Math.max(1800, 3200 - (phase - 1) * 250);
-      waveSpawnTimer = Math.max(0, initialSpawnInterval - 450); // First enemy emerges within 450ms!
+      waveSpawnTimer = Math.max(0, initialSpawnInterval - 450);
       sound.setHurryUp(false);
 
       sound.init();
@@ -2568,10 +3715,18 @@
       sound.playPhaseStart();
       sound.startBGM();
 
-      if (isBonusPhase) {
+      if (arenaMode === 3 && activeBoss) {
+        showBanner(`👑 ${activeBoss.name}`, 'BUMP FLOOR OR BLAST WITH [F] / [E]!', 2400);
+      } else if (arenaMode === 4) {
+        showBanner('⏱️ 90s COIN BLITZ', 'COLLECT GOLDEN RINGS & CHAIN x10 COMBOS!', 2200);
+      } else if (arenaMode === 5) {
+        showBanner(`🌍 ${BIOME_WORLDS[currentBiomeIndex].name.toUpperCase()}`, 'SPRINGBOARDS, CONVEYORS & MOVING LEDGES!', 2200);
+      } else if (arenaMode === 6) {
+        showBanner(subMode2P === 'VERSUS' ? '⚔️ 2P VERSUS BATTLE' : '🤝 2P CO-OP CAMPAIGN', subMode2P === 'VERSUS' ? 'FIRST TO 50 COINS OR 3 KOs WINS THE CROWN!' : 'TEAM UP TO CLEAR THE SEWER!', 2400);
+      } else if (isBonusPhase) {
         showBanner(`PHASE ${phase} - BONUS ROUND`, 'COIN MANIA! GRAB ALL COINS!', 2400);
       } else {
-        showBanner(`PHASE ${phase}`, 'BUMP & KICK PESTS!');
+        showBanner(`${modePrefix} ${phase}`, 'BUMP & KICK PESTS!');
       }
       endGameOverlay.classList.add('hidden');
       pauseOverlay.classList.add('hidden');
@@ -2597,7 +3752,6 @@
       enemies.push(en);
       enemiesRemainingInWave--;
 
-      // Volumetric steam release puff from pipe
       spawnSteamPuff(pipe.x + (pipe.dir === 1 ? 50 : 20), pipe.y + 20, pipe.dir);
       spawnDust(pipe.x + (pipe.dir === 1 ? 50 : 20), pipe.y + 20, 10, 'rgba(255,255,255,0.7)');
       sound.playPipeEmerge();
@@ -2617,12 +3771,12 @@
           player.y + player.h > en.y
         ) {
           if (en.state === 'FLIPPED') {
-            player.kickTimer = 220; // Trigger kicking pose
+            player.kickTimer = 220;
             en.kick(player.x);
             totalEnemiesKicked++;
             comboCount++;
+            addCareerXp(50 * comboCount);
 
-            // Hit-stop impact, Chromatic Split & Comic Starburst FX
             hitStop = 3;
             screenShake = Math.max(screenShake, 5);
             chromaticAberration = Math.max(chromaticAberration, comboCount >= 2 ? 8 : 4);
@@ -2668,11 +3822,11 @@
           const e1 = enemies[i];
           const e2 = enemies[j];
 
-          // 1. Kicked shell chain reaction impact
           if (e1.state === 'KICKED' && e2.state !== 'KICKED') {
             if (Math.abs(e1.y - e2.y) < 26 && e1.x < e2.x + e2.w && e1.x + e1.w > e2.x) {
               e2.kick(e1.x);
               addScore(800, e2.x, e2.y);
+              addCareerXp(60);
               totalEnemiesKicked++;
               const pan = (e2.x - VW / 2) / (VW / 2);
               sound.playKick(pan);
@@ -2687,6 +3841,7 @@
             if (Math.abs(e1.y - e2.y) < 26 && e1.x < e2.x + e2.w && e1.x + e1.w > e2.x) {
               e1.kick(e2.x);
               addScore(800, e1.x, e1.y);
+              addCareerXp(60);
               totalEnemiesKicked++;
               const pan = (e1.x - VW / 2) / (VW / 2);
               sound.playKick(pan);
@@ -2700,9 +3855,7 @@
 
           if (e1.state === 'KICKED' || e2.state === 'KICKED') continue;
 
-          // Check if enemies are on the same vertical tier / platform
           if (Math.abs(e1.y - e2.y) < 24) {
-            // Check horizontal bounding box overlap
             if (e1.x < e2.x + e2.w && e1.x + e1.w > e2.x) {
               const left = e1.x <= e2.x ? e1 : e2;
               const right = left === e1 ? e2 : e1;
@@ -2713,18 +3866,15 @@
                 const midY = (left.y + right.y) / 2 + 10;
                 const pan = (midX - VW / 2) / (VW / 2);
 
-                // Both enemies active (WALKING or ENRAGED)
                 if (left.state !== 'FLIPPED' && right.state !== 'FLIPPED') {
                   const push = overlap / 2 + 1.2;
                   left.x -= push;
                   right.x += push;
-                  // Reverse directions: bounce back off each other!
                   left.dir = -1;
                   right.dir = 1;
                   left.vx = left.dir * left.speed;
                   right.vx = right.dir * right.speed;
 
-                  // Dynamic squash & stretch + startled reaction
                   left.squashX = 0.65;
                   left.squashY = 1.35;
                   left.startleTimer = 22;
@@ -2736,7 +3886,6 @@
                   sound.playEnemyBonk(pan);
                   spawnDust(midX, midY, 6, '#cbd5e1');
                 }
-                // Left active, Right flipped on its back
                 else if (left.state !== 'FLIPPED' && right.state === 'FLIPPED') {
                   left.dir = -1;
                   left.x = right.x - left.w - 2;
@@ -2749,7 +3898,6 @@
                   sound.playEnemyBonk(pan);
                   spawnDust(midX, midY, 4, '#cbd5e1');
                 }
-                // Right active, Left flipped on its back
                 else if (right.state !== 'FLIPPED' && left.state === 'FLIPPED') {
                   right.dir = 1;
                   right.x = left.x + left.w + 2;
@@ -2762,7 +3910,6 @@
                   sound.playEnemyBonk(pan);
                   spawnDust(midX, midY, 4, '#cbd5e1');
                 }
-                // Both flipped
                 else {
                   left.x -= overlap / 2 + 0.5;
                   right.x += overlap / 2 + 0.5;
@@ -2781,7 +3928,15 @@
       sound.playFlip(pan);
       spawnDust(player.x + player.w / 2, player.y + player.h / 2, 22, '#ef4444');
 
-      if (player.isP1) {
+      if (arenaMode === 6 && subMode2P === 'VERSUS') {
+        const other = player.isP1 ? p2 : p1;
+        other.versusKOs++;
+        spawnComicStarburst(player.x + player.w / 2, player.y, 'KO!');
+        if (other.versusKOs >= 3 || other.versusCoins >= 50) {
+          triggerVersusVictory(other.isP1 ? 'PLAYER 1 (WASD)' : 'PLAYER 2 (ARROWS)');
+          return;
+        }
+      } else if (player.isP1) {
         lives--;
         updateLivesHUD();
 
@@ -2799,6 +3954,24 @@
       }, 1200);
     }
 
+    function triggerVersusVictory(winnerName) {
+      gameState = 'STAGE_CLEAR';
+      sound.stopBGM();
+      sound.playVictory();
+      addCareerXp(300);
+      document.getElementById('endGameEmoji').textContent = '👑';
+      document.getElementById('endGameTitle').textContent = `${winnerName} WINS!`;
+      document.getElementById('endGameTitle').className = 'text-2xl sm:text-3xl font-black text-amber-400 fun-font';
+      document.getElementById('endGameDesc').textContent = `P1: ${p1.versusCoins} Coins (${p1.versusKOs} KOs) • P2: ${p2.versusCoins} Coins (${p2.versusKOs} KOs)`;
+      document.getElementById('endScore').textContent = score;
+      document.getElementById('endPhase').textContent = phase;
+      document.getElementById('endEnemies').textContent = `${p1.versusKOs + p2.versusKOs} KOs`;
+      document.getElementById('btnNextOrRetry').textContent = 'REMATCH (SPACE)';
+      setTimeout(() => {
+        endGameOverlay.classList.remove('hidden');
+      }, 600);
+    }
+
     function updateLivesHUD() {
       livesContainer.innerHTML = '';
       for (let i = 0; i < lives; i++) {
@@ -2809,6 +3982,15 @@
     }
 
     function triggerPhaseClear() {
+      addCareerXp(150);
+
+      // Mode 2: Roguelike Endless Gauntlet triggers Perk Draft every 2 waves!
+      if (arenaMode === 2 && phase % 2 === 0) {
+        sound.playVictory();
+        openPerkDraftModal();
+        return;
+      }
+
       gameState = 'STAGE_CLEAR';
       sound.stopBGM();
       sound.playVictory();
@@ -2833,7 +4015,7 @@
       document.getElementById('endScore').textContent = score;
       document.getElementById('endPhase').textContent = phase;
       document.getElementById('endEnemies').textContent = totalEnemiesKicked;
-      document.getElementById('btnNextOrRetry').textContent = 'NEXT PHASE';
+      document.getElementById('btnNextOrRetry').textContent = 'NEXT PHASE (SPACE)';
 
       setTimeout(() => {
         endGameOverlay.classList.remove('hidden');
@@ -2923,6 +4105,23 @@
 
       if (e.code === 'KeyP') togglePause();
       if (e.code === 'KeyM') toggleMute();
+      if (e.code === 'KeyB') toggleMusicOnly();
+      if (e.code === 'KeyR') startPhase(phase);
+      if (e.code === 'KeyC') {
+        const crtBtn = document.getElementById('btnCrtToggle');
+        if (crtBtn) crtBtn.click();
+      }
+      if (e.code === 'KeyU') openSuitLockerModal();
+
+      // [1-6] Keys: Draft Roguelike Perk if in PERK_DRAFT, otherwise switch Game Mode 1-6!
+      if (e.code >= 'Digit1' && e.code <= 'Digit6') {
+        const num = parseInt(e.code.replace('Digit', ''), 10);
+        if (gameState === 'PERK_DRAFT' && num >= 1 && num <= 3) {
+          selectPerkCard(num - 1);
+        } else {
+          selectArenaMode(num);
+        }
+      }
     });
 
     window.addEventListener('keyup', (e) => {
@@ -2954,12 +4153,115 @@
     bindTouchKey('touchLeft', 'ArrowLeft');
     bindTouchKey('touchRight', 'ArrowRight');
     bindTouchKey('touchJump', 'Space');
+    bindTouchKey('touchFire', 'KeyF');
+    bindTouchKey('touchDash', 'ShiftLeft');
 
     document.getElementById('touchPow').addEventListener('click', () => {
       sound.init();
       sound.resume();
       activatePowShockwave();
     });
+
+    function toggleMusicOnly() {
+      sound.init();
+      sound.resume();
+      sound.musicEnabled = !sound.musicEnabled;
+      const musicTxt = document.getElementById('musicStateText');
+      if (musicTxt) musicTxt.textContent = sound.musicEnabled ? 'ON' : 'OFF';
+      const toggleMusChk = document.getElementById('toggleMusic');
+      if (toggleMusChk) toggleMusChk.checked = sound.musicEnabled;
+      if (!sound.musicEnabled) sound.stopBGM();
+      else sound.startBGM();
+    }
+
+    const btnMusicToggle = document.getElementById('btnMusicToggle');
+    if (btnMusicToggle) btnMusicToggle.addEventListener('click', toggleMusicOnly);
+
+    // Top HUD 6-Mode Selector Bar Bindings
+    document.querySelectorAll('#arenaModeBar .arena-mode-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const m = parseInt(btn.getAttribute('data-arena-mode'), 10);
+        if (m >= 1 && m <= 6) selectArenaMode(m);
+      });
+    });
+
+    // Biome Cycler Button
+    const btnBiomeCycle = document.getElementById('btnBiomeCycle');
+    if (btnBiomeCycle) {
+      btnBiomeCycle.addEventListener('click', () => {
+        applyBiomeTopology((currentBiomeIndex + 1) % BIOME_WORLDS.length);
+        showBanner(`🌍 ${BIOME_WORLDS[currentBiomeIndex].name.toUpperCase()}`, 'BIOME TOPOLOGY UPDATED!', 1500);
+      });
+    }
+
+    // 2P Sub-Mode Toggle (Co-Op Campaign vs Versus Coin Battle)
+    const btn2PSubMode = document.getElementById('btn2PSubMode');
+    if (btn2PSubMode) {
+      btn2PSubMode.addEventListener('click', () => {
+        subMode2P = subMode2P === 'VERSUS' ? 'COOP' : 'VERSUS';
+        const txt = document.getElementById('subMode2PText');
+        if (txt) txt.textContent = subMode2P === 'VERSUS' ? 'VERSUS BATTLE' : 'CO-OP CAMPAIGN';
+        p1.versusCoins = 0;
+        p1.versusKOs = 0;
+        p2.versusCoins = 0;
+        p2.versusKOs = 0;
+        startPhase(1);
+      });
+    }
+
+    // Hero Suit & Career Locker Modal
+    const suitLockerModal = document.getElementById('suitLockerModal');
+    function renderSuitLockerGrid() {
+      const grid = document.getElementById('suitGridContainer');
+      if (!grid) return;
+      grid.innerHTML = '';
+      updateCareerHUD();
+      HERO_SUITS.forEach(s => {
+        const isEquipped = s.id === selectedSuitId;
+        const unlocked = careerXp >= s.unlockXp;
+        const card = document.createElement('button');
+        card.className = `p-3 rounded-2xl border text-left transition flex flex-col gap-1.5 cursor-pointer ${
+          isEquipped
+            ? 'bg-amber-500/15 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+            : 'bg-slate-950/90 border-slate-800 hover:border-cyan-400/60'
+        }`;
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+              <span class="w-4 h-4 rounded-full inline-block border border-white/40" style="background:${s.cap}"></span>
+              <span class="w-4 h-4 rounded-full inline-block border border-white/40" style="background:${s.suit}"></span>
+            </div>
+            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded ${isEquipped ? 'bg-amber-400 text-slate-950 font-black' : (unlocked ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400')}">
+              ${isEquipped ? 'EQUIPPED' : (unlocked ? 'UNLOCKED' : `${s.unlockXp} XP`)}
+            </span>
+          </div>
+          <div class="text-xs font-extrabold text-white">${s.name}</div>
+        `;
+        card.addEventListener('click', () => {
+          selectedSuitId = s.id;
+          localStorage.setItem('codecaine_bros_suit', selectedSuitId);
+          sound.playPerkSelect();
+          renderSuitLockerGrid();
+        });
+        grid.appendChild(card);
+      });
+    }
+
+    function openSuitLockerModal() {
+      if (!suitLockerModal) return;
+      if (gameState === 'PLAYING') togglePause();
+      renderSuitLockerGrid();
+      suitLockerModal.classList.remove('hidden');
+    }
+
+    const btnSuitLocker = document.getElementById('btnSuitLocker');
+    if (btnSuitLocker) btnSuitLocker.addEventListener('click', openSuitLockerModal);
+    const btnCloseSuitLocker = document.getElementById('btnCloseSuitLocker');
+    if (btnCloseSuitLocker) {
+      btnCloseSuitLocker.addEventListener('click', () => {
+        suitLockerModal.classList.add('hidden');
+      });
+    }
 
     function togglePause() {
       sound.init();
@@ -3007,6 +4309,10 @@
       score = 0;
       lives = 3;
       speedrunTimerMs = 0;
+      p1.versusCoins = 0;
+      p1.versusKOs = 0;
+      p2.versusCoins = 0;
+      p2.versusKOs = 0;
       updateLivesHUD();
       scoreVal.textContent = '000000';
       startPhase(1);
@@ -3094,12 +4400,50 @@
       }
 
       if (gameState === 'PLAYING') {
+        // Update Moving Platforms (Mode 5 / Orbital Sewer)
+        for (const p of platforms) {
+          if (p.moving && p.baseX !== undefined) {
+            p.x = p.baseX + Math.sin(Date.now() * (p.moveSpeed || 0.02)) * (p.moveRange || 50);
+          }
+        }
+
+        // Update Springboard recovery
+        for (const sp of springboards) {
+          if (sp.compression > 0) sp.compression *= 0.8;
+          if (sp.compression < 0.3) sp.compression = 0;
+        }
+
         p1.update(keys, false);
         checkPlayerEnemyCollisions(p1);
 
         if (coOpPartnerEnabled) {
           p2.update(keys, gameMode === 'AI');
           checkPlayerEnemyCollisions(p2);
+
+          // Mode 6: 2P Versus Stomp KO check on stunned rival
+          if (arenaMode === 6 && subMode2P === 'VERSUS' && !p1.dead && !p2.dead) {
+            if (Math.abs(p1.x - p2.x) < 26 && Math.abs(p1.y - p2.y) < 30) {
+              if (p2.stunTimer > 0 && p1.stunTimer <= 0) {
+                p2.stunTimer = 0;
+                playerHit(p2);
+              } else if (p1.stunTimer > 0 && p2.stunTimer <= 0) {
+                p1.stunTimer = 0;
+                playerHit(p1);
+              }
+            }
+          }
+        }
+
+        // Update Player Hand-Thrown Plasma Fireballs
+        for (let i = playerFireballs.length - 1; i >= 0; i--) {
+          const pfb = playerFireballs[i];
+          pfb.update();
+          if (!pfb.alive) playerFireballs.splice(i, 1);
+        }
+
+        // Update Boss in Mode 3
+        if (activeBoss && !activeBoss.dead) {
+          activeBoss.update();
         }
 
         waveSpawnTimer += 16;
@@ -3134,7 +4478,6 @@
           const en = enemies[i];
           en.update();
 
-          // Plunge into sewer water splash check
           if (en.state === 'KICKED' && en.y >= 545 && !en.splashed) {
             en.splashed = true;
             spawnWaterSplash(en.x + en.w / 2, 555);
@@ -3149,8 +4492,22 @@
 
         checkEnemyEnemyCollisions();
 
-        // Bonus Coin Round & Phase Clear checking
-        if (isBonusPhase) {
+        // Mode 4: 90s Parkour Coin Blitz Ring Respawn & Timer Check
+        if (arenaMode === 4) {
+          if (coins.length === 0) {
+            blitzMultiplier = Math.min(10, blitzMultiplier + 1);
+            comboBadge.textContent = `BLITZ x${blitzMultiplier}!`;
+            comboBadge.classList.remove('hidden');
+            addScore(1000 * blitzMultiplier, VW / 2, 240);
+            addCareerXp(80);
+            spawnParkourCoinRing();
+          }
+          if (blitzTimeRemainingMs <= 0) {
+            triggerPhaseClear();
+          }
+        } else if (arenaMode === 3) {
+          // Mode 3 cleared when Boss HP hits 0 (handled inside Boss.takeDamage)
+        } else if (isBonusPhase) {
           bonusRoundTimer--;
           if (coins.length === 0) {
             addScore(5000, VW / 2, 220);
@@ -3165,22 +4522,45 @@
 
         for (let i = coins.length - 1; i >= 0; i--) {
           const c = coins[i];
-          c.update();
+          if (!c.isRingCoin) c.update();
+          else c.timer += 0.22;
 
-          const distP1 = Math.hypot(p1.x - c.x, p1.y - c.y);
-          const distP2 = coOpPartnerEnabled ? Math.hypot(p2.x - c.x, p2.y - c.y) : 9999;
+          // Quantum Coin Magnet Perk (pulls coins across screen toward P1!)
+          if (activePerks.has('coin_magnet') && !p1.dead) {
+            const dx = (p1.x + p1.w / 2) - c.x;
+            const dy = (p1.y + p1.h / 2) - c.y;
+            const d = Math.hypot(dx, dy);
+            if (d > 5 && d < 360) {
+              c.x += (dx / d) * 5.2;
+              c.y += (dy / d) * 5.2;
+            }
+          }
+
+          const distP1 = Math.hypot((p1.x + 6) - c.x, (p1.y + 8) - c.y);
+          const distP2 = coOpPartnerEnabled ? Math.hypot((p2.x + 6) - c.x, (p2.y + 8) - c.y) : 9999;
 
           if (distP1 < 28 || distP2 < 28) {
             const pan = (c.x - VW / 2) / (VW / 2);
             coinComboCount++;
-            coinComboTimer = 75; // ~1.2s combo window
+            coinComboTimer = 75;
             sound.playCoin(coinComboCount - 1, pan);
-            const coinPts = 500 + Math.min(2500, (coinComboCount - 1) * 250);
+            const mult = arenaMode === 4 ? blitzMultiplier : 1;
+            const coinPts = (500 + Math.min(2500, (coinComboCount - 1) * 250)) * mult;
             addScore(coinPts, c.x, c.y);
+            addCareerXp(25);
+            if (arenaMode === 6 && subMode2P === 'VERSUS') {
+              const grabber = distP1 <= distP2 ? p1 : p2;
+              grabber.versusCoins++;
+              if (grabber.versusCoins >= 50) {
+                triggerVersusVictory(grabber.isP1 ? 'PLAYER 1 (WASD)' : 'PLAYER 2 (ARROWS)');
+              } else if (coins.length <= 1) {
+                spawnParkourCoinRing();
+              }
+            }
             spawnDust(c.x + c.w / 2, c.y + c.h / 2, 8, '#fbbf24');
             spawnSparkles(c.x + c.w / 2, c.y + c.h / 2, '#fde047', 6);
             coins.splice(i, 1);
-          } else if (c.y >= 545 && !c.splashed) {
+          } else if (!c.isRingCoin && c.y >= 545 && !c.splashed) {
             c.splashed = true;
             spawnWaterSplash(c.x + c.w / 2, 555);
             addWaterRipple(c.x + c.w / 2, 555, 6);
@@ -3530,6 +4910,40 @@
           ctx.stroke();
         }
 
+        // Conveyor Belt Animated Chevrons
+        if (p.conveyor) {
+          ctx.fillStyle = '#fde047';
+          ctx.font = 'bold 9px monospace';
+          const dirSym = p.conveyor > 0 ? '>>>' : '<<<';
+          const shift = ((Date.now() * 0.04 * Math.sign(p.conveyor)) % 40 + 40) % 40;
+          for (let cx = p.x + 12 + shift; cx < p.x + p.w - 24; cx += 48) {
+            ctx.fillText(dirSym, cx, p.y + 12);
+          }
+        }
+
+        ctx.restore();
+      }
+
+      // Draw Springboard Trampolines
+      for (const sp of springboards) {
+        ctx.save();
+        const comp = sp.compression || 0;
+        // Base pad
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(sp.x + 4, sp.y + sp.h - 4, sp.w - 8, 4);
+        // Zig-zag coil
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(sp.x + 8, sp.y + sp.h - 4);
+        ctx.lineTo(sp.x + sp.w - 8, sp.y + sp.h - 10 + comp * 0.4);
+        ctx.lineTo(sp.x + 8, sp.y + 4 + comp);
+        ctx.stroke();
+        // Top neon bounce cap
+        ctx.fillStyle = '#10b981';
+        ctx.shadowColor = '#34d399';
+        ctx.shadowBlur = 8;
+        ctx.fillRect(sp.x, sp.y + comp, sp.w, 6);
         ctx.restore();
       }
 
@@ -3678,8 +5092,12 @@
       // Draw Enemies
       for (const en of enemies) en.draw();
 
-      // Draw Fireballs
+      // Draw Boss (Mode 3: Boss Rush Colosseum)
+      if (activeBoss && !activeBoss.dead) activeBoss.draw();
+
+      // Draw Hazard Fireballs & Player Hand-Thrown Plasma Fireballs
       for (const fb of fireballs) fb.draw();
+      for (const pfb of playerFireballs) pfb.draw();
 
       // Draw Player Speed Ghost Trails
       for (const pg of playerGhosts) {
@@ -3834,13 +5252,24 @@
 
       try {
         if (gameState === 'PLAYING') {
-          speedrunTimerMs += rawDt;
-          const mins = Math.floor(speedrunTimerMs / 60000);
-          const secs = Math.floor((speedrunTimerMs % 60000) / 1000);
-          const ms = Math.floor((speedrunTimerMs % 1000) / 100);
-          const timerEl = document.getElementById('timerVal');
-          if (timerEl) {
-             timerEl.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${ms}`;
+          if (arenaMode === 4) {
+            blitzTimeRemainingMs = Math.max(0, blitzTimeRemainingMs - rawDt);
+            const mins = Math.floor(blitzTimeRemainingMs / 60000);
+            const secs = Math.floor((blitzTimeRemainingMs % 60000) / 1000);
+            const ms = Math.floor((blitzTimeRemainingMs % 1000) / 100);
+            const timerEl = document.getElementById('timerVal');
+            if (timerEl) {
+              timerEl.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${ms}`;
+            }
+          } else {
+            speedrunTimerMs += rawDt;
+            const mins = Math.floor(speedrunTimerMs / 60000);
+            const secs = Math.floor((speedrunTimerMs % 60000) / 1000);
+            const ms = Math.floor((speedrunTimerMs % 1000) / 100);
+            const timerEl = document.getElementById('timerVal');
+            if (timerEl) {
+               timerEl.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${ms}`;
+            }
           }
         }
         let steps = 0;
@@ -3864,6 +5293,8 @@
         if (highScoreVal) highScoreVal.textContent = String(highScore).padStart(6, '0');
         updateLivesHUD();
         updatePowHUD();
+        updateCareerHUD();
+        updatePerksHUD();
 
         const btnCrtToggle = document.getElementById('btnCrtToggle');
         const crtStateText = document.getElementById('crtStateText');

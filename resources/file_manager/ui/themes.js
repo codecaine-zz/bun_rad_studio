@@ -767,13 +767,17 @@ export function applyUiImmersionProfiles(overrides = {}) {
   const root = document.documentElement;
   const isPreview = root.dataset.palette === "preview";
   const s = { ...(state.settings ?? {}), ...overrides };
-  const themeElFx = root.getAttribute("data-fx-element") || "";
-  const themeIconPack = root.getAttribute("data-fx-icon-pack") || "";
-  const themeFontProf = root.getAttribute("data-fx-font-profile") || "";
-  const themeCornerProf = root.getAttribute("data-fx-corner-profile") || "";
-  const themeIconGlow = root.getAttribute("data-fx-icon-glow") || "";
-  const themeIconAnim = root.getAttribute("data-fx-icon-anim") || "";
-  const themeScreenFilter = root.getAttribute("data-fx-screen-filter") || "";
+  const fxLockedOff = !isPreview && Boolean(s.themeFxOff);
+  if (fxLockedOff) {
+    clearEffects();
+  }
+  const themeElFx = fxLockedOff ? "" : (root.getAttribute("data-fx-element") || "");
+  const themeIconPack = fxLockedOff ? "" : (root.getAttribute("data-fx-icon-pack") || "");
+  const themeFontProf = fxLockedOff ? "" : (root.getAttribute("data-fx-font-profile") || "");
+  const themeCornerProf = fxLockedOff ? "" : (root.getAttribute("data-fx-corner-profile") || "");
+  const themeIconGlow = fxLockedOff ? "" : (root.getAttribute("data-fx-icon-glow") || "");
+  const themeIconAnim = fxLockedOff ? "" : (root.getAttribute("data-fx-icon-anim") || "");
+  const themeScreenFilter = fxLockedOff ? "" : (root.getAttribute("data-fx-screen-filter") || "");
 
   const explicitUiFx = overrides && Object.prototype.hasOwnProperty.call(overrides, "uiElementFx");
   const rawUiFx = explicitUiFx ? overrides.uiElementFx : (isPreview ? "auto" : (s.uiElementFx || "auto"));
@@ -835,7 +839,7 @@ export function applyUiImmersionProfiles(overrides = {}) {
 
   // Sync Holiday Celebration Crest & Garland state when a `holiday_*` theme is active
   const activePaletteKey = root.dataset.palette || "";
-  const holidaySpec = resolveHolidayCrestForPalette(activePaletteKey);
+  const holidaySpec = fxLockedOff ? null : resolveHolidayCrestForPalette(activePaletteKey);
   if (holidaySpec) {
     root.dataset.holidayTheme = "active";
     root.dataset.holidayCrest = holidaySpec.crest;
@@ -1314,6 +1318,11 @@ function applySuppressedFxToDom(root) {
   }
 }
 
+function isThemeFxLockedOff(key) {
+  if (key === "preview") return false;
+  return Boolean(state.settings?.themeFxOff) || Boolean(plainStaticLockKey && key && plainStaticLockKey === key);
+}
+
 /** Puts a theme's color variables on the page. `key` marks which saved theme it is ("preview" while editing). */
 export function paint(theme, key) {
   if (key && key !== "preview" && suppressedFxForKey && suppressedFxForKey !== key) {
@@ -1333,11 +1342,16 @@ export function paint(theme, key) {
   root.dataset.palette = key;
   wanted = key;
 
+  const fxLockedOff = isThemeFxLockedOff(key);
+  if (fxLockedOff && key && key !== "preview") {
+    plainStaticLockKey = key;
+  }
+
   const activeKeptSnap = (keepCurrentEffectsLock && lockedEffectsSnapshot)
     ? lockedEffectsSnapshot
     : (keptEffectsForKey !== null && keptEffectsForKey === key && keptEffectsSnapshot ? keptEffectsSnapshot : null);
 
-  if (activeKeptSnap && !(plainStaticLockKey && plainStaticLockKey === key)) {
+  if (activeKeptSnap && !fxLockedOff) {
     const accentHex = theme.vars?.accent || "#38bdf8";
     const secondaryHex = theme.vars?.selected || theme.vars?.accent || "#a855f7";
     if (activeKeptSnap.fxCss) {
@@ -1371,7 +1385,7 @@ export function paint(theme, key) {
       if (activeKeptSnap.desktopWallpaperScene) state.settings.desktopWallpaperScene = activeKeptSnap.desktopWallpaperScene;
       if (activeKeptSnap.uiSoundProfile) state.settings.uiSoundProfile = activeKeptSnap.uiSoundProfile;
     }
-  } else if (theme.effects && !(plainStaticLockKey && plainStaticLockKey === key)) {
+  } else if (theme.effects && !fxLockedOff) {
     const style = document.createElement("style");
     style.id = "fm-theme-effects";
     const nonce = document.querySelector('meta[name="fm-nonce"]')?.content;
@@ -1406,7 +1420,7 @@ export function paint(theme, key) {
     lastPaintedKey = key;
   }
   applyUiImmersionProfiles(
-    key && key === suppressedFxForKey && suppressedFxKinds.has("uiElementFx")
+    fxLockedOff || (key && key === suppressedFxForKey && suppressedFxKinds.has("uiElementFx"))
       ? { uiElementFx: "off" }
       : undefined,
   );
@@ -2446,8 +2460,11 @@ export async function applyJumpstartKit(kitId) {
   const kit = JUMPSTART_WORKSTATION_KITS.find((k) => k.id === kitId);
   if (!kit) return null;
   pushThemeHistorySnapshot();
+  plainStaticLockKey = null;
+  if (state.settings) state.settings.themeFxOff = false;
   const patch = {
     palette: kit.palette,
+    themeFxOff: false,
     uiElementFx: kit.uiElementFx,
     iconPackStyle: kit.iconPackStyle,
     themeFontProfile: kit.themeFontProfile,
@@ -2612,6 +2629,7 @@ export async function applyHolidayCelebrationTheme(holidayKey, opts = {}) {
   await applyPalette(target.key);
   const patch = {
     palette: target.key,
+    themeFxOff: false,
     uiElementFx: "holiday_festive_glow",
     iconPackStyle: "us_holidays_festive",
     themeIconAnimation: target.anim,
@@ -2802,6 +2820,7 @@ function buildLookHistorySignature(snap) {
   if (!snap || typeof snap !== "object") return "";
   return [
     snap.palette || "",
+    snap.themeFxOff ? "1" : "0",
     snap.uiElementFx || "off",
     snap.iconPackStyle || "default",
     snap.iconFinishMode || "off",
@@ -2833,6 +2852,7 @@ export function captureCurrentLookHistoryEntry(labelOverride = "") {
     : (s.palette || "");
   const entry = {
     palette,
+    themeFxOff: Boolean(s.themeFxOff),
     uiElementFx: s.uiElementFx || root?.dataset?.uiFx || "off",
     iconPackStyle: s.iconPackStyle || root?.dataset?.iconPack || "default",
     iconFinishMode: s.iconFinishMode || root?.dataset?.iconFinish || "off",
@@ -2913,8 +2933,11 @@ export async function applyThemeHistorySnapshot(snap, opts = {}) {
   if (!snap || typeof snap !== "object") return null;
   isRestoringThemeHistory = true;
   try {
+    const fxOff = Boolean(snap.themeFxOff);
+    plainStaticLockKey = fxOff ? (snap.palette || null) : null;
     const patch = {
       palette: snap.palette || "",
+      themeFxOff: fxOff,
       uiElementFx: snap.uiElementFx || "off",
       iconPackStyle: snap.iconPackStyle || "default",
       iconFinishMode: snap.iconFinishMode || "off",
@@ -3748,7 +3771,9 @@ export async function graftThemeAspect(sourceKeyOrTheme, aspect = "colors", opts
     return { aspect: "colors", sourceKey: targetKey, sourceName, dna, applied: res };
   }
 
-  const patch = {};
+  plainStaticLockKey = null;
+  if (state.settings) state.settings.themeFxOff = false;
+  const patch = { themeFxOff: false };
   if (cleanAspect === "folders") {
     const folderFx = dna.aspects.folders.uiElementFx && dna.aspects.folders.uiElementFx !== "auto"
       ? dna.aspects.folders.uiElementFx
@@ -3860,6 +3885,7 @@ export async function applyAaaDirectorCutPreset(presetId, opts = {}) {
   await applyPalette(preset.palette);
   const patch = {
     palette: preset.palette,
+    themeFxOff: false,
     uiElementFx: preset.uiElementFx,
     iconPackStyle: preset.iconPackStyle,
     iconFinishMode: preset.iconFinishMode,
@@ -5764,7 +5790,9 @@ export async function chooseTheme(key, opts = {}) {
   if (!opts?.skipHistory && !isRestoringThemeHistory) {
     pushThemeHistorySnapshot();
   }
-  plainStaticLockKey = null;
+  const keepFxOff = Boolean(opts?.keepFxOff);
+  plainStaticLockKey = keepFxOff ? (key || null) : null;
+  if (state.settings) state.settings.themeFxOff = keepFxOff;
   if (!keepCurrentEffectsLock && !opts?.keepEffectsOnly) {
     keptEffectsForKey = null;
     keptEffectsSnapshot = null;
@@ -5773,9 +5801,9 @@ export async function chooseTheme(key, opts = {}) {
     resetSuppressedFx();
   }
   rememberTheme(key);
-  await saveSettings({ palette: key });
+  await saveSettings({ palette: key, themeFxOff: keepFxOff });
   if (!opts?.skipHistory && !isRestoringThemeHistory) {
-    pushThemeHistorySnapshot({ palette: key }, key || "Standard");
+    pushThemeHistorySnapshot({ palette: key, themeFxOff: keepFxOff }, key || "Standard");
   }
 }
 
@@ -5854,6 +5882,7 @@ export async function disableAllThemeAnimations(opts = {}) {
   }
   const preserveIcons = Boolean(opts.preserveLockedIcons && keepCurrentIconsLock && lockedIconsSnapshot);
   const patch = {
+    ...(opts.stripThemeEffects !== false ? { themeFxOff: true } : {}),
     atmosphere: "none",
     uiElementFx: "off",
     iconPackStyle: preserveIcons ? (lockedIconsSnapshot.iconPackStyle || "default") : "default",
@@ -6459,20 +6488,23 @@ export async function randomTheme(opts = {}) {
 
 /**
  * Instant dialog-free toggle between Plain Colors Only (0.0% GPU, no animations)
- * and Full Animated FX on the currently active theme (`Alt+0` / `⌥0`).
+ * and Full Animated FX on the currently active theme (`Cmd+0` / `Alt+0` / `⌥0`).
  */
 export async function toggleCurrentThemeEffects(opts = {}) {
   const root = typeof document !== "undefined" ? document.documentElement : null;
-  const fxActive = Boolean(
+  const fxActive = !state.settings?.themeFxOff && Boolean(
     root?.dataset?.fx
     || (root?.dataset?.fxAtmosphere && root.dataset.fxAtmosphere !== "none")
     || (state.settings?.atmosphere && state.settings.atmosphere !== "none")
-    || (state.settings?.uiElementFx && state.settings.uiElementFx !== "off"),
+    || (state.settings?.uiElementFx && state.settings.uiElementFx !== "off")
+    || getActiveWorkspaceEffects().some((x) => x.kind !== "colorTempMode" && x.kind !== "colorVisionMode"),
   );
   if (fxActive) {
     await disableAllThemeAnimations({ quiet: Boolean(opts.quiet), stripThemeEffects: true });
     return { fxEnabled: false, key: state.settings?.palette || "" };
   }
+  plainStaticLockKey = null;
+  if (state.settings) state.settings.themeFxOff = false;
   const curKey = state.settings?.palette || "";
   const themes = await themeList();
   const curTheme = curKey ? themes.find((t) => t.key === curKey) : null;
@@ -7049,6 +7081,7 @@ export async function applyThemeColorsKeepingCurrentEffects(key, opts = {}) {
 
   const immersionPatch = {
     palette: key,
+    themeFxOff: false,
     atmosphere: snap.atmosphere || "none",
     uiElementFx: snap.uiElementFx || "off",
     iconPackStyle: snap.iconPackStyle || "default",
@@ -7169,6 +7202,7 @@ export async function shuffleSystemIconsKeepTheme(opts = {}) {
 
   const patch = {
     ...(activeKey && state.settings && state.settings.palette !== activeKey ? { palette: activeKey } : {}),
+    themeFxOff: false,
     iconPackStyle: chosenPack.id,
     themeIconGlow: chosenGlow?.id || "neon",
     themeIconAnimation: chosenAnim?.id || "spring_pop_3d",
@@ -7256,6 +7290,7 @@ export async function cycleHighEnd3dFolderAnimation(direction = 1, opts = {}) {
 
   const patch = {
     ...(activeKey && state.settings && state.settings.palette !== activeKey ? { palette: activeKey } : {}),
+    themeFxOff: false,
     themeIconAnimation: nextAnimId,
     themeIconGlow: nextGlow,
     uiElementFx: nextUiFx,
@@ -7295,6 +7330,7 @@ export async function applyScreenFilter(filterId = "off", opts = {}) {
     : (wanted || state.settings?.palette || "");
   const patch = {
     ...(activeKey && state.settings && state.settings.palette !== activeKey ? { palette: activeKey } : {}),
+    ...(nextFilter !== "off" ? { themeFxOff: false } : {}),
     screenFilter: nextFilter,
   };
   if (keepCurrentEffectsLock && lockedEffectsSnapshot) {
@@ -7538,7 +7574,9 @@ export async function showThemePicker(opts = {}) {
     "data-kill-animations": "true",
     title: "Immediately turn off all background animations, floating particles, 3D folder distortions, and special effects while keeping your current colors.",
     onclick: async () => {
-      await disableAllThemeAnimations();
+      const targetKey = previewKey ?? state.settings?.palette ?? undefined;
+      previewKey = null;
+      await disableAllThemeAnimations(targetKey !== undefined ? { palette: targetKey, lockKey: targetKey } : {});
       draw();
     },
   }, "🛑 Turn Off All Animations & FX");
@@ -11285,6 +11323,18 @@ export function ensureGlobalThemeShortcutsBound() {
         return;
       }
     }
+    // Cmd+0 / Ctrl+0 (Mod+0 outside Code editor and text inputs) -> Instant Toggle / Turn Off Animations & FX on current theme
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && (e.code === "Digit0" || e.code === "Numpad0" || e.key === "0")) {
+      const target = e.target;
+      const tag = target?.tagName;
+      const inEditable = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target?.isContentEditable;
+      const inCodeEditor = Boolean(target?.closest?.(".code-ed"));
+      if (!inEditable && !inCodeEditor) {
+        e.preventDefault();
+        void toggleCurrentThemeEffects();
+        return;
+      }
+    }
     if (!e.altKey || e.ctrlKey || e.metaKey) return;
     const target = e.target;
     const tag = target?.tagName;
@@ -11414,7 +11464,7 @@ export function ensureGlobalThemeShortcutsBound() {
       return;
     }
     // Alt + 0 -> Instant Toggle / Turn Off Animations & FX on current theme (no dialog)
-    if (!e.shiftKey && (code === "Digit0" || lowKey === "0")) {
+    if (!e.shiftKey && (code === "Digit0" || code === "Numpad0" || lowKey === "0" || e.key === "º")) {
       e.preventDefault();
       void toggleCurrentThemeEffects();
     }

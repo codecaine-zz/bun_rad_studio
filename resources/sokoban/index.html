@@ -1,0 +1,3435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine CyberCrate Sokoban</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    :root {
+      --bg-dark: #030712;
+      --panel-bg: rgba(8, 16, 32, 0.92);
+      --cyan: #00f5ff;
+      --cyan-dim: rgba(0, 245, 255, 0.24);
+      --emerald: #00ff9d;
+      --amber: #ffb800;
+      --magenta: #ff00aa;
+      --purple: #b56bff;
+      --red: #ff2a6d;
+      --text: #eaf6ff;
+      --muted: #7ea0c4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 25%, #0c1f38 0%, #030712 78%);
+      color: var(--text);
+      font-family: 'Orbitron', 'Rajdhani', 'Courier New', monospace, system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 14px;
+      overflow: hidden;
+    }
+
+    .hud-header {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: var(--panel-bg);
+      border: 1px solid var(--cyan-dim);
+      border-radius: 14px;
+      padding: 8px 14px;
+      box-shadow: 0 0 28px rgba(0, 245, 255, 0.12), inset 0 0 16px rgba(0, 0, 0, 0.65);
+      margin-bottom: 8px;
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      border: 1px solid var(--emerald);
+      background: rgba(0, 255, 157, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 0 12px rgba(0, 255, 157, 0.35);
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 1.4px;
+      background: linear-gradient(90deg, #fff, var(--emerald), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+    }
+
+    .brand-sub {
+      font-size: 9.5px;
+      color: var(--muted);
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+    }
+
+    .stats-strip {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      background: rgba(3, 8, 18, 0.85);
+      border: 1px solid rgba(0, 245, 255, 0.25);
+      border-radius: 9px;
+      padding: 4px 10px;
+      min-width: 78px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 8.5px;
+      color: var(--muted);
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+    }
+
+    .stat-val {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 0 8px rgba(0, 245, 255, 0.45);
+    }
+
+    .action-bar {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .hud-btn {
+      background: rgba(0, 245, 255, 0.1);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 245, 255, 0.35);
+      border-radius: 8px;
+      padding: 6px 9px;
+      font-family: inherit;
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .hud-btn:hover {
+      background: rgba(0, 245, 255, 0.24);
+      box-shadow: 0 0 12px rgba(0, 245, 255, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .workspace {
+      width: 100%;
+      max-width: 1200px;
+      flex: 1;
+      display: flex;
+      gap: 12px;
+      min-height: 0;
+      align-items: stretch;
+    }
+
+    .canvas-stage {
+      flex: 1;
+      background: #02050d;
+      border: 1px solid rgba(0, 245, 255, 0.3);
+      border-radius: 16px;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), inset 0 0 30px rgba(0, 255, 157, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      padding: 8px;
+    }
+
+    canvas {
+      display: block;
+      border-radius: 10px;
+    }
+
+    .side-panel {
+      width: 300px;
+      background: var(--panel-bg);
+      border: 1px solid var(--cyan-dim);
+      border-radius: 16px;
+      padding: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 0 26px rgba(0, 0, 0, 0.75);
+      overflow-y: auto;
+    }
+
+    .panel-heading {
+      font-size: 10.5px;
+      letter-spacing: 1.6px;
+      color: var(--emerald);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--cyan-dim);
+      padding-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .rng-box {
+      background: linear-gradient(135deg, rgba(0, 255, 157, 0.08), rgba(0, 245, 255, 0.08));
+      border: 1px solid rgba(0, 255, 157, 0.4);
+      border-radius: 11px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .rng-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .rng-select {
+      flex: 1;
+      background: #040b18;
+      color: #eaf6ff;
+      border: 1px solid rgba(0, 245, 255, 0.4);
+      border-radius: 7px;
+      padding: 5px 7px;
+      font-family: inherit;
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .rng-btn {
+      width: 100%;
+      background: linear-gradient(90deg, rgba(0, 255, 157, 0.22), rgba(0, 245, 255, 0.22));
+      color: #fff;
+      border: 1px solid var(--emerald);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      letter-spacing: 0.6px;
+      box-shadow: 0 0 12px rgba(0, 255, 157, 0.2);
+      transition: all 0.15s ease;
+    }
+
+    .rng-btn:hover {
+      background: linear-gradient(90deg, rgba(0, 255, 157, 0.38), rgba(0, 245, 255, 0.38));
+      box-shadow: 0 0 16px rgba(0, 255, 157, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .tier-tabs {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+    }
+
+    .tier-tab {
+      background: rgba(3, 9, 20, 0.85);
+      border: 1px solid rgba(0, 245, 255, 0.2);
+      color: var(--muted);
+      border-radius: 6px;
+      padding: 4px 2px;
+      font-family: inherit;
+      font-size: 9px;
+      font-weight: 800;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .tier-tab.active {
+      border-color: var(--cyan);
+      color: #fff;
+      background: rgba(0, 245, 255, 0.22);
+    }
+
+    .level-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+      max-height: 145px;
+      overflow-y: auto;
+      padding-right: 3px;
+    }
+
+    .level-grid::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .level-grid::-webkit-scrollbar-thumb {
+      background: rgba(0, 245, 255, 0.35);
+      border-radius: 4px;
+    }
+
+    .lvl-btn {
+      background: rgba(3, 9, 20, 0.85);
+      border: 1px solid rgba(0, 245, 255, 0.22);
+      color: var(--muted);
+      border-radius: 6px;
+      padding: 5px 0;
+      font-family: inherit;
+      font-size: 10px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.14s;
+    }
+
+    .lvl-btn.active {
+      border-color: var(--cyan);
+      color: #fff;
+      background: rgba(0, 245, 255, 0.24);
+      box-shadow: 0 0 10px rgba(0, 245, 255, 0.35);
+    }
+
+    .lvl-btn.solved {
+      border-color: var(--emerald);
+      color: var(--emerald);
+    }
+
+    .status-box {
+      background: rgba(3, 8, 18, 0.85);
+      border: 1px solid rgba(0, 245, 255, 0.18);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 10.5px;
+      line-height: 1.42;
+    }
+
+    .diff-badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-left: 4px;
+    }
+
+    .diff-Easy { background: rgba(0, 255, 157, 0.18); color: var(--emerald); border: 1px solid var(--emerald); }
+    .diff-Medium { background: rgba(0, 245, 255, 0.18); color: var(--cyan); border: 1px solid var(--cyan); }
+    .diff-Hard { background: rgba(181, 107, 255, 0.18); color: var(--purple); border: 1px solid var(--purple); }
+    .diff-Expert { background: rgba(255, 42, 109, 0.18); color: var(--red); border: 1px solid var(--red); }
+
+    .deadlock-alert {
+      background: rgba(255, 184, 0, 0.14);
+      border: 1px solid var(--amber);
+      color: var(--amber);
+      border-radius: 10px;
+      padding: 7px 9px;
+      font-size: 10.5px;
+      font-weight: 700;
+      display: none;
+    }
+
+    .deadlock-alert.visible {
+      display: block;
+    }
+
+    .dpad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      margin-top: auto;
+    }
+
+    .dpad-btn {
+      background: rgba(0, 245, 255, 0.1);
+      border: 1px solid rgba(0, 245, 255, 0.3);
+      color: #fff;
+      border-radius: 8px;
+      padding: 7px 0;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .dpad-btn:hover {
+      background: rgba(0, 245, 255, 0.25);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 5, 14, 0.84);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    .modal-backdrop.hidden {
+      display: none;
+    }
+
+    .modal-card {
+      background: #071226;
+      border: 1px solid var(--emerald);
+      border-radius: 16px;
+      padding: 22px 26px;
+      max-width: 550px;
+      width: 92%;
+      box-shadow: 0 0 40px rgba(0, 255, 157, 0.25);
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--emerald);
+      margin-bottom: 10px;
+      letter-spacing: 1.5px;
+    }
+
+    .key-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 7px 14px;
+      margin: 12px 0 16px;
+      background: rgba(0, 0, 0, 0.38);
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--cyan-dim);
+      font-size: 12px;
+    }
+
+    .kbd {
+      background: rgba(0, 255, 157, 0.15);
+      border: 1px solid var(--emerald);
+      color: var(--emerald);
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    @media (max-width: 920px) {
+      .workspace {
+        flex-direction: column;
+      }
+      .side-panel {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="hud-header">
+    <div class="brand-block">
+      <div class="brand-logo">📦</div>
+      <div>
+        <div class="brand-title">Codecaine CyberCrate Sokoban</div>
+        <div class="brand-sub">100 Verified Chambers + Infinite Winnable Generator</div>
+      </div>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat-pill">
+        <div class="stat-label">Score</div>
+        <div class="stat-val" id="hud-score">0</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-label">Chamber</div>
+        <div class="stat-val" id="hud-level">1 / 100</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-label">Difficulty</div>
+        <div class="stat-val" id="hud-diff">Easy</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-label">Moves / Par</div>
+        <div class="stat-val" id="hud-moves">0 / 7</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-label">Pushes</div>
+        <div class="stat-val" id="hud-pushes">0</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-label">High Score</div>
+        <div class="stat-val" id="hud-best">0</div>
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <button class="hud-btn" style="border-color:var(--emerald);color:var(--emerald);" onclick="generateRandomSolvableLevel()" title="Generate Always-Winnable Random Chamber (G)">🎲 RANDOM (G)</button>
+      <button class="hud-btn" style="border-color:var(--emerald);color:var(--emerald);" onclick="hintMove()" title="AI Next Best Move Hint (H)">💡 HINT (H)</button>
+      <button class="hud-btn" style="border-color:var(--magenta);color:#ff77d4;" id="btn-autosolve" onclick="toggleAutoSolve()" title="Watch AI Auto-Solve Chamber (X)">🤖 AUTO-SOLVE (X)</button>
+      <button class="hud-btn" onclick="undoMove()" title="Undo Move (Z)">⏪ UNDO (Z)</button>
+      <button class="hud-btn" onclick="redoMove()" title="Redo Move (Y)">⏩ REDO (Y)</button>
+      <button class="hud-btn" onclick="restartLevel()" title="Restart Chamber (R)">🔄 RESTART (R)</button>
+      <button class="hud-btn" id="btn-mute" onclick="toggleMute()">🔊 SFX</button>
+      <button class="hud-btn" onclick="toggleHelp()">? HELP</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <div class="canvas-stage" id="canvas-stage">
+      <canvas id="sokoban-canvas" width="760" height="620"></canvas>
+    </div>
+
+    <aside class="side-panel">
+      <!-- ALWAYS-WINNABLE RANDOM CHAMBER GENERATOR -->
+      <div class="rng-box">
+        <div class="panel-heading" style="border-bottom:none; padding-bottom:0;">
+          <span>🎲 Always-Winnable Generator</span>
+          <span style="font-size:9px; color:var(--cyan);">100% Solvable</span>
+        </div>
+        <div class="rng-row">
+          <label for="rng-difficulty" style="font-size:10px; color:var(--muted); font-weight:700;">DIFFICULTY:</label>
+          <select id="rng-difficulty" class="rng-select">
+            <option value="Easy">🟢 Easy (Cadet • 2–3 Crates)</option>
+            <option value="Medium" selected>🔵 Medium (Engineer • 3 Crates)</option>
+            <option value="Hard">🟣 Hard (Commander • 4 Crates)</option>
+            <option value="Expert">🔴 Expert (Grandmaster • 5 Crates)</option>
+          </select>
+        </div>
+        <button class="rng-btn" id="btn-random-level" onclick="generateRandomSolvableLevel()">
+          🎲 GENERATE WINNABLE CHAMBER (G)
+        </button>
+      </div>
+
+      <!-- 100 BUILT-IN SOLVABLE CHAMBERS -->
+      <div class="panel-heading">
+        <span>100 Campaign Chambers</span>
+        <span id="solved-count-badge">0 / 100</span>
+      </div>
+
+      <div class="tier-tabs" id="tier-tabs">
+        <button class="tier-tab active" onclick="setTierFilter('ALL')">ALL</button>
+        <button class="tier-tab" onclick="setTierFilter('Easy')">EASY</button>
+        <button class="tier-tab" onclick="setTierFilter('Medium')">MED</button>
+        <button class="tier-tab" onclick="setTierFilter('Hard')">HARD</button>
+        <button class="tier-tab" onclick="setTierFilter('Expert')">EXP</button>
+      </div>
+
+      <div class="level-grid" id="level-grid"></div>
+
+      <div class="status-box">
+        <div style="font-weight:800; color:var(--cyan); margin-bottom:4px;">
+          <span id="chamber-title">001: Quantum Dock Alpha</span>
+          <span class="diff-badge diff-Easy" id="chamber-diff-badge">Easy</span>
+        </div>
+        <div style="color:var(--emerald); font-weight:700;" id="chamber-progress">Crates Locked: 0 / 4</div>
+        <div style="color:var(--muted); font-size:10px; margin-top:4px;" id="solver-status">HOW TO WIN: Push every Cyan Crate onto a Pink Target Pad (◎).</div>
+      </div>
+
+      <div class="deadlock-alert" id="deadlock-alert">
+        ⚠️ CORNER DEADLOCK DETECTED!<br/>
+        A crate is trapped in a non-target corner. Press <strong>[Z]</strong> to Undo or <strong>[H]</strong> for AI Hint!
+      </div>
+
+      <div class="status-box" style="font-size:10px; color:var(--muted);">
+        <strong style="color:#fff;">How To Win (Legend):</strong><br/>
+        • <span style="color:var(--magenta);">◎ Pink Target Pad</span>: Destination Goal<br/>
+        • <span style="color:var(--cyan);">📦 Cyan Crate</span>: Push onto Pink Pads<br/>
+        • <span style="color:var(--emerald);">✓ Emerald Crate</span>: Locked on Target!<br/>
+        • <span style="color:var(--amber);">⚠️ Amber Crate</span>: Corner Deadlock (Press Z)
+      </div>
+
+      <div class="dpad-grid">
+        <button class="dpad-btn" onclick="undoMove()" title="Undo (Z)">⏪</button>
+        <button class="dpad-btn" onclick="stepPlayer(-1, 0)" title="Move Up (W / Up)">▲</button>
+        <button class="dpad-btn" onclick="hintMove()" title="AI Hint Step (H)" style="color:var(--emerald);border-color:var(--emerald);">💡</button>
+        <button class="dpad-btn" onclick="stepPlayer(0, -1)" title="Move Left (A / Left)">◀</button>
+        <button class="dpad-btn" onclick="stepPlayer(1, 0)" title="Move Down (S / Down)">▼</button>
+        <button class="dpad-btn" onclick="stepPlayer(0, 1)" title="Move Right (D / Right)">▶</button>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Help Modal -->
+  <div class="modal-backdrop hidden" id="help-modal">
+    <div class="modal-card">
+      <div class="modal-title">📦 CyberCrate Sokoban Manual</div>
+      <div style="font-size:13px; line-height:1.55; color:#cbe4f8;">
+        <strong>HOW TO WIN:</strong> Push every glowing <strong>Cyan Quantum Crate</strong> onto a <strong>Pink Target Pad (◎)</strong>. When all crates turn <strong>Emerald Green</strong>, the chamber is secured!
+        <br/><br/>
+        • <strong>100 Verified Campaign Chambers:</strong> Progress through Easy (1–25), Medium (26–50), Hard (51–75), and Expert (76–100) chambers.<br/>
+        • <strong>🎲 Always-Winnable Random Generator:</strong> Select your difficulty (Easy, Medium, Hard, Expert) and press <strong>[G]</strong> to synthesize a brand-new chamber via Reverse-Pull Synthesis + Forward BFS Verification that is 100% guaranteed solvable!<br/>
+        • <strong>Stuck?</strong> Press <strong>[H]</strong> (`💡 HINT`) for the AI Solver to make the next winning move, or <strong>[X]</strong> (`🤖 AUTO-SOLVE`) to watch the complete solution!
+        <div class="key-grid">
+          <span class="kbd">WASD / Arrows</span><span>Move Loader Drone / Push Crate</span>
+          <span class="kbd">G</span><span>Generate New Winnable Random Chamber</span>
+          <span class="kbd">H</span><span>AI Hint (Executes Next Winning Move)</span>
+          <span class="kbd">X</span><span>AI Auto-Solve Chamber Step-by-Step</span>
+          <span class="kbd">Z / Y</span><span>Unlimited Move-by-Move Undo / Redo</span>
+          <span class="kbd">R</span><span>Restart Current Chamber</span>
+          <span class="kbd">[ / ] or N</span><span>Previous / Next Campaign Chamber</span>
+          <span class="kbd">M / ?</span><span>Mute Audio / Toggle Help</span>
+        </div>
+      </div>
+      <button class="hud-btn" style="width:100%; padding:10px;" onclick="toggleHelp()">RESUME OPERATIONS</button>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // WEB AUDIO SYNTHESIZER
+    // =========================================================================
+    class SokobanAudio {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playStep() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(190, now);
+        osc.frequency.exponentialRampToValueAtTime(130, now + 0.04);
+        gain.gain.setValueAtTime(0.04, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      }
+
+      playPush(lockedOnTarget) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        if (lockedOnTarget) {
+          osc.frequency.setValueAtTime(330, now);
+          osc.frequency.exponentialRampToValueAtTime(660, now + 0.14);
+          gain.gain.setValueAtTime(0.11, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.16);
+        } else {
+          osc.frequency.setValueAtTime(140, now);
+          osc.frequency.exponentialRampToValueAtTime(210, now + 0.08);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.1);
+        }
+      }
+
+      playDeadlockWarn() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(175, now);
+        osc.frequency.setValueAtTime(135, now + 0.08);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.19);
+      }
+
+      playLevelClear() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        [261.63, 329.63, 392.00, 523.25, 659.25].forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+          gain.gain.setValueAtTime(0.11, now + idx * 0.07);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.3);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + idx * 0.07);
+          osc.stop(now + idx * 0.07 + 0.32);
+        });
+      }
+    }
+
+    const sfx = new SokobanAudio();
+
+    // =========================================================================
+    // 100 BFS-VERIFIED SOLVABLE CAMPAIGN CHAMBERS (001 TO 100)
+    // =========================================================================
+    const LEVELS = [
+  {
+    "name": "001: Quantum Dock Alpha",
+    "difficulty": "Easy",
+    "par": 7,
+    "solution": "UDDULRR",
+    "map": [
+      "#######",
+      "#  .  #",
+      "#  $  #",
+      "#.$@$.#",
+      "#  $  #",
+      "#  .  #",
+      "#######"
+    ]
+  },
+  {
+    "name": "002: Orbital Cargo Hold",
+    "difficulty": "Easy",
+    "par": 10,
+    "solution": "UULUULDULD",
+    "map": [
+      "###### ",
+      "#    # ",
+      "# $$ ##",
+      "# ..  #",
+      "# #   #",
+      "#    @#",
+      "#######"
+    ]
+  },
+  {
+    "name": "003: Plasma Shunt Array",
+    "difficulty": "Easy",
+    "par": 16,
+    "solution": "RDDLRUULDUULLDDR",
+    "map": [
+      "######  ",
+      "#    #  ",
+      "# #@ #  ",
+      "# $* #  ",
+      "# .* ###",
+      "#      #",
+      "#      #",
+      "########"
+    ]
+  },
+  {
+    "name": "004: Cryo-Storage Bay",
+    "difficulty": "Easy",
+    "par": 19,
+    "solution": "DLLUUURRRDLLULLDDRU",
+    "map": [
+      "  #####  ",
+      "###   ###",
+      "# . $ . #",
+      "#   $   #",
+      "#  #@#  #",
+      "#   $   #",
+      "### . ###",
+      "  #####  "
+    ]
+  },
+  {
+    "name": "005: Cyber-Foundry Annex",
+    "difficulty": "Easy",
+    "par": 20,
+    "solution": "LURURRDLLUULLDRRDDLU",
+    "map": [
+      "#####   ",
+      "#   ####",
+      "# . .  #",
+      "##$ $  #",
+      " # @####",
+      " #  #   ",
+      " ####   "
+    ]
+  },
+  {
+    "name": "006: Neon Conduit Loop",
+    "difficulty": "Easy",
+    "par": 23,
+    "solution": "ULLDLDRUURRDLLRRDDLURUL",
+    "map": [
+      "########",
+      "#      #",
+      "# .**$@#",
+      "#      #",
+      "#####  #",
+      "    ####"
+    ]
+  },
+  {
+    "name": "007: Entanglement Hub",
+    "difficulty": "Easy",
+    "par": 23,
+    "solution": "UULDRDLDLDRURRDRULUURUL",
+    "map": [
+      "#######",
+      "#  .  #",
+      "# $ $ #",
+      "#. @ .#",
+      "# $ $ #",
+      "#  .  #",
+      "#######"
+    ]
+  },
+  {
+    "name": "008: Reactor Microban I",
+    "difficulty": "Easy",
+    "par": 33,
+    "solution": "DLURRRDLULLDDRULURUULDRDDRRULDLUU",
+    "map": [
+      "####  ",
+      "# .#  ",
+      "#  ###",
+      "#*@  #",
+      "#  $ #",
+      "#  ###",
+      "####  "
+    ]
+  },
+  {
+    "name": "009: Sub-Zero Capacitor",
+    "difficulty": "Easy",
+    "par": 33,
+    "solution": "URUULDULLDRRRDDLUURULDDDRRRUULDLU",
+    "map": [
+      "######  ",
+      "# . .###",
+      "# $$   #",
+      "### $  #",
+      "  #@ . #",
+      "  ######"
+    ]
+  },
+  {
+    "name": "010: Omega Singularity Core",
+    "difficulty": "Easy",
+    "par": 35,
+    "solution": "RRULUULULLLDRDDRRLLUUURRDLRRDDLLLUU",
+    "map": [
+      "  ####  ",
+      "###  ###",
+      "# .  . #",
+      "# $  $ #",
+      "## ## ##",
+      "# $  $ #",
+      "# . @. #",
+      "########"
+    ]
+  },
+  {
+    "name": "011: Twin Airlock Chamber",
+    "difficulty": "Easy",
+    "par": 41,
+    "solution": "RUULLLULDRRRRDDLURULLLDDLLLUURRDRDLUUURDD",
+    "map": [
+      "  #### ",
+      "###  ####",
+      "#     $ #",
+      "# #  #$ #",
+      "# . .#@ #",
+      "#########"
+    ]
+  },
+  {
+    "name": "012: Hyper-Drive Silo",
+    "difficulty": "Easy",
+    "par": 42,
+    "solution": "DLLLUUURDLDDRRRUULLDLDRUUULDLLDDRRUDLLUURR",
+    "map": [
+      "  ####  ",
+      "###  ###",
+      "#   *$ #",
+      "# #  #@#",
+      "#   *. #",
+      "########"
+    ]
+  },
+  {
+    "name": "013: Hyper Manifold VII",
+    "difficulty": "Easy",
+    "par": 13,
+    "solution": "DDDRRLULUURRR",
+    "map": [
+      "########",
+      "#@$  . #",
+      "# . #  #",
+      "# $    #",
+      "# $ .  #",
+      "########"
+    ]
+  },
+  {
+    "name": "014: Ion Conduit V",
+    "difficulty": "Easy",
+    "par": 15,
+    "solution": "ULDDRDLLDLUUUDL",
+    "map": [
+      "########",
+      "#  ..$ #",
+      "#   # @#",
+      "#.$    #",
+      "#    $ #",
+      "#      #",
+      "########"
+    ]
+  },
+  {
+    "name": "015: Omega Airlock Beta",
+    "difficulty": "Easy",
+    "par": 21,
+    "solution": "DRULUURRRDLLULDRDDRRR",
+    "map": [
+      "########",
+      "# $  . #",
+      "#    # #",
+      "#+$#   #",
+      "#  $  .#",
+      "########"
+    ]
+  },
+  {
+    "name": "016: Helix Shunt Array Sigma",
+    "difficulty": "Easy",
+    "par": 13,
+    "solution": "DURRRLLDDULDD",
+    "map": [
+      "#######",
+      "#@$  .#",
+      "#$$#  #",
+      "#     #",
+      "# .#  #",
+      "#.    #",
+      "#######"
+    ]
+  },
+  {
+    "name": "017: Nexus Cargo Hold II",
+    "difficulty": "Easy",
+    "par": 19,
+    "solution": "UULLULDDULULDDRDRRR",
+    "map": [
+      "########",
+      "#      #",
+      "# $ $  #",
+      "#   #  #",
+      "#.    +#",
+      "#      #",
+      "########"
+    ]
+  },
+  {
+    "name": "018: Delta Dock Delta",
+    "difficulty": "Easy",
+    "par": 19,
+    "solution": "RULLDLLUURDLDRUUURR",
+    "map": [
+      "#######",
+      "#   $.#",
+      "#  ##.#",
+      "#  $ $#",
+      "#  .@ #",
+      "#######"
+    ]
+  },
+  {
+    "name": "019: Cobalt Storage Bay Alpha",
+    "difficulty": "Easy",
+    "par": 22,
+    "solution": "LUURDDRRRDRUUULLLLULDD",
+    "map": [
+      "########",
+      "#     .#",
+      "# $    #",
+      "# $# # #",
+      "#.@$   #",
+      "# .    #",
+      "########"
+    ]
+  },
+  {
+    "name": "020: Chrono Chamber V",
+    "difficulty": "Easy",
+    "par": 15,
+    "solution": "DLUDRRUUDDRRUUU",
+    "map": [
+      "#######",
+      "#    .#",
+      "#  .  #",
+      "#.# # #",
+      "#$@$ $#",
+      "#     #",
+      "#######"
+    ]
+  },
+  {
+    "name": "021: Neon Storage Bay Gamma",
+    "difficulty": "Easy",
+    "par": 13,
+    "solution": "RRDLRDDLLLURU",
+    "map": [
+      "#######",
+      "#  +  #",
+      "#   $ #",
+      "#   # #",
+      "#.  $ #",
+      "#######"
+    ]
+  },
+  {
+    "name": "022: Zenith Dock Epsilon",
+    "difficulty": "Easy",
+    "par": 11,
+    "solution": "URDLDRRRLDL",
+    "map": [
+      "#######",
+      "#     #",
+      "#@$   #",
+      "#    .#",
+      "#.$ # #",
+      "#     #",
+      "#######"
+    ]
+  },
+  {
+    "name": "023: Cyber Core Zeta",
+    "difficulty": "Easy",
+    "par": 18,
+    "solution": "LDDDDRRUULULURRRDD",
+    "map": [
+      "#######",
+      "# @  .#",
+      "# $#$ #",
+      "#     #",
+      "# # . #",
+      "#  $. #",
+      "#######"
+    ]
+  },
+  {
+    "name": "024: Astral Shunt Array IV",
+    "difficulty": "Easy",
+    "par": 11,
+    "solution": "ULDLUUURURR",
+    "map": [
+      "#######",
+      "#. $ .#",
+      "#  #  #",
+      "#     #",
+      "# $   #",
+      "#  @  #",
+      "#######"
+    ]
+  },
+  {
+    "name": "025: Nexus Substation X",
+    "difficulty": "Easy",
+    "par": 19,
+    "solution": "RDDRDDLLLRUURUULDDD",
+    "map": [
+      "#######",
+      "#  @  #",
+      "# #$$ #",
+      "#     #",
+      "# # . #",
+      "#. .$ #",
+      "#######"
+    ]
+  },
+  {
+    "name": "026: Delta Corridor Beta",
+    "difficulty": "Medium",
+    "par": 41,
+    "solution": "LDDURDDDLUUUDLLUURRDDLLDRDRURUULDRDLULLDR",
+    "map": [
+      "########",
+      "#   +  #",
+      "# #$$. #",
+      "#    # #",
+      "# $. # #",
+      "#      #",
+      "########"
+    ]
+  },
+  {
+    "name": "027: Vortex Chamber Zero",
+    "difficulty": "Medium",
+    "par": 31,
+    "solution": "LURDRUUUDLLDLDLLURRRRLLUDDRRRUU",
+    "map": [
+      "########",
+      "#     .#",
+      "#  .  .#",
+      "# #  $ #",
+      "#  $ $ #",
+      "#    @ #",
+      "########"
+    ]
+  },
+  {
+    "name": "028: Nexus Storage Bay Zero",
+    "difficulty": "Medium",
+    "par": 32,
+    "solution": "LLLLLDDDRRRUUULLDRLDDLDRRRURRDLL",
+    "map": [
+      "#########",
+      "#     @ #",
+      "# $$.#  #",
+      "#  #    #",
+      "# $    .#",
+      "#  .    #",
+      "#########"
+    ]
+  },
+  {
+    "name": "029: Plasma Silo XII",
+    "difficulty": "Medium",
+    "par": 23,
+    "solution": "RRURUULULLDDDURURURRRRD",
+    "map": [
+      "#########",
+      "# .     #",
+      "#  $   $#",
+      "#  #   .#",
+      "#$#     #",
+      "#+      #",
+      "#########"
+    ]
+  },
+  {
+    "name": "030: Cyber Cargo Hold Lambda",
+    "difficulty": "Medium",
+    "par": 33,
+    "solution": "RRDDUURDDDULDULULURRDDDLLDDRRURRR",
+    "map": [
+      "#########",
+      "#@  .   #",
+      "# $$$   #",
+      "#    #  #",
+      "#  .    #",
+      "# #    .#",
+      "#       #",
+      "#########"
+    ]
+  },
+  {
+    "name": "031: Quantum Vault Gamma",
+    "difficulty": "Medium",
+    "par": 23,
+    "solution": "LLUDLLUUUURRRDDULDDRDLL",
+    "map": [
+      "########",
+      "#.     #",
+      "#    # #",
+      "#   $  #",
+      "#      #",
+      "#$#$ . #",
+      "#.   @ #",
+      "########"
+    ]
+  },
+  {
+    "name": "032: Prism Outpost Lambda",
+    "difficulty": "Medium",
+    "par": 42,
+    "solution": "DDDRUDLLURURRRURDUULLLLULLDRRDLLDRRRDDRRRU",
+    "map": [
+      "#########",
+      "#       #",
+      "#   .$  #",
+      "#  @#   #",
+      "#    . .#",
+      "# $ $ # #",
+      "#       #",
+      "#########"
+    ]
+  },
+  {
+    "name": "033: Astral Hangar Beta",
+    "difficulty": "Medium",
+    "par": 38,
+    "solution": "RRURRDLLLULLDRRDDDRRULDLLUDRUUURURRDLL",
+    "map": [
+      "########",
+      "#  .   #",
+      "# @.$  #",
+      "# . ## #",
+      "# $ $  #",
+      "#      #",
+      "########"
+    ]
+  },
+  {
+    "name": "034: Krypton Sanctum Alpha",
+    "difficulty": "Medium",
+    "par": 19,
+    "solution": "DDLLLLLDRUULURRRURD",
+    "map": [
+      "########",
+      "#    $.#",
+      "#     @#",
+      "# $# . #",
+      "#      #",
+      "# $.   #",
+      "########"
+    ]
+  },
+  {
+    "name": "035: Flux Labyrinth Zeta",
+    "difficulty": "Medium",
+    "par": 36,
+    "solution": "RUUUUURRRDDDDUULLLDDDLULUURDLDDRUURU",
+    "map": [
+      "########",
+      "#      #",
+      "# #.  $#",
+      "# .  $ #",
+      "#      #",
+      "# $    #",
+      "# @   .#",
+      "########"
+    ]
+  },
+  {
+    "name": "036: Vortex Silo Zero",
+    "difficulty": "Medium",
+    "par": 36,
+    "solution": "ULURUULDDRDDLUUURUULLLDURRDDRDLDDLLL",
+    "map": [
+      "#########",
+      "#       #",
+      "#   $   #",
+      "# # .#  #",
+      "#    .$ #",
+      "#       #",
+      "# .   $@#",
+      "#########"
+    ]
+  },
+  {
+    "name": "037: Chrono Substation XII",
+    "difficulty": "Medium",
+    "par": 28,
+    "solution": "DLDRRDDRRDLLLUUURRRRLLLLLURR",
+    "map": [
+      "#########",
+      "# @     #",
+      "# $ .   #",
+      "#      .#",
+      "#   ##  #",
+      "# $ $ . #",
+      "#       #",
+      "#########"
+    ]
+  },
+  {
+    "name": "038: Omega Shunt Array Lambda",
+    "difficulty": "Medium",
+    "par": 20,
+    "solution": "DDDRLUUURRRRDLLDDRUU",
+    "map": [
+      "########",
+      "#@$ . .#",
+      "# #    #",
+      "# # $# #",
+      "# $  # #",
+      "#  .   #",
+      "########"
+    ]
+  },
+  {
+    "name": "039: Photon Bunker II",
+    "difficulty": "Medium",
+    "par": 37,
+    "solution": "ULUULUURDDDRRDRRUULLDRULLDLDLDRUULURR",
+    "map": [
+      "########",
+      "#      #",
+      "# $  # #",
+      "#   .$ #",
+      "#  $  .#",
+      "#      #",
+      "#  +   #",
+      "########"
+    ]
+  },
+  {
+    "name": "040: Aegis Chamber Sigma",
+    "difficulty": "Medium",
+    "par": 34,
+    "solution": "URUULLLDURRDDDDRRURRDLLDLLLRURDRUU",
+    "map": [
+      "#########",
+      "#       #",
+      "#$#  #  #",
+      "#. $ .  #",
+      "#  @    #",
+      "# #  $  #",
+      "#.      #",
+      "#########"
+    ]
+  },
+  {
+    "name": "041: Quantum Cargo Hold Omega",
+    "difficulty": "Medium",
+    "par": 42,
+    "solution": "UUUURRRRRDDRDDLUURUUDLLLLULLDRDLDRUUURRDLL",
+    "map": [
+      "#########",
+      "#      .#",
+      "# $     #",
+      "#.    $ #",
+      "# $#    #",
+      "#  . #  #",
+      "#@      #",
+      "#########"
+    ]
+  },
+  {
+    "name": "042: Orbital Reactor Epsilon",
+    "difficulty": "Medium",
+    "par": 19,
+    "solution": "DLLLURRDRUUUDDDRRRU",
+    "map": [
+      "#########",
+      "#   .   #",
+      "#       #",
+      "#.   # .#",
+      "#$ $@  $#",
+      "#       #",
+      "#########"
+    ]
+  },
+  {
+    "name": "043: Cryo Terminal Omega",
+    "difficulty": "Medium",
+    "par": 37,
+    "solution": "DRRUUUDDLLLULULUURDLDDRDULURUURRRRDDD",
+    "map": [
+      "########",
+      "#      #",
+      "#   ## #",
+      "# $.   #",
+      "#    #$#",
+      "#   @$.#",
+      "# .    #",
+      "########"
+    ]
+  },
+  {
+    "name": "044: Chrono Gantry Alpha",
+    "difficulty": "Medium",
+    "par": 18,
+    "solution": "RUULLUULLLDDDRRURD",
+    "map": [
+      "########",
+      "#      #",
+      "#$   #.#",
+      "#      #",
+      "# $   $#",
+      "#.  .@ #",
+      "########"
+    ]
+  },
+  {
+    "name": "045: Astral Outpost Lambda",
+    "difficulty": "Medium",
+    "par": 36,
+    "solution": "DLDDRUUURULDDLLLUULURRRRDDDLLLLDRRRR",
+    "map": [
+      "########",
+      "#     .#",
+      "#   .  #",
+      "# $# @ #",
+      "#      #",
+      "# $  $.#",
+      "#      #",
+      "########"
+    ]
+  },
+  {
+    "name": "046: Fusion Cargo Hold Prime",
+    "difficulty": "Medium",
+    "par": 28,
+    "solution": "URRRDRDLDRDLLLLRUUULLDLDDRRR",
+    "map": [
+      "#########",
+      "#   .   #",
+      "#  @ #  #",
+      "#  # .$ #",
+      "# # $ $ #",
+      "#    .  #",
+      "#########"
+    ]
+  },
+  {
+    "name": "047: Delta Manifold Theta",
+    "difficulty": "Medium",
+    "par": 24,
+    "solution": "URUUULDULLDDRRRRDUURDUUL",
+    "map": [
+      "########",
+      "#   .$ #",
+      "# #$   #",
+      "#      #",
+      "# # $ .#",
+      "#  @ . #",
+      "########"
+    ]
+  },
+  {
+    "name": "048: Prism Hangar Theta",
+    "difficulty": "Medium",
+    "par": 28,
+    "solution": "ULUULLDDDRRRRUURULLLLDDDRDLL",
+    "map": [
+      "#########",
+      "#..$    #",
+      "#  $ #  #",
+      "#     $ #",
+      "#    @  #",
+      "#.    # #",
+      "#       #",
+      "#########"
+    ]
+  },
+  {
+    "name": "049: Astral Hangar Alpha",
+    "difficulty": "Medium",
+    "par": 27,
+    "solution": "DDDRDRRUUUUDDDLLDLUUUURRDDD",
+    "map": [
+      "########",
+      "#  .  .#",
+      "#  @   #",
+      "#    $ #",
+      "#      #",
+      "# # $ $#",
+      "#    . #",
+      "########"
+    ]
+  },
+  {
+    "name": "050: Matrix Centrifuge II",
+    "difficulty": "Medium",
+    "par": 26,
+    "solution": "LURRRRDDDDRULUURDDRDLLLLLU",
+    "map": [
+      "#########",
+      "#       #",
+      "# $   . #",
+      "# @#    #",
+      "# .     #",
+      "# $   $ #",
+      "#.      #",
+      "#########"
+    ]
+  },
+  {
+    "name": "051: Neon Labyrinth X",
+    "difficulty": "Hard",
+    "par": 57,
+    "solution": "LLDLLLRRULULDLDLDDRUURRRLLLLURRURRLDURRDLDRLLLUULDDDLDRRR",
+    "map": [
+      "##########",
+      "#. $   . #",
+      "#  $   $@#",
+      "#   $  . #",
+      "#    #   #",
+      "#    .   #",
+      "##########"
+    ]
+  },
+  {
+    "name": "052: Astral Storage Bay Lambda",
+    "difficulty": "Hard",
+    "par": 46,
+    "solution": "LDLLLDLUULURDDDRRRRRUURULULUURDDDRDLLLLULDURRR",
+    "map": [
+      "##########",
+      "#        #",
+      "#    #   #",
+      "#   .  $ #",
+      "# . $  . #",
+      "#      @ #",
+      "#  .$  $ #",
+      "#        #",
+      "##########"
+    ]
+  },
+  {
+    "name": "053: Vortex Reactor V",
+    "difficulty": "Hard",
+    "par": 34,
+    "solution": "DDDDRUULUULLLLRRRRRDDDRDLLLLLLURRR",
+    "map": [
+      "##########",
+      "#.  $ @  #",
+      "#   #    #",
+      "# .      #",
+      "# $ $ .$ #",
+      "#.       #",
+      "##########"
+    ]
+  },
+  {
+    "name": "054: Aegis Silo Omega",
+    "difficulty": "Hard",
+    "par": 28,
+    "solution": "UDRRUURULLLLRDLDLDRRRULLLDLU",
+    "map": [
+      "#########",
+      "#       #",
+      "# .     #",
+      "#.   #  #",
+      "#   $ $ #",
+      "#  $@$..#",
+      "#########"
+    ]
+  },
+  {
+    "name": "055: Chrono Vault Beta",
+    "difficulty": "Hard",
+    "par": 50,
+    "solution": "UUUDDLLLLDRRRRDRRUUUUDDLLLLLLUULURDDDRRRRRRDLLDLUU",
+    "map": [
+      "##########",
+      "#  .  . .#",
+      "#        #",
+      "# $# .   #",
+      "#     $  #",
+      "#  $  @ $#",
+      "#        #",
+      "##########"
+    ]
+  },
+  {
+    "name": "056: Tachyon Reactor Omega",
+    "difficulty": "Hard",
+    "par": 44,
+    "solution": "RRRRDDUULLLLDDRULURRRLDDDDLDRRDRURUULDLDDRUU",
+    "map": [
+      "########",
+      "#@   . #",
+      "#$$$ $ #",
+      "#   #  #",
+      "#.  .. #",
+      "#      #",
+      "#      #",
+      "#      #",
+      "########"
+    ]
+  },
+  {
+    "name": "057: Matrix Sanctum X",
+    "difficulty": "Hard",
+    "par": 49,
+    "solution": "LDDLLLDRUULUURDRRURDLDDDDLULUUULURRRDDRULURRDRDDD",
+    "map": [
+      "#########",
+      "#      .#",
+      "# $ $@  #",
+      "#  #  .$#",
+      "#  .    #",
+      "# $     #",
+      "#      .#",
+      "#########"
+    ]
+  },
+  {
+    "name": "058: Prism Centrifuge IX",
+    "difficulty": "Hard",
+    "par": 51,
+    "solution": "LULLLLUURRURDDLDDLLLURRRRDRRUUUDDLLDLUUURULURRRDDLU",
+    "map": [
+      "#########",
+      "#     . #",
+      "#  .  $ #",
+      "#   $   #",
+      "#.    #.#",
+      "#    $ $#",
+      "#      @#",
+      "#########"
+    ]
+  },
+  {
+    "name": "059: Ion Gantry X",
+    "difficulty": "Hard",
+    "par": 42,
+    "solution": "LDDDDRRRLLLUURRDRRURRDLLULLRDLLDLUUUDRRRRR",
+    "map": [
+      "#########",
+      "#.@     #",
+      "# # ##  #",
+      "# $    .#",
+      "# $   $ #",
+      "#  $..  #",
+      "#########"
+    ]
+  },
+  {
+    "name": "060: Delta Cargo Hold Alpha",
+    "difficulty": "Hard",
+    "par": 49,
+    "solution": "ULUULDDLDDRRRRRUURRDDLLLLLLUURUURDLLRRRRDRDULULLD",
+    "map": [
+      "##########",
+      "#        #",
+      "#.$    # #",
+      "#   $#   #",
+      "#  #+# $ #",
+      "#.  $  . #",
+      "##########"
+    ]
+  },
+  {
+    "name": "061: Sub-Zero Vault Gamma",
+    "difficulty": "Hard",
+    "par": 52,
+    "solution": "RRRRRUUULUURDULLLLDDRDRDLUULLDRRRRRDRUUUDLLDLUDDDLLU",
+    "map": [
+      "#########",
+      "#      .#",
+      "#  #.   #",
+      "# $     #",
+      "# .$    #",
+      "#     $ #",
+      "#@$    .#",
+      "#########"
+    ]
+  },
+  {
+    "name": "062: Helix Terminal IX",
+    "difficulty": "Hard",
+    "par": 52,
+    "solution": "DLUUULURDDDDLDDRRUUDDRRUURULDDDLLLULURRURURDDDRDLLLL",
+    "map": [
+      "########",
+      "#  .   #",
+      "#      #",
+      "#  .   #",
+      "# $@   #",
+      "#  $.  #",
+      "# $ #$ #",
+      "#.     #",
+      "########"
+    ]
+  },
+  {
+    "name": "063: Aegis Terminal Prime",
+    "difficulty": "Hard",
+    "par": 41,
+    "solution": "UUULURRRRRDLLLULDDLDRDDRRRUDRRUURUUULLLLL",
+    "map": [
+      "##########",
+      "# .      #",
+      "#  $   # #",
+      "# $ ## . #",
+      "#  . .   #",
+      "# @# $ $ #",
+      "#        #",
+      "##########"
+    ]
+  },
+  {
+    "name": "064: Vector Core Prime",
+    "difficulty": "Hard",
+    "par": 45,
+    "solution": "UURUULLLLRRRDDRDLULDUULLLLURDLDRRRRLDDRDRURUL",
+    "map": [
+      "#########",
+      "#  .  $ #",
+      "#     $ #",
+      "# $   . #",
+      "#   $.  #",
+      "# #   @ #",
+      "#   .   #",
+      "#########"
+    ]
+  },
+  {
+    "name": "065: Zenith Sanctum Beta",
+    "difficulty": "Hard",
+    "par": 39,
+    "solution": "DDUULLLLLLRRRRRDDLLLLDRRDRRRUUUDDDLULLL",
+    "map": [
+      "##########",
+      "#.     $+#",
+      "#  ##  $$#",
+      "#      . #",
+      "# #.$    #",
+      "#        #",
+      "##########"
+    ]
+  },
+  {
+    "name": "066: Photon Hangar V",
+    "difficulty": "Hard",
+    "par": 56,
+    "solution": "DRRRUUULUURRDLRRDDLULULURRDLDLDDRUULUURDDLDDDLULUURDDLDR",
+    "map": [
+      "########",
+      "#      #",
+      "# .  $ #",
+      "#    . #",
+      "#   .$ #",
+      "#@$ $# #",
+      "#  .   #",
+      "########"
+    ]
+  },
+  {
+    "name": "067: Cryo Cargo Hold Prime",
+    "difficulty": "Hard",
+    "par": 58,
+    "solution": "LLDDRRRRRRURULDLLULLLULURDDLDDRUULUURRLDDLDDRUULUURDDLDDRU",
+    "map": [
+      "##########",
+      "#   .    #",
+      "# $ #  # #",
+      "# .@  .  #",
+      "# $    $ #",
+      "# $     .#",
+      "##########"
+    ]
+  },
+  {
+    "name": "068: Hyper Reactor Delta",
+    "difficulty": "Hard",
+    "par": 48,
+    "solution": "UUUUDDDDLLLLUURUURUURRDDUULDDULLDRRRDLLLULLURURD",
+    "map": [
+      "#########",
+      "#       #",
+      "#     $ #",
+      "#   .   #",
+      "#  .$  $#",
+      "# #   #.#",
+      "#   #   #",
+      "# .   $@#",
+      "#########"
+    ]
+  },
+  {
+    "name": "069: Quantum Matrix XII",
+    "difficulty": "Hard",
+    "par": 44,
+    "solution": "DULLLDLLURRDDRDLDDDLULUURRLDRRULURDDLDLDLUUU",
+    "map": [
+      "########",
+      "#   .$@#",
+      "#  $# $#",
+      "#.#  ..#",
+      "#      #",
+      "#      #",
+      "# $ #  #",
+      "#      #",
+      "########"
+    ]
+  },
+  {
+    "name": "070: Ion Conduit Alpha",
+    "difficulty": "Hard",
+    "par": 59,
+    "solution": "DDLLLLDULUDDDRDLDRRRULLURDRUUUURRURDDDDRDLLDLLURRDRUUURULLL",
+    "map": [
+      "##########",
+      "#.  . @  #",
+      "#$#  $   #",
+      "#   .    #",
+      "# $      #",
+      "#        #",
+      "#        #",
+      "# $.     #",
+      "##########"
+    ]
+  },
+  {
+    "name": "071: Chrono Substation Delta",
+    "difficulty": "Hard",
+    "par": 57,
+    "solution": "DRRRRDUURRDLLRRDDDDLLLDLLURLUUULUURDDDDLDDRUUUURUURDLLULD",
+    "map": [
+      "#########",
+      "#@      #",
+      "# $     #",
+      "#.  .$# #",
+      "#   #.  #",
+      "#   #   #",
+      "# $ . $ #",
+      "#       #",
+      "#########"
+    ]
+  },
+  {
+    "name": "072: Graviton Sanctum V",
+    "difficulty": "Hard",
+    "par": 42,
+    "solution": "RRULURURRDLDLDRDRRULLLLRRRRULLUULLDRDLDDLU",
+    "map": [
+      "#########",
+      "#       #",
+      "# # $.$.#",
+      "# .     #",
+      "# @$.  $#",
+      "#       #",
+      "#########"
+    ]
+  },
+  {
+    "name": "073: Flux Chamber X",
+    "difficulty": "Hard",
+    "par": 49,
+    "solution": "UURULURRURDLDLDRRLDUURRRLDRDLURRRDLLDLLLLRRRUURUL",
+    "map": [
+      "##########",
+      "#        #",
+      "#        #",
+      "# $ .  . #",
+      "#  $     #",
+      "# #$.  $ #",
+      "#+       #",
+      "##########"
+    ]
+  },
+  {
+    "name": "074: Hyper Corridor Beta",
+    "difficulty": "Hard",
+    "par": 49,
+    "solution": "DURRRRDDLLRRUULDDDRDDLLLLDLUUUDDRRRRRULLLULDLDDRU",
+    "map": [
+      "########",
+      "# @    #",
+      "# $ #$ #",
+      "#... $ #",
+      "#   #  #",
+      "# .    #",
+      "#    $ #",
+      "#      #",
+      "########"
+    ]
+  },
+  {
+    "name": "075: Aegis Hangar Zeta",
+    "difficulty": "Hard",
+    "par": 54,
+    "solution": "LRRRUULLUURRDURRDDDDLLLUULLDDRRRRLLLLLUUUURRRRDLULDRDR",
+    "map": [
+      "##########",
+      "#        #",
+      "#    $ # #",
+      "#   .  . #",
+      "#   # $  #",
+      "#. $@$  .#",
+      "##########"
+    ]
+  },
+  {
+    "name": "076: Zenith Corridor Gamma",
+    "difficulty": "Expert",
+    "par": 68,
+    "solution": "RRDRRULLDLLURRRURRDLDLLLLLRUUUUUURRRRDLLLLULDDLDRRRRRRUUDRDDLDLDRRUU",
+    "map": [
+      "##########",
+      "#      . #",
+      "#    $ $ #",
+      "#        #",
+      "#$      .#",
+      "#.  ##   #",
+      "# #@$.   #",
+      "#.$      #",
+      "##########"
+    ]
+  },
+  {
+    "name": "077: Hyper Sanctum IX",
+    "difficulty": "Expert",
+    "par": 78,
+    "solution": "RRRDRRULLDLUUULULULLDDURRURDDDLDRRDRUDLLLLLUURURRRRRDLLLLUULLDDRRUURRURDDLDLRR",
+    "map": [
+      "##########",
+      "#        #",
+      "#  $   # #",
+      "#$       #",
+      "#  .   ..#",
+      "#.#@$   $#",
+      "#        #",
+      "##########"
+    ]
+  },
+  {
+    "name": "078: Astral Slipstream II",
+    "difficulty": "Expert",
+    "par": 54,
+    "solution": "LLLLLDDUURRRRDDDDULLUDDLLUUUDDDDDRRUULURRRRURDDDRDLLLL",
+    "map": [
+      "##########",
+      "#.    @  #",
+      "#$ .#$   #",
+      "#  $     #",
+      "#        #",
+      "#  $     #",
+      "#    .   #",
+      "#  .     #",
+      "##########"
+    ]
+  },
+  {
+    "name": "079: Synapse Corridor Beta",
+    "difficulty": "Expert",
+    "par": 58,
+    "solution": "LLLDURRRDDLDLLUUURUURLLLULDDDDRRDRDRRULLDLLURDLLUUUUULURRR",
+    "map": [
+      "#########",
+      "#    .  #",
+      "#   $ $.#",
+      "#   . # #",
+      "#      @#",
+      "#  .$ # #",
+      "#  $ .$ #",
+      "#       #",
+      "#########"
+    ]
+  },
+  {
+    "name": "080: Titan Storage Bay Omega",
+    "difficulty": "Expert",
+    "par": 74,
+    "solution": "UUURUDDDDRDLLLUULUURUULDLULDDRRRRURDRDLLLDLUULLDDLDDRUUUULUURDDLDRDDDRRRRR",
+    "map": [
+      "##########",
+      "#      . #",
+      "#  $.  $ #",
+      "#        #",
+      "#  .$    #",
+      "#  #     #",
+      "#   # @  #",
+      "#      $.#",
+      "##########"
+    ]
+  },
+  {
+    "name": "081: Sigma Foundry Delta",
+    "difficulty": "Expert",
+    "par": 72,
+    "solution": "LUURDDDLLLDDRRRUUULUURDDDRDDLUUURULDDDDLLLLLUURRRRRURDUUULLDLLULLDRRRDRU",
+    "map": [
+      "#########",
+      "#    .  #",
+      "#   $ $ #",
+      "#.    + #",
+      "#    $  #",
+      "#$#  # .#",
+      "#       #",
+      "#########"
+    ]
+  },
+  {
+    "name": "082: Vortex Dock Zeta",
+    "difficulty": "Expert",
+    "par": 60,
+    "solution": "UURUULLLLULLDDRRULDLLDDDRRLLUUUURRRRRURRDLLLLDLLLDDRUUURRURD",
+    "map": [
+      "##########",
+      "# .      #",
+      "# $    $ #",
+      "#    . # #",
+      "#  ##    #",
+      "# $. #   #",
+      "# $ .  @ #",
+      "##########"
+    ]
+  },
+  {
+    "name": "083: Vortex Airlock Beta",
+    "difficulty": "Expert",
+    "par": 53,
+    "solution": "DRDLLURUUURRDDRDLLDLLLRRUUURULLLDLULUURRLDDDLDDDRRRLU",
+    "map": [
+      "##########",
+      "# $ .    #",
+      "#   #    #",
+      "#        #",
+      "#   #  $ #",
+      "# ..#@#  #",
+      "#  $ $   #",
+      "#    .   #",
+      "##########"
+    ]
+  },
+  {
+    "name": "084: Sub-Zero Vault Delta",
+    "difficulty": "Expert",
+    "par": 61,
+    "solution": "UURRRRDLDLDUURRRRULDLDDLDLLURRRRDLLLDLUDLUUUUDRRRRRLLLLDDLDRR",
+    "map": [
+      "#########",
+      "#.$  .  #",
+      "# #     #",
+      "#@ $ $ .#",
+      "#  $    #",
+      "#       #",
+      "#   .   #",
+      "#########"
+    ]
+  },
+  {
+    "name": "085: Ion Bunker Epsilon",
+    "difficulty": "Expert",
+    "par": 54,
+    "solution": "LLULLULDDRRRRRULDRDLUULLLDLDDRDRRDLLLUUULURRRRDRURULLL",
+    "map": [
+      "#########",
+      "#       #",
+      "# ..$ $ #",
+      "#      @#",
+      "#     $ #",
+      "#   #.# #",
+      "#    $. #",
+      "#       #",
+      "#########"
+    ]
+  },
+  {
+    "name": "086: Orbital Manifold X",
+    "difficulty": "Expert",
+    "par": 62,
+    "solution": "URRDLDLUUUDLLLLUULUURDDLDRRRRDLLLLDDRRRLLLURRDRRRRULLLLDLULURR",
+    "map": [
+      "##########",
+      "#        #",
+      "#  #  #  #",
+      "#   # .  #",
+      "# $   .  #",
+      "#   .    #",
+      "# $   @$ #",
+      "# $     .#",
+      "##########"
+    ]
+  },
+  {
+    "name": "087: Cryo Silo X",
+    "difficulty": "Expert",
+    "par": 76,
+    "solution": "ULUURDURUULDDLDDDRRURRDLLLLURRLUULUURDDUURRRDDLLLDDLDRRRRUUUDRRDDLLLRULDRRUU",
+    "map": [
+      "#########",
+      "#       #",
+      "# $ #.  #",
+      "#.$   . #",
+      "# $# $  #",
+      "#  .$   #",
+      "# @.    #",
+      "#########"
+    ]
+  },
+  {
+    "name": "088: Aegis Gantry Lambda",
+    "difficulty": "Expert",
+    "par": 58,
+    "solution": "DLUUULURRRRRRDRDLLLLLULLDRRRRRDLDLDLDLUUUULUURDRDDDDDRRUUU",
+    "map": [
+      "##########",
+      "#       .#",
+      "#   #  $ #",
+      "# .  . .$#",
+      "# $@    .#",
+      "#  $ $   #",
+      "#        #",
+      "#        #",
+      "##########"
+    ]
+  },
+  {
+    "name": "089: Photon Generator Epsilon",
+    "difficulty": "Expert",
+    "par": 58,
+    "solution": "UULLDDDRDRDLLUUDDRRRRUUUUDDDDRUUURUULLLLRRRDDDDRDLLULLLDLU",
+    "map": [
+      "#########",
+      "# .     #",
+      "#$      #",
+      "#. @#   #",
+      "#.   $  #",
+      "#  $  $ #",
+      "#   .   #",
+      "#########"
+    ]
+  },
+  {
+    "name": "090: Sub-Zero Cargo Hold Epsilon",
+    "difficulty": "Expert",
+    "par": 64,
+    "solution": "LLLLLLDDDLDDRUUULUURDDUURRRRRRDULLDDLLLLDDLDRRUUUUDDDDRRUURRRUUL",
+    "map": [
+      "##########",
+      "#  .    +#",
+      "# $  #.$$#",
+      "#    .   #",
+      "#        #",
+      "#  $ $   #",
+      "#     .  #",
+      "##########"
+    ]
+  },
+  {
+    "name": "091: Nexus Outpost Zero",
+    "difficulty": "Expert",
+    "par": 58,
+    "solution": "DDDDRRULRRUUUURRDDDLLLDDRRRUUURULLULDDLRDUULLLULDDDDRRDRRU",
+    "map": [
+      "##########",
+      "#        #",
+      "# @$   $ #",
+      "#  .$ #  #",
+      "#  .$.   #",
+      "#  $. #  #",
+      "#.       #",
+      "##########"
+    ]
+  },
+  {
+    "name": "092: Sigma Entanglement Hub Beta",
+    "difficulty": "Expert",
+    "par": 58,
+    "solution": "LLDLLLDRRUURRRURULLLLLDDDRDRULLLDRDRURULULUURDRDLLDUULDDDR",
+    "map": [
+      "#########",
+      "#.      #",
+      "# $$ #$ #",
+      "#     @ #",
+      "#    ## #",
+      "# $. .# #",
+      "#.      #",
+      "#########"
+    ]
+  },
+  {
+    "name": "093: Cobalt Conduit Beta",
+    "difficulty": "Expert",
+    "par": 66,
+    "solution": "LLLLULLDRRRURRDLDDURRRDDLUDDLLURURDRDLLULUURUULDDLLURDRUDLLDLLDRRR",
+    "map": [
+      "##########",
+      "#    .   #",
+      "#  $   @ #",
+      "# #  $ . #",
+      "#   #. $ #",
+      "# $  . $ #",
+      "#    .   #",
+      "##########"
+    ]
+  },
+  {
+    "name": "094: Hyper Cargo Hold XII",
+    "difficulty": "Expert",
+    "par": 55,
+    "solution": "ULLDRURDDDRDDLRURRRDRUUULUULLDDDDUUUURRRDLDLLLLRRRRURDD",
+    "map": [
+      "##########",
+      "#        #",
+      "# $@ $#  #",
+      "# .    $ #",
+      "#        #",
+      "#  . $  .#",
+      "# .$ .   #",
+      "##########"
+    ]
+  },
+  {
+    "name": "095: Vortex Airlock Sigma",
+    "difficulty": "Expert",
+    "par": 60,
+    "solution": "RDDULLLDLLDDRLUURRULDLDDDRRUUULUULDDDLDDRUULURRRRUULDRDDULLL",
+    "map": [
+      "#########",
+      "#     @ #",
+      "#     $$#",
+      "#.    . #",
+      "#  # $ .#",
+      "#  $ .  #",
+      "#   $.  #",
+      "#########"
+    ]
+  },
+  {
+    "name": "096: Vector Shunt Array Gamma",
+    "difficulty": "Expert",
+    "par": 65,
+    "solution": "LUULLLLDDUURDDDDLUUDDDRRRRULUURULLULDULDDDDUUUURRRRRDDDRDDLUUURUL",
+    "map": [
+      "#########",
+      "#       #",
+      "#$$  .$ #",
+      "# . $ @ #",
+      "#    #  #",
+      "#       #",
+      "#.   .  #",
+      "#########"
+    ]
+  },
+  {
+    "name": "097: Helix Centrifuge IV",
+    "difficulty": "Expert",
+    "par": 72,
+    "solution": "LLURURRDLULDDDUUURRRDRURDDDLDDLLLLUUUULURRDRRRDDDLLLLDRRRRRRULLLDLLLLUUU",
+    "map": [
+      "##########",
+      "#   .    #",
+      "#.$  $$  #",
+      "#  @ .   #",
+      "#   #    #",
+      "#   .$   #",
+      "#        #",
+      "##########"
+    ]
+  },
+  {
+    "name": "098: Krypton Singularity II",
+    "difficulty": "Expert",
+    "par": 82,
+    "solution": "DLDDRUULURRURDDRDLLULLDRRURRDLLDLUUUULUURDDDDLDDRUUUULUURDDRRRRRULLLULLDRRRRDRRDDL",
+    "map": [
+      "##########",
+      "#        #",
+      "#     $. #",
+      "#        #",
+      "# +     $#",
+      "# $   .$ #",
+      "#     # .#",
+      "#        #",
+      "##########"
+    ]
+  },
+  {
+    "name": "099: Prism Sanctum Zero",
+    "difficulty": "Expert",
+    "par": 57,
+    "solution": "DDRDLLLUUURRRRDRRULLLLUULLDDRRLLLDRRRRUDRUULDRRDRDDDLLURU",
+    "map": [
+      "##########",
+      "#        #",
+      "#   .  # #",
+      "#   @ $  #",
+      "# $ $  . #",
+      "#  #  #  #",
+      "#.       #",
+      "#    . $ #",
+      "##########"
+    ]
+  },
+  {
+    "name": "100: Cyber Reliquary Zeta",
+    "difficulty": "Expert",
+    "par": 60,
+    "solution": "LDRRDDDRUULLLLLDRRRURRRULLLLDRRDRDLLDLUUULLUURRDDDDUUUULDRDL",
+    "map": [
+      "#########",
+      "#  $+   #",
+      "#   $   #",
+      "#.      #",
+      "# $     #",
+      "# #   $.#",
+      "#  .    #",
+      "#########"
+    ]
+  }
+];
+
+    const STORAGE_BEST_KEY = 'codecaine_sokoban_best_v1';
+    const STORAGE_SOLVED_KEY = 'codecaine_sokoban_solved_v1';
+
+    const canvas = document.getElementById('sokoban-canvas');
+    const ctx = canvas.getContext('2d');
+
+    let currentLevelIdx = 0;
+    let activeSpec = LEVELS[0];
+    let isRandomChamber = false;
+    let randomChamberCounter = 1;
+    let currentTierFilter = 'ALL';
+
+    let score = 0;
+    let highScore = Number(localStorage.getItem(STORAGE_BEST_KEY) || 0);
+    let solvedLevels = new Set();
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_SOLVED_KEY) || '[]');
+      if (Array.isArray(saved)) solvedLevels = new Set(saved);
+    } catch (e) {}
+
+    let rows = 0;
+    let cols = 0;
+    let walls = [];   // boolean[r][c]
+    let targets = []; // boolean[r][c]
+    let crates = [];  // boolean[r][c]
+    let player = { r: 0, c: 0, dirR: 0, dirC: 1 };
+    let moves = 0;
+    let pushes = 0;
+    let undoStack = [];
+    let redoStack = [];
+    let levelComplete = false;
+    let deadlockedCrates = []; // [{r, c}]
+    let autoSolveTimer = null;
+    let lastHintArrow = null; // { r, c, dr, dc, until }
+
+    // =========================================================================
+    // LEVEL PARSER & STATE MANAGEMENT
+    // =========================================================================
+    function stopAutoSolve() {
+      if (autoSolveTimer) {
+        clearInterval(autoSolveTimer);
+        autoSolveTimer = null;
+      }
+      const btn = document.getElementById('btn-autosolve');
+      if (btn) btn.textContent = '🤖 AUTO-SOLVE (X)';
+    }
+
+    function applyLevelSpec(spec, isRandom = false) {
+      stopAutoSolve();
+      activeSpec = spec;
+      isRandomChamber = isRandom;
+      rows = spec.map.length;
+      cols = Math.max(...spec.map.map(line => line.length));
+
+      walls = Array.from({ length: rows }, () => Array(cols).fill(false));
+      targets = Array.from({ length: rows }, () => Array(cols).fill(false));
+      crates = Array.from({ length: rows }, () => Array(cols).fill(false));
+
+      for (let r = 0; r < rows; r++) {
+        const line = spec.map[r];
+        for (let c = 0; c < cols; c++) {
+          const ch = line[c] || ' ';
+          if (ch === '#') walls[r][c] = true;
+          else if (ch === '.') targets[r][c] = true;
+          else if (ch === '$') crates[r][c] = true;
+          else if (ch === '*') {
+            targets[r][c] = true;
+            crates[r][c] = true;
+          } else if (ch === '@') {
+            player = { r, c, dirR: 0, dirC: 1 };
+          } else if (ch === '+') {
+            targets[r][c] = true;
+            player = { r, c, dirR: 0, dirC: 1 };
+          }
+        }
+      }
+
+      moves = 0;
+      pushes = 0;
+      undoStack = [];
+      redoStack = [];
+      levelComplete = false;
+      lastHintArrow = null;
+      scanCornerDeadlocks();
+      renderLevelSelector();
+      if (isRandom) {
+        setSolverStatus(`🎲 Generated Guaranteed-Winnable ${spec.difficulty} Chamber (Par ${spec.par}). Press [H] for AI Hint!`, 'var(--emerald)');
+      } else {
+        setSolverStatus('HOW TO WIN: Push every Cyan Crate onto a Pink Target Pad (◎).');
+      }
+      updateHUD();
+    }
+
+    function loadLevel(idx) {
+      currentLevelIdx = (idx + LEVELS.length) % LEVELS.length;
+      applyLevelSpec(LEVELS[currentLevelIdx], false);
+    }
+    window.loadLevel = loadLevel;
+
+    function setTierFilter(tier) {
+      currentTierFilter = tier;
+      const tabs = document.querySelectorAll('.tier-tab');
+      tabs.forEach(tab => {
+        const t = tab.textContent.trim();
+        const match =
+          (tier === 'ALL' && t === 'ALL') ||
+          (tier === 'Easy' && t === 'EASY') ||
+          (tier === 'Medium' && t === 'MED') ||
+          (tier === 'Hard' && t === 'HARD') ||
+          (tier === 'Expert' && t === 'EXP');
+        tab.classList.toggle('active', match);
+      });
+      renderLevelSelector();
+    }
+    window.setTierFilter = setTierFilter;
+
+    function setSolverStatus(msg, color = 'var(--muted)') {
+      const el = document.getElementById('solver-status');
+      if (el) {
+        el.textContent = msg;
+        el.style.color = color;
+      }
+    }
+
+    function cloneState() {
+      return {
+        crates: crates.map(row => [...row]),
+        player: { ...player },
+        moves,
+        pushes
+      };
+    }
+
+    function restoreState(st) {
+      crates = st.crates.map(row => [...row]);
+      player = { ...st.player };
+      moves = st.moves;
+      pushes = st.pushes;
+      levelComplete = false;
+      scanCornerDeadlocks();
+      updateHUD();
+    }
+
+    // =========================================================================
+    // ALWAYS-WINNABLE PROCEDURAL RANDOM CHAMBER GENERATOR (MULTI-DIFFICULTY)
+    // =========================================================================
+    const DIR_MAP = {
+      U: [-1, 0],
+      D: [1, 0],
+      L: [0, -1],
+      R: [0, 1]
+    };
+
+    const RNG_PREFIXES = [
+      'Quantum', 'Orbital', 'Plasma', 'Cryo', 'Cyber', 'Neon', 'Photon', 'Hyper',
+      'Sub-Zero', 'Omega', 'Chrono', 'Vortex', 'Aegis', 'Pulsar', 'Tachyon', 'Helix',
+      'Matrix', 'Nexus', 'Vector', 'Ion', 'Fusion', 'Graviton', 'Zenith', 'Flux'
+    ];
+    const RNG_NOUNS = [
+      'Dock', 'Cargo Hold', 'Shunt', 'Bay', 'Foundry', 'Conduit', 'Hub', 'Reactor',
+      'Capacitor', 'Vault', 'Airlock', 'Silo', 'Substation', 'Manifold', 'Core'
+    ];
+
+    function verifySolutionOnMap(map, solution) {
+      const H = map.length;
+      const W = Math.max(...map.map(r => r.length));
+      const wArr = Array.from({ length: H }, () => Array(W).fill(false));
+      const tArr = Array.from({ length: H }, () => Array(W).fill(false));
+      const cArr = Array.from({ length: H }, () => Array(W).fill(false));
+      let pr = -1, pc = -1, tCount = 0, cCount = 0;
+
+      for (let r = 0; r < H; r++) {
+        for (let c = 0; c < W; c++) {
+          const ch = map[r][c] || ' ';
+          if (ch === '#') wArr[r][c] = true;
+          else if (ch === '.') { tArr[r][c] = true; tCount++; }
+          else if (ch === '$') { cArr[r][c] = true; cCount++; }
+          else if (ch === '*') { tArr[r][c] = true; cArr[r][c] = true; tCount++; cCount++; }
+          else if (ch === '@') { pr = r; pc = c; }
+          else if (ch === '+') { tArr[r][c] = true; tCount++; pr = r; pc = c; }
+        }
+      }
+      if (tCount === 0 || tCount !== cCount || pr < 0) return false;
+
+      for (const ch of solution) {
+        const d = DIR_MAP[ch];
+        if (!d) return false;
+        const nr = pr + d[0], nc = pc + d[1];
+        if (nr < 0 || nr >= H || nc < 0 || nc >= W || wArr[nr][nc]) return false;
+        if (cArr[nr][nc]) {
+          const cr = nr + d[0], cc = nc + d[1];
+          if (cr < 0 || cr >= H || cc < 0 || cc >= W || wArr[cr][cc] || cArr[cr][cc]) return false;
+          cArr[nr][nc] = false;
+          cArr[cr][cc] = true;
+        }
+        pr = nr;
+        pc = nc;
+      }
+
+      for (let r = 0; r < H; r++) {
+        for (let c = 0; c < W; c++) {
+          if (tArr[r][c] !== cArr[r][c]) return false;
+        }
+      }
+      return true;
+    }
+
+    function bfsWalkShortest(wArr, cArr, sr, sc, tr, tc) {
+      if (sr === tr && sc === tc) return '';
+      const H = wArr.length, W = wArr[0].length;
+      const q = [{ r: sr, c: sc, path: '' }];
+      const vis = new Set([`${sr},${sc}`]);
+      const dirs = [[-1, 0, 'U'], [1, 0, 'D'], [0, -1, 'L'], [0, 1, 'R']];
+      while (q.length > 0) {
+        const cur = q.shift();
+        for (const [dr, dc, ch] of dirs) {
+          const nr = cur.r + dr, nc = cur.c + dc;
+          if (nr < 0 || nr >= H || nc < 0 || nc >= W) continue;
+          if (wArr[nr][nc] || cArr[nr][nc]) continue;
+          if (nr === tr && nc === tc) return cur.path + ch;
+          const k = `${nr},${nc}`;
+          if (!vis.has(k)) {
+            vis.add(k);
+            q.push({ r: nr, c: nc, path: cur.path + ch });
+          }
+        }
+      }
+      return null;
+    }
+
+    function optimizeGeneratedSolution(map, rawSolution) {
+      const H = map.length, W = Math.max(...map.map(r => r.length));
+      const wArr = Array.from({ length: H }, () => Array(W).fill(false));
+      const initC = Array.from({ length: H }, () => Array(W).fill(false));
+      let sr = 0, sc = 0;
+      for (let r = 0; r < H; r++) {
+        for (let c = 0; c < W; c++) {
+          const ch = map[r][c] || ' ';
+          if (ch === '#') wArr[r][c] = true;
+          else if (ch === '$' || ch === '*') initC[r][c] = true;
+          else if (ch === '@' || ch === '+') { sr = r; sc = c; }
+        }
+      }
+      const cArr = initC.map(r => [...r]);
+      let pr = sr, pc = sc;
+      const pushList = [];
+      for (const ch of rawSolution) {
+        const [dr, dc] = DIR_MAP[ch];
+        const nr = pr + dr, nc = pc + dc;
+        if (cArr[nr][nc]) {
+          const cr = nr + dr, cc = nc + dc;
+          cArr[nr][nc] = false;
+          cArr[cr][cc] = true;
+          pushList.push({ fromR: nr, fromC: nc, toR: cr, toC: cc, pushChar: ch });
+        }
+        pr = nr;
+        pc = nc;
+      }
+      const simC = initC.map(r => [...r]);
+      let curR = sr, curC = sc, out = '';
+      for (const p of pushList) {
+        const standR = p.fromR - (p.toR - p.fromR);
+        const standC = p.fromC - (p.toC - p.fromC);
+        const walk = bfsWalkShortest(wArr, simC, curR, curC, standR, standC);
+        if (walk === null) return rawSolution;
+        out += walk + p.pushChar;
+        simC[p.fromR][p.fromC] = false;
+        simC[p.toR][p.toC] = true;
+        curR = p.fromR;
+        curC = p.fromC;
+      }
+      return verifySolutionOnMap(map, out) ? out : rawSolution;
+    }
+
+    function generateRandomSolvableLevel(forcedDifficulty) {
+      stopAutoSolve();
+      const selEl = document.getElementById('rng-difficulty');
+      const difficulty = forcedDifficulty || (selEl ? selEl.value : 'Medium');
+      const cfg = {
+        Easy:   { minW: 7, maxW: 8, minH: 6, maxH: 7, crates: 2, pulls: 14, minPar: 8 },
+        Medium: { minW: 8, maxW: 9, minH: 7, maxH: 8, crates: 3, pulls: 24, minPar: 15 },
+        Hard:   { minW: 8, maxW: 10, minH: 7, maxH: 9, crates: 4, pulls: 34, minPar: 22 },
+        Expert: { minW: 9, maxW: 10, minH: 8, maxH: 9, crates: 5, pulls: 44, minPar: 28 }
+      }[difficulty] || { minW: 8, maxW: 9, minH: 7, maxH: 8, crates: 3, pulls: 24, minPar: 15 };
+
+      const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+      const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+      for (let attempt = 0; attempt < 300; attempt++) {
+        const W = randInt(cfg.minW, cfg.maxW);
+        const H = randInt(cfg.minH, cfg.maxH);
+        const wArr = Array.from({ length: H }, () => Array(W).fill(true));
+        for (let r = 1; r < H - 1; r++) {
+          for (let c = 1; c < W - 1; c++) {
+            wArr[r][c] = false;
+          }
+        }
+
+        const numPillars = randInt(1, difficulty === 'Easy' ? 2 : 4);
+        for (let p = 0; p < numPillars; p++) {
+          wArr[randInt(2, H - 3)][randInt(2, W - 3)] = true;
+        }
+
+        const floors = [];
+        for (let r = 1; r < H - 1; r++) {
+          for (let c = 1; c < W - 1; c++) {
+            if (!wArr[r][c]) floors.push([r, c]);
+          }
+        }
+        if (floors.length < 12) continue;
+
+        // Verify connected floor via BFS
+        const vis = new Set([`${floors[0][0]},${floors[0][1]}`]);
+        const q = [floors[0]];
+        while (q.length > 0) {
+          const [cr, cc] = q.shift();
+          for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+            const nr = cr + dr, nc = cc + dc, k = `${nr},${nc}`;
+            if (nr >= 1 && nr < H - 1 && nc >= 1 && nc < W - 1 && !wArr[nr][nc] && !vis.has(k)) {
+              vis.add(k);
+              q.push([nr, nc]);
+            }
+          }
+        }
+        if (vis.size !== floors.length) continue;
+
+        const candidates = floors.filter(([r, c]) => {
+          let open = 0;
+          for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+            if (!wArr[r + dr][c + dc]) open++;
+          }
+          return open >= 2;
+        });
+        if (candidates.length < cfg.crates + 2) continue;
+
+        for (let i = candidates.length - 1; i > 0; i--) {
+          const j = randInt(0, i);
+          [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+        }
+
+        const tArr = Array.from({ length: H }, () => Array(W).fill(false));
+        const cArr = Array.from({ length: H }, () => Array(W).fill(false));
+        for (let i = 0; i < cfg.crates; i++) {
+          const [tr, tc] = candidates[i];
+          tArr[tr][tc] = true;
+          cArr[tr][tc] = true;
+        }
+        let [pr, pc] = candidates[cfg.crates];
+
+        // Reverse-Pull Synthesis from Solved State
+        const revMoves = [];
+        const dirs = [[-1, 0, 'D'], [1, 0, 'U'], [0, -1, 'R'], [0, 1, 'L']];
+        const opp = { U: 'D', D: 'U', L: 'R', R: 'L' };
+        let pullCount = 0;
+        let lastFwd = '';
+
+        for (let step = 0; step < cfg.pulls * 2; step++) {
+          const pulls = [];
+          const walks = [];
+          for (const [dr, dc, fwd] of dirs) {
+            const nr = pr + dr, nc = pc + dc;
+            if (wArr[nr][nc] || cArr[nr][nc]) continue;
+            const cr = pr - dr, cc = pc - dc;
+            if (!wArr[cr][cc] && cArr[cr][cc]) {
+              pulls.push({ nr, nc, cr, cc, fwd });
+            }
+            if (fwd !== opp[lastFwd]) {
+              walks.push({ nr, nc, fwd });
+            }
+          }
+          if (pulls.length > 0 && (Math.random() < 0.78 || walks.length === 0)) {
+            const opt = pick(pulls);
+            cArr[opt.cr][opt.cc] = false;
+            cArr[pr][pc] = true;
+            pr = opt.nr;
+            pc = opt.nc;
+            revMoves.push(opt.fwd);
+            lastFwd = '';
+            pullCount++;
+          } else if (walks.length > 0) {
+            const opt = pick(walks);
+            pr = opt.nr;
+            pc = opt.nc;
+            revMoves.push(opt.fwd);
+            lastFwd = opt.fwd;
+          } else {
+            break;
+          }
+          if (pullCount >= cfg.pulls) break;
+        }
+
+        if (pullCount < Math.floor(cfg.pulls * 0.45)) continue;
+
+        let onTargetCount = 0;
+        let hasDeadlock = false;
+        for (let r = 1; r < H - 1; r++) {
+          for (let c = 1; c < W - 1; c++) {
+            if (cArr[r][c]) {
+              if (tArr[r][c]) onTargetCount++;
+              else {
+                const u = wArr[r - 1][c], d = wArr[r + 1][c];
+                const l = wArr[r][c - 1], rt = wArr[r][c + 1];
+                if ((u || d) && (l || rt)) hasDeadlock = true;
+              }
+            }
+          }
+        }
+        if (onTargetCount > 0 || hasDeadlock) continue;
+
+        const map = [];
+        for (let r = 0; r < H; r++) {
+          let s = '';
+          for (let c = 0; c < W; c++) {
+            if (wArr[r][c]) s += '#';
+            else if (r === pr && c === pc) s += tArr[r][c] ? '+' : '@';
+            else if (cArr[r][c]) s += tArr[r][c] ? '*' : '$';
+            else if (tArr[r][c]) s += '.';
+            else s += ' ';
+          }
+          map.push(s);
+        }
+
+        const rawSol = revMoves.reverse().join('');
+        const optSol = optimizeGeneratedSolution(map, rawSol);
+        if (!verifySolutionOnMap(map, optSol)) continue;
+        if (optSol.length < cfg.minPar) continue;
+
+        const rngSpec = {
+          name: `RNG #${randomChamberCounter++}: ${pick(RNG_PREFIXES)} ${pick(RNG_NOUNS)}`,
+          difficulty,
+          par: optSol.length,
+          solution: optSol,
+          map
+        };
+        applyLevelSpec(rngSpec, true);
+        sfx.playStep();
+        return rngSpec;
+      }
+
+      // Fallback to a guaranteed campaign chamber matching the chosen difficulty if needed
+      const matching = LEVELS.filter(l => l.difficulty === difficulty);
+      const chosen = pick(matching.length ? matching : LEVELS);
+      applyLevelSpec({ ...chosen, name: `RNG #${randomChamberCounter++}: ${chosen.name.split(': ').pop()}` }, true);
+      return activeSpec;
+    }
+    window.generateRandomSolvableLevel = generateRandomSolvableLevel;
+
+    // =========================================================================
+    // LIVE AI BFS SOLVER, HINT (H) & AUTO-SOLVE (X)
+    // =========================================================================
+    function solveBoardFromCurrentState(maxStates = 45000) {
+      // If still at the initial unmoved state, use the pre-verified winning path immediately
+      if (moves === 0 && activeSpec && activeSpec.solution) {
+        return activeSpec.solution;
+      }
+
+      const targetList = [];
+      const startCrates = [];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (targets[r][c]) targetList.push(`${r},${c}`);
+          if (crates[r][c]) startCrates.push(`${r},${c}`);
+        }
+      }
+
+      const targetSet = new Set(targetList);
+      const dirs = [[-1, 0, 'U'], [1, 0, 'D'], [0, -1, 'L'], [0, 1, 'R']];
+      const encode = (pr, pc, crateSet) => `${pr},${pc}|${[...crateSet].sort().join(';')}`;
+
+      const initSet = new Set(startCrates);
+      const queue = [{ pr: player.r, pc: player.c, crates: initSet, path: '' }];
+      const visited = new Set([encode(player.r, player.c, initSet)]);
+
+      let steps = 0;
+      while (queue.length > 0 && steps < maxStates) {
+        steps++;
+        const cur = queue.shift();
+        let allLocked = true;
+        for (const cKey of cur.crates) {
+          if (!targetSet.has(cKey)) {
+            allLocked = false;
+            break;
+          }
+        }
+        if (allLocked) return cur.path;
+
+        for (const [dr, dc, moveChar] of dirs) {
+          const nr = cur.pr + dr;
+          const nc = cur.pc + dc;
+          if (isWallOrOutOfBounds(nr, nc)) continue;
+          const nKey = `${nr},${nc}`;
+          if (cur.crates.has(nKey)) {
+            const cr = nr + dr;
+            const cc = nc + dc;
+            if (isWallOrOutOfBounds(cr, cc)) continue;
+            const cKey = `${cr},${cc}`;
+            if (cur.crates.has(cKey)) continue;
+            if (!targetSet.has(cKey)) {
+              const upB = isWallOrOutOfBounds(cr - 1, cc);
+              const dnB = isWallOrOutOfBounds(cr + 1, cc);
+              const lfB = isWallOrOutOfBounds(cr, cc - 1);
+              const rtB = isWallOrOutOfBounds(cr, cc + 1);
+              if ((upB || dnB) && (lfB || rtB)) continue;
+            }
+            const nextCrates = new Set(cur.crates);
+            nextCrates.delete(nKey);
+            nextCrates.add(cKey);
+            const stateKey = encode(nr, nc, nextCrates);
+            if (!visited.has(stateKey)) {
+              visited.add(stateKey);
+              queue.push({ pr: nr, pc: nc, crates: nextCrates, path: cur.path + moveChar });
+            }
+          } else {
+            const stateKey = encode(nr, nc, cur.crates);
+            if (!visited.has(stateKey)) {
+              visited.add(stateKey);
+              queue.push({ pr: nr, pc: nc, crates: cur.crates, path: cur.path + moveChar });
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    function executeMoveChar(ch) {
+      const d = DIR_MAP[ch];
+      if (!d) return;
+      lastHintArrow = {
+        r: player.r,
+        c: player.c,
+        dr: d[0],
+        dc: d[1],
+        until: performance.now() + 900
+      };
+      stepPlayer(d[0], d[1]);
+    }
+
+    function advanceAfterWin() {
+      if (isRandomChamber) {
+        generateRandomSolvableLevel();
+      } else {
+        loadLevel(currentLevelIdx + 1);
+      }
+    }
+
+    function hintMove() {
+      stopAutoSolve();
+      if (levelComplete) {
+        advanceAfterWin();
+        return;
+      }
+      let sol = solveBoardFromCurrentState();
+      if (!sol || sol.length === 0) {
+        applyLevelSpec(activeSpec, isRandomChamber);
+        sol = activeSpec.solution || '';
+        setSolverStatus('💡 Deadlock cleared! Showing optimal move 1 of ' + sol.length + '.', 'var(--amber)');
+      } else {
+        setSolverStatus(`💡 AI Hint: ${sol.length} move${sol.length === 1 ? '' : 's'} remaining to win!`, 'var(--emerald)');
+      }
+      if (sol.length > 0) {
+        executeMoveChar(sol[0]);
+      }
+    }
+    window.hintMove = hintMove;
+
+    function toggleAutoSolve() {
+      if (autoSolveTimer) {
+        stopAutoSolve();
+        setSolverStatus('🤖 Auto-Solve paused. You have manual control.', 'var(--muted)');
+        return;
+      }
+      if (levelComplete) {
+        advanceAfterWin();
+      }
+      let sol = solveBoardFromCurrentState();
+      if (!sol || sol.length === 0) {
+        applyLevelSpec(activeSpec, isRandomChamber);
+        sol = activeSpec.solution || '';
+      }
+      if (!sol || sol.length === 0) return;
+
+      const queueChars = sol.split('');
+      const btn = document.getElementById('btn-autosolve');
+      if (btn) btn.textContent = '⏹ STOP SOLVE (X)';
+      setSolverStatus(`🤖 AI Auto-Solving Chamber (${queueChars.length} moves)...`, 'var(--magenta)');
+
+      autoSolveTimer = setInterval(() => {
+        if (queueChars.length === 0 || levelComplete) {
+          stopAutoSolve();
+          return;
+        }
+        const nextChar = queueChars.shift();
+        setSolverStatus(`🤖 AI Auto-Solving (${queueChars.length} moves left)...`, 'var(--emerald)');
+        executeMoveChar(nextChar);
+      }, 120);
+    }
+    window.toggleAutoSolve = toggleAutoSolve;
+
+    // =========================================================================
+    // REAL-TIME CORNER DEADLOCK DETECTOR
+    // =========================================================================
+    function isWallOrOutOfBounds(r, c) {
+      if (r < 0 || r >= rows || c < 0 || c >= cols) return true;
+      return walls[r][c];
+    }
+
+    function scanCornerDeadlocks() {
+      deadlockedCrates = [];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (crates[r][c] && !targets[r][c]) {
+            const upBlocked = isWallOrOutOfBounds(r - 1, c);
+            const downBlocked = isWallOrOutOfBounds(r + 1, c);
+            const leftBlocked = isWallOrOutOfBounds(r, c - 1);
+            const rightBlocked = isWallOrOutOfBounds(r, c + 1);
+            if ((upBlocked || downBlocked) && (leftBlocked || rightBlocked)) {
+              deadlockedCrates.push({ r, c });
+            }
+          }
+        }
+      }
+
+      const alertEl = document.getElementById('deadlock-alert');
+      if (alertEl) {
+        alertEl.classList.toggle('visible', deadlockedCrates.length > 0 && !levelComplete);
+      }
+      return deadlockedCrates.length > 0;
+    }
+
+    // =========================================================================
+    // MOVEMENT & PUSH LOGIC
+    // =========================================================================
+    function stepPlayer(dr, dc) {
+      if (levelComplete) {
+        advanceAfterWin();
+        return;
+      }
+
+      const nr = player.r + dr;
+      const nc = player.c + dc;
+      if (isWallOrOutOfBounds(nr, nc)) return;
+
+      const prevDeadlocks = deadlockedCrates.length;
+
+      if (crates[nr][nc]) {
+        const cr = nr + dr;
+        const cc = nc + dc;
+        if (isWallOrOutOfBounds(cr, cc) || crates[cr][cc]) {
+          return;
+        }
+
+        undoStack.push(cloneState());
+        redoStack = [];
+
+        crates[nr][nc] = false;
+        crates[cr][cc] = true;
+        player.r = nr;
+        player.c = nc;
+        player.dirR = dr;
+        player.dirC = dc;
+        moves++;
+        pushes++;
+
+        const locked = targets[cr][cc];
+        sfx.playPush(locked);
+
+        if (locked) {
+          const pt = cellCenterPixels(cr, cc);
+          window.GameMasterFX?.burst?.(pt.x, pt.y, '#00ff9d', 22);
+        }
+      } else {
+        undoStack.push(cloneState());
+        redoStack = [];
+        player.r = nr;
+        player.c = nc;
+        player.dirR = dr;
+        player.dirC = dc;
+        moves++;
+        sfx.playStep();
+      }
+
+      const hasDeadlock = scanCornerDeadlocks();
+      if (hasDeadlock && deadlockedCrates.length > prevDeadlocks) {
+        sfx.playDeadlockWarn();
+        window.GameMasterFX?.triggerShake?.(6);
+      }
+
+      checkVictory();
+      updateHUD();
+    }
+    window.stepPlayer = stepPlayer;
+
+    function undoMove() {
+      stopAutoSolve();
+      if (undoStack.length === 0) return;
+      redoStack.push(cloneState());
+      const prev = undoStack.pop();
+      restoreState(prev);
+      sfx.playStep();
+    }
+    window.undoMove = undoMove;
+
+    function redoMove() {
+      stopAutoSolve();
+      if (redoStack.length === 0) return;
+      undoStack.push(cloneState());
+      const next = redoStack.pop();
+      restoreState(next);
+      sfx.playStep();
+    }
+    window.redoMove = redoMove;
+
+    function restartLevel() {
+      applyLevelSpec(activeSpec, isRandomChamber);
+      sfx.playStep();
+    }
+    window.restartLevel = restartLevel;
+
+    function checkVictory() {
+      let totalTargets = 0;
+      let lockedCount = 0;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (targets[r][c]) {
+            totalTargets++;
+            if (crates[r][c]) lockedCount++;
+          }
+        }
+      }
+
+      if (totalTargets > 0 && lockedCount === totalTargets) {
+        stopAutoSolve();
+        levelComplete = true;
+        const parBonus = Math.max(0, (activeSpec.par - moves) * 25);
+        const diffMult = { Easy: 1, Medium: 1.5, Hard: 2, Expert: 3 }[activeSpec.difficulty] || 1;
+        const award = Math.round((500 + parBonus) * diffMult);
+        score += award;
+        if (score > highScore) {
+          highScore = score;
+          localStorage.setItem(STORAGE_BEST_KEY, String(highScore));
+        }
+
+        if (!isRandomChamber) {
+          solvedLevels.add(currentLevelIdx);
+          try {
+            localStorage.setItem(STORAGE_SOLVED_KEY, JSON.stringify([...solvedLevels]));
+          } catch (e) {}
+        }
+
+        setSolverStatus(
+          isRandomChamber
+            ? '🎉 RANDOM CHAMBER SECURED! Press [SPACE] or [G] for another winnable chamber!'
+            : '🎉 CHAMBER SECURED! Press [SPACE] or click for next chamber!',
+          'var(--emerald)'
+        );
+        sfx.playLevelClear();
+        window.GameMasterFX?.burst?.(canvas.width / 2, canvas.height / 2, '#00ff9d', 55);
+        renderLevelSelector();
+      }
+    }
+
+    // =========================================================================
+    // UI & CANVAS RENDERING
+    // =========================================================================
+    function renderLevelSelector() {
+      const container = document.getElementById('level-grid');
+      if (!container) return;
+      container.innerHTML = '';
+      LEVELS.forEach((lvl, i) => {
+        if (currentTierFilter !== 'ALL' && lvl.difficulty !== currentTierFilter) return;
+        const btn = document.createElement('button');
+        const isCurrent = !isRandomChamber && i === currentLevelIdx;
+        btn.className = 'lvl-btn' + (isCurrent ? ' active' : '') + (solvedLevels.has(i) ? ' solved' : '');
+        btn.textContent = (i + 1) + (solvedLevels.has(i) ? ' ✓' : '');
+        btn.title = `${lvl.name} (${lvl.difficulty} • Par ${lvl.par})`;
+        btn.onclick = () => loadLevel(i);
+        container.appendChild(btn);
+      });
+      const badge = document.getElementById('solved-count-badge');
+      if (badge) badge.textContent = `${solvedLevels.size} / ${LEVELS.length}`;
+    }
+
+    function updateHUD() {
+      let totalTargets = 0;
+      let locked = 0;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (targets[r][c]) {
+            totalTargets++;
+            if (crates[r][c]) locked++;
+          }
+        }
+      }
+
+      document.getElementById('hud-score').textContent = score.toLocaleString();
+      document.getElementById('hud-level').textContent = isRandomChamber
+        ? 'RNG'
+        : `${currentLevelIdx + 1} / ${LEVELS.length}`;
+      document.getElementById('hud-diff').textContent = activeSpec.difficulty || 'Easy';
+      document.getElementById('hud-moves').textContent = `${moves} / ${activeSpec.par}`;
+      document.getElementById('hud-pushes').textContent = String(pushes);
+      document.getElementById('hud-best').textContent = highScore.toLocaleString();
+
+      document.getElementById('chamber-title').textContent = activeSpec.name;
+      const diffBadge = document.getElementById('chamber-diff-badge');
+      if (diffBadge) {
+        const d = activeSpec.difficulty || 'Easy';
+        diffBadge.textContent = d;
+        diffBadge.className = 'diff-badge diff-' + d;
+      }
+      document.getElementById('chamber-progress').textContent = `Crates Locked: ${locked} / ${totalTargets}`;
+    }
+
+    function getTileGeometry() {
+      const padX = 32;
+      const padY = 54;
+      const availW = canvas.width - padX * 2;
+      const availH = canvas.height - padY * 2;
+      const tile = Math.floor(Math.min(availW / cols, availH / rows, 62));
+      const offsetX = Math.floor((canvas.width - cols * tile) / 2);
+      const offsetY = Math.floor((canvas.height - rows * tile) / 2) + 6;
+      return { tile, offsetX, offsetY };
+    }
+
+    function cellCenterPixels(r, c) {
+      const { tile, offsetX, offsetY } = getTileGeometry();
+      return {
+        x: offsetX + c * tile + tile / 2,
+        y: offsetY + r * tile + tile / 2
+      };
+    }
+
+    function renderScene(now) {
+      const W = canvas.width;
+      const H = canvas.height;
+      ctx.fillStyle = '#02060f';
+      ctx.fillRect(0, 0, W, H);
+
+      const { tile, offsetX, offsetY } = getTileGeometry();
+      const pulse = 0.5 + 0.5 * Math.sin(now * 0.005);
+
+      let totalTargets = 0;
+      let lockedCrates = 0;
+
+      // Top Objective Banner on Canvas so the goal is always unmistakable
+      ctx.save();
+      ctx.fillStyle = 'rgba(6, 16, 34, 0.92)';
+      ctx.strokeStyle = 'rgba(0, 245, 255, 0.35)';
+      ctx.lineWidth = 1;
+      const bannerW = Math.min(W - 24, 710);
+      const bannerX = (W - bannerW) / 2;
+      ctx.beginPath();
+      ctx.roundRect(bannerX, 8, bannerW, 30, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.textAlign = 'center';
+      ctx.font = '700 11px Orbitron, monospace';
+      ctx.fillStyle = '#eaf6ff';
+      ctx.fillText('HOW TO WIN: Push every Cyan Crate [📦] onto a Pink Target Pad [◎]  •  [G] Random  •  [H] Hint  •  [X] Solve', W / 2, 27);
+      ctx.restore();
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const x = offsetX + c * tile;
+          const y = offsetY + r * tile;
+
+          if (walls[r][c]) {
+            ctx.save();
+            ctx.fillStyle = '#0a192f';
+            ctx.strokeStyle = 'rgba(0, 245, 255, 0.45)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.roundRect(x + 2, y + 2, tile - 4, tile - 4, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.strokeStyle = 'rgba(0, 245, 255, 0.14)';
+            ctx.strokeRect(x + 7, y + 7, tile - 14, tile - 14);
+            ctx.restore();
+          } else {
+            ctx.fillStyle = '#050d1a';
+            ctx.fillRect(x, y, tile, tile);
+            ctx.strokeStyle = 'rgba(0, 245, 255, 0.06)';
+            ctx.strokeRect(x, y, tile, tile);
+          }
+
+          if (targets[r][c]) {
+            totalTargets++;
+            if (crates[r][c]) lockedCrates++;
+            ctx.save();
+            const cx = x + tile / 2;
+            const cy = y + tile / 2;
+
+            ctx.fillStyle = `rgba(255, 0, 170, ${0.10 + pulse * 0.12})`;
+            ctx.strokeStyle = 'rgba(255, 0, 170, 0.7)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.roundRect(x + 5, y + 5, tile - 10, tile - 10, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.strokeStyle = '#ff00aa';
+            ctx.lineWidth = 2.2;
+            ctx.shadowColor = '#ff00aa';
+            ctx.shadowBlur = 12;
+            ctx.beginPath();
+            ctx.arc(cx, cy, tile * 0.28, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = `rgba(255, 60, 195, ${0.45 + pulse * 0.45})`;
+            ctx.beginPath();
+            ctx.arc(cx, cy, tile * 0.12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+
+          if (crates[r][c]) {
+            const onTarget = targets[r][c];
+            const isDeadlocked = deadlockedCrates.some(d => d.r === r && d.c === c);
+
+            let strokeColor = '#00f5ff';
+            let fillColor = '#072238';
+            if (onTarget) {
+              strokeColor = '#00ff9d';
+              fillColor = '#063324';
+            } else if (isDeadlocked) {
+              strokeColor = '#ffb800';
+              fillColor = '#332005';
+            }
+
+            ctx.save();
+            ctx.fillStyle = fillColor;
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 2.8;
+            ctx.shadowColor = strokeColor;
+            ctx.shadowBlur = onTarget ? 18 : isDeadlocked ? 14 : 9;
+
+            const padC = Math.max(5, Math.floor(tile * 0.11));
+            const cw = tile - padC * 2;
+            ctx.beginPath();
+            ctx.roundRect(x + padC, y + padC, cw, cw, 7);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(x + padC + 6, y + padC + 6);
+            ctx.lineTo(x + tile - padC - 6, y + tile - padC - 6);
+            ctx.moveTo(x + tile - padC - 6, y + padC + 6);
+            ctx.lineTo(x + padC + 6, y + tile - padC - 6);
+            ctx.stroke();
+
+            ctx.fillStyle = strokeColor;
+            ctx.beginPath();
+            ctx.arc(x + tile / 2, y + tile / 2, onTarget ? 6 : 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+      }
+
+      if (lastHintArrow && now < lastHintArrow.until) {
+        const hpt = cellCenterPixels(lastHintArrow.r, lastHintArrow.c);
+        ctx.save();
+        ctx.strokeStyle = '#00ff9d';
+        ctx.lineWidth = 4;
+        ctx.shadowColor = '#00ff9d';
+        ctx.shadowBlur = 14;
+        ctx.beginPath();
+        ctx.moveTo(hpt.x, hpt.y);
+        ctx.lineTo(hpt.x + lastHintArrow.dc * tile * 0.65, hpt.y + lastHintArrow.dr * tile * 0.65);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Draw Cyber-Loader Drone (@)
+      const px = offsetX + player.c * tile + tile / 2;
+      const py = offsetY + player.r * tile + tile / 2;
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#00f5ff';
+      ctx.lineWidth = 3;
+      ctx.shadowColor = '#00f5ff';
+      ctx.shadowBlur = 16;
+      ctx.beginPath();
+      ctx.arc(0, 0, tile * 0.32, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#040a18';
+      ctx.beginPath();
+      ctx.arc(player.dirC * 5, player.dirR * 5, tile * 0.13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Bottom Progress Pill
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.font = '700 12px Orbitron, monospace';
+      ctx.fillStyle = lockedCrates === totalTargets ? '#00ff9d' : '#7ea0c4';
+      ctx.fillText(
+        `${activeSpec.name.toUpperCase()} (${activeSpec.difficulty.toUpperCase()})  •  CRATES LOCKED: ${lockedCrates} / ${totalTargets}`,
+        W / 2,
+        H - 12
+      );
+      ctx.restore();
+
+      if (levelComplete) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(2, 8, 18, 0.88)';
+        ctx.strokeStyle = '#00ff9d';
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = '#00ff9d';
+        ctx.shadowBlur = 22;
+        const bw = Math.min(500, W - 40);
+        const bh = 144;
+        const bx = (W - bw) / 2;
+        const by = (H - bh) / 2;
+        ctx.beginPath();
+        ctx.roundRect(bx, by, bw, bh, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#00ff9d';
+        ctx.font = '900 22px Orbitron, sans-serif';
+        ctx.fillText('CHAMBER SECURED!', W / 2, by + 44);
+
+        ctx.fillStyle = '#eaf6ff';
+        ctx.font = '700 13px Orbitron, monospace';
+        ctx.fillText(`Moves: ${moves} (Par: ${activeSpec.par}) • Pushes: ${pushes} • Tier: ${activeSpec.difficulty}`, W / 2, by + 78);
+
+        ctx.fillStyle = '#00f5ff';
+        ctx.font = '700 11.5px Orbitron, monospace';
+        ctx.fillText(
+          isRandomChamber
+            ? 'PRESS [SPACE] OR [G] FOR NEXT WINNABLE RANDOM CHAMBER'
+            : 'PRESS [SPACE] / [ENTER] OR CLICK FOR NEXT CHAMBER',
+          W / 2,
+          by + 114
+        );
+        ctx.restore();
+      }
+    }
+
+    function toggleMute() {
+      sfx.muted = !sfx.muted;
+      document.getElementById('btn-mute').textContent = sfx.muted ? '🔇 MUTE' : '🔊 SFX';
+    }
+    window.toggleMute = toggleMute;
+
+    function toggleHelp() {
+      document.getElementById('help-modal').classList.toggle('hidden');
+    }
+    window.toggleHelp = toggleHelp;
+
+    // =========================================================================
+    // INPUT CONTROLS (KEYBOARD + CLICK/TAP ADJACENT TILE)
+    // =========================================================================
+    window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT')) return;
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+        e.preventDefault();
+        stopAutoSolve();
+        stepPlayer(-1, 0);
+      } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+        e.preventDefault();
+        stopAutoSolve();
+        stepPlayer(1, 0);
+      } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        stopAutoSolve();
+        stepPlayer(0, -1);
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        e.preventDefault();
+        stopAutoSolve();
+        stepPlayer(0, 1);
+      } else if (e.key === 'g' || e.key === 'G') {
+        e.preventDefault();
+        generateRandomSolvableLevel();
+      } else if (e.key === 'h' || e.key === 'H') {
+        e.preventDefault();
+        hintMove();
+      } else if (e.key === 'x' || e.key === 'X') {
+        e.preventDefault();
+        toggleAutoSolve();
+      } else if (e.key === 'z' || e.key === 'Z') {
+        undoMove();
+      } else if (e.key === 'y' || e.key === 'Y') {
+        redoMove();
+      } else if (e.key === 'r' || e.key === 'R') {
+        restartLevel();
+      } else if (e.key === ' ' || e.key === 'Enter') {
+        if (levelComplete) {
+          e.preventDefault();
+          advanceAfterWin();
+        }
+      } else if (e.key === ']' || e.key === 'n' || e.key === 'N') {
+        loadLevel(currentLevelIdx + 1);
+      } else if (e.key === '[') {
+        loadLevel(currentLevelIdx - 1);
+      } else if (e.key === 'm' || e.key === 'M') {
+        toggleMute();
+      } else if (e.key === '?') {
+        toggleHelp();
+      }
+    });
+
+    canvas.addEventListener('pointerdown', (e) => {
+      if (levelComplete) {
+        advanceAfterWin();
+        return;
+      }
+      stopAutoSolve();
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const cx = (e.clientX - rect.left) * scaleX;
+      const cy = (e.clientY - rect.top) * scaleY;
+
+      const pt = cellCenterPixels(player.r, player.c);
+      const dx = cx - pt.x;
+      const dy = cy - pt.y;
+      if (Math.hypot(dx, dy) < 12) return;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        stepPlayer(0, dx > 0 ? 1 : -1);
+      } else {
+        stepPlayer(dy > 0 ? 1 : -1, 0);
+      }
+    });
+
+    function handleResize() {
+      const stage = document.getElementById('canvas-stage');
+      if (!stage) return;
+      const rect = stage.getBoundingClientRect();
+      const w = Math.max(480, Math.floor(rect.width - 20));
+      const h = Math.max(420, Math.floor(rect.height - 20));
+      if (Math.abs(canvas.width - w) > 10 || Math.abs(canvas.height - h) > 10) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+    }
+    window.addEventListener('resize', handleResize);
+
+    function loop(now) {
+      renderScene(now);
+      requestAnimationFrame(loop);
+    }
+
+    handleResize();
+    loadLevel(0);
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

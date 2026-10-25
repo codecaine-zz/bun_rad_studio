@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#050416"/>
+      <stop offset="100%" stop-color="#140933"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)" stroke="#00f5ff" stroke-width="2" stroke-opacity="0.6"/>
+  <!-- Destructible Skyscrapers -->
+  <rect x="6" y="34" width="12" height="24" fill="#132248" stroke="#00f5ff" stroke-width="1"/>
+  <rect x="20" y="26" width="12" height="32" fill="#1e1348" stroke="#b829ff" stroke-width="1"/>
+  <rect x="34" y="30" width="12" height="28" fill="#132248" stroke="#00f5ff" stroke-width="1"/>
+  <rect x="48" y="38" width="10" height="20" fill="#2e1338" stroke="#ff0066" stroke-width="1"/>
+  <!-- Parabolic Trajectory Arc -->
+  <path d="M12 31 Q32 4 53 35" fill="none" stroke="#ffcc00" stroke-width="2" stroke-dasharray="3 2"/>
+  <!-- Left Turret -->
+  <circle cx="12" cy="31" r="4" fill="#00f5ff"/>
+  <!-- Explosion on Right Turret -->
+  <circle cx="53" cy="35" r="7" fill="#ff0066" stroke="#ffcc00" stroke-width="1.5"/>
+</svg>

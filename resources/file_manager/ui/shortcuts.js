@@ -88,7 +88,7 @@ export const ACTIONS = [
   f("app.randomFxTheme", "Window", "Quick random FX theme (with effects, no dialog)", ["Alt+E", "Alt+Shift+R"]),
   f("app.randomPlainTheme", "Window", "Quick random plain theme (no effects, no dialog)", ["Alt+P", "Alt+Shift+P"]),
   f("app.randomUltraTheme", "Window", "Quick random Ultra / God-Mode theme (no dialog)", ["Alt+U"]),
-  f("app.toggleThemeFx", "Window", "Toggle or turn off theme animations & FX (no dialog)", ["Alt+0"]),
+  f("app.toggleThemeFx", "Window", "Toggle or turn off theme animations & FX (no dialog)", ["Alt+0", "Mod+0"]),
   { id: "app.expandTool", scope: "global", group: "Window", label: "Expand or restore the tool (ultra focus)", keys: ["F11", "Mod+F11", "Ctrl+F11", "Mod+Shift+U"] },
   { id: "terminal.toggle", scope: "global", group: "Window", label: "Show or hide the terminal", keys: ["Ctrl+`"] },
   { id: "terminal.here", scope: "global", group: "Window", label: "Open the terminal in the selected folder (or this one)", keys: ["Mod+Alt+T"] },

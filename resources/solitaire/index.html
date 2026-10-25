@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine Solitaire Royale: Klondike, Spider & FreeCell</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    :root {
+      --bg-deep: #04141c;
+      --cyan: #00f5d4;
+      --magenta: #ff2a85;
+      --gold: #fee440;
+      --green: #38ef7d;
+      --text: #e2f1ff;
+      --muted: #88a4c4;
+    }
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at 50% 25%, #092c2a 0%, #040d18 80%);
+      color: var(--text);
+      font-family: "Segoe UI", "Inter", system-ui, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px 16px;
+      background: linear-gradient(180deg, rgba(8, 26, 38, 0.96), rgba(4, 13, 24, 0.94));
+      border-bottom: 1px solid rgba(0, 245, 212, 0.35);
+      box-shadow: 0 4px 20px rgba(0, 245, 212, 0.12);
+      z-index: 10;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-icon {
+      width: 34px; height: 34px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(0,245,212,0.22), rgba(254,228,64,0.22));
+      border: 1px solid var(--cyan);
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      box-shadow: 0 0 12px rgba(0, 245, 212, 0.35);
+    }
+    .brand-title {
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #00f5d4, #fee440, #ff2a85);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-sub { font-size: 10.5px; color: var(--muted); }
+    .mode-tabs {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      background: rgba(9, 22, 38, 0.9);
+      color: var(--muted);
+      border: 1px solid rgba(0, 245, 212, 0.28);
+      border-radius: 7px;
+      padding: 5px 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .tab-btn.active {
+      background: rgba(0, 245, 212, 0.2);
+      color: var(--cyan);
+      border-color: var(--cyan);
+      box-shadow: 0 0 12px rgba(0, 245, 212, 0.35);
+    }
+    .hud-stats { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .stat-pill {
+      background: rgba(5, 13, 24, 0.88);
+      border: 1px solid rgba(0, 245, 212, 0.25);
+      border-radius: 8px;
+      padding: 4px 10px;
+      min-width: 72px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .stat-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); }
+    .stat-value { font-size: 14px; font-weight: 800; color: var(--cyan); font-variant-numeric: tabular-nums; }
+    .stat-value.gold { color: var(--gold); }
+    .controls-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    button {
+      background: rgba(11, 24, 42, 0.92);
+      color: var(--text);
+      border: 1px solid rgba(0, 245, 212, 0.4);
+      border-radius: 7px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    button:hover {
+      background: rgba(0, 245, 212, 0.18);
+      border-color: var(--cyan);
+      box-shadow: 0 0 12px rgba(0, 245, 212, 0.35);
+    }
+    button.cascade-btn {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      overflow: hidden;
+    }
+    .canvas-shell {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: rgba(4, 16, 22, 0.82);
+      border: 1px solid rgba(0, 245, 212, 0.35);
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+    }
+    canvas { display: block; cursor: pointer; }
+    .footer-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 16px;
+      font-size: 11px;
+      color: var(--muted);
+      background: rgba(4, 10, 18, 0.94);
+      border-top: 1px solid rgba(0, 245, 212, 0.2);
+    }
+    .kbd {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(0, 245, 212, 0.12);
+      border: 1px solid rgba(0, 245, 212, 0.35);
+      color: var(--cyan);
+      font-family: monospace;
+      font-size: 10px;
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 6, 15, 0.82);
+      backdrop-filter: blur(5px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-card {
+      background: linear-gradient(165deg, #0b1e32 0%, #050c18 100%);
+      border: 1px solid var(--cyan);
+      border-radius: 14px;
+      padding: 22px 26px;
+      max-width: 540px;
+      width: 92%;
+      box-shadow: 0 0 40px rgba(0, 245, 212, 0.3);
+      text-align: center;
+    }
+    .modal-card h2 { margin: 0 0 10px; color: var(--cyan); text-transform: uppercase; }
+    .modal-card p { color: #bdd1f0; font-size: 13px; line-height: 1.5; margin: 6px 0; }
+    .help-grid {
+      text-align: left;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 6px 12px;
+      margin: 12px 0;
+      padding: 10px;
+      border-radius: 8px;
+      background: rgba(3, 8, 20, 0.65);
+      border: 1px solid rgba(0, 245, 212, 0.22);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🃏</div>
+      <div>
+        <div class="brand-title">Codecaine Solitaire Royale</div>
+        <div class="brand-sub">Klondike • FreeCell • Spider Suite + Win95 Waterfall</div>
+      </div>
+    </div>
+
+    <div class="mode-tabs">
+      <button class="tab-btn active" data-mode="klondike1">Klondike (Draw 1)</button>
+      <button class="tab-btn" data-mode="klondike3">Klondike (Draw 3)</button>
+      <button class="tab-btn" data-mode="freecell">FreeCell</button>
+      <button class="tab-btn" data-mode="spider1">Spider (1-Suit)</button>
+      <button class="tab-btn" data-mode="spider2">Spider (2-Suit)</button>
+    </div>
+
+    <div class="hud-stats">
+      <div class="stat-pill">
+        <span class="stat-label">Score</span>
+        <span class="stat-value" id="hudScore">500</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">High Score</span>
+        <span class="stat-value gold" id="hudHigh">500</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">Moves</span>
+        <span class="stat-value" id="hudMoves">0</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">Foundation</span>
+        <span class="stat-value gold" id="hudFound">0 / 52</span>
+      </div>
+    </div>
+
+    <div class="controls-bar">
+      <button id="btnAuto" title="Auto-Move Eligible Cards to Foundation (A)">⚡ Auto-Up (A)</button>
+      <button id="btnHint" title="Highlight Smart Move Hint (H)">💡 Hint (H)</button>
+      <button id="btnUndo" title="Undo Last Move (Z)">⏪ Undo (Z)</button>
+      <button id="btnCascade" class="cascade-btn" title="Launch Iconic Win95 Bouncing Cards Waterfall! (W)">🎆 Cascade</button>
+      <button id="btnNew" title="Deal New Hand (N)">🃏 New Deal</button>
+      <button id="btnMute" title="Toggle Audio (M)">🔊 Audio</button>
+      <button id="btnHelp" title="Rules & Controls (?)">❓ Help</button>
+    </div>
+  </header>
+
+  <main id="viewportMain">
+    <div class="canvas-shell" id="canvasShell">
+      <canvas id="gameCanvas" width="1140" height="700"></canvas>
+    </div>
+  </main>
+
+  <div class="footer-bar">
+    <div>
+      <span class="kbd">Drag &amp; Drop</span> or <span class="kbd">Click → Click</span> Move Stack &nbsp;•&nbsp;
+      <span class="kbd">Double-Click</span> / <span class="kbd">A</span> Auto-Foundation &nbsp;•&nbsp;
+      <span class="kbd">H</span> Smart Hint &nbsp;•&nbsp;
+      <span class="kbd">Z</span> Undo &nbsp;•&nbsp;
+      <span class="kbd">W</span> Win95 Waterfall
+    </div>
+    <div id="statusTicker">Welcome to Codecaine Solitaire Royale — Select a mode tab or start moving cards!</div>
+  </div>
+
+  <!-- Help Modal -->
+  <div class="modal-backdrop" id="helpModal">
+    <div class="modal-card">
+      <h2>🃏 Solitaire Royale Suite Guide</h2>
+      <p>Switch anytime between <strong>Klondike</strong>, <strong>FreeCell</strong>, and <strong>Spider</strong> using the top mode tabs.</p>
+      <div class="help-grid">
+        <span>Klondike (1 / 3)</span><span>Build tableau down in alternating colors; build 4 foundations up by suit from Ace (A) to King (K).</span>
+        <span>FreeCell</span><span>8 cascades + 4 Free Cells (top-left) + 4 Foundations (top-right). All 52 cards start face-up!</span>
+        <span>Spider (1 / 2 Suit)</span><span>10 cascades, 104 cards. Build descending same-suit sequences from King (K) to Ace (A) to sweep full 13-card runs!</span>
+        <span>Double-Click / A</span><span>Automatically sends eligible cards directly to the Foundation piles.</span>
+        <span>🎆 Cascade (W)</span><span>Launches the iconic <strong>Windows 95 Bouncing Cards Waterfall Animation</strong> across the canvas!</span>
+      </div>
+      <button id="btnCloseHelp" style="padding:7px 20px;">Got It — Resume</button>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = "codecaine_solitaire_high_v1";
+      const SUITS = ["♠", "♥", "♣", "♦"];
+      const SUIT_COLOR = { "♠": "black", "♣": "black", "♥": "red", "♦": "red" };
+      const RANK_LABELS = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+
+      class CardAudio {
+        constructor() { this.ctx = null; this.muted = false; }
+        init() {
+          if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) this.ctx = new AC();
+          }
+          if (this.ctx && this.ctx.state === "suspended") this.ctx.resume().catch(() => {});
+        }
+        tone(freq, type = "sine", dur = 0.08, gainVal = 0.11, slide = null) {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, now);
+            if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(30, slide), now + dur);
+            g.gain.setValueAtTime(gainVal, now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+            osc.connect(g);
+            g.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + dur);
+          } catch {}
+        }
+        cardMove() { this.tone(360, "triangle", 0.055, 0.09, 520); }
+        foundation() { this.tone(587.33, "sine", 0.1, 0.13, 880); }
+        hint() { this.tone(660, "sine", 0.12, 0.11, 990); }
+        bounce() { this.tone(240 + Math.random() * 240, "triangle", 0.05, 0.07, 420); }
+        winFanfare() {
+          [523.25, 659.25, 783.99, 1046.5].forEach((f, i) =>
+            setTimeout(() => this.tone(f, "triangle", 0.22, 0.16), i * 90)
+          );
+        }
+      }
+
+      const sfx = new CardAudio();
+
+      // --- State ---
+      let mode = "klondike1"; // 'klondike1', 'klondike3', 'freecell', 'spider1', 'spider2'
+      let stock = [];
+      let waste = [];
+      let freeCells = [null, null, null, null];
+      let foundations = [[], [], [], []]; // 4 piles in Klondike/FreeCell; up to 8 completed runs in Spider
+      let tableau = []; // 7 in Klondike, 8 in FreeCell, 10 in Spider
+
+      let score = 500;
+      let highScore = parseInt(localStorage.getItem(STORAGE_KEY) || "500", 10) || 500;
+      let moves = 0;
+      let undoStack = [];
+      let selected = null; // { zone: 'waste'|'freecell'|'tableau', col, cardIdx }
+      let dragState = null; // { zone, col, cardIdx, cards, x, y, offsetX, offsetY }
+      let activeHint = null; // { fromRect, toRect, timer }
+
+      // Win95 Bouncing Cards Waterfall state
+      let waterfallActive = false;
+      let waterfallQueue = [];
+      let activeWaterfallCard = null;
+      let cardW = 84;
+      let cardH = 118;
+
+      function setStatus(msg) {
+        document.getElementById("statusTicker").textContent = msg;
+      }
+
+      function resizeCanvas() {
+        const shell = document.getElementById("canvasShell");
+        canvas.width = Math.max(760, shell.clientWidth - 8);
+        canvas.height = Math.max(480, shell.clientHeight - 8);
+        const cols = mode.startsWith("spider") ? 10 : mode === "freecell" ? 8 : 7;
+        cardW = Math.max(58, Math.min(96, Math.floor((canvas.width - (cols + 1) * 16) / cols)));
+        cardH = Math.floor(cardW * 1.38);
+      }
+      window.addEventListener("resize", () => {
+        resizeCanvas();
+        if (!waterfallActive) render();
+      });
+
+      function createDeck(suitsToUse = SUITS, copies = 1) {
+        const deck = [];
+        for (let c = 0; c < copies; c++) {
+          for (const s of suitsToUse) {
+            for (let r = 1; r <= 13; r++) {
+              deck.push({ suit: s, rank: r, color: SUIT_COLOR[s], faceUp: false });
+            }
+          }
+        }
+        for (let i = deck.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          const tmp = deck[i];
+          deck[i] = deck[j];
+          deck[j] = tmp;
+        }
+        return deck;
+      }
+
+      function cloneGameState() {
+        return JSON.stringify({
+          stock,
+          waste,
+          freeCells,
+          foundations,
+          tableau,
+          score,
+          moves,
+        });
+      }
+
+      function pushUndo() {
+        undoStack.push(cloneGameState());
+        if (undoStack.length > 120) undoStack.shift();
+      }
+
+      function performUndo() {
+        if (waterfallActive) {
+          waterfallActive = false;
+          activeWaterfallCard = null;
+        }
+        if (undoStack.length === 0) {
+          setStatus("No earlier moves to undo!");
+          return;
+        }
+        const snap = JSON.parse(undoStack.pop());
+        stock = snap.stock;
+        waste = snap.waste;
+        freeCells = snap.freeCells;
+        foundations = snap.foundations;
+        tableau = snap.tableau;
+        score = snap.score;
+        moves = snap.moves;
+        selected = null;
+        activeHint = null;
+        sfx.cardMove();
+        updateHUD();
+        setStatus("⏪ Undid last move.");
+      }
+
+      function initGame(newMode = mode) {
+        mode = newMode;
+        waterfallActive = false;
+        activeWaterfallCard = null;
+        waterfallQueue = [];
+        selected = null;
+        dragState = null;
+        activeHint = null;
+        undoStack = [];
+        moves = 0;
+        score = 500;
+        resizeCanvas();
+
+        document.querySelectorAll(".tab-btn").forEach((b) => {
+          b.classList.toggle("active", b.dataset.mode === mode);
+        });
+
+        if (mode === "klondike1" || mode === "klondike3") {
+          const deck = createDeck(SUITS, 1);
+          tableau = Array.from({ length: 7 }, () => []);
+          foundations = [[], [], [], []];
+          freeCells = [null, null, null, null];
+          waste = [];
+          for (let col = 0; col < 7; col++) {
+            for (let row = 0; row <= col; row++) {
+              const card = deck.pop();
+              card.faceUp = row === col;
+              tableau[col].push(card);
+            }
+          }
+          stock = deck;
+          setStatus(`Klondike (${mode === "klondike3" ? "Draw 3" : "Draw 1"}) dealt! Double-click any card or press A to send to Foundation.`);
+        } else if (mode === "freecell") {
+          const deck = createDeck(SUITS, 1);
+          tableau = Array.from({ length: 8 }, () => []);
+          foundations = [[], [], [], []];
+          freeCells = [null, null, null, null];
+          stock = [];
+          waste = [];
+          for (let i = 0; i < 52; i++) {
+            const card = deck[i];
+            card.faceUp = true;
+            tableau[i % 8].push(card);
+          }
+          setStatus("FreeCell dealt! Use the 4 Free Cells (top-left) to maneuver cards to the 4 Foundations (top-right).");
+        } else if (mode === "spider1" || mode === "spider2") {
+          const deck = mode === "spider1" ? createDeck(["♠"], 8) : createDeck(["♠", "♥"], 4);
+          tableau = Array.from({ length: 10 }, () => []);
+          foundations = [];
+          freeCells = [];
+          waste = [];
+          // Deal 54 cards to tableau (first 4 cols get 6 cards, next 6 cols get 5 cards)
+          for (let i = 0; i < 54; i++) {
+            const col = i % 10;
+            const card = deck.pop();
+            tableau[col].push(card);
+          }
+          for (let c = 0; c < 10; c++) {
+            tableau[c][tableau[c].length - 1].faceUp = true;
+          }
+          stock = deck; // 50 cards remaining (5 deals of 10)
+          setStatus(`Spider (${mode === "spider1" ? "1-Suit ♠" : "2-Suit ♠♥"}) dealt! Assemble K-to-A same-suit runs to clear them.`);
+        }
+
+        updateHUD();
+      }
+
+      function getFoundationCount() {
+        if (mode.startsWith("spider")) {
+          return foundations.length * 13;
+        }
+        return foundations.reduce((acc, f) => acc + f.length, 0);
+      }
+
+      function getTargetFoundationTotal() {
+        return mode.startsWith("spider") ? 104 : 52;
+      }
+
+      function updateHUD() {
+        if (score > highScore) {
+          highScore = score;
+          try { localStorage.setItem(STORAGE_KEY, String(highScore)); } catch {}
+        }
+        document.getElementById("hudScore").textContent = score.toLocaleString();
+        document.getElementById("hudHigh").textContent = highScore.toLocaleString();
+        document.getElementById("hudMoves").textContent = String(moves);
+        document.getElementById("hudFound").textContent = `${getFoundationCount()} / ${getTargetFoundationTotal()}`;
+      }
+
+      // --- Move Validation Rules ---
+      function canPickTableauSubstack(colIdx, startIdx) {
+        const col = tableau[colIdx];
+        if (!col || startIdx < 0 || startIdx >= col.length) return false;
+        if (!col[startIdx].faceUp) return false;
+
+        for (let i = startIdx; i < col.length - 1; i++) {
+          const upper = col[i];
+          const lower = col[i + 1];
+          if (upper.rank !== lower.rank + 1) return false;
+          if (mode.startsWith("spider")) {
+            if (upper.suit !== lower.suit) return false;
+          } else {
+            if (upper.color === lower.color) return false;
+          }
+        }
+        return true;
+      }
+
+      function canDropOnTableau(movingCards, destColIdx) {
+        const destCol = tableau[destColIdx];
+        const lead = movingCards[0];
+        if (destCol.length === 0) {
+          if (mode === "klondike1" || mode === "klondike3") {
+            return lead.rank === 13;
+          }
+          return true; // FreeCell & Spider allow any card in an empty column
+        }
+        const top = destCol[destCol.length - 1];
+        if (!top.faceUp) return false;
+        if (mode.startsWith("spider")) {
+          return top.rank === lead.rank + 1;
+        }
+        return top.color !== lead.color && top.rank === lead.rank + 1;
+      }
+
+      function canDropOnFoundation(card, fIdx) {
+        if (mode.startsWith("spider")) return false;
+        const pile = foundations[fIdx];
+        if (pile.length === 0) return card.rank === 1;
+        const top = pile[pile.length - 1];
+        return top.suit === card.suit && card.rank === top.rank + 1;
+      }
+
+      function checkSpiderCompletedRun(colIdx) {
+        if (!mode.startsWith("spider")) return;
+        const col = tableau[colIdx];
+        if (col.length < 13) return;
+        const start = col.length - 13;
+        const suit = col[start].suit;
+        for (let i = 0; i < 13; i++) {
+          const c = col[start + i];
+          if (!c.faceUp || c.suit !== suit || c.rank !== 13 - i) return;
+        }
+        // Complete K -> A run found! Sweep to foundation
+        const swept = col.splice(start, 13);
+        foundations.push(swept);
+        if (col.length > 0) col[col.length - 1].faceUp = true;
+        score += 250;
+        sfx.winFanfare();
+        window.GameMasterFX?.burst?.(canvas.width / 2, 120, "#fee440", 32);
+        setStatus(`🕷️ Complete ${suit} K→A sequence swept to Foundation (+250 PTS)!`);
+        updateHUD();
+        checkVictory();
+      }
+
+      function executeMove(src, dest) {
+        pushUndo();
+        let moving = [];
+        if (src.zone === "waste") {
+          moving = [waste.pop()];
+        } else if (src.zone === "freecell") {
+          moving = [freeCells[src.col]];
+          freeCells[src.col] = null;
+        } else if (src.zone === "tableau") {
+          const col = tableau[src.col];
+          moving = col.splice(src.cardIdx);
+          if (col.length > 0 && !col[col.length - 1].faceUp) {
+            col[col.length - 1].faceUp = true;
+            score += 15;
+          }
+        }
+
+        if (dest.zone === "tableau") {
+          tableau[dest.col].push(...moving);
+          score += 10;
+          sfx.cardMove();
+          checkSpiderCompletedRun(dest.col);
+        } else if (dest.zone === "freecell") {
+          freeCells[dest.col] = moving[0];
+          sfx.cardMove();
+        } else if (dest.zone === "foundation") {
+          foundations[dest.col].push(moving[0]);
+          score += 50;
+          sfx.foundation();
+          const rect = canvas.getBoundingClientRect();
+          window.GameMasterFX?.burst?.(rect.left + canvas.width * 0.75, rect.top + 80, "#00f5d4", 16);
+        }
+
+        moves++;
+        selected = null;
+        activeHint = null;
+        updateHUD();
+        checkVictory();
+      }
+
+      function tryAutoMoveCardToFoundation(src) {
+        if (mode.startsWith("spider")) return false;
+        let card = null;
+        if (src.zone === "waste") {
+          if (waste.length === 0) return false;
+          card = waste[waste.length - 1];
+        } else if (src.zone === "freecell") {
+          card = freeCells[src.col];
+        } else if (src.zone === "tableau") {
+          const col = tableau[src.col];
+          if (col.length === 0 || src.cardIdx !== col.length - 1) return false;
+          card = col[col.length - 1];
+        }
+        if (!card) return false;
+
+        for (let f = 0; f < 4; f++) {
+          if (canDropOnFoundation(card, f)) {
+            executeMove(src, { zone: "foundation", col: f });
+            return true;
+          }
+        }
+        return false;
+      }
+
+      function sweepAllEligibleToFoundation() {
+        if (mode.startsWith("spider")) {
+          setStatus("In Spider Solitaire, assemble a full K→A sequence in any column to sweep it!");
+          return;
+        }
+        let movedAny = false;
+        let keepGoing = true;
+        while (keepGoing) {
+          keepGoing = false;
+          if (waste.length > 0 && tryAutoMoveCardToFoundation({ zone: "waste" })) {
+            keepGoing = true;
+            movedAny = true;
+            continue;
+          }
+          for (let i = 0; i < 4; i++) {
+            if (freeCells[i] && tryAutoMoveCardToFoundation({ zone: "freecell", col: i })) {
+              keepGoing = true;
+              movedAny = true;
+              break;
+            }
+          }
+          for (let c = 0; c < tableau.length; c++) {
+            const col = tableau[c];
+            if (col.length > 0 && tryAutoMoveCardToFoundation({ zone: "tableau", col: c, cardIdx: col.length - 1 })) {
+              keepGoing = true;
+              movedAny = true;
+              break;
+            }
+          }
+        }
+        if (!movedAny) {
+          setStatus("No immediate Foundation moves available.");
+        }
+      }
+
+      function dealFromStock() {
+        if (stock.length === 0) {
+          if (mode === "klondike1" || mode === "klondike3") {
+            if (waste.length === 0) return;
+            pushUndo();
+            stock = waste.reverse().map((c) => ({ ...c, faceUp: false }));
+            waste = [];
+            sfx.cardMove();
+            updateHUD();
+          }
+          return;
+        }
+
+        pushUndo();
+        if (mode === "klondike1" || mode === "klondike3") {
+          const count = mode === "klondike3" ? Math.min(3, stock.length) : 1;
+          for (let i = 0; i < count; i++) {
+            const c = stock.pop();
+            c.faceUp = true;
+            waste.push(c);
+          }
+          sfx.cardMove();
+        } else if (mode.startsWith("spider")) {
+          for (let col = 0; col < 10; col++) {
+            if (stock.length > 0) {
+              const c = stock.pop();
+              c.faceUp = true;
+              tableau[col].push(c);
+              checkSpiderCompletedRun(col);
+            }
+          }
+          sfx.cardMove();
+        }
+        moves++;
+        updateHUD();
+      }
+
+      // --- Layout Geometry ---
+      function getLayoutRects() {
+        const rects = { stock: null, waste: null, freeCells: [], foundations: [], tableauCols: [] };
+        const topY = 18;
+        const tabY = topY + cardH + 24;
+        const cols = tableau.length;
+        const totalW = cols * cardW + (cols - 1) * 16;
+        const startX = Math.max(16, Math.floor((canvas.width - totalW) / 2));
+        const stepX = cardW + 16;
+
+        if (mode === "klondike1" || mode === "klondike3") {
+          rects.stock = { x: startX, y: topY, w: cardW, h: cardH };
+          rects.waste = { x: startX + stepX, y: topY, w: cardW, h: cardH };
+          for (let f = 0; f < 4; f++) {
+            rects.foundations.push({ x: startX + (f + 3) * stepX, y: topY, w: cardW, h: cardH });
+          }
+        } else if (mode === "freecell") {
+          for (let i = 0; i < 4; i++) {
+            rects.freeCells.push({ x: startX + i * stepX, y: topY, w: cardW, h: cardH });
+          }
+          for (let f = 0; f < 4; f++) {
+            rects.foundations.push({ x: startX + (f + 4) * stepX, y: topY, w: cardW, h: cardH });
+          }
+        } else if (mode.startsWith("spider")) {
+          rects.stock = { x: startX, y: topY, w: cardW, h: cardH };
+          for (let f = 0; f < 8; f++) {
+            rects.foundations.push({ x: startX + (f + 2) * stepX, y: topY, w: cardW, h: cardH });
+          }
+        }
+
+        for (let c = 0; c < cols; c++) {
+          rects.tableauCols.push({ x: startX + c * stepX, y: tabY, w: cardW });
+        }
+        return rects;
+      }
+
+      function getCardYOffset(col, idx) {
+        let y = 0;
+        for (let i = 0; i < idx; i++) {
+          y += col[i].faceUp ? Math.min(30, Math.floor(cardH * 0.25)) : 14;
+        }
+        return y;
+      }
+
+      // --- Smart Hint ---
+      function triggerSmartHint() {
+        const rects = getLayoutRects();
+        // 1. Check tableau / waste -> foundation
+        if (!mode.startsWith("spider")) {
+          for (let c = 0; c < tableau.length; c++) {
+            const col = tableau[c];
+            if (col.length > 0) {
+              const top = col[col.length - 1];
+              for (let f = 0; f < 4; f++) {
+                if (canDropOnFoundation(top, f)) {
+                  const cy = rects.tableauCols[c].y + getCardYOffset(col, col.length - 1);
+                  activeHint = {
+                    fromRect: { x: rects.tableauCols[c].x, y: cy, w: cardW, h: cardH },
+                    toRect: rects.foundations[f],
+                    timer: 2.5,
+                  };
+                  sfx.hint();
+                  setStatus(`💡 Hint: Move ${RANK_LABELS[top.rank]}${top.suit} to Foundation!`);
+                  return;
+                }
+              }
+            }
+          }
+        }
+
+        // 2. Check tableau -> tableau moves
+        for (let c = 0; c < tableau.length; c++) {
+          const col = tableau[c];
+          for (let idx = 0; idx < col.length; idx++) {
+            if (!canPickTableauSubstack(c, idx)) continue;
+            // Avoid pointless moves of top-of-column King to another empty column
+            if (idx === 0 && col[0].rank === 13 && tableau.some((tc, ti) => ti !== c && tc.length === 0)) continue;
+            const sub = col.slice(idx);
+            for (let dest = 0; dest < tableau.length; dest++) {
+              if (dest === c) continue;
+              if (idx === 0 && tableau[dest].length === 0) continue;
+              if (canDropOnTableau(sub, dest)) {
+                const fy = rects.tableauCols[c].y + getCardYOffset(col, idx);
+                const dCol = tableau[dest];
+                const ty = rects.tableauCols[dest].y + (dCol.length > 0 ? getCardYOffset(dCol, dCol.length - 1) + 22 : 0);
+                activeHint = {
+                  fromRect: { x: rects.tableauCols[c].x, y: fy, w: cardW, h: cardH },
+                  toRect: { x: rects.tableauCols[dest].x, y: ty, w: cardW, h: cardH },
+                  timer: 2.5,
+                };
+                sfx.hint();
+                setStatus(`💡 Hint: Move ${RANK_LABELS[sub[0].rank]}${sub[0].suit} to Column ${dest + 1}!`);
+                return;
+              }
+            }
+          }
+        }
+
+        setStatus("💡 No direct tableau moves found — try dealing from the Stock pile!");
+      }
+
+      // --- Windows 95 Bouncing Cards Waterfall Animation ---
+      function startWin95Waterfall() {
+        waterfallActive = true;
+        waterfallQueue = [];
+        const rects = getLayoutRects();
+
+        for (let r = 13; r >= 1; r--) {
+          for (let s = 0; s < 4; s++) {
+            const fRect = rects.foundations[s % rects.foundations.length] || { x: canvas.width * 0.6, y: 20 };
+            waterfallQueue.push({
+              rank: r,
+              suit: SUITS[s],
+              color: SUIT_COLOR[SUITS[s]],
+              x: fRect.x,
+              y: fRect.y,
+            });
+          }
+        }
+
+        // Clear background once to emerald felt so bouncing cards leave their iconic Win95 trail!
+        ctx.fillStyle = "#06211d";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        spawnNextWaterfallCard();
+        sfx.winFanfare();
+        setStatus("🎆 WINDOWS 95 VICTORY CASCADE ACTIVE! Click anywhere or press New Deal to reset.");
+      }
+
+      function spawnNextWaterfallCard() {
+        if (waterfallQueue.length === 0) {
+          // Loop the waterfall continuously until user clicks
+          for (let r = 13; r >= 1; r--) {
+            for (let s = 0; s < 4; s++) {
+              waterfallQueue.push({
+                rank: r,
+                suit: SUITS[s],
+                color: SUIT_COLOR[SUITS[s]],
+                x: 120 + ((r * 73 + s * 140) % Math.max(200, canvas.width - 240)),
+                y: 24,
+              });
+            }
+          }
+        }
+        const next = waterfallQueue.shift();
+        const vx = (Math.random() < 0.5 ? -1 : 1) * (160 + Math.random() * 220);
+        activeWaterfallCard = {
+          ...next,
+          vx,
+          vy: -40 - Math.random() * 60,
+          faceUp: true,
+        };
+      }
+
+      function checkVictory() {
+        if (getFoundationCount() >= getTargetFoundationTotal() && !waterfallActive) {
+          score += 1000;
+          updateHUD();
+          startWin95Waterfall();
+        }
+      }
+
+      // --- Authentic Playing Card Pip Layouts (Normalized 0..1 inside inner pip box) ---
+      // Each entry is [nx, ny, invertedBoolean]
+      const PIP_LAYOUTS = {
+        2: [[0.5, 0.16, false], [0.5, 0.84, true]],
+        3: [[0.5, 0.16, false], [0.5, 0.50, false], [0.5, 0.84, true]],
+        4: [[0.28, 0.16, false], [0.72, 0.16, false], [0.28, 0.84, true], [0.72, 0.84, true]],
+        5: [[0.28, 0.16, false], [0.72, 0.16, false], [0.5, 0.50, false], [0.28, 0.84, true], [0.72, 0.84, true]],
+        6: [[0.28, 0.16, false], [0.72, 0.16, false], [0.28, 0.50, false], [0.72, 0.50, false], [0.28, 0.84, true], [0.72, 0.84, true]],
+        7: [[0.28, 0.16, false], [0.72, 0.16, false], [0.5, 0.33, false], [0.28, 0.50, false], [0.72, 0.50, false], [0.28, 0.84, true], [0.72, 0.84, true]],
+        8: [[0.28, 0.16, false], [0.72, 0.16, false], [0.5, 0.33, false], [0.28, 0.50, false], [0.72, 0.50, false], [0.5, 0.67, true], [0.28, 0.84, true], [0.72, 0.84, true]],
+        9: [[0.28, 0.14, false], [0.72, 0.14, false], [0.28, 0.38, false], [0.72, 0.38, false], [0.5, 0.50, false], [0.28, 0.62, true], [0.72, 0.62, true], [0.28, 0.86, true], [0.72, 0.86, true]],
+        10: [[0.28, 0.14, false], [0.72, 0.14, false], [0.5, 0.26, false], [0.28, 0.38, false], [0.72, 0.38, false], [0.28, 0.62, true], [0.72, 0.62, true], [0.5, 0.74, true], [0.28, 0.86, true], [0.72, 0.86, true]]
+      };
+
+      function drawCourtPortrait(x, y, w, h, card, col) {
+        const ix = x + Math.floor(w * 0.19);
+        const iy = y + Math.floor(h * 0.17);
+        const iw = w - Math.floor(w * 0.38);
+        const ih = h - Math.floor(h * 0.34);
+
+        ctx.save();
+        // Rich tapestry background inside court frame
+        const bgGrad = ctx.createLinearGradient(ix, iy, ix + iw, iy + ih);
+        if (card.color === "red") {
+          bgGrad.addColorStop(0, "#fff5f5");
+          bgGrad.addColorStop(0.5, "#fee2e2");
+          bgGrad.addColorStop(1, "#fef3c7");
+        } else {
+          bgGrad.addColorStop(0, "#f8fafc");
+          bgGrad.addColorStop(0.5, "#e2e8f0");
+          bgGrad.addColorStop(1, "#fef3c7");
+        }
+        ctx.fillStyle = bgGrad;
+        ctx.strokeStyle = "#d4af37"; // Metallic gold court border
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.roundRect(ix, iy, iw, ih, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        // Double inner gold hairline
+        ctx.strokeStyle = "rgba(180, 130, 25, 0.45)";
+        ctx.lineWidth = 0.8;
+        ctx.strokeRect(ix + 2.5, iy + 2.5, iw - 5, ih - 5);
+
+        const cx = x + w / 2;
+        const cy = y + h / 2;
+
+        // Royal Diagonal Sash & Double-Headed Court Pattern
+        ctx.strokeStyle = card.color === "red" ? "rgba(204, 17, 34, 0.22)" : "rgba(17, 24, 39, 0.20)";
+        ctx.lineWidth = Math.max(4, w * 0.07);
+        ctx.beginPath();
+        ctx.moveTo(ix + 4, iy + ih - 4);
+        ctx.lineTo(ix + iw - 4, iy + 4);
+        ctx.stroke();
+
+        // Draw Royal Crown /Tiara at Top of Court Box
+        const crownW = iw * 0.56;
+        const crownH = ih * 0.18;
+        const crownX = cx - crownW / 2;
+        const crownY = iy + ih * 0.12;
+        ctx.fillStyle = "#eab308";
+        ctx.strokeStyle = "#92400e";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(crownX, crownY + crownH);
+        ctx.lineTo(crownX - 2, crownY + crownH * 0.2);
+        ctx.lineTo(cx - crownW * 0.22, crownY + crownH * 0.6);
+        ctx.lineTo(cx, crownY);
+        ctx.lineTo(cx + crownW * 0.22, crownY + crownH * 0.6);
+        ctx.lineTo(crownX + crownW + 2, crownY + crownH * 0.2);
+        ctx.lineTo(crownX + crownW, crownY + crownH);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Central Court Figure Medallion + Suit Watermark
+        ctx.fillStyle = col;
+        ctx.font = `bold ${Math.floor(w * 0.30)}px Georgia, "Times New Roman", serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        const rankLetter = RANK_LABELS[card.rank];
+        ctx.fillText(rankLetter, cx, cy + 1);
+
+        // Corner Pips inside the court portrait box
+        ctx.font = `${Math.floor(w * 0.17)}px "Segoe UI Symbol", "Apple Symbols", serif`;
+        ctx.fillText(card.suit, ix + iw * 0.24, iy + ih * 0.23);
+        ctx.fillText(card.suit, ix + iw * 0.76, iy + ih * 0.77);
+
+        ctx.restore();
+      }
+
+      // --- Rendering ---
+      function drawSingleCard(x, y, card, isSelected = false) {
+        ctx.save();
+
+        // 1. Physical Card Drop Shadow for 3D Tabletop Depth
+        ctx.shadowColor = isSelected ? "rgba(254, 228, 64, 0.65)" : "rgba(0, 0, 0, 0.45)";
+        ctx.shadowBlur = isSelected ? 14 : 7;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = isSelected ? 0 : 3;
+
+        const radius = Math.max(6, Math.floor(cardW * 0.08));
+
+        if (!card.faceUp) {
+          // ===============================================================
+          // AUTHENTIC BICYCLE / CASINO ORNATE PLAYING CARD BACK
+          // ===============================================================
+          // Crisp white outer card stock
+          ctx.fillStyle = "#fcfbf9";
+          ctx.strokeStyle = isSelected ? "#fee440" : "#cbd5e1";
+          ctx.lineWidth = isSelected ? 2.5 : 1.2;
+          ctx.beginPath();
+          ctx.roundRect(x, y, cardW, cardH, radius);
+          ctx.fill();
+          ctx.stroke();
+
+          // Reset shadow for crisp interior printing
+          ctx.shadowColor = "transparent";
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetY = 0;
+
+          const pad = Math.max(4, Math.floor(cardW * 0.065));
+          const bx = x + pad;
+          const by = y + pad;
+          const bw = cardW - pad * 2;
+          const bh = cardH - pad * 2;
+
+          // Deep Royal Casino Back Panel (Crimson/Sapphire Gradient)
+          const backGrad = ctx.createLinearGradient(bx, by, bx + bw, by + bh);
+          backGrad.addColorStop(0, "#991b1b");
+          backGrad.addColorStop(0.5, "#7f1d1d");
+          backGrad.addColorStop(1, "#450a0a");
+          ctx.fillStyle = backGrad;
+          ctx.beginPath();
+          ctx.roundRect(bx, by, bw, bh, Math.max(3, radius - 2));
+          ctx.fill();
+
+          // Ornate Gold Filigree Frame
+          ctx.strokeStyle = "#facc15";
+          ctx.lineWidth = 1.2;
+          ctx.strokeRect(bx + 2.5, by + 2.5, bw - 5, bh - 5);
+
+          // Guilloché Diamond Lattice Hatching
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(bx + 4, by + 4, bw - 8, bh - 8);
+          ctx.clip();
+          ctx.strokeStyle = "rgba(254, 240, 138, 0.24)";
+          ctx.lineWidth = 0.9;
+          const step = Math.max(7, Math.floor(cardW * 0.11));
+          for (let d = -bh; d < bw + bh; d += step) {
+            ctx.beginPath();
+            ctx.moveTo(bx + d, by);
+            ctx.lineTo(bx + d - bh, by + bh);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(bx + d, by);
+            ctx.lineTo(bx + d + bh, by + bh);
+            ctx.stroke();
+          }
+          ctx.restore();
+
+          // Center Royal Rosette Medallion
+          const cx = x + cardW / 2;
+          const cy = y + cardH / 2;
+          const medR = Math.min(bw, bh) * 0.24;
+          ctx.fillStyle = "#fef08a";
+          ctx.strokeStyle = "#ca8a04";
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.arc(cx, cy, medR, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#7f1d1d";
+          ctx.font = `${Math.floor(medR * 1.15)}px "Segoe UI Symbol", serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("♠", cx, cy + 0.5);
+
+          ctx.restore();
+          return;
+        }
+
+        // ===============================================================
+        // AUTHENTIC IVORY PLAYING CARD FACE
+        // ===============================================================
+        const faceGrad = ctx.createLinearGradient(x, y, x + cardW, y + cardH);
+        faceGrad.addColorStop(0, "#ffffff");
+        faceGrad.addColorStop(0.65, "#fdfcf9");
+        faceGrad.addColorStop(1, "#f3f0e8");
+
+        ctx.fillStyle = faceGrad;
+        ctx.strokeStyle = isSelected ? "#f59e0b" : "#94a3b8";
+        ctx.lineWidth = isSelected ? 3 : 1.25;
+
+        ctx.beginPath();
+        ctx.roundRect(x, y, cardW, cardH, radius);
+        ctx.fill();
+        ctx.stroke();
+
+        // Turn off drop shadow for sharp typography & pips
+        ctx.shadowColor = "transparent";
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+
+        // Subtle inner card border
+        ctx.strokeStyle = isSelected ? "rgba(245, 158, 11, 0.5)" : "rgba(148, 163, 184, 0.22)";
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.roundRect(x + 2, y + 2, cardW - 4, cardH - 4, Math.max(4, radius - 1));
+        ctx.stroke();
+
+        const col = card.color === "red" ? "#cc1122" : "#111827";
+        const label = RANK_LABELS[card.rank];
+        const rankFontPx = Math.max(11, Math.floor(cardW * 0.195));
+        const cornerPipPx = Math.max(10, Math.floor(cardW * 0.175));
+        const cornerX = Math.max(8, Math.floor(cardW * 0.115));
+        const cornerY = Math.max(5, Math.floor(cardH * 0.045));
+
+        // Helper to draw a Corner Index (Rank + Mini Pip stacked)
+        const drawCornerIndex = () => {
+          ctx.fillStyle = col;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "top";
+          ctx.font = `bold ${rankFontPx}px Georgia, "Times New Roman", "Segoe UI", serif`;
+          // Slightly compress '10' horizontally so it fits the narrow margin like real cards
+          if (label === "10") {
+            ctx.save();
+            ctx.translate(cornerX, cornerY);
+            ctx.scale(0.82, 1);
+            ctx.fillText("10", 0, 0);
+            ctx.restore();
+          } else {
+            ctx.fillText(label, cornerX, cornerY);
+          }
+
+          ctx.font = `${cornerPipPx}px "Segoe UI Symbol", "Apple Symbols", serif`;
+          ctx.fillText(card.suit, cornerX, cornerY + rankFontPx - 1);
+        };
+
+        // 1. Top-Left Corner Index
+        ctx.save();
+        ctx.translate(x, y);
+        drawCornerIndex();
+        ctx.restore();
+
+        // 2. Bottom-Right 180°-Rotated Mirrored Corner Index
+        ctx.save();
+        ctx.translate(x + cardW, y + cardH);
+        ctx.rotate(Math.PI);
+        drawCornerIndex();
+        ctx.restore();
+
+        // 3. Center Interior: Ace, Number Multi-Pips (2..10), or Illustrated Court Card (J, Q, K)
+        if (card.rank === 1) {
+          // Ornate Ace Centerpiece
+          const cx = x + cardW / 2;
+          const cy = y + cardH / 2;
+          if (card.suit === "♠") {
+            // Subtle gold wreath ring around the Ace of Spades
+            ctx.strokeStyle = "rgba(212, 175, 55, 0.55)";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(cx, cy, cardW * 0.25, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+          ctx.fillStyle = col;
+          ctx.font = `${Math.floor(cardW * 0.48)}px "Segoe UI Symbol", "Apple Symbols", serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(card.suit, cx, cy + 1);
+        } else if (card.rank >= 2 && card.rank <= 10) {
+          // Authentic Multi-Pip Layout for Ranks 2..10
+          const layout = PIP_LAYOUTS[card.rank] || [];
+          const innerX = x + cardW * 0.16;
+          const innerY = y + cardH * 0.14;
+          const innerW = cardW * 0.68;
+          const innerH = cardH * 0.72;
+          const pipSize = Math.max(11, Math.floor(cardW * (card.rank >= 8 ? 0.20 : 0.22)));
+
+          ctx.fillStyle = col;
+          ctx.font = `${pipSize}px "Segoe UI Symbol", "Apple Symbols", serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+
+          for (let i = 0; i < layout.length; i++) {
+            const [nx, ny, inverted] = layout[i];
+            const px = innerX + nx * innerW;
+            const py = innerY + ny * innerH;
+            ctx.save();
+            ctx.translate(px, py);
+            if (inverted) ctx.rotate(Math.PI);
+            ctx.fillText(card.suit, 0, 0);
+            ctx.restore();
+          }
+        } else {
+          // Court Cards (Jack = 11, Queen = 12, King = 13)
+          drawCourtPortrait(x, y, cardW, cardH, card, col);
+        }
+
+        ctx.restore();
+      }
+
+      function drawEmptySlot(x, y, label) {
+        ctx.save();
+        ctx.fillStyle = "rgba(4, 22, 18, 0.48)";
+        ctx.strokeStyle = "rgba(212, 175, 55, 0.38)";
+        ctx.lineWidth = 1.5;
+        const radius = Math.max(6, Math.floor(cardW * 0.08));
+        ctx.beginPath();
+        ctx.roundRect(x, y, cardW, cardH, radius);
+        ctx.fill();
+        ctx.stroke();
+
+        // Inner felt frame line
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x + 4, y + 4, cardW - 8, cardH - 8);
+
+        if (label) {
+          const isRedSuit = label === "♥" || label === "♦";
+          ctx.fillStyle = isRedSuit ? "rgba(239, 68, 68, 0.42)" : "rgba(212, 175, 55, 0.42)";
+          ctx.font = `bold ${Math.floor(cardW * 0.28)}px "Segoe UI Symbol", Georgia, serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(label, x + cardW / 2, y + cardH / 2);
+        }
+        ctx.restore();
+      }
+
+      function render() {
+        if (waterfallActive) return; // Waterfall draws incremental trails directly
+
+        // Felt background
+        const grad = ctx.createRadialGradient(
+          canvas.width / 2, canvas.height * 0.3, 40,
+          canvas.width / 2, canvas.height / 2, canvas.width * 0.75
+        );
+        grad.addColorStop(0, "#0b312c");
+        grad.addColorStop(1, "#05141c");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const rects = getLayoutRects();
+
+        // Stock & Waste
+        if (rects.stock) {
+          drawEmptySlot(rects.stock.x, rects.stock.y, stock.length > 0 ? String(stock.length) : "↻");
+          if (stock.length > 0) {
+            drawSingleCard(rects.stock.x, rects.stock.y, { faceUp: false });
+            ctx.fillStyle = "#00f5d4";
+            ctx.font = "bold 12px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(`${stock.length}`, rects.stock.x + cardW / 2, rects.stock.y + cardH / 2);
+          }
+        }
+
+        if (rects.waste) {
+          drawEmptySlot(rects.waste.x, rects.waste.y, "WASTE");
+          const showCount = Math.min(3, waste.length);
+          for (let i = 0; i < showCount; i++) {
+            const card = waste[waste.length - showCount + i];
+            const isTop = i === showCount - 1;
+            if (dragState && dragState.zone === "waste" && isTop) continue;
+            const isSel = selected && selected.zone === "waste" && isTop;
+            drawSingleCard(rects.waste.x + i * 14, rects.waste.y, card, isSel);
+          }
+        }
+
+        // FreeCells
+        for (let i = 0; i < rects.freeCells.length; i++) {
+          const r = rects.freeCells[i];
+          drawEmptySlot(r.x, r.y, "FREE");
+          const c = freeCells[i];
+          if (c && !(dragState && dragState.zone === "freecell" && dragState.col === i)) {
+            const isSel = selected && selected.zone === "freecell" && selected.col === i;
+            drawSingleCard(r.x, r.y, c, isSel);
+          }
+        }
+
+        // Foundations
+        for (let f = 0; f < rects.foundations.length; f++) {
+          const r = rects.foundations[f];
+          drawEmptySlot(r.x, r.y, mode.startsWith("spider") ? "♠" : SUITS[f]);
+          const pile = foundations[f];
+          if (pile && pile.length > 0) {
+            drawSingleCard(r.x, r.y, pile[pile.length - 1], false);
+          }
+        }
+
+        // Tableau Columns
+        for (let c = 0; c < rects.tableauCols.length; c++) {
+          const colRect = rects.tableauCols[c];
+          drawEmptySlot(colRect.x, colRect.y, "");
+          const col = tableau[c];
+          for (let idx = 0; idx < col.length; idx++) {
+            if (dragState && dragState.zone === "tableau" && dragState.col === c && idx >= dragState.cardIdx) {
+              continue;
+            }
+            const cy = colRect.y + getCardYOffset(col, idx);
+            const isSel =
+              selected &&
+              selected.zone === "tableau" &&
+              selected.col === c &&
+              idx >= selected.cardIdx;
+            drawSingleCard(colRect.x, cy, col[idx], isSel);
+          }
+        }
+
+        // Smart Hint Highlight
+        if (activeHint && activeHint.timer > 0) {
+          ctx.save();
+          ctx.strokeStyle = "#fee440";
+          ctx.lineWidth = 3.5;
+          ctx.shadowColor = "#fee440";
+          ctx.shadowBlur = 14;
+          ctx.strokeRect(activeHint.fromRect.x - 2, activeHint.fromRect.y - 2, activeHint.fromRect.w + 4, activeHint.fromRect.h + 4);
+          ctx.strokeStyle = "#00f5d4";
+          ctx.shadowColor = "#00f5d4";
+          ctx.strokeRect(activeHint.toRect.x - 2, activeHint.toRect.y - 2, activeHint.toRect.w + 4, activeHint.toRect.h + 4);
+          ctx.restore();
+        }
+
+        // Dragging stack
+        if (dragState) {
+          for (let i = 0; i < dragState.cards.length; i++) {
+            const dx = dragState.x - dragState.offsetX;
+            const dy = dragState.y - dragState.offsetY + i * 24;
+            drawSingleCard(dx, dy, dragState.cards[i], true);
+          }
+        }
+      }
+
+      function updateWaterfall(dt) {
+        if (!waterfallActive || !activeWaterfallCard) return;
+        const steps = 2; // Draw 2 substeps per frame for authentic dense Win95 card trail
+        const subDt = dt / steps;
+        for (let s = 0; s < steps; s++) {
+          activeWaterfallCard.vy += 980 * subDt;
+          activeWaterfallCard.x += activeWaterfallCard.vx * subDt;
+          activeWaterfallCard.y += activeWaterfallCard.vy * subDt;
+
+          if (activeWaterfallCard.y + cardH >= canvas.height) {
+            activeWaterfallCard.y = canvas.height - cardH;
+            activeWaterfallCard.vy = -Math.abs(activeWaterfallCard.vy) * 0.76;
+            sfx.bounce();
+          }
+
+          drawSingleCard(activeWaterfallCard.x, activeWaterfallCard.y, activeWaterfallCard, false);
+
+          if (activeWaterfallCard.x < -cardW || activeWaterfallCard.x > canvas.width + cardW) {
+            spawnNextWaterfallCard();
+            break;
+          }
+        }
+      }
+
+      // --- Hit Detection & Interaction ---
+      function hitTest(mx, my) {
+        const rects = getLayoutRects();
+        if (rects.stock && mx >= rects.stock.x && mx <= rects.stock.x + cardW && my >= rects.stock.y && my <= rects.stock.y + cardH) {
+          return { zone: "stock" };
+        }
+        if (rects.waste && mx >= rects.waste.x && mx <= rects.waste.x + cardW + 28 && my >= rects.waste.y && my <= rects.waste.y + cardH) {
+          return { zone: "waste" };
+        }
+        for (let i = 0; i < rects.freeCells.length; i++) {
+          const r = rects.freeCells[i];
+          if (mx >= r.x && mx <= r.x + cardW && my >= r.y && my <= r.y + cardH) {
+            return { zone: "freecell", col: i };
+          }
+        }
+        for (let f = 0; f < rects.foundations.length; f++) {
+          const r = rects.foundations[f];
+          if (mx >= r.x && mx <= r.x + cardW && my >= r.y && my <= r.y + cardH) {
+            return { zone: "foundation", col: f };
+          }
+        }
+        for (let c = 0; c < rects.tableauCols.length; c++) {
+          const colRect = rects.tableauCols[c];
+          if (mx >= colRect.x && mx <= colRect.x + cardW) {
+            const col = tableau[c];
+            if (col.length === 0) {
+              if (my >= colRect.y && my <= colRect.y + cardH) return { zone: "tableau", col: c, cardIdx: 0 };
+            } else {
+              for (let idx = col.length - 1; idx >= 0; idx--) {
+                const cy = colRect.y + getCardYOffset(col, idx);
+                if (my >= cy && my <= cy + cardH) {
+                  return { zone: "tableau", col: c, cardIdx: idx };
+                }
+              }
+              if (my >= colRect.y) {
+                return { zone: "tableau", col: c, cardIdx: col.length - 1 };
+              }
+            }
+          }
+        }
+        return null;
+      }
+
+      function tryMoveSelectedTo(target) {
+        if (!selected || !target) return false;
+        let movingCards = [];
+        if (selected.zone === "waste") {
+          if (waste.length === 0) return false;
+          movingCards = [waste[waste.length - 1]];
+        } else if (selected.zone === "freecell") {
+          if (!freeCells[selected.col]) return false;
+          movingCards = [freeCells[selected.col]];
+        } else if (selected.zone === "tableau") {
+          const col = tableau[selected.col];
+          if (!canPickTableauSubstack(selected.col, selected.cardIdx)) return false;
+          movingCards = col.slice(selected.cardIdx);
+        }
+
+        if (target.zone === "tableau") {
+          if (selected.zone === "tableau" && selected.col === target.col) return false;
+          if (canDropOnTableau(movingCards, target.col)) {
+            executeMove(selected, target);
+            return true;
+          }
+        } else if (target.zone === "freecell") {
+          if (movingCards.length === 1 && freeCells[target.col] === null) {
+            executeMove(selected, target);
+            return true;
+          }
+        } else if (target.zone === "foundation") {
+          if (movingCards.length === 1 && canDropOnFoundation(movingCards[0], target.col)) {
+            executeMove(selected, target);
+            return true;
+          }
+        }
+        return false;
+      }
+
+      canvas.addEventListener("mousedown", (e) => {
+        if (waterfallActive) {
+          waterfallActive = false;
+          activeWaterfallCard = null;
+          render();
+          return;
+        }
+        const rect = canvas.getBoundingClientRect();
+        const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+        const hit = hitTest(mx, my);
+        if (!hit) {
+          selected = null;
+          return;
+        }
+
+        if (hit.zone === "stock") {
+          selected = null;
+          dealFromStock();
+          return;
+        }
+
+        // If a card is already selected, try moving it to the clicked target first
+        if (selected && tryMoveSelectedTo(hit)) {
+          return;
+        }
+
+        const rects = getLayoutRects();
+        if (hit.zone === "waste" && waste.length > 0) {
+          selected = { zone: "waste" };
+          const showOffset = Math.min(2, waste.length - 1) * 14;
+          dragState = {
+            zone: "waste",
+            cards: [waste[waste.length - 1]],
+            x: mx,
+            y: my,
+            offsetX: mx - (rects.waste.x + showOffset),
+            offsetY: my - rects.waste.y,
+          };
+        } else if (hit.zone === "freecell" && freeCells[hit.col]) {
+          selected = { zone: "freecell", col: hit.col };
+          const r = rects.freeCells[hit.col];
+          dragState = {
+            zone: "freecell",
+            col: hit.col,
+            cards: [freeCells[hit.col]],
+            x: mx,
+            y: my,
+            offsetX: mx - r.x,
+            offsetY: my - r.y,
+          };
+        } else if (hit.zone === "tableau") {
+          const col = tableau[hit.col];
+          if (col.length > 0 && canPickTableauSubstack(hit.col, hit.cardIdx)) {
+            selected = { zone: "tableau", col: hit.col, cardIdx: hit.cardIdx };
+            const cx = rects.tableauCols[hit.col].x;
+            const cy = rects.tableauCols[hit.col].y + getCardYOffset(col, hit.cardIdx);
+            dragState = {
+              zone: "tableau",
+              col: hit.col,
+              cardIdx: hit.cardIdx,
+              cards: col.slice(hit.cardIdx),
+              x: mx,
+              y: my,
+              offsetX: mx - cx,
+              offsetY: my - cy,
+            };
+          } else {
+            selected = null;
+          }
+        }
+      });
+
+      window.addEventListener("mousemove", (e) => {
+        if (!dragState) return;
+        const rect = canvas.getBoundingClientRect();
+        dragState.x = (e.clientX - rect.left) * (canvas.width / rect.width);
+        dragState.y = (e.clientY - rect.top) * (canvas.height / rect.height);
+      });
+
+      window.addEventListener("mouseup", (e) => {
+        if (!dragState) return;
+        const rect = canvas.getBoundingClientRect();
+        const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+        const hit = hitTest(mx, my);
+        const src = { zone: dragState.zone, col: dragState.col, cardIdx: dragState.cardIdx };
+        dragState = null;
+        if (hit) {
+          selected = src;
+          if (tryMoveSelectedTo(hit)) {
+            selected = null;
+          }
+        }
+      });
+
+      canvas.addEventListener("dblclick", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+        const hit = hitTest(mx, my);
+        if (!hit) return;
+        if (!tryAutoMoveCardToFoundation(hit)) {
+          // Also try moving to an open FreeCell in FreeCell mode
+          if (mode === "freecell" && hit.zone === "tableau") {
+            const col = tableau[hit.col];
+            if (col.length > 0 && hit.cardIdx === col.length - 1) {
+              const emptyFree = freeCells.findIndex((fc) => fc === null);
+              if (emptyFree !== -1) {
+                executeMove({ zone: "tableau", col: hit.col, cardIdx: col.length - 1 }, { zone: "freecell", col: emptyFree });
+              }
+            }
+          }
+        }
+      });
+
+      window.addEventListener("keydown", (e) => {
+        if (e.altKey || e.ctrlKey || e.metaKey) return;
+        const k = e.key.toLowerCase();
+        if (k === "z" || e.key === "Backspace") { e.preventDefault(); performUndo(); }
+        else if (k === "h") triggerSmartHint();
+        else if (k === "a") sweepAllEligibleToFoundation();
+        else if (k === "d" || k === " ") { e.preventDefault(); dealFromStock(); }
+        else if (k === "w") startWin95Waterfall();
+        else if (k === "n") initGame(mode);
+        else if (k === "m") {
+          sfx.muted = !sfx.muted;
+          document.getElementById("btnMute").textContent = sfx.muted ? "🔇 Muted" : "🔊 Audio";
+        } else if (k === "?") {
+          document.getElementById("helpModal").classList.toggle("open");
+        }
+      });
+
+      // UI Bindings
+      document.querySelectorAll(".tab-btn").forEach((btn) => {
+        btn.addEventListener("click", () => initGame(btn.dataset.mode));
+      });
+      document.getElementById("btnAuto").addEventListener("click", sweepAllEligibleToFoundation);
+      document.getElementById("btnHint").addEventListener("click", triggerSmartHint);
+      document.getElementById("btnUndo").addEventListener("click", performUndo);
+      document.getElementById("btnCascade").addEventListener("click", startWin95Waterfall);
+      document.getElementById("btnNew").addEventListener("click", () => initGame(mode));
+      document.getElementById("btnMute").addEventListener("click", () => {
+        sfx.muted = !sfx.muted;
+        document.getElementById("btnMute").textContent = sfx.muted ? "🔇 Muted" : "🔊 Audio";
+      });
+      document.getElementById("btnHelp").addEventListener("click", () => document.getElementById("helpModal").classList.add("open"));
+      document.getElementById("btnCloseHelp").addEventListener("click", () => document.getElementById("helpModal").classList.remove("open"));
+
+      let lastTime = performance.now();
+      function loop(now) {
+        const dt = Math.min(0.05, (now - lastTime) / 1000);
+        lastTime = now;
+        if (activeHint && activeHint.timer > 0) {
+          activeHint.timer = Math.max(0, activeHint.timer - dt);
+        }
+        if (waterfallActive) {
+          updateWaterfall(dt);
+        } else {
+          render();
+        }
+        requestAnimationFrame(loop);
+      }
+
+      initGame("klondike1");
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

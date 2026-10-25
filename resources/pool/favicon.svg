@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="feltGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00f5d4" stop-opacity="0.45" />
+      <stop offset="65%" stop-color="#047857" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#022c22" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="ballBody" cx="34%" cy="30%" r="68%">
+      <stop offset="0%" stop-color="#475569" />
+      <stop offset="28%" stop-color="#1e293b" />
+      <stop offset="68%" stop-color="#090d16" />
+      <stop offset="100%" stop-color="#000000" />
+    </radialGradient>
+    <radialGradient id="numberCircle" cx="42%" cy="38%" r="60%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="80%" stop-color="#f1f5f9" />
+      <stop offset="100%" stop-color="#cbd5e1" />
+    </radialGradient>
+    <linearGradient id="neonRing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f5d4" />
+      <stop offset="50%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#facc15" />
+    </linearGradient>
+  </defs>
+  <!-- Ambient emerald/cyan glow -->
+  <circle cx="32" cy="32" r="30" fill="url(#feltGlow)" />
+  <!-- Crossed cyber cue laser accent -->
+  <line x1="6" y1="56" x2="58" y2="10" stroke="url(#neonRing)" stroke-width="3" stroke-linecap="round" opacity="0.75" />
+  <!-- Drop shadow -->
+  <ellipse cx="34" cy="54" rx="18" ry="5" fill="rgba(0,0,0,0.55)" />
+  <!-- Glossy 8-ball sphere -->
+  <circle cx="32" cy="31" r="22" fill="url(#ballBody)" stroke="url(#neonRing)" stroke-width="1.8" />
+  <!-- White number badge -->
+  <circle cx="32" cy="31" r="9.8" fill="url(#numberCircle)" />
+  <!-- Bold 8 numeral -->
+  <text x="32" y="35.5" text-anchor="middle" font-family="Inter, Segoe UI, Arial, sans-serif" font-weight="900" font-size="13.5" fill="#090d16">8</text>
+  <!-- Specular highlight -->
+  <ellipse cx="23.5" cy="20" rx="6.2" ry="3.2" transform="rotate(-28 23.5 20)" fill="rgba(255,255,255,0.55)" />
+  <circle cx="19.5" cy="24" r="1.4" fill="rgba(255,255,255,0.4)" />
+</svg>

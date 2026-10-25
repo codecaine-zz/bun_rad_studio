@@ -1,3 +1,4 @@
+import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * ⚡ Minesweeper Pro — Championship Deluxe Master Edition Studio
  * 
@@ -107,7 +108,7 @@ ${getWindowShortcutsScript()}
     html += desktopHooks;
   }
 
-  return html;
+  return injectGameMasterFx(html);
 }
 
 /**

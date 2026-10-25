@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Codecaine CyberCube Hopper</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    :root {
+      --bg: #040210;
+      --panel: rgba(12, 8, 32, 0.9);
+      --cyan: #00f5ff;
+      --orange: #ff7700;
+      --magenta: #ff0066;
+      --purple: #b829ff;
+      --gold: #ffcc00;
+      --lime: #00ff88;
+      --text: #eef6ff;
+    }
+    * { box-sizing: border-box; user-select: none; }
+    body {
+      margin: 0; padding: 0;
+      background: radial-gradient(circle at 50% 35%, #160b38 0%, #040210 100%);
+      color: var(--text);
+      font-family: 'Orbitron', 'Rajdhani', 'Segoe UI', system-ui, monospace, sans-serif;
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh; overflow: hidden;
+    }
+    .hud-header {
+      width: 100%; max-width: 1100px;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 10px 16px; margin-top: 6px;
+      background: var(--panel);
+      border: 1px solid rgba(0, 245, 255, 0.3);
+      border-radius: 14px;
+      box-shadow: 0 0 28px rgba(184, 41, 255, 0.2);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-title {
+      font-size: 18px; font-weight: 900; letter-spacing: 2px;
+      background: linear-gradient(90deg, var(--orange), var(--gold), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .brand-sub {
+      font-size: 10px; letter-spacing: 1.5px; color: var(--cyan);
+      padding: 2px 8px; border-radius: 10px;
+      background: rgba(0, 245, 255, 0.12); border: 1px solid rgba(0, 245, 255, 0.35);
+    }
+    .stats-bar { display: flex; gap: 12px; align-items: center; }
+    .stat-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(0, 245, 255, 0.22);
+      border-radius: 10px; padding: 4px 12px; text-align: center;
+      min-width: 84px;
+    }
+    .stat-label { font-size: 9px; letter-spacing: 1.5px; color: #9ab4d8; text-transform: uppercase; }
+    .stat-val {
+      font-size: 17px; font-weight: 800; color: #fff;
+      text-shadow: 0 0 10px var(--cyan);
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-val.gold { color: var(--gold); text-shadow: 0 0 10px var(--gold); }
+    .controls-bar { display: flex; gap: 8px; align-items: center; }
+    .btn {
+      background: rgba(0, 245, 255, 0.12);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 245, 255, 0.4);
+      border-radius: 8px; padding: 6px 12px;
+      font-family: inherit; font-size: 11px; font-weight: 700;
+      letter-spacing: 1px; cursor: pointer;
+      transition: all 0.15s ease; text-transform: uppercase;
+    }
+    .btn:hover {
+      background: var(--cyan); color: #040210;
+      box-shadow: 0 0 14px var(--cyan);
+    }
+    .main-stage {
+      width: 100%; max-width: 1100px;
+      flex: 1; display: flex; gap: 14px;
+      padding: 8px 16px 12px; align-items: stretch;
+    }
+    .canvas-box {
+      flex: 1; position: relative;
+      display: flex; justify-content: center; align-items: center;
+    }
+    canvas {
+      width: 100%; height: calc(100vh - 110px);
+      max-height: 750px;
+      background: #040210;
+      border: 1px solid rgba(0, 245, 255, 0.32);
+      border-radius: 16px;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.85), inset 0 0 30px rgba(184, 41, 255, 0.12);
+      cursor: pointer; display: block;
+    }
+    .side-pad {
+      width: 215px;
+      background: var(--panel);
+      border: 1px solid rgba(0, 245, 255, 0.25);
+      border-radius: 16px;
+      padding: 14px;
+      display: flex; flex-direction: column; justify-content: space-between; gap: 12px;
+    }
+    .target-swatch-box {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(0, 245, 255, 0.2);
+      border-radius: 12px; padding: 10px; text-align: center;
+    }
+    .swatch-preview {
+      width: 48px; height: 26px; margin: 8px auto 4px;
+      border-radius: 6px; border: 2px solid #fff;
+      box-shadow: 0 0 14px var(--cyan);
+    }
+    .dpad-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .dpad-btn {
+      background: rgba(255, 119, 0, 0.14);
+      border: 1px solid rgba(255, 119, 0, 0.5);
+      color: #ffcc88; border-radius: 10px;
+      padding: 12px 6px; font-family: inherit;
+      font-size: 12px; font-weight: 800; cursor: pointer;
+      text-align: center; transition: all 0.12s;
+    }
+    .dpad-btn:hover {
+      background: var(--orange); color: #050210;
+      box-shadow: 0 0 14px var(--orange);
+    }
+    .legend-list {
+      font-size: 11px; line-height: 1.5; color: #bdd2f0;
+      margin: 0; padding-left: 16px;
+    }
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(3, 2, 12, 0.84);
+      backdrop-filter: blur(6px);
+      display: none; justify-content: center; align-items: center;
+      z-index: 50;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: #0a0620;
+      border: 1px solid var(--cyan);
+      border-radius: 16px; padding: 24px 28px;
+      max-width: 560px; width: 92%;
+      box-shadow: 0 0 40px rgba(0, 245, 255, 0.25);
+    }
+    .modal h2 { margin: 0 0 10px; color: var(--orange); font-size: 20px; letter-spacing: 1.5px; }
+    .modal p, .modal li { font-size: 13px; line-height: 1.55; color: #d0e2ff; }
+  </style>
+</head>
+<body>
+  <header class="hud-header">
+    <div class="brand">
+      <span class="brand-title">🟧 CODECAINE CYBERCUBE HOPPER</span>
+      <span class="brand-sub">1982 ISOMETRIC PYRAMID</span>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-label">SCORE</div>
+        <div class="stat-val" id="hud-score">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">HIGH SCORE</div>
+        <div class="stat-val gold" id="hud-high">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">LEVEL</div>
+        <div class="stat-val" id="hud-level">1</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">CUBES</div>
+        <div class="stat-val" id="hud-cubes">1 / 28</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">LIVES</div>
+        <div class="stat-val" id="hud-lives">3</div>
+      </div>
+    </div>
+    <div class="controls-bar">
+      <button class="btn" id="btn-new">New Game</button>
+      <button class="btn" id="btn-pause">Pause</button>
+      <button class="btn" id="btn-mute">🔊 Audio</button>
+      <button class="btn" id="btn-help">? Help</button>
+    </div>
+  </header>
+
+  <div class="main-stage">
+    <div class="canvas-box">
+      <canvas id="gameCanvas" width="840" height="660"></canvas>
+    </div>
+
+    <aside class="side-pad">
+      <div class="target-swatch-box">
+        <div class="stat-label">TARGET TOP COLOR</div>
+        <div class="swatch-preview" id="target-swatch"></div>
+        <div id="chrono-status" style="font-size:11px;color:#00ff88;min-height:16px;margin-top:4px;"></div>
+      </div>
+
+      <div>
+        <div class="stat-label" style="margin-bottom:6px;text-align:center;">DIAGONAL HOP CONTROLS</div>
+        <div class="dpad-grid">
+          <button class="dpad-btn" data-dir="UL">↖ UP-LEFT<br><small>[Q / ↑]</small></button>
+          <button class="dpad-btn" data-dir="UR">↗ UP-RIGHT<br><small>[W / →]</small></button>
+          <button class="dpad-btn" data-dir="DL">↙ DN-LEFT<br><small>[A / ←]</small></button>
+          <button class="dpad-btn" data-dir="DR">↘ DN-RIGHT<br><small>[S / ↓]</small></button>
+        </div>
+      </div>
+
+      <div>
+        <div class="stat-label" style="margin-bottom:6px;">PYRAMID ENTITIES</div>
+        <ul class="legend-list">
+          <li><strong style="color:#b829ff">Coily Cyber-Snake</strong>: Hatches at bottom row & chases you! Lure Coily off a Spinning Disc for <strong>+500 pts</strong>!</li>
+          <li><strong style="color:#ff0055">Red Hazard Orb</strong>: Lethal on contact.</li>
+          <li><strong style="color:#00f5ff">Slick Gremlin</strong>: Reverts cube colors (+300 pts to catch).</li>
+          <li><strong style="color:#00ff88">Chrono-Orb</strong>: Freezes enemies for 5s (+100 pts).</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+
+  <div class="modal-backdrop" id="help-modal">
+    <div class="modal">
+      <h2>🟧 CYBERCUBE HOPPER — HOW TO PLAY</h2>
+      <p>Hop diagonally across all <strong>28 isometric cubes</strong> of the 7-row Cyber-Pyramid to flip every top face to the target neon color!</p>
+      <ul>
+        <li><strong>Diagonal Keys</strong>: Use <strong>Q</strong> (Up-Left), <strong>W</strong> (Up-Right), <strong>A</strong> (Down-Left), <strong>S</strong> (Down-Right), Arrow Keys, or click any adjacent cube directly.</li>
+        <li><strong>Spinning Escape Discs</strong>: Hop off the outer edge onto a floating disc to ride the elevator beam back to the top apex. If <strong>Coily the Snake</strong> is right behind you, he leaps into the void for <strong>+500 points</strong>!</li>
+        <li><strong>Green Chrono-Orbs</strong>: Catch them to freeze all hazards for 5 seconds.</li>
+      </ul>
+      <div style="text-align:right">
+        <button class="btn" id="btn-close-help">START HOPPING</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+      const ROWS = 7;
+
+      // Isometric Cube dimensions
+      const CUBE_W = 72;
+      const CUBE_H = 38;
+      const CUBE_SIDE_H = 36;
+      const APEX_X = W / 2;
+      const APEX_Y = 115;
+
+      const HS_KEY = 'codecaine_qbert_hs';
+      let highScore = parseInt(localStorage.getItem(HS_KEY) || '0', 10) || 0;
+
+      const PALETTES = [
+        { baseTop: '#162858', targetTop: '#00ffcc', left: '#0d5275', right: '#07314a', accent: '#00ffcc' },
+        { baseTop: '#2b134d', targetTop: '#ffcc00', left: '#611f7a', right: '#3b104d', accent: '#ffcc00' },
+        { baseTop: '#0d362c', targetTop: '#ff0066', left: '#176652', right: '#0b3d30', accent: '#ff0066' },
+        { baseTop: '#33121e', targetTop: '#00f5ff', left: '#751c39', right: '#470e21', accent: '#00f5ff' }
+      ];
+
+      let audioCtx = null;
+      let muted = false;
+      function ensureAudio() {
+        if (!audioCtx && !muted) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) audioCtx = new AC();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      }
+
+      function playSound(type) {
+        if (muted) return;
+        try {
+          ensureAudio();
+          if (!audioCtx) return;
+          const now = audioCtx.currentTime;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          if (type === 'hop') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(260, now);
+            osc.frequency.exponentialRampToValueAtTime(520, now + 0.11);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+            osc.start(now);
+            osc.stop(now + 0.12);
+          } else if (type === 'flip') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(540, now);
+            osc.frequency.setValueAtTime(760, now + 0.06);
+            gain.gain.setValueAtTime(0.14, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+            osc.start(now);
+            osc.stop(now + 0.14);
+          } else if (type === 'swear') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(380, now);
+            osc.frequency.setValueAtTime(190, now + 0.08);
+            osc.frequency.setValueAtTime(430, now + 0.16);
+            osc.frequency.setValueAtTime(140, now + 0.25);
+            gain.gain.setValueAtTime(0.22, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+            osc.start(now);
+            osc.stop(now + 0.42);
+          } else if (type === 'disc') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.exponentialRampToValueAtTime(1100, now + 0.45);
+            gain.gain.setValueAtTime(0.18, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.46);
+            osc.start(now);
+            osc.stop(now + 0.46);
+          } else if (type === 'win') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(440, now);
+            osc.frequency.setValueAtTime(554, now + 0.1);
+            osc.frequency.setValueAtTime(659, now + 0.2);
+            osc.frequency.setValueAtTime(880, now + 0.3);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            osc.start(now);
+            osc.stop(now + 0.5);
+          }
+        } catch (_) {}
+      }
+
+      // Coordinate converter: (row, col) -> top center of cube
+      function cubePos(r, c) {
+        const x = APEX_X + (c - r / 2) * CUBE_W;
+        const y = APEX_Y + r * (CUBE_H / 2 + CUBE_SIDE_H);
+        return { x, y };
+      }
+
+      let score = 0;
+      let level = 1;
+      let lives = 3;
+      let paused = false;
+      let gameOver = false;
+      let freezeTimer = 0;
+      let swearTimer = 0;
+      let levelClearTimer = 0;
+
+      let cubes = []; // 2D array [r][c]
+      let discs = [];
+      let enemies = [];
+      let particles = [];
+      let spawnTimer = 90;
+
+      const player = {
+        r: 0,
+        c: 0,
+        x: APEX_X,
+        y: APEX_Y,
+        hopping: false,
+        hopT: 0,
+        sx: APEX_X,
+        sy: APEX_Y,
+        tx: APEX_X,
+        ty: APEX_Y,
+        tr: 0,
+        tc: 0,
+        onDisc: null,
+        fallingOff: false
+      };
+
+      function buildPyramid() {
+        cubes = [];
+        for (let r = 0; r < ROWS; r++) {
+          const rowArr = [];
+          for (let c = 0; c <= r; c++) {
+            rowArr.push({
+              r, c,
+              state: r === 0 && c === 0 ? 1 : 0
+            });
+          }
+          cubes.push(rowArr);
+        }
+
+        discs = [
+          { side: 'left', r: 4, c: -1, active: true },
+          { side: 'right', r: 4, c: 5, active: true }
+        ];
+      }
+
+      function placePlayerAt(r, c) {
+        player.r = r;
+        player.c = c;
+        const p = cubePos(r, c);
+        player.x = p.x;
+        player.y = p.y;
+        player.hopping = false;
+        player.onDisc = null;
+        player.fallingOff = false;
+      }
+
+      function startLevel(lvl) {
+        level = lvl;
+        buildPyramid();
+        placePlayerAt(0, 0);
+        enemies = [];
+        freezeTimer = 0;
+        swearTimer = 0;
+        levelClearTimer = 0;
+        spawnTimer = 65;
+        updateHUD();
+      }
+
+      function resetGame() {
+        score = 0;
+        lives = 3;
+        gameOver = false;
+        paused = false;
+        particles = [];
+        startLevel(1);
+      }
+
+      function addScore(pts) {
+        score += pts;
+        if (score > highScore) {
+          highScore = score;
+          try { localStorage.setItem(HS_KEY, String(highScore)); } catch (_) {}
+        }
+        updateHUD();
+      }
+
+      function countFlipped() {
+        let count = 0;
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c <= r; c++) {
+            if (cubes[r][c].state === 1) count++;
+          }
+        }
+        return count;
+      }
+
+      function updateHUD() {
+        const pal = PALETTES[(level - 1) % PALETTES.length];
+        document.getElementById('hud-score').textContent = score.toLocaleString();
+        document.getElementById('hud-high').textContent = highScore.toLocaleString();
+        document.getElementById('hud-level').textContent = String(level);
+        document.getElementById('hud-cubes').textContent = `${countFlipped()} / 28`;
+        document.getElementById('hud-lives').textContent = String(lives);
+        const sw = document.getElementById('target-swatch');
+        sw.style.background = pal.targetTop;
+        sw.style.boxShadow = `0 0 14px ${pal.targetTop}`;
+      }
+
+      function burst(x, y, color, count = 14) {
+        for (let i = 0; i < count; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const sp = Math.random() * 3.5 + 0.8;
+          particles.push({
+            x, y,
+            vx: Math.cos(a) * sp,
+            vy: Math.sin(a) * sp,
+            life: 1,
+            color
+          });
+        }
+        window.GameMasterFX?.burst?.(x, y, color, count);
+      }
+
+      function triggerHop(dr, dc) {
+        if (paused || gameOver || player.hopping || swearTimer > 0 || levelClearTimer > 0) return;
+        const nr = player.r + dr;
+        const nc = player.c + dc;
+
+        player.hopping = true;
+        player.hopT = 0;
+        player.sx = player.x;
+        player.sy = player.y;
+        player.tr = nr;
+        player.tc = nc;
+
+        // Check if hopping onto an active Escape Disc
+        const disc = discs.find(d => d.active && d.r === nr && d.c === nc);
+        if (disc) {
+          const dp = cubePos(nr, nc);
+          player.tx = dp.x;
+          player.ty = dp.y;
+          player.onDisc = disc;
+          playSound('disc');
+          return;
+        }
+
+        // Check if valid cube
+        if (nr >= 0 && nr < ROWS && nc >= 0 && nc <= nr) {
+          const tp = cubePos(nr, nc);
+          player.tx = tp.x;
+          player.ty = tp.y;
+          playSound('hop');
+        } else {
+          // Hopping off the pyramid!
+          const tp = cubePos(nr, nc);
+          player.tx = tp.x;
+          player.ty = tp.y + 70;
+          player.fallingOff = true;
+          playSound('swear');
+        }
+      }
+
+      function loseLife() {
+        swearTimer = 55;
+        playSound('swear');
+        window.GameMasterFX?.triggerShake?.(7);
+        burst(player.x, player.y - 12, '#ff0055', 18);
+      }
+
+      function spawnEnemy() {
+        // Ensure Coily spawns if none exists
+        const hasCoily = enemies.some(e => e.type === 'coily' || e.type === 'egg');
+        let type = 'red';
+        const roll = Math.random();
+        if (!hasCoily && roll < 0.45) type = 'egg';
+        else if (roll < 0.68) type = 'red';
+        else if (roll < 0.85) type = 'slick';
+        else type = 'chrono';
+
+        const startCol = Math.random() < 0.5 ? 0 : 1;
+        const p = cubePos(1, startCol);
+        enemies.push({
+          type,
+          r: 1,
+          c: startCol,
+          x: p.x,
+          y: p.y,
+          sx: p.x,
+          sy: p.y,
+          tx: p.x,
+          ty: p.y,
+          tr: 1,
+          tc: startCol,
+          hopping: false,
+          hopT: 0,
+          moveCooldown: 38
+        });
+      }
+
+      function step() {
+        if (paused || gameOver) return;
+
+        if (levelClearTimer > 0) {
+          levelClearTimer--;
+          if (levelClearTimer === 0) {
+            const remDiscs = discs.filter(d => d.active).length;
+            addScore(1000 + remDiscs * 100);
+            startLevel(level + 1);
+          }
+          return;
+        }
+
+        if (swearTimer > 0) {
+          swearTimer--;
+          if (swearTimer === 0) {
+            lives--;
+            updateHUD();
+            if (lives <= 0) {
+              gameOver = true;
+            } else {
+              enemies = [];
+              placePlayerAt(0, 0);
+            }
+          }
+          return;
+        }
+
+        if (freezeTimer > 0) {
+          freezeTimer--;
+          document.getElementById('chrono-status').textContent =
+            freezeTimer > 0 ? `⏱ CHRONO FREEZE: ${(freezeTimer / 60).toFixed(1)}s` : '';
+        }
+
+        // Update player hop
+        if (player.hopping) {
+          player.hopT += player.onDisc ? 0.032 : 0.095;
+          if (player.onDisc && player.hopT >= 0.35) {
+            // Ride disc elevator to apex (0,0)
+            const apex = cubePos(0, 0);
+            const t2 = (player.hopT - 0.35) / 0.65;
+            const discPos = cubePos(player.onDisc.r, player.onDisc.c);
+            player.x = discPos.x + (apex.x - discPos.x) * t2;
+            player.y = discPos.y + (apex.y - discPos.y) * t2 - Math.sin(t2 * Math.PI) * 35;
+
+            // Check if Coily was chasing closely — lure Coily off the pyramid!
+            const coilyIdx = enemies.findIndex(e => e.type === 'coily');
+            if (coilyIdx !== -1 && t2 > 0.25) {
+              const coily = enemies[coilyIdx];
+              addScore(500);
+              burst(coily.x, coily.y, '#b829ff', 28);
+              window.GameMasterFX?.triggerShake?.(6);
+              enemies = []; // Clears board when Coily falls!
+            }
+          } else {
+            const t = Math.min(1, player.hopT / (player.onDisc ? 0.35 : 1));
+            player.x = player.sx + (player.tx - player.sx) * t;
+            player.y = player.sy + (player.ty - player.sy) * t - Math.sin(t * Math.PI) * 34;
+          }
+
+          if (player.hopT >= 1) {
+            if (player.fallingOff) {
+              player.hopping = false;
+              loseLife();
+              return;
+            }
+            if (player.onDisc) {
+              player.onDisc.active = false;
+              player.onDisc = null;
+              placePlayerAt(0, 0);
+            } else {
+              placePlayerAt(player.tr, player.tc);
+            }
+
+            // Flip target cube
+            const cube = cubes[player.r][player.c];
+            if (cube.state === 0) {
+              cube.state = 1;
+              addScore(25);
+              playSound('flip');
+              const pal = PALETTES[(level - 1) % PALETTES.length];
+              burst(player.x, player.y, pal.targetTop, 10);
+              if (countFlipped() === 28) {
+                playSound('win');
+                levelClearTimer = 85;
+              }
+            }
+          }
+        }
+
+        // Enemy spawning & AI
+        if (freezeTimer <= 0) {
+          spawnTimer--;
+          if (spawnTimer <= 0 && enemies.length < 3 + Math.min(3, level)) {
+            spawnEnemy();
+            spawnTimer = Math.max(95, 175 - level * 14);
+          }
+
+          for (let i = enemies.length - 1; i >= 0; i--) {
+            const e = enemies[i];
+            if (!e.hopping) {
+              e.moveCooldown--;
+              if (e.moveCooldown <= 0) {
+                let dr = 1;
+                let dc = Math.random() < 0.5 ? 0 : 1;
+
+                if (e.type === 'coily') {
+                  // Chase player
+                  dr = player.r < e.r ? -1 : 1;
+                  if (dr === -1) {
+                    dc = player.c < e.c ? -1 : 0;
+                  } else {
+                    dc = player.c > e.c ? 1 : 0;
+                  }
+                }
+
+                const nr = e.r + dr;
+                const nc = e.c + dc;
+                e.hopping = true;
+                e.hopT = 0;
+                e.sx = e.x;
+                e.sy = e.y;
+                e.tr = nr;
+                e.tc = nc;
+                const tp = cubePos(nr, nc);
+                e.tx = tp.x;
+                e.ty = tp.y;
+              }
+            } else {
+              e.hopT += 0.075;
+              const t = Math.min(1, e.hopT);
+              e.x = e.sx + (e.tx - e.sx) * t;
+              e.y = e.sy + (e.ty - e.sy) * t - Math.sin(t * Math.PI) * 28;
+              if (e.hopT >= 1) {
+                e.hopping = false;
+                e.r = e.tr;
+                e.c = e.tc;
+                e.moveCooldown = Math.max(20, 44 - level * 3);
+
+                if (e.r >= ROWS || e.c < 0 || e.c > e.r) {
+                  enemies.splice(i, 1);
+                  continue;
+                }
+
+                if (e.type === 'egg' && e.r === ROWS - 1) {
+                  e.type = 'coily';
+                  burst(e.x, e.y, '#b829ff', 14);
+                } else if (e.type === 'slick') {
+                  if (cubes[e.r][e.c].state === 1) {
+                    cubes[e.r][e.c].state = 0;
+                    updateHUD();
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Collision check between player and enemies
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          const e = enemies[i];
+          const dist = Math.hypot(e.x - player.x, e.y - player.y);
+          if (dist < 22 && !player.onDisc) {
+            if (e.type === 'slick') {
+              addScore(300);
+              burst(e.x, e.y, '#00f5ff', 16);
+              playSound('flip');
+              enemies.splice(i, 1);
+            } else if (e.type === 'chrono') {
+              addScore(100);
+              freezeTimer = 300; // 5 seconds at 60fps
+              burst(e.x, e.y, '#00ff88', 20);
+              playSound('win');
+              enemies.splice(i, 1);
+            } else {
+              loseLife();
+              break;
+            }
+          }
+        }
+
+        // Update particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.life -= 0.03;
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+      }
+
+      function drawCube(r, c, state, pal, flash) {
+        const { x, y } = cubePos(r, c);
+        const hw = CUBE_W / 2;
+        const hh = CUBE_H / 2;
+
+        // Top Diamond Face
+        ctx.fillStyle = flash
+          ? (Math.floor(performance.now() / 90) % 2 === 0 ? '#ffffff' : pal.targetTop)
+          : (state === 1 ? pal.targetTop : pal.baseTop);
+        ctx.strokeStyle = state === 1 ? '#ffffff' : 'rgba(0, 245, 255, 0.45)';
+        ctx.lineWidth = state === 1 ? 1.8 : 1.1;
+        ctx.beginPath();
+        ctx.moveTo(x, y - hh);
+        ctx.lineTo(x + hw, y);
+        ctx.lineTo(x, y + hh);
+        ctx.lineTo(x - hw, y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Left Face
+        ctx.fillStyle = pal.left;
+        ctx.strokeStyle = 'rgba(0, 245, 255, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x - hw, y);
+        ctx.lineTo(x, y + hh);
+        ctx.lineTo(x, y + hh + CUBE_SIDE_H);
+        ctx.lineTo(x - hw, y + CUBE_SIDE_H);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Right Face
+        ctx.fillStyle = pal.right;
+        ctx.beginPath();
+        ctx.moveTo(x, y + hh);
+        ctx.lineTo(x + hw, y);
+        ctx.lineTo(x + hw, y + CUBE_SIDE_H);
+        ctx.lineTo(x, y + hh + CUBE_SIDE_H);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+        const pal = PALETTES[(level - 1) % PALETTES.length];
+        const t = performance.now() * 0.005;
+
+        // Draw Spinning Escape Discs
+        for (const d of discs) {
+          if (!d.active) continue;
+          const dp = cubePos(d.r, d.c);
+          ctx.save();
+          ctx.translate(dp.x, dp.y);
+          ctx.scale(1, 0.52);
+          ctx.rotate(t * 2.5);
+          const grad = ctx.createRadialGradient(0, 0, 2, 0, 0, 24);
+          grad.addColorStop(0, '#ffffff');
+          grad.addColorStop(0.5, '#00f5ff');
+          grad.addColorStop(1, '#ff0066');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(0, 0, 24, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(-22, 0); ctx.lineTo(22, 0);
+          ctx.moveTo(0, -22); ctx.lineTo(0, 22);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Draw 28 Isometric Cubes
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c <= r; c++) {
+            drawCube(r, c, cubes[r][c].state, pal, levelClearTimer > 0);
+          }
+        }
+
+        // Draw Enemies
+        for (const e of enemies) {
+          ctx.save();
+          ctx.translate(e.x, e.y - 12);
+          if (e.type === 'coily') {
+            // Coiled purple cyber-snake
+            ctx.strokeStyle = '#b829ff';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            for (let i = 0; i < 4; i++) {
+              ctx.ellipse(0, 6 - i * 5, 11 - i, 4, 0, 0, Math.PI * 2);
+            }
+            ctx.stroke();
+            ctx.fillStyle = '#e066ff';
+            ctx.beginPath();
+            ctx.arc(0, -14, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(-4, -16, 3, 3);
+            ctx.fillRect(2, -16, 3, 3);
+          } else {
+            const color = e.type === 'egg' ? '#b829ff' : e.type === 'red' ? '#ff0055' : e.type === 'slick' ? '#00f5ff' : '#00ff88';
+            ctx.fillStyle = color;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, 11, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        // Draw Cyber Hopper Player
+        ctx.save();
+        ctx.translate(player.x, player.y - 14);
+        // Feet
+        ctx.fillStyle = '#ffcc00';
+        ctx.fillRect(-8, 10, 6, 5);
+        ctx.fillRect(2, 10, 6, 5);
+        // Body
+        ctx.fillStyle = '#ff7700';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.arc(0, 0, 13, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // Eyes
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(-4, -4, 3.5, 0, Math.PI * 2);
+        ctx.arc(4, -4, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#040210';
+        ctx.beginPath();
+        ctx.arc(-3, -4, 1.6, 0, Math.PI * 2);
+        ctx.arc(5, -4, 1.6, 0, Math.PI * 2);
+        ctx.fill();
+        // Snout
+        ctx.fillStyle = '#ff5500';
+        ctx.beginPath();
+        ctx.ellipse(9, 3, 6, 4, 0.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Comic Speech Bubble when hit!
+        if (swearTimer > 0) {
+          ctx.fillStyle = '#ffffff';
+          ctx.strokeStyle = '#ff0055';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(-48, -46, 96, 26, 8);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = '#040210';
+          ctx.font = 'bold 14px Orbitron, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('@!#?@!', 0, -28);
+        }
+        ctx.restore();
+
+        // Particles
+        for (const p of particles) {
+          ctx.globalAlpha = Math.max(0, p.life);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+        }
+        ctx.globalAlpha = 1;
+
+        if (paused && !gameOver) {
+          ctx.fillStyle = 'rgba(4, 2, 16, 0.75)';
+          ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = '#00f5ff';
+          ctx.font = 'bold 34px Orbitron, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('PYRAMID PAUSED', W / 2, H / 2);
+        }
+
+        if (gameOver) {
+          ctx.fillStyle = 'rgba(12, 2, 18, 0.84)';
+          ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = '#ff0066';
+          ctx.font = 'bold 42px Orbitron, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('GAME OVER', W / 2, H / 2 - 16);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 16px Orbitron, monospace';
+          ctx.fillText(`FINAL SCORE: ${score.toLocaleString()}   •   CLICK OR PRESS [N] TO RETRY`, W / 2, H / 2 + 24);
+        }
+      }
+
+      function loop() {
+        step();
+        draw();
+        requestAnimationFrame(loop);
+      }
+
+      // Click directly on canvas to hop toward clicked direction
+      canvas.addEventListener('mousedown', (e) => {
+        if (gameOver) {
+          resetGame();
+          return;
+        }
+        const rect = canvas.getBoundingClientRect();
+        const mx = ((e.clientX - rect.left) / rect.width) * W;
+        const my = ((e.clientY - rect.top) / rect.height) * H;
+        const dx = mx - player.x;
+        const dy = my - player.y;
+        if (dy < 0) {
+          if (dx < 0) triggerHop(-1, -1); // UL
+          else triggerHop(-1, 0);        // UR
+        } else {
+          if (dx < 0) triggerHop(1, 0);  // DL
+          else triggerHop(1, 1);         // DR
+        }
+      });
+
+      document.querySelectorAll('.dpad-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const dir = btn.getAttribute('data-dir');
+          if (dir === 'UL') triggerHop(-1, -1);
+          else if (dir === 'UR') triggerHop(-1, 0);
+          else if (dir === 'DL') triggerHop(1, 0);
+          else if (dir === 'DR') triggerHop(1, 1);
+        });
+      });
+
+      window.addEventListener('keydown', (e) => {
+        const k = e.key.toLowerCase();
+        if (k === 'q' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          triggerHop(-1, -1);
+        } else if (k === 'w' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          triggerHop(-1, 0);
+        } else if (k === 'a' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          triggerHop(1, 0);
+        } else if (k === 's' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          triggerHop(1, 1);
+        } else if (k === 'p') {
+          paused = !paused;
+        } else if (k === 'n') {
+          resetGame();
+        } else if (k === 'm') {
+          muted = !muted;
+          document.getElementById('btn-mute').textContent = muted ? '🔇 Muted' : '🔊 Audio';
+        } else if (k === 'h' || e.key === '?') {
+          document.getElementById('help-modal').classList.toggle('open');
+        }
+      });
+
+      document.getElementById('btn-new').addEventListener('click', resetGame);
+      document.getElementById('btn-pause').addEventListener('click', () => { paused = !paused; });
+      document.getElementById('btn-mute').addEventListener('click', () => {
+        muted = !muted;
+        document.getElementById('btn-mute').textContent = muted ? '🔇 Muted' : '🔊 Audio';
+      });
+      document.getElementById('btn-help').addEventListener('click', () => {
+        document.getElementById('help-modal').classList.add('open');
+      });
+      document.getElementById('btn-close-help').addEventListener('click', () => {
+        document.getElementById('help-modal').classList.remove('open');
+      });
+
+      resetGame();
+      spawnEnemy();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

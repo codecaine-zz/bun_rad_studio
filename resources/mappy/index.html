@@ -1,0 +1,3018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine CyberMappy: Mansion Heist &amp; Trampoline Police</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    :root {
+      --bg-deep: #040714;
+      --bg-mansion: #0b132b;
+      --panel-bg: rgba(9, 16, 36, 0.94);
+      --panel-border: rgba(56, 189, 248, 0.32);
+      --gold: #facc15;
+      --cyan: #38bdf8;
+      --cyan-bright: #00f5d4;
+      --pink: #f472b6;
+      --red: #ef4444;
+      --green: #22c55e;
+      --amber: #f97316;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 25%, #172554 0%, #090e24 65%, #030611 100%);
+      color: var(--text-main);
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Header HUD Bar */
+    header.top-hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 14px;
+      background: linear-gradient(180deg, rgba(12, 22, 48, 0.96) 0%, rgba(6, 11, 26, 0.96) 100%);
+      border-bottom: 1px solid var(--panel-border);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.72);
+      z-index: 20;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-badge-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 30%, #3b82f6, #1d4ed8 70%, #090d16);
+      border: 1.5px solid #fef08a;
+      box-shadow: 0 0 14px rgba(59, 130, 246, 0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .brand-titles h1 {
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffffff 0%, #7dd3fc 48%, #facc15 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-titles .subtitle {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+    }
+
+    .hud-kpis {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .kpi-pill {
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 8px;
+      padding: 3px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 78px;
+    }
+
+    .kpi-pill.gold-border {
+      border-color: rgba(250, 204, 21, 0.55);
+      box-shadow: 0 0 10px rgba(250, 204, 21, 0.16);
+    }
+
+    .kpi-pill.cyan-border {
+      border-color: rgba(0, 245, 212, 0.55);
+      box-shadow: 0 0 10px rgba(0, 245, 212, 0.16);
+    }
+
+    .kpi-label {
+      font-size: 8.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--text-muted);
+      font-weight: 800;
+    }
+
+    .kpi-val {
+      font-size: 14.5px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: #ffffff;
+    }
+
+    .kpi-val.gold {
+      color: var(--gold);
+      text-shadow: 0 0 8px rgba(250, 204, 21, 0.5);
+    }
+
+    .kpi-val.cyan {
+      color: var(--cyan-bright);
+      text-shadow: 0 0 8px rgba(0, 245, 212, 0.5);
+    }
+
+    .hud-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-hud {
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+      color: #e2e8f0;
+      border: 1px solid rgba(56, 189, 248, 0.38);
+      border-radius: 7px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-hud:hover {
+      border-color: var(--cyan-bright);
+      background: rgba(30, 58, 138, 0.7);
+      transform: translateY(-1px);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+    }
+
+    .btn-hud.accent-gold {
+      background: linear-gradient(180deg, #facc15 0%, #ca8a04 100%);
+      color: #090d16;
+      border-color: #fef08a;
+    }
+
+    .btn-hud.accent-cyan {
+      background: linear-gradient(180deg, #00f5d4 0%, #0284c7 100%);
+      color: #040814;
+      border-color: #a5f3fc;
+    }
+
+    /* 8-Mode Selector Ribbon */
+    nav.mode-dock {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(5, 10, 24, 0.92);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.24);
+      flex-shrink: 0;
+      z-index: 15;
+    }
+
+    .mode-tab {
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.88) 0%, rgba(9, 14, 28, 0.95) 100%);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 7px;
+      padding: 5px 6px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      transition: all 0.15s ease;
+    }
+
+    .mode-tab:hover {
+      border-color: rgba(56, 189, 248, 0.6);
+      background: rgba(23, 37, 84, 0.65);
+      transform: translateY(-1px);
+    }
+
+    .mode-tab.active {
+      background: linear-gradient(180deg, rgba(14, 116, 144, 0.68) 0%, rgba(30, 58, 138, 0.88) 100%);
+      border-color: var(--gold);
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.35), inset 0 0 8px rgba(56, 189, 248, 0.3);
+    }
+
+    .mode-tab .m-icon {
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .mode-tab .m-name {
+      font-size: 10px;
+      font-weight: 800;
+      color: #f1f5f9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    .mode-tab.active .m-name {
+      color: var(--gold);
+    }
+
+    .mode-tab .m-tag {
+      font-size: 8px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    /* Main 3-Column Mansion Workspace */
+    main.mansion-workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 245px 1fr 245px;
+      gap: 10px;
+      padding: 8px 12px;
+      min-height: 0;
+      align-items: stretch;
+    }
+
+    .side-column {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    .glass-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 11px;
+      padding: 9px 11px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.58);
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+      padding-bottom: 4px;
+    }
+
+    .card-title {
+      font-size: 10.5px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .card-badge {
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.18);
+      color: #bae6fd;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+
+    .loot-table {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .loot-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(2, 6, 23, 0.65);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 7px;
+      padding: 4px 8px;
+      font-size: 11px;
+    }
+
+    .loot-row.active-pair {
+      border-color: var(--gold);
+      box-shadow: 0 0 10px rgba(250, 204, 21, 0.35);
+      background: rgba(113, 63, 18, 0.35);
+    }
+
+    .trampoline-status-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 5px;
+    }
+
+    .tramp-pill {
+      background: rgba(2, 6, 23, 0.75);
+      border: 1.5px solid #22c55e;
+      border-radius: 7px;
+      padding: 4px;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    /* Center Mansion Stage */
+    .center-mansion-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 0;
+      position: relative;
+    }
+
+    .mansion-header-widget {
+      width: 100%;
+      max-width: 880px;
+      background: linear-gradient(180deg, rgba(12, 22, 48, 0.96) 0%, rgba(6, 11, 26, 0.96) 100%);
+      border: 1.5px solid rgba(56, 189, 248, 0.42);
+      border-radius: 11px;
+      padding: 5px 10px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.65);
+    }
+
+    canvas#mappyHeaderCanvas {
+      width: 100%;
+      height: 62px;
+      display: block;
+      border-radius: 7px;
+      background: #030712;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .mansion-frame {
+      position: relative;
+      padding: 7px;
+      border-radius: 14px;
+      background: linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(4, 8, 20, 0.98));
+      border: 2px solid rgba(56, 189, 248, 0.55);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.85), 0 0 28px rgba(56, 189, 248, 0.22);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-width: 880px;
+      width: 100%;
+    }
+
+    canvas#mappyCanvas {
+      display: block;
+      width: 100%;
+      max-height: calc(100vh - 255px);
+      height: auto;
+      aspect-ratio: 860 / 540;
+      border-radius: 9px;
+      background: #040816;
+      cursor: pointer;
+    }
+
+    .mansion-bottom-bar {
+      width: 100%;
+      max-width: 880px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 12px;
+      background: rgba(9, 16, 36, 0.88);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 8px;
+      font-size: 11px;
+      color: #cbd5e1;
+    }
+
+    .gadget-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .gadget-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(2, 6, 23, 0.65);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 7px;
+      padding: 5px 8px;
+      font-size: 10.5px;
+    }
+
+    .gadget-item.unlocked {
+      border-color: var(--cyan-bright);
+      background: rgba(6, 78, 59, 0.35);
+    }
+
+    .stat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #cbd5e1;
+    }
+
+    .stat-row strong {
+      color: #ffffff;
+    }
+
+    /* Modal Overlays */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.85);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-panel {
+      background: linear-gradient(165deg, #0f172a 0%, #060b19 100%);
+      border: 2px solid var(--gold);
+      border-radius: 16px;
+      padding: 20px 24px;
+      max-width: 520px;
+      width: 92%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.92), 0 0 30px rgba(250, 204, 21, 0.25);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .draft-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .draft-card-btn {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1.5px solid var(--cyan);
+      border-radius: 10px;
+      padding: 10px 8px;
+      color: #f8fafc;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .draft-card-btn:hover {
+      border-color: var(--gold);
+      transform: translateY(-2px);
+      background: rgba(30, 58, 138, 0.75);
+    }
+  </style>
+</head>
+<body>
+  <!-- Top HUD Bar -->
+  <header class="top-hud">
+    <div class="brand-cluster">
+      <div class="brand-badge-icon">🐭</div>
+      <div class="brand-titles">
+        <h1>Codecaine CyberMappy: Mansion Heist &amp; Trampoline Police</h1>
+        <div class="subtitle">1983 Namco 6-Story Mansion • Elastic Trampolines • Microwave Shockwave Doors • Ragtime Synth</div>
+      </div>
+    </div>
+
+    <div class="hud-kpis">
+      <div class="kpi-pill gold-border">
+        <span class="kpi-label">1UP Score</span>
+        <span class="kpi-val gold" id="hudScore">0</span>
+      </div>
+      <div class="kpi-pill cyan-border">
+        <span class="kpi-label">High Score</span>
+        <span class="kpi-val cyan" id="hudHighScore">20,000</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">Stage Wave</span>
+        <span class="kpi-val" id="hudStage">STAGE 1</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">Pair Multiplier</span>
+        <span class="kpi-val gold" id="hudPairMult">x1</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">Mappy Lives</span>
+        <span class="kpi-val cyan" id="hudLives">🐭🐭🐭</span>
+      </div>
+    </div>
+
+    <div class="hud-actions">
+      <button class="btn-hud accent-cyan" id="btnDoorAction" title="Open/Close Door or Fire Microwave Wave [SPACE / E]">🚪 DOOR / WAVE [SPACE]</button>
+      <button class="btn-hud accent-gold" id="btnTaserAction" title="Fire Police Taser Baton [F]">⚡ TASER [F]</button>
+      <button class="btn-hud" id="btnBonusStage" title="Jump to Roof Balloon Bonus Stage [G]">🎈 BONUS ROOF [G]</button>
+      <button class="btn-hud" id="btnNewGame" title="Start Fresh Mansion Heist [N]">🔄 NEW [N]</button>
+      <button class="btn-hud" id="btnMusic" title="Toggle 1983 Ragtime Jazz Music [B]">🎵 JAZZ: OFF [B]</button>
+      <button class="btn-hud" id="btnSound" title="Toggle Arcade SFX [M]">🔊 SFX: ON [M]</button>
+    </div>
+  </header>
+
+  <!-- 8-Mode Selector Ribbon -->
+  <nav class="mode-dock" id="modeDock" aria-label="8 Mappy Game Modes">
+    <button class="mode-tab active" data-mode="classic">
+      <span class="m-icon">🏛️</span>
+      <span class="m-name">1. Classic 1983</span>
+      <span class="m-tag">Namco Mansion</span>
+    </button>
+    <button class="mode-tab" data-mode="roguelike">
+      <span class="m-icon">🃏</span>
+      <span class="m-name">2. Roguelike Heist</span>
+      <span class="m-tag">Police Gadgets</span>
+    </button>
+    <button class="mode-tab" data-mode="play_goro">
+      <span class="m-icon">😼</span>
+      <span class="m-name">3. Play as Goro</span>
+      <span class="m-tag">Cat Burglar</span>
+    </button>
+    <button class="mode-tab" data-mode="balloon_marathon">
+      <span class="m-icon">🎈</span>
+      <span class="m-name">4. Balloon Roof</span>
+      <span class="m-tag">Bonus Marathon</span>
+    </button>
+    <button class="mode-tab" data-mode="boss_raid">
+      <span class="m-icon">🤖</span>
+      <span class="m-name">5. Mega-Nyamco</span>
+      <span class="m-tag">Boss Penthouse</span>
+    </button>
+    <button class="mode-tab" data-mode="speed_blitz">
+      <span class="m-icon">⚡</span>
+      <span class="m-name">6. 90s Speed Heist</span>
+      <span class="m-tag">Time Attack</span>
+    </button>
+    <button class="mode-tab" data-mode="coop_partners">
+      <span class="m-icon">🐭</span>
+      <span class="m-name">7. 2P Co-Op Mice</span>
+      <span class="m-tag">Mappy + Jr.</span>
+    </button>
+    <button class="mode-tab" data-mode="cops_robbers">
+      <span class="m-icon">🚓</span>
+      <span class="m-name">8. 2P Cops/Robbers</span>
+      <span class="m-tag">Mappy vs Goro</span>
+    </button>
+  </nav>
+
+  <!-- Main 3-Column Mansion Workspace -->
+  <main class="mansion-workspace">
+    <!-- Left Column: Stolen Loot Pair Tracker & Trampoline Cord Integrity -->
+    <aside class="side-column">
+      <section class="glass-card">
+        <div class="card-header">
+          <span class="card-title">🏦 Stolen Mansion Loot</span>
+          <span class="card-badge" id="lootRemainingBadge">10 LEFT</span>
+        </div>
+        <p style="font-size:10px; color:#94a3b8; line-height:1.35;">
+          Catch <strong>Boss Goro</strong> hiding behind a treasure for <strong>+1,000 pts</strong> &amp; unlock a <strong>x2 → x6 Pair Multiplier</strong> on the matching item!
+        </p>
+        <div class="loot-table" id="lootTrackerList">
+          <div class="loot-row" data-loot="0"><span>📻 Boombox Stereo</span><strong>100 pts</strong></div>
+          <div class="loot-row" data-loot="1"><span>📺 Holo-Television</span><strong>200 pts</strong></div>
+          <div class="loot-row" data-loot="2"><span>🖥️ Quantum PC</span><strong>300 pts</strong></div>
+          <div class="loot-row" data-loot="3"><span>🖼️ Mona Lisa Art</span><strong>400 pts</strong></div>
+          <div class="loot-row" data-loot="4"><span>🏦 Gold Vault Safe</span><strong>500 pts</strong></div>
+        </div>
+      </section>
+
+      <section class="glass-card">
+        <div class="card-header">
+          <span class="card-title">🟢 Trampoline Shafts</span>
+          <span class="card-badge">ELASTIC CORDS</span>
+        </div>
+        <p style="font-size:10px; color:#94a3b8; line-height:1.35;">
+          Green (3) → Blue (2) → Yellow (1) → Red (SNAP!). Step onto any floor to reset trampoline tension!
+        </p>
+        <div class="trampoline-status-grid" id="trampolineStatusGrid">
+          <div class="tramp-pill" id="trampPill0">S1: 3</div>
+          <div class="tramp-pill" id="trampPill1">S2: 3</div>
+          <div class="tramp-pill" id="trampPill2">S3: 3</div>
+          <div class="tramp-pill" id="trampPill3">S4: 3</div>
+        </div>
+      </section>
+
+      <section class="glass-card">
+        <div class="card-header">
+          <span class="card-title">🏆 Precinct Hall of Fame</span>
+          <span class="card-badge" id="precinctRankBadge">ROOKIE MOUSE</span>
+        </div>
+        <div class="stat-row"><span>Lifetime Loot Recovered</span><strong id="vaultLoot">0</strong></div>
+        <div class="stat-row"><span>Cats Swept by Microwave</span><strong id="vaultCatsSwept">0</strong></div>
+        <div class="stat-row"><span>Goro Hideouts Busted</span><strong id="vaultGoroBusted">0</strong></div>
+        <div class="stat-row"><span>Balloons Popped</span><strong id="vaultBalloons">0</strong></div>
+      </section>
+    </aside>
+
+    <!-- Center Mansion Stage: Live Header Radar Canvas + 6-Story Mansion Cross-Section Canvas -->
+    <section class="center-mansion-stage">
+      <div class="mansion-header-widget">
+        <canvas id="mappyHeaderCanvas" width="860" height="68"></canvas>
+      </div>
+
+      <div class="mansion-frame">
+        <canvas id="mappyCanvas" width="860" height="540"></canvas>
+      </div>
+
+      <div class="mansion-bottom-bar">
+        <span id="bottomStatusTip">✨ Tip: Mappy is 100% INVINCIBLE to cats while airborne in a Trampoline Shaft! Open Flashing Doors for a Sonic Wave!</span>
+        <strong style="color:var(--gold);" id="bottomCalloutText">STAGE 1 READY</strong>
+      </div>
+    </section>
+
+    <!-- Right Column: Roguelike Police Gadgets, Scoring & Controls -->
+    <aside class="side-column">
+      <section class="glass-card">
+        <div class="card-header">
+          <span class="card-title">⚡ Police Tactical Gear</span>
+          <span class="card-badge" id="btnOpenDraft" style="cursor:pointer;">+ DRAFT [U]</span>
+        </div>
+        <div class="gadget-list" id="gadgetListContainer">
+          <div class="gadget-item unlocked" id="gadTaser">
+            <span>⚡ Taser Baton [F]</span>
+            <strong id="gadTaserCharges">2 Charges</strong>
+          </div>
+          <div class="gadget-item" id="gadKevlar">
+            <span>🧵 Kevlar Trampolines</span>
+            <strong id="gadKevlarStatus">3 Bounces</strong>
+          </div>
+          <div class="gadget-item" id="gadMagnet">
+            <span>🧲 Loot Magnet Aura</span>
+            <strong id="gadMagnetStatus">LOCKED</strong>
+          </div>
+          <div class="gadget-item" id="gadVest">
+            <span>🛡️ Riot Armor Vest</span>
+            <strong id="gadVestStatus">0 Shields</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="glass-card">
+        <div class="card-header">
+          <span class="card-title">🌊 Microwave Chain Table</span>
+          <span class="card-badge">SONIC DOORS</span>
+        </div>
+        <div class="stat-row"><span>1 Meowky Swept</span><strong style="color:#38bdf8">200 PTS</strong></div>
+        <div class="stat-row"><span>2 Meowkies Swept</span><strong style="color:#38bdf8">400 PTS</strong></div>
+        <div class="stat-row"><span>3 Meowkies Swept</span><strong style="color:#00f5d4">800 PTS</strong></div>
+        <div class="stat-row"><span>4+ Meowkies Swept</span><strong style="color:var(--gold)">1,200–4,000</strong></div>
+        <div class="stat-row"><span>😼 Boss Goro in Wave</span><strong style="color:#f43f5e">2X BONUS!</strong></div>
+        <div class="stat-row"><span>🔔 Falling Roof Bell</span><strong style="color:var(--gold)">+300 / CAT</strong></div>
+      </section>
+
+      <section class="glass-card">
+        <div class="card-header">
+          <span class="card-title">⌨️ Arcade Controls</span>
+          <span class="card-badge">60FPS</span>
+        </div>
+        <div class="stat-row"><span>Move / Steer off Shaft</span><strong>A/D or ◄/►</strong></div>
+        <div class="stat-row"><span>Door / Microwave Wave</span><strong>[SPACE] / [E]</strong></div>
+        <div class="stat-row"><span>Police Taser Stun</span><strong>Key [F]</strong></div>
+        <div class="stat-row"><span>Roof Balloon Stage</span><strong>Key [G]</strong></div>
+        <div class="stat-row"><span>Draft Roguelike Gear</span><strong>Key [U]</strong></div>
+        <div class="stat-row"><span>Switch 8 Modes</span><strong>Keys [1]–[8]</strong></div>
+      </section>
+    </aside>
+  </main>
+
+  <!-- Roguelike Police Gadget Draft Modal -->
+  <div class="modal-backdrop" id="draftModal">
+    <div class="modal-panel">
+      <h2 style="color:var(--cyan-bright); font-size:20px;">🚓 PRECINCT ARMORY UPGRADE DRAFT</h2>
+      <p style="font-size:12px; color:#cbd5e1;">Select a tactical police upgrade for Officer Mappy:</p>
+      <div class="draft-cards-grid">
+        <button class="draft-card-btn" data-upgrade="kevlar">
+          <span style="font-size:24px;">🧵</span>
+          <strong style="font-size:12px; color:var(--gold);">Kevlar Trampolines</strong>
+          <span style="font-size:10px; color:#94a3b8;">Increases trampoline capacity to 5 bounces before snapping!</span>
+        </button>
+        <button class="draft-card-btn" data-upgrade="taser">
+          <span style="font-size:24px;">⚡</span>
+          <strong style="font-size:12px; color:var(--cyan-bright);">+3 Taser Charges</strong>
+          <span style="font-size:10px; color:#94a3b8;">Press [F] to stun all nearby Meowkies &amp; Boss Goro!</span>
+        </button>
+        <button class="draft-card-btn" data-upgrade="vest">
+          <span style="font-size:24px;">🛡️</span>
+          <strong style="font-size:12px; color:#f472b6;">Riot Armor Shield</strong>
+          <span style="font-size:10px; color:#94a3b8;">Absorbs 1 direct floor collision with Goro or a Meowky!</span>
+        </button>
+      </div>
+      <div style="margin-top:6px;">
+        <button class="btn-hud" id="btnCloseDraft">Close Armory</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over / Stage Summary Modal -->
+  <div class="modal-backdrop" id="gameOverModal">
+    <div class="modal-panel">
+      <h2 id="modalTitle" style="color:var(--gold); font-size:22px;">MANSION SHIFT COMPLETE</h2>
+      <p id="modalReason" style="font-size:12.5px; color:#cbd5e1;">Officer Mappy recovered the stolen loot!</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:rgba(2,6,23,0.75); padding:12px; border-radius:10px;">
+        <div>
+          <div style="font-size:10px; color:#94a3b8;">FINAL SCORE</div>
+          <strong id="modalFinalScore" style="font-size:18px; color:var(--gold);">0</strong>
+        </div>
+        <div>
+          <div style="font-size:10px; color:#94a3b8;">HIGH SCORE</div>
+          <strong id="modalHighScore" style="font-size:18px; color:var(--cyan-bright);">20,000</strong>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:center; gap:10px; margin-top:6px;">
+        <button class="btn-hud accent-gold" id="btnPlayAgain">🐭 PLAY AGAIN</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    // =========================================================================
+    // 1. MAPPYAUDIO — 1983 NAMCO JAZZ-RAGTIME & ARCADE SFX WEB AUDIO SYNTH
+    // =========================================================================
+    class MappyAudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.sfxEnabled = true;
+        this.musicEnabled = false;
+        this.musicTimer = null;
+        this.musicStep = 0;
+        // Upbeat 1983 Mappy Ragtime Melody & Walking Bass (F Major / C7 Swing)
+        this.ragtimeMelody = [
+          523.25, 587.33, 659.25, 698.46, 880.00, 783.99, 698.46, 587.33,
+          523.25, 659.25, 783.99, 1046.50, 987.77, 880.00, 783.99, 659.25
+        ];
+        this.walkingBass = [
+          174.61, 220.00, 261.63, 293.66, 196.00, 246.94, 293.66, 261.63,
+          130.81, 164.81, 196.00, 220.00, 174.61, 196.00, 220.00, 261.63
+        ];
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume().catch(() => {});
+        }
+      }
+
+      playTone(freq, type = "square", duration = 0.14, gainVal = 0.1, delaySec = 0) {
+        if (!this.sfxEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime + delaySec;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.linearRampToValueAtTime(gainVal, now + 0.008);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + duration + 0.015);
+        } catch (_) {}
+      }
+
+      playTrampolineBoing(bouncesLeft = 3) {
+        if (!this.sfxEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const baseF = 190 + (3 - Math.min(3, bouncesLeft)) * 75;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(baseF, now);
+          osc.frequency.exponentialRampToValueAtTime(baseF * 2.35, now + 0.19);
+          gain.gain.setValueAtTime(0.16, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.21);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.22);
+        } catch (_) {}
+      }
+
+      playDoorFlip() {
+        this.playTone(320, "triangle", 0.08, 0.11, 0);
+        this.playTone(540, "square", 0.09, 0.08, 0.03);
+      }
+
+      playMicrowaveSweep() {
+        if (!this.sfxEnabled) return;
+        const notes = [440, 587.33, 783.99, 1046.5, 1396.91, 1760];
+        notes.forEach((f, idx) => {
+          this.playTone(f, "sawtooth", 0.14, 0.09, idx * 0.035);
+          this.playTone(f * 1.25, "sine", 0.16, 0.08, idx * 0.035);
+        });
+      }
+
+      playLootCollect(isPair = false, isGoro = false) {
+        if (!this.sfxEnabled) return;
+        if (isGoro) {
+          [523.25, 659.25, 783.99, 1046.5, 1318.5, 1567.98].forEach((f, i) => {
+            this.playTone(f, "square", 0.16, 0.11, i * 0.04);
+          });
+        } else if (isPair) {
+          [587.33, 783.99, 987.77, 1174.66].forEach((f, i) => {
+            this.playTone(f, "triangle", 0.16, 0.12, i * 0.04);
+          });
+        } else {
+          this.playTone(659.25, "square", 0.1, 0.1, 0);
+          this.playTone(880.0, "square", 0.14, 0.1, 0.05);
+        }
+      }
+
+      playBellDrop() {
+        this.playTone(1174.66, "sine", 0.35, 0.15, 0);
+        this.playTone(1760.0, "triangle", 0.28, 0.09, 0.02);
+      }
+
+      playBalloonPop() {
+        this.playTone(987.77, "sine", 0.1, 0.12, 0);
+        this.playTone(1318.51, "triangle", 0.14, 0.1, 0.03);
+      }
+
+      playTaserZap() {
+        [880, 440, 1320, 660, 1760].forEach((f, i) => {
+          this.playTone(f, "sawtooth", 0.07, 0.1, i * 0.025);
+        });
+      }
+
+      playMappyCaught() {
+        [493.88, 440.0, 392.0, 349.23, 293.66, 261.63].forEach((f, i) => {
+          this.playTone(f, "sawtooth", 0.15, 0.11, i * 0.065);
+        });
+      }
+
+      toggleMusic() {
+        this.musicEnabled = !this.musicEnabled;
+        if (this.musicEnabled) {
+          this.init();
+          this.startRagtimeLoop();
+        } else {
+          this.stopRagtimeLoop();
+        }
+        return this.musicEnabled;
+      }
+
+      startRagtimeLoop() {
+        this.stopRagtimeLoop();
+        this.musicTimer = setInterval(() => {
+          if (!this.musicEnabled) return;
+          const idx = this.musicStep % this.ragtimeMelody.length;
+          this.musicStep++;
+          this.playTone(this.ragtimeMelody[idx], "square", 0.11, 0.045, 0);
+          this.playTone(this.walkingBass[idx], "triangle", 0.16, 0.06, 0);
+        }, 190);
+      }
+
+      stopRagtimeLoop() {
+        if (this.musicTimer) {
+          clearInterval(this.musicTimer);
+          this.musicTimer = null;
+        }
+      }
+    }
+
+    const MappyAudio = new MappyAudioEngine();
+
+    // =========================================================================
+    // 2. PERSISTENT HALL OF FAME VAULT & MANSION ARCHITECTURE SPECS
+    // =========================================================================
+    const STORAGE_KEY = "codecaine_cybermappy_vault_v1";
+
+    function loadVault() {
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const p = JSON.parse(raw);
+          return {
+            highScore: p.highScore || 20000,
+            totalLoot: p.totalLoot || 0,
+            catsSwept: p.catsSwept || 0,
+            goroBusted: p.goroBusted || 0,
+            balloonsPopped: p.balloonsPopped || 0
+          };
+        }
+      } catch (_) {}
+      return {
+        highScore: 20000,
+        totalLoot: 0,
+        catsSwept: 0,
+        goroBusted: 0,
+        balloonsPopped: 0
+      };
+    }
+
+    const vault = loadVault();
+
+    function saveVault() {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(vault));
+      } catch (_) {}
+      updateVaultUI();
+    }
+
+    function updateVaultUI() {
+      document.getElementById("vaultLoot").textContent = vault.totalLoot.toLocaleString();
+      document.getElementById("vaultCatsSwept").textContent = vault.catsSwept.toLocaleString();
+      document.getElementById("vaultGoroBusted").textContent = vault.goroBusted.toLocaleString();
+      document.getElementById("vaultBalloons").textContent = vault.balloonsPopped.toLocaleString();
+      const rank =
+        vault.totalLoot >= 150
+          ? "CHIEF COMMISSIONER"
+          : vault.totalLoot >= 60
+          ? "DETECTIVE INSPECTOR"
+          : vault.totalLoot >= 20
+          ? "SERGEANT MAPPY"
+          : "ROOKIE MOUSE";
+      document.getElementById("precinctRankBadge").textContent = rank;
+    }
+
+    // 6-Story Mansion Layout (Canvas: 860 x 540)
+    // 6 Floors (y coordinates of floor walking surfaces)
+    const FLOOR_Y = [
+      92,  // Floor 0: Attic Roof Passage
+      172, // Floor 1: 5th Story Penthouse
+      252, // Floor 2: 4th Story Gallery
+      332, // Floor 3: 3rd Story Study
+      412, // Floor 4: 2nd Story Parlor
+      492  // Floor 5: 1st Story Grand Foyer
+    ];
+
+    // 4 Vertical Trampoline Shafts (x centers & widths)
+    const SHAFTS = [
+      { id: 0, x: 58, width: 56, trampY: 518 },
+      { id: 1, x: 300, width: 58, trampY: 518 },
+      { id: 2, x: 560, width: 58, trampY: 518 },
+      { id: 3, x: 802, width: 56, trampY: 518 }
+    ];
+
+    // 5 Stolen Mansion Treasure Pairs (10 items per stage)
+    const LOOT_SPECS = [
+      { type: 0, name: "Boombox Stereo", basePts: 100, color: "#38bdf8", icon: "📻" },
+      { type: 1, name: "Holo-Television", basePts: 200, color: "#22c55e", icon: "📺" },
+      { type: 2, name: "Quantum PC", basePts: 300, color: "#a855f7", icon: "🖥️" },
+      { type: 3, name: "Mona Lisa Art", basePts: 400, color: "#f97316", icon: "🖼️" },
+      { type: 4, name: "Gold Vault Safe", basePts: 500, color: "#facc15", icon: "🏦" }
+    ];
+
+    const canvas = document.getElementById("mappyCanvas");
+    const ctx = canvas.getContext("2d");
+    const headerCanvas = document.getElementById("mappyHeaderCanvas");
+    const hCtx = headerCanvas.getContext("2d");
+    const W = canvas.width;  // 860
+    const H = canvas.height; // 540
+
+    // =========================================================================
+    // 3. CORE GAME STATE, 8 PLAYABLE MODES & STAGE INITIALIZER
+    // =========================================================================
+    const state = {
+      mode: "classic",
+      score: 0,
+      stage: 1,
+      lives: 3,
+      pairMultiplier: 1, // x1 -> x2 -> x3 -> x4 -> x5 -> x6 when Goro is found behind loot!
+      lastCollectedLootType: -1,
+      isBonusStage: false,
+      bonusTimeLeft: 32,
+      blitzTimeLeft: 90,
+      hurryActive: false,
+      stageTimer: 0,
+      gameOver: false,
+
+      // Roguelike Police Gadgets
+      maxTrampBounces: 3, // Upgraded to 5 with Kevlar Trampolines
+      taserCharges: 2,
+      riotShields: 0,
+      lootMagnet: false,
+
+      // Entities
+      mappy: {
+        x: 430,
+        y: FLOOR_Y[5],
+        vx: 0,
+        vy: 0,
+        floor: 5,
+        inShaft: false,
+        shaftId: -1,
+        facing: 1,
+        spinAngle: 0,
+        invulnTimer: 0,
+        animTick: 0
+      },
+      partnerMappy: {
+        active: false,
+        x: 475,
+        y: FLOOR_Y[5],
+        vx: 0,
+        vy: 0,
+        floor: 5,
+        inShaft: false,
+        shaftId: -1,
+        facing: -1,
+        spinAngle: 0
+      },
+      goro: {
+        x: 180,
+        y: FLOOR_Y[2],
+        vx: 1.55,
+        vy: 0,
+        floor: 2,
+        inShaft: false,
+        shaftId: -1,
+        facing: 1,
+        hidingLootId: -1,
+        hideTimer: 0,
+        stunTimer: 0,
+        sweptByWave: false
+      },
+      nyamcoBoss: {
+        active: false,
+        x: 430,
+        y: FLOOR_Y[1],
+        vx: 1.2,
+        hp: 1000,
+        maxHp: 1000,
+        flashTimer: 0
+      },
+      meowkies: [],
+      trampolines: [],
+      doors: [],
+      loots: [],
+      bells: [],
+      balloons: [],
+      microwaveBeams: [], // { x, y, vx, floor, dir, catsCaught, goroCaught, width, alpha }
+      particles: [],
+      floatingTexts: [],
+      banner: null // { title, sub, color, timer }
+    };
+
+    const keys = {};
+
+    function showBanner(title, sub = "", color = "#facc15", timer = 85) {
+      state.banner = { title, sub, color, timer };
+      const callout = document.getElementById("bottomCalloutText");
+      if (callout) {
+        callout.textContent = title;
+        callout.style.color = color;
+      }
+    }
+
+    function spawnFloatingText(x, y, text, color = "#facc15", size = 15) {
+      state.floatingTexts.push({ x, y, text, color, size, vy: -1.3, alpha: 1 });
+    }
+
+    function spawnBurstParticles(x, y, color = "#00f5d4", count = 12) {
+      for (let i = 0; i < count; i++) {
+        const a = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.3;
+        const sp = 1.6 + Math.random() * 3.8;
+        state.particles.push({
+          x,
+          y,
+          vx: Math.cos(a) * sp,
+          vy: Math.sin(a) * sp - 1,
+          color,
+          size: 3 + Math.random() * 3.5,
+          alpha: 1
+        });
+      }
+    }
+
+    function isXInShaft(x) {
+      for (const s of SHAFTS) {
+        if (Math.abs(x - s.x) <= s.width * 0.36) {
+          return s;
+        }
+      }
+      return null;
+    }
+
+    function initGameSession(modeId = state.mode) {
+      state.mode = modeId;
+      state.score = 0;
+      state.stage = 1;
+      state.lives = 3;
+      state.pairMultiplier = 1;
+      state.lastCollectedLootType = -1;
+      state.gameOver = false;
+      state.blitzTimeLeft = 90;
+      state.maxTrampBounces = modeId === "roguelike" ? 4 : 3;
+      state.taserCharges = modeId === "roguelike" ? 3 : 2;
+      state.riotShields = modeId === "roguelike" ? 1 : 0;
+      state.lootMagnet = false;
+
+      document.querySelectorAll(".mode-tab").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.mode === modeId);
+      });
+      document.getElementById("gameOverModal").classList.remove("open");
+
+      const startAsBonus = modeId === "balloon_marathon";
+      initMansionStage(1, startAsBonus);
+    }
+
+    function initMansionStage(stageNum = 1, isBonusRoof = false) {
+      state.stage = stageNum;
+      state.isBonusStage = isBonusRoof;
+      state.bonusTimeLeft = 32;
+      state.hurryActive = false;
+      state.stageTimer = 0;
+      state.lastCollectedLootType = -1;
+      state.microwaveBeams = [];
+      state.particles = [];
+      state.floatingTexts = [];
+
+      // 1. Initialize 4 Elastic Trampolines at bottom of shafts
+      state.trampolines = SHAFTS.map((s) => ({
+        id: s.id,
+        x: s.x,
+        y: s.trampY,
+        width: s.width,
+        bouncesLeft: state.maxTrampBounces,
+        maxBounces: state.maxTrampBounces,
+        snapped: false,
+        deflect: 0
+      }));
+
+      // 2. Position Officer Mappy
+      state.mappy.x = 430;
+      state.mappy.y = FLOOR_Y[5];
+      state.mappy.vx = 0;
+      state.mappy.vy = 0;
+      state.mappy.floor = 5;
+      state.mappy.inShaft = false;
+      state.mappy.shaftId = -1;
+      state.mappy.facing = 1;
+      state.mappy.spinAngle = 0;
+      state.mappy.invulnTimer = 45;
+
+      // Partner Mappy Jr. (Mode 7: 2P Co-Op Police Partners)
+      state.partnerMappy.active = state.mode === "coop_partners";
+      state.partnerMappy.x = 485;
+      state.partnerMappy.y = FLOOR_Y[5];
+      state.partnerMappy.floor = 5;
+      state.partnerMappy.inShaft = false;
+
+      // If Bonus Balloon Roof Stage
+      if (isBonusRoof) {
+        state.doors = [];
+        state.loots = [];
+        state.bells = [];
+        state.meowkies = [];
+        state.goro.hidingLootId = -1;
+        state.nyamcoBoss.active = false;
+        state.balloons = [];
+
+        // Spawn 15 Red Balloons across the 4 vertical trampoline shafts + 1 Giant Goro Balloon at top center!
+        let bId = 0;
+        for (const s of SHAFTS) {
+          for (let row = 0; row < 4; row++) {
+            if (bId >= 15) break;
+            state.balloons.push({
+              id: bId++,
+              x: s.x + (row % 2 === 0 ? -8 : 8),
+              y: 135 + row * 85,
+              isGoroBalloon: false,
+              popped: false,
+              bobPhase: bId * 0.7
+            });
+          }
+        }
+        state.balloons.push({
+          id: 99,
+          x: 430,
+          y: 72,
+          isGoroBalloon: true,
+          popped: false,
+          bobPhase: 0
+        });
+
+        showBanner(`🎈 BONUS STAGE ${stageNum}!`, "POP ALL 15 BALLOONS & THE GIANT GORO BALLOON!", "#00f5d4");
+        updateAllHUD();
+        return;
+      }
+
+      state.balloons = [];
+
+      // 3. Build 8 Mansion Doors (4 Regular Doors + 4 Flashing Microwave Shockwave Doors)
+      const doorLayout = [
+        { floor: 1, x: 205, isMicrowave: true, dir: -1 },
+        { floor: 1, x: 665, isMicrowave: false, dir: 1 },
+        { floor: 2, x: 430, isMicrowave: true, dir: 1 },
+        { floor: 3, x: 195, isMicrowave: false, dir: 1 },
+        { floor: 3, x: 675, isMicrowave: true, dir: -1 },
+        { floor: 4, x: 415, isMicrowave: false, dir: -1 },
+        { floor: 5, x: 190, isMicrowave: true, dir: 1 },
+        { floor: 5, x: 670, isMicrowave: false, dir: -1 }
+      ];
+      state.doors = doorLayout.map((d, idx) => ({
+        id: idx,
+        floor: d.floor,
+        x: d.x,
+        y: FLOOR_Y[d.floor],
+        open: false,
+        isMicrowave: d.isMicrowave,
+        charges: d.isMicrowave ? 1 : 0,
+        dir: d.dir
+      }));
+
+      // 4. Spawn 10 Stolen Mansion Treasures (2 of each of the 5 LOOT_SPECS types)
+      const lootSlots = [
+        { floor: 1, x: 135 },
+        { floor: 1, x: 725 },
+        { floor: 2, x: 155 },
+        { floor: 2, x: 695 },
+        { floor: 3, x: 130 },
+        { floor: 3, x: 455 },
+        { floor: 4, x: 165 },
+        { floor: 4, x: 715 },
+        { floor: 5, x: 130 },
+        { floor: 5, x: 735 }
+      ];
+      state.loots = lootSlots.map((slot, idx) => {
+        const spec = LOOT_SPECS[idx % 5];
+        return {
+          id: idx,
+          type: spec.type,
+          name: spec.name,
+          basePts: spec.basePts,
+          color: spec.color,
+          icon: spec.icon,
+          floor: slot.floor,
+          x: slot.x,
+          y: FLOOR_Y[slot.floor] - 18,
+          collected: false
+        };
+      });
+
+      // 5. Spawn 2 Hanging Pitfall Bells over Shafts 1 and 2
+      state.bells = [
+        { id: 0, shaftId: 1, x: SHAFTS[1].x, y: 54, falling: false, vy: 0, spent: false },
+        { id: 1, shaftId: 2, x: SHAFTS[2].x, y: 54, falling: false, vy: 0, spent: false }
+      ];
+
+      // 6. Position Boss Goro (Hides behind Loot #2 initially so player can see Goro peeking!)
+      state.goro.x = state.loots[2].x;
+      state.goro.y = FLOOR_Y[state.loots[2].floor];
+      state.goro.floor = state.loots[2].floor;
+      state.goro.vx = 1.45;
+      state.goro.inShaft = false;
+      state.goro.hidingLootId = 2;
+      state.goro.hideTimer = 180;
+      state.goro.stunTimer = 0;
+
+      // 7. Spawn Pink Meowky Squad (4 to 6 cats depending on stage)
+      const meowkyStarts = [
+        { floor: 1, x: 430, vx: 1.35 },
+        { floor: 2, x: 210, vx: -1.3 },
+        { floor: 3, x: 620, vx: 1.4 },
+        { floor: 4, x: 220, vx: 1.25 }
+      ];
+      if (stageNum >= 2) meowkyStarts.push({ floor: 2, x: 640, vx: -1.45 });
+      if (stageNum >= 3) meowkyStarts.push({ floor: 4, x: 620, vx: -1.5 });
+
+      state.meowkies = meowkyStarts.map((m, idx) => ({
+        id: idx,
+        x: m.x,
+        y: FLOOR_Y[m.floor],
+        vx: m.vx,
+        vy: 0,
+        floor: m.floor,
+        inShaft: false,
+        shaftId: -1,
+        stunTimer: 0,
+        swept: false
+      }));
+
+      // 8. Mode 5: Mega-Nyamco Boss Raid Penthouse Tank
+      state.nyamcoBoss.active = state.mode === "boss_raid";
+      state.nyamcoBoss.x = 430;
+      state.nyamcoBoss.y = FLOOR_Y[1];
+      state.nyamcoBoss.hp = 1000 + (stageNum - 1) * 400;
+      state.nyamcoBoss.maxHp = state.nyamcoBoss.hp;
+
+      showBanner(`🏛️ MANSION STAGE ${stageNum}`, "RECOVER ALL 10 STOLEN TREASURES!", "#facc15");
+      updateAllHUD();
+    }
+
+
+    // =========================================================================
+    // 4. TRAMPOLINE BOUNCING, DOORS, MICROWAVE SHOCKWAVES & LOOT COLLECTION
+    // =========================================================================
+    function addScore(pts, x = state.mappy.x, y = state.mappy.y - 24, color = "#facc15") {
+      state.score += pts;
+      if (state.score > vault.highScore) {
+        vault.highScore = state.score;
+        saveVault();
+      }
+      spawnFloatingText(x, y, `+${pts.toLocaleString()}`, color, pts >= 800 ? 18 : 14);
+      updateAllHUD();
+    }
+
+    function resetAllTrampolineTension() {
+      let restoredAny = false;
+      for (const t of state.trampolines) {
+        if (!t.snapped && t.bouncesLeft < t.maxBounces) {
+          t.bouncesLeft = t.maxBounces;
+          restoredAny = true;
+        }
+      }
+      if (restoredAny) updateTrampolineSideMonitor();
+    }
+
+    function triggerDoorOrMicrowave() {
+      if (state.gameOver || state.isBonusStage) return;
+      const actor = state.mode === "play_goro" ? state.goro : state.mappy;
+      if (actor.inShaft) return;
+
+      // Find nearest door on same floor within 78px
+      let nearest = null;
+      let bestDist = 78;
+      for (const d of state.doors) {
+        if (d.floor === actor.floor) {
+          const dist = Math.abs(d.x - actor.x);
+          if (dist < bestDist) {
+            bestDist = dist;
+            nearest = d;
+          }
+        }
+      }
+      if (!nearest) return;
+
+      // If Flashing Microwave Door with active charge -> Launch Sonic Wave!
+      if (nearest.isMicrowave && nearest.charges > 0) {
+        nearest.charges = 0;
+        nearest.isMicrowave = false;
+        nearest.open = true;
+        const waveDir = actor.x <= nearest.x ? 1 : -1;
+        state.microwaveBeams.push({
+          x: nearest.x,
+          y: FLOOR_Y[nearest.floor] - 18,
+          floor: nearest.floor,
+          dir: waveDir,
+          vx: waveDir * 8.2,
+          catsCaught: 0,
+          goroCaught: false,
+          width: 48,
+          alpha: 1
+        });
+        MappyAudio.playMicrowaveSweep();
+        spawnBurstParticles(nearest.x, FLOOR_Y[nearest.floor] - 18, "#00f5d4", 18);
+        showBanner("🌊 MICROWAVE SHOCKWAVE!", "SONIC BEAM LAUNCHED DOWN CORRIDOR!", "#00f5d4", 65);
+        return;
+      }
+
+      // Regular Door Flip -> Knocks back and stuns nearby cats (+50 pts each)
+      nearest.open = !nearest.open;
+      MappyAudio.playDoorFlip();
+      spawnBurstParticles(nearest.x, FLOOR_Y[nearest.floor] - 16, "#fb923c", 8);
+
+      for (const cat of state.meowkies) {
+        if (!cat.inShaft && cat.floor === nearest.floor && Math.abs(cat.x - nearest.x) < 62) {
+          cat.stunTimer = 140;
+          cat.vx = -cat.vx;
+          addScore(50, cat.x, cat.y - 26, "#38bdf8");
+          spawnFloatingText(cat.x, cat.y - 42, "DOOR STUN!", "#38bdf8", 12);
+        }
+      }
+      if (
+        state.mode !== "play_goro" &&
+        !state.goro.inShaft &&
+        state.goro.floor === nearest.floor &&
+        Math.abs(state.goro.x - nearest.x) < 62
+      ) {
+        state.goro.stunTimer = 110;
+        state.goro.hidingLootId = -1;
+        addScore(100, state.goro.x, state.goro.y - 26, "#f43f5e");
+      }
+    }
+
+    function triggerPoliceTaser() {
+      if (state.gameOver || state.taserCharges <= 0) return;
+      state.taserCharges--;
+      MappyAudio.playTaserZap();
+      spawnBurstParticles(state.mappy.x, state.mappy.y - 16, "#38bdf8", 22);
+
+      let stunnedCount = 0;
+      for (const cat of state.meowkies) {
+        if (Math.hypot(cat.x - state.mappy.x, cat.y - state.mappy.y) < 165) {
+          cat.stunTimer = 190;
+          stunnedCount++;
+        }
+      }
+      if (Math.hypot(state.goro.x - state.mappy.x, state.goro.y - state.mappy.y) < 175) {
+        state.goro.stunTimer = 160;
+        state.goro.hidingLootId = -1;
+        stunnedCount++;
+      }
+      if (state.nyamcoBoss.active && Math.hypot(state.nyamcoBoss.x - state.mappy.x, state.nyamcoBoss.y - state.mappy.y) < 180) {
+        state.nyamcoBoss.hp = Math.max(0, state.nyamcoBoss.hp - 250);
+        state.nyamcoBoss.flashTimer = 20;
+        addScore(250, state.nyamcoBoss.x, state.nyamcoBoss.y - 35, "#00f5d4");
+      }
+      showBanner(
+        "⚡ POLICE TASER DISCHARGED!",
+        stunnedCount > 0 ? `STUNNED ${stunnedCount} NYAMCO THIEVES!` : "ARC PULSE DEPLOYED!",
+        "#38bdf8",
+        65
+      );
+      updateAllHUD();
+    }
+
+    function checkLootAndBellInteractions(collector) {
+      // 1. Check Hanging Pitfall Bells near top of shafts (triggered while airborne in shaft near ceiling)
+      for (const bell of state.bells) {
+        if (!bell.falling && !bell.spent && Math.hypot(collector.x - bell.x, collector.y - bell.y) < 36) {
+          bell.falling = true;
+          bell.vy = 4.8;
+          MappyAudio.playBellDrop();
+          showBanner("🔔 PITFALL BELL DROPPED!", "300 PTS PER MEOWKY CRUSHED IN SHAFT!", "#facc15", 65);
+        }
+      }
+
+      // 2. Check Stolen Mansion Treasures (authentic Mappy rule: must be walking on the same floor, not mid-air in a shaft)
+      if (collector.inShaft) return;
+      for (const item of state.loots) {
+        if (item.collected || item.floor !== collector.floor) continue;
+        const grabRadius = state.lootMagnet ? 64 : 28;
+        if (Math.abs(collector.x - item.x) < grabRadius) {
+          item.collected = true;
+          vault.totalLoot++;
+
+          // Did Mappy catch Boss Goro hiding behind this treasure?!
+          const goroWasHidingHere = state.goro.hidingLootId === item.id;
+          const matchedPair = state.lastCollectedLootType === item.type;
+
+          if (goroWasHidingHere) {
+            state.goro.hidingLootId = -1;
+            state.goro.stunTimer = 150;
+            state.pairMultiplier = Math.min(6, state.pairMultiplier + 1);
+            vault.goroBusted++;
+            const goroBonus = 1000;
+            const itemScore = item.basePts * state.pairMultiplier + goroBonus;
+            addScore(itemScore, item.x, item.y - 12, "#f43f5e");
+            spawnFloatingText(
+              item.x,
+              item.y - 34,
+              `😼 GORO BUSTED! +1,000 & x${state.pairMultiplier} PAIR MULT!`,
+              "#facc15",
+              16
+            );
+            MappyAudio.playLootCollect(true, true);
+            showBanner(
+              `😼 BOSS GORO DISCOVERED! +1,000 PTS!`,
+              `PAIR MULTIPLIER UPGRADED TO x${state.pairMultiplier}!`,
+              "#f43f5e",
+              90
+            );
+          } else if (matchedPair) {
+            const mult = Math.max(2, state.pairMultiplier);
+            const itemScore = item.basePts * mult;
+            addScore(itemScore, item.x, item.y - 12, "#00f5d4");
+            spawnFloatingText(item.x, item.y - 32, `PAIR MATCH x${mult}!`, "#00f5d4", 15);
+            MappyAudio.playLootCollect(true, false);
+          } else {
+            addScore(item.basePts, item.x, item.y - 12, item.color);
+            MappyAudio.playLootCollect(false, false);
+          }
+
+          state.lastCollectedLootType = item.type;
+          spawnBurstParticles(item.x, item.y, item.color, 14);
+          saveVault();
+          updateAllHUD();
+
+          // Check if all 10 stolen treasures are recovered!
+          const remaining = state.loots.filter((l) => !l.collected).length;
+          if (remaining === 0 && (!state.nyamcoBoss.active || state.nyamcoBoss.hp <= 0)) {
+            completeCurrentStage();
+          }
+        }
+      }
+    }
+
+    function completeCurrentStage() {
+      const stageClearBonus = 1000 + state.stage * 250;
+      addScore(stageClearBonus, W / 2, H / 2, "#00f5d4");
+      const nextStage = state.stage + 1;
+      // Every 3rd stage (or in Balloon Marathon mode) launches the Roof Balloon Bonus Stage
+      const nextIsBalloonBonus = state.mode === "balloon_marathon" || nextStage % 3 === 0;
+      initMansionStage(nextStage, nextIsBalloonBonus);
+    }
+
+    function handleMappyDamage(reasonText) {
+      if (state.mappy.invulnTimer > 0 || state.gameOver) return;
+      if (state.riotShields > 0) {
+        state.riotShields--;
+        state.mappy.invulnTimer = 85;
+        MappyAudio.playTaserZap();
+        spawnBurstParticles(state.mappy.x, state.mappy.y - 16, "#38bdf8", 16);
+        showBanner("🛡️ RIOT ARMOR VEST ABSORBED HIT!", "TEMPORARY INVULNERABILITY ENGAGED!", "#38bdf8", 75);
+        updateAllHUD();
+        return;
+      }
+
+      MappyAudio.playMappyCaught();
+      state.lives--;
+      spawnBurstParticles(state.mappy.x, state.mappy.y - 16, "#f43f5e", 22);
+      updateAllHUD();
+
+      if (state.lives <= 0) {
+        state.gameOver = true;
+        document.getElementById("modalTitle").textContent = "🚨 OFFICER MAPPY DOWN!";
+        document.getElementById("modalReason").textContent = reasonText;
+        document.getElementById("modalFinalScore").textContent = state.score.toLocaleString();
+        document.getElementById("modalHighScore").textContent = vault.highScore.toLocaleString();
+        document.getElementById("gameOverModal").classList.add("open");
+      } else {
+        // Respawn Mappy on ground floor foyer with fresh trampolines
+        state.mappy.x = 430;
+        state.mappy.y = FLOOR_Y[5];
+        state.mappy.floor = 5;
+        state.mappy.inShaft = false;
+        state.mappy.vy = 0;
+        state.mappy.invulnTimer = 95;
+        for (const t of state.trampolines) {
+          t.snapped = false;
+          t.bouncesLeft = t.maxBounces;
+        }
+        showBanner("🚓 BACKUP UNIT DEPLOYED!", `${state.lives} LIVES REMAINING — WATCH THE CATS!`, "#f43f5e", 80);
+      }
+    }
+
+    // =========================================================================
+    // 5. 60FPS PHYSICS & AI STEP FOR MAPPY, GORO, MEOWKIES & TRAMPOLINE SHAFTS
+    // =========================================================================
+    function updateCharacterInMansion(ent, moveDir, isPlayerMappy = false, vertDir = 0) {
+      const walkSpeed = isPlayerMappy ? 3.35 : 1.55 + state.stage * 0.08;
+      if (ent.shaftCooldown > 0) ent.shaftCooldown--;
+
+      if (!ent.inShaft) {
+        // Walking along a mansion floor (clamped between outer Shaft 0 and Shaft 3 centers so nobody gets stuck on outer walls)
+        ent.vx = moveDir * walkSpeed;
+        if (moveDir !== 0) ent.facing = moveDir > 0 ? 1 : -1;
+
+        const minWalkX = SHAFTS[0].x;
+        const maxWalkX = SHAFTS[3].x;
+        let nextX = Math.max(minWalkX, Math.min(maxWalkX, ent.x + ent.vx));
+        let blockedByDoor = false;
+        let blockingDoor = null;
+
+        // Authentic 1983 Namco Mappy Closed-Door Collision:
+        // Closed doors (!d.open) physically block BOTH Mappy and the cats from crossing d.x!
+        for (const d of state.doors) {
+          if (!d.open && d.floor === ent.floor) {
+            if (ent.x <= d.x && nextX > d.x - 14 && ent.vx > 0) {
+              nextX = Math.min(ent.x, d.x - 14);
+              blockedByDoor = true;
+              blockingDoor = d;
+              break;
+            } else if (ent.x >= d.x && nextX < d.x + 14 && ent.vx < 0) {
+              nextX = Math.max(ent.x, d.x + 14);
+              blockedByDoor = true;
+              blockingDoor = d;
+              break;
+            }
+          }
+        }
+
+        if (blockedByDoor) {
+          if (!isPlayerMappy) {
+            ent.vx = -ent.vx;
+            ent.facing = ent.vx >= 0 ? 1 : -1;
+          } else if (state.navTarget && blockingDoor) {
+            // If player used click-to-move across a closed door, stop at the door so they can press [SPACE] or click it
+            state.navTarget = null;
+          }
+        }
+        ent.x = nextX;
+        ent.y = FLOOR_Y[ent.floor];
+        ent.spinAngle = 0;
+
+        // Did character step into one of the 4 vertical trampoline shafts?
+        const shaft = (!ent.shaftCooldown || ent.shaftCooldown <= 0) ? isXInShaft(ent.x) : null;
+        if (shaft) {
+          ent.inShaft = true;
+          ent.shaftId = shaft.id;
+          ent.entryFloor = ent.floor;
+          ent.entryDir = moveDir !== 0 ? Math.sign(moveDir) : ent.facing;
+          ent.shaftTicks = 0;
+          ent.hasBounced = false;
+          ent.x = shaft.x;
+          // Stepping off a floor ledge drops you down into the trampoline shaft
+          ent.vy = 2.2;
+
+          // AI Cats & Boss Goro pick a target floor and bounce up/down the shaft cleanly!
+          if (!isPlayerMappy) {
+            const pFloor = state.mappy.floor ?? 3;
+            ent.targetFloor = Math.random() < 0.68 ? pFloor : Math.floor(Math.random() * 5) + 1;
+            if (ent.targetFloor === ent.entryFloor) {
+              ent.targetFloor = ent.entryFloor > 1 ? ent.entryFloor - 1 : 4;
+            }
+            if (shaft.id === 0) ent.exitDir = 1;
+            else if (shaft.id === 3) ent.exitDir = -1;
+            else ent.exitDir = state.mappy.x >= shaft.x ? 1 : -1;
+          }
+        }
+      } else {
+        // Airborne inside a vertical Trampoline Shaft! (100% INVINCIBLE to cats while in shaft!)
+        const shaft = SHAFTS[ent.shaftId] || SHAFTS[0];
+        ent.shaftTicks = (ent.shaftTicks || 0) + 1;
+
+        // Tuned gravity so a single trampoline bounce carries Mappy all the way up to Floor 0 (Attic, y=92)
+        // using ONLY Left/Right steering, just like 1983 Namco Mappy!
+        let grav = 0.22;
+        if (isPlayerMappy) {
+          if (vertDir < 0) grav = 0.17;
+          else if (vertDir > 0) grav = 0.34;
+        }
+        ent.vy += grav;
+        ent.y += ent.vy;
+        ent.spinAngle += 0.22;
+        ent.x = shaft.x;
+
+        // Ceiling cap at roof attic
+        const minCeilingY = state.isBonusStage ? 52 : 82;
+        if (ent.y < minCeilingY) {
+          ent.y = minCeilingY;
+          ent.vy = Math.abs(ent.vy) * 0.45;
+        }
+
+        // Check Floor Exit Alignment!
+        const wantDir = isPlayerMappy ? Math.sign(moveDir) : (ent.exitDir || Math.sign(moveDir) || 1);
+        if (wantDir !== 0) {
+          // Ensure we never exit through the solid outer walls (Shaft 0 left or Shaft 3 right)
+          const validWallExit = !(shaft.id === 0 && wantDir < 0) && !(shaft.id === 3 && wantDir > 0);
+          if (validWallExit) {
+            const alignWindow = isPlayerMappy ? 22 : 16;
+            for (let f = 0; f < FLOOR_Y.length; f++) {
+              const fy = FLOOR_Y[f];
+              if (Math.abs(ent.y - fy) <= alignWindow) {
+                if (isPlayerMappy) {
+                  // Prevent immediate accidental snap-back onto the exact same floor right as you step off the ledge
+                  const isSameEntryFloor = f === ent.entryFloor && !ent.hasBounced;
+                  if (isSameEntryFloor && ent.shaftTicks < 16) {
+                    continue;
+                  }
+                } else {
+                  // AI Cats & Goro always bounce on the trampoline first (or wait 18+ ticks) and exit at their targetFloor!
+                  if (!ent.hasBounced && ent.shaftTicks < 20) continue;
+                  if (typeof ent.targetFloor === "number" && f !== ent.targetFloor && ent.vy > -1) continue;
+                }
+
+                // Smoothly step out onto Floor f outside the shaft trigger radius!
+                ent.inShaft = false;
+                ent.floor = f;
+                ent.y = fy;
+                ent.vy = 0;
+                ent.spinAngle = 0;
+                ent.shaftCooldown = 12;
+                ent.x = shaft.x + wantDir * (shaft.width * 0.56);
+                ent.facing = wantDir > 0 ? 1 : -1;
+                if (!isPlayerMappy) {
+                  ent.vx = wantDir * Math.abs(ent.vx || 1.55);
+                } else {
+                  resetAllTrampolineTension();
+                }
+                return;
+              }
+            }
+          }
+        }
+
+        // Bottom of shaft: Hit Elastic Trampoline!
+        const tramp = state.trampolines[shaft.id];
+        if (ent.y >= tramp.y && ent.vy > 0) {
+          ent.hasBounced = true;
+          if (isPlayerMappy) {
+            if (tramp.snapped || tramp.bouncesLeft <= 0) {
+              tramp.snapped = true;
+              handleMappyDamage("Snapped through a Red Over-Stressed Trampoline on 4th consecutive bounce!");
+              return;
+            }
+            tramp.bouncesLeft--;
+            tramp.deflect = 12;
+            MappyAudio.playTrampolineBoing(tramp.bouncesLeft);
+            spawnBurstParticles(tramp.x, tramp.y, tramp.bouncesLeft === 0 ? "#ef4444" : "#22c55e", 10);
+            if (tramp.bouncesLeft === 0) {
+              showBanner("⚠️ TRAMPOLINE CRITICAL RED!", "HOLD LEFT OR RIGHT TO LAND ON A FLOOR NOW!", "#ef4444", 70);
+            }
+            updateTrampolineSideMonitor();
+          } else {
+            tramp.deflect = 8;
+          }
+          // Launch high back up the full 6-story shaft (reaches Floor 0 Attic at y=92 with grav=0.22)!
+          ent.y = tramp.y - 2;
+          ent.vy = -14.0;
+        }
+      }
+    }
+
+    function stepSimulation() {
+      if (state.gameOver) return;
+      state.stageTimer++;
+      state.mappy.animTick++;
+
+      if (state.mappy.invulnTimer > 0) state.mappy.invulnTimer--;
+      if (state.banner && state.banner.timer > 0) state.banner.timer--;
+
+      // Speed Blitz 90s timer
+      if (state.mode === "speed_blitz" && state.stageTimer % 60 === 0) {
+        state.blitzTimeLeft = Math.max(0, state.blitzTimeLeft - 1);
+        if (state.blitzTimeLeft === 0) {
+          handleMappyDamage("90-Second Mansion Speed Blitz timer expired!");
+          return;
+        }
+      }
+
+      // Hurry-Up Siren after 45 seconds on a stage
+      if (!state.isBonusStage && !state.hurryActive && state.stageTimer > 60 * 45) {
+        state.hurryActive = true;
+        showBanner("🚨 HURRY UP! GORO COIN RELEASED!", "MEOWKY PURSUIT SPEED INCREASED!", "#f43f5e", 95);
+      }
+
+      // Determine Player Input Direction (Horizontal A/D/Left/Right + Vertical W/S/Up/Down + Click-to-Move Assist)
+      let p1Dir = 0;
+      let p1Vert = 0;
+      if (keys["ArrowLeft"] || keys["KeyA"]) p1Dir = -1;
+      if (keys["ArrowRight"] || keys["KeyD"]) p1Dir = 1;
+      if (keys["ArrowUp"] || keys["KeyW"]) p1Vert = -1;
+      if (keys["ArrowDown"] || keys["KeyS"]) p1Vert = 1;
+
+      if (p1Dir !== 0 || p1Vert !== 0) {
+        state.navTarget = null;
+      } else if (state.navTarget) {
+        const actor = state.mode === "play_goro" ? state.goro : state.mappy;
+        const dx = state.navTarget.x - actor.x;
+        const targetFloor = state.navTarget.floor;
+        if (!actor.inShaft) {
+          if (actor.floor === targetFloor) {
+            if (Math.abs(dx) > 10) p1Dir = dx > 0 ? 1 : -1;
+            else state.navTarget = null;
+          } else {
+            // Walk to nearest shaft to reach targetFloor
+            let nearestShaft = SHAFTS[0];
+            let bestD = 9999;
+            for (const s of SHAFTS) {
+              const d = Math.abs(s.x - actor.x);
+              if (d < bestD) {
+                bestD = d;
+                nearestShaft = s;
+              }
+            }
+            p1Dir = nearestShaft.x >= actor.x ? 1 : -1;
+          }
+        } else {
+          // Inside shaft: wait until aligned with targetFloor, then steer out toward state.navTarget.x!
+          p1Vert = targetFloor < actor.floor ? -1 : 1;
+          const fy = FLOOR_Y[targetFloor];
+          if (Math.abs(actor.y - fy) <= 18) {
+            const shaft = SHAFTS[actor.shaftId] || SHAFTS[0];
+            if (shaft.id === 0) p1Dir = 1;
+            else if (shaft.id === 3) p1Dir = -1;
+            else p1Dir = state.navTarget.x >= shaft.x ? 1 : -1;
+          }
+        }
+      }
+
+      // If player presses Up/W on a floor near a shaft, step into the shaft and hop upward!
+      if (!state.mappy.inShaft && p1Vert !== 0 && p1Dir === 0 && state.mode !== "play_goro") {
+        for (const s of SHAFTS) {
+          if (Math.abs(state.mappy.x - s.x) < 48) {
+            p1Dir = s.x >= state.mappy.x ? 1 : -1;
+            break;
+          }
+        }
+      }
+
+      // BONUS ROOF BALLOON STAGE LOGIC
+      if (state.isBonusStage) {
+        if (state.stageTimer % 60 === 0) {
+          state.bonusTimeLeft = Math.max(0, state.bonusTimeLeft - 1);
+          updateAllHUD();
+          if (state.bonusTimeLeft === 0) {
+            initMansionStage(state.stage + 1, state.mode === "balloon_marathon");
+            return;
+          }
+        }
+        updateCharacterInMansion(state.mappy, p1Dir, true, p1Vert);
+
+        // Pop balloons on contact
+        let unpopped = 0;
+        for (const b of state.balloons) {
+          if (b.popped) continue;
+          unpopped++;
+          const hitRadius = b.isGoroBalloon ? 42 : 28;
+          if (Math.hypot(state.mappy.x - b.x, state.mappy.y - 16 - b.y) < hitRadius) {
+            b.popped = true;
+            vault.balloonsPopped++;
+            MappyAudio.playBalloonPop();
+            if (b.isGoroBalloon) {
+              addScore(2000, b.x, b.y, "#facc15");
+              showBanner("🎈 GIANT GORO BALLOON POPPED! +2,000!", "PERFECT ROOF BONUS SWEEP!", "#facc15", 85);
+            } else {
+              addScore(200, b.x, b.y, "#00f5d4");
+            }
+            spawnBurstParticles(b.x, b.y, b.isGoroBalloon ? "#facc15" : "#f43f5e", 14);
+            saveVault();
+          }
+        }
+        if (unpopped === 0) {
+          addScore(5000, W / 2, H / 2, "#facc15");
+          initMansionStage(state.stage + 1, state.mode === "balloon_marathon");
+        }
+        stepParticlesAndBeams();
+        return;
+      }
+
+      // Mode 3: Play as Boss Goro vs AI Officer Mappy!
+      if (state.mode === "play_goro") {
+        updateCharacterInMansion(state.goro, p1Dir, true, p1Vert);
+        // AI Mappy seeks nearest uncollected treasure
+        const targetLoot = state.loots.find((l) => !l.collected);
+        let aiDir = 1;
+        if (targetLoot) {
+          aiDir = targetLoot.x > state.mappy.x ? 1 : -1;
+        }
+        updateCharacterInMansion(state.mappy, aiDir, false);
+        checkLootAndBellInteractions(state.mappy);
+      } else {
+        // Player controls Officer Mappy
+        updateCharacterInMansion(state.mappy, p1Dir, true, p1Vert);
+        checkLootAndBellInteractions(state.mappy);
+
+        // Mode 7: 2P Co-Op Police Partner Mappy Jr. (J/L keys or autonomous smart assist)
+        if (state.partnerMappy.active) {
+          let p2Dir = 0;
+          if (keys["KeyJ"]) p2Dir = -1;
+          else if (keys["KeyL"]) p2Dir = 1;
+          else {
+            const nextLoot = state.loots.find((l) => !l.collected);
+            if (nextLoot) p2Dir = nextLoot.x > state.partnerMappy.x ? 1 : -1;
+          }
+          updateCharacterInMansion(state.partnerMappy, p2Dir, true);
+          checkLootAndBellInteractions(state.partnerMappy);
+        }
+
+        // Boss Goro AI: Alternates between patrolling floors and hiding behind uncollected treasures!
+        if (state.goro.stunTimer > 0) {
+          state.goro.stunTimer--;
+        } else if (state.goro.hidingLootId >= 0) {
+          const hideLoot = state.loots[state.goro.hidingLootId];
+          if (!hideLoot || hideLoot.collected) {
+            state.goro.hidingLootId = -1;
+          } else {
+            state.goro.x = hideLoot.x;
+            state.goro.y = FLOOR_Y[hideLoot.floor];
+            state.goro.floor = hideLoot.floor;
+            state.goro.inShaft = false;
+            state.goro.hideTimer--;
+            if (state.goro.hideTimer <= 0) {
+              state.goro.hidingLootId = -1;
+            }
+          }
+        } else {
+          const gDir = state.goro.vx >= 0 ? 1 : -1;
+          updateCharacterInMansion(state.goro, gDir, false);
+          if (state.goro.x <= 32 || state.goro.x >= W - 32) state.goro.vx = -state.goro.vx;
+
+          // Chance to duck behind a nearby uncollected treasure!
+          if (!state.goro.inShaft && Math.random() < 0.015) {
+            for (const item of state.loots) {
+              if (!item.collected && item.floor === state.goro.floor && Math.abs(item.x - state.goro.x) < 28) {
+                state.goro.hidingLootId = item.id;
+                state.goro.hideTimer = 210;
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      // Update Pink Meowky Squad
+      const speedMult = state.hurryActive ? 1.35 : 1.0;
+      for (const cat of state.meowkies) {
+        if (cat.stunTimer > 0) {
+          cat.stunTimer--;
+          continue;
+        }
+        const cDir = cat.vx >= 0 ? 1 : -1;
+        const prevX = cat.x;
+        updateCharacterInMansion(cat, cDir * speedMult, false);
+        if (!cat.inShaft && (cat.x <= 30 || cat.x >= W - 30 || Math.abs(cat.x - prevX) < 0.1)) {
+          cat.vx = -cat.vx;
+        }
+
+        // Authentic 1983 Namco Mappy Collision Rule:
+        // Mappy is ONLY vulnerable to cats when BOTH Mappy and the cat are on the SAME FLOOR (NOT in a shaft)!
+        if (
+          !state.mappy.inShaft &&
+          !cat.inShaft &&
+          cat.floor === state.mappy.floor &&
+          Math.abs(cat.x - state.mappy.x) < 22
+        ) {
+          handleMappyDamage("Collided with a Pink Meowky on a mansion floor! (Use Trampoline Shafts for mid-air invincibility!)");
+          return;
+        }
+      }
+
+      // Check Boss Goro floor collision with Mappy (if Goro is not hiding or stunned)
+      if (
+        state.goro.hidingLootId < 0 &&
+        state.goro.stunTimer <= 0 &&
+        !state.mappy.inShaft &&
+        !state.goro.inShaft &&
+        state.goro.floor === state.mappy.floor &&
+        Math.abs(state.goro.x - state.mappy.x) < 24
+      ) {
+        if (state.mode === "play_goro") {
+          addScore(1500, state.mappy.x, state.mappy.y - 24, "#facc15");
+          showBanner("😼 BOSS GORO TAGGED MAPPY! +1,500!", "NYAMCO SYNDICATE TRIUMPHS!", "#facc15", 80);
+          state.mappy.invulnTimer = 90;
+        } else {
+          handleMappyDamage("Caught on a corridor floor by Boss Goro!");
+          return;
+        }
+      }
+
+      // Mode 5: Mega-Nyamco Boss Tank patrol
+      if (state.nyamcoBoss.active && state.nyamcoBoss.hp > 0) {
+        state.nyamcoBoss.x += state.nyamcoBoss.vx;
+        if (state.nyamcoBoss.x < 140 || state.nyamcoBoss.x > W - 140) {
+          state.nyamcoBoss.vx = -state.nyamcoBoss.vx;
+        }
+        if (state.nyamcoBoss.flashTimer > 0) state.nyamcoBoss.flashTimer--;
+      }
+
+      // Update Falling Pitfall Bells in Shafts
+      for (const bell of state.bells) {
+        if (bell.falling && !bell.spent) {
+          bell.y += bell.vy;
+          bell.vy += 0.25;
+          for (const cat of state.meowkies) {
+            if (Math.hypot(cat.x - bell.x, cat.y - bell.y) < 34) {
+              cat.stunTimer = 240;
+              vault.catsSwept++;
+              addScore(300, cat.x, cat.y - 20, "#facc15");
+              spawnFloatingText(cat.x, cat.y - 38, "🔔 BELL CRUSH +300!", "#facc15", 15);
+            }
+          }
+          if (bell.y > H - 25) {
+            bell.spent = true;
+            bell.falling = false;
+          }
+        }
+      }
+
+      stepParticlesAndBeams();
+    }
+
+    function stepParticlesAndBeams() {
+      // Trampoline spring deflection recovery
+      for (const t of state.trampolines) {
+        if (t.deflect > 0) t.deflect *= 0.82;
+      }
+
+      // Update Microwave Sonic Beams sweeping across floors
+      const CHAIN_TABLE = [0, 200, 400, 800, 1200, 2000, 4000];
+      for (let i = state.microwaveBeams.length - 1; i >= 0; i--) {
+        const b = state.microwaveBeams[i];
+        b.x += b.vx;
+
+        // Sweep Meowkies on same floor and carry them off-screen with the sonic wave!
+        for (const cat of state.meowkies) {
+          if (cat.sweptByBeam === b) {
+            cat.x = b.x + b.dir * 12;
+            cat.y = FLOOR_Y[b.floor];
+            cat.inShaft = false;
+          } else if (cat.floor === b.floor && !cat.sweptByBeam && Math.abs(cat.x - b.x) < 34) {
+            cat.sweptByBeam = b;
+            cat.stunTimer = 200;
+            cat.inShaft = false;
+            cat.x = b.x + b.dir * 12;
+            cat.y = FLOOR_Y[b.floor];
+            b.catsCaught++;
+            vault.catsSwept++;
+            const chainPts = CHAIN_TABLE[Math.min(6, b.catsCaught)] * (b.goroCaught ? 2 : 1);
+            addScore(chainPts, cat.x, cat.y - 24, "#00f5d4");
+            spawnBurstParticles(cat.x, cat.y - 14, "#00f5d4", 10);
+          }
+        }
+
+        // Sweep Boss Goro on same floor (Doubles all Microwave Wave points!)
+        if (state.goro.floor === b.floor && !b.goroCaught && Math.abs(state.goro.x - b.x) < 36) {
+          b.goroCaught = true;
+          state.goro.hidingLootId = -1;
+          state.goro.stunTimer = 220;
+          vault.goroBusted++;
+          addScore(1000, state.goro.x, state.goro.y - 28, "#f43f5e");
+          spawnFloatingText(state.goro.x, state.goro.y - 46, "🌊 GORO SWEPT 2X WAVE!", "#facc15", 16);
+        }
+        if (b.goroCaught) {
+          state.goro.x = b.x + b.dir * 16;
+          state.goro.y = FLOOR_Y[b.floor];
+          state.goro.inShaft = false;
+        }
+
+        // Damage Mega-Nyamco Boss Tank if on floor 1
+        if (state.nyamcoBoss.active && state.nyamcoBoss.hp > 0 && b.floor === 1 && Math.abs(state.nyamcoBoss.x - b.x) < 48) {
+          state.nyamcoBoss.hp = Math.max(0, state.nyamcoBoss.hp - 350);
+          state.nyamcoBoss.flashTimer = 24;
+          addScore(500, state.nyamcoBoss.x, state.nyamcoBoss.y - 36, "#00f5d4");
+          b.x = -999; // Consume beam
+        }
+
+        if (b.x < -40 || b.x > W + 40) {
+          for (const cat of state.meowkies) {
+            if (cat.sweptByBeam === b) {
+              cat.sweptByBeam = null;
+              cat.floor = 1;
+              cat.x = 430;
+              cat.y = FLOOR_Y[1];
+              cat.inShaft = false;
+              cat.stunTimer = 65;
+            }
+          }
+          if (b.goroCaught) {
+            state.goro.floor = 1;
+            state.goro.x = 430;
+            state.goro.y = FLOOR_Y[1];
+            state.goro.inShaft = false;
+            state.goro.stunTimer = 75;
+          }
+          state.microwaveBeams.splice(i, 1);
+          saveVault();
+        }
+      }
+
+      // Particles
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const p = state.particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.12;
+        p.alpha -= 0.028;
+        if (p.alpha <= 0) state.particles.splice(i, 1);
+      }
+
+      // Floating score popups
+      for (let i = state.floatingTexts.length - 1; i >= 0; i--) {
+        const ft = state.floatingTexts[i];
+        ft.y += ft.vy;
+        ft.alpha -= 0.018;
+        if (ft.alpha <= 0) state.floatingTexts.splice(i, 1);
+      }
+    }
+
+
+    // =========================================================================
+    // 6. AAA 60FPS VECTOR MANSION & CHARACTER CANVAS RENDERER
+    // =========================================================================
+    function getTrampolineColor(t) {
+      if (t.snapped) return "#64748b";
+      if (t.bouncesLeft >= 3) return "#22c55e"; // Green (Safe: 3+ bounces)
+      if (t.bouncesLeft === 2) return "#3b82f6"; // Blue (2 bounces)
+      if (t.bouncesLeft === 1) return "#eab308"; // Yellow (1 bounce)
+      return "#ef4444"; // Red (0 bounces left — next bounce SNAPS!)
+    }
+
+    function renderHeaderCanvas() {
+      hCtx.clearRect(0, 0, headerCanvas.width, headerCanvas.height);
+      const grad = hCtx.createLinearGradient(0, 0, headerCanvas.width, 0);
+      grad.addColorStop(0, "#0b132b");
+      grad.addColorStop(0.5, "#1d1b4b");
+      grad.addColorStop(1, "#0b132b");
+      hCtx.fillStyle = grad;
+      hCtx.fillRect(0, 0, headerCanvas.width, headerCanvas.height);
+
+      // Left: Police Siren & Active Mode / Stage Banner
+      const pulse = 0.55 + 0.45 * Math.sin(Date.now() * 0.008);
+      hCtx.fillStyle = state.hurryActive ? `rgba(244,63,94,${pulse})` : `rgba(56,189,248,${pulse})`;
+      hCtx.beginPath();
+      hCtx.arc(28, 34, 11, 0, Math.PI * 2);
+      hCtx.fill();
+
+      hCtx.fillStyle = "#f8fafc";
+      hCtx.font = "900 13px 'Orbitron', sans-serif";
+      const modeTitle = state.isBonusStage
+        ? `🎈 ROOF BALLOON BONUS STAGE (${state.bonusTimeLeft}s)`
+        : state.mode === "speed_blitz"
+        ? `⏱️ 90s MANSION BLITZ (${state.blitzTimeLeft}s LEFT)`
+        : `🏛️ NYAMCO MANSION FLOOR RADAR — STAGE ${state.stage}`;
+      hCtx.fillText(modeTitle, 48, 27);
+
+      hCtx.fillStyle = "#94a3b8";
+      hCtx.font = "600 11px 'Inter', sans-serif";
+      const targetSpec = state.lastCollectedLootType >= 0 ? LOOT_SPECS[state.lastCollectedLootType] : null;
+      const radarSub = targetSpec
+        ? `Next Pair Target: ${targetSpec.icon} ${targetSpec.name} for x${Math.max(2, state.pairMultiplier)} Pair Bonus!`
+        : `Catch Boss Goro hiding behind treasures (+1,000 pts) to upgrade Pair Multiplier (Currently x${state.pairMultiplier})!`;
+      hCtx.fillText(radarSub, 48, 48);
+
+      // Right: 5 Treasure Pair Slots & Live Lives Badges
+      const startX = 535;
+      LOOT_SPECS.forEach((spec, idx) => {
+        const bx = startX + idx * 46;
+        const by = 14;
+        const remainingOfType = state.loots.filter((l) => l.type === spec.type && !l.collected).length;
+        const isTargetPair = state.lastCollectedLootType === spec.type && remainingOfType > 0;
+
+        hCtx.fillStyle = remainingOfType === 0 ? "rgba(34,197,94,0.2)" : "rgba(15,23,42,0.85)";
+        hCtx.strokeStyle = isTargetPair ? "#facc15" : remainingOfType === 0 ? "#22c55e" : "rgba(148,163,184,0.35)";
+        hCtx.lineWidth = isTargetPair ? 2 : 1;
+        hCtx.beginPath();
+        hCtx.roundRect(bx, by, 40, 40, 8);
+        hCtx.fill();
+        hCtx.stroke();
+
+        hCtx.font = "16px sans-serif";
+        hCtx.textAlign = "center";
+        hCtx.fillText(spec.icon, bx + 20, by + 23);
+        hCtx.font = "800 9px 'JetBrains Mono', monospace";
+        hCtx.fillStyle = remainingOfType === 0 ? "#4ade80" : "#e2e8f0";
+        hCtx.fillText(remainingOfType === 0 ? "CLR" : `x${remainingOfType}`, bx + 20, by + 36);
+      });
+
+      // Pair Multiplier Pill on Far Right
+      hCtx.fillStyle = "rgba(250, 204, 21, 0.16)";
+      hCtx.strokeStyle = "#facc15";
+      hCtx.lineWidth = 1.5;
+      hCtx.beginPath();
+      hCtx.roundRect(775, 14, 72, 40, 8);
+      hCtx.fill();
+      hCtx.stroke();
+      hCtx.fillStyle = "#facc15";
+      hCtx.font = "900 14px 'Orbitron', sans-serif";
+      hCtx.fillText(`x${state.pairMultiplier}`, 811, 33);
+      hCtx.font = "700 8px 'Inter', sans-serif";
+      hCtx.fillStyle = "#fde047";
+      hCtx.fillText("PAIR MULT", 811, 47);
+      hCtx.textAlign = "left";
+    }
+
+    function drawMansionArchitecture() {
+      // Sky & Night Cyberpunk Backdrop
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+      skyGrad.addColorStop(0, "#090d24");
+      skyGrad.addColorStop(0.25, "#15193b");
+      skyGrad.addColorStop(1, "#0b1026");
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Victorian Mansion Roof Gable at top
+      ctx.fillStyle = "#4c1d3d";
+      ctx.strokeStyle = "#f472b6";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(16, 48);
+      ctx.lineTo(W / 2, 10);
+      ctx.lineTo(W - 16, 48);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Mansion Interior Wallpaper Panels (broken by the 4 Vertical Trampoline Shafts)
+      for (let f = 0; f < FLOOR_Y.length; f++) {
+        const topY = f === 0 ? 48 : FLOOR_Y[f - 1] + 8;
+        const botY = FLOOR_Y[f];
+        const rowH = botY - topY;
+
+        ctx.fillStyle = f % 2 === 0 ? "rgba(30, 41, 75, 0.72)" : "rgba(38, 33, 72, 0.72)";
+        ctx.fillRect(20, topY, W - 40, rowH);
+
+        // Decorative Victorian window frames in each room bay
+        const windowXs = [175, 430, 685];
+        for (const wx of windowXs) {
+          ctx.fillStyle = "rgba(15, 23, 42, 0.65)";
+          ctx.strokeStyle = "rgba(148, 163, 184, 0.22)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(wx - 26, topY + 12, 52, rowH - 24, 6);
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+
+      // Carve out the 4 Vertical Trampoline Shafts with neon guide rails
+      for (const s of SHAFTS) {
+        const left = s.x - s.width / 2;
+        ctx.fillStyle = "rgba(7, 11, 25, 0.92)";
+        ctx.fillRect(left, 48, s.width, H - 56);
+
+        // Vertical shaft depth ruler ticks
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.16)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 6]);
+        ctx.beginPath();
+        ctx.moveTo(s.x, 52);
+        ctx.lineTo(s.x, H - 28);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // Draw the 6 Mansion Floors (interrupted by the 4 Trampoline Shafts)
+      for (let f = 0; f < FLOOR_Y.length; f++) {
+        const fy = FLOOR_Y[f];
+        let segStart = 18;
+        for (const s of SHAFTS) {
+          const shaftLeft = s.x - s.width / 2;
+          const shaftRight = s.x + s.width / 2;
+          if (shaftLeft > segStart) {
+            drawFloorBeam(segStart, shaftLeft, fy, f);
+          }
+          segStart = shaftRight;
+        }
+        if (segStart < W - 18) {
+          drawFloorBeam(segStart, W - 18, fy, f);
+        }
+      }
+    }
+
+    function drawFloorBeam(x1, x2, y, floorIdx) {
+      const w = x2 - x1;
+      ctx.fillStyle = floorIdx === 0 ? "#fb7185" : "#e11d48";
+      ctx.fillRect(x1, y, w, 9);
+      ctx.fillStyle = "#fda4af";
+      ctx.fillRect(x1, y, w, 2.5);
+    }
+
+    function drawTrampolines() {
+      for (const t of state.trampolines) {
+        const col = getTrampolineColor(t);
+        const left = t.x - t.width / 2 + 3;
+        const right = t.x + t.width / 2 - 3;
+        const y = t.y + t.deflect;
+
+        // Side posts
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillRect(left - 3, t.y - 4, 4, 16);
+        ctx.fillRect(right - 1, t.y - 4, 4, 16);
+
+        if (t.snapped) {
+          // Snapped broken cords
+          ctx.strokeStyle = "#ef4444";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(left, t.y);
+          ctx.lineTo(left + 12, t.y + 12);
+          ctx.moveTo(right, t.y);
+          ctx.lineTo(right - 12, t.y + 12);
+          ctx.stroke();
+          continue;
+        }
+
+        // Elastic Glowing Trampoline Mat
+        ctx.save();
+        ctx.shadowColor = col;
+        ctx.shadowBlur = 12;
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(left, t.y);
+        ctx.quadraticCurveTo(t.x, y + 6, right, t.y);
+        ctx.stroke();
+        ctx.restore();
+
+        // Bounce count badge under mat
+        ctx.fillStyle = "#cbd5e1";
+        ctx.font = "800 9px 'JetBrains Mono', monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(`${t.bouncesLeft}/${t.maxBounces}`, t.x, t.y + 16);
+        ctx.textAlign = "left";
+      }
+
+      // If Mappy is currently airborne in a shaft, highlight the aligned floor ledges so exiting is effortless!
+      const actor = state.mode === "play_goro" ? state.goro : state.mappy;
+      if (actor.inShaft) {
+        const shaft = SHAFTS[actor.shaftId] || SHAFTS[0];
+        let bestF = 0;
+        let bestDist = 999;
+        for (let f = 0; f < FLOOR_Y.length; f++) {
+          const d = Math.abs(actor.y - FLOOR_Y[f]);
+          if (d < bestDist) {
+            bestDist = d;
+            bestF = f;
+          }
+        }
+        if (bestDist <= 26) {
+          const fy = FLOOR_Y[bestF];
+          ctx.save();
+          ctx.fillStyle = "rgba(0, 245, 212, 0.9)";
+          ctx.font = "900 10px 'Orbitron', sans-serif";
+          ctx.textAlign = "center";
+          if (shaft.id > 0) {
+            ctx.fillText("◄ EXIT", shaft.x - shaft.width * 0.68, fy - 5);
+          }
+          if (shaft.id < 3) {
+            ctx.fillText("EXIT ►", shaft.x + shaft.width * 0.68, fy - 5);
+          }
+          ctx.restore();
+        }
+      }
+    }
+
+    function drawDoorsAndMicrowaves() {
+      const pulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.014);
+      const actor = state.mode === "play_goro" ? state.goro : state.mappy;
+      for (const d of state.doors) {
+        const doorH = 54;
+        const topY = d.y - doorH;
+        const isNearMappy = !actor.inShaft && actor.floor === d.floor && Math.abs(actor.x - d.x) < 76;
+
+        if (d.open) {
+          // Open doorframe outline
+          ctx.strokeStyle = isNearMappy ? "#00f5d4" : "rgba(148, 163, 184, 0.45)";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(d.x - 10, topY, 20, doorH);
+          if (isNearMappy) {
+            ctx.fillStyle = "#00f5d4";
+            ctx.font = "900 9px 'Orbitron', sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("[SPACE] CLOSE", d.x, topY - 4);
+          }
+          continue;
+        }
+
+        if (d.isMicrowave && d.charges > 0) {
+          // Flashing Cyan/Gold Microwave Door
+          ctx.save();
+          const mCol = pulse > 0.5 ? "#00f5d4" : "#facc15";
+          ctx.shadowColor = mCol;
+          ctx.shadowBlur = 14;
+          ctx.fillStyle = mCol;
+          ctx.fillRect(d.x - 7, topY, 14, doorH);
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(d.x - 7, topY, 14, doorH);
+
+          // Sonic wave emitter rings on facing side
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 1.6;
+          const arcX = d.x + d.dir * 10;
+          ctx.beginPath();
+          ctx.arc(arcX, topY + doorH / 2, 8, -0.7, 0.7);
+          ctx.stroke();
+          if (isNearMappy) {
+            ctx.fillStyle = "#facc15";
+            ctx.font = "900 9.5px 'Orbitron', sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("🌊 [SPACE] WAVE!", d.x, topY - 4);
+          }
+          ctx.restore();
+        } else {
+          // Standard Solid Wooden / Brass Door (Blocks Mappy & Cats when closed!)
+          ctx.save();
+          ctx.fillStyle = "#ea580c";
+          ctx.fillRect(d.x - 6, topY, 12, doorH);
+          ctx.strokeStyle = isNearMappy ? "#facc15" : "#fed7aa";
+          ctx.lineWidth = 1.8;
+          ctx.strokeRect(d.x - 6, topY, 12, doorH);
+          ctx.fillStyle = "#fef08a";
+          ctx.beginPath();
+          ctx.arc(d.x + d.dir * 3, topY + doorH / 2, 2.6, 0, Math.PI * 2);
+          ctx.fill();
+          if (isNearMappy) {
+            ctx.fillStyle = "#fde047";
+            ctx.font = "900 9.5px 'Orbitron', sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("🚪 [SPACE] OPEN", d.x, topY - 4);
+          }
+          ctx.restore();
+        }
+      }
+
+      // Active Microwave Sonic Wave Beams sweeping horizontally!
+      for (const b of state.microwaveBeams) {
+        ctx.save();
+        ctx.shadowColor = "#00f5d4";
+        ctx.shadowBlur = 18;
+        for (let ring = 0; ring < 4; ring++) {
+          const rx = b.x - b.dir * ring * 11;
+          ctx.strokeStyle = ring % 2 === 0 ? "#00f5d4" : "#facc15";
+          ctx.lineWidth = 3.5;
+          ctx.beginPath();
+          ctx.arc(rx, b.y, 18 - ring * 2, -Math.PI * 0.42, Math.PI * 0.42, b.dir < 0);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
+
+    function drawLootAndBells() {
+      const bob = Math.sin(Date.now() * 0.006) * 2.5;
+
+      // Hanging Pitfall Bells at top of Shafts 1 & 2
+      for (const bell of state.bells) {
+        if (bell.spent) continue;
+        ctx.save();
+        ctx.translate(bell.x, bell.y);
+        ctx.fillStyle = "#facc15";
+        ctx.strokeStyle = "#ca8a04";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 11, Math.PI, 0);
+        ctx.lineTo(13, 10);
+        ctx.lineTo(-13, 10);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 10 Stolen Treasures
+      for (const item of state.loots) {
+        if (item.collected) continue;
+        const goroHidingHere = state.goro.hidingLootId === item.id;
+        const isPairMatch = state.lastCollectedLootType === item.type;
+
+        ctx.save();
+        ctx.translate(item.x, item.y + bob);
+
+        // If Boss Goro is hiding behind this treasure, draw his yellow eyes & ears peeking over top!
+        if (goroHidingHere) {
+          ctx.fillStyle = "#9f1239";
+          ctx.beginPath();
+          ctx.moveTo(-12, -14);
+          ctx.lineTo(-16, -26);
+          ctx.lineTo(-5, -18);
+          ctx.moveTo(12, -14);
+          ctx.lineTo(16, -26);
+          ctx.lineTo(5, -18);
+          ctx.fill();
+
+          ctx.fillStyle = "#facc15";
+          ctx.font = "800 9px 'Orbitron', sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("😼 GORO +1K!", 0, -28);
+        } else if (isPairMatch) {
+          ctx.strokeStyle = "#00f5d4";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(-18, -16, 36, 32);
+        }
+
+        // Treasure Card Box
+        ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
+        ctx.strokeStyle = item.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-15, -13, 30, 26, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = "16px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(item.icon, 0, 1);
+        ctx.restore();
+      }
+    }
+
+    function drawOfficerMappy(ent, isJunior = false) {
+      ctx.save();
+      if (ent.invulnTimer > 0 && Math.floor(ent.invulnTimer / 4) % 2 === 1) {
+        ctx.globalAlpha = 0.6;
+      }
+      ctx.translate(ent.x, ent.y - 16);
+      if (ent.inShaft) {
+        ctx.rotate(ent.spinAngle);
+      } else if (ent.facing < 0) {
+        ctx.scale(-1, 1);
+      }
+
+      const scale = isJunior ? 0.84 : 1.0;
+      ctx.scale(scale, scale);
+
+      // Invincibility Aura when airborne inside a Trampoline Shaft!
+      if (ent.inShaft) {
+        ctx.strokeStyle = "rgba(0, 245, 212, 0.65)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 20, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Big Round Mouse Ears
+      ctx.fillStyle = "#94a3b8";
+      ctx.beginPath();
+      ctx.arc(-10, -11, 7.5, 0, Math.PI * 2);
+      ctx.arc(10, -11, 7.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#fda4af";
+      ctx.beginPath();
+      ctx.arc(-10, -11, 4.2, 0, Math.PI * 2);
+      ctx.arc(10, -11, 4.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Blue Police Officer Uniform Coat
+      ctx.fillStyle = isJunior ? "#0ea5e9" : "#2563eb";
+      ctx.beginPath();
+      ctx.roundRect(-10, 1, 20, 14, 5);
+      ctx.fill();
+
+      // Gold Police Badge on Chest
+      ctx.fillStyle = "#facc15";
+      ctx.beginPath();
+      ctx.arc(3, 7, 2.8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Mouse Head
+      ctx.fillStyle = "#e2e8f0";
+      ctx.beginPath();
+      ctx.arc(0, -3, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Eyes & Pink Nose
+      ctx.fillStyle = "#0f172a";
+      ctx.beginPath();
+      ctx.arc(4, -5, 2.1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#f43f5e";
+      ctx.beginPath();
+      ctx.arc(10, -2, 2.6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Blue Police Officer Cap & Gold Visor Emblem
+      ctx.fillStyle = "#1d4ed8";
+      ctx.beginPath();
+      ctx.roundRect(-9, -15, 18, 6, 3);
+      ctx.fill();
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(2, -10, 10, 2.5);
+      ctx.fillStyle = "#facc15";
+      ctx.beginPath();
+      ctx.arc(2, -12, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawMeowkyCat(cat) {
+      ctx.save();
+      ctx.translate(cat.x, cat.y - 15);
+      if (cat.stunTimer > 0) {
+        ctx.rotate(Math.sin(Date.now() * 0.03) * 0.35);
+      } else if (cat.vx < 0) {
+        ctx.scale(-1, 1);
+      }
+
+      // Pointed Pink Cat Ears
+      ctx.fillStyle = "#f472b6";
+      ctx.beginPath();
+      ctx.moveTo(-9, -7);
+      ctx.lineTo(-12, -18);
+      ctx.lineTo(-2, -11);
+      ctx.moveTo(9, -7);
+      ctx.lineTo(12, -18);
+      ctx.lineTo(2, -11);
+      ctx.fill();
+
+      // Cat Body & Head
+      ctx.fillStyle = cat.stunTimer > 0 ? "#38bdf8" : "#f472b6";
+      ctx.beginPath();
+      ctx.roundRect(-9, 1, 18, 13, 5);
+      ctx.arc(0, -3, 9.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Mischievous Eyes
+      ctx.fillStyle = "#0f172a";
+      ctx.beginPath();
+      ctx.arc(3.5, -4, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (cat.stunTimer > 0) {
+        ctx.fillStyle = "#facc15";
+        ctx.font = "900 9px 'Orbitron', sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("⚡STUN", 0, -21);
+      }
+      ctx.restore();
+    }
+
+    function drawBossGoro() {
+      // If Goro is currently hiding behind an uncollected treasure, his ears peek from drawLootAndBells
+      if (state.goro.hidingLootId >= 0) return;
+
+      ctx.save();
+      ctx.translate(state.goro.x, state.goro.y - 18);
+      if (state.goro.vx < 0) ctx.scale(-1, 1);
+
+      // Boss Goro Pointed Crimson Ears
+      ctx.fillStyle = "#be123c";
+      ctx.beginPath();
+      ctx.moveTo(-11, -8);
+      ctx.lineTo(-15, -22);
+      ctx.lineTo(-3, -13);
+      ctx.moveTo(11, -8);
+      ctx.lineTo(15, -22);
+      ctx.lineTo(3, -13);
+      ctx.fill();
+
+      // Pinstripe Crime Boss Suit
+      ctx.fillStyle = "#881337";
+      ctx.beginPath();
+      ctx.roundRect(-12, 1, 24, 16, 6);
+      ctx.fill();
+
+      // Gold Boss Tie
+      ctx.fillStyle = "#facc15";
+      ctx.fillRect(-2, 3, 4, 10);
+
+      // Goro Head & Yellow Cat Eyes
+      ctx.fillStyle = "#e11d48";
+      ctx.beginPath();
+      ctx.arc(0, -4, 11.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#fde047";
+      ctx.beginPath();
+      ctx.arc(4, -5, 2.8, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#facc15";
+      ctx.font = "900 9px 'Orbitron', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(state.goro.stunTimer > 0 ? "💫 DAZED" : "😼 GORO", 0, -25);
+      ctx.restore();
+    }
+
+    function drawNyamcoBossTank() {
+      if (!state.nyamcoBoss.active || state.nyamcoBoss.hp <= 0) return;
+      ctx.save();
+      ctx.translate(state.nyamcoBoss.x, state.nyamcoBoss.y - 24);
+
+      ctx.fillStyle = state.nyamcoBoss.flashTimer > 0 ? "#00f5d4" : "#9f1239";
+      ctx.strokeStyle = "#facc15";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.roundRect(-34, -18, 68, 36, 10);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 10px 'Orbitron', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(`MEGA-NYAMCO [${state.nyamcoBoss.hp} HP]`, 0, -24);
+      ctx.restore();
+    }
+
+    function drawBonusBalloons() {
+      if (!state.isBonusStage) return;
+      const t = Date.now() * 0.005;
+      for (const b of state.balloons) {
+        if (b.popped) continue;
+        const by = b.y + Math.sin(t + b.bobPhase) * 5;
+        const r = b.isGoroBalloon ? 24 : 14;
+
+        ctx.save();
+        ctx.translate(b.x, by);
+        ctx.fillStyle = b.isGoroBalloon ? "#facc15" : "#f43f5e";
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Balloon string
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(0, r);
+        ctx.lineTo(0, r + 14);
+        ctx.stroke();
+
+        if (b.isGoroBalloon) {
+          ctx.fillStyle = "#0f172a";
+          ctx.font = "900 10px 'Orbitron', sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("😼 2000", 0, 4);
+        }
+        ctx.restore();
+      }
+    }
+
+    function drawParticlesAndBanner() {
+      for (const p of state.particles) {
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      for (const ft of state.floatingTexts) {
+        ctx.globalAlpha = Math.max(0, ft.alpha);
+        ctx.fillStyle = ft.color;
+        ctx.font = `900 ${ft.size}px 'Orbitron', sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText(ft.text, ft.x, ft.y);
+      }
+      ctx.globalAlpha = 1;
+      ctx.textAlign = "left";
+
+      if (state.banner && state.banner.timer > 0) {
+        ctx.save();
+        ctx.fillStyle = "rgba(9, 13, 28, 0.88)";
+        ctx.strokeStyle = state.banner.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(W / 2 - 230, 14, 460, 44, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = state.banner.color;
+        ctx.font = "900 13px 'Orbitron', sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(state.banner.title, W / 2, 33);
+        ctx.fillStyle = "#e2e8f0";
+        ctx.font = "600 10.5px 'Inter', sans-serif";
+        ctx.fillText(state.banner.sub, W / 2, 49);
+        ctx.restore();
+      }
+    }
+
+    function renderMappyFrame() {
+      stepSimulation();
+      renderHeaderCanvas();
+
+      ctx.clearRect(0, 0, W, H);
+      drawMansionArchitecture();
+      drawTrampolines();
+      drawDoorsAndMicrowaves();
+      drawLootAndBells();
+      drawBonusBalloons();
+      drawNyamcoBossTank();
+
+      for (const cat of state.meowkies) {
+        drawMeowkyCat(cat);
+      }
+      drawBossGoro();
+      if (state.partnerMappy.active) {
+        drawOfficerMappy(state.partnerMappy, true);
+      }
+      drawOfficerMappy(state.mappy, false);
+      drawParticlesAndBanner();
+
+      requestAnimationFrame(renderMappyFrame);
+    }
+
+    // =========================================================================
+    // 7. HUD UPDATERS, ARMORY UPGRADE MODAL & KEYBOARD / BUTTON CONTROLLERS
+    // =========================================================================
+    function updateTrampolineSideMonitor() {
+      state.trampolines.forEach((t, i) => {
+        const pill = document.getElementById(`trampPill${i}`);
+        if (pill) {
+          const col = getTrampolineColor(t);
+          pill.style.borderColor = col;
+          pill.style.color = col;
+          pill.textContent = t.snapped ? `S${i + 1}: SNAP` : `S${i + 1}: ${t.bouncesLeft}`;
+        }
+      });
+    }
+
+    function updateLootPairGridUI() {
+      document.querySelectorAll(".loot-row[data-loot]").forEach((row) => {
+        const type = Number(row.getAttribute("data-loot"));
+        const spec = LOOT_SPECS[type];
+        if (!spec) return;
+        const rem = state.loots.filter((l) => l.type === type && !l.collected).length;
+        const activeTarget = state.lastCollectedLootType === type && rem > 0;
+        row.classList.toggle("active-pair", activeTarget);
+        const strong = row.querySelector("strong");
+        if (strong) {
+          strong.textContent = rem === 0 ? "✓ CLEAR" : `${spec.basePts} pts (x${rem})`;
+          strong.style.color = rem === 0 ? "#4ade80" : activeTarget ? "#facc15" : "#ffffff";
+        }
+      });
+    }
+
+    function setElText(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    }
+
+    function updateAllHUD() {
+      setElText("hudScore", state.score.toLocaleString());
+      setElText("hudHighScore", vault.highScore.toLocaleString());
+      setElText("hudStage", state.isBonusStage ? `B-${state.stage}` : `STAGE ${state.stage}`);
+      setElText("hudLives", "🐭".repeat(Math.max(0, state.lives)) || "0");
+      setElText("hudPairMult", `x${state.pairMultiplier}`);
+      setElText("hudMultiplier", `x${state.pairMultiplier}`);
+      setElText("goroMultBadge", `x${state.pairMultiplier} BONUS`);
+
+      const remLoot = state.loots.filter((l) => !l.collected).length;
+      setElText(
+        "lootRemainingBadge",
+        state.isBonusStage
+          ? `${state.balloons.filter((b) => !b.popped).length} BALLOONS`
+          : `${remLoot} / 10 LEFT`
+      );
+
+      setElText("gadTaserCharges", `${state.taserCharges} Charges`);
+      setElText("gadKevlarStatus", `${state.maxTrampBounces} Bounces`);
+      setElText("gadMagnetStatus", state.lootMagnet ? "ACTIVE" : "LOCKED");
+      setElText("gadVestStatus", `${state.riotShields} Shields`);
+
+      updateTrampolineSideMonitor();
+      updateLootPairGridUI();
+      updateVaultUI();
+    }
+
+    // Mode Selector Tabs
+    document.querySelectorAll(".mode-tab").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const mode = btn.dataset.mode;
+        if (mode) initGameSession(mode);
+      });
+    });
+
+    // Top HUD Controls
+    document.getElementById("btnDoorAction")?.addEventListener("click", () => {
+      triggerDoorOrMicrowave();
+    });
+    document.getElementById("btnTaserAction")?.addEventListener("click", () => {
+      triggerPoliceTaser();
+    });
+    document.getElementById("btnBonusStage")?.addEventListener("click", () => {
+      initMansionStage(state.stage, !state.isBonusStage);
+    });
+
+    document.getElementById("btnMusic")?.addEventListener("click", (e) => {
+      const on = MappyAudio.toggleMusic();
+      e.currentTarget.textContent = `🎵 JAZZ: ${on ? "ON" : "OFF"} [B]`;
+      e.currentTarget.classList.toggle("active", on);
+    });
+
+    (document.getElementById("btnSound") || document.getElementById("btnSfx"))?.addEventListener("click", (e) => {
+      MappyAudio.sfxEnabled = !MappyAudio.sfxEnabled;
+      e.currentTarget.textContent = `🔊 SFX: ${MappyAudio.sfxEnabled ? "ON" : "OFF"} [M]`;
+      e.currentTarget.classList.toggle("active", MappyAudio.sfxEnabled);
+    });
+
+    document.getElementById("btnNewGame")?.addEventListener("click", () => {
+      initGameSession(state.mode);
+    });
+
+    document.getElementById("btnPlayAgain")?.addEventListener("click", () => {
+      initGameSession(state.mode);
+    });
+
+    // Roguelike Police Armory Draft Modal
+    document.getElementById("btnOpenDraft")?.addEventListener("click", () => {
+      document.getElementById("draftModal").classList.add("open");
+    });
+    document.getElementById("btnCloseDraft")?.addEventListener("click", () => {
+      document.getElementById("draftModal").classList.remove("open");
+    });
+    document.querySelectorAll(".draft-card-btn").forEach((card) => {
+      card.addEventListener("click", () => {
+        const upg = card.dataset.upgrade;
+        if (upg === "kevlar") {
+          state.maxTrampBounces = 5;
+          for (const t of state.trampolines) {
+            t.maxBounces = 5;
+            t.bouncesLeft = 5;
+            t.snapped = false;
+          }
+          document.getElementById("gadKevlar").classList.add("unlocked");
+          showBanner("🧵 KEVLAR TRAMPOLINES EQUIPPED!", "ALL SHAFTS UPGRADED TO 5 BOUNCES!", "#22c55e", 80);
+        } else if (upg === "taser") {
+          state.taserCharges += 3;
+          showBanner("⚡ +3 POLICE TASER CHARGES!", "PRESS [F] TO STUN NEARBY MEOWKIES & GORO!", "#38bdf8", 80);
+        } else if (upg === "vest") {
+          state.riotShields += 1;
+          document.getElementById("gadVest").classList.add("unlocked");
+          showBanner("🛡️ RIOT ARMOR VEST EQUIPPED!", "ABSORBS NEXT DIRECT FLOOR COLLISION!", "#f472b6", 80);
+        }
+        MappyAudio.playLootCollect(true, false);
+        document.getElementById("draftModal").classList.remove("open");
+        updateAllHUD();
+      });
+    });
+
+    // Direct Canvas Click: Click any Door to open/fire it, or Click any Floor/Treasure to steer Mappy there!
+    canvas.addEventListener("pointerdown", (e) => {
+      MappyAudio.init();
+      const rect = canvas.getBoundingClientRect();
+      const cx = ((e.clientX - rect.left) / rect.width) * W;
+      const cy = ((e.clientY - rect.top) / rect.height) * H;
+
+      // Did player click directly on a Door?
+      for (const d of state.doors) {
+        if (Math.abs(cx - d.x) < 28 && cy >= d.y - 54 && cy <= d.y + 10) {
+          if (d.isMicrowave && d.charges > 0) {
+            d.charges = 0;
+            d.isMicrowave = false;
+            d.open = true;
+            state.microwaveBeams.push({
+              x: d.x,
+              y: FLOOR_Y[d.floor] - 18,
+              floor: d.floor,
+              dir: d.dir,
+              vx: d.dir * 8.2,
+              catsCaught: 0,
+              goroCaught: false,
+              width: 48,
+              alpha: 1
+            });
+            MappyAudio.playMicrowaveSweep();
+            showBanner("🌊 MICROWAVE SHOCKWAVE!", "SONIC BEAM LAUNCHED DOWN CORRIDOR!", "#00f5d4", 65);
+          } else {
+            d.open = !d.open;
+            MappyAudio.playDoorFlip();
+          }
+          return;
+        }
+      }
+
+      // Otherwise navigate Mappy toward the clicked floor & X position!
+      let closestFloor = 5;
+      let bestDist = 999;
+      for (let f = 0; f < FLOOR_Y.length; f++) {
+        const dist = Math.abs(cy - (FLOOR_Y[f] - 18));
+        if (dist < bestDist) {
+          bestDist = dist;
+          closestFloor = f;
+        }
+      }
+      state.navTarget = { x: Math.max(75, Math.min(W - 75, cx)), floor: closestFloor };
+    });
+
+    // Keyboard Controls
+    window.addEventListener("keydown", (e) => {
+      keys[e.code] = true;
+      if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
+        e.preventDefault();
+      }
+      if (e.code === "Space" || e.code === "KeyE") {
+        triggerDoorOrMicrowave();
+      } else if (e.code === "KeyF") {
+        triggerPoliceTaser();
+      } else if (e.code === "KeyG") {
+        initMansionStage(state.stage, !state.isBonusStage);
+      } else if (e.code === "KeyU") {
+        document.getElementById("draftModal").classList.toggle("open");
+      } else if (e.code === "KeyM") {
+        document.getElementById("btnMusic").click();
+      } else if (e.code === "KeyB") {
+        triggerDoorOrMicrowave();
+      } else if (e.code.startsWith("Digit")) {
+        const idx = parseInt(e.code.replace("Digit", ""), 10) - 1;
+        const tabs = Array.from(document.querySelectorAll(".mode-tab"));
+        if (tabs[idx]) tabs[idx].click();
+      }
+    });
+
+    window.addEventListener("keyup", (e) => {
+      keys[e.code] = false;
+    });
+
+    // Launch Stage 1 Immediately on Load!
+    initGameSession("classic");
+    requestAnimationFrame(renderMappyFrame);
+  </script>
+</body>
+</html>

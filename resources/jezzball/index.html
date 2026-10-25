@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine CyberJezz Containment Deluxe</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    :root {
+      --bg-deep: #040711;
+      --bg-panel: rgba(11, 19, 40, 0.88);
+      --cyan: #00f5d4;
+      --magenta: #ff2a85;
+      --gold: #fee440;
+      --blue: #3a86ff;
+      --purple: #9b5de5;
+      --text: #e2f1ff;
+      --muted: #7e95b8;
+    }
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at 50% 25%, #0c1733 0%, #040711 75%);
+      color: var(--text);
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 10px 18px;
+      background: linear-gradient(180deg, rgba(13, 24, 52, 0.95), rgba(6, 11, 26, 0.92));
+      border-bottom: 1px solid rgba(0, 245, 212, 0.35);
+      box-shadow: 0 4px 24px rgba(0, 245, 212, 0.12);
+      z-index: 10;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-icon {
+      width: 34px; height: 34px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(0,245,212,0.2), rgba(255,42,133,0.2));
+      border: 1px solid var(--cyan);
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      box-shadow: 0 0 12px rgba(0, 245, 212, 0.4);
+    }
+    .brand-title {
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #00f5d4, #60efff, #ff2a85);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+    .hud-stats {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .stat-pill {
+      background: rgba(5, 11, 26, 0.85);
+      border: 1px solid rgba(0, 245, 212, 0.28);
+      border-radius: 8px;
+      padding: 5px 11px;
+      min-width: 82px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: inset 0 0 10px rgba(0, 245, 212, 0.06);
+    }
+    .stat-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.9px;
+      color: var(--muted);
+    }
+    .stat-value {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--cyan);
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 8px rgba(0, 245, 212, 0.45);
+    }
+    .stat-value.gold { color: var(--gold); text-shadow: 0 0 8px rgba(254, 228, 64, 0.45); }
+    .stat-value.pink { color: var(--magenta); text-shadow: 0 0 8px rgba(255, 42, 133, 0.45); }
+    .controls-bar {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+    button {
+      background: rgba(12, 23, 48, 0.9);
+      color: var(--text);
+      border: 1px solid rgba(0, 245, 212, 0.4);
+      border-radius: 7px;
+      padding: 6px 11px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+    button:hover {
+      background: rgba(0, 245, 212, 0.16);
+      border-color: var(--cyan);
+      box-shadow: 0 0 12px rgba(0, 245, 212, 0.35);
+      transform: translateY(-1px);
+    }
+    button.active-ability {
+      background: rgba(254, 228, 64, 0.22);
+      border-color: var(--gold);
+      color: var(--gold);
+      box-shadow: 0 0 14px rgba(254, 228, 64, 0.5);
+    }
+    button.cryo-btn {
+      border-color: rgba(58, 134, 255, 0.65);
+    }
+    button.cryo-btn.active-ability {
+      background: rgba(58, 134, 255, 0.28);
+      border-color: #60efff;
+      color: #60efff;
+      box-shadow: 0 0 14px rgba(96, 239, 255, 0.6);
+    }
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 10px;
+      overflow: hidden;
+    }
+    .canvas-shell {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      padding: 6px;
+      background: rgba(6, 12, 28, 0.85);
+      border: 1px solid rgba(0, 245, 212, 0.4);
+      box-shadow: 0 0 36px rgba(0, 245, 212, 0.15), inset 0 0 24px rgba(0, 245, 212, 0.08);
+    }
+    canvas {
+      display: block;
+      border-radius: 8px;
+      cursor: crosshair;
+      background: #050915;
+    }
+    .footer-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 18px;
+      font-size: 11px;
+      color: var(--muted);
+      background: rgba(5, 10, 22, 0.92);
+      border-top: 1px solid rgba(0, 245, 212, 0.2);
+    }
+    .kbd {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(0, 245, 212, 0.12);
+      border: 1px solid rgba(0, 245, 212, 0.35);
+      color: var(--cyan);
+      font-family: monospace;
+      font-size: 10px;
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 6, 15, 0.82);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-card {
+      background: linear-gradient(165deg, #0d1834 0%, #060b19 100%);
+      border: 1px solid var(--cyan);
+      border-radius: 14px;
+      padding: 24px 28px;
+      max-width: 520px;
+      width: 92%;
+      box-shadow: 0 0 40px rgba(0, 245, 212, 0.3);
+      text-align: center;
+    }
+    .modal-card h2 {
+      margin: 0 0 10px;
+      font-size: 24px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .modal-card p {
+      color: #bdd1f0;
+      font-size: 13.5px;
+      line-height: 1.55;
+      margin: 8px 0;
+    }
+    .help-grid {
+      text-align: left;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 7px 14px;
+      margin: 14px 0;
+      padding: 12px;
+      border-radius: 8px;
+      background: rgba(3, 8, 20, 0.65);
+      border: 1px solid rgba(0, 245, 212, 0.22);
+      font-size: 12.5px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-icon">⚛️</div>
+      <div>
+        <div class="brand-title">Codecaine CyberJezz Containment Deluxe</div>
+        <div class="brand-sub">1992 Laser Matrix Containment Protocol • 40×28 Reactor Grid</div>
+      </div>
+    </div>
+
+    <div class="hud-stats">
+      <div class="stat-pill">
+        <span class="stat-label">Score</span>
+        <span class="stat-value" id="hudScore">0</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">High Score</span>
+        <span class="stat-value gold" id="hudHigh">0</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">Sector / Atoms</span>
+        <span class="stat-value" id="hudLevel">L1 • 2⚛</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">Contained</span>
+        <span class="stat-value gold" id="hudContained">0.0% / 75%</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">Lives</span>
+        <span class="stat-value pink" id="hudLives">❤️❤️❤️</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">Beam Axis</span>
+        <span class="stat-value" id="hudAxis">━ HORIZ</span>
+      </div>
+    </div>
+
+    <div class="controls-bar">
+      <button id="btnAxis" title="Toggle Horizontal / Vertical Beam (Right-Click / Space / R)">🔄 Axis: ━</button>
+      <button id="btnShield" title="Arm Shielded Beam — Immune to 1 Atom Hit (Q)">🛡️ Shield (Q): <span id="shieldCount">2</span></button>
+      <button id="btnCryo" class="cryo-btn" title="Cryo Slow-Mo — Slows Atoms for 5s (E)">❄️ Cryo (E): <span id="cryoCount">2</span></button>
+      <button id="btnNew" title="Start New Reactor Run (N)">⚡ New Game</button>
+      <button id="btnPause" title="Pause / Resume (P)">⏸️ Pause</button>
+      <button id="btnMute" title="Toggle Synth Audio (M)">🔊 Audio</button>
+      <button id="btnHelp" title="Tactical Briefing (H)">❓ Help</button>
+    </div>
+  </header>
+
+  <main id="viewportMain">
+    <div class="canvas-shell" id="canvasShell">
+      <canvas id="gameCanvas" width="960" height="672"></canvas>
+    </div>
+  </main>
+
+  <div class="footer-bar">
+    <div>
+      <span class="kbd">Left-Click</span> / <span class="kbd">Enter</span> Fire Laser Wall &nbsp;•&nbsp;
+      <span class="kbd">Right-Click</span> / <span class="kbd">Space</span> / <span class="kbd">R</span> Toggle <span class="kbd">━</span> / <span class="kbd">┃</span> &nbsp;•&nbsp;
+      <span class="kbd">Q</span> Shielded Beam &nbsp;•&nbsp;
+      <span class="kbd">E</span> Cryo Slow-Mo (5s)
+    </div>
+    <div id="statusTicker">REACTOR ONLINE — Capture 75% of the matrix to seal the sector!</div>
+  </div>
+
+  <!-- Overlay Modal for Level Clear / Game Over -->
+  <div class="modal-backdrop" id="stateModal">
+    <div class="modal-card">
+      <h2 id="modalTitle">SECTOR SEALED!</h2>
+      <p id="modalDesc">Containment threshold exceeded.</p>
+      <div id="modalStats" style="margin: 14px 0; font-weight: 700; color: var(--gold);"></div>
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:16px;">
+        <button id="btnModalPrimary" style="padding:9px 20px; font-size:14px;">🚀 Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <div class="modal-backdrop" id="helpModal">
+    <div class="modal-card">
+      <h2>⚛️ CyberJezz Tactical Briefing</h2>
+      <p>Contain high-energy plasma atoms inside the <strong>40×28</strong> cybernetic grid by firing bidirectional laser barriers.</p>
+      <div class="help-grid">
+        <span class="kbd">Left Click / Enter</span><span>Deploy a laser beam expanding in both directions from your cursor.</span>
+        <span class="kbd">Right Click / Space / R</span><span>Toggle beam orientation between <strong>Horizontal (━)</strong> and <strong>Vertical (┃)</strong>.</span>
+        <span class="kbd">Arrow Keys / WASD</span><span>Move tactical grid cursor via keyboard.</span>
+        <span class="kbd">Q</span><span><strong>Shielded Beam</strong>: Protects your next building laser beam from 1 atom collision.</span>
+        <span class="kbd">E</span><span><strong>Cryo Slow-Mo</strong>: Slows all plasma atoms by 65% for 5.0 seconds.</span>
+        <span class="kbd">75% Containment</span><span>Any sealed area with <strong>0 plasma atoms</strong> automatically fills with cyber-circuits! Capture 75%+ to clear the level.</span>
+      </div>
+      <button id="btnCloseHelp" style="padding:8px 22px;">Got It — Resume</button>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      // --- Constants & Grid Config ---
+      const COLS = 40;
+      const ROWS = 28;
+      const TOTAL_CELLS = COLS * ROWS;
+      const TARGET_PCT = 75.0;
+      const STORAGE_KEY = "codecaine_jezzball_highscore_v1";
+
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+
+      // --- Web Audio Synthesizer ---
+      class CyberAudio {
+        constructor() {
+          this.ctx = null;
+          this.muted = false;
+        }
+        init() {
+          if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) this.ctx = new AC();
+          }
+          if (this.ctx && this.ctx.state === "suspended") {
+            this.ctx.resume().catch(() => {});
+          }
+        }
+        tone(freq, type = "sine", dur = 0.12, gainVal = 0.14, slideTo = null) {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, now);
+            if (slideTo) {
+              osc.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), now + dur);
+            }
+            gain.gain.setValueAtTime(gainVal, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + dur);
+          } catch {}
+        }
+        playBounce() { this.tone(360 + Math.random() * 90, "triangle", 0.055, 0.08, 190); }
+        playRotate() { this.tone(520, "sine", 0.06, 0.09, 680); }
+        playBeamStart() { this.tone(280, "sawtooth", 0.16, 0.1, 620); }
+        playBeamLock() {
+          this.tone(440, "triangle", 0.12, 0.14, 880);
+          setTimeout(() => this.tone(660, "sine", 0.16, 0.14, 1120), 65);
+        }
+        playCapture(cellCount) {
+          const base = 420;
+          [0, 70, 140].forEach((d, idx) => {
+            setTimeout(() => {
+              this.tone(base + idx * 180 + Math.min(300, cellCount * 2), "sine", 0.18, 0.16);
+            }, d);
+          });
+        }
+        playShatter() {
+          this.tone(180, "sawtooth", 0.35, 0.22, 42);
+          setTimeout(() => this.tone(125, "square", 0.3, 0.18, 35), 55);
+        }
+        playShieldDeflect() {
+          this.tone(720, "triangle", 0.18, 0.18, 1280);
+          setTimeout(() => this.tone(980, "sine", 0.18, 0.15, 540), 70);
+        }
+        playCryo() {
+          this.tone(860, "sine", 0.35, 0.15, 240);
+        }
+        playLevelClear() {
+          [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+            setTimeout(() => this.tone(f, "triangle", 0.22, 0.18), i * 95);
+          });
+        }
+      }
+
+      const sfx = new CyberAudio();
+
+      // --- Game State ---
+      let cellSize = 24;
+      let grid = []; // 0 = empty, 1 = beam wall, 2 = flood-captured cyber-circuit
+      let atoms = [];
+      let particles = [];
+      let activeBeam = null;
+      let orientation = "H"; // 'H' or 'V'
+      let hoverCol = Math.floor(COLS / 2);
+      let hoverRow = Math.floor(ROWS / 2);
+
+      let score = 0;
+      let highScore = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10) || 0;
+      let level = 1;
+      let lives = 3;
+      let capturedPct = 0;
+      let paused = false;
+      let gameOver = false;
+      let levelCleared = false;
+
+      // Tactical charges
+      let shieldCharges = 2;
+      let shieldArmed = false;
+      let cryoCharges = 2;
+      let cryoTimer = 0; // seconds remaining
+      let shakeTimer = 0;
+      let shakeIntensity = 0;
+
+      // --- DOM Elements ---
+      const hudScore = document.getElementById("hudScore");
+      const hudHigh = document.getElementById("hudHigh");
+      const hudLevel = document.getElementById("hudLevel");
+      const hudContained = document.getElementById("hudContained");
+      const hudLives = document.getElementById("hudLives");
+      const hudAxis = document.getElementById("hudAxis");
+      const btnAxis = document.getElementById("btnAxis");
+      const btnShield = document.getElementById("btnShield");
+      const btnCryo = document.getElementById("btnCryo");
+      const shieldCountEl = document.getElementById("shieldCount");
+      const cryoCountEl = document.getElementById("cryoCount");
+      const statusTicker = document.getElementById("statusTicker");
+      const stateModal = document.getElementById("stateModal");
+      const modalTitle = document.getElementById("modalTitle");
+      const modalDesc = document.getElementById("modalDesc");
+      const modalStats = document.getElementById("modalStats");
+      const btnModalPrimary = document.getElementById("btnModalPrimary");
+      const helpModal = document.getElementById("helpModal");
+
+      function setStatus(msg) {
+        statusTicker.textContent = msg;
+      }
+
+      function resizeCanvas() {
+        const main = document.getElementById("viewportMain");
+        const availW = Math.max(480, main.clientWidth - 36);
+        const availH = Math.max(360, main.clientHeight - 36);
+        cellSize = Math.max(14, Math.min(Math.floor(availW / COLS), Math.floor(availH / ROWS)));
+        canvas.width = COLS * cellSize;
+        canvas.height = ROWS * cellSize;
+      }
+
+      window.addEventListener("resize", resizeCanvas);
+      resizeCanvas();
+
+      function resetGrid() {
+        grid = Array.from({ length: ROWS }, () => new Uint8Array(COLS));
+        activeBeam = null;
+        capturedPct = 0;
+      }
+
+      function spawnAtoms(count) {
+        atoms = [];
+        const palette = ["#ff2a85", "#fee440", "#00f5d4", "#ff7b00", "#9b5de5", "#60efff"];
+        for (let i = 0; i < count; i++) {
+          const margin = 4;
+          const x = margin + Math.random() * (COLS - margin * 2);
+          const y = margin + Math.random() * (ROWS - margin * 2);
+          const baseSpeed = 9.5 + Math.min(5.5, (level - 1) * 0.55);
+          const dirX = Math.random() < 0.5 ? -1 : 1;
+          const dirY = Math.random() < 0.5 ? -1 : 1;
+          atoms.push({
+            x,
+            y,
+            vx: dirX * baseSpeed,
+            vy: dirY * baseSpeed,
+            radius: 0.36, // in grid units
+            color: palette[i % palette.length],
+            trail: [],
+          });
+        }
+      }
+
+      function startLevel(lvl, fullReset = false) {
+        if (fullReset) {
+          score = 0;
+          level = 1;
+          lives = 3;
+          shieldCharges = 2;
+          cryoCharges = 2;
+        } else {
+          level = lvl;
+          lives = Math.min(5, lives + 1);
+          shieldCharges = Math.min(5, shieldCharges + 1);
+          cryoCharges = Math.min(5, cryoCharges + 1);
+        }
+        shieldArmed = false;
+        cryoTimer = 0;
+        gameOver = false;
+        levelCleared = false;
+        paused = false;
+        stateModal.classList.remove("open");
+        resetGrid();
+        const atomCount = level + 1; // Level 1 => 2 atoms, Level 2 => 3 atoms, etc.
+        spawnAtoms(atomCount);
+        updateHUD();
+        setStatus(`SECTOR ${level} ACTIVE — Contain 75% of the matrix against ${atomCount} plasma atoms!`);
+      }
+
+      function updateHUD() {
+        if (score > highScore) {
+          highScore = score;
+          try { localStorage.setItem(STORAGE_KEY, String(highScore)); } catch {}
+        }
+        hudScore.textContent = score.toLocaleString();
+        hudHigh.textContent = highScore.toLocaleString();
+        hudLevel.textContent = `L${level} • ${atoms.length}⚛`;
+        hudContained.textContent = `${capturedPct.toFixed(1)}% / ${TARGET_PCT}%`;
+        hudLives.textContent = lives > 0 ? "❤️".repeat(lives) : "💀";
+        hudAxis.textContent = orientation === "H" ? "━ HORIZ" : "┃ VERT";
+        btnAxis.textContent = orientation === "H" ? "🔄 Axis: ━" : "🔄 Axis: ┃";
+        shieldCountEl.textContent = String(shieldCharges);
+        cryoCountEl.textContent = cryoTimer > 0 ? `${cryoTimer.toFixed(1)}s` : String(cryoCharges);
+        btnShield.classList.toggle("active-ability", shieldArmed);
+        btnCryo.classList.toggle("active-ability", cryoTimer > 0);
+      }
+
+      function toggleOrientation() {
+        orientation = orientation === "H" ? "V" : "H";
+        sfx.playRotate();
+        updateHUD();
+      }
+
+      function armShield() {
+        if (gameOver || levelCleared) return;
+        if (shieldArmed) {
+          shieldArmed = false;
+          updateHUD();
+          return;
+        }
+        if (shieldCharges <= 0) {
+          setStatus("No Shielded Beam charges remaining!");
+          return;
+        }
+        shieldArmed = true;
+        sfx.playRotate();
+        setStatus("SHIELD ARMED — Your next containment beam will deflect 1 plasma atom impact!");
+        updateHUD();
+      }
+
+      function activateCryo() {
+        if (gameOver || levelCleared) return;
+        if (cryoTimer > 0) return;
+        if (cryoCharges <= 0) {
+          setStatus("No Cryo Slow-Mo charges remaining!");
+          return;
+        }
+        cryoCharges--;
+        cryoTimer = 5.0;
+        sfx.playCryo();
+        setStatus("❄️ CRYO INJECTION ACTIVE — Plasma atoms slowed by 65% for 5 seconds!");
+        updateHUD();
+      }
+
+      function spawnBurst(gx, gy, color, count = 22) {
+        const px = gx * cellSize;
+        const py = gy * cellSize;
+        for (let i = 0; i < count; i++) {
+          const ang = Math.random() * Math.PI * 2;
+          const spd = 40 + Math.random() * 190;
+          particles.push({
+            x: px,
+            y: py,
+            vx: Math.cos(ang) * spd,
+            vy: Math.sin(ang) * spd,
+            life: 0.45 + Math.random() * 0.35,
+            maxLife: 0.8,
+            color,
+            size: 2 + Math.random() * 3.5,
+          });
+        }
+        const rect = canvas.getBoundingClientRect();
+        window.GameMasterFX?.burst?.(rect.left + px, rect.top + py, color, count);
+      }
+
+      function triggerShake(intensity = 10) {
+        shakeTimer = 0.28;
+        shakeIntensity = intensity;
+        window.GameMasterFX?.triggerShake?.(intensity);
+      }
+
+      function isSolid(c, r) {
+        if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return true;
+        return grid[r][c] !== 0;
+      }
+
+      function fireBeamAt(c, r) {
+        if (paused || gameOver || levelCleared || activeBeam) return;
+        if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return;
+        if (grid[r][c] !== 0) return;
+
+        let useShield = false;
+        if (shieldArmed && shieldCharges > 0) {
+          useShield = true;
+          shieldCharges--;
+          shieldArmed = false;
+        }
+
+        activeBeam = {
+          c,
+          r,
+          dir: orientation,
+          negDist: 0, // expansion in -1 direction (left or up)
+          posDist: 0, // expansion in +1 direction (right or down)
+          negLocked: false,
+          posLocked: false,
+          speed: 28.0, // cells per second
+          shielded: useShield,
+        };
+        sfx.playBeamStart();
+        updateHUD();
+      }
+
+      function getBeamCells(beam) {
+        const cells = [];
+        const negSteps = Math.floor(beam.negDist);
+        const posSteps = Math.floor(beam.posDist);
+        if (beam.dir === "H") {
+          for (let c = beam.c - negSteps; c <= beam.c + posSteps; c++) {
+            if (c >= 0 && c < COLS && grid[beam.r][c] === 0) {
+              cells.push({ c, r: beam.r });
+            }
+          }
+        } else {
+          for (let r = beam.r - negSteps; r <= beam.r + posSteps; r++) {
+            if (r >= 0 && r < ROWS && grid[r][beam.c] === 0) {
+              cells.push({ c: beam.c, r });
+            }
+          }
+        }
+        return cells;
+      }
+
+      function commitBeamAndFloodFill(beam) {
+        const cells = getBeamCells(beam);
+        for (const cell of cells) {
+          grid[cell.r][cell.c] = 1; // laser wall
+        }
+        score += cells.length * 15;
+
+        // Connected-components flood fill on all remaining EMPTY (0) cells
+        const visited = Array.from({ length: ROWS }, () => new Uint8Array(COLS));
+        let newlyFlooded = 0;
+        let floodCenterX = beam.c + 0.5;
+        let floodCenterY = beam.r + 0.5;
+
+        // Precompute atom cell positions
+        const atomCells = atoms.map((a) => ({
+          c: Math.max(0, Math.min(COLS - 1, Math.floor(a.x))),
+          r: Math.max(0, Math.min(ROWS - 1, Math.floor(a.y))),
+        }));
+
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (grid[r][c] === 0 && !visited[r][c]) {
+              // BFS component
+              const comp = [];
+              let hasAtom = false;
+              const queue = [{ c, r }];
+              visited[r][c] = 1;
+              let head = 0;
+              while (head < queue.length) {
+                const cur = queue[head++];
+                comp.push(cur);
+                for (let k = 0; k < atomCells.length; k++) {
+                  if (atomCells[k].c === cur.c && atomCells[k].r === cur.r) {
+                    hasAtom = true;
+                  }
+                }
+                const dirs = [
+                  [1, 0],
+                  [-1, 0],
+                  [0, 1],
+                  [0, -1],
+                ];
+                for (let d = 0; d < 4; d++) {
+                  const nc = cur.c + dirs[d][0];
+                  const nr = cur.r + dirs[d][1];
+                  if (nc >= 0 && nc < COLS && nr >= 0 && nr < ROWS) {
+                    if (grid[nr][nc] === 0 && !visited[nr][nc]) {
+                      visited[nr][nc] = 1;
+                      queue.push({ c: nc, r: nr });
+                    }
+                  }
+                }
+              }
+
+              if (!hasAtom) {
+                // Capture entire empty pocket!
+                let sumC = 0;
+                let sumR = 0;
+                for (let i = 0; i < comp.length; i++) {
+                  grid[comp[i].r][comp[i].c] = 2; // cyber-circuit fill
+                  sumC += comp[i].c;
+                  sumR += comp[i].r;
+                }
+                newlyFlooded += comp.length;
+                floodCenterX = sumC / comp.length + 0.5;
+                floodCenterY = sumR / comp.length + 0.5;
+              }
+            }
+          }
+        }
+
+        if (newlyFlooded > 0) {
+          const bonus = newlyFlooded * 35 + Math.floor(Math.pow(newlyFlooded, 1.35) * 8);
+          score += bonus;
+          sfx.playCapture(newlyFlooded);
+          spawnBurst(floodCenterX, floodCenterY, "#00f5d4", 32);
+          setStatus(`QUADRANT CAPTURED! +${newlyFlooded} cells sealed (+${bonus.toLocaleString()} pts)`);
+        } else {
+          sfx.playBeamLock();
+          spawnBurst(beam.c + 0.5, beam.r + 0.5, "#60efff", 14);
+        }
+
+        // Recalculate containment percentage
+        let capturedCount = 0;
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (grid[r][c] !== 0) capturedCount++;
+          }
+        }
+        capturedPct = (capturedCount / TOTAL_CELLS) * 100;
+        updateHUD();
+
+        if (capturedPct >= TARGET_PCT) {
+          handleLevelClear();
+        }
+      }
+
+      function handleLevelClear() {
+        levelCleared = true;
+        sfx.playLevelClear();
+        const overTargetBonus = Math.round((capturedPct - TARGET_PCT) * 250);
+        const lifeBonus = lives * 500;
+        const levelBonus = level * 1000 + overTargetBonus + lifeBonus;
+        score += levelBonus;
+        updateHUD();
+        spawnBurst(COLS / 2, ROWS / 2, "#fee440", 45);
+
+        modalTitle.textContent = `⚡ SECTOR ${level} CONTAINED!`;
+        modalDesc.textContent = `You sealed ${capturedPct.toFixed(1)}% of the reactor grid!`;
+        modalStats.innerHTML = `Clearance Bonus: +${levelBonus.toLocaleString()} PTS<br/>Total Score: ${score.toLocaleString()}`;
+        btnModalPrimary.textContent = `🚀 Advance to Sector ${level + 1}`;
+        stateModal.classList.add("open");
+      }
+
+      function handleGameOver() {
+        gameOver = true;
+        triggerShake(16);
+        modalTitle.textContent = "💥 CONTAINMENT BREACH — GAME OVER";
+        modalDesc.textContent = `Plasma atoms overwhelmed the laser matrix in Sector ${level}.`;
+        modalStats.innerHTML = `Final Score: ${score.toLocaleString()} • High Score: ${highScore.toLocaleString()}`;
+        btnModalPrimary.textContent = "🔄 Reboot Reactor (Level 1)";
+        stateModal.classList.add("open");
+      }
+
+      function updateSimulation(dt) {
+        if (paused || gameOver || levelCleared) return;
+
+        if (shakeTimer > 0) shakeTimer = Math.max(0, shakeTimer - dt);
+        if (cryoTimer > 0) {
+          cryoTimer = Math.max(0, cryoTimer - dt);
+          updateHUD();
+        }
+
+        // 1. Expand active building beam
+        if (activeBeam) {
+          const step = activeBeam.speed * dt;
+          if (!activeBeam.negLocked) {
+            activeBeam.negDist += step;
+            const idx = Math.floor(activeBeam.negDist);
+            const checkC = activeBeam.dir === "H" ? activeBeam.c - idx : activeBeam.c;
+            const checkR = activeBeam.dir === "V" ? activeBeam.r - idx : activeBeam.r;
+            if (isSolid(checkC, checkR)) {
+              activeBeam.negDist = Math.max(0, idx - 1);
+              activeBeam.negLocked = true;
+            }
+          }
+          if (!activeBeam.posLocked) {
+            activeBeam.posDist += step;
+            const idx = Math.floor(activeBeam.posDist);
+            const checkC = activeBeam.dir === "H" ? activeBeam.c + idx : activeBeam.c;
+            const checkR = activeBeam.dir === "V" ? activeBeam.r + idx : activeBeam.r;
+            if (isSolid(checkC, checkR)) {
+              activeBeam.posDist = Math.max(0, idx - 1);
+              activeBeam.posLocked = true;
+            }
+          }
+
+          if (activeBeam.negLocked && activeBeam.posLocked) {
+            const finished = activeBeam;
+            activeBeam = null;
+            commitBeamAndFloodFill(finished);
+          }
+        }
+
+        // 2. Move plasma atoms & check collisions
+        const speedMult = cryoTimer > 0 ? 0.35 : 1.0;
+        const beamCells = activeBeam ? getBeamCells(activeBeam) : [];
+
+        for (let i = 0; i < atoms.length; i++) {
+          const a = atoms[i];
+          a.trail.push({ x: a.x, y: a.y });
+          if (a.trail.length > 10) a.trail.shift();
+
+          // Horizontal step
+          let nx = a.x + a.vx * speedMult * dt;
+          const edgeX = nx + (a.vx > 0 ? a.radius : -a.radius);
+          if (isSolid(Math.floor(edgeX), Math.floor(a.y))) {
+            a.vx = -a.vx;
+            sfx.playBounce();
+          } else {
+            a.x = nx;
+          }
+
+          // Vertical step
+          let ny = a.y + a.vy * speedMult * dt;
+          const edgeY = ny + (a.vy > 0 ? a.radius : -a.radius);
+          if (isSolid(Math.floor(a.x), Math.floor(edgeY))) {
+            a.vy = -a.vy;
+            sfx.playBounce();
+          } else {
+            a.y = ny;
+          }
+
+          // Check collision with active building beam
+          if (activeBeam && beamCells.length > 0) {
+            for (let b = 0; b < beamCells.length; b++) {
+              const bc = beamCells[b];
+              const closestX = Math.max(bc.c, Math.min(a.x, bc.c + 1));
+              const closestY = Math.max(bc.r, Math.min(a.y, bc.r + 1));
+              const dx = a.x - closestX;
+              const dy = a.y - closestY;
+              if (dx * dx + dy * dy <= a.radius * a.radius) {
+                if (activeBeam.shielded) {
+                  // Deflect atom and consume shield!
+                  activeBeam.shielded = false;
+                  if (activeBeam.dir === "H") a.vy = -a.vy;
+                  else a.vx = -a.vx;
+                  a.x += a.vx * 0.04;
+                  a.y += a.vy * 0.04;
+                  sfx.playShieldDeflect();
+                  spawnBurst(a.x, a.y, "#fee440", 24);
+                  setStatus("🛡️ SHIELD ABSORBED PLASMA IMPACT — Beam continues locking!");
+                } else {
+                  // Shatter building beam!
+                  sfx.playShatter();
+                  spawnBurst(a.x, a.y, "#ff2a85", 32);
+                  triggerShake(13);
+                  activeBeam = null;
+                  lives--;
+                  updateHUD();
+                  if (lives <= 0) {
+                    handleGameOver();
+                  } else {
+                    setStatus(`⚠️ BEAM SHATTERED BY PLASMA ATOM! (${lives} ${lives === 1 ? "life" : "lives"} remaining)`);
+                  }
+                }
+                break;
+              }
+            }
+          }
+        }
+
+        // 3. Update particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.life -= dt;
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+      }
+
+      function render() {
+        ctx.save();
+        if (shakeTimer > 0) {
+          const ox = (Math.random() - 0.5) * shakeIntensity;
+          const oy = (Math.random() - 0.5) * shakeIntensity;
+          ctx.translate(ox, oy);
+        }
+
+        // Background
+        ctx.fillStyle = cryoTimer > 0 ? "#041229" : "#050915";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Grid cells
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            const x = c * cellSize;
+            const y = r * cellSize;
+            const state = grid[r][c];
+            if (state === 0) {
+              ctx.strokeStyle = "rgba(0, 245, 212, 0.07)";
+              ctx.strokeRect(x, y, cellSize, cellSize);
+            } else if (state === 1) {
+              // Solidified laser wall
+              ctx.fillStyle = "#0b2c3d";
+              ctx.fillRect(x, y, cellSize, cellSize);
+              ctx.fillStyle = "rgba(0, 245, 212, 0.55)";
+              ctx.fillRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
+            } else if (state === 2) {
+              // Captured cyber-circuit region
+              ctx.fillStyle = "#071f2c";
+              ctx.fillRect(x, y, cellSize, cellSize);
+              ctx.strokeStyle = "rgba(0, 245, 212, 0.25)";
+              ctx.strokeRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
+              if ((c + r) % 3 === 0) {
+                ctx.fillStyle = "rgba(0, 245, 212, 0.35)";
+                ctx.fillRect(x + cellSize * 0.35, y + cellSize * 0.35, cellSize * 0.3, cellSize * 0.3);
+              }
+            }
+          }
+        }
+
+        // Hover cursor preview
+        if (!activeBeam && !paused && !gameOver && !levelCleared) {
+          if (hoverCol >= 0 && hoverCol < COLS && hoverRow >= 0 && hoverRow < ROWS && grid[hoverRow][hoverCol] === 0) {
+            const cx = (hoverCol + 0.5) * cellSize;
+            const cy = (hoverRow + 0.5) * cellSize;
+            ctx.save();
+            ctx.strokeStyle = shieldArmed ? "rgba(254, 228, 64, 0.75)" : "rgba(0, 245, 212, 0.65)";
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            if (orientation === "H") {
+              ctx.moveTo(0, cy);
+              ctx.lineTo(canvas.width, cy);
+            } else {
+              ctx.moveTo(cx, 0);
+              ctx.lineTo(cx, canvas.height);
+            }
+            ctx.stroke();
+            ctx.restore();
+
+            // Reticle box
+            ctx.strokeStyle = shieldArmed ? "#fee440" : "#00f5d4";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(hoverCol * cellSize + 1, hoverRow * cellSize + 1, cellSize - 2, cellSize - 2);
+          }
+        }
+
+        // Active building beam
+        if (activeBeam) {
+          const beamCells = getBeamCells(activeBeam);
+          ctx.save();
+          ctx.shadowColor = activeBeam.shielded ? "#fee440" : "#ff2a85";
+          ctx.shadowBlur = 14;
+          for (let i = 0; i < beamCells.length; i++) {
+            const bc = beamCells[i];
+            ctx.fillStyle = activeBeam.shielded ? "#fee440" : "#ff2a85";
+            ctx.fillRect(bc.c * cellSize + 2, bc.r * cellSize + 2, cellSize - 4, cellSize - 4);
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(bc.c * cellSize + 5, bc.r * cellSize + 5, cellSize - 10, cellSize - 10);
+          }
+          ctx.restore();
+        }
+
+        // Plasma Atoms
+        for (let i = 0; i < atoms.length; i++) {
+          const a = atoms[i];
+          // Motion trail
+          for (let t = 0; t < a.trail.length; t++) {
+            const tr = a.trail[t];
+            const alpha = ((t + 1) / a.trail.length) * 0.35;
+            ctx.fillStyle = a.color;
+            ctx.globalAlpha = alpha;
+            ctx.beginPath();
+            ctx.arc(tr.x * cellSize, tr.y * cellSize, a.radius * cellSize * (t / a.trail.length), 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+
+          const px = a.x * cellSize;
+          const py = a.y * cellSize;
+          const rad = a.radius * cellSize;
+          ctx.save();
+          ctx.shadowColor = cryoTimer > 0 ? "#60efff" : a.color;
+          ctx.shadowBlur = 14;
+          ctx.fillStyle = cryoTimer > 0 ? "#60efff" : a.color;
+          ctx.beginPath();
+          ctx.arc(px, py, rad, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.arc(px - rad * 0.28, py - rad * 0.28, rad * 0.38, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Particles
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+        }
+        ctx.globalAlpha = 1;
+
+        // Pause overlay
+        if (paused) {
+          ctx.fillStyle = "rgba(4, 8, 20, 0.72)";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = "#00f5d4";
+          ctx.font = "bold 28px 'Segoe UI', sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("⏸ REACTOR SIMULATION PAUSED", canvas.width / 2, canvas.height / 2);
+        }
+
+        ctx.restore();
+      }
+
+      // --- Input Handling ---
+      canvas.addEventListener("mousemove", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        hoverCol = Math.floor(((e.clientX - rect.left) / rect.width) * COLS);
+        hoverRow = Math.floor(((e.clientY - rect.top) / rect.height) * ROWS);
+      });
+
+      canvas.addEventListener("mousedown", (e) => {
+        if (e.button === 2) {
+          e.preventDefault();
+          toggleOrientation();
+          return;
+        }
+        if (e.button === 0) {
+          const rect = canvas.getBoundingClientRect();
+          const c = Math.floor(((e.clientX - rect.left) / rect.width) * COLS);
+          const r = Math.floor(((e.clientY - rect.top) / rect.height) * ROWS);
+          hoverCol = c;
+          hoverRow = r;
+          fireBeamAt(c, r);
+        }
+      });
+
+      canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+      window.addEventListener("keydown", (e) => {
+        if (e.altKey || e.ctrlKey || e.metaKey) return;
+        const k = e.key.toLowerCase();
+        if (k === " " || k === "r") {
+          e.preventDefault();
+          toggleOrientation();
+        } else if (k === "q") {
+          armShield();
+        } else if (k === "e") {
+          activateCryo();
+        } else if (k === "p") {
+          paused = !paused;
+        } else if (k === "n") {
+          startLevel(1, true);
+        } else if (k === "m") {
+          sfx.muted = !sfx.muted;
+          document.getElementById("btnMute").textContent = sfx.muted ? "🔇 Muted" : "🔊 Audio";
+        } else if (k === "h") {
+          helpModal.classList.toggle("open");
+        } else if (e.key === "ArrowLeft" || k === "a") {
+          hoverCol = Math.max(0, hoverCol - 1);
+        } else if (e.key === "ArrowRight" || k === "d") {
+          hoverCol = Math.min(COLS - 1, hoverCol + 1);
+        } else if (e.key === "ArrowUp" || k === "w") {
+          hoverRow = Math.max(0, hoverRow - 1);
+        } else if (e.key === "ArrowDown" || k === "s") {
+          hoverRow = Math.min(ROWS - 1, hoverRow + 1);
+        } else if (e.key === "Enter") {
+          fireBeamAt(hoverCol, hoverRow);
+        }
+      });
+
+      // Buttons
+      btnAxis.addEventListener("click", toggleOrientation);
+      btnShield.addEventListener("click", armShield);
+      btnCryo.addEventListener("click", activateCryo);
+      document.getElementById("btnNew").addEventListener("click", () => startLevel(1, true));
+      document.getElementById("btnPause").addEventListener("click", () => { paused = !paused; });
+      document.getElementById("btnMute").addEventListener("click", () => {
+        sfx.muted = !sfx.muted;
+        document.getElementById("btnMute").textContent = sfx.muted ? "🔇 Muted" : "🔊 Audio";
+      });
+      document.getElementById("btnHelp").addEventListener("click", () => helpModal.classList.add("open"));
+      document.getElementById("btnCloseHelp").addEventListener("click", () => helpModal.classList.remove("open"));
+      btnModalPrimary.addEventListener("click", () => {
+        if (levelCleared) {
+          startLevel(level + 1, false);
+        } else {
+          startLevel(1, true);
+        }
+      });
+
+      // Main Loop
+      let lastTime = performance.now();
+      function loop(now) {
+        const dt = Math.min(0.05, (now - lastTime) / 1000);
+        lastTime = now;
+        updateSimulation(dt);
+        render();
+        requestAnimationFrame(loop);
+      }
+
+      startLevel(1, true);
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

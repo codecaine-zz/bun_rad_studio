@@ -1,0 +1,1825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🌈 Codecaine CyberPeggle: Extreme Pachinko Odyssey</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <style>
+    :root {
+      --bg-deep: #110722;
+      --bg-panel: rgba(24, 11, 44, 0.94);
+      --border-amber: rgba(251, 146, 60, 0.42);
+      --amber: #f97316;
+      --gold: #facc15;
+      --cyan: #38bdf8;
+      --purple: #c084fc;
+      --green: #4ade80;
+      --crimson: #f43f5e;
+      --text-main: #fff7ed;
+      --text-muted: #cbd5e1;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 18%, #3b0764 0%, #1e1b4b 55%, #090514 100%);
+      color: var(--text-main);
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header.top-hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 14px;
+      background: linear-gradient(180deg, rgba(35, 14, 62, 0.97) 0%, rgba(17, 7, 34, 0.97) 100%);
+      border-bottom: 1px solid var(--border-amber);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.75);
+      gap: 10px;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 30%, #fb923c, #ea580c 68%, #431407);
+      border: 1.5px solid #fde047;
+      box-shadow: 0 0 15px rgba(249, 115, 22, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .brand-titles h1 {
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffffff 0%, #fde047 45%, #fb923c 80%, #f472b6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-titles .subtitle {
+      font-size: 10.5px;
+      color: var(--text-muted);
+    }
+
+    .hud-kpis {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .kpi-pill {
+      background: rgba(19, 9, 37, 0.92);
+      border: 1px solid rgba(251, 146, 60, 0.35);
+      border-radius: 8px;
+      padding: 3px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 74px;
+    }
+
+    .kpi-pill.orange-glow {
+      border-color: rgba(249, 115, 22, 0.85);
+      box-shadow: 0 0 12px rgba(249, 115, 22, 0.28);
+    }
+
+    .kpi-label {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      color: #fdba74;
+    }
+
+    .kpi-val {
+      font-family: "JetBrains Mono", "Consolas", monospace;
+      font-size: 15px;
+      font-weight: 900;
+      color: #ffffff;
+    }
+
+    .kpi-pill.orange-glow .kpi-val {
+      color: #fb923c;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    select.hud-select, button.hud-btn, a.hud-btn {
+      background: rgba(38, 16, 68, 0.95);
+      color: var(--text-main);
+      border: 1px solid rgba(251, 146, 60, 0.45);
+      border-radius: 7px;
+      padding: 5px 9px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.14s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    select.hud-select:hover, button.hud-btn:hover, a.hud-btn:hover {
+      border-color: var(--gold);
+      background: rgba(68, 26, 115, 0.95);
+      transform: translateY(-1px);
+    }
+
+    button.hud-btn.accent-fire {
+      background: linear-gradient(135deg, #ea580c, #facc15);
+      color: #1c0902;
+      border-color: #fef08a;
+      font-weight: 900;
+    }
+
+    .workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 290px;
+      gap: 10px;
+      padding: 10px 14px;
+      min-height: 0;
+    }
+
+    .arena-column {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+      min-width: 0;
+    }
+
+    .canvas-shell {
+      flex: 1;
+      position: relative;
+      background: #0d051a;
+      border: 2px solid rgba(251, 146, 60, 0.5);
+      border-radius: 12px;
+      box-shadow: 0 12px 38px rgba(0, 0, 0, 0.82), inset 0 0 36px rgba(249, 115, 22, 0.16);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    canvas#peggleCanvas {
+      max-width: 100%;
+      max-height: 100%;
+      aspect-ratio: 900 / 560;
+      display: block;
+      cursor: crosshair;
+    }
+
+    .status-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 7px 14px;
+      background: linear-gradient(90deg, rgba(35, 13, 62, 0.95), rgba(45, 18, 42, 0.95));
+      border: 1px solid rgba(251, 146, 60, 0.38);
+      border-radius: 9px;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .master-callout {
+      color: #fde047;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .shot-telemetry {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11.5px;
+      color: #fdba74;
+      font-weight: 700;
+    }
+
+    aside.side-hud {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      min-height: 0;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .hud-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-amber);
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.48);
+    }
+
+    .hud-card-title {
+      font-size: 10.5px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      color: #fdba74;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(251, 146, 60, 0.22);
+      padding-bottom: 4px;
+    }
+
+    .master-badge {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px;
+      border-radius: 9px;
+      background: rgba(13, 5, 26, 0.85);
+      border: 1px solid rgba(250, 204, 21, 0.4);
+    }
+
+    .master-avatar {
+      font-size: 28px;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: radial-gradient(circle, #7e22ce, #3b0764);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #fde047;
+    }
+
+    .master-info h3 {
+      font-size: 12.5px;
+      color: #fde047;
+      font-weight: 900;
+    }
+
+    .master-info p {
+      font-size: 10.5px;
+      color: #e2e8f0;
+      line-height: 1.3;
+    }
+
+    .peg-legend-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .peg-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 7px;
+      border-radius: 7px;
+      background: rgba(13, 5, 26, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .aim-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .aim-slider {
+      flex: 1;
+      accent-color: #f97316;
+    }
+
+    .overlay-modal {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 4, 20, 0.82);
+      backdrop-filter: blur(4px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 15;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .overlay-modal.visible {
+      display: flex;
+    }
+
+    .overlay-card {
+      background: linear-gradient(180deg, rgba(46, 16, 82, 0.98), rgba(21, 7, 40, 0.98));
+      border: 2px solid var(--gold);
+      border-radius: 14px;
+      padding: 22px 30px;
+      max-width: 450px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.88);
+    }
+
+    .overlay-title {
+      font-size: 25px;
+      font-weight: 900;
+      color: var(--gold);
+      margin-bottom: 6px;
+    }
+
+    .overlay-msg {
+      font-size: 13.5px;
+      color: #ffedd5;
+      margin-bottom: 14px;
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+  <header class="top-hud">
+    <div class="brand-cluster">
+      <div class="brand-icon">🌈</div>
+      <div class="brand-titles">
+        <h1>Codecaine CyberPeggle: Extreme Pachinko Odyssey</h1>
+        <div class="subtitle">900×560 Pachinko Physics • 25 Orange Pegs • 8 Cyber-Masters • Ode to Joy Extreme Fever</div>
+      </div>
+    </div>
+
+    <div class="hud-kpis">
+      <div class="kpi-pill">
+        <span class="kpi-label">⚪ BALLS LEFT</span>
+        <span class="kpi-val" id="ballsLeftVal">10</span>
+      </div>
+      <div class="kpi-pill orange-glow">
+        <span class="kpi-label">🟠 ORANGE LEFT</span>
+        <span class="kpi-val" id="orangeLeftVal">25</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">🔥 FEVER MULT</span>
+        <span class="kpi-val" id="feverMultVal">1×</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">🏆 SCORE</span>
+        <span class="kpi-val" id="scoreVal">0</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">👑 HI-SCORE</span>
+        <span class="kpi-val" id="bestScoreVal">0</span>
+      </div>
+    </div>
+
+    <div class="toolbar-actions">
+      <select id="peggleModeSelect" class="hud-select" title="Select Game Mode">
+        <option value="adventure">1. 🏆 Adventure Odyssey (12 Stages)</option>
+        <option value="nights">2. 🌙 Peggle Nights (Low-Light Neon Stages)</option>
+        <option value="duel">3. ⚔️ Duel Vs. AI Master (Turn-Based Score Battle)</option>
+        <option value="orange35">4. 🟠 35-Orange Challenge</option>
+        <option value="trickshot">5. 🎯 1-Ball Trick Shot Puzzle</option>
+        <option value="endless">6. ♾️ Endless Peg Regen</option>
+        <option value="architect">7. 🏗️ Custom Peg Board Architect</option>
+        <option value="procedural">8. 🎲 Random Procedural Peg Field [G]</option>
+      </select>
+
+      <select id="masterSelect" class="hud-select" title="Select Cyber-Master">
+        <option value="bjorn">🦄 Bjorn (Super Guide)</option>
+        <option value="jimmy">🐹 Jimmy Lightning (Multiball)</option>
+        <option value="kattut">🐱 Kat Tut (Pyramid Bucket)</option>
+        <option value="splork">👽 Splork (Space Blast)</option>
+        <option value="claude">🦞 Claude (Pinball Flippers)</option>
+        <option value="cinder">🔥 Lord Cinderbottom (Fireball)</option>
+        <option value="warren">🐰 Warren (Lucky Spin)</option>
+        <option value="hu">🦉 Master Hu (Zen Ball)</option>
+      </select>
+
+      <select id="stageSelect" class="hud-select" title="Select Stage"></select>
+
+      <button class="hud-btn accent-fire" id="btnFireCannon" title="Fire Chrome Ball [Click / Space]">🚀 FIRE BALL</button>
+      <button class="hud-btn" id="btnProcBoard" title="Procedural Peg Field [G]">🎲 Field [G]</button>
+      <button class="hud-btn" id="btnRestart" title="Reset Board [R]">🔄 Reset [R]</button>
+      <button class="hud-btn" id="btnAudio" title="Toggle Ode to Joy Synth [M]">🔊 Synth</button>
+      <a href="/" class="hud-btn" id="btnHub" title="Return to Codecaine Hub">🏠 Hub</a>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="arena-column">
+      <div class="canvas-shell">
+        <canvas id="peggleCanvas" width="900" height="560"></canvas>
+
+        <div class="overlay-modal" id="overlayModal">
+          <div class="overlay-card">
+            <div class="overlay-title" id="overlayTitle">🌈 EXTREME FEVER!</div>
+            <div class="overlay-msg" id="overlayMsg">All 25 Orange Pegs cleared! Ode to Joy Bonus!</div>
+            <div style="display:flex;gap:8px;justify-content:center;">
+              <button class="hud-btn accent-fire" id="btnOverlayNext">▶️ Next Stage [SPACE]</button>
+              <button class="hud-btn" id="btnOverlayRetry">🔄 Replay Board [R]</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="status-strip">
+        <div class="master-callout" id="masterBannerText">
+          🦄 <span>BJORN'S SUPER GUIDE: Aim with Mouse or Left/Right Arrows &amp; Click to launch! Hit 🟢 Green Pegs to activate Super Guide!</span>
+        </div>
+        <div class="shot-telemetry" id="shotTelemetry">SHOT POINTS: 0 • COMBO: 0 PEGS</div>
+      </div>
+    </section>
+
+    <aside class="side-hud">
+      <!-- Active Cyber-Master Card -->
+      <div class="hud-card">
+        <div class="hud-card-title">
+          <span>🧙 Active Cyber-Master</span>
+          <span id="powerStatusBadge" style="color:#4ade80;">🟢 2 Green Pegs</span>
+        </div>
+        <div class="master-badge">
+          <div class="master-avatar" id="masterAvatarIcon">🦄</div>
+          <div class="master-info">
+            <h3 id="masterNameLabel">Bjorn the Cyber-Unicorn</h3>
+            <p id="masterDescLabel">Super Guide: Displays full 2-bounce trajectory preview for 3 turns when a Green Peg is hit!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Precision Aim Wheel -->
+      <div class="hud-card">
+        <div class="hud-card-title">
+          <span>🎯 Precision Aim Wheel</span>
+          <span id="aimAngleLabel">0.0°</span>
+        </div>
+        <div class="aim-controls">
+          <button class="hud-btn" id="btnAimLeft" title="Fine Aim Left [◄]">◄</button>
+          <input type="range" id="aimWheelInput" class="aim-slider" min="-78" max="78" step="0.5" value="0" />
+          <button class="hud-btn" id="btnAimRight" title="Fine Aim Right [►]">►</button>
+        </div>
+        <button class="hud-btn accent-fire" id="btnSideFire" style="width:100%;justify-content:center;padding:7px;">
+          🚀 LAUNCH CHROME BALL [SPACE / CLICK]
+        </button>
+      </div>
+
+      <!-- 4 Peg Color Scoring Legend -->
+      <div class="hud-card">
+        <div class="hud-card-title">
+          <span>🟣 Peg Multiplier Matrix</span>
+          <span id="totalPegsLabel">90 Pegs</span>
+        </div>
+        <div class="peg-legend-grid">
+          <div class="peg-chip"><span style="color:#38bdf8;">🔵 Blue Peg</span><span>10× Base</span></div>
+          <div class="peg-chip"><span style="color:#fb923c;">🟠 Orange (25)</span><span>100× Base</span></div>
+          <div class="peg-chip"><span style="color:#c084fc;">🟣 Purple Bonus</span><span>500× Base</span></div>
+          <div class="peg-chip"><span style="color:#4ade80;">🟢 Green (2)</span><span>Power-Up!</span></div>
+        </div>
+      </div>
+
+      <!-- Duel & Style Shot Tracker -->
+      <div class="hud-card">
+        <div class="hud-card-title">
+          <span>⚡ Style Shots &amp; AI Duel</span>
+          <span id="duelStatusLabel">Solo Mode</span>
+        </div>
+        <div style="font-size:11px;color:#e2e8f0;display:flex;flex-direction:column;gap:4px;">
+          <div>🎯 <strong>Long Shot:</strong> +25,000 pts (distant non-blue hit)</div>
+          <div>🪣 <strong>Free Ball Skillz:</strong> +5,000 pts + +1 Ball in Bucket</div>
+          <div>🟠 <strong>Orange Attack:</strong> Hit 6+ Orange Pegs in 1 shot</div>
+          <div>🎶 <strong>Extreme Fever:</strong> 5 Chutes (up to +100,000 pts!)</div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    (function() {
+      "use strict";
+
+      const SafeStore = {
+        get(k, fallback) {
+          try {
+            const v = window.localStorage.getItem(k);
+            return v !== null ? v : fallback;
+          } catch (_) {
+            return fallback;
+          }
+        },
+        set(k, v) {
+          try {
+            window.localStorage.setItem(k, String(v));
+          } catch (_) {}
+        }
+      };
+
+      // Ascending C-Major Chime Scale + Beethoven's Ode to Joy WebAudio Synthesizer
+      const PeggleAudio = {
+        ctx: null,
+        muted: false,
+        // C Major ascending scale across 2.5 octaves for consecutive peg hits
+        scaleFreqs: [
+          261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88,
+          523.25, 587.33, 659.25, 698.46, 783.99, 880.00, 987.77,
+          1046.50, 1174.66, 1318.51, 1396.91, 1567.98
+        ],
+        init() {
+          if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) this.ctx = new AC();
+          }
+          if (this.ctx && this.ctx.state === "suspended") {
+            this.ctx.resume().catch(() => {});
+          }
+        },
+        note(freq, dur, type = "sine", gainVal = 0.09, delay = 0) {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+          try {
+            const t = this.ctx.currentTime + delay;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(gainVal, t);
+            gain.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(t);
+            osc.stop(t + dur);
+          } catch (_) {}
+        },
+        pegHit(comboIndex, pegType) {
+          const idx = Math.min(comboIndex, this.scaleFreqs.length - 1);
+          const base = this.scaleFreqs[idx];
+          this.note(base, 0.16, pegType === "orange" ? "triangle" : "sine", 0.10);
+          if (pegType === "orange") {
+            this.note(base * 1.5, 0.18, "sine", 0.06, 0.02);
+          } else if (pegType === "purple") {
+            this.note(base * 2, 0.22, "triangle", 0.09, 0.03);
+          } else if (pegType === "green") {
+            this.note(523.25, 0.09, "square", 0.08, 0);
+            this.note(659.25, 0.09, "square", 0.08, 0.06);
+            this.note(1046.5, 0.18, "square", 0.09, 0.12);
+          }
+        },
+        cannonFire() {
+          this.note(180, 0.11, "sawtooth", 0.08, 0);
+          this.note(110, 0.16, "triangle", 0.09, 0.04);
+        },
+        freeBall() {
+          [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => this.note(f, 0.11, "triangle", 0.09, i * 0.06));
+        },
+        odeToJoyFanfare() {
+          // Beethoven's 9th Symphony "Ode to Joy" (E E F G | G F E D | C C D E | E. D D)
+          const E4 = 329.63, F4 = 349.23, G4 = 392.00, D4 = 293.66, C4 = 261.63;
+          const melody = [
+            [E4, 0.20], [E4, 0.20], [F4, 0.20], [G4, 0.20],
+            [G4, 0.20], [F4, 0.20], [E4, 0.20], [D4, 0.20],
+            [C4, 0.20], [C4, 0.20], [D4, 0.20], [E4, 0.20],
+            [E4, 0.30], [D4, 0.12], [D4, 0.36]
+          ];
+          let d = 0;
+          melody.forEach(([freq, dur]) => {
+            this.note(freq, dur * 0.95, "triangle", 0.11, d);
+            this.note(freq * 2, dur * 0.85, "sine", 0.06, d);
+            d += dur;
+          });
+        }
+      };
+
+      const MASTERS = {
+        bjorn: {
+          icon: "🦄",
+          name: "Bjorn the Cyber-Unicorn",
+          power: "Super Guide",
+          desc: "Super Guide: Shows full 2-bounce trajectory preview for 3 turns when a Green Peg is hit!"
+        },
+        jimmy: {
+          icon: "🐹",
+          name: "Jimmy Lightning",
+          power: "Multiball",
+          desc: "Multiball: Spawns a high-energy 2nd Chrome Ball directly out of the Green Peg on impact!"
+        },
+        kattut: {
+          icon: "🐱",
+          name: "Kat Tut",
+          power: "Pyramid Bucket",
+          desc: "Pyramid: Extends the oscillating Free-Ball Bucket with a wide golden funnel pyramid for 4 turns!"
+        },
+        splork: {
+          icon: "👽",
+          name: "Splork",
+          power: "Space Blast",
+          desc: "Space Blast: Detonates a 110px cosmic shockwave that lights up every peg around the Green Peg!"
+        },
+        claude: {
+          icon: "🦞",
+          name: "Claude the Lobster",
+          power: "Pinball Flippers",
+          desc: "Flippers: Summons dual cyber pinball flippers above the chute! Press [SPACE] or Click to flip!"
+        },
+        cinder: {
+          icon: "🔥",
+          name: "Lord Cinderbottom",
+          power: "Fireball",
+          desc: "Fireball: Next shot becomes a blazing Fireball that pierces straight through every peg!"
+        },
+        warren: {
+          icon: "🐰",
+          name: "Warren the Magician",
+          power: "Lucky Spin",
+          desc: "Lucky Spin: Triples all shot points or grants a Magic Hat Free Ball bonus on Green Peg hit!"
+        },
+        hu: {
+          icon: "🦉",
+          name: "Master Hu",
+          power: "Zen Ball",
+          desc: "Zen Ball: Subtly curves your ball's trajectory toward the nearest remaining Orange Peg!"
+        }
+      };
+
+      const STAGES = [
+        { name: "Stage 1: Pachinko Citadel", layout: "arches" },
+        { name: "Stage 2: Spiral Galaxy", layout: "spiral" },
+        { name: "Stage 3: Diamond Lattice", layout: "diamond" },
+        { name: "Stage 4: Dual Vortex", layout: "vortex" },
+        { name: "Stage 5: Pyramid of Kat Tut", layout: "pyramid" },
+        { name: "Stage 6: Sine-Wave Cascade", layout: "waves" },
+        { name: "Stage 7: Cyber Hex Rings", layout: "hex" },
+        { name: "Stage 8: Pinball Bumper Alley", layout: "alley" },
+        { name: "Stage 9: Hourglass Nebula", layout: "hourglass" },
+        { name: "Stage 10: Orbiting Moons", layout: "orbits" },
+        { name: "Stage 11: Starlight Fortress", layout: "fortress" },
+        { name: "Stage 12: Grandmaster Odyssey", layout: "grandmaster" }
+      ];
+
+      // Arena constants (900x560)
+      const W = 900;
+      const H = 560;
+      const PLAY_LEFT = 72;   // Left Ball-O-Tron cylinder width
+      const PLAY_RIGHT = 828; // Right Fever Meter width
+      const CANNON_X = 450;
+      const CANNON_Y = 38;
+      const BALL_R = 8.5;
+      const PEG_R = 10.5;
+
+      const state = {
+        mode: "adventure",
+        master: "bjorn",
+        stageIdx: 0,
+        pegs: [],
+        balls: [],
+        particles: [],
+        banners: [],
+        aimDeg: 0,
+        ballsLeft: 10,
+        orangeTotal: 25,
+        orangeLeft: 25,
+        feverMult: 1,
+        score: 0,
+        aiScore: 0,
+        bestScore: Number(SafeStore.get("cyberpeggle_best_score", 0)) || 0,
+        shotPoints: 0,
+        shotPegHits: 0,
+        shotOrangeHits: 0,
+        lastOrangeHitPos: null,
+        bucket: { x: 450, y: 534, w: 92, h: 18, vx: 3.1 },
+        superGuideTurns: 0,
+        pyramidTurns: 0,
+        flipperTurns: 0,
+        flipperActiveTimer: 0,
+        fireballNext: false,
+        luckyMult: 1,
+        extremeFeverActive: false,
+        slowMoZoom: false,
+        slowMoTarget: null,
+        turnInProgress: false,
+        animTick: 0
+      };
+
+      const canvas = document.getElementById("peggleCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const stageSelect = document.getElementById("stageSelect");
+      function populateStages() {
+        stageSelect.innerHTML = "";
+        STAGES.forEach((st, i) => {
+          const opt = document.createElement("option");
+          opt.value = String(i);
+          opt.textContent = st.name;
+          stageSelect.appendChild(opt);
+        });
+        stageSelect.value = String(state.stageIdx);
+      }
+
+      // Build peg layout for stage or procedural board
+      function generatePegCoords(layout) {
+        const coords = [];
+        const cx = 450;
+        const cy = 295;
+
+        if (layout === "arches") {
+          for (let row = 0; row < 6; row++) {
+            const count = 13 + (row % 2);
+            const y = 135 + row * 56;
+            for (let c = 0; c < count; c++) {
+              const x = 135 + c * 50 + (row % 2 === 0 ? 18 : 0);
+              const arch = Math.sin((c / (count - 1)) * Math.PI) * 22;
+              coords.push({ x, y: y - arch, shape: row % 2 === 1 ? "brick" : "circle" });
+            }
+          }
+        } else if (layout === "spiral") {
+          for (let i = 0; i < 82; i++) {
+            const angle = i * 0.42;
+            const r = 32 + i * 2.45;
+            const x = cx + Math.cos(angle) * r * 1.35;
+            const y = cy + Math.sin(angle) * r * 0.82;
+            if (x > PLAY_LEFT + 35 && x < PLAY_RIGHT - 35 && y > 110 && y < 485) {
+              coords.push({ x, y, shape: i % 5 === 0 ? "brick" : "circle" });
+            }
+          }
+        } else if (layout === "diamond") {
+          for (let r = -4; r <= 4; r++) {
+            for (let c = -6; c <= 6; c++) {
+              if (Math.abs(r) + Math.abs(c) <= 7) {
+                coords.push({
+                  x: cx + c * 46,
+                  y: cy + r * 38,
+                  shape: (Math.abs(r) + Math.abs(c)) % 2 === 0 ? "brick" : "circle"
+                });
+              }
+            }
+          }
+        } else if (layout === "vortex") {
+          [-165, 165].forEach((offsetX) => {
+            for (let ring = 1; ring <= 3; ring++) {
+              const count = ring * 7;
+              for (let k = 0; k < count; k++) {
+                const a = (k / count) * Math.PI * 2;
+                coords.push({
+                  x: cx + offsetX + Math.cos(a) * ring * 42,
+                  y: cy + Math.sin(a) * ring * 40,
+                  shape: ring === 2 ? "brick" : "circle"
+                });
+              }
+            }
+          });
+        } else if (layout === "pyramid") {
+          for (let row = 0; row < 7; row++) {
+            const count = 6 + row * 2;
+            const y = 135 + row * 50;
+            const span = (count - 1) * 38;
+            for (let c = 0; c < count; c++) {
+              coords.push({
+                x: cx - span / 2 + c * 38,
+                y,
+                shape: row === 3 || row === 6 ? "brick" : "circle"
+              });
+            }
+          }
+        } else if (layout === "waves") {
+          for (let row = 0; row < 6; row++) {
+            for (let c = 0; c < 14; c++) {
+              const x = 130 + c * 49;
+              const y = 140 + row * 56 + Math.sin(c * 0.7 + row) * 18;
+              coords.push({ x, y, shape: c % 3 === 0 ? "brick" : "circle" });
+            }
+          }
+        } else {
+          // Procedural / Hybrid symmetric pattern
+          for (let row = 0; row < 6; row++) {
+            const y = 132 + row * 56;
+            const cols = 7;
+            for (let c = 0; c < cols; c++) {
+              const dx = 32 + c * 48 + ((row * 19) % 24);
+              const dy = Math.cos(c * 0.9 + row) * 14;
+              const shape = (row + c) % 3 === 0 ? "brick" : "circle";
+              coords.push({ x: cx - dx, y: y + dy, shape });
+              coords.push({ x: cx + dx, y: y + dy, shape });
+            }
+          }
+        }
+        return coords;
+      }
+
+      function assignPegColors(coords) {
+        const totalOrange = state.mode === "orange35" ? 35 : state.mode === "trickshot" ? 1 : 25;
+        state.orangeTotal = Math.min(totalOrange, coords.length - 3);
+
+        // Shuffle indices to assign 25 Orange, 2 Green, 1 Purple, rest Blue
+        const indices = coords.map((_, i) => i);
+        for (let i = indices.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [indices[i], indices[j]] = [indices[j], indices[i]];
+        }
+
+        const orangeSet = new Set(indices.slice(0, state.orangeTotal));
+        const greenSet = new Set(indices.slice(state.orangeTotal, state.orangeTotal + 2));
+        const purpleIdx = indices[state.orangeTotal + 2];
+
+        state.pegs = coords.map((pt, idx) => {
+          let type = "blue";
+          if (orangeSet.has(idx)) type = "orange";
+          else if (greenSet.has(idx)) type = "green";
+          else if (idx === purpleIdx) type = "purple";
+          return {
+            x: pt.x,
+            y: pt.y,
+            r: PEG_R,
+            shape: pt.shape || "circle",
+            type,
+            hit: false,
+            hitAnim: 0,
+            cleared: false
+          };
+        });
+
+        state.orangeLeft = state.orangeTotal;
+      }
+
+      function relocatePurplePeg() {
+        const bluePegs = state.pegs.filter((p) => !p.cleared && !p.hit && (p.type === "blue" || p.type === "purple"));
+        bluePegs.forEach((p) => { p.type = "blue"; });
+        if (bluePegs.length > 0) {
+          const pick = bluePegs[Math.floor(Math.random() * bluePegs.length)];
+          pick.type = "purple";
+        }
+      }
+
+      function initStage(idx, procedural = false) {
+        state.stageIdx = ((idx % STAGES.length) + STAGES.length) % STAGES.length;
+        stageSelect.value = String(state.stageIdx);
+        const layout = procedural ? "procedural_" + Math.random() : STAGES[state.stageIdx].layout;
+
+        const coords = generatePegCoords(layout);
+        assignPegColors(coords);
+
+        state.balls = [];
+        state.particles = [];
+        state.banners = [];
+        state.ballsLeft = state.mode === "trickshot" ? 1 : 10;
+        state.feverMult = 1;
+        state.shotPoints = 0;
+        state.shotPegHits = 0;
+        state.shotOrangeHits = 0;
+        state.superGuideTurns = 0;
+        state.pyramidTurns = 0;
+        state.flipperTurns = 0;
+        state.fireballNext = false;
+        state.luckyMult = 1;
+        state.extremeFeverActive = false;
+        state.slowMoZoom = false;
+        state.slowMoTarget = null;
+        state.turnInProgress = false;
+        hideOverlay();
+        updateMasterHud();
+        updateHud();
+      }
+
+      function getFeverMultiplier(orangeCleared) {
+        const ratio = orangeCleared / Math.max(1, state.orangeTotal);
+        if (ratio >= 1) return 10;
+        if (orangeCleared >= 22) return 10;
+        if (orangeCleared >= 19) return 5;
+        if (orangeCleared >= 15) return 3;
+        if (orangeCleared >= 10) return 2;
+        return 1;
+      }
+
+      function addBanner(text, x, y, color = "#fde047") {
+        state.banners.push({ text, x, y, color, life: 70, maxLife: 70 });
+      }
+
+      function spawnSparks(x, y, color, count = 14) {
+        for (let i = 0; i < count; i++) {
+          const a = (Math.PI * 2 * i) / count + Math.random() * 0.3;
+          const sp = 1.6 + Math.random() * 3.8;
+          state.particles.push({
+            x,
+            y,
+            vx: Math.cos(a) * sp,
+            vy: Math.sin(a) * sp,
+            color,
+            life: 28 + Math.floor(Math.random() * 16)
+          });
+        }
+      }
+
+      function fireCannon() {
+        if (state.turnInProgress || state.ballsLeft <= 0) return;
+
+        const rad = ((state.aimDeg + 90) * Math.PI) / 180;
+        const speed = 8.4;
+        const isFireball = state.fireballNext;
+        state.fireballNext = false;
+
+        state.ballsLeft--;
+        state.turnInProgress = true;
+        state.shotPoints = 0;
+        state.shotPegHits = 0;
+        state.shotOrangeHits = 0;
+        state.lastOrangeHitPos = null;
+        state.luckyMult = 1;
+
+        let vx = Math.cos(rad) * speed;
+        let vy = Math.sin(rad) * speed;
+
+        // Master Hu Zen Ball: slight mid-launch bias toward best Orange Peg
+        if (state.master === "hu") {
+          const oranges = state.pegs.filter((p) => !p.cleared && p.type === "orange");
+          if (oranges.length > 0) {
+            addBanner("🦉 MASTER HU ZEN GUIDANCE!", CANNON_X, 92, "#c084fc");
+          }
+        }
+
+        state.balls.push({
+          x: CANNON_X + Math.cos(rad) * 32,
+          y: CANNON_Y + Math.sin(rad) * 32,
+          vx,
+          vy,
+          r: BALL_R,
+          fireball: isFireball,
+          stuckTicks: 0,
+          trail: []
+        });
+
+        PeggleAudio.cannonFire();
+        updateHud();
+      }
+
+      function activateGreenPower(peg, ball) {
+        const m = state.master;
+        if (m === "bjorn") {
+          state.superGuideTurns = 3;
+          addBanner("🦄 SUPER GUIDE! (3 TURNS)", peg.x, peg.y - 16, "#38bdf8");
+        } else if (m === "jimmy") {
+          state.balls.push({
+            x: peg.x,
+            y: peg.y,
+            vx: -ball.vx * 0.92 + (Math.random() - 0.5) * 2,
+            vy: -Math.abs(ball.vy) * 0.85 - 2,
+            r: BALL_R,
+            fireball: false,
+            stuckTicks: 0,
+            trail: []
+          });
+          addBanner("🐹 MULTIBALL!", peg.x, peg.y - 16, "#4ade80");
+        } else if (m === "kattut") {
+          state.pyramidTurns = 4;
+          addBanner("🐱 PYRAMID BUCKET! (4 TURNS)", peg.x, peg.y - 16, "#facc15");
+        } else if (m === "splork") {
+          addBanner("👽 SPACE BLAST!", peg.x, peg.y - 16, "#a855f7");
+          spawnSparks(peg.x, peg.y, "#c084fc", 28);
+          state.pegs.forEach((other) => {
+            if (!other.cleared && !other.hit) {
+              const d = Math.hypot(other.x - peg.x, other.y - peg.y);
+              if (d <= 110) {
+                hitPeg(other, ball, true);
+              }
+            }
+          });
+        } else if (m === "claude") {
+          state.flipperTurns = 3;
+          state.flipperActiveTimer = 28;
+          addBanner("🦞 PINBALL FLIPPERS ACTIVE!", peg.x, peg.y - 16, "#f43f5e");
+        } else if (m === "cinder") {
+          state.fireballNext = true;
+          ball.fireball = true;
+          addBanner("🔥 LORD CINDERBOTTOM FIREBALL!", peg.x, peg.y - 16, "#fb923c");
+        } else if (m === "warren") {
+          state.luckyMult = 3;
+          addBanner("🐰 LUCKY SPIN: 3× TRIPLE SCORE!", peg.x, peg.y - 16, "#fde047");
+        } else if (m === "hu") {
+          // Redirect ball toward nearest unhit orange peg
+          const target = state.pegs.find((p) => !p.cleared && !p.hit && p.type === "orange");
+          if (target) {
+            const ang = Math.atan2(target.y - ball.y, target.x - ball.x);
+            const sp = Math.hypot(ball.vx, ball.vy);
+            ball.vx = Math.cos(ang) * sp;
+            ball.vy = Math.sin(ang) * sp;
+            addBanner("🦉 ZEN SHOT REDIRECT!", peg.x, peg.y - 16, "#67e8f9");
+          }
+        }
+      }
+
+      function hitPeg(peg, ball, fromBlast = false) {
+        if (peg.hit || peg.cleared) return;
+        peg.hit = true;
+        peg.hitAnim = 1;
+        state.shotPegHits++;
+
+        const baseVal =
+          peg.type === "orange" ? 100 :
+          peg.type === "purple" ? 500 :
+          peg.type === "green" ? 100 : 10;
+
+        if (peg.type === "orange") {
+          state.orangeLeft = Math.max(0, state.orangeLeft - 1);
+          state.shotOrangeHits++;
+
+          // Long Shot style check
+          if (!fromBlast && state.lastOrangeHitPos) {
+            const dist = Math.hypot(peg.x - state.lastOrangeHitPos.x, peg.y - state.lastOrangeHitPos.y);
+            if (dist > 280) {
+              state.score += 25000;
+              addBanner("🎯 LONG SHOT! +25,000", peg.x, peg.y - 24, "#fde047");
+            }
+          }
+          state.lastOrangeHitPos = { x: peg.x, y: peg.y };
+
+          if (state.shotOrangeHits === 6) {
+            state.score += 10000;
+            addBanner("🟠 ORANGE ATTACK! +10,000", peg.x, peg.y - 22, "#fb923c");
+          }
+        }
+
+        const orangeCleared = state.orangeTotal - state.orangeLeft;
+        state.feverMult = getFeverMultiplier(orangeCleared);
+
+        const pts = baseVal * state.feverMult * state.luckyMult;
+        state.shotPoints += pts;
+
+        const color =
+          peg.type === "orange" ? "#fb923c" :
+          peg.type === "purple" ? "#c084fc" :
+          peg.type === "green" ? "#4ade80" : "#38bdf8";
+
+        spawnSparks(peg.x, peg.y, color, 12);
+        PeggleAudio.pegHit(state.shotPegHits - 1, peg.type);
+
+        if (peg.type === "green") {
+          activateGreenPower(peg, ball);
+        }
+
+        // Trigger EXTREME FEVER immediately if last Orange Peg is hit!
+        if (state.orangeLeft === 0 && !state.extremeFeverActive) {
+          state.extremeFeverActive = true;
+          state.slowMoZoom = false;
+          PeggleAudio.odeToJoyFanfare();
+          addBanner("🌈 EXTREME FEVER! ODE TO JOY!", 450, 180, "#fde047");
+          if (window.CodecaineGameMaster && window.CodecaineGameMaster.triggerVictoryFireworks) {
+            window.CodecaineGameMaster.triggerVictoryFireworks();
+          }
+        }
+
+        updateHud();
+      }
+
+      function stepPhysics() {
+        // Check if ball is approaching the 25th and final Orange Peg for Slow-Mo Dramatic Zoom!
+        state.slowMoZoom = false;
+        state.slowMoTarget = null;
+        if (state.orangeLeft === 1 && state.balls.length > 0 && !state.extremeFeverActive) {
+          const lastOrange = state.pegs.find((p) => !p.cleared && !p.hit && p.type === "orange");
+          if (lastOrange) {
+            for (const b of state.balls) {
+              if (Math.hypot(b.x - lastOrange.x, b.y - lastOrange.y) < 95) {
+                state.slowMoZoom = true;
+                state.slowMoTarget = lastOrange;
+                break;
+              }
+            }
+          }
+        }
+
+        const dt = state.slowMoZoom ? 0.28 : 1.0;
+
+        // Oscillate Free-Ball Bucket
+        if (!state.extremeFeverActive) {
+          state.bucket.x += state.bucket.vx * dt;
+          if (state.bucket.x - state.bucket.w / 2 < PLAY_LEFT + 14) {
+            state.bucket.x = PLAY_LEFT + 14 + state.bucket.w / 2;
+            state.bucket.vx = Math.abs(state.bucket.vx);
+          } else if (state.bucket.x + state.bucket.w / 2 > PLAY_RIGHT - 14) {
+            state.bucket.x = PLAY_RIGHT - 14 - state.bucket.w / 2;
+            state.bucket.vx = -Math.abs(state.bucket.vx);
+          }
+        }
+
+        if (state.flipperActiveTimer > 0) state.flipperActiveTimer--;
+
+        // Step active balls
+        for (let i = state.balls.length - 1; i >= 0; i--) {
+          const b = state.balls[i];
+          b.vy += 0.165 * dt; // Gravity
+
+          // Master Hu gentle mid-flight Zen nudge
+          if (state.master === "hu") {
+            const nearOrange = state.pegs.find(
+              (p) => !p.cleared && !p.hit && p.type === "orange" && Math.hypot(p.x - b.x, p.y - b.y) < 85
+            );
+            if (nearOrange) {
+              b.vx += Math.sign(nearOrange.x - b.x) * 0.035 * dt;
+            }
+          }
+
+          b.x += b.vx * dt;
+          b.y += b.vy * dt;
+
+          b.trail.push({ x: b.x, y: b.y });
+          if (b.trail.length > 14) b.trail.shift();
+
+          // Wall bounces
+          if (b.x - b.r < PLAY_LEFT) {
+            b.x = PLAY_LEFT + b.r;
+            b.vx = Math.abs(b.vx) * 0.88;
+          } else if (b.x + b.r > PLAY_RIGHT) {
+            b.x = PLAY_RIGHT - b.r;
+            b.vx = -Math.abs(b.vx) * 0.88;
+          }
+          if (b.y - b.r < 12) {
+            b.y = 12 + b.r;
+            b.vy = Math.abs(b.vy) * 0.85;
+          }
+
+          // Claude's Pinball Flippers check
+          if ((state.master === "claude" || state.flipperTurns > 0) && b.y > 468 && b.y < 510) {
+            const leftFlipX = PLAY_LEFT + 75;
+            const rightFlipX = PLAY_RIGHT - 75;
+            if (Math.hypot(b.x - leftFlipX, b.y - 488) < 48 || Math.hypot(b.x - rightFlipX, b.y - 488) < 48) {
+              if (state.flipperActiveTimer > 0) {
+                b.vy = -8.6;
+                b.vx += (450 - b.x) * 0.015;
+                state.flipperActiveTimer = 0;
+                addBanner("🦞 CLAUDE FLIP SAVE!", b.x, b.y - 18, "#f43f5e");
+              }
+            }
+          }
+
+          // Peg collisions
+          for (const p of state.pegs) {
+            if (p.cleared) continue;
+            const dx = b.x - p.x;
+            const dy = b.y - p.y;
+            const dist = Math.hypot(dx, dy);
+            const minDist = b.r + p.r;
+            if (dist < minDist && dist > 0.0001) {
+              hitPeg(p, b);
+              if (b.fireball) {
+                // Lord Cinderbottom's Fireball pierces straight through pegs!
+                p.cleared = true;
+              } else {
+                const nx = dx / dist;
+                const ny = dy / dist;
+                b.x = p.x + nx * minDist;
+                b.y = p.y + ny * minDist;
+                const dot = b.vx * nx + b.vy * ny;
+                if (dot < 0) {
+                  b.vx = (b.vx - 2 * dot * nx) * 0.86;
+                  b.vy = (b.vy - 2 * dot * ny) * 0.86;
+                }
+              }
+            }
+          }
+
+          // Unstick ball if velocity is near zero on a peg
+          if (Math.hypot(b.vx, b.vy) < 0.35) {
+            b.stuckTicks++;
+            if (b.stuckTicks > 28) {
+              state.pegs.forEach((p) => {
+                if (p.hit && Math.hypot(p.x - b.x, p.y - b.y) < 28) p.cleared = true;
+              });
+              b.vy = 2.2;
+              b.stuckTicks = 0;
+            }
+          } else {
+            b.stuckTicks = 0;
+          }
+
+          // Bottom Bucket / Fever Chutes check
+          const bucketWidth = state.pyramidTurns > 0 ? state.bucket.w + 68 : state.bucket.w;
+          if (!state.extremeFeverActive && b.y >= state.bucket.y - 10 && b.y <= state.bucket.y + 18) {
+            if (Math.abs(b.x - state.bucket.x) <= bucketWidth / 2) {
+              state.ballsLeft++;
+              state.score += 5000;
+              PeggleAudio.freeBall();
+              addBanner("🪣 FREE BALL SKILLZ! +1 BALL", state.bucket.x, state.bucket.y - 26, "#4ade80");
+              spawnSparks(state.bucket.x, state.bucket.y, "#4ade80", 20);
+              state.balls.splice(i, 1);
+              continue;
+            }
+          }
+
+          // Bottom exit or Extreme Fever 5 Scoring Chutes
+          if (b.y > H - 14) {
+            if (state.extremeFeverActive) {
+              const chuteVals = [10000, 50000, 100000, 50000, 10000];
+              const playW = PLAY_RIGHT - PLAY_LEFT;
+              const idx = Math.min(4, Math.max(0, Math.floor(((b.x - PLAY_LEFT) / playW) * 5)));
+              const bonus = chuteVals[idx];
+              state.score += bonus;
+              addBanner(`🌈 FEVER CHUTE +${bonus.toLocaleString()}!`, b.x, H - 48, "#fde047");
+              spawnSparks(b.x, H - 24, "#fde047", 26);
+            } else if (state.shotPegHits === 0 && Math.random() < 0.5) {
+              // Coin toss free ball on total miss
+              state.ballsLeft++;
+              addBanner("🪙 LUCKY COIN TOSS! FREE BALL", 450, H - 44, "#38bdf8");
+            }
+            state.balls.splice(i, 1);
+          }
+        }
+
+        // End of turn cleanup when all balls leave the arena
+        if (state.turnInProgress && state.balls.length === 0) {
+          finishTurn();
+        }
+      }
+
+      function finishTurn() {
+        state.turnInProgress = false;
+        const turnBonus = state.shotPoints * Math.max(1, state.shotPegHits);
+        state.score += turnBonus;
+        if (state.score > state.bestScore) {
+          state.bestScore = state.score;
+          SafeStore.set("cyberpeggle_best_score", state.bestScore);
+        }
+
+        // Clear hit pegs (or regenerate in Endless mode)
+        state.pegs.forEach((p) => {
+          if (p.hit) {
+            if (state.mode === "endless") {
+              p.hit = false;
+              p.hitAnim = 0;
+            } else {
+              p.cleared = true;
+            }
+          }
+        });
+
+        if (state.superGuideTurns > 0) state.superGuideTurns--;
+        if (state.pyramidTurns > 0) state.pyramidTurns--;
+        if (state.flipperTurns > 0) state.flipperTurns--;
+
+        // AI Duel Mode turn
+        if (state.mode === "duel") {
+          const aiGain = (1200 + Math.floor(Math.random() * 4500)) * state.feverMult;
+          state.aiScore += aiGain;
+          document.getElementById("duelStatusLabel").textContent = `AI: ${state.aiScore.toLocaleString()} pts`;
+        }
+
+        relocatePurplePeg();
+        updateHud();
+
+        if (state.extremeFeverActive) {
+          const ballBonus = state.ballsLeft * 10000;
+          state.score += ballBonus;
+          updateHud();
+          showOverlay(
+            "🌈 EXTREME FEVER VICTORY!",
+            `All ${state.orangeTotal} Orange Pegs Cleared! Remaining Balls Bonus: +${ballBonus.toLocaleString()} pts • Total Score: ${state.score.toLocaleString()}`,
+            true
+          );
+        } else if (state.ballsLeft <= 0) {
+          showOverlay(
+            "⚪ OUT OF CHROME BALLS!",
+            `${state.orangeLeft} Orange Pegs remained on the board. Try another angle or Cyber-Master!`,
+            false
+          );
+        }
+      }
+
+      function showOverlay(title, msg, isWin) {
+        document.getElementById("overlayTitle").textContent = title;
+        document.getElementById("overlayMsg").textContent = msg;
+        document.getElementById("btnOverlayNext").style.display = isWin ? "inline-flex" : "none";
+        document.getElementById("overlayModal").classList.add("visible");
+      }
+
+      function hideOverlay() {
+        document.getElementById("overlayModal").classList.remove("visible");
+      }
+
+      function updateMasterHud() {
+        const m = MASTERS[state.master] || MASTERS.bjorn;
+        document.getElementById("masterAvatarIcon").textContent = m.icon;
+        document.getElementById("masterNameLabel").textContent = m.name;
+        document.getElementById("masterDescLabel").textContent = m.desc;
+        document.getElementById("masterBannerText").innerHTML = `${m.icon} <span><strong>${m.power.toUpperCase()}:</strong> ${m.desc}</span>`;
+      }
+
+      function updateHud() {
+        document.getElementById("ballsLeftVal").textContent = String(state.ballsLeft);
+        document.getElementById("orangeLeftVal").textContent = String(state.orangeLeft);
+        document.getElementById("feverMultVal").textContent = `${state.feverMult}×`;
+        document.getElementById("scoreVal").textContent = state.score.toLocaleString();
+        document.getElementById("bestScoreVal").textContent = state.bestScore.toLocaleString();
+        document.getElementById("aimAngleLabel").textContent = `${state.aimDeg.toFixed(1)}°`;
+        document.getElementById("shotTelemetry").textContent =
+          `SHOT POINTS: ${state.shotPoints.toLocaleString()} • COMBO: ${state.shotPegHits} PEGS`;
+
+        const activePegs = state.pegs.filter((p) => !p.cleared).length;
+        document.getElementById("totalPegsLabel").textContent = `${activePegs} Pegs`;
+      }
+
+      // Compute trajectory guide (1 bounce normally, 2 full bounces with Bjorn's Super Guide)
+      function computeTrajectoryPreview() {
+        const pts = [];
+        const rad = ((state.aimDeg + 90) * Math.PI) / 180;
+        let x = CANNON_X + Math.cos(rad) * 32;
+        let y = CANNON_Y + Math.sin(rad) * 32;
+        let vx = Math.cos(rad) * 8.4;
+        let vy = Math.sin(rad) * 8.4;
+
+        const maxSteps = state.master === "bjorn" || state.superGuideTurns > 0 ? 115 : 42;
+        const maxBounces = state.master === "bjorn" || state.superGuideTurns > 0 ? 2 : 0;
+        let bounces = 0;
+
+        for (let s = 0; s < maxSteps; s++) {
+          vy += 0.165;
+          x += vx;
+          y += vy;
+          pts.push({ x, y });
+
+          if (x - BALL_R < PLAY_LEFT || x + BALL_R > PLAY_RIGHT) {
+            vx = -vx * 0.88;
+            bounces++;
+          }
+          for (const p of state.pegs) {
+            if (p.cleared) continue;
+            const d = Math.hypot(x - p.x, y - p.y);
+            if (d < BALL_R + p.r) {
+              if (bounces >= maxBounces) return pts;
+              const nx = (x - p.x) / d;
+              const ny = (y - p.y) / d;
+              const dot = vx * nx + vy * ny;
+              vx = (vx - 2 * dot * nx) * 0.86;
+              vy = (vy - 2 * dot * ny) * 0.86;
+              bounces++;
+              break;
+            }
+          }
+          if (y > H - 20) break;
+        }
+        return pts;
+      }
+
+      function renderArena() {
+        state.animTick++;
+        stepPhysics();
+
+        ctx.save();
+        ctx.clearRect(0, 0, W, H);
+
+        // Apply Slow-Motion Dramatic Zoom if approaching the 25th Orange Peg!
+        if (state.slowMoZoom && state.slowMoTarget) {
+          const tx = state.slowMoTarget.x;
+          const ty = state.slowMoTarget.y;
+          ctx.translate(W / 2, H / 2);
+          ctx.scale(1.45, 1.45);
+          ctx.translate(-tx, -ty);
+        }
+
+        // Background Stage Art (Nights Mode vs Deluxe Cosmic)
+        const bgGrad = ctx.createRadialGradient(450, 220, 40, 450, 280, 480);
+        if (state.mode === "nights") {
+          bgGrad.addColorStop(0, "#0f172a");
+          bgGrad.addColorStop(1, "#020617");
+        } else {
+          bgGrad.addColorStop(0, "#2e1065");
+          bgGrad.addColorStop(0.6, "#170936");
+          bgGrad.addColorStop(1, "#090314");
+        }
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Left Ball-O-Tron Cylinder Tube
+        ctx.fillStyle = "rgba(15, 7, 30, 0.92)";
+        ctx.fillRect(0, 0, PLAY_LEFT, H);
+        ctx.strokeStyle = "#f97316";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(PLAY_LEFT, 0);
+        ctx.lineTo(PLAY_LEFT, H);
+        ctx.stroke();
+
+        ctx.fillStyle = "#fdba74";
+        ctx.font = "800 10px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("BALL-O-TRON", PLAY_LEFT / 2, 24);
+
+        for (let b = 0; b < Math.min(state.ballsLeft, 12); b++) {
+          const by = H - 36 - b * 36;
+          const ballGrad = ctx.createRadialGradient(PLAY_LEFT / 2 - 3, by - 3, 2, PLAY_LEFT / 2, by, 12);
+          ballGrad.addColorStop(0, "#ffffff");
+          ballGrad.addColorStop(0.5, "#94a3b8");
+          ballGrad.addColorStop(1, "#334155");
+          ctx.fillStyle = ballGrad;
+          ctx.beginPath();
+          ctx.arc(PLAY_LEFT / 2, by, 11, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Right Fever Meter Thermometer
+        ctx.fillStyle = "rgba(15, 7, 30, 0.92)";
+        ctx.fillRect(PLAY_RIGHT, 0, W - PLAY_RIGHT, H);
+        ctx.strokeStyle = "#f97316";
+        ctx.beginPath();
+        ctx.moveTo(PLAY_RIGHT, 0);
+        ctx.lineTo(PLAY_RIGHT, H);
+        ctx.stroke();
+
+        ctx.fillStyle = "#fde047";
+        ctx.font = "800 10px sans-serif";
+        ctx.fillText("FEVER METER", PLAY_RIGHT + 36, 24);
+
+        const thermoX = PLAY_RIGHT + 24;
+        const thermoY = 48;
+        const thermoW = 24;
+        const thermoH = H - 84;
+        ctx.fillStyle = "#1e1b4b";
+        ctx.fillRect(thermoX, thermoY, thermoW, thermoH);
+        ctx.strokeStyle = "#fb923c";
+        ctx.strokeRect(thermoX, thermoY, thermoW, thermoH);
+
+        const orangeCleared = state.orangeTotal - state.orangeLeft;
+        const fillRatio = Math.min(1, orangeCleared / Math.max(1, state.orangeTotal));
+        const fillH = thermoH * fillRatio;
+        const feverGrad = ctx.createLinearGradient(0, thermoY + thermoH, 0, thermoY);
+        feverGrad.addColorStop(0, "#f97316");
+        feverGrad.addColorStop(0.6, "#facc15");
+        feverGrad.addColorStop(1, "#ec4899");
+        ctx.fillStyle = feverGrad;
+        ctx.fillRect(thermoX + 2, thermoY + thermoH - fillH, thermoW - 4, fillH);
+
+        // Fever multiplier ticks
+        [
+          { label: "FEVER", r: 1.0 },
+          { label: "10×", r: 0.88 },
+          { label: "5×", r: 0.76 },
+          { label: "3×", r: 0.60 },
+          { label: "2×", r: 0.40 }
+        ].forEach((m) => {
+          const ty = thermoY + thermoH * (1 - m.r);
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "700 9px monospace";
+          ctx.fillText(m.label, thermoX + 12, ty + 10);
+        });
+
+        // Draw Trajectory Guide when ready to fire
+        if (!state.turnInProgress) {
+          const pts = computeTrajectoryPreview();
+          ctx.strokeStyle = state.master === "bjorn" || state.superGuideTurns > 0
+            ? "rgba(56, 189, 248, 0.85)"
+            : "rgba(253, 224, 71, 0.55)";
+          ctx.lineWidth = state.superGuideTurns > 0 ? 3 : 2;
+          ctx.setLineDash([5, 5]);
+          ctx.beginPath();
+          pts.forEach((pt, idx) => {
+            if (idx === 0) ctx.moveTo(pt.x, pt.y);
+            else ctx.lineTo(pt.x, pt.y);
+          });
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // Draw Pegs & Curved Bricks
+        state.pegs.forEach((p) => {
+          if (p.cleared) return;
+          const colors = {
+            blue: { core: "#2563eb", rim: "#93c5fd", lit: "#60a5fa" },
+            orange: { core: "#ea580c", rim: "#fed7aa", lit: "#fb923c" },
+            purple: { core: "#9333ea", rim: "#e9d5ff", lit: "#c084fc" },
+            green: { core: "#16a34a", rim: "#bbf7d0", lit: "#4ade80" }
+          }[p.type];
+
+          ctx.save();
+          if (p.hit) {
+            ctx.shadowColor = colors.lit;
+            ctx.shadowBlur = 16;
+          }
+
+          if (p.shape === "brick") {
+            ctx.fillStyle = p.hit ? colors.lit : colors.core;
+            ctx.strokeStyle = p.hit ? "#ffffff" : colors.rim;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(p.x - 14, p.y - 7, 28, 14, 4);
+            ctx.fill();
+            ctx.stroke();
+          } else {
+            const g = ctx.createRadialGradient(p.x - 3, p.y - 3, 2, p.x, p.y, p.r);
+            g.addColorStop(0, "#ffffff");
+            g.addColorStop(0.35, p.hit ? colors.lit : colors.core);
+            g.addColorStop(1, p.hit ? colors.core : "#0f172a");
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = p.hit ? "#fef08a" : colors.rim;
+            ctx.lineWidth = p.hit ? 2.5 : 1.4;
+            ctx.stroke();
+          }
+          ctx.restore();
+        });
+
+        // Spotlight Ring on 25th Orange Peg during Slow-Mo Dramatic Zoom!
+        if (state.slowMoZoom && state.slowMoTarget) {
+          ctx.strokeStyle = "#fde047";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(
+            state.slowMoTarget.x,
+            state.slowMoTarget.y,
+            26 + Math.sin(state.animTick * 0.25) * 6,
+            0,
+            Math.PI * 2
+          );
+          ctx.stroke();
+        }
+
+        // Draw Claude's Pinball Flippers if active
+        if (state.master === "claude" || state.flipperTurns > 0) {
+          const tilt = state.flipperActiveTimer > 0 ? -0.35 : 0.25;
+          ctx.strokeStyle = "#f43f5e";
+          ctx.lineWidth = 8;
+          ctx.lineCap = "round";
+          // Left flipper
+          ctx.beginPath();
+          ctx.moveTo(PLAY_LEFT + 34, 488);
+          ctx.lineTo(PLAY_LEFT + 34 + Math.cos(tilt) * 58, 488 + Math.sin(tilt) * 58);
+          ctx.stroke();
+          // Right flipper
+          ctx.beginPath();
+          ctx.moveTo(PLAY_RIGHT - 34, 488);
+          ctx.lineTo(PLAY_RIGHT - 34 - Math.cos(tilt) * 58, 488 + Math.sin(tilt) * 58);
+          ctx.stroke();
+        }
+
+        // Draw Bottom Free-Ball Bucket OR 5 Extreme Fever Scoring Chutes!
+        if (state.extremeFeverActive) {
+          const chuteLabels = ["10K", "50K", "100K", "50K", "10K"];
+          const chuteColors = ["#38bdf8", "#a855f7", "#facc15", "#a855f7", "#38bdf8"];
+          const chuteW = (PLAY_RIGHT - PLAY_LEFT) / 5;
+          for (let c = 0; c < 5; c++) {
+            const cx = PLAY_LEFT + c * chuteW;
+            ctx.fillStyle = "rgba(30, 14, 60, 0.9)";
+            ctx.fillRect(cx + 2, H - 36, chuteW - 4, 34);
+            ctx.strokeStyle = chuteColors[c];
+            ctx.lineWidth = 2;
+            ctx.strokeRect(cx + 2, H - 36, chuteW - 4, 34);
+            ctx.fillStyle = chuteColors[c];
+            ctx.font = "900 13px monospace";
+            ctx.textAlign = "center";
+            ctx.fillText(chuteLabels[c], cx + chuteW / 2, H - 15);
+          }
+        } else {
+          const bw = state.pyramidTurns > 0 ? state.bucket.w + 68 : state.bucket.w;
+          const bx = state.bucket.x - bw / 2;
+          const by = state.bucket.y;
+
+          if (state.pyramidTurns > 0) {
+            ctx.fillStyle = "rgba(250, 204, 21, 0.28)";
+            ctx.beginPath();
+            ctx.moveTo(bx - 16, by + 18);
+            ctx.lineTo(bx + 18, by - 22);
+            ctx.lineTo(bx + bw - 18, by - 22);
+            ctx.lineTo(bx + bw + 16, by + 18);
+            ctx.closePath();
+            ctx.fill();
+          }
+
+          ctx.fillStyle = "#f97316";
+          ctx.fillRect(bx, by, bw, state.bucket.h);
+          ctx.strokeStyle = "#fde047";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(bx, by, bw, state.bucket.h);
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "800 10px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("FREE BALL BUCKET", state.bucket.x, by + 13);
+        }
+
+        // Draw Top Rotating Cyber-Cannon
+        ctx.save();
+        ctx.translate(CANNON_X, CANNON_Y);
+        ctx.rotate((state.aimDeg * Math.PI) / 180);
+        ctx.fillStyle = "#475569";
+        ctx.fillRect(-10, 0, 20, 36);
+        ctx.strokeStyle = "#fde047";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-10, 0, 20, 36);
+        ctx.restore();
+
+        ctx.fillStyle = "#f97316";
+        ctx.beginPath();
+        ctx.arc(CANNON_X, CANNON_Y, 22, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#fde047";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Draw Active Chrome Balls & Rainbow Trails
+        state.balls.forEach((b) => {
+          b.trail.forEach((pt, idx) => {
+            ctx.fillStyle = b.fireball
+              ? `rgba(249, 115, 22, ${idx / 16})`
+              : `rgba(56, 189, 248, ${idx / 20})`;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, (b.r * idx) / 15, 0, Math.PI * 2);
+            ctx.fill();
+          });
+
+          ctx.fillStyle = b.fireball ? "#fb923c" : "#f8fafc";
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = b.fireball ? "#fef08a" : "#38bdf8";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        });
+
+        // Draw Particles
+        for (let i = state.particles.length - 1; i >= 0; i--) {
+          const pt = state.particles[i];
+          pt.x += pt.vx;
+          pt.y += pt.vy;
+          pt.life--;
+          ctx.fillStyle = pt.color;
+          ctx.globalAlpha = Math.max(0, pt.life / 35);
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          if (pt.life <= 0) state.particles.splice(i, 1);
+        }
+
+        // Draw Floating Style Shot Banners
+        for (let i = state.banners.length - 1; i >= 0; i--) {
+          const bn = state.banners[i];
+          bn.y -= 0.55;
+          bn.life--;
+          ctx.save();
+          ctx.font = "900 15px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillStyle = bn.color;
+          ctx.shadowColor = "#000000";
+          ctx.shadowBlur = 8;
+          ctx.fillText(bn.text, bn.x, bn.y);
+          ctx.restore();
+          if (bn.life <= 0) state.banners.splice(i, 1);
+        }
+
+        ctx.restore();
+        requestAnimationFrame(renderArena);
+      }
+
+      // Mouse Aim & Click to Fire (or place pegs in Custom Architect Mode 7)
+      canvas.addEventListener("mousemove", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = ((e.clientX - rect.left) / rect.width) * W;
+        const my = ((e.clientY - rect.top) / rect.height) * H;
+        const ang = (Math.atan2(my - CANNON_Y, mx - CANNON_X) * 180) / Math.PI - 90;
+        state.aimDeg = Math.max(-78, Math.min(78, ang));
+        document.getElementById("aimWheelInput").value = String(state.aimDeg);
+        document.getElementById("aimAngleLabel").textContent = `${state.aimDeg.toFixed(1)}°`;
+      });
+
+      canvas.addEventListener("mousedown", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = ((e.clientX - rect.left) / rect.width) * W;
+        const my = ((e.clientY - rect.top) / rect.height) * H;
+
+        if (state.mode === "architect" && my > 95 && mx > PLAY_LEFT + 20 && mx < PLAY_RIGHT - 20 && e.shiftKey) {
+          state.pegs.push({
+            x: mx,
+            y: my,
+            r: PEG_R,
+            shape: "circle",
+            type: "orange",
+            hit: false,
+            hitAnim: 0,
+            cleared: false
+          });
+          state.orangeLeft++;
+          state.orangeTotal++;
+          updateHud();
+          return;
+        }
+
+        if (state.turnInProgress) {
+          state.flipperActiveTimer = 18;
+        } else {
+          fireCannon();
+        }
+      });
+
+      // Keyboard Controls
+      window.addEventListener("keydown", (e) => {
+        if (e.target && (e.target.tagName === "SELECT" || e.target.tagName === "INPUT")) return;
+        const k = e.key.toLowerCase();
+
+        if (k === "arrowleft" || k === "a") {
+          e.preventDefault();
+          state.aimDeg = Math.max(-78, state.aimDeg - 1.2);
+          document.getElementById("aimWheelInput").value = String(state.aimDeg);
+          updateHud();
+        } else if (k === "arrowright" || k === "d") {
+          e.preventDefault();
+          state.aimDeg = Math.min(78, state.aimDeg + 1.2);
+          document.getElementById("aimWheelInput").value = String(state.aimDeg);
+          updateHud();
+        } else if (k === " " || k === "enter") {
+          e.preventDefault();
+          if (document.getElementById("overlayModal").classList.contains("visible")) {
+            initStage(state.stageIdx + 1);
+          } else if (state.turnInProgress) {
+            state.flipperActiveTimer = 20;
+          } else {
+            fireCannon();
+          }
+        } else if (k === "g") {
+          e.preventDefault();
+          initStage(state.stageIdx, true);
+        } else if (k === "r") {
+          e.preventDefault();
+          initStage(state.stageIdx);
+        } else if (k === "m") {
+          PeggleAudio.muted = !PeggleAudio.muted;
+          document.getElementById("btnAudio").textContent = PeggleAudio.muted ? "🔇 Muted" : "🔊 Synth";
+        }
+      });
+
+      // UI Listeners
+      document.getElementById("aimWheelInput").addEventListener("input", (e) => {
+        state.aimDeg = Number(e.target.value) || 0;
+        updateHud();
+      });
+      document.getElementById("btnAimLeft").addEventListener("click", () => {
+        state.aimDeg = Math.max(-78, state.aimDeg - 1.0);
+        document.getElementById("aimWheelInput").value = String(state.aimDeg);
+        updateHud();
+      });
+      document.getElementById("btnAimRight").addEventListener("click", () => {
+        state.aimDeg = Math.min(78, state.aimDeg + 1.0);
+        document.getElementById("aimWheelInput").value = String(state.aimDeg);
+        updateHud();
+      });
+
+      document.getElementById("btnFireCannon").addEventListener("click", fireCannon);
+      document.getElementById("btnSideFire").addEventListener("click", fireCannon);
+      document.getElementById("btnProcBoard").addEventListener("click", () => initStage(state.stageIdx, true));
+      document.getElementById("btnRestart").addEventListener("click", () => initStage(state.stageIdx));
+      document.getElementById("btnAudio").addEventListener("click", () => {
+        PeggleAudio.muted = !PeggleAudio.muted;
+        document.getElementById("btnAudio").textContent = PeggleAudio.muted ? "🔇 Muted" : "🔊 Synth";
+      });
+
+      document.getElementById("btnOverlayNext").addEventListener("click", () => initStage(state.stageIdx + 1));
+      document.getElementById("btnOverlayRetry").addEventListener("click", () => initStage(state.stageIdx));
+
+      document.getElementById("masterSelect").addEventListener("change", (e) => {
+        state.master = e.target.value;
+        updateMasterHud();
+      });
+
+      stageSelect.addEventListener("change", () => {
+        initStage(Number(stageSelect.value) || 0);
+      });
+
+      document.getElementById("peggleModeSelect").addEventListener("change", (e) => {
+        state.mode = e.target.value;
+        state.aiScore = 0;
+        document.getElementById("duelStatusLabel").textContent =
+          state.mode === "duel" ? "AI: 0 pts" : "Solo Mode";
+        initStage(state.stageIdx, state.mode === "procedural");
+      });
+
+      populateStages();
+      initStage(0);
+      requestAnimationFrame(renderArena);
+    })();
+  </script>
+</body>
+</html>

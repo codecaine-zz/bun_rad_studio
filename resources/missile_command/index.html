@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Codecaine CyberDefense: ICBM Interceptor</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    :root {
+      --bg: #030510;
+      --panel: rgba(8, 14, 30, 0.9);
+      --cyan: #00f5ff;
+      --magenta: #ff0055;
+      --gold: #ffcc00;
+      --lime: #00ff88;
+      --purple: #b829ff;
+      --text: #e8f4ff;
+    }
+    * { box-sizing: border-box; user-select: none; }
+    body {
+      margin: 0; padding: 0;
+      background: radial-gradient(circle at 50% 25%, #0c1636 0%, #030510 100%);
+      color: var(--text);
+      font-family: 'Orbitron', 'Rajdhani', 'Segoe UI', system-ui, monospace, sans-serif;
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh; overflow: hidden;
+    }
+    .hud-header {
+      width: 100%; max-width: 1120px;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 10px 16px; margin-top: 6px;
+      background: var(--panel);
+      border: 1px solid rgba(0, 245, 255, 0.3);
+      border-radius: 14px;
+      box-shadow: 0 0 28px rgba(0, 245, 255, 0.14);
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .brand-title {
+      font-size: 18px; font-weight: 900; letter-spacing: 2px;
+      background: linear-gradient(90deg, #fff, var(--cyan), var(--gold));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 14px rgba(0, 245, 255, 0.4);
+    }
+    .brand-sub {
+      font-size: 10px; letter-spacing: 1.5px; color: var(--cyan);
+      padding: 2px 8px; border-radius: 10px;
+      background: rgba(0, 245, 255, 0.1); border: 1px solid rgba(0, 245, 255, 0.3);
+    }
+    .stats-bar {
+      display: flex; gap: 14px; align-items: center;
+    }
+    .stat-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(0, 245, 255, 0.2);
+      border-radius: 10px; padding: 4px 12px; text-align: center;
+      min-width: 88px;
+    }
+    .stat-label {
+      font-size: 9px; letter-spacing: 1.5px; color: #7ca4c8; text-transform: uppercase;
+    }
+    .stat-val {
+      font-size: 18px; font-weight: 800; color: #fff;
+      text-shadow: 0 0 10px var(--cyan);
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-val.gold { color: var(--gold); text-shadow: 0 0 10px var(--gold); }
+    .stat-val.danger { color: var(--magenta); text-shadow: 0 0 10px var(--magenta); }
+    .controls-bar {
+      display: flex; gap: 8px; align-items: center;
+    }
+    .btn {
+      background: rgba(0, 245, 255, 0.12);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 245, 255, 0.4);
+      border-radius: 8px; padding: 6px 12px;
+      font-family: inherit; font-size: 11px; font-weight: 700;
+      letter-spacing: 1px; cursor: pointer;
+      transition: all 0.15s ease;
+      text-transform: uppercase;
+    }
+    .btn:hover {
+      background: var(--cyan); color: #020612;
+      box-shadow: 0 0 14px var(--cyan);
+    }
+    .btn.danger {
+      border-color: rgba(255, 0, 85, 0.5); color: var(--magenta);
+      background: rgba(255, 0, 85, 0.12);
+    }
+    .btn.danger:hover {
+      background: var(--magenta); color: #fff;
+      box-shadow: 0 0 14px var(--magenta);
+    }
+    .arena-wrap {
+      position: relative;
+      width: 100%; max-width: 1120px;
+      flex: 1; display: flex; justify-content: center; align-items: center;
+      padding: 8px 16px 12px;
+    }
+    canvas {
+      width: 100%; height: calc(100vh - 135px);
+      max-height: 740px;
+      background: #030510;
+      border: 1px solid rgba(0, 245, 255, 0.35);
+      border-radius: 16px;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.85), inset 0 0 30px rgba(0, 245, 255, 0.08);
+      cursor: crosshair;
+      display: block;
+    }
+    .battery-strip {
+      width: 100%; max-width: 1120px;
+      display: flex; justify-content: space-between; gap: 12px;
+      padding: 0 16px 8px; font-size: 11px;
+    }
+    .bat-pill {
+      flex: 1; display: flex; justify-content: space-between; align-items: center;
+      background: rgba(8, 14, 30, 0.85);
+      border: 1px solid rgba(0, 245, 255, 0.25);
+      border-radius: 8px; padding: 5px 12px;
+    }
+    .bat-pill strong { color: var(--cyan); }
+    .bat-pill.beta strong { color: var(--gold); }
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(2, 4, 12, 0.82);
+      backdrop-filter: blur(6px);
+      display: none; justify-content: center; align-items: center;
+      z-index: 50;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: #070d22;
+      border: 1px solid var(--cyan);
+      border-radius: 16px; padding: 24px 28px;
+      max-width: 580px; width: 92%;
+      box-shadow: 0 0 40px rgba(0, 245, 255, 0.25);
+    }
+    .modal h2 {
+      margin: 0 0 12px; color: var(--cyan); letter-spacing: 2px; font-size: 20px;
+    }
+    .modal p, .modal li {
+      font-size: 13px; line-height: 1.55; color: #c7def5;
+    }
+    .modal ul { padding-left: 18px; margin: 10px 0 18px; }
+    .key-tag {
+      display: inline-block; padding: 1px 6px; border-radius: 4px;
+      background: rgba(0, 245, 255, 0.15); border: 1px solid rgba(0, 245, 255, 0.4);
+      color: var(--cyan); font-size: 11px; font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <header class="hud-header">
+    <div class="brand">
+      <span class="brand-title">🚀 CYBERDEFENSE: ICBM INTERCEPTOR</span>
+      <span class="brand-sub">ATARI 1980 REMASTER</span>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-label">SCORE</div>
+        <div class="stat-val" id="hud-score">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">HIGH SCORE</div>
+        <div class="stat-val gold" id="hud-high">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">WAVE / MULT</div>
+        <div class="stat-val" id="hud-wave">1 (1x)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">CITIES</div>
+        <div class="stat-val" id="hud-cities">6 / 6</div>
+      </div>
+    </div>
+    <div class="controls-bar">
+      <button class="btn" id="btn-new" title="Start New Game (N)">New Game</button>
+      <button class="btn" id="btn-pause" title="Pause / Resume (P)">Pause</button>
+      <button class="btn" id="btn-mute" title="Toggle Audio (M)">🔊 Audio</button>
+      <button class="btn" id="btn-help" title="Tactical Briefing (H)">? Help</button>
+    </div>
+  </header>
+
+  <div class="arena-wrap">
+    <canvas id="gameCanvas" width="1080" height="680"></canvas>
+  </div>
+
+  <div class="battery-strip">
+    <div class="bat-pill">
+      <span><strong>ALPHA BATTERY [A / 1]</strong> (West Silo)</span>
+      <span id="ammo-0">10 / 10</span>
+    </div>
+    <div class="bat-pill beta">
+      <span><strong>BETA BATTERY [S / 2]</strong> (Center Hypersonic)</span>
+      <span id="ammo-1">10 / 10</span>
+    </div>
+    <div class="bat-pill">
+      <span><strong>GAMMA BATTERY [D / 3]</strong> (East Silo)</span>
+      <span id="ammo-2">10 / 10</span>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="help-modal">
+    <div class="modal">
+      <h2>🎯 TACTICAL INTERCEPTOR BRIEFING</h2>
+      <p>Defend the 6 neon Cyber-Cities along the sector horizon from incoming orbital ICBMs, MIRV splitters, Orbital Bombers, and Smart Evader Warheads.</p>
+      <ul>
+        <li><strong>Mouse Click / <span class="key-tag">Space</span></strong>: Fire interceptor from the nearest armed battery toward the target reticle.</li>
+        <li><strong><span class="key-tag">A</span> / <span class="key-tag">1</span></strong>: Fire specifically from <strong>Alpha Battery</strong> (Left).</li>
+        <li><strong><span class="key-tag">S</span> / <span class="key-tag">2</span></strong>: Fire specifically from <strong>Beta Hypersonic Battery</strong> (Center — 1.65× velocity!).</li>
+        <li><strong><span class="key-tag">D</span> / <span class="key-tag">3</span></strong>: Fire specifically from <strong>Gamma Battery</strong> (Right).</li>
+        <li><strong><span class="key-tag">Arrow Keys</span></strong>: Move target crosshair with keyboard.</li>
+        <li><strong>Chain Reactions</strong>: Enemy warheads caught inside a thermonuclear plasma sphere detonate into secondary blast spheres!</li>
+        <li><strong>Bonus City</strong>: Every <strong>10,000 pts</strong> rebuilds 1 destroyed Cyber-City at wave end.</li>
+      </ul>
+      <div style="text-align:right">
+        <button class="btn" id="btn-close-help">ENGAGE DEFENSE</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+      const GROUND_Y = H - 52;
+
+      // High Score persistence
+      const HS_KEY = 'codecaine_missile_command_hs';
+      let highScore = parseInt(localStorage.getItem(HS_KEY) || '0', 10) || 0;
+
+      // Web Audio Synthesizer
+      let audioCtx = null;
+      let muted = false;
+      function ensureAudio() {
+        if (!audioCtx && !muted) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) audioCtx = new AC();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      }
+
+      function playSound(type) {
+        if (muted) return;
+        try {
+          ensureAudio();
+          if (!audioCtx) return;
+          const now = audioCtx.currentTime;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          if (type === 'launch') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(280, now);
+            osc.frequency.exponentialRampToValueAtTime(920, now + 0.16);
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
+            osc.start(now);
+            osc.stop(now + 0.17);
+          } else if (type === 'boom') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(140, now);
+            osc.frequency.exponentialRampToValueAtTime(28, now + 0.45);
+            gain.gain.setValueAtTime(0.24, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.46);
+            osc.start(now);
+            osc.stop(now + 0.46);
+          } else if (type === 'city_lost') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(190, now);
+            osc.frequency.linearRampToValueAtTime(42, now + 0.65);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.66);
+            osc.start(now);
+            osc.stop(now + 0.66);
+          } else if (type === 'empty') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(120, now);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+            osc.start(now);
+            osc.stop(now + 0.08);
+          } else if (type === 'wave_clear') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, now);
+            osc.frequency.setValueAtTime(660, now + 0.12);
+            osc.frequency.setValueAtTime(880, now + 0.24);
+            gain.gain.setValueAtTime(0.16, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+            osc.start(now);
+            osc.stop(now + 0.45);
+          }
+        } catch (_) {}
+      }
+
+      // Stars background
+      const stars = Array.from({ length: 85 }, () => ({
+        x: Math.random() * W,
+        y: Math.random() * (GROUND_Y - 60),
+        r: Math.random() * 1.6 + 0.4,
+        phase: Math.random() * Math.PI * 2
+      }));
+
+      // Game State
+      let score = 0;
+      let nextBonusCityScore = 10000;
+      let bonusCitiesPool = 0;
+      let wave = 1;
+      let paused = false;
+      let gameOver = false;
+      let waveBannerTimer = 0;
+      let waveEndTimer = 0;
+      let waveBonusText = '';
+
+      const crosshair = { x: W / 2, y: H * 0.42, vx: 0, vy: 0 };
+
+      // 3 Batteries: Left (90), Center (540), Right (990)
+      const batteryPositions = [95, W / 2, W - 95];
+      let batteries = [];
+
+      // 6 Cities placed between batteries
+      const cityPositions = [215, 315, 415, W - 415, W - 315, W - 215];
+      let cities = [];
+
+      let playerMissiles = [];
+      let enemyMissiles = [];
+      let explosions = [];
+      let bombers = [];
+      let smartBombs = [];
+      let particles = [];
+
+      let waveEnemiesRemaining = 0;
+      let spawnCooldown = 0;
+
+      function initBatteries() {
+        batteries = batteryPositions.map((x, idx) => ({
+          id: idx,
+          name: idx === 0 ? 'ALPHA' : idx === 1 ? 'BETA' : 'GAMMA',
+          x,
+          y: GROUND_Y - 12,
+          ammo: 10,
+          maxAmmo: 10,
+          speed: idx === 1 ? 13.5 : 8.5,
+          alive: true
+        }));
+      }
+
+      function initCities() {
+        cities = cityPositions.map((x, idx) => ({
+          id: idx,
+          x,
+          y: GROUND_Y,
+          alive: true
+        }));
+      }
+
+      function startWave(w) {
+        wave = w;
+        initBatteries();
+        playerMissiles = [];
+        enemyMissiles = [];
+        bombers = [];
+        smartBombs = [];
+        waveEnemiesRemaining = 10 + wave * 4;
+        spawnCooldown = 20;
+        waveBannerTimer = 95;
+        waveBonusText = '';
+        updateHUD();
+      }
+
+      function resetGame() {
+        score = 0;
+        nextBonusCityScore = 10000;
+        bonusCitiesPool = 0;
+        gameOver = false;
+        paused = false;
+        explosions = [];
+        particles = [];
+        initCities();
+        startWave(1);
+      }
+
+      function addScore(pts) {
+        const mult = Math.min(6, Math.floor((wave - 1) / 2) + 1);
+        score += pts * mult;
+        if (score >= nextBonusCityScore) {
+          bonusCitiesPool++;
+          nextBonusCityScore += 10000;
+        }
+        if (score > highScore) {
+          highScore = score;
+          try { localStorage.setItem(HS_KEY, String(highScore)); } catch (_) {}
+        }
+        updateHUD();
+      }
+
+      function updateHUD() {
+        const mult = Math.min(6, Math.floor((wave - 1) / 2) + 1);
+        document.getElementById('hud-score').textContent = score.toLocaleString();
+        document.getElementById('hud-high').textContent = highScore.toLocaleString();
+        document.getElementById('hud-wave').textContent = `${wave} (${mult}x)`;
+        const aliveCities = cities.filter(c => c.alive).length;
+        const citiesEl = document.getElementById('hud-cities');
+        citiesEl.textContent = `${aliveCities} / 6`;
+        citiesEl.className = 'stat-val' + (aliveCities <= 2 ? ' danger' : '');
+
+        batteries.forEach((b, i) => {
+          const el = document.getElementById(`ammo-${i}`);
+          if (el) {
+            el.textContent = b.alive ? `${b.ammo} / ${b.maxAmmo}` : 'OFFLINE';
+            el.style.color = b.ammo > 0 && b.alive ? '#00f5ff' : '#ff0055';
+          }
+        });
+      }
+
+      function spawnParticles(x, y, color, count = 14) {
+        for (let i = 0; i < count; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const sp = Math.random() * 3.8 + 0.8;
+          particles.push({
+            x, y,
+            vx: Math.cos(a) * sp,
+            vy: Math.sin(a) * sp,
+            life: 1,
+            decay: 0.02 + Math.random() * 0.025,
+            color
+          });
+        }
+        window.GameMasterFX?.burst?.(x, y, color, count);
+      }
+
+      function createExplosion(x, y, maxR = 46, isPlayer = true) {
+        explosions.push({
+          x, y,
+          r: 2,
+          maxR,
+          expanding: true,
+          isPlayer
+        });
+        playSound('boom');
+        spawnParticles(x, y, isPlayer ? '#00f5ff' : '#ff0055', 16);
+      }
+
+      function fireCounterMissile(tx, ty, preferredBatteryIdx = null) {
+        if (gameOver || paused) return;
+        const clampedY = Math.min(GROUND_Y - 28, Math.max(25, ty));
+        const clampedX = Math.min(W - 15, Math.max(15, tx));
+
+        let chosen = null;
+        if (preferredBatteryIdx !== null) {
+          const b = batteries[preferredBatteryIdx];
+          if (b && b.alive && b.ammo > 0) chosen = b;
+        } else {
+          // Pick nearest battery with ammo, favoring Beta on tie
+          let bestDist = Infinity;
+          for (const b of batteries) {
+            if (!b.alive || b.ammo <= 0) continue;
+            const d = Math.abs(b.x - clampedX) - (b.id === 1 ? 65 : 0);
+            if (d < bestDist) {
+              bestDist = d;
+              chosen = b;
+            }
+          }
+        }
+
+        if (!chosen) {
+          playSound('empty');
+          return;
+        }
+
+        chosen.ammo--;
+        updateHUD();
+        playSound('launch');
+
+        const dx = clampedX - chosen.x;
+        const dy = clampedY - chosen.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        playerMissiles.push({
+          sx: chosen.x,
+          sy: chosen.y,
+          x: chosen.x,
+          y: chosen.y,
+          tx: clampedX,
+          ty: clampedY,
+          vx: (dx / dist) * chosen.speed,
+          vy: (dy / dist) * chosen.speed,
+          color: chosen.id === 1 ? '#ffcc00' : '#00f5ff'
+        });
+      }
+
+      function pickAliveTarget() {
+        const aliveCities = cities.filter(c => c.alive);
+        const aliveBats = batteries.filter(b => b.alive);
+        const pool = [...aliveCities, ...aliveBats];
+        if (pool.length === 0) return { x: Math.random() * (W - 100) + 50, y: GROUND_Y };
+        const t = pool[Math.floor(Math.random() * pool.length)];
+        return { x: t.x, y: GROUND_Y, ref: t };
+      }
+
+      function spawnEnemySalvo(count = 1, fromX = null, fromY = 0) {
+        for (let i = 0; i < count; i++) {
+          const sx = fromX !== null ? fromX : Math.random() * (W - 60) + 30;
+          const sy = fromY;
+          const target = pickAliveTarget();
+          const dx = target.x - sx;
+          const dy = target.y - sy;
+          const dist = Math.hypot(dx, dy) || 1;
+          const speed = 0.85 + Math.min(1.6, wave * 0.16) + Math.random() * 0.35;
+          const isMirv = fromY === 0 && Math.random() < Math.min(0.4, 0.12 + wave * 0.04);
+          enemyMissiles.push({
+            sx, sy,
+            x: sx, y: sy,
+            tx: target.x, ty: target.y,
+            vx: (dx / dist) * speed,
+            vy: (dy / dist) * speed,
+            isMirv,
+            splitY: 130 + Math.random() * 140
+          });
+        }
+      }
+
+      function spawnOrbitalBomber() {
+        const leftToRight = Math.random() < 0.5;
+        bombers.push({
+          x: leftToRight ? -30 : W + 30,
+          y: 75 + Math.random() * 130,
+          vx: (leftToRight ? 1 : -1) * (1.5 + Math.min(1.5, wave * 0.12)),
+          dropTimer: 90 + Math.floor(Math.random() * 70)
+        });
+      }
+
+      function spawnSmartBomb(sx, sy) {
+        const target = pickAliveTarget();
+        smartBombs.push({
+          x: sx ?? (Math.random() * (W - 120) + 60),
+          y: sy ?? 10,
+          tx: target.x,
+          ty: target.y,
+          speed: 1.25 + Math.min(1.2, wave * 0.12)
+        });
+      }
+
+      function damageGroundAt(x) {
+        playSound('city_lost');
+        window.GameMasterFX?.triggerShake?.(8);
+        spawnParticles(x, GROUND_Y, '#ff0055', 26);
+
+        for (const c of cities) {
+          if (c.alive && Math.abs(c.x - x) < 28) {
+            c.alive = false;
+          }
+        }
+        for (const b of batteries) {
+          if (b.alive && Math.abs(b.x - x) < 30) {
+            b.alive = false;
+            b.ammo = 0;
+          }
+        }
+        updateHUD();
+
+        if (cities.every(c => !c.alive)) {
+          gameOver = true;
+        }
+      }
+
+      function step() {
+        if (paused || gameOver) return;
+
+        // Keyboard crosshair movement
+        if (crosshair.vx || crosshair.vy) {
+          crosshair.x = Math.max(15, Math.min(W - 15, crosshair.x + crosshair.vx));
+          crosshair.y = Math.max(25, Math.min(GROUND_Y - 28, crosshair.y + crosshair.vy));
+        }
+
+        if (waveBannerTimer > 0) waveBannerTimer--;
+
+        // Spawn logic
+        if (waveEnemiesRemaining > 0) {
+          spawnCooldown--;
+          if (spawnCooldown <= 0) {
+            const batch = Math.min(waveEnemiesRemaining, Math.floor(Math.random() * 3) + 1);
+            spawnEnemySalvo(batch);
+            waveEnemiesRemaining -= batch;
+            if (wave >= 2 && Math.random() < 0.28 && bombers.length < 1) {
+              spawnOrbitalBomber();
+            }
+            if (wave >= 3 && Math.random() < 0.25) {
+              spawnSmartBomb();
+            }
+            spawnCooldown = Math.max(38, 105 - wave * 7);
+          }
+        }
+
+        // Update player missiles
+        for (let i = playerMissiles.length - 1; i >= 0; i--) {
+          const m = playerMissiles[i];
+          m.x += m.vx;
+          m.y += m.vy;
+          const distToTarget = Math.hypot(m.tx - m.x, m.ty - m.y);
+          if (distToTarget <= Math.hypot(m.vx, m.vy) * 1.1) {
+            createExplosion(m.tx, m.ty, 48, true);
+            playerMissiles.splice(i, 1);
+          }
+        }
+
+        // Update explosions
+        for (let i = explosions.length - 1; i >= 0; i--) {
+          const ex = explosions[i];
+          if (ex.expanding) {
+            ex.r += 1.45;
+            if (ex.r >= ex.maxR) ex.expanding = false;
+          } else {
+            ex.r -= 0.85;
+            if (ex.r <= 0) {
+              explosions.splice(i, 1);
+              continue;
+            }
+          }
+
+          // Destroy enemy missiles touching blast sphere
+          for (let j = enemyMissiles.length - 1; j >= 0; j--) {
+            const em = enemyMissiles[j];
+            if (Math.hypot(em.x - ex.x, em.y - ex.y) <= ex.r + 3) {
+              addScore(25);
+              createExplosion(em.x, em.y, 34, true);
+              enemyMissiles.splice(j, 1);
+            }
+          }
+
+          // Destroy bombers
+          for (let j = bombers.length - 1; j >= 0; j--) {
+            const bm = bombers[j];
+            if (Math.hypot(bm.x - ex.x, bm.y - ex.y) <= ex.r + 16) {
+              addScore(100);
+              createExplosion(bm.x, bm.y, 44, true);
+              bombers.splice(j, 1);
+            }
+          }
+
+          // Destroy smart bombs
+          for (let j = smartBombs.length - 1; j >= 0; j--) {
+            const sb = smartBombs[j];
+            if (Math.hypot(sb.x - ex.x, sb.y - ex.y) <= ex.r + 7) {
+              addScore(125);
+              createExplosion(sb.x, sb.y, 38, true);
+              smartBombs.splice(j, 1);
+            }
+          }
+        }
+
+        // Update enemy missiles
+        for (let i = enemyMissiles.length - 1; i >= 0; i--) {
+          const em = enemyMissiles[i];
+          em.x += em.vx;
+          em.y += em.vy;
+
+          // MIRV split check
+          if (em.isMirv && em.y >= em.splitY) {
+            em.isMirv = false;
+            spawnParticles(em.x, em.y, '#ffcc00', 10);
+            spawnEnemySalvo(2, em.x, em.y);
+          }
+
+          if (em.y >= GROUND_Y - 4) {
+            createExplosion(em.x, GROUND_Y - 4, 36, false);
+            damageGroundAt(em.x);
+            enemyMissiles.splice(i, 1);
+          }
+        }
+
+        // Update orbital bombers
+        for (let i = bombers.length - 1; i >= 0; i--) {
+          const bm = bombers[i];
+          bm.x += bm.vx;
+          bm.dropTimer--;
+          if (bm.dropTimer <= 0 && bm.x > 60 && bm.x < W - 60) {
+            spawnEnemySalvo(1, bm.x, bm.y);
+            bm.dropTimer = 95;
+          }
+          if (bm.x < -60 || bm.x > W + 60) {
+            bombers.splice(i, 1);
+          }
+        }
+
+        // Update smart bombs (evade nearby explosions)
+        for (let i = smartBombs.length - 1; i >= 0; i--) {
+          const sb = smartBombs[i];
+          const dx = sb.tx - sb.x;
+          const dy = sb.ty - sb.y;
+          const dist = Math.hypot(dx, dy) || 1;
+          let vx = (dx / dist) * sb.speed;
+          let vy = (dy / dist) * sb.speed;
+
+          for (const ex of explosions) {
+            const edx = sb.x - ex.x;
+            const edy = sb.y - ex.y;
+            const ed = Math.hypot(edx, edy);
+            if (ed < ex.maxR + 42 && ed > 1) {
+              vx += (edx / ed) * 2.1;
+              vy -= 0.7;
+            }
+          }
+          sb.x += vx;
+          sb.y += vy;
+
+          if (sb.y >= GROUND_Y - 4) {
+            createExplosion(sb.x, GROUND_Y - 4, 38, false);
+            damageGroundAt(sb.x);
+            smartBombs.splice(i, 1);
+          }
+        }
+
+        // Update particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.life -= p.decay;
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+
+        // Check wave completion
+        if (
+          !gameOver &&
+          waveEnemiesRemaining <= 0 &&
+          enemyMissiles.length === 0 &&
+          bombers.length === 0 &&
+          smartBombs.length === 0 &&
+          explosions.length === 0
+        ) {
+          if (waveEndTimer === 0) {
+            const remAmmo = batteries.reduce((s, b) => s + (b.alive ? b.ammo : 0), 0);
+            const aliveCities = cities.filter(c => c.alive).length;
+            const ammoPts = remAmmo * 5;
+            const cityPts = aliveCities * 100;
+            addScore(ammoPts + cityPts);
+
+            // Rebuild 1 destroyed city if bonusCitiesPool > 0
+            let rebuilt = false;
+            if (bonusCitiesPool > 0) {
+              const deadCity = cities.find(c => !c.alive);
+              if (deadCity) {
+                deadCity.alive = true;
+                bonusCitiesPool--;
+                rebuilt = true;
+              }
+            }
+            waveBonusText = `WAVE ${wave} CLEAR!  AMMO BONUS: +${ammoPts}  •  CITIES BONUS: +${cityPts}${rebuilt ? '  •  +1 CYBER-CITY REBUILT!' : ''}`;
+            playSound('wave_clear');
+            waveEndTimer = 110;
+          } else {
+            waveEndTimer--;
+            if (waveEndTimer <= 1) {
+              waveEndTimer = 0;
+              startWave(wave + 1);
+            }
+          }
+        }
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+
+        // Subtle radar grid
+        ctx.strokeStyle = 'rgba(0, 245, 255, 0.04)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < W; x += 60) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, GROUND_Y); ctx.stroke();
+        }
+        for (let y = 0; y < GROUND_Y; y += 60) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        }
+
+        // Twinkling stars
+        const t = performance.now() * 0.002;
+        for (const s of stars) {
+          const alpha = 0.35 + 0.45 * Math.sin(t + s.phase);
+          ctx.fillStyle = `rgba(190, 235, 255, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Enemy missile contrails & warheads
+        for (const em of enemyMissiles) {
+          ctx.strokeStyle = em.isMirv ? '#ff9900' : '#ff0055';
+          ctx.lineWidth = em.isMirv ? 2.4 : 1.8;
+          ctx.beginPath();
+          ctx.moveTo(em.sx, em.sy);
+          ctx.lineTo(em.x, em.y);
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(em.x, em.y, 2.8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Player counter-missile contrails
+        for (const pm of playerMissiles) {
+          ctx.strokeStyle = pm.color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(pm.sx, pm.sy);
+          ctx.lineTo(pm.x, pm.y);
+          ctx.stroke();
+
+          // Target X marker
+          ctx.strokeStyle = 'rgba(0, 245, 255, 0.7)';
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.moveTo(pm.tx - 4, pm.ty - 4); ctx.lineTo(pm.tx + 4, pm.ty + 4);
+          ctx.moveTo(pm.tx + 4, pm.ty - 4); ctx.lineTo(pm.tx - 4, pm.ty + 4);
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(pm.x, pm.y, 2.8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Orbital Bombers
+        for (const bm of bombers) {
+          ctx.save();
+          ctx.translate(bm.x, bm.y);
+          ctx.fillStyle = '#b829ff';
+          ctx.strokeStyle = '#00f5ff';
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.moveTo(-20, 0);
+          ctx.lineTo(-8, -8);
+          ctx.lineTo(8, -8);
+          ctx.lineTo(20, 0);
+          ctx.lineTo(8, 7);
+          ctx.lineTo(-8, 7);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Smart Bombs (diamond warheads)
+        for (const sb of smartBombs) {
+          ctx.save();
+          ctx.translate(sb.x, sb.y);
+          ctx.rotate(t * 4);
+          ctx.fillStyle = '#00ff88';
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(0, -7);
+          ctx.lineTo(7, 0);
+          ctx.lineTo(0, 7);
+          ctx.lineTo(-7, 0);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Thermonuclear Plasma Spheres
+        for (const ex of explosions) {
+          const grad = ctx.createRadialGradient(ex.x, ex.y, 1, ex.x, ex.y, ex.r);
+          if (ex.isPlayer) {
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.4, '#00f5ff');
+            grad.addColorStop(0.75, '#b829ff');
+            grad.addColorStop(1, 'rgba(255, 0, 85, 0.1)');
+          } else {
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.45, '#ffcc00');
+            grad.addColorStop(0.85, '#ff0055');
+            grad.addColorStop(1, 'rgba(255, 0, 85, 0.1)');
+          }
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(ex.x, ex.y, ex.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Particles
+        for (const p of particles) {
+          ctx.globalAlpha = Math.max(0, p.life);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
+        }
+        ctx.globalAlpha = 1;
+
+        // Ground Horizon & Silo Mounds
+        ctx.fillStyle = '#07142c';
+        ctx.beginPath();
+        ctx.moveTo(0, H);
+        ctx.lineTo(0, GROUND_Y);
+        for (const b of batteries) {
+          ctx.lineTo(b.x - 38, GROUND_Y);
+          ctx.lineTo(b.x - 20, GROUND_Y - 16);
+          ctx.lineTo(b.x + 20, GROUND_Y - 16);
+          ctx.lineTo(b.x + 38, GROUND_Y);
+        }
+        ctx.lineTo(W, GROUND_Y);
+        ctx.lineTo(W, H);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = '#00f5ff';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(0, GROUND_Y);
+        for (const b of batteries) {
+          ctx.lineTo(b.x - 38, GROUND_Y);
+          ctx.lineTo(b.x - 20, GROUND_Y - 16);
+          ctx.lineTo(b.x + 20, GROUND_Y - 16);
+          ctx.lineTo(b.x + 38, GROUND_Y);
+        }
+        ctx.lineTo(W, GROUND_Y);
+        ctx.stroke();
+
+        // Draw 6 Cyber-Cities
+        for (const c of cities) {
+          if (c.alive) {
+            // Glowing Biodome + Skyscraper silhouette
+            ctx.fillStyle = 'rgba(0, 245, 255, 0.18)';
+            ctx.strokeStyle = '#00f5ff';
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.arc(c.x, GROUND_Y, 24, Math.PI, 0);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#00d2ff';
+            ctx.fillRect(c.x - 15, GROUND_Y - 14, 6, 14);
+            ctx.fillRect(c.x - 6, GROUND_Y - 21, 7, 21);
+            ctx.fillRect(c.x + 3, GROUND_Y - 17, 6, 17);
+            ctx.fillRect(c.x + 11, GROUND_Y - 11, 5, 11);
+          } else {
+            // Smoldering crater
+            ctx.fillStyle = '#331022';
+            ctx.fillRect(c.x - 16, GROUND_Y - 3, 32, 4);
+          }
+        }
+
+        // Draw 3 Counter-Missile Batteries & Ammo pyramids
+        for (const b of batteries) {
+          if (!b.alive) continue;
+          ctx.fillStyle = b.id === 1 ? '#ffcc00' : '#00f5ff';
+          // Draw remaining missiles stacked inside silo
+          for (let m = 0; m < b.ammo; m++) {
+            const row = Math.floor(m / 4);
+            const col = m % 4;
+            const mx = b.x - 12 + col * 8;
+            const my = GROUND_Y - 6 + row * 8;
+            ctx.fillRect(mx - 1.5, my - 4, 3, 6);
+          }
+        }
+
+        // Target Crosshair
+        ctx.save();
+        ctx.translate(crosshair.x, crosshair.y);
+        ctx.strokeStyle = '#00ff88';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(0, 0, 11, 0, Math.PI * 2);
+        ctx.moveTo(-16, 0); ctx.lineTo(-6, 0);
+        ctx.moveTo(6, 0); ctx.lineTo(16, 0);
+        ctx.moveTo(0, -16); ctx.lineTo(0, -6);
+        ctx.moveTo(0, 6); ctx.lineTo(0, 16);
+        ctx.stroke();
+        ctx.restore();
+
+        // Wave / Bonus Banner Overlay
+        if (waveBannerTimer > 0) {
+          ctx.fillStyle = 'rgba(3, 8, 22, 0.76)';
+          ctx.fillRect(W / 2 - 210, H / 2 - 48, 420, 76);
+          ctx.strokeStyle = '#00f5ff';
+          ctx.strokeRect(W / 2 - 210, H / 2 - 48, 420, 76);
+          ctx.fillStyle = '#00f5ff';
+          ctx.font = 'bold 24px Orbitron, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(`DEFENSE WAVE ${wave}`, W / 2, H / 2 - 12);
+          ctx.fillStyle = '#ffcc00';
+          ctx.font = 'bold 13px Orbitron, monospace';
+          ctx.fillText('PROTECT THE 6 NEON CYBER-CITIES!', W / 2, H / 2 + 14);
+        }
+
+        if (waveBonusText) {
+          ctx.fillStyle = 'rgba(3, 8, 22, 0.85)';
+          ctx.fillRect(W / 2 - 330, H / 2 - 36, 660, 60);
+          ctx.strokeStyle = '#ffcc00';
+          ctx.strokeRect(W / 2 - 330, H / 2 - 36, 660, 60);
+          ctx.fillStyle = '#ffcc00';
+          ctx.font = 'bold 15px Orbitron, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(waveBonusText, W / 2, H / 2);
+        }
+
+        if (paused && !gameOver) {
+          ctx.fillStyle = 'rgba(2, 5, 16, 0.72)';
+          ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = '#00f5ff';
+          ctx.font = 'bold 34px Orbitron, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('SYSTEM PAUSED', W / 2, H / 2);
+        }
+
+        if (gameOver) {
+          ctx.fillStyle = 'rgba(10, 2, 12, 0.82)';
+          ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = '#ff0055';
+          ctx.font = 'bold 46px Orbitron, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('THE END — ALL CITIES LOST', W / 2, H / 2 - 20);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 18px Orbitron, monospace';
+          ctx.fillText(`FINAL SCORE: ${score.toLocaleString()}   •   PRESS [N] OR CLICK NEW GAME`, W / 2, H / 2 + 24);
+        }
+      }
+
+      function loop() {
+        step();
+        draw();
+        requestAnimationFrame(loop);
+      }
+
+      // Mouse & Keyboard Listeners
+      canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        crosshair.x = ((e.clientX - rect.left) / rect.width) * W;
+        crosshair.y = ((e.clientY - rect.top) / rect.height) * H;
+      });
+
+      canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        crosshair.x = ((e.clientX - rect.left) / rect.width) * W;
+        crosshair.y = ((e.clientY - rect.top) / rect.height) * H;
+        if (gameOver) {
+          resetGame();
+          return;
+        }
+        fireCounterMissile(crosshair.x, crosshair.y, null);
+      });
+
+      window.addEventListener('keydown', (e) => {
+        const k = e.key.toLowerCase();
+        if (k === 'a' || k === '1') {
+          fireCounterMissile(crosshair.x, crosshair.y, 0);
+        } else if (k === 's' || k === '2') {
+          fireCounterMissile(crosshair.x, crosshair.y, 1);
+        } else if (k === 'd' || k === '3') {
+          fireCounterMissile(crosshair.x, crosshair.y, 2);
+        } else if (e.code === 'Space') {
+          e.preventDefault();
+          fireCounterMissile(crosshair.x, crosshair.y, null);
+        } else if (e.key === 'ArrowLeft') {
+          crosshair.vx = -7;
+        } else if (e.key === 'ArrowRight') {
+          crosshair.vx = 7;
+        } else if (e.key === 'ArrowUp') {
+          crosshair.vy = -7;
+        } else if (e.key === 'ArrowDown') {
+          crosshair.vy = 7;
+        } else if (k === 'p') {
+          paused = !paused;
+        } else if (k === 'n') {
+          resetGame();
+        } else if (k === 'm') {
+          muted = !muted;
+          document.getElementById('btn-mute').textContent = muted ? '🔇 Muted' : '🔊 Audio';
+        } else if (k === 'h' || e.key === '?') {
+          document.getElementById('help-modal').classList.toggle('open');
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') crosshair.vx = 0;
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') crosshair.vy = 0;
+      });
+
+      document.getElementById('btn-new').addEventListener('click', resetGame);
+      document.getElementById('btn-pause').addEventListener('click', () => { paused = !paused; });
+      document.getElementById('btn-mute').addEventListener('click', () => {
+        muted = !muted;
+        document.getElementById('btn-mute').textContent = muted ? '🔇 Muted' : '🔊 Audio';
+      });
+      document.getElementById('btn-help').addEventListener('click', () => {
+        document.getElementById('help-modal').classList.add('open');
+      });
+      document.getElementById('btn-close-help').addEventListener('click', () => {
+        document.getElementById('help-modal').classList.remove('open');
+      });
+
+      // Boot immediately into Wave 1 with initial incoming salvo
+      resetGame();
+      spawnEnemySalvo(4);
+      waveEnemiesRemaining -= 4;
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

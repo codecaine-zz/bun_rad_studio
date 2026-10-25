@@ -1,3 +1,4 @@
+import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * ⚡ Codecaine CyberFrog Deluxe — Neon Highway Edition Studio
  *
@@ -114,7 +115,7 @@ ${getWindowShortcutsScript()}
     html += desktopHooks;
   }
 
-  return html;
+  return injectGameMasterFx(html);
 }
 
 export function startFroggerServer(options: FroggerServerOptions = {}) {

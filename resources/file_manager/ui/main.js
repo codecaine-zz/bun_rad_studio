@@ -13,7 +13,7 @@ import { renderSidebar, wireSidebar } from "./sidebar.js";
 import { on, state } from "./state.js";
 import { openPower, setPowerExpanded, wirePower } from "./power.js";
 import { wireChrome } from "./chrome.js";
-import { applyPalette, effectiveAutoPalette } from "./themes.js";
+import { applyPalette, applyUiImmersionProfiles, effectiveAutoPalette } from "./themes.js";
 import { wireTypeCheck } from "./typecheck.js";
 import { wireWindowState } from "./windowState.js";
 import { startCopySections } from "./copysection.js";
@@ -73,9 +73,13 @@ function applySettings() {
     // nothing to change
   } else if (desiredPalette) {
     if (root.dataset.palette !== desiredPalette) applyPalette(desiredPalette);
+    else applyUiImmersionProfiles();
   } else if (root.dataset.palette) applyPalette("");
-  else if (s.theme === "auto") delete root.dataset.theme;
-  else root.dataset.theme = s.theme;
+  else {
+    if (s.theme === "auto") delete root.dataset.theme;
+    else root.dataset.theme = s.theme;
+    applyUiImmersionProfiles();
+  }
   root.style.setProperty("--fm-scale", String(s.textSize / 100));
   root.dataset.density = s.rowDensity || "comfortable";
   const appEl = document.getElementById("app");

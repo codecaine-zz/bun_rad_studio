@@ -2,8 +2,8 @@ import { writeFileSync } from "fs";
 import { join } from "path";
 
 export function generateRetroArcadeGames(outDir: string) {
-  // 30_lolo_remaster.md
-  writeFileSync(join(outDir, "30_lolo_remaster.md"), `# 🏰 Adventures of Lolo: Cyberpunk Remaster -- Complete Production User Guide
+  // 30_codecaine_adventures_of_caine_remaster.md
+  writeFileSync(join(outDir, "30_codecaine_adventures_of_caine_remaster.md"), `# 🏰 Codecaine Adventures of Caine Remaster -- Complete Production User Guide
 
 \`\`\`
 Version: 4.8.0  •  Engine: Native HTML5 Canvas & Web Audio Chiptune Synthesizer  •  Dependencies: 0  •  Offline: 100%
@@ -13,9 +13,9 @@ Launchers: [Desktop GUI: bun run app:lolo]  •  [Headless Server: bun run appli
 ---
 
 ## 🌟 Executive Overview
-**Adventures of Lolo: Cyberpunk Remaster** is a AAA procedural logic puzzle arcade game built natively for Bun RAD Studio. Reimagining the classic HAL Laboratory / Nintendo puzzle series inside a dark cyberpunk universe, it combines 100 mathematical logic chambers, autonomous hostile drone AI, temporal rewinding, an AI holographic pathfinding solver, and an in-game level editor.
+**Codecaine Adventures of Caine Remaster** is a AAA procedural logic puzzle arcade game built natively for Bun RAD Studio. Reimagining classic grid-based puzzle mechanics inside a dark cyberpunk universe, it combines 100 mathematical logic chambers, autonomous hostile drone AI, temporal rewinding, an AI holographic pathfinding solver, an in-game level editor, and the **Game Master FX HUD (\`Alt+G\`)**.
 
-You play as **LOLO** (Low-latency Optical Logic Operative), navigating the impenetrable **Eggerland Megastructure Citadel** to decrypt memory cores, outwit rogue sentry algorithms, and rescue **Princess Lala**.
+You play as **CAINE** (Cybernetic Autonomous Infiltration & Neural Operative), navigating the impenetrable **Codecaine Megastructure Citadel** to decrypt memory cores, outwit rogue sentry algorithms, and rescue **Operative Lyra**.
 
 ---
 
@@ -86,8 +86,8 @@ bun run applications/lolo_studio.ts --server
 | **F11** or **F** | Global | Toggle borderless fullscreen display. |
 `);
 
-  // 31_rodents_revenge_deluxe.md
-  writeFileSync(join(outDir, "31_rodents_revenge_deluxe.md"), `# 🐭 Rodent's Revenge Deluxe -- Complete Production User Guide
+  // 31_codecaine_cybermouse_trap_deluxe.md
+  writeFileSync(join(outDir, "31_codecaine_cybermouse_trap_deluxe.md"), `# 🐭 Codecaine CyberMouse Trap Deluxe -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native HTML5 Canvas & Retro Sound Synthesis  •  Dependencies: 0  •  Offline: 100%
@@ -97,9 +97,9 @@ Launchers: [Desktop GUI: bun run app:rodents_revenge]  •  [Headless Server: bu
 ---
 
 ## 🌟 Executive Overview
-**Rodent's Revenge Deluxe** is a high-DPI modern arcade revival of the classic 1991 Microsoft Windows puzzle game, rebuilt natively for Bun RAD Studio. You control a clever mouse trapped inside a grid crawling with hungry hostile cats.
+**Codecaine CyberMouse Trap Deluxe** is a high-DPI modern arcade puzzle game built natively for Bun RAD Studio. You control a clever CyberMouse trapped inside a neon grid crawling with hungry hostile cyber-cats.
 
-By pushing movable green blocks, you must outmaneuver the feline predators, trap them so they cannot move, and turn them into delicious wedges of score-multiplying cheese!
+By pushing movable green blocks, you must outmaneuver the feline predators, trap them so they cannot move, and turn them into delicious wedges of score-multiplying cheese! Includes the **Game Master FX HUD (\`Alt+G\`)**.
 
 ---
 
@@ -130,8 +130,8 @@ By pushing movable green blocks, you must outmaneuver the feline predators, trap
 | **Fullscreen** | \`F\` | \`F11\` |
 `);
 
-  // 32_word_search_labyrinth.md
-  writeFileSync(join(outDir, "32_word_search_labyrinth.md"), `# 🔠 Neon Word Search Labyrinth -- Complete Production User Guide
+  // 32_codecaine_neon_word_search_labyrinth.md
+  writeFileSync(join(outDir, "32_codecaine_neon_word_search_labyrinth.md"), `# 🔠 Codecaine Neon Word Search Labyrinth -- Complete Production User Guide
 
 \`\`\`
 Version: 2.5.0  •  Engine: Pure seeded puzzle engine + Web Audio & Canvas effects  •  Dependencies: 0  •  Works offline (fonts load online, with a system fallback)
@@ -141,7 +141,7 @@ Launchers: [Desktop GUI: bun run app:word_search]  •  [Headless Server: bun ru
 ---
 
 ## 🌟 Executive Overview
-**Neon Word Search Labyrinth** is a cyberpunk-themed word puzzle game: glowing canvas typography, tactile Web Audio feedback, drag-to-select words, limited hints, streak scoring and star ratings. It ships 10 word categories (Cyber, Cosmos, Arcade, Nature, Animals, Food, Geography, Science, Music, Sports), 3 difficulty levels, 3 board sizes, 4 color palettes, a **Daily Puzzle**, a **Stats** screen with personal bests, and saves your preferences and records between sessions.
+**Codecaine Neon Word Search Labyrinth** is a cyberpunk-themed word puzzle game: glowing canvas typography, tactile Web Audio feedback, drag-to-select words, limited hints, streak scoring and star ratings. It ships 10 word categories (Cyber, Cosmos, Arcade, Nature, Animals, Food, Geography, Science, Music, Sports), 3 difficulty levels, 3 board sizes, 4 color palettes, a **Daily Puzzle**, a **Stats** screen with personal bests, the **Game Master FX HUD (\`Alt+G\`)**, and saves your preferences and records between sessions.
 
 ---
 
@@ -197,8 +197,8 @@ Launchers: [Desktop GUI: bun run app:world_time_zones]  •  [Headless Server: b
 - **Interactive Scrubber Slider**: Drag a time slider to preview what 3:00 PM in your timezone will be across all global colleagues simultaneously.
 `);
 
-  // 34_pacman_arcade.md
-  writeFileSync(join(outDir, "34_pacman_arcade.md"), `# 🕹️ Cyberpunk Pac-Man Arcade -- Complete Production User Guide
+  // 34_codecaine_cyberchomp_arcade.md
+  writeFileSync(join(outDir, "34_codecaine_cyberchomp_arcade.md"), `# 🕹️ Codecaine CyberChomp Arcade -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native HTML5 Canvas & Authentic Ghost AI Personalities  •  Dependencies: 0  •  Offline: 100%
@@ -208,7 +208,7 @@ Launchers: [Desktop GUI: bun run app:pacman]  •  [Headless Server: bun run app
 ---
 
 ## 🌟 Executive Overview
-**Cyberpunk Pac-Man Arcade** is an authentic, retro-futuristic arcade remaster of the legendary 1980 maze game built natively for Bun RAD Studio. Rebuilt from the ground up with 60fps canvas rendering, synthetic chiptune sound effects, and the original, distinct AI personalities for all 4 ghost drones.
+**Codecaine CyberChomp Arcade** is an authentic, retro-futuristic maze-chomping arcade game built natively for Bun RAD Studio. Engineered from the ground up with 60fps canvas rendering, synthetic chiptune sound effects, distinct AI personalities for all 4 ghost drones, and the **Game Master FX HUD (\`Alt+G\`)**.
 
 ---
 
@@ -296,8 +296,8 @@ bun run applications/codecaine_bros_studio.ts --server
 | **Fullscreen** | \`F\` / \`F11\` | \`F\` / \`F11\` |
 `);
 
-  // 36_connect4_studio.md
-  writeFileSync(join(outDir, "36_connect4_studio.md"), `# 🔴 Cyberpunk Connect 4 Champion -- Complete Production User Guide
+  // 36_codecaine_cyberpunk_quadlink_4.md
+  writeFileSync(join(outDir, "36_codecaine_cyberpunk_quadlink_4.md"), `# 🔴 Codecaine Cyberpunk QuadLink 4 -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Minimax Heuristics AI Engine & Kinetic Falling Physics  •  Dependencies: 0  •  Offline: 100%
@@ -307,7 +307,7 @@ Launchers: [Desktop GUI: bun run app:connect4]  •  [Headless Server: bun run a
 ---
 
 ## 🌟 Executive Overview
-**Cyberpunk Connect 4 Champion** is a neon-infused, tactical 2-player and AI board game studio built natively for Bun RAD Studio. It combines real-time column hover drop previews, kinetic gravity disc falling physics, celebratory particle bursts, Web Audio sound effects, and a configurable Minimax heuristic AI.
+**Codecaine Cyberpunk QuadLink 4** is a neon-infused, tactical 2-player and AI board game studio built natively for Bun RAD Studio. It combines real-time column hover drop previews, kinetic gravity disc falling physics, celebratory particle bursts, Web Audio sound effects, a configurable Minimax heuristic AI, and the **Game Master FX HUD (\`Alt+G\`)**.
 
 ---
 
@@ -349,8 +349,8 @@ bun run applications/connect4_studio.ts --server
 - **Fullscreen**: \`F\` / \`F11\`
 `);
 
-  // 37_maze_generator_studio.md
-  writeFileSync(join(outDir, "37_maze_generator_studio.md"), `# 🌀 Cyberpunk Maze Generator & Solver -- Complete Production User Guide
+  // 37_codecaine_cyberpunk_maze_runner.md
+  writeFileSync(join(outDir, "37_codecaine_cyberpunk_maze_runner.md"), `# 🌀 Codecaine Cyberpunk Maze Runner -- Complete Production User Guide
 
 \`\`\`
 Version: 2.5.0  •  Engine: 5 Graph Theory Generators & A*/Dijkstra/BFS Solvers  •  Dependencies: 0  •  Works offline (fonts load online, with system fallback)
@@ -360,7 +360,7 @@ Launchers: [Desktop GUI: bun run app:maze]  •  [Headless Server: bun run appli
 ---
 
 ## 🌟 Executive Overview
-**Cyberpunk Maze Generator & Solver** is an interactive procedural labyrinth workstation, pathfinding visualization platform, and exploration arcade game built natively for Bun RAD Studio. It provides mathematical demonstrations of 5 graph theory algorithms, 3 real-time pathfinding solvers, high-DPI neon canvas rendering with circuit glow, ambient cyber drone synthesizer, daily challenges, and telemetry records.
+**Codecaine Cyberpunk Maze Runner** is an interactive procedural labyrinth workstation, pathfinding visualization platform, and exploration arcade game built natively for Bun RAD Studio. It provides mathematical demonstrations of 5 graph theory algorithms, 3 real-time pathfinding solvers, high-DPI neon canvas rendering with circuit glow, ambient cyber drone synthesizer, daily challenges, telemetry records, and the **Game Master FX HUD (\`Alt+G\`)**.
 
 ---
 
@@ -430,8 +430,8 @@ bun run applications/maze_generator_studio.ts --server
 - **Fullscreen (F / F11)**: Toggles distraction-free fullscreen mode
 `);
 
-  // 38_pong_arcade.md
-  writeFileSync(join(outDir, "38_pong_arcade.md"), `# 🏓 Neon Cyber Pong -- Complete Production User Guide
+  // 38_codecaine_neon_cyber_paddle.md
+  writeFileSync(join(outDir, "38_codecaine_neon_cyber_paddle.md"), `# 🏓 Codecaine Neon Cyber Paddle -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Kinetic Vector Ball Physics & Synthetic Audio  •  Dependencies: 0  •  Offline: 100%
@@ -441,7 +441,7 @@ Launchers: [Desktop GUI: bun run app:pong]  •  [Headless Server: bun run appli
 ---
 
 ## 🌟 Executive Overview
-**Neon Cyber Pong** is a high-speed, kinetic arcade tennis remaster built natively for Bun RAD Studio. Featuring responsive paddle spin deflection physics, particle collision shockwaves, Web Audio frequency synthesis, multi-tier AI opponents, and local 2-player multiplayer.
+**Codecaine Neon Cyber Paddle** is a high-speed, kinetic arcade paddle-tennis remaster built natively for Bun RAD Studio. Featuring responsive paddle spin deflection physics, particle collision shockwaves, Web Audio frequency synthesis, multi-tier AI opponents, local 2-player multiplayer, and the **Game Master FX HUD (\`Alt+G\`)**.
 
 ---
 
@@ -483,8 +483,8 @@ bun run applications/pong_studio.ts --server
 | **Fullscreen** | \`F\` / \`F11\` | — |
 `);
 
-  // 39_tictactoe_studio.md
-  writeFileSync(join(outDir, "39_tictactoe_studio.md"), `# ⭕ Neon Tic-Tac-Toe AI Studio -- Complete Production User Guide
+  // 39_codecaine_neon_tic_tac_toe_arcade.md
+  writeFileSync(join(outDir, "39_codecaine_neon_tic_tac_toe_arcade.md"), `# ⭕ Codecaine Neon Tic-Tac-Toe Arcade -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Unbeatable Minimax Game Theory Engine  •  Dependencies: 0  •  Offline: 100%
@@ -494,7 +494,7 @@ Launchers: [Desktop GUI: bun run app:tictactoe]  •  [Headless Server: bun run 
 ---
 
 ## 🌟 Executive Overview
-**Neon Tic-Tac-Toe AI Studio** is an interactive, cyberpunk-styled 3x3 strategy game and game theory workstation built natively for Bun RAD Studio. It showcases the classic **Minimax Algorithm** in an unbeatable AI mode, alongside casual practice modes, local 2-player matches, glowing neon canvas visuals, particle celebrations, and sound synthesis.
+**Codecaine Neon Tic-Tac-Toe Arcade** is an interactive, cyberpunk-styled 3x3 strategy game and game theory workstation built natively for Bun RAD Studio. It showcases the classic **Minimax Algorithm** in an unbeatable AI mode, alongside casual practice modes, local 2-player matches, glowing neon canvas visuals, particle celebrations, sound synthesis, and the **Game Master FX HUD (\`Alt+G\`)**.
 
 ---
 

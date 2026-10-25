@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="boardBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="85%" stop-color="#0b1120"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="goldRim" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="50%" stop-color="#eab308"/>
+      <stop offset="100%" stop-color="#a16207"/>
+    </linearGradient>
+    <linearGradient id="dartFlight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f5d4"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer cabinet bezel -->
+  <circle cx="32" cy="32" r="30" fill="url(#boardBg)" stroke="url(#goldRim)" stroke-width="2.5"/>
+  <!-- Double ring (Red/Green alternating feel) -->
+  <circle cx="32" cy="32" r="25" fill="none" stroke="#ef4444" stroke-width="3" stroke-dasharray="7.85 7.85"/>
+  <circle cx="32" cy="32" r="25" fill="none" stroke="#22c55e" stroke-width="3" stroke-dasharray="7.85 7.85" stroke-dashoffset="7.85"/>
+  <!-- Treble ring -->
+  <circle cx="32" cy="32" r="15.5" fill="none" stroke="#ef4444" stroke-width="2.6" stroke-dasharray="4.87 4.87"/>
+  <circle cx="32" cy="32" r="15.5" fill="none" stroke="#22c55e" stroke-width="2.6" stroke-dasharray="4.87 4.87" stroke-dashoffset="4.87"/>
+  <!-- Spider wires -->
+  <g stroke="#cbd5e1" stroke-width="0.6" opacity="0.65">
+    <line x1="32" y1="5" x2="32" y2="59"/>
+    <line x1="5" y1="32" x2="59" y2="32"/>
+    <line x1="12.9" y1="12.9" x2="51.1" y2="51.1"/>
+    <line x1="51.1" y1="12.9" x2="12.9" y2="51.1"/>
+  </g>
+  <!-- Outer Bull (25) -->
+  <circle cx="32" cy="32" r="6.8" fill="#16a34a" stroke="#e2e8f0" stroke-width="0.9"/>
+  <!-- Inner Bullseye (50) -->
+  <circle cx="32" cy="32" r="3.4" fill="#dc2626" stroke="#fde047" stroke-width="0.9"/>
+  <!-- Tungsten Dart piercing the Bullseye -->
+  <g transform="translate(0, 0)">
+    <!-- Drop shadow -->
+    <line x1="32" y1="32" x2="52" y2="48" stroke="rgba(0,0,0,0.55)" stroke-width="2.2" stroke-linecap="round"/>
+    <!-- Steel tip + tungsten barrel -->
+    <line x1="32" y1="32" x2="48" y2="16" stroke="#e2e8f0" stroke-width="2.8" stroke-linecap="round"/>
+    <line x1="37" y1="27" x2="44" y2="20" stroke="#facc15" stroke-width="3.2" stroke-linecap="round"/>
+    <!-- Cyan Neon Flight Fins -->
+    <polygon points="46,18 55,7 58,12 49,21" fill="url(#dartFlight)" stroke="#f8fafc" stroke-width="0.7"/>
+    <polygon points="45,17 50,5 55,7 47,19" fill="#06b6d4" opacity="0.85"/>
+    <!-- Bullseye impact spark -->
+    <circle cx="32" cy="32" r="1.6" fill="#fef08a"/>
+  </g>
+</svg>

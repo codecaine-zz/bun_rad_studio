@@ -1,3 +1,4 @@
+import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * ⚡ Codecaine Bros. - Overclocked Retro Arcade Studio
  * 
@@ -140,7 +141,7 @@ ${getWindowShortcutsScript()}
     html += desktopHooks;
   }
 
-  return html;
+  return injectGameMasterFx(html);
 }
 
 /**

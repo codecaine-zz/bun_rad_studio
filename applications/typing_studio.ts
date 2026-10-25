@@ -1,3 +1,4 @@
+import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * ⚡ Codecaine CyberType Deluxe — Codecaine Master Edition Studio
  *
@@ -80,7 +81,7 @@ ${getWindowShortcutsScript()}
     html += desktopHooks;
   }
 
-  return html;
+  return injectGameMasterFx(html);
 }
 
 export function startTypingServer(options: TypingServerOptions = {}) {

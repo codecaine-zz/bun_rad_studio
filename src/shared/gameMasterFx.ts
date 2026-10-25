@@ -53,7 +53,6 @@ export const GAME_MASTER_FX_STYLE = `
   }
 
   html[data-gm-shader="cyber_bloom"] #gm-fx-postprocess {
-    backdrop-filter: saturate(1.14) contrast(1.04);
     background:
       radial-gradient(var(--in-oklab) circle at 50% 0%, rgba(0, 243, 255, 0.08) 0%, transparent 62%),
       radial-gradient(var(--in-oklab) circle at 50% 100%, rgba(255, 0, 127, 0.07) 0%, transparent 60%);
@@ -61,7 +60,6 @@ export const GAME_MASTER_FX_STYLE = `
   }
 
   html[data-gm-shader="crt_arcade"] #gm-fx-postprocess {
-    backdrop-filter: contrast(1.1) saturate(1.15);
     background:
       repeating-linear-gradient(
         0deg,
@@ -81,14 +79,12 @@ export const GAME_MASTER_FX_STYLE = `
   }
 
   html[data-gm-shader="synthwave"] #gm-fx-postprocess {
-    backdrop-filter: saturate(1.24) contrast(1.06) hue-rotate(-6deg);
     background:
       linear-gradient(var(--in-oklab) 180deg, rgba(255, 0, 128, 0.09) 0%, transparent 45%, rgba(0, 243, 255, 0.11) 100%);
     box-shadow: inset 0 0 75px rgba(255, 0, 128, 0.14);
   }
 
   html[data-gm-shader="matrix"] #gm-fx-postprocess {
-    backdrop-filter: hue-rotate(75deg) saturate(1.25) contrast(1.08);
     background:
       repeating-linear-gradient(
         0deg,
@@ -101,7 +97,6 @@ export const GAME_MASTER_FX_STYLE = `
   }
 
   html[data-gm-shader="golden_vip"] #gm-fx-postprocess {
-    backdrop-filter: sepia(0.18) saturate(1.3) contrast(1.06);
     background:
       radial-gradient(var(--in-oklab) circle at 50% 10%, rgba(255, 215, 0, 0.10) 0%, transparent 65%),
       radial-gradient(var(--in-oklab) circle at 50% 90%, rgba(255, 140, 0, 0.08) 0%, transparent 65%);
@@ -334,7 +329,350 @@ export const GAME_MASTER_FX_STYLE = `
     border-color: rgba(0, 255, 136, 0.55);
     color: #d1fae5;
   }
+
+  #gm-fx-pill-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  #gm-fx-pause-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 11px;
+    border-radius: 999px;
+    background: rgba(12, 18, 38, 0.9);
+    border: 1px solid rgba(255, 215, 0, 0.55);
+    color: #ffd700;
+    font-family: 'Orbitron', 'Inter', system-ui, sans-serif;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    cursor: pointer;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), 0 0 12px rgba(255, 215, 0, 0.2);
+    transition: scale 0.16s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  #gm-fx-pause-btn:hover {
+    scale: 1.05;
+    border-color: #ffd700;
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.38);
+  }
+
+  /* Universal Arcade Start Menu & Ready Gate Overlay */
+  #gm-start-gate-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 99994 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: radial-gradient(circle at 50% 42%, rgba(6, 10, 26, 0.78) 0%, rgba(2, 4, 12, 0.92) 100%) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    font-family: 'Orbitron', 'Inter', system-ui, sans-serif;
+    user-select: none;
+  }
+
+  #gm-start-gate-overlay[hidden] {
+    display: none !important;
+  }
+
+  html[data-gm-start-open="true"] #overlay,
+  html[data-gm-start-open="true"] #startOverlay,
+  html[data-gm-start-open="true"] #start-screen {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  .gm-start-card {
+    width: min(540px, 94vw);
+    padding: 24px 26px !important;
+    border-radius: 20px !important;
+    background: linear-gradient(160deg, #0b132e 0%, #050816 100%) !important;
+    border: 2px solid #00f3ff !important;
+    box-shadow:
+      0 28px 72px rgba(0, 0, 0, 0.95),
+      0 0 42px rgba(0, 243, 255, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+    color: #f8fafc !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .gm-start-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(0, 243, 255, 0.14);
+    border: 1px solid rgba(0, 243, 255, 0.45);
+    color: #00f3ff;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .gm-start-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ffd700;
+    box-shadow: 0 0 10px #ffd700;
+  }
+
+  .gm-start-title {
+    margin: 0;
+    font-size: clamp(18px, 3vw, 24px);
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #ffffff;
+    text-shadow: 0 0 16px rgba(0, 243, 255, 0.55);
+    line-height: 1.2;
+  }
+
+  .gm-start-sub {
+    margin: 0;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 12px;
+    color: #94a3b8;
+    max-width: 440px;
+    line-height: 1.45;
+  }
+
+  .gm-start-modes-wrap {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: rgba(15, 23, 42, 0.68);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 12px;
+    padding: 9px 10px;
+  }
+
+  .gm-start-modes-wrap[hidden] {
+    display: none !important;
+  }
+
+  .gm-start-modes-label {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: #ffd700;
+    text-transform: uppercase;
+  }
+
+  .gm-start-modes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .gm-start-mode-chip {
+    padding: 5px 10px;
+    border-radius: 8px;
+    background: rgba(20, 30, 58, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    color: #cbd5e1;
+    font-family: 'Orbitron', 'Inter', system-ui, sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .gm-start-mode-chip:hover {
+    border-color: #00f3ff;
+    color: #ffffff;
+  }
+
+  .gm-start-mode-chip.active {
+    background: rgba(0, 243, 255, 0.22);
+    border-color: #00f3ff;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(0, 243, 255, 0.35);
+  }
+
+  .gm-start-controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .gm-start-ctrl-pill {
+    padding: 4px 9px;
+    border-radius: 7px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(0, 243, 255, 0.24);
+    color: #bae6fd;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+  }
+
+  .gm-start-actions {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  #gm-start-play-btn {
+    flex: 1;
+    padding: 13px 18px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%);
+    border: none;
+    color: #030b17;
+    font-family: 'Orbitron', 'Inter', system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 8px 26px rgba(0, 255, 136, 0.42), 0 0 18px rgba(0, 212, 255, 0.35);
+    transition: scale 0.15s ease, box-shadow 0.2s ease;
+  }
+
+  #gm-start-play-btn:hover {
+    scale: 1.025;
+    box-shadow: 0 10px 32px rgba(0, 255, 136, 0.62), 0 0 24px rgba(0, 212, 255, 0.55);
+  }
+
+  #gm-start-restart-btn {
+    padding: 13px 14px;
+    border-radius: 12px;
+    background: rgba(255, 0, 127, 0.16);
+    border: 1px solid rgba(255, 0, 127, 0.55);
+    color: #ffd6eb;
+    font-family: 'Orbitron', 'Inter', system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: scale 0.15s ease, background 0.15s ease;
+  }
+
+  #gm-start-restart-btn:hover {
+    scale: 1.03;
+    background: rgba(255, 0, 127, 0.3);
+  }
 </style>
+<script id="codecaine-game-master-pregate">
+(function() {
+  try {
+    if (typeof window === "undefined") return;
+    var ua = (window.navigator && window.navigator.userAgent) || "";
+    var path = (window.location && window.location.pathname) || "";
+    var search = (window.location && window.location.search) || "";
+    var isUtility = /\\/app\\/(calc|timer|paint)\\b/i.test(path) || /universal_calculator|interval_timer|\\bpaint\\b/i.test(path);
+    var isAutostart = /[?&](autostart|gm_autostart)=1\\b/i.test(search) || /jsdom/i.test(ua) || window.__gmDisableStartGate === true;
+    if (isUtility || isAutostart) {
+      window.__gmGamePaused = false;
+      window.__gmStartGateDisabled = true;
+      return;
+    }
+    if (typeof window.__gmGamePaused === "boolean") return;
+    window.__gmGamePaused = true;
+    window.__gmGameStarted = false;
+
+    var origPerfNow = (window.performance && typeof window.performance.now === "function")
+      ? window.performance.now.bind(window.performance)
+      : function() { return Date.now(); };
+    var pauseStartedAt = origPerfNow();
+    var totalPausedMs = 0;
+
+    window.__gmGetEffectiveNow = function() {
+      var raw = origPerfNow();
+      return window.__gmGamePaused ? Math.max(0, pauseStartedAt - totalPausedMs) : Math.max(0, raw - totalPausedMs);
+    };
+
+    var origRaf = window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : null;
+    window.__gmOrigRaf = origRaf;
+    var queuedRafs = [];
+    var initialFramesAllowed = 2;
+    var syntheticRafId = 100000;
+
+    if (origRaf) {
+      window.requestAnimationFrame = function(cb) {
+        if (typeof cb !== "function") return origRaf(cb);
+        if (cb.__gmBypassPause) return origRaf(cb);
+        if (!window.__gmGamePaused) {
+          return origRaf(function() {
+            cb(window.__gmGetEffectiveNow());
+          });
+        }
+        if (initialFramesAllowed > 0) {
+          initialFramesAllowed--;
+          return origRaf(function() {
+            cb(window.__gmGetEffectiveNow());
+          });
+        }
+        if (queuedRafs.indexOf(cb) === -1) {
+          queuedRafs.push(cb);
+        }
+        return ++syntheticRafId;
+      };
+    }
+
+    var origSetInterval = window.setInterval ? window.setInterval.bind(window) : null;
+    window.__gmOrigSetInterval = origSetInterval;
+    if (origSetInterval) {
+      window.setInterval = function(fn, delay) {
+        if (typeof fn !== "function" || fn.__gmAllowWhilePaused) {
+          return origSetInterval.apply(window, arguments);
+        }
+        var extraArgs = Array.prototype.slice.call(arguments, 2);
+        var wrapped = function() {
+          if (window.__gmGamePaused) return;
+          return fn.apply(this, extraArgs);
+        };
+        return origSetInterval(wrapped, delay);
+      };
+    }
+
+    window.__gmSetPaused = function(paused) {
+      var next = !!paused;
+      if (next === window.__gmGamePaused) return;
+      if (next) {
+        pauseStartedAt = origPerfNow();
+        window.__gmGamePaused = true;
+      } else {
+        totalPausedMs += Math.max(0, origPerfNow() - pauseStartedAt);
+        window.__gmGamePaused = false;
+        window.__gmGameStarted = true;
+        var pending = queuedRafs.slice();
+        queuedRafs.length = 0;
+        if (origRaf) {
+          for (var i = 0; i < pending.length; i++) {
+            (function(fn) {
+              origRaf(function() {
+                try { fn(window.__gmGetEffectiveNow()); } catch (_) {}
+              });
+            })(pending[i]);
+          }
+        }
+      }
+    };
+  } catch (_) {}
+})();
+</script>
 `;
 
 export const GAME_MASTER_FX_SCRIPT = `
@@ -386,6 +724,88 @@ export const GAME_MASTER_FX_SCRIPT = `
     var ctx = null;
     var calloutsEl = null;
     var fpsBadgeEl = null;
+    var startGateEl = null;
+    var pauseBtnEl = null;
+
+    function isStartGateApplicable() {
+      if (window.__gmStartGateDisabled) return false;
+      var title = (document && document.title) || "";
+      if (/universal calculator|interval timer|cyberpaint/i.test(title)) return false;
+      return true;
+    }
+
+    function syncPauseUi() {
+      var paused = !!window.__gmGamePaused;
+      if (pauseBtnEl) {
+        pauseBtnEl.textContent = paused ? "▶ RESUME" : "⏸ PAUSE";
+      }
+      if (startGateEl) {
+        startGateEl.hidden = !paused;
+        if (document.documentElement) {
+          if (paused) {
+            document.documentElement.setAttribute("data-gm-start-open", "true");
+          } else {
+            document.documentElement.removeAttribute("data-gm-start-open");
+          }
+        }
+        var playBtn = document.getElementById("gm-start-play-btn");
+        var badgeTxt = document.getElementById("gm-start-badge-text");
+        if (playBtn) {
+          playBtn.textContent = window.__gmGameStarted
+            ? "▶ RESUME GAME [SPACE / ENTER]"
+            : "▶ START GAME NOW [SPACE / ENTER]";
+        }
+        if (badgeTxt) {
+          badgeTxt.textContent = window.__gmGameStarted
+            ? "ARCADE ENGINE PAUSED // STANDBY"
+            : "CODECAINE ARCADE // READY PLAYER ONE";
+        }
+      }
+    }
+
+    function startGame() {
+      var wasFirstStart = !window.__gmGameStarted;
+      if (typeof window.__gmSetPaused === "function") {
+        window.__gmSetPaused(false);
+      } else {
+        window.__gmGamePaused = false;
+        window.__gmGameStarted = true;
+      }
+      syncPauseUi();
+      if (wasFirstStart) {
+        try {
+          var innerBtn = document.querySelector(
+            "#overlay:not(.hidden) #btnOverlayAction, #startOverlay:not(.hidden) button, #start-screen:not(.hidden) button"
+          );
+          if (innerBtn && typeof innerBtn.click === "function") {
+            innerBtn.click();
+          }
+        } catch (_) {}
+        var w = window.innerWidth || 800;
+        var h = window.innerHeight || 600;
+        spawnBurst(w * 0.5, h * 0.5, "#00ff88", 22);
+        spawnFloatingCallout("⚡ GAME ON! GOOD LUCK! ⚡", w * 0.5, h * 0.36, "#00ff88");
+      }
+      try { window.focus(); } catch (_) {}
+    }
+
+    function pauseGame() {
+      if (!isStartGateApplicable()) return;
+      if (typeof window.__gmSetPaused === "function") {
+        window.__gmSetPaused(true);
+      } else {
+        window.__gmGamePaused = true;
+      }
+      syncPauseUi();
+    }
+
+    function togglePause() {
+      if (window.__gmGamePaused) {
+        startGame();
+      } else {
+        pauseGame();
+      }
+    }
 
     function applyShader(shaderId) {
       state.shader = shaderId || "cyber_bloom";
@@ -527,14 +947,158 @@ export const GAME_MASTER_FX_SCRIPT = `
             '<button type="button" class="gm-fx-action-btn" id="gm-fx-fireworks-btn">🎆 Pyro</button>' +
           '</div>' +
         '</div>' +
-        '<button type="button" id="gm-fx-pill" title="Codecaine Game Master FX Suite (Alt+G)">' +
-          '<span>🕹️ FX</span>' +
-          '<span id="gm-fx-fps-badge">60 FPS</span>' +
-        '</button>';
+        '<div id="gm-fx-pill-row">' +
+          '<button type="button" id="gm-fx-pause-btn" title="Pause / Resume Game (Alt+P)">⏸ PAUSE</button>' +
+          '<button type="button" id="gm-fx-pill" title="Codecaine Game Master FX Suite (Alt+G)">' +
+            '<span>🕹️ FX</span>' +
+            '<span id="gm-fx-fps-badge">60 FPS</span>' +
+          '</button>' +
+        '</div>';
 
       document.body.appendChild(dock);
       fpsBadgeEl = document.getElementById("gm-fx-fps-badge");
+      pauseBtnEl = document.getElementById("gm-fx-pause-btn");
       applyShader(state.shader);
+
+      if (pauseBtnEl) {
+        if (!isStartGateApplicable()) {
+          pauseBtnEl.style.display = "none";
+        } else {
+          pauseBtnEl.addEventListener("click", function(e) {
+            e.stopPropagation();
+            togglePause();
+          });
+        }
+      }
+
+      // Build Universal Arcade Start Menu & Ready Gate Overlay
+      if (isStartGateApplicable() && !document.getElementById("gm-start-gate-overlay")) {
+        var rawTitle = "";
+        try {
+          var h1 = document.querySelector("h1, .brand-title, .game-title");
+          if (h1 && h1.textContent) rawTitle = h1.textContent.trim();
+        } catch (_) {}
+        if (!rawTitle) {
+          rawTitle = (document.title || "Codecaine Arcade Studio").split("—")[0].split("|")[0].trim();
+        }
+
+        var rawSub = "";
+        try {
+          var subNode = document.querySelector(".brand-sub, .subtitle, .tagline");
+          if (subNode && subNode.textContent) rawSub = subNode.textContent.trim();
+        } catch (_) {}
+        if (!rawSub) {
+          rawSub = "Arcade engine is paused on Frame 0 so the game never starts before you are ready!";
+        }
+
+        startGateEl = document.createElement("div");
+        startGateEl.id = "gm-start-gate-overlay";
+        startGateEl.innerHTML =
+          '<div class="gm-start-card">' +
+            '<div class="gm-start-badge">' +
+              '<span class="gm-start-status-dot"></span>' +
+              '<span id="gm-start-badge-text">CODECAINE ARCADE // READY PLAYER ONE</span>' +
+            '</div>' +
+            '<h2 class="gm-start-title" id="gm-start-title-text"></h2>' +
+            '<p class="gm-start-sub" id="gm-start-sub-text"></p>' +
+            '<div class="gm-start-modes-wrap" id="gm-start-modes-wrap" hidden>' +
+              '<div class="gm-start-modes-label">🎯 Quick Mode Select</div>' +
+              '<div class="gm-start-modes" id="gm-start-modes"></div>' +
+            '</div>' +
+            '<div class="gm-start-controls">' +
+              '<span class="gm-start-ctrl-pill">⌨️ WASD / Arrows</span>' +
+              '<span class="gm-start-ctrl-pill">🖱️ Click / Touch Stage</span>' +
+              '<span class="gm-start-ctrl-pill">⏸️ Pause Anytime</span>' +
+              '<span class="gm-start-ctrl-pill">🎛️ Alt+G Shaders</span>' +
+            '</div>' +
+            '<div class="gm-start-actions">' +
+              '<button type="button" id="gm-start-play-btn">▶ START GAME NOW [SPACE / ENTER]</button>' +
+              '<button type="button" id="gm-start-restart-btn" title="Reset / New Run">🔄 NEW RUN</button>' +
+            '</div>' +
+          '</div>';
+        document.body.appendChild(startGateEl);
+
+        var titleEl = document.getElementById("gm-start-title-text");
+        var subEl = document.getElementById("gm-start-sub-text");
+        if (titleEl) titleEl.textContent = rawTitle;
+        if (subEl) subEl.textContent = rawSub;
+
+        // Populate quick mode chips if the game has mode buttons or a mode select
+        try {
+          var modesWrap = document.getElementById("gm-start-modes-wrap");
+          var modesContainer = document.getElementById("gm-start-modes");
+          var modeBtns = document.querySelectorAll(".mode-tab, .mode-btn, .mode-pill, button[data-mode]");
+          var modeSelect = document.querySelector("select#modeSelect, select#gameMode, select#variantSelect, select#mode-select");
+          if (modesContainer && modesWrap) {
+            if (modeBtns && modeBtns.length > 1) {
+              modesWrap.hidden = false;
+              var maxBtns = Math.min(8, modeBtns.length);
+              for (var m = 0; m < maxBtns; m++) {
+                (function(targetBtn) {
+                  var chip = document.createElement("button");
+                  chip.type = "button";
+                  chip.className = "gm-start-mode-chip" + (targetBtn.classList && targetBtn.classList.contains("active") ? " active" : "");
+                  chip.textContent = (targetBtn.textContent || "").trim().slice(0, 26);
+                  chip.addEventListener("click", function(ev) {
+                    ev.stopPropagation();
+                    try { targetBtn.click(); } catch (_) {}
+                    var allChips = modesContainer.querySelectorAll(".gm-start-mode-chip");
+                    for (var c = 0; c < allChips.length; c++) allChips[c].classList.remove("active");
+                    chip.classList.add("active");
+                  });
+                  modesContainer.appendChild(chip);
+                })(modeBtns[m]);
+              }
+            } else if (modeSelect && modeSelect.options && modeSelect.options.length > 1) {
+              modesWrap.hidden = false;
+              var maxOpts = Math.min(8, modeSelect.options.length);
+              for (var o = 0; o < maxOpts; o++) {
+                (function(opt) {
+                  var chip = document.createElement("button");
+                  chip.type = "button";
+                  chip.className = "gm-start-mode-chip" + (modeSelect.value === opt.value ? " active" : "");
+                  chip.textContent = (opt.textContent || opt.value || "").trim().slice(0, 26);
+                  chip.addEventListener("click", function(ev) {
+                    ev.stopPropagation();
+                    try {
+                      modeSelect.value = opt.value;
+                      modeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+                    } catch (_) {}
+                    var allChips = modesContainer.querySelectorAll(".gm-start-mode-chip");
+                    for (var c = 0; c < allChips.length; c++) allChips[c].classList.remove("active");
+                    chip.classList.add("active");
+                  });
+                  modesContainer.appendChild(chip);
+                })(modeSelect.options[o]);
+              }
+            }
+          }
+        } catch (_) {}
+
+        var startPlayBtn = document.getElementById("gm-start-play-btn");
+        var startRestartBtn = document.getElementById("gm-start-restart-btn");
+        if (startPlayBtn) {
+          startPlayBtn.addEventListener("click", function(e) {
+            e.stopPropagation();
+            startGame();
+          });
+        }
+        if (startRestartBtn) {
+          startRestartBtn.addEventListener("click", function(e) {
+            e.stopPropagation();
+            try {
+              var resetTarget = document.querySelector(
+                "#btnReset, #btnNew, #btnNewGame, #newGameBtn, #resetBtn, button[data-action='reset']"
+              );
+              if (resetTarget && typeof resetTarget.click === "function") {
+                resetTarget.click();
+              }
+            } catch (_) {}
+            startGame();
+          });
+        }
+        syncPauseUi();
+      }
 
       var pill = document.getElementById("gm-fx-pill");
       var panel = document.getElementById("gm-fx-panel");
@@ -636,6 +1200,7 @@ export const GAME_MASTER_FX_SCRIPT = `
 
         var lastTime = (window.performance && window.performance.now) ? window.performance.now() : Date.now();
         var frames = 0;
+        var canvasWasDirty = false;
         var raf = window.requestAnimationFrame;
         if (typeof raf === "function") {
           var tick = function(now) {
@@ -649,63 +1214,52 @@ export const GAME_MASTER_FX_SCRIPT = `
             }
 
             if (ctx && canvas) {
-              ctx.clearRect(0, 0, canvas.width, canvas.height);
+              var hasActive = shockwaves.length > 0 || particles.length > 0;
+              if (hasActive || canvasWasDirty) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                canvasWasDirty = hasActive;
+              }
 
-              if (state.particles && state.shader !== "clean") {
-                for (var a = 0; a < ambientDust.length; a++) {
-                  var p = ambientDust[a];
-                  p.x += p.vx;
-                  p.y += p.vy;
-                  if (p.y < -10) p.y = canvas.height + 10;
-                  if (p.x < -10) p.x = canvas.width + 10;
-                  if (p.x > canvas.width + 10) p.x = -10;
-                  ctx.globalAlpha = p.alpha;
-                  ctx.fillStyle = p.color;
+              if (hasActive) {
+                for (var s = shockwaves.length - 1; s >= 0; s--) {
+                  var sw = shockwaves[s];
+                  sw.radius += (sw.maxRadius - sw.radius) * 0.18 + 1.4;
+                  sw.alpha *= 0.88;
+                  if (sw.alpha <= 0.03) {
+                    shockwaves.splice(s, 1);
+                    continue;
+                  }
+                  ctx.save();
+                  ctx.globalAlpha = sw.alpha;
+                  ctx.strokeStyle = sw.color;
+                  ctx.lineWidth = 2;
                   ctx.beginPath();
-                  ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                  ctx.fill();
+                  ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+                  ctx.stroke();
+                  ctx.restore();
                 }
-              }
 
-              for (var s = shockwaves.length - 1; s >= 0; s--) {
-                var sw = shockwaves[s];
-                sw.radius += (sw.maxRadius - sw.radius) * 0.18 + 1.4;
-                sw.alpha *= 0.88;
-                if (sw.alpha <= 0.03) {
-                  shockwaves.splice(s, 1);
-                  continue;
+                for (var i = particles.length - 1; i >= 0; i--) {
+                  var pt = particles[i];
+                  pt.x += pt.vx;
+                  pt.y += pt.vy;
+                  pt.vy += 0.11;
+                  pt.alpha -= pt.decay;
+                  if (pt.alpha <= 0.02) {
+                    particles.splice(i, 1);
+                    continue;
+                  }
+                  ctx.save();
+                  ctx.globalAlpha = pt.alpha;
+                  ctx.fillStyle = pt.color;
+                  ctx.fillRect(pt.x - pt.size, pt.y - pt.size, pt.size * 2, pt.size * 2);
+                  ctx.restore();
                 }
-                ctx.save();
-                ctx.globalAlpha = sw.alpha;
-                ctx.strokeStyle = sw.color;
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.restore();
-              }
-
-              for (var i = particles.length - 1; i >= 0; i--) {
-                var pt = particles[i];
-                pt.x += pt.vx;
-                pt.y += pt.vy;
-                pt.vy += 0.11;
-                pt.alpha -= pt.decay;
-                if (pt.alpha <= 0.02) {
-                  particles.splice(i, 1);
-                  continue;
-                }
-                ctx.save();
-                ctx.globalAlpha = pt.alpha;
-                ctx.fillStyle = pt.color;
-                ctx.beginPath();
-                ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
               }
             }
             raf(tick);
           };
+          tick.__gmBypassPause = true;
           raf(tick);
         }
       }
@@ -749,22 +1303,37 @@ export const GAME_MASTER_FX_SCRIPT = `
             }
           }
         };
+        checkScores.__gmAllowWhilePaused = true;
         setInterval(checkScores, 450);
       } catch (_) {}
     }
 
-    // Keyboard shortcut Alt+G to toggle Game Master FX Panel
+    // Keyboard shortcuts: Space/Enter starts when Start Menu is open; Alt+P toggles Pause; Alt+G toggles FX Panel
     window.addEventListener("keydown", function(e) {
-      if (e && e.altKey && (e.code === "KeyG" || e.key === "g" || e.key === "G")) {
+      if (!e) return;
+      if (startGateEl && !startGateEl.hidden && window.__gmGamePaused) {
+        if ((e.code === "Space" || e.code === "Enter" || e.key === " " || e.key === "Enter") && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          e.stopPropagation();
+          startGame();
+          return;
+        }
+      }
+      if (e.altKey && (e.code === "KeyP" || e.key === "p" || e.key === "P")) {
+        e.preventDefault();
+        togglePause();
+        return;
+      }
+      if (e.altKey && (e.code === "KeyG" || e.key === "g" || e.key === "G")) {
         var panel = document.getElementById("gm-fx-panel");
         if (panel) {
           e.preventDefault();
           panel.hidden = !panel.hidden;
         }
       }
-    });
+    }, true);
 
-    // Listen for parent frame messages (File Manager Codecaine Games Hub live shader control)
+    // Listen for parent frame messages (File Manager Codecaine Games Hub live shader & start/pause control)
     window.addEventListener("message", function(e) {
       var data = e && e.data;
       if (!data || typeof data !== "object") return;
@@ -774,6 +1343,15 @@ export const GAME_MASTER_FX_SCRIPT = `
       if (data.fmGameMasterAction === "fireworks") {
         triggerVictoryFireworks();
       }
+      if (data.fmGameMasterAction === "start") {
+        startGame();
+      }
+      if (data.fmGameMasterAction === "pause") {
+        pauseGame();
+      }
+      if (data.fmGameMasterAction === "togglePause") {
+        togglePause();
+      }
     });
 
     window.CodecaineGameMaster = {
@@ -782,7 +1360,11 @@ export const GAME_MASTER_FX_SCRIPT = `
       spawnBurst: spawnBurst,
       spawnFloatingCallout: spawnFloatingCallout,
       triggerScreenShake: triggerScreenShake,
-      triggerVictoryFireworks: triggerVictoryFireworks
+      triggerVictoryFireworks: triggerVictoryFireworks,
+      startGame: startGame,
+      pauseGame: pauseGame,
+      togglePause: togglePause,
+      isPaused: function() { return !!window.__gmGamePaused; }
     };
 
     if (document.readyState === "loading") {

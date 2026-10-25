@@ -1,3 +1,4 @@
+import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * 🎴 Egyptian Rat Screw Royale — Deluxe Reflex Card Studio
  * 
@@ -143,7 +144,7 @@ ${getWindowShortcutsScript()}
     html += desktopHooks;
   }
 
-  return html;
+  return injectGameMasterFx(html);
 }
 
 /**

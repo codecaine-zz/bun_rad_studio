@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="65%" stop-color="#090d1a"/>
+      <stop offset="100%" stop-color="#03050a"/>
+    </radialGradient>
+    <linearGradient id="pinBody" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#e2e8f0"/>
+      <stop offset="35%" stop-color="#ffffff"/>
+      <stop offset="75%" stop-color="#f1f5f9"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+    <radialGradient id="ballResin" cx="35%" cy="32%" r="65%">
+      <stop offset="0%" stop-color="#67e8f9"/>
+      <stop offset="38%" stop-color="#0284c7"/>
+      <stop offset="78%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#090514"/>
+    </radialGradient>
+    <linearGradient id="sparkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ef4444"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="14" fill="url(#bgGlow)" stroke="#38bdf8" stroke-width="1.5" stroke-opacity="0.45"/>
+
+  <!-- Impact sparks -->
+  <path d="M28 18 L22 10 L31 15 L36 6 L37 16 L46 12 L39 20 Z" fill="url(#sparkGrad)" opacity="0.92"/>
+  <circle cx="20" cy="24" r="2" fill="#facc15"/>
+  <circle cx="49" cy="18" r="1.6" fill="#38bdf8"/>
+
+  <!-- Tilted Glossy Ten-Pin -->
+  <g transform="translate(38, 32) rotate(16) translate(-38, -32)">
+    <path d="M38 8 C34.5 8 32.5 10.8 33 14.5 C33.4 17.5 34.4 20.5 33.5 23.5 C32 28 28.5 32.5 28.5 39.5 C28.5 47 32.2 52 38 52 C43.8 52 47.5 47 47.5 39.5 C47.5 32.5 44 28 42.5 23.5 C41.6 20.5 42.6 17.5 43 14.5 C43.5 10.8 41.5 8 38 8 Z"
+          fill="url(#pinBody)" stroke="#475569" stroke-width="1"/>
+    <!-- Twin Crimson Neck Stripes -->
+    <path d="M33.3 18.2 Q38 19.6 42.7 18.2 L42.4 20.6 Q38 22 33.6 20.6 Z" fill="#dc2626"/>
+    <path d="M33.2 22.2 Q38 23.6 42.8 22.2 L43.3 24.6 Q38 26 32.7 24.6 Z" fill="#dc2626"/>
+    <!-- Specular Pin Highlight -->
+    <path d="M35.2 10.5 C34.5 14 35.5 19 34 25 C32.2 31 31.2 36 31.8 44" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="0.85"/>
+  </g>
+
+  <!-- Reactive-Resin Neon Bowling Ball -->
+  <g>
+    <circle cx="23" cy="41" r="15.5" fill="url(#ballResin)" stroke="#38bdf8" stroke-width="1.4"/>
+    <!-- Specular sheen -->
+    <ellipse cx="17.5" cy="34.5" rx="5.5" ry="3.2" transform="rotate(-28 17.5 34.5)" fill="#ffffff" opacity="0.38"/>
+    <!-- Finger holes -->
+    <ellipse cx="25.5" cy="34.5" rx="2.1" ry="2.5" transform="rotate(-15 25.5 34.5)" fill="#020617" stroke="#38bdf8" stroke-width="0.6"/>
+    <ellipse cx="30.2" cy="37.2" rx="2.1" ry="2.5" transform="rotate(-15 30.2 37.2)" fill="#020617" stroke="#38bdf8" stroke-width="0.6"/>
+    <ellipse cx="26.2" cy="41.8" rx="2.4" ry="2.8" transform="rotate(-15 26.2 41.8)" fill="#020617" stroke="#38bdf8" stroke-width="0.6"/>
+    <!-- Neon Reactive Swirl -->
+    <path d="M11 43 Q19 49 32 45" stroke="#f43f5e" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="0.8"/>
+  </g>
+</svg>

@@ -196,5 +196,113 @@
   },
   "yahtzee-studio": {
     "title": "Codecaine Yacht Dice Royale Deluxe"
+  },
+  "jezzball-studio": {
+    "title": "Codecaine CyberJezz Containment Deluxe"
+  },
+  "chips-challenge-studio": {
+    "title": "Codecaine CyberChip's Labyrinth"
+  },
+  "pipe-dream-studio": {
+    "title": "Codecaine CyberPipe Flow Deluxe"
+  },
+  "solitaire-studio": {
+    "title": "Codecaine Solitaire Royale: Klondike, Spider & FreeCell"
+  },
+  "pinball-studio": {
+    "title": "Codecaine CyberCadet Pinball 2099"
+  },
+  "asteroids-studio": {
+    "title": "Codecaine VoidVector Asteroids Deluxe"
+  },
+  "space-invaders-studio": {
+    "title": "Codecaine CyberInvaders: StarSwarm"
+  },
+  "bomberman-studio": {
+    "title": "Codecaine CyberBomber Grid Arena"
+  },
+  "missile-command-studio": {
+    "title": "Codecaine CyberDefense: ICBM Interceptor"
+  },
+  "qbert-studio": {
+    "title": "Codecaine CyberCube Hopper"
+  },
+  "centipede-studio": {
+    "title": "Codecaine CyberCentipede Blaster"
+  },
+  "artillery-studio": {
+    "title": "Codecaine CyberArtillery: Scorched Skyline"
+  },
+  "pool-studio": {
+    "title": "Codecaine 8-Ball Pool Royale: Cyber Billiards Suite"
+  },
+  "lunar-lander-studio": {
+    "title": "Codecaine CyberLander: Vector Descent"
+  },
+  "cyber2048-studio": {
+    "title": "Codecaine Cyber2048 Quantum Merge"
+  },
+  "sokoban-studio": {
+    "title": "Codecaine CyberCrate Sokoban"
+  },
+  "reversi-checkers-studio": {
+    "title": "Codecaine CyberReversi & Checkers AI"
+  },
+  "uno-studio": {
+    "title": "Codecaine UNO Royale: Wild Cascade Edition"
+  },
+  "bowling-studio": {
+    "title": "Codecaine CyberStrike Bowling: 300 Perfect Club"
+  },
+  "darts-studio": {
+    "title": "Codecaine Pro Darts Royale: 501 & Cricket Arena"
+  },
+  "bejeweled-studio": {
+    "title": "Codecaine CyberJewel 12-Mode Blitz: Diamond Mine & Prism Royale"
+  },
+  "balloon-fight-studio": {
+    "title": "Codecaine CyberBalloon Fight: Sky Joust & Storm Trip"
+  },
+  "marble-madness-studio": {
+    "title": "Codecaine CyberMarble Madness: Isometric Gravity Odyssey"
+  },
+  "mappy-studio": {
+    "title": "Codecaine CyberMappy: Mansion Heist & Trampoline Police"
+  },
+  "cyber-maker-studio": {
+    "title": "Codecaine CyberMaker Studio: OS Kernel World Architect"
+  },
+  "lemmings-studio": {
+    "title": "Codecaine CyberLemmings: Kernel Thread Rescue"
+  },
+  "lode-runner-studio": {
+    "title": "Codecaine CyberLode: Gold Cache Heist"
+  },
+  "chuchu-rocket-studio": {
+    "title": "Codecaine CyberRocket: Arrow Tile Panic"
+  },
+  "rampart-studio": {
+    "title": "Codecaine CyberRampart: Fortress Build & Cannon Siege"
+  },
+  "qix-studio": {
+    "title": "Codecaine CyberQix: Laser Territory Claim"
+  },
+  "magical-drop-studio": {
+    "title": "Codecaine CyberDrop: Grab & Throw Chain Blitz"
+  },
+  "peggle-studio": {
+    "title": "Codecaine CyberPeggle: Extreme Pachinko Odyssey"
+  },
+  "memory-match-studio": {
+    "title": "Codecaine CyberRecall Royale: Holo-Vault Memory Match"
+  },
+  "vampire-survivors-studio": {
+    "title": "Codecaine NightSavior: Vampire Survivors & Dark Force"
+  },
+  "game-show-studio": {
+    "title": "Codecaine Mr. Game Show Royale: TV Studio Mega-Pack"
+  },
+  "slots-studio": {
+    "title": "Codecaine Vegas Jackpot Slots Royale: Hold & Spin"
   }
 }

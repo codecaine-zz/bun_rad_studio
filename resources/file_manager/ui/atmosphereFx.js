@@ -495,6 +495,7 @@ function reducedMotion() {
 
 /** Resolves the active atmosphere effect or multi-effect combo from settings or the current theme's `data-fx-atmosphere`. */
 export function effectiveAtmosphere() {
+  if (state.settings?.themeFxOff) return "none";
   const fromSettings = normalizeAtmosphereSpec(state.settings?.atmosphere);
   if (fromSettings && fromSettings !== "none") return fromSettings;
   const fromTheme = normalizeAtmosphereSpec(document.documentElement.getAttribute("data-fx-atmosphere"));
@@ -3819,12 +3820,14 @@ export async function showAtmosphereDialog() {
 
   const choice = await dlg.result;
   if (choice === "save") {
+    if (pickedEffect !== "none" && state.settings) state.settings.themeFxOff = false;
     await saveSettings({
       atmosphere: pickedEffect,
       atmosphereIntensity: pickedIntensity,
       atmosphereTier: pickedTier,
       atmosphereReactive: pickedReactive,
       atmosphereLayerMods: pickedLayerMods,
+      ...(pickedEffect !== "none" ? { themeFxOff: false } : {}),
     });
     applyAtmosphere(pickedEffect, pickedIntensity, pickedTier, pickedReactive, pickedLayerMods);
     const label = formatAtmosphereLabel(pickedEffect);
@@ -3949,9 +3952,15 @@ export async function cycleAtmosphere(direction = 1, { category = "all", tier = 
   const step = direction >= 0 ? 1 : -1;
   const nextIdx = curIdx < 0 ? (step > 0 ? 0 : pool.length - 1) : (curIdx + step + pool.length) % pool.length;
   const chosen = pool[nextIdx];
-  if (state.settings) state.settings.atmosphere = chosen.id;
+  if (state.settings) {
+    state.settings.atmosphere = chosen.id;
+    if (chosen.id !== "none") state.settings.themeFxOff = false;
+  }
   applyAtmosphere(chosen.id);
-  await saveSettings({ atmosphere: chosen.id });
+  await saveSettings({
+    atmosphere: chosen.id,
+    ...(chosen.id !== "none" ? { themeFxOff: false } : {}),
+  });
   return chosen;
 }
 

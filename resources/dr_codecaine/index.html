@@ -174,16 +174,30 @@
 
       <div>
         <h1 class="text-base sm:text-2xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-cyan-300 to-rose-400 fun-font leading-tight">
-          DR. CODECAINE <span class="text-[10px] uppercase px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30 hidden xs:inline">Triple-A</span>
+          DR. CODECAINE <span class="text-[10px] uppercase px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30 hidden xs:inline">10-Mode Suite</span>
         </h1>
-        <p class="text-[11px] text-slate-400 hidden sm:block">Match 4+ horizontal or vertical capsules to debug!</p>
+        <p id="modeSubtitle" class="text-[11px] text-slate-400 hidden sm:block">Classic 1990 Virus Eradication • Match 4+ capsules or press [1–0] to switch modes!</p>
       </div>
     </div>
 
-    <!-- Quick Audio, Track Selector & Mode Actions -->
-    <div class="flex items-center gap-1.5 sm:gap-2">
+    <!-- Quick Audio, Mode Selector Dropdown, Track Selector & Actions -->
+    <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
+      <!-- 10-Mode Selector Dropdown -->
+      <select id="modeSelect" class="px-2 py-1 rounded-xl bg-slate-950 text-cyan-300 text-xs font-extrabold border border-cyan-500/40 cursor-pointer focus:outline-none" title="Select Dr. Codecaine Game Mode [Keys 1–0]">
+        <option value="classic">1 • 💊 Classic 1990 (Stages 1–20+)</option>
+        <option value="miracle_cure">2 • 🧪 Miracle Cure Lab (4 Power Pills)</option>
+        <option value="vs_cpu">3 • ⚔️ Vs. CPU Virus Duel (Dr. Helix AI)</option>
+        <option value="flash">4 • ✨ Flash Target Rush (3 VIP Bugs)</option>
+        <option value="marathon">5 • ☣️ Endless Bio-Surge (Rising Rows)</option>
+        <option value="time_blitz">6 • ⏱️ 3-Min ER Triage Blitz</option>
+        <option value="boss_pathogen">7 • 👾 Mega-Pathogen Boss Raid</option>
+        <option value="stage_puzzle">8 • 📋 Rx Prescription Puzzle Clinic</option>
+        <option value="chill_zen">9 • 🧘 Chill Therapy Zen (Zero-Stress + Undo)</option>
+        <option value="coop_2p">0 • 🤝 2P Twin-Pill Med-Squad</option>
+      </select>
+
       <!-- Active BGM Track Tag -->
-      <button id="btnTrackCycle" class="px-2 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-amber-300 border border-slate-700 flex items-center gap-1" title="Cycle Music Theme">
+      <button id="btnTrackCycle" class="px-2 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-amber-300 border border-slate-700 flex items-center gap-1" title="Cycle Music Theme (FEVER / CHILL / CYBER / OFF)">
         <span>🎵</span>
         <span id="trackLabel">FEVER</span>
       </button>
@@ -202,6 +216,20 @@
       </button>
     </div>
   </header>
+
+  <!-- 10-Mode Interactive Dock Bar -->
+  <nav id="modeDock" class="w-full max-w-4xl grid grid-cols-5 sm:grid-cols-10 gap-1 py-1 px-2 mb-1 bg-slate-900/80 rounded-xl border border-slate-800/90 flex-shrink-0 text-[9.5px] font-bold z-10">
+    <button data-mode="classic" class="mode-dock-btn px-1 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 truncate">1: 💊 Classic</button>
+    <button data-mode="miracle_cure" class="mode-dock-btn px-1 py-1 rounded-lg bg-slate-800/80 text-slate-300 border border-slate-700 hover:border-cyan-400/40 truncate">2: 🧪 Miracle</button>
+    <button data-mode="vs_cpu" class="mode-dock-btn px-1 py-1 rounded-lg bg-slate-800/80 text-slate-300 border border-slate-700 hover:border-cyan-400/40 truncate">3: ⚔️ Vs CPU</button>
+    <button data-mode="flash" class="mode-dock-btn px-1 py-1 rounded-lg bg-slate-800/80 text-slate-300 border border-slate-700 hover:border-cyan-400/40 truncate">4: ✨ Flash</button>
+    <button data-mode="marathon" class="mode-dock-btn px-1 py-1 rounded-lg bg-slate-800/80 text-slate-300 border border-slate-700 hover:border-cyan-400/40 truncate">5: ☣️ Surge</button>
+    <button data-mode="time_blitz" class="mode-dock-btn px-1 py-1 rounded-lg bg-slate-800/80 text-slate-300 border border-slate-700 hover:border-cyan-400/40 truncate">6: ⏱️ 3m Blitz</button>
+    <button data-mode="boss_pathogen" class="mode-dock-btn px-1 py-1 rounded-lg bg-slate-800/80 text-slate-300 border border-slate-700 hover:border-cyan-400/40 truncate">7: 👾 Boss</button>
+    <button data-mode="stage_puzzle" class="mode-dock-btn px-1 py-1 rounded-lg bg-slate-800/80 text-slate-300 border border-slate-700 hover:border-cyan-400/40 truncate">8: 📋 Rx Lab</button>
+    <button data-mode="chill_zen" class="mode-dock-btn px-1 py-1 rounded-lg bg-slate-800/80 text-slate-300 border border-slate-700 hover:border-cyan-400/40 truncate">9: 🧘 Zen</button>
+    <button data-mode="coop_2p" class="mode-dock-btn px-1 py-1 rounded-lg bg-slate-800/80 text-slate-300 border border-slate-700 hover:border-cyan-400/40 truncate">0: 🤝 2P CoOp</button>
+  </nav>
 
   <main class="w-full max-w-4xl flex-1 flex flex-col md:flex-row items-center justify-center gap-2 sm:gap-4 my-auto relative min-h-0">
     
@@ -240,16 +268,43 @@
         </div>
       </div>
 
-      <!-- Mega-Cure Fever Super Gauge -->
-      <div class="hidden md:flex flex-col bg-slate-900/90 border border-slate-800 rounded-2xl p-3 shadow-md">
-        <div class="flex justify-between items-center text-xs font-bold mb-1.5">
+      <!-- Mega-Cure Fever Super Gauge & Miracle Skill Action -->
+      <div class="hidden md:flex flex-col bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 shadow-md gap-1.5">
+        <div class="flex justify-between items-center text-xs font-bold">
           <span class="text-purple-400 flex items-center gap-1">
-            <span>⚡ MEGA CURE</span>
+            <span>⚡ MIRACLE CURE</span>
           </span>
           <span id="feverPercent" class="text-[10px] text-purple-300">0%</span>
         </div>
         <div class="w-full h-3 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-purple-900/40">
           <div id="feverBar" class="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-amber-300 rounded-full w-0 transition-all duration-300"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-1.5 mt-0.5">
+          <button id="btnMiracleSkill" class="py-1.5 px-2 rounded-lg bg-gradient-to-r from-purple-600/80 to-pink-600/80 hover:from-purple-500 hover:to-pink-500 text-[10px] font-extrabold text-white border border-purple-400/50 shadow" title="Spawn Miracle Power Capsule or Trigger Lab Cure [E]">
+            💉 SKILL [E]
+          </button>
+          <button id="btnUndoCapsule" class="py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10px] font-extrabold text-cyan-300 border border-slate-700" title="Undo Last Capsule Drop [U]">
+            ⏪ UNDO [U]
+          </button>
+        </div>
+      </div>
+
+      <!-- Dynamic Mode Telemetry & Medical Career Vault Card -->
+      <div id="modeTelemetryCard" class="hidden md:flex flex-col bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 shadow-md gap-1.5 text-[11px]">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-1">
+          <span id="modeBadgeTitle" class="font-extrabold text-cyan-300 uppercase tracking-wider text-[10px]">💊 CLASSIC 1990</span>
+          <span id="modeGoalValue" class="font-mono font-bold text-amber-300 text-xs">STAGE 01</span>
+        </div>
+        <div id="modeSpecialStatus" class="text-[10px] text-slate-300 leading-snug">
+          Clear all viruses in the bottle! Match 5+ or L/Cross shapes for +2,500 Super Surgery Bonus.
+        </div>
+        <!-- Boss / Rival / Timer Progress Bar -->
+        <div id="modeMeterWrap" class="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+          <div id="modeMeterFill" class="h-full bg-gradient-to-r from-cyan-400 to-emerald-400 w-full transition-all duration-200"></div>
+        </div>
+        <div class="flex justify-between text-[9.5px] text-slate-400 pt-0.5 border-t border-slate-800/80">
+          <span>🏆 <strong id="careerRankText" class="text-amber-300">Intern MD</strong></span>
+          <span>🦠 Cured: <strong id="careerVirusesText" class="text-emerald-300">0</strong></span>
         </div>
       </div>
 
@@ -314,8 +369,8 @@
     <div class="w-full md:w-56 flex md:flex-col gap-2 justify-between items-stretch flex-shrink-0">
       
       <!-- Animated Dr. Codecaine Character Card (Desktop) -->
-      <div class="hidden md:flex bg-slate-900/90 border border-slate-800 rounded-2xl p-2 shadow-md flex-col items-center justify-center relative overflow-hidden">
-        <canvas id="drCanvas" width="160" height="90" class="w-full h-auto object-contain"></canvas>
+      <div class="hidden md:flex bg-slate-900/90 border border-slate-800 rounded-2xl p-1.5 shadow-md flex-col items-center justify-center relative overflow-hidden">
+        <canvas id="drCanvas" width="160" height="90" class="w-full max-h-16 object-contain"></canvas>
       </div>
 
       <!-- Next Capsule Preview -->
@@ -402,9 +457,10 @@
       <!-- Music Theme Track -->
       <div>
         <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Soundtrack Theme</label>
-        <div class="grid grid-cols-3 gap-2">
+        <div class="grid grid-cols-4 gap-1.5">
           <button data-track="fever" class="track-btn py-1.5 rounded-xl border border-amber-500/50 text-xs font-bold text-amber-400 bg-amber-500/10">FEVER</button>
           <button data-track="chill" class="track-btn py-1.5 rounded-xl border border-slate-700 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700">CHILL</button>
+          <button data-track="cyber" class="track-btn py-1.5 rounded-xl border border-slate-700 text-xs font-bold text-cyan-300 bg-slate-800 hover:bg-slate-700">CYBER</button>
           <button data-track="off" class="track-btn py-1.5 rounded-xl border border-slate-700 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700">OFF</button>
         </div>
       </div>
@@ -884,8 +940,20 @@
           { lead: 0,   harm: 0,   bass: 0,   drum: 'hihat' }
         ];
 
-        const score = this.currentTrack === 'chill' ? chillScore : feverScore;
-        const tempo = this.currentTrack === 'chill' ? 175 : 140;
+        // CYBER THEME: High-tempo synthwave arpeggio
+        const cyberScore = [
+          { lead: 659, harm: 329, bass: 164, drum: 'kick' },
+          { lead: 784, harm: 392, bass: 164, drum: 'hihat' },
+          { lead: 987, harm: 493, bass: 196, drum: 'snare' },
+          { lead: 784, harm: 392, bass: 196, drum: 'hihat' },
+          { lead: 880, harm: 440, bass: 220, drum: 'kick' },
+          { lead: 659, harm: 329, bass: 220, drum: 'hihat' },
+          { lead: 587, harm: 293, bass: 146, drum: 'snare' },
+          { lead: 523, harm: 261, bass: 130, drum: 'hihat' }
+        ];
+
+        const score = this.currentTrack === 'chill' ? chillScore : (this.currentTrack === 'cyber' ? cyberScore : feverScore);
+        const tempo = this.currentTrack === 'chill' ? 175 : (this.currentTrack === 'cyber' ? 122 : 140);
 
         this.bgmTimer = setInterval(() => {
           if (!this.musicEnabled || this.muted || this.currentTrack === 'off') return;
@@ -996,6 +1064,110 @@
     let comboCount = 0;
     let maxComboThisGame = 0;
 
+    // =========================================================================
+    // 10-MODE SUITE STATE & PERSISTENT MEDICAL CAREER VAULT
+    // =========================================================================
+    const MODE_DEFS = {
+      classic: {
+        id: 'classic',
+        badge: '💊 CLASSIC 1990',
+        subtitle: 'Classic 1990 Virus Eradication • Clear all pathogens across Stages 1–20+!'
+      },
+      miracle_cure: {
+        id: 'miracle_cure',
+        badge: '🧪 MIRACLE CURE LAB',
+        subtitle: 'Miracle Cure Lab • 4 Special Power Capsules (Bomb, Cross, Rainbow, Dissolver) & [E] Skill!'
+      },
+      vs_cpu: {
+        id: 'vs_cpu',
+        badge: '⚔️ VS. CPU DUEL',
+        subtitle: 'Vs. CPU Virus Duel • Chain 2x+ combos to drop Garbage Capsules on Dr. Helix AI!'
+      },
+      flash: {
+        id: 'flash',
+        badge: '✨ FLASH TARGET RUSH',
+        subtitle: 'Dr. Mario 64 Flash Mode • Drill down and eliminate the 3 Flashing Golden VIP Bugs!'
+      },
+      marathon: {
+        id: 'marathon',
+        badge: '☣️ ENDLESS BIO-SURGE',
+        subtitle: 'Endless Bio-Surge • Every 7 capsule drops, a fresh row of mutants rises from the bottom!'
+      },
+      time_blitz: {
+        id: 'time_blitz',
+        badge: '⏱️ 3-MIN ER BLITZ',
+        subtitle: '3-Minute ER Triage Blitz • 180s high-speed score attack (+2s per virus cured)!'
+      },
+      boss_pathogen: {
+        id: 'boss_pathogen',
+        badge: '👾 BOSS RAID',
+        subtitle: 'Mega-Pathogen Boss Raid • Match capsules & combos to deplete the 10,000 HP Mutant Core!'
+      },
+      stage_puzzle: {
+        id: 'stage_puzzle',
+        badge: '📋 RX PUZZLE CLINIC',
+        subtitle: 'Rx Prescription Puzzle Clinic • Sterilize all viruses within your strict Capsule Quota!'
+      },
+      chill_zen: {
+        id: 'chill_zen',
+        badge: '🧘 CHILL THERAPY ZEN',
+        subtitle: 'Chill Therapy Zen • Zero-stress gravity, auto neck-relief, and [U] Undo Capsule!'
+      },
+      coop_2p: {
+        id: 'coop_2p',
+        badge: '🤝 2P MED-SQUAD',
+        subtitle: '2-Player Twin-Pill Med-Squad • Co-op WASD + Arrow Keys with +50% Squad Synergy!'
+      }
+    };
+
+    let currentMode = 'classic';
+    let targetVirusesRemaining = 0;
+    let flashStartTime = 0;
+    let capsulesDroppedCount = 0;
+    let puzzleQuotaLeft = 16;
+    let blitzTimeRemaining = 180;
+    let lastBlitzTick = 0;
+    let undoHistory = [];
+    let miracleSkillCycle = 0;
+
+    let rivalState = {
+      name: 'Dr. Helix AI',
+      virusesLeft: 12,
+      maxViruses: 12,
+      PendingGarbageToPlayer: 0,
+      aiTimer: 0
+    };
+
+    let bossState = {
+      active: false,
+      name: 'OMEGA CAPSID CORE',
+      hp: 10000,
+      maxHp: 10000,
+      hitFlash: 0
+    };
+
+    const CAREER_KEY = 'dr_codecaine_career_v2';
+    let careerStats = {
+      totalVirusesCured: 0,
+      miracleCuresUsed: 0,
+      vsCpuWins: 0,
+      flashBestSec: 999,
+      bossesDefeated: 0
+    };
+    try {
+      const rawCareer = localStorage.getItem(CAREER_KEY);
+      if (rawCareer) {
+        careerStats = { ...careerStats, ...JSON.parse(rawCareer) };
+      }
+    } catch (_) {}
+
+    function saveCareerStats() {
+      try {
+        localStorage.setItem(CAREER_KEY, JSON.stringify(careerStats));
+      } catch (_) {}
+      updateModeTelemetryUI();
+    }
+
     const gameCanvas = document.getElementById('gameCanvas');
     const ctx = gameCanvas.getContext('2d');
     const holdCanvas = document.getElementById('holdCanvas');
@@ -1045,35 +1217,36 @@
     }
 
     class Capsule {
-      constructor(colorA, colorB, isBomb = false) {
+      constructor(colorA, colorB, isBomb = false, specialType = null) {
         this.x = 3;
         this.y = 0;
         this.colorA = colorA;
         this.colorB = colorB;
         this.rot = 0;
-        this.isBomb = isBomb;
+        this.isBomb = isBomb || specialType === 'bomb';
+        this.specialType = specialType || (isBomb ? 'bomb' : null); // 'bomb' | 'cross' | 'dissolver' | null
       }
 
       getSegments() {
         if (this.rot === 0) {
           return [
-            { x: this.x, y: this.y, color: this.colorA, part: 'left', isBomb: this.isBomb },
-            { x: this.x + 1, y: this.y, color: this.colorB, part: 'right', isBomb: this.isBomb }
+            { x: this.x, y: this.y, color: this.colorA, part: 'left', isBomb: this.isBomb, specialType: this.specialType },
+            { x: this.x + 1, y: this.y, color: this.colorB, part: 'right', isBomb: this.isBomb, specialType: this.specialType }
           ];
         } else if (this.rot === 1) {
           return [
-            { x: this.x, y: this.y, color: this.colorA, part: 'top', isBomb: this.isBomb },
-            { x: this.x, y: this.y + 1, color: this.colorB, part: 'bottom', isBomb: this.isBomb }
+            { x: this.x, y: this.y, color: this.colorA, part: 'top', isBomb: this.isBomb, specialType: this.specialType },
+            { x: this.x, y: this.y + 1, color: this.colorB, part: 'bottom', isBomb: this.isBomb, specialType: this.specialType }
           ];
         } else if (this.rot === 2) {
           return [
-            { x: this.x, y: this.y, color: this.colorB, part: 'left', isBomb: this.isBomb },
-            { x: this.x + 1, y: this.y, color: this.colorA, part: 'right', isBomb: this.isBomb }
+            { x: this.x, y: this.y, color: this.colorB, part: 'left', isBomb: this.isBomb, specialType: this.specialType },
+            { x: this.x + 1, y: this.y, color: this.colorA, part: 'right', isBomb: this.isBomb, specialType: this.specialType }
           ];
         } else {
           return [
-            { x: this.x, y: this.y, color: this.colorB, part: 'top', isBomb: this.isBomb },
-            { x: this.x, y: this.y + 1, color: this.colorA, part: 'bottom', isBomb: this.isBomb }
+            { x: this.x, y: this.y, color: this.colorB, part: 'top', isBomb: this.isBomb, specialType: this.specialType },
+            { x: this.x, y: this.y + 1, color: this.colorA, part: 'bottom', isBomb: this.isBomb, specialType: this.specialType }
           ];
         }
       }
@@ -1091,38 +1264,102 @@
     }
 
     function populateViruses(lvl) {
-      const totalViruses = Math.min(84, (lvl + 1) * 4);
-      virusesRemaining = totalViruses;
       virusCountByColor = { 1: 0, 2: 0, 3: 0 };
+      targetVirusesRemaining = 0;
 
-      const minRow = Math.max(3, 16 - Math.floor(lvl / 2) - 8);
+      // Mode 8: Rx Prescription Puzzle Clinic — Curated symmetrical formations!
+      if (currentMode === 'stage_puzzle') {
+        const patterns = [
+          // Pattern 1: Twin Diagnostic Pillars + Cross
+          [
+            { r: 10, c: 1, color: 1 }, { r: 11, c: 1, color: 1 }, { r: 12, c: 1, color: 2 },
+            { r: 10, c: 6, color: 3 }, { r: 11, c: 6, color: 3 }, { r: 12, c: 6, color: 2 },
+            { r: 13, c: 3, color: 2 }, { r: 13, c: 4, color: 2 },
+            { r: 14, c: 2, color: 1 }, { r: 14, c: 5, color: 3 }
+          ],
+          // Pattern 2: Pyramid Triage
+          [
+            { r: 9, c: 3, color: 2 }, { r: 9, c: 4, color: 2 },
+            { r: 11, c: 2, color: 1 }, { r: 11, c: 5, color: 3 },
+            { r: 13, c: 1, color: 1 }, { r: 13, c: 3, color: 3 }, { r: 13, c: 4, color: 1 }, { r: 13, c: 6, color: 3 },
+            { r: 15, c: 0, color: 2 }, { r: 15, c: 7, color: 2 }
+          ]
+        ];
+        const chosen = patterns[(lvl - 1) % patterns.length];
+        chosen.forEach(item => {
+          grid[item.r][item.c] = {
+            type: 'virus',
+            color: item.color,
+            part: 'single',
+            armor: 1,
+            ice: false,
+            isTarget: false,
+            animOffset: Math.random() * Math.PI * 2,
+            blinkTimer: Math.random() * 100,
+            expression: 'normal'
+          };
+          virusCountByColor[item.color]++;
+        });
+        virusesRemaining = chosen.length;
+        puzzleQuotaLeft = 10 + lvl * 2;
+        updateVirusStats();
+        return;
+      }
+
+      const baseCount = currentMode === 'flash'
+        ? Math.min(44, 18 + lvl * 4)
+        : Math.min(84, (lvl + 1) * 4);
+      virusesRemaining = baseCount;
+
+      const minRow = Math.max(4, 16 - Math.floor(lvl / 2) - 8);
       let placed = 0;
+      const placedCoords = [];
 
       let attempts = 0;
-      while (placed < totalViruses) {
+      while (placed < baseCount) {
         attempts++;
-        if (attempts > 20000) break; // safety: board is effectively full
+        if (attempts > 20000) break;
         const r = Math.floor(Math.random() * (ROWS - minRow)) + minRow;
         const c = Math.floor(Math.random() * COLS);
 
         if (!grid[r][c]) {
           const color = (placed % 3) + 1;
-          // After many failures, drop the no-pre-match rule so placement always terminates
           if (attempts > 4000 || !wouldCreatePreMatch(r, c, color)) {
+            const hasArmor = (currentMode === 'boss_pathogen' || currentMode === 'miracle_cure' || currentMode === 'marathon') && (placed % 5 === 0);
+            const hasIce = (currentMode === 'miracle_cure' || currentMode === 'marathon') && !hasArmor && (placed % 7 === 0);
             grid[r][c] = {
               type: 'virus',
               color: color,
               part: 'single',
+              armor: hasArmor ? 2 : 1,
+              ice: hasIce,
+              isTarget: false,
               animOffset: Math.random() * Math.PI * 2,
               blinkTimer: Math.random() * 100,
-              expression: 'normal' // 'normal', 'nervous', 'laughing'
+              expression: 'normal'
             };
             virusCountByColor[color]++;
+            placedCoords.push({ r, c });
             placed++;
           }
         }
       }
       virusesRemaining = placed;
+
+      // In Flash Target Rush mode, designate 3 VIP Golden Target Viruses deep in the bottle!
+      if (currentMode === 'flash' && placedCoords.length > 0) {
+        placedCoords.sort((a, b) => b.r - a.r); // Prefer deeper rows
+        const vipCount = Math.min(3, placedCoords.length);
+        for (let i = 0; i < vipCount; i++) {
+          const coord = placedCoords[i];
+          if (grid[coord.r]?.[coord.c]) {
+            grid[coord.r][coord.c].isTarget = true;
+          }
+        }
+        targetVirusesRemaining = vipCount;
+        flashStartTime = performance.now();
+      }
+
       updateVirusStats();
     }
 
@@ -1153,19 +1390,162 @@
     }
 
     function getRandomPillColor() {
-      if (feverCharge >= 100 && Math.random() < 0.35) {
-        return 4; // Rainbow Wildcard!
+      if ((feverCharge >= 100 || currentMode === 'miracle_cure') && Math.random() < 0.24) {
+        return 4; // Rainbow Universal Vaccine Wildcard!
       }
       return Math.floor(Math.random() * 3) + 1;
     }
 
     function createNewCapsule() {
-      const isBomb = isFeverOverdrive;
-      return new Capsule(getRandomPillColor(), getRandomPillColor(), isBomb);
+      let specialType = null;
+      if (isFeverOverdrive) {
+        const powerPool = ['bomb', 'cross', 'dissolver'];
+        specialType = currentMode === 'miracle_cure'
+          ? powerPool[Math.floor(Math.random() * powerPool.length)]
+          : 'bomb';
+      } else if (currentMode === 'miracle_cure' && Math.random() < 0.28) {
+        const powerPool = ['bomb', 'cross', 'dissolver'];
+        specialType = powerPool[Math.floor(Math.random() * powerPool.length)];
+      }
+      return new Capsule(getRandomPillColor(), getRandomPillColor(), specialType === 'bomb', specialType);
+    }
+
+    function saveUndoSnapshot() {
+      try {
+        const snapshot = {
+          grid: JSON.parse(JSON.stringify(grid)),
+          score,
+          virusesRemaining,
+          virusCountByColor: { ...virusCountByColor },
+          targetVirusesRemaining,
+          puzzleQuotaLeft
+        };
+        undoHistory.push(snapshot);
+        if (undoHistory.length > 8) undoHistory.shift();
+      } catch (_) {}
+    }
+
+    function undoLastCapsule() {
+      if (undoHistory.length === 0 || gameState !== 'PLAYING') {
+        showComboToast('UNDO', 'NO SNAPSHOT YET');
+        return;
+      }
+      const snap = undoHistory.pop();
+      grid = snap.grid;
+      score = snap.score;
+      virusesRemaining = snap.virusesRemaining;
+      virusCountByColor = snap.virusCountByColor;
+      targetVirusesRemaining = snap.targetVirusesRemaining;
+      puzzleQuotaLeft = snap.puzzleQuotaLeft;
+      activePill = createNewCapsule();
+      sound.playRotate(0);
+      updateVirusStats();
+      updateModeTelemetryUI();
+      showComboToast('UNDO [U]', 'CAPSULE REWOUND!');
+    }
+
+    function activateMiracleSkill() {
+      if (!activePill || gameState !== 'PLAYING') return;
+      sound.init();
+      sound.resume();
+
+      const skillTypes = ['bomb', 'cross', 'dissolver', 'rainbow'];
+      const chosen = skillTypes[miracleSkillCycle % skillTypes.length];
+      miracleSkillCycle++;
+
+      if (chosen === 'rainbow') {
+        activePill.colorA = 4;
+        activePill.colorB = 4;
+        activePill.isBomb = false;
+        activePill.specialType = null;
+        showComboToast('🌈 RAINBOW VACCINE', 'UNIVERSAL WILDCARD!');
+      } else {
+        activePill.specialType = chosen;
+        activePill.isBomb = chosen === 'bomb';
+        const labelMap = {
+          bomb: '💣 MIRACLE BOMB PILL',
+          cross: '⚡ DEFIBRILLATOR CROSS',
+          dissolver: '🧪 PATHOGEN DISSOLVER'
+        };
+        showComboToast(labelMap[chosen] || 'MIRACLE CURE', 'POWER PILL ARMED!');
+      }
+
+      careerStats.miracleCuresUsed++;
+      saveCareerStats();
+      sound.playFeverReady();
+      spawnSparkles(160, 80, '#c084fc', 16);
+    }
+
+    function triggerBioSurgeRow() {
+      // Shift rows 1..ROWS-1 up by 1 and insert a fresh row of mutant viruses at the bottom!
+      for (let r = 1; r < ROWS - 1; r++) {
+        for (let c = 0; c < COLS; c++) {
+          grid[r][c] = grid[r + 1][c];
+          if (grid[r][c] && grid[r][c].partnerY !== undefined) {
+            grid[r][c].partnerY = Math.max(0, grid[r][c].partnerY - 1);
+          }
+        }
+      }
+      const bottomRow = ROWS - 1;
+      for (let c = 0; c < COLS; c++) {
+        if (Math.random() < 0.55) {
+          const col = (c % 3) + 1;
+          grid[bottomRow][c] = {
+            type: 'virus',
+            color: col,
+            part: 'single',
+            armor: Math.random() < 0.25 ? 2 : 1,
+            ice: false,
+            isTarget: false,
+            animOffset: Math.random() * Math.PI * 2,
+            blinkTimer: 50,
+            expression: 'laughing'
+          };
+        } else {
+          grid[bottomRow][c] = null;
+        }
+      }
+      recountAllVirusesOnGrid();
+      screenShake = 8;
+      showComboToast('☣️ BIO-SURGE!', 'NEW VIRUS ROW ROSE!');
+    }
+
+    function dropPendingGarbageRow(count) {
+      const cols = [0, 1, 2, 3, 4, 5, 6, 7].sort(() => Math.random() - 0.5).slice(0, Math.min(4, count));
+      for (const c of cols) {
+        if (!grid[1][c]) {
+          grid[1][c] = {
+            type: 'pill',
+            color: Math.floor(Math.random() * 3) + 1,
+            part: 'single'
+          };
+          spawnSparkles(c * CELL_SIZE + 20, 40, '#f43f5e', 6);
+        }
+      }
+      sound.playLand(0);
+    }
+
+    function recountAllVirusesOnGrid() {
+      let total = 0;
+      let targets = 0;
+      virusCountByColor = { 1: 0, 2: 0, 3: 0 };
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const cell = grid[r][c];
+          if (cell && cell.type === 'virus') {
+            total++;
+            if (cell.color <= 3) virusCountByColor[cell.color]++;
+            if (cell.isTarget) targets++;
+          }
+        }
+      }
+      virusesRemaining = total;
+      targetVirusesRemaining = targets;
+      updateVirusStats();
     }
 
     function isValidPosition(capsule, offsetX = 0, offsetY = 0, targetRot = capsule.rot) {
-      const testCapsule = new Capsule(capsule.colorA, capsule.colorB, capsule.isBomb);
+      const testCapsule = new Capsule(capsule.colorA, capsule.colorB, capsule.isBomb, capsule.specialType);
       testCapsule.x = capsule.x + offsetX;
       testCapsule.y = capsule.y + offsetY;
       testCapsule.rot = targetRot;
@@ -1209,12 +1589,12 @@
       const pan = ((activePill.x + 0.5) / COLS) * 2 - 1;
       sound.playRotate(pan);
       if (!holdPill) {
-        holdPill = new Capsule(activePill.colorA, activePill.colorB, activePill.isBomb);
+        holdPill = new Capsule(activePill.colorA, activePill.colorB, activePill.isBomb, activePill.specialType);
         activePill = nextPill;
         nextPill = createNewCapsule();
       } else {
-        const temp = new Capsule(activePill.colorA, activePill.colorB, activePill.isBomb);
-        activePill = new Capsule(holdPill.colorA, holdPill.colorB, holdPill.isBomb);
+        const temp = new Capsule(activePill.colorA, activePill.colorB, activePill.isBomb, activePill.specialType);
+        activePill = new Capsule(holdPill.colorA, holdPill.colorB, holdPill.isBomb, holdPill.specialType);
         holdPill = temp;
       }
 
@@ -1281,55 +1661,99 @@
     }
 
     function lockPill() {
+      saveUndoSnapshot();
+
       const pan = ((activePill.x + 0.5) / COLS) * 2 - 1;
       sound.playLand(pan);
       boardSquashX = 1.06;
       boardSquashY = 0.94;
+      capsulesDroppedCount++;
+
+      if (currentMode === 'stage_puzzle') {
+        puzzleQuotaLeft = Math.max(0, puzzleQuotaLeft - 1);
+      }
 
       const segs = activePill.getSegments();
       const segA = segs[0];
       const segB = segs[1];
+      const spType = activePill.specialType || (activePill.isBomb ? 'bomb' : null);
 
-      // 3x3 Mega-Cure Bomb Detonation!
-      if (activePill.isBomb) {
+      // SPECIAL POWER CAPSULE DETONATIONS (Bomb 3x3, Defibrillator Cross, Pathogen Dissolver)
+      if (spType === 'bomb' || spType === 'cross' || spType === 'dissolver') {
         sound.playMegaBomb();
         screenShake = 18;
         chromaticAberration = 14;
+        careerStats.miracleCuresUsed++;
 
         shockwaves.push({
           x: ((segA.x + segB.x) / 2 + 0.5) * CELL_SIZE,
           y: ((segA.y + segB.y) / 2 + 0.5) * CELL_SIZE,
           radius: 8,
           alpha: 1.0,
-          color: 'rgba(244, 63, 94, '
+          color: spType === 'cross' ? 'rgba(56, 189, 248, ' : (spType === 'dissolver' ? 'rgba(16, 185, 129, ' : 'rgba(244, 63, 94, ')
         });
 
-        // Clear 3x3 surrounding cells
-        const minX = Math.max(0, Math.min(segA.x, segB.x) - 1);
-        const maxX = Math.min(COLS - 1, Math.max(segA.x, segB.x) + 1);
-        const minY = Math.max(0, Math.min(segA.y, segB.y) - 1);
-        const maxY = Math.min(ROWS - 1, Math.max(segA.y, segB.y) + 1);
-
-        for (let r = minY; r <= maxY; r++) {
-          for (let c = minX; c <= maxX; c++) {
-            if (grid[r][c]) {
-              if (grid[r][c].type === 'virus') {
-                virusesRemaining--;
-                virusCountByColor[grid[r][c].color]--;
-              }
-              grid[r][c] = null;
-              if (typeof spawnSparkles === 'function') {
-                spawnSparkles(c * CELL_SIZE + CELL_SIZE / 2, r * CELL_SIZE + CELL_SIZE / 2, '#ff3366', 10);
-              } else if (typeof spawnParticleExplosion === 'function') {
-                spawnParticleExplosion(c, r, 1);
+        let curedBySpecial = 0;
+        if (spType === 'bomb') {
+          const minX = Math.max(0, Math.min(segA.x, segB.x) - 1);
+          const maxX = Math.min(COLS - 1, Math.max(segA.x, segB.x) + 1);
+          const minY = Math.max(0, Math.min(segA.y, segB.y) - 1);
+          const maxY = Math.min(ROWS - 1, Math.max(segA.y, segB.y) + 1);
+          for (let r = minY; r <= maxY; r++) {
+            for (let c = minX; c <= maxX; c++) {
+              if (grid[r][c]) {
+                if (grid[r][c].type === 'virus') curedBySpecial++;
+                grid[r][c] = null;
+                spawnSparkles(c * CELL_SIZE + 20, r * CELL_SIZE + 20, '#ff3366', 8);
               }
             }
           }
+          showComboToast('💣 MIRACLE BOMB', '+3000 PTS');
+        } else if (spType === 'cross') {
+          // Clear entire horizontal row of segA and vertical column of segA!
+          const targetR = segA.y;
+          const targetC = segA.x;
+          for (let c = 0; c < COLS; c++) {
+            if (grid[targetR][c]) {
+              if (grid[targetR][c].type === 'virus') curedBySpecial++;
+              grid[targetR][c] = null;
+            }
+            spawnSparkles(c * CELL_SIZE + 20, targetR * CELL_SIZE + 20, '#38bdf8', 5);
+          }
+          for (let r = 0; r < ROWS; r++) {
+            if (grid[r][targetC]) {
+              if (grid[r][targetC].type === 'virus') curedBySpecial++;
+              grid[r][targetC] = null;
+            }
+            spawnSparkles(targetC * CELL_SIZE + 20, r * CELL_SIZE + 20, '#38bdf8', 5);
+          }
+          showComboToast('⚡ DEFIBRILLATOR CROSS', 'ROW + COL ZAPPED!');
+        } else if (spType === 'dissolver') {
+          // Dissolve up to 6 viruses of colorA across the bottle!
+          const targetCol = segA.color <= 3 ? segA.color : 1;
+          let dissolved = 0;
+          for (let r = ROWS - 1; r >= 0 && dissolved < 6; r--) {
+            for (let c = 0; c < COLS && dissolved < 6; c++) {
+              if (grid[r][c] && grid[r][c].type === 'virus' && grid[r][c].color === targetCol) {
+                grid[r][c] = null;
+                curedBySpecial++;
+                dissolved++;
+                spawnSparkles(c * CELL_SIZE + 20, r * CELL_SIZE + 20, '#10b981', 10);
+              }
+            }
+          }
+          showComboToast('🧪 PATHOGEN DISSOLVER', `${dissolved} BUGS DISSOLVED!`);
         }
 
+        if (bossState.active) {
+          bossState.hp = Math.max(0, bossState.hp - 1800);
+          bossState.hitFlash = 14;
+        }
+
+        careerStats.totalVirusesCured += curedBySpecial;
+        recountAllVirusesOnGrid();
+        saveCareerStats();
         addScore(3000);
-        showComboToast('MEGA-BOMB', 3000);
-        updateVirusStats();
 
         feverCharge = 0;
         isFeverOverdrive = false;
@@ -1366,8 +1790,17 @@
       comboCount = 0;
 
       if (grid[0][3] !== null || grid[0][4] !== null) {
-        triggerGameOver();
-        return;
+        if (currentMode === 'chill_zen') {
+          // Chill Therapy Zen never locks out: auto-sterilizes top 4 rows!
+          for (let r = 0; r < 4; r++) {
+            for (let c = 0; c < COLS; c++) grid[r][c] = null;
+          }
+          recountAllVirusesOnGrid();
+          showComboToast('🧘 ZEN RELIEF', 'TOP NECK CLEARED!');
+        } else {
+          triggerGameOver();
+          return;
+        }
       }
 
       gameState = 'DROPPING';
@@ -1391,18 +1824,74 @@
           }
         }
 
-        if (virusesRemaining <= 0) {
-          triggerVictory();
+        // Check Mode-Specific Victory / Progression Conditions!
+        if (currentMode === 'flash' && targetVirusesRemaining <= 0) {
+          const elapsedSec = Math.max(1, Math.round((performance.now() - flashStartTime) / 1000));
+          if (elapsedSec < careerStats.flashBestSec) {
+            careerStats.flashBestSec = elapsedSec;
+            saveCareerStats();
+          }
+          triggerVictory(`✨ FLASH RUSH CLEARED IN ${elapsedSec}s!`);
           return;
         }
+
+        if (currentMode === 'boss_pathogen' && bossState.active && bossState.hp <= 0) {
+          bossState.active = false;
+          careerStats.bossesDefeated++;
+          saveCareerStats();
+          triggerVictory('👾 OMEGA MEGA-PATHOGEN ERADICATED!');
+          return;
+        }
+
+        if (virusesRemaining <= 0) {
+          if (currentMode === 'time_blitz' && blitzTimeRemaining > 0) {
+            // In 3-Minute ER Blitz, clearing a bottle immediately spawns the next wave with +15s bonus!
+            blitzTimeRemaining += 15;
+            level++;
+            populateViruses(level);
+            showComboToast('⏱️ WAVE STERILIZED!', '+15s BONUS TIME!');
+          } else {
+            if (currentMode === 'vs_cpu') {
+              careerStats.vsCpuWins++;
+              saveCareerStats();
+            }
+            triggerVictory();
+            return;
+          }
+        }
+
+        if (currentMode === 'stage_puzzle' && puzzleQuotaLeft <= 0 && virusesRemaining > 0) {
+          triggerGameOver('Prescription capsule quota exhausted before all pathogens were cured!');
+          return;
+        }
+
+        // Mode 5: Endless Bio-Surge — every 7 capsule drops, a new row rises!
+        if (currentMode === 'marathon' && capsulesDroppedCount > 0 && capsulesDroppedCount % 7 === 0) {
+          triggerBioSurgeRow();
+        }
+
+        // Mode 3: Vs. CPU — drop any pending garbage from Dr. Helix AI
+        if (currentMode === 'vs_cpu' && rivalState.PendingGarbageToPlayer > 0) {
+          dropPendingGarbageRow(rivalState.PendingGarbageToPlayer);
+          rivalState.PendingGarbageToPlayer = 0;
+        }
+
+        updateModeTelemetryUI();
 
         activePill = nextPill;
         nextPill = createNewCapsule();
         drawNextPiece();
 
         if (!isValidPosition(activePill, 0, 0)) {
-          triggerGameOver();
-          return;
+          if (currentMode === 'chill_zen') {
+            for (let r = 0; r < 4; r++) {
+              for (let c = 0; c < COLS; c++) grid[r][c] = null;
+            }
+            recountAllVirusesOnGrid();
+          } else {
+            triggerGameOver();
+            return;
+          }
         }
 
         gameState = 'PLAYING';
@@ -1469,6 +1958,8 @@
     async function checkAndClearMatches() {
       const toClear = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
       let matchesFound = false;
+      let horizMatched = false;
+      let vertMatched = false;
 
       const colorsMatch = (c1, c2) => {
         if (!c1 || !c2) return false;
@@ -1488,6 +1979,7 @@
           } else {
             if (matchLen >= 4) {
               matchesFound = true;
+              horizMatched = true;
               for (let k = 0; k < matchLen; k++) toClear[r][c - k] = true;
             }
             matchLen = 1;
@@ -1507,6 +1999,7 @@
           } else {
             if (matchLen >= 4) {
               matchesFound = true;
+              vertMatched = true;
               for (let k = 0; k < matchLen; k++) toClear[r - k][c] = true;
             }
             matchLen = 1;
@@ -1571,12 +2064,24 @@
         for (let c = 0; c < COLS; c++) {
           if (toClear[r][c]) {
             const cell = grid[r][c];
+            if (!cell) continue;
             spawnParticleExplosion(c, r, cell.color);
 
             if (cell.type === 'virus') {
+              // Armored 2-Hit Virus or Ice Virus degrades on first hit!
+              if (cell.armor && cell.armor > 1) {
+                cell.armor--;
+                sound.playRotate(0);
+                spawnSparkles(c * CELL_SIZE + 20, r * CELL_SIZE + 20, '#facc15', 10);
+                continue;
+              }
+              if (cell.ice) {
+                cell.ice = false;
+                sound.playRotate(0);
+                spawnSparkles(c * CELL_SIZE + 20, r * CELL_SIZE + 20, '#38bdf8', 10);
+                continue;
+              }
               virusesDestroyedThisMatch++;
-              virusesRemaining--;
-              if (cell.color <= 3) virusCountByColor[cell.color]--;
               sound.playSquish();
             } else if (cell.type === 'pill' && cell.part !== 'single') {
               const px = cell.partnerX;
@@ -1593,18 +2098,52 @@
         }
       }
 
-      const basePts = (virusesDestroyedThisMatch * 200) + 100;
+      recountAllVirusesOnGrid();
+
+      // L-Shape / Cross (+) / 5+ Super Surgery Bonus!
+      let superSurgeryBonus = 0;
+      if ((horizMatched && vertMatched) || clearedTiles.length >= 5) {
+        superSurgeryBonus = 2500;
+        addFeverCharge(35);
+        showComboToast('⚡ SUPER SURGERY!', '+2500 L/CROSS BONUS');
+      }
+
+      const squadMult = currentMode === 'coop_2p' ? 1.5 : 1.0;
+      const basePts = (virusesDestroyedThisMatch * 200) + 100 + superSurgeryBonus;
       const comboMultiplier = Math.pow(2, comboCount - 1);
-      const totalGain = basePts * comboMultiplier;
+      const totalGain = Math.round(basePts * comboMultiplier * squadMult);
       addScore(totalGain, 160, 260);
 
-      addFeverCharge(15 * comboCount);
+      addFeverCharge(Math.round(15 * comboCount * squadMult));
 
-      if (comboCount >= 2) {
+      if (virusesDestroyedThisMatch > 0) {
+        careerStats.totalVirusesCured += virusesDestroyedThisMatch;
+        saveCareerStats();
+      }
+
+      // Mode 6: 3-Minute ER Blitz adds +2s per virus cured!
+      if (currentMode === 'time_blitz' && virusesDestroyedThisMatch > 0) {
+        blitzTimeRemaining += virusesDestroyedThisMatch * 2;
+      }
+
+      // Mode 7: Mega-Pathogen Boss Raid takes heavy damage on every match & combo!
+      if (currentMode === 'boss_pathogen' && bossState.active) {
+        const dmg = (virusesDestroyedThisMatch * 650 + 550) * comboCount;
+        bossState.hp = Math.max(0, bossState.hp - dmg);
+        bossState.hitFlash = 12;
+      }
+
+      // Mode 3: Vs. CPU Duel — combos send garbage to Dr. Helix AI!
+      if (currentMode === 'vs_cpu' && (comboCount >= 2 || clearedTiles.length >= 5)) {
+        rivalState.virusesLeft = Math.min(24, rivalState.virusesLeft + 2);
+        showComboToast('⚔️ GARBAGE ATTACK!', 'SENT +2 BUGS TO DR. HELIX!');
+      }
+
+      if (comboCount >= 2 && !superSurgeryBonus) {
         showComboToast(comboCount, totalGain);
       }
 
-      updateVirusStats();
+      updateModeTelemetryUI();
       await sleep(180);
       return true;
     }
@@ -1838,6 +2377,49 @@
         }
         targetCtx.stroke();
 
+        // Flashing Golden Halo & Star for Flash Target Rush VIP Bugs!
+        if (cell.isTarget) {
+          const pulse = 0.65 + 0.35 * Math.sin(Date.now() * 0.012);
+          targetCtx.save();
+          targetCtx.strokeStyle = `rgba(250, 204, 21, ${pulse})`;
+          targetCtx.lineWidth = 3;
+          targetCtx.beginPath();
+          targetCtx.arc(cx, cy, size * 0.46, 0, Math.PI * 2);
+          targetCtx.stroke();
+          targetCtx.font = '11px sans-serif';
+          targetCtx.textAlign = 'center';
+          targetCtx.fillText('✨', cx, cy - size * 0.34);
+          targetCtx.restore();
+        }
+
+        // Armored 2-Hit Virus Shield Ring
+        if (cell.armor && cell.armor > 1) {
+          targetCtx.save();
+          targetCtx.strokeStyle = '#e2e8f0';
+          targetCtx.lineWidth = 2.5;
+          targetCtx.setLineDash([4, 3]);
+          targetCtx.beginPath();
+          targetCtx.arc(cx, cy, size * 0.44, 0, Math.PI * 2);
+          targetCtx.stroke();
+          targetCtx.font = '10px sans-serif';
+          targetCtx.textAlign = 'center';
+          targetCtx.fillText('🛡️', cx + 11, cy - 11);
+          targetCtx.restore();
+        }
+
+        // Ice-Encased Virus Crystalline Overlay
+        if (cell.ice) {
+          targetCtx.save();
+          targetCtx.fillStyle = 'rgba(56, 189, 248, 0.32)';
+          targetCtx.strokeStyle = '#bae6fd';
+          targetCtx.lineWidth = 1.6;
+          targetCtx.beginPath();
+          targetCtx.roundRect(px + 3, py + 3, size - 6, size - 6, 8);
+          targetCtx.fill();
+          targetCtx.stroke();
+          targetCtx.restore();
+        }
+
       } else {
         // High-Gloss 3D Pill Capsule
         const pad = 2;
@@ -1882,11 +2464,14 @@
             targetCtx.stroke();
           }
 
-          if (cell.isBomb) {
-            targetCtx.font = '15px sans-serif';
+          const spIcon = cell.specialType === 'cross'
+            ? '⚡'
+            : (cell.specialType === 'dissolver' ? '🧪' : (cell.isBomb ? '💣' : (cell.color === 4 ? '🌈' : null)));
+          if (spIcon) {
+            targetCtx.font = '14px sans-serif';
             targetCtx.textAlign = 'center';
             targetCtx.textBaseline = 'middle';
-            targetCtx.fillText('💣', bx + w / 2, by + h / 2);
+            targetCtx.fillText(spIcon, bx + w / 2, by + h / 2);
           }
         } else {
           // Holographic Ghost outline
@@ -2339,8 +2924,34 @@
       // Currently Falling Active Pill
       if (activePill) {
         for (const s of activePill.getSegments()) {
-          drawCell(ctx, s.x, s.y, CELL_SIZE, { color: s.color, part: s.part, type: 'pill' });
+          drawCell(ctx, s.x, s.y, CELL_SIZE, { color: s.color, part: s.part, type: 'pill', isBomb: s.isBomb, specialType: s.specialType });
         }
+      }
+
+      // Mega-Pathogen Boss Raid Overlay inside the Bottle!
+      if (currentMode === 'boss_pathogen' && bossState.active) {
+        if (bossState.hitFlash > 0) bossState.hitFlash--;
+        const bx = 160;
+        const by = 180 + Math.sin(Date.now() * 0.004) * 8;
+        ctx.save();
+        ctx.translate(bx, by);
+        ctx.fillStyle = bossState.hitFlash > 0 ? '#ffffff' : 'rgba(168, 85, 247, 0.28)';
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, 44, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = '32px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('👾', 0, -4);
+
+        ctx.font = 'bold 9px "Outfit", sans-serif';
+        ctx.fillStyle = '#fef08a';
+        ctx.fillText(`BOSS HP: ${bossState.hp}`, 0, 26);
+        ctx.restore();
       }
 
       // Neon Electric Lightning Arcs on Matches
@@ -2434,8 +3045,8 @@
 
       targetCtx.save();
       targetCtx.translate(startX, startY);
-      drawCell(targetCtx, 0, 0, previewSize, { color: capsule.colorA, part: 'left', type: 'pill', isBomb: capsule.isBomb });
-      drawCell(targetCtx, 1, 0, previewSize, { color: capsule.colorB, part: 'right', type: 'pill', isBomb: capsule.isBomb });
+      drawCell(targetCtx, 0, 0, previewSize, { color: capsule.colorA, part: 'left', type: 'pill', isBomb: capsule.isBomb, specialType: capsule.specialType });
+      drawCell(targetCtx, 1, 0, previewSize, { color: capsule.colorB, part: 'right', type: 'pill', isBomb: capsule.isBomb, specialType: capsule.specialType });
       targetCtx.restore();
     }
 
@@ -2445,6 +3056,92 @@
 
     function drawHoldPiece() {
       drawPreviewCapsule(holdCtx, holdCanvas, holdPill);
+    }
+
+    function updateModeTelemetryUI() {
+      const def = MODE_DEFS[currentMode] || MODE_DEFS.classic;
+      const badgeEl = document.getElementById('modeBadgeTitle');
+      const goalEl = document.getElementById('modeGoalValue');
+      const statusEl = document.getElementById('modeSpecialStatus');
+      const fillEl = document.getElementById('modeMeterFill');
+      const subtitleEl = document.getElementById('modeSubtitle');
+
+      if (badgeEl) badgeEl.textContent = def.badge;
+      if (subtitleEl) subtitleEl.textContent = def.subtitle;
+
+      if (currentMode === 'classic') {
+        if (goalEl) goalEl.textContent = `STAGE ${String(level).padStart(2, '0')}`;
+        if (statusEl) statusEl.textContent = `Clear all ${virusesRemaining} pathogens! Match 5+ or L/Cross shapes for +2,500 Super Surgery.`;
+        if (fillEl) fillEl.style.width = `${Math.min(100, Math.max(5, 100 - virusesRemaining * 3))}%`;
+      } else if (currentMode === 'miracle_cure') {
+        if (goalEl) goalEl.textContent = `POWER LAB`;
+        if (statusEl) statusEl.textContent = `Press [E] or click 💉 SKILL to arm Bomb, Cross, Dissolver, or Rainbow capsules!`;
+        if (fillEl) fillEl.style.width = `${Math.max(15, feverCharge)}%`;
+      } else if (currentMode === 'vs_cpu') {
+        if (goalEl) goalEl.textContent = `AI: ${rivalState.virusesLeft} BUGS`;
+        if (statusEl) statusEl.textContent = `Dr. Helix AI has ${rivalState.virusesLeft} viruses left. Chain 2x+ combos to send Garbage!`;
+        if (fillEl) fillEl.style.width = `${Math.min(100, Math.round((rivalState.virusesLeft / Math.max(1, rivalState.maxViruses)) * 100))}%`;
+      } else if (currentMode === 'flash') {
+        if (goalEl) goalEl.textContent = `✨ ${targetVirusesRemaining} VIP LEFT`;
+        if (statusEl) statusEl.textContent = `Eliminate the ${targetVirusesRemaining} glowing ✨ VIP Golden Bugs! Best: ${careerStats.flashBestSec < 999 ? careerStats.flashBestSec + 's' : '--'}`;
+        if (fillEl) fillEl.style.width = `${Math.round((targetVirusesRemaining / 3) * 100)}%`;
+      } else if (currentMode === 'marathon') {
+        const dropsLeft = 7 - (capsulesDroppedCount % 7);
+        if (goalEl) goalEl.textContent = `SURGE IN ${dropsLeft}`;
+        if (statusEl) statusEl.textContent = `Bio-Surge rises in ${dropsLeft} capsule drops! Total drops: ${capsulesDroppedCount}.`;
+        if (fillEl) fillEl.style.width = `${Math.round(((7 - dropsLeft) / 7) * 100)}%`;
+      } else if (currentMode === 'time_blitz') {
+        const mins = Math.floor(blitzTimeRemaining / 60);
+        const secs = String(Math.floor(blitzTimeRemaining % 60)).padStart(2, '0');
+        if (goalEl) goalEl.textContent = `⏱️ ${mins}:${secs}`;
+        if (statusEl) statusEl.textContent = `ER Triage Blitz! Every virus cured adds +2s; bottle clear adds +15s!`;
+        if (fillEl) fillEl.style.width = `${Math.min(100, Math.round((blitzTimeRemaining / 180) * 100))}%`;
+      } else if (currentMode === 'boss_pathogen') {
+        const pct = Math.max(0, Math.round((bossState.hp / bossState.maxHp) * 100));
+        if (goalEl) goalEl.textContent = `👾 ${pct}% HP`;
+        if (statusEl) statusEl.textContent = `Omega Capsid Core: ${bossState.hp} / ${bossState.maxHp} HP. Combos deal massive Boss DMG!`;
+        if (fillEl) fillEl.style.width = `${pct}%`;
+      } else if (currentMode === 'stage_puzzle') {
+        if (goalEl) goalEl.textContent = `📋 ${puzzleQuotaLeft} PILLS`;
+        if (statusEl) statusEl.textContent = `Rx Quota: ${puzzleQuotaLeft} capsules remaining to cure ${virusesRemaining} pathogens!`;
+        if (fillEl) fillEl.style.width = `${Math.min(100, puzzleQuotaLeft * 7)}%`;
+      } else if (currentMode === 'chill_zen') {
+        if (goalEl) goalEl.textContent = `🧘 ZEN FLOW`;
+        if (statusEl) statusEl.textContent = `Zero-stress gravity, auto neck-sterilization, and [U] Undo (${undoHistory.length} saved).`;
+        if (fillEl) fillEl.style.width = `100%`;
+      } else if (currentMode === 'coop_2p') {
+        if (goalEl) goalEl.textContent = `🤝 +50% BOOST`;
+        if (statusEl) statusEl.textContent = `2P Med-Squad (WASD + Arrows)! Active +50% Squad Synergy on all matches & Fever charge!`;
+        if (fillEl) fillEl.style.width = `100%`;
+      }
+
+      // Career Rank & Total Cured
+      const rankEl = document.getElementById('careerRankText');
+      const curedEl = document.getElementById('careerVirusesText');
+      if (curedEl) curedEl.textContent = String(careerStats.totalVirusesCured);
+      if (rankEl) {
+        const c = careerStats.totalVirusesCured;
+        rankEl.textContent = c >= 250 ? 'Surgeon General' : (c >= 100 ? 'Chief Virologist' : (c >= 30 ? 'Attending MD' : 'Intern MD'));
+      }
+    }
+
+    function switchGameMode(newMode) {
+      if (!MODE_DEFS[newMode]) return;
+      currentMode = newMode;
+      const sel = document.getElementById('modeSelect');
+      if (sel && sel.value !== newMode) sel.value = newMode;
+
+      document.querySelectorAll('.mode-dock-btn').forEach(btn => {
+        const isAct = btn.getAttribute('data-mode') === newMode;
+        btn.className = isAct
+          ? 'mode-dock-btn px-2 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 whitespace-nowrap'
+          : 'mode-dock-btn px-2 py-1 rounded-lg bg-slate-800/80 text-slate-300 border border-slate-700 hover:border-cyan-400/40 whitespace-nowrap';
+      });
+
+      score = 0;
+      addScore(0);
+      startLevel(1);
+      showComboToast(MODE_DEFS[newMode].badge, 'MODE ENGAGED!');
     }
 
     function gameLoop(timestamp) {
@@ -2460,6 +3157,35 @@
           }
           lastDropTime = timestamp;
         }
+
+        // Mode 6: 3-Minute ER Triage Blitz Timer
+        if (currentMode === 'time_blitz') {
+          if (!lastBlitzTick) lastBlitzTick = timestamp;
+          if (timestamp - lastBlitzTick >= 1000) {
+            lastBlitzTick = timestamp;
+            blitzTimeRemaining = Math.max(0, blitzTimeRemaining - 1);
+            updateModeTelemetryUI();
+            if (blitzTimeRemaining <= 0) {
+              triggerVictory(`⏱️ 3-MIN ER BLITZ COMPLETE! Final Score: ${score}`);
+            }
+          }
+        }
+
+        // Mode 3: Vs. CPU Virus Duel AI Progression
+        if (currentMode === 'vs_cpu') {
+          rivalState.aiTimer++;
+          if (rivalState.aiTimer >= 260) {
+            rivalState.aiTimer = 0;
+            if (Math.random() < 0.65 && rivalState.virusesLeft > 1) {
+              rivalState.virusesLeft--;
+              if (Math.random() < 0.38) {
+                rivalState.PendingGarbageToPlayer = Math.min(4, rivalState.PendingGarbageToPlayer + 2);
+                showComboToast('⚠️ DR. HELIX AI', 'INCOMING GARBAGE DROP!');
+              }
+              updateModeTelemetryUI();
+            }
+          }
+        }
       }
 
       render();
@@ -2468,7 +3194,7 @@
       animationFrameId = requestAnimationFrame(gameLoop);
     }
 
-    function triggerGameOver() {
+    function triggerGameOver(customReason = null) {
       gameState = 'GAMEOVER';
       sound.stopBGM();
       sound.playGameOver();
@@ -2476,7 +3202,7 @@
       document.getElementById('endGameEmoji').textContent = '💀';
       document.getElementById('endGameTitle').textContent = 'OUTBREAK FAILED!';
       document.getElementById('endGameTitle').className = 'text-3xl font-black text-rose-500 fun-font';
-      document.getElementById('endGameDesc').textContent = 'The viruses overran the test bottle neck.';
+      document.getElementById('endGameDesc').textContent = customReason || 'The viruses overran the test bottle neck.';
       document.getElementById('endScore').textContent = score;
       document.getElementById('endViruses').textContent = (Math.min(84, (level + 1) * 4) - virusesRemaining);
       document.getElementById('endCombo').textContent = `${maxComboThisGame}x`;
@@ -2485,7 +3211,7 @@
       document.getElementById('endGameOverlay').classList.remove('hidden');
     }
 
-    function triggerVictory() {
+    function triggerVictory(customDesc = null) {
       gameState = 'VICTORY';
       sound.stopBGM();
       sound.playVictory();
@@ -2493,7 +3219,7 @@
       document.getElementById('endGameEmoji').textContent = '🏆';
       document.getElementById('endGameTitle').textContent = 'STAGE STERILIZED!';
       document.getElementById('endGameTitle').className = 'text-3xl font-black text-amber-400 fun-font';
-      document.getElementById('endGameDesc').textContent = `System patched! High-dose debugging complete, Dr. Codecaine! Stage ${level} cleared!`;
+      document.getElementById('endGameDesc').textContent = customDesc || `System patched! High-dose debugging complete, Dr. Codecaine! Stage ${level} cleared!`;
       document.getElementById('endScore').textContent = score;
       document.getElementById('endViruses').textContent = Math.min(84, (level + 1) * 4);
       document.getElementById('endCombo').textContent = `${maxComboThisGame}x`;
@@ -2505,6 +3231,28 @@
     function startLevel(lvl) {
       level = lvl;
       stageDisplay.textContent = `LVL ${String(level).padStart(2, '0')}`;
+      capsulesDroppedCount = 0;
+      undoHistory = [];
+      lastBlitzTick = performance.now();
+
+      if (currentMode === 'time_blitz' && lvl === 1) {
+        blitzTimeRemaining = 180;
+      }
+      if (currentMode === 'vs_cpu') {
+        rivalState.maxViruses = Math.min(36, (lvl + 2) * 4);
+        rivalState.virusesLeft = rivalState.maxViruses;
+        rivalState.PendingGarbageToPlayer = 0;
+        rivalState.aiTimer = 0;
+      }
+      if (currentMode === 'boss_pathogen') {
+        bossState.active = true;
+        bossState.maxHp = 8000 + lvl * 2000;
+        bossState.hp = bossState.maxHp;
+        bossState.hitFlash = 0;
+      } else {
+        bossState.active = false;
+      }
+
       initGrid();
       populateViruses(level);
 
@@ -2519,19 +3267,25 @@
         v.panicTimer = 0;
       });
 
-      feverCharge = 0;
+      feverCharge = currentMode === 'miracle_cure' ? 50 : 0;
       isFeverOverdrive = false;
       if (feverBar) {
-        feverBar.style.width = '0%';
+        feverBar.style.width = `${feverCharge}%`;
         feverBar.classList.remove('animate-pulse');
       }
       if (feverPercent) {
-        feverPercent.textContent = '0%';
+        feverPercent.textContent = `${feverCharge}%`;
       }
       sound.setOverdrive(false);
 
       const baseSpeeds = { low: 800, med: 600, hi: 400 };
-      fallSpeed = Math.max(120, (baseSpeeds[speedPreset] || 600) - (level * 18));
+      if (currentMode === 'chill_zen') {
+        fallSpeed = 820;
+      } else if (currentMode === 'time_blitz') {
+        fallSpeed = 420;
+      } else {
+        fallSpeed = Math.max(120, (baseSpeeds[speedPreset] || 600) - (level * 18));
+      }
 
       activePill = createNewCapsule();
       nextPill = createNewCapsule();
@@ -2541,6 +3295,7 @@
 
       drawNextPiece();
       drawHoldPiece();
+      updateModeTelemetryUI();
 
       gameState = 'PLAYING';
       lastDropTime = performance.now();
@@ -2669,12 +3424,33 @@
     window.addEventListener('touchstart', unlockGameAudio, { passive: true });
     window.addEventListener('focus', unlockGameAudio, { passive: true });
 
-    // Keyboard handlers
+    // Keyboard handlers (including 10-Mode Hotkeys [1–0], Miracle Skill [E], and Undo [U])
     window.addEventListener('keydown', (e) => {
       sound.init();
       sound.resume();
 
-      if (e.repeat && ['ArrowUp', 'KeyW', 'KeyX', 'KeyC', 'ShiftLeft', 'ShiftRight'].includes(e.code)) return;
+      if (e.repeat && ['ArrowUp', 'KeyW', 'KeyX', 'KeyC', 'KeyE', 'KeyU', 'ShiftLeft', 'ShiftRight'].includes(e.code)) return;
+
+      // 10-Mode Quick Hotkeys [1-0]
+      if (!e.ctrlKey && !e.altKey && !e.metaKey) {
+        const modeKeys = {
+          Digit1: 'classic',
+          Digit2: 'miracle_cure',
+          Digit3: 'vs_cpu',
+          Digit4: 'flash',
+          Digit5: 'marathon',
+          Digit6: 'time_blitz',
+          Digit7: 'boss_pathogen',
+          Digit8: 'stage_puzzle',
+          Digit9: 'chill_zen',
+          Digit0: 'coop_2p'
+        };
+        if (modeKeys[e.code]) {
+          switchGameMode(modeKeys[e.code]);
+          e.preventDefault();
+          return;
+        }
+      }
 
       switch (e.code) {
         case 'ArrowLeft':
@@ -2703,6 +3479,7 @@
           e.preventDefault();
           break;
         case 'Space':
+        case 'Enter':
           hardDrop();
           e.preventDefault();
           break;
@@ -2710,6 +3487,18 @@
         case 'ShiftLeft':
         case 'ShiftRight':
           holdCurrentCapsule();
+          e.preventDefault();
+          break;
+        case 'KeyE':
+          activateMiracleSkill();
+          e.preventDefault();
+          break;
+        case 'KeyU':
+          undoLastCapsule();
+          e.preventDefault();
+          break;
+        case 'KeyR':
+          startLevel(level);
           e.preventDefault();
           break;
         case 'KeyP':
@@ -2751,7 +3540,7 @@
       }
     }
 
-    // Quick track switcher
+    // Quick track switcher (FEVER -> CHILL -> CYBER -> OFF)
     document.getElementById('btnTrackCycle').addEventListener('click', () => {
       sound.init();
       sound.resume();
@@ -2759,6 +3548,9 @@
         sound.setTrack('chill');
         trackLabel.textContent = 'CHILL';
       } else if (sound.currentTrack === 'chill') {
+        sound.setTrack('cyber');
+        trackLabel.textContent = 'CYBER';
+      } else if (sound.currentTrack === 'cyber') {
         sound.setTrack('off');
         trackLabel.textContent = 'OFF';
       } else {
@@ -2766,6 +3558,18 @@
         trackLabel.textContent = 'FEVER';
       }
     });
+
+    // Wire 10-Mode Selector Dropdown, Mode Dock Buttons, Miracle Skill & Undo Buttons
+    document.getElementById('modeSelect')?.addEventListener('change', (e) => {
+      switchGameMode(e.target.value);
+    });
+    document.querySelectorAll('.mode-dock-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        switchGameMode(btn.getAttribute('data-mode'));
+      });
+    });
+    document.getElementById('btnMiracleSkill')?.addEventListener('click', activateMiracleSkill);
+    document.getElementById('btnUndoCapsule')?.addEventListener('click', undoLastCapsule);
 
     document.getElementById('btnPause').addEventListener('click', togglePause);
     document.getElementById('btnResume').addEventListener('click', togglePause);

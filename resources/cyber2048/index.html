@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine Cyber2048 Quantum Merge</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    :root {
+      --bg-dark: #040510;
+      --panel-bg: rgba(9, 12, 28, 0.9);
+      --cyan: #00f5ff;
+      --cyan-dim: rgba(0, 245, 255, 0.24);
+      --magenta: #ff00aa;
+      --gold: #ffe600;
+      --green: #00ff9d;
+      --text: #eef8ff;
+      --muted: #849ec2;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 20%, #150d30 0%, #040510 75%);
+      color: var(--text);
+      font-family: 'Orbitron', 'Rajdhani', 'Courier New', monospace, system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 14px;
+      overflow: hidden;
+    }
+
+    .hud-header {
+      width: 100%;
+      max-width: 1120px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--panel-bg);
+      border: 1px solid var(--cyan-dim);
+      border-radius: 14px;
+      padding: 10px 16px;
+      box-shadow: 0 0 28px rgba(0, 245, 255, 0.12), inset 0 0 18px rgba(0, 0, 0, 0.65);
+      margin-bottom: 12px;
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, var(--cyan), var(--magenta));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 13px;
+      color: #040510;
+      box-shadow: 0 0 14px rgba(0, 245, 255, 0.45);
+    }
+
+    .brand-title {
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      background: linear-gradient(90deg, #fff, var(--cyan), var(--magenta));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+    }
+
+    .brand-sub {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .mode-selector {
+      display: flex;
+      gap: 5px;
+      background: rgba(3, 6, 16, 0.8);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--cyan-dim);
+    }
+
+    .mode-btn {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid transparent;
+      padding: 5px 10px;
+      border-radius: 7px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .mode-btn.active {
+      background: rgba(0, 245, 255, 0.18);
+      color: var(--cyan);
+      border-color: var(--cyan);
+      box-shadow: 0 0 10px rgba(0, 245, 255, 0.35);
+    }
+
+    .stats-strip {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      background: rgba(3, 7, 18, 0.85);
+      border: 1px solid rgba(0, 245, 255, 0.25);
+      border-radius: 10px;
+      padding: 5px 12px;
+      min-width: 84px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .stat-val {
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 0 10px rgba(0, 245, 255, 0.45);
+    }
+
+    .action-bar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .hud-btn {
+      background: rgba(0, 245, 255, 0.1);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 245, 255, 0.35);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .hud-btn:hover {
+      background: rgba(0, 245, 255, 0.24);
+      box-shadow: 0 0 12px rgba(0, 245, 255, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .hud-btn.special {
+      border-color: var(--magenta);
+      color: #ff66cc;
+      background: rgba(255, 0, 170, 0.12);
+    }
+
+    .hud-btn.hint-btn {
+      border-color: var(--gold);
+      color: var(--gold);
+      background: rgba(255, 230, 0, 0.11);
+    }
+
+    .workspace {
+      width: 100%;
+      max-width: 1120px;
+      flex: 1;
+      display: flex;
+      gap: 14px;
+      align-items: stretch;
+      justify-content: center;
+      min-height: 0;
+    }
+
+    .canvas-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(4, 7, 18, 0.85);
+      border: 1px solid rgba(0, 245, 255, 0.28);
+      border-radius: 18px;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.85), inset 0 0 30px rgba(0, 245, 255, 0.05);
+      padding: 12px;
+      position: relative;
+    }
+
+    canvas {
+      display: block;
+      border-radius: 14px;
+      touch-action: none;
+    }
+
+    .side-panel {
+      width: 265px;
+      background: var(--panel-bg);
+      border: 1px solid var(--cyan-dim);
+      border-radius: 18px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      box-shadow: 0 0 28px rgba(0, 0, 0, 0.75);
+    }
+
+    .panel-title {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--cyan-dim);
+      padding-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .quantum-card {
+      background: rgba(3, 7, 18, 0.85);
+      border: 1px solid rgba(0, 245, 255, 0.18);
+      border-radius: 11px;
+      padding: 10px 12px;
+    }
+
+    .q-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .q-desc {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+
+    .dpad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-top: auto;
+    }
+
+    .dpad-btn {
+      background: rgba(0, 245, 255, 0.1);
+      border: 1px solid rgba(0, 245, 255, 0.3);
+      color: #fff;
+      border-radius: 9px;
+      padding: 10px 0;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+
+    .dpad-btn:hover {
+      background: rgba(0, 245, 255, 0.26);
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 4, 12, 0.84);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    .modal-backdrop.hidden {
+      display: none;
+    }
+
+    .modal-card {
+      background: #080e24;
+      border: 1px solid var(--cyan);
+      border-radius: 16px;
+      padding: 22px 26px;
+      max-width: 520px;
+      width: 92%;
+      box-shadow: 0 0 40px rgba(0, 245, 255, 0.25);
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--cyan);
+      margin-bottom: 10px;
+      letter-spacing: 1.5px;
+    }
+
+    .key-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 7px 14px;
+      margin: 12px 0 16px;
+      background: rgba(0, 0, 0, 0.38);
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--cyan-dim);
+      font-size: 12px;
+    }
+
+    .kbd {
+      background: rgba(0, 245, 255, 0.15);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    @media (max-width: 880px) {
+      .workspace {
+        flex-direction: column;
+      }
+      .side-panel {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="hud-header">
+    <div class="brand-block">
+      <div class="brand-logo">2048</div>
+      <div>
+        <div class="brand-title">Codecaine Cyber2048</div>
+        <div class="brand-sub">Quantum Tile Synthesizer</div>
+      </div>
+    </div>
+
+    <div class="mode-selector" role="group" aria-label="Grid Size Mode">
+      <button class="mode-btn" id="mode-3" onclick="switchGridSize(3)">3×3 TURBO</button>
+      <button class="mode-btn active" id="mode-4" onclick="switchGridSize(4)">4×4 CLASSIC</button>
+      <button class="mode-btn" id="mode-5" onclick="switchGridSize(5)">5×5 REACTOR</button>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat-pill">
+        <div class="stat-label">Score</div>
+        <div class="stat-val" id="hud-score">0</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-label">Peak Tile</div>
+        <div class="stat-val" id="hud-max" style="color:var(--gold);">2</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-label">Moves</div>
+        <div class="stat-val" id="hud-moves">0</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-label">High Score</div>
+        <div class="stat-val" id="hud-best">0</div>
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <button class="hud-btn" id="btn-undo" onclick="triggerTemporalUndo()">⏪ UNDO (Z: 5)</button>
+      <button class="hud-btn special" id="btn-zap" onclick="triggerQuantumZap()">⚡ ZAP (X)</button>
+      <button class="hud-btn hint-btn" onclick="triggerExpectimaxHint()">🧠 HINT (H)</button>
+      <button class="hud-btn" onclick="startNewGame()">NEW (N)</button>
+      <button class="hud-btn" id="btn-mute" onclick="toggleMute()">🔊 SFX</button>
+      <button class="hud-btn" onclick="toggleHelp()">? HELP</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <div class="canvas-container" id="canvas-container">
+      <canvas id="board-canvas" width="580" height="580"></canvas>
+    </div>
+
+    <aside class="side-panel">
+      <div class="panel-title">
+        <span>Quantum Modules</span>
+        <span id="grid-badge">4×4 GRID</span>
+      </div>
+
+      <div class="quantum-card">
+        <div class="q-title">
+          <span>⏪ Temporal Undo</span>
+          <span id="undo-count-label" style="color:var(--cyan);">5 / 5</span>
+        </div>
+        <div class="q-desc">Rewind the quantum lattice up to 5 turns to recover from unfavorable spawns.</div>
+        <button class="hud-btn" style="width:100%;" onclick="triggerTemporalUndo()">REWIND STATE (Z)</button>
+      </div>
+
+      <div class="quantum-card">
+        <div class="q-title">
+          <span>⚡ Quantum Tile Zap</span>
+          <span id="zap-status-label" style="color:var(--green);">READY</span>
+        </div>
+        <div class="q-desc">Vaporizes the lowest-energy `2` or `4` tile on the board once per game to free space.</div>
+        <button class="hud-btn special" style="width:100%;" id="side-zap-btn" onclick="triggerQuantumZap()">VAPORIZE LOW TILE (X)</button>
+      </div>
+
+      <div class="quantum-card">
+        <div class="q-title">
+          <span>🧠 Expectimax AI Advisor</span>
+          <span id="hint-dir-label" style="color:var(--gold);">STANDBY</span>
+        </div>
+        <div class="q-desc">Evaluates monotonicity, corner weight &amp; open entropy to recommend the optimal slide.</div>
+        <div style="display:flex; gap:6px;">
+          <button class="hud-btn hint-btn" style="flex:1;" onclick="triggerExpectimaxHint()">SCAN (H)</button>
+          <button class="hud-btn" style="flex:1;" onclick="applyExpectimaxMove()">EXECUTE AI</button>
+        </div>
+      </div>
+
+      <div class="dpad-grid" aria-label="Directional Slide Controls">
+        <div></div>
+        <button class="dpad-btn" onclick="performSlide('up')">▲</button>
+        <div></div>
+        <button class="dpad-btn" onclick="performSlide('left')">◀</button>
+        <button class="dpad-btn" onclick="performSlide('down')">▼</button>
+        <button class="dpad-btn" onclick="performSlide('right')">▶</button>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Help Modal -->
+  <div class="modal-backdrop hidden" id="help-modal">
+    <div class="modal-card">
+      <div class="modal-title">🔢 Cyber2048 Quantum Merge Manual</div>
+      <div style="font-size:13px; line-height:1.55; color:#c8e2f8;">
+        Slide tiles across the neon matrix (`2 → 4 → 8 → ... → 2048 → 4096 → 8192`). Matching powers of two fuse into the next harmonic octave with pitch-ascending Web Audio chimes!
+        <div class="key-grid">
+          <span class="kbd">WASD / Arrows</span><span>Slide Quantum Tiles (Up / Left / Down / Right)</span>
+          <span class="kbd">Z</span><span>5-Step Temporal Undo</span>
+          <span class="kbd">X</span><span>Quantum Tile Zap (Vaporizes a `2` or `4` tile, 1×/game)</span>
+          <span class="kbd">H</span><span>AI Expectimax Best-Move Hint</span>
+          <span class="kbd">1 / 2 / 3</span><span>Switch Grid Mode (3×3 Turbo / 4×4 Classic / 5×5 Reactor)</span>
+          <span class="kbd">N / M</span><span>New Game / Toggle Synthesizer Audio</span>
+        </div>
+      </div>
+      <button class="hud-btn" style="width:100%; padding:10px;" onclick="toggleHelp()">CLOSE MANUAL</button>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // HARMONIC PITCH-ASCENDING WEB AUDIO SYNTHESIZER
+    // =========================================================================
+    class MergeSynth {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playSlide() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(240, now + 0.055);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.065);
+      }
+
+      playMerge(maxMergedVal) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        // Map power of 2 (2..8192) to ascending pentatonic frequencies
+        const power = Math.max(1, Math.round(Math.log2(maxMergedVal)));
+        const scale = [220, 246.94, 277.18, 329.63, 369.99, 440, 493.88, 554.37, 659.25, 739.99, 880, 987.77, 1108.73, 1318.5];
+        const freq = scale[Math.min(scale.length - 1, power - 1)];
+
+        const osc = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc2.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+        osc2.frequency.setValueAtTime(freq * 1.5, now);
+
+        gain.gain.setValueAtTime(0.11, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+
+        osc.connect(gain);
+        osc2.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc2.start(now);
+        osc.stop(now + 0.25);
+        osc2.stop(now + 0.25);
+      }
+
+      playZap() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(920, now);
+        osc.frequency.exponentialRampToValueAtTime(110, now + 0.22);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.23);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.24);
+      }
+    }
+
+    const synth = new MergeSynth();
+
+    // =========================================================================
+    // TILE COLOR PALETTE (2 -> 8192)
+    // =========================================================================
+    const TILE_STYLES = {
+      2:    { bg1: '#0a223a', bg2: '#071526', border: '#00f5ff', text: '#e0faff', glow: 'rgba(0,245,255,0.25)' },
+      4:    { bg1: '#0e2f44', bg2: '#091d2e', border: '#00ffaa', text: '#e6fff5', glow: 'rgba(0,255,170,0.3)' },
+      8:    { bg1: '#1f1646', bg2: '#120b2e', border: '#9d4edd', text: '#f3e5ff', glow: 'rgba(157,78,221,0.38)' },
+      16:   { bg1: '#38124a', bg2: '#220830', border: '#ff00aa', text: '#ffe6f7', glow: 'rgba(255,0,170,0.42)' },
+      32:   { bg1: '#4a122f', bg2: '#2b071a', border: '#ff2a6d', text: '#ffe6ee', glow: 'rgba(255,42,109,0.46)' },
+      64:   { bg1: '#4d220e', bg2: '#2e1105', border: '#ff6d00', text: '#fff0e5', glow: 'rgba(255,109,0,0.5)' },
+      128:  { bg1: '#4a3b09', bg2: '#292003', border: '#ffd000', text: '#fffbe0', glow: 'rgba(255,208,0,0.55)' },
+      256:  { bg1: '#1d4716', bg2: '#0d2609', border: '#38ff14', text: '#ecffe8', glow: 'rgba(56,255,20,0.55)' },
+      512:  { bg1: '#09454a', bg2: '#042429', border: '#00ffff', text: '#ffffff', glow: 'rgba(0,255,255,0.65)' },
+      1024: { bg1: '#30115e', bg2: '#180636', border: '#d900ff', text: '#ffffff', glow: 'rgba(217,0,255,0.72)' },
+      2048: { bg1: '#594300', bg2: '#332200', border: '#ffe600', text: '#ffffff', glow: 'rgba(255,230,0,0.88)' },
+      4096: { bg1: '#59003b', bg2: '#2b001c', border: '#ff0077', text: '#ffffff', glow: 'rgba(255,0,119,0.9)' },
+      8192: { bg1: '#004d40', bg2: '#002620', border: '#00ffcc', text: '#ffffff', glow: 'rgba(0,255,204,0.95)' }
+    };
+
+    const STORAGE_KEY = 'codecaine_cyber2048_best_v1';
+    const canvas = document.getElementById('board-canvas');
+    const ctx = canvas.getContext('2d');
+
+    let gridSize = 4;
+    let board = [];
+    let score = 0;
+    let movesCount = 0;
+    let highScore = Number(localStorage.getItem(STORAGE_KEY) || 0);
+    let undoStack = []; // Max 5 states
+    let zapAvailable = true;
+    let activeHintDir = null;
+    let gameOver = false;
+    let won2048BannerShown = false;
+
+    // Animation state for smooth slide & pop
+    let animatedTiles = []; // { val, fromR, fromC, toR, toC, pop }
+    let animStartTime = 0;
+    const ANIM_DURATION = 115; // ms
+    let floatingScores = [];
+
+    // =========================================================================
+    // BOARD INITIALIZATION & STATE
+    // =========================================================================
+    function createEmptyBoard(size) {
+      return Array.from({ length: size }, () => Array(size).fill(0));
+    }
+
+    function cloneBoard(b) {
+      return b.map(row => [...row]);
+    }
+
+    function switchGridSize(size) {
+      gridSize = size;
+      [3, 4, 5].forEach(s => {
+        const btn = document.getElementById('mode-' + s);
+        if (btn) btn.classList.toggle('active', s === size);
+      });
+      document.getElementById('grid-badge').textContent = `${size}×${size} GRID`;
+      startNewGame();
+    }
+    window.switchGridSize = switchGridSize;
+
+    function startNewGame() {
+      board = createEmptyBoard(gridSize);
+      score = 0;
+      movesCount = 0;
+      undoStack = [];
+      zapAvailable = true;
+      activeHintDir = null;
+      gameOver = false;
+      won2048BannerShown = false;
+      animatedTiles = [];
+
+      spawnRandomTile(true);
+      spawnRandomTile(true);
+      syncAnimatedTilesToStatic();
+      updateHUD();
+    }
+    window.startNewGame = startNewGame;
+
+    function spawnRandomTile(isInitial = false) {
+      const empties = [];
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          if (board[r][c] === 0) empties.push({ r, c });
+        }
+      }
+      if (empties.length === 0) return null;
+      const pick = empties[Math.floor(Math.random() * empties.length)];
+      const val = Math.random() < 0.9 ? 2 : 4;
+      board[pick.r][pick.c] = val;
+      if (!isInitial) {
+        animatedTiles.push({
+          val,
+          fromR: pick.r,
+          fromC: pick.c,
+          toR: pick.r,
+          toC: pick.c,
+          spawnPop: true
+        });
+      }
+      return pick;
+    }
+
+    function syncAnimatedTilesToStatic() {
+      animatedTiles = [];
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          if (board[r][c] > 0) {
+            animatedTiles.push({
+              val: board[r][c],
+              fromR: r,
+              fromC: c,
+              toR: r,
+              toC: c,
+              mergedPop: false,
+              spawnPop: false
+            });
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // SLIDE & MERGE ENGINE
+    // =========================================================================
+    function performSlide(dir) {
+      if (gameOver) return false;
+      synth.init();
+
+      const prevBoard = cloneBoard(board);
+      const prevScore = score;
+
+      const nextBoard = createEmptyBoard(gridSize);
+      const nextAnimations = [];
+      let moved = false;
+      let gainedScore = 0;
+      let maxMerged = 0;
+
+      // Helper to process 1 line of coordinates
+      const processLine = (coords) => {
+        const nonZero = [];
+        for (const { r, c } of coords) {
+          if (board[r][c] > 0) {
+            nonZero.push({ val: board[r][c], r, c });
+          }
+        }
+
+        let targetIdx = 0;
+        let i = 0;
+        while (i < nonZero.length) {
+          const dest = coords[targetIdx];
+          if (i + 1 < nonZero.length && nonZero[i].val === nonZero[i + 1].val) {
+            const mergedVal = nonZero[i].val * 2;
+            nextBoard[dest.r][dest.c] = mergedVal;
+            gainedScore += mergedVal;
+            if (mergedVal > maxMerged) maxMerged = mergedVal;
+
+            nextAnimations.push({
+              val: nonZero[i].val,
+              fromR: nonZero[i].r,
+              fromC: nonZero[i].c,
+              toR: dest.r,
+              toC: dest.c,
+              mergedPop: false
+            });
+            nextAnimations.push({
+              val: mergedVal,
+              fromR: nonZero[i + 1].r,
+              fromC: nonZero[i + 1].c,
+              toR: dest.r,
+              toC: dest.c,
+              mergedPop: true
+            });
+
+            if (nonZero[i].r !== dest.r || nonZero[i].c !== dest.c || nonZero[i + 1].r !== dest.r || nonZero[i + 1].c !== dest.c) {
+              moved = true;
+            }
+            i += 2;
+            targetIdx++;
+          } else {
+            const item = nonZero[i];
+            nextBoard[dest.r][dest.c] = item.val;
+            nextAnimations.push({
+              val: item.val,
+              fromR: item.r,
+              fromC: item.c,
+              toR: dest.r,
+              toC: dest.c,
+              mergedPop: false
+            });
+            if (item.r !== dest.r || item.c !== dest.c) {
+              moved = true;
+            }
+            i++;
+            targetIdx++;
+          }
+        }
+      };
+
+      for (let idx = 0; idx < gridSize; idx++) {
+        const coords = [];
+        for (let step = 0; step < gridSize; step++) {
+          if (dir === 'left') coords.push({ r: idx, c: step });
+          else if (dir === 'right') coords.push({ r: idx, c: gridSize - 1 - step });
+          else if (dir === 'up') coords.push({ r: step, c: idx });
+          else if (dir === 'down') coords.push({ r: gridSize - 1 - step, c: idx });
+        }
+        processLine(coords);
+      }
+
+      if (!moved) return false;
+
+      // Save to 5-Step Temporal Undo stack
+      undoStack.push({ board: prevBoard, score: prevScore, moves: movesCount });
+      if (undoStack.length > 5) undoStack.shift();
+
+      board = nextBoard;
+      score += gainedScore;
+      movesCount++;
+      activeHintDir = null;
+      document.getElementById('hint-dir-label').textContent = 'STANDBY';
+
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem(STORAGE_KEY, String(highScore));
+      }
+
+      animatedTiles = nextAnimations;
+      animStartTime = performance.now();
+      spawnRandomTile(false);
+
+      if (maxMerged > 0) {
+        synth.playMerge(maxMerged);
+        if (maxMerged >= 128) {
+          const cellPx = canvas.width / gridSize;
+          window.GameMasterFX?.burst?.(canvas.width / 2, canvas.height / 2, maxMerged >= 2048 ? '#ffe600' : '#00f5ff', maxMerged >= 2048 ? 55 : 24);
+          if (maxMerged >= 512) window.GameMasterFX?.triggerShake?.(8);
+        }
+      } else {
+        synth.playSlide();
+      }
+
+      if (!canMove(board)) {
+        gameOver = true;
+        window.GameMasterFX?.triggerShake?.(10);
+      }
+
+      updateHUD();
+      return true;
+    }
+    window.performSlide = performSlide;
+
+    function canMove(b) {
+      const sz = b.length;
+      for (let r = 0; r < sz; r++) {
+        for (let c = 0; c < sz; c++) {
+          if (b[r][c] === 0) return true;
+          if (r + 1 < sz && b[r][c] === b[r + 1][c]) return true;
+          if (c + 1 < sz && b[r][c] === b[r][c + 1]) return true;
+        }
+      }
+      return false;
+    }
+
+    // =========================================================================
+    // 5-STEP TEMPORAL UNDO (Z) & QUANTUM TILE ZAP (X)
+    // =========================================================================
+    function triggerTemporalUndo() {
+      if (undoStack.length === 0) return;
+      const prev = undoStack.pop();
+      board = prev.board;
+      score = prev.score;
+      movesCount = prev.moves;
+      gameOver = false;
+      activeHintDir = null;
+      syncAnimatedTilesToStatic();
+      synth.playSlide();
+      updateHUD();
+    }
+    window.triggerTemporalUndo = triggerTemporalUndo;
+
+    function triggerQuantumZap() {
+      if (!zapAvailable || gameOver) return;
+      // Find all 2 or 4 tiles (or lowest tile if none)
+      const candidates = [];
+      let minVal = Infinity;
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          const v = board[r][c];
+          if (v > 0 && v < minVal) minVal = v;
+        }
+      }
+      // Count total occupied tiles so we never zap the only tile on board
+      let totalOccupied = 0;
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          if (board[r][c] > 0) {
+            totalOccupied++;
+            if (board[r][c] === minVal || board[r][c] <= 4) {
+              candidates.push({ r, c, val: board[r][c] });
+            }
+          }
+        }
+      }
+      if (totalOccupied <= 1 || candidates.length === 0) return;
+
+      candidates.sort((a, b) => a.val - b.val);
+      const target = candidates[0];
+      board[target.r][target.c] = 0;
+      zapAvailable = false;
+
+      const pad = 14;
+      const cellSpan = (canvas.width - pad * (gridSize + 1)) / gridSize;
+      const cx = pad + target.c * (cellSpan + pad) + cellSpan / 2;
+      const cy = pad + target.r * (cellSpan + pad) + cellSpan / 2;
+
+      synth.playZap();
+      window.GameMasterFX?.burst?.(cx, cy, '#ff00aa', 36);
+      window.GameMasterFX?.triggerShake?.(6);
+
+      syncAnimatedTilesToStatic();
+      updateHUD();
+    }
+    window.triggerQuantumZap = triggerQuantumZap;
+
+    // =========================================================================
+    // AI EXPECTIMAX BEST-MOVE HINT ENGINE (H)
+    // =========================================================================
+    function simulateSlideOnCopy(srcBoard, dir) {
+      const sz = srcBoard.length;
+      const next = createEmptyBoard(sz);
+      let moved = false;
+      let mergeScore = 0;
+
+      for (let idx = 0; idx < sz; idx++) {
+        const coords = [];
+        for (let step = 0; step < sz; step++) {
+          if (dir === 'left') coords.push({ r: idx, c: step });
+          else if (dir === 'right') coords.push({ r: idx, c: sz - 1 - step });
+          else if (dir === 'up') coords.push({ r: step, c: idx });
+          else if (dir === 'down') coords.push({ r: sz - 1 - step, c: idx });
+        }
+        const vals = [];
+        for (const { r, c } of coords) {
+          if (srcBoard[r][c] > 0) vals.push({ val: srcBoard[r][c], r, c });
+        }
+        let t = 0;
+        let i = 0;
+        while (i < vals.length) {
+          const dest = coords[t];
+          if (i + 1 < vals.length && vals[i].val === vals[i + 1].val) {
+            const mv = vals[i].val * 2;
+            next[dest.r][dest.c] = mv;
+            mergeScore += mv;
+            moved = true;
+            i += 2;
+            t++;
+          } else {
+            next[dest.r][dest.c] = vals[i].val;
+            if (vals[i].r !== dest.r || vals[i].c !== dest.c) moved = true;
+            i++;
+            t++;
+          }
+        }
+      }
+      return { board: next, moved, mergeScore };
+    }
+
+    function evaluateBoardHeuristic(b) {
+      const sz = b.length;
+      let empties = 0;
+      let maxVal = 0;
+      let smoothness = 0;
+      let cornerBonus = 0;
+
+      for (let r = 0; r < sz; r++) {
+        for (let c = 0; c < sz; c++) {
+          const v = b[r][c];
+          if (v === 0) {
+            empties++;
+          } else {
+            if (v > maxVal) maxVal = v;
+            // Snake positional gradient weighting top-left corner
+            const weight = (sz - r) * sz + (r % 2 === 0 ? (sz - c) : (c + 1));
+            cornerBonus += Math.log2(v) * weight * 12;
+            if (r + 1 < sz && b[r + 1][c] > 0) {
+              smoothness -= Math.abs(Math.log2(v) - Math.log2(b[r + 1][c])) * 18;
+            }
+            if (c + 1 < sz && b[r][c + 1] > 0) {
+              smoothness -= Math.abs(Math.log2(v) - Math.log2(b[r][c + 1])) * 18;
+            }
+          }
+        }
+      }
+      return empties * 135 + cornerBonus + smoothness;
+    }
+
+    function computeBestExpectimaxDirection() {
+      const dirs = ['up', 'left', 'right', 'down'];
+      let bestDir = null;
+      let bestVal = -Infinity;
+
+      for (const d of dirs) {
+        const sim1 = simulateSlideOnCopy(board, d);
+        if (!sim1.moved) continue;
+
+        // 2-ply Expectimax lookahead over random spawns
+        const empties = [];
+        for (let r = 0; r < gridSize; r++) {
+          for (let c = 0; c < gridSize; c++) {
+            if (sim1.board[r][c] === 0) empties.push({ r, c });
+          }
+        }
+
+        const sampleCells = empties.slice(0, 6);
+        let expectedScore = 0;
+        if (sampleCells.length === 0) {
+          expectedScore = evaluateBoardHeuristic(sim1.board);
+        } else {
+          for (const cell of sampleCells) {
+            sim1.board[cell.r][cell.c] = 2;
+            let bestReply = evaluateBoardHeuristic(sim1.board);
+            for (const d2 of dirs) {
+              const sim2 = simulateSlideOnCopy(sim1.board, d2);
+              if (sim2.moved) {
+                const val2 = evaluateBoardHeuristic(sim2.board) + sim2.mergeScore * 1.5;
+                if (val2 > bestReply) bestReply = val2;
+              }
+            }
+            expectedScore += bestReply;
+            sim1.board[cell.r][cell.c] = 0;
+          }
+          expectedScore /= sampleCells.length;
+        }
+
+        const total = expectedScore + sim1.mergeScore * 2.0;
+        if (total > bestVal) {
+          bestVal = total;
+          bestDir = d;
+        }
+      }
+      return bestDir;
+    }
+
+    function triggerExpectimaxHint() {
+      if (gameOver) return;
+      activeHintDir = computeBestExpectimaxDirection();
+      const arrowMap = { up: '▲ UP', down: '▼ DOWN', left: '◀ LEFT', right: '▶ RIGHT' };
+      document.getElementById('hint-dir-label').textContent = activeHintDir ? arrowMap[activeHintDir] : 'NO MOVES';
+      synth.playSlide();
+    }
+    window.triggerExpectimaxHint = triggerExpectimaxHint;
+
+    function applyExpectimaxMove() {
+      const best = computeBestExpectimaxDirection();
+      if (best) {
+        performSlide(best);
+      }
+    }
+    window.applyExpectimaxMove = applyExpectimaxMove;
+
+    // =========================================================================
+    // HUD & RENDERING
+    // =========================================================================
+    function getPeakTile() {
+      let m = 2;
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          if (board[r][c] > m) m = board[r][c];
+        }
+      }
+      return m;
+    }
+
+    function updateHUD() {
+      document.getElementById('hud-score').textContent = score.toLocaleString();
+      document.getElementById('hud-best').textContent = highScore.toLocaleString();
+      document.getElementById('hud-moves').textContent = String(movesCount);
+      document.getElementById('hud-max').textContent = String(getPeakTile());
+
+      const remUndos = undoStack.length;
+      document.getElementById('btn-undo').textContent = `⏪ UNDO (Z: ${remUndos})`;
+      document.getElementById('undo-count-label').textContent = `${remUndos} / 5`;
+
+      const zapLabel = document.getElementById('zap-status-label');
+      const zapBtn = document.getElementById('btn-zap');
+      if (zapAvailable) {
+        zapLabel.textContent = 'READY';
+        zapLabel.style.color = '#00ff9d';
+        zapBtn.style.opacity = '1';
+      } else {
+        zapLabel.textContent = 'DEPLETED';
+        zapLabel.style.color = '#ff2a6d';
+        zapBtn.style.opacity = '0.45';
+      }
+    }
+
+    function renderBoard(now) {
+      const W = canvas.width;
+      const H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+
+      // Background frame
+      ctx.fillStyle = '#050816';
+      ctx.fillRect(0, 0, W, H);
+
+      const pad = gridSize === 5 ? 10 : 14;
+      const cellSpan = (W - pad * (gridSize + 1)) / gridSize;
+
+      // Empty Grid Slots
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          const x = pad + c * (cellSpan + pad);
+          const y = pad + r * (cellSpan + pad);
+          ctx.fillStyle = 'rgba(0, 245, 255, 0.045)';
+          ctx.strokeStyle = 'rgba(0, 245, 255, 0.14)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.roundRect(x, y, cellSpan, cellSpan, 12);
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+
+      // Compute slide interpolation progress
+      const elapsed = now - animStartTime;
+      const t = Math.min(1, elapsed / ANIM_DURATION);
+      const easeOut = 1 - Math.pow(1 - t, 3);
+
+      // Draw Animated Tiles
+      for (const tile of animatedTiles) {
+        const curR = tile.fromR + (tile.toR - tile.fromR) * easeOut;
+        const curC = tile.fromC + (tile.toC - tile.fromC) * easeOut;
+        const x = pad + curC * (cellSpan + pad);
+        const y = pad + curR * (cellSpan + pad);
+
+        let scale = 1.0;
+        if (tile.mergedPop && t > 0.4) {
+          scale = 1.0 + Math.sin(((t - 0.4) / 0.6) * Math.PI) * 0.18;
+        } else if (tile.spawnPop) {
+          scale = 0.35 + easeOut * 0.65;
+        }
+
+        drawQuantumTile(x, y, cellSpan, tile.val, scale);
+      }
+
+      // Draw Expectimax AI Hint Arrow Overlay if active
+      if (activeHintDir) {
+        drawHintOverlay(activeHintDir);
+      }
+
+      // Game Over Banner
+      if (gameOver) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(3, 6, 18, 0.86)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.strokeStyle = '#ff00aa';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.roundRect(50, H / 2 - 80, W - 100, 160, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ff00aa';
+        ctx.font = '900 24px Orbitron, sans-serif';
+        ctx.fillText('QUANTUM LATTICE SATURATED', W / 2, H / 2 - 26);
+
+        ctx.fillStyle = '#e6f7ff';
+        ctx.font = '700 14px Orbitron, monospace';
+        ctx.fillText(`FINAL SCORE: ${score.toLocaleString()} • PEAK TILE: ${getPeakTile()}`, W / 2, H / 2 + 10);
+
+        ctx.fillStyle = '#00f5ff';
+        ctx.font = '700 12px Orbitron, monospace';
+        ctx.fillText('PRESS [Z] TO UNDO OR [N] FOR NEW REACTOR', W / 2, H / 2 + 48);
+        ctx.restore();
+      }
+    }
+
+    function drawQuantumTile(x, y, size, val, scale) {
+      const style = TILE_STYLES[val] || TILE_STYLES[8192];
+      const cx = x + size / 2;
+      const cy = y + size / 2;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
+
+      const grad = ctx.createLinearGradient(-size / 2, -size / 2, size / 2, size / 2);
+      grad.addColorStop(0, style.bg1);
+      grad.addColorStop(1, style.bg2);
+
+      ctx.fillStyle = grad;
+      ctx.strokeStyle = style.border;
+      ctx.lineWidth = val >= 128 ? 2.6 : 1.8;
+      ctx.shadowColor = style.border;
+      ctx.shadowBlur = val >= 128 ? 18 : 8;
+
+      ctx.beginPath();
+      ctx.roundRect(-size / 2, -size / 2, size, size, 12);
+      ctx.fill();
+      ctx.stroke();
+
+      // Value label
+      ctx.shadowBlur = 6;
+      ctx.fillStyle = style.text;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const digits = String(val).length;
+      const fontSize = Math.floor(size * (digits <= 2 ? 0.42 : digits === 3 ? 0.34 : 0.27));
+      ctx.font = `900 ${fontSize}px Orbitron, monospace`;
+      ctx.fillText(String(val), 0, 2);
+
+      ctx.restore();
+    }
+
+    function drawHintOverlay(dir) {
+      const W = canvas.width;
+      const H = canvas.height;
+      const arrows = { up: '▲ SLIDE UP', down: '▼ SLIDE DOWN', left: '◀ SLIDE LEFT', right: '▶ SLIDE RIGHT' };
+      ctx.save();
+      ctx.fillStyle = 'rgba(255, 230, 0, 0.92)';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(W / 2 - 95, 16, 190, 34, 17);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#050816';
+      ctx.font = '900 13px Orbitron, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`AI HINT: ${arrows[dir]}`, W / 2, 33);
+      ctx.restore();
+    }
+
+    function toggleMute() {
+      synth.muted = !synth.muted;
+      document.getElementById('btn-mute').textContent = synth.muted ? '🔇 MUTE' : '🔊 SFX';
+    }
+    window.toggleMute = toggleMute;
+
+    function toggleHelp() {
+      document.getElementById('help-modal').classList.toggle('hidden');
+    }
+    window.toggleHelp = toggleHelp;
+
+    // =========================================================================
+    // INPUT LISTENERS (KEYBOARD + SWIPE)
+    // =========================================================================
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+        e.preventDefault();
+        performSlide('up');
+      } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+        e.preventDefault();
+        performSlide('down');
+      } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        performSlide('left');
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        e.preventDefault();
+        performSlide('right');
+      } else if (e.key === 'z' || e.key === 'Z') {
+        triggerTemporalUndo();
+      } else if (e.key === 'x' || e.key === 'X') {
+        triggerQuantumZap();
+      } else if (e.key === 'h' || e.key === 'H') {
+        triggerExpectimaxHint();
+      } else if (e.key === 'n' || e.key === 'N') {
+        startNewGame();
+      } else if (e.key === 'm' || e.key === 'M') {
+        toggleMute();
+      } else if (e.key === '?') {
+        toggleHelp();
+      } else if (e.key === '1') {
+        switchGridSize(3);
+      } else if (e.key === '2') {
+        switchGridSize(4);
+      } else if (e.key === '3') {
+        switchGridSize(5);
+      }
+    });
+
+    let pointerStart = null;
+    canvas.addEventListener('pointerdown', (e) => {
+      pointerStart = { x: e.clientX, y: e.clientY };
+    });
+
+    canvas.addEventListener('pointerup', (e) => {
+      if (!pointerStart) return;
+      const dx = e.clientX - pointerStart.x;
+      const dy = e.clientY - pointerStart.y;
+      pointerStart = null;
+      if (Math.hypot(dx, dy) < 24) return;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        performSlide(dx > 0 ? 'right' : 'left');
+      } else {
+        performSlide(dy > 0 ? 'down' : 'up');
+      }
+    });
+
+    function handleResize() {
+      const container = document.getElementById('canvas-container');
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const dim = Math.max(320, Math.min(600, Math.floor(Math.min(rect.width, rect.height) - 24)));
+      if (Math.abs(canvas.width - dim) > 6) {
+        canvas.width = dim;
+        canvas.height = dim;
+      }
+    }
+    window.addEventListener('resize', handleResize);
+
+    function loop(now) {
+      renderBoard(now);
+      requestAnimationFrame(loop);
+    }
+
+    handleResize();
+    startNewGame();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

@@ -1,0 +1,3510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine CyberBalloon Fight: Sky Joust &amp; Storm Trip</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    :root {
+      --bg-deep: #020617;
+      --bg-sky-top: #070b24;
+      --bg-sky-mid: #0f172a;
+      --panel-bg: rgba(8, 14, 32, 0.92);
+      --panel-border: rgba(56, 189, 248, 0.28);
+      --gold: #facc15;
+      --gold-glow: rgba(250, 204, 21, 0.35);
+      --cyan: #22d3ee;
+      --cyan-glow: rgba(34, 211, 238, 0.32);
+      --crimson: #f43f5e;
+      --emerald: #10b981;
+      --violet: #a855f7;
+      --orange: #f97316;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 25%, #11183c 0%, #060919 65%, #02040d 100%);
+      color: var(--text);
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top HUD Bar */
+    header.hud-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px 14px;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(7, 11, 28, 0.96) 100%);
+      border-bottom: 1px solid var(--panel-border);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.65);
+      z-index: 20;
+    }
+
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 35% 30%, #f43f5e, #be123c 55%, #0f172a 100%);
+      border: 1px solid rgba(250, 204, 21, 0.55);
+      box-shadow: 0 0 14px rgba(244, 63, 94, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 21px;
+    }
+
+    .brand-titles h1 {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      background: linear-gradient(90deg, #ffffff 0%, #7dd3fc 52%, #facc15 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+    }
+
+    .brand-titles p {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.25px;
+    }
+
+    /* 6-Mode Selector Bar */
+    .mode-bar {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .mode-btn {
+      background: rgba(15, 23, 42, 0.85);
+      color: #cbd5e1;
+      border: 1px solid rgba(148, 163, 184, 0.26);
+      border-radius: 7px;
+      padding: 5px 9px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.16s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .mode-btn:hover {
+      border-color: var(--cyan);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .mode-btn.active {
+      background: linear-gradient(135deg, rgba(244, 63, 94, 0.28) 0%, rgba(14, 165, 233, 0.34) 100%);
+      border-color: var(--gold);
+      color: #fef08a;
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.28);
+    }
+
+    .mode-btn .key-hint {
+      font-size: 10px;
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #e2e8f0;
+    }
+
+    /* Right Action & Telemetry Pills */
+    .hud-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      background: rgba(30, 41, 59, 0.88);
+      color: #f1f5f9;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 7px;
+      padding: 5px 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .action-btn:hover {
+      background: rgba(56, 189, 248, 0.22);
+      border-color: var(--cyan);
+    }
+
+    .action-btn.gold {
+      border-color: rgba(250, 204, 21, 0.55);
+      color: #fef08a;
+      background: rgba(161, 98, 7, 0.25);
+    }
+
+    .action-btn.gold:hover {
+      background: rgba(234, 179, 8, 0.35);
+    }
+
+    .action-btn.crimson {
+      border-color: rgba(244, 63, 94, 0.55);
+      color: #fda4af;
+      background: rgba(136, 19, 55, 0.3);
+    }
+
+    /* Main Workspace Layout */
+    main.workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 305px;
+      gap: 10px;
+      padding: 10px 14px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    @media (max-width: 1040px) {
+      main.workspace {
+        grid-template-columns: 1fr;
+      }
+      aside.telemetry-sidebar {
+        display: none;
+      }
+    }
+
+    /* Arena Canvas Stage */
+    section.stage-container {
+      position: relative;
+      background: #030712;
+      border-radius: 14px;
+      border: 1px solid rgba(56, 189, 248, 0.32);
+      box-shadow: 0 12px 38px rgba(0, 0, 0, 0.8), inset 0 0 32px rgba(14, 165, 233, 0.12);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    /* Top In-Stage Arcade Scoreboard Strip */
+    .arcade-scoreboard {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 16px;
+      background: rgba(4, 9, 24, 0.9);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.22);
+      font-family: "JetBrains Mono", "Fira Code", monospace;
+      font-size: 13px;
+      z-index: 5;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .score-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .score-label {
+      font-weight: 800;
+      letter-spacing: 0.6px;
+    }
+
+    .score-label.p1 { color: #fb7185; }
+    .score-label.top { color: #facc15; }
+    .score-label.p2 { color: #38bdf8; }
+    .score-label.wave { color: #34d399; }
+
+    .score-val {
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 14px;
+      min-width: 68px;
+    }
+
+    .balloon-pip-row {
+      display: inline-flex;
+      gap: 3px;
+      align-items: center;
+    }
+
+    .balloon-pip {
+      width: 10px;
+      height: 12px;
+      border-radius: 50% 50% 48% 48%;
+      display: inline-block;
+      box-shadow: 0 0 6px currentColor;
+    }
+
+    /* Boss HP Overlay Bar inside Stage */
+    .boss-hud-strip {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 16px;
+      background: linear-gradient(90deg, rgba(88, 28, 135, 0.85), rgba(153, 27, 27, 0.85));
+      border-bottom: 1px solid rgba(250, 204, 21, 0.5);
+      z-index: 6;
+    }
+
+    .boss-hud-strip.visible {
+      display: flex;
+    }
+
+    .boss-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #fef08a;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      white-space: nowrap;
+    }
+
+    .boss-hp-track {
+      flex: 1;
+      height: 11px;
+      background: rgba(15, 23, 42, 0.85);
+      border-radius: 999px;
+      border: 1px solid rgba(250, 204, 21, 0.45);
+      overflow: hidden;
+    }
+
+    .boss-hp-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #f43f5e, #f97316, #facc15);
+      transition: width 0.15s ease;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #020512;
+    }
+
+    canvas#skyCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+
+    /* Floating Toast Banner inside Stage */
+    .stage-banner {
+      position: absolute;
+      top: 56px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 8px 20px;
+      border-radius: 999px;
+      background: rgba(8, 15, 35, 0.92);
+      border: 1px solid var(--gold);
+      box-shadow: 0 0 24px rgba(250, 204, 21, 0.35);
+      color: #fef08a;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 12;
+      white-space: nowrap;
+    }
+
+    .stage-banner.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(4px);
+    }
+
+    /* Bottom Touch / Quick Flight Control Deck */
+    .flight-deck-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 7px 14px;
+      background: rgba(6, 11, 28, 0.94);
+      border-top: 1px solid rgba(56, 189, 248, 0.24);
+      font-size: 11.5px;
+      z-index: 6;
+    }
+
+    .deck-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .deck-btn {
+      background: rgba(30, 41, 59, 0.9);
+      color: #e2e8f0;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+
+    .deck-btn:hover, .deck-btn:active {
+      background: rgba(56, 189, 248, 0.28);
+      border-color: var(--cyan);
+      color: #ffffff;
+    }
+
+    .deck-btn.primary {
+      background: linear-gradient(135deg, rgba(244, 63, 94, 0.35), rgba(234, 179, 8, 0.3));
+      border-color: var(--gold);
+      color: #fef08a;
+    }
+
+    /* Right Telemetry & Tactical Sidebar */
+    aside.telemetry-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      min-height: 0;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .side-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .side-card h3 {
+      font-size: 11.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--cyan);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+    }
+
+    .stat-box {
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 8px;
+      padding: 6px 8px;
+    }
+
+    .stat-box .lbl {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .stat-box .val {
+      font-size: 14px;
+      font-weight: 800;
+      color: #f8fafc;
+      margin-top: 2px;
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .stat-box .val.gold { color: var(--gold); }
+    .stat-box .val.cyan { color: var(--cyan); }
+    .stat-box .val.crimson { color: #fb7185; }
+    .stat-box .val.emerald { color: #34d399; }
+
+    /* Piranha & Storm Danger Meters */
+    .meter-row {
+      margin-top: 7px;
+    }
+
+    .meter-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10.5px;
+      color: #cbd5e1;
+      margin-bottom: 3px;
+      font-weight: 600;
+    }
+
+    .meter-track {
+      height: 7px;
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+    }
+
+    .meter-fill {
+      height: 100%;
+      width: 0%;
+      transition: width 0.14s ease;
+    }
+
+    /* Active Roguelike Perks List */
+    .perk-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .perk-pill {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(15, 23, 42, 0.82);
+      border: 1px solid rgba(56, 189, 248, 0.24);
+      border-radius: 7px;
+      padding: 5px 8px;
+      font-size: 11px;
+    }
+
+    .perk-pill .perk-name {
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .perk-pill .perk-lvl {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10.5px;
+      color: var(--gold);
+      font-weight: 800;
+    }
+
+    /* Live Combat Feed Log */
+    .combat-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 128px;
+      overflow-y: auto;
+      font-size: 11px;
+      color: #cbd5e1;
+    }
+
+    .feed-item {
+      padding: 3px 6px;
+      border-radius: 5px;
+      background: rgba(15, 23, 42, 0.65);
+      border-left: 2px solid var(--cyan);
+    }
+
+    .feed-item.gold { border-left-color: var(--gold); color: #fef08a; }
+    .feed-item.danger { border-left-color: var(--crimson); color: #fda4af; }
+
+    /* Modal Overlays (Roguelike Perk Picker & Tactical Guide) */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.84);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 20px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      background: linear-gradient(180deg, #0f172a 0%, #070b19 100%);
+      border: 1px solid var(--gold);
+      border-radius: 16px;
+      max-width: 720px;
+      width: 100%;
+      padding: 20px 22px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85), 0 0 32px rgba(250, 204, 21, 0.22);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .modal-header h2 {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .perk-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 680px) {
+      .perk-cards-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .perk-choice-card {
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 12px;
+      padding: 14px 12px;
+      cursor: pointer;
+      transition: all 0.16s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .perk-choice-card:hover {
+      border-color: var(--gold);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(250, 204, 21, 0.25);
+      background: rgba(30, 41, 59, 0.95);
+    }
+
+    .perk-choice-icon {
+      font-size: 28px;
+    }
+
+    .perk-choice-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #fef08a;
+    }
+
+    .perk-choice-desc {
+      font-size: 11.5px;
+      color: #cbd5e1;
+      line-height: 1.4;
+    }
+
+    .perk-choice-foot {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--cyan);
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Studio Header & 6-Mode Bar -->
+  <header class="hud-header">
+    <div class="brand-cluster">
+      <div class="brand-icon" title="Codecaine CyberBalloon Fight">🎈</div>
+      <div class="brand-titles">
+        <h1>Codecaine CyberBalloon Fight</h1>
+        <p>1985 NES Sky Joust Arena • Satoru Iwata Balloon Trip • 6-Mode Aerial Physics Suite</p>
+      </div>
+    </div>
+
+    <!-- 6 Playable Modes -->
+    <nav class="mode-bar" aria-label="Game Modes">
+      <button class="mode-btn active" data-mode="classic" id="modeBtn-classic" title="1985 NES Sky Arena with Flippers, Storm Clouds, Piranha & Pipe Bonus Stages">
+        <span>🎈 Classic Arena</span><span class="key-hint">1</span>
+      </button>
+      <button class="mode-btn" data-mode="trip" id="modeBtn-trip" title="Endless Side-Scrolling Lightning Spark & Soap Bubble Odyssey (Ranks 50 → 1)">
+        <span>⚡ Balloon Trip</span><span class="key-hint">2</span>
+      </button>
+      <button class="mode-btn" data-mode="roguelike" id="modeBtn-roguelike" title="Endless Sky Gauntlet with 6 Upgradable Aerial Perks">
+        <span>♾️ Roguelike Sky</span><span class="key-hint">3</span>
+      </button>
+      <button class="mode-btn" data-mode="boss" id="modeBtn-boss" title="Battle Giant Multi-Balloon Sky Leviathans">
+        <span>👾 Boss Storm</span><span class="key-hint">4</span>
+      </button>
+      <button class="mode-btn" data-mode="coop" id="modeBtn-coop" title="2-Player Friendly Co-Op Squadron (WASD + Arrow Keys)">
+        <span>🤝 2P Co-Op</span><span class="key-hint">5</span>
+      </button>
+      <button class="mode-btn" data-mode="versus" id="modeBtn-versus" title="2-Player Competitive Balloon Dogfight (First to 5 KOs)">
+        <span>⚔️ 2P Versus</span><span class="key-hint">6</span>
+      </button>
+    </nav>
+
+    <!-- Quick Utility Controls -->
+    <div class="hud-actions">
+      <button class="action-btn gold" id="btnOpenPerks" title="Open Sky-Joust Perk Draft [U]">✨ Perks [U]</button>
+      <button class="action-btn" id="btnBonusPipe" title="Jump directly to a 20-Balloon Chimney Pipe Bonus Stage [G]">🎁 Pipe Bonus [G]</button>
+      <button class="action-btn" id="btnMusicToggle" title="Toggle Arcade Chiptune Soundtrack [B]">🎶 Music: ON [B]</button>
+      <button class="action-btn" id="btnSfxToggle" title="Toggle Web Audio Synthesizer [M]">🔊 SFX: ON [M]</button>
+      <button class="action-btn" id="btnPause" title="Pause / Resume Flight [P]">⏸️ Pause [P]</button>
+      <button class="action-btn crimson" id="btnResetWave" title="Fresh Launch / Reset Match [N]">🔄 New Flight [N]</button>
+      <button class="action-btn" id="btnHelpModal" title="Flight Controls & Mechanics Guide [H]">❓ Guide [H]</button>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="workspace">
+    <!-- Left / Center Interactive Sky Stage -->
+    <section class="stage-container">
+      <!-- Authentic NES Top Scoreboard Strip -->
+      <div class="arcade-scoreboard">
+        <div class="score-pill">
+          <span class="score-label p1">1-PLAYER</span>
+          <span class="score-val" id="hudScoreP1">000000</span>
+          <div class="balloon-pip-row" id="hudBalloonsP1" title="Player 1 Active Balloons"></div>
+          <span id="hudLivesP1" style="font-size:11px;color:#fda4af;">❤️❤️❤️</span>
+        </div>
+
+        <div class="score-pill">
+          <span class="score-label top">TOP-RANK</span>
+          <span class="score-val" id="hudHighScore">025000</span>
+          <span id="hudTripRank" style="font-size:11.5px;color:#fef08a;font-weight:800;">RANK 50</span>
+        </div>
+
+        <div class="score-pill">
+          <span class="score-label p2" id="hudP2Label">2-PLAYER</span>
+          <span class="score-val" id="hudScoreP2">000000</span>
+          <div class="balloon-pip-row" id="hudBalloonsP2" title="Player 2 Active Balloons"></div>
+        </div>
+
+        <div class="score-pill">
+          <span class="score-label wave" id="hudPhaseLabel">PHASE 01</span>
+          <span id="hudModeBadge" style="font-size:11px;color:#7dd3fc;">CLASSIC ARENA</span>
+        </div>
+      </div>
+
+      <!-- Boss HP Bar (Active in Boss Storm or Every 5th Wave) -->
+      <div class="boss-hud-strip" id="bossHudStrip">
+        <span class="boss-title" id="bossNameLabel">👾 MECHA-ROC SKY DREADNOUGHT</span>
+        <div class="boss-hp-track">
+          <div class="boss-hp-fill" id="bossHpFill" style="width: 100%;"></div>
+        </div>
+        <span class="boss-title" id="bossHpText">100%</span>
+      </div>
+
+      <!-- Canvas Container -->
+      <div class="canvas-wrap">
+        <canvas id="skyCanvas" width="1080" height="680"></canvas>
+        <div class="stage-banner" id="stageBanner">🎈 PHASE 1 — POP ALL ENEMY BALLOONS!</div>
+      </div>
+
+      <!-- Bottom Quick-Action Flight Deck -->
+      <div class="flight-deck-bar">
+        <div class="deck-group">
+          <button class="deck-btn" id="touchLeft">◀ Bank Left [A]</button>
+          <button class="deck-btn primary" id="touchFlap">🪽 FLAP WINGS [W / Space]</button>
+          <button class="deck-btn" id="touchRight">Bank Right [D] ▶</button>
+          <button class="deck-btn" id="touchPump" title="Land on any platform with 1 balloon and tap R/S to pump up your 2nd balloon!">🎈 Pump Balloon [R / S]</button>
+          <button class="deck-btn" id="touchDash" title="Horizontal Jet Afterburner Dash">⚡ Air-Dash [Shift]</button>
+          <button class="deck-btn" id="touchDart" title="Fire Cyber-Feather Dart">🪶 Feather Dart [F]</button>
+        </div>
+        <div class="deck-group" style="color: var(--muted);">
+          <span>💡 <strong>Higher Flyer Wins:</strong> Strike enemy balloons from above • Watch the bottom water for the <strong>Giant Piranha</strong>!</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Tactical Telemetry & Career Sidebar -->
+    <aside class="telemetry-sidebar">
+      <!-- Live Flight & Wave Telemetry -->
+      <div class="side-card">
+        <h3>
+          <span>📡 Sky Radar &amp; Telemetry</span>
+          <span id="sidebarModeTag" style="color:var(--gold);">MODE 1</span>
+        </h3>
+        <div class="stat-grid">
+          <div class="stat-box">
+            <div class="lbl">Hostiles Aloft</div>
+            <div class="val crimson" id="statHostiles">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="lbl">Combo Chain</div>
+            <div class="val gold" id="statCombo">x1</div>
+          </div>
+          <div class="stat-box">
+            <div class="lbl">Storm Sparks</div>
+            <div class="val cyan" id="statSparks">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="lbl">Soap Bubbles</div>
+            <div class="val emerald" id="statBubbles">0</div>
+          </div>
+        </div>
+
+        <!-- Piranha Proximity & Storm Charge -->
+        <div class="meter-row">
+          <div class="meter-header">
+            <span>🐟 Abyssal Piranha Danger</span>
+            <span id="piranhaStatusText" style="color:#38bdf8;">Submerged</span>
+          </div>
+          <div class="meter-track">
+            <div class="meter-fill" id="piranhaMeterFill" style="background: linear-gradient(90deg, #0ea5e9, #f43f5e); width: 12%;"></div>
+          </div>
+        </div>
+
+        <div class="meter-row">
+          <div class="meter-header">
+            <span>🌩️ Storm Cloud Lightning Charge</span>
+            <span id="stormStatusText" style="color:#facc15;">Calm</span>
+          </div>
+          <div class="meter-track">
+            <div class="meter-fill" id="stormMeterFill" style="background: linear-gradient(90deg, #38bdf8, #facc15); width: 25%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Roguelike Sky-Joust Perks & Upgrades -->
+      <div class="side-card">
+        <h3>
+          <span>⚡ Sky-Joust Perks</span>
+          <span style="font-size:10px;color:var(--gold);">[U] Draft</span>
+        </h3>
+        <div class="perk-list" id="sidebarPerkList"></div>
+      </div>
+
+      <!-- Career Lifetime Profile -->
+      <div class="side-card">
+        <h3>
+          <span>🏆 Career Flight Record</span>
+          <span id="careerRankBadge" style="color:#fef08a;">Sky Cadet</span>
+        </h3>
+        <div class="stat-grid">
+          <div class="stat-box">
+            <div class="lbl">Balloons Popped</div>
+            <div class="val gold" id="careerPopped">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="lbl">Parachutes Kicked</div>
+            <div class="val cyan" id="careerParachutes">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="lbl">Best Trip Rank</div>
+            <div class="val emerald" id="careerBestRank">50</div>
+          </div>
+          <div class="stat-box">
+            <div class="lbl">Piranha Escapes</div>
+            <div class="val crimson" id="careerPiranha">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Aerial Combat Log -->
+      <div class="side-card" style="flex:1; display:flex; flex-direction:column; min-height: 120px;">
+        <h3>
+          <span>📜 Flight Box Log</span>
+          <span style="font-size:10px;color:var(--muted);">60 FPS</span>
+        </h3>
+        <div class="combat-feed" id="combatFeed"></div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Roguelike Perk Selection Modal -->
+  <div class="modal-backdrop" id="perkModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>⚡ Sky-Joust Armory — Choose 1 Aerial Perk</h2>
+        <button class="action-btn" id="btnClosePerkModal">Skip / Close [Esc]</button>
+      </div>
+      <p style="font-size:12.5px; color:#cbd5e1;">
+        Upgrade your Flight Rig! Each perk stacks across waves and empowers your flyer in Arena, Roguelike, Boss Storm, and Co-Op modes.
+      </p>
+      <div class="perk-cards-grid" id="perkChoicesContainer"></div>
+    </div>
+  </div>
+
+  <!-- Flight Guide & Controls Modal -->
+  <div class="modal-backdrop" id="helpModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>🎈 Codecaine CyberBalloon Fight — Pilot Flight Manual</h2>
+        <button class="action-btn" id="btnCloseHelpModal">Resume Flight [Esc]</button>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 12px; color:#e2e8f0; line-height: 1.55;">
+        <div>
+          <h4 style="color:var(--gold); margin-bottom:4px;">🕹️ Player 1 &amp; Player 2 Controls</h4>
+          <p>• <strong>P1 Flap / Bank:</strong> <code>W</code> / <code>Space</code> to Flap, <code>A</code> / <code>D</code> to Bank</p>
+          <p>• <strong>P1 Pump / Dive:</strong> <code>S</code> or <code>R</code> on platform to re-inflate 2nd balloon; <code>S</code> in midair for Dive-Stomp</p>
+          <p>• <strong>P1 Afterburner &amp; Dart:</strong> <code>Shift</code> Air-Dash, <code>F</code> Feather Dart</p>
+          <p>• <strong>P2 (Co-Op &amp; Versus):</strong> <code>Up Arrow</code> to Flap, <code>Left / Right</code> to Bank, <code>Down Arrow</code> to Pump/Dive, <code>Enter</code> Dash</p>
+        </div>
+        <div>
+          <h4 style="color:var(--cyan); margin-bottom:4px;">⚡ 1985 NES + Modern Mechanics</h4>
+          <p>• <strong>Two-Step Knockdown:</strong> Pop an enemy's balloon from above so they drop via <strong>Parachute</strong>, then strike their parachute or kick them while pumping on a platform!</p>
+          <p>• <strong>Enemy Tier Upgrades:</strong> If a landed enemy finishes pumping, their balloon upgrades from <strong>Pink → Green → Red</strong> (faster &amp; more aggressive)!</p>
+          <p>• <strong>Hazards:</strong> Watch out for <strong>Storm Cloud Lightning Sparks</strong>, spinning <strong>Flippers</strong>, and the <strong>Giant Piranha</strong> lurking in the water!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+  (function() {
+    "use strict";
+
+    // =========================================================================
+    // 1. PROCEDURAL WEB AUDIO SYNTHESIZER & CHIPTUNE ENGINE (BalloonAudio)
+    // =========================================================================
+    class BalloonAudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.sfxEnabled = true;
+        this.musicEnabled = true;
+        this.musicTimer = null;
+        this.musicStep = 0;
+        this.currentMode = "classic";
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) {
+            this.ctx = new AudioCtx();
+          }
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume().catch(() => {});
+        }
+      }
+
+      playFlap() {
+        if (!this.sfxEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(165, now);
+        osc.frequency.exponentialRampToValueAtTime(295, now + 0.065);
+        gain.gain.setValueAtTime(0.09, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.075);
+      }
+
+      playBalloonPop() {
+        if (!this.sfxEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+
+        // Crisp rubber noise burst
+        const bufferSize = Math.floor(this.ctx.sampleRate * 0.12);
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.28));
+        }
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.setValueAtTime(950, now);
+        filter.Q.setValueAtTime(1.8, now);
+
+        const nGain = this.ctx.createGain();
+        nGain.gain.setValueAtTime(0.28, now);
+        nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+        noise.connect(filter);
+        filter.connect(nGain);
+        nGain.connect(this.ctx.destination);
+        noise.start(now);
+
+        // Pitch snap
+        const osc = this.ctx.createOscillator();
+        const oGain = this.ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.exponentialRampToValueAtTime(95, now + 0.11);
+        oGain.gain.setValueAtTime(0.18, now);
+        oGain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+        osc.connect(oGain);
+        oGain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.12);
+      }
+
+      playParachuteOpen() {
+        if (!this.sfxEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(640, now);
+        osc.frequency.linearRampToValueAtTime(360, now + 0.22);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      }
+
+      playPumpHiss(progressRatio) {
+        if (!this.sfxEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "square";
+        const baseFreq = 240 + Math.min(1, progressRatio || 0) * 320;
+        osc.frequency.setValueAtTime(baseFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.25, now + 0.06);
+        gain.gain.setValueAtTime(0.07, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.07);
+      }
+
+      playFlipperBoing() {
+        if (!this.sfxEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(280, now);
+        osc.frequency.exponentialRampToValueAtTime(680, now + 0.09);
+        osc.frequency.exponentialRampToValueAtTime(420, now + 0.18);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.19);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      }
+
+      playBubbleChime() {
+        if (!this.sfxEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const notes = [587.33, 880, 1174.66];
+        notes.forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, now + idx * 0.045);
+          gain.gain.setValueAtTime(0.11, now + idx * 0.045);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.045 + 0.14);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + idx * 0.045);
+          osc.stop(now + idx * 0.045 + 0.15);
+        });
+      }
+
+      playThunderSpark() {
+        if (!this.sfxEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(920, now);
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.22);
+        gain.gain.setValueAtTime(0.14, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.23);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.24);
+      }
+
+      playPiranhaSplash() {
+        if (!this.sfxEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        // Deep chomp + splash
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(210, now);
+        osc.frequency.exponentialRampToValueAtTime(55, now + 0.35);
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.36);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.38);
+      }
+
+      playFanfare() {
+        if (!this.sfxEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const melody = [523.25, 659.25, 783.99, 1046.5];
+        melody.forEach((f, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "square";
+          osc.frequency.setValueAtTime(f, now + i * 0.08);
+          gain.gain.setValueAtTime(0.09, now + i * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.18);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + i * 0.08);
+          osc.stop(now + i * 0.08 + 0.19);
+        });
+      }
+
+      startMusicLoop() {
+        if (this.musicTimer) clearInterval(this.musicTimer);
+        // Classic NES Balloon Trip upbeat bass/lead arpeggio
+        const tripNotes = [
+          261.63, 329.63, 392.00, 523.25,
+          293.66, 369.99, 440.00, 587.33,
+          329.63, 392.00, 493.88, 659.25,
+          261.63, 349.23, 440.00, 523.25
+        ];
+        const arenaNotes = [
+          196.00, 246.94, 293.66, 392.00,
+          220.00, 261.63, 329.63, 440.00,
+          174.61, 220.00, 261.63, 349.23,
+          196.00, 293.66, 349.23, 392.00
+        ];
+
+        this.musicTimer = setInterval(() => {
+          if (!this.musicEnabled || !this.ctx || this.ctx.state !== "running") return;
+          const seq = this.currentMode === "trip" ? tripNotes : arenaNotes;
+          const freq = seq[this.musicStep % seq.length];
+          this.musicStep++;
+
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = this.currentMode === "trip" ? "square" : "triangle";
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.028, now);
+          gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.16);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.17);
+        }, 190);
+      }
+    }
+
+    const BalloonAudio = new BalloonAudioEngine();
+    BalloonAudio.startMusicLoop();
+
+    // =========================================================================
+    // 2. PERSISTENT CAREER PROFILE & PERKS DEFINITIONS
+    // =========================================================================
+    const STORAGE_KEY = "codecaine_balloon_fight_v2";
+    const defaultCareer = {
+      highScore: 25000,
+      balloonsPopped: 0,
+      parachutesKicked: 0,
+      bestTripRank: 50,
+      piranhaEscapes: 0
+    };
+
+    function loadCareer() {
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (!raw) return { ...defaultCareer };
+        const parsed = JSON.parse(raw);
+        return { ...defaultCareer, ...parsed };
+      } catch (_) {
+        return { ...defaultCareer };
+      }
+    }
+
+    function saveCareer() {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(career));
+      } catch (_) {}
+    }
+
+    const career = loadCareer();
+
+    const PERK_CATALOG = [
+      {
+        id: "tripleBalloon",
+        icon: "🎈",
+        name: "Triple-Balloon Armor",
+        desc: "Raises maximum balloon capacity to 3 and immediately attaches an extra Golden Helium Balloon!",
+        tag: "Max Balloons +1"
+      },
+      {
+        id: "afterburner",
+        icon: "⚡",
+        name: "Afterburner Air-Dash",
+        desc: "Boosts [Shift] horizontal jet dash impulse by +35% and reduces cooldown for rapid aerial jousting.",
+        tag: "Dash Power +35%"
+      },
+      {
+        id: "diveStomp",
+        icon: "💥",
+        name: "Meteor Dive-Stomp",
+        desc: "Pressing [Down/S] in midair triggers a high-velocity dive that pops enemy balloons with a shockwave bounce!",
+        tag: "Dive Shockwave"
+      },
+      {
+        id: "faradayShield",
+        icon: "🛡️",
+        name: "Faraday Storm Shield",
+        desc: "Generates an electromagnetic aura that absorbs 1 Lightning Spark hit per wave without losing a balloon!",
+        tag: "Spark Immunity"
+      },
+      {
+        id: "featherDart",
+        icon: "🪶",
+        name: "Feather Dart Blaster",
+        desc: "Empowers [F] to fire twin high-speed cyber-feather darts that pop enemy balloons from range!",
+        tag: "Twin Ranged Darts"
+      },
+      {
+        id: "turboPump",
+        icon: "🔧",
+        name: "Turbo Re-Inflate Pump",
+        desc: "Doubles emergency balloon pump speed ([R] or [S] on any platform) and grants brief invulnerability!",
+        tag: "2x Pump Speed"
+      }
+    ];
+
+    // =========================================================================
+    // 3. CANVAS, DOM BINDINGS & CORE GAME STATE
+    // =========================================================================
+    const canvas = document.getElementById("skyCanvas");
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width;   // 1080
+    const H = canvas.height;  // 680
+    const WATER_Y = H - 58;   // 622
+
+    const state = {
+      mode: "classic", // classic | trip | roguelike | boss | coop | versus
+      phase: 1,
+      paused: false,
+      frameTick: 0,
+      combo: 1,
+      comboTimer: 0,
+      bonusPipeActive: false,
+      bonusBalloonsRemaining: 0,
+      bonusBalloonsCaught: 0,
+      bonusPipeTimer: 0,
+      tripDistance: 0,
+      tripRank: 50,
+      tripFreezeTimer: 0,
+      versusTargetWins: 5,
+      p1Wins: 0,
+      p2Wins: 0,
+      perks: {
+        tripleBalloon: 0,
+        afterburner: 0,
+        diveStomp: 0,
+        faradayShield: 0,
+        featherDart: 0,
+        turboPump: 0
+      },
+      stars: [],
+      platforms: [],
+      flippers: [],
+      clouds: [],
+      sparks: [],
+      bubbles: [],
+      bonusBalloons: [],
+      feathers: [],
+      particles: [],
+      floatingTexts: [],
+      players: [],
+      enemies: [],
+      boss: null,
+      piranha: {
+        x: W * 0.5,
+        y: WATER_Y + 60,
+        vx: 0,
+        vy: 0,
+        active: false,
+        warningTimer: 0,
+        targetX: W * 0.5,
+        jawAngle: 0,
+        dangerLevel: 0
+      }
+    };
+
+    // Build parallax starfield
+    for (let i = 0; i < 110; i++) {
+      state.stars.push({
+        x: Math.random() * W,
+        y: Math.random() * (WATER_Y - 30),
+        r: 0.7 + Math.random() * 1.8,
+        twinkle: Math.random() * Math.PI * 2,
+        speed: 0.2 + Math.random() * 0.65,
+        color: ["#fef08a", "#bae6fd", "#f8fafc", "#fda4af", "#c4b5fd"][i % 5]
+      });
+    }
+
+    function showBanner(msg) {
+      const el = document.getElementById("stageBanner");
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(showBanner._t);
+      showBanner._t = setTimeout(() => el.classList.remove("show"), 2600);
+    }
+
+    function addCombatLog(text, tone = "normal") {
+      const feed = document.getElementById("combatFeed");
+      if (!feed) return;
+      const item = document.createElement("div");
+      item.className = "feed-item" + (tone === "gold" ? " gold" : tone === "danger" ? " danger" : "");
+      item.textContent = text;
+      feed.prepend(item);
+      while (feed.children.length > 18) {
+        feed.removeChild(feed.lastChild);
+      }
+    }
+
+    // =========================================================================
+    // 4. PLAYER & ENEMY FACTORY
+    // =========================================================================
+    function createPlayer(id, x, y) {
+      const isP1 = id === 1;
+      const maxB = 2 + (state.perks.tripleBalloon > 0 ? 1 : 0);
+      return {
+        id,
+        name: isP1 ? "P1 Maverick" : "P2 Valkyrie",
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        w: 28,
+        h: 34,
+        facing: isP1 ? 1 : -1,
+        balloons: maxB,
+        maxBalloons: maxB,
+        lives: 3,
+        score: 0,
+        grounded: false,
+        flapAnim: 0,
+        runAnim: 0,
+        invulnTimer: 90,
+        respawnTimer: 0,
+        pumpProgress: 0,
+        dashCooldown: 0,
+        dartCooldown: 0,
+        shieldCharges: state.perks.faradayShield > 0 ? 1 : 0,
+        aiControlled: id === 2, // P2 defaults to AI wingman/duelist until Arrow keys pressed!
+        balloonColors: isP1
+          ? ["#f43f5e", "#fb7185", "#facc15"]
+          : ["#06b6d4", "#38bdf8", "#a855f7"],
+        suitColor: isP1 ? "#3b82f6" : "#10b981",
+        helmetColor: isP1 ? "#f43f5e" : "#06b6d4",
+        swayX: 0
+      };
+    }
+
+    const ENEMY_TIERS = [
+      {
+        tier: 0,
+        name: "Pink Bird-Knight",
+        balloonColor: "#f472b6",
+        armorColor: "#e2e8f0",
+        beakColor: "#facc15",
+        flapPower: -0.26,
+        maxSpeedX: 2.15,
+        popPoints: 500,
+        killPoints: 750
+      },
+      {
+        tier: 1,
+        name: "Emerald Sky-Lancer",
+        balloonColor: "#34d399",
+        armorColor: "#a7f3d0",
+        beakColor: "#fb923c",
+        flapPower: -0.31,
+        maxSpeedX: 2.85,
+        popPoints: 750,
+        killPoints: 1000
+      },
+      {
+        tier: 2,
+        name: "Crimson Ace Valkyrie",
+        balloonColor: "#ef4444",
+        armorColor: "#fecaca",
+        beakColor: "#fef08a",
+        flapPower: -0.36,
+        maxSpeedX: 3.55,
+        popPoints: 1000,
+        killPoints: 1500
+      }
+    ];
+
+    function createEnemy(x, y, tierIndex) {
+      const t = Math.min(2, Math.max(0, tierIndex || 0));
+      return {
+        x,
+        y,
+        vx: (Math.random() < 0.5 ? -1 : 1) * 1.2,
+        vy: 0,
+        w: 28,
+        h: 34,
+        tier: t,
+        state: "pumping", // pumping | flying | parachute | falling
+        pumpProgress: 0.25,
+        flapTimer: 0,
+        wingPhase: Math.random() * Math.PI * 2,
+        facing: Math.random() < 0.5 ? 1 : -1,
+        grounded: true,
+        swayX: 0
+      };
+    }
+
+    // =========================================================================
+    // 5. STAGE & MODE INITIALIZATION
+    // =========================================================================
+    function buildArenaGeometry(phaseNum) {
+      state.platforms = [];
+      state.flippers = [];
+      state.clouds = [];
+      state.sparks = [];
+      state.bubbles = [];
+      state.bonusBalloons = [];
+      state.feathers = [];
+
+      // Left & Right spawn shore ledges (above the water)
+      state.platforms.push({ x: 0, y: WATER_Y - 52, w: 175, h: 20, style: "shore" });
+      state.platforms.push({ x: W - 175, y: WATER_Y - 52, w: 175, h: 20, style: "shore" });
+
+      if (state.mode === "trip") {
+        // Balloon Trip starts with a small launchpad that scrolls away, plus initial sparks & bubbles
+        state.platforms = [{ x: W * 0.68, y: H * 0.54, w: 130, h: 16, style: "tripPad" }];
+        for (let i = 0; i < 9; i++) {
+          state.sparks.push({
+            x: 80 + i * 115,
+            y: 90 + ((i * 137) % (WATER_Y - 150)),
+            vx: 0,
+            vy: 0,
+            r: 13,
+            angle: i * 0.6,
+            isTripObstacle: true
+          });
+        }
+        for (let b = 0; b < 3; b++) {
+          state.bubbles.push({
+            x: 220 + b * 310,
+            y: 160 + b * 140,
+            vy: -0.45,
+            r: 16,
+            phase: b * 1.7
+          });
+        }
+        return;
+      }
+
+      // Standard Multi-Tier Floating Islands based on phase layout
+      const layoutIdx = (phaseNum - 1) % 3;
+      if (layoutIdx === 0) {
+        state.platforms.push({ x: 350, y: 455, w: 380, h: 20, style: "island" });
+        state.platforms.push({ x: 165, y: 295, w: 250, h: 20, style: "island" });
+        state.platforms.push({ x: W - 415, y: 295, w: 250, h: 20, style: "island" });
+        state.platforms.push({ x: 420, y: 155, w: 240, h: 20, style: "island" });
+
+        state.flippers.push({ x: 540, y: 310, r: 22, angle: 0, spinVel: 0.04 });
+        state.flippers.push({ x: 290, y: 185, r: 20, angle: 0.8, spinVel: -0.04 });
+        state.flippers.push({ x: W - 290, y: 185, r: 20, angle: 1.6, spinVel: 0.04 });
+      } else if (layoutIdx === 1) {
+        state.platforms.push({ x: 220, y: 470, w: 240, h: 20, style: "island" });
+        state.platforms.push({ x: W - 460, y: 470, w: 240, h: 20, style: "island" });
+        state.platforms.push({ x: 410, y: 330, w: 260, h: 20, style: "island" });
+        state.platforms.push({ x: 140, y: 195, w: 220, h: 20, style: "island" });
+        state.platforms.push({ x: W - 360, y: 195, w: 220, h: 20, style: "island" });
+
+        state.flippers.push({ x: 540, y: 205, r: 24, angle: 0, spinVel: 0.05 });
+        state.flippers.push({ x: 340, y: 355, r: 21, angle: 0.5, spinVel: -0.04 });
+        state.flippers.push({ x: W - 340, y: 355, r: 21, angle: 1.1, spinVel: 0.04 });
+      } else {
+        state.platforms.push({ x: 310, y: 485, w: 460, h: 20, style: "island" });
+        state.platforms.push({ x: 120, y: 340, w: 210, h: 20, style: "island" });
+        state.platforms.push({ x: W - 330, y: 340, w: 210, h: 20, style: "island" });
+        state.platforms.push({ x: 380, y: 210, w: 320, h: 20, style: "island" });
+
+        state.flippers.push({ x: 265, y: 220, r: 22, angle: 0, spinVel: 0.045 });
+        state.flippers.push({ x: W - 265, y: 220, r: 22, angle: 0.9, spinVel: -0.045 });
+        state.flippers.push({ x: 540, y: 365, r: 24, angle: 0.3, spinVel: 0.05 });
+      }
+
+      // Storm Clouds that spit bouncing Lightning Sparks
+      state.clouds.push({
+        x: 230,
+        y: 88,
+        charge: 0,
+        maxCharge: 340,
+        flashTimer: 0
+      });
+      state.clouds.push({
+        x: W - 230,
+        y: 88,
+        charge: 170,
+        maxCharge: 340,
+        flashTimer: 0
+      });
+    }
+
+    function createBossForPhase(phaseNum) {
+      const bossTypes = [
+        {
+          name: "👾 MECHA-ROC SKY DREADNOUGHT",
+          color: "#f43f5e",
+          coreColor: "#fb7185",
+          maxHp: 600,
+          balloonCount: 6
+        },
+        {
+          name: "🌩️ THUNDER NIMBUS CORE",
+          color: "#38bdf8",
+          coreColor: "#fef08a",
+          maxHp: 750,
+          balloonCount: 7
+        },
+        {
+          name: "🐟 KING PIRANHA PRIME (SKY LEVIATHAN)",
+          color: "#10b981",
+          coreColor: "#f97316",
+          maxHp: 900,
+          balloonCount: 8
+        }
+      ];
+      const spec = bossTypes[(phaseNum - 1) % bossTypes.length];
+      const balloons = [];
+      for (let i = 0; i < spec.balloonCount; i++) {
+        const offsetX = (i - (spec.balloonCount - 1) / 2) * 28;
+        balloons.push({
+          offsetX,
+          offsetY: -54 - (i % 2) * 14,
+          alive: true,
+          color: ["#f43f5e", "#facc15", "#22d3ee", "#a855f7"][i % 4]
+        });
+      }
+      return {
+        name: spec.name,
+        x: W * 0.5,
+        y: 165,
+        vx: 2.1,
+        vy: 0.6,
+        w: 120,
+        h: 68,
+        hp: spec.maxHp,
+        maxHp: spec.maxHp,
+        color: spec.color,
+        coreColor: spec.coreColor,
+        balloons,
+        attackTimer: 0,
+        hitFlash: 0
+      };
+    }
+
+    function startBonusPipeStage() {
+      state.bonusPipeActive = true;
+      state.bonusBalloonsRemaining = 20;
+      state.bonusBalloonsCaught = 0;
+      state.bonusPipeTimer = 0;
+      state.enemies = [];
+      state.sparks = [];
+      state.clouds = [];
+      state.flippers = [];
+      state.boss = null;
+      state.platforms = [
+        // Solid ground floor with 4 chimney pipes
+        { x: 0, y: WATER_Y - 18, w: W, h: 24, style: "bonusFloor" }
+      ];
+
+      state.players.forEach((p, idx) => {
+        if (p.lives <= 0) p.lives = 1;
+        p.x = idx === 0 ? W * 0.38 : W * 0.62;
+        p.y = WATER_Y - 62;
+        p.vx = 0;
+        p.vy = 0;
+        p.balloons = p.maxBalloons;
+      });
+
+      updateBossHud();
+      showBanner("🎁 BONUS STAGE — POP ALL 20 RISING PIPE BALLOONS!");
+      addCombatLog("🎁 Entered 20-Balloon Chimney Pipe Bonus Stage!", "gold");
+      BalloonAudio.playFanfare();
+    }
+
+    function setupWave(resetScores = false) {
+      state.bonusPipeActive = false;
+      state.boss = null;
+      state.tripFreezeTimer = 0;
+
+      if (resetScores) {
+        state.phase = 1;
+        state.combo = 1;
+        state.tripDistance = 0;
+        state.tripRank = 50;
+        state.p1Wins = 0;
+        state.p2Wins = 0;
+      }
+
+      buildArenaGeometry(state.phase);
+
+      // Spawn Players
+      const needTwoPlayers = state.mode === "coop" || state.mode === "versus";
+      if (resetScores || state.players.length === 0) {
+        state.players = [createPlayer(1, 88, WATER_Y - 88)];
+        if (needTwoPlayers) {
+          state.players.push(createPlayer(2, W - 88, WATER_Y - 88));
+        }
+      } else {
+        // Ensure right player count for current mode
+        if (needTwoPlayers && state.players.length < 2) {
+          state.players.push(createPlayer(2, W - 88, WATER_Y - 88));
+        } else if (!needTwoPlayers && state.players.length > 1) {
+          state.players = [state.players[0]];
+        }
+        state.players.forEach((p, idx) => {
+          p.maxBalloons = 2 + (state.perks.tripleBalloon > 0 ? 1 : 0);
+          p.balloons = p.maxBalloons;
+          p.shieldCharges = state.perks.faradayShield > 0 ? 1 : 0;
+          if (state.mode === "trip") {
+            p.x = W * 0.72;
+            p.y = H * 0.45;
+          } else {
+            p.x = idx === 0 ? 88 : W - 88;
+            p.y = WATER_Y - 88;
+          }
+          p.vx = 0;
+          p.vy = 0;
+          p.invulnTimer = 90;
+        });
+      }
+
+      // Populate Mode Enemies or Boss
+      state.enemies = [];
+      if (state.mode === "trip") {
+        showBanner("⚡ BALLOON TRIP — WEAVE THROUGH SPARKS & POP BUBBLES FOR RANK 1!");
+        addCombatLog("⚡ Balloon Trip launched! Dodge sparks & collect soap bubbles.", "gold");
+      } else if (state.mode === "boss") {
+        state.boss = createBossForPhase(state.phase);
+        // Also spawn 2 helper Bird-Knights
+        state.enemies.push(createEnemy(250, 260, 0));
+        state.enemies.push(createEnemy(W - 250, 260, 1));
+        showBanner(`${state.boss.name} APPROACHES!`);
+        addCombatLog(`👾 Boss Wave ${state.phase}: ${state.boss.name}`, "danger");
+      } else if (state.mode === "versus") {
+        showBanner("⚔️ 2P VERSUS DOGFIGHT — FIRST TO 5 BALLOON KOs WINS!");
+        addCombatLog("⚔️ 2P Versus Dogfight! Strike rival balloons from above.", "gold");
+      } else {
+        // Classic, Roguelike, or Co-Op Wave
+        const count = Math.min(7, 3 + Math.floor(state.phase * 0.85));
+        const islandPlatforms = state.platforms.filter(p => p.style === "island");
+        for (let i = 0; i < count; i++) {
+          const plat = islandPlatforms[i % islandPlatforms.length] || { x: 400, y: 300, w: 200 };
+          const ex = plat.x + 35 + ((i * 67) % Math.max(40, plat.w - 70));
+          const ey = plat.y - 18;
+          const tier = i >= count - 1 && state.phase >= 2 ? 1 : (state.phase >= 4 && i === 0 ? 2 : 0);
+          state.enemies.push(createEnemy(ex, ey, tier));
+        }
+        showBanner(`🎈 PHASE ${state.phase} — ${count} BIRD-KNIGHTS ALOFT!`);
+        addCombatLog(`🎈 Phase ${state.phase} started with ${count} enemy Bird-Knights.`);
+      }
+
+      updateBossHud();
+      updateScoreboardDOM();
+      renderPerksSidebar();
+    }
+
+    // =========================================================================
+    // 6. INPUT HANDLING (KEYBOARD + QUICK FLIGHT DECK BUTTONS)
+    // =========================================================================
+    const keys = {};
+
+    window.addEventListener("keydown", (e) => {
+      keys[e.code] = true;
+
+      // Mode Hotkeys [1-6]
+      if (!e.ctrlKey && !e.altKey && !e.metaKey) {
+        if (e.code === "Digit1") switchMode("classic");
+        else if (e.code === "Digit2") switchMode("trip");
+        else if (e.code === "Digit3") switchMode("roguelike");
+        else if (e.code === "Digit4") switchMode("boss");
+        else if (e.code === "Digit5") switchMode("coop");
+        else if (e.code === "Digit6") switchMode("versus");
+        else if (e.code === "KeyP") togglePause();
+        else if (e.code === "KeyN") setupWave(true);
+        else if (e.code === "KeyG") startBonusPipeStage();
+        else if (e.code === "KeyU") openPerkModal();
+        else if (e.code === "KeyH") toggleHelpModal();
+        else if (e.code === "KeyB") toggleMusic();
+        else if (e.code === "KeyM") toggleSfx();
+        else if (e.code === "Escape") closeAllModals();
+      }
+
+      // Player 1 Flap impulse on key press
+      const p1 = state.players[0];
+      if (p1 && p1.respawnTimer <= 0) {
+        const isSingleMode = state.mode !== "coop" && state.mode !== "versus";
+        if (e.code === "KeyW" || e.code === "Space" || (isSingleMode && e.code === "ArrowUp")) {
+          e.preventDefault();
+          triggerPlayerFlap(p1);
+        }
+        if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
+          triggerPlayerDash(p1);
+        }
+        if (e.code === "KeyF") {
+          triggerFeatherDart(p1);
+        }
+        if (e.code === "KeyR" || e.code === "KeyS" || (isSingleMode && e.code === "ArrowDown")) {
+          triggerPumpOrDive(p1);
+        }
+      }
+
+      // Player 2 Controls in Co-Op / Versus
+      const p2 = state.players[1];
+      if (p2 && p2.respawnTimer <= 0) {
+        if (["ArrowUp", "ArrowLeft", "ArrowRight", "ArrowDown", "Enter", "Slash"].includes(e.code)) {
+          e.preventDefault();
+          p2.aiControlled = false; // Switch P2 to Live Human Control immediately!
+        }
+        if (e.code === "ArrowUp") triggerPlayerFlap(p2);
+        if (e.code === "Enter") triggerPlayerDash(p2);
+        if (e.code === "Slash") triggerFeatherDart(p2);
+        if (e.code === "ArrowDown") triggerPumpOrDive(p2);
+      }
+    });
+
+    window.addEventListener("keyup", (e) => {
+      keys[e.code] = false;
+    });
+
+    function triggerPlayerFlap(p) {
+      if (state.paused || p.balloons <= 0) return;
+      const liftBonus = p.balloons >= 3 ? -0.55 : p.balloons === 2 ? -0.35 : 0;
+      p.vy = Math.max(p.vy - 2.65 + liftBonus, -5.8);
+      p.grounded = false;
+      p.flapAnim = 8;
+      BalloonAudio.playFlap();
+      spawnParticles(p.x, p.y + 8, "#e2e8f0", 3, 1.4);
+    }
+
+    function triggerPlayerDash(p) {
+      if (state.paused || p.dashCooldown > 0 || p.balloons <= 0) return;
+      const boostMult = 1 + state.perks.afterburner * 0.35;
+      p.vx = p.facing * 7.2 * boostMult;
+      p.vy *= 0.4;
+      p.dashCooldown = Math.max(35, 68 - state.perks.afterburner * 14);
+      p.invulnTimer = Math.max(p.invulnTimer, 18);
+      BalloonAudio.playFlipperBoing();
+      spawnParticles(p.x - p.facing * 12, p.y, "#38bdf8", 10, 3.2);
+      spawnFloatingText(p.x, p.y - 24, "⚡ JET DASH!", "#38bdf8");
+    }
+
+    function triggerFeatherDart(p) {
+      if (state.paused || p.dartCooldown > 0 || p.balloons <= 0) return;
+      const twin = state.perks.featherDart > 0;
+      state.feathers.push({
+        ownerId: p.id,
+        x: p.x + p.facing * 18,
+        y: p.y - 6,
+        vx: p.facing * 9.5,
+        vy: 0,
+        life: 65,
+        color: p.id === 1 ? "#facc15" : "#22d3ee"
+      });
+      if (twin) {
+        state.feathers.push({
+          ownerId: p.id,
+          x: p.x + p.facing * 18,
+          y: p.y - 20,
+          vx: p.facing * 9.5,
+          vy: -0.6,
+          life: 65,
+          color: "#f43f5e"
+        });
+      }
+      p.dartCooldown = twin ? 26 : 42;
+      BalloonAudio.playFlap();
+    }
+
+    function triggerPumpOrDive(p) {
+      if (state.paused || p.balloons <= 0) return;
+      // On platform & missing a balloon -> Emergency Balloon Pump!
+      if (p.grounded && p.balloons < p.maxBalloons) {
+        const step = 0.22 * (1 + state.perks.turboPump * 0.85);
+        p.pumpProgress += step;
+        if (state.perks.turboPump > 0) {
+          p.invulnTimer = Math.max(p.invulnTimer, 20);
+        }
+        BalloonAudio.playPumpHiss(p.pumpProgress);
+        spawnParticles(p.x, p.y - 24, "#facc15", 4, 1.5);
+        if (p.pumpProgress >= 1) {
+          p.pumpProgress = 0;
+          p.balloons = Math.min(p.maxBalloons, p.balloons + 1);
+          BalloonAudio.playBubbleChime();
+          spawnFloatingText(p.x, p.y - 36, "🎈 BALLOON INFLATED!", "#facc15");
+          addCombatLog(`🎈 ${p.name} pumped up an emergency balloon!`, "gold");
+          updateScoreboardDOM();
+        }
+      } else if (!p.grounded) {
+        // Midair Meteor Dive-Stomp
+        const diveVel = state.perks.diveStomp > 0 ? 7.5 : 5.2;
+        p.vy = Math.max(p.vy, diveVel);
+        spawnParticles(p.x, p.y - 10, "#f97316", 5, 2.2);
+      }
+    }
+
+    // Canvas click also flaps Player 1 towards cursor horizontally
+    canvas.addEventListener("pointerdown", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const cx = (e.clientX - rect.left) * (W / rect.width);
+      const p1 = state.players[0];
+      if (!p1) return;
+      if (cx < p1.x - 16) {
+        p1.vx -= 1.35;
+        p1.facing = -1;
+      } else if (cx > p1.x + 16) {
+        p1.vx += 1.35;
+        p1.facing = 1;
+      }
+      triggerPlayerFlap(p1);
+    });
+
+    // =========================================================================
+    // 7. PARTICLES, FLOATING COMBAT TEXT & SCORE HELPERS
+    // =========================================================================
+    function spawnParticles(x, y, color, count = 10, speed = 2.8) {
+      for (let i = 0; i < count; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const spd = (0.3 + Math.random() * 0.9) * speed;
+        state.particles.push({
+          x,
+          y,
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd - 0.5,
+          r: 2 + Math.random() * 3,
+          life: 24 + Math.floor(Math.random() * 18),
+          maxLife: 42,
+          color
+        });
+      }
+    }
+
+    function spawnFloatingText(x, y, text, color = "#fef08a") {
+      state.floatingTexts.push({
+        x,
+        y,
+        text,
+        color,
+        life: 48
+      });
+    }
+
+    function awardScore(player, basePts, reasonLabel, x, y) {
+      if (!player) return;
+      const pts = Math.round(basePts * state.combo);
+      player.score += pts;
+      if (player.score > career.highScore) {
+        career.highScore = player.score;
+        saveCareer();
+      }
+      state.combo = Math.min(8, state.combo + 1);
+      state.comboTimer = 210;
+      spawnFloatingText(x ?? player.x, (y ?? player.y) - 22, `+${pts} ${reasonLabel || ""}`, "#fef08a");
+      updateScoreboardDOM();
+    }
+
+    // =========================================================================
+    // 8. CORE 60FPS PHYSICS & COLLISION UPDATE LOOP
+    // =========================================================================
+    function updatePhysics() {
+      if (state.paused) return;
+      state.frameTick++;
+
+      if (state.comboTimer > 0) {
+        state.comboTimer--;
+        if (state.comboTimer === 0) state.combo = 1;
+      }
+
+      // 8A. BONUS CHIMNEY PIPE STAGE LOGIC
+      if (state.bonusPipeActive) {
+        state.bonusPipeTimer++;
+        const pipeXs = [210, 430, 650, 870];
+        if (state.bonusPipeTimer % 38 === 0 && state.bonusBalloonsRemaining > 0) {
+          const px = pipeXs[state.bonusBalloonsRemaining % pipeXs.length];
+          state.bonusBalloons.push({
+            x: px + (Math.random() * 16 - 8),
+            y: WATER_Y - 38,
+            vy: -2.4 - Math.random() * 1.1,
+            swayPhase: Math.random() * Math.PI * 2,
+            color: ["#f43f5e", "#facc15", "#22d3ee", "#34d399", "#a855f7"][state.bonusBalloonsRemaining % 5]
+          });
+          state.bonusBalloonsRemaining--;
+          BalloonAudio.playPumpHiss(0.6);
+        }
+
+        // Move rising bonus balloons
+        for (let i = state.bonusBalloons.length - 1; i >= 0; i--) {
+          const b = state.bonusBalloons[i];
+          b.y += b.vy;
+          b.x += Math.sin(state.frameTick * 0.08 + b.swayPhase) * 1.1;
+
+          // Check player catch
+          let popped = false;
+          for (const p of state.players) {
+            if (Math.hypot(p.x - b.x, (p.y - 10) - b.y) < 32) {
+              BalloonAudio.playBalloonPop();
+              state.bonusBalloonsCaught++;
+              career.balloonsPopped++;
+              awardScore(p, 400, "PIPE BALLOON!", b.x, b.y);
+              spawnParticles(b.x, b.y, b.color, 12, 3.2);
+              popped = true;
+              break;
+            }
+          }
+          if (popped || b.y < -30) {
+            state.bonusBalloons.splice(i, 1);
+          }
+        }
+
+        // End bonus stage when all 20 balloons have cleared
+        if (state.bonusBalloonsRemaining === 0 && state.bonusBalloons.length === 0) {
+          const p1 = state.players[0];
+          if (state.bonusBalloonsCaught >= 20 && p1) {
+            p1.score += 10000;
+            spawnFloatingText(W * 0.5, H * 0.4, "🏆 PERFECT 20/20 SUPER BONUS +10,000!", "#facc15");
+            addCombatLog("🏆 PERFECT 20/20 Pipe Bonus! Awarded +10,000 pts!", "gold");
+          } else {
+            addCombatLog(`🎁 Pipe Bonus complete: ${state.bonusBalloonsCaught}/20 balloons popped.`, "gold");
+          }
+          BalloonAudio.playFanfare();
+          state.phase++;
+          setupWave(false);
+          return;
+        }
+      }
+
+      // 8B. BALLOON TRIP SIDE-SCROLLING ODYSSEY LOGIC
+      if (state.mode === "trip" && !state.bonusPipeActive) {
+        if (state.tripFreezeTimer > 0) {
+          state.tripFreezeTimer--;
+        } else {
+          const scrollSpeed = 2.2 + (50 - state.tripRank) * 0.055;
+          state.tripDistance += scrollSpeed;
+          const newRank = Math.max(1, 50 - Math.floor(state.tripDistance / 420));
+          if (newRank < state.tripRank) {
+            state.tripRank = newRank;
+            if (state.tripRank < career.bestTripRank) {
+              career.bestTripRank = state.tripRank;
+              saveCareer();
+            }
+            BalloonAudio.playBubbleChime();
+            showBanner(`⚡ BALLOON TRIP RANK UP — RANK ${state.tripRank}!`);
+          }
+
+          // Scroll platforms
+          for (let i = state.platforms.length - 1; i >= 0; i--) {
+            state.platforms[i].x -= scrollSpeed;
+            if (state.platforms[i].x + state.platforms[i].w < -20) {
+              state.platforms.splice(i, 1);
+            }
+          }
+
+          // Scroll and recycle Spark Stars
+          for (const sp of state.sparks) {
+            sp.x -= scrollSpeed;
+            sp.angle += 0.08;
+            if (sp.x < -25) {
+              sp.x = W + 30 + Math.random() * 80;
+              sp.y = 65 + Math.random() * (WATER_Y - 135);
+            }
+          }
+
+          // Spawn soap bubbles periodically
+          if (state.frameTick % 145 === 0) {
+            state.bubbles.push({
+              x: -10 + Math.random() * (W * 0.65),
+              y: WATER_Y - 12,
+              vy: -1.15,
+              r: 16,
+              phase: Math.random() * 6
+            });
+          }
+        }
+
+        // Passive distance points in Balloon Trip
+        if (state.frameTick % 20 === 0 && state.players[0]) {
+          state.players[0].score += 30;
+          updateScoreboardDOM();
+        }
+      }
+
+      // 8C. UPDATE PLAYERS (INERTIAL FLAP PHYSICS & PLATFORM COLLISIONS)
+      state.players.forEach((p) => {
+        if (p.respawnTimer > 0) {
+          p.respawnTimer--;
+          if (p.respawnTimer === 0) {
+            p.x = p.id === 1 ? 88 : W - 88;
+            p.y = state.mode === "trip" ? H * 0.42 : WATER_Y - 88;
+            p.vx = 0;
+            p.vy = 0;
+            p.balloons = p.maxBalloons;
+            p.invulnTimer = 110;
+            updateScoreboardDOM();
+          }
+          return;
+        }
+
+        if (p.invulnTimer > 0) p.invulnTimer--;
+        if (p.dashCooldown > 0) p.dashCooldown--;
+        if (p.dartCooldown > 0) p.dartCooldown--;
+        if (p.flapAnim > 0) p.flapAnim--;
+
+        // Horizontal bank controls
+        const isSingle = state.mode !== "coop" && state.mode !== "versus";
+        if (p.id === 1) {
+          const leftHeld = keys["KeyA"] || (isSingle && keys["ArrowLeft"]);
+          const rightHeld = keys["KeyD"] || (isSingle && keys["ArrowRight"]);
+          const flapHeld = keys["KeyW"] || keys["Space"] || (isSingle && keys["ArrowUp"]);
+          if (leftHeld) {
+            p.vx -= 0.24;
+            p.facing = -1;
+          }
+          if (rightHeld) {
+            p.vx += 0.24;
+            p.facing = 1;
+          }
+          if (flapHeld && state.frameTick % 9 === 0) {
+            triggerPlayerFlap(p);
+          }
+        } else if (p.id === 2) {
+          if (!p.aiControlled) {
+            if (keys["ArrowLeft"]) {
+              p.vx -= 0.24;
+              p.facing = -1;
+            }
+            if (keys["ArrowRight"]) {
+              p.vx += 0.24;
+              p.facing = 1;
+            }
+            if (keys["ArrowUp"] && state.frameTick % 9 === 0) {
+              triggerPlayerFlap(p);
+            }
+          } else {
+            // Smart AI Wingman (Co-Op) or Rival Duelist (Versus)
+            updatePlayer2AI(p);
+          }
+        }
+
+        // Authentic floaty Balloon Fight gravity & air drag
+        const gravity = p.balloons >= 2 ? 0.115 : p.balloons === 1 ? 0.155 : 0.32;
+        p.vy = Math.min(5.6, p.vy + gravity);
+        p.vx *= p.grounded ? 0.84 : 0.982;
+        p.vx = Math.max(-5.8, Math.min(5.8, p.vx));
+
+        p.x += p.vx;
+        p.y += p.vy;
+        p.swayX += (-p.vx * 2.2 - p.swayX) * 0.18;
+
+        if (p.grounded && Math.abs(p.vx) > 0.2) {
+          p.runAnim += Math.abs(p.vx) * 0.25;
+        }
+
+        // Screen horizontal wrap-around (or soft clamp in Balloon Trip)
+        if (state.mode === "trip") {
+          if (p.x < 24) { p.x = 24; p.vx = Math.max(0, p.vx); }
+          if (p.x > W - 24) { p.x = W - 24; p.vx = Math.min(0, p.vx); }
+        } else {
+          if (p.x < -12) p.x = W + 12;
+          if (p.x > W + 12) p.x = -12;
+        }
+
+        // Ceiling soft bounce
+        if (p.y < 38) {
+          p.y = 38;
+          p.vy = Math.abs(p.vy) * 0.55;
+        }
+
+        // Platform collisions (top landing & underside bounce)
+        p.grounded = false;
+        for (const plat of state.platforms) {
+          const withinX = p.x + 11 > plat.x && p.x - 11 < plat.x + plat.w;
+          if (!withinX) continue;
+
+          // Landing on top of platform
+          const footY = p.y + p.h * 0.5;
+          const prevFootY = footY - p.vy;
+          if (p.vy >= 0 && prevFootY <= plat.y + 6 && footY >= plat.y) {
+            p.y = plat.y - p.h * 0.5;
+            p.vy = 0;
+            p.grounded = true;
+          } else if (p.vy < 0 && p.y - 26 <= plat.y + plat.h && p.y - 26 - p.vy >= plat.y + plat.h - 6) {
+            // Bounce balloon head off underside of island
+            p.vy = Math.abs(p.vy) * 0.65;
+          }
+        }
+
+        // Flipper pinwheel collisions
+        for (const flip of state.flippers) {
+          const dist = Math.hypot(p.x - flip.x, (p.y - 6) - flip.y);
+          if (dist < flip.r + 18) {
+            const ang = Math.atan2((p.y - 6) - flip.y, p.x - flip.x);
+            p.vx = Math.cos(ang) * 6.2;
+            p.vy = Math.sin(ang) * 5.6;
+            flip.spinVel = (p.vx >= 0 ? 1 : -1) * 0.26;
+            BalloonAudio.playFlipperBoing();
+            spawnParticles(flip.x, flip.y, "#facc15", 8, 2.8);
+          }
+        }
+
+        // Water splash hazard (unless in Bonus Pipe Stage)
+        if (!state.bonusPipeActive && p.y + 10 >= WATER_Y) {
+          handlePlayerWaterSplash(p);
+        }
+      });
+
+      // 8D. CO-OP FRIENDLY BOUNCE OR VERSUS DOGFIGHT JOUST BETWEEN P1 & P2
+      if (state.players.length === 2) {
+        const p1 = state.players[0];
+        const p2 = state.players[1];
+        if (p1.respawnTimer <= 0 && p2.respawnTimer <= 0) {
+          const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+          if (dist < 34) {
+            if (state.mode === "coop") {
+              // Friendly elastic balloon bounce!
+              const nx = (p2.x - p1.x) / (dist || 1);
+              const ny = (p2.y - p1.y) / (dist || 1);
+              p1.vx -= nx * 2.6;
+              p1.vy -= ny * 2.4;
+              p2.vx += nx * 2.6;
+              p2.vy += ny * 2.4;
+              BalloonAudio.playFlap();
+            } else if (state.mode === "versus") {
+              // Higher flyer pops lower flyer's balloon!
+              if (p1.y < p2.y - 8 && p2.invulnTimer <= 0) {
+                damagePlayerBalloon(p2, p1, "DOGFIGHT HIT!");
+                p1.vy = -3.8;
+              } else if (p2.y < p1.y - 8 && p1.invulnTimer <= 0) {
+                damagePlayerBalloon(p1, p2, "DOGFIGHT HIT!");
+                p2.vy = -3.8;
+              } else {
+                const nx = (p2.x - p1.x) / (dist || 1);
+                p1.vx -= nx * 3.2;
+                p2.vx += nx * 3.2;
+              }
+            }
+          }
+        }
+      }
+
+      // 8E. UPDATE ENEMY BIRD-KNIGHTS
+      updateEnemiesPhysics();
+
+      // 8F. UPDATE BOSS SKY LEVIATHAN
+      if (state.boss) {
+        updateBossPhysics();
+      }
+
+      // 8G. UPDATE STORM CLOUDS, SPARKS, SOAP BUBBLES, FEATHERS & PIRANHA
+      updateHazardsAndPickups();
+
+      // 8H. UPDATE PARTICLES & FLOATING TEXT
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const pt = state.particles[i];
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        pt.vy += 0.06;
+        pt.life--;
+        if (pt.life <= 0) state.particles.splice(i, 1);
+      }
+
+      for (let i = state.floatingTexts.length - 1; i >= 0; i--) {
+        const ft = state.floatingTexts[i];
+        ft.y -= 0.85;
+        ft.life--;
+        if (ft.life <= 0) state.floatingTexts.splice(i, 1);
+      }
+
+      // 8I. CHECK WAVE COMPLETION (Arena / Roguelike / Co-Op / Boss)
+      if (!state.bonusPipeActive && state.mode !== "trip" && state.mode !== "versus") {
+        const bossAlive = state.boss && state.boss.hp > 0;
+        if (state.enemies.length === 0 && !bossAlive) {
+          advanceToNextWave();
+        }
+      }
+
+      // Update right sidebar telemetry counters every 6 frames
+      if (state.frameTick % 6 === 0) {
+        updateTelemetrySidebar();
+      }
+    }
+
+    function updatePlayer2AI(p2) {
+      const p1 = state.players[0];
+      let targetX = W * 0.5;
+      let targetY = H * 0.35;
+
+      if (state.mode === "versus" && p1 && p1.respawnTimer <= 0) {
+        // Aim slightly above Player 1 to pop their balloon
+        targetX = p1.x;
+        targetY = Math.max(70, p1.y - 42);
+      } else if (state.enemies.length > 0) {
+        const targetEnemy = state.enemies[0];
+        targetX = targetEnemy.x;
+        targetY = Math.max(70, targetEnemy.y - 38);
+      }
+
+      if (p2.x < targetX - 18) {
+        p2.vx += 0.19;
+        p2.facing = 1;
+      } else if (p2.x > targetX + 18) {
+        p2.vx -= 0.19;
+        p2.facing = -1;
+      }
+
+      if ((p2.y > targetY || p2.y > WATER_Y - 125) && state.frameTick % 12 === 0) {
+        triggerPlayerFlap(p2);
+      }
+    }
+
+    function damagePlayerBalloon(victim, attacker, reason) {
+      if (victim.invulnTimer > 0 || victim.respawnTimer > 0) return;
+
+      // Check Faraday Shield for spark hits
+      if (reason === "STORM SPARK!" && victim.shieldCharges > 0) {
+        victim.shieldCharges--;
+        victim.invulnTimer = 55;
+        BalloonAudio.playFlipperBoing();
+        spawnParticles(victim.x, victim.y, "#22d3ee", 16, 3.6);
+        spawnFloatingText(victim.x, victim.y - 28, "🛡️ FARADAY SHIELD BLOCKED!", "#22d3ee");
+        addCombatLog(`🛡️ ${victim.name}'s Faraday Shield absorbed a Lightning Spark!`, "gold");
+        return;
+      }
+
+      BalloonAudio.playBalloonPop();
+      victim.balloons--;
+      victim.invulnTimer = 65;
+      victim.pumpProgress = 0;
+      spawnParticles(victim.x, victim.y - 24, "#f43f5e", 14, 3.4);
+
+      if (attacker) {
+        awardScore(attacker, 750, reason, victim.x, victim.y);
+      } else {
+        spawnFloatingText(victim.x, victim.y - 24, `💥 ${reason}`, "#fb7185");
+      }
+
+      if (victim.balloons <= 0) {
+        handlePlayerKnockout(victim, attacker, reason);
+      } else {
+        addCombatLog(`🎈 ${victim.name} lost a balloon (${victim.balloons} left)! Land & press [R] to pump.`, "danger");
+      }
+      updateScoreboardDOM();
+    }
+
+    function handlePlayerWaterSplash(p) {
+      BalloonAudio.playPiranhaSplash();
+      spawnParticles(p.x, WATER_Y, "#38bdf8", 22, 4.0);
+      spawnFloatingText(p.x, WATER_Y - 24, "🌊 SPLASHED!", "#38bdf8");
+      handlePlayerKnockout(p, null, "WATER SPLASH");
+    }
+
+    function handlePlayerKnockout(victim, attacker, reason) {
+      victim.balloons = 0;
+      victim.lives = Math.max(0, victim.lives - 1);
+      victim.respawnTimer = 85;
+
+      if (state.mode === "versus") {
+        const winner = state.players.find(pl => pl.id !== victim.id);
+        if (winner) {
+          if (winner.id === 1) state.p1Wins++;
+          else state.p2Wins++;
+          winner.score += 1500;
+          showBanner(`⚔️ ${winner.name} SCORES KO! (${state.p1Wins} - ${state.p2Wins})`);
+          if (state.p1Wins >= state.versusTargetWins || state.p2Wins >= state.versusTargetWins) {
+            BalloonAudio.playFanfare();
+            showBanner(`🏆 ${winner.name} WINS THE DOGFIGHT CUP!`);
+            addCombatLog(`🏆 ${winner.name} won the 5-KO Versus Dogfight!`, "gold");
+            state.p1Wins = 0;
+            state.p2Wins = 0;
+          }
+        }
+      } else if (victim.lives <= 0) {
+        // Auto-refill lives on continue so arcade session never dead-ends
+        victim.lives = 3;
+        victim.score = Math.floor(victim.score * 0.85);
+        showBanner(`🔄 ${victim.name} EMERGENCY RE-DEPLOY — FLIGHT CONTINUES!`);
+        addCombatLog(`🔄 ${victim.name} re-deployed with fresh squadron balloons.`, "danger");
+      }
+      updateScoreboardDOM();
+    }
+
+    // =========================================================================
+    // 9. ENEMY BIRD-KNIGHT AI & TWO-STEP PARACHUTE KNOCKDOWN
+    // =========================================================================
+    function updateEnemiesPhysics() {
+      for (let i = state.enemies.length - 1; i >= 0; i--) {
+        const en = state.enemies[i];
+        const spec = ENEMY_TIERS[en.tier] || ENEMY_TIERS[0];
+        en.wingPhase += 0.25;
+
+        if (en.state === "pumping") {
+          en.vx *= 0.8;
+          en.vy = 0;
+          const pumpRate = 0.0038 + en.tier * 0.0012;
+          en.pumpProgress += pumpRate;
+          if (en.pumpProgress >= 1) {
+            en.pumpProgress = 1;
+            en.state = "flying";
+            en.vy = -2.8;
+            BalloonAudio.playBubbleChime();
+          }
+        } else if (en.state === "flying") {
+          // Pursuit AI towards nearest player
+          const target = state.players[0];
+          if (target && target.respawnTimer <= 0) {
+            if (en.x < target.x - 20) {
+              en.vx = Math.min(spec.maxSpeedX, en.vx + 0.08);
+              en.facing = 1;
+            } else if (en.x > target.x + 20) {
+              en.vx = Math.max(-spec.maxSpeedX, en.vx - 0.08);
+              en.facing = -1;
+            }
+          }
+
+          // Flap upwards if below target or near water
+          const desiredY = target ? Math.max(85, target.y - 18) : 220;
+          if (en.y > desiredY || en.y > WATER_Y - 125) {
+            en.vy = Math.max(-4.2, en.vy + spec.flapPower);
+          } else {
+            en.vy = Math.min(3.5, en.vy + 0.09);
+          }
+
+          en.x += en.vx;
+          en.y += en.vy;
+          en.swayX += (-en.vx * 2 - en.swayX) * 0.15;
+
+          // Screen wrap
+          if (en.x < -12) en.x = W + 12;
+          if (en.x > W + 12) en.x = -12;
+          if (en.y < 42) { en.y = 42; en.vy = Math.abs(en.vy) * 0.6; }
+
+          // Bounce off platforms
+          for (const plat of state.platforms) {
+            if (en.x + 10 > plat.x && en.x - 10 < plat.x + plat.w) {
+              if (en.vy > 0 && en.y + 16 >= plat.y && en.y + 16 - en.vy <= plat.y + 8) {
+                en.y = plat.y - 16;
+                en.vy = -1.8;
+              }
+            }
+          }
+        } else if (en.state === "parachute") {
+          // Gentle parachute sway descent
+          en.vy = 1.35;
+          en.vx = Math.sin(state.frameTick * 0.06 + i) * 1.1;
+          en.x += en.vx;
+          en.y += en.vy;
+
+          // Check if parachute lands on a platform -> starts pumping an upgraded balloon!
+          for (const plat of state.platforms) {
+            if (en.x + 10 > plat.x && en.x - 10 < plat.x + plat.w) {
+              if (en.y + 16 >= plat.y && en.y + 16 - en.vy <= plat.y + 8) {
+                en.y = plat.y - 16;
+                en.vy = 0;
+                en.state = "pumping";
+                en.pumpProgress = 0.05;
+                en.tier = Math.min(2, en.tier + 1); // Upgrades Pink -> Green -> Red!
+                addCombatLog(`⚠️ Landed enemy began pumping a ${ENEMY_TIERS[en.tier].name} balloon!`);
+                break;
+              }
+            }
+          }
+        } else if (en.state === "falling") {
+          en.vy += 0.28;
+          en.x += en.vx;
+          en.y += en.vy;
+        }
+
+        // Flipper bumper bounce for enemies
+        for (const flip of state.flippers) {
+          const dist = Math.hypot(en.x - flip.x, en.y - flip.y);
+          if (dist < flip.r + 16) {
+            const ang = Math.atan2(en.y - flip.y, en.x - flip.x);
+            en.vx = Math.cos(ang) * 5.2;
+            en.vy = Math.sin(ang) * 5.2;
+            flip.spinVel = 0.22;
+          }
+        }
+
+        // Player vs Enemy Joust Collision
+        for (const p of state.players) {
+          if (p.respawnTimer > 0) continue;
+          const dist = Math.hypot(p.x - en.x, p.y - en.y);
+          if (dist < 33) {
+            if (en.state === "flying") {
+              // Higher flyer wins (or Dive-Stomp perk advantage)
+              const playerAdvantage = p.y <= en.y + 5 || (state.perks.diveStomp > 0 && p.vy > 3.5);
+              if (playerAdvantage) {
+                en.state = "parachute";
+                en.vy = 1.0;
+                p.vy = -3.8;
+                career.balloonsPopped++;
+                saveCareer();
+                BalloonAudio.playBalloonPop();
+                BalloonAudio.playParachuteOpen();
+                awardScore(p, spec.popPoints, "BALLOON POP!", en.x, en.y - 18);
+                spawnParticles(en.x, en.y - 22, spec.balloonColor, 14, 3.2);
+              } else {
+                damagePlayerBalloon(p, null, "ENEMY JOUST!");
+                en.vy = -3.2;
+              }
+            } else if (en.state === "parachute" || en.state === "pumping") {
+              // Kick parachute or kick enemy off platform!
+              en.state = "falling";
+              en.vy = -3.2;
+              en.vx = (en.x >= p.x ? 1 : -1) * 3.8;
+              p.vy = -3.5;
+              career.parachutesKicked++;
+              saveCareer();
+              BalloonAudio.playFlipperBoing();
+              awardScore(p, spec.killPoints, en.state === "pumping" ? "PUMP KICK!" : "PARACHUTE KO!", en.x, en.y);
+              spawnParticles(en.x, en.y, "#facc15", 16, 3.6);
+              addCombatLog(`💥 ${p.name} knocked out ${spec.name} (+${spec.killPoints} pts)!`, "gold");
+            }
+          }
+        }
+
+        // Enemy splashes into water -> spawns a Rising Soap Bubble (+500 pts)!
+        if (en.y >= WATER_Y) {
+          BalloonAudio.playPiranhaSplash();
+          spawnParticles(en.x, WATER_Y, "#38bdf8", 16, 3.4);
+          state.bubbles.push({
+            x: Math.max(40, Math.min(W - 40, en.x)),
+            y: WATER_Y - 10,
+            vy: -1.15,
+            r: 16,
+            phase: Math.random() * Math.PI * 2
+          });
+          state.enemies.splice(i, 1);
+        }
+      }
+    }
+
+    // =========================================================================
+    // 10. BOSS STORM: SKY LEVIATHAN LOGIC
+    // =========================================================================
+    function updateBossPhysics() {
+      const boss = state.boss;
+      if (!boss) return;
+
+      if (boss.hitFlash > 0) boss.hitFlash--;
+      boss.x += boss.vx;
+      boss.y += Math.sin(state.frameTick * 0.04) * 1.15;
+
+      if (boss.x < 140) { boss.x = 140; boss.vx = Math.abs(boss.vx); }
+      if (boss.x > W - 140) { boss.x = W - 140; boss.vx = -Math.abs(boss.vx); }
+
+      // Boss periodically spits bouncing Lightning Sparks
+      boss.attackTimer++;
+      if (boss.attackTimer >= 165) {
+        boss.attackTimer = 0;
+        BalloonAudio.playThunderSpark();
+        state.sparks.push({
+          x: boss.x,
+          y: boss.y + 24,
+          vx: (Math.random() < 0.5 ? -1 : 1) * (2.6 + Math.random() * 1.5),
+          vy: 2.4,
+          r: 11,
+          angle: 0,
+          isTripObstacle: false
+        });
+      }
+
+      // Check player top-stomp or Feather Dart hits on Boss & Boss Balloons
+      for (const p of state.players) {
+        if (p.respawnTimer > 0) continue;
+
+        // Check dorsal balloons on boss
+        for (const b of boss.balloons) {
+          if (!b.alive) continue;
+          const bx = boss.x + b.offsetX;
+          const by = boss.y + b.offsetY;
+          if (Math.hypot(p.x - bx, p.y - by) < 28) {
+            b.alive = false;
+            boss.hp = Math.max(0, boss.hp - 85);
+            boss.hitFlash = 10;
+            p.vy = -4.6;
+            career.balloonsPopped++;
+            BalloonAudio.playBalloonPop();
+            awardScore(p, 1000, "BOSS BALLOON!", bx, by);
+            spawnParticles(bx, by, b.color, 16, 3.8);
+            updateBossHud();
+          }
+        }
+
+        // Direct hull collision
+        if (Math.abs(p.x - boss.x) < boss.w * 0.48 && Math.abs(p.y - boss.y) < boss.h * 0.48) {
+          if (p.y < boss.y - 12) {
+            boss.hp = Math.max(0, boss.hp - 45);
+            boss.hitFlash = 8;
+            p.vy = -4.5;
+            BalloonAudio.playFlipperBoing();
+            awardScore(p, 500, "BOSS STOMP!", boss.x, boss.y - 25);
+            updateBossHud();
+          } else {
+            damagePlayerBalloon(p, null, "LEVIATHAN HULL!");
+          }
+        }
+      }
+
+      if (boss.hp <= 0) {
+        BalloonAudio.playFanfare();
+        spawnParticles(boss.x, boss.y, "#facc15", 36, 5.2);
+        if (state.players[0]) {
+          awardScore(state.players[0], 5000, "LEVIATHAN DEFEATED!", boss.x, boss.y);
+        }
+        addCombatLog(`🏆 Defeated ${boss.name}! (+5,000 pts)`, "gold");
+        state.boss = null;
+        updateBossHud();
+      }
+    }
+
+    function updateBossHud() {
+      const strip = document.getElementById("bossHudStrip");
+      if (!strip) return;
+      if (!state.boss || state.boss.hp <= 0) {
+        strip.classList.remove("visible");
+        return;
+      }
+      strip.classList.add("visible");
+      document.getElementById("bossNameLabel").textContent = state.boss.name;
+      const pct = Math.max(0, Math.round((state.boss.hp / state.boss.maxHp) * 100));
+      document.getElementById("bossHpFill").style.width = `${pct}%`;
+      document.getElementById("bossHpText").textContent = `${pct}%`;
+    }
+
+    // =========================================================================
+    // 11. STORM CLOUDS, SPARKS, SOAP BUBBLES, FEATHERS & GIANT PIRANHA
+    // =========================================================================
+    function updateHazardsAndPickups() {
+      // Storm Clouds charging & spitting Lightning Sparks
+      let maxStormRatio = 0;
+      for (const cl of state.clouds) {
+        cl.charge++;
+        if (cl.charge > cl.maxCharge - 55) {
+          cl.flashTimer = (cl.flashTimer + 1) % 10;
+        }
+        if (cl.charge >= cl.maxCharge) {
+          cl.charge = 0;
+          cl.flashTimer = 0;
+          if (state.sparks.length < 5) {
+            BalloonAudio.playThunderSpark();
+            const ang = (Math.random() * 0.7 + 0.15) * Math.PI;
+            state.sparks.push({
+              x: cl.x,
+              y: cl.y + 18,
+              vx: Math.cos(ang) * 3.4 * (Math.random() < 0.5 ? 1 : -1),
+              vy: Math.sin(ang) * 3.2,
+              r: 10,
+              angle: 0,
+              isTripObstacle: false
+            });
+            addCombatLog("🌩️ Storm Cloud discharged a bouncing Lightning Spark!", "danger");
+          }
+        }
+        maxStormRatio = Math.max(maxStormRatio, cl.charge / cl.maxCharge);
+      }
+
+      // Bouncing Arena Lightning Sparks
+      for (let i = state.sparks.length - 1; i >= 0; i--) {
+        const sp = state.sparks[i];
+        sp.angle += 0.14;
+        if (!sp.isTripObstacle) {
+          sp.x += sp.vx;
+          sp.y += sp.vy;
+          if (sp.x < 16 || sp.x > W - 16) sp.vx *= -1;
+          if (sp.y < 32) sp.vy = Math.abs(sp.vy);
+
+          // Bounce off platforms
+          for (const plat of state.platforms) {
+            if (sp.x > plat.x && sp.x < plat.x + plat.w && Math.abs(sp.y - plat.y) < 12) {
+              sp.vy *= -1;
+            }
+          }
+          if (sp.y >= WATER_Y) {
+            state.sparks.splice(i, 1);
+            continue;
+          }
+        }
+
+        // Check collision with players
+        for (const p of state.players) {
+          if (p.respawnTimer <= 0 && Math.hypot(p.x - sp.x, (p.y - 6) - sp.y) < sp.r + 16) {
+            damagePlayerBalloon(p, null, "STORM SPARK!");
+            if (!sp.isTripObstacle) {
+              state.sparks.splice(i, 1);
+              break;
+            }
+          }
+        }
+      }
+
+      // Rising Soap Bubbles (+500 pts + Freeze in Balloon Trip)
+      for (let i = state.bubbles.length - 1; i >= 0; i--) {
+        const b = state.bubbles[i];
+        b.y += b.vy;
+        b.x += Math.sin(state.frameTick * 0.06 + b.phase) * 0.85;
+
+        let collected = false;
+        for (const p of state.players) {
+          if (p.respawnTimer <= 0 && Math.hypot(p.x - b.x, p.y - b.y) < b.r + 18) {
+            BalloonAudio.playBubbleChime();
+            awardScore(p, 500, "SOAP BUBBLE!", b.x, b.y);
+            spawnParticles(b.x, b.y, "#38bdf8", 12, 2.8);
+            if (state.mode === "trip") {
+              state.tripFreezeTimer = 150; // 2.5s freeze in Balloon Trip!
+              spawnFloatingText(b.x, b.y - 36, "❄️ SPARK SCROLL FROZEN!", "#22d3ee");
+            }
+            collected = true;
+            break;
+          }
+        }
+        if (collected || b.y < -25) {
+          state.bubbles.splice(i, 1);
+        }
+      }
+
+      // Feather Darts
+      for (let i = state.feathers.length - 1; i >= 0; i--) {
+        const fd = state.feathers[i];
+        fd.x += fd.vx;
+        fd.y += fd.vy;
+        fd.life--;
+
+        let hit = false;
+        const owner = state.players.find(p => p.id === fd.ownerId) || state.players[0];
+
+        // Check enemy hits
+        for (let j = state.enemies.length - 1; j >= 0; j--) {
+          const en = state.enemies[j];
+          if (Math.hypot(fd.x - en.x, fd.y - en.y) < 24) {
+            if (en.state === "flying") {
+              en.state = "parachute";
+              BalloonAudio.playBalloonPop();
+              awardScore(owner, 500, "DART POP!", en.x, en.y);
+            } else {
+              en.state = "falling";
+              en.vy = -2.5;
+              BalloonAudio.playFlipperBoing();
+              awardScore(owner, 750, "DART KO!", en.x, en.y);
+            }
+            hit = true;
+            break;
+          }
+        }
+
+        // Check Boss hit
+        if (!hit && state.boss && Math.abs(fd.x - state.boss.x) < 55 && Math.abs(fd.y - state.boss.y) < 38) {
+          state.boss.hp = Math.max(0, state.boss.hp - 35);
+          state.boss.hitFlash = 6;
+          awardScore(owner, 300, "DART HIT!", fd.x, fd.y);
+          updateBossHud();
+          hit = true;
+        }
+
+        if (hit || fd.life <= 0 || fd.x < 0 || fd.x > W) {
+          state.feathers.splice(i, 1);
+        }
+      }
+
+      // Giant Abyssal Cyber-Piranha patrolling the bottom water
+      updateGiantPiranha();
+    }
+
+    function updateGiantPiranha() {
+      const pir = state.piranha;
+      if (state.bonusPipeActive) {
+        pir.active = false;
+        pir.dangerLevel = 0;
+        return;
+      }
+
+      // Check if any flyer is skimming close to the center water channel
+      let lowTarget = null;
+      for (const p of state.players) {
+        const overCenterWater = state.mode === "trip" || (p.x > 180 && p.x < W - 180);
+        if (p.respawnTimer <= 0 && overCenterWater && p.y > WATER_Y - 98) {
+          lowTarget = p;
+          break;
+        }
+      }
+
+      if (!pir.active) {
+        if (lowTarget) {
+          pir.warningTimer += 2;
+          pir.targetX += (lowTarget.x - pir.targetX) * 0.15;
+          pir.dangerLevel = Math.min(100, Math.round((pir.warningTimer / 46) * 100));
+          if (pir.warningTimer >= 46) {
+            pir.active = true;
+            pir.x = pir.targetX;
+            pir.y = WATER_Y + 24;
+            pir.vy = -8.4;
+            pir.warningTimer = 0;
+            BalloonAudio.playPiranhaSplash();
+            spawnParticles(pir.x, WATER_Y, "#38bdf8", 20, 4.2);
+            addCombatLog("🐟 GIANT CYBER-PIRANHA LEAPED FROM THE ABYSS!", "danger");
+          }
+        } else {
+          pir.warningTimer = Math.max(0, pir.warningTimer - 1);
+          pir.dangerLevel = Math.max(8, Math.round((pir.warningTimer / 46) * 100));
+        }
+      } else {
+        // Piranha arc in midair
+        pir.y += pir.vy;
+        pir.vy += 0.28;
+        pir.jawAngle = Math.abs(Math.sin(state.frameTick * 0.25)) * 0.55;
+        pir.dangerLevel = 100;
+
+        // Check chomp collision with players or low enemies
+        for (const p of state.players) {
+          if (p.respawnTimer <= 0 && Math.hypot(p.x - pir.x, p.y - pir.y) < 42) {
+            BalloonAudio.playPiranhaSplash();
+            spawnFloatingText(pir.x, pir.y - 28, "🐟 PIRANHA CHOMP!", "#f43f5e");
+            handlePlayerKnockout(p, null, "PIRANHA CHOMP");
+          }
+        }
+
+        if (pir.vy > 0 && pir.y >= WATER_Y + 45) {
+          pir.active = false;
+          pir.warningTimer = 0;
+          career.piranhaEscapes++;
+          saveCareer();
+          spawnParticles(pir.x, WATER_Y, "#38bdf8", 14, 3.0);
+        }
+      }
+    }
+
+    function advanceToNextWave() {
+      BalloonAudio.playFanfare();
+      state.phase++;
+
+      // Every 3rd wave in Classic / Co-Op / Roguelike triggers the 20-Balloon Pipe Bonus Stage!
+      if (state.phase % 3 === 0 && (state.mode === "classic" || state.mode === "coop" || state.mode === "roguelike")) {
+        startBonusPipeStage();
+        return;
+      }
+
+      // Every 2nd wave in Roguelike triggers the Perk Selection Draft Modal!
+      if (state.mode === "roguelike" && state.phase % 2 === 0) {
+        openPerkModal();
+      }
+
+      setupWave(false);
+    }
+
+    // =========================================================================
+    // 12. AAA 60FPS CANVAS RENDERING PIPELINE
+    // =========================================================================
+    function renderScene() {
+      // 12A. Deep Night Sky & Cyber Aurora Backdrop
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, WATER_Y);
+      if (state.bonusPipeActive) {
+        skyGrad.addColorStop(0, "#0b112c");
+        skyGrad.addColorStop(0.6, "#1e1b4b");
+        skyGrad.addColorStop(1, "#0f172a");
+      } else if (state.mode === "trip") {
+        skyGrad.addColorStop(0, "#030712");
+        skyGrad.addColorStop(0.55, "#0a0f29");
+        skyGrad.addColorStop(1, "#082f49");
+      } else {
+        skyGrad.addColorStop(0, "#040817");
+        skyGrad.addColorStop(0.6, "#0c1433");
+        skyGrad.addColorStop(1, "#0f1e3d");
+      }
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Twinkling Starfield
+      for (const st of state.stars) {
+        const alpha = 0.35 + 0.65 * Math.abs(Math.sin(state.frameTick * 0.03 + st.twinkle));
+        ctx.fillStyle = st.color;
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      // 12B. Storm Clouds
+      for (const cl of state.clouds) {
+        drawStormCloud(cl);
+      }
+
+      // 12C. Bonus Stage Chimney Pipes (if active)
+      if (state.bonusPipeActive) {
+        const pipeXs = [210, 430, 650, 870];
+        for (const px of pipeXs) {
+          const pGrad = ctx.createLinearGradient(px - 26, 0, px + 26, 0);
+          pGrad.addColorStop(0, "#b45309");
+          pGrad.addColorStop(0.45, "#facc15");
+          pGrad.addColorStop(1, "#78350f");
+          ctx.fillStyle = pGrad;
+          ctx.fillRect(px - 22, WATER_Y - 70, 44, 54);
+          ctx.fillRect(px - 28, WATER_Y - 78, 56, 12);
+        }
+      }
+
+      // 12D. Floating Grass & Cyber-Metal Islands
+      for (const plat of state.platforms) {
+        drawPlatform(plat);
+      }
+
+      // 12E. Rotating Pinwheel Flippers
+      for (const flip of state.flippers) {
+        flip.angle += flip.spinVel;
+        flip.spinVel *= 0.96;
+        if (Math.abs(flip.spinVel) < 0.03) {
+          flip.spinVel = (flip.spinVel >= 0 ? 1 : -1) * 0.03;
+        }
+        drawFlipper(flip);
+      }
+
+      // 12F. Rising Bonus Balloons & Soap Bubbles
+      for (const bb of state.bonusBalloons) {
+        drawTetheredBalloon(bb.x, bb.y + 20, bb.x, bb.y, bb.color, 13);
+      }
+      for (const bub of state.bubbles) {
+        drawSoapBubble(bub);
+      }
+
+      // 12G. Boss Sky Leviathan
+      if (state.boss) {
+        drawBossLeviathan(state.boss);
+      }
+
+      // 12H. Enemy Bird-Knights
+      for (const en of state.enemies) {
+        drawEnemyBirdKnight(en);
+      }
+
+      // 12I. Players (P1 & P2)
+      for (const p of state.players) {
+        if (p.respawnTimer <= 0) {
+          drawPlayerFlyer(p);
+        }
+      }
+
+      // 12J. Bouncing Lightning Sparks & Feather Darts
+      for (const sp of state.sparks) {
+        drawLightningSpark(sp);
+      }
+      for (const fd of state.feathers) {
+        ctx.save();
+        ctx.translate(fd.x, fd.y);
+        ctx.fillStyle = fd.color;
+        ctx.beginPath();
+        ctx.moveTo(fd.vx >= 0 ? 10 : -10, 0);
+        ctx.lineTo(fd.vx >= 0 ? -8 : 8, -4);
+        ctx.lineTo(fd.vx >= 0 ? -8 : 8, 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // 12K. Giant Abyssal Cyber-Piranha & Animated Ocean Waves
+      drawPiranhaAndOcean();
+
+      // 12L. Particles & Floating Combat Text
+      for (const pt of state.particles) {
+        ctx.globalAlpha = Math.max(0, pt.life / pt.maxLife);
+        ctx.fillStyle = pt.color;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      ctx.font = "800 13px 'JetBrains Mono', monospace";
+      ctx.textAlign = "center";
+      for (const ft of state.floatingTexts) {
+        ctx.globalAlpha = Math.min(1, ft.life / 20);
+        ctx.fillStyle = "#020617";
+        ctx.fillText(ft.text, ft.x + 1, ft.y + 1);
+        ctx.fillStyle = ft.color;
+        ctx.fillText(ft.text, ft.x, ft.y);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawStormCloud(cl) {
+      ctx.save();
+      ctx.translate(cl.x, cl.y);
+      const isFlashing = cl.flashTimer > 5;
+      ctx.fillStyle = isFlashing ? "#fef08a" : "#334155";
+      ctx.beginPath();
+      ctx.arc(-28, 4, 20, 0, Math.PI * 2);
+      ctx.arc(0, -6, 26, 0, Math.PI * 2);
+      ctx.arc(28, 4, 20, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Inner storm glow
+      const ratio = cl.charge / cl.maxCharge;
+      ctx.strokeStyle = ratio > 0.75 ? "#facc15" : "#38bdf8";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-12, 2);
+      ctx.lineTo(2, 10);
+      ctx.lineTo(-4, 18);
+      ctx.lineTo(10, 26);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawPlatform(plat) {
+      ctx.save();
+      // Metallic underside soil/hull
+      const hullGrad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + plat.h);
+      hullGrad.addColorStop(0, "#475569");
+      hullGrad.addColorStop(1, "#1e293b");
+      ctx.fillStyle = hullGrad;
+      ctx.beginPath();
+      ctx.roundRect(plat.x, plat.y, plat.w, plat.h, 6);
+      ctx.fill();
+
+      // Lush Neon Turf Top Strip
+      ctx.fillStyle = plat.style === "bonusFloor" ? "#facc15" : "#10b981";
+      ctx.fillRect(plat.x + 2, plat.y, plat.w - 4, 6);
+
+      // Decorative rivets
+      ctx.fillStyle = "#94a3b8";
+      for (let rx = plat.x + 14; rx < plat.x + plat.w - 10; rx += 28) {
+        ctx.fillRect(rx, plat.y + 10, 4, 4);
+      }
+      ctx.restore();
+    }
+
+    function drawFlipper(flip) {
+      ctx.save();
+      ctx.translate(flip.x, flip.y);
+      ctx.rotate(flip.angle);
+
+      // Four-arm NES Flipper Pinwheel
+      ctx.fillStyle = "#f97316";
+      ctx.fillRect(-flip.r, -5, flip.r * 2, 10);
+      ctx.fillStyle = "#22d3ee";
+      ctx.fillRect(-5, -flip.r, 10, flip.r * 2);
+
+      // Center pivot cap
+      ctx.fillStyle = "#fef08a";
+      ctx.beginPath();
+      ctx.arc(0, 0, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawSoapBubble(bub) {
+      ctx.save();
+      ctx.translate(bub.x, bub.y);
+      const grad = ctx.createRadialGradient(-4, -5, 2, 0, 0, bub.r);
+      grad.addColorStop(0, "rgba(255,255,255,0.85)");
+      grad.addColorStop(0.5, "rgba(56,189,248,0.35)");
+      grad.addColorStop(1, "rgba(244,63,94,0.55)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, bub.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#bae6fd";
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawLightningSpark(sp) {
+      ctx.save();
+      ctx.translate(sp.x, sp.y);
+      ctx.rotate(sp.angle);
+      ctx.fillStyle = state.tripFreezeTimer > 0 ? "#38bdf8" : "#facc15";
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const rad = i % 2 === 0 ? sp.r : sp.r * 0.42;
+        const a = (i * Math.PI) / 4;
+        const px = Math.cos(a) * rad;
+        const py = Math.sin(a) * rad;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawTetheredBalloon(anchorX, anchorY, bx, by, color, radius = 12.5) {
+      // String tether
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(anchorX, anchorY);
+      ctx.quadraticCurveTo((anchorX + bx) * 0.5, (anchorY + by) * 0.5 + 4, bx, by + radius);
+      ctx.stroke();
+
+      // Glossy balloon body
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, radius * 0.88, radius * 1.06, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Specular highlight
+      ctx.fillStyle = "rgba(255, 255, 255, 0.48)";
+      ctx.beginPath();
+      ctx.ellipse(-radius * 0.3, -radius * 0.32, radius * 0.24, radius * 0.38, -0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawPlayerFlyer(p) {
+      if (p.invulnTimer > 0) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(250, 204, 21, 0.55)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y - 8, 30, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Draw Faraday Shield aura if active
+      if (p.shieldCharges > 0) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(34, 211, 238, 0.65)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y - 6, 28, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Draw 1 to 3 Tethered Balloons swaying with velocity
+      for (let i = 0; i < p.balloons; i++) {
+        const spread = (i - (p.balloons - 1) / 2) * 16;
+        const bx = p.x + spread + p.swayX;
+        const by = p.y - 34 - (i === 1 && p.balloons === 3 ? 8 : 0);
+        drawTetheredBalloon(p.x, p.y - 12, bx, by, p.balloonColors[i % p.balloonColors.length], 12.5);
+      }
+
+      // If pumping a balloon on a platform, show inflating preview balloon
+      if (p.grounded && p.pumpProgress > 0 && p.balloons < p.maxBalloons) {
+        const r = 4 + p.pumpProgress * 9;
+        drawTetheredBalloon(p.x + p.facing * 12, p.y, p.x + p.facing * 16, p.y - 18, "#facc15", r);
+      }
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+
+      // Flapping cyber-wings
+      const wingLift = p.flapAnim > 0 ? -7 : 3;
+      ctx.fillStyle = "#f8fafc";
+      ctx.beginPath();
+      ctx.moveTo(-6, -2);
+      ctx.lineTo(-18, wingLift);
+      ctx.lineTo(-12, 7);
+      ctx.closePath();
+      ctx.moveTo(6, -2);
+      ctx.lineTo(18, wingLift);
+      ctx.lineTo(12, 7);
+      ctx.closePath();
+      ctx.fill();
+
+      // Pilot flight suit
+      ctx.fillStyle = p.suitColor;
+      ctx.beginPath();
+      ctx.roundRect(-8, -4, 16, 15, 4);
+      ctx.fill();
+
+      // Helmet & golden visor
+      ctx.fillStyle = p.helmetColor;
+      ctx.beginPath();
+      ctx.arc(0, -10, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#fef08a";
+      ctx.fillRect(p.facing >= 0 ? -1 : -6, -13, 7, 4);
+
+      // Feet
+      const stepOffset = p.grounded ? Math.sin(p.runAnim) * 3 : 0;
+      ctx.fillStyle = "#fb923c";
+      ctx.fillRect(-6, 11 + stepOffset, 5, 4);
+      ctx.fillRect(1, 11 - stepOffset, 5, 4);
+
+      ctx.restore();
+    }
+
+    function drawEnemyBirdKnight(en) {
+      const spec = ENEMY_TIERS[en.tier] || ENEMY_TIERS[0];
+
+      if (en.state === "flying") {
+        drawTetheredBalloon(en.x, en.y - 12, en.x + en.swayX, en.y - 34, spec.balloonColor, 12.5);
+      } else if (en.state === "pumping") {
+        const r = 3 + en.pumpProgress * 10;
+        drawTetheredBalloon(en.x + en.facing * 10, en.y, en.x + en.facing * 14, en.y - 20, spec.balloonColor, r);
+      } else if (en.state === "parachute") {
+        // White & Cyan Parachute Canopy
+        ctx.save();
+        ctx.translate(en.x, en.y - 28);
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(-16, 0); ctx.lineTo(-4, 18);
+        ctx.moveTo(16, 0); ctx.lineTo(4, 18);
+        ctx.stroke();
+
+        ctx.fillStyle = "#f8fafc";
+        ctx.beginPath();
+        ctx.arc(0, 0, 17, Math.PI, 0);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Bird-Knight body & avian beak helmet
+      ctx.save();
+      ctx.translate(en.x, en.y);
+      const wingY = Math.sin(en.wingPhase) * 6;
+      ctx.fillStyle = spec.armorColor;
+      ctx.beginPath();
+      ctx.moveTo(-6, 0); ctx.lineTo(-17, wingY); ctx.lineTo(-10, 7); ctx.closePath();
+      ctx.moveTo(6, 0); ctx.lineTo(17, wingY); ctx.lineTo(10, 7); ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = spec.balloonColor;
+      ctx.beginPath();
+      ctx.roundRect(-8, -4, 16, 15, 4);
+      ctx.fill();
+
+      // Avian helmet & beak
+      ctx.fillStyle = spec.armorColor;
+      ctx.beginPath();
+      ctx.arc(0, -10, 7.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = spec.beakColor;
+      ctx.beginPath();
+      ctx.moveTo(en.facing * 5, -13);
+      ctx.lineTo(en.facing * 14, -9);
+      ctx.lineTo(en.facing * 5, -6);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawBossLeviathan(boss) {
+      // Draw remaining dorsal balloons
+      for (const b of boss.balloons) {
+        if (!b.alive) continue;
+        drawTetheredBalloon(
+          boss.x + b.offsetX * 0.6,
+          boss.y - 22,
+          boss.x + b.offsetX,
+          boss.y + b.offsetY,
+          b.color,
+          15
+        );
+      }
+
+      ctx.save();
+      ctx.translate(boss.x, boss.y);
+      ctx.fillStyle = boss.hitFlash > 0 ? "#ffffff" : boss.color;
+      ctx.beginPath();
+      ctx.roundRect(-boss.w * 0.5, -boss.h * 0.5, boss.w, boss.h, 16);
+      ctx.fill();
+
+      // Glowing core eye
+      ctx.fillStyle = boss.coreColor;
+      ctx.beginPath();
+      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawPiranhaAndOcean() {
+      const pir = state.piranha;
+
+      // Warning dorsal ripples when flyer is dangerously close to the water
+      if (!pir.active && pir.warningTimer > 4) {
+        ctx.save();
+        ctx.strokeStyle = "#f43f5e";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(pir.targetX, WATER_Y - 2, 12 + (state.frameTick % 14), Math.PI, 0);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Draw leaping Giant Cyber-Piranha
+      if (pir.active) {
+        ctx.save();
+        ctx.translate(pir.x, pir.y);
+        // Body
+        ctx.fillStyle = "#f43f5e";
+        ctx.beginPath();
+        ctx.arc(0, 0, 26, 0, Math.PI * 2);
+        ctx.fill();
+        // Snapping jaws
+        ctx.fillStyle = "#fef08a";
+        ctx.beginPath();
+        ctx.moveTo(-16, -8);
+        ctx.lineTo(-6, -24);
+        ctx.lineTo(4, -10);
+        ctx.lineTo(14, -24);
+        ctx.lineTo(20, -6);
+        ctx.fill();
+        // Glowing eye
+        ctx.fillStyle = "#22d3ee";
+        ctx.beginPath();
+        ctx.arc(-10, -4, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      } else {
+        // Patrol silhouette & dorsal fin lurking in the center water channel
+        const patrolX = W * 0.5 + Math.sin(state.frameTick * 0.025) * 140;
+        const dir = Math.cos(state.frameTick * 0.025) >= 0 ? 1 : -1;
+        ctx.save();
+        ctx.translate(patrolX, WATER_Y + 18);
+        ctx.scale(dir, 1);
+        ctx.fillStyle = "rgba(244, 63, 94, 0.42)";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 22, 11, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Dorsal fin cutting the wave surface
+        ctx.fillStyle = "rgba(251, 113, 133, 0.78)";
+        ctx.beginPath();
+        ctx.moveTo(-6, -9);
+        ctx.lineTo(4, -22);
+        ctx.lineTo(10, -8);
+        ctx.closePath();
+        ctx.fill();
+        // Submerged glowing eye
+        ctx.fillStyle = "#fde047";
+        ctx.beginPath();
+        ctx.arc(12, -2, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Animated Ocean Surface Waves
+      const waveGrad = ctx.createLinearGradient(0, WATER_Y, 0, H);
+      waveGrad.addColorStop(0, "rgba(14, 165, 233, 0.86)");
+      waveGrad.addColorStop(1, "rgba(3, 105, 161, 0.96)");
+      ctx.fillStyle = waveGrad;
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      for (let x = 0; x <= W; x += 24) {
+        const wy = WATER_Y + Math.sin(x * 0.035 + state.frameTick * 0.08) * 4.5;
+        ctx.lineTo(x, wy);
+      }
+      ctx.lineTo(W, H);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // =========================================================================
+    // 13. DOM HUD, TELEMETRY SIDEBAR & MODALS CONTROLLER
+    // =========================================================================
+    function formatScore(n) {
+      return String(Math.max(0, Math.floor(n))).padStart(6, "0");
+    }
+
+    function renderBalloonPips(containerId, count, colors) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      el.innerHTML = "";
+      for (let i = 0; i < count; i++) {
+        const pip = document.createElement("span");
+        pip.className = "balloon-pip";
+        pip.style.background = colors[i % colors.length];
+        pip.style.color = colors[i % colors.length];
+        el.appendChild(pip);
+      }
+    }
+
+    function updateScoreboardDOM() {
+      const p1 = state.players[0];
+      const p2 = state.players[1];
+
+      if (p1) {
+        document.getElementById("hudScoreP1").textContent = formatScore(p1.score);
+        renderBalloonPips("hudBalloonsP1", p1.balloons, p1.balloonColors);
+        document.getElementById("hudLivesP1").textContent = "❤️".repeat(Math.max(1, p1.lives));
+      }
+
+      document.getElementById("hudHighScore").textContent = formatScore(career.highScore);
+      document.getElementById("hudTripRank").textContent = `RANK ${state.tripRank}`;
+
+      if (p2) {
+        document.getElementById("hudP2Label").textContent = p2.aiControlled ? "P2-WING" : "2-PLAYER";
+        document.getElementById("hudScoreP2").textContent = formatScore(p2.score);
+        renderBalloonPips("hudBalloonsP2", p2.balloons, p2.balloonColors);
+      } else {
+        document.getElementById("hudP2Label").textContent = "2-PLAYER";
+        document.getElementById("hudScoreP2").textContent = "000000";
+        renderBalloonPips("hudBalloonsP2", 0, []);
+      }
+
+      document.getElementById("hudPhaseLabel").textContent = state.bonusPipeActive
+        ? `PIPE BONUS (${state.bonusBalloonsCaught}/20)`
+        : `PHASE ${String(state.phase).padStart(2, "0")}`;
+
+      const modeNames = {
+        classic: "CLASSIC ARENA",
+        trip: "BALLOON TRIP",
+        roguelike: "ROGUELIKE SKY",
+        boss: "BOSS STORM",
+        coop: "2P CO-OP",
+        versus: `2P VERSUS (${state.p1Wins}-${state.p2Wins})`
+      };
+      document.getElementById("hudModeBadge").textContent = modeNames[state.mode] || "SKY ARENA";
+    }
+
+    function updateTelemetrySidebar() {
+      document.getElementById("statHostiles").textContent = String(state.enemies.length + (state.boss ? 1 : 0));
+      document.getElementById("statCombo").textContent = `x${state.combo}`;
+      document.getElementById("statSparks").textContent = String(state.sparks.length);
+      document.getElementById("statBubbles").textContent = String(state.bubbles.length);
+
+      // Piranha & Storm meters
+      const pirPct = state.piranha.dangerLevel;
+      document.getElementById("piranhaMeterFill").style.width = `${pirPct}%`;
+      document.getElementById("piranhaStatusText").textContent = state.piranha.active
+        ? "LEAPING!"
+        : pirPct > 45 ? "Stalking Low Flyer!" : "Submerged";
+
+      let stormChargePct = 15;
+      if (state.clouds.length > 0) {
+        stormChargePct = Math.round(
+          Math.max(...state.clouds.map(c => (c.charge / c.maxCharge) * 100))
+        );
+      }
+      document.getElementById("stormMeterFill").style.width = `${stormChargePct}%`;
+      document.getElementById("stormStatusText").textContent = stormChargePct > 78 ? "IMMINENT BOLT!" : "Charging";
+
+      // Career stats
+      document.getElementById("careerPopped").textContent = String(career.balloonsPopped);
+      document.getElementById("careerParachutes").textContent = String(career.parachutesKicked);
+      document.getElementById("careerBestRank").textContent = `Rank ${career.bestTripRank}`;
+      document.getElementById("careerPiranha").textContent = String(career.piranhaEscapes);
+
+      const rankTitle = career.balloonsPopped >= 80
+        ? "Sky Grandmaster"
+        : career.balloonsPopped >= 30
+          ? "Storm Ace"
+          : "Sky Cadet";
+      document.getElementById("careerRankBadge").textContent = rankTitle;
+    }
+
+    function renderPerksSidebar() {
+      const container = document.getElementById("sidebarPerkList");
+      if (!container) return;
+      container.innerHTML = "";
+      PERK_CATALOG.forEach((pk) => {
+        const lvl = state.perks[pk.id] || 0;
+        const row = document.createElement("div");
+        row.className = "perk-pill";
+        row.innerHTML = `
+          <span class="perk-name">${pk.icon} ${pk.name}</span>
+          <span class="perk-lvl">${lvl > 0 ? "LVL " + lvl : "—"}</span>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function openPerkModal() {
+      state.paused = true;
+      const modal = document.getElementById("perkModal");
+      const grid = document.getElementById("perkChoicesContainer");
+      if (!modal || !grid) return;
+      grid.innerHTML = "";
+
+      // Pick 3 perks to offer
+      const shuffled = [...PERK_CATALOG].sort(() => Math.random() - 0.5).slice(0, 3);
+      shuffled.forEach((pk) => {
+        const card = document.createElement("div");
+        card.className = "perk-choice-card";
+        card.innerHTML = `
+          <div>
+            <div class="perk-choice-icon">${pk.icon}</div>
+            <div class="perk-choice-title">${pk.name}</div>
+            <div class="perk-choice-desc" style="margin-top:6px;">${pk.desc}</div>
+          </div>
+          <div class="perk-choice-foot">⚡ ${pk.tag} (Current: LVL ${state.perks[pk.id] || 0})</div>
+        `;
+        card.addEventListener("click", () => {
+          state.perks[pk.id] = (state.perks[pk.id] || 0) + 1;
+          // Immediately apply perk benefit to active players
+          state.players.forEach((p) => {
+            if (pk.id === "tripleBalloon") {
+              p.maxBalloons = 3;
+              p.balloons = 3;
+            }
+            if (pk.id === "faradayShield") {
+              p.shieldCharges = Math.max(1, p.shieldCharges + 1);
+            }
+          });
+          BalloonAudio.playFanfare();
+          addCombatLog(`✨ Equipped Perk: ${pk.name} (LVL ${state.perks[pk.id]})!`, "gold");
+          showBanner(`✨ EQUIPPED: ${pk.name.toUpperCase()}!`);
+          renderPerksSidebar();
+          updateScoreboardDOM();
+          closeAllModals();
+        });
+        grid.appendChild(card);
+      });
+
+      modal.classList.add("open");
+    }
+
+    function toggleHelpModal() {
+      const modal = document.getElementById("helpModal");
+      if (!modal) return;
+      const isOpen = modal.classList.contains("open");
+      if (isOpen) {
+        closeAllModals();
+      } else {
+        state.paused = true;
+        modal.classList.add("open");
+      }
+    }
+
+    function closeAllModals() {
+      document.getElementById("perkModal")?.classList.remove("open");
+      document.getElementById("helpModal")?.classList.remove("open");
+      state.paused = false;
+    }
+
+    function switchMode(newMode) {
+      state.mode = newMode;
+      BalloonAudio.currentMode = newMode;
+      document.querySelectorAll(".mode-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.mode === newMode);
+      });
+      const modeIndexMap = { classic: 1, trip: 2, roguelike: 3, boss: 4, coop: 5, versus: 6 };
+      document.getElementById("sidebarModeTag").textContent = `MODE ${modeIndexMap[newMode] || 1}`;
+      setupWave(true);
+    }
+
+    function togglePause() {
+      state.paused = !state.paused;
+      document.getElementById("btnPause").textContent = state.paused ? "▶️ Resume [P]" : "⏸️ Pause [P]";
+      showBanner(state.paused ? "⏸️ FLIGHT PAUSED" : "▶️ FLIGHT RESUMED");
+    }
+
+    function toggleMusic() {
+      BalloonAudio.init();
+      BalloonAudio.musicEnabled = !BalloonAudio.musicEnabled;
+      document.getElementById("btnMusicToggle").textContent =
+        `🎶 Music: ${BalloonAudio.musicEnabled ? "ON" : "OFF"} [B]`;
+    }
+
+    function toggleSfx() {
+      BalloonAudio.init();
+      BalloonAudio.sfxEnabled = !BalloonAudio.sfxEnabled;
+      document.getElementById("btnSfxToggle").textContent =
+        `🔊 SFX: ${BalloonAudio.sfxEnabled ? "ON" : "OFF"} [M]`;
+    }
+
+    // Wire UI Buttons
+    document.querySelectorAll(".mode-btn").forEach((btn) => {
+      btn.addEventListener("click", () => switchMode(btn.dataset.mode));
+    });
+    document.getElementById("btnOpenPerks")?.addEventListener("click", openPerkModal);
+    document.getElementById("btnBonusPipe")?.addEventListener("click", startBonusPipeStage);
+    document.getElementById("btnMusicToggle")?.addEventListener("click", toggleMusic);
+    document.getElementById("btnSfxToggle")?.addEventListener("click", toggleSfx);
+    document.getElementById("btnPause")?.addEventListener("click", togglePause);
+    document.getElementById("btnResetWave")?.addEventListener("click", () => setupWave(true));
+    document.getElementById("btnHelpModal")?.addEventListener("click", toggleHelpModal);
+    document.getElementById("btnClosePerkModal")?.addEventListener("click", closeAllModals);
+    document.getElementById("btnCloseHelpModal")?.addEventListener("click", closeAllModals);
+
+    // Bottom Touch / Mouse Flight Deck Buttons
+    document.getElementById("touchLeft")?.addEventListener("click", () => {
+      const p1 = state.players[0];
+      if (p1) { p1.vx -= 1.8; p1.facing = -1; triggerPlayerFlap(p1); }
+    });
+    document.getElementById("touchFlap")?.addEventListener("click", () => {
+      if (state.players[0]) triggerPlayerFlap(state.players[0]);
+    });
+    document.getElementById("touchRight")?.addEventListener("click", () => {
+      const p1 = state.players[0];
+      if (p1) { p1.vx += 1.8; p1.facing = 1; triggerPlayerFlap(p1); }
+    });
+    document.getElementById("touchPump")?.addEventListener("click", () => {
+      if (state.players[0]) triggerPumpOrDive(state.players[0]);
+    });
+    document.getElementById("touchDash")?.addEventListener("click", () => {
+      if (state.players[0]) triggerPlayerDash(state.players[0]);
+    });
+    document.getElementById("touchDart")?.addEventListener("click", () => {
+      if (state.players[0]) triggerFeatherDart(state.players[0]);
+    });
+
+    // =========================================================================
+    // 14. BOOTSTRAP & 60FPS ANIMATION LOOP
+    // =========================================================================
+    setupWave(true);
+
+    function mainLoop() {
+      updatePhysics();
+      renderScene();
+      requestAnimationFrame(mainLoop);
+    }
+    requestAnimationFrame(mainLoop);
+  })();
+  </script>
+</body>
+</html>

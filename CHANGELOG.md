@@ -1,6 +1,18 @@
 # Changelog
 
-All notable changes. Version 1.5.1 is the twentieth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.4.5, 1.4.6, 1.4.7, 1.4.8, 1.4.9 and 1.5.0 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.5.2 is the twenty-first release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.4.5, 1.4.6, 1.4.7, 1.4.8, 1.4.9, 1.5.0 and 1.5.1 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+
+## 1.5.2 (25 October 2026)
+
+### Added
+
+- **60-Game Codecaine Arcade Suite (+36 New Flagship Arcade, Casino, Puzzle, Sports & Retro Studios).** Expand the built-in Codecaine Arcade Suite from 24 to **60 standalone desktop studios & embedded File Manager games**, including *Codecaine CyberRecall Royale: Holo-Vault Memory Match* (`memory_match_studio`), *Codecaine Vegas Slots Royale: 777 Mega Jackpot Casino* (`slots_studio`), *Codecaine Mr. Game Show Royale: Trivia, Wheel & Vault* (`game_show_studio`), *Codecaine NightSavior: Vampire Survivors & Dark Force* (`vampire_survivors_studio`), *Codecaine CyberMappy: Mansion Heist & Trampoline Police* (`mappy_studio`), *Codecaine 8-Ball Pool Royale* (`pool_studio`), *Codecaine CyberStrike Bowling* (`bowling_studio`), *Codecaine CyberDarts 501 Royale* (`darts_studio`), *Codecaine CyberGems 12-Mode Deluxe* (`bejeweled_studio`), *Codecaine CyberBalloon Fight* (`balloon_fight_studio`), *Codecaine CyberUNO Royale* (`uno_studio`), *Codecaine CyberMaker Studio* (`cyber_maker_studio`), *Codecaine CyberLemmings*, *Codecaine CyberRunner*, *Codecaine CyberRocket*, *Codecaine CyberRampart*, *Codecaine CyberQix*, *Codecaine CyberDrop*, *Codecaine CyberChip*, *Codecaine CyberPeggle*, and 16 Windows/Arcade classics.
+- **Universal Arcade Attract-Mode Start Overlay (`src/shared/gameMasterFx.ts`).** Add a universal Start Menu overlay across all 60 games that freezes `requestAnimationFrame` delta-time progression and `setInterval` gameplay loops until the player clicks **`▶ PRESS START TO PLAY`** (or presses `Enter` / `Space`), preventing games from running before the player is ready.
+
+### Improved
+
+- **Codecaine CyberMappy Physics, Door Collision & Trampoline Shaft Steering (`resources/mappy/index.html`).** Enforce solid closed-door barriers (`!d.open`) for both Officer Mappy and Meowkーズ/Goro, enable full shaft ascent to Attic Floor 0 (`y = 92`) with mid-air `Left`/`Right` deck entry from any trampoline, and restrict loot collection to solid floor decks (`!collector.inShaft`).
+- **Codecaine NightSavior Authentic Level-1 Survival Progression & Mortality (`resources/vampire_survivors/index.html`).** Start every run at **Level 1 (`00:00`, `100/100 HP`, `0/80 XP`)** with a single `Lv.1/8` starter weapon, remove the `25 HP` floor so enemies deal lethal contact damage with a **`💀 YOU DIED`** Game Over screen, and auto-trigger `🧛 LEVEL UP!` / `🎁 BOSS RELIC CHEST!` modals on XP threshold and chest pickup.
 
 ## 1.5.1 (22 October 2026)
 

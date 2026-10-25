@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>👾 Codecaine CyberInvaders: StarSwarm</title>
+  <meta name="description" content="Space Invaders & Galaga fusion with 5x10 neon alien fleet, swooping dive-bomber attacks, 4 destructible plasma bunkers, Red Mystery UFO pods, and Overcharge Wave Cannon.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    :root {
+      --bg-deep: #04020d;
+      --panel-bg: rgba(12, 8, 28, 0.9);
+      --border-lime: rgba(0, 255, 157, 0.34);
+      --lime: #00ff9d;
+      --cyan: #00f0ff;
+      --magenta: #ff007f;
+      --gold: #ffbe0b;
+      --red: #ff2a55;
+      --text-main: #f4f8ff;
+      --text-dim: #92a4cc;
+      --font-display: 'Orbitron', 'Rajdhani', 'Outfit', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 18%, #1d083a 0%, #070418 65%, #020108 100%);
+      color: var(--text-main);
+      font-family: var(--font-display);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 10px 14px;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 255, 157, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 0, 127, 0.035) 1px, transparent 1px);
+      background-size: 38px 38px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .hud-header {
+      position: relative;
+      z-index: 5;
+      width: 100%;
+      max-width: 1080px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 10px 16px;
+      background: var(--panel-bg);
+      border: 1px solid var(--border-lime);
+      border-radius: 16px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.8), 0 0 24px rgba(0, 255, 157, 0.14);
+      margin-bottom: 10px;
+      backdrop-filter: blur(16px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(0, 255, 157, 0.2), rgba(0, 240, 255, 0.25));
+      border: 1px solid var(--lime);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 14px rgba(0, 255, 157, 0.35);
+    }
+
+    .brand-title h1 {
+      font-size: 1.06rem;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffffff, var(--lime), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-title span {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      display: block;
+    }
+
+    .stats-strip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      background: rgba(4, 5, 18, 0.88);
+      border: 1px solid rgba(0, 255, 157, 0.25);
+      border-radius: 10px;
+      padding: 5px 12px;
+      min-width: 92px;
+      text-align: center;
+    }
+
+    .stat-pill .lbl {
+      font-size: 0.58rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1.4px;
+    }
+
+    .stat-pill .val {
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 0 10px rgba(0, 255, 157, 0.55);
+    }
+
+    .stat-pill.cannon .val {
+      color: var(--gold);
+      font-size: 0.88rem;
+    }
+
+    .btn-cluster {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .cyber-btn {
+      background: rgba(0, 255, 157, 0.1);
+      border: 1px solid rgba(0, 255, 157, 0.38);
+      color: var(--text-main);
+      padding: 7px 12px;
+      border-radius: 9px;
+      font-family: var(--font-display);
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .cyber-btn:hover {
+      background: rgba(0, 255, 157, 0.24);
+      box-shadow: 0 0 14px rgba(0, 255, 157, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .cyber-btn.primary {
+      background: linear-gradient(135deg, rgba(0, 255, 157, 0.32), rgba(0, 240, 255, 0.32));
+      border-color: var(--lime);
+    }
+
+    .arena-wrap {
+      position: relative;
+      z-index: 5;
+      width: 100%;
+      max-width: 1080px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .cabinet {
+      position: relative;
+      background: #03020b;
+      border: 2px solid rgba(0, 255, 157, 0.42);
+      border-radius: 20px;
+      padding: 8px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 36px rgba(0, 255, 157, 0.15);
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    canvas#invadersCanvas {
+      display: block;
+      width: 100%;
+      max-width: 920px;
+      max-height: calc(100vh - 210px);
+      aspect-ratio: 920 / 640;
+      border-radius: 14px;
+      background: radial-gradient(circle at 50% 20%, #14082e 0%, #050212 72%, #020108 100%);
+      cursor: pointer;
+    }
+
+    .bottom-bar {
+      width: 100%;
+      max-width: 940px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      background: var(--panel-bg);
+      border: 1px solid rgba(0, 255, 157, 0.24);
+      border-radius: 14px;
+      padding: 8px 14px;
+      font-size: 0.74rem;
+      color: var(--text-dim);
+    }
+
+    .meter-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .wave-bar {
+      width: 140px;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 99px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 190, 11, 0.45);
+    }
+
+    .wave-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--cyan), var(--magenta), var(--gold));
+      transition: width 0.1s linear;
+    }
+
+    .touch-strip {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .mini-btn {
+      padding: 5px 10px;
+      border-radius: 7px;
+      background: rgba(0, 255, 157, 0.12);
+      border: 1px solid rgba(0, 255, 157, 0.35);
+      color: #fff;
+      font-family: var(--font-display);
+      font-size: 0.68rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 2, 10, 0.84);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      background: #09061c;
+      border: 1px solid var(--lime);
+      border-radius: 18px;
+      max-width: 540px;
+      width: 100%;
+      padding: 22px;
+      box-shadow: 0 0 40px rgba(0, 255, 157, 0.3);
+    }
+
+    .modal-card h2 {
+      color: var(--lime);
+      margin-bottom: 10px;
+      font-size: 1.15rem;
+    }
+
+    .modal-card p, .modal-card li {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+      margin-bottom: 6px;
+    }
+
+    .modal-card ul {
+      padding-left: 18px;
+      margin-bottom: 14px;
+    }
+
+    .kbd {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: rgba(0, 255, 157, 0.15);
+      border: 1px solid rgba(0, 255, 157, 0.4);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="hud-header">
+    <div class="brand">
+      <div class="brand-icon">👾</div>
+      <div class="brand-title">
+        <h1>Codecaine CyberInvaders: StarSwarm</h1>
+        <span>Space Invaders × Galaga • Dive-Bombers, Bunkers & Wave Cannon</span>
+      </div>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat-pill">
+        <div class="lbl">Score</div>
+        <div class="val" id="hudScore">0</div>
+      </div>
+      <div class="stat-pill">
+        <div class="lbl">High Score</div>
+        <div class="val" id="hudHigh">0</div>
+      </div>
+      <div class="stat-pill">
+        <div class="lbl">Swarm Wave</div>
+        <div class="val" id="hudWave">1</div>
+      </div>
+      <div class="stat-pill">
+        <div class="lbl">Defenders</div>
+        <div class="val" id="hudLives">3</div>
+      </div>
+      <div class="stat-pill cannon">
+        <div class="lbl">Wave Cannon (E)</div>
+        <div class="val" id="hudCannon">0%</div>
+      </div>
+    </div>
+
+    <div class="btn-cluster">
+      <button class="cyber-btn primary" id="btnNewGame" title="New Game (R)">New Game</button>
+      <button class="cyber-btn" id="btnPause" title="Pause (P)">Pause</button>
+      <button class="cyber-btn" id="btnMute" title="Mute Audio (M)">🔊 SFX</button>
+      <button class="cyber-btn" id="btnHelp" title="Controls & Rules (H / ?)">? Help</button>
+    </div>
+  </header>
+
+  <main class="arena-wrap" id="shakeContainer">
+    <div class="cabinet">
+      <canvas id="invadersCanvas" width="920" height="640"></canvas>
+    </div>
+
+    <div class="bottom-bar">
+      <div class="meter-group">
+        <span>⚡ OVERCHARGE WAVE CANNON (<span class="kbd">E</span>):</span>
+        <div class="wave-bar"><div class="wave-fill" id="waveFill"></div></div>
+        <span id="waveText" style="font-family:var(--font-mono);color:var(--gold)">CHARGING</span>
+      </div>
+
+      <div class="touch-strip">
+        <button class="mini-btn" id="btnMoveL">◀ Move Left (A/←)</button>
+        <button class="mini-btn" id="btnFire">🔥 Fire Plasma (Space)</button>
+        <button class="mini-btn" id="btnWave">⚡ Wave Cannon (E)</button>
+        <button class="mini-btn" id="btnMoveR">Move Right (D/→) ▶</button>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal-backdrop" id="helpModal">
+    <div class="modal-card">
+      <h2>👾 CyberInvaders: StarSwarm — Defender Manual</h2>
+      <p>Fuses 1978 <em>Space Invaders</em> marching formations & destructible plasma bunkers with 1981 <em>Galaga</em> dive-bomber swoops and Twin-Fighter upgrades.</p>
+      <ul>
+        <li><span class="kbd">←</span> / <span class="kbd">→</span> or <span class="kbd">A</span> / <span class="kbd">D</span> or <span class="kbd">Mouse</span> — Strafe Defender Fighter</li>
+        <li><span class="kbd">Space</span> or <span class="kbd">Left Click</span> — Fire Plasma Blasters</li>
+        <li><span class="kbd">E</span> — Unleash <strong>Overcharge Wave Cannon</strong> when Combo Meter reaches 100% (vaporizes an entire vertical column of invaders!)</li>
+        <li><strong>5×10 StarSwarm Fleet:</strong> Commanders (Top Row, 40 pts), Cruisers (Middle Rows, 20 pts), and Grunts (Bottom Rows, 10 pts) accelerate as their ranks thin and launch Galaga-style dive-bomber swoops!</li>
+        <li><strong>4 Destructible Plasma Bunkers:</strong> Absorb alien fire and erode chunk-by-chunk on impact.</li>
+        <li><strong>Red Mystery UFO:</strong> Flies across the top for 300 bonus points and drops <strong>Twin-Fighter Dual-Blaster</strong> or <strong>Bunker Shield Repair</strong> pods!</li>
+      </ul>
+      <button class="cyber-btn primary" id="btnCloseHelp" style="width:100%">Engage StarSwarm</button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const STORE_KEY = "codecaine_cyberinvaders_starswarm_high";
+      function loadHighScore() {
+        try { return parseInt(window.localStorage.getItem(STORE_KEY) || "0", 10) || 0; } catch (_) { return 0; }
+      }
+      function saveHighScore(val) {
+        try { window.localStorage.setItem(STORE_KEY, String(val)); } catch (_) {}
+      }
+
+      const fxParticles = [];
+      let shakeTimer = 0;
+      let shakeIntensity = 0;
+
+      if (!window.GameMasterFX) {
+        window.GameMasterFX = {
+          burst(x, y, color = "#00ff9d", count = 20) {
+            for (let i = 0; i < count; i++) {
+              const a = Math.random() * Math.PI * 2;
+              const sp = 1.2 + Math.random() * 5.2;
+              fxParticles.push({
+                x, y,
+                vx: Math.cos(a) * sp,
+                vy: Math.sin(a) * sp,
+                r: 2 + Math.random() * 2.8,
+                color,
+                alpha: 1,
+                decay: 0.02 + Math.random() * 0.024
+              });
+            }
+          },
+          triggerShake(intensity = 6) {
+            shakeIntensity = Math.max(shakeIntensity, intensity);
+            shakeTimer = 14;
+          }
+        };
+      } else {
+        const origBurst = window.GameMasterFX.burst?.bind(window.GameMasterFX);
+        const origShake = window.GameMasterFX.triggerShake?.bind(window.GameMasterFX);
+        window.GameMasterFX.burst = function(x, y, color = "#00ff9d", count = 20) {
+          for (let i = 0; i < count; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const sp = 1.2 + Math.random() * 5.2;
+            fxParticles.push({
+              x, y,
+              vx: Math.cos(a) * sp,
+              vy: Math.sin(a) * sp,
+              r: 2 + Math.random() * 2.8,
+              color,
+              alpha: 1,
+              decay: 0.02 + Math.random() * 0.024
+            });
+          }
+          if (origBurst) origBurst(x, y, color, count);
+        };
+        window.GameMasterFX.triggerShake = function(intensity = 6) {
+          shakeIntensity = Math.max(shakeIntensity, intensity);
+          shakeTimer = 14;
+          if (origShake) origShake(intensity);
+        };
+      }
+
+      class SwarmSynth {
+        constructor() {
+          this.ctx = null;
+          this.muted = false;
+          this.marchStep = 0;
+        }
+        init() {
+          if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) this.ctx = new AC();
+          }
+          if (this.ctx && this.ctx.state === "suspended") {
+            this.ctx.resume().catch(() => {});
+          }
+        }
+        tone(freq, type = "square", dur = 0.09, gainVal = 0.13, slideTo = null) {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, now);
+            if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, now + dur);
+            gain.gain.setValueAtTime(gainVal, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + dur);
+          } catch (_) {}
+        }
+        march() {
+          const notes = [98, 87.31, 82.41, 73.42];
+          this.tone(notes[this.marchStep % 4], "triangle", 0.075, 0.15);
+          this.marchStep++;
+        }
+        shoot() { this.tone(880, "sawtooth", 0.08, 0.12, 240); }
+        alienHit() { this.tone(420, "square", 0.11, 0.14, 110); }
+        diveSwoop() { this.tone(620, "sine", 0.25, 0.12, 220); }
+        waveCannon() {
+          this.tone(150, "sawtooth", 0.45, 0.22, 960);
+        }
+        powerup() {
+          [523.25, 659.25, 783.99, 1046.5].forEach((n, i) => {
+            setTimeout(() => this.tone(n, "triangle", 0.1, 0.15), i * 55);
+          });
+        }
+      }
+
+      const synth = new SwarmSynth();
+      const canvas = document.getElementById("invadersCanvas");
+      const ctx = canvas.getContext("2d");
+      const W = canvas.width;  // 920
+      const H = canvas.height; // 640
+
+      const stars = Array.from({ length: 70 }, () => ({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        vy: 0.4 + Math.random() * 1.1,
+        r: 0.8 + Math.random() * 1.4
+      }));
+
+      let score = 0;
+      let highScore = loadHighScore();
+      let wave = 1;
+      let lives = 3;
+      let paused = false;
+      let gameOver = false;
+      let overcharge = 0; // 0 to 100
+      let waveBeam = null; // { x, timer }
+      let banner = { text: "STARSWARM WAVE 1 — DEFEND THE BUNKER LINE", timer: 140, color: "#00ff9d" };
+
+      const keys = { left: false, right: false, fire: false };
+
+      const player = {
+        x: W / 2,
+        y: H - 46,
+        w: 44,
+        h: 24,
+        speed: 6.2,
+        cooldown: 0,
+        invuln: 90,
+        twinFighterTimer: 0
+      };
+
+      const aliens = [];
+      let swarmDir = 1;
+      let marchTimer = 0;
+      let diveTimer = 210;
+
+      const bunkers = []; // Chunk blocks: { x, y, w, h, hp }
+      const playerBullets = [];
+      const alienBullets = [];
+      const pods = []; // { x, y, type: "TWIN" | "REPAIR" }
+      let mysteryUFO = null;
+      let ufoTimer = 420;
+
+      function buildBunkers() {
+        bunkers.length = 0;
+        const count = 4;
+        const spacing = W / (count + 1);
+        const bw = 11;
+        const bh = 9;
+        for (let b = 0; b < count; b++) {
+          const cx = spacing * (b + 1) - (7 * bw) / 2;
+          const cy = H - 132;
+          for (let r = 0; r < 4; r++) {
+            for (let c = 0; c < 7; c++) {
+              // Arch cutout at bottom middle
+              if (r === 3 && (c === 2 || c === 3 || c === 4)) continue;
+              if (r === 0 && (c === 0 || c === 6)) continue;
+              bunkers.push({
+                x: cx + c * bw,
+                y: cy + r * bh,
+                w: bw - 1,
+                h: bh - 1,
+                hp: 2
+              });
+            }
+          }
+        }
+      }
+
+      function spawnSwarm(waveNum) {
+        aliens.length = 0;
+        const rows = 5;
+        const cols = 10;
+        const startX = 140;
+        const startY = 86;
+        const gapX = 62;
+        const gapY = 44;
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const type = r === 0 ? "COMMANDER" : r <= 2 ? "CRUISER" : "GRUNT";
+            const color = r === 0 ? "#ff007f" : r <= 2 ? "#00f0ff" : "#00ff9d";
+            const pts = r === 0 ? 40 : r <= 2 ? 20 : 10;
+            aliens.push({
+              row: r,
+              col: c,
+              homeX: startX + c * gapX,
+              homeY: startY + r * gapY,
+              x: startX + c * gapX,
+              y: startY + r * gapY,
+              w: 36,
+              h: 24,
+              type,
+              color,
+              pts,
+              diving: false,
+              diveT: 0,
+              diveStartX: 0,
+              diveStartY: 0,
+              diveTargetX: 0,
+              frame: 0
+            });
+          }
+        }
+        swarmDir = 1;
+        diveTimer = Math.max(95, 220 - waveNum * 18);
+        banner = { text: `STARSWARM WAVE ${waveNum} — ENGAGE!`, timer: 130, color: "#00ff9d" };
+        updateHUD();
+      }
+
+      function addScore(pts) {
+        score += pts;
+        if (score > highScore) {
+          highScore = score;
+          saveHighScore(highScore);
+        }
+        updateHUD();
+      }
+
+      function updateHUD() {
+        document.getElementById("hudScore").textContent = score.toLocaleString();
+        document.getElementById("hudHigh").textContent = highScore.toLocaleString();
+        document.getElementById("hudWave").textContent = String(wave);
+        document.getElementById("hudLives").textContent = String(lives);
+        document.getElementById("hudCannon").textContent = `${Math.round(overcharge)}%`;
+
+        document.getElementById("waveFill").style.width = `${overcharge}%`;
+        document.getElementById("waveText").textContent = overcharge >= 100 ? "READY (PRESS E)!" : `${Math.round(overcharge)}%`;
+      }
+
+      function firePlayerBlaster() {
+        if (player.cooldown > 0 || paused || gameOver) return;
+        player.cooldown = player.twinFighterTimer > 0 ? 11 : 15;
+        synth.shoot();
+
+        if (player.twinFighterTimer > 0) {
+          playerBullets.push({ x: player.x - 16, y: player.y - 14, vy: -10.5, color: "#00f0ff" });
+          playerBullets.push({ x: player.x + 16, y: player.y - 14, vy: -10.5, color: "#00f0ff" });
+        } else {
+          playerBullets.push({ x: player.x, y: player.y - 14, vy: -10.5, color: "#00ff9d" });
+        }
+      }
+
+      function fireWaveCannon() {
+        if (overcharge < 100 || paused || gameOver) return;
+        overcharge = 0;
+        waveBeam = { x: player.x, timer: 28 };
+        synth.waveCannon();
+        window.GameMasterFX?.triggerShake?.(11);
+        window.GameMasterFX?.burst?.(player.x, player.y - 80, "#ffbe0b", 35);
+
+        // Vaporize all aliens & alien bullets within vertical column
+        for (let i = aliens.length - 1; i >= 0; i--) {
+          const a = aliens[i];
+          if (Math.abs(a.x - player.x) < 46) {
+            addScore(a.pts * 2);
+            window.GameMasterFX?.burst?.(a.x, a.y, a.color, 16);
+            aliens.splice(i, 1);
+          }
+        }
+        for (let i = alienBullets.length - 1; i >= 0; i--) {
+          if (Math.abs(alienBullets[i].x - player.x) < 46) {
+            alienBullets.splice(i, 1);
+          }
+        }
+        banner = { text: "⚡ OVERCHARGE WAVE CANNON UNLEASHED! ⚡", timer: 110, color: "#ffbe0b" };
+        updateHUD();
+      }
+
+      function resetGame() {
+        score = 0;
+        wave = 1;
+        lives = 3;
+        overcharge = 0;
+        paused = false;
+        gameOver = false;
+        player.x = W / 2;
+        player.invuln = 90;
+        player.twinFighterTimer = 0;
+        playerBullets.length = 0;
+        alienBullets.length = 0;
+        pods.length = 0;
+        mysteryUFO = null;
+        ufoTimer = 380;
+        buildBunkers();
+        spawnSwarm(1);
+      }
+
+      function damagePlayer() {
+        if (player.invuln > 0) return;
+        synth.alienHit();
+        window.GameMasterFX?.burst?.(player.x, player.y, "#ff2a55", 32);
+        window.GameMasterFX?.triggerShake?.(9);
+        if (player.twinFighterTimer > 0) {
+          player.twinFighterTimer = 0;
+          player.invuln = 90;
+          banner = { text: "TWIN-FIGHTER WINGMAN LOST!", timer: 95, color: "#ffbe0b" };
+          return;
+        }
+        lives--;
+        if (lives <= 0) {
+          gameOver = true;
+          banner = { text: "DEFENSE LINE BREACHED — PRESS R OR NEW GAME", timer: 9999, color: "#ff2a55" };
+        } else {
+          player.x = W / 2;
+          player.invuln = 120;
+        }
+        updateHUD();
+      }
+
+      function update() {
+        if (paused || gameOver) return;
+
+        // Scroll background stars
+        for (const s of stars) {
+          s.y += s.vy;
+          if (s.y > H) { s.y = 0; s.x = Math.random() * W; }
+        }
+
+        // Player movement
+        if (keys.left) player.x = Math.max(36, player.x - player.speed);
+        if (keys.right) player.x = Math.min(W - 36, player.x + player.speed);
+        if (player.cooldown > 0) player.cooldown--;
+        if (player.invuln > 0) player.invuln--;
+        if (player.twinFighterTimer > 0) player.twinFighterTimer--;
+        if (keys.fire) firePlayerBlaster();
+        if (waveBeam) {
+          waveBeam.x = player.x;
+          waveBeam.timer--;
+          if (waveBeam.timer <= 0) waveBeam = null;
+        }
+
+        // Mystery Red UFO
+        ufoTimer--;
+        if (ufoTimer <= 0 && !mysteryUFO) {
+          const fromLeft = Math.random() < 0.5;
+          mysteryUFO = {
+            x: fromLeft ? -36 : W + 36,
+            y: 44,
+            vx: fromLeft ? 3.2 : -3.2,
+            w: 48,
+            h: 20
+          };
+          ufoTimer = 620;
+        }
+        if (mysteryUFO) {
+          mysteryUFO.x += mysteryUFO.vx;
+          if (mysteryUFO.x < -60 || mysteryUFO.x > W + 60) {
+            mysteryUFO = null;
+          }
+        }
+
+        // Swarm March (accelerates as count drops!)
+        const count = aliens.length;
+        const speedFactor = 1 + (50 - count) * 0.055 + (wave - 1) * 0.18;
+        const stepX = swarmDir * 1.15 * speedFactor;
+
+        let hitEdge = false;
+        for (const a of aliens) {
+          a.homeX += stepX;
+          if (!a.diving) {
+            a.x = a.homeX;
+            a.y = a.homeY;
+          }
+          if (a.homeX > W - 44 || a.homeX < 44) hitEdge = true;
+        }
+
+        if (hitEdge) {
+          swarmDir *= -1;
+          for (const a of aliens) {
+            a.homeY += 16;
+            if (!a.diving) a.y = a.homeY;
+            if (a.y > H - 90) {
+              lives = 1;
+              damagePlayer();
+            }
+          }
+        }
+
+        marchTimer--;
+        if (marchTimer <= 0 && count > 0) {
+          synth.march();
+          aliens.forEach(a => { a.frame = 1 - a.frame; });
+          marchTimer = Math.max(7, Math.floor(count * 0.72));
+        }
+
+        // Galaga-style Swooping Dive-Bomber Attacks!
+        diveTimer--;
+        if (diveTimer <= 0 && aliens.length > 0) {
+          const candidates = aliens.filter(a => !a.diving);
+          if (candidates.length > 0) {
+            const diver = candidates[Math.floor(Math.random() * candidates.length)];
+            diver.diving = true;
+            diver.diveT = 0;
+            diver.diveStartX = diver.x;
+            diver.diveStartY = diver.y;
+            diver.diveTargetX = player.x;
+            synth.diveSwoop();
+          }
+          diveTimer = Math.max(75, 190 - wave * 16);
+        }
+
+        // Update Diving Aliens & Alien Firing
+        for (const a of aliens) {
+          if (a.diving) {
+            a.diveT += 0.014;
+            a.y = a.diveStartY + a.diveT * (H + 60 - a.diveStartY);
+            a.x = a.diveStartX + Math.sin(a.diveT * Math.PI * 2) * 110 + (a.diveTargetX - a.diveStartX) * a.diveT;
+            if (Math.abs(a.diveT - 0.35) < 0.015) {
+              alienBullets.push({ x: a.x, y: a.y + 12, vx: 0, vy: 5.8 });
+            }
+            if (a.y > H + 30) {
+              a.diving = false;
+              a.x = a.homeX;
+              a.y = a.homeY;
+            }
+          } else if (Math.random() < 0.0014 * (1 + wave * 0.22)) {
+            alienBullets.push({ x: a.x, y: a.y + 14, vx: 0, vy: 5.2 });
+          }
+
+          // Check direct collision between diving alien and player
+          if (Math.abs(a.x - player.x) < 28 && Math.abs(a.y - player.y) < 22) {
+            a.diving = false;
+            a.x = a.homeX;
+            a.y = a.homeY;
+            damagePlayer();
+          }
+        }
+
+        // Update Player Bullets
+        for (let bi = playerBullets.length - 1; bi >= 0; bi--) {
+          const b = playerBullets[bi];
+          b.y += b.vy;
+          if (b.y < -10) {
+            playerBullets.splice(bi, 1);
+            continue;
+          }
+
+          // Check Mystery UFO hit
+          if (mysteryUFO && Math.abs(b.x - mysteryUFO.x) < 28 && Math.abs(b.y - mysteryUFO.y) < 16) {
+            playerBullets.splice(bi, 1);
+            addScore(300);
+            synth.powerup();
+            window.GameMasterFX?.burst?.(mysteryUFO.x, mysteryUFO.y, "#ff2a55", 28);
+            window.GameMasterFX?.triggerShake?.(7);
+            pods.push({
+              x: mysteryUFO.x,
+              y: mysteryUFO.y,
+              type: Math.random() < 0.6 ? "TWIN" : "REPAIR"
+            });
+            mysteryUFO = null;
+            continue;
+          }
+
+          // Check Bunker collision
+          let hitBunker = false;
+          for (let k = bunkers.length - 1; k >= 0; k--) {
+            const bk = bunkers[k];
+            if (b.x >= bk.x && b.x <= bk.x + bk.w && b.y >= bk.y && b.y <= bk.y + bk.h) {
+              bk.hp--;
+              if (bk.hp <= 0) bunkers.splice(k, 1);
+              playerBullets.splice(bi, 1);
+              hitBunker = true;
+              break;
+            }
+          }
+          if (hitBunker) continue;
+
+          // Check Alien collision
+          for (let ai = aliens.length - 1; ai >= 0; ai--) {
+            const a = aliens[ai];
+            if (Math.abs(b.x - a.x) < a.w * 0.55 && Math.abs(b.y - a.y) < a.h * 0.6) {
+              playerBullets.splice(bi, 1);
+              aliens.splice(ai, 1);
+              synth.alienHit();
+              addScore(a.diving ? a.pts * 2 : a.pts);
+              overcharge = Math.min(100, overcharge + 8);
+              window.GameMasterFX?.burst?.(a.x, a.y, a.color, 16);
+              updateHUD();
+              break;
+            }
+          }
+        }
+
+        // Update Alien Bullets
+        for (let abi = alienBullets.length - 1; abi >= 0; abi--) {
+          const ab = alienBullets[abi];
+          ab.x += ab.vx;
+          ab.y += ab.vy;
+          if (ab.y > H + 10) {
+            alienBullets.splice(abi, 1);
+            continue;
+          }
+
+          // Check Bunker erosion
+          let hitBunker = false;
+          for (let k = bunkers.length - 1; k >= 0; k--) {
+            const bk = bunkers[k];
+            if (ab.x >= bk.x - 2 && ab.x <= bk.x + bk.w + 2 && ab.y >= bk.y && ab.y <= bk.y + bk.h) {
+              bk.hp--;
+              window.GameMasterFX?.burst?.(ab.x, ab.y, "#00ff9d", 6);
+              if (bk.hp <= 0) bunkers.splice(k, 1);
+              alienBullets.splice(abi, 1);
+              hitBunker = true;
+              break;
+            }
+          }
+          if (hitBunker) continue;
+
+          // Check Player hit
+          if (Math.abs(ab.x - player.x) < 22 && Math.abs(ab.y - player.y) < 14) {
+            alienBullets.splice(abi, 1);
+            damagePlayer();
+          }
+        }
+
+        // Update Pods dropped by Mystery UFO
+        for (let pi = pods.length - 1; pi >= 0; pi--) {
+          const pod = pods[pi];
+          pod.y += 2.6;
+          if (pod.y > H + 20) {
+            pods.splice(pi, 1);
+            continue;
+          }
+          if (Math.abs(pod.x - player.x) < 30 && Math.abs(pod.y - player.y) < 22) {
+            synth.powerup();
+            if (pod.type === "TWIN") {
+              player.twinFighterTimer = 780;
+              banner = { text: "🚀 TWIN-FIGHTER DUAL-BLASTER DEPLOYED! 🚀", timer: 130, color: "#00f0ff" };
+            } else {
+              buildBunkers();
+              banner = { text: "🛡️ PLASMA BUNKERS FULLY RECONSTRUCTED! 🛡️", timer: 130, color: "#00ff9d" };
+            }
+            window.GameMasterFX?.burst?.(pod.x, pod.y, "#ffbe0b", 24);
+            pods.splice(pi, 1);
+          }
+        }
+
+        // Next wave if all aliens cleared
+        if (aliens.length === 0) {
+          wave++;
+          synth.powerup();
+          buildBunkers();
+          spawnSwarm(wave);
+        }
+
+        // FX particles
+        for (let i = fxParticles.length - 1; i >= 0; i--) {
+          const p = fxParticles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.alpha -= p.decay;
+          if (p.alpha <= 0) fxParticles.splice(i, 1);
+        }
+
+        // Screen shake
+        const sc = document.getElementById("shakeContainer");
+        if (shakeTimer > 0) {
+          shakeTimer--;
+          const dx = (Math.random() - 0.5) * shakeIntensity;
+          const dy = (Math.random() - 0.5) * shakeIntensity;
+          sc.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`;
+          if (shakeTimer === 0) {
+            shakeIntensity = 0;
+            sc.style.transform = "";
+          }
+        }
+      }
+
+      function drawAlienShip(a) {
+        ctx.save();
+        ctx.translate(a.x, a.y);
+        ctx.fillStyle = a.color;
+        ctx.shadowColor = a.color;
+        ctx.shadowBlur = 10;
+
+        const wingSpread = a.frame === 0 ? 15 : 12;
+        if (a.type === "COMMANDER") {
+          ctx.beginPath();
+          ctx.moveTo(0, -12);
+          ctx.lineTo(16, -2);
+          ctx.lineTo(wingSpread, 11);
+          ctx.lineTo(6, 6);
+          ctx.lineTo(0, 12);
+          ctx.lineTo(-6, 6);
+          ctx.lineTo(-wingSpread, 11);
+          ctx.lineTo(-16, -2);
+          ctx.closePath();
+          ctx.fill();
+        } else if (a.type === "CRUISER") {
+          ctx.fillRect(-13, -8, 26, 12);
+          ctx.fillRect(-wingSpread - 3, -3, 6, 12);
+          ctx.fillRect(wingSpread - 3, -3, 6, 12);
+        } else {
+          ctx.beginPath();
+          ctx.roundRect(-14, -8, 28, 14, 5);
+          ctx.fill();
+          ctx.fillRect(-wingSpread, 5, 5, 6);
+          ctx.fillRect(wingSpread - 5, 5, 5, 6);
+        }
+
+        // Glowing eyes
+        ctx.fillStyle = "#04020d";
+        ctx.fillRect(-6, -3, 4, 4);
+        ctx.fillRect(2, -3, 4, 4);
+        ctx.restore();
+      }
+
+      function render() {
+        ctx.clearRect(0, 0, W, H);
+
+        // Stars
+        ctx.fillStyle = "rgba(200, 240, 255, 0.45)";
+        for (const s of stars) {
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Overcharge Wave Cannon Beam
+        if (waveBeam) {
+          ctx.save();
+          const g = ctx.createLinearGradient(waveBeam.x - 42, 0, waveBeam.x + 42, 0);
+          g.addColorStop(0, "transparent");
+          g.addColorStop(0.3, "rgba(0, 240, 255, 0.5)");
+          g.addColorStop(0.5, "#ffffff");
+          g.addColorStop(0.7, "rgba(255, 0, 127, 0.5)");
+          g.addColorStop(1, "transparent");
+          ctx.fillStyle = g;
+          ctx.fillRect(waveBeam.x - 42, 0, 84, player.y);
+          ctx.restore();
+        }
+
+        // Draw Mystery Red UFO
+        if (mysteryUFO) {
+          ctx.save();
+          ctx.translate(mysteryUFO.x, mysteryUFO.y);
+          ctx.fillStyle = "#ff2a55";
+          ctx.shadowColor = "#ff2a55";
+          ctx.shadowBlur = 16;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 24, 9, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#ffbe0b";
+          ctx.beginPath();
+          ctx.arc(0, -4, 9, Math.PI, 0);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Draw 4 Destructible Plasma Bunkers
+        for (const bk of bunkers) {
+          ctx.fillStyle = bk.hp === 2 ? "#00ff9d" : "rgba(0, 255, 157, 0.48)";
+          ctx.fillRect(bk.x, bk.y, bk.w, bk.h);
+        }
+
+        // Draw Aliens
+        for (const a of aliens) {
+          drawAlienShip(a);
+        }
+
+        // Draw Pods
+        for (const pod of pods) {
+          ctx.save();
+          ctx.translate(pod.x, pod.y);
+          ctx.fillStyle = pod.type === "TWIN" ? "#00f0ff" : "#00ff9d";
+          ctx.shadowColor = ctx.fillStyle;
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.arc(0, 0, 12, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#04020d";
+          ctx.font = "900 9px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(pod.type === "TWIN" ? "2X" : "FIX", 0, 0);
+          ctx.restore();
+        }
+
+        // Draw Player Defender Ship (and Twin-Fighter wingman if active)
+        if (!gameOver && (player.invuln === 0 || Math.floor(player.invuln / 4) % 2 === 0)) {
+          const drawFighter = (ox) => {
+            ctx.save();
+            ctx.translate(player.x + ox, player.y);
+            ctx.fillStyle = "#00f0ff";
+            ctx.shadowColor = "#00f0ff";
+            ctx.shadowBlur = 14;
+            ctx.beginPath();
+            ctx.moveTo(0, -16);
+            ctx.lineTo(18, 12);
+            ctx.lineTo(6, 8);
+            ctx.lineTo(0, 14);
+            ctx.lineTo(-6, 8);
+            ctx.lineTo(-18, 12);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+          };
+          if (player.twinFighterTimer > 0) {
+            drawFighter(-16);
+            drawFighter(16);
+          } else {
+            drawFighter(0);
+          }
+        }
+
+        // Draw Bullets
+        for (const b of playerBullets) {
+          ctx.save();
+          ctx.fillStyle = b.color;
+          ctx.shadowColor = b.color;
+          ctx.shadowBlur = 10;
+          ctx.fillRect(b.x - 2, b.y - 8, 4, 14);
+          ctx.restore();
+        }
+        for (const ab of alienBullets) {
+          ctx.save();
+          ctx.fillStyle = "#ff007f";
+          ctx.shadowColor = "#ff007f";
+          ctx.shadowBlur = 10;
+          ctx.fillRect(ab.x - 2.5, ab.y - 6, 5, 12);
+          ctx.restore();
+        }
+
+        // FX Particles
+        for (const p of fxParticles) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.alpha);
+          ctx.fillStyle = p.color;
+          ctx.shadowColor = p.color;
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Banner
+        if (banner.timer > 0) {
+          banner.timer--;
+          ctx.save();
+          ctx.fillStyle = "rgba(6, 4, 18, 0.85)";
+          ctx.strokeStyle = banner.color;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.roundRect(W / 2 - 220, 10, 440, 28, 8);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = banner.color;
+          ctx.font = "800 11px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(banner.text, W / 2, 24);
+          ctx.restore();
+        }
+
+        if (paused || gameOver) {
+          ctx.save();
+          ctx.fillStyle = "rgba(3, 2, 10, 0.78)";
+          ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = gameOver ? "#ff2a55" : "#00ff9d";
+          ctx.font = "900 30px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(gameOver ? "EARTH DEFENSE BREACHED" : "BATTLE PAUSED", W / 2, H / 2 - 14);
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "700 14px Orbitron, sans-serif";
+          ctx.fillText(
+            gameOver
+              ? `FINAL SCORE: ${score.toLocaleString()} • PRESS R OR NEW GAME`
+              : "PRESS P OR PAUSE BUTTON TO RESUME",
+            W / 2,
+            H / 2 + 20
+          );
+          ctx.restore();
+        }
+      }
+
+      window.addEventListener("keydown", e => {
+        const k = e.key.toLowerCase();
+        if (e.key === "ArrowLeft" || k === "a") { e.preventDefault(); keys.left = true; }
+        else if (e.key === "ArrowRight" || k === "d") { e.preventDefault(); keys.right = true; }
+        else if (e.key === " ") { e.preventDefault(); keys.fire = true; firePlayerBlaster(); }
+        else if (k === "e") { e.preventDefault(); fireWaveCannon(); }
+        else if (k === "p") { paused = !paused; }
+        else if (k === "r") { resetGame(); }
+        else if (k === "m") {
+          synth.muted = !synth.muted;
+          document.getElementById("btnMute").textContent = synth.muted ? "🔇 Muted" : "🔊 SFX";
+        } else if (k === "h" || k === "?") {
+          document.getElementById("helpModal").classList.toggle("open");
+        }
+      });
+
+      window.addEventListener("keyup", e => {
+        const k = e.key.toLowerCase();
+        if (e.key === "ArrowLeft" || k === "a") keys.left = false;
+        else if (e.key === "ArrowRight" || k === "d") keys.right = false;
+        else if (e.key === " ") keys.fire = false;
+      });
+
+      canvas.addEventListener("mousemove", e => {
+        if (paused || gameOver) return;
+        const rect = canvas.getBoundingClientRect();
+        const mx = ((e.clientX - rect.left) / rect.width) * W;
+        player.x = Math.max(36, Math.min(W - 36, mx));
+      });
+      canvas.addEventListener("mousedown", () => { firePlayerBlaster(); });
+
+      const bindHold = (id, keyName) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener("mousedown", () => { keys[keyName] = true; });
+        el.addEventListener("mouseup", () => { keys[keyName] = false; });
+        el.addEventListener("mouseleave", () => { keys[keyName] = false; });
+        el.addEventListener("touchstart", e => { e.preventDefault(); keys[keyName] = true; });
+        el.addEventListener("touchend", e => { e.preventDefault(); keys[keyName] = false; });
+      };
+
+      bindHold("btnMoveL", "left");
+      bindHold("btnMoveR", "right");
+      bindHold("btnFire", "fire");
+      document.getElementById("btnWave").addEventListener("click", fireWaveCannon);
+
+      document.getElementById("btnNewGame").addEventListener("click", resetGame);
+      document.getElementById("btnPause").addEventListener("click", () => { paused = !paused; });
+      document.getElementById("btnMute").addEventListener("click", () => {
+        synth.muted = !synth.muted;
+        document.getElementById("btnMute").textContent = synth.muted ? "🔇 Muted" : "🔊 SFX";
+      });
+      document.getElementById("btnHelp").addEventListener("click", () => {
+        document.getElementById("helpModal").classList.add("open");
+      });
+      document.getElementById("btnCloseHelp").addEventListener("click", () => {
+        document.getElementById("helpModal").classList.remove("open");
+      });
+
+      resetGame();
+
+      function loop() {
+        update();
+        render();
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

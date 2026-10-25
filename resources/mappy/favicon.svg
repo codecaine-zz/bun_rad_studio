@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="mappyBg" cx="50%" cy="45%" r="58%">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="65%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="trampGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="50%" stop-color="#00f5d4"/>
+      <stop offset="100%" stop-color="#22c55e"/>
+    </linearGradient>
+    <linearGradient id="badgeGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="100%" stop-color="#eab308"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#mappyBg)" stroke="#38bdf8" stroke-width="1.5" stroke-opacity="0.55"/>
+  <!-- Flashing Microwave Shockwave Rings (Right) -->
+  <path d="M46 18 Q54 28 46 38" fill="none" stroke="#00f5d4" stroke-width="2" stroke-linecap="round"/>
+  <path d="M51 14 Q61 28 51 42" fill="none" stroke="#facc15" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
+  <!-- Round Mouse Ears -->
+  <circle cx="19" cy="21" r="8" fill="#60a5fa" stroke="#1e3a8a" stroke-width="1.5"/>
+  <circle cx="19" cy="21" r="4.5" fill="#fda4af"/>
+  <circle cx="39" cy="21" r="8" fill="#60a5fa" stroke="#1e3a8a" stroke-width="1.5"/>
+  <circle cx="39" cy="21" r="4.5" fill="#fda4af"/>
+  <!-- Officer Mappy Head -->
+  <ellipse cx="29" cy="29" rx="12" ry="10.5" fill="#93c5fd" stroke="#1e3a8a" stroke-width="1.5"/>
+  <ellipse cx="29" cy="32" rx="8.5" ry="6.5" fill="#f8fafc"/>
+  <!-- Police Cap & Golden Badge -->
+  <path d="M18 22 Q29 12 40 22 Z" fill="#1d4ed8" stroke="#60a5fa" stroke-width="1.2"/>
+  <rect x="17" y="21" width="24" height="3.2" rx="1.5" fill="#0f172a"/>
+  <circle cx="29" cy="18" r="2.6" fill="url(#badgeGold)"/>
+  <!-- Eyes & Cute Nose -->
+  <circle cx="25" cy="28.5" r="2" fill="#0f172a"/>
+  <circle cx="24.4" cy="27.8" r="0.7" fill="#ffffff"/>
+  <circle cx="33" cy="28.5" r="2" fill="#0f172a"/>
+  <circle cx="32.4" cy="27.8" r="0.7" fill="#ffffff"/>
+  <circle cx="29" cy="32" r="2.2" fill="#ef4444"/>
+  <!-- Glowing Elastic Trampoline at Bottom -->
+  <rect x="8" y="51" width="48" height="5" rx="2.5" fill="url(#trampGlow)"/>
+  <circle cx="10" cy="53.5" r="3.5" fill="#facc15"/>
+  <circle cx="54" cy="53.5" r="3.5" fill="#facc15"/>
+  <!-- Bounce Motion Lines -->
+  <path d="M22 44 Q29 49 36 44" fill="none" stroke="#fef08a" stroke-width="2" stroke-linecap="round"/>
+</svg>

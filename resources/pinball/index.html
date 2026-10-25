@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>🛸 Codecaine CyberCadet Pinball 2099</title>
+  <meta name="description" content="Space Cadet 2099 60fps 2D physics pinball studio with sub-stepped collisions, pop bumpers, slingshots, drop targets, wormhole multiball, and Space Fleet Rank progression.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    :root {
+      --bg-deep: #04030c;
+      --panel-bg: rgba(11, 10, 28, 0.9);
+      --border-cyan: rgba(0, 240, 255, 0.32);
+      --cyan: #00f0ff;
+      --magenta: #ff007f;
+      --gold: #ffbe0b;
+      --lime: #00ff9d;
+      --purple: #9d4edd;
+      --danger: #ff2a55;
+      --text-main: #f4f8ff;
+      --text-dim: #8ea4d2;
+      --font-display: 'Orbitron', 'Rajdhani', 'Outfit', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 15%, #170b3b 0%, #070516 60%, #020108 100%);
+      color: var(--text-main);
+      font-family: var(--font-display);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 10px 14px;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 240, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 0, 127, 0.04) 1px, transparent 1px);
+      background-size: 36px 36px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .hud-header {
+      position: relative;
+      z-index: 5;
+      width: 100%;
+      max-width: 1060px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 10px 16px;
+      background: var(--panel-bg);
+      border: 1px solid var(--border-cyan);
+      border-radius: 16px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.75), 0 0 24px rgba(0, 240, 255, 0.14);
+      margin-bottom: 10px;
+      backdrop-filter: blur(16px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #00f0ff22, #ff007f33);
+      border: 1px solid var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.35);
+    }
+
+    .brand-title h1 {
+      font-size: 1.08rem;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffffff, var(--cyan), var(--magenta));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-title span {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      display: block;
+    }
+
+    .stats-strip {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      background: rgba(3, 6, 20, 0.85);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      border-radius: 10px;
+      padding: 5px 12px;
+      min-width: 96px;
+      text-align: center;
+    }
+
+    .stat-pill .lbl {
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1.4px;
+    }
+
+    .stat-pill .val {
+      font-family: var(--font-mono);
+      font-size: 1.02rem;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 0 10px rgba(0, 240, 255, 0.55);
+    }
+
+    .stat-pill.rank .val {
+      color: var(--gold);
+      text-shadow: 0 0 10px rgba(255, 190, 11, 0.6);
+      font-size: 0.9rem;
+    }
+
+    .btn-cluster {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .cyber-btn {
+      background: rgba(0, 240, 255, 0.1);
+      border: 1px solid rgba(0, 240, 255, 0.38);
+      color: var(--text-main);
+      padding: 7px 12px;
+      border-radius: 9px;
+      font-family: var(--font-display);
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .cyber-btn:hover {
+      background: rgba(0, 240, 255, 0.24);
+      box-shadow: 0 0 14px rgba(0, 240, 255, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .cyber-btn.primary {
+      background: linear-gradient(135deg, rgba(255, 0, 127, 0.35), rgba(0, 240, 255, 0.35));
+      border-color: var(--magenta);
+    }
+
+    .arena-shell {
+      position: relative;
+      z-index: 5;
+      display: flex;
+      gap: 16px;
+      align-items: stretch;
+      justify-content: center;
+      width: 100%;
+      max-width: 1060px;
+    }
+
+    .canvas-cabinet {
+      position: relative;
+      background: #050412;
+      border: 2px solid rgba(0, 240, 255, 0.42);
+      border-radius: 22px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(0, 240, 255, 0.18), inset 0 0 30px rgba(255, 0, 127, 0.12);
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    canvas#pinballCanvas {
+      display: block;
+      width: 500px;
+      height: 700px;
+      max-width: calc(100vw - 36px);
+      max-height: calc(100vh - 175px);
+      aspect-ratio: 540 / 760;
+      border-radius: 16px;
+      background: radial-gradient(circle at 50% 32%, #130b2e 0%, #060413 70%, #020108 100%);
+      cursor: pointer;
+    }
+
+    .side-deck {
+      width: 310px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .deck-card {
+      background: var(--panel-bg);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      border-radius: 16px;
+      padding: 13px 15px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    .deck-card h3 {
+      font-size: 0.74rem;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .mission-box {
+      background: rgba(255, 0, 127, 0.08);
+      border: 1px solid rgba(255, 0, 127, 0.35);
+      border-radius: 10px;
+      padding: 9px 11px;
+      margin-bottom: 9px;
+    }
+
+    .mission-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--gold);
+      margin-bottom: 3px;
+    }
+
+    .mission-desc {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      line-height: 1.35;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-top: 7px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--cyan), var(--magenta), var(--gold));
+      transition: width 0.2s ease;
+    }
+
+    .rank-ladder {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .rank-badge {
+      font-size: 0.68rem;
+      padding: 5px 8px;
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .rank-badge.active {
+      background: rgba(255, 190, 11, 0.16);
+      border-color: var(--gold);
+      color: #fff;
+      font-weight: 800;
+      box-shadow: 0 0 12px rgba(255, 190, 11, 0.3);
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+      font-size: 0.72rem;
+    }
+
+    .tele-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 6px 8px;
+    }
+
+    .tele-item span {
+      display: block;
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .tele-item strong {
+      font-family: var(--font-mono);
+      color: var(--lime);
+      font-size: 0.85rem;
+    }
+
+    .touch-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .touch-btn {
+      padding: 11px 8px;
+      border-radius: 10px;
+      background: rgba(0, 240, 255, 0.12);
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      color: #fff;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 0.76rem;
+      cursor: pointer;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .touch-btn:active {
+      background: var(--cyan);
+      color: #03030a;
+    }
+
+    .touch-btn.plunger {
+      grid-column: span 2;
+      background: linear-gradient(90deg, rgba(255, 0, 127, 0.28), rgba(255, 190, 11, 0.28));
+      border-color: var(--gold);
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 2, 10, 0.82);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      background: #0b0920;
+      border: 1px solid var(--cyan);
+      border-radius: 18px;
+      max-width: 540px;
+      width: 100%;
+      padding: 22px;
+      box-shadow: 0 0 40px rgba(0, 240, 255, 0.3);
+    }
+
+    .modal-card h2 {
+      color: var(--cyan);
+      margin-bottom: 10px;
+      font-size: 1.15rem;
+    }
+
+    .modal-card p, .modal-card li {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+      margin-bottom: 6px;
+    }
+
+    .modal-card ul {
+      padding-left: 18px;
+      margin-bottom: 14px;
+    }
+
+    .kbd {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: rgba(0, 240, 255, 0.15);
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: #fff;
+    }
+
+    @media (max-width: 880px) {
+      .arena-shell {
+        flex-direction: column;
+        align-items: center;
+      }
+      .side-deck {
+        width: 100%;
+        max-width: 520px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="hud-header">
+    <div class="brand">
+      <div class="brand-icon">🛸</div>
+      <div class="brand-title">
+        <h1>Codecaine CyberCadet Pinball 2099</h1>
+        <span>Space Fleet Orbital Table • 60FPS Sub-Stepped Physics</span>
+      </div>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat-pill">
+        <div class="lbl">Score</div>
+        <div class="val" id="hudScore">0</div>
+      </div>
+      <div class="stat-pill">
+        <div class="lbl">High Score</div>
+        <div class="val" id="hudHigh">0</div>
+      </div>
+      <div class="stat-pill rank">
+        <div class="lbl">Fleet Rank</div>
+        <div class="val" id="hudRank">CADET</div>
+      </div>
+      <div class="stat-pill">
+        <div class="lbl">Balls / Multi</div>
+        <div class="val" id="hudBalls">3 • 1x</div>
+      </div>
+    </div>
+
+    <div class="btn-cluster">
+      <button class="cyber-btn primary" id="btnNewGame" title="New Game (R)">New Game</button>
+      <button class="cyber-btn" id="btnPause" title="Pause (P)">Pause</button>
+      <button class="cyber-btn" id="btnMute" title="Mute Audio (M)">🔊 SFX</button>
+      <button class="cyber-btn" id="btnHelp" title="Controls & Rules (H)">? Help</button>
+    </div>
+  </header>
+
+  <main class="arena-shell" id="shakeContainer">
+    <div class="canvas-cabinet">
+      <canvas id="pinballCanvas" width="540" height="760"></canvas>
+    </div>
+
+    <aside class="side-deck">
+      <div class="deck-card">
+        <h3>
+          <span>🛰️ Active Orbital Mission</span>
+          <span id="missionMultiplierBadge" style="color:var(--gold)">1x BONUS</span>
+        </h3>
+        <div class="mission-box">
+          <div class="mission-title" id="missionTitle">TARGET PRACTICE</div>
+          <div class="mission-desc" id="missionDesc">Hit all 3 Drop Targets or 8 High-Voltage Bumpers to unlock the Wormhole Lock!</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="missionProgressFill"></div>
+          </div>
+        </div>
+        <div class="telemetry-grid">
+          <div class="tele-item">
+            <span>Drop Targets</span>
+            <strong id="teleTargets">0 / 3 LIT</strong>
+          </div>
+          <div class="tele-item">
+            <span>Wormhole Well</span>
+            <strong id="teleWormhole">ARMED</strong>
+          </div>
+          <div class="tele-item">
+            <span>Kickback Save</span>
+            <strong id="teleKickback">ACTIVE</strong>
+          </div>
+          <div class="tele-item">
+            <span>Orbit Combo</span>
+            <strong id="teleOrbit">0 STREAK</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="deck-card">
+        <h3><span>🎖️ Space Fleet Rank Ladder</span></h3>
+        <div class="rank-ladder" id="rankLadder">
+          <div class="rank-badge active" data-rank="0">⭐ Cadet</div>
+          <div class="rank-badge" data-rank="1">⭐⭐ Ensign</div>
+          <div class="rank-badge" data-rank="2">⚡ Lieutenant</div>
+          <div class="rank-badge" data-rank="3">🛸 Commander</div>
+          <div class="rank-badge" data-rank="4">🚀 Captain</div>
+          <div class="rank-badge" data-rank="5">👑 Fleet Admiral</div>
+        </div>
+      </div>
+
+      <div class="deck-card">
+        <h3><span>🕹️ Deck Tactical Controls</span></h3>
+        <div class="touch-controls">
+          <button class="touch-btn" id="btnLeftFlip">◀ Left Flipper (Z / A)</button>
+          <button class="touch-btn" id="btnRightFlip">Right Flipper (/ / D) ▶</button>
+          <button class="touch-btn" id="btnNudge">⚡ Table Nudge (X)</button>
+          <button class="touch-btn" id="btnHyperBall">🌀 Wormhole Boost</button>
+          <button class="touch-btn plunger" id="btnPlunger">🚀 Hold & Release Plunger (SPACE / ↓)</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <div class="modal-backdrop" id="helpModal">
+    <div class="modal-card">
+      <h2>🛸 CyberCadet Pinball 2099 — Flight Manual</h2>
+      <p>Inspired by classic <em>Space Cadet</em> pinball, engineered with a 60fps 8x sub-stepped 2D vector physics engine.</p>
+      <ul>
+        <li><span class="kbd">Z</span> / <span class="kbd">←</span> / <span class="kbd">A</span> — Activate Left Flipper</li>
+        <li><span class="kbd">/</span> / <span class="kbd">→</span> / <span class="kbd">D</span> — Activate Right Flipper</li>
+        <li><span class="kbd">Space</span> or <span class="kbd">↓</span> — Hold & release Spring Plunger to launch ball</li>
+        <li><span class="kbd">X</span> — Tactical Table Nudge (careful: excessive nudging causes a TILT warning!)</li>
+        <li><span class="kbd">P</span> — Pause / Resume • <span class="kbd">R</span> — New Game • <span class="kbd">M</span> — Mute Synth</li>
+        <li><strong>3 Drop-Target Mission Lights:</strong> Light all 3 yellow cyber-targets on the left bank to supercharge the Wormhole & re-arm the Left Outlane Kickback!</li>
+        <li><strong>Wormhole Black Hole Well:</strong> Captures the ball inside the upper-left vortex, awards a massive Mission Bonus, and launches <strong>2-Ball Multiball</strong>!</li>
+      </ul>
+      <button class="cyber-btn primary" id="btnCloseHelp" style="width:100%">Engage Thrusters</button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // Safe localStorage helper
+      const STORE_KEY = "codecaine_pinball_2099_high";
+      function loadHighScore() {
+        try { return parseInt(window.localStorage.getItem(STORE_KEY) || "0", 10) || 0; } catch (_) { return 0; }
+      }
+      function saveHighScore(val) {
+        try { window.localStorage.setItem(STORE_KEY, String(val)); } catch (_) {}
+      }
+
+      // Provide fallback GameMasterFX if host environment hasn't injected one yet
+      const fxParticles = [];
+      let shakeTimer = 0;
+      let shakeIntensity = 0;
+
+      if (!window.GameMasterFX) {
+        window.GameMasterFX = {
+          burst(x, y, color = "#00f0ff", count = 18) {
+            for (let i = 0; i < count; i++) {
+              const a = Math.random() * Math.PI * 2;
+              const sp = 1.2 + Math.random() * 5.2;
+              fxParticles.push({
+                x, y,
+                vx: Math.cos(a) * sp,
+                vy: Math.sin(a) * sp,
+                r: 2 + Math.random() * 3,
+                color,
+                alpha: 1,
+                decay: 0.02 + Math.random() * 0.025
+              });
+            }
+          },
+          triggerShake(intensity = 6) {
+            shakeIntensity = Math.max(shakeIntensity, intensity);
+            shakeTimer = 14;
+          }
+        };
+      } else {
+        const origBurst = window.GameMasterFX.burst?.bind(window.GameMasterFX);
+        const origShake = window.GameMasterFX.triggerShake?.bind(window.GameMasterFX);
+        window.GameMasterFX.burst = function(x, y, color = "#00f0ff", count = 18) {
+          for (let i = 0; i < count; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const sp = 1.2 + Math.random() * 5.2;
+            fxParticles.push({
+              x, y,
+              vx: Math.cos(a) * sp,
+              vy: Math.sin(a) * sp,
+              r: 2 + Math.random() * 3,
+              color,
+              alpha: 1,
+              decay: 0.02 + Math.random() * 0.025
+            });
+          }
+          if (origBurst) origBurst(x, y, color, count);
+        };
+        window.GameMasterFX.triggerShake = function(intensity = 6) {
+          shakeIntensity = Math.max(shakeIntensity, intensity);
+          shakeTimer = 14;
+          if (origShake) origShake(intensity);
+        };
+      }
+
+      // Web Audio Synthesizer
+      class PinballSynth {
+        constructor() {
+          this.ctx = null;
+          this.muted = false;
+        }
+        init() {
+          if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) this.ctx = new AC();
+          }
+          if (this.ctx && this.ctx.state === "suspended") {
+            this.ctx.resume().catch(() => {});
+          }
+        }
+        tone(freq, type = "sine", dur = 0.09, gainVal = 0.14, slideTo = null) {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, now);
+            if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, now + dur);
+            gain.gain.setValueAtTime(gainVal, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + dur);
+          } catch (_) {}
+        }
+        flipperUp() { this.tone(190, "triangle", 0.06, 0.16, 420); }
+        bumperHit(idx) {
+          const notes = [523.25, 659.25, 783.99, 1046.5];
+          this.tone(notes[idx % notes.length], "square", 0.11, 0.15, notes[idx % notes.length] * 1.35);
+        }
+        slingshot() { this.tone(330, "sawtooth", 0.09, 0.15, 660); }
+        targetHit() {
+          this.tone(587.33, "triangle", 0.08, 0.16, 880);
+          setTimeout(() => this.tone(880, "sine", 0.1, 0.14, 1174.66), 55);
+        }
+        wormholeCapture() {
+          [392, 523.25, 659.25, 783.99, 1046.5].forEach((n, i) => {
+            setTimeout(() => this.tone(n, "sine", 0.14, 0.16, n * 1.15), i * 65);
+          });
+        }
+        rankUp() {
+          [440, 554.37, 659.25, 880, 1108.73].forEach((n, i) => {
+            setTimeout(() => this.tone(n, "triangle", 0.16, 0.18), i * 75);
+          });
+        }
+        launch(power) {
+          this.tone(120, "sawtooth", 0.22, 0.18, 220 + power * 420);
+        }
+        drain() {
+          this.tone(300, "sawtooth", 0.25, 0.16, 95);
+        }
+      }
+
+      const synth = new PinballSynth();
+      const canvas = document.getElementById("pinballCanvas");
+      const ctx = canvas.getContext("2d");
+      const W = canvas.width;  // 540
+      const H = canvas.height; // 760
+      const LANE_X = 486;      // Plunger lane divider x
+
+      const RANKS = [
+        { name: "CADET", minScore: 0 },
+        { name: "ENSIGN", minScore: 15000 },
+        { name: "LIEUTENANT", minScore: 45000 },
+        { name: "COMMANDER", minScore: 95000 },
+        { name: "CAPTAIN", minScore: 175000 },
+        { name: "FLEET ADMIRAL", minScore: 300000 }
+      ];
+
+      const MISSIONS = [
+        { title: "TARGET PRACTICE", desc: "Hit 6 Pop Bumpers or complete the 3 Drop Targets!", goal: 6 },
+        { title: "ORBITAL RECON", desc: "Send the ball through Upper Lanes & Bumpers 8 times!", goal: 8 },
+        { title: "WORMHOLE SINGULARITY", desc: "Enter the Black Hole Well or score 10 Bumper/Target hits!", goal: 10 },
+        { title: "STARFLEET OVERDRIVE", desc: "Survive High-Voltage Multiball chaos (12 impacts)!", goal: 12 }
+      ];
+
+      // Game state
+      let score = 0;
+      let highScore = loadHighScore();
+      let ballsLeft = 3;
+      let multiplier = 1;
+      let rankIdx = 0;
+      let missionIdx = 0;
+      let missionProgress = 0;
+      let orbitStreak = 0;
+      let kickbackActive = true;
+      let ballSaveTimer = 0;
+      let paused = false;
+      let gameOver = false;
+      let plungerCharge = 0;
+      let plungerHeld = false;
+      let nudgeCooldown = 0;
+      let statusBanner = { text: "HOLD SPACE TO LAUNCH CADET BALL", timer: 180, color: "#00f0ff" };
+
+      // Floating texts
+      const floatTexts = [];
+      function addFloatText(x, y, text, color = "#00f0ff") {
+        floatTexts.push({ x, y, text, color, alpha: 1, vy: -1.3 });
+      }
+
+      // Balls array (supports 1 or 2-ball Multiball!)
+      const balls = [];
+      function spawnBallInPlunger() {
+        balls.push({
+          x: 510,
+          y: 665,
+          vx: 0,
+          vy: 0,
+          r: 10.5,
+          inPlunger: true,
+          lockTimer: 0,
+          trail: []
+        });
+        ballSaveTimer = 480; // 8 seconds of ball save after launch
+      }
+
+      // Flippers
+      const leftFlipper = {
+        x: 150, y: 672, len: 84, r: 9,
+        restAngle: 0.44, activeAngle: -0.52,
+        angle: 0.44, prevAngle: 0.44, pressed: false
+      };
+      const rightFlipper = {
+        x: 344, y: 672, len: 84, r: 9,
+        restAngle: Math.PI - 0.44, activeAngle: Math.PI + 0.52,
+        angle: Math.PI - 0.44, prevAngle: Math.PI - 0.44, pressed: false
+      };
+
+      // 3 High-Voltage Pop Bumpers
+      const bumpers = [
+        { x: 205, y: 215, r: 27, color: "#ff007f", pulse: 0, pts: 500, label: "1000W" },
+        { x: 305, y: 205, r: 27, color: "#00f0ff", pulse: 0, pts: 500, label: "NOVA" },
+        { x: 252, y: 292, r: 29, color: "#ffbe0b", pulse: 0, pts: 750, label: "CORE" }
+      ];
+
+      // 3 Drop-Target Mission Lights (along upper-left inner bank)
+      const dropTargets = [
+        { x1: 66, y1: 245, x2: 78, y2: 280, lit: false, pulse: 0 },
+        { x1: 81, y1: 292, x2: 93, y2: 327, lit: false, pulse: 0 },
+        { x1: 96, y1: 339, x2: 108, y2: 374, lit: false, pulse: 0 }
+      ];
+
+      // Rollover star sensors at top orbit lanes
+      const rollovers = [
+        { x: 158, y: 118, r: 12, lit: false, label: "A" },
+        { x: 245, y: 105, r: 12, lit: false, label: "B" },
+        { x: 332, y: 118, r: 12, lit: false, label: "C" }
+      ];
+
+      // Wormhole Black Hole Kickout Well
+      const wormhole = {
+        x: 122,
+        y: 185,
+        r: 22,
+        angle: 0,
+        cooldown: 0
+      };
+
+      // Static table walls & slingshot segments
+      // Each segment: { x1, y1, x2, y2, bounce, sling, color }
+      const walls = [
+        // Outer Left boundary
+        { x1: 28, y1: 600, x2: 28, y2: 170, bounce: 0.75, color: "#00f0ff" },
+        // Top-Left curved arch (approximated with smooth segments)
+        { x1: 28, y1: 170, x2: 52, y2: 98, bounce: 0.78, color: "#00f0ff" },
+        { x1: 52, y1: 98, x2: 112, y2: 50, bounce: 0.78, color: "#00f0ff" },
+        { x1: 112, y1: 50, x2: 210, y2: 26, bounce: 0.78, color: "#00f0ff" },
+        { x1: 210, y1: 26, x2: 345, y2: 26, bounce: 0.78, color: "#00f0ff" },
+        { x1: 345, y1: 26, x2: 448, y2: 54, bounce: 0.78, color: "#00f0ff" },
+        { x1: 448, y1: 54, x2: 506, y2: 115, bounce: 0.78, color: "#00f0ff" },
+        { x1: 506, y1: 115, x2: 528, y2: 185, bounce: 0.78, color: "#00f0ff" },
+        // Outer Right boundary (Plunger outer wall)
+        { x1: 528, y1: 185, x2: 528, y2: 710, bounce: 0.7, color: "#00f0ff" },
+        { x1: 486, y1: 710, x2: 528, y2: 710, bounce: 0.4, color: "#ff007f" },
+
+        // Plunger inner divider wall (with top gap so ball exits into main playfield)
+        { x1: 486, y1: 175, x2: 486, y2: 710, bounce: 0.75, color: "#9d4edd" },
+
+        // Right Playfield inner guide wall
+        { x1: 466, y1: 220, x2: 466, y2: 600, bounce: 0.75, color: "#00f0ff" },
+
+        // Left & Right Inlane guides leading strictly to Flippers
+        { x1: 28, y1: 600, x2: 150, y2: 672, bounce: 0.65, color: "#00f0ff" },
+        { x1: 466, y1: 600, x2: 344, y2: 672, bounce: 0.65, color: "#00f0ff" },
+
+        // Left Slingshot Triangle (Kicker face has high bounce = 1.55)
+        { x1: 92, y1: 468, x2: 156, y2: 582, bounce: 1.55, sling: true, color: "#ff007f" },
+        { x1: 92, y1: 468, x2: 92, y2: 572, bounce: 0.75, color: "#00f0ff" },
+        { x1: 92, y1: 572, x2: 156, y2: 582, bounce: 0.75, color: "#00f0ff" },
+
+        // Right Slingshot Triangle (Kicker face has high bounce = 1.55)
+        { x1: 402, y1: 468, x2: 338, y2: 582, bounce: 1.55, sling: true, color: "#ff007f" },
+        { x1: 402, y1: 468, x2: 402, y2: 572, bounce: 0.75, color: "#00f0ff" },
+        { x1: 402, y1: 572, x2: 338, y2: 582, bounce: 0.75, color: "#00f0ff" },
+
+        // Upper Hyperspace Orbit Guide Fins
+        { x1: 196, y1: 88, x2: 196, y2: 132, bounce: 0.8, color: "#ffbe0b" },
+        { x1: 294, y1: 88, x2: 294, y2: 132, bounce: 0.8, color: "#ffbe0b" },
+
+        // Upper-right deflector fin
+        { x1: 408, y1: 245, x2: 432, y2: 350, bounce: 0.9, color: "#00ff9d" }
+      ];
+
+      function setBanner(text, color = "#00f0ff", timer = 130) {
+        statusBanner = { text, color, timer };
+      }
+
+      function addScore(pts, x, y, color = "#00f0ff") {
+        const total = Math.round(pts * multiplier);
+        score += total;
+        if (score > highScore) {
+          highScore = score;
+          saveHighScore(highScore);
+        }
+        // Check Rank Progression
+        let newRank = 0;
+        for (let i = RANKS.length - 1; i >= 0; i--) {
+          if (score >= RANKS[i].minScore) {
+            newRank = i;
+            break;
+          }
+        }
+        if (newRank > rankIdx) {
+          rankIdx = newRank;
+          synth.rankUp();
+          setBanner(`PROMOTED TO ${RANKS[rankIdx].name}!`, "#ffbe0b", 180);
+          window.GameMasterFX?.burst?.(W / 2, H / 2, "#ffbe0b", 36);
+          window.GameMasterFX?.triggerShake?.(8);
+        }
+        if (x !== undefined && y !== undefined && total >= 500) {
+          addFloatText(x, y, `+${total}`, color);
+        }
+        updateHUD();
+      }
+
+      function advanceMission(steps = 1) {
+        const m = MISSIONS[missionIdx];
+        missionProgress += steps;
+        if (missionProgress >= m.goal) {
+          missionProgress = 0;
+          missionIdx = (missionIdx + 1) % MISSIONS.length;
+          multiplier = Math.min(8, multiplier + 1);
+          kickbackActive = true;
+          addScore(10000, W / 2, 260, "#ffbe0b");
+          setBanner(`MISSION COMPLETE! ${multiplier}x BONUS + KICKBACK ARMED`, "#00ff9d", 170);
+          window.GameMasterFX?.burst?.(250, 260, "#00ff9d", 30);
+          window.GameMasterFX?.triggerShake?.(7);
+          synth.wormholeCapture();
+        }
+        updateHUD();
+      }
+
+      function updateHUD() {
+        document.getElementById("hudScore").textContent = score.toLocaleString();
+        document.getElementById("hudHigh").textContent = highScore.toLocaleString();
+        document.getElementById("hudRank").textContent = RANKS[rankIdx].name;
+        document.getElementById("hudBalls").textContent = `${ballsLeft} • ${multiplier}x`;
+
+        const m = MISSIONS[missionIdx];
+        document.getElementById("missionTitle").textContent = m.title;
+        document.getElementById("missionDesc").textContent = m.desc;
+        document.getElementById("missionMultiplierBadge").textContent = `${multiplier}x BONUS`;
+        const pct = Math.min(100, Math.round((missionProgress / m.goal) * 100));
+        document.getElementById("missionProgressFill").style.width = `${pct}%`;
+
+        const litCount = dropTargets.filter(t => t.lit).length;
+        document.getElementById("teleTargets").textContent = `${litCount} / 3 LIT`;
+        document.getElementById("teleWormhole").textContent = balls.length > 1 ? "MULTIBALL!" : "ARMED";
+        document.getElementById("teleKickback").textContent = kickbackActive ? "ACTIVE" : "SPENT";
+        document.getElementById("teleOrbit").textContent = `${orbitStreak} STREAK`;
+
+        const badges = document.querySelectorAll("#rankLadder .rank-badge");
+        badges.forEach((b, idx) => {
+          b.classList.toggle("active", idx === rankIdx);
+        });
+      }
+
+      function resetGame() {
+        score = 0;
+        ballsLeft = 3;
+        multiplier = 1;
+        rankIdx = 0;
+        missionIdx = 0;
+        missionProgress = 0;
+        orbitStreak = 0;
+        kickbackActive = true;
+        gameOver = false;
+        paused = false;
+        balls.length = 0;
+        dropTargets.forEach(t => { t.lit = false; });
+        rollovers.forEach(r => { r.lit = false; });
+        spawnBallInPlunger();
+        setBanner("SPACE CADET READY — HOLD SPACE TO LAUNCH", "#00f0ff", 180);
+        updateHUD();
+      }
+
+      // Closest point on segment AB to point P
+      function closestPointOnSegment(px, py, x1, y1, x2, y2) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const lenSq = dx * dx + dy * dy;
+        if (lenSq === 0) return { x: x1, y: y1, t: 0 };
+        let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+        t = Math.max(0, Math.min(1, t));
+        return { x: x1 + t * dx, y: y1 + t * dy, t };
+      }
+
+      function triggerMultiball(originX, originY) {
+        if (balls.length < 2) {
+          balls.push({
+            x: originX,
+            y: originY + 12,
+            vx: (Math.random() - 0.5) * 8,
+            vy: 6.5,
+            r: 10.5,
+            inPlunger: false,
+            lockTimer: 0,
+            trail: []
+          });
+          setBanner("⚡ 2-BALL CYBER MULTIBALL ENGAGED! ⚡", "#ff007f", 190);
+          window.GameMasterFX?.burst?.(originX, originY, "#ff007f", 34);
+          window.GameMasterFX?.triggerShake?.(9);
+        }
+      }
+
+      function nudgeTable() {
+        if (nudgeCooldown > 0 || paused || gameOver) return;
+        nudgeCooldown = 45;
+        balls.forEach(b => {
+          if (!b.inPlunger) {
+            b.vx += (Math.random() - 0.5) * 4.2;
+            b.vy -= 2.4;
+          }
+        });
+        synth.slingshot();
+        window.GameMasterFX?.triggerShake?.(5);
+        setBanner("TABLE NUDGE APPLIED", "#ffbe0b", 60);
+      }
+
+      // Physics update (sub-stepped 8x per frame for zero tunneling)
+      const SUBSTEPS = 8;
+      const GRAVITY = 0.145 / SUBSTEPS;
+
+      function stepPhysics() {
+        if (paused || gameOver) return;
+
+        if (nudgeCooldown > 0) nudgeCooldown--;
+        if (ballSaveTimer > 0) ballSaveTimer--;
+        if (wormhole.cooldown > 0) wormhole.cooldown--;
+        wormhole.angle += 0.07;
+
+        // Plunger charge
+        const ballInLane = balls.find(b => b.inPlunger);
+        if (plungerHeld && ballInLane) {
+          plungerCharge = Math.min(1, plungerCharge + 0.024);
+        }
+
+        // Update flipper angles smoothly
+        for (const f of [leftFlipper, rightFlipper]) {
+          f.prevAngle = f.angle;
+          const target = f.pressed ? f.activeAngle : f.restAngle;
+          f.angle += (target - f.angle) * 0.42;
+        }
+
+        for (let s = 0; s < SUBSTEPS; s++) {
+          for (let bi = balls.length - 1; bi >= 0; bi--) {
+            const b = balls[bi];
+
+            // Handle Wormhole Lock state
+            if (b.lockTimer > 0) {
+              b.lockTimer -= 1 / SUBSTEPS;
+              b.x = wormhole.x + Math.cos(wormhole.angle * 3) * 4;
+              b.y = wormhole.y + Math.sin(wormhole.angle * 3) * 4;
+              if (b.lockTimer <= 0) {
+                const angle = Math.PI * 0.35 + (Math.random() - 0.5) * 0.4;
+                b.vx = Math.cos(angle) * 11;
+                b.vy = Math.sin(angle) * 11;
+                wormhole.cooldown = 110;
+                synth.launch(0.9);
+                triggerMultiball(wormhole.x, wormhole.y);
+              }
+              continue;
+            }
+
+            // Gravity
+            b.vy += GRAVITY;
+            b.x += b.vx / SUBSTEPS;
+            b.y += b.vy / SUBSTEPS;
+
+            // Check if ball exited plunger lane at the top arch
+            if (b.inPlunger && b.x < LANE_X - b.r) {
+              b.inPlunger = false;
+              setBanner("ORBITAL INSERTION COMPLETE!", "#00ff9d", 95);
+            }
+
+            // One-way gate preventing ball from re-entering plunger lane from playfield
+            if (!b.inPlunger && b.x + b.r > LANE_X && b.y < 210 && b.vx > 0) {
+              b.x = LANE_X - b.r;
+              b.vx = -Math.abs(b.vx) * 0.75;
+            }
+
+            // Plunger floor support
+            if (b.inPlunger && b.y > 668) {
+              b.y = 668;
+              if (b.vy > 0) b.vy = 0;
+            }
+
+            // Left Outlane Kickback Save (if ball enters far-left danger zone)
+            if (!b.inPlunger && kickbackActive && b.x < 64 && b.y > 535 && b.y < 595 && b.vy > 0) {
+              b.vy = -13.5;
+              b.vx = 4.2;
+              kickbackActive = false;
+              synth.launch(0.85);
+              addScore(2500, b.x, b.y, "#00ff9d");
+              setBanner("⚡ KICKBACK LASER SAVE ACTIVATED! ⚡", "#00ff9d", 110);
+              window.GameMasterFX?.burst?.(b.x, b.y, "#00ff9d", 20);
+            }
+
+            // Collide with static walls & slingshots
+            for (const w of walls) {
+              const cp = closestPointOnSegment(b.x, b.y, w.x1, w.y1, w.x2, w.y2);
+              const dx = b.x - cp.x;
+              const dy = b.y - cp.y;
+              const dist = Math.hypot(dx, dy);
+              if (dist < b.r && dist > 0.0001) {
+                const nx = dx / dist;
+                const ny = dy / dist;
+                b.x = cp.x + nx * b.r;
+                b.y = cp.y + ny * b.r;
+                const vn = b.vx * nx + b.vy * ny;
+                if (vn < 0) {
+                  const restitution = w.bounce || 0.75;
+                  b.vx -= (1 + restitution) * vn * nx;
+                  b.vy -= (1 + restitution) * vn * ny;
+                  if (w.sling) {
+                    const spd = Math.hypot(b.vx, b.vy);
+                    if (spd < 11.5) {
+                      b.vx = nx * 11.5;
+                      b.vy = ny * 11.5;
+                    }
+                    synth.slingshot();
+                    addScore(350, cp.x, cp.y, "#ff007f");
+                    window.GameMasterFX?.burst?.(cp.x, cp.y, "#ff007f", 10);
+                  }
+                }
+              }
+            }
+
+            // Collide with 3 Drop Targets
+            for (const dt of dropTargets) {
+              const cp = closestPointOnSegment(b.x, b.y, dt.x1, dt.y1, dt.x2, dt.y2);
+              const dx = b.x - cp.x;
+              const dy = b.y - cp.y;
+              const dist = Math.hypot(dx, dy);
+              if (dist < b.r + 3 && dist > 0.0001) {
+                const nx = dx / dist;
+                const ny = dy / dist;
+                b.x = cp.x + nx * (b.r + 3);
+                b.y = cp.y + ny * (b.r + 3);
+                b.vx = nx * 9.5;
+                b.vy = ny * 9.5;
+                dt.pulse = 1;
+                synth.targetHit();
+                if (!dt.lit) {
+                  dt.lit = true;
+                  addScore(1500, cp.x, cp.y, "#ffbe0b");
+                  advanceMission(1);
+                  window.GameMasterFX?.burst?.(cp.x, cp.y, "#ffbe0b", 16);
+                  if (dropTargets.every(t => t.lit)) {
+                    addScore(7500, 95, 300, "#00ff9d");
+                    kickbackActive = true;
+                    setBanner("ALL 3 DROP TARGETS LIT! WORMHOLE SUPERCHARGED!", "#ffbe0b", 160);
+                    setTimeout(() => dropTargets.forEach(t => { t.lit = false; }), 1200);
+                  }
+                } else {
+                  addScore(500, cp.x, cp.y, "#ffbe0b");
+                }
+              }
+            }
+
+            // Collide with Flippers
+            for (const f of [leftFlipper, rightFlipper]) {
+              const fx2 = f.x + Math.cos(f.angle) * f.len;
+              const fy2 = f.y + Math.sin(f.angle) * f.len;
+              const cp = closestPointOnSegment(b.x, b.y, f.x, f.y, fx2, fy2);
+              const dx = b.x - cp.x;
+              const dy = b.y - cp.y;
+              const dist = Math.hypot(dx, dy);
+              const minDist = b.r + f.r;
+              if (dist < minDist && dist > 0.0001) {
+                const nx = dx / dist;
+                const ny = dy / dist;
+                b.x = cp.x + nx * minDist;
+                b.y = cp.y + ny * minDist;
+
+                const angVel = (f.angle - f.prevAngle);
+                const tipFactor = 0.35 + cp.t * 0.95;
+                const vn = b.vx * nx + b.vy * ny;
+                if (vn < 0) {
+                  b.vx -= 1.65 * vn * nx;
+                  b.vy -= 1.65 * vn * ny;
+                }
+                if (Math.abs(angVel) > 0.004 && f.pressed) {
+                  b.vy = -12.8 * tipFactor - Math.random() * 1.5;
+                  b.vx += (f === leftFlipper ? 1 : -1) * (2.5 - cp.t * 4.5);
+                }
+              }
+            }
+
+            // Collide with 3 Pop Bumpers
+            for (let i = 0; i < bumpers.length; i++) {
+              const bmp = bumpers[i];
+              const dx = b.x - bmp.x;
+              const dy = b.y - bmp.y;
+              const dist = Math.hypot(dx, dy);
+              const minDist = b.r + bmp.r;
+              if (dist < minDist && dist > 0.0001) {
+                const nx = dx / dist;
+                const ny = dy / dist;
+                b.x = bmp.x + nx * minDist;
+                b.y = bmp.y + ny * minDist;
+                b.vx = nx * 11.4 + (Math.random() - 0.5) * 1.2;
+                b.vy = ny * 11.4 + (Math.random() - 0.5) * 1.2;
+                bmp.pulse = 1;
+                synth.bumperHit(i);
+                addScore(bmp.pts, bmp.x, bmp.y - 18, bmp.color);
+                advanceMission(1);
+                window.GameMasterFX?.burst?.(bmp.x + nx * bmp.r, bmp.y + ny * bmp.r, bmp.color, 14);
+                window.GameMasterFX?.triggerShake?.(3.5);
+              }
+            }
+
+            // Check Rollover Orbit Lanes
+            for (const ro of rollovers) {
+              if (Math.hypot(b.x - ro.x, b.y - ro.y) < ro.r + b.r) {
+                if (!ro.lit) {
+                  ro.lit = true;
+                  orbitStreak++;
+                  synth.targetHit();
+                  addScore(1000 + orbitStreak * 250, ro.x, ro.y, "#00f0ff");
+                  if (rollovers.every(r => r.lit)) {
+                    multiplier = Math.min(8, multiplier + 1);
+                    addScore(5000, 245, 95, "#ffbe0b");
+                    setBanner(`ORBIT LANES COMPLETE! ${multiplier}x MULTIPLIER!`, "#ffbe0b", 150);
+                    setTimeout(() => rollovers.forEach(r => { r.lit = false; }), 900);
+                  }
+                }
+              }
+            }
+
+            // Check Wormhole Black Hole Kickout Well
+            if (wormhole.cooldown <= 0 && !b.inPlunger) {
+              const dWorm = Math.hypot(b.x - wormhole.x, b.y - wormhole.y);
+              if (dWorm < wormhole.r + 14) {
+                // Gravitational pull
+                b.vx += ((wormhole.x - b.x) / Math.max(6, dWorm)) * 0.25;
+                b.vy += ((wormhole.y - b.y) / Math.max(6, dWorm)) * 0.25;
+              }
+              if (dWorm < wormhole.r - 4) {
+                b.lockTimer = 42;
+                b.vx = 0;
+                b.vy = 0;
+                synth.wormholeCapture();
+                addScore(8000, wormhole.x, wormhole.y, "#9d4edd");
+                advanceMission(2);
+                setBanner("🌀 WORMHOLE CAPTURE — PREPARING MULTIBALL! 🌀", "#9d4edd", 140);
+                window.GameMasterFX?.burst?.(wormhole.x, wormhole.y, "#9d4edd", 28);
+              }
+            }
+
+            // Clamp velocity
+            const maxSpd = 17.5;
+            const curSpd = Math.hypot(b.vx, b.vy);
+            if (curSpd > maxSpd) {
+              b.vx = (b.vx / curSpd) * maxSpd;
+              b.vy = (b.vy / curSpd) * maxSpd;
+            }
+          }
+        }
+
+        // Ball trail & drain check (once per frame)
+        for (let bi = balls.length - 1; bi >= 0; bi--) {
+          const b = balls[bi];
+          b.trail.push({ x: b.x, y: b.y });
+          if (b.trail.length > 12) b.trail.shift();
+
+          if (b.y > H + 24) {
+            balls.splice(bi, 1);
+            if (balls.length === 0) {
+              if (ballSaveTimer > 0) {
+                synth.wormholeCapture();
+                setBanner("🛡️ CADET BALL SAVED — AUTO RELAUNCH!", "#00ff9d", 140);
+                spawnBallInPlunger();
+              } else {
+                synth.drain();
+                ballsLeft--;
+                if (ballsLeft <= 0) {
+                  gameOver = true;
+                  setBanner("MISSION ENDED — PRESS R OR NEW GAME", "#ff2a55", 9999);
+                } else {
+                  setBanner(`BALL ${4 - ballsLeft} READY IN LAUNCH LANE`, "#00f0ff", 160);
+                  spawnBallInPlunger();
+                }
+                updateHUD();
+              }
+            }
+          }
+        }
+
+        // Decay bumper & target pulses
+        bumpers.forEach(bmp => { if (bmp.pulse > 0) bmp.pulse = Math.max(0, bmp.pulse - 0.07); });
+        dropTargets.forEach(dt => { if (dt.pulse > 0) dt.pulse = Math.max(0, dt.pulse - 0.08); });
+
+        // Decay FX particles
+        for (let i = fxParticles.length - 1; i >= 0; i--) {
+          const p = fxParticles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.alpha -= p.decay;
+          if (p.alpha <= 0) fxParticles.splice(i, 1);
+        }
+
+        // Decay float texts
+        for (let i = floatTexts.length - 1; i >= 0; i--) {
+          const ft = floatTexts[i];
+          ft.y += ft.vy;
+          ft.alpha -= 0.022;
+          if (ft.alpha <= 0) floatTexts.splice(i, 1);
+        }
+
+        // Shake container
+        const sc = document.getElementById("shakeContainer");
+        if (shakeTimer > 0) {
+          shakeTimer--;
+          const dx = (Math.random() - 0.5) * shakeIntensity;
+          const dy = (Math.random() - 0.5) * shakeIntensity;
+          sc.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`;
+          if (shakeTimer === 0) {
+            shakeIntensity = 0;
+            sc.style.transform = "";
+          }
+        }
+      }
+
+      function releasePlunger() {
+        if (!plungerHeld) return;
+        plungerHeld = false;
+        const b = balls.find(ball => ball.inPlunger);
+        if (b && plungerCharge > 0.04) {
+          const launchSpeed = 13.5 + plungerCharge * 6.2;
+          b.vy = -launchSpeed;
+          b.vx = -0.6;
+          synth.launch(plungerCharge);
+          window.GameMasterFX?.burst?.(b.x, b.y + 15, "#ffbe0b", 16);
+        }
+        plungerCharge = 0;
+      }
+
+      function render() {
+        ctx.clearRect(0, 0, W, H);
+
+        // Subtle starfield & cyber grid inside playfield
+        ctx.save();
+        ctx.strokeStyle = "rgba(0, 240, 255, 0.05)";
+        ctx.lineWidth = 1;
+        for (let x = 30; x < W; x += 36) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+        }
+        for (let y = 30; y < H; y += 36) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        }
+
+        // Center Space Cadet Starfleet Emblem
+        ctx.save();
+        ctx.translate(247, 430);
+        ctx.strokeStyle = "rgba(0, 240, 255, 0.16)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 74, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = "rgba(157, 78, 221, 0.08)";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(0, -52);
+        ctx.lineTo(36, 40);
+        ctx.lineTo(0, 18);
+        ctx.lineTo(-36, 40);
+        ctx.closePath();
+        ctx.strokeStyle = "rgba(255, 0, 127, 0.28)";
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
+        ctx.font = "900 12px Orbitron, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(RANKS[rankIdx].name, 0, 56);
+        ctx.restore();
+
+        // Draw Wormhole Black Hole Well
+        ctx.save();
+        ctx.translate(wormhole.x, wormhole.y);
+        ctx.rotate(wormhole.angle);
+        const wGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, wormhole.r + 10);
+        wGrad.addColorStop(0, "#ffffff");
+        wGrad.addColorStop(0.35, "#9d4edd");
+        wGrad.addColorStop(0.75, "rgba(255, 0, 127, 0.35)");
+        wGrad.addColorStop(1, "transparent");
+        ctx.fillStyle = wGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, wormhole.r + 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#00f0ff";
+        ctx.lineWidth = 1.8;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.arc(0, 0, wormhole.r - i * 5, i, i + Math.PI * 1.1);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        // Draw Rollover Orbit Lanes
+        for (const ro of rollovers) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(ro.x, ro.y, ro.r, 0, Math.PI * 2);
+          ctx.fillStyle = ro.lit ? "rgba(255, 190, 11, 0.35)" : "rgba(0, 240, 255, 0.08)";
+          ctx.fill();
+          ctx.strokeStyle = ro.lit ? "#ffbe0b" : "rgba(0, 240, 255, 0.45)";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.fillStyle = ro.lit ? "#fff" : "#00f0ff";
+          ctx.font = "800 11px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(ro.label, ro.x, ro.y);
+          ctx.restore();
+        }
+
+        // Draw Kickback laser indicator on Left Outlane
+        if (kickbackActive) {
+          ctx.save();
+          ctx.strokeStyle = "#00ff9d";
+          ctx.lineWidth = 3;
+          ctx.setLineDash([5, 4]);
+          ctx.beginPath();
+          ctx.moveTo(30, 565);
+          ctx.lineTo(88, 565);
+          ctx.stroke();
+          ctx.fillStyle = "#00ff9d";
+          ctx.font = "700 9px Orbitron, sans-serif";
+          ctx.fillText("KICKBACK", 34, 556);
+          ctx.restore();
+        }
+
+        // Draw Ball Save indicator between flippers
+        if (ballSaveTimer > 0) {
+          const blink = Math.floor(ballSaveTimer / 10) % 2 === 0;
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(247, 632, 16, 0, Math.PI * 2);
+          ctx.fillStyle = blink ? "rgba(0, 255, 157, 0.32)" : "rgba(0, 255, 157, 0.1)";
+          ctx.fill();
+          ctx.strokeStyle = "#00ff9d";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.fillStyle = "#00ff9d";
+          ctx.font = "800 8px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("SAVE", 247, 635);
+          ctx.restore();
+        }
+
+        // Draw Static Walls & Slingshots
+        for (const w of walls) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(w.x1, w.y1);
+          ctx.lineTo(w.x2, w.y2);
+          ctx.strokeStyle = w.color || "#00f0ff";
+          ctx.lineWidth = w.sling ? 4.5 : 3.2;
+          ctx.lineCap = "round";
+          ctx.shadowColor = w.color || "#00f0ff";
+          ctx.shadowBlur = w.sling ? 14 : 8;
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Draw 3 Drop-Target Mission Lights
+        for (const dt of dropTargets) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(dt.x1, dt.y1);
+          ctx.lineTo(dt.x2, dt.y2);
+          ctx.strokeStyle = dt.lit ? "#ffbe0b" : "rgba(255, 190, 11, 0.35)";
+          ctx.lineWidth = 7 + dt.pulse * 4;
+          ctx.lineCap = "round";
+          ctx.shadowColor = "#ffbe0b";
+          ctx.shadowBlur = dt.lit ? 16 : 4;
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Draw 3 High-Voltage Pop Bumpers
+        for (const bmp of bumpers) {
+          const r = bmp.r + bmp.pulse * 6;
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(bmp.x, bmp.y, r, 0, Math.PI * 2);
+          const g = ctx.createRadialGradient(bmp.x, bmp.y, 4, bmp.x, bmp.y, r);
+          g.addColorStop(0, "#ffffff");
+          g.addColorStop(0.45, bmp.color);
+          g.addColorStop(1, "rgba(0,0,0,0.6)");
+          ctx.fillStyle = g;
+          ctx.shadowColor = bmp.color;
+          ctx.shadowBlur = 16 + bmp.pulse * 18;
+          ctx.fill();
+          ctx.lineWidth = 2.5;
+          ctx.strokeStyle = "#ffffff";
+          ctx.stroke();
+
+          ctx.fillStyle = "#04030c";
+          ctx.font = "900 9px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(bmp.label, bmp.x, bmp.y);
+          ctx.restore();
+        }
+
+        // Draw Flippers
+        for (const f of [leftFlipper, rightFlipper]) {
+          const fx2 = f.x + Math.cos(f.angle) * f.len;
+          const fy2 = f.y + Math.sin(f.angle) * f.len;
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(f.x, f.y);
+          ctx.lineTo(fx2, fy2);
+          ctx.strokeStyle = f.pressed ? "#ffbe0b" : "#ff007f";
+          ctx.lineWidth = f.r * 2;
+          ctx.lineCap = "round";
+          ctx.shadowColor = f.pressed ? "#ffbe0b" : "#ff007f";
+          ctx.shadowBlur = 15;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, 5, 0, Math.PI * 2);
+          ctx.fillStyle = "#ffffff";
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Draw Spring Plunger in Launch Lane
+        const springTop = 678 + plungerCharge * 26;
+        ctx.save();
+        ctx.strokeStyle = plungerCharge > 0.5 ? "#ff007f" : "#ffbe0b";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        for (let y = springTop; y <= 708; y += 5) {
+          ctx.lineTo(496, y);
+          ctx.lineTo(520, y + 2.5);
+        }
+        ctx.stroke();
+        ctx.fillStyle = "#00f0ff";
+        ctx.fillRect(492, springTop - 6, 30, 6);
+        ctx.restore();
+
+        // Draw Balls & Neon Trails
+        for (const b of balls) {
+          for (let i = 0; i < b.trail.length; i++) {
+            const tr = b.trail[i];
+            const ratio = (i + 1) / b.trail.length;
+            ctx.beginPath();
+            ctx.arc(tr.x, tr.y, b.r * ratio * 0.75, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(0, 240, 255, ${ratio * 0.28})`;
+            ctx.fill();
+          }
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+          const bg = ctx.createRadialGradient(b.x - 3, b.y - 3, 1, b.x, b.y, b.r);
+          bg.addColorStop(0, "#ffffff");
+          bg.addColorStop(0.55, "#80f8ff");
+          bg.addColorStop(1, "#0066ff");
+          ctx.fillStyle = bg;
+          ctx.shadowColor = "#00f0ff";
+          ctx.shadowBlur = 14;
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Draw FX Particles
+        for (const p of fxParticles) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.alpha);
+          ctx.fillStyle = p.color;
+          ctx.shadowColor = p.color;
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Draw Floating Score Texts
+        for (const ft of floatTexts) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, ft.alpha);
+          ctx.fillStyle = ft.color;
+          ctx.font = "900 13px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.shadowColor = "#000";
+          ctx.shadowBlur = 6;
+          ctx.fillText(ft.text, ft.x, ft.y);
+          ctx.restore();
+        }
+
+        // Top HUD Status Banner inside Canvas
+        if (statusBanner.timer > 0) {
+          statusBanner.timer--;
+          ctx.save();
+          ctx.fillStyle = "rgba(5, 4, 18, 0.84)";
+          ctx.strokeStyle = statusBanner.color;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.roundRect(65, 52, 360, 28, 8);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = statusBanner.color;
+          ctx.font = "800 11px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(statusBanner.text, 245, 66);
+          ctx.restore();
+        }
+
+        if (paused || gameOver) {
+          ctx.save();
+          ctx.fillStyle = "rgba(3, 2, 12, 0.76)";
+          ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = gameOver ? "#ff2a55" : "#00f0ff";
+          ctx.font = "900 28px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(gameOver ? "MISSION OVER" : "SYSTEM PAUSED", W / 2, H / 2 - 16);
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "700 14px Orbitron, sans-serif";
+          ctx.fillText(
+            gameOver
+              ? `FINAL SCORE: ${score.toLocaleString()} (${RANKS[rankIdx].name})`
+              : "PRESS P OR PAUSE BUTTON TO RESUME",
+            W / 2,
+            H / 2 + 18
+          );
+          ctx.restore();
+        }
+
+        ctx.restore();
+      }
+
+      // Keyboard Controls
+      window.addEventListener("keydown", e => {
+        if (e.repeat) return;
+        const k = e.key.toLowerCase();
+        if (k === "z" || e.key === "ArrowLeft" || k === "a") {
+          e.preventDefault();
+          leftFlipper.pressed = true;
+          synth.flipperUp();
+        } else if (k === "/" || e.key === "ArrowRight" || k === "d") {
+          e.preventDefault();
+          rightFlipper.pressed = true;
+          synth.flipperUp();
+        } else if (e.key === " " || e.key === "ArrowDown") {
+          e.preventDefault();
+          plungerHeld = true;
+        } else if (k === "x") {
+          e.preventDefault();
+          nudgeTable();
+        } else if (k === "p") {
+          paused = !paused;
+        } else if (k === "r") {
+          resetGame();
+        } else if (k === "m") {
+          synth.muted = !synth.muted;
+          document.getElementById("btnMute").textContent = synth.muted ? "🔇 Muted" : "🔊 SFX";
+        } else if (k === "h" || k === "?") {
+          document.getElementById("helpModal").classList.toggle("open");
+        }
+      });
+
+      window.addEventListener("keyup", e => {
+        const k = e.key.toLowerCase();
+        if (k === "z" || e.key === "ArrowLeft" || k === "a") {
+          leftFlipper.pressed = false;
+        } else if (k === "/" || e.key === "ArrowRight" || k === "d") {
+          rightFlipper.pressed = false;
+        } else if (e.key === " " || e.key === "ArrowDown") {
+          releasePlunger();
+        }
+      });
+
+      // Mouse / Touch interactions on canvas & deck buttons
+      canvas.addEventListener("mousedown", e => {
+        const rect = canvas.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * W;
+        if (x > LANE_X - 20) {
+          plungerHeld = true;
+        } else if (x < W * 0.48) {
+          leftFlipper.pressed = true;
+          synth.flipperUp();
+        } else {
+          rightFlipper.pressed = true;
+          synth.flipperUp();
+        }
+      });
+
+      window.addEventListener("mouseup", () => {
+        leftFlipper.pressed = false;
+        rightFlipper.pressed = false;
+        if (plungerHeld) releasePlunger();
+      });
+
+      const bindHold = (id, onDown, onUp) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener("mousedown", onDown);
+        el.addEventListener("touchstart", e => { e.preventDefault(); onDown(); });
+        el.addEventListener("mouseup", onUp);
+        el.addEventListener("mouseleave", onUp);
+        el.addEventListener("touchend", e => { e.preventDefault(); onUp(); });
+      };
+
+      bindHold("btnLeftFlip", () => { leftFlipper.pressed = true; synth.flipperUp(); }, () => { leftFlipper.pressed = false; });
+      bindHold("btnRightFlip", () => { rightFlipper.pressed = true; synth.flipperUp(); }, () => { rightFlipper.pressed = false; });
+      bindHold("btnPlunger", () => { plungerHeld = true; }, () => { releasePlunger(); });
+
+      document.getElementById("btnNudge").addEventListener("click", nudgeTable);
+      document.getElementById("btnHyperBall").addEventListener("click", () => {
+        triggerMultiball(wormhole.x, wormhole.y);
+      });
+      document.getElementById("btnNewGame").addEventListener("click", resetGame);
+      document.getElementById("btnPause").addEventListener("click", () => { paused = !paused; });
+      document.getElementById("btnMute").addEventListener("click", () => {
+        synth.muted = !synth.muted;
+        document.getElementById("btnMute").textContent = synth.muted ? "🔇 Muted" : "🔊 SFX";
+      });
+      document.getElementById("btnHelp").addEventListener("click", () => {
+        document.getElementById("helpModal").classList.add("open");
+      });
+      document.getElementById("btnCloseHelp").addEventListener("click", () => {
+        document.getElementById("helpModal").classList.remove("open");
+      });
+
+      resetGame();
+
+      function loop() {
+        stepPhysics();
+        render();
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

@@ -58,6 +58,8 @@ describe("the table of shortcuts", () => {
     expect(formatShortcut("Mod+Alt+V", "darwin")).toBe("⌘⌥V");
     expect(formatShortcut("Mod+Alt+V", "linux")).toBe("Ctrl+Alt+V");
     expect(formatShortcut("Ctrl+`", "darwin")).toBe("⌃`");
+    expect(defaultsFor(action("app.toggleThemeFx"), "darwin")).toEqual(["Alt+0", "Mod+0"]);
+    expect(formatShortcut("Mod+0", "darwin")).toBe("⌘0");
   });
   test("the fixed theme-cycle shortcuts are displayed in both directions", () => {
     const themes = FIXED.find((x: any) => x.label.includes("all themes"));

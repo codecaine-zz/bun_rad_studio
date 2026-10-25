@@ -26,6 +26,8 @@ export interface Settings {
   theme: "auto" | "light" | "dark";
   /** The key of a color theme from the theme gallery, or "" to use `theme` above. */
   palette: string;
+  /** Whether theme special effects, animations, and background canvas shaders are toggled off (`Cmd+0` / `Alt+0`) while keeping the active color palette. */
+  themeFxOff: boolean;
   /** Optional light theme key used automatically when `theme === "auto"` and `palette === ""` while the OS is in light mode. */
   preferredLightPalette: string;
   /** Optional dark theme key used automatically when `theme === "auto"` and `palette === ""` while the OS is in dark mode. */
@@ -297,6 +299,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showInfoPanel: false,
   theme: "auto",
   palette: "",
+  themeFxOff: false,
   preferredLightPalette: "",
   preferredDarkPalette: "",
   solarScheduleEnabled: false,
@@ -454,6 +457,7 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     showInfoPanel: typeof r.showInfoPanel === "boolean" ? r.showInfoPanel : DEFAULT_SETTINGS.showInfoPanel,
     theme: oneOf(r.theme, ["auto", "light", "dark"], DEFAULT_SETTINGS.theme),
     palette: isPaletteKey(r.palette) ? r.palette : "",
+    themeFxOff: typeof r.themeFxOff === "boolean" ? r.themeFxOff : DEFAULT_SETTINGS.themeFxOff,
     preferredLightPalette: isPaletteKey(r.preferredLightPalette) ? r.preferredLightPalette : "",
     preferredDarkPalette: isPaletteKey(r.preferredDarkPalette) ? r.preferredDarkPalette : "",
     solarScheduleEnabled: typeof r.solarScheduleEnabled === "boolean" ? r.solarScheduleEnabled : DEFAULT_SETTINGS.solarScheduleEnabled,

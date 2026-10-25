@@ -63,10 +63,71 @@ function runCommand(file: string): string | null {
 
 function guideFor(file: string): string | null {
   const short = file.replace(/_studio$/, "");
-  const alias: Record<string, string> = { jq_studio: "json_query", json_studio: "json_query", sqlite_studio: "sqlite_studio", brew_studio: "system_package", system_studio: "system_package", task_manager: "process_monitor", process_studio: "process_monitor", interval_timer_studio: "interval_timer", devtools_studio: "devtools", omnitool_studio: "devtools", watcher_studio: "task_watcher", watchexec_studio: "watchexec", network_studio: "network_forensics", git_studio: "git_workbench", color_studio: "color_token", env_studio: "environment_vault", dataconvert_studio: "data_converter", world_time_zones_studio: "world_time_zones", dr_codecaine_studio: "dr_codecaine", codecaine_bros_studio: "codecaine_bros", rodents_revenge_studio: "rodents_revenge", pacman_studio: "pacman", pong_studio: "pong", word_search_studio: "word_search", lolo_studio: "lolo", maze_generator_studio: "maze_generator", tictactoe_studio: "tictactoe", connect4_studio: "connect4" };
+  const alias: Record<string, string> = {
+    jq_studio: "json_query", json_studio: "json_query", sqlite_studio: "sqlite_studio",
+    brew_studio: "system_package", system_studio: "system_package",
+    task_manager: "process_monitor", process_studio: "process_monitor",
+    interval_timer_studio: "interval_timer", devtools_studio: "devtools", omnitool_studio: "devtools",
+    watcher_studio: "task_watcher", watchexec_studio: "watchexec",
+    network_studio: "network_forensics", git_studio: "git_workbench",
+    color_studio: "color_token", env_studio: "environment_vault",
+    dataconvert_studio: "data_converter", world_time_zones_studio: "world_time_zones",
+    dr_codecaine_studio: "codecaine_dr_codecaine_arcade",
+    codecaine_bros_studio: "codecaine_bros_arcade",
+    rodents_revenge_studio: "codecaine_cybermouse_trap_deluxe",
+    pacman_studio: "codecaine_cyberchomp_arcade",
+    pong_studio: "codecaine_neon_cyber_paddle",
+    word_search_studio: "codecaine_neon_word_search_labyrinth",
+    lolo_studio: "codecaine_adventures_of_caine_remaster",
+    maze_generator_studio: "codecaine_cyberpunk_maze_runner",
+    tictactoe_studio: "codecaine_neon_tic_tac_toe_arcade",
+    connect4_studio: "codecaine_cyberpunk_quadlink_4",
+    tetris_studio: "codecaine_tetrogrid_ultra_deluxe",
+    snake_studio: "codecaine_neon_snake_deluxe",
+    breakout_studio: "codecaine_cyberbrick_breaker_deluxe",
+    frogger_studio: "codecaine_cyberfrog_deluxe",
+    flappy_bird_studio: "codecaine_cyberwing_deluxe",
+    skifree_studio: "codecaine_cyberski_deluxe",
+    math_munchers_studio: "codecaine_cybermunch_math_deluxe",
+    minesweeper_studio: "codecaine_minesweeper_pro_championship",
+    typing_studio: "codecaine_cybertype_deluxe",
+    balatro_studio: "codecaine_joker_royale_deluxe",
+    poker_studio: "codecaine_poker_royale",
+    blackjack_studio: "codecaine_blackjack_royale_vip",
+    rat_screw_studio: "codecaine_egyptian_rat_screw_royale",
+    yahtzee_studio: "codecaine_yacht_dice_royale_deluxe",
+    jezzball_studio: "codecaine_cyberjezz_containment_deluxe",
+    chips_challenge_studio: "codecaine_cyberchips_labyrinth",
+    pipe_dream_studio: "codecaine_cyberpipe_flow_deluxe",
+    solitaire_studio: "codecaine_solitaire_royale",
+    pinball_studio: "codecaine_cybercadet_pinball_2099",
+    asteroids_studio: "codecaine_voidvector_asteroids_deluxe",
+    space_invaders_studio: "codecaine_cyberinvaders_starswarm",
+    bomberman_studio: "codecaine_cyberbomber_grid_arena",
+    missile_command_studio: "codecaine_cyberdefense_icbm_interceptor",
+    qbert_studio: "codecaine_cybercube_hopper",
+    centipede_studio: "codecaine_cybercentipede_blaster",
+    artillery_studio: "codecaine_cyberartillery_scorched_skyline",
+    pool_studio: "codecaine_8ball_pool_royale",
+    lunar_lander_studio: "codecaine_cyberlander_vector_descent",
+    cyber2048_studio: "codecaine_cyber2048_quantum_merge",
+    sokoban_studio: "codecaine_cybercrate_sokoban",
+    reversi_checkers_studio: "codecaine_cyberreversi_checkers_ai",
+    uno_studio: "codecaine_uno_royale",
+    bowling_studio: "codecaine_cyberstrike_bowling",
+    darts_studio: "codecaine_pro_darts_royale",
+    bejeweled_studio: "codecaine_cyberjewel_blitz",
+    balloon_fight_studio: "codecaine_cyberballoon_fight",
+    marble_madness_studio: "codecaine_cybermarble_madness",
+    mappy_studio: "codecaine_cybermappy_mansion",
+    cyber_maker_studio: "codecaine_cybermaker_studio",
+  };
   const keys = [alias[file], file, short].filter(Boolean) as string[];
   for (const k of keys) {
-    const hit = GUIDES.find((g) => g.replace(/^\d+_/, "").replace(/\.md$/, "").startsWith(k) || g.replace(/^\d+_/, "").replace(/\.md$/, "") === k);
+    const hit = GUIDES.find((g) => {
+      const stem = g.replace(/^\d+_/, "").replace(/\.md$/, "");
+      return stem === k || stem.startsWith(`${k}_`);
+    });
     if (hit) return `docs/userguides/${hit}`;
   }
   return null;

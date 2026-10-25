@@ -1,0 +1,3560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine CyberStrike Bowling: 300 Perfect Club</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    :root {
+      --bg-void: #040711;
+      --bg-panel: rgba(9, 14, 28, 0.94);
+      --bg-card: rgba(15, 23, 42, 0.88);
+      --border-cyan: rgba(56, 189, 248, 0.35);
+      --border-gold: rgba(250, 204, 21, 0.42);
+      --cyan: #38bdf8;
+      --cyan-bright: #00f5d4;
+      --gold: #facc15;
+      --crimson: #f43f5e;
+      --emerald: #22c55e;
+      --purple: #a855f7;
+      --orange: #f97316;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 25%, #111c38 0%, #070b18 65%, #03050c 100%);
+      color: var(--text);
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* TOP HUD BAR */
+    header.hud-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 8px 16px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-cyan);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.72);
+      z-index: 20;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0284c7, #1e1b4b 60%, #e11d48);
+      border: 1.5px solid var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 21px;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.45);
+    }
+
+    .brand-title h1 {
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #fff 0%, #38bdf8 55%, #facc15 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-title p {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+    }
+
+    .hud-controls {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .hud-select, .hud-btn {
+      background: rgba(15, 23, 42, 0.92);
+      color: var(--text);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 7px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+
+    .hud-select:hover, .hud-btn:hover {
+      border-color: var(--cyan);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    }
+
+    .hud-btn.primary {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      border-color: #7dd3fc;
+      color: #fff;
+    }
+
+    .hud-btn.gold {
+      background: linear-gradient(135deg, #ca8a04, #eab308);
+      border-color: #fef08a;
+      color: #090d16;
+    }
+
+    .hud-btn.active-toggle {
+      border-color: var(--cyan-bright);
+      color: var(--cyan-bright);
+      background: rgba(0, 245, 212, 0.12);
+    }
+
+    /* OFFICIAL 10-FRAME PBA TELEVISION SCORING SHEET */
+    .scoreboard-strip {
+      background: rgba(6, 11, 23, 0.95);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.28);
+      padding: 6px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      z-index: 15;
+    }
+
+    .player-score-row {
+      display: grid;
+      grid-template-columns: 175px repeat(9, 1fr) 1.35fr 90px 75px;
+      gap: 4px;
+      align-items: stretch;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 8px;
+      padding: 3px 6px;
+      transition: all 0.2s ease;
+    }
+
+    .player-score-row.active-bowler {
+      border-color: var(--cyan);
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.22);
+      background: rgba(14, 30, 58, 0.82);
+    }
+
+    .bowler-tag {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-right: 6px;
+      border-right: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .bowler-name {
+      font-size: 12px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bowler-sub {
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .frame-cell {
+      background: rgba(7, 12, 24, 0.86);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 5px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 44px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .frame-cell.current-frame {
+      border-color: var(--gold);
+      box-shadow: inset 0 0 8px rgba(250, 204, 21, 0.25);
+    }
+
+    .frame-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+      height: 22px;
+    }
+
+    .frame-num {
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--muted);
+      padding-left: 5px;
+    }
+
+    .roll-boxes {
+      display: flex;
+      height: 100%;
+    }
+
+    .roll-box {
+      width: 21px;
+      height: 100%;
+      border-left: 1px solid rgba(148, 163, 184, 0.24);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 900;
+      color: #f8fafc;
+    }
+
+    .roll-box.strike-mark {
+      color: var(--gold);
+      background: rgba(250, 204, 21, 0.14);
+      text-shadow: 0 0 6px rgba(250, 204, 21, 0.65);
+    }
+
+    .roll-box.spare-mark {
+      color: var(--cyan-bright);
+      background: rgba(0, 245, 212, 0.12);
+    }
+
+    .roll-box.split-mark {
+      color: var(--crimson);
+      border: 1px solid rgba(244, 63, 94, 0.6);
+      border-radius: 3px;
+    }
+
+    .frame-running-total {
+      text-align: center;
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--text);
+      padding: 2px 0;
+      letter-spacing: 0.3px;
+    }
+
+    .score-summary-box {
+      background: rgba(9, 16, 32, 0.92);
+      border: 1px solid rgba(56, 189, 248, 0.32);
+      border-radius: 5px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 4px;
+    }
+
+    .score-summary-box .lbl {
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .score-summary-box .val {
+      font-size: 16px;
+      font-weight: 900;
+      color: var(--gold);
+    }
+
+    .score-summary-box.max-pace .val {
+      font-size: 13px;
+      color: var(--cyan-bright);
+    }
+
+    /* MAIN WORKSPACE STAGE */
+    main.stage-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 290px 1fr 295px;
+      gap: 12px;
+      padding: 10px 14px;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .side-column {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    .panel-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      border-radius: 12px;
+      padding: 11px 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    }
+
+    .panel-title {
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--cyan);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* ARSENAL BALL CARDS */
+    .arsenal-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .ball-card {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 9px;
+      border-radius: 9px;
+      background: rgba(8, 13, 26, 0.82);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+
+    .ball-card:hover {
+      border-color: var(--cyan);
+    }
+
+    .ball-card.selected {
+      border-color: var(--gold);
+      background: rgba(250, 204, 21, 0.1);
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.22);
+    }
+
+    .ball-orb {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      position: relative;
+      box-shadow: inset -4px -4px 8px rgba(0, 0, 0, 0.7), 0 0 8px rgba(56, 189, 248, 0.35);
+    }
+
+    .ball-orb::after {
+      content: "";
+      position: absolute;
+      top: 5px;
+      left: 6px;
+      width: 8px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.55);
+      transform: rotate(-25deg);
+    }
+
+    .ball-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .ball-info .b-name {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .ball-info .b-stats {
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    /* CONTROLS SLIDERS & HOOK BUTTONS */
+    .control-group {
+      margin-bottom: 9px;
+    }
+
+    .control-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      color: #cbd5e1;
+      margin-bottom: 4px;
+    }
+
+    .control-label span.val-pill {
+      color: var(--gold);
+      font-weight: 800;
+    }
+
+    input[type="range"].cyber-slider {
+      width: 100%;
+      accent-color: var(--cyan);
+      cursor: pointer;
+      height: 6px;
+    }
+
+    .hook-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+    }
+
+    .hook-btn {
+      background: rgba(8, 13, 26, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 6px;
+      color: var(--muted);
+      padding: 6px 3px;
+      font-size: 10px;
+      font-weight: 800;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .hook-btn:hover {
+      border-color: var(--cyan);
+      color: var(--text);
+    }
+
+    .hook-btn.active {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: var(--cyan-bright);
+      color: var(--cyan-bright);
+      box-shadow: 0 0 8px rgba(0, 245, 212, 0.25);
+    }
+
+    /* POWER METER & LAUNCH BUTTON */
+    .power-bar-wrap {
+      height: 14px;
+      background: #060a14;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+      margin: 6px 0 9px;
+    }
+
+    .power-bar-fill {
+      height: 100%;
+      width: 82%;
+      background: linear-gradient(90deg, #22c55e 0%, #eab308 65%, #ef4444 100%);
+      transition: width 0.04s linear;
+    }
+
+    .sweet-spot-marker {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 78%;
+      width: 10%;
+      border-left: 2px dashed #fff;
+      border-right: 2px dashed #fff;
+      background: rgba(255, 255, 255, 0.14);
+      pointer-events: none;
+    }
+
+    .launch-btn {
+      width: 100%;
+      padding: 11px 14px;
+      border-radius: 10px;
+      border: 1.5px solid #fef08a;
+      background: linear-gradient(135deg, #f59e0b 0%, #ef4444 55%, #ec4899 100%);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(239, 68, 68, 0.42);
+      transition: transform 0.12s ease, box-shadow 0.15s ease;
+    }
+
+    .launch-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(250, 204, 21, 0.55);
+    }
+
+    .launch-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    /* CENTER 3D LANE CANVAS CONTAINER */
+    .lane-viewport {
+      position: relative;
+      background: radial-gradient(circle at 50% 18%, #162244 0%, #070b18 70%, #03050a 100%);
+      border: 1.5px solid rgba(56, 189, 248, 0.38);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.85), 0 10px 30px rgba(0, 0, 0, 0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas#bowlingCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+
+    canvas#bowlingCanvas:active {
+      cursor: grabbing;
+    }
+
+    .lane-overlay-hud {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .telemetry-pill {
+      background: rgba(5, 10, 22, 0.84);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #e2e8f0;
+      backdrop-filter: blur(6px);
+    }
+
+    .telemetry-pill strong {
+      color: var(--gold);
+    }
+
+    /* CELEBRATION BANNER */
+    .celebration-banner {
+      position: absolute;
+      top: 36%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.5);
+      opacity: 0;
+      pointer-events: none;
+      text-align: center;
+      padding: 14px 28px;
+      border-radius: 16px;
+      background: rgba(6, 10, 24, 0.92);
+      border: 2px solid var(--gold);
+      box-shadow: 0 0 40px rgba(250, 204, 21, 0.65);
+      transition: all 0.26s cubic-bezier(0.18, 1.35, 0.4, 1);
+      z-index: 30;
+    }
+
+    .celebration-banner.visible {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+
+    .celebration-banner .big-title {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #fef08a, #f97316, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 2px 18px rgba(250, 204, 21, 0.45);
+    }
+
+    .celebration-banner .sub-caption {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-top: 3px;
+    }
+
+    /* RIGHT COLUMN: PIN DECK DIAGRAM & TELEMETRY */
+    .pin-triangle-diagram {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 6px;
+      background: rgba(6, 10, 20, 0.85);
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .pin-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .pin-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 900;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .pin-dot.standing {
+      background: radial-gradient(circle at 35% 35%, #ffffff, #cbd5e1 70%, #64748b);
+      color: #0f172a;
+      border: 2px solid #dc2626;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.45);
+    }
+
+    .pin-dot.down {
+      background: rgba(15, 23, 42, 0.7);
+      color: #475569;
+      border: 1px dashed rgba(148, 163, 184, 0.3);
+      transform: scale(0.86);
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .stat-box {
+      background: rgba(7, 12, 24, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 8px;
+      padding: 6px 8px;
+    }
+
+    .stat-box .s-lbl {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .stat-box .s-val {
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--text);
+      margin-top: 2px;
+    }
+
+    .feed-log {
+      font-size: 11px;
+      color: #cbd5e1;
+      line-height: 1.45;
+      max-height: 115px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .feed-item {
+      padding: 4px 7px;
+      border-radius: 6px;
+      background: rgba(8, 13, 26, 0.75);
+      border-left: 3px solid var(--cyan);
+    }
+
+    /* SPLIT CLINIC BAR */
+    .clinic-preset-row {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+
+    .clinic-preset-row.active {
+      display: flex;
+    }
+
+    .preset-chip {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(244, 63, 94, 0.45);
+      color: #fda4af;
+      cursor: pointer;
+    }
+
+    .preset-chip.selected {
+      background: rgba(244, 63, 94, 0.24);
+      border-color: #f43f5e;
+      color: #fff;
+    }
+
+    @media (max-width: 1100px) {
+      main.stage-grid {
+        grid-template-columns: 250px 1fr 250px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- TOP HUD HEADER -->
+  <header class="hud-bar">
+    <div class="brand">
+      <div class="brand-badge">🎳</div>
+      <div class="brand-title">
+        <h1>Codecaine CyberStrike Bowling: 300 Perfect Club</h1>
+        <p>39-Board Maple &amp; Cosmic Lane • 40ft Oil Pattern Breakpoint • 10-Pin Domino Physics</p>
+      </div>
+    </div>
+
+    <div class="hud-controls">
+      <select id="modeSelect" class="hud-select" title="Select Bowling Game Mode">
+        <option value="championship">🏆 10-Frame Championship (1P vs Pro AI)</option>
+        <option value="passplay">👥 2P Pass &amp; Play (Local Head-to-Head)</option>
+        <option value="clinic">🎯 Split Spare Clinic (Pro Conversions)</option>
+      </select>
+
+      <select id="aiSelect" class="hud-select" title="Select Pro AI Opponent">
+        <option value="amateur">🟢 AI: Alley Amateur (~150 Avg)</option>
+        <option value="semipro" selected>🔵 AI: League Semi-Pro (~205 Avg)</option>
+        <option value="legend">🟣 AI: PBA 300 Legend (~255 Avg)</option>
+      </select>
+
+      <button id="themeToggleBtn" class="hud-btn active-toggle" title="Toggle Cosmic Glow / Classic Maple Lane (C)">🌌 Cosmic Glow: ON</button>
+      <button id="oilToggleBtn" class="hud-btn active-toggle" title="Toggle 40ft Oil Pattern Visualizer">🛢️ 40ft Oil Shimmer: ON</button>
+      <button id="audioToggleBtn" class="hud-btn" title="Mute / Unmute Foley Synthesizer (M)">🔊 Foley: ON</button>
+      <button id="newGameBtn" class="hud-btn gold" title="Start Fresh 10-Frame Game (N)">🔄 New Match</button>
+    </div>
+  </header>
+
+  <!-- OFFICIAL 10-FRAME PBA TELEVISION SCORING SHEET -->
+  <section class="scoreboard-strip">
+    <div id="scoreboardRows"></div>
+    <div id="clinicPresetRow" class="clinic-preset-row">
+      <span style="font-size:11px;font-weight:800;color:var(--crimson);">🎯 SPLIT SPARE CLINIC DRILL:</span>
+      <button class="preset-chip selected" data-split="bedposts">7-10 Bedposts (7, 10)</button>
+      <button class="preset-chip" data-split="greek">Greek Church (4-6-7-9-10)</button>
+      <button class="preset-chip" data-split="bigfour">Big Four (4-6-7-10)</button>
+      <button class="preset-chip" data-split="babysplit">Baby Split (3-10)</button>
+      <button class="preset-chip" data-split="washout">Washout (1-2-4-10)</button>
+      <button class="preset-chip" data-split="fullrack">Full 10-Pin Rack</button>
+      <span id="clinicTipText" style="font-size:11px;color:var(--gold);margin-left:auto;">Tip: Clip the outside edge of the 7 or 10 at 19+ mph so it ricochets off the back cushion!</span>
+    </div>
+  </section>
+
+  <!-- MAIN 3-COLUMN BOWLING ARENA -->
+  <main class="stage-grid">
+    <!-- LEFT COLUMN: PRO ARSENAL & THROW CONTROLS -->
+    <aside class="side-column">
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>🎱 Pro Bowling Arsenal</span>
+          <span style="color:var(--muted);font-size:10px;">Keys [1-3]</span>
+        </div>
+        <div class="arsenal-list" id="arsenalList">
+          <div class="ball-card selected" data-ball="reactive">
+            <div class="ball-orb" style="background:radial-gradient(circle at 35% 30%, #38bdf8, #1d4ed8 60%, #0f172a);"></div>
+            <div class="ball-info">
+              <div class="b-name">🔵 Reactive Pearl 15lb</div>
+              <div class="b-stats">High Hook • Sharp 40ft Backend Snap</div>
+            </div>
+          </div>
+          <div class="ball-card" data-ball="urethane">
+            <div class="ball-orb" style="background:radial-gradient(circle at 35% 30%, #c084fc, #6b21a8 65%, #1e1b4b);"></div>
+            <div class="ball-info">
+              <div class="b-name">🟣 Urethane Control 15lb</div>
+              <div class="b-stats">Smooth Arc • Predictable Pocket Read</div>
+            </div>
+          </div>
+          <div class="ball-card" data-ball="polyester">
+            <div class="ball-orb" style="background:radial-gradient(circle at 35% 30%, #4ade80, #15803d 65%, #052e16);"></div>
+            <div class="ball-info">
+              <div class="b-name">🟢 Polyester Spare 14lb</div>
+              <div class="b-stats">Laser Straight • Corner Pin Sniper</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>🎯 Stance, Aim &amp; Hook Curve</span>
+          <span style="color:var(--muted);font-size:10px;">Arrows / Drag</span>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>1. Approach Stance Board</span>
+            <span class="val-pill" id="stanceBoardLabel">Board 20 (Center)</span>
+          </div>
+          <input type="range" id="stanceSlider" class="cyber-slider" min="2" max="38" step="0.5" value="27" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>2. Target Arrow Aim Angle</span>
+            <span class="val-pill" id="aimAngleLabel">-1.8° (2nd Arrow)</span>
+          </div>
+          <input type="range" id="aimSlider" class="cyber-slider" min="-8" max="8" step="0.2" value="-1.8" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>3. Hook / Rev Spin Curve</span>
+            <span class="val-pill" id="hookPresetLabel">Strong Left Hook</span>
+          </div>
+          <div class="hook-grid" id="hookGrid">
+            <button class="hook-btn active" data-hook="strong_left" title="High-Rev Cranker Left Hook (450 RPM)">↶ Strong L</button>
+            <button class="hook-btn" data-hook="mild_left" title="Tweener Mild Left Hook (300 RPM)">↖ Mild L</button>
+            <button class="hook-btn" data-hook="straight" title="Straight Down &amp; In (100 RPM)">↑ Straight</button>
+            <button class="hook-btn" data-hook="mild_right" title="Mild Right Backup Hook">↗ Mild R</button>
+            <button class="hook-btn" data-hook="strong_right" title="Strong Right Hook (Lefty / Backup)">↷ Strong R</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>4. Delivery Power &amp; Speed</span>
+            <span class="val-pill" id="powerValueLabel">86% (18.4 MPH)</span>
+          </div>
+          <input type="range" id="powerSlider" class="cyber-slider" min="45" max="100" step="1" value="86" />
+          <div class="power-bar-wrap">
+            <div class="power-bar-fill" id="powerBarFill" style="width: 86%;"></div>
+            <div class="sweet-spot-marker" title="Pro Pocket Speed Zone (80% - 90%)"></div>
+          </div>
+        </div>
+
+        <button id="bowlBallBtn" class="launch-btn">🎳 BOWL BALL (SPACE / FLICK)</button>
+        <div style="display:flex;gap:6px;margin-top:7px;">
+          <button id="pocketPresetBtn" class="hud-btn" style="flex:1;font-size:11px;" title="Auto-align for a 1-3 Pocket Strike">⚡ Line Up 1-3 Pocket</button>
+          <button id="sparePresetBtn" class="hud-btn" style="flex:1;font-size:11px;" title="Auto-align straight at remaining spare pin">🎯 Line Up Best Spare</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER COLUMN: 3D PERSPECTIVE 39-BOARD MAPLE / COSMIC LANE -->
+    <section class="lane-viewport">
+      <canvas id="bowlingCanvas" width="900" height="720"></canvas>
+
+      <div class="lane-overlay-hud">
+        <div class="telemetry-pill" id="lanePhaseBadge">
+          🛢️ Pattern: <strong>40ft PBA Scorpion</strong> • Breakpoint at <strong>40 ft</strong>
+        </div>
+        <div class="telemetry-pill" id="liveShotBadge">
+          🎳 Ready on Approach • <strong>Drag on Lane or Press SPACE</strong>
+        </div>
+      </div>
+
+      <div id="celebrationBanner" class="celebration-banner">
+        <div class="big-title" id="bannerTitle">STRIKE! 🎳</div>
+        <div class="sub-caption" id="bannerSub">Flush 1-3 Pocket • 10 Pins Messengers Cleared!</div>
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN: PIN DECK DIAGRAM, SHOT TELEMETRY & CAREER -->
+    <aside class="side-column">
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>📐 Live Pin Deck Diagram (1–10)</span>
+          <span id="standingCountBadge" style="color:var(--gold);">10 Standing</span>
+        </div>
+        <div class="pin-triangle-diagram" id="pinDiagram">
+          <div class="pin-row">
+            <div class="pin-dot standing" data-pin="7">7</div>
+            <div class="pin-dot standing" data-pin="8">8</div>
+            <div class="pin-dot standing" data-pin="9">9</div>
+            <div class="pin-dot standing" data-pin="10">10</div>
+          </div>
+          <div class="pin-row">
+            <div class="pin-dot standing" data-pin="4">4</div>
+            <div class="pin-dot standing" data-pin="5">5</div>
+            <div class="pin-dot standing" data-pin="6">6</div>
+          </div>
+          <div class="pin-row">
+            <div class="pin-dot standing" data-pin="2">2</div>
+            <div class="pin-dot standing" data-pin="3">3</div>
+          </div>
+          <div class="pin-row">
+            <div class="pin-dot standing" data-pin="1">1</div>
+          </div>
+        </div>
+        <p style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px;">
+          In <strong>Split Clinic</strong> mode, click any pin dot (`1`–`10`) to toggle custom spare setups!
+        </p>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>📡 Shot Telemetry &amp; Career</span>
+          <span id="careerRankBadge" style="color:var(--cyan-bright);">Pro Bowler</span>
+        </div>
+        <div class="telemetry-grid">
+          <div class="stat-box">
+            <div class="s-lbl">Launch Speed</div>
+            <div class="s-val" id="statSpeed">18.4 mph</div>
+          </div>
+          <div class="stat-box">
+            <div class="s-lbl">Rev Rate</div>
+            <div class="s-val" id="statRevs">440 rpm</div>
+          </div>
+          <div class="stat-box">
+            <div class="s-lbl">Entry Angle</div>
+            <div class="s-val" id="statEntryAngle">5.8° Pocket</div>
+          </div>
+          <div class="stat-box">
+            <div class="s-lbl">Streak</div>
+            <div class="s-val" id="statStreak">0 Strikes</div>
+          </div>
+          <div class="stat-box">
+            <div class="s-lbl">High Game</div>
+            <div class="s-val" id="statHighGame" style="color:var(--gold);">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="s-lbl">Total Strikes</div>
+            <div class="s-val" id="statCareerStrikes">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-card" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+        <div class="panel-title">
+          <span>🎙️ PBA Broadcast Play-by-Play</span>
+          <span style="color:var(--muted);font-size:10px;">Live Feed</span>
+        </div>
+        <div class="feed-log" id="playByPlayFeed"></div>
+      </div>
+    </aside>
+  </main>
+  <script>
+    "use strict";
+
+    /* ============================================================================
+     * 1. PROCEDURAL WEB AUDIO FOLEY SYNTHESIZER (BowlingAudio)
+     * ============================================================================ */
+    class BowlingAudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+        this.rollOsc = null;
+        this.rollGain = null;
+        this.rollFilter = null;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) {
+            this.ctx = new AudioCtx();
+          }
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume().catch(() => {});
+        }
+      }
+
+      toggleMute() {
+        this.muted = !this.muted;
+        if (this.muted) {
+          this.stopRollingRumble();
+        }
+        return this.muted;
+      }
+
+      playBallReleaseThud(speedMph = 18) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sine";
+        const baseFreq = 78 + Math.min(25, speedMph);
+        osc.frequency.setValueAtTime(baseFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(32, now + 0.16);
+
+        gain.gain.setValueAtTime(0.38, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.19);
+      }
+
+      startRollingRumble() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        this.stopRollingRumble();
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const sub = this.ctx.createOscillator();
+        const filter = this.ctx.createBiquadFilter();
+        const gain = this.ctx.createGain();
+
+        osc.type = "sawtooth";
+        sub.type = "triangle";
+        osc.frequency.setValueAtTime(64, now);
+        sub.frequency.setValueAtTime(96, now);
+
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(190, now);
+        filter.Q.setValueAtTime(2.5, now);
+
+        gain.gain.setValueAtTime(0.01, now);
+        gain.gain.linearRampToValueAtTime(0.11, now + 0.12);
+
+        osc.connect(filter);
+        sub.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        sub.start(now);
+
+        this.rollOsc = osc;
+        this.rollSub = sub;
+        this.rollFilter = filter;
+        this.rollGain = gain;
+      }
+
+      updateRollingRumble(speedMph, zFeet, inGutter) {
+        if (this.muted || !this.ctx || !this.rollOsc || !this.rollGain) return;
+        const now = this.ctx.currentTime;
+        const distFactor = Math.max(0.25, 1 - (zFeet / 68) * 0.68);
+        const speedNorm = Math.max(0.3, Math.min(1.3, speedMph / 18));
+        const freq = inGutter ? 48 * speedNorm : (62 + (zFeet > 40 ? 18 : 0)) * speedNorm;
+        this.rollOsc.frequency.setTargetAtTime(freq, now, 0.04);
+        if (this.rollSub) {
+          this.rollSub.frequency.setTargetAtTime(freq * 1.48, now, 0.04);
+        }
+        if (this.rollFilter) {
+          this.rollFilter.frequency.setTargetAtTime(inGutter ? 110 : (zFeet > 40 ? 280 : 185), now, 0.04);
+        }
+        this.rollGain.gain.setTargetAtTime(0.12 * distFactor * speedNorm, now, 0.05);
+      }
+
+      stopRollingRumble() {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        if (this.rollGain) {
+          try {
+            this.rollGain.gain.setTargetAtTime(0.0001, now, 0.03);
+          } catch (_) {}
+        }
+        const o1 = this.rollOsc;
+        const o2 = this.rollSub;
+        this.rollOsc = null;
+        this.rollSub = null;
+        this.rollFilter = null;
+        this.rollGain = null;
+        setTimeout(() => {
+          try { if (o1) o1.stop(); } catch (_) {}
+          try { if (o2) o2.stop(); } catch (_) {}
+        }, 70);
+      }
+
+      playPinCrash(intensity = 1.0, pinIndex = 1) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const clamped = Math.max(0.2, Math.min(1.5, intensity));
+
+        // 1. Hardwood maple resonator clack (pitched wood bar modes)
+        const woodFreqs = [410, 685, 1060, 1490];
+        const baseShift = ((pinIndex % 5) - 2) * 18;
+        woodFreqs.forEach((f, idx) => {
+          const osc = this.ctx.createOscillator();
+          const g = this.ctx.createGain();
+          osc.type = idx % 2 === 0 ? "triangle" : "sine";
+          const startF = f + baseShift + (Math.random() - 0.5) * 35;
+          osc.frequency.setValueAtTime(startF, now);
+          osc.frequency.exponentialRampToValueAtTime(startF * 0.72, now + 0.14 + idx * 0.03);
+
+          const amp = (0.14 / (idx + 1)) * clamped;
+          g.gain.setValueAtTime(amp, now);
+          g.gain.exponentialRampToValueAtTime(0.0008, now + 0.16 + idx * 0.035);
+
+          osc.connect(g);
+          g.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.28);
+        });
+
+        // 2. Broadband maple crack noise burst
+        const bufLen = Math.floor(this.ctx.sampleRate * 0.14);
+        const buffer = this.ctx.createBuffer(1, bufLen, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufLen; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufLen * 0.28));
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const bandpass = this.ctx.createBiquadFilter();
+        bandpass.type = "bandpass";
+        bandpass.frequency.setValueAtTime(920 + Math.random() * 350, now);
+        bandpass.Q.setValueAtTime(1.4, now);
+
+        const nGain = this.ctx.createGain();
+        nGain.gain.setValueAtTime(0.24 * clamped, now);
+        nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+        noise.connect(bandpass);
+        bandpass.connect(nGain);
+        nGain.connect(this.ctx.destination);
+        noise.start(now);
+      }
+
+      playGutterThump() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(95, now);
+        osc.frequency.exponentialRampToValueAtTime(38, now + 0.22);
+
+        gain.gain.setValueAtTime(0.32, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      }
+
+      playSweeperWhirr() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(130, now);
+        osc.frequency.linearRampToValueAtTime(175, now + 0.22);
+        osc.frequency.linearRampToValueAtTime(115, now + 0.48);
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.setValueAtTime(320, now);
+
+        gain.gain.setValueAtTime(0.01, now);
+        gain.gain.linearRampToValueAtTime(0.06, now + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.52);
+      }
+
+      playFanfare(type = "strike") {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        let notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
+        if (type === "turkey") {
+          notes = [523.25, 659.25, 783.99, 987.77, 1174.66, 1567.98];
+        } else if (type === "spare") {
+          notes = [440, 554.37, 659.25, 880];
+        } else if (type === "split") {
+          notes = [587.33, 739.99, 880, 1174.66, 1479.98];
+        } else if (type === "open") {
+          notes = [330, 293.66];
+        }
+
+        notes.forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type === "open" ? "triangle" : "sawtooth";
+          const t0 = now + i * 0.075;
+          osc.frequency.setValueAtTime(freq, t0);
+
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = "lowpass";
+          filter.frequency.setValueAtTime(2400, t0);
+
+          gain.gain.setValueAtTime(0.001, t0);
+          gain.gain.linearRampToValueAtTime(0.12, t0 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0008, t0 + 0.34);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t0);
+          osc.stop(t0 + 0.36);
+        });
+      }
+    }
+
+    const BowlingAudio = new BowlingAudioEngine();
+
+    /* ============================================================================
+     * 2. REGULATION PBA LANE, ARSENAL & SPLIT DEFINITIONS
+     * ============================================================================ */
+    // Official USBC / PBA regulation dimensions in inches and feet:
+    // Lane width = 41.5 inches (39 boards, each board ~1.064 inches wide).
+    // Coordinate system:
+    //   x: inches from center of Board 20 (-20.75 in = Left Edge/Board 39, +20.75 in = Right Edge/Board 1)
+    //   z: feet down the lane from Foul Line (0 ft = Foul Line, 15 ft = Arrows, 40 ft = Oil Breakpoint, 60 ft = Headpin 1)
+    const LANE_HALF_WIDTH_IN = 20.75;
+    const GUTTER_WIDTH_IN = 9.25;
+    const OIL_PATTERN_LENGTH_FT = 40.0;
+    const HEADPIN_Z_FT = 60.0;
+    const DECK_END_Z_FT = 64.2;
+
+    // Official 10-pin equilateral triangle coordinates (12-inch spacing center-to-center):
+    // Row spacing in Z = 12 * cos(30°) = 10.3923 inches = 0.866025 feet
+    // Lateral spacing in X = 6.0 inches per half-step
+    const ROW_Z_STEP_FT = 0.866025;
+    const PIN_POSITIONS_TEMPLATE = [
+      { id: 1, x: 0.0,   z: HEADPIN_Z_FT },
+      { id: 2, x: -6.0,  z: HEADPIN_Z_FT + ROW_Z_STEP_FT },
+      { id: 3, x: 6.0,   z: HEADPIN_Z_FT + ROW_Z_STEP_FT },
+      { id: 4, x: -12.0, z: HEADPIN_Z_FT + ROW_Z_STEP_FT * 2 },
+      { id: 5, x: 0.0,   z: HEADPIN_Z_FT + ROW_Z_STEP_FT * 2 },
+      { id: 6, x: 12.0,  z: HEADPIN_Z_FT + ROW_Z_STEP_FT * 2 },
+      { id: 7, x: -18.0, z: HEADPIN_Z_FT + ROW_Z_STEP_FT * 3 },
+      { id: 8, x: -6.0,  z: HEADPIN_Z_FT + ROW_Z_STEP_FT * 3 },
+      { id: 9, x: 6.0,   z: HEADPIN_Z_FT + ROW_Z_STEP_FT * 3 },
+      { id: 10, x: 18.0, z: HEADPIN_Z_FT + ROW_Z_STEP_FT * 3 },
+    ];
+
+    const ARSENAL_BALLS = {
+      reactive: {
+        id: "reactive",
+        name: "Reactive Pearl 15lb",
+        weightLb: 15.0,
+        hookPotential: 1.32,
+        backendSnap: 1.45,
+        oilGrip: 0.22,
+        primaryColor: "#38bdf8",
+        secondaryColor: "#1d4ed8",
+        coreColor: "#f43f5e",
+        revsBase: 440,
+      },
+      urethane: {
+        id: "urethane",
+        name: "Urethane Control 15lb",
+        weightLb: 15.0,
+        hookPotential: 0.92,
+        backendSnap: 0.95,
+        oilGrip: 0.36,
+        primaryColor: "#c084fc",
+        secondaryColor: "#6b21a8",
+        coreColor: "#facc15",
+        revsBase: 360,
+      },
+      polyester: {
+        id: "polyester",
+        name: "Polyester Spare 14lb",
+        weightLb: 14.0,
+        hookPotential: 0.14,
+        backendSnap: 0.18,
+        oilGrip: 0.08,
+        primaryColor: "#4ade80",
+        secondaryColor: "#15803d",
+        coreColor: "#ffffff",
+        revsBase: 140,
+      },
+    };
+
+    const HOOK_PRESETS = {
+      strong_left:  { label: "Strong Left Hook", spinFactor: -1.0,  rpm: 450 },
+      mild_left:    { label: "Mild Left Hook",   spinFactor: -0.52, rpm: 300 },
+      straight:     { label: "Straight Bullet",  spinFactor: 0.0,   rpm: 90  },
+      mild_right:   { label: "Mild Right Backup",spinFactor: 0.52,  rpm: 280 },
+      strong_right: { label: "Strong Right Hook",spinFactor: 1.0,   rpm: 430 },
+    };
+
+    const SPLIT_CLINIC_PRESETS = {
+      bedposts: {
+        name: "7-10 Bedposts",
+        pins: [7, 10],
+        tip: "Clip the outside edge of the 7 or 10 at 19+ mph with Polyester Spare to bounce it across the pit!",
+        stanceBoard: 12,
+        aimDeg: -3.2,
+        hook: "straight",
+        ball: "polyester",
+        power: 96,
+      },
+      greek: {
+        name: "Greek Church (4-6-7-9-10)",
+        pins: [4, 6, 7, 9, 10],
+        tip: "Slide the 6-pin sideways across the deck into the 4-7 cluster while clipping the 9-10!",
+        stanceBoard: 31,
+        aimDeg: 2.3,
+        hook: "straight",
+        ball: "polyester",
+        power: 92,
+      },
+      bigfour: {
+        name: "Big Four (4-6-7-10)",
+        pins: [4, 6, 7, 10],
+        tip: "Cut the left inside wall of the 6-pin so it rockets across into the 4-7 while the ball takes the 10!",
+        stanceBoard: 32,
+        aimDeg: 2.4,
+        hook: "mild_left",
+        ball: "urethane",
+        power: 90,
+      },
+      babysplit: {
+        name: "Baby Split (3-10)",
+        pins: [3, 10],
+        tip: "Fit the 8.5-inch ball directly into the gap between the 3 and 10 pins!",
+        stanceBoard: 29,
+        aimDeg: 2.05,
+        hook: "straight",
+        ball: "polyester",
+        power: 88,
+      },
+      washout: {
+        name: "Washout (1-2-4-10)",
+        pins: [1, 2, 4, 10],
+        tip: "Clip the right side of the 1-pin so it deflects left into 2-4 while the ball continues into the 10-pin!",
+        stanceBoard: 24,
+        aimDeg: 0.85,
+        hook: "mild_left",
+        ball: "urethane",
+        power: 86,
+      },
+      fullrack: {
+        name: "Full 10-Pin Rack",
+        pins: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        tip: "Target the 1-3 pocket at a 4°–6° entry angle for maximum 10-pin messenger carry!",
+        stanceBoard: 27,
+        aimDeg: -1.8,
+        hook: "strong_left",
+        ball: "reactive",
+        power: 86,
+      },
+    };
+
+    const AI_PROFILES = {
+      amateur: {
+        name: "🟢 Alley Amateur",
+        subtitle: "House Ball Stroker",
+        boardJitter: 3.4,
+        angleJitter: 1.15,
+        powerJitter: 9.0,
+        ball: "urethane",
+        hook: "mild_left",
+      },
+      semipro: {
+        name: "🔵 League Semi-Pro",
+        subtitle: "Regional Scratch Bowler",
+        boardJitter: 1.45,
+        angleJitter: 0.48,
+        powerJitter: 4.5,
+        ball: "reactive",
+        hook: "strong_left",
+      },
+      legend: {
+        name: "🟣 PBA 300 Legend",
+        subtitle: "Touring Reactive Cranker",
+        boardJitter: 0.48,
+        angleJitter: 0.16,
+        powerJitter: 1.8,
+        ball: "reactive",
+        hook: "strong_left",
+      },
+    };
+
+    /* ============================================================================
+     * 3. OFFICIAL PBA 10-FRAME SCORING & SPLIT DETECTOR
+     * ============================================================================ */
+    function createBlankFrames() {
+      const frames = [];
+      for (let i = 0; i < 10; i++) {
+        frames.push({
+          rolls: [],
+          splitFirstRoll: false,
+          cumulative: null,
+        });
+      }
+      return frames;
+    }
+
+    // Detects whether a remaining standing pin configuration after Ball 1 is an official Split:
+    // Headpin (1) must be knocked down, and at least 2 non-adjacent pin columns exist.
+    function detectOfficialSplit(standingPinIds) {
+      if (!standingPinIds || standingPinIds.length < 2 || standingPinIds.length >= 10) {
+        return false;
+      }
+      if (standingPinIds.includes(1)) {
+        return false; // Headpin still standing = washout, not an official split
+      }
+      // Map each pin 1..10 to its lateral column index (-3 to +3):
+      const colMap = {
+        7: -3,
+        4: -2,
+        2: -1, 8: -1,
+        1: 0,  5: 0,
+        3: 1,  9: 1,
+        6: 2,
+        10: 3,
+      };
+      const cols = Array.from(new Set(standingPinIds.map((id) => colMap[id]))).sort((a, b) => a - b);
+      for (let i = 1; i < cols.length; i++) {
+        if (cols[i] - cols[i - 1] > 1) {
+          return true;
+        }
+      }
+      // Also check same-row gap splits like 2-3 or 4-6 or 7-9 or 8-10
+      const pairSplits = [
+        [2, 3], [4, 6], [7, 9], [8, 10], [7, 10], [3, 10], [2, 7]
+      ];
+      return pairSplits.some(([a, b]) => standingPinIds.includes(a) && standingPinIds.includes(b));
+    }
+
+    function computeScoreboardTotals(frames) {
+      // Flatten all rolls with frame index references
+      const flatRolls = [];
+      for (let f = 0; f < 10; f++) {
+        for (let r = 0; r < frames[f].rolls.length; r++) {
+          flatRolls.push({ frame: f, rollIndex: r, pins: frames[f].rolls[r] });
+        }
+      }
+
+      // Map start index in flatRolls for each frame
+      const frameStartIdx = new Array(10).fill(-1);
+      let cursor = 0;
+      for (let f = 0; f < 10; f++) {
+        if (frames[f].rolls.length > 0) {
+          frameStartIdx[f] = cursor;
+          cursor += frames[f].rolls.length;
+        }
+      }
+
+      let runningTotal = 0;
+      let latestKnownTotal = 0;
+
+      for (let f = 0; f < 10; f++) {
+        const fr = frames[f];
+        const r = fr.rolls;
+        fr.cumulative = null;
+
+        if (r.length === 0) continue;
+
+        if (f < 9) {
+          const start = frameStartIdx[f];
+          if (r[0] === 10) {
+            // Strike: needs next 2 rolls
+            if (start + 2 < flatRolls.length) {
+              const score = 10 + flatRolls[start + 1].pins + flatRolls[start + 2].pins;
+              runningTotal += score;
+              fr.cumulative = runningTotal;
+              latestKnownTotal = runningTotal;
+            }
+          } else if (r.length >= 2) {
+            if (r[0] + r[1] === 10) {
+              // Spare: needs next 1 roll
+              if (start + 2 < flatRolls.length) {
+                const score = 10 + flatRolls[start + 2].pins;
+                runningTotal += score;
+                fr.cumulative = runningTotal;
+                latestKnownTotal = runningTotal;
+              }
+            } else {
+              // Open frame
+              const score = r[0] + r[1];
+              runningTotal += score;
+              fr.cumulative = runningTotal;
+              latestKnownTotal = runningTotal;
+            }
+          }
+        } else {
+          // 10th Frame
+          const isStrike = r[0] === 10;
+          const isSpare = !isStrike && r.length >= 2 && r[0] + r[1] === 10;
+          if ((isStrike || isSpare) && r.length === 3) {
+            runningTotal += r[0] + r[1] + r[2];
+            fr.cumulative = runningTotal;
+            latestKnownTotal = runningTotal;
+          } else if (!isStrike && !isSpare && r.length === 2) {
+            runningTotal += r[0] + r[1];
+            fr.cumulative = runningTotal;
+            latestKnownTotal = runningTotal;
+          }
+        }
+      }
+
+      // Compute Max Possible Score if player strikes out from current state
+      const simFrames = frames.map((fr) => ({
+        rolls: [...fr.rolls],
+        splitFirstRoll: fr.splitFirstRoll,
+        cumulative: null,
+      }));
+      for (let f = 0; f < 10; f++) {
+        const sr = simFrames[f].rolls;
+        if (f < 9) {
+          if (sr.length === 0) {
+            sr.push(10);
+          } else if (sr.length === 1 && sr[0] < 10) {
+            sr.push(10 - sr[0]);
+          }
+        } else {
+          if (sr.length === 0) {
+            sr.push(10, 10, 10);
+          } else if (sr.length === 1) {
+            if (sr[0] === 10) sr.push(10, 10);
+            else sr.push(10 - sr[0], 10);
+          } else if (sr.length === 2) {
+            if (sr[0] === 10) {
+              if (sr[1] === 10) sr.push(10);
+              else sr.push(10 - sr[1]);
+            } else if (sr[0] + sr[1] === 10) {
+              sr.push(10);
+            }
+          }
+        }
+      }
+
+      // Calculate simulated total
+      let maxPace = 0;
+      const simFlat = [];
+      for (let f = 0; f < 10; f++) {
+        for (const p of simFrames[f].rolls) simFlat.push(p);
+      }
+      let idx = 0;
+      for (let f = 0; f < 10; f++) {
+        const sr = simFrames[f].rolls;
+        if (f < 9) {
+          if (sr[0] === 10) {
+            maxPace += 10 + (simFlat[idx + 1] || 0) + (simFlat[idx + 2] || 0);
+            idx += 1;
+          } else {
+            if (sr[0] + sr[1] === 10) {
+              maxPace += 10 + (simFlat[idx + 2] || 0);
+            } else {
+              maxPace += sr[0] + sr[1];
+            }
+            idx += 2;
+          }
+        } else {
+          maxPace += sr.reduce((a, b) => a + b, 0);
+        }
+      }
+
+      return { total: latestKnownTotal, maxPace };
+    }
+
+    function formatFrameRollBoxes(frameObj, frameIndex) {
+      const r = frameObj.rolls;
+      const fmtVal = (v) => (v === 0 ? "-" : String(v));
+
+      if (frameIndex < 9) {
+        if (r.length === 0) return [{ text: "", cls: "" }, { text: "", cls: "" }];
+        if (r[0] === 10) {
+          return [{ text: "", cls: "" }, { text: "X", cls: "strike-mark" }];
+        }
+        const b1 = {
+          text: fmtVal(r[0]),
+          cls: frameObj.splitFirstRoll ? "split-mark" : "",
+        };
+        if (r.length === 1) {
+          return [b1, { text: "", cls: "" }];
+        }
+        const isSpare = r[0] + r[1] === 10;
+        const b2 = {
+          text: isSpare ? "/" : fmtVal(r[1]),
+          cls: isSpare ? "spare-mark" : "",
+        };
+        return [b1, b2];
+      }
+
+      // 10th Frame (3 boxes)
+      const boxes = [
+        { text: "", cls: "" },
+        { text: "", cls: "" },
+        { text: "", cls: "" },
+      ];
+      if (r.length >= 1) {
+        boxes[0] = r[0] === 10
+          ? { text: "X", cls: "strike-mark" }
+          : { text: fmtVal(r[0]), cls: frameObj.splitFirstRoll ? "split-mark" : "" };
+      }
+      if (r.length >= 2) {
+        if (r[0] === 10) {
+          boxes[1] = r[1] === 10
+            ? { text: "X", cls: "strike-mark" }
+            : { text: fmtVal(r[1]), cls: "" };
+        } else if (r[0] + r[1] === 10) {
+          boxes[1] = { text: "/", cls: "spare-mark" };
+        } else {
+          boxes[1] = { text: fmtVal(r[1]), cls: "" };
+        }
+      }
+      if (r.length >= 3) {
+        if (r[2] === 10 && (r[0] + r[1] === 10 || r[1] === 10 || r[0] === 10 && r[1] < 10 && r[1] + r[2] !== 10)) {
+          if (r[0] === 10 && r[1] < 10 && r[1] + r[2] === 10) {
+            boxes[2] = { text: "/", cls: "spare-mark" };
+          } else {
+            boxes[2] = r[2] === 10 ? { text: "X", cls: "strike-mark" } : { text: fmtVal(r[2]), cls: "" };
+          }
+        } else if (r[0] === 10 && r[1] < 10 && r[1] + r[2] === 10) {
+          boxes[2] = { text: "/", cls: "spare-mark" };
+        } else {
+          boxes[2] = r[2] === 10 ? { text: "X", cls: "strike-mark" } : { text: fmtVal(r[2]), cls: "" };
+        }
+      }
+      return boxes;
+    }
+
+    /* ============================================================================
+     * 4. MAIN GAME STATE & RIGID-BODY DOMINO PHYSICS ENGINE
+     * ============================================================================ */
+    const canvas = document.getElementById("bowlingCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const CAREER_STORAGE_KEY = "codecaine_bowling_career_v1";
+    function loadCareerStats() {
+      try {
+        const raw = window.localStorage.getItem(CAREER_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return {
+            highGame: Number(parsed.highGame) || 0,
+            totalStrikes: Number(parsed.totalStrikes) || 0,
+            splitsConverted: Number(parsed.splitsConverted) || 0,
+            gamesPlayed: Number(parsed.gamesPlayed) || 0,
+          };
+        }
+      } catch (_) {}
+      return { highGame: 0, totalStrikes: 0, splitsConverted: 0, gamesPlayed: 0 };
+    }
+
+    function saveCareerStats() {
+      try {
+        window.localStorage.setItem(CAREER_STORAGE_KEY, JSON.stringify(state.career));
+      } catch (_) {}
+    }
+
+    const state = {
+      mode: "championship", // "championship" | "passplay" | "clinic"
+      aiKey: "semipro",
+      cosmicTheme: true,
+      showOilShimmer: true,
+      selectedBall: "reactive",
+      selectedHook: "strong_left",
+      selectedClinicSplit: "bedposts",
+
+      // Bowler controls:
+      // Board numbers run 1 (right edge) to 39 (left edge), Board 20 is center.
+      stanceBoard: 27.0,
+      aimAngleDeg: -1.8,
+      powerPercent: 86,
+
+      // Match players
+      players: [],
+      activePlayerIdx: 0,
+      currentFrameIdx: 0,
+      rollInFrame: 0, // 0 = first ball, 1 = second ball, 2 = 10th frame bonus
+      pinsStandingBeforeRoll: 10,
+      splitActiveBeforeRoll: false,
+      matchFinished: false,
+
+      // Physics entities
+      phase: "aiming", // "aiming" | "rolling" | "settling" | "sweeping" | "ai_thinking"
+      phaseTimer: 0,
+      sweeperHeight: 0, // 0 = raised, 1 = lowered on deck
+
+      ball: {
+        active: false,
+        x: 0,
+        y: 0,
+        z: -2.0,
+        vx: 0,
+        vz: 0,
+        radiusIn: 4.25,
+        spinFactor: -1.0,
+        rpm: 440,
+        rollAngle: 0,
+        axisAngle: -0.45,
+        inGutter: false,
+        inPit: false,
+        entryAngleDeg: 0,
+        hitPocket: false,
+        trail: [],
+      },
+
+      pins: [],
+      particles: [],
+      oilMarks: [],
+      career: loadCareerStats(),
+
+      // Pointer drag-and-flick state
+      pointerDown: false,
+      dragStartX: 0,
+      dragStartY: 0,
+      dragStartTime: 0,
+    };
+
+    function boardToLateralInches(boardNum) {
+      // Board 20 = 0.0 inches (center).
+      // Board 39 = -20.2 inches (left). Board 1 = +20.2 inches (right).
+      return (20.0 - boardNum) * (LANE_HALF_WIDTH_IN / 19.5);
+    }
+
+    function lateralInchesToBoard(xIn) {
+      return Math.max(1, Math.min(39, 20.0 - xIn / (LANE_HALF_WIDTH_IN / 19.5)));
+    }
+
+    function createPinObjects(standingIds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
+      return PIN_POSITIONS_TEMPLATE.map((tpl) => {
+        const isUp = standingIds.includes(tpl.id);
+        return {
+          id: tpl.id,
+          homeX: tpl.x,
+          homeZ: tpl.z,
+          x: tpl.x,
+          y: 0,
+          z: tpl.z,
+          vx: 0,
+          vy: 0,
+          vz: 0,
+          radiusIn: 2.38,
+          standing: isUp,
+          removed: !isUp,
+          tilt: isUp ? 0 : Math.PI * 0.48,
+          tiltDir: 0,
+          tiltVel: 0,
+          spinYaw: 0,
+          spinVel: 0,
+          hitCount: 0,
+        };
+      });
+    }
+
+    function resetPinDeck(standingIds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
+      state.pins = createPinObjects(standingIds);
+      state.pinsStandingBeforeRoll = standingIds.length;
+      updatePinDiagramUI();
+    }
+
+    function resetBallOnApproach() {
+      const ballSpec = ARSENAL_BALLS[state.selectedBall];
+      const hookSpec = HOOK_PRESETS[state.selectedHook];
+      state.ball.active = false;
+      state.ball.x = boardToLateralInches(state.stanceBoard);
+      state.ball.y = 0;
+      state.ball.z = -1.6;
+      state.ball.vx = 0;
+      state.ball.vz = 0;
+      state.ball.spinFactor = hookSpec.spinFactor;
+      state.ball.rpm = Math.round(hookSpec.rpm * (ballSpec.id === "polyester" ? 0.45 : 1));
+      state.ball.inGutter = false;
+      state.ball.inPit = false;
+      state.ball.trail = [];
+    }
+
+    function addPlayByPlay(text, highlightColor = "#38bdf8") {
+      const feed = document.getElementById("playByPlayFeed");
+      if (!feed) return;
+      const item = document.createElement("div");
+      item.className = "feed-item";
+      item.style.borderLeftColor = highlightColor;
+      item.innerHTML = text;
+      feed.prepend(item);
+      while (feed.children.length > 18) {
+        feed.removeChild(feed.lastChild);
+      }
+    }
+
+    function showCelebrationBanner(title, subtitle, borderColor = "#facc15", durationMs = 2100) {
+      const banner = document.getElementById("celebrationBanner");
+      const bTitle = document.getElementById("bannerTitle");
+      const bSub = document.getElementById("bannerSub");
+      if (!banner || !bTitle || !bSub) return;
+
+      bTitle.textContent = title;
+      bSub.textContent = subtitle;
+      banner.style.borderColor = borderColor;
+      banner.classList.add("visible");
+
+      clearTimeout(showCelebrationBanner._timer);
+      showCelebrationBanner._timer = setTimeout(() => {
+        banner.classList.remove("visible");
+      }, durationMs);
+    }
+
+    function spawnCelebrationParticles(count = 55) {
+      const colors = ["#facc15", "#38bdf8", "#f43f5e", "#00f5d4", "#a855f7", "#ffffff"];
+      for (let i = 0; i < count; i++) {
+        state.particles.push({
+          x: (Math.random() - 0.5) * 36,
+          y: 2 + Math.random() * 14,
+          z: 57 + Math.random() * 6,
+          vx: (Math.random() - 0.5) * 45,
+          vy: 14 + Math.random() * 26,
+          vz: (Math.random() - 0.5) * 12,
+          color: colors[i % colors.length],
+          size: 3 + Math.random() * 4,
+          life: 1.0,
+        });
+      }
+    }
+
+    /* ============================================================================
+     * 5. MATCH INITIALIZATION & TURN MANAGEMENT
+     * ============================================================================ */
+    function initMatch() {
+      BowlingAudio.stopRollingRumble();
+      state.matchFinished = false;
+      state.currentFrameIdx = 0;
+      state.activePlayerIdx = 0;
+      state.rollInFrame = 0;
+      state.splitActiveBeforeRoll = false;
+      state.oilMarks = [];
+
+      const aiProfile = AI_PROFILES[state.aiKey] || AI_PROFILES.semipro;
+
+      if (state.mode === "championship") {
+        state.players = [
+          {
+            name: "⚡ YOU (Challenger)",
+            sub: "Pro Reactive Bowler",
+            isAI: false,
+            frames: createBlankFrames(),
+            streak: 0,
+          },
+          {
+            name: aiProfile.name,
+            sub: aiProfile.subtitle,
+            isAI: true,
+            aiKey: state.aiKey,
+            frames: createBlankFrames(),
+            streak: 0,
+          },
+        ];
+      } else if (state.mode === "passplay") {
+        state.players = [
+          {
+            name: "🎳 PLAYER 1",
+            sub: "Host Bowler",
+            isAI: false,
+            frames: createBlankFrames(),
+            streak: 0,
+          },
+          {
+            name: "🔥 PLAYER 2",
+            sub: "Challenger",
+            isAI: false,
+            frames: createBlankFrames(),
+            streak: 0,
+          },
+        ];
+      } else {
+        // Split Spare Clinic Mode
+        const preset = SPLIT_CLINIC_PRESETS[state.selectedClinicSplit] || SPLIT_CLINIC_PRESETS.bedposts;
+        state.players = [
+          {
+            name: "🎯 SPLIT CLINIC PRO",
+            sub: `Drill: ${preset.name}`,
+            isAI: false,
+            frames: createBlankFrames(),
+            streak: 0,
+          },
+        ];
+      }
+
+      const clinicRow = document.getElementById("clinicPresetRow");
+      if (clinicRow) {
+        clinicRow.classList.toggle("active", state.mode === "clinic");
+      }
+
+      if (state.mode === "clinic") {
+        applyClinicPreset(state.selectedClinicSplit);
+      } else {
+        resetPinDeck([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+        lineUpPocketPreset();
+      }
+
+      state.phase = "aiming";
+      resetBallOnApproach();
+      renderScoreboardUI();
+      updateTelemetryUI();
+      addPlayByPlay(
+        state.mode === "clinic"
+          ? `🎯 <strong>Split Spare Clinic</strong> active: Convert famous PBA spare leaves!`
+          : `🏆 <strong>Frame 1</strong> underway! Aim for the <strong>1–3 Pocket</strong> past the 40ft oil line.`
+      );
+    }
+
+    function applyClinicPreset(splitKey) {
+      state.selectedClinicSplit = splitKey;
+      const preset = SPLIT_CLINIC_PRESETS[splitKey] || SPLIT_CLINIC_PRESETS.bedposts;
+      document.querySelectorAll(".preset-chip").forEach((btn) => {
+        btn.classList.toggle("selected", btn.dataset.split === splitKey);
+      });
+      const tipEl = document.getElementById("clinicTipText");
+      if (tipEl) tipEl.textContent = `Tip: ${preset.tip}`;
+
+      if (state.players[0]) {
+        state.players[0].sub = `Drill: ${preset.name}`;
+      }
+
+      state.stanceBoard = preset.stanceBoard;
+      state.aimAngleDeg = preset.aimDeg;
+      state.powerPercent = preset.power;
+      selectBall(preset.ball);
+      selectHook(preset.hook);
+      syncControlsUI();
+
+      resetPinDeck([...preset.pins]);
+      state.splitActiveBeforeRoll = preset.pins.length < 10;
+      state.phase = "aiming";
+      resetBallOnApproach();
+      renderScoreboardUI();
+    }
+
+    function lineUpPocketPreset() {
+      // Line up for a classic right-handed 1-3 pocket hook or straight shot depending on ball
+      if (state.selectedBall === "polyester") {
+        state.stanceBoard = 19.0;
+        state.aimAngleDeg = -0.3;
+        selectHook("straight");
+        state.powerPercent = 88;
+      } else if (state.selectedBall === "urethane") {
+        state.stanceBoard = 24.5;
+        state.aimAngleDeg = -1.2;
+        selectHook("mild_left");
+        state.powerPercent = 85;
+      } else {
+        state.stanceBoard = 27.0;
+        state.aimAngleDeg = -1.8;
+        selectHook("strong_left");
+        state.powerPercent = 86;
+      }
+      syncControlsUI();
+      resetBallOnApproach();
+    }
+
+    function lineUpBestSparePreset() {
+      const standing = state.pins.filter((p) => p.standing);
+      if (standing.length === 0 || standing.length === 10) {
+        lineUpPocketPreset();
+        return;
+      }
+      // Target the foremost or cluster pin using the laser-straight Polyester Spare ball
+      selectBall("polyester");
+      selectHook("straight");
+      standing.sort((a, b) => a.z - b.z || a.x - b.x);
+      const targetPin = standing[0];
+
+      // Cross-lane spare system (3-6-9 system): stand opposite side of lane for wider angle
+      const stanceBoard = targetPin.x > 4 ? 32 : targetPin.x < -4 ? 8 : 20;
+      const startX = boardToLateralInches(stanceBoard);
+      const dxIn = targetPin.x - startX;
+      const dzIn = (targetPin.z - 0) * 12.0;
+      const angleDeg = (Math.atan2(dxIn, dzIn) * 180) / Math.PI;
+
+      state.stanceBoard = stanceBoard;
+      state.aimAngleDeg = Math.max(-8, Math.min(8, Number(angleDeg.toFixed(1))));
+      state.powerPercent = 90;
+      syncControlsUI();
+      resetBallOnApproach();
+      addPlayByPlay(`🎯 Auto-lined cross-lane spare sniper at <strong>Pin ${targetPin.id}</strong>!`, "#00f5d4");
+    }
+
+    /* ============================================================================
+     * 6. BALL TRAJECTORY PREDICTION & LAUNCH MECHANICS
+     * ============================================================================ */
+    // Computes lateral hook acceleration in inches/sec^2 at depth z (feet)
+    function computeLateralHookAccel(zFeet, ballSpec, spinFactor, speedFtPerSec) {
+      if (zFeet < 0 || zFeet > 63.5) return 0;
+      // 0 to 40 ft: oiled zone (low friction skid/transition)
+      // 40 to 60 ft: dry maple backend (high friction hook breakpoint!)
+      const isDryBackend = zFeet >= OIL_PATTERN_LENGTH_FT;
+      const transitionRamp = zFeet < 26
+        ? 0.12
+        : zFeet < OIL_PATTERN_LENGTH_FT
+          ? 0.12 + ((zFeet - 26) / 14) * 0.28
+          : 1.0 + Math.min(0.45, (zFeet - OIL_PATTERN_LENGTH_FT) / 14);
+
+      const frictionCoeff = isDryBackend
+        ? ballSpec.hookPotential * ballSpec.backendSnap * transitionRamp
+        : ballSpec.hookPotential * ballSpec.oilGrip * transitionRamp;
+
+      // Slower balls have more time to hook on the dry boards
+      const speedScaling = Math.pow(27.0 / Math.max(18.0, speedFtPerSec), 0.65);
+      return spinFactor * frictionCoeff * 38.5 * speedScaling;
+    }
+
+    function simulatePreviewPath() {
+      const ballSpec = ARSENAL_BALLS[state.selectedBall];
+      const hookSpec = HOOK_PRESETS[state.selectedHook];
+      const speedMph = 11.5 + (state.powerPercent / 100) * 10.0;
+      const speedFtSec = speedMph * 1.46667;
+      const rad = (state.aimAngleDeg * Math.PI) / 180;
+
+      let x = boardToLateralInches(state.stanceBoard);
+      let z = 0;
+      let vx = Math.sin(rad) * speedFtSec * 12.0; // inches/sec
+      let vz = Math.cos(rad) * speedFtSec;        // feet/sec
+      const dt = 0.025;
+      const points = [{ x, z, dry: false }];
+
+      for (let step = 0; step < 120; step++) {
+        const ax = computeLateralHookAccel(z, ballSpec, hookSpec.spinFactor, vz);
+        vx += ax * dt;
+        x += vx * dt;
+        z += vz * dt;
+        if (Math.abs(x) > LANE_HALF_WIDTH_IN - 1.2) {
+          x = Math.sign(x) * (LANE_HALF_WIDTH_IN + GUTTER_WIDTH_IN * 0.48);
+          points.push({ x, z, dry: z >= OIL_PATTERN_LENGTH_FT, gutter: true });
+          break;
+        }
+        points.push({ x, z, dry: z >= OIL_PATTERN_LENGTH_FT, gutter: false });
+        if (z >= HEADPIN_Z_FT + 1.5) break;
+      }
+      return points;
+    }
+
+    function launchBowlingBall(customParams = null) {
+      if (state.phase !== "aiming" && state.phase !== "ai_thinking") return;
+      if (state.matchFinished) return;
+
+      const ballSpec = ARSENAL_BALLS[customParams?.ball || state.selectedBall];
+      const hookSpec = HOOK_PRESETS[customParams?.hook || state.selectedHook];
+      const stanceBoard = customParams?.stanceBoard ?? state.stanceBoard;
+      const aimAngleDeg = customParams?.aimAngleDeg ?? state.aimAngleDeg;
+      const powerPercent = customParams?.powerPercent ?? state.powerPercent;
+
+      const speedMph = 11.5 + (powerPercent / 100) * 10.0;
+      const speedFtSec = speedMph * 1.46667;
+      const rad = (aimAngleDeg * Math.PI) / 180;
+
+      state.ball.active = true;
+      state.ball.x = boardToLateralInches(stanceBoard);
+      state.ball.y = 0;
+      state.ball.z = 0.0;
+      state.ball.vx = Math.sin(rad) * speedFtSec * 12.0; // inches/sec
+      state.ball.vz = Math.cos(rad) * speedFtSec;        // feet/sec
+      state.ball.spinFactor = hookSpec.spinFactor;
+      state.ball.rpm = Math.round(hookSpec.rpm * (ballSpec.id === "polyester" ? 0.45 : 1));
+      state.ball.rollAngle = 0;
+      state.ball.inGutter = false;
+      state.ball.inPit = false;
+      state.ball.entryAngleDeg = Math.abs(aimAngleDeg);
+      state.ball.hitPocket = false;
+      state.ball.trail = [];
+
+      state.pinsStandingBeforeRoll = state.pins.filter((p) => p.standing).length;
+      state.phase = "rolling";
+      state.phaseTimer = 0;
+
+      // Record oil track mark
+      state.oilMarks.push({
+        startX: state.ball.x,
+        spin: state.ball.spinFactor,
+        alpha: 0.35,
+      });
+      if (state.oilMarks.length > 10) state.oilMarks.shift();
+
+      BowlingAudio.playBallReleaseThud(speedMph);
+      BowlingAudio.startRollingRumble();
+
+      document.getElementById("bowlBallBtn").disabled = true;
+      document.getElementById("statSpeed").textContent = `${speedMph.toFixed(1)} mph`;
+      document.getElementById("statRevs").textContent = `${state.ball.rpm} rpm`;
+      document.getElementById("liveShotBadge").innerHTML =
+        `🎱 Ball in Motion • <strong>${speedMph.toFixed(1)} MPH</strong> • <strong>${state.ball.rpm} RPM</strong>`;
+    }
+
+    /* ============================================================================
+     * 7. SUB-STEPPED RIGID-BODY 10-PIN DOMINO PHYSICS STEP
+     * ============================================================================ */
+    function updatePhysics(dt) {
+      // Update celebration particles
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const pt = state.particles[i];
+        pt.x += pt.vx * dt;
+        pt.y += pt.vy * dt;
+        pt.z += pt.vz * dt * 0.1;
+        pt.vy -= 48 * dt;
+        pt.life -= dt * 0.72;
+        if (pt.life <= 0) state.particles.splice(i, 1);
+      }
+
+      if (state.phase === "ai_thinking") {
+        state.phaseTimer += dt;
+        if (state.phaseTimer >= 0.85) {
+          executeAIShot();
+        }
+        return;
+      }
+
+      if (state.phase === "sweeping") {
+        state.phaseTimer += dt;
+        if (state.phaseTimer < 0.35) {
+          state.sweeperHeight = state.phaseTimer / 0.35;
+        } else if (state.phaseTimer < 0.65) {
+          state.sweeperHeight = 1.0;
+        } else if (state.phaseTimer < 0.95) {
+          state.sweeperHeight = Math.max(0, 1.0 - (state.phaseTimer - 0.65) / 0.3);
+        } else {
+          state.sweeperHeight = 0;
+          completeRollAndAdvance();
+        }
+        return;
+      }
+
+      if (state.phase !== "rolling" && state.phase !== "settling") {
+        return;
+      }
+
+      state.phaseTimer += dt;
+      const subSteps = 8;
+      const subDt = dt / subSteps;
+      const ballSpec = ARSENAL_BALLS[state.selectedBall];
+
+      for (let s = 0; s < subSteps; s++) {
+        // 1. Update Bowling Ball
+        if (state.ball.active && !state.ball.inPit) {
+          if (!state.ball.inGutter) {
+            const ax = computeLateralHookAccel(
+              state.ball.z,
+              ballSpec,
+              state.ball.spinFactor,
+              state.ball.vz
+            );
+            state.ball.vx += ax * subDt;
+            // Subtle rolling drag
+            state.ball.vz = Math.max(12.0, state.ball.vz * (1 - 0.018 * subDt));
+          } else {
+            // Guided along the side gutter channel
+            const targetGutterX = Math.sign(state.ball.x) * (LANE_HALF_WIDTH_IN + GUTTER_WIDTH_IN * 0.52);
+            state.ball.x += (targetGutterX - state.ball.x) * 14 * subDt;
+            state.ball.vx = 0;
+          }
+
+          state.ball.x += state.ball.vx * subDt;
+          state.ball.z += state.ball.vz * subDt;
+          state.ball.rollAngle += state.ball.vz * subDt * 2.6;
+
+          // Check gutter drop before pin deck tail
+          if (!state.ball.inGutter && state.ball.z < DECK_END_Z_FT - 0.3) {
+            if (Math.abs(state.ball.x) > LANE_HALF_WIDTH_IN - 0.55) {
+              state.ball.inGutter = true;
+              BowlingAudio.playGutterThump();
+              addPlayByPlay(`⚠️ Ball dropped into the <strong>side gutter channel</strong> at ${state.ball.z.toFixed(0)} ft!`, "#f43f5e");
+            }
+          }
+
+          // Compute entry angle as ball crosses headpin plane
+          if (Math.abs(state.ball.z - HEADPIN_Z_FT) < 0.35 && !state.ball.inGutter) {
+            const angleRad = Math.atan2(Math.abs(state.ball.vx), state.ball.vz * 12.0);
+            state.ball.entryAngleDeg = (angleRad * 180) / Math.PI;
+            if (Math.abs(state.ball.x) <= 5.2) {
+              state.ball.hitPocket = true;
+            }
+          }
+
+          // Ball enters dark back pit past pin deck
+          if (state.ball.z > DECK_END_Z_FT + 1.4) {
+            state.ball.inPit = true;
+            state.ball.active = false;
+            BowlingAudio.stopRollingRumble();
+            if (state.phase === "rolling") {
+              state.phase = "settling";
+              state.phaseTimer = 0;
+            }
+          }
+        }
+
+        // 2. Ball-to-Pin Collisions (only if ball is on the lane/deck, not in gutter)
+        if (state.ball.active && !state.ball.inGutter && state.ball.z >= HEADPIN_Z_FT - 1.5) {
+          for (const pin of state.pins) {
+            if (pin.removed) continue;
+            // Convert Z difference from feet to inches so collision happens in uniform inches
+            const dx = pin.x - state.ball.x;
+            const dzIn = (pin.z - state.ball.z) * 12.0;
+            const dist = Math.hypot(dx, dzIn);
+            const minDist = state.ball.radiusIn + pin.radiusIn;
+
+            if (dist < minDist && dist > 0.0001) {
+              const nx = dx / dist;
+              const nz = dzIn / dist;
+              const overlap = minDist - dist;
+
+              // Push pin out of overlap
+              pin.x += nx * overlap * 0.92;
+              pin.z += (nz * overlap * 0.92) / 12.0;
+
+              // Relative velocity in inches/sec
+              const ballVzIn = state.ball.vz * 12.0;
+              const relVx = state.ball.vx - pin.vx;
+              const relVz = ballVzIn - pin.vz * 12.0;
+              const sepVel = relVx * nx + relVz * nz;
+
+              if (sepVel > 0) {
+                // Pocket bonus: flush entry between 3.5° and 7.5° transfers extra lively scatter
+                const pocketBoost = state.ball.hitPocket ? 1.18 : 1.05;
+                const impulse = sepVel * 1.42 * pocketBoost;
+
+                // Add reactive spin kick (messengers!)
+                const spinKickX = state.ball.spinFactor * 36.0 * (Math.random() * 0.4 + 0.8);
+
+                pin.vx += nx * impulse + spinKickX * 0.35;
+                pin.vz += (nz * impulse) / 12.0;
+                pin.vy = Math.max(pin.vy, 6 + Math.random() * 10);
+
+                // Heavy 15lb ball deflects slightly against 3.5lb maple pin
+                state.ball.vx -= nx * impulse * 0.11;
+                state.ball.vz -= ((nz * impulse) / 12.0) * 0.06;
+
+                pin.tiltVel += ( impulse / 120 ) * (1.2 + Math.random() * 0.5);
+                pin.tiltDir = Math.atan2(pin.vx, pin.vz * 12.0);
+                pin.spinVel += (Math.random() - 0.5) * 18;
+                pin.standing = false;
+
+                if (pin.hitCount === 0) {
+                  BowlingAudio.playPinCrash(Math.min(1.4, impulse / 240), pin.id);
+                }
+                pin.hitCount++;
+              }
+            }
+          }
+        }
+
+        // 3. Pin-to-Pin Domino Chain-Reaction Collisions
+        for (let i = 0; i < state.pins.length; i++) {
+          const pA = state.pins[i];
+          if (pA.removed) continue;
+
+          for (let j = i + 1; j < state.pins.length; j++) {
+            const pB = state.pins[j];
+            if (pB.removed) continue;
+
+            // Knocked-down pins have a wider effective sweep radius as their 15-inch body falls across neighbors!
+            const sweepA = pA.standing ? pA.radiusIn : pA.radiusIn * 1.85;
+            const sweepB = pB.standing ? pB.radiusIn : pB.radiusIn * 1.85;
+            const minDist = sweepA + sweepB;
+
+            const dx = pB.x - pA.x;
+            const dzIn = (pB.z - pA.z) * 12.0;
+            const dist = Math.hypot(dx, dzIn);
+
+            if (dist < minDist && dist > 0.0001) {
+              const nx = dx / dist;
+              const nz = dzIn / dist;
+              const overlap = minDist - dist;
+
+              pA.x -= nx * overlap * 0.5;
+              pA.z -= (nz * overlap * 0.5) / 12.0;
+              pB.x += nx * overlap * 0.5;
+              pB.z += (nz * overlap * 0.5) / 12.0;
+
+              const relVx = pA.vx - pB.vx;
+              const relVz = (pA.vz - pB.vz) * 12.0;
+              const sepVel = relVx * nx + relVz * nz;
+
+              if (sepVel > 0) {
+                const restitution = 0.88;
+                const jImp = sepVel * restitution;
+
+                pA.vx -= nx * jImp * 0.45;
+                pA.vz -= ((nz * jImp) / 12.0) * 0.45;
+                pB.vx += nx * jImp * 0.92;
+                pB.vz += ((nz * jImp) / 12.0) * 0.92;
+
+                if (jImp > 14) {
+                  if (pB.standing) {
+                    pB.standing = false;
+                    pB.tiltVel += (jImp / 65) + 2.8;
+                    pB.tiltDir = Math.atan2(nx, nz);
+                    pB.spinVel += (Math.random() - 0.5) * 14;
+                    if (pB.hitCount === 0) {
+                      BowlingAudio.playPinCrash(Math.min(1.1, jImp / 160), pB.id);
+                    }
+                    pB.hitCount++;
+                  }
+                  if (pA.standing && jImp > 24) {
+                    pA.standing = false;
+                    pA.tiltVel += (jImp / 75) + 2.4;
+                    pA.tiltDir = Math.atan2(-nx, -nz);
+                    pA.hitCount++;
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // 4. Advance Pin Motion, Tilt, Side Kickbacks & Deck Boundaries
+        for (const pin of state.pins) {
+          if (pin.removed) continue;
+
+          pin.x += pin.vx * subDt;
+          pin.z += pin.vz * subDt;
+          pin.y = Math.max(0, pin.y + pin.vy * subDt);
+          if (pin.y > 0) {
+            pin.vy -= 140 * subDt;
+          } else {
+            pin.vy = 0;
+          }
+
+          // Sliding friction on pin deck
+          pin.vx *= 1 - 1.9 * subDt;
+          pin.vz *= 1 - 1.9 * subDt;
+          pin.spinYaw += pin.spinVel * subDt;
+          pin.spinVel *= 1 - 1.5 * subDt;
+
+          if (!pin.standing) {
+            pin.tilt = Math.min(Math.PI * 0.5, pin.tilt + pin.tiltVel * subDt);
+            pin.tiltVel += 6.5 * subDt; // gravity toppling torque
+          } else if (
+            Math.hypot(pin.x - pin.homeX, (pin.z - pin.homeZ) * 12) > 2.2 ||
+            Math.abs(pin.x) > LANE_HALF_WIDTH_IN + 0.5
+          ) {
+            pin.standing = false;
+            pin.tiltVel = 4.5;
+          }
+
+          // Side kickback wall rebound in pin pit (allows 7-10 bedpost messenger ricochets!)
+          const pitWallLimit = LANE_HALF_WIDTH_IN + GUTTER_WIDTH_IN;
+          if (Math.abs(pin.x) > pitWallLimit) {
+            pin.x = Math.sign(pin.x) * pitWallLimit;
+            pin.vx = -pin.vx * 0.65;
+            pin.standing = false;
+          }
+        }
+      }
+
+      // Record ball trail for visual hook arc
+      if (state.ball.active) {
+        const speedMph = state.ball.vz / 1.46667;
+        BowlingAudio.updateRollingRumble(speedMph, state.ball.z, state.ball.inGutter);
+        state.ball.trail.push({
+          x: state.ball.x,
+          z: state.ball.z,
+          dry: state.ball.z >= OIL_PATTERN_LENGTH_FT,
+        });
+        if (state.ball.trail.length > 75) state.ball.trail.shift();
+      }
+
+      updatePinDiagramUI();
+
+      // Transition from settling to sweeper bar once pins come to rest
+      if (state.phase === "settling") {
+        const anyMoving = state.pins.some(
+          (p) => !p.removed && (Math.abs(p.vx) > 4.5 || Math.abs(p.vz) > 0.45)
+        );
+        if ((!anyMoving && state.phaseTimer >= 0.55) || state.phaseTimer >= 1.35) {
+          state.phase = "sweeping";
+          state.phaseTimer = 0;
+          BowlingAudio.playSweeperWhirr();
+        }
+      }
+    }
+
+    /* ============================================================================
+     * 8. FRAME SCORING RESOLUTION & TURN PROGRESSION
+     * ============================================================================ */
+    function completeRollAndAdvance() {
+      const standingPins = state.pins.filter((p) => p.standing);
+      const standingNow = standingPins.length;
+      const knockedThisRoll = Math.max(0, state.pinsStandingBeforeRoll - standingNow);
+
+      const player = state.players[state.activePlayerIdx];
+      const frameIndex = state.currentFrameIdx;
+      const frameObj = player.frames[frameIndex];
+
+      document.getElementById("statEntryAngle").textContent = state.ball.inGutter
+        ? "Gutter (0°)"
+        : `${state.ball.entryAngleDeg.toFixed(1)}° ${state.ball.hitPocket ? "Pocket" : "High/Light"}`;
+
+      // SPLIT SPARE CLINIC MODE HANDLING
+      if (state.mode === "clinic") {
+        if (standingNow === 0) {
+          state.career.splitsConverted++;
+          saveCareerStats();
+          BowlingAudio.playFanfare("split");
+          spawnCelebrationParticles(70);
+          showCelebrationBanner(
+            "SPLIT CONVERTED! 🎯",
+            `Cleared the ${SPLIT_CLINIC_PRESETS[state.selectedClinicSplit].name}!`,
+            "#00f5d4"
+          );
+          addPlayByPlay(
+            `🔥 <strong>SPLIT CONVERTED!</strong> You picked up the <strong>${SPLIT_CLINIC_PRESETS[state.selectedClinicSplit].name}</strong>!`,
+            "#00f5d4"
+          );
+        } else {
+          BowlingAudio.playFanfare("open");
+          const leftIds = standingPins.map((p) => p.id).join(", ");
+          showCelebrationBanner(
+            `${knockedThisRoll} PINS HIT`,
+            `Pins still standing: ${leftIds} — Resetting Clinic Drill`,
+            "#f43f5e",
+            1500
+          );
+          addPlayByPlay(
+            `🎯 Clinic shot knocked down <strong>${knockedThisRoll}</strong> pins (Left: <strong>${leftIds}</strong>). Try again!`,
+            "#facc15"
+          );
+        }
+        applyClinicPreset(state.selectedClinicSplit);
+        document.getElementById("bowlBallBtn").disabled = false;
+        updateTelemetryUI();
+        return;
+      }
+
+      // OFFICIAL 10-FRAME MATCH SCORING
+      frameObj.rolls.push(knockedThisRoll);
+      const rollNum = frameObj.rolls.length; // 1, 2, or 3
+
+      // Check if Ball 1 left an official Split
+      if (rollNum === 1 && standingNow > 0 && standingNow < 10) {
+        const standingIds = standingPins.map((p) => p.id);
+        if (detectOfficialSplit(standingIds)) {
+          frameObj.splitFirstRoll = true;
+          state.splitActiveBeforeRoll = true;
+          addPlayByPlay(
+            `⚠️ <strong>SPLIT LEAVE (${standingIds.join("-")})!</strong> Convert it on Ball 2 for a Split Conversion!`,
+            "#f43f5e"
+          );
+        } else {
+          state.splitActiveBeforeRoll = false;
+        }
+      }
+
+      // Determine celebration & streak
+      const isStrikeRoll =
+        (frameIndex < 9 && rollNum === 1 && knockedThisRoll === 10) ||
+        (frameIndex === 9 && knockedThisRoll === 10 && (rollNum === 1 || state.pinsStandingBeforeRoll === 10));
+
+      const isSpareRoll =
+        !isStrikeRoll &&
+        standingNow === 0 &&
+        ((frameIndex < 9 && rollNum === 2) ||
+          (frameIndex === 9 && ((rollNum === 2 && frameObj.rolls[0] < 10) || (rollNum === 3 && frameObj.rolls[1] < 10))));
+
+      if (isStrikeRoll) {
+        player.streak++;
+        if (!player.isAI) {
+          state.career.totalStrikes++;
+          saveCareerStats();
+        }
+        spawnCelebrationParticles(65);
+
+        let strikeTitle = "STRIKE! 🎳 (X)";
+        let fanfareType = "strike";
+        if (player.streak === 2) {
+          strikeTitle = "DOUBLE! ⚡⚡";
+        } else if (player.streak === 3) {
+          strikeTitle = "TURKEY! 🦃🦃🦃";
+          fanfareType = "turkey";
+        } else if (player.streak === 4) {
+          strikeTitle = "HAMBONE! 🔥 (4X)";
+          fanfareType = "turkey";
+        } else if (player.streak >= 5) {
+          strikeTitle = `${player.streak}X PACK STREAK! 🚀`;
+          fanfareType = "turkey";
+        }
+
+        BowlingAudio.playFanfare(fanfareType);
+        showCelebrationBanner(
+          strikeTitle,
+          `${player.name} buries all 10 pins at ${state.ball.entryAngleDeg.toFixed(1)}°!`,
+          "#facc15"
+        );
+        addPlayByPlay(
+          `💥 <strong>${strikeTitle}</strong> — ${player.name} crushes the pocket in Frame ${frameIndex + 1}!`,
+          "#facc15"
+        );
+      } else if (isSpareRoll) {
+        player.streak = 0;
+        const convertedSplit = state.splitActiveBeforeRoll;
+        if (convertedSplit) {
+          if (!player.isAI) {
+            state.career.splitsConverted++;
+            saveCareerStats();
+          }
+          BowlingAudio.playFanfare("split");
+          spawnCelebrationParticles(60);
+          showCelebrationBanner(
+            "SPLIT CONVERTED! (/ )",
+            `${player.name} picks up a wicked split spare!`,
+            "#00f5d4"
+          );
+          addPlayByPlay(
+            `🌟 <strong>SPLIT CONVERTED!</strong> ${player.name} clears the deck for a clutch Spare!`,
+            "#00f5d4"
+          );
+        } else {
+          BowlingAudio.playFanfare("spare");
+          spawnCelebrationParticles(35);
+          showCelebrationBanner(
+            "SPARE! (/ )",
+            `${player.name} cleans up the frame!`,
+            "#00f5d4"
+          );
+          addPlayByPlay(
+            `✨ <strong>SPARE (/)</strong> — ${player.name} closes Frame ${frameIndex + 1}!`,
+            "#00f5d4"
+          );
+        }
+        state.splitActiveBeforeRoll = false;
+      } else {
+        // Non-strike / non-spare ball
+        if (rollNum >= 2 && (frameIndex < 9 || (frameIndex === 9 && frameObj.rolls[0] + frameObj.rolls[1] < 10))) {
+          player.streak = 0;
+          BowlingAudio.playFanfare("open");
+          addPlayByPlay(
+            `📌 ${player.name} knocks down <strong>${knockedThisRoll}</strong> (Open Frame ${frameIndex + 1}).`,
+            "#94a3b8"
+          );
+        } else {
+          const leftIds = standingPins.map((p) => p.id).join("-");
+          addPlayByPlay(
+            `🎳 ${player.name} hits <strong>${knockedThisRoll}</strong> pins on Ball ${rollNum} (Leave: <strong>${leftIds}</strong>).`,
+            "#38bdf8"
+          );
+        }
+      }
+
+      // Decide whether the current player bowls another ball in this frame or turn ends
+      let frameComplete = false;
+      let rackFresh10 = false;
+
+      if (frameIndex < 9) {
+        if (rollNum === 1 && knockedThisRoll === 10) {
+          frameComplete = true;
+          rackFresh10 = true;
+        } else if (rollNum >= 2) {
+          frameComplete = true;
+          rackFresh10 = true;
+        } else {
+          // Ball 2 in frames 1..9: keep standing pins only!
+          frameComplete = false;
+          rackFresh10 = false;
+        }
+      } else {
+        // 10th Frame Official 3-Ball Bonus Rules:
+        if (rollNum === 1) {
+          frameComplete = false;
+          rackFresh10 = knockedThisRoll === 10; // Strike on 1st ball in 10th resets rack!
+        } else if (rollNum === 2) {
+          const firstWasStrike = frameObj.rolls[0] === 10;
+          const madeSpare = !firstWasStrike && frameObj.rolls[0] + frameObj.rolls[1] === 10;
+          if (firstWasStrike || madeSpare) {
+            frameComplete = false;
+            rackFresh10 = standingNow === 0; // Fresh rack if all 10 cleared on ball 2
+          } else {
+            frameComplete = true;
+            rackFresh10 = true;
+          }
+        } else {
+          frameComplete = true;
+          rackFresh10 = true;
+        }
+      }
+
+      renderScoreboardUI();
+      updateTelemetryUI();
+
+      if (!frameComplete) {
+        // Same bowler continues next ball of current frame
+        state.rollInFrame = rollNum;
+        if (rackFresh10) {
+          resetPinDeck([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+          state.splitActiveBeforeRoll = false;
+        } else {
+          const remainingIds = standingPins.map((p) => p.id);
+          resetPinDeck(remainingIds);
+        }
+        prepareNextBallForCurrentPlayer();
+        return;
+      }
+
+      // Advance to next bowler or next frame
+      state.rollInFrame = 0;
+      state.splitActiveBeforeRoll = false;
+
+      if (state.activePlayerIdx + 1 < state.players.length) {
+        state.activePlayerIdx++;
+        resetPinDeck([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+        renderScoreboardUI();
+        prepareNextBallForCurrentPlayer();
+      } else {
+        state.activePlayerIdx = 0;
+        if (state.currentFrameIdx < 9) {
+          state.currentFrameIdx++;
+          resetPinDeck([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+          renderScoreboardUI();
+          prepareNextBallForCurrentPlayer();
+        } else {
+          finishMatch();
+        }
+      }
+    }
+
+    function prepareNextBallForCurrentPlayer() {
+      const currentPlayer = state.players[state.activePlayerIdx];
+      resetBallOnApproach();
+
+      if (currentPlayer.isAI) {
+        state.phase = "ai_thinking";
+        state.phaseTimer = 0;
+        document.getElementById("bowlBallBtn").disabled = true;
+        document.getElementById("liveShotBadge").innerHTML =
+          `🤖 <strong>${currentPlayer.name}</strong> lining up shot...`;
+      } else {
+        state.phase = "aiming";
+        document.getElementById("bowlBallBtn").disabled = false;
+        document.getElementById("liveShotBadge").innerHTML =
+          `🎳 <strong>${currentPlayer.name}</strong> • Frame ${state.currentFrameIdx + 1} Ball ${state.rollInFrame + 1}`;
+      }
+    }
+
+    function executeAIShot() {
+      const player = state.players[state.activePlayerIdx];
+      const profile = AI_PROFILES[player.aiKey || state.aiKey] || AI_PROFILES.semipro;
+      const standing = state.pins.filter((p) => p.standing);
+
+      if (standing.length === 10) {
+        // AI targets the 1-3 pocket with reactive/urethane hook
+        const jitterBoard = (Math.random() - 0.5) * 2 * profile.boardJitter;
+        const jitterAngle = (Math.random() - 0.5) * 2 * profile.angleJitter;
+        const jitterPower = (Math.random() - 0.5) * 2 * profile.powerJitter;
+
+        const baseBoard = profile.ball === "reactive" ? 27.0 : 24.5;
+        const baseAngle = profile.ball === "reactive" ? -1.8 : -1.2;
+
+        launchBowlingBall({
+          ball: profile.ball,
+          hook: profile.hook,
+          stanceBoard: Math.max(4, Math.min(36, baseBoard + jitterBoard)),
+          aimAngleDeg: baseAngle + jitterAngle,
+          powerPercent: Math.max(68, Math.min(98, 86 + jitterPower)),
+        });
+      } else {
+        // AI shoots straight polyester spare ball at foremost standing pin
+        standing.sort((a, b) => a.z - b.z || a.x - b.x);
+        const target = standing[0];
+        const stanceBoard = target.x > 4 ? 32 : target.x < -4 ? 8 : 20;
+        const startX = boardToLateralInches(stanceBoard);
+        const dxIn = target.x - startX;
+        const dzIn = target.z * 12.0;
+        const exactAngle = (Math.atan2(dxIn, dzIn) * 180) / Math.PI;
+        const spareJitter = (Math.random() - 0.5) * 1.4 * profile.angleJitter;
+
+        launchBowlingBall({
+          ball: "polyester",
+          hook: "straight",
+          stanceBoard,
+          aimAngleDeg: exactAngle + spareJitter,
+          powerPercent: 90,
+        });
+      }
+    }
+
+    function finishMatch() {
+      state.matchFinished = true;
+      state.phase = "aiming";
+      document.getElementById("bowlBallBtn").disabled = true;
+
+      const scores = state.players.map((p) => ({
+        player: p,
+        total: computeScoreboardTotals(p.frames).total,
+      }));
+
+      // Update career stats from human player 0
+      const humanScore = scores[0].total;
+      state.career.gamesPlayed++;
+      if (humanScore > state.career.highGame) {
+        state.career.highGame = humanScore;
+      }
+      saveCareerStats();
+      updateTelemetryUI();
+
+      let headline = `FINAL SCORE: ${humanScore}`;
+      let subline = "Click 'New Match' or press [N] to bowl another 10-frame game!";
+
+      if (humanScore === 300) {
+        headline = "🏆 300 PERFECT GAME!! 🏆";
+        subline = "Welcome to the Codecaine 300 Perfect Club — 12 Strikes in a Row!";
+      } else if (scores.length > 1) {
+        const s0 = scores[0].total;
+        const s1 = scores[1].total;
+        if (s0 > s1) {
+          headline = `🏆 VICTORY! ${s0} – ${s1}`;
+          subline = `${scores[0].player.name} wins the 10-Frame Championship!`;
+        } else if (s1 > s0) {
+          headline = `MATCH FINAL: ${s0} – ${s1}`;
+          subline = `${scores[1].player.name} takes the 10-Frame Championship!`;
+        } else {
+          headline = `TIE GAME! ${s0} – ${s1}`;
+          subline = "Dead-even 10-frame thriller!";
+        }
+      }
+
+      BowlingAudio.playFanfare("turkey");
+      spawnCelebrationParticles(90);
+      showCelebrationBanner(headline, subline, "#facc15", 5000);
+      addPlayByPlay(`🏁 <strong>${headline}</strong> — ${subline}`, "#facc15");
+    }
+
+    /* ============================================================================
+     * 9. 3D PERSPECTIVE CAMERA & 39-BOARD MAPLE / COSMIC LANE RENDERER
+     * ============================================================================ */
+    // Projects 3D world coordinates (x in inches, y height in inches, z depth in feet) to 2D canvas
+    function project3D(xIn, yIn, zFt, W, H) {
+      const camYIn = 46.0;
+      const camZFt = -9.2;
+      const focal = W * 0.92;
+      const horizonY = H * 0.19;
+
+      const dzFt = Math.max(1.2, zFt - camZFt);
+      const scale = focal / (dzFt * 12.0);
+
+      const sx = W * 0.5 + xIn * scale;
+      const sy = horizonY + (camYIn - yIn) * scale * 0.95;
+      return { x: sx, y: sy, scale };
+    }
+
+    function renderBowlingScene() {
+      const W = canvas.width;
+      const H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+
+      // 1. Arena Backdrop & PBA Television Light Truss
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+      if (state.cosmicTheme) {
+        bgGrad.addColorStop(0, "#050816");
+        bgGrad.addColorStop(0.22, "#131c3d");
+        bgGrad.addColorStop(1, "#040711");
+      } else {
+        bgGrad.addColorStop(0, "#0b111e");
+        bgGrad.addColorStop(0.24, "#1e293b");
+        bgGrad.addColorStop(1, "#090d16");
+      }
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Back wall neon marquee behind the pin deck
+      const pinTopLeft = project3D(-34, 34, 65, W, H);
+      const pinBotRight = project3D(34, -2, 65, W, H);
+      ctx.save();
+      ctx.fillStyle = "#03050a";
+      ctx.strokeStyle = state.cosmicTheme ? "#38bdf8" : "#facc15";
+      ctx.lineWidth = 2;
+      ctx.fillRect(
+        pinTopLeft.x,
+        pinTopLeft.y,
+        pinBotRight.x - pinTopLeft.x,
+        pinBotRight.y - pinTopLeft.y
+      );
+      ctx.strokeRect(
+        pinTopLeft.x,
+        pinTopLeft.y,
+        pinBotRight.x - pinTopLeft.x,
+        pinBotRight.y - pinTopLeft.y
+      );
+
+      // Back wall CyberStrike 300 header sign
+      ctx.fillStyle = state.cosmicTheme ? "rgba(56, 189, 248, 0.16)" : "rgba(250, 204, 21, 0.14)";
+      ctx.fillRect(
+        pinTopLeft.x + 6,
+        pinTopLeft.y + 4,
+        pinBotRight.x - pinTopLeft.x - 12,
+        18
+      );
+      ctx.fillStyle = state.cosmicTheme ? "#7dd3fc" : "#fef08a";
+      ctx.font = "900 10px 'Segoe UI', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(
+        "★ CODECAINE CYBERSTRIKE 300 CLUB ★",
+        W * 0.5,
+        pinTopLeft.y + 16
+      );
+      ctx.restore();
+
+      // 2. Side Gutters (-3 to 64 ft)
+      const zStart = -4.2;
+      const zEnd = DECK_END_Z_FT;
+      [-1, 1].forEach((side) => {
+        const innerX = side * LANE_HALF_WIDTH_IN;
+        const outerX = side * (LANE_HALF_WIDTH_IN + GUTTER_WIDTH_IN);
+
+        const p1 = project3D(innerX, -1.2, zStart, W, H);
+        const p2 = project3D(outerX, -1.2, zStart, W, H);
+        const p3 = project3D(outerX, -1.2, zEnd, W, H);
+        const p4 = project3D(innerX, -1.2, zEnd, W, H);
+
+        const gGrad = ctx.createLinearGradient(p1.x, 0, p2.x, 0);
+        gGrad.addColorStop(0, "#090d18");
+        gGrad.addColorStop(0.5, "#1e293b");
+        gGrad.addColorStop(1, "#060911");
+
+        ctx.fillStyle = gGrad;
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.lineTo(p3.x, p3.y);
+        ctx.lineTo(p4.x, p4.y);
+        ctx.closePath();
+        ctx.fill();
+
+        // Neon LED channel rail along outer gutter edge
+        ctx.strokeStyle = state.cosmicTheme ? "rgba(56, 189, 248, 0.65)" : "rgba(250, 204, 21, 0.45)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(p2.x, p2.y);
+        ctx.lineTo(p3.x, p3.y);
+        ctx.stroke();
+      });
+
+      // 3. 39-Board Maple Hardwood / Cosmic Glow Lane Surface
+      const flL = project3D(-LANE_HALF_WIDTH_IN, 0, zStart, W, H);
+      const flR = project3D(LANE_HALF_WIDTH_IN, 0, zStart, W, H);
+      const oilL = project3D(-LANE_HALF_WIDTH_IN, 0, OIL_PATTERN_LENGTH_FT, W, H);
+      const oilR = project3D(LANE_HALF_WIDTH_IN, 0, OIL_PATTERN_LENGTH_FT, W, H);
+      const deckL = project3D(-LANE_HALF_WIDTH_IN, 0, zEnd, W, H);
+      const deckR = project3D(LANE_HALF_WIDTH_IN, 0, zEnd, W, H);
+
+      // Base maple wood / cosmic lane gradient
+      const laneGrad = ctx.createLinearGradient(0, deckL.y, 0, flL.y);
+      if (state.cosmicTheme) {
+        laneGrad.addColorStop(0, "#172554");
+        laneGrad.addColorStop(0.28, "#1e293b");
+        laneGrad.addColorStop(0.65, "#78350f");
+        laneGrad.addColorStop(1, "#b45309");
+      } else {
+        laneGrad.addColorStop(0, "#b45309");
+        laneGrad.addColorStop(0.32, "#d97706");
+        laneGrad.addColorStop(0.75, "#f59e0b");
+        laneGrad.addColorStop(1, "#fbbf24");
+      }
+
+      ctx.fillStyle = laneGrad;
+      ctx.beginPath();
+      ctx.moveTo(flL.x, flL.y);
+      ctx.lineTo(flR.x, flR.y);
+      ctx.lineTo(deckR.x, deckR.y);
+      ctx.lineTo(deckL.x, deckL.y);
+      ctx.closePath();
+      ctx.fill();
+
+      // Render individual 39 maple boards
+      for (let b = 1; b <= 39; b++) {
+        const bx = boardToLateralInches(b);
+        const bStart = project3D(bx, 0, zStart, W, H);
+        const bEnd = project3D(bx, 0, zEnd, W, H);
+
+        ctx.strokeStyle = b % 5 === 0
+          ? (state.cosmicTheme ? "rgba(56, 189, 248, 0.34)" : "rgba(120, 53, 15, 0.48)")
+          : (state.cosmicTheme ? "rgba(148, 163, 184, 0.12)" : "rgba(120, 53, 15, 0.2)");
+        ctx.lineWidth = b % 5 === 0 ? 1.2 : 0.6;
+        ctx.beginPath();
+        ctx.moveTo(bStart.x, bStart.y);
+        ctx.lineTo(bEnd.x, bEnd.y);
+        ctx.stroke();
+      }
+
+      // 4. 40-Foot Lane Conditioner Oil Zone Reflection vs Dry Backend
+      if (state.showOilShimmer) {
+        const fLineL = project3D(-LANE_HALF_WIDTH_IN * 0.92, 0, 0, W, H);
+        const fLineR = project3D(LANE_HALF_WIDTH_IN * 0.92, 0, 0, W, H);
+        const oilEndL = project3D(-LANE_HALF_WIDTH_IN * 0.86, 0, OIL_PATTERN_LENGTH_FT, W, H);
+        const oilEndR = project3D(LANE_HALF_WIDTH_IN * 0.86, 0, OIL_PATTERN_LENGTH_FT, W, H);
+
+        const oilGrad = ctx.createLinearGradient(0, oilEndL.y, 0, fLineL.y);
+        oilGrad.addColorStop(0, "rgba(56, 189, 248, 0.28)");
+        oilGrad.addColorStop(0.5, "rgba(125, 211, 252, 0.16)");
+        oilGrad.addColorStop(1, "rgba(56, 189, 248, 0.24)");
+
+        ctx.fillStyle = oilGrad;
+        ctx.beginPath();
+        ctx.moveTo(fLineL.x, fLineL.y);
+        ctx.lineTo(fLineR.x, fLineR.y);
+        ctx.lineTo(oilEndR.x, oilEndR.y);
+        ctx.lineTo(oilEndL.x, oilEndL.y);
+        ctx.closePath();
+        ctx.fill();
+
+        // 40ft Breakpoint line indicator
+        ctx.save();
+        ctx.setLineDash([6, 5]);
+        ctx.strokeStyle = "rgba(0, 245, 212, 0.7)";
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(oilL.x, oilL.y);
+        ctx.lineTo(oilR.x, oilR.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#00f5d4";
+        ctx.font = "800 10px 'Segoe UI', sans-serif";
+        ctx.textAlign = "right";
+        ctx.fillText("40ft BREAKPOINT (DRY BACKEND) ▸", oilL.x - 6, oilL.y + 3);
+        ctx.restore();
+      }
+
+      // 5. Foul Line (z = 0 ft), Approach Stance Dots (z = -2.2 ft), Range-Finder Dots (z = 7 ft) & Target Arrows (z = 15 ft)
+      const foulL = project3D(-LANE_HALF_WIDTH_IN, 0, 0, W, H);
+      const foulR = project3D(LANE_HALF_WIDTH_IN, 0, 0, W, H);
+      ctx.strokeStyle = "#ef4444";
+      ctx.lineWidth = 3.2;
+      ctx.beginPath();
+      ctx.moveTo(foulL.x, foulL.y);
+      ctx.lineTo(foulR.x, foulR.y);
+      ctx.stroke();
+
+      // Approach stance dots & Guide dots on boards 5, 10, 15, 20, 25, 30, 35
+      const guideBoards = [5, 10, 15, 20, 25, 30, 35];
+      guideBoards.forEach((bNum) => {
+        const xIn = boardToLateralInches(bNum);
+        // Approach dot at z = -2.3 ft
+        const apDot = project3D(xIn, 0, -2.3, W, H);
+        ctx.fillStyle = bNum === 20 ? "#facc15" : "#e2e8f0";
+        ctx.beginPath();
+        ctx.arc(apDot.x, apDot.y, bNum === 20 ? 4.2 : 3.0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Range-finder dot at z = 7 ft
+        const rfDot = project3D(xIn, 0, 7.0, W, H);
+        ctx.fillStyle = "rgba(255,255,255,0.65)";
+        ctx.beginPath();
+        ctx.arc(rfDot.x, rfDot.y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Target Arrow Chevron at z = 13.5..16.5 ft (V-formation pointing to Headpin)
+        const arrowZ = 15.5 - Math.abs(20 - bNum) * 0.14;
+        const tip = project3D(xIn, 0, arrowZ + 1.1, W, H);
+        const wingL = project3D(xIn - 0.85, 0, arrowZ - 0.8, W, H);
+        const wingR = project3D(xIn + 0.85, 0, arrowZ - 0.8, W, H);
+        const notch = project3D(xIn, 0, arrowZ - 0.35, W, H);
+
+        ctx.fillStyle = state.cosmicTheme ? "#00f5d4" : "#7c2d12";
+        ctx.beginPath();
+        ctx.moveTo(tip.x, tip.y);
+        ctx.lineTo(wingR.x, wingR.y);
+        ctx.lineTo(notch.x, notch.y);
+        ctx.lineTo(wingL.x, wingL.y);
+        ctx.closePath();
+        ctx.fill();
+      });
+
+      // 6. Predictive Hook Trajectory Guide Ray (when aiming)
+      if (state.phase === "aiming" && !state.matchFinished) {
+        const previewPts = simulatePreviewPath();
+        if (previewPts.length > 1) {
+          ctx.save();
+          for (let i = 1; i < previewPts.length; i++) {
+            const p0 = project3D(previewPts[i - 1].x, 0.5, previewPts[i - 1].z, W, H);
+            const p1 = project3D(previewPts[i].x, 0.5, previewPts[i].z, W, H);
+            ctx.strokeStyle = previewPts[i].gutter
+              ? "rgba(244, 63, 94, 0.85)"
+              : previewPts[i].dry
+                ? "rgba(250, 204, 21, 0.9)"
+                : "rgba(56, 189, 248, 0.82)";
+            ctx.lineWidth = previewPts[i].dry ? 3.2 : 2.4;
+            ctx.beginPath();
+            ctx.moveTo(p0.x, p0.y);
+            ctx.lineTo(p1.x, p1.y);
+            ctx.stroke();
+          }
+
+          // Impact target reticle at end of preview path
+          const lastPt = previewPts[previewPts.length - 1];
+          const endProj = project3D(lastPt.x, 1.0, lastPt.z, W, H);
+          ctx.fillStyle = lastPt.gutter ? "#f43f5e" : "#facc15";
+          ctx.beginPath();
+          ctx.arc(endProj.x, endProj.y, 5.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      // 7. Live Ball Trail
+      if (state.ball.trail.length > 1) {
+        ctx.save();
+        for (let i = 1; i < state.ball.trail.length; i++) {
+          const t0 = state.ball.trail[i - 1];
+          const t1 = state.ball.trail[i];
+          const p0 = project3D(t0.x, 0.5, t0.z, W, H);
+          const p1 = project3D(t1.x, 0.5, t1.z, W, H);
+          const alpha = (i / state.ball.trail.length) * 0.75;
+          ctx.strokeStyle = t1.dry
+            ? `rgba(250, 204, 21, ${alpha})`
+            : `rgba(56, 189, 248, ${alpha})`;
+          ctx.lineWidth = 4.0 * (i / state.ball.trail.length);
+          ctx.beginPath();
+          ctx.moveTo(p0.x, p0.y);
+          ctx.lineTo(p1.x, p1.y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // 8. Depth-Sorted Rendering of All 10 Maple Pins & Bowling Ball
+      // Sort pins from back row (largest Z) to front (smallest Z)
+      const renderables = [];
+      for (const pin of state.pins) {
+        if (!pin.removed) {
+          renderables.push({ kind: "pin", z: pin.z, obj: pin });
+        }
+      }
+      if (!state.ball.inPit && (state.ball.active || state.phase === "aiming" || state.phase === "ai_thinking")) {
+        renderables.push({ kind: "ball", z: state.ball.z, obj: state.ball });
+      }
+      renderables.sort((a, b) => b.z - a.z);
+
+      for (const item of renderables) {
+        if (item.kind === "pin") {
+          drawPin3D(item.obj, W, H);
+        } else {
+          drawBowlingBall3D(item.obj, W, H);
+        }
+      }
+
+      // 9. Mechanical Pin-Setter Sweeper Bar & Overhead Rack
+      drawPinSetterDeckRig(W, H);
+
+      // 10. Celebration Particles
+      for (const pt of state.particles) {
+        const proj = project3D(pt.x, pt.y, pt.z, W, H);
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, pt.life);
+        ctx.fillStyle = pt.color;
+        ctx.beginPath();
+        ctx.arc(proj.x, proj.y, pt.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function drawPin3D(pin, W, H) {
+      const baseProj = project3D(pin.x, pin.y, pin.z, W, H);
+      const pinHeightPx = Math.max(18, 15.0 * baseProj.scale);
+      const pinWidthPx = Math.max(7, 4.75 * baseProj.scale);
+
+      ctx.save();
+      ctx.translate(baseProj.x, baseProj.y);
+
+      // Floor drop shadow
+      ctx.fillStyle = "rgba(0, 0, 0, 0.48)";
+      ctx.beginPath();
+      ctx.ellipse(0, 2, pinWidthPx * 0.72, pinWidthPx * 0.28, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Rotate pin when knocked over / flying
+      if (!pin.standing || pin.tilt > 0.01) {
+        const visualAngle = (Math.sin(pin.tiltDir) >= 0 ? 1 : -1) * pin.tilt + Math.sin(pin.spinYaw) * 0.25;
+        ctx.rotate(visualAngle);
+      }
+
+      const h = pinHeightPx;
+      const w = pinWidthPx;
+
+      // Pin silhouette path (bottom at 0,0, crown at 0,-h)
+      const grad = ctx.createLinearGradient(-w * 0.55, 0, w * 0.55, 0);
+      grad.addColorStop(0, "#cbd5e1");
+      grad.addColorStop(0.35, "#ffffff");
+      grad.addColorStop(0.75, "#f1f5f9");
+      grad.addColorStop(1, "#94a3b8");
+
+      ctx.fillStyle = grad;
+      ctx.strokeStyle = "#334155";
+      ctx.lineWidth = 1;
+
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.34, 0);
+      ctx.bezierCurveTo(-w * 0.65, -h * 0.18, -w * 0.62, -h * 0.44, -w * 0.26, -h * 0.58);
+      ctx.bezierCurveTo(-w * 0.18, -h * 0.68, -w * 0.34, -h * 0.82, -w * 0.28, -h * 0.92);
+      ctx.arc(0, -h * 0.92, w * 0.28, Math.PI, 0, false);
+      ctx.bezierCurveTo(w * 0.34, -h * 0.82, w * 0.18, -h * 0.68, w * 0.26, -h * 0.58);
+      ctx.bezierCurveTo(w * 0.62, -h * 0.44, w * 0.65, -h * 0.18, w * 0.34, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Twin Crimson PBA Neck Stripes
+      ctx.fillStyle = "#dc2626";
+      ctx.fillRect(-w * 0.25, -h * 0.69, w * 0.5, Math.max(1.6, h * 0.055));
+      ctx.fillRect(-w * 0.27, -h * 0.60, w * 0.54, Math.max(1.6, h * 0.055));
+
+      // Pin ID Number on Belly
+      if (pin.standing && h > 22) {
+        ctx.fillStyle = "#0f172a";
+        ctx.font = `900 ${Math.max(8, Math.round(w * 0.65))}px 'Segoe UI', sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText(String(pin.id), 0, -h * 0.26);
+      }
+
+      ctx.restore();
+    }
+
+    function drawBowlingBall3D(ball, W, H) {
+      const ballSpec = ARSENAL_BALLS[state.selectedBall];
+      const proj = project3D(ball.x, ball.radiusIn, ball.z, W, H);
+      const rPx = Math.max(7, ball.radiusIn * proj.scale);
+
+      ctx.save();
+      ctx.translate(proj.x, proj.y);
+
+      // Floor contact shadow
+      ctx.fillStyle = "rgba(0, 0, 0, 0.58)";
+      ctx.beginPath();
+      ctx.ellipse(0, rPx * 0.88, rPx * 0.92, rPx * 0.34, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Glossy 3D sphere shading
+      const sphereGrad = ctx.createRadialGradient(
+        -rPx * 0.32,
+        -rPx * 0.32,
+        rPx * 0.1,
+        0,
+        0,
+        rPx
+      );
+      sphereGrad.addColorStop(0, "#ffffff");
+      sphereGrad.addColorStop(0.22, ballSpec.primaryColor);
+      sphereGrad.addColorStop(0.72, ballSpec.secondaryColor);
+      sphereGrad.addColorStop(1, "#020617");
+
+      ctx.fillStyle = sphereGrad;
+      ctx.beginPath();
+      ctx.arc(0, 0, rPx, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Rotating reactive swirl & finger holes
+      const phase = ball.rollAngle;
+      const holeOffsetY = Math.sin(phase) * rPx * 0.45;
+      const holeOffsetX = (ball.spinFactor || -0.5) * rPx * 0.28;
+
+      ctx.strokeStyle = ballSpec.coreColor;
+      ctx.lineWidth = Math.max(1.5, rPx * 0.12);
+      ctx.globalAlpha = 0.65;
+      ctx.beginPath();
+      ctx.arc(holeOffsetX * 0.5, holeOffsetY * 0.4, rPx * 0.58, phase, phase + Math.PI * 1.15);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      if (Math.cos(phase) > -0.2) {
+        ctx.fillStyle = "#020617";
+        const hr = Math.max(1.5, rPx * 0.12);
+        ctx.beginPath();
+        ctx.arc(holeOffsetX - hr * 1.2, holeOffsetY - hr, hr, 0, Math.PI * 2);
+        ctx.arc(holeOffsetX + hr * 1.2, holeOffsetY - hr, hr, 0, Math.PI * 2);
+        ctx.arc(holeOffsetX, holeOffsetY + hr * 1.5, hr * 1.15, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    function drawPinSetterDeckRig(W, H) {
+      // Overhead mechanical pin-setter hood & sweeper bar at z = 58.6 ft
+      const sweepYIn = 26.0 - state.sweeperHeight * 23.5;
+      const leftBar = project3D(-LANE_HALF_WIDTH_IN - 2, sweepYIn, 58.6, W, H);
+      const rightBar = project3D(LANE_HALF_WIDTH_IN + 2, sweepYIn, 58.6, W, H);
+
+      ctx.save();
+      // Vertical support arms
+      const topL = project3D(-LANE_HALF_WIDTH_IN - 2, 32, 58.6, W, H);
+      const topR = project3D(LANE_HALF_WIDTH_IN + 2, 32, 58.6, W, H);
+      ctx.strokeStyle = "#64748b";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(topL.x, topL.y);
+      ctx.lineTo(leftBar.x, leftBar.y);
+      ctx.moveTo(topR.x, topR.y);
+      ctx.lineTo(rightBar.x, rightBar.y);
+      ctx.stroke();
+
+      // Sweeper bar beam
+      const barGrad = ctx.createLinearGradient(leftBar.x, leftBar.y - 6, leftBar.x, leftBar.y + 6);
+      barGrad.addColorStop(0, "#facc15");
+      barGrad.addColorStop(0.5, "#f97316");
+      barGrad.addColorStop(1, "#7c2d12");
+
+      ctx.fillStyle = barGrad;
+      ctx.strokeStyle = "#fef08a";
+      ctx.lineWidth = 1.2;
+      ctx.fillRect(leftBar.x, leftBar.y - 5, rightBar.x - leftBar.x, 10);
+      ctx.strokeRect(leftBar.x, leftBar.y - 5, rightBar.x - leftBar.x, 10);
+      ctx.restore();
+    }
+
+    /* ============================================================================
+     * 10. SCOREBOARD HUD, PIN DIAGRAM & CONTROLS BINDING
+     * ============================================================================ */
+    function renderScoreboardUI() {
+      const container = document.getElementById("scoreboardRows");
+      if (!container) return;
+      container.innerHTML = "";
+
+      state.players.forEach((player, pIdx) => {
+        const isCurrent = pIdx === state.activePlayerIdx && !state.matchFinished;
+        const { total, maxPace } = computeScoreboardTotals(player.frames);
+
+        const row = document.createElement("div");
+        row.className = "player-score-row" + (isCurrent ? " active-bowler" : "");
+
+        const tag = document.createElement("div");
+        tag.className = "bowler-tag";
+        tag.innerHTML = `
+          <div class="bowler-name">${isCurrent ? "▶ " : ""}${player.name}</div>
+          <div class="bowler-sub">${player.sub}</div>
+        `;
+        row.appendChild(tag);
+
+        for (let f = 0; f < 10; f++) {
+          const fObj = player.frames[f];
+          const cell = document.createElement("div");
+          cell.className = "frame-cell" + (isCurrent && f === state.currentFrameIdx ? " current-frame" : "");
+
+          const boxes = formatFrameRollBoxes(fObj, f);
+          const boxesHtml = boxes
+            .map((b) => `<div class="roll-box ${b.cls}">${b.text}</div>`)
+            .join("");
+
+          cell.innerHTML = `
+            <div class="frame-top">
+              <span class="frame-num">F${f + 1}</span>
+              <div class="roll-boxes">${boxesHtml}</div>
+            </div>
+            <div class="frame-running-total">${fObj.cumulative !== null ? fObj.cumulative : ""}</div>
+          `;
+          row.appendChild(cell);
+        }
+
+        const totalBox = document.createElement("div");
+        totalBox.className = "score-summary-box";
+        totalBox.innerHTML = `<span class="lbl">TOTAL</span><span class="val">${total}</span>`;
+        row.appendChild(totalBox);
+
+        const maxBox = document.createElement("div");
+        maxBox.className = "score-summary-box max-pace";
+        maxBox.innerHTML = `<span class="lbl">MAX PACE</span><span class="val">${maxPace}</span>`;
+        row.appendChild(maxBox);
+
+        container.appendChild(row);
+      });
+    }
+
+    function updatePinDiagramUI() {
+      let standingCount = 0;
+      state.pins.forEach((pin) => {
+        if (pin.standing) standingCount++;
+        const dot = document.querySelector(`.pin-dot[data-pin="${pin.id}"]`);
+        if (dot) {
+          dot.classList.toggle("standing", pin.standing);
+          dot.classList.toggle("down", !pin.standing);
+        }
+      });
+      const badge = document.getElementById("standingCountBadge");
+      if (badge) {
+        badge.textContent = `${standingCount} Standing`;
+      }
+    }
+
+    function updateTelemetryUI() {
+      const player = state.players[state.activePlayerIdx] || state.players[0];
+      if (player) {
+        document.getElementById("statStreak").textContent = `${player.streak} Strikes`;
+      }
+      document.getElementById("statHighGame").textContent = String(state.career.highGame);
+      document.getElementById("statCareerStrikes").textContent = String(state.career.totalStrikes);
+
+      let rank = "Alley Rookie";
+      if (state.career.highGame >= 300) rank = "👑 300 Perfect Legend";
+      else if (state.career.highGame >= 240 || state.career.totalStrikes >= 40) rank = "🟣 PBA Tour Pro";
+      else if (state.career.highGame >= 190 || state.career.totalStrikes >= 15) rank = "🔵 Scratch Contender";
+      else if (state.career.totalStrikes >= 5) rank = "🟢 League Regular";
+      document.getElementById("careerRankBadge").textContent = rank;
+    }
+
+    function syncControlsUI() {
+      const stanceSlider = document.getElementById("stanceSlider");
+      const aimSlider = document.getElementById("aimSlider");
+      const powerSlider = document.getElementById("powerSlider");
+
+      if (stanceSlider) stanceSlider.value = String(state.stanceBoard);
+      if (aimSlider) aimSlider.value = String(state.aimAngleDeg);
+      if (powerSlider) powerSlider.value = String(state.powerPercent);
+
+      const bRound = Number(state.stanceBoard).toFixed(1);
+      const sideDesc = state.stanceBoard > 22 ? "Right" : state.stanceBoard < 18 ? "Left" : "Center";
+      document.getElementById("stanceBoardLabel").textContent = `Board ${bRound} (${sideDesc})`;
+
+      const aimRound = Number(state.aimAngleDeg).toFixed(1);
+      document.getElementById("aimAngleLabel").textContent = `${aimRound > 0 ? "+" : ""}${aimRound}°`;
+
+      const hookSpec = HOOK_PRESETS[state.selectedHook];
+      document.getElementById("hookPresetLabel").textContent = hookSpec.label;
+
+      const speedMph = 11.5 + (state.powerPercent / 100) * 10.0;
+      document.getElementById("powerValueLabel").textContent = `${state.powerPercent}% (${speedMph.toFixed(1)} MPH)`;
+      document.getElementById("powerBarFill").style.width = `${state.powerPercent}%`;
+      document.getElementById("statSpeed").textContent = `${speedMph.toFixed(1)} mph`;
+      document.getElementById("statRevs").textContent = `${state.ball.rpm} rpm`;
+    }
+
+    function selectBall(ballId) {
+      if (!ARSENAL_BALLS[ballId]) return;
+      state.selectedBall = ballId;
+      document.querySelectorAll(".ball-card").forEach((el) => {
+        el.classList.toggle("selected", el.dataset.ball === ballId);
+      });
+      resetBallOnApproach();
+      syncControlsUI();
+    }
+
+    function selectHook(hookKey) {
+      if (!HOOK_PRESETS[hookKey]) return;
+      state.selectedHook = hookKey;
+      document.querySelectorAll(".hook-btn").forEach((el) => {
+        el.classList.toggle("active", el.dataset.hook === hookKey);
+      });
+      resetBallOnApproach();
+      syncControlsUI();
+    }
+
+    // Bind DOM events
+    document.getElementById("modeSelect").addEventListener("change", (e) => {
+      state.mode = e.target.value;
+      document.getElementById("aiSelect").style.display = state.mode === "championship" ? "" : "none";
+      initMatch();
+    });
+
+    document.getElementById("aiSelect").addEventListener("change", (e) => {
+      state.aiKey = e.target.value;
+      if (state.mode === "championship") initMatch();
+    });
+
+    document.getElementById("themeToggleBtn").addEventListener("click", (e) => {
+      state.cosmicTheme = !state.cosmicTheme;
+      e.currentTarget.textContent = state.cosmicTheme ? "🌌 Cosmic Glow: ON" : "🪵 Classic Maple: ON";
+      e.currentTarget.classList.toggle("active-toggle", state.cosmicTheme);
+    });
+
+    document.getElementById("oilToggleBtn").addEventListener("click", (e) => {
+      state.showOilShimmer = !state.showOilShimmer;
+      e.currentTarget.textContent = state.showOilShimmer ? "🛢️ 40ft Oil Shimmer: ON" : "🛢️ 40ft Oil Shimmer: OFF";
+      e.currentTarget.classList.toggle("active-toggle", state.showOilShimmer);
+    });
+
+    document.getElementById("audioToggleBtn").addEventListener("click", (e) => {
+      const muted = BowlingAudio.toggleMute();
+      e.currentTarget.textContent = muted ? "🔇 Foley: MUTED" : "🔊 Foley: ON";
+    });
+
+    document.getElementById("newGameBtn").addEventListener("click", () => {
+      initMatch();
+    });
+
+    document.querySelectorAll(".ball-card").forEach((card) => {
+      card.addEventListener("click", () => selectBall(card.dataset.ball));
+    });
+
+    document.querySelectorAll(".hook-btn").forEach((btn) => {
+      btn.addEventListener("click", () => selectHook(btn.dataset.hook));
+    });
+
+    document.querySelectorAll(".preset-chip").forEach((chip) => {
+      chip.addEventListener("click", () => applyClinicPreset(chip.dataset.split));
+    });
+
+    document.querySelectorAll(".pin-dot").forEach((dot) => {
+      dot.addEventListener("click", () => {
+        if (state.mode !== "clinic" || state.phase !== "aiming") return;
+        const pinId = Number(dot.dataset.pin);
+        const pinObj = state.pins.find((p) => p.id === pinId);
+        if (pinObj) {
+          pinObj.standing = !pinObj.standing;
+          pinObj.removed = !pinObj.standing;
+          pinObj.tilt = pinObj.standing ? 0 : Math.PI * 0.48;
+          updatePinDiagramUI();
+        }
+      });
+    });
+
+    document.getElementById("stanceSlider").addEventListener("input", (e) => {
+      state.stanceBoard = parseFloat(e.target.value);
+      resetBallOnApproach();
+      syncControlsUI();
+    });
+
+    document.getElementById("aimSlider").addEventListener("input", (e) => {
+      state.aimAngleDeg = parseFloat(e.target.value);
+      syncControlsUI();
+    });
+
+    document.getElementById("powerSlider").addEventListener("input", (e) => {
+      state.powerPercent = parseInt(e.target.value, 10);
+      syncControlsUI();
+    });
+
+    document.getElementById("bowlBallBtn").addEventListener("click", () => {
+      launchBowlingBall();
+    });
+
+    document.getElementById("pocketPresetBtn").addEventListener("click", () => {
+      lineUpPocketPreset();
+    });
+
+    document.getElementById("sparePresetBtn").addEventListener("click", () => {
+      lineUpBestSparePreset();
+    });
+
+    // Direct Canvas Mouse/Touch Stance Drag & Flick-to-Bowl
+    canvas.addEventListener("pointerdown", (e) => {
+      if (state.phase !== "aiming" || state.matchFinished) return;
+      state.pointerDown = true;
+      const rect = canvas.getBoundingClientRect();
+      state.dragStartX = ((e.clientX - rect.left) / rect.width) * canvas.width;
+      state.dragStartY = ((e.clientY - rect.top) / rect.height) * canvas.height;
+      state.dragStartTime = performance.now();
+    });
+
+    window.addEventListener("pointermove", (e) => {
+      if (!state.pointerDown || state.phase !== "aiming") return;
+      const rect = canvas.getBoundingClientRect();
+      const curX = ((e.clientX - rect.left) / rect.width) * canvas.width;
+      const dx = curX - state.dragStartX;
+      // Moving horizontally adjusts stance board & aim angle smoothly
+      const xIn = ((curX - canvas.width * 0.5) / (canvas.width * 0.34)) * LANE_HALF_WIDTH_IN;
+      state.stanceBoard = Number(lateralInchesToBoard(xIn).toFixed(1));
+      state.aimAngleDeg = Math.max(-8, Math.min(8, Number((dx * 0.025).toFixed(1))));
+      resetBallOnApproach();
+      syncControlsUI();
+    });
+
+    window.addEventListener("pointerup", (e) => {
+      if (!state.pointerDown) return;
+      state.pointerDown = false;
+      if (state.phase !== "aiming" || state.matchFinished) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const endY = ((e.clientY - rect.top) / rect.height) * canvas.height;
+      const dy = state.dragStartY - endY;
+      const elapsed = Math.max(40, performance.now() - state.dragStartTime);
+
+      // Upward flick down the lane launches the ball!
+      if (dy > 42) {
+        const flickVelocity = dy / elapsed;
+        state.powerPercent = Math.max(55, Math.min(100, Math.round(62 + flickVelocity * 28)));
+        syncControlsUI();
+        launchBowlingBall();
+      }
+    });
+
+    // Keyboard Shortcuts
+    window.addEventListener("keydown", (e) => {
+      if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "SELECT")) {
+        if (e.code !== "Space") return;
+      }
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        launchBowlingBall();
+      } else if (e.code === "ArrowLeft" || e.code === "KeyA") {
+        e.preventDefault();
+        state.stanceBoard = Math.min(38, state.stanceBoard + 1.0);
+        resetBallOnApproach();
+        syncControlsUI();
+      } else if (e.code === "ArrowRight" || e.code === "KeyD") {
+        e.preventDefault();
+        state.stanceBoard = Math.max(2, state.stanceBoard - 1.0);
+        resetBallOnApproach();
+        syncControlsUI();
+      } else if (e.code === "ArrowUp" || e.code === "KeyW") {
+        e.preventDefault();
+        state.aimAngleDeg = Math.min(8, Number((state.aimAngleDeg + 0.2).toFixed(1)));
+        syncControlsUI();
+      } else if (e.code === "ArrowDown" || e.code === "KeyS") {
+        e.preventDefault();
+        state.aimAngleDeg = Math.max(-8, Number((state.aimAngleDeg - 0.2).toFixed(1)));
+        syncControlsUI();
+      } else if (e.code === "KeyQ") {
+        const order = ["strong_left", "mild_left", "straight", "mild_right", "strong_right"];
+        const idx = Math.max(0, order.indexOf(state.selectedHook) - 1);
+        selectHook(order[idx]);
+      } else if (e.code === "KeyE") {
+        const order = ["strong_left", "mild_left", "straight", "mild_right", "strong_right"];
+        const idx = Math.min(order.length - 1, order.indexOf(state.selectedHook) + 1);
+        selectHook(order[idx]);
+      } else if (e.code === "Digit1") {
+        selectBall("reactive");
+      } else if (e.code === "Digit2") {
+        selectBall("urethane");
+      } else if (e.code === "Digit3") {
+        selectBall("polyester");
+      } else if (e.code === "KeyC") {
+        document.getElementById("themeToggleBtn").click();
+      } else if (e.code === "KeyN") {
+        initMatch();
+      } else if (e.code === "KeyM") {
+        document.getElementById("audioToggleBtn").click();
+      }
+    });
+
+    /* ============================================================================
+     * 11. MAIN 60FPS ANIMATION LOOP & BOOTSTRAP
+     * ============================================================================ */
+    let lastFrameTime = performance.now();
+    function animationLoop(now) {
+      const dt = Math.min(0.05, Math.max(0.001, (now - lastFrameTime) / 1000));
+      lastFrameTime = now;
+
+      updatePhysics(dt);
+      renderBowlingScene();
+      requestAnimationFrame(animationLoop);
+    }
+
+    initMatch();
+    syncControlsUI();
+    requestAnimationFrame(animationLoop);
+  </script>
+</body>
+</html>

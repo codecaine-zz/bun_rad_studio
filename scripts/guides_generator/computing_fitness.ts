@@ -120,8 +120,8 @@ Accessible via the **IntuitionLab** workspace tab, this interactive sandbox prov
 | **F11** or **F** | Global | Toggle borderless fullscreen |
 `);
 
-  // 28_dr_codecaine_arcade.md
-  writeFileSync(join(outDir, "28_dr_codecaine_arcade.md"), `# 💊 Dr. Codecaine Arcade -- Complete Production User Guide
+  // 28_codecaine_dr_codecaine_arcade.md
+  writeFileSync(join(outDir, "28_codecaine_dr_codecaine_arcade.md"), `# 💊 Codecaine Dr. Codecaine Arcade -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native HTML5 Canvas & Web Audio Chiptune Synthesizer  •  Dependencies: 0  •  Offline: 100%
@@ -131,9 +131,9 @@ Launchers: [Desktop GUI: bun run app:dr_codecaine]  •  [Headless Server: bun r
 ---
 
 ## 🌟 Executive Overview
-**Dr. Codecaine Arcade** is a fast-paced, tactile capsule-matching puzzle arcade experience built natively for Bun RAD Studio. Combining nostalgic color-matching puzzle mechanics with procedural viral pathogens, retro audio synthesis, high-DPI scaling, and responsive desktop windowing, Dr. Codecaine Arcade brings pure arcade energy directly to your desktop workstation.
+**Codecaine Dr. Codecaine Arcade** is a fast-paced, tactile capsule-matching puzzle arcade experience built natively for Bun RAD Studio. Combining nostalgic color-matching puzzle mechanics with procedural viral pathogens, retro audio synthesis, high-DPI scaling, and responsive desktop windowing, Codecaine Dr. Codecaine Arcade brings pure arcade energy directly to your desktop workstation.
 
-Featuring an authentic dual-tone capsule falling engine, 60fps physics, gravity cascade chaining, polyphonic square-wave sound effects, and pathogen AI, it offers endless hours of mental sharpness and dopamine-fueled puzzle action.
+Featuring an authentic dual-tone capsule falling engine, 60fps physics, gravity cascade chaining, polyphonic square-wave sound effects, pathogen AI, and the **Game Master FX HUD (`Alt+G`)**, it offers endless hours of mental sharpness and dopamine-fueled puzzle action.
 
 ---
 

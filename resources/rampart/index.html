@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏰 Codecaine CyberRampart: Fortress Build &amp; Cannon Siege</title>
+  <style>
+    :root {
+      --bg-deep: #060913;
+      --bg-panel: rgba(12, 18, 34, 0.94);
+      --bg-card: rgba(20, 29, 54, 0.9);
+      --amber: #f59e0b;
+      --gold: #ffd700;
+      --cyan: #00f3ff;
+      --royal: #3b82f6;
+      --crimson: #ef4444;
+      --emerald: #10b981;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-amber: rgba(245, 158, 11, 0.42);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 20% 15%, rgba(245, 158, 11, 0.14), transparent 45%),
+        radial-gradient(circle at 80% 85%, rgba(59, 130, 246, 0.14), transparent 45%),
+        linear-gradient(180deg, #050811 0%, #0b1326 100%);
+      color: var(--text-main);
+      font-family: 'Orbitron', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      width: 100vw;
+      height: 100vh;
+      padding: 10px 14px;
+      gap: 10px;
+    }
+
+    /* Top Header */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 14px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-amber);
+      border-radius: 14px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.65), 0 0 18px rgba(245, 158, 11, 0.15);
+      flex-wrap: wrap;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(217, 119, 6, 0.4));
+      border: 1px solid var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 21px;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.4);
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffd700, #ffffff, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .top-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .cyber-select, .cyber-btn {
+      background: rgba(16, 24, 48, 0.95);
+      color: var(--text-main);
+      border: 1px solid rgba(245, 158, 11, 0.42);
+      border-radius: 9px;
+      padding: 6px 11px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    .cyber-select:hover, .cyber-btn:hover {
+      border-color: var(--gold);
+      box-shadow: 0 0 12px rgba(255, 215, 0, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .cyber-btn.primary {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.28), rgba(234, 88, 12, 0.35));
+      border-color: var(--gold);
+      color: #fffbeb;
+    }
+
+    .cyber-btn.cyan {
+      background: linear-gradient(135deg, rgba(0, 243, 255, 0.22), rgba(59, 130, 246, 0.32));
+      border-color: var(--cyan);
+      color: #ecfeff;
+    }
+
+    .cyber-btn.active {
+      background: rgba(16, 185, 129, 0.25);
+      border-color: var(--emerald);
+      color: #d1fae5;
+    }
+
+    /* Main 3-Column Layout */
+    .main-stage {
+      display: grid;
+      grid-template-columns: 268px 1fr 276px;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .side-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-amber);
+      border-radius: 14px;
+      padding: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      overflow-y: auto;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+    }
+
+    .panel-title {
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(245, 158, 11, 0.24);
+      padding-bottom: 5px;
+    }
+
+    /* 3-Phase Stepper Cards */
+    .phase-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .phase-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 10px;
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .phase-card.active {
+      border-color: var(--gold);
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(30, 58, 138, 0.45));
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.3);
+    }
+
+    .phase-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .phase-card-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    /* Fortress Telemetry Grid */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .stat-box {
+      background: var(--bg-card);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 9px;
+      padding: 7px 8px;
+      text-align: center;
+    }
+
+    .stat-box-label {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .stat-box-val {
+      font-size: 17px;
+      font-weight: 900;
+      color: var(--gold);
+      margin-top: 2px;
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    /* Center Arena */
+    .center-arena {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .arena-hud-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 7px 14px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-amber);
+      border-radius: 12px;
+    }
+
+    .hud-stat {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .hud-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .hud-val {
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--gold);
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    .phase-pill {
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.25), rgba(239, 68, 68, 0.28));
+      border: 1px solid var(--gold);
+      font-size: 11px;
+      font-weight: 900;
+      color: #fef08a;
+      letter-spacing: 0.06em;
+    }
+
+    .canvas-wrap {
+      flex: 1;
+      position: relative;
+      background: #040a18;
+      border: 2px solid rgba(245, 158, 11, 0.5);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.78), inset 0 0 36px rgba(59, 130, 246, 0.16);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #rampartCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+
+    /* Polyomino Preview Box */
+    .poly-preview-box {
+      background: #070d1e;
+      border: 1px solid rgba(0, 243, 255, 0.4);
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #polyPreviewCanvas {
+      background: #040814;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: 8px;
+    }
+
+    .footer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 14px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-amber);
+      border-radius: 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .key-pill {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 5px;
+      background: rgba(245, 158, 11, 0.16);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      color: var(--gold);
+      font-weight: 800;
+      font-size: 10px;
+      margin: 0 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Header -->
+    <header class="top-bar">
+      <div class="brand-group">
+        <div class="brand-logo">🏰</div>
+        <div>
+          <div class="brand-title">Codecaine CyberRampart: Fortress Build &amp; Cannon Siege</div>
+          <div class="brand-sub">28×18 Coastline Grid • Flood-Fill Territory Enclosure • Cannon Salvos • Polyomino Repair</div>
+        </div>
+      </div>
+
+      <div class="top-controls">
+        <label for="rampartModeSelect" style="font-size:10px;color:#94a3b8;font-weight:800;">MODE:</label>
+        <select id="rampartModeSelect" class="cyber-select" aria-label="Rampart Game Mode Select">
+          <option value="campaign">1. 🏆 Archipelago Campaign</option>
+          <option value="citadel_duel">2. ⚔️ 2-Citadel Vs. AI Cannon Duel</option>
+          <option value="kraken_boss">3. 🐙 Kraken Armada Boss Blitz</option>
+          <option value="polyomino_rush">4. 🧱 Polyomino Architect Rush</option>
+          <option value="super_cannon">5. 💣 Super Cannon Overdrive</option>
+          <option value="endless_siege">6. 🛡️ Ironclad Endless Siege</option>
+          <option value="island_gen">7. 🏝️ Custom Island Map Generator [G]</option>
+          <option value="blitz_10s">8. ⚡ Blitz 10-Second Repair</option>
+        </select>
+
+        <button type="button" id="nextPhaseBtn" class="cyber-btn primary">⏭️ Next Phase [SPACE]</button>
+        <button type="button" id="autoPatchBtn" class="cyber-btn cyan">🤖 Auto-Patch Wall [H]</button>
+        <button type="button" id="rotatePolyBtn" class="cyber-btn">🔄 Rotate Piece [R]</button>
+        <button type="button" id="newIslandBtn" class="cyber-btn">🏝️ New Coast [G]</button>
+        <button type="button" id="audioToggleBtn" class="cyber-btn active">🔊 Synth: ON [M]</button>
+      </div>
+    </header>
+
+    <!-- Main 3-Column Stage -->
+    <main class="main-stage">
+      <!-- Left Column: 3-Phase Loop & Territory Enclosure Telemetry -->
+      <aside class="side-panel">
+        <div class="panel-title">
+          <span>⚔️ 3-Phase Siege Loop</span>
+          <span id="waveBadge" style="color:#00f3ff;font-size:9px;">WAVE 1</span>
+        </div>
+
+        <div class="phase-list">
+          <div class="phase-card" id="phaseCard1" data-phase="1">
+            <div class="phase-card-head">
+              <span style="color:#38bdf8;">Phase 1: 💣 DEPLOY CANNONS</span>
+              <span>12s</span>
+            </div>
+            <div class="phase-card-sub">Place new cannons inside glowing Captured Territory.</div>
+          </div>
+
+          <div class="phase-card active" id="phaseCard2" data-phase="2">
+            <div class="phase-card-head">
+              <span style="color:#f59e0b;">Phase 2: 🔥 CANNON SIEGE</span>
+              <span>18s</span>
+            </div>
+            <div class="phase-card-sub">Click ocean/warships to fire arcing cannonball salvos!</div>
+          </div>
+
+          <div class="phase-card" id="phaseCard3" data-phase="3">
+            <div class="phase-card-head">
+              <span style="color:#10b981;">Phase 3: 🧱 POLYOMINO REPAIR</span>
+              <span>18s</span>
+            </div>
+            <div class="phase-card-sub">Rotate ([R]) &amp; place Tetris wall blocks to seal breaches.</div>
+          </div>
+        </div>
+
+        <div class="panel-title">
+          <span>🏰 Territory Enclosure</span>
+          <span id="enclosureStatusBadge" style="color:#10b981;font-size:9px;">SEALED ✓</span>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-box">
+            <div class="stat-box-label">🏰 Enclosed Keeps</div>
+            <div class="stat-box-val" id="statKeeps">2 / 3</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box-label">🟦 Captured Tiles</div>
+            <div class="stat-box-val" id="statTerritory" style="color:#38bdf8;">46</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box-label">💣 Active Cannons</div>
+            <div class="stat-box-val" id="statCannons" style="color:#f59e0b;">6</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box-label">⛵ Armada Left</div>
+            <div class="stat-box-val" id="statShips" style="color:#ef4444;">5</div>
+          </div>
+        </div>
+
+        <div style="font-size:10px;color:#94a3b8;line-height:1.45;background:rgba(8,14,32,0.8);padding:8px 9px;border-radius:8px;border:1px solid rgba(59,130,246,0.3);">
+          🛡️ <strong>Flood-Fill Rule:</strong> Complete a closed loop of stone wall tiles (`🧱`) around any <strong>Castle Keep (`🏰`)</strong> to claim glowing <strong>CAPTURED TERRITORY</strong> and power up all cannons inside!
+        </div>
+      </aside>
+
+      <!-- Center Column: 28x18 Coastline & Fortress Grid Canvas -->
+      <section class="center-arena">
+        <div class="arena-hud-bar">
+          <div class="hud-stat">
+            <span class="hud-label">⏱️ PHASE TIMER</span>
+            <span class="hud-val" id="hudTimer">14s</span>
+          </div>
+          <div class="phase-pill" id="hudPhaseBanner">🔥 PHASE 2: CANNON SIEGE — CLICK WARSHIPS OR WALLS!</div>
+          <div class="hud-stat">
+            <span class="hud-label">💣 RESERVE CANNONS</span>
+            <span class="hud-val" id="hudReserveCannons" style="color:#38bdf8;">2</span>
+          </div>
+          <div class="hud-stat">
+            <span class="hud-label">🏆 SCORE</span>
+            <span class="hud-val" id="scoreVal">2,850</span>
+          </div>
+        </div>
+
+        <div class="canvas-wrap">
+          <canvas id="rampartCanvas" width="980" height="630"></canvas>
+        </div>
+      </section>
+
+      <!-- Right Column: Polyomino Wall Architect & Naval Intel -->
+      <aside class="side-panel">
+        <div class="panel-title">
+          <span>🧱 Polyomino Wall Queue</span>
+          <span style="color:#00f3ff;font-size:9px;">[R] ROTATE</span>
+        </div>
+
+        <div class="poly-preview-box">
+          <div style="font-size:10px;color:#cbd5e1;font-weight:800;" id="polyPieceName">Next Wall Piece: Corner L-Bastion</div>
+          <canvas id="polyPreviewCanvas" width="140" height="110"></canvas>
+          <div style="display:flex;gap:6px;width:100%;">
+            <button type="button" id="rotateBtnSide" class="cyber-btn" style="flex:1;">🔄 Rotate [R]</button>
+            <button type="button" id="patchBtnSide" class="cyber-btn cyan" style="flex:1;">🤖 Auto-Patch [H]</button>
+          </div>
+        </div>
+
+        <div class="panel-title">
+          <span>💣 Tactical Action Override</span>
+          <span style="font-size:9px;color:#f59e0b;">ANY PHASE</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr;gap:6px;">
+          <button type="button" id="fireBarrageBtn" class="cyber-btn primary">🔥 Fire Full Cannon Salvo [F]</button>
+          <button type="button" id="deployCannonToolBtn" class="cyber-btn">💣 Place Bonus Cannon (+1)</button>
+        </div>
+
+        <div class="panel-title">
+          <span>🚢 Naval Threat Compendium</span>
+          <span style="font-size:9px;color:#ef4444;">ARMADA</span>
+        </div>
+
+        <div style="font-size:10px;color:#94a3b8;line-height:1.45;display:flex;flex-direction:column;gap:4px;">
+          <div>⛵ <strong>Red Frigate (2 HP)</strong>: Fast coastal raider firing single iron shot at fortress walls.</div>
+          <div>🚢 <strong>Mortar Galleon (4 HP)</strong>: Heavy warship lobbing explosive flaming boulders that ignite wall tiles.</div>
+          <div>👾 <strong>Landing Grunts</strong>: Amphibious saboteurs that march ashore if ships reach the beach.</div>
+          <div>🐙 <strong>Sea Kraken Boss (12 HP)</strong>: Colossal abyssal leviathan launching 3-way plasma barrages!</div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Bottom Controls Bar -->
+    <footer class="footer-bar">
+      <div>
+        <span class="key-pill">Left-Click</span> Fire Cannon Salvo / Place Wall or Cannon
+        <span class="key-pill">R / Right-Click</span> Rotate Polyomino Wall
+        <span class="key-pill">H</span> Auto-Patch Wall Breach
+        <span class="key-pill">SPACE</span> Advance Phase
+        <span class="key-pill">G</span> Generate Coastline
+      </div>
+      <div id="footerStatus">🏰 2/3 Castle Keeps Enclosed • 46 Captured Tiles • 6 Active Cannons Ready</div>
+    </footer>
+  </div>
+
+  <script>
+    (function() {
+      // Safe localStorage wrapper
+      var SafeStorage = {
+        get: function(key, fallback) {
+          try {
+            var v = window.localStorage.getItem(key);
+            return v !== null ? v : fallback;
+          } catch (e) {
+            return fallback;
+          }
+        },
+        set: function(key, val) {
+          try {
+            window.localStorage.setItem(key, String(val));
+          } catch (e) {}
+        }
+      };
+
+      // Orchestral-Synth Battle Audio Engine
+      var RampartAudio = (function() {
+        var ctx = null;
+        var enabled = true;
+
+        function ensureCtx() {
+          if (!enabled) return null;
+          if (!ctx) {
+            var AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+              try { ctx = new AudioCtx(); } catch (e) { ctx = null; }
+            }
+          }
+          if (ctx && ctx.state === "suspended") {
+            try { ctx.resume(); } catch (e) {}
+          }
+          return ctx;
+        }
+
+        function tone(freq, dur, type, gainVal, slideTo) {
+          var c = ensureCtx();
+          if (!c) return;
+          try {
+            var osc = c.createOscillator();
+            var g = c.createGain();
+            osc.type = type || "sawtooth";
+            osc.frequency.setValueAtTime(freq, c.currentTime);
+            if (slideTo) {
+              osc.frequency.exponentialRampToValueAtTime(slideTo, c.currentTime + dur);
+            }
+            g.gain.setValueAtTime(gainVal || 0.07, c.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + dur);
+            osc.connect(g);
+            g.connect(c.destination);
+            osc.start();
+            osc.stop(c.currentTime + dur);
+          } catch (e) {}
+        }
+
+        return {
+          toggle: function() {
+            enabled = !enabled;
+            if (enabled) tone(293.66, 0.16, "triangle", 0.08, 440);
+            return enabled;
+          },
+          playCannonFire: function() {
+            tone(140, 0.22, "sawtooth", 0.09, 42);
+          },
+          playExplosion: function() {
+            tone(95, 0.32, "square", 0.1, 28);
+          },
+          playWallPlace: function() {
+            tone(220, 0.1, "triangle", 0.07, 330);
+          },
+          playFanfare: function() {
+            tone(392, 0.12, "triangle", 0.07, 523.25);
+            setTimeout(function() { tone(523.25, 0.2, "triangle", 0.08, 783.99); }, 110);
+          }
+        };
+      })();
+
+      // 28 x 18 Coastline & Fortress Grid Constants
+      var COLS = 28;
+      var ROWS = 18;
+      // Tile Types
+      var T_WATER = 0;
+      var T_LAND = 1;
+      var T_WALL = 2;
+      var T_KEEP = 3;
+      var T_CANNON = 4;
+      var T_RUBBLE = 5;
+
+      // Polyomino Shapes
+      var POLYOMINOES = [
+        { name: "Corner L-Bastion", cells: [[0,0], [1,0], [0,1]] },
+        { name: "3-Brick Barricade", cells: [[-1,0], [0,0], [1,0]] },
+        { name: "2×2 Keep Block", cells: [[0,0], [1,0], [0,1], [1,1]] },
+        { name: "T-Rampart", cells: [[-1,0], [0,0], [1,0], [0,1]] },
+        { name: "Z-Chevron Wall", cells: [[-1,0], [0,0], [0,1], [1,1]] },
+        { name: "U-Turret Pocket", cells: [[-1,0], [1,0], [-1,1], [0,1], [1,1]] },
+        { name: "Single Masonry Plug", cells: [[0,0]] }
+      ];
+
+      var canvas = document.getElementById("rampartCanvas");
+      var ctx = canvas && canvas.getContext ? canvas.getContext("2d") : null;
+      var polyCanvas = document.getElementById("polyPreviewCanvas");
+      var polyCtx = polyCanvas && polyCanvas.getContext ? polyCanvas.getContext("2d") : null;
+
+      var state = {
+        mode: "campaign",
+        phase: 2, // 1 = Deploy Cannons, 2 = Cannon Siege, 3 = Polyomino Wall Repair
+        phaseTimer: 16,
+        wave: 1,
+        score: Number(SafeStorage.get("rampart_high_score", "2850")) || 2850,
+        reserveCannons: 2,
+        grid: [],
+        captured: [], // boolean[ROWS][COLS] computed by BFS Flood-Fill
+        keeps: [], // { x, y, enclosed: boolean }
+        ships: [], // { x, y, vx, vy, hp, maxHp, type: 'frigate'|'galleon'|'kraken', cooldown }
+        projectiles: [], // { sx, sy, tx, ty, progress, speed, fromPlayer, color }
+        particles: [],
+        hoverCell: { x: 8, y: 8 },
+        polyIndex: 0,
+        polyCells: [[0,0], [1,0], [0,1]]
+      };
+
+      function selectPolyomino(idx) {
+        state.polyIndex = ((idx % POLYOMINOES.length) + POLYOMINOES.length) % POLYOMINOES.length;
+        var src = POLYOMINOES[state.polyIndex];
+        state.polyCells = [];
+        for (var i = 0; i < src.cells.length; i++) {
+          state.polyCells.push([src.cells[i][0], src.cells[i][1]]);
+        }
+        var label = document.getElementById("polyPieceName");
+        if (label) label.textContent = "Next Wall: " + src.name;
+        renderPolyPreview();
+      }
+
+      function rotateCurrentPolyomino() {
+        for (var i = 0; i < state.polyCells.length; i++) {
+          var cx = state.polyCells[i][0];
+          var cy = state.polyCells[i][1];
+          state.polyCells[i] = [-cy, cx];
+        }
+        RampartAudio.playWallPlace();
+        renderPolyPreview();
+      }
+
+      function renderPolyPreview() {
+        if (!polyCtx || !polyCanvas) return;
+        polyCtx.clearRect(0, 0, polyCanvas.width, polyCanvas.height);
+        var size = 22;
+        var ox = Math.floor(polyCanvas.width * 0.5) - 11;
+        var oy = Math.floor(polyCanvas.height * 0.5) - 11;
+
+        for (var i = 0; i < state.polyCells.length; i++) {
+          var dx = state.polyCells[i][0];
+          var dy = state.polyCells[i][1];
+          var px = ox + dx * size;
+          var py = oy + dy * size;
+          polyCtx.fillStyle = "#f59e0b";
+          polyCtx.fillRect(px, py, size - 2, size - 2);
+          polyCtx.strokeStyle = "#fef08a";
+          polyCtx.lineWidth = 1.5;
+          polyCtx.strokeRect(px + 0.5, py + 0.5, size - 3, size - 3);
+        }
+      }
+
+      // Build Coastline & Enclosed Fortress Map
+      function initFortressMap(customSeed) {
+        state.grid = [];
+        state.captured = [];
+        for (var y = 0; y < ROWS; y++) {
+          var row = [];
+          var capRow = [];
+          for (var x = 0; x < COLS; x++) {
+            // Left columns 0..16 are coastal land; right columns 17..27 are deep ocean
+            var coastEdge = 16 + Math.round(Math.sin((y + (customSeed || 0)) * 0.55) * 1.5);
+            row.push(x <= coastEdge ? T_LAND : T_WATER);
+            capRow.push(false);
+          }
+          state.grid.push(row);
+          state.captured.push(capRow);
+        }
+
+        // 3 Castle Keeps (2 fully enclosed on load + 1 southern expansion keep)
+        state.keeps = [
+          { x: 6, y: 5, enclosed: true },
+          { x: 11, y: 6, enclosed: true },
+          { x: 7, y: 13, enclosed: false }
+        ];
+
+        // Build closed outer fortress wall loop around Keeps 1 & 2 (x: 3..14, y: 2..9)
+        for (var wx = 3; wx <= 14; wx++) {
+          state.grid[2][wx] = T_WALL;
+          state.grid[9][wx] = T_WALL;
+        }
+        for (var wy = 2; wy <= 9; wy++) {
+          state.grid[wy][3] = T_WALL;
+          state.grid[wy][14] = T_WALL;
+        }
+
+        // Partial southern bastion around Keep 3 (needs 1 polyomino or Auto-Patch [H] to seal!)
+        for (var sx = 4; sx <= 10; sx++) {
+          state.grid[11][sx] = T_WALL;
+          state.grid[15][sx] = T_WALL;
+        }
+        for (var sy = 11; sy <= 15; sy++) {
+          state.grid[sy][4] = T_WALL;
+          if (sy !== 13) state.grid[sy][10] = T_WALL; // 1-tile breach at (10, 13)
+        }
+
+        // Place Keeps
+        for (var k = 0; k < state.keeps.length; k++) {
+          var kp = state.keeps[k];
+          state.grid[kp.y][kp.x] = T_KEEP;
+        }
+
+        // Place 6 Active Cannons inside the enclosed fortress
+        var cannonSpots = [
+          [5, 4], [8, 4], [12, 4],
+          [5, 7], [9, 7], [12, 7]
+        ];
+        for (var c = 0; c < cannonSpots.length; c++) {
+          var cx = cannonSpots[c][0];
+          var cy = cannonSpots[c][1];
+          state.grid[cy][cx] = T_CANNON;
+        }
+
+        // Spawn Naval Armada on the right ocean
+        state.ships = [
+          { x: 21.5, y: 3.5, vx: -0.012, vy: 0.008, hp: 2, maxHp: 2, type: "frigate", cooldown: 45 },
+          { x: 24.0, y: 6.8, vx: -0.009, vy: -0.006, hp: 4, maxHp: 4, type: "galleon", cooldown: 65 },
+          { x: 20.2, y: 10.2, vx: -0.011, vy: 0.007, hp: 2, maxHp: 2, type: "frigate", cooldown: 80 },
+          { x: 25.0, y: 12.5, vx: -0.008, vy: -0.005, hp: 12, maxHp: 12, type: "kraken", cooldown: 50 },
+          { x: 22.4, y: 15.2, vx: -0.010, vy: -0.007, hp: 4, maxHp: 4, type: "galleon", cooldown: 90 }
+        ];
+
+        state.projectiles = [];
+        state.particles = [];
+        recomputeFloodFillEnclosure();
+
+        // Fire an initial dramatic cannon salvo so cannonballs & explosions are live immediately!
+        fireSalvoAt(21.5, 4.0);
+        selectPolyomino(0);
+      }
+
+      // Authentic BFS Flood-Fill Territory Enclosure Engine
+      function recomputeFloodFillEnclosure() {
+        var visited = [];
+        for (var y = 0; y < ROWS; y++) {
+          var r = [];
+          for (var x = 0; x < COLS; x++) r.push(false);
+          visited.push(r);
+        }
+
+        var queue = [];
+        for (var py = 0; py < ROWS; py++) {
+          for (var px = 0; px < COLS; px++) {
+            var isBorder = (px === 0 || px === COLS - 1 || py === 0 || py === ROWS - 1);
+            var isWater = state.grid[py][px] === T_WATER;
+            if ((isBorder || isWater) && state.grid[py][px] !== T_WALL) {
+              visited[py][px] = true;
+              queue.push([px, py]);
+            }
+          }
+        }
+
+        var dirs = [[1,0], [-1,0], [0,1], [0,-1]];
+        while (queue.length > 0) {
+          var curr = queue.shift();
+          var cx = curr[0];
+          var cy = curr[1];
+          for (var d = 0; d < 4; d++) {
+            var nx = cx + dirs[d][0];
+            var ny = cy + dirs[d][1];
+            if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+            if (visited[ny][nx]) continue;
+            if (state.grid[ny][nx] === T_WALL) continue;
+            visited[ny][nx] = true;
+            queue.push([nx, ny]);
+          }
+        }
+
+        var capturedCount = 0;
+        var activeCannonCount = 0;
+        for (var gy = 0; gy < ROWS; gy++) {
+          for (var gx = 0; gx < COLS; gx++) {
+            var isEnclosed = !visited[gy][gx] && state.grid[gy][gx] !== T_WALL && state.grid[gy][gx] !== T_WATER;
+            state.captured[gy][gx] = isEnclosed;
+            if (isEnclosed) {
+              capturedCount++;
+              if (state.grid[gy][gx] === T_CANNON) activeCannonCount++;
+            }
+          }
+        }
+
+        var enclosedKeeps = 0;
+        for (var k = 0; k < state.keeps.length; k++) {
+          var kp = state.keeps[k];
+          kp.enclosed = !!state.captured[kp.y][kp.x];
+          if (kp.enclosed) enclosedKeeps++;
+        }
+
+        // Update Telemetry DOM
+        var elKeeps = document.getElementById("statKeeps");
+        var elTerr = document.getElementById("statTerritory");
+        var elCan = document.getElementById("statCannons");
+        var elShips = document.getElementById("statShips");
+        var elBadge = document.getElementById("enclosureStatusBadge");
+
+        if (elKeeps) elKeeps.textContent = enclosedKeeps + " / " + state.keeps.length;
+        if (elTerr) elTerr.textContent = String(capturedCount);
+        if (elCan) elCan.textContent = String(activeCannonCount);
+        if (elShips) elShips.textContent = String(state.ships.length);
+        if (elBadge) {
+          elBadge.textContent = enclosedKeeps > 0 ? "SEALED (" + enclosedKeeps + " KEEPS) ✓" : "BREACHED ⚠️";
+          elBadge.style.color = enclosedKeeps > 0 ? "#10b981" : "#ef4444";
+        }
+
+        var footer = document.getElementById("footerStatus");
+        if (footer) {
+          footer.textContent =
+            "🏰 " + enclosedKeeps + "/" + state.keeps.length + " Castle Keeps Enclosed • " +
+            capturedCount + " Captured Tiles • " + activeCannonCount + " Active Cannons Ready";
+        }
+      }
+
+      // Fire simultaneous arcing cannonball salvo from all active enclosed cannons
+      function fireSalvoAt(targetX, targetY) {
+        var fired = 0;
+        for (var y = 0; y < ROWS; y++) {
+          for (var x = 0; x < COLS; x++) {
+            if (state.grid[y][x] === T_CANNON && state.captured[y][x]) {
+              var spreadX = targetX + (Math.random() - 0.5) * 1.4;
+              var spreadY = targetY + (Math.random() - 0.5) * 1.4;
+              state.projectiles.push({
+                sx: x + 0.5,
+                sy: y + 0.5,
+                tx: spreadX,
+                ty: spreadY,
+                progress: 0,
+                speed: 0.032 + Math.random() * 0.01,
+                fromPlayer: true,
+                color: "#ffd700"
+              });
+              fired++;
+            }
+          }
+        }
+        if (fired > 0) {
+          RampartAudio.playCannonFire();
+        }
+      }
+
+      // Place Polyomino Wall Block
+      function placePolyominoAt(gx, gy) {
+        var valid = false;
+        for (var i = 0; i < state.polyCells.length; i++) {
+          var tx = gx + state.polyCells[i][0];
+          var ty = gy + state.polyCells[i][1];
+          if (tx < 0 || tx >= COLS || ty < 0 || ty >= ROWS) continue;
+          var tile = state.grid[ty][tx];
+          if (tile === T_LAND || tile === T_RUBBLE) {
+            state.grid[ty][tx] = T_WALL;
+            valid = true;
+          }
+        }
+        if (valid) {
+          RampartAudio.playWallPlace();
+          recomputeFloodFillEnclosure();
+          selectPolyomino(state.polyIndex + 1);
+        }
+        return valid;
+      }
+
+      // Auto-Patch Helper [H]: seals any unenclosed Keep or rubble tile
+      function autoPatchWallBreach() {
+        var patched = 0;
+        for (var k = 0; k < state.keeps.length; k++) {
+          var kp = state.keeps[k];
+          if (!kp.enclosed) {
+            for (var wy = Math.max(1, kp.y - 2); wy <= Math.min(ROWS - 2, kp.y + 2); wy++) {
+              for (var wx = Math.max(1, kp.x - 3); wx <= Math.min(COLS - 2, kp.x + 3); wx++) {
+                var isEdge = (wy === kp.y - 2 || wy === kp.y + 2 || wx === kp.x - 3 || wx === kp.x + 3);
+                if (isEdge && (state.grid[wy][wx] === T_LAND || state.grid[wy][wx] === T_RUBBLE)) {
+                  state.grid[wy][wx] = T_WALL;
+                  patched++;
+                }
+              }
+            }
+          }
+        }
+
+        // Also repair any rubble tiles
+        for (var y = 0; y < ROWS; y++) {
+          for (var x = 0; x < COLS; x++) {
+            if (state.grid[y][x] === T_RUBBLE) {
+              state.grid[y][x] = T_WALL;
+              patched++;
+            }
+          }
+        }
+
+        RampartAudio.playFanfare();
+        recomputeFloodFillEnclosure();
+      }
+
+      function setPhase(newPhase) {
+        state.phase = ((newPhase - 1) % 3) + 1;
+        state.phaseTimer = state.mode === "blitz_10s" ? 10 : (state.phase === 1 ? 12 : 18);
+        if (state.phase === 1) {
+          state.reserveCannons = Math.min(6, state.reserveCannons + 2);
+        }
+
+        for (var i = 1; i <= 3; i++) {
+          var card = document.getElementById("phaseCard" + i);
+          if (card) card.classList.toggle("active", i === state.phase);
+        }
+
+        var banner = document.getElementById("hudPhaseBanner");
+        if (banner) {
+          if (state.phase === 1) banner.textContent = "💣 PHASE 1: DEPLOY CANNONS — CLICK CAPTURED TERRITORY!";
+          else if (state.phase === 2) banner.textContent = "🔥 PHASE 2: CANNON SIEGE — CLICK WARSHIPS TO FIRE SALVOS!";
+          else banner.textContent = "🧱 PHASE 3: POLYOMINO WALL REPAIR — SEAL KEEP BREACHES!";
+        }
+        updateHud();
+      }
+
+      function updateHud() {
+        var tEl = document.getElementById("hudTimer");
+        if (tEl) tEl.textContent = state.phaseTimer + "s";
+        var rEl = document.getElementById("hudReserveCannons");
+        if (rEl) rEl.textContent = String(state.reserveCannons);
+        var sEl = document.getElementById("scoreVal");
+        if (sEl) sEl.textContent = state.score.toLocaleString();
+      }
+
+      function spawnBurstParticles(gx, gy, color, count) {
+        for (var i = 0; i < (count || 14); i++) {
+          var a = (Math.PI * 2 * i) / (count || 14) + Math.random() * 0.4;
+          var s = 0.04 + Math.random() * 0.14;
+          state.particles.push({
+            x: gx,
+            y: gy,
+            vx: Math.cos(a) * s,
+            vy: Math.sin(a) * s,
+            color: color || "#f59e0b",
+            alpha: 1.0,
+            size: 3 + Math.random() * 4
+          });
+        }
+      }
+
+      // Step Simulation
+      function stepSimulation() {
+        // Move Warships & Fire Enemy Broadsides
+        for (var s = state.ships.length - 1; s >= 0; s--) {
+          var sh = state.ships[s];
+          sh.x += sh.vx;
+          sh.y += sh.vy;
+          if (sh.x < 18.2 || sh.x > COLS - 1.5) sh.vx = -sh.vx;
+          if (sh.y < 1.5 || sh.y > ROWS - 1.5) sh.vy = -sh.vy;
+
+          sh.cooldown--;
+          if (sh.cooldown <= 0) {
+            sh.cooldown = sh.type === "kraken" ? 75 : 110;
+            // Target a fortress wall tile
+            state.projectiles.push({
+              sx: sh.x,
+              sy: sh.y,
+              tx: 14,
+              ty: Math.max(2, Math.min(9, Math.round(sh.y))),
+              progress: 0,
+              speed: 0.022,
+              fromPlayer: false,
+              color: "#ef4444"
+            });
+          }
+        }
+
+        // Respawn wave if armada cleared
+        if (state.ships.length === 0) {
+          state.wave++;
+          var wb = document.getElementById("waveBadge");
+          if (wb) wb.textContent = "WAVE " + state.wave;
+          state.ships.push(
+            { x: 22, y: 4, vx: -0.01, vy: 0.008, hp: 3, maxHp: 3, type: "frigate", cooldown: 60 },
+            { x: 24, y: 9, vx: -0.009, vy: -0.007, hp: 5, maxHp: 5, type: "galleon", cooldown: 70 },
+            { x: 25, y: 14, vx: -0.008, vy: 0.006, hp: 12, maxHp: 12, type: "kraken", cooldown: 55 }
+          );
+          recomputeFloodFillEnclosure();
+        }
+
+        // Update Arcing Cannonballs
+        for (var p = state.projectiles.length - 1; p >= 0; p--) {
+          var pr = state.projectiles[p];
+          pr.progress += pr.speed;
+          if (pr.progress >= 1.0) {
+            if (pr.fromPlayer) {
+              spawnBurstParticles(pr.tx, pr.ty, "#ffd700", 16);
+              // Check warship hits
+              for (var i = state.ships.length - 1; i >= 0; i--) {
+                var ship = state.ships[i];
+                if (Math.hypot(ship.x - pr.tx, ship.y - pr.ty) < 1.65) {
+                  ship.hp--;
+                  state.score += 150;
+                  if (ship.hp <= 0) {
+                    state.score += ship.type === "kraken" ? 1500 : 500;
+                    RampartAudio.playExplosion();
+                    spawnBurstParticles(ship.x, ship.y, "#ef4444", 26);
+                    state.ships.splice(i, 1);
+                  }
+                }
+              }
+              SafeStorage.set("rampart_high_score", state.score);
+              updateHud();
+              recomputeFloodFillEnclosure();
+            } else {
+              // Enemy shot hits wall
+              var wx = Math.floor(pr.tx);
+              var wy = Math.floor(pr.ty);
+              spawnBurstParticles(pr.tx, pr.ty, "#ef4444", 14);
+              if (wx >= 0 && wx < COLS && wy >= 0 && wy < ROWS && state.grid[wy][wx] === T_WALL && Math.random() < 0.25) {
+                state.grid[wy][wx] = T_RUBBLE;
+                recomputeFloodFillEnclosure();
+              }
+            }
+            state.projectiles.splice(p, 1);
+          }
+        }
+
+        // Step Particles
+        for (var pt = state.particles.length - 1; pt >= 0; pt--) {
+          var part = state.particles[pt];
+          part.x += part.vx;
+          part.y += part.vy;
+          part.alpha -= 0.038;
+          if (part.alpha <= 0) state.particles.splice(pt, 1);
+        }
+      }
+
+      // Render 28x18 Coastline & Fortress Grid
+      function renderArena() {
+        if (!ctx || !canvas) return;
+        var W = canvas.width;
+        var H = canvas.height;
+        var cellW = W / COLS;
+        var cellH = H / ROWS;
+
+        ctx.clearRect(0, 0, W, H);
+
+        // 1. Draw Terrain, Captured Territory & Fortress Tiles
+        for (var y = 0; y < ROWS; y++) {
+          for (var x = 0; x < COLS; x++) {
+            var tile = state.grid[y][x];
+            var px = x * cellW;
+            var py = y * cellH;
+
+            if (tile === T_WATER) {
+              ctx.fillStyle = (x + y) % 2 === 0 ? "#071a3e" : "#09214d";
+              ctx.fillRect(px, py, cellW, cellH);
+            } else {
+              // Coastal grassland
+              ctx.fillStyle = (x + y) % 2 === 0 ? "#132a1f" : "#173326";
+              ctx.fillRect(px, py, cellW, cellH);
+
+              // Highlight Enclosed Captured Territory in Royal Blue/Gold
+              if (state.captured[y][x]) {
+                ctx.fillStyle = "rgba(59, 130, 246, 0.38)";
+                ctx.fillRect(px, py, cellW, cellH);
+                ctx.strokeStyle = "rgba(255, 215, 0, 0.28)";
+                ctx.lineWidth = 1;
+                ctx.strokeRect(px + 0.5, py + 0.5, cellW - 1, cellH - 1);
+              }
+            }
+
+            if (tile === T_WALL) {
+              ctx.fillStyle = "#d97706";
+              ctx.fillRect(px + 1, py + 1, cellW - 2, cellH - 2);
+              ctx.fillStyle = "#fbbf24";
+              ctx.fillRect(px + 3, py + 3, cellW - 8, cellH - 8);
+              ctx.strokeStyle = "#78350f";
+              ctx.lineWidth = 1.5;
+              ctx.strokeRect(px + 1, py + 1, cellW - 2, cellH - 2);
+            } else if (tile === T_RUBBLE) {
+              ctx.fillStyle = "#7f1d1d";
+              ctx.fillRect(px + 2, py + 2, cellW - 4, cellH - 4);
+              ctx.fillStyle = "#ef4444";
+              ctx.font = "12px sans-serif";
+              ctx.textAlign = "center";
+              ctx.fillText("🔥", px + cellW * 0.5, py + cellH * 0.72);
+            } else if (tile === T_KEEP) {
+              ctx.fillStyle = state.captured[y][x] ? "#1d4ed8" : "#475569";
+              ctx.fillRect(px - 2, py - 2, cellW + 4, cellH + 4);
+              ctx.strokeStyle = "#ffd700";
+              ctx.lineWidth = 2.5;
+              ctx.strokeRect(px - 2, py - 2, cellW + 4, cellH + 4);
+              ctx.font = "22px sans-serif";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText("🏰", px + cellW * 0.5, py + cellH * 0.5);
+            } else if (tile === T_CANNON) {
+              ctx.fillStyle = "#0f172a";
+              ctx.beginPath();
+              ctx.arc(px + cellW * 0.5, py + cellH * 0.5, cellW * 0.42, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.strokeStyle = state.captured[y][x] ? "#00f3ff" : "#64748b";
+              ctx.lineWidth = 2;
+              ctx.stroke();
+              ctx.font = "17px sans-serif";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText("💣", px + cellW * 0.5, py + cellH * 0.52);
+            }
+
+            // Subtle Grid Lines
+            ctx.strokeStyle = "rgba(148, 163, 184, 0.08)";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(px, py, cellW, cellH);
+          }
+        }
+
+        // 2. Draw Ghost Polyomino Preview on Hover
+        if (state.hoverCell && state.hoverCell.x < 17) {
+          ctx.save();
+          for (var i = 0; i < state.polyCells.length; i++) {
+            var gx = state.hoverCell.x + state.polyCells[i][0];
+            var gy = state.hoverCell.y + state.polyCells[i][1];
+            if (gx >= 0 && gx < COLS && gy >= 0 && gy < ROWS) {
+              ctx.fillStyle = "rgba(0, 243, 255, 0.28)";
+              ctx.strokeStyle = "#00f3ff";
+              ctx.lineWidth = 2;
+              ctx.fillRect(gx * cellW + 2, gy * cellH + 2, cellW - 4, cellH - 4);
+              ctx.strokeRect(gx * cellW + 2, gy * cellH + 2, cellW - 4, cellH - 4);
+            }
+          }
+          ctx.restore();
+        }
+
+        // 3. Draw Naval Armada Warships & Sea Kraken Boss
+        for (var s = 0; s < state.ships.length; s++) {
+          var sh = state.ships[s];
+          var sx = sh.x * cellW;
+          var sy = sh.y * cellH;
+          ctx.save();
+          ctx.fillStyle = sh.type === "kraken" ? "rgba(168, 85, 247, 0.32)" : "rgba(239, 68, 68, 0.28)";
+          ctx.strokeStyle = sh.type === "kraken" ? "#c084fc" : "#ef4444";
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(sx, sy, sh.type === "kraken" ? 26 : 19, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.font = (sh.type === "kraken" ? "26px" : "20px") + " sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          var icon = sh.type === "kraken" ? "🐙" : (sh.type === "galleon" ? "🚢" : "⛵");
+          ctx.fillText(icon, sx, sy);
+
+          // Ship HP Bar
+          var bw = 34;
+          ctx.fillStyle = "rgba(0,0,0,0.7)";
+          ctx.fillRect(sx - bw * 0.5, sy - 26, bw, 5);
+          ctx.fillStyle = sh.type === "kraken" ? "#c084fc" : "#ef4444";
+          ctx.fillRect(sx - bw * 0.5, sy - 26, bw * (sh.hp / sh.maxHp), 5);
+          ctx.restore();
+        }
+
+        // 4. Draw Arcing Cannonball Salvos
+        for (var p = 0; p < state.projectiles.length; p++) {
+          var pr = state.projectiles[p];
+          var t = pr.progress;
+          var cx = (pr.sx + (pr.tx - pr.sx) * t) * cellW;
+          var cy = (pr.sy + (pr.ty - pr.sy) * t) * cellH - Math.sin(t * Math.PI) * 68;
+
+          ctx.save();
+          ctx.fillStyle = pr.color;
+          ctx.shadowColor = pr.color;
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // 5. Draw Particles
+        for (var ptIdx = 0; ptIdx < state.particles.length; ptIdx++) {
+          var part = state.particles[ptIdx];
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, part.alpha);
+          ctx.fillStyle = part.color;
+          ctx.beginPath();
+          ctx.arc(part.x * cellW, part.y * cellH, part.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      // Pointer Events on 28x18 Canvas
+      function getGridPos(e) {
+        if (!canvas) return { x: 0, y: 0, fx: 0, fy: 0 };
+        var rect = canvas.getBoundingClientRect();
+        var sx = (e.clientX - rect.left) * (canvas.width / Math.max(1, rect.width));
+        var sy = (e.clientY - rect.top) * (canvas.height / Math.max(1, rect.height));
+        var fx = sx / (canvas.width / COLS);
+        var fy = sy / (canvas.height / ROWS);
+        return {
+          x: Math.max(0, Math.min(COLS - 1, Math.floor(fx))),
+          y: Math.max(0, Math.min(ROWS - 1, Math.floor(fy))),
+          fx: fx,
+          fy: fy
+        };
+      }
+
+      if (canvas) {
+        canvas.addEventListener("pointermove", function(e) {
+          var pos = getGridPos(e);
+          state.hoverCell = { x: pos.x, y: pos.y };
+        });
+
+        canvas.addEventListener("contextmenu", function(e) {
+          e.preventDefault();
+          rotateCurrentPolyomino();
+        });
+
+        canvas.addEventListener("pointerdown", function(e) {
+          if (e.button === 2) return;
+          var pos = getGridPos(e);
+
+          // Clicking ocean always fires cannon salvo!
+          if (state.grid[pos.y][pos.x] === T_WATER || pos.x >= 16) {
+            fireSalvoAt(pos.fx, pos.fy);
+            return;
+          }
+
+          if (state.phase === 1 && state.reserveCannons > 0 && state.grid[pos.y][pos.x] === T_LAND) {
+            state.grid[pos.y][pos.x] = T_CANNON;
+            state.reserveCannons--;
+            RampartAudio.playWallPlace();
+            recomputeFloodFillEnclosure();
+            updateHud();
+          } else {
+            placePolyominoAt(pos.x, pos.y);
+          }
+        });
+      }
+
+      // Bind Buttons & Controls
+      var phaseCards = document.querySelectorAll(".phase-card");
+      for (var pc = 0; pc < phaseCards.length; pc++) {
+        (function(card) {
+          card.addEventListener("click", function() {
+            setPhase(Number(card.getAttribute("data-phase")) || 1);
+          });
+        })(phaseCards[pc]);
+      }
+
+      var nextPhaseBtn = document.getElementById("nextPhaseBtn");
+      if (nextPhaseBtn) {
+        nextPhaseBtn.addEventListener("click", function() {
+          setPhase(state.phase + 1);
+        });
+      }
+
+      var autoPatchBtn = document.getElementById("autoPatchBtn");
+      if (autoPatchBtn) autoPatchBtn.addEventListener("click", autoPatchWallBreach);
+      var patchBtnSide = document.getElementById("patchBtnSide");
+      if (patchBtnSide) patchBtnSide.addEventListener("click", autoPatchWallBreach);
+
+      var rotatePolyBtn = document.getElementById("rotatePolyBtn");
+      if (rotatePolyBtn) rotatePolyBtn.addEventListener("click", rotateCurrentPolyomino);
+      var rotateBtnSide = document.getElementById("rotateBtnSide");
+      if (rotateBtnSide) rotateBtnSide.addEventListener("click", rotateCurrentPolyomino);
+
+      var newIslandBtn = document.getElementById("newIslandBtn");
+      if (newIslandBtn) {
+        newIslandBtn.addEventListener("click", function() {
+          initFortressMap(Math.floor(Math.random() * 100));
+        });
+      }
+
+      var fireBarrageBtn = document.getElementById("fireBarrageBtn");
+      if (fireBarrageBtn) {
+        fireBarrageBtn.addEventListener("click", function() {
+          var target = state.ships[0] || { x: 22, y: 8 };
+          fireSalvoAt(target.x, target.y);
+        });
+      }
+
+      var deployCannonToolBtn = document.getElementById("deployCannonToolBtn");
+      if (deployCannonToolBtn) {
+        deployCannonToolBtn.addEventListener("click", function() {
+          state.reserveCannons++;
+          setPhase(1);
+        });
+      }
+
+      var modeSelect = document.getElementById("rampartModeSelect");
+      if (modeSelect) {
+        modeSelect.addEventListener("change", function() {
+          state.mode = modeSelect.value;
+          initFortressMap(modeSelect.selectedIndex * 7);
+          if (state.mode === "polyomino_rush") setPhase(3);
+          else if (state.mode === "super_cannon") {
+            state.reserveCannons = 8;
+            setPhase(2);
+          }
+        });
+      }
+
+      var audioToggleBtn = document.getElementById("audioToggleBtn");
+      if (audioToggleBtn) {
+        audioToggleBtn.addEventListener("click", function() {
+          var on = RampartAudio.toggle();
+          audioToggleBtn.textContent = on ? "🔊 Synth: ON [M]" : "🔇 Synth: OFF [M]";
+          audioToggleBtn.classList.toggle("active", on);
+        });
+      }
+
+      window.addEventListener("keydown", function(e) {
+        if (!e || e.altKey || e.ctrlKey || e.metaKey) return;
+        var k = (e.key || "").toLowerCase();
+        if (k === "r") rotateCurrentPolyomino();
+        else if (k === "h") autoPatchWallBreach();
+        else if (k === "g") initFortressMap(Math.floor(Math.random() * 100));
+        else if (k === "f") {
+          var target = state.ships[0] || { x: 22, y: 8 };
+          fireSalvoAt(target.x, target.y);
+        } else if (k === "m" && audioToggleBtn) {
+          audioToggleBtn.click();
+        } else if (k === " ") {
+          e.preventDefault();
+          setPhase(state.phase + 1);
+        }
+      });
+
+      // Phase Countdown Timer
+      setInterval(function() {
+        if (state.phaseTimer > 1) {
+          state.phaseTimer--;
+        } else {
+          setPhase(state.phase + 1);
+        }
+        updateHud();
+      }, 1000);
+
+      // Initialize Fortress & Start 60fps Loop
+      initFortressMap(0);
+      renderArena();
+
+      var raf = window.requestAnimationFrame || function(fn) { return setTimeout(fn, 16); };
+      function loop() {
+        stepSimulation();
+        renderArena();
+        raf(loop);
+      }
+      raf(loop);
+    })();
+  </script>
+</body>
+</html>

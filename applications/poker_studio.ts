@@ -1,3 +1,4 @@
+import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * ♠️ Texas Hold'em & 5-Card Draw Poker Royale — Deluxe Casino Studio
  * 
@@ -145,7 +146,7 @@ ${getWindowShortcutsScript()}
     html += desktopHooks;
   }
 
-  return html;
+  return injectGameMasterFx(html);
 }
 
 /**

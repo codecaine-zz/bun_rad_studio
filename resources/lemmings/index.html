@@ -1,0 +1,2133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine CyberLemmings: Kernel Thread Rescue</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <style>
+    :root {
+      --bg-void: #030712;
+      --bg-panel: rgba(8, 17, 34, 0.94);
+      --border-emerald: rgba(16, 185, 129, 0.38);
+      --emerald: #10b981;
+      --emerald-bright: #34d399;
+      --cyan: #38bdf8;
+      --gold: #facc15;
+      --amber: #f97316;
+      --crimson: #ef4444;
+      --magenta: #ec4899;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 18%, #062825 0%, #050d1d 65%, #02050b 100%);
+      color: var(--text-main);
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header.top-hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 14px;
+      background: linear-gradient(180deg, rgba(8, 25, 36, 0.96) 0%, rgba(4, 12, 24, 0.96) 100%);
+      border-bottom: 1px solid var(--border-emerald);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.72);
+      gap: 10px;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 30%, #10b981, #047857 70%, #04131c);
+      border: 1.5px solid #a7f3d0;
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .brand-titles h1 {
+      font-size: 13.5px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffffff 0%, #6ee7b7 48%, #facc15 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-titles .subtitle {
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+    }
+
+    .hud-kpis {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .kpi-pill {
+      background: rgba(11, 23, 41, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 8px;
+      padding: 3px 9px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 72px;
+    }
+
+    .kpi-pill.emerald-border {
+      border-color: rgba(16, 185, 129, 0.55);
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.16);
+    }
+
+    .kpi-pill.gold-border {
+      border-color: rgba(250, 204, 21, 0.55);
+      box-shadow: 0 0 10px rgba(250, 204, 21, 0.16);
+    }
+
+    .kpi-label {
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.65px;
+      color: var(--text-muted);
+      font-weight: 800;
+    }
+
+    .kpi-val {
+      font-size: 13.5px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: #ffffff;
+    }
+
+    .kpi-val.emerald {
+      color: var(--emerald-bright);
+      text-shadow: 0 0 8px rgba(52, 211, 153, 0.45);
+    }
+
+    .kpi-val.gold {
+      color: var(--gold);
+      text-shadow: 0 0 8px rgba(250, 204, 21, 0.45);
+    }
+
+    .kpi-val.cyan {
+      color: var(--cyan);
+    }
+
+    .hud-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    select.mode-select {
+      background: rgba(15, 23, 42, 0.95);
+      color: #e2e8f0;
+      border: 1px solid rgba(16, 185, 129, 0.5);
+      border-radius: 7px;
+      padding: 5px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      outline: none;
+    }
+
+    button.hud-btn {
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95));
+      color: #e2e8f0;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 7px;
+      padding: 5px 9px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    button.hud-btn:hover {
+      border-color: var(--emerald-bright);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    button.hud-btn.active {
+      background: linear-gradient(180deg, #059669, #047857);
+      border-color: #6ee7b7;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.45);
+    }
+
+    button.hud-btn.danger {
+      border-color: rgba(239, 68, 68, 0.55);
+      color: #fca5a5;
+    }
+
+    button.hud-btn.danger:hover {
+      background: linear-gradient(180deg, #dc2626, #991b1b);
+      color: #fff;
+    }
+
+    /* Main Workspace */
+    .workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 256px;
+      gap: 10px;
+      padding: 8px 12px;
+      min-height: 0;
+    }
+
+    .stage-column {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+      min-width: 0;
+    }
+
+    .canvas-shell {
+      position: relative;
+      flex: 1;
+      background: #020611;
+      border: 1.5px solid rgba(16, 185, 129, 0.42);
+      border-radius: 12px;
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.75), inset 0 0 32px rgba(16, 185, 129, 0.08);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas#lemmingsCanvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      cursor: crosshair;
+      image-rendering: pixelated;
+    }
+
+    /* Sandbox Terrain Brush Bar */
+    .sandbox-bar {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(6, 14, 28, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 8px;
+      padding: 4px 8px;
+      z-index: 8;
+      backdrop-filter: blur(6px);
+    }
+
+    .sandbox-bar span.lbl {
+      font-size: 9.5px;
+      font-weight: 800;
+      color: var(--cyan);
+      text-transform: uppercase;
+      margin-right: 3px;
+    }
+
+    .brush-btn {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      color: #cbd5e1;
+      border-radius: 5px;
+      padding: 2px 7px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .brush-btn.active {
+      background: rgba(16, 185, 129, 0.28);
+      border-color: var(--emerald-bright);
+      color: #fff;
+    }
+
+    /* Probe Telemetry Banner */
+    .probe-banner {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      background: rgba(6, 14, 28, 0.88);
+      border: 1px solid rgba(16, 185, 129, 0.42);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #a7f3d0;
+      pointer-events: none;
+      z-index: 8;
+    }
+
+    /* Bottom 8-Skill Command Deck + Release Rate + Minimap */
+    .skill-deck {
+      display: flex;
+      align-items: stretch;
+      gap: 6px;
+      background: linear-gradient(180deg, rgba(10, 22, 38, 0.96), rgba(5, 11, 22, 0.98));
+      border: 1px solid var(--border-emerald);
+      border-radius: 11px;
+      padding: 6px 8px;
+      flex-shrink: 0;
+    }
+
+    .rate-module {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 8px;
+      padding: 4px 8px;
+      min-width: 96px;
+    }
+
+    .rate-top {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .rate-val {
+      font-size: 14px;
+      font-weight: 900;
+      color: var(--cyan);
+      text-align: center;
+    }
+
+    .rate-btns {
+      display: flex;
+      gap: 4px;
+    }
+
+    .rate-btns button {
+      flex: 1;
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      color: #fff;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+      padding: 1px 0;
+    }
+
+    .rate-btns button:hover {
+      border-color: var(--cyan);
+      background: rgba(56, 189, 248, 0.25);
+    }
+
+    .skill-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 5px;
+    }
+
+    .skill-card {
+      background: linear-gradient(180deg, rgba(17, 29, 51, 0.95), rgba(9, 16, 30, 0.98));
+      border: 1.5px solid rgba(148, 163, 184, 0.28);
+      border-radius: 8px;
+      padding: 4px 5px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.12s ease;
+      position: relative;
+    }
+
+    .skill-card:hover {
+      border-color: rgba(52, 211, 153, 0.7);
+      transform: translateY(-1px);
+    }
+
+    .skill-card.selected {
+      background: linear-gradient(180deg, rgba(6, 95, 70, 0.92), rgba(4, 47, 46, 0.96));
+      border-color: #34d399;
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.55);
+    }
+
+    .skill-card.depleted {
+      opacity: 0.42;
+    }
+
+    .skill-hotkey {
+      position: absolute;
+      top: 3px;
+      left: 5px;
+      font-size: 8.5px;
+      font-weight: 900;
+      color: var(--gold);
+    }
+
+    .skill-count {
+      font-size: 12px;
+      font-weight: 900;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+      align-self: flex-end;
+      padding-right: 2px;
+    }
+
+    .skill-icon {
+      font-size: 18px;
+      line-height: 1.1;
+      margin: 1px 0;
+    }
+
+    .skill-name {
+      font-size: 9.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      color: #cbd5e1;
+    }
+
+    /* Right Tactical Sidebar */
+    aside.side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    .panel-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-emerald);
+      border-radius: 10px;
+      padding: 9px 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .panel-title {
+      font-size: 10.5px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--emerald-bright);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .minimap-wrap {
+      background: #020611;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 6px;
+      overflow: hidden;
+      height: 92px;
+    }
+
+    canvas#minimapCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #cbd5e1;
+      border-bottom: 1px dashed rgba(148, 163, 184, 0.14);
+      padding-bottom: 3px;
+    }
+
+    .stat-row strong {
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .coach-box {
+      background: rgba(6, 78, 59, 0.28);
+      border: 1px solid rgba(52, 211, 153, 0.4);
+      border-radius: 7px;
+      padding: 6px 8px;
+      font-size: 10.5px;
+      line-height: 1.38;
+      color: #d1fae5;
+    }
+
+    .legend-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      font-size: 10px;
+      color: #cbd5e1;
+    }
+
+    .swatch {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      border-radius: 2px;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <header class="top-hud">
+    <div class="brand-cluster">
+      <div class="brand-badge">🧵</div>
+      <div class="brand-titles">
+        <h1>Codecaine CyberLemmings: Kernel Thread Rescue</h1>
+        <div class="subtitle">1991 DMA Design Pixel-Destructible Terrain Engine • 8 Daemon Thread Skills • AI Rescue Coach</div>
+      </div>
+    </div>
+
+    <div class="hud-kpis">
+      <div class="kpi-pill">
+        <span class="kpi-label">Out / Total</span>
+        <span class="kpi-val cyan" id="kpiOut">0 / 20</span>
+      </div>
+      <div class="kpi-pill emerald-border">
+        <span class="kpi-label">Saved (%)</span>
+        <span class="kpi-val emerald" id="kpiSaved">0% (0)</span>
+      </div>
+      <div class="kpi-pill gold-border">
+        <span class="kpi-label">Quota Needed</span>
+        <span class="kpi-val gold" id="kpiNeeded">50%</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">Time Left</span>
+        <span class="kpi-val" id="kpiTimer">03:00</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">Score / Best</span>
+        <span class="kpi-val gold" id="kpiScore">0 / 0</span>
+      </div>
+    </div>
+
+    <div class="hud-controls">
+      <select id="lemmingsModeSelect" class="mode-select" title="Select Game Mode">
+        <option value="fun">1. 🌱 Fun Tier</option>
+        <option value="tricky">2. 🧩 Tricky Tier</option>
+        <option value="taxing">3. 🔥 Taxing Tier</option>
+        <option value="mayhem">4. 💀 Mayhem Tier</option>
+        <option value="vs_ai">5. ⚔️ 2-Tribe Vs. AI Rescue</option>
+        <option value="speedrun">6. ⚡ 90s Speedrun Rescue</option>
+        <option value="sandbox">7. 🏗️ Terrain Sandbox &amp; Brush Editor</option>
+        <option value="procedural">8. 🎲 Procedural Level Architect [G]</option>
+      </select>
+      <button class="hud-btn" id="btnPause" title="Pause / Resume [P]">⏸️ Pause [P]</button>
+      <button class="hud-btn" id="btnSpeed" title="Fast-Forward 1x/2x/3x [F]">⏩ 1× [F]</button>
+      <button class="hud-btn" id="btnCoach" title="AI Bridge &amp; Rescue Coach [H]">💡 AI Coach [H]</button>
+      <button class="hud-btn" id="btnGen" title="Procedural Level Architect [G]">🎲 Architect [G]</button>
+      <button class="hud-btn danger" id="btnNuke" title="Nuke All Active Threads [N]">☢️ Nuke [N]</button>
+      <button class="hud-btn" id="btnAudio" title="Toggle Chiptune March BGM [M]">🔊 BGM [M]</button>
+      <button class="hud-btn" id="btnReset" title="Restart Stage [R]">🔄 Reset [R]</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="stage-column">
+      <div class="canvas-shell">
+        <div class="sandbox-bar" id="sandboxBar">
+          <span class="lbl">🖌️ Terrain Brush:</span>
+          <button class="brush-btn" data-brush="NONE" id="brushNone">🖱️ Assign Skill</button>
+          <button class="brush-btn" data-brush="DIRT">🌱 Dirt</button>
+          <button class="brush-btn" data-brush="CYBER_BRICK">🧱 Brick</button>
+          <button class="brush-btn" data-brush="INDESTRUCTIBLE_STEEL">🛡️ Steel</button>
+          <button class="brush-btn" data-brush="ONE_WAY_WALL">➡️ One-Way</button>
+          <button class="brush-btn" data-brush="WATER_HAZARD">💧 Water</button>
+          <button class="brush-btn" data-brush="LAVA_CORE">🌋 Lava</button>
+          <button class="brush-btn" data-brush="ERASE">🧽 Erase</button>
+        </div>
+        <div class="probe-banner" id="probeBanner">🎯 Hover a Kernel Thread to assign selected skill (Click)</div>
+        <canvas id="lemmingsCanvas" width="880" height="460"></canvas>
+      </div>
+
+      <div class="skill-deck">
+        <div class="rate-module">
+          <div class="rate-top">
+            <span>Release</span>
+            <span id="minRateLbl">MIN 25</span>
+          </div>
+          <div class="rate-val" id="rateVal">50</div>
+          <div class="rate-btns">
+            <button id="btnRateMinus" title="Decrease Release Rate [-]">−</button>
+            <button id="btnRatePlus" title="Increase Release Rate [+]">+</button>
+          </div>
+        </div>
+
+        <div class="skill-grid" id="skillGrid">
+          <div class="skill-card selected" data-skill="CLIMBER">
+            <span class="skill-hotkey">[1]</span>
+            <span class="skill-count" id="cnt_CLIMBER">10</span>
+            <span class="skill-icon">🧗</span>
+            <span class="skill-name">Climber</span>
+          </div>
+          <div class="skill-card" data-skill="FLOATER">
+            <span class="skill-hotkey">[2]</span>
+            <span class="skill-count" id="cnt_FLOATER">10</span>
+            <span class="skill-icon">☂️</span>
+            <span class="skill-name">Floater</span>
+          </div>
+          <div class="skill-card" data-skill="BOMBER">
+            <span class="skill-hotkey">[3]</span>
+            <span class="skill-count" id="cnt_BOMBER">10</span>
+            <span class="skill-icon">💣</span>
+            <span class="skill-name">Bomber</span>
+          </div>
+          <div class="skill-card" data-skill="BLOCKER">
+            <span class="skill-hotkey">[4]</span>
+            <span class="skill-count" id="cnt_BLOCKER">10</span>
+            <span class="skill-icon">🛑</span>
+            <span class="skill-name">Blocker</span>
+          </div>
+          <div class="skill-card" data-skill="BUILDER">
+            <span class="skill-hotkey">[5]</span>
+            <span class="skill-count" id="cnt_BUILDER">12</span>
+            <span class="skill-icon">🪜</span>
+            <span class="skill-name">Builder</span>
+          </div>
+          <div class="skill-card" data-skill="BASHER">
+            <span class="skill-hotkey">[6]</span>
+            <span class="skill-count" id="cnt_BASHER">10</span>
+            <span class="skill-icon">⛏️</span>
+            <span class="skill-name">Basher</span>
+          </div>
+          <div class="skill-card" data-skill="MINER">
+            <span class="skill-hotkey">[7]</span>
+            <span class="skill-count" id="cnt_MINER">10</span>
+            <span class="skill-icon">⚒️</span>
+            <span class="skill-name">Miner</span>
+          </div>
+          <div class="skill-card" data-skill="DIGGER">
+            <span class="skill-hotkey">[8]</span>
+            <span class="skill-count" id="cnt_DIGGER">10</span>
+            <span class="skill-icon">🌀</span>
+            <span class="skill-name">Digger</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side-panel">
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>📡 Live Radar &amp; Minimap</span>
+          <span id="stageTitleBadge">STAGE 1</span>
+        </div>
+        <div class="minimap-wrap">
+          <canvas id="minimapCanvas" width="220" height="92"></canvas>
+        </div>
+        <div class="stat-row"><span>Mode Tier</span><strong id="statModeName">🌱 Fun Tier</strong></div>
+        <div class="stat-row"><span>Active on Field</span><strong id="statActive">0</strong></div>
+        <div class="stat-row"><span>Rescued / Lost</span><strong id="statRescuedLost">0 / 0</strong></div>
+        <div class="stat-row"><span>Rival AI Rescued</span><strong id="statAiRescued">0</strong></div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>💡 AI Bridge/Rescue Coach</span>
+          <span>[H]</span>
+        </div>
+        <div class="coach-box" id="coachText">
+          Press <strong>[H]</strong> or click <strong>AI Coach</strong> to highlight the optimal thread &amp; auto-suggest a Digger, Builder, or Basher assignment!
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title"><span>🧱 Pixel Material Legend</span></div>
+        <div class="legend-grid">
+          <div><span class="swatch" style="background:#22c55e"></span><strong>DIRT</strong> (Dig/Bash)</div>
+          <div><span class="swatch" style="background:#f59e0b"></span><strong>CYBER_BRICK</strong></div>
+          <div><span class="swatch" style="background:#64748b"></span><strong>STEEL</strong> (Solid)</div>
+          <div><span class="swatch" style="background:#a855f7"></span><strong>ONE_WAY_WALL</strong></div>
+          <div><span class="swatch" style="background:#0ea5e9"></span><strong>WATER_HAZARD</strong></div>
+          <div><span class="swatch" style="background:#ef4444"></span><strong>LAVA_CORE</strong></div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title"><span>⌨️ Hotkeys Reference</span></div>
+        <div class="stat-row"><span>Select Skills</span><strong>Keys 1 – 8</strong></div>
+        <div class="stat-row"><span>Assign / Paint</span><strong>Left Click</strong></div>
+        <div class="stat-row"><span>Release Rate</span><strong>- / + ([ / ])</strong></div>
+        <div class="stat-row"><span>Pause / Speed</span><strong>[P] / [F]</strong></div>
+        <div class="stat-row"><span>AI Coach / Gen</span><strong>[H] / [G]</strong></div>
+        <div class="stat-row"><span>Nuke All</span><strong>[N]</strong></div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    // =========================================================================
+    // 1. SAFE LOCALSTORAGE WRAPPER
+    // =========================================================================
+    const memoryFallback = {};
+    function safeGetStorage(key, fallbackVal = null) {
+      try {
+        const v = window.localStorage.getItem(key);
+        return v !== null ? v : fallbackVal;
+      } catch (err) {
+        return Object.prototype.hasOwnProperty.call(memoryFallback, key)
+          ? memoryFallback[key]
+          : fallbackVal;
+      }
+    }
+
+    function safeSetStorage(key, value) {
+      try {
+        window.localStorage.setItem(key, String(value));
+      } catch (err) {
+        memoryFallback[key] = String(value);
+      }
+    }
+
+    // =========================================================================
+    // 2. WEBAUDIO PROCEDURAL SYNTHESIZER & CHIPTUNE MARCH BGM
+    // =========================================================================
+    const LemmingsAudio = (() => {
+      let ctx = null;
+      let bgmEnabled = false;
+      let bgmTimer = null;
+      let stepIdx = 0;
+
+      // Bouncy 1991 Amiga-inspired Can-Can / Lemmings March melody
+      const MARCH_NOTES = [
+        523.25, 587.33, 659.25, 698.46, 659.25, 587.33, 523.25, 659.25,
+        783.99, 880.00, 783.99, 698.46, 659.25, 587.33, 523.25, 392.00
+      ];
+
+      function ensureCtx() {
+        if (!ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) ctx = new AC();
+        }
+        if (ctx && ctx.state === "suspended") {
+          ctx.resume().catch(() => {});
+        }
+        return ctx;
+      }
+
+      function tone(freq, dur = 0.08, type = "square", gainVal = 0.07, slideTo = null) {
+        const c = ensureCtx();
+        if (!c) return;
+        try {
+          const osc = c.createOscillator();
+          const g = c.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, c.currentTime);
+          if (slideTo) {
+            osc.frequency.exponentialRampToValueAtTime(slideTo, c.currentTime + dur);
+          }
+          g.gain.setValueAtTime(gainVal, c.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+          osc.connect(g);
+          g.connect(c.destination);
+          osc.start();
+          osc.stop(c.currentTime + dur);
+        } catch (_) {}
+      }
+
+      return {
+        playAssign() {
+          tone(660, 0.06, "square", 0.07, 990);
+        },
+        playBrickStep(isWarning) {
+          if (isWarning) {
+            // Audible high-pitched warning click on the last 3 bricks!
+            tone(1320, 0.055, "sawtooth", 0.09, 880);
+          } else {
+            tone(480, 0.04, "triangle", 0.06, 620);
+          }
+        },
+        playDigCrunch() {
+          tone(180 + Math.random() * 60, 0.045, "sawtooth", 0.04, 110);
+        },
+        playSteelClang() {
+          tone(1140, 0.08, "triangle", 0.08, 420);
+        },
+        playRescue() {
+          tone(587.33, 0.07, "square", 0.07, 880);
+          setTimeout(() => tone(1174.66, 0.11, "triangle", 0.08), 55);
+        },
+        playOhNo() {
+          tone(740, 0.12, "sawtooth", 0.08, 310);
+        },
+        playBoom() {
+          tone(140, 0.24, "sawtooth", 0.12, 38);
+        },
+        playSplash() {
+          tone(420, 0.14, "sine", 0.07, 150);
+        },
+        toggleBgm() {
+          bgmEnabled = !bgmEnabled;
+          if (bgmEnabled) {
+            ensureCtx();
+            if (!bgmTimer) {
+              bgmTimer = setInterval(() => {
+                if (!bgmEnabled) return;
+                const note = MARCH_NOTES[stepIdx % MARCH_NOTES.length];
+                tone(note, 0.11, "square", 0.035);
+                if (stepIdx % 2 === 0) {
+                  tone(note * 0.5, 0.09, "triangle", 0.03);
+                }
+                stepIdx++;
+              }, 165);
+            }
+          } else if (bgmTimer) {
+            clearInterval(bgmTimer);
+            bgmTimer = null;
+          }
+          return bgmEnabled;
+        }
+      };
+    })();
+
+    // =========================================================================
+    // 3. DESTRUCTIBLE PIXEL TERRAIN ENGINE (880 x 460)
+    // =========================================================================
+    const W = 880;
+    const H = 460;
+    const MAT = {
+      EMPTY: 0,
+      DIRT: 1,
+      CYBER_BRICK: 2,
+      INDESTRUCTIBLE_STEEL: 3,
+      ONE_WAY_WALL: 4,
+      WATER_HAZARD: 5,
+      LAVA_CORE: 6
+    };
+
+    const canvas = document.getElementById("lemmingsCanvas");
+    const ctx = canvas.getContext("2d");
+    const minimapCanvas = document.getElementById("minimapCanvas");
+    const minimapCtx = minimapCanvas.getContext("2d");
+
+    const terrainMask = new Uint8Array(W * H);
+    const terrainCanvas = document.createElement("canvas");
+    terrainCanvas.width = W;
+    terrainCanvas.height = H;
+    const terrainCtx = terrainCanvas.getContext("2d");
+    const terrainImgData = terrainCtx.createImageData(W, H);
+    const terrainPixels = terrainImgData.data;
+
+    // Pre-computed starfield background
+    const stars = Array.from({ length: 75 }, (_, i) => ({
+      x: (i * 137) % W,
+      y: (i * 89) % (H - 40),
+      r: (i % 3 === 0) ? 1.6 : 1.0,
+      phase: i * 0.7
+    }));
+
+    function getMat(x, y) {
+      const ix = x | 0;
+      const iy = y | 0;
+      if (ix < 0 || ix >= W || iy < 0 || iy >= H) return MAT.EMPTY;
+      return terrainMask[iy * W + ix];
+    }
+
+    function isSolid(x, y) {
+      const m = getMat(x, y);
+      return m === MAT.DIRT || m === MAT.CYBER_BRICK || m === MAT.INDESTRUCTIBLE_STEEL || m === MAT.ONE_WAY_WALL;
+    }
+
+    function isDestructible(x, y, dir = 0) {
+      const m = getMat(x, y);
+      if (m === MAT.DIRT || m === MAT.CYBER_BRICK) return true;
+      if (m === MAT.ONE_WAY_WALL) {
+        // One-way wall allows right-facing bashers/miners (+1)
+        return dir >= 0;
+      }
+      return false;
+    }
+
+    function colorPixel(ix, iy, mat) {
+      const idx = (iy * W + ix) * 4;
+      if (mat === MAT.EMPTY) {
+        terrainPixels[idx + 3] = 0;
+        return;
+      }
+      const aboveEmpty = iy > 0 && terrainMask[(iy - 1) * W + ix] === MAT.EMPTY;
+      const above2Empty = iy > 2 && terrainMask[(iy - 3) * W + ix] === MAT.EMPTY;
+
+      if (mat === MAT.DIRT) {
+        if (aboveEmpty || above2Empty) {
+          // 3D beveled neon-moss / top-grass edge
+          terrainPixels[idx] = aboveEmpty ? 52 : 16;
+          terrainPixels[idx + 1] = aboveEmpty ? 211 : 185;
+          terrainPixels[idx + 2] = aboveEmpty ? 153 : 129;
+          terrainPixels[idx + 3] = 255;
+        } else {
+          const grain = ((ix * 17 + iy * 31) & 15) - 7;
+          const strata = Math.sin(iy * 0.18 + ix * 0.03) * 12;
+          terrainPixels[idx] = Math.max(0, Math.min(255, 118 + grain + strata));
+          terrainPixels[idx + 1] = Math.max(0, Math.min(255, 76 + grain + strata * 0.6));
+          terrainPixels[idx + 2] = Math.max(0, Math.min(255, 44 + grain));
+          terrainPixels[idx + 3] = 255;
+        }
+      } else if (mat === MAT.CYBER_BRICK) {
+        const mortar = (iy % 6 === 0) || ((ix + ((iy / 6 | 0) * 8)) % 14 === 0);
+        if (mortar) {
+          terrainPixels[idx] = 120;
+          terrainPixels[idx + 1] = 82;
+          terrainPixels[idx + 2] = 20;
+        } else {
+          terrainPixels[idx] = 245;
+          terrainPixels[idx + 1] = 178;
+          terrainPixels[idx + 2] = 38;
+        }
+        terrainPixels[idx + 3] = 255;
+      } else if (mat === MAT.INDESTRUCTIBLE_STEEL) {
+        const plateBorder = (ix % 16 === 0 || iy % 16 === 0);
+        const rivet = ((ix % 16 === 3 || ix % 16 === 13) && (iy % 16 === 3 || iy % 16 === 13));
+        const val = plateBorder ? 52 : rivet ? 195 : 108 + ((ix + iy) & 7);
+        terrainPixels[idx] = val;
+        terrainPixels[idx + 1] = val + 12;
+        terrainPixels[idx + 2] = val + 26;
+        terrainPixels[idx + 3] = 255;
+      } else if (mat === MAT.ONE_WAY_WALL) {
+        const chevron = ((ix + iy) % 12 < 5) || ((ix - iy + 400) % 12 < 5 && (iy % 12 >= 6));
+        terrainPixels[idx] = chevron ? 216 : 126;
+        terrainPixels[idx + 1] = chevron ? 180 : 34;
+        terrainPixels[idx + 2] = chevron ? 254 : 206;
+        terrainPixels[idx + 3] = 255;
+      } else if (mat === MAT.WATER_HAZARD) {
+        const wave = ((ix + iy) % 8 < 4);
+        terrainPixels[idx] = 14;
+        terrainPixels[idx + 1] = wave ? 185 : 145;
+        terrainPixels[idx + 2] = 235;
+        terrainPixels[idx + 3] = 235;
+      } else if (mat === MAT.LAVA_CORE) {
+        const hot = ((ix * 3 + iy * 5) % 9 < 4);
+        terrainPixels[idx] = 248;
+        terrainPixels[idx + 1] = hot ? 165 : 68;
+        terrainPixels[idx + 2] = 24;
+        terrainPixels[idx + 3] = 250;
+      }
+    }
+
+    function syncRegionToTerrainCanvas(x0, y0, x1, y1) {
+      const sx = Math.max(0, (x0 - 2) | 0);
+      const sy = Math.max(0, (y0 - 4) | 0);
+      const ex = Math.min(W - 1, (x1 + 2) | 0);
+      const ey = Math.min(H - 1, (y1 + 4) | 0);
+      for (let y = sy; y <= ey; y++) {
+        for (let x = sx; x <= ex; x++) {
+          colorPixel(x, y, terrainMask[y * W + x]);
+        }
+      }
+      terrainCtx.putImageData(terrainImgData, 0, 0, sx, sy, ex - sx + 1, ey - sy + 1);
+    }
+
+    function fillRectMat(rx, ry, rw, rh, mat) {
+      const sx = Math.max(0, rx | 0);
+      const sy = Math.max(0, ry | 0);
+      const ex = Math.min(W - 1, (rx + rw) | 0);
+      const ey = Math.min(H - 1, (ry + rh) | 0);
+      for (let y = sy; y <= ey; y++) {
+        const row = y * W;
+        for (let x = sx; x <= ex; x++) {
+          terrainMask[row + x] = mat;
+        }
+      }
+    }
+
+    function carveCircle(cx, cy, r, dir = 0, ignoreSteel = false) {
+      const r2 = r * r;
+      const sx = Math.max(0, (cx - r) | 0);
+      const sy = Math.max(0, (cy - r) | 0);
+      const ex = Math.min(W - 1, (cx + r) | 0);
+      const ey = Math.min(H - 1, (cy + r) | 0);
+      let hitSteel = false;
+      for (let y = sy; y <= ey; y++) {
+        const dy = y - cy;
+        for (let x = sx; x <= ex; x++) {
+          const dx = x - cx;
+          if (dx * dx + dy * dy <= r2) {
+            const m = terrainMask[y * W + x];
+            if (m === MAT.INDESTRUCTIBLE_STEEL && !ignoreSteel) {
+              hitSteel = true;
+              continue;
+            }
+            if (ignoreSteel || isDestructible(x, y, dir)) {
+              terrainMask[y * W + x] = MAT.EMPTY;
+            }
+          }
+        }
+      }
+      syncRegionToTerrainCanvas(sx, sy, ex, ey);
+      return hitSteel;
+    }
+
+    // =========================================================================
+    // 4. GAME STATE, 8 SKILLS & 8 MODES ARCHITECTURE
+    // =========================================================================
+    const SKILLS = [
+      "CLIMBER", "FLOATER", "BOMBER", "BLOCKER",
+      "BUILDER", "BASHER", "MINER", "DIGGER"
+    ];
+
+    const state = {
+      mode: "fun",
+      stage: 1,
+      selectedSkill: "CLIMBER",
+      brushMode: "NONE",
+      releaseRate: 50,
+      minReleaseRate: 25,
+      totalThreads: 20,
+      spawnedThreads: 0,
+      rescuedThreads: 0,
+      lostThreads: 0,
+      aiSpawned: 0,
+      aiRescued: 0,
+      quotaPct: 50,
+      timeLeftSec: 180,
+      score: 0,
+      bestScore: Number(safeGetStorage("codecaine_lemmings_best", "0")) || 0,
+      paused: false,
+      speedMult: 1,
+      nuking: false,
+      tick: 0,
+      spawnCooldown: 0,
+      hatch: { x: 145, y: 74 },
+      exit: { x: 735, y: 348 },
+      aiHatch: { x: 735, y: 74 },
+      aiExit: { x: 145, y: 348 },
+      skillCounts: {
+        CLIMBER: 10, FLOATER: 10, BOMBER: 10, BLOCKER: 10,
+        BUILDER: 12, BASHER: 10, MINER: 10, DIGGER: 10
+      },
+      lemmings: [],
+      particles: [],
+      coachHint: null,
+      mouse: { x: 0, y: 0, down: false, hoveredId: null }
+    };
+
+    function spawnParticles(x, y, color, count = 10) {
+      for (let i = 0; i < count; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const spd = 0.8 + Math.random() * 2.8;
+        state.particles.push({
+          x, y,
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd - 1.1,
+          color,
+          life: 24 + ((Math.random() * 18) | 0)
+        });
+      }
+    }
+
+    function createLemming(x, y, tribe = "PLAYER", dir = 1) {
+      return {
+        id: Math.random().toString(36).slice(2, 9),
+        tribe,
+        x,
+        y,
+        dir,
+        action: "WALKER", // WALKER, FALLER, CLIMBER, FLOATER_FALL, BUILDER, BASHER, MINER, DIGGER, BLOCKER, SHRUG
+        isClimber: false,
+        isFloater: false,
+        fallDist: 0,
+        bomberTicks: 0, // >0 means 5s countdown active
+        stepsLeft: 0,
+        stepTimer: 0,
+        animTick: (Math.random() * 20) | 0,
+        alive: true,
+        rescued: false
+      };
+    }
+
+    function buildLevelGeometry(mode, seedOffset = 0) {
+      terrainMask.fill(MAT.EMPTY);
+
+      // Default hazard floor at very bottom
+      fillRectMat(0, H - 18, W, 18, mode === "mayhem" ? MAT.LAVA_CORE : MAT.WATER_HAZARD);
+      // Steel side walls
+      fillRectMat(0, 0, 14, H, MAT.INDESTRUCTIBLE_STEEL);
+      fillRectMat(W - 14, 0, 14, H, MAT.INDESTRUCTIBLE_STEEL);
+
+      state.hatch = { x: 140, y: 64 };
+      state.exit = { x: 740, y: 356 };
+      state.aiHatch = { x: 740, y: 64 };
+      state.aiExit = { x: 140, y: 356 };
+
+      if (mode === "fun") {
+        // Tier 1: Top dirt terrace + middle dirt deck + bottom exit terrace (Dig or Bash + Build!)
+        fillRectMat(50, 130, 560, 34, MAT.DIRT);
+        fillRectMat(580, 114, 28, 50, MAT.CYBER_BRICK);
+        fillRectMat(180, 245, 560, 34, MAT.DIRT);
+        fillRectMat(180, 224, 26, 55, MAT.CYBER_BRICK);
+        fillRectMat(90, 356, 710, 38, MAT.DIRT);
+        fillRectMat(690, 356, 95, 16, MAT.INDESTRUCTIBLE_STEEL);
+      } else if (mode === "tricky") {
+        // Tier 2: Chasm over water hazard + Cyber-Brick pillar before Exit
+        fillRectMat(60, 145, 290, 36, MAT.DIRT);
+        fillRectMat(60, 120, 22, 61, MAT.INDESTRUCTIBLE_STEEL);
+        // Stepping island
+        fillRectMat(405, 195, 165, 32, MAT.DIRT);
+        // Bottom exit platform with destructible brick wall
+        fillRectMat(470, 356, 340, 38, MAT.DIRT);
+        fillRectMat(595, 286, 36, 70, MAT.CYBER_BRICK);
+        state.exit = { x: 735, y: 356 };
+      } else if (mode === "taxing") {
+        // Tier 3: Steel floor under hatch, One-Way Wall, and steep drop requiring Floater or Miner
+        fillRectMat(60, 140, 440, 32, MAT.DIRT);
+        fillRectMat(110, 168, 210, 14, MAT.INDESTRUCTIBLE_STEEL);
+        fillRectMat(375, 86, 32, 54, MAT.ONE_WAY_WALL);
+        fillRectMat(330, 255, 450, 32, MAT.DIRT);
+        fillRectMat(755, 220, 25, 67, MAT.INDESTRUCTIBLE_STEEL);
+        fillRectMat(120, 356, 680, 38, MAT.DIRT);
+        fillRectMat(625, 295, 34, 61, MAT.CYBER_BRICK);
+      } else if (mode === "mayhem") {
+        // Tier 4: Ring-0 Meltdown (Lava pits, tight ledges, steel deflectors)
+        fillRectMat(65, 132, 320, 28, MAT.DIRT);
+        fillRectMat(65, 108, 18, 52, MAT.INDESTRUCTIBLE_STEEL);
+        fillRectMat(295, 232, 310, 28, MAT.DIRT);
+        fillRectMat(440, 182, 28, 50, MAT.ONE_WAY_WALL);
+        fillRectMat(120, 356, 260, 36, MAT.DIRT);
+        fillRectMat(380, 366, 130, 26, MAT.LAVA_CORE);
+        fillRectMat(510, 356, 290, 36, MAT.DIRT);
+        fillRectMat(640, 296, 30, 60, MAT.CYBER_BRICK);
+      } else if (mode === "vs_ai") {
+        // Symmetric 2-Tribe arena
+        fillRectMat(60, 135, 330, 30, MAT.DIRT);
+        fillRectMat(490, 135, 330, 30, MAT.DIRT);
+        fillRectMat(160, 245, 560, 30, MAT.DIRT);
+        fillRectMat(428, 195, 24, 50, MAT.CYBER_BRICK);
+        fillRectMat(70, 356, 740, 38, MAT.DIRT);
+      } else if (mode === "speedrun") {
+        fillRectMat(60, 130, 480, 28, MAT.DIRT);
+        fillRectMat(260, 240, 480, 28, MAT.DIRT);
+        fillRectMat(100, 356, 700, 38, MAT.DIRT);
+        fillRectMat(620, 304, 28, 52, MAT.CYBER_BRICK);
+      } else if (mode === "sandbox") {
+        fillRectMat(60, 135, 620, 34, MAT.DIRT);
+        fillRectMat(180, 250, 620, 34, MAT.DIRT);
+        fillRectMat(70, 356, 740, 38, MAT.DIRT);
+        fillRectMat(420, 195, 36, 55, MAT.CYBER_BRICK);
+      } else {
+        // Mode 8: Procedural Level Architect
+        const s = (state.stage * 53 + seedOffset * 97) % 140;
+        fillRectMat(55, 128 + (s % 18), 460 + (s % 90), 32, MAT.DIRT);
+        fillRectMat(320 + (s % 60), 88, 28, 42, MAT.ONE_WAY_WALL);
+        fillRectMat(190 - (s % 50), 242, 540, 32, MAT.DIRT);
+        fillRectMat(520 + (s % 70), 192, 30, 50, MAT.CYBER_BRICK);
+        fillRectMat(80, 356, 725, 38, MAT.DIRT);
+        fillRectMat(640, 302, 28, 54, MAT.CYBER_BRICK);
+      }
+
+      syncRegionToTerrainCanvas(0, 0, W - 1, H - 1);
+    }
+
+    function initMode(mode, seedOffset = 0) {
+      state.mode = mode;
+      state.paused = false;
+      state.nuking = false;
+      state.tick = 0;
+      state.spawnCooldown = 12;
+      state.lemmings = [];
+      state.particles = [];
+      state.coachHint = null;
+
+      const modeConfigs = {
+        fun:       { total: 20, quota: 50, rate: 45, minRate: 20, time: 180, count: 12 },
+        tricky:    { total: 24, quota: 65, rate: 50, minRate: 30, time: 180, count: 10 },
+        taxing:    { total: 25, quota: 75, rate: 55, minRate: 40, time: 180, count: 8 },
+        mayhem:    { total: 30, quota: 80, rate: 75, minRate: 60, time: 165, count: 6 },
+        vs_ai:     { total: 20, quota: 50, rate: 55, minRate: 35, time: 180, count: 12 },
+        speedrun:  { total: 20, quota: 60, rate: 80, minRate: 60, time: 90,  count: 12 },
+        sandbox:   { total: 25, quota: 40, rate: 50, minRate: 15, time: 300, count: 99 },
+        procedural:{ total: 22, quota: 60, rate: 55, minRate: 30, time: 180, count: 10 }
+      };
+      const cfg = modeConfigs[mode] || modeConfigs.fun;
+
+      state.totalThreads = cfg.total;
+      state.quotaPct = cfg.quota;
+      state.releaseRate = cfg.rate;
+      state.minReleaseRate = cfg.minRate;
+      state.timeLeftSec = cfg.time;
+      state.spawnedThreads = 0;
+      state.rescuedThreads = 0;
+      state.lostThreads = 0;
+      state.aiSpawned = 0;
+      state.aiRescued = 0;
+
+      SKILLS.forEach((sk) => {
+        state.skillCounts[sk] = sk === "BUILDER" ? Math.min(99, cfg.count + 4) : cfg.count;
+      });
+      if (mode === "mayhem") {
+        state.skillCounts.BLOCKER = 0;
+      }
+
+      buildLevelGeometry(mode, seedOffset);
+
+      // Immediately pre-spawn 4 active marching Lemmings on the top deck so the stage is vibrant on load!
+      for (let i = 0; i < 4; i++) {
+        const lx = state.hatch.x + i * 24;
+        const ly = state.hatch.y + 38;
+        state.lemmings.push(createLemming(lx, ly, "PLAYER", 1));
+        state.spawnedThreads++;
+      }
+
+      if (mode === "vs_ai") {
+        for (let i = 0; i < 3; i++) {
+          state.lemmings.push(createLemming(state.aiHatch.x - i * 24, state.aiHatch.y + 38, "AI", -1));
+          state.aiSpawned++;
+        }
+      }
+
+      updateHud();
+    }
+
+    // =========================================================================
+    // 5. SKILL ASSIGNMENT & AI RESCUE COACH
+    // =========================================================================
+    function assignSkillToLemming(lem, skill) {
+      if (!lem || !lem.alive || lem.rescued || lem.tribe !== "PLAYER") return false;
+      if ((state.skillCounts[skill] || 0) <= 0) return false;
+
+      if (skill === "CLIMBER") {
+        if (lem.isClimber) return false;
+        lem.isClimber = true;
+      } else if (skill === "FLOATER") {
+        if (lem.isFloater) return false;
+        lem.isFloater = true;
+      } else if (skill === "BOMBER") {
+        if (lem.bomberTicks > 0) return false;
+        lem.bomberTicks = 300; // 5 seconds @ 60fps
+      } else if (skill === "BLOCKER") {
+        if (lem.action === "BLOCKER" || lem.action === "FALLER") return false;
+        lem.action = "BLOCKER";
+      } else if (skill === "BUILDER") {
+        if (lem.action === "FALLER") return false;
+        lem.action = "BUILDER";
+        lem.stepsLeft = 12;
+        lem.stepTimer = 0;
+      } else if (skill === "BASHER") {
+        if (lem.action === "FALLER") return false;
+        lem.action = "BASHER";
+        lem.stepTimer = 0;
+      } else if (skill === "MINER") {
+        if (lem.action === "FALLER") return false;
+        lem.action = "MINER";
+        lem.stepTimer = 0;
+      } else if (skill === "DIGGER") {
+        if (lem.action === "FALLER") return false;
+        lem.action = "DIGGER";
+        lem.stepTimer = 0;
+      }
+
+      state.skillCounts[skill]--;
+      LemmingsAudio.playAssign();
+      spawnParticles(lem.x, lem.y - 6, "#34d399", 8);
+      updateHud();
+      return true;
+    }
+
+    function runAiRescueCoach() {
+      const candidates = state.lemmings.filter((l) => l.alive && !l.rescued && l.tribe === "PLAYER");
+      if (candidates.length === 0) return;
+
+      // Pick lead thread closest to exit horizontally
+      candidates.sort((a, b) => Math.abs(a.x - state.exit.x) - Math.abs(b.x - state.exit.x));
+      const lead = candidates[0];
+      let recSkill = "DIGGER";
+      let reason = "Drill vertically through the terrace directly toward the lower deck!";
+
+      // Check if wall ahead
+      let wallAhead = false;
+      for (let h = 2; h <= 10; h++) {
+        if (isSolid(lead.x + lead.dir * 5, lead.y - h)) wallAhead = true;
+      }
+      // Check if drop ahead
+      const dropAhead = !isSolid(lead.x + lead.dir * 8, lead.y + 2) && !isSolid(lead.x + lead.dir * 8, lead.y + 10);
+
+      if (wallAhead && isDestructible(lead.x + lead.dir * 6, lead.y - 6, lead.dir)) {
+        recSkill = "BASHER";
+        reason = "Wall detected ahead! Assign ⛏️ BASHER [6] to tunnel horizontally through the barrier.";
+      } else if (dropAhead && lead.y < state.exit.y - 20) {
+        recSkill = "BUILDER";
+        reason = "Chasm edge detected! Assign 🪜 BUILDER [5] to construct a 12-step diagonal cyber-bridge.";
+      } else if (lead.y < state.exit.y - 45 && isDestructible(lead.x, lead.y + 2, lead.dir)) {
+        recSkill = "DIGGER";
+        reason = "Lead thread is above the Exit deck! Assign 🌀 DIGGER [8] or ⚒️ MINER [7] to descend.";
+      } else {
+        recSkill = "FLOATER";
+        reason = "Equip ☂️ FLOATER [2] so your pioneer thread survives any high-altitude drop!";
+      }
+
+      state.selectedSkill = recSkill;
+      assignSkillToLemming(lead, recSkill);
+      state.coachHint = {
+        x: lead.x,
+        y: lead.y,
+        skill: recSkill,
+        ttl: 210,
+        text: `AI Coach assigned ${recSkill} to Lead Thread @ (${lead.x | 0}, ${lead.y | 0})! ${reason}`
+      };
+      document.getElementById("coachText").innerHTML = `<strong>🎯 ${recSkill} Activated:</strong> ${reason}`;
+      updateHud();
+    }
+
+    // =========================================================================
+    // 6. SIMULATION STEP (60 FPS PIXEL PHYSICS & 8 SKILLS)
+    // =========================================================================
+    const FALL_FATAL_HEIGHT = 68;
+
+    function placeBuilderBrick(lem) {
+      const bx = (lem.x + (lem.dir > 0 ? 1 : -6)) | 0;
+      const by = (lem.y - 1) | 0;
+      fillRectMat(bx, by, 6, 2, MAT.CYBER_BRICK);
+      syncRegionToTerrainCanvas(bx - 1, by - 1, bx + 7, by + 3);
+      LemmingsAudio.playBrickStep(lem.stepsLeft <= 3);
+    }
+
+    function stepSimulation() {
+      if (state.paused) return;
+      state.tick++;
+
+      // Timer countdown once per 60 frames
+      if (state.tick % 60 === 0 && state.timeLeftSec > 0) {
+        state.timeLeftSec--;
+        if (state.timeLeftSec === 0) {
+          // Time up: reset or finish round
+          initMode(state.mode, state.stage++);
+          return;
+        }
+      }
+
+      // Spawn interval based on Release Rate (1..99)
+      const spawnInterval = Math.max(14, Math.round(115 - state.releaseRate * 0.95));
+      if (!state.nuking && state.spawnedThreads < state.totalThreads) {
+        state.spawnCooldown--;
+        if (state.spawnCooldown <= 0) {
+          state.lemmings.push(createLemming(state.hatch.x, state.hatch.y + 12, "PLAYER", 1));
+          state.spawnedThreads++;
+          state.spawnCooldown = spawnInterval;
+        }
+      }
+
+      // Rival AI Tribe spawning & skill assignment in Mode 5
+      if (state.mode === "vs_ai" && !state.nuking && state.aiSpawned < state.totalThreads && state.tick % 65 === 0) {
+        state.lemmings.push(createLemming(state.aiHatch.x, state.aiHatch.y + 12, "AI", -1));
+        state.aiSpawned++;
+      }
+
+      // Step each Lemming thread
+      const blockers = state.lemmings.filter((b) => b.alive && !b.rescued && b.action === "BLOCKER");
+
+      for (const lem of state.lemmings) {
+        if (!lem.alive || lem.rescued) continue;
+        lem.animTick++;
+
+        // 1. Check Bomber 5-second countdown
+        if (lem.bomberTicks > 0) {
+          lem.bomberTicks--;
+          if (lem.bomberTicks === 25) {
+            LemmingsAudio.playOhNo();
+          }
+          if (lem.bomberTicks <= 0) {
+            carveCircle(lem.x, lem.y - 5, 22, lem.dir, false);
+            LemmingsAudio.playBoom();
+            spawnParticles(lem.x, lem.y - 6, "#f97316", 22);
+            lem.alive = false;
+            state.lostThreads++;
+            continue;
+          }
+        }
+
+        // 2. Check Water / Lava hazards
+        const footMat = getMat(lem.x, lem.y);
+        if (footMat === MAT.WATER_HAZARD || footMat === MAT.LAVA_CORE) {
+          LemmingsAudio.playSplash();
+          spawnParticles(lem.x, lem.y - 4, footMat === MAT.LAVA_CORE ? "#ef4444" : "#38bdf8", 14);
+          lem.alive = false;
+          if (lem.tribe === "PLAYER") state.lostThreads++;
+          continue;
+        }
+
+        // 3. Check Exit Portal Rescue
+        const targetExit = lem.tribe === "AI" ? state.aiExit : state.exit;
+        if (Math.abs(lem.x - targetExit.x) < 16 && Math.abs(lem.y - targetExit.y) < 18) {
+          lem.rescued = true;
+          LemmingsAudio.playRescue();
+          spawnParticles(lem.x, lem.y - 8, "#facc15", 14);
+          if (lem.tribe === "PLAYER") {
+            state.rescuedThreads++;
+            state.score += 250;
+            if (state.score > state.bestScore) {
+              state.bestScore = state.score;
+              safeSetStorage("codecaine_lemmings_best", state.bestScore);
+            }
+          } else {
+            state.aiRescued++;
+          }
+          continue;
+        }
+
+        // AI Tribe autonomous digging/bashing in Mode 5
+        if (lem.tribe === "AI" && lem.action === "WALKER" && lem.animTick % 90 === 0) {
+          if (lem.y < state.aiExit.y - 40 && isDestructible(lem.x, lem.y + 2, lem.dir)) {
+            lem.action = "DIGGER";
+          }
+        }
+
+        // 4. Blocker reversal check for walking/building/bashing threads
+        if (lem.action !== "BLOCKER") {
+          for (const blk of blockers) {
+            if (blk.id !== lem.id && Math.abs(lem.y - blk.y) < 10) {
+              const dx = blk.x - lem.x;
+              if (Math.abs(dx) < 8 && Math.sign(dx) === lem.dir) {
+                lem.dir = -lem.dir;
+              }
+            }
+          }
+        }
+
+        // 5. State machine per action
+        if (lem.action === "BLOCKER") {
+          if (!isSolid(lem.x, lem.y + 1)) {
+            lem.action = "FALLER";
+            lem.fallDist = 0;
+          }
+          continue;
+        }
+
+        if (lem.action === "FALLER" || lem.action === "FLOATER_FALL") {
+          if (lem.isFloater && lem.fallDist > 16) {
+            lem.action = "FLOATER_FALL";
+          }
+          const fallSpeed = lem.action === "FLOATER_FALL" ? 1 : 2;
+          let landed = false;
+          for (let s = 0; s < fallSpeed; s++) {
+            if (isSolid(lem.x, lem.y + 1)) {
+              landed = true;
+              break;
+            }
+            lem.y += 1;
+            lem.fallDist += 1;
+          }
+          if (landed) {
+            if (lem.fallDist >= FALL_FATAL_HEIGHT && !lem.isFloater && lem.action !== "FLOATER_FALL") {
+              LemmingsAudio.playBoom();
+              spawnParticles(lem.x, lem.y - 4, "#ef4444", 16);
+              lem.alive = false;
+              if (lem.tribe === "PLAYER") state.lostThreads++;
+            } else {
+              lem.action = "WALKER";
+              lem.fallDist = 0;
+            }
+          }
+          continue;
+        }
+
+        if (lem.action === "CLIMBER") {
+          // Climb up 1px per tick along vertical wall
+          const wallX = lem.x + lem.dir * 3;
+          if (isSolid(lem.x, lem.y - 12)) {
+            // Ceiling bump: fall back down facing opposite direction
+            lem.dir = -lem.dir;
+            lem.action = "FALLER";
+            lem.fallDist = 0;
+          } else if (!isSolid(wallX, lem.y - 6)) {
+            // Reached top ledge! Step onto ledge
+            lem.x += lem.dir * 4;
+            lem.y -= 2;
+            lem.action = "WALKER";
+          } else {
+            lem.y -= 1;
+          }
+          continue;
+        }
+
+        if (lem.action === "BUILDER") {
+          lem.stepTimer++;
+          if (lem.stepTimer >= 16) {
+            lem.stepTimer = 0;
+            // Check if hitting ceiling or steel ahead
+            if (isSolid(lem.x + lem.dir * 4, lem.y - 9)) {
+              lem.dir = -lem.dir;
+              lem.action = "WALKER";
+              continue;
+            }
+            placeBuilderBrick(lem);
+            lem.x += lem.dir * 4;
+            lem.y -= 2;
+            lem.stepsLeft--;
+            if (lem.stepsLeft <= 0) {
+              lem.action = "WALKER";
+            }
+          }
+          continue;
+        }
+
+        if (lem.action === "BASHER") {
+          lem.stepTimer++;
+          if (lem.stepTimer % 4 === 0) {
+            const cx = lem.x + lem.dir * 5;
+            const cy = lem.y - 6;
+            // Check steel ahead
+            let hitSteel = false;
+            for (let dy = -10; dy <= 0; dy++) {
+              if (getMat(cx + lem.dir * 2, lem.y + dy) === MAT.INDESTRUCTIBLE_STEEL) {
+                hitSteel = true;
+              }
+            }
+            if (hitSteel) {
+              LemmingsAudio.playSteelClang();
+              lem.dir = -lem.dir;
+              lem.action = "WALKER";
+              continue;
+            }
+            // Carve horizontal tunnel
+            carveCircle(cx, cy, 7, lem.dir, false);
+            LemmingsAudio.playDigCrunch();
+            spawnParticles(cx, cy, "#fbbf24", 2);
+            lem.x += lem.dir * 2;
+            if (!isSolid(lem.x, lem.y + 1)) {
+              lem.action = "FALLER";
+              lem.fallDist = 0;
+            } else {
+              // Check if tunnel broke into open air ahead
+              let anySolidAhead = false;
+              for (let dist = 2; dist <= 9; dist++) {
+                for (let h = 2; h <= 10; h++) {
+                  if (isSolid(lem.x + lem.dir * dist, lem.y - h)) anySolidAhead = true;
+                }
+              }
+              if (!anySolidAhead && lem.stepTimer >= 20) {
+                lem.action = "WALKER";
+              }
+            }
+          }
+          continue;
+        }
+
+        if (lem.action === "MINER") {
+          lem.stepTimer++;
+          if (lem.stepTimer % 6 === 0) {
+            const cx = lem.x + lem.dir * 4;
+            const cy = lem.y - 2;
+            if (getMat(cx, lem.y + 2) === MAT.INDESTRUCTIBLE_STEEL) {
+              LemmingsAudio.playSteelClang();
+              lem.dir = -lem.dir;
+              lem.action = "WALKER";
+              continue;
+            }
+            carveCircle(cx, cy, 7, lem.dir, false);
+            LemmingsAudio.playDigCrunch();
+            spawnParticles(cx, cy, "#34d399", 2);
+            lem.x += lem.dir * 2;
+            lem.y += 1;
+            if (!isSolid(lem.x, lem.y + 1) && !isSolid(lem.x, lem.y + 3)) {
+              lem.action = "FALLER";
+              lem.fallDist = 0;
+            }
+          }
+          continue;
+        }
+
+        if (lem.action === "DIGGER") {
+          lem.stepTimer++;
+          if (lem.stepTimer % 5 === 0) {
+            if (getMat(lem.x, lem.y + 1) === MAT.INDESTRUCTIBLE_STEEL) {
+              LemmingsAudio.playSteelClang();
+              lem.action = "WALKER";
+              continue;
+            }
+            fillRectMat(lem.x - 6, lem.y - 2, 12, 4, MAT.EMPTY);
+            syncRegionToTerrainCanvas(lem.x - 8, lem.y - 4, lem.x + 8, lem.y + 4);
+            LemmingsAudio.playDigCrunch();
+            spawnParticles(lem.x, lem.y, "#a3e635", 2);
+            lem.y += 1;
+            if (!isSolid(lem.x - 3, lem.y + 1) && !isSolid(lem.x + 3, lem.y + 1)) {
+              lem.action = "FALLER";
+              lem.fallDist = 0;
+            }
+          }
+          continue;
+        }
+
+        // Default: WALKER
+        if (lem.tick % 1 === 0 || true) {
+          // Check ground beneath
+          if (!isSolid(lem.x, lem.y + 1)) {
+            // Can step down up to 3px slope
+            let steppedDown = false;
+            for (let d = 1; d <= 3; d++) {
+              if (isSolid(lem.x, lem.y + d + 1)) {
+                lem.y += d;
+                steppedDown = true;
+                break;
+              }
+            }
+            if (!steppedDown) {
+              lem.action = "FALLER";
+              lem.fallDist = 0;
+              continue;
+            }
+          }
+
+          // Try stepping forward 1px
+          if (lem.animTick % 2 === 0) {
+            const nx = lem.x + lem.dir;
+            // Find ground height at nx (can step up up to 5px)
+            let climbedStep = false;
+            for (let up = 0; up <= 5; up++) {
+              if (!isSolid(nx, lem.y - up - 1) && !isSolid(nx, lem.y - up - 6)) {
+                lem.x = nx;
+                lem.y -= up;
+                climbedStep = true;
+                break;
+              }
+            }
+            if (!climbedStep) {
+              if (lem.isClimber) {
+                lem.action = "CLIMBER";
+              } else {
+                lem.dir = -lem.dir;
+              }
+            }
+          }
+        }
+      }
+
+      // Check stage clear when all threads accounted for
+      const activeCount = state.lemmings.filter((l) => l.alive && !l.rescued && l.tribe === "PLAYER").length;
+      if (state.spawnedThreads >= state.totalThreads && activeCount === 0 && state.tick % 90 === 0) {
+        const pct = Math.round((state.rescuedThreads / state.totalThreads) * 100);
+        if (pct >= state.quotaPct) {
+          state.score += 1000 + state.timeLeftSec * 10;
+          if (state.score > state.bestScore) {
+            state.bestScore = state.score;
+            safeSetStorage("codecaine_lemmings_best", state.bestScore);
+          }
+          state.stage++;
+        }
+        initMode(state.mode, state.stage);
+      }
+
+      // Update particles
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const p = state.particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.12;
+        p.life--;
+        if (p.life <= 0) state.particles.splice(i, 1);
+      }
+
+      if (state.coachHint) {
+        state.coachHint.ttl--;
+        if (state.coachHint.ttl <= 0) state.coachHint = null;
+      }
+
+      if (state.tick % 12 === 0) updateHud();
+    }
+
+    // =========================================================================
+    // 7. RENDERING ENGINE (CANVAS + HATCH + EXIT PORTAL + LEMMINGS + MINIMAP)
+    // =========================================================================
+    function drawStage() {
+      // 1. Deep Cyber Cavern Backdrop + Stars
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+      bgGrad.addColorStop(0, "#030917");
+      bgGrad.addColorStop(0.6, "#071529");
+      bgGrad.addColorStop(1, "#040b16");
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      for (const st of stars) {
+        const alpha = 0.35 + 0.45 * Math.sin(state.tick * 0.04 + st.phase);
+        ctx.fillStyle = `rgba(167, 243, 208, ${alpha.toFixed(2)})`;
+        ctx.fillRect(st.x, st.y, st.r, st.r);
+      }
+
+      // 2. Destructible Pixel Terrain Layer
+      ctx.drawImage(terrainCanvas, 0, 0);
+
+      // 3. Entry Hatch (🛸) & Exit Portal (🏰)
+      drawEntryHatch(state.hatch.x, state.hatch.y, "#10b981", "ENTRY HATCH");
+      drawExitPortal(state.exit.x, state.exit.y, "#34d399", "KERNEL EXIT");
+
+      if (state.mode === "vs_ai") {
+        drawEntryHatch(state.aiHatch.x, state.aiHatch.y, "#ec4899", "AI HATCH");
+        drawExitPortal(state.aiExit.x, state.aiExit.y, "#f472b6", "AI PORTAL");
+      }
+
+      // 4. Draw Lemming Threads
+      let hoveredLem = null;
+      let bestDist = 20;
+
+      for (const lem of state.lemmings) {
+        if (!lem.alive || lem.rescued) continue;
+        const d = Math.hypot(lem.x - state.mouse.x, (lem.y - 6) - state.mouse.y);
+        if (d < bestDist && lem.tribe === "PLAYER") {
+          bestDist = d;
+          hoveredLem = lem;
+        }
+        drawLemmingSprite(lem);
+      }
+      state.mouse.hoveredId = hoveredLem ? hoveredLem.id : null;
+
+      // 5. Hover Selection Crosshair Box
+      if (hoveredLem && state.brushMode === "NONE") {
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(hoveredLem.x - 9, hoveredLem.y - 16, 18, 18);
+        document.getElementById("probeBanner").textContent =
+          `🎯 Thread [${hoveredLem.action}] • Click to assign ${state.selectedSkill}`;
+      } else if (state.brushMode !== "NONE") {
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(state.mouse.x, state.mouse.y, 14, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // 6. AI Coach Tactical Reticle
+      if (state.coachHint) {
+        ctx.save();
+        ctx.strokeStyle = "#34d399";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.arc(state.coachHint.x, state.coachHint.y - 6, 20 + Math.sin(state.tick * 0.2) * 3, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = "#a7f3d0";
+        ctx.font = "bold 11px sans-serif";
+        ctx.fillText(`💡 ${state.coachHint.skill}`, state.coachHint.x - 28, state.coachHint.y - 30);
+        ctx.restore();
+      }
+
+      // 7. Particles
+      for (const p of state.particles) {
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
+      }
+
+      // 8. Minimap update every 4 frames
+      if (state.tick % 4 === 0) {
+        minimapCtx.fillStyle = "#020611";
+        minimapCtx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+        minimapCtx.drawImage(terrainCanvas, 0, 0, minimapCanvas.width, minimapCanvas.height);
+        const sx = minimapCanvas.width / W;
+        const sy = minimapCanvas.height / H;
+        for (const lem of state.lemmings) {
+          if (!lem.alive || lem.rescued) continue;
+          minimapCtx.fillStyle = lem.tribe === "AI" ? "#ec4899" : "#34d399";
+          minimapCtx.fillRect(lem.x * sx - 1, lem.y * sy - 1, 2.5, 2.5);
+        }
+        minimapCtx.strokeStyle = "#facc15";
+        minimapCtx.strokeRect(state.exit.x * sx - 3, state.exit.y * sy - 4, 6, 6);
+      }
+    }
+
+    function drawEntryHatch(x, y, color, label) {
+      ctx.save();
+      ctx.fillStyle = "#1e293b";
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.fillRect(x - 22, y - 14, 44, 18);
+      ctx.strokeRect(x - 22, y - 14, 44, 18);
+      // Open bay flaps
+      ctx.beginPath();
+      ctx.moveTo(x - 22, y + 4);
+      ctx.lineTo(x - 32, y + 16);
+      ctx.moveTo(x + 22, y + 4);
+      ctx.lineTo(x + 32, y + 16);
+      ctx.stroke();
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = "bold 9px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(`🛸 ${label}`, x, y - 18);
+      ctx.restore();
+    }
+
+    function drawExitPortal(x, y, color, label) {
+      ctx.save();
+      // Portal Archway
+      ctx.fillStyle = "#0f172a";
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(x, y - 14, 16, Math.PI, 0, false);
+      ctx.lineTo(x + 16, y);
+      ctx.lineTo(x - 16, y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Animated swirling vortex inside portal
+      const pulse = 6 + Math.sin(state.tick * 0.15) * 2.5;
+      ctx.fillStyle = "#facc15";
+      ctx.beginPath();
+      ctx.arc(x, y - 11, pulse, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#fde68a";
+      ctx.font = "bold 9px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(`🏰 ${label}`, x, y - 34);
+      ctx.restore();
+    }
+
+    function drawLemmingSprite(lem) {
+      ctx.save();
+      const x = lem.x | 0;
+      const y = lem.y | 0;
+
+      // Parachute umbrella if Floater falling
+      if (lem.action === "FLOATER_FALL") {
+        ctx.fillStyle = "#ef4444";
+        ctx.strokeStyle = "#f8fafc";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(x, y - 15, 9, Math.PI, 0, false);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x - 6, y - 15);
+        ctx.lineTo(x, y - 8);
+        ctx.moveTo(x + 6, y - 15);
+        ctx.lineTo(x, y - 8);
+        ctx.stroke();
+      }
+
+      // Bomber 5-second countdown above head
+      if (lem.bomberTicks > 0) {
+        const sec = Math.ceil(lem.bomberTicks / 60);
+        ctx.fillStyle = sec <= 2 ? "#ef4444" : "#facc15";
+        ctx.font = "bold 10px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(String(sec), x, y - 16);
+      }
+
+      // Classic Lemming: bright green hair, flesh face, blue tunic (or magenta for AI tribe)
+      const hairColor = lem.tribe === "AI" ? "#f472b6" : "#22c55e";
+      const coatColor = lem.tribe === "AI" ? "#9d174d" : (lem.action === "BLOCKER" ? "#ef4444" : "#2563eb");
+
+      // Boots / walking stride
+      const stride = (lem.animTick >> 2) % 2 === 0 ? 2 : -2;
+      ctx.fillStyle = "#fbbf24";
+      ctx.fillRect(x - 3 + (lem.action === "WALKER" ? stride : 0), y - 2, 3, 2);
+      ctx.fillRect(x + 1 - (lem.action === "WALKER" ? stride : 0), y - 2, 3, 2);
+
+      // Tunic Body
+      ctx.fillStyle = coatColor;
+      ctx.fillRect(x - 3, y - 8, 6, 6);
+
+      // Blocker outstretched stop-arms
+      if (lem.action === "BLOCKER") {
+        ctx.fillStyle = "#fde68a";
+        ctx.fillRect(x - 7, y - 7, 14, 2);
+      }
+
+      // Head & Green Hair Tuft
+      ctx.fillStyle = "#fde68a";
+      ctx.fillRect(x - 2.5, y - 12, 5, 4);
+      ctx.fillStyle = hairColor;
+      ctx.fillRect(x - 3.5, y - 14, 7, 2.5);
+
+      // Tool indicator for Builder / Basher / Miner / Digger
+      if (lem.action === "BUILDER") {
+        ctx.fillStyle = "#f59e0b";
+        ctx.fillRect(x + lem.dir * 4, y - 5, 4, 2);
+      } else if (lem.action === "BASHER" || lem.action === "MINER") {
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x, y - 6);
+        ctx.lineTo(x + lem.dir * 6, y - 9 + (lem.animTick % 4));
+        ctx.stroke();
+      } else if (lem.action === "DIGGER") {
+        ctx.fillStyle = "#38bdf8";
+        ctx.fillRect(x - 2, y - 1, 4, 3);
+      }
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // 8. HUD UPDATES & INPUT CONTROLS
+    // =========================================================================
+    function updateHud() {
+      const activeCount = state.lemmings.filter((l) => l.alive && !l.rescued && l.tribe === "PLAYER").length;
+      const pct = state.totalThreads > 0 ? Math.round((state.rescuedThreads / state.totalThreads) * 100) : 0;
+
+      document.getElementById("kpiOut").textContent = `${activeCount} / ${state.totalThreads}`;
+      document.getElementById("kpiSaved").textContent = `${pct}% (${state.rescuedThreads})`;
+      document.getElementById("kpiNeeded").textContent = `${state.quotaPct}%`;
+
+      const mm = String(Math.floor(state.timeLeftSec / 60)).padStart(2, "0");
+      const ss = String(state.timeLeftSec % 60).padStart(2, "0");
+      document.getElementById("kpiTimer").textContent = `${mm}:${ss}`;
+      document.getElementById("kpiScore").textContent = `${state.score} / ${state.bestScore}`;
+
+      document.getElementById("rateVal").textContent = String(state.releaseRate);
+      document.getElementById("minRateLbl").textContent = `MIN ${state.minReleaseRate}`;
+      document.getElementById("stageTitleBadge").textContent = `STAGE ${state.stage}`;
+      document.getElementById("statActive").textContent = String(activeCount);
+      document.getElementById("statRescuedLost").textContent = `${state.rescuedThreads} / ${state.lostThreads}`;
+      document.getElementById("statAiRescued").textContent = String(state.aiRescued);
+
+      SKILLS.forEach((sk) => {
+        const el = document.getElementById(`cnt_${sk}`);
+        if (el) el.textContent = String(state.skillCounts[sk] || 0);
+      });
+
+      document.querySelectorAll(".skill-card").forEach((card) => {
+        const sk = card.getAttribute("data-skill");
+        card.classList.toggle("selected", sk === state.selectedSkill && state.brushMode === "NONE");
+        card.classList.toggle("depleted", (state.skillCounts[sk] || 0) <= 0);
+      });
+
+      document.querySelectorAll(".brush-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-brush") === state.brushMode);
+      });
+
+      const pauseBtn = document.getElementById("btnPause");
+      pauseBtn.textContent = state.paused ? "▶️ Resume [P]" : "⏸️ Pause [P]";
+      pauseBtn.classList.toggle("active", state.paused);
+
+      const speedBtn = document.getElementById("btnSpeed");
+      speedBtn.textContent = `⏩ ${state.speedMult}× [F]`;
+      speedBtn.classList.toggle("active", state.speedMult > 1);
+    }
+
+    function selectSkill(skill) {
+      state.selectedSkill = skill;
+      state.brushMode = "NONE";
+      updateHud();
+    }
+
+    function applyTerrainBrush(mx, my) {
+      if (state.brushMode === "NONE") return;
+      const matMap = {
+        DIRT: MAT.DIRT,
+        CYBER_BRICK: MAT.CYBER_BRICK,
+        INDESTRUCTIBLE_STEEL: MAT.INDESTRUCTIBLE_STEEL,
+        ONE_WAY_WALL: MAT.ONE_WAY_WALL,
+        WATER_HAZARD: MAT.WATER_HAZARD,
+        LAVA_CORE: MAT.LAVA_CORE,
+        ERASE: MAT.EMPTY
+      };
+      const targetMat = matMap[state.brushMode] ?? MAT.DIRT;
+      fillRectMat(mx - 12, my - 12, 24, 24, targetMat);
+      syncRegionToTerrainCanvas(mx - 15, my - 15, mx + 15, my + 15);
+    }
+
+    // Event bindings
+    document.querySelectorAll(".skill-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        selectSkill(card.getAttribute("data-skill"));
+      });
+    });
+
+    document.querySelectorAll(".brush-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.brushMode = btn.getAttribute("data-brush");
+        updateHud();
+      });
+    });
+
+    function getCanvasCoords(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: ((e.clientX - rect.left) / rect.width) * W,
+        y: ((e.clientY - rect.top) / rect.height) * H
+      };
+    }
+
+    canvas.addEventListener("mousemove", (e) => {
+      const pt = getCanvasCoords(e);
+      state.mouse.x = pt.x;
+      state.mouse.y = pt.y;
+      if (state.mouse.down && state.brushMode !== "NONE") {
+        applyTerrainBrush(pt.x, pt.y);
+      }
+    });
+
+    canvas.addEventListener("mousedown", (e) => {
+      const pt = getCanvasCoords(e);
+      state.mouse.x = pt.x;
+      state.mouse.y = pt.y;
+      state.mouse.down = true;
+
+      if (state.brushMode !== "NONE") {
+        applyTerrainBrush(pt.x, pt.y);
+        return;
+      }
+
+      // Find closest Lemming thread under cursor
+      let best = null;
+      let bestDist = 22;
+      for (const lem of state.lemmings) {
+        if (!lem.alive || lem.rescued || lem.tribe !== "PLAYER") continue;
+        const d = Math.hypot(lem.x - pt.x, (lem.y - 6) - pt.y);
+        if (d < bestDist) {
+          bestDist = d;
+          best = lem;
+        }
+      }
+      if (best) {
+        assignSkillToLemming(best, state.selectedSkill);
+      }
+    });
+
+    window.addEventListener("mouseup", () => {
+      state.mouse.down = false;
+    });
+
+    document.getElementById("btnRateMinus").addEventListener("click", () => {
+      state.releaseRate = Math.max(state.minReleaseRate, state.releaseRate - 5);
+      updateHud();
+    });
+
+    document.getElementById("btnRatePlus").addEventListener("click", () => {
+      state.releaseRate = Math.min(99, state.releaseRate + 5);
+      updateHud();
+    });
+
+    document.getElementById("btnPause").addEventListener("click", () => {
+      state.paused = !state.paused;
+      updateHud();
+    });
+
+    document.getElementById("btnSpeed").addEventListener("click", () => {
+      state.speedMult = state.speedMult === 1 ? 2 : state.speedMult === 2 ? 3 : 1;
+      updateHud();
+    });
+
+    document.getElementById("btnCoach").addEventListener("click", () => {
+      runAiRescueCoach();
+    });
+
+    document.getElementById("btnGen").addEventListener("click", () => {
+      state.stage++;
+      document.getElementById("lemmingsModeSelect").value = "procedural";
+      document.getElementById("statModeName").textContent = "🎲 Procedural Level Architect [G]";
+      initMode("procedural", state.stage);
+    });
+
+    function triggerNuke() {
+      state.nuking = true;
+      LemmingsAudio.playOhNo();
+      state.lemmings.forEach((lem, idx) => {
+        if (lem.alive && !lem.rescued && lem.bomberTicks === 0) {
+          lem.bomberTicks = 90 + idx * 8;
+        }
+      });
+    }
+
+    document.getElementById("btnNuke").addEventListener("click", triggerNuke);
+
+    document.getElementById("btnAudio").addEventListener("click", (e) => {
+      const on = LemmingsAudio.toggleBgm();
+      e.currentTarget.classList.toggle("active", on);
+    });
+
+    document.getElementById("btnReset").addEventListener("click", () => {
+      initMode(state.mode, state.stage);
+    });
+
+    const modeSelect = document.getElementById("lemmingsModeSelect");
+    modeSelect.addEventListener("change", () => {
+      const val = modeSelect.value;
+      const label = modeSelect.options[modeSelect.selectedIndex].text;
+      document.getElementById("statModeName").textContent = label;
+      if (val === "sandbox") {
+        state.brushMode = "DIRT";
+      } else {
+        state.brushMode = "NONE";
+      }
+      initMode(val, state.stage);
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "SELECT")) return;
+      const k = e.key.toLowerCase();
+      if (k >= "1" && k <= "8") {
+        selectSkill(SKILLS[Number(k) - 1]);
+      } else if (k === "p") {
+        state.paused = !state.paused;
+        updateHud();
+      } else if (k === "f") {
+        state.speedMult = state.speedMult === 1 ? 2 : state.speedMult === 2 ? 3 : 1;
+        updateHud();
+      } else if (k === "h") {
+        runAiRescueCoach();
+      } else if (k === "g") {
+        state.stage++;
+        modeSelect.value = "procedural";
+        initMode("procedural", state.stage);
+      } else if (k === "n") {
+        triggerNuke();
+      } else if (k === "m") {
+        const on = LemmingsAudio.toggleBgm();
+        document.getElementById("btnAudio").classList.toggle("active", on);
+      } else if (k === "r") {
+        initMode(state.mode, state.stage);
+      } else if (k === "-" || k === "[") {
+        state.releaseRate = Math.max(state.minReleaseRate, state.releaseRate - 5);
+        updateHud();
+      } else if (k === "=" || k === "+" || k === "]") {
+        state.releaseRate = Math.min(99, state.releaseRate + 5);
+        updateHud();
+      }
+    });
+
+    // Main 60fps loop
+    function loop() {
+      for (let i = 0; i < state.speedMult; i++) {
+        stepSimulation();
+      }
+      drawStage();
+      requestAnimationFrame(loop);
+    }
+
+    initMode("fun", 1);
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

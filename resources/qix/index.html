@@ -1,0 +1,1992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine CyberQix: Laser Territory Claim</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    :root {
+      --bg-void: #040510;
+      --bg-panel: rgba(10, 14, 34, 0.92);
+      --border-glow: rgba(168, 85, 247, 0.38);
+      --cyan: #00f5d4;
+      --cyan-blue: #38bdf8;
+      --violet: #a855f7;
+      --magenta: #f43f5e;
+      --amber: #f59e0b;
+      --gold: #facc15;
+      --emerald: #10b981;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 18%, #1e1040 0%, #090b1e 60%, #03040c 100%);
+      color: var(--text-main);
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Header HUD */
+    header.top-hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 14px;
+      background: linear-gradient(180deg, rgba(16, 12, 40, 0.96) 0%, rgba(8, 10, 26, 0.96) 100%);
+      border-bottom: 1px solid var(--border-glow);
+      box-shadow: 0 4px 22px rgba(0, 0, 0, 0.75);
+      gap: 10px;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 30%, #a855f7, #4c1d95 70%, #090d16);
+      border: 1.5px solid var(--cyan);
+      box-shadow: 0 0 14px rgba(168, 85, 247, 0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .brand-titles h1 {
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #00f5d4 0%, #c084fc 50%, #facc15 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-titles .subtitle {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+    }
+
+    .hud-kpis {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .kpi-pill {
+      background: rgba(15, 20, 44, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 8px;
+      padding: 3px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 78px;
+    }
+
+    .kpi-pill.cyan-pill {
+      border-color: rgba(0, 245, 212, 0.55);
+      box-shadow: 0 0 12px rgba(0, 245, 212, 0.16);
+    }
+
+    .kpi-pill.gold-pill {
+      border-color: rgba(250, 204, 21, 0.55);
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.16);
+    }
+
+    .kpi-pill.violet-pill {
+      border-color: rgba(168, 85, 247, 0.58);
+      box-shadow: 0 0 12px rgba(168, 85, 247, 0.18);
+    }
+
+    .kpi-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .kpi-val {
+      font-size: 13.5px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: #fff;
+    }
+
+    .hud-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    select.cyber-select, button.cyber-btn {
+      background: rgba(18, 24, 52, 0.92);
+      color: var(--text-main);
+      border: 1px solid rgba(168, 85, 247, 0.45);
+      border-radius: 7px;
+      padding: 5px 9px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    select.cyber-select:hover, button.cyber-btn:hover {
+      border-color: var(--cyan);
+      box-shadow: 0 0 10px rgba(0, 245, 212, 0.3);
+      transform: translateY(-1px);
+    }
+
+    button.cyber-btn.active- cyan {
+      background: linear-gradient(135deg, rgba(0, 245, 212, 0.25), rgba(56, 189, 248, 0.2));
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    button.cyber-btn.amber-btn {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(244, 63, 94, 0.2));
+      border-color: var(--amber);
+      color: #fde68a;
+    }
+
+    /* Main Workspace Layout */
+    main.workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 245px 1fr 255px;
+      gap: 10px;
+      padding: 10px 12px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .side-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-glow);
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      overflow-y: auto;
+      box-shadow: inset 0 0 24px rgba(168, 85, 247, 0.08);
+    }
+
+    .panel-card {
+      background: rgba(15, 21, 46, 0.82);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 9px;
+      padding: 8px 10px;
+    }
+
+    .panel-title {
+      font-size: 10.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--cyan);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Progress Bar */
+    .claim-meter-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .claim-bar-outer {
+      width: 100%;
+      height: 16px;
+      background: rgba(4, 7, 20, 0.95);
+      border: 1px solid rgba(0, 245, 212, 0.45);
+      border-radius: 999px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .claim-bar-fill {
+      height: 100%;
+      width: 28.4%;
+      background: linear-gradient(90deg, #00f5d4 0%, #a855f7 55%, #facc15 100%);
+      box-shadow: 0 0 12px rgba(0, 245, 212, 0.7);
+      transition: width 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .claim-target-marker {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #ffffff;
+      box-shadow: 0 0 6px #facc15;
+      left: 75%;
+    }
+
+    /* Center Stage */
+    .stage-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .canvas-frame {
+      position: relative;
+      border-radius: 12px;
+      padding: 4px;
+      background: linear-gradient(135deg, rgba(0, 245, 212, 0.45), rgba(168, 85, 247, 0.5), rgba(244, 63, 94, 0.45));
+      box-shadow: 0 0 32px rgba(168, 85, 247, 0.35), 0 12px 35px rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-width: 100%;
+      max-height: calc(100vh - 135px);
+    }
+
+    canvas#qixCanvas {
+      display: block;
+      background: #040613;
+      border-radius: 9px;
+      max-width: 100%;
+      max-height: calc(100vh - 145px);
+      width: auto;
+      height: auto;
+      aspect-ratio: 880 / 540;
+      cursor: crosshair;
+    }
+
+    /* Quick Action Bar below Canvas */
+    .stage-subbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 888px;
+      padding: 5px 12px;
+      background: rgba(10, 14, 34, 0.9);
+      border: 1px solid rgba(168, 85, 247, 0.32);
+      border-radius: 9px;
+      font-size: 11px;
+      gap: 8px;
+    }
+
+    .power-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .power-badge {
+      background: rgba(8, 12, 28, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 7px;
+      padding: 5px 7px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10.5px;
+      font-weight: 700;
+    }
+
+    .power-badge.active {
+      border-color: var(--gold);
+      background: rgba(250, 204, 21, 0.16);
+      color: var(--gold);
+      box-shadow: 0 0 10px rgba(250, 204, 21, 0.28);
+    }
+
+    .mode-list-btn {
+      width: 100%;
+      text-align: left;
+      padding: 5px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(12, 18, 40, 0.8);
+      color: var(--text-main);
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 4px;
+      transition: all 0.12s ease;
+    }
+
+    .mode-list-btn:hover, .mode-list-btn.active {
+      border-color: var(--cyan);
+      background: rgba(0, 245, 212, 0.14);
+      color: #fff;
+    }
+
+    .key-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10.5px;
+      padding: 2.5px 0;
+      border-bottom: 1px dashed rgba(148, 163, 184, 0.14);
+    }
+
+    .kbd-tag {
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-radius: 4px;
+      padding: 0 5px;
+      font-family: monospace;
+      font-size: 10px;
+      color: var(--cyan);
+    }
+
+    .log-feed {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      line-height: 1.45;
+      color: #cbd5e1;
+      max-height: 120px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+  </style>
+</head>
+<body>
+  <header class="top-hud">
+    <div class="brand-cluster">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-titles">
+        <h1>Codecaine CyberQix: Laser Territory Claim</h1>
+        <div class="subtitle">1981 Taito Qix &amp; 1989 Volfied 160×100 Vector Grid Slicer • Split-Qix Multiplier</div>
+      </div>
+    </div>
+
+    <div class="hud-kpis">
+      <div class="kpi-pill cyan-pill">
+        <span class="kpi-label">Claimed Area</span>
+        <span class="kpi-val" id="hudClaimedPct">28.4% / 75%</span>
+      </div>
+      <div class="kpi-pill gold-pill">
+        <span class="kpi-label">Score</span>
+        <span class="kpi-val" id="hudScore">14,850</span>
+      </div>
+      <div class="kpi-pill violet-pill">
+        <span class="kpi-label">Split Multiplier</span>
+        <span class="kpi-val" id="hudMultiplier">2× CORE</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">Stage / Lives</span>
+        <span class="kpi-val" id="hudStageLives">STG 1 • 💎💎💎</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">Draw Mode</span>
+        <span class="kpi-val" id="hudDrawState" style="color:#00f5d4;">⚡ FAST 1×</span>
+      </div>
+    </div>
+
+    <div class="hud-controls">
+      <select id="qixModeSelect" class="cyber-select" title="Select Qix Game Mode">
+        <option value="classic">1. 🏆 Classic Qix (75% Target)</option>
+        <option value="volfied">2. 🛡️ Volfied Power-Cube Mode (80% + Bosses)</option>
+        <option value="split_qix">3. ♊ Split-Qix Twin Core</option>
+        <option value="slow_draw">4. 🐢 Slow-Draw 2x High-Risk</option>
+        <option value="speed_blitz">5. ⚡ 90s Speed Slice Blitz</option>
+        <option value="grandmaster">6. 🌌 90% Precision Grandmaster</option>
+        <option value="vs_ai">7. 🤖 Vs. AI Territory Race</option>
+        <option value="zen">8. 🧘 Zen Neon Weaver</option>
+      </select>
+      <button id="btnToggleDrawMode" class="cyber-btn amber-btn" title="Switch Fast Draw (1x) vs Slow Draw (2x)">🐢 Slow 2× [Shift]</button>
+      <button id="btnAutoSliceDemo" class="cyber-btn" title="Trigger AI Precision Tactical Slice [H]">🤖 AI Slice [H]</button>
+      <button id="btnNewStage" class="cyber-btn" title="Reset Stage [R]">🔄 Reset [R]</button>
+      <button id="btnAudioToggle" class="cyber-btn" title="Toggle Synthwave Audio [M]">🔊 Synth [M]</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- Left Telemetry & Territory Breakdown Panel -->
+    <aside class="side-panel">
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>📐 Territory Capture Meter</span>
+          <span id="lblTargetGoal" style="color:#facc15;">Target: 75.0%</span>
+        </div>
+        <div class="claim-meter-wrap">
+          <div class="claim-bar-outer">
+            <div class="claim-bar-fill" id="claimBarFill"></div>
+            <div class="claim-target-marker" id="claimTargetLine"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted);">
+            <span>⚡ Fast (1×): <strong id="lblFastPct" style="color:#00f5d4;">19.2%</strong></span>
+            <span>🐢 Slow (2×): <strong id="lblSlowPct" style="color:#f59e0b;">9.2%</strong></span>
+            <span>🤖 Rival: <strong id="lblAiPct" style="color:#f43f5e;">0.0%</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>🧊 Volfied Power Cubes</span>
+          <span style="color:#a855f7;">Enclose to Activate</span>
+        </div>
+        <div class="power-grid">
+          <div class="power-badge" id="pwrBadgeFreeze">⏱️ Sparx Freeze</div>
+          <div class="power-badge" id="pwrBadgeSpeed">⚡ Speed 1.8×</div>
+          <div class="power-badge" id="pwrBadgeLaser">🔫 Plasma Gun [F]</div>
+          <div class="power-badge" id="pwrBadgeShield">🛡️ Stix Shield</div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>🕹️ 8 Arcade &amp; Volfied Modes</span>
+        </div>
+        <div id="modeButtonsContainer">
+          <button class="mode-list-btn active" data-mode="classic">1. 🏆 Classic Qix (75% Target)</button>
+          <button class="mode-list-btn" data-mode="volfied">2. 🛡️ Volfied Power-Cube Mode</button>
+          <button class="mode-list-btn" data-mode="split_qix">3. ♊ Split-Qix Twin Core</button>
+          <button class="mode-list-btn" data-mode="slow_draw">4. 🐢 Slow-Draw 2x High-Risk</button>
+          <button class="mode-list-btn" data-mode="speed_blitz">5. ⚡ 90s Speed Slice Blitz</button>
+          <button class="mode-list-btn" data-mode="grandmaster">6. 🌌 90% Precision Grandmaster</button>
+          <button class="mode-list-btn" data-mode="vs_ai">7. 🤖 Vs. AI Territory Race</button>
+          <button class="mode-list-btn" data-mode="zen">8. 🧘 Zen Neon Weaver</button>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title"><span>⌨️ Controls &amp; Stix Rules</span></div>
+        <div class="key-row"><span>Move Marker `💎`</span><span class="kbd-tag">WASD / Arrows</span></div>
+        <div class="key-row"><span>Fast Draw (`1×` Cyan)</span><span class="kbd-tag">Hold SPACE</span></div>
+        <div class="key-row"><span>Slow Draw (`2×` Amber)</span><span class="kbd-tag">Hold SHIFT</span></div>
+        <div class="key-row"><span>Auto-Draw Latch</span><span class="kbd-tag">E / Click Canvas</span></div>
+        <div class="key-row"><span>Fire Laser Cannon</span><span class="kbd-tag">F</span></div>
+        <div class="key-row"><span>AI Precision Slice</span><span class="kbd-tag">H</span></div>
+      </div>
+    </aside>
+
+    <!-- Center 880x540 High-Res Territory Slicing Canvas -->
+    <section class="stage-center">
+      <div class="canvas-frame">
+        <canvas id="qixCanvas" width="880" height="540"></canvas>
+      </div>
+      <div class="stage-subbar">
+        <div>
+          <strong style="color:#00f5d4;">⚡ STIX TELEMETRY:</strong>
+          <span id="statusBannerText">Perimeter Safe — Hold [SPACE] (Fast 1×) or [SHIFT] (Slow 2×) and step into the void to slice territory!</span>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <span>Fuse Timer: <strong id="lblFuseTimer" style="color:#10b981;">SAFE</strong></span>
+          <span>Qix Cores: <strong id="lblQixCount" style="color:#c084fc;">2 ACTIVE</strong></span>
+          <span>Sparx: <strong id="lblSparxCount" style="color:#facc15;">3 PATROL</strong></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Threat Radar & Live Capture Telemetry -->
+    <aside class="side-panel">
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>⚡ Harmonic Plasma Qix Radar</span>
+          <span id="lblClockOrSpeed" style="color:#00f5d4;">60 FPS</span>
+        </div>
+        <div style="font-size:11px; color:#cbd5e1; line-height:1.45;">
+          <div>• <strong>Harmonic Qix Ribbon</strong>: Undulating plasma entity inside unclaimed void. Touching your active Stix trail shatters it!</div>
+          <div style="margin-top:4px;">• <strong>Split-Qix Bonus (`2×`–`4×`)</strong>: Slice a line between two Qix cores so they land in separate cavities for an instant multiplier upgrade!</div>
+          <div style="margin-top:4px;">• <strong>Stix Fuse (`🔥`)</strong>: Stopping mid-draw ignites a burning fuse that chases your marker along the Stix!</div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>🏆 High Score &amp; Session Stats</span>
+        </div>
+        <div class="key-row"><span>All-Time High Score</span><strong id="statHighScore" style="color:#facc15;">48,200</strong></div>
+        <div class="key-row"><span>Largest Single Slice</span><strong id="statBestSlice" style="color:#00f5d4;">18.6%</strong></div>
+        <div class="key-row"><span>Cubes Enclosed</span><strong id="statCubesCaptured" style="color:#a855f7;">3</strong></div>
+        <div class="key-row"><span>Split-Qix Cleared</span><strong id="statSplits" style="color:#10b981;">1</strong></div>
+      </div>
+
+      <div class="panel-card" style="flex:1; display:flex; flex-direction:column;">
+        <div class="panel-title">
+          <span>📡 Live Territory Slice Log</span>
+        </div>
+        <div class="log-feed" id="qixLogFeed"></div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      // =========================================================================
+      // 1. WEBAUDIO SYNTHWAVE & LASER SFX ENGINE
+      // =========================================================================
+      const QixAudio = {
+        ctx: null,
+        muted: false,
+        bgmTimer: null,
+        step: 0,
+        init() {
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) this.ctx = new AudioCtx();
+          }
+          if (this.ctx && this.ctx.state === "suspended") {
+            this.ctx.resume().catch(() => {});
+          }
+        },
+        playTone(freq, type, dur, vol = 0.1, slideFreq = null) {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, now);
+            if (slideFreq) {
+              osc.frequency.exponentialRampToValueAtTime(Math.max(40, slideFreq), now + dur);
+            }
+            gain.gain.setValueAtTime(vol, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + dur);
+          } catch (_) {}
+        },
+        sfxDrawStep(isSlow) {
+          this.playTone(isSlow ? 240 : 480, isSlow ? "sawtooth" : "triangle", 0.045, 0.04, isSlow ? 310 : 620);
+        },
+        sfxCapture(pct, isSlow) {
+          const base = isSlow ? 330 : 440;
+          [1, 1.25, 1.5, 2].forEach((mult, idx) => {
+            setTimeout(() => {
+              this.playTone(base * mult + pct * 8, "triangle", 0.16, 0.11, base * mult * 1.15);
+            }, idx * 55);
+          });
+        },
+        sfxSplitQix() {
+          [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, idx) => {
+            setTimeout(() => this.playTone(f, "sawtooth", 0.22, 0.13, f * 1.1), idx * 65);
+          });
+        },
+        sfxCubePower() {
+          this.playTone(587.33, "sine", 0.18, 0.12, 1174.66);
+        },
+        sfxLaser() {
+          this.playTone(980, "sawtooth", 0.11, 0.09, 220);
+        },
+        sfxHit() {
+          this.playTone(180, "sawtooth", 0.32, 0.15, 55);
+        },
+        toggleMute() {
+          this.muted = !this.muted;
+          const btn = document.getElementById("btnAudioToggle");
+          if (btn) btn.textContent = this.muted ? "🔇 Muted [M]" : "🔊 Synth [M]";
+          if (!this.muted) {
+            this.init();
+            this.startBgm();
+          } else if (this.bgmTimer) {
+            clearInterval(this.bgmTimer);
+            this.bgmTimer = null;
+          }
+        },
+        startBgm() {
+          if (this.bgmTimer || this.muted) return;
+          const bassline = [110, 110, 130.81, 146.83, 164.81, 146.83, 130.81, 98];
+          this.bgmTimer = setInterval(() => {
+            if (this.muted || !this.ctx || this.ctx.state !== "running") return;
+            const note = bassline[this.step % bassline.length];
+            this.playTone(note, "triangle", 0.18, 0.035);
+            if (this.step % 2 === 0) {
+              this.playTone(note * 2, "sine", 0.09, 0.02);
+            }
+            this.step++;
+          }, 220);
+        }
+      };
+
+      // =========================================================================
+      // 2. LOGICAL GRID & TERRITORY ENGINE (160 x 100 on 880x540 Canvas)
+      // =========================================================================
+      const canvas = document.getElementById("qixCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const GRID_W = 160;
+      const GRID_H = 100;
+      const CELL_W = canvas.width / GRID_W;   // 5.5px
+      const CELL_H = canvas.height / GRID_H;  // 5.4px
+
+      // Cell state constants
+      const CELL_UNCLAIMED = 0;
+      const CELL_BORDER = 1;
+      const CELL_CLAIMED_FAST = 2;
+      const CELL_CLAIMED_SLOW = 3;
+      const CELL_STIX_FAST = 4;
+      const CELL_STIX_SLOW = 5;
+      const CELL_CLAIMED_AI = 6;
+
+      let grid = new Uint8Array(GRID_W * GRID_H);
+      const idx = (x, y) => y * GRID_W + x;
+      const inBounds = (x, y) => x >= 0 && x < GRID_W && y >= 0 && y < GRID_H;
+
+      // Game State
+      const state = {
+        mode: "classic",
+        stage: 1,
+        score: 14850,
+        highScore: Number(window.localStorage.getItem("codecaine_qix_hi") || 48200),
+        bestSlice: 18.6,
+        cubesCaptured: 3,
+        splitsCleared: 1,
+        multiplier: 2,
+        lives: 3,
+        targetPct: 75,
+        claimedPct: 28.4,
+        fastPct: 19.2,
+        slowPct: 9.2,
+        aiPct: 0.0,
+        preferSlowDraw: false,
+        autoDrawLatch: false,
+        aiAssistActive: false,
+        timeRemaining: 90,
+        freezeTimer: 0,
+        speedTimer: 0,
+        laserTimer: 0,
+        shieldTimer: 0,
+        tick: 0
+      };
+
+      // Player Marker (💎)
+      const player = {
+        x: 34,
+        y: 26,
+        drawing: false,
+        drawSlow: false,
+        stixPath: [], // [{x, y, slow}]
+        idleFramesOnStix: 0,
+        fuseActive: false,
+        fuseIndex: 0,
+        moveCooldown: 0,
+        lastDir: { dx: 1, dy: 0 }
+      };
+
+      // Rival AI Slicer (for Mode 7 Vs. AI Territory Race)
+      const rivalAi = {
+        active: false,
+        x: 159,
+        y: 50,
+        vx: -1,
+        vy: 0,
+        cooldown: 0
+      };
+
+      // Entities: Harmonic Plasma Qix, Perimeter Sparx, Volfied Power Cubes, Laser Bolts, Particles
+      let qixList = [];
+      let sparxList = [];
+      let powerCubes = [];
+      let laserBolts = [];
+      let particles = [];
+      let capturePolygons = []; // Decorative fracture lines inside claimed areas
+
+      // Input state
+      const keys = {};
+
+      function logEvent(msg, color = "#00f5d4") {
+        const feed = document.getElementById("qixLogFeed");
+        if (!feed) return;
+        const div = document.createElement("div");
+        div.style.color = color;
+        div.textContent = `[${new Date().toLocaleTimeString([], { minute: "2-digit", second: "2-digit" })}] ${msg}`;
+        feed.prepend(div);
+        while (feed.children.length > 20) {
+          feed.removeChild(feed.lastChild);
+        }
+      }
+
+      // =========================================================================
+      // 3. BORDER CONTOUR REBUILDER & INITIAL ~28% SHOWCASE TERRITORY
+      // =========================================================================
+      function isSolidClaimed(v) {
+        return v === CELL_BORDER || v === CELL_CLAIMED_FAST || v === CELL_CLAIMED_SLOW || v === CELL_CLAIMED_AI;
+      }
+
+      function rebuildBordersAndStats() {
+        // First convert any old CELL_BORDER that has no adjacent UNCLAIMED cell into CLAIMED_FAST
+        // and any SOLID cell that touches UNCLAIMED (8-connected) or is on the outer edge touching UNCLAIMED into CELL_BORDER.
+        const nextTypes = new Uint8Array(GRID_W * GRID_H);
+        let unclaimedCount = 0;
+        let fastCount = 0;
+        let slowCount = 0;
+        let aiCount = 0;
+
+        for (let y = 0; y < GRID_H; y++) {
+          for (let x = 0; x < GRID_W; x++) {
+            const v = grid[idx(x, y)];
+            if (v === CELL_UNCLAIMED || v === CELL_STIX_FAST || v === CELL_STIX_SLOW) {
+              nextTypes[idx(x, y)] = v;
+              unclaimedCount++;
+              continue;
+            }
+            // Check 8-neighborhood for UNCLAIMED
+            let touchesUnclaimed = false;
+            for (let dy = -1; dy <= 1 && !touchesUnclaimed; dy++) {
+              for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const nx = x + dx;
+                const ny = y + dy;
+                if (inBounds(nx, ny)) {
+                  const nv = grid[idx(nx, ny)];
+                  if (nv === CELL_UNCLAIMED || nv === CELL_STIX_FAST || nv === CELL_STIX_SLOW) {
+                    touchesUnclaimed = true;
+                    break;
+                  }
+                }
+              }
+            }
+
+            if (touchesUnclaimed) {
+              nextTypes[idx(x, y)] = CELL_BORDER;
+            } else {
+              nextTypes[idx(x, y)] = v === CELL_BORDER ? CELL_CLAIMED_FAST : v;
+            }
+
+            if (v === CELL_CLAIMED_SLOW) slowCount++;
+            else if (v === CELL_CLAIMED_AI) aiCount++;
+            else fastCount++;
+          }
+        }
+
+        grid.set(nextTypes);
+
+        const total = GRID_W * GRID_H;
+        const claimedTotal = total - unclaimedCount;
+        state.claimedPct = Number(((claimedTotal / total) * 100).toFixed(1));
+        state.fastPct = Number(((fastCount / total) * 100).toFixed(1));
+        state.slowPct = Number(((slowCount / total) * 100).toFixed(1));
+        state.aiPct = Number(((aiCount / total) * 100).toFixed(1));
+
+        // Ensure player sits on a valid BORDER cell when not drawing
+        if (!player.drawing && grid[idx(player.x, player.y)] !== CELL_BORDER) {
+          snapEntityToNearestBorder(player);
+        }
+        updateHud();
+      }
+
+      function snapEntityToNearestBorder(ent) {
+        let bestDist = 1e9;
+        let bx = ent.x;
+        let by = ent.y;
+        for (let y = 0; y < GRID_H; y++) {
+          for (let x = 0; x < GRID_W; x++) {
+            if (grid[idx(x, y)] === CELL_BORDER) {
+              const d = Math.abs(x - ent.x) + Math.abs(y - ent.y);
+              if (d < bestDist) {
+                bestDist = d;
+                bx = x;
+                by = y;
+              }
+            }
+          }
+        }
+        ent.x = bx;
+        ent.y = by;
+      }
+
+      function fillRectClaimed(x0, y0, x1, y1, type) {
+        for (let y = Math.max(0, y0); y <= Math.min(GRID_H - 1, y1); y++) {
+          for (let x = Math.max(0, x0); x <= Math.min(GRID_W - 1, x1); x++) {
+            grid[idx(x, y)] = type;
+          }
+        }
+      }
+
+      function createHarmonicQix(x, y, colorA, colorB) {
+        const q = {
+          x1: x - 12,
+          y1: y - 8,
+          x2: x + 12,
+          y2: y + 8,
+          vx1: 0.78,
+          vy1: -0.64,
+          vx2: -0.68,
+          vy2: 0.82,
+          colorA,
+          colorB,
+          phase: Math.random() * Math.PI * 2,
+          history: []
+        };
+        // Pre-populate 14 harmonic ribbon segments so screenshot immediately displays full neon geometry!
+        for (let i = 0; i < 14; i++) {
+          const t = i * 0.22;
+          q.history.push({
+            x1: q.x1 + Math.sin(t) * 9,
+            y1: q.y1 + Math.cos(t * 1.3) * 7,
+            x2: q.x2 - Math.cos(t * 0.9) * 10,
+            y2: q.y2 + Math.sin(t * 1.1) * 8
+          });
+        }
+        return q;
+      }
+
+      function seedInitialShowcaseArena() {
+        grid.fill(CELL_UNCLAIMED);
+        capturePolygons = [];
+
+        // Outer 1-cell perimeter border
+        for (let x = 0; x < GRID_W; x++) {
+          grid[idx(x, 0)] = CELL_BORDER;
+          grid[idx(x, GRID_H - 1)] = CELL_BORDER;
+        }
+        for (let y = 0; y < GRID_H; y++) {
+          grid[idx(0, y)] = CELL_BORDER;
+          grid[idx(GRID_W - 1, y)] = CELL_BORDER;
+        }
+
+        // Pre-claim ~28% in visually striking stepped crystalline cyber-territories!
+        // 1. Top-Left Stepped Cyan Fortress (Fast Draw 1x)
+        fillRectClaimed(0, 0, 34, 26, CELL_CLAIMED_FAST);
+        fillRectClaimed(0, 26, 20, 52, CELL_CLAIMED_FAST);
+        capturePolygons.push({ x: 2, y: 2, w: 32, h: 24, type: "fast", label: "11.4% CYAN" });
+
+        // 2. Bottom-Left Amber/Magenta High-Voltage Bastion (Slow Draw 2x)
+        fillRectClaimed(0, 72, 42, 99, CELL_CLAIMED_SLOW);
+        fillRectClaimed(42, 82, 68, 99, CELL_CLAIMED_SLOW);
+        capturePolygons.push({ x: 2, y: 74, w: 40, h: 24, type: "slow", label: "9.2% SLOW 2×" });
+
+        // 3. Top-Right Stepped Prism Terrace
+        fillRectClaimed(126, 0, 159, 24, CELL_CLAIMED_FAST);
+        fillRectClaimed(140, 24, 159, 48, CELL_CLAIMED_SLOW);
+        capturePolygons.push({ x: 128, y: 2, w: 30, h: 22, type: "fast", label: "7.8% PRISM" });
+
+        // 4. Bottom-Right AI / Bonus Corner
+        if (state.mode === "vs_ai") {
+          fillRectClaimed(128, 76, 159, 99, CELL_CLAIMED_AI);
+        } else {
+          fillRectClaimed(132, 78, 159, 99, CELL_CLAIMED_FAST);
+        }
+
+        rebuildBordersAndStats();
+
+        // Place Player Marker at the inner corner of the Top-Left Cyan Fortress
+        player.x = 34;
+        player.y = 26;
+        player.drawing = false;
+        player.stixPath = [];
+        player.fuseActive = false;
+        player.idleFramesOnStix = 0;
+        snapEntityToNearestBorder(player);
+
+        // Spawn Harmonic Plasma Qix Cores
+        qixList = [
+          createHarmonicQix(78, 46, "#00f5d4", "#a855f7")
+        ];
+        if (state.mode === "split_qix" || state.mode === "classic" || state.mode === "grandmaster" || state.stage >= 2) {
+          qixList.push(createHarmonicQix(106, 58, "#f43f5e", "#facc15"));
+        }
+
+        // Spawn Perimeter Sparx
+        sparxList = [
+          { x: 80, y: 0, prevX: 79, prevY: 0, color: "#facc15", speed: 1 },
+          { x: 159, y: 55, prevX: 159, prevY: 54, color: "#ff007f", speed: 1 },
+          { x: 68, y: 82, prevX: 67, prevY: 82, color: "#38bdf8", speed: 1 }
+        ];
+        sparxList.forEach(s => snapEntityToNearestBorder(s));
+
+        // Spawn Volfied Power Cubes in Unclaimed Space
+        powerCubes = [
+          { x: 54, y: 22, r: 4, type: "freeze", icon: "⏱️", label: "TIME STOP", color: "#38bdf8", captured: false },
+          { x: 114, y: 34, r: 4, type: "laser", icon: "🔫", label: "PLASMA GUN", color: "#f43f5e", captured: false },
+          { x: 56, y: 58, r: 4, type: "shield", icon: "🛡️", label: "STIX SHIELD", color: "#a855f7", captured: false },
+          { x: 96, y: 74, r: 4, type: "speed", icon: "⚡", label: "SPEED 1.8×", color: "#facc15", captured: false }
+        ];
+
+        updateHud();
+      }
+
+      // =========================================================================
+      // 4. FLOOD-FILL CAPTURE & SPLIT-QIX BONUS ENGINE
+      // =========================================================================
+      function completeStixCapture() {
+        if (player.stixPath.length === 0) return;
+
+        const usedSlow = player.drawSlow || state.mode === "slow_draw";
+        const claimType = usedSlow ? CELL_CLAIMED_SLOW : CELL_CLAIMED_FAST;
+
+        // 1. Temporarily mark Stix path as solid claimType
+        for (const pt of player.stixPath) {
+          grid[idx(pt.x, pt.y)] = claimType;
+        }
+
+        // 2. Flood-fill from each Qix core to identify Qix-containing cavities
+        const visited = new Uint8Array(GRID_W * GRID_H);
+        const qixCavityIds = [];
+
+        function floodFrom(startX, startY, cavityId) {
+          const sx = Math.max(1, Math.min(GRID_W - 2, Math.round(startX)));
+          const sy = Math.max(1, Math.min(GRID_H - 2, Math.round(startY)));
+          const q = [];
+
+          // Find nearest unclaimed cell if Qix endpoint slightly overlaps border
+          let rootX = sx;
+          let rootY = sy;
+          if (grid[idx(rootX, rootY)] !== CELL_UNCLAIMED) {
+            let found = false;
+            for (let r = 1; r <= 8 && !found; r++) {
+              for (let dy = -r; dy <= r && !found; dy++) {
+                for (let dx = -r; dx <= r && !found; dx++) {
+                  const nx = sx + dx;
+                  const ny = sy + dy;
+                  if (inBounds(nx, ny) && grid[idx(nx, ny)] === CELL_UNCLAIMED) {
+                    rootX = nx;
+                    rootY = ny;
+                    found = true;
+                  }
+                }
+              }
+            }
+          }
+
+          if (grid[idx(rootX, rootY)] !== CELL_UNCLAIMED) return 0;
+          if (visited[idx(rootX, rootY)] !== 0) return visited[idx(rootX, rootY)];
+
+          visited[idx(rootX, rootY)] = cavityId;
+          q.push(rootX, rootY);
+          let head = 0;
+          while (head < q.length) {
+            const cx = q[head++];
+            const cy = q[head++];
+            const neighbors = [
+              [cx + 1, cy],
+              [cx - 1, cy],
+              [cx, cy + 1],
+              [cx, cy - 1]
+            ];
+            for (let i = 0; i < 4; i++) {
+              const nx = neighbors[i][0];
+              const ny = neighbors[i][1];
+              if (inBounds(nx, ny)) {
+                const gi = idx(nx, ny);
+                if (grid[gi] === CELL_UNCLAIMED && visited[gi] === 0) {
+                  visited[gi] = cavityId;
+                  q.push(nx, ny);
+                }
+              }
+            }
+          }
+          return cavityId;
+        }
+
+        let nextCavId = 1;
+        for (const qix of qixList) {
+          const midX = (qix.x1 + qix.x2) * 0.5;
+          const midY = (qix.y1 + qix.y2) * 0.5;
+          const cid = floodFrom(midX, midY, nextCavId);
+          if (cid === nextCavId) nextCavId++;
+          qixCavityIds.push(cid);
+        }
+
+        // Check for SPLIT-QIX BONUS: two Qix cores ended up in two DIFFERENT cavities!
+        let splitTriggered = false;
+        if (qixCavityIds.length >= 2 && qixCavityIds[0] > 0 && qixCavityIds[1] > 0 && qixCavityIds[0] !== qixCavityIds[1]) {
+          splitTriggered = true;
+          state.multiplier = Math.min(4, state.multiplier + 1);
+          state.splitsCleared++;
+          state.score += 10000 * state.multiplier;
+          QixAudio.sfxSplitQix();
+          logEvent(`♊ SPLIT-QIX TWIN CORE SLICED! Multiplier upgraded to ${state.multiplier}× (+${10000 * state.multiplier} PTS)!`, "#facc15");
+          spawnParticles(player.x * CELL_W, player.y * CELL_H, "#facc15", 36);
+        }
+
+        // If Split-Qix happened, keep only the larger Qix cavity as UNCLAIMED and capture the smaller one too!
+        let keepCavityMask = new Set(qixCavityIds.filter(id => id > 0));
+        if (splitTriggered && keepCavityMask.size >= 2) {
+          const counts = {};
+          for (let i = 0; i < visited.length; i++) {
+            const cid = visited[i];
+            if (cid > 0) counts[cid] = (counts[cid] || 0) + 1;
+          }
+          let largestCid = qixCavityIds[0];
+          for (const cid of keepCavityMask) {
+            if ((counts[cid] || 0) > (counts[largestCid] || 0)) largestCid = cid;
+          }
+          keepCavityMask = new Set([largestCid]);
+          // Relocate secondary Qix into the surviving cavity
+          if (qixList.length > 1) {
+            qixList[1].x1 = qixList[0].x1 + 8;
+            qixList[1].y1 = qixList[0].y1 - 6;
+            qixList[1].x2 = qixList[0].x2 - 8;
+            qixList[1].y2 = qixList[0].y2 + 6;
+          }
+        }
+
+        // 3. Convert all UNCLAIMED cells NOT in keepCavityMask into claimed territory!
+        let newlyClaimedCells = player.stixPath.length;
+        let sumX = 0;
+        let sumY = 0;
+        for (let y = 0; y < GRID_H; y++) {
+          for (let x = 0; x < GRID_W; x++) {
+            const gi = idx(x, y);
+            if (grid[gi] === CELL_UNCLAIMED && !keepCavityMask.has(visited[gi])) {
+              grid[gi] = claimType;
+              newlyClaimedCells++;
+              sumX += x;
+              sumY += y;
+            }
+          }
+        }
+
+        const slicePct = Number(((newlyClaimedCells / (GRID_W * GRID_H)) * 100).toFixed(1));
+        if (slicePct > state.bestSlice) state.bestSlice = slicePct;
+
+        const basePts = Math.round(slicePct * 250) * (usedSlow ? 2 : 1) * state.multiplier;
+        state.score += Math.max(150, basePts);
+        if (state.score > state.highScore) {
+          state.highScore = state.score;
+          window.localStorage.setItem("codecaine_qix_hi", String(state.highScore));
+        }
+
+        // Check Volfied Power Cubes enclosed in newly claimed territory
+        for (const cube of powerCubes) {
+          if (!cube.captured && grid[idx(cube.x, cube.y)] !== CELL_UNCLAIMED) {
+            cube.captured = true;
+            state.cubesCaptured++;
+            activatePowerCube(cube);
+          }
+        }
+
+        player.drawing = false;
+        player.stixPath = [];
+        player.fuseActive = false;
+        player.idleFramesOnStix = 0;
+
+        rebuildBordersAndStats();
+        QixAudio.sfxCapture(slicePct, usedSlow);
+
+        const cx = newlyClaimedCells > 0 ? (sumX / newlyClaimedCells) * CELL_W : player.x * CELL_W;
+        const cy = newlyClaimedCells > 0 ? (sumY / newlyClaimedCells) * CELL_H : player.y * CELL_H;
+        spawnParticles(cx, cy, usedSlow ? "#f59e0b" : "#00f5d4", 26);
+
+        logEvent(
+          `${usedSlow ? "🐢 SLOW 2×" : "⚡ FAST 1×"} Captured +${slicePct}% (+${Math.max(150, basePts).toLocaleString()} PTS)`,
+          usedSlow ? "#f59e0b" : "#00f5d4"
+        );
+
+        if (window.CodecaineGameMaster && typeof window.CodecaineGameMaster.spawnFloatingCallout === "function") {
+          window.CodecaineGameMaster.spawnFloatingCallout(`+${slicePct}% CLAIMED!`, usedSlow ? "#f59e0b" : "#00f5d4");
+        }
+
+        // Check Stage Clear threshold
+        if (state.claimedPct >= state.targetPct && state.mode !== "zen") {
+          const overfillBonus = Math.round((state.claimedPct - state.targetPct) * 1500);
+          state.score += 5000 + overfillBonus;
+          state.stage++;
+          logEvent(`🏆 STAGE ${state.stage - 1} CLEAR! (${state.claimedPct}% Claimed) Overfill Bonus +${(5000 + overfillBonus).toLocaleString()}!`, "#facc15");
+          if (window.CodecaineGameMaster && typeof window.CodecaineGameMaster.triggerVictoryFireworks === "function") {
+            window.CodecaineGameMaster.triggerVictoryFireworks();
+          }
+          setTimeout(() => seedInitialShowcaseArena(), 900);
+        }
+      }
+
+      function activatePowerCube(cube) {
+        QixAudio.sfxCubePower();
+        state.score += 2500;
+        if (cube.type === "freeze") {
+          state.freezeTimer = 360; // 6 seconds
+          logEvent("🧊 VOLFIED CUBE: Sparx Time-Stop activated for 6s!", "#38bdf8");
+        } else if (cube.type === "speed") {
+          state.speedTimer = 420;
+          logEvent("⚡ VOLFIED CUBE: Hyper-Stix Overdrive 1.8× speed!", "#facc15");
+        } else if (cube.type === "laser") {
+          state.laserTimer = 480;
+          logEvent("🔫 VOLFIED CUBE: Twin Plasma Cannon armed! Press [F] to fire!", "#f43f5e");
+        } else if (cube.type === "shield") {
+          state.shieldTimer = 420;
+          logEvent("🛡️ VOLFIED CUBE: Stix Phase Shield active!", "#a855f7");
+        }
+        spawnParticles(cube.x * CELL_W, cube.y * CELL_H, cube.color, 24);
+        updateHud();
+      }
+
+      function shatterStix(reason) {
+        if (state.shieldTimer > 0) {
+          state.shieldTimer = 0;
+          logEvent(`🛡️ Stix Phase Shield absorbed ${reason}!`, "#a855f7");
+          spawnParticles(player.x * CELL_W, player.y * CELL_H, "#a855f7", 20);
+          return;
+        }
+        QixAudio.sfxHit();
+        spawnParticles(player.x * CELL_W, player.y * CELL_H, "#f43f5e", 32);
+
+        // Clear unfinished Stix cells back to UNCLAIMED
+        for (const pt of player.stixPath) {
+          grid[idx(pt.x, pt.y)] = CELL_UNCLAIMED;
+        }
+        const startPt = player.stixPath[0];
+        player.drawing = false;
+        player.stixPath = [];
+        player.fuseActive = false;
+        player.idleFramesOnStix = 0;
+
+        if (startPt) {
+          player.x = startPt.x;
+          player.y = startPt.y;
+        }
+        snapEntityToNearestBorder(player);
+
+        if (state.mode !== "zen") {
+          state.lives = Math.max(1, state.lives - 1);
+        }
+        logEvent(`💥 ${reason} — Stix shattered! Returned to perimeter.`, "#f43f5e");
+        updateHud();
+      }
+
+      // =========================================================================
+      // 5. PLAYER MOVEMENT, AI PRECISION SLICE [H], & ENTITY UPDATES
+      // =========================================================================
+      function stepPlayer(dx, dy, wantDraw, wantSlow) {
+        if (dx === 0 && dy === 0) return false;
+        const nx = player.x + dx;
+        const ny = player.y + dy;
+        if (!inBounds(nx, ny)) return false;
+
+        const targetCell = grid[idx(nx, ny)];
+
+        if (!player.drawing) {
+          // On perimeter: can move along BORDER freely, or enter UNCLAIMED if wantDraw is active
+          if (targetCell === CELL_BORDER) {
+            player.x = nx;
+            player.y = ny;
+            player.lastDir = { dx, dy };
+            return true;
+          }
+          if (targetCell === CELL_UNCLAIMED && (wantDraw || state.autoDrawLatch)) {
+            player.drawing = true;
+            player.drawSlow = Boolean(wantSlow || state.preferSlowDraw || state.mode === "slow_draw");
+            player.stixPath = [{ x: nx, y: ny, slow: player.drawSlow }];
+            grid[idx(nx, ny)] = player.drawSlow ? CELL_STIX_SLOW : CELL_STIX_FAST;
+            player.x = nx;
+            player.y = ny;
+            player.lastDir = { dx, dy };
+            player.idleFramesOnStix = 0;
+            player.fuseActive = false;
+            QixAudio.sfxDrawStep(player.drawSlow);
+            return true;
+          }
+        } else {
+          // Currently drawing Stix in UNCLAIMED space
+          if (targetCell === CELL_UNCLAIMED) {
+            player.x = nx;
+            player.y = ny;
+            player.lastDir = { dx, dy };
+            player.stixPath.push({ x: nx, y: ny, slow: player.drawSlow });
+            grid[idx(nx, ny)] = player.drawSlow ? CELL_STIX_SLOW : CELL_STIX_FAST;
+            player.idleFramesOnStix = 0;
+            player.fuseActive = false;
+            if (player.stixPath.length % 3 === 0) {
+              QixAudio.sfxDrawStep(player.drawSlow);
+            }
+            return true;
+          }
+          if (isSolidClaimed(targetCell)) {
+            // Reached a BORDER / CLAIMED cell -> Complete Flood-Fill Capture!
+            player.x = nx;
+            player.y = ny;
+            completeStixCapture();
+            return true;
+          }
+        }
+        return false;
+      }
+
+      // 1-Click AI Precision Tactical Slice [H]
+      function triggerAiPrecisionSlice() {
+        // Carve a clean rectangular/L-shaped slice from player's current border position into unclaimed space and back to a border!
+        if (player.drawing) {
+          for (const pt of player.stixPath) grid[idx(pt.x, pt.y)] = CELL_UNCLAIMED;
+          player.drawing = false;
+          player.stixPath = [];
+        }
+
+        // Find a border cell that has a straight corridor of UNCLAIMED cells
+        const dirs = [
+          { dx: 1, dy: 0, turnDx: 0, turnDy: -1 },
+          { dx: 0, dy: 1, turnDx: -1, turnDy: 0 },
+          { dx: -1, dy: 0, turnDx: 0, turnDy: 1 },
+          { dx: 0, dy: -1, turnDx: 1, turnDy: 0 }
+        ];
+
+        for (let attempt = 0; attempt < 40; attempt++) {
+          for (const d of dirs) {
+            const nx = player.x + d.dx;
+            const ny = player.y + d.dy;
+            if (inBounds(nx, ny) && grid[idx(nx, ny)] === CELL_UNCLAIMED) {
+              // Trace L-path until hitting a solid cell
+              const path = [];
+              let cx = player.x;
+              let cy = player.y;
+              let stepsOut = 0;
+              while (stepsOut < 22 && inBounds(cx + d.dx, cy + d.dy) && grid[idx(cx + d.dx, cy + d.dy)] === CELL_UNCLAIMED) {
+                cx += d.dx;
+                cy += d.dy;
+                path.push({ x: cx, y: cy, slow: state.preferSlowDraw });
+                stepsOut++;
+              }
+              if (stepsOut >= 6) {
+                // Now turn perpendicular until hitting a solid border cell
+                let stepsTurn = 0;
+                let hitBorder = false;
+                while (stepsTurn < 160 && inBounds(cx + d.turnDx, cy + d.turnDy)) {
+                  cx += d.turnDx;
+                  cy += d.turnDy;
+                  const gv = grid[idx(cx, cy)];
+                  if (isSolidClaimed(gv)) {
+                    hitBorder = true;
+                    break;
+                  }
+                  path.push({ x: cx, y: cy, slow: state.preferSlowDraw });
+                  stepsTurn++;
+                }
+                if (hitBorder && path.length >= 10) {
+                  player.drawing = true;
+                  player.drawSlow = state.preferSlowDraw;
+                  player.stixPath = path;
+                  player.x = cx;
+                  player.y = cy;
+                  completeStixCapture();
+                  return;
+                }
+              }
+            }
+          }
+          // Move player along border to another spot and retry
+          for (let y = 1; y < GRID_H - 1; y++) {
+            for (let x = 1; x < GRID_W - 1; x++) {
+              if (grid[idx(x, y)] === CELL_BORDER && Math.random() < 0.08) {
+                player.x = x;
+                player.y = y;
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      function fireLaserCannon() {
+        if (state.laserTimer <= 0 && state.mode !== "volfied") {
+          state.laserTimer = 240;
+        }
+        QixAudio.sfxLaser();
+        const d = player.lastDir.dx === 0 && player.lastDir.dy === 0 ? { dx: 1, dy: 0 } : player.lastDir;
+        laserBolts.push({
+          x: player.x * CELL_W,
+          y: player.y * CELL_H,
+          vx: d.dx * 9,
+          vy: d.dy * 9,
+          life: 65
+        });
+      }
+
+      function spawnParticles(px, py, color, count = 18) {
+        for (let i = 0; i < count; i++) {
+          const ang = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+          const spd = 1.4 + Math.random() * 3.8;
+          particles.push({
+            x: px,
+            y: py,
+            vx: Math.cos(ang) * spd,
+            vy: Math.sin(ang) * spd,
+            color,
+            life: 28 + Math.floor(Math.random() * 18),
+            maxLife: 46
+          });
+        }
+      }
+
+      function ptSegDistSq(px, py, x1, y1, x2, y2) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const lenSq = dx * dx + dy * dy;
+        if (lenSq === 0) return (px - x1) * (px - x1) + (py - y1) * (py - y1);
+        let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+        t = Math.max(0, Math.min(1, t));
+        const projX = x1 + t * dx;
+        const projY = y1 + t * dy;
+        return (px - projX) * (px - projX) + (py - projY) * (py - projY);
+      }
+
+      function updateGame() {
+        state.tick++;
+
+        if (state.freezeTimer > 0) state.freezeTimer--;
+        if (state.speedTimer > 0) state.speedTimer--;
+        if (state.laserTimer > 0) state.laserTimer--;
+        if (state.shieldTimer > 0) state.shieldTimer--;
+
+        if (state.mode === "speed_blitz" && state.tick % 60 === 0) {
+          state.timeRemaining = Math.max(0, state.timeRemaining - 1);
+          if (state.timeRemaining === 0) {
+            state.timeRemaining = 90;
+            seedInitialShowcaseArena();
+          }
+        }
+
+        // Player Movement Input
+        let dx = 0;
+        let dy = 0;
+        if (keys["ArrowLeft"] || keys["KeyA"]) dx = -1;
+        else if (keys["ArrowRight"] || keys["KeyD"]) dx = 1;
+        else if (keys["ArrowUp"] || keys["KeyW"]) dy = -1;
+        else if (keys["ArrowDown"] || keys["KeyS"]) dy = 1;
+
+        const wantSlow = Boolean(keys["ShiftLeft"] || keys["ShiftRight"] || state.preferSlowDraw);
+        const wantDraw = Boolean(keys["Space"] || wantSlow || state.autoDrawLatch);
+
+        const stepsPerFrame = state.speedTimer > 0 ? 2 : (player.drawing && player.drawSlow ? (state.tick % 2 === 0 ? 1 : 0) : 1);
+        let movedThisFrame = false;
+        for (let s = 0; s < stepsPerFrame; s++) {
+          if (stepPlayer(dx, dy, wantDraw, wantSlow)) {
+            movedThisFrame = true;
+          }
+        }
+
+        // Stix Fuse Logic: if player stops moving while drawing Stix
+        if (player.drawing) {
+          if (!movedThisFrame) {
+            player.idleFramesOnStix++;
+            if (player.idleFramesOnStix > 48) {
+              player.fuseActive = true;
+              if (state.tick % 2 === 0) {
+                player.fuseIndex++;
+                if (player.fuseIndex >= player.stixPath.length) {
+                  shatterStix("Stix Fuse burned down your laser trail");
+                }
+              }
+            }
+          } else {
+            player.idleFramesOnStix = 0;
+            player.fuseActive = false;
+          }
+        }
+
+        // Update Harmonic Plasma Qix Cores
+        for (const q of qixList) {
+          q.phase += 0.045;
+
+          // Endpoint 1
+          let nx1 = q.x1 + q.vx1 + Math.sin(q.phase) * 0.22;
+          let ny1 = q.y1 + q.vy1 + Math.cos(q.phase * 1.2) * 0.22;
+          if (!inBounds(Math.round(nx1), Math.round(ny1)) || isSolidClaimed(grid[idx(Math.round(nx1), Math.round(ny1))])) {
+            q.vx1 = -q.vx1 + (Math.random() - 0.5) * 0.35;
+            q.vy1 = -q.vy1 + (Math.random() - 0.5) * 0.35;
+          } else {
+            q.x1 = nx1;
+            q.y1 = ny1;
+          }
+
+          // Endpoint 2
+          let nx2 = q.x2 + q.vx2 + Math.cos(q.phase * 0.9) * 0.22;
+          let ny2 = q.y2 + q.vy2 + Math.sin(q.phase * 1.1) * 0.22;
+          if (!inBounds(Math.round(nx2), Math.round(ny2)) || isSolidClaimed(grid[idx(Math.round(nx2), Math.round(ny2))])) {
+            q.vx2 = -q.vx2 + (Math.random() - 0.5) * 0.35;
+            q.vy2 = -q.vy2 + (Math.random() - 0.5) * 0.35;
+          } else {
+            q.x2 = nx2;
+            q.y2 = ny2;
+          }
+
+          // Clamp max span between endpoints so Qix stays coherent
+          const spanDx = q.x2 - q.x1;
+          const spanDy = q.y2 - q.y1;
+          const dist = Math.hypot(spanDx, spanDy);
+          if (dist > 34) {
+            q.vx1 += spanDx * 0.008;
+            q.vy1 += spanDy * 0.008;
+            q.vx2 -= spanDx * 0.008;
+            q.vy2 -= spanDy * 0.008;
+          }
+
+          // Clamp velocity magnitude
+          const spd1 = Math.hypot(q.vx1, q.vy1) || 1;
+          if (spd1 > 1.25) { q.vx1 = (q.vx1 / spd1) * 1.25; q.vy1 = (q.vy1 / spd1) * 1.25; }
+          const spd2 = Math.hypot(q.vx2, q.vy2) || 1;
+          if (spd2 > 1.25) { q.vx2 = (q.vx2 / spd2) * 1.25; q.vy2 = (q.vy2 / spd2) * 1.25; }
+
+          q.history.unshift({ x1: q.x1, y1: q.y1, x2: q.x2, y2: q.y2 });
+          if (q.history.length > 15) q.history.pop();
+
+          // Check collision between Qix primary segment and Player's active Stix trail
+          if (player.drawing && player.stixPath.length > 0) {
+            for (let i = 0; i < player.stixPath.length; i += 2) {
+              const pt = player.stixPath[i];
+              const dSq = ptSegDistSq(pt.x, pt.y, q.x1, q.y1, q.x2, q.y2);
+              if (dSq < 3.2) {
+                shatterStix("Harmonic Plasma Qix severed your Stix trail");
+                break;
+              }
+            }
+          }
+        }
+
+        // Update Perimeter Sparx (if not frozen)
+        if (state.freezeTimer <= 0 && state.tick % 2 === 0) {
+          for (const sp of sparxList) {
+            // Find adjacent BORDER cells excluding previous position
+            const candidates = [];
+            for (let dy = -1; dy <= 1; dy++) {
+              for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const nx = sp.x + dx;
+                const ny = sp.y + dy;
+                if (inBounds(nx, ny) && grid[idx(nx, ny)] === CELL_BORDER) {
+                  if (nx !== sp.prevX || ny !== sp.prevY) {
+                    candidates.push({ x: nx, y: ny });
+                  }
+                }
+              }
+            }
+            if (candidates.length > 0) {
+              const pick = candidates[Math.floor(Math.random() * candidates.length)];
+              sp.prevX = sp.x;
+              sp.prevY = sp.y;
+              sp.x = pick.x;
+              sp.y = pick.y;
+            } else {
+              const tmpX = sp.x;
+              const tmpY = sp.y;
+              sp.x = sp.prevX;
+              sp.y = sp.prevY;
+              sp.prevX = tmpX;
+              sp.prevY = tmpY;
+            }
+
+            // Check Sparx collision with player on perimeter
+            if (Math.abs(sp.x - player.x) <= 1 && Math.abs(sp.y - player.y) <= 1) {
+              if (player.drawing) {
+                shatterStix("Perimeter Sparx intercepted your marker");
+              } else if (state.mode !== "zen" && state.shieldTimer <= 0) {
+                QixAudio.sfxHit();
+                spawnParticles(player.x * CELL_W, player.y * CELL_H, "#facc15", 20);
+                // Jump sp away so it doesn't chain-hit
+                sp.x = Math.max(0, GRID_W - 1 - sp.x);
+                snapEntityToNearestBorder(sp);
+                logEvent("⚡ Perimeter Sparx grazed your marker! Keep moving!", "#facc15");
+              }
+            }
+          }
+        }
+
+        // Rival AI Territory Race (Mode 7)
+        if (state.mode === "vs_ai" && state.tick % 190 === 0) {
+          // Rival AI claims a small strip along the right/bottom unclaimed edge
+          let claimedAny = false;
+          for (let y = GRID_H - 2; y >= 10 && !claimedAny; y--) {
+            for (let x = GRID_W - 2; x >= 90 && !claimedAny; x--) {
+              if (grid[idx(x, y)] === CELL_UNCLAIMED) {
+                fillRectClaimed(x - 8, y - 6, x + 2, y + 2, CELL_CLAIMED_AI);
+                claimedAny = true;
+                rebuildBordersAndStats();
+                logEvent(`🤖 Rival Cyber-Slicer captured territory! (Rival: ${state.aiPct}%)`, "#f43f5e");
+              }
+            }
+          }
+        }
+
+        // Update Laser Bolts
+        for (let i = laserBolts.length - 1; i >= 0; i--) {
+          const b = laserBolts[i];
+          b.x += b.vx;
+          b.y += b.vy;
+          b.life--;
+          // Check hit on Sparx
+          for (const sp of sparxList) {
+            if (Math.hypot(sp.x * CELL_W - b.x, sp.y * CELL_H - b.y) < 18) {
+              state.score += 1000;
+              spawnParticles(b.x, b.y, "#00f5d4", 22);
+              sp.x = 0;
+              sp.y = 0;
+              b.life = 0;
+              logEvent("🔫 Plasma Bolt vaporized a Perimeter Sparx (+1,000 PTS)!", "#00f5d4");
+            }
+          }
+          if (b.life <= 0 || b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
+            laserBolts.splice(i, 1);
+          }
+        }
+
+        // Update Particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vx *= 0.95;
+          p.vy *= 0.95;
+          p.life--;
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+
+        if (state.tick % 12 === 0) updateHud();
+      }
+
+      // =========================================================================
+      // 6. HIGH-CONTRAST NEON VECTOR & CRYSTALLINE TERRITORY RENDERER
+      // =========================================================================
+      function renderArena() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 1. Deep Cyber-Void Background with Perspective Grid
+        const bgGrad = ctx.createRadialGradient(
+          canvas.width * 0.5, canvas.height * 0.5, 40,
+          canvas.width * 0.5, canvas.height * 0.5, 520
+        );
+        bgGrad.addColorStop(0, "#0b0f29");
+        bgGrad.addColorStop(1, "#040612");
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.07)";
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= canvas.width; x += 44) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, canvas.height);
+          ctx.stroke();
+        }
+        for (let y = 0; y <= canvas.height; y += 36) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(canvas.width, y);
+          ctx.stroke();
+        }
+
+        // 2. Render Claimed Territory Cells (Fast = Cyan/Violet, Slow = Amber/Magenta, AI = Crimson)
+        // Batch horizontal runs per row for crisp 60fps performance
+        for (let y = 0; y < GRID_H; y++) {
+          let x = 0;
+          while (x < GRID_W) {
+            const v = grid[idx(x, y)];
+            if (v === CELL_UNCLAIMED) {
+              x++;
+              continue;
+            }
+            let endX = x + 1;
+            while (endX < GRID_W && grid[idx(endX, y)] === v) {
+              endX++;
+            }
+            const rx = x * CELL_W;
+            const ry = y * CELL_H;
+            const rw = (endX - x) * CELL_W + 0.4;
+            const rh = CELL_H + 0.4;
+
+            if (v === CELL_CLAIMED_FAST) {
+              ctx.fillStyle = (y % 4 === 0) ? "rgba(0, 245, 212, 0.34)" : "rgba(14, 165, 233, 0.26)";
+              ctx.fillRect(rx, ry, rw, rh);
+            } else if (v === CELL_CLAIMED_SLOW) {
+              ctx.fillStyle = (y % 4 === 0) ? "rgba(245, 158, 11, 0.42)" : "rgba(217, 70, 239, 0.28)";
+              ctx.fillRect(rx, ry, rw, rh);
+            } else if (v === CELL_CLAIMED_AI) {
+              ctx.fillStyle = "rgba(244, 63, 94, 0.38)";
+              ctx.fillRect(rx, ry, rw, rh);
+            } else if (v === CELL_BORDER) {
+              ctx.fillStyle = "#00f5d4";
+              ctx.fillRect(rx, ry, rw, rh);
+            }
+            x = endX;
+          }
+        }
+
+        // Subtle crystalline circuit hatching & percentage badges inside showcase polygons
+        ctx.save();
+        ctx.font = "800 10px 'Segoe UI', sans-serif";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.72)";
+        ctx.fillText("⚡ CYAN SECTOR (1×)", 14, 24);
+        ctx.fillStyle = "#fde68a";
+        ctx.fillText("🐢 HIGH-VOLTAGE SECTOR (2×)", 14, canvas.height - 16);
+        ctx.restore();
+
+        // 3. Render Embedded Volfied Power Cubes in Unclaimed Space
+        for (const cube of powerCubes) {
+          if (cube.captured) continue;
+          const cx = cube.x * CELL_W;
+          const cy = cube.y * CELL_H;
+          const pulse = 1 + Math.sin(state.tick * 0.1) * 0.14;
+
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.shadowColor = cube.color;
+          ctx.shadowBlur = 14;
+          ctx.strokeStyle = cube.color;
+          ctx.fillStyle = "rgba(10, 15, 35, 0.9)";
+          ctx.lineWidth = 2;
+          const sz = 13 * pulse;
+          ctx.beginPath();
+          ctx.roundRect(-sz, -sz, sz * 2, sz * 2, 5);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.font = "13px sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(cube.icon, 0, 0);
+
+          ctx.font = "700 8.5px sans-serif";
+          ctx.fillStyle = cube.color;
+          ctx.fillText(cube.label, 0, sz + 9);
+          ctx.restore();
+        }
+
+        // 4. Render Active Stix Laser Trail + Burning Fuse (`🔥`)
+        if (player.drawing && player.stixPath.length > 0) {
+          ctx.save();
+          const stixColor = player.drawSlow ? "#f59e0b" : "#00f5d4";
+          ctx.shadowColor = stixColor;
+          ctx.shadowBlur = 14;
+          ctx.strokeStyle = stixColor;
+          ctx.lineWidth = 3.5;
+          ctx.beginPath();
+          for (let i = 0; i < player.stixPath.length; i++) {
+            const pt = player.stixPath[i];
+            const px = (pt.x + 0.5) * CELL_W;
+            const py = (pt.y + 0.5) * CELL_H;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.stroke();
+
+          // Fuse spark if active
+          if (player.fuseActive && player.stixPath[player.fuseIndex]) {
+            const fpt = player.stixPath[player.fuseIndex];
+            const fx = (fpt.x + 0.5) * CELL_W;
+            const fy = (fpt.y + 0.5) * CELL_H;
+            ctx.fillStyle = "#ef4444";
+            ctx.shadowColor = "#facc15";
+            ctx.shadowBlur = 18;
+            ctx.beginPath();
+            ctx.arc(fx, fy, 7 + Math.sin(state.tick * 0.5) * 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+
+        // 5. Render Harmonic Multi-Segment Plasma Qix Entities
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        for (const q of qixList) {
+          for (let i = q.history.length - 1; i >= 0; i--) {
+            const seg = q.history[i];
+            const alpha = (1 - i / q.history.length) * 0.88;
+            const grad = ctx.createLinearGradient(
+              seg.x1 * CELL_W, seg.y1 * CELL_H,
+              seg.x2 * CELL_W, seg.y2 * CELL_H
+            );
+            grad.addColorStop(0, q.colorA);
+            grad.addColorStop(0.5, "#ffffff");
+            grad.addColorStop(1, q.colorB);
+
+            ctx.strokeStyle = grad;
+            ctx.globalAlpha = alpha;
+            ctx.lineWidth = i === 0 ? 3.5 : 2.0;
+            ctx.shadowColor = i % 2 === 0 ? q.colorA : q.colorB;
+            ctx.shadowBlur = i === 0 ? 18 : 8;
+
+            ctx.beginPath();
+            ctx.moveTo(seg.x1 * CELL_W, seg.y1 * CELL_H);
+            ctx.lineTo(seg.x2 * CELL_W, seg.y2 * CELL_H);
+            ctx.stroke();
+
+            // Connect consecutive harmonic vertices for authentic 1981 Taito vector web look
+            if (i > 0) {
+              const prev = q.history[i - 1];
+              ctx.lineWidth = 1.1;
+              ctx.beginPath();
+              ctx.moveTo(seg.x1 * CELL_W, seg.y1 * CELL_H);
+              ctx.lineTo(prev.x1 * CELL_W, prev.y1 * CELL_H);
+              ctx.moveTo(seg.x2 * CELL_W, seg.y2 * CELL_H);
+              ctx.lineTo(prev.x2 * CELL_W, prev.y2 * CELL_H);
+              ctx.stroke();
+            }
+          }
+
+          // Glowing Qix Core Nodes at Endpoints
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.arc(q.x1 * CELL_W, q.y1 * CELL_H, 4, 0, Math.PI * 2);
+          ctx.arc(q.x2 * CELL_W, q.y2 * CELL_H, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+
+        // 6. Render Perimeter Sparx
+        for (const sp of sparxList) {
+          const sx = (sp.x + 0.5) * CELL_W;
+          const sy = (sp.y + 0.5) * CELL_H;
+          ctx.save();
+          ctx.translate(sx, sy);
+          ctx.rotate(state.tick * 0.12);
+          ctx.shadowColor = state.freezeTimer > 0 ? "#38bdf8" : sp.color;
+          ctx.shadowBlur = 14;
+          ctx.strokeStyle = state.freezeTimer > 0 ? "#38bdf8" : sp.color;
+          ctx.fillStyle = "#ffffff";
+          ctx.lineWidth = 2;
+
+          // 8-point electric Sparx star
+          for (let r = 0; r < 2; r++) {
+            ctx.rotate(Math.PI / 4);
+            ctx.strokeRect(-6, -6, 12, 12);
+          }
+          ctx.beginPath();
+          ctx.arc(0, 0, 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // 7. Render Player Perimeter Marker (`💎`)
+        const px = (player.x + 0.5) * CELL_W;
+        const py = (player.y + 0.5) * CELL_H;
+        ctx.save();
+        ctx.translate(px, py);
+        const markerColor = player.drawing ? (player.drawSlow ? "#f59e0b" : "#00f5d4") : "#facc15";
+        ctx.shadowColor = markerColor;
+        ctx.shadowBlur = 18;
+
+        if (state.shieldTimer > 0) {
+          ctx.strokeStyle = "#a855f7";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, 12, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Diamond Marker
+        ctx.fillStyle = markerColor;
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, -9);
+        ctx.lineTo(9, 0);
+        ctx.lineTo(0, 9);
+        ctx.lineTo(-9, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        // 8. Render Laser Bolts & Particles
+        for (const b of laserBolts) {
+          ctx.save();
+          ctx.fillStyle = "#f43f5e";
+          ctx.shadowColor = "#f43f5e";
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        for (const p of particles) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+          ctx.fillStyle = p.color;
+          ctx.shadowColor = p.color;
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 2.8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      // =========================================================================
+      // 7. HUD & CONTROLS WIRING
+      // =========================================================================
+      function updateHud() {
+        const elPct = document.getElementById("hudClaimedPct");
+        if (elPct) elPct.textContent = `${state.claimedPct.toFixed(1)}% / ${state.targetPct}%`;
+
+        const elScore = document.getElementById("hudScore");
+        if (elScore) elScore.textContent = state.score.toLocaleString();
+
+        const elMult = document.getElementById("hudMultiplier");
+        if (elMult) elMult.textContent = `${state.multiplier}× CORE`;
+
+        const elStage = document.getElementById("hudStageLives");
+        if (elStage) elStage.textContent = `STG ${state.stage} • ${"💎".repeat(Math.max(1, state.lives))}`;
+
+        const elDraw = document.getElementById("hudDrawState");
+        if (elDraw) {
+          const isSlow = state.preferSlowDraw || state.mode === "slow_draw";
+          elDraw.textContent = isSlow ? "🐢 SLOW 2×" : "⚡ FAST 1×";
+          elDraw.style.color = isSlow ? "#f59e0b" : "#00f5d4";
+        }
+
+        const barFill = document.getElementById("claimBarFill");
+        if (barFill) barFill.style.width = `${Math.min(100, state.claimedPct)}%`;
+
+        const targetLine = document.getElementById("claimTargetLine");
+        if (targetLine) targetLine.style.left = `${state.targetPct}%`;
+
+        const lblGoal = document.getElementById("lblTargetGoal");
+        if (lblGoal) lblGoal.textContent = `Target: ${state.targetPct}.0%`;
+
+        const lblFast = document.getElementById("lblFastPct");
+        if (lblFast) lblFast.textContent = `${state.fastPct.toFixed(1)}%`;
+
+        const lblSlow = document.getElementById("lblSlowPct");
+        if (lblSlow) lblSlow.textContent = `${state.slowPct.toFixed(1)}%`;
+
+        const lblAi = document.getElementById("lblAiPct");
+        if (lblAi) lblAi.textContent = `${state.aiPct.toFixed(1)}%`;
+
+        const lblFuse = document.getElementById("lblFuseTimer");
+        if (lblFuse) {
+          if (player.fuseActive) {
+            lblFuse.textContent = "🔥 BURNING!";
+            lblFuse.style.color = "#ef4444";
+          } else if (player.drawing) {
+            lblFuse.textContent = "⚡ DRAWING STIX";
+            lblFuse.style.color = "#facc15";
+          } else {
+            lblFuse.textContent = "SAFE";
+            lblFuse.style.color = "#10b981";
+          }
+        }
+
+        const lblQix = document.getElementById("lblQixCount");
+        if (lblQix) lblQix.textContent = `${qixList.length} ACTIVE`;
+
+        const lblSparx = document.getElementById("lblSparxCount");
+        if (lblSparx) lblSparx.textContent = state.freezeTimer > 0 ? "❄️ FROZEN" : `${sparxList.length} PATROL`;
+
+        document.getElementById("statHighScore").textContent = state.highScore.toLocaleString();
+        document.getElementById("statBestSlice").textContent = `${state.bestSlice.toFixed(1)}%`;
+        document.getElementById("statCubesCaptured").textContent = String(state.cubesCaptured);
+        document.getElementById("statSplits").textContent = String(state.splitsCleared);
+
+        document.getElementById("pwrBadgeFreeze").classList.toggle("active", state.freezeTimer > 0);
+        document.getElementById("pwrBadgeSpeed").classList.toggle("active", state.speedTimer > 0);
+        document.getElementById("pwrBadgeLaser").classList.toggle("active", state.laserTimer > 0);
+        document.getElementById("pwrBadgeShield").classList.toggle("active", state.shieldTimer > 0);
+      }
+
+      function applyGameMode(mode) {
+        state.mode = mode;
+        const sel = document.getElementById("qixModeSelect");
+        if (sel && sel.value !== mode) sel.value = mode;
+
+        document.querySelectorAll(".mode-list-btn").forEach(btn => {
+          btn.classList.toggle("active", btn.getAttribute("data-mode") === mode);
+        });
+
+        state.targetPct = mode === "volfied" ? 80 : mode === "grandmaster" ? 90 : 75;
+        state.preferSlowDraw = mode === "slow_draw";
+        state.timeRemaining = 90;
+
+        seedInitialShowcaseArena();
+        logEvent(`🕹️ Switched to Mode: ${mode.toUpperCase()} (Target ${state.targetPct}%)`, "#c084fc");
+      }
+
+      // Event Listeners
+      window.addEventListener("keydown", (e) => {
+        keys[e.code] = true;
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) {
+          e.preventDefault();
+        }
+        if (e.code === "KeyE") {
+          state.autoDrawLatch = !state.autoDrawLatch;
+          logEvent(`⚡ Auto-Draw Latch: ${state.autoDrawLatch ? "ON" : "OFF"}`, "#00f5d4");
+        } else if (e.code === "KeyF") {
+          fireLaserCannon();
+        } else if (e.code === "KeyH") {
+          triggerAiPrecisionSlice();
+        } else if (e.code === "KeyR") {
+          seedInitialShowcaseArena();
+        } else if (e.code === "KeyM") {
+          QixAudio.toggleMute();
+        } else if (e.key >= "1" && e.key <= "8") {
+          const modes = ["classic", "volfied", "split_qix", "slow_draw", "speed_blitz", "grandmaster", "vs_ai", "zen"];
+          applyGameMode(modes[Number(e.key) - 1]);
+        }
+      });
+
+      window.addEventListener("keyup", (e) => {
+        keys[e.code] = false;
+      });
+
+      document.getElementById("qixModeSelect").addEventListener("change", (e) => {
+        applyGameMode(e.target.value);
+      });
+
+      document.querySelectorAll(".mode-list-btn").forEach(btn => {
+        btn.addEventListener("click", () => applyGameMode(btn.getAttribute("data-mode")));
+      });
+
+      document.getElementById("btnToggleDrawMode").addEventListener("click", () => {
+        state.preferSlowDraw = !state.preferSlowDraw;
+        updateHud();
+      });
+
+      document.getElementById("btnAutoSliceDemo").addEventListener("click", () => {
+        triggerAiPrecisionSlice();
+      });
+
+      document.getElementById("btnNewStage").addEventListener("click", () => {
+        seedInitialShowcaseArena();
+      });
+
+      document.getElementById("btnAudioToggle").addEventListener("click", () => {
+        QixAudio.toggleMute();
+      });
+
+      // Click on canvas to execute an instant tactical slice or guide marker
+      canvas.addEventListener("mousedown", () => {
+        QixAudio.init();
+        triggerAiPrecisionSlice();
+      });
+
+      // Initialize Showcase Arena & Loop
+      seedInitialShowcaseArena();
+      logEvent("⚡ CyberQix 160×100 Vector Grid initialized — 28.4% pre-claimed showcase active!", "#00f5d4");
+      logEvent("♊ Twin Harmonic Plasma Qix & 4 Volfied Power Cubes online. Press [H] or hold [SPACE] to slice!", "#facc15");
+
+      function loop() {
+        updateGame();
+        renderArena();
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

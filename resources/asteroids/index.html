@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>☄️ Codecaine VoidVector Asteroids Deluxe</title>
+  <meta name="description" content="1979 Atari Asteroids remastered with glowing neon vector geometry, Newtonian inertia thrust, vector line-segment shatters, Hunter-Seeker UFOs, and weapon orbs.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    :root {
+      --bg-deep: #02030a;
+      --panel-bg: rgba(8, 12, 28, 0.9);
+      --border-cyan: rgba(0, 255, 204, 0.32);
+      --cyan: #00ffcc;
+      --blue: #00aaff;
+      --magenta: #ff007f;
+      --gold: #ffbe0b;
+      --danger: #ff2a55;
+      --text-main: #f2f8ff;
+      --text-dim: #88a4cc;
+      --font-display: 'Orbitron', 'Rajdhani', 'Outfit', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 25%, #0c1636 0%, #040714 65%, #010206 100%);
+      color: var(--text-main);
+      font-family: var(--font-display);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 10px 14px;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 255, 204, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 170, 255, 0.035) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .hud-header {
+      position: relative;
+      z-index: 5;
+      width: 100%;
+      max-width: 1080px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 10px 16px;
+      background: var(--panel-bg);
+      border: 1px solid var(--border-cyan);
+      border-radius: 16px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.8), 0 0 24px rgba(0, 255, 204, 0.14);
+      margin-bottom: 10px;
+      backdrop-filter: blur(16px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(0, 255, 204, 0.2), rgba(0, 170, 255, 0.25));
+      border: 1px solid var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 14px rgba(0, 255, 204, 0.35);
+    }
+
+    .brand-title h1 {
+      font-size: 1.06rem;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffffff, var(--cyan), var(--blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-title span {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      display: block;
+    }
+
+    .stats-strip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      background: rgba(2, 6, 18, 0.88);
+      border: 1px solid rgba(0, 255, 204, 0.25);
+      border-radius: 10px;
+      padding: 5px 12px;
+      min-width: 92px;
+      text-align: center;
+    }
+
+    .stat-pill .lbl {
+      font-size: 0.58rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1.4px;
+    }
+
+    .stat-pill .val {
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 0 10px rgba(0, 255, 204, 0.55);
+    }
+
+    .stat-pill.weapon .val {
+      color: var(--gold);
+      font-size: 0.86rem;
+    }
+
+    .btn-cluster {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .cyber-btn {
+      background: rgba(0, 255, 204, 0.1);
+      border: 1px solid rgba(0, 255, 204, 0.38);
+      color: var(--text-main);
+      padding: 7px 12px;
+      border-radius: 9px;
+      font-family: var(--font-display);
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .cyber-btn:hover {
+      background: rgba(0, 255, 204, 0.24);
+      box-shadow: 0 0 14px rgba(0, 255, 204, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .cyber-btn.primary {
+      background: linear-gradient(135deg, rgba(0, 255, 204, 0.32), rgba(0, 170, 255, 0.32));
+      border-color: var(--cyan);
+    }
+
+    .arena-wrap {
+      position: relative;
+      z-index: 5;
+      width: 100%;
+      max-width: 1080px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .vector-cabinet {
+      position: relative;
+      background: #02040d;
+      border: 2px solid rgba(0, 255, 204, 0.42);
+      border-radius: 20px;
+      padding: 8px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 36px rgba(0, 255, 204, 0.16);
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    canvas#asteroidsCanvas {
+      display: block;
+      width: 100%;
+      max-width: 960px;
+      max-height: calc(100vh - 210px);
+      aspect-ratio: 960 / 640;
+      border-radius: 14px;
+      background: radial-gradient(circle at 50% 50%, #070d24 0%, #020309 78%, #010104 100%);
+      cursor: crosshair;
+    }
+
+    .bottom-bar {
+      width: 100%;
+      max-width: 980px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      background: var(--panel-bg);
+      border: 1px solid rgba(0, 255, 204, 0.24);
+      border-radius: 14px;
+      padding: 8px 14px;
+      font-size: 0.74rem;
+      color: var(--text-dim);
+    }
+
+    .meter-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .shield-bar {
+      width: 130px;
+      height: 9px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 99px;
+      overflow: hidden;
+      border: 1px solid rgba(0, 255, 204, 0.35);
+    }
+
+    .shield-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #00aaff, #00ffcc);
+      transition: width 0.08s linear;
+    }
+
+    .touch-strip {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .mini-btn {
+      padding: 5px 10px;
+      border-radius: 7px;
+      background: rgba(0, 255, 204, 0.12);
+      border: 1px solid rgba(0, 255, 204, 0.35);
+      color: #fff;
+      font-family: var(--font-display);
+      font-size: 0.68rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 3, 10, 0.84);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      background: #070b1e;
+      border: 1px solid var(--cyan);
+      border-radius: 18px;
+      max-width: 540px;
+      width: 100%;
+      padding: 22px;
+      box-shadow: 0 0 40px rgba(0, 255, 204, 0.3);
+    }
+
+    .modal-card h2 {
+      color: var(--cyan);
+      margin-bottom: 10px;
+      font-size: 1.15rem;
+    }
+
+    .modal-card p, .modal-card li {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+      margin-bottom: 6px;
+    }
+
+    .modal-card ul {
+      padding-left: 18px;
+      margin-bottom: 14px;
+    }
+
+    .kbd {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: rgba(0, 255, 204, 0.15);
+      border: 1px solid rgba(0, 255, 204, 0.4);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="hud-header">
+    <div class="brand">
+      <div class="brand-icon">☄️</div>
+      <div class="brand-title">
+        <h1>Codecaine VoidVector Asteroids Deluxe</h1>
+        <span>1979 Vector Geometry Remastered • Newtonian Thrust & UFO Hunters</span>
+      </div>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat-pill">
+        <div class="lbl">Score</div>
+        <div class="val" id="hudScore">0</div>
+      </div>
+      <div class="stat-pill">
+        <div class="lbl">High Score</div>
+        <div class="val" id="hudHigh">0</div>
+      </div>
+      <div class="stat-pill">
+        <div class="lbl">Sector Wave</div>
+        <div class="val" id="hudWave">1</div>
+      </div>
+      <div class="stat-pill">
+        <div class="lbl">Ships</div>
+        <div class="val" id="hudLives">▲▲▲</div>
+      </div>
+      <div class="stat-pill weapon">
+        <div class="lbl">Weapon Core</div>
+        <div class="val" id="hudWeapon">STANDARD</div>
+      </div>
+    </div>
+
+    <div class="btn-cluster">
+      <button class="cyber-btn primary" id="btnNewGame" title="New Game (R)">New Game</button>
+      <button class="cyber-btn" id="btnPause" title="Pause (P)">Pause</button>
+      <button class="cyber-btn" id="btnMute" title="Mute Audio (M)">🔊 SFX</button>
+      <button class="cyber-btn" id="btnHelp" title="Controls & Rules (? / F1)">? Help</button>
+    </div>
+  </header>
+
+  <main class="arena-wrap" id="shakeContainer">
+    <div class="vector-cabinet">
+      <canvas id="asteroidsCanvas" width="960" height="640"></canvas>
+    </div>
+
+    <div class="bottom-bar">
+      <div class="meter-group">
+        <span>🛡️ ENERGY SHIELD (<span class="kbd">Shift</span> / <span class="kbd">S</span>):</span>
+        <div class="shield-bar"><div class="shield-fill" id="shieldFill"></div></div>
+        <span id="shieldPct" style="font-family:var(--font-mono);color:var(--cyan)">100%</span>
+      </div>
+
+      <div class="touch-strip">
+        <button class="mini-btn" id="btnRotL">◀ Rotate (A/←)</button>
+        <button class="mini-btn" id="btnThrust">🔥 Thrust (W/↑)</button>
+        <button class="mini-btn" id="btnRotR">Rotate (D/→) ▶</button>
+        <button class="mini-btn" id="btnFire">⚡ Fire (Space)</button>
+        <button class="mini-btn" id="btnShield">🛡️ Shield (Shift/S)</button>
+        <button class="mini-btn" id="btnWarp">🌀 Hyperspace (H/E)</button>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal-backdrop" id="helpModal">
+    <div class="modal-card">
+      <h2>☄️ VoidVector Asteroids Deluxe — Pilot Briefing</h2>
+      <p>Navigate deep-space asteroid fields with true Newtonian inertia, glowing vector line-segment shatters, and Hunter-Seeker UFO saucers.</p>
+      <ul>
+        <li><span class="kbd">←</span> / <span class="kbd">→</span> or <span class="kbd">A</span> / <span class="kbd">D</span> — Rotate Vector Interceptor</li>
+        <li><span class="kbd">↑</span> or <span class="kbd">W</span> — Fire Newtonian Main Thrusters</li>
+        <li><span class="kbd">Space</span> or <span class="kbd">Left Click</span> — Fire Plasma Cannon</li>
+        <li><span class="kbd">Shift</span> or <span class="kbd">S</span> — Hold Rechargeable Energy Shield (absorbs impacts & boulders!)</li>
+        <li><span class="kbd">H</span> or <span class="kbd">E</span> — Emergency Hyperspace Warp to random sector coordinates</li>
+        <li><strong>Asteroid Shatter Chain:</strong> Large boulders (20 pts) split into 2 Medium (50 pts) → 2 Small (100 pts).</li>
+        <li><strong>Hunter-Seeker UFOs:</strong> Large Saucers (200 pts) & Small Sharpshooter Saucers (1,000 pts) drop <strong>Weapon Power-Up Orbs</strong>: <em>Twin Spread Shot</em>, <em>Rapid Pulse</em>, and <em>Rear Tailgun</em>!</li>
+      </ul>
+      <button class="cyber-btn primary" id="btnCloseHelp" style="width:100%">Return to Cockpit</button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const STORE_KEY = "codecaine_asteroids_deluxe_high";
+      function loadHighScore() {
+        try { return parseInt(window.localStorage.getItem(STORE_KEY) || "0", 10) || 0; } catch (_) { return 0; }
+      }
+      function saveHighScore(val) {
+        try { window.localStorage.setItem(STORE_KEY, String(val)); } catch (_) {}
+      }
+
+      const fxParticles = [];
+      let shakeTimer = 0;
+      let shakeIntensity = 0;
+
+      if (!window.GameMasterFX) {
+        window.GameMasterFX = {
+          burst(x, y, color = "#00ffcc", count = 20) {
+            for (let i = 0; i < count; i++) {
+              const a = Math.random() * Math.PI * 2;
+              const sp = 1 + Math.random() * 5.5;
+              fxParticles.push({
+                x, y,
+                vx: Math.cos(a) * sp,
+                vy: Math.sin(a) * sp,
+                r: 1.8 + Math.random() * 2.6,
+                color,
+                alpha: 1,
+                decay: 0.018 + Math.random() * 0.024
+              });
+            }
+          },
+          triggerShake(intensity = 6) {
+            shakeIntensity = Math.max(shakeIntensity, intensity);
+            shakeTimer = 14;
+          }
+        };
+      } else {
+        const origBurst = window.GameMasterFX.burst?.bind(window.GameMasterFX);
+        const origShake = window.GameMasterFX.triggerShake?.bind(window.GameMasterFX);
+        window.GameMasterFX.burst = function(x, y, color = "#00ffcc", count = 20) {
+          for (let i = 0; i < count; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const sp = 1 + Math.random() * 5.5;
+            fxParticles.push({
+              x, y,
+              vx: Math.cos(a) * sp,
+              vy: Math.sin(a) * sp,
+              r: 1.8 + Math.random() * 2.6,
+              color,
+              alpha: 1,
+              decay: 0.018 + Math.random() * 0.024
+            });
+          }
+          if (origBurst) origBurst(x, y, color, count);
+        };
+        window.GameMasterFX.triggerShake = function(intensity = 6) {
+          shakeIntensity = Math.max(shakeIntensity, intensity);
+          shakeTimer = 14;
+          if (origShake) origShake(intensity);
+        };
+      }
+
+      // Web Audio Synthesizer
+      class VectorSynth {
+        constructor() {
+          this.ctx = null;
+          this.muted = false;
+          this.beatToggle = false;
+        }
+        init() {
+          if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) this.ctx = new AC();
+          }
+          if (this.ctx && this.ctx.state === "suspended") {
+            this.ctx.resume().catch(() => {});
+          }
+        }
+        tone(freq, type = "sine", dur = 0.1, gainVal = 0.14, slideTo = null) {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, now);
+            if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, now + dur);
+            gain.gain.setValueAtTime(gainVal, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + dur);
+          } catch (_) {}
+        }
+        laser() { this.tone(920, "sawtooth", 0.085, 0.13, 180); }
+        explode(size) {
+          const base = size === 3 ? 95 : size === 2 ? 145 : 220;
+          this.tone(base, "sawtooth", 0.24, 0.18, 38);
+        }
+        heartbeat() {
+          this.beatToggle = !this.beatToggle;
+          this.tone(this.beatToggle ? 73.42 : 65.41, "triangle", 0.09, 0.16);
+        }
+        ufoSiren() {
+          this.tone(640, "sine", 0.11, 0.09, 880);
+        }
+        warp() {
+          this.tone(240, "sine", 0.22, 0.16, 1280);
+        }
+        powerup() {
+          [523.25, 659.25, 783.99, 1046.5].forEach((n, i) => {
+            setTimeout(() => this.tone(n, "triangle", 0.1, 0.15), i * 50);
+          });
+        }
+      }
+
+      const synth = new VectorSynth();
+      const canvas = document.getElementById("asteroidsCanvas");
+      const ctx = canvas.getContext("2d");
+      const W = canvas.width;  // 960
+      const H = canvas.height; // 640
+
+      // Starfield backdrop
+      const stars = Array.from({ length: 75 }, () => ({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: 0.7 + Math.random() * 1.4,
+        phase: Math.random() * Math.PI * 2
+      }));
+
+      // Game State
+      let score = 0;
+      let highScore = loadHighScore();
+      let wave = 1;
+      let lives = 3;
+      let paused = false;
+      let gameOver = false;
+      let beatTimer = 0;
+      let ufoSpawnTimer = 520;
+      let banner = { text: "SECTOR 1 — CLEAR THE ASTEROID FIELD", timer: 140, color: "#00ffcc" };
+
+      const keys = {
+        left: false,
+        right: false,
+        up: false,
+        fire: false,
+        shield: false
+      };
+
+      const ship = {
+        x: W / 2,
+        y: H / 2,
+        vx: 0,
+        vy: 0,
+        angle: -Math.PI / 2,
+        r: 15,
+        invuln: 120,
+        shieldEnergy: 100,
+        shieldActive: false,
+        fireCooldown: 0,
+        warpCooldown: 0,
+        weaponType: "STANDARD", // STANDARD | TWIN SPREAD | RAPID PULSE | REAR TAILGUN
+        weaponTimer: 0
+      };
+
+      const asteroids = [];
+      const bullets = [];
+      const ufoBullets = [];
+      const ufos = [];
+      const powerOrbs = [];
+      const shatterSegments = [];
+
+      function wrapCoord(obj, pad = 20) {
+        if (obj.x < -pad) obj.x = W + pad;
+        if (obj.x > W + pad) obj.x = -pad;
+        if (obj.y < -pad) obj.y = H + pad;
+        if (obj.y > H + pad) obj.y = -pad;
+      }
+
+      function createJaggedAsteroid(x, y, size) {
+        const radius = size === 3 ? 46 : size === 2 ? 26 : 14;
+        const vertices = size === 3 ? 11 : size === 2 ? 9 : 8;
+        const offsets = [];
+        for (let i = 0; i < vertices; i++) {
+          offsets.push(0.72 + Math.random() * 0.48);
+        }
+        const speedBase = (4 - size) * (1.15 + Math.min(1.5, wave * 0.12));
+        const a = Math.random() * Math.PI * 2;
+        return {
+          x,
+          y,
+          vx: Math.cos(a) * speedBase * (0.75 + Math.random() * 0.5),
+          vy: Math.sin(a) * speedBase * (0.75 + Math.random() * 0.5),
+          r: radius,
+          size,
+          angle: Math.random() * Math.PI * 2,
+          rotSpeed: (Math.random() - 0.5) * 0.045,
+          offsets,
+          color: size === 3 ? "#00ffcc" : size === 2 ? "#00aaff" : "#ff007f"
+        };
+      }
+
+      function spawnVectorShatter(x, y, r, color, count = 8) {
+        for (let i = 0; i < count; i++) {
+          const a = (i / count) * Math.PI * 2 + Math.random() * 0.4;
+          const sp = 1.2 + Math.random() * 3.4;
+          shatterSegments.push({
+            x: x + Math.cos(a) * (r * 0.4),
+            y: y + Math.sin(a) * (r * 0.4),
+            vx: Math.cos(a) * sp,
+            vy: Math.sin(a) * sp,
+            angle: a + Math.PI / 2,
+            rot: (Math.random() - 0.5) * 0.12,
+            len: 6 + Math.random() * (r * 0.45),
+            color,
+            alpha: 1
+          });
+        }
+      }
+
+      function spawnWave(waveNum) {
+        asteroids.length = 0;
+        const count = Math.min(10, 3 + waveNum);
+        for (let i = 0; i < count; i++) {
+          let ax = Math.random() * W;
+          let ay = Math.random() * H;
+          while (Math.hypot(ax - ship.x, ay - ship.y) < 170) {
+            ax = Math.random() * W;
+            ay = Math.random() * H;
+          }
+          asteroids.push(createJaggedAsteroid(ax, ay, 3));
+        }
+        banner = {
+          text: `SECTOR WAVE ${waveNum} — ${count} LARGE ASTEROIDS DETECTED`,
+          timer: 140,
+          color: "#00ffcc"
+        };
+        updateHUD();
+      }
+
+      function spawnUFO() {
+        const isSmall = Math.random() < (0.28 + Math.min(0.45, wave * 0.06));
+        const fromLeft = Math.random() < 0.5;
+        ufos.push({
+          x: fromLeft ? -25 : W + 25,
+          y: 70 + Math.random() * (H - 140),
+          vx: (fromLeft ? 1 : -1) * (isSmall ? 3.1 : 2.1),
+          vy: (Math.random() - 0.5) * 1.4,
+          r: isSmall ? 15 : 24,
+          small: isSmall,
+          fireTimer: 65,
+          dirTimer: 90,
+          sirenTimer: 0
+        });
+        banner = {
+          text: isSmall ? "⚠️ SMALL HUNTER-SEEKER UFO INBOUND!" : "🛸 LARGE SAUCER DETECTED IN SECTOR!",
+          timer: 110,
+          color: "#ffbe0b"
+        };
+      }
+
+      function addScore(pts) {
+        const prevTenK = Math.floor(score / 10000);
+        score += pts;
+        if (Math.floor(score / 10000) > prevTenK && lives < 5) {
+          lives++;
+          synth.powerup();
+          banner = { text: "⭐ EXTRA VECTOR INTERCEPTOR AWARDED! ⭐", timer: 140, color: "#ffbe0b" };
+        }
+        if (score > highScore) {
+          highScore = score;
+          saveHighScore(highScore);
+        }
+        updateHUD();
+      }
+
+      function updateHUD() {
+        document.getElementById("hudScore").textContent = score.toLocaleString();
+        document.getElementById("hudHigh").textContent = highScore.toLocaleString();
+        document.getElementById("hudWave").textContent = String(wave);
+        document.getElementById("hudLives").textContent = "▲".repeat(Math.max(0, lives)) || "0";
+        document.getElementById("hudWeapon").textContent = ship.weaponTimer > 0 ? ship.weaponType : "STANDARD";
+
+        const pct = Math.round(ship.shieldEnergy);
+        document.getElementById("shieldFill").style.width = `${pct}%`;
+        document.getElementById("shieldPct").textContent = `${pct}%`;
+      }
+
+      function firePlasma() {
+        if (ship.fireCooldown > 0 || paused || gameOver) return;
+        const isRapid = ship.weaponTimer > 0 && ship.weaponType === "RAPID PULSE";
+        ship.fireCooldown = isRapid ? 6 : 12;
+
+        const noseX = ship.x + Math.cos(ship.angle) * 18;
+        const noseY = ship.y + Math.sin(ship.angle) * 18;
+        const bSpeed = 10.5;
+
+        const pushBullet = (ang, color = "#ffbe0b") => {
+          bullets.push({
+            x: noseX,
+            y: noseY,
+            vx: ship.vx * 0.25 + Math.cos(ang) * bSpeed,
+            vy: ship.vy * 0.25 + Math.sin(ang) * bSpeed,
+            life: 54,
+            color
+          });
+        };
+
+        pushBullet(ship.angle, "#ffbe0b");
+
+        if (ship.weaponTimer > 0) {
+          if (ship.weaponType === "TWIN SPREAD") {
+            pushBullet(ship.angle - 0.18, "#00ffcc");
+            pushBullet(ship.angle + 0.18, "#00ffcc");
+          } else if (ship.weaponType === "REAR TAILGUN") {
+            pushBullet(ship.angle + Math.PI, "#ff007f");
+          }
+        }
+        synth.laser();
+      }
+
+      function triggerHyperspace() {
+        if (ship.warpCooldown > 0 || paused || gameOver) return;
+        ship.warpCooldown = 75;
+        window.GameMasterFX?.burst?.(ship.x, ship.y, "#00ffcc", 24);
+        ship.x = 80 + Math.random() * (W - 160);
+        ship.y = 80 + Math.random() * (H - 160);
+        ship.vx = 0;
+        ship.vy = 0;
+        ship.invuln = 45;
+        synth.warp();
+        window.GameMasterFX?.burst?.(ship.x, ship.y, "#ff007f", 24);
+        banner = { text: "🌀 HYPERSPACE QUANTUM JUMP COMPLETE", timer: 90, color: "#00ffcc" };
+      }
+
+      function destroyAsteroid(index) {
+        const ast = asteroids[index];
+        asteroids.splice(index, 1);
+
+        const pts = ast.size === 3 ? 20 : ast.size === 2 ? 50 : 100;
+        addScore(pts);
+        synth.explode(ast.size);
+        spawnVectorShatter(ast.x, ast.y, ast.r, ast.color, ast.size * 4);
+        window.GameMasterFX?.burst?.(ast.x, ast.y, ast.color, ast.size * 8);
+        if (ast.size === 3) window.GameMasterFX?.triggerShake?.(6);
+
+        if (ast.size > 1) {
+          asteroids.push(createJaggedAsteroid(ast.x, ast.y, ast.size - 1));
+          asteroids.push(createJaggedAsteroid(ast.x, ast.y, ast.size - 1));
+        }
+      }
+
+      function destroyUFO(index) {
+        const u = ufos[index];
+        ufos.splice(index, 1);
+        addScore(u.small ? 1000 : 200);
+        synth.explode(3);
+        spawnVectorShatter(u.x, u.y, u.r, "#ffbe0b", 12);
+        window.GameMasterFX?.burst?.(u.x, u.y, "#ffbe0b", 28);
+        window.GameMasterFX?.triggerShake?.(7);
+
+        // Drop a Weapon Power-Up Orb!
+        const types = ["TWIN SPREAD", "RAPID PULSE", "REAR TAILGUN"];
+        const chosen = types[Math.floor(Math.random() * types.length)];
+        powerOrbs.push({
+          x: u.x,
+          y: u.y,
+          vx: (Math.random() - 0.5) * 1.6,
+          vy: (Math.random() - 0.5) * 1.6,
+          r: 13,
+          type: chosen,
+          life: 480
+        });
+      }
+
+      function damagePlayer() {
+        if (ship.invuln > 0 || ship.shieldActive) return;
+        synth.explode(3);
+        spawnVectorShatter(ship.x, ship.y, 24, "#00ffcc", 14);
+        window.GameMasterFX?.burst?.(ship.x, ship.y, "#ff2a55", 32);
+        window.GameMasterFX?.triggerShake?.(10);
+        lives--;
+        if (lives <= 0) {
+          gameOver = true;
+          banner = { text: "SHIP DESTROYED — PRESS R OR NEW GAME", timer: 9999, color: "#ff2a55" };
+        } else {
+          ship.x = W / 2;
+          ship.y = H / 2;
+          ship.vx = 0;
+          ship.vy = 0;
+          ship.angle = -Math.PI / 2;
+          ship.invuln = 150;
+          ship.shieldEnergy = 100;
+        }
+        updateHUD();
+      }
+
+      function resetGame() {
+        score = 0;
+        wave = 1;
+        lives = 3;
+        paused = false;
+        gameOver = false;
+        ship.x = W / 2;
+        ship.y = H / 2;
+        ship.vx = 0;
+        ship.vy = 0;
+        ship.angle = -Math.PI / 2;
+        ship.invuln = 120;
+        ship.shieldEnergy = 100;
+        ship.weaponType = "STANDARD";
+        ship.weaponTimer = 0;
+        bullets.length = 0;
+        ufoBullets.length = 0;
+        ufos.length = 0;
+        powerOrbs.length = 0;
+        shatterSegments.length = 0;
+        ufoSpawnTimer = 450;
+        spawnWave(1);
+      }
+
+      function update() {
+        if (paused || gameOver) return;
+
+        // Heartbeat tempo accelerates as fewer asteroids remain
+        beatTimer--;
+        if (beatTimer <= 0) {
+          synth.heartbeat();
+          beatTimer = Math.max(14, Math.min(48, 12 + asteroids.length * 4));
+        }
+
+        // Ship rotation & Newtonian thrust
+        if (keys.left) ship.angle -= 0.068;
+        if (keys.right) ship.angle += 0.068;
+        if (keys.up) {
+          ship.vx += Math.cos(ship.angle) * 0.16;
+          ship.vy += Math.sin(ship.angle) * 0.16;
+          // Emit thruster trail particles
+          const tx = ship.x - Math.cos(ship.angle) * 14;
+          const ty = ship.y - Math.sin(ship.angle) * 14;
+          fxParticles.push({
+            x: tx + (Math.random() - 0.5) * 4,
+            y: ty + (Math.random() - 0.5) * 4,
+            vx: -Math.cos(ship.angle) * (2 + Math.random() * 2) + ship.vx * 0.3,
+            vy: -Math.sin(ship.angle) * (2 + Math.random() * 2) + ship.vy * 0.3,
+            r: 2 + Math.random() * 2,
+            color: Math.random() < 0.5 ? "#00ffcc" : "#ff007f",
+            alpha: 0.9,
+            decay: 0.05
+          });
+        }
+
+        // Slight space drag & speed cap
+        ship.vx *= 0.992;
+        ship.vy *= 0.992;
+        const spd = Math.hypot(ship.vx, ship.vy);
+        if (spd > 7.5) {
+          ship.vx = (ship.vx / spd) * 7.5;
+          ship.vy = (ship.vy / spd) * 7.5;
+        }
+        ship.x += ship.vx;
+        ship.y += ship.vy;
+        wrapCoord(ship, 18);
+
+        if (ship.invuln > 0) ship.invuln--;
+        if (ship.fireCooldown > 0) ship.fireCooldown--;
+        if (ship.warpCooldown > 0) ship.warpCooldown--;
+        if (ship.weaponTimer > 0) {
+          ship.weaponTimer--;
+          if (ship.weaponTimer === 0) {
+            ship.weaponType = "STANDARD";
+            updateHUD();
+          }
+        }
+
+        // Rechargeable Energy Shield
+        if (keys.shield && ship.shieldEnergy > 2) {
+          ship.shieldActive = true;
+          ship.shieldEnergy = Math.max(0, ship.shieldEnergy - 0.45);
+          if (ship.shieldEnergy === 0) ship.shieldActive = false;
+        } else {
+          ship.shieldActive = false;
+          ship.shieldEnergy = Math.min(100, ship.shieldEnergy + 0.16);
+        }
+        if (Math.random() < 0.25) updateHUD();
+
+        if (keys.fire) firePlasma();
+
+        // Update player bullets
+        for (let i = bullets.length - 1; i >= 0; i--) {
+          const b = bullets[i];
+          b.x += b.vx;
+          b.y += b.vy;
+          wrapCoord(b, 4);
+          b.life--;
+          if (b.life <= 0) bullets.splice(i, 1);
+        }
+
+        // Update UFO bullets
+        for (let i = ufoBullets.length - 1; i >= 0; i--) {
+          const ub = ufoBullets[i];
+          ub.x += ub.vx;
+          ub.y += ub.vy;
+          wrapCoord(ub, 4);
+          ub.life--;
+          if (ub.life <= 0) {
+            ufoBullets.splice(i, 1);
+            continue;
+          }
+          if (Math.hypot(ub.x - ship.x, ub.y - ship.y) < ship.r + 4) {
+            ufoBullets.splice(i, 1);
+            if (ship.shieldActive) {
+              window.GameMasterFX?.burst?.(ship.x, ship.y, "#00aaff", 12);
+            } else {
+              damagePlayer();
+            }
+          }
+        }
+
+        // Spawn & Update UFOs
+        ufoSpawnTimer--;
+        if (ufoSpawnTimer <= 0 && ufos.length === 0) {
+          spawnUFO();
+          ufoSpawnTimer = Math.max(420, 780 - wave * 35);
+        }
+
+        for (let i = ufos.length - 1; i >= 0; i--) {
+          const u = ufos[i];
+          u.x += u.vx;
+          u.y += u.vy;
+          if (u.y < 40 || u.y > H - 40) u.vy *= -1;
+
+          u.dirTimer--;
+          if (u.dirTimer <= 0) {
+            u.vy = (Math.random() - 0.5) * 2.2;
+            u.dirTimer = 70 + Math.floor(Math.random() * 60);
+          }
+
+          u.sirenTimer--;
+          if (u.sirenTimer <= 0) {
+            synth.ufoSiren();
+            u.sirenTimer = 28;
+          }
+
+          u.fireTimer--;
+          if (u.fireTimer <= 0) {
+            u.fireTimer = u.small ? 52 : 78;
+            const aimAngle = u.small
+              ? Math.atan2(ship.y - u.y, ship.x - u.x) + (Math.random() - 0.5) * 0.18
+              : Math.random() * Math.PI * 2;
+            ufoBullets.push({
+              x: u.x,
+              y: u.y,
+              vx: Math.cos(aimAngle) * 5.6,
+              vy: Math.sin(aimAngle) * 5.6,
+              life: 75
+            });
+          }
+
+          // Remove UFO if it exits far off-screen horizontally
+          if (u.x < -55 || u.x > W + 55) {
+            ufos.splice(i, 1);
+            continue;
+          }
+
+          // Check player bullets vs UFO
+          let ufoHit = false;
+          for (let bi = bullets.length - 1; bi >= 0; bi--) {
+            const b = bullets[bi];
+            if (Math.hypot(b.x - u.x, b.y - u.y) < u.r + 4) {
+              bullets.splice(bi, 1);
+              destroyUFO(i);
+              ufoHit = true;
+              break;
+            }
+          }
+          if (ufoHit) continue;
+
+          // Check ship vs UFO
+          if (Math.hypot(ship.x - u.x, ship.y - u.y) < ship.r + u.r) {
+            destroyUFO(i);
+            if (!ship.shieldActive) damagePlayer();
+          }
+        }
+
+        // Update Power-Up Orbs
+        for (let i = powerOrbs.length - 1; i >= 0; i--) {
+          const orb = powerOrbs[i];
+          orb.x += orb.vx;
+          orb.y += orb.vy;
+          wrapCoord(orb, 10);
+          orb.life--;
+          if (orb.life <= 0) {
+            powerOrbs.splice(i, 1);
+            continue;
+          }
+          if (Math.hypot(ship.x - orb.x, ship.y - orb.y) < ship.r + orb.r) {
+            ship.weaponType = orb.type;
+            ship.weaponTimer = 720; // 12 seconds
+            ship.shieldEnergy = 100;
+            synth.powerup();
+            addScore(500);
+            banner = { text: `⚡ WEAPON ORB ACQUIRED: ${orb.type}! ⚡`, timer: 130, color: "#ffbe0b" };
+            window.GameMasterFX?.burst?.(orb.x, orb.y, "#ffbe0b", 22);
+            powerOrbs.splice(i, 1);
+            updateHUD();
+          }
+        }
+
+        // Update Asteroids & Collisions
+        for (let i = asteroids.length - 1; i >= 0; i--) {
+          const ast = asteroids[i];
+          ast.x += ast.vx;
+          ast.y += ast.vy;
+          ast.angle += ast.rotSpeed;
+          wrapCoord(ast, ast.r);
+
+          // Bullet vs Asteroid
+          let hit = false;
+          for (let bi = bullets.length - 1; bi >= 0; bi--) {
+            const b = bullets[bi];
+            if (Math.hypot(b.x - ast.x, b.y - ast.y) < ast.r + 3) {
+              bullets.splice(bi, 1);
+              destroyAsteroid(i);
+              hit = true;
+              break;
+            }
+          }
+          if (hit) continue;
+
+          // Ship vs Asteroid
+          if (Math.hypot(ship.x - ast.x, ship.y - ast.y) < ship.r + ast.r - 4) {
+            if (ship.shieldActive) {
+              // Bounce asteroid away & shatter if small
+              const nx = (ast.x - ship.x) / Math.max(1, Math.hypot(ast.x - ship.x, ast.y - ship.y));
+              const ny = (ast.y - ship.y) / Math.max(1, Math.hypot(ast.x - ship.x, ast.y - ship.y));
+              ast.vx = nx * 4.5;
+              ast.vy = ny * 4.5;
+              window.GameMasterFX?.burst?.(ship.x + nx * ship.r, ship.y + ny * ship.r, "#00aaff", 14);
+            } else {
+              destroyAsteroid(i);
+              damagePlayer();
+            }
+          }
+        }
+
+        // Check wave clear
+        if (asteroids.length === 0 && ufos.length === 0) {
+          wave++;
+          ship.shieldEnergy = 100;
+          synth.powerup();
+          spawnWave(wave);
+        }
+
+        // Update shatter segments
+        for (let i = shatterSegments.length - 1; i >= 0; i--) {
+          const seg = shatterSegments[i];
+          seg.x += seg.vx;
+          seg.y += seg.vy;
+          seg.angle += seg.rot;
+          seg.alpha -= 0.022;
+          if (seg.alpha <= 0) shatterSegments.splice(i, 1);
+        }
+
+        // Update FX particles
+        for (let i = fxParticles.length - 1; i >= 0; i--) {
+          const p = fxParticles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.alpha -= p.decay;
+          if (p.alpha <= 0) fxParticles.splice(i, 1);
+        }
+
+        // Screen shake
+        const sc = document.getElementById("shakeContainer");
+        if (shakeTimer > 0) {
+          shakeTimer--;
+          const dx = (Math.random() - 0.5) * shakeIntensity;
+          const dy = (Math.random() - 0.5) * shakeIntensity;
+          sc.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`;
+          if (shakeTimer === 0) {
+            shakeIntensity = 0;
+            sc.style.transform = "";
+          }
+        }
+      }
+
+      function render() {
+        ctx.clearRect(0, 0, W, H);
+
+        // Starfield
+        for (const s of stars) {
+          s.phase += 0.03;
+          const a = 0.25 + Math.sin(s.phase) * 0.2;
+          ctx.fillStyle = `rgba(180, 230, 255, ${a.toFixed(2)})`;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Draw Jagged Vector Asteroids
+        for (const ast of asteroids) {
+          ctx.save();
+          ctx.translate(ast.x, ast.y);
+          ctx.rotate(ast.angle);
+          ctx.beginPath();
+          const n = ast.offsets.length;
+          for (let i = 0; i < n; i++) {
+            const ang = (i / n) * Math.PI * 2;
+            const rad = ast.r * ast.offsets[i];
+            const px = Math.cos(ang) * rad;
+            const py = Math.sin(ang) * rad;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.strokeStyle = ast.color;
+          ctx.lineWidth = 2.4;
+          ctx.shadowColor = ast.color;
+          ctx.shadowBlur = 12;
+          ctx.stroke();
+          ctx.fillStyle = "rgba(0, 255, 204, 0.04)";
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Draw Hunter-Seeker UFO Saucers
+        for (const u of ufos) {
+          ctx.save();
+          ctx.translate(u.x, u.y);
+          ctx.strokeStyle = u.small ? "#ff007f" : "#ffbe0b";
+          ctx.lineWidth = 2.4;
+          ctx.shadowColor = u.small ? "#ff007f" : "#ffbe0b";
+          ctx.shadowBlur = 14;
+
+          const r = u.r;
+          ctx.beginPath();
+          ctx.moveTo(-r, 0);
+          ctx.lineTo(-r * 0.5, -r * 0.45);
+          ctx.lineTo(r * 0.5, -r * 0.45);
+          ctx.lineTo(r, 0);
+          ctx.lineTo(r * 0.5, r * 0.45);
+          ctx.lineTo(-r * 0.5, r * 0.45);
+          ctx.closePath();
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(-r, 0);
+          ctx.lineTo(r, 0);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(0, -r * 0.45, r * 0.35, Math.PI, 0);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Draw Weapon Power-Up Orbs
+        for (const orb of powerOrbs) {
+          ctx.save();
+          ctx.translate(orb.x, orb.y);
+          ctx.beginPath();
+          ctx.arc(0, 0, orb.r, 0, Math.PI * 2);
+          ctx.strokeStyle = "#ffbe0b";
+          ctx.lineWidth = 2.2;
+          ctx.shadowColor = "#ffbe0b";
+          ctx.shadowBlur = 14;
+          ctx.stroke();
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "800 9px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("ORB", 0, 0);
+          ctx.restore();
+        }
+
+        // Draw Player Ship
+        if (!gameOver && (ship.invuln === 0 || Math.floor(ship.invuln / 4) % 2 === 0)) {
+          ctx.save();
+          ctx.translate(ship.x, ship.y);
+          ctx.rotate(ship.angle);
+
+          // Thrust flame cone
+          if (keys.up) {
+            ctx.beginPath();
+            ctx.moveTo(-11, -6);
+            ctx.lineTo(-24 - Math.random() * 10, 0);
+            ctx.lineTo(-11, 6);
+            ctx.strokeStyle = "#ff007f";
+            ctx.lineWidth = 2.2;
+            ctx.shadowColor = "#ff007f";
+            ctx.shadowBlur = 12;
+            ctx.stroke();
+          }
+
+          // Vector Ship Hull
+          ctx.beginPath();
+          ctx.moveTo(19, 0);
+          ctx.lineTo(-14, -12);
+          ctx.lineTo(-9, 0);
+          ctx.lineTo(-14, 12);
+          ctx.closePath();
+          ctx.strokeStyle = "#00ffcc";
+          ctx.lineWidth = 2.6;
+          ctx.shadowColor = "#00ffcc";
+          ctx.shadowBlur = 14;
+          ctx.stroke();
+
+          // Rechargeable Energy Shield Bubble
+          if (ship.shieldActive) {
+            ctx.beginPath();
+            ctx.arc(0, 0, ship.r + 8, 0, Math.PI * 2);
+            ctx.strokeStyle = "#00aaff";
+            ctx.lineWidth = 2.5;
+            ctx.shadowColor = "#00aaff";
+            ctx.shadowBlur = 18;
+            ctx.stroke();
+            ctx.fillStyle = "rgba(0, 170, 255, 0.14)";
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+
+        // Draw Player Bullets
+        for (const b of bullets) {
+          ctx.save();
+          ctx.fillStyle = b.color;
+          ctx.shadowColor = b.color;
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Draw UFO Bullets
+        for (const ub of ufoBullets) {
+          ctx.save();
+          ctx.fillStyle = "#ff2a55";
+          ctx.shadowColor = "#ff2a55";
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          ctx.arc(ub.x, ub.y, 3.6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Draw Vector Line-Segment Shatters
+        for (const seg of shatterSegments) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, seg.alpha);
+          ctx.translate(seg.x, seg.y);
+          ctx.rotate(seg.angle);
+          ctx.strokeStyle = seg.color;
+          ctx.lineWidth = 2;
+          ctx.shadowColor = seg.color;
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.moveTo(-seg.len / 2, 0);
+          ctx.lineTo(seg.len / 2, 0);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Draw FX Particles
+        for (const p of fxParticles) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.alpha);
+          ctx.fillStyle = p.color;
+          ctx.shadowColor = p.color;
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Top Banner
+        if (banner.timer > 0) {
+          banner.timer--;
+          ctx.save();
+          ctx.fillStyle = "rgba(4, 8, 22, 0.85)";
+          ctx.strokeStyle = banner.color;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.roundRect(W / 2 - 230, 16, 460, 30, 8);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = banner.color;
+          ctx.font = "800 12px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(banner.text, W / 2, 31);
+          ctx.restore();
+        }
+
+        if (paused || gameOver) {
+          ctx.save();
+          ctx.fillStyle = "rgba(2, 3, 10, 0.78)";
+          ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = gameOver ? "#ff2a55" : "#00ffcc";
+          ctx.font = "900 32px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(gameOver ? "INTERCEPTOR LOST" : "SECTOR PAUSED", W / 2, H / 2 - 16);
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "700 14px Orbitron, sans-serif";
+          ctx.fillText(
+            gameOver
+              ? `FINAL SCORE: ${score.toLocaleString()} • PRESS R OR NEW GAME`
+              : "PRESS P OR PAUSE BUTTON TO RESUME",
+            W / 2,
+            H / 2 + 20
+          );
+          ctx.restore();
+        }
+      }
+
+      // Keyboard listeners
+      window.addEventListener("keydown", e => {
+        const k = e.key.toLowerCase();
+        if (e.key === "ArrowLeft" || k === "a") { e.preventDefault(); keys.left = true; }
+        else if (e.key === "ArrowRight" || k === "d") { e.preventDefault(); keys.right = true; }
+        else if (e.key === "ArrowUp" || k === "w") { e.preventDefault(); keys.up = true; }
+        else if (e.key === " ") { e.preventDefault(); keys.fire = true; firePlasma(); }
+        else if (e.key === "Shift" || k === "s") { e.preventDefault(); keys.shield = true; }
+        else if (k === "h" || k === "e") { e.preventDefault(); triggerHyperspace(); }
+        else if (k === "p") { paused = !paused; }
+        else if (k === "r") { resetGame(); }
+        else if (k === "m") {
+          synth.muted = !synth.muted;
+          document.getElementById("btnMute").textContent = synth.muted ? "🔇 Muted" : "🔊 SFX";
+        } else if (k === "?" || e.key === "F1") {
+          e.preventDefault();
+          document.getElementById("helpModal").classList.toggle("open");
+        }
+      });
+
+      window.addEventListener("keyup", e => {
+        const k = e.key.toLowerCase();
+        if (e.key === "ArrowLeft" || k === "a") keys.left = false;
+        else if (e.key === "ArrowRight" || k === "d") keys.right = false;
+        else if (e.key === "ArrowUp" || k === "w") keys.up = false;
+        else if (e.key === " ") keys.fire = false;
+        else if (e.key === "Shift" || k === "s") keys.shield = false;
+      });
+
+      // Mouse aiming & firing on canvas
+      canvas.addEventListener("mousemove", e => {
+        if (paused || gameOver) return;
+        const rect = canvas.getBoundingClientRect();
+        const mx = ((e.clientX - rect.left) / rect.width) * W;
+        const my = ((e.clientY - rect.top) / rect.height) * H;
+        if (e.buttons === 1) {
+          ship.angle = Math.atan2(my - ship.y, mx - ship.x);
+        }
+      });
+
+      canvas.addEventListener("mousedown", e => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = ((e.clientX - rect.left) / rect.width) * W;
+        const my = ((e.clientY - rect.top) / rect.height) * H;
+        ship.angle = Math.atan2(my - ship.y, mx - ship.x);
+        firePlasma();
+      });
+
+      const bindHold = (id, keyName) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener("mousedown", () => { keys[keyName] = true; });
+        el.addEventListener("mouseup", () => { keys[keyName] = false; });
+        el.addEventListener("mouseleave", () => { keys[keyName] = false; });
+        el.addEventListener("touchstart", e => { e.preventDefault(); keys[keyName] = true; });
+        el.addEventListener("touchend", e => { e.preventDefault(); keys[keyName] = false; });
+      };
+
+      bindHold("btnRotL", "left");
+      bindHold("btnRotR", "right");
+      bindHold("btnThrust", "up");
+      bindHold("btnFire", "fire");
+      bindHold("btnShield", "shield");
+      document.getElementById("btnWarp").addEventListener("click", triggerHyperspace);
+
+      document.getElementById("btnNewGame").addEventListener("click", resetGame);
+      document.getElementById("btnPause").addEventListener("click", () => { paused = !paused; });
+      document.getElementById("btnMute").addEventListener("click", () => {
+        synth.muted = !synth.muted;
+        document.getElementById("btnMute").textContent = synth.muted ? "🔇 Muted" : "🔊 SFX";
+      });
+      document.getElementById("btnHelp").addEventListener("click", () => {
+        document.getElementById("helpModal").classList.add("open");
+      });
+      document.getElementById("btnCloseHelp").addEventListener("click", () => {
+        document.getElementById("helpModal").classList.remove("open");
+      });
+
+      resetGame();
+
+      function loop() {
+        update();
+        render();
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

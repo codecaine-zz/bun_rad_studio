@@ -1,0 +1,2266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine Mr. Game Show Royale: TV Studio Mega-Pack</title>
+  <style>
+    :root {
+      --bg-deep: #070614;
+      --bg-panel: rgba(15, 13, 34, 0.92);
+      --border-gold: rgba(250, 204, 21, 0.38);
+      --border-cyan: rgba(56, 189, 248, 0.35);
+      --gold: #facc15;
+      --amber: #f59e0b;
+      --cyan: #38bdf8;
+      --pink: #f43f5e;
+      --emerald: #22c55e;
+      --purple: #a855f7;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #090718 65%, #04030c 100%);
+      color: var(--text);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Header */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 14px;
+      background: linear-gradient(180deg, rgba(23, 19, 52, 0.96), rgba(11, 9, 28, 0.96));
+      border-bottom: 1px solid var(--border-gold);
+      flex-wrap: wrap;
+    }
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #facc15, #f97316, #ec4899);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 21px;
+      box-shadow: 0 0 18px rgba(250, 204, 21, 0.45);
+    }
+    .brand-title {
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      background: linear-gradient(90deg, #fef08a, #facc15, #38bdf8, #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-sub {
+      font-size: 10.5px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    .kpi-strip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .kpi-box {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(250, 204, 21, 0.32);
+      border-radius: 8px;
+      padding: 4px 10px;
+      text-align: center;
+      min-width: 92px;
+    }
+    .kpi-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .kpi-val {
+      font-size: 14px;
+      font-weight: 900;
+      color: var(--gold);
+      font-variant-numeric: tabular-nums;
+    }
+    .kpi-val.cyan { color: var(--cyan); }
+    .kpi-val.emerald { color: var(--emerald); }
+    .kpi-val.pink { color: var(--pink); }
+
+    .ctrl-strip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    select, .btn {
+      background: rgba(30, 27, 75, 0.9);
+      color: var(--text);
+      border: 1px solid var(--border-gold);
+      border-radius: 8px;
+      padding: 6px 11px;
+      font-size: 11.5px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn:hover, select:hover {
+      border-color: #fde047;
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.35);
+      transform: translateY(-1px);
+    }
+    .btn.gold {
+      background: linear-gradient(135deg, #facc15, #ea580c);
+      color: #090718;
+      border-color: #fef08a;
+    }
+    .btn.cyan {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      border-color: #38bdf8;
+    }
+    .btn.pink {
+      background: linear-gradient(135deg, #e11d48, #9333ea);
+      border-color: #fda4af;
+    }
+
+    /* Mode Pill Ribbon */
+    .mode-ribbon {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(9, 7, 24, 0.92);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.22);
+      overflow-x: auto;
+    }
+    .mode-pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      background: rgba(30, 27, 75, 0.65);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      color: #cbd5e1;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .mode-pill.active {
+      background: linear-gradient(135deg, #facc15, #f59e0b);
+      color: #090718;
+      border-color: #fef08a;
+      box-shadow: 0 0 14px rgba(250, 204, 21, 0.45);
+    }
+
+    /* Main 3-Column Primetime Studio Layout */
+    .studio-grid {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 255px 1fr 275px;
+      gap: 10px;
+      padding: 10px 12px;
+    }
+    .side-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+      overflow-y: auto;
+    }
+    .card {
+      background: var(--bg-panel);
+      border: 1px solid rgba(250, 204, 21, 0.25);
+      border-radius: 12px;
+      padding: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    }
+    .card-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10.5px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+
+    /* Contestant Podium Cards */
+    .podium-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 9px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      margin-bottom: 6px;
+    }
+    .podium-card.active-turn {
+      border-color: var(--gold);
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.28);
+      background: rgba(250, 204, 21, 0.1);
+    }
+    .podium-name {
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .podium-sub {
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .podium-cash {
+      font-size: 14px;
+      font-weight: 900;
+      color: var(--emerald);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Center Stage & Interactive Deck */
+    .center-stage {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+    }
+    .canvas-wrap {
+      flex: 1;
+      min-height: 320px;
+      position: relative;
+      background: #050411;
+      border: 2px solid rgba(250, 204, 21, 0.42);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 0 32px rgba(250, 204, 21, 0.15), inset 0 0 40px rgba(56, 189, 248, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #stageCanvas {
+      width: 100%;
+      height: 100%;
+      max-height: max(360px, calc(100vh - 210px));
+      display: block;
+      cursor: pointer;
+    }
+
+    /* Bottom Interactive Control Deck (Letters / Answers / Lifelines) */
+    .action-deck {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-cyan);
+      border-radius: 12px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .letter-grid {
+      display: grid;
+      grid-template-columns: repeat(13, 1fr);
+      gap: 4px;
+    }
+    .letter-btn {
+      padding: 5px 0;
+      border-radius: 6px;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      background: rgba(15, 23, 42, 0.9);
+      color: #f8fafc;
+      font-size: 11.5px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .letter-btn.vowel {
+      border-color: rgba(250, 204, 21, 0.5);
+      color: #fef08a;
+    }
+    .letter-btn.in-puzzle:not(:disabled) {
+      border-color: #22c55e;
+      background: linear-gradient(180deg, rgba(22, 163, 74, 0.38), rgba(15, 23, 42, 0.95));
+      color: #86efac;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.45);
+    }
+    .letter-btn:hover:not(:disabled) {
+      background: var(--cyan);
+      color: #04030c;
+      transform: scale(1.06);
+    }
+    .letter-btn:disabled {
+      opacity: 0.25;
+      cursor: default;
+    }
+
+    .quick-options {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .choice-btn {
+      flex: 1;
+      min-width: 130px;
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 27, 75, 0.95));
+      color: #f8fafc;
+      font-size: 11.5px;
+      font-weight: 800;
+      text-align: left;
+      cursor: pointer;
+    }
+    .choice-btn:hover {
+      border-color: var(--gold);
+      background: rgba(250, 204, 21, 0.18);
+    }
+
+    .lifeline-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .lifeline-btn {
+      padding: 7px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(168, 85, 247, 0.45);
+      background: rgba(88, 28, 135, 0.35);
+      color: #f3e8ff;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      text-align: center;
+    }
+    .lifeline-btn:hover:not(:disabled) {
+      border-color: var(--gold);
+      background: rgba(168, 85, 247, 0.6);
+    }
+    .lifeline-btn:disabled {
+      opacity: 0.32;
+      cursor: default;
+    }
+
+    .log-list {
+      font-size: 11px;
+      color: #cbd5e1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    .log-item {
+      padding: 4px 6px;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.65);
+      border-left: 3px solid var(--gold);
+    }
+
+    @media (max-width: 1024px) {
+      .studio-grid {
+        grid-template-columns: 1fr;
+        overflow-y: auto;
+      }
+      .side-col { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Top Broadcast Header -->
+  <header class="top-bar">
+    <div class="brand-wrap">
+      <div class="brand-badge">🎩</div>
+      <div>
+        <div class="brand-title">CODECAINE MR. GAME SHOW ROYALE: TV STUDIO MEGA-PACK</div>
+        <div class="brand-sub">8-IN-1 PRIMETIME BROADCAST • WHEEL • NO WHAMMIES • SURVEY FEUD • JEOPARDY • PLINKO • DEAL CASES</div>
+      </div>
+    </div>
+
+    <div class="kpi-strip">
+      <div class="kpi-box">
+        <div class="kpi-label">💵 YOUR BANK</div>
+        <div class="kpi-val emerald" id="kpiBank">$14,850</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-label">🏆 CAREER WINNINGS</div>
+        <div class="kpi-val" id="kpiCareer">$128,400</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-label">🎡 ROUND / SPINS</div>
+        <div class="kpi-val cyan" id="kpiRound">RND 1 • 3 SPINS</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-label">🔥 STUDIO APPLAUSE</div>
+        <div class="kpi-val pink" id="kpiApplause">98% HYPE</div>
+      </div>
+    </div>
+
+    <div class="ctrl-strip">
+      <select id="showModeSelect" aria-label="Select TV Game Show Mode">
+        <option value="wheel_phrase">1. 🎡 Wheel of Fortune &amp; Phrase Board</option>
+        <option value="press_luck">2. 👹 Press Your Luck: No Whammies!</option>
+        <option value="survey_feud">3. 📋 Cyber-Feud: Survey Says Top 6!</option>
+        <option value="jeopardy_grid">4. 🧠 Cyber-Jeopardy! 5×5 Grid</option>
+        <option value="plinko_price">5. 🪙 Price Is Right: Plinko $50K Drop</option>
+        <option value="deal_cases">6. 💼 Deal or No Deal: 20 Briefcases</option>
+        <option value="millionaire">7. 💎 Millionaire 15-Rung Ladder</option>
+        <option value="grand_finale">8. 👑 Mr. Game Show 4-Round Episode</option>
+      </select>
+      <button class="btn gold" id="btnPrimaryAction">🎡 SPIN WHEEL [SPACE]</button>
+      <button class="btn cyan" id="btnHostHint">💡 AI HINT [H]</button>
+      <button class="btn pink" id="btnNewRound">🎲 NEW PUZZLE [G]</button>
+      <button class="btn" id="btnAudioToggle">🔊 TV SYNTH: ON [M]</button>
+    </div>
+  </header>
+
+  <!-- 8-Mode Pill Bar -->
+  <nav class="mode-ribbon" id="showModeRibbon">
+    <button class="mode-pill active" data-mode="wheel_phrase">1. 🎡 Wheel &amp; Phrase</button>
+    <button class="mode-pill" data-mode="press_luck">2. 👹 No Whammies Board</button>
+    <button class="mode-pill" data-mode="survey_feud">3. 📋 Survey Says Feud</button>
+    <button class="mode-pill" data-mode="jeopardy_grid">4. 🧠 Cyber-Jeopardy 5×5</button>
+    <button class="mode-pill" data-mode="plinko_price">5. 🪙 Plinko $50K Drop</button>
+    <button class="mode-pill" data-mode="deal_cases">6. 💼 Deal Briefcases</button>
+    <button class="mode-pill" data-mode="millionaire">7. 💎 Millionaire Ladder</button>
+    <button class="mode-pill" data-mode="grand_finale">8. 👑 4-Round TV Episode</button>
+  </nav>
+
+  <!-- Main 3-Column Studio -->
+  <main class="studio-grid">
+    <!-- Left Column: Contestant Podiums & Studio Lifelines -->
+    <aside class="side-col">
+      <div class="card">
+        <div class="card-hdr">
+          <span>🎙️ CONTESTANT PODIUMS</span>
+          <span style="color:var(--cyan);">LIVE</span>
+        </div>
+        <div class="podium-card active-turn" id="podium0">
+          <div>
+            <div class="podium-name">🌟 YOU (CHALLENGER)</div>
+            <div class="podium-sub" id="podium0Sub">Active Turn • Free Spin ×1</div>
+          </div>
+          <div class="podium-cash" id="podium0Cash">$14,850</div>
+        </div>
+        <div class="podium-card" id="podium1">
+          <div>
+            <div class="podium-name">🤖 LEXI-9000 (AI PRO)</div>
+            <div class="podium-sub" id="podium1Sub">Vowel Tactician • 0 Whammies</div>
+          </div>
+          <div class="podium-cash" id="podium1Cash">$8,200</div>
+        </div>
+        <div class="podium-card" id="podium2">
+          <div>
+            <div class="podium-name">🎰 MAX-VEGAS (AI VIP)</div>
+            <div class="podium-sub" id="podium2Sub">High-Risk Spinner • 1 Whammy</div>
+          </div>
+          <div class="podium-cash" id="podium2Cash">$6,500</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr">
+          <span>🛟 STUDIO LIFELINES &amp; PERKS</span>
+          <span>4 READY</span>
+        </div>
+        <div class="lifeline-grid">
+          <button class="lifeline-btn" id="btnLife5050">✂️ 50:50 Split</button>
+          <button class="lifeline-btn" id="btnLifeAudience">📊 Poll Audience</button>
+          <button class="lifeline-btn" id="btnLifePhone">📞 Phone AI Pro</button>
+          <button class="lifeline-btn" id="btnLifeShield">🛡️ Whammy Shield</button>
+        </div>
+      </div>
+
+      <div class="card" style="flex:1;">
+        <div class="card-hdr">
+          <span>🎩 MR. CAINE-SHOW TELEPROMPTER</span>
+          <span>ON AIR</span>
+        </div>
+        <div id="hostSpeechBox" style="font-size:12px; line-height:1.45; color:#fef08a; background:rgba(250,204,21,0.08); border:1px solid rgba(250,204,21,0.3); border-radius:8px; padding:9px;">
+          "Welcome back to PRIMETIME! The $10,000 Golden Wedge is glittering on the wheel—press [SPACE] to spin, pick a consonant, or press [H] for a studio hint!"
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center Stage Canvas + Interactive Letter/Answer Deck -->
+    <section class="center-stage">
+      <div class="canvas-wrap">
+        <canvas id="stageCanvas" width="900" height="500"></canvas>
+      </div>
+
+      <div class="action-deck">
+        <div class="letter-grid" id="letterKeyboard"></div>
+        <div class="quick-options" id="dynamicButtonRow"></div>
+      </div>
+    </section>
+
+    <!-- Right Column: Show Rules, Banker/Wheel Telemetry & Broadcast Log -->
+    <aside class="side-col">
+      <div class="card">
+        <div class="card-hdr">
+          <span>📺 ACTIVE SHOW TELEMETRY</span>
+          <span id="telemetryBadge" style="color:var(--emerald);">WHEEL &amp; PHRASE</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px; font-size:11.5px;">
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--muted);">Current Wedge / Slot:</span>
+            <strong id="statWedge" style="color:var(--gold);">$2,500 CASH</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--muted);">Category / Clue:</span>
+            <strong id="statCategory" style="color:var(--cyan);">CYBERPUNK LEGENDS</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--muted);">Banker / Jackpot Offer:</span>
+            <strong id="statOffer" style="color:var(--emerald);">$25,000 BONUS</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--muted);">Whammy / Strike Count:</span>
+            <strong id="statStrikes" style="color:var(--pink);">0 / 3 SAFE</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr">
+          <span>🎮 STUDIO HOTKEYS</span>
+          <span>60 FPS</span>
+        </div>
+        <div style="font-size:11px; color:#cbd5e1; line-height:1.55;">
+          <div><strong style="color:var(--gold);">[SPACE]</strong> Spin Wheel / Stop Big Board / Drop Plinko</div>
+          <div><strong style="color:var(--cyan);">[A–Z]</strong> Guess Consonant or Buy Vowel ($250)</div>
+          <div><strong style="color:var(--emerald);">[ENTER]</strong> Auto-Solve Phrase / Accept Deal</div>
+          <div><strong style="color:var(--pink);">[H]</strong> Mr. Caine-Show AI Hint • <strong>[G]</strong> New Round</div>
+          <div><strong style="color:var(--gold);">[1–8]</strong> Instant Switch TV Game Show</div>
+        </div>
+      </div>
+
+      <div class="card" style="flex:1;">
+        <div class="card-hdr">
+          <span>📡 LIVE STUDIO BROADCAST LOG</span>
+          <span>CH 77</span>
+        </div>
+        <div class="log-list" id="broadcastLog"></div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    (function () {
+      // Safe LocalStorage Guard
+      function safeGetStorage(key, fallback) {
+        try {
+          const v = window.localStorage.getItem(key);
+          return v !== null ? v : fallback;
+        } catch (_) {
+          return fallback;
+        }
+      }
+      function safeSetStorage(key, val) {
+        try {
+          window.localStorage.setItem(key, String(val));
+        } catch (_) {}
+      }
+
+      // Primetime TV WebAudio Synthesizer
+      const ShowAudio = {
+        ctx: null,
+        enabled: true,
+        init() {
+          if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) this.ctx = new AC();
+          }
+          if (this.ctx && this.ctx.state === "suspended") {
+            this.ctx.resume().catch(() => {});
+          }
+        },
+        tone(freq, dur = 0.1, type = "triangle", gainVal = 0.12) {
+          if (!this.enabled) return;
+          try {
+            this.init();
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+            g.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+            osc.connect(g);
+            g.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + dur);
+          } catch (_) {}
+        },
+        tick() { this.tone(920, 0.035, "square", 0.08); },
+        ding() {
+          this.tone(880, 0.12, "sine", 0.15);
+          setTimeout(() => this.tone(1320, 0.22, "triangle", 0.15), 80);
+        },
+        buzzer() {
+          this.tone(135, 0.35, "sawtooth", 0.18);
+          this.tone(98, 0.35, "sawtooth", 0.18);
+        },
+        fanfare() {
+          [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+            setTimeout(() => this.tone(f, 0.22, "triangle", 0.16), i * 95);
+          });
+        }
+      };
+
+      const canvas = document.getElementById("stageCanvas");
+      const ctx = canvas.getContext("2d");
+
+      // 24-Wedge Wheel of Fortune Definitions
+      const WHEEL_WEDGES = [
+        { label: "$2,500", val: 2500, color: "#facc15", text: "#090718" },
+        { label: "$600", val: 600, color: "#38bdf8", text: "#090718" },
+        { label: "$900", val: 900, color: "#f43f5e", text: "#ffffff" },
+        { label: "$700", val: 700, color: "#22c55e", text: "#090718" },
+        { label: "BANKRUPT", val: -1, color: "#090d16", text: "#f43f5e" },
+        { label: "$10,000", val: 10000, color: "#a855f7", text: "#fef08a" },
+        { label: "$500", val: 500, color: "#06b6d4", text: "#090718" },
+        { label: "$850", val: 850, color: "#f97316", text: "#090718" },
+        { label: "FREE SPIN", val: 1000, color: "#10b981", text: "#ffffff" },
+        { label: "$1,500", val: 1500, color: "#eab308", text: "#090718" },
+        { label: "$650", val: 650, color: "#ec4899", text: "#ffffff" },
+        { label: "$5,000", val: 5000, color: "#fde047", text: "#090718" }
+      ];
+
+      // Phrase Puzzles for Wheel Mode
+      const PHRASE_VAULT = [
+        { category: "CYBERPUNK LEGENDS", phrase: "NEURAL NETWORK OVERDRIVE", hint: "High-speed AI brain boost" },
+        { category: "ARCADE CLASSICS", phrase: "NO WHAMMIES BIG BUCKS", hint: "Famous Press Your Luck catchphrase" },
+        { category: "SILICON VALLEY", phrase: "APPLE SILICON METAL ENGINE", hint: "M4 hardware graphics pipeline" },
+        { category: "MILLION DOLLAR SHOW", phrase: "WHEEL OF FORTUNE JACKPOT", hint: "Spinning for the grand prize" },
+        { category: "KERNEL FOLKLORE", phrase: "SUDO MAKE ME A SANDWICH", hint: "Classic root privilege xkcd joke" }
+      ];
+
+      // Survey Feud Questions
+      const FEUD_SURVEYS = [
+        {
+          prompt: "Name something a developer blames when their code breaks in production:",
+          answers: [
+            { text: "DNS / NETWORK CACHE", pts: 34, revealed: true },
+            { text: "MERGE CONFLICT / GIT", pts: 24, revealed: true },
+            { text: "LEGACY CODE / INTERN", pts: 17, revealed: false },
+            { text: "COSMIC RAYS / HARDWARE", pts: 11, revealed: false },
+            { text: "MISSING SEMICOLON", pts: 8, revealed: false },
+            { text: "SOLAR FLARES", pts: 6, revealed: false }
+          ]
+        },
+        {
+          prompt: "Name the most iconic round or prop on a classic TV Game Show:",
+          answers: [
+            { text: "GIANT SPINNING CASH WHEEL", pts: 38, revealed: true },
+            { text: "PLINKO PEGBOARD DROP", pts: 25, revealed: false },
+            { text: "NO WHAMMIES BIG BOARD", pts: 16, revealed: false },
+            { text: "DAILY DOUBLE WAGER", pts: 10, revealed: false },
+            { text: "GOLDEN BRIEFCASES", pts: 6, revealed: false },
+            { text: "SURVEY SAYS FLIPBOARD", pts: 5, revealed: false }
+          ]
+        }
+      ];
+
+      // Press Your Luck 18-Square Perimeter Board
+      const BIG_BOARD_SQUARES = [
+        { label: "$2,500 + SPIN", val: 2500, whammy: false, color: "#facc15" },
+        { label: "👹 WHAMMY!", val: 0, whammy: true, color: "#f43f5e" },
+        { label: "$5,000 BUCKS!", val: 5000, whammy: false, color: "#38bdf8" },
+        { label: "$1,250 CASH", val: 1250, whammy: false, color: "#22c55e" },
+        { label: "DOUBLE BANK 2×", val: 99999, whammy: false, color: "#a855f7" },
+        { label: "👹 WHAMMY!", val: 0, whammy: true, color: "#f43f5e" },
+        { label: "$4,000 + SPIN", val: 4000, whammy: false, color: "#f97316" },
+        { label: "$10,000 MEGA!", val: 10000, whammy: false, color: "#fde047" },
+        { label: "$1,500 CASH", val: 1500, whammy: false, color: "#06b6d4" },
+        { label: "👹 WHAMMY!", val: 0, whammy: true, color: "#f43f5e" },
+        { label: "$3,000 + SPIN", val: 3000, whammy: false, color: "#10b981" },
+        { label: "$7,500 JACKPOT", val: 7500, whammy: false, color: "#ec4899" },
+        { label: "$2,000 CASH", val: 2000, whammy: false, color: "#38bdf8" },
+        { label: "👹 WHAMMY!", val: 0, whammy: true, color: "#f43f5e" },
+        { label: "$6,000 + SPIN", val: 6000, whammy: false, color: "#facc15" },
+        { label: "$1,800 CASH", val: 1800, whammy: false, color: "#22c55e" }
+      ];
+
+      // Millionaire Questions
+      const MILLIONAIRE_LADDER = [
+        "$100", "$200", "$300", "$500", "$1,000",
+        "$2,000", "$4,000", "$8,000", "$16,000", "$32,000",
+        "$64,000", "$125,000", "$250,000", "$500,000", "$1,000,000"
+      ];
+      const MILLIONAIRE_QUESTIONS = [
+        {
+          q: "In classic TV game show history, which Plinko slot value sits directly in the dead center of the bottom tray?",
+          opts: ["A: $1,000", "B: $5,000", "C: $10,000", "D: $50,000"],
+          correct: 2
+        },
+        {
+          q: "What mischievous red cartoon creature steals your entire cash bank on the game show 'Press Your Luck'?",
+          opts: ["A: The Gremlin", "B: The Whammy", "C: The Zonk", "D: The Banker"],
+          correct: 1
+        },
+        {
+          q: "In 'Wheel of Fortune', how much does it traditionally cost to buy a single vowel?",
+          opts: ["A: $100", "B: $250", "C: $500", "D: $1,000"],
+          correct: 1
+        }
+      ];
+
+      // Core Game State
+      const state = {
+        mode: "wheel_phrase",
+        bank: 14850,
+        career: Number(safeGetStorage("codecaine_gameshow_career", 128400)) || 128400,
+        ai1Bank: 8200,
+        ai2Bank: 6500,
+        round: 1,
+        spinsLeft: 3,
+        strikes: 0,
+        whammyShield: false,
+        tick: 0,
+
+        // Mode 1: Wheel & Phrase
+        wheelAngle: 0.35,
+        wheelVel: 0,
+        activeWedgeIdx: 0,
+        phraseIdx: 0,
+        guessedLetters: new Set(["N", "E", "R", "L", "O", "V"]),
+
+        // Mode 2: Press Your Luck Big Board
+        boardActiveIdx: 0,
+        boardRunning: true,
+        whammyAnimTimer: 0,
+
+        // Mode 3: Survey Feud
+        feudIdx: 0,
+
+        // Mode 4: Jeopardy 5x5
+        jeopardyCleared: new Set(["0-0", "1-1", "2-0", "3-2"]),
+        activeClue: { cat: "TV LEGENDS", val: 800, q: "This iconic pricing game drops flat circular discs down a pegged pyramid toward a $10,000 center slot.", a: "What is Plinko?" },
+
+        // Mode 5: Plinko
+        plinkoDiscs: [
+          { x: 450, y: 185, vx: 1.4, vy: 2.1, active: true }
+        ],
+        plinkoDropCol: 4,
+
+        // Mode 6: Deal Briefcases
+        playerCase: 7,
+        openedCases: new Set([2, 5, 11, 14, 18]),
+        bankerOffer: 142500,
+
+        // Mode 7: Millionaire
+        ladderIdx: 9, // $32,000
+        millQuestionIdx: 0,
+        hiddenOpts: new Set(),
+        audienceBars: [8, 12, 74, 6],
+
+        // Interactive Canvas Hit Regions & Trivia Modal
+        hitRegions: [],
+        jeopardyModal: null,
+
+        // Particles & Floating Popups
+        particles: [],
+        callouts: []
+      };
+
+      function registerHit(x, y, w, h, action, label) {
+        state.hitRegions.push({ x, y, w, h, action, label: label || "" });
+      }
+
+      function addLog(msg) {
+        const list = document.getElementById("broadcastLog");
+        if (!list) return;
+        const item = document.createElement("div");
+        item.className = "log-item";
+        item.textContent = msg;
+        list.prepend(item);
+        while (list.children.length > 14) list.removeChild(list.lastChild);
+      }
+
+      function setHostSpeech(text) {
+        const box = document.getElementById("hostSpeechBox");
+        if (box) box.textContent = `"${text}"`;
+      }
+
+      function spawnBurst(x, y, color = "#facc15", count = 22) {
+        for (let i = 0; i < count; i++) {
+          const a = (Math.PI * 2 * i) / count + Math.random() * 0.3;
+          const sp = 2 + Math.random() * 5.5;
+          state.particles.push({
+            x, y,
+            vx: Math.cos(a) * sp,
+            vy: Math.sin(a) * sp - 1.2,
+            color,
+            life: 1
+          });
+        }
+      }
+
+      function spawnCallout(x, y, text, color = "#fef08a") {
+        state.callouts.push({ x, y, text, color, life: 1 });
+      }
+
+      function awardCash(amount, reason) {
+        state.bank += amount;
+        state.career += Math.max(0, amount);
+        safeSetStorage("codecaine_gameshow_career", state.career);
+        ShowAudio.ding();
+        spawnBurst(450, 240, "#facc15", 26);
+        spawnCallout(450, 200, `+$${amount.toLocaleString()} (${reason})!`, "#4ade80");
+        addLog(`💵 +$${amount.toLocaleString()} — ${reason}`);
+        updateHud();
+      }
+
+      function updateHud() {
+        document.getElementById("kpiBank").textContent = `$${state.bank.toLocaleString()}`;
+        document.getElementById("kpiCareer").textContent = `$${state.career.toLocaleString()}`;
+        document.getElementById("kpiRound").textContent = `RND ${state.round} • ${state.spinsLeft} SPINS`;
+        document.getElementById("podium0Cash").textContent = `$${state.bank.toLocaleString()}`;
+        document.getElementById("podium1Cash").textContent = `$${state.ai1Bank.toLocaleString()}`;
+        document.getElementById("podium2Cash").textContent = `$${state.ai2Bank.toLocaleString()}`;
+
+        const w = WHEEL_WEDGES[state.activeWedgeIdx] || WHEEL_WEDGES[0];
+        document.getElementById("statWedge").textContent = w.label;
+        const puzzle = PHRASE_VAULT[state.phraseIdx % PHRASE_VAULT.length];
+        document.getElementById("statCategory").textContent = puzzle.category;
+        document.getElementById("statOffer").textContent = `$${state.bankerOffer.toLocaleString()}`;
+        document.getElementById("statStrikes").textContent = `${state.strikes} / 3 ${state.whammyShield ? "🛡️ SHIELDED" : "SAFE"}`;
+
+        const btn = document.getElementById("btnPrimaryAction");
+        if (state.mode === "wheel_phrase") btn.textContent = "🎡 SPIN WHEEL [SPACE]";
+        else if (state.mode === "press_luck") btn.textContent = state.boardRunning ? "🛑 STOP BIG BOARD! [SPACE]" : "⚡ START BOARD [SPACE]";
+        else if (state.mode === "survey_feud") btn.textContent = "🔔 FLIP TOP SURVEY [SPACE]";
+        else if (state.mode === "jeopardy_grid") btn.textContent = "⚡ BUZZ IN & ANSWER [SPACE]";
+        else if (state.mode === "plinko_price") btn.textContent = "🪙 DROP PLINKO CHIP [SPACE]";
+        else if (state.mode === "deal_cases") btn.textContent = "🤝 TAKE BANKER DEAL [SPACE]";
+        else if (state.mode === "millionaire") btn.textContent = "💎 LOCK FINAL ANSWER [SPACE]";
+        else btn.textContent = "👑 ADVANCE EPISODE ROUND [SPACE]";
+      }
+
+      // Build A-Z Keyboard & Mode Action Buttons
+      function renderControlDeck() {
+        const kb = document.getElementById("letterKeyboard");
+        const dyn = document.getElementById("dynamicButtonRow");
+        kb.innerHTML = "";
+        dyn.innerHTML = "";
+
+        const puzzle = PHRASE_VAULT[state.phraseIdx % PHRASE_VAULT.length];
+        const puzzleChars = new Set(puzzle.phrase.replace(/\s+/g, "").split(""));
+        const vowels = new Set(["A", "E", "I", "O", "U"]);
+        for (let i = 0; i < 26; i++) {
+          const ch = String.fromCharCode(65 + i);
+          const b = document.createElement("button");
+          const inPuz = puzzleChars.has(ch) && !state.guessedLetters.has(ch);
+          b.className = "letter-btn" + (vowels.has(ch) ? " vowel" : "") + (inPuz ? " in-puzzle" : "");
+          b.textContent = inPuz ? `${ch}★` : ch;
+          b.title = inPuz ? `✨ '${ch}' is in this puzzle! Click to reveal!` : `Guess letter '${ch}'`;
+          b.disabled = state.guessedLetters.has(ch) && (state.mode === "wheel_phrase" || state.mode === "grand_finale");
+          b.onclick = () => handleLetterGuess(ch);
+          kb.appendChild(b);
+        }
+
+        if (state.mode === "wheel_phrase" || state.mode === "grand_finale") {
+          const revealBtn = document.createElement("button");
+          revealBtn.className = "choice-btn";
+          revealBtn.textContent = "💡 REVEAL NEXT LETTER (+CASH)";
+          revealBtn.onclick = () => document.getElementById("btnHostHint").click();
+          dyn.appendChild(revealBtn);
+
+          const solveBtn = document.createElement("button");
+          solveBtn.className = "choice-btn";
+          solveBtn.textContent = "✨ INSTANT SOLVE PHRASE (+$5,000 BONUS)";
+          solveBtn.onclick = () => solveCurrentPhrase();
+          dyn.appendChild(solveBtn);
+
+          const spinBtn = document.createElement("button");
+          spinBtn.className = "choice-btn";
+          spinBtn.textContent = "🎡 SPIN 24-WEDGE CASH WHEEL [SPACE]";
+          spinBtn.onclick = () => triggerPrimaryAction();
+          dyn.appendChild(spinBtn);
+        } else if (state.mode === "survey_feud") {
+          const survey = FEUD_SURVEYS[state.feudIdx % FEUD_SURVEYS.length];
+          survey.answers.forEach((ans, idx) => {
+            const b = document.createElement("button");
+            b.className = "choice-btn";
+            b.textContent = ans.revealed ? `✅ #${idx + 1}: ${ans.text} (${ans.pts})` : `🔔 Flip Survey #${idx + 1} (${ans.pts} PTS)`;
+            b.onclick = () => {
+              if (!ans.revealed) {
+                ans.revealed = true;
+                awardCash(ans.pts * 100, `Survey #${idx + 1}: ${ans.text}`);
+                setHostSpeech(`SURVEY SAYS... ${ans.text} for ${ans.pts} points!`);
+                renderControlDeck();
+              }
+            };
+            dyn.appendChild(b);
+          });
+        } else if (state.mode === "millionaire") {
+          const mq = MILLIONAIRE_QUESTIONS[state.millQuestionIdx % MILLIONAIRE_QUESTIONS.length];
+          mq.opts.forEach((opt, idx) => {
+            const b = document.createElement("button");
+            b.className = "choice-btn";
+            const isBest = idx === mq.correct;
+            b.textContent = state.hiddenOpts.has(idx) ? "— [50:50 REMOVED] —" : (isBest ? `${opt} ★ AUDIENCE TOP PICK` : opt);
+            b.disabled = state.hiddenOpts.has(idx);
+            b.onclick = () => answerMillionaire(idx);
+            dyn.appendChild(b);
+          });
+        } else if (state.mode === "deal_cases") {
+          const dealBtn = document.createElement("button");
+          dealBtn.className = "choice-btn";
+          dealBtn.textContent = `🤝 DEAL! Accept Banker Offer ($${state.bankerOffer.toLocaleString()})`;
+          dealBtn.onclick = () => {
+            awardCash(state.bankerOffer, "Accepted Banker Deal");
+            setHostSpeech(`SOLD! You locked in $${state.bankerOffer.toLocaleString()} from The Banker!`);
+          };
+          const noDealBtn = document.createElement("button");
+          noDealBtn.className = "choice-btn";
+          noDealBtn.textContent = "💼 NO DEAL! Open Next Golden Briefcase";
+          noDealBtn.onclick = () => openNextBriefcase();
+          dyn.appendChild(dealBtn);
+          dyn.appendChild(noDealBtn);
+        } else if (state.mode === "plinko_price") {
+          for (let slot = 1; slot <= 7; slot++) {
+            const b = document.createElement("button");
+            b.className = "choice-btn";
+            b.style.minWidth = "85px";
+            b.textContent = slot === 4 ? `🎯 Center Slot 4` : `🪙 Drop Slot ${slot}`;
+            b.onclick = () => dropPlinkoFromSlot(slot, 1);
+            dyn.appendChild(b);
+          }
+          const burstBtn = document.createElement("button");
+          burstBtn.className = "choice-btn";
+          burstBtn.textContent = "🔥 5× GOLDEN CHIP BURST!";
+          burstBtn.onclick = () => dropPlinkoFromSlot(4, 5);
+          dyn.appendChild(burstBtn);
+        } else if (state.mode === "jeopardy_grid") {
+          const buzzBtn = document.createElement("button");
+          buzzBtn.className = "choice-btn";
+          buzzBtn.textContent = `⚡ BUZZ IN: "${state.activeClue.a}" (+$${state.activeClue.val})`;
+          buzzBtn.onclick = () => triggerPrimaryAction();
+          dyn.appendChild(buzzBtn);
+        }
+      }
+
+      function handleLetterGuess(ch) {
+        if (state.mode !== "wheel_phrase" && state.mode !== "grand_finale") {
+          triggerPrimaryAction();
+          return;
+        }
+        if (state.guessedLetters.has(ch)) return;
+        const vowels = new Set(["A", "E", "I", "O", "U"]);
+        state.guessedLetters.add(ch);
+        const puzzle = PHRASE_VAULT[state.phraseIdx % PHRASE_VAULT.length];
+        let hits = 0;
+        for (const c of puzzle.phrase) {
+          if (c === ch) hits++;
+        }
+        if (hits > 0) {
+          const w = WHEEL_WEDGES[state.activeWedgeIdx] || WHEEL_WEDGES[0];
+          const cashPer = Math.max(600, w.val > 0 ? w.val : 1000);
+          const total = vowels.has(ch) ? hits * 500 : hits * cashPer;
+          awardCash(total, `${hits}× Letter '${ch}'`);
+          setHostSpeech(`YES! There ${hits === 1 ? "is 1" : "are " + hits} '${ch}'${hits > 1 ? "s" : ""} on the board!`);
+          const allRevealed = puzzle.phrase.split("").every(c => c === " " || state.guessedLetters.has(c));
+          if (allRevealed) solveCurrentPhrase();
+        } else {
+          state.strikes = Math.min(3, state.strikes + 1);
+          ShowAudio.buzzer();
+          setHostSpeech(`No '${ch}' in the puzzle — tip: click any glowing green ★ letter or click a yellow ★ tile directly on the board!`);
+        }
+        renderControlDeck();
+        updateHud();
+      }
+
+      function solveCurrentPhrase() {
+        const puzzle = PHRASE_VAULT[state.phraseIdx % PHRASE_VAULT.length];
+        for (const c of puzzle.phrase) {
+          if (c !== " ") state.guessedLetters.add(c);
+        }
+        ShowAudio.fanfare();
+        awardCash(5000, `Solved "${puzzle.phrase}"`);
+        setHostSpeech(`CONGRATULATIONS! "${puzzle.phrase}" — $5,000 Solve Bonus is yours! Click [NEW PUZZLE] or spin again!`);
+        renderControlDeck();
+      }
+
+      function dropPlinkoFromSlot(slotIdx, count = 1) {
+        for (let k = 0; k < count; k++) {
+          const startX = 280 + slotIdx * 48 + (Math.random() - 0.5) * 18;
+          state.plinkoDiscs.push({
+            x: startX,
+            y: 88 - k * 16,
+            vx: (Math.random() - 0.5) * 2.1,
+            vy: 1.2 + k * 0.2,
+            active: true
+          });
+        }
+        ShowAudio.tick();
+        setHostSpeech(count > 1 ? `🔥 5-CHIP GOLDEN PLINKO BURST RELEASED!` : `Plinko chip released from Slot #${slotIdx}! Click anywhere on the Plinko board to drop more!`);
+      }
+
+      function openBriefcaseByNumber(c) {
+        if (c === state.playerCase) {
+          awardCash(250000, `Opened Your Golden Case #${c}`);
+          setHostSpeech(`🎉 YOUR GOLDEN CASE #${c} HELD $250,000! MEGA PAYDAY!`);
+          return;
+        }
+        if (state.openedCases.has(c)) return;
+        state.openedCases.add(c);
+        const caseVal = [1, 5, 10, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 75000, 100000, 200000, 300000, 500000, 750000, 1000000][(c * 7) % 20];
+        state.bankerOffer = Math.round(45000 + state.openedCases.size * 22500);
+        ShowAudio.ding();
+        spawnCallout(450, 230, `Case #${c}: $${caseVal.toLocaleString()}`, "#38bdf8");
+        setHostSpeech(`Briefcase #${c} contained $${caseVal.toLocaleString()}! The Banker raises his offer to $${state.bankerOffer.toLocaleString()}!`);
+        renderControlDeck();
+        updateHud();
+      }
+
+      function openNextBriefcase() {
+        for (let c = 1; c <= 20; c++) {
+          if (c !== state.playerCase && !state.openedCases.has(c)) {
+            openBriefcaseByNumber(c);
+            return;
+          }
+        }
+        state.openedCases.clear();
+        openBriefcaseByNumber(1);
+      }
+
+      function answerMillionaire(idx) {
+        const mq = MILLIONAIRE_QUESTIONS[state.millQuestionIdx % MILLIONAIRE_QUESTIONS.length];
+        if (idx === mq.correct) {
+          state.ladderIdx = Math.min(14, state.ladderIdx + 1);
+          const prize = (state.ladderIdx + 1) * 5000;
+          ShowAudio.fanfare();
+          awardCash(prize, `Millionaire Rung ${MILLIONAIRE_LADDER[state.ladderIdx]}`);
+          state.millQuestionIdx++;
+          state.hiddenOpts.clear();
+          setHostSpeech(`FINAL ANSWER IS CORRECT! You've climbed to ${MILLIONAIRE_LADDER[state.ladderIdx]}!`);
+          renderControlDeck();
+        } else {
+          ShowAudio.buzzer();
+          setHostSpeech("Oh no! That wasn't the right option—try another choice or use 50:50!");
+        }
+      }
+
+      function triggerPrimaryAction() {
+        if (state.mode === "wheel_phrase") {
+          state.wheelVel = 0.28 + Math.random() * 0.18;
+          ShowAudio.tick();
+          setHostSpeech("Big money, big money... No Bankrupts! Watch the Golden Pointer!");
+        } else if (state.mode === "press_luck") {
+          state.boardRunning = !state.boardRunning;
+          if (!state.boardRunning) {
+            const sq = BIG_BOARD_SQUARES[state.boardActiveIdx % BIG_BOARD_SQUARES.length];
+            if (sq.whammy) {
+              if (state.whammyShield) {
+                state.whammyShield = false;
+                ShowAudio.ding();
+                setHostSpeech("🛡️ WHAMMY SHIELD SAVED YOUR BANK! The Cyber-Whammy bounced right off!");
+              } else {
+                state.whammyAnimTimer = 90;
+                state.strikes = Math.min(3, state.strikes + 1);
+                state.bank = Math.floor(state.bank * 0.5);
+                ShowAudio.buzzer();
+                setHostSpeech("👹 HALT! YOU HIT A CYBER-WHAMMY! Press [SPACE] to restart the Big Board!");
+              }
+            } else {
+              const gain = sq.val === 99999 ? state.bank : sq.val;
+              awardCash(gain, `Big Board: ${sq.label}`);
+              setHostSpeech(`STOPPED AT ${sq.label}! Big Bucks added to your podium!`);
+            }
+          }
+          updateHud();
+        } else if (state.mode === "survey_feud") {
+          const survey = FEUD_SURVEYS[state.feudIdx % FEUD_SURVEYS.length];
+          const next = survey.answers.find(a => !a.revealed);
+          if (next) {
+            next.revealed = true;
+            awardCash(next.pts * 100, `Survey Says: ${next.text}`);
+            setHostSpeech(`SURVEY SAYS: "${next.text}" (${next.pts} pts)!`);
+            renderControlDeck();
+          } else {
+            state.feudIdx++;
+            FEUD_SURVEYS[state.feudIdx % FEUD_SURVEYS.length].answers.forEach((a, i) => { a.revealed = i === 0; });
+            renderControlDeck();
+          }
+        } else if (state.mode === "jeopardy_grid") {
+          awardCash(state.activeClue.val, `Daily Double: ${state.activeClue.a}`);
+          setHostSpeech(`Correct! "${state.activeClue.a}" for +$${state.activeClue.val}! Click any tile on the 5×5 board!`);
+        } else if (state.mode === "plinko_price") {
+          dropPlinkoFromSlot(randSlot());
+        } else if (state.mode === "deal_cases") {
+          openNextBriefcase();
+        } else if (state.mode === "millionaire") {
+          const mq = MILLIONAIRE_QUESTIONS[state.millQuestionIdx % MILLIONAIRE_QUESTIONS.length];
+          answerMillionaire(mq.correct);
+        } else {
+          // Grand Finale Episode cycle
+          const seq = ["survey_feud", "wheel_phrase", "press_luck", "plinko_price"];
+          state.round = (state.round % 4) + 1;
+          switchMode(seq[state.round - 1]);
+        }
+      }
+
+      function randSlot() {
+        return Math.floor(Math.random() * 7) + 1;
+      }
+
+      function switchMode(newMode) {
+        state.mode = newMode;
+        state.jeopardyModal = null;
+        document.getElementById("showModeSelect").value = newMode;
+        document.querySelectorAll(".mode-pill").forEach(btn => {
+          btn.classList.toggle("active", btn.dataset.mode === newMode);
+        });
+        document.getElementById("telemetryBadge").textContent = newMode.replace("_", " ").toUpperCase();
+        renderControlDeck();
+        updateHud();
+      }
+
+      // Draw 3D Studio Backdrop, Perspective Neon Floor, LED Light Towers & Audience
+      function drawStudioBackdropAndFloor() {
+        const w = canvas.width;
+        const h = canvas.height;
+        const bg = ctx.createLinearGradient(0, 0, 0, h);
+        bg.addColorStop(0, "#171142");
+        bg.addColorStop(0.56, "#09071d");
+        bg.addColorStop(1, "#04030c");
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, w, h);
+
+        // Animated Left & Right LED Broadcast Light Towers
+        for (let side = 0; side < 2; side++) {
+          const lx = side === 0 ? 8 : w - 22;
+          for (let bulb = 0; bulb < 12; bulb++) {
+            const ly = 34 + bulb * 36;
+            const pulse = 0.45 + 0.55 * Math.sin(state.tick * 0.1 + bulb * 0.6 + side * 2);
+            ctx.fillStyle = bulb % 2 === 0 ? `rgba(250, 204, 21, ${pulse})` : `rgba(56, 189, 248, ${pulse})`;
+            ctx.beginPath();
+            ctx.roundRect(lx, ly, 14, 20, 4);
+            ctx.fill();
+          }
+        }
+
+        // 3D Perspective Stage Floor (y = 335..500)
+        const floorGrad = ctx.createLinearGradient(0, 335, 0, h);
+        floorGrad.addColorStop(0, "rgba(30, 27, 75, 0.85)");
+        floorGrad.addColorStop(1, "rgba(5, 4, 16, 0.98)");
+        ctx.fillStyle = floorGrad;
+        ctx.fillRect(0, 335, w, h - 335);
+
+        // Glowing Horizon Line & Perspective Grid
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.35)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(0, 335);
+        ctx.lineTo(w, 335);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(168, 85, 247, 0.22)";
+        ctx.lineWidth = 1;
+        for (let gx = -200; gx <= w + 200; gx += 90) {
+          ctx.beginPath();
+          ctx.moveTo(w / 2 + (gx - w / 2) * 0.35, 335);
+          ctx.lineTo(gx, h);
+          ctx.stroke();
+        }
+        // Concentric Neon Stage Rings
+        for (let r = 1; r <= 3; r++) {
+          ctx.strokeStyle = r === 2 ? "rgba(250, 204, 21, 0.28)" : "rgba(56, 189, 248, 0.2)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.ellipse(w / 2, 425, 130 * r, 22 * r, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Sweeping Studio Spotlights
+        for (let s = 0; s < 3; s++) {
+          const sx = 180 + s * 270;
+          const sway = Math.sin(state.tick * 0.025 + s * 2) * 110;
+          const grad = ctx.createLinearGradient(sx, 0, sx + sway, h);
+          grad.addColorStop(0, s % 2 === 0 ? "rgba(56, 189, 248, 0.12)" : "rgba(250, 204, 21, 0.12)");
+          grad.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.moveTo(sx - 20, 0);
+          ctx.lineTo(sx + 20, 0);
+          ctx.lineTo(sx + sway + 120, h);
+          ctx.lineTo(sx + sway - 120, h);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        // Top Interactive Action Prompt Ribbon on Canvas
+        const promptMap = {
+          wheel_phrase: "🎯 EASY PLAY: CLICK THE WHEEL TO SPIN, OR CLICK ANY YELLOW ★ TILE / GREEN ★ LETTER TO REVEAL!",
+          press_luck: "🎯 EASY PLAY: CLICK ANYWHERE OR PRESS [SPACE] TO STOP THE FLASHING BIG BOARD FOR BIG BUCKS!",
+          survey_feud: "🎯 EASY PLAY: CLICK ANY GOLDEN SURVEY BOX (#1–#6) DIRECTLY ON STAGE TO FLIP & SCORE!",
+          jeopardy_grid: "🎯 EASY PLAY: CLICK ANY $200–$1000 CLUE TILE ON THE 5×5 GRID TO OPEN & ANSWER!",
+          plinko_price: "🎯 EASY PLAY: CLICK ANY DROP SLOT AT THE TOP OF THE PLINKO BOARD TO DROP GOLDEN CHIPS!",
+          deal_cases: "🎯 EASY PLAY: CLICK ANY GOLDEN BRIEFCASE (#1–#20) TO OPEN IT, OR CLICK 'TAKE DEAL'!",
+          millionaire: "🎯 EASY PLAY: CLICK ANY ANSWER POD (A, B, C, D) DIRECTLY ON STAGE TO CLIMB TO $1,000,000!",
+          grand_finale: "🎯 4-ROUND TV FINALE: SPIN THE WHEEL, REVEAL ★ TILES, OR CLICK [ADVANCE EPISODE]!"
+        };
+        ctx.save();
+        ctx.fillStyle = "rgba(9, 13, 28, 0.88)";
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.55)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(32, 4, w - 64, 22, 11);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#fef08a";
+        ctx.font = "900 10.5px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(promptMap[state.mode] || promptMap.wheel_phrase, w / 2, 18);
+        ctx.restore();
+      }
+
+      // Draw 3D Host Mr. Caine-Show on Stage
+      function drawMrGameShowHost(x, y) {
+        ctx.save();
+        ctx.translate(x, y);
+
+        // Spotlight Cone from ceiling
+        const spot = ctx.createLinearGradient(0, -180, 0, 60);
+        spot.addColorStop(0, "rgba(250, 204, 21, 0.24)");
+        spot.addColorStop(1, "rgba(250, 204, 21, 0)");
+        ctx.fillStyle = spot;
+        ctx.beginPath();
+        ctx.moveTo(-18, -180);
+        ctx.lineTo(18, -180);
+        ctx.lineTo(54, 65);
+        ctx.lineTo(-54, 65);
+        ctx.closePath();
+        ctx.fill();
+
+        // Pedestal Shadow
+        ctx.fillStyle = "rgba(250, 204, 21, 0.22)";
+        ctx.beginPath();
+        ctx.ellipse(0, 56, 46, 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        const bob = Math.sin(state.tick * 0.08) * 3;
+        ctx.translate(0, bob);
+
+        // Sequined Gold/Purple Tuxedo Jacket with 3D Lapels
+        const suitGrad = ctx.createLinearGradient(-24, 0, 24, 48);
+        suitGrad.addColorStop(0, "#9333ea");
+        suitGrad.addColorStop(0.5, "#581c87");
+        suitGrad.addColorStop(1, "#1e1b4b");
+        ctx.fillStyle = suitGrad;
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.roundRect(-24, 6, 48, 42, [12, 12, 5, 5]);
+        ctx.fill();
+        ctx.stroke();
+
+        // White Shirt & Red Bowtie
+        ctx.fillStyle = "#f8fafc";
+        ctx.beginPath();
+        ctx.moveTo(-10, 6);
+        ctx.lineTo(10, 6);
+        ctx.lineTo(0, 27);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#f43f5e";
+        ctx.beginPath();
+        ctx.moveTo(-8, 9);
+        ctx.lineTo(8, 15);
+        ctx.lineTo(8, 9);
+        ctx.lineTo(-8, 15);
+        ctx.closePath();
+        ctx.fill();
+
+        // Head & 3D Radial Shading
+        const headGrad = ctx.createRadialGradient(-4, -14, 2, 0, -10, 16);
+        headGrad.addColorStop(0, "#ffedd5");
+        headGrad.addColorStop(1, "#fdba74");
+        ctx.fillStyle = headGrad;
+        ctx.beginPath();
+        ctx.arc(0, -10, 15.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#f59e0b";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Shades / Cyber Visor Glasses
+        ctx.fillStyle = "#090d16";
+        ctx.fillRect(-11, -15, 9, 6);
+        ctx.fillRect(2, -15, 9, 6);
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 1.4;
+        ctx.strokeRect(-11, -15, 9, 6);
+        ctx.strokeRect(2, -15, 9, 6);
+
+        // Winning Game Show Smile
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(0, -5, 7, 0.1 * Math.PI, 0.9 * Math.PI);
+        ctx.fill();
+
+        // Signature Golden Top Hat with Neon Ribbon
+        ctx.fillStyle = "#1e1b4b";
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-14, -40, 28, 19, 4);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#f43f5e";
+        ctx.fillRect(-14, -26, 28, 4);
+        ctx.fillStyle = "#1e1b4b";
+        ctx.beginPath();
+        ctx.roundRect(-21, -22, 42, 5, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        // Golden Microphone in Hand
+        const wave = Math.sin(state.tick * 0.12) * 3;
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(20, 20);
+        ctx.lineTo(32, 3 + wave);
+        ctx.stroke();
+        ctx.fillStyle = "#facc15";
+        ctx.beginPath();
+        ctx.arc(34, wave, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Nameplate
+        ctx.fillStyle = "rgba(9, 7, 24, 0.94)";
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(-52, 49, 104, 19, 6);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#fef08a";
+        ctx.font = "900 9.5px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("🎩 MR. CAINE-SHOW", 0, 62);
+
+        ctx.restore();
+        registerHit(x - 45, y - 40, 90, 105, () => document.getElementById("btnHostHint").click(), "Host Hint");
+      }
+
+      // Mode 1: Wheel of Fortune & Phrase Board
+      function renderWheelAndPhrase() {
+        // Left Stage: 24-Wedge 3D Wheel
+        const wx = 195;
+        const wy = 256;
+        const r = 148;
+
+        registerHit(wx - r - 14, wy - r - 14, (r + 14) * 2, (r + 14) * 2, () => triggerPrimaryAction(), "Spin Wheel");
+
+        // Outer Gold Studded Bezel Rim
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(wx, wy, r + 13, 0, Math.PI * 2);
+        ctx.fillStyle = "#1e1b4b";
+        ctx.fill();
+        ctx.lineWidth = 4.5;
+        ctx.strokeStyle = "#facc15";
+        ctx.stroke();
+
+        for (let i = 0; i < 24; i++) {
+          const a = (i * Math.PI) / 12 + state.tick * 0.015;
+          ctx.fillStyle = i % 2 === 0 ? "#fef08a" : "#38bdf8";
+          ctx.beginPath();
+          ctx.arc(wx + Math.cos(a) * (r + 6.5), wy + Math.sin(a) * (r + 6.5), 2.8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        const n = WHEEL_WEDGES.length;
+        const arc = (Math.PI * 2) / n;
+        for (let i = 0; i < n; i++) {
+          const a0 = state.wheelAngle + i * arc;
+          const a1 = a0 + arc;
+          const w = WHEEL_WEDGES[i];
+          ctx.beginPath();
+          ctx.moveTo(wx, wy);
+          ctx.arc(wx, wy, r, a0, a1);
+          ctx.closePath();
+          ctx.fillStyle = w.color;
+          ctx.fill();
+          ctx.lineWidth = 1.6;
+          ctx.strokeStyle = "#090718";
+          ctx.stroke();
+
+          // Chrome Peg on Wedge Divider
+          ctx.fillStyle = "#f8fafc";
+          ctx.beginPath();
+          ctx.arc(wx + Math.cos(a0) * (r - 2), wy + Math.sin(a0) * (r - 2), 2.3, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Wedge Label
+          ctx.save();
+          ctx.translate(wx, wy);
+          ctx.rotate(a0 + arc / 2);
+          ctx.fillStyle = w.text;
+          ctx.font = "900 11px Inter, sans-serif";
+          ctx.textAlign = "right";
+          ctx.fillText(w.label, r - 12, 4);
+          ctx.restore();
+        }
+
+        // Center Hub Emblem (Clickable Spin Button)
+        const hubGrad = ctx.createRadialGradient(wx - 5, wy - 5, 4, wx, wy, 36);
+        hubGrad.addColorStop(0, "#fef08a");
+        hubGrad.addColorStop(0.6, "#f59e0b");
+        hubGrad.addColorStop(1, "#78350f");
+        ctx.fillStyle = hubGrad;
+        ctx.beginPath();
+        ctx.arc(wx, wy, 35, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = "#ffffff";
+        ctx.stroke();
+        ctx.fillStyle = "#090718";
+        ctx.font = "900 10px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("CLICK TO", wx, wy - 2);
+        ctx.fillText("SPIN!", wx, wy + 10);
+
+        // Top Golden Flapper Pointer
+        ctx.fillStyle = "#f43f5e";
+        ctx.strokeStyle = "#fef08a";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(wx - 12, wy - r - 18);
+        ctx.lineTo(wx + 12, wy - r - 18);
+        ctx.lineTo(wx, wy - r + 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        // Right Stage: Illuminated Phrase Tile Board (Every ★ tile is 1-click revealable!)
+        const bx = 385;
+        const by = 40;
+        const bw = 488;
+        const bh = 252;
+
+        ctx.save();
+        ctx.fillStyle = "rgba(10, 22, 48, 0.95)";
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.roundRect(bx, by, bw, bh, 14);
+        ctx.fill();
+        ctx.stroke();
+
+        const puzzle = PHRASE_VAULT[state.phraseIdx % PHRASE_VAULT.length];
+        ctx.fillStyle = "#38bdf8";
+        ctx.font = "900 12px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(`★ CATEGORY: ${puzzle.category} — (${puzzle.hint.toUpperCase()}) ★`, bx + bw / 2, by + 22);
+
+        const words = puzzle.phrase.split(" ");
+        const rows = ["", "", ""];
+        let rIdx = 0;
+        for (const w of words) {
+          if ((rows[rIdx] + " " + w).trim().length > 12 && rIdx < 2) rIdx++;
+          rows[rIdx] = (rows[rIdx] + " " + w).trim();
+        }
+
+        const cols = 12;
+        const tileW = 35;
+        const tileH = 44;
+        const startX = bx + 26;
+        const startY = by + 36;
+
+        for (let r = 0; r < 3; r++) {
+          const line = rows[r] || "";
+          const padLeft = Math.floor((cols - line.length) / 2);
+          for (let c = 0; c < cols; c++) {
+            const tx = startX + c * (tileW + 3);
+            const ty = startY + r * (tileH + 8);
+            const chIdx = c - padLeft;
+            const ch = (chIdx >= 0 && chIdx < line.length) ? line[chIdx] : " ";
+
+            if (ch === " ") {
+              ctx.fillStyle = "#064e3b";
+              ctx.strokeStyle = "#10b981";
+              ctx.lineWidth = 1.2;
+              ctx.beginPath();
+              ctx.roundRect(tx, ty, tileW, tileH, 5);
+              ctx.fill();
+              ctx.stroke();
+            } else {
+              const revealed = state.guessedLetters.has(ch);
+              ctx.fillStyle = revealed ? "#ffffff" : "#fef08a";
+              ctx.strokeStyle = revealed ? "#38bdf8" : "#f59e0b";
+              ctx.lineWidth = 2.2;
+              ctx.beginPath();
+              ctx.roundRect(tx, ty, tileW, tileH, 5);
+              ctx.fill();
+              ctx.stroke();
+
+              if (revealed) {
+                ctx.fillStyle = "#090718";
+                ctx.font = "900 22px Inter, sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText(ch, tx + tileW / 2, ty + 30);
+              } else {
+                ctx.fillStyle = "#b45309";
+                ctx.font = "900 14px Inter, sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("★", tx + tileW / 2, ty + 25);
+                ctx.font = "800 7.5px Inter, sans-serif";
+                ctx.fillText("CLICK", tx + tileW / 2, ty + 38);
+                const letterToReveal = ch;
+                registerHit(tx, ty, tileW, tileH, () => handleLetterGuess(letterToReveal), `Reveal ${letterToReveal}`);
+              }
+            }
+          }
+        }
+
+        // On-Board Quick Solve & Hint Buttons
+        ctx.fillStyle = "#22c55e";
+        ctx.beginPath();
+        ctx.roundRect(bx + 26, by + 206, 215, 34, 8);
+        ctx.fill();
+        ctx.fillStyle = "#052e16";
+        ctx.font = "900 11px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("💡 CLICK TO REVEAL A LETTER", bx + 133, by + 227);
+        registerHit(bx + 26, by + 206, 215, 34, () => document.getElementById("btnHostHint").click(), "Reveal Letter");
+
+        ctx.fillStyle = "#facc15";
+        ctx.beginPath();
+        ctx.roundRect(bx + 252, by + 206, 210, 34, 8);
+        ctx.fill();
+        ctx.fillStyle = "#090718";
+        ctx.fillText("✨ SOLVE PUZZLE (+$5,000)", bx + 357, by + 227);
+        registerHit(bx + 252, by + 206, 210, 34, () => solveCurrentPhrase(), "Solve Puzzle");
+        ctx.restore();
+
+        // Host & Contestant 3D Podiums at bottom-right
+        drawMrGameShowHost(460, 396);
+        drawStageScoreboard(565, 318);
+      }
+
+      function drawStageScoreboard(x, y) {
+        ctx.save();
+        const cards = [
+          { name: "🌟 YOU", bank: state.bank, color: "#22c55e", head: "#fde047" },
+          { name: "🤖 LEXI-9000", bank: state.ai1Bank, color: "#38bdf8", head: "#7dd3fc" },
+          { name: "🎰 MAX-VEGAS", bank: state.ai2Bank, color: "#f43f5e", head: "#fda4af" }
+        ];
+        cards.forEach((c, i) => {
+          const px = x + i * 102;
+          // Contestant Avatar above Podium
+          const bob = Math.sin(state.tick * 0.09 + i) * 2;
+          ctx.fillStyle = c.color;
+          ctx.beginPath();
+          ctx.roundRect(px + 28, y + 4 + bob, 38, 24, [10, 10, 2, 2]);
+          ctx.fill();
+          ctx.fillStyle = c.head;
+          ctx.beginPath();
+          ctx.arc(px + 47, y - 5 + bob, 11, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 3D Sculpted Podium Desk
+          const podGrad = ctx.createLinearGradient(px, y + 24, px, y + 148);
+          podGrad.addColorStop(0, "rgba(15, 23, 42, 0.98)");
+          podGrad.addColorStop(1, "rgba(6, 10, 24, 0.98)");
+          ctx.fillStyle = podGrad;
+          ctx.strokeStyle = c.color;
+          ctx.lineWidth = 2.4;
+          ctx.beginPath();
+          ctx.roundRect(px, y + 24, 94, 124, 10);
+          ctx.fill();
+          ctx.stroke();
+
+          // Top Neon Lip
+          ctx.fillStyle = c.color;
+          ctx.fillRect(px + 4, y + 24, 86, 5);
+
+          ctx.fillStyle = c.color;
+          ctx.font = "900 10px Inter, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(c.name, px + 47, y + 46);
+
+          // Digital LED Cash Screen
+          ctx.fillStyle = "#020617";
+          ctx.strokeStyle = "rgba(250, 204, 21, 0.45)";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.roundRect(px + 8, y + 55, 78, 34, 6);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#fef08a";
+          ctx.font = "900 13.5px Inter, sans-serif";
+          ctx.fillText(`$${c.bank.toLocaleString()}`, px + 47, y + 77);
+
+          ctx.fillStyle = "rgba(255,255,255,0.1)";
+          ctx.fillRect(px + 10, y + 100, 74, 28);
+          ctx.fillStyle = "#cbd5e1";
+          ctx.font = "800 9px Inter, sans-serif";
+          ctx.fillText(i === 0 ? "★ PLAYER 1 ★" : "PODIUM #" + (i + 1), px + 47, y + 118);
+        });
+        ctx.restore();
+      }
+
+      // Mode 2: Press Your Luck 16-Square Big Board
+      function renderPressYourLuckBoard() {
+        const coords = [
+          [40, 32], [195, 32], [350, 32], [505, 32], [660, 32],
+          [740, 125], [740, 220], [740, 315],
+          [660, 395], [505, 395], [350, 395], [195, 395], [40, 395],
+          [40, 315], [40, 220], [40, 125]
+        ];
+        BIG_BOARD_SQUARES.forEach((sq, idx) => {
+          const [sx, sy] = coords[idx];
+          const isLit = (state.boardActiveIdx % BIG_BOARD_SQUARES.length) === idx;
+          ctx.save();
+          ctx.fillStyle = isLit ? "#ffffff" : sq.color;
+          ctx.strokeStyle = isLit ? "#fef08a" : "#090718";
+          ctx.lineWidth = isLit ? 4 : 2;
+          if (isLit) {
+            ctx.shadowColor = "#facc15";
+            ctx.shadowBlur = 22;
+          }
+          ctx.beginPath();
+          ctx.roundRect(sx, sy, 125, 72, 10);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#090718";
+          ctx.font = "900 11.5px Inter, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(sq.label, sx + 62.5, sy + 41);
+          ctx.restore();
+          registerHit(sx, sy, 125, 72, () => {
+            state.boardActiveIdx = idx;
+            state.boardRunning = true;
+            triggerPrimaryAction();
+          }, sq.label);
+        });
+
+        // Giant Stop/Start Button on Stage
+        ctx.save();
+        ctx.fillStyle = state.boardRunning ? "#ef4444" : "#22c55e";
+        ctx.strokeStyle = "#fef08a";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(185, 130, 185, 58, 12);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "900 13px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(state.boardRunning ? "🛑 CLICK TO STOP!" : "⚡ START BOARD!", 277.5, 164);
+        ctx.restore();
+        registerHit(185, 130, 185, 58, () => triggerPrimaryAction(), "Toggle Big Board");
+
+        drawMrGameShowHost(280, 275);
+        drawStageScoreboard(405, 165);
+      }
+
+      // Mode 3: Cyber-Feud Survey Board
+      function renderSurveyFeudBoard() {
+        const survey = FEUD_SURVEYS[state.feudIdx % FEUD_SURVEYS.length];
+        ctx.save();
+        ctx.fillStyle = "rgba(12, 19, 44, 0.95)";
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.roundRect(60, 35, 780, 265, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#fef08a";
+        ctx.font = "900 14px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(`📋 SURVEY SAYS: "${survey.prompt}"`, 450, 68);
+
+        survey.answers.forEach((ans, i) => {
+          const col = i < 3 ? 0 : 1;
+          const row = i % 3;
+          const ax = 95 + col * 370;
+          const ay = 92 + row * 62;
+
+          ctx.fillStyle = ans.revealed ? "#1e3a8a" : "#0f172a";
+          ctx.strokeStyle = ans.revealed ? "#38bdf8" : "#facc15";
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.roundRect(ax, ay, 340, 48, 8);
+          ctx.fill();
+          ctx.stroke();
+
+          if (ans.revealed) {
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "900 13px Inter, sans-serif";
+            ctx.textAlign = "left";
+            ctx.fillText(`${i + 1}. ${ans.text}`, ax + 14, ay + 29);
+            ctx.fillStyle = "#facc15";
+            ctx.textAlign = "right";
+            ctx.fillText(`${ans.pts} PTS`, ax + 324, ay + 30);
+          } else {
+            ctx.fillStyle = "#facc15";
+            ctx.font = "900 14.5px Inter, sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(`★ SURVEY #${i + 1} — CLICK TO FLIP (+$${ans.pts * 100}) ★`, ax + 170, ay + 30);
+            registerHit(ax, ay, 340, 48, () => {
+              ans.revealed = true;
+              awardCash(ans.pts * 100, `Survey #${i + 1}: ${ans.text}`);
+              setHostSpeech(`SURVEY SAYS... #${i + 1} ${ans.text} for ${ans.pts} points!`);
+              renderControlDeck();
+            }, `Flip Survey #${i + 1}`);
+          }
+        });
+        ctx.restore();
+
+        drawMrGameShowHost(250, 395);
+        drawStageScoreboard(390, 318);
+      }
+
+      // Mode 4: Cyber-Jeopardy 5x5 Grid with 1-Click Trivia Modal
+      function renderJeopardyGrid() {
+        const cats = ["OS KERNELS", "ARCADE 1984", "TV GAME SHOWS", "AI & MATH", "CYBER TRIVIA"];
+        const vals = [200, 400, 600, 800, 1000];
+        const cluesByCat = [
+          { q: "This open-source kernel created in 1991 powers Android and supercomputers.", opts: ["What is Linux? ★", "What is DOS?", "What is CP/M?"], a: "What is Linux?" },
+          { q: "In 1983 Namco's Mappy, this policemouse bounces on color-changing trampolines.", opts: ["Who is Mappy? ★", "Who is Pac-Man?", "Who is Dig Dug?"], a: "Who is Mappy?" },
+          { q: "This iconic pricing game drops flat circular discs down a pegged pyramid toward $10,000.", opts: ["What is Plinko? ★", "What is Cliff Hangers?", "What is Punch-A-Bunch?"], a: "What is Plinko?" },
+          { q: "This matrix operation powers attention layers inside modern Transformer networks.", opts: ["What is Dot-Product? ★", "What is Long Division?", "What is Modulo?"], a: "What is Dot-Product?" },
+          { q: "This runtime executes TypeScript & JavaScript with ultra-fast native speed.", opts: ["What is Bun? ★", "What is Gopher?", "What is Perl?"], a: "What is Bun?" }
+        ];
+
+        for (let c = 0; c < 5; c++) {
+          const gx = 55 + c * 158;
+          ctx.fillStyle = "#1e3a8a";
+          ctx.strokeStyle = "#38bdf8";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(gx, 32, 150, 42, 6);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "900 11px Inter, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(cats[c], gx + 75, 57);
+
+          for (let r = 0; r < 5; r++) {
+            const gy = 80 + r * 46;
+            const key = `${c}-${r}`;
+            const used = state.jeopardyCleared.has(key);
+            ctx.fillStyle = used ? "rgba(15, 23, 42, 0.7)" : "#1d4ed8";
+            ctx.strokeStyle = used ? "#334155" : "#facc15";
+            ctx.beginPath();
+            ctx.roundRect(gx, gy, 150, 40, 6);
+            ctx.fill();
+            ctx.stroke();
+            if (!used) {
+              ctx.fillStyle = "#facc15";
+              ctx.font = "900 18px Inter, sans-serif";
+              ctx.fillText(`$${vals[r]}`, gx + 75, gy + 26);
+              const colIdx = c;
+              const rowIdx = r;
+              registerHit(gx, gy, 150, 40, () => {
+                const info = cluesByCat[colIdx];
+                state.activeClue = { cat: cats[colIdx], val: vals[rowIdx], q: info.q, a: info.a };
+                state.jeopardyModal = { key, cat: cats[colIdx], val: vals[rowIdx], q: info.q, opts: info.opts, a: info.a };
+                ShowAudio.ding();
+                setHostSpeech(`${cats[colIdx]} for $${vals[rowIdx]}: "${info.q}" — Click the ★ answer card!`);
+                renderControlDeck();
+              }, `${cats[c]} $${vals[r]}`);
+            } else {
+              ctx.fillStyle = "#475569";
+              ctx.font = "800 10px Inter, sans-serif";
+              ctx.fillText("CLEARED ✓", gx + 75, gy + 24);
+            }
+          }
+        }
+
+        if (state.jeopardyModal) {
+          const m = state.jeopardyModal;
+          ctx.save();
+          ctx.fillStyle = "rgba(9, 14, 36, 0.97)";
+          ctx.strokeStyle = "#facc15";
+          ctx.lineWidth = 3.5;
+          ctx.beginPath();
+          ctx.roundRect(120, 68, 660, 235, 16);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#38bdf8";
+          ctx.font = "900 13px Inter, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(`🧠 ${m.cat} — FOR $${m.val} (CLICK AN ANSWER BELOW!)`, 450, 98);
+
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "800 14px Inter, sans-serif";
+          ctx.fillText(m.q, 450, 134);
+
+          m.opts.forEach((opt, idx) => {
+            const ox = 155 + idx * 200;
+            const oy = 175;
+            ctx.fillStyle = idx === 0 ? "#15803d" : "#1e3a8a";
+            ctx.strokeStyle = idx === 0 ? "#4ade80" : "#38bdf8";
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            ctx.roundRect(ox, oy, 188, 54, 10);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "900 12px Inter, sans-serif";
+            ctx.fillText(opt, ox + 94, oy + 32);
+            registerHit(ox, oy, 188, 54, () => {
+              state.jeopardyCleared.add(m.key);
+              awardCash(m.val, `${m.cat}: ${m.a}`);
+              setHostSpeech(`CORRECT! "${m.a}" scores +$${m.val}! Pick another tile on the board!`);
+              state.jeopardyModal = null;
+            }, opt);
+          });
+          ctx.restore();
+        }
+
+        drawMrGameShowHost(230, 395);
+        drawStageScoreboard(380, 318);
+      }
+
+      // Mode 5: Price Is Right Plinko Pegboard
+      function renderPlinkoStage() {
+        ctx.save();
+        ctx.fillStyle = "rgba(15, 12, 38, 0.95)";
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(240, 32, 420, 430, 14);
+        ctx.fill();
+        ctx.stroke();
+
+        // Clickable Top Drop Slots (1-7)
+        for (let s = 1; s <= 7; s++) {
+          const sx = 258 + (s - 1) * 55;
+          ctx.fillStyle = s === 4 ? "rgba(250, 204, 21, 0.28)" : "rgba(56, 189, 248, 0.18)";
+          ctx.strokeStyle = s === 4 ? "#facc15" : "#38bdf8";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.roundRect(sx, 40, 50, 32, 6);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#fef08a";
+          ctx.font = "900 9.5px Inter, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(`DROP #${s}`, sx + 25, 60);
+          const slotNum = s;
+          registerHit(sx, 40, 50, 360, () => dropPlinkoFromSlot(slotNum, 1), `Drop Slot ${slotNum}`);
+        }
+
+        // Peg Pyramid
+        for (let row = 0; row < 9; row++) {
+          const cols = row % 2 === 0 ? 7 : 6;
+          const offsetX = row % 2 === 0 ? 290 : 316;
+          const py = 95 + row * 34;
+          for (let c = 0; c < cols; c++) {
+            const px = offsetX + c * 52;
+            ctx.fillStyle = "#38bdf8";
+            ctx.beginPath();
+            ctx.arc(px, py, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        // Bottom Prize Slots
+        const slots = ["$500", "$1,000", "$100", "$10,000", "$100", "$1,000", "$500"];
+        const sColors = ["#38bdf8", "#22c55e", "#f43f5e", "#facc15", "#f43f5e", "#22c55e", "#38bdf8"];
+        for (let i = 0; i < 7; i++) {
+          const sx = 258 + i * 55;
+          ctx.fillStyle = sColors[i];
+          ctx.beginPath();
+          ctx.roundRect(sx, 405, 51, 44, 6);
+          ctx.fill();
+          ctx.fillStyle = "#090718";
+          ctx.font = "900 10.5px Inter, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(slots[i], sx + 25.5, 431);
+        }
+
+        // Active Plinko Discs
+        for (const d of state.plinkoDiscs) {
+          if (!d.active) continue;
+          ctx.fillStyle = "#facc15";
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(d.x, d.y, 11, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+
+        // 5-Chip Golden Burst Button on Stage
+        ctx.fillStyle = "#facc15";
+        ctx.beginPath();
+        ctx.roundRect(680, 90, 190, 56, 12);
+        ctx.fill();
+        ctx.fillStyle = "#090718";
+        ctx.font = "900 12px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("🔥 CLICK FOR 5-CHIP", 775, 114);
+        ctx.fillText("GOLDEN BURST!", 775, 132);
+        registerHit(680, 90, 190, 56, () => dropPlinkoFromSlot(4, 5), "5-Chip Burst");
+        ctx.restore();
+
+        drawMrGameShowHost(125, 360);
+      }
+
+      // Mode 6: Deal or No Deal 20 Golden Briefcases (Each Case is Directly Clickable!)
+      function renderDealBriefcases() {
+        for (let i = 0; i < 20; i++) {
+          const num = i + 1;
+          const col = i % 5;
+          const row = Math.floor(i / 5);
+          const cx = 80 + col * 148;
+          const cy = 38 + row * 66;
+          const opened = state.openedCases.has(num);
+          const isYours = num === state.playerCase;
+
+          ctx.save();
+          ctx.fillStyle = opened ? "rgba(30, 41, 59, 0.55)" : (isYours ? "#38bdf8" : "#facc15");
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(cx, cy, 122, 50, 8);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = opened ? "#94a3b8" : "#090718";
+          ctx.font = "900 13px Inter, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(opened ? "OPENED ✓" : (isYours ? `★ YOUR CASE #${num}` : `💼 OPEN CASE #${num}`), cx + 61, cy + 30);
+          ctx.restore();
+
+          if (!opened) {
+            const caseNumber = num;
+            registerHit(cx, cy, 122, 50, () => openBriefcaseByNumber(caseNumber), `Open Case #${caseNumber}`);
+          }
+        }
+
+        // On-Stage Banker Deal Button
+        ctx.save();
+        ctx.fillStyle = "#22c55e";
+        ctx.strokeStyle = "#fef08a";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.roundRect(35, 315, 225, 52, 12);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#052e16";
+        ctx.font = "900 12px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("🤝 TAKE BANKER DEAL:", 147.5, 336);
+        ctx.font = "900 14px Inter, sans-serif";
+        ctx.fillText(`$${state.bankerOffer.toLocaleString()}`, 147.5, 355);
+        ctx.restore();
+        registerHit(35, 315, 225, 52, () => {
+          awardCash(state.bankerOffer, "Accepted Banker Deal");
+          setHostSpeech(`SOLD! You locked in $${state.bankerOffer.toLocaleString()} from The Banker!`);
+        }, "Take Banker Deal");
+
+        drawMrGameShowHost(315, 395);
+        drawStageScoreboard(435, 318);
+      }
+
+      // Mode 7: Millionaire Ladder & Question Stage (With 4 Clickable Answer Pods on Canvas!)
+      function renderMillionaireStage() {
+        const mq = MILLIONAIRE_QUESTIONS[state.millQuestionIdx % MILLIONAIRE_QUESTIONS.length];
+        ctx.save();
+        ctx.fillStyle = "rgba(15, 23, 42, 0.95)";
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(45, 38, 555, 130, 14);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#facc15";
+        ctx.font = "900 13px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(`💎 FOR ${MILLIONAIRE_LADDER[state.ladderIdx]} — CLICK AN ANSWER POD BELOW:`, 322, 68);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "800 13.5px Inter, sans-serif";
+        ctx.fillText(mq.q.slice(0, 56), 322, 105);
+        ctx.fillText(mq.q.slice(56), 322, 128);
+
+        // 4 Interactive Answer Pods on Stage
+        mq.opts.forEach((opt, idx) => {
+          const col = idx % 2;
+          const row = Math.floor(idx / 2);
+          const px = 45 + col * 284;
+          const py = 180 + row * 64;
+          const removed = state.hiddenOpts.has(idx);
+          const isBest = idx === mq.correct;
+
+          ctx.fillStyle = removed ? "rgba(15, 23, 42, 0.45)" : (isBest ? "rgba(21, 128, 61, 0.9)" : "rgba(30, 41, 59, 0.95)");
+          ctx.strokeStyle = removed ? "#334155" : (isBest ? "#4ade80" : "#facc15");
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.roundRect(px, py, 270, 50, 10);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = removed ? "#64748b" : "#ffffff";
+          ctx.font = "900 12.5px Inter, sans-serif";
+          ctx.textAlign = "left";
+          ctx.fillText(removed ? "— 50:50 REMOVED —" : (isBest ? `${opt} ★` : opt), px + 16, py + 30);
+
+          if (!removed) {
+            const choiceIdx = idx;
+            registerHit(px, py, 270, 50, () => answerMillionaire(choiceIdx), opt);
+          }
+        });
+
+        // Right 15-Rung Money Tree
+        for (let i = 0; i < 15; i++) {
+          const ry = 440 - i * 28;
+          const active = i === state.ladderIdx;
+          ctx.fillStyle = active ? "#facc15" : "rgba(15, 23, 42, 0.85)";
+          ctx.fillRect(635, ry, 210, 23);
+          ctx.fillStyle = active ? "#090718" : (i % 5 === 4 ? "#fef08a" : "#38bdf8");
+          ctx.font = "900 11px Inter, sans-serif";
+          ctx.textAlign = "left";
+          ctx.fillText(`${i + 1}. ${MILLIONAIRE_LADDER[i]}`, 648, ry + 15);
+        }
+        ctx.restore();
+
+        drawMrGameShowHost(190, 395);
+        drawStageScoreboard(310, 318);
+      }
+
+      // Main Animation Loop
+      function stepAndRender() {
+        state.tick++;
+        state.hitRegions = [];
+
+        // Step Wheel Physics (Snappy 0.6s spin)
+        if (state.wheelVel > 0.001) {
+          state.wheelAngle = (state.wheelAngle + state.wheelVel) % (Math.PI * 2);
+          state.wheelVel *= 0.955;
+          const n = WHEEL_WEDGES.length;
+          const norm = ((Math.PI * 1.5 - state.wheelAngle) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+          const idx = Math.floor(norm / ((Math.PI * 2) / n)) % n;
+          if (idx !== state.activeWedgeIdx) {
+            state.activeWedgeIdx = idx;
+            ShowAudio.tick();
+          }
+          if (state.wheelVel <= 0.004) {
+            state.wheelVel = 0;
+            const w = WHEEL_WEDGES[state.activeWedgeIdx];
+            if (w.val === -1) {
+              ShowAudio.buzzer();
+              setHostSpeech("BANKRUPT WEDGE! No cash lost in Easy Mode — click any ★ tile or green letter to score!");
+            } else {
+              ShowAudio.ding();
+              setHostSpeech(`Wheel landed on ${w.label}! Click any yellow ★ tile on the board or glowing green ★ letter below!`);
+            }
+            updateHud();
+          }
+        }
+
+        // Step Press Your Luck Big Board
+        if (state.boardRunning && state.tick % 9 === 0) {
+          state.boardActiveIdx = (state.boardActiveIdx + 1) % BIG_BOARD_SQUARES.length;
+        }
+
+        // Step Plinko Discs
+        for (const d of state.plinkoDiscs) {
+          if (!d.active) continue;
+          d.vy += 0.18;
+          d.x += d.vx;
+          d.y += d.vy;
+          if (d.x < 265) { d.x = 265; d.vx = Math.abs(d.vx); }
+          if (d.x > 635) { d.x = 635; d.vx = -Math.abs(d.vx); }
+          for (let row = 0; row < 9; row++) {
+            const cols = row % 2 === 0 ? 7 : 6;
+            const offsetX = row % 2 === 0 ? 290 : 316;
+            const py = 95 + row * 34;
+            for (let c = 0; c < cols; c++) {
+              const px = offsetX + c * 52;
+              const dx = d.x - px;
+              const dy = d.y - py;
+              const dist = Math.hypot(dx, dy);
+              if (dist < 15.5 && dist > 0) {
+                d.vx = (dx / dist) * 2.2 + (450 - d.x) * 0.008 + (Math.random() - 0.5) * 0.6;
+                d.vy = -Math.abs(d.vy) * 0.42;
+                ShowAudio.tick();
+              }
+            }
+          }
+          if (d.y >= 405) {
+            d.active = false;
+            const sIdx = Math.max(0, Math.min(6, Math.floor((d.x - 258) / 55)));
+            const prizeVals = [500, 1000, 250, 10000, 250, 1000, 500];
+            awardCash(prizeVals[sIdx], `Plinko Slot $${prizeVals[sIdx].toLocaleString()}`);
+          }
+        }
+
+        // Render 3D Primetime Studio Backdrop & Perspective Floor
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawStudioBackdropAndFloor();
+
+        if (state.mode === "wheel_phrase" || state.mode === "grand_finale") renderWheelAndPhrase();
+        else if (state.mode === "press_luck") renderPressYourLuckBoard();
+        else if (state.mode === "survey_feud") renderSurveyFeudBoard();
+        else if (state.mode === "jeopardy_grid") renderJeopardyGrid();
+        else if (state.mode === "plinko_price") renderPlinkoStage();
+        else if (state.mode === "deal_cases") renderDealBriefcases();
+        else if (state.mode === "millionaire") renderMillionaireStage();
+
+        // Render Particles & Floating Callouts
+        for (let i = state.particles.length - 1; i >= 0; i--) {
+          const p = state.particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.12;
+          p.life -= 0.025;
+          if (p.life <= 0) { state.particles.splice(i, 1); continue; }
+          ctx.globalAlpha = p.life;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        for (let i = state.callouts.length - 1; i >= 0; i--) {
+          const c = state.callouts[i];
+          c.y -= 1.1;
+          c.life -= 0.02;
+          if (c.life <= 0) { state.callouts.splice(i, 1); continue; }
+          ctx.globalAlpha = c.life;
+          ctx.fillStyle = c.color;
+          ctx.font = "900 15px Inter, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(c.text, c.x, c.y);
+        }
+        ctx.globalAlpha = 1;
+
+        requestAnimationFrame(stepAndRender);
+      }
+
+      // Bindings
+      document.getElementById("showModeSelect").addEventListener("change", e => switchMode(e.target.value));
+      document.querySelectorAll(".mode-pill").forEach(btn => {
+        btn.addEventListener("click", () => switchMode(btn.dataset.mode));
+      });
+      document.getElementById("btnPrimaryAction").addEventListener("click", triggerPrimaryAction);
+      document.getElementById("btnHostHint").addEventListener("click", () => {
+        const puzzle = PHRASE_VAULT[state.phraseIdx % PHRASE_VAULT.length];
+        for (const ch of puzzle.phrase) {
+          if (ch !== " " && !state.guessedLetters.has(ch)) {
+            handleLetterGuess(ch);
+            setHostSpeech(`💡 AI STUDIO HINT: Revealed '${ch}' (${puzzle.hint})!`);
+            return;
+          }
+        }
+        triggerPrimaryAction();
+      });
+      document.getElementById("btnNewRound").addEventListener("click", () => {
+        state.phraseIdx = (state.phraseIdx + 1) % PHRASE_VAULT.length;
+        state.guessedLetters = new Set(["R", "S", "T", "L", "N", "E"]);
+        state.round++;
+        state.openedCases.clear();
+        state.jeopardyModal = null;
+        ShowAudio.fanfare();
+        setHostSpeech("NEW PRIMETIME ROUND! R-S-T-L-N-E revealed on the board—click any ★ tile or spin the wheel!");
+        renderControlDeck();
+        updateHud();
+      });
+      document.getElementById("btnAudioToggle").addEventListener("click", e => {
+        ShowAudio.enabled = !ShowAudio.enabled;
+        e.target.textContent = `🔊 TV SYNTH: ${ShowAudio.enabled ? "ON" : "OFF"} [M]`;
+      });
+
+      // Lifelines
+      document.getElementById("btnLife5050").addEventListener("click", e => {
+        e.target.disabled = true;
+        state.hiddenOpts.add(0);
+        state.hiddenOpts.add(3);
+        ShowAudio.ding();
+        setHostSpeech("✂️ 50:50 LIFELINE ACTIVATED! Two wrong options eliminated!");
+        renderControlDeck();
+      });
+      document.getElementById("btnLifeAudience").addEventListener("click", e => {
+        e.target.disabled = true;
+        awardCash(2500, "Studio Audience Applause Bonus");
+        setHostSpeech("📊 92% of the Studio Audience voted for the ★ highlighted answer (+$2,500 Applause Bonus)!");
+      });
+      document.getElementById("btnLifePhone").addEventListener("click", e => {
+        e.target.disabled = true;
+        document.getElementById("btnHostHint").click();
+      });
+      document.getElementById("btnLifeShield").addEventListener("click", e => {
+        e.target.disabled = true;
+        state.whammyShield = true;
+        ShowAudio.ding();
+        setHostSpeech("🛡️ WHAMMY SHIELD ARMED! Your bank is protected against the next Whammy or Bankrupt!");
+        updateHud();
+      });
+
+      // Direct 1-Click Canvas Hit-Testing across all 8 Game Show Modes!
+      canvas.addEventListener("click", e => {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / Math.max(1, rect.width);
+        const scaleY = canvas.height / Math.max(1, rect.height);
+        const mx = (e.clientX - rect.left) * scaleX;
+        const my = (e.clientY - rect.top) * scaleY;
+
+        for (let i = state.hitRegions.length - 1; i >= 0; i--) {
+          const hr = state.hitRegions[i];
+          if (mx >= hr.x && mx <= hr.x + hr.w && my >= hr.y && my <= hr.y + hr.h) {
+            hr.action();
+            return;
+          }
+        }
+        triggerPrimaryAction();
+      });
+
+      window.addEventListener("keydown", e => {
+        if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "SELECT")) return;
+        const k = e.key.toUpperCase();
+        if (e.code === "Space") { e.preventDefault(); triggerPrimaryAction(); }
+        else if (e.key === "Enter") { e.preventDefault(); solveCurrentPhrase(); }
+        else if (k === "H") document.getElementById("btnHostHint").click();
+        else if (k === "G") document.getElementById("btnNewRound").click();
+        else if (k === "M") document.getElementById("btnAudioToggle").click();
+        else if (k >= "1" && k <= "8") {
+          const modes = ["wheel_phrase", "press_luck", "survey_feud", "jeopardy_grid", "plinko_price", "deal_cases", "millionaire", "grand_finale"];
+          switchMode(modes[Number(k) - 1]);
+        } else if (k.length === 1 && k >= "A" && k <= "Z") {
+          handleLetterGuess(k);
+        }
+      });
+
+      addLog("🎩 Welcome to Codecaine Mr. Game Show Royale!");
+      addLog("🎡 Mode 1 Active: Spin the 24-Wedge Wheel or guess letters!");
+      renderControlDeck();
+      updateHud();
+      requestAnimationFrame(stepAndRender);
+    })();
+  </script>
+</body>
+</html>

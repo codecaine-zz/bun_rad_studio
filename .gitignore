@@ -11,6 +11,7 @@ exported_project/
 dist/
 /release/
 /music lyrics/
+/youtube_ready_mp3/
 out/
 build/
 .temp_screens/
@@ -91,3 +92,5 @@ youtube_production/file_manager_themes_full_tutorial/
 youtube_production/linux_short/
 youtube_production/apple_mac_themes_short/
 youtube_production/god_mode_tutorial/
+youtube_production/codecaine_arcade_v151_short/
+youtube_production/file_manager_v151_changes_demo_tutorial/

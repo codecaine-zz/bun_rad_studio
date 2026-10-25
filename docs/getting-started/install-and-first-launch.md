@@ -115,6 +115,7 @@ bun run build
 | `bun install` cannot download packages | No internet, or a network proxy. | Check your connection and run the command again; it is safe to repeat. |
 | `error: script "start" exited with code 1` with `existsSync is not defined` | You are on a version from before the D-001 fix. | Update the project (`git pull`), then run `bun start` again. |
 | The terminal shows output but no window appears | A window system problem (on Linux, missing WebKitGTK/GTK packages). | See [Requirements](requirements.md#linux-system-packages-partly-verified). |
+| Games or canvas animations feel slow on a Linux machine | `libwebkitgtk-6.0-4` is using software rendering on your GPU or VM. | Run with `--server` (for example `bun run app:files --server` or `./codecaine-file-manager --server`) and open the printed `http://127.0.0.1:<port>` URL in **Brave**, **Google Chrome**, or **Chromium**, which run Canvas 2D and Web Audio much faster on Linux. You can also press `Alt+G` in any game to toggle off CRT Scanlines and Cabinet Glow. |
 | A command fails with `Module not found` | You are not in the repository root. | `cd` into the `bun_rad_studio` folder and retry. |
 
 If a command in this page fails on the setup described in [Requirements](requirements.md), please report it with the exact command and output.

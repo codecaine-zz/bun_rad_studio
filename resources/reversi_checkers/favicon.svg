@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#040612"/>
+      <stop offset="100%" stop-color="#120824"/>
+    </linearGradient>
+    <radialGradient id="cyanDisc" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#80ffff"/>
+      <stop offset="50%" stop-color="#00f0ff"/>
+      <stop offset="100%" stop-color="#0055aa"/>
+    </radialGradient>
+    <radialGradient id="magDisc" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#ff80df"/>
+      <stop offset="50%" stop-color="#ff0077"/>
+      <stop offset="100%" stop-color="#770055"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)" stroke="#00f0ff" stroke-width="2" stroke-opacity="0.5"/>
+  <line x1="32" y1="6" x2="32" y2="58" stroke="#00f0ff" stroke-width="1" opacity="0.25"/>
+  <line x1="6" y1="32" x2="58" y2="32" stroke="#00f0ff" stroke-width="1" opacity="0.25"/>
+  <circle cx="20" cy="20" r="10" fill="url(#cyanDisc)" stroke="#ffffff" stroke-width="1.2"/>
+  <circle cx="44" cy="20" r="10" fill="url(#magDisc)" stroke="#ffffff" stroke-width="1.2"/>
+  <circle cx="20" cy="44" r="10" fill="url(#magDisc)" stroke="#ffffff" stroke-width="1.2"/>
+  <circle cx="44" cy="44" r="10" fill="url(#cyanDisc)" stroke="#ffe600" stroke-width="1.8"/>
+  <!-- Crown on bottom-right King disc -->
+  <polygon points="39,47 40,40 44,43 48,40 49,47" fill="#ffe600"/>
+</svg>

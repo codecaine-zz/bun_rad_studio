@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#040814"/>
+      <stop offset="100%" stop-color="#0b1f2e"/>
+    </linearGradient>
+    <linearGradient id="ooze" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#38ef7d"/>
+      <stop offset="100%" stop-color="#00f5d4"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)" stroke="#00f5d4" stroke-width="2" stroke-opacity="0.6"/>
+  <!-- Cross pipe housing -->
+  <path d="M24 10 H40 V24 H54 V40 H40 V54 H24 V40 H10 V24 H24 Z" fill="#132a42" stroke="#00f5d4" stroke-width="2"/>
+  <!-- Glowing plasma coolant inside -->
+  <path d="M12 32 H52 M32 12 V52" stroke="url(#ooze)" stroke-width="8" stroke-linecap="round"/>
+  <!-- Flanges -->
+  <rect x="22" y="8" width="20" height="4" rx="2" fill="#00f5d4"/>
+  <rect x="22" y="52" width="20" height="4" rx="2" fill="#00f5d4"/>
+  <rect x="8" y="22" width="4" height="20" rx="2" fill="#00f5d4"/>
+  <rect x="52" y="22" width="4" height="20" rx="2" fill="#00f5d4"/>
+</svg>

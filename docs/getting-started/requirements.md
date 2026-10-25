@@ -54,6 +54,8 @@ Expected result: a version number. Alternatively download the repository as a ZI
 
 `webview-bun`'s own README says its Linux library needs GTK 4 and WebKitGTK 6 (Debian: `libgtk-4-1`, `libwebkitgtk-6.0-4`). `docs/HOMEBREW_SUITE_GUIDE.md` lists different packages (`libwebkitgtk-6.0-4 libgtk-3-0` or `libwebkit2gtk-4.0-37`). **Verified on 13 October 2026:** on GitHub's `ubuntu-latest` runner, installing `libwebkitgtk-6.0-4 libgtk-4-1 xvfb xclip` was enough for the whole automated suite to pass (without `libwebkitgtk-6.0-4` 74 test files failed to load the native library). Those tests use a virtual display and mostly fake windows, so **a real window on a Linux desktop has not been opened**. `xclip` is only needed for the clipboard buttons. Details: [Testing](../testing/index.md#other-platforms).
 
+**Tip for slower Linux machines (Brave & Chrome):** on slower Linux hardware or virtual machines where `libwebkitgtk-6.0-4` uses software rendering, the 24 arcade games and canvas-heavy tools run much faster in **Brave**, **Google Chrome**, or another Chromium-based browser. Start the File Manager (`bun run app:files --server`) or any game studio with `--server` and open the printed `http://127.0.0.1:<port>` address in Brave or Chrome. Inside any game, press `Alt+G` to open the Game Master FX HUD and turn off CRT Scanlines or Cabinet Glow if needed.
+
 ## Disk space and network
 
 - `bun install` downloads about 46 packages (the `node_modules` folder was 56 MB here). It needs internet access the first time.

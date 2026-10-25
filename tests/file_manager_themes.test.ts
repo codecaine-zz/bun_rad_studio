@@ -1902,15 +1902,53 @@ describe("the theme editor in the page", () => {
     expect(doc.querySelector(".modal-backdrop")).toBeNull();
     expect(doc.getElementById("fm-quick-cycle-hud")).toBeTruthy();
 
-    // Toggle FX off (Alt+0) strips effects while keeping colors and opening no modal dialog
+    // Toggle FX off (Alt+0 / Cmd+0) strips effects while keeping colors, persists themeFxOff=true, and opens no modal dialog
     const toggledOff = await (themes as any).toggleCurrentThemeEffects({ quiet: true });
     expect(toggledOff.fxEnabled).toBe(false);
+    expect(state.settings.themeFxOff).toBe(true);
     expect(doc.documentElement.getAttribute("data-fx")).toBeNull();
+    expect(doc.getElementById("fm-theme-effects")).toBeNull();
     expect(doc.querySelector(".modal-backdrop")).toBeNull();
 
-    // Toggle FX back on (Alt+0) restores full effects on the current FX theme
+    // Simulate closing and reopening the File Manager: persisted settings reload from server with themeFxOff=true and FX stay off on applyPalette()
+    const reloadedSettings = (await api.call("settings")).settings;
+    expect(reloadedSettings.themeFxOff).toBe(true);
+    expect(reloadedSettings.palette).toBe(fxPicked.key);
+    state.settings = reloadedSettings;
+    doc.documentElement.setAttribute("data-fx", "on");
+    await themes.applyPalette(state.settings.palette);
+    expect(state.settings.themeFxOff).toBe(true);
+    expect(doc.documentElement.dataset.palette).toBe(fxPicked.key);
+    expect(doc.documentElement.getAttribute("data-fx")).toBeNull();
+    expect(doc.getElementById("fm-theme-effects")).toBeNull();
+    expect(doc.documentElement.dataset.uiFx).toBeUndefined();
+    const atmoMod = await import("../resources/file_manager/ui/atmosphereFx.js");
+    expect(atmoMod.effectiveAtmosphere()).toBe("none");
+
+    // Toggle FX back on (Alt+0 / Cmd+0) restores full effects on the current FX theme and clears themeFxOff=false
     const toggledOn = await (themes as any).toggleCurrentThemeEffects({ quiet: true });
     expect(toggledOn.fxEnabled).toBe(true);
+    expect(state.settings.themeFxOff).toBe(false);
+    expect((await api.call("settings")).settings.themeFxOff).toBe(false);
+    expect(doc.documentElement.getAttribute("data-fx")).toBe("on");
+    expect(doc.getElementById("fm-theme-effects")).toBeTruthy();
+
+    // Verify Cmd+0 (metaKey + Digit0) global shortcut also toggles FX off and persists themeFxOff=true across restarts
+    const w = doc.defaultView;
+    w.dispatchEvent(new w.KeyboardEvent("keydown", { key: "0", code: "Digit0", metaKey: true, bubbles: true, cancelable: true }));
+    await sleep(60);
+    expect(state.settings.themeFxOff).toBe(true);
+    expect((await api.call("settings")).settings.themeFxOff).toBe(true);
+    expect(doc.documentElement.getAttribute("data-fx")).toBeNull();
+    // Simulate another close + reopen after Cmd+0 toggle off
+    state.settings = (await api.call("settings")).settings;
+    await themes.applyPalette(state.settings.palette);
+    expect(doc.documentElement.getAttribute("data-fx")).toBeNull();
+    expect(doc.getElementById("fm-theme-effects")).toBeNull();
+    // Toggle back on with Cmd+0
+    w.dispatchEvent(new w.KeyboardEvent("keydown", { key: "0", code: "Digit0", metaKey: true, bubbles: true, cancelable: true }));
+    await sleep(60);
+    expect(state.settings.themeFxOff).toBe(false);
     expect(doc.documentElement.getAttribute("data-fx")).toBe("on");
 
     // Quick Random Plain Theme (Alt+P) picks a static theme with hasEffects=false and clears all FX

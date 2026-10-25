@@ -20,6 +20,11 @@ const EMBEDDED_IDS = new Set([
   "maze_generator", "minesweeper", "pacman", "poker", "pong",
   "rat_screw", "rodents_revenge", "skifree", "snake", "tetris",
   "tictactoe", "typing", "word_search", "yahtzee",
+  "jezzball", "chips_challenge", "pipe_dream", "solitaire", "pinball",
+  "asteroids", "space_invaders", "bomberman", "missile_command", "qbert",
+  "centipede", "artillery", "pool", "lunar_lander", "cyber2048",
+  "sokoban", "reversi_checkers", "uno", "bowling", "darts", "bejeweled", "balloon_fight",
+  "marble_madness", "mappy", "cyber_maker",
 ]);
 const HOSTED_IDS = new Set(["api", "bundler", "env"]);
 

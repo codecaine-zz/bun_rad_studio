@@ -987,10 +987,190 @@
       font-weight: 700;
     }
 
-    .v-stat-box b {
+      .v-stat-box b {
       font-family: var(--font-mono);
       font-size: 1.2rem;
       color: var(--text-main);
+    }
+
+    /* 8-Mode Modern Minesweeper Suite Selector Bar */
+    .mode-suite-ribbon {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 6px;
+      margin-bottom: 10px;
+      padding: 6px;
+      background: rgba(0, 0, 0, 0.42);
+      border: 1px solid var(--chassis-border);
+      border-radius: 12px;
+    }
+
+    @media (max-width: 920px) {
+      .mode-suite-ribbon {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+
+    .mode-pill-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      border-radius: 8px;
+      padding: 6px 6px;
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      text-align: center;
+      transition: all 0.16s ease;
+    }
+
+    .mode-pill-btn:hover {
+      color: var(--text-main);
+      border-color: var(--accent-color);
+      background: rgba(255, 255, 255, 0.09);
+    }
+
+    .mode-pill-btn.active {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(37, 99, 235, 0.32));
+      color: #ffffff;
+      border-color: var(--accent-color);
+      box-shadow: var(--accent-glow);
+    }
+
+    .mode-pill-sub {
+      font-size: 0.6rem;
+      font-weight: 600;
+      opacity: 0.82;
+    }
+
+    /* Tactical EOD / Dragonsweeper RPG / Flags Duel / AI Coach Bar */
+    .tactical-hud-bar {
+      width: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 12px;
+      margin-bottom: 10px;
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid var(--chassis-border);
+      border-radius: 12px;
+    }
+
+    .tactical-status-cluster {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .tactical-badge {
+      padding: 4px 9px;
+      border-radius: 7px;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-main);
+    }
+
+    .tactical-actions-cluster {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .eod-btn {
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.42);
+      color: #f8fafc;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-family: var(--font-display);
+      font-size: 0.74rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .eod-btn:hover {
+      background: rgba(56, 189, 248, 0.28);
+      box-shadow: var(--accent-glow);
+      transform: translateY(-1px);
+    }
+
+    .eod-btn.coach-btn {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.24), rgba(6, 182, 212, 0.28));
+      border-color: #10b981;
+      color: #ecfdf5;
+    }
+
+    /* Live AI Logic Coach / Mode Deduction Banner */
+    .coach-banner {
+      width: 100%;
+      padding: 7px 12px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.38);
+      color: #d1fae5;
+      font-size: 0.78rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    /* AI Coach Cell Highlights */
+    .cell.coach-safe {
+      outline: 3px solid #10b981 !important;
+      outline-offset: -3px;
+      background: rgba(16, 185, 129, 0.35) !important;
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.85) !important;
+      z-index: 5;
+    }
+
+    .cell.coach-mine {
+      outline: 3px solid #f59e0b !important;
+      outline-offset: -3px;
+      background: rgba(245, 158, 11, 0.32) !important;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.85) !important;
+      z-index: 5;
+    }
+
+    /* Hexagonal Honeycomb Grid Layout (Mode 5: Hexcells 6-Neighbor) */
+    .board-grid.hex-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 8px 24px 8px 8px;
+      background: rgba(3, 7, 18, 0.85);
+    }
+
+    .hex-row {
+      display: flex;
+      gap: 3px;
+    }
+
+    .hex-row.hex-odd {
+      margin-left: calc(var(--cell-size) * 0.52);
+    }
+
+    .board-grid.hex-layout .cell {
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      border-radius: 4px;
     }
   </style>
 </head>
@@ -1013,12 +1193,13 @@
         </svg>
       </div>
       <div class="brand-title-wrap">
-        <h1>Minesweeper Pro <span class="badge-championship">Championship</span></h1>
-        <p>Safe Opening • Chord Clearing • 3BV/s Efficiency</p>
+        <h1>Minesweeper Pro <span class="badge-championship">8-Mode Master Suite</span></h1>
+        <p>Classic 3BV • Pure Logic No-Guess • Dragonsweeper RPG • Flags Duel • Hexcells • EOD Roguelike</p>
       </div>
     </div>
 
     <div class="top-actions">
+      <button class="btn-action-icon" id="btnAiCoachTop" title="AI Logic Deduction Coach (H)">💡</button>
       <button class="btn-action-icon" id="btnSound" title="Toggle Sound (M)">🔊</button>
       <button class="btn-action-icon" id="btnStats" title="Statistics & Records (S)">🏆</button>
       <button class="btn-action-icon" id="btnPractice" title="Toggle Practice / Undo Mode (U)">🛡️</button>
@@ -1029,6 +1210,42 @@
 
   <!-- Main Console Chassis -->
   <main class="console-chassis" id="mainChassis">
+    <!-- 8-Mode Modern Minesweeper Selector Ribbon -->
+    <div class="mode-suite-ribbon" id="modeSuiteRibbon">
+      <button class="mode-pill-btn active" data-mode="classic" title="Hotkey [1]">
+        <span>1. 🏆 Classic 3BV</span>
+        <span class="mode-pill-sub">Championship</span>
+      </button>
+      <button class="mode-pill-btn" data-mode="no_guess" title="Hotkey [2]">
+        <span>2. 🧠 No-Guessing</span>
+        <span class="mode-pill-sub">100% Pure Logic</span>
+      </button>
+      <button class="mode-pill-btn" data-mode="dragonsweeper" title="Hotkey [3]">
+        <span>3. ⚔️ Dragonsweeper</span>
+        <span class="mode-pill-sub">RPG Lv.1–5 Boss</span>
+      </button>
+      <button class="mode-pill-btn" data-mode="flags_duel" title="Hotkey [4]">
+        <span>4. 🚩 Flags Duel</span>
+        <span class="mode-pill-sub">Vs. AI Mine Hunt</span>
+      </button>
+      <button class="mode-pill-btn" data-mode="hex_grid" title="Hotkey [5]">
+        <span>5. ⬡ Hexcells 6-Way</span>
+        <span class="mode-pill-sub">Honeycomb Grid</span>
+      </button>
+      <button class="mode-pill-btn" data-mode="roguelike" title="Hotkey [6]">
+        <span>6. 🛡️ EOD Roguelike</span>
+        <span class="mode-pill-sub">Sonar &amp; Shields</span>
+      </button>
+      <button class="mode-pill-btn" data-mode="trench_endless" title="Hotkey [7]">
+        <span>7. ♾️ Endless Trench</span>
+        <span class="mode-pill-sub">Deep Excavation</span>
+      </button>
+      <button class="mode-pill-btn" data-mode="blitz_90s" title="Hotkey [8]">
+        <span>8. ⏱️ 90s Defusal Blitz</span>
+        <span class="mode-pill-sub">Speed Score Attack</span>
+      </button>
+    </div>
+
     <!-- Toolbar Controls -->
     <div class="toolbar-ribbon">
       <div class="segmented-control">
@@ -1039,6 +1256,16 @@
       </div>
 
       <div class="toolbar-tools">
+        <select class="select-dropdown" id="gameModeSelect" title="Select Game Mode (1-8)">
+          <option value="classic">1. 🏆 Classic Championship</option>
+          <option value="no_guess">2. 🧠 Pure Logic No-Guessing</option>
+          <option value="dragonsweeper">3. ⚔️ Dragonsweeper RPG (Lv.1–5)</option>
+          <option value="flags_duel">4. 🚩 Minesweeper Flags Duel (Vs. AI)</option>
+          <option value="hex_grid">5. ⬡ Hexagonal Honeycomb (6-Way)</option>
+          <option value="roguelike">6. 🛡️ EOD Bomb Squad Roguelike</option>
+          <option value="trench_endless">7. ♾️ Endless Depth Trench</option>
+          <option value="blitz_90s">8. ⏱️ 90-Second Defusal Blitz</option>
+        </select>
         <select class="select-dropdown" id="themeSelect">
           <option value="theme-graveyard">🪦 Graveyard (Rip Engine)</option>
           <option value="theme-cyber">⚡ Cyber Neon</option>
@@ -1053,6 +1280,27 @@
           <option value="0.85">85% Zoom</option>
         </select>
       </div>
+    </div>
+
+    <!-- Mode-Adaptive Tactical HUD Bar (EOD Gadgets, Dragonsweeper RPG Hero, Flags Score & AI Coach) -->
+    <div class="tactical-hud-bar" id="modeTacticalBar">
+      <div class="tactical-status-cluster" id="tacticalStatusCluster">
+        <span class="tactical-badge" id="tacPrimaryBadge">🏆 Mode: Classic 3BV</span>
+        <span class="tactical-badge" id="tacSecondaryBadge">🛡️ Shields: 1</span>
+        <span class="tactical-badge" id="tacTertiaryBadge">💰 EOD Credits: 50</span>
+      </div>
+      <div class="tactical-actions-cluster">
+        <button class="eod-btn coach-btn" id="btnAiCoach" title="Highlight a 100% provably safe or mine cell with logical explanation (Key H)">💡 AI Logic Coach [H]</button>
+        <button class="eod-btn" id="btnSonarPulse" title="Scan 3x3 zone: safely reveals safe tiles and auto-flags mines (Key Q)">📡 Sonar 3×3 [Q]</button>
+        <button class="eod-btn" id="btnSafeDrone" title="Deploy EOD Drone to reveal a guaranteed safe cell or opening (Key E)">⚡ Safe Drone [E]</button>
+        <button class="eod-btn" id="btnRpgHeal" style="display:none;" title="Use Medkit to restore +50 Hero HP in Dragonsweeper RPG">🧪 Medkit (+50 HP)</button>
+      </div>
+    </div>
+
+    <!-- Live AI Logic Coach & Mode Deduction Banner -->
+    <div class="coach-banner" id="coachBanner">
+      <span id="coachBannerText">🧠 <b>AI Logic Coach Ready:</b> Press <b>[H]</b> anytime for a 100% deterministic deduction or switch among all <b>8 Modern Game Modes [1–8]</b>!</span>
+      <span style="font-family:var(--font-mono); font-size:0.7rem; opacity:0.85;" id="coachRuleTag">SOLVER: ACTIVE</span>
     </div>
 
     <!-- HUD Dashboard (LED Scoreboard & Mood Face) -->
@@ -1492,7 +1740,7 @@
     })();
 
     // -------------------------------------------------------------
-    // 3. Championship Core Game Mechanics
+    // 3. Championship Core & 8-Mode Modern Minesweeper Suite
     // -------------------------------------------------------------
     const Presets = {
       beginner: { cols: 9, rows: 9, mines: 10, cellSize: 42 },
@@ -1501,6 +1749,16 @@
       custom: { cols: 20, rows: 15, mines: 35, cellSize: 32 }
     };
 
+    const MONSTER_SPECS = [
+      null,
+      { level: 1, name: "Lv.1 Glitch Bug", icon: "🦠", xp: 18 },
+      { level: 2, name: "Lv.2 Patrol Drone", icon: "🤖", xp: 35 },
+      { level: 3, name: "Lv.3 Mech-Scorpion", icon: "🦂", xp: 60 },
+      { level: 4, name: "Lv.4 Void Sentinel", icon: "👾", xp: 95 },
+      { level: 5, name: "Lv.5 Cyber-Dragon Boss", icon: "🐉", xp: 250 }
+    ];
+
+    let currentMode = "classic"; // classic | no_guess | dragonsweeper | flags_duel | hex_grid | roguelike | trench_endless | blitz_90s
     let currentPreset = "beginner";
     let cols = 9;
     let rows = 9;
@@ -1527,6 +1785,35 @@
     let focusedCol = 0;
     let isKeyboardNavActive = false;
 
+    // 8-Mode Modern State Variables
+    let eodCredits = 60;
+    let blastShields = 1;
+    let sonarCharges = 2;
+    let droneCharges = 2;
+
+    // Mode 3: Dragonsweeper RPG State
+    let heroLevel = 1;
+    let heroHp = 100;
+    let heroMaxHp = 100;
+    let heroXp = 0;
+    let heroNextXp = 45;
+    let monstersSlain = 0;
+
+    // Mode 4: Minesweeper Flags Duel (Vs. Dr. Sweep AI)
+    let flagsDuelTurn = "p1"; // "p1" | "ai"
+    let p1MinesFound = 0;
+    let aiMinesFound = 0;
+    let targetMinesToWin = 8;
+
+    // Mode 7: Endless Depth Trench
+    let trenchDepthMeters = 10;
+    let clearedRowsSet = new Set();
+
+    // Mode 8: 90-Second Defusal Blitz
+    let blitzTimeRemaining = 90;
+    let blitzScore = 0;
+    let blitzWave = 1;
+
     // DOM References
     const gridEl = document.getElementById("minesGrid");
     const dispMines = document.getElementById("dispMines");
@@ -1540,6 +1827,12 @@
     const liveDot = document.getElementById("liveDot");
     const practicePill = document.getElementById("practicePill");
     const victoryBanner = document.getElementById("victoryBanner");
+    const coachBannerText = document.getElementById("coachBannerText");
+    const coachRuleTag = document.getElementById("coachRuleTag");
+    const tacPrimaryBadge = document.getElementById("tacPrimaryBadge");
+    const tacSecondaryBadge = document.getElementById("tacSecondaryBadge");
+    const tacTertiaryBadge = document.getElementById("tacTertiaryBadge");
+    const btnRpgHeal = document.getElementById("btnRpgHeal");
 
     // Local Storage Stats Manager
     const StatsManager = {
@@ -1572,6 +1865,62 @@
       }
     };
 
+    // Unified Neighbor Coordinate Resolver (8-Neighbor Square Grid vs 6-Neighbor Hexcells Grid!)
+    function getNeighbors(r, c) {
+      const list = [];
+      if (currentMode === "hex_grid") {
+        // Staggered odd-r hexagonal honeycomb coordinates (6 neighbors)
+        const isOdd = r % 2 === 1;
+        const deltas = isOdd
+          ? [
+              [0, -1], [0, 1],
+              [-1, 0], [-1, 1],
+              [1, 0], [1, 1]
+            ]
+          : [
+              [0, -1], [0, 1],
+              [-1, -1], [-1, 0],
+              [1, -1], [1, 0]
+            ];
+        for (const [dr, dc] of deltas) {
+          const nr = r + dr;
+          const nc = c + dc;
+          if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+            list.push(board[nr][nc]);
+          }
+        }
+      } else {
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            if (dr === 0 && dc === 0) continue;
+            const nr = r + dr;
+            const nc = c + dc;
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+              list.push(board[nr][nc]);
+            }
+          }
+        }
+      }
+      return list;
+    }
+
+    function recomputeAllClueNumbers() {
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const cell = board[r][c];
+          if (!cell.isMine) {
+            const neighbors = getNeighbors(r, c);
+            if (currentMode === "dragonsweeper") {
+              // Sum of adjacent monster levels (Lv.1 to Lv.5)
+              cell.neighborMines = neighbors.reduce((sum, n) => sum + (n.isMine && !n.slain ? n.monsterLevel : 0), 0);
+            } else {
+              cell.neighborMines = neighbors.filter((n) => n.isMine).length;
+            }
+          }
+        }
+      }
+    }
+
     // Calculate 3BV (Bechtel's Board Benchmark Value)
     function calculate3BV() {
       let visitedZeros = Array.from({ length: rows }, () => Array(cols).fill(false));
@@ -1588,16 +1937,12 @@
 
             while (q.length > 0) {
               const curr = q.shift();
-              for (let dr = -1; dr <= 1; dr++) {
-                for (let dc = -1; dc <= 1; dc++) {
-                  const nr = curr.r + dr;
-                  const nc = curr.c + dc;
-                  if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && !board[nr][nc].isMine) {
-                    inAnOpening[nr][nc] = true;
-                    if (board[nr][nc].neighborMines === 0 && !visitedZeros[nr][nc]) {
-                      visitedZeros[nr][nc] = true;
-                      q.push({ r: nr, c: nc });
-                    }
+              for (const nb of getNeighbors(curr.r, curr.c)) {
+                if (!nb.isMine) {
+                  inAnOpening[nb.r][nb.c] = true;
+                  if (nb.neighborMines === 0 && !visitedZeros[nb.r][nb.c]) {
+                    visitedZeros[nb.r][nb.c] = true;
+                    q.push({ r: nb.r, c: nb.c });
                   }
                 }
               }
@@ -1618,12 +1963,77 @@
       return openingsCount + isolatedCells;
     }
 
+    function setCoachBanner(htmlText, tag = "SOLVER: ACTIVE", borderColor = "rgba(16, 185, 129, 0.38)") {
+      if (coachBannerText) coachBannerText.innerHTML = htmlText;
+      if (coachRuleTag) coachRuleTag.textContent = tag;
+      const bannerEl = document.getElementById("coachBanner");
+      if (bannerEl) bannerEl.style.borderColor = borderColor;
+    }
+
+    function updateTacticalHudBar() {
+      if (!tacPrimaryBadge) return;
+      btnRpgHeal.style.display = currentMode === "dragonsweeper" ? "inline-flex" : "none";
+
+      if (currentMode === "dragonsweeper") {
+        tacPrimaryBadge.textContent = `⚔️ Hero LV.${heroLevel} (XP: ${heroXp}/${heroNextXp})`;
+        tacSecondaryBadge.textContent = `❤️ HP: ${heroHp}/${heroMaxHp}`;
+        tacTertiaryBadge.textContent = `🐉 Monsters Slain: ${monstersSlain} | 💰 ${eodCredits}c`;
+      } else if (currentMode === "flags_duel") {
+        tacPrimaryBadge.textContent = flagsDuelTurn === "p1" ? "🔵 YOUR TURN (HUNT MINES!)" : "🔴 DR. SWEEP AI THINKING...";
+        tacSecondaryBadge.textContent = `🔵 P1 Flags: ${p1MinesFound} / ${targetMinesToWin}`;
+        tacTertiaryBadge.textContent = `🔴 AI Flags: ${aiMinesFound} / ${targetMinesToWin}`;
+      } else if (currentMode === "trench_endless") {
+        tacPrimaryBadge.textContent = `⛏️ Trench Depth: ${trenchDepthMeters}m`;
+        tacSecondaryBadge.textContent = `🛡️ Blast Shields: ${blastShields}`;
+        tacTertiaryBadge.textContent = `📡 Sonar: ${sonarCharges} | ⚡ Drone: ${droneCharges}`;
+      } else if (currentMode === "blitz_90s") {
+        tacPrimaryBadge.textContent = `⏱️ Blitz Wave #${blitzWave} (${blitzTimeRemaining}s)`;
+        tacSecondaryBadge.textContent = `🔥 Blitz Score: ${blitzScore.toLocaleString()}`;
+        tacTertiaryBadge.textContent = `🛡️ Shields: ${blastShields} | 📡 Sonar: ${sonarCharges}`;
+      } else {
+        const modeNames = {
+          classic: "🏆 Classic 3BV",
+          no_guess: "🧠 Pure Logic No-Guess",
+          hex_grid: "⬡ Hexcells 6-Neighbor",
+          roguelike: "🛡️ EOD Roguelike"
+        };
+        tacPrimaryBadge.textContent = `${modeNames[currentMode] || "🏆 Classic"}`;
+        tacSecondaryBadge.textContent = `🛡️ Shields: ${blastShields} | 📡 Sonar: ${sonarCharges}`;
+        tacTertiaryBadge.textContent = `⚡ Drones: ${droneCharges} | 💰 Credits: ${eodCredits}`;
+      }
+    }
+
+    function selectGameMode(modeId) {
+      currentMode = modeId;
+      document.querySelectorAll(".mode-pill-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.mode === modeId);
+      });
+      const sel = document.getElementById("gameModeSelect");
+      if (sel && sel.value !== modeId) sel.value = modeId;
+
+      if (modeId === "trench_endless") {
+        trenchDepthMeters = 10;
+      } else if (modeId === "blitz_90s") {
+        blitzTimeRemaining = 90;
+        blitzScore = 0;
+        blitzWave = 1;
+      }
+      initGame();
+    }
+
     // Initialize New Game Board
-    function initGame() {
+    function initGame(preserveBlitzAndTrench = false) {
       clearInterval(timerInterval);
       timerInterval = null;
       startTime = null;
-      elapsedSeconds = 0;
+      if (!preserveBlitzAndTrench) {
+        elapsedSeconds = 0;
+        if (currentMode === "blitz_90s") {
+          blitzTimeRemaining = 90;
+          blitzScore = 0;
+          blitzWave = 1;
+        }
+      }
       isFirstClick = true;
       isGameOver = false;
       isWon = false;
@@ -1633,21 +2043,52 @@
       board3BV = 0;
       lastExplodedCell = null;
       boardHistoryState = null;
+      clearedRowsSet = new Set();
       clearCellFocus();
       focusedRow = 0;
       focusedCol = 0;
 
+      // Mode-specific initializations
+      blastShields = currentMode === "roguelike" ? 2 : 1;
+      sonarCharges = currentMode === "roguelike" ? 3 : 2;
+      droneCharges = currentMode === "roguelike" ? 3 : 2;
+      if (!preserveBlitzAndTrench) eodCredits = currentMode === "roguelike" ? 100 : 60;
+
+      heroLevel = 1;
+      heroHp = 100;
+      heroMaxHp = 100;
+      heroXp = 0;
+      heroNextXp = 45;
+      monstersSlain = 0;
+
+      flagsDuelTurn = "p1";
+      p1MinesFound = 0;
+      aiMinesFound = 0;
+      targetMinesToWin = Math.max(5, Math.floor(totalMines / 2) + 1);
+
       victoryBanner.classList.remove("show");
-      btnFace.textContent = "🙂";
-      dispTime.textContent = "000";
+      btnFace.textContent = currentMode === "dragonsweeper" ? "🧙‍♂️" : currentMode === "flags_duel" ? "🚩" : "🙂";
+      dispTime.textContent = currentMode === "blitz_90s" ? String(blitzTimeRemaining).padStart(3, "0") : "000";
       dispMines.textContent = String(totalMines).padStart(3, "0");
       stat3BV.textContent = "--";
       stat3BVs.innerHTML = `0.00 <small style="font-size:0.65rem">3BV/s</small>`;
       statClicks.textContent = "0";
       statFlags.textContent = "0";
-      statusMsg.textContent = "Click any cell to safely begin";
       liveDot.style.background = "var(--success-color)";
       liveDot.style.boxShadow = "0 0 8px var(--success-color)";
+
+      const modeDescriptions = {
+        classic: "🏆 Classic Championship: Click any cell for a guaranteed 3×3 safe opening.",
+        no_guess: "🧠 Pure Logic No-Guessing: 100% deterministic deductions! Press [H] for AI Logic Coach.",
+        dragonsweeper: "⚔️ Dragonsweeper RPG: Numbers equal SUM of adjacent monster levels (Lv.1–5). Slay monsters <= your Hero Level for XP!",
+        flags_duel: `🚩 Minesweeper Flags Duel: CLICK DIRECTLY ON HIDDEN MINES! First to claim ${targetMinesToWin} mines wins! Finding a mine grants a BONUS TURN!`,
+        hex_grid: "⬡ Hexagonal Honeycomb: Every hexagonal cell has 6 adjacent neighbors (0–6) and 6-way chord clearing!",
+        roguelike: "🛡️ EOD Bomb Squad Roguelike: Earn EOD Credits to fire 3×3 Sonar Pulses [Q], Blast Shields & Safe Drones [E]!",
+        trench_endless: `♾️ Endless Depth Trench (Depth: ${trenchDepthMeters}m): Clear horizontal strata to excavate deeper!`,
+        blitz_90s: `⏱️ 90-Second Defusal Blitz (Wave #${blitzWave}): Clear safe clusters and flags before the clock hits 0!`
+      };
+      statusMsg.textContent = modeDescriptions[currentMode] || "Click any cell to safely begin";
+      setCoachBanner(`🧠 <b>${modeDescriptions[currentMode]}</b>`, `MODE: ${currentMode.toUpperCase()}`);
 
       // Build 2D Cell Matrix
       board = [];
@@ -1657,6 +2098,9 @@
           board[r][c] = {
             r, c,
             isMine: false,
+            monsterLevel: 1,
+            slain: false,
+            claimedBy: null, // "p1" | "ai" in flags_duel
             revealed: false,
             flagged: false,
             question: false,
@@ -1667,47 +2111,70 @@
       }
 
       renderDomGrid();
+      updateTacticalHudBar();
     }
 
-    // Render Grid with Responsive Cell Dimensions
+    // Render Grid with Responsive Cell Dimensions (Supports both 8-Way Square & 6-Way Honeycomb Hex Grids!)
     function renderDomGrid() {
       const activePreset = Presets[currentPreset] || Presets.beginner;
       const cellSize = activePreset.cellSize || 34;
       document.documentElement.style.setProperty("--cell-size", `${cellSize}px`);
 
       gridEl.innerHTML = "";
-      gridEl.style.gridTemplateColumns = `repeat(${cols}, var(--cell-size))`;
-      gridEl.style.gridTemplateRows = `repeat(${rows}, var(--cell-size))`;
+      if (currentMode === "hex_grid") {
+        gridEl.className = "board-grid hex-layout";
+        gridEl.style.gridTemplateColumns = "";
+        gridEl.style.gridTemplateRows = "";
+        for (let r = 0; r < rows; r++) {
+          const rowDiv = document.createElement("div");
+          rowDiv.className = `hex-row ${r % 2 === 1 ? "hex-odd" : ""}`;
+          for (let c = 0; c < cols; c++) {
+            const cell = board[r][c];
+            const div = document.createElement("div");
+            div.className = "cell hex-cell";
+            div.dataset.row = r;
+            div.dataset.col = c;
+            div.addEventListener("mousedown", onCellMouseDown);
+            div.addEventListener("mouseup", onCellMouseUp);
+            div.addEventListener("contextmenu", (e) => e.preventDefault());
+            div.addEventListener("dblclick", () => handleChord(r, c));
+            cell.el = div;
+            rowDiv.appendChild(div);
+          }
+          gridEl.appendChild(rowDiv);
+        }
+      } else {
+        gridEl.className = "board-grid";
+        gridEl.style.gridTemplateColumns = `repeat(${cols}, var(--cell-size))`;
+        gridEl.style.gridTemplateRows = `repeat(${rows}, var(--cell-size))`;
 
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const cell = board[r][c];
-          const div = document.createElement("div");
-          div.className = "cell";
-          div.dataset.row = r;
-          div.dataset.col = c;
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const cell = board[r][c];
+            const div = document.createElement("div");
+            div.className = "cell";
+            div.dataset.row = r;
+            div.dataset.col = c;
 
-          div.addEventListener("mousedown", onCellMouseDown);
-          div.addEventListener("mouseup", onCellMouseUp);
-          div.addEventListener("contextmenu", (e) => e.preventDefault());
-          div.addEventListener("dblclick", () => handleChord(r, c));
+            div.addEventListener("mousedown", onCellMouseDown);
+            div.addEventListener("mouseup", onCellMouseUp);
+            div.addEventListener("contextmenu", (e) => e.preventDefault());
+            div.addEventListener("dblclick", () => handleChord(r, c));
 
-          cell.el = div;
-          gridEl.appendChild(div);
+            cell.el = div;
+            gridEl.appendChild(div);
+          }
         }
       }
     }
 
-    // Safe First-Click Placement
+    // Safe First-Click Placement (plus Monster Level Assignment for Dragonsweeper RPG)
     function plantMines(safeRow, safeCol) {
       let safeZone = new Set();
-      for (let dr = -1; dr <= 1; dr++) {
-        for (let dc = -1; dc <= 1; dc++) {
-          const nr = safeRow + dr;
-          const nc = safeCol + dc;
-          if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
-            safeZone.add(`${nr},${nc}`);
-          }
+      if (currentMode !== "flags_duel") {
+        safeZone.add(`${safeRow},${safeCol}`);
+        for (const nb of getNeighbors(safeRow, safeCol)) {
+          safeZone.add(`${nb.r},${nb.c}`);
         }
       }
 
@@ -1720,30 +2187,307 @@
         const cc = Math.floor(Math.random() * cols);
         if (!safeZone.has(`${rr},${cc}`) && !board[rr][cc].isMine) {
           board[rr][cc].isMine = true;
+          // Assign monster level 1..5 for Dragonsweeper RPG
+          if (planted === 0) {
+            board[rr][cc].monsterLevel = 5; // 1 Cyber-Dragon Boss (Lv.5)
+          } else if (planted <= 2) {
+            board[rr][cc].monsterLevel = 4;
+          } else if (planted <= 5) {
+            board[rr][cc].monsterLevel = 3;
+          } else if (planted <= 9) {
+            board[rr][cc].monsterLevel = 2;
+          } else {
+            board[rr][cc].monsterLevel = 1;
+          }
           planted++;
         }
       }
 
+      recomputeAllClueNumbers();
+      board3BV = calculate3BV();
+      stat3BV.textContent = board3BV;
+    }
+
+    // =====================================================================
+    // DETERMINISTIC CONSTRAINT & SUBSET LOGIC SOLVER + AI LOGIC COACH [H]
+    // =====================================================================
+    function clearCoachHighlights() {
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-          if (!board[r][c].isMine) {
-            let count = 0;
-            for (let dr = -1; dr <= 1; dr++) {
-              for (let dc = -1; dc <= 1; dc++) {
-                const nr = r + dr;
-                const nc = c + dc;
-                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && board[nr][nc].isMine) {
-                  count++;
-                }
-              }
+          board[r][c]?.el?.classList.remove("coach-safe", "coach-mine");
+        }
+      }
+    }
+
+    function findDeterministicMove() {
+      // Collect all revealed clue cells with unrevealed neighbors
+      const constraints = [];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const cell = board[r][c];
+          if (!cell.revealed || cell.isMine || cell.neighborMines === 0) continue;
+          const nbs = getNeighbors(r, c);
+          if (currentMode === "dragonsweeper") {
+            const unrev = nbs.filter((n) => !n.revealed && !n.flagged && !n.slain);
+            const flaggedOrSlainSum = nbs.reduce(
+              (acc, n) => acc + (n.slain ? n.monsterLevel : n.flagged ? 1 : 0),
+              0
+            );
+            if (unrev.length > 0 && flaggedOrSlainSum >= cell.neighborMines) {
+              return {
+                type: "safe",
+                cell: unrev[0],
+                rule: "Single-Clue Zero Remainder",
+                explanation: `Clue (${r + 1},${c + 1})[${cell.neighborMines}] has all monster threat accounted for → Cell (${unrev[0].r + 1},${unrev[0].c + 1}) is 100% SAFE!`
+              };
             }
-            board[r][c].neighborMines = count;
+            continue;
+          }
+
+          const flagged = nbs.filter((n) => n.flagged).length;
+          const unknown = nbs.filter((n) => !n.revealed && !n.flagged);
+          const remMines = cell.neighborMines - flagged;
+
+          if (unknown.length === 0) continue;
+
+          // Rule 1: Basic Single-Cell All-Safe
+          if (remMines === 0) {
+            return {
+              type: "safe",
+              cell: unknown[0],
+              rule: "Satisfied Clue Rule",
+              explanation: `Clue (${r + 1},${c + 1})[${cell.neighborMines}] already has all ${cell.neighborMines} adjacent mines flagged → Cell (${unknown[0].r + 1},${unknown[0].c + 1}) is 100% SAFE!`
+            };
+          }
+
+          // Rule 2: Basic Single-Cell All-Mines
+          if (remMines === unknown.length) {
+            return {
+              type: "mine",
+              cell: unknown[0],
+              rule: "Full Saturation Rule",
+              explanation: `Clue (${r + 1},${c + 1})[${cell.neighborMines}] needs ${remMines} more mine(s) across ${unknown.length} unknown cell(s) → Cell (${unknown[0].r + 1},${unknown[0].c + 1}) is 100% A MINE!`
+            };
+          }
+
+          constraints.push({
+            r,
+            c,
+            clue: cell.neighborMines,
+            rem: remMines,
+            cells: unknown,
+            keys: new Set(unknown.map((u) => `${u.r},${u.c}`))
+          });
+        }
+      }
+
+      // Rule 3: Pairwise Subset Subtraction & Coupled Frontier Deduction (1-1, 1-2-1, etc.)
+      for (let i = 0; i < constraints.length; i++) {
+        for (let j = 0; j < constraints.length; j++) {
+          if (i === j) continue;
+          const A = constraints[i];
+          const B = constraints[j];
+          if (Math.abs(A.r - B.r) > 2 || Math.abs(A.c - B.c) > 2) continue;
+
+          const onlyInB = B.cells.filter((u) => !A.keys.has(`${u.r},${u.c}`));
+          const onlyInA = A.cells.filter((u) => !B.keys.has(`${u.r},${u.c}`));
+          if (onlyInB.length === 0) continue;
+
+          // Case 3A: A is a strict subset of B (onlyInA.length === 0)
+          if (onlyInA.length === 0) {
+            const diffMines = B.rem - A.rem;
+            if (diffMines === 0) {
+              const target = onlyInB[0];
+              return {
+                type: "safe",
+                cell: target,
+                rule: "1-1 Subset Subtraction",
+                explanation: `Clue (${A.r + 1},${A.c + 1}) is a subset of (${B.r + 1},${B.c + 1}) with 0 remaining difference → Cell (${target.r + 1},${target.c + 1}) is 100% SAFE!`
+              };
+            }
+            if (diffMines === onlyInB.length) {
+              const target = onlyInB[0];
+              return {
+                type: "mine",
+                cell: target,
+                rule: "1-2 Subset Subtraction",
+                explanation: `Clue (${B.r + 1},${B.c + 1}) minus subset (${A.r + 1},${A.c + 1}) forces ${diffMines} mine(s) in ${onlyInB.length} cell(s) → (${target.r + 1},${target.c + 1}) is 100% A MINE!`
+              };
+            }
+          }
+
+          // Case 3B: Coupled Pigeonhole (B.rem - A.rem === onlyInB.length)
+          if (B.rem - A.rem === onlyInB.length && onlyInB.length > 0) {
+            const target = onlyInB[0];
+            return {
+              type: "mine",
+              cell: target,
+              rule: "1-2-1 Coupled Frontier",
+              explanation: `Coupled clues (${A.r + 1},${A.c + 1}) & (${B.r + 1},${B.c + 1}) force (${target.r + 1},${target.c + 1}) to be 100% A MINE!`
+            };
           }
         }
       }
 
-      board3BV = calculate3BV();
-      stat3BV.textContent = board3BV;
+      return null;
+    }
+
+    function triggerAiCoach() {
+      if (isGameOver) return;
+      clearCoachHighlights();
+
+      if (isFirstClick) {
+        const cr = Math.floor(rows / 2);
+        const cc = Math.floor(cols / 2);
+        board[cr][cc].el.classList.add("coach-safe");
+        setCoachBanner(
+          `💡 <b>AI Logic Coach:</b> First click is always a guaranteed safe opening! Click highlighted center cell <b>(${cr + 1},${cc + 1})</b>.`,
+          "RULE: SAFE OPENING"
+        );
+        return;
+      }
+
+      const move = findDeterministicMove();
+      if (move) {
+        const cls = move.type === "safe" ? "coach-safe" : "coach-mine";
+        move.cell.el.classList.add(cls);
+        setCoachBanner(
+          `💡 <b>AI Logic Coach (${move.rule}):</b> ${move.explanation}`,
+          move.type === "safe" ? "100% SAFE CELL" : "100% MINE CELL",
+          move.type === "safe" ? "#10b981" : "#f59e0b"
+        );
+        SoundEngine.playReveal(calculatePan(move.cell.c), 2);
+        return;
+      }
+
+      // If no immediate frontier deduction is visible (or in No-Guessing mode), guide to a verified safe frontier cell!
+      let bestSafe = null;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const cell = board[r][c];
+          if (!cell.revealed && !cell.flagged && !cell.isMine) {
+            const touchesRevealed = getNeighbors(r, c).some((n) => n.revealed);
+            if (touchesRevealed) {
+              bestSafe = cell;
+              break;
+            }
+            if (!bestSafe) bestSafe = cell;
+          }
+        }
+        if (bestSafe && getNeighbors(bestSafe.r, bestSafe.c).some((n) => n.revealed)) break;
+      }
+
+      if (bestSafe) {
+        bestSafe.el.classList.add("coach-safe");
+        setCoachBanner(
+          `💡 <b>AI Logic Coach (No-Guess Verified):</b> Frontier cell <b>(${bestSafe.r + 1},${bestSafe.c + 1})</b> is verified safe to reveal!`,
+          "NO-GUESS VERIFIED"
+        );
+        SoundEngine.playReveal(calculatePan(bestSafe.c), 1);
+      }
+    }
+
+    // =====================================================================
+    // EOD ROGUELIKE GADGETS (SONAR 3x3 PULSE [Q] & SAFE DRONE [E])
+    // =====================================================================
+    function triggerSonarPulse() {
+      if (isGameOver) return;
+      if (sonarCharges <= 0 && eodCredits < 25) {
+        setCoachBanner("⚠️ <b>Insufficient Sonar Charges / EOD Credits (need 25c)!</b> Clear more tiles to earn credits.", "SONAR: EMPTY", "#ef4444");
+        return;
+      }
+      if (sonarCharges > 0) sonarCharges--;
+      else eodCredits -= 25;
+
+      // Pick target center (focused cell if unrevealed, else first unrevealed frontier cell)
+      let center = board[focusedRow]?.[focusedCol];
+      if (!center || center.revealed) {
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            if (!board[r][c].revealed && !board[r][c].flagged) {
+              center = board[r][c];
+              break;
+            }
+          }
+          if (center && !center.revealed) break;
+        }
+      }
+      if (!center) return;
+
+      if (isFirstClick) {
+        isFirstClick = false;
+        plantMines(center.r, center.c);
+        startTimer();
+      }
+
+      let scannedSafe = 0;
+      let scannedMines = 0;
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const nr = center.r + dr;
+          const nc = center.c + dc;
+          if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+            const cCell = board[nr][nc];
+            if (cCell.revealed) continue;
+            if (cCell.isMine) {
+              if (!cCell.flagged) {
+                cCell.flagged = true;
+                flagsCount++;
+                scannedMines++;
+                updateCellVisual(cCell);
+              }
+            } else {
+              floodReveal(nr, nc);
+              scannedSafe++;
+            }
+          }
+        }
+      }
+
+      const remainingMines = totalMines - flagsCount;
+      dispMines.textContent = String(remainingMines).padStart(3, remainingMines < 0 ? "-" : "0");
+      statFlags.textContent = flagsCount;
+      SoundEngine.playChord(calculatePan(center.c));
+      setCoachBanner(
+        `📡 <b>3×3 Sonar Pulse Deployed at (${center.r + 1},${center.c + 1}):</b> Auto-flagged ${scannedMines} mine(s) & cleared ${scannedSafe} safe sector(s)!`,
+        "SONAR: 3x3 CLEAR"
+      );
+      updateTacticalHudBar();
+      checkWinCondition();
+    }
+
+    function triggerSafeDrone() {
+      if (isGameOver) return;
+      if (droneCharges <= 0 && eodCredits < 20) {
+        setCoachBanner("⚠️ <b>Insufficient Drone Charges / EOD Credits (need 20c)!</b>", "DRONE: EMPTY", "#ef4444");
+        return;
+      }
+      if (droneCharges > 0) droneCharges--;
+      else eodCredits -= 20;
+
+      // Prefer a zero-opening cell if unrevealed, else any safe unrevealed cell
+      let target = null;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const cell = board[r][c];
+          if (!cell.revealed && !cell.flagged && !cell.isMine) {
+            if (cell.neighborMines === 0) {
+              target = cell;
+              break;
+            }
+            if (!target) target = cell;
+          }
+        }
+        if (target && target.neighborMines === 0) break;
+      }
+      if (!target) return;
+
+      handleReveal(target.r, target.c);
+      setCoachBanner(
+        `⚡ <b>Safe-Path EOD Drone Deployed:</b> Cleared safe coordinates at <b>(${target.r + 1},${target.c + 1})</b>!`,
+        "DRONE: DEPLOYED"
+      );
+      updateTacticalHudBar();
     }
 
     // High Precision Timer
@@ -1752,9 +2496,21 @@
       startTime = Date.now();
       timerInterval = setInterval(() => {
         if (isGameOver) return;
-        elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-        if (elapsedSeconds > 999) elapsedSeconds = 999;
-        dispTime.textContent = String(elapsedSeconds).padStart(3, "0");
+        const deltaSec = Math.floor((Date.now() - startTime) / 1000);
+        elapsedSeconds = Math.min(999, deltaSec);
+
+        if (currentMode === "blitz_90s") {
+          const left = Math.max(0, 90 - deltaSec + (blitzWave - 1) * 12);
+          blitzTimeRemaining = left;
+          dispTime.textContent = String(left).padStart(3, "0");
+          updateTacticalHudBar();
+          if (left <= 0) {
+            triggerGameOver(board[0][0], "⏱️ 90-Second Blitz Timer Expired!");
+            return;
+          }
+        } else {
+          dispTime.textContent = String(elapsedSeconds).padStart(3, "0");
+        }
 
         if (elapsedSeconds > 0 && board3BV > 0) {
           const eff = (board3BV / elapsedSeconds).toFixed(2);
@@ -1769,7 +2525,8 @@
         board: board.map(row => row.map(cell => ({
           revealed: cell.revealed,
           flagged: cell.flagged,
-          question: cell.question
+          question: cell.question,
+          slain: cell.slain
         }))),
         revealedCount,
         flagsCount,
@@ -1796,6 +2553,7 @@
             cell.revealed = saved.revealed;
             cell.flagged = saved.flagged;
             cell.question = saved.question;
+            cell.slain = saved.slain;
             updateCellVisual(cell);
           }
         }
@@ -1813,6 +2571,7 @@
     function onCellMouseDown(e) {
       if (isGameOver) return;
       clearCellFocus();
+      clearCoachHighlights();
       activeMouseDown = e.buttons;
 
       if (e.button === 0 || e.buttons === 3) {
@@ -1828,7 +2587,7 @@
 
     function onCellMouseUp(e) {
       if (isGameOver) return;
-      btnFace.textContent = "🙂";
+      btnFace.textContent = currentMode === "dragonsweeper" ? "🧙‍♂️" : currentMode === "flags_duel" ? "🚩" : "🙂";
       const r = parseInt(this.dataset.row);
       const c = parseInt(this.dataset.col);
       highlightChordNeighbors(r, c, false);
@@ -1847,9 +2606,122 @@
       return (c / Math.max(1, cols - 1)) * 2 - 1;
     }
 
+    // Mode 4: Minesweeper Flags Duel (Player 1 vs Dr. Sweep AI)
+    function handleFlagsDuelClick(r, c, actor = "p1") {
+      if (isGameOver) return;
+      const cell = board[r][c];
+      if (cell.revealed || cell.flagged) return;
+
+      if (isFirstClick) {
+        isFirstClick = false;
+        plantMines(r, c);
+        startTimer();
+      }
+
+      if (cell.isMine) {
+        // Scored a direct mine hit! Claim flag & keep turn!
+        cell.flagged = true;
+        cell.claimedBy = actor;
+        flagsCount++;
+        if (actor === "p1") p1MinesFound++;
+        else aiMinesFound++;
+
+        SoundEngine.playFlag(calculatePan(c));
+        updateCellVisual(cell);
+        updateTacticalHudBar();
+
+        const remainingMines = totalMines - flagsCount;
+        dispMines.textContent = String(remainingMines).padStart(3, "0");
+
+        if (p1MinesFound >= targetMinesToWin || aiMinesFound >= targetMinesToWin) {
+          isGameOver = true;
+          clearInterval(timerInterval);
+          const p1Won = p1MinesFound >= targetMinesToWin;
+          isWon = p1Won;
+          btnFace.textContent = p1Won ? "😎" : "🤖";
+          statusMsg.textContent = p1Won
+            ? `🏆 Flags Duel Victory! You claimed ${p1MinesFound} mines vs AI's ${aiMinesFound}!`
+            : `🤖 Dr. Sweep AI claimed ${aiMinesFound} mines first!`;
+          setCoachBanner(`🚩 <b>${statusMsg.textContent}</b>`, p1Won ? "DUEL VICTORY" : "AI VICTORY");
+          if (p1Won) {
+            SoundEngine.playVictory();
+            FXEngine.confetti();
+          }
+          return;
+        }
+
+        if (actor === "p1") {
+          setCoachBanner(
+            `🔥 <b>DIRECT MINE HIT at (${r + 1},${c + 1})!</b> +1 Blue Flag (${p1MinesFound}/${targetMinesToWin}) — <b>BONUS EXTRA TURN!</b>`,
+            "CHAIN TURN!",
+            "#38bdf8"
+          );
+        } else {
+          setCoachBanner(
+            `🤖 <b>Dr. Sweep AI found a mine at (${r + 1},${c + 1})!</b> AI gets a chain turn...`,
+            "AI CHAIN!",
+            "#f43f5e"
+          );
+          setTimeout(runFlagsDuelAiTurn, 420);
+        }
+      } else {
+        // Missed mine -> Reveal safe clue and pass turn!
+        SoundEngine.playReveal(calculatePan(c), cell.neighborMines);
+        floodReveal(r, c);
+        if (actor === "p1") {
+          flagsDuelTurn = "ai";
+          updateTacticalHudBar();
+          setCoachBanner(
+            `💨 Safe clue revealed at (${r + 1},${c + 1}). Turn passes to <b>🤖 Dr. Sweep AI</b>...`,
+            "AI TURN"
+          );
+          setTimeout(runFlagsDuelAiTurn, 480);
+        } else {
+          flagsDuelTurn = "p1";
+          updateTacticalHudBar();
+          setCoachBanner(
+            `🔵 <b>Your Turn!</b> AI revealed a safe clue at (${r + 1},${c + 1}). Click a suspected MINE to claim it!`,
+            "YOUR TURN"
+          );
+        }
+      }
+    }
+
+    function runFlagsDuelAiTurn() {
+      if (isGameOver || currentMode !== "flags_duel" || flagsDuelTurn !== "ai") return;
+      // 1. Check if Logic Solver knows a 100% mine!
+      const det = findDeterministicMove();
+      if (det && det.type === "mine" && !det.cell.flagged && !det.cell.revealed) {
+        handleFlagsDuelClick(det.cell.r, det.cell.c, "ai");
+        return;
+      }
+      // 2. Otherwise pick an unrevealed cell adjacent to the highest revealed clue number
+      let candidates = [];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const cell = board[r][c];
+          if (!cell.revealed && !cell.flagged) {
+            const adjClue = getNeighbors(r, c).reduce((mx, n) => (n.revealed ? Math.max(mx, n.neighborMines) : mx), 0);
+            candidates.push({ cell, weight: adjClue + Math.random() * 1.5 });
+          }
+        }
+      }
+      if (candidates.length === 0) return;
+      candidates.sort((a, b) => b.weight - a.weight);
+      const pick = candidates[0].cell;
+      handleFlagsDuelClick(pick.r, pick.c, "ai");
+    }
+
     // Reveal Cell Logic
     function handleReveal(r, c) {
       if (isGameOver) return;
+      clearCoachHighlights();
+
+      if (currentMode === "flags_duel") {
+        if (flagsDuelTurn === "p1") handleFlagsDuelClick(r, c, "p1");
+        return;
+      }
+
       const cell = board[r][c];
       if (cell.revealed || cell.flagged) return;
 
@@ -1862,7 +2734,114 @@
         startTimer();
       }
 
+      // Mode 2: Pure Logic No-Guessing Safety Swap if player clicks an ambiguous frontier mine!
+      if (currentMode === "no_guess" && cell.isMine) {
+        const det = findDeterministicMove();
+        // If there was no deterministic safe move available, relocate this mine to an unrevealed non-adjacent cell!
+        if (!det) {
+          for (let rr = 0; rr < rows; rr++) {
+            let swapped = false;
+            for (let cc = 0; cc < cols; cc++) {
+              const alt = board[rr][cc];
+              if (!alt.revealed && !alt.flagged && !alt.isMine && (rr !== r || cc !== c)) {
+                alt.isMine = true;
+                cell.isMine = false;
+                recomputeAllClueNumbers();
+                for (let yr = 0; yr < rows; yr++) {
+                  for (let yc = 0; yc < cols; yc++) {
+                    if (board[yr][yc].revealed) updateCellVisual(board[yr][yc]);
+                  }
+                }
+                swapped = true;
+                break;
+              }
+            }
+            if (swapped) break;
+          }
+        }
+      }
+
+      // Mode 3: Dragonsweeper RPG Combat when clicking a Monster tile!
+      if (currentMode === "dragonsweeper" && cell.isMine && !cell.slain) {
+        const mSpec = MONSTER_SPECS[cell.monsterLevel] || MONSTER_SPECS[1];
+        if (heroLevel >= cell.monsterLevel) {
+          // Cleanly slay monster for XP!
+          cell.slain = true;
+          cell.revealed = true;
+          monstersSlain++;
+          flagsCount++;
+          heroXp += mSpec.xp;
+          eodCredits += 10;
+          while (heroXp >= heroNextXp && heroLevel < 5) {
+            heroXp -= heroNextXp;
+            heroLevel++;
+            heroMaxHp += 25;
+            heroHp = heroMaxHp;
+            heroNextXp = Math.round(heroNextXp * 1.65);
+          }
+          recomputeAllClueNumbers();
+          for (let yr = 0; yr < rows; yr++) {
+            for (let yc = 0; yc < cols; yc++) {
+              if (board[yr][yc].revealed) updateCellVisual(board[yr][yc]);
+            }
+          }
+          updateCellVisual(cell);
+          updateTacticalHudBar();
+          SoundEngine.playChord(calculatePan(c));
+          setCoachBanner(
+            `⚔️ <b>Slain ${mSpec.icon} ${mSpec.name} (+${mSpec.xp} XP)!</b> Neighboring threat sums updated!`,
+            `HERO LV.${heroLevel}`,
+            "#10b981"
+          );
+          checkWinCondition();
+          return;
+        } else {
+          // Monster is higher level than Hero -> Take HP damage!
+          const dmg = (cell.monsterLevel - heroLevel) * 28;
+          heroHp = Math.max(0, heroHp - dmg);
+          if (heroHp > 0) {
+            cell.slain = true;
+            cell.revealed = true;
+            monstersSlain++;
+            flagsCount++;
+            heroXp += mSpec.xp;
+            recomputeAllClueNumbers();
+            for (let yr = 0; yr < rows; yr++) {
+              for (let yc = 0; yc < cols; yc++) {
+                if (board[yr][yc].revealed) updateCellVisual(board[yr][yc]);
+              }
+            }
+            updateCellVisual(cell);
+            updateTacticalHudBar();
+            SoundEngine.playFlag(calculatePan(c));
+            setCoachBanner(
+              `🩸 <b>Ambush! Fought ${mSpec.icon} ${mSpec.name} (-${dmg} HP, +${mSpec.xp} XP)!</b> Level up on weaker monsters first!`,
+              `HP: ${heroHp}/${heroMaxHp}`,
+              "#f59e0b"
+            );
+            checkWinCondition();
+            return;
+          }
+        }
+      }
+
       if (cell.isMine) {
+        // Check Kevlar Blast Shield (Mode 6 Roguelike or Tactical Shield)
+        if (blastShields > 0 && currentMode === "roguelike") {
+          blastShields--;
+          cell.flagged = true;
+          flagsCount++;
+          updateCellVisual(cell);
+          updateTacticalHudBar();
+          SoundEngine.playFlag(calculatePan(c));
+          setCoachBanner(
+            `🛡️ <b>Kevlar Blast Shield Absorbed Detonation at (${r + 1},${c + 1})!</b> Mine auto-defused! (${blastShields} shield left)`,
+            "SHIELD SAVED!",
+            "#38bdf8"
+          );
+          return;
+        }
+
         if (practiceMode) {
           snapshotState();
           lastExplodedCell = cell;
@@ -1873,8 +2852,34 @@
 
       snapshotState();
       SoundEngine.playReveal(calculatePan(c), cell.neighborMines);
+      const prevRev = revealedCount;
       floodReveal(r, c);
+      const newlyCleared = Math.max(1, revealedCount - prevRev);
+      eodCredits += newlyCleared * 4;
+      if (currentMode === "blitz_90s") {
+        blitzScore += newlyCleared * 35 * blitzWave;
+      }
+      if (currentMode === "trench_endless") {
+        checkTrenchRowClears();
+      }
+      updateTacticalHudBar();
       checkWinCondition();
+    }
+
+    function checkTrenchRowClears() {
+      for (let r = 0; r < rows; r++) {
+        if (clearedRowsSet.has(r)) continue;
+        const rowDone = board[r].every((c) => c.isMine || c.revealed);
+        if (rowDone) {
+          clearedRowsSet.add(r);
+          trenchDepthMeters += 15;
+          eodCredits += 20;
+          setCoachBanner(
+            `⛏️ <b>Stratum Row #${r + 1} Excavated!</b> Depth increased to <b>${trenchDepthMeters}m</b> (+20 EOD Credits)!`,
+            `DEPTH: ${trenchDepthMeters}M`
+          );
+        }
+      }
     }
 
     // Flood Fill
@@ -1895,17 +2900,11 @@
         }
 
         if (cell.neighborMines === 0) {
-          for (let dr = -1; dr <= 1; dr++) {
-            for (let dc = -1; dc <= 1; dc++) {
-              const nr = r + dr;
-              const nc = c + dc;
-              if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
-                const neighbor = board[nr][nc];
-                if (!neighbor.isMine && !neighbor.revealed && !neighbor.flagged && !visited.has(`${nr},${nc}`)) {
-                  visited.add(`${nr},${nc}`);
-                  q.push({ r: nr, c: nc });
-                }
-              }
+          for (const neighbor of getNeighbors(r, c)) {
+            const key = `${neighbor.r},${neighbor.c}`;
+            if (!neighbor.isMine && !neighbor.revealed && !neighbor.flagged && !visited.has(key)) {
+              visited.add(key);
+              q.push({ r: neighbor.r, c: neighbor.c });
             }
           }
         }
@@ -1918,42 +2917,44 @@
       const cell = board[r][c];
       if (!cell.revealed || cell.neighborMines === 0) return;
 
-      let flaggedNeighbors = 0;
-      for (let dr = -1; dr <= 1; dr++) {
-        for (let dc = -1; dc <= 1; dc++) {
-          const nr = r + dr;
-          const nc = c + dc;
-          if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && board[nr][nc].flagged) {
-            flaggedNeighbors++;
-          }
-        }
+      const neighbors = getNeighbors(r, c);
+      let satisfied = false;
+      if (currentMode === "dragonsweeper") {
+        const threatLeft = neighbors.reduce(
+          (acc, n) => acc + (n.flagged && !n.slain ? n.monsterLevel || 1 : 0),
+          0
+        );
+        satisfied = threatLeft === cell.neighborMines;
+      } else {
+        const flaggedNeighbors = neighbors.filter((n) => n.flagged).length;
+        satisfied = flaggedNeighbors === cell.neighborMines;
       }
 
-      if (flaggedNeighbors === cell.neighborMines) {
+      if (satisfied) {
         SoundEngine.playChord(calculatePan(c));
         totalClicks++;
         statClicks.textContent = totalClicks;
+        eodCredits += 12;
+        if (currentMode === "blitz_90s") blitzScore += 150;
         snapshotState();
 
-        for (let dr = -1; dr <= 1; dr++) {
-          for (let dc = -1; dc <= 1; dc++) {
-            const nr = r + dr;
-            const nc = c + dc;
-            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
-              const neighbor = board[nr][nc];
-              if (!neighbor.revealed && !neighbor.flagged) {
-                if (neighbor.isMine) {
-                  if (practiceMode) {
-                    lastExplodedCell = neighbor;
-                  }
-                  triggerGameOver(neighbor);
-                  return;
-                }
-                floodReveal(nr, nc);
+        for (const neighbor of neighbors) {
+          if (!neighbor.revealed && !neighbor.flagged && !neighbor.slain) {
+            if (neighbor.isMine) {
+              if (currentMode === "dragonsweeper" && heroLevel >= neighbor.monsterLevel) {
+                handleReveal(neighbor.r, neighbor.c);
+                continue;
               }
+              if (practiceMode) {
+                lastExplodedCell = neighbor;
+              }
+              triggerGameOver(neighbor);
+              return;
             }
+            floodReveal(neighbor.r, neighbor.c);
           }
         }
+        updateTacticalHudBar();
         checkWinCondition();
       } else {
         highlightChordNeighbors(r, c, true);
@@ -1962,16 +2963,9 @@
     }
 
     function highlightChordNeighbors(r, c, highlight) {
-      for (let dr = -1; dr <= 1; dr++) {
-        for (let dc = -1; dc <= 1; dc++) {
-          const nr = r + dr;
-          const nc = c + dc;
-          if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
-            const cell = board[nr][nc];
-            if (!cell.revealed && !cell.flagged) {
-              cell.el.classList.toggle("highlight-chord", highlight);
-            }
-          }
+      for (const cell of getNeighbors(r, c)) {
+        if (!cell.revealed && !cell.flagged) {
+          cell.el.classList.toggle("highlight-chord", highlight);
         }
       }
     }
@@ -1979,6 +2973,10 @@
     // Flagging
     function handleFlag(r, c) {
       if (isGameOver) return;
+      if (currentMode === "flags_duel") {
+        handleFlagsDuelClick(r, c, "p1");
+        return;
+      }
       const cell = board[r][c];
       if (cell.revealed) return;
 
@@ -2006,22 +3004,41 @@
     // Visual Updates
     function updateCellVisual(cell) {
       const el = cell.el;
-      el.className = "cell";
+      if (!el) return;
+      el.className = currentMode === "hex_grid" ? "cell hex-cell" : "cell";
       el.textContent = "";
       delete el.dataset.n;
+
+      if (cell.slain) {
+        el.classList.add("revealed");
+        const mSpec = MONSTER_SPECS[cell.monsterLevel] || MONSTER_SPECS[1];
+        el.textContent = mSpec.icon;
+        el.style.opacity = "0.55";
+        return;
+      }
+      el.style.opacity = "";
 
       if (cell.revealed) {
         el.classList.add("revealed");
         if (cell.isMine) {
           el.classList.add("exploded");
-          el.textContent = "💣";
+          if (currentMode === "dragonsweeper") {
+            const mSpec = MONSTER_SPECS[cell.monsterLevel] || MONSTER_SPECS[1];
+            el.textContent = mSpec.icon;
+          } else {
+            el.textContent = "💣";
+          }
         } else if (cell.neighborMines > 0) {
-          el.dataset.n = cell.neighborMines;
+          el.dataset.n = Math.min(8, cell.neighborMines);
           el.textContent = cell.neighborMines;
         }
       } else {
         if (cell.flagged) {
-          el.textContent = "🚩";
+          if (currentMode === "flags_duel") {
+            el.textContent = cell.claimedBy === "ai" ? "🔴" : "🔵";
+          } else {
+            el.textContent = "🚩";
+          }
         } else if (cell.question) {
           el.textContent = "❓";
         }
@@ -2033,22 +3050,24 @@
     }
 
     // Trigger Game Over
-    function triggerGameOver(hitCell) {
+    function triggerGameOver(hitCell, customReason = null) {
       isGameOver = true;
       clearInterval(timerInterval);
       btnFace.textContent = "😵";
       liveDot.style.background = "var(--danger-color)";
       liveDot.style.boxShadow = "0 0 8px var(--danger-color)";
-      statusMsg.textContent = practiceMode ? "Mine detonated! Press (U) to Undo in Practice Mode." : "Mine detonated! Game Over.";
+      statusMsg.textContent = customReason || (practiceMode ? "Mine detonated! Press (U) to Undo in Practice Mode." : "Mine detonated! Game Over.");
       SoundEngine.playExplosion();
 
-      const rect = hitCell.el.getBoundingClientRect();
-      FXEngine.explode(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      if (hitCell && hitCell.el) {
+        const rect = hitCell.el.getBoundingClientRect();
+        FXEngine.explode(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      }
 
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           const cell = board[r][c];
-          if (cell.isMine && !cell.flagged) {
+          if (cell.isMine && !cell.flagged && !cell.slain) {
             cell.revealed = true;
             updateCellVisual(cell);
           } else if (!cell.isMine && cell.flagged) {
@@ -2057,7 +3076,7 @@
           }
         }
       }
-      hitCell.el.classList.add("exploded");
+      if (hitCell && hitCell.el) hitCell.el.classList.add("exploded");
 
       if (!practiceMode) {
         StatsManager.recordLoss(currentPreset);
@@ -2066,8 +3085,34 @@
 
     // Check Win Condition
     function checkWinCondition() {
+      if (currentMode === "flags_duel") return;
       const safeCellsTotal = rows * cols - totalMines;
-      if (revealedCount === safeCellsTotal) {
+      if (revealedCount >= safeCellsTotal) {
+        // In Endless Trench or 90s Defusal Blitz, advance to next stratum/wave automatically!
+        if (currentMode === "trench_endless") {
+          trenchDepthMeters += 50;
+          SoundEngine.playVictory();
+          FXEngine.confetti();
+          setCoachBanner(
+            `⛏️ <b>Stratum Cleared! Descending to ${trenchDepthMeters}m Depth!</b>`,
+            `DEPTH: ${trenchDepthMeters}M`
+          );
+          setTimeout(() => initGame(true), 650);
+          return;
+        }
+        if (currentMode === "blitz_90s") {
+          blitzWave++;
+          blitzScore += 1000;
+          SoundEngine.playVictory();
+          FXEngine.confetti();
+          setCoachBanner(
+            `⚡ <b>Blitz Wave #${blitzWave - 1} Cleared! +1,000 Score & +12s Bonus Time!</b>`,
+            `WAVE #${blitzWave}`
+          );
+          setTimeout(() => initGame(true), 650);
+          return;
+        }
+
         isGameOver = true;
         isWon = true;
         clearInterval(timerInterval);
@@ -2081,7 +3126,7 @@
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {
             const cell = board[r][c];
-            if (cell.isMine && !cell.flagged) {
+            if (cell.isMine && !cell.flagged && !cell.slain) {
               cell.flagged = true;
               updateCellVisual(cell);
             }
@@ -2139,6 +3184,17 @@
 
       if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
 
+      // Hotkeys 1-8 for 8 Game Modes
+      if (e.code && e.code.startsWith("Digit")) {
+        const idx = parseInt(e.code.replace("Digit", ""), 10) - 1;
+        const modes = ["classic", "no_guess", "dragonsweeper", "flags_duel", "hex_grid", "roguelike", "trench_endless", "blitz_90s"];
+        if (modes[idx]) {
+          e.preventDefault();
+          selectGameMode(modes[idx]);
+          return;
+        }
+      }
+
       switch (e.key.toLowerCase()) {
         case "arrowup":
         case "w":
@@ -2178,6 +3234,18 @@
           e.preventDefault();
           handleChord(focusedRow, focusedCol);
           break;
+        case "h":
+          e.preventDefault();
+          triggerAiCoach();
+          break;
+        case "q":
+          e.preventDefault();
+          triggerSonarPulse();
+          break;
+        case "e":
+          e.preventDefault();
+          triggerSafeDrone();
+          break;
         case "r":
           e.preventDefault();
           initGame();
@@ -2194,8 +3262,34 @@
     });
 
     // -------------------------------------------------------------
-    // 4. UI Toolbar Handlers, Preferences & Modals
+    // 4. UI Toolbar Handlers, 8-Mode Controls, Preferences & Modals
     // -------------------------------------------------------------
+    document.querySelectorAll(".mode-pill-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (btn.dataset.mode) selectGameMode(btn.dataset.mode);
+      });
+    });
+
+    document.getElementById("gameModeSelect").addEventListener("change", function() {
+      selectGameMode(this.value);
+    });
+
+    document.getElementById("btnAiCoach").addEventListener("click", triggerAiCoach);
+    document.getElementById("btnAiCoachTop").addEventListener("click", triggerAiCoach);
+    document.getElementById("btnSonarPulse").addEventListener("click", triggerSonarPulse);
+    document.getElementById("btnSafeDrone").addEventListener("click", triggerSafeDrone);
+    document.getElementById("btnRpgHeal").addEventListener("click", () => {
+      if (eodCredits >= 15 && heroHp < heroMaxHp) {
+        eodCredits -= 15;
+        heroHp = Math.min(heroMaxHp, heroHp + 50);
+        SoundEngine.playChord(0);
+        updateTacticalHudBar();
+        setCoachBanner(`🧪 <b>Medkit Applied!</b> Restored Hero HP to ${heroHp}/${heroMaxHp}!`, "RPG HEAL");
+      } else {
+        setCoachBanner(`🧪 Hero HP is full or need 15 EOD Credits!`, "RPG HEAL");
+      }
+    });
+
     const btnSound = document.getElementById("btnSound");
     function toggleSound() {
       const enabled = SoundEngine.toggle();
@@ -2204,7 +3298,7 @@
     }
     btnSound.addEventListener("click", toggleSound);
 
-    btnFace.addEventListener("click", initGame);
+    btnFace.addEventListener("click", () => initGame(false));
 
     const btnPractice = document.getElementById("btnPractice");
     btnPractice.addEventListener("click", () => {
@@ -2236,7 +3330,7 @@
         cols = Presets[diff].cols;
         rows = Presets[diff].rows;
         totalMines = Presets[diff].mines;
-        initGame();
+        initGame(false);
       });
     });
 

@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Codecaine CyberCentipede Blaster</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    :root {
+      --bg: #020810;
+      --panel: rgba(6, 18, 30, 0.9);
+      --lime: #00ff88;
+      --cyan: #00f5ff;
+      --magenta: #ff0066;
+      --purple: #b829ff;
+      --gold: #ffcc00;
+      --text: #e8f8ff;
+    }
+    * { box-sizing: border-box; user-select: none; }
+    body {
+      margin: 0; padding: 0;
+      background: radial-gradient(circle at 50% 30%, #071e30 0%, #020810 100%);
+      color: var(--text);
+      font-family: 'Orbitron', 'Rajdhani', 'Segoe UI', system-ui, monospace, sans-serif;
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh; overflow: hidden;
+    }
+    .hud-header {
+      width: 100%; max-width: 1080px;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 10px 16px; margin-top: 6px;
+      background: var(--panel);
+      border: 1px solid rgba(0, 255, 136, 0.35);
+      border-radius: 14px;
+      box-shadow: 0 0 28px rgba(0, 255, 136, 0.16);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-title {
+      font-size: 18px; font-weight: 900; letter-spacing: 2px;
+      background: linear-gradient(90deg, var(--lime), var(--cyan), var(--magenta));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .brand-sub {
+      font-size: 10px; letter-spacing: 1.5px; color: var(--lime);
+      padding: 2px 8px; border-radius: 10px;
+      background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.35);
+    }
+    .stats-bar { display: flex; gap: 12px; align-items: center; }
+    .stat-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(0, 255, 136, 0.22);
+      border-radius: 10px; padding: 4px 12px; text-align: center;
+      min-width: 84px;
+    }
+    .stat-label { font-size: 9px; letter-spacing: 1.5px; color: #8cb8d0; text-transform: uppercase; }
+    .stat-val {
+      font-size: 17px; font-weight: 800; color: #fff;
+      text-shadow: 0 0 10px var(--lime);
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-val.gold { color: var(--gold); text-shadow: 0 0 10px var(--gold); }
+    .controls-bar { display: flex; gap: 8px; align-items: center; }
+    .btn {
+      background: rgba(0, 255, 136, 0.12);
+      color: var(--lime);
+      border: 1px solid rgba(0, 255, 136, 0.4);
+      border-radius: 8px; padding: 6px 12px;
+      font-family: inherit; font-size: 11px; font-weight: 700;
+      letter-spacing: 1px; cursor: pointer;
+      transition: all 0.15s ease; text-transform: uppercase;
+    }
+    .btn:hover, .btn.active {
+      background: var(--lime); color: #020810;
+      box-shadow: 0 0 14px var(--lime);
+    }
+    .stage-wrap {
+      width: 100%; max-width: 1080px;
+      flex: 1; display: flex; gap: 14px;
+      padding: 8px 16px 12px; align-items: stretch;
+    }
+    .canvas-col {
+      flex: 1; display: flex; justify-content: center; align-items: center;
+    }
+    canvas {
+      height: calc(100vh - 108px);
+      max-height: 760px;
+      aspect-ratio: 30 / 28;
+      background: #02070f;
+      border: 1px solid rgba(0, 255, 136, 0.35);
+      border-radius: 16px;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.88), inset 0 0 30px rgba(0, 255, 136, 0.08);
+      cursor: crosshair; display: block;
+    }
+    .intel-col {
+      width: 220px;
+      background: var(--panel);
+      border: 1px solid rgba(0, 255, 136, 0.25);
+      border-radius: 16px; padding: 14px;
+      display: flex; flex-direction: column; justify-content: space-between;
+      font-size: 12px;
+    }
+    .intel-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(0, 245, 255, 0.18);
+      border-radius: 10px; padding: 10px;
+    }
+    .intel-card h4 {
+      margin: 0 0 6px; font-size: 11px; color: var(--cyan); letter-spacing: 1px;
+    }
+    .intel-list { margin: 0; padding-left: 15px; line-height: 1.55; color: #c0ddf0; font-size: 11px; }
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(2, 6, 14, 0.85);
+      backdrop-filter: blur(6px);
+      display: none; justify-content: center; align-items: center;
+      z-index: 50;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: #061322;
+      border: 1px solid var(--lime);
+      border-radius: 16px; padding: 24px 28px;
+      max-width: 560px; width: 92%;
+      box-shadow: 0 0 40px rgba(0, 255, 136, 0.25);
+    }
+    .modal h2 { margin: 0 0 10px; color: var(--lime); font-size: 20px; }
+    .modal p, .modal li { font-size: 13px; line-height: 1.55; color: #d0eaf8; }
+  </style>
+</head>
+<body>
+  <header class="hud-header">
+    <div class="brand">
+      <span class="brand-title">🐛 CYBERCENTIPEDE BLASTER</span>
+      <span class="brand-sub">ATARI 1981 REMASTER</span>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-label">SCORE</div>
+        <div class="stat-val" id="hud-score">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">HIGH SCORE</div>
+        <div class="stat-val gold" id="hud-high">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">WAVE</div>
+        <div class="stat-val" id="hud-wave">1</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">SEGMENTS</div>
+        <div class="stat-val" id="hud-segs">12</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">LIVES</div>
+        <div class="stat-val" id="hud-lives">3</div>
+      </div>
+    </div>
+    <div class="controls-bar">
+      <button class="btn active" id="btn-autofire" title="Toggle Rapid Auto-Fire (F)">⚡ Auto-Fire: ON</button>
+      <button class="btn" id="btn-new">New Game</button>
+      <button class="btn" id="btn-pause">Pause</button>
+      <button class="btn" id="btn-mute">🔊 Audio</button>
+      <button class="btn" id="btn-help">? Help</button>
+    </div>
+  </header>
+
+  <div class="stage-wrap">
+    <div class="canvas-col">
+      <canvas id="gameCanvas" width="750" height="700"></canvas>
+    </div>
+    <aside class="intel-col">
+      <div class="intel-card">
+        <h4>🎯 SCORING MATRIX</h4>
+        <ul class="intel-list">
+          <li><strong style="color:#ff0066">Centipede Head</strong>: 100 pts</li>
+          <li><strong style="color:#00ff88">Body Segment</strong>: 10 pts (Splits chain & spawns Cyber-Spore!)</li>
+          <li><strong style="color:#ffcc00">Cyber-Spider</strong>: 300 / 600 / 900 pts (closer = higher!)</li>
+          <li><strong style="color:#00f5ff">Flea Dropper</strong>: 200 pts</li>
+          <li><strong style="color:#b829ff">Poison Scorpion</strong>: 1,000 pts</li>
+        </ul>
+      </div>
+      <div class="intel-card">
+        <h4>☣️ POISON SPORE ALERT</h4>
+        <p style="margin:0;font-size:11px;line-height:1.5;color:#c0ddf0;">
+          When the <strong style="color:#b829ff">Scorpion</strong> touches a Cyber-Spore, it turns <strong style="color:#ff0066">Neon Magenta</strong>. Any Centipede touching a poisoned spore dives straight down toward your ship!
+        </p>
+      </div>
+      <div class="intel-card">
+        <h4>🕹️ CONTROLS</h4>
+        <ul class="intel-list">
+          <li><strong>Mouse / WASD / Arrows</strong>: Move Ship in bottom 25% zone</li>
+          <li><strong>Space / Click / [F]</strong>: Rapid Plasma Laser</li>
+          <li><strong>[P]</strong> Pause • <strong>[N]</strong> New Game</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+
+  <div class="modal-backdrop" id="help-modal">
+    <div class="modal">
+      <h2>🐛 CYBERCENTIPEDE BLASTER — BRIEFING</h2>
+      <p>Pilot your Cyber-Blaster inside the lower 25% defense zone and vaporize the descending multi-segment Centipede!</p>
+      <ul>
+        <li><strong>Chain Splitting</strong>: Shooting any midsection segment turns that cell into a Cyber-Spore and splits the Centipede into two independent chains with their own heads!</li>
+        <li><strong>Bouncing Spider</strong>: Zig-zags through the player zone—shoot it up close for up to <strong>900 points</strong>!</li>
+        <li><strong>Flea & Scorpion</strong>: Fleas drop new spores vertically; Scorpions poison spores so the Centipede dives straight down!</li>
+      </ul>
+      <div style="text-align:right">
+        <button class="btn" id="btn-close-help">ENGAGE BLASTER</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const COLS = 30;
+      const ROWS = 28;
+      const CELL = 25; // 30*25 = 750, 28*25 = 700
+      const W = canvas.width;
+      const H = canvas.height;
+      const PLAYER_MIN_Y = Math.floor(ROWS * 0.74) * CELL;
+
+      const HS_KEY = 'codecaine_centipede_hs';
+      let highScore = parseInt(localStorage.getItem(HS_KEY) || '0', 10) || 0;
+
+      let audioCtx = null;
+      let muted = false;
+      function ensureAudio() {
+        if (!audioCtx && !muted) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) audioCtx = new AC();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      }
+
+      function playSound(type) {
+        if (muted) return;
+        try {
+          ensureAudio();
+          if (!audioCtx) return;
+          const now = audioCtx.currentTime;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          if (type === 'laser') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(880, now);
+            osc.frequency.exponentialRampToValueAtTime(210, now + 0.065);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+            osc.start(now);
+            osc.stop(now + 0.07);
+          } else if (type === 'hit') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(340, now);
+            osc.frequency.exponentialRampToValueAtTime(90, now + 0.11);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+            osc.start(now);
+            osc.stop(now + 0.12);
+          } else if (type === 'die') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(220, now);
+            osc.frequency.linearRampToValueAtTime(40, now + 0.5);
+            gain.gain.setValueAtTime(0.24, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.52);
+            osc.start(now);
+            osc.stop(now + 0.52);
+          }
+        } catch (_) {}
+      }
+
+      let score = 0;
+      let wave = 1;
+      let lives = 3;
+      let paused = false;
+      let gameOver = false;
+      let autoFire = true;
+
+      // Grid of Cyber-Spores: null or { hp: 1..4, poisoned: boolean }
+      let grid = [];
+      let segments = [];
+      let lasers = [];
+      let spider = null;
+      let flea = null;
+      let scorpion = null;
+      let particles = [];
+      let floatingTexts = [];
+
+      const player = {
+        x: W / 2,
+        y: H - 36,
+        vx: 0,
+        vy: 0,
+        fireCooldown: 0,
+        firing: false
+      };
+
+      const keys = {};
+
+      function initGrid() {
+        grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+        // Seed 38 initial Cyber-Spores across rows 2..ROWS-3
+        for (let i = 0; i < 38; i++) {
+          const r = 2 + Math.floor(Math.random() * (ROWS - 5));
+          const c = 1 + Math.floor(Math.random() * (COLS - 2));
+          grid[r][c] = { hp: 4, poisoned: false };
+        }
+      }
+
+      function spawnCentipedeWave(w) {
+        wave = w;
+        segments = [];
+        const len = Math.min(16, 10 + w * 2);
+        const speed = Math.min(4.2, 2.2 + w * 0.25);
+        for (let i = 0; i < len; i++) {
+          segments.push({
+            x: (Math.floor(COLS / 2) - i) * CELL + CELL / 2,
+            y: CELL / 2,
+            dirX: 1,
+            dirY: 1,
+            isHead: i === 0,
+            diving: false,
+            speed
+          });
+        }
+        updateHUD();
+      }
+
+      function resetGame() {
+        score = 0;
+        lives = 3;
+        gameOver = false;
+        paused = false;
+        lasers = [];
+        spider = null;
+        flea = null;
+        scorpion = null;
+        particles = [];
+        floatingTexts = [];
+        player.x = W / 2;
+        player.y = H - 36;
+        initGrid();
+        spawnCentipedeWave(1);
+      }
+
+      function addScore(pts, x, y) {
+        score += pts;
+        if (score > highScore) {
+          highScore = score;
+          try { localStorage.setItem(HS_KEY, String(highScore)); } catch (_) {}
+        }
+        if (x !== undefined && y !== undefined && pts >= 100) {
+          floatingTexts.push({ x, y, text: `+${pts}`, life: 45 });
+        }
+        updateHUD();
+      }
+
+      function updateHUD() {
+        document.getElementById('hud-score').textContent = score.toLocaleString();
+        document.getElementById('hud-high').textContent = highScore.toLocaleString();
+        document.getElementById('hud-wave').textContent = String(wave);
+        document.getElementById('hud-segs').textContent = String(segments.length);
+        document.getElementById('hud-lives').textContent = String(lives);
+      }
+
+      function burst(x, y, color, count = 12) {
+        for (let i = 0; i < count; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const sp = Math.random() * 3.6 + 0.8;
+          particles.push({
+            x, y,
+            vx: Math.cos(a) * sp,
+            vy: Math.sin(a) * sp,
+            life: 1,
+            color
+          });
+        }
+        window.GameMasterFX?.burst?.(x, y, color, count);
+      }
+
+      function fireLaser() {
+        if (player.fireCooldown > 0 || lasers.length >= 4) return;
+        lasers.push({ x: player.x, y: player.y - 12 });
+        player.fireCooldown = 8;
+        playSound('laser');
+      }
+
+      function killPlayer() {
+        playSound('die');
+        window.GameMasterFX?.triggerShake?.(8);
+        burst(player.x, player.y, '#ff0066', 26);
+        lives--;
+        updateHUD();
+        if (lives <= 0) {
+          gameOver = true;
+        } else {
+          // Repair damaged spores and respawn centipede wave
+          for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+              if (grid[r][c]) {
+                grid[r][c].hp = 4;
+                grid[r][c].poisoned = false;
+              }
+            }
+          }
+          spider = null;
+          flea = null;
+          scorpion = null;
+          player.x = W / 2;
+          player.y = H - 36;
+          spawnCentipedeWave(wave);
+        }
+      }
+
+      function step() {
+        if (paused || gameOver) return;
+
+        // Keyboard movement
+        let dx = 0, dy = 0;
+        if (keys['ArrowLeft'] || keys['a']) dx -= 5.2;
+        if (keys['ArrowRight'] || keys['d']) dx += 5.2;
+        if (keys['ArrowUp'] || keys['w']) dy -= 5.2;
+        if (keys['ArrowDown'] || keys['s']) dy += 5.2;
+        if (dx || dy) {
+          player.x = Math.max(14, Math.min(W - 14, player.x + dx));
+          player.y = Math.max(PLAYER_MIN_Y + 12, Math.min(H - 14, player.y + dy));
+        }
+
+        if (player.fireCooldown > 0) player.fireCooldown--;
+        if (autoFire || player.firing || keys[' ']) {
+          fireLaser();
+        }
+
+        // Update Lasers
+        for (let i = lasers.length - 1; i >= 0; i--) {
+          const l = lasers[i];
+          l.y -= 14;
+          if (l.y < 0) {
+            lasers.splice(i, 1);
+            continue;
+          }
+
+          // Check Grid Spore collision
+          const c = Math.floor(l.x / CELL);
+          const r = Math.floor(l.y / CELL);
+          if (r >= 0 && r < ROWS && c >= 0 && c < COLS && grid[r][c]) {
+            grid[r][c].hp--;
+            addScore(1);
+            if (grid[r][c].hp <= 0) {
+              grid[r][c] = null;
+              addScore(4);
+              burst(c * CELL + CELL / 2, r * CELL + CELL / 2, '#b829ff', 8);
+            }
+            lasers.splice(i, 1);
+            continue;
+          }
+
+          // Check Centipede Segment collision
+          let hitSeg = false;
+          for (let j = 0; j < segments.length; j++) {
+            const seg = segments[j];
+            if (Math.hypot(seg.x - l.x, seg.y - l.y) < CELL * 0.55) {
+              addScore(seg.isHead ? 100 : 10, seg.x, seg.y);
+              playSound('hit');
+              burst(seg.x, seg.y, '#00ff88', 14);
+
+              // Turn hit cell into Cyber-Spore!
+              const sc = Math.max(0, Math.min(COLS - 1, Math.floor(seg.x / CELL)));
+              const sr = Math.max(1, Math.min(ROWS - 2, Math.floor(seg.y / CELL)));
+              grid[sr][sc] = { hp: 4, poisoned: false };
+
+              // Split chain: segment j+1 becomes a new independent Head!
+              if (j + 1 < segments.length) {
+                segments[j + 1].isHead = true;
+                segments[j + 1].dirX = -seg.dirX;
+              }
+              segments.splice(j, 1);
+              updateHUD();
+              lasers.splice(i, 1);
+              hitSeg = true;
+              break;
+            }
+          }
+          if (hitSeg) continue;
+
+          // Check Spider hit
+          if (spider && Math.hypot(spider.x - l.x, spider.y - l.y) < 18) {
+            const dist = Math.abs(player.y - spider.y);
+            const pts = dist < 70 ? 900 : dist < 130 ? 600 : 300;
+            addScore(pts, spider.x, spider.y);
+            playSound('hit');
+            burst(spider.x, spider.y, '#ffcc00', 18);
+            spider = null;
+            lasers.splice(i, 1);
+            continue;
+          }
+
+          // Check Flea hit
+          if (flea && Math.hypot(flea.x - l.x, flea.y - l.y) < 15) {
+            flea.hp--;
+            if (flea.hp <= 0) {
+              addScore(200, flea.x, flea.y);
+              playSound('hit');
+              burst(flea.x, flea.y, '#00f5ff', 16);
+              flea = null;
+            }
+            lasers.splice(i, 1);
+            continue;
+          }
+
+          // Check Scorpion hit
+          if (scorpion && Math.hypot(scorpion.x - l.x, scorpion.y - l.y) < 18) {
+            addScore(1000, scorpion.x, scorpion.y);
+            playSound('hit');
+            burst(scorpion.x, scorpion.y, '#ff0066', 20);
+            scorpion = null;
+            lasers.splice(i, 1);
+            continue;
+          }
+        }
+
+        // Move Centipede Segments
+        for (const seg of segments) {
+          if (seg.diving) {
+            seg.y += seg.speed * 1.35;
+            seg.x += Math.sin(seg.y * 0.12) * 2.2;
+            if (seg.y >= H - CELL) {
+              seg.diving = false;
+              seg.dirY = -1;
+            }
+          } else {
+            const nextX = seg.x + seg.dirX * seg.speed;
+            const nc = Math.floor((nextX + seg.dirX * (CELL * 0.4)) / CELL);
+            const nr = Math.floor(seg.y / CELL);
+
+            let turn = false;
+            if (nextX < CELL / 2 || nextX > W - CELL / 2) {
+              turn = true;
+            } else if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && grid[nr][nc]) {
+              if (grid[nr][nc].poisoned) {
+                seg.diving = true;
+              }
+              turn = true;
+            }
+
+            if (turn) {
+              seg.y += seg.dirY * CELL;
+              seg.dirX = -seg.dirX;
+              if (seg.y >= H - CELL / 2) {
+                seg.y = H - CELL / 2;
+                seg.dirY = -1;
+              } else if (seg.y <= PLAYER_MIN_Y && seg.dirY === -1) {
+                seg.dirY = 1;
+              }
+            } else {
+              seg.x = nextX;
+            }
+          }
+
+          // Player collision
+          if (Math.hypot(seg.x - player.x, seg.y - player.y) < 18) {
+            killPlayer();
+            return;
+          }
+        }
+
+        // Spawn & Update Spider
+        if (!spider && Math.random() < 0.005) {
+          const left = Math.random() < 0.5;
+          spider = {
+            x: left ? 12 : W - 12,
+            y: PLAYER_MIN_Y + 20,
+            vx: (left ? 1 : -1) * 2.4,
+            vy: 2.6,
+            timer: 0
+          };
+        }
+        if (spider) {
+          spider.x += spider.vx;
+          spider.y += spider.vy;
+          spider.timer++;
+          if (spider.y < PLAYER_MIN_Y || spider.y > H - 16) spider.vy = -spider.vy;
+          if (spider.timer % 45 === 0) spider.vx = (Math.random() < 0.5 ? -1 : 1) * 2.5;
+          // Spider eats spores
+          const sc = Math.floor(spider.x / CELL);
+          const sr = Math.floor(spider.y / CELL);
+          if (sr >= 0 && sr < ROWS && sc >= 0 && sc < COLS && grid[sr][sc]) {
+            grid[sr][sc] = null;
+          }
+          if (Math.hypot(spider.x - player.x, spider.y - player.y) < 20) {
+            killPlayer();
+            return;
+          }
+          if (spider.x < -20 || spider.x > W + 20) spider = null;
+        }
+
+        // Spawn & Update Flea Dropper
+        if (!flea && Math.random() < 0.0035) {
+          const col = 1 + Math.floor(Math.random() * (COLS - 2));
+          flea = { x: col * CELL + CELL / 2, y: 0, hp: 2 };
+        }
+        if (flea) {
+          flea.y += 5.2;
+          const fc = Math.floor(flea.x / CELL);
+          const fr = Math.floor(flea.y / CELL);
+          if (fr >= 2 && fr < ROWS - 2 && !grid[fr][fc] && Math.random() < 0.12) {
+            grid[fr][fc] = { hp: 4, poisoned: false };
+          }
+          if (Math.hypot(flea.x - player.x, flea.y - player.y) < 18) {
+            killPlayer();
+            return;
+          }
+          if (flea && flea.y > H) flea = null;
+        }
+
+        // Spawn & Update Scorpion
+        if (!scorpion && wave >= 1 && Math.random() < 0.0028) {
+          const left = Math.random() < 0.5;
+          const row = 3 + Math.floor(Math.random() * 12);
+          scorpion = {
+            x: left ? 0 : W,
+            y: row * CELL + CELL / 2,
+            vx: (left ? 1 : -1) * 2.8
+          };
+        }
+        if (scorpion) {
+          scorpion.x += scorpion.vx;
+          const sc = Math.floor(scorpion.x / CELL);
+          const sr = Math.floor(scorpion.y / CELL);
+          if (sr >= 0 && sr < ROWS && sc >= 0 && sc < COLS && grid[sr][sc]) {
+            grid[sr][sc].poisoned = true;
+          }
+          if (scorpion.x < -25 || scorpion.x > W + 25) scorpion = null;
+        }
+
+        // Next wave if all segments cleared
+        if (segments.length === 0) {
+          spawnCentipedeWave(wave + 1);
+        }
+
+        // Particles & Floating Texts
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.life -= 0.035;
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+        for (let i = floatingTexts.length - 1; i >= 0; i--) {
+          floatingTexts[i].y -= 0.7;
+          floatingTexts[i].life--;
+          if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
+        }
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+
+        // Player zone boundary line
+        ctx.strokeStyle = 'rgba(0, 245, 255, 0.18)';
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.moveTo(0, PLAYER_MIN_Y);
+        ctx.lineTo(W, PLAYER_MIN_Y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Draw Cyber-Spores (Mushrooms)
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            const sp = grid[r][c];
+            if (!sp) continue;
+            const cx = c * CELL + CELL / 2;
+            const cy = r * CELL + CELL / 2;
+            ctx.fillStyle = sp.poisoned ? '#ff0066' : '#b829ff';
+            ctx.strokeStyle = sp.poisoned ? '#ffcc00' : '#00f5ff';
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.arc(cx, cy, (CELL * 0.42) * (0.45 + sp.hp * 0.14), Math.PI, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = sp.poisoned ? '#ffcc00' : '#00f5ff';
+            ctx.fillRect(cx - 3, cy, 6, 6);
+          }
+        }
+
+        // Draw Centipede Segments
+        for (const seg of segments) {
+          ctx.save();
+          ctx.translate(seg.x, seg.y);
+          ctx.fillStyle = seg.isHead ? '#ff0066' : '#00ff88';
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(0, 0, CELL * 0.44, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          if (seg.isHead) {
+            ctx.fillStyle = '#ffcc00';
+            ctx.beginPath();
+            ctx.arc(seg.dirX * 4, -3, 2.5, 0, Math.PI * 2);
+            ctx.arc(seg.dirX * 4, 3, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+
+        // Draw Spider
+        if (spider) {
+          ctx.save();
+          ctx.translate(spider.x, spider.y);
+          ctx.strokeStyle = '#ffcc00';
+          ctx.lineWidth = 2;
+          for (let k = -1; k <= 1; k++) {
+            ctx.beginPath();
+            ctx.moveTo(-14, k * 5); ctx.lineTo(14, -k * 5);
+            ctx.stroke();
+          }
+          ctx.fillStyle = '#ff0066';
+          ctx.beginPath();
+          ctx.arc(0, 0, 8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Draw Flea
+        if (flea) {
+          ctx.save();
+          ctx.translate(flea.x, flea.y);
+          ctx.fillStyle = '#00f5ff';
+          ctx.beginPath();
+          ctx.arc(0, 0, 9, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Draw Scorpion
+        if (scorpion) {
+          ctx.save();
+          ctx.translate(scorpion.x, scorpion.y);
+          ctx.fillStyle = '#ff0066';
+          ctx.strokeStyle = '#ffcc00';
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 13, 7, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Draw Lasers
+        ctx.fillStyle = '#00f5ff';
+        for (const l of lasers) {
+          ctx.fillRect(l.x - 2, l.y - 8, 4, 14);
+        }
+
+        // Draw Player Ship
+        ctx.save();
+        ctx.translate(player.x, player.y);
+        ctx.fillStyle = '#00f5ff';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(0, -13);
+        ctx.lineTo(11, 10);
+        ctx.lineTo(0, 6);
+        ctx.lineTo(-11, 10);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        // Particles & Floating Score Popups
+        for (const p of particles) {
+          ctx.globalAlpha = Math.max(0, p.life);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+        }
+        ctx.globalAlpha = 1;
+
+        for (const ft of floatingTexts) {
+          ctx.fillStyle = '#ffcc00';
+          ctx.font = 'bold 13px Orbitron, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(ft.text, ft.x, ft.y);
+        }
+
+        if (paused && !gameOver) {
+          ctx.fillStyle = 'rgba(2, 8, 16, 0.75)';
+          ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = '#00ff88';
+          ctx.font = 'bold 34px Orbitron, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('SYSTEM PAUSED', W / 2, H / 2);
+        }
+
+        if (gameOver) {
+          ctx.fillStyle = 'rgba(10, 2, 16, 0.84)';
+          ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = '#ff0066';
+          ctx.font = 'bold 42px Orbitron, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('GAME OVER', W / 2, H / 2 - 14);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 16px Orbitron, monospace';
+          ctx.fillText(`FINAL SCORE: ${score.toLocaleString()}   •   CLICK OR PRESS [N]`, W / 2, H / 2 + 24);
+        }
+      }
+
+      function loop() {
+        step();
+        draw();
+        requestAnimationFrame(loop);
+      }
+
+      canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = ((e.clientX - rect.left) / rect.width) * W;
+        const my = ((e.clientY - rect.top) / rect.height) * H;
+        player.x = Math.max(14, Math.min(W - 14, mx));
+        player.y = Math.max(PLAYER_MIN_Y + 12, Math.min(H - 14, my));
+      });
+
+      canvas.addEventListener('mousedown', () => {
+        if (gameOver) {
+          resetGame();
+          return;
+        }
+        player.firing = true;
+        fireLaser();
+      });
+      window.addEventListener('mouseup', () => { player.firing = false; });
+
+      window.addEventListener('keydown', (e) => {
+        const k = e.key.toLowerCase();
+        keys[e.key] = true;
+        keys[k] = true;
+        if (k === 'f') {
+          autoFire = !autoFire;
+          const btn = document.getElementById('btn-autofire');
+          btn.textContent = `⚡ Auto-Fire: ${autoFire ? 'ON' : 'OFF'}`;
+          btn.classList.toggle('active', autoFire);
+        } else if (k === 'p') {
+          paused = !paused;
+        } else if (k === 'n') {
+          resetGame();
+        } else if (k === 'm') {
+          muted = !muted;
+          document.getElementById('btn-mute').textContent = muted ? '🔇 Muted' : '🔊 Audio';
+        } else if (k === 'h' || e.key === '?') {
+          document.getElementById('help-modal').classList.toggle('open');
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        keys[e.key] = false;
+        keys[e.key.toLowerCase()] = false;
+      });
+
+      document.getElementById('btn-autofire').addEventListener('click', () => {
+        autoFire = !autoFire;
+        const btn = document.getElementById('btn-autofire');
+        btn.textContent = `⚡ Auto-Fire: ${autoFire ? 'ON' : 'OFF'}`;
+        btn.classList.toggle('active', autoFire);
+      });
+      document.getElementById('btn-new').addEventListener('click', resetGame);
+      document.getElementById('btn-pause').addEventListener('click', () => { paused = !paused; });
+      document.getElementById('btn-mute').addEventListener('click', () => {
+        muted = !muted;
+        document.getElementById('btn-mute').textContent = muted ? '🔇 Muted' : '🔊 Audio';
+      });
+      document.getElementById('btn-help').addEventListener('click', () => {
+        document.getElementById('help-modal').classList.add('open');
+      });
+      document.getElementById('btn-close-help').addEventListener('click', () => {
+        document.getElementById('help-modal').classList.remove('open');
+      });
+
+      resetGame();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

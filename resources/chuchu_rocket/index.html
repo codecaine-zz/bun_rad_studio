@@ -1,0 +1,1891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🚀 Codecaine CyberRocket: Arrow Tile Panic</title>
+  <style>
+    :root {
+      --bg-deep: #050814;
+      --bg-panel: rgba(10, 16, 36, 0.92);
+      --bg-card: rgba(16, 26, 56, 0.88);
+      --cyan: #00f3ff;
+      --blue: #3b82f6;
+      --red: #ff2a5f;
+      --green: #00ff88;
+      --gold: #ffd700;
+      --purple: #b855ff;
+      --text-main: #eef8ff;
+      --text-muted: #94a3b8;
+      --border-glow: rgba(0, 243, 255, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 18% 15%, rgba(0, 243, 255, 0.14), transparent 42%),
+        radial-gradient(circle at 82% 85%, rgba(255, 42, 95, 0.12), transparent 45%),
+        linear-gradient(180deg, #040711 0%, #091026 100%);
+      color: var(--text-main);
+      font-family: 'Orbitron', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      width: 100vw;
+      height: 100vh;
+      padding: 10px 14px;
+      gap: 10px;
+    }
+
+    /* Top Header Bar */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 14px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-glow);
+      border-radius: 14px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6), 0 0 18px rgba(0, 243, 255, 0.14);
+      flex-wrap: wrap;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(0, 243, 255, 0.25), rgba(59, 130, 246, 0.35));
+      border: 1px solid var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 21px;
+      box-shadow: 0 0 14px rgba(0, 243, 255, 0.4);
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #00f3ff, #ffffff, #ffd700);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .top-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .cyber-select, .cyber-btn {
+      background: rgba(14, 24, 52, 0.95);
+      color: var(--text-main);
+      border: 1px solid rgba(0, 243, 255, 0.4);
+      border-radius: 9px;
+      padding: 6px 11px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    .cyber-select:hover, .cyber-btn:hover {
+      border-color: var(--cyan);
+      box-shadow: 0 0 12px rgba(0, 243, 255, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .cyber-btn.primary {
+      background: linear-gradient(135deg, rgba(0, 243, 255, 0.25), rgba(59, 130, 246, 0.35));
+      border-color: var(--cyan);
+      color: #ffffff;
+    }
+
+    .cyber-btn.gold {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.24), rgba(245, 158, 11, 0.3));
+      border-color: var(--gold);
+      color: #fffbeb;
+    }
+
+    .cyber-btn.danger {
+      background: rgba(255, 42, 95, 0.2);
+      border-color: var(--red);
+      color: #ffe4e6;
+    }
+
+    .cyber-btn.active {
+      background: rgba(0, 255, 136, 0.24);
+      border-color: var(--green);
+      color: #d1fae5;
+      box-shadow: 0 0 12px rgba(0, 255, 136, 0.35);
+    }
+
+    /* Main Workspace Layout */
+    .main-stage {
+      display: grid;
+      grid-template-columns: 270px 1fr 280px;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .side-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-glow);
+      border-radius: 14px;
+      padding: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      overflow-y: auto;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .panel-title {
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+      padding-bottom: 5px;
+    }
+
+    /* 4 Rocket Score Cards */
+    .rocket-cards {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 7px;
+    }
+
+    .rocket-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .rocket-card.p1 { border-left: 4px solid #00f3ff; }
+    .rocket-card.p2 { border-left: 4px solid #ff2a5f; }
+    .rocket-card.p3 { border-left: 4px solid #00ff88; }
+    .rocket-card.p4 { border-left: 4px solid #ffd700; }
+
+    .rocket-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .rocket-name {
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .rocket-score {
+      font-size: 20px;
+      font-weight: 900;
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    .rocket-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .arrow-pip-row {
+      display: flex;
+      gap: 5px;
+    }
+
+    .arrow-pip {
+      width: 24px;
+      height: 20px;
+      border-radius: 5px;
+      background: rgba(8, 13, 28, 0.9);
+      border: 1px solid rgba(0, 243, 255, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 900;
+      color: var(--cyan);
+    }
+
+    /* Direction Pad */
+    .dir-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .dir-btn {
+      padding: 8px 6px;
+      border-radius: 9px;
+      background: rgba(14, 24, 52, 0.92);
+      border: 1px solid rgba(0, 243, 255, 0.35);
+      color: var(--text-main);
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.14s ease;
+    }
+
+    .dir-btn.active {
+      background: rgba(0, 243, 255, 0.24);
+      border-color: var(--cyan);
+      color: #ffffff;
+      box-shadow: 0 0 14px rgba(0, 243, 255, 0.45);
+    }
+
+    /* Center Arena */
+    .center-arena {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .arena-hud-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 7px 14px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-glow);
+      border-radius: 12px;
+    }
+
+    .hud-stat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hud-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .hud-val {
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--cyan);
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    .event-banner {
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(0, 243, 255, 0.18), rgba(184, 85, 255, 0.25));
+      border: 1px solid rgba(0, 243, 255, 0.5);
+      font-size: 11px;
+      font-weight: 900;
+      color: #ffd700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .canvas-wrap {
+      flex: 1;
+      position: relative;
+      background: #040712;
+      border: 2px solid rgba(0, 243, 255, 0.48);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.75), inset 0 0 36px rgba(0, 243, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #rocketCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+
+    /* Roulette Overlay */
+    .roulette-badge {
+      background: rgba(16, 24, 52, 0.92);
+      border: 1px solid rgba(255, 215, 0, 0.45);
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .roulette-wheel-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .roulette-chip {
+      font-size: 9px;
+      padding: 3px 6px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+      cursor: pointer;
+    }
+
+    .roulette-chip.active {
+      background: rgba(255, 215, 0, 0.24);
+      border-color: var(--gold);
+      color: #fff;
+      font-weight: 900;
+    }
+
+    .editor-palette {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 5px;
+    }
+
+    .footer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 14px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-glow);
+      border-radius: 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .key-pill {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 5px;
+      background: rgba(0, 243, 255, 0.14);
+      border: 1px solid rgba(0, 243, 255, 0.4);
+      color: var(--cyan);
+      font-weight: 800;
+      font-size: 10px;
+      margin: 0 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Header -->
+    <header class="top-bar">
+      <div class="brand-group">
+        <div class="brand-logo">🚀</div>
+        <div>
+          <div class="brand-title">Codecaine CyberRocket: Arrow Tile Panic</div>
+          <div class="brand-sub">Dreamcast 12×9 Neon Grid • 4-Rocket Escape • Right-Hand Wall Physics • Mystery Roulette</div>
+        </div>
+      </div>
+
+      <div class="top-controls">
+        <label for="rocketModeSelect" style="font-size:10px;color:#94a3b8;font-weight:800;">MODE:</label>
+        <select id="rocketModeSelect" class="cyber-select" aria-label="Game Mode Select">
+          <option value="battle_royale">1. 🏆 4-Player Battle Royale (3:00)</option>
+          <option value="puzzle_25">2. 🧩 25-Stage Puzzle Mode (Place Limited Arrows Before Pressing GO!)</option>
+          <option value="cat_mania">3. 🐱 Cat Mania Survival</option>
+          <option value="mouse_frenzy">4. 🐭 Mouse Frenzy 500-Rush</option>
+          <option value="team_2v2">5. 🤝 2v2 Team Rocket Alliance</option>
+          <option value="stage_challenge">6. 🌀 Stage Challenge (Clear Target in 30s)</option>
+          <option value="custom_editor">7. 🏗️ Custom Puzzle Editor</option>
+          <option value="ai_coach">8. 🤖 AI Best-Arrow Hint Coach [H]</option>
+        </select>
+
+        <select id="puzzleStageSelect" class="cyber-select" aria-label="Puzzle Stage Select" title="Select Puzzle Stage (1-25)">
+          <option value="0">🧩 Stage 01: Right-Turn Basics</option>
+          <option value="1">🧩 Stage 02: Cat Deflection</option>
+          <option value="2">🧩 Stage 03: Twin Vortex Split</option>
+          <option value="3">🧩 Stage 04: The Cat Gauntlet</option>
+          <option value="4">🧩 Stage 05: Spiral Funnel</option>
+          <option value="5">🧩 Stage 06: Double Cat U-Turn</option>
+          <option value="6">🧩 Stage 07: Center Pit Bypass</option>
+          <option value="7">🧩 Stage 08: Sacrificial Arrow (2-HP)</option>
+          <option value="8">🧩 Stage 09: Four-Corner Relay</option>
+          <option value="9">🧩 Stage 10: KapuKapu Maze</option>
+          <option value="10">🧩 Stage 11: Gold Rush Parade</option>
+          <option value="11">🧩 Stage 12: Mirror Corridor</option>
+          <option value="12">🧩 Stage 13: Cat & Mouse Crossover</option>
+          <option value="13">🧩 Stage 14: Pinwheel Loop</option>
+          <option value="14">🧩 Stage 15: Narrow Bridge</option>
+          <option value="15">🧩 Stage 16: Triple Cat Ricochet</option>
+          <option value="16">🧩 Stage 17:Zig-Zag Express</option>
+          <option value="17">🧩 Stage 18: Perimeter Sweep</option>
+          <option value="18">🧩 Stage 19: Black Hole Escape</option>
+          <option value="19">🧩 Stage 20: Cat Shielding</option>
+          <option value="20">🧩 Stage 21: Quad Spawner Sync</option>
+          <option value="21">🧩 Stage 22: Labyrinth Core</option>
+          <option value="22">🧩 Stage 23: Precision Timing</option>
+          <option value="23">🧩 Stage 24: Super Kapu Trap</option>
+          <option value="24">🧩 Stage 25: Grandmaster Finale</option>
+        </select>
+
+        <button type="button" id="puzzleGoBtn" class="cyber-btn gold">▶️ GO / RUN [SPACE]</button>
+        <button type="button" id="aiHintBtn" class="cyber-btn primary">🤖 AI Hint [H]</button>
+        <button type="button" id="rouletteBtn" class="cyber-btn gold">🎰 Spin Roulette [E]</button>
+        <button type="button" id="resetMatchBtn" class="cyber-btn danger">🔄 Reset [R]</button>
+        <button type="button" id="audioToggleBtn" class="cyber-btn active">🔊 Synth: ON [M]</button>
+      </div>
+    </header>
+
+    <!-- Main 3-Column Stage -->
+    <main class="main-stage">
+      <!-- Left Column: 4 Corner Rockets & Team Standings -->
+      <aside class="side-panel">
+        <div class="panel-title">
+          <span>🚀 4 Corner Rockets</span>
+          <span id="teamModeBadge" style="color:#ffd700;font-size:9px;">FFA ROYALE</span>
+        </div>
+
+        <div class="rocket-cards">
+          <!-- Player 1 Blue -->
+          <div class="rocket-card p1">
+            <div class="rocket-card-top">
+              <span class="rocket-name" style="color:#00f3ff;">🔵 P1 BLUE ROCKET (YOU)</span>
+              <span class="rocket-score" id="scoreP1" style="color:#00f3ff;">48</span>
+            </div>
+            <div class="rocket-meta">
+              <span>Corner: Bottom-Left (1,7)</span>
+              <span id="p1ArrowCount">3/3 Arrows</span>
+            </div>
+            <div class="arrow-pip-row" id="p1ArrowPips">
+              <div class="arrow-pip">▲</div>
+              <div class="arrow-pip">►</div>
+              <div class="arrow-pip">▼</div>
+            </div>
+          </div>
+
+          <!-- AI 2 Red -->
+          <div class="rocket-card p2">
+            <div class="rocket-card-top">
+              <span class="rocket-name" style="color:#ff2a5f;">🔴 AI 2 RED ROCKET</span>
+              <span class="rocket-score" id="scoreP2" style="color:#ff2a5f;">34</span>
+            </div>
+            <div class="rocket-meta">
+              <span>Corner: Top-Right (10,1)</span>
+              <span>AI: Aggressive Cat Router</span>
+            </div>
+          </div>
+
+          <!-- AI 3 Green -->
+          <div class="rocket-card p3">
+            <div class="rocket-card-top">
+              <span class="rocket-name" style="color:#00ff88;">🟢 AI 3 GREEN ROCKET</span>
+              <span class="rocket-score" id="scoreP3" style="color:#00ff88;">29</span>
+            </div>
+            <div class="rocket-meta">
+              <span>Corner: Top-Left (1,1)</span>
+              <span>AI: Gold Rush Collector</span>
+            </div>
+          </div>
+
+          <!-- AI 4 Gold -->
+          <div class="rocket-card p4">
+            <div class="rocket-card-top">
+              <span class="rocket-name" style="color:#ffd700;">🟡 AI 4 GOLD ROCKET</span>
+              <span class="rocket-score" id="scoreP4" style="color:#ffd700;">22</span>
+            </div>
+            <div class="rocket-meta">
+              <span>Corner: Bottom-Right (10,7)</span>
+              <span>AI: Defensive Wall Loop</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-title" style="margin-top:4px;">
+          <span>🧭 Arrow Direction Selector</span>
+          <span style="font-size:9px;color:#94a3b8;">MAX 3 ACTIVE</span>
+        </div>
+
+        <div class="dir-grid">
+          <button type="button" class="dir-btn active" data-dir="0" id="dirBtn0">▲ UP [W / 1]</button>
+          <button type="button" class="dir-btn" data-dir="1" id="dirBtn1">► RIGHT [D / 2]</button>
+          <button type="button" class="dir-btn" data-dir="2" id="dirBtn2">▼ DOWN [S / 3]</button>
+          <button type="button" class="dir-btn" data-dir="3" id="dirBtn3">◄ LEFT [A / 4]</button>
+        </div>
+
+        <div style="font-size:10px;color:#94a3b8;line-height:1.45;background:rgba(8,14,32,0.75);padding:7px 9px;border-radius:8px;border:1px solid rgba(0,243,255,0.2);">
+          💡 <strong>Tip:</strong> Click + drag in any direction on the <strong>12×9 Grid</strong> to place an arrow immediately, or select a direction and click any tile! Placing a 4th arrow recycles your oldest arrow.
+        </div>
+      </aside>
+
+      <!-- Center Column: 12x9 Neon Grid Canvas -->
+      <section class="center-arena">
+        <div class="arena-hud-bar">
+          <div class="hud-stat">
+            <span class="hud-label">⏱️ CLOCK</span>
+            <span class="hud-val" id="hudClock">02:42</span>
+          </div>
+          <div class="hud-stat">
+            <span class="hud-label">🐭 ACTIVE MICE</span>
+            <span class="hud-val" id="hudMiceCount">24</span>
+          </div>
+          <div class="hud-stat">
+            <span class="hud-label">🐱 KAPUKAPU CATS</span>
+            <span class="hud-val" id="hudCatCount" style="color:#ff2a5f;">4</span>
+          </div>
+          <div class="event-banner" id="hudEventBanner">⚡ FEVER READY • ROUTE ❓ MICE FOR ROULETTE!</div>
+          <div class="hud-stat">
+            <span class="hud-label">🏆 HIGH SCORE</span>
+            <span class="hud-val" id="scoreVal" style="color:#ffd700;">48</span>
+          </div>
+        </div>
+
+        <div class="canvas-wrap">
+          <canvas id="rocketCanvas" width="960" height="648"></canvas>
+        </div>
+      </section>
+
+      <!-- Right Column: Mystery Roulette, AI Coach & Custom Editor -->
+      <aside class="side-panel">
+        <div class="panel-title">
+          <span>🎰 Fever Mystery Roulette</span>
+          <span style="color:#ffd700;font-size:9px;">❓ MOUSE BONUS</span>
+        </div>
+
+        <div class="roulette-badge">
+          <div style="font-size:10px;color:#cbd5e1;">Trigger by guiding a <strong>❓ Mystery Mouse</strong> into any Rocket or click an event below:</div>
+          <div class="roulette-wheel-row" id="rouletteChipContainer">
+            <span class="roulette-chip active" data-event="mouse_mania">🚀 Mouse Mania!</span>
+            <span class="roulette-chip" data-event="cat_attack">🐱 Cat Attack!</span>
+            <span class="roulette-chip" data-event="move_rockets">🔄 Move Everyone's Rocket!</span>
+            <span class="roulette-chip" data-event="speed_up">⚡ Everybody Move Faster!</span>
+            <span class="roulette-chip" data-event="arrow_monopoly">🛡️ Arrow Monopoly!</span>
+          </div>
+          <div id="rouletteStatusText" style="font-size:10px;color:#00ff88;font-weight:800;margin-top:2px;">
+            Active Bonus: Standard Flow (1.0× Speed)
+          </div>
+        </div>
+
+        <div class="panel-title">
+          <span>🤖 AI Hint Coach [H]</span>
+          <span id="aiCoachBadge" style="color:#00ff88;font-size:9px;">READY</span>
+        </div>
+
+        <div style="background:var(--bg-card);border:1px solid rgba(0,243,255,0.3);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;">
+          <div style="font-size:10px;color:#cbd5e1;" id="aiCoachText">
+            Best Arrow: <strong>Cell (3, 6) ◄ LEFT</strong> — funnels 7 ChuChus + 50-Gold Mouse directly into Blue Rocket while deflecting KapuKapu Cat toward Red!
+          </div>
+          <button type="button" id="applyAiHintBtn" class="cyber-btn primary" style="width:100%;">✨ Auto-Place Best Arrow [H]</button>
+        </div>
+
+        <div class="panel-title">
+          <span>🏗️ Custom Grid & Spawn Tools</span>
+          <span style="font-size:9px;color:#94a3b8;">12×9 STUDIO</span>
+        </div>
+
+        <div class="editor-palette" id="editorPalette">
+          <button type="button" class="cyber-btn active" data-tool="arrow">🧭 Place Arrow</button>
+          <button type="button" class="cyber-btn" data-tool="wall">🧱 Toggle Wall</button>
+          <button type="button" class="cyber-btn" data-tool="mouse">🐭 Spawn Mouse</button>
+          <button type="button" class="cyber-btn" data-tool="gold">🌟 50-Gold Mouse</button>
+          <button type="button" class="cyber-btn" data-tool="mystery">❓ Mystery Mouse</button>
+          <button type="button" class="cyber-btn" data-tool="cat">🐱 Spawn Cat</button>
+        </div>
+
+        <div class="panel-title">
+          <span>📜 Right-Hand Wall Rule</span>
+          <span style="font-size:9px;color:#00f3ff;">AUTHENTIC 1999</span>
+        </div>
+
+        <div style="font-size:10px;color:#94a3b8;line-height:1.45;">
+          • <strong>Right-Hand Turn</strong>: Mice &amp; Cats hitting a wall always turn <strong>Right</strong> first, then <strong>Left</strong>, or <strong>180° Reverse</strong> in a dead-end.<br/>
+          • <strong>2-HP Arrows</strong>: A 🐱 KapuKapu Cat hitting an arrow cracks it (`2 HP → 1 HP`) and destroys it on the 2nd hit!<br/>
+          • <strong>Cat Sabotage</strong>: Routing a Cat into a rival Rocket slashes their score by <strong>1/3</strong>!
+        </div>
+      </aside>
+    </main>
+
+    <!-- Bottom Controls Bar -->
+    <footer class="footer-bar">
+      <div>
+        <span class="key-pill">Click + Drag</span> Place Directional Arrow (`▲ ► ▼ ◄`)
+        <span class="key-pill">W A S D / 1-4</span> Select Arrow Direction
+        <span class="key-pill">H</span> AI Best-Arrow Hint Coach
+        <span class="key-pill">E</span> Spin Fever Roulette
+        <span class="key-pill">SPACE</span> Puzzle GO / Pause
+      </div>
+      <div id="statusFooterText">🚀 12×9 Dreamcast Cyber-Grid Active • 60 FPS Locked</div>
+    </footer>
+  </div>
+
+  <script>
+    (function() {
+      // Safe LocalStorage Wrapper
+      var SafeStorage = {
+        get: function(key, fallback) {
+          try {
+            var v = window.localStorage.getItem(key);
+            return v !== null ? v : fallback;
+          } catch (e) {
+            return fallback;
+          }
+        },
+        set: function(key, val) {
+          try {
+            window.localStorage.setItem(key, String(val));
+          } catch (e) {}
+        }
+      };
+
+      // Upbeat Dreamcast-Style WebAudio Synthesizer
+      var ChuChuAudio = (function() {
+        var ctx = null;
+        var enabled = true;
+        var bgmTimer = null;
+        var stepIdx = 0;
+        var melody = [523.25, 659.25, 783.99, 1046.5, 783.99, 659.25, 880.0, 987.77];
+
+        function ensureCtx() {
+          if (!enabled) return null;
+          if (!ctx) {
+            var AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+              try { ctx = new AudioCtx(); } catch (e) { ctx = null; }
+            }
+          }
+          if (ctx && ctx.state === "suspended") {
+            try { ctx.resume(); } catch (e) {}
+          }
+          return ctx;
+        }
+
+        function tone(freq, dur, type, gainVal, slideTo) {
+          var c = ensureCtx();
+          if (!c) return;
+          try {
+            var osc = c.createOscillator();
+            var g = c.createGain();
+            osc.type = type || "triangle";
+            osc.frequency.setValueAtTime(freq, c.currentTime);
+            if (slideTo) {
+              osc.frequency.exponentialRampToValueAtTime(slideTo, c.currentTime + dur);
+            }
+            g.gain.setValueAtTime(gainVal || 0.06, c.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + dur);
+            osc.connect(g);
+            g.connect(c.destination);
+            osc.start();
+            osc.stop(c.currentTime + dur);
+          } catch (e) {}
+        }
+
+        function startBgm() {
+          if (bgmTimer) return;
+          bgmTimer = setInterval(function() {
+            if (!enabled || !ctx || ctx.state !== "running") return;
+            var f = melody[stepIdx % melody.length];
+            stepIdx++;
+            tone(f, 0.11, "triangle", 0.025);
+          }, 220);
+        }
+
+        return {
+          isEnabled: function() { return enabled; },
+          toggle: function() {
+            enabled = !enabled;
+            if (enabled) {
+              ensureCtx();
+              startBgm();
+              tone(660, 0.12, "sine", 0.07, 880);
+            }
+            return enabled;
+          },
+          playArrow: function() { startBgm(); tone(587.33, 0.09, "sine", 0.07, 880); },
+          playMouseSaved: function(isGold) {
+            if (isGold) {
+              tone(784, 0.18, "triangle", 0.09, 1568);
+            } else {
+              tone(659.25, 0.07, "sine", 0.04, 987.77);
+            }
+          },
+          playCatHit: function() {
+            tone(220, 0.28, "sawtooth", 0.1, 95);
+          },
+          playRoulette: function() {
+            tone(440, 0.15, "square", 0.06, 880);
+            setTimeout(function() { tone(880, 0.22, "triangle", 0.08, 1318.5); }, 110);
+          }
+        };
+      })();
+
+      // Grid Constants: Authentic 12 Columns x 9 Rows
+      var COLS = 12;
+      var ROWS = 9;
+      // Directions: 0 = UP (▲), 1 = RIGHT (►), 2 = DOWN (▼), 3 = LEFT (◄)
+      var DX = [0, 1, 0, -1];
+      var DY = [-1, 0, 1, 0];
+      var DIR_ARROWS = ["▲", "►", "▼", "◄"];
+      var PLAYER_COLORS = ["#00f3ff", "#ff2a5f", "#00ff88", "#ffd700"];
+      var PLAYER_NAMES = ["🔵 Blue Rocket", "🔴 Red Rocket", "🟢 Green Rocket", "🟡 Gold Rocket"];
+
+      var canvas = document.getElementById("rocketCanvas");
+      var ctx = canvas && canvas.getContext ? canvas.getContext("2d") : null;
+
+      // Game State
+      var state = {
+        mode: "battle_royale",
+        puzzleIndex: 0,
+        puzzleRunning: false,
+        selectedDir: 0,
+        editorTool: "arrow",
+        clockSec: 162,
+        speedMult: 1.0,
+        activeEvent: "Standard Flow",
+        eventTimer: 0,
+        highScore: Number(SafeStorage.get("chuchu_rocket_high_score", "48")) || 48,
+        rockets: [
+          { player: 0, x: 1, y: 7, score: 48, color: "#00f3ff", label: "P1 BLUE" },
+          { player: 1, x: 10, y: 1, score: 34, color: "#ff2a5f", label: "AI2 RED" },
+          { player: 2, x: 1, y: 1, score: 29, color: "#00ff88", label: "AI3 GREEN" },
+          { player: 3, x: 10, y: 7, score: 22, color: "#ffd700", label: "AI4 GOLD" }
+        ],
+        spawners: [
+          { x: 5, y: 4, dir: 0 },
+          { x: 6, y: 4, dir: 2 },
+          { x: 5, y: 2, dir: 3 },
+          { x: 6, y: 6, dir: 1 }
+        ],
+        pits: [
+          { x: 3, y: 4 },
+          { x: 8, y: 4 }
+        ],
+        // Edge walls: walls[y][x] bitmask (1=Top, 2=Right, 4=Bottom, 8=Left)
+        walls: [],
+        // Active directional arrows: { x, y, dir, player, hp: 2, maxHp: 2, createdAt }
+        arrows: [],
+        // Entities: { x, y, dir, progress, type: 'mouse'|'gold'|'mystery'|'cat', speed }
+        entities: [],
+        particles: [],
+        aiHint: { x: 3, y: 7, dir: 3, path: [] },
+        dragStart: null
+      };
+
+      function initWalls() {
+        state.walls = [];
+        for (var y = 0; y < ROWS; y++) {
+          var row = [];
+          for (var x = 0; x < COLS; x++) {
+            var mask = 0;
+            if (y === 0) mask |= 1;
+            if (x === COLS - 1) mask |= 2;
+            if (y === ROWS - 1) mask |= 4;
+            if (x === 0) mask |= 8;
+            row.push(mask);
+          }
+          state.walls.push(row);
+        }
+      }
+
+      function addWallBetween(x1, y1, x2, y2) {
+        if (x1 < 0 || x1 >= COLS || y1 < 0 || y1 >= ROWS) return;
+        if (x2 < 0 || x2 >= COLS || y2 < 0 || y2 >= ROWS) return;
+        if (x2 === x1 + 1 && y2 === y1) {
+          state.walls[y1][x1] |= 2;
+          state.walls[y2][x2] |= 8;
+        } else if (x2 === x1 - 1 && y2 === y1) {
+          state.walls[y1][x1] |= 8;
+          state.walls[y2][x2] |= 2;
+        } else if (y2 === y1 + 1 && x2 === x1) {
+          state.walls[y1][x1] |= 4;
+          state.walls[y2][x2] |= 1;
+        } else if (y2 === y1 - 1 && x2 === x1) {
+          state.walls[y1][x1] |= 1;
+          state.walls[y2][x2] |= 4;
+        }
+      }
+
+      function toggleRightOrBottomWall(x, y, side) {
+        if (x < 0 || x >= COLS || y < 0 || y >= ROWS) return;
+        if (side === 1 && x + 1 < COLS) {
+          state.walls[y][x] ^= 2;
+          state.walls[y][x + 1] ^= 8;
+        } else if (side === 2 && y + 1 < ROWS) {
+          state.walls[y][x] ^= 4;
+          state.walls[y + 1][x] ^= 1;
+        }
+      }
+
+      function hasWall(x, y, dir) {
+        if (x < 0 || x >= COLS || y < 0 || y >= ROWS) return true;
+        var bit = (1 << dir);
+        return (state.walls[y][x] & bit) !== 0;
+      }
+
+      // Authentic ChuChu Rocket Right-Hand Wall Turn Rule
+      function computeNextDirection(x, y, dir) {
+        if (!hasWall(x, y, dir)) return dir;
+        var rightDir = (dir + 1) % 4;
+        if (!hasWall(x, y, rightDir)) return rightDir;
+        var leftDir = (dir + 3) % 4;
+        if (!hasWall(x, y, leftDir)) return leftDir;
+        return (dir + 2) % 4;
+      }
+
+      function getArrowAt(x, y) {
+        for (var i = 0; i < state.arrows.length; i++) {
+          if (state.arrows[i].x === x && state.arrows[i].y === y) {
+            return state.arrows[i];
+          }
+        }
+        return null;
+      }
+
+      function getRocketAt(x, y) {
+        for (var i = 0; i < state.rockets.length; i++) {
+          if (state.rockets[i].x === x && state.rockets[i].y === y) {
+            return state.rockets[i];
+          }
+        }
+        return null;
+      }
+
+      function isPitAt(x, y) {
+        for (var i = 0; i < state.pits.length; i++) {
+          if (state.pits[i].x === x && state.pits[i].y === y) return true;
+        }
+        return false;
+      }
+
+      function placeArrow(x, y, dir, player) {
+        if (x < 0 || x >= COLS || y < 0 || y >= ROWS) return false;
+        if (getRocketAt(x, y) || isPitAt(x, y)) return false;
+
+        // Remove any existing arrow by this player at same cell, or block if rival arrow
+        for (var i = state.arrows.length - 1; i >= 0; i--) {
+          var a = state.arrows[i];
+          if (a.x === x && a.y === y) {
+            if (a.player === player || player === 0) {
+              state.arrows.splice(i, 1);
+            } else {
+              return false;
+            }
+          }
+        }
+
+        // Enforce max 3 active arrows per player (FIFO)
+        var playerArrows = [];
+        for (var j = 0; j < state.arrows.length; j++) {
+          if (state.arrows[j].player === player) {
+            playerArrows.push(state.arrows[j]);
+          }
+        }
+        var maxArrows = (state.activeEvent === "🛡️ Arrow Monopoly!" && player === 0) ? 5 : 3;
+        while (playerArrows.length >= maxArrows) {
+          var oldest = playerArrows.shift();
+          var idx = state.arrows.indexOf(oldest);
+          if (idx !== -1) state.arrows.splice(idx, 1);
+        }
+
+        state.arrows.push({
+          x: x,
+          y: y,
+          dir: dir,
+          player: player,
+          hp: 2,
+          maxHp: 2,
+          createdAt: Date.now()
+        });
+
+        if (player === 0) {
+          ChuChuAudio.playArrow();
+          spawnParticles(x + 0.5, y + 0.5, PLAYER_COLORS[player], 10);
+        }
+        computeAiHint();
+        updateHud();
+        return true;
+      }
+
+      function spawnParticles(gx, gy, color, count) {
+        for (var i = 0; i < (count || 12); i++) {
+          var ang = (Math.PI * 2 * i) / (count || 12) + Math.random() * 0.4;
+          var spd = 0.04 + Math.random() * 0.12;
+          state.particles.push({
+            x: gx,
+            y: gy,
+            vx: Math.cos(ang) * spd,
+            vy: Math.sin(ang) * spd,
+            color: color || "#00f3ff",
+            alpha: 1.0,
+            size: 3 + Math.random() * 4
+          });
+        }
+      }
+
+      function spawnEntity(x, y, dir, type) {
+        state.entities.push({
+          x: x,
+          y: y,
+          dir: dir,
+          progress: 0,
+          type: type || "mouse",
+          speed: type === "cat" ? 0.068 : (type === "gold" ? 0.095 : 0.082)
+        });
+      }
+
+      // Build vibrant initial board state
+      function setupArenaForMode(mode) {
+        state.mode = mode || state.mode;
+        initWalls();
+        state.arrows = [];
+        state.entities = [];
+        state.particles = [];
+        state.speedMult = 1.0;
+        state.activeEvent = "Standard Flow";
+        state.eventTimer = 0;
+
+        // Add balanced interior walls for tactical right-hand turns
+        addWallBetween(2, 2, 3, 2);
+        addWallBetween(8, 2, 9, 2);
+        addWallBetween(2, 6, 3, 6);
+        addWallBetween(8, 6, 9, 6);
+        addWallBetween(5, 1, 6, 1);
+        addWallBetween(5, 7, 6, 7);
+        addWallBetween(4, 3, 4, 4);
+        addWallBetween(7, 4, 7, 5);
+
+        state.rockets = [
+          { player: 0, x: 1, y: 7, score: 48, color: "#00f3ff", label: "P1 BLUE" },
+          { player: 1, x: 10, y: 1, score: 34, color: "#ff2a5f", label: "AI2 RED" },
+          { player: 2, x: 1, y: 1, score: 29, color: "#00ff88", label: "AI3 GREEN" },
+          { player: 3, x: 10, y: 7, score: 22, color: "#ffd700", label: "AI4 GOLD" }
+        ];
+
+        state.pits = [
+          { x: 3, y: 4 },
+          { x: 8, y: 4 }
+        ];
+
+        if (state.mode === "puzzle_25") {
+          loadPuzzleStage(state.puzzleIndex);
+          return;
+        }
+
+        state.clockSec = state.mode === "stage_challenge" ? 30 : 162;
+
+        // Pre-populate active arrows from all 4 players
+        state.arrows.push({ x: 5, y: 7, dir: 3, player: 0, hp: 2, maxHp: 2, createdAt: 1 });
+        state.arrows.push({ x: 1, y: 4, dir: 2, player: 0, hp: 2, maxHp: 2, createdAt: 2 });
+        state.arrows.push({ x: 4, y: 6, dir: 3, player: 0, hp: 2, maxHp: 2, createdAt: 3 });
+
+        state.arrows.push({ x: 6, y: 1, dir: 1, player: 1, hp: 2, maxHp: 2, createdAt: 4 });
+        state.arrows.push({ x: 10, y: 4, dir: 0, player: 1, hp: 2, maxHp: 2, createdAt: 5 });
+
+        state.arrows.push({ x: 4, y: 1, dir: 3, player: 2, hp: 2, maxHp: 2, createdAt: 6 });
+        state.arrows.push({ x: 7, y: 7, dir: 1, player: 3, hp: 2, maxHp: 2, createdAt: 7 });
+
+        // Pre-populate lively mice, 50-gold mice, mystery mice, and KapuKapu cats
+        var initialMice = [
+          { x: 4, y: 7, dir: 3, type: "mouse" },
+          { x: 3, y: 7, dir: 3, type: "gold" },
+          { x: 2, y: 7, dir: 3, type: "mouse" },
+          { x: 1, y: 5, dir: 2, type: "mouse" },
+          { x: 1, y: 6, dir: 2, type: "mystery" },
+          { x: 5, y: 5, dir: 2, type: "mouse" },
+          { x: 6, y: 5, dir: 1, type: "mouse" },
+          { x: 7, y: 6, dir: 2, type: "gold" },
+          { x: 8, y: 7, dir: 1, type: "mouse" },
+          { x: 9, y: 7, dir: 1, type: "mouse" },
+          { x: 3, y: 1, dir: 3, type: "mouse" },
+          { x: 2, y: 1, dir: 3, type: "mouse" },
+          { x: 7, y: 1, dir: 1, type: "mouse" },
+          { x: 8, y: 1, dir: 1, type: "gold" },
+          { x: 9, y: 1, dir: 1, type: "mouse" },
+          { x: 5, y: 3, dir: 0, type: "mouse" },
+          { x: 6, y: 3, dir: 1, type: "mystery" },
+          { x: 4, y: 2, dir: 3, type: "mouse" },
+          { x: 7, y: 2, dir: 1, type: "mouse" },
+          { x: 2, y: 3, dir: 0, type: "mouse" }
+        ];
+        for (var i = 0; i < initialMice.length; i++) {
+          var m = initialMice[i];
+          spawnEntity(m.x, m.y, m.dir, m.type);
+          state.entities[state.entities.length - 1].progress = (i * 0.17) % 0.85;
+        }
+
+        // Spawn KapuKapu Cyber-Cats
+        var catCount = state.mode === "cat_mania" ? 8 : 4;
+        var catCoords = [
+          { x: 6, y: 2, dir: 1 },
+          { x: 9, y: 3, dir: 0 },
+          { x: 3, y: 5, dir: 0 },
+          { x: 8, y: 6, dir: 1 },
+          { x: 2, y: 2, dir: 2 },
+          { x: 10, y: 5, dir: 0 },
+          { x: 5, y: 6, dir: 3 },
+          { x: 4, y: 1, dir: 1 }
+        ];
+        for (var c = 0; c < catCount; c++) {
+          var cc = catCoords[c % catCoords.length];
+          spawnEntity(cc.x, cc.y, cc.dir, "cat");
+        }
+
+        computeAiHint();
+        updateHud();
+      }
+
+      function loadPuzzleStage(stageIdx) {
+        state.puzzleIndex = ((stageIdx % 25) + 25) % 25;
+        state.puzzleRunning = true; // Run live on load so puzzle mice move & can be reset/tweaked
+        initWalls();
+        state.arrows = [];
+        state.entities = [];
+        state.pits = [{ x: 5, y: 4 }, { x: 6, y: 4 }];
+        state.rockets = [
+          { player: 0, x: 1, y: 7, score: 0, color: "#00f3ff", label: "P1 GOAL ROCKET" }
+        ];
+
+        // Deterministic stage variations across all 25 stages
+        var seed = state.puzzleIndex + 1;
+        addWallBetween(3, (seed * 2) % 7 + 1, 4, (seed * 2) % 7 + 1);
+        addWallBetween(7, (seed * 3) % 7 + 1, 8, (seed * 3) % 7 + 1);
+
+        // Place helpful starter arrow + stream of puzzle ChuChus
+        state.arrows.push({ x: 8, y: 7, dir: 3, player: 0, hp: 2, maxHp: 2, createdAt: 1 });
+        state.arrows.push({ x: 8, y: 2, dir: 2, player: 0, hp: 2, maxHp: 2, createdAt: 2 });
+
+        for (var i = 0; i < 8; i++) {
+          spawnEntity(2 + (i % 6), 2, 1, i === 4 ? "gold" : "mouse");
+        }
+        spawnEntity(10, 4, 3, "cat");
+        computeAiHint();
+        updateHud();
+      }
+
+      // Trigger Fever Roulette Wheel Event
+      function triggerFeverRoulette(forcedEvent) {
+        var events = [
+          { id: "mouse_mania", label: "🚀 Mouse Mania! (50 ChuChu Stampede!)" },
+          { id: "cat_attack", label: "🐱 Cat Attack! (Rival Rockets Besieged!)" },
+          { id: "move_rockets", label: "🔄 Move Everyone's Rocket! (Corner Swap!)" },
+          { id: "speed_up", label: "⚡ Everybody Move Faster! (2.0× Hyper-Speed!)" },
+          { id: "arrow_monopoly", label: "🛡️ Arrow Monopoly! (5 Blue Arrows + Clear AI!)" }
+        ];
+        var chosen = events[Math.floor(Math.random() * events.length)];
+        if (forcedEvent) {
+          for (var i = 0; i < events.length; i++) {
+            if (events[i].id === forcedEvent) chosen = events[i];
+          }
+        }
+
+        ChuChuAudio.playRoulette();
+        state.activeEvent = chosen.label;
+        state.eventTimer = 240; // ~8 seconds
+
+        var chips = document.querySelectorAll(".roulette-chip");
+        for (var c = 0; c < chips.length; c++) {
+          chips[c].classList.toggle("active", chips[c].getAttribute("data-event") === chosen.id);
+        }
+
+        if (chosen.id === "mouse_mania") {
+          for (var m = 0; m < 16; m++) {
+            var sp = state.spawners[m % state.spawners.length];
+            spawnEntity(sp.x, sp.y, (sp.dir + m) % 4, m % 4 === 0 ? "gold" : "mouse");
+          }
+        } else if (chosen.id === "cat_attack") {
+          spawnEntity(9, 1, 1, "cat");
+          spawnEntity(2, 1, 3, "cat");
+          spawnEntity(9, 7, 1, "cat");
+        } else if (chosen.id === "move_rockets" && state.rockets.length === 4) {
+          var firstX = state.rockets[0].x;
+          var firstY = state.rockets[0].y;
+          for (var r = 0; r < 3; r++) {
+            state.rockets[r].x = state.rockets[r + 1].x;
+            state.rockets[r].y = state.rockets[r + 1].y;
+          }
+          state.rockets[3].x = firstX;
+          state.rockets[3].y = firstY;
+        } else if (chosen.id === "speed_up") {
+          state.speedMult = 1.75;
+        } else if (chosen.id === "arrow_monopoly") {
+          for (var a = state.arrows.length - 1; a >= 0; a--) {
+            if (state.arrows[a].player !== 0) state.arrows.splice(a, 1);
+          }
+        }
+
+        var banner = document.getElementById("hudEventBanner");
+        if (banner) banner.textContent = "🎰 FEVER ROULETTE: " + chosen.label;
+        var st = document.getElementById("rouletteStatusText");
+        if (st) st.textContent = "Active Bonus: " + chosen.label;
+      }
+
+      // AI Best-Arrow Hint Coach: simulates trajectory to P1 Blue Rocket
+      function computeAiHint() {
+        var p1Rocket = state.rockets[0];
+        if (!p1Rocket) return;
+
+        var bestCell = { x: Math.max(0, Math.min(COLS - 1, p1Rocket.x + 2)), y: p1Rocket.y, dir: 3, score: -999, path: [] };
+
+        for (var y = 0; y < ROWS; y++) {
+          for (var x = 0; x < COLS; x++) {
+            if (getRocketAt(x, y) || isPitAt(x, y)) continue;
+            for (var d = 0; d < 4; d++) {
+              var val = 0;
+              // Trace 8 steps from (x, y) in direction d
+              var cx = x;
+              var cy = y;
+              var cd = d;
+              var path = [{ x: cx, y: cy }];
+              for (var step = 0; step < 8; step++) {
+                var a = (step === 0) ? { dir: d } : getArrowAt(cx, cy);
+                if (a) cd = a.dir;
+                cd = computeNextDirection(cx, cy, cd);
+                cx += DX[cd];
+                cy += DY[cd];
+                if (cx < 0 || cx >= COLS || cy < 0 || cy >= ROWS) break;
+                path.push({ x: cx, y: cy });
+                if (isPitAt(cx, cy)) {
+                  val -= 30;
+                  break;
+                }
+                var rk = getRocketAt(cx, cy);
+                if (rk) {
+                  if (rk.player === 0) val += 50 - step * 3;
+                  else val -= 15;
+                  break;
+                }
+              }
+
+              // Bonus if mice are near (x,y)
+              for (var e = 0; e < state.entities.length; e++) {
+                var ent = state.entities[e];
+                var dist = Math.abs(ent.x - x) + Math.abs(ent.y - y);
+                if (dist <= 2) {
+                  if (ent.type === "cat") val -= 25;
+                  else if (ent.type === "gold") val += 22;
+                  else val += 10;
+                }
+              }
+
+              if (val > bestCell.score) {
+                bestCell = { x: x, y: y, dir: d, score: val, path: path };
+              }
+            }
+          }
+        }
+
+        state.aiHint = bestCell;
+        var coachEl = document.getElementById("aiCoachText");
+        if (coachEl) {
+          coachEl.innerHTML =
+            "Best Arrow: <strong>Cell (" + bestCell.x + ", " + bestCell.y + ") " +
+            DIR_ARROWS[bestCell.dir] + "</strong> — routes mice directly into 🔵 Blue Rocket!";
+        }
+      }
+
+      // Simulation Step
+      var spawnTick = 0;
+      var aiTick = 0;
+
+      function stepSimulation() {
+        if (state.mode === "puzzle_25" && !state.puzzleRunning) return;
+
+        if (state.eventTimer > 0) {
+          state.eventTimer--;
+          if (state.eventTimer === 0) {
+            state.speedMult = 1.0;
+            state.activeEvent = "Standard Flow";
+            var st = document.getElementById("rouletteStatusText");
+            if (st) st.textContent = "Active Bonus: Standard Flow (1.0× Speed)";
+          }
+        }
+
+        // Periodic Spawning from Vortex Portals
+        spawnTick++;
+        var spawnInterval = state.mode === "mouse_frenzy" ? 14 : 26;
+        if (state.mode !== "puzzle_25" && spawnTick >= spawnInterval && state.entities.length < 44) {
+          spawnTick = 0;
+          var sp = state.spawners[Math.floor(Math.random() * state.spawners.length)];
+          var roll = Math.random();
+          var type = "mouse";
+          if (state.mode === "cat_mania" && roll < 0.34) type = "cat";
+          else if (roll < 0.08) type = "cat";
+          else if (roll < 0.20) type = "gold";
+          else if (roll < 0.28) type = "mystery";
+          spawnEntity(sp.x, sp.y, sp.dir, type);
+        }
+
+        // Periodic AI Arrow Placement for Rivals (Players 1, 2, 3)
+        aiTick++;
+        if (state.mode !== "puzzle_25" && state.mode !== "custom_editor" && aiTick >= 75) {
+          aiTick = 0;
+          var aiPlayer = 1 + (Math.floor(Date.now() / 500) % 3);
+          var rk = state.rockets[aiPlayer];
+          if (rk) {
+            var ax = Math.max(1, Math.min(COLS - 2, rk.x + (rk.x > 5 ? -2 : 2)));
+            var ay = rk.y;
+            var adir = rk.x > 5 ? 1 : 3;
+            placeArrow(ax, ay, adir, aiPlayer);
+          }
+        }
+
+        // Move Entities smoothly between grid tiles
+        for (var i = state.entities.length - 1; i >= 0; i--) {
+          var ent = state.entities[i];
+          if (ent.Progress === undefined) ent.progress = ent.progress || 0;
+
+          // At start of tile (progress === 0), determine outgoing direction
+          if (ent.progress === 0) {
+            var arrow = getArrowAt(ent.x, ent.y);
+            if (arrow) {
+              ent.dir = arrow.dir;
+              if (ent.type === "cat") {
+                arrow.hp--;
+                spawnParticles(ent.x + 0.5, ent.y + 0.5, "#ff2a5f", 6);
+                if (arrow.hp <= 0) {
+                  var aIdx = state.arrows.indexOf(arrow);
+                  if (aIdx !== -1) state.arrows.splice(aIdx, 1);
+                }
+              }
+            }
+            ent.dir = computeNextDirection(ent.x, ent.y, ent.dir);
+          }
+
+          ent.progress += ent.speed * state.speedMult;
+          if (ent.progress >= 1.0) {
+            ent.progress -= 1.0;
+            ent.x += DX[ent.dir];
+            ent.y += DY[ent.dir];
+
+            // Clamp inside grid
+            if (ent.x < 0) { ent.x = 0; ent.dir = 1; }
+            if (ent.x >= COLS) { ent.x = COLS - 1; ent.dir = 3; }
+            if (ent.y < 0) { ent.y = 0; ent.dir = 2; }
+            if (ent.y >= ROWS) { ent.y = ROWS - 1; ent.dir = 0; }
+
+            // Check Pit Hole
+            if (isPitAt(ent.x, ent.y)) {
+              spawnParticles(ent.x + 0.5, ent.y + 0.5, "#94a3b8", 8);
+              state.entities.splice(i, 1);
+              continue;
+            }
+
+            // Check Rocket Boarding
+            var rocket = getRocketAt(ent.x, ent.y);
+            if (rocket) {
+              if (ent.type === "cat") {
+                // Authentic 1/3 score slash!
+                rocket.score = Math.floor((rocket.score * 2) / 3);
+                ChuChuAudio.playCatHit();
+                spawnParticles(ent.x + 0.5, ent.y + 0.5, "#ff2a5f", 22);
+                if (window.CodecaineGameMaster && window.CodecaineGameMaster.triggerScreenShake) {
+                  window.CodecaineGameMaster.triggerScreenShake(7);
+                }
+              } else if (ent.type === "mystery") {
+                rocket.score += 5;
+                triggerFeverRoulette();
+                spawnParticles(ent.x + 0.5, ent.y + 0.5, "#b855ff", 18);
+              } else if (ent.type === "gold") {
+                rocket.score += 50;
+                if (rocket.player === 0) ChuChuAudio.playMouseSaved(true);
+                spawnParticles(ent.x + 0.5, ent.y + 0.5, "#ffd700", 20);
+              } else {
+                rocket.score += (state.mode === "mouse_frenzy" ? 5 : 1);
+                if (rocket.player === 0) ChuChuAudio.playMouseSaved(false);
+                spawnParticles(ent.x + 0.5, ent.y + 0.5, rocket.color, 10);
+              }
+
+              if (state.rockets[0] && state.rockets[0].score > state.highScore) {
+                state.highScore = state.rockets[0].score;
+                SafeStorage.set("chuchu_rocket_high_score", state.highScore);
+              }
+
+              state.entities.splice(i, 1);
+              updateHud();
+              continue;
+            }
+          }
+        }
+
+        // Cat vs Mouse Collisions on the Board
+        for (var c = 0; c < state.entities.length; c++) {
+          var cat = state.entities[c];
+          if (!cat || cat.type !== "cat") continue;
+          var cx = cat.x + DX[cat.dir] * cat.progress;
+          var cy = cat.y + DY[cat.dir] * cat.progress;
+
+          for (var m = state.entities.length - 1; m >= 0; m--) {
+            var mouse = state.entities[m];
+            if (!mouse || mouse.type === "cat") continue;
+            var mx = mouse.x + DX[mouse.dir] * mouse.progress;
+            var my = mouse.y + DY[mouse.dir] * mouse.progress;
+            if (Math.hypot(cx - mx, cy - my) < 0.42) {
+              spawnParticles(mx + 0.5, my + 0.5, "#ff2a5f", 8);
+              state.entities.splice(m, 1);
+              if (m < c) c--;
+            }
+          }
+        }
+
+        // Step Particles
+        for (var p = state.particles.length - 1; p >= 0; p--) {
+          var pt = state.particles[p];
+          pt.x += pt.vx;
+          pt.y += pt.vy;
+          pt.alpha -= 0.04;
+          if (pt.alpha <= 0) state.particles.splice(p, 1);
+        }
+      }
+
+      function updateHud() {
+        var r = state.rockets;
+        var el1 = document.getElementById("scoreP1");
+        var el2 = document.getElementById("scoreP2");
+        var el3 = document.getElementById("scoreP3");
+        var el4 = document.getElementById("scoreP4");
+        if (el1 && r[0]) el1.textContent = String(r[0].score);
+        if (el2 && r[1]) el2.textContent = String(r[1].score);
+        if (el3 && r[2]) el3.textContent = String(r[2].score);
+        if (el4 && r[3]) el4.textContent = String(r[3].score);
+
+        var hs = document.getElementById("scoreVal");
+        if (hs) hs.textContent = String(state.highScore);
+
+        var miceCount = 0;
+        var catCount = 0;
+        for (var i = 0; i < state.entities.length; i++) {
+          if (state.entities[i].type === "cat") catCount++;
+          else miceCount++;
+        }
+        var hm = document.getElementById("hudMiceCount");
+        var hc = document.getElementById("hudCatCount");
+        if (hm) hm.textContent = String(miceCount);
+        if (hc) hc.textContent = String(catCount);
+
+        // Update P1 Arrow Pips
+        var p1Arrows = [];
+        for (var a = 0; a < state.arrows.length; a++) {
+          if (state.arrows[a].player === 0) p1Arrows.push(state.arrows[a]);
+        }
+        var cntEl = document.getElementById("p1ArrowCount");
+        if (cntEl) cntEl.textContent = p1Arrows.length + "/3 Arrows";
+
+        var pipsEl = document.getElementById("p1ArrowPips");
+        if (pipsEl) {
+          var html = "";
+          for (var k = 0; k < 3; k++) {
+            var ar = p1Arrows[k];
+            html += '<div class="arrow-pip" style="' +
+              (ar && ar.hp === 1 ? 'border-color:#ff2a5f;color:#ffd700;' : '') + '">' +
+              (ar ? DIR_ARROWS[ar.dir] : "·") + '</div>';
+          }
+          pipsEl.innerHTML = html;
+        }
+
+        var teamBadge = document.getElementById("teamModeBadge");
+        if (teamBadge) {
+          if (state.mode === "team_2v2" && r.length >= 4) {
+            var teamA = r[0].score + r[2].score;
+            var teamB = r[1].score + r[3].score;
+            teamBadge.textContent = "🔵🟢 " + teamA + " VS 🔴🟡 " + teamB;
+          } else {
+            teamBadge.textContent = state.mode.toUpperCase().replace("_", " ");
+          }
+        }
+      }
+
+      // Render 12x9 Neon Grid Canvas
+      function renderArena() {
+        if (!ctx || !canvas) return;
+        var W = canvas.width;
+        var H = canvas.height;
+        var cellW = W / COLS;
+        var cellH = H / ROWS;
+
+        ctx.clearRect(0, 0, W, H);
+
+        // 1. Checkerboard Cyber-Floor Tiles
+        for (var y = 0; y < ROWS; y++) {
+          for (var x = 0; x < COLS; x++) {
+            var isAlt = (x + y) % 2 === 1;
+            ctx.fillStyle = isAlt ? "#0a132c" : "#070e22";
+            ctx.fillRect(x * cellW, y * cellH, cellW, cellH);
+
+            ctx.strokeStyle = "rgba(0, 243, 255, 0.11)";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x * cellW + 0.5, y * cellH + 0.5, cellW - 1, cellH - 1);
+          }
+        }
+
+        // 2. AI Hint Trajectory Preview
+        if (state.aiHint && state.aiHint.path && state.aiHint.path.length > 1) {
+          ctx.save();
+          ctx.strokeStyle = "rgba(0, 255, 136, 0.55)";
+          ctx.lineWidth = 4;
+          ctx.setLineDash([8, 6]);
+          ctx.beginPath();
+          for (var p = 0; p < state.aiHint.path.length; p++) {
+            var pt = state.aiHint.path[p];
+            var px = (pt.x + 0.5) * cellW;
+            var py = (pt.y + 0.5) * cellH;
+            if (p === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.stroke();
+
+          // Highlight AI Recommended Arrow Cell
+          var hx = state.aiHint.x * cellW;
+          var hy = state.aiHint.y * cellH;
+          ctx.setLineDash([]);
+          ctx.strokeStyle = "#00ff88";
+          ctx.lineWidth = 2.5;
+          ctx.strokeRect(hx + 4, hy + 4, cellW - 8, cellH - 8);
+          ctx.fillStyle = "rgba(0, 255, 136, 0.22)";
+          ctx.font = "900 11px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("AI HINT " + DIR_ARROWS[state.aiHint.dir], hx + cellW * 0.5, hy + 15);
+          ctx.restore();
+        }
+
+        // 3. Pit Holes
+        for (var i = 0; i < state.pits.length; i++) {
+          var pit = state.pits[i];
+          var pcx = (pit.x + 0.5) * cellW;
+          var pcy = (pit.y + 0.5) * cellH;
+          var grad = ctx.createRadialGradient(pcx, pcy, 4, pcx, pcy, cellW * 0.38);
+          grad.addColorStop(0, "#000000");
+          grad.addColorStop(0.75, "#1e1b4b");
+          grad.addColorStop(1, "#ef4444");
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(pcx, pcy, cellW * 0.36, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#fca5a5";
+          ctx.font = "bold 10px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("PIT", pcx, pcy + 4);
+        }
+
+        // 4. Vortex Spawners
+        for (var s = 0; s < state.spawners.length; s++) {
+          var sp = state.spawners[s];
+          var scx = (sp.x + 0.5) * cellW;
+          var scy = (sp.y + 0.5) * cellH;
+          ctx.save();
+          ctx.strokeStyle = "#b855ff";
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(scx, scy, cellW * 0.28, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.fillStyle = "rgba(184, 85, 255, 0.22)";
+          ctx.fill();
+          ctx.fillStyle = "#e9d5ff";
+          ctx.font = "bold 11px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("🌀" + DIR_ARROWS[sp.dir], scx, scy + 4);
+          ctx.restore();
+        }
+
+        // 5. Directional Arrow Tiles
+        for (var a = 0; a < state.arrows.length; a++) {
+          var ar = state.arrows[a];
+          var ax = ar.x * cellW;
+          var ay = ar.y * cellH;
+          var col = PLAYER_COLORS[ar.player] || "#00f3ff";
+
+          ctx.save();
+          ctx.fillStyle = "rgba(8, 16, 38, 0.9)";
+          ctx.strokeStyle = col;
+          ctx.lineWidth = ar.hp === 1 ? 1.5 : 3;
+          ctx.beginPath();
+          ctx.roundRect(ax + 6, ay + 6, cellW - 12, cellH - 12, 10);
+          ctx.fill();
+          ctx.stroke();
+
+          // Glowing Arrow Chevron
+          ctx.fillStyle = col;
+          ctx.font = "900 28px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(DIR_ARROWS[ar.dir], ax + cellW * 0.5, ay + cellH * 0.48);
+
+          // HP Pips
+          ctx.font = "bold 9px Orbitron, sans-serif";
+          ctx.fillStyle = ar.hp === 2 ? "#00ff88" : "#ff2a5f";
+          ctx.fillText(ar.hp + "/2 HP", ax + cellW * 0.5, ay + cellH - 12);
+          ctx.restore();
+        }
+
+        // 6. Four Corner Rockets
+        for (var r = 0; r < state.rockets.length; r++) {
+          var rk = state.rockets[r];
+          var rx = (rk.x + 0.5) * cellW;
+          var ry = (rk.y + 0.5) * cellH;
+
+          ctx.save();
+          // Glowing launchpad aura
+          var rGrad = ctx.createRadialGradient(rx, ry, 6, rx, ry, cellW * 0.48);
+          rGrad.addColorStop(0, rk.color);
+          rGrad.addColorStop(1, "transparent");
+          ctx.fillStyle = rGrad;
+          ctx.beginPath();
+          ctx.arc(rx, ry, cellW * 0.48, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Rocket Body
+          ctx.fillStyle = "#0b132b";
+          ctx.strokeStyle = rk.color;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(rx, ry, cellW * 0.36, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.font = "22px sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("🚀", rx, ry - 4);
+
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "900 11px Orbitron, sans-serif";
+          ctx.fillText(rk.label + ": " + rk.score, rx, ry + cellH * 0.33);
+          ctx.restore();
+        }
+
+        // 7. Glowing Neon Edge Walls
+        ctx.save();
+        ctx.strokeStyle = "#00f3ff";
+        ctx.lineWidth = 5;
+        ctx.lineCap = "round";
+        for (var wy = 0; wy < ROWS; wy++) {
+          for (var wx = 0; wx < COLS; wx++) {
+            var m = state.walls[wy][wx];
+            var x0 = wx * cellW;
+            var y0 = wy * cellH;
+            var x1 = x0 + cellW;
+            var y1 = y0 + cellH;
+            if (m & 1) { ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y0); ctx.stroke(); }
+            if (m & 2) { ctx.beginPath(); ctx.moveTo(x1, y0); ctx.lineTo(x1, y1); ctx.stroke(); }
+            if (m & 4) { ctx.beginPath(); ctx.moveTo(x0, y1); ctx.lineTo(x1, y1); ctx.stroke(); }
+            if (m & 8) { ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0, y1); ctx.stroke(); }
+          }
+        }
+        ctx.restore();
+
+        // 8. Scurrying Mice (ChuChus), 50-Gold Mice, Mystery Mice & KapuKapu Cats
+        for (var e = 0; e < state.entities.length; e++) {
+          var ent = state.entities[e];
+          var ex = (ent.x + DX[ent.dir] * ent.progress + 0.5) * cellW;
+          var ey = (ent.y + DY[ent.dir] * ent.progress + 0.5) * cellH;
+
+          ctx.save();
+          if (ent.type === "cat") {
+            ctx.fillStyle = "rgba(255, 42, 95, 0.28)";
+            ctx.strokeStyle = "#ff2a5f";
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(ex, ey, 19, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.font = "22px sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("🐱", ex, ey);
+          } else if (ent.type === "gold") {
+            ctx.fillStyle = "rgba(255, 215, 0, 0.3)";
+            ctx.strokeStyle = "#ffd700";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(ex, ey, 15, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#ffd700";
+            ctx.font = "900 12px Orbitron, sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("50", ex, ey);
+          } else if (ent.type === "mystery") {
+            ctx.fillStyle = "rgba(184, 85, 255, 0.34)";
+            ctx.strokeStyle = "#b855ff";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(ex, ey, 15, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "900 14px Orbitron, sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("❓", ex, ey);
+          } else {
+            ctx.fillStyle = "rgba(0, 243, 255, 0.24)";
+            ctx.strokeStyle = "#38bdf8";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(ex, ey, 13, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.font = "16px sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("🐭", ex, ey);
+          }
+          ctx.restore();
+        }
+
+        // 9. Particles
+        for (var ptIdx = 0; ptIdx < state.particles.length; ptIdx++) {
+          var pt = state.particles[ptIdx];
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, pt.alpha);
+          ctx.fillStyle = pt.color;
+          ctx.beginPath();
+          ctx.arc(pt.x * cellW, pt.y * cellH, pt.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      // Canvas Pointer Interaction (Click + Drag Directional Arrow Placement)
+      function getGridCoords(evt) {
+        if (!canvas) return { x: 0, y: 0, px: 0, py: 0 };
+        var rect = canvas.getBoundingClientRect();
+        var sx = (evt.clientX - rect.left) * (canvas.width / Math.max(1, rect.width));
+        var sy = (evt.clientY - rect.top) * (canvas.height / Math.max(1, rect.height));
+        var gx = Math.max(0, Math.min(COLS - 1, Math.floor(sx / (canvas.width / COLS))));
+        var gy = Math.max(0, Math.min(ROWS - 1, Math.floor(sy / (canvas.height / ROWS))));
+        return { x: gx, y: gy, px: sx, py: sy };
+      }
+
+      if (canvas) {
+        canvas.addEventListener("pointerdown", function(e) {
+          var c = getGridCoords(e);
+          state.dragStart = c;
+        });
+
+        canvas.addEventListener("pointerup", function(e) {
+          var end = getGridCoords(e);
+          var start = state.dragStart || end;
+          state.dragStart = null;
+
+          var dx = end.px - start.px;
+          var dy = end.py - start.py;
+          var dir = state.selectedDir;
+          if (Math.hypot(dx, dy) > 16) {
+            if (Math.abs(dx) > Math.abs(dy)) {
+              dir = dx > 0 ? 1 : 3;
+            } else {
+              dir = dy > 0 ? 2 : 0;
+            }
+            selectDirection(dir);
+          }
+
+          if (state.editorTool === "wall") {
+            toggleRightOrBottomWall(start.x, start.y, dir === 1 || dir === 3 ? 1 : 2);
+          } else if (state.editorTool === "mouse") {
+            spawnEntity(start.x, start.y, dir, "mouse");
+          } else if (state.editorTool === "gold") {
+            spawnEntity(start.x, start.y, dir, "gold");
+          } else if (state.editorTool === "mystery") {
+            spawnEntity(start.x, start.y, dir, "mystery");
+          } else if (state.editorTool === "cat") {
+            spawnEntity(start.x, start.y, dir, "cat");
+          } else {
+            placeArrow(start.x, start.y, dir, 0);
+          }
+          renderArena();
+        });
+      }
+
+      function selectDirection(dir) {
+        state.selectedDir = ((dir % 4) + 4) % 4;
+        var btns = document.querySelectorAll(".dir-btn");
+        for (var i = 0; i < btns.length; i++) {
+          var d = Number(btns[i].getAttribute("data-dir"));
+          btns[i].classList.toggle("active", d === state.selectedDir);
+        }
+      }
+
+      // Bind UI Controls
+      var dirBtns = document.querySelectorAll(".dir-btn");
+      for (var d = 0; d < dirBtns.length; d++) {
+        (function(btn) {
+          btn.addEventListener("click", function() {
+            selectDirection(Number(btn.getAttribute("data-dir")));
+          });
+        })(dirBtns[d]);
+      }
+
+      var modeSelect = document.getElementById("rocketModeSelect");
+      if (modeSelect) {
+        modeSelect.addEventListener("change", function() {
+          setupArenaForMode(modeSelect.value);
+          renderArena();
+        });
+      }
+
+      var puzzleSelect = document.getElementById("puzzleStageSelect");
+      if (puzzleSelect) {
+        puzzleSelect.addEventListener("change", function() {
+          state.puzzleIndex = Number(puzzleSelect.value) || 0;
+          loadPuzzleStage(state.puzzleIndex);
+          renderArena();
+        });
+      }
+
+      var puzzleGoBtn = document.getElementById("puzzleGoBtn");
+      if (puzzleGoBtn) {
+        puzzleGoBtn.addEventListener("click", function() {
+          state.puzzleRunning = !state.puzzleRunning;
+          puzzleGoBtn.textContent = state.puzzleRunning ? "⏸️ PAUSE [SPACE]" : "▶️ GO / RUN [SPACE]";
+        });
+      }
+
+      function applyAiHint() {
+        computeAiHint();
+        if (state.aiHint) {
+          placeArrow(state.aiHint.x, state.aiHint.y, state.aiHint.dir, 0);
+          renderArena();
+        }
+      }
+
+      var aiHintBtn = document.getElementById("aiHintBtn");
+      if (aiHintBtn) aiHintBtn.addEventListener("click", applyAiHint);
+      var applyAiHintBtn = document.getElementById("applyAiHintBtn");
+      if (applyAiHintBtn) applyAiHintBtn.addEventListener("click", applyAiHint);
+
+      var rouletteBtn = document.getElementById("rouletteBtn");
+      if (rouletteBtn) {
+        rouletteBtn.addEventListener("click", function() {
+          triggerFeverRoulette();
+        });
+      }
+
+      var rouletteChips = document.querySelectorAll(".roulette-chip");
+      for (var rc = 0; rc < rouletteChips.length; rc++) {
+        (function(chip) {
+          chip.addEventListener("click", function() {
+            triggerFeverRoulette(chip.getAttribute("data-event"));
+          });
+        })(rouletteChips[rc]);
+      }
+
+      var editorBtns = document.querySelectorAll("#editorPalette .cyber-btn");
+      for (var eb = 0; eb < editorBtns.length; eb++) {
+        (function(btn) {
+          btn.addEventListener("click", function() {
+            state.editorTool = btn.getAttribute("data-tool") || "arrow";
+            for (var j = 0; j < editorBtns.length; j++) {
+              editorBtns[j].classList.toggle("active", editorBtns[j] === btn);
+            }
+          });
+        })(editorBtns[eb]);
+      }
+
+      var resetMatchBtn = document.getElementById("resetMatchBtn");
+      if (resetMatchBtn) {
+        resetMatchBtn.addEventListener("click", function() {
+          setupArenaForMode(state.mode);
+          renderArena();
+        });
+      }
+
+      var audioToggleBtn = document.getElementById("audioToggleBtn");
+      if (audioToggleBtn) {
+        audioToggleBtn.addEventListener("click", function() {
+          var on = ChuChuAudio.toggle();
+          audioToggleBtn.textContent = on ? "🔊 Synth: ON [M]" : "🔇 Synth: OFF [M]";
+          audioToggleBtn.classList.toggle("active", on);
+        });
+      }
+
+      // Keyboard Shortcuts
+      window.addEventListener("keydown", function(e) {
+        if (!e || e.altKey || e.ctrlKey || e.metaKey) return;
+        var k = (e.key || "").toLowerCase();
+        if (k === "w" || k === "arrowup" || k === "1") selectDirection(0);
+        else if (k === "d" || k === "arrowright" || k === "2") selectDirection(1);
+        else if (k === "s" || k === "arrowdown" || k === "3") selectDirection(2);
+        else if (k === "a" || k === "arrowleft" || k === "4") selectDirection(3);
+        else if (k === "h") applyAiHint();
+        else if (k === "e") triggerFeverRoulette();
+        else if (k === "r") { setupArenaForMode(state.mode); renderArena(); }
+        else if (k === "m" && audioToggleBtn) audioToggleBtn.click();
+        else if (k === " " && puzzleGoBtn) { e.preventDefault(); puzzleGoBtn.click(); }
+      });
+
+      // Countdown Clock Timer
+      setInterval(function() {
+        if (state.clockSec > 0) {
+          state.clockSec--;
+        } else {
+          state.clockSec = state.mode === "stage_challenge" ? 30 : 180;
+        }
+        var mins = Math.floor(state.clockSec / 60);
+        var secs = state.clockSec % 60;
+        var clockEl = document.getElementById("hudClock");
+        if (clockEl) {
+          clockEl.textContent =
+            (mins < 10 ? "0" + mins : mins) + ":" + (secs < 10 ? "0" + secs : secs);
+        }
+      }, 1000);
+
+      // Initialize & Start 60fps Loop
+      setupArenaForMode("battle_royale");
+      renderArena();
+
+      var raf = window.requestAnimationFrame || function(fn) { return setTimeout(fn, 16); };
+      function loop() {
+        stepSimulation();
+        renderArena();
+        raf(loop);
+      }
+      raf(loop);
+    })();
+  </script>
+</body>
+</html>

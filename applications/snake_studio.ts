@@ -1,3 +1,4 @@
+import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * ⚡ Codecaine Neon Snake Deluxe — Cyber Viper Edition Studio
  *
@@ -114,7 +115,7 @@ ${getWindowShortcutsScript()}
     html += desktopHooks;
   }
 
-  return html;
+  return injectGameMasterFx(html);
 }
 
 export function startSnakeServer(options: SnakeServerOptions = {}) {

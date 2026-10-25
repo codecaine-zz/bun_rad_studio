@@ -1,0 +1,3358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine Pro Darts Royale: 501 &amp; Cricket Arena</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    :root {
+      --bg-deep: #050811;
+      --bg-arena: #0b1325;
+      --panel-bg: rgba(10, 18, 34, 0.92);
+      --panel-border: rgba(250, 204, 21, 0.28);
+      --gold: #facc15;
+      --gold-bright: #fef08a;
+      --cyan: #00f5d4;
+      --cyan-dim: rgba(0, 245, 212, 0.18);
+      --crimson: #ef4444;
+      --emerald: #22c55e;
+      --purple: #a855f7;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 42%, #132342 0%, #091020 62%, #03060d 100%);
+      color: var(--text);
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Top Championship Broadcast Header */
+    header.hud-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 8px 16px;
+      background: linear-gradient(180deg, rgba(14, 24, 45, 0.97) 0%, rgba(7, 13, 26, 0.95) 100%);
+      border-bottom: 1px solid var(--panel-border);
+      box-shadow: 0 6px 26px rgba(0, 0, 0, 0.75);
+      z-index: 20;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 35% 35%, #ef4444, #991b1b 55%, #0f172a 100%);
+      border: 2px solid var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 14px rgba(250, 204, 21, 0.45);
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffffff, #fef08a, #00f5d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.4px;
+    }
+
+    .hud-controls {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .pill-group {
+      display: flex;
+      background: rgba(3, 7, 18, 0.78);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .btn {
+      background: rgba(30, 41, 59, 0.75);
+      color: var(--text);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.14s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .btn:hover {
+      background: rgba(51, 65, 85, 0.92);
+      border-color: var(--cyan);
+      transform: translateY(-1px);
+    }
+
+    .btn.active {
+      background: linear-gradient(135deg, #0284c7, #00f5d4);
+      color: #020617;
+      border-color: #67e8f9;
+      box-shadow: 0 0 12px rgba(0, 245, 212, 0.4);
+    }
+
+    .btn.gold {
+      background: linear-gradient(135deg, #eab308, #facc15);
+      color: #090d16;
+      border-color: #fef08a;
+    }
+
+    .btn.crimson {
+      background: linear-gradient(135deg, #dc2626, #ef4444);
+      color: #fff;
+      border-color: #fca5a5;
+    }
+
+    /* Main Arena Layout */
+    main.arena-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 330px 1fr 340px;
+      gap: 12px;
+      padding: 12px 16px;
+      min-height: 0;
+      position: relative;
+    }
+
+    @media (max-width: 1160px) {
+      main.arena-grid {
+        grid-template-columns: 280px 1fr 290px;
+      }
+    }
+
+    .side-column {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+    }
+
+    .panel-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--gold);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* PDC TV Scoreboard Cards */
+    .score-card {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(9, 14, 28, 0.95));
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .score-card.active-turn {
+      border-color: var(--cyan);
+      box-shadow: 0 0 18px rgba(0, 245, 212, 0.24), inset 0 0 16px rgba(0, 245, 212, 0.08);
+    }
+
+    .score-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .player-name {
+      font-size: 13.5px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .turn-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #334155;
+      display: inline-block;
+    }
+
+    .score-card.active-turn .turn-dot {
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    .legs-sets-pill {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gold-bright);
+      background: rgba(250, 204, 21, 0.14);
+      border: 1px solid rgba(250, 204, 21, 0.35);
+      padding: 2px 7px;
+      border-radius: 6px;
+    }
+
+    .big-score-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin: 4px 0 6px;
+    }
+
+    .big-score {
+      font-size: 38px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -1px;
+      color: #ffffff;
+      text-shadow: 0 2px 12px rgba(0, 245, 212, 0.3);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .player-stats-mini {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      font-size: 10.5px;
+      color: var(--muted);
+      border-top: 1px solid rgba(148, 163, 184, 0.14);
+      padding-top: 6px;
+    }
+
+    .player-stats-mini span strong {
+      color: var(--text);
+      display: block;
+      font-size: 11.5px;
+    }
+
+    /* Live AI Checkout Advisor Box */
+    .checkout-box {
+      background: linear-gradient(135deg, rgba(6, 78, 59, 0.55), rgba(4, 47, 46, 0.8));
+      border: 1px solid rgba(0, 245, 212, 0.45);
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .checkout-route {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .checkout-chip {
+      background: rgba(0, 245, 212, 0.18);
+      border: 1px solid var(--cyan);
+      color: #ecfeff;
+      font-weight: 800;
+      font-size: 13px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      box-shadow: 0 0 10px rgba(0, 245, 212, 0.25);
+    }
+
+    .checkout-chip.double-finish {
+      background: rgba(239, 68, 68, 0.26);
+      border-color: #f87171;
+      color: #fee2e2;
+    }
+
+    /* 3-Dart Visit Tray */
+    .visit-slots {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr) 74px;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .dart-slot {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 8px;
+      padding: 7px 6px;
+      text-align: center;
+    }
+
+    .dart-slot.filled {
+      border-color: var(--gold);
+      background: rgba(250, 204, 21, 0.1);
+    }
+
+    .dart-slot-label {
+      font-size: 9.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .dart-slot-val {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text);
+      margin-top: 2px;
+    }
+
+    .visit-total-box {
+      background: linear-gradient(135deg, rgba(250, 204, 21, 0.2), rgba(234, 179, 8, 0.1));
+      border: 1px solid var(--gold);
+      border-radius: 8px;
+      padding: 6px;
+      text-align: center;
+    }
+
+    /* Center Dartboard Canvas Stage */
+    .board-stage {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 50%, rgba(22, 37, 68, 0.72) 0%, rgba(5, 10, 22, 0.92) 78%);
+      border: 1px solid rgba(250, 204, 21, 0.24);
+      border-radius: 16px;
+      box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.85), 0 12px 34px rgba(0, 0, 0, 0.65);
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    canvas#dartboardCanvas {
+      max-width: 100%;
+      max-height: 100%;
+      cursor: crosshair;
+      display: block;
+    }
+
+    /* Quick Aim & Focus Bar below/floating on stage */
+    .stage-overlay-bottom {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(7, 13, 25, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      padding: 6px 12px;
+      border-radius: 999px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
+      white-space: nowrap;
+      z-index: 12;
+    }
+
+    .breath-meter-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan);
+    }
+
+    .breath-bar-bg {
+      width: 84px;
+      height: 8px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(0, 245, 212, 0.4);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .breath-bar-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #00f5d4, #38bdf8);
+      transition: width 0.08s linear;
+    }
+
+    /* Broadcast Callout Banner */
+    .callout-banner {
+      position: absolute;
+      top: 16%;
+      left: 50%;
+      transform: translate(-50%, -20px) scale(0.85);
+      padding: 12px 28px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(88, 28, 135, 0.92));
+      border: 2px solid var(--gold);
+      box-shadow: 0 0 40px rgba(250, 204, 21, 0.65);
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: all 0.22s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      z-index: 30;
+    }
+
+    .callout-banner.visible {
+      opacity: 1;
+      transform: translate(-50%, 0) scale(1);
+    }
+
+    .callout-title {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      color: var(--gold-bright);
+      text-shadow: 0 0 18px rgba(250, 204, 21, 0.9);
+    }
+
+    .callout-sub {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--cyan);
+      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Cricket Scoreboard Table */
+    table.cricket-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    table.cricket-table th,
+    table.cricket-table td {
+      padding: 5px 6px;
+      text-align: center;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+    }
+
+    table.cricket-table th {
+      font-size: 10.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .cricket-num {
+      font-weight: 900;
+      color: var(--gold);
+      background: rgba(250, 204, 21, 0.08);
+      border-radius: 4px;
+    }
+
+    .cricket-mark {
+      font-family: monospace;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+
+    .cricket-mark.open-1 { color: #94a3b8; }
+    .cricket-mark.open-2 { color: #38bdf8; }
+    .cricket-mark.closed { color: var(--emerald); text-shadow: 0 0 8px rgba(34, 197, 94, 0.5); }
+    .cricket-row-dead td { opacity: 0.42; text-decoration: line-through; }
+
+    /* Throw Log & Career Grid */
+    .log-list {
+      max-height: 125px;
+      overflow-y: auto;
+      font-size: 11.5px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .log-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 7px;
+      background: rgba(15, 23, 42, 0.65);
+      border-radius: 6px;
+      border-left: 3px solid var(--cyan);
+    }
+
+    .log-item.ai {
+      border-left-color: var(--purple);
+    }
+
+    .log-item.bust {
+      border-left-color: var(--crimson);
+      color: #fca5a5;
+    }
+
+    .career-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      font-size: 11px;
+    }
+
+    .career-stat {
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      border-radius: 7px;
+      padding: 6px 8px;
+    }
+
+    .career-stat .val {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--gold-bright);
+    }
+  </style>
+</head>
+<body>
+  <!-- TOP CHAMPIONSHIP BROADCAST BAR -->
+  <header class="hud-bar">
+    <div class="brand">
+      <div class="brand-badge">🎯</div>
+      <div>
+        <div class="brand-title">Codecaine Pro Darts Royale</div>
+        <div class="brand-sub">14 Championship, Pub &amp; Arcade Dart Games • 4-Tier 3D Tungsten Ballistics</div>
+      </div>
+    </div>
+
+    <div class="hud-controls">
+      <!-- 14-Game Mode Selector Dropdown + Quick Pills -->
+      <select class="btn" id="modeSelect" onchange="DartsGame.setMode(this.value)" title="Select from 14 Official Championship, Pub, Training & Arcade Dart Games" style="background:#0f172a;color:#fef08a;border-color:rgba(250,204,21,0.55);font-weight:800;">
+        <optgroup label="🏆 01 Championship Games">
+          <option value="501" selected>🏆 501 Championship</option>
+          <option value="301">⚡ 301 Fast Play</option>
+          <option value="701">🔥 701 Marathon</option>
+        </optgroup>
+        <optgroup label="🦗 Cricket &amp; Tactics Games">
+          <option value="CRICKET">🦗 Standard Cricket (15–20 &amp; Bull)</option>
+          <option value="CUTTHROAT">🗡️ Cut-Throat Cricket (Reverse Penalty)</option>
+          <option value="TACTICS">🇬🇧 English Tactics (12–20 &amp; Bull)</option>
+        </optgroup>
+        <optgroup label="🍺 Classic Pub &amp; Party Games">
+          <option value="SHANGHAI">🐉 Shanghai (Rounds 1–7 + Instant KO)</option>
+          <option value="KILLER">💀 Killer (Pub Elimination Survival)</option>
+          <option value="HALVEIT">🔪 Halve-It (7-Stage Target or Slash ÷2)</option>
+          <option value="CLOCK">🕒 Around the Clock (1–20 + Bull)</option>
+        </optgroup>
+        <optgroup label="⛳ Sports, Pro Training &amp; Arcade">
+          <option value="BOBS27">🎯 Bob's 27 (Pro Doubles Gauntlet)</option>
+          <option value="BASEBALL">⚾ Baseball Darts (9 Innings: 1–9)</option>
+          <option value="GOLF">⛳ 9-Hole Darts Golf (Par 36 Tour)</option>
+          <option value="COUNTUP">🕹️ Arcade Count-Up (8 Rounds Max)</option>
+        </optgroup>
+      </select>
+
+      <div class="pill-group" role="group" aria-label="Quick Game Modes">
+        <button class="btn active" id="mode501Btn" onclick="DartsGame.setMode('501')">501</button>
+        <button class="btn" id="mode301Btn" onclick="DartsGame.setMode('301')">301</button>
+        <button class="btn" id="modeCricketBtn" onclick="DartsGame.setMode('CRICKET')">Cricket</button>
+        <button class="btn" id="modeShanghaiBtn" onclick="DartsGame.setMode('SHANGHAI')">Shanghai</button>
+        <button class="btn" id="modeKillerBtn" onclick="DartsGame.setMode('KILLER')">Killer</button>
+        <button class="btn" id="modeClockBtn" onclick="DartsGame.setMode('CLOCK')">Clock</button>
+      </div>
+
+      <!-- Double-Out Toggle -->
+      <button class="btn active" id="doubleOutBtn" onclick="DartsGame.toggleDoubleOut()" title="Toggle Official Double-Out vs Straight-Out">
+        🎯 Finish: <span id="doubleOutLabel">Double-Out</span>
+      </button>
+
+      <!-- Opponent Mode & AI Difficulty -->
+      <div class="pill-group" role="group" aria-label="Opponent">
+        <button class="btn" id="aiEasyBtn" onclick="DartsGame.setOpponent('AI_PUB')">🟢 Pub AI</button>
+        <button class="btn active" id="aiCountyBtn" onclick="DartsGame.setOpponent('AI_COUNTY')">🔵 County AI</button>
+        <button class="btn" id="aiLegendBtn" onclick="DartsGame.setOpponent('AI_LEGEND')">🟣 Legend AI</button>
+        <button class="btn" id="passPlayBtn" onclick="DartsGame.setOpponent('2P')">👥 2P Local</button>
+      </div>
+
+      <!-- Player Throw Physics Tier Selector -->
+      <select class="btn" id="physicsModeSelect" onchange="DartsGame.setPhysicsMode(this.value)" title="Choose Player Throw Physics & Ballistic Challenge Tier" style="background:#0f172a;color:#00f5d4;border-color:rgba(0,245,212,0.5);">
+        <option value="ARCADE">🟢 Physics: Beginner Assisted</option>
+        <option value="CLUB">🔵 Physics: Club (Gravity + Power)</option>
+        <option value="PRO" selected>🟣 Physics: Pro Ballistics (Wind + Wire)</option>
+        <option value="MASTER">🔴 Physics: PDC Master Sim (Heartbeat + Bounce-Out)</option>
+      </select>
+
+      <!-- Tungsten Barrel Weight Selector -->
+      <select class="btn" id="barrelWeightSelect" onchange="DartsGame.setBarrelWeight(this.value)" title="Choose Tungsten Dart Barrel Mass (18g / 22g / 26g)" style="background:#0f172a;color:#facc15;border-color:rgba(250,204,21,0.45);">
+        <option value="18">⚖️ 18g Feather</option>
+        <option value="22" selected>⚖️ 22g Tour Pro</option>
+        <option value="26">⚖️ 26g Heavy</option>
+      </select>
+
+      <!-- Dart Flight Skin -->
+      <button class="btn" id="flightSkinBtn" onclick="DartsGame.cycleFlightSkin()" title="Change Tungsten Dart Flight Design">
+        🪶 Flight: <span id="flightSkinLabel">Cyber Cyan</span>
+      </button>
+
+      <!-- Audio & Match Reset -->
+      <button class="btn" id="soundBtn" onclick="DartsAudio.toggleMute()">🔊 Audio</button>
+      <button class="btn gold" onclick="DartsGame.newMatch()">🔄 New Match</button>
+    </div>
+  </header>
+
+  <!-- MAIN ARENA -->
+  <main class="arena-grid">
+    <!-- LEFT COLUMN: TELEVISION SCOREBOARD & LIVE AI CHECKOUT ADVISOR -->
+    <section class="side-column">
+      <div class="panel">
+        <div class="panel-title">
+          <span>📺 PDC Ally Pally Scoreboard</span>
+          <span id="matchFormatLabel">First to 3 Legs</span>
+        </div>
+
+        <!-- Player 1 Score Card -->
+        <div class="score-card active-turn" id="p1Card">
+          <div class="score-card-header">
+            <div class="player-name">
+              <span class="turn-dot"></span>
+              <span id="p1Name">PLAYER 1 (YOU)</span>
+            </div>
+            <div class="legs-sets-pill">LEGS: <span id="p1Legs">0</span></div>
+          </div>
+          <div class="big-score-row">
+            <div class="big-score" id="p1Score">501</div>
+            <div style="text-align:right; font-size:11px; color:var(--cyan);" id="p1TargetHint">Target: T20</div>
+          </div>
+          <div class="player-stats-mini">
+            <span>3-Dart Avg<strong id="p1Avg">0.0</strong></span>
+            <span>Last Visit<strong id="p1Last">—</strong></span>
+            <span>180s / Tons<strong id="p1Tons">0 / 0</strong></span>
+          </div>
+        </div>
+
+        <!-- Player 2 / AI Score Card -->
+        <div class="score-card" id="p2Card">
+          <div class="score-card-header">
+            <div class="player-name">
+              <span class="turn-dot"></span>
+              <span id="p2Name">COUNTY PRO AI</span>
+            </div>
+            <div class="legs-sets-pill">LEGS: <span id="p2Legs">0</span></div>
+          </div>
+          <div class="big-score-row">
+            <div class="big-score" id="p2Score">501</div>
+            <div style="text-align:right; font-size:11px; color:var(--purple);" id="p2TargetHint">Target: T20</div>
+          </div>
+          <div class="player-stats-mini">
+            <span>3-Dart Avg<strong id="p2Avg">0.0</strong></span>
+            <span>Last Visit<strong id="p2Last">—</strong></span>
+            <span>180s / Tons<strong id="p2Tons">0 / 0</strong></span>
+          </div>
+        </div>
+
+        <!-- Current 3-Dart Visit Tray -->
+        <div style="margin-top: 8px;">
+          <div class="panel-title" style="margin-bottom:4px;">
+            <span>🎯 Current 3-Dart Visit</span>
+            <span id="dartsRemainingText" style="color:var(--cyan);">3 Darts in Hand</span>
+          </div>
+          <div class="visit-slots">
+            <div class="dart-slot" id="slot0">
+              <div class="dart-slot-label">Dart 1</div>
+              <div class="dart-slot-val" id="slotVal0">—</div>
+            </div>
+            <div class="dart-slot" id="slot1">
+              <div class="dart-slot-label">Dart 2</div>
+              <div class="dart-slot-val" id="slotVal1">—</div>
+            </div>
+            <div class="dart-slot" id="slot2">
+              <div class="dart-slot-label">Dart 3</div>
+              <div class="dart-slot-val" id="slotVal2">—</div>
+            </div>
+            <div class="visit-total-box">
+              <div class="dart-slot-label" style="color:var(--gold);">Visit</div>
+              <div class="dart-slot-val" id="visitTotalVal" style="color:var(--gold-bright);">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIVE AI CHECKOUT ROUTE ADVISOR / MODE COACH -->
+      <div class="panel checkout-box" id="checkoutCard">
+        <div class="panel-title" style="color:var(--cyan); margin-bottom:4px;">
+          <span id="checkoutCardTitle">🧠 Live AI Checkout &amp; Mode Coach</span>
+          <span id="checkoutStatusBadge">ACTIVE</span>
+        </div>
+        <div style="font-size:11.5px; color:#cbd5e1;" id="checkoutDesc">
+          Power-scoring phase: Aim for <strong>Treble 20 (60 pts)</strong> to leave a two-dart finish below 170.
+        </div>
+        <div class="checkout-route" id="checkoutChips">
+          <span class="checkout-chip">T20 (60)</span>
+          <span class="checkout-chip">T20 (60)</span>
+          <span class="checkout-chip">T20 (60)</span>
+        </div>
+      </div>
+
+      <!-- QUICK AIM & BALLISTIC THROW PHYSICS PANEL -->
+      <div class="panel">
+        <div class="panel-title">
+          <span>⚡ Ballistic Throw Lab &amp; Controls</span>
+          <span style="color:var(--cyan); font-size:10px;" id="physicsTierBadge">PRO BALLISTICS</span>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:5px;">
+          <button class="btn" id="btnSnapRec" onclick="DartsGame.snapAimTo('RECOMMENDED')">✨ Aim Optimal</button>
+          <button class="btn" id="btnSnapT20" onclick="DartsGame.snapAimTo('T20')">🎯 Aim T20</button>
+          <button class="btn" id="btnSnapT19" onclick="DartsGame.snapAimTo('T19')">🎯 Aim T19</button>
+          <button class="btn" id="btnSnapBull" onclick="DartsGame.snapAimTo('DBULL')">🔴 Aim Bull</button>
+          <button class="btn" id="btnHoldGolf" onclick="DartsGame.holdGolfStroke()" style="display:none;border-color:#22c55e;color:#86efac;">⛳ Hold Stroke [H]</button>
+          <button class="btn gold" onclick="DartsGame.throwFromReticle()">🚀 Throw Dart [Space]</button>
+        </div>
+        <div style="margin-top:7px; font-size:10.5px; color:var(--muted); line-height:1.42;" id="physicsHelpText">
+          • <strong>Pro/Club/Master Physics:</strong> Hold <strong>Left-Click / Space</strong> (or drag down &amp; flick up!) and release inside the <strong>78% Sweet Spot</strong> on the right-hand Power Gauge!<br/>
+          • <strong>Under-power (&lt;75%)</strong> drops low under gravity; <strong>Over-power (&gt;82%)</strong> climbs high; watch the <strong>Stage Air Draft</strong> &amp; <strong>Spider-Wire Deflections</strong>!
+        </div>
+      </div>
+    </section>
+
+    <!-- CENTER STAGE: INTERACTIVE BRISTLE DARTBOARD CANVAS -->
+    <section class="board-stage" id="boardStage">
+      <canvas id="dartboardCanvas" width="760" height="760"></canvas>
+
+      <!-- Dramatic Television Callout Overlay -->
+      <div class="callout-banner" id="calloutBanner">
+        <div class="callout-title" id="calloutTitle">ONE HUNDRED AND EIGHTY!</div>
+        <div class="callout-sub" id="calloutSub">MAXIMUM SCORE • 3x TREBLE 20</div>
+      </div>
+
+      <!-- Bottom Stage Steady-Breath Bar -->
+      <div class="stage-overlay-bottom">
+        <div class="breath-meter-wrap">
+          <span>🫁 STEADY BREATH [Hold Shift]:</span>
+          <div class="breath-bar-bg">
+            <div class="breath-bar-fill" id="breathBarFill"></div>
+          </div>
+        </div>
+        <span style="color:var(--muted);">|</span>
+        <div style="font-size:11.5px; font-weight:700; color:var(--gold-bright);" id="hoverSegmentReadout">
+          Sight: T20 (60 pts)
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN: DYNAMIC MODE SCOREBOARD, THROW LOG & CAREER STATS -->
+    <section class="side-column">
+      <!-- CRICKET / TACTICS / ROUND-BY-ROUND MODE CHALKBOARD -->
+      <div class="panel" id="modeScoreboardPanel">
+        <div class="panel-title">
+          <span id="modeTableTitle">🦗 Tactics Cricket Chalkboard</span>
+          <span style="font-size:10px; color:var(--cyan);" id="modeTableSub">15–20 &amp; Bull</span>
+        </div>
+        <table class="cricket-table">
+          <thead>
+            <tr id="modeTableHead">
+              <th>P1 Marks</th>
+              <th>Target</th>
+              <th>P2 Marks</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="cricketTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- LIVE VISIT & TELEMETRY LOG -->
+      <div class="panel">
+        <div class="panel-title">
+          <span>📋 Live Match Throw Telemetry</span>
+          <span id="legCounterBadge">Leg 1</span>
+        </div>
+        <div class="log-list" id="throwLogList"></div>
+      </div>
+
+      <!-- PERSISTENT CAREER PROFILE -->
+      <div class="panel">
+        <div class="panel-title">
+          <span>🏅 PDC Career Profile</span>
+          <span id="careerRankBadge" style="color:var(--cyan);">Contender</span>
+        </div>
+        <div class="career-grid">
+          <div class="career-stat">
+            <div style="color:var(--muted);">Legs Won</div>
+            <div class="val" id="statLegsWon">0</div>
+          </div>
+          <div class="career-stat">
+            <div style="color:var(--muted);">180 Maximums</div>
+            <div class="val" id="stat180s">0</div>
+          </div>
+          <div class="career-stat">
+            <div style="color:var(--muted);">100+ Ton Visits</div>
+            <div class="val" id="statTons">0</div>
+          </div>
+          <div class="career-stat">
+            <div style="color:var(--muted);">High Checkout</div>
+            <div class="val" id="statHighOut">0</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    /**
+     * ============================================================================
+     * 🔊 DARTS WEB AUDIO SYNTHESIZER (Sisal Thud, Spider Wire Clink, 180 Horn)
+     * ============================================================================
+     */
+    const DartsAudio = (() => {
+      let ctx = null;
+      let muted = false;
+
+      function ensureCtx() {
+        if (muted) return null;
+        if (!ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) ctx = new AudioCtx();
+        }
+        if (ctx && ctx.state === "suspended") {
+          ctx.resume().catch(() => {});
+        }
+        return ctx;
+      }
+
+      function playThrowWhoosh() {
+        const c = ensureCtx();
+        if (!c) return;
+        const now = c.currentTime;
+        const osc = c.createOscillator();
+        const gain = c.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(290, now);
+        osc.frequency.exponentialRampToValueAtTime(95, now + 0.16);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
+        osc.connect(gain);
+        gain.connect(c.destination);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      }
+
+      function playSisalThud(multiplier, isBull) {
+        const c = ensureCtx();
+        if (!c) return;
+        const now = c.currentTime;
+
+        // Low sisal board thump
+        const osc = c.createOscillator();
+        const gain = c.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(isBull ? 165 : 130, now);
+        osc.frequency.exponentialRampToValueAtTime(38, now + 0.09);
+        gain.gain.setValueAtTime(0.32, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+        osc.connect(gain);
+        gain.connect(c.destination);
+        osc.start(now);
+        osc.stop(now + 0.11);
+
+        // High chime for Double/Treble/Bull
+        if (multiplier >= 2 || isBull) {
+          const ping = c.createOscillator();
+          const pGain = c.createGain();
+          ping.type = "sine";
+          const baseFreq = isBull ? 880 : multiplier === 3 ? 740 : 587;
+          ping.frequency.setValueAtTime(baseFreq, now + 0.02);
+          ping.frequency.exponentialRampToValueAtTime(baseFreq * 1.25, now + 0.22);
+          pGain.gain.setValueAtTime(0.14, now + 0.02);
+          pGain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+          ping.connect(pGain);
+          pGain.connect(c.destination);
+          ping.start(now + 0.02);
+          ping.stop(now + 0.25);
+        }
+      }
+
+      function playFanfare(type) {
+        const c = ensureCtx();
+        if (!c) return;
+        const now = c.currentTime;
+        const notes =
+          type === "180"
+            ? [440, 554.37, 659.25, 880]
+            : type === "WIN"
+            ? [523.25, 659.25, 783.99, 1046.5]
+            : type === "BUST"
+            ? [240, 180]
+            : [392, 523.25, 659.25];
+
+        notes.forEach((freq, idx) => {
+          const osc = c.createOscillator();
+          const gain = c.createGain();
+          osc.type = type === "BUST" ? "sawtooth" : "triangle";
+          const t0 = now + idx * 0.085;
+          osc.frequency.setValueAtTime(freq, t0);
+          gain.gain.setValueAtTime(0.16, t0);
+          gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.28);
+          osc.connect(gain);
+          gain.connect(c.destination);
+          osc.start(t0);
+          osc.stop(t0 + 0.3);
+        });
+      }
+
+      function playWireClink() {
+        const c = ensureCtx();
+        if (!c) return;
+        const now = c.currentTime;
+        [1480, 2240].forEach((freq, i) => {
+          const osc = c.createOscillator();
+          const gain = c.createGain();
+          osc.type = "square";
+          osc.frequency.setValueAtTime(freq, now + i * 0.015);
+          osc.frequency.exponentialRampToValueAtTime(freq * 0.65, now + 0.11);
+          gain.gain.setValueAtTime(0.12, now + i * 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+          osc.connect(gain);
+          gain.connect(c.destination);
+          osc.start(now + i * 0.015);
+          osc.stop(now + 0.13);
+        });
+      }
+
+      function toggleMute() {
+        muted = !muted;
+        const btn = document.getElementById("soundBtn");
+        if (btn) btn.textContent = muted ? "🔇 Muted" : "🔊 Audio";
+      }
+
+      return {
+        playThrowWhoosh,
+        playSisalThud,
+        playWireClink,
+        playFanfare,
+        toggleMute,
+      };
+    })();
+
+    /**
+     * ============================================================================
+     * 🎯 OFFICIAL PDC CHECKOUT ROUTE TABLE & DYNAMIC SOLVER (170 DOWN TO 2)
+     * ============================================================================
+     */
+    const PDC_CHECKOUT_TABLE = {
+      170: ["T20", "T20", "DBULL"],
+      167: ["T20", "T19", "DBULL"],
+      164: ["T20", "T18", "DBULL"],
+      161: ["T20", "T17", "DBULL"],
+      160: ["T20", "T20", "D20"],
+      158: ["T20", "T20", "D19"],
+      157: ["T20", "T19", "D20"],
+      156: ["T20", "T20", "D18"],
+      155: ["T20", "T19", "D19"],
+      154: ["T20", "T18", "D20"],
+      153: ["T20", "T19", "D18"],
+      152: ["T20", "T20", "D16"],
+      151: ["T20", "T17", "D20"],
+      150: ["T20", "T18", "D18"],
+      149: ["T20", "T19", "D16"],
+      148: ["T20", "T16", "D20"],
+      147: ["T20", "T17", "D18"],
+      146: ["T20", "T18", "D16"],
+      145: ["T20", "T15", "D20"],
+      144: ["T20", "T20", "D12"],
+      143: ["T20", "T17", "D16"],
+      142: ["T20", "T14", "D20"],
+      141: ["T20", "T19", "D12"],
+      140: ["T20", "T16", "D16"],
+      139: ["T19", "T14", "D20"],
+      138: ["T20", "T18", "D12"],
+      137: ["T19", "T16", "D16"],
+      136: ["T20", "T20", "D8"],
+      135: ["BULL", "T20", "DBULL"],
+      134: ["T20", "T14", "D16"],
+      133: ["T20", "T19", "D8"],
+      132: ["BULL", "BULL", "D16"],
+      131: ["T20", "T13", "D16"],
+      130: ["T20", "T20", "D5"],
+      129: ["T19", "T16", "D12"],
+      128: ["T18", "T14", "D16"],
+      127: ["T20", "T17", "D8"],
+      126: ["T19", "T19", "D6"],
+      125: ["BULL", "T20", "D20"],
+      124: ["T20", "T16", "D8"],
+      123: ["T19", "T16", "D9"],
+      122: ["T18", "T20", "D4"],
+      121: ["T20", "T11", "D14"],
+      120: ["T20", "S20", "D20"],
+      119: ["T19", "T12", "D13"],
+      118: ["T20", "S18", "D20"],
+      117: ["T20", "S17", "D20"],
+      116: ["T20", "S16", "D20"],
+      115: ["T20", "S15", "D20"],
+      114: ["T20", "S14", "D20"],
+      113: ["T20", "S13", "D20"],
+      112: ["T20", "S12", "D20"],
+      111: ["T20", "S19", "D16"],
+      110: ["T20", "S18", "D16"],
+      109: ["T20", "S17", "D16"],
+      108: ["T20", "S16", "D16"],
+      107: ["T19", "S18", "D16"],
+      106: ["T20", "S14", "D16"],
+      105: ["T20", "S13", "D16"],
+      104: ["T18", "S18", "D16"],
+      103: ["T20", "S11", "D16"],
+      102: ["T20", "S10", "D16"],
+      101: ["T20", "S9", "D16"],
+      100: ["T20", "D20"],
+      98: ["T20", "D19"],
+      97: ["T19", "D20"],
+      96: ["T20", "D18"],
+      95: ["T19", "D19"],
+      94: ["T18", "D20"],
+      93: ["T19", "D18"],
+      92: ["T20", "D16"],
+      91: ["T17", "D20"],
+      90: ["T18", "D18"],
+      89: ["T19", "D16"],
+      88: ["T16", "D20"],
+      87: ["T17", "D18"],
+      86: ["T18", "D16"],
+      85: ["T15", "D20"],
+      84: ["T20", "D12"],
+      83: ["T17", "D16"],
+      82: ["DBULL", "D16"],
+      81: ["T19", "D12"],
+      80: ["T20", "D10"],
+      79: ["T19", "D11"],
+      78: ["T18", "D12"],
+      77: ["T19", "D10"],
+      76: ["T20", "D8"],
+      75: ["T17", "D12"],
+      74: ["T14", "D16"],
+      73: ["T19", "D8"],
+      72: ["T16", "D12"],
+      71: ["T13", "D16"],
+      70: ["T18", "D8"],
+      69: ["T19", "D6"],
+      68: ["T20", "D4"],
+      67: ["T17", "D8"],
+      66: ["T10", "D18"],
+      65: ["BULL", "D20"],
+      64: ["T16", "D8"],
+      63: ["T13", "D12"],
+      62: ["T10", "D16"],
+      61: ["BULL", "D18"],
+      60: ["S20", "D20"],
+      50: ["DBULL"],
+      40: ["D20"],
+      38: ["D19"],
+      36: ["D18"],
+      32: ["D16"],
+      24: ["D12"],
+      20: ["D10"],
+      16: ["D8"],
+      12: ["D6"],
+      8: ["D4"],
+      4: ["D2"],
+      2: ["D1"],
+    };
+
+    function getOptimalCheckoutRoute(remaining, dartsLeft, doubleOut) {
+      if (remaining <= 0) return [];
+      if (!doubleOut) {
+        if (remaining === 50) return ["DBULL"];
+        if (remaining <= 20) return ["S" + remaining];
+        if (remaining <= 60 && remaining % 3 === 0) return ["T" + (remaining / 3)];
+        if (remaining <= 40 && remaining % 2 === 0) return ["D" + (remaining / 2)];
+      }
+      // 1-dart double-out finishes
+      if (remaining === 50) return ["DBULL"];
+      if (remaining <= 40 && remaining % 2 === 0) return ["D" + (remaining / 2)];
+
+      // Odd number <= 59: hit single to leave D20/D16/D8
+      if (remaining < 60) {
+        const preferredDoubles = [40, 32, 24, 16, 8, 4, 2];
+        for (const d of preferredDoubles) {
+          const singleNeed = remaining - d;
+          if (singleNeed >= 1 && singleNeed <= 20) {
+            return ["S" + singleNeed, "D" + (d / 2)];
+          }
+        }
+      }
+
+      if (PDC_CHECKOUT_TABLE[remaining]) {
+        const route = PDC_CHECKOUT_TABLE[remaining];
+        if (route.length <= dartsLeft) return route;
+      }
+
+      // Dynamic 2-dart solver
+      if (dartsLeft >= 2 && remaining <= 110) {
+        const tryFirst = ["T20", "T19", "T18", "T17", "T16", "T15", "BULL", "S20"];
+        for (const code of tryFirst) {
+          const val = codeValue(code);
+          const rem = remaining - val;
+          if (rem === 50) return [code, "DBULL"];
+          if (rem >= 2 && rem <= 40 && rem % 2 === 0) {
+            return [code, "D" + (rem / 2)];
+          }
+        }
+      }
+
+      return null;
+    }
+
+    function codeValue(code) {
+      if (!code) return 0;
+      if (code === "DBULL") return 50;
+      if (code === "BULL") return 25;
+      const prefix = code[0];
+      const num = parseInt(code.slice(1), 10) || 0;
+      if (prefix === "T") return num * 3;
+      if (prefix === "D") return num * 2;
+      return num;
+    }
+
+    /**
+     * ============================================================================
+     * 🎯 MAIN DARTS ROYALE ENGINE (Regulation Clock Board + 3D Flight + Cricket)
+     * ============================================================================
+     */
+    const DartsGame = (() => {
+      // Official PDC Clockwise Dartboard Sequence starting at 12 o'clock (20)
+      const CLOCK_NUMBERS = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
+      const CRICKET_TARGETS = [20, 19, 18, 17, 16, 15, 25];
+      const TACTICS_TARGETS = [20, 19, 18, 17, 16, 15, 14, 13, 12, 25];
+      const HALVEIT_STAGES = [
+        { round: 1, label: "Any 20", code: "T20", type: "NUMBER", number: 20 },
+        { round: 2, label: "Any 16", code: "T16", type: "NUMBER", number: 16 },
+        { round: 3, label: "Any Double Ring", code: "D20", type: "DOUBLE", number: 0 },
+        { round: 4, label: "Any 14", code: "T14", type: "NUMBER", number: 14 },
+        { round: 5, label: "Any Triple Ring", code: "T20", type: "TRIPLE", number: 0 },
+        { round: 6, label: "Any 18", code: "T18", type: "NUMBER", number: 18 },
+        { round: 7, label: "Bullseye (25 or 50)", code: "DBULL", type: "BULL", number: 25 },
+      ];
+      const MODE_METADATA = {
+        "501": { title: "🏆 501 Championship", format: "First to 3 Legs • 501 → 0" },
+        "301": { title: "⚡ 301 Fast Play", format: "First to 3 Legs • 301 → 0" },
+        "701": { title: "🔥 701 Marathon", format: "First to 3 Legs • 701 → 0" },
+        CRICKET: { title: "🦗 Standard Cricket", format: "Close 15–20 & Bull + High Score" },
+        CUTTHROAT: { title: "🗡️ Cut-Throat Cricket", format: "Close 15–20 & Bull + Lowest Penalty" },
+        TACTICS: { title: "🇬🇧 English Tactics", format: "Close 12–20 & Bull + High Score" },
+        CLOCK: { title: "🕒 Around the Clock", format: "Hit 1–20 in Order + Bullseye" },
+        SHANGHAI: { title: "🐉 Shanghai (Rounds 1–7)", format: "7 Rounds • S+D+T = Instant KO!" },
+        KILLER: { title: "💀 Killer Survival", format: "Hit Own # 3x → Hunt Opponent's #!" },
+        BOBS27: { title: "🎯 Bob's 27 Doubles", format: "Start 27 • D1–D20 & DBULL Gauntlet" },
+        HALVEIT: { title: "🔪 Halve-It Challenge", format: "7 Target Rounds • Miss = Score ÷ 2!" },
+        BASEBALL: { title: "⚾ Baseball Darts", format: "9 Innings (1–9) • Most Runs Wins" },
+        GOLF: { title: "⛳ 9-Hole Darts Golf", format: "Holes 1–9 (Par 36) • Lowest Strokes" },
+        COUNTUP: { title: "🕹️ Arcade Count-Up", format: "8 Rounds (24 Darts) • Max Score" },
+      };
+
+      // Normalized radii (fraction of outer playable board radius R)
+      const RADII = {
+        innerBull: 0.042,    // 50 pts (DBULL)
+        outerBull: 0.102,    // 25 pts (BULL)
+        trebleInner: 0.565,  // Inner edge of 3x ring
+        trebleOuter: 0.642,  // Outer edge of 3x ring
+        doubleInner: 0.920,  // Inner edge of 2x ring
+        doubleOuter: 1.000,  // Outer edge of 2x ring
+      };
+
+      const FLIGHT_SKINS = [
+        { name: "Cyber Cyan", primary: "#00f5d4", secondary: "#0284c7", accent: "#fef08a" },
+        { name: "Gold Crown", primary: "#facc15", secondary: "#b45309", accent: "#ffffff" },
+        { name: "Crimson Viper", primary: "#ef4444", secondary: "#7f1d1d", accent: "#fde047" },
+        { name: "Emerald Pro", primary: "#22c55e", secondary: "#065f46", accent: "#a7f3d0" },
+      ];
+
+      let canvas, ctx;
+      let boardCenter = { x: 380, y: 380 };
+      let boardRadius = 290;
+
+      // Game Configuration
+      let gameMode = "501"; // '501' | '301' | 'CRICKET' | 'CLOCK'
+      let doubleOut = true;
+      let opponentType = "AI_COUNTY"; // 'AI_PUB' | 'AI_COUNTY' | 'AI_LEGEND' | '2P'
+      let flightSkinIdx = 0;
+
+      // Match & Turn State
+      let players = [];
+      let currentPlayerIdx = 0;
+      let currentVisitDarts = [];
+      let startOfTurnScore = 501;
+      let legNumber = 1;
+      let matchOver = false;
+      let aiTimer = null;
+
+      // Aiming, Ballistic Physics & Steady Breath State
+      let physicsMode = "PRO"; // 'ARCADE' | 'CLUB' | 'PRO' | 'MASTER'
+      let barrelWeight = 22;   // 18 | 22 | 26 (grams)
+      let stageWind = { x: 1.2, y: -0.35, label: "1.3 mph →" };
+      let heartbeatBpm = 76;
+      let chargingThrow = false;
+      let throwPower = 78;     // 0..100 (Sweet spot = 78)
+      let throwPowerDir = 1;
+      let releaseSideBias = 0; // -1..+1 horizontal wrist release alignment
+      let lastPowerSample = 78;
+      let dragStartPt = null;
+
+      let aimBase = { x: 380, y: 380 - 290 * 0.603 }; // Default aimed at T20
+      let aimLive = { x: 380, y: 380 - 290 * 0.603 };
+      let keysHeld = {};
+      let focusHeld = false;
+      let breathStamina = 100;
+
+      // 3D Flying Dart & Embedded Board Darts
+      let activeFlightDart = null;
+      let embeddedDarts = [];
+      let particles = [];
+      let calloutTimer = null;
+
+      // Persistent Career Stats
+      const CAREER_KEY = "codecaine_darts_royale_career_v1";
+      let career = loadCareer();
+
+      function loadCareer() {
+        try {
+          const raw = window.localStorage.getItem(CAREER_KEY);
+          if (raw) return JSON.parse(raw);
+        } catch (_) {}
+        return { legsWon: 0, max180s: 0, tons: 0, highCheckout: 0 };
+      }
+
+      function saveCareer() {
+        try {
+          window.localStorage.setItem(CAREER_KEY, JSON.stringify(career));
+        } catch (_) {}
+        updateCareerUI();
+      }
+
+      function updateCareerUI() {
+        document.getElementById("statLegsWon").textContent = career.legsWon;
+        document.getElementById("stat180s").textContent = career.max180s;
+        document.getElementById("statTons").textContent = career.tons;
+        document.getElementById("statHighOut").textContent = career.highCheckout;
+
+        let rank = "Pub Contender";
+        if (career.legsWon >= 25 || career.max180s >= 10) rank = "👑 Ally Pally World Champion";
+        else if (career.legsWon >= 10 || career.max180s >= 4) rank = "🏆 Premier League Pro";
+        else if (career.legsWon >= 3) rank = "🎯 County Captain";
+        document.getElementById("careerRankBadge").textContent = rank;
+      }
+
+      function getInitialScoreForMode(mode) {
+        if (mode === "501") return 501;
+        if (mode === "301") return 301;
+        if (mode === "701") return 701;
+        if (mode === "BOBS27") return 27;
+        if (mode === "HALVEIT") return 40;
+        return 0;
+      }
+
+      function createPlayer(name, isAI, idx = 0) {
+        const startScore = getInitialScoreForMode(gameMode);
+        const cricketMarks = {};
+        TACTICS_TARGETS.forEach((t) => (cricketMarks[t] = 0));
+        return {
+          name,
+          isAI,
+          score: startScore,
+          legs: 0,
+          dartsThrown: 0,
+          totalPointsScored: 0,
+          lastVisit: "—",
+          count180: 0,
+          countTons: 0,
+          cricketMarks,
+          clockTarget: 1, // 1..20, 25 (Outer Bull), 50 (Inner Bullseye)
+          roundNumber: 1,
+          roundHistory: {},
+          killerNumber: idx === 0 ? 20 : 19,
+          killerHits: 0,
+          killerLives: 3,
+          isKiller: false,
+          bustedOut: false,
+          bobsRoundHits: 0,
+          halveStageHits: 0,
+          inningRuns: 0,
+          golfHoleStroke: 5,
+        };
+      }
+
+      function getOpponentDisplayName() {
+        if (opponentType === "2P") return "PLAYER 2";
+        if (opponentType === "AI_PUB") return "PUB REGULAR AI";
+        if (opponentType === "AI_LEGEND") return "WORLD LEGEND AI";
+        return "COUNTY PRO AI";
+      }
+
+      function newMatch() {
+        if (aiTimer) clearTimeout(aiTimer);
+        matchOver = false;
+        legNumber = 1;
+        players = [
+          createPlayer("PLAYER 1 (YOU)", false, 0),
+          createPlayer(getOpponentDisplayName(), opponentType !== "2P", 1),
+        ];
+        startNewLeg(0);
+        clearLog();
+        const meta = MODE_METADATA[gameMode] || { title: gameMode, format: "First to 3 Legs" };
+        const fmtEl = document.getElementById("matchFormatLabel");
+        if (fmtEl) fmtEl.textContent = meta.format;
+        const holdBtn = document.getElementById("btnHoldGolf");
+        if (holdBtn) holdBtn.style.display = gameMode === "GOLF" ? "inline-flex" : "none";
+        addLog(
+          "🏆 Match started: " +
+            meta.title +
+            (gameMode === "501" || gameMode === "301" || gameMode === "701"
+              ? doubleOut
+                ? " (Double-Out)"
+                : " (Straight-Out)"
+              : ""),
+          false
+        );
+        snapAimTo("RECOMMENDED");
+      }
+
+      function startNewLeg(startingIdx) {
+        const startScore = getInitialScoreForMode(gameMode);
+        // Assign distinct Killer numbers for variety (default 20 & 19 on Leg 1)
+        const killerPool = [20, 19, 18, 17, 16, 15, 14, 13, 12, 11];
+        const k1 = legNumber === 1 ? 20 : killerPool[(legNumber * 3) % killerPool.length];
+        const k2 = legNumber === 1 ? 19 : killerPool[(legNumber * 3 + 5) % killerPool.length];
+
+        players.forEach((p, idx) => {
+          p.score = startScore;
+          TACTICS_TARGETS.forEach((t) => (p.cricketMarks[t] = 0));
+          p.clockTarget = 1;
+          p.roundNumber = 1;
+          p.roundHistory = {};
+          p.killerNumber = idx === 0 ? k1 : k2;
+          p.killerHits = 0;
+          p.killerLives = 3;
+          p.isKiller = false;
+          p.bustedOut = false;
+          p.bobsRoundHits = 0;
+          p.halveStageHits = 0;
+          p.inningRuns = 0;
+          p.golfHoleStroke = 5;
+        });
+        currentPlayerIdx = startingIdx;
+        startOfTurnScore = players[currentPlayerIdx].score;
+        currentVisitDarts = [];
+        embeddedDarts = [];
+        document.getElementById("legCounterBadge").textContent = "Leg " + legNumber;
+        updateHUD();
+        if (players[currentPlayerIdx].isAI) {
+          scheduleAITurn();
+        }
+      }
+
+      /**
+       * ========================================================================
+       * 📐 POLAR COORDINATE HIT DETECTION & TARGET CENTER LOOKUP
+       * ========================================================================
+       */
+      function evaluateBoardCoordinate(x, y) {
+        const dx = x - boardCenter.x;
+        const dy = y - boardCenter.y;
+        const dist = Math.hypot(dx, dy);
+        const normR = dist / boardRadius;
+
+        if (normR <= RADII.innerBull) {
+          return {
+            code: "DBULL",
+            label: "Bullseye (50)",
+            score: 50,
+            number: 25,
+            multiplier: 2,
+            isDouble: true,
+            isBull: true,
+            isInnerBull: true,
+            isInnerSingle: false,
+            isOuterSingle: false,
+          };
+        }
+        if (normR <= RADII.outerBull) {
+          return {
+            code: "BULL",
+            label: "Outer Bull (25)",
+            score: 25,
+            number: 25,
+            multiplier: 1,
+            isDouble: false,
+            isBull: true,
+            isInnerBull: false,
+            isInnerSingle: false,
+            isOuterSingle: false,
+          };
+        }
+        if (normR > RADII.doubleOuter) {
+          return {
+            code: "MISS",
+            label: "Miss (0)",
+            score: 0,
+            number: 0,
+            multiplier: 0,
+            isDouble: false,
+            isBull: false,
+            isInnerBull: false,
+            isInnerSingle: false,
+            isOuterSingle: false,
+          };
+        }
+
+        // Angle where 0 rad is 12 o'clock (top), increasing clockwise
+        let angleDeg = (Math.atan2(dx, -dy) * 180) / Math.PI;
+        if (angleDeg < 0) angleDeg += 360;
+        const sectorIdx = Math.floor(((angleDeg + 9) % 360) / 18);
+        const number = CLOCK_NUMBERS[sectorIdx];
+
+        if (normR >= RADII.doubleInner && normR <= RADII.doubleOuter) {
+          return {
+            code: "D" + number,
+            label: "Double " + number + " (" + number * 2 + ")",
+            score: number * 2,
+            number,
+            multiplier: 2,
+            isDouble: true,
+            isBull: false,
+            isInnerBull: false,
+            isInnerSingle: false,
+            isOuterSingle: false,
+          };
+        }
+        if (normR >= RADII.trebleInner && normR <= RADII.trebleOuter) {
+          return {
+            code: "T" + number,
+            label: "Treble " + number + " (" + number * 3 + ")",
+            score: number * 3,
+            number,
+            multiplier: 3,
+            isDouble: false,
+            isBull: false,
+            isInnerBull: false,
+            isInnerSingle: false,
+            isOuterSingle: false,
+          };
+        }
+
+        const isInnerSingle = normR > RADII.outerBull && normR < RADII.trebleInner;
+        return {
+          code: "S" + number,
+          label: (isInnerSingle ? "Inner Single " : "Outer Single ") + number + " (" + number + ")",
+          score: number,
+          number,
+          multiplier: 1,
+          isDouble: false,
+          isBull: false,
+          isInnerBull: false,
+          isInnerSingle,
+          isOuterSingle: !isInnerSingle,
+        };
+      }
+
+      function getCoordinatesForTargetCode(code) {
+        if (!code || code === "DBULL") {
+          return { x: boardCenter.x, y: boardCenter.y };
+        }
+        if (code === "BULL") {
+          return { x: boardCenter.x, y: boardCenter.y - boardRadius * ((RADII.innerBull + RADII.outerBull) * 0.5) };
+        }
+        const prefix = code[0];
+        const num = parseInt(code.slice(1), 10);
+        const idx = CLOCK_NUMBERS.indexOf(num);
+        if (idx === -1) return { x: boardCenter.x, y: boardCenter.y };
+
+        const angleRad = (idx * 18 * Math.PI) / 180;
+        let rNorm = 0.78; // Outer single center
+        if (prefix === "T") rNorm = (RADII.trebleInner + RADII.trebleOuter) * 0.5;
+        else if (prefix === "D") rNorm = (RADII.doubleInner + RADII.doubleOuter) * 0.5;
+
+        return {
+          x: boardCenter.x + Math.sin(angleRad) * (boardRadius * rNorm),
+          y: boardCenter.y - Math.cos(angleRad) * (boardRadius * rNorm),
+        };
+      }
+
+      function getRecommendedTargetCode(player) {
+        if (!player) return "T20";
+        const dartsLeft = Math.max(1, 3 - currentVisitDarts.length);
+        const opp = players[1 - players.indexOf(player)] || players[0];
+
+        if (gameMode === "501" || gameMode === "301" || gameMode === "701") {
+          if (player.score <= 170) {
+            const route = getOptimalCheckoutRoute(player.score, dartsLeft, doubleOut);
+            if (route && route.length > 0) return route[0];
+          }
+          if (player.score > 40 && player.score <= 60 && doubleOut) {
+            const leave40 = player.score - 40;
+            if (leave40 >= 1 && leave40 <= 20) return "S" + leave40;
+          }
+          return "T20";
+        }
+
+        if (gameMode === "CRICKET" || gameMode === "CUTTHROAT" || gameMode === "TACTICS") {
+          const targets = gameMode === "TACTICS" ? TACTICS_TARGETS : CRICKET_TARGETS;
+          if (gameMode === "CUTTHROAT") {
+            // In Cut-Throat, prioritize closing open numbers or piling penalty points onto opponent's unclosed numbers!
+            for (const t of targets) {
+              if (player.cricketMarks[t] >= 3 && opp.cricketMarks[t] < 3 && player.score > opp.score) {
+                return t === 25 ? "DBULL" : "T" + t;
+              }
+            }
+          }
+          for (const t of targets) {
+            if (player.cricketMarks[t] < 3) {
+              return t === 25 ? "DBULL" : "T" + t;
+            }
+          }
+          for (const t of targets) {
+            if (opp.cricketMarks[t] < 3) {
+              return t === 25 ? "DBULL" : "T" + t;
+            }
+          }
+          return "DBULL";
+        }
+
+        if (gameMode === "CLOCK") {
+          if (player.clockTarget >= 25) return "DBULL";
+          return "S" + player.clockTarget;
+        }
+
+        if (gameMode === "SHANGHAI") {
+          const r = Math.min(7, player.roundNumber || 1);
+          // Aim for missing multiplier in Shanghai visit (Single, Double, Triple)
+          const hitMults = currentVisitDarts
+            .filter((d) => d.rawHit && d.rawHit.number === r)
+            .map((d) => d.rawHit.multiplier);
+          if (!hitMults.includes(3)) return "T" + r;
+          if (!hitMults.includes(2)) return "D" + r;
+          return "S" + r;
+        }
+
+        if (gameMode === "KILLER") {
+          if (!player.isKiller) {
+            return "T" + player.killerNumber;
+          }
+          return "T" + opp.killerNumber;
+        }
+
+        if (gameMode === "BOBS27") {
+          const r = Math.min(21, player.roundNumber || 1);
+          return r === 21 ? "DBULL" : "D" + r;
+        }
+
+        if (gameMode === "HALVEIT") {
+          const st = HALVEIT_STAGES[Math.min(6, (player.roundNumber || 1) - 1)];
+          return st ? st.code : "T20";
+        }
+
+        if (gameMode === "BASEBALL") {
+          const inning = Math.min(9, player.roundNumber || 1);
+          return "T" + inning;
+        }
+
+        if (gameMode === "GOLF") {
+          const hole = Math.min(9, player.roundNumber || 1);
+          return "T" + hole;
+        }
+
+        if (gameMode === "COUNTUP") {
+          return "T20";
+        }
+
+        return "T20";
+      }
+
+      const chooseAiTarget = getRecommendedTargetCode;
+
+      /**
+       * ========================================================================
+       * 🚀 4-TIER BALLISTIC THROW MECHANICS, GRAVITY, WIND & SPIDER-WIRE PHYSICS
+       * ========================================================================
+       */
+      function rollStageWind() {
+        const wx = (Math.random() * 4.4 - 2.2);
+        const wy = (Math.random() * 1.6 - 0.8);
+        const speed = Math.hypot(wx, wy).toFixed(1);
+        const dirArrow = wx >= 0.3 ? "→" : wx <= -0.3 ? "←" : wy < 0 ? "↑" : "↓";
+        stageWind = {
+          x: wx,
+          y: wy,
+          label: speed + " mph " + dirArrow,
+        };
+      }
+
+      function checkSpiderWireInteraction(tx, ty) {
+        const dx = tx - boardCenter.x;
+        const dy = ty - boardCenter.y;
+        const dist = Math.hypot(dx, dy);
+        const R = boardRadius;
+        const wireRadii = [
+          R * RADII.innerBull,
+          R * RADII.outerBull,
+          R * RADII.trebleInner,
+          R * RADII.trebleOuter,
+          R * RADII.doubleInner,
+          R * RADII.doubleOuter,
+        ];
+        let nearWire = false;
+        for (const wr of wireRadii) {
+          if (Math.abs(dist - wr) < 2.4) {
+            nearWire = true;
+            break;
+          }
+        }
+        if (!nearWire && dist > R * RADII.outerBull && dist <= R) {
+          let deg = (Math.atan2(dy, dx) * 180) / Math.PI + 90 + 9;
+          deg = ((deg % 360) + 360) % 360;
+          const sectorOffset = deg % 18;
+          if (sectorOffset < 1.1 || sectorOffset > 16.9) {
+            nearWire = true;
+          }
+        }
+        return nearWire;
+      }
+
+      function throwFromReticle(explicitPower) {
+        if (matchOver || activeFlightDart) return;
+        const p = players[currentPlayerIdx];
+        if (p.isAI) return;
+        if (currentVisitDarts.length >= 3) return;
+
+        if (currentVisitDarts.length === 0) {
+          embeddedDarts = [];
+        }
+
+        const usedPower = typeof explicitPower === "number" ? explicitPower : throwPower;
+        lastPowerSample = Math.round(usedPower);
+
+        // Barrel mass physics factors (18g light, 22g pro, 26g heavy)
+        const gravityFactor = barrelWeight === 18 ? 0.76 : barrelWeight === 26 ? 1.36 : 1.0;
+        const windFactor = barrelWeight === 18 ? 1.45 : barrelWeight === 26 ? 0.55 : 1.0;
+
+        let targetX = aimLive.x;
+        let targetY = aimLive.y;
+        let bounceOut = false;
+        let wireDeflected = false;
+
+        if (physicsMode === "ARCADE") {
+          const jitterRadius = focusHeld && breathStamina > 5 ? 1.8 : 4.2;
+          const angle = Math.random() * Math.PI * 2;
+          const r = Math.random() * jitterRadius;
+          targetX += Math.cos(angle) * r;
+          targetY += Math.sin(angle) * r;
+        } else {
+          // 1. Parabolic Gravity Drop vs Over-Power Climb (Optimal Sweet Spot = 78%)
+          const powerError = 78 - usedPower; // positive = under-powered (drops low), negative = over-powered (climbs high)
+          const verticalBallisticOffset = powerError * 1.48 * gravityFactor;
+          targetY += verticalBallisticOffset;
+
+          // 2. Horizontal Wrist Release Straightness + Natural Dispersion
+          const baseSpread =
+            physicsMode === "CLUB" ? (focusHeld ? 3.5 : 7.5) :
+            physicsMode === "PRO" ? (focusHeld ? 5.2 : 11.5) :
+            (focusHeld ? 7.2 : 15.5);
+          const sidePush = releaseSideBias * (physicsMode === "MASTER" ? 18 : physicsMode === "PRO" ? 11 : 5);
+          const angle = Math.random() * Math.PI * 2;
+          const r = ((Math.random() + Math.random()) * 0.5) * baseSpread;
+          targetX += sidePush + Math.cos(angle) * r;
+          targetY += Math.sin(angle) * r;
+
+          // 3. Stage Air Draft / HVAC Crosswind (PRO & MASTER)
+          if (physicsMode === "PRO" || physicsMode === "MASTER") {
+            targetX += stageWind.x * 6.8 * windFactor;
+            targetY += stageWind.y * 5.2 * windFactor;
+          }
+
+          // 4. Spider-Wire Deflection & Bounce-Out Physics (PRO & MASTER)
+          if (physicsMode === "PRO" || physicsMode === "MASTER") {
+            if (checkSpiderWireInteraction(targetX, targetY)) {
+              const absErr = Math.abs(powerError);
+              const bounceChance = physicsMode === "MASTER" ? 0.38 : 0.22;
+              if (absErr > 9 || Math.random() < bounceChance) {
+                bounceOut = true;
+              } else {
+                wireDeflected = true;
+                const defAngle = Math.random() * Math.PI * 2;
+                targetX += Math.cos(defAngle) * 8.5;
+                targetY += Math.sin(defAngle) * 8.5;
+              }
+            }
+          }
+        }
+
+        launchDartTo(targetX, targetY, { bounceOut, wireDeflected, powerUsed: lastPowerSample });
+      }
+
+      function launchDartTo(targetX, targetY, meta = {}) {
+        DartsAudio.playThrowWhoosh();
+        const skin = FLIGHT_SKINS[flightSkinIdx];
+        activeFlightDart = {
+          startX: boardCenter.x + (targetX - boardCenter.x) * 0.35,
+          startY: canvas.height + 40,
+          targetX,
+          targetY,
+          progress: 0,
+          skin,
+          ownerIdx: currentPlayerIdx,
+          bounceOut: !!meta.bounceOut,
+          wireDeflected: !!meta.wireDeflected,
+          powerUsed: meta.powerUsed || 78,
+        };
+      }
+
+      function awardLegToWinner(winner, loser, finishDesc) {
+        winner.legs += 1;
+        if (!winner.isAI) {
+          career.legsWon += 1;
+          if ((gameMode === "501" || gameMode === "301" || gameMode === "701") && startOfTurnScore > career.highCheckout) {
+            career.highCheckout = startOfTurnScore;
+          }
+          saveCareer();
+        }
+        DartsAudio.playFanfare("WIN");
+        showCallout("🏆 GAME SHOT & THE LEG!", winner.name + " • " + finishDesc);
+        addLog("🏆 " + winner.name + " won Leg " + legNumber + " (" + finishDesc + ")!", winner.isAI);
+        updateHUD();
+
+        if (winner.legs >= 3) {
+          matchOver = true;
+          setTimeout(() => {
+            showCallout("👑 CHAMPIONSHIP WINNER!", winner.name + " WINS THE MATCH " + winner.legs + "–" + loser.legs + "!");
+          }, 1400);
+        } else {
+          legNumber += 1;
+          setTimeout(() => {
+            startNewLeg(legNumber % 2 === 1 ? 0 : 1);
+          }, 1700);
+        }
+      }
+
+      function holdGolfStroke() {
+        if (gameMode !== "GOLF" || matchOver || activeFlightDart) return;
+        const p = players[currentPlayerIdx];
+        if (!p || p.isAI || currentVisitDarts.length === 0) return;
+        showCallout("⛳ STROKE LOCKED!", p.name + " HOLDS AT " + p.golfHoleStroke + " STROKES");
+        finalizeRoundVisit();
+      }
+
+      function finalizeRoundVisit() {
+        if (matchOver) return;
+        const p = players[currentPlayerIdx];
+        const opp = players[1 - currentPlayerIdx];
+        const visitSum = currentVisitDarts.reduce((acc, d) => acc + d.score, 0);
+
+        if (gameMode === "SHANGHAI") {
+          const r = p.roundNumber;
+          p.roundHistory[r] = visitSum;
+          p.lastVisit = "R" + r + ": +" + visitSum;
+          p.roundNumber += 1;
+          if (players[0].roundNumber > 7 && players[1].roundNumber > 7) {
+            const w = players[0].score >= players[1].score ? players[0] : players[1];
+            const l = w === players[0] ? players[1] : players[0];
+            awardLegToWinner(w, l, "SHANGHAI FINAL " + w.score + "–" + l.score);
+            return;
+          }
+        } else if (gameMode === "BOBS27") {
+          const r = p.roundNumber;
+          const doubleVal = r === 21 ? 50 : r * 2;
+          if ((p.bobsRoundHits || 0) === 0) {
+            p.score -= doubleVal;
+            p.lastVisit = "-" + doubleVal + " (MISS)";
+            DartsAudio.playFanfare("BUST");
+            showCallout("⚠️ MISSED DOUBLE!", p.name + " -" + doubleVal + " PTS");
+          } else {
+            p.lastVisit = "+" + p.bobsRoundHits * doubleVal;
+          }
+          p.roundHistory[r] = p.score;
+          p.bobsRoundHits = 0;
+
+          if (p.score < 1) {
+            p.bustedOut = true;
+            showCallout("💥 BOB'S 27 BUSTED OUT!", p.name + " DROPPED BELOW 1 PT");
+            addLog("💥 " + p.name + " busted below 1 pt in Bob's 27!", p.isAI, true);
+            awardLegToWinner(opp, p, "SURVIVED BOB'S 27 GAUNTLET");
+            return;
+          }
+          p.roundNumber += 1;
+          if (players[0].roundNumber > 21 && players[1].roundNumber > 21) {
+            const w = players[0].score >= players[1].score ? players[0] : players[1];
+            const l = w === players[0] ? players[1] : players[0];
+            awardLegToWinner(w, l, "BOB'S 27 SCORE " + w.score);
+            return;
+          }
+        } else if (gameMode === "HALVEIT") {
+          const r = p.roundNumber;
+          const st = HALVEIT_STAGES[Math.min(6, r - 1)];
+          if ((p.halveStageHits || 0) === 0) {
+            p.score = Math.floor(p.score / 2);
+            p.lastVisit = "÷2 (" + p.score + ")";
+            DartsAudio.playFanfare("BUST");
+            showCallout("🔪 HALVED! (÷2)", p.name + " MISSED " + st.label.toUpperCase());
+            addLog("🔪 " + p.name + " missed " + st.label + " → Score halved to " + p.score + "!", p.isAI, true);
+          } else {
+            p.lastVisit = "+" + visitSum;
+          }
+          p.roundHistory[r] = p.score;
+          p.halveStageHits = 0;
+          p.roundNumber += 1;
+          if (players[0].roundNumber > 7 && players[1].roundNumber > 7) {
+            const w = players[0].score >= players[1].score ? players[0] : players[1];
+            const l = w === players[0] ? players[1] : players[0];
+            awardLegToWinner(w, l, "HALVE-IT TOTAL " + w.score + "–" + l.score);
+            return;
+          }
+        } else if (gameMode === "BASEBALL") {
+          const inning = p.roundNumber;
+          const runs = p.inningRuns || 0;
+          p.roundHistory[inning] = runs;
+          p.lastVisit = runs + (runs === 1 ? " Run" : " Runs");
+          if (runs >= 7) {
+            DartsAudio.playFanfare("180");
+            showCallout("⚾ GRAND SLAM INNING!", p.name + " SCORED " + runs + " RUNS IN INNING " + inning);
+            spawnCelebrationConfetti();
+          }
+          p.inningRuns = 0;
+          p.roundNumber += 1;
+          if (players[0].roundNumber > 9 && players[1].roundNumber > 9) {
+            const w = players[0].score >= players[1].score ? players[0] : players[1];
+            const l = w === players[0] ? players[1] : players[0];
+            awardLegToWinner(w, l, "9-INNING FINAL " + w.score + "–" + l.score + " RUNS");
+            return;
+          }
+        } else if (gameMode === "GOLF") {
+          const hole = p.roundNumber;
+          const strokes = p.golfHoleStroke ?? 5;
+          p.score += strokes;
+          p.roundHistory[hole] = strokes;
+          const term =
+            strokes === 1 ? "EAGLE (1)" :
+            strokes === 2 ? "BIRDIE (2)" :
+            strokes === 3 ? "BIRDIE (3)" :
+            strokes === 4 ? "PAR (4)" : "BOGEY (5)";
+          p.lastVisit = "H" + hole + ": " + term;
+          p.golfHoleStroke = 5;
+          p.roundNumber += 1;
+          if (players[0].roundNumber > 9 && players[1].roundNumber > 9) {
+            // Lowest total strokes wins Darts Golf!
+            const w = players[0].score <= players[1].score ? players[0] : players[1];
+            const l = w === players[0] ? players[1] : players[0];
+            awardLegToWinner(w, l, "LOW CARD " + w.score + " STROKES");
+            return;
+          }
+        } else if (gameMode === "COUNTUP") {
+          const r = p.roundNumber;
+          p.roundHistory[r] = visitSum;
+          p.lastVisit = "R" + r + ": +" + visitSum;
+          p.roundNumber += 1;
+          if (players[0].roundNumber > 8 && players[1].roundNumber > 8) {
+            const w = players[0].score >= players[1].score ? players[0] : players[1];
+            const l = w === players[0] ? players[1] : players[0];
+            awardLegToWinner(w, l, "COUNT-UP " + w.score + " PTS");
+            return;
+          }
+        }
+
+        endVisit();
+      }
+
+      function resolveDartImpact(targetX, targetY, flightMeta = {}) {
+        const p = players[currentPlayerIdx];
+        const opp = players[1 - currentPlayerIdx];
+        const skin = FLIGHT_SKINS[flightSkinIdx];
+
+        if (flightMeta.bounceOut) {
+          DartsAudio.playWireClink();
+          spawnImpactParticles(targetX, targetY, { multiplier: 2, isBull: false });
+          p.dartsThrown++;
+          currentVisitDarts.push({
+            code: "BOUNCE",
+            score: 0,
+            rawHit: { code: "BOUNCE", label: "Wire Bounce-Out (0)", score: 0, number: 0, multiplier: 0, isDouble: false, isBull: false },
+          });
+          showCallout("💥 WIRE BOUNCE-OUT!", "STRUCK SPIDER WIRE • 0 POINTS");
+          addLog(p.name + " hit spider wire → BOUNCE-OUT (0 pts)", p.isAI, true);
+          updateHUD();
+          if (currentVisitDarts.length >= 3) {
+            const visitSum = currentVisitDarts.reduce((acc, d) => acc + d.score, 0);
+            p.lastVisit = String(visitSum);
+            setTimeout(() => finalizeRoundVisit(), 750);
+          } else if (p.isAI) {
+            scheduleAITurn();
+          }
+          return;
+        }
+
+        if (flightMeta.wireDeflected) {
+          DartsAudio.playWireClink();
+        }
+
+        const hit = evaluateBoardCoordinate(targetX, targetY);
+
+        embeddedDarts.push({
+          x: targetX,
+          y: targetY,
+          skin,
+          code: hit.code,
+        });
+
+        spawnImpactParticles(targetX, targetY, hit);
+        DartsAudio.playSisalThud(hit.multiplier, hit.isBull);
+
+        p.dartsThrown++;
+        let bustOccurred = false;
+        let legWon = false;
+        let legWinDesc = "CHECKS OUT ON " + hit.code + "!";
+        let pointsAdded = 0;
+
+        if (gameMode === "501" || gameMode === "301" || gameMode === "701") {
+          const newScore = p.score - hit.score;
+          if (newScore < 0 || (doubleOut && newScore === 1) || (doubleOut && newScore === 0 && !hit.isDouble)) {
+            bustOccurred = true;
+            p.score = startOfTurnScore;
+          } else {
+            p.score = newScore;
+            pointsAdded = hit.score;
+            p.totalPointsScored += hit.score;
+            if (newScore === 0) {
+              legWon = true;
+            }
+          }
+        } else if (gameMode === "CRICKET" || gameMode === "CUTTHROAT" || gameMode === "TACTICS") {
+          const activeTargets = gameMode === "TACTICS" ? TACTICS_TARGETS : CRICKET_TARGETS;
+          if (activeTargets.includes(hit.number)) {
+            const currentMarks = p.cricketMarks[hit.number] || 0;
+            const totalMarks = currentMarks + hit.multiplier;
+            p.cricketMarks[hit.number] = Math.min(3, totalMarks);
+            const overflowMarks = Math.max(0, totalMarks - 3);
+            if (overflowMarks > 0 && (opp.cricketMarks[hit.number] || 0) < 3) {
+              const unitVal = hit.number === 25 ? 25 : hit.number;
+              pointsAdded = overflowMarks * unitVal;
+              if (gameMode === "CUTTHROAT") {
+                opp.score += pointsAdded; // Reverse penalty to opponent!
+              } else {
+                p.score += pointsAdded;
+              }
+              p.totalPointsScored += pointsAdded;
+            }
+          }
+          const pClosedAll = activeTargets.every((t) => (p.cricketMarks[t] || 0) >= 3);
+          const oppClosedAll = activeTargets.every((t) => (opp.cricketMarks[t] || 0) >= 3);
+          if (gameMode === "CUTTHROAT") {
+            if (pClosedAll && p.score <= opp.score) {
+              legWon = true;
+              legWinDesc = "CUT-THROAT VICTORY (" + p.score + " vs " + opp.score + ")";
+            } else if (pClosedAll && oppClosedAll) {
+              const w = p.score <= opp.score ? p : opp;
+              const l = w === p ? opp : p;
+              awardLegToWinner(w, l, "CUT-THROAT FINAL (" + w.score + " vs " + l.score + ")");
+              return;
+            }
+          } else if (pClosedAll && p.score >= opp.score) {
+            legWon = true;
+            legWinDesc = gameMode + " VICTORY (" + p.score + " PTS)";
+          }
+        } else if (gameMode === "CLOCK") {
+          if (p.clockTarget < 25 && hit.number === p.clockTarget) {
+            pointsAdded = hit.score;
+            p.totalPointsScored += hit.score;
+            const advance = Math.max(1, hit.multiplier);
+            p.clockTarget = Math.min(21, p.clockTarget + advance);
+            if (p.clockTarget === 21) p.clockTarget = 25;
+            p.score = p.clockTarget === 25 ? 20 : p.clockTarget - 1;
+          } else if (p.clockTarget === 25 && hit.isBull) {
+            pointsAdded = hit.score;
+            p.totalPointsScored += hit.score;
+            p.score = 21;
+            legWon = true;
+            legWinDesc = "COMPLETED AROUND THE CLOCK!";
+          }
+        } else if (gameMode === "SHANGHAI") {
+          const r = p.roundNumber;
+          if (hit.number === r) {
+            pointsAdded = r * hit.multiplier;
+            p.score += pointsAdded;
+            p.totalPointsScored += pointsAdded;
+          }
+        } else if (gameMode === "KILLER") {
+          if (!p.isKiller) {
+            if (hit.number === p.killerNumber) {
+              p.killerHits = Math.min(3, p.killerHits + hit.multiplier);
+              pointsAdded = hit.multiplier;
+              p.totalPointsScored += hit.score;
+              if (p.killerHits >= 3) {
+                p.isKiller = true;
+                showCallout("💀 KILLER ARMED!", p.name + " CAN NOW HUNT #" + opp.killerNumber + "!");
+                addLog("💀 " + p.name + " armed as a KILLER on #" + p.killerNumber + "!", p.isAI);
+              }
+            }
+          } else {
+            if (hit.number === opp.killerNumber) {
+              opp.killerLives = Math.max(0, opp.killerLives - hit.multiplier);
+              pointsAdded = hit.multiplier * 10;
+              p.score += hit.multiplier;
+              p.totalPointsScored += hit.score;
+              showCallout("🗡️ DIRECT HIT ON #" + opp.killerNumber + "!", opp.name + " LIVES LEFT: " + opp.killerLives);
+              if (opp.killerLives <= 0) {
+                legWon = true;
+                legWinDesc = "ELIMINATED " + opp.name + " IN KILLER!";
+              }
+            } else if (hit.number === p.killerNumber) {
+              // Accidental self-hit while Killer!
+              p.killerLives = Math.max(0, p.killerLives - hit.multiplier);
+              showCallout("⚠️ SELF-WOUND ON #" + p.killerNumber + "!", p.name + " LIVES LEFT: " + p.killerLives);
+              if (p.killerLives <= 0) {
+                awardLegToWinner(opp, p, p.name + " SELF-ELIMINATED IN KILLER");
+                return;
+              }
+            }
+          }
+        } else if (gameMode === "BOBS27") {
+          const r = p.roundNumber;
+          const targetCode = r === 21 ? "DBULL" : "D" + r;
+          const doubleVal = r === 21 ? 50 : r * 2;
+          if (hit.code === targetCode) {
+            pointsAdded = doubleVal;
+            p.score += doubleVal;
+            p.totalPointsScored += doubleVal;
+            p.bobsRoundHits = (p.bobsRoundHits || 0) + 1;
+          }
+        } else if (gameMode === "HALVEIT") {
+          const st = HALVEIT_STAGES[Math.min(6, (p.roundNumber || 1) - 1)];
+          let matched = false;
+          if (st.type === "NUMBER" && hit.number === st.number) matched = true;
+          else if (st.type === "DOUBLE" && hit.isDouble) matched = true;
+          else if (st.type === "TRIPLE" && hit.multiplier === 3) matched = true;
+          else if (st.type === "BULL" && hit.isBull) matched = true;
+
+          if (matched) {
+            pointsAdded = hit.score;
+            p.score += hit.score;
+            p.totalPointsScored += hit.score;
+            p.halveStageHits = (p.halveStageHits || 0) + 1;
+          }
+        } else if (gameMode === "BASEBALL") {
+          const inning = p.roundNumber;
+          if (hit.number === inning) {
+            const runs = hit.multiplier;
+            pointsAdded = runs;
+            p.score += runs;
+            p.totalPointsScored += hit.score;
+            p.inningRuns = (p.inningRuns || 0) + runs;
+          }
+        } else if (gameMode === "GOLF") {
+          const hole = p.roundNumber;
+          let dartStroke = 5;
+          if (hit.number === hole) {
+            if (hit.multiplier === 3) dartStroke = 1;
+            else if (hit.isDouble) dartStroke = 2;
+            else if (hit.isInnerSingle) dartStroke = 3;
+            else dartStroke = 4;
+          }
+          p.golfHoleStroke = Math.min(p.golfHoleStroke ?? 5, dartStroke);
+          p.totalPointsScored += hit.score;
+          pointsAdded = dartStroke;
+          if (dartStroke === 1) {
+            showCallout("⛳ EAGLE (1 STROKE)!", p.name + " NAILED TREBLE " + hole + "!");
+          }
+        } else if (gameMode === "COUNTUP") {
+          pointsAdded = hit.score;
+          p.score += hit.score;
+          p.totalPointsScored += hit.score;
+        }
+
+        currentVisitDarts.push({
+          code: bustOccurred ? "BUST" : hit.code,
+          score: bustOccurred ? 0 : gameMode === "BASEBALL" || gameMode === "SHANGHAI" || gameMode === "HALVEIT" || gameMode === "BOBS27" ? pointsAdded : hit.score,
+          rawHit: hit,
+        });
+
+        // Check Instant Shanghai Knockout (Single + Double + Triple of active round number in 1 visit!)
+        if (gameMode === "SHANGHAI" && !legWon) {
+          const r = p.roundNumber;
+          const multsOnRound = new Set(
+            currentVisitDarts
+              .filter((d) => d.rawHit && d.rawHit.number === r && d.rawHit.multiplier >= 1)
+              .map((d) => d.rawHit.multiplier)
+          );
+          if (multsOnRound.has(1) && multsOnRound.has(2) && multsOnRound.has(3)) {
+            legWon = true;
+            legWinDesc = "🐉 SHANGHAI KNOCKOUT ON #" + r + " (S+D+T)!";
+            spawnCelebrationConfetti();
+          }
+        }
+
+        if (hit.code === "DBULL" && !legWon) {
+          showCallout("🎯 BULLSEYE! (50)", p.name + " NAILS INNER BULL");
+        }
+
+        if (bustOccurred) {
+          DartsAudio.playFanfare("BUST");
+          showCallout("💥 BUST!", p.name + " RESET TO " + startOfTurnScore);
+          p.lastVisit = "BUST (0)";
+          addLog(p.name + " busted on " + hit.code + " → Reset to " + startOfTurnScore, p.isAI, true);
+          updateHUD();
+          setTimeout(() => endVisit(), 850);
+          return;
+        }
+
+        if (legWon) {
+          const visitSum = currentVisitDarts.reduce((acc, d) => acc + d.score, 0);
+          p.lastVisit = visitSum + " (WIN!)";
+          awardLegToWinner(p, opp, legWinDesc);
+          return;
+        }
+
+        updateHUD();
+
+        // In Darts Golf, if player hits Eagle (1 stroke) or AI hits Birdie (<= 2 strokes), lock stroke early!
+        if (gameMode === "GOLF" && (p.golfHoleStroke === 1 || (p.isAI && p.golfHoleStroke <= 2))) {
+          const codes = currentVisitDarts.map((d) => d.code).join(" • ");
+          addLog(p.name + " (Hole " + p.roundNumber + "): " + codes + " → Locked " + p.golfHoleStroke + " Stroke(s)", p.isAI);
+          setTimeout(() => finalizeRoundVisit(), 750);
+          return;
+        }
+
+        if (currentVisitDarts.length >= 3) {
+          const visitSum = currentVisitDarts.reduce((acc, d) => acc + d.score, 0);
+          p.lastVisit = String(visitSum);
+
+          if (visitSum === 180) {
+            p.count180 += 1;
+            if (!p.isAI) {
+              career.max180s += 1;
+              career.tons += 1;
+              saveCareer();
+            }
+            DartsAudio.playFanfare("180");
+            showCallout("🔥 ONE HUNDRED AND EIGHTY!", p.name + " • MAXIMUM 180!");
+            spawnCelebrationConfetti();
+          } else if (visitSum >= 140) {
+            p.countTons += 1;
+            if (!p.isAI) {
+              career.tons += 1;
+              saveCareer();
+            }
+            DartsAudio.playFanfare("TON");
+            showCallout("⚡ TON-PLUS (" + visitSum + ")!", p.name + " HEAVY SCORING");
+          } else if (visitSum >= 100) {
+            p.countTons += 1;
+            if (!p.isAI) {
+              career.tons += 1;
+              saveCareer();
+            }
+            showCallout("🎯 TON (" + visitSum + ")!", p.name + " 3-DART VISIT");
+          }
+
+          const codes = currentVisitDarts.map((d) => d.code).join(" • ");
+          addLog(p.name + ": " + codes + " = " + visitSum, p.isAI);
+          setTimeout(() => finalizeRoundVisit(), 750);
+        } else if (p.isAI) {
+          scheduleAITurn();
+        }
+      }
+
+      function endVisit() {
+        if (matchOver) return;
+        currentPlayerIdx = 1 - currentPlayerIdx;
+        startOfTurnScore = players[currentPlayerIdx].score;
+        currentVisitDarts = [];
+        updateHUD();
+        if (players[currentPlayerIdx].isAI) {
+          scheduleAITurn();
+        }
+      }
+
+      function scheduleAITurn() {
+        if (aiTimer) clearTimeout(aiTimer);
+        aiTimer = setTimeout(() => {
+          if (matchOver || !players[currentPlayerIdx].isAI || activeFlightDart) return;
+          if (currentVisitDarts.length === 0) {
+            embeddedDarts = [];
+          }
+          const aiPlayer = players[currentPlayerIdx];
+          const targetCode = chooseAiTarget(aiPlayer);
+          const idealPt = getCoordinatesForTargetCode(targetCode);
+
+          // Dispersion radius based on AI difficulty
+          let spread = 24;
+          if (opponentType === "AI_PUB") spread = 42;
+          else if (opponentType === "AI_COUNTY") spread = 20;
+          else if (opponentType === "AI_LEGEND") spread = 9.5;
+
+          const angle = Math.random() * Math.PI * 2;
+          // Gaussian-like radial distribution
+          const r = ((Math.random() + Math.random()) * 0.5) * spread;
+          const tx = idealPt.x + Math.cos(angle) * r;
+          const ty = idealPt.y + Math.sin(angle) * r;
+
+          launchDartTo(tx, ty);
+        }, 580);
+      }
+
+      /**
+       * ========================================================================
+       * 🎨 BRISTLE DARTBOARD & 3D TUNGSTEN DART RENDERING ENGINE
+       * ========================================================================
+       */
+      function renderScene(timestamp) {
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        updateAimPhysics(timestamp);
+        drawCabinetAndBristleBoard(timestamp);
+        if (physicsMode !== "MASTER") {
+          drawTargetAuraHighlight(timestamp);
+        }
+        drawEmbeddedDarts();
+        drawFlyingDart();
+        drawParticles();
+        drawCrosshairReticle();
+        drawZoomLoupe();
+        drawBallisticHUD(timestamp);
+
+        requestAnimationFrame(renderScene);
+      }
+
+      function updateAimPhysics(timestamp) {
+        const speed = focusHeld ? 1.8 : 4.2;
+        if (keysHeld["ArrowLeft"] || keysHeld["KeyA"]) aimBase.x -= speed;
+        if (keysHeld["ArrowRight"] || keysHeld["KeyD"]) aimBase.x += speed;
+        if (keysHeld["ArrowUp"] || keysHeld["KeyW"]) aimBase.y -= speed;
+        if (keysHeld["ArrowDown"] || keysHeld["KeyS"]) aimBase.y += speed;
+
+        // Clamp within stage
+        const maxDist = boardRadius * 1.15;
+        const dx = aimBase.x - boardCenter.x;
+        const dy = aimBase.y - boardCenter.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > maxDist) {
+          aimBase.x = boardCenter.x + (dx / dist) * maxDist;
+          aimBase.y = boardCenter.y + (dy / dist) * maxDist;
+        }
+
+        // Steady-breath stamina logic
+        const drainRate = physicsMode === "MASTER" ? 0.85 : physicsMode === "PRO" ? 0.62 : 0.45;
+        if (focusHeld && breathStamina > 0) {
+          breathStamina = Math.max(0, breathStamina - drainRate);
+        } else if (!focusHeld && breathStamina < 100) {
+          breathStamina = Math.min(100, breathStamina + 0.35);
+        }
+        const breathFill = document.getElementById("breathBarFill");
+        if (breathFill) breathFill.style.width = breathStamina + "%";
+
+        // Heartbeat BPM calculation (surges under checkout pressure or 180 attempt!)
+        const activeP = players[currentPlayerIdx];
+        let targetBpm = 74;
+        if (activeP && !activeP.isAI) {
+          if ((gameMode === "501" || gameMode === "301") && activeP.score <= 170) targetBpm = 128;
+          if (currentVisitDarts.length === 2 && currentVisitDarts[0].code === "T20" && currentVisitDarts[1].code === "T20") {
+            targetBpm = 142; // 9-darter / 180 third-dart pressure!
+          }
+          if (breathStamina < 15) targetBpm += 18;
+        }
+        heartbeatBpm += (targetBpm - heartbeatBpm) * 0.05;
+
+        // Oscillating Release Power & Wrist Alignment Meter
+        const oscSpeed =
+          physicsMode === "MASTER" ? 2.65 :
+          physicsMode === "PRO" ? 1.85 :
+          physicsMode === "CLUB" ? 1.25 : 0.8;
+        if (chargingThrow || physicsMode !== "ARCADE") {
+          throwPower += throwPowerDir * oscSpeed * (chargingThrow ? 1.35 : 0.65);
+          if (throwPower >= 100) {
+            throwPower = 100;
+            throwPowerDir = -1;
+          } else if (throwPower <= 25) {
+            throwPower = 25;
+            throwPowerDir = 1;
+          }
+        }
+        const t = (timestamp || 0) * 0.0024;
+        releaseSideBias = Math.sin(t * (physicsMode === "MASTER" ? 4.2 : 2.6));
+
+        // Lissajous natural hand sway + Barrel inertia + Heartbeat pulse kick
+        const weightSteady = barrelWeight === 26 ? 0.82 : barrelWeight === 18 ? 1.22 : 1.0;
+        const baseSway =
+          physicsMode === "ARCADE" ? (focusHeld && breathStamina > 5 ? 1.4 : 5.5) :
+          physicsMode === "CLUB"   ? (focusHeld && breathStamina > 5 ? 3.0 : 10.5) :
+          physicsMode === "PRO"    ? (focusHeld && breathStamina > 5 ? 4.6 : 15.5) :
+                                     (focusHeld && breathStamina > 5 ? 6.8 : 21.0);
+        const hypoxiaPenalty = breathStamina < 10 ? 8.5 : 0;
+        const swayAmp = (baseSway + hypoxiaPenalty) * weightSteady;
+
+        // Heartbeat systolic thump in PRO & MASTER modes
+        const beatPhase = ((timestamp || 0) * (heartbeatBpm / 60000)) % 1;
+        const pulseKick =
+          (physicsMode === "PRO" || physicsMode === "MASTER") && beatPhase < 0.14
+            ? Math.sin((beatPhase / 0.14) * Math.PI) * (heartbeatBpm > 110 ? 7.5 : 3.2)
+            : 0;
+
+        aimLive.x = aimBase.x + Math.sin(t * 1.7) * swayAmp + Math.cos(t * 2.9) * (swayAmp * 0.45);
+        aimLive.y = aimBase.y + Math.cos(t * 2.1) * swayAmp + Math.sin(t * 3.3) * (swayAmp * 0.45) - pulseKick;
+
+        const seg = evaluateBoardCoordinate(aimLive.x, aimLive.y);
+        const readout = document.getElementById("hoverSegmentReadout");
+        if (readout) {
+          readout.textContent =
+            "Sight: " + seg.code + " (" + seg.score + ") • Power: " + Math.round(throwPower) + "% (Opt: 78%)";
+        }
+
+        // Advance active flying dart
+        if (activeFlightDart) {
+          activeFlightDart.progress += barrelWeight === 18 ? 0.095 : barrelWeight === 26 ? 0.075 : 0.085;
+          if (activeFlightDart.progress >= 1) {
+            const landed = activeFlightDart;
+            activeFlightDart = null;
+            resolveDartImpact(landed.targetX, landed.targetY, landed);
+          }
+        }
+      }
+
+      function drawCabinetAndBristleBoard() {
+        const cx = boardCenter.x;
+        const cy = boardCenter.y;
+        const R = boardRadius;
+
+        // Outer Championship Surround Ring
+        const surroundGrad = ctx.createRadialGradient(cx, cy, R * 0.95, cx, cy, R * 1.24);
+        surroundGrad.addColorStop(0, "#111827");
+        surroundGrad.addColorStop(0.72, "#090f1d");
+        surroundGrad.addColorStop(1, "#020617");
+        ctx.beginPath();
+        ctx.arc(cx, cy, R * 1.23, 0, Math.PI * 2);
+        ctx.fillStyle = surroundGrad;
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(250, 204, 21, 0.45)";
+        ctx.stroke();
+
+        // Draw 20 Clockwise Sectors
+        for (let i = 0; i < 20; i++) {
+          const startAngle = ((i * 18 - 9 - 90) * Math.PI) / 180;
+          const endAngle = (((i + 1) * 18 - 9 - 90) * Math.PI) / 180;
+          const isEven = i % 2 === 0;
+
+          const singleColor = isEven ? "#0d131f" : "#f3ead8";
+          const ringColor = isEven ? "#dc2626" : "#16a34a";
+
+          // Outer Single Bed
+          drawRingSector(cx, cy, R * RADII.trebleOuter, R * RADII.doubleInner, startAngle, endAngle, singleColor);
+          // Double Ring (2x)
+          drawRingSector(cx, cy, R * RADII.doubleInner, R * RADII.doubleOuter, startAngle, endAngle, ringColor);
+          // Inner Single Bed
+          drawRingSector(cx, cy, R * RADII.outerBull, R * RADII.trebleInner, startAngle, endAngle, singleColor);
+          // Treble Ring (3x)
+          drawRingSector(cx, cy, R * RADII.trebleInner, R * RADII.trebleOuter, startAngle, endAngle, ringColor);
+        }
+
+        // Subtle Bristle Sisal Stipple Texture Overlay
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.025)";
+        ctx.lineWidth = 1;
+        for (let r = 24; r < R; r += 18) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        // Outer Bull (25)
+        ctx.beginPath();
+        ctx.arc(cx, cy, R * RADII.outerBull, 0, Math.PI * 2);
+        ctx.fillStyle = "#16a34a";
+        ctx.fill();
+
+        // Inner Bullseye (50)
+        ctx.beginPath();
+        ctx.arc(cx, cy, R * RADII.innerBull, 0, Math.PI * 2);
+        ctx.fillStyle = "#dc2626";
+        ctx.fill();
+
+        // Razor-Thin Metallic Spider Wires
+        ctx.strokeStyle = "rgba(226, 232, 240, 0.72)";
+        ctx.lineWidth = 1.25;
+        const ringRadii = [
+          R * RADII.innerBull,
+          R * RADII.outerBull,
+          R * RADII.trebleInner,
+          R * RADII.trebleOuter,
+          R * RADII.doubleInner,
+          R * RADII.doubleOuter,
+        ];
+        ringRadii.forEach((rad) => {
+          ctx.beginPath();
+          ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+
+        for (let i = 0; i < 20; i++) {
+          const angle = ((i * 18 - 9 - 90) * Math.PI) / 180;
+          const x1 = cx + Math.cos(angle) * (R * RADII.outerBull);
+          const y1 = cy + Math.sin(angle) * (R * RADII.outerBull);
+          const x2 = cx + Math.cos(angle) * R;
+          const y2 = cy + Math.sin(angle) * R;
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+        }
+
+        // Outer Metallic Number Ring Wire & Crisp Numbers
+        ctx.beginPath();
+        ctx.arc(cx, cy, R * 1.11, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.font = "900 20px 'Segoe UI', system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        for (let i = 0; i < 20; i++) {
+          const angle = ((i * 18 - 90) * Math.PI) / 180;
+          const nx = cx + Math.cos(angle) * (R * 1.115);
+          const ny = cy + Math.sin(angle) * (R * 1.115);
+          ctx.fillStyle = "#f8fafc";
+          ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+          ctx.shadowBlur = 4;
+          ctx.fillText(String(CLOCK_NUMBERS[i]), nx, ny);
+        }
+        ctx.shadowBlur = 0;
+      }
+
+      function drawRingSector(cx, cy, rInner, rOuter, startAngle, endAngle, fillStyle) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, rOuter, startAngle, endAngle, false);
+        ctx.arc(cx, cy, rInner, endAngle, startAngle, true);
+        ctx.closePath();
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+      }
+
+      function drawTargetAuraHighlight(timestamp) {
+        const p = players[currentPlayerIdx];
+        if (!p) return;
+        const recCode = getRecommendedTargetCode(p);
+        if (!recCode) return;
+
+        const cx = boardCenter.x;
+        const cy = boardCenter.y;
+        const R = boardRadius;
+        const pulse = 0.5 + 0.5 * Math.sin((timestamp || 0) * 0.008);
+
+        ctx.save();
+        // 1. Draw Wedge / Ring Neon Highlight on the 2D Bristle Dartboard
+        const st = gameMode === "HALVEIT" ? HALVEIT_STAGES[Math.min(6, (p.roundNumber || 1) - 1)] : null;
+        if (st && st.type === "DOUBLE") {
+          ctx.beginPath();
+          ctx.arc(cx, cy, R * ((RADII.doubleInner + RADII.doubleOuter) * 0.5), 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(250, 204, 21, " + (0.35 + pulse * 0.45) + ")";
+          ctx.lineWidth = R * (RADII.doubleOuter - RADII.doubleInner);
+          ctx.stroke();
+        } else if (st && st.type === "TRIPLE") {
+          ctx.beginPath();
+          ctx.arc(cx, cy, R * ((RADII.trebleInner + RADII.trebleOuter) * 0.5), 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(0, 245, 212, " + (0.35 + pulse * 0.45) + ")";
+          ctx.lineWidth = R * (RADII.trebleOuter - RADII.trebleInner);
+          ctx.stroke();
+        } else if (recCode === "DBULL" || recCode === "BULL") {
+          ctx.beginPath();
+          ctx.arc(cx, cy, R * RADII.outerBull + 4, 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(250, 204, 21, " + (0.5 + pulse * 0.45) + ")";
+          ctx.lineWidth = 3;
+          ctx.stroke();
+        } else {
+          const targetNum = parseInt(recCode.slice(1), 10);
+          const sectorIdx = CLOCK_NUMBERS.indexOf(targetNum);
+          if (sectorIdx !== -1) {
+            const startAngle = ((sectorIdx * 18 - 9 - 90) * Math.PI) / 180;
+            const endAngle = (((sectorIdx + 1) * 18 - 9 - 90) * Math.PI) / 180;
+            drawRingSector(
+              cx,
+              cy,
+              R * RADII.outerBull,
+              R * RADII.doubleOuter,
+              startAngle,
+              endAngle,
+              "rgba(0, 245, 212, " + (0.09 + pulse * 0.11) + ")"
+            );
+            ctx.beginPath();
+            ctx.arc(cx, cy, R * RADII.doubleOuter, startAngle, endAngle, false);
+            ctx.arc(cx, cy, R * RADII.outerBull, endAngle, startAngle, true);
+            ctx.closePath();
+            ctx.strokeStyle = "rgba(250, 204, 21, " + (0.45 + pulse * 0.45) + ")";
+            ctx.lineWidth = 2.2;
+            ctx.stroke();
+          }
+        }
+
+        // 2. Draw Pulsing Optimal Point Reticle
+        const pt = getCoordinatesForTargetCode(recCode);
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 16 + pulse * 7, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(0, 245, 212, " + (0.45 + pulse * 0.45) + ")";
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([4, 3]);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = "#00f5d4";
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawEmbeddedDarts() {
+        embeddedDarts.forEach((d) => {
+          ctx.save();
+          // Drop shadow on sisal board
+          ctx.beginPath();
+          ctx.moveTo(d.x, d.y);
+          ctx.lineTo(d.x + 22, d.y + 26);
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.55)";
+          ctx.lineWidth = 4;
+          ctx.lineCap = "round";
+          ctx.stroke();
+
+          // Tungsten Barrel pointing slightly down-right toward thrower
+          const tailX = d.x + 14;
+          const tailY = d.y + 18;
+          ctx.beginPath();
+          ctx.moveTo(d.x, d.y);
+          ctx.lineTo(tailX, tailY);
+          ctx.strokeStyle = "#e2e8f0";
+          ctx.lineWidth = 3.5;
+          ctx.stroke();
+
+          // Gold Grip Rings
+          ctx.beginPath();
+          ctx.moveTo(d.x + 4, d.y + 5);
+          ctx.lineTo(d.x + 9, d.y + 11.5);
+          ctx.strokeStyle = d.skin.accent;
+          ctx.lineWidth = 4.2;
+          ctx.stroke();
+
+          // 3D Crossed Flight Fins
+          ctx.fillStyle = d.skin.primary;
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(tailX - 2, tailY - 2);
+          ctx.lineTo(tailX + 12, tailY + 4);
+          ctx.lineTo(tailX + 14, tailY + 14);
+          ctx.lineTo(tailX + 4, tailY + 12);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          // Center pin impact dot
+          ctx.beginPath();
+          ctx.arc(d.x, d.y, 2.2, 0, Math.PI * 2);
+          ctx.fillStyle = "#fef08a";
+          ctx.fill();
+          ctx.restore();
+        });
+      }
+
+      function drawFlyingDart() {
+        if (!activeFlightDart) return;
+        const d = activeFlightDart;
+        const t = d.progress;
+        // Parabolic 3D arc
+        const arcLift = Math.sin(t * Math.PI) * 115;
+        const curX = d.startX + (d.targetX - d.startX) * t;
+        const curY = d.startY + (d.targetY - d.startY) * t - arcLift;
+        const scale = 2.1 - t * 1.1; // Perspective foreshortening as dart approaches board
+
+        ctx.save();
+        ctx.translate(curX, curY);
+        ctx.scale(scale, scale);
+
+        // Tungsten shaft
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(8, 22);
+        ctx.strokeStyle = "#f8fafc";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Flight fins
+        ctx.fillStyle = d.skin.primary;
+        ctx.beginPath();
+        ctx.moveTo(4, 12);
+        ctx.lineTo(18, 26);
+        ctx.lineTo(8, 32);
+        ctx.lineTo(-4, 24);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawCrosshairReticle() {
+        if (players[currentPlayerIdx]?.isAI || matchOver) return;
+        const x = aimLive.x;
+        const y = aimLive.y;
+        const r = focusHeld && breathStamina > 5 ? 11 : 17;
+
+        ctx.save();
+        ctx.strokeStyle = focusHeld ? "#00f5d4" : "#facc15";
+        ctx.lineWidth = 1.8;
+
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Crosshair ticks
+        ctx.beginPath();
+        ctx.moveTo(x - r - 5, y);
+        ctx.lineTo(x - 4, y);
+        ctx.moveTo(x + 4, y);
+        ctx.lineTo(x + r + 5, y);
+        ctx.moveTo(x, y - r - 5);
+        ctx.lineTo(x, y - 4);
+        ctx.moveTo(x, y + 4);
+        ctx.lineTo(x, y + r + 5);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(x, y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = "#ef4444";
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawZoomLoupe() {
+        // 2.2x Precision Magnifier Inset in Top-Left of Canvas
+        const loupeR = 54;
+        const lx = 68;
+        const ly = 68;
+
+        const seg = evaluateBoardCoordinate(aimLive.x, aimLive.y);
+        const activeP = players[currentPlayerIdx];
+        const recCode = activeP ? getRecommendedTargetCode(activeP) : "T20";
+        const isOnTarget = seg.code === recCode || (recCode && seg.number > 0 && String(seg.number) === recCode.slice(1));
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(lx, ly, loupeR, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(7, 13, 25, 0.92)";
+        ctx.fill();
+        ctx.lineWidth = isOnTarget ? 3 : 2;
+        ctx.strokeStyle = isOnTarget ? "#facc15" : "rgba(0, 245, 212, 0.55)";
+        ctx.stroke();
+
+        ctx.fillStyle = isOnTarget ? "#fde047" : "#f8fafc";
+        ctx.font = "800 11px 'Segoe UI', sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(isOnTarget ? "★ TARGET LOCK" : "ZOOM SIGHT", lx, ly - 22);
+        ctx.fillStyle = "#facc15";
+        ctx.font = "900 18px 'Segoe UI', sans-serif";
+        ctx.fillText(seg.code, lx, ly + 1);
+        ctx.fillStyle = "#00f5d4";
+        ctx.font = "700 10.5px 'Segoe UI', sans-serif";
+        ctx.fillText(seg.score + " PTS • AIM " + recCode, lx, ly + 22);
+        ctx.restore();
+      }
+
+      function drawBallisticHUD() {
+        // Top-Right Ballistic Telemetry Pill (Barrel Weight, Stage Draft, Heartbeat BPM)
+        ctx.save();
+        const cardW = 192;
+        const cardH = 74;
+        const cardX = canvas.width - cardW - 14;
+        const cardY = 14;
+        ctx.fillStyle = "rgba(7, 13, 25, 0.92)";
+        ctx.strokeStyle = physicsMode === "ARCADE" ? "rgba(34, 197, 94, 0.5)" : "rgba(0, 245, 212, 0.55)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(cardX, cardY, cardW, cardH, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.textAlign = "left";
+        ctx.font = "800 10.5px 'Segoe UI', sans-serif";
+        ctx.fillStyle = "#00f5d4";
+        ctx.fillText("🎯 PHYSICS: " + physicsMode + " (" + barrelWeight + "g)", cardX + 10, cardY + 19);
+
+        ctx.fillStyle = "#facc15";
+        ctx.fillText(
+          physicsMode === "PRO" || physicsMode === "MASTER"
+            ? "💨 STAGE DRAFT: " + stageWind.label
+            : "💨 STAGE DRAFT: CALM (0.0 mph)",
+          cardX + 10,
+          cardY + 39
+        );
+
+        ctx.fillStyle = heartbeatBpm > 110 ? "#ef4444" : "#94a3b8";
+        ctx.fillText("💓 PULSE: " + Math.round(heartbeatBpm) + " BPM", cardX + 10, cardY + 58);
+
+        // Right-Side Vertical Ballistic Release Power & Angle Gauge
+        const barX = canvas.width - 36;
+        const barY = 130;
+        const barW = 18;
+        const barH = 380;
+
+        ctx.fillStyle = "rgba(7, 13, 25, 0.9)";
+        ctx.strokeStyle = "rgba(148, 163, 184, 0.45)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(barX, barY, barW, barH, 9);
+        ctx.fill();
+        ctx.stroke();
+
+        // Sweet spot band around 78% (74% to 82%)
+        const sweetTop = barY + barH * (1 - 0.82);
+        const sweetBot = barY + barH * (1 - 0.74);
+        ctx.fillStyle = "rgba(34, 197, 94, 0.42)";
+        ctx.fillRect(barX + 2, sweetTop, barW - 4, sweetBot - sweetTop);
+        ctx.strokeStyle = "#22c55e";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(barX + 1, sweetTop, barW - 2, sweetBot - sweetTop);
+
+        // Current oscillating power fill & needle
+        const normP = Math.max(0, Math.min(1, throwPower / 100));
+        const needleY = barY + barH * (1 - normP);
+        const inSweet = throwPower >= 74 && throwPower <= 82;
+        ctx.fillStyle = inSweet ? "#22c55e" : throwPower > 82 ? "#ef4444" : "#38bdf8";
+        ctx.beginPath();
+        ctx.roundRect(barX + 3, needleY, barW - 6, barY + barH - needleY - 2, 6);
+        ctx.fill();
+
+        // Horizontal needle pointer
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.moveTo(barX - 7, needleY);
+        ctx.lineTo(barX + barW + 4, needleY - 4);
+        ctx.lineTo(barX + barW + 4, needleY + 4);
+        ctx.closePath();
+        ctx.fill();
+
+        // Labels for Power Gauge
+        ctx.textAlign = "right";
+        ctx.font = "800 10px 'Segoe UI', sans-serif";
+        ctx.fillStyle = "#22c55e";
+        ctx.fillText("78% OPT", barX - 8, (sweetTop + sweetBot) / 2 + 3);
+        ctx.fillStyle = "#f8fafc";
+        ctx.fillText(Math.round(throwPower) + "%", barX - 8, barY + barH + 16);
+        ctx.restore();
+      }
+
+      function spawnImpactParticles(x, y, hit) {
+        const count = hit.multiplier >= 2 || hit.isBull ? 22 : 10;
+        const color = hit.isBull ? "#fef08a" : hit.multiplier === 3 ? "#00f5d4" : hit.multiplier === 2 ? "#f87171" : "#cbd5e1";
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 1.2 + Math.random() * 4.2;
+          particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 1,
+            color,
+            size: 2 + Math.random() * 2.5,
+          });
+        }
+      }
+
+      function spawnCelebrationConfetti() {
+        const colors = ["#facc15", "#00f5d4", "#ef4444", "#22c55e", "#a855f7"];
+        for (let i = 0; i < 65; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 2 + Math.random() * 7;
+          particles.push({
+            x: boardCenter.x,
+            y: boardCenter.y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 2,
+            life: 1.4,
+            color: colors[i % colors.length],
+            size: 3.5 + Math.random() * 3,
+          });
+        }
+      }
+
+      function drawParticles() {
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const pt = particles[i];
+          pt.x += pt.vx;
+          pt.y += pt.vy;
+          pt.life -= 0.032;
+          if (pt.life <= 0) {
+            particles.splice(i, 1);
+            continue;
+          }
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, Math.min(1, pt.life));
+          ctx.fillStyle = pt.color;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      /**
+       * ========================================================================
+       * 🖥️ HUD, CRICKET TABLE & LIVE CHECKOUT ROUTE UPDATES
+       * ========================================================================
+       */
+      function updateHUD() {
+        const p1 = players[0];
+        const p2 = players[1];
+        if (!p1 || !p2) return;
+
+        document.getElementById("p1Card").classList.toggle("active-turn", currentPlayerIdx === 0);
+        document.getElementById("p2Card").classList.toggle("active-turn", currentPlayerIdx === 1);
+
+        document.getElementById("p1Name").textContent = p1.name;
+        document.getElementById("p2Name").textContent = p2.name;
+        document.getElementById("p1Legs").textContent = p1.legs;
+        document.getElementById("p2Legs").textContent = p2.legs;
+
+        if (gameMode === "CLOCK") {
+          document.getElementById("p1Score").textContent = p1.clockTarget === 25 ? "BULL" : "#" + p1.clockTarget;
+          document.getElementById("p2Score").textContent = p2.clockTarget === 25 ? "BULL" : "#" + p2.clockTarget;
+        } else if (gameMode === "KILLER") {
+          document.getElementById("p1Score").textContent = (p1.isKiller ? "💀 " : "") + p1.killerLives + "❤️";
+          document.getElementById("p2Score").textContent = (p2.isKiller ? "💀 " : "") + p2.killerLives + "❤️";
+        } else {
+          document.getElementById("p1Score").textContent = p1.score;
+          document.getElementById("p2Score").textContent = p2.score;
+        }
+
+        const p1Rec = getRecommendedTargetCode(p1);
+        const p2Rec = getRecommendedTargetCode(p2);
+        if (gameMode === "KILLER") {
+          document.getElementById("p1TargetHint").textContent = "Own #" + p1.killerNumber + " (" + p1.killerHits + "/3) • Aim: " + p1Rec;
+          document.getElementById("p2TargetHint").textContent = "Own #" + p2.killerNumber + " (" + p2.killerHits + "/3) • Aim: " + p2Rec;
+        } else {
+          document.getElementById("p1TargetHint").textContent = "Rec: " + p1Rec;
+          document.getElementById("p2TargetHint").textContent = "Rec: " + p2Rec;
+        }
+
+        const p1Avg = p1.dartsThrown > 0 ? ((p1.totalPointsScored / p1.dartsThrown) * 3).toFixed(1) : "0.0";
+        const p2Avg = p2.dartsThrown > 0 ? ((p2.totalPointsScored / p2.dartsThrown) * 3).toFixed(1) : "0.0";
+        document.getElementById("p1Avg").textContent = p1Avg;
+        document.getElementById("p2Avg").textContent = p2Avg;
+        document.getElementById("p1Last").textContent = p1.lastVisit;
+        document.getElementById("p2Last").textContent = p2.lastVisit;
+        document.getElementById("p1Tons").textContent = p1.count180 + " / " + p1.countTons;
+        document.getElementById("p2Tons").textContent = p2.count180 + " / " + p2.countTons;
+
+        // Current 3-Dart Visit Slots
+        let visitTotal = 0;
+        for (let i = 0; i < 3; i++) {
+          const slotEl = document.getElementById("slot" + i);
+          const valEl = document.getElementById("slotVal" + i);
+          const dart = currentVisitDarts[i];
+          if (dart) {
+            slotEl.classList.add("filled");
+            valEl.textContent = dart.code === "BUST" ? "BUST" : dart.code + " (" + dart.score + ")";
+            visitTotal += dart.score;
+          } else {
+            slotEl.classList.remove("filled");
+            valEl.textContent = "—";
+          }
+        }
+        document.getElementById("visitTotalVal").textContent = visitTotal;
+        const remDarts = Math.max(0, 3 - currentVisitDarts.length);
+        document.getElementById("dartsRemainingText").textContent = remDarts + (remDarts === 1 ? " Dart Left" : " Darts Left");
+
+        updateCheckoutAdvisor();
+        renderCricketTable();
+      }
+
+      function updateCheckoutAdvisor() {
+        const activeP = players[currentPlayerIdx];
+        if (!activeP) return;
+        const opp = players[1 - currentPlayerIdx] || players[0];
+        const descEl = document.getElementById("checkoutDesc");
+        const chipsEl = document.getElementById("checkoutChips");
+        const badgeEl = document.getElementById("checkoutStatusBadge");
+        const dartsLeft = Math.max(1, 3 - currentVisitDarts.length);
+        const rec = getRecommendedTargetCode(activeP);
+
+        if (gameMode === "501" || gameMode === "301" || gameMode === "701") {
+          const route = getOptimalCheckoutRoute(activeP.score, dartsLeft, doubleOut);
+          if (route && route.length > 0 && activeP.score <= 170) {
+            badgeEl.textContent = "CHECKOUT READY (" + activeP.score + ")";
+            descEl.innerHTML =
+              "<strong>" + activeP.name + "</strong> has a finish from <strong>" + activeP.score + "</strong>:";
+            chipsEl.innerHTML = route
+              .map((code, idx) => {
+                const isLast = idx === route.length - 1;
+                return (
+                  '<span class="checkout-chip ' +
+                  (isLast ? "double-finish" : "") +
+                  '">' +
+                  code +
+                  " (" +
+                  codeValue(code) +
+                  ")</span>"
+                );
+              })
+              .join("");
+          } else {
+            badgeEl.textContent = "POWER SCORING";
+            descEl.innerHTML =
+              "Score down toward a finish below 170. Recommended target: <strong>" + rec + "</strong>.";
+            chipsEl.innerHTML =
+              '<span class="checkout-chip">' +
+              rec +
+              '</span><span class="checkout-chip">T20 (60)</span><span class="checkout-chip">T20 (60)</span>';
+          }
+        } else if (gameMode === "CRICKET") {
+          badgeEl.textContent = "STANDARD CRICKET";
+          descEl.innerHTML =
+            "Hit 3 marks (<strong>⊗</strong>) on 20–15 &amp; Bull to close numbers and score overflow points!";
+          chipsEl.innerHTML = '<span class="checkout-chip">Aim: ' + rec + "</span>";
+        } else if (gameMode === "CUTTHROAT") {
+          badgeEl.textContent = "CUT-THROAT PENALTY";
+          descEl.innerHTML =
+            "Close 20–15 &amp; Bull! Hitting numbers you own adds <strong>penalty points to your opponent</strong>. Lowest score wins!";
+          chipsEl.innerHTML = '<span class="checkout-chip double-finish">Strike: ' + rec + "</span>";
+        } else if (gameMode === "TACTICS") {
+          badgeEl.textContent = "ENGLISH TACTICS (12–20)";
+          descEl.innerHTML =
+            "Extended 10-target Cricket: close <strong>20 down to 12 &amp; Bull</strong> and out-score your rival!";
+          chipsEl.innerHTML = '<span class="checkout-chip">Aim: ' + rec + "</span>";
+        } else if (gameMode === "CLOCK") {
+          badgeEl.textContent = "AROUND THE CLOCK";
+          descEl.innerHTML =
+            "Hit numbers <strong>1 through 20 + Bull</strong> in order. Doubles skip +2, Trebles skip +3!";
+          chipsEl.innerHTML = '<span class="checkout-chip">Next Target: ' + rec + "</span>";
+        } else if (gameMode === "SHANGHAI") {
+          const r = Math.min(7, activeP.roundNumber || 1);
+          badgeEl.textContent = "SHANGHAI ROUND " + r + " / 7";
+          descEl.innerHTML =
+            "Only hits on <strong>#" + r + "</strong> count! Hit <strong>Single + Double + Triple " + r + "</strong> in one visit for an instant <strong>SHANGHAI KO!</strong>";
+          chipsEl.innerHTML =
+            '<span class="checkout-chip">S' + r + '</span><span class="checkout-chip">D' + r + '</span><span class="checkout-chip double-finish">T' + r + " (KO!)</span>";
+        } else if (gameMode === "KILLER") {
+          badgeEl.textContent = activeP.isKiller ? "💀 KILLER ARMED!" : "ARMING (" + activeP.killerHits + "/3)";
+          if (!activeP.isKiller) {
+            descEl.innerHTML =
+              "Hit your personal number <strong>#" + activeP.killerNumber + "</strong> until you reach 3 hits to become a <strong>KILLER 💀</strong>!";
+            chipsEl.innerHTML = '<span class="checkout-chip">Aim Own #' + activeP.killerNumber + " (" + rec + ")</span>";
+          } else {
+            descEl.innerHTML =
+              "You are a <strong>KILLER 💀</strong>! Strike opponent's <strong>#" + opp.killerNumber + "</strong> to strip their " + opp.killerLives + " lives!";
+            chipsEl.innerHTML = '<span class="checkout-chip double-finish">Hunt #' + opp.killerNumber + " (" + rec + ")</span>";
+          }
+        } else if (gameMode === "BOBS27") {
+          const r = Math.min(21, activeP.roundNumber || 1);
+          const dCode = r === 21 ? "DBULL" : "D" + r;
+          const dVal = r === 21 ? 50 : r * 2;
+          badgeEl.textContent = "BOB'S 27 • ROUND " + r + "/21";
+          descEl.innerHTML =
+            "Target <strong>" + dCode + " (+" + dVal + " pts per hit)</strong>. Missing all 3 darts subtracts <strong>-" + dVal + " pts</strong>! Below 1 pt = BUSTED OUT!";
+          chipsEl.innerHTML = '<span class="checkout-chip double-finish">Target: ' + dCode + " (±" + dVal + ")</span>";
+        } else if (gameMode === "HALVEIT") {
+          const r = Math.min(7, activeP.roundNumber || 1);
+          const st = HALVEIT_STAGES[r - 1];
+          badgeEl.textContent = "HALVE-IT • STAGE " + r + "/7";
+          descEl.innerHTML =
+            "Requirement: <strong>" + st.label + "</strong>. Missing all 3 darts slashes your entire score in <strong>HALF (÷2)</strong>!";
+          chipsEl.innerHTML = '<span class="checkout-chip double-finish">Stage ' + r + ": " + st.label + "</span>";
+        } else if (gameMode === "BASEBALL") {
+          const inning = Math.min(9, activeP.roundNumber || 1);
+          badgeEl.textContent = "INNING " + inning + " / 9";
+          descEl.innerHTML =
+            "Target segment <strong>#" + inning + "</strong>: Single = 1 Run, Double = 2 Runs, Triple = 3 Runs (7+ Runs = Grand Slam!).";
+          chipsEl.innerHTML = '<span class="checkout-chip">Inning #' + inning + " (" + rec + ")</span>";
+        } else if (gameMode === "GOLF") {
+          const hole = Math.min(9, activeP.roundNumber || 1);
+          badgeEl.textContent = "HOLE " + hole + " / 9 (PAR 4)";
+          descEl.innerHTML =
+            "Hole <strong>#" + hole + "</strong>: Triple = 1 Stroke (Eagle), Double = 2 (Birdie), Inner Single = 3, Outer Single = 4, Miss = 5. Lowest total strokes wins!";
+          chipsEl.innerHTML =
+            '<span class="checkout-chip">Best This Hole: ' + (activeP.golfHoleStroke ?? 5) + " Strokes</span>" +
+            '<span class="checkout-chip double-finish">Aim: ' + rec + "</span>";
+        } else if (gameMode === "COUNTUP") {
+          const r = Math.min(8, activeP.roundNumber || 1);
+          badgeEl.textContent = "COUNT-UP • ROUND " + r + " / 8";
+          descEl.innerHTML =
+            "Arcade Count-Up: 8 Rounds (24 Darts) to rack up the highest total score (Max 1,440)!";
+          chipsEl.innerHTML = '<span class="checkout-chip">T20 (60)</span><span class="checkout-chip">DBULL (50)</span>';
+        }
+      }
+
+      function formatCricketMark(m) {
+        if (m <= 0) return '<span class="cricket-mark">·</span>';
+        if (m === 1) return '<span class="cricket-mark open-1">/</span>';
+        if (m === 2) return '<span class="cricket-mark open-2">✕</span>';
+        return '<span class="cricket-mark closed">⊗</span>';
+      }
+
+      function renderCricketTable() {
+        const tbody = document.getElementById("cricketTableBody");
+        const titleEl = document.getElementById("modeTableTitle");
+        const subEl = document.getElementById("modeTableSub");
+        const headEl = document.getElementById("modeTableHead");
+        if (!tbody || players.length < 2) return;
+        const p1 = players[0];
+        const p2 = players[1];
+
+        // 1. Cricket / Cut-Throat / English Tactics Mark Matrix
+        if (gameMode === "CRICKET" || gameMode === "CUTTHROAT" || gameMode === "TACTICS") {
+          const targets = gameMode === "TACTICS" ? TACTICS_TARGETS : CRICKET_TARGETS;
+          if (titleEl) {
+            titleEl.textContent =
+              gameMode === "CUTTHROAT" ? "🗡️ Cut-Throat Chalkboard" :
+              gameMode === "TACTICS" ? "🇬🇧 English Tactics (12–20)" :
+              "🦗 Standard Cricket Chalkboard";
+          }
+          if (subEl) subEl.textContent = gameMode === "TACTICS" ? "12–20 & Bull" : "15–20 & Bull";
+          if (headEl) headEl.innerHTML = "<th>P1 Marks</th><th>Target</th><th>P2 Marks</th><th>Status</th>";
+
+          tbody.innerHTML = targets.map((t) => {
+            const m1 = p1.cricketMarks[t] || 0;
+            const m2 = p2.cricketMarks[t] || 0;
+            const dead = m1 >= 3 && m2 >= 3;
+            let status = "OPEN";
+            if (dead) status = "DEAD";
+            else if (m1 >= 3) status = gameMode === "CUTTHROAT" ? "P1 PENALIZES" : "P1 SCORES";
+            else if (m2 >= 3) status = gameMode === "CUTTHROAT" ? "P2 PENALIZES" : "P2 SCORES";
+
+            return (
+              '<tr class="' + (dead ? "cricket-row-dead" : "") + '">' +
+              "<td>" + formatCricketMark(m1) + "</td>" +
+              '<td class="cricket-num">' + (t === 25 ? "BULL" : t) + "</td>" +
+              "<td>" + formatCricketMark(m2) + "</td>" +
+              '<td style="font-size:10px; font-weight:700; color:' +
+              (dead ? "#64748b" : m1 >= 3 || m2 >= 3 ? "#22c55e" : "#94a3b8") +
+              ';">' + status + "</td></tr>"
+            );
+          }).join("");
+          return;
+        }
+
+        // 2. Killer Survival Table
+        if (gameMode === "KILLER") {
+          if (titleEl) titleEl.textContent = "💀 Killer Elimination Board";
+          if (subEl) subEl.textContent = "3 Hits = Armed 💀";
+          if (headEl) headEl.innerHTML = "<th>Player</th><th>Own #</th><th>Armory</th><th>Lives</th>";
+          tbody.innerHTML = [p1, p2]
+            .map(
+              (pl) =>
+                "<tr>" +
+                '<td style="font-weight:800;">' + pl.name + "</td>" +
+                '<td class="cricket-num">#' + pl.killerNumber + "</td>" +
+                '<td style="color:' + (pl.isKiller ? "#ef4444" : "#38bdf8") + ';font-weight:800;">' +
+                (pl.isKiller ? "💀 KILLER" : pl.killerHits + " / 3") +
+                "</td>" +
+                '<td style="color:#facc15;font-weight:800;">' + "❤️".repeat(Math.max(0, pl.killerLives)) + " (" + pl.killerLives + ")</td>" +
+                "</tr>"
+            )
+            .join("");
+          return;
+        }
+
+        // 3. Round / Inning / Hole / Stage Table (Shanghai, Halve-It, Baseball, Golf, Bob's 27, Count-Up)
+        if (
+          gameMode === "SHANGHAI" ||
+          gameMode === "HALVEIT" ||
+          gameMode === "BASEBALL" ||
+          gameMode === "GOLF" ||
+          gameMode === "BOBS27" ||
+          gameMode === "COUNTUP"
+        ) {
+          const totalRounds =
+            gameMode === "SHANGHAI" || gameMode === "HALVEIT" ? 7 :
+            gameMode === "COUNTUP" ? 8 :
+            gameMode === "BOBS27" ? 21 : 9;
+          if (titleEl) titleEl.textContent = (MODE_METADATA[gameMode]?.title || gameMode) + " Card";
+          if (subEl) subEl.textContent = totalRounds + " Rounds";
+          if (headEl) headEl.innerHTML = "<th>P1</th><th>Round / Target</th><th>P2</th><th>State</th>";
+
+          const activeRound = players[currentPlayerIdx]?.roundNumber || 1;
+          const rows = [];
+          const startR = gameMode === "BOBS27" ? Math.max(1, Math.min(15, activeRound - 2)) : 1;
+          const endR = gameMode === "BOBS27" ? Math.min(21, startR + 6) : totalRounds;
+
+          for (let r = startR; r <= endR; r++) {
+            const v1 = p1.roundHistory[r] !== undefined ? p1.roundHistory[r] : "—";
+            const v2 = p2.roundHistory[r] !== undefined ? p2.roundHistory[r] : "—";
+            let label = "#" + r;
+            if (gameMode === "HALVEIT") label = HALVEIT_STAGES[r - 1].label;
+            else if (gameMode === "BOBS27") label = r === 21 ? "DBULL" : "D" + r;
+            else if (gameMode === "BASEBALL") label = "Inning " + r;
+            else if (gameMode === "GOLF") label = "Hole " + r;
+
+            const isCurrent = r === activeRound;
+            const stateTxt = r < Math.min(p1.roundNumber, p2.roundNumber) ? "DONE" : isCurrent ? "ACTIVE 🎯" : "NEXT";
+            rows.push(
+              '<tr style="' + (isCurrent ? "background:rgba(0,245,212,0.12);" : "") + '">' +
+                '<td style="font-weight:800;color:#f8fafc;">' + v1 + "</td>" +
+                '<td class="cricket-num">' + label + "</td>" +
+                '<td style="font-weight:800;color:#f8fafc;">' + v2 + "</td>" +
+                '<td style="font-size:10px;font-weight:700;color:' + (isCurrent ? "#00f5d4" : "#94a3b8") + ';">' + stateTxt + "</td>" +
+              "</tr>"
+            );
+          }
+          tbody.innerHTML = rows.join("");
+          return;
+        }
+
+        // 4. Default (501 / 301 / 701 / Around the Clock): show Standard Cricket Reference & Quick Target Progress
+        if (titleEl) titleEl.textContent = gameMode === "CLOCK" ? "🕒 Clock Sequence Tracker" : "🎯 01 Match & Key Checkouts";
+        if (subEl) subEl.textContent = gameMode === "CLOCK" ? "1–20 + Bull" : "PDC Pro Finishes";
+        if (headEl) headEl.innerHTML = "<th>P1</th><th>Target / Out</th><th>P2</th><th>Status</th>";
+        tbody.innerHTML = CRICKET_TARGETS.map((t) => {
+          const m1 = p1.cricketMarks[t] || 0;
+          const m2 = p2.cricketMarks[t] || 0;
+          return (
+            "<tr>" +
+            "<td>" + (gameMode === "CLOCK" ? "#" + p1.clockTarget : formatCricketMark(m1)) + "</td>" +
+            '<td class="cricket-num">' + (t === 25 ? "BULL" : "T" + t) + "</td>" +
+            "<td>" + (gameMode === "CLOCK" ? "#" + p2.clockTarget : formatCricketMark(m2)) + "</td>" +
+            '<td style="font-size:10px;color:#00f5d4;font-weight:700;">' + (t === 25 ? "50 PTS" : t * 3 + " PTS") + "</td>" +
+            "</tr>"
+          );
+        }).join("");
+      }
+
+      function showCallout(title, sub) {
+        const banner = document.getElementById("calloutBanner");
+        document.getElementById("calloutTitle").textContent = title;
+        document.getElementById("calloutSub").textContent = sub;
+        banner.classList.add("visible");
+        if (calloutTimer) clearTimeout(calloutTimer);
+        calloutTimer = setTimeout(() => {
+          banner.classList.remove("visible");
+        }, 1950);
+      }
+
+      function clearLog() {
+        const list = document.getElementById("throwLogList");
+        if (list) list.innerHTML = "";
+      }
+
+      function addLog(text, isAI, isBust) {
+        const list = document.getElementById("throwLogList");
+        if (!list) return;
+        const item = document.createElement("div");
+        item.className = "log-item" + (isAI ? " ai" : "") + (isBust ? " bust" : "");
+        const timeStr = new Date().toLocaleTimeString([], { minute: "2-digit", second: "2-digit" });
+        item.innerHTML = "<span>" + text + '</span><span style="color:var(--muted);">' + timeStr + "</span>";
+        list.prepend(item);
+      }
+
+      /**
+       * ========================================================================
+       * 🎮 CONTROLS & MODE SWITCHERS (ALL 14 GAMES SUPPORTED)
+       * ========================================================================
+       */
+      function setMode(mode) {
+        const normalized = String(mode || "501").toUpperCase();
+        gameMode = normalized;
+        const sel = document.getElementById("modeSelect");
+        if (sel && sel.value !== normalized) sel.value = normalized;
+
+        const btnMap = {
+          mode501Btn: "501",
+          mode301Btn: "301",
+          modeCricketBtn: "CRICKET",
+          modeShanghaiBtn: "SHANGHAI",
+          modeKillerBtn: "KILLER",
+          modeClockBtn: "CLOCK",
+        };
+        Object.entries(btnMap).forEach(([id, val]) => {
+          const el = document.getElementById(id);
+          if (el) el.classList.toggle("active", normalized === val);
+        });
+        newMatch();
+      }
+
+      function toggleDoubleOut() {
+        doubleOut = !doubleOut;
+        document.getElementById("doubleOutLabel").textContent = doubleOut ? "Double-Out" : "Straight-Out";
+        document.getElementById("doubleOutBtn").classList.toggle("active", doubleOut);
+        updateHUD();
+      }
+
+      function setOpponent(opp) {
+        opponentType = opp;
+        document.getElementById("aiEasyBtn").classList.toggle("active", opp === "AI_PUB");
+        document.getElementById("aiCountyBtn").classList.toggle("active", opp === "AI_COUNTY");
+        document.getElementById("aiLegendBtn").classList.toggle("active", opp === "AI_LEGEND");
+        document.getElementById("passPlayBtn").classList.toggle("active", opp === "2P");
+        newMatch();
+      }
+
+      function setPhysicsMode(mode) {
+        physicsMode = mode || "PRO";
+        const sel = document.getElementById("physicsModeSelect");
+        if (sel && sel.value !== physicsMode) sel.value = physicsMode;
+        const badge = document.getElementById("physicsTierBadge");
+        const labels = {
+          ARCADE: "BEGINNER ASSISTED",
+          CLUB: "CLUB GRAVITY PHYSICS",
+          PRO: "PRO BALLISTICS",
+          MASTER: "PDC MASTER SIM",
+        };
+        if (badge) badge.textContent = labels[physicsMode] || physicsMode;
+        rollStageWind();
+      }
+
+      function setBarrelWeight(w) {
+        barrelWeight = Number(w) || 22;
+        const sel = document.getElementById("barrelWeightSelect");
+        if (sel && String(sel.value) !== String(barrelWeight)) sel.value = String(barrelWeight);
+      }
+
+      function cycleFlightSkin() {
+        flightSkinIdx = (flightSkinIdx + 1) % FLIGHT_SKINS.length;
+        document.getElementById("flightSkinLabel").textContent = FLIGHT_SKINS[flightSkinIdx].name;
+      }
+
+      function snapAimTo(code) {
+        if (physicsMode === "MASTER") {
+          showCallout("🔒 MANUAL AIM ONLY", "PDC MASTER SIM DISABLES SNAP ASSIST");
+          return;
+        }
+        const p = players[currentPlayerIdx] || players[0];
+        const actualCode = code === "RECOMMENDED" ? getRecommendedTargetCode(p) : code;
+        const pt = getCoordinatesForTargetCode(actualCode);
+        aimBase.x = pt.x;
+        aimBase.y = pt.y;
+      }
+
+      function init() {
+        canvas = document.getElementById("dartboardCanvas");
+        ctx = canvas.getContext("2d");
+        rollStageWind();
+
+        // Mouse movement over dartboard
+        canvas.addEventListener("mousemove", (e) => {
+          const rect = canvas.getBoundingClientRect();
+          const scaleX = canvas.width / rect.width;
+          const scaleY = canvas.height / rect.height;
+          aimBase.x = (e.clientX - rect.left) * scaleX;
+          aimBase.y = (e.clientY - rect.top) * scaleY;
+        });
+
+        canvas.addEventListener("mousedown", (e) => {
+          if (e.button === 2) {
+            focusHeld = true;
+            return;
+          }
+          if (physicsMode === "ARCADE") {
+            throwFromReticle(78);
+          } else {
+            chargingThrow = true;
+            dragStartPt = { x: e.clientX, y: e.clientY, t: performance.now() };
+          }
+        });
+
+        window.addEventListener("mouseup", (e) => {
+          if (e.button === 2) {
+            focusHeld = false;
+            return;
+          }
+          if (chargingThrow) {
+            chargingThrow = false;
+            // Support drag-down & flick-up velocity OR oscillating release power gauge
+            if (dragStartPt) {
+              const dy = dragStartPt.y - e.clientY;
+              const dt = Math.max(16, performance.now() - dragStartPt.t);
+              if (Math.abs(dy) > 28) {
+                const flickVel = Math.max(30, Math.min(100, 52 + (dy / dt) * 32));
+                throwPower = flickVel;
+              }
+              dragStartPt = null;
+            }
+            throwFromReticle(throwPower);
+          }
+        });
+
+        canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+        window.addEventListener("keydown", (e) => {
+          keysHeld[e.code] = true;
+          if (e.key === "Shift") focusHeld = true;
+          if (e.code === "Space" || e.code === "Enter") {
+            e.preventDefault();
+            if (physicsMode === "ARCADE") {
+              throwFromReticle(78);
+            } else if (!chargingThrow) {
+              chargingThrow = true;
+            }
+          }
+          if (e.code === "KeyR") snapAimTo("RECOMMENDED");
+          if (e.code === "KeyT") snapAimTo("T20");
+          if (e.code === "KeyB") snapAimTo("DBULL");
+          if (e.code === "KeyH") holdGolfStroke();
+          if (e.code === "KeyM") DartsAudio.toggleMute();
+          if (e.code === "KeyN") newMatch();
+        });
+
+        window.addEventListener("keyup", (e) => {
+          keysHeld[e.code] = false;
+          if (e.key === "Shift") focusHeld = false;
+          if ((e.code === "Space" || e.code === "Enter") && chargingThrow) {
+            chargingThrow = false;
+            throwFromReticle(throwPower);
+          }
+        });
+
+        updateCareerUI();
+        newMatch();
+        requestAnimationFrame(renderScene);
+      }
+
+      window.addEventListener("DOMContentLoaded", init);
+
+      return {
+        setMode,
+        toggleDoubleOut,
+        setOpponent,
+        setPhysicsMode,
+        setBarrelWeight,
+        cycleFlightSkin,
+        snapAimTo,
+        holdGolfStroke,
+        throwFromReticle,
+        newMatch,
+      };
+    })();
+  </script>
+</body>
+</html>

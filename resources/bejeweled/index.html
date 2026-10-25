@@ -1,0 +1,5230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine CyberJewel 12-Mode Blitz: Diamond Mine &amp; Prism Royale</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    :root {
+      --bg-deep: #040711;
+      --bg-mid: #0a1128;
+      --panel-bg: rgba(9, 16, 36, 0.92);
+      --panel-border: rgba(56, 189, 248, 0.28);
+      --gold: #facc15;
+      --gold-glow: rgba(250, 204, 21, 0.45);
+      --cyan: #38bdf8;
+      --cyan-bright: #00f5d4;
+      --magenta: #ec4899;
+      --purple: #a855f7;
+      --emerald: #22c55e;
+      --ruby: #ef4444;
+      --amber: #f97316;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 25%, #162447 0%, #080d1e 62%, #03050c 100%);
+      color: var(--text-main);
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Header HUD Bar */
+    header.top-hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 14px;
+      background: linear-gradient(180deg, rgba(12, 22, 48, 0.96) 0%, rgba(6, 11, 26, 0.94) 100%);
+      border-bottom: 1px solid var(--panel-border);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+      z-index: 20;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-gem-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 30%, #38bdf8, #7c3aed 70%, #090d16);
+      border: 1.5px solid #bae6fd;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .brand-titles h1 {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #fff 0%, #7dd3fc 45%, #facc15 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-titles .subtitle {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+    }
+
+    .hud-kpis {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .kpi-pill {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 8px;
+      padding: 4px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 82px;
+    }
+
+    .kpi-pill.gold-border {
+      border-color: rgba(250, 204, 21, 0.5);
+      box-shadow: 0 0 10px rgba(250, 204, 21, 0.15);
+    }
+
+    .kpi-pill.cyan-border {
+      border-color: rgba(56, 189, 248, 0.5);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
+    }
+
+    .kpi-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .kpi-val {
+      font-size: 15px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: #fff;
+    }
+
+    .kpi-val.gold {
+      color: var(--gold);
+      text-shadow: 0 0 8px rgba(250, 204, 21, 0.5);
+    }
+
+    .kpi-val.cyan {
+      color: var(--cyan-bright);
+      text-shadow: 0 0 8px rgba(0, 245, 212, 0.5);
+    }
+
+    .hud-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-hud {
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+      color: #e2e8f0;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 7px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-hud:hover {
+      border-color: var(--cyan-bright);
+      background: rgba(30, 58, 138, 0.65);
+      transform: translateY(-1px);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+    }
+
+    .btn-hud:active {
+      transform: translateY(0);
+    }
+
+    .btn-hud.accent-gold {
+      background: linear-gradient(180deg, #eab308 0%, #ca8a04 100%);
+      color: #090d16;
+      border-color: #fef08a;
+    }
+
+    .btn-hud.accent-gold:hover {
+      background: linear-gradient(180deg, #facc15 0%, #eab308 100%);
+      box-shadow: 0 0 14px rgba(250, 204, 21, 0.6);
+    }
+
+    /* 12-Mode Selector Ribbon */
+    nav.mode-dock {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 5px;
+      padding: 6px 12px;
+      background: rgba(5, 10, 24, 0.92);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.22);
+      flex-shrink: 0;
+      z-index: 15;
+    }
+
+    .mode-tab {
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.85) 0%, rgba(9, 14, 28, 0.95) 100%);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 7px;
+      padding: 5px 4px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      transition: all 0.16s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mode-tab:hover {
+      border-color: rgba(56, 189, 248, 0.6);
+      background: rgba(23, 37, 84, 0.65);
+      transform: translateY(-1px);
+    }
+
+    .mode-tab.active {
+      background: linear-gradient(180deg, rgba(14, 116, 144, 0.65) 0%, rgba(30, 58, 138, 0.85) 100%);
+      border-color: var(--gold);
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.35), inset 0 0 8px rgba(56, 189, 248, 0.3);
+    }
+
+    .mode-tab .m-icon {
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .mode-tab .m-name {
+      font-size: 9.5px;
+      font-weight: 800;
+      color: #f1f5f9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    .mode-tab.active .m-name {
+      color: var(--gold);
+    }
+
+    .mode-tab .m-tag {
+      font-size: 8px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    /* Main 3-Column Arena */
+    main.arena-workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 270px 1fr 280px;
+      gap: 12px;
+      padding: 10px 14px;
+      min-height: 0;
+      align-items: stretch;
+    }
+
+    .side-column {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .glass-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+      padding-bottom: 5px;
+    }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .card-badge {
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.18);
+      color: #bae6fd;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+
+    .mode-desc-text {
+      font-size: 11px;
+      line-height: 1.4;
+      color: #cbd5e1;
+    }
+
+    /* Progress & Tank Bars */
+    .meter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .meter-top {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .meter-track {
+      width: 100%;
+      height: 12px;
+      background: rgba(2, 6, 23, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .meter-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      transition: width 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+      position: relative;
+    }
+
+    .meter-fill.cyan-grad {
+      background: linear-gradient(90deg, #0284c7, #38bdf8, #00f5d4);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.7);
+    }
+
+    .meter-fill.gold-grad {
+      background: linear-gradient(90deg, #ca8a04, #facc15, #fef08a);
+      box-shadow: 0 0 10px rgba(250, 204, 21, 0.7);
+    }
+
+    .meter-fill.fire-grad {
+      background: linear-gradient(90deg, #dc2626, #f97316, #facc15);
+      box-shadow: 0 0 12px rgba(249, 115, 22, 0.8);
+    }
+
+    .meter-fill.purple-grad {
+      background: linear-gradient(90deg, #7c3aed, #ec4899, #f43f5e);
+      box-shadow: 0 0 10px rgba(236, 72, 153, 0.7);
+    }
+
+    /* Mode Specific Dynamic Widget Box */
+    .mode-widget-box {
+      background: rgba(2, 6, 23, 0.65);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .stat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #cbd5e1;
+    }
+
+    .stat-row strong {
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Center Stage */
+    .center-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      min-height: 0;
+      gap: 8px;
+    }
+
+    /* Top Stage Dynamic Banner (Boss Leviathan / Butterfly Spider / Zen Breathing / Poker Rack + Live Mini-Game Canvas) */
+    .stage-top-widget {
+      width: 100%;
+      max-width: 560px;
+      background: linear-gradient(180deg, rgba(12, 22, 48, 0.96) 0%, rgba(6, 11, 26, 0.96) 100%);
+      border: 1.5px solid rgba(56, 189, 248, 0.42);
+      border-radius: 12px;
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.68), inset 0 0 14px rgba(56, 189, 248, 0.12);
+    }
+
+    .stage-top-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .btn-mode-gadget {
+      background: linear-gradient(180deg, rgba(14, 165, 233, 0.3) 0%, rgba(30, 58, 138, 0.75) 100%);
+      border: 1.5px solid #38bdf8;
+      color: #f8fafc;
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 10.5px;
+      font-weight: 900;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      min-width: 148px;
+      transition: all 0.16s ease;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.28);
+    }
+
+    .btn-mode-gadget.ready {
+      background: linear-gradient(180deg, #facc15 0%, #ca8a04 100%);
+      border-color: #fef08a;
+      color: #090d16;
+      box-shadow: 0 0 18px rgba(250, 204, 21, 0.65);
+      animation: gadgetPulse 1.5s infinite ease-in-out;
+    }
+
+    @keyframes gadgetPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+
+    .btn-mode-gadget .gadget-sub {
+      font-size: 8.5px;
+      font-weight: 800;
+      opacity: 0.88;
+    }
+
+    canvas#miniGameStageCanvas {
+      width: 100%;
+      height: 76px;
+      display: block;
+      border-radius: 8px;
+      background: #030712;
+      border: 1px solid rgba(56, 189, 248, 0.32);
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.85);
+    }
+
+    .poker-rack {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .poker-card-slot {
+      width: 34px;
+      height: 42px;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1.5px dashed rgba(148, 163, 184, 0.35);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      position: relative;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .poker-card-slot.filled {
+      border-style: solid;
+      border-color: var(--gold);
+      background: linear-gradient(160deg, #1e293b 0%, #090d16 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    .poker-card-slot .polish-tag {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      font-size: 10px;
+      background: #090d16;
+      border-radius: 50%;
+      padding: 1px;
+    }
+
+    /* Board Frame & Canvas */
+    .board-frame {
+      position: relative;
+      padding: 8px;
+      border-radius: 16px;
+      background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(4, 8, 20, 0.98));
+      border: 2px solid rgba(56, 189, 248, 0.55);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.85), 0 0 28px rgba(56, 189, 248, 0.25), inset 0 0 14px rgba(250, 204, 21, 0.15);
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .board-frame.blazing-active {
+      border-color: #f97316;
+      box-shadow: 0 0 36px rgba(249, 115, 22, 0.75), inset 0 0 18px rgba(250, 204, 21, 0.45);
+    }
+
+    canvas#jewelCanvas {
+      display: block;
+      border-radius: 10px;
+      cursor: pointer;
+      background: #050915;
+      max-height: calc(100vh - 355px);
+      max-width: calc(100vh - 355px);
+      width: auto;
+      height: auto;
+      aspect-ratio: 1 / 1;
+    }
+
+    /* Zen Affirmation & Sub-bar */
+    .stage-bottom-bar {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 12px;
+      background: rgba(9, 16, 36, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 9px;
+      font-size: 11px;
+      color: #cbd5e1;
+    }
+
+    /* Special Gem Forge Legend */
+    .power-gem-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .power-gem-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(2, 6, 23, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      border-radius: 8px;
+      padding: 6px 8px;
+      gap: 8px;
+    }
+
+    .pg-left {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .pg-icon {
+      font-size: 17px;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      background: rgba(30, 41, 59, 0.8);
+    }
+
+    .pg-info .pg-name {
+      font-size: 11px;
+      font-weight: 800;
+      color: #f8fafc;
+    }
+
+    .pg-info .pg-rule {
+      font-size: 9.5px;
+      color: #94a3b8;
+    }
+
+    .btn-forge-test {
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #7dd3fc;
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 3px 7px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-forge-test:hover {
+      background: rgba(56, 189, 248, 0.3);
+      color: #fff;
+    }
+
+    /* Modal Overlays (Game Over / Mode Victory / Help) */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.84);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-panel {
+      background: linear-gradient(165deg, #0f172a 0%, #060b19 100%);
+      border: 2px solid var(--gold);
+      border-radius: 16px;
+      padding: 22px 26px;
+      max-width: 500px;
+      width: 92%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(250, 204, 21, 0.25);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .modal-panel h2 {
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .modal-panel p {
+      font-size: 13px;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+
+    .modal-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      background: rgba(2, 6, 23, 0.7);
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .modal-stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .modal-stat-item span {
+      font-size: 10px;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }
+
+    .modal-stat-item strong {
+      font-size: 18px;
+      color: #fff;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 1120px) {
+      nav.mode-dock {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+      }
+      main.arena-workspace {
+        grid-template-columns: 230px 1fr 230px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Top HUD Bar -->
+  <header class="top-hud">
+    <div class="brand-cluster">
+      <div class="brand-gem-icon">💎</div>
+      <div class="brand-titles">
+        <h1>Codecaine CyberJewel 12-Mode Blitz</h1>
+        <div class="subtitle">Diamond Mine &amp; Prism Royale • 60fps Poly-Facet Engine &amp; Lydian Synth</div>
+      </div>
+    </div>
+
+    <div class="hud-kpis">
+      <div class="kpi-pill gold-border">
+        <span class="kpi-label">Score</span>
+        <span class="kpi-val gold" id="hudScore">0</span>
+      </div>
+      <div class="kpi-pill cyan-border">
+        <span class="kpi-label" id="hudPrimaryMetricLabel">Level</span>
+        <span class="kpi-val cyan" id="hudPrimaryMetricVal">1</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label" id="hudSecondaryMetricLabel">Multiplier</span>
+        <span class="kpi-val" id="hudSecondaryMetricVal">x1</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">Mode Best</span>
+        <span class="kpi-val gold" id="hudHighScore">0</span>
+      </div>
+    </div>
+
+    <div class="hud-actions">
+      <button class="btn-hud accent-gold" id="btnHint" title="Highlight Best Move [H]">💡 HINT [H]</button>
+      <button class="btn-hud" id="btnShuffle" title="Shuffle / Reset Board [R]">🔀 SHUFFLE [R]</button>
+      <button class="btn-hud" id="btnNewGame" title="Restart Current Mode [N]">🔄 NEW [N]</button>
+      <button class="btn-hud" id="btnMusic" title="Toggle Ambient Synth Music [B]">🎶 MUSIC: OFF [B]</button>
+      <button class="btn-hud" id="btnSound" title="Toggle SFX [M]">🔊 SFX: ON [M]</button>
+    </div>
+  </header>
+
+  <!-- 12-Mode Selector Dock -->
+  <nav class="mode-dock" id="modeDock" aria-label="12 Game Modes">
+    <button class="mode-tab active" data-mode="classic">
+      <span class="m-icon">💎</span>
+      <span class="m-name">1. Classic</span>
+      <span class="m-tag">Level Cruise</span>
+    </button>
+    <button class="mode-tab" data-mode="diamond_mine">
+      <span class="m-icon">⛏️</span>
+      <span class="m-name">2. Diamond Mine</span>
+      <span class="m-tag">Dig &amp; Relics</span>
+    </button>
+    <button class="mode-tab" data-mode="lightning">
+      <span class="m-icon">⚡</span>
+      <span class="m-name">3. Lightning</span>
+      <span class="m-tag">+5s Time Tank</span>
+    </button>
+    <button class="mode-tab" data-mode="ice_storm">
+      <span class="m-icon">❄️</span>
+      <span class="m-name">4. Ice Storm</span>
+      <span class="m-tag">Rising Glaciers</span>
+    </button>
+    <button class="mode-tab" data-mode="butterflies">
+      <span class="m-icon">🦋</span>
+      <span class="m-name">5. Butterflies</span>
+      <span class="m-tag">Save Monarchs</span>
+    </button>
+    <button class="mode-tab" data-mode="poker">
+      <span class="m-icon">🃏</span>
+      <span class="m-name">6. Jewel Poker</span>
+      <span class="m-tag">5-Card Hands</span>
+    </button>
+    <button class="mode-tab" data-mode="zen">
+      <span class="m-icon">🧘</span>
+      <span class="m-name">7. Zen Breath</span>
+      <span class="m-tag">Endless Calm</span>
+    </button>
+    <button class="mode-tab" data-mode="alchemy">
+      <span class="m-icon">🧪</span>
+      <span class="m-name">8. Alchemy Gold</span>
+      <span class="m-tag">64 Gold Tiles</span>
+    </button>
+    <button class="mode-tab" data-mode="time_bombs">
+      <span class="m-icon">💣</span>
+      <span class="m-name">9. Time Bombs</span>
+      <span class="m-tag">Defuse Zero</span>
+    </button>
+    <button class="mode-tab" data-mode="lava_escape">
+      <span class="m-icon">🌋</span>
+      <span class="m-name">10. Lava Escape</span>
+      <span class="m-tag">Cool Magma</span>
+    </button>
+    <button class="mode-tab" data-mode="boss_raid">
+      <span class="m-icon">👾</span>
+      <span class="m-name">11. Boss Raid</span>
+      <span class="m-tag">Prism Leviathan</span>
+    </button>
+    <button class="mode-tab" data-mode="stratamax">
+      <span class="m-icon">🧩</span>
+      <span class="m-name">12. Stratamax 20</span>
+      <span class="m-tag">20-Move Max</span>
+    </button>
+  </nav>
+
+  <!-- Main 3-Column Arena Workspace -->
+  <main class="arena-workspace">
+    <!-- Left Column: Active Mode Briefing, Progress Meters & Mode-Specific Telemetry -->
+    <aside class="side-column">
+      <section class="glass-card">
+        <div class="card-header">
+          <span class="card-title" id="modeTitleBanner">💎 Classic Mode</span>
+          <span class="card-badge" id="modeBadgeTag">ENDLESS LEVELS</span>
+        </div>
+        <p class="mode-desc-text" id="modeRulesDesc">
+          Match 3 or more gems to fill the Level Progress Matrix. Forge Flame, Star, Hypercube, and Supernova gems! Game continues until no valid moves remain.
+        </p>
+
+        <div class="meter-group">
+          <div class="meter-top">
+            <span id="primaryBarLabel">Level Progress</span>
+            <span id="primaryBarText">0 / 1,500</span>
+          </div>
+          <div class="meter-track">
+            <div class="meter-fill cyan-grad" id="primaryBarFill" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="meter-group">
+          <div class="meter-top">
+            <span id="blazingBarLabel">🔥 Blazing Speed Meter</span>
+            <span id="blazingBarText">0%</span>
+          </div>
+          <div class="meter-track">
+            <div class="meter-fill fire-grad" id="blazingBarFill" style="width: 0%"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mode-Specific Live Mechanics Panel -->
+      <section class="glass-card">
+        <div class="card-header">
+          <span class="card-title">⚙️ Live Mode Telemetry</span>
+          <span class="card-badge" id="telemetryStatusBadge">ACTIVE</span>
+        </div>
+        <div class="mode-widget-box" id="modeTelemetryBox">
+          <div class="stat-row"><span>Current Level</span><strong id="telStat1">1</strong></div>
+          <div class="stat-row"><span>Best Cascade Chain</span><strong id="telStat2">0x</strong></div>
+          <div class="stat-row"><span>Available Valid Swaps</span><strong id="telStat3">12</strong></div>
+          <div class="stat-row"><span>Special Gems Detonated</span><strong id="telStat4">0</strong></div>
+        </div>
+      </section>
+
+      <!-- Career Gemology Vault -->
+      <section class="glass-card">
+        <div class="card-header">
+          <span class="card-title">🏆 Gemologist Career Vault</span>
+          <span class="card-badge" id="careerRankBadge">APPRENTICE</span>
+        </div>
+        <div class="mode-widget-box">
+          <div class="stat-row"><span>Lifetime Gems Matched</span><strong id="careerGems">0</strong></div>
+          <div class="stat-row"><span>Max Depth Excavated</span><strong id="careerDepth">0m</strong></div>
+          <div class="stat-row"><span>Butterflies Rescued</span><strong id="careerButterflies">0</strong></div>
+          <div class="stat-row"><span>Boss Leviathans Slain</span><strong id="careerBosses">0</strong></div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- Center Stage: Dynamic Mode Header + 8x8 Gem Matrix Canvas + Sub-Bar -->
+    <section class="center-stage">
+      <!-- Dynamic Top Widget (Adapts per mode + Live 544x92 Mini-Game Stage Canvas + Active Mode Gadget [SPACE]) -->
+      <div class="stage-top-widget" id="stageTopWidget">
+        <div class="stage-top-header">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span id="stageWidgetIcon" style="font-size:20px;">💎</span>
+            <div>
+              <div id="stageWidgetTitle" style="font-size:11.5px; font-weight:800; color:#f8fafc;">PRISM HARMONIC MATRIX</div>
+              <div id="stageWidgetSubtitle" style="font-size:10px; color:#94a3b8;">Chain fast matches to ignite Blazing Speed!</div>
+            </div>
+          </div>
+          <div class="poker-rack" id="pokerRackContainer" style="display:none;">
+            <div class="poker-card-slot" id="pokerSlot0">-</div>
+            <div class="poker-card-slot" id="pokerSlot1">-</div>
+            <div class="poker-card-slot" id="pokerSlot2">-</div>
+            <div class="poker-card-slot" id="pokerSlot3">-</div>
+            <div class="poker-card-slot" id="pokerSlot4">-</div>
+          </div>
+          <button class="btn-mode-gadget ready" id="btnModeGadget" title="Activate Mode Tactical Gadget [SPACE]">
+            <span id="gadgetLabel">🌌 WARP STARBURST</span>
+            <span class="gadget-sub" id="gadgetChargeText">READY [SPACE] (100%)</span>
+          </button>
+          <div id="stageWidgetRightStat" style="text-align:right; min-width:64px;">
+            <div style="font-size:9px; color:#94a3b8; text-transform:uppercase;" id="stageRightLabel">Valid Moves</div>
+            <div style="font-size:14px; font-weight:900; color:#38bdf8;" id="stageRightValue">10</div>
+          </div>
+        </div>
+        <canvas id="miniGameStageCanvas" width="544" height="92"></canvas>
+      </div>
+
+      <!-- 8x8 Interactive Gem Board Frame -->
+      <div class="board-frame" id="boardFrame">
+        <canvas id="jewelCanvas" width="544" height="544"></canvas>
+      </div>
+
+      <!-- Bottom Status & Zen Affirmation Bar -->
+      <div class="stage-bottom-bar">
+        <span id="bottomAffirmationText">✨ Tip: Match 4 for a Flame Gem, L/T for a Star Gem, or 5 in a line for a Hypercube!</span>
+        <span style="color:var(--gold); font-weight:700;" id="bottomComboCallout">READY</span>
+      </div>
+    </section>
+
+    <!-- Right Column: Power Gem Forge & Mode Guide -->
+    <aside class="side-column">
+      <section class="glass-card">
+        <div class="card-header">
+          <span class="card-title">⚡ Special Power Gems</span>
+          <span class="card-badge">INSTANT FORGE</span>
+        </div>
+        <div class="power-gem-list">
+          <div class="power-gem-item">
+            <div class="pg-left">
+              <div class="pg-icon">🔥</div>
+              <div class="pg-info">
+                <div class="pg-name">Flame Gem</div>
+                <div class="pg-rule">Match 4 • Explodes 3×3 Area</div>
+              </div>
+            </div>
+            <button class="btn-forge-test" data-spawn="flame" title="Spawn a Flame Gem on the board">+ Forge</button>
+          </div>
+
+          <div class="power-gem-item">
+            <div class="pg-left">
+              <div class="pg-icon">⚡</div>
+              <div class="pg-info">
+                <div class="pg-name">Star Gem</div>
+                <div class="pg-rule">Match L/T • Row + Column Lightning</div>
+              </div>
+            </div>
+            <button class="btn-forge-test" data-spawn="star" title="Spawn a Star Gem on the board">+ Forge</button>
+          </div>
+
+          <div class="power-gem-item">
+            <div class="pg-left">
+              <div class="pg-icon">🌈</div>
+              <div class="pg-info">
+                <div class="pg-name">Hypercube</div>
+                <div class="pg-rule">Match 5 • Zaps All of Swapped Color</div>
+              </div>
+            </div>
+            <button class="btn-forge-test" data-spawn="hypercube" title="Spawn a Hypercube on the board">+ Forge</button>
+          </div>
+
+          <div class="power-gem-item">
+            <div class="pg-left">
+              <div class="pg-icon">🌟</div>
+              <div class="pg-info">
+                <div class="pg-name">Supernova Gem</div>
+                <div class="pg-rule">Match 6+ • 3-Row × 3-Col Mega Beam</div>
+              </div>
+            </div>
+            <button class="btn-forge-test" data-spawn="supernova" title="Spawn a Supernova Gem on the board">+ Forge</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="glass-card">
+        <div class="card-header">
+          <span class="card-title">🃏 Mode Scoring &amp; Combos</span>
+          <span class="card-badge">REFERENCE</span>
+        </div>
+        <div class="mode-widget-box" id="rightReferenceBox">
+          <div class="stat-row"><span>🌈 + 🌈 Dual Hypercube</span><strong style="color:var(--gold)">BOARD WIPE!</strong></div>
+          <div class="stat-row"><span>🌈 + 🔥 Hyper-Flame</span><strong style="color:#f97316">ALL FLAMES!</strong></div>
+          <div class="stat-row"><span>🌈 + ⚡ Hyper-Star</span><strong style="color:#38bdf8">ALL STARS!</strong></div>
+          <div class="stat-row"><span>🔥 + ⚡ Flame-Star</span><strong style="color:#ec4899">3×3 CROSS!</strong></div>
+          <div class="stat-row"><span>🃏 Poker Flush (5 Same)</span><strong style="color:var(--gold)">+50,000 PTS</strong></div>
+          <div class="stat-row"><span>⛏️ Ancient Cyber-Relic</span><strong style="color:#00f5d4">+$15,000</strong></div>
+        </div>
+      </section>
+
+      <section class="glass-card">
+        <div class="card-header">
+          <span class="card-title">⌨️ Hotkeys &amp; Controls</span>
+          <span class="card-badge">ARCADE</span>
+        </div>
+        <div class="mode-widget-box">
+          <div class="stat-row"><span>Click / Drag Adjacent</span><strong>Swap Gems</strong></div>
+          <div class="stat-row"><span>Key [H]</span><strong>AI Best Move Hint</strong></div>
+          <div class="stat-row"><span>Key [R]</span><strong>Shuffle / Unstick</strong></div>
+          <div class="stat-row"><span>Key [1]–[9], [0], [-], [=]</span><strong>Switch 12 Modes</strong></div>
+          <div class="stat-row"><span>Key [B] / [M]</span><strong>Music / Mute SFX</strong></div>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <!-- Game Over / Mode Complete Modal -->
+  <div class="modal-backdrop" id="resultModal">
+    <div class="modal-panel">
+      <h2 id="modalTitle">SESSION COMPLETE</h2>
+      <p id="modalReason">No more valid moves remaining on the crystal matrix.</p>
+      <div class="modal-stats-grid">
+        <div class="modal-stat-item">
+          <span>Final Score</span>
+          <strong id="modalFinalScore" style="color:var(--gold)">0</strong>
+        </div>
+        <div class="modal-stat-item">
+          <span>Mode High Score</span>
+          <strong id="modalHighScore" style="color:#38bdf8">0</strong>
+        </div>
+        <div class="modal-stat-item">
+          <span>Max Cascade Combo</span>
+          <strong id="modalMaxCombo">1x</strong>
+        </div>
+        <div class="modal-stat-item">
+          <span id="modalExtraLabel">Level Reached</span>
+          <strong id="modalExtraVal">1</strong>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-hud accent-gold" id="btnModalPlayAgain">💎 PLAY AGAIN</button>
+        <button class="btn-hud" id="btnModalClose">🔍 INSPECT BOARD</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    // =========================================================================
+    // 1. JEWELAUDIO — HARMONIC WEB AUDIO SYNTHESIZER & AMBIENT LYDIAN PAD
+    // =========================================================================
+    class JewelAudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.sfxEnabled = true;
+        this.musicEnabled = false;
+        this.musicTimer = null;
+        this.musicStep = 0;
+        // C Lydian / Major 9th crystal frequencies
+        this.lydianScale = [
+          523.25, // C5
+          587.33, // D5
+          659.25, // E5
+          739.99, // F#5
+          783.99, // G5
+          880.00, // A5
+          987.77, // B5
+          1046.50,// C6
+          1174.66,// D6
+          1318.51,// E6
+          1479.98,// F#6
+          1567.98 // G6
+        ];
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) {
+            this.ctx = new AudioCtx();
+          }
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume().catch(() => {});
+        }
+      }
+
+      playTone(freq, type = "sine", duration = 0.22, gainVal = 0.14, delaySec = 0) {
+        if (!this.sfxEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        try {
+          const now = this.ctx.currentTime + delaySec;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, now);
+
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.linearRampToValueAtTime(gainVal, now + 0.012);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc.start(now);
+          osc.stop(now + duration + 0.02);
+        } catch (_) {}
+      }
+
+      playSwap() {
+        if (!this.sfxEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(290, now);
+          osc.frequency.exponentialRampToValueAtTime(540, now + 0.09);
+          gain.gain.setValueAtTime(0.09, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.11);
+        } catch (_) {}
+      }
+
+      playInvalidSwap() {
+        if (!this.sfxEnabled) return;
+        this.playTone(155, "sawtooth", 0.14, 0.09, 0);
+        this.playTone(130, "sawtooth", 0.18, 0.09, 0.08);
+      }
+
+      playMatchCascade(cascadeIndex = 1) {
+        if (!this.sfxEnabled) return;
+        const idx = Math.max(0, Math.min(this.lydianScale.length - 1, cascadeIndex - 1));
+        const baseFreq = this.lydianScale[idx];
+        // Crystal bell harmonic triad
+        this.playTone(baseFreq, "sine", 0.34, 0.15, 0);
+        this.playTone(baseFreq * 1.25, "triangle", 0.30, 0.09, 0.035);
+        this.playTone(baseFreq * 1.5, "sine", 0.38, 0.08, 0.07);
+        this.playTone(baseFreq * 2.0, "sine", 0.22, 0.04, 0.09);
+      }
+
+      playLandClink(stagger = 0) {
+        if (!this.sfxEnabled) return;
+        this.playTone(880 + (stagger % 4) * 90, "sine", 0.06, 0.035, stagger * 0.015);
+      }
+
+      playFlameExplosion() {
+        if (!this.sfxEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          // Sub bass punch
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(160, now);
+          osc.frequency.exponentialRampToValueAtTime(38, now + 0.36);
+          gain.gain.setValueAtTime(0.24, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.4);
+          // High ember shimmer
+          this.playTone(660, "triangle", 0.22, 0.1, 0.02);
+          this.playTone(990, "sine", 0.25, 0.08, 0.06);
+        } catch (_) {}
+      }
+
+      playStarLightning() {
+        if (!this.sfxEnabled) return;
+        this.init();
+        // Twin electro-beam sweep
+        const notes = [587.33, 880, 1174.66, 1760, 2349.32];
+        notes.forEach((f, i) => {
+          this.playTone(f, "sawtooth", 0.18, 0.08, i * 0.028);
+          this.playTone(f * 1.01, "triangle", 0.24, 0.07, i * 0.028);
+        });
+      }
+
+      playHypercubeZap() {
+        if (!this.sfxEnabled) return;
+        // Electric arc discharge arpeggio
+        const arc = [523.25, 659.25, 783.99, 1046.5, 1318.5, 1567.98, 2093.0];
+        arc.forEach((f, i) => {
+          this.playTone(f, "square", 0.16, 0.065, i * 0.032);
+        });
+      }
+
+      playSupernovaBlast() {
+        if (!this.sfxEnabled) return;
+        this.playFlameExplosion();
+        this.playStarLightning();
+        this.playHypercubeZap();
+      }
+
+      playPickaxeDig() {
+        if (!this.sfxEnabled) return;
+        // Metallic pickaxe clank
+        this.playTone(1240, "triangle", 0.09, 0.11, 0);
+        this.playTone(1860, "sine", 0.12, 0.08, 0.02);
+      }
+
+      playIceShatter() {
+        if (!this.sfxEnabled) return;
+        // High crystalline ice shards
+        [1480, 1975, 2489, 2960].forEach((f, i) => {
+          this.playTone(f, "sine", 0.14, 0.07, i * 0.022);
+        });
+      }
+
+      playButterflyRescue() {
+        if (!this.sfxEnabled) return;
+        // Ethereal harp glissando
+        [659.25, 783.99, 987.77, 1318.51, 1567.98].forEach((f, i) => {
+          this.playTone(f, "sine", 0.28, 0.09, i * 0.04);
+        });
+      }
+
+      playPokerFanfare() {
+        if (!this.sfxEnabled) return;
+        [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+          this.playTone(f, "triangle", 0.26, 0.11, i * 0.06);
+        });
+      }
+
+      playLevelUpWarp() {
+        if (!this.sfxEnabled) return;
+        const chord = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.5];
+        chord.forEach((f, i) => {
+          this.playTone(f, "sine", 0.48, 0.1, i * 0.045);
+        });
+      }
+
+      toggleMusic() {
+        this.musicEnabled = !this.musicEnabled;
+        if (this.musicEnabled) {
+          this.init();
+          this.startAmbientPad();
+        } else {
+          this.stopAmbientPad();
+        }
+        return this.musicEnabled;
+      }
+
+      startAmbientPad() {
+        this.stopAmbientPad();
+        const padChords = [
+          [261.63, 329.63, 392.00, 493.88], // Cmaj7
+          [293.66, 369.99, 440.00, 523.25], // D7sus
+          [220.00, 329.63, 392.00, 493.88], // Am9
+          [196.00, 293.66, 369.99, 440.00]  // Gmaj9
+        ];
+        const tickPad = () => {
+          if (!this.musicEnabled) return;
+          const chord = padChords[this.musicStep % padChords.length];
+          this.musicStep++;
+          chord.forEach((freq, idx) => {
+            this.playTone(freq, "sine", 2.2, 0.028, idx * 0.12);
+          });
+        };
+        tickPad();
+        this.musicTimer = setInterval(tickPad, 2400);
+      }
+
+      stopAmbientPad() {
+        if (this.musicTimer) {
+          clearInterval(this.musicTimer);
+          this.musicTimer = null;
+        }
+      }
+    }
+
+    const JewelAudio = new JewelAudioEngine();
+
+    // =========================================================================
+    // 2. 7 GEOMETRIC CUT GEM DEFINITIONS & 12 GAME MODE SPECIFICATIONS
+    // =========================================================================
+    const GEM_TYPES = [
+      {
+        id: 0,
+        name: "Ruby",
+        shape: "octagon",
+        baseColor: "#ef4444",
+        lightColor: "#fecaca",
+        darkColor: "#991b1b",
+        glowColor: "rgba(239, 68, 68, 0.75)",
+        cardSuit: "♥"
+      },
+      {
+        id: 1,
+        name: "Amber",
+        shape: "teardrop",
+        baseColor: "#f97316",
+        lightColor: "#fed7aa",
+        darkColor: "#9a3412",
+        glowColor: "rgba(249, 115, 22, 0.75)",
+        cardSuit: "♦"
+      },
+      {
+        id: 2,
+        name: "Topaz",
+        shape: "diamond",
+        baseColor: "#eab308",
+        lightColor: "#fef08a",
+        darkColor: "#854d0e",
+        glowColor: "rgba(250, 204, 21, 0.75)",
+        cardSuit: "☀"
+      },
+      {
+        id: 3,
+        name: "Emerald",
+        shape: "hexagon",
+        baseColor: "#22c55e",
+        lightColor: "#bbf7d0",
+        darkColor: "#166534",
+        glowColor: "rgba(34, 197, 94, 0.75)",
+        cardSuit: "♣"
+      },
+      {
+        id: 4,
+        name: "Sapphire",
+        shape: "square_cushion",
+        baseColor: "#38bdf8",
+        lightColor: "#bae6fd",
+        darkColor: "#075985",
+        glowColor: "rgba(56, 189, 248, 0.8)",
+        cardSuit: "♠"
+      },
+      {
+        id: 5,
+        name: "Amethyst",
+        shape: "triangle",
+        baseColor: "#a855f7",
+        lightColor: "#e9d5ff",
+        darkColor: "#581c87",
+        glowColor: "rgba(168, 85, 247, 0.75)",
+        cardSuit: "★"
+      },
+      {
+        id: 6,
+        name: "Pearl",
+        shape: "brilliant_circle",
+        baseColor: "#f1f5f9",
+        lightColor: "#ffffff",
+        darkColor: "#64748b",
+        glowColor: "rgba(248, 250, 252, 0.85)",
+        cardSuit: "◈"
+      }
+    ];
+
+    const MODES_CONFIG = {
+      classic: {
+        id: "classic",
+        title: "💎 Classic Mode",
+        badge: "WARP LEVELS",
+        desc: "Traditional Bejeweled cruise! Fill the Level Progress bar to warp to the next planetary crystal stage. Ends only when no valid moves remain.",
+        primaryMetricLabel: "Level",
+        secondaryMetricLabel: "Multiplier",
+        barLabel: "Level Progress",
+        stageIcon: "💎",
+        stageTitle: "CLASSIC CRYSTAL HARMONY",
+        stageSub: "Match 4 for Flame, L/T for Star, 5 for Hypercube!"
+      },
+      diamond_mine: {
+        id: "diamond_mine",
+        title: "⛏️ Diamond Mine",
+        badge: "EXCAVATION",
+        desc: "Match gems adjacent to Dirt & Stone or blast with Special Gems to excavate Gold Veins (+$2,500), Diamonds (+$5,000), and Relics (+$15,000)! Clear to the Dig Line for +30s!",
+        primaryMetricLabel: "Time Left",
+        secondaryMetricLabel: "Depth",
+        barLabel: "Depth Line Clear",
+        stageIcon: "⛏️",
+        stageTitle: "HYDRAULIC GEM EXCAVATOR",
+        stageSub: "Clear all dirt above the Golden Depth Line to scroll +20m deeper & gain +30s!"
+      },
+      lightning: {
+        id: "lightning",
+        title: "⚡ Lightning Blitz",
+        badge: "60S TIME TANK",
+        desc: "High-voltage 60-second sprint! Match +5s and +10s Time Gems to charge the Extension Tank. When the clock hits 0:00, your Tank refills the clock and boosts your Speed Multiplier!",
+        primaryMetricLabel: "Clock",
+        secondaryMetricLabel: "Speed Mult",
+        barLabel: "⚡ Time Extension Tank",
+        stageIcon: "⚡",
+        stageTitle: "HIGH-VOLTAGE TIME TANK",
+        stageSub: "Collect +5s / +10s Time Gems to extend the round and increase Multiplier!"
+      },
+      ice_storm: {
+        id: "ice_storm",
+        title: "❄️ Ice Storm",
+        badge: "GLACIER SURVIVAL",
+        desc: "Columns of Rising Blue Ice creep upward in real time! Match gems in an ice column to push it down—Vertical Matches shatter the column completely! Fill the Steam Boiler!",
+        primaryMetricLabel: "Boiler Mult",
+        secondaryMetricLabel: "Columns Safe",
+        barLabel: "🔥 Steam Boiler Pressure",
+        stageIcon: "❄️",
+        stageTitle: "CRYOGENIC CONTAINMENT",
+        stageSub: "Vertical matches shatter rising ice columns! Don't let Skull Columns freeze!"
+      },
+      butterflies: {
+        id: "butterflies",
+        title: "🦋 Butterflies",
+        badge: "MONARCH RESCUE",
+        desc: "Fluttering Monarch Butterfly Gems spawn at the bottom and climb 1 row every move toward the Cyber-Spider at the top! Match butterflies or blast them to rescue them!",
+        primaryMetricLabel: "Rescued",
+        secondaryMetricLabel: "Danger Row",
+        barLabel: "🦋 Sanctuary Progress",
+        stageIcon: "🦋",
+        stageTitle: "CYBER-SPIDER WEB ALERT (TOP ROW)",
+        stageSub: "Match Monarch Butterfly Gems before any butterfly flutters into Row 1!"
+      },
+      poker: {
+        id: "poker",
+        title: "🃏 Jewel Poker",
+        badge: "5-CARD HANDS",
+        desc: "Every match deals that gem's color onto your 5-Card Poker Rack! Complete 5 cards to score Hands: Flush (50K), 4-of-a-Kind (30K), Full House (15K), Spectrum (12K), 3-of-a-Kind (7.5K)!",
+        primaryMetricLabel: "Hands Dealt",
+        secondaryMetricLabel: "Last Hand",
+        barLabel: "🃏 Royal Vault Goal",
+        stageIcon: "🃏",
+        stageTitle: "5-CARD JEWEL POKER PARLOR",
+        stageSub: "Flame/Star Gems polish cards (+Bonus); Hypercubes deal Wild Jokers!"
+      },
+      zen: {
+        id: "zen",
+        title: "🧘 Zen Breath",
+        badge: "ENDLESS CALM",
+        desc: "Impossible-to-lose meditative gem symphony! Features a live 4-4-4 Guided Breathing Pacer, positive affirmations, and endless cascades.",
+        primaryMetricLabel: "Zen Level",
+        secondaryMetricLabel: "Breath Phase",
+        barLabel: "🧘 Mindfulness Flow",
+        stageIcon: "🧘",
+        stageTitle: "GUIDED BREATHING PACER: INHALE 4S • HOLD 4S • EXHALE 4S",
+        stageSub: "Relax your shoulders and follow the glowing cyan breathing ring."
+      },
+      alchemy: {
+        id: "alchemy",
+        title: "🧪 Alchemy Gold",
+        badge: "64 GOLD TILES",
+        desc: "Every grid cell where a match occurs transmutes from Dark Lead → Brushed Silver → 24K Solid Gold! Turn all 64 tiles into Solid Gold before the clock runs out!",
+        primaryMetricLabel: "Gold Tiles",
+        secondaryMetricLabel: "Time Left",
+        barLabel: "🧪 Philosopher's Gold (64)",
+        stageIcon: "🧪",
+        stageTitle: "ALCHEMICAL TRANSMUTATION MATRIX",
+        stageSub: "Match over Dark Lead & Silver cells to transmute all 64 cells to 24K Gold!"
+      },
+      time_bombs: {
+        id: "time_bombs",
+        title: "💣 Time Bombs",
+        badge: "CHRONO DEFUSAL",
+        desc: "Ticking Chrono-Bomb Gems spawn with a 12-move digital countdown! Every swap ticks all active bombs down by 1. Match or blast Chrono-Bombs before any reaches 0!",
+        primaryMetricLabel: "Bombs Defused",
+        secondaryMetricLabel: "Lowest Timer",
+        barLabel: "💣 Defusal Quota",
+        stageIcon: "💣",
+        stageTitle: "CHRONO-BOMB DEFUSAL SQUAD",
+        stageSub: "Prioritize ticking bomb gems! Flame & Star blasts defuse bombs instantly."
+      },
+      lava_escape: {
+        id: "lava_escape",
+        title: "🌋 Lava Escape",
+        badge: "MAGMA COOLING",
+        desc: "Molten Magma surges up from the bottom rows after every swap! Match gems over or adjacent to magma tiles to cool them back into solid crystal floor!",
+        primaryMetricLabel: "Magma Cooled",
+        secondaryMetricLabel: "Highest Lava",
+        barLabel: "🌋 Thermal Shield",
+        stageIcon: "🌋",
+        stageTitle: "VOLCANIC CALDERA CONTAINMENT",
+        stageSub: "Keep molten lava below the top row by matching adjacent gems!"
+      },
+      boss_raid: {
+        id: "boss_raid",
+        title: "👾 Boss Raid",
+        badge: "PRISM LEVIATHAN",
+        desc: "Battle the Dread Prism Leviathan! Every match fires homing plasma bolts into the Boss's HP bar. The Boss periodically locks tiles in Crystal Chains—match chained gems to shatter them!",
+        primaryMetricLabel: "Boss HP",
+        secondaryMetricLabel: "Stage Tier",
+        barLabel: "👾 Leviathan Hull Integrity",
+        stageIcon: "👾",
+        stageTitle: "DREAD PRISM LEVIATHAN — STAGE BOSS",
+        stageSub: "Special Gems deal 3x Critical Damage! Break Crystal Chains by matching them!"
+      },
+      stratamax: {
+        id: "stratamax",
+        title: "🧩 Stratamax 20",
+        badge: "20-MOVE PUZZLE",
+        desc: "Pure tactical gem optimization! No ticking clock—you have exactly 20 swaps to engineer the highest possible score using cascades and Special Gem combos.",
+        primaryMetricLabel: "Moves Left",
+        secondaryMetricLabel: "Pts / Move",
+        barLabel: "🧩 20-Move Tactical Budget",
+        stageIcon: "🧩",
+        stageTitle: "STRATAMAX 20 TACTICAL LAB",
+        stageSub: "Take your time—plan L/T Star Gems and 5-in-a-row Hypercubes!"
+      }
+    };
+
+    const ZEN_AFFIRMATIONS = [
+      "🧘 Breathe deeply: Every cascade restores clarity and calm.",
+      "✨ Your mind is clear, focused, and effortlessly creative.",
+      "🌊 Like crystal facets reflecting light, let tension dissolve away.",
+      "💎 There is no rush in Zen Mode—each move is harmonious.",
+      "🌌 Inhale peace for 4 seconds... Hold... Exhale slowly."
+    ];
+
+    // =========================================================================
+    // 3. PERSISTENT STORAGE & CAREER GEMOLOGY VAULT
+    // =========================================================================
+    const STORAGE_KEY = "codecaine_cyberjewel_vault_v1";
+
+    function loadVault() {
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return {
+            highScores: parsed.highScores || {},
+            totalGems: parsed.totalGems || 0,
+            maxDepth: parsed.maxDepth || 0,
+            butterfliesSaved: parsed.butterfliesSaved || 0,
+            bossesSlain: parsed.bossesSlain || 0
+          };
+        }
+      } catch (_) {}
+      return {
+        highScores: {},
+        totalGems: 0,
+        maxDepth: 0,
+        butterfliesSaved: 0,
+        bossesSlain: 0
+      };
+    }
+
+    function saveVault() {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(vault));
+      } catch (_) {}
+      updateCareerUI();
+    }
+
+    const vault = loadVault();
+
+    function getCareerRank(totalGems) {
+      if (totalGems >= 5000) return "PRISM GRANDMASTER";
+      if (totalGems >= 2000) return "DIAMOND ARCHON";
+      if (totalGems >= 800) return "MASTER LAPIDARY";
+      if (totalGems >= 250) return "CRYSTAL ARTISAN";
+      return "APPRENTICE";
+    }
+
+    function updateCareerUI() {
+      document.getElementById("careerGems").textContent = vault.totalGems.toLocaleString();
+      document.getElementById("careerDepth").textContent = `${vault.maxDepth}m`;
+      document.getElementById("careerButterflies").textContent = vault.butterfliesSaved.toLocaleString();
+      document.getElementById("careerBosses").textContent = vault.bossesSlain.toLocaleString();
+      document.getElementById("careerRankBadge").textContent = getCareerRank(vault.totalGems);
+    }
+
+    // =========================================================================
+    // 4. CORE GAME STATE & 12-MODE BOARD ARENA
+    // =========================================================================
+    const GRID_SIZE = 8;
+    const CELL_SIZE = 68;
+    const CANVAS_SIZE = GRID_SIZE * CELL_SIZE; // 544x544
+
+    const canvas = document.getElementById("jewelCanvas");
+    const ctx = canvas.getContext("2d");
+    const miniCanvas = document.getElementById("miniGameStageCanvas");
+    const miniCtx = miniCanvas ? miniCanvas.getContext("2d") : null;
+
+    const MODE_GADGET_TITLES = {
+      classic: "🌌 WARP STARBURST",
+      diamond_mine: "🧨 DETONATE DYNAMITE",
+      lightning: "⚡ TESLA OVERLOAD",
+      ice_storm: "🔥 STEAM VENT BLAST",
+      butterflies: "🕸️ WEB SHOCK",
+      poker: "🃏 DEAL ROYAL WILD",
+      zen: "🪷 HARMONIC RIPPLE",
+      alchemy: "⚗️ PHILOSOPHER ELIXIR",
+      time_bombs: "🛠️ DEFUSE DRONE",
+      lava_escape: "❄️ CRYO-WAVE",
+      boss_raid: "☄️ ORBITAL RAILGUN",
+      stratamax: "⏪ TACTICAL UNDO"
+    };
+
+    const state = {
+      mode: "classic",
+      score: 0,
+      level: 1,
+      levelProgress: 0,
+      levelTarget: 1500,
+      multiplier: 1,
+      maxCascade: 1,
+      specialDetonated: 0,
+      movesMade: 0,
+      movesRemaining: 20,
+      gameOver: false,
+
+      // Mode Tactical Gadget (Starts at 100% READY so player can test immediately!)
+      gadgetCharge: 100,
+      stratamaxHistory: [],
+      stratamaxUndosLeft: 3,
+      spmHistory: [0],
+      bossHitFlash: 0,
+
+      // Selection & Dragging
+      selected: null, // { r, c }
+      dragStart: null, // { r, c, px, py }
+      isAnimating: false,
+      hintPair: null, // [ {r,c}, {r,c} ]
+      hintTimer: 0,
+
+      // Blazing Speed System
+      blazingMeter: 0, // 0..100
+      blazingActive: false,
+      blazingComboCount: 0,
+      lastMatchTimestamp: 0,
+
+      // Mode 2: Diamond Mine
+      mineTimeLeft: 90,
+      mineDepth: 20, // meters
+      dirtGrid: [], // 8x8: 0 = clear, 1 = soft dirt, 2 = dense dirt, 3 = bedrock stone
+      treasureGrid: [], // 8x8: null | "gold" | "diamond" | "relic"
+      treasuresCollected: 0,
+
+      // Mode 3: Lightning
+      lightningTimeLeft: 60,
+      timeExtensionTank: 0, // seconds stored up to 60
+      lightningSpeedTier: 1,
+
+      // Mode 4: Ice Storm
+      iceColumns: [0, 0, 0, 0, 0, 0, 0, 0], // height 0..8 from bottom
+      iceSkullTimers: [0, 0, 0, 0, 0, 0, 0, 0], // seconds at top row before freeze game over
+      steamBoiler: 0, // 0..100
+      boilerTier: 1,
+
+      // Mode 5: Butterflies
+      butterfliesRescued: 0,
+      spiderAlertRow: 8,
+
+      // Mode 6: Jewel Poker
+      pokerHand: [], // array of { color, polish: null|'flame'|'star'|'wild' }
+      pokerHandsCompleted: 0,
+      lastPokerHandName: "None",
+
+      // Mode 7: Zen Breath
+      zenBreathTimer: 0, // 12s cycle: 0-4 Inhale, 4-8 Hold, 8-12 Exhale
+      zenAffirmationIdx: 0,
+
+      // Mode 8: Alchemy Gold
+      alchemyGrid: [], // 8x8: 0 = Lead, 1 = Silver, 2 = 24K Gold
+      alchemyTimeLeft: 120,
+      goldTilesCount: 0,
+
+      // Mode 9: Time Bombs
+      bombsDefused: 0,
+      lowestBombTimer: 12,
+
+      // Mode 10: Lava Escape
+      lavaGrid: [], // 8x8 boolean
+      magmaCooled: 0,
+
+      // Mode 11: Boss Raid
+      bossHp: 15000,
+      bossMaxHp: 15000,
+      bossStage: 1,
+      plasmaBolts: [], // { x, y, tx, ty, color, progress }
+
+      // Grid & VFX Arrays
+      grid: [], // 8x8 gem objects
+      particles: [],
+      shockwaves: [],
+      lightningBeams: [],
+      floatingTexts: [],
+      bannerCallout: null // { text, subtext, color, scale, alpha, timer }
+    };
+
+    function createGem(r, c, color = null, special = null) {
+      const gemColor = color !== null ? color : Math.floor(Math.random() * GEM_TYPES.length);
+      return {
+        r,
+        c,
+        color: gemColor,
+        special: special, // null | 'flame' | 'star' | 'hypercube' | 'supernova'
+        x: c * CELL_SIZE + CELL_SIZE / 2,
+        y: r * CELL_SIZE + CELL_SIZE / 2,
+        targetX: c * CELL_SIZE + CELL_SIZE / 2,
+        targetY: r * CELL_SIZE + CELL_SIZE / 2,
+        scale: 1,
+        alpha: 1,
+        timeBonus: 0, // +5 or +10 in Lightning mode
+        isButterfly: false, // Monarch butterfly overlay in Butterflies mode
+        bombTimer: 0, // >0 in Time Bombs mode
+        chained: false // Locked in crystal chains in Boss Raid mode
+      };
+    }
+
+    function initModeArrays() {
+      state.dirtGrid = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
+      state.treasureGrid = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null));
+      state.alchemyGrid = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
+      state.lavaGrid = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(false));
+      state.iceColumns = [0, 0, 0, 0, 0, 0, 0, 0];
+      state.iceSkullTimers = [0, 0, 0, 0, 0, 0, 0, 0];
+      state.pokerHand = [];
+      state.plasmaBolts = [];
+    }
+
+    function populateDiamondMineRows(depthMeters) {
+      // Bottom 4 rows (rows 4..7) get dirt, stone, and buried treasures
+      for (let r = 4; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          const depthFactor = r - 3; // 1..4
+          state.dirtGrid[r][c] = depthFactor >= 3 ? (Math.random() < 0.45 ? 3 : 2) : (Math.random() < 0.4 ? 2 : 1);
+          const roll = Math.random();
+          if (roll < 0.14) {
+            state.treasureGrid[r][c] = "relic";
+          } else if (roll < 0.34) {
+            state.treasureGrid[r][c] = "diamond";
+          } else if (roll < 0.62) {
+            state.treasureGrid[r][c] = "gold";
+          } else {
+            state.treasureGrid[r][c] = null;
+          }
+        }
+      }
+    }
+
+    function startNewGame(modeId = state.mode, animateDrop = true) {
+      state.mode = modeId;
+      state.score = 0;
+      state.level = 1;
+      state.levelProgress = 0;
+      state.levelTarget = 1500;
+      state.multiplier = 1;
+      state.maxCascade = 1;
+      state.specialDetonated = 0;
+      state.movesMade = 0;
+      state.movesRemaining = 20;
+      state.gameOver = false;
+      state.selected = null;
+      state.dragStart = null;
+      state.isAnimating = false;
+      state.hintPair = null;
+      state.blazingMeter = 0;
+      state.blazingActive = false;
+      state.blazingComboCount = 0;
+
+      // Mode-specific resets
+      initModeArrays();
+      state.gadgetCharge = 100;
+      state.stratamaxHistory = [];
+      state.stratamaxUndosLeft = 3;
+      state.spmHistory = [0];
+      state.bossHitFlash = 0;
+
+      state.mineTimeLeft = 90;
+      state.mineDepth = 20;
+      state.treasuresCollected = 0;
+
+      state.lightningTimeLeft = 60;
+      state.timeExtensionTank = 0;
+      state.lightningSpeedTier = 1;
+
+      state.steamBoiler = 0;
+      state.boilerTier = 1;
+
+      state.butterfliesRescued = 0;
+      state.spiderAlertRow = 8;
+
+      state.pokerHandsCompleted = 0;
+      state.lastPokerHandName = "Ready";
+
+      state.alchemyTimeLeft = 120;
+      state.goldTilesCount = 0;
+
+      state.bombsDefused = 0;
+      state.lowestBombTimer = 12;
+
+      state.magmaCooled = 0;
+
+      state.bossHp = 15000;
+      state.bossMaxHp = 15000;
+      state.bossStage = 1;
+
+      // Build clean 8x8 board with no initial 3-in-a-row matches
+      state.grid = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null));
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          let color;
+          do {
+            color = Math.floor(Math.random() * GEM_TYPES.length);
+          } while (
+            (c >= 2 && state.grid[r][c - 1].color === color && state.grid[r][c - 2].color === color) ||
+            (r >= 2 && state.grid[r - 1][c].color === color && state.grid[r - 2][c].color === color)
+          );
+          const gem = createGem(r, c, color, null);
+          gem.y = animateDrop ? (r - 8) * CELL_SIZE + CELL_SIZE / 2 : gem.targetY;
+          state.grid[r][c] = gem;
+        }
+      }
+
+      if (!animateDrop && modeId === "classic") {
+        state.grid[2][2].special = "flame";
+        state.grid[4][5].special = "star";
+        state.grid[1][6].special = "hypercube";
+      }
+
+      // Mode-specific board seeding
+      if (modeId === "diamond_mine") {
+        populateDiamondMineRows(state.mineDepth);
+      } else if (modeId === "lightning") {
+        // Seed two initial +5s Time Gems
+        state.grid[2][3].timeBonus = 5;
+        state.grid[5][4].timeBonus = 5;
+      } else if (modeId === "ice_storm") {
+        state.iceColumns = [2, 1, 3, 2, 1, 2, 3, 1];
+      } else if (modeId === "butterflies") {
+        state.grid[6][2].isButterfly = true;
+        state.grid[7][5].isButterfly = true;
+      } else if (modeId === "time_bombs") {
+        state.grid[3][2].bombTimer = 12;
+        state.grid[5][5].bombTimer = 14;
+      } else if (modeId === "lava_escape") {
+        for (let r = 6; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            state.lavaGrid[r][c] = true;
+          }
+        }
+      } else if (modeId === "boss_raid") {
+        state.grid[3][3].chained = true;
+        state.grid[3][4].chained = true;
+        state.grid[4][2].chained = true;
+        state.grid[4][5].chained = true;
+      }
+
+      // Ensure at least one valid move exists
+      ensurePlayableBoard();
+
+      // Update Mode Dock active button
+      document.querySelectorAll(".mode-tab").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.mode === modeId);
+      });
+
+      document.getElementById("resultModal").classList.remove("open");
+      if (animateDrop) {
+        showBannerCallout(MODES_CONFIG[modeId].title, "SYSTEM ARMED • GOOD LUCK!", "#38bdf8");
+      } else {
+        state.bannerCallout = null;
+      }
+      updateAllHUD();
+    }
+
+    // =========================================================================
+    // 5. MATCH-3 DETECTION, AI HINT FINDER & SPECIAL POWER GEM ENGINE
+    // =========================================================================
+    function isCellPlayable(r, c) {
+      if (r < 0 || r >= GRID_SIZE || c < 0 || c >= GRID_SIZE) return false;
+      if (state.mode === "diamond_mine" && state.dirtGrid[r][c] > 0) return false;
+      return state.grid[r][c] !== null;
+    }
+
+    function canSwapCells(r1, c1, r2, c2) {
+      if (!isCellPlayable(r1, c1) || !isCellPlayable(r2, c2)) return false;
+      const g1 = state.grid[r1][c1];
+      const g2 = state.grid[r2][c2];
+      if (!g1 || !g2) return false;
+      // Chained gems in Boss Raid cannot be directly dragged until matched or blasted
+      if (g1.chained || g2.chained) return false;
+      return Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1;
+    }
+
+    function findMatchGroups() {
+      const horizRuns = [];
+      const vertRuns = [];
+
+      // Horizontal scan
+      for (let r = 0; r < GRID_SIZE; r++) {
+        let c = 0;
+        while (c < GRID_SIZE) {
+          if (!isCellPlayable(r, c) || state.grid[r][c].special === "hypercube") {
+            c++;
+            continue;
+          }
+          const color = state.grid[r][c].color;
+          let endC = c + 1;
+          while (
+            endC < GRID_SIZE &&
+            isCellPlayable(r, endC) &&
+            state.grid[r][endC].special !== "hypercube" &&
+            state.grid[r][endC].color === color
+          ) {
+            endC++;
+          }
+          const len = endC - c;
+          if (len >= 3) {
+            const cells = [];
+            for (let k = c; k < endC; k++) cells.push({ r, c: k });
+            horizRuns.push({ color, len, dir: "h", cells });
+          }
+          c = endC;
+        }
+      }
+
+      // Vertical scan
+      for (let c = 0; c < GRID_SIZE; c++) {
+        let r = 0;
+        while (r < GRID_SIZE) {
+          if (!isCellPlayable(r, c) || state.grid[r][c].special === "hypercube") {
+            r++;
+            continue;
+          }
+          const color = state.grid[r][c].color;
+          let endR = r + 1;
+          while (
+            endR < GRID_SIZE &&
+            isCellPlayable(endR, c) &&
+            state.grid[endR][c].special !== "hypercube" &&
+            state.grid[endR][c].color === color
+          ) {
+            endR++;
+          }
+          const len = endR - r;
+          if (len >= 3) {
+            const cells = [];
+            for (let k = r; k < endR; k++) cells.push({ r: k, c });
+            vertRuns.push({ color, len, dir: "v", cells });
+          }
+          r = endR;
+        }
+      }
+
+      return { horizRuns, vertRuns };
+    }
+
+    function findAllValidSwaps() {
+      const validSwaps = [];
+      const dirs = [
+        [0, 1],
+        [1, 0]
+      ];
+
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          for (const [dr, dc] of dirs) {
+            const r2 = r + dr;
+            const c2 = c + dc;
+            if (!canSwapCells(r, c, r2, c2)) continue;
+
+            const g1 = state.grid[r][c];
+            const g2 = state.grid[r2][c2];
+
+            // Hypercube can always swap with any neighbor!
+            if (g1.special === "hypercube" || g2.special === "hypercube") {
+              validSwaps.push({
+                r1: r,
+                c1: c,
+                r2,
+                c2,
+                priority: 120
+              });
+              continue;
+            }
+
+            // Temporarily swap
+            state.grid[r][c] = g2;
+            state.grid[r2][c2] = g1;
+
+            const { horizRuns, vertRuns } = findMatchGroups();
+            const totalRuns = horizRuns.length + vertRuns.length;
+
+            // Restore
+            state.grid[r][c] = g1;
+            state.grid[r2][c2] = g2;
+
+            if (totalRuns > 0) {
+              let priority = 10;
+              for (const run of [...horizRuns, ...vertRuns]) {
+                if (run.len >= 5) priority += 60;
+                else if (run.len === 4) priority += 30;
+                else priority += 12;
+                for (const cell of run.cells) {
+                  const gem = state.grid[cell.r][cell.c];
+                  if (gem) {
+                    if (gem.isButterfly) priority += 45;
+                    if (gem.bombTimer > 0) priority += 50;
+                    if (gem.timeBonus > 0) priority += 25;
+                    if (gem.special) priority += 35;
+                  }
+                  if (state.mode === "ice_storm" && state.iceColumns[cell.c] > 0) {
+                    priority += run.dir === "v" ? 40 : 20;
+                  }
+                  if (state.mode === "alchemy" && state.alchemyGrid[cell.r][cell.c] < 2) {
+                    priority += 18;
+                  }
+                }
+              }
+              if (horizRuns.length > 0 && vertRuns.length > 0) priority += 45; // Star Gem L/T
+              validSwaps.push({ r1: r, c1: c, r2, c2, priority });
+            }
+          }
+        }
+      }
+
+      validSwaps.sort((a, b) => b.priority - a.priority);
+      return validSwaps;
+    }
+
+    function ensurePlayableBoard() {
+      let swaps = findAllValidSwaps();
+      if (swaps.length > 0) return swaps;
+
+      // In Zen Mode or when shuffling, gently adjust two adjacent playable gems to guarantee a match
+      for (let attempt = 0; attempt < 25; attempt++) {
+        for (let r = 0; r < 4; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            if (isCellPlayable(r, c) && !state.grid[r][c].isButterfly && state.grid[r][c].bombTimer === 0) {
+              state.grid[r][c].color = Math.floor(Math.random() * GEM_TYPES.length);
+            }
+          }
+        }
+        // Clear any accidental static 3-in-a-row
+        const { horizRuns, vertRuns } = findMatchGroups();
+        if (horizRuns.length === 0 && vertRuns.length === 0) {
+          swaps = findAllValidSwaps();
+          if (swaps.length > 0) return swaps;
+        }
+      }
+
+      // Guaranteed fallback: craft a match-3 opportunity on row 1
+      if (isCellPlayable(1, 1) && isCellPlayable(1, 2) && isCellPlayable(0, 3) && isCellPlayable(1, 3)) {
+        const targetColor = state.grid[1][1].color;
+        state.grid[1][2].color = targetColor;
+        state.grid[0][3].color = targetColor;
+        state.grid[1][3].color = (targetColor + 1) % GEM_TYPES.length;
+      }
+      return findAllValidSwaps();
+    }
+
+    // =========================================================================
+    // 6. VFX HELPERS: SHARDS, SHOCKWAVES, LIGHTNING ARCS, FLOATING TEXTS
+    // =========================================================================
+    function spawnGemShards(r, c, colorHex, count = 12) {
+      const cx = c * CELL_SIZE + CELL_SIZE / 2;
+      const cy = r * CELL_SIZE + CELL_SIZE / 2;
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
+        const speed = 1.8 + Math.random() * 4.5;
+        state.particles.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1.4,
+          size: 3.5 + Math.random() * 4.5,
+          color: colorHex,
+          alpha: 1,
+          rot: Math.random() * Math.PI * 2,
+          vrot: (Math.random() - 0.5) * 0.25
+        });
+      }
+    }
+
+    function spawnShockwave(r, c, color = "#f97316", maxRadius = 120) {
+      state.shockwaves.push({
+        x: c * CELL_SIZE + CELL_SIZE / 2,
+        y: r * CELL_SIZE + CELL_SIZE / 2,
+        radius: 8,
+        maxRadius,
+        color,
+        alpha: 1
+      });
+    }
+
+    function spawnLightningBeam(x1, y1, x2, y2, color = "#38bdf8", width = 4) {
+      state.lightningBeams.push({
+        x1,
+        y1,
+        x2,
+        y2,
+        color,
+        width,
+        alpha: 1
+      });
+    }
+
+    function spawnFloatingText(r, c, text, color = "#facc15", size = 16) {
+      state.floatingTexts.push({
+        x: c * CELL_SIZE + CELL_SIZE / 2,
+        y: r * CELL_SIZE + CELL_SIZE / 2,
+        text,
+        color,
+        size,
+        alpha: 1,
+        vy: -1.4
+      });
+    }
+
+    function showBannerCallout(text, subtext = "", color = "#facc15") {
+      state.bannerCallout = {
+        text,
+        subtext,
+        color,
+        scale: 0.4,
+        alpha: 1,
+        timer: 75
+      };
+      const bottomCallout = document.getElementById("bottomComboCallout");
+      if (bottomCallout) {
+        bottomCallout.textContent = text;
+        bottomCallout.style.color = color;
+      }
+    }
+
+    // =========================================================================
+    // 7. MODE-SPECIFIC MECHANICS: EXCAVATION, POKER HANDS, BOSS RAID, BUTTERFLIES
+    // =========================================================================
+    function damageDirtAt(r, c, power = 1) {
+      if (state.mode !== "diamond_mine") return;
+      if (r < 0 || r >= GRID_SIZE || c < 0 || c >= GRID_SIZE) return;
+      if (state.dirtGrid[r][c] <= 0) return;
+
+      state.dirtGrid[r][c] = Math.max(0, state.dirtGrid[r][c] - power);
+      JewelAudio.playPickaxeDig();
+      spawnGemShards(r, c, "#d97706", 8);
+
+      if (state.dirtGrid[r][c] === 0) {
+        // Check buried treasure
+        const treasure = state.treasureGrid[r][c];
+        if (treasure) {
+          state.treasureGrid[r][c] = null;
+          state.treasuresCollected++;
+          if (treasure === "gold") {
+            const pts = 2500 * state.multiplier;
+            state.score += pts;
+            spawnFloatingText(r, c, `+$${pts.toLocaleString()} GOLD!`, "#facc15", 16);
+          } else if (treasure === "diamond") {
+            const pts = 5000 * state.multiplier;
+            state.score += pts;
+            spawnFloatingText(r, c, `+$${pts.toLocaleString()} DIAMOND!`, "#38bdf8", 17);
+          } else if (treasure === "relic") {
+            const pts = 15000 * state.multiplier;
+            state.score += pts;
+            spawnFloatingText(r, c, `+$${pts.toLocaleString()} RELIC!`, "#00f5d4", 19);
+            showBannerCallout("ANCIENT RELIC UNEARTHED!", `+$${pts.toLocaleString()} BONUS`, "#00f5d4");
+          }
+        }
+        // Spawn a fresh playable gem in the newly excavated cell
+        state.grid[r][c] = createGem(r, c);
+      }
+    }
+
+    function checkDiamondMineScroll() {
+      if (state.mode !== "diamond_mine") return;
+      // Check if rows 4 and 5 are completely cleared of dirt (Excavation Line reached!)
+      let upperDirtRemaining = 0;
+      for (let r = 4; r <= 5; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          if (state.dirtGrid[r][c] > 0) upperDirtRemaining++;
+        }
+      }
+      if (upperDirtRemaining === 0) {
+        state.mineDepth += 20;
+        state.mineTimeLeft = Math.min(120, state.mineTimeLeft + 30);
+        state.multiplier++;
+        if (state.mineDepth > vault.maxDepth) {
+          vault.maxDepth = state.mineDepth;
+          saveVault();
+        }
+        populateDiamondMineRows(state.mineDepth);
+        JewelAudio.playLevelUpWarp();
+        showBannerCallout(`DEPTH ${state.mineDepth}m REACHED!`, "+30s TIME BONUS & RICHER VEINS!", "#facc15");
+      }
+    }
+
+    function dealPokerCard(colorId, polish = null) {
+      if (state.mode !== "poker") return;
+      state.pokerHand.push({ color: colorId, polish });
+      updatePokerRackUI();
+
+      if (state.pokerHand.length >= 5) {
+        evaluatePokerHand();
+      }
+    }
+
+    function evaluatePokerHand() {
+      const hand = state.pokerHand.slice(0, 5);
+      let wilds = 0;
+      let flamePolish = 0;
+      let starPolish = 0;
+      const counts = {};
+
+      for (const card of hand) {
+        if (card.polish === "wild") {
+          wilds++;
+        } else {
+          counts[card.color] = (counts[card.color] || 0) + 1;
+        }
+        if (card.polish === "flame") flamePolish++;
+        if (card.polish === "star") starPolish++;
+      }
+
+      const freq = Object.values(counts).sort((a, b) => b - a);
+      const maxCount = (freq[0] || 0) + wilds;
+      const secondCount = freq[1] || 0;
+      const distinctColors = Object.keys(counts).length + wilds;
+
+      let handName = "ONE PAIR";
+      let basePts = 2500;
+
+      if (maxCount >= 5) {
+        handName = "💎 ROYAL GEM FLUSH!";
+        basePts = 50000;
+      } else if (maxCount === 4) {
+        handName = "🔥 FOUR OF A KIND!";
+        basePts = 30000;
+      } else if (maxCount === 3 && secondCount >= 2) {
+        handName = "👑 FULL HOUSE!";
+        basePts = 15000;
+      } else if (distinctColors >= 5) {
+        handName = "🌈 PRISM SPECTRUM!";
+        basePts = 12000;
+      } else if (maxCount === 3) {
+        handName = "⚡ THREE OF A KIND";
+        basePts = 7500;
+      } else if (maxCount === 2 && secondCount >= 2) {
+        handName = "🃏 TWO PAIR";
+        basePts = 5000;
+      }
+
+      const polishBonus = flamePolish * 3000 + starPolish * 5000;
+      const totalPts = (basePts + polishBonus) * state.multiplier;
+      state.score += totalPts;
+      state.levelProgress += totalPts;
+      state.pokerHandsCompleted++;
+      state.lastPokerHandName = handName;
+
+      JewelAudio.playPokerFanfare();
+      showBannerCallout(handName, `+${totalPts.toLocaleString()} PTS (POLISH +${polishBonus.toLocaleString()})`, "#facc15");
+
+      setTimeout(() => {
+        state.pokerHand = [];
+        updatePokerRackUI();
+      }, 650);
+    }
+
+    function updatePokerRackUI() {
+      const rack = document.getElementById("pokerRackContainer");
+      if (!rack) return;
+      for (let i = 0; i < 5; i++) {
+        const slot = document.getElementById(`pokerSlot${i}`);
+        if (!slot) continue;
+        const card = state.pokerHand[i];
+        if (!card) {
+          slot.className = "poker-card-slot";
+          slot.style.color = "#64748b";
+          slot.innerHTML = "-";
+        } else {
+          slot.className = "poker-card-slot filled";
+          if (card.polish === "wild") {
+            slot.style.color = "#00f5d4";
+            slot.innerHTML = `🌈<span class="polish-tag">★</span>`;
+          } else {
+            const gType = GEM_TYPES[card.color] || GEM_TYPES[0];
+            slot.style.color = gType.baseColor;
+            const badge = card.polish === "flame" ? "🔥" : card.polish === "star" ? "⚡" : "";
+            slot.innerHTML = `${gType.cardSuit}${badge ? `<span class="polish-tag">${badge}</span>` : ""}`;
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // 8. SWAP EXECUTION, SPECIAL COMBOS & CASCADE RESOLUTION ENGINE
+    // =========================================================================
+    const CASCADE_CALLOUTS = [
+      "",
+      "",
+      "GOOD!",
+      "EXCELLENT!",
+      "AWESOME!",
+      "SPECTACULAR!",
+      "EXTRAORDINARY!",
+      "UNBELIEVABLE!",
+      "COSMIC SYMPHONY!"
+    ];
+
+    async function sleepMs(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    async function attemptSwap(r1, c1, r2, c2) {
+      if (state.isAnimating || state.gameOver) return;
+      if (!canSwapCells(r1, c1, r2, c2)) {
+        JewelAudio.playInvalidSwap();
+        return;
+      }
+
+      state.isAnimating = true;
+      state.selected = null;
+      state.hintPair = null;
+
+      const g1 = state.grid[r1][c1];
+      const g2 = state.grid[r2][c2];
+
+      // Save Stratamax Undo snapshot before executing swap
+      const preSwapSnapshot = state.mode === "stratamax" ? {
+        score: state.score,
+        movesMade: state.movesMade,
+        movesRemaining: state.movesRemaining,
+        grid: state.grid.map(row => row.map(g => g ? { ...g } : null))
+      } : null;
+
+      // Animate swap coordinates
+      JewelAudio.playSwap();
+      swapGridCells(r1, c1, r2, c2);
+      await sleepMs(160);
+
+      // Check Special Hypercube / Dual-Special Combinations first!
+      const isG1Hyper = g1.special === "hypercube";
+      const isG2Hyper = g2.special === "hypercube";
+
+      if (isG1Hyper && isG2Hyper) {
+        // 🌈 + 🌈 DUAL HYPERCUBE: TOTAL BOARD ANNIHILATION!
+        await executeTotalBoardAnnihilation(r1, c1, r2, c2);
+        await postPlayerTurnCompleted();
+        state.isAnimating = false;
+        updateAllHUD();
+        return;
+      }
+
+      if (isG1Hyper || isG2Hyper) {
+        const hyperCell = isG1Hyper ? { r: r2, c: c2, gem: g1 } : { r: r1, c: c1, gem: g2 };
+        const otherCell = isG1Hyper ? { r: r1, c: c1, gem: g2 } : { r: r2, c: c2, gem: g1 };
+        await executeHypercubeZap(hyperCell, otherCell);
+        await postPlayerTurnCompleted();
+        state.isAnimating = false;
+        updateAllHUD();
+        return;
+      }
+
+      // Check 🔥 Flame + ⚡ Star Combo!
+      if (
+        (g1.special === "flame" && g2.special === "star") ||
+        (g1.special === "star" && g2.special === "flame")
+      ) {
+        await executeFlameStarMegaCross(r2, c2);
+        await postPlayerTurnCompleted();
+        state.isAnimating = false;
+        updateAllHUD();
+        return;
+      }
+
+      // Standard Match Check
+      const { horizRuns, vertRuns } = findMatchGroups();
+      if (horizRuns.length === 0 && vertRuns.length === 0) {
+        // Invalid swap — bounce back!
+        JewelAudio.playInvalidSwap();
+        swapGridCells(r1, c1, r2, c2);
+        await sleepMs(150);
+        state.isAnimating = false;
+        return;
+      }
+
+      // Valid move! Resolve cascades
+      if (preSwapSnapshot) {
+        state.stratamaxHistory.push(preSwapSnapshot);
+      }
+      await resolveBoardCascades({ r1, c1, r2, c2 });
+      if (state.mode === "stratamax") {
+        const ppm = Math.round(state.score / Math.max(1, state.movesMade + 1));
+        state.spmHistory.push(ppm);
+      }
+      await postPlayerTurnCompleted();
+      state.isAnimating = false;
+      updateAllHUD();
+    }
+
+    function swapGridCells(r1, c1, r2, c2) {
+      const temp = state.grid[r1][c1];
+      state.grid[r1][c1] = state.grid[r2][c2];
+      state.grid[r2][c2] = temp;
+
+      if (state.grid[r1][c1]) {
+        state.grid[r1][c1].r = r1;
+        state.grid[r1][c1].c = c1;
+        state.grid[r1][c1].targetX = c1 * CELL_SIZE + CELL_SIZE / 2;
+        state.grid[r1][c1].targetY = r1 * CELL_SIZE + CELL_SIZE / 2;
+      }
+      if (state.grid[r2][c2]) {
+        state.grid[r2][c2].r = r2;
+        state.grid[r2][c2].c = c2;
+        state.grid[r2][c2].targetX = c2 * CELL_SIZE + CELL_SIZE / 2;
+        state.grid[r2][c2].targetY = r2 * CELL_SIZE + CELL_SIZE / 2;
+      }
+    }
+
+    async function executeTotalBoardAnnihilation(r1, c1, r2, c2) {
+      JewelAudio.playSupernovaBlast();
+      showBannerCallout("🌈 TOTAL BOARD ANNIHILATION! 🌈", "+50,000 HYPER-SINGULARITY!", "#00f5d4");
+      spawnShockwave(3, 3, "#00f5d4", 360);
+      spawnShockwave(4, 4, "#facc15", 360);
+
+      const allCoords = [];
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          if (state.mode === "diamond_mine" && state.dirtGrid[r][c] > 0) {
+            damageDirtAt(r, c, 3);
+          } else if (state.grid[r][c]) {
+            allCoords.push({ r, c });
+          }
+        }
+      }
+
+      state.score += 50000 * state.multiplier;
+      state.levelProgress += 50000;
+      state.specialDetonated += 2;
+      if (state.mode === "poker") dealPokerCard(0, "wild");
+
+      await clearCellsAndRefill(allCoords, null, 3);
+      await resolveBoardCascades(null, 2);
+    }
+
+    async function executeHypercubeZap(hyperCell, otherCell) {
+      JewelAudio.playHypercubeZap();
+      const targetColor = otherCell.gem.color;
+      const promoteSpecial = otherCell.gem.special; // if swapped with Flame or Star!
+      const hx = hyperCell.c * CELL_SIZE + CELL_SIZE / 2;
+      const hy = hyperCell.r * CELL_SIZE + CELL_SIZE / 2;
+
+      const toClear = [{ r: hyperCell.r, c: hyperCell.c }, { r: otherCell.r, c: otherCell.c }];
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          if (isCellPlayable(r, c) && state.grid[r][c].color === targetColor) {
+            const tx = c * CELL_SIZE + CELL_SIZE / 2;
+            const ty = r * CELL_SIZE + CELL_SIZE / 2;
+            spawnLightningBeam(hx, hy, tx, ty, "#00f5d4", 4);
+            if (promoteSpecial === "flame" || promoteSpecial === "star") {
+              state.grid[r][c].special = promoteSpecial;
+            }
+            toClear.push({ r, c });
+          }
+        }
+      }
+
+      state.specialDetonated++;
+      if (state.mode === "poker") dealPokerCard(targetColor, "wild");
+
+      const bannerTitle = promoteSpecial
+        ? `🌈 HYPER-${promoteSpecial.toUpperCase()} STORM!`
+        : `🌈 HYPERCUBE ${GEM_TYPES[targetColor].name.toUpperCase()} PURGE!`;
+      showBannerCallout(bannerTitle, `${toClear.length} GEMS VAPORIZED!`, "#00f5d4");
+
+      await sleepMs(220);
+      await clearCellsAndRefill(toClear, null, 2);
+      await resolveBoardCascades(null, 2);
+    }
+
+    async function executeFlameStarMegaCross(centerR, centerC) {
+      JewelAudio.playSupernovaBlast();
+      showBannerCallout("🔥⚡ FLAME-STAR MEGA CROSS! ⚡🔥", "3-ROW × 3-COLUMN PLASMA SWEEP!", "#f97316");
+
+      const toClear = [];
+      for (let dr = -1; dr <= 1; dr++) {
+        const rr = centerR + dr;
+        if (rr >= 0 && rr < GRID_SIZE) {
+          spawnLightningBeam(0, rr * CELL_SIZE + 34, CANVAS_SIZE, rr * CELL_SIZE + 34, "#f97316", 8);
+          for (let c = 0; c < GRID_SIZE; c++) {
+            if (state.mode === "diamond_mine" && state.dirtGrid[rr][c] > 0) {
+              damageDirtAt(rr, c, 2);
+            } else {
+              toClear.push({ r: rr, c });
+            }
+          }
+        }
+      }
+      for (let dc = -1; dc <= 1; dc++) {
+        const cc = centerC + dc;
+        if (cc >= 0 && cc < GRID_SIZE) {
+          spawnLightningBeam(cc * CELL_SIZE + 34, 0, cc * CELL_SIZE + 34, CANVAS_SIZE, "#38bdf8", 8);
+          for (let r = 0; r < GRID_SIZE; r++) {
+            if (state.mode === "diamond_mine" && state.dirtGrid[r][cc] > 0) {
+              damageDirtAt(r, cc, 2);
+            } else {
+              toClear.push({ r, c: cc });
+            }
+          }
+        }
+      }
+
+      state.specialDetonated += 2;
+      await sleepMs(220);
+      await clearCellsAndRefill(toClear, null, 2);
+      await resolveBoardCascades(null, 2);
+    }
+
+    async function resolveBoardCascades(swapCoords = null, startCascade = 1) {
+      let cascade = startCascade;
+
+      while (true) {
+        const { horizRuns, vertRuns } = findMatchGroups();
+        if (horizRuns.length === 0 && vertRuns.length === 0) break;
+
+        if (cascade > state.maxCascade) state.maxCascade = cascade;
+        JewelAudio.playMatchCascade(cascade);
+
+        // Update Blazing Speed Meter
+        const now = performance.now();
+        if (now - state.lastMatchTimestamp < 2600) {
+          state.blazingMeter = Math.min(100, state.blazingMeter + 18);
+        } else {
+          state.blazingMeter = Math.min(100, state.blazingMeter + 10);
+        }
+        state.lastMatchTimestamp = now;
+
+        if (state.blazingMeter >= 100 && !state.blazingActive) {
+          state.blazingActive = true;
+          document.getElementById("boardFrame").classList.add("blazing-active");
+          showBannerCallout("🔥 BLAZING SPEED IGNITED! 🔥", "ALL MATCHES EXPLODE WITH BONUS SHOCKWAVES!", "#f97316");
+        }
+
+        // Determine Special Gem Spawns from 4-in-a-row, L/T intersections, 5-in-a-row, or 6+
+        const specialSpawns = []; // { r, c, color, special }
+        const usedRunsH = new Set();
+        const usedRunsV = new Set();
+
+        // Check L / T / + intersections first
+        for (let hi = 0; hi < horizRuns.length; hi++) {
+          for (let vi = 0; vi < vertRuns.length; vi++) {
+            const hRun = horizRuns[hi];
+            const vRun = vertRuns[vi];
+            if (hRun.color !== vRun.color) continue;
+            const intersect = hRun.cells.find((hc) => vRun.cells.some((vc) => vc.r === hc.r && vc.c === hc.c));
+            if (intersect) {
+              usedRunsH.add(hi);
+              usedRunsV.add(vi);
+              const totalLen = hRun.len + vRun.len - 1;
+              specialSpawns.push({
+                r: intersect.r,
+                c: intersect.c,
+                color: hRun.color,
+                special: totalLen >= 6 ? "supernova" : "star"
+              });
+            }
+          }
+        }
+
+        // Check remaining straight horizontal runs
+        horizRuns.forEach((run, idx) => {
+          if (usedRunsH.has(idx)) return;
+          if (run.len >= 4) {
+            let spawnCell = run.cells[Math.floor(run.cells.length / 2)];
+            if (swapCoords) {
+              const hit = run.cells.find(
+                (c) =>
+                  (c.r === swapCoords.r1 && c.c === swapCoords.c1) ||
+                  (c.r === swapCoords.r2 && c.c === swapCoords.c2)
+              );
+              if (hit) spawnCell = hit;
+            }
+            const specType = run.len >= 6 ? "supernova" : run.len === 5 ? "hypercube" : "flame";
+            specialSpawns.push({ r: spawnCell.r, c: spawnCell.c, color: run.color, special: specType });
+          }
+        });
+
+        // Check remaining straight vertical runs
+        vertRuns.forEach((run, idx) => {
+          if (usedRunsV.has(idx)) return;
+          if (run.len >= 4) {
+            let spawnCell = run.cells[Math.floor(run.cells.length / 2)];
+            if (swapCoords) {
+              const hit = run.cells.find(
+                (c) =>
+                  (c.r === swapCoords.r1 && c.c === swapCoords.c1) ||
+                  (c.r === swapCoords.r2 && c.c === swapCoords.c2)
+              );
+              if (hit) spawnCell = hit;
+            }
+            const specType = run.len >= 6 ? "supernova" : run.len === 5 ? "hypercube" : "flame";
+            specialSpawns.push({ r: spawnCell.r, c: spawnCell.c, color: run.color, special: specType });
+          }
+        });
+
+        // Mode 4: Ice Storm — check vertical runs to shatter ice columns!
+        if (state.mode === "ice_storm") {
+          for (const vRun of vertRuns) {
+            const col = vRun.cells[0].c;
+            if (state.iceColumns[col] > 0) {
+              state.iceColumns[col] = 0;
+              state.iceSkullTimers[col] = 0;
+              state.steamBoiler = Math.min(100, state.steamBoiler + 22);
+              JewelAudio.playIceShatter();
+              spawnFloatingText(vRun.cells[0].r, col, "❄️ COLUMN SHATTERED!", "#38bdf8", 15);
+            }
+          }
+          for (const hRun of horizRuns) {
+            for (const cell of hRun.cells) {
+              if (state.iceColumns[cell.c] > 0) {
+                state.iceColumns[cell.c] = Math.max(0, state.iceColumns[cell.c] - 1);
+                state.iceSkullTimers[cell.c] = 0;
+                state.steamBoiler = Math.min(100, state.steamBoiler + 8);
+              }
+            }
+          }
+          if (state.steamBoiler >= 100) {
+            state.steamBoiler = 0;
+            state.boilerTier++;
+            state.multiplier = state.boilerTier;
+            JewelAudio.playLevelUpWarp();
+            showBannerCallout(`🔥 BOILER OVERDRIVE x${state.boilerTier}!`, "ALL ICE COLUMNS PUSHED DOWN!", "#38bdf8");
+            for (let c = 0; c < GRID_SIZE; c++) {
+              state.iceColumns[c] = Math.max(0, state.iceColumns[c] - 2);
+              state.iceSkullTimers[c] = 0;
+            }
+          }
+        }
+
+        // Mode 6: Jewel Poker — deal card for primary matched run
+        if (state.mode === "poker") {
+          const primaryRun = horizRuns[0] || vertRuns[0];
+          if (primaryRun) {
+            let polish = null;
+            for (const c of primaryRun.cells) {
+              const g = state.grid[c.r][c.c];
+              if (g && (g.special === "flame" || g.special === "star")) {
+                polish = g.special;
+              }
+            }
+            dealPokerCard(primaryRun.color, polish);
+          }
+        }
+
+        // Collect all unique matched coordinates
+        const allMatched = [];
+        for (const run of [...horizRuns, ...vertRuns]) {
+          for (const cell of run.cells) {
+            if (!allMatched.some((m) => m.r === cell.r && m.c === cell.c)) {
+              allMatched.push(cell);
+            }
+          }
+        }
+
+        // Cascade Callout Banner
+        if (cascade >= 2) {
+          const callout = CASCADE_CALLOUTS[Math.min(CASCADE_CALLOUTS.length - 1, cascade)];
+          if (callout) {
+            showBannerCallout(`${callout} (${cascade}x CASCADE)`, `+${(allMatched.length * 150 * cascade).toLocaleString()} PTS`, "#facc15");
+          }
+        }
+
+        await clearCellsAndRefill(allMatched, specialSpawns, cascade);
+        swapCoords = null;
+        cascade++;
+      }
+    }
+
+    async function clearCellsAndRefill(initialCells, specialSpawns = [], cascade = 1) {
+      const clearQueue = [...initialCells];
+      const finalClearSet = new Map(); // "r,c" -> { r, c }
+
+      while (clearQueue.length > 0) {
+        const cell = clearQueue.shift();
+        const key = `${cell.r},${cell.c}`;
+        if (finalClearSet.has(key)) continue;
+        if (cell.r < 0 || cell.r >= GRID_SIZE || cell.c < 0 || cell.c >= GRID_SIZE) continue;
+
+        // If Diamond Mine dirt is hit by a special blast, damage the dirt
+        if (state.mode === "diamond_mine" && state.dirtGrid[cell.r][cell.c] > 0) {
+          damageDirtAt(cell.r, cell.c, 1);
+          continue;
+        }
+
+        const gem = state.grid[cell.r][cell.c];
+        if (!gem) continue;
+
+        finalClearSet.set(key, cell);
+
+        // If this gem is a Special Gem (and not newly spawning on this exact frame), trigger its blast!
+        if (gem.special === "flame") {
+          state.specialDetonated++;
+          JewelAudio.playFlameExplosion();
+          spawnShockwave(cell.r, cell.c, "#f97316", 130);
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              clearQueue.push({ r: cell.r + dr, c: cell.c + dc });
+            }
+          }
+        } else if (gem.special === "star") {
+          state.specialDetonated++;
+          JewelAudio.playStarLightning();
+          const cx = cell.c * CELL_SIZE + 34;
+          const cy = cell.r * CELL_SIZE + 34;
+          spawnLightningBeam(0, cy, CANVAS_SIZE, cy, "#38bdf8", 6);
+          spawnLightningBeam(cx, 0, cx, CANVAS_SIZE, "#38bdf8", 6);
+          for (let k = 0; k < GRID_SIZE; k++) {
+            clearQueue.push({ r: cell.r, c: k });
+            clearQueue.push({ r: k, c: cell.c });
+          }
+        } else if (gem.special === "supernova") {
+          state.specialDetonated++;
+          JewelAudio.playSupernovaBlast();
+          spawnShockwave(cell.r, cell.c, "#00f5d4", 220);
+          for (let d = -1; d <= 1; d++) {
+            const rr = cell.r + d;
+            const cc = cell.c + d;
+            if (rr >= 0 && rr < GRID_SIZE) {
+              spawnLightningBeam(0, rr * CELL_SIZE + 34, CANVAS_SIZE, rr * CELL_SIZE + 34, "#facc15", 7);
+              for (let k = 0; k < GRID_SIZE; k++) clearQueue.push({ r: rr, c: k });
+            }
+            if (cc >= 0 && cc < GRID_SIZE) {
+              spawnLightningBeam(cc * CELL_SIZE + 34, 0, cc * CELL_SIZE + 34, CANVAS_SIZE, "#00f5d4", 7);
+              for (let k = 0; k < GRID_SIZE; k++) clearQueue.push({ r: k, c: cc });
+            }
+          }
+        }
+      }
+
+      // If Blazing Speed is active, add a mini shockwave to the center of the match
+      if (state.blazingActive && initialCells.length > 0) {
+        const c0 = initialCells[0];
+        spawnShockwave(c0.r, c0.c, "#facc15", 95);
+      }
+
+      const clearedArray = Array.from(finalClearSet.values());
+      if (clearedArray.length === 0) return;
+
+      // Process each cleared gem for score, shards, and 12-Mode effects
+      const basePerGem = state.blazingActive ? 150 : 100;
+      const totalPts = clearedArray.length * basePerGem * cascade * state.multiplier;
+      state.score += totalPts;
+      state.levelProgress += totalPts;
+      state.gadgetCharge = Math.min(100, state.gadgetCharge + 22);
+      vault.totalGems += clearedArray.length;
+
+      // Check Classic / General Level Up
+      if (state.levelProgress >= state.levelTarget) {
+        state.level++;
+        state.levelProgress -= state.levelTarget;
+        state.levelTarget = Math.round(state.levelTarget * 1.25);
+        if (state.mode === "classic" || state.mode === "zen" || state.mode === "poker") {
+          state.multiplier = state.level;
+        }
+        JewelAudio.playLevelUpWarp();
+        showBannerCallout(`🌌 STAGE LEVEL ${state.level} WARP!`, `SCORE MULTIPLIER x${state.multiplier}`, "#00f5d4");
+      }
+
+      const adjDirs = [
+        [-1, 0],
+        [1, 0],
+        [0, -1],
+        [0, 1]
+      ];
+
+      for (const cell of clearedArray) {
+        const gem = state.grid[cell.r][cell.c];
+        if (!gem) continue;
+        const gType = GEM_TYPES[gem.color] || GEM_TYPES[0];
+        spawnGemShards(cell.r, cell.c, gType.baseColor, 10);
+
+        // Mode 2: Diamond Mine — excavate orthogonal adjacent dirt tiles!
+        if (state.mode === "diamond_mine") {
+          for (const [dr, dc] of adjDirs) {
+            damageDirtAt(cell.r + dr, cell.c + dc, 1);
+          }
+        }
+
+        // Mode 3: Lightning — collect +5s / +10s Time Gems into Time Extension Tank!
+        if (state.mode === "lightning" && gem.timeBonus > 0) {
+          state.timeExtensionTank = Math.min(60, state.timeExtensionTank + gem.timeBonus);
+          spawnFloatingText(cell.r, cell.c, `+${gem.timeBonus}s TANK!`, "#00f5d4", 16);
+          JewelAudio.playLevelUpWarp();
+        }
+
+        // Mode 5: Butterflies — rescue Monarch Butterfly Gems!
+        if (state.mode === "butterflies" && gem.isButterfly) {
+          state.butterfliesRescued++;
+          vault.butterfliesSaved++;
+          const bPts = 3500 * state.multiplier;
+          state.score += bPts;
+          JewelAudio.playButterflyRescue();
+          spawnFloatingText(cell.r, cell.c, `🦋 RESCUED! +${bPts.toLocaleString()}`, "#facc15", 16);
+        }
+
+        // Mode 8: Alchemy Gold — upgrade cell from Lead (0) -> Silver (1) -> 24K Gold (2)!
+        if (state.mode === "alchemy") {
+          if (state.alchemyGrid[cell.r][cell.c] < 2) {
+            state.alchemyGrid[cell.r][cell.c]++;
+            if (state.alchemyGrid[cell.r][cell.c] === 2) {
+              spawnFloatingText(cell.r, cell.c, "✨ 24K GOLD!", "#facc15", 14);
+            }
+          }
+        }
+
+        // Mode 9: Time Bombs — defuse Chrono-Bomb!
+        if (state.mode === "time_bombs" && gem.bombTimer > 0) {
+          state.bombsDefused++;
+          const dPts = 4000 * state.multiplier;
+          state.score += dPts;
+          spawnFloatingText(cell.r, cell.c, `💣 DEFUSED! +${dPts.toLocaleString()}`, "#22c55e", 16);
+        }
+
+        // Mode 10: Lava Escape — cool magma on cell & orthogonal neighbors!
+        if (state.mode === "lava_escape") {
+          if (state.lavaGrid[cell.r][cell.c]) {
+            state.lavaGrid[cell.r][cell.c] = false;
+            state.magmaCooled++;
+            spawnFloatingText(cell.r, cell.c, "❄️ MAGMA COOLED!", "#38bdf8", 14);
+          }
+          for (const [dr, dc] of adjDirs) {
+            const nr = cell.r + dr;
+            const nc = cell.c + dc;
+            if (nr >= 0 && nr < GRID_SIZE && nc >= 0 && nc < GRID_SIZE && state.lavaGrid[nr][nc]) {
+              state.lavaGrid[nr][nc] = false;
+              state.magmaCooled++;
+            }
+          }
+        }
+
+        // Mode 11: Boss Raid — shatter chains & launch homing plasma bolt at Boss!
+        if (state.mode === "boss_raid") {
+          const dmg = (gem.special ? 1200 : 350) * cascade;
+          state.bossHp = Math.max(0, state.bossHp - dmg);
+          state.plasmaBolts.push({
+            x: cell.c * CELL_SIZE + 34,
+            y: cell.r * CELL_SIZE + 34,
+            tx: CANVAS_SIZE / 2 + (Math.random() - 0.5) * 140,
+            ty: 8,
+            color: gType.baseColor,
+            progress: 0
+          });
+        }
+
+        // Clear the cell from grid
+        state.grid[cell.r][cell.c] = null;
+      }
+
+      // Spawn newly forged Special Power Gems (Flame, Star, Hypercube, Supernova)
+      if (specialSpawns && specialSpawns.length > 0) {
+        for (const sp of specialSpawns) {
+          const forged = createGem(sp.r, sp.c, sp.color, sp.special);
+          forged.scale = 1.35;
+          state.grid[sp.r][sp.c] = forged;
+          const labelMap = {
+            flame: "🔥 FLAME GEM!",
+            star: "⚡ STAR GEM!",
+            hypercube: "🌈 HYPERCUBE!",
+            supernova: "🌟 SUPERNOVA!"
+          };
+          spawnFloatingText(sp.r, sp.c, labelMap[sp.special] || "POWER GEM!", "#00f5d4", 16);
+        }
+      }
+
+      // Check Diamond Mine depth line scroll
+      if (state.mode === "diamond_mine") {
+        checkDiamondMineScroll();
+      }
+
+      // Check Alchemy Gold 64-Tile Completion
+      if (state.mode === "alchemy") {
+        let goldCount = 0;
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            if (state.alchemyGrid[r][c] === 2) goldCount++;
+          }
+        }
+        state.goldTilesCount = goldCount;
+        if (goldCount >= 64) {
+          const bonus = 100000 * state.multiplier;
+          state.score += bonus;
+          JewelAudio.playLevelUpWarp();
+          showBannerCallout("🏆 PHILOSOPHER'S 64 GOLD COMPLETE!", `+${bonus.toLocaleString()} ALCHEMY JACKPOT!`, "#facc15");
+          // Reset to next Alchemy Stage with extra time!
+          state.level++;
+          state.multiplier = state.level;
+          state.alchemyTimeLeft += 60;
+          state.alchemyGrid = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
+        }
+      }
+
+      // Check Boss Raid Defeat
+      if (state.mode === "boss_raid" && state.bossHp <= 0) {
+        vault.bossesSlain++;
+        const bossBonus = 40000 * state.bossStage;
+        state.score += bossBonus;
+        state.bossStage++;
+        state.multiplier = state.bossStage;
+        state.bossMaxHp = Math.round(state.bossMaxHp * 1.45);
+        state.bossHp = state.bossMaxHp;
+        JewelAudio.playLevelUpWarp();
+        showBannerCallout(`👾 PRISM LEVIATHAN SLAIN!`, `+${bossBonus.toLocaleString()} PTS • TIER ${state.bossStage} SPAWNED!`, "#00f5d4");
+      }
+
+      saveVault();
+      await sleepMs(170);
+
+      // Gravity Drop & Top Refill
+      await applyGravityAndRefill();
+      await sleepMs(190);
+    }
+
+    async function applyGravityAndRefill() {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        // Determine lowest playable row in this column (above any Diamond Mine dirt)
+        let writeR = GRID_SIZE - 1;
+        while (writeR >= 0) {
+          if (state.mode === "diamond_mine" && state.dirtGrid[writeR][c] > 0) {
+            writeR--;
+            continue;
+          }
+          if (state.grid[writeR][c] === null) {
+            // Find nearest gem above writeR that isn't blocked by dirt
+            let readR = writeR - 1;
+            while (readR >= 0) {
+              if (state.mode === "diamond_mine" && state.dirtGrid[readR][c] > 0) {
+                break;
+              }
+              if (state.grid[readR][c] !== null) {
+                break;
+              }
+              readR--;
+            }
+            if (readR >= 0 && state.grid[readR][c] !== null && !(state.mode === "diamond_mine" && state.dirtGrid[readR][c] > 0)) {
+              const fallingGem = state.grid[readR][c];
+              state.grid[writeR][c] = fallingGem;
+              state.grid[readR][c] = null;
+              fallingGem.r = writeR;
+              fallingGem.c = c;
+              fallingGem.targetX = c * CELL_SIZE + CELL_SIZE / 2;
+              fallingGem.targetY = writeR * CELL_SIZE + CELL_SIZE / 2;
+              writeR--;
+            } else {
+              break;
+            }
+          } else {
+            writeR--;
+          }
+        }
+
+        // Fill remaining empty playable cells from above the top of the board
+        let spawnOffset = 1;
+        for (let r = GRID_SIZE - 1; r >= 0; r--) {
+          if (state.mode === "diamond_mine" && state.dirtGrid[r][c] > 0) continue;
+          if (state.grid[r][c] === null) {
+            const newGem = createGem(r, c);
+            newGem.y = -spawnOffset * CELL_SIZE;
+            newGem.targetY = r * CELL_SIZE + CELL_SIZE / 2;
+
+            // Mode 3: Lightning — 11% chance to spawn a +5s or +10s Time Gem!
+            if (state.mode === "lightning" && Math.random() < 0.11) {
+              newGem.timeBonus = Math.random() < 0.25 ? 10 : 5;
+            }
+
+            state.grid[r][c] = newGem;
+            spawnOffset++;
+          }
+        }
+        JewelAudio.playLandClink(c);
+      }
+    }
+
+    // =========================================================================
+    // 9. POST-MOVE TURN PROGRESSION & REAL-TIME TIMERS FOR ALL 12 MODES
+    // =========================================================================
+    async function postPlayerTurnCompleted() {
+      state.movesMade++;
+
+      // Mode 5: Butterflies — move all butterflies UP 1 row, check Spider at Row 0, and spawn a new butterfly on Row 7!
+      if (state.mode === "butterflies") {
+        let highestButterflyRow = 8;
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            const g = state.grid[r][c];
+            if (g && g.isButterfly) {
+              if (r === 0) {
+                // Reached the Cyber-Spider at the top of the board!
+                triggerGameOver("🕷️ CYBER-SPIDER CAPTURED A MONARCH!", "A Butterfly Gem reached the top row! Match or blast butterflies before they reach Row 1.");
+                return;
+              }
+              const above = state.grid[r - 1][c];
+              if (above && !above.isButterfly) {
+                swapGridCells(r, c, r - 1, c);
+                highestButterflyRow = Math.min(highestButterflyRow, r - 1);
+              }
+            }
+          }
+        }
+        // Spawn a new Butterfly on bottom row (Row 7)
+        const availCols = [];
+        for (let c = 0; c < GRID_SIZE; c++) {
+          if (state.grid[7][c] && !state.grid[7][c].isButterfly) availCols.push(c);
+        }
+        if (availCols.length > 0) {
+          const pickC = availCols[Math.floor(Math.random() * availCols.length)];
+          state.grid[7][pickC].isButterfly = true;
+        }
+        state.spiderAlertRow = highestButterflyRow;
+        // Resolve any accidental cascades created by butterfly movement
+        await resolveBoardCascades(null, 1);
+      }
+
+      // Mode 9: Time Bombs — decrement all Chrono-Bombs by 1 move and spawn new bombs!
+      if (state.mode === "time_bombs") {
+        let minBomb = 99;
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            const g = state.grid[r][c];
+            if (g && g.bombTimer > 0) {
+              g.bombTimer--;
+              minBomb = Math.min(minBomb, g.bombTimer);
+              if (g.bombTimer <= 0) {
+                JewelAudio.playFlameExplosion();
+                spawnShockwave(r, c, "#ef4444", 240);
+                triggerGameOver("💥 CHRONO-BOMB DETONATED!", "A Time Bomb Gem reached 0:00! Match or blast ticking bombs before their countdown expires.");
+                return;
+              }
+            }
+          }
+        }
+        // Spawn a fresh 12-move bomb every 2 moves
+        if (state.movesMade % 2 === 0) {
+          const r = 1 + Math.floor(Math.random() * 5);
+          const c = Math.floor(Math.random() * GRID_SIZE);
+          if (state.grid[r][c] && state.grid[r][c].bombTimer === 0 && !state.grid[r][c].special) {
+            state.grid[r][c].bombTimer = 12;
+            minBomb = Math.min(minBomb, 12);
+          }
+        }
+        state.lowestBombTimer = minBomb === 99 ? 12 : minBomb;
+      }
+
+      // Mode 10: Lava Escape — Molten Magma creeps up in 2 columns!
+      if (state.mode === "lava_escape") {
+        for (let i = 0; i < 2; i++) {
+          const col = Math.floor(Math.random() * GRID_SIZE);
+          for (let r = GRID_SIZE - 1; r >= 0; r--) {
+            if (!state.lavaGrid[r][col]) {
+              state.lavaGrid[r][col] = true;
+              if (r === 0) {
+                triggerGameOver("🌋 CALDERA ERUPTION!", "Molten Magma reached the top row of the matrix! Match adjacent gems to cool rising lava.");
+                return;
+              }
+              break;
+            }
+          }
+        }
+      }
+
+      // Mode 11: Boss Raid — Prism Leviathan casts Crystal Chains every 3 moves!
+      if (state.mode === "boss_raid" && state.movesMade % 3 === 0) {
+        const candidates = [];
+        for (let r = 1; r < GRID_SIZE - 1; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            if (state.grid[r][c] && !state.grid[r][c].chained && !state.grid[r][c].special) {
+              candidates.push({ r, c });
+            }
+          }
+        }
+        if (candidates.length > 0) {
+          const pick = candidates[Math.floor(Math.random() * candidates.length)];
+          state.grid[pick.r][pick.c].chained = true;
+          spawnFloatingText(pick.r, pick.c, "⛓️ BOSS CHAIN!", "#a855f7", 13);
+        }
+      }
+
+      // Mode 12: Stratamax 20 — decrement remaining moves!
+      if (state.mode === "stratamax") {
+        state.movesRemaining = Math.max(0, state.movesRemaining - 1);
+        if (state.movesRemaining <= 0) {
+          triggerGameOver("🧩 STRATAMAX 20 COMPLETE!", `You engineered ${state.score.toLocaleString()} points across 20 tactical moves!`);
+          return;
+        }
+      }
+
+      // Check Valid Moves Remaining
+      const validSwaps = findAllValidSwaps();
+      if (validSwaps.length === 0) {
+        if (state.mode === "classic") {
+          triggerGameOver("💎 NO MORE MOVES!", "The crystal matrix has reached harmonic equilibrium in Classic Mode.");
+          return;
+        } else {
+          // All other modes automatically remix / ensure playable swaps so action never stalls!
+          ensurePlayableBoard();
+          showBannerCallout("🔀 MATRIX RE-HARMONIZED!", "FRESH GEM COMBINATIONS ALIGNED", "#38bdf8");
+        }
+      }
+    }
+
+    function triggerGameOver(title, reason) {
+      state.gameOver = true;
+      const prevHigh = vault.highScores[state.mode] || 0;
+      if (state.score > prevHigh) {
+        vault.highScores[state.mode] = state.score;
+        saveVault();
+      }
+      document.getElementById("modalTitle").textContent = title;
+      document.getElementById("modalReason").textContent = reason;
+      document.getElementById("modalFinalScore").textContent = state.score.toLocaleString();
+      document.getElementById("modalHighScore").textContent = (vault.highScores[state.mode] || state.score).toLocaleString();
+      document.getElementById("modalMaxCombo").textContent = `${state.maxCascade}x`;
+      document.getElementById("modalExtraLabel").textContent = MODES_CONFIG[state.mode].primaryMetricLabel;
+      document.getElementById("modalExtraVal").textContent = document.getElementById("hudPrimaryMetricVal").textContent;
+      document.getElementById("resultModal").classList.add("open");
+      updateAllHUD();
+    }
+
+    // 1-Second Real-Time Ticker for Timed Modes, Ice Glaciers & Zen Breathing
+    setInterval(() => {
+      if (state.gameOver) return;
+
+      // Decay Blazing Speed meter slowly
+      if (state.blazingMeter > 0) {
+        state.blazingMeter = Math.max(0, state.blazingMeter - (state.blazingActive ? 7 : 4));
+        if (state.blazingMeter === 0 && state.blazingActive) {
+          state.blazingActive = false;
+          document.getElementById("boardFrame").classList.remove("blazing-active");
+        }
+      }
+
+      // Mode 2: Diamond Mine Timer
+      if (state.mode === "diamond_mine") {
+        state.mineTimeLeft = Math.max(0, state.mineTimeLeft - 1);
+        if (state.mineTimeLeft <= 0) {
+          triggerGameOver("⛏️ EXCAVATION SHIFT ENDED!", `You reached ${state.mineDepth}m depth and unearthed ${state.treasuresCollected} treasures!`);
+          return;
+        }
+      }
+
+      // Mode 3: Lightning Timer + Time Extension Tank Refill!
+      if (state.mode === "lightning") {
+        state.lightningTimeLeft = Math.max(0, state.lightningTimeLeft - 1);
+        if (state.lightningTimeLeft <= 0) {
+          if (state.timeExtensionTank > 0) {
+            const addedSec = state.timeExtensionTank;
+            state.lightningTimeLeft = addedSec;
+            state.timeExtensionTank = 0;
+            state.lightningSpeedTier++;
+            state.multiplier = state.lightningSpeedTier;
+            JewelAudio.playLevelUpWarp();
+            showBannerCallout(
+              `⚡ HURRY UP! x${state.lightningSpeedTier} MULTIPLIER!`,
+              `+${addedSec}s DRAINED FROM TIME EXTENSION TANK!`,
+              "#00f5d4"
+            );
+          } else {
+            triggerGameOver("⚡ TIME UP! LIGHTNING BLITZ COMPLETE", `You reached Speed Multiplier x${state.lightningSpeedTier} with ${state.score.toLocaleString()} points!`);
+            return;
+          }
+        }
+      }
+
+      // Mode 4: Ice Storm Rising Glaciers
+      if (state.mode === "ice_storm") {
+        // Rise one random column every 2 seconds
+        if (Math.random() < 0.65) {
+          const col = Math.floor(Math.random() * GRID_SIZE);
+          if (state.iceColumns[col] < GRID_SIZE) {
+            state.iceColumns[col]++;
+          }
+        }
+        // Check any column at top (height === 8)
+        for (let c = 0; c < GRID_SIZE; c++) {
+          if (state.iceColumns[c] >= GRID_SIZE) {
+            state.iceSkullTimers[c]++;
+            if (state.iceSkullTimers[c] >= 5) {
+              triggerGameOver("❄️ GLACIAL FREEZE LOCKDOWN!", `Column ${c + 1} froze solid at the top of the matrix!`);
+              return;
+            }
+          } else {
+            state.iceSkullTimers[c] = 0;
+          }
+        }
+      }
+
+      // Mode 7: Zen Breath 12-Second 4-4-4 Pacer
+      if (state.mode === "zen") {
+        state.zenBreathTimer = (state.zenBreathTimer + 1) % 12;
+        if (state.zenBreathTimer === 0) {
+          state.zenAffirmationIdx = (state.zenAffirmationIdx + 1) % ZEN_AFFIRMATIONS.length;
+          document.getElementById("bottomAffirmationText").textContent = ZEN_AFFIRMATIONS[state.zenAffirmationIdx];
+        }
+      }
+
+      // Mode 8: Alchemy Gold Timer
+      if (state.mode === "alchemy") {
+        state.alchemyTimeLeft = Math.max(0, state.alchemyTimeLeft - 1);
+        if (state.alchemyTimeLeft <= 0) {
+          triggerGameOver("🧪 ALCHEMY CLOCK EXPIRED!", `You transmuted ${state.goldTilesCount} / 64 tiles into 24K Solid Gold!`);
+          return;
+        }
+      }
+
+      updateAllHUD();
+    }, 1000);
+
+    // =========================================================================
+    // 10. COMPLETE HUD & TELEMETRY SYNCHRONIZATION ACROSS ALL 12 MODES
+    // =========================================================================
+    function formatSeconds(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${m}:${s < 10 ? "0" : ""}${s}`;
+    }
+
+    function updateAllHUD() {
+      const cfg = MODES_CONFIG[state.mode];
+      if (!cfg) return;
+
+      // Update High Score if beaten live
+      if (state.score > (vault.highScores[state.mode] || 0)) {
+        vault.highScores[state.mode] = state.score;
+      }
+
+      document.getElementById("hudScore").textContent = state.score.toLocaleString();
+      document.getElementById("hudHighScore").textContent = (vault.highScores[state.mode] || 0).toLocaleString();
+      document.getElementById("hudPrimaryMetricLabel").textContent = cfg.primaryMetricLabel;
+      document.getElementById("hudSecondaryMetricLabel").textContent = cfg.secondaryMetricLabel;
+
+      document.getElementById("modeTitleBanner").textContent = cfg.title;
+      document.getElementById("modeBadgeTag").textContent = cfg.badge;
+      document.getElementById("modeRulesDesc").textContent = cfg.desc;
+      document.getElementById("primaryBarLabel").textContent = cfg.barLabel;
+
+      document.getElementById("stageWidgetIcon").textContent = cfg.stageIcon;
+      document.getElementById("stageWidgetTitle").textContent = cfg.stageTitle;
+      document.getElementById("stageWidgetSubtitle").textContent = cfg.stageSub;
+
+      // Toggle Poker Rack visibility
+      const pokerRack = document.getElementById("pokerRackContainer");
+      if (pokerRack) {
+        pokerRack.style.display = state.mode === "poker" ? "flex" : "none";
+      }
+
+      const validSwapsCount = findAllValidSwaps().length;
+      document.getElementById("stageRightLabel").textContent = state.mode === "boss_raid" ? "Boss Hull HP" : "Valid Swaps";
+      document.getElementById("stageRightValue").textContent =
+        state.mode === "boss_raid" ? `${state.bossHp.toLocaleString()}` : `${validSwapsCount}`;
+
+      // Blazing Speed Bar
+      document.getElementById("blazingBarText").textContent = state.blazingActive
+        ? "🔥 BLAZING ACTIVE!"
+        : `${Math.round(state.blazingMeter)}%`;
+      document.getElementById("blazingBarFill").style.width = `${state.blazingMeter}%`;
+
+      // Mode-specific Primary/Secondary KPIs, Progress Bar & Telemetry
+      let barPct = Math.min(100, Math.round((state.levelProgress / state.levelTarget) * 100));
+      let barText = `${state.levelProgress.toLocaleString()} / ${state.levelTarget.toLocaleString()}`;
+
+      if (state.mode === "classic") {
+        document.getElementById("hudPrimaryMetricVal").textContent = `${state.level}`;
+        document.getElementById("hudSecondaryMetricVal").textContent = `x${state.multiplier}`;
+        setTelemetryRows([
+          ["Current Stage", `Level ${state.level}`],
+          ["Best Cascade", `${state.maxCascade}x`],
+          ["Valid Moves", `${validSwapsCount}`],
+          ["Power Gems Used", `${state.specialDetonated}`]
+        ]);
+      } else if (state.mode === "diamond_mine") {
+        document.getElementById("hudPrimaryMetricVal").textContent = formatSeconds(state.mineTimeLeft);
+        document.getElementById("hudSecondaryMetricVal").textContent = `${state.mineDepth}m`;
+        // Count cleared dirt on rows 4..5
+        let cleared = 0;
+        for (let r = 4; r <= 5; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            if (state.dirtGrid[r][c] === 0) cleared++;
+          }
+        }
+        barPct = Math.round((cleared / 16) * 100);
+        barText = `${cleared} / 16 Line Tiles`;
+        setTelemetryRows([
+          ["Excavation Depth", `${state.mineDepth}m`],
+          ["Shift Clock", formatSeconds(state.mineTimeLeft)],
+          ["Treasures Unearthed", `${state.treasuresCollected}`],
+          ["Depth Multiplier", `x${state.multiplier}`]
+        ]);
+      } else if (state.mode === "lightning") {
+        document.getElementById("hudPrimaryMetricVal").textContent = formatSeconds(state.lightningTimeLeft);
+        document.getElementById("hudSecondaryMetricVal").textContent = `x${state.lightningSpeedTier}`;
+        barPct = Math.min(100, Math.round((state.timeExtensionTank / 60) * 100));
+        barText = `+${state.timeExtensionTank}s Charged`;
+        setTelemetryRows([
+          ["Round Clock", formatSeconds(state.lightningTimeLeft)],
+          ["Extension Tank", `+${state.timeExtensionTank}s`],
+          ["Speed Multiplier", `x${state.lightningSpeedTier}`],
+          ["Best Cascade", `${state.maxCascade}x`]
+        ]);
+      } else if (state.mode === "ice_storm") {
+        document.getElementById("hudPrimaryMetricVal").textContent = `x${state.boilerTier}`;
+        const safeCols = state.iceColumns.filter((h) => h < GRID_SIZE).length;
+        document.getElementById("hudSecondaryMetricVal").textContent = `${safeCols} / 8`;
+        barPct = state.steamBoiler;
+        barText = `${state.steamBoiler}% Pressure`;
+        setTelemetryRows([
+          ["Boiler Multiplier", `x${state.boilerTier}`],
+          ["Safe Columns", `${safeCols} / 8`],
+          ["Peak Ice Column", `Row ${8 - Math.max(...state.iceColumns)}`],
+          ["Power Gems Used", `${state.specialDetonated}`]
+        ]);
+      } else if (state.mode === "butterflies") {
+        document.getElementById("hudPrimaryMetricVal").textContent = `${state.butterfliesRescued}`;
+        document.getElementById("hudSecondaryMetricVal").textContent = `Row ${state.spiderAlertRow}`;
+        barPct = Math.min(100, (state.butterfliesRescued % 15) * 6.67);
+        barText = `${state.butterfliesRescued} Monarchs Saved`;
+        setTelemetryRows([
+          ["Monarchs Rescued", `${state.butterfliesRescued}`],
+          ["Highest Butterfly", `Row ${state.spiderAlertRow}`],
+          ["Moves Taken", `${state.movesMade}`],
+          ["Best Cascade", `${state.maxCascade}x`]
+        ]);
+      } else if (state.mode === "poker") {
+        document.getElementById("hudPrimaryMetricVal").textContent = `${state.pokerHandsCompleted}`;
+        document.getElementById("hudSecondaryMetricVal").textContent = state.lastPokerHandName.replace(/[^A-Z0-9 ]/gi, "").trim().slice(0, 10) || "Ready";
+        updatePokerRackUI();
+        setTelemetryRows([
+          ["Hands Evaluated", `${state.pokerHandsCompleted}`],
+          ["Cards in Rack", `${state.pokerHand.length} / 5`],
+          ["Last Hand Result", state.lastPokerHandName],
+          ["Table Multiplier", `x${state.multiplier}`]
+        ]);
+      } else if (state.mode === "zen") {
+        document.getElementById("hudPrimaryMetricVal").textContent = `${state.level}`;
+        const phase = state.zenBreathTimer < 4 ? "INHALE (4s)" : state.zenBreathTimer < 8 ? "HOLD (4s)" : "EXHALE (4s)";
+        document.getElementById("hudSecondaryMetricVal").textContent = phase;
+        setTelemetryRows([
+          ["Breathing Phase", phase],
+          ["Mindfulness Level", `${state.level}`],
+          ["Harmonic Cascades", `${state.maxCascade}x`],
+          ["Loss Risk", "0% (Endless)"]
+        ]);
+      } else if (state.mode === "alchemy") {
+        document.getElementById("hudPrimaryMetricVal").textContent = `${state.goldTilesCount} / 64`;
+        document.getElementById("hudSecondaryMetricVal").textContent = formatSeconds(state.alchemyTimeLeft);
+        barPct = Math.round((state.goldTilesCount / 64) * 100);
+        barText = `${state.goldTilesCount} / 64 Gold Tiles`;
+        setTelemetryRows([
+          ["24K Gold Tiles", `${state.goldTilesCount} / 64`],
+          ["Alchemy Clock", formatSeconds(state.alchemyTimeLeft)],
+          ["Transmutation Stage", `Stage ${state.level}`],
+          ["Power Gems Used", `${state.specialDetonated}`]
+        ]);
+      } else if (state.mode === "time_bombs") {
+        document.getElementById("hudPrimaryMetricVal").textContent = `${state.bombsDefused}`;
+        document.getElementById("hudSecondaryMetricVal").textContent = `${state.lowestBombTimer} moves`;
+        barPct = Math.min(100, (state.bombsDefused % 10) * 10);
+        barText = `${state.bombsDefused} Bombs Defused`;
+        setTelemetryRows([
+          ["Bombs Defused", `${state.bombsDefused}`],
+          ["Most Urgent Bomb", `${state.lowestBombTimer} moves`],
+          ["Total Swaps", `${state.movesMade}`],
+          ["Best Cascade", `${state.maxCascade}x`]
+        ]);
+      } else if (state.mode === "lava_escape") {
+        document.getElementById("hudPrimaryMetricVal").textContent = `${state.magmaCooled}`;
+        let highestLava = 8;
+        for (let r = 0; r < GRID_SIZE; r++) {
+          if (state.lavaGrid[r].some(Boolean)) {
+            highestLava = r + 1;
+            break;
+          }
+        }
+        document.getElementById("hudSecondaryMetricVal").textContent = `Row ${highestLava}`;
+        barPct = Math.min(100, (state.magmaCooled % 20) * 5);
+        barText = `${state.magmaCooled} Magma Cooled`;
+        setTelemetryRows([
+          ["Magma Cooled", `${state.magmaCooled}`],
+          ["Highest Magma", `Row ${highestLava}`],
+          ["Moves Survived", `${state.movesMade}`],
+          ["Best Cascade", `${state.maxCascade}x`]
+        ]);
+      } else if (state.mode === "boss_raid") {
+        document.getElementById("hudPrimaryMetricVal").textContent = `${state.bossHp.toLocaleString()}`;
+        document.getElementById("hudSecondaryMetricVal").textContent = `Tier ${state.bossStage}`;
+        barPct = Math.max(0, Math.round((state.bossHp / state.bossMaxHp) * 100));
+        barText = `${state.bossHp.toLocaleString()} / ${state.bossMaxHp.toLocaleString()} HP`;
+        setTelemetryRows([
+          ["Boss Leviathan HP", `${state.bossHp.toLocaleString()}`],
+          ["Raid Tier", `Tier ${state.bossStage}`],
+          ["Special Crits Fired", `${state.specialDetonated}`],
+          ["Best Cascade", `${state.maxCascade}x`]
+        ]);
+      } else if (state.mode === "stratamax") {
+        document.getElementById("hudPrimaryMetricVal").textContent = `${state.movesRemaining}`;
+        const ppm = state.movesMade > 0 ? Math.round(state.score / state.movesMade) : 0;
+        document.getElementById("hudSecondaryMetricVal").textContent = `${ppm.toLocaleString()}`;
+        barPct = Math.round((state.movesRemaining / 20) * 100);
+        barText = `${state.movesRemaining} / 20 Moves Left`;
+        setTelemetryRows([
+          ["Moves Remaining", `${state.movesRemaining} / 20`],
+          ["Points Per Move", `${ppm.toLocaleString()}`],
+          ["Best Cascade", `${state.maxCascade}x`],
+          ["Power Gems Used", `${state.specialDetonated}`]
+        ]);
+      }
+
+      document.getElementById("primaryBarFill").style.width = `${barPct}%`;
+      document.getElementById("primaryBarText").textContent = barText;
+
+      // Sync Active Mode Gadget Button (#btnModeGadget)
+      const gadgetBtn = document.getElementById("btnModeGadget");
+      const gadgetLabel = document.getElementById("gadgetLabel");
+      const gadgetChargeText = document.getElementById("gadgetChargeText");
+      if (gadgetBtn && gadgetLabel && gadgetChargeText) {
+        gadgetLabel.textContent = MODE_GADGET_TITLES[state.mode] || "⚡ MODE GADGET";
+        if (state.mode === "stratamax") {
+          const canUndo = state.stratamaxUndosLeft > 0 && state.stratamaxHistory.length > 0;
+          gadgetBtn.classList.toggle("ready", canUndo);
+          gadgetChargeText.textContent = `UNDO [SPACE] (${state.stratamaxUndosLeft} LEFT)`;
+        } else {
+          const isReady = state.gadgetCharge >= 100;
+          gadgetBtn.classList.toggle("ready", isReady);
+          gadgetChargeText.textContent = isReady
+            ? "READY [SPACE] (100%)"
+            : `CHARGING (${Math.round(state.gadgetCharge)}%)`;
+        }
+      }
+
+      updateCareerUI();
+    }
+
+    function setTelemetryRows(rows) {
+      rows.forEach(([label, val], idx) => {
+        const el = document.getElementById(`telStat${idx + 1}`);
+        if (el && el.parentElement) {
+          el.parentElement.querySelector("span").textContent = label;
+          el.textContent = val;
+        }
+      });
+    }
+
+    // =========================================================================
+    // 11. AAA 60FPS 3D RAY-TRACED JEWELRY SHADER & BOARD SOCKET ENGINE
+    // =========================================================================
+    function drawPolygon(ctx, points) {
+      if (points.length === 0) return;
+      ctx.beginPath();
+      ctx.moveTo(points[0][0], points[0][1]);
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i][0], points[i][1]);
+      }
+      ctx.closePath();
+    }
+
+    function drawStarSparkle(ctx, x, y, radius, rotAngle = 0, color = "#ffffff") {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotAngle);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const r = i % 2 === 0 ? radius : radius * 0.22;
+        const a = (Math.PI * 2 * i) / 8;
+        if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+        else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      // Soft core halo
+      const g = ctx.createRadialGradient(0, 0, 0.5, 0, 0, radius * 0.8);
+      g.addColorStop(0, "rgba(255,255,255,0.95)");
+      g.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawMultiFacetGem(ctx, gem, timeNow) {
+      const cx = gem.x;
+      const cy = gem.y;
+      const rad = 26 * gem.scale;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.globalAlpha = gem.alpha;
+
+      // 0. Soft 3D Contact Drop Shadow inside Recessed Crystal Socket
+      ctx.save();
+      const shadowGrad = ctx.createRadialGradient(0, 5, rad * 0.2, 0, 5, rad * 1.15);
+      shadowGrad.addColorStop(0, "rgba(0, 0, 0, 0.68)");
+      shadowGrad.addColorStop(0.65, "rgba(0, 0, 0, 0.32)");
+      shadowGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = shadowGrad;
+      ctx.beginPath();
+      ctx.arc(0, 5, rad * 1.15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Special Hypercube: Multi-Axis Rotating 3D Rainbow Tesseract with Chromatic Rings & Vertex Nodes
+      if (gem.special === "hypercube") {
+        const rot = timeNow * 0.0024;
+        const hue = (timeNow * 0.14) % 360;
+
+        // Outer Chromatic Energy Halo
+        const haloGrad = ctx.createRadialGradient(0, 0, rad * 0.2, 0, 0, rad * 1.25);
+        haloGrad.addColorStop(0, "#ffffff");
+        haloGrad.addColorStop(0.4, `hsla(${hue}, 100%, 65%, 0.75)`);
+        haloGrad.addColorStop(0.75, `hsla(${(hue + 120) % 360}, 100%, 55%, 0.35)`);
+        haloGrad.addColorStop(1, "rgba(0, 245, 212, 0)");
+        ctx.fillStyle = haloGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, rad * 1.25, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Outer & Inner Tesseract Cubes + 4D Connecting Struts
+        const sOuter = rad * 0.78;
+        const sInner = rad * 0.44;
+        const outerVerts = [];
+        const innerVerts = [];
+        for (let i = 0; i < 4; i++) {
+          const aOut = rot + (Math.PI / 2) * i + Math.PI / 4;
+          const aIn = -rot * 1.35 + (Math.PI / 2) * i + Math.PI / 4;
+          outerVerts.push([Math.cos(aOut) * sOuter, Math.sin(aOut) * sOuter]);
+          innerVerts.push([Math.cos(aIn) * sInner, Math.sin(aIn) * sInner]);
+        }
+
+        // Draw 4D Hyper-Struts connecting outer and inner vertices
+        ctx.strokeStyle = `hsla(${(hue + 60) % 360}, 100%, 75%, 0.85)`;
+        ctx.lineWidth = 1.8;
+        for (let i = 0; i < 4; i++) {
+          ctx.beginPath();
+          ctx.moveTo(outerVerts[i][0], outerVerts[i][1]);
+          ctx.lineTo(innerVerts[i][0], innerVerts[i][1]);
+          ctx.stroke();
+        }
+
+        // Draw Outer Cube Face
+        drawPolygon(ctx, outerVerts);
+        ctx.fillStyle = `hsla(${hue}, 95%, 50%, 0.38)`;
+        ctx.fill();
+        ctx.lineWidth = 2.6;
+        ctx.strokeStyle = `hsl(${hue}, 100%, 72%)`;
+        ctx.stroke();
+
+        // Draw Inner Singularity Core Cube
+        drawPolygon(ctx, innerVerts);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#00f5d4";
+        ctx.stroke();
+
+        // Glowing Vertex Spheres
+        for (const [vx, vy] of outerVerts) {
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.arc(vx, vy, 2.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        drawStarSparkle(ctx, 0, 0, 9, timeNow * 0.005, "#ffffff");
+        ctx.restore();
+        return;
+      }
+
+      const gType = GEM_TYPES[gem.color] || GEM_TYPES[0];
+
+      // Draw Special Power Gem Under-Aura (Flame, Star, Supernova)
+      if (gem.special === "flame") {
+        const pulse = 1 + Math.sin(timeNow * 0.012) * 0.14;
+        const grad = ctx.createRadialGradient(0, 0, rad * 0.25, 0, 0, rad * 1.35 * pulse);
+        grad.addColorStop(0, "#ffffff");
+        grad.addColorStop(0.35, "#fef08a");
+        grad.addColorStop(0.68, "#f97316");
+        grad.addColorStop(1, "rgba(239, 68, 68, 0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(0, 0, rad * 1.35 * pulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Orbiting Fire Embers around the Flame Gem girdle
+        for (let e = 0; e < 5; e++) {
+          const ea = timeNow * 0.006 + (Math.PI * 2 * e) / 5;
+          const ex = Math.cos(ea) * (rad * 1.06);
+          const ey = Math.sin(ea) * (rad * 1.06);
+          ctx.fillStyle = e % 2 === 0 ? "#fef08a" : "#f97316";
+          ctx.beginPath();
+          ctx.arc(ex, ey, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (gem.special === "star" || gem.special === "supernova") {
+        const isSuper = gem.special === "supernova";
+        const pulse = 1 + Math.cos(timeNow * 0.012) * 0.16;
+        ctx.save();
+        const auraGrad = ctx.createRadialGradient(0, 0, rad * 0.2, 0, 0, rad * 1.38 * pulse);
+        auraGrad.addColorStop(0, "#ffffff");
+        auraGrad.addColorStop(0.5, isSuper ? "rgba(250, 204, 21, 0.75)" : "rgba(56, 189, 248, 0.75)");
+        auraGrad.addColorStop(1, "rgba(0, 245, 212, 0)");
+        ctx.fillStyle = auraGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, rad * 1.38 * pulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 8-Point Rotating Pulsar Spikes
+        drawStarSparkle(ctx, 0, 0, rad * 1.42 * pulse, timeNow * 0.003, isSuper ? "#fef08a" : "#7dd3fc");
+        drawStarSparkle(ctx, 0, 0, rad * 1.15 * pulse, -timeNow * 0.004 + Math.PI / 4, "#ffffff");
+        ctx.restore();
+      }
+
+      // Compute Outer Girdle Silhouette + Inner Crown Table Polygon Points
+      let outerPts = [];
+      let innerPts = [];
+
+      if (gType.shape === "octagon") {
+        // Ruby Emerald-Cut / Royal Octagon
+        for (let i = 0; i < 8; i++) {
+          const a = (Math.PI * 2 * i) / 8 + Math.PI / 8;
+          outerPts.push([Math.cos(a) * rad, Math.sin(a) * rad]);
+          innerPts.push([Math.cos(a) * rad * 0.56, Math.sin(a) * rad * 0.56]);
+        }
+      } else if (gType.shape === "teardrop") {
+        // Amber Pear / Teardrop Cut
+        outerPts = [
+          [0, -rad * 1.06],
+          [rad * 0.70, -rad * 0.28],
+          [rad * 0.90, rad * 0.34],
+          [rad * 0.54, rad * 0.92],
+          [0, rad * 1.04],
+          [-rad * 0.54, rad * 0.92],
+          [-rad * 0.90, rad * 0.34],
+          [-rad * 0.70, -rad * 0.28]
+        ];
+        innerPts = outerPts.map(([x, y]) => [x * 0.55, y * 0.55 + 2.5]);
+      } else if (gType.shape === "diamond") {
+        // Topaz 8-Point Cushion Lozenge Diamond
+        outerPts = [
+          [0, -rad * 1.06],
+          [rad * 0.52, -rad * 0.52],
+          [rad * 1.02, 0],
+          [rad * 0.52, rad * 0.52],
+          [0, rad * 1.06],
+          [-rad * 0.52, rad * 0.52],
+          [-rad * 1.02, 0],
+          [-rad * 0.52, -rad * 0.52]
+        ];
+        innerPts = outerPts.map(([x, y]) => [x * 0.54, y * 0.54]);
+      } else if (gType.shape === "hexagon") {
+        // Emerald Step-Cut Hexagon
+        for (let i = 0; i < 6; i++) {
+          const a = (Math.PI * 2 * i) / 6 - Math.PI / 2;
+          outerPts.push([Math.cos(a) * rad * 1.02, Math.sin(a) * rad * 1.02]);
+          innerPts.push([Math.cos(a) * rad * 0.56, Math.sin(a) * rad * 0.56]);
+        }
+      } else if (gType.shape === "square_cushion") {
+        // Sapphire Radiant Chamfered Cushion Cut
+        const c = rad * 0.88;
+        const b = rad * 0.54;
+        outerPts = [
+          [-b, -c], [b, -c], [c, -b], [c, b],
+          [b, c], [-b, c], [-c, b], [-c, -b]
+        ];
+        innerPts = outerPts.map(([x, y]) => [x * 0.56, y * 0.56]);
+      } else if (gType.shape === "triangle") {
+        // Amethyst 6-Vertex Chamfered Trillion Cut
+        outerPts = [
+          [-rad * 0.16, -rad * 0.98],
+          [rad * 0.16, -rad * 0.98],
+          [rad * 0.98, rad * 0.56],
+          [rad * 0.78, rad * 0.84],
+          [-rad * 0.78, rad * 0.84],
+          [-rad * 0.98, rad * 0.56]
+        ];
+        innerPts = outerPts.map(([x, y]) => [x * 0.52, y * 0.52 + 3]);
+      } else {
+        // Pearl 12-Facet Brilliant Cut Round
+        for (let i = 0; i < 12; i++) {
+          const a = (Math.PI * 2 * i) / 12;
+          outerPts.push([Math.cos(a) * rad, Math.sin(a) * rad]);
+          innerPts.push([Math.cos(a) * rad * 0.58, Math.sin(a) * rad * 0.58]);
+        }
+      }
+
+      // 1. Deep Internal Pavilion Fill + Subsurface Radial Caustic Glow
+      const bodyGrad = ctx.createRadialGradient(-rad * 0.28, -rad * 0.28, rad * 0.1, 0, 0, rad * 1.08);
+      bodyGrad.addColorStop(0, "#ffffff");
+      bodyGrad.addColorStop(0.28, gType.lightColor);
+      bodyGrad.addColorStop(0.68, gType.baseColor);
+      bodyGrad.addColorStop(1, gType.darkColor);
+
+      drawPolygon(ctx, outerPts);
+      ctx.fillStyle = bodyGrad;
+      ctx.fill();
+
+      // 2. Internal Pavilion Star Facet Lines (Radiating from center culet to inner vertices)
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
+      ctx.lineWidth = 0.9;
+      for (let i = 0; i < innerPts.length; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(innerPts[i][0], innerPts[i][1]);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // 3. Individual 3D Beveled Crown Trapezoid Facets (Directional Top-Left Specular vs Bottom-Right Bounce Light)
+      for (let i = 0; i < outerPts.length; i++) {
+        const next = (i + 1) % outerPts.length;
+        const midX = (outerPts[i][0] + outerPts[next][0]) * 0.5;
+        const midY = (outerPts[i][1] + outerPts[next][1]) * 0.5;
+        const lightDot = (-midX - midY) / (rad * 1.4); // > 0 means facing top-left light source
+
+        ctx.beginPath();
+        ctx.moveTo(outerPts[i][0], outerPts[i][1]);
+        ctx.lineTo(outerPts[next][0], outerPts[next][1]);
+        ctx.lineTo(innerPts[next][0], innerPts[next][1]);
+        ctx.lineTo(innerPts[i][0], innerPts[i][1]);
+        ctx.closePath();
+
+        if (lightDot > 0.35) {
+          ctx.fillStyle = "rgba(255, 255, 255, 0.46)";
+        } else if (lightDot > -0.1) {
+          ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
+        } else if (lightDot > -0.5) {
+          ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
+        } else {
+          ctx.fillStyle = "rgba(0, 0, 0, 0.38)";
+        }
+        ctx.fill();
+        ctx.lineWidth = 0.85;
+        ctx.strokeStyle = lightDot > 0 ? "rgba(255, 255, 255, 0.55)" : "rgba(255, 255, 255, 0.22)";
+        ctx.stroke();
+      }
+
+      // Outer Girdle Crisp Rim
+      drawPolygon(ctx, outerPts);
+      ctx.lineWidth = 1.6;
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.78)";
+      ctx.stroke();
+
+      // 4. Inner Crown Table Facet with Refractive Depth Gradient
+      const tableGrad = ctx.createLinearGradient(-rad * 0.55, -rad * 0.55, rad * 0.55, rad * 0.55);
+      tableGrad.addColorStop(0, "rgba(255, 255, 255, 0.92)");
+      tableGrad.addColorStop(0.32, gType.lightColor);
+      tableGrad.addColorStop(0.75, gType.baseColor);
+      tableGrad.addColorStop(1, gType.darkColor);
+
+      drawPolygon(ctx, innerPts);
+      ctx.fillStyle = tableGrad;
+      ctx.fill();
+
+      // Diagonal Glass Specular Reflection Band across the Table Facet
+      ctx.save();
+      ctx.clip();
+      const shimmerSweep = ((timeNow * 0.08 + (gem.r + gem.c) * 28) % 180) - 90;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.32)";
+      ctx.beginPath();
+      ctx.moveTo(-rad + shimmerSweep, -rad);
+      ctx.lineTo(-rad + 10 + shimmerSweep, -rad);
+      ctx.lineTo(rad + 10 + shimmerSweep, rad);
+      ctx.lineTo(rad + shimmerSweep, rad);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      // Crisp Inner Table Bevel Outline
+      drawPolygon(ctx, innerPts);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.88)";
+      ctx.lineWidth = 1.15;
+      ctx.stroke();
+
+      // 5. 4-Point Starburst Specular Glint on Upper-Left Crown
+      const glintPulse = 0.85 + Math.sin(timeNow * 0.008 + gem.r * 3 + gem.c) * 0.22;
+      drawStarSparkle(ctx, -rad * 0.32, -rad * 0.32, 6.2 * glintPulse, timeNow * 0.002);
+
+      // 6. Mode Overlays Attached to the Gem:
+      // 🦋 Iridescent 4-Wing Monarch Crystal Butterfly (Mode 5)
+      if (gem.isButterfly) {
+        const wingFlap = 0.58 + Math.abs(Math.sin(timeNow * 0.015 + gem.c)) * 0.52;
+        ctx.save();
+        ctx.scale(wingFlap, 1);
+
+        const wingGrad = ctx.createLinearGradient(-22, -16, 22, 16);
+        wingGrad.addColorStop(0, "#fef08a");
+        wingGrad.addColorStop(0.5, "#f97316");
+        wingGrad.addColorStop(1, "#ec4899");
+        ctx.fillStyle = wingGrad;
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.6;
+
+        // Upper & lower monarch wings
+        ctx.beginPath();
+        ctx.ellipse(-15, -7, 14, 9, -0.38, 0, Math.PI * 2);
+        ctx.ellipse(15, -7, 14, 9, 0.38, 0, Math.PI * 2);
+        ctx.ellipse(-12, 9, 10, 6.5, 0.32, 0, Math.PI * 2);
+        ctx.ellipse(12, 9, 10, 6.5, -0.32, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Body & Antennae
+        ctx.fillStyle = "#090d16";
+        ctx.beginPath();
+        ctx.ellipse(0, 1, 3, 11, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#fef08a";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(-1, -9);
+        ctx.quadraticCurveTo(-6, -16, -9, -14);
+        ctx.moveTo(1, -9);
+        ctx.quadraticCurveTo(6, -16, 9, -14);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // ⚡ Lightning Cryo-Cell Time Bonus Badge (+5s / +10s)
+      if (gem.timeBonus > 0) {
+        ctx.fillStyle = "rgba(2, 6, 23, 0.92)";
+        ctx.strokeStyle = "#00f5d4";
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.roundRect(-19, -10, 38, 20, 6);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#00f5d4";
+        ctx.font = "900 11px 'Segoe UI', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`+${gem.timeBonus}s`, 0, 0);
+      }
+
+      // 💣 3D Cyber-Detonator Chrono-Bomb Casing & Circular LED Ring (Mode 9)
+      if (gem.bombTimer > 0) {
+        const urgent = gem.bombTimer <= 4;
+        ctx.fillStyle = urgent ? "rgba(153, 27, 27, 0.95)" : "rgba(9, 13, 22, 0.94)";
+        ctx.strokeStyle = urgent ? "#fef08a" : "#38bdf8";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 15.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Circular LED Progress Arc
+        const pct = Math.max(0, Math.min(1, gem.bombTimer / 12));
+        ctx.strokeStyle = urgent ? "#ef4444" : "#00f5d4";
+        ctx.lineWidth = 2.6;
+        ctx.beginPath();
+        ctx.arc(0, 0, 12.5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct);
+        ctx.stroke();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "900 11.5px 'Segoe UI', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`${gem.bombTimer}`, 0, 1);
+      }
+
+      // ⛓️ Boss Raid Metallic Energy Chains & Padlock (Mode 11)
+      if (gem.chained) {
+        ctx.strokeStyle = "#e2e8f0";
+        ctx.lineWidth = 3.2;
+        ctx.setLineDash([5, 3]);
+        ctx.beginPath();
+        ctx.moveTo(-23, -23);
+        ctx.lineTo(23, 23);
+        ctx.moveTo(23, -23);
+        ctx.lineTo(-23, 23);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = "#0f172a";
+        ctx.strokeStyle = "#a855f7";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function drawBuriedTreasureVector(ctx, x, y, type, timeNow) {
+      const cx = x + 34;
+      const cy = y + 34;
+      ctx.save();
+      ctx.translate(cx, cy);
+
+      if (type === "gold") {
+        // 3D Gleaming Gold Bullion Nugget Cluster
+        const g = ctx.createLinearGradient(-16, -12, 16, 12);
+        g.addColorStop(0, "#fef08a");
+        g.addColorStop(0.5, "#facc15");
+        g.addColorStop(1, "#b45309");
+        ctx.fillStyle = g;
+        ctx.strokeStyle = "#fef9c3";
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(-14, 8);
+        ctx.lineTo(-10, -10);
+        ctx.lineTo(10, -10);
+        ctx.lineTo(15, 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#78350f";
+        ctx.font = "900 8.5px 'Segoe UI', sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("24K GOLD", 0, 2);
+      } else if (type === "diamond") {
+        // 3D Sparkling Cut Blue-White Diamond
+        const dg = ctx.createLinearGradient(-14, -14, 14, 14);
+        dg.addColorStop(0, "#ffffff");
+        dg.addColorStop(0.45, "#7dd3fc");
+        dg.addColorStop(1, "#0284c7");
+        ctx.fillStyle = dg;
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(-9, -12);
+        ctx.lineTo(9, -12);
+        ctx.lineTo(16, -3);
+        ctx.lineTo(0, 14);
+        ctx.lineTo(-16, -3);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        drawStarSparkle(ctx, -5, -6, 5, timeNow * 0.004);
+      } else if (type === "relic") {
+        // Ancient Cyber-Idol Relic with Glowing Cyan Eyes
+        const rg = ctx.createLinearGradient(-14, -16, 14, 16);
+        rg.addColorStop(0, "#fde047");
+        rg.addColorStop(0.5, "#eab308");
+        rg.addColorStop(1, "#06b6d4");
+        ctx.fillStyle = rg;
+        ctx.strokeStyle = "#00f5d4";
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.roundRect(-12, -14, 24, 28, 5);
+        ctx.fill();
+        ctx.stroke();
+        // Glowing Cyan Eyes
+        ctx.fillStyle = "#00f5d4";
+        ctx.beginPath();
+        ctx.arc(-4.5, -4, 2.5, 0, Math.PI * 2);
+        ctx.arc(4.5, -4, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#090d16";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-6, 6);
+        ctx.lineTo(6, 6);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function renderArenaFrame(timeNow) {
+      ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+      // Planetary Nebula Backdrop Hue Shift per Level
+      const nebHue = (205 + (state.level - 1) * 28) % 360;
+      const bgGrad = ctx.createRadialGradient(
+        CANVAS_SIZE * 0.5,
+        CANVAS_SIZE * 0.45,
+        40,
+        CANVAS_SIZE * 0.5,
+        CANVAS_SIZE * 0.5,
+        CANVAS_SIZE * 0.75
+      );
+      bgGrad.addColorStop(0, `hsla(${nebHue}, 65%, 16%, 0.95)`);
+      bgGrad.addColorStop(1, "rgba(4, 8, 20, 0.98)");
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+      // 1. Draw 64 Beveled Recessed Crystal Sockets & Mode Cell Underlays
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          const x = c * CELL_SIZE;
+          const y = r * CELL_SIZE;
+          const isEven = (r + c) % 2 === 0;
+
+          // Recessed socket base
+          ctx.fillStyle = isEven ? "rgba(15, 25, 48, 0.78)" : "rgba(8, 14, 30, 0.88)";
+          ctx.fillRect(x + 1, y + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+
+          // Top/Left Inner Shadow & Bottom/Right Rim Highlight (3D Beveled Socket)
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.65)";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(x + 2, y + CELL_SIZE - 2);
+          ctx.lineTo(x + 2, y + 2);
+          ctx.lineTo(x + CELL_SIZE - 2, y + 2);
+          ctx.stroke();
+
+          ctx.strokeStyle = "rgba(56, 189, 248, 0.18)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x + CELL_SIZE - 2, y + 2);
+          ctx.lineTo(x + CELL_SIZE - 2, y + CELL_SIZE - 2);
+          ctx.lineTo(x + 2, y + CELL_SIZE - 2);
+          ctx.stroke();
+
+          // Mode 8: Alchemy Gold Underlay (1 = Brushed Silver Filigree, 2 = 24K Embossed Gold Bullion)
+          if (state.mode === "alchemy") {
+            const tier = state.alchemyGrid[r][c];
+            if (tier === 1) {
+              const sGrad = ctx.createLinearGradient(x, y, x + CELL_SIZE, y + CELL_SIZE);
+              sGrad.addColorStop(0, "rgba(226, 232, 240, 0.55)");
+              sGrad.addColorStop(0.5, "rgba(148, 163, 184, 0.35)");
+              sGrad.addColorStop(1, "rgba(203, 213, 225, 0.55)");
+              ctx.fillStyle = sGrad;
+              ctx.fillRect(x + 3, y + 3, CELL_SIZE - 6, CELL_SIZE - 6);
+              ctx.strokeStyle = "#e2e8f0";
+              ctx.lineWidth = 1.2;
+              ctx.strokeRect(x + 5, y + 5, CELL_SIZE - 10, CELL_SIZE - 10);
+            } else if (tier === 2) {
+              const goldGrad = ctx.createLinearGradient(x, y, x + CELL_SIZE, y + CELL_SIZE);
+              goldGrad.addColorStop(0, "rgba(253, 224, 71, 0.85)");
+              goldGrad.addColorStop(0.5, "rgba(254, 249, 195, 0.92)");
+              goldGrad.addColorStop(1, "rgba(202, 138, 4, 0.88)");
+              ctx.fillStyle = goldGrad;
+              ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+              ctx.strokeStyle = "#fef08a";
+              ctx.lineWidth = 1.8;
+              ctx.strokeRect(x + 5, y + 5, CELL_SIZE - 10, CELL_SIZE - 10);
+              // Corner Bullion Rivets
+              ctx.fillStyle = "#b45309";
+              for (const [rx, ry] of [[8, 8], [CELL_SIZE - 8, 8], [8, CELL_SIZE - 8], [CELL_SIZE - 8, CELL_SIZE - 8]]) {
+                ctx.beginPath();
+                ctx.arc(x + rx, y + ry, 2, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            }
+          }
+
+          // Mode 10: Lava Escape Molten Magma Convection Cracks
+          if (state.mode === "lava_escape" && state.lavaGrid[r][c]) {
+            const lavaPulse = 0.65 + Math.sin(timeNow * 0.009 + r + c) * 0.2;
+            const lGrad = ctx.createRadialGradient(x + 34, y + 34, 4, x + 34, y + 34, 38);
+            lGrad.addColorStop(0, `rgba(254, 240, 138, ${lavaPulse})`);
+            lGrad.addColorStop(0.55, `rgba(249, 115, 22, ${lavaPulse})`);
+            lGrad.addColorStop(1, "rgba(153, 27, 27, 0.88)");
+            ctx.fillStyle = lGrad;
+            ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+            // Magma Fissure Lines
+            ctx.strokeStyle = "#fef08a";
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.moveTo(x + 10, y + 14);
+            ctx.lineTo(x + 32, y + 34);
+            ctx.lineTo(x + 56, y + 22);
+            ctx.moveTo(x + 32, y + 34);
+            ctx.lineTo(x + 22, y + 56);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // 2. Mode 4: Ice Storm 3D Refractive Glacier Columns & Cryo-Skulls
+      if (state.mode === "ice_storm") {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          const h = state.iceColumns[c];
+          if (h > 0) {
+            const x = c * CELL_SIZE;
+            const y = (GRID_SIZE - h) * CELL_SIZE;
+            const heightPx = h * CELL_SIZE;
+            const iceGrad = ctx.createLinearGradient(x, y, x + CELL_SIZE, y + heightPx);
+            iceGrad.addColorStop(0, "rgba(186, 230, 253, 0.62)");
+            iceGrad.addColorStop(0.5, "rgba(56, 189, 248, 0.48)");
+            iceGrad.addColorStop(1, "rgba(3, 105, 161, 0.75)");
+            ctx.fillStyle = iceGrad;
+            ctx.fillRect(x + 3, y + 2, CELL_SIZE - 6, heightPx - 4);
+
+            // Internal Frost Fracture Cracks
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.65)";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(x + 12, y + 14);
+            ctx.lineTo(x + 34, y + 28);
+            ctx.lineTo(x + 54, y + 16);
+            ctx.stroke();
+
+            ctx.strokeStyle = "#e0f2fe";
+            ctx.lineWidth = 2.2;
+            ctx.strokeRect(x + 3, y + 2, CELL_SIZE - 6, heightPx - 4);
+
+            // Vector Cryo-Skull Alert if column reached top (h >= 8)
+            if (h >= GRID_SIZE) {
+              const pulse = 1 + Math.sin(timeNow * 0.018) * 0.15;
+              ctx.save();
+              ctx.translate(x + 34, 28);
+              ctx.scale(pulse, pulse);
+              ctx.fillStyle = "#ef4444";
+              ctx.beginPath();
+              ctx.arc(0, 0, 14, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = "#ffffff";
+              ctx.font = "900 11px 'Segoe UI', sans-serif";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText("FREEZE!", 0, 0);
+              ctx.restore();
+            }
+          }
+        }
+      }
+
+      // 3. Mode 2: Diamond Mine 3D Geological Strata & Custom Vector Treasures
+      if (state.mode === "diamond_mine") {
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            const dirt = state.dirtGrid[r][c];
+            if (dirt > 0) {
+              const x = c * CELL_SIZE;
+              const y = r * CELL_SIZE;
+              const dGrad = ctx.createLinearGradient(x, y, x + CELL_SIZE, y + CELL_SIZE);
+              if (dirt === 3) {
+                // Bedrock Stone / Obsidian Strata
+                dGrad.addColorStop(0, "#475569");
+                dGrad.addColorStop(1, "#1e293b");
+              } else if (dirt === 2) {
+                // Dense Clay / Mineral Vein Strata
+                dGrad.addColorStop(0, "#92400e");
+                dGrad.addColorStop(1, "#451a03");
+              } else {
+                // Topsoil Pebble Strata
+                dGrad.addColorStop(0, "#b45309");
+                dGrad.addColorStop(1, "#78350f");
+              }
+              ctx.fillStyle = dGrad;
+              ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+
+              // Geological Strata Crack Lines
+              ctx.strokeStyle = "rgba(0, 0, 0, 0.45)";
+              ctx.lineWidth = 1.4;
+              ctx.beginPath();
+              ctx.moveTo(x + 8, y + 18);
+              ctx.lineTo(x + 28, y + 26);
+              ctx.lineTo(x + 56, y + 16);
+              ctx.stroke();
+
+              ctx.strokeStyle = dirt === 3 ? "rgba(148, 163, 184, 0.55)" : "rgba(251, 191, 36, 0.42)";
+              ctx.lineWidth = 1.5;
+              ctx.strokeRect(x + 3, y + 3, CELL_SIZE - 6, CELL_SIZE - 6);
+
+              // Draw Custom 3D Vector Buried Treasure inside Dirt!
+              const tr = state.treasureGrid[r][c];
+              if (tr) {
+                drawBuriedTreasureVector(ctx, x, y, tr, timeNow);
+              }
+            }
+          }
+        }
+
+        // Golden Excavation Depth Line under Row 5 (y = 6 * CELL_SIZE)
+        const lineY = 6 * CELL_SIZE;
+        ctx.save();
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 4]);
+        ctx.beginPath();
+        ctx.moveTo(0, lineY);
+        ctx.lineTo(CANVAS_SIZE, lineY);
+        ctx.stroke();
+        ctx.fillStyle = "#facc15";
+        ctx.font = "900 10px 'Segoe UI', sans-serif";
+        ctx.fillText("▼ EXCAVATION DEPTH LINE (CLEAR ABOVE FOR +30S & +20M) ▼", 12, lineY - 5);
+        ctx.restore();
+      }
+
+      // 4. Mode 7: Zen Breath Guided Breathing Ring
+      if (state.mode === "zen") {
+        const cycle = (timeNow / 1000) % 12;
+        let breathScale = 0.5;
+        if (cycle < 4) breathScale = 0.4 + (cycle / 4) * 0.6;
+        else if (cycle < 8) breathScale = 1.0;
+        else breathScale = 1.0 - ((cycle - 8) / 4) * 0.6;
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(0, 245, 212, 0.28)";
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.arc(CANVAS_SIZE / 2, CANVAS_SIZE / 2, 220 * breathScale, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 5. Interpolate & Draw All Playable 3D Ray-Traced Gems
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          if (state.mode === "diamond_mine" && state.dirtGrid[r][c] > 0) continue;
+          const gem = state.grid[r][c];
+          if (!gem) continue;
+
+          gem.x += (gem.targetX - gem.x) * 0.28;
+          gem.y += (gem.targetY - gem.y) * 0.28;
+          gem.scale += (1 - gem.scale) * 0.2;
+
+          drawMultiFacetGem(ctx, gem, timeNow);
+        }
+      }
+
+      // 6. Highlight Selected Cell with Rotating Golden Target Brackets & AI Hint [H]
+      if (state.selected) {
+        const sx = state.selected.c * CELL_SIZE;
+        const sy = state.selected.r * CELL_SIZE;
+        ctx.save();
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 3.5;
+        ctx.shadowColor = "#facc15";
+        ctx.shadowBlur = 14;
+        ctx.strokeRect(sx + 4, sy + 4, CELL_SIZE - 8, CELL_SIZE - 8);
+        ctx.restore();
+      }
+
+      if (state.hintPair && state.hintTimer > 0) {
+        state.hintTimer--;
+        const pulse = 2 + Math.sin(timeNow * 0.015) * 2;
+        ctx.save();
+        ctx.strokeStyle = "#00f5d4";
+        ctx.lineWidth = 3.5;
+        ctx.shadowColor = "#00f5d4";
+        ctx.shadowBlur = 14;
+        for (const cell of state.hintPair) {
+          ctx.strokeRect(
+            cell.c * CELL_SIZE + 4 + pulse,
+            cell.r * CELL_SIZE + 4 + pulse,
+            CELL_SIZE - 8 - pulse * 2,
+            CELL_SIZE - 8 - pulse * 2
+          );
+        }
+        ctx.restore();
+      }
+
+      // 7. Render Shockwaves, Lightning Beams, Boss Plasma Bolts, Shards & Floating Texts
+      drawVfxOverlays(timeNow);
+
+      // 8. Render Live 12-Mode Interactive Mini-Game Stage Canvas (#miniGameStageCanvas)
+      renderMiniGameStageCanvas(timeNow);
+
+      requestAnimationFrame(renderArenaFrame);
+    }
+
+    // =========================================================================
+    // 12. LIVE 12-MODE INTERACTIVE MINI-GAME STAGE CANVAS RENDERER (544x92)
+    // =========================================================================
+    function renderMiniGameStageCanvas(timeNow) {
+      if (!miniCtx || !miniCanvas) return;
+      const W = miniCanvas.width;
+      const H = miniCanvas.height;
+      miniCtx.clearRect(0, 0, W, H);
+
+      // Sleek Dark-Crystal Background
+      const bg = miniCtx.createLinearGradient(0, 0, W, H);
+      bg.addColorStop(0, "#050b1a");
+      bg.addColorStop(0.5, "#0b1736");
+      bg.addColorStop(1, "#040814");
+      miniCtx.fillStyle = bg;
+      miniCtx.fillRect(0, 0, W, H);
+
+      const m = state.mode;
+
+      if (m === "classic") {
+        // 1. CLASSIC: Planetary Nebula Warp Conduit & Orbiting Crystal Moons
+        const pct = Math.min(1, state.levelProgress / Math.max(1, state.levelTarget));
+        // Swirling Warp Conduit Tube
+        miniCtx.fillStyle = "rgba(15, 23, 42, 0.9)";
+        miniCtx.strokeStyle = "rgba(56, 189, 248, 0.45)";
+        miniCtx.lineWidth = 2;
+        miniCtx.beginPath();
+        miniCtx.roundRect(130, 26, 390, 26, 13);
+        miniCtx.fill();
+        miniCtx.stroke();
+
+        const tubeGrad = miniCtx.createLinearGradient(130, 26, 130 + 390 * pct, 52);
+        tubeGrad.addColorStop(0, "#0284c7");
+        tubeGrad.addColorStop(0.5, "#38bdf8");
+        tubeGrad.addColorStop(1, "#00f5d4");
+        miniCtx.fillStyle = tubeGrad;
+        miniCtx.beginPath();
+        miniCtx.roundRect(132, 28, Math.max(16, 386 * pct), 22, 11);
+        miniCtx.fill();
+
+        // 3D Ringed Crystal Planet on Left
+        miniCtx.save();
+        miniCtx.translate(58, 46);
+        const pGrad = miniCtx.createRadialGradient(-8, -8, 2, 0, 0, 24);
+        pGrad.addColorStop(0, "#bae6fd");
+        pGrad.addColorStop(0.5, "#0284c7");
+        pGrad.addColorStop(1, "#1e1b4b");
+        miniCtx.fillStyle = pGrad;
+        miniCtx.beginPath();
+        miniCtx.arc(0, 0, 23, 0, Math.PI * 2);
+        miniCtx.fill();
+        miniCtx.strokeStyle = "#facc15";
+        miniCtx.lineWidth = 2.2;
+        miniCtx.beginPath();
+        miniCtx.ellipse(0, 0, 36, 9, -0.25, 0, Math.PI * 2);
+        miniCtx.stroke();
+        miniCtx.restore();
+
+        miniCtx.fillStyle = "#e2e8f0";
+        miniCtx.font = "800 11px 'Segoe UI', sans-serif";
+        miniCtx.fillText(`PLANETARY WARP CONDUIT • STAGE ${state.level} (${Math.round(pct * 100)}%)`, 134, 20);
+        miniCtx.fillStyle = "#94a3b8";
+        miniCtx.font = "700 10px 'Segoe UI', sans-serif";
+        miniCtx.fillText(`Press [SPACE] for Warp Starburst • Next Stage Multiplier: x${state.level + 1}`, 134, 72);
+      } else if (m === "diamond_mine") {
+        // 2. DIAMOND MINE: Subterranean Hydraulic Laser Drill + Rolling Mine Cart on Rails
+        // Mine Rails
+        miniCtx.strokeStyle = "#64748b";
+        miniCtx.lineWidth = 3;
+        miniCtx.beginPath();
+        miniCtx.moveTo(16, 74);
+        miniCtx.lineTo(W - 16, 74);
+        miniCtx.stroke();
+
+        // Spinning Hydraulic Laser Drill on Left
+        miniCtx.save();
+        miniCtx.translate(54, 44);
+        miniCtx.fillStyle = "#eab308";
+        miniCtx.fillRect(-26, -14, 28, 28);
+        miniCtx.beginPath();
+        miniCtx.moveTo(2, -16);
+        miniCtx.lineTo(32, 0);
+        miniCtx.lineTo(2, 16);
+        miniCtx.closePath();
+        miniCtx.fillStyle = "#38bdf8";
+        miniCtx.fill();
+        // Laser beam into strata
+        miniCtx.strokeStyle = "#00f5d4";
+        miniCtx.lineWidth = 2.5 + Math.sin(timeNow * 0.03) * 1.5;
+        miniCtx.beginPath();
+        miniCtx.moveTo(32, 0);
+        miniCtx.lineTo(105, 0);
+        miniCtx.stroke();
+        miniCtx.restore();
+
+        // Rolling Mine Cart carrying Gold & Diamonds
+        const cartX = 165 + Math.sin(timeNow * 0.002) * 35;
+        miniCtx.fillStyle = "#334155";
+        miniCtx.strokeStyle = "#facc15";
+        miniCtx.lineWidth = 2;
+        miniCtx.beginPath();
+        miniCtx.roundRect(cartX, 34, 68, 30, 5);
+        miniCtx.fill();
+        miniCtx.stroke();
+        miniCtx.fillStyle = "#facc15";
+        miniCtx.beginPath();
+        miniCtx.arc(cartX + 16, 68, 6, 0, Math.PI * 2);
+        miniCtx.arc(cartX + 52, 68, 6, 0, Math.PI * 2);
+        miniCtx.fill();
+
+        miniCtx.fillStyle = "#facc15";
+        miniCtx.font = "900 12px 'Segoe UI', sans-serif";
+        miniCtx.fillText(`EXCAVATION DEPTH: ${state.mineDepth}m • RELICS & BULLION: ${state.treasuresCollected}`, 265, 38);
+        miniCtx.fillStyle = "#7dd3fc";
+        miniCtx.font = "700 10.5px 'Segoe UI', sans-serif";
+        miniCtx.fillText(`SHIFT CLOCK: ${formatSeconds(state.mineTimeLeft)} • [SPACE] Detonate Dynamite Row!`, 265, 60);
+      } else if (m === "lightning") {
+        // 3. LIGHTNING: Dual Arcing Tesla Coils & Cryo-Plasma Time Extension Tank
+        for (const tx of [42, W - 42]) {
+          miniCtx.fillStyle = "#38bdf8";
+          miniCtx.beginPath();
+          miniCtx.arc(tx, 30, 12, 0, Math.PI * 2);
+          miniCtx.fill();
+          miniCtx.fillStyle = "#475569";
+          miniCtx.fillRect(tx - 8, 42, 16, 34);
+        }
+        // Live Electric Arc between Tesla Coils
+        miniCtx.strokeStyle = "#00f5d4";
+        miniCtx.lineWidth = 2.5;
+        miniCtx.beginPath();
+        miniCtx.moveTo(54, 30);
+        for (let x = 90; x < W - 54; x += 45) {
+          miniCtx.lineTo(x, 24 + (Math.random() - 0.5) * 18);
+        }
+        miniCtx.lineTo(W - 54, 30);
+        miniCtx.stroke();
+
+        // Cryo-Plasma Time Extension Tank Bar
+        const tankPct = Math.min(1, state.timeExtensionTank / 60);
+        miniCtx.fillStyle = "rgba(15, 23, 42, 0.9)";
+        miniCtx.strokeStyle = "#00f5d4";
+        miniCtx.lineWidth = 2;
+        miniCtx.beginPath();
+        miniCtx.roundRect(90, 44, W - 180, 26, 10);
+        miniCtx.fill();
+        miniCtx.stroke();
+
+        miniCtx.fillStyle = "#00f5d4";
+        miniCtx.beginPath();
+        miniCtx.roundRect(92, 46, Math.max(8, (W - 184) * tankPct), 22, 8);
+        miniCtx.fill();
+
+        miniCtx.fillStyle = "#ffffff";
+        miniCtx.font = "900 11px 'Segoe UI', sans-serif";
+        miniCtx.textAlign = "center";
+        miniCtx.fillText(
+          `TIME EXTENSION TANK: +${state.timeExtensionTank}s CHARGED • SPEED TIER x${state.lightningSpeedTier}`,
+          W / 2,
+          61
+        );
+        miniCtx.textAlign = "left";
+      } else if (m === "ice_storm") {
+        // 4. ICE STORM: Steam Boiler Furnace + Analog Pressure Gauge + 8 Column Cryo LEDs
+        miniCtx.save();
+        miniCtx.translate(56, 46);
+        miniCtx.fillStyle = "#1e293b";
+        miniCtx.strokeStyle = "#f97316";
+        miniCtx.lineWidth = 3;
+        miniCtx.beginPath();
+        miniCtx.arc(0, 0, 30, 0, Math.PI * 2);
+        miniCtx.fill();
+        miniCtx.stroke();
+        // Gauge Needle
+        const needleAngle = -Math.PI * 0.75 + (state.steamBoiler / 100) * Math.PI * 1.5;
+        miniCtx.strokeStyle = "#ef4444";
+        miniCtx.lineWidth = 3;
+        miniCtx.beginPath();
+        miniCtx.moveTo(0, 0);
+        miniCtx.lineTo(Math.cos(needleAngle) * 22, Math.sin(needleAngle) * 22);
+        miniCtx.stroke();
+        miniCtx.restore();
+
+        // 8 Column Glacier Height Indicators
+        for (let c = 0; c < 8; c++) {
+          const h = state.iceColumns[c];
+          const bx = 115 + c * 32;
+          miniCtx.fillStyle = "rgba(15, 23, 42, 0.9)";
+          miniCtx.fillRect(bx, 18, 22, 56);
+          const colH = (h / 8) * 52;
+          miniCtx.fillStyle = h >= 7 ? "#ef4444" : "#38bdf8";
+          miniCtx.fillRect(bx + 2, 72 - colH, 18, colH);
+          miniCtx.strokeStyle = "rgba(186, 230, 253, 0.45)";
+          miniCtx.strokeRect(bx, 18, 22, 56);
+        }
+
+        miniCtx.fillStyle = "#facc15";
+        miniCtx.font = "900 11.5px 'Segoe UI', sans-serif";
+        miniCtx.fillText(`BOILER PRESSURE: ${state.steamBoiler}%`, 380, 38);
+        miniCtx.fillStyle = "#bae6fd";
+        miniCtx.font = "700 10px 'Segoe UI', sans-serif";
+        miniCtx.fillText(`MULTIPLIER: x${state.boilerTier} • [SPACE] Steam Vent`, 380, 58);
+      } else if (m === "butterflies") {
+        // 5. BUTTERFLIES: Laser Spider Web & Articulated 8-Legged Mechanical Cyber-Spider
+        miniCtx.strokeStyle = "rgba(244, 63, 94, 0.38)";
+        miniCtx.lineWidth = 1.2;
+        for (let i = 0; i < 9; i++) {
+          miniCtx.beginPath();
+          miniCtx.moveTo(i * 68, 0);
+          miniCtx.lineTo(W / 2, H);
+          miniCtx.stroke();
+        }
+        // Find column of highest butterfly to stalk!
+        let targetCol = 3.5;
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            if (state.grid[r][c] && state.grid[r][c].isButterfly) {
+              targetCol = c;
+              r = GRID_SIZE;
+              break;
+            }
+          }
+        }
+        const spiderX = targetCol * 68 + 34 + Math.sin(timeNow * 0.005) * 14;
+        miniCtx.save();
+        miniCtx.translate(spiderX, 44);
+        // 8 Articulated Legs
+        miniCtx.strokeStyle = "#f43f5e";
+        miniCtx.lineWidth = 2.2;
+        for (let leg = -2; leg <= 2; leg++) {
+          if (leg === 0) continue;
+          const wiggle = Math.sin(timeNow * 0.015 + leg) * 4;
+          miniCtx.beginPath();
+          miniCtx.moveTo(0, 0);
+          miniCtx.lineTo(leg * 11, -12 + wiggle);
+          miniCtx.lineTo(leg * 18, 8 + wiggle);
+          miniCtx.stroke();
+        }
+        miniCtx.fillStyle = "#0f172a";
+        miniCtx.strokeStyle = "#ef4444";
+        miniCtx.beginPath();
+        miniCtx.arc(0, 0, 13, 0, Math.PI * 2);
+        miniCtx.fill();
+        miniCtx.stroke();
+        // Glowing red spider eyes
+        miniCtx.fillStyle = "#ef4444";
+        miniCtx.beginPath();
+        miniCtx.arc(-4, -2, 2.5, 0, Math.PI * 2);
+        miniCtx.arc(4, -2, 2.5, 0, Math.PI * 2);
+        miniCtx.fill();
+        miniCtx.restore();
+
+        miniCtx.fillStyle = "#fef08a";
+        miniCtx.font = "900 11px 'Segoe UI', sans-serif";
+        miniCtx.fillText(`🦋 MONARCHS RESCUED: ${state.butterfliesRescued}`, 14, 22);
+      } else if (m === "poker") {
+        // 6. JEWEL POKER: Monte Carlo 5-Card Foil Hand Table & Live Hand Evaluator
+        miniCtx.fillStyle = "#064e3b";
+        miniCtx.fillRect(8, 8, W - 16, H - 16);
+        miniCtx.strokeStyle = "#facc15";
+        miniCtx.lineWidth = 2;
+        miniCtx.strokeRect(8, 8, W - 16, H - 16);
+
+        for (let i = 0; i < 5; i++) {
+          const cx = 24 + i * 64;
+          const cy = 16;
+          const card = state.pokerHand[i];
+          miniCtx.fillStyle = card ? "#0f172a" : "rgba(15, 23, 42, 0.5)";
+          miniCtx.strokeStyle = card ? "#facc15" : "rgba(255,255,255,0.25)";
+          miniCtx.lineWidth = 1.8;
+          miniCtx.beginPath();
+          miniCtx.roundRect(cx, cy, 52, 60, 6);
+          miniCtx.fill();
+          miniCtx.stroke();
+
+          if (card) {
+            const gType = GEM_TYPES[card.color] || GEM_TYPES[0];
+            miniCtx.fillStyle = card.polish === "wild" ? "#00f5d4" : gType.baseColor;
+            miniCtx.font = "900 22px 'Segoe UI', sans-serif";
+            miniCtx.textAlign = "center";
+            miniCtx.fillText(card.polish === "wild" ? "🌈" : gType.cardSuit, cx + 26, cy + 36);
+            if (card.polish && card.polish !== "wild") {
+              miniCtx.font = "12px sans-serif";
+              miniCtx.fillText(card.polish === "flame" ? "🔥" : "⚡", cx + 40, cy + 16);
+            }
+          }
+        }
+        miniCtx.textAlign = "left";
+        miniCtx.fillStyle = "#fef08a";
+        miniCtx.font = "900 12px 'Segoe UI', sans-serif";
+        miniCtx.fillText(`HANDS DEALT: ${state.pokerHandsCompleted}`, 355, 36);
+        miniCtx.fillStyle = "#ffffff";
+        miniCtx.font = "800 11px 'Segoe UI', sans-serif";
+        miniCtx.fillText(`LAST: ${state.lastPokerHandName}`, 355, 58);
+      } else if (m === "zen") {
+        // 7. ZEN BREATH: Sacred Geometry Lotus Mandala & Binaural Sine Wave Visualizer
+        const phase = state.zenBreathTimer < 4 ? "INHALE (4s)" : state.zenBreathTimer < 8 ? "HOLD (4s)" : "EXHALE (4s)";
+        miniCtx.strokeStyle = "#00f5d4";
+        miniCtx.lineWidth = 2;
+        miniCtx.beginPath();
+        for (let x = 20; x < W - 20; x += 4) {
+          const y = H / 2 + Math.sin(x * 0.04 + timeNow * 0.004) * 18 * Math.sin(x * 0.01);
+          if (x === 20) miniCtx.moveTo(x, y);
+          else miniCtx.lineTo(x, y);
+        }
+        miniCtx.stroke();
+        miniCtx.fillStyle = "#ffffff";
+        miniCtx.font = "900 13px 'Segoe UI', sans-serif";
+        miniCtx.textAlign = "center";
+        miniCtx.fillText(`🧘 ${phase} • MINDFULNESS FLOW LEVEL ${state.level}`, W / 2, 24);
+        miniCtx.textAlign = "left";
+      } else if (m === "alchemy") {
+        // 8. ALCHEMY GOLD: Hermetic Crucible & 64-Tile 24K Bullion Ingot Progress
+        const pct = state.goldTilesCount / 64;
+        miniCtx.fillStyle = "#facc15";
+        miniCtx.font = "900 12px 'Segoe UI', sans-serif";
+        miniCtx.fillText(`⚗️ PHILOSOPHER'S CRUCIBLE: ${state.goldTilesCount} / 64 TILES 24K SOLID GOLD`, 20, 28);
+        miniCtx.fillStyle = "rgba(15, 23, 42, 0.9)";
+        miniCtx.strokeStyle = "#facc15";
+        miniCtx.lineWidth = 2;
+        miniCtx.beginPath();
+        miniCtx.roundRect(20, 40, W - 40, 28, 8);
+        miniCtx.fill();
+        miniCtx.stroke();
+        const gBar = miniCtx.createLinearGradient(22, 42, W - 44, 66);
+        gBar.addColorStop(0, "#ca8a04");
+        gBar.addColorStop(0.5, "#facc15");
+        gBar.addColorStop(1, "#fef08a");
+        miniCtx.fillStyle = gBar;
+        miniCtx.beginPath();
+        miniCtx.roundRect(22, 42, Math.max(10, (W - 44) * pct), 24, 6);
+        miniCtx.fill();
+      } else if (m === "time_bombs") {
+        // 9. TIME BOMBS: EOD Bomb Squad Radar Sweep & Active Bomb Blips
+        miniCtx.save();
+        miniCtx.translate(54, 46);
+        miniCtx.strokeStyle = "#22c55e";
+        miniCtx.lineWidth = 2;
+        miniCtx.beginPath();
+        miniCtx.arc(0, 0, 32, 0, Math.PI * 2);
+        miniCtx.stroke();
+        const sweep = (timeNow * 0.004) % (Math.PI * 2);
+        miniCtx.beginPath();
+        miniCtx.moveTo(0, 0);
+        miniCtx.lineTo(Math.cos(sweep) * 32, Math.sin(sweep) * 32);
+        miniCtx.stroke();
+        miniCtx.restore();
+
+        miniCtx.fillStyle = "#ef4444";
+        miniCtx.font = "900 13px 'Segoe UI', sans-serif";
+        miniCtx.fillText(`💣 EOD DEFUSAL RADAR • MOST URGENT BOMB: ${state.lowestBombTimer} MOVES`, 108, 38);
+        miniCtx.fillStyle = "#22c55e";
+        miniCtx.font = "800 11px 'Segoe UI', sans-serif";
+        miniCtx.fillText(`BOMBS DEFUSED: ${state.bombsDefused} • Press [SPACE] to Launch Defusal Drone!`, 108, 62);
+      } else if (m === "lava_escape") {
+        // 10. LAVA ESCAPE: Volcanic Seismograph & Cryo-Coolant Manifold
+        miniCtx.strokeStyle = "#f97316";
+        miniCtx.lineWidth = 2.2;
+        miniCtx.beginPath();
+        for (let x = 18; x < 260; x += 6) {
+          const spike = Math.sin(x * 0.2 + timeNow * 0.02) * 18;
+          if (x === 18) miniCtx.moveTo(x, 46 + spike);
+          else miniCtx.lineTo(x, 46 + spike);
+        }
+        miniCtx.stroke();
+        miniCtx.fillStyle = "#facc15";
+        miniCtx.font = "900 12px 'Segoe UI', sans-serif";
+        miniCtx.fillText(`🌋 SEISMOGRAPH ACTIVE • MAGMA COOLED: ${state.magmaCooled}`, 275, 38);
+        miniCtx.fillStyle = "#38bdf8";
+        miniCtx.font = "700 10.5px 'Segoe UI', sans-serif";
+        miniCtx.fillText(`Press [SPACE] to Fire Cryo-Wave across Highest Magma!`, 275, 60);
+      } else if (m === "boss_raid") {
+        // 11. BOSS RAID: 3D Articulated Prism Leviathan Dreadnought & Live Hull Integrity Bar
+        const hpPct = Math.max(0, state.bossHp / Math.max(1, state.bossMaxHp));
+        if (state.bossHitFlash > 0) state.bossHitFlash--;
+
+        // Draw Articulated Prism Leviathan Boss Core & Wings
+        miniCtx.save();
+        miniCtx.translate(68, 46);
+        const wingY = Math.sin(timeNow * 0.006) * 5;
+        miniCtx.fillStyle = state.bossHitFlash > 0 ? "#ffffff" : "#7c3aed";
+        miniCtx.strokeStyle = "#00f5d4";
+        miniCtx.lineWidth = 2;
+        // Left & right dreadnought wings
+        miniCtx.beginPath();
+        miniCtx.moveTo(-48, -14 + wingY);
+        miniCtx.lineTo(-14, -22);
+        miniCtx.lineTo(-14, 22);
+        miniCtx.lineTo(-48, 14 + wingY);
+        miniCtx.closePath();
+        miniCtx.fill();
+        miniCtx.stroke();
+
+        miniCtx.beginPath();
+        miniCtx.moveTo(48, -14 + wingY);
+        miniCtx.lineTo(14, -22);
+        miniCtx.lineTo(14, 22);
+        miniCtx.lineTo(48, 14 + wingY);
+        miniCtx.closePath();
+        miniCtx.fill();
+        miniCtx.stroke();
+
+        // Central Leviathan Eye
+        miniCtx.fillStyle = "#ef4444";
+        miniCtx.beginPath();
+        miniCtx.arc(0, 0, 12, 0, Math.PI * 2);
+        miniCtx.fill();
+        miniCtx.restore();
+
+        // Boss Hull Bar
+        miniCtx.fillStyle = "#f43f5e";
+        miniCtx.font = "900 12px 'Segoe UI', sans-serif";
+        miniCtx.fillText(`👾 DREAD PRISM LEVIATHAN (TIER ${state.bossStage}) — ${state.bossHp.toLocaleString()} HP`, 138, 28);
+        miniCtx.fillStyle = "rgba(15, 23, 42, 0.9)";
+        miniCtx.strokeStyle = "#f43f5e";
+        miniCtx.lineWidth = 2;
+        miniCtx.beginPath();
+        miniCtx.roundRect(138, 38, 384, 24, 8);
+        miniCtx.fill();
+        miniCtx.stroke();
+
+        const hpGrad = miniCtx.createLinearGradient(140, 40, 520, 60);
+        hpGrad.addColorStop(0, "#dc2626");
+        hpGrad.addColorStop(0.5, "#ec4899");
+        hpGrad.addColorStop(1, "#a855f7");
+        miniCtx.fillStyle = hpGrad;
+        miniCtx.beginPath();
+        miniCtx.roundRect(140, 40, Math.max(6, 380 * hpPct), 20, 6);
+        miniCtx.fill();
+      } else if (m === "stratamax") {
+        // 12. STRATAMAX 20: Live Score-Per-Move (SPM) Telemetry Sparkline Chart
+        miniCtx.fillStyle = "#38bdf8";
+        miniCtx.font = "900 11.5px 'Segoe UI', sans-serif";
+        const ppm = state.movesMade > 0 ? Math.round(state.score / state.movesMade) : 0;
+        miniCtx.fillText(
+          `🧩 STRATAMAX TELEMETRY • MOVES LEFT: ${state.movesRemaining}/20 • AVG PTS/MOVE: ${ppm.toLocaleString()}`,
+          18,
+          22
+        );
+
+        // Draw Sparkline
+        miniCtx.strokeStyle = "#facc15";
+        miniCtx.lineWidth = 2.4;
+        miniCtx.beginPath();
+        const hist = state.spmHistory.length > 1 ? state.spmHistory : [0, 500, 1200];
+        const maxVal = Math.max(2000, ...hist);
+        hist.forEach((v, idx) => {
+          const sx = 24 + (idx / Math.max(1, hist.length - 1)) * (W - 48);
+          const sy = 76 - (v / maxVal) * 42;
+          if (idx === 0) miniCtx.moveTo(sx, sy);
+          else miniCtx.lineTo(sx, sy);
+        });
+        miniCtx.stroke();
+      }
+    }
+
+    function drawVfxOverlays(timeNow) {
+      // Shockwaves
+      for (let i = state.shockwaves.length - 1; i >= 0; i--) {
+        const sw = state.shockwaves[i];
+        sw.radius += (sw.maxRadius - sw.radius) * 0.16;
+        sw.alpha -= 0.045;
+        if (sw.alpha <= 0) {
+          state.shockwaves.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = sw.alpha;
+        ctx.strokeStyle = sw.color;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // High-Voltage Lightning Beams
+      for (let i = state.lightningBeams.length - 1; i >= 0; i--) {
+        const lb = state.lightningBeams[i];
+        lb.alpha -= 0.07;
+        if (lb.alpha <= 0) {
+          state.lightningBeams.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = lb.alpha;
+        ctx.strokeStyle = lb.color;
+        ctx.lineWidth = lb.width;
+        ctx.shadowColor = lb.color;
+        ctx.shadowBlur = 16;
+        ctx.beginPath();
+        ctx.moveTo(lb.x1, lb.y1);
+        const steps = 6;
+        for (let s = 1; s < steps; s++) {
+          const t = s / steps;
+          const jx = lb.x1 + (lb.x2 - lb.x1) * t + (Math.random() - 0.5) * 16;
+          const jy = lb.y1 + (lb.y2 - lb.y1) * t + (Math.random() - 0.5) * 16;
+          ctx.lineTo(jx, jy);
+        }
+        ctx.lineTo(lb.x2, lb.y2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Boss Raid Homing Plasma Bolts
+      for (let i = state.plasmaBolts.length - 1; i >= 0; i--) {
+        const pb = state.plasmaBolts[i];
+        pb.progress += 0.08;
+        if (pb.progress >= 1) {
+          state.bossHitFlash = 6;
+          state.plasmaBolts.splice(i, 1);
+          continue;
+        }
+        const cx = pb.x + (pb.tx - pb.x) * pb.progress;
+        const cy = pb.y + (pb.ty - pb.y) * (pb.progress * pb.progress);
+        ctx.save();
+        ctx.fillStyle = pb.color;
+        ctx.shadowColor = pb.color;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Shattering Crystal Shards
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const p = state.particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.22;
+        p.rot += p.vrot;
+        p.alpha -= 0.032;
+        if (p.alpha <= 0) {
+          state.particles.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.moveTo(0, -p.size);
+        ctx.lineTo(p.size * 0.8, p.size);
+        ctx.lineTo(-p.size * 0.8, p.size);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Floating Score / Bonus Callouts
+      for (let i = state.floatingTexts.length - 1; i >= 0; i--) {
+        const ft = state.floatingTexts[i];
+        ft.y += ft.vy;
+        ft.alpha -= 0.022;
+        if (ft.alpha <= 0) {
+          state.floatingTexts.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = ft.alpha;
+        ctx.font = `900 ${ft.size}px 'Segoe UI', sans-serif`;
+        ctx.textAlign = "center";
+        ctx.strokeStyle = "#020617";
+        ctx.lineWidth = 4;
+        ctx.strokeText(ft.text, ft.x, ft.y);
+        ctx.fillStyle = ft.color;
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.restore();
+      }
+
+      // Center Stage Elastic Banner Callout
+      if (state.bannerCallout) {
+        const b = state.bannerCallout;
+        b.scale += (1 - b.scale) * 0.22;
+        b.timer--;
+        if (b.timer < 18) b.alpha = b.timer / 18;
+        if (b.timer <= 0) {
+          state.bannerCallout = null;
+        } else {
+          ctx.save();
+          ctx.globalAlpha = b.alpha;
+          ctx.translate(CANVAS_SIZE / 2, CANVAS_SIZE / 2);
+          ctx.scale(b.scale, b.scale);
+
+          ctx.fillStyle = "rgba(4, 9, 24, 0.88)";
+          ctx.strokeStyle = b.color;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.roundRect(-220, -38, 440, 76, 14);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.font = "900 22px 'Segoe UI', sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillStyle = b.color;
+          ctx.fillText(b.text, 0, -4);
+
+          if (b.subtext) {
+            ctx.font = "700 12px 'Segoe UI', sans-serif";
+            ctx.fillStyle = "#f8fafc";
+            ctx.fillText(b.subtext, 0, 20);
+          }
+          ctx.restore();
+        }
+      }
+    }
+
+    // =========================================================================
+    // 13. ACTIVE 12-MODE TACTICAL GADGETS ([SPACE] / #btnModeGadget)
+    // =========================================================================
+    async function activateModeGadget() {
+      if (state.isAnimating || state.gameOver) return;
+
+      // Mode 12: Stratamax Tactical Undo uses its own 3-Undo budget
+      if (state.mode === "stratamax") {
+        if (state.stratamaxUndosLeft <= 0 || state.stratamaxHistory.length === 0) {
+          JewelAudio.playInvalidSwap();
+          return;
+        }
+        const prev = state.stratamaxHistory.pop();
+        state.stratamaxUndosLeft--;
+        state.score = prev.score;
+        state.movesMade = prev.movesMade;
+        state.movesRemaining = prev.movesRemaining;
+        state.grid = prev.grid;
+        JewelAudio.playSwap();
+        showBannerCallout("⏪ TACTICAL UNDO ACTIVATED!", `${state.stratamaxUndosLeft} UNDOS REMAINING`, "#38bdf8");
+        updateAllHUD();
+        return;
+      }
+
+      if (state.gadgetCharge < 100) {
+        JewelAudio.playInvalidSwap();
+        return;
+      }
+
+      state.gadgetCharge = 0;
+      const m = state.mode;
+
+      if (m === "classic") {
+        // 🌌 WARP STARBURST: Promotes 2 random gems into Flame & Star Gems!
+        const cands = [];
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            if (isCellPlayable(r, c) && !state.grid[r][c].special) cands.push({ r, c });
+          }
+        }
+        for (let i = 0; i < 2 && cands.length > 0; i++) {
+          const idx = Math.floor(Math.random() * cands.length);
+          const pick = cands.splice(idx, 1)[0];
+          state.grid[pick.r][pick.c].special = i === 0 ? "flame" : "star";
+          state.grid[pick.r][pick.c].scale = 1.45;
+          spawnShockwave(pick.r, pick.c, "#00f5d4", 90);
+        }
+        JewelAudio.playLevelUpWarp();
+        showBannerCallout("🌌 WARP STARBURST!", "FLAME & STAR GEMS FORGED!", "#00f5d4");
+      } else if (m === "diamond_mine") {
+        // 🧨 DETONATE DYNAMITE: Blasts the highest dirt row across all 8 columns!
+        let targetRow = -1;
+        for (let r = 0; r < GRID_SIZE; r++) {
+          if (state.dirtGrid[r].some((d) => d > 0)) {
+            targetRow = r;
+            break;
+          }
+        }
+        if (targetRow !== -1) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            damageDirtAt(targetRow, c, 3);
+            spawnShockwave(targetRow, c, "#f97316", 85);
+          }
+          checkDiamondMineScroll();
+        }
+        JewelAudio.playFlameExplosion();
+        showBannerCallout("🧨 DYNAMITE CHARGE DETONATED!", "ENTIRE STRATA ROW EXCAVATED!", "#facc15");
+      } else if (m === "lightning") {
+        // ⚡ TESLA OVERLOAD: Adds +5s to clock and spawns two +10s Time Gems!
+        state.lightningTimeLeft += 5;
+        for (let i = 0; i < 2; i++) {
+          const r = Math.floor(Math.random() * GRID_SIZE);
+          const c = Math.floor(Math.random() * GRID_SIZE);
+          if (state.grid[r][c]) {
+            state.grid[r][c].timeBonus = 10;
+            spawnLightningBeam(CANVAS_SIZE / 2, 0, c * CELL_SIZE + 34, r * CELL_SIZE + 34, "#00f5d4", 5);
+          }
+        }
+        JewelAudio.playHypercubeZap();
+        showBannerCallout("⚡ TESLA OVERLOAD!", "+5s CLOCK & DUAL +10s TIME GEMS!", "#00f5d4");
+      } else if (m === "ice_storm") {
+        // 🔥 STEAM VENT BLAST: Pushes all 8 rising ice columns down by 2 rows!
+        for (let c = 0; c < GRID_SIZE; c++) {
+          state.iceColumns[c] = Math.max(0, state.iceColumns[c] - 2);
+          state.iceSkullTimers[c] = 0;
+        }
+        JewelAudio.playIceShatter();
+        showBannerCallout("🔥 STEAM VENT OVERDRIVE!", "ALL 8 GLACIER COLUMNS PUSHED DOWN!", "#38bdf8");
+      } else if (m === "butterflies") {
+        // 🕸️ WEB SHOCK: Instantly rescues the highest Monarch Butterfly on the board!
+        let rescued = false;
+        for (let r = 0; r < GRID_SIZE && !rescued; r++) {
+          for (let c = 0; c < GRID_SIZE && !rescued; c++) {
+            if (state.grid[r][c] && state.grid[r][c].isButterfly) {
+              state.grid[r][c].isButterfly = false;
+              state.grid[r][c].special = "star";
+              state.butterfliesRescued++;
+              vault.butterfliesSaved++;
+              state.score += 5000 * state.multiplier;
+              spawnFloatingText(r, c, "🦋 WEB SHOCK RESCUE!", "#facc15", 16);
+              rescued = true;
+            }
+          }
+        }
+        JewelAudio.playButterflyRescue();
+        showBannerCallout("🕸️ SPIDER STUNNED!", "MONARCH RESCUED & PROMOTED TO STAR GEM!", "#facc15");
+      } else if (m === "poker") {
+        // 🃏 DEAL ROYAL WILD: Deals a Wild Hypercube Joker Card directly onto the Poker Rack!
+        dealPokerCard(0, "wild");
+        JewelAudio.playPokerFanfare();
+        showBannerCallout("🃏 ROYAL WILD JOKER DEALT!", "WILD CARD ADDED TO YOUR 5-CARD HAND!", "#00f5d4");
+      } else if (m === "zen") {
+        // 🪷 HARMONIC RIPPLE: Upgrades center gem to Hypercube!
+        if (state.grid[3][3]) {
+          state.grid[3][3].special = "hypercube";
+          state.grid[3][3].scale = 1.5;
+          spawnShockwave(3, 3, "#00f5d4", 240);
+        }
+        JewelAudio.playLevelUpWarp();
+        showBannerCallout("🪷 HARMONIC LOTUS RIPPLE", "PRISM HYPERCUBE MANIFESTED", "#00f5d4");
+      } else if (m === "alchemy") {
+        // ⚗️ PHILOSOPHER'S ELIXIR: Transmutes up to 4 non-gold tiles into 24K Solid Gold!
+        let transmuted = 0;
+        for (let r = 0; r < GRID_SIZE && transmuted < 4; r++) {
+          for (let c = 0; c < GRID_SIZE && transmuted < 4; c++) {
+            if (state.alchemyGrid[r][c] < 2) {
+              state.alchemyGrid[r][c] = 2;
+              transmuted++;
+              spawnFloatingText(r, c, "✨ 24K GOLD!", "#facc15", 14);
+            }
+          }
+        }
+        let goldCount = 0;
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            if (state.alchemyGrid[r][c] === 2) goldCount++;
+          }
+        }
+        state.goldTilesCount = goldCount;
+        JewelAudio.playLevelUpWarp();
+        showBannerCallout("⚗️ PHILOSOPHER'S ELIXIR!", "+4 TILES TRANSMUTED TO 24K GOLD!", "#facc15");
+      } else if (m === "time_bombs") {
+        // 🛠️ DEFUSE DRONE: Defuses the lowest timer bomb and adds +4 moves to all other bombs!
+        let targetBomb = null;
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            const g = state.grid[r][c];
+            if (g && g.bombTimer > 0) {
+              if (!targetBomb || g.bombTimer < targetBomb.gem.bombTimer) {
+                targetBomb = { r, c, gem: g };
+              }
+            }
+          }
+        }
+        if (targetBomb) {
+          targetBomb.gem.bombTimer = 0;
+          targetBomb.gem.special = "flame";
+          state.bombsDefused++;
+          spawnFloatingText(targetBomb.r, targetBomb.c, "🛠️ DRONE DEFUSED!", "#22c55e", 16);
+        }
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            if (state.grid[r][c] && state.grid[r][c].bombTimer > 0) {
+              state.grid[r][c].bombTimer += 4;
+            }
+          }
+        }
+        JewelAudio.playStarLightning();
+        showBannerCallout("🛠️ EOD DRONE DEPLOYED!", "URGENT BOMB DEFUSED & +4 MOVES ADDED!", "#22c55e");
+      } else if (m === "lava_escape") {
+        // ❄️ CRYO-WAVE: Cools up to 6 magma tiles on the highest lava rows!
+        let cooled = 0;
+        for (let r = 0; r < GRID_SIZE && cooled < 6; r++) {
+          for (let c = 0; c < GRID_SIZE && cooled < 6; c++) {
+            if (state.lavaGrid[r][c]) {
+              state.lavaGrid[r][c] = false;
+              state.magmaCooled++;
+              cooled++;
+              spawnFloatingText(r, c, "❄️ CRYO COOLED!", "#38bdf8", 13);
+            }
+          }
+        }
+        JewelAudio.playIceShatter();
+        showBannerCallout("❄️ CRYO-WAVE INJECTED!", `${cooled} MOLTEN MAGMA CELLS SOLIDIFIED!`, "#38bdf8");
+      } else if (m === "boss_raid") {
+        // ☄️ ORBITAL RAILGUN: Deals 3,500 DMG to Boss and shatters all Crystal Chains!
+        state.bossHp = Math.max(0, state.bossHp - 3500);
+        state.bossHitFlash = 14;
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            if (state.grid[r][c] && state.grid[r][c].chained) {
+              state.grid[r][c].chained = false;
+              spawnGemShards(r, c, "#a855f7", 6);
+            }
+          }
+        }
+        JewelAudio.playSupernovaBlast();
+        showBannerCallout("☄️ ORBITAL RAILGUN STRIKE!", "-3,500 BOSS HP & ALL CHAINS SHATTERED!", "#00f5d4");
+      }
+
+      updateAllHUD();
+    }
+
+    // =========================================================================
+    // 14. INTERACTIVE CONTROLS: POINTER SWAPS, HINTS, FORGE & SHORTCUTS
+    // =========================================================================
+    function getBoardCellFromEvent(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const px = (e.clientX - rect.left) * scaleX;
+      const py = (e.clientY - rect.top) * scaleY;
+      const c = Math.floor(px / CELL_SIZE);
+      const r = Math.floor(py / CELL_SIZE);
+      if (r < 0 || r >= GRID_SIZE || c < 0 || c >= GRID_SIZE) return null;
+      return { r, c, px, py };
+    }
+
+    canvas.addEventListener("pointerdown", (e) => {
+      if (state.isAnimating || state.gameOver) return;
+      JewelAudio.init();
+      const cell = getBoardCellFromEvent(e);
+      if (!cell || !isCellPlayable(cell.r, cell.c)) return;
+
+      if (state.selected) {
+        const dist = Math.abs(state.selected.r - cell.r) + Math.abs(state.selected.c - cell.c);
+        if (dist === 1) {
+          attemptSwap(state.selected.r, state.selected.c, cell.r, cell.c);
+          return;
+        }
+      }
+      state.selected = { r: cell.r, c: cell.c };
+      state.dragStart = cell;
+    });
+
+    canvas.addEventListener("pointermove", (e) => {
+      if (!state.dragStart || state.isAnimating || state.gameOver) return;
+      const cell = getBoardCellFromEvent(e);
+      if (!cell) return;
+      const dx = cell.px - state.dragStart.px;
+      const dy = cell.py - state.dragStart.py;
+      if (Math.hypot(dx, dy) > 22) {
+        let tr = state.dragStart.r;
+        let tc = state.dragStart.c;
+        if (Math.abs(dx) > Math.abs(dy)) {
+          tc += dx > 0 ? 1 : -1;
+        } else {
+          tr += dy > 0 ? 1 : -1;
+        }
+        state.dragStart = null;
+        attemptSwap(state.selected.r, state.selected.c, tr, tc);
+      }
+    });
+
+    window.addEventListener("pointerup", () => {
+      state.dragStart = null;
+    });
+
+    function triggerBestMoveHint() {
+      if (state.isAnimating || state.gameOver) return;
+      const swaps = findAllValidSwaps();
+      if (swaps.length > 0) {
+        const best = swaps[0];
+        state.hintPair = [
+          { r: best.r1, c: best.c1 },
+          { r: best.r2, c: best.c2 }
+        ];
+        state.hintTimer = 150;
+        JewelAudio.playMatchCascade(3);
+      } else {
+        ensurePlayableBoard();
+      }
+    }
+
+    function shuffleBoardAction() {
+      if (state.isAnimating || state.gameOver) return;
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          if (isCellPlayable(r, c) && !state.grid[r][c].special && !state.grid[r][c].isButterfly && state.grid[r][c].bombTimer === 0) {
+            state.grid[r][c].color = Math.floor(Math.random() * GEM_TYPES.length);
+            state.grid[r][c].scale = 1.25;
+          }
+        }
+      }
+      ensurePlayableBoard();
+      JewelAudio.playSwap();
+      showBannerCallout("🔀 MATRIX SHUFFLED!", "NEW GEM ALIGNMENTS READY", "#38bdf8");
+      updateAllHUD();
+    }
+
+    // UI Button Listeners
+    document.getElementById("btnHint").addEventListener("click", triggerBestMoveHint);
+    document.getElementById("btnShuffle").addEventListener("click", shuffleBoardAction);
+    document.getElementById("btnNewGame").addEventListener("click", () => startNewGame(state.mode));
+    document.getElementById("btnModeGadget").addEventListener("click", activateModeGadget);
+    document.getElementById("btnModalPlayAgain").addEventListener("click", () => startNewGame(state.mode));
+    document.getElementById("btnModalClose").addEventListener("click", () => {
+      document.getElementById("resultModal").classList.remove("open");
+    });
+
+    document.getElementById("btnMusic").addEventListener("click", () => {
+      const on = JewelAudio.toggleMusic();
+      document.getElementById("btnMusic").textContent = `🎶 MUSIC: ${on ? "ON" : "OFF"} [B]`;
+    });
+
+    document.getElementById("btnSound").addEventListener("click", () => {
+      JewelAudio.sfxEnabled = !JewelAudio.sfxEnabled;
+      document.getElementById("btnSound").textContent = `🔊 SFX: ${JewelAudio.sfxEnabled ? "ON" : "OFF"} [M]`;
+    });
+
+    // 12-Mode Selector Dock Listener
+    document.querySelectorAll(".mode-tab").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const modeId = btn.dataset.mode;
+        if (modeId) startNewGame(modeId);
+      });
+    });
+
+    // Right Sidebar Special Power Gem Instant Forge Buttons
+    document.querySelectorAll(".btn-forge-test").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const spec = btn.dataset.spawn;
+        if (!spec || state.gameOver) return;
+        const candidates = [];
+        for (let r = 0; r < 4; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            if (isCellPlayable(r, c) && !state.grid[r][c].special) {
+              candidates.push({ r, c });
+            }
+          }
+        }
+        if (candidates.length > 0) {
+          const pick = candidates[Math.floor(Math.random() * candidates.length)];
+          state.grid[pick.r][pick.c].special = spec;
+          state.grid[pick.r][pick.c].scale = 1.4;
+          JewelAudio.playMatchCascade(5);
+          spawnFloatingText(pick.r, pick.c, `FORGED ${spec.toUpperCase()}!`, "#00f5d4", 15);
+        }
+      });
+    });
+
+    // Global Keyboard Shortcuts
+    const MODE_KEYS = {
+      "1": "classic",
+      "2": "diamond_mine",
+      "3": "lightning",
+      "4": "ice_storm",
+      "5": "butterflies",
+      "6": "poker",
+      "7": "zen",
+      "8": "alchemy",
+      "9": "time_bombs",
+      "0": "lava_escape",
+      "-": "boss_raid",
+      "=": "stratamax"
+    };
+
+    window.addEventListener("keydown", (e) => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.code === "Space") {
+        e.preventDefault();
+        activateModeGadget();
+        return;
+      }
+      const k = e.key.toLowerCase();
+      if (k === "h") {
+        triggerBestMoveHint();
+      } else if (k === "r") {
+        shuffleBoardAction();
+      } else if (k === "n") {
+        startNewGame(state.mode);
+      } else if (k === "b") {
+        document.getElementById("btnMusic").click();
+      } else if (k === "m") {
+        document.getElementById("btnSound").click();
+      } else if (MODE_KEYS[k]) {
+        startNewGame(MODE_KEYS[k]);
+      }
+    });
+
+    // Initialize Game & 60fps Render Loop
+    startNewGame("classic", false);
+    requestAnimationFrame(renderArenaFrame);
+  </script>
+</body>
+</html>

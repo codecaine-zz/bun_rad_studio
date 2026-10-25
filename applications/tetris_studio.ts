@@ -1,3 +1,4 @@
+import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * ⚡ Codecaine TetroGrid Ultra Deluxe — Cyber Grid Master Edition Studio
  *
@@ -135,7 +136,7 @@ ${getWindowShortcutsScript()}
     html += desktopHooks;
   }
 
-  return html;
+  return injectGameMasterFx(html);
 }
 
 export function startTetrisServer(options: TetrisServerOptions = {}) {

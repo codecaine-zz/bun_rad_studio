@@ -1,0 +1,2862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine UNO Royale: Wild Cascade Edition</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    :root {
+      --bg-dark: #040d0b;
+      --panel-bg: rgba(7, 18, 24, 0.94);
+      --gold: #facc15;
+      --gold-dim: rgba(250, 204, 21, 0.32);
+      --cyan: #00f5d4;
+      --red: #ef4444;
+      --green: #22c55e;
+      --blue: #3b82f6;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 35%, #0d3b2e 0%, #051614 68%, #02080a 100%);
+      color: var(--text);
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header.hud-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 8px 16px;
+      background: var(--panel-bg);
+      border-bottom: 1px solid rgba(250, 204, 21, 0.32);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.72);
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-badge {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #ef4444, #991b1b);
+      border: 2px solid #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 13px;
+      color: var(--gold);
+      text-shadow: 1px 1px 0 #000;
+      box-shadow: 0 3px 12px rgba(239, 68, 68, 0.55);
+      transform: rotate(-6deg);
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.9px;
+      background: linear-gradient(90deg, #ffffff, #fde047, #fb923c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+    }
+
+    .brand-sub {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+    }
+
+    .stats-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      background: rgba(2, 10, 14, 0.86);
+      border: 1px solid rgba(250, 204, 21, 0.28);
+      border-radius: 9px;
+      padding: 4px 11px;
+      min-width: 82px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--muted);
+    }
+
+    .stat-val {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .rules-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .rule-chip {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #cbd5e1;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .rule-chip.active {
+      background: rgba(250, 204, 21, 0.18);
+      border-color: var(--gold);
+      color: var(--gold);
+      box-shadow: 0 0 10px rgba(250, 204, 21, 0.28);
+    }
+
+    .btn-action {
+      background: linear-gradient(135deg, rgba(0, 245, 212, 0.18), rgba(59, 130, 246, 0.18));
+      border: 1px solid rgba(0, 245, 212, 0.45);
+      color: #fff;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-action:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 12px rgba(0, 245, 212, 0.45);
+    }
+
+    .mode-select {
+      background: rgba(6, 20, 28, 0.96);
+      color: var(--gold);
+      border: 1px solid rgba(250, 204, 21, 0.55);
+      border-radius: 8px;
+      padding: 5px 8px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .mode-ribbon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: rgba(4, 12, 18, 0.92);
+      border-bottom: 1px solid rgba(0, 245, 212, 0.22);
+      flex-wrap: wrap;
+      z-index: 9;
+    }
+
+    .uno-mode-pill {
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      color: #cbd5e1;
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .uno-mode-pill:hover {
+      border-color: var(--cyan);
+      color: #ffffff;
+    }
+
+    .uno-mode-pill.active {
+      background: linear-gradient(135deg, rgba(250, 204, 21, 0.25), rgba(0, 245, 212, 0.2));
+      border-color: var(--gold);
+      color: var(--gold);
+      box-shadow: 0 0 10px rgba(250, 204, 21, 0.3);
+    }
+
+    .flip-side-pill {
+      background: rgba(250, 204, 21, 0.16);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+    }
+
+    .flip-side-pill.dark-side {
+      background: rgba(168, 85, 247, 0.26);
+      border-color: #d946ef;
+      color: #f0abfc;
+      box-shadow: 0 0 12px rgba(217, 70, 239, 0.45);
+    }
+
+    .main-stage {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+    }
+
+    canvas#uno-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Color / Swap Picker Overlay Modals */
+    .overlay-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 12, 0.8);
+      backdrop-filter: blur(7px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 40;
+    }
+
+    .overlay-modal.hidden {
+      display: none;
+    }
+
+    .modal-box {
+      background: linear-gradient(180deg, #0f2230 0%, #07121a 100%);
+      border: 2px solid var(--gold);
+      border-radius: 18px;
+      padding: 22px 26px;
+      max-width: 480px;
+      width: 92%;
+      text-align: center;
+      box-shadow: 0 18px 54px rgba(0, 0, 0, 0.9), 0 0 30px rgba(250, 204, 21, 0.22);
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--gold);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .color-choice-btn {
+      padding: 18px;
+      border-radius: 14px;
+      border: 3px solid #ffffff;
+      font-size: 16px;
+      font-weight: 900;
+      color: #ffffff;
+      cursor: pointer;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.65);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+      transition: transform 0.14s ease;
+    }
+
+    .color-choice-btn:hover {
+      transform: scale(1.04);
+    }
+
+    .swap-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .swap-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--cyan);
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .swap-btn:hover {
+      background: rgba(0, 245, 212, 0.22);
+    }
+  </style>
+</head>
+<body>
+  <header class="hud-bar">
+    <div class="brand">
+      <div class="brand-badge">UNO</div>
+      <div>
+        <div class="brand-title">Codecaine UNO Royale</div>
+        <div class="brand-sub" id="career-rank-label">AAA Wild Cascade Edition • Rookie Dealer (0 XP)</div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-pill">
+        <div class="stat-label">Your Cup Pts</div>
+        <div class="stat-val" id="stat-cup">0 / 500</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-label">Round</div>
+        <div class="stat-val" id="stat-round">1</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-label">Draw Stack</div>
+        <div class="stat-val" id="stat-stack" style="color:var(--gold);">0</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-label">Career Wins</div>
+        <div class="stat-val" id="stat-wins">0</div>
+      </div>
+      <div class="flip-side-pill" id="flip-side-pill" title="Current UNO Deck Side (Light or Dark)">☀️ LIGHT SIDE</div>
+    </div>
+
+    <div class="rules-bar">
+      <select id="unoModeSelect" class="mode-select" onchange="selectUnoMode(this.value)" title="Select 1 of 8 Custom UNO Game Modes (Keys 1-8)">
+        <option value="classic">1. 🏆 Classic 500-Pt Royale</option>
+        <option value="flip">2. 🌗 UNO FLIP! (Light &amp; Dark)</option>
+        <option value="no_mercy">3. 💀 Show 'Em No Mercy (25-KO)</option>
+        <option value="jump_in">4. ⚡ Jump-In &amp; Speed Blitz</option>
+        <option value="team_2v2">5. 🤝 2v2 Partner Team Royale</option>
+        <option value="all_wild">6. 🎰 UNO All Wild! Chaos</option>
+        <option value="roulette">7. 💣 Cyber Roulette Press</option>
+        <option value="cyber_hack">8. 💻 Codecaine Cyber-Hack</option>
+      </select>
+      <button class="rule-chip active" id="rule-stacking" onclick="toggleRule('stacking')" title="Stack +2/+4/+5/+6/+10 penalties">⚡ Stack: ON</button>
+      <button class="rule-chip active" id="rule-sevenzero" onclick="toggleRule('sevenZero')" title="7 swaps hands, 0 rotates all hands">🔄 7-0: ON</button>
+      <button class="rule-chip" id="rule-drawmulti" onclick="toggleRule('drawUntilPlayable')" title="Keep drawing until playable card found">🎴 Draw-Match: OFF</button>
+      <button class="rule-chip" id="btn-peek-partner" onclick="togglePeekPartner()" title="Peek at North AI Partner's Hand in 2v2 Mode (P)">👁️ Peek Partner: OFF</button>
+      <button class="btn-action" onclick="sortHumanHand()" title="Sort Your Hand by Color & Rank (S)">🗂️ SORT</button>
+      <button class="btn-action" onclick="triggerHint()" title="Highlight Best Tactical Card (H)">💡 HINT</button>
+      <button class="btn-action" onclick="startNewHand(true)" title="Deal Fresh 500-Pt Tournament (N)">🎲 NEW DEAL</button>
+      <button class="btn-action" id="btn-bgm" onclick="toggleMusic()" title="Toggle Casino Synthwave Groove (B)">🎵 MUSIC: OFF</button>
+      <button class="btn-action" id="btn-sfx" onclick="toggleMute()" title="Mute/Unmute Sound Effects (M)">🔊 SFX</button>
+      <button class="btn-action" onclick="toggleHelpModal()">? RULES</button>
+    </div>
+  </header>
+
+  <nav class="mode-ribbon" id="unoModeRibbon" aria-label="UNO Game Modes">
+    <button class="uno-mode-pill active" data-unomode="classic" onclick="selectUnoMode('classic')">1. 🏆 Classic Royale</button>
+    <button class="uno-mode-pill" data-unomode="flip" onclick="selectUnoMode('flip')">2. 🌗 UNO FLIP!</button>
+    <button class="uno-mode-pill" data-unomode="no_mercy" onclick="selectUnoMode('no_mercy')">3. 💀 No Mercy (25-KO)</button>
+    <button class="uno-mode-pill" data-unomode="jump_in" onclick="selectUnoMode('jump_in')">4. ⚡ Jump-In Blitz</button>
+    <button class="uno-mode-pill" data-unomode="team_2v2" onclick="selectUnoMode('team_2v2')">5. 🤝 2v2 Partner Team</button>
+    <button class="uno-mode-pill" data-unomode="all_wild" onclick="selectUnoMode('all_wild')">6. 🎰 UNO All Wild!</button>
+    <button class="uno-mode-pill" data-unomode="roulette" onclick="selectUnoMode('roulette')">7. 💣 Cyber Roulette</button>
+    <button class="uno-mode-pill" data-unomode="cyber_hack" onclick="selectUnoMode('cyber_hack')">8. 💻 Cyber-Hack Deck</button>
+  </nav>
+
+  <main class="main-stage" id="stage-container">
+    <canvas id="uno-canvas" width="1220" height="760"></canvas>
+  </main>
+
+  <!-- Wild Color Picker Modal -->
+  <div class="overlay-modal hidden" id="color-modal">
+    <div class="modal-box">
+      <div class="modal-title">🌈 Choose Active Wild Color</div>
+      <div style="font-size:13px; color:var(--muted);">Select the suit color for the next player:</div>
+      <div class="color-grid">
+        <button class="color-choice-btn" style="background:linear-gradient(135deg,#ef4444,#991b1b);" onclick="resolveWildColor('red')">🔴 CRIMSON / MAGENTA (1)</button>
+        <button class="color-choice-btn" style="background:linear-gradient(135deg,#3b82f6,#1e3a8a);" onclick="resolveWildColor('blue')">🔵 ROYAL / VIOLET (2)</button>
+        <button class="color-choice-btn" style="background:linear-gradient(135deg,#22c55e,#14532d);" onclick="resolveWildColor('green')">🟢 EMERALD / TEAL (3)</button>
+        <button class="color-choice-btn" style="background:linear-gradient(135deg,#eab308,#a16207);" onclick="resolveWildColor('yellow')">🟡 SOLAR / AMBER (4)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7-Swap / Wild Swap Target Picker Modal -->
+  <div class="overlay-modal hidden" id="swap-modal">
+    <div class="modal-box">
+      <div class="modal-title">⇄✋ Choose Opponent to Swap Hands With!</div>
+      <div style="font-size:13px; color:var(--muted);">Pick an AI rival to trade your entire hand with:</div>
+      <div class="swap-grid" id="swap-choices"></div>
+    </div>
+  </div>
+
+  <!-- Help & Rules Modal -->
+  <div class="overlay-modal hidden" id="help-modal">
+    <div class="modal-box" style="max-width:620px; text-align:left;">
+      <div class="modal-title">🃏 Codecaine UNO Royale — 8-Mode Manual</div>
+      <div style="font-size:12.5px; line-height:1.5; color:#e2e8f0; margin-bottom:14px;">
+        <strong>8 Playable UNO Modes (Switch via Top Ribbon or Keys 1–8):</strong><br/>
+        • <strong>1. 🏆 Classic 500-Pt Royale</strong>: Championship UNO with Stackable `+2/+4`, `7-0` Hand Swap/Rotate, `UNO!` Shout (`[U]`), and `Catch AI` (`[C]`).<br/>
+        • <strong>2. 🌗 UNO FLIP! (Light &amp; Dark Side)</strong>: Play a <strong>🔄 FLIP</strong> card to flip the arena between the <strong>☀️ Light Side</strong> and the brutal <strong>🌑 Dark Side</strong> (`+5 Draw Five`, `⏭️ Skip All`, and `🌈 Wild +6`)!<br/>
+        • <strong>3. 💀 Show 'Em No Mercy (25-Card Knockout)</strong>: Adds `+4`, `+6`, `Wild +10`, `⏭️ Skip All`, and `🗑️ Discard All` (`PURGE`). Any player reaching <strong>25+ cards is ELIMINATED (`💀 KO`)</strong>!<br/>
+        • <strong>4. ⚡ Jump-In &amp; Speed Slap Blitz</strong>: Even during an AI's turn, click an <strong>identical twin card</strong> (same color &amp; value as top discard) to shout <strong>⚡ JUMP IN!</strong> and hijack the turn!<br/>
+        • <strong>5. 🤝 2v2 Partner Team Royale</strong>: Team up with <strong>North AI (NOVA 🤝 Partner)</strong>! Share points and toggle <strong>👁️ Peek Partner (`[P]`)</strong> to view your partner's cards face-up.<br/>
+        • <strong>6. 🎰 UNO All Wild!</strong>: Every card is a Wild action card (`Wild`, `Wild Reverse`, `Wild Skip`, `Wild Skip All`, `Wild +2`, `Wild +4`, `Wild Swap`, `Wild Tornado`)!<br/>
+        • <strong>7. 💣 Cyber Roulette &amp; Time-Bomb Press</strong>: Drawing presses the Cyber Roulette bomb (`15% → 90%`) — escape with `0` cards (`SAFE!`) or trigger a `2–6` card blast!<br/>
+        • <strong>8. 💻 Codecaine Cyber-Hack Deck</strong>: Adds <strong>🗑️ Purge Color</strong> (`PURGE`), <strong>🪞 Mirror Shield</strong> (`MIRROR` reflects draw stacks), <strong>🌪️ Tornado Equalizer</strong> (`TORNADO` redistributes all hands evenly), and <strong>👁️ X-Ray Reveal</strong> (`XRAY` exposes AI hands for 3 turns)!
+      </div>
+      <button class="btn-action" style="width:100%; padding:10px; font-size:13px;" onclick="toggleHelpModal()">RESUME TABLETOP</button>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // AAA POLYPHONIC WEB AUDIO ENGINE + PHYSICAL CARD FOLEY & CASINO GROOVE
+    // =========================================================================
+    class UnoAudio {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+        this.musicOn = false;
+        this.musicTimer = null;
+        this.musicStep = 0;
+        this.noiseBuf = null;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) {
+            this.ctx = new AC();
+            // Pre-build 0.5s white/pink noise buffer for physical card foley
+            const sr = this.ctx.sampleRate;
+            const buf = this.ctx.createBuffer(1, sr * 0.5, sr);
+            const data = buf.getChannelData(0);
+            for (let i = 0; i < data.length; i++) {
+              data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sr * 0.12));
+            }
+            this.noiseBuf = buf;
+          }
+        }
+        if (this.ctx && this.ctx.state === "suspended") this.ctx.resume();
+      }
+
+      noiseBurst(dur = 0.05, filterFreq = 1800, q = 2.0, gainVal = 0.09, delay = 0) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx || !this.noiseBuf) return;
+        const now = this.ctx.currentTime + delay;
+        const src = this.ctx.createBufferSource();
+        src.buffer = this.noiseBuf;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.setValueAtTime(filterFreq, now);
+        filter.Q.setValueAtTime(q, now);
+        const g = this.ctx.createGain();
+        g.gain.setValueAtTime(gainVal, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        src.connect(filter);
+        filter.connect(g);
+        g.connect(this.ctx.destination);
+        src.start(now);
+        src.stop(now + dur + 0.01);
+      }
+
+      tone(freq, dur, type = "triangle", gainVal = 0.08, slideTo = null, delay = 0) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime + delay;
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, now + dur);
+        g.gain.setValueAtTime(gainVal, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        osc.connect(g);
+        g.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + dur + 0.01);
+      }
+
+      cardHover() {
+        this.noiseBurst(0.025, 3200, 3.5, 0.035);
+        this.tone(680, 0.02, "sine", 0.02, 820);
+      }
+
+      cardSnap() {
+        // Crisp physical card flick + felt table thud
+        this.noiseBurst(0.045, 2200, 1.8, 0.11);
+        this.tone(195, 0.06, "triangle", 0.10, 92);
+        this.tone(520, 0.035, "sine", 0.05, 280);
+      }
+
+      cardDraw() {
+        this.noiseBurst(0.055, 2600, 2.2, 0.08);
+        this.tone(260, 0.055, "sine", 0.06, 460);
+      }
+
+      cardShuffle() {
+        // 12-grain rapid riffle shuffle cascade
+        for (let i = 0; i < 12; i++) {
+          const d = i * 0.028;
+          this.noiseBurst(0.03, 1600 + i * 110, 2.4, 0.06, d);
+          this.tone(220 + i * 24, 0.025, "triangle", 0.035, null, d);
+        }
+      }
+
+      skipSound() {
+        // Laser lock cancel + sub drop
+        this.tone(587.33, 0.08, "sawtooth", 0.08, 293.66, 0);
+        this.tone(293.66, 0.14, "sawtooth", 0.09, 146.83, 0.07);
+        this.noiseBurst(0.08, 1200, 1.5, 0.08, 0.02);
+      }
+
+      reverseSound() {
+        // Turntable whoosh sweep up & back
+        this.tone(240, 0.11, "sawtooth", 0.08, 760, 0);
+        this.tone(760, 0.14, "triangle", 0.09, 340, 0.10);
+        this.noiseBurst(0.16, 1900, 1.2, 0.07, 0);
+      }
+
+      actionCard() {
+        this.tone(440, 0.09, "sawtooth", 0.08, 660);
+        this.tone(660, 0.12, "triangle", 0.07, 880, 0.06);
+      }
+
+      wildPrism() {
+        // Shimmering 5-voice Major 9th prism chord
+        const notes = [523.25, 659.25, 783.99, 987.77, 1174.66];
+        notes.forEach((f, idx) => {
+          this.tone(f, 0.28, "triangle", 0.065, f * 1.01, idx * 0.035);
+        });
+      }
+
+      penaltyBoom(stackCount = 2) {
+        // Escalating sub-bass slam + metallic warning harmonic
+        const pitchBoost = Math.min(220, stackCount * 18);
+        this.tone(130 + pitchBoost, 0.28, "sawtooth", 0.14, 52);
+        this.tone(90, 0.32, "sine", 0.16, 38);
+        this.tone(440 + pitchBoost * 2, 0.16, "square", 0.06, 220, 0.04);
+        this.noiseBurst(0.18, 900, 1.1, 0.14, 0);
+      }
+
+      unoShout() {
+        // Triumphant brass fanfare + high bell chime
+        const chord = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+        chord.forEach((f, i) => {
+          this.tone(f, 0.22, "triangle", 0.11, null, i * 0.05);
+          this.tone(f * 0.5, 0.18, "sawtooth", 0.045, null, i * 0.05);
+        });
+      }
+
+      winFanfare() {
+        const melody = [392, 523.25, 659.25, 783.99, 659.25, 1046.5];
+        melody.forEach((f, i) => {
+          this.tone(f, 0.26, "triangle", 0.12, null, i * 0.085);
+          this.tone(f * 0.5, 0.24, "sawtooth", 0.05, null, i * 0.085);
+        });
+      }
+
+      startMusicLoop(isTensionFn) {
+        if (this.musicTimer) clearInterval(this.musicTimer);
+        const bassLine = [110, 110, 130.81, 146.83, 164.81, 146.83, 130.81, 98];
+        const chords = [
+          [220, 261.63, 329.63],
+          [196, 246.94, 293.66],
+          [174.61, 220, 261.63],
+          [164.81, 207.65, 246.94]
+        ];
+        this.musicTimer = setInterval(() => {
+          if (!this.musicOn || this.muted) return;
+          const tension = isTensionFn ? isTensionFn() : false;
+          const step = this.musicStep++;
+          const root = bassLine[step % bassLine.length] * (tension ? 1.122 : 1);
+          this.tone(root, 0.19, "triangle", 0.032, root * 0.98);
+          if (step % 2 === 0) {
+            this.noiseBurst(0.02, 5200, 4.0, 0.015);
+          }
+          if (step % 4 === 0) {
+            const c = chords[(step / 4) % chords.length];
+            c.forEach((freq) => this.tone(freq * (tension ? 1.122 : 1), 0.35, "sine", 0.018));
+          }
+        }, 240);
+      }
+    }
+
+    const sfx = new UnoAudio();
+
+    // =========================================================================
+    // UNO CONSTANTS, PALETTE & CAREER STORAGE
+    // =========================================================================
+    const COLORS = ["red", "yellow", "green", "blue"];
+    const COLOR_HEX = {
+      red: { main: "#ef4444", mid: "#dc2626", dark: "#7f1d1d", light: "#fca5a5", glow: "rgba(239,68,68,0.45)", label: "RED" },
+      yellow: { main: "#facc15", mid: "#eab308", dark: "#78350f", light: "#fef08a", glow: "rgba(250,204,21,0.45)", label: "GOLD" },
+      green: { main: "#22c55e", mid: "#16a34a", dark: "#14532d", light: "#86efac", glow: "rgba(34,197,94,0.45)", label: "GREEN" },
+      blue: { main: "#3b82f6", mid: "#2563eb", dark: "#1e3a8a", light: "#93c5fd", glow: "rgba(59,130,246,0.45)", label: "BLUE" },
+      wild: { main: "#1e293b", mid: "#0f172a", dark: "#020617", light: "#f8fafc", glow: "rgba(168,85,247,0.55)", label: "WILD" }
+    };
+    const DARK_SIDE_HEX = {
+      red: { main: "#ec4899", mid: "#db2777", dark: "#500724", light: "#f9a8d4", glow: "rgba(236,72,153,0.5)", label: "MAGENTA" },
+      yellow: { main: "#f97316", mid: "#ea580c", dark: "#431407", light: "#fdba74", glow: "rgba(249,115,22,0.5)", label: "AMBER" },
+      green: { main: "#14b8a6", mid: "#0d9488", dark: "#042f2e", light: "#5eead4", glow: "rgba(20,184,166,0.5)", label: "TEAL" },
+      blue: { main: "#a855f7", mid: "#9333ea", dark: "#3b0764", light: "#d8b4fe", glow: "rgba(168,85,247,0.5)", label: "VIOLET" },
+      wild: { main: "#311042", mid: "#1e092b", dark: "#09020e", light: "#f0abfc", glow: "rgba(217,70,239,0.65)", label: "DARK WILD" }
+    };
+
+    const UNO_MODES = {
+      classic:    { name: "🏆 Classic 500-Pt Royale", desc: "Standard championship UNO with Stackable +2/+4 and 7-0 Switch." },
+      flip:       { name: "🌗 UNO FLIP! (Light & Dark)", desc: "Play 🔄 FLIP cards to toggle between Light Side and brutal Dark Side (+5, Skip All, Wild +6)!" },
+      no_mercy:   { name: "💀 Show 'Em No Mercy (25-KO)", desc: "Brutal +4, +6, Wild +10, Skip All & Discard All! Reaching 25+ cards = ELIMINATED (💀 KO)!" },
+      jump_in:    { name: "⚡ Jump-In & Speed Slap Blitz", desc: "Click an identical twin card (same color & value) anytime — even on AI turns — to ⚡ JUMP IN!" },
+      team_2v2:   { name: "🤝 2v2 Partner Team Royale", desc: "You + North AI (NOVA 🤝 Partner) share Team Score! Toggle 👁️ Peek Partner to coordinate." },
+      all_wild:   { name: "🎰 UNO All Wild! Chaos", desc: "100% Wild Deck! Every card is a Wild action card playable on any suit." },
+      roulette:   { name: "💣 Cyber Roulette & Time-Bomb", desc: "Drawing presses the Cyber Roulette bomb (15%→90%): escape with 0 cards or suffer a 2–6 card blast!" },
+      cyber_hack: { name: "💻 Codecaine Cyber-Hack Deck", desc: "Injects 🗑️ Purge Color, 🪞 Mirror Shield, 🌪️ Tornado Equalizer, and 👁️ X-Ray Reveal!" }
+    };
+
+    const state = {
+      unoMode: "classic",
+      isDarkSide: false,
+      peekPartner: false,
+      rouletteRisk: 15,
+      xrayTurns: 0
+    };
+
+    function getSuitPalette(color) {
+      const map = state.isDarkSide ? DARK_SIDE_HEX : COLOR_HEX;
+      return map[color] || map.red;
+    }
+
+    const STORAGE_KEY = "codecaine_uno_royale_career_v1";
+    let career = {
+      xp: 0,
+      wins: 0,
+      tournaments: 0,
+      maxStack: 0
+    };
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      if (saved && typeof saved === "object") career = { ...career, ...saved };
+    } catch (e) {}
+
+    function saveCareer() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(career));
+      } catch (e) {}
+    }
+
+    function getCareerTitle(xp) {
+      if (xp >= 2500) return "Grandmaster Wildcard";
+      if (xp >= 1200) return "Cascade Legend";
+      if (xp >= 500) return "Tabletop Shark";
+      if (xp >= 150) return "Club Contender";
+      return "Rookie Dealer";
+    }
+
+    // House Rules State
+    const rules = {
+      stacking: true,
+      sevenZero: true,
+      drawUntilPlayable: false
+    };
+
+    const canvas = document.getElementById("uno-canvas");
+    const ctx = canvas.getContext("2d");
+
+    // Players: 0 = Human (South), 1 = Viper (West), 2 = Nova (North), 3 = Titan (East)
+    const PLAYERS = [
+      { id: 0, name: "YOU", avatar: "😎", role: "Challenger", isAI: false, hand: [], score: 0, calledUno: false, eliminated: false },
+      { id: 1, name: "VIPER", avatar: "🐍", role: "Stack Hunter", isAI: true, hand: [], score: 0, calledUno: false, eliminated: false },
+      { id: 2, name: "NOVA", avatar: "✨", role: "Suit Tactician", isAI: true, hand: [], score: 0, calledUno: false, eliminated: false },
+      { id: 3, name: "TITAN", avatar: "🛡️", role: "Wild Finisher", isAI: true, hand: [], score: 0, calledUno: false, eliminated: false }
+    ];
+
+    let deck = [];
+    let discard = [];
+    let activeColor = "red";
+    let currentTurn = 0;
+    let direction = 1; // 1 = Clockwise, -1 = Counter-Clockwise
+    let pendingDrawStack = 0;
+    let roundNumber = 1;
+    let handOver = false;
+    let roundBannerText = "";
+    let statusMessage = "Welcome to Codecaine UNO Royale! Match color, number, or symbol.";
+    let hoveredCardIdx = -1;
+    let prevHoveredCardIdx = -1;
+    let hintedCardIdx = -1;
+    let pendingWildCard = null;
+    let aiTurnTimeout = null;
+
+    // =========================================================================
+    // AAA VISUAL FX SYSTEMS (BEZIER 3D FLIGHTS, SHOCKWAVES, PARTICLES, CUT-INS)
+    // =========================================================================
+    let flyingCards = [];   // [{ card, fromX, fromY, ctrlX, ctrlY, toX, toY, start, dur, flip3D, startAngle, endAngle }]
+    let shockwaves = [];    // [{ x, y, color, maxR, start, dur, lineWidth }]
+    let particles = [];     // [{ x, y, vx, vy, color, size, alpha, decay, rot, vrot, shape }]
+    let actionCutIn = null; // { title, subtitle, color, start, dur }
+    let aiBubbles = [];     // [{ seatIdx, text, color, until }]
+    let tableShake = 0;
+    const cardHoverProgress = new Map(); // card.id -> 0..1 smooth spring lift
+    const ambientMotes = Array.from({ length: 28 }, () => ({
+      x: Math.random() * 1280,
+      y: Math.random() * 800,
+      r: 1.2 + Math.random() * 2.4,
+      vx: (Math.random() - 0.5) * 0.35,
+      vy: -0.25 - Math.random() * 0.45,
+      phase: Math.random() * Math.PI * 2
+    }));
+
+    function spawnShockwave(x, y, color = "#00f5d4", maxR = 240, dur = 520, lineWidth = 5) {
+      shockwaves.push({ x, y, color, maxR, start: performance.now(), dur, lineWidth });
+    }
+
+    function spawnParticles(x, y, color = "#facc15", count = 32) {
+      for (let i = 0; i < count; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const spd = 2.2 + Math.random() * 7.5;
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd - 1.5,
+          color,
+          size: 3.5 + Math.random() * 5.5,
+          alpha: 1,
+          decay: 0.016 + Math.random() * 0.018,
+          rot: Math.random() * Math.PI * 2,
+          vrot: (Math.random() - 0.5) * 0.22,
+          shape: i % 3 === 0 ? "rect" : "circle"
+        });
+      }
+    }
+
+    function triggerActionCutIn(title, subtitle, color = "#facc15", dur = 1150) {
+      actionCutIn = { title, subtitle, color, start: performance.now(), dur };
+    }
+
+    function pushAiBubble(seatIdx, text, color = "#facc15", durationMs = 2100) {
+      aiBubbles = aiBubbles.filter(b => b.seatIdx !== seatIdx);
+      aiBubbles.push({ seatIdx, text, color, until: performance.now() + durationMs });
+    }
+
+    function triggerTableShake(amount = 9) {
+      tableShake = Math.max(tableShake, amount);
+      window.GameMasterFX?.triggerShake?.(amount);
+    }
+
+    function spawnCardFlight(card, fromX, fromY, toX, toY, opts = {}) {
+      const { dur = 310, delay = 0, flip3D = true } = opts;
+      const midX = (fromX + toX) / 2;
+      const midY = (fromY + toY) / 2;
+      // Perpendicular arc control point for curved Bezier card flight
+      const dx = toX - fromX;
+      const dy = toY - fromY;
+      const ctrlX = midX - dy * 0.18;
+      const ctrlY = midY + dx * 0.12 - 55;
+      flyingCards.push({
+        card,
+        fromX,
+        fromY,
+        ctrlX,
+        ctrlY,
+        toX,
+        toY,
+        start: performance.now() + delay,
+        dur,
+        flip3D,
+        startAngle: (Math.random() - 0.5) * 0.6,
+        endAngle: (Math.random() - 0.5) * 0.16
+      });
+    }
+
+    // =========================================================================
+    // AUTHENTIC 110-CARD + 8-MODE CUSTOM UNO ROYALE DECK BUILDER
+    // =========================================================================
+    let uidCounter = 1;
+    function createDeck() {
+      const d = [];
+      const mode = state.unoMode;
+
+      if (mode === "all_wild") {
+        // Mode 6: 🎰 UNO All Wild! (100% Wild Action Chaos)
+        const wildActions = [
+          { value: "WILD", points: 50, count: 24 },
+          { value: "REV", points: 50, count: 14 },
+          { value: "SKIP", points: 50, count: 14 },
+          { value: "SKIP ALL", points: 50, count: 10 },
+          { value: "+2", points: 50, count: 16 },
+          { value: "+4", points: 50, count: 12 },
+          { value: "SWAP", points: 50, count: 8 },
+          { value: "TORNADO", points: 50, count: 6 }
+        ];
+        for (const wa of wildActions) {
+          for (let i = 0; i < wa.count; i++) {
+            d.push({ id: uidCounter++, color: "wild", value: wa.value, points: wa.points });
+          }
+        }
+      } else {
+        // Standard numbered + action base across 4 suits
+        for (const color of COLORS) {
+          d.push({ id: uidCounter++, color, value: "0", points: 0 });
+          for (let copy = 0; copy < 2; copy++) {
+            for (let n = 1; n <= 9; n++) {
+              d.push({ id: uidCounter++, color, value: String(n), points: n });
+            }
+            d.push({ id: uidCounter++, color, value: "SKIP", points: 20 });
+            d.push({ id: uidCounter++, color, value: "REV", points: 20 });
+            d.push({ id: uidCounter++, color, value: "+2", points: 20 });
+          }
+
+          // Mode 2: 🌗 UNO FLIP! cards (+5, SKIP ALL, FLIP)
+          if (mode === "flip") {
+            for (let copy = 0; copy < 2; copy++) {
+              d.push({ id: uidCounter++, color, value: "FLIP", points: 20 });
+              d.push({ id: uidCounter++, color, value: "+5", points: 30 });
+              d.push({ id: uidCounter++, color, value: "SKIP ALL", points: 30 });
+            }
+          }
+
+          // Mode 3: 💀 Show 'Em No Mercy cards (SKIP ALL, PURGE / Discard All, +4 colored)
+          if (mode === "no_mercy") {
+            for (let copy = 0; copy < 2; copy++) {
+              d.push({ id: uidCounter++, color, value: "SKIP ALL", points: 30 });
+              d.push({ id: uidCounter++, color, value: "PURGE", points: 30 });
+              d.push({ id: uidCounter++, color, value: "+4", points: 40 });
+            }
+          }
+
+          // Mode 8: 💻 Codecaine Cyber-Hack cards (PURGE, MIRROR, XRAY)
+          if (mode === "cyber_hack") {
+            d.push({ id: uidCounter++, color, value: "PURGE", points: 30 });
+            d.push({ id: uidCounter++, color, value: "MIRROR", points: 30 });
+            d.push({ id: uidCounter++, color, value: "XRAY", points: 30 });
+          }
+        }
+
+        // Wild cards
+        for (let i = 0; i < 4; i++) {
+          d.push({ id: uidCounter++, color: "wild", value: "WILD", points: 50 });
+          d.push({ id: uidCounter++, color: "wild", value: "+4", points: 50 });
+        }
+        for (let i = 0; i < 2; i++) {
+          d.push({ id: uidCounter++, color: "wild", value: "SWAP", points: 50 });
+        }
+
+        if (mode === "flip") {
+          for (let i = 0; i < 4; i++) {
+            d.push({ id: uidCounter++, color: "wild", value: "+6", points: 60 });
+          }
+        }
+        if (mode === "no_mercy") {
+          for (let i = 0; i < 4; i++) {
+            d.push({ id: uidCounter++, color: "wild", value: "+6", points: 60 });
+            d.push({ id: uidCounter++, color: "wild", value: "+10", points: 80 });
+          }
+        }
+        if (mode === "cyber_hack") {
+          for (let i = 0; i < 4; i++) {
+            d.push({ id: uidCounter++, color: "wild", value: "TORNADO", points: 50 });
+            d.push({ id: uidCounter++, color: "wild", value: "MIRROR", points: 50 });
+          }
+        }
+      }
+
+      for (let i = d.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [d[i], d[j]] = [d[j], d[i]];
+      }
+      return d;
+    }
+
+    function drawFromDeck() {
+      if (deck.length === 0) {
+        if (discard.length <= 1) {
+          deck = createDeck();
+        } else {
+          const top = discard.pop();
+          deck = discard.splice(0, discard.length);
+          for (let i = deck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [deck[i], deck[j]] = [deck[j], deck[i]];
+          }
+          discard.push(top);
+        }
+      }
+      return deck.pop();
+    }
+
+    function selectUnoMode(mode) {
+      if (!UNO_MODES[mode]) mode = "classic";
+      state.unoMode = mode;
+      const sel = document.getElementById("unoModeSelect");
+      if (sel) sel.value = mode;
+      const ribbon = document.getElementById("unoModeRibbon");
+      if (ribbon) {
+        ribbon.querySelectorAll(".uno-mode-pill").forEach(btn => {
+          btn.classList.toggle("active", btn.dataset.unomode === mode);
+        });
+      }
+      if (mode === "team_2v2") {
+        PLAYERS[2].role = "🤝 Partner";
+        state.peekPartner = true;
+      } else {
+        PLAYERS[2].role = "Suit Tactician";
+      }
+      const peekBtn = document.getElementById("btn-peek-partner");
+      if (peekBtn) {
+        peekBtn.classList.toggle("active", state.peekPartner);
+        peekBtn.textContent = `👁️ Peek Partner: ${state.peekPartner ? "ON" : "OFF"}`;
+      }
+      startNewHand(true, true);
+      triggerActionCutIn(UNO_MODES[mode].name.toUpperCase(), UNO_MODES[mode].desc, "#00f5d4", 1300);
+      setStatus(`${UNO_MODES[mode].name}: ${UNO_MODES[mode].desc}`);
+    }
+    window.selectUnoMode = selectUnoMode;
+
+    function togglePeekPartner() {
+      state.peekPartner = !state.peekPartner;
+      const peekBtn = document.getElementById("btn-peek-partner");
+      if (peekBtn) {
+        peekBtn.classList.toggle("active", state.peekPartner);
+        peekBtn.textContent = `👁️ Peek Partner: ${state.peekPartner ? "ON" : "OFF"}`;
+      }
+      sfx.cardSnap();
+      setStatus(`👁️ Partner Hand Peek is now ${state.peekPartner ? "ON (North AI cards revealed)" : "OFF"}!`);
+    }
+    window.togglePeekPartner = togglePeekPartner;
+
+    function checkMercyKnockout(playerIdx) {
+      if (state.unoMode !== "no_mercy") return false;
+      const p = PLAYERS[playerIdx];
+      if (!p || p.eliminated || p.hand.length < 25) return false;
+      p.eliminated = true;
+      // Move eliminated player's cards back to bottom of deck
+      while (p.hand.length > 0) {
+        deck.unshift(p.hand.pop());
+      }
+      const seat = getPlayerSeatCoords(playerIdx);
+      sfx.penaltyBoom(12);
+      triggerTableShake(15);
+      spawnShockwave(seat.x, seat.y, "#ef4444", 260, 700, 7);
+      spawnParticles(seat.x, seat.y, "#ef4444", 55);
+      triggerActionCutIn(`💀 ${p.name} KNOCKED OUT!`, `REACHED 25+ CARDS IN NO MERCY MODE!`, "#ef4444", 1400);
+      setStatus(`💀 MERCY RULE KO! ${p.name} reached 25+ cards and is ELIMINATED from the round!`);
+
+      const alive = PLAYERS.filter(pl => !pl.eliminated);
+      if (alive.length === 1) {
+        handleHandVictory(alive[0].id);
+        return true;
+      }
+      if (playerIdx === 0) {
+        // Human eliminated: fast-finish round to the AI with fewest cards
+        const bestAi = alive.sort((a, b) => a.hand.length - b.hand.length)[0];
+        if (bestAi) {
+          handleHandVictory(bestAi.id);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function executeTornadoEqualizer(actorName) {
+      const alivePlayers = PLAYERS.filter(p => !p.eliminated);
+      const pool = [];
+      alivePlayers.forEach(p => {
+        while (p.hand.length > 0) pool.push(p.hand.pop());
+      });
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      let idx = 0;
+      while (pool.length > 0) {
+        alivePlayers[idx % alivePlayers.length].hand.push(pool.pop());
+        idx++;
+      }
+      alivePlayers.forEach(p => (p.calledUno = p.hand.length === 1));
+      sortHumanHand(false);
+      const W = canvas.width;
+      const H = canvas.height;
+      spawnShockwave(W / 2, H / 2, "#38bdf8", 360, 680, 7);
+      spawnParticles(W / 2, H / 2, "#38bdf8", 55);
+      triggerActionCutIn("🌪️ TORNADO EQUALIZER!", `${actorName} REDISTRIBUTED ALL HANDS EVENLY!`, "#38bdf8", 1300);
+    }
+
+    // =========================================================================
+    // GAME FLOW & TURN RULES
+    // =========================================================================
+    function startNewHand(resetTournament = false, animateDeal = true) {
+      if (aiTurnTimeout) clearTimeout(aiTurnTimeout);
+      if (resetTournament) {
+        PLAYERS.forEach(p => (p.score = 0));
+        roundNumber = 1;
+      }
+      state.isDarkSide = false;
+      state.rouletteRisk = 15;
+      state.xrayTurns = 0;
+      deck = createDeck();
+      discard = [];
+      aiBubbles = [];
+      flyingCards = [];
+
+      const cx = canvas.width / 2 - 70;
+      const cy = canvas.height / 2 - 10;
+
+      PLAYERS.forEach((p, pIdx) => {
+        p.hand = [];
+        p.calledUno = false;
+        p.eliminated = false;
+        const seat = getPlayerSeatCoords(pIdx);
+        for (let i = 0; i < 7; i++) {
+          const card = drawFromDeck();
+          p.hand.push(card);
+          if (animateDeal) {
+            spawnCardFlight(card, cx, cy, seat.x, seat.y, {
+              dur: 270,
+              delay: (i * 4 + pIdx) * 22,
+              flip3D: pIdx === 0
+            });
+          }
+        }
+      });
+
+      let first = drawFromDeck();
+      let guard = 0;
+      while ((first.color === "wild" || first.points >= 20) && guard < 30) {
+        deck.unshift(first);
+        first = drawFromDeck();
+        guard++;
+      }
+      discard.push(first);
+      activeColor = first.color === "wild" ? COLORS[Math.floor(Math.random() * COLORS.length)] : first.color;
+      currentTurn = 0;
+      direction = 1;
+      pendingDrawStack = 0;
+      handOver = false;
+      roundBannerText = "";
+      hintedCardIdx = -1;
+      sortHumanHand(false);
+      sfx.cardShuffle();
+      const pal = getSuitPalette(activeColor);
+      if (animateDeal) {
+        triggerActionCutIn(`ROUND ${roundNumber}`, `${UNO_MODES[state.unoMode].name} • SUIT: ${pal.label}`, pal.main, 950);
+      }
+      setStatus(`Round ${roundNumber} (${UNO_MODES[state.unoMode].name})! Active suit is ${pal.label}. Your turn!`);
+      updateHUD();
+    }
+    window.startNewHand = startNewHand;
+
+    function getDrawCardPenalty(val) {
+      if (val === "+2") return 2;
+      if (val === "+4") return 4;
+      if (val === "+5") return 5;
+      if (val === "+6") return 6;
+      if (val === "+10") return 10;
+      return 0;
+    }
+
+    function isCardPlayable(card) {
+      const top = discard[discard.length - 1];
+      if (!top) return true;
+
+      if (pendingDrawStack > 0) {
+        if (card.value === "MIRROR") return true;
+        if (!rules.stacking) return false;
+        const topPen = getDrawCardPenalty(top.value);
+        const cardPen = getDrawCardPenalty(card.value);
+        return cardPen > 0 && cardPen >= topPen;
+      }
+
+      if (card.color === "wild") return true;
+      if (card.color === activeColor) return true;
+      if (card.value === top.value) return true;
+      return false;
+    }
+
+    function isJumpInMatch(card) {
+      if (state.unoMode !== "jump_in" || handOver || pendingDrawStack > 0) return false;
+      const top = discard[discard.length - 1];
+      if (!top) return false;
+      return card.color !== "wild" && card.color === top.color && card.value === top.value;
+    }
+
+    function setStatus(msg) {
+      statusMessage = msg;
+    }
+
+    function updateHUD() {
+      const cupScore = state.unoMode === "team_2v2" ? (PLAYERS[0].score + PLAYERS[2].score) : PLAYERS[0].score;
+      document.getElementById("stat-cup").textContent = `${cupScore} / 500`;
+      document.getElementById("stat-round").textContent = String(roundNumber);
+      document.getElementById("stat-stack").textContent =
+        pendingDrawStack > 0
+          ? `+${pendingDrawStack}`
+          : state.unoMode === "roulette"
+          ? `💣 ${state.rouletteRisk}%`
+          : "0";
+      document.getElementById("stat-wins").textContent = String(career.wins);
+      document.getElementById("career-rank-label").textContent =
+        `${UNO_MODES[state.unoMode].name} • ${getCareerTitle(career.xp)} (${career.xp} XP)`;
+      const flipPill = document.getElementById("flip-side-pill");
+      if (flipPill) {
+        flipPill.classList.toggle("dark-side", state.isDarkSide);
+        flipPill.textContent = state.isDarkSide ? "🌑 DARK SIDE" : "☀️ LIGHT SIDE";
+      }
+    }
+
+    function nextPlayerIndex(fromIdx = currentTurn, steps = 1) {
+      let idx = fromIdx;
+      for (let s = 0; s < steps; s++) {
+        let guard = 0;
+        do {
+          idx = (idx + direction + 4) % 4;
+          guard++;
+        } while (PLAYERS[idx].eliminated && guard < 4);
+      }
+      return idx;
+    }
+
+    function rotateAllHandsZeroRule() {
+      const hands = PLAYERS.map(p => p.hand);
+      if (direction === 1) {
+        PLAYERS[1].hand = hands[0];
+        PLAYERS[2].hand = hands[1];
+        PLAYERS[3].hand = hands[2];
+        PLAYERS[0].hand = hands[3];
+      } else {
+        PLAYERS[3].hand = hands[0];
+        PLAYERS[2].hand = hands[3];
+        PLAYERS[1].hand = hands[2];
+        PLAYERS[0].hand = hands[1];
+      }
+      PLAYERS.forEach(p => (p.calledUno = p.hand.length === 1));
+      const W = canvas.width;
+      const H = canvas.height;
+      spawnShockwave(W / 2, H / 2, "#00f5d4", 320, 620, 6);
+      spawnParticles(W / 2, H / 2, "#00f5d4", 42);
+      triggerActionCutIn("🔄 0-RULE HAND ROTATION!", "EVERY PLAYER'S HAND ROTATED!", "#00f5d4", 1200);
+      window.GameMasterFX?.burst?.(W / 2, H / 2, "#00f5d4", 35);
+    }
+
+    function promptSwapHandTarget(onChosen) {
+      const container = document.getElementById("swap-choices");
+      container.innerHTML = "";
+      for (let i = 1; i <= 3; i++) {
+        const p = PLAYERS[i];
+        if (p.eliminated) continue;
+        const btn = document.createElement("button");
+        btn.className = "swap-btn";
+        btn.innerHTML = `<span>${p.avatar} ${p.name} (${p.role})</span><span style="color:var(--gold);">${p.hand.length} Card${p.hand.length === 1 ? "" : "s"}</span>`;
+        btn.onclick = () => {
+          document.getElementById("swap-modal").classList.add("hidden");
+          onChosen(i);
+        };
+        container.appendChild(btn);
+      }
+      document.getElementById("swap-modal").classList.remove("hidden");
+    }
+
+    function finishPlayingCard(playerIdx, card, chosenColor = null) {
+      const p = PLAYERS[playerIdx];
+      discard.push(card);
+      activeColor = card.color === "wild" ? (chosenColor || "red") : card.color;
+      hintedCardIdx = -1;
+      if (state.xrayTurns > 0) state.xrayTurns--;
+
+      // Check if card is PURGE (Discard All of active color from player's hand)
+      if (card.value === "PURGE") {
+        const purged = [];
+        for (let i = p.hand.length - 1; i >= 0; i--) {
+          if (p.hand[i].color === activeColor) {
+            purged.push(p.hand.splice(i, 1)[0]);
+          }
+        }
+        purged.forEach(pc => discard.push(pc));
+      }
+
+      const W = canvas.width;
+      const H = canvas.height;
+      const discardCenter = { x: W / 2 + 69, y: H / 2 - 7 };
+      const suitPal = getSuitPalette(activeColor);
+      const suitHex = suitPal.main || "#facc15";
+
+      // Burst particles at discard pile on every card play
+      spawnParticles(discardCenter.x, discardCenter.y, suitHex, 20);
+      spawnShockwave(discardCenter.x, discardCenter.y, suitHex, 150, 380, 3.5);
+
+      if (p.hand.length === 1) {
+        if (p.isAI) {
+          p.calledUno = Math.random() < 0.75;
+          if (p.calledUno) {
+            sfx.unoShout();
+            pushAiBubble(playerIdx, "🔔 UNO!! 1 Card Left!", "#facc15", 2400);
+            triggerActionCutIn(`🔔 ${p.name} SHOUTS UNO!`, "1 CARD REMAINING!", "#facc15", 1100);
+          } else {
+            pushAiBubble(playerIdx, "👀 ...", "#94a3b8", 1500);
+          }
+        }
+      } else {
+        p.calledUno = false;
+      }
+
+      if (p.hand.length === 0) {
+        handleHandVictory(playerIdx);
+        return;
+      }
+
+      let stepAdvance = 1;
+      let statusNotes = `${p.name} played ${card.color === "wild" ? "" : getSuitPalette(card.color).label + " "}${card.value}.`;
+      const drawAdd = getDrawCardPenalty(card.value);
+
+      if (card.value === "FLIP") {
+        state.isDarkSide = !state.isDarkSide;
+        sfx.wildPrism();
+        triggerTableShake(10);
+        const sideLabel = state.isDarkSide ? "🌑 DARK SIDE UNLEASHED!" : "☀️ LIGHT SIDE RESTORED!";
+        spawnShockwave(W / 2, H / 2 - 6, state.isDarkSide ? "#d946ef" : "#facc15", 340, 620, 7);
+        spawnParticles(W / 2, H / 2 - 6, state.isDarkSide ? "#d946ef" : "#facc15", 50);
+        triggerActionCutIn("🔄 UNO FLIP!", sideLabel, state.isDarkSide ? "#d946ef" : "#facc15", 1250);
+        statusNotes += ` 🔄 Deck flipped to ${sideLabel}`;
+      } else if (card.value === "SKIP ALL") {
+        stepAdvance = 0; // Skips all 3 opponents so current player immediately plays again!
+        sfx.skipSound();
+        spawnShockwave(W / 2, H / 2 - 6, "#00f5d4", 310, 560, 6);
+        triggerActionCutIn(`⏭️ SKIP ALL!`, `${p.name} SKIPS EVERYONE & PLAYS AGAIN!`, "#00f5d4", 1150);
+        if (p.isAI) pushAiBubble(playerIdx, `⏭️ Skip All! My turn again!`, "#00f5d4");
+        statusNotes += ` ⏭️ SKIP ALL! ${p.name} plays again immediately!`;
+      } else if (card.value === "PURGE") {
+        sfx.wildPrism();
+        spawnShockwave(W / 2, H / 2 - 6, suitHex, 280, 540, 6);
+        triggerActionCutIn(`🗑️ COLOR PURGE!`, `${p.name} DUMPED ALL ${suitPal.label} CARDS!`, suitHex, 1150);
+        statusNotes += ` 🗑️ Purged all matching ${suitPal.label} cards from hand!`;
+      } else if (card.value === "MIRROR") {
+        direction *= -1;
+        sfx.reverseSound();
+        spawnShockwave(W / 2, H / 2 - 6, "#38bdf8", 300, 580, 6);
+        if (pendingDrawStack > 0) {
+          triggerActionCutIn(`🪞 MIRROR SHIELD!`, `REFLECTED +${pendingDrawStack} STACK BACK!`, "#38bdf8", 1250);
+          statusNotes += ` 🪞 Mirror Shield reflected +${pendingDrawStack} stack in reverse!`;
+        } else {
+          triggerActionCutIn(`🪞 MIRROR REVERSE!`, `TURN DIRECTION REVERSED!`, "#38bdf8", 1100);
+          statusNotes += ` 🪞 Mirror reversed turn flow!`;
+        }
+      } else if (card.value === "TORNADO") {
+        executeTornadoEqualizer(p.name);
+        sfx.reverseSound();
+        statusNotes += ` 🌪️ Tornado shuffled and equalized all hands!`;
+      } else if (card.value === "XRAY") {
+        state.xrayTurns = 12;
+        sfx.wildPrism();
+        spawnShockwave(W / 2, H / 2 - 6, "#00f5d4", 320, 600, 6);
+        triggerActionCutIn(`👁️ X-RAY HACK ACTIVE!`, `ALL AI HANDS REVEALED FOR 3 TURNS!`, "#00f5d4", 1200);
+        statusNotes += ` 👁️ X-Ray Visor reveals all opponent hands for 3 turns!`;
+      } else if (card.value === "REV") {
+        direction *= -1;
+        sfx.reverseSound();
+        spawnShockwave(W / 2, H / 2 - 6, suitHex, 260, 540, 5);
+        triggerActionCutIn("⇄ REVERSE!", direction === 1 ? "FLOW: CLOCKWISE ↻" : "FLOW: COUNTER-CLOCKWISE ↺", suitHex, 1050);
+        if (p.isAI) pushAiBubble(playerIdx, "⇄ Reversing direction!", suitHex);
+        statusNotes += ` Direction reversed (${direction === 1 ? "Clockwise ↻" : "Counter-Clockwise ↺"})!`;
+      } else if (card.value === "SKIP") {
+        stepAdvance = 2;
+        sfx.skipSound();
+        const skippedIdx = nextPlayerIndex(playerIdx, 1);
+        const skipped = PLAYERS[skippedIdx];
+        const skSeat = getPlayerSeatCoords(skippedIdx);
+        spawnShockwave(skSeat.x, skSeat.y, "#ef4444", 140, 480, 4);
+        triggerActionCutIn(`⊘ ${skipped.name} SKIPPED!`, `TURN PASSES TO ${PLAYERS[nextPlayerIndex(playerIdx, 2)].name}`, suitHex, 1050);
+        if (p.isAI) pushAiBubble(playerIdx, `⊘ Sit this one out, ${skipped.name}!`, suitHex);
+        statusNotes += ` ${skipped.name} is SKIPPED!`;
+      } else if (drawAdd > 0) {
+        pendingDrawStack += drawAdd;
+        if (pendingDrawStack > career.maxStack) {
+          career.maxStack = pendingDrawStack;
+          saveCareer();
+        }
+        sfx.penaltyBoom(pendingDrawStack);
+        if (card.color === "wild") sfx.wildPrism();
+        triggerTableShake(Math.min(18, 6 + drawAdd));
+        spawnShockwave(W / 2, H / 2 - 6, suitHex, 320, 620, 7);
+        spawnParticles(W / 2, H / 2 - 6, suitHex, 36 + drawAdd * 2);
+        triggerActionCutIn(`💥 ${card.value} CASCADE (STACK +${pendingDrawStack})!`, `SUIT: ${suitPal.label}`, suitHex, 1250);
+        if (p.isAI) pushAiBubble(playerIdx, `💥 Take +${pendingDrawStack} (${suitPal.label})!`, suitHex);
+        statusNotes += ` ${card.value}! Active suit: ${suitPal.label} • Stack: +${pendingDrawStack}!`;
+      } else if (card.value === "WILD" || card.value === "SWAP") {
+        sfx.wildPrism();
+        spawnShockwave(W / 2, H / 2 - 6, suitHex, 260, 520, 5);
+        triggerActionCutIn(`🌈 WILD SUIT SHIFT!`, `ACTIVE SUIT: ${suitPal.label}`, suitHex, 1050);
+        if (p.isAI) pushAiBubble(playerIdx, `🌈 Switching to ${suitPal.label}!`, suitHex);
+      } else if (card.value === "0" && rules.sevenZero) {
+        rotateAllHandsZeroRule();
+        sfx.reverseSound();
+        statusNotes += ` [0-Rule] Every player's hand rotated!`;
+      } else {
+        sfx.cardSnap();
+      }
+
+      setStatus(statusNotes);
+      currentTurn = stepAdvance === 0 ? playerIdx : nextPlayerIndex(playerIdx, stepAdvance);
+      updateHUD();
+      scheduleNextTurnIfNeeded();
+    }
+
+    function playCardFromHand(playerIdx, handIdx, isJumpIn = false) {
+      if (handOver) return;
+      if (!isJumpIn && currentTurn !== playerIdx) return;
+      const p = PLAYERS[playerIdx];
+      const card = p.hand[handIdx];
+      if (!card) return;
+      if (!isJumpIn && !isCardPlayable(card)) return;
+
+      if (isJumpIn) {
+        if (aiTurnTimeout) clearTimeout(aiTurnTimeout);
+        currentTurn = playerIdx;
+        sfx.unoShout();
+        triggerTableShake(9);
+        triggerActionCutIn("⚡ JUMP-IN INTERCEPT!", `${p.name} CUT IN LINE WITH IDENTICAL ${card.value}!`, "#00f5d4", 1200);
+      }
+
+      const pos = getPlayerSeatCoords(playerIdx);
+      spawnCardFlight(card, pos.x, pos.y, canvas.width / 2 + 69, canvas.height / 2 - 7, {
+        dur: 300,
+        flip3D: true
+      });
+      p.hand.splice(handIdx, 1);
+
+      const triggersSwap = (card.value === "7" && rules.sevenZero && p.hand.length > 0) || (card.value === "SWAP" && p.hand.length > 0);
+
+      if (!p.isAI) {
+        if (triggersSwap) {
+          promptSwapHandTarget((targetIdx) => {
+            const tmp = p.hand;
+            p.hand = PLAYERS[targetIdx].hand;
+            PLAYERS[targetIdx].hand = tmp;
+            sfx.wildPrism();
+            triggerActionCutIn(`⇄✋ HAND SWAP!`, `YOU TRADED HANDS WITH ${PLAYERS[targetIdx].name}!`, "#00f5d4", 1200);
+            window.GameMasterFX?.burst?.(canvas.width / 2, canvas.height / 2, "#facc15", 35);
+            if (card.color === "wild") {
+              pendingWildCard = card;
+              document.getElementById("color-modal").classList.remove("hidden");
+            } else {
+              finishPlayingCard(playerIdx, card, card.color);
+            }
+          });
+          return;
+        }
+        if (card.color === "wild") {
+          pendingWildCard = card;
+          document.getElementById("color-modal").classList.remove("hidden");
+          return;
+        }
+        finishPlayingCard(playerIdx, card, card.color);
+      } else {
+        if (triggersSwap) {
+          let bestTarget = 0;
+          for (let i = 0; i < 4; i++) {
+            if (i !== playerIdx && !PLAYERS[i].eliminated && PLAYERS[i].hand.length < PLAYERS[bestTarget].hand.length) {
+              bestTarget = i;
+            }
+          }
+          const tmp = p.hand;
+          p.hand = PLAYERS[bestTarget].hand;
+          PLAYERS[bestTarget].hand = tmp;
+          triggerActionCutIn(`⇄✋ ${p.name} SWAPPED HANDS!`, `TRADED WITH ${PLAYERS[bestTarget].name}!`, "#00f5d4", 1150);
+        }
+        let chosen = card.color;
+        if (card.color === "wild") {
+          const counts = { red: 0, yellow: 0, green: 0, blue: 0 };
+          p.hand.forEach(c => {
+            if (counts[c.color] !== undefined) counts[c.color]++;
+          });
+          chosen = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0] || "red";
+        }
+        finishPlayingCard(playerIdx, card, chosen);
+      }
+    }
+
+    function resolveWildColor(col) {
+      document.getElementById("color-modal").classList.add("hidden");
+      if (!pendingWildCard) return;
+      const c = pendingWildCard;
+      pendingWildCard = null;
+      finishPlayingCard(0, c, col);
+    }
+    window.resolveWildColor = resolveWildColor;
+
+    function handleDeckDrawAction(playerIdx) {
+      if (handOver || currentTurn !== playerIdx) return;
+      const p = PLAYERS[playerIdx];
+      const pos = getPlayerSeatCoords(playerIdx);
+      const deckOrigin = { x: canvas.width / 2 - 71, y: canvas.height / 2 - 7 };
+
+      if (pendingDrawStack > 0) {
+        const count = pendingDrawStack;
+        pendingDrawStack = 0;
+        for (let i = 0; i < count; i++) {
+          const c = drawFromDeck();
+          p.hand.push(c);
+          spawnCardFlight(c, deckOrigin.x, deckOrigin.y, pos.x, pos.y, {
+            dur: 280,
+            delay: i * 45,
+            flip3D: playerIdx === 0
+          });
+        }
+        p.calledUno = false;
+        sfx.penaltyBoom(count);
+        triggerTableShake(11);
+        spawnShockwave(pos.x, pos.y, "#ef4444", 190, 520, 5);
+        triggerActionCutIn(`💥 +${count} PENALTY ABSORBED!`, `${p.name} DREW ${count} CARDS!`, "#ef4444", 1150);
+        if (p.isAI) pushAiBubble(playerIdx, `😵 Oof! +${count} cards?!`, "#ef4444");
+        setStatus(`💥 ${p.name} absorbed +${count} penalty cards!`);
+        if (checkMercyKnockout(playerIdx)) return;
+        currentTurn = nextPlayerIndex(playerIdx, 1);
+        updateHUD();
+        scheduleNextTurnIfNeeded();
+        return;
+      }
+
+      // Mode 7: 💣 Cyber Roulette & Time-Bomb Press
+      if (state.unoMode === "roulette") {
+        const boom = Math.random() * 100 < state.rouletteRisk;
+        if (!boom) {
+          state.rouletteRisk = Math.min(90, state.rouletteRisk + 18);
+          sfx.cardSnap();
+          spawnShockwave(pos.x, pos.y, "#22c55e", 150, 420, 4);
+          triggerActionCutIn(`🟢 ROULETTE SAFE!`, `${p.name} DREW 0 CARDS! BOMB RISK NOW ${state.rouletteRisk}%`, "#22c55e", 1050);
+          if (p.isAI) pushAiBubble(playerIdx, `😅 Safe! Risk at ${state.rouletteRisk}%!`, "#22c55e");
+          setStatus(`💣 Cyber Roulette clicked SAFE for ${p.name} (0 cards drawn)! Bomb risk is now ${state.rouletteRisk}%!`);
+          currentTurn = nextPlayerIndex(playerIdx, 1);
+          updateHUD();
+          scheduleNextTurnIfNeeded();
+          return;
+        } else {
+          const blastCount = 2 + Math.floor(Math.random() * 5); // 2..6 cards
+          state.rouletteRisk = 15;
+          for (let i = 0; i < blastCount; i++) {
+            const c = drawFromDeck();
+            p.hand.push(c);
+            spawnCardFlight(c, deckOrigin.x, deckOrigin.y, pos.x, pos.y, {
+              dur: 280,
+              delay: i * 45,
+              flip3D: playerIdx === 0
+            });
+          }
+          p.calledUno = false;
+          sfx.penaltyBoom(blastCount + 3);
+          triggerTableShake(14);
+          spawnShockwave(pos.x, pos.y, "#ef4444", 260, 620, 7);
+          spawnParticles(pos.x, pos.y, "#ef4444", 48);
+          triggerActionCutIn(`💣 ROULETTE ERUPTION!`, `${p.name} BLASTED WITH +${blastCount} CARDS!`, "#ef4444", 1250);
+          if (p.isAI) pushAiBubble(playerIdx, `💣 BOOM! +${blastCount} cards!`, "#ef4444");
+          setStatus(`💣 CYBER ROULETTE ERUPTED on ${p.name} for +${blastCount} penalty cards! Risk reset to 15%.`);
+          if (checkMercyKnockout(playerIdx)) return;
+          currentTurn = nextPlayerIndex(playerIdx, 1);
+          updateHUD();
+          scheduleNextTurnIfNeeded();
+          return;
+        }
+      }
+
+      let drawnCount = 0;
+      let lastDrawn = null;
+      do {
+        lastDrawn = drawFromDeck();
+        p.hand.push(lastDrawn);
+        spawnCardFlight(lastDrawn, deckOrigin.x, deckOrigin.y, pos.x, pos.y, {
+          dur: 260,
+          delay: drawnCount * 55,
+          flip3D: playerIdx === 0
+        });
+        drawnCount++;
+      } while (rules.drawUntilPlayable && !isCardPlayable(lastDrawn) && drawnCount < 8);
+
+      p.calledUno = false;
+      sfx.cardDraw();
+      if (checkMercyKnockout(playerIdx)) return;
+
+      if (isCardPlayable(lastDrawn)) {
+        if (p.isAI) {
+          setTimeout(() => {
+            playCardFromHand(playerIdx, p.hand.length - 1);
+          }, 340);
+          return;
+        } else {
+          setStatus(`You drew ${drawnCount} card${drawnCount > 1 ? "s" : ""} — playing your drawn ${lastDrawn.value}!`);
+          playCardFromHand(0, p.hand.length - 1);
+          return;
+        }
+      }
+
+      if (p.isAI) pushAiBubble(playerIdx, `Drawing ${drawnCount}... Pass!`, "#94a3b8", 1400);
+      setStatus(`${p.name} drew ${drawnCount} card${drawnCount > 1 ? "s" : ""} and passed.`);
+      currentTurn = nextPlayerIndex(playerIdx, 1);
+      updateHUD();
+      scheduleNextTurnIfNeeded();
+    }
+
+    function scheduleNextTurnIfNeeded() {
+      if (aiTurnTimeout) clearTimeout(aiTurnTimeout);
+      if (handOver) return;
+      const p = PLAYERS[currentTurn];
+      if (!p || !p.isAI) return;
+      if (p.eliminated) {
+        currentTurn = nextPlayerIndex(currentTurn, 1);
+        scheduleNextTurnIfNeeded();
+        return;
+      }
+
+      aiTurnTimeout = setTimeout(() => {
+        if (handOver || currentTurn !== p.id) return;
+        const playableIndices = [];
+        for (let i = 0; i < p.hand.length; i++) {
+          if (isCardPlayable(p.hand[i])) playableIndices.push(i);
+        }
+        if (playableIndices.length === 0) {
+          handleDeckDrawAction(p.id);
+          return;
+        }
+        playableIndices.sort((a, b) => {
+          const ca = p.hand[a];
+          const cb = p.hand[b];
+          if (p.id === 1) return cb.points - ca.points;
+          if (ca.color === "wild" && cb.color !== "wild") return 1;
+          if (cb.color === "wild" && ca.color !== "wild") return -1;
+          return cb.points - ca.points;
+        });
+        playCardFromHand(p.id, playableIndices[0]);
+      }, 680);
+    }
+
+    function handleHandVictory(winnerIdx) {
+      handOver = true;
+      const winner = PLAYERS[winnerIdx];
+      let pointsEarned = 0;
+      const isTeamMode = state.unoMode === "team_2v2";
+      const humanTeamWon = isTeamMode ? (winnerIdx === 0 || winnerIdx === 2) : (winnerIdx === 0);
+
+      PLAYERS.forEach((p, idx) => {
+        if (isTeamMode) {
+          const sameTeam = (idx % 2) === (winnerIdx % 2);
+          if (!sameTeam) p.hand.forEach(c => (pointsEarned += c.points));
+        } else if (idx !== winnerIdx) {
+          p.hand.forEach(c => (pointsEarned += c.points));
+        }
+      });
+      winner.score += pointsEarned;
+
+      if (humanTeamWon) {
+        career.wins++;
+        career.xp += 100 + pointsEarned;
+        const cupTotal = isTeamMode ? (PLAYERS[0].score + PLAYERS[2].score) : PLAYERS[0].score;
+        if (cupTotal >= 500) career.tournaments++;
+        saveCareer();
+      } else {
+        career.xp += 20;
+        saveCareer();
+      }
+
+      sfx.winFanfare();
+      const W = canvas.width;
+      const H = canvas.height;
+      spawnShockwave(W / 2, H / 2, "#facc15", 420, 800, 8);
+      spawnParticles(W / 2, H / 2, "#facc15", 65);
+      spawnParticles(W / 2 - 180, H / 2 - 60, "#00f5d4", 40);
+      spawnParticles(W / 2 + 180, H / 2 - 60, "#ef4444", 40);
+      window.GameMasterFX?.burst?.(W / 2, H / 2, "#facc15", 70);
+
+      const winnerLabel = isTeamMode
+        ? (humanTeamWon ? "🤝 YOUR TEAM (YOU & NOVA)" : "⚔️ RIVAL TEAM (VIPER & TITAN)")
+        : winner.name;
+      const totalScore = isTeamMode
+        ? (humanTeamWon ? PLAYERS[0].score + PLAYERS[2].score : PLAYERS[1].score + PLAYERS[3].score)
+        : winner.score;
+
+      if (totalScore >= 500) {
+        roundBannerText = `🏆 ${winnerLabel} WINS THE 500-PT UNO ROYALE CUP (+${pointsEarned} PTS)!`;
+      } else {
+        roundBannerText = `🎉 ${winnerLabel} WINS ROUND ${roundNumber} (+${pointsEarned} PTS)!`;
+      }
+      setStatus(`${roundBannerText} Click anywhere or press [SPACE] for Next Round.`);
+      updateHUD();
+    }
+
+    function shoutUnoHuman() {
+      const human = PLAYERS[0];
+      if (human.hand.length <= 2) {
+        human.calledUno = true;
+        sfx.unoShout();
+        spawnShockwave(canvas.width / 2, canvas.height - 110, "#facc15", 260, 550, 6);
+        spawnParticles(canvas.width / 2, canvas.height - 110, "#facc15", 45);
+        triggerActionCutIn("🔔 UNO SHOUTED!", "YOU ARE PROTECTED FROM +2 CATCH PENALTIES!", "#facc15", 1150);
+        window.GameMasterFX?.burst?.(canvas.width / 2, canvas.height - 120, "#facc15", 40);
+        setStatus("🔔 YOU SHOUTED UNO! You are protected from +2 catch penalties!");
+      } else {
+        setStatus("🔔 You can only shout UNO when you have 1 or 2 cards left!");
+      }
+    }
+    window.shoutUnoHuman = shoutUnoHuman;
+
+    function catchAiUno() {
+      for (let i = 1; i <= 3; i++) {
+        const ai = PLAYERS[i];
+        if (ai.hand.length === 1 && !ai.calledUno) {
+          ai.calledUno = true;
+          const seat = getPlayerSeatCoords(i);
+          ai.hand.push(drawFromDeck(), drawFromDeck());
+          sfx.penaltyBoom(4);
+          triggerTableShake(10);
+          spawnShockwave(seat.x, seat.y, "#ef4444", 200, 520, 6);
+          triggerActionCutIn(`⚡ CAUGHT ${ai.name}!`, `FORGOT TO SHOUT UNO — DREW +2 PENALTY CARDS!`, "#ef4444", 1250);
+          pushAiBubble(i, "😱 Busted! Forgot to call UNO!", "#ef4444", 2400);
+          window.GameMasterFX?.burst?.(canvas.width / 2, canvas.height / 2, "#ef4444", 40);
+          setStatus(`⚡ CAUGHT ${ai.name} NOT CALLING UNO! ${ai.name} draws +2 penalty cards!`);
+          return;
+        }
+      }
+      setStatus("⚡ All 1-card opponents have already called UNO!");
+    }
+    window.catchAiUno = catchAiUno;
+
+    function sortHumanHand(announce = true) {
+      const order = { red: 1, yellow: 2, green: 3, blue: 4, wild: 5 };
+      PLAYERS[0].hand.sort((a, b) => {
+        if (order[a.color] !== order[b.color]) return order[a.color] - order[b.color];
+        return a.points - b.points || String(a.value).localeCompare(String(b.value));
+      });
+      if (announce) {
+        sfx.cardShuffle();
+        setStatus("🗂️ Sorted your hand by Suit Color and Rank!");
+      }
+    }
+    window.sortHumanHand = sortHumanHand;
+
+    function triggerHint() {
+      if (currentTurn !== 0 || handOver) return;
+      const h = PLAYERS[0].hand;
+      for (let i = 0; i < h.length; i++) {
+        if (isCardPlayable(h[i])) {
+          hintedCardIdx = i;
+          sfx.actionCard();
+          setStatus(`💡 Hint: Play your ${h[i].color.toUpperCase()} ${h[i].value} (highlighted in Gold)!`);
+          return;
+        }
+      }
+      setStatus("💡 Hint: No playable cards in hand — click the Draw Deck on the left!");
+    }
+    window.triggerHint = triggerHint;
+
+    function toggleRule(key) {
+      rules[key] = !rules[key];
+      document.getElementById("rule-stacking").classList.toggle("active", rules.stacking);
+      document.getElementById("rule-stacking").textContent = `⚡ Stack +2/+4: ${rules.stacking ? "ON" : "OFF"}`;
+      document.getElementById("rule-sevenzero").classList.toggle("active", rules.sevenZero);
+      document.getElementById("rule-sevenzero").textContent = `🔄 7-0 Switch: ${rules.sevenZero ? "ON" : "OFF"}`;
+      document.getElementById("rule-drawmulti").classList.toggle("active", rules.drawUntilPlayable);
+      document.getElementById("rule-drawmulti").textContent = `🎴 Draw-To-Match: ${rules.drawUntilPlayable ? "ON" : "OFF"}`;
+      sfx.cardSnap();
+    }
+    window.toggleRule = toggleRule;
+
+    function toggleMusic() {
+      sfx.init();
+      sfx.musicOn = !sfx.musicOn;
+      document.getElementById("btn-bgm").textContent = sfx.musicOn ? "🎵 MUSIC: ON" : "🎵 MUSIC: OFF";
+      if (sfx.musicOn) {
+        sfx.startMusicLoop(() => PLAYERS.some(p => p.hand.length === 1));
+      }
+    }
+    window.toggleMusic = toggleMusic;
+
+    function toggleMute() {
+      sfx.muted = !sfx.muted;
+      document.getElementById("btn-sfx").textContent = sfx.muted ? "🔇 MUTE" : "🔊 SFX";
+    }
+    window.toggleMute = toggleMute;
+
+    function toggleHelpModal() {
+      document.getElementById("help-modal").classList.toggle("hidden");
+    }
+    window.toggleHelpModal = toggleHelpModal;
+
+    // =========================================================================
+    // CUSTOM VECTOR ACTION SYMBOLS & AAA PHYSICAL UNO CARD SHADER
+    // =========================================================================
+    function drawSkipVector(r, color) {
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = Math.max(3.5, r * 0.28);
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.68, -r * 0.68);
+      ctx.lineTo(r * 0.68, r * 0.68);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawReverseVector(r, color) {
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = Math.max(3, r * 0.26);
+      ctx.lineCap = "round";
+      for (let side = 0; side < 2; side++) {
+        ctx.save();
+        if (side === 1) ctx.rotate(Math.PI);
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.78, -Math.PI * 0.75, Math.PI * 0.12);
+        ctx.stroke();
+        // Arrowhead at end of arc
+        const ax = Math.cos(Math.PI * 0.12) * r * 0.78;
+        const ay = Math.sin(Math.PI * 0.12) * r * 0.78;
+        ctx.translate(ax, ay);
+        ctx.rotate(Math.PI * 0.65);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-r * 0.42, -r * 0.28);
+        ctx.lineTo(-r * 0.42, r * 0.28);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    function drawUnoCard(x, y, w, h, card, opts = {}) {
+      const {
+        faceUp = true,
+        playable = false,
+        hovered = false,
+        hinted = false,
+        angle = 0,
+        scaleX = 1,
+        scaleY = 1,
+        now = performance.now()
+      } = opts;
+
+      ctx.save();
+      ctx.translate(x + w / 2, y + h / 2);
+      if (angle) ctx.rotate(angle);
+      if (scaleX !== 1 || scaleY !== 1) ctx.scale(scaleX, scaleY);
+
+      const rx = -w / 2;
+      const ry = -h / 2;
+      const radius = Math.max(7, Math.floor(w * 0.115));
+
+      // 1. Physical Tabletop Shadow & Playable / Hovered Neon Aura
+      if (hinted) {
+        ctx.shadowColor = "#facc15";
+        ctx.shadowBlur = 26;
+      } else if (hovered) {
+        ctx.shadowColor = "#00f5d4";
+        ctx.shadowBlur = 24;
+        ctx.shadowOffsetY = 8;
+      } else if (playable) {
+        ctx.shadowColor = "rgba(0, 245, 212, 0.55)";
+        ctx.shadowBlur = 14;
+        ctx.shadowOffsetY = 5;
+      } else {
+        ctx.shadowColor = "rgba(0, 0, 0, 0.62)";
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 4;
+      }
+
+      // 2. Crisp Pearl-White Card Stock Outer Border
+      const stockGrad = ctx.createLinearGradient(rx, ry, rx + w, ry + h);
+      stockGrad.addColorStop(0, "#ffffff");
+      stockGrad.addColorStop(1, "#e2e8f0");
+      ctx.fillStyle = stockGrad;
+      ctx.strokeStyle = hinted ? "#facc15" : hovered ? "#00f5d4" : playable ? "#38bdf8" : "#cbd5e1";
+      ctx.lineWidth = hinted || hovered ? 2.8 : playable ? 2.2 : 1.2;
+      ctx.beginPath();
+      ctx.roundRect(rx, ry, w, h, radius);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+
+      const margin = Math.max(4, Math.floor(w * 0.068));
+      const ix = rx + margin;
+      const iy = ry + margin;
+      const iw = w - margin * 2;
+      const ih = h - margin * 2;
+      const innerR = Math.max(4, radius - 2);
+
+      if (!faceUp) {
+        // =====================================================================
+        // AAA GLOSSY UNO ROYALE CARD BACK (CARBON BLACK + GOLD/CRIMSON OVAL)
+        // =====================================================================
+        const backGrad = ctx.createLinearGradient(ix, iy, ix + iw, iy + ih);
+        backGrad.addColorStop(0, "#1e293b");
+        backGrad.addColorStop(0.5, "#090d16");
+        backGrad.addColorStop(1, "#020617");
+        ctx.fillStyle = backGrad;
+        ctx.beginPath();
+        ctx.roundRect(ix, iy, iw, ih, innerR);
+        ctx.fill();
+
+        // Subtle gold inner pinstripe
+        ctx.strokeStyle = "rgba(250, 204, 21, 0.35)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(ix + 2, iy + 2, iw - 4, ih - 4, Math.max(3, innerR - 1));
+        ctx.stroke();
+
+        // Crimson Red Tilted Oval
+        ctx.save();
+        ctx.rotate(-0.42);
+        const ovalGrad = ctx.createLinearGradient(-iw * 0.4, -ih * 0.4, iw * 0.4, ih * 0.4);
+        ovalGrad.addColorStop(0, "#ef4444");
+        ovalGrad.addColorStop(0.6, "#dc2626");
+        ovalGrad.addColorStop(1, "#7f1d1d");
+        ctx.fillStyle = ovalGrad;
+        ctx.strokeStyle = "#fde047";
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, iw * 0.42, ih * 0.45, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // 3D Extruded Gold UNO Emblem
+        ctx.font = `900 ${Math.max(10, Math.floor(w * 0.255))}px "Arial Black", Impact, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#000000";
+        ctx.fillText("UNO", 2, 2.5);
+        ctx.fillStyle = "#facc15";
+        ctx.strokeStyle = "#111827";
+        ctx.lineWidth = 2;
+        ctx.strokeText("UNO", 0, 0.5);
+        ctx.fillText("UNO", 0, 0.5);
+        ctx.restore();
+
+        ctx.restore();
+        return;
+      }
+
+      // =======================================================================
+      // AAA PHYSICAL UNO CARD FACE (RICH GRADIENT + HOLOGRAPHIC FOIL + VECTORS)
+      // =======================================================================
+      const pal = getSuitPalette(card.color);
+      const bgGrad = ctx.createLinearGradient(ix, iy, ix + iw, iy + ih);
+      if (card.color === "wild") {
+        bgGrad.addColorStop(0, state.isDarkSide ? "#3b0764" : "#1e1b4b");
+        bgGrad.addColorStop(0.5, state.isDarkSide ? "#1e092b" : "#0f172a");
+        bgGrad.addColorStop(1, "#020617");
+      } else {
+        bgGrad.addColorStop(0, pal.main);
+        bgGrad.addColorStop(0.55, pal.mid);
+        bgGrad.addColorStop(1, pal.dark);
+      }
+      ctx.fillStyle = bgGrad;
+      ctx.beginPath();
+      ctx.roundRect(ix, iy, iw, ih, innerR);
+      ctx.fill();
+
+      // Prismatic foil border on Wild cards
+      if (card.color === "wild") {
+        const hue = Math.floor((now * 0.08) % 360);
+        ctx.strokeStyle = `hsla(${hue}, 92%, 65%, 0.75)`;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.roundRect(ix + 1.5, iy + 1.5, iw - 3, ih - 3, innerR);
+        ctx.stroke();
+      }
+
+      // Curved Glossy Top-Half Highlight
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(ix, iy, iw, ih, innerR);
+      ctx.clip();
+      const gloss = ctx.createLinearGradient(ix, iy, ix, iy + ih * 0.55);
+      gloss.addColorStop(0, "rgba(255, 255, 255, 0.24)");
+      gloss.addColorStop(1, "rgba(255, 255, 255, 0.0)");
+      ctx.fillStyle = gloss;
+      ctx.beginPath();
+      ctx.ellipse(0, iy, iw * 0.9, ih * 0.45, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Dynamic Specular Light Sweep when Hovered or Playable
+      if (hovered || hinted) {
+        const sweepPos = ((now * 0.0018) % 2) - 0.5;
+        const sx = ix + sweepPos * iw;
+        const specGrad = ctx.createLinearGradient(sx - 24, iy, sx + 24, iy + ih);
+        specGrad.addColorStop(0, "rgba(255,255,255,0)");
+        specGrad.addColorStop(0.5, "rgba(255,255,255,0.34)");
+        specGrad.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = specGrad;
+        ctx.fillRect(ix, iy, iw, ih);
+      }
+      ctx.restore();
+
+      // Tilted Center Oval Ring
+      ctx.save();
+      ctx.rotate(-0.38);
+      if (card.color === "wild") {
+        const ow = iw * 0.43;
+        const oh = ih * 0.44;
+        const quadColors = state.isDarkSide
+          ? ["#ec4899", "#a855f7", "#14b8a6", "#f97316"]
+          : ["#ef4444", "#3b82f6", "#22c55e", "#facc15"];
+        for (let q = 0; q < 4; q++) {
+          ctx.fillStyle = quadColors[q];
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.ellipse(0, 0, ow, oh, 0, (q * Math.PI) / 2, ((q + 1) * Math.PI) / 2);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2.8;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, ow, oh, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = state.isDarkSide ? "#0f172a" : "#ffffff";
+        ctx.shadowColor = "rgba(0,0,0,0.28)";
+        ctx.shadowBlur = 5;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, iw * 0.43, ih * 0.44, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowColor = "transparent";
+
+        ctx.strokeStyle = pal.mid;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, iw * 0.39, ih * 0.40, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Center Emblem: Number, Vector Skip, Vector Reverse, +2, +4, +5, +6, +10, FLIP, SKIP ALL, PURGE, MIRROR, TORNADO, XRAY
+      const centerColor = card.color === "wild" ? "#ffffff" : (state.isDarkSide ? pal.light : pal.mid);
+      ctx.save();
+      if (card.value === "+2" || card.value === "+5") {
+        const mw = w * 0.21;
+        const mh = h * 0.21;
+        const offsets = card.value === "+5" ? [-1.1, 0, 1.1] : [-0.8, 0.8];
+        offsets.forEach((dir) => {
+          ctx.save();
+          ctx.translate(dir * (w * 0.06), dir * (-h * 0.035));
+          ctx.rotate(dir * 0.13);
+          ctx.shadowColor = "rgba(0,0,0,0.45)";
+          ctx.shadowBlur = 4;
+          ctx.fillStyle = pal.main;
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(-mw / 2, -mh / 2, mw, mh, 3.5);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        });
+        ctx.font = `900 ${Math.floor(w * 0.28)}px "Arial Black", sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = "#090d16";
+        ctx.lineWidth = 3;
+        ctx.strokeText(card.value, 0, 2);
+        ctx.fillText(card.value, 0, 2);
+      } else if (card.value === "+4" || card.value === "+6" || card.value === "+10") {
+        const mw = w * 0.19;
+        const mh = h * 0.20;
+        const fan = [
+          { c: "#ef4444", dx: -w * 0.095, dy: -h * 0.03, rot: -0.24 },
+          { c: "#3b82f6", dx: -w * 0.03, dy: h * 0.045, rot: -0.08 },
+          { c: "#22c55e", dx: w * 0.03, dy: -h * 0.045, rot: 0.08 },
+          { c: "#facc15", dx: w * 0.095, dy: h * 0.03, rot: 0.24 }
+        ];
+        fan.forEach((f) => {
+          ctx.save();
+          ctx.translate(f.dx, f.dy);
+          ctx.rotate(f.rot);
+          ctx.shadowColor = "rgba(0,0,0,0.5)";
+          ctx.shadowBlur = 4;
+          ctx.fillStyle = f.c;
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.roundRect(-mw / 2, -mh / 2, mw, mh, 3);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        });
+        if (card.value !== "+4") {
+          ctx.font = `900 ${Math.floor(w * 0.27)}px "Arial Black", sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = "#fde047";
+          ctx.strokeStyle = "#090d16";
+          ctx.lineWidth = 3.2;
+          ctx.strokeText(card.value, 0, 2);
+          ctx.fillText(card.value, 0, 2);
+        }
+      } else if (card.value === "SKIP") {
+        ctx.save();
+        ctx.translate(2, 2.5);
+        drawSkipVector(w * 0.19, "#111827");
+        ctx.restore();
+        drawSkipVector(w * 0.19, centerColor);
+      } else if (card.value === "SKIP ALL") {
+        // Double overlapping Skip rings for Skip Everyone
+        ctx.save();
+        ctx.translate(-w * 0.055, -2);
+        drawSkipVector(w * 0.155, centerColor);
+        ctx.restore();
+        ctx.save();
+        ctx.translate(w * 0.055, 2);
+        drawSkipVector(w * 0.155, "#fde047");
+        ctx.restore();
+      } else if (card.value === "REV") {
+        ctx.save();
+        ctx.translate(2, 2.5);
+        drawReverseVector(w * 0.19, "#111827");
+        ctx.restore();
+        drawReverseVector(w * 0.19, centerColor);
+      } else if (card.value === "FLIP") {
+        // Dual Yin-Yang / Light-Dark Flip Vector Emblem
+        const r = w * 0.21;
+        ctx.save();
+        ctx.fillStyle = "#fde047";
+        ctx.beginPath();
+        ctx.arc(0, 0, r, -Math.PI / 2, Math.PI / 2);
+        ctx.fill();
+        ctx.fillStyle = "#a855f7";
+        ctx.beginPath();
+        ctx.arc(0, 0, r, Math.PI / 2, -Math.PI / 2);
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.font = `900 ${Math.floor(w * 0.17)}px "Arial Black", sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#090d16";
+        ctx.fillText("FLIP", 1, 1);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText("FLIP", 0, 0);
+        ctx.restore();
+      } else if (card.value === "PURGE" || card.value === "MIRROR" || card.value === "TORNADO" || card.value === "XRAY") {
+        // Custom Vector Cyber-Hack / No-Mercy Action Badges
+        const r = w * 0.21;
+        ctx.save();
+        ctx.strokeStyle = "#00f5d4";
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        if (card.value === "MIRROR") {
+          // Diamond shield vector
+          ctx.moveTo(0, -r * 1.1);
+          ctx.lineTo(r * 0.95, 0);
+          ctx.lineTo(0, r * 1.1);
+          ctx.lineTo(-r * 0.95, 0);
+          ctx.closePath();
+          ctx.fillStyle = "rgba(56, 189, 248, 0.32)";
+          ctx.fill();
+          ctx.stroke();
+        } else if (card.value === "TORNADO") {
+          // Concentric vortex rings
+          for (let k = 0; k < 3; k++) {
+            ctx.beginPath();
+            ctx.ellipse(0, (k - 1) * (r * 0.42), r * (1 - k * 0.22), r * 0.28, 0, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        } else if (card.value === "XRAY") {
+          // Cyber eye vector
+          ctx.beginPath();
+          ctx.ellipse(0, 0, r * 1.05, r * 0.62, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.fillStyle = "#00f5d4";
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.34, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          // PURGE / Discard All stack slash
+          ctx.strokeStyle = "#ef4444";
+          ctx.beginPath();
+          ctx.roundRect(-r * 0.75, -r * 0.75, r * 1.5, r * 1.5, 4);
+          ctx.stroke();
+        }
+        const labelShort = card.value === "TORNADO" ? "SPIN" : card.value === "MIRROR" ? "MIRR" : card.value;
+        ctx.font = `900 ${Math.floor(w * 0.165)}px "Arial Black", sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#090d16";
+        ctx.fillText(labelShort, 1.5, 1.5);
+        ctx.fillStyle = "#fde047";
+        ctx.fillText(labelShort, 0, 0);
+        ctx.restore();
+      } else {
+        const displaySym =
+          card.value === "WILD"
+            ? "W"
+            : card.value === "SWAP"
+            ? "⇄"
+            : card.value;
+
+        const fontSize = Math.floor(w * (displaySym.length > 1 ? 0.38 : 0.49));
+        ctx.font = `900 ${fontSize}px "Arial Black", "Segoe UI", Impact, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        // Deep 3D Extruded Shadow Stack
+        ctx.fillStyle = "#090d16";
+        ctx.fillText(displaySym, 3, 3.5);
+        ctx.fillText(displaySym, 1.8, 2);
+
+        ctx.fillStyle = centerColor;
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.8;
+        ctx.fillText(displaySym, 0, 0);
+        ctx.strokeText(displaySym, 0, 0);
+
+        if (card.value === "6" || card.value === "9") {
+          ctx.fillStyle = "#090d16";
+          ctx.fillRect(-w * 0.12 + 2, fontSize * 0.39 + 2, w * 0.24, 3.2);
+          ctx.fillStyle = centerColor;
+          ctx.fillRect(-w * 0.12, fontSize * 0.39, w * 0.24, 3.2);
+        }
+      }
+      ctx.restore();
+
+      // Top-Left & Mirrored Bottom-Right Corner Indices
+      const cornerSym =
+        card.value === "SKIP"
+          ? "⊘"
+          : card.value === "SKIP ALL"
+          ? "⏭"
+          : card.value === "REV"
+          ? "⇄"
+          : card.value === "WILD"
+          ? "W"
+          : card.value === "SWAP"
+          ? "⇄"
+          : card.value === "FLIP"
+          ? "🔄"
+          : card.value === "PURGE"
+          ? "🗑️"
+          : card.value === "MIRROR"
+          ? "🪞"
+          : card.value === "TORNADO"
+          ? "🌪"
+          : card.value === "XRAY"
+          ? "👁"
+          : card.value;
+      const cornerFont = Math.max(9, Math.floor(w * (cornerSym.length > 2 ? 0.14 : cornerSym.length > 1 ? 0.17 : 0.195)));
+      const cxOff = rx + margin + Math.max(5, Math.floor(w * 0.075));
+      const cyOff = ry + margin + Math.max(4, Math.floor(h * 0.045));
+
+      const drawCorner = () => {
+        ctx.font = `900 ${cornerFont}px "Arial Black", "Segoe UI", sans-serif`;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillStyle = "rgba(0,0,0,0.75)";
+        ctx.fillText(cornerSym, cxOff + 1.5, cyOff + 1.5);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(cornerSym, cxOff, cyOff);
+      };
+
+      drawCorner();
+      ctx.save();
+      ctx.rotate(Math.PI);
+      drawCorner();
+      ctx.restore();
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // TABLETOP GEOMETRY, CURVED FAN HAND & AAA RENDER LOOP
+    // =========================================================================
+    function getPlayerSeatCoords(idx) {
+      const W = canvas.width;
+      const H = canvas.height;
+      if (idx === 0) return { x: W / 2, y: H - 96 };
+      if (idx === 1) return { x: 122, y: H / 2 - 20 };
+      if (idx === 2) return { x: W / 2, y: 84 };
+      return { x: W - 122, y: H / 2 - 20 };
+    }
+
+    function getHumanCardRects() {
+      const hand = PLAYERS[0].hand;
+      const count = hand.length;
+      const W = canvas.width;
+      const H = canvas.height;
+      const cw = 88;
+      const ch = 130;
+      const maxSpread = Math.min(W - 280, count * 58);
+      const stepX = count > 1 ? Math.min(60, maxSpread / (count - 1)) : 0;
+      const totalW = cw + stepX * Math.max(0, count - 1);
+      const startX = (W - totalW) / 2;
+      const baseY = H - ch - 26;
+
+      return hand.map((card, i) => {
+        const jumpIn = currentTurn !== 0 && isJumpInMatch(card);
+        const playable = (currentTurn === 0 && !handOver && isCardPlayable(card)) || jumpIn;
+        const hovered = i === hoveredCardIdx;
+        const hinted = i === hintedCardIdx || jumpIn;
+
+        // Smoothly interpolate hover progress per card
+        const prevP = cardHoverProgress.get(card.id) || 0;
+        const targetP = hovered ? 1 : playable ? 0.36 : 0;
+        const nextP = prevP + (targetP - prevP) * 0.24;
+        cardHoverProgress.set(card.id, nextP);
+
+        // Natural ergonomic fan curve across hand
+        const norm = count > 1 ? (i / (count - 1)) * 2 - 1 : 0; // -1..1
+        const fanAngle = hovered ? 0 : norm * Math.min(0.18, count * 0.018);
+        const arcDrop = Math.pow(norm, 2) * 14;
+        const lift = nextP * 32;
+
+        return {
+          x: startX + i * stepX,
+          y: baseY + arcDrop - lift,
+          w: cw,
+          h: ch,
+          card,
+          playable,
+          jumpIn,
+          hovered,
+          hinted,
+          angle: fanAngle,
+          scale: 1 + nextP * 0.12
+        };
+      });
+    }
+
+    function getActionButtonRects() {
+      const W = canvas.width;
+      const H = canvas.height;
+      return {
+        unoBtn: { x: W - 190, y: H - 144, w: 162, h: 48 },
+        catchBtn: { x: W - 190, y: H - 86, w: 162, h: 42 },
+        deckRect: { x: W / 2 - 115, y: H / 2 - 74, w: 90, h: 134 },
+        discardRect: { x: W / 2 + 25, y: H / 2 - 74, w: 90, h: 134 }
+      };
+    }
+
+    function renderTabletop(now) {
+      const W = canvas.width;
+      const H = canvas.height;
+
+      ctx.save();
+      if (tableShake > 0.2) {
+        const sx = (Math.random() - 0.5) * tableShake;
+        const sy = (Math.random() - 0.5) * tableShake;
+        ctx.translate(sx, sy);
+        tableShake *= 0.86;
+      } else {
+        tableShake = 0;
+      }
+
+      // 1. Luxury Casino Tabletop + Active Suit Spotlight (with Dark Side Flip shift)
+      const pal = getSuitPalette(activeColor);
+      const feltGrad = ctx.createRadialGradient(W / 2, H * 0.45, 30, W / 2, H / 2, W * 0.72);
+      if (state.isDarkSide) {
+        feltGrad.addColorStop(0, "#3b0764");
+        feltGrad.addColorStop(0.55, "#1e092b");
+        feltGrad.addColorStop(1, "#06020a");
+      } else {
+        feltGrad.addColorStop(0, "#115e46");
+        feltGrad.addColorStop(0.55, "#072c24");
+        feltGrad.addColorStop(1, "#020b0e");
+      }
+      ctx.fillStyle = feltGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Suit-Tinted Center Spotlight
+      const spotGrad = ctx.createRadialGradient(W / 2, H / 2 - 6, 10, W / 2, H / 2 - 6, 290);
+      spotGrad.addColorStop(0, pal.glow);
+      spotGrad.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = spotGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Stitched Gold & Mahogany Outer Casino Table Rim
+      ctx.strokeStyle = "rgba(250, 204, 21, 0.22)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(14, 12, W - 28, H - 24, 24);
+      ctx.stroke();
+
+      // Floating Ambient Sparkle Motes
+      ctx.save();
+      for (const m of ambientMotes) {
+        m.x = (m.x + m.vx + W) % W;
+        m.y = (m.y + m.vy + H) % H;
+        const alpha = 0.15 + 0.2 * Math.sin(now * 0.003 + m.phase);
+        ctx.fillStyle = `rgba(254, 240, 138, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // 2. Dual-Ring 3D Rotating Suit Vortex in Center
+      const pulse = 0.5 + 0.5 * Math.sin(now * 0.0045);
+      ctx.save();
+      ctx.translate(W / 2, H / 2 - 6);
+
+      // Outer dashed energy ring
+      ctx.save();
+      ctx.rotate(-now * 0.0005 * direction);
+      ctx.strokeStyle = "rgba(255,255,255,0.14)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([12, 10]);
+      ctx.beginPath();
+      ctx.arc(0, 0, 168, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Primary glowing suit ring
+      ctx.strokeStyle = pal.main;
+      ctx.lineWidth = 4.5;
+      ctx.shadowColor = pal.main;
+      ctx.shadowBlur = 20 + pulse * 12;
+      ctx.beginPath();
+      ctx.arc(0, 0, 146, 0, Math.PI * 2);
+      ctx.stroke();
+
+      const rot = (now * 0.0014 * direction) % (Math.PI * 2);
+      ctx.rotate(rot);
+      ctx.fillStyle = pal.light;
+      ctx.font = "900 19px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      for (let a = 0; a < 4; a++) {
+        ctx.save();
+        ctx.rotate((a * Math.PI) / 2);
+        ctx.fillText(direction === 1 ? "↻" : "↺", 0, -146);
+        ctx.restore();
+      }
+      ctx.restore();
+
+      // Active Suit Pill below Center Piles
+      ctx.save();
+      ctx.fillStyle = pal.mid;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.shadowColor = pal.main;
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.roundRect(W / 2 - 118, H / 2 + 76, 236, 30, 15);
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 11.5px 'Segoe UI', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(
+        `${state.isDarkSide ? "🌑" : "☀️"} SUIT: ${pal.label} ${direction === 1 ? "↻" : "↺"}${pendingDrawStack > 0 ? " • STACK +" + pendingDrawStack : ""}`,
+        W / 2,
+        H / 2 + 91
+      );
+      ctx.restore();
+
+      // 3. Center Draw Stock & Discard Pile
+      const { deckRect, discardRect, unoBtn, catchBtn } = getActionButtonRects();
+      for (let s = 3; s >= 0; s--) {
+        drawUnoCard(deckRect.x - s * 2.5, deckRect.y - s * 2.5, deckRect.w, deckRect.h, {}, {
+          faceUp: false,
+          playable: currentTurn === 0 && !handOver,
+          now
+        });
+      }
+      ctx.fillStyle = pendingDrawStack > 0 || state.unoMode === "roulette" ? "#ef4444" : "#fde047";
+      ctx.font = "900 11px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(
+        pendingDrawStack > 0
+          ? `💥 ACCEPT +${pendingDrawStack}`
+          : state.unoMode === "roulette"
+          ? `💣 ROULETTE (${state.rouletteRisk}%)`
+          : `DRAW (${deck.length})`,
+        deckRect.x + deckRect.w / 2,
+        deckRect.y + deckRect.h + 16
+      );
+
+      const startShow = Math.max(0, discard.length - 4);
+      for (let i = startShow; i < discard.length; i++) {
+        const isTop = i === discard.length - 1;
+        const offsetAngle = isTop ? 0 : ((i % 2 === 0 ? -1 : 1) * 0.09);
+        drawUnoCard(discardRect.x, discardRect.y, discardRect.w, discardRect.h, discard[i], {
+          faceUp: true,
+          angle: offsetAngle,
+          now
+        });
+      }
+
+      // 4. Render 3 AI Opponents with Avatars & Speech Bubbles
+      for (let idx = 1; idx <= 3; idx++) {
+        const ai = PLAYERS[idx];
+        const seat = getPlayerSeatCoords(idx);
+        const isTurn = currentTurn === idx && !handOver;
+
+        ctx.save();
+        if (isTurn) {
+          ctx.shadowColor = "#facc15";
+          ctx.shadowBlur = 16;
+        }
+        ctx.fillStyle = ai.eliminated
+          ? "rgba(69, 10, 10, 0.78)"
+          : isTurn
+          ? "rgba(250, 204, 21, 0.24)"
+          : "rgba(4, 14, 20, 0.84)";
+        ctx.strokeStyle = ai.eliminated
+          ? "#ef4444"
+          : isTurn
+          ? "#facc15"
+          : ai.hand.length === 1
+          ? "#ef4444"
+          : "rgba(255,255,255,0.24)";
+        ctx.lineWidth = isTurn || ai.hand.length === 1 ? 2.5 : 1.2;
+        ctx.beginPath();
+        ctx.roundRect(seat.x - 106, seat.y - 58, 212, 46, 12);
+        ctx.fill();
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = ai.eliminated ? "#fca5a5" : isTurn ? "#fde047" : "#ffffff";
+        ctx.font = "900 12px 'Segoe UI', sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(`${ai.avatar} ${ai.name} • ${ai.score} pts`, seat.x, seat.y - 40);
+
+        ctx.fillStyle = ai.eliminated ? "#ef4444" : ai.hand.length === 1 ? "#ef4444" : "#94a3b8";
+        ctx.font = "800 10.5px sans-serif";
+        const mercyTag = state.unoMode === "no_mercy" && !ai.eliminated ? ` [${ai.hand.length}/25]` : "";
+        ctx.fillText(
+          ai.eliminated
+            ? "💀 KO (25-CARD MERCY ELIMINATED)"
+            : `${ai.hand.length} Card${ai.hand.length === 1 ? " 🔔 UNO!" : "s"}${mercyTag} (${ai.role})`,
+          seat.x,
+          seat.y - 22
+        );
+        ctx.restore();
+
+        // Fanned mini cards for AI hand (face-up when X-Ray active or Partner Peek on North AI)
+        const showFaceAi = state.xrayTurns > 0 || (idx === 2 && state.peekPartner);
+        const showCards = Math.min(ai.hand.length, 9);
+        const miniW = showFaceAi ? 48 : 42;
+        const miniH = showFaceAi ? 70 : 62;
+        const spread = (showCards - 1) * (showFaceAi ? 22 : 15);
+        for (let c = 0; c < showCards; c++) {
+          const norm = showCards > 1 ? (c / (showCards - 1)) * 2 - 1 : 0;
+          const cx = seat.x - spread / 2 + c * (showFaceAi ? 22 : 15) - miniW / 2;
+          const cy = seat.y - 4 + Math.abs(norm) * 4;
+          drawUnoCard(cx, cy, miniW, miniH, ai.hand[c] || {}, { faceUp: showFaceAi, angle: norm * 0.1, now });
+        }
+
+        // AI Floating Speech Bubble
+        const bubble = aiBubbles.find(b => b.seatIdx === idx && now < b.until);
+        if (bubble) {
+          ctx.save();
+          const by = idx === 2 ? seat.y + 68 : seat.y - 84;
+          ctx.fillStyle = "rgba(8, 20, 30, 0.94)";
+          ctx.strokeStyle = bubble.color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(seat.x - 105, by, 210, 28, 10);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "800 11px 'Segoe UI', sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(bubble.text, seat.x, by + 14);
+          ctx.restore();
+        }
+      }
+
+      // 5. Render Human Player Fanned Hand (South) — Non-Hovered first, Hovered on top
+      const humanRects = getHumanCardRects();
+      for (const r of humanRects) {
+        if (r.hovered) continue;
+        drawUnoCard(r.x, r.y, r.w, r.h, r.card, {
+          faceUp: true,
+          playable: r.playable,
+          hovered: false,
+          hinted: r.hinted,
+          angle: r.angle,
+          scaleX: r.scale,
+          scaleY: r.scale,
+          now
+        });
+      }
+      for (const r of humanRects) {
+        if (!r.hovered) continue;
+        drawUnoCard(r.x, r.y, r.w, r.h, r.card, {
+          faceUp: true,
+          playable: r.playable,
+          hovered: true,
+          hinted: r.hinted,
+          angle: 0,
+          scaleX: r.scale,
+          scaleY: r.scale,
+          now
+        });
+      }
+
+      // 6. UNO! Shout & Catch AI Buttons on Right
+      ctx.save();
+      const canShout = PLAYERS[0].hand.length <= 2 && !PLAYERS[0].calledUno;
+      if (canShout) {
+        ctx.shadowColor = "#ef4444";
+        ctx.shadowBlur = 14 + pulse * 10;
+      }
+      ctx.fillStyle = canShout ? "#dc2626" : "rgba(220, 38, 38, 0.28)";
+      ctx.strokeStyle = canShout ? "#fde047" : "rgba(255,255,255,0.28)";
+      ctx.lineWidth = canShout ? 2.6 : 1.2;
+      ctx.beginPath();
+      ctx.roundRect(unoBtn.x, unoBtn.y, unoBtn.w, unoBtn.h, 12);
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 14px 'Segoe UI', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("🔔 SHOUT UNO! (U)", unoBtn.x + unoBtn.w / 2, unoBtn.y + unoBtn.h / 2);
+
+      const catchable = PLAYERS.slice(1).some(p => p.hand.length === 1 && !p.calledUno);
+      if (catchable) {
+        ctx.shadowColor = "#facc15";
+        ctx.shadowBlur = 14 + pulse * 10;
+      }
+      ctx.fillStyle = catchable ? "#f59e0b" : "rgba(15, 23, 42, 0.78)";
+      ctx.strokeStyle = catchable ? "#ffffff" : "rgba(0, 245, 212, 0.35)";
+      ctx.lineWidth = catchable ? 2.4 : 1.5;
+      ctx.beginPath();
+      ctx.roundRect(catchBtn.x, catchBtn.y, catchBtn.w, catchBtn.h, 10);
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "800 12px 'Segoe UI', sans-serif";
+      ctx.fillText("⚡ CATCH AI! (C)", catchBtn.x + catchBtn.w / 2, catchBtn.y + catchBtn.h / 2);
+      ctx.restore();
+
+      // 7. Expanding Shockwaves
+      shockwaves = shockwaves.filter(s => now - s.start < s.dur);
+      for (const s of shockwaves) {
+        const p = (now - s.start) / s.dur;
+        const ease = 1 - Math.pow(1 - p, 3);
+        ctx.save();
+        ctx.strokeStyle = s.color;
+        ctx.globalAlpha = Math.max(0, 1 - p);
+        ctx.lineWidth = s.lineWidth * (1 - p * 0.6);
+        ctx.shadowColor = s.color;
+        ctx.shadowBlur = 14;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.maxR * ease, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 8. 60fps Particle Fountain & Confetti
+      particles = particles.filter(pt => pt.alpha > 0.02);
+      for (const pt of particles) {
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        pt.vy += 0.18; // gravity
+        pt.rot += pt.vrot;
+        pt.alpha -= pt.decay;
+        ctx.save();
+        ctx.translate(pt.x, pt.y);
+        ctx.rotate(pt.rot);
+        ctx.globalAlpha = Math.max(0, pt.alpha);
+        ctx.fillStyle = pt.color;
+        if (pt.shape === "rect") {
+          ctx.fillRect(-pt.size / 2, -pt.size / 2, pt.size, pt.size * 0.65);
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, pt.size * 0.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      // 9. Quadratic Bezier 3D Flip Card Flights
+      flyingCards = flyingCards.filter(f => now - f.start < f.dur);
+      for (const f of flyingCards) {
+        if (now < f.start) continue;
+        const t = Math.min(1, (now - f.start) / f.dur);
+        const ease = 1 - Math.pow(1 - t, 3);
+        const inv = 1 - ease;
+        const bx = inv * inv * f.fromX + 2 * inv * ease * f.ctrlX + ease * ease * f.toX;
+        const by = inv * inv * f.fromY + 2 * inv * ease * f.ctrlY + ease * ease * f.toY;
+        const ang = f.startAngle + (f.endAngle - f.startAngle) * ease;
+        const scaleArc = 1 + Math.sin(t * Math.PI) * 0.25;
+        const flipCos = f.flip3D ? Math.cos((1 - ease) * Math.PI) : 1;
+        const showFace = !f.flip3D || flipCos >= 0;
+
+        drawUnoCard(bx - 42, by - 62, 84, 124, f.card, {
+          faceUp: showFace,
+          angle: ang,
+          scaleX: Math.max(0.12, Math.abs(flipCos)) * scaleArc,
+          scaleY: scaleArc,
+          now
+        });
+      }
+
+      // 10. Status Ticker Strip above Human Hand
+      ctx.save();
+      ctx.fillStyle = "rgba(3, 10, 16, 0.88)";
+      ctx.strokeStyle = currentTurn === 0 ? "#00f5d4" : "rgba(255,255,255,0.22)";
+      ctx.lineWidth = 1.4;
+      const barW = Math.min(W - 40, 780);
+      ctx.beginPath();
+      ctx.roundRect((W - barW) / 2, H - 196, barW, 30, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = currentTurn === 0 ? "#00f5d4" : "#f8fafc";
+      ctx.font = "700 12.5px 'Segoe UI', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(statusMessage, W / 2, H - 181);
+      ctx.restore();
+
+      // 11. AAA Center-Stage Action Cut-In Banner
+      if (actionCutIn && now - actionCutIn.start < actionCutIn.dur) {
+        const elapsed = now - actionCutIn.start;
+        const p = elapsed / actionCutIn.dur;
+        const scale = p < 0.18 ? 0.65 + (p / 0.18) * 0.42 : p > 0.82 ? 1 - ((p - 0.82) / 0.18) * 0.2 : 1.02;
+        const alpha = p > 0.8 ? Math.max(0, 1 - (p - 0.8) / 0.2) : 1;
+
+        ctx.save();
+        ctx.translate(W / 2, H / 2 - 125);
+        ctx.scale(scale, scale);
+        ctx.globalAlpha = alpha;
+
+        ctx.fillStyle = "rgba(4, 10, 18, 0.92)";
+        ctx.strokeStyle = actionCutIn.color;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = actionCutIn.color;
+        ctx.shadowBlur = 24;
+        ctx.beginPath();
+        ctx.roundRect(-230, -34, 460, 68, 16);
+        ctx.fill();
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = actionCutIn.color;
+        ctx.font = "900 20px 'Segoe UI', Impact, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(actionCutIn.title, 0, -9);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "800 11.5px 'Segoe UI', sans-serif";
+        ctx.fillText(actionCutIn.subtitle, 0, 15);
+        ctx.restore();
+      }
+
+      // 12. Round Victory Overlay
+      if (handOver) {
+        ctx.save();
+        ctx.fillStyle = "rgba(2, 8, 14, 0.88)";
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 3;
+        ctx.shadowColor = "#facc15";
+        ctx.shadowBlur = 28;
+        const bw = Math.min(580, W - 40);
+        const bh = 156;
+        const bx = (W - bw) / 2;
+        const by = (H - bh) / 2;
+        ctx.beginPath();
+        ctx.roundRect(bx, by, bw, bh, 18);
+        ctx.fill();
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = "#facc15";
+        ctx.font = "900 20px 'Segoe UI', sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(roundBannerText, W / 2, by + 50);
+
+        ctx.fillStyle = "#e2e8f0";
+        ctx.font = "700 13px 'Segoe UI', sans-serif";
+        ctx.fillText(
+          `Standings — YOU: ${PLAYERS[0].score} • VIPER: ${PLAYERS[1].score} • NOVA: ${PLAYERS[2].score} • TITAN: ${PLAYERS[3].score}`,
+          W / 2,
+          by + 88
+        );
+
+        ctx.fillStyle = "#00f5d4";
+        ctx.font = "800 13px 'Segoe UI', sans-serif";
+        ctx.fillText("CLICK ANYWHERE OR PRESS [SPACE] FOR NEXT HAND", W / 2, by + 124);
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // POINTER & KEYBOARD INTERACTION
+    // =========================================================================
+    function getCanvasMouse(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (e.clientX - rect.left) * (canvas.width / rect.width),
+        y: (e.clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
+
+    canvas.addEventListener("mousemove", (e) => {
+      const m = getCanvasMouse(e);
+      const rects = getHumanCardRects();
+      let found = -1;
+      for (let i = rects.length - 1; i >= 0; i--) {
+        const r = rects[i];
+        if (m.x >= r.x && m.x <= r.x + r.w && m.y >= r.y && m.y <= r.y + r.h) {
+          found = i;
+          break;
+        }
+      }
+      if (found !== -1 && found !== prevHoveredCardIdx) {
+        sfx.cardHover();
+      }
+      prevHoveredCardIdx = found;
+      hoveredCardIdx = found;
+    });
+
+    canvas.addEventListener("mousedown", (e) => {
+      if (handOver) {
+        const someoneWonCup = PLAYERS.some(p => p.score >= 500);
+        if (someoneWonCup) {
+          startNewHand(true);
+        } else {
+          roundNumber++;
+          startNewHand(false);
+        }
+        return;
+      }
+
+      const m = getCanvasMouse(e);
+      const { deckRect, unoBtn, catchBtn } = getActionButtonRects();
+
+      if (m.x >= unoBtn.x && m.x <= unoBtn.x + unoBtn.w && m.y >= unoBtn.y && m.y <= unoBtn.y + unoBtn.h) {
+        shoutUnoHuman();
+        return;
+      }
+      if (m.x >= catchBtn.x && m.x <= catchBtn.x + catchBtn.w && m.y >= catchBtn.y && m.y <= catchBtn.y + catchBtn.h) {
+        catchAiUno();
+        return;
+      }
+
+      const rects = getHumanCardRects();
+      for (let i = rects.length - 1; i >= 0; i--) {
+        const r = rects[i];
+        if (m.x >= r.x && m.x <= r.x + r.w && m.y >= r.y && m.y <= r.y + r.h) {
+          if (r.jumpIn) {
+            playCardFromHand(0, i, true);
+            return;
+          }
+          if (currentTurn !== 0) return;
+          if (r.playable) {
+            playCardFromHand(0, i, false);
+          } else {
+            triggerTableShake(4);
+            setStatus(`⚠️ ${r.card.color.toUpperCase()} ${r.card.value} doesn't match ${getSuitPalette(activeColor).label} or ${discard[discard.length - 1].value}!`);
+          }
+          return;
+        }
+      }
+
+      if (currentTurn !== 0) return;
+
+      if (m.x >= deckRect.x && m.x <= deckRect.x + deckRect.w && m.y >= deckRect.y && m.y <= deckRect.y + deckRect.h) {
+        handleDeckDrawAction(0);
+      }
+    });
+
+    const UNO_MODE_KEYS = ["classic", "flip", "no_mercy", "jump_in", "team_2v2", "all_wild", "roulette", "cyber_hack"];
+    window.addEventListener("keydown", (e) => {
+      if (!document.getElementById("color-modal").classList.contains("hidden")) {
+        if (e.key === "1") resolveWildColor("red");
+        if (e.key === "2") resolveWildColor("blue");
+        if (e.key === "3") resolveWildColor("green");
+        if (e.key === "4") resolveWildColor("yellow");
+        return;
+      }
+      if (e.key >= "1" && e.key <= "8") {
+        selectUnoMode(UNO_MODE_KEYS[parseInt(e.key, 10) - 1]);
+        return;
+      }
+      if (e.key === "u" || e.key === "U") shoutUnoHuman();
+      else if (e.key === "c" || e.key === "C") catchAiUno();
+      else if (e.key === "p" || e.key === "P") togglePeekPartner();
+      else if (e.key === "s" || e.key === "S") sortHumanHand();
+      else if (e.key === "h" || e.key === "H") triggerHint();
+      else if (e.key === "d" || e.key === "D") handleDeckDrawAction(0);
+      else if (e.key === "n" || e.key === "N") startNewHand(true);
+      else if (e.key === "b" || e.key === "B") toggleMusic();
+      else if (e.key === "m" || e.key === "M") toggleMute();
+      else if (e.key === " " && handOver) {
+        e.preventDefault();
+        const someoneWonCup = PLAYERS.some(p => p.score >= 500);
+        if (someoneWonCup) startNewHand(true);
+        else {
+          roundNumber++;
+          startNewHand(false);
+        }
+      }
+    });
+
+    function resizeCanvas() {
+      const stage = document.getElementById("stage-container");
+      if (!stage) return;
+      const r = stage.getBoundingClientRect();
+      canvas.width = Math.max(820, Math.floor(r.width));
+      canvas.height = Math.max(540, Math.floor(r.height));
+    }
+    window.addEventListener("resize", resizeCanvas);
+
+    function loop(now) {
+      renderTabletop(now);
+      requestAnimationFrame(loop);
+    }
+
+    resizeCanvas();
+    startNewHand(true, false);
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

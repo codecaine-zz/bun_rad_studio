@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine Vegas Jackpot Slots Royale: Hold & Spin</title>
+  <style>
+    :root {
+      --bg-deep: #07030f;
+      --bg-cabinet: rgba(20, 10, 38, 0.94);
+      --gold: #facc15;
+      --amber: #f59e0b;
+      --crimson: #f43f5e;
+      --emerald: #22c55e;
+      --cyan: #38bdf8;
+      --purple: #a855f7;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 0%, #3b0764 0%, #110524 60%, #05020b 100%);
+      color: var(--text);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Casino Marquee */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 7px 14px;
+      background: linear-gradient(180deg, rgba(46, 16, 101, 0.96), rgba(15, 7, 32, 0.96));
+      border-bottom: 2px solid rgba(250, 204, 21, 0.55);
+      flex-wrap: wrap;
+    }
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #fde047, #f59e0b, #e11d48);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 0 20px rgba(250, 204, 21, 0.55);
+    }
+    .brand-title {
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      background: linear-gradient(90deg, #fef08a, #facc15, #f472b6, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-sub {
+      font-size: 10.5px;
+      color: #cbd5e1;
+      letter-spacing: 0.04em;
+    }
+
+    /* 4 Progressive Linked Jackpot Meters */
+    .jackpot-strip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .jp-box {
+      padding: 4px 11px;
+      border-radius: 9px;
+      text-align: center;
+      min-width: 118px;
+      border: 1.5px solid rgba(250, 204, 21, 0.6);
+      box-shadow: 0 0 14px rgba(250, 204, 21, 0.22);
+    }
+    .jp-box.grand {
+      background: linear-gradient(135deg, rgba(153, 27, 27, 0.92), rgba(88, 28, 135, 0.92));
+      border-color: #fde047;
+    }
+    .jp-box.major {
+      background: linear-gradient(135deg, rgba(107, 33, 168, 0.9), rgba(30, 27, 75, 0.9));
+      border-color: #f472b6;
+    }
+    .jp-box.minor {
+      background: linear-gradient(135deg, rgba(3, 105, 161, 0.9), rgba(15, 23, 42, 0.9));
+      border-color: #38bdf8;
+    }
+    .jp-box.mini {
+      background: linear-gradient(135deg, rgba(6, 95, 70, 0.9), rgba(15, 23, 42, 0.9));
+      border-color: #4ade80;
+    }
+    .jp-tier {
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      color: #fef08a;
+    }
+    .jp-val {
+      font-size: 13.5px;
+      font-weight: 900;
+      color: #ffffff;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 8px rgba(250, 204, 21, 0.6);
+    }
+
+    .ctrl-strip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    select, .btn {
+      background: rgba(30, 18, 58, 0.92);
+      color: var(--text);
+      border: 1px solid rgba(250, 204, 21, 0.45);
+      border-radius: 8px;
+      padding: 6px 11px;
+      font-size: 11.5px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+    .btn:hover, select:hover {
+      border-color: #fef08a;
+      box-shadow: 0 0 14px rgba(250, 204, 21, 0.4);
+      transform: translateY(-1px);
+    }
+    .btn.spin-btn {
+      background: linear-gradient(135deg, #22c55e, #15803d);
+      border-color: #86efac;
+      color: #ffffff;
+      font-size: 12.5px;
+      padding: 6px 14px;
+      box-shadow: 0 0 18px rgba(34, 197, 94, 0.45);
+    }
+    .btn.bonus-btn {
+      background: linear-gradient(135deg, #facc15, #ea580c);
+      border-color: #fef08a;
+      color: #090314;
+    }
+    .btn.wheel-btn {
+      background: linear-gradient(135deg, #ec4899, #7e22ce);
+      border-color: #f9a8d4;
+    }
+
+    /* 8-Cabinet Ribbon */
+    .cabinet-ribbon {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(12, 6, 24, 0.94);
+      border-bottom: 1px solid rgba(250, 204, 21, 0.25);
+      overflow-x: auto;
+    }
+    .cab-pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      background: rgba(38, 20, 71, 0.75);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      color: #e2e8f0;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .cab-pill.active {
+      background: linear-gradient(135deg, #fde047, #f59e0b);
+      color: #090314;
+      border-color: #ffffff;
+      box-shadow: 0 0 14px rgba(250, 204, 21, 0.55);
+    }
+
+    /* Main 3-Column Casino Floor Layout */
+    .floor-grid {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 255px 1fr 265px;
+      gap: 10px;
+      padding: 10px 12px;
+    }
+    .side-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+      overflow-y: auto;
+    }
+    .panel {
+      background: var(--bg-cabinet);
+      border: 1px solid rgba(250, 204, 21, 0.28);
+      border-radius: 12px;
+      padding: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+    .panel-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10.5px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+
+    /* Center Slot Cabinet & Bottom Bet Deck */
+    .center-cabinet {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+    }
+    .reel-stage-wrap {
+      flex: 1;
+      min-height: 320px;
+      background: #06020e;
+      border: 2.5px solid #facc15;
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 0 36px rgba(250, 204, 21, 0.22), inset 0 0 45px rgba(168, 85, 247, 0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #slotCanvas {
+      width: 100%;
+      height: 100%;
+      max-height: max(360px, calc(100vh - 205px));
+      display: block;
+      cursor: pointer;
+    }
+
+    /* Bottom VIP Betting Console */
+    .bet-console {
+      background: linear-gradient(180deg, rgba(28, 14, 54, 0.96), rgba(12, 6, 26, 0.98));
+      border: 1.5px solid rgba(250, 204, 21, 0.45);
+      border-radius: 12px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .meter-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .digital-meter {
+      background: #05020a;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 8px;
+      padding: 4px 12px;
+      min-width: 125px;
+    }
+    .meter-lbl {
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .meter-num {
+      font-size: 16px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: var(--emerald);
+    }
+    .meter-num.win {
+      color: var(--gold);
+      text-shadow: 0 0 12px rgba(250, 204, 21, 0.65);
+    }
+
+    .denom-pills {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .denom-btn {
+      padding: 5px 9px;
+      border-radius: 6px;
+      border: 1px solid rgba(250, 204, 21, 0.35);
+      background: rgba(15, 23, 42, 0.9);
+      color: #e2e8f0;
+      font-size: 11px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .denom-btn.active {
+      background: var(--gold);
+      color: #090314;
+      border-color: #ffffff;
+    }
+
+    .paytable-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 7px;
+      border-radius: 7px;
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+
+    .log-feed {
+      font-size: 11px;
+      color: #cbd5e1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 155px;
+      overflow-y: auto;
+    }
+    .log-line {
+      padding: 4px 6px;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.7);
+      border-left: 3px solid var(--gold);
+    }
+
+    @media (max-width: 1024px) {
+      .floor-grid { grid-template-columns: 1fr; overflow-y: auto; }
+      .side-col { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Top Progressive Linked Marquee -->
+  <header class="top-bar">
+    <div class="brand-wrap">
+      <div class="brand-icon">🎰</div>
+      <div>
+        <div class="brand-title">CODECAINE VEGAS JACKPOT SLOTS ROYALE</div>
+        <div class="brand-sub">HOLD &amp; SPIN LIGHTNING LINK • 1,024 WAYS BUFFALO • OLYMPUS 500× TUMBLE • TRIPLE TREASURE POTS</div>
+      </div>
+    </div>
+
+    <div class="jackpot-strip">
+      <div class="jp-box grand">
+        <div class="jp-tier">👑 GRAND LINK</div>
+        <div class="jp-val" id="jpGrand">$1,248,592.40</div>
+      </div>
+      <div class="jp-box major">
+        <div class="jp-tier">💎 MAJOR</div>
+        <div class="jp-val" id="jpMajor">$52,418.85</div>
+      </div>
+      <div class="jp-box minor">
+        <div class="jp-tier">🔥 MINOR</div>
+        <div class="jp-val" id="jpMinor">$10,285.50</div>
+      </div>
+      <div class="jp-box mini">
+        <div class="jp-tier">⚡ MINI</div>
+        <div class="jp-val" id="jpMini">$2,500.00</div>
+      </div>
+    </div>
+
+    <div class="ctrl-strip">
+      <select id="slotMachineSelect" aria-label="Select Vegas Slot Machine">
+        <option value="lightning_link">1. ⚡ Lightning Cash Link (Hold &amp; Spin)</option>
+        <option value="buffalo_gold">2. 🦬 Cyber-Buffalo Gold (1,024 Ways 27×)</option>
+        <option value="olympus_tumble">3. 🏛️ Gates of Cyber-Olympus (500× Tumble)</option>
+        <option value="triple_pots">4. 🏺 Triple Coin Treasure Pots (3 Pot Fillers)</option>
+        <option value="diamond_777">5. 🍒 Triple Diamond 777 (10× Wild Stepper)</option>
+        <option value="vegas_wheel">6. 🎡 Wheel of Vegas Mega-Spin</option>
+        <option value="sticky_wilds">7. 🐺 Sticky Expanding Wilds &amp; Mystery Doors</option>
+        <option value="quad_vip">8. 👑 VIP 4-Cabinet Multi-Play (4 Screens)</option>
+      </select>
+      <button class="btn bonus-btn" id="btnBuyBonus">⚡ HOLD &amp; SPIN BONUS [B]</button>
+      <button class="btn wheel-btn" id="btnWheelSpin">🎡 MEGA WHEEL [W]</button>
+      <button class="btn" id="btnAudio">🔊 CASINO BELLS: ON [M]</button>
+    </div>
+  </header>
+
+  <!-- 8-Cabinet Pill Bar -->
+  <nav class="cabinet-ribbon" id="cabinetRibbon">
+    <button class="cab-pill active" data-cab="lightning_link">1. ⚡ Lightning Hold &amp; Spin</button>
+    <button class="cab-pill" data-cab="buffalo_gold">2. 🦬 Buffalo Gold 1024</button>
+    <button class="cab-pill" data-cab="olympus_tumble">3. 🏛️ Olympus 500× Tumble</button>
+    <button class="cab-pill" data-cab="triple_pots">4. 🏺 Triple Treasure Pots</button>
+    <button class="cab-pill" data-cab="diamond_777">5. 🍒 Triple Diamond 777</button>
+    <button class="cab-pill" data-cab="vegas_wheel">6. 🎡 Vegas Wheel Spin</button>
+    <button class="cab-pill" data-cab="sticky_wilds">7. 🐺 Sticky Wilds &amp; Mystery</button>
+    <button class="cab-pill" data-cab="quad_vip">8. 👑 4-Cabinet Multi-Spin</button>
+  </nav>
+
+  <!-- Main 3-Column Casino Floor -->
+  <main class="floor-grid">
+    <!-- Left Column: Live Paytable, Feature Meters & VIP Comp Reload -->
+    <aside class="side-col">
+      <div class="panel">
+        <div class="panel-hdr">
+          <span>💎 HIGH-LIMIT PAYTABLE</span>
+          <span style="color:var(--cyan);">98.5% RTP</span>
+        </div>
+        <div class="paytable-row">
+          <span>💎 <strong>10× Diamond Wild</strong></span>
+          <strong style="color:var(--gold);">50× + Wild 3×</strong>
+        </div>
+        <div class="paytable-row">
+          <span>7️⃣ <strong>Flaming Triple 777</strong></span>
+          <strong style="color:var(--gold);">35× Bet</strong>
+        </div>
+        <div class="paytable-row">
+          <span>🦬 <strong>Golden Buffalo Stack</strong></span>
+          <strong style="color:var(--emerald);">25× Bet</strong>
+        </div>
+        <div class="paytable-row">
+          <span>⚡ <strong>Lightning Cash Orb</strong></span>
+          <strong style="color:var(--cyan);">6+ = HOLD &amp; SPIN</strong>
+        </div>
+        <div class="paytable-row">
+          <span>👑 <strong>Vegas Crown Scatter</strong></span>
+          <strong style="color:#f472b6;">3+ = FREE GAMES</strong>
+        </div>
+        <div class="paytable-row">
+          <span>🔔 <strong>Golden Bell / 🍒 Cherry</strong></span>
+          <strong style="color:#cbd5e1;">10× / 5× Bet</strong>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hdr">
+          <span>🏺 TRIPLE POT METERS</span>
+          <span style="color:var(--emerald);">READY TO POP</span>
+        </div>
+        <div style="font-size:11px; display:flex; flex-direction:column; gap:6px;">
+          <div>
+            <div style="display:flex; justify-content:space-between;"><span>🔴 Multiplier Pot</span><strong id="potRedPct">86%</strong></div>
+            <div style="height:6px; background:#1e293b; border-radius:4px; overflow:hidden; margin-top:2px;">
+              <div id="potRedBar" style="width:86%; height:100%; background:linear-gradient(90deg,#f43f5e,#facc15);"></div>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between;"><span>🟢 6-Row Expand Pot</span><strong id="potGreenPct">78%</strong></div>
+            <div style="height:6px; background:#1e293b; border-radius:4px; overflow:hidden; margin-top:2px;">
+              <div id="potGreenBar" style="width:78%; height:100%; background:linear-gradient(90deg,#22c55e,#38bdf8);"></div>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between;"><span>🟡 Grand Pick Pot</span><strong id="potGoldPct">92%</strong></div>
+            <div style="height:6px; background:#1e293b; border-radius:4px; overflow:hidden; margin-top:2px;">
+              <div id="potGoldBar" style="width:92%; height:100%; background:linear-gradient(90deg,#facc15,#fde047);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="flex:1;">
+        <div class="panel-hdr">
+          <span>🥂 VIP HIGH-ROLLER COMPS</span>
+          <span>TIER: NOIR</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <button class="btn bonus-btn" id="btnCompReload" style="width:100%;">🎁 CLAIM $25,000 VIP COMP [R]</button>
+          <button class="btn" id="btnNudgeReels" style="width:100%;">↕️ NUDGE REELS TO WIN [N]</button>
+          <div style="font-size:10.5px; color:var(--muted); line-height:1.45; margin-top:4px;">
+            💡 <strong>Casino Dopamine Tip:</strong> Land 6+ ⚡ Lightning Orbs or press <strong>[B]</strong> to lock orbs into <strong>3-Respin Hold &amp; Spin</strong>!
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center Slot Cabinet Canvas + VIP Betting Console -->
+    <section class="center-cabinet">
+      <div class="reel-stage-wrap">
+        <canvas id="slotCanvas" width="900" height="490"></canvas>
+      </div>
+
+      <div class="bet-console">
+        <div class="meter-group">
+          <div class="digital-meter">
+            <div class="meter-lbl">💵 VIP CREDITS</div>
+            <div class="meter-num" id="meterCredits">$54,250</div>
+          </div>
+          <div class="digital-meter">
+            <div class="meter-lbl">🔥 WIN ODOMETER</div>
+            <div class="meter-num win" id="meterWin">$12,500</div>
+          </div>
+          <div class="digital-meter" style="min-width:105px;">
+            <div class="meter-lbl">⚡ BONUS STATE</div>
+            <div class="meter-num" id="meterState" style="color:var(--cyan); font-size:13px;">HOLD &amp; SPIN READY</div>
+          </div>
+        </div>
+
+        <div class="denom-pills" id="denomGroup">
+          <button class="denom-btn" data-bet="50">$50</button>
+          <button class="denom-btn active" data-bet="100">$100</button>
+          <button class="denom-btn" data-bet="250">$250</button>
+          <button class="denom-btn" data-bet="500">$500 MAX</button>
+        </div>
+
+        <div class="ctrl-strip">
+          <button class="btn" id="btnAutoSpin">🔄 AUTO: OFF [A]</button>
+          <button class="btn" id="btnTurbo">🚀 TURBO: OFF [T]</button>
+          <button class="btn spin-btn" id="btnSpinMain">🎰 SPIN REELS [SPACE]</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Session Telemetry, Hotkeys & Jackpot Feed -->
+    <aside class="side-col">
+      <div class="panel">
+        <div class="panel-hdr">
+          <span>📊 FLOOR TELEMETRY</span>
+          <span id="cabBadge" style="color:var(--emerald);">LIGHTNING LINK</span>
+        </div>
+        <div style="font-size:11.5px; display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--muted);">Active Ways / Lines:</span>
+            <strong style="color:var(--gold);">1,024 WAYS + LINK</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--muted);">Locked Cash Orbs:</span>
+            <strong id="statOrbs" style="color:var(--cyan);">6 ORBS ($12,500)</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--muted);">Active Wild Multiplier:</span>
+            <strong id="statMult" style="color:var(--emerald);">3× × 3× = 9×</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--muted);">Biggest Session Hit:</span>
+            <strong id="statBiggest" style="color:#f472b6;">$48,500</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hdr">
+          <span>⌨️ CASINO SHORTCUTS</span>
+          <span>120 FPS</span>
+        </div>
+        <div style="font-size:11px; color:#cbd5e1; line-height:1.55;">
+          <div><strong style="color:var(--gold);">[SPACE]</strong> Spin Reels / Slam-Stop Early</div>
+          <div><strong style="color:var(--cyan);">[B]</strong> Instant Trigger Hold &amp; Spin Bonus</div>
+          <div><strong style="color:#f472b6;">[W]</strong> Spin Top-Box Progressive Wheel</div>
+          <div><strong style="color:var(--emerald);">[A]</strong> Toggle Auto-Spin • <strong>[T]</strong> Turbo Spin</div>
+          <div><strong style="color:var(--gold);">[N]</strong> Nudge Wilds • <strong>[1–8]</strong> Switch Cabinet</div>
+        </div>
+      </div>
+
+      <div class="panel" style="flex:1;">
+        <div class="panel-hdr">
+          <span>🏆 LIVE JACKPOT TICKER</span>
+          <span>VEGAS LINK</span>
+        </div>
+        <div class="log-feed" id="jackpotLog"></div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    (function () {
+      function safeGetStorage(k, fb) {
+        try { const v = window.localStorage.getItem(k); return v !== null ? v : fb; } catch (_) { return fb; }
+      }
+      function safeSetStorage(k, v) {
+        try { window.localStorage.setItem(k, String(v)); } catch (_) {}
+      }
+
+      // Real Casino Harmonic Bell & Reel Audio Engine
+      const CasinoAudio = {
+        ctx: null,
+        enabled: true,
+        init() {
+          if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) this.ctx = new AC();
+          }
+          if (this.ctx && this.ctx.state === "suspended") this.ctx.resume().catch(() => {});
+        },
+        play(freq, dur = 0.1, type = "triangle", vol = 0.12) {
+          if (!this.enabled) return;
+          try {
+            this.init();
+            if (!this.ctx) return;
+            const o = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            o.type = type;
+            o.frequency.setValueAtTime(freq, this.ctx.currentTime);
+            g.gain.setValueAtTime(vol, this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+            o.connect(g);
+            g.connect(this.ctx.destination);
+            o.start();
+            o.stop(this.ctx.currentTime + dur);
+          } catch (_) {}
+        },
+        reelStop(col) {
+          this.play(190 + col * 55, 0.08, "square", 0.1);
+        },
+        orbLock() {
+          this.play(587.33, 0.14, "sine", 0.16);
+          setTimeout(() => this.play(880, 0.22, "triangle", 0.16), 60);
+        },
+        winRollup() {
+          [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => {
+            setTimeout(() => this.play(f, 0.18, "triangle", 0.15), i * 65);
+          });
+        },
+        jackpotBell() {
+          [523.25, 659.25, 783.99, 1046.5, 1318.5, 1567.98].forEach((f, i) => {
+            setTimeout(() => this.play(f, 0.26, "sine", 0.18), i * 80);
+          });
+        }
+      };
+
+      const canvas = document.getElementById("slotCanvas");
+      const ctx = canvas.getContext("2d");
+
+      // 8 High-Impact Casino Symbols
+      const SYMBOLS = [
+        { id: "wild_diamond", icon: "💎", label: "3× WILD", mult: 12, color: "#38bdf8", border: "#fef08a", isWild: true },
+        { id: "triple_777", icon: "7️⃣", label: "777 VIP", mult: 10, color: "#f43f5e", border: "#fde047" },
+        { id: "buffalo", icon: "🦬", label: "GOLD BUFFALO", mult: 8, color: "#f59e0b", border: "#fef08a" },
+        { id: "cash_orb", icon: "⚡", label: "$2,500 LINK", mult: 6, color: "#a855f7", border: "#fde047", isOrb: true },
+        { id: "crown", icon: "👑", label: "FREE SPINS", mult: 5, color: "#eab308", border: "#ffffff", isScatter: true },
+        { id: "bell", icon: "🔔", label: "GOLDEN BELL", mult: 4, color: "#10b981", border: "#a7f3d0" },
+        { id: "cherry", icon: "🍒", label: "NEON CHERRY", mult: 3, color: "#ec4899", border: "#fbcfe8" }
+      ];
+
+      const ORB_VALUES = [
+        { text: "$500", amount: 500, tier: "CASH" },
+        { text: "$1,000", amount: 1000, tier: "CASH" },
+        { text: "$2,500 MINI", amount: 2500, tier: "MINI" },
+        { text: "$5,000", amount: 5000, tier: "CASH" },
+        { text: "$10,250 MINOR", amount: 10250, tier: "MINOR" },
+        { text: "$25,000", amount: 25000, tier: "MAJOR" }
+      ];
+
+      const state = {
+        cabinet: "lightning_link",
+        credits: Number(safeGetStorage("codecaine_slots_credits", 54250)) || 54250,
+        bet: 100,
+        displayedWin: 12500,
+        targetWin: 12500,
+        biggestWin: Number(safeGetStorage("codecaine_slots_biggest", 48500)) || 48500,
+        spinning: false,
+        autoSpin: false,
+        turbo: false,
+        holdAndSpinActive: false,
+        respinsLeft: 3,
+        wheelBonusTimer: 0,
+        wheelAngle: 0,
+        tick: 0,
+
+        // Live Progressive Jackpots
+        grand: 1248592.40,
+        major: 52418.85,
+        minor: 10285.50,
+        mini: 2500.00,
+
+        // Triple Pots
+        potRed: 86,
+        potGreen: 78,
+        potGold: 92,
+
+        // 5 Columns × 4 Rows Reel Grid
+        grid: [],
+        reelSpinTimers: [0, 0, 0, 0, 0],
+        reelOffsets: [0, 0, 0, 0, 0],
+        winningCells: new Set(["0-1", "1-1", "2-1", "3-1", "4-1", "1-2", "2-2", "3-2"]),
+        winBannerText: "🔥 MEGA LIGHTNING LINE WIN • $12,500!",
+        winBannerTimer: 160,
+
+        // Coin Fountain & Flying Pot Coins
+        coins: [],
+        flyingOrbs: []
+      };
+
+      // Initialize Showcase Grid with Winning Wilds & Cash Orbs
+      function initShowcaseGrid() {
+        const layout = [
+          ["buffalo", "wild_diamond", "cash_orb", "bell"],
+          ["triple_777", "wild_diamond", "cash_orb", "cherry"],
+          ["crown", "triple_777", "cash_orb", "buffalo"],
+          ["bell", "wild_diamond", "cash_orb", "crown"],
+          ["cash_orb", "triple_777", "cash_orb", "Wild_diamond".toLowerCase()]
+        ];
+        state.grid = [];
+        for (let c = 0; c < 5; c++) {
+          const col = [];
+          for (let r = 0; r < 4; r++) {
+            const symId = layout[c][r];
+            const base = SYMBOLS.find(s => s.id === symId) || SYMBOLS[0];
+            const orb = ORB_VALUES[(c * 3 + r) % ORB_VALUES.length];
+            col.push({
+              ...base,
+              orbText: orb.text,
+              orbAmount: orb.amount,
+              locked: base.isOrb
+            });
+          }
+          state.grid.push(col);
+        }
+        spawnCoinFountain(32);
+      }
+
+      function addLog(msg) {
+        const feed = document.getElementById("jackpotLog");
+        if (!feed) return;
+        const div = document.createElement("div");
+        div.className = "log-line";
+        div.textContent = msg;
+        feed.prepend(div);
+        while (feed.children.length > 14) feed.removeChild(feed.lastChild);
+      }
+
+      function spawnCoinFountain(count = 30) {
+        for (let i = 0; i < count; i++) {
+          state.coins.push({
+            x: 450 + (Math.random() - 0.5) * 280,
+            y: 390,
+            vx: (Math.random() - 0.5) * 9,
+            vy: -6 - Math.random() * 7.5,
+            r: 7 + Math.random() * 5,
+            rot: Math.random() * Math.PI * 2,
+            vrot: (Math.random() - 0.5) * 0.25,
+            life: 1
+          });
+        }
+      }
+
+      function randomCell() {
+        // Generous casino hit weights so the player gets frequent thrilling wins & orbs
+        const pool = [
+          SYMBOLS[0], SYMBOLS[0], // 3x Diamond Wild
+          SYMBOLS[1], SYMBOLS[1], // 777
+          SYMBOLS[2], SYMBOLS[2], // Gold Buffalo
+          SYMBOLS[3], SYMBOLS[3], SYMBOLS[3], // Lightning Cash Orb
+          SYMBOLS[4], // Crown Scatter
+          SYMBOLS[5], SYMBOLS[6]
+        ];
+        const base = pool[Math.floor(Math.random() * pool.length)];
+        const orb = ORB_VALUES[Math.floor(Math.random() * ORB_VALUES.length)];
+        return {
+          ...base,
+          orbText: orb.text,
+          orbAmount: orb.amount,
+          locked: false
+        };
+      }
+
+      function startSpin(forceBonus = false) {
+        if (state.spinning) {
+          // Slam-Stop all reels immediately!
+          state.reelSpinTimers = [1, 1, 1, 1, 1];
+          return;
+        }
+
+        if (!state.holdAndSpinActive && !forceBonus) {
+          if (state.credits < state.bet) {
+            state.credits += 25000;
+            addLog("🥂 VIP Automatic Host Comp: +$25,000 Reloaded!");
+          }
+          state.credits -= state.bet;
+        }
+
+        state.spinning = true;
+        state.winningCells.clear();
+        const baseFrames = state.turbo ? 12 : 24;
+        for (let c = 0; c < 5; c++) {
+          state.reelSpinTimers[c] = baseFrames + c * (state.turbo ? 5 : 11);
+        }
+
+        // Fill next outcome
+        for (let c = 0; c < 5; c++) {
+          for (let r = 0; r < 4; r++) {
+            if (state.holdAndSpinActive && state.grid[c][r].locked) continue;
+            if (forceBonus && Math.random() < 0.58) {
+              const orb = ORB_VALUES[Math.floor(Math.random() * ORB_VALUES.length)];
+              state.grid[c][r] = {
+                ...SYMBOLS[3],
+                orbText: orb.text,
+                orbAmount: orb.amount,
+                locked: true
+              };
+            } else {
+              state.grid[c][r] = randomCell();
+            }
+          }
+        }
+
+        // Fly coins up into the 3 Treasure Pots
+        state.potRed = Math.min(100, state.potRed + 3);
+        state.potGreen = Math.min(100, state.potGreen + 4);
+        state.potGold = Math.min(100, state.potGold + 3);
+        for (let p = 0; p < 3; p++) {
+          state.flyingOrbs.push({
+            x: 240 + Math.random() * 420,
+            y: 260,
+            tx: 270 + p * 180,
+            ty: 52,
+            t: 0,
+            color: ["#f43f5e", "#22c55e", "#facc15"][p]
+          });
+        }
+
+        updateHud();
+      }
+
+      function evaluateSpinResult() {
+        let totalWin = 0;
+        state.winningCells.clear();
+
+        // 1. Count Cash-on-Reel Lightning Orbs
+        let orbCount = 0;
+        let orbSum = 0;
+        for (let c = 0; c < 5; c++) {
+          for (let r = 0; r < 4; r++) {
+            const cell = state.grid[c][r];
+            if (cell.isOrb) {
+              orbCount++;
+              orbSum += cell.orbAmount * (state.bet / 100);
+              cell.locked = true;
+            }
+          }
+        }
+
+        // 2. Evaluate 1,024 Ways Left-to-Right Matches (with 3x Diamond Wilds)
+        for (let r0 = 0; r0 < 4; r0++) {
+          const targetId = state.grid[0][r0].id;
+          let reelStreak = 1;
+          let wildMult = state.grid[0][r0].isWild ? 3 : 1;
+          const matchedCoords = [`0-${r0}`];
+
+          for (let c = 1; c < 5; c++) {
+            let colHit = false;
+            for (let r = 0; r < 4; r++) {
+              const cell = state.grid[c][r];
+              if (cell.id === targetId || cell.isWild || targetId === "wild_diamond") {
+                colHit = true;
+                matchedCoords.push(`${c}-${r}`);
+                if (cell.isWild) wildMult = Math.min(27, wildMult * 2);
+              }
+            }
+            if (colHit) reelStreak++;
+            else break;
+          }
+
+          if (reelStreak >= 3) {
+            const symMeta = SYMBOLS.find(s => s.id === targetId) || SYMBOLS[0];
+            const wayWin = Math.round(state.bet * symMeta.mult * (reelStreak - 1) * wildMult);
+            totalWin += wayWin;
+            matchedCoords.forEach(k => state.winningCells.add(k));
+          }
+        }
+
+        // 3. Check Hold & Spin Trigger (6+ Orbs)
+        if (orbCount >= 6) {
+          const holdBonus = Math.round(orbSum);
+          totalWin += holdBonus;
+          for (let c = 0; c < 5; c++) {
+            for (let r = 0; r < 4; r++) {
+              if (state.grid[c][r].isOrb) state.winningCells.add(`${c}-${r}`);
+            }
+          }
+          CasinoAudio.jackpotBell();
+          state.winBannerText = `⚡ HOLD & SPIN LIGHTNING LINK HIT (${orbCount} ORBS) • +$${totalWin.toLocaleString()}!`;
+          addLog(`⚡ HOLD & SPIN FEATURE: ${orbCount} Cash Orbs paid $${totalWin.toLocaleString()}!`);
+        } else if (totalWin > 0) {
+          CasinoAudio.winRollup();
+          const tier = totalWin >= state.bet * 30 ? "👑 EPIC VEGAS JACKPOT" : (totalWin >= state.bet * 12 ? "💎 MEGA WIN" : "🔥 BIG LINE WIN");
+          state.winBannerText = `${tier} • +$${totalWin.toLocaleString()}!`;
+          addLog(`${tier}: Won $${totalWin.toLocaleString()} on ${state.cabinet.replace("_", " ").toUpperCase()}!`);
+        } else {
+          // Near-miss consolation or pot burst check
+          if (state.potGold >= 100 || Math.random() < 0.35) {
+            totalWin = state.bet * 4;
+            state.potGold = 65;
+            CasinoAudio.orbLock();
+            state.winBannerText = `🏺 GOLD TREASURE POT BONUS • +$${totalWin.toLocaleString()}!`;
+            addLog(`🏺 Gold Pot Burst awarded +$${totalWin.toLocaleString()}!`);
+          }
+        }
+
+        if (totalWin > 0) {
+          state.credits += totalWin;
+          state.targetWin = totalWin;
+          state.displayedWin = Math.floor(totalWin * 0.2);
+          state.winBannerTimer = 180;
+          if (totalWin > state.biggestWin) {
+            state.biggestWin = totalWin;
+            safeSetStorage("codecaine_slots_biggest", state.biggestWin);
+          }
+          safeSetStorage("codecaine_slots_credits", state.credits);
+          spawnCoinFountain(Math.min(55, 18 + Math.floor(totalWin / 500)));
+        }
+
+        document.getElementById("statOrbs").textContent = `${orbCount} ORBS ($${Math.round(orbSum).toLocaleString()})`;
+        updateHud();
+
+        if (state.autoSpin) {
+          setTimeout(() => {
+            if (state.autoSpin && !state.spinning) startSpin(false);
+          }, state.turbo ? 380 : 850);
+        }
+      }
+
+      function updateHud() {
+        document.getElementById("meterCredits").textContent = `$${Math.round(state.credits).toLocaleString()}`;
+        document.getElementById("meterWin").textContent = `$${Math.round(state.displayedWin).toLocaleString()}`;
+        document.getElementById("statBiggest").textContent = `$${Math.round(state.biggestWin).toLocaleString()}`;
+        document.getElementById("potRedPct").textContent = `${state.potRed}%`;
+        document.getElementById("potGreenPct").textContent = `${state.potGreen}%`;
+        document.getElementById("potGoldPct").textContent = `${state.potGold}%`;
+        document.getElementById("potRedBar").style.width = `${state.potRed}%`;
+        document.getElementById("potGreenBar").style.width = `${state.potGreen}%`;
+        document.getElementById("potGoldBar").style.width = `${state.potGold}%`;
+        document.getElementById("btnSpinMain").textContent = state.spinning ? "🛑 SLAM STOP [SPACE]" : "🎰 SPIN REELS [SPACE]";
+      }
+
+      // Draw Top 3 Swelling Treasure Pots above the Reels
+      function drawTreasurePots() {
+        const pots = [
+          { x: 255, label: "🔴 MULTIPLIER POT", pct: state.potRed, color: "#f43f5e", glow: "rgba(244,63,94,0.35)" },
+          { x: 450, label: "🟢 6-ROW EXPAND POT", pct: state.potGreen, color: "#22c55e", glow: "rgba(34,197,94,0.35)" },
+          { x: 645, label: "🟡 GRAND PICK POT", pct: state.potGold, color: "#facc15", glow: "rgba(250,204,21,0.4)" }
+        ];
+
+        pots.forEach((p, idx) => {
+          const pulse = 1 + Math.sin(state.tick * 0.08 + idx) * 0.04;
+          ctx.save();
+          ctx.translate(p.x, 46);
+          ctx.scale(pulse, pulse);
+
+          // Golden Pot Bowl
+          const grad = ctx.createRadialGradient(-6, -4, 3, 0, 4, 36);
+          grad.addColorStop(0, "#fef08a");
+          grad.addColorStop(0.55, p.color);
+          grad.addColorStop(1, "#451a03");
+          ctx.fillStyle = grad;
+          ctx.strokeStyle = "#fde047";
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.roundRect(-68, -24, 136, 46, 14);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "900 10px Inter, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(p.label, 0, -4);
+          ctx.fillStyle = "#fef08a";
+          ctx.font = "900 12px Inter, sans-serif";
+          ctx.fillText(`${p.pct}% FULL`, 0, 13);
+          ctx.restore();
+        });
+      }
+
+      // Draw 5x4 High-Limit 3D Reel Cabinet
+      function drawReelCabinet() {
+        const startX = 85;
+        const startY = 82;
+        const colW = 142;
+        const rowH = 86;
+        const gap = 6;
+
+        // Outer Gold Bezel Frame
+        ctx.save();
+        ctx.fillStyle = "rgba(8, 4, 20, 0.96)";
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.roundRect(startX - 12, startY - 10, 5 * colW + 4 * gap + 24, 4 * rowH + 3 * gap + 20, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        for (let c = 0; c < 5; c++) {
+          const cx = startX + c * (colW + gap);
+          const isSpinningCol = state.reelSpinTimers[c] > 0;
+
+          // Reel 5 Anticipation Spotlight when Reels 0..3 stopped
+          if (c === 4 && isSpinningCol && state.reelSpinTimers[3] === 0) {
+            const spot = ctx.createLinearGradient(cx, startY, cx, startY + 4 * rowH);
+            spot.addColorStop(0, "rgba(250, 204, 21, 0.35)");
+            spot.addColorStop(0.5, "rgba(244, 63, 94, 0.28)");
+            spot.addColorStop(1, "rgba(250, 204, 21, 0.35)");
+            ctx.fillStyle = spot;
+            ctx.fillRect(cx - 2, startY - 4, colW + 4, 4 * rowH + 3 * gap + 8);
+          }
+
+          for (let r = 0; r < 4; r++) {
+            const ry = startY + r * (rowH + gap);
+            const cell = state.grid[c][r];
+            const key = `${c}-${r}`;
+            const isWin = state.winningCells.has(key);
+
+            ctx.save();
+            // Tile Background
+            const tileGrad = ctx.createLinearGradient(cx, ry, cx, ry + rowH);
+            if (cell.isOrb) {
+              tileGrad.addColorStop(0, "#581c87");
+              tileGrad.addColorStop(1, "#1e1b4b");
+            } else if (cell.isWild) {
+              tileGrad.addColorStop(0, "#0369a1");
+              tileGrad.addColorStop(1, "#0f172a");
+            } else {
+              tileGrad.addColorStop(0, "rgba(30, 20, 58, 0.95)");
+              tileGrad.addColorStop(1, "rgba(12, 8, 28, 0.95)");
+            }
+            ctx.fillStyle = tileGrad;
+            ctx.strokeStyle = isWin ? "#fde047" : (cell.isOrb ? "#facc15" : "rgba(148, 163, 184, 0.28)");
+            ctx.lineWidth = isWin ? 3.2 : (cell.isOrb ? 2.2 : 1.3);
+            if (isWin) {
+              ctx.shadowColor = "#facc15";
+              ctx.shadowBlur = 16;
+            }
+            ctx.beginPath();
+            ctx.roundRect(cx, ry, colW, rowH, 10);
+            ctx.fill();
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            if (isSpinningCol) {
+              // Motion Blur Streak while spinning
+              const blurSym = SYMBOLS[(state.tick + c + r) % SYMBOLS.length];
+              ctx.fillStyle = blurSym.color;
+              ctx.font = "900 30px Inter, sans-serif";
+              ctx.textAlign = "center";
+              ctx.fillText(blurSym.icon, cx + colW / 2, ry + 48);
+            } else {
+              // Symbol Icon + Badge
+              ctx.font = "900 31px Inter, sans-serif";
+              ctx.textAlign = "center";
+              ctx.fillText(cell.icon, cx + colW / 2, ry + 42);
+
+              ctx.fillStyle = cell.isOrb ? "#fde047" : (cell.isWild ? "#38bdf8" : "#f8fafc");
+              ctx.font = "900 11.5px Inter, sans-serif";
+              ctx.fillText(cell.isOrb ? cell.orbText : cell.label, cx + colW / 2, ry + 68);
+
+              if (cell.isOrb) {
+                ctx.fillStyle = "rgba(250, 204, 21, 0.2)";
+                ctx.fillRect(cx + 8, ry + 6, colW - 16, 13);
+                ctx.fillStyle = "#fef08a";
+                ctx.font = "900 8.5px Inter, sans-serif";
+                ctx.fillText("🔒 CASH ON REEL", cx + colW / 2, ry + 15);
+              }
+            }
+            ctx.restore();
+          }
+        }
+
+        // Glowing Golden Payline Connector across Winning Cells
+        if (!state.spinning && state.winningCells.size > 0) {
+          ctx.strokeStyle = "rgba(250, 204, 21, 0.85)";
+          ctx.lineWidth = 3.5;
+          ctx.beginPath();
+          let first = true;
+          for (let c = 0; c < 5; c++) {
+            for (let r = 0; r < 4; r++) {
+              if (state.winningCells.has(`${c}-${r}`)) {
+                const px = startX + c * (colW + gap) + colW / 2;
+                const py = startY + r * (rowH + gap) + rowH / 2;
+                if (first) { ctx.moveTo(px, py); first = false; }
+                else ctx.lineTo(px, py);
+                break;
+              }
+            }
+          }
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      // Main 60-120 FPS Render & Physics Loop
+      function animate() {
+        state.tick++;
+
+        // Tick Progressive Jackpots upward every frame like a real linked casino bank
+        state.grand += 0.07;
+        state.major += 0.03;
+        state.minor += 0.01;
+        if (state.tick % 4 === 0) {
+          document.getElementById("jpGrand").textContent = `$${state.grand.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          document.getElementById("jpMajor").textContent = `$${state.major.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          document.getElementById("jpMinor").textContent = `$${state.minor.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+
+        // Roll up Win Odometer smoothly
+        if (state.displayedWin < state.targetWin) {
+          const step = Math.max(25, Math.ceil((state.targetWin - state.displayedWin) * 0.14));
+          state.displayedWin = Math.min(state.targetWin, state.displayedWin + step);
+          document.getElementById("meterWin").textContent = `$${state.displayedWin.toLocaleString()}`;
+        }
+
+        // Step Reel Timers
+        if (state.spinning) {
+          let anyLeft = false;
+          for (let c = 0; c < 5; c++) {
+            if (state.reelSpinTimers[c] > 0) {
+              state.reelSpinTimers[c]--;
+              if (state.reelSpinTimers[c] === 0) {
+                CasinoAudio.reelStop(c);
+              } else {
+                anyLeft = true;
+              }
+            }
+          }
+          if (!anyLeft) {
+            state.spinning = false;
+            evaluateSpinResult();
+          }
+        }
+
+        // Clear & Render Canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const bg = ctx.createRadialGradient(450, 240, 40, 450, 240, 520);
+        bg.addColorStop(0, "#2e1065");
+        bg.addColorStop(0.6, "#110529");
+        bg.addColorStop(1, "#05020c");
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        drawTreasurePots();
+        drawReelCabinet();
+
+        // Flying Pot Coins
+        for (let i = state.flyingOrbs.length - 1; i >= 0; i--) {
+          const fo = state.flyingOrbs[i];
+          fo.t += 0.06;
+          if (fo.t >= 1) { state.flyingOrbs.splice(i, 1); continue; }
+          const x = fo.x + (fo.tx - fo.x) * fo.t;
+          const y = fo.y + (fo.ty - fo.y) * fo.t - Math.sin(fo.t * Math.PI) * 55;
+          ctx.fillStyle = fo.color;
+          ctx.beginPath();
+          ctx.arc(x, y, 7, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // 3D Golden Coin Fountain Shower
+        for (let i = state.coins.length - 1; i >= 0; i--) {
+          const c = state.coins[i];
+          c.x += c.vx;
+          c.y += c.vy;
+          c.vy += 0.28;
+          c.rot += c.vrot;
+          c.life -= 0.014;
+          if (c.life <= 0 || c.y > canvas.height + 20) {
+            state.coins.splice(i, 1);
+            continue;
+          }
+          ctx.save();
+          ctx.globalAlpha = Math.min(1, c.life * 1.4);
+          ctx.translate(c.x, c.y);
+          ctx.scale(Math.cos(c.rot), 1);
+          ctx.fillStyle = "#facc15";
+          ctx.strokeStyle = "#fef08a";
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.arc(0, 0, c.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Win Celebration Marquee Banner
+        if (state.winBannerTimer > 0) {
+          state.winBannerTimer--;
+          ctx.save();
+          ctx.fillStyle = "rgba(9, 4, 24, 0.92)";
+          ctx.strokeStyle = "#fde047";
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.roundRect(175, 444, 550, 38, 999);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#fef08a";
+          ctx.font = "900 14px Inter, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(state.winBannerText, 450, 468);
+          ctx.restore();
+        }
+
+        requestAnimationFrame(animate);
+      }
+
+      // Bindings
+      function selectCabinet(cab) {
+        state.cabinet = cab;
+        document.getElementById("slotMachineSelect").value = cab;
+        document.querySelectorAll(".cab-pill").forEach(b => {
+          b.classList.toggle("active", b.dataset.cab === cab);
+        });
+        document.getElementById("cabBadge").textContent = cab.replace("_", " ").toUpperCase();
+        startSpin(false);
+      }
+
+      document.getElementById("slotMachineSelect").addEventListener("change", e => selectCabinet(e.target.value));
+      document.querySelectorAll(".cab-pill").forEach(b => {
+        b.addEventListener("click", () => selectCabinet(b.dataset.cab));
+      });
+      document.querySelectorAll(".denom-btn").forEach(b => {
+        b.addEventListener("click", () => {
+          state.bet = Number(b.dataset.bet);
+          document.querySelectorAll(".denom-btn").forEach(x => x.classList.toggle("active", x === b));
+        });
+      });
+
+      document.getElementById("btnSpinMain").addEventListener("click", () => startSpin(false));
+      document.getElementById("btnBuyBonus").addEventListener("click", () => {
+        document.getElementById("meterState").textContent = "⚡ 3 RESPINS ACTIVE!";
+        startSpin(true);
+      });
+      document.getElementById("btnWheelSpin").addEventListener("click", () => {
+        const wheelWin = state.bet * 50;
+        state.credits += wheelWin;
+        state.targetWin = wheelWin;
+        state.displayedWin = 0;
+        state.winBannerText = `🎡 VEGAS MEGA WHEEL 50× JACKPOT • +$${wheelWin.toLocaleString()}!`;
+        state.winBannerTimer = 200;
+        CasinoAudio.jackpotBell();
+        spawnCoinFountain(50);
+        addLog(`🎡 Mega Wheel Spin hit 50× ($${wheelWin.toLocaleString()})!`);
+        updateHud();
+      });
+      document.getElementById("btnAutoSpin").addEventListener("click", e => {
+        state.autoSpin = !state.autoSpin;
+        e.target.textContent = `🔄 AUTO: ${state.autoSpin ? "ON" : "OFF"} [A]`;
+        if (state.autoSpin && !state.spinning) startSpin(false);
+      });
+      document.getElementById("btnTurbo").addEventListener("click", e => {
+        state.turbo = !state.turbo;
+        e.target.textContent = `🚀 TURBO: ${state.turbo ? "ON" : "OFF"} [T]`;
+      });
+      document.getElementById("btnAudio").addEventListener("click", e => {
+        CasinoAudio.enabled = !CasinoAudio.enabled;
+        e.target.textContent = `🔊 CASINO BELLS: ${CasinoAudio.enabled ? "ON" : "OFF"} [M]`;
+      });
+      document.getElementById("btnCompReload").addEventListener("click", () => {
+        state.credits += 25000;
+        CasinoAudio.winRollup();
+        spawnCoinFountain(35);
+        addLog("🎁 Claimed $25,000 Noir VIP Casino Comp!");
+        updateHud();
+      });
+      document.getElementById("btnNudgeReels").addEventListener("click", () => {
+        for (let c = 0; c < 5; c++) {
+          state.grid[c][1] = { ...SYMBOLS[0], orbText: "$5,000", orbAmount: 5000, locked: false };
+        }
+        evaluateSpinResult();
+      });
+
+      canvas.addEventListener("click", () => startSpin(false));
+
+      window.addEventListener("keydown", e => {
+        if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "SELECT")) return;
+        const k = e.key.toUpperCase();
+        if (e.code === "Space") { e.preventDefault(); startSpin(false); }
+        else if (k === "B") document.getElementById("btnBuyBonus").click();
+        else if (k === "W") document.getElementById("btnWheelSpin").click();
+        else if (k === "A") document.getElementById("btnAutoSpin").click();
+        else if (k === "T") document.getElementById("btnTurbo").click();
+        else if (k === "R") document.getElementById("btnCompReload").click();
+        else if (k === "N") document.getElementById("btnNudgeReels").click();
+        else if (k === "M") document.getElementById("btnAudio").click();
+        else if (k >= "1" && k <= "8") {
+          const cabs = ["lightning_link", "buffalo_gold", "olympus_tumble", "triple_pots", "diamond_777", "vegas_wheel", "sticky_wilds", "quad_vip"];
+          selectCabinet(cabs[Number(k) - 1]);
+        }
+      });
+
+      addLog("🎰 Welcome to Codecaine Vegas Jackpot Slots Royale!");
+      addLog("⚡ 6 Lightning Orbs Locked — Press [SPACE] to Spin or [B] for Hold & Spin!");
+      initShowcaseGrid();
+      updateHud();
+      requestAnimationFrame(animate);
+    })();
+  </script>
+</body>
+</html>

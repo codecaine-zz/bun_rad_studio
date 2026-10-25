@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Codecaine CyberArtillery: Scorched Skyline</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    :root {
+      --bg: #040312;
+      --panel: rgba(10, 8, 28, 0.92);
+      --cyan: #00f5ff;
+      --magenta: #ff0066;
+      --gold: #ffcc00;
+      --lime: #00ff88;
+      --purple: #b829ff;
+      --text: #eef6ff;
+    }
+    * { box-sizing: border-box; user-select: none; }
+    body {
+      margin: 0; padding: 0;
+      background: radial-gradient(circle at 50% 20%, #190d3a 0%, #040312 100%);
+      color: var(--text);
+      font-family: 'Orbitron', 'Rajdhani', 'Segoe UI', system-ui, monospace, sans-serif;
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh; overflow: hidden;
+    }
+    .hud-header {
+      width: 100%; max-width: 1120px;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 8px 16px; margin-top: 6px;
+      background: var(--panel);
+      border: 1px solid rgba(0, 245, 255, 0.32);
+      border-radius: 14px;
+      box-shadow: 0 0 28px rgba(0, 245, 255, 0.14);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-title {
+      font-size: 17px; font-weight: 900; letter-spacing: 1.5px;
+      background: linear-gradient(90deg, var(--cyan), var(--gold), var(--magenta));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .brand-sub {
+      font-size: 10px; letter-spacing: 1.5px; color: var(--gold);
+      padding: 2px 8px; border-radius: 10px;
+      background: rgba(255, 204, 0, 0.12); border: 1px solid rgba(255, 204, 0, 0.35);
+    }
+    .stats-bar { display: flex; gap: 10px; align-items: center; }
+    .stat-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(0, 245, 255, 0.22);
+      border-radius: 10px; padding: 4px 10px; text-align: center;
+      min-width: 82px;
+    }
+    .stat-label { font-size: 9px; letter-spacing: 1.2px; color: #9ab4d8; text-transform: uppercase; }
+    .stat-val {
+      font-size: 15px; font-weight: 800; color: #fff;
+      text-shadow: 0 0 10px var(--cyan);
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-val.gold { color: var(--gold); text-shadow: 0 0 10px var(--gold); }
+    .controls-bar { display: flex; gap: 6px; align-items: center; }
+    .btn, select.btn {
+      background: rgba(0, 245, 255, 0.12);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 245, 255, 0.4);
+      border-radius: 8px; padding: 6px 10px;
+      font-family: inherit; font-size: 11px; font-weight: 700;
+      letter-spacing: 1px; cursor: pointer;
+      transition: all 0.15s ease; text-transform: uppercase;
+    }
+    select.btn option { background: #080620; color: #fff; }
+    .btn:hover {
+      background: var(--cyan); color: #040312;
+      box-shadow: 0 0 14px var(--cyan);
+    }
+    .arena-wrap {
+      width: 100%; max-width: 1120px;
+      flex: 1; display: flex; justify-content: center; align-items: center;
+      padding: 6px 16px;
+    }
+    canvas {
+      width: 100%; height: calc(100vh - 185px);
+      max-height: 640px;
+      background: #040312;
+      border: 1px solid rgba(0, 245, 255, 0.35);
+      border-radius: 14px;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.85), inset 0 0 30px rgba(184, 41, 255, 0.1);
+      display: block;
+    }
+    .deck-bar {
+      width: 100%; max-width: 1120px;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 10px 18px; margin-bottom: 8px;
+      background: var(--panel);
+      border: 1px solid rgba(0, 245, 255, 0.3);
+      border-radius: 14px;
+    }
+    .slider-group {
+      display: flex; align-items: center; gap: 8px; font-size: 12px;
+    }
+    .slider-group input[type="range"] {
+      accent-color: var(--cyan); width: 120px; cursor: pointer;
+    }
+    .val-badge {
+      display: inline-block; min-width: 44px; text-align: center;
+      padding: 3px 6px; border-radius: 6px;
+      background: rgba(0, 245, 255, 0.14); border: 1px solid rgba(0, 245, 255, 0.35);
+      color: #fff; font-weight: 800;
+    }
+    .weapon-strip {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .wep-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(0, 245, 255, 0.28);
+      color: #cce6ff; border-radius: 8px;
+      padding: 6px 10px; font-family: inherit;
+      font-size: 11px; font-weight: 700; cursor: pointer;
+    }
+    .wep-btn.active {
+      background: rgba(255, 204, 0, 0.2);
+      border-color: var(--gold); color: var(--gold);
+      box-shadow: 0 0 12px rgba(255, 204, 0, 0.35);
+    }
+    .fire-btn {
+      background: linear-gradient(135deg, #ff0066, #ff7700);
+      color: #fff; border: none; border-radius: 10px;
+      padding: 10px 24px; font-family: inherit;
+      font-size: 14px; font-weight: 900; letter-spacing: 2px;
+      cursor: pointer; box-shadow: 0 0 20px rgba(255, 0, 102, 0.5);
+    }
+    .fire-btn:hover { transform: scale(1.04); box-shadow: 0 0 28px rgba(255, 0, 102, 0.8); }
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(3, 2, 12, 0.84);
+      backdrop-filter: blur(6px);
+      display: none; justify-content: center; align-items: center;
+      z-index: 50;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: #0a0622;
+      border: 1px solid var(--cyan);
+      border-radius: 16px; padding: 24px 28px;
+      max-width: 580px; width: 92%;
+      box-shadow: 0 0 40px rgba(0, 245, 255, 0.25);
+    }
+    .modal h2 { margin: 0 0 10px; color: var(--gold); font-size: 20px; }
+    .modal p, .modal li { font-size: 13px; line-height: 1.55; color: #d0e2ff; }
+  </style>
+</head>
+<body>
+  <header class="hud-header">
+    <div class="brand">
+      <span class="brand-title">💥 CYBERARTILLERY: SCORCHED SKYLINE</span>
+      <span class="brand-sub">GORILLAS.BAS + SCORCHED EARTH</span>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-label">P1 CYAN SCORE</div>
+        <div class="stat-val" id="hud-p1">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">P2 / AI SCORE</div>
+        <div class="stat-val" id="hud-p2">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">HIGH SCORE</div>
+        <div class="stat-val gold" id="hud-high">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">ACTIVE TURN</div>
+        <div class="stat-val" id="hud-turn">P1 CYAN</div>
+      </div>
+    </div>
+    <div class="controls-bar">
+      <select class="btn" id="mode-select" title="Select Game Mode">
+        <option value="ai-1">1P vs AI (Cadet)</option>
+        <option value="ai-2" selected>1P vs AI (Sharpshooter)</option>
+        <option value="ai-3">1P vs AI (Ballistic AI)</option>
+        <option value="2p">2P Pass-and-Play</option>
+      </select>
+      <button class="btn" id="btn-new">New Skyline</button>
+      <button class="btn" id="btn-pause">Pause</button>
+      <button class="btn" id="btn-mute">🔊 Audio</button>
+      <button class="btn" id="btn-help">? Help</button>
+    </div>
+  </header>
+
+  <div class="arena-wrap">
+    <canvas id="gameCanvas" width="1080" height="580"></canvas>
+  </div>
+
+  <footer class="deck-bar">
+    <div class="slider-group">
+      <span>ANGLE [↑/↓]:</span>
+      <input type="range" id="angle-slider" min="5" max="88" value="48">
+      <span class="val-badge" id="angle-val">48°</span>
+    </div>
+    <div class="slider-group">
+      <span>POWER [←/→]:</span>
+      <input type="range" id="power-slider" min="15" max="115" value="68">
+      <span class="val-badge" id="power-val">68</span>
+    </div>
+    <div class="weapon-strip" id="weapon-strip">
+      <button class="wep-btn active" data-wep="plasma">1. Plasma Shell (∞)</button>
+      <button class="wep-btn" data-wep="mirv">2. 3-Way MIRV (2)</button>
+      <button class="wep-btn" data-wep="funky">3. 5-Burst Funky (2)</button>
+      <button class="wep-btn" data-wep="buster">4. Bunker Buster (2)</button>
+      <button class="wep-btn" data-wep="tracer">5. Shield + Tracer (2)</button>
+    </div>
+    <button class="fire-btn" id="btn-fire">🔥 FIRE! [SPACE]</button>
+  </footer>
+
+  <div class="modal-backdrop" id="help-modal">
+    <div class="modal">
+      <h2>💥 SCORCHED SKYLINE — BALLISTICS MANUAL</h2>
+      <p>Inspired by MS-DOS <strong>QBasic GORILLAS.BAS (1991)</strong> and <strong>Scorched Earth (1991)</strong>! Command your rooftop Cyber-Mech across a pixel-destructible skyscraper skyline.</p>
+      <ul>
+        <li><strong>Angle (`↑` / `↓`) & Velocity (`←` / `→`)</strong>: Dial in your ballistic arc while compensating for the live <strong>Wind Vector</strong> at the top of the screen.</li>
+        <li><strong>Pixel-Destructible Buildings</strong>: Every explosion carves circular craters directly through skyscrapers so you can tunnel shots through buildings!</li>
+        <li><strong>5 Tactical Weapons (`1`–`5`)</strong>: Fire standard <strong>Plasma Shells</strong>, splitting <strong>3-Way MIRVs</strong>, chaotic <strong>5-Burst Funky Bombs</strong>, deep-cratering <strong>Bunker Busters</strong>, or activate <strong>Shield + Trajectory Tracer</strong>!</li>
+      </ul>
+      <div style="text-align:right">
+        <button class="btn" id="btn-close-help">CLOSE MANUAL</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+      const GRAVITY = 0.16;
+
+      // Offscreen destructible skyscraper terrain canvas
+      const terrainCanvas = document.createElement('canvas');
+      terrainCanvas.width = W;
+      terrainCanvas.height = H;
+      const tctx = terrainCanvas.getContext('2d', { willReadFrequently: true });
+
+      const HS_KEY = 'codecaine_artillery_hs';
+      let highScore = parseInt(localStorage.getItem(HS_KEY) || '0', 10) || 0;
+
+      let audioCtx = null;
+      let muted = false;
+      function ensureAudio() {
+        if (!audioCtx && !muted) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) audioCtx = new AC();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      }
+
+      function playSound(type) {
+        if (muted) return;
+        try {
+          ensureAudio();
+          if (!audioCtx) return;
+          const now = audioCtx.currentTime;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          if (type === 'fire') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(220, now);
+            osc.frequency.exponentialRampToValueAtTime(640, now + 0.16);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
+            osc.start(now);
+            osc.stop(now + 0.17);
+          } else if (type === 'boom') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(130, now);
+            osc.frequency.exponentialRampToValueAtTime(24, now + 0.45);
+            gain.gain.setValueAtTime(0.28, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.46);
+            osc.start(now);
+            osc.stop(now + 0.46);
+          }
+        } catch (_) {}
+      }
+
+      let mode = 'ai-2';
+      let paused = false;
+      let p1Wins = 0;
+      let p2Wins = 0;
+      let totalScore = 0;
+      let turn = 0; // 0 = P1, 1 = P2/AI
+      let wind = 0; // -0.06 to +0.06
+      let selectedWeapon = 'plasma';
+      let aiThinkTimer = 0;
+      let roundOverTimer = 0;
+      let roundBanner = '';
+
+      let turrets = [];
+      let projectiles = [];
+      let explosions = [];
+      let particles = [];
+
+      function generateSkyline() {
+        tctx.clearRect(0, 0, W, H);
+        const buildings = [];
+        let x = 0;
+        const colors = [
+          { fill: '#102042', border: '#00f5ff', win: '#00f5ff' },
+          { fill: '#1c1240', border: '#b829ff', win: '#ffcc00' },
+          { fill: '#102b38', border: '#00ff88', win: '#00ff88' },
+          { fill: '#2c1232', border: '#ff0066', win: '#ff0066' }
+        ];
+
+        while (x < W) {
+          const bw = Math.min(W - x, 68 + Math.floor(Math.random() * 44));
+          const bh = 140 + Math.floor(Math.random() * 230);
+          const by = H - bh;
+          const style = colors[buildings.length % colors.length];
+
+          tctx.fillStyle = style.fill;
+          tctx.fillRect(x + 1, by, bw - 2, bh);
+          tctx.strokeStyle = style.border;
+          tctx.lineWidth = 2;
+          tctx.strokeRect(x + 2, by + 1, bw - 4, bh - 2);
+
+          // Glowing skyscraper windows
+          for (let wy = by + 14; wy < H - 16; wy += 18) {
+            for (let wx = x + 10; wx < x + bw - 14; wx += 14) {
+              tctx.fillStyle = Math.random() < 0.72 ? style.win : '#081020';
+              tctx.globalAlpha = Math.random() < 0.72 ? 0.65 : 0.3;
+              tctx.fillRect(wx, wy, 7, 10);
+            }
+          }
+          tctx.globalAlpha = 1;
+
+          buildings.push({ x, width: bw, y: by, height: bh });
+          x += bw;
+        }
+
+        // Place P1 on 2nd building, P2 on 2nd-from-last building
+        const b1 = buildings[1] || buildings[0];
+        const b2 = buildings[buildings.length - 2] || buildings[buildings.length - 1];
+
+        turrets = [
+          {
+            id: 0,
+            name: 'P1 CYAN',
+            x: b1.x + b1.width / 2,
+            y: b1.y - 12,
+            angle: 48,
+            power: 68,
+            hp: 100,
+            shield: false,
+            color: '#00f5ff',
+            ammo: { plasma: 999, mirv: 2, funky: 2, buster: 2, tracer: 2 }
+          },
+          {
+            id: 1,
+            name: mode === '2p' ? 'P2 MAGENTA' : 'CYBER-AI',
+            x: b2.x + b2.width / 2,
+            y: b2.y - 12,
+            angle: 52,
+            power: 68,
+            hp: 100,
+            shield: false,
+            color: '#ff0066',
+            ammo: { plasma: 999, mirv: 2, funky: 2, buster: 2, tracer: 2 }
+          }
+        ];
+
+        wind = (Math.random() - 0.5) * 0.08;
+        turn = 0;
+        projectiles = [];
+        explosions = [];
+        roundOverTimer = 0;
+        roundBanner = '';
+        syncControlsToActiveTurret();
+        updateHUD();
+      }
+
+      function syncControlsToActiveTurret() {
+        const t = turrets[turn];
+        if (!t) return;
+        document.getElementById('angle-slider').value = t.angle;
+        document.getElementById('angle-val').textContent = `${t.angle}°`;
+        document.getElementById('power-slider').value = t.power;
+        document.getElementById('power-val').textContent = `${t.power}`;
+        updateWeaponButtons();
+      }
+
+      function updateWeaponButtons() {
+        const t = turrets[turn];
+        if (!t) return;
+        document.querySelectorAll('.wep-btn').forEach(btn => {
+          const w = btn.getAttribute('data-wep');
+          const count = w === 'plasma' ? '∞' : t.ammo[w];
+          const labelMap = {
+            plasma: `1. Plasma Shell (${count})`,
+            mirv: `2. 3-Way MIRV (${count})`,
+            funky: `3. 5-Burst Funky (${count})`,
+            buster: `4. Bunker Buster (${count})`,
+            tracer: `5. Shield + Tracer (${count})`
+          };
+          btn.textContent = labelMap[w];
+          btn.classList.toggle('active', selectedWeapon === w);
+        });
+      }
+
+      function updateHUD() {
+        document.getElementById('hud-p1').textContent = String(p1Wins);
+        document.getElementById('hud-p2').textContent = String(p2Wins);
+        document.getElementById('hud-high').textContent = highScore.toLocaleString();
+        const turnEl = document.getElementById('hud-turn');
+        turnEl.textContent = turn === 0 ? 'P1 CYAN' : (mode === '2p' ? 'P2 MAGENTA' : 'CYBER-AI');
+        turnEl.style.color = turn === 0 ? '#00f5ff' : '#ff0066';
+      }
+
+      function carveCrater(x, y, radius) {
+        tctx.save();
+        tctx.globalCompositeOperation = 'destination-out';
+        tctx.beginPath();
+        tctx.arc(x, y, radius, 0, Math.PI * 2);
+        tctx.fill();
+        tctx.restore();
+
+        // Scorched neon rim
+        tctx.save();
+        tctx.globalCompositeOperation = 'source-atop';
+        tctx.strokeStyle = '#ff0066';
+        tctx.lineWidth = 2;
+        tctx.beginPath();
+        tctx.arc(x, y, radius + 1, 0, Math.PI * 2);
+        tctx.stroke();
+        tctx.restore();
+      }
+
+      function isTerrainSolid(x, y) {
+        if (x < 0 || x >= W || y < 0 || y >= H) return false;
+        const pixel = tctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
+        return pixel[3] > 40;
+      }
+
+      function detonateAt(x, y, radius, wepType) {
+        playSound('boom');
+        carveCrater(x, y, radius);
+        explosions.push({ x, y, r: 4, maxR: radius, alpha: 1 });
+        window.GameMasterFX?.burst?.(x, y, '#ffcc00', 20);
+        window.GameMasterFX?.triggerShake?.(radius > 45 ? 9 : 5);
+
+        for (let i = 0; i < 20; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const sp = Math.random() * 4.5 + 1;
+          particles.push({
+            x, y,
+            vx: Math.cos(a) * sp,
+            vy: Math.sin(a) * sp,
+            life: 1,
+            color: i % 2 === 0 ? '#ffcc00' : '#ff0066'
+          });
+        }
+
+        // Funky bomb spawns 5 secondary blasts!
+        if (wepType === 'funky') {
+          for (let k = 0; k < 5; k++) {
+            const fx = x + (Math.random() - 0.5) * 95;
+            const fy = y + (Math.random() - 0.5) * 75;
+            carveCrater(fx, fy, 26);
+            explosions.push({ x: fx, y: fy, r: 2, maxR: 28, alpha: 1 });
+          }
+        }
+
+        // Apply splash damage to turrets & settle turrets if building beneath them was carved
+        for (const t of turrets) {
+          const dist = Math.hypot(t.x - x, t.y - y);
+          const hitRadius = wepType === 'funky' ? radius + 36 : radius + 18;
+          if (dist < hitRadius) {
+            let dmg = Math.round((1 - dist / (hitRadius + 10)) * (wepType === 'buster' ? 75 : 55));
+            if (t.shield) {
+              dmg = Math.round(dmg * 0.35);
+              t.shield = false;
+            }
+            t.hp = Math.max(0, t.hp - dmg);
+            if (turn === 0 && t.id === 1) {
+              totalScore += dmg * 15;
+              if (totalScore > highScore) {
+                highScore = totalScore;
+                try { localStorage.setItem(HS_KEY, String(highScore)); } catch (_) {}
+              }
+            }
+          }
+
+          // Gravity settle if rooftop eroded
+          while (t.y < H - 14 && !isTerrainSolid(t.x, t.y + 13)) {
+            t.y += 1;
+          }
+        }
+
+        // Check if either turret reached 0 HP
+        if (turrets[0].hp <= 0 || turrets[1].hp <= 0) {
+          if (turrets[1].hp <= 0) {
+            p1Wins++;
+            totalScore += 1000;
+            if (totalScore > highScore) {
+              highScore = totalScore;
+              try { localStorage.setItem(HS_KEY, String(highScore)); } catch (_) {}
+            }
+            roundBanner = '🏆 P1 CYAN MECH VICTORIOUS! (+1,000 PTS)';
+          } else {
+            p2Wins++;
+            roundBanner = `💥 ${turrets[1].name} WINS THE SKYLINE DUEL!`;
+          }
+          updateHUD();
+          roundOverTimer = 130;
+        }
+      }
+
+      function fireActiveTurret() {
+        if (paused || projectiles.length > 0 || roundOverTimer > 0) return;
+        const shooter = turrets[turn];
+        let wep = selectedWeapon;
+        if (wep !== 'plasma' && shooter.ammo[wep] <= 0) {
+          wep = 'plasma';
+          selectedWeapon = 'plasma';
+        }
+        if (wep !== 'plasma') {
+          shooter.ammo[wep]--;
+        }
+        if (wep === 'tracer') {
+          shooter.shield = true;
+        }
+        updateWeaponButtons();
+
+        const rad = (shooter.angle * Math.PI) / 180;
+        const dirX = shooter.id === 0 ? Math.cos(rad) : -Math.cos(rad);
+        const dirY = -Math.sin(rad);
+        const speed = shooter.power * 0.165;
+
+        playSound('fire');
+        projectiles.push({
+          x: shooter.x + dirX * 18,
+          y: shooter.y + dirY * 18,
+          vx: dirX * speed,
+          vy: dirY * speed,
+          wep,
+          splitDone: false,
+          trail: []
+        });
+      }
+
+      function switchTurn() {
+        if (roundOverTimer > 0) return;
+        turn = turn === 0 ? 1 : 0;
+        // Shift wind slightly each turn
+        wind = Math.max(-0.07, Math.min(0.07, wind + (Math.random() - 0.5) * 0.03));
+        syncControlsToActiveTurret();
+        updateHUD();
+
+        if (turn === 1 && mode !== '2p') {
+          aiThinkTimer = 45;
+        }
+      }
+
+      function computeAIShot() {
+        const ai = turrets[1];
+        const target = turrets[0];
+        // Choose angle between 42 and 68
+        const angle = 46 + Math.floor(Math.random() * 18);
+        ai.angle = angle;
+        const rad = (angle * Math.PI) / 180;
+
+        // Simulate power values to find closest hit to P1
+        let bestPower = 65;
+        let bestDist = Infinity;
+        for (let p = 25; p <= 112; p += 2) {
+          let sx = ai.x - Math.cos(rad) * 18;
+          let sy = ai.y - Math.sin(rad) * 18;
+          let vx = -Math.cos(rad) * (p * 0.165);
+          let vy = -Math.sin(rad) * (p * 0.165);
+          for (let step = 0; step < 260; step++) {
+            vx += wind;
+            vy += GRAVITY;
+            sx += vx;
+            sy += vy;
+            const d = Math.hypot(sx - target.x, sy - target.y);
+            if (d < bestDist) {
+              bestDist = d;
+              bestPower = p;
+            }
+            if (sy > H) break;
+          }
+        }
+
+        // Apply difficulty jitter
+        const jitter = mode === 'ai-1' ? 14 : mode === 'ai-2' ? 6 : 1.5;
+        ai.power = Math.max(15, Math.min(115, Math.round(bestPower + (Math.random() - 0.5) * jitter * 2)));
+        selectedWeapon = ai.ammo.mirv > 0 && Math.random() < 0.35 ? 'mirv' : 'plasma';
+        syncControlsToActiveTurret();
+        fireActiveTurret();
+      }
+
+      function step() {
+        if (paused) return;
+
+        if (roundOverTimer > 0) {
+          roundOverTimer--;
+          if (roundOverTimer === 0) {
+            generateSkyline();
+          }
+          return;
+        }
+
+        if (turn === 1 && mode !== '2p' && projectiles.length === 0 && aiThinkTimer > 0) {
+          aiThinkTimer--;
+          if (aiThinkTimer === 0) {
+            computeAIShot();
+          }
+        }
+
+        // Update Projectiles
+        for (let i = projectiles.length - 1; i >= 0; i--) {
+          const p = projectiles[i];
+          p.trail.push({ x: p.x, y: p.y });
+          if (p.trail.length > 28) p.trail.shift();
+
+          p.vx += wind;
+          p.vy += GRAVITY;
+          p.x += p.vx;
+          p.y += p.vy;
+
+          // 3-Way MIRV splits at apex (when vy turns positive)
+          if (p.wep === 'mirv' && !p.splitDone && p.vy > 0) {
+            p.splitDone = true;
+            for (const offset of [-1.4, 1.4]) {
+              projectiles.push({
+                x: p.x,
+                y: p.y,
+                vx: p.vx + offset,
+                vy: p.vy,
+                wep: 'plasma',
+                splitDone: true,
+                trail: []
+              });
+            }
+          }
+
+          // Out of bounds check
+          if (p.x < -30 || p.x > W + 30 || p.y > H + 20) {
+            projectiles.splice(i, 1);
+            if (projectiles.length === 0) switchTurn();
+            continue;
+          }
+
+          // Check direct turret hit or terrain hit
+          const hitTurret = turrets.find(t => Math.hypot(t.x - p.x, t.y - p.y) < 16);
+          if (hitTurret || (p.y >= 0 && isTerrainSolid(p.x, p.y))) {
+            const rad = p.wep === 'buster' ? 58 : 34;
+            detonateAt(p.x, p.y, rad, p.wep);
+            projectiles.splice(i, 1);
+            if (projectiles.length === 0) switchTurn();
+          }
+        }
+
+        // Update Explosions & Particles
+        for (let i = explosions.length - 1; i >= 0; i--) {
+          const ex = explosions[i];
+          ex.r += (ex.maxR - ex.r) * 0.25;
+          ex.alpha -= 0.045;
+          if (ex.alpha <= 0) explosions.splice(i, 1);
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const pt = particles[i];
+          pt.x += pt.vx;
+          pt.y += pt.vy;
+          pt.vy += 0.08;
+          pt.life -= 0.03;
+          if (pt.life <= 0) particles.splice(i, 1);
+        }
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+
+        // Draw Destructible Skyscraper Terrain Layer
+        ctx.drawImage(terrainCanvas, 0, 0);
+
+        // Draw Live Wind Vector Indicator at top center
+        ctx.save();
+        ctx.translate(W / 2, 34);
+        ctx.fillStyle = 'rgba(8, 12, 30, 0.85)';
+        ctx.strokeStyle = '#00f5ff';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.roundRect(-115, -20, 230, 38, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        const windKnots = Math.round(wind * 1000);
+        ctx.fillStyle = '#ffcc00';
+        ctx.font = 'bold 12px Orbitron, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`WIND: ${windKnots === 0 ? 'CALM' : Math.abs(windKnots) + (wind > 0 ? ' E →' : ' ← W')}`, 0, -3);
+
+        // Wind vector bar
+        ctx.strokeStyle = wind > 0 ? '#00ff88' : '#ff0066';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, 9);
+        ctx.lineTo(wind * 1100, 9);
+        ctx.stroke();
+        ctx.restore();
+
+        // Optional Trajectory Guide when Tracer selected or aiming
+        const shooter = turrets[turn];
+        if (shooter && projectiles.length === 0 && (selectedWeapon === 'tracer' || turn === 0)) {
+          const rad = (shooter.angle * Math.PI) / 180;
+          const dirX = shooter.id === 0 ? Math.cos(rad) : -Math.cos(rad);
+          const dirY = -Math.sin(rad);
+          const speed = shooter.power * 0.165;
+          let tx = shooter.x + dirX * 18;
+          let ty = shooter.y + dirY * 18;
+          let vx = dirX * speed;
+          let vy = dirY * speed;
+          const maxSteps = selectedWeapon === 'tracer' ? 65 : 16;
+
+          ctx.fillStyle = 'rgba(0, 245, 255, 0.45)';
+          for (let s = 0; s < maxSteps; s++) {
+            vx += wind;
+            vy += GRAVITY;
+            tx += vx;
+            ty += vy;
+            if (s % 2 === 0) {
+              ctx.beginPath();
+              ctx.arc(tx, ty, 2, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+        }
+
+        // Draw Turrets / Cyber-Mechs
+        for (const t of turrets) {
+          ctx.save();
+          ctx.translate(t.x, t.y);
+
+          if (t.shield) {
+            ctx.strokeStyle = '#00ff88';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, 22, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+
+          // Barrel
+          const rad = (t.angle * Math.PI) / 180;
+          const bx = (t.id === 0 ? Math.cos(rad) : -Math.cos(rad)) * 20;
+          const by = -Math.sin(rad) * 20;
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(0, -2);
+          ctx.lineTo(bx, by);
+          ctx.stroke();
+
+          // Turret Dome
+          ctx.fillStyle = t.color;
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.arc(0, 2, 11, Math.PI, 0);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillRect(-13, 2, 26, 8);
+
+          // HP Bar
+          ctx.fillStyle = 'rgba(0,0,0,0.7)';
+          ctx.fillRect(-20, -28, 40, 6);
+          ctx.fillStyle = t.hp > 40 ? '#00ff88' : '#ff0066';
+          ctx.fillRect(-20, -28, (t.hp / 100) * 40, 6);
+          ctx.restore();
+        }
+
+        // Draw Projectiles & Trails
+        for (const p of projectiles) {
+          ctx.strokeStyle = '#ffcc00';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          p.trail.forEach((pt, idx) => {
+            if (idx === 0) ctx.moveTo(pt.x, pt.y);
+            else ctx.lineTo(pt.x, pt.y);
+          });
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Draw Explosions
+        for (const ex of explosions) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, ex.alpha);
+          const grad = ctx.createRadialGradient(ex.x, ex.y, 2, ex.x, ex.y, ex.r);
+          grad.addColorStop(0, '#ffffff');
+          grad.addColorStop(0.5, '#ffcc00');
+          grad.addColorStop(1, '#ff0066');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(ex.x, ex.y, ex.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Particles
+        for (const pt of particles) {
+          ctx.globalAlpha = Math.max(0, pt.life);
+          ctx.fillStyle = pt.color;
+          ctx.fillRect(pt.x - 2, pt.y - 2, 4, 4);
+        }
+        ctx.globalAlpha = 1;
+
+        if (roundBanner) {
+          ctx.fillStyle = 'rgba(6, 4, 20, 0.85)';
+          ctx.fillRect(W / 2 - 260, H / 2 - 36, 520, 64);
+          ctx.strokeStyle = '#ffcc00';
+          ctx.strokeRect(W / 2 - 260, H / 2 - 36, 520, 64);
+          ctx.fillStyle = '#ffcc00';
+          ctx.font = 'bold 18px Orbitron, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(roundBanner, W / 2, H / 2 + 2);
+        }
+      }
+
+      function loop() {
+        step();
+        draw();
+        requestAnimationFrame(loop);
+      }
+
+      // UI Controls bindings
+      const angleSlider = document.getElementById('angle-slider');
+      const powerSlider = document.getElementById('power-slider');
+
+      angleSlider.addEventListener('input', () => {
+        const t = turrets[turn];
+        if (!t) return;
+        t.angle = parseInt(angleSlider.value, 10);
+        document.getElementById('angle-val').textContent = `${t.angle}°`;
+      });
+
+      powerSlider.addEventListener('input', () => {
+        const t = turrets[turn];
+        if (!t) return;
+        t.power = parseInt(powerSlider.value, 10);
+        document.getElementById('power-val').textContent = `${t.power}`;
+      });
+
+      document.querySelectorAll('.wep-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          selectedWeapon = btn.getAttribute('data-wep');
+          updateWeaponButtons();
+        });
+      });
+
+      document.getElementById('btn-fire').addEventListener('click', fireActiveTurret);
+      document.getElementById('mode-select').addEventListener('change', (e) => {
+        mode = e.target.value;
+        generateSkyline();
+      });
+      document.getElementById('btn-new').addEventListener('click', generateSkyline);
+      document.getElementById('btn-pause').addEventListener('click', () => { paused = !paused; });
+      document.getElementById('btn-mute').addEventListener('click', () => {
+        muted = !muted;
+        document.getElementById('btn-mute').textContent = muted ? '🔇 Muted' : '🔊 Audio';
+      });
+      document.getElementById('btn-help').addEventListener('click', () => {
+        document.getElementById('help-modal').classList.add('open');
+      });
+      document.getElementById('btn-close-help').addEventListener('click', () => {
+        document.getElementById('help-modal').classList.remove('open');
+      });
+
+      window.addEventListener('keydown', (e) => {
+        const t = turrets[turn];
+        if (!t) return;
+        const k = e.key.toLowerCase();
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          t.angle = Math.min(88, t.angle + 1);
+          syncControlsToActiveTurret();
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          t.angle = Math.max(5, t.angle - 1);
+          syncControlsToActiveTurret();
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          t.power = Math.min(115, t.power + 1);
+          syncControlsToActiveTurret();
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          t.power = Math.max(15, t.power - 1);
+          syncControlsToActiveTurret();
+        } else if (e.code === 'Space') {
+          e.preventDefault();
+          fireActiveTurret();
+        } else if (k === '1') { selectedWeapon = 'plasma'; updateWeaponButtons(); }
+        else if (k === '2') { selectedWeapon = 'mirv'; updateWeaponButtons(); }
+        else if (k === '3') { selectedWeapon = 'funky'; updateWeaponButtons(); }
+        else if (k === '4') { selectedWeapon = 'buster'; updateWeaponButtons(); }
+        else if (k === '5') { selectedWeapon = 'tracer'; updateWeaponButtons(); }
+        else if (k === 'n') generateSkyline();
+        else if (k === 'p') paused = !paused;
+        else if (k === 'm') {
+          muted = !muted;
+          document.getElementById('btn-mute').textContent = muted ? '🔇 Muted' : '🔊 Audio';
+        } else if (k === 'h' || e.key === '?') {
+          document.getElementById('help-modal').classList.toggle('open');
+        }
+      });
+
+      generateSkyline();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

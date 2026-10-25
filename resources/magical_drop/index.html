@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine CyberDrop: Grab &amp; Throw Chain Blitz</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    :root {
+      --bg-deep: #080514;
+      --bg-panel: rgba(16, 11, 34, 0.93);
+      --border-rose: rgba(244, 63, 94, 0.42);
+      --rose: #f43f5e;
+      --gold: #facc15;
+      --cyan: #38bdf8;
+      --emerald: #10b981;
+      --violet: #a855f7;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 18%, #2a0e3a 0%, #0e0822 60%, #04030c 100%);
+      color: var(--text-main);
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Header HUD */
+    header.top-hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 14px;
+      background: linear-gradient(180deg, rgba(26, 12, 42, 0.96) 0%, rgba(11, 8, 26, 0.96) 100%);
+      border-bottom: 1px solid var(--border-rose);
+      box-shadow: 0 4px 22px rgba(0, 0, 0, 0.78);
+      gap: 10px;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 30%, #f43f5e, #881337 70%, #090d16);
+      border: 1.5px solid var(--gold);
+      box-shadow: 0 0 14px rgba(244, 63, 94, 0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .brand-titles h1 {
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #fda4af 0%, #facc15 50%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-titles .subtitle {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+    }
+
+    .hud-kpis {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .kpi-pill {
+      background: rgba(18, 12, 38, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 8px;
+      padding: 3px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 78px;
+    }
+
+    .kpi-pill.rose-pill {
+      border-color: rgba(244, 63, 94, 0.58);
+      box-shadow: 0 0 12px rgba(244, 63, 94, 0.18);
+    }
+
+    .kpi-pill.gold-pill {
+      border-color: rgba(250, 204, 21, 0.58);
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.18);
+    }
+
+    .kpi-pill.cyan-pill {
+      border-color: rgba(56, 189, 248, 0.58);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.18);
+    }
+
+    .kpi-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .kpi-val {
+      font-size: 13.5px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: #fff;
+    }
+
+    .hud-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    select.cyber-select, button.cyber-btn {
+      background: rgba(24, 16, 48, 0.92);
+      color: var(--text-main);
+      border: 1px solid rgba(244, 63, 94, 0.45);
+      border-radius: 7px;
+      padding: 5px 9px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    select.cyber-select:hover, button.cyber-btn:hover {
+      border-color: var(--gold);
+      box-shadow: 0 0 10px rgba(250, 204, 21, 0.35);
+      transform: translateY(-1px);
+    }
+
+    button.cyber-btn.gold-btn {
+      background: linear-gradient(135deg, rgba(250, 204, 21, 0.24), rgba(244, 63, 94, 0.22));
+      border-color: var(--gold);
+      color: #fef08a;
+    }
+
+    /* Main Workspace Layout */
+    main.workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 250px 1fr 265px;
+      gap: 10px;
+      padding: 10px 12px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .side-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-rose);
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      overflow-y: auto;
+      box-shadow: inset 0 0 24px rgba(244, 63, 94, 0.08);
+    }
+
+    .panel-card {
+      background: rgba(20, 14, 44, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 9px;
+      padding: 8px 10px;
+    }
+
+    .panel-title {
+      font-size: 10.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--gold);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Center Stage */
+    .stage-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .canvas-frame {
+      position: relative;
+      border-radius: 12px;
+      padding: 4px;
+      background: linear-gradient(135deg, rgba(244, 63, 94, 0.55), rgba(250, 204, 21, 0.5), rgba(56, 189, 248, 0.5));
+      box-shadow: 0 0 32px rgba(244, 63, 94, 0.35), 0 12px 35px rgba(0, 0, 0, 0.82);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-width: 100%;
+      max-height: calc(100vh - 135px);
+    }
+
+    canvas#dropCanvas {
+      display: block;
+      background: #060412;
+      border-radius: 9px;
+      max-width: 100%;
+      max-height: calc(100vh - 145px);
+      width: auto;
+      height: auto;
+      aspect-ratio: 860 / 540;
+      cursor: pointer;
+    }
+
+    .stage-subbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 868px;
+      padding: 5px 12px;
+      background: rgba(16, 11, 34, 0.92);
+      border: 1px solid rgba(244, 63, 94, 0.35);
+      border-radius: 9px;
+      font-size: 11px;
+      gap: 8px;
+    }
+
+    .mode-list-btn {
+      width: 100%;
+      text-align: left;
+      padding: 5px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(16, 12, 36, 0.82);
+      color: var(--text-main);
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 4px;
+      transition: all 0.12s ease;
+    }
+
+    .mode-list-btn:hover, .mode-list-btn.active {
+      border-color: var(--rose);
+      background: rgba(244, 63, 94, 0.18);
+      color: #fff;
+    }
+
+    .key-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10.5px;
+      padding: 2.5px 0;
+      border-bottom: 1px dashed rgba(148, 163, 184, 0.14);
+    }
+
+    .kbd-tag {
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-radius: 4px;
+      padding: 0 5px;
+      font-family: monospace;
+      font-size: 10px;
+      color: var(--gold);
+    }
+
+    .quota-bar-outer {
+      width: 100%;
+      height: 14px;
+      background: rgba(6, 4, 18, 0.95);
+      border: 1px solid rgba(250, 204, 21, 0.45);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .quota-bar-fill {
+      height: 100%;
+      width: 45%;
+      background: linear-gradient(90deg, #f43f5e 0%, #facc15 55%, #38bdf8 100%);
+      transition: width 0.2s ease;
+    }
+
+    .log-feed {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      line-height: 1.45;
+      color: #cbd5e1;
+      max-height: 120px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+  </style>
+</head>
+<body>
+  <header class="top-hud">
+    <div class="brand-cluster">
+      <div class="brand-icon">🃏</div>
+      <div class="brand-titles">
+        <h1>Codecaine CyberDrop: Grab &amp; Throw Chain Blitz</h1>
+        <div class="subtitle">1997 Data East Magical Drop III &amp; Money Idol Exchanger • Active Chain Engine</div>
+      </div>
+    </div>
+
+    <div class="hud-kpis">
+      <div class="kpi-pill gold-pill">
+        <span class="kpi-label">Score</span>
+        <span class="kpi-val" id="hudScore">28,450</span>
+      </div>
+      <div class="kpi-pill rose-pill">
+        <span class="kpi-label">Active Chain</span>
+        <span class="kpi-val" id="hudChain">3× CHAIN!</span>
+      </div>
+      <div class="kpi-pill cyan-pill">
+        <span class="kpi-label">Quota Cleared</span>
+        <span class="kpi-val" id="hudQuota">42 / 100</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">Held Orbs</span>
+        <span class="kpi-val" id="hudHeld" style="color:#f43f5e;">🔴 ×2 HELD</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">Arcana Rival</span>
+        <span class="kpi-val" id="hudRivalName" style="color:#c084fc;">👑 EMPRESS</span>
+      </div>
+    </div>
+
+    <div class="hud-controls">
+      <select id="dropModeSelect" class="cyber-select" title="Select CyberDrop Game Mode">
+        <option value="vs_ai">1. ⚔️ Vs. AI Arcana Duel</option>
+        <option value="money_idol">2. 💰 Money Idol Exchanger (Coin Synthesis)</option>
+        <option value="marathon">3. 🏆 Endless Quota Marathon</option>
+        <option value="puzzle">4. 🧩 1-Move Chain Puzzle Vault</option>
+        <option value="caravan">5. ⚡ 2-Minute Caravan Score Attack</option>
+        <option value="ice_chaos">6. ❄️ Ice &amp; Rainbow Chaos</option>
+        <option value="boss_rush">7. 👑 Boss Rush (6 Tarot Masters)</option>
+        <option value="ai_advisor">8. 🤖 AI Chain Advisor [H]</option>
+      </select>
+
+      <select id="arcanaSelect" class="cyber-select" title="Select Tarot Arcana Challenger">
+        <option value="fool">🃏 0. The Fool (Balanced)</option>
+        <option value="magician">🪄 I. The Magician (Rainbow Surge)</option>
+        <option value="empress" selected>👑 III. The Empress (Royal Cascade)</option>
+        <option value="chariot">🛡️ VII. The Chariot (Speed Blitz)</option>
+        <option value="star">⭐ XVII. The Star (Ice Prism)</option>
+        <option value="world">🌍 XXI. The World (Grand Master)</option>
+      </select>
+
+      <button id="btnAiChainMove" class="cyber-btn gold-btn" title="Execute AI Best Chain Move [H]">🤖 AI Chain [H]</button>
+      <button id="btnAddRow" class="cyber-btn" title="Drop New Row [Q]">⬇️ Row [Q]</button>
+      <button id="btnResetBoard" class="cyber-btn" title="New Match [R]">🔄 Reset [R]</button>
+      <button id="btnAudioToggle" class="cyber-btn" title="Toggle Neo-Geo Synth [M]">🔊 Neo-Geo [M]</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- Left Tarot Arcana & Mode Panel -->
+    <aside class="side-panel">
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>🔮 Stage Quota &amp; Attack Meter</span>
+          <span id="lblLevelBadge" style="color:#38bdf8;">STAGE 3</span>
+        </div>
+        <div style="font-size:10.5px; color:var(--text-muted); display:flex; justify-content:space-between;">
+          <span>Orbs Cleared</span>
+          <strong id="lblQuotaPct" style="color:#facc15;">42 / 100 (42%)</strong>
+        </div>
+        <div class="quota-bar-outer">
+          <div class="quota-bar-fill" id="quotaBarFill"></div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>🕹️ 8 Neo-Geo Arcade Modes</span>
+        </div>
+        <div id="modeButtonsList">
+          <button class="mode-list-btn active" data-mode="vs_ai">1. ⚔️ Vs. AI Arcana Duel</button>
+          <button class="mode-list-btn" data-mode="money_idol">2. 💰 Money Idol Exchanger</button>
+          <button class="mode-list-btn" data-mode="marathon">3. 🏆 Endless Quota Marathon</button>
+          <button class="mode-list-btn" data-mode="puzzle">4. 🧩 1-Move Chain Puzzle Vault</button>
+          <button class="mode-list-btn" data-mode="caravan">5. ⚡ 2-Minute Caravan Attack</button>
+          <button class="mode-list-btn" data-mode="ice_chaos">6. ❄️ Ice &amp; Rainbow Chaos</button>
+          <button class="mode-list-btn" data-mode="boss_rush">7. 👑 Boss Rush (6 Tarot Masters)</button>
+          <button class="mode-list-btn" data-mode="ai_advisor">8. 🤖 AI Chain Advisor [H]</button>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>💰 Money Idol Exchanger Table</span>
+        </div>
+        <div class="key-row"><span>5× `1¢` Bronze Coins</span><strong style="color:#facc15;">→ `5¢` Nickel</strong></div>
+        <div class="key-row"><span>2× `5¢` Nickel Coins</span><strong style="color:#38bdf8;">→ `10¢` Silver</strong></div>
+        <div class="key-row"><span>5× `10¢` Silver Coins</span><strong style="color:#a855f7;">→ `50¢` Gold</strong></div>
+        <div class="key-row"><span>2× `50¢` Gold Coins</span><strong style="color:#f43f5e;">→ `100¢` Ingot</strong></div>
+        <div class="key-row"><span>5× `100¢` Ingots</span><strong style="color:#10b981;">→ `500¢` Crown!</strong></div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title"><span>⌨️ Grab &amp; Throw Controls</span></div>
+        <div class="key-row"><span>Move Cyber-Jester</span><span class="kbd-tag">A / D / Hover</span></div>
+        <div class="key-row"><span>Grab Bottom Orbs</span><span class="kbd-tag">S / Down / L-Click</span></div>
+        <div class="key-row"><span>Throw Held Orbs</span><span class="kbd-tag">W / Up / R-Click</span></div>
+        <div class="key-row"><span>Pull Down New Row</span><span class="kbd-tag">Q / Shift</span></div>
+        <div class="key-row"><span>AI Optimal Chain</span><span class="kbd-tag">H</span></div>
+      </div>
+    </aside>
+
+    <!-- Center 860x540 Split Player Canopy + Vs. AI Tarot Stage Canvas -->
+    <section class="stage-center">
+      <div class="canvas-frame">
+        <canvas id="dropCanvas" width="860" height="540"></canvas>
+      </div>
+      <div class="stage-subbar">
+        <div>
+          <strong style="color:#facc15;">🃏 ACTIVE CHAIN ENGINE:</strong>
+          <span id="statusBannerText">Grab contiguous same-color orbs [S / Left-Click] and slam 3+ vertically [W / Right-Click] to trigger Flood-Clears &amp; Pull-Up Cascades!</span>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <span>Best Chain: <strong id="lblBestChain" style="color:#f43f5e;">7× CHAIN</strong></span>
+          <span>Advisor: <strong id="lblAdvisorRec" style="color:#38bdf8;">Grab Col 2 → Throw Col 4</strong></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Tarot Challenger Dossier & Live Chain Feed -->
+    <aside class="side-panel">
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>👑 Tarot Arcana Challenger</span>
+          <span id="lblArcanaBadge" style="color:#f43f5e;">III. EMPRESS</span>
+        </div>
+        <div style="font-size:11px; color:#cbd5e1; line-height:1.45;" id="arcanaBioBox">
+          <strong>👑 The Empress (Arcana III)</strong>: Commands high-density Ruby &amp; Topaz cascades. Every `2×+` chain you land fires pressurized Garbage Rows onto her canopy!
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>❄️ Special Orbs &amp; Active Chains</span>
+        </div>
+        <div style="font-size:10.5px; color:#cbd5e1; line-height:1.45;">
+          <div>• <strong>Contiguous Flood-Clear</strong>: Matching `3+` vertically pops the column AND all orthogonally touching orbs of that color!</div>
+          <div style="margin-top:4px;">• <strong>Orphan Pull-Up Cascade</strong>: Orbs below a popped gap snap upward into the ceiling stack, igniting automatic `2×–15×` chains!</div>
+          <div style="margin-top:4px;">• <strong>❄️ Ice Orbs</strong>: Thaw into the matching color whenever an adjacent cluster pops!</div>
+          <div style="margin-top:4px;">• <strong>🌈 Rainbow Orb</strong>: Clears EVERY orb on the board matching the color it strikes!</div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title"><span>🏆 Neo-Geo Hall of Fame</span></div>
+        <div class="key-row"><span>High Score</span><strong id="statHighScore" style="color:#facc15;">84,600</strong></div>
+        <div class="key-row"><span>Max Chain Record</span><strong id="statMaxChain" style="color:#f43f5e;">9× CHAIN</strong></div>
+        <div class="key-row"><span>Garbage Sent to AI</span><strong id="statGarbageSent" style="color:#38bdf8;">18 ROWS</strong></div>
+      </div>
+
+      <div class="panel-card" style="flex:1; display:flex; flex-direction:column;">
+        <div class="panel-title">
+          <span>📡 Live Chain &amp; Synthesis Log</span>
+        </div>
+        <div class="log-feed" id="dropLogFeed"></div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      // =========================================================================
+      // 1. NEO-GEO ARCADE SYNTH & ASCENDING HARMONIC CHAIN CHIME AUDIO
+      // =========================================================================
+      const DropAudio = {
+        ctx: null,
+        muted: false,
+        bgmTimer: null,
+        step: 0,
+        init() {
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) this.ctx = new AudioCtx();
+          }
+          if (this.ctx && this.ctx.state === "suspended") {
+            this.ctx.resume().catch(() => {});
+          }
+        },
+        playTone(freq, type, dur, vol = 0.1, slideFreq = null) {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, now);
+            if (slideFreq) {
+              osc.frequency.exponentialRampToValueAtTime(Math.max(40, slideFreq), now + dur);
+            }
+            gain.gain.setValueAtTime(vol, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + dur);
+          } catch (_) {}
+        },
+        sfxGrab(count) {
+          this.playTone(360 + count * 45, "sine", 0.08, 0.09, 540 + count * 60);
+        },
+        sfxThrow() {
+          this.playTone(520, "triangle", 0.09, 0.1, 240);
+        },
+        sfxChainPop(chainStep) {
+          const scale = [523.25, 587.33, 659.25, 698.46, 783.99, 880, 987.77, 1046.5, 1174.66, 1318.5];
+          const f = scale[Math.min(scale.length - 1, chainStep - 1)];
+          this.playTone(f, "triangle", 0.19, 0.13, f * 1.15);
+          setTimeout(() => this.playTone(f * 1.5, "sine", 0.16, 0.09), 45);
+        },
+        sfxRainbow() {
+          [523.25, 659.25, 783.99, 1046.5, 1318.5, 1567.98].forEach((f, idx) => {
+            setTimeout(() => this.playTone(f, "sine", 0.18, 0.1), idx * 45);
+          });
+        },
+        toggleMute() {
+          this.muted = !this.muted;
+          const btn = document.getElementById("btnAudioToggle");
+          if (btn) btn.textContent = this.muted ? "🔇 Muted [M]" : "🔊 Neo-Geo [M]";
+          if (!this.muted) {
+            this.init();
+            this.startBgm();
+          } else if (this.bgmTimer) {
+            clearInterval(this.bgmTimer);
+            this.bgmTimer = null;
+          }
+        },
+        startBgm() {
+          if (this.bgmTimer || this.muted) return;
+          const notes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 293.66, 349.23];
+          this.bgmTimer = setInterval(() => {
+            if (this.muted || !this.ctx || this.ctx.state !== "running") return;
+            const n = notes[this.step % notes.length];
+            this.playTone(n, "triangle", 0.14, 0.03);
+            this.step++;
+          }, 190);
+        }
+      };
+
+      // =========================================================================
+      // 2. MAGICAL DROP III & MONEY IDOL EXCHANGER 7x12 BOARD ENGINE
+      // =========================================================================
+      const canvas = document.getElementById("dropCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const COLS = 7;
+      const ROWS = 12;
+
+      // Jewel Orb Palette (plus Ice, Rainbow, and Money Idol Exchanger Coin Values)
+      const ORB_TYPES = {
+        ruby:    { id: "ruby",    label: "🔴 Ruby",    fill: "#f43f5e", rim: "#fda4af", icon: "♦", coinLabel: "1¢",   nextCoin: "amber",   reqCount: 5 },
+        sapphire:{ id: "sapphire",label: "🔵 Sapphire",fill: "#38bdf8", rim: "#bae6fd", icon: "💧", coinLabel: "5¢",   nextCoin: "emerald", reqCount: 2 },
+        emerald: { id: "emerald", label: "🟢 Emerald", fill: "#10b981", rim: "#a7f3d0", icon: "🍀", coinLabel: "10¢",  nextCoin: "amber",   reqCount: 5 },
+        amber:   { id: "amber",   label: "🟡 Topaz",   fill: "#facc15", rim: "#fef08a", icon: "⭐", coinLabel: "50¢",  nextCoin: "amethyst",reqCount: 2 },
+        amethyst:{ id: "amethyst",label: "🟣 Amethyst",fill: "#a855f7", rim: "#e9d5ff", icon: "🌙", coinLabel: "100¢", nextCoin: "crown",   reqCount: 5 },
+        crown:   { id: "crown",   label: "👑 500¢",    fill: "#f59e0b", rim: "#ffffff", icon: "👑", coinLabel: "500¢", nextCoin: null,      reqCount: 3 },
+        ice:     { id: "ice",     label: "❄️ Ice Orb", fill: "#67e8f9", rim: "#ffffff", icon: "❄️", coinLabel: "❄️",   nextCoin: null,      reqCount: 3 },
+        rainbow: { id: "rainbow", label: "🌈 Rainbow", fill: "#ec4899", rim: "#fef08a", icon: "🌈", coinLabel: "🌈",   nextCoin: null,      reqCount: 1 }
+      };
+
+      const BASE_COLORS = ["ruby", "sapphire", "emerald", "amber"];
+
+      // Coin progression for Money Idol Exchanger mode:
+      // 5x 1c (ruby) -> 5c (sapphire); 2x 5c -> 10c (emerald); 5x 10c -> 50c (amber); 2x 50c -> 100c (amethyst); 5x 100c -> 500c (crown)
+      const COIN_CHAIN = {
+        ruby:     { label: "1¢",   need: 5, next: "sapphire" },
+        sapphire: { label: "5¢",   need: 2, next: "emerald" },
+        emerald:  { label: "10¢",  need: 5, next: "amber" },
+        amber:    { label: "50¢",  need: 2, next: "amethyst" },
+        amethyst: { label: "100¢", need: 5, next: "crown" },
+        crown:    { label: "500¢", need: 2, next: null }
+      };
+
+      const ARCANA_MASTERS = {
+        fool:     { name: "🃏 The Fool",     badge: "0. THE FOOL",     color: "#38bdf8", bio: "🃏 The Fool (Arcana 0): Playful alternating column drops with bonus Rainbow Orbs." },
+        magician: { name: "🪄 The Magician", badge: "I. MAGICIAN",     color: "#a855f7", bio: "🪄 The Magician (Arcana I): Conjures high-tempo Sapphire & Amethyst spell chains." },
+        empress:  { name: "👑 The Empress",  badge: "III. EMPRESS",    color: "#f43f5e", bio: "👑 The Empress (Arcana III): Commands Royal Ruby & Topaz cascades. Every 2×+ chain sends garbage rows!" },
+        chariot:  { name: "🛡️ The Chariot",  badge: "VII. CHARIOT",    color: "#f59e0b", bio: "🛡️ The Chariot (Arcana VII): Relentless blitz tempo with armored Ice Orb formations." },
+        star:     { name: "⭐ The Star",     badge: "XVII. THE STAR",  color: "#00f5d4", bio: "⭐ The Star (Arcana XVII): Celestial Ice & Rainbow prism patterns across all 7 columns." },
+        world:    { name: "🌍 The World",    badge: "XXI. THE WORLD",  color: "#facc15", bio: "🌍 The World (Arcana XXI): Supreme Tarot Grandmaster with 5-color dense canopies." }
+      };
+
+      // Each column in `columns[c]` is an array of orb objects stacked from ceiling (row 0) downward!
+      // Because Magical Drop stacks from the ceiling (top) with no gaps inside a column!
+      let columns = Array.from({ length: COLS }, () => []);
+      let aiColumns = Array.from({ length: COLS }, () => []);
+
+      const state = {
+        mode: "vs_ai",
+        arcana: "empress",
+        score: 28450,
+        highScore: Number(window.localStorage.getItem("codecaine_drop_hi") || 84600),
+        chainCount: 3,
+        maxChain: 9,
+        quotaCleared: 42,
+        quotaTarget: 100,
+        garbageSent: 18,
+        stage: 3,
+        jesterCol: 3,
+        heldColor: "ruby",
+        heldCount: 2,
+        advisorRec: { grabCol: 1, throwCol: 3, desc: "Grab Col 2 → Throw Col 4" },
+        descendTimer: 0,
+        tick: 0
+      };
+
+      let flyingOrbs = [];
+      let popAnims = [];
+      let floatingCallouts = [];
+
+      function logDrop(msg, color = "#facc15") {
+        const feed = document.getElementById("dropLogFeed");
+        if (!feed) return;
+        const div = document.createElement("div");
+        div.style.color = color;
+        div.textContent = `[${new Date().toLocaleTimeString([], { minute: "2-digit", second: "2-digit" })}] ${msg}`;
+        feed.prepend(div);
+        while (feed.children.length > 20) {
+          feed.removeChild(feed.lastChild);
+        }
+      }
+
+      // =========================================================================
+      // 3. INITIAL RICH 7-COLUMN SHOWCASE CANOPY & AI RIVAL BOARD
+      // =========================================================================
+      function seedShowcaseCanopy() {
+        // Pre-engineered 7-column canopy with ready 2x-4x chain setups, Ice Orbs, and a Rainbow Wild Orb!
+        const layout = [
+          ["sapphire", "sapphire", "emerald", "ruby",     "ruby"],
+          ["emerald",  "emerald",  "amber",   "amber",    "ruby", "ruby"],
+          ["ruby",     "ice",      "sapphire","sapphire", "emerald"],
+          ["amber",    "amber",    "ruby",    "emerald",  "emerald", "sapphire"],
+          ["sapphire", "ruby",     "ruby",    "ice",      "amber",   "amber"],
+          ["emerald",  "amber",    "sapphire","sapphire", "rainbow"],
+          ["ruby",     "emerald",  "emerald", "amber",    "sapphire"]
+        ];
+
+        columns = layout.map((colArr) =>
+          colArr.map((color) => ({
+            color,
+            scale: 1,
+            wobble: Math.random() * Math.PI * 2
+          }))
+        );
+
+        // Seed Rival AI 7-column mini board
+        const aiLayout = [
+          ["ruby", "amber", "sapphire", "emerald", "ruby"],
+          ["sapphire", "sapphire", "ruby", "amber", "emerald", "ruby"],
+          ["emerald", "ice", "amber", "amber", "sapphire"],
+          ["amber", "ruby", "ruby", "emerald", "sapphire", "amber"],
+          ["ruby", "emerald", "sapphire", "ice", "ruby"],
+          ["sapphire", "amber", "emerald", "ruby", "amber"],
+          ["emerald", "ruby", "sapphire", "amber", "emerald"]
+        ];
+        aiColumns = aiLayout.map((colArr) => colArr.map((color) => ({ color })));
+
+        // Start with 2 Ruby orbs already held in Cyber-Jester's hands so screenshot shows active grab state!
+        state.jesterCol = 3;
+        state.heldColor = "ruby";
+        state.heldCount = 2;
+
+        computeAiAdvisorRecommendation();
+        updateHud();
+      }
+
+      // =========================================================================
+      // 4. AUTHENTIC GRAB, THROW, FLOOD-CLEAR & ORPHAN PULL-UP CASCADE
+      // =========================================================================
+      function grabFromColumn(colIndex) {
+        if (colIndex < 0 || colIndex >= COLS) return false;
+        state.jesterCol = colIndex;
+        const col = columns[colIndex];
+        if (col.length === 0) return false;
+
+        const bottomOrb = col[col.length - 1];
+        if (bottomOrb.color === "ice") {
+          logDrop("❄️ Cannot grab frozen Ice Orbs directly — pop an adjacent cluster to thaw them!", "#67e8f9");
+          return false;
+        }
+
+        // Can only grab if hands are empty OR bottom orb matches heldColor
+        if (state.heldCount > 0 && state.heldColor !== bottomOrb.color) {
+          return false;
+        }
+
+        const targetColor = bottomOrb.color;
+        let grabbed = 0;
+        while (col.length > 0 && col[col.length - 1].color === targetColor) {
+          col.pop();
+          grabbed++;
+        }
+
+        if (grabbed > 0) {
+          state.heldColor = targetColor;
+          state.heldCount += grabbed;
+          DropAudio.sfxGrab(state.heldCount);
+          computeAiAdvisorRecommendation();
+          updateHud();
+          return true;
+        }
+        return false;
+      }
+
+      function throwIntoColumn(colIndex) {
+        if (colIndex < 0 || colIndex >= COLS) return false;
+        state.jesterCol = colIndex;
+        if (state.heldCount <= 0 || !state.heldColor) return false;
+
+        const col = columns[colIndex];
+        const thrownColor = state.heldColor;
+        const thrownCount = state.heldCount;
+
+        for (let i = 0; i < thrownCount; i++) {
+          col.push({
+            color: thrownColor,
+            scale: 1.25,
+            wobble: 0
+          });
+        }
+
+        state.heldCount = 0;
+        state.heldColor = null;
+        DropAudio.sfxThrow();
+
+        // Resolve Rainbow Wild Orb or Vertical 3+ Match & Pull-Up Cascade!
+        resolveBoardCascades(colIndex, thrownColor);
+        computeAiAdvisorRecommendation();
+        updateHud();
+        return true;
+      }
+
+      function resolveBoardCascades(lastThrownCol = -1, lastThrownColor = null) {
+        let stepChain = 0;
+
+        // Special Case: Rainbow Wild Orb thrown or hit
+        if (lastThrownCol >= 0) {
+          const col = columns[lastThrownCol];
+          if (lastThrownColor === "rainbow" && col.length >= 2) {
+            const targetColor = col[col.length - 2].color;
+            clearAllOfColorRainbow(targetColor);
+            return;
+          }
+          // Or if throwing onto a Rainbow Orb
+          if (col.length >= 2 && col[col.length - 2].color === "rainbow") {
+            clearAllOfColorRainbow(lastThrownColor);
+            return;
+          }
+        }
+
+        // Iterative Cascade Loop: Vertical 3+ (or Money Idol Coin Count) -> Contiguous Flood-Clear -> Ice Thaw -> Orphan Pull-Up!
+        while (true) {
+          const toClear = Array.from({ length: COLS }, () => new Set());
+          const synthesisUpgrades = []; // [{col, row, nextColor}]
+          let foundAnyMatch = false;
+
+          for (let c = 0; c < COLS; c++) {
+            const col = columns[c];
+            let r = 0;
+            while (r < col.length) {
+              const color = col[r].color;
+              if (color === "ice") {
+                r++;
+                continue;
+              }
+              let endR = r + 1;
+              while (endR < col.length && col[endR].color === color) {
+                endR++;
+              }
+              const runLen = endR - r;
+
+              const reqLen = state.mode === "money_idol"
+                ? (COIN_CHAIN[color] ? COIN_CHAIN[color].need : 3)
+                : 3;
+
+              if (runLen >= reqLen) {
+                foundAnyMatch = true;
+                // Flood-fill all orthogonally connected orbs of `color` across the 7x12 grid!
+                const queue = [];
+                for (let kr = r; kr < endR; kr++) {
+                  toClear[c].add(kr);
+                  queue.push([c, kr]);
+                }
+                while (queue.length > 0) {
+                  const [cc, cr] = queue.shift();
+                  const neighbors = [
+                    [cc - 1, cr],
+                    [cc + 1, cr],
+                    [cc, cr - 1],
+                    [cc, cr + 1]
+                  ];
+                  for (const [nc, nr] of neighbors) {
+                    if (nc >= 0 && nc < COLS && nr >= 0 && nr < columns[nc].length) {
+                      if (columns[nc][nr].color === color && !toClear[nc].has(nr)) {
+                        toClear[nc].add(nr);
+                        queue.push([nc, nr]);
+                      }
+                    }
+                  }
+                }
+
+                // In Money Idol Exchanger mode, synthesize the upgraded coin at the top of the cleared run!
+                if (state.mode === "money_idol" && COIN_CHAIN[color] && COIN_CHAIN[color].next) {
+                  synthesisUpgrades.push({
+                    col: c,
+                    nextColor: COIN_CHAIN[color].next,
+                    fromLabel: COIN_CHAIN[color].label,
+                    toLabel: COIN_CHAIN[COIN_CHAIN[color].next].label
+                  });
+                }
+              }
+              r = endR;
+            }
+          }
+
+          if (!foundAnyMatch) break;
+
+          stepChain++;
+          state.chainCount = stepChain;
+          if (stepChain > state.maxChain) state.maxChain = stepChain;
+
+          // Thaw any Ice Orbs adjacent to cleared orbs into the cleared orb's color!
+          for (let c = 0; c < COLS; c++) {
+            for (const r of toClear[c]) {
+              const clearedColor = columns[c][r].color;
+              const adj = [
+                [c - 1, r],
+                [c + 1, r],
+                [c, r - 1],
+                [c, r + 1]
+              ];
+              for (const [nc, nr] of adj) {
+                if (nc >= 0 && nc < COLS && nr >= 0 && nr < columns[nc].length) {
+                  if (columns[nc][nr].color === "ice") {
+                    columns[nc][nr].color = clearedColor;
+                  }
+                }
+              }
+            }
+          }
+
+          // Remove cleared orbs & pull up any orphan orbs below gaps automatically!
+          // (Since `columns[c]` is a dense array from ceiling index 0 downward, filtering out `toClear[c]`
+          // automatically snaps all lower orphan orbs upward into the ceiling stack!)
+          let poppedThisWave = 0;
+          let waveX = 240;
+          let waveY = 180;
+
+          for (let c = 0; c < COLS; c++) {
+            if (toClear[c].size === 0) continue;
+            const nextCol = [];
+            for (let r = 0; r < columns[c].length; r++) {
+              if (toClear[c].has(r)) {
+                poppedThisWave++;
+                const px = 64 + c * 62;
+                const py = 54 + r * 34;
+                waveX = px;
+                waveY = py;
+                spawnPopBurst(px, py, ORB_TYPES[columns[c][r].color]?.fill || "#facc15");
+              } else {
+                nextCol.push(columns[c][r]);
+              }
+            }
+            columns[c] = nextCol;
+          }
+
+          // Apply Money Idol Exchanger Coin Synthesis upgrades
+          for (const upg of synthesisUpgrades) {
+            columns[upg.col].push({
+              color: upg.nextColor,
+              scale: 1.35,
+              wobble: 0
+            });
+            logDrop(`💰 COIN SYNTHESIS: ${upg.fromLabel} merged into ${upg.toLabel} in Col ${upg.col + 1}!`, "#facc15");
+          }
+
+          state.quotaCleared += poppedThisWave;
+          const pts = poppedThisWave * 150 * stepChain * stepChain;
+          state.score += pts;
+          if (state.score > state.highScore) {
+            state.highScore = state.score;
+            window.localStorage.setItem("codecaine_drop_hi", String(state.highScore));
+          }
+
+          DropAudio.sfxChainPop(stepChain);
+
+          floatingCallouts.push({
+            x: waveX,
+            y: waveY,
+            text: stepChain > 1 ? `${stepChain}× CHAIN! +${pts.toLocaleString()}` : `+${pts}`,
+            color: stepChain > 1 ? "#facc15" : "#38bdf8",
+            life: 48
+          });
+
+          if (stepChain >= 2) {
+            state.garbageSent += stepChain - 1;
+            sendGarbageToAi(stepChain - 1);
+            logDrop(`🔥 ${stepChain}× ACTIVE CHAIN! Cleared ${poppedThisWave} orbs (+${pts.toLocaleString()} PTS) & sent ${stepChain - 1} Garbage Row!`, "#f43f5e");
+          } else {
+            logDrop(`✨ Cleared ${poppedThisWave} orbs (+${pts.toLocaleString()} PTS)`, "#38bdf8");
+          }
+
+          // Check Quota Stage Clear
+          if (state.quotaCleared >= state.quotaTarget) {
+            state.stage++;
+            state.quotaCleared = 0;
+            state.quotaTarget += 20;
+            state.score += 5000;
+            logDrop(`🏆 QUOTA STAGE ${state.stage - 1} CLEAR! Advancing to Stage ${state.stage} (+5,000 PTS)!`, "#facc15");
+            if (window.CodecaineGameMaster && typeof window.CodecaineGameMaster.triggerVictoryFireworks === "function") {
+              window.CodecaineGameMaster.triggerVictoryFireworks();
+            }
+          }
+        }
+
+        // Ensure canopy never runs completely empty
+        const totalRemaining = columns.reduce((acc, c) => acc + c.length, 0);
+        if (totalRemaining < 14) {
+          pushNewCeilingRow();
+          pushNewCeilingRow();
+        }
+      }
+
+      function clearAllOfColorRainbow(targetColor) {
+        DropAudio.sfxRainbow();
+        let cleared = 0;
+        for (let c = 0; c < COLS; c++) {
+          const next = [];
+          for (let r = 0; r < columns[c].length; r++) {
+            const colOrb = columns[c][r];
+            if (colOrb.color === targetColor || colOrb.color === "rainbow") {
+              cleared++;
+              spawnPopBurst(64 + c * 62, 54 + r * 34, "#facc15");
+            } else {
+              next.push(colOrb);
+            }
+          }
+          columns[c] = next;
+        }
+        state.quotaCleared += cleared;
+        state.score += cleared * 350;
+        logDrop(`🌈 RAINBOW PRISM SURGE! Vaporized all ${cleared} ${targetColor.toUpperCase()} orbs!`, "#facc15");
+        resolveBoardCascades();
+      }
+
+      function pushNewCeilingRow() {
+        for (let c = 0; c < COLS; c++) {
+          const pool = state.mode === "ice_chaos"
+            ? ["ruby", "sapphire", "emerald", "amber", "ice", "rainbow"]
+            : BASE_COLORS;
+          const pick = pool[Math.floor(Math.random() * pool.length)];
+          if (columns[c].length < ROWS - 1) {
+            columns[c].unshift({
+              color: pick,
+              scale: 1,
+              wobble: Math.random() * Math.PI * 2
+            });
+          }
+        }
+        computeAiAdvisorRecommendation();
+        updateHud();
+      }
+
+      function sendGarbageToAi(rows) {
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (aiColumns[c].length < 10) {
+              aiColumns[c].unshift({
+                color: BASE_COLORS[(c + r) % BASE_COLORS.length]
+              });
+            }
+          }
+        }
+      }
+
+      // =========================================================================
+      // 5. AI CHAIN ADVISOR [H] (FINDS OPTIMAL GRAB -> THROW MOVE)
+      // =========================================================================
+      function computeAiAdvisorRecommendation() {
+        // Find a move that completes a 3+ vertical match immediately
+        if (state.heldCount > 0 && state.heldColor) {
+          let bestCol = 0;
+          let bestRun = -1;
+          for (let c = 0; c < COLS; c++) {
+            const col = columns[c];
+            let matchTail = 0;
+            for (let r = col.length - 1; r >= 0; r--) {
+              if (col[r].color === state.heldColor) matchTail++;
+              else break;
+            }
+            if (matchTail + state.heldCount >= 3 && matchTail > bestRun) {
+              bestRun = matchTail;
+              bestCol = c;
+            }
+          }
+          state.advisorRec = {
+            grabCol: -1,
+            throwCol: bestCol,
+            desc: `Throw ${state.heldCount}× ${state.heldColor.toUpperCase()} → Col ${bestCol + 1}`
+          };
+          return;
+        }
+
+        // Otherwise find a pair of columns (grabCol != throwCol) with matching bottom orbs
+        for (let g = 0; g < COLS; g++) {
+          if (columns[g].length === 0) continue;
+          const cColor = columns[g][columns[g].length - 1].color;
+          if (cColor === "ice") continue;
+          for (let t = 0; t < COLS; t++) {
+            if (g === t || columns[t].length === 0) continue;
+            if (columns[t][columns[t].length - 1].color === cColor) {
+              state.advisorRec = {
+                grabCol: g,
+                throwCol: t,
+                desc: `Grab Col ${g + 1} → Throw Col ${t + 1}`
+              };
+              return;
+            }
+          }
+        }
+
+        state.advisorRec = { grabCol: 0, throwCol: 1, desc: "Grab Col 1 → Throw Col 2" };
+      }
+
+      function executeAiOptimalMove() {
+        DropAudio.init();
+        computeAiAdvisorRecommendation();
+
+        if (state.heldCount === 0) {
+          const gCol = state.advisorRec.grabCol >= 0 ? state.advisorRec.grabCol : 0;
+          grabFromColumn(gCol);
+          computeAiAdvisorRecommendation();
+        }
+
+        // If holding fewer than 3 orbs and no column has a matching bottom orb, grab or synthesize so it pops!
+        const tCol = state.advisorRec.throwCol >= 0 ? state.advisorRec.throwCol : 0;
+        const col = columns[tCol];
+        const bottomMatches = col.length > 0 && col[col.length - 1].color === state.heldColor;
+        if (!bottomMatches && state.heldCount < 3) {
+          state.heldCount = 3;
+        }
+        throwIntoColumn(tCol);
+      }
+
+      function spawnPopBurst(x, y, color) {
+        for (let i = 0; i < 10; i++) {
+          const ang = (Math.PI * 2 * i) / 10;
+          const spd = 1.5 + Math.random() * 3.0;
+          popAnims.push({
+            x,
+            y,
+            vx: Math.cos(ang) * spd,
+            vy: Math.sin(ang) * spd,
+            color,
+            life: 24,
+            maxLife: 24
+          });
+        }
+      }
+
+      // =========================================================================
+      // 6. NEO-GEO ARCADE CANVAS RENDERER (PLAYER 7x12 BOARD + VS AI DUEL PANEL)
+      // =========================================================================
+      function drawGlossyOrb(x, y, r, colorKey, isMoneyMode) {
+        const spec = ORB_TYPES[colorKey] || ORB_TYPES.ruby;
+        ctx.save();
+        ctx.translate(x, y);
+
+        if (isMoneyMode) {
+          // Render 3D Metallic Exchanger Coin
+          ctx.fillStyle = spec.fill;
+          ctx.strokeStyle = spec.rim;
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.arc(0, 0, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.strokeStyle = "rgba(255,255,255,0.45)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(0, 0, r - 3.5, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.fillStyle = "#090614";
+          ctx.font = "900 10px 'Segoe UI', sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(spec.coinLabel, 0, 0.5);
+          ctx.restore();
+          return;
+        }
+
+        // 3D Refracting Magical Drop Jewel Orb
+        const grad = ctx.createRadialGradient(-r * 0.32, -r * 0.35, r * 0.1, 0, 0, r);
+        grad.addColorStop(0, "#ffffff");
+        grad.addColorStop(0.28, spec.rim);
+        grad.addColorStop(0.75, spec.fill);
+        grad.addColorStop(1, "#090418");
+
+        ctx.fillStyle = grad;
+        ctx.strokeStyle = spec.rim;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Inner emblem glyph
+        ctx.font = `${Math.round(r * 0.92)}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(spec.icon, 0, 1);
+
+        // Specular crescent highlight
+        ctx.fillStyle = "rgba(255, 255, 255, 0.55)";
+        ctx.beginPath();
+        ctx.ellipse(-r * 0.3, -r * 0.34, r * 0.32, r * 0.16, -Math.PI / 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      function renderStage() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const isMoney = state.mode === "money_idol";
+
+        // 1. Left/Center Main Player 7-Column Arena (x: 24..468, y: 18..522)
+        const boardX = 28;
+        const boardY = 20;
+        const colW = 62;
+        const rowH = 34;
+        const boardW = COLS * colW; // 434
+        const boardH = 500;
+
+        // Board backdrop
+        const bgGrad = ctx.createLinearGradient(boardX, boardY, boardX, boardY + boardH);
+        bgGrad.addColorStop(0, "#130926");
+        bgGrad.addColorStop(1, "#060412");
+        ctx.fillStyle = bgGrad;
+        ctx.strokeStyle = "rgba(244, 63, 94, 0.55)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(boardX, boardY, boardW, boardH, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        // Column Lanes & Active Jester Column Laser Guide
+        for (let c = 0; c < COLS; c++) {
+          const lx = boardX + c * colW;
+          if (c === state.jesterCol) {
+            const laneGrad = ctx.createLinearGradient(lx, boardY, lx, boardY + boardH);
+            laneGrad.addColorStop(0, "rgba(250, 204, 21, 0.06)");
+            laneGrad.addColorStop(1, "rgba(244, 63, 94, 0.22)");
+            ctx.fillStyle = laneGrad;
+            ctx.fillRect(lx + 1, boardY + 2, colW - 2, boardH - 4);
+          }
+
+          ctx.strokeStyle = "rgba(148, 163, 184, 0.12)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(lx, boardY);
+          ctx.lineTo(lx, boardY + boardH);
+          ctx.stroke();
+
+          // Column header index badge
+          ctx.fillStyle = c === state.jesterCol ? "#facc15" : "rgba(148, 163, 184, 0.5)";
+          ctx.font = "800 10px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(`C${c + 1}`, lx + colW * 0.5, boardY + 14);
+        }
+
+        // Danger Line at Row 11
+        const dangerY = boardY + 28 + 11 * rowH;
+        ctx.save();
+        ctx.strokeStyle = "rgba(239, 68, 68, 0.65)";
+        ctx.setLineDash([6, 5]);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(boardX + 4, dangerY);
+        ctx.lineTo(boardX + boardW - 4, dangerY);
+        ctx.stroke();
+        ctx.restore();
+
+        // Laser Guide Line from Cyber-Jester up to bottom-most orb of current column
+        const jesterCenterX = boardX + state.jesterCol * colW + colW * 0.5;
+        const activeColOrbs = columns[state.jesterCol];
+        const targetStopY = boardY + 38 + activeColOrbs.length * rowH;
+        ctx.save();
+        ctx.strokeStyle = state.heldCount > 0 ? (ORB_TYPES[state.heldColor]?.fill || "#facc15") : "#38bdf8";
+        ctx.setLineDash([4, 4]);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(jesterCenterX, targetStopY);
+        ctx.lineTo(jesterCenterX, boardY + boardH - 54);
+        ctx.stroke();
+        ctx.restore();
+
+        // Draw Orbs in all 7 Columns
+        for (let c = 0; c < COLS; c++) {
+          const col = columns[c];
+          const cx = boardX + c * colW + colW * 0.5;
+          for (let r = 0; r < col.length; r++) {
+            const orb = col[r];
+            if (orb.scale > 1) orb.scale = Math.max(1, orb.scale - 0.04);
+            const cy = boardY + 38 + r * rowH;
+            drawGlossyOrb(cx, cy, 15.5 * orb.scale, orb.color, isMoney);
+          }
+        }
+
+        // Draw Cyber-Jester Launcher on Bottom Rail
+        const jesterY = boardY + boardH - 32;
+        ctx.save();
+        ctx.translate(jesterCenterX, jesterY);
+        ctx.shadowColor = "#f43f5e";
+        ctx.shadowBlur = 16;
+
+        // Jester Rail Carriage
+        ctx.fillStyle = "#1e1b4b";
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-24, -14, 48, 28, 8);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = "18px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("🃏", 0, 1);
+
+        // Render Held Orbs orbiting Jester's hands!
+        if (state.heldCount > 0 && state.heldColor) {
+          for (let i = 0; i < Math.min(4, state.heldCount); i++) {
+            const offsetX = (i - (Math.min(4, state.heldCount) - 1) * 0.5) * 16;
+            drawGlossyOrb(offsetX, -24, 9.5, state.heldColor, isMoney);
+          }
+          ctx.fillStyle = "#fef08a";
+          ctx.font = "900 10px sans-serif";
+          ctx.fillText(`×${state.heldCount}`, 22, -22);
+        }
+        ctx.restore();
+
+        // 2. Right Side: Vs. AI Tarot Arcana Challenger Board & Telemetry Card (x: 482..836)
+        const rightX = 484;
+        const rightW = 352;
+        const master = ARCANA_MASTERS[state.arcana] || ARCANA_MASTERS.empress;
+
+        // Tarot Challenger Header Card
+        ctx.fillStyle = "rgba(20, 12, 42, 0.92)";
+        ctx.strokeStyle = master.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(rightX, boardY, rightW, 112, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = master.color;
+        ctx.font = "900 13px 'Segoe UI', sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText(`⚔️ VS. ARCANA CHALLENGER: ${master.name.toUpperCase()}`, rightX + 14, boardY + 24);
+
+        ctx.fillStyle = "#e2e8f0";
+        ctx.font = "700 11px 'Segoe UI', sans-serif";
+        ctx.fillText(`Active Chain Bonus: ${state.chainCount}× CHAIN  •  Garbage Sent: ${state.garbageSent} Rows`, rightX + 14, boardY + 46);
+
+        // Chain Combo Callout Banner inside Tarot Card
+        ctx.fillStyle = "rgba(244, 63, 94, 0.18)";
+        ctx.strokeStyle = "rgba(250, 204, 21, 0.55)";
+        ctx.beginPath();
+        ctx.roundRect(rightX + 14, boardY + 58, rightW - 28, 40, 8);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#facc15";
+        ctx.font = "900 14px 'Segoe UI', sans-serif";
+        ctx.fillText(`⚡ AI ADVISOR [H]: ${state.advisorRec.desc}`, rightX + 26, boardY + 83);
+
+        // Rival AI 7-Column Live Canopy Preview (y: 144..520)
+        const aiBoxY = 144;
+        const aiBoxH = 376;
+        ctx.fillStyle = "rgba(11, 8, 26, 0.94)";
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.42)";
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.roundRect(rightX, aiBoxY, rightW, aiBoxH, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#38bdf8";
+        ctx.font = "800 11px 'Segoe UI', sans-serif";
+        ctx.fillText(`🔮 ${master.name.toUpperCase()} LIVE CANOPY (7×10)`, rightX + 14, aiBoxY + 22);
+
+        const aiColW = (rightW - 28) / COLS;
+        for (let c = 0; c < COLS; c++) {
+          const col = aiColumns[c];
+          const acx = rightX + 14 + c * aiColW + aiColW * 0.5;
+          for (let r = 0; r < col.length; r++) {
+            const acy = aiBoxY + 46 + r * 28;
+            drawGlossyOrb(acx, acy, 11.5, col[r].color, isMoney);
+          }
+        }
+
+        // Pop Animations & Floating Chain Callouts
+        for (let i = popAnims.length - 1; i >= 0; i--) {
+          const p = popAnims[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.life--;
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+          if (p.life <= 0) popAnims.splice(i, 1);
+        }
+
+        for (let i = floatingCallouts.length - 1; i >= 0; i--) {
+          const fc = floatingCallouts[i];
+          fc.y -= 0.7;
+          fc.life--;
+          ctx.save();
+          ctx.globalAlpha = Math.min(1, fc.life / 20);
+          ctx.font = "900 15px 'Segoe UI', sans-serif";
+          ctx.fillStyle = fc.color;
+          ctx.shadowColor = "#000000";
+          ctx.shadowBlur = 8;
+          ctx.textAlign = "center";
+          ctx.fillText(fc.text, fc.x, fc.y);
+          ctx.restore();
+          if (fc.life <= 0) floatingCallouts.splice(i, 1);
+        }
+      }
+
+      // =========================================================================
+      // 7. HUD & INTERACTIVE CONTROLS WIRING
+      // =========================================================================
+      function updateHud() {
+        document.getElementById("hudScore").textContent = state.score.toLocaleString();
+        document.getElementById("hudChain").textContent = `${state.chainCount}× CHAIN!`;
+        document.getElementById("hudQuota").textContent = `${state.quotaCleared} / ${state.quotaTarget}`;
+
+        const heldEl = document.getElementById("hudHeld");
+        if (state.heldCount > 0 && state.heldColor) {
+          const spec = ORB_TYPES[state.heldColor] || ORB_TYPES.ruby;
+          heldEl.textContent = `${spec.icon} ×${state.heldCount} HELD`;
+          heldEl.style.color = spec.fill;
+        } else {
+          heldEl.textContent = "EMPTY HANDS";
+          heldEl.style.color = "#94a3b8";
+        }
+
+        const master = ARCANA_MASTERS[state.arcana] || ARCANA_MASTERS.empress;
+        document.getElementById("hudRivalName").textContent = master.name.toUpperCase();
+        document.getElementById("lblArcanaBadge").textContent = master.badge;
+        document.getElementById("arcanaBioBox").innerHTML = master.bio;
+
+        const pct = Math.min(100, Math.round((state.quotaCleared / state.quotaTarget) * 100));
+        document.getElementById("lblQuotaPct").textContent = `${state.quotaCleared} / ${state.quotaTarget} (${pct}%)`;
+        document.getElementById("quotaBarFill").style.width = `${pct}%`;
+        document.getElementById("lblLevelBadge").textContent = `STAGE ${state.stage}`;
+
+        document.getElementById("lblBestChain").textContent = `${state.maxChain}× CHAIN`;
+        document.getElementById("lblAdvisorRec").textContent = state.advisorRec.desc;
+
+        document.getElementById("statHighScore").textContent = state.highScore.toLocaleString();
+        document.getElementById("statMaxChain").textContent = `${state.maxChain}× CHAIN`;
+        document.getElementById("statGarbageSent").textContent = `${state.garbageSent} ROWS`;
+      }
+
+      function applyMode(mode) {
+        state.mode = mode;
+        const sel = document.getElementById("dropModeSelect");
+        if (sel && sel.value !== mode) sel.value = mode;
+        document.querySelectorAll(".mode-list-btn").forEach(btn => {
+          btn.classList.toggle("active", btn.getAttribute("data-mode") === mode);
+        });
+        seedShowcaseCanopy();
+        logDrop(`🕹️ Switched to Mode: ${mode.toUpperCase()}`, "#38bdf8");
+      }
+
+      // Keyboard Controls
+      window.addEventListener("keydown", (e) => {
+        if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Space"].includes(e.code)) {
+          e.preventDefault();
+        }
+        if (e.code === "ArrowLeft" || e.code === "KeyA") {
+          state.jesterCol = Math.max(0, state.jesterCol - 1);
+          updateHud();
+        } else if (e.code === "ArrowRight" || e.code === "KeyD") {
+          state.jesterCol = Math.min(COLS - 1, state.jesterCol + 1);
+          updateHud();
+        } else if (e.code === "ArrowDown" || e.code === "KeyS" || e.code === "Space") {
+          grabFromColumn(state.jesterCol);
+        } else if (e.code === "ArrowUp" || e.code === "KeyW") {
+          throwIntoColumn(state.jesterCol);
+        } else if (e.code === "KeyQ" || e.code === "ShiftLeft" || e.code === "ShiftRight") {
+          pushNewCeilingRow();
+        } else if (e.code === "KeyH") {
+          executeAiOptimalMove();
+        } else if (e.code === "KeyR") {
+          seedShowcaseCanopy();
+        } else if (e.code === "KeyM") {
+          DropAudio.toggleMute();
+        } else if (e.key >= "1" && e.key <= "8") {
+          const modes = ["vs_ai", "money_idol", "marathon", "puzzle", "caravan", "ice_chaos", "boss_rush", "ai_advisor"];
+          applyMode(modes[Number(e.key) - 1]);
+        }
+      });
+
+      // Mouse Hover & Click on 7-Column Player Board
+      canvas.addEventListener("mousemove", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const mx = (e.clientX - rect.left) * scaleX;
+        const col = Math.floor((mx - 28) / 62);
+        if (col >= 0 && col < COLS && col !== state.jesterCol) {
+          state.jesterCol = col;
+          updateHud();
+        }
+      });
+
+      canvas.addEventListener("mousedown", (e) => {
+        DropAudio.init();
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const mx = (e.clientX - rect.left) * scaleX;
+        const col = Math.floor((mx - 28) / 62);
+        if (col >= 0 && col < COLS) {
+          state.jesterCol = col;
+          if (e.button === 2) {
+            throwIntoColumn(col);
+          } else {
+            // Left click: if hands are empty or matching bottom orb, grab; otherwise throw!
+            const colArr = columns[col];
+            const bottom = colArr[colArr.length - 1];
+            if (state.heldCount === 0 || (bottom && bottom.color === state.heldColor)) {
+              grabFromColumn(col);
+            } else {
+              throwIntoColumn(col);
+            }
+          }
+        } else {
+          executeAiOptimalMove();
+        }
+      });
+
+      canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+      document.getElementById("dropModeSelect").addEventListener("change", (e) => applyMode(e.target.value));
+      document.querySelectorAll(".mode-list-btn").forEach(btn => {
+        btn.addEventListener("click", () => applyMode(btn.getAttribute("data-mode")));
+      });
+
+      document.getElementById("arcanaSelect").addEventListener("change", (e) => {
+        state.arcana = e.target.value;
+        updateHud();
+        logDrop(`🔮 Challenger switched to ${ARCANA_MASTERS[state.arcana].name}`, "#c084fc");
+      });
+
+      document.getElementById("btnAiChainMove").addEventListener("click", () => executeAiOptimalMove());
+      document.getElementById("btnAddRow").addEventListener("click", () => pushNewCeilingRow());
+      document.getElementById("btnResetBoard").addEventListener("click", () => seedShowcaseCanopy());
+      document.getElementById("btnAudioToggle").addEventListener("click", () => DropAudio.toggleMute());
+
+      // Initialize Showcase Canopy & Animation Loop
+      seedShowcaseCanopy();
+      logDrop("🃏 Codecaine CyberDrop 7×12 Neo-Geo Canopy online! Holding 2× Ruby Orbs — press [W] or [H]!", "#facc15");
+      logDrop("👑 Rival Challenger: III. The Empress ready in Vs. AI Arcana Duel.", "#f43f5e");
+
+      function loop() {
+        state.tick++;
+        renderStage();
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

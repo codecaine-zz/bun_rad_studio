@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.45"/>
+      <stop offset="55%" stop-color="#7c3aed" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#040814" stop-opacity="1"/>
+    </radialGradient>
+    <linearGradient id="gemTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e0f2fe"/>
+      <stop offset="45%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="gemLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7dd3fc"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+    <linearGradient id="gemCenter" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#bae6fd"/>
+      <stop offset="50%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+    <linearGradient id="gemRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="goldArc" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#facc15"/>
+      <stop offset="100%" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bgGlow)" stroke="#38bdf8" stroke-width="1.5" stroke-opacity="0.5"/>
+  <!-- Outer Hypercube Lightning Frame -->
+  <polygon points="32,4 58,18 58,46 32,60 6,46 6,18" fill="none" stroke="url(#goldArc)" stroke-width="1.5" stroke-dasharray="4 2" opacity="0.75"/>
+  <!-- Crown Facets -->
+  <polygon points="18,14 46,14 54,26 10,26" fill="url(#gemTop)" stroke="#e0f2fe" stroke-width="1"/>
+  <polygon points="24,14 40,14 43,26 21,26" fill="#ffffff" fill-opacity="0.45"/>
+  <!-- Pavilion Facets -->
+  <polygon points="10,26 21,26 32,54" fill="url(#gemLeft)" stroke="#bae6fd" stroke-width="0.9"/>
+  <polygon points="21,26 43,26 32,54" fill="url(#gemCenter)" stroke="#e0f2fe" stroke-width="0.9"/>
+  <polygon points="43,26 54,26 32,54" fill="url(#gemRight)" stroke="#bae6fd" stroke-width="0.9"/>
+  <!-- Specular Glint Stars -->
+  <path d="M20 12 L21.5 17 L26.5 18.5 L21.5 20 L20 25 L18.5 20 L13.5 18.5 L18.5 17 Z" fill="#ffffff"/>
+  <path d="M47 32 L48 35 L51 36 L48 37 L47 40 L46 37 L43 36 L46 35 Z" fill="#fef08a"/>
+</svg>

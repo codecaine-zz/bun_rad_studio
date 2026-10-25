@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#051329"/>
+      <stop offset="100%" stop-color="#072b22"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)" stroke="#00f5d4" stroke-width="2" stroke-opacity="0.6"/>
+  <!-- Back Card -->
+  <rect x="12" y="12" width="28" height="38" rx="4" transform="rotate(-10 26 31)" fill="#0f2442" stroke="#00f5d4" stroke-width="2"/>
+  <!-- Front Ace of Spades / Cyber Heart Card -->
+  <rect x="22" y="12" width="30" height="40" rx="4" transform="rotate(6 37 32)" fill="#f8fafc" stroke="#fee440" stroke-width="2"/>
+  <text x="37" y="38" text-anchor="middle" font-size="22" font-family="serif" fill="#ff2a85">♠</text>
+</svg>

@@ -1,0 +1,3662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine 8-Ball Pool Royale: Cyber Billiards Suite</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    :root {
+      --bg-void: #03090c;
+      --bg-panel: rgba(7, 18, 25, 0.95);
+      --bg-card: rgba(11, 27, 36, 0.88);
+      --cyan: #00f5d4;
+      --cyan-dim: rgba(0, 245, 212, 0.28);
+      --gold: #facc15;
+      --gold-dim: rgba(250, 204, 21, 0.32);
+      --emerald: #10b981;
+      --danger: #ef4444;
+      --purple: #a855f7;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 38%, #0c2e28 0%, #051318 65%, #020609 100%);
+      color: var(--text);
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* TOP HUD BAR */
+    header.hud-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 6px 14px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid rgba(0, 245, 212, 0.28);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.72);
+      z-index: 20;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .brand-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 32% 28%, #475569 0%, #0f172a 55%, #000000 100%);
+      border: 2px solid var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 14px rgba(0, 245, 212, 0.45);
+      position: relative;
+    }
+
+    .brand-badge::after {
+      content: "8";
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #ffffff;
+      color: #090d16;
+      font-size: 10px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-title {
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      background: linear-gradient(90deg, #ffffff, #00f5d4, #facc15);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+    }
+
+    .brand-sub {
+      font-size: 9.5px;
+      color: var(--muted);
+      letter-spacing: 1.1px;
+      text-transform: uppercase;
+    }
+
+    .hud-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .mode-select,
+    .hud-btn {
+      background: rgba(8, 22, 30, 0.94);
+      color: var(--text);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 7px;
+      padding: 5px 9px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .mode-select:hover,
+    .hud-btn:hover {
+      border-color: var(--cyan);
+      box-shadow: 0 0 10px rgba(0, 245, 212, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .hud-btn.primary {
+      background: linear-gradient(135deg, #0d9488, #047857);
+      border-color: var(--cyan);
+      color: #ffffff;
+    }
+
+    .hud-btn.gold {
+      background: linear-gradient(135deg, rgba(250, 204, 21, 0.22), rgba(234, 179, 8, 0.08));
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .hud-btn.chalk {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.24), rgba(2, 132, 199, 0.15));
+      border-color: #38bdf8;
+      color: #7dd3fc;
+    }
+
+    /* SCOREBOARD & PLAYER CARDS BAR */
+    .scoreboard-strip {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 14px;
+      background: rgba(4, 13, 18, 0.88);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+      z-index: 15;
+    }
+
+    .player-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 6px 12px;
+      border-radius: 10px;
+      background: rgba(10, 24, 34, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      transition: all 0.2s ease;
+    }
+
+    .player-card.active-turn {
+      border-color: var(--cyan);
+      box-shadow: 0 0 18px rgba(0, 245, 212, 0.25), inset 0 0 14px rgba(0, 245, 212, 0.08);
+      background: rgba(8, 33, 38, 0.92);
+    }
+
+    .player-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .player-name-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .turn-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #334155;
+      transition: all 0.2s;
+    }
+
+    .player-card.active-turn .turn-dot {
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    .group-badge {
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: rgba(148, 163, 184, 0.16);
+      color: var(--muted);
+    }
+
+    .group-badge.solids {
+      background: rgba(239, 68, 68, 0.22);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.45);
+    }
+
+    .group-badge.stripes {
+      background: rgba(56, 189, 248, 0.22);
+      color: #7dd3fc;
+      border: 1px solid rgba(56, 189, 248, 0.45);
+    }
+
+    .group-badge.nineball {
+      background: rgba(250, 204, 21, 0.2);
+      color: var(--gold);
+      border: 1px solid rgba(250, 204, 21, 0.45);
+    }
+
+    .player-sub {
+      font-size: 10.5px;
+      color: var(--muted);
+    }
+
+    .rack-slots {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .mini-ball {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9.5px;
+      font-weight: 900;
+      color: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      box-shadow: inset -2px -2px 4px rgba(0, 0, 0, 0.55), 0 2px 4px rgba(0, 0, 0, 0.45);
+      position: relative;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+
+    .mini-ball.potted {
+      opacity: 0.22;
+      filter: grayscale(0.8);
+      transform: scale(0.84);
+    }
+
+    .center-status-pod {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 280px;
+      padding: 5px 14px;
+      border-radius: 10px;
+      background: rgba(2, 10, 15, 0.92);
+      border: 1px solid rgba(250, 204, 21, 0.32);
+    }
+
+    .status-headline {
+      font-size: 11.5px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      color: var(--gold);
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .status-subline {
+      font-size: 10.5px;
+      color: var(--cyan);
+      margin-top: 2px;
+      text-align: center;
+    }
+
+    .context-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    /* MAIN ARENA & CANVAS CONTAINER */
+    main.arena-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 8px 16px;
+      overflow: hidden;
+    }
+
+    .table-stage {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    canvas#poolCanvas {
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 22px;
+      box-shadow: 0 22px 60px rgba(0, 0, 0, 0.85), 0 0 40px rgba(0, 245, 212, 0.12);
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    /* BOTTOM TELEMETRY & SHOT CONTROL DECK */
+    footer.shot-deck {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 7px 14px;
+      background: var(--bg-panel);
+      border-top: 1px solid rgba(0, 245, 212, 0.25);
+      z-index: 20;
+      flex-wrap: wrap;
+    }
+
+    .spin-widget-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .cue-ball-pad {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 34% 30%, #ffffff 0%, #f1f5f9 55%, #94a3b8 100%);
+      border: 2px solid var(--cyan);
+      box-shadow: inset -4px -4px 10px rgba(0, 0, 0, 0.35), 0 0 12px rgba(0, 245, 212, 0.3);
+      position: relative;
+      cursor: pointer;
+    }
+
+    .cue-ball-pad::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 6px;
+      bottom: 6px;
+      width: 1px;
+      background: rgba(15, 23, 42, 0.22);
+      transform: translateX(-50%);
+    }
+
+    .cue-ball-pad::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 6px;
+      right: 6px;
+      height: 1px;
+      background: rgba(15, 23, 42, 0.22);
+      transform: translateY(-50%);
+    }
+
+    .spin-contact-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #ff6b6b, #dc2626);
+      border: 1.5px solid #ffffff;
+      box-shadow: 0 0 6px rgba(239, 68, 68, 0.9);
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .spin-readout {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 10.5px;
+    }
+
+    .spin-title {
+      font-weight: 800;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .elevation-box {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 155px;
+      background: rgba(4, 14, 20, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 8px;
+      padding: 5px 9px;
+    }
+
+    .power-group {
+      flex: 1;
+      max-width: 390px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .power-bar-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .power-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10.5px;
+      font-weight: 800;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--cyan);
+      cursor: pointer;
+      height: 7px;
+      border-radius: 99px;
+    }
+
+    .shoot-btn {
+      background: linear-gradient(135deg, #facc15, #eab308);
+      color: #090d16;
+      border: none;
+      border-radius: 9px;
+      padding: 9px 15px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(250, 204, 21, 0.4);
+      transition: all 0.15s ease;
+    }
+
+    .shoot-btn:hover:not(:disabled) {
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 6px 22px rgba(250, 204, 21, 0.6);
+    }
+
+    .telemetry-pills {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .tel-pill {
+      background: rgba(4, 14, 20, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 7px;
+      padding: 4px 8px;
+      font-size: 10.5px;
+      color: var(--muted);
+    }
+
+    .tel-pill strong {
+      color: var(--text);
+      font-weight: 800;
+    }
+
+    /* MODAL OVERLAYS */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 8, 12, 0.84);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      background: linear-gradient(160deg, #0b1d28 0%, #051017 100%);
+      border: 1px solid var(--cyan);
+      border-radius: 16px;
+      max-width: 720px;
+      width: 100%;
+      padding: 20px 24px;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85), 0 0 32px rgba(0, 245, 212, 0.2);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+
+    .modal-title {
+      font-size: 17px;
+      font-weight: 900;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .rules-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .rule-box {
+      background: rgba(8, 24, 34, 0.78);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 10px;
+      padding: 9px 11px;
+      font-size: 11.5px;
+      line-height: 1.42;
+      color: #cbd5e1;
+    }
+
+    .rule-box h4 {
+      color: var(--gold);
+      margin-bottom: 3px;
+      font-size: 11.5px;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <!-- TOP NAVIGATION & 10-DISCIPLINE BAR -->
+  <header class="hud-bar">
+    <div class="brand">
+      <div class="brand-badge"></div>
+      <div>
+        <div class="brand-title">Codecaine 8-Ball Pool Royale</div>
+        <div class="brand-sub">Cyber Billiards Suite • 10 Modes • Masse &amp; Jump Physics</div>
+      </div>
+    </div>
+
+    <div class="hud-controls">
+      <!-- 10-Mode Discipline Selector (supports both #modeSelect and #gameModeSelect) -->
+      <select id="modeSelect" class="mode-select" title="Select Pool, Snooker or Billiards Discipline">
+        <option value="8ball">🎱 WPA 8-Ball Championship (Solids vs Stripes)</option>
+        <option value="9ball">💎 World 9-Ball Tour (1–9 Diamond + Push Out)</option>
+        <option value="10ball">🔟 Pro 10-Ball Call-Shot (1–10 Triangle)</option>
+        <option value="straight">📈 14.1 Continuous Straight Pool (Race to 25)</option>
+        <option value="onepocket">🕳️ One-Pocket Hustler Showdown (Race to 5)</option>
+        <option value="cutthroat">⚔️ 3-Group Cut-Throat Pool (1–5 vs 6–10 vs 11–15)</option>
+        <option value="snooker">🔴 6-Red Mini-Snooker Championship</option>
+        <option value="bankpool">📐 Bank Pool Royale (Banks &amp; Kicks Only)</option>
+        <option value="speed">⚡ 60s Speed Pool Blitz (+5s Per Pot)</option>
+        <option value="trick">🎪 12-Stage Artistic Trick Shot Vault</option>
+      </select>
+      <select id="gameModeSelect" style="display:none;" aria-hidden="true">
+        <option value="8ball">8ball</option>
+        <option value="9ball">9ball</option>
+        <option value="10ball">10ball</option>
+        <option value="straight">straight</option>
+        <option value="onepocket">onepocket</option>
+        <option value="cutthroat">cutthroat</option>
+        <option value="snooker">snooker</option>
+        <option value="bankpool">bankpool</option>
+        <option value="speed">speed</option>
+        <option value="trick">trick</option>
+      </select>
+
+      <select id="opponentSelect" class="mode-select" title="Select Opponent or AI Shark Difficulty">
+        <option value="ai-1">🟢 1P vs Rookie Hustler AI</option>
+        <option value="ai-2" selected>🔵 1P vs Club Pro AI</option>
+        <option value="ai-3">🟣 1P vs Grandmaster Shark AI</option>
+        <option value="2p">👥 2P Pass &amp; Play Local</option>
+      </select>
+
+      <!-- 4-Tier Aim Guide Realism Selector -->
+      <select id="guideModeSelect" class="mode-select" title="Aim Guide &amp; Physics Realism Tier">
+        <option value="pro" selected>🟢 Guide: Pro Laser (Full Ghost + Bounce + Tangent)</option>
+        <option value="club">🔵 Guide: Club (Ghost Ball + Short Tangent)</option>
+        <option value="hustler">🟣 Guide: Hustler (Short Aim Line Only)</option>
+        <option value="purist">🔴 Guide: Purist Sim (No Lines + Squirt &amp; Throw)</option>
+      </select>
+
+      <!-- Felt Theme Switcher -->
+      <select id="feltThemeSelect" class="mode-select" title="Championship Table Cloth Theme">
+        <option value="blue" selected>💙 Tournament Electric Blue</option>
+        <option value="green">💚 Classic Championship Green</option>
+        <option value="burgundy">❤️ Royal Burgundy Wine</option>
+        <option value="violet">💜 Cyber-Neon Violet</option>
+        <option value="obsidian">🖤 Obsidian Gold VIP</option>
+      </select>
+
+      <!-- Pro Cue Stick Locker -->
+      <select id="cueStickSelect" class="mode-select" title="Select Custom Pro Cue Stick">
+        <option value="carbon" selected>🦯 Carbon Pro X-1</option>
+        <option value="phoenix">🔥 Phoenix Maple Masse</option>
+        <option value="tesla">⚡ Tesla Break/Jump Cue</option>
+        <option value="sovereign">👑 Sovereign 24K Gold Cue</option>
+      </select>
+
+      <button id="btnCallPocket" class="hud-btn gold" title="Call Target Pocket (Click Pocket or Press C)">
+        🎯 Call Pocket: <span id="calledPocketText">AUTO</span> [C]
+      </button>
+      <button id="btnChalkCue" class="hud-btn chalk" title="Apply Blue Billiards Chalk to Cue Tip [K]">
+        🟦 Chalk: <span id="chalkValueText">100%</span> [K]
+      </button>
+      <button id="btnReplayShot" class="hud-btn" title="Instant Replay Last Shot [V]">
+        🎥 Replay [V]
+      </button>
+      <button id="btnNewRack" class="hud-btn primary" title="Rack Fresh Frame [R]">
+        🔄 New Rack [R]
+      </button>
+      <button id="btnAudioToggle" class="hud-btn" title="Toggle Web Audio Foley [M]">
+        🔊 Audio
+      </button>
+      <button id="btnHelp" class="hud-btn" title="Rules &amp; Controls [?]">
+        ❓ Rules
+      </button>
+    </div>
+  </header>
+
+  <!-- SCOREBOARD & BALL GROUP TRAY -->
+  <section class="scoreboard-strip">
+    <!-- PLAYER 1 CARD -->
+    <div id="p1Card" class="player-card active-turn">
+      <div class="player-info">
+        <div class="player-name-row">
+          <span class="turn-dot"></span>
+          <span id="p1Name">PLAYER 1 (YOU)</span>
+          <span id="p1GroupBadge" class="group-badge">OPEN TABLE</span>
+        </div>
+        <div id="p1SubStats" class="player-sub">Wins: 0 • Bankroll: $500 • XP: 0</div>
+      </div>
+      <div id="p1RackSlots" class="rack-slots"></div>
+    </div>
+
+    <!-- CENTER CALLOUT POD + MODE CONTEXT BAR -->
+    <div class="center-status-pod">
+      <div id="statusHeadline" class="status-headline">BREAK SHOT — PLACE CUE BALL IN KITCHEN</div>
+      <div id="statusSubline" class="status-subline">Aim with mouse • Pull back cue or press SPACE to strike</div>
+      <div class="context-bar">
+        <button id="btnPushOut" class="hud-btn gold" style="display:none;padding:3px 8px;font-size:10px;">
+          🔀 Push Out (Post-Break)
+        </button>
+        <div id="trickNavBar" style="display:none;align-items:center;gap:6px;">
+          <button id="btnPrevTrick" class="hud-btn" style="padding:2px 7px;font-size:10px;">◀ Prev</button>
+          <span id="trickStageLabel" style="font-size:10.5px;font-weight:800;color:var(--gold);">Stage 1/12: Classic Combo</span>
+          <button id="btnNextTrick" class="hud-btn" style="padding:2px 7px;font-size:10px;">Next ▶</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLAYER 2 / AI SHARK CARD -->
+    <div id="p2Card" class="player-card">
+      <div id="p2RackSlots" class="rack-slots"></div>
+      <div class="player-info" style="text-align:right;">
+        <div class="player-name-row" style="justify-content:flex-end;">
+          <span id="p2GroupBadge" class="group-badge">OPEN TABLE</span>
+          <span id="p2Name">CLUB PRO AI</span>
+          <span class="turn-dot"></span>
+        </div>
+        <div id="p2SubStats" class="player-sub">Wins: 0 • Fouls: 0</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN BILLIARDS TABLE STAGE -->
+  <main class="arena-wrap">
+    <div class="table-stage">
+      <canvas id="poolCanvas" width="1120" height="620"></canvas>
+    </div>
+  </main>
+
+  <!-- BOTTOM ENGLISH SPIN, ELEVATION (MASSE/JUMP) & POWER CONTROL DECK -->
+  <footer class="shot-deck">
+    <div class="spin-widget-group">
+      <div id="cueBallPad" class="cue-ball-pad" title="Click or drag to apply Top/Back/Left/Right English Spin">
+        <div id="spinContactDot" class="spin-contact-dot"></div>
+      </div>
+      <div class="spin-readout">
+        <div class="spin-title">Cue English</div>
+        <div id="spinLabel" style="color:var(--text);font-weight:700;">Center (Pure Roll)</div>
+        <div style="display:flex;gap:4px;margin-top:2px;">
+          <button id="btnResetSpin" class="hud-btn" style="padding:2px 6px;font-size:10px;">Center</button>
+          <button id="btnAimLeft" class="hud-btn" style="padding:2px 6px;font-size:10px;" title="Micro-Aim -0.1° [Q]">◀ Aim</button>
+          <button id="btnAimRight" class="hud-btn" style="padding:2px 6px;font-size:10px;" title="Micro-Aim +0.1° [E]">Aim ▶</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CUE ELEVATION SLIDER (0° LEVEL -> 35° MASSE -> 65° JUMP) -->
+    <div class="elevation-box">
+      <div class="power-label-row">
+        <span>Cue Elevation</span>
+        <span id="elevationValueText" style="color:var(--gold);">0° Level</span>
+      </div>
+      <input id="elevationSlider" type="range" min="0" max="75" value="0" title="Raise butt of cue for Curved Masse (15°–44°) or Airborne Jump Shots (45°–75°)" />
+      <div style="font-size:9.5px;color:var(--muted);display:flex;justify-content:space-between;">
+        <span>0° Flat</span>
+        <span>30° Masse</span>
+        <span>55° Jump</span>
+      </div>
+    </div>
+
+    <div class="power-group">
+      <div class="power-bar-wrap">
+        <div class="power-label-row">
+          <span>Strike Power (Drag or Hold SPACE)</span>
+          <span id="powerValueText" style="color:var(--cyan);">68%</span>
+        </div>
+        <input id="powerSlider" type="range" min="8" max="100" value="68" />
+      </div>
+      <button id="btnShoot" class="shoot-btn">🎱 Strike [Space]</button>
+    </div>
+
+    <div class="telemetry-pills">
+      <div class="tel-pill">Aim: <strong id="telAngle">0.0°</strong></div>
+      <div class="tel-pill">Target: <strong id="telTarget">None</strong></div>
+      <div class="tel-pill">Balls Left: <strong id="telBallsLeft">15</strong></div>
+      <div id="snookerBreakPill" class="tel-pill" style="display:none;border-color:#ef4444;">
+        🔴 Break: <strong id="telSnookerBreak" style="color:var(--gold);">0</strong>
+      </div>
+      <div id="speedTimerPill" class="tel-pill" style="display:none;border-color:var(--gold);">
+        ⏱️ <strong id="telClock" style="color:var(--gold);">01:00</strong> • <strong id="telCombo">1x</strong>
+      </div>
+    </div>
+  </footer>
+
+  <!-- RULES & HELP MODAL -->
+  <div id="helpModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">🎱 Codecaine 8-Ball Pool Royale — 10-Mode Billiards Encyclopedia</div>
+        <button id="btnCloseHelp" class="hud-btn">✕ Close [Esc]</button>
+      </div>
+      <div class="rules-grid">
+        <div class="rule-box">
+          <h4>🎱 8-Ball, 9-Ball &amp; 10-Ball Tour</h4>
+          • <strong>8-Ball</strong>: Claim Solids (<code>1–7</code>) or Stripes (<code>9–15</code>) after break, then call &amp; sink the <code>8-Ball</code>.<br>
+          • <strong>9-Ball</strong>: Hit lowest ball first; includes post-break <strong>🔀 Push Out</strong>.<br>
+          • <strong>10-Ball</strong>: Call-shot rotation; early <code>10-Ball</code> combos re-spot unless called!
+        </div>
+        <div class="rule-box">
+          <h4>📈 14.1 Straight, One-Pocket &amp; Bank Pool</h4>
+          • <strong>14.1 Straight Pool</strong>: Race to 25 pts; when 1 object ball remains, 14 balls auto re-rack for continuous high runs!<br>
+          • <strong>One-Pocket</strong>: P1 owns Bottom-Left pocket; P2 owns Bottom-Right.<br>
+          • <strong>Bank Pool</strong>: Pots only count via ≥1 cushion bank or kick!
+        </div>
+        <div class="rule-box">
+          <h4>🔴 6-Red Snooker, Cut-Throat &amp; 12 Trick Shots</h4>
+          • <strong>6-Red Snooker</strong>: Alternate Red (<code>1 pt</code>) then any Color (<code>2–7 pts</code>, re-spotted), then clear Colors <code>2→7</code>.<br>
+          • <strong>Cut-Throat</strong>: Protect your group (<code>1–5</code>) while sinking opponents' balls.<br>
+          • <strong>Trick Vault</strong>: 12 artistic Masse, Jump, Carom &amp; Domino puzzles!
+        </div>
+        <div class="rule-box">
+          <h4>🌀 Masse Curve, Airborne Jump &amp; Chalk</h4>
+          • <strong>Elevation (15°–44°) + Side Spin</strong>: Curves the cue ball around blockers (Masse)!<br>
+          • <strong>Elevation (45°–75°) + ≥45% Power</strong>: Launches an airborne 3D Jump Shot!<br>
+          • <strong>Chalk [K]</strong>, <strong>Call Pocket [C]</strong>, <strong>Replay [V]</strong>, <strong>Micro-Aim [Q/E]</strong>.
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;">
+        <button id="btnCloseHelpBottom" class="hud-btn primary">Got It — Let's Hustle!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VICTORY / FRAME SUMMARY MODAL -->
+  <div id="victoryModal" class="modal-backdrop">
+    <div class="modal-card" style="text-align:center;max-width:480px;">
+      <div id="victoryBannerTitle" class="modal-title" style="font-size:22px;margin-bottom:8px;">🏆 FRAME VICTORY!</div>
+      <p id="victoryBannerSub" style="color:#cbd5e1;font-size:14px;line-height:1.5;margin-bottom:18px;">
+        Player 1 legally sank the 8-Ball to claim the championship rack!
+      </p>
+      <div style="display:flex;justify-content:center;gap:12px;">
+        <button id="btnReplayWinningShot" class="hud-btn">🎥 Replay Final Shot</button>
+        <button id="btnPlayNextRack" class="shoot-btn">🎱 Next Frame [R]</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    /**
+     * ============================================================================
+     * 🎱 CODECAINE 8-BALL POOL ROYALE: CYBER BILLIARDS SUITE (10-MODE EDITION)
+     * ============================================================================
+     * 10 Complete Billiards & Snooker Disciplines, 8x Sub-Stepped 3D Jump & Masse
+     * Rigid-Body Physics, 4-Tier Aim Guide Realism, Pocket Calling, Blue Chalk Cube,
+     * 5 Championship Felt Themes, 4 Custom Pro Cues, and Instant Shot Replay.
+     */
+
+    const PoolStorage = {
+      load() {
+        try {
+          const raw = window.localStorage.getItem("codecaine_pool_royale_v2");
+          if (raw) return JSON.parse(raw);
+        } catch (_) {}
+        return { p1Wins: 0, p2Wins: 0, streak: 0, xp: 0, bankroll: 500, bestSpeedScore: 0, highRun: 0 };
+      },
+      save(data) {
+        try {
+          window.localStorage.setItem("codecaine_pool_royale_v2", JSON.stringify(data));
+        } catch (_) {}
+      }
+    };
+
+    // --- PROCEDURAL WEB AUDIO FOLEY SYNTHESIZER ---
+    class PoolAudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+
+      init() {
+        if (this.muted) return null;
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) {
+            try { this.ctx = new AudioCtx(); } catch (_) {}
+          }
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          try { this.ctx.resume(); } catch (_) {}
+        }
+        return this.ctx;
+      }
+
+      playCueStrike(powerNorm, isJump = false) {
+        const ctx = this.init();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = isJump ? "sawtooth" : "triangle";
+        const baseFreq = (isJump ? 240 : 150) + powerNorm * 140;
+        osc.frequency.setValueAtTime(baseFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(42, now + 0.085);
+        gain.gain.setValueAtTime(Math.min(0.65, 0.16 + powerNorm * 0.45), now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.095);
+      }
+
+      playChalk() {
+        const ctx = this.init();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        // Abrasive chalk-on-leather noise burst
+        const bufferSize = ctx.sampleRate * 0.14;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.sin((i / bufferSize) * Math.PI);
+        }
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = ctx.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.setValueAtTime(2400, now);
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.24, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        noise.start(now);
+      }
+
+      playBallClack(impactSpeed) {
+        const ctx = this.init();
+        if (!ctx) return;
+        const norm = Math.min(1, Math.max(0.04, impactSpeed / 22));
+        if (norm < 0.045) return;
+        const now = ctx.currentTime;
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc1.type = "sine";
+        osc2.type = "triangle";
+        const f1 = 1750 + Math.random() * 260 + norm * 520;
+        osc1.frequency.setValueAtTime(f1, now);
+        osc1.frequency.exponentialRampToValueAtTime(620, now + 0.038);
+        osc2.frequency.setValueAtTime(f1 * 1.48, now);
+        osc2.frequency.exponentialRampToValueAtTime(880, now + 0.028);
+        gain.gain.setValueAtTime(Math.min(0.55, norm * 0.52), now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.042);
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(ctx.destination);
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.045);
+        osc2.stop(now + 0.045);
+      }
+
+      playRailThud(impactSpeed) {
+        const ctx = this.init();
+        if (!ctx) return;
+        const norm = Math.min(1, Math.max(0.05, impactSpeed / 20));
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(115 + norm * 45, now);
+        osc.frequency.exponentialRampToValueAtTime(38, now + 0.075);
+        gain.gain.setValueAtTime(Math.min(0.35, norm * 0.32), now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.085);
+      }
+
+      playPocketDrop(isBonus = false) {
+        const ctx = this.init();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const notes = isBonus ? [330, 440, 554.37, 659.25] : [240, 320, 420];
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, now + idx * 0.045);
+          gain.gain.setValueAtTime(0.2, now + idx * 0.045);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.045 + 0.14);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + idx * 0.045);
+          osc.stop(now + idx * 0.045 + 0.15);
+        });
+      }
+
+      playFoulBuzzer() {
+        const ctx = this.init();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(145, now);
+        osc.frequency.linearRampToValueAtTime(98, now + 0.28);
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.32);
+      }
+
+      playVictoryFanfare() {
+        const ctx = this.init();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const chord = [523.25, 659.25, 783.99, 1046.5];
+        chord.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, now + i * 0.08);
+          gain.gain.setValueAtTime(0.22, now + i * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.45);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + i * 0.08);
+          osc.stop(now + i * 0.08 + 0.48);
+        });
+      }
+    }
+
+    const PoolAudio = new PoolAudioEngine();
+
+    // --- TABLE FELT THEMES & PRO CUE STICKS ---
+    const FELT_THEMES = {
+      blue:     { c0: "#0e7490", c1: "#075985", c2: "#082f49", cushion: "#042f44", railA: "#3b170e", railB: "#592316" },
+      green:    { c0: "#0f766e", c1: "#0b5548", c2: "#05332b", cushion: "#042822", railA: "#3b170e", railB: "#592316" },
+      burgundy: { c0: "#9f1239", c1: "#881337", c2: "#4c0519", cushion: "#3b0414", railA: "#27120b", railB: "#451a0d" },
+      violet:   { c0: "#581c87", c1: "#3b0764", c2: "#1e0536", cushion: "#17032b", railA: "#0f172a", railB: "#1e293b" },
+      obsidian: { c0: "#1e293b", c1: "#0f172a", c2: "#020617", cushion: "#090d16", railA: "#1c1917", railB: "#422006" },
+    };
+
+    const CUE_STICKS = {
+      carbon:    { name: "Carbon Pro X-1", foreA: "#cbd5e1", foreB: "#334155", buttA: "#0f172a", buttB: "#020617", ring: "#00f5d4" },
+      phoenix:   { name: "Phoenix Maple Masse", foreA: "#fde68a", foreB: "#d97706", buttA: "#7c2d12", buttB: "#431407", ring: "#f97316" },
+      tesla:     { name: "Tesla Break/Jump", foreA: "#e0f2fe", foreB: "#0284c7", buttA: "#1e1b4b", buttB: "#090d16", ring: "#38bdf8" },
+      sovereign: { name: "Sovereign 24K Gold", foreA: "#fef08a", foreB: "#ca8a04", buttA: "#1c1917", buttB: "#090d16", ring: "#facc15" },
+    };
+
+    // --- TOURNAMENT BALL PALETTE (POOL 1-15 + SNOOKER REDS & COLORS) ---
+    const BALL_COLORS = {
+      0:  { hex: "#f8fafc", dark: "#cbd5e1", name: "Cue Ball", stripe: false },
+      1:  { hex: "#facc15", dark: "#ca8a04", name: "1 Yellow", stripe: false },
+      2:  { hex: "#2563eb", dark: "#1d4ed8", name: "2 Blue", stripe: false },
+      3:  { hex: "#ef4444", dark: "#b91c1c", name: "3 Red", stripe: false },
+      4:  { hex: "#9333ea", dark: "#6b21a8", name: "4 Purple", stripe: false },
+      5:  { hex: "#f97316", dark: "#c2410c", name: "5 Orange", stripe: false },
+      6:  { hex: "#16a34a", dark: "#15803d", name: "6 Green", stripe: false },
+      7:  { hex: "#881337", dark: "#4c0519", name: "7 Maroon", stripe: false },
+      8:  { hex: "#111827", dark: "#000000", name: "8 Black", stripe: false },
+      9:  { hex: "#facc15", dark: "#ca8a04", name: "9 Yellow Stripe", stripe: true },
+      10: { hex: "#2563eb", dark: "#1d4ed8", name: "10 Blue Stripe", stripe: true },
+      11: { hex: "#ef4444", dark: "#b91c1c", name: "11 Red Stripe", stripe: true },
+      12: { hex: "#9333ea", dark: "#6b21a8", name: "12 Purple Stripe", stripe: true },
+      13: { hex: "#f97316", dark: "#c2410c", name: "13 Orange Stripe", stripe: true },
+      14: { hex: "#16a34a", dark: "#15803d", name: "14 Green Stripe", stripe: true },
+      15: { hex: "#881337", dark: "#4c0519", name: "15 Maroon Stripe", stripe: true },
+    };
+
+    const SNOOKER_META = {
+      2: { hex: "#facc15", dark: "#a16207", name: "Yellow (2)", pts: 2 },
+      3: { hex: "#16a34a", dark: "#14532d", name: "Green (3)", pts: 3 },
+      4: { hex: "#92400e", dark: "#451a03", name: "Brown (4)", pts: 4 },
+      5: { hex: "#2563eb", dark: "#1e3a8a", name: "Blue (5)", pts: 5 },
+      6: { hex: "#f472b6", dark: "#9d174d", name: "Pink (6)", pts: 6 },
+      7: { hex: "#111827", dark: "#000000", name: "Black (7)", pts: 7 },
+    };
+
+    const canvas = document.getElementById("poolCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const TABLE = {
+      width: 1120,
+      height: 620,
+      railThickness: 54,
+      get left() { return this.railThickness; },
+      get right() { return this.width - this.railThickness; },
+      get top() { return this.railThickness; },
+      get bottom() { return this.height - this.railThickness; },
+      get playWidth() { return this.right - this.left; },
+      get playHeight() { return this.bottom - this.top; },
+      get headStringX() { return this.left + this.playWidth * 0.24; },
+      get footSpotX() { return this.left + this.playWidth * 0.74; },
+      get centerY() { return this.height * 0.5; },
+    };
+
+    const BALL_RADIUS = 13.5;
+    const POCKET_CORNER_RADIUS = 27.5;
+    const POCKET_SIDE_RADIUS = 25.5;
+    const SUBSTEPS = 8;
+    const BALL_RESTITUTION = 0.96;
+    const RAIL_RESTITUTION = 0.82;
+    const FRICTION_COEFF = 0.9918;
+    const STOP_SPEED_EPS = 0.032;
+    const MAX_SHOT_SPEED = 26.8;
+
+    const POCKETS = [
+      { id: 0, x: TABLE.left + 4, y: TABLE.top + 4, r: POCKET_CORNER_RADIUS, name: "Top-Left" },
+      { id: 1, x: TABLE.width * 0.5, y: TABLE.top - 5, r: POCKET_SIDE_RADIUS, name: "Top-Side" },
+      { id: 2, x: TABLE.right - 4, y: TABLE.top + 4, r: POCKET_CORNER_RADIUS, name: "Top-Right" },
+      { id: 3, x: TABLE.left + 4, y: TABLE.bottom - 4, r: POCKET_CORNER_RADIUS, name: "Bottom-Left" },
+      { id: 4, x: TABLE.width * 0.5, y: TABLE.bottom + 5, r: POCKET_SIDE_RADIUS, name: "Bottom-Side" },
+      { id: 5, x: TABLE.right - 4, y: TABLE.bottom - 4, r: POCKET_CORNER_RADIUS, name: "Bottom-Right" },
+    ];
+
+    // --- 12 ARTISTIC TRICK SHOT PUZZLES ---
+    const TRICK_SHOT_VAULT = [
+      {
+        title: "1. Classic Dead-On Combo",
+        hint: "Strike the 1-Ball into the 9-Ball to sink the 9 in the Bottom-Right Corner!",
+        setup: () => [
+          { id: 0, x: 280, y: 310 },
+          { id: 1, x: 680, y: 410 },
+          { id: 9, x: 890, y: 495 },
+        ],
+      },
+      {
+        title: "2. Cross-Side Cushion Bank",
+        hint: "Bank the 2-Ball off the Top Cushion straight into the Bottom-Side Pocket!",
+        setup: () => [
+          { id: 0, x: 420, y: 430 },
+          { id: 2, x: 560, y: 210 },
+        ],
+      },
+      {
+        title: "3. Two-Rail Kick Escape",
+        hint: "8-Ball blocks the direct path! Kick off the Top Cushion to pot the 3-Ball in Top-Right!",
+        setup: () => [
+          { id: 0, x: 340, y: 340 },
+          { id: 8, x: 640, y: 240 },
+          { id: 3, x: 995, y: 110 },
+        ],
+      },
+      {
+        title: "4. Full-Table Backspin Draw",
+        hint: "Apply Bottom Draw English (-80% Y) to pot the 4-Ball and draw back into the 8-Ball!",
+        presetSpin: { x: 0, y: -0.85, elev: 0 },
+        setup: () => [
+          { id: 0, x: 520, y: 310 },
+          { id: 4, x: 890, y: 310 },
+          { id: 8, x: 1020, y: 515 },
+        ],
+      },
+      {
+        title: "5. Extreme Masse Curve Around Blocker",
+        hint: "Elevation set to 34° + Right English! Curve around the blocking 7-Ball to pot the 1-Ball!",
+        presetSpin: { x: 0.85, y: 0, elev: 34 },
+        setup: () => [
+          { id: 0, x: 320, y: 310 },
+          { id: 7, x: 590, y: 310 },
+          { id: 1, x: 985, y: 115 },
+        ],
+      },
+      {
+        title: "6. Airborne Jump Shot Over Blocker",
+        hint: "Elevation set to 56° Jump + 78% Power! Leap over the blocking 15-Ball to pot the 8-Ball!",
+        presetSpin: { x: 0, y: -0.25, elev: 56 },
+        setup: () => [
+          { id: 0, x: 420, y: 455 },
+          { id: 15, x: 640, y: 480 },
+          { id: 8, x: 985, y: 520 },
+        ],
+      },
+      {
+        title: "7. 4-Ball Butterfly Cluster Split",
+        hint: "Drive into the center of the 4-ball diamond near the Top-Side Pocket!",
+        setup: () => [
+          { id: 0, x: 560, y: 420 },
+          { id: 1, x: 545, y: 112 },
+          { id: 2, x: 575, y: 112 },
+          { id: 3, x: 560, y: 138 },
+          { id: 5, x: 560, y: 92 },
+        ],
+      },
+      {
+        title: "8. Three-Cushion Carom Kiss",
+        hint: "Carom off the 6-Ball into the 8-Ball sitting on the Bottom-Right jaw!",
+        setup: () => [
+          { id: 0, x: 360, y: 220 },
+          { id: 6, x: 740, y: 290 },
+          { id: 8, x: 1015, y: 525 },
+        ],
+      },
+      {
+        title: "9. Frozen Rail Nurse",
+        hint: "Run the 9-Ball down the bottom rail cushion into the Bottom-Left Corner!",
+        setup: () => [
+          { id: 0, x: 680, y: 535 },
+          { id: 9, x: 320, y: 545 },
+        ],
+      },
+      {
+        title: "10. Double-Bank Z-Shot",
+        hint: "Bank the 10-Ball across the table into the Top-Left Corner Pocket!",
+        setup: () => [
+          { id: 0, x: 750, y: 430 },
+          { id: 10, x: 430, y: 240 },
+        ],
+      },
+      {
+        title: "11. 5-Ball Domino Chain Reaction",
+        hint: "Strike the lead 1-Ball to trigger a 4-ball chain into the Top-Right Corner!",
+        setup: () => [
+          { id: 0, x: 340, y: 380 },
+          { id: 1, x: 580, y: 280 },
+          { id: 2, x: 690, y: 230 },
+          { id: 3, x: 800, y: 180 },
+          { id: 8, x: 920, y: 125 },
+        ],
+      },
+      {
+        title: "12. Golden 8-Ball Crown Finale",
+        hint: "Thread the needle between two blockers to sink the 8-Ball in Bottom-Right!",
+        setup: () => [
+          { id: 0, x: 280, y: 200 },
+          { id: 11, x: 620, y: 315 },
+          { id: 12, x: 590, y: 375 },
+          { id: 8, x: 960, y: 500 },
+        ],
+      },
+    ];
+
+    const career = PoolStorage.load();
+
+    const state = {
+      mode: "8ball",
+      opponent: "ai-2",
+      guideMode: "pro",      // "pro" | "club" | "hustler" | "purist"
+      feltTheme: "blue",
+      cueStick: "carbon",
+      phase: "aiming",
+      isBreakShot: true,
+      canPushOut: false,
+      isPushOutShot: false,
+      ballInHand: true,
+      kitchenOnly: true,
+      currentPlayer: 1,
+      groups: { 1: null, 2: null },
+      points: { 1: 0, 2: 0 },
+      fouls: { 1: 0, 2: 0 },
+      currentRun: 0,
+      snookerTarget: "red",  // "red" | "color" | "sequence"
+      snookerBreak: 0,
+      trickStageIdx: 0,
+      calledPocket: null,    // 0..5 or null (AUTO)
+      chalkLevel: 100,
+
+      balls: [],
+      sunkAnimations: [],
+      particles: [],
+      popups: [],
+      lastShotSnapshot: null,
+
+      // Aiming, Spin & Elevation
+      aimAngle: 0,
+      mouseX: TABLE.footSpotX,
+      mouseY: TABLE.centerY,
+      powerPercent: 68,
+      elevationDeg: 0,       // 0..75
+      isDraggingCue: false,
+      dragStartX: 0,
+      dragStartY: 0,
+      spaceCharging: false,
+
+      spinX: 0,
+      spinY: 0,
+      isDraggingSpin: false,
+
+      // Shot tracking
+      shotFirstHitId: null,
+      shotPotted: [],        // Array of { id, pocketId, banked }
+      shotRailContacts: 0,
+      cueCushionHitsBeforeContact: 0,
+
+      // Speed Pool
+      speedTimeLeft: 60,
+      speedScore: 0,
+      speedCombo: 1,
+      lastFrameTs: performance.now(),
+    };
+
+    function createBall(id, x, y, customMeta = null) {
+      return {
+        id,
+        x,
+        y,
+        z: 0,
+        vx: 0,
+        vy: 0,
+        vz: 0,
+        r: BALL_RADIUS,
+        potted: false,
+        spinX: 0,
+        spinY: 0,
+        masseActive: false,
+        cushionHitsThisShot: 0,
+        rollPhaseX: Math.random() * Math.PI * 2,
+        rollPhaseY: Math.random() * Math.PI * 2,
+        snookerMeta: customMeta,
+      };
+    }
+
+    function rackBallsForMode(mode) {
+      state.balls = [];
+      state.sunkAnimations = [];
+      state.particles = [];
+      state.popups = [];
+
+      const spacingX = BALL_RADIUS * Math.sqrt(3) + 0.45;
+      const spacingY = BALL_RADIUS * 2 + 0.45;
+      const apexX = TABLE.footSpotX;
+      const apexY = TABLE.centerY;
+
+      if (mode === "trick") {
+        const stage = TRICK_SHOT_VAULT[state.trickStageIdx] || TRICK_SHOT_VAULT[0];
+        const layout = stage.setup();
+        layout.forEach((item) => {
+          state.balls.push(createBall(item.id, item.x, item.y));
+        });
+        if (stage.presetSpin) {
+          state.spinX = stage.presetSpin.x;
+          state.spinY = stage.presetSpin.y;
+          state.elevationDeg = stage.presetSpin.elev || 0;
+        } else {
+          state.spinX = 0;
+          state.spinY = 0;
+          state.elevationDeg = 0;
+        }
+        return;
+      }
+
+      // Cue ball in kitchen
+      state.balls.push(createBall(0, TABLE.headStringX - 48, TABLE.centerY));
+
+      if (mode === "9ball") {
+        const diamondOrder = [[1], [2, 3], [4, 9, 5], [6, 7], [8]];
+        diamondOrder.forEach((col, cIdx) => {
+          const x = apexX + cIdx * spacingX;
+          const startY = apexY - ((col.length - 1) * spacingY) / 2;
+          col.forEach((id, rIdx) => {
+            state.balls.push(createBall(id, x, startY + rIdx * spacingY));
+          });
+        });
+      } else if (mode === "10ball") {
+        const tenOrder = [[1], [2, 3], [4, 10, 5], [6, 7, 8, 9]];
+        tenOrder.forEach((col, cIdx) => {
+          const x = apexX + cIdx * spacingX;
+          const startY = apexY - ((col.length - 1) * spacingY) / 2;
+          col.forEach((id, rIdx) => {
+            state.balls.push(createBall(id, x, startY + rIdx * spacingY));
+          });
+        });
+      } else if (mode === "snooker") {
+        // 6-Red Mini-Snooker: 6 Reds (IDs 101..106) + 6 Colors (IDs 2..7)
+        const balkX = TABLE.headStringX;
+        const dRadius = TABLE.playHeight * 0.22;
+        // Yellow (2), Green (3), Brown (4) on Balk Line
+        state.balls.push(createBall(2, balkX, apexY + dRadius, SNOOKER_META[2]));
+        state.balls.push(createBall(3, balkX, apexY - dRadius, SNOOKER_META[3]));
+        state.balls.push(createBall(4, balkX, apexY, SNOOKER_META[4]));
+        // Blue (5) at center table
+        state.balls.push(createBall(5, TABLE.width * 0.5, apexY, SNOOKER_META[5]));
+        // Pink (6) at pyramid spot
+        const pinkX = TABLE.width * 0.5 + TABLE.playWidth * 0.2;
+        state.balls.push(createBall(6, pinkX, apexY, SNOOKER_META[6]));
+        // 6 Reds in 3-row triangle behind Pink
+        const redRows = [[101], [102, 103], [104, 105, 106]];
+        redRows.forEach((col, cIdx) => {
+          const x = pinkX + BALL_RADIUS * 2.2 + cIdx * spacingX;
+          const startY = apexY - ((col.length - 1) * spacingY) / 2;
+          col.forEach((id, rIdx) => {
+            state.balls.push(
+              createBall(id, x, startY + rIdx * spacingY, {
+                hex: "#dc2626",
+                dark: "#7f1d1d",
+                name: "Red (1)",
+                pts: 1,
+                isRed: true,
+              })
+            );
+          });
+        });
+        // Black (7) near foot spot
+        state.balls.push(createBall(7, TABLE.right - 78, apexY, SNOOKER_META[7]));
+      } else {
+        // Standard 15-Ball Triangle Rack (8ball, straight, onepocket, cutthroat, bankpool, speed)
+        const triangleLayout = [
+          [1],
+          [9, 2],
+          [3, 8, 10],
+          [11, 4, 12, 5],
+          [7, 13, 6, 14, 15],
+        ];
+        triangleLayout.forEach((col, cIdx) => {
+          const x = apexX + cIdx * spacingX;
+          const startY = apexY - ((col.length - 1) * spacingY) / 2;
+          col.forEach((id, rIdx) => {
+            state.balls.push(createBall(id, x, startY + rIdx * spacingY));
+          });
+        });
+      }
+    }
+    function reRackFourteenBallsForStraightPool() {
+      const spacingX = BALL_RADIUS * Math.sqrt(3) + 0.45;
+      const spacingY = BALL_RADIUS * 2 + 0.45;
+      const apexX = TABLE.footSpotX;
+      const apexY = TABLE.centerY;
+
+      // Headless 14-ball triangle (apex spot left vacant!)
+      const spots = [];
+      for (let col = 1; col < 5; col++) {
+        const x = apexX + col * spacingX;
+        const count = col + 1;
+        const startY = apexY - ((count - 1) * spacingY) / 2;
+        for (let row = 0; row < count; row++) {
+          spots.push({ x, y: startY + row * spacingY });
+        }
+      }
+
+      let idx = 0;
+      for (const b of state.balls) {
+        if (b.id > 0 && b.potted && idx < spots.length) {
+          b.potted = false;
+          b.vx = 0;
+          b.vy = 0;
+          b.z = 0;
+          b.vz = 0;
+          b.x = spots[idx].x;
+          b.y = spots[idx].y;
+          idx++;
+        }
+      }
+      addFloatingPopup("14.1 AUTO RE-RACK! CONTINUE HIGH RUN!", TABLE.width * 0.5, TABLE.centerY, "#00f5d4");
+    }
+
+    function spotBallOnTable(ball, targetX = TABLE.footSpotX, targetY = TABLE.centerY) {
+      if (!ball) return;
+      ball.potted = false;
+      ball.vx = 0;
+      ball.vy = 0;
+      ball.z = 0;
+      ball.vz = 0;
+      let cx = targetX;
+      let cy = targetY;
+      for (let step = 0; step < 220; step += 28) {
+        const testX = Math.min(TABLE.right - BALL_RADIUS - 6, targetX + step);
+        if (isSpotFree(testX, cy, ball.id)) {
+          cx = testX;
+          break;
+        }
+      }
+      ball.x = cx;
+      ball.y = cy;
+    }
+
+    function isSpotFree(x, y, ignoreId) {
+      for (const b of state.balls) {
+        if (b.potted || b.id === ignoreId) continue;
+        if (Math.hypot(x - b.x, y - b.y) < BALL_RADIUS * 2.08) return false;
+      }
+      return true;
+    }
+
+    function startNewRack(newMode) {
+      if (newMode) {
+        state.mode = newMode;
+        document.getElementById("modeSelect").value = newMode;
+        document.getElementById("gameModeSelect").value = newMode;
+      }
+      document.getElementById("victoryModal").classList.remove("open");
+
+      state.phase = "aiming";
+      state.isBreakShot = state.mode !== "trick";
+      state.canPushOut = false;
+      state.isPushOutShot = false;
+      state.ballInHand = state.mode !== "trick";
+      state.kitchenOnly = state.mode !== "trick";
+      state.currentPlayer = 1;
+      state.groups = { 1: null, 2: null };
+      state.points = { 1: 0, 2: 0 };
+      state.fouls = { 1: 0, 2: 0 };
+      state.currentRun = 0;
+      state.snookerTarget = "red";
+      state.snookerBreak = 0;
+      state.aimAngle = 0;
+      state.spinX = 0;
+      state.spinY = 0;
+      state.elevationDeg = 0;
+      state.speedTimeLeft = 60;
+      state.speedScore = 0;
+      state.speedCombo = 1;
+
+      rackBallsForMode(state.mode);
+      updateSpinWidgetUI();
+      updateElevationUI();
+
+      if (state.mode === "trick") {
+        const stg = TRICK_SHOT_VAULT[state.trickStageIdx] || TRICK_SHOT_VAULT[0];
+        document.getElementById("trickStageLabel").textContent = `Stage ${state.trickStageIdx + 1}/12: ${stg.title.replace(/^\d+\.\s*/, "")}`;
+        updateStatusBanner(`🎪 TRICK VAULT — ${stg.title.toUpperCase()}`, stg.hint);
+      } else if (state.mode === "onepocket") {
+        updateStatusBanner(
+          "ONE-POCKET SHOWDOWN — P1: BOTTOM-LEFT • P2: BOTTOM-RIGHT",
+          "First to sink 5 balls into their assigned corner pocket wins!"
+        );
+      } else if (state.mode === "snooker") {
+        updateStatusBanner(
+          "6-RED MINI-SNOOKER — TARGET: RED BALL (1 PT)",
+          "Alternate Red (1 pt) then any Color (2–7 pts) to build a break!"
+        );
+      } else {
+        updateStatusBanner(
+          "BREAK SHOT — BALL IN HAND (KITCHEN)",
+          "Place cue ball behind head-string or aim & strike the rack!"
+        );
+      }
+      refreshScoreboardHUD();
+    }
+
+    // --- BALL LEGALITY & TARGET HELPERS ACROSS ALL 10 MODES ---
+    function getBallGroup(id) {
+      if (id >= 1 && id <= 7) return "solids";
+      if (id >= 9 && id <= 15) return "stripes";
+      if (id === 8) return "eight";
+      return "cue";
+    }
+
+    function getCutthroatGroup(id) {
+      if (id >= 1 && id <= 5) return 1;
+      if (id >= 6 && id <= 10) return 2;
+      if (id >= 11 && id <= 15) return 3;
+      return 0;
+    }
+
+    function getLowestActiveBallId() {
+      let minId = 999;
+      for (const b of state.balls) {
+        if (b.id > 0 && !b.potted && b.id < minId) minId = b.id;
+      }
+      return minId === 999 ? null : minId;
+    }
+
+    function countRemainingInGroup(groupName) {
+      let count = 0;
+      for (const b of state.balls) {
+        if (!b.potted && getBallGroup(b.id) === groupName) count++;
+      }
+      return count;
+    }
+
+    function countActiveSnookerReds() {
+      return state.balls.filter((b) => !b.potted && b.id >= 100).length;
+    }
+
+    function isTargetBallLegalForCurrentPlayer(ballId) {
+      if (!ballId || ballId === 0) return false;
+      if (
+        state.mode === "speed" ||
+        state.mode === "trick" ||
+        state.mode === "straight" ||
+        state.mode === "onepocket" ||
+        state.mode === "bankpool" ||
+        state.mode === "cutthroat"
+      ) {
+        return true;
+      }
+      if (state.mode === "9ball" || state.mode === "10ball") {
+        if (state.isPushOutShot) return true;
+        return ballId === getLowestActiveBallId();
+      }
+      if (state.mode === "snooker") {
+        const redsLeft = countActiveSnookerReds();
+        if (redsLeft > 0) {
+          if (state.snookerTarget === "red") return ballId >= 100;
+          return ballId >= 2 && ballId <= 7;
+        }
+        return ballId === getLowestActiveBallId();
+      }
+      // 8-Ball Championship
+      const playerGroup = state.groups[state.currentPlayer];
+      if (!playerGroup) return ballId !== 8;
+      const remaining = countRemainingInGroup(playerGroup);
+      if (remaining === 0) return ballId === 8;
+      return getBallGroup(ballId) === playerGroup;
+    }
+
+    // --- PRECISION RAYCAST GHOST-BALL, CUSHION BOUNCE & MASSE PREDICTOR ---
+    function computeAimPrediction() {
+      const cue = state.balls[0];
+      if (!cue || cue.potted) return null;
+
+      const dirX = Math.cos(state.aimAngle);
+      const dirY = Math.sin(state.aimAngle);
+      const twoR = BALL_RADIUS * 2;
+
+      let bestDist = Infinity;
+      let hitBall = null;
+
+      for (let i = 1; i < state.balls.length; i++) {
+        const b = state.balls[i];
+        if (b.potted) continue;
+        // If Jump Mode is primed (>= 45 deg and power >= 45%), close blocker balls can be jumped over!
+        const dx = b.x - cue.x;
+        const dy = b.y - cue.y;
+        const proj = dx * dirX + dy * dirY;
+        if (proj <= 0) continue;
+
+        if (state.elevationDeg >= 45 && state.powerPercent >= 45 && proj < 270) {
+          continue;
+        }
+
+        const perpSq = dx * dx + dy * dy - proj * proj;
+        const sumRSq = twoR * twoR;
+        if (perpSq >= sumRSq) continue;
+
+        const offset = Math.sqrt(sumRSq - perpSq);
+        const dist = proj - offset;
+        if (dist > 0 && dist < bestDist) {
+          bestDist = dist;
+          hitBall = b;
+        }
+      }
+
+      if (hitBall) {
+        const ghostX = cue.x + dirX * bestDist;
+        const ghostY = cue.y + dirY * bestDist;
+        const nx = (hitBall.x - ghostX) / twoR;
+        const ny = (hitBall.y - ghostY) / twoR;
+
+        const dot = dirX * nx + dirY * ny;
+        let tangX = dirX - dot * nx;
+        let tangY = dirY - dot * ny;
+        const tLen = Math.hypot(tangX, tangY) || 1;
+        tangX = tangX / tLen + dirX * (state.spinY * 0.45);
+        tangY = tangY / tLen + dirY * (state.spinY * 0.45);
+        const finalTLen = Math.hypot(tangX, tangY) || 1;
+
+        return {
+          type: "ball",
+          ghostX,
+          ghostY,
+          hitBall,
+          legal: isTargetBallLegalForCurrentPlayer(hitBall.id),
+          targetDirX: nx,
+          targetDirY: ny,
+          cueDeflectX: tangX / finalTLen,
+          cueDeflectY: tangY / finalTLen,
+        };
+      }
+
+      // Rail cushion intersection + bounce reflection vector
+      const minX = TABLE.left + BALL_RADIUS;
+      const maxX = TABLE.right - BALL_RADIUS;
+      const minY = TABLE.top + BALL_RADIUS;
+      const maxY = TABLE.bottom - BALL_RADIUS;
+
+      let tx = Infinity;
+      let ty = Infinity;
+      if (dirX > 0.0001) tx = (maxX - cue.x) / dirX;
+      if (dirX < -0.0001) tx = (minX - cue.x) / dirX;
+      if (dirY > 0.0001) ty = (maxY - cue.y) / dirY;
+      if (dirY < -0.0001) ty = (minY - cue.y) / dirY;
+
+      const railDist = Math.min(tx, ty);
+      const bounceDirX = tx < ty ? -dirX : dirX;
+      const bounceDirY = ty <= tx ? -dirY : dirY;
+
+      return {
+        type: "rail",
+        ghostX: cue.x + dirX * railDist,
+        ghostY: cue.y + dirY * railDist,
+        bounceDirX,
+        bounceDirY,
+        hitBall: null,
+        legal: true,
+      };
+    }
+
+    function spawnChalkBurst(x, y, dirX, dirY) {
+      for (let i = 0; i < 16; i++) {
+        const spread = (Math.random() - 0.5) * 1.1;
+        const speed = 1.2 + Math.random() * 3.8;
+        const angle = Math.atan2(dirY, dirX) + spread;
+        state.particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          r: 1.8 + Math.random() * 2.4,
+          alpha: 0.9,
+          color: Math.random() > 0.35 ? "#38bdf8" : "#e0f2fe",
+        });
+      }
+    }
+
+    function spawnImpactSparks(x, y, intensity) {
+      const count = Math.min(14, Math.floor(intensity * 1.2));
+      for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const spd = 0.8 + Math.random() * (intensity * 0.25);
+        state.particles.push({
+          x,
+          y,
+          vx: Math.cos(a) * spd,
+          vy: Math.sin(a) * spd,
+          r: 1.5 + Math.random() * 1.8,
+          alpha: 0.85,
+          color: "#00f5d4",
+        });
+      }
+    }
+
+    function addFloatingPopup(text, x, y, color = "#facc15") {
+      state.popups.push({ text, x, y, vy: -1.1, alpha: 1.0, color });
+    }
+
+    // --- SAVE & REPLAY SHOT SNAPSHOT ---
+    function savePreShotSnapshot() {
+      state.lastShotSnapshot = {
+        mode: state.mode,
+        currentPlayer: state.currentPlayer,
+        groups: { ...state.groups },
+        points: { ...state.points },
+        aimAngle: state.aimAngle,
+        powerPercent: state.powerPercent,
+        spinX: state.spinX,
+        spinY: state.spinY,
+        elevationDeg: state.elevationDeg,
+        calledPocket: state.calledPocket,
+        balls: state.balls.map((b) => ({ ...b })),
+      };
+    }
+
+    function replayLastShot() {
+      if (!state.lastShotSnapshot) {
+        addFloatingPopup("NO SHOT TO REPLAY YET", TABLE.width * 0.5, TABLE.centerY, "#facc15");
+        return false;
+      }
+      document.getElementById("victoryModal").classList.remove("open");
+      const snap = state.lastShotSnapshot;
+      state.balls = snap.balls.map((b) => ({ ...b }));
+      state.currentPlayer = snap.currentPlayer;
+      state.groups = { ...snap.groups };
+      state.points = { ...snap.points };
+      state.aimAngle = snap.aimAngle;
+      state.powerPercent = snap.powerPercent;
+      state.spinX = snap.spinX;
+      state.spinY = snap.spinY;
+      state.elevationDeg = snap.elevationDeg;
+      state.calledPocket = snap.calledPocket;
+      state.phase = "aiming";
+      updateSpinWidgetUI();
+      updateElevationUI();
+      addFloatingPopup("🎥 INSTANT REPLAY!", TABLE.width * 0.5, TABLE.centerY - 30, "#00f5d4");
+      return shootCueBall(snap.aimAngle, snap.powerPercent, snap.spinX, snap.spinY, true);
+    }
+
+    // --- EXECUTING A CUE BALL STRIKE (WITH MASSE, JUMP & SQUIRT) ---
+    function shootCueBall(customAngle, customPowerPercent, customSpinX, customSpinY, isReplay = false) {
+      if (state.phase !== "aiming" && state.phase !== "ai_thinking") return false;
+      const cue = state.balls[0];
+      if (!cue || cue.potted) return false;
+
+      if (typeof customAngle === "number") state.aimAngle = customAngle;
+      if (typeof customPowerPercent === "number") {
+        state.powerPercent = Math.max(8, Math.min(100, customPowerPercent));
+        document.getElementById("powerSlider").value = String(Math.round(state.powerPercent));
+        document.getElementById("powerValueText").textContent = `${Math.round(state.powerPercent)}%`;
+      }
+      if (typeof customSpinX === "number") state.spinX = customSpinX;
+      if (typeof customSpinY === "number") state.spinY = customSpinY;
+      updateSpinWidgetUI();
+
+      if (!isReplay) savePreShotSnapshot();
+
+      // Clear per-shot ball counters
+      for (const b of state.balls) {
+        b.cushionHitsThisShot = 0;
+        b.z = 0;
+        b.vz = 0;
+      }
+
+      const powerNorm = state.powerPercent / 100;
+      const speed = Math.max(1.8, powerNorm * MAX_SHOT_SPEED);
+
+      // Purist Sim squirt deflection & low-chalk miscue check
+      let effectiveAngle = state.aimAngle;
+      const spinMag = Math.hypot(state.spinX, state.spinY);
+      if (state.guideMode === "purist") {
+        effectiveAngle -= state.spinX * 0.022;
+      }
+      if (state.chalkLevel < 25 && spinMag > 0.65) {
+        effectiveAngle += (Math.random() - 0.5) * 0.14;
+        addFloatingPopup("LOW CHALK MISCUE! PRESS [K]", cue.x, cue.y - 20, "#ef4444");
+      }
+      // Consume chalk proportional to spin & power
+      state.chalkLevel = Math.max(5, Math.round(state.chalkLevel - (2 + spinMag * 6)));
+      document.getElementById("chalkValueText").textContent = `${state.chalkLevel}%`;
+
+      const dirX = Math.cos(effectiveAngle);
+      const dirY = Math.sin(effectiveAngle);
+
+      cue.vx = dirX * speed;
+      cue.vy = dirY * speed;
+      cue.spinX = state.spinX;
+      cue.spinY = state.spinY;
+      cue.masseActive = state.elevationDeg >= 15 && state.elevationDeg < 45 && Math.abs(state.spinX) > 0.08;
+
+      // Airborne 3D Jump Shot if elevation >= 45° and power >= 45%
+      const isJumpShot = state.elevationDeg >= 45 && state.powerPercent >= 45;
+      if (isJumpShot) {
+        cue.z = 1;
+        cue.vz = 4.6 + ((state.elevationDeg - 45) / 30) * 3.8 + powerNorm * 2.2;
+        addFloatingPopup("✈️ AIRBORNE JUMP SHOT!", cue.x, cue.y - 22, "#facc15");
+      } else if (cue.masseActive) {
+        addFloatingPopup("🌀 EXTREME MASSE CURVE!", cue.x, cue.y - 22, "#a855f7");
+      }
+
+      state.shotFirstHitId = null;
+      state.shotPotted = [];
+      state.shotRailContacts = 0;
+      state.cueCushionHitsBeforeContact = 0;
+      state.ballInHand = false;
+      state.kitchenOnly = false;
+      state.phase = "rolling";
+
+      PoolAudio.playCueStrike(powerNorm, isJumpShot);
+      spawnChalkBurst(cue.x - dirX * BALL_RADIUS, cue.y - dirY * BALL_RADIUS, -dirX, -dirY);
+      return true;
+    }
+
+    // --- 8-SUBSTEP RIGID-BODY PHYSICS ENGINE (WITH 3D JUMP & MASSE CURVE) ---
+    function stepBilliardsPhysics() {
+      if (state.phase !== "rolling") return;
+
+      for (let step = 0; step < SUBSTEPS; step++) {
+        const subFriction = Math.pow(FRICTION_COEFF, 1 / SUBSTEPS);
+
+        for (let i = 0; i < state.balls.length; i++) {
+          const b = state.balls[i];
+          if (b.potted) continue;
+
+          b.x += b.vx / SUBSTEPS;
+          b.y += b.vy / SUBSTEPS;
+
+          // 3D Airborne Jump Arc Physics
+          if (b.z > 0 || b.vz !== 0) {
+            b.z += b.vz / SUBSTEPS;
+            b.vz -= 0.24 / SUBSTEPS;
+            if (b.z <= 0) {
+              b.z = 0;
+              if (Math.abs(b.vz) > 1.2) {
+                b.vz = -b.vz * 0.35;
+                PoolAudio.playRailThud(6);
+              } else {
+                b.vz = 0;
+              }
+            }
+          }
+
+          // Masse Curve & Side-English Lateral Acceleration
+          if (b.id === 0 && Math.abs(b.spinX) > 0.02 && b.z <= 2) {
+            const spd = Math.hypot(b.vx, b.vy);
+            if (spd > 0.35) {
+              const perpX = -b.vy / spd;
+              const perpY = b.vx / spd;
+              const masseFactor = b.masseActive
+                ? 0.018 * (state.elevationDeg / 35)
+                : 0.0022;
+              b.vx += perpX * b.spinX * masseFactor;
+              b.vy += perpY * b.spinX * masseFactor;
+              b.spinX *= b.masseActive ? 0.9935 : 0.996;
+            }
+          }
+
+          b.vx *= subFriction;
+          b.vy *= subFriction;
+          b.rollPhaseX += (b.vx / SUBSTEPS) * 0.11;
+          b.rollPhaseY += (b.vy / SUBSTEPS) * 0.11;
+
+          // Pocket capture check (only when ball is near the felt surface)
+          if (b.z < 12) {
+            for (let p = 0; p < POCKETS.length; p++) {
+              const pk = POCKETS[p];
+              const distToPocket = Math.hypot(b.x - pk.x, b.y - pk.y);
+              if (distToPocket < pk.r) {
+                b.potted = true;
+                b.vx = 0;
+                b.vy = 0;
+                b.z = 0;
+                b.vz = 0;
+                const wasBankedOrKicked =
+                  b.cushionHitsThisShot >= 1 || state.cueCushionHitsBeforeContact >= 1;
+                state.shotPotted.push({
+                  id: b.id,
+                  pocketId: pk.id,
+                  banked: wasBankedOrKicked,
+                });
+                state.sunkAnimations.push({
+                  id: b.id,
+                  x: b.x,
+                  y: b.y,
+                  targetX: pk.x,
+                  targetY: pk.y,
+                  scale: 1.0,
+                  alpha: 1.0,
+                  snookerMeta: b.snookerMeta,
+                });
+                PoolAudio.playPocketDrop(b.id === 8 || b.id === 9 || b.id === 10);
+                if (b.id === 0) {
+                  addFloatingPopup("SCRATCH!", pk.x, pk.y - 10, "#ef4444");
+                } else {
+                  const tag = wasBankedOrKicked ? `BANK POT #${b.id}!` : `POTTED #${b.id}!`;
+                  addFloatingPopup(tag, pk.x, pk.y - 10, "#00f5d4");
+                }
+                break;
+              }
+            }
+          }
+
+          if (b.potted) continue;
+
+          // Cushion rail bounce
+          const nearTopOrBottomPocketMouth =
+            Math.abs(b.x - TABLE.width * 0.5) < POCKET_SIDE_RADIUS * 1.15 ||
+            b.x < TABLE.left + POCKET_CORNER_RADIUS * 1.1 ||
+            b.x > TABLE.right - POCKET_CORNER_RADIUS * 1.1;
+
+          const nearCornerVerticalMouth =
+            b.y < TABLE.top + POCKET_CORNER_RADIUS * 1.1 ||
+            b.y > TABLE.bottom - POCKET_CORNER_RADIUS * 1.1;
+
+          const minX = TABLE.left + b.r;
+          const maxX = TABLE.right - b.r;
+          const minY = TABLE.top + b.r;
+          const maxY = TABLE.bottom - b.r;
+
+          if (!nearCornerVerticalMouth) {
+            if (b.x < minX) {
+              b.x = minX;
+              const impact = Math.abs(b.vx);
+              b.vx = -b.vx * RAIL_RESTITUTION;
+              b.vy += b.spinX * impact * 0.28;
+              b.spinX *= 0.5;
+              b.cushionHitsThisShot++;
+              state.shotRailContacts++;
+              if (b.id === 0 && state.shotFirstHitId === null) state.cueCushionHitsBeforeContact++;
+              if (step === 0 || impact > 1.2) PoolAudio.playRailThud(impact);
+            } else if (b.x > maxX) {
+              b.x = maxX;
+              const impact = Math.abs(b.vx);
+              b.vx = -b.vx * RAIL_RESTITUTION;
+              b.vy -= b.spinX * impact * 0.28;
+              b.spinX *= 0.5;
+              b.cushionHitsThisShot++;
+              state.shotRailContacts++;
+              if (b.id === 0 && state.shotFirstHitId === null) state.cueCushionHitsBeforeContact++;
+              if (step === 0 || impact > 1.2) PoolAudio.playRailThud(impact);
+            }
+          }
+
+          if (!nearTopOrBottomPocketMouth) {
+            if (b.y < minY) {
+              b.y = minY;
+              const impact = Math.abs(b.vy);
+              b.vy = -b.vy * RAIL_RESTITUTION;
+              b.vx -= b.spinX * impact * 0.28;
+              b.spinX *= 0.5;
+              b.cushionHitsThisShot++;
+              state.shotRailContacts++;
+              if (b.id === 0 && state.shotFirstHitId === null) state.cueCushionHitsBeforeContact++;
+              if (step === 0 || impact > 1.2) PoolAudio.playRailThud(impact);
+            } else if (b.y > maxY) {
+              b.y = maxY;
+              const impact = Math.abs(b.vy);
+              b.vy = -b.vy * RAIL_RESTITUTION;
+              b.vx += b.spinX * impact * 0.28;
+              b.spinX *= 0.5;
+              b.cushionHitsThisShot++;
+              state.shotRailContacts++;
+              if (b.id === 0 && state.shotFirstHitId === null) state.cueCushionHitsBeforeContact++;
+              if (step === 0 || impact > 1.2) PoolAudio.playRailThud(impact);
+            }
+          }
+        }
+
+        // Pairwise elastic ball-to-ball collisions (skip if cue ball is jumping high over object ball!)
+        for (let i = 0; i < state.balls.length; i++) {
+          const b1 = state.balls[i];
+          if (b1.potted) continue;
+
+          for (let j = i + 1; j < state.balls.length; j++) {
+            const b2 = state.balls[j];
+            if (b2.potted) continue;
+
+            // Airborne Jump Clearance: if height difference > 15px, ball jumps cleanly over!
+            if (Math.abs((b1.z || 0) - (b2.z || 0)) > 15) continue;
+
+            const dx = b2.x - b1.x;
+            const dy = b2.y - b1.y;
+            const distSq = dx * dx + dy * dy;
+            const minDist = b1.r + b2.r;
+
+            if (distSq > 0 && distSq < minDist * minDist) {
+              const dist = Math.sqrt(distSq);
+              const nx = dx / dist;
+              const ny = dy / dist;
+
+              const overlap = (minDist - dist) * 0.5;
+              b1.x -= nx * overlap;
+              b1.y -= ny * overlap;
+              b2.x += nx * overlap;
+              b2.y += ny * overlap;
+
+              if (b1.id === 0 && state.shotFirstHitId === null) {
+                state.shotFirstHitId = b2.id;
+                b1.masseActive = false;
+              } else if (b2.id === 0 && state.shotFirstHitId === null) {
+                state.shotFirstHitId = b1.id;
+                b2.masseActive = false;
+              }
+
+              const rvx = b1.vx - b2.vx;
+              const rvy = b1.vy - b2.vy;
+              const velAlongNormal = rvx * nx + rvy * ny;
+
+              if (velAlongNormal > 0) {
+                const impulse = velAlongNormal * BALL_RESTITUTION;
+                b1.vx -= nx * impulse;
+                b1.vy -= ny * impulse;
+                b2.vx += nx * impulse;
+                b2.vy += ny * impulse;
+
+                if (b1.id === 0 && Math.abs(b1.spinY) > 0.04) {
+                  const followImpulse = b1.spinY * Math.min(7.5, velAlongNormal * 0.48);
+                  b1.vx += nx * followImpulse;
+                  b1.vy += ny * followImpulse;
+                  b1.spinY *= 0.35;
+                }
+
+                PoolAudio.playBallClack(velAlongNormal);
+                if (velAlongNormal > 6.5) {
+                  spawnImpactSparks((b1.x + b2.x) * 0.5, (b1.y + b2.y) * 0.5, velAlongNormal);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      let anyMoving = false;
+      for (const b of state.balls) {
+        if (b.potted) continue;
+        if (Math.hypot(b.vx, b.vy) < STOP_SPEED_EPS && b.z <= 0.1) {
+          b.vx = 0;
+          b.vy = 0;
+          b.z = 0;
+          b.vz = 0;
+        } else {
+          anyMoving = true;
+        }
+      }
+
+      if (!anyMoving) {
+        evaluateCompletedTurn();
+      }
+    }
+
+    function respawnCueBallIfPotted() {
+      const cue = state.balls[0];
+      if (cue.potted) {
+        cue.potted = false;
+        cue.vx = 0;
+        cue.vy = 0;
+        cue.z = 0;
+        cue.vz = 0;
+        cue.spinX = 0;
+        cue.spinY = 0;
+        let candidateX = TABLE.headStringX - 40;
+        let candidateY = TABLE.centerY;
+        for (let offset = 0; offset < 180; offset += 28) {
+          if (isCueBallPlacementValid(candidateX, TABLE.centerY + offset, false)) {
+            candidateY = TABLE.centerY + offset;
+            break;
+          }
+          if (isCueBallPlacementValid(candidateX, TABLE.centerY - offset, false)) {
+            candidateY = TABLE.centerY - offset;
+            break;
+          }
+        }
+        cue.x = candidateX;
+        cue.y = candidateY;
+      }
+    }
+
+    // --- 10-DISCIPLINE RULES ENGINE ---
+    function evaluateCompletedTurn() {
+      const pottedEvents = state.shotPotted.slice();
+      const pottedIds = pottedEvents.map((e) => e.id);
+      const cueScratched = pottedIds.includes(0);
+      const objectEvents = pottedEvents.filter((e) => e.id > 0);
+      const objectIds = objectEvents.map((e) => e.id);
+      const firstHit = state.shotFirstHitId;
+      const wasBreak = state.isBreakShot;
+      state.isBreakShot = false;
+
+      if (cueScratched) respawnCueBallIfPotted();
+
+      // Check Called-Pocket Bonus
+      if (state.calledPocket !== null && !cueScratched && objectEvents.some((e) => e.pocketId === state.calledPocket)) {
+        career.bankroll = (career.bankroll || 500) + 250;
+        PoolStorage.save(career);
+        const pk = POCKETS[state.calledPocket];
+        addFloatingPopup("🎯 CALLED SHOT! +$250!", pk.x, pk.y - 26, "#facc15");
+      }
+
+      // 1. TRICK SHOT VAULT (12 STAGES)
+      if (state.mode === "trick") {
+        if (!cueScratched && objectIds.length > 0) {
+          PoolAudio.playVictoryFanfare();
+          career.xp += 75;
+          career.bankroll = (career.bankroll || 500) + 150;
+          PoolStorage.save(career);
+          const clearedStage = state.trickStageIdx + 1;
+          if (state.trickStageIdx < TRICK_SHOT_VAULT.length - 1) {
+            state.trickStageIdx++;
+            startNewRack("trick");
+            updateStatusBanner(
+              `🎉 STAGE ${clearedStage} CLEARED! (+150$) — NOW ON STAGE ${state.trickStageIdx + 1}/12`,
+              TRICK_SHOT_VAULT[state.trickStageIdx].hint
+            );
+          } else {
+            declareFrameWinner(1, "You conquered all 12 stages of the Artistic Trick Shot Vault!");
+          }
+        } else {
+          PoolAudio.playFoulBuzzer();
+          startNewRack("trick");
+          updateStatusBanner("TRICK SHOT MISSED — STAGE RESET, TRY AGAIN!", TRICK_SHOT_VAULT[state.trickStageIdx].hint);
+        }
+        return;
+      }
+
+      // 2. SPEED POOL BLITZ (60s)
+      if (state.mode === "speed") {
+        if (cueScratched) {
+          PoolAudio.playFoulBuzzer();
+          state.speedTimeLeft = Math.max(0, state.speedTimeLeft - 5);
+          state.speedCombo = 1;
+          state.ballInHand = true;
+          updateStatusBanner("SCRATCH FOUL (-5s) — BALL IN HAND", "Click felt to place cue ball");
+        } else if (objectIds.length > 0) {
+          const pts = objectIds.length * 150 * state.speedCombo;
+          state.speedScore += pts;
+          state.speedTimeLeft += objectIds.length * 5;
+          state.speedCombo++;
+          addFloatingPopup(`+${pts} PTS (${state.speedCombo - 1}x!)`, TABLE.width * 0.5, TABLE.centerY, "#facc15");
+          updateStatusBanner(`BLITZ POT! +${pts} PTS (+${objectIds.length * 5}s)`, `Score: ${state.speedScore}`);
+        } else {
+          state.speedCombo = 1;
+        }
+        if (state.balls.filter((b) => b.id > 0 && !b.potted).length === 0) {
+          state.speedScore += 1500;
+          rackBallsForMode("speed");
+        }
+        state.phase = "aiming";
+        refreshScoreboardHUD();
+        return;
+      }
+
+      // 3. 14.1 CONTINUOUS STRAIGHT POOL (RACE TO 25)
+      if (state.mode === "straight") {
+        const isFoul = cueScratched || firstHit === null || (objectIds.length === 0 && state.shotRailContacts === 0);
+        if (isFoul) {
+          PoolAudio.playFoulBuzzer();
+          state.points[state.currentPlayer] = Math.max(0, state.points[state.currentPlayer] - 1);
+          state.currentRun = 0;
+          switchTurn(true, "14.1 FOUL (-1 PT) — BALL IN HAND!");
+        } else if (objectIds.length > 0) {
+          state.points[state.currentPlayer] += objectIds.length;
+          state.currentRun += objectIds.length;
+          if (state.currentRun > (career.highRun || 0)) {
+            career.highRun = state.currentRun;
+            PoolStorage.save(career);
+          }
+          // Check if <= 1 object ball remains -> auto re-rack 14 balls!
+          const remObj = state.balls.filter((b) => b.id > 0 && !b.potted).length;
+          if (remObj <= 1) {
+            reRackFourteenBallsForStraightPool();
+          }
+          if (state.points[state.currentPlayer] >= 25) {
+            declareFrameWinner(state.currentPlayer, `${getPlayerLabel(state.currentPlayer)} reached 25 points in 14.1 Continuous Straight Pool!`);
+            return;
+          }
+          updateStatusBanner(
+            `14.1 HIGH RUN: ${state.currentRun} • SCORE: ${state.points[state.currentPlayer]}/25`,
+            `${getPlayerLabel(state.currentPlayer)} continues at the table!`
+          );
+          resumeTurnOrTriggerAI();
+        } else {
+          state.currentRun = 0;
+          switchTurn(false, null);
+        }
+        refreshScoreboardHUD();
+        return;
+      }
+
+      // 4. ONE-POCKET HUSTLER SHOWDOWN (P1 = Pocket #3 Bottom-Left, P2 = Pocket #5 Bottom-Right)
+      if (state.mode === "onepocket") {
+        const targetPocket = state.currentPlayer === 1 ? 3 : 5;
+        const oppPocket = state.currentPlayer === 1 ? 5 : 3;
+        let scoredOwn = 0;
+        for (const ev of objectEvents) {
+          const ballObj = state.balls.find((b) => b.id === ev.id);
+          if (cueScratched) {
+            spotBallOnTable(ballObj);
+          } else if (ev.pocketId === targetPocket) {
+            state.points[state.currentPlayer]++;
+            scoredOwn++;
+          } else if (ev.pocketId === oppPocket) {
+            const other = state.currentPlayer === 1 ? 2 : 1;
+            state.points[other]++;
+          } else {
+            // Neutral pocket -> re-spot at foot spot!
+            spotBallOnTable(ballObj);
+            addFloatingPopup(`NEUTRAL POCKET — #${ev.id} RE-SPOTTED`, TABLE.footSpotX, TABLE.centerY, "#94a3b8");
+          }
+        }
+        if (state.points[1] >= 5 || state.points[2] >= 5) {
+          const w = state.points[1] >= 5 ? 1 : 2;
+          declareFrameWinner(w, `${getPlayerLabel(w)} pocketed 5 balls in their assigned corner to win One-Pocket!`);
+          return;
+        }
+        if (cueScratched || firstHit === null) {
+          PoolAudio.playFoulBuzzer();
+          switchTurn(true, "ONE-POCKET FOUL — BALL IN HAND!");
+        } else if (scoredOwn > 0) {
+          updateStatusBanner(`ONE-POCKET SCORE! (${state.points[state.currentPlayer]}/5)`, "Shoot again into your corner pocket!");
+          resumeTurnOrTriggerAI();
+        } else {
+          switchTurn(false, null);
+        }
+        refreshScoreboardHUD();
+        return;
+      }
+
+      // 5. BANK POOL ROYALE (BANKS & KICKS ONLY — RACE TO 5)
+      if (state.mode === "bankpool") {
+        let bankedCount = 0;
+        for (const ev of objectEvents) {
+          const ballObj = state.balls.find((b) => b.id === ev.id);
+          if (!cueScratched && ev.banked) {
+            state.points[state.currentPlayer]++;
+            bankedCount++;
+          } else {
+            spotBallOnTable(ballObj);
+            if (!ev.banked) {
+              addFloatingPopup(`DIRECT POT RE-SPOTTED (BANKS ONLY!)`, TABLE.width * 0.5, TABLE.centerY, "#facc15");
+            }
+          }
+        }
+        if (state.points[state.currentPlayer] >= 5) {
+          declareFrameWinner(state.currentPlayer, `${getPlayerLabel(state.currentPlayer)} banked 5 clean balls to win Bank Pool Royale!`);
+          return;
+        }
+        if (cueScratched || firstHit === null) {
+          PoolAudio.playFoulBuzzer();
+          switchTurn(true, "BANK POOL FOUL — BALL IN HAND!");
+        } else if (bankedCount > 0) {
+          updateStatusBanner(`CLEAN BANK SHOT! (${state.points[state.currentPlayer]}/5)`, "Continue banking!");
+          resumeTurnOrTriggerAI();
+        } else {
+          switchTurn(false, null);
+        }
+        refreshScoreboardHUD();
+        return;
+      }
+
+      // 6. 3-GROUP CUT-THROAT POOL (P1 protects 1–5, P2 protects 6–10, 11–15 neutral targets)
+      if (state.mode === "cutthroat") {
+        const p1Left = state.balls.filter((b) => !b.potted && b.id >= 1 && b.id <= 5).length;
+        const p2Left = state.balls.filter((b) => !b.potted && b.id >= 6 && b.id <= 10).length;
+        if (p1Left === 0 || p2Left === 0) {
+          const w = p1Left > 0 ? 1 : 2;
+          declareFrameWinner(w, `${getPlayerLabel(w)} eliminated all opposing Cut-Throat balls!`);
+          return;
+        }
+        if (cueScratched || firstHit === null) {
+          PoolAudio.playFoulBuzzer();
+          switchTurn(true, "CUT-THROAT FOUL — BALL IN HAND!");
+        } else if (objectIds.length > 0) {
+          updateStatusBanner(`CUT-THROAT ELIMINATION! P1: ${p1Left} left • P2: ${p2Left} left`, "Continue shooting!");
+          resumeTurnOrTriggerAI();
+        } else {
+          switchTurn(false, null);
+        }
+        refreshScoreboardHUD();
+        return;
+      }
+
+      // 7. 6-RED MINI-SNOOKER CHAMPIONSHIP
+      if (state.mode === "snooker") {
+        const redsRemainingAfter = countActiveSnookerReds();
+        const redsPotted = objectIds.filter((id) => id >= 100);
+        const colorsPotted = objectIds.filter((id) => id >= 2 && id <= 7);
+
+        let snookerFoul = cueScratched || firstHit === null;
+        if (!snookerFoul) {
+          if (state.snookerTarget === "red" && firstHit < 100 && redsRemainingAfter + redsPotted.length > 0) {
+            snookerFoul = true;
+          } else if (state.snookerTarget === "color" && firstHit >= 100) {
+            snookerFoul = true;
+          }
+        }
+
+        // Re-spot any color potted while reds were on table or on foul
+        if (colorsPotted.length > 0 && (state.snookerTarget === "red" || state.snookerTarget === "color" || snookerFoul)) {
+          const balkX = TABLE.headStringX;
+          const dRadius = TABLE.playHeight * 0.22;
+          const colorSpots = {
+            2: { x: balkX, y: TABLE.centerY + dRadius },
+            3: { x: balkX, y: TABLE.centerY - dRadius },
+            4: { x: balkX, y: TABLE.centerY },
+            5: { x: TABLE.width * 0.5, y: TABLE.centerY },
+            6: { x: TABLE.width * 0.5 + TABLE.playWidth * 0.2, y: TABLE.centerY },
+            7: { x: TABLE.right - 78, y: TABLE.centerY },
+          };
+          colorsPotted.forEach((cid) => {
+            const cb = state.balls.find((b) => b.id === cid);
+            const sp = colorSpots[cid];
+            if (cb && sp) spotBallOnTable(cb, sp.x, sp.y);
+          });
+        }
+
+        if (snookerFoul) {
+          PoolAudio.playFoulBuzzer();
+          const other = state.currentPlayer === 1 ? 2 : 1;
+          state.points[other] += 4;
+          state.snookerBreak = 0;
+          state.snookerTarget = countActiveSnookerReds() > 0 ? "red" : "sequence";
+          switchTurn(true, "SNOOKER FOUL (+4 PTS TO OPPONENT) — BALL IN HAND!");
+        } else if (objectIds.length > 0) {
+          let ptsEarned = 0;
+          objectIds.forEach((id) => {
+            ptsEarned += id >= 100 ? 1 : id;
+          });
+          state.points[state.currentPlayer] += ptsEarned;
+          state.snookerBreak += ptsEarned;
+
+          if (state.snookerTarget === "red") {
+            state.snookerTarget = "color";
+          } else if (state.snookerTarget === "color") {
+            state.snookerTarget = countActiveSnookerReds() > 0 ? "red" : "sequence";
+          }
+
+          if (state.balls.filter((b) => b.id > 0 && !b.potted).length === 0) {
+            const w = state.points[1] >= state.points[2] ? 1 : 2;
+            declareFrameWinner(w, `6-Red Snooker Frame Complete! Final Score: ${state.points[1]} – ${state.points[2]}`);
+            return;
+          }
+          updateStatusBanner(
+            `SNOOKER BREAK: ${state.snookerBreak} PTS (+${ptsEarned})`,
+            `Next Legal Target: ${state.snookerTarget.toUpperCase()}`
+          );
+          resumeTurnOrTriggerAI();
+        } else {
+          state.snookerBreak = 0;
+          state.snookerTarget = countActiveSnookerReds() > 0 ? "red" : "sequence";
+          switchTurn(false, null);
+        }
+        refreshScoreboardHUD();
+        return;
+      }
+
+      // 8. 9-BALL & 10-BALL ROTATION (WITH PUSH-OUT & 10-BALL CALL-SHOT)
+      if (state.mode === "9ball" || state.mode === "10ball") {
+        const winBallId = state.mode === "10ball" ? 10 : 9;
+        state.canPushOut = wasBreak && objectIds.length === 0 && !cueScratched;
+
+        if (state.isPushOutShot) {
+          state.isPushOutShot = false;
+          switchTurn(false, "PUSH OUT PLAYED — INCOMING PLAYER TAKES TABLE");
+          refreshScoreboardHUD();
+          return;
+        }
+
+        let lowestBeforeShot = 999;
+        for (const b of state.balls) {
+          if (b.id > 0 && (!b.potted || pottedIds.includes(b.id))) {
+            if (b.id < lowestBeforeShot) lowestBeforeShot = b.id;
+          }
+        }
+
+        const hitLowestFirst = firstHit === lowestBeforeShot;
+        const moneyBallEvent = objectEvents.find((e) => e.id === winBallId);
+        const isFoul = cueScratched || !hitLowestFirst || (objectIds.length === 0 && state.shotRailContacts === 0);
+
+        if (moneyBallEvent) {
+          const calledOk =
+            state.mode === "9ball" ||
+            lowestBeforeShot === 10 ||
+            state.calledPocket === null ||
+            moneyBallEvent.pocketId === state.calledPocket;
+
+          if (!isFoul && calledOk) {
+            declareFrameWinner(
+              state.currentPlayer,
+              `${getPlayerLabel(state.currentPlayer)} legally sank the ${winBallId}-Ball to win the frame!`
+            );
+            return;
+          } else {
+            const mb = state.balls.find((b) => b.id === winBallId);
+            spotBallOnTable(mb);
+            addFloatingPopup(`#${winBallId} RE-SPOTTED ON FOOT SPOT`, TABLE.footSpotX, TABLE.centerY, "#facc15");
+          }
+        }
+
+        if (isFoul) {
+          PoolAudio.playFoulBuzzer();
+          state.fouls[state.currentPlayer]++;
+          switchTurn(true, `ROTATION FOUL (TARGET WAS #${lowestBeforeShot}) — BALL IN HAND!`);
+        } else if (objectIds.length > 0) {
+          const nextLowest = getLowestActiveBallId();
+          updateStatusBanner(
+            `GREAT POT! ${getPlayerLabel(state.currentPlayer)} CONTINUES`,
+            `Target Lowest Ball Next: #${nextLowest}`
+          );
+          resumeTurnOrTriggerAI();
+        } else {
+          switchTurn(false, null);
+        }
+        refreshScoreboardHUD();
+        return;
+      }
+
+      // 9. WPA 8-BALL CHAMPIONSHIP
+      const eightPotted = pottedIds.includes(8);
+      const solidsPotted = objectIds.filter((id) => id >= 1 && id <= 7);
+      const stripesPotted = objectIds.filter((id) => id >= 9 && id <= 15);
+      const playerGroup = state.groups[state.currentPlayer];
+      const otherPlayer = state.currentPlayer === 1 ? 2 : 1;
+
+      let legalFirstContact = false;
+      if (firstHit !== null) {
+        if (!playerGroup) {
+          legalFirstContact = firstHit !== 8;
+        } else {
+          const groupRemainingNow = countRemainingInGroup(playerGroup);
+          const groupPottedThisStroke = playerGroup === "solids" ? solidsPotted.length : stripesPotted.length;
+          const groupAtStrokeStart = groupRemainingNow + groupPottedThisStroke;
+          legalFirstContact = groupAtStrokeStart === 0 ? firstHit === 8 : getBallGroup(firstHit) === playerGroup;
+        }
+      }
+
+      if (eightPotted) {
+        const groupRemainingNow = playerGroup ? countRemainingInGroup(playerGroup) : 7;
+        const hadClearedGroupBeforeStroke =
+          playerGroup !== null &&
+          groupRemainingNow === 0 &&
+          (playerGroup === "solids" ? solidsPotted.length === 0 : stripesPotted.length === 0);
+
+        if (wasBreak) {
+          spotBallOnTable(state.balls.find((b) => b.id === 8));
+        } else if (hadClearedGroupBeforeStroke && legalFirstContact && !cueScratched) {
+          declareFrameWinner(
+            state.currentPlayer,
+            `${getPlayerLabel(state.currentPlayer)} cleared their group and legally sank the 8-Ball!`
+          );
+          return;
+        } else {
+          declareFrameWinner(
+            otherPlayer,
+            `${getPlayerLabel(state.currentPlayer)} committed an 8-Ball loss foul! ${getPlayerLabel(otherPlayer)} wins!`
+          );
+          return;
+        }
+      }
+
+      const isFoul =
+        cueScratched ||
+        firstHit === null ||
+        !legalFirstContact ||
+        (pottedIds.length === 0 && state.shotRailContacts === 0);
+
+      if (isFoul) {
+        PoolAudio.playFoulBuzzer();
+        state.fouls[state.currentPlayer]++;
+        switchTurn(true, "8-BALL FOUL — BALL IN HAND!");
+        refreshScoreboardHUD();
+        return;
+      }
+
+      let assignedNow = false;
+      if (!wasBreak && !state.groups[1] && (solidsPotted.length > 0 || stripesPotted.length > 0)) {
+        if (solidsPotted.length >= stripesPotted.length) {
+          state.groups[state.currentPlayer] = "solids";
+          state.groups[otherPlayer] = "stripes";
+        } else {
+          state.groups[state.currentPlayer] = "stripes";
+          state.groups[otherPlayer] = "solids";
+        }
+        assignedNow = true;
+        addFloatingPopup(
+          `${getPlayerLabel(state.currentPlayer)} CLAIMS ${state.groups[state.currentPlayer].toUpperCase()}!`,
+          TABLE.width * 0.5,
+          TABLE.centerY,
+          "#00f5d4"
+        );
+      }
+
+      const activeGroup = state.groups[state.currentPlayer];
+      const pottedOwnGroup = !activeGroup
+        ? solidsPotted.length + stripesPotted.length > 0
+        : activeGroup === "solids"
+        ? solidsPotted.length > 0
+        : stripesPotted.length > 0;
+
+      if (pottedOwnGroup) {
+        const headline = assignedNow
+          ? `${getPlayerLabel(state.currentPlayer)} CLAIMS ${activeGroup.toUpperCase()} & CONTINUES!`
+          : `NICE POT! ${getPlayerLabel(state.currentPlayer)} SHOOTS AGAIN`;
+        updateStatusBanner(headline, getPlayerTargetDescription(state.currentPlayer));
+        resumeTurnOrTriggerAI();
+      } else {
+        switchTurn(false, null);
+      }
+      refreshScoreboardHUD();
+    }
+
+    function getPlayerLabel(playerNum) {
+      if (playerNum === 1) return "PLAYER 1";
+      if (state.opponent === "2p") return "PLAYER 2";
+      if (state.opponent === "ai-1") return "ROOKIE HUSTLER AI";
+      if (state.opponent === "ai-2") return "CLUB PRO AI";
+      return "GRANDMASTER SHARK AI";
+    }
+
+    function getPlayerTargetDescription(playerNum) {
+      if (state.mode === "9ball" || state.mode === "10ball") {
+        return `Must strike Lowest Ball #${getLowestActiveBallId()} first`;
+      }
+      if (state.mode === "straight") {
+        return `14.1 Straight Pool: Score ${state.points[playerNum]}/25 pts`;
+      }
+      if (state.mode === "onepocket") {
+        return playerNum === 1 ? "Target Pocket: Bottom-Left Corner" : "Target Pocket: Bottom-Right Corner";
+      }
+      if (state.mode === "snooker") {
+        return `6-Red Snooker Target: ${state.snookerTarget.toUpperCase()}`;
+      }
+      const grp = state.groups[playerNum];
+      if (!grp) return "Open Table: Pot any Solid (1–7) or Stripe (9–15) to claim group";
+      const rem = countRemainingInGroup(grp);
+      if (rem === 0) return "FINAL TARGET: Call & legally pot the 8-Ball!";
+      return `Target Group: ${grp === "solids" ? "Solids (1–7)" : "Stripes (9–15)"} • ${rem} left`;
+    }
+
+    function switchTurn(awardBallInHand, foulBanner) {
+      state.currentPlayer = state.currentPlayer === 1 ? 2 : 1;
+      state.ballInHand = Boolean(awardBallInHand);
+      state.kitchenOnly = false;
+
+      const pLabel = getPlayerLabel(state.currentPlayer);
+      if (foulBanner) {
+        updateStatusBanner(foulBanner, `${pLabel} has Ball-in-Hand anywhere on the table`);
+      } else {
+        updateStatusBanner(`${pLabel}'S TURN AT THE TABLE`, getPlayerTargetDescription(state.currentPlayer));
+      }
+      resumeTurnOrTriggerAI();
+    }
+
+    function resumeTurnOrTriggerAI() {
+      const isAITurn = state.currentPlayer === 2 && state.opponent.startsWith("ai-");
+      if (isAITurn) {
+        state.phase = "ai_thinking";
+        setTimeout(() => executeAISharkTurn(), 720);
+      } else {
+        state.phase = "aiming";
+      }
+    }
+
+    function declareFrameWinner(winnerPlayer, message) {
+      state.phase = "gameover";
+      PoolAudio.playVictoryFanfare();
+
+      if (winnerPlayer === 1) {
+        career.p1Wins++;
+        career.streak++;
+        career.xp += 100;
+        career.bankroll = (career.bankroll || 500) + 200;
+      } else {
+        career.p2Wins++;
+        career.streak = 0;
+        career.xp += 25;
+      }
+      PoolStorage.save(career);
+      refreshScoreboardHUD();
+
+      document.getElementById("victoryBannerTitle").textContent =
+        winnerPlayer === 1 ? "🏆 PLAYER 1 WINS THE FRAME!" : `🏆 ${getPlayerLabel(2)} WINS THE FRAME!`;
+      document.getElementById("victoryBannerSub").textContent = message;
+      document.getElementById("victoryModal").classList.add("open");
+    }
+
+    // --- 3-TIER AI SHARK TACTICAL SOLVER ---
+    function isLineClearOfBalls(x1, y1, x2, y2, ignoreId1, ignoreId2) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const segLen = Math.hypot(dx, dy);
+      if (segLen < 1) return true;
+      const ux = dx / segLen;
+      const uy = dy / segLen;
+
+      for (const b of state.balls) {
+        if (b.potted || b.id === ignoreId1 || b.id === ignoreId2) continue;
+        const bx = b.x - x1;
+        const by = b.y - y1;
+        const proj = bx * ux + by * uy;
+        if (proj <= 0 || proj >= segLen) continue;
+        const perpDist = Math.abs(bx * uy - by * ux);
+        if (perpDist < BALL_RADIUS * 1.95) return false;
+      }
+      return true;
+    }
+
+    function executeAISharkTurn() {
+      if (state.phase !== "ai_thinking") return;
+      const cue = state.balls[0];
+      const tier = state.opponent === "ai-1" ? 1 : state.opponent === "ai-2" ? 2 : 3;
+      state.elevationDeg = 0;
+      updateElevationUI();
+
+      const legalTargets = state.balls.filter((b) => {
+        if (b.potted || b.id === 0) return false;
+        if (state.mode === "cutthroat") return b.id <= 5 || b.id >= 11;
+        return isTargetBallLegalForCurrentPlayer(b.id);
+      });
+
+      if (state.ballInHand && legalTargets.length > 0 && !state.kitchenOnly) {
+        const target = legalTargets[0];
+        const pk = state.mode === "onepocket" ? POCKETS[5] : POCKETS[2];
+        const toPkX = pk.x - target.x;
+        const toPkY = pk.y - target.y;
+        const len = Math.hypot(toPkX, toPkY) || 1;
+        const placeX = target.x - (toPkX / len) * 115;
+        const placeY = target.y - (toPkY / len) * 115;
+        if (isCueBallPlacementValid(placeX, placeY, false)) {
+          cue.x = placeX;
+          cue.y = placeY;
+        }
+        state.ballInHand = false;
+      }
+
+      const candidatePockets = state.mode === "onepocket" ? [POCKETS[5]] : POCKETS;
+      let bestShot = null;
+      let bestScore = -Infinity;
+
+      for (const target of legalTargets) {
+        for (const pk of candidatePockets) {
+          const pkAimX = pk.x + (TABLE.width * 0.5 - pk.x) * 0.06;
+          const pkAimY = pk.y + (TABLE.centerY - pk.y) * 0.06;
+          const toPkX = pkAimX - target.x;
+          const toPkY = pkAimY - target.y;
+          const distTargetToPk = Math.hypot(toPkX, toPkY);
+          if (distTargetToPk < 1) continue;
+
+          const ux = toPkX / distTargetToPk;
+          const uy = toPkY / distTargetToPk;
+          const ghostX = target.x - ux * (BALL_RADIUS * 2);
+          const ghostY = target.y - uy * (BALL_RADIUS * 2);
+
+          const cueToGhostX = ghostX - cue.x;
+          const cueToGhostY = ghostY - cue.y;
+          const distCueToGhost = Math.hypot(cueToGhostX, cueToGhostY);
+          if (distCueToGhost < 1) continue;
+
+          const cux = cueToGhostX / distCueToGhost;
+          const cuy = cueToGhostY / distCueToGhost;
+          const cutCos = cux * ux + cuy * uy;
+          if (cutCos < 0.18) continue;
+
+          const clearCueToGhost = isLineClearOfBalls(cue.x, cue.y, ghostX, ghostY, 0, target.id);
+          const clearTargetToPk = isLineClearOfBalls(target.x, target.y, pkAimX, pkAimY, target.id, 0);
+
+          let score = cutCos * 120 - distCueToGhost * 0.065 - distTargetToPk * 0.08;
+          if (!clearCueToGhost) score -= 240;
+          if (!clearTargetToPk) score -= 180;
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestShot = {
+              angle: Math.atan2(cueToGhostY, cueToGhostX),
+              power: Math.min(92, Math.max(36, 32 + (distCueToGhost + distTargetToPk) * 0.055)),
+              spinX: tier === 3 ? (Math.random() - 0.5) * 0.2 : 0,
+              spinY: tier >= 2 ? (cutCos > 0.75 ? -0.35 : 0.25) : 0,
+            };
+          }
+        }
+      }
+
+      if (!bestShot && legalTargets.length > 0) {
+        const fallback = legalTargets[0];
+        bestShot = {
+          angle: Math.atan2(fallback.y - cue.y, fallback.x - cue.x),
+          power: 55,
+          spinX: 0,
+          spinY: 0,
+        };
+      }
+
+      if (bestShot) {
+        const maxJitter = tier === 1 ? 0.04 : tier === 2 ? 0.013 : 0.0025;
+        const finalAngle = bestShot.angle + (Math.random() - 0.5) * maxJitter;
+        state.aimAngle = finalAngle;
+        shootCueBall(finalAngle, bestShot.power, bestShot.spinX, bestShot.spinY);
+      } else {
+        state.phase = "aiming";
+      }
+    }
+
+    function isCueBallPlacementValid(x, y, restrictToKitchen) {
+      const minX = TABLE.left + BALL_RADIUS + 2;
+      const maxX = restrictToKitchen ? TABLE.headStringX : TABLE.right - BALL_RADIUS - 2;
+      const minY = TABLE.top + BALL_RADIUS + 2;
+      const maxY = TABLE.bottom - BALL_RADIUS - 2;
+      if (x < minX || x > maxX || y < minY || y > maxY) return false;
+      for (const pk of POCKETS) {
+        if (Math.hypot(x - pk.x, y - pk.y) < pk.r + BALL_RADIUS * 0.6) return false;
+      }
+      for (let i = 1; i < state.balls.length; i++) {
+        const b = state.balls[i];
+        if (b.potted) continue;
+        if (Math.hypot(x - b.x, y - b.y) < BALL_RADIUS * 2.15) return false;
+      }
+      return true;
+    }
+
+    // --- HUD & SCOREBOARD UPDATERS ---
+    function updateStatusBanner(headline, subline) {
+      document.getElementById("statusHeadline").textContent = headline;
+      if (subline !== undefined && subline !== null) {
+        document.getElementById("statusSubline").textContent = subline;
+      }
+    }
+
+    function updateSpinWidgetUI() {
+      const dot = document.getElementById("spinContactDot");
+      const maxPx = 20;
+      dot.style.left = `${50 + state.spinX * maxPx}%`;
+      dot.style.top = `${50 - state.spinY * maxPx}%`;
+
+      const parts = [];
+      if (state.spinY > 0.18) parts.push(`Top +${Math.round(state.spinY * 100)}%`);
+      else if (state.spinY < -0.18) parts.push(`Draw ${Math.round(state.spinY * 100)}%`);
+      if (state.spinX > 0.18) parts.push(`Right +${Math.round(state.spinX * 100)}%`);
+      else if (state.spinX < -0.18) parts.push(`Left ${Math.round(state.spinX * 100)}%`);
+      document.getElementById("spinLabel").textContent =
+        parts.length > 0 ? parts.join(" • ") : "Center (Pure Roll)";
+    }
+
+    function updateElevationUI() {
+      const slider = document.getElementById("elevationSlider");
+      const label = document.getElementById("elevationValueText");
+      slider.value = String(Math.round(state.elevationDeg));
+      let tag = "Level";
+      if (state.elevationDeg >= 45) tag = "JUMP";
+      else if (state.elevationDeg >= 15) tag = "MASSE";
+      label.textContent = `${Math.round(state.elevationDeg)}° ${tag}`;
+    }
+
+    function createMiniBallNode(id, isPotted, customMeta = null) {
+      const cfg = customMeta || BALL_COLORS[id] || BALL_COLORS[1];
+      const div = document.createElement("div");
+      div.className = `mini-ball${isPotted ? " potted" : ""}`;
+      if (cfg.stripe) {
+        div.style.background = `linear-gradient(180deg, #ffffff 22%, ${cfg.hex} 22%, ${cfg.hex} 78%, #ffffff 78%)`;
+      } else {
+        div.style.background = `radial-gradient(circle at 35% 30%, ${cfg.hex}, ${cfg.dark})`;
+      }
+      if (id === 8 || id === 7) div.style.color = "#ffffff";
+      div.textContent = id >= 100 ? "R" : String(id);
+      return div;
+    }
+
+    function refreshScoreboardHUD() {
+      document.getElementById("p1Card").classList.toggle("active-turn", state.currentPlayer === 1);
+      document.getElementById("p2Card").classList.toggle("active-turn", state.currentPlayer === 2);
+
+      document.getElementById("p2Name").textContent = getPlayerLabel(2);
+      document.getElementById("p1SubStats").textContent =
+        `Wins: ${career.p1Wins} • Bankroll: $${career.bankroll || 500} • XP: ${career.xp}`;
+      document.getElementById("p2SubStats").textContent =
+        `Wins: ${career.p2Wins} • Fouls: ${state.fouls[2]}`;
+
+      // Show/hide Push-Out and Trick Shot stage navigation
+      document.getElementById("btnPushOut").style.display =
+        (state.mode === "9ball" || state.mode === "10ball") && state.canPushOut ? "inline-flex" : "none";
+      document.getElementById("trickNavBar").style.display =
+        state.mode === "trick" ? "inline-flex" : "none";
+
+      const p1Badge = document.getElementById("p1GroupBadge");
+      const p2Badge = document.getElementById("p2GroupBadge");
+      p1Badge.className = "group-badge";
+      p2Badge.className = "group-badge";
+
+      if (state.mode === "9ball" || state.mode === "10ball") {
+        const low = getLowestActiveBallId() || 9;
+        p1Badge.textContent = `LOWEST #${low}`;
+        p2Badge.textContent = `LOWEST #${low}`;
+        p1Badge.classList.add("nineball");
+        p2Badge.classList.add("nineball");
+      } else if (state.mode === "straight" || state.mode === "bankpool") {
+        const targetPts = state.mode === "straight" ? 25 : 5;
+        p1Badge.textContent = `PTS: ${state.points[1]}/${targetPts}`;
+        p2Badge.textContent = `PTS: ${state.points[2]}/${targetPts}`;
+        p1Badge.classList.add("nineball");
+        p2Badge.classList.add("nineball");
+      } else if (state.mode === "onepocket") {
+        p1Badge.textContent = `BL POCKET: ${state.points[1]}/5`;
+        p2Badge.textContent = `BR POCKET: ${state.points[2]}/5`;
+        p1Badge.classList.add("stripes");
+        p2Badge.classList.add("nineball");
+      } else if (state.mode === "cutthroat") {
+        p1Badge.textContent = "SHIELD 1–5";
+        p2Badge.textContent = "SHIELD 6–10";
+        p1Badge.classList.add("solids");
+        p2Badge.classList.add("stripes");
+      } else if (state.mode === "snooker") {
+        p1Badge.textContent = `SNOOKER: ${state.points[1]} PTS`;
+        p2Badge.textContent = `SNOOKER: ${state.points[2]} PTS`;
+        p1Badge.classList.add("solids");
+        p2Badge.classList.add("nineball");
+      } else if (state.mode === "speed" || state.mode === "trick") {
+        p1Badge.textContent = state.mode === "speed" ? `SCORE: ${state.speedScore}` : `STAGE ${state.trickStageIdx + 1}/12`;
+        p2Badge.textContent = `HIGH RUN: ${career.highRun || 0}`;
+        p1Badge.classList.add("nineball");
+      } else {
+        const g1 = state.groups[1];
+        const g2 = state.groups[2];
+        p1Badge.textContent = g1 ? (g1 === "solids" ? "SOLIDS 1–7" : "STRIPES 9–15") : "OPEN TABLE";
+        p2Badge.textContent = g2 ? (g2 === "solids" ? "SOLIDS 1–7" : "STRIPES 9–15") : "OPEN TABLE";
+        if (g1) p1Badge.classList.add(g1);
+        if (g2) p2Badge.classList.add(g2);
+      }
+
+      const p1Rack = document.getElementById("p1RackSlots");
+      const p2Rack = document.getElementById("p2RackSlots");
+      p1Rack.innerHTML = "";
+      p2Rack.innerHTML = "";
+
+      if (state.mode === "snooker") {
+        state.balls.filter((b) => b.id >= 100).forEach((b) => {
+          p1Rack.appendChild(createMiniBallNode(b.id, b.potted, b.snookerMeta));
+        });
+        state.balls.filter((b) => b.id >= 2 && b.id <= 7).forEach((b) => {
+          p2Rack.appendChild(createMiniBallNode(b.id, b.potted, b.snookerMeta));
+        });
+      } else if (state.mode === "9ball" || state.mode === "10ball") {
+        const maxB = state.mode === "10ball" ? 10 : 9;
+        for (let id = 1; id <= maxB; id++) {
+          const b = state.balls.find((item) => item.id === id);
+          if (id <= 5) p1Rack.appendChild(createMiniBallNode(id, !b || b.potted));
+          else p2Rack.appendChild(createMiniBallNode(id, !b || b.potted));
+        }
+      } else {
+        const p1Ids = state.groups[1] === "stripes" ? [9, 10, 11, 12, 13, 14, 15] : [1, 2, 3, 4, 5, 6, 7];
+        const p2Ids = state.groups[1] === "stripes" ? [1, 2, 3, 4, 5, 6, 7] : [9, 10, 11, 12, 13, 14, 15];
+        p1Ids.forEach((id) => {
+          const b = state.balls.find((item) => item.id === id);
+          p1Rack.appendChild(createMiniBallNode(id, !b || b.potted));
+        });
+        p2Ids.forEach((id) => {
+          const b = state.balls.find((item) => item.id === id);
+          p2Rack.appendChild(createMiniBallNode(id, !b || b.potted));
+        });
+      }
+
+      const activeObjCount = state.balls.filter((b) => b.id > 0 && !b.potted).length;
+      document.getElementById("telBallsLeft").textContent = String(activeObjCount);
+      document.getElementById("speedTimerPill").style.display = state.mode === "speed" ? "inline-flex" : "none";
+      document.getElementById("snookerBreakPill").style.display = state.mode === "snooker" ? "inline-flex" : "none";
+      document.getElementById("telSnookerBreak").textContent = String(state.snookerBreak);
+    }
+
+    // --- AAA TABLE, BALL, CALLED POCKET & LASER CANVAS RENDERER ---
+    function drawBilliardsTable() {
+      ctx.clearRect(0, 0, TABLE.width, TABLE.height);
+      const theme = FELT_THEMES[state.feltTheme] || FELT_THEMES.blue;
+
+      // 1. Cabinet Frame
+      const railGrad = ctx.createLinearGradient(0, 0, TABLE.width, TABLE.height);
+      railGrad.addColorStop(0, theme.railA);
+      railGrad.addColorStop(0.5, theme.railB);
+      railGrad.addColorStop(1, "#180905");
+      ctx.fillStyle = railGrad;
+      ctx.beginPath();
+      ctx.roundRect(0, 0, TABLE.width, TABLE.height, 22);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(0, 245, 212, 0.38)";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.roundRect(4, 4, TABLE.width - 8, TABLE.height - 8, 19);
+      ctx.stroke();
+
+      // 2. Championship Felt Cloth
+      const feltGrad = ctx.createRadialGradient(
+        TABLE.width * 0.5,
+        TABLE.height * 0.5,
+        40,
+        TABLE.width * 0.5,
+        TABLE.height * 0.5,
+        TABLE.width * 0.65
+      );
+      feltGrad.addColorStop(0, theme.c0);
+      feltGrad.addColorStop(0.58, theme.c1);
+      feltGrad.addColorStop(1, theme.c2);
+      ctx.fillStyle = feltGrad;
+      ctx.fillRect(TABLE.left - 12, TABLE.top - 12, TABLE.playWidth + 24, TABLE.playHeight + 24);
+
+      ctx.strokeStyle = theme.cushion;
+      ctx.lineWidth = 10;
+      ctx.strokeRect(TABLE.left - 5, TABLE.top - 5, TABLE.playWidth + 10, TABLE.playHeight + 10);
+
+      ctx.strokeStyle = "rgba(0,0,0,0.45)";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(TABLE.left, TABLE.top, TABLE.playWidth, TABLE.playHeight);
+
+      // 3. Baize Markings & Snooker "D" Semicircle
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.17)";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(TABLE.headStringX, TABLE.top + 4);
+      ctx.lineTo(TABLE.headStringX, TABLE.bottom - 4);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      if (state.mode === "snooker") {
+        ctx.beginPath();
+        ctx.arc(TABLE.headStringX, TABLE.centerY, TABLE.playHeight * 0.22, Math.PI * 0.5, Math.PI * 1.5);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+      ctx.beginPath();
+      ctx.arc(TABLE.footSpotX, TABLE.centerY, 3.2, 0, Math.PI * 2);
+      ctx.arc(TABLE.headStringX, TABLE.centerY, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (state.ballInHand && state.kitchenOnly && state.phase === "aiming") {
+        ctx.fillStyle = "rgba(0, 245, 212, 0.06)";
+        ctx.fillRect(TABLE.left, TABLE.top, TABLE.headStringX - TABLE.left, TABLE.playHeight);
+      }
+      ctx.restore();
+
+      // 4. 18 Diamond Rail Sights
+      const drawDiamond = (cx, cy) => {
+        ctx.fillStyle = "#f8fafc";
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 4.5);
+        ctx.lineTo(cx + 4.5, cy);
+        ctx.lineTo(cx, cy + 4.5);
+        ctx.lineTo(cx - 4.5, cy);
+        ctx.closePath();
+        ctx.fill();
+      };
+      for (let i = 1; i <= 7; i++) {
+        if (i === 4) continue;
+        const x = TABLE.left + (TABLE.playWidth / 8) * i;
+        drawDiamond(x, TABLE.top * 0.48);
+        drawDiamond(x, TABLE.height - TABLE.top * 0.48);
+      }
+      for (let j = 1; j <= 3; j++) {
+        const y = TABLE.top + (TABLE.playHeight / 4) * j;
+        drawDiamond(TABLE.left * 0.48, y);
+        drawDiamond(TABLE.width - TABLE.left * 0.48, y);
+      }
+
+      // 5. 6 Pockets + One-Pocket Ownership Rings + Called-Pocket Target Ring
+      for (const pk of POCKETS) {
+        ctx.beginPath();
+        ctx.arc(pk.x, pk.y, pk.r + 5, 0, Math.PI * 2);
+        ctx.fillStyle = "#ca8a04";
+        ctx.fill();
+
+        const pkGrad = ctx.createRadialGradient(pk.x, pk.y, 4, pk.x, pk.y, pk.r);
+        pkGrad.addColorStop(0, "#000000");
+        pkGrad.addColorStop(0.75, "#090d14");
+        pkGrad.addColorStop(1, "#1e293b");
+        ctx.beginPath();
+        ctx.arc(pk.x, pk.y, pk.r, 0, Math.PI * 2);
+        ctx.fillStyle = pkGrad;
+        ctx.fill();
+
+        // One-Pocket Ownership Highlight Rings
+        if (state.mode === "onepocket" && (pk.id === 3 || pk.id === 5)) {
+          ctx.save();
+          ctx.strokeStyle = pk.id === 3 ? "#00f5d4" : "#facc15";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(pk.x, pk.y, pk.r + 6, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Called-Pocket Target Crosshair Ring
+        if (state.calledPocket === pk.id) {
+          ctx.save();
+          const pulse = 5 + Math.sin(performance.now() * 0.009) * 3;
+          ctx.strokeStyle = "#facc15";
+          ctx.lineWidth = 2.5;
+          ctx.setLineDash([5, 4]);
+          ctx.beginPath();
+          ctx.arc(pk.x, pk.y, pk.r + pulse, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = "#facc15";
+          ctx.font = '900 10px "Inter", sans-serif';
+          ctx.textAlign = "center";
+          ctx.fillText("🎯 CALLED", pk.x, pk.y + (pk.y < TABLE.centerY ? 38 : -32));
+          ctx.restore();
+        }
+      }
+    }
+
+    function drawSingleBall(b, scale = 1, alpha = 1) {
+      const cfg = b.snookerMeta || BALL_COLORS[b.id] || BALL_COLORS[1];
+      const zLift = b.z || 0;
+      const r = b.r * scale * (1 + zLift * 0.015);
+      const renderX = b.x;
+      const renderY = b.y - zLift * 0.9;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      // Ground shadow (stretches & softens when cue ball is airborne during a Jump Shot!)
+      ctx.beginPath();
+      ctx.ellipse(
+        b.x + 2.5 + zLift * 0.55,
+        b.y + 3.5 + zLift * 0.55,
+        b.r * scale * 0.95,
+        b.r * scale * 0.78,
+        0,
+        0,
+        Math.PI * 2
+      );
+      ctx.fillStyle = `rgba(0, 0, 0, ${Math.max(0.16, 0.44 - zLift * 0.008)})`;
+      ctx.fill();
+
+      // Highlight pulsing ring on Lowest Ball in 9-Ball / 10-Ball
+      if ((state.mode === "9ball" || state.mode === "10ball") && !b.potted && b.id === getLowestActiveBallId()) {
+        const pulse = 3 + Math.sin(performance.now() * 0.008) * 2;
+        ctx.beginPath();
+        ctx.arc(renderX, renderY, r + pulse, 0, Math.PI * 2);
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      ctx.beginPath();
+      ctx.arc(renderX, renderY, r, 0, Math.PI * 2);
+      ctx.clip();
+
+      if (b.id === 0) {
+        const cueGrad = ctx.createRadialGradient(renderX - r * 0.32, renderY - r * 0.32, r * 0.1, renderX, renderY, r);
+        cueGrad.addColorStop(0, "#ffffff");
+        cueGrad.addColorStop(0.7, "#e2e8f0");
+        cueGrad.addColorStop(1, "#94a3b8");
+        ctx.fillStyle = cueGrad;
+        ctx.fillRect(renderX - r, renderY - r, r * 2, r * 2);
+
+        const dotOffX = Math.sin(b.rollPhaseX) * (r * 0.45);
+        const dotOffY = Math.cos(b.rollPhaseY) * (r * 0.45);
+        ctx.fillStyle = "#ef4444";
+        ctx.beginPath();
+        ctx.arc(renderX + dotOffX, renderY + dotOffY, 2.3 * scale, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (cfg.stripe) {
+        const baseGrad = ctx.createRadialGradient(renderX - r * 0.3, renderY - r * 0.3, r * 0.1, renderX, renderY, r);
+        baseGrad.addColorStop(0, "#ffffff");
+        baseGrad.addColorStop(0.75, "#f1f5f9");
+        baseGrad.addColorStop(1, "#94a3b8");
+        ctx.fillStyle = baseGrad;
+        ctx.fillRect(renderX - r, renderY - r, r * 2, r * 2);
+
+        ctx.save();
+        ctx.translate(renderX, renderY);
+        ctx.rotate((b.rollPhaseX + b.rollPhaseY) * 0.35);
+        ctx.fillStyle = cfg.hex;
+        ctx.fillRect(-r, -r * 0.56, r * 2, r * 1.12);
+        ctx.restore();
+      } else {
+        const solidGrad = ctx.createRadialGradient(renderX - r * 0.32, renderY - r * 0.32, r * 0.1, renderX, renderY, r);
+        solidGrad.addColorStop(0, cfg.hex);
+        solidGrad.addColorStop(0.78, cfg.dark);
+        solidGrad.addColorStop(1, "#04070d");
+        ctx.fillStyle = solidGrad;
+        ctx.fillRect(renderX - r, renderY - r, r * 2, r * 2);
+      }
+
+      if (b.id > 0 && !b.snookerMeta) {
+        const badgeX = renderX + Math.sin(b.rollPhaseX) * (r * 0.18);
+        const badgeY = renderY + Math.cos(b.rollPhaseY) * (r * 0.18);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.94)";
+        ctx.beginPath();
+        ctx.arc(badgeX, badgeY, r * 0.46, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#090d16";
+        ctx.font = `900 ${Math.round(9.5 * scale)}px "Inter", "Segoe UI", sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(b.id), badgeX, badgeY + 0.5);
+      }
+
+      ctx.fillStyle = "rgba(255, 255, 255, 0.42)";
+      ctx.beginPath();
+      ctx.ellipse(renderX - r * 0.34, renderY - r * 0.34, r * 0.32, r * 0.17, -Math.PI / 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawAimLaserAndCueStick() {
+      if (state.phase !== "aiming" && state.phase !== "ai_thinking") return;
+      const cue = state.balls[0];
+      if (!cue || cue.potted) return;
+
+      const pred = computeAimPrediction();
+
+      const deg = ((state.aimAngle * 180) / Math.PI + 360) % 360;
+      document.getElementById("telAngle").textContent = `${deg.toFixed(1)}°`;
+      if (pred && pred.hitBall) {
+        const bCfg = pred.hitBall.snookerMeta || BALL_COLORS[pred.hitBall.id] || BALL_COLORS[1];
+        document.getElementById("telTarget").textContent =
+          pred.hitBall.id >= 100 ? "Snooker Red (1)" : `#${pred.hitBall.id} (${bCfg.name})`;
+        document.getElementById("telTarget").style.color = pred.legal ? "#00f5d4" : "#ef4444";
+      } else {
+        document.getElementById("telTarget").textContent = "Cushion Rail";
+        document.getElementById("telTarget").style.color = "#f8fafc";
+      }
+
+      // 1. 4-Tier Aim Guide & Masse Curve Arc
+      if (state.guideMode !== "purist" && pred) {
+        ctx.save();
+        const primaryColor = pred.legal ? "rgba(0, 245, 212, 0.8)" : "rgba(239, 68, 68, 0.86)";
+        const isMassePreview = state.elevationDeg >= 15 && state.elevationDeg < 45 && Math.abs(state.spinX) > 0.08;
+
+        if (isMassePreview) {
+          // Draw curved Masse preview arc!
+          ctx.strokeStyle = "#a855f7";
+          ctx.lineWidth = 2.5;
+          ctx.setLineDash([5, 5]);
+          ctx.beginPath();
+          let sx = cue.x;
+          let sy = cue.y;
+          let svx = Math.cos(state.aimAngle) * (state.powerPercent * 0.22);
+          let svy = Math.sin(state.aimAngle) * (state.powerPercent * 0.22);
+          ctx.moveTo(sx, sy);
+          for (let step = 0; step < 36; step++) {
+            const spd = Math.hypot(svx, svy) || 1;
+            const px = -svy / spd;
+            const py = svx / spd;
+            svx += px * state.spinX * 0.14 * (state.elevationDeg / 35);
+            svy += py * state.spinX * 0.14 * (state.elevationDeg / 35);
+            sx += svx;
+            sy += svy;
+            ctx.lineTo(sx, sy);
+            if (sx < TABLE.left || sx > TABLE.right || sy < TABLE.top || sy > TABLE.bottom) break;
+          }
+          ctx.stroke();
+        } else if (state.guideMode === "hustler") {
+          // Short 130px aim line only
+          ctx.strokeStyle = primaryColor;
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 5]);
+          ctx.beginPath();
+          ctx.moveTo(cue.x, cue.y);
+          ctx.lineTo(cue.x + Math.cos(state.aimAngle) * 135, cue.y + Math.sin(state.aimAngle) * 135);
+          ctx.stroke();
+        } else {
+          // Club & Pro Laser Modes: Full Line + Ghost Ball
+          ctx.strokeStyle = primaryColor;
+          ctx.lineWidth = 2;
+          ctx.setLineDash([7, 5]);
+          ctx.beginPath();
+          ctx.moveTo(cue.x, cue.y);
+          ctx.lineTo(pred.ghostX, pred.ghostY);
+          ctx.stroke();
+
+          ctx.setLineDash([]);
+          ctx.beginPath();
+          ctx.arc(pred.ghostX, pred.ghostY, BALL_RADIUS, 0, Math.PI * 2);
+          ctx.fillStyle = pred.legal ? "rgba(0, 245, 212, 0.16)" : "rgba(239, 68, 68, 0.22)";
+          ctx.fill();
+          ctx.strokeStyle = primaryColor;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          if (pred.type === "ball" && pred.hitBall) {
+            const rayLen = state.guideMode === "pro" ? 165 : 70;
+            ctx.strokeStyle = pred.legal ? "#facc15" : "#ef4444";
+            ctx.lineWidth = 2.4;
+            ctx.beginPath();
+            ctx.moveTo(pred.hitBall.x, pred.hitBall.y);
+            ctx.lineTo(pred.hitBall.x + pred.targetDirX * rayLen, pred.hitBall.y + pred.targetDirY * rayLen);
+            ctx.stroke();
+
+            ctx.strokeStyle = "rgba(248, 250, 252, 0.68)";
+            ctx.lineWidth = 1.6;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(pred.ghostX, pred.ghostY);
+            ctx.lineTo(pred.ghostX + pred.cueDeflectX * (rayLen * 0.58), pred.ghostY + pred.cueDeflectY * (rayLen * 0.58));
+            ctx.stroke();
+          } else if (pred.type === "rail" && state.guideMode === "pro") {
+            // Pro Laser Cushion Bounce Reflection Ray
+            ctx.strokeStyle = "rgba(0, 245, 212, 0.45)";
+            ctx.lineWidth = 1.8;
+            ctx.setLineDash([4, 5]);
+            ctx.beginPath();
+            ctx.moveTo(pred.ghostX, pred.ghostY);
+            ctx.lineTo(pred.ghostX + pred.bounceDirX * 140, pred.ghostY + pred.bounceDirY * 140);
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
+      }
+
+      // 2. Custom Pro Cue Stick Render
+      const stickStyle = CUE_STICKS[state.cueStick] || CUE_STICKS.carbon;
+      const pullOffset = 18 + (state.powerPercent / 100) * 68 * (state.isDraggingCue || state.spaceCharging ? 1 : 0.32);
+      const stickLength = 310 * Math.cos((state.elevationDeg * Math.PI) / 180 * 0.55);
+
+      ctx.save();
+      ctx.translate(cue.x, cue.y);
+      ctx.rotate(state.aimAngle + Math.PI);
+
+      ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+      ctx.beginPath();
+      ctx.roundRect(pullOffset + 3, 2 + state.elevationDeg * 0.12, stickLength, 8, 4);
+      ctx.fill();
+
+      const shaftGrad = ctx.createLinearGradient(pullOffset, 0, pullOffset + stickLength, 0);
+      shaftGrad.addColorStop(0, stickStyle.foreA);
+      shaftGrad.addColorStop(0.45, stickStyle.foreB);
+      shaftGrad.addColorStop(0.55, stickStyle.buttA);
+      shaftGrad.addColorStop(1, stickStyle.buttB);
+      ctx.fillStyle = shaftGrad;
+      ctx.beginPath();
+      ctx.moveTo(pullOffset, -2.6);
+      ctx.lineTo(pullOffset + stickLength, -5.8);
+      ctx.lineTo(pullOffset + stickLength, 5.8);
+      ctx.lineTo(pullOffset, 2.6);
+      ctx.closePath();
+      ctx.fill();
+
+      // Blue Chalk Tip & Ferrule
+      ctx.fillStyle = state.chalkLevel > 30 ? "#38bdf8" : "#94a3b8";
+      ctx.fillRect(pullOffset, -2.6, 5, 5.2);
+      ctx.fillStyle = "#facc15";
+      ctx.fillRect(pullOffset + 5, -2.7, 5, 5.4);
+
+      ctx.fillStyle = stickStyle.ring;
+      ctx.fillRect(pullOffset + stickLength * 0.56, -4.4, 4, 8.8);
+      ctx.fillRect(pullOffset + stickLength * 0.88, -5.4, 5, 10.8);
+      ctx.restore();
+    }
+
+    function updateAndDrawEffects(dtSec) {
+      for (let i = state.sunkAnimations.length - 1; i >= 0; i--) {
+        const s = state.sunkAnimations[i];
+        s.x += (s.targetX - s.x) * 0.22;
+        s.y += (s.targetY - s.y) * 0.22;
+        s.scale -= 0.055;
+        s.alpha -= 0.055;
+        if (s.scale <= 0.1 || s.alpha <= 0.05) {
+          state.sunkAnimations.splice(i, 1);
+        } else {
+          drawSingleBall(
+            { id: s.id, x: s.x, y: s.y, r: BALL_RADIUS, rollPhaseX: 0, rollPhaseY: 0, snookerMeta: s.snookerMeta },
+            s.scale,
+            s.alpha
+          );
+        }
+      }
+
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const p = state.particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.032;
+        if (p.alpha <= 0) {
+          state.particles.splice(i, 1);
+        } else {
+          ctx.save();
+          ctx.globalAlpha = p.alpha;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      for (let i = state.popups.length - 1; i >= 0; i--) {
+        const pop = state.popups[i];
+        pop.y += pop.vy;
+        pop.alpha -= 0.018;
+        if (pop.alpha <= 0) {
+          state.popups.splice(i, 1);
+        } else {
+          ctx.save();
+          ctx.globalAlpha = pop.alpha;
+          ctx.font = '900 15px "Inter", "Segoe UI", sans-serif';
+          ctx.textAlign = "center";
+          ctx.fillStyle = "#000000";
+          ctx.fillText(pop.text, pop.x + 1.5, pop.y + 1.5);
+          ctx.fillStyle = pop.color;
+          ctx.fillText(pop.text, pop.x, pop.y);
+          ctx.restore();
+        }
+      }
+
+      if (state.mode === "speed" && state.phase !== "gameover") {
+        state.speedTimeLeft = Math.max(0, state.speedTimeLeft - dtSec);
+        const mins = Math.floor(state.speedTimeLeft / 60);
+        const secs = Math.floor(state.speedTimeLeft % 60);
+        document.getElementById("telClock").textContent =
+          `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+        document.getElementById("telCombo").textContent = `${state.speedCombo}x`;
+        if (state.speedTimeLeft <= 0 && state.phase !== "gameover") {
+          declareFrameWinner(1, `Speed Pool Blitz Complete! Final Score: ${state.speedScore} pts!`);
+        }
+      }
+    }
+
+    function mainLoop(now) {
+      const dtSec = Math.min(0.1, (now - state.lastFrameTs) / 1000);
+      state.lastFrameTs = now;
+
+      if (state.spaceCharging && state.phase === "aiming") {
+        state.powerPercent = 15 + ((Math.sin(now * 0.005) + 1) * 0.5) * 85;
+        document.getElementById("powerSlider").value = String(Math.round(state.powerPercent));
+        document.getElementById("powerValueText").textContent = `${Math.round(state.powerPercent)}%`;
+      }
+
+      stepBilliardsPhysics();
+      drawBilliardsTable();
+
+      for (const b of state.balls) {
+        if (!b.potted) drawSingleBall(b);
+      }
+
+      drawAimLaserAndCueStick();
+      updateAndDrawEffects(dtSec);
+      requestAnimationFrame(mainLoop);
+    }
+
+    // --- CONTROLS & EVENT WIRING ---
+    function getCanvasCoordinates(evt) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (evt.clientX - rect.left) * (canvas.width / rect.width),
+        y: (evt.clientY - rect.top) * (canvas.height / rect.height),
+      };
+    }
+
+    canvas.addEventListener("pointermove", (evt) => {
+      const pt = getCanvasCoordinates(evt);
+      state.mouseX = pt.x;
+      state.mouseY = pt.y;
+      if (state.phase !== "aiming") return;
+      const cue = state.balls[0];
+      if (!cue) return;
+
+      if (state.isDraggingCue) {
+        const pullDist = Math.hypot(pt.x - state.dragStartX, pt.y - state.dragStartY);
+        state.powerPercent = Math.max(8, Math.min(100, 12 + pullDist * 0.65));
+        document.getElementById("powerSlider").value = String(Math.round(state.powerPercent));
+        document.getElementById("powerValueText").textContent = `${Math.round(state.powerPercent)}%`;
+        return;
+      }
+
+      const dx = pt.x - cue.x;
+      const dy = pt.y - cue.y;
+      if (Math.hypot(dx, dy) > 4) {
+        state.aimAngle = Math.atan2(dy, dx);
+      }
+    });
+
+    canvas.addEventListener("pointerdown", (evt) => {
+      if (state.phase !== "aiming") return;
+      const pt = getCanvasCoordinates(evt);
+      const cue = state.balls[0];
+
+      // Click near any pocket to Call It!
+      for (const pk of POCKETS) {
+        if (Math.hypot(pt.x - pk.x, pt.y - pk.y) < pk.r * 1.35) {
+          state.calledPocket = state.calledPocket === pk.id ? null : pk.id;
+          document.getElementById("calledPocketText").textContent =
+            state.calledPocket === null ? "AUTO" : POCKETS[state.calledPocket].name;
+          addFloatingPopup(
+            state.calledPocket === null ? "POCKET CALL: AUTO" : `🎯 CALLED ${pk.name.toUpperCase()}`,
+            pk.x,
+            pk.y,
+            "#facc15"
+          );
+          return;
+        }
+      }
+
+      if (state.ballInHand && isCueBallPlacementValid(pt.x, pt.y, state.kitchenOnly)) {
+        const distToRack = Math.hypot(pt.x - TABLE.footSpotX, pt.y - TABLE.centerY);
+        if (!state.kitchenOnly || pt.x <= TABLE.headStringX) {
+          if (distToRack > 95) {
+            cue.x = pt.x;
+            cue.y = pt.y;
+            addFloatingPopup("CUE BALL PLACED", cue.x, cue.y - 16, "#00f5d4");
+            return;
+          }
+        }
+      }
+
+      state.isDraggingCue = true;
+      state.dragStartX = pt.x;
+      state.dragStartY = pt.y;
+      const dx = pt.x - cue.x;
+      const dy = pt.y - cue.y;
+      if (Math.hypot(dx, dy) > 4) {
+        state.aimAngle = Math.atan2(dy, dx);
+      }
+    });
+
+    window.addEventListener("pointerup", () => {
+      if (state.isDraggingCue && state.phase === "aiming") {
+        state.isDraggingCue = false;
+        shootCueBall();
+      }
+      state.isDraggingSpin = false;
+    });
+
+    const cueBallPad = document.getElementById("cueBallPad");
+    function handleSpinPadPointer(evt) {
+      const rect = cueBallPad.getBoundingClientRect();
+      const cx = rect.left + rect.width * 0.5;
+      const cy = rect.top + rect.height * 0.5;
+      const maxR = rect.width * 0.42;
+      let nx = (evt.clientX - cx) / maxR;
+      let ny = -(evt.clientY - cy) / maxR;
+      const mag = Math.hypot(nx, ny);
+      if (mag > 1) {
+        nx /= mag;
+        ny /= mag;
+      }
+      state.spinX = Number(nx.toFixed(2));
+      state.spinY = Number(ny.toFixed(2));
+      updateSpinWidgetUI();
+    }
+
+    cueBallPad.addEventListener("pointerdown", (evt) => {
+      state.isDraggingSpin = true;
+      handleSpinPadPointer(evt);
+    });
+    window.addEventListener("pointermove", (evt) => {
+      if (state.isDraggingSpin) handleSpinPadPointer(evt);
+    });
+
+    document.getElementById("btnResetSpin").addEventListener("click", () => {
+      state.spinX = 0;
+      state.spinY = 0;
+      updateSpinWidgetUI();
+    });
+
+    document.getElementById("btnAimLeft").addEventListener("click", () => {
+      state.aimAngle -= (0.1 * Math.PI) / 180;
+    });
+    document.getElementById("btnAimRight").addEventListener("click", () => {
+      state.aimAngle += (0.1 * Math.PI) / 180;
+    });
+
+    document.getElementById("elevationSlider").addEventListener("input", (evt) => {
+      state.elevationDeg = Number(evt.target.value);
+      updateElevationUI();
+    });
+
+    document.getElementById("powerSlider").addEventListener("input", (evt) => {
+      state.powerPercent = Number(evt.target.value);
+      document.getElementById("powerValueText").textContent = `${Math.round(state.powerPercent)}%`;
+    });
+
+    document.getElementById("btnShoot").addEventListener("click", () => shootCueBall());
+
+    // Top HUD Selectors
+    document.getElementById("modeSelect").addEventListener("change", (evt) => {
+      startNewRack(evt.target.value);
+    });
+    document.getElementById("gameModeSelect").addEventListener("change", (evt) => {
+      startNewRack(evt.target.value);
+    });
+    document.getElementById("opponentSelect").addEventListener("change", (evt) => {
+      state.opponent = evt.target.value;
+      startNewRack(state.mode);
+    });
+    document.getElementById("guideModeSelect").addEventListener("change", (evt) => {
+      state.guideMode = evt.target.value;
+    });
+    document.getElementById("feltThemeSelect").addEventListener("change", (evt) => {
+      state.feltTheme = evt.target.value;
+    });
+    document.getElementById("cueStickSelect").addEventListener("change", (evt) => {
+      state.cueStick = evt.target.value;
+    });
+
+    document.getElementById("btnCallPocket").addEventListener("click", () => {
+      if (state.calledPocket === null) state.calledPocket = 0;
+      else if (state.calledPocket >= 5) state.calledPocket = null;
+      else state.calledPocket++;
+      document.getElementById("calledPocketText").textContent =
+        state.calledPocket === null ? "AUTO" : POCKETS[state.calledPocket].name;
+    });
+
+    document.getElementById("btnChalkCue").addEventListener("click", () => {
+      state.chalkLevel = 100;
+      document.getElementById("chalkValueText").textContent = "100%";
+      PoolAudio.playChalk();
+      const cue = state.balls[0];
+      if (cue) addFloatingPopup("🟦 FRESH BLUE CHALK (100% GRIP)", cue.x, cue.y - 20, "#38bdf8");
+    });
+
+    document.getElementById("btnReplayShot").addEventListener("click", () => replayLastShot());
+    document.getElementById("btnReplayWinningShot").addEventListener("click", () => replayLastShot());
+    document.getElementById("btnNewRack").addEventListener("click", () => startNewRack(state.mode));
+    document.getElementById("btnPlayNextRack").addEventListener("click", () => startNewRack(state.mode));
+
+    document.getElementById("btnPushOut").addEventListener("click", () => {
+      state.isPushOutShot = true;
+      state.canPushOut = false;
+      document.getElementById("btnPushOut").style.display = "none";
+      updateStatusBanner("🔀 PUSH OUT ACTIVE — ANY FIRST CONTACT ALLOWED", "Strike cue ball to a tactical spot");
+    });
+
+    document.getElementById("btnPrevTrick").addEventListener("click", () => {
+      state.trickStageIdx = (state.trickStageIdx + TRICK_SHOT_VAULT.length - 1) % TRICK_SHOT_VAULT.length;
+      startNewRack("trick");
+    });
+    document.getElementById("btnNextTrick").addEventListener("click", () => {
+      state.trickStageIdx = (state.trickStageIdx + 1) % TRICK_SHOT_VAULT.length;
+      startNewRack("trick");
+    });
+
+    document.getElementById("btnAudioToggle").addEventListener("click", (evt) => {
+      PoolAudio.muted = !PoolAudio.muted;
+      evt.currentTarget.textContent = PoolAudio.muted ? "🔇 Muted" : "🔊 Audio";
+    });
+
+    const helpModal = document.getElementById("helpModal");
+    document.getElementById("btnHelp").addEventListener("click", () => helpModal.classList.add("open"));
+    document.getElementById("btnCloseHelp").addEventListener("click", () => helpModal.classList.remove("open"));
+    document.getElementById("btnCloseHelpBottom").addEventListener("click", () => helpModal.classList.remove("open"));
+
+    window.addEventListener("keydown", (evt) => {
+      if (evt.key === "Escape") {
+        helpModal.classList.remove("open");
+        return;
+      }
+      if (evt.key === "?" || (evt.key === "/" && evt.shiftKey)) {
+        helpModal.classList.toggle("open");
+        return;
+      }
+      const k = evt.key.toLowerCase();
+      if (k === "r") {
+        startNewRack(state.mode);
+        return;
+      }
+      if (k === "m") {
+        document.getElementById("btnAudioToggle").click();
+        return;
+      }
+      if (k === "c") {
+        document.getElementById("btnCallPocket").click();
+        return;
+      }
+      if (k === "k") {
+        document.getElementById("btnChalkCue").click();
+        return;
+      }
+      if (k === "v") {
+        replayLastShot();
+        return;
+      }
+      if (k === "q") {
+        state.aimAngle -= (0.1 * Math.PI) / 180;
+        return;
+      }
+      if (k === "e") {
+        // Cycle elevation presets (0° -> 32° Masse -> 55° Jump -> 0°)
+        if (state.elevationDeg < 15) state.elevationDeg = 32;
+        else if (state.elevationDeg < 45) state.elevationDeg = 55;
+        else state.elevationDeg = 0;
+        updateElevationUI();
+        return;
+      }
+      if (evt.key === "ArrowLeft") {
+        state.aimAngle -= (0.35 * Math.PI) / 180;
+        return;
+      }
+      if (evt.key === "ArrowRight") {
+        state.aimAngle += (0.35 * Math.PI) / 180;
+        return;
+      }
+      if (evt.key === "ArrowUp") {
+        state.powerPercent = Math.min(100, state.powerPercent + 4);
+        document.getElementById("powerSlider").value = String(Math.round(state.powerPercent));
+        document.getElementById("powerValueText").textContent = `${Math.round(state.powerPercent)}%`;
+        return;
+      }
+      if (evt.key === "ArrowDown") {
+        state.powerPercent = Math.max(8, state.powerPercent - 4);
+        document.getElementById("powerSlider").value = String(Math.round(state.powerPercent));
+        document.getElementById("powerValueText").textContent = `${Math.round(state.powerPercent)}%`;
+        return;
+      }
+      if (evt.code === "Space" && state.phase === "aiming") {
+        evt.preventDefault();
+        state.spaceCharging = true;
+      }
+    });
+
+    window.addEventListener("keyup", (evt) => {
+      if (evt.code === "Space" && state.spaceCharging) {
+        evt.preventDefault();
+        state.spaceCharging = false;
+        shootCueBall();
+      }
+    });
+
+    // --- EXPOSE PROGRAMMATIC API ---
+    window.PoolApp = {
+      state,
+      TRICK_SHOT_VAULT,
+      startNewRack,
+      shootCueBall,
+      replayLastShot,
+      setGameMode(mode) {
+        startNewRack(mode);
+      },
+      setEnglish(spinX, spinY) {
+        state.spinX = Math.max(-1, Math.min(1, Number(spinX) || 0));
+        state.spinY = Math.max(-1, Math.min(1, Number(spinY) || 0));
+        updateSpinWidgetUI();
+      },
+      setElevation(deg) {
+        state.elevationDeg = Math.max(0, Math.min(75, Number(deg) || 0));
+        updateElevationUI();
+      },
+      computeAimPrediction,
+    };
+
+    window.startNewRack = startNewRack;
+    window.shootCueBall = shootCueBall;
+    window.setGameMode = (m) => startNewRack(m);
+    window.setEnglish = (sx, sy) => window.PoolApp.setEnglish(sx, sy);
+
+    // Boot settled in 8ball mode with 0 console errors
+    startNewRack("8ball");
+    requestAnimationFrame(mainLoop);
+  </script>
+</body>
+</html>

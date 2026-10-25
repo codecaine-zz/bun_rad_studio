@@ -1,0 +1,2669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>💣 Codecaine CyberBomber Grid Arena — Lifetime DX Edition</title>
+  <meta name="description" content="Super Bomberman R / Saturn Bomberman / Bomberman '94 DX Lifetime Edition with 8 Game Modes, Cyber-Louie Kangaroo Mounts, 6 Interactive Biomes, Sudden Death & Revenge Carts, Titan Mech Bosses, and Chiptune Synth.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    :root {
+      --bg-deep: #04020c;
+      --panel-bg: rgba(12, 8, 28, 0.92);
+      --border-pink: rgba(255, 0, 127, 0.36);
+      --border-cyan: rgba(0, 240, 255, 0.35);
+      --cyan: #00f0ff;
+      --magenta: #ff007f;
+      --gold: #ffbe0b;
+      --lime: #00ff9d;
+      --purple: #9d4edd;
+      --danger: #ff2a55;
+      --text-main: #f5f8ff;
+      --text-dim: #9ba8d0;
+      --font-display: 'Orbitron', 'Rajdhani', 'Outfit', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 12%, #240942 0%, #080417 65%, #020108 100%);
+      color: var(--text-main);
+      font-family: var(--font-display);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 8px 12px;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 0, 127, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.035) 1px, transparent 1px);
+      background-size: 38px 38px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .hud-header {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 1220px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px 14px;
+      background: var(--panel-bg);
+      border: 1px solid var(--border-pink);
+      border-radius: 16px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85), 0 0 24px rgba(255, 0, 127, 0.15);
+      margin-bottom: 8px;
+      backdrop-filter: blur(16px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(255, 0, 127, 0.28), rgba(0, 240, 255, 0.28));
+      border: 1px solid var(--magenta);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 21px;
+      box-shadow: 0 0 14px rgba(255, 0, 127, 0.4);
+    }
+
+    .brand-title h1 {
+      font-size: 1.02rem;
+      font-weight: 900;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffffff, var(--magenta), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-title span {
+      font-size: 0.64rem;
+      color: var(--text-dim);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      display: block;
+    }
+
+    .selectors-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .cyber-select {
+      background: rgba(6, 5, 22, 0.92);
+      border: 1px solid rgba(0, 240, 255, 0.42);
+      color: #fff;
+      padding: 6px 9px;
+      border-radius: 8px;
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .cyber-select:hover, .cyber-select:focus {
+      border-color: var(--magenta);
+      box-shadow: 0 0 12px rgba(255, 0, 127, 0.35);
+    }
+
+    .btn-cluster {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .cyber-btn {
+      background: rgba(255, 0, 127, 0.14);
+      border: 1px solid rgba(255, 0, 127, 0.42);
+      color: var(--text-main);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .cyber-btn:hover, .cyber-btn.active {
+      background: rgba(0, 240, 255, 0.25);
+      border-color: var(--cyan);
+      box-shadow: 0 0 14px rgba(0, 240, 255, 0.45);
+    }
+
+    .cyber-btn.primary {
+      background: linear-gradient(135deg, rgba(255, 0, 127, 0.38), rgba(0, 240, 255, 0.38));
+      border-color: var(--cyan);
+    }
+
+    .workspace-grid {
+      position: relative;
+      z-index: 5;
+      width: 100%;
+      max-width: 1220px;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 12px;
+      align-items: start;
+    }
+
+    @media (max-width: 1040px) {
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .arena-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .top-telemetry-strip {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 7px;
+    }
+
+    @media (max-width: 720px) {
+      .top-telemetry-strip {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .stat-pill {
+      background: rgba(8, 6, 24, 0.9);
+      border: 1px solid rgba(0, 240, 255, 0.28);
+      border-radius: 10px;
+      padding: 5px 8px;
+      text-align: center;
+    }
+
+    .stat-pill .lbl {
+      font-size: 0.56rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+    }
+
+    .stat-pill .val {
+      font-family: var(--font-mono);
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+    }
+
+    .cabinet {
+      position: relative;
+      background: #050310;
+      border: 2px solid rgba(0, 240, 255, 0.45);
+      border-radius: 18px;
+      padding: 6px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.92), 0 0 36px rgba(255, 0, 127, 0.16);
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+
+    canvas#bomberCanvas {
+      display: block;
+      width: 780px;
+      height: 676px;
+      max-width: calc(100vw - 36px);
+      max-height: calc(100vh - 210px);
+      aspect-ratio: 15 / 13;
+      border-radius: 12px;
+      background: #070616;
+    }
+
+    .bottom-bar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      background: var(--panel-bg);
+      border: 1px solid rgba(0, 240, 255, 0.26);
+      border-radius: 12px;
+      padding: 7px 12px;
+    }
+
+    .touch-strip {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .mini-btn {
+      padding: 5px 9px;
+      border-radius: 7px;
+      background: rgba(0, 240, 255, 0.14);
+      border: 1px solid rgba(0, 240, 255, 0.38);
+      color: #fff;
+      font-family: var(--font-display);
+      font-size: 0.66rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .mini-btn:hover {
+      background: rgba(255, 0, 127, 0.28);
+      border-color: var(--magenta);
+    }
+
+    .sidebar-column {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .side-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-cyan);
+      border-radius: 14px;
+      padding: 11px 13px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.65);
+    }
+
+    .side-card h3 {
+      font-size: 0.74rem;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .inventory-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .inv-slot {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(0, 240, 255, 0.22);
+      border-radius: 8px;
+      padding: 5px 8px;
+      font-size: 0.68rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .inv-slot.active {
+      border-color: var(--gold);
+      background: rgba(255, 190, 11, 0.14);
+      color: #fff;
+    }
+
+    .inv-slot strong {
+      font-family: var(--font-mono);
+      color: var(--lime);
+    }
+
+    .louie-banner {
+      margin-top: 8px;
+      padding: 7px 9px;
+      border-radius: 9px;
+      background: linear-gradient(90deg, rgba(157, 78, 221, 0.22), rgba(0, 240, 255, 0.18));
+      border: 1px solid rgba(157, 78, 221, 0.5);
+      font-size: 0.7rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .career-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .career-stat {
+      background: rgba(4, 3, 15, 0.75);
+      border: 1px solid rgba(255, 0, 127, 0.24);
+      border-radius: 8px;
+      padding: 5px 8px;
+    }
+
+    .career-stat span {
+      display: block;
+      font-size: 0.56rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .career-stat strong {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--gold);
+    }
+
+    /* Modals (Help & Roguelike 3-Card Perk Draft) */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 2, 10, 0.86);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      background: #0b071e;
+      border: 1px solid var(--cyan);
+      border-radius: 18px;
+      max-width: 640px;
+      width: 100%;
+      padding: 20px;
+      box-shadow: 0 0 45px rgba(0, 240, 255, 0.32);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-card h2 {
+      color: var(--cyan);
+      margin-bottom: 8px;
+      font-size: 1.1rem;
+    }
+
+    .modal-card p, .modal-card li {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      line-height: 1.45;
+      margin-bottom: 5px;
+    }
+
+    .modal-card ul {
+      padding-left: 18px;
+      margin-bottom: 12px;
+    }
+
+    .perk-cards-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .perk-cards-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .perk-card {
+      background: linear-gradient(160deg, rgba(25, 14, 52, 0.95), rgba(8, 6, 24, 0.95));
+      border: 1px solid var(--cyan);
+      border-radius: 12px;
+      padding: 14px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .perk-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--gold);
+      box-shadow: 0 0 22px rgba(255, 190, 11, 0.45);
+    }
+
+    .perk-card .icon {
+      font-size: 2rem;
+      margin-bottom: 6px;
+    }
+
+    .perk-card .title {
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: var(--gold);
+      margin-bottom: 4px;
+    }
+
+    .perk-card .desc {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+    }
+
+    .kbd {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(0, 240, 255, 0.15);
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="hud-header">
+    <div class="brand">
+      <div class="brand-icon">💣</div>
+      <div class="brand-title">
+        <h1>Codecaine CyberBomber Grid Arena</h1>
+        <span>Super Bomberman R • Saturn • '94 DX Lifetime Edition</span>
+      </div>
+    </div>
+
+    <div class="selectors-bar">
+      <select id="modeSelect" class="cyber-select" title="Select Game Mode (1-8)">
+        <option value="campaign">1. 🏰 50-Stage Cyber-Tower Campaign</option>
+        <option value="royale">2. 👑 4-Bomber Battle Royale + Revenge Carts</option>
+        <option value="roguelike">3. 🃏 Endless Roguelike Bomb Dungeon</option>
+        <option value="boss_rush">4. 🤖 Titan Mech Boss Colosseum</option>
+        <option value="crown_rush">5. 💎 Grand Prix Crown Heist</option>
+        <option value="zombie">6. 💀 Skull &amp; Plague Survival Wave</option>
+        <option value="coop_2p">7. 🤝 2P Local Co-Op Campaign &amp; Raid</option>
+        <option value="versus_2p">8. ⚔️ 2P Local Battle + 2 AI Bots</option>
+      </select>
+
+      <select id="biomeSelect" class="cyber-select" title="Select Arena Biome">
+        <option value="cyber_grid">🌐 Cyber Grid</option>
+        <option value="conveyor_factory">⚙️ Conveyor Factory</option>
+        <option value="warp_portal">🌀 Warp Portal Lab</option>
+        <option value="cryo_ice">❄️ Cryo Slippery Ice</option>
+        <option value="magma_core">🌋 Magma Geyser Core</option>
+        <option value="random">🎲 Random Biome</option>
+      </select>
+
+      <select id="skinSelect" class="cyber-select" title="Select Bomber Suit">
+        <option value="white">🤍 Classic White Cyber</option>
+        <option value="black">🖤 Shadow Ops Black</option>
+        <option value="rose">💖 Plasma Rose</option>
+        <option value="gold">💛 24K Gold Champion</option>
+        <option value="jade">💚 Jade Mecha</option>
+        <option value="holo">🌈 Prismatic Holo</option>
+      </select>
+    </div>
+
+    <div class="btn-cluster">
+      <button class="cyber-btn primary" id="btnNewGame" title="Start / Restart Round (R)">New Game</button>
+      <button class="cyber-btn" id="btnPause" title="Pause (P)">Pause</button>
+      <button class="cyber-btn" id="btnMusic" title="Toggle Chiptune Synthwave Track (B)">🎵 Music: ON</button>
+      <button class="cyber-btn" id="btnMute" title="Mute SFX (M)">🔊 SFX</button>
+      <button class="cyber-btn" id="btnHelp" title="Controls & Rules (H / ?)">? Help</button>
+    </div>
+  </header>
+
+  <main class="workspace-grid" id="shakeContainer">
+    <section class="arena-column">
+      <div class="top-telemetry-strip">
+        <div class="stat-pill">
+          <div class="lbl">Score</div>
+          <div class="val" id="hudScore">0</div>
+        </div>
+        <div class="stat-pill">
+          <div class="lbl">High Score</div>
+          <div class="val" id="hudHigh">0</div>
+        </div>
+        <div class="stat-pill">
+          <div class="lbl">Stage / Floor</div>
+          <div class="val" id="hudStage">STAGE 1</div>
+        </div>
+        <div class="stat-pill">
+          <div class="lbl">Round Clock</div>
+          <div class="val" id="hudTimer">02:00</div>
+        </div>
+        <div class="stat-pill">
+          <div class="lbl">Hostiles / Rivals</div>
+          <div class="val" id="hudEnemies">4</div>
+        </div>
+        <div class="stat-pill">
+          <div class="lbl">Status / Curse</div>
+          <div class="val" id="hudCurse" style="color:var(--lime)">NOMINAL</div>
+        </div>
+      </div>
+
+      <div class="cabinet">
+        <canvas id="bomberCanvas" width="780" height="676"></canvas>
+      </div>
+
+      <div class="bottom-bar">
+        <div class="touch-strip">
+          <button class="mini-btn" id="btnUp">▲</button>
+          <button class="mini-btn" id="btnLeft">◀</button>
+          <button class="mini-btn" id="btnDown">▼</button>
+          <button class="mini-btn" id="btnRight">▶</button>
+          <button class="mini-btn" id="btnDrop">💣 Plant [Space]</button>
+          <button class="mini-btn" id="btnDetonate">📡 Detonate [Q]</button>
+          <button class="mini-btn" id="btnGlove">🥊 Punch/Throw [E]</button>
+          <button class="mini-btn" id="btnLineBomb">🧨 Line Bomb [C]</button>
+          <button class="mini-btn" id="btnStopKick">🛑 Stop Kick [X]</button>
+          <button class="mini-btn" id="btnLouieSkill">🦘 Louie Skill [V]</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="sidebar-column">
+      <div class="side-card">
+        <h3>
+          <span>🎒 P1 Arsenal &amp; Power-Ups</span>
+          <span id="hudShieldBadge" style="color:var(--gold)">🛡️ 0 VEST</span>
+        </h3>
+        <div class="inventory-grid">
+          <div class="inv-slot active"><span>💣 Bomb Cap</span><strong id="statBombs">1 / 8</strong></div>
+          <div class="inv-slot active"><span>🔥 Fire Range</span><strong id="statRange">2 / 8</strong></div>
+          <div class="inv-slot active"><span>👟 Skates</span><strong id="statSpeed">1.0x</strong></div>
+          <div class="inv-slot" id="slotKick"><span>👟💥 Bomb Kick</span><strong id="statKick">OFF</strong></div>
+          <div class="inv-slot" id="slotGlove"><span>🥊 Power Glove</span><strong id="statGlove">OFF</strong></div>
+          <div class="inv-slot" id="slotRemote"><span>📡 Remote [Q]</span><strong id="statRemote">OFF</strong></div>
+          <div class="inv-slot" id="slotPierce"><span>💠 Pierce Bomb</span><strong id="statPierce">OFF</strong></div>
+          <div class="inv-slot" id="slotLine"><span>🧨 Line Bomb [C]</span><strong id="statLine">OFF</strong></div>
+        </div>
+        <div class="louie-banner" id="louieHudBox">
+          <span>🦘 Cyber-Louie Mount:</span>
+          <strong id="statLouie" style="color:var(--cyan)">NONE (Find 🥚 Egg)</strong>
+        </div>
+      </div>
+
+      <div class="side-card">
+        <h3>
+          <span>🏆 Lifetime Career Vault</span>
+          <span id="careerRankBadge" style="color:var(--gold)">ROOKIE</span>
+        </h3>
+        <div class="career-grid">
+          <div class="career-stat"><span>Career XP</span><strong id="vaultXp">0</strong></div>
+          <div class="career-stat"><span>Stages Cleared</span><strong id="vaultStages">0</strong></div>
+          <div class="career-stat"><span>Bosses Defeated</span><strong id="vaultBosses">0</strong></div>
+          <div class="career-stat"><span>Royale Crowns</span><strong id="vaultCrowns">0</strong></div>
+        </div>
+      </div>
+
+      <div class="side-card">
+        <h3><span>🕹️ Quick Command Keys</span></h3>
+        <p style="font-size:0.7rem;color:var(--text-dim);line-height:1.48;">
+          • <strong>P1 Move / Bomb:</strong> <span class="kbd">WASD</span> + <span class="kbd">Space</span><br>
+          • <strong>P2 (Co-Op / 2P):</strong> <span class="kbd">Arrows</span> + <span class="kbd">Enter</span><br>
+          • <strong>Special Actions:</strong> <span class="kbd">Q</span> Detonate Remote • <span class="kbd">E</span> Glove Punch/Throw • <span class="kbd">C</span> Line Bomb • <span class="kbd">X</span> Stop Kick • <span class="kbd">V</span> Louie Mount Skill<br>
+          • <strong>Revenge Carts:</strong> When eliminated in Royale, steer along the border and press <span class="kbd">Space</span> to lob bombs &amp; revive!
+        </p>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Roguelike 3-Card Perk Draft Modal -->
+  <div class="modal-backdrop" id="perkModal">
+    <div class="modal-card">
+      <h2>🃏 Roguelike Dungeon Floor Cleared — Draft 1 Cyber Perk!</h2>
+      <p>Choose 1 of 3 tactical upgrades before descending to the next floor:</p>
+      <div class="perk-cards-row" id="perkCardsContainer"></div>
+    </div>
+  </div>
+
+  <!-- Help & Complete Guide Modal -->
+  <div class="modal-backdrop" id="helpModal">
+    <div class="modal-card">
+      <h2>💣 CyberBomber Grid Arena — Lifetime DX Manual</h2>
+      <p>Inspired by <em>Super Bomberman R</em>, <em>Saturn Bomberman</em>, and <em>Bomberman '94</em>, featuring 8 game modes, 6 interactive biomes, Cyber-Louie Kangaroo mounts, and Titan Bosses.</p>
+      <ul>
+        <li><strong>8 Game Modes:</strong> 50-Stage Campaign (with Pontan portal defense &amp; Bosses every 5th stage), 4-Bomber Battle Royale (with Sudden Death &amp; Revenge Carts), Endless Roguelike Dungeon (with 3-Card Perk Drafts), Titan Mech Boss Colosseum, Grand Prix Crown Heist, Skull &amp; Plague Survival, 2P Co-Op, and 2P Versus.</li>
+        <li><strong>Iconic Arsenal:</strong> Bomb Up (<code>💣</code>), Fire Up (<code>🔥</code>), Full Fire (<code>🌞</code>), Speed Skates (<code>👟</code>), Bomb Kick (<code>👟💥</code>, stop with <span class="kbd">X</span>), Boxing/Power Glove (<code>🥊</code> <span class="kbd">E</span>), Remote Detonator (<code>📡</code> <span class="kbd">Q</span>), Pierce Bomb (<code>💠</code>), Line Bomb (<code>🧨</code> <span class="kbd">C</span>), Vest Shield (<code>🛡️</code>), and 4 <strong>Cyber-Louie Kangaroo Mounts (<code>🦘</code> <span class="kbd">V</span>)</strong> hatched from Spotted Eggs!</li>
+        <li><strong>6 Arena Biomes:</strong> Cyber Grid, Conveyor Factory (moving belts), Warp Portal Lab (teleporters), Cryo Slippery Ice, Magma Geyser Core (periodic vents), and Random Biome.</li>
+      </ul>
+      <button class="cyber-btn primary" id="btnCloseHelp" style="width:100%">Enter Grid Arena</button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const VAULT_KEY = "codecaine_bomberman_lifetime_v2";
+      const LEGACY_HIGH_KEY = "codecaine_cyberbomber_arena_high";
+
+      function loadVault() {
+        const def = {
+          xp: 0,
+          stagesCleared: 0,
+          bossesDefeated: 0,
+          crownsWon: 0,
+          highScore: 0,
+          selectedSkin: "white"
+        };
+        try {
+          const raw = window.localStorage.getItem(VAULT_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            return Object.assign(def, parsed);
+          }
+          const oldHigh = parseInt(window.localStorage.getItem(LEGACY_HIGH_KEY) || "0", 10) || 0;
+          def.highScore = oldHigh;
+        } catch (_) {}
+        return def;
+      }
+
+      function saveVault() {
+        try {
+          window.localStorage.setItem(VAULT_KEY, JSON.stringify(vault));
+          window.localStorage.setItem(LEGACY_HIGH_KEY, String(vault.highScore));
+        } catch (_) {}
+      }
+
+      const vault = loadVault();
+
+      function getBomberRank(xp) {
+        if (xp >= 25000) return "GRANDMASTER BOMBER";
+        if (xp >= 12000) return "SATURN LEGEND";
+        if (xp >= 6000) return "CYBER COMMANDER";
+        if (xp >= 2500) return "PLASMA SPECIALIST";
+        if (xp >= 800) return "GRID STRIKER";
+        return "ROOKIE CADET";
+      }
+
+      // Fallback & chained GameMasterFX
+      const fxParticles = [];
+      let shakeTimer = 0;
+      let shakeIntensity = 0;
+
+      if (!window.GameMasterFX) {
+        window.GameMasterFX = {
+          burst(x, y, color = "#ff007f", count = 20) {
+            for (let i = 0; i < count; i++) {
+              const a = Math.random() * Math.PI * 2;
+              const sp = 1.2 + Math.random() * 5.2;
+              fxParticles.push({
+                x, y,
+                vx: Math.cos(a) * sp,
+                vy: Math.sin(a) * sp,
+                r: 2 + Math.random() * 3,
+                color,
+                alpha: 1,
+                decay: 0.022 + Math.random() * 0.025
+              });
+            }
+          },
+          triggerShake(intensity = 6) {
+            shakeIntensity = Math.max(shakeIntensity, intensity);
+            shakeTimer = 14;
+          }
+        };
+      } else {
+        const origBurst = window.GameMasterFX.burst?.bind(window.GameMasterFX);
+        const origShake = window.GameMasterFX.triggerShake?.bind(window.GameMasterFX);
+        window.GameMasterFX.burst = function(x, y, color = "#ff007f", count = 20) {
+          for (let i = 0; i < count; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const sp = 1.2 + Math.random() * 5.2;
+            fxParticles.push({
+              x, y,
+              vx: Math.cos(a) * sp,
+              vy: Math.sin(a) * sp,
+              r: 2 + Math.random() * 3,
+              color,
+              alpha: 1,
+              decay: 0.022 + Math.random() * 0.025
+            });
+          }
+          if (origBurst) origBurst(x, y, color, count);
+        };
+        window.GameMasterFX.triggerShake = function(intensity = 6) {
+          shakeIntensity = Math.max(shakeIntensity, intensity);
+          shakeTimer = 14;
+          if (origShake) origShake(intensity);
+        };
+      }
+
+      // Upgraded BomberAudio Web Audio Synthesizer with 90s Chiptune / Synthwave Battle Track
+      const BomberAudio = {
+        ctx: null,
+        muted: false,
+        musicEnabled: true,
+        musicStep: 0,
+        musicTimer: null,
+
+        init() {
+          if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) this.ctx = new AC();
+          }
+          if (this.ctx && this.ctx.state === "suspended") {
+            this.ctx.resume().catch(() => {});
+          }
+        },
+
+        tone(freq, type = "sine", dur = 0.1, gainVal = 0.13, slideTo = null) {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, now);
+            if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, now + dur);
+            gain.gain.setValueAtTime(gainVal, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + dur);
+          } catch (_) {}
+        },
+
+        plant() { this.tone(260, "triangle", 0.085, 0.14, 440); },
+        kick() { this.tone(320, "sine", 0.09, 0.15, 720); },
+        punch() { this.tone(190, "square", 0.12, 0.16, 580); },
+        louieMount() {
+          [523.25, 659.25, 880, 1046.5].forEach((n, i) => {
+            setTimeout(() => this.tone(n, "square", 0.08, 0.12), i * 45);
+          });
+        },
+        suddenDeathSiren() {
+          this.tone(440, "sawtooth", 0.18, 0.14, 660);
+          setTimeout(() => this.tone(660, "sawtooth", 0.18, 0.14, 440), 190);
+        },
+        explode() {
+          this.tone(105, "sawtooth", 0.32, 0.22, 30);
+          setTimeout(() => this.tone(175, "square", 0.2, 0.15, 45), 35);
+        },
+        powerup() {
+          [523.25, 659.25, 783.99, 1046.5].forEach((n, i) => {
+            setTimeout(() => this.tone(n, "triangle", 0.1, 0.15), i * 50);
+          });
+        },
+        curse() {
+          [311.13, 293.66, 277.18, 261.63].forEach((n, i) => {
+            setTimeout(() => this.tone(n, "sawtooth", 0.11, 0.13), i * 55);
+          });
+        },
+        win() {
+          [440, 554.37, 659.25, 880, 1108.73].forEach((n, i) => {
+            setTimeout(() => this.tone(n, "triangle", 0.15, 0.18), i * 70);
+          });
+        },
+        tickMusic() {
+          if (!this.musicEnabled || this.muted || paused || roundOver) return;
+          if (!this.ctx || this.ctx.state !== "running") return;
+          // Bomberman '94 inspired upbeat chiptune bass + lead arpeggio
+          const melody = [
+            330, 392, 440, 523.25, 493.88, 440, 392, 330,
+            293.66, 349.23, 392, 440, 392, 349.23, 330, 261.63
+          ];
+          const bass = [110, 110, 146.83, 146.83, 130.81, 130.81, 98, 98];
+          const mNote = melody[this.musicStep % melody.length];
+          const bNote = bass[Math.floor(this.musicStep / 2) % bass.length];
+          this.tone(mNote, "square", 0.11, 0.035);
+          if (this.musicStep % 2 === 0) {
+            this.tone(bNote, "triangle", 0.18, 0.05);
+          }
+          this.musicStep++;
+        },
+        toggleMusic() {
+          this.musicEnabled = !this.musicEnabled;
+          this.init();
+          const btn = document.getElementById("btnMusic");
+          if (btn) btn.textContent = this.musicEnabled ? "🎵 Music: ON" : "🎵 Music: OFF";
+        }
+      };
+
+      setInterval(() => BomberAudio.tickMusic(), 175);
+
+      const canvas = document.getElementById("bomberCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const COLS = 15;
+      const ROWS = 13;
+      const TILE = 52; // 780 x 676
+
+      const SUIT_SKINS = {
+        white: { primary: "#00f0ff", visor: "#ffffff", label: "White Cyber" },
+        black: { primary: "#4a5568", visor: "#ff007f", label: "Shadow Ops" },
+        rose:  { primary: "#ff007f", visor: "#ffbe0b", label: "Plasma Rose" },
+        gold:  { primary: "#ffbe0b", visor: "#ffffff", label: "24K Gold" },
+        jade:  { primary: "#00ff9d", visor: "#00f0ff", label: "Jade Mecha" },
+        holo:  { primary: "#9d4edd", visor: "#00ff9d", label: "Prismatic Holo" }
+      };
+
+      const LOUIE_TYPES = [
+        { id: "blue",   name: "Blue Louie (Punch Bomb)", color: "#00aaff", skill: "PUNCH" },
+        { id: "yellow", name: "Yellow Louie (Kick Block)", color: "#ffbe0b", skill: "KICK_BLOCK" },
+        { id: "pink",   name: "Pink Louie (Hop Block)", color: "#ff007f", skill: "HOP" },
+        { id: "green",  name: "Green Louie (Hyper Dash)", color: "#00ff9d", skill: "DASH" }
+      ];
+
+      const ENEMY_ARCHETYPES = [
+        { id: "Ballom",   color: "#ff7b00", speed: 1.25, pts: 100, smart: 0.1, wallPass: false },
+        { id: "Oneal",    color: "#00aaff", speed: 1.55, pts: 200, smart: 0.35, wallPass: false },
+        { id: "Dahl",     color: "#9d4edd", speed: 1.75, pts: 400, smart: 0.25, wallPass: false },
+        { id: "Minvo",    color: "#ff2a55", speed: 2.05, pts: 800, smart: 0.55, wallPass: false },
+        { id: "Kondoria", color: "#00ff9d", speed: 1.15, pts: 1000, smart: 0.65, wallPass: true },
+        { id: "Ovapi",    color: "#ff007f", speed: 1.65, pts: 2000, smart: 0.5, wallPass: true },
+        { id: "Pontan",   color: "#ffbe0b", speed: 2.65, pts: 4000, smart: 0.85, wallPass: true }
+      ];
+
+      const ROGUELIKE_PERKS = [
+        { id: "fire2",  icon: "🔥", title: "+2 Fire Range", desc: "Extend cruciform blast radius by +2 tiles", apply: p => { p.blastRange = Math.min(8, p.blastRange + 2); } },
+        { id: "pierce", icon: "💠", title: "Pierce Plasma Bombs", desc: "Blasts cut straight through multiple soft crates", apply: p => { p.pierceBomb = true; } },
+        { id: "louie",  icon: "🦘", title: "Cyber-Louie Mount", desc: "Summon a random Cyber-Louie Kangaroo mount (+1 HP & [V] skill)", apply: p => { p.louie = LOUIE_TYPES[Math.floor(Math.random() * LOUIE_TYPES.length)]; } },
+        { id: "remote", icon: "📡", title: "Remote Detonator [Q]", desc: "Detonate your oldest bomb on command with [Q]", apply: p => { p.remoteControl = true; } },
+        { id: "glove",  icon: "🥊", title: "Power Glove [E]", desc: "Punch or throw adjacent bombs 3 tiles over walls with [E]", apply: p => { p.powerGlove = true; } },
+        { id: "shield", icon: "🛡️", title: "Blast Shield Vest", desc: "+1 Protective Vest Shield that absorbs fatal damage", apply: p => { p.shieldHits++; } },
+        { id: "skates", icon: "⚡", title: "Hyper-Skates + Kick", desc: "Boost move speed and unlock Bomb Kick!", apply: p => { p.speed = Math.min(4.6, p.speed + 0.55); p.canKick = true; } },
+        { id: "line",   icon: "🧨", title: "Line-Bomb Barrage [C]", desc: "Unlock Line-Bomb [C] +2 Bomb Capacity", apply: p => { p.lineBomb = true; p.maxBombs = Math.min(8, p.maxBombs + 2); } }
+      ];
+
+      // Grid: 0 = floor, 1 = steel pillar, 2 = soft neon crate, 3 = Sudden Death pressure block
+      let grid = [];
+      let biomeGimmicks = []; // { c, r, type: 'CONVEYOR'|'WARP'|'ICE'|'MAGMA', dirX, dirY, pairId, timer, erupting }
+      let items = []; // { c, r, type, revealed }
+      let bombs = []; // { c, r, x, y, vx, vy, airZ, airVz, targetC, targetR, timer, range, pierce, remote, owner, passableBy }
+      let blasts = []; // { c, r, timer, color }
+      let players = [];
+      let revengeCarts = []; // Eliminated royale players on outer border track
+      let drones = [];
+      let boss = null; // Multi-tile Titan Boss
+
+      let score = 0;
+      let stage = 1;
+      let gameMode = "campaign";
+      let selectedBiome = "cyber_grid";
+      let activeBiome = "cyber_grid";
+      let roundTimeLeft = 120 * 60; // in frames (60fps)
+      let suddenDeathSpiralIdx = 0;
+      let suddenDeathTimer = 0;
+      let paused = false;
+      let roundOver = false;
+      let roundMessage = "";
+      let banner = { text: "CYBER-TOWER STAGE 1 — CLEAR DRONES & UNCOVER EXIT PORTAL", timer: 160, color: "#00f0ff" };
+
+      const keys = {};
+
+      // Spiral order for Sudden Death pressure blocks
+      const spiralCoords = (function buildSpiral() {
+        const res = [];
+        let top = 1, bottom = ROWS - 2, left = 1, right = COLS - 2;
+        while (top <= bottom && left <= right) {
+          for (let c = left; c <= right; c++) res.push([c, top]);
+          top++;
+          for (let r = top; r <= bottom; r++) res.push([right, r]);
+          right--;
+          if (top <= bottom) {
+            for (let c = right; c >= left; c--) res.push([c, bottom]);
+            bottom--;
+          }
+          if (left <= right) {
+            for (let r = bottom; r >= top; r--) res.push([left, r]);
+            left++;
+          }
+        }
+        return res;
+      })();
+
+      function isCornerSpawn(c, r) {
+        const corners = [
+          [1, 1], [2, 1], [1, 2],
+          [COLS - 2, 1], [COLS - 3, 1], [COLS - 2, 2],
+          [1, ROWS - 2], [2, ROWS - 2], [1, ROWS - 3],
+          [COLS - 2, ROWS - 2], [COLS - 3, ROWS - 2], [COLS - 2, ROWS - 3]
+        ];
+        return corners.some(([cc, rr]) => cc === c && rr === r);
+      }
+
+      function createBomber(id, c, r, color, name, isAI = false) {
+        return {
+          id,
+          name,
+          c,
+          r,
+          x: (c + 0.5) * TILE,
+          y: (r + 0.5) * TILE,
+          vx: 0,
+          vy: 0,
+          facingX: id === 1 || id === 3 ? 1 : -1,
+          facingY: 0,
+          color,
+          isAI,
+          alive: true,
+          invuln: 60,
+          maxBombs: 1,
+          activeBombs: 0,
+          blastRange: 2,
+          speed: 2.75,
+          canKick: false,
+          powerGlove: false,
+          remoteControl: false,
+          pierceBomb: false,
+          lineBomb: false,
+          shieldHits: 0,
+          louie: null, // { id, name, color, skill }
+          curse: null, // { type, timer }
+          crowns: 0,
+          aiTimer: 0,
+          aiTargetC: c,
+          aiTargetR: r
+        };
+      }
+
+      function buildBiomeGimmicks() {
+        biomeGimmicks = [];
+        const b = selectedBiome === "random"
+          ? ["cyber_grid", "conveyor_factory", "warp_portal", "cryo_ice", "magma_core"][Math.floor(Math.random() * 5)]
+          : selectedBiome;
+        activeBiome = b;
+
+        if (b === "conveyor_factory") {
+          // Ring of conveyor belts along row 3, row 9, col 3, col 11
+          for (let c = 3; c <= 11; c++) {
+            if (grid[3][c] !== 1) biomeGimmicks.push({ c, r: 3, type: "CONVEYOR", dirX: 1, dirY: 0 });
+            if (grid[9][c] !== 1) biomeGimmicks.push({ c, r: 9, type: "CONVEYOR", dirX: -1, dirY: 0 });
+          }
+          for (let r = 4; r <= 8; r++) {
+            if (grid[r][11] !== 1) biomeGimmicks.push({ c: 11, r, type: "CONVEYOR", dirX: 0, dirY: 1 });
+            if (grid[r][3] !== 1) biomeGimmicks.push({ c: 3, r, type: "CONVEYOR", dirX: 0, dirY: -1 });
+          }
+        } else if (b === "warp_portal") {
+          const pads = [
+            { c: 3, r: 3, pairC: 11, pairR: 9, color: "#00f0ff" },
+            { c: 11, r: 9, pairC: 3, pairR: 3, color: "#00f0ff" },
+            { c: 11, r: 3, pairC: 3, pairR: 9, color: "#ff007f" },
+            { c: 3, r: 9, pairC: 11, pairR: 3, color: "#ff007f" }
+          ];
+          for (const p of pads) {
+            grid[p.r][p.c] = 0;
+            biomeGimmicks.push({ c: p.c, r: p.r, type: "WARP", pairC: p.pairC, pairR: p.pairR, color: p.color });
+          }
+        } else if (b === "cryo_ice") {
+          for (let r = 1; r < ROWS - 1; r++) {
+            for (let c = 1; c < COLS - 1; c++) {
+              if (grid[r][c] !== 1 && (r + c) % 2 === 1) {
+                biomeGimmicks.push({ c, r, type: "ICE" });
+              }
+            }
+          }
+        } else if (b === "magma_core") {
+          const vents = [[5, 3], [9, 3], [7, 6], [5, 9], [9, 9]];
+          for (const [vc, vr] of vents) {
+            if (grid[vr][vc] !== 1) {
+              grid[vr][vc] = 0;
+              biomeGimmicks.push({ c: vc, r: vr, type: "MAGMA", timer: 180 + Math.floor(Math.random() * 120) });
+            }
+          }
+        }
+      }
+
+      function spawnBoss(bossStageIndex) {
+        const types = [
+          { name: "🤖 TITAN SPIDER-MECH", color: "#ff007f", hp: 6 + bossStageIndex * 2, pattern: "LASER" },
+          { name: "🐉 MAGMA WYRM LEVIATHAN", color: "#ffbe0b", hp: 7 + bossStageIndex * 2, pattern: "TRAIL" },
+          { name: "🛸 DREADNOUGHT CORE", color: "#00f0ff", hp: 8 + bossStageIndex * 2, pattern: "TELEPORT" }
+        ];
+        const t = types[(bossStageIndex - 1) % types.length];
+        boss = {
+          name: t.name,
+          color: t.color,
+          maxHp: t.hp,
+          hp: t.hp,
+          pattern: t.pattern,
+          x: (7 + 0.5) * TILE,
+          y: (5 + 0.5) * TILE,
+          vx: 1.6,
+          vy: 1.25,
+          r: 36,
+          invuln: 0,
+          attackTimer: 150
+        };
+      }
+
+      function initArena(preserveP1Stats = false) {
+        const prevP1 = preserveP1Stats && players[0] ? players[0] : null;
+        grid = [];
+        items = [];
+        bombs = [];
+        blasts = [];
+        revengeCarts = [];
+        drones = [];
+        boss = null;
+        roundOver = false;
+        paused = false;
+        roundTimeLeft = 120 * 60; // 2:00
+        suddenDeathSpiralIdx = 0;
+        suddenDeathTimer = 0;
+
+        const isBossStage = gameMode === "boss_rush" || (gameMode === "campaign" && stage % 5 === 0);
+        const crateDensity = isBossStage ? 0.22 : gameMode === "crown_rush" ? 0.42 : 0.65;
+
+        const crateCoords = [];
+        for (let r = 0; r < ROWS; r++) {
+          const row = [];
+          for (let c = 0; c < COLS; c++) {
+            if (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1 || (r % 2 === 0 && c % 2 === 0)) {
+              row.push(1);
+            } else if (!isCornerSpawn(c, r) && !(isBossStage && c >= 5 && c <= 9 && r >= 4 && r <= 8) && Math.random() < crateDensity) {
+              row.push(2);
+              crateCoords.push({ c, r });
+            } else {
+              row.push(0);
+            }
+          }
+          grid.push(row);
+        }
+
+        buildBiomeGimmicks();
+
+        // Shuffle crate coords
+        for (let i = crateCoords.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [crateCoords[i], crateCoords[j]] = [crateCoords[j], crateCoords[i]];
+        }
+
+        if ((gameMode === "campaign" || gameMode === "roguelike" || gameMode === "coop_2p") && !isBossStage && crateCoords.length > 0) {
+          const pCoord = crateCoords.pop();
+          items.push({ c: pCoord.c, r: pCoord.r, type: "PORTAL", revealed: false });
+        }
+
+        const pPool = [
+          "BOMB", "FIRE", "SPEED", "KICK", "EGG", "GLOVE", "REMOTE", "PIERCE", "LINE", "SHIELD", "FULL_FIRE",
+          "BOMB", "FIRE", "SPEED", "KICK", "EGG", "SKULL"
+        ];
+        for (let i = 0; i < Math.min(pPool.length, crateCoords.length); i++) {
+          items.push({
+            c: crateCoords[i].c,
+            r: crateCoords[i].r,
+            type: pPool[i],
+            revealed: false
+          });
+        }
+
+        // Spawn P1 with chosen Suit Skin
+        const skin = SUIT_SKINS[vault.selectedSkin] || SUIT_SKINS.white;
+        const p1 = createBomber(1, 1, 1, skin.primary, "P1 CYBER", false);
+        if (prevP1) {
+          p1.maxBombs = prevP1.maxBombs;
+          p1.blastRange = prevP1.blastRange;
+          p1.speed = prevP1.speed;
+          p1.canKick = prevP1.canKick;
+          p1.powerGlove = prevP1.powerGlove;
+          p1.remoteControl = prevP1.remoteControl;
+          p1.pierceBomb = prevP1.pierceBomb;
+          p1.lineBomb = prevP1.lineBomb;
+          p1.shieldHits = prevP1.shieldHits;
+          p1.louie = prevP1.louie;
+        }
+        players = [p1];
+
+        if (gameMode === "coop_2p") {
+          const p2 = createBomber(2, COLS - 2, 1, "#ff007f", "P2 ALLY", false);
+          players.push(p2);
+        } else if (gameMode === "versus_2p") {
+          players.push(createBomber(2, COLS - 2, ROWS - 2, "#ff007f", "P2 HUMAN", false));
+          players.push(createBomber(3, COLS - 2, 1, "#ffbe0b", "GOLD BOT", true));
+          players.push(createBomber(4, 1, ROWS - 2, "#00ff9d", "JADE BOT", true));
+        } else if (gameMode === "royale" || gameMode === "crown_rush") {
+          players.push(createBomber(2, COLS - 2, 1, "#ff007f", "CRIMSON BOT", true));
+          players.push(createBomber(3, 1, ROWS - 2, "#ffbe0b", "GOLD BOT", true));
+          players.push(createBomber(4, COLS - 2, ROWS - 2, "#00ff9d", "EMERALD BOT", true));
+        }
+
+        if (isBossStage) {
+          spawnBoss(Math.max(1, Math.floor(stage / 5) || stage));
+          banner = { text: `⚠️ BOSS ENCOUNTER: ${boss.name}! ⚠️`, timer: 180, color: "#ff2a55" };
+        } else if (gameMode === "campaign" || gameMode === "roguelike" || gameMode === "coop_2p" || gameMode === "zombie") {
+          spawnStageDrones(gameMode === "zombie" ? 6 + stage : 3 + Math.min(7, stage));
+          banner = {
+            text: gameMode === "zombie"
+              ? `💀 SKULL & PLAGUE WAVE ${stage} — SURVIVE & CURE CURSES!`
+              : `STAGE ${stage} (${activeBiome.toUpperCase()}) — CLEAR DRONES & ENTER PORTAL`,
+            timer: 160,
+            color: "#00f0ff"
+          };
+        } else if (gameMode === "crown_rush") {
+          for (let i = 0; i < 6; i++) spawnCrownOnFloor();
+          banner = { text: "💎 GRAND PRIX CROWN HEIST — COLLECT & STEAL CROWNS!", timer: 160, color: "#ffbe0b" };
+        } else {
+          banner = { text: "👑 BATTLE ROYALE — WATCH FOR 45s SUDDEN DEATH & REVENGE CARTS!", timer: 160, color: "#ff007f" };
+        }
+
+        if (gameMode === "zombie") {
+          // Scatter exposed Skull Curse tiles
+          for (let i = 0; i < 4; i++) {
+            spawnExposedItem("SKULL");
+          }
+        }
+
+        updateHUD();
+      }
+
+      function spawnExposedItem(type) {
+        const open = [];
+        for (let r = 1; r < ROWS - 1; r++) {
+          for (let c = 1; c < COLS - 1; c++) {
+            if (grid[r][c] === 0 && !isCornerSpawn(c, r) && !items.some(it => it.c === c && it.r === r)) {
+              open.push({ c, r });
+            }
+          }
+        }
+        if (open.length > 0) {
+          const pick = open[Math.floor(Math.random() * open.length)];
+          items.push({ c: pick.c, r: pick.r, type, revealed: true });
+        }
+      }
+
+      function spawnCrownOnFloor() {
+        spawnExposedItem("CROWN");
+      }
+
+      function spawnStageDrones(count, forceArchetypeIdx = null) {
+        const emptyTiles = [];
+        for (let r = 1; r < ROWS - 1; r++) {
+          for (let c = 1; c < COLS - 1; c++) {
+            if (grid[r][c] === 0 && (c > 3 || r > 3)) emptyTiles.push({ c, r });
+          }
+        }
+        for (let i = 0; i < count && emptyTiles.length > 0; i++) {
+          const idx = Math.floor(Math.random() * emptyTiles.length);
+          const t = emptyTiles.splice(idx, 1)[0];
+          const maxArch = Math.min(ENEMY_ARCHETYPES.length - 2, Math.floor((stage - 1) / 2) + 1);
+          const arch = forceArchetypeIdx !== null
+            ? ENEMY_ARCHETYPES[forceArchetypeIdx]
+            : ENEMY_ARCHETYPES[Math.floor(Math.random() * (maxArch + 1))];
+          const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+          const d = dirs[Math.floor(Math.random() * 4)];
+          drones.push({
+            name: arch.id,
+            color: arch.color,
+            pts: arch.pts,
+            speed: arch.speed,
+            smart: arch.smart,
+            wallPass: arch.wallPass,
+            x: (t.c + 0.5) * TILE,
+            y: (t.r + 0.5) * TILE,
+            vx: d[0] * arch.speed,
+            vy: d[1] * arch.speed,
+            r: 16
+          });
+        }
+      }
+
+      function addScore(pts, xpGain = 25) {
+        score += pts;
+        vault.xp += xpGain;
+        if (score > vault.highScore) {
+          vault.highScore = score;
+        }
+        saveVault();
+        updateHUD();
+      }
+
+      function updateHUD() {
+        document.getElementById("hudScore").textContent = score.toLocaleString();
+        document.getElementById("hudHigh").textContent = vault.highScore.toLocaleString();
+        document.getElementById("hudStage").textContent = boss ? "BOSS RAID" : `STAGE ${stage}`;
+
+        const secs = Math.max(0, Math.ceil(roundTimeLeft / 60));
+        const mm = String(Math.floor(secs / 60)).padStart(2, "0");
+        const ss = String(secs % 60).padStart(2, "0");
+        const timerEl = document.getElementById("hudTimer");
+        timerEl.textContent = `${mm}:${ss}`;
+        timerEl.style.color = secs <= 45 ? "#ff2a55" : "#ffffff";
+
+        const p1 = players[0];
+        if (gameMode === "crown_rush" && p1) {
+          document.getElementById("hudEnemies").textContent = `👑 ${p1.crowns}`;
+        } else if (boss) {
+          document.getElementById("hudEnemies").textContent = `${boss.hp}/${boss.maxHp} HP`;
+        } else if (gameMode === "campaign" || gameMode === "roguelike" || gameMode === "coop_2p" || gameMode === "zombie") {
+          document.getElementById("hudEnemies").textContent = String(drones.length);
+        } else {
+          document.getElementById("hudEnemies").textContent = String(players.filter(p => p.id !== 1 && p.alive).length);
+        }
+
+        if (p1) {
+          document.getElementById("statBombs").textContent = `${p1.maxBombs} / 8`;
+          document.getElementById("statRange").textContent = `${p1.blastRange} / 8`;
+          document.getElementById("statSpeed").textContent = `${((p1.speed - 2.75) / 0.4 + 1).toFixed(1)}x`;
+          document.getElementById("statKick").textContent = p1.canKick ? "ON [X]" : "OFF";
+          document.getElementById("statGlove").textContent = p1.powerGlove ? "ON [E]" : "OFF";
+          document.getElementById("statRemote").textContent = p1.remoteControl ? "ON [Q]" : "OFF";
+          document.getElementById("statPierce").textContent = p1.pierceBomb ? "ON" : "OFF";
+          document.getElementById("statLine").textContent = p1.lineBomb ? "ON [C]" : "OFF";
+
+          document.getElementById("slotKick").classList.toggle("active", p1.canKick);
+          document.getElementById("slotGlove").classList.toggle("active", p1.powerGlove);
+          document.getElementById("slotRemote").classList.toggle("active", p1.remoteControl);
+          document.getElementById("slotPierce").classList.toggle("active", p1.pierceBomb);
+          document.getElementById("slotLine").classList.toggle("active", p1.lineBomb);
+
+          document.getElementById("hudShieldBadge").textContent = `🛡️ ${p1.shieldHits} VEST`;
+          document.getElementById("statLouie").textContent = p1.louie ? `${p1.louie.name} [V]` : "NONE (Find 🥚 Egg)";
+
+          const curseEl = document.getElementById("hudCurse");
+          if (p1.curse && p1.curse.timer > 0) {
+            curseEl.textContent = `💀 ${p1.curse.type}`;
+            curseEl.style.color = "#ff2a55";
+          } else {
+            curseEl.textContent = "NOMINAL";
+            curseEl.style.color = "#00ff9d";
+          }
+        }
+
+        document.getElementById("vaultXp").textContent = vault.xp.toLocaleString();
+        document.getElementById("vaultStages").textContent = vault.stagesCleared.toLocaleString();
+        document.getElementById("vaultBosses").textContent = vault.bossesDefeated.toLocaleString();
+        document.getElementById("vaultCrowns").textContent = vault.crownsWon.toLocaleString();
+        document.getElementById("careerRankBadge").textContent = getBomberRank(vault.xp);
+      }
+
+      function hasBombAt(c, r) {
+        return bombs.find(b => b.airZ === 0 && Math.floor(b.x / TILE) === c && Math.floor(b.y / TILE) === r);
+      }
+
+      function isDangerTile(c, r) {
+        if (blasts.some(bl => bl.c === c && bl.r === r)) return true;
+        for (const b of bombs) {
+          const bc = Math.floor(b.x / TILE);
+          const br = Math.floor(b.y / TILE);
+          if (bc === c && Math.abs(br - r) <= b.range) return true;
+          if (br === r && Math.abs(bc - c) <= b.range) return true;
+        }
+        return false;
+      }
+
+      function plantBomb(bomber) {
+        if (!bomber || !bomber.alive || paused || roundOver) return;
+        if (bomber.activeBombs >= bomber.maxBombs) return;
+        const c = Math.floor(bomber.x / TILE);
+        const r = Math.floor(bomber.y / TILE);
+        if (c <= 0 || c >= COLS - 1 || r <= 0 || r >= ROWS - 1) return;
+        if (grid[r][c] !== 0 || hasBombAt(c, r)) return;
+
+        bomber.activeBombs++;
+        const blastR = bomber.curse && bomber.curse.type === "MINI-FLAME" ? 1 : bomber.blastRange;
+        bombs.push({
+          c,
+          r,
+          x: (c + 0.5) * TILE,
+          y: (r + 0.5) * TILE,
+          vx: 0,
+          vy: 0,
+          airZ: 0,
+          airVz: 0,
+          timer: bomber.remoteControl ? 600 : 150,
+          range: blastR,
+          pierce: bomber.pierceBomb,
+          remote: bomber.remoteControl,
+          owner: bomber,
+          passableBy: [bomber.id],
+          warpCooldown: 0
+        });
+        BomberAudio.plant();
+      }
+
+      // Line Bomb [C]: drops all remaining available bombs in a line ahead of bomber!
+      function triggerLineBomb(bomber) {
+        if (!bomber || !bomber.alive || !bomber.lineBomb || paused || roundOver) return;
+        const startC = Math.floor(bomber.x / TILE);
+        const startR = Math.floor(bomber.y / TILE);
+        const dc = bomber.facingX || 1;
+        const dr = bomber.facingY || 0;
+        let step = 0;
+        while (bomber.activeBombs < bomber.maxBombs && step < 8) {
+          const tc = startC + dc * step;
+          const tr = startR + dr * step;
+          if (tc <= 0 || tc >= COLS - 1 || tr <= 0 || tr >= ROWS - 1) break;
+          if (grid[tr][tc] !== 0) break;
+          if (!hasBombAt(tc, tr)) {
+            bomber.activeBombs++;
+            bombs.push({
+              c: tc,
+              r: tr,
+              x: (tc + 0.5) * TILE,
+              y: (tr + 0.5) * TILE,
+              vx: 0,
+              vy: 0,
+              airZ: 0,
+              airVz: 0,
+              timer: 150,
+              range: bomber.blastRange,
+              pierce: bomber.pierceBomb,
+              remote: bomber.remoteControl,
+              owner: bomber,
+              passableBy: [bomber.id],
+              warpCooldown: 0
+            });
+          }
+          step++;
+        }
+        BomberAudio.plant();
+        banner = { text: "🧨 LINE-BOMB BARRAGE DEPLOYED! 🧨", timer: 90, color: "#ffbe0b" };
+      }
+
+      // Remote Detonator [Q]: detonates oldest bomb owned by bomber
+      function detonateOldestRemoteBomb(bomber) {
+        if (!bomber || !bomber.alive || paused || roundOver) return;
+        const owned = bombs.find(b => b.owner === bomber);
+        if (owned) {
+          detonateBomb(owned);
+        }
+      }
+
+      // Stop sliding kicked bomb [X]
+      function stopKickedBombs(bomber) {
+        for (const b of bombs) {
+          if (b.owner === bomber && (b.vx !== 0 || b.vy !== 0)) {
+            b.vx = 0;
+            b.vy = 0;
+            b.x = (Math.floor(b.x / TILE) + 0.5) * TILE;
+            b.y = (Math.floor(b.y / TILE) + 0.5) * TILE;
+          }
+        }
+      }
+
+      // Power Glove / Boxing Glove [E]: Punch or Throw adjacent/underfoot bomb 3 tiles ahead over walls!
+      function usePowerGlove(bomber) {
+        if (!bomber || !bomber.alive || (!bomber.powerGlove && bomber.louie?.skill !== "PUNCH") || paused || roundOver) return;
+        const bc = Math.floor(bomber.x / TILE);
+        const br = Math.floor(bomber.y / TILE);
+        const dc = bomber.facingX || 1;
+        const dr = bomber.facingY || 0;
+        const targetBomb = hasBombAt(bc + dc, br + dr) || hasBombAt(bc, br);
+        if (!targetBomb) return;
+
+        // Launch bomb in an arc 3 tiles forward (wrapping around arena bounds)
+        let destC = bc + dc * 3;
+        let destR = br + dr * 3;
+        destC = Math.max(1, Math.min(COLS - 2, destC));
+        destR = Math.max(1, Math.min(ROWS - 2, destR));
+        // Find nearest open tile if landing on pillar
+        while (grid[destR][destC] !== 0 && (destC !== bc || destR !== br)) {
+          destC = Math.max(1, Math.min(COLS - 2, destC + dc));
+          destR = Math.max(1, Math.min(ROWS - 2, destR + dr));
+          if (destC === 1 || destC === COLS - 2 || destR === 1 || destR === ROWS - 2) break;
+        }
+        targetBomb.airZ = 1;
+        targetBomb.airVz = 4.5;
+        targetBomb.vx = (((destC + 0.5) * TILE) - targetBomb.x) / 28;
+        targetBomb.vy = (((destR + 0.5) * TILE) - targetBomb.y) / 28;
+        BomberAudio.punch();
+        banner = { text: "🥊 POWER GLOVE BOMB LAUNCH! 🥊", timer: 75, color: "#00f0ff" };
+      }
+
+      // Cyber-Louie Mount Special Skill [V]
+      function useLouieSkill(bomber) {
+        if (!bomber || !bomber.alive || !bomber.louie || paused || roundOver) return;
+        const skill = bomber.louie.skill;
+        const bc = Math.floor(bomber.x / TILE);
+        const br = Math.floor(bomber.y / TILE);
+        const dc = bomber.facingX || 1;
+        const dr = bomber.facingY || 0;
+
+        if (skill === "PUNCH") {
+          usePowerGlove(bomber);
+        } else if (skill === "KICK_BLOCK") {
+          const nc = bc + dc;
+          const nr = br + dr;
+          if (grid[nr]?.[nc] === 2) {
+            grid[nr][nc] = 0;
+            const nnC = nc + dc;
+            const nnR = nr + dr;
+            if (grid[nnR]?.[nnC] === 0) grid[nnR][nnC] = 2;
+            BomberAudio.kick();
+            window.GameMasterFX?.burst?.((nc + 0.5) * TILE, (nr + 0.5) * TILE, "#ffbe0b", 14);
+          }
+        } else if (skill === "HOP") {
+          const hopC = bc + dc * 2;
+          const hopR = br + dr * 2;
+          if (hopC >= 1 && hopC <= COLS - 2 && hopR >= 1 && hopR <= ROWS - 2 && grid[hopR][hopC] === 0) {
+            bomber.x = (hopC + 0.5) * TILE;
+            bomber.y = (hopR + 0.5) * TILE;
+            BomberAudio.louieMount();
+            window.GameMasterFX?.burst?.(bomber.x, bomber.y, "#ff007f", 16);
+          }
+        } else if (skill === "DASH") {
+          const dashC = bc + dc;
+          const dashR = br + dr;
+          if (grid[dashR]?.[dashC] === 0) {
+            bomber.x = (dashC + 0.5) * TILE;
+            bomber.y = (dashR + 0.5) * TILE;
+            bomber.invuln = Math.max(bomber.invuln, 35);
+            BomberAudio.kick();
+            window.GameMasterFX?.burst?.(bomber.x, bomber.y, "#00ff9d", 14);
+          }
+        }
+      }
+
+      function detonateBomb(bomb) {
+        const idx = bombs.indexOf(bomb);
+        if (idx === -1) return;
+        bombs.splice(idx, 1);
+        if (bomb.owner) bomb.owner.activeBombs = Math.max(0, bomb.owner.activeBombs - 1);
+
+        const bc = Math.max(1, Math.min(COLS - 2, Math.floor(bomb.x / TILE)));
+        const br = Math.max(1, Math.min(ROWS - 2, Math.floor(bomb.y / TILE)));
+
+        BomberAudio.explode();
+        window.GameMasterFX?.burst?.((bc + 0.5) * TILE, (br + 0.5) * TILE, "#ffbe0b", 24);
+        window.GameMasterFX?.triggerShake?.(7);
+
+        const blastColor = bomb.pierce ? "#00f0ff" : "#ffbe0b";
+        const addBlastTile = (c, r) => {
+          blasts.push({ c, r, timer: 26, color: blastColor, owner: bomb.owner });
+          window.GameMasterFX?.burst?.((c + 0.5) * TILE, (r + 0.5) * TILE, bomb.pierce ? "#00f0ff" : "#ff007f", 7);
+        };
+
+        addBlastTile(bc, br);
+
+        const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        const chainBombs = [];
+
+        for (const [dc, dr] of dirs) {
+          for (let step = 1; step <= bomb.range; step++) {
+            const nc = bc + dc * step;
+            const nr = br + dr * step;
+            if (nc < 0 || nc >= COLS || nr < 0 || nr >= ROWS) break;
+            if (grid[nr][nc] === 1 || grid[nr][nc] === 3) break;
+
+            const otherBomb = hasBombAt(nc, nr);
+            if (otherBomb) chainBombs.push(otherBomb);
+
+            // Check if blasting an already-revealed Exit Portal -> spawns Pontan penalty ghosts!
+            const portalItem = items.find(it => it.c === nc && it.r === nr && it.type === "PORTAL" && it.revealed);
+            if (portalItem) {
+              spawnStageDrones(2, ENEMY_ARCHETYPES.length - 1); // Pontan!
+              banner = { text: "⚠️ EXIT PORTAL BLASTED — PONTAN SPIRITS UNLEASHED! ⚠️", timer: 140, color: "#ff2a55" };
+            }
+
+            if (grid[nr][nc] === 2) {
+              grid[nr][nc] = 0;
+              addBlastTile(nc, nr);
+              const hidden = items.find(it => it.c === nc && it.r === nr);
+              if (hidden) hidden.revealed = true;
+              if (bomb.owner && bomb.owner.id === 1) addScore(50, 5);
+              if (!bomb.pierce) break; // Standard bomb stops at first soft crate; Pierce Bomb cuts through!
+            } else {
+              addBlastTile(nc, nr);
+            }
+          }
+        }
+
+        for (const cb of chainBombs) {
+          detonateBomb(cb);
+        }
+      }
+
+      function damageBomber(bomber, attacker = null) {
+        if (!bomber.alive || bomber.invuln > 0) return;
+
+        // 1. Cyber-Louie Kangaroo Mount takes the hit first!
+        if (bomber.louie) {
+          const lostName = bomber.louie.name;
+          bomber.louie = null;
+          bomber.invuln = 90;
+          BomberAudio.explode();
+          window.GameMasterFX?.burst?.(bomber.x, bomber.y, "#9d4edd", 24);
+          banner = { text: `🦘 ${lostName.toUpperCase()} ABSORBED THE BLAST!`, timer: 110, color: "#ffbe0b" };
+          updateHUD();
+          return;
+        }
+
+        // 2. Protective Vest / Shield absorbs 1 fatal hit!
+        if (bomber.shieldHits > 0) {
+          bomber.shieldHits--;
+          bomber.invuln = 90;
+          BomberAudio.explode();
+          window.GameMasterFX?.burst?.(bomber.x, bomber.y, "#00f0ff", 24);
+          banner = { text: "🛡️ PROTECTIVE VEST ABSORBED FATAL IMPACT!", timer: 110, color: "#00f0ff" };
+          updateHUD();
+          return;
+        }
+
+        // In Crown Rush, drop half your crowns instead of permanent elimination!
+        if (gameMode === "crown_rush") {
+          const dropped = Math.max(1, Math.ceil(bomber.crowns / 2));
+          bomber.crowns = Math.max(0, bomber.crowns - dropped);
+          for (let i = 0; i < dropped; i++) spawnCrownOnFloor();
+          bomber.invuln = 110;
+          BomberAudio.explode();
+          window.GameMasterFX?.burst?.(bomber.x, bomber.y, "#ffbe0b", 26);
+          updateHUD();
+          return;
+        }
+
+        bomber.alive = false;
+        BomberAudio.explode();
+        window.GameMasterFX?.burst?.(bomber.x, bomber.y, bomber.color, 34);
+        window.GameMasterFX?.triggerShake?.(9);
+        if (bomber.id !== 1) addScore(600, 45);
+
+        // In Battle Royale or 2P Versus, spawn a Revenge Bomber Cart on the outer border!
+        if (gameMode === "royale" || gameMode === "versus_2p") {
+          revengeCarts.push({
+            bomber,
+            c: Math.max(1, Math.min(COLS - 2, bomber.c)),
+            r: 0,
+            dir: 1,
+            cooldown: 60
+          });
+          if (bomber.id === 1) {
+            banner = { text: "🛒 REVENGE CART ACTIVE! USE A/D + SPACE TO LOB BOMBS & REVIVE!", timer: 180, color: "#ffbe0b" };
+          }
+        }
+        updateHUD();
+      }
+
+      function applySkullCurse(bomber) {
+        const curses = ["DIARRHEA AUTO-BOMB", "ULTRA-SPEED", "SLOW SNAIL", "MINI-FLAME", "POSITION SWAP"];
+        const pick = curses[Math.floor(Math.random() * curses.length)];
+        BomberAudio.curse();
+        if (pick === "POSITION SWAP") {
+          const others = players.filter(p => p.id !== bomber.id && p.alive);
+          if (others.length > 0) {
+            const o = others[Math.floor(Math.random() * others.length)];
+            const tx = bomber.x, ty = bomber.y;
+            bomber.x = o.x; bomber.y = o.y;
+            o.x = tx; o.y = ty;
+          }
+        }
+        bomber.curse = { type: pick, timer: 480 };
+        banner = { text: `💀 SKULL CURSE: ${pick}! 💀`, timer: 120, color: "#ff2a55" };
+        updateHUD();
+      }
+
+      function canMoveTo(bomber, nx, ny) {
+        const rad = 15;
+        const corners = [
+          [nx - rad, ny - rad],
+          [nx + rad, ny - rad],
+          [nx - rad, ny + rad],
+          [nx + rad, ny + rad]
+        ];
+        for (const [cx, cy] of corners) {
+          const tc = Math.floor(cx / TILE);
+          const tr = Math.floor(cy / TILE);
+          if (tc < 0 || tc >= COLS || tr < 0 || tr >= ROWS) return false;
+          if (grid[tr][tc] !== 0) return false;
+          const b = hasBombAt(tc, tr);
+          if (b && !b.passableBy.includes(bomber.id)) {
+            if (bomber.canKick && b.vx === 0 && b.vy === 0) {
+              const kdc = Math.sign(tc - Math.floor(bomber.x / TILE));
+              const kdr = Math.sign(tr - Math.floor(bomber.y / TILE));
+              if ((kdc !== 0 && kdr === 0) || (kdr !== 0 && kdc === 0)) {
+                const nextC = tc + kdc;
+                const nextR = tr + kdr;
+                if (grid[nextR]?.[nextC] === 0 && !hasBombAt(nextC, nextR)) {
+                  b.vx = kdc * 5.4;
+                  b.vy = kdr * 5.4;
+                  BomberAudio.kick();
+                }
+              }
+            }
+            return false;
+          }
+        }
+        return true;
+      }
+
+      function moveBomberWithCornerSlide(bomber, dx, dy) {
+        if (dx !== 0 || dy !== 0) {
+          bomber.facingX = Math.sign(dx);
+          bomber.facingY = dx === 0 ? Math.sign(dy) : 0;
+        }
+
+        // Check Cryo Ice floor tile momentum
+        const onIce = biomeGimmicks.some(g => g.type === "ICE" && g.c === bomber.c && g.r === bomber.r);
+        if (onIce) {
+          bomber.vx = bomber.vx * 0.92 + dx * 0.14;
+          bomber.vy = bomber.vy * 0.92 + dy * 0.14;
+        } else {
+          bomber.vx = dx;
+          bomber.vy = dy;
+        }
+
+        // Check Conveyor Belt push
+        const belt = biomeGimmicks.find(g => g.type === "CONVEYOR" && g.c === bomber.c && g.r === bomber.r);
+        const totalDx = bomber.vx + (belt ? belt.dirX * 1.15 : 0);
+        const totalDy = bomber.vy + (belt ? belt.dirY * 1.15 : 0);
+
+        if (Math.abs(totalDx) > 0.01 || Math.abs(totalDy) > 0.01) {
+          const nx = bomber.x + totalDx;
+          const ny = bomber.y + totalDy;
+          if (canMoveTo(bomber, nx, ny)) {
+            bomber.x = nx;
+            bomber.y = ny;
+          } else {
+            const centerC = (Math.floor(bomber.x / TILE) + 0.5) * TILE;
+            const centerR = (Math.floor(bomber.y / TILE) + 0.5) * TILE;
+            if (totalDx !== 0) {
+              const diffY = centerR - bomber.y;
+              if (Math.abs(diffY) < 22) bomber.y += Math.sign(diffY) * 2.3;
+            } else if (totalDy !== 0) {
+              const diffX = centerC - bomber.x;
+              if (Math.abs(diffX) < 22) bomber.x += Math.sign(diffX) * 2.3;
+            }
+          }
+        }
+
+        const prevC = bomber.c;
+        const prevR = bomber.r;
+        bomber.c = Math.floor(bomber.x / TILE);
+        bomber.r = Math.floor(bomber.y / TILE);
+
+        // Warp Teleporter Pad check (on tile entry)
+        if (bomber.c !== prevC || bomber.r !== prevR) {
+          const warp = biomeGimmicks.find(g => g.type === "WARP" && g.c === bomber.c && g.r === bomber.r);
+          if (warp) {
+            bomber.c = warp.pairC;
+            bomber.r = warp.pairR;
+            bomber.x = (warp.pairC + 0.5) * TILE;
+            bomber.y = (warp.pairR + 0.5) * TILE;
+            BomberAudio.louieMount();
+            window.GameMasterFX?.burst?.(bomber.x, bomber.y, warp.color, 18);
+          }
+        }
+
+        // Clear bomb passability once stepped off
+        for (const b of bombs) {
+          const bc = Math.floor(b.x / TILE);
+          const br = Math.floor(b.y / TILE);
+          if (Math.abs(bomber.x - (bc + 0.5) * TILE) > TILE * 0.75 || Math.abs(bomber.y - (br + 0.5) * TILE) > TILE * 0.75) {
+            b.passableBy = b.passableBy.filter(id => id !== bomber.id);
+          }
+        }
+
+        // Check Item & Portal Pickups
+        for (let i = items.length - 1; i >= 0; i--) {
+          const it = items[i];
+          if (!it.revealed) continue;
+          if (it.c === bomber.c && it.r === bomber.r) {
+            if (it.type === "PORTAL") {
+              if (drones.length === 0 && !boss) {
+                completeFloorOrStage();
+                return;
+              }
+            } else {
+              // Picking up any good item cures active Skull Curse!
+              if (it.type !== "SKULL") bomber.curse = null;
+
+              if (it.type === "BOMB") bomber.maxBombs = Math.min(8, bomber.maxBombs + 1);
+              else if (it.type === "FIRE") bomber.blastRange = Math.min(8, bomber.blastRange + 1);
+              else if (it.type === "FULL_FIRE") bomber.blastRange = 8;
+              else if (it.type === "SPEED") bomber.speed = Math.min(4.6, bomber.speed + 0.4);
+              else if (it.type === "KICK") bomber.canKick = true;
+              else if (it.type === "GLOVE") bomber.powerGlove = true;
+              else if (it.type === "REMOTE") bomber.remoteControl = true;
+              else if (it.type === "PIERCE") bomber.pierceBomb = true;
+              else if (it.type === "LINE") bomber.lineBomb = true;
+              else if (it.type === "SHIELD") bomber.shieldHits++;
+              else if (it.type === "EGG") {
+                bomber.louie = LOUIE_TYPES[Math.floor(Math.random() * LOUIE_TYPES.length)];
+                BomberAudio.louieMount();
+                banner = { text: `🦘 MOUNTED ${bomber.louie.name.toUpperCase()}! PRESS [V] FOR SKILL`, timer: 140, color: bomber.louie.color };
+              } else if (it.type === "CROWN") {
+                bomber.crowns++;
+                if (bomber.id === 1) {
+                  vault.crownsWon++;
+                  saveVault();
+                }
+                setTimeout(spawnCrownOnFloor, 2500);
+              } else if (it.type === "SKULL") {
+                applySkullCurse(bomber);
+              }
+
+              if (it.type !== "SKULL" && it.type !== "EGG") BomberAudio.powerup();
+              if (bomber.id === 1 && it.type !== "SKULL") addScore(300, 20);
+              window.GameMasterFX?.burst?.((it.c + 0.5) * TILE, (it.r + 0.5) * TILE, "#00ff9d", 16);
+              items.splice(i, 1);
+              updateHUD();
+            }
+          }
+        }
+      }
+
+      function openRoguelikeDraftModal() {
+        paused = true;
+        const container = document.getElementById("perkCardsContainer");
+        container.innerHTML = "";
+        const pool = [...ROGUELIKE_PERKS];
+        for (let i = 0; i < 3; i++) {
+          const idx = Math.floor(Math.random() * pool.length);
+          const perk = pool.splice(idx, 1)[0];
+          const card = document.createElement("div");
+          card.className = "perk-card";
+          card.innerHTML = `
+            <div class="icon">${perk.icon}</div>
+            <div class="title">${perk.title}</div>
+            <div class="desc">${perk.desc}</div>
+          `;
+          card.addEventListener("click", () => {
+            if (players[0]) perk.apply(players[0]);
+            document.getElementById("perkModal").classList.remove("open");
+            stage++;
+            initArena(true);
+          });
+          container.appendChild(card);
+        }
+        document.getElementById("perkModal").classList.add("open");
+      }
+
+      function completeFloorOrStage() {
+        BomberAudio.win();
+        vault.stagesCleared++;
+        addScore(2000, 120);
+        if (gameMode === "roguelike") {
+          openRoguelikeDraftModal();
+        } else {
+          stage++;
+          initArena(true);
+        }
+      }
+
+      function updateAI(ai) {
+        if (!ai.alive) return;
+        ai.aiTimer--;
+        const c = Math.floor(ai.x / TILE);
+        const r = Math.floor(ai.y / TILE);
+
+        if (ai.aiTimer <= 0 || (Math.abs(ai.x - (ai.aiTargetC + 0.5) * TILE) < 4 && Math.abs(ai.y - (ai.aiTargetR + 0.5) * TILE) < 4)) {
+          ai.aiTimer = 16;
+          const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+          const validDirs = dirs.filter(([dc, dr]) => {
+            const nc = c + dc;
+            const nr = r + dr;
+            return grid[nr]?.[nc] === 0 && !hasBombAt(nc, nr);
+          });
+
+          const inDanger = isDangerTile(c, r);
+          const safeDirs = validDirs.filter(([dc, dr]) => !isDangerTile(c + dc, r + dr));
+
+          const chosenList = safeDirs.length > 0 ? safeDirs : validDirs;
+          if (chosenList.length > 0) {
+            const [dc, dr] = chosenList[Math.floor(Math.random() * chosenList.length)];
+            ai.aiTargetC = c + dc;
+            ai.aiTargetR = r + dr;
+          }
+
+          if (!inDanger && safeDirs.length >= 1 && Math.random() < 0.3) {
+            const nearTarget = dirs.some(([dc, dr]) => {
+              const nc = c + dc;
+              const nr = r + dr;
+              if (grid[nr]?.[nc] === 2) return true;
+              return players.some(p => p.id !== ai.id && p.alive && Math.abs(p.c - c) + Math.abs(p.r - r) <= 2);
+            });
+            if (nearTarget) plantBomb(ai);
+          }
+        }
+
+        const tx = (ai.aiTargetC + 0.5) * TILE;
+        const ty = (ai.aiTargetR + 0.5) * TILE;
+        const dx = Math.abs(tx - ai.x) > 2 ? Math.sign(tx - ai.x) * ai.speed * 0.85 : 0;
+        const dy = Math.abs(ty - ai.y) > 2 ? Math.sign(ty - ai.y) * ai.speed * 0.85 : 0;
+        moveBomberWithCornerSlide(ai, dx, dy);
+      }
+
+      function update() {
+        if (paused || roundOver) return;
+
+        // Round timer & 45s Sudden Death Pressure Blocks
+        if (roundTimeLeft > 0) {
+          roundTimeLeft--;
+          if (roundTimeLeft === 45 * 60 && (gameMode === "royale" || gameMode === "versus_2p")) {
+            BomberAudio.suddenDeathSiren();
+            banner = { text: "⚠️ HURRY UP! SUDDEN DEATH PRESSURE BLOCKS FALLING! ⚠️", timer: 180, color: "#ff2a55" };
+          }
+          if (roundTimeLeft <= 45 * 60 && (gameMode === "royale" || gameMode === "versus_2p")) {
+            suddenDeathTimer--;
+            if (suddenDeathTimer <= 0 && suddenDeathSpiralIdx < spiralCoords.length) {
+              suddenDeathTimer = 32;
+              const [sc, sr] = spiralCoords[suddenDeathSpiralIdx++];
+              if (sc > 2 && sc < COLS - 3 && sr > 2 && sr < ROWS - 3) {
+                grid[sr][sc] = 3; // Indestructible Sudden Death Block
+                window.GameMasterFX?.burst?.((sc + 0.5) * TILE, (sr + 0.5) * TILE, "#ff2a55", 10);
+                players.forEach(p => {
+                  if (p.alive && p.c === sc && p.r === sr) damageBomber(p);
+                });
+              }
+            }
+          }
+          if (roundTimeLeft % 60 === 0) updateHUD();
+        } else if (gameMode === "crown_rush") {
+          roundOver = true;
+          const sorted = [...players].sort((a, b) => b.crowns - a.crowns);
+          roundMessage = `👑 ${sorted[0].name} WINS CROWN HEIST (${sorted[0].crowns} CROWNS)!`;
+          return;
+        }
+
+        // Update Magma Vent Biome Gimmicks
+        for (const g of biomeGimmicks) {
+          if (g.type === "MAGMA") {
+            g.timer--;
+            if (g.timer <= 0) {
+              g.timer = 240;
+              blasts.push({ c: g.c, r: g.r, timer: 28, color: "#ff2a55", owner: null });
+              [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dc, dr]) => {
+                if (grid[g.r + dr]?.[g.c + dc] === 0) {
+                  blasts.push({ c: g.c + dc, r: g.r + dr, timer: 28, color: "#ffbe0b", owner: null });
+                }
+              });
+              BomberAudio.explode();
+            }
+          }
+        }
+
+        // Update Bombers
+        const useArrowsForP1 = gameMode !== "coop_2p" && gameMode !== "versus_2p";
+        for (const p of players) {
+          if (!p.alive) continue;
+          if (p.invuln > 0) p.invuln--;
+
+          // Skull Curse timer & effects
+          let effSpeed = p.speed;
+          if (p.curse) {
+            p.curse.timer--;
+            if (p.curse.type === "DIARRHEA AUTO-BOMB" && p.curse.timer % 25 === 0) plantBomb(p);
+            if (p.curse.type === "ULTRA-SPEED") effSpeed = 5.4;
+            if (p.curse.type === "SLOW SNAIL") effSpeed = 1.25;
+            if (p.curse.timer <= 0) {
+              p.curse = null;
+              updateHUD();
+            }
+          }
+
+          if (p.id === 1) {
+            let dx = 0, dy = 0;
+            if (keys["w"] || (useArrowsForP1 && keys["arrowup"])) dy -= effSpeed;
+            if (keys["s"] || (useArrowsForP1 && keys["arrowdown"])) dy += effSpeed;
+            if (keys["a"] || (useArrowsForP1 && keys["arrowleft"])) dx -= effSpeed;
+            if (keys["d"] || (useArrowsForP1 && keys["arrowright"])) dx += effSpeed;
+            moveBomberWithCornerSlide(p, dx, dy);
+          } else if (!p.isAI && (gameMode === "coop_2p" || gameMode === "versus_2p")) {
+            let dx = 0, dy = 0;
+            if (keys["arrowup"]) dy -= effSpeed;
+            if (keys["arrowdown"]) dy += effSpeed;
+            if (keys["arrowleft"]) dx -= effSpeed;
+            if (keys["arrowright"]) dx += effSpeed;
+            moveBomberWithCornerSlide(p, dx, dy);
+          } else if (p.isAI) {
+            updateAI(p);
+          }
+
+          // Pass Skull Curse by touching another player
+          if (p.curse) {
+            for (const other of players) {
+              if (other !== p && other.alive && Math.hypot(other.x - p.x, other.y - p.y) < 28) {
+                other.curse = p.curse;
+                p.curse = null;
+                break;
+              }
+            }
+          }
+        }
+
+        // Update Revenge Carts along top perimeter
+        for (let i = revengeCarts.length - 1; i >= 0; i--) {
+          const rc = revengeCarts[i];
+          if (rc.cooldown > 0) rc.cooldown--;
+          if (rc.bomber.id === 1) {
+            if (keys["a"] || keys["arrowleft"]) rc.c = Math.max(1, rc.c - 0.08);
+            if (keys["d"] || keys["arrowright"]) rc.c = Math.min(COLS - 2, rc.c + 0.08);
+          } else {
+            rc.c += rc.dir * 0.06;
+            if (rc.c >= COLS - 2 || rc.c <= 1) rc.dir *= -1;
+            if (rc.cooldown <= 0 && Math.random() < 0.02) {
+              rc.cooldown = 110;
+              const tc = Math.round(rc.c);
+              if (grid[2][tc] === 0 && !hasBombAt(tc, 2)) {
+                bombs.push({
+                  c: tc, r: 2,
+                  x: (tc + 0.5) * TILE, y: 2.5 * TILE,
+                  vx: 0, vy: 0, airZ: 1, airVz: 3.5,
+                  timer: 140, range: 2, pierce: false, remote: false,
+                  owner: rc.bomber, passableBy: [], warpCooldown: 0
+                });
+              }
+            }
+          }
+        }
+
+        // Update Bombs (sliding, airborne thrown, conveyor belts, warp pads)
+        for (let i = bombs.length - 1; i >= 0; i--) {
+          const b = bombs[i];
+          if (!b) continue;
+          if (b.warpCooldown > 0) b.warpCooldown--;
+
+          if (b.airZ > 0 || b.airVz !== 0) {
+            b.x += b.vx;
+            b.y += b.vy;
+            b.airZ += b.airVz;
+            b.airVz -= 0.32;
+            if (b.airZ <= 0) {
+              b.airZ = 0;
+              b.airVz = 0;
+              b.vx = 0;
+              b.vy = 0;
+              b.c = Math.max(1, Math.min(COLS - 2, Math.floor(b.x / TILE)));
+              b.r = Math.max(1, Math.min(ROWS - 2, Math.floor(b.y / TILE)));
+              b.x = (b.c + 0.5) * TILE;
+              b.y = (b.r + 0.5) * TILE;
+            }
+          } else {
+            // Conveyor belt push on stationary bombs
+            const bc = Math.floor(b.x / TILE);
+            const br = Math.floor(b.y / TILE);
+            const belt = biomeGimmicks.find(g => g.type === "CONVEYOR" && g.c === bc && g.r === br);
+            const mvX = b.vx + (belt && b.vx === 0 ? belt.dirX * 1.3 : 0);
+            const mvY = b.vy + (belt && b.vy === 0 ? belt.dirY * 1.3 : 0);
+
+            if (mvX !== 0 || mvY !== 0) {
+              const nx = b.x + mvX;
+              const ny = b.y + mvY;
+              const aheadC = Math.floor((nx + Math.sign(mvX) * 20) / TILE);
+              const aheadR = Math.floor((ny + Math.sign(mvY) * 20) / TILE);
+              if (
+                grid[aheadR]?.[aheadC] !== 0 ||
+                bombs.some(ob => ob !== b && Math.floor(ob.x / TILE) === aheadC && Math.floor(ob.y / TILE) === aheadR)
+              ) {
+                b.vx = 0;
+                b.vy = 0;
+                b.x = (Math.floor(b.x / TILE) + 0.5) * TILE;
+                b.y = (Math.floor(b.y / TILE) + 0.5) * TILE;
+              } else {
+                b.x = nx;
+                b.y = ny;
+              }
+            }
+
+            // Warp pad teleport for sliding bombs
+            const curC = Math.floor(b.x / TILE);
+            const curR = Math.floor(b.y / TILE);
+            const warp = biomeGimmicks.find(g => g.type === "WARP" && g.c === curC && g.r === curR);
+            if (warp && b.warpCooldown <= 0 && (b.vx !== 0 || b.vy !== 0)) {
+              b.x = (warp.pairC + 0.5) * TILE;
+              b.y = (warp.pairR + 0.5) * TILE;
+              b.warpCooldown = 45;
+            }
+          }
+
+          b.timer--;
+          if (b.timer <= 0) detonateBomb(b);
+        }
+
+        // Update Active Blasts & Check Hits
+        for (let i = blasts.length - 1; i >= 0; i--) {
+          const bl = blasts[i];
+          bl.timer--;
+
+          for (const p of players) {
+            if (p.alive && p.c === bl.c && p.r === bl.r) {
+              const prevAlive = p.alive;
+              damageBomber(p, bl.owner);
+              // Revenge Cart Revival: if an eliminated Revenge Bomber kills a living player, they revive!
+              if (prevAlive && !p.alive && bl.owner && !bl.owner.alive) {
+                const rcIdx = revengeCarts.findIndex(r => r.bomber === bl.owner);
+                if (rcIdx !== -1) {
+                  revengeCarts.splice(rcIdx, 1);
+                  bl.owner.alive = true;
+                  bl.owner.invuln = 120;
+                  bl.owner.x = (bl.c + 0.5) * TILE;
+                  bl.owner.y = (bl.r + 0.5) * TILE;
+                  BomberAudio.win();
+                  banner = { text: `⚡ ${bl.owner.name} REVIVED FROM REVENGE CART! ⚡`, timer: 150, color: "#00ff9d" };
+                }
+              }
+            }
+          }
+
+          for (let di = drones.length - 1; di >= 0; di--) {
+            const dr = drones[di];
+            if (Math.floor(dr.x / TILE) === bl.c && Math.floor(dr.y / TILE) === bl.r) {
+              window.GameMasterFX?.burst?.(dr.x, dr.y, dr.color, 22);
+              addScore(dr.pts, 35);
+              drones.splice(di, 1);
+              if (drones.length === 0) {
+                if (gameMode === "zombie") {
+                  stage++;
+                  spawnStageDrones(5 + stage);
+                  spawnExposedItem("SKULL");
+                  banner = { text: `💀 ZOMBIE SWARM WAVE ${stage} INCOMING!`, timer: 130, color: "#00ff9d" };
+                } else {
+                  banner = { text: "🌀 ALL HOSTILES CLEARED — STEP ON THE EXIT PORTAL! 🌀", timer: 180, color: "#00ff9d" };
+                }
+              }
+            }
+          }
+
+          if (boss && boss.invuln <= 0) {
+            const bx = (bl.c + 0.5) * TILE;
+            const by = (bl.r + 0.5) * TILE;
+            if (Math.hypot(boss.x - bx, boss.y - by) < boss.r + 18) {
+              boss.hp--;
+              boss.invuln = 45;
+              window.GameMasterFX?.burst?.(boss.x, boss.y, boss.color, 30);
+              window.GameMasterFX?.triggerShake?.(8);
+              updateHUD();
+              if (boss.hp <= 0) {
+                vault.bossesDefeated++;
+                addScore(5000, 250);
+                boss = null;
+                completeFloorOrStage();
+                return;
+              }
+            }
+          }
+
+          if (bl.timer <= 0) blasts.splice(i, 1);
+        }
+
+        // Update Titan Boss
+        if (boss) {
+          if (boss.invuln > 0) boss.invuln--;
+          boss.x += boss.vx;
+          boss.y += boss.vy;
+          if (boss.x < 3.5 * TILE || boss.x > (COLS - 3.5) * TILE) boss.vx *= -1;
+          if (boss.y < 3.5 * TILE || boss.y > (ROWS - 3.5) * TILE) boss.vy *= -1;
+
+          boss.attackTimer--;
+          if (boss.attackTimer <= 0) {
+            boss.attackTimer = 140;
+            const bc = Math.floor(boss.x / TILE);
+            const br = Math.floor(boss.y / TILE);
+            if (boss.pattern === "LASER") {
+              for (let c = 1; c < COLS - 1; c++) if (grid[br][c] === 0) blasts.push({ c, r: br, timer: 22, color: "#ff007f" });
+              for (let r = 1; r < ROWS - 1; r++) if (grid[r][bc] === 0) blasts.push({ c: bc, r, timer: 22, color: "#ff007f" });
+              BomberAudio.explode();
+            } else if (boss.pattern === "TRAIL") {
+              blasts.push({ c: bc, r: br, timer: 55, color: "#ffbe0b" });
+            } else if (boss.pattern === "TELEPORT") {
+              boss.x = (4 + Math.floor(Math.random() * 7) + 0.5) * TILE;
+              boss.y = (3 + Math.floor(Math.random() * 6) + 0.5) * TILE;
+              spawnStageDrones(1, 3);
+            }
+          }
+
+          for (const p of players) {
+            if (p.alive && Math.hypot(boss.x - p.x, boss.y - p.y) < boss.r + 14) {
+              damageBomber(p);
+            }
+          }
+        }
+
+        // Update Enemy Drones
+        for (const dr of drones) {
+          const nx = dr.x + dr.vx;
+          const ny = dr.y + dr.vy;
+          const tc = Math.floor((nx + Math.sign(dr.vx) * 17) / TILE);
+          const tr = Math.floor((ny + Math.sign(dr.vy) * 17) / TILE);
+          const blockedByTile = dr.wallPass
+            ? (grid[tr]?.[tc] === 1 || grid[tr]?.[tc] === 3)
+            : (grid[tr]?.[tc] !== 0);
+
+          if (blockedByTile || hasBombAt(tc, tr)) {
+            const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+            const curC = Math.floor(dr.x / TILE);
+            const curR = Math.floor(dr.y / TILE);
+            const open = dirs.filter(([dc, ddr]) => {
+              const cell = grid[curR + ddr]?.[curC + dc];
+              const okTile = dr.wallPass ? (cell === 0 || cell === 2) : cell === 0;
+              return okTile && !hasBombAt(curC + dc, curR + ddr);
+            });
+            if (open.length > 0) {
+              let pick = open[Math.floor(Math.random() * open.length)];
+              if (Math.random() < dr.smart && players[0]?.alive) {
+                open.sort((a, b) => {
+                  const da = Math.hypot((curC + a[0]) - players[0].c, (curR + a[1]) - players[0].r);
+                  const db = Math.hypot((curC + b[0]) - players[0].c, (curR + b[1]) - players[0].r);
+                  return da - db;
+                });
+                pick = open[0];
+              }
+              dr.vx = pick[0] * dr.speed;
+              dr.vy = pick[1] * dr.speed;
+            } else {
+              dr.vx *= -1;
+              dr.vy *= -1;
+            }
+          } else {
+            dr.x = nx;
+            dr.y = ny;
+          }
+
+          for (const p of players) {
+            if (p.alive && (p.id === 1 || gameMode === "coop_2p") && Math.hypot(dr.x - p.x, dr.y - p.y) < 25) {
+              damageBomber(p);
+            }
+          }
+        }
+
+        // Check Win/Loss Conditions
+        if (gameMode === "campaign" || gameMode === "roguelike" || gameMode === "boss_rush" || gameMode === "zombie") {
+          if (!players[0].alive) {
+            roundOver = true;
+            roundMessage = "CYBER BOMBER FALLEN — PRESS R OR NEW GAME";
+          }
+        } else if (gameMode === "coop_2p") {
+          if (players.every(p => !p.alive)) {
+            roundOver = true;
+            roundMessage = "CO-OP SQUAD ELIMINATED — PRESS R TO RETRY";
+          }
+        } else if (gameMode === "royale" || gameMode === "versus_2p") {
+          const alivePlayers = players.filter(p => p.alive);
+          if (alivePlayers.length <= 1) {
+            roundOver = true;
+            if (alivePlayers.length === 1) {
+              const winner = alivePlayers[0];
+              BomberAudio.win();
+              if (winner.id === 1) {
+                vault.crownsWon++;
+                addScore(2500, 150);
+              }
+              roundMessage = `🏆 ${winner.name} WINS BATTLE ROYALE! (PRESS R)`;
+            } else {
+              roundMessage = "DRAW GAME — MUTUAL DETONATION! (PRESS R)";
+            }
+          }
+        }
+
+        // FX particles
+        for (let i = fxParticles.length - 1; i >= 0; i--) {
+          const p = fxParticles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.alpha -= p.decay;
+          if (p.alpha <= 0) fxParticles.splice(i, 1);
+        }
+
+        // Screen shake
+        const sc = document.getElementById("shakeContainer");
+        if (shakeTimer > 0) {
+          shakeTimer--;
+          const dx = (Math.random() - 0.5) * shakeIntensity;
+          const dy = (Math.random() - 0.5) * shakeIntensity;
+          sc.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`;
+          if (shakeTimer === 0) {
+            shakeIntensity = 0;
+            sc.style.transform = "";
+          }
+        }
+      }
+
+      function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 1. Draw 15x13 Grid & Biome Floor Tiles
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            const x = c * TILE;
+            const y = r * TILE;
+            const cell = grid[r][c];
+
+            ctx.fillStyle = (r + c) % 2 === 0 ? "#0a081c" : "#0d0b22";
+            ctx.fillRect(x, y, TILE, TILE);
+
+            if (cell === 1) {
+              ctx.fillStyle = "#192038";
+              ctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
+              ctx.strokeStyle = "rgba(0, 240, 255, 0.35)";
+              ctx.lineWidth = 2;
+              ctx.strokeRect(x + 4, y + 4, TILE - 8, TILE - 8);
+            } else if (cell === 2) {
+              ctx.fillStyle = "rgba(255, 0, 127, 0.18)";
+              ctx.fillRect(x + 4, y + 4, TILE - 8, TILE - 8);
+              ctx.strokeStyle = "#ff007f";
+              ctx.lineWidth = 2;
+              ctx.strokeRect(x + 5, y + 5, TILE - 10, TILE - 10);
+            } else if (cell === 3) {
+              // Sudden Death Pressure Block
+              ctx.fillStyle = "#3a0ca3";
+              ctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
+              ctx.strokeStyle = "#ff2a55";
+              ctx.lineWidth = 2.5;
+              ctx.strokeRect(x + 4, y + 4, TILE - 8, TILE - 8);
+              ctx.fillStyle = "#ffbe0b";
+              ctx.font = "800 12px Orbitron, sans-serif";
+              ctx.textAlign = "center";
+              ctx.fillText("⚠️", x + TILE / 2, y + TILE / 2 + 4);
+            }
+          }
+        }
+
+        // 2. Draw Biome Gimmicks on Floor
+        for (const g of biomeGimmicks) {
+          if (grid[g.r][g.c] !== 0) continue;
+          const cx = (g.c + 0.5) * TILE;
+          const cy = (g.r + 0.5) * TILE;
+          ctx.save();
+          ctx.translate(cx, cy);
+          if (g.type === "CONVEYOR") {
+            ctx.fillStyle = "rgba(255, 190, 11, 0.16)";
+            ctx.fillRect(-TILE / 2 + 3, -TILE / 2 + 3, TILE - 6, TILE - 6);
+            ctx.fillStyle = "#ffbe0b";
+            ctx.font = "900 14px Orbitron, sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            const arrow = g.dirX > 0 ? "▶" : g.dirX < 0 ? "◀" : g.dirY > 0 ? "▼" : "▲";
+            ctx.fillText(arrow, 0, 0);
+          } else if (g.type === "WARP") {
+            ctx.strokeStyle = g.color;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, 18, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = g.color;
+            ctx.font = "14px sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("🌀", 0, 1);
+          } else if (g.type === "ICE") {
+            ctx.fillStyle = "rgba(0, 240, 255, 0.15)";
+            ctx.fillRect(-TILE / 2 + 2, -TILE / 2 + 2, TILE - 4, TILE - 4);
+          } else if (g.type === "MAGMA") {
+            ctx.fillStyle = g.timer < 45 ? "rgba(255, 42, 85, 0.55)" : "rgba(255, 123, 0, 0.22)";
+            ctx.beginPath();
+            ctx.arc(0, 0, 19, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.font = "15px sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("🌋", 0, 1);
+          }
+          ctx.restore();
+        }
+
+        // 3. Draw Revealed Power-Ups, Louie Eggs, Crowns, Skulls & Exit Portal
+        const ICON_MAP = {
+          BOMB: "💣", FIRE: "🔥", FULL_FIRE: "🌞", SPEED: "👟", KICK: "👢",
+          GLOVE: "🥊", REMOTE: "📡", PIERCE: "💠", LINE: "🧨", SHIELD: "🛡️",
+          EGG: "🥚", CROWN: "👑", SKULL: "💀", PORTAL: "🌀"
+        };
+        for (const it of items) {
+          if (!it.revealed) continue;
+          const cx = (it.c + 0.5) * TILE;
+          const cy = (it.r + 0.5) * TILE;
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.beginPath();
+          ctx.arc(0, 0, 18, 0, Math.PI * 2);
+          ctx.fillStyle = it.type === "PORTAL"
+            ? (drones.length === 0 ? "rgba(0, 255, 157, 0.35)" : "rgba(157, 78, 221, 0.25)")
+            : it.type === "SKULL" ? "rgba(255, 42, 85, 0.28)" : "rgba(0, 240, 255, 0.2)";
+          ctx.fill();
+          ctx.strokeStyle = it.type === "PORTAL" ? "#00ff9d" : it.type === "SKULL" ? "#ff2a55" : "#ffbe0b";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.font = "19px sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(ICON_MAP[it.type] || "⚡", 0, 1);
+          ctx.restore();
+        }
+
+        // 4. Draw Cruciform Blasts
+        for (const bl of blasts) {
+          const x = bl.c * TILE;
+          const y = bl.r * TILE;
+          ctx.save();
+          ctx.fillStyle = bl.color || "rgba(255, 190, 11, 0.85)";
+          ctx.shadowColor = "#ff007f";
+          ctx.shadowBlur = 16;
+          ctx.fillRect(x + 4, y + 4, TILE - 8, TILE - 8);
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(x + 13, y + 13, TILE - 26, TILE - 26);
+          ctx.restore();
+        }
+
+        // 5. Draw Bombs
+        for (const b of bombs) {
+          const pulse = 1 + Math.sin(b.timer * 0.25) * 0.12;
+          ctx.save();
+          ctx.translate(b.x, b.y - b.airZ * 3);
+          ctx.scale(pulse, pulse);
+          ctx.beginPath();
+          ctx.arc(0, 2, 17, 0, Math.PI * 2);
+          ctx.fillStyle = b.pierce ? "#072540" : "#121629";
+          ctx.fill();
+          ctx.lineWidth = 2.5;
+          ctx.strokeStyle = b.timer < 45 ? "#ff2a55" : b.pierce ? "#00f0ff" : b.remote ? "#00ff9d" : "#ff007f";
+          ctx.shadowColor = ctx.strokeStyle;
+          ctx.shadowBlur = 14;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(6, -13, 4, 0, Math.PI * 2);
+          ctx.fillStyle = "#ffbe0b";
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // 6. Draw Enemy Drones
+        for (const dr of drones) {
+          ctx.save();
+          ctx.translate(dr.x, dr.y);
+          ctx.fillStyle = dr.color;
+          ctx.shadowColor = dr.color;
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.arc(0, 0, 16, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#05030e";
+          ctx.fillRect(-7, -4, 5, 5);
+          ctx.fillRect(2, -4, 5, 5);
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "700 8px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(dr.name.toUpperCase(), 0, -20);
+          ctx.restore();
+        }
+
+        // 7. Draw Titan Boss
+        if (boss) {
+          ctx.save();
+          ctx.translate(boss.x, boss.y);
+          ctx.fillStyle = boss.invuln % 4 > 1 ? "#ffffff" : boss.color;
+          ctx.shadowColor = boss.color;
+          ctx.shadowBlur = 22;
+          ctx.beginPath();
+          ctx.arc(0, 0, boss.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 3;
+          ctx.stroke();
+          ctx.fillStyle = "#05030e";
+          ctx.font = "900 11px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(`${boss.hp}/${boss.maxHp} HP`, 0, 4);
+          ctx.restore();
+        }
+
+        // 8. Draw Bombers & Cyber-Louie Kangaroo Mounts
+        for (const p of players) {
+          if (!p.alive) continue;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+
+          // Cyber-Louie Mount underneath player
+          if (p.louie) {
+            ctx.beginPath();
+            ctx.ellipse(0, 8, 21, 13, 0, 0, Math.PI * 2);
+            ctx.fillStyle = p.louie.color;
+            ctx.fill();
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+
+          // Bomber Helmet / Suit
+          ctx.fillStyle = p.id === 1
+            ? (SUIT_SKINS[vault.selectedSkin]?.primary || p.color)
+            : p.color;
+          ctx.shadowColor = ctx.fillStyle;
+          ctx.shadowBlur = 14;
+          ctx.beginPath();
+          ctx.arc(0, p.louie ? -5 : 0, 16, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Protective Vest Ring
+          if (p.shieldHits > 0) {
+            ctx.strokeStyle = "#ffbe0b";
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(0, p.louie ? -5 : 0, 20, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+
+          // Visor
+          ctx.fillStyle = "#05030e";
+          ctx.fillRect(-10, (p.louie ? -11 : -6), 20, 8);
+          ctx.fillStyle = p.id === 1 ? (SUIT_SKINS[vault.selectedSkin]?.visor || "#ffffff") : "#ffffff";
+          ctx.fillRect(-7, (p.louie ? -9 : -4), 5, 4);
+          ctx.fillRect(2, (p.louie ? -9 : -4), 5, 4);
+
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "800 9px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          const tag = gameMode === "crown_rush" ? `${p.name} (👑${p.crowns})` : p.name;
+          ctx.fillText(tag, 0, p.louie ? -26 : -21);
+          ctx.restore();
+        }
+
+        // 9. Draw Revenge Carts on Top Border Track
+        for (const rc of revengeCarts) {
+          const rx = (rc.c + 0.5) * TILE;
+          const ry = 0.5 * TILE;
+          ctx.save();
+          ctx.translate(rx, ry);
+          ctx.fillStyle = rc.bomber.color;
+          ctx.strokeStyle = "#ffbe0b";
+          ctx.lineWidth = 2;
+          ctx.fillRect(-18, -14, 36, 28);
+          ctx.strokeRect(-18, -14, 36, 28);
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "800 8px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("CART", 0, 3);
+          ctx.restore();
+        }
+
+        // 10. Draw FX Particles
+        for (const p of fxParticles) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.alpha);
+          ctx.fillStyle = p.color;
+          ctx.shadowColor = p.color;
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // 11. Banner Callout
+        if (banner.timer > 0) {
+          banner.timer--;
+          ctx.save();
+          ctx.fillStyle = "rgba(6, 4, 18, 0.9)";
+          ctx.strokeStyle = banner.color;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.roundRect(canvas.width / 2 - 260, 8, 520, 28, 8);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = banner.color;
+          ctx.font = "800 11px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(banner.text, canvas.width / 2, 22);
+          ctx.restore();
+        }
+
+        if (paused || roundOver) {
+          ctx.save();
+          ctx.fillStyle = "rgba(4, 2, 12, 0.82)";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = roundOver ? "#ffbe0b" : "#00f0ff";
+          ctx.font = "900 22px Orbitron, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(roundOver ? roundMessage : "ARENA PAUSED", canvas.width / 2, canvas.height / 2);
+          ctx.restore();
+        }
+      }
+
+      // Keyboard Controls
+      window.addEventListener("keydown", e => {
+        const k = e.key.toLowerCase();
+        if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(k)) {
+          e.preventDefault();
+        }
+        keys[k] = true;
+
+        const p1 = players[0];
+        if (e.key === " ") {
+          if (p1 && p1.alive) {
+            plantBomb(p1);
+          } else {
+            // Revenge Cart bomb toss for P1!
+            const rc = revengeCarts.find(r => r.bomber === p1);
+            if (rc && rc.cooldown <= 0) {
+              rc.cooldown = 75;
+              const tc = Math.round(rc.c);
+              bombs.push({
+                c: tc, r: 2,
+                x: (tc + 0.5) * TILE, y: 2.5 * TILE,
+                vx: 0, vy: 0, airZ: 1, airVz: 3.8,
+                timer: 135, range: 2, pierce: false, remote: false,
+                owner: p1, passableBy: [], warpCooldown: 0
+              });
+              BomberAudio.punch();
+            }
+          }
+        } else if ((e.key === "Enter" || e.key === "/") && (gameMode === "coop_2p" || gameMode === "versus_2p") && players[1]) {
+          e.preventDefault();
+          plantBomb(players[1]);
+        } else if (k === "q") {
+          detonateOldestRemoteBomb(p1);
+        } else if (k === "e") {
+          usePowerGlove(p1);
+        } else if (k === "c") {
+          triggerLineBomb(p1);
+        } else if (k === "x") {
+          stopKickedBombs(p1);
+        } else if (k === "v" || e.key === "Shift") {
+          useLouieSkill(p1);
+        } else if (k === "b") {
+          BomberAudio.toggleMusic();
+        } else if (k === "p") {
+          paused = !paused;
+        } else if (k === "r") {
+          stage = 1;
+          initArena(false);
+        } else if (k === "m") {
+          BomberAudio.muted = !BomberAudio.muted;
+          document.getElementById("btnMute").textContent = BomberAudio.muted ? "🔇 Muted" : "🔊 SFX";
+        } else if (k === "h" || k === "?") {
+          document.getElementById("helpModal").classList.toggle("open");
+        } else if (k >= "1" && k <= "8") {
+          const modes = ["campaign", "royale", "roguelike", "boss_rush", "crown_rush", "zombie", "coop_2p", "versus_2p"];
+          const chosen = modes[parseInt(k, 10) - 1];
+          if (chosen) {
+            document.getElementById("modeSelect").value = chosen;
+            gameMode = chosen;
+            stage = 1;
+            initArena(false);
+          }
+        }
+      });
+
+      window.addEventListener("keyup", e => {
+        keys[e.key.toLowerCase()] = false;
+      });
+
+      // UI Selectors & Buttons
+      const modeSelect = document.getElementById("modeSelect");
+      modeSelect.addEventListener("change", () => {
+        gameMode = modeSelect.value;
+        stage = 1;
+        initArena(false);
+      });
+
+      const biomeSelect = document.getElementById("biomeSelect");
+      biomeSelect.addEventListener("change", () => {
+        selectedBiome = biomeSelect.value;
+        initArena(true);
+      });
+
+      const skinSelect = document.getElementById("skinSelect");
+      skinSelect.value = vault.selectedSkin || "white";
+      skinSelect.addEventListener("change", () => {
+        vault.selectedSkin = skinSelect.value;
+        saveVault();
+      });
+
+      document.getElementById("btnNewGame").addEventListener("click", () => {
+        stage = 1;
+        initArena(false);
+      });
+      document.getElementById("btnPause").addEventListener("click", () => { paused = !paused; });
+      document.getElementById("btnMusic").addEventListener("click", () => BomberAudio.toggleMusic());
+      document.getElementById("btnMute").addEventListener("click", () => {
+        BomberAudio.muted = !BomberAudio.muted;
+        document.getElementById("btnMute").textContent = BomberAudio.muted ? "🔇 Muted" : "🔊 SFX";
+      });
+      document.getElementById("btnHelp").addEventListener("click", () => {
+        document.getElementById("helpModal").classList.add("open");
+      });
+      document.getElementById("btnCloseHelp").addEventListener("click", () => {
+        document.getElementById("helpModal").classList.remove("open");
+      });
+
+      // Bottom bar touch / click controls
+      const bindTouch = (id, keyName) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener("mousedown", () => { keys[keyName] = true; });
+        el.addEventListener("mouseup", () => { keys[keyName] = false; });
+        el.addEventListener("mouseleave", () => { keys[keyName] = false; });
+        el.addEventListener("touchstart", e => { e.preventDefault(); keys[keyName] = true; });
+        el.addEventListener("touchend", e => { e.preventDefault(); keys[keyName] = false; });
+      };
+      bindTouch("btnUp", "w");
+      bindTouch("btnDown", "s");
+      bindTouch("btnLeft", "a");
+      bindTouch("btnRight", "d");
+      document.getElementById("btnDrop").addEventListener("click", () => plantBomb(players[0]));
+      document.getElementById("btnDetonate").addEventListener("click", () => detonateOldestRemoteBomb(players[0]));
+      document.getElementById("btnGlove").addEventListener("click", () => usePowerGlove(players[0]));
+      document.getElementById("btnLineBomb").addEventListener("click", () => triggerLineBomb(players[0]));
+      document.getElementById("btnStopKick").addEventListener("click", () => stopKickedBombs(players[0]));
+      document.getElementById("btnLouieSkill").addEventListener("click", () => useLouieSkill(players[0]));
+
+      initArena(false);
+
+      function loop() {
+        update();
+        render();
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

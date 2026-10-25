@@ -512,18 +512,18 @@
 
     .mode-select-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin-bottom: 18px;
-      max-width: 620px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+      max-width: 760px;
       width: 100%;
     }
 
     .mode-card {
-      background: rgba(17, 26, 82, 0.85);
+      background: rgba(17, 26, 82, 0.88);
       border: 2px solid rgba(232, 121, 249, 0.35);
-      border-radius: 10px;
-      padding: 10px 8px;
+      border-radius: 9px;
+      padding: 8px 6px;
       cursor: pointer;
       transition: all 0.16s ease;
       text-align: center;
@@ -542,21 +542,158 @@
     }
 
     .mode-card .icon {
-      font-size: 1.25rem;
-      margin-bottom: 4px;
+      font-size: 1.1rem;
+      margin-bottom: 2px;
     }
 
     .mode-card .name {
       font-family: var(--font-pixel);
-      font-size: 0.68rem;
+      font-size: 0.62rem;
       font-weight: 700;
       color: #fff;
     }
 
     .mode-card .desc {
-      font-size: 0.65rem;
+      font-size: 0.6rem;
       color: #cbd5e1;
-      margin-top: 4px;
+      margin-top: 2px;
+      line-height: 1.25;
+    }
+
+    /* 8-Mode Top Pill Strip */
+    .mode-pill-bar {
+      width: 100%;
+      max-width: 920px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 5px;
+      margin-bottom: 5px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .mode-pill {
+      flex: 1 1 auto;
+      background: rgba(17, 26, 82, 0.85);
+      border: 1.5px solid rgba(232, 121, 249, 0.35);
+      color: #cbd5e1;
+      font-family: var(--font-pixel);
+      font-size: 0.58rem;
+      font-weight: 700;
+      padding: 5px 7px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.14s ease;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .mode-pill:hover {
+      border-color: #f0abfc;
+      color: #fff;
+      background: rgba(217, 70, 239, 0.2);
+    }
+
+    .mode-pill.active {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.32), rgba(16, 185, 129, 0.25));
+      border-color: #4ade80;
+      color: #4ade80;
+      box-shadow: 0 0 12px rgba(74, 222, 128, 0.35);
+    }
+
+    /* Interactive Math Tutor & Tactical Gadget Bar */
+    .tutor-proof-strip {
+      width: 100%;
+      max-width: 920px;
+      background: linear-gradient(90deg, rgba(6, 78, 59, 0.65), rgba(17, 26, 82, 0.9));
+      border: 1.5px solid rgba(74, 222, 128, 0.45);
+      border-radius: 8px;
+      padding: 5px 10px;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .tutor-proof-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .tutor-badge {
+      background: #22c55e;
+      color: #052e16;
+      font-family: var(--font-pixel);
+      font-size: 0.56rem;
+      font-weight: 900;
+      padding: 3px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+      letter-spacing: 0.4px;
+    }
+
+    .tutor-badge.warn {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    .tutor-badge.hint {
+      background: #facc15;
+      color: #052e16;
+    }
+
+    .tutor-text {
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: #ecfdf5;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .gadget-cluster {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .gadget-btn {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1.5px solid rgba(56, 189, 248, 0.5);
+      color: #e0f2fe;
+      font-family: var(--font-pixel);
+      font-size: 0.56rem;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.14s ease;
+    }
+
+    .gadget-btn:hover {
+      background: rgba(56, 189, 248, 0.22);
+      border-color: #38bdf8;
+      transform: translateY(-1px);
+    }
+
+    .gadget-count {
+      background: rgba(56, 189, 248, 0.25);
+      color: #7dd3fc;
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
     }
 
     .btn-arcade {
@@ -808,11 +945,21 @@
         <rect x="68" y="76" width="10" height="8" fill="#ffffff"/>
       </svg>
       <div class="brand-titles">
-        <h1>Codecaine CyberMunch Math <span class="badge-deluxe">Cyber Deluxe</span></h1>
-        <p>Retro Grid Math Arcade • 5 Glitcher Species • Modern HD FX</p>
+        <h1>Codecaine CyberMunch Math <span class="badge-deluxe">8-Mode STEM &amp; CS Deluxe</span></h1>
+        <p>6-Tier K-12 to College Curriculum • 8 Arcade Modes • Live Math Tutor &amp; Boss Raids</p>
       </div>
     </div>
     <div class="top-actions">
+      <!-- 6-Tier Math Curriculum Selector -->
+      <select id="mathTierSelect" class="retro-select" title="Math Skill Curriculum Tier" onchange="if(window.setMathTier)window.setMathTier(this.value)">
+        <option value="adaptive">🎯 Tier: Adaptive Auto</option>
+        <option value="sprout">🌱 Tier 1: Sprout (Pre-K–G2)</option>
+        <option value="explorer">🧭 Tier 2: Explorer (G3–G5)</option>
+        <option value="scholar">📐 Tier 3: Scholar (G6–G8)</option>
+        <option value="honors">⚡ Tier 4: Honors (Algebra/Trig)</option>
+        <option value="calculus">∫ Tier 5: AP Calculus &amp; Vectors</option>
+        <option value="hacker">💻 Tier 6: CS Hacker (Hex/Bitwise)</option>
+      </select>
       <!-- Visual Palette Theme Selector -->
       <select id="themeSelect" class="retro-select" title="Visual Palette Theme" onchange="if(window.setVisualTheme)window.setVisualTheme(this.value)">
         <option value="mecc">Codecaine Classic (1990)</option>
@@ -831,23 +978,54 @@
         <span style="font-size:0.75rem;">🔊</span>
         <input type="range" id="volSlider" class="retro-slider" min="0" max="1" step="0.05" value="0.4" oninput="if(window.AudioEngine)AudioEngine.setVolume(parseFloat(this.value))">
       </div>
-      <button class="btn-icon" id="btnHint" title="Highlight a Correct Tile (H)" onclick="if(window.triggerHint)window.triggerHint()">💡 Hint</button>
+      <button class="btn-icon" id="btnHint" title="Interactive Math Tutor &amp; Highlight (H)" onclick="if(window.triggerHint)window.triggerHint()">💡 Tutor</button>
       <button class="btn-icon" id="btnHallOfFame" title="Hall of Fame" onclick="openHallOfFame()">🏆</button>
       <button class="btn-icon" id="btnShader" title="Cycle CRT Shader (Clean/Subtle/Heavy)" onclick="cycleShader()">📺</button>
       <button class="btn-icon" id="btnSound" title="Toggle Sound (M)" onclick="toggleSound()">🔊</button>
-      <button class="btn-icon" id="btnManual" title="Field Manual / Troggle Guide (?)" onclick="openManual()">📖</button>
+      <button class="btn-icon" id="btnManual" title="Field Manual / Curriculum Guide (?)" onclick="openManual()">📖</button>
       <button class="btn-icon" id="btnPause" title="Pause / Resume (P / Esc)" onclick="togglePause()">⏸️</button>
-      <button class="btn-icon" id="btnFullscreen" title="Toggle Fullscreen (F11 / F)" onclick="toggleFullscreen()">⛶</button>
-      <a href="/" class="btn-icon btn-exit-hub" data-close-game="true" title="Close Game & Return to Hub" id="btnHub" style="text-decoration:none;">✕ Exit</a>
+      <button class="btn-icon" id="btnFullscreen" title="Toggle Fullscreen (F11)" onclick="toggleFullscreen()">⛶</button>
+      <a href="/" class="btn-icon btn-exit-hub" data-close-game="true" title="Close Game &amp; Return to Hub" id="btnHub" style="text-decoration:none;">✕ Exit</a>
     </div>
   </header>
 
   <!-- Arcade Main Area -->
   <main class="arcade-cabinet">
+    <!-- 8-Mode Top Pill Selector -->
+    <div class="mode-pill-bar" id="modePillBar">
+      <button class="mode-pill active" data-mode="classic" onclick="switchGameModeLive('classic')">1. 🔢 Classic</button>
+      <button class="mode-pill" data-mode="fractions" onclick="switchGameModeLive('fractions')">2. 🍕 Fractions</button>
+      <button class="mode-pill" data-mode="super_trivia" onclick="switchGameModeLive('super_trivia')">3. 🌍 Super Munchers</button>
+      <button class="mode-pill" data-mode="algebra" onclick="switchGameModeLive('algebra')">4. 📐 Algebra</button>
+      <button class="mode-pill" data-mode="advanced_stem" onclick="switchGameModeLive('advanced_stem')">5. ∫ Trig &amp; Calc</button>
+      <button class="mode-pill" data-mode="cs_hacker" onclick="switchGameModeLive('cs_hacker')">6. 💻 CS Hacker</button>
+      <button class="mode-pill" data-mode="boss_raid" onclick="switchGameModeLive('boss_raid')">7. 👾 Boss Raid</button>
+      <button class="mode-pill" data-mode="coop_2p" onclick="switchGameModeLive('coop_2p')">8. 👥 2P Squad</button>
+    </div>
+
+    <!-- Interactive Math Tutor Proof Strip & Tactical Gadgets -->
+    <div class="tutor-proof-strip" id="tutorProofStrip">
+      <div class="tutor-proof-left">
+        <span class="tutor-badge" id="tutorBadge">MATH TUTOR</span>
+        <span class="tutor-text" id="tutorProofText">Ready! Chomp valid grid cells or press [H] for step-by-step mathematical proof.</span>
+      </div>
+      <div class="gadget-cluster">
+        <button class="gadget-btn" id="btnGadgetFreeze" title="Freeze all Troggles for 6s (Hotkey: F)" onclick="if(window.useGadgetFreeze)window.useGadgetFreeze()">
+          ❄️ FREEZE [F] <span class="gadget-count" id="hudFreezeCharges">2</span>
+        </button>
+        <button class="gadget-btn" id="btnGadgetTutor" title="Highlight valid cell &amp; show step-by-step proof (Hotkey: H)" onclick="if(window.triggerHint)window.triggerHint()">
+          💡 TUTOR [H]
+        </button>
+        <button class="gadget-btn" id="btnGadgetZap" title="Zap nearest Troggle off the board (Hotkey: Q)" onclick="if(window.useGadgetZap)window.useGadgetZap()">
+          ⚡ ZAP TROGGLE [Q] <span class="gadget-count" id="hudZapCharges">2</span>
+        </button>
+      </div>
+    </div>
+
     <!-- Active Rule Banner -->
     <div class="rule-banner">
       <div class="rule-info">
-        <span class="rule-tag" id="hudModeTag">MULTIPLES</span>
+        <span class="rule-tag" id="hudModeTag">CLASSIC NUMBER</span>
         <div class="rule-title" id="hudRuleTitle">Multiples of 6</div>
       </div>
       <div class="rule-stats">
@@ -893,40 +1071,50 @@
       <div class="game-overlay show" id="startOverlay">
         <h2 class="overlay-title" id="overlayTitle">CYBERMUNCH MATH DELUXE</h2>
         <p class="overlay-subtitle" id="overlaySubtitle">
-          Guide the Green Muncher across the classic 6×5 cyber grid! Chomp numbers matching the top rule, watch the perimeter for incoming Glitchers, and top the Hall of Fame!
+          Master 6 Math Curriculum Tiers (Pre-K Sprout to AP Calculus &amp; CS Hacker) across 8 Arcade Modes! Every chomp displays a live step-by-step proof in the Math Tutor banner.
         </p>
 
-        <!-- Mode Select Grid -->
+        <!-- 8-Mode Select Grid -->
         <div class="mode-select-grid" id="modeSelectGrid">
-          <div class="mode-card active" data-mode="multiples" onclick="selectGameMode('multiples', this)">
-            <div class="icon">✖️</div>
-            <div class="name">Multiples</div>
-            <div class="desc">Multiples of target number</div>
-          </div>
-          <div class="mode-card" data-mode="factors" onclick="selectGameMode('factors', this)">
-            <div class="icon">➗</div>
-            <div class="name">Factors</div>
-            <div class="desc">Exact divisors of target</div>
-          </div>
-          <div class="mode-card" data-mode="primes" onclick="selectGameMode('primes', this)">
+          <div class="mode-card active" data-mode="classic" onclick="selectGameMode('classic', this)">
             <div class="icon">🔢</div>
-            <div class="name">Primes</div>
-            <div class="desc">Prime numbers only</div>
+            <div class="name">1. Classic Munchers</div>
+            <div class="desc">Multiples, Factors, Primes, Equalities &amp; Inequalities</div>
           </div>
-          <div class="mode-card" data-mode="equalities" onclick="selectGameMode('equalities', this)">
-            <div class="icon">🟰</div>
-            <div class="name">Equalities</div>
-            <div class="desc">Expressions equal to target</div>
+          <div class="mode-card" data-mode="fractions" onclick="selectGameMode('fractions', this)">
+            <div class="icon">🍕</div>
+            <div class="name">2. Fraction &amp; %</div>
+            <div class="desc">Equivalent Fractions, Decimals, Ratios &amp; Percentages</div>
           </div>
-          <div class="mode-card" data-mode="inequalities" onclick="selectGameMode('inequalities', this)">
-            <div class="icon">≠</div>
-            <div class="name">Inequalities</div>
-            <div class="desc">Values &gt;, &lt;, or ≠ target</div>
+          <div class="mode-card" data-mode="super_trivia" onclick="selectGameMode('super_trivia', this)">
+            <div class="icon">🌍</div>
+            <div class="name">3. Super Munchers</div>
+            <div class="desc">Geometry, Prime Twins, Fibonacci, Units &amp; STEM</div>
           </div>
-          <div class="mode-card" data-mode="campaign" onclick="selectGameMode('campaign', this)">
-            <div class="icon">🏆</div>
-            <div class="name">Challenge</div>
-            <div class="desc">All 5 classic modes in sequence</div>
+          <div class="mode-card" data-mode="algebra" onclick="selectGameMode('algebra', this)">
+            <div class="icon">📐</div>
+            <div class="name">4. Algebra Quest</div>
+            <div class="desc">Solve for x, Linear Systems, Exponents &amp; Quadratics</div>
+          </div>
+          <div class="mode-card" data-mode="advanced_stem" onclick="selectGameMode('advanced_stem', this)">
+            <div class="icon">∫</div>
+            <div class="name">5. Trig &amp; Calculus</div>
+            <div class="desc">Unit Circle Trig, Logs, Derivatives &amp; Integrals</div>
+          </div>
+          <div class="mode-card" data-mode="cs_hacker" onclick="selectGameMode('cs_hacker', this)">
+            <div class="icon">💻</div>
+            <div class="name">6. CS Hacker</div>
+            <div class="desc">Binary, Hexadecimal, Bitwise Ops &amp; Modulo Math</div>
+          </div>
+          <div class="mode-card" data-mode="boss_raid" onclick="selectGameMode('boss_raid', this)">
+            <div class="icon">👾</div>
+            <div class="name">7. Boss Raid</div>
+            <div class="desc">Chomp valid math to fire Plasma Bolts at Mega-Troggle!</div>
+          </div>
+          <div class="mode-card" data-mode="coop_2p" onclick="selectGameMode('coop_2p', this)">
+            <div class="icon">👥</div>
+            <div class="name">8. 2P Math Squad</div>
+            <div class="desc">P1 (WASD+Space) + P2 (Arrows+Enter) Co-Op &amp; Versus!</div>
           </div>
         </div>
 
@@ -1025,14 +1213,15 @@
     <!-- Footstrip Controls -->
     <footer class="controls-strip">
       <div>
-        <span><span class="kbd-tag">Arrows / WASD</span> Move Muncher</span>
-        <span style="margin-left:8px;"><span class="kbd-tag">Space / Enter</span> Munch Number</span>
-        <span style="margin-left:8px;"><span class="kbd-tag">H</span> Hint</span>
-        <span style="margin-left:8px;"><span class="kbd-tag">Click Tile</span> Move / Munch</span>
-        <span style="margin-left:8px;"><span class="kbd-tag">P</span> Pause</span>
+        <span><span class="kbd-tag">WASD / Arrows</span> Move</span>
+        <span style="margin-left:6px;"><span class="kbd-tag">Space / Enter</span> Munch</span>
+        <span style="margin-left:6px;"><span class="kbd-tag">F</span> Freeze</span>
+        <span style="margin-left:6px;"><span class="kbd-tag">H</span> Tutor Proof</span>
+        <span style="margin-left:6px;"><span class="kbd-tag">Q</span> Zap Troggle</span>
+        <span style="margin-left:6px;"><span class="kbd-tag">1-8</span> Mode</span>
       </div>
       <div id="gamepadStatus" style="font-family:var(--font-mono); font-size:0.68rem; color:var(--text-muted);">
-        🐸 Troggles Eat Other Troggles On Collision!
+        🐸 Troggles Eat Other Troggles • 5-Streak Grants Bonus Gadget!
       </div>
     </footer>
   </main>
@@ -1041,13 +1230,18 @@
   <div class="modal-backdrop" id="manualModal">
     <div class="modal-dialog">
       <h2>
-        <span>📖 Codecaine Glitcher &amp; Muncher Guide</span>
+        <span>📖 CyberMunch Math Deluxe — 8-Mode &amp; 6-Tier Guide</span>
         <button class="modal-close" id="btnCloseManual">✕</button>
       </h2>
 
       <div class="manual-section">
-        <h3>How to Play</h3>
-        <p>Guide the green <b>Muncher</b> across the 6×5 grid and press <b>SPACE</b> to chomp numbers that match the rule at the top of the screen. Watch for flashing <b>ALERT!</b> arrows on the grid border before a Glitcher enters!</p>
+        <h3>6-Tier Beginner-to-Advanced Math Curriculum</h3>
+        <p>Select any curriculum tier in the top bar (or use <b>Adaptive Auto</b>): <b>🌱 Sprout</b> (Counting, Even/Odd, Sums ≤ 20), <b>🧭 Explorer</b> (Multiples, Factors, Primes, Fractions), <b>📐 Scholar</b> (Integers, Exponents, Order of Ops, GCD/LCM), <b>⚡ Honors</b> (Linear Equations, Quadratics, Radicals, Logs), <b>∫ AP Calculus</b> (Unit Circle Trig, Derivatives, Integrals, Limits), and <b>💻 CS Hacker</b> (Binary, Hexadecimal, Bitwise Ops, Modulo).</p>
+      </div>
+
+      <div class="manual-section">
+        <h3>8 Game Modes &amp; Tactical Gadgets</h3>
+        <p>Switch anytime between <b>1. Classic</b>, <b>2. Fractions &amp; %</b>, <b>3. Super Munchers</b>, <b>4. Algebra Quest</b>, <b>5. Trig &amp; Calc</b>, <b>6. CS Hacker</b>, <b>7. Mega-Troggle Boss Raid</b>, and <b>8. 2P Math Squad</b> (P1 WASD+Space, P2 Arrows+Enter). Use <b>❄️ Freeze [F]</b>, <b>💡 Tutor [H]</b>, and <b>⚡ Zap Troggle [Q]</b>—every 5-Munch Streak grants a bonus gadget charge!</p>
       </div>
 
       <div class="manual-section">
@@ -1550,7 +1744,8 @@
     const STATE_GAMEOVER = 4;
 
     let gameState = STATE_IDLE;
-    let selectedMode = "multiples";
+    let selectedMode = "classic";
+    let selectedTier = "adaptive"; // 'adaptive', 'sprout', 'explorer', 'scholar', 'honors', 'calculus', 'hacker'
     let visualTheme = "mecc"; // 'mecc', 'apple2', 'cyber'
 
     const THEMES = {
@@ -1596,14 +1791,30 @@
     }
 
     let score = 0;
+    let p1Score = 0;
+    let p2Score = 0;
     let nextExtraLifeScore = 5000;
     let highScore = parseInt(SafeStorage.getItem("math_munchers_high") || "0", 10);
     let level = 1;
     let lives = 3;
     let streakCombo = 1;
     let maxStreak = 1;
+    let consecutiveCorrect = 0;
+    let freezeCharges = 2;
+    let zapCharges = 2;
     let hintCell = null; // { r, c, timer }
     let mistakeToastTimer = null;
+
+    // Mega-Troggle Boss Raid State (Mode 7)
+    const bossState = {
+      active: false,
+      name: "MEGA-TROGGLE OVERLORD",
+      hp: 100,
+      maxHp: 100,
+      x: W / 2,
+      hitFlash: 0,
+      bolts: [] // { x, y, tx, ty, color }
+    };
 
     // Active Mathematical Rule
     let currentRule = {
@@ -1611,13 +1822,13 @@
       target: 6,
       display: "Multiples of 6",
       tag: "MULTIPLES",
-      validator: (val) => val % 6 === 0
+      validator: (item) => item.numericVal % 6 === 0
     };
 
     // The Grid Matrix: grid[row][col]
     let grid = [];
 
-    // The Muncher Player
+    // Player 1 Muncher (Emerald Green)
     const muncher = {
       row: 2,
       col: 2,
@@ -1625,13 +1836,32 @@
       animY: 2 * CELL_H,
       targetX: 2 * CELL_W,
       targetY: 2 * CELL_H,
-      facing: "right", // left, right, up, down
+      facing: "right",
       isChomping: false,
       chompTimer: 0,
       moveCycle: 0,
       hasShield: false,
       invulnerableTimer: 0,
       blinkTimer: 2.5,
+      isBlinking: false
+    };
+
+    // Player 2 Muncher (Cyber Cyan - Active in Mode 8: coop_2p)
+    const muncher2 = {
+      active: false,
+      row: 2,
+      col: 3,
+      animX: 3 * CELL_W,
+      animY: 2 * CELL_H,
+      targetX: 3 * CELL_W,
+      targetY: 2 * CELL_H,
+      facing: "left",
+      isChomping: false,
+      chompTimer: 0,
+      moveCycle: 0,
+      hasShield: false,
+      invulnerableTimer: 0,
+      blinkTimer: 3.1,
       isBlinking: false
     };
 
@@ -1645,6 +1875,25 @@
     let floatingTexts = [];
     let multiplierTimer = 0;
 
+    function updateTutorBanner(text, status = "info") {
+      const badge = document.getElementById("tutorBadge");
+      const textEl = document.getElementById("tutorProofText");
+      if (!badge || !textEl) return;
+      badge.className = "tutor-badge";
+      if (status === "correct") {
+        badge.textContent = "PROOF ✓";
+      } else if (status === "mistake") {
+        badge.textContent = "MISTAKE ✗";
+        badge.classList.add("warn");
+      } else if (status === "hint") {
+        badge.textContent = "TUTOR 💡";
+        badge.classList.add("hint");
+      } else {
+        badge.textContent = "MATH TUTOR";
+      }
+      textEl.textContent = text;
+    }
+
     function showMistakeExplanation(msg) {
       const toast = document.getElementById("mistakeToast");
       if (!toast) return;
@@ -1653,52 +1902,166 @@
       if (mistakeToastTimer) clearTimeout(mistakeToastTimer);
       mistakeToastTimer = setTimeout(() => {
         toast.classList.remove("visible");
-      }, 2800);
+      }, 3200);
     }
 
     function explainMistake(item, rule) {
+      if (item && item.mistakeProof) {
+        return `OOPS! ${item.mistakeProof}`;
+      }
       const val = item.numericVal;
       if (rule.type === "multiples") {
-        return `OOPS! ${item.text} is not a multiple of ${rule.target}.`;
+        return `OOPS! ${item.text} is not a multiple of ${rule.target} (${val} ÷ ${rule.target} has remainder ${val % rule.target}).`;
       }
       if (rule.type === "factors") {
-        return `OOPS! ${item.text} does not divide evenly into ${rule.target}.`;
+        return `OOPS! ${item.text} does not divide evenly into ${rule.target} (${rule.target} ÷ ${val} ≠ integer).`;
       }
       if (rule.type === "primes") {
-        if (val <= 1) return `OOPS! ${val} is not a Prime Number.`;
+        if (val <= 1) return `OOPS! ${val} is not Prime (primes must be > 1).`;
         for (let d = 2; d <= Math.sqrt(val); d++) {
           if (val % d === 0) {
-            return `OOPS! ${val} is not Prime (${d} × ${val / d} = ${val}).`;
+            return `OOPS! ${val} is Composite because ${d} × ${val / d} = ${val}.`;
           }
         }
         return `OOPS! ${val} is not a Prime Number.`;
       }
       if (rule.type === "equalities") {
-        return `OOPS! ${item.text} equals ${val}, not ${rule.target}.`;
+        return `OOPS! ${item.text} evaluates to ${val}, which ≠ ${rule.target}.`;
       }
       if (rule.type === "inequalities") {
-        const cmp = rule.tag === "GREATER THAN" ? `greater than ${rule.target}` : `less than ${rule.target}`;
+        const cmp = rule.tag === "GREATER THAN" ? `> ${rule.target}` : `< ${rule.target}`;
         return `OOPS! ${item.text} is not ${cmp}.`;
       }
-      return `OOPS! ${item.text} does not match ${rule.display}.`;
+      return `OOPS! ${item.text} does not satisfy "${rule.display}".`;
+    }
+
+    function explainCorrectProof(item, rule) {
+      if (item && item.proof) return item.proof;
+      const val = item.numericVal;
+      if (rule.type === "multiples") {
+        return `${item.text} is a multiple of ${rule.target} because ${rule.target} × ${val / rule.target} = ${val}.`;
+      }
+      if (rule.type === "factors") {
+        return `${item.text} is a factor of ${rule.target} because ${rule.target} ÷ ${val} = ${rule.target / val} (remainder 0).`;
+      }
+      if (rule.type === "primes") {
+        return `${val} is Prime: its only positive divisors are 1 and ${val}.`;
+      }
+      if (rule.type === "equalities") {
+        return `${item.text} = ${rule.target} (exact equality match!).`;
+      }
+      if (rule.type === "inequalities") {
+        return `${item.text} satisfies ${rule.display}.`;
+      }
+      return `${item.text} satisfies ${rule.display}!`;
     }
 
     function triggerHint() {
-      if (gameState !== STATE_PLAYING) return;
       const candidates = [];
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
           const item = grid[r] && grid[r][c];
           if (item && !item.eaten && currentRule.validator(item)) {
-            candidates.push({ r, c });
+            candidates.push({ r, c, item });
           }
         }
       }
       if (candidates.length > 0) {
         const pick = candidates[Math.floor(Math.random() * candidates.length)];
-        hintCell = { r: pick.r, c: pick.c, timer: 3.0 };
+        hintCell = { r: pick.r, c: pick.c, timer: 4.0 };
+        const proofText = explainCorrectProof(pick.item, currentRule);
+        updateTutorBanner(`Row ${pick.r + 1}, Col ${pick.c + 1} [${pick.item.text}] → ${proofText}`, "hint");
         AudioEngine.playStep();
       }
+    }
+
+    function useGadgetFreeze() {
+      if (gameState !== STATE_PLAYING) return;
+      if (freezeCharges <= 0) {
+        updateTutorBanner("No Freeze [F] charges left! Build a 5x Munch Streak to earn +1 Gadget!", "mistake");
+        return;
+      }
+      freezeCharges--;
+      freezeTimer = 6.0;
+      AudioEngine.playPowerup();
+      addFloatingText("❄️ CRYO-FREEZE ACTIVATED (6s)!", muncher.animX + CELL_W / 2, muncher.animY, "#38bdf8");
+      createNumberBurst(muncher.animX + CELL_W / 2, muncher.animY + CELL_H / 2, "#38bdf8");
+      updateTutorBanner("Cryo-Freeze [F] deployed! All Troggles frozen for 6 seconds.", "hint");
+      updateHUD();
+    }
+
+    function useGadgetZap() {
+      if (gameState !== STATE_PLAYING) return;
+      if (zapCharges <= 0) {
+        updateTutorBanner("No Zap [Q] charges left! Build a 5x Munch Streak to earn +1 Gadget!", "mistake");
+        return;
+      }
+      if (troggles.length === 0) {
+        updateTutorBanner("No active Troggles on the grid to zap right now!", "hint");
+        return;
+      }
+      zapCharges--;
+      // Find nearest Troggle to Player 1
+      let bestIdx = 0;
+      let bestDist = Infinity;
+      troggles.forEach((t, idx) => {
+        const d = Math.hypot(t.row - muncher.row, t.col - muncher.col);
+        if (d < bestDist) {
+          bestDist = d;
+          bestIdx = idx;
+        }
+      });
+      const zapped = troggles.splice(bestIdx, 1)[0];
+      const zx = zapped.col * CELL_W + CELL_W / 2;
+      const zy = zapped.row * CELL_H + CELL_H / 2;
+      AudioEngine.playPowerup();
+      createNumberBurst(zx, zy, "#facc15");
+      addFloatingText(`⚡ ZAPPED ${zapped.type.toUpperCase()}! +150`, zx, zy - 10, "#facc15");
+      score += 150;
+      updateTutorBanner(`EMP Zap [Q] vaporized the ${zapped.type.toUpperCase()} Troggle (+150 pts)!`, "correct");
+      updateHUD();
+    }
+
+    function setMathTier(tier) {
+      selectedTier = tier || "adaptive";
+      populateGrid();
+      updateTutorBanner(`Curriculum Tier switched to ${selectedTier.toUpperCase()} — Rule: ${currentRule.display}`, "hint");
+    }
+
+    function syncModeUI(mode) {
+      document.querySelectorAll(".mode-card").forEach(c => {
+        c.classList.toggle("active", c.getAttribute("data-mode") === mode);
+      });
+      document.querySelectorAll(".mode-pill").forEach(p => {
+        p.classList.toggle("active", p.getAttribute("data-mode") === mode);
+      });
+    }
+
+    function selectGameMode(mode, el) {
+      selectedMode = mode;
+      syncModeUI(mode);
+      if (el) el.classList.add("active");
+      muncher2.active = (mode === "coop_2p");
+      bossState.active = (mode === "boss_raid");
+      if (bossState.active) {
+        bossState.hp = 100;
+        bossState.maxHp = 100;
+      }
+      populateGrid();
+      updateTutorBanner(`Mode set to ${currentRule.tag}: ${currentRule.display}`, "info");
+    }
+
+    function switchGameModeLive(mode) {
+      selectedMode = mode;
+      syncModeUI(mode);
+      muncher2.active = (mode === "coop_2p");
+      bossState.active = (mode === "boss_raid");
+      if (bossState.active) {
+        bossState.hp = 100 + (level - 1) * 25;
+        bossState.maxHp = bossState.hp;
+      }
+      populateGrid();
+      updateTutorBanner(`Switched live to ${currentRule.tag}: ${currentRule.display}`, "hint");
     }
 
     // -------------------------------------------------------------------------
@@ -1812,15 +2175,392 @@
       }
     }
 
-    function selectGameMode(mode, el) {
-      selectedMode = mode;
-      document.querySelectorAll(".mode-card").forEach(c => c.classList.remove("active"));
-      if (el) el.classList.add("active");
-      populateGrid();
-    }
     // -------------------------------------------------------------------------
+    // 4. 6-Tier Curriculum & 8-Mode Problem Generator with Worked Proofs
+    // -------------------------------------------------------------------------
+    const QUESTION_BANKS = {
+      sprout: [
+        {
+          tag: "TIER 1 • SPROUT",
+          display: "Even Numbers (Divisible by 2)",
+          correct: [
+            { text: "2", proof: "2 is Even because 2 = 2 × 1." },
+            { text: "4", proof: "4 is Even because 4 = 2 × 2." },
+            { text: "6", proof: "6 is Even because 6 = 2 × 3." },
+            { text: "8", proof: "8 is Even because 8 = 2 × 4." },
+            { text: "10", proof: "10 is Even because 10 = 2 × 5." },
+            { text: "12", proof: "12 is Even because 12 = 2 × 6." },
+            { text: "14", proof: "14 is Even because 14 = 2 × 7." },
+            { text: "16", proof: "16 is Even because 16 = 2 × 8." },
+            { text: "18", proof: "18 is Even because 18 = 2 × 9." },
+            { text: "20", proof: "20 is Even because 20 = 2 × 10." }
+          ],
+          wrong: [
+            { text: "3", mistakeProof: "3 is Odd (3 ÷ 2 leaves remainder 1)." },
+            { text: "5", mistakeProof: "5 is Odd (5 ÷ 2 leaves remainder 1)." },
+            { text: "7", mistakeProof: "7 is Odd (7 ÷ 2 leaves remainder 1)." },
+            { text: "9", mistakeProof: "9 is Odd (9 ÷ 2 leaves remainder 1)." },
+            { text: "11", mistakeProof: "11 is Odd (ends in 1, not divisible by 2)." },
+            { text: "13", mistakeProof: "13 is Odd (ends in 3, not divisible by 2)." },
+            { text: "15", mistakeProof: "15 is Odd (ends in 5, not divisible by 2)." },
+            { text: "17", mistakeProof: "17 is Odd (ends in 7, not divisible by 2)." }
+          ]
+        },
+        {
+          tag: "TIER 1 • SPROUT",
+          display: "Make 10 (Number Bonds Equal to 10)",
+          correct: [
+            { text: "5+5", proof: "5 + 5 = 10." },
+            { text: "6+4", proof: "6 + 4 = 10." },
+            { text: "7+3", proof: "7 + 3 = 10." },
+            { text: "8+2", proof: "8 + 2 = 10." },
+            { text: "9+1", proof: "9 + 1 = 10." },
+            { text: "10+0", proof: "10 + 0 = 10." },
+            { text: "12-2", proof: "12 - 2 = 10." },
+            { text: "15-5", proof: "15 - 5 = 10." }
+          ],
+          wrong: [
+            { text: "5+4", mistakeProof: "5 + 4 = 9, not 10." },
+            { text: "6+3", mistakeProof: "6 + 3 = 9, not 10." },
+            { text: "7+4", mistakeProof: "7 + 4 = 11, not 10." },
+            { text: "8+3", mistakeProof: "8 + 3 = 11, not 10." },
+            { text: "12-3", mistakeProof: "12 - 3 = 9, not 10." },
+            { text: "4+4", mistakeProof: "4 + 4 = 8, not 10." }
+          ]
+        }
+      ],
+      fractions: [
+        {
+          tag: "FRACTIONS & %",
+          display: "Equivalent to 1/2 (0.5 or 50%)",
+          correct: [
+            { text: "1/2", proof: "1/2 = 0.5 = 50%." },
+            { text: "2/4", proof: "2/4 simplifies to 1/2 (divide top & bottom by 2)." },
+            { text: "3/6", proof: "3/6 simplifies to 1/2 (3 ÷ 3 = 1, 6 ÷ 3 = 2)." },
+            { text: "4/8", proof: "4/8 simplifies to 1/2 (4 is half of 8)." },
+            { text: "5/10", proof: "5/10 = 0.5 = 1/2." },
+            { text: "6/12", proof: "6/12 simplifies to 1/2 (6 ÷ 6 = 1, 12 ÷ 6 = 2)." },
+            { text: "0.5", proof: "0.5 = 5 tenths = 1/2." },
+            { text: "50%", proof: "50% = 50/100 = 1/2." },
+            { text: "50/100", proof: "50/100 simplifies to 1/2." }
+          ],
+          wrong: [
+            { text: "1/3", mistakeProof: "1/3 ≈ 0.333 (33.3%), which is not 1/2." },
+            { text: "2/5", mistakeProof: "2/5 = 0.4 (40%), which is not 1/2." },
+            { text: "3/4", mistakeProof: "3/4 = 0.75 (75%), which is not 1/2." },
+            { text: "0.25", mistakeProof: "0.25 = 1/4 (25%), not 1/2." },
+            { text: "20%", mistakeProof: "20% = 1/5 (0.2), not 1/2." },
+            { text: "2/6", mistakeProof: "2/6 simplifies to 1/3, not 1/2." },
+            { text: "3/8", mistakeProof: "3/8 = 0.375, not 0.5." }
+          ]
+        },
+        {
+          tag: "FRACTIONS & %",
+          display: "Equivalent to 3/4 (0.75 or 75%)",
+          correct: [
+            { text: "3/4", proof: "3/4 = 0.75 = 75%." },
+            { text: "6/8", proof: "6/8 = (3×2)/(4×2) = 3/4." },
+            { text: "9/12", proof: "9/12 = (3×3)/(4×3) = 3/4." },
+            { text: "15/20", proof: "15/20 = (3×5)/(4×5) = 3/4." },
+            { text: "0.75", proof: "0.75 = 75/100 = 3/4." },
+            { text: "75%", proof: "75% = 75/100 = 3/4." },
+            { text: "75/100", proof: "75/100 ÷ 25/25 = 3/4." },
+            { text: "12/16", proof: "12/16 ÷ 4/4 = 3/4." }
+          ],
+          wrong: [
+            { text: "2/3", mistakeProof: "2/3 ≈ 0.667 (66.7%), not 3/4 (0.75)." },
+            { text: "4/5", mistakeProof: "4/5 = 0.80 (80%), not 3/4 (75%)." },
+            { text: "5/8", mistakeProof: "5/8 = 0.625 (62.5%), not 3/4." },
+            { text: "0.34", mistakeProof: "0.34 = 34/100, whereas 3/4 = 0.75." },
+            { text: "60%", mistakeProof: "60% = 3/5, not 3/4." },
+            { text: "1/4", mistakeProof: "1/4 = 0.25 (25%), not 3/4." }
+          ]
+        },
+        {
+          tag: "FRACTIONS & %",
+          display: "Equivalent to 1/4 (0.25 or 25%)",
+          correct: [
+            { text: "1/4", proof: "1/4 = 0.25 = 25%." },
+            { text: "2/8", proof: "2/8 simplifies to 1/4 (divide by 2)." },
+            { text: "3/12", proof: "3/12 simplifies to 1/4 (divide by 3)." },
+            { text: "5/20", proof: "5/20 simplifies to 1/4 (divide by 5)." },
+            { text: "0.25", proof: "0.25 = 25 hundredths = 1/4." },
+            { text: "25%", proof: "25% = 25/100 = 1/4." },
+            { text: "25/100", proof: "25/100 simplifies to 1/4." },
+            { text: "4/16", proof: "4/16 simplifies to 1/4." }
+          ],
+          wrong: [
+            { text: "1/5", mistakeProof: "1/5 = 0.20 (20%), not 1/4 (25%)." },
+            { text: "2/4", mistakeProof: "2/4 = 1/2 (50%), not 1/4." },
+            { text: "0.4", mistakeProof: "0.4 = 2/5 (40%), whereas 1/4 = 0.25." },
+            { text: "40%", mistakeProof: "40% = 2/5, not 1/4." },
+            { text: "3/8", mistakeProof: "3/8 = 0.375, not 0.25." }
+          ]
+        }
+      ],
+      super_trivia: [
+        {
+          tag: "SUPER MUNCHERS",
+          display: "Perfect Squares (n² for Integer n)",
+          correct: [
+            { text: "1", proof: "1 = 1² (1 × 1)." },
+            { text: "4", proof: "4 = 2² (2 × 2)." },
+            { text: "9", proof: "9 = 3² (3 × 3)." },
+            { text: "16", proof: "16 = 4² (4 × 4)." },
+            { text: "25", proof: "25 = 5² (5 × 5)." },
+            { text: "36", proof: "36 = 6² (6 × 6)." },
+            { text: "49", proof: "49 = 7² (7 × 7)." },
+            { text: "64", proof: "64 = 8² (8 × 8)." },
+            { text: "81", proof: "81 = 9² (9 × 9)." },
+            { text: "100", proof: "100 = 10² (10 × 10)." },
+            { text: "121", proof: "121 = 11² (11 × 11)." },
+            { text: "144", proof: "144 = 12² (12 × 12)." }
+          ],
+          wrong: [
+            { text: "8", mistakeProof: "8 is 2³ (a cube), not a perfect square (√8 ≈ 2.83)." },
+            { text: "12", mistakeProof: "√12 ≈ 3.46 is not an integer." },
+            { text: "18", mistakeProof: "18 = 9 × 2, not a perfect square." },
+            { text: "20", mistakeProof: "20 lies between 4² (16) and 5² (25)." },
+            { text: "27", mistakeProof: "27 = 3³ (a cube), not a square." },
+            { text: "32", mistakeProof: "√32 ≈ 5.66 is not an integer." },
+            { text: "50", mistakeProof: "50 = 25 × 2, not a perfect square." }
+          ]
+        },
+        {
+          tag: "SUPER MUNCHERS",
+          display: "Fibonacci Sequence Numbers",
+          correct: [
+            { text: "1", proof: "1 is in Fibonacci (1, 1, 2, 3, 5, 8...)." },
+            { text: "2", proof: "2 = 1 + 1 (Fibonacci)." },
+            { text: "3", proof: "3 = 1 + 2 (Fibonacci)." },
+            { text: "5", proof: "5 = 2 + 3 (Fibonacci)." },
+            { text: "8", proof: "8 = 3 + 5 (Fibonacci)." },
+            { text: "13", proof: "13 = 5 + 8 (Fibonacci)." },
+            { text: "21", proof: "21 = 8 + 13 (Fibonacci)." },
+            { text: "34", proof: "34 = 13 + 21 (Fibonacci)." },
+            { text: "55", proof: "55 = 21 + 34 (Fibonacci)." },
+            { text: "89", proof: "89 = 34 + 55 (Fibonacci)." }
+          ],
+          wrong: [
+            { text: "4", mistakeProof: "Fibonacci jumps from 3 to 5 (4 is not in the sequence)." },
+            { text: "6", mistakeProof: "Fibonacci jumps from 5 to 8 (6 is not in the sequence)." },
+            { text: "9", mistakeProof: "Fibonacci jumps from 8 to 13." },
+            { text: "15", mistakeProof: "15 is not a Fibonacci number (13, 21...)." },
+            { text: "25", mistakeProof: "25 is not a Fibonacci number (21, 34...)." },
+            { text: "40", mistakeProof: "40 is not a Fibonacci number (34, 55...)." }
+          ]
+        },
+        {
+          tag: "SUPER MUNCHERS",
+          display: "Geometry: Shapes & Angles Equal to 360°",
+          correct: [
+            { text: "Circle", proof: "A full circle spans 360°." },
+            { text: "Square ∑∠", proof: "Sum of interior angles of a square = 4 × 90° = 360°." },
+            { text: "Rect ∑∠", proof: "A rectangle's 4 right angles sum to 360°." },
+            { text: "4×90°", proof: "4 × 90° = 360°." },
+            { text: "2×180°", proof: "2 straight angles = 2 × 180° = 360°." },
+            { text: "2π rad", proof: "2π radians = 360°." },
+            { text: "Rhombus ∑∠", proof: "Every quadrilateral's interior angles sum to 360°." }
+          ],
+          wrong: [
+            { text: "Triangle ∑∠", mistakeProof: "A triangle's interior angles sum to 180°, not 360°." },
+            { text: "Right ∠", mistakeProof: "A right angle is 90°, not 360°." },
+            { text: "π rad", mistakeProof: "π radians = 180°, not 360°." },
+            { text: "Pentagon ∑∠", mistakeProof: "A pentagon's interior angles sum to 540°." },
+            { text: "3×90°", mistakeProof: "3 × 90° = 270°, not 360°." }
+          ]
+        }
+      ],
+      scholar: [
+        {
+          tag: "TIER 3 • SCHOLAR",
+          display: "Integers & Exponents Equal to -8 or +8",
+          correct: [
+            { text: "2³", proof: "2³ = 2 × 2 × 2 = 8." },
+            { text: "(-2)³", proof: "(-2)³ = (-2)×(-2)×(-2) = -8." },
+            { text: "-12+4", proof: "-12 + 4 = -8." },
+            { text: "3-11", proof: "3 - 11 = -8." },
+            { text: "|-8|", proof: "Absolute value |-8| = 8." },
+            { text: "√64", proof: "Principal square root √64 = 8." },
+            { text: "2⁴÷2", proof: "16 ÷ 2 = 8." },
+            { text: "(-4)×2", proof: "(-4) × 2 = -8." }
+          ],
+          wrong: [
+            { text: "2⁴", mistakeProof: "2⁴ = 16, not ±8." },
+            { text: "3²", mistakeProof: "3² = 9, not ±8." },
+            { text: "-5-5", mistakeProof: "-5 - 5 = -10, not -8." },
+            { text: "(-3)²", mistakeProof: "(-3)² = +9, not ±8." },
+            { text: "√36", mistakeProof: "√36 = 6, not 8." }
+          ]
+        }
+      ],
+      algebra: [
+        {
+          tag: "ALGEBRA QUEST",
+          display: "Equations Where x = 5",
+          correct: [
+            { text: "2x=10", proof: "2x = 10 → divide by 2 → x = 5." },
+            { text: "x+7=12", proof: "x + 7 = 12 → subtract 7 → x = 5." },
+            { text: "3x-5=10", proof: "3x - 5 = 10 → 3x = 15 → x = 5." },
+            { text: "x/5=1", proof: "x ÷ 5 = 1 → multiply by 5 → x = 5." },
+            { text: "2x+4=14", proof: "2x + 4 = 14 → 2x = 10 → x = 5." },
+            { text: "x²=25 (x>0)", proof: "5² = 25, so positive root x = 5." },
+            { text: "4x=20", proof: "4x = 20 → 20 ÷ 4 = 5." },
+            { text: "15-x=10", proof: "15 - 5 = 10 → x = 5." }
+          ],
+          wrong: [
+            { text: "2x=12", mistakeProof: "2x = 12 gives x = 6, not 5." },
+            { text: "x+4=10", mistakeProof: "x + 4 = 10 gives x = 6, not 5." },
+            { text: "3x=12", mistakeProof: "3x = 12 gives x = 4, not 5." },
+            { text: "x-5=5", mistakeProof: "x - 5 = 5 gives x = 10, not 5." },
+            { text: "2x-2=6", mistakeProof: "2x = 8 gives x = 4, not 5." },
+            { text: "5x=30", mistakeProof: "5x = 30 gives x = 6, not 5." }
+          ]
+        },
+        {
+          tag: "ALGEBRA QUEST",
+          display: "Equations Where x = 3",
+          correct: [
+            { text: "3x=9", proof: "3x = 9 → divide by 3 → x = 3." },
+            { text: "2x+1=7", proof: "2x + 1 = 7 → 2x = 6 → x = 3." },
+            { text: "5x-5=10", proof: "5x - 5 = 10 → 5x = 15 → x = 3." },
+            { text: "x²=9 (x>0)", proof: "3² = 9 → positive root x = 3." },
+            { text: "x+8=11", proof: "11 - 8 = 3 → x = 3." },
+            { text: "12/x=4", proof: "12 ÷ 3 = 4 → x = 3." },
+            { text: "4x-2=10", proof: "4x = 12 → x = 3." },
+            { text: "2ˣ=8", proof: "2³ = 8 → exponent x = 3." }
+          ],
+          wrong: [
+            { text: "2x=8", mistakeProof: "2x = 8 gives x = 4, not 3." },
+            { text: "3x=12", mistakeProof: "3x = 12 gives x = 4, not 3." },
+            { text: "x+5=9", mistakeProof: "x + 5 = 9 gives x = 4, not 3." },
+            { text: "2ˣ=16", mistakeProof: "2⁴ = 16 gives x = 4, not 3." },
+            { text: "x²=16", mistakeProof: "x² = 16 gives x = ±4, not 3." }
+          ]
+        }
+      ],
+      advanced_stem: [
+        {
+          tag: "TRIG & CALCULUS",
+          display: "Expressions Equal to 1",
+          correct: [
+            { text: "sin(90°)", proof: "Unit Circle: sin(90°) = sin(π/2) = 1." },
+            { text: "cos(0°)", proof: "Unit Circle: cos(0°) = 1." },
+            { text: "tan(45°)", proof: "tan(45°) = sin(45°)/cos(45°) = 1." },
+            { text: "ln(e)", proof: "Natural log of e¹ is 1." },
+            { text: "log₁₀(10)", proof: "10¹ = 10, so log₁₀(10) = 1." },
+            { text: "d/dx[x]", proof: "Derivative of f(x) = x with respect to x is 1." },
+            { text: "∫₀¹ 1 dx", proof: "Area of 1 from x=0 to 1 is 1." },
+            { text: "5⁰", proof: "Any non-zero number raised to the 0 power equals 1." },
+            { text: "sin²θ+cos²θ", proof: "Pythagorean Identity: sin²θ + cos²θ = 1." }
+          ],
+          wrong: [
+            { text: "sin(0°)", mistakeProof: "sin(0°) = 0, not 1." },
+            { text: "cos(90°)", mistakeProof: "cos(90°) = 0, not 1." },
+            { text: "ln(1)", mistakeProof: "ln(1) = 0 because e⁰ = 1." },
+            { text: "d/dx[5]", mistakeProof: "The derivative of a constant (5) is 0, not 1." },
+            { text: "sin(30°)", mistakeProof: "sin(30°) = 1/2 (0.5), not 1." },
+            { text: "log₂(4)", mistakeProof: "log₂(4) = 2 because 2² = 4." }
+          ]
+        },
+        {
+          tag: "TRIG & CALCULUS",
+          display: "Power Rule Derivatives & Integrals",
+          correct: [
+            { text: "d/dx[x²]=2x", proof: "Power Rule: d/dx[xⁿ] = n·xⁿ⁻¹ → d/dx[x²] = 2x." },
+            { text: "d/dx[x³]=3x²", proof: "Power Rule: d/dx[x³] = 3x²." },
+            { text: "d/dx[5x]=5", proof: "Linear slope derivative: d/dx[5x] = 5." },
+            { text: "d/dx[eˣ]=eˣ", proof: "eˣ is its own derivative: d/dx[eˣ] = eˣ." },
+            { text: "∫2x dx = x²", proof: "Antiderivative of 2x is x² (+ C)." },
+            { text: "∫₀² 2x dx=4", proof: "[x²]₀² = 2² - 0² = 4." },
+            { text: "d/dx[sin x]=cos x", proof: "Trig derivative: d/dx[sin x] = cos x." }
+          ],
+          wrong: [
+            { text: "d/dx[x²]=x", mistakeProof: "Forgot the exponent coefficient! d/dx[x²] = 2x, not x." },
+            { text: "d/dx[x³]=x²", mistakeProof: "Power Rule brings down the 3: d/dx[x³] = 3x²." },
+            { text: "d/dx[7]=7", mistakeProof: "The derivative of any constant is 0, not 7." },
+            { text: "∫2x dx=2", mistakeProof: "2 is the derivative of 2x; the integral ∫2x dx is x²." },
+            { text: "d/dx[cos x]=sin x", mistakeProof: "d/dx[cos x] = -sin x (missing negative sign!)." }
+          ]
+        }
+      ],
+      cs_hacker: [
+        {
+          tag: "CS HACKER • HEX/BIN",
+          display: "Binary, Hex & Bitwise Equal to 8 (or Power of 2)",
+          correct: [
+            { text: "0b1000 (8)", proof: "Binary 1000₂ = 1×2³ + 0 + 0 + 0 = 8." },
+            { text: "0x08", proof: "Hexadecimal 0x08 = 8 in decimal." },
+            { text: "1 << 3", proof: "Left shift 1 by 3 bits = 2³ = 8." },
+            { text: "16 >> 1", proof: "Right shift 16 by 1 bit = 16 ÷ 2 = 8." },
+            { text: "2³", proof: "2³ = 8." },
+            { text: "0b1010 ^ 2", proof: "10 (1010₂) XOR 2 (0010₂) = 8 (1000₂)." },
+            { text: "24 % 16", proof: "24 modulo 16 leaves remainder 8." },
+            { text: "0xF & 0x8", proof: "1111₂ AND 1000₂ = 1000₂ = 8." }
+          ],
+          wrong: [
+            { text: "0b0110", mistakeProof: "Binary 0110₂ = 4 + 2 = 6, not 8." },
+            { text: "0x10", mistakeProof: "Hex 0x10 = 1×16 = 16 in decimal, not 8." },
+            { text: "1 << 2", mistakeProof: "1 << 2 = 2² = 4, not 8." },
+            { text: "15 % 8", mistakeProof: "15 % 8 = 7, not 8." },
+            { text: "0b1111", mistakeProof: "Binary 1111₂ = 15, not 8." },
+            { text: "8 & 4", mistakeProof: "1000₂ AND 0100₂ = 0, not 8." }
+          ]
+        },
+        {
+          tag: "CS HACKER • HEX/BIN",
+          display: "Binary, Hex & Bitwise Equal to 15 (0x0F)",
+          correct: [
+            { text: "0b1111", proof: "Binary 1111₂ = 8 + 4 + 2 + 1 = 15." },
+            { text: "0x0F", proof: "Hexadecimal F = 15 in decimal." },
+            { text: "2⁴ - 1", proof: "16 - 1 = 15." },
+            { text: "(1<<4)-1", proof: "(1 << 4) is 16; 16 - 1 = 15." },
+            { text: "8 | 7", proof: "1000₂ OR 0111₂ = 1111₂ = 15." },
+            { text: "31 % 16", proof: "31 ÷ 16 = 1 with remainder 15." },
+            { text: "0xFF & 15", proof: "Bitmask 0xFF AND 15 = 15." }
+          ],
+          wrong: [
+            { text: "0b1110", mistakeProof: "Binary 1110₂ = 14, not 15." },
+            { text: "0x15", mistakeProof: "Hex 0x15 = 1×16 + 5 = 21 in decimal, not 15!" },
+            { text: "2⁴", mistakeProof: "2⁴ = 16, not 15." },
+            { text: "8 & 7", mistakeProof: "1000₂ AND 0111₂ = 0 (no shared bits!), not 15." },
+            { text: "16 % 15", mistakeProof: "16 % 15 = 1, not 15." }
+          ]
+        }
+      ]
+    };
+
+    function createBankRule(bankKey, idx) {
+      const list = QUESTION_BANKS[bankKey] || QUESTION_BANKS.fractions;
+      const entry = list[idx % list.length];
+      return {
+        type: "bank",
+        bankEntry: entry,
+        target: entry.display,
+        tag: entry.tag,
+        display: entry.display,
+        validator: (item) => !!item.isValidBankItem
+      };
+    }
+
     function generateRuleForMode(mode, currentLvl) {
-      if (mode === "campaign") {
+      // Check if user explicitly picked a non-adaptive Math Skill Tier override while in classic/boss/coop
+      if (selectedTier !== "adaptive" && (mode === "classic" || mode === "boss_raid" || mode === "coop_2p")) {
+        if (selectedTier === "sprout") return createBankRule("sprout", currentLvl - 1);
+        if (selectedTier === "scholar") return createBankRule("scholar", currentLvl - 1);
+        if (selectedTier === "honors") return createBankRule("algebra", currentLvl - 1);
+        if (selectedTier === "calculus") return createBankRule("advanced_stem", currentLvl - 1);
+        if (selectedTier === "hacker") return createBankRule("cs_hacker", currentLvl - 1);
+      }
+
+      // Mode-specific routing for the 8 Game Modes
+      if (mode === "fractions") return createBankRule("fractions", currentLvl - 1);
+      if (mode === "super_trivia") return createBankRule("super_trivia", currentLvl - 1);
+      if (mode === "algebra") return createBankRule("algebra", currentLvl - 1);
+      if (mode === "advanced_stem") return createBankRule("advanced_stem", currentLvl - 1);
+      if (mode === "cs_hacker") return createBankRule("cs_hacker", currentLvl - 1);
+
+      if (mode === "boss_raid" || mode === "coop_2p" || mode === "classic" || mode === "campaign") {
         const pool = ["multiples", "factors", "primes", "equalities", "inequalities"];
         mode = pool[(currentLvl - 1) % pool.length];
       }
@@ -1831,7 +2571,7 @@
         return {
           type: "multiples",
           target,
-          tag: "MULTIPLES",
+          tag: selectedMode === "boss_raid" ? "👾 BOSS RAID" : (selectedMode === "coop_2p" ? "👥 2P SQUAD" : "MULTIPLES"),
           display: `Multiples of ${target}`,
           validator: (item) => item.numericVal % target === 0
         };
@@ -1843,7 +2583,7 @@
         return {
           type: "factors",
           target,
-          tag: "FACTORS",
+          tag: selectedMode === "boss_raid" ? "👾 BOSS RAID" : (selectedMode === "coop_2p" ? "👥 2P SQUAD" : "FACTORS"),
           display: `Factors of ${target}`,
           validator: (item) => item.numericVal > 0 && target % item.numericVal === 0
         };
@@ -1854,7 +2594,7 @@
         return {
           type: "primes",
           target: "Prime",
-          tag: "PRIMES",
+          tag: selectedMode === "boss_raid" ? "👾 BOSS RAID" : (selectedMode === "coop_2p" ? "👥 2P SQUAD" : "PRIMES"),
           display: `Prime Numbers`,
           validator: (item) => primesSet.has(item.numericVal)
         };
@@ -1865,7 +2605,7 @@
         return {
           type: "equalities",
           target,
-          tag: "EQUALITIES",
+          tag: selectedMode === "boss_raid" ? "👾 BOSS RAID" : (selectedMode === "coop_2p" ? "👥 2P SQUAD" : "EQUALITIES"),
           display: `Equals ${target}`,
           validator: (item) => item.numericVal === target
         };
@@ -1893,16 +2633,42 @@
     }
 
     function createGridItem(rule, forceCorrect) {
+      if (rule.type === "bank" && rule.bankEntry) {
+        const pool = forceCorrect ? rule.bankEntry.correct : rule.bankEntry.wrong;
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        return {
+          text: pick.text,
+          numericVal: forceCorrect ? 1 : 0,
+          isValidBankItem: !!forceCorrect,
+          proof: pick.proof || `${pick.text} matches ${rule.display}.`,
+          mistakeProof: pick.mistakeProof || `${pick.text} does not match ${rule.display}.`,
+          eaten: false,
+          powerup: null
+        };
+      }
+
       if (rule.type === "multiples") {
         const base = rule.target;
         if (forceCorrect) {
           const mult = Math.floor(Math.random() * 10) + 1;
           const val = base * mult;
-          return { text: String(val), numericVal: val, eaten: false, powerup: null };
+          return {
+            text: String(val),
+            numericVal: val,
+            proof: `${val} is a multiple of ${base} (${base} × ${mult} = ${val}).`,
+            eaten: false,
+            powerup: null
+          };
         } else {
           let val = Math.floor(Math.random() * (base * 10)) + 1;
           if (val % base === 0) val += 1;
-          return { text: String(val), numericVal: val, eaten: false, powerup: null };
+          return {
+            text: String(val),
+            numericVal: val,
+            mistakeProof: `${val} ÷ ${base} = ${Math.floor(val / base)} R${val % base} (not a multiple of ${base}).`,
+            eaten: false,
+            powerup: null
+          };
         }
       }
 
@@ -1914,11 +2680,23 @@
         }
         if (forceCorrect) {
           const val = allFactors[Math.floor(Math.random() * allFactors.length)];
-          return { text: String(val), numericVal: val, eaten: false, powerup: null };
+          return {
+            text: String(val),
+            numericVal: val,
+            proof: `${val} is a factor of ${num} (${val} × ${num / val} = ${num}).`,
+            eaten: false,
+            powerup: null
+          };
         } else {
           let val = Math.floor(Math.random() * (num + 10)) + 2;
           while (num % val === 0) val = Math.floor(Math.random() * (num + 10)) + 2;
-          return { text: String(val), numericVal: val, eaten: false, powerup: null };
+          return {
+            text: String(val),
+            numericVal: val,
+            mistakeProof: `${num} ÷ ${val} leaves remainder ${num % val} (not a factor of ${num}).`,
+            eaten: false,
+            powerup: null
+          };
         }
       }
 
@@ -1928,7 +2706,13 @@
         const val = forceCorrect
           ? primes[Math.floor(Math.random() * primes.length)]
           : composites[Math.floor(Math.random() * composites.length)];
-        return { text: String(val), numericVal: val, eaten: false, powerup: null };
+        return {
+          text: String(val),
+          numericVal: val,
+          proof: `${val} is Prime: only divisible by 1 and ${val}.`,
+          eaten: false,
+          powerup: null
+        };
       }
 
       if (rule.type === "equalities") {
@@ -1947,12 +2731,24 @@
           } else {
             expr = `${target * 2}÷2`;
           }
-          return { text: expr, numericVal: target, eaten: false, powerup: null };
+          return {
+            text: expr,
+            numericVal: target,
+            proof: `${expr} evaluates to ${target}.`,
+            eaten: false,
+            powerup: null
+          };
         } else {
           const wrongVal = Math.max(2, target + (Math.random() < 0.5 ? 1 : -1) * (Math.floor(Math.random() * 4) + 1));
           const a = Math.floor(Math.random() * (wrongVal - 1)) + 1;
           const expr = `${a}+${Math.max(1, wrongVal - a)}`;
-          return { text: expr, numericVal: wrongVal, eaten: false, powerup: null };
+          return {
+            text: expr,
+            numericVal: wrongVal,
+            mistakeProof: `${expr} = ${wrongVal}, which does not equal ${target}.`,
+            eaten: false,
+            powerup: null
+          };
         }
       }
 
@@ -1965,7 +2761,14 @@
         } else {
           val = isGreater ? Math.max(1, target - Math.floor(Math.random() * 25) - 1) : target + Math.floor(Math.random() * 25) + 1;
         }
-        return { text: String(val), numericVal: val, eaten: false, powerup: null };
+        return {
+          text: String(val),
+          numericVal: val,
+          proof: `${val} is ${isGreater ? ">" : "<"} ${target}.`,
+          mistakeProof: `${val} is not ${isGreater ? ">" : "<"} ${target}.`,
+          eaten: false,
+          powerup: null
+        };
       }
 
       const fval = Math.floor(Math.random() * 50) + 1;
@@ -2028,11 +2831,16 @@
     function initGame() {
       hideAllOverlays();
       score = 0;
+      p1Score = 0;
+      p2Score = 0;
       nextExtraLifeScore = 5000;
       level = 1;
       lives = 3;
       streakCombo = 1;
       maxStreak = 1;
+      consecutiveCorrect = 0;
+      freezeCharges = 2;
+      zapCharges = 2;
       troggles = [];
       particles = [];
       floatingTexts = [];
@@ -2052,9 +2860,27 @@
       muncher.invulnerableTimer = 1.0;
       muncher.moveCycle = 0;
 
+      muncher2.active = (selectedMode === "coop_2p");
+      muncher2.row = 2;
+      muncher2.col = 3;
+      muncher2.animX = 3 * CELL_W;
+      muncher2.animY = 2 * CELL_H;
+      muncher2.targetX = 3 * CELL_W;
+      muncher2.targetY = 2 * CELL_H;
+      muncher2.facing = "left";
+      muncher2.hasShield = false;
+      muncher2.invulnerableTimer = 1.0;
+      muncher2.moveCycle = 0;
+
+      bossState.active = (selectedMode === "boss_raid");
+      bossState.hp = 100;
+      bossState.maxHp = 100;
+      bossState.bolts = [];
+
       populateGrid();
       gameState = STATE_PLAYING;
       AudioEngine.startMusic(document.getElementById("musicSelect")?.value || "arcade");
+      updateTutorBanner(`Mission Live! Target: ${currentRule.display}. Press [H] anytime for a worked proof.`, "info");
       updateHUD();
     }
 
@@ -2062,32 +2888,38 @@
       level++;
       hideAllOverlays();
       muncher.invulnerableTimer = 1.2;
+      muncher2.invulnerableTimer = 1.2;
       troggles = [];
       freezeTimer = 0;
       multiplierTimer = 0;
       hintCell = null;
+      if (bossState.active) {
+        bossState.maxHp = 100 + (level - 1) * 25;
+        bossState.hp = bossState.maxHp;
+      }
       populateGrid();
       gameState = STATE_PLAYING;
       AudioEngine.startMusic(document.getElementById("musicSelect")?.value || "arcade");
+      updateTutorBanner(`Stage ${level} — Rule: ${currentRule.display}`, "info");
       updateHUD();
     }
 
-    function moveMuncher(dRow, dCol) {
+    function moveMuncher(dRow, dCol, playerObj = muncher) {
       if (gameState !== STATE_PLAYING) return;
 
-      const nextR = Math.max(0, Math.min(ROWS - 1, muncher.row + dRow));
-      const nextC = Math.max(0, Math.min(COLS - 1, muncher.col + dCol));
+      const nextR = Math.max(0, Math.min(ROWS - 1, playerObj.row + dRow));
+      const nextC = Math.max(0, Math.min(COLS - 1, playerObj.col + dCol));
 
-      if (dCol > 0) muncher.facing = "right";
-      else if (dCol < 0) muncher.facing = "left";
-      else if (dRow > 0) muncher.facing = "down";
-      else if (dRow < 0) muncher.facing = "up";
+      if (dCol > 0) playerObj.facing = "right";
+      else if (dCol < 0) playerObj.facing = "left";
+      else if (dRow > 0) playerObj.facing = "down";
+      else if (dRow < 0) playerObj.facing = "up";
 
-      if (nextR !== muncher.row || nextC !== muncher.col) {
-        muncher.row = nextR;
-        muncher.col = nextC;
-        muncher.targetX = nextC * CELL_W;
-        muncher.targetY = nextR * CELL_H;
+      if (nextR !== playerObj.row || nextC !== playerObj.col) {
+        playerObj.row = nextR;
+        playerObj.col = nextC;
+        playerObj.targetX = nextC * CELL_W;
+        playerObj.targetY = nextR * CELL_H;
         AudioEngine.playStep();
       }
     }
@@ -2103,22 +2935,22 @@
       }
     }
 
-    function munchCurrentTile() {
+    function munchCurrentTile(playerObj = muncher) {
       if (gameState !== STATE_PLAYING) return;
 
-      muncher.isChomping = true;
-      muncher.chompTimer = 0.25;
+      playerObj.isChomping = true;
+      playerObj.chompTimer = 0.25;
 
-      const item = grid[muncher.row][muncher.col];
+      const item = grid[playerObj.row][playerObj.col];
       if (!item || item.eaten) return;
 
-      if (hintCell && hintCell.r === muncher.row && hintCell.c === muncher.col) {
+      if (hintCell && hintCell.r === playerObj.row && hintCell.c === playerObj.col) {
         hintCell = null;
       }
 
       // Check powerup on cell
       if (item.powerup) {
-        applyPowerup(item.powerup, muncher.col * CELL_W + CELL_W / 2, muncher.row * CELL_H + CELL_H / 2);
+        applyPowerup(item.powerup, playerObj.col * CELL_W + CELL_W / 2, playerObj.row * CELL_H + CELL_H / 2);
         item.powerup = null;
       }
 
@@ -2126,34 +2958,76 @@
       const isCorrect = currentRule.validator(item);
       item.eaten = true;
 
-      const cellCenterX = muncher.col * CELL_W + CELL_W / 2;
-      const cellCenterY = muncher.row * CELL_H + CELL_H / 2;
+      const cellCenterX = playerObj.col * CELL_W + CELL_W / 2;
+      const cellCenterY = playerObj.row * CELL_H + CELL_H / 2;
 
       if (isCorrect) {
         let pts = 100 * streakCombo;
         if (multiplierTimer > 0) pts *= 2;
         score += pts;
+        if (playerObj === muncher2) p2Score += pts;
+        else p1Score += pts;
+
         streakCombo = Math.min(5, streakCombo + 1);
         if (streakCombo > maxStreak) maxStreak = streakCombo;
+        consecutiveCorrect++;
+
+        // Every 5 consecutive correct munches grants a tactical gadget charge!
+        if (consecutiveCorrect % 5 === 0) {
+          if (freezeCharges <= zapCharges) {
+            freezeCharges++;
+            addFloatingText("❄️ +1 FREEZE [F]!", cellCenterX, cellCenterY - 30, "#38bdf8");
+          } else {
+            zapCharges++;
+            addFloatingText("⚡ +1 ZAP [Q]!", cellCenterX, cellCenterY - 30, "#facc15");
+          }
+        }
+
+        // Update Interactive Math Tutor Banner with worked proof
+        const proofMsg = explainCorrectProof(item, currentRule);
+        updateTutorBanner(proofMsg, "correct");
+
+        // Mode 7: Boss Raid Plasma Bolt
+        if (bossState.active) {
+          bossState.bolts.push({
+            x: cellCenterX,
+            y: cellCenterY,
+            tx: bossState.x,
+            ty: 28,
+            color: "#4ade80"
+          });
+          bossState.hp = Math.max(0, bossState.hp - 12);
+          bossState.hitFlash = 0.25;
+          if (bossState.hp <= 0) {
+            score += 2000;
+            addFloatingText("💥 MEGA-TROGGLE DEFEATED! +2000!", W / 2, 70, "#facc15");
+          }
+        }
 
         AudioEngine.playChomp(streakCombo);
-        createNumberBurst(cellCenterX, cellCenterY, "#4ade80");
-        addFloatingText(`+${pts}! ${streakCombo > 1 ? streakCombo + "x" : ""}${multiplierTimer > 0 ? " [2X]" : ""}`, cellCenterX, cellCenterY - 12, "#4ade80");
+        createNumberBurst(cellCenterX, cellCenterY, playerObj === muncher2 ? "#38bdf8" : "#4ade80");
+        addFloatingText(`+${pts}! ${streakCombo > 1 ? streakCombo + "x" : ""}${multiplierTimer > 0 ? " [2X]" : ""}`, cellCenterX, cellCenterY - 12, playerObj === muncher2 ? "#38bdf8" : "#4ade80");
         checkExtraLifeAward();
 
         // Check if level is cleared
         const remaining = countRemainingCorrect();
         if (remaining <= 0) {
+          if (bossState.active && bossState.hp > 0) {
+            bossState.hp = Math.max(0, bossState.hp - 35);
+            bossState.hitFlash = 0.4;
+          }
           triggerLevelClear();
         }
       } else {
-        // Wrong number eaten — show authentic MECC educational reason!
+        // Wrong number eaten — show authentic MECC educational reason + Tutor proof!
         streakCombo = 1;
+        consecutiveCorrect = 0;
         lives--;
         AudioEngine.playBuzzer();
         createNumberBurst(cellCenterX, cellCenterY, "#f43f5e");
         const reason = explainMistake(item, currentRule);
         showMistakeExplanation(reason);
+        updateTutorBanner(reason, "mistake");
         addFloatingText(`OOPS! -1 MUNCHER`, cellCenterX, cellCenterY - 12, "#f43f5e");
 
         if (lives <= 0) {
@@ -2323,15 +3197,34 @@
     // -------------------------------------------------------------------------
     // 6. Keyboard, Mouse, Touch & Gamepad Input
     // -------------------------------------------------------------------------
+    const MODE_HOTKEYS = {
+      "1": "classic",
+      "2": "fractions",
+      "3": "super_trivia",
+      "4": "algebra",
+      "5": "advanced_stem",
+      "6": "cs_hacker",
+      "7": "boss_raid",
+      "8": "coop_2p"
+    };
+
     window.addEventListener("keydown", (e) => {
       const k = (e.key || "").toLowerCase();
       const code = e.code || "";
 
-      const isSpaceOrEnter = k === " " || k === "spacebar" || code === "Space" || k === "enter" || code === "Enter" || code === "NumpadEnter";
+      if (document.activeElement && document.activeElement.id === "hofInitials") return;
 
-      if (isSpaceOrEnter) {
-        if (document.activeElement && document.activeElement.id === "hofInitials") return;
+      // Mode Hotkeys 1-8
+      if (MODE_HOTKEYS[k]) {
+        e.preventDefault();
+        switchGameModeLive(MODE_HOTKEYS[k]);
+        return;
+      }
 
+      const isSpace = k === " " || k === "spacebar" || code === "Space";
+      const isEnter = k === "enter" || code === "Enter" || code === "NumpadEnter";
+
+      if (isSpace || isEnter) {
         e.preventDefault();
         if (gameState === STATE_IDLE || gameState === STATE_GAMEOVER) {
           initGame();
@@ -2340,27 +3233,54 @@
         } else if (gameState === STATE_PAUSED) {
           resumeGame();
         } else if (gameState === STATE_PLAYING) {
-          munchCurrentTile();
+          if (muncher2.active && isEnter) {
+            munchCurrentTile(muncher2);
+          } else {
+            munchCurrentTile(muncher);
+          }
         }
       }
 
-      if (k === "arrowup" || k === "w" || code === "KeyW") {
+      // In 2P Squad mode: WASD moves P1, Arrow keys move P2. In 1P modes: both move P1!
+      if (k === "w" || code === "KeyW") {
         e.preventDefault();
-        moveMuncher(-1, 0);
-      } else if (k === "arrowdown" || k === "s" || code === "KeyS") {
+        moveMuncher(-1, 0, muncher);
+      } else if (k === "s" || code === "KeyS") {
         e.preventDefault();
-        moveMuncher(1, 0);
-      } else if (k === "arrowleft" || k === "a" || code === "KeyA") {
+        moveMuncher(1, 0, muncher);
+      } else if (k === "a" || code === "KeyA") {
         e.preventDefault();
-        moveMuncher(0, -1);
-      } else if (k === "arrowright" || k === "d" || code === "KeyD") {
+        moveMuncher(0, -1, muncher);
+      } else if (k === "d" || code === "KeyD") {
         e.preventDefault();
-        moveMuncher(0, 1);
+        moveMuncher(0, 1, muncher);
+      } else if (k === "arrowup") {
+        e.preventDefault();
+        moveMuncher(-1, 0, muncher2.active ? muncher2 : muncher);
+      } else if (k === "arrowdown") {
+        e.preventDefault();
+        moveMuncher(1, 0, muncher2.active ? muncher2 : muncher);
+      } else if (k === "arrowleft") {
+        e.preventDefault();
+        moveMuncher(0, -1, muncher2.active ? muncher2 : muncher);
+      } else if (k === "arrowright") {
+        e.preventDefault();
+        moveMuncher(0, 1, muncher2.active ? muncher2 : muncher);
       }
 
       if (k === "h" || code === "KeyH") {
         e.preventDefault();
         triggerHint();
+      }
+
+      if (k === "f" || code === "KeyF") {
+        e.preventDefault();
+        useGadgetFreeze();
+      }
+
+      if (k === "q" || code === "KeyQ") {
+        e.preventDefault();
+        useGadgetZap();
       }
 
       if (k === "p" || code === "KeyP" || k === "escape" || code === "Escape") {
@@ -2580,18 +3500,18 @@
       ctx.restore();
     }
 
-    // Authentic MECC Green Amphibious Muncher Character
-    function drawMuncherSprite(ctx, now, isPlayerMoving, squashX, squashY) {
+    // Authentic MECC Amphibious Muncher Character (Supports P1 Emerald & P2 Cyber Cyan)
+    function drawMuncherSprite(ctx, now, isPlayerMoving, squashX, squashY, pObj = muncher, isP2 = false) {
       // Shadow beneath Muncher
       ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
       ctx.beginPath();
       ctx.ellipse(0, 23, 20, 5.5, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Purple/Magenta Sneaker Feet (Waddling)
-      const footSwing = isPlayerMoving ? Math.sin(muncher.moveCycle) * 6 : 0;
-      ctx.fillStyle = "#d946ef";
-      ctx.strokeStyle = "#f5d0fe";
+      // Sneaker Feet (Waddling)
+      const footSwing = isPlayerMoving ? Math.sin(pObj.moveCycle) * 6 : 0;
+      ctx.fillStyle = isP2 ? "#facc15" : "#d946ef";
+      ctx.strokeStyle = isP2 ? "#fef08a" : "#f5d0fe";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.ellipse(-11, 19 + footSwing, 8, 4.5, -0.1, 0, Math.PI * 2);
@@ -2606,48 +3526,54 @@
       ctx.scale(squashX, squashY);
 
       // Little Amphibious Side Arms
-      const armWave = isPlayerMoving ? Math.cos(muncher.moveCycle) * 4 : Math.sin(now * 0.006) * 1.5;
-      ctx.fillStyle = "#16a34a";
+      const armWave = isPlayerMoving ? Math.cos(pObj.moveCycle) * 4 : Math.sin(now * 0.006) * 1.5;
+      ctx.fillStyle = isP2 ? "#0284c7" : "#16a34a";
       ctx.beginPath();
       ctx.ellipse(-22, 2 + armWave, 5, 3.5, -0.3, 0, Math.PI * 2);
       ctx.ellipse(22, 2 - armWave, 5, 3.5, 0.3, 0, Math.PI * 2);
       ctx.fill();
 
-      // Main Emerald Green Amphibious Body
+      // Main Amphibious Body
       const bodyGrad = ctx.createLinearGradient(0, -18, 0, 18);
-      bodyGrad.addColorStop(0, "#4ade80");
-      bodyGrad.addColorStop(0.55, "#22c55e");
-      bodyGrad.addColorStop(1, "#15803d");
+      if (isP2) {
+        bodyGrad.addColorStop(0, "#38bdf8");
+        bodyGrad.addColorStop(0.55, "#0ea5e9");
+        bodyGrad.addColorStop(1, "#0369a1");
+      } else {
+        bodyGrad.addColorStop(0, "#4ade80");
+        bodyGrad.addColorStop(0.55, "#22c55e");
+        bodyGrad.addColorStop(1, "#15803d");
+      }
 
       ctx.fillStyle = bodyGrad;
-      ctx.shadowColor = "rgba(74, 222, 128, 0.65)";
+      ctx.shadowColor = isP2 ? "rgba(56, 189, 248, 0.65)" : "rgba(74, 222, 128, 0.65)";
       ctx.shadowBlur = 12;
       ctx.beginPath();
       ctx.roundRect(-21, -12, 42, 30, 14);
       ctx.fill();
       ctx.shadowBlur = 0;
-      ctx.strokeStyle = "#bbf7d0";
+      ctx.strokeStyle = isP2 ? "#bae6fd" : "#bbf7d0";
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Lighter Mint Belly Patch
-      ctx.fillStyle = "rgba(187, 247, 208, 0.35)";
+      // Belly Patch
+      ctx.fillStyle = isP2 ? "rgba(186, 230, 253, 0.35)" : "rgba(187, 247, 208, 0.35)";
       ctx.beginPath();
       ctx.ellipse(0, 10, 13, 5, 0, 0, Math.PI * 2);
       ctx.fill();
 
       // Iconic Two Big Eyes Perched on Top of the Head!
-      const lookX = muncher.facing === "left" ? -2.2 : (muncher.facing === "right" ? 2.2 : 0);
-      const lookY = muncher.facing === "up" ? -2.0 : (muncher.facing === "down" ? 2.0 : 0);
+      const lookX = pObj.facing === "left" ? -2.2 : (pObj.facing === "right" ? 2.2 : 0);
+      const lookY = pObj.facing === "up" ? -2.0 : (pObj.facing === "down" ? 2.0 : 0);
 
       // Eye Stalk Domes
-      ctx.fillStyle = "#22c55e";
+      ctx.fillStyle = isP2 ? "#0ea5e9" : "#22c55e";
       ctx.beginPath();
       ctx.arc(-9, -15, 8.5, 0, Math.PI * 2);
       ctx.arc(9, -15, 8.5, 0, Math.PI * 2);
       ctx.fill();
 
-      if (muncher.isBlinking) {
+      if (pObj.isBlinking) {
         ctx.strokeStyle = "#052e16";
         ctx.lineWidth = 2.5;
         ctx.beginPath();
@@ -2656,7 +3582,7 @@
         ctx.stroke();
       } else {
         ctx.fillStyle = "#ffffff";
-        ctx.strokeStyle = "#14532d";
+        ctx.strokeStyle = isP2 ? "#0c4a6e" : "#14532d";
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(-9, -15, 7, 0, Math.PI * 2);
@@ -2683,7 +3609,7 @@
       }
 
       // Wide Horizontal Frog-like Chomping Mouth & Blocky White Teeth!
-      const mouthOpenH = muncher.isChomping ? 15 : (isPlayerMoving ? 6 + Math.abs(Math.sin(muncher.moveCycle)) * 5 : 6);
+      const mouthOpenH = pObj.isChomping ? 15 : (isPlayerMoving ? 6 + Math.abs(Math.sin(pObj.moveCycle)) * 5 : 6);
       ctx.fillStyle = "#052e16";
       ctx.beginPath();
       ctx.roundRect(-15, -3, 30, mouthOpenH, 5);
@@ -2725,10 +3651,11 @@
           const y = r * CELL_H;
           const item = grid[r] && grid[r][c];
           const isPlayerOnCell = r === muncher.row && c === muncher.col;
+          const isP2OnCell = muncher2.active && r === muncher2.row && c === muncher2.col;
           const isHinted = hintCell && hintCell.r === r && hintCell.c === c;
 
           // Cell Interior Fill
-          ctx.fillStyle = isPlayerOnCell
+          ctx.fillStyle = (isPlayerOnCell || isP2OnCell)
             ? theme.cellActiveBg
             : (item && item.eaten ? theme.cellEatenBg : theme.cellBg);
           ctx.fillRect(x + 3, y + 3, CELL_W - 6, CELL_H - 6);
@@ -2753,6 +3680,15 @@
             ctx.strokeRect(x + 4, y + 4, CELL_W - 8, CELL_H - 8);
             ctx.restore();
           }
+          if (isP2OnCell) {
+            ctx.save();
+            ctx.strokeStyle = "#38bdf8";
+            ctx.lineWidth = 3.5;
+            ctx.shadowColor = "#38bdf8";
+            ctx.shadowBlur = 10;
+            ctx.strokeRect(x + 6, y + 6, CELL_W - 12, CELL_H - 12);
+            ctx.restore();
+          }
 
           // Hint Beacon Highlight
           if (isHinted && item && !item.eaten) {
@@ -2771,20 +3707,22 @@
             const text = item.text;
             const hasPowerup = !!item.powerup;
             // Offset number slightly upward when Muncher is on the same tile so both are visible!
-            const textY = isPlayerOnCell
+            const textY = (isPlayerOnCell || isP2OnCell)
               ? y + 24
               : (hasPowerup ? y + CELL_H / 2 + 10 : y + CELL_H / 2);
 
             if ("letterSpacing" in ctx) {
-              ctx.letterSpacing = text.length > 5 ? "1px" : "2.5px";
+              ctx.letterSpacing = text.length > 5 ? "0.5px" : "2px";
             }
 
             if (text.length <= 3) {
               ctx.font = "800 24px 'JetBrains Mono', 'Plus Jakarta Sans', monospace";
             } else if (text.length <= 6) {
-              ctx.font = "800 20px 'JetBrains Mono', 'Plus Jakarta Sans', monospace";
+              ctx.font = "800 19px 'JetBrains Mono', 'Plus Jakarta Sans', monospace";
+            } else if (text.length <= 10) {
+              ctx.font = "700 15px 'JetBrains Mono', 'Plus Jakarta Sans', monospace";
             } else {
-              ctx.font = "700 17px 'JetBrains Mono', 'Plus Jakarta Sans', monospace";
+              ctx.font = "700 12.5px 'JetBrains Mono', 'Plus Jakarta Sans', monospace";
             }
 
             ctx.fillStyle = isHinted ? "#facc15" : theme.numColor;
@@ -2858,7 +3796,7 @@
         ctx.restore();
       });
 
-      // 3. Draw The Authentic Green Amphibious Muncher
+      // 3. Draw Player 1 Emerald Muncher
       const distRemaining = Math.hypot(muncher.targetX - muncher.animX, muncher.targetY - muncher.animY);
       const isPlayerMoving = distRemaining > 1.5;
       const hopOffset = isPlayerMoving ? -Math.abs(Math.sin(muncher.moveCycle)) * 10 : Math.sin(now * 0.005) * 2.5;
@@ -2884,9 +3822,82 @@
         ctx.restore();
       }
 
-      drawMuncherSprite(ctx, now, isPlayerMoving, squashX, squashY);
+      drawMuncherSprite(ctx, now, isPlayerMoving, squashX, squashY, muncher, false);
       ctx.restore();
       ctx.globalAlpha = 1.0;
+
+      // 3b. Draw Player 2 Cyber Cyan Muncher (Mode 8: coop_2p)
+      if (muncher2.active) {
+        const dist2 = Math.hypot(muncher2.targetX - muncher2.animX, muncher2.targetY - muncher2.animY);
+        const isP2Moving = dist2 > 1.5;
+        const hop2 = isP2Moving ? -Math.abs(Math.sin(muncher2.moveCycle)) * 10 : Math.sin(now * 0.005 + 1.5) * 2.5;
+        const sq2X = muncher2.isChomping ? 1.16 : (isP2Moving ? 1 + Math.sin(muncher2.moveCycle * 2) * 0.1 : 1);
+        const sq2Y = muncher2.isChomping ? 0.86 : (isP2Moving ? 1 - Math.sin(muncher2.moveCycle * 2) * 0.1 : 1);
+
+        if (muncher2.invulnerableTimer > 0 && Math.floor(now * 0.02) % 2 === 0) {
+          ctx.globalAlpha = 0.45;
+        }
+        ctx.save();
+        ctx.translate(muncher2.animX + CELL_W / 2, muncher2.animY + CELL_H / 2 + 8 + hop2);
+        drawMuncherSprite(ctx, now, isP2Moving, sq2X, sq2Y, muncher2, true);
+        ctx.restore();
+        ctx.globalAlpha = 1.0;
+
+        // 2P Squad Score Pill Overlay
+        ctx.save();
+        ctx.fillStyle = "rgba(9, 13, 44, 0.88)";
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(W / 2 - 155, 6, 310, 26, 8);
+        ctx.fill();
+        ctx.stroke();
+        ctx.font = "900 10px 'Press Start 2P', monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#4ade80";
+        ctx.fillText(`P1: ${p1Score}   •   P2: ${p2Score}`, W / 2, 19);
+        ctx.restore();
+      }
+
+      // 3c. Draw Mode 7: Mega-Troggle Boss Raid HUD & Plasma Bolts
+      if (bossState.active) {
+        ctx.save();
+        const barW = 360;
+        const barH = 22;
+        const bx = W / 2 - barW / 2;
+        const by = 6;
+        ctx.fillStyle = "rgba(9, 13, 44, 0.9)";
+        ctx.strokeStyle = bossState.hitFlash > 0 ? "#facc15" : "#ef4444";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.roundRect(bx, by, barW, barH, 7);
+        ctx.fill();
+        ctx.stroke();
+
+        const pct = Math.max(0, bossState.hp / bossState.maxHp);
+        ctx.fillStyle = bossState.hitFlash > 0 ? "#fef08a" : "#ef4444";
+        ctx.beginPath();
+        ctx.roundRect(bx + 3, by + 3, (barW - 6) * pct, barH - 6, 5);
+        ctx.fill();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "900 9px 'Press Start 2P', monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`👾 ${bossState.name}: ${bossState.hp}/${bossState.maxHp} HP`, W / 2, by + barH / 2 + 1);
+
+        // Draw Plasma Bolts flying to Boss
+        bossState.bolts.forEach(b => {
+          ctx.fillStyle = b.color;
+          ctx.shadowColor = b.color;
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, 6, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.restore();
+      }
 
       // 4. Draw Particles
       particles.forEach(p => {
@@ -3007,6 +4018,38 @@
       if (muncher.isChomping) {
         muncher.chompTimer -= dt;
         if (muncher.chompTimer <= 0) muncher.isChomping = false;
+      }
+
+      // Player 2 Muncher Update (Mode 8)
+      if (muncher2.active) {
+        const dist2 = Math.hypot(muncher2.targetX - muncher2.animX, muncher2.targetY - muncher2.animY);
+        const isP2Moving = dist2 > 1.5;
+        muncher2.animX += (muncher2.targetX - muncher2.animX) * 0.35;
+        muncher2.animY += (muncher2.targetY - muncher2.animY) * 0.35;
+        if (isP2Moving) {
+          muncher2.moveCycle += dt * 14;
+        } else {
+          muncher2.moveCycle = 0;
+        }
+        if (muncher2.isChomping) {
+          muncher2.chompTimer -= dt;
+          if (muncher2.chompTimer <= 0) muncher2.isChomping = false;
+        }
+        if (muncher2.invulnerableTimer > 0) muncher2.invulnerableTimer -= dt;
+      }
+
+      // Boss Raid Bolts Update (Mode 7)
+      if (bossState.active) {
+        if (bossState.hitFlash > 0) bossState.hitFlash -= dt;
+        for (let i = bossState.bolts.length - 1; i >= 0; i--) {
+          const b = bossState.bolts[i];
+          b.x += (b.tx - b.x) * 0.25;
+          b.y += (b.ty - b.y) * 0.25;
+          if (Math.hypot(b.tx - b.x, b.ty - b.y) < 12) {
+            createNumberBurst(b.tx, b.ty, "#facc15");
+            bossState.bolts.splice(i, 1);
+          }
+        }
       }
 
       if (hintCell) {
@@ -3143,25 +4186,30 @@
           }
         }
 
-        // Check Troggle Collision with Muncher
+        // Check Troggle Collision with Muncher (P1 & P2)
         for (let i = troggles.length - 1; i >= 0; i--) {
           const t = troggles[i];
           if (t.warningTimer > 0) continue;
-          if (t.row === muncher.row && t.col === muncher.col && muncher.invulnerableTimer <= 0) {
-            if (muncher.hasShield) {
-              muncher.hasShield = false;
-              muncher.invulnerableTimer = 1.2;
+          const hitP1 = (t.row === muncher.row && t.col === muncher.col && muncher.invulnerableTimer <= 0);
+          const hitP2 = (muncher2.active && t.row === muncher2.row && t.col === muncher2.col && muncher2.invulnerableTimer <= 0);
+          if (hitP1 || hitP2) {
+            const victim = hitP2 ? muncher2 : muncher;
+            if (victim.hasShield) {
+              victim.hasShield = false;
+              victim.invulnerableTimer = 1.2;
               troggles.splice(i, 1);
               AudioEngine.playPowerup();
-              addFloatingText("🛡️ SHIELD SAVED YOU!", muncher.animX + CELL_W / 2, muncher.animY, "#4ade80");
+              addFloatingText("🛡️ SHIELD SAVED YOU!", victim.animX + CELL_W / 2, victim.animY, "#4ade80");
             } else {
               lives--;
-              muncher.invulnerableTimer = 1.6;
+              victim.invulnerableTimer = 1.6;
               streakCombo = 1;
+              consecutiveCorrect = 0;
               AudioEngine.playBuzzer();
-              createNumberBurst(muncher.animX + CELL_W / 2, muncher.animY + CELL_H / 2, "#f43f5e");
+              createNumberBurst(victim.animX + CELL_W / 2, victim.animY + CELL_H / 2, "#f43f5e");
               showMistakeExplanation(`UH-OH! A ${t.type.toUpperCase()} Troggle munched you!`);
-              addFloatingText("TROGGLING! -1 MUNCHER", muncher.animX + CELL_W / 2, muncher.animY, "#f43f5e");
+              updateTutorBanner(`Troggle Alert! A ${t.type.toUpperCase()} caught your Muncher! Use [F] Freeze or [Q] Zap!`, "mistake");
+              addFloatingText("TROGGLING! -1 MUNCHER", victim.animX + CELL_W / 2, victim.animY, "#f43f5e");
 
               if (lives <= 0) {
                 const reasonEl = document.getElementById("gameOverReason");
@@ -3223,6 +4271,11 @@
       document.getElementById("hudScore").textContent = String(score).padStart(5, "0");
       document.getElementById("hudHigh").textContent = String(highScore).padStart(5, "0");
 
+      const fzEl = document.getElementById("hudFreezeCharges");
+      if (fzEl) fzEl.textContent = freezeCharges;
+      const zpEl = document.getElementById("hudZapCharges");
+      if (zpEl) zpEl.textContent = zapCharges;
+
       // Authentic Miniature Green Muncher Reserve Icons
       const livesContainer = document.getElementById("hudLives");
       if (livesContainer) {
@@ -3252,9 +4305,8 @@
     document.querySelectorAll(".mode-card").forEach(card => {
       card.addEventListener("click", (e) => {
         e.stopPropagation();
-        document.querySelectorAll(".mode-card").forEach(c => c.classList.remove("active"));
-        card.classList.add("active");
-        selectedMode = card.getAttribute("data-mode");
+        const mode = card.getAttribute("data-mode");
+        selectGameMode(mode, card);
       });
     });
 
@@ -3346,6 +4398,10 @@
     window.closeHallOfFame = closeHallOfFame;
     window.submitHofInitials = submitHofInitials;
     window.selectGameMode = selectGameMode;
+    window.switchGameModeLive = switchGameModeLive;
+    window.setMathTier = setMathTier;
+    window.useGadgetFreeze = useGadgetFreeze;
+    window.useGadgetZap = useGadgetZap;
     window.cycleShader = cycleShader;
     window.toggleSound = toggleSound;
     window.openManual = openManual;

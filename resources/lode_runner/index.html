@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine CyberLode: Gold Cache Heist</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <style>
+    :root {
+      --bg-void: #050711;
+      --bg-panel: rgba(14, 18, 34, 0.94);
+      --border-amber: rgba(245, 158, 11, 0.42);
+      --amber: #f59e0b;
+      --gold: #facc15;
+      --crimson: #ef4444;
+      --cyan: #38bdf8;
+      --emerald: #10b981;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 20%, #271709 0%, #090d1c 68%, #03050c 100%);
+      color: var(--text-main);
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header.top-hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 14px;
+      background: linear-gradient(180deg, rgba(28, 19, 10, 0.96) 0%, rgba(10, 12, 24, 0.96) 100%);
+      border-bottom: 1px solid var(--border-amber);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.75);
+      gap: 10px;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 30%, #f59e0b, #b45309 70%, #1c1008);
+      border: 1.5px solid #fde047;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .brand-titles h1 {
+      font-size: 13.5px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffffff 0%, #fde047 50%, #fb923c 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-titles .subtitle {
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+    }
+
+    .hud-kpis {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .kpi-pill {
+      background: rgba(15, 20, 36, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 8px;
+      padding: 3px 9px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 74px;
+    }
+
+    .kpi-pill.gold-border {
+      border-color: rgba(250, 204, 21, 0.55);
+      box-shadow: 0 0 10px rgba(250, 204, 21, 0.16);
+    }
+
+    .kpi-pill.cyan-border {
+      border-color: rgba(56, 189, 248, 0.55);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.16);
+    }
+
+    .kpi-label {
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.65px;
+      color: var(--text-muted);
+      font-weight: 800;
+    }
+
+    .kpi-val {
+      font-size: 13.5px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: #ffffff;
+    }
+
+    .kpi-val.gold {
+      color: var(--gold);
+      text-shadow: 0 0 8px rgba(250, 204, 21, 0.45);
+    }
+
+    .kpi-val.cyan {
+      color: var(--cyan);
+    }
+
+    .kpi-val.emerald {
+      color: var(--emerald);
+    }
+
+    .hud-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    select.mode-select {
+      background: rgba(15, 23, 42, 0.95);
+      color: #fef08a;
+      border: 1px solid rgba(245, 158, 11, 0.55);
+      border-radius: 7px;
+      padding: 5px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      outline: none;
+    }
+
+    button.hud-btn {
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95));
+      color: #e2e8f0;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 7px;
+      padding: 5px 9px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    button.hud-btn:hover {
+      border-color: var(--gold);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    button.hud-btn.active {
+      background: linear-gradient(180deg, #d97706, #b45309);
+      border-color: #fde047;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.45);
+    }
+
+    /* Main Workspace */
+    .workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 258px;
+      gap: 10px;
+      padding: 8px 12px;
+      min-height: 0;
+    }
+
+    .stage-column {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+      min-width: 0;
+    }
+
+    .canvas-shell {
+      position: relative;
+      flex: 1;
+      background: #040711;
+      border: 1.5px solid rgba(245, 158, 11, 0.45);
+      border-radius: 12px;
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.78), inset 0 0 32px rgba(245, 158, 11, 0.08);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas#lodeCanvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      image-rendering: pixelated;
+      cursor: pointer;
+    }
+
+    /* Built-in Level Editor Palette Bar */
+    .editor-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      background: linear-gradient(180deg, rgba(20, 24, 42, 0.96), rgba(10, 14, 26, 0.98));
+      border: 1px solid var(--border-amber);
+      border-radius: 10px;
+      padding: 6px 10px;
+      flex-shrink: 0;
+    }
+
+    .tile-palette {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .tile-btn {
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      color: #e2e8f0;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 10.5px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+
+    .tile-btn:hover {
+      border-color: var(--gold);
+    }
+
+    .tile-btn.active {
+      background: rgba(245, 158, 11, 0.28);
+      border-color: var(--gold);
+      color: #fff;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
+    }
+
+    .drill-QuickDeck {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Right Sidebar */
+    aside.side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    .panel-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-amber);
+      border-radius: 10px;
+      padding: 9px 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .panel-title {
+      font-size: 10.5px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #cbd5e1;
+      border-bottom: 1px dashed rgba(148, 163, 184, 0.14);
+      padding-bottom: 3px;
+    }
+
+    .stat-row strong {
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hint-box {
+      background: rgba(180, 83, 9, 0.22);
+      border: 1px solid rgba(250, 204, 21, 0.42);
+      border-radius: 7px;
+      padding: 6px 8px;
+      font-size: 10.5px;
+      line-height: 1.38;
+      color: #fef3c7;
+    }
+
+    .tile-legend {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      font-size: 10px;
+      color: #cbd5e1;
+    }
+
+    .swatch {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      border-radius: 2px;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <header class="top-hud">
+    <div class="brand-cluster">
+      <div class="brand-badge">⛏️</div>
+      <div class="brand-titles">
+        <h1>Codecaine CyberLode: Gold Cache Heist</h1>
+        <div class="subtitle">Authentic 28×16 Lode Runner Grid • Laser Brick Drilling [Q/Z &amp; E/X] • Smart Malware Guards</div>
+      </div>
+    </div>
+
+    <div class="hud-kpis">
+      <div class="kpi-pill gold-border">
+        <span class="kpi-label">Gold Caches</span>
+        <span class="kpi-val gold" id="kpiGold">0 / 8</span>
+      </div>
+      <div class="kpi-pill cyan-border">
+        <span class="kpi-label">Escape Ladder</span>
+        <span class="kpi-val cyan" id="kpiEscape">LOCKED</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">Stage / Lives</span>
+        <span class="kpi-val emerald" id="kpiStage">1 • ❤️×3</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">Guards Trapped</span>
+        <span class="kpi-val" id="kpiTrapped">0</span>
+      </div>
+      <div class="kpi-pill gold-border">
+        <span class="kpi-label">Score / Best</span>
+        <span class="kpi-val gold" id="kpiScore">0 / 0</span>
+      </div>
+    </div>
+
+    <div class="hud-controls">
+      <select id="lodeModeSelect" class="mode-select" title="Select Game Mode">
+        <option value="classic">1. 🏆 Classic 150-Style Heist</option>
+        <option value="championship">2. 👑 Championship Lode Runner (Hard)</option>
+        <option value="trapdoors">3. 💣 Bomb &amp; Trapdoors</option>
+        <option value="blitz">4. ⚡ 90s Gold Rush Blitz</option>
+        <option value="coop">5. 🤝 2P Co-Op Heist (WASD + Arrows)</option>
+        <option value="stealth">6. 👻 Stealth No-Drill Challenge</option>
+        <option value="editor">7. 🏗️ Built-In Level Editor</option>
+        <option value="procedural">8. 🎲 Procedural Winnable Heist [G]</option>
+      </select>
+      <button class="hud-btn" id="btnHint" title="AI Path &amp; Drill Hint [H]">💡 AI Path &amp; Drill Hint [H]</button>
+      <button class="hud-btn" id="btnRandom" title="Random Procedural Level [G]">🎲 Random Level [G]</button>
+      <button class="hud-btn" id="btnPause" title="Pause / Resume [P]">⏸️ Pause [P]</button>
+      <button class="hud-btn" id="btnAudio" title="Toggle WebAudio Chiptune [M]">🔊 Audio [M]</button>
+      <button class="hud-btn" id="btnReset" title="Reset Current Stage [R]">🔄 Reset [R]</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="stage-column">
+      <div class="canvas-shell">
+        <canvas id="lodeCanvas" width="896" height="512"></canvas>
+      </div>
+
+      <div class="editor-bar">
+        <div class="tile-palette" id="tilePalette">
+          <span style="font-size:10px;font-weight:900;color:#fde047;text-transform:uppercase;">🏗️ Editor Brush (Click Grid):</span>
+          <button class="tile-btn active" data-tile="1">🧱 Diggable Brick</button>
+          <button class="tile-btn" data-tile="2">🛡️ Solid Concrete</button>
+          <button class="tile-btn" data-tile="3">🪜 Ladder</button>
+          <button class="tile-btn" data-tile="4">〰️ Hand-Bar</button>
+          <button class="tile-btn" data-tile="5">⚠️ Trap Brick</button>
+          <button class="tile-btn" data-tile="6">🪙 Gold Cache</button>
+          <button class="tile-btn" data-tile="7">✨ Escape Ladder</button>
+          <button class="tile-btn" data-tile="0">🧽 Empty</button>
+        </div>
+
+        <div class="drill-QuickDeck">
+          <button class="hud-btn" id="btnDrillLeft" title="Laser Drill Down-Left [Q / Z]">🔫 Drill Left [Q/Z]</button>
+          <button class="hud-btn" id="btnDrillRight" title="Laser Drill Down-Right [E / X]">🔫 Drill Right [E/X]</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side-panel">
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>📊 Heist Telemetry</span>
+          <span id="modeBadge">MODE 1</span>
+        </div>
+        <div class="stat-row"><span>Active Mode</span><strong id="statMode">🏆 Classic Heist</strong></div>
+        <div class="stat-row"><span>Grid Resolution</span><strong>28 × 16 Tiles</strong></div>
+        <div class="stat-row"><span>Active Holes</span><strong id="statHoles">0 (5.5s Regen)</strong></div>
+        <div class="stat-row"><span>Malware Guards</span><strong id="statGuards">3 Active</strong></div>
+        <div class="stat-row"><span>Timer / Blitz</span><strong id="statTimer">--:--</strong></div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>💡 AI Path &amp; Drill Hint</span>
+          <span>[H]</span>
+        </div>
+        <div class="hint-box" id="hintBox">
+          Press <strong>[H]</strong> or click <strong>AI Path &amp; Drill Hint</strong> to highlight the nearest Gold Cache route and optimal <strong>[Q]/[E]</strong> brick drill coordinates!
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title"><span>🧱 28×16 Tile Architecture</span></div>
+        <div class="tile-legend">
+          <div><span class="swatch" style="background:#dc2626"></span><strong>DIGGABLE_BRICK</strong></div>
+          <div><span class="swatch" style="background:#64748b"></span><strong>SOLID_CONCRETE</strong></div>
+          <div><span class="swatch" style="background:#38bdf8"></span><strong>LADDER</strong></div>
+          <div><span class="swatch" style="background:#a855f7"></span><strong>HAND_BAR</strong></div>
+          <div><span class="swatch" style="background:#b91c1c"></span><strong>TRAP_BRICK</strong></div>
+          <div><span class="swatch" style="background:#facc15"></span><strong>GOLD_CACHE 🪙</strong></div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title"><span>⌨️ Controls Reference</span></div>
+        <div class="stat-row"><span>Move / Climb</span><strong>WASD / Arrows</strong></div>
+        <div class="stat-row"><span>Drill Down-Left</span><strong>[Q] or [Z]</strong></div>
+        <div class="stat-row"><span>Drill Down-Right</span><strong>[E] or [X]</strong></div>
+        <div class="stat-row"><span>Drop From Bar</span><strong>[S] / [Down]</strong></div>
+        <div class="stat-row"><span>AI Hint / Random</span><strong>[H] / [G]</strong></div>
+        <div class="stat-row"><span>Switch Modes</span><strong>Keys 1 – 8</strong></div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    // =========================================================================
+    // 1. SAFE LOCALSTORAGE WRAPPER
+    // =========================================================================
+    const memStore = {};
+    function safeGetStorage(key, fallbackVal = null) {
+      try {
+        const v = window.localStorage.getItem(key);
+        return v !== null ? v : fallbackVal;
+      } catch (_) {
+        return Object.prototype.hasOwnProperty.call(memStore, key) ? memStore[key] : fallbackVal;
+      }
+    }
+
+    function safeSetStorage(key, value) {
+      try {
+        window.localStorage.setItem(key, String(value));
+      } catch (_) {
+        memStore[key] = String(value);
+      }
+    }
+
+    // =========================================================================
+    // 2. WEBAUDIO SFX & CHIPTUNE SYNTHESIZER
+    // =========================================================================
+    const LodeAudio = (() => {
+      let ctx = null;
+      let bgmEnabled = false;
+      let bgmTimer = null;
+      let stepIdx = 0;
+
+      const HEIST_NOTES = [
+        220.00, 261.63, 329.63, 293.66, 261.63, 246.94, 220.00, 196.00,
+        220.00, 293.66, 349.23, 329.63, 293.66, 261.63, 246.94, 329.63
+      ];
+
+      function ensureCtx() {
+        if (!ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) ctx = new AC();
+        }
+        if (ctx && ctx.state === "suspended") {
+          ctx.resume().catch(() => {});
+        }
+        return ctx;
+      }
+
+      function tone(freq, dur = 0.08, type = "square", gainVal = 0.07, slideTo = null) {
+        const c = ensureCtx();
+        if (!c) return;
+        try {
+          const osc = c.createOscillator();
+          const g = c.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, c.currentTime);
+          if (slideTo) {
+            osc.frequency.exponentialRampToValueAtTime(slideTo, c.currentTime + dur);
+          }
+          g.gain.setValueAtTime(gainVal, c.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+          osc.connect(g);
+          g.connect(c.destination);
+          osc.start();
+          osc.stop(c.currentTime + dur);
+        } catch (_) {}
+      }
+
+      return {
+        playGold() {
+          tone(880, 0.07, "square", 0.08, 1318.5);
+          setTimeout(() => tone(1318.5, 0.11, "triangle", 0.08, 1760), 55);
+        },
+        playDrill() {
+          tone(620, 0.14, "sawtooth", 0.08, 140);
+        },
+        playTrapGuard() {
+          tone(440, 0.12, "square", 0.08, 180);
+        },
+        playCrush() {
+          tone(180, 0.22, "sawtooth", 0.11, 55);
+        },
+        playEscapeReveal() {
+          [523.25, 659.25, 783.99, 1046.5].forEach((n, i) => {
+            setTimeout(() => tone(n, 0.12, "triangle", 0.09), i * 70);
+          });
+        },
+        playLoseLife() {
+          tone(340, 0.28, "sawtooth", 0.1, 95);
+        },
+        toggleBgm() {
+          bgmEnabled = !bgmEnabled;
+          if (bgmEnabled) {
+            ensureCtx();
+            if (!bgmTimer) {
+              bgmTimer = setInterval(() => {
+                if (!bgmEnabled) return;
+                const n = HEIST_NOTES[stepIdx % HEIST_NOTES.length];
+                tone(n, 0.11, "triangle", 0.04);
+                if (stepIdx % 4 === 0) tone(n * 0.5, 0.14, "square", 0.03);
+                stepIdx++;
+              }, 160);
+            }
+          } else if (bgmTimer) {
+            clearInterval(bgmTimer);
+            bgmTimer = null;
+          }
+          return bgmEnabled;
+        }
+      };
+    })();
+
+    // =========================================================================
+    // 3. AUTHENTIC 28 x 16 LODE RUNNER TILE GRID ENGINE
+    // =========================================================================
+    const COLS = 28;
+    const ROWS = 16;
+    const TILE = 32; // 28*32 = 896, 16*32 = 512
+
+    const T = {
+      EMPTY: 0,
+      DIGGABLE_BRICK: 1,
+      SOLID_CONCRETE: 2,
+      LADDER: 3,
+      HAND_BAR: 4,
+      TRAP_BRICK: 5,
+      GOLD_CACHE: 6,
+      HIDDEN_ESCAPE_LADDER: 7,
+      DRILLED_HOLE: 8
+    };
+
+    const canvas = document.getElementById("lodeCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const grid = new Uint8Array(COLS * ROWS);
+
+    const state = {
+      mode: "classic",
+      stage: 1,
+      lives: 3,
+      score: 0,
+      bestScore: Number(safeGetStorage("codecaine_lode_best", "0")) || 0,
+      goldCollected: 0,
+      goldTotal: 0,
+      escapeRevealed: false,
+      trappedCount: 0,
+      paused: false,
+      tick: 0,
+      blitzSec: 90,
+      editorBrush: T.DIGGABLE_BRICK,
+      holes: [], // { col, row, timer: 330, maxTimer: 330 } (5.5s @ 60fps)
+      particles: [],
+      hint: null,
+      runners: [],
+      guards: [],
+      keys: {}
+    };
+
+    function idx(c, r) {
+      return r * COLS + c;
+    }
+
+    function getTile(c, r) {
+      if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return T.SOLID_CONCRETE;
+      const t = grid[idx(c, r)];
+      if (t === T.HIDDEN_ESCAPE_LADDER && !state.escapeRevealed) return T.EMPTY;
+      return t;
+    }
+
+    function setTile(c, r, val) {
+      if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return;
+      grid[idx(c, r)] = val;
+    }
+
+    function isGuardStunnedAt(c, r) {
+      return state.guards.some(
+        (g) => g.state === "STUNNED_IN_HOLE" && Math.round(g.col) === c && Math.round(g.row) === r
+      );
+    }
+
+    function isFloorSupport(c, r) {
+      if (r >= ROWS) return true;
+      const t = getTile(c, r);
+      if (t === T.DIGGABLE_BRICK || t === T.SOLID_CONCRETE || t === T.LADDER) return true;
+      // Walking safely over a stunned guard's head!
+      if (isGuardStunnedAt(c, r)) return true;
+      return false;
+    }
+
+    function isPassable(c, r) {
+      if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false;
+      const t = getTile(c, r);
+      return t !== T.DIGGABLE_BRICK && t !== T.SOLID_CONCRETE;
+    }
+
+    function spawnParticles(x, y, color, count = 10) {
+      for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const s = 0.8 + Math.random() * 2.6;
+        state.particles.push({
+          x, y,
+          vx: Math.cos(a) * s,
+          vy: Math.sin(a) * s - 0.8,
+          color,
+          life: 20 + ((Math.random() * 16) | 0)
+        });
+      }
+    }
+
+    // =========================================================================
+    // 4. STAGE ARCHITECT & 8 GAME MODES LEVEL GENERATOR
+    // =========================================================================
+    function buildStageLayout(mode, stageSeed = 1) {
+      grid.fill(T.EMPTY);
+      state.holes = [];
+      state.particles = [];
+      state.hint = null;
+      state.escapeRevealed = false;
+      state.goldCollected = 0;
+      state.goldTotal = 0;
+      state.blitzSec = 90;
+
+      // Bedrock concrete at row 15
+      for (let c = 0; c < COLS; c++) {
+        setTile(c, ROWS - 1, T.SOLID_CONCRETE);
+      }
+
+      const seed = (stageSeed * 37 + (mode === "championship" ? 19 : 0)) % 7;
+
+      // Construct 4 classic horizontal brick decks at rows 3, 6, 9, 12, and floor 14
+      const deckRows = [3, 6, 9, 12, 14];
+      for (let d = 0; d < deckRows.length; d++) {
+        const r = deckRows[d];
+        for (let c = 1; c < COLS - 1; c++) {
+          if (r === 14) {
+            setTile(c, r, T.DIGGABLE_BRICK);
+          } else {
+            const gap1 = (4 + d * 5 + seed) % (COLS - 6) + 2;
+            const gap2 = (14 + d * 4 + seed) % (COLS - 6) + 2;
+            if (Math.abs(c - gap1) > 1 && Math.abs(c - gap2) > 1) {
+              setTile(c, r, T.DIGGABLE_BRICK);
+            }
+          }
+        }
+      }
+
+      // Championship concrete reinforcement segments
+      if (mode === "championship") {
+        for (let c = 8; c <= 12; c++) setTile(c, 9, T.SOLID_CONCRETE);
+        for (let c = 17; c <= 20; c++) setTile(c, 6, T.SOLID_CONCRETE);
+      }
+
+      // Connect every deck with vertical ladders so the entire 28x16 board is 100% connected & winnable
+      const ladderCols = [
+        [3, 18],      // Row 0..3 -> 6
+        [6, 23],      // Row 3 -> 6
+        [4, 14, 24],  // Row 6 -> 9
+        [8, 19],      // Row 9 -> 12
+        [3, 13, 25]   // Row 12 -> 14
+      ];
+
+      for (let r = 3; r <= 6; r++) {
+        setTile(ladderCols[1][0], r, T.LADDER);
+        setTile(ladderCols[1][1], r, T.LADDER);
+      }
+      for (let r = 6; r <= 9; r++) {
+        ladderCols[2].forEach((lc) => setTile(lc, r, T.LADDER));
+      }
+      for (let r = 9; r <= 12; r++) {
+        ladderCols[3].forEach((lc) => setTile(lc, r, T.LADDER));
+      }
+      for (let r = 12; r <= 14; r++) {
+        ladderCols[4].forEach((lc) => setTile(lc, r, T.LADDER));
+      }
+
+      // Overhead Hand-Bar zip-lines!
+      for (let c = 7; c <= 17; c++) {
+        if (getTile(c, 4) === T.EMPTY) setTile(c, 4, T.HAND_BAR);
+      }
+      for (let c = 9; c <= 18; c++) {
+        if (getTile(c, 10) === T.EMPTY) setTile(c, 10, T.HAND_BAR);
+      }
+
+      // Trap Bricks in Trapdoors & Championship modes
+      const trapSpots = mode === "trapdoors" ? [[10, 6], [11, 6], [16, 9], [21, 12]] : [[11, 6], [20, 9]];
+      for (const [tc, tr] of trapSpots) {
+        setTile(tc, tr, T.TRAP_BRICK);
+      }
+
+      // Hidden Escape Ladder column leading from Row 3 all the way to Row 0!
+      const escapeCol = 22;
+      for (let r = 0; r <= 3; r++) {
+        setTile(escapeCol, r, T.HIDDEN_ESCAPE_LADDER);
+      }
+
+      // Place 8 Glowing Gold Caches across the decks
+      const goldCoords = [
+        [5, 2], [15, 2], [24, 2],
+        [9, 5], [20, 5],
+        [7, 8], [17, 8],
+        [11, 11], [22, 11],
+        [16, 13]
+      ];
+      for (const [gc, gr] of goldCoords) {
+        if (getTile(gc, gr) === T.EMPTY) {
+          setTile(gc, gr, T.GOLD_CACHE);
+        }
+      }
+
+      recountGold();
+
+      // Spawn Player 1 (and Partner Player 2 in Co-Op mode)
+      state.runners = [
+        {
+          id: 1,
+          col: 6,
+          row: 13,
+          dir: 1,
+          drillAnim: 0,
+          animTick: 0,
+          color: "#38bdf8",
+          hatColor: "#facc15"
+        }
+      ];
+
+      if (mode === "coop") {
+        state.runners.push({
+          id: 2,
+          col: 9,
+          row: 13,
+          dir: -1,
+          drillAnim: 0,
+          animTick: 8,
+          color: "#34d399",
+          hatColor: "#f472b6"
+        });
+      }
+
+      // Spawn 3-5 Smart AI Malware Guards
+      const guardCount = mode === "championship" ? 5 : mode === "classic" ? 3 : 4;
+      const guardSpawns = [
+        [4, 2], [20, 2], [12, 5], [22, 8], [15, 11]
+      ];
+      state.guards = [];
+      for (let i = 0; i < guardCount; i++) {
+        const [gx, gy] = guardSpawns[i % guardSpawns.length];
+        state.guards.push({
+          id: i + 1,
+          col: gx,
+          row: gy,
+          dir: i % 2 === 0 ? 1 : -1,
+          state: "PATROL", // PATROL, STUNNED_IN_HOLE
+          holeTimer: 0,
+          carryingGold: 0,
+          animTick: i * 7
+        });
+      }
+
+      updateHud();
+    }
+
+    function recountGold() {
+      let cnt = 0;
+      for (let i = 0; i < grid.length; i++) {
+        if (grid[i] === T.GOLD_CACHE) cnt++;
+      }
+      if (state.guards) {
+        for (const g of state.guards) {
+          cnt += g.carryingGold || 0;
+        }
+      }
+      state.goldTotal = state.goldCollected + cnt;
+    }
+
+    // =========================================================================
+    // 5. LASER BRICK DRILLING ([Q]/[Z] LEFT, [E]/[X] RIGHT) & 5.5S REGENERATION
+    // =========================================================================
+    function drillBrick(runner, sideDir) {
+      if (state.mode === "stealth") return false;
+      const targetCol = Math.round(runner.col) + sideDir;
+      const targetRow = Math.round(runner.row) + 1;
+      if (targetCol < 0 || targetCol >= COLS || targetRow < 0 || targetRow >= ROWS) return false;
+
+      // Must have empty/non-solid space at (targetCol, runner.row) and DIGGABLE_BRICK at (targetCol, targetRow)
+      const aboveMat = getTile(targetCol, Math.round(runner.row));
+      if (aboveMat === T.DIGGABLE_BRICK || aboveMat === T.SOLID_CONCRETE) return false;
+
+      if (grid[idx(targetCol, targetRow)] === T.DIGGABLE_BRICK) {
+        grid[idx(targetCol, targetRow)] = T.DRILLED_HOLE;
+        runner.dir = sideDir;
+        runner.drillAnim = 16;
+        state.holes.push({
+          col: targetCol,
+          row: targetRow,
+          timer: 330, // 5.5 seconds @ 60fps
+          maxTimer: 330
+        });
+        LodeAudio.playDrill();
+        spawnParticles(
+          (targetCol + 0.5) * TILE,
+          (targetRow + 0.3) * TILE,
+          "#f97316",
+          14
+        );
+        updateHud();
+        return true;
+      }
+      return false;
+    }
+
+    // =========================================================================
+    // 6. RUNNER & SMART AI MALWARE GUARD MOVEMENT + HOLE TRAPPING
+    // =========================================================================
+    function canMoveTo(c, r) {
+      if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false;
+      const t = getTile(c, r);
+      return t !== T.DIGGABLE_BRICK && t !== T.SOLID_CONCRETE;
+    }
+
+    function isSupportedAt(c, r) {
+      const rc = Math.round(c);
+      const rr = Math.round(r);
+      const here = getTile(rc, rr);
+      if (here === T.LADDER || here === T.HAND_BAR) return true;
+      return isFloorSupport(rc, rr + 1);
+    }
+
+    function stepRunner(runner, moveDx, moveDy) {
+      runner.animTick++;
+      if (runner.drillAnim > 0) runner.drillAnim--;
+
+      const rc = Math.round(runner.col);
+      const rr = Math.round(runner.row);
+      const speed = state.mode === "blitz" ? 0.135 : 0.11;
+
+      // Check gravity fall if not supported
+      if (!isSupportedAt(runner.col, runner.row)) {
+        runner.row = Math.min(ROWS - 2, runner.row + 0.14);
+        runner.col += (rc - runner.col) * 0.35;
+      } else {
+        // Horizontal movement
+        if (moveDx !== 0) {
+          runner.dir = moveDx;
+          const nextC = runner.col + moveDx * speed;
+          const checkCol = moveDx > 0 ? Math.ceil(nextC) : Math.floor(nextC);
+          if (canMoveTo(checkCol, rr)) {
+            runner.col = nextC;
+            runner.row += (rr - runner.row) * 0.35;
+          }
+        }
+        // Vertical movement (ladders or dropping off hand-bars)
+        if (moveDy !== 0) {
+          const here = getTile(rc, rr);
+          const below = getTile(rc, rr + 1);
+          if (moveDy < 0 && here === T.LADDER && canMoveTo(rc, Math.floor(runner.row - speed))) {
+            runner.row -= speed;
+            runner.col += (rc - runner.col) * 0.4;
+          } else if (moveDy > 0) {
+            if (here === T.HAND_BAR && canMoveTo(rc, rr + 1)) {
+              runner.row += 0.22;
+            } else if ((here === T.LADDER || below === T.LADDER) && canMoveTo(rc, Math.ceil(runner.row + speed))) {
+              runner.row += speed;
+              runner.col += (rc - runner.col) * 0.4;
+            }
+          }
+        }
+      }
+
+      // Check Gold Cache pickup
+      const gc = Math.round(runner.col);
+      const gr = Math.round(runner.row);
+      if (getTile(gc, gr) === T.GOLD_CACHE) {
+        setTile(gc, gr, T.EMPTY);
+        state.goldCollected++;
+        state.score += state.mode === "blitz" ? 500 : 250;
+        LodeAudio.playGold();
+        spawnParticles((gc + 0.5) * TILE, (gr + 0.5) * TILE, "#facc15", 16);
+
+        // Check if all Gold Caches are collected!
+        let remaining = 0;
+        for (let i = 0; i < grid.length; i++) {
+          if (grid[i] === T.GOLD_CACHE) remaining++;
+        }
+        for (const g of state.guards) {
+          remaining += g.carryingGold || 0;
+        }
+        if (remaining === 0 && !state.escapeRevealed) {
+          state.escapeRevealed = true;
+          LodeAudio.playEscapeReveal();
+          spawnParticles(22.5 * TILE, 2 * TILE, "#38bdf8", 24);
+        }
+        if (state.score > state.bestScore) {
+          state.bestScore = state.score;
+          safeSetStorage("codecaine_lode_best", state.bestScore);
+        }
+        updateHud();
+      }
+
+      // Check Stage Clear when reaching Row 0 on the Escape Ladder!
+      if (state.escapeRevealed && Math.round(runner.row) <= 0) {
+        state.score += 1500;
+        if (state.score > state.bestScore) {
+          state.bestScore = state.score;
+          safeSetStorage("codecaine_lode_best", state.bestScore);
+        }
+        state.stage++;
+        buildStageLayout(state.mode, state.stage);
+      }
+    }
+
+    function stepGuards() {
+      const targetRunner = state.runners[0];
+      if (!targetRunner) return;
+
+      for (const g of state.guards) {
+        g.animTick++;
+        const gc = Math.round(g.col);
+        const gr = Math.round(g.row);
+
+        // 1. If stunned inside a drilled hole
+        if (g.state === "STUNNED_IN_HOLE") {
+          g.holeTimer--;
+          if (g.holeTimer <= 0) {
+            // Climb out of hole after 3.5s (210 frames)
+            g.state = "PATROL";
+            g.row = gr - 1;
+            g.dir = targetRunner.col >= g.col ? 1 : -1;
+            g.col = Math.max(1, Math.min(COLS - 2, gc + g.dir));
+          }
+          continue;
+        }
+
+        // 2. Check if falling into a drilled brick hole!
+        if (grid[idx(gc, gr)] === T.DRILLED_HOLE) {
+          g.col = gc;
+          g.row = gr;
+          g.state = "STUNNED_IN_HOLE";
+          g.holeTimer = 210; // 3.5 seconds @ 60fps
+          state.trappedCount++;
+          state.score += 75;
+          LodeAudio.playTrapGuard();
+
+          // Drop any carried Gold Cache directly above the hole!
+          if (g.carryingGold > 0 && gr > 0 && getTile(gc, gr - 1) === T.EMPTY) {
+            setTile(gc, gr - 1, T.GOLD_CACHE);
+            g.carryingGold = 0;
+          }
+          spawnParticles((gc + 0.5) * TILE, (gr + 0.5) * TILE, "#ef4444", 10);
+          updateHud();
+          continue;
+        }
+
+        // 3. Guard Gold Cache pickup / drop behavior
+        if (getTile(gc, gr) === T.GOLD_CACHE && g.carryingGold === 0) {
+          setTile(gc, gr, T.EMPTY);
+          g.carryingGold = 1;
+        } else if (g.carryingGold > 0 && g.animTick % 240 === 0 && getTile(gc, gr) === T.EMPTY && isFloorSupport(gc, gr + 1)) {
+          setTile(gc, gr, T.GOLD_CACHE);
+          g.carryingGold = 0;
+        }
+
+        // 4. Gravity if unsupported
+        if (!isSupportedAt(g.col, g.row)) {
+          g.row = Math.min(ROWS - 2, g.row + 0.11);
+          g.col += (gc - g.col) * 0.35;
+        } else {
+          // Smart pursuit AI along ladders, bars, and floors
+          const gSpeed = state.mode === "championship" ? 0.068 : 0.056;
+          const here = getTile(gc, gr);
+          const below = getTile(gc, gr + 1);
+          const wantUp = targetRunner.row < g.row - 0.5;
+          const wantDown = targetRunner.row > g.row + 0.5;
+
+          if (wantUp && here === T.LADDER && canMoveTo(gc, Math.floor(g.row - gSpeed))) {
+            g.row -= gSpeed;
+            g.col += (gc - g.col) * 0.35;
+          } else if (wantDown && (here === T.LADDER || below === T.LADDER || here === T.HAND_BAR) && canMoveTo(gc, Math.ceil(g.row + gSpeed))) {
+            g.row += gSpeed;
+            g.col += (gc - g.col) * 0.35;
+          } else {
+            // Chase horizontally toward runner or nearest ladder
+            if (Math.abs(targetRunner.col - g.col) > 0.4) {
+              g.dir = targetRunner.col > g.col ? 1 : -1;
+            }
+            const nextC = g.col + g.dir * gSpeed;
+            const checkC = g.dir > 0 ? Math.ceil(nextC) : Math.floor(nextC);
+            if (canMoveTo(checkC, gr)) {
+              g.col = nextC;
+              g.row += (gr - g.row) * 0.35;
+            } else {
+              g.dir = -g.dir;
+            }
+          }
+        }
+
+        // 5. Check Tag Collision with Player (only if guard is not stunned in hole)
+        if (Math.hypot(g.col - targetRunner.col, g.row - targetRunner.row) < 0.58) {
+          LodeAudio.playLoseLife();
+          state.lives = Math.max(1, state.lives - 1);
+          spawnParticles((targetRunner.col + 0.5) * TILE, (targetRunner.row + 0.5) * TILE, "#ef4444", 20);
+          targetRunner.col = 6;
+          targetRunner.row = 13;
+          updateHud();
+        }
+      }
+    }
+
+    function stepHoles() {
+      for (let i = state.holes.length - 1; i >= 0; i--) {
+        const h = state.holes[i];
+        h.timer--;
+        // Warning regeneration sparks during final 1.2s (72 frames)
+        if (h.timer <= 72 && h.timer % 8 === 0) {
+          spawnParticles((h.col + 0.5) * TILE, (h.row + 0.5) * TILE, "#fbbf24", 3);
+        }
+        if (h.timer <= 0) {
+          grid[idx(h.col, h.row)] = T.DIGGABLE_BRICK;
+          // Check if any guard is crushed inside the regenerating brick!
+          for (const g of state.guards) {
+            if (Math.round(g.col) === h.col && Math.round(g.row) === h.row) {
+              if (g.carryingGold > 0 && h.row > 0 && getTile(h.col, h.row - 1) === T.EMPTY) {
+                setTile(h.col, h.row - 1, T.GOLD_CACHE);
+                g.carryingGold = 0;
+              }
+              g.state = "PATROL";
+              g.col = (h.col + 7) % (COLS - 4) + 2;
+              g.row = 0; // Respawn at the top of the screen!
+              state.score += 250;
+              LodeAudio.playCrush();
+              spawnParticles((h.col + 0.5) * TILE, (h.row + 0.5) * TILE, "#facc15", 16);
+            }
+          }
+          // If runner is inside closing brick, pop runner up 1 tile safely
+          for (const r of state.runners) {
+            if (Math.round(r.col) === h.col && Math.round(r.row) === h.row) {
+              r.row = Math.max(0, h.row - 1);
+            }
+          }
+          state.holes.splice(i, 1);
+        }
+      }
+    }
+
+    // =========================================================================
+    // 7. AI PATH & DRILL HINT [H]
+    // =========================================================================
+    function triggerAiHint() {
+      const r = state.runners[0];
+      if (!r) return;
+
+      let bestGold = null;
+      let bestDist = 999;
+      for (let row = 0; row < ROWS; row++) {
+        for (let col = 0; col < COLS; col++) {
+          if (getTile(col, row) === T.GOLD_CACHE) {
+            const d = Math.hypot(col - r.col, row - r.row);
+            if (d < bestDist) {
+              bestDist = d;
+              bestGold = { col, row, label: "GOLD CACHE 🪙" };
+            }
+          }
+        }
+      }
+
+      if (!bestGold && state.escapeRevealed) {
+        bestGold = { col: 22, row: 0, label: "ESCAPE LADDER 🪜" };
+      }
+
+      // Also check if a guard is nearby so we can recommend drilling a trap hole
+      let drillSide = r.dir >= 0 ? "E / X (Right)" : "Q / Z (Left)";
+      const drillCol = Math.round(r.col) + (r.dir >= 0 ? 1 : -1);
+      const drillRow = Math.round(r.row) + 1;
+
+      if (bestGold) {
+        state.hint = {
+          fromCol: r.col,
+          fromRow: r.row,
+          toCol: bestGold.col,
+          toRow: bestGold.row,
+          drillCol,
+          drillRow,
+          ttl: 240
+        };
+        document.getElementById("hintBox").innerHTML =
+          `<strong>🎯 Target: ${bestGold.label} @ (${bestGold.col}, ${bestGold.row})</strong><br/>` +
+          `Drill Tile <code>(${drillCol}, ${drillRow})</code> via <strong>[${drillSide}]</strong> to trap pursuing Malware Guards!`;
+      }
+    }
+
+    // =========================================================================
+    // 8. CANVAS RENDERER (28 x 16 GRID, LASER BEAMS, RUNNERS & GUARDS)
+    // =========================================================================
+    function renderGame() {
+      ctx.fillStyle = "#040814";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Subtle grid lines
+      ctx.strokeStyle = "rgba(30, 41, 59, 0.35)";
+      ctx.lineWidth = 1;
+      for (let c = 0; c <= COLS; c++) {
+        ctx.beginPath();
+        ctx.moveTo(c * TILE, 0);
+        ctx.lineTo(c * TILE, ROWS * TILE);
+        ctx.stroke();
+      }
+      for (let r = 0; r <= ROWS; r++) {
+        ctx.beginPath();
+        ctx.moveTo(0, r * TILE);
+        ctx.lineTo(COLS * TILE, r * TILE);
+        ctx.stroke();
+      }
+
+      // Draw 28x16 Tiles
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const raw = grid[idx(c, r)];
+          const x = c * TILE;
+          const y = r * TILE;
+
+          if (raw === T.DIGGABLE_BRICK || raw === T.TRAP_BRICK) {
+            // Classic Lode Runner staggered masonry bricks
+            ctx.fillStyle = "#b91c1c";
+            ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
+            ctx.fillStyle = "#ef4444";
+            ctx.fillRect(x + 2, y + 2, 13, 12);
+            ctx.fillRect(x + 17, y + 2, 13, 12);
+            ctx.fillRect(x + 2, y + 17, 7, 12);
+            ctx.fillRect(x + 11, y + 17, 12, 12);
+            ctx.fillRect(x + 25, y + 17, 5, 12);
+            if (raw === T.TRAP_BRICK && (state.mode === "editor" || state.hint)) {
+              ctx.strokeStyle = "rgba(250, 204, 21, 0.65)";
+              ctx.strokeRect(x + 3, y + 3, TILE - 6, TILE - 6);
+            }
+          } else if (raw === T.SOLID_CONCRETE) {
+            ctx.fillStyle = "#475569";
+            ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
+            ctx.strokeStyle = "#94a3b8";
+            ctx.strokeRect(x + 3, y + 3, TILE - 6, TILE - 6);
+          } else if (raw === T.LADDER || (raw === T.HIDDEN_ESCAPE_LADDER && state.escapeRevealed)) {
+            const isEsc = raw === T.HIDDEN_ESCAPE_LADDER;
+            ctx.strokeStyle = isEsc ? "#facc15" : "#38bdf8";
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(x + 7, y);
+            ctx.lineTo(x + 7, y + TILE);
+            ctx.moveTo(x + TILE - 7, y);
+            ctx.lineTo(x + TILE - 7, y + TILE);
+            for (let ry = 5; ry < TILE; ry += 8) {
+              ctx.moveTo(x + 7, y + ry);
+              ctx.lineTo(x + TILE - 7, y + ry);
+            }
+            ctx.stroke();
+          } else if (raw === T.HAND_BAR) {
+            ctx.strokeStyle = "#c084fc";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x, y + 6);
+            ctx.lineTo(x + TILE, y + 6);
+            ctx.stroke();
+          } else if (raw === T.GOLD_CACHE) {
+            const bob = Math.sin(state.tick * 0.12 + c) * 2;
+            ctx.fillStyle = "#facc15";
+            ctx.strokeStyle = "#fef08a";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(x + 7, y + 24 + bob);
+            ctx.lineTo(x + 11, y + 12 + bob);
+            ctx.lineTo(x + 21, y + 12 + bob);
+            ctx.lineTo(x + 25, y + 24 + bob);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+          } else if (raw === T.DRILLED_HOLE) {
+            const hole = state.holes.find((h) => h.col === c && h.row === r);
+            const ratio = hole ? 1 - hole.timer / hole.maxTimer : 0;
+            ctx.strokeStyle = hole && hole.timer <= 72 ? "#facc15" : "rgba(239, 68, 68, 0.45)";
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(x + 3, y + 3, TILE - 6, TILE - 6);
+            if (ratio > 0.75) {
+              ctx.fillStyle = "rgba(239, 68, 68, 0.38)";
+              ctx.fillRect(x + 4, y + 4, (TILE - 8) * ratio, TILE - 8);
+            }
+          }
+        }
+      }
+
+      // Draw AI Hint Path & Drill Reticle
+      if (state.hint) {
+        ctx.save();
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo((state.hint.fromCol + 0.5) * TILE, (state.hint.fromRow + 0.5) * TILE);
+        ctx.lineTo((state.hint.toCol + 0.5) * TILE, (state.hint.toRow + 0.5) * TILE);
+        ctx.stroke();
+        ctx.strokeStyle = "#38bdf8";
+        ctx.strokeRect(state.hint.drillCol * TILE + 2, state.hint.drillRow * TILE + 2, TILE - 4, TILE - 4);
+        ctx.restore();
+      }
+
+      // Draw Smart AI Malware Guards
+      for (const g of state.guards) {
+        const gx = (g.col + 0.5) * TILE;
+        const gy = (g.row + 0.5) * TILE;
+        const shake = g.state === "STUNNED_IN_HOLE" && g.holeTimer < 60 ? Math.sin(state.tick * 0.8) * 2.5 : 0;
+
+        ctx.save();
+        ctx.translate(gx + shake, gy);
+        // Guard hood & crimson visor
+        ctx.fillStyle = g.state === "STUNNED_IN_HOLE" ? "#fb923c" : "#ef4444";
+        ctx.fillRect(-9, -11, 18, 22);
+        ctx.fillStyle = "#fde047";
+        ctx.fillRect(g.dir > 0 ? 1 : -7, -7, 6, 3);
+        if (g.carryingGold > 0) {
+          ctx.fillStyle = "#facc15";
+          ctx.beginPath();
+          ctx.arc(0, -14, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      // Draw Player Runners & Laser Drill Beam
+      for (const r of state.runners) {
+        const rx = (r.col + 0.5) * TILE;
+        const ry = (r.row + 0.5) * TILE;
+
+        if (r.drillAnim > 0) {
+          ctx.save();
+          ctx.strokeStyle = "#fde047";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(rx + r.dir * 8, ry);
+          ctx.lineTo(rx + r.dir * TILE, ry + TILE * 0.85);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        ctx.save();
+        ctx.translate(rx, ry);
+        ctx.fillStyle = r.color;
+        ctx.fillRect(-8, -10, 16, 20);
+        ctx.fillStyle = r.hatColor;
+        ctx.fillRect(-9, -13, 18, 4);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(r.dir > 0 ? 2 : -6, -6, 4, 3);
+        ctx.restore();
+      }
+
+      // Draw Particles
+      for (const p of state.particles) {
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+      }
+    }
+
+    // =========================================================================
+    // 9. HUD & CONTROLS WIRING
+    // =========================================================================
+    function updateHud() {
+      document.getElementById("kpiGold").textContent = `${state.goldCollected} / ${state.goldTotal}`;
+      const escEl = document.getElementById("kpiEscape");
+      escEl.textContent = state.escapeRevealed ? "OPEN (ROW 0!)" : "LOCKED";
+      escEl.style.color = state.escapeRevealed ? "#facc15" : "#38bdf8";
+
+      document.getElementById("kpiStage").textContent = `${state.stage} • ❤️×${state.lives}`;
+      document.getElementById("kpiTrapped").textContent = String(state.trappedCount);
+      document.getElementById("kpiScore").textContent = `${state.score} / ${state.bestScore}`;
+
+      document.getElementById("statHoles").textContent = `${state.holes.length} (5.5s Regen)`;
+      document.getElementById("statGuards").textContent = `${state.guards.length} Active`;
+      document.getElementById("statTimer").textContent =
+        state.mode === "blitz" ? `${state.blitzSec}s` : "∞ Classic";
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "SELECT")) return;
+      const k = e.key.toLowerCase();
+      state.keys[k] = true;
+
+      const r1 = state.runners[0];
+      const r2 = state.runners[1] || r1;
+
+      if (k === "q" || k === "z") {
+        drillBrick(r1, -1);
+      } else if (k === "e" || k === "x") {
+        drillBrick(r1, 1);
+      } else if (k === ",") {
+        drillBrick(r2, -1);
+      } else if (k === ".") {
+        drillBrick(r2, 1);
+      } else if (k === "h") {
+        triggerAiHint();
+      } else if (k === "g") {
+        state.stage++;
+        document.getElementById("lodeModeSelect").value = "procedural";
+        state.mode = "procedural";
+        buildStageLayout("procedural", state.stage);
+      } else if (k === "p") {
+        state.paused = !state.paused;
+      } else if (k === "m") {
+        const on = LodeAudio.toggleBgm();
+        document.getElementById("btnAudio").classList.toggle("active", on);
+      } else if (k === "r") {
+        buildStageLayout(state.mode, state.stage);
+      }
+    });
+
+    window.addEventListener("keyup", (e) => {
+      state.keys[e.key.toLowerCase()] = false;
+    });
+
+    // Level Editor Canvas Click Painting
+    canvas.addEventListener("mousedown", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const c = Math.floor(((e.clientX - rect.left) / rect.width) * COLS);
+      const r = Math.floor(((e.clientY - rect.top) / rect.height) * ROWS);
+      if (c >= 0 && c < COLS && r >= 0 && r < ROWS) {
+        setTile(c, r, state.editorBrush);
+        recountGold();
+        updateHud();
+      }
+    });
+
+    document.querySelectorAll(".tile-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.editorBrush = Number(btn.getAttribute("data-tile"));
+        document.querySelectorAll(".tile-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+      });
+    });
+
+    document.getElementById("btnDrillLeft").addEventListener("click", () => {
+      if (state.runners[0]) drillBrick(state.runners[0], -1);
+    });
+
+    document.getElementById("btnDrillRight").addEventListener("click", () => {
+      if (state.runners[0]) drillBrick(state.runners[0], 1);
+    });
+
+    document.getElementById("btnHint").addEventListener("click", triggerAiHint);
+
+    document.getElementById("btnRandom").addEventListener("click", () => {
+      state.stage++;
+      document.getElementById("lodeModeSelect").value = "procedural";
+      state.mode = "procedural";
+      buildStageLayout("procedural", state.stage);
+    });
+
+    document.getElementById("btnPause").addEventListener("click", () => {
+      state.paused = !state.paused;
+    });
+
+    document.getElementById("btnAudio").addEventListener("click", (e) => {
+      const on = LodeAudio.toggleBgm();
+      e.currentTarget.classList.toggle("active", on);
+    });
+
+    document.getElementById("btnReset").addEventListener("click", () => {
+      buildStageLayout(state.mode, state.stage);
+    });
+
+    const lodeModeSelect = document.getElementById("lodeModeSelect");
+    lodeModeSelect.addEventListener("change", () => {
+      state.mode = lodeModeSelect.value;
+      document.getElementById("statMode").textContent =
+        lodeModeSelect.options[lodeModeSelect.selectedIndex].text;
+      buildStageLayout(state.mode, state.stage);
+    });
+
+    function gameLoop() {
+      if (!state.paused) {
+        state.tick++;
+
+        if (state.mode === "blitz" && state.tick % 60 === 0 && state.blitzSec > 0) {
+          state.blitzSec--;
+          updateHud();
+        }
+
+        // Player 1 input (WASD or Arrows if 1P)
+        const r1 = state.runners[0];
+        if (r1) {
+          let dx1 = 0;
+          let dy1 = 0;
+          const coop = state.mode === "coop";
+          if (state.keys["a"] || (!coop && state.keys["arrowleft"])) dx1 = -1;
+          if (state.keys["d"] || (!coop && state.keys["arrowright"])) dx1 = 1;
+          if (state.keys["w"] || (!coop && state.keys["arrowup"])) dy1 = -1;
+          if (state.keys["s"] || (!coop && state.keys["arrowdown"])) dy1 = 1;
+          stepRunner(r1, dx1, dy1);
+        }
+
+        // Player 2 input in Co-Op mode (Arrows)
+        const r2 = state.runners[1];
+        if (r2) {
+          let dx2 = 0;
+          let dy2 = 0;
+          if (state.keys["arrowleft"]) dx2 = -1;
+          if (state.keys["arrowright"]) dx2 = 1;
+          if (state.keys["arrowup"]) dy2 = -1;
+          if (state.keys["arrowdown"]) dy2 = 1;
+          stepRunner(r2, dx2, dy2);
+        }
+
+        stepGuards();
+        stepHoles();
+
+        for (let i = state.particles.length - 1; i >= 0; i--) {
+          const p = state.particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.1;
+          p.life--;
+          if (p.life <= 0) state.particles.splice(i, 1);
+        }
+
+        if (state.hint) {
+          state.hint.ttl--;
+          if (state.hint.ttl <= 0) state.hint = null;
+        }
+      }
+
+      renderGame();
+      requestAnimationFrame(gameLoop);
+    }
+
+    buildStageLayout("classic", 1);
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>

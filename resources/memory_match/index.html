@@ -1,0 +1,1968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine CyberRecall Royale: Holo-Vault Memory Match</title>
+  <style>
+    :root {
+      --bg-deep: #060916;
+      --bg-panel: rgba(13, 19, 41, 0.92);
+      --border-cyan: rgba(0, 245, 212, 0.35);
+      --border-gold: rgba(250, 204, 21, 0.48);
+      --cyan: #00f5d4;
+      --gold: #facc15;
+      --rose: #f43f5e;
+      --violet: #a855f7;
+      --emerald: #22c55e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 15%, #161d42 0%, #090d20 58%, #04060f 100%);
+      color: var(--text-main);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Telemetry & Action Header */
+    .top-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      background: linear-gradient(90deg, rgba(9, 13, 30, 0.96), rgba(22, 16, 48, 0.96), rgba(9, 13, 30, 0.96));
+      border-bottom: 1px solid var(--border-cyan);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.65);
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-emblem {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #00f5d4, #6366f1, #ec4899);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 21px;
+      box-shadow: 0 0 16px rgba(0, 245, 212, 0.45);
+      border: 1.5px solid #ffffff;
+    }
+
+    .brand-titles h1 {
+      font-size: 14.5px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffffff, #00f5d4, #fde047);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-titles p {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .kpi-ribbon {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .kpi-pill {
+      background: rgba(8, 12, 28, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 9px;
+      padding: 4px 11px;
+      min-width: 92px;
+      text-align: center;
+    }
+
+    .kpi-pill.gold {
+      border-color: var(--border-gold);
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.16);
+    }
+
+    .kpi-pill.cyan {
+      border-color: var(--border-cyan);
+      box-shadow: 0 0 12px rgba(0, 245, 212, 0.16);
+    }
+
+    .kpi-label {
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--text-muted);
+      display: block;
+    }
+
+    .kpi-val {
+      font-size: 14px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: #ffffff;
+    }
+
+    .kpi-pill.gold .kpi-val {
+      color: var(--gold);
+    }
+
+    .kpi-pill.cyan .kpi-val {
+      color: var(--cyan);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hud-btn {
+      background: linear-gradient(180deg, rgba(30, 41, 79, 0.92), rgba(15, 23, 42, 0.95));
+      color: #f8fafc;
+      border: 1px solid rgba(0, 245, 212, 0.4);
+      border-radius: 8px;
+      padding: 6px 11px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.14s ease;
+      white-space: nowrap;
+    }
+
+    .hud-btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--gold);
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.35);
+    }
+
+    .hud-btn.primary {
+      background: linear-gradient(135deg, #00f5d4, #0ea5e9);
+      color: #04101c;
+      border-color: #ffffff;
+    }
+
+    .hud-btn.gold-cta {
+      background: linear-gradient(135deg, #facc15, #f97316);
+      color: #1c0a00;
+      border-color: #fef08a;
+    }
+
+    .hud-select {
+      background: rgba(11, 17, 38, 0.95);
+      color: #f8fafc;
+      border: 1px solid var(--border-cyan);
+      border-radius: 8px;
+      padding: 5px 9px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    /* 8-Mode Selector Strip */
+    .mode-strip {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 6px;
+      padding: 6px 16px;
+      background: rgba(6, 10, 24, 0.88);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+      flex-shrink: 0;
+    }
+
+    .mode-tab {
+      background: rgba(15, 23, 48, 0.82);
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      border-radius: 8px;
+      padding: 5px 6px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      color: #cbd5e1;
+    }
+
+    .mode-tab:hover {
+      border-color: var(--cyan);
+      color: #ffffff;
+    }
+
+    .mode-tab.active {
+      background: linear-gradient(135deg, rgba(0, 245, 212, 0.22), rgba(99, 102, 241, 0.28));
+      border-color: var(--gold);
+      color: #ffffff;
+      box-shadow: 0 0 14px rgba(250, 204, 21, 0.25);
+    }
+
+    .mode-tab strong {
+      display: block;
+      font-size: 10.5px;
+      font-weight: 900;
+      color: inherit;
+    }
+
+    .mode-tab span {
+      display: block;
+      font-size: 8.5px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-top: 1px;
+    }
+
+    .mode-tab.active span {
+      color: var(--gold);
+    }
+
+    /* Main 3-Column Workspace */
+    .workspace {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 265px 1fr 270px;
+      gap: 10px;
+      padding: 8px 16px 10px;
+    }
+
+    .side-dock {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    .dock-card {
+      background: var(--bg-panel);
+      border: 1px solid rgba(0, 245, 212, 0.25);
+      border-radius: 12px;
+      padding: 10px 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+    }
+
+    .dock-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10.5px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--cyan);
+      margin-bottom: 8px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+    }
+
+    .badge {
+      padding: 2px 7px;
+      border-radius: 99px;
+      font-size: 9px;
+      font-weight: 900;
+      background: rgba(250, 204, 21, 0.18);
+      color: var(--gold);
+      border: 1px solid rgba(250, 204, 21, 0.45);
+    }
+
+    /* Power-Up Gadgets */
+    .gadget-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .gadget-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(8, 13, 31, 0.9);
+      border: 1px solid rgba(0, 245, 212, 0.3);
+      border-radius: 9px;
+      padding: 7px 9px;
+      color: #f8fafc;
+      cursor: pointer;
+      transition: all 0.14s ease;
+      text-align: left;
+    }
+
+    .gadget-btn:hover {
+      border-color: var(--gold);
+      background: rgba(24, 34, 74, 0.92);
+      transform: translateX(2px);
+    }
+
+    .gadget-info strong {
+      display: block;
+      font-size: 11px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .gadget-info span {
+      font-size: 9.5px;
+      color: var(--text-muted);
+    }
+
+    .gadget-count {
+      background: rgba(0, 245, 212, 0.16);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 245, 212, 0.4);
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    /* Deck Theme Selector */
+    .deck-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .deck-pill {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 9px;
+      border-radius: 8px;
+      background: rgba(8, 13, 31, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      color: #cbd5e1;
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .deck-pill.active {
+      background: linear-gradient(90deg, rgba(0, 245, 212, 0.18), rgba(168, 85, 247, 0.22));
+      border-color: var(--cyan);
+      color: #ffffff;
+    }
+
+    /* Center Canvas Stage */
+    .center-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(7, 11, 26, 0.88);
+      border: 1.5px solid rgba(0, 245, 212, 0.35);
+      border-radius: 14px;
+      padding: 8px;
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8), 0 10px 30px rgba(0, 0, 0, 0.65);
+      min-height: 0;
+      position: relative;
+    }
+
+    #memoryCanvas {
+      width: 100%;
+      height: calc(100% - 34px);
+      display: block;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .stage-footer {
+      width: 100%;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #cbd5e1;
+      background: rgba(9, 14, 32, 0.9);
+      border-radius: 7px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    /* Matched Vault Pairs Log */
+    .matched-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+    }
+
+    .matched-chip {
+      background: rgba(8, 13, 31, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 7px;
+      padding: 5px 4px;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 800;
+      color: #64748b;
+    }
+
+    .matched-chip.unlocked {
+      border-color: var(--gold);
+      background: rgba(250, 204, 21, 0.14);
+      color: #fef08a;
+      box-shadow: 0 0 10px rgba(250, 204, 21, 0.2);
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      padding: 4px 0;
+      border-bottom: 1px dashed rgba(148, 163, 184, 0.14);
+      color: #cbd5e1;
+    }
+
+    .stat-row strong {
+      color: #ffffff;
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body>
+  <!-- Top Header -->
+  <header class="top-header">
+    <div class="brand-cluster">
+      <div class="brand-emblem">🧠</div>
+      <div class="brand-titles">
+        <h1>Codecaine CyberRecall Royale: Holo-Vault Memory Match</h1>
+        <p>3D Perspective Hologram Card Engine • 8 Memory Modes • Combo Multiplier &amp; Neural AI Duel</p>
+      </div>
+    </div>
+
+    <div class="kpi-ribbon">
+      <div class="kpi-pill gold">
+        <span class="kpi-label">VAULT SCORE</span>
+        <span class="kpi-val" id="hudScore">2,450</span>
+      </div>
+      <div class="kpi-pill cyan">
+        <span class="kpi-label">STREAK MULT</span>
+        <span class="kpi-val" id="hudStreak">x3 COMBO</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">PAIRS LOCKED</span>
+        <span class="kpi-val" id="hudPairs">2 / 8</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">MOVES / ACC</span>
+        <span class="kpi-val" id="hudMoves">4 (100%)</span>
+      </div>
+      <div class="kpi-pill cyan">
+        <span class="kpi-label">ROUND CLOCK</span>
+        <span class="kpi-val" id="hudTimer">00:14</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <select class="hud-select" id="deckSelect" title="Select Holographic Card Deck">
+        <option value="casino">💎 Deck: Cyber-Casino Gems</option>
+        <option value="tarot">🐉 Deck: Mythic Tarot Arcana</option>
+        <option value="space">🚀 Deck: Deep-Space Mecha</option>
+        <option value="tokyo">🍣 Deck: Neon Tokyo Izakaya</option>
+        <option value="quantum">🧬 Deck: Quantum Bio-Lab</option>
+      </select>
+      <button class="hud-btn primary" id="btnPeekAll" title="X-Ray Peek All Cards [Q]">👁️ PEEK [Q]</button>
+      <button class="hud-btn gold-cta" id="btnAutoMatch" title="Auto-Flip Matching Pair [W]">⚡ AUTO-PAIR [W]</button>
+      <button class="hud-btn" id="btnNewDeal" title="Deal Fresh Shuffled Board [N]">🔄 NEW DEAL [N]</button>
+      <button class="hud-btn" id="btnAudio" title="Toggle Synthwave Audio [M]">🔊 AUDIO: ON [M]</button>
+    </div>
+  </header>
+
+  <!-- 8 Playable Memory Modes -->
+  <nav class="mode-strip" id="modeStrip">
+    <button class="mode-tab active" data-mode="classic_4x4">
+      <strong>1. Classic 4×4</strong>
+      <span>16 Cards • 8 Pairs</span>
+    </button>
+    <button class="mode-tab" data-mode="grand_6x4">
+      <strong>2. Grand Vault 6×4</strong>
+      <span>24 Cards • 12 Pairs</span>
+    </button>
+    <button class="mode-tab" data-mode="master_6x6">
+      <strong>3. Master 6×6</strong>
+      <span>36 Cards • 18 Pairs</span>
+    </button>
+    <button class="mode-tab" data-mode="triad_match3">
+      <strong>4. Triad Match-3</strong>
+      <span>Flip 3 Identical!</span>
+    </button>
+    <button class="mode-tab" data-mode="blitz_60s">
+      <strong>5. 60s Blitz Rush</strong>
+      <span>+3s Per Pair</span>
+    </button>
+    <button class="mode-tab" data-mode="minefield">
+      <strong>6. Cyber-Minefield</strong>
+      <span>Avoid Decoy Bombs</span>
+    </button>
+    <button class="mode-tab" data-mode="vs_ai">
+      <strong>7. VS Neural AI</strong>
+      <span>You vs C.A.I.N.E.</span>
+    </button>
+    <button class="mode-tab" data-mode="simon_sequence">
+      <strong>8. Chrono-Sequence</strong>
+      <span>Simon Pattern Recall</span>
+    </button>
+  </nav>
+
+  <!-- 3-Column Arena Workspace -->
+  <main class="workspace">
+    <!-- Left Dock: Tactical Memory Power-Ups & Deck Themes -->
+    <aside class="side-dock">
+      <div class="dock-card">
+        <div class="dock-header">
+          <span>⚡ TACTICAL RECALL GADGETS</span>
+          <span class="badge" id="soulChipsBadge">🪙 450 CHIPS</span>
+        </div>
+        <div class="gadget-grid">
+          <button class="gadget-btn" id="gadPeek">
+            <div class="gadget-info">
+              <strong>👁️ X-Ray Holo-Peek [Q]</strong>
+              <span>Reveals all cards for 1.8 seconds</span>
+            </div>
+            <span class="gadget-count" id="cntPeek">3 LEFT</span>
+          </button>
+          <button class="gadget-btn" id="gadAutoPair">
+            <div class="gadget-info">
+              <strong>⚡ Quantum Auto-Pair [W]</strong>
+              <span>Instantly locks 1 matching pair</span>
+            </div>
+            <span class="gadget-count" id="cntAuto">2 LEFT</span>
+          </button>
+          <button class="gadget-btn" id="gadFreeze">
+            <div class="gadget-info">
+              <strong>❄️ Chrono-Freeze [E]</strong>
+              <span>Freezes clock &amp; protects streak 10s</span>
+            </div>
+            <span class="gadget-count" id="cntFreeze">2 LEFT</span>
+          </button>
+          <button class="gadget-btn" id="gadHint">
+            <div class="gadget-info">
+              <strong>🔦 Neural Hint Radar [R]</strong>
+              <span>Pulses golden halo on a valid pair</span>
+            </div>
+            <span class="gadget-count" id="cntHint">4 LEFT</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="dock-card">
+        <div class="dock-header">
+          <span>🎨 HOLOGRAPHIC CARD DECKS</span>
+          <span class="badge">5 SETS</span>
+        </div>
+        <div class="deck-list" id="deckList">
+          <div class="deck-pill active" data-deck="casino">
+            <span>💎 Cyber-Casino Gems &amp; Bullion</span>
+            <span>SET 1</span>
+          </div>
+          <div class="deck-pill" data-deck="tarot">
+            <span>🐉 Mythic Tarot &amp; Arcane Relics</span>
+            <span>SET 2</span>
+          </div>
+          <div class="deck-pill" data-deck="space">
+            <span>🚀 Deep-Space Exoplanets</span>
+            <span>SET 3</span>
+          </div>
+          <div class="deck-pill" data-deck="tokyo">
+            <span>🍣 Neon Tokyo Izakaya</span>
+            <span>SET 4</span>
+          </div>
+          <div class="deck-pill" data-deck="quantum">
+            <span>🧬 Quantum Bio-Lab</span>
+            <span>SET 5</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="dock-card">
+        <div class="dock-header">
+          <span>🤖 VS NEURAL AI TELEMETRY</span>
+          <span class="badge" id="turnOwnerBadge">PLAYER TURN</span>
+        </div>
+        <div class="stat-row"><span>Your Pairs Locked</span><strong id="statPlayerPairs">2 Pairs</strong></div>
+        <div class="stat-row"><span>C.A.I.N.E. AI Pairs</span><strong id="statAiPairs">0 Pairs</strong></div>
+        <div class="stat-row"><span>AI Memory Buffer</span><strong id="statAiMemory">5 Cards Tracked</strong></div>
+      </div>
+    </aside>
+
+    <!-- Center 3D Perspective Hologram Card Stage -->
+    <section class="center-stage">
+      <canvas id="memoryCanvas" width="880" height="560"></canvas>
+      <div class="stage-footer">
+        <span id="statusCallout">✨ COMBO x3 ACTIVE! Click any Hologram Card or use Arrow Keys + [SPACE] to Flip!</span>
+        <span>Keys: <b>Arrows/WASD</b> Move Cursor • <b>Space/Click</b> Flip • <b>Q/W/E/R</b> Gadgets • <b>1–8</b> Modes</span>
+      </div>
+    </section>
+
+    <!-- Right Dock: Vault Pair Collection Matrix & Brain IQ Hall of Fame -->
+    <aside class="side-dock">
+      <div class="dock-card">
+        <div class="dock-header">
+          <span>🔓 VAULT RELIC COLLECTION</span>
+          <span class="badge" id="collectionPctBadge">25% CLEAR</span>
+        </div>
+        <div class="matched-grid" id="matchedGrid"></div>
+      </div>
+
+      <div class="dock-card">
+        <div class="dock-header">
+          <span>🏆 BRAIN IQ &amp; HALL OF FAME</span>
+          <span class="badge" id="iqRankBadge">GRANDMASTER</span>
+        </div>
+        <div class="stat-row"><span>All-Time High Score</span><strong id="hofHighScore">14,850</strong></div>
+        <div class="stat-row"><span>Vault Boards Cleared</span><strong id="hofBoards">6</strong></div>
+        <div class="stat-row"><span>Longest Combo Streak</span><strong id="hofBestStreak">x8 STREAK</strong></div>
+        <div class="stat-row"><span>Memory Recall Rating</span><strong id="hofIqScore" style="color:#00f5d4;">148 IQ</strong></div>
+      </div>
+
+      <div class="dock-card">
+        <div class="dock-header">
+          <span>📐 SCORING &amp; COMBO RULES</span>
+          <span class="badge">ROYALTY</span>
+        </div>
+        <div style="font-size:10.5px; color:#cbd5e1; line-height:1.5;">
+          • <b>Pair Match:</b> <code>+500 × Streak Multiplier</code><br/>
+          • <b>Triad Match-3 (Mode 4):</b> <code>+1,500 × Streak</code><br/>
+          • <b>Known-Card Recall Bonus:</b> <code>+250 pts</code> for matching a previously seen card on first try!<br/>
+          • <b>Board Clear Par Bonus:</b> Up to <code>+5,000 pts</code> + <code>⭐⭐⭐</code> Gold Rating!
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    // =========================================================================
+    // 1. SAFE STORAGE & PERSISTENT HALL OF FAME
+    // =========================================================================
+    const MEM_FALLBACK = {};
+    function safeGet(key, fallback) {
+      try {
+        const v = window.localStorage.getItem(key);
+        return v !== null ? v : (MEM_FALLBACK[key] ?? fallback);
+      } catch (_) {
+        return MEM_FALLBACK[key] ?? fallback;
+      }
+    }
+    function safeSet(key, val) {
+      MEM_FALLBACK[key] = String(val);
+      try {
+        window.localStorage.setItem(key, String(val));
+      } catch (_) {}
+    }
+
+    // =========================================================================
+    // 2. WEBAUDIO CRYSTALLINE CARD-FLIP & HARMONIC COMBO SYNTHESIZER
+    // =========================================================================
+    class MemoryAudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+      init() {
+        if (!this.ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) this.ctx = new AC();
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume().catch(() => {});
+        }
+      }
+      tone(freq, dur = 0.12, type = "triangle", gainVal = 0.06, slideTo = null) {
+        if (!this.enabled) return;
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const g = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, now);
+          if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, now + dur);
+          g.gain.setValueAtTime(gainVal, now);
+          g.gain.exponentialRampToValueAtTime(0.0008, now + dur);
+          osc.connect(g);
+          g.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + dur);
+        } catch (_) {}
+      }
+      sfxFlip() {
+        this.tone(420, 0.08, "sine", 0.05, 680);
+      }
+      sfxMatch(streak = 1) {
+        const base = 440 * Math.pow(1.06, Math.min(10, streak));
+        [base, base * 1.25, base * 1.5].forEach((f, i) => {
+          setTimeout(() => this.tone(f, 0.18, "triangle", 0.07), i * 55);
+        });
+      }
+      sfxMismatch() {
+        this.tone(240, 0.14, "sawtooth", 0.045, 160);
+      }
+      sfxBomb() {
+        this.tone(130, 0.32, "sawtooth", 0.09, 48);
+      }
+      sfxVictory() {
+        [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => {
+          setTimeout(() => this.tone(f, 0.24, "triangle", 0.08), i * 70);
+        });
+      }
+    }
+    const audio = new MemoryAudioEngine();
+
+    // =========================================================================
+    // 3. 5 HOLOGRAPHIC CARD DECK CATALOGS (18 SYMBOLS PER DECK FOR UP TO 6x6)
+    // =========================================================================
+    const DECK_THEMES = {
+      casino: [
+        { icon: "💎", name: "Prism Diamond", color: "#38bdf8" },
+        { icon: "👑", name: "Imperial Crown", color: "#facc15" },
+        { icon: "🎰", name: "Triple 777", color: "#f43f5e" },
+        { icon: "🪙", name: "Sovereign Coin", color: "#fbbf24" },
+        { icon: "🍀", name: "Emerald Clover", color: "#22c55e" },
+        { icon: "🔔", name: "Liberty Bell", color: "#f59e0b" },
+        { icon: "🎲", name: "High-Roller Dice", color: "#a855f7" },
+        { icon: "🃏", name: "Holo Joker", color: "#ec4899" },
+        { icon: "🏆", name: "Grand Trophy", color: "#fde047" },
+        { icon: "🍒", name: "Ruby Cherries", color: "#fb7185" },
+        { icon: "💍", name: "Starlight Ring", color: "#00f5d4" },
+        { icon: "🏦", name: "Bullion Vault", color: "#60a5fa" },
+        { icon: "⚡", name: "Volt Jackpot", color: "#38bdf8" },
+        { icon: "🔥", name: "Blaze Multiplier", color: "#f97316" },
+        { icon: "🌟", name: "Supernova Star", color: "#fef08a" },
+        { icon: "🛡️", name: "Platinum Aegis", color: "#94a3b8" },
+        { icon: "🗝️", name: "Skeleton Key", color: "#eab308" },
+        { icon: "🔮", name: "Oracle Sphere", color: "#c084fc" },
+      ],
+      tarot: [
+        { icon: "🐉", name: "Crimson Dragon", color: "#f43f5e" },
+        { icon: "🌙", name: "High Moon", color: "#38bdf8" },
+        { icon: "☀️", name: "Sol Invictus", color: "#facc15" },
+        { icon: "⚔️", name: "Twin Blades", color: "#e2e8f0" },
+        { icon: "🔮", name: "Astral Seer", color: "#a855f7" },
+        { icon: "🦅", name: "Sky Griffin", color: "#f59e0b" },
+        { icon: "🐺", name: "Dire Fenrir", color: "#60a5fa" },
+        { icon: "🌹", name: "Blood Rose", color: "#fb7185" },
+        { icon: "⏳", name: "Chrono Glass", color: "#fde047" },
+        { icon: "🕯️", name: "Sacred Flame", color: "#fb923c" },
+        { icon: "🦋", name: "Soul Monarch", color: "#00f5d4" },
+        { icon: "🐍", name: "Ouroboros", color: "#22c55e" },
+        { icon: "🔱", name: "Abyss Trident", color: "#0ea5e9" },
+        { icon: "🎭", name: "Jester Mask", color: "#ec4899" },
+        { icon: "📜", name: "Elder Scroll", color: "#fcd34d" },
+        { icon: "⚖️", name: "Scales of Fate", color: "#a7f3d0" },
+        { icon: "🏰", name: "Obsidian Tower", color: "#94a3b8" },
+        { icon: "🌌", name: "Void Vortex", color: "#818cf8" },
+      ],
+      space: [
+        { icon: "🚀", name: "Warp Cruiser", color: "#38bdf8" },
+        { icon: "🪐", name: "Ringed Titan", color: "#facc15" },
+        { icon: "👾", name: "Xenomorph AI", color: "#a855f7" },
+        { icon: "🛸", name: "Saucer Drone", color: "#00f5d4" },
+        { icon: "☄️", name: "Halley Comet", color: "#f97316" },
+        { icon: "🤖", name: "Mecha Core", color: "#60a5fa" },
+        { icon: "🛰️", name: "Orbital Array", color: "#e2e8f0" },
+        { icon: "🌌", name: "Andromeda", color: "#ec4899" },
+        { icon: "⚡", name: "Plasma Cell", color: "#fde047" },
+        { icon: "🔭", name: "Deep Scope", color: "#34d399" },
+        { icon: "🌕", name: "Lunar Base", color: "#cbd5e1" },
+        { icon: "☀️", name: "Pulsar Star", color: "#fbbf24" },
+        { icon: "🧬", name: "Xeno Helix", color: "#22c55e" },
+        { icon: "🛡️", name: "Deflector", color: "#38bdf8" },
+        { icon: "🔋", name: "Fusion Rod", color: "#4ade80" },
+        { icon: "📡", name: "Subspace Beacon", color: "#f472b6" },
+        { icon: "🌠", name: "Meteor Shower", color: "#fde047" },
+        { icon: "🕳️", name: "Singularity", color: "#c084fc" },
+      ],
+      tokyo: [
+        { icon: "🍣", name: "Toro Nigiri", color: "#f43f5e" },
+        { icon: "🍜", name: "Tonkotsu Ramen", color: "#facc15" },
+        { icon: "🏮", name: "Akachochin", color: "#f97316" },
+        { icon: "⛩️", name: "Torii Gate", color: "#ef4444" },
+        { icon: "🌸", name: "Sakura Bloom", color: "#f472b6" },
+        { icon: "🍵", name: "Ceremonial Matcha", color: "#22c55e" },
+        { icon: "🥟", name: "Crispy Gyoza", color: "#fbbf24" },
+        { icon: "🍶", name: "Daiginjo Sake", color: "#38bdf8" },
+        { icon: "🍡", name: "Hanami Dango", color: "#ec4899" },
+        { icon: "🍱", name: "Shinkansen Bento", color: "#a855f7" },
+        { icon: "🍙", name: "Salmon Onigiri", color: "#e2e8f0" },
+        { icon: "🍤", name: "Gold Tempura", color: "#fde047" },
+        { icon: "🦊", name: "Kitsune Spirit", color: "#fb923c" },
+        { icon: "🎋", name: "Tanabata Bamboo", color: "#4ade80" },
+        { icon: "🗻", name: "Mount Fuji", color: "#60a5fa" },
+        { icon: "🎏", name: "Koinobori", color: "#00f5d4" },
+        { icon: "扇", name: "Sensu Fan", color: "#f43f5e" },
+        { icon: "⚡", name: "Akihabara Neon", color: "#fde047" },
+      ],
+      quantum: [
+        { icon: "🧬", name: "CRISPR Strand", color: "#00f5d4" },
+        { icon: "⚛️", name: "Quark Spin", color: "#38bdf8" },
+        { icon: "🧪", name: "Neon Catalyst", color: "#22c55e" },
+        { icon: "🔬", name: "Cryo-EM Lens", color: "#a855f7" },
+        { icon: "🧠", name: "Neural Synapse", color: "#ec4899" },
+        { icon: "⚡", name: "Superconductor", color: "#facc15" },
+        { icon: "🦠", name: "Nanobot Swarm", color: "#4ade80" },
+        { icon: "💎", name: "Time Crystal", color: "#60a5fa" },
+        { icon: "🔋", name: "Zero-Point Cell", color: "#fde047" },
+        { icon: "📡", name: "Qubit Telemetry", color: "#f43f5e" },
+        { icon: "🌡️", name: "Absolute Zero", color: "#0ea5e9" },
+        { icon: "🧲", name: "Tokamak Torus", color: "#fb923c" },
+        { icon: "🪩", name: "Photon Lattice", color: "#c084fc" },
+        { icon: "🛡️", name: "Faraday Cage", color: "#94a3b8" },
+        { icon: "🔥", name: "Plasma Torch", color: "#f97316" },
+        { icon: "🌀", name: "Wormhole Gate", color: "#38bdf8" },
+        { icon: "🗝️", name: "RSA-4096 Key", color: "#eab308" },
+        { icon: "🌟", name: "Fusion Ignition", color: "#fef08a" },
+      ],
+    };
+
+    // =========================================================================
+    // 4. GAME STATE & 3D CARD ENGINE
+    // =========================================================================
+    const canvas = document.getElementById("memoryCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const state = {
+      mode: "classic_4x4",
+      deckId: "casino",
+      cols: 4,
+      rows: 4,
+      matchGroupSize: 2, // 2 for Pairs, 3 for Triad Match-3
+      cards: [],
+      flippedIndices: [],
+      lockBoardTimer: 0,
+      mismatchIndices: [],
+      peekTimer: 0,
+      freezeTimer: 0,
+      hintIndices: [],
+      hintTimer: 0,
+      score: 2450,
+      streak: 3,
+      bestStreak: Number(safeGet("mm_best_streak", 8)) || 8,
+      highScore: Number(safeGet("mm_high_score", 14850)) || 14850,
+      boardsCleared: Number(safeGet("mm_boards", 6)) || 6,
+      soulChips: Number(safeGet("mm_chips", 450)) || 450,
+      moves: 4,
+      matchesFound: 2,
+      totalGroups: 8,
+      timerSec: 14,
+      blitzRemaining: 60,
+      cursorIdx: 5,
+      hoverIdx: -1,
+      powerups: {
+        peek: 3,
+        autoPair: 2,
+        freeze: 2,
+        hint: 4,
+      },
+      // Mode 7: VS Neural AI Dealer
+      turn: "player", // "player" | "ai"
+      playerPairs: 2,
+      aiPairs: 0,
+      aiMemory: [], // [{ cardIdx, pairId }]
+      aiThinkTimer: 0,
+      // Mode 8: Chrono-Sequence Simon Recall
+      simonSequence: [],
+      simonStep: 0,
+      simonShowIdx: -1,
+      simonShowTimer: 0,
+      // Visual FX
+      arcLinks: [], // [{ x1, y1, x2, y2, color, life, maxLife }]
+      particles: [],
+      floatingTexts: [],
+      banner: {
+        title: "🧠 HOLO-VAULT MEMORY MATCH — x3 COMBO STREAK!",
+        sub: "Click any Card to Flip in 3D • Match Pairs to Multiply Your Vault Payout!",
+        timer: 3.5,
+      },
+      victoryModal: false,
+    };
+
+    function getModeSpec(mode) {
+      switch (mode) {
+        case "grand_6x4":
+          return { cols: 6, rows: 4, groupSize: 2, label: "🏛️ GRAND VAULT (6×4 — 12 PAIRS)" };
+        case "master_6x6":
+          return { cols: 6, rows: 6, groupSize: 2, label: "🧠 MASTER MATRIX (6×6 — 18 PAIRS)" };
+        case "triad_match3":
+          return { cols: 6, rows: 4, groupSize: 3, label: "🔺 TRIAD MATCH-3 (8 TRIPLETS — FLIP 3 IDENTICAL!)" };
+        case "blitz_60s":
+          return { cols: 4, rows: 4, groupSize: 2, label: "⚡ 60-SECOND BLITZ RUSH (+3.0s PER PAIR)" };
+        case "minefield":
+          return { cols: 5, rows: 4, groupSize: 2, label: "💣 CYBER-MINEFIELD (AVOID EMP DECOY BOMBS!)" };
+        case "vs_ai":
+          return { cols: 5, rows: 4, groupSize: 2, label: "🤖 VS NEURAL AI DEALER (YOU VS C.A.I.N.E.-9000)" };
+        case "simon_sequence":
+          return { cols: 4, rows: 4, groupSize: 2, label: "🎵 CHRONO-SEQUENCE SIMON RECALL" };
+        default:
+          return { cols: 4, rows: 4, groupSize: 2, label: "🃏 CLASSIC HOLO-PAIRS (4×4 — 8 PAIRS)" };
+      }
+    }
+
+    function dealBoard(seedShowcase = false) {
+      const spec = getModeSpec(state.mode);
+      state.cols = spec.cols;
+      state.rows = spec.rows;
+      state.matchGroupSize = spec.groupSize;
+      const totalCards = state.cols * state.rows;
+      const deck = DECK_THEMES[state.deckId] || DECK_THEMES.casino;
+
+      state.flippedIndices = [];
+      state.mismatchIndices = [];
+      state.lockBoardTimer = 0;
+      state.hintIndices = [];
+      state.hintTimer = 0;
+      state.victoryModal = false;
+      state.turn = "player";
+      state.aiMemory = [];
+      state.aiThinkTimer = 0;
+
+      const rawCards = [];
+      if (state.mode === "minefield") {
+        // 20 cards = 9 safe pairs (18 cards) + 2 EMP Decoy Bomb cards!
+        state.totalGroups = 9;
+        for (let p = 0; p < 9; p++) {
+          const item = deck[p % deck.length];
+          for (let k = 0; k < 2; k++) {
+            rawCards.push({
+              pairId: p,
+              icon: item.icon,
+              name: item.name,
+              color: item.color,
+              isBomb: false,
+            });
+          }
+        }
+        for (let b = 0; b < 2; b++) {
+          rawCards.push({
+            pairId: 99,
+            icon: "💣",
+            name: "EMP Decoy Bomb",
+            color: "#ef4444",
+            isBomb: true,
+          });
+        }
+      } else {
+        const numGroups = Math.floor(totalCards / state.matchGroupSize);
+        state.totalGroups = numGroups;
+        for (let p = 0; p < numGroups; p++) {
+          const item = deck[p % deck.length];
+          for (let k = 0; k < state.matchGroupSize; k++) {
+            rawCards.push({
+              pairId: p,
+              icon: item.icon,
+              name: item.name,
+              color: item.color,
+              isBomb: false,
+            });
+          }
+        }
+      }
+
+      // Shuffle unless seeding the deterministic initial showcase board
+      if (!seedShowcase) {
+        for (let i = rawCards.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [rawCards[i], rawCards[j]] = [rawCards[j], rawCards[i]];
+        }
+      }
+
+      state.cards = rawCards.map((c, idx) => ({
+        idx,
+        pairId: c.pairId,
+        icon: c.icon,
+        name: c.name,
+        color: c.color,
+        isBomb: c.isBomb,
+        flipped: false,
+        matched: false,
+        seenCount: 0,
+        flipProgress: 0, // 0 = face-down, 1 = face-up (smooth 3D Y-axis rotation)
+        pulsePhase: idx * 0.45,
+        x: 0,
+        y: 0,
+        w: 0,
+        h: 0,
+      }));
+
+      if (seedShowcase && state.mode === "classic_4x4") {
+        // Seed an exciting mid-round showcase state:
+        // Pairs 0 & 1 already matched in gold, Pair 2 currently flipped open with a lightning tether arc!
+        state.score = 2450;
+        state.streak = 3;
+        state.moves = 4;
+        state.matchesFound = 2;
+        state.playerPairs = 2;
+        state.aiPairs = 0;
+        state.timerSec = 14;
+        [0, 1, 2, 3].forEach((i) => {
+          state.cards[i].matched = true;
+          state.cards[i].flipped = true;
+          state.cards[i].flipProgress = 1;
+        });
+        // Show cards 4 & 5 mid-flip/open with a glowing match arc
+        state.cards[4].flipped = true;
+        state.cards[4].flipProgress = 1;
+        state.cards[9].flipped = true;
+        state.cards[9].flipProgress = 0.85;
+        computeCardRects();
+        const cA = state.cards[4];
+        const cB = state.cards[5];
+        state.arcLinks.push({
+          x1: cA.x + cA.w / 2,
+          y1: cA.y + cA.h / 2,
+          x2: cB.x + cB.w / 2,
+          y2: cB.y + cB.h / 2,
+          color: "#00f5d4",
+          life: 2.2,
+          maxLife: 2.2,
+        });
+        state.floatingTexts.push({
+          x: cA.x + cA.w,
+          y: cA.y - 6,
+          text: "⚡ COMBO x3 MATCH! +1,500!",
+          color: "#fde047",
+          life: 2.0,
+          maxLife: 2.0,
+        });
+        // Unflip 4 & 9 into clean playable state when player clicks their first card
+        state.cards[4].flipped = false;
+        state.cards[4].flipProgress = 0;
+        state.cards[9].flipped = false;
+        state.cards[9].flipProgress = 0;
+        // Keep cards 4 & 5 revealed for a 1.6s opening peek so the screenshot and opening view look electric!
+        state.peekTimer = 1.6;
+      } else {
+        state.score = 0;
+        state.streak = 1;
+        state.moves = 0;
+        state.matchesFound = 0;
+        state.playerPairs = 0;
+        state.aiPairs = 0;
+        state.timerSec = 0;
+        state.blitzRemaining = 60;
+        // Give a 2.2-second opening memorization peek on Master 6x6 and Minefield modes!
+        if (state.mode === "master_6x6" || state.mode === "minefield" || state.mode === "simon_sequence") {
+          state.peekTimer = 2.2;
+        }
+      }
+
+      computeCardRects();
+      renderCollectionDock();
+      updateHud();
+    }
+
+    function computeCardRects() {
+      const W = canvas.width;
+      const H = canvas.height;
+      const padX = state.cols >= 6 ? 44 : 88;
+      const topY = 64;
+      const botPad = 22;
+      const availW = W - padX * 2;
+      const availH = H - topY - botPad;
+      const gapX = state.cols >= 6 ? 12 : 16;
+      const gapY = state.rows >= 6 ? 10 : 14;
+
+      const cardW = Math.floor((availW - gapX * (state.cols - 1)) / state.cols);
+      const cardH = Math.floor((availH - gapY * (state.rows - 1)) / state.rows);
+      const totalGridW = cardW * state.cols + gapX * (state.cols - 1);
+      const startX = Math.floor((W - totalGridW) / 2);
+
+      state.cards.forEach((c, idx) => {
+        const col = idx % state.cols;
+        const row = Math.floor(idx / state.cols);
+        c.x = startX + col * (cardW + gapX);
+        c.y = topY + row * (cardH + gapY);
+        c.w = cardW;
+        c.h = cardH;
+      });
+    }
+
+    // =========================================================================
+    // 5. CARD FLIPPING, MATCH VERIFICATION, COMBO MULTIPLIERS & AI OPPONENT
+    // =========================================================================
+    function flipCard(idx, isAiAction = false) {
+      if (state.victoryModal) {
+        dealBoard(false);
+        return;
+      }
+      if (state.lockBoardTimer > 0) return;
+      if (state.mode === "vs_ai" && state.turn === "ai" && !isAiAction) return;
+
+      const card = state.cards[idx];
+      if (!card || card.matched || card.flipped) return;
+
+      // Clear any opening peek as soon as player flips a card
+      if (state.peekTimer > 0) state.peekTimer = 0;
+
+      card.flipped = true;
+      audio.sfxFlip();
+      state.flippedIndices.push(idx);
+
+      // Record in Neural AI short-term memory buffer (remembers last 6 cards seen)
+      if (!card.isBomb) {
+        state.aiMemory = state.aiMemory.filter((m) => m.cardIdx !== idx);
+        state.aiMemory.push({ cardIdx: idx, pairId: card.pairId });
+        if (state.aiMemory.length > 6) state.aiMemory.shift();
+      }
+
+      // Check if player hit an EMP Decoy Bomb in Minefield Mode!
+      if (card.isBomb) {
+        audio.sfxBomb();
+        state.streak = 1;
+        state.score = Math.max(0, state.score - 250);
+        spawnParticles(card.x + card.w / 2, card.y + card.h / 2, "#ef4444", 24);
+        state.floatingTexts.push({
+          x: card.x + card.w / 2,
+          y: card.y,
+          text: "💣 EMP DECOY BOMB! -250 PTS!",
+          color: "#ef4444",
+          life: 1.4,
+          maxLife: 1.4,
+        });
+        showBanner("💣 EMP DECOY TRIGGERED!", "Combo Streak Reset — Avoid the Red Bomb Tiles!");
+        state.mismatchIndices = [...state.flippedIndices];
+        state.lockBoardTimer = 0.85;
+        card.seenCount++;
+        updateHud();
+        return;
+      }
+
+      // Check if we have flipped enough cards for a group (2 for Pairs, 3 for Triad Match-3)
+      if (state.flippedIndices.length === state.matchGroupSize) {
+        state.moves++;
+        const chosen = state.flippedIndices.map((i) => state.cards[i]);
+        const firstPairId = chosen[0].pairId;
+        const allMatch = chosen.every((c) => c.pairId === firstPairId);
+
+        if (allMatch) {
+          // MATCH LOCKED!
+          const recallBonus = chosen.some((c) => c.seenCount > 0) ? 250 : 0;
+          const basePts = state.matchGroupSize === 3 ? 1500 : 500;
+          const ptsEarned = basePts * state.streak + recallBonus;
+          state.score += ptsEarned;
+          state.soulChips += 25 * state.streak;
+          safeSet("mm_chips", state.soulChips);
+
+          chosen.forEach((c) => {
+            c.matched = true;
+            spawnParticles(c.x + c.w / 2, c.y + c.h / 2, c.color, 18);
+          });
+
+          // Connect matched cards with glowing holographic lightning arc
+          for (let k = 0; k < chosen.length - 1; k++) {
+            const a = chosen[k];
+            const b = chosen[k + 1];
+            state.arcLinks.push({
+              x1: a.x + a.w / 2,
+              y1: a.y + a.h / 2,
+              x2: b.x + b.w / 2,
+              y2: b.y + b.h / 2,
+              color: chosen[0].color,
+              life: 0.85,
+              maxLife: 0.85,
+            });
+          }
+
+          const midCard = chosen[chosen.length - 1];
+          state.floatingTexts.push({
+            x: midCard.x + midCard.w / 2,
+            y: midCard.y + 10,
+            text: `${chosen[0].icon} +${ptsEarned.toLocaleString()} (x${state.streak}!)`,
+            color: "#fde047",
+            life: 1.3,
+            maxLife: 1.3,
+          });
+
+          state.matchesFound++;
+          if (state.mode === "vs_ai") {
+            if (state.turn === "player") state.playerPairs++;
+            else state.aiPairs++;
+          }
+          if (state.mode === "blitz_60s") {
+            state.blitzRemaining = Math.min(99, state.blitzRemaining + 3.0);
+          }
+
+          state.streak = Math.min(12, state.streak + 1);
+          if (state.streak > state.bestStreak) {
+            state.bestStreak = state.streak;
+            safeSet("mm_best_streak", state.bestStreak);
+          }
+          if (state.score > state.highScore) {
+            state.highScore = state.score;
+            safeSet("mm_high_score", state.highScore);
+          }
+
+          // Remove matched cards from AI memory
+          state.aiMemory = state.aiMemory.filter((m) => m.pairId !== firstPairId);
+          state.flippedIndices = [];
+          audio.sfxMatch(state.streak);
+          showBanner(
+            `✨ ${chosen[0].name.toUpperCase()} LOCKED! (+${ptsEarned.toLocaleString()} PTS)`,
+            `Combo Multiplier Escalated to x${state.streak}!`
+          );
+
+          renderCollectionDock();
+          updateHud();
+
+          // Check Board Completion!
+          if (state.matchesFound >= state.totalGroups) {
+            completeBoard();
+          } else if (state.mode === "vs_ai" && state.turn === "ai") {
+            // AI gets another turn on match!
+            state.aiThinkTimer = 0.75;
+          }
+        } else {
+          // MISMATCH -> Flip back after 0.75s memorization window
+          chosen.forEach((c) => {
+            c.seenCount++;
+          });
+          if (state.freezeTimer <= 0) {
+            state.streak = 1;
+          }
+          state.mismatchIndices = [...state.flippedIndices];
+          state.lockBoardTimer = 0.75;
+          audio.sfxMismatch();
+          updateHud();
+        }
+      } else {
+        card.seenCount++;
+        updateHud();
+      }
+    }
+
+    function completeBoard() {
+      const accuracy = state.moves > 0 ? Math.round((state.totalGroups / state.moves) * 100) : 100;
+      const parBonus = accuracy >= 80 ? 3000 : 1500;
+      state.score += parBonus;
+      state.boardsCleared++;
+      safeSet("mm_boards", state.boardsCleared);
+      if (state.score > state.highScore) {
+        state.highScore = state.score;
+        safeSet("mm_high_score", state.highScore);
+      }
+      audio.sfxVictory();
+
+      if (state.mode === "blitz_60s") {
+        showBanner("⚡ BLITZ BOARD CLEARED! +3,000 BONUS!", "Dealing Next High-Speed Holo-Vault Board!");
+        setTimeout(() => dealBoard(false), 600);
+      } else {
+        state.victoryModal = true;
+        showBanner("🏆 HOLO-VAULT CLEARED! ⭐⭐⭐ GRANDMASTER!", `Par Bonus +${parBonus.toLocaleString()} Pts — Click Board or Press [SPACE] for Next Deal!`);
+      }
+      updateHud();
+    }
+
+    // =========================================================================
+    // 6. TACTICAL MEMORY POWER-UPS (PEEK, AUTO-PAIR, FREEZE, HINT)
+    // =========================================================================
+    function triggerPeekPowerup() {
+      if (state.powerups.peek <= 0 && state.soulChips >= 100) {
+        state.soulChips -= 100;
+        state.powerups.peek++;
+      }
+      if (state.powerups.peek <= 0) return;
+      state.powerups.peek--;
+      state.peekTimer = 1.8;
+      audio.sfxMatch(2);
+      showBanner("👁️ X-RAY HOLO-PEEK ENGAGED!", "Memorize All Card Locations for 1.8 Seconds!");
+      updateHud();
+    }
+
+    function triggerAutoPairPowerup() {
+      if (state.lockBoardTimer > 0 || state.victoryModal) return;
+      if (state.powerups.autoPair <= 0 && state.soulChips >= 150) {
+        state.soulChips -= 150;
+        state.powerups.autoPair++;
+      }
+      if (state.powerups.autoPair <= 0) return;
+
+      // Reset any partial flip first
+      state.flippedIndices.forEach((idx) => {
+        state.cards[idx].flipped = false;
+      });
+      state.flippedIndices = [];
+
+      // Find first unmatched safe group
+      const unmatched = state.cards.filter((c) => !c.matched && !c.isBomb);
+      if (unmatched.length === 0) return;
+      state.powerups.autoPair--;
+
+      const targetPairId = unmatched[0].pairId;
+      const group = state.cards.filter((c) => c.pairId === targetPairId && !c.matched);
+      group.forEach((c) => flipCard(c.idx, true));
+      updateHud();
+    }
+
+    function triggerFreezePowerup() {
+      if (state.powerups.freeze <= 0 && state.soulChips >= 100) {
+        state.soulChips -= 100;
+        state.powerups.freeze++;
+      }
+      if (state.powerups.freeze <= 0) return;
+      state.powerups.freeze--;
+      state.freezeTimer = 10.0;
+      audio.sfxFlip();
+      showBanner("❄️ CHRONO-FREEZE ACTIVE (10.0s)!", "Clock Paused & Combo Streak Protected Against Mismatches!");
+      updateHud();
+    }
+
+    function triggerHintPowerup() {
+      if (state.powerups.hint <= 0 && state.soulChips >= 75) {
+        state.soulChips -= 75;
+        state.powerups.hint++;
+      }
+      if (state.powerups.hint <= 0) return;
+      const unmatched = state.cards.filter((c) => !c.matched && !c.isBomb);
+      if (unmatched.length === 0) return;
+      state.powerups.hint--;
+      const targetPairId = unmatched[0].pairId;
+      state.hintIndices = state.cards.filter((c) => c.pairId === targetPairId && !c.matched).map((c) => c.idx);
+      state.hintTimer = 3.0;
+      audio.sfxFlip();
+      showBanner("🔦 NEURAL HINT RADAR!", "Golden Halo Pulsing Around a Valid Matching Pair!");
+      updateHud();
+    }
+
+    // =========================================================================
+    // 7. 60FPS SIMULATION & 3D PERSPECTIVE CANVAS RENDERER
+    // =========================================================================
+    function spawnParticles(x, y, color, count = 16) {
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2 + Math.random() * 0.3;
+        const sp = 60 + Math.random() * 150;
+        state.particles.push({
+          x,
+          y,
+          vx: Math.cos(a) * sp,
+          vy: Math.sin(a) * sp - 30,
+          color,
+          size: 3.5 + Math.random() * 3,
+          life: 0.75,
+          maxLife: 0.75,
+        });
+      }
+    }
+
+    function showBanner(title, sub) {
+      state.banner = { title, sub, timer: 3.0 };
+      const statusEl = document.getElementById("statusCallout");
+      if (statusEl) statusEl.textContent = `${title} — ${sub}`;
+    }
+
+    function stepSimulation(dt) {
+      if (!state.victoryModal && state.freezeTimer <= 0) {
+        state.timerSec += dt;
+        if (state.mode === "blitz_60s") {
+          state.blitzRemaining = Math.max(0, state.blitzRemaining - dt);
+          if (state.blitzRemaining <= 0) {
+            state.victoryModal = true;
+            showBanner("⏰ 60-SECOND BLITZ COMPLETE!", `Final Blitz Score: ${state.score.toLocaleString()} — Click to Play Again!`);
+          }
+        }
+      }
+
+      if (state.peekTimer > 0) state.peekTimer = Math.max(0, state.peekTimer - dt);
+      if (state.freezeTimer > 0) state.freezeTimer = Math.max(0, state.freezeTimer - dt);
+      if (state.hintTimer > 0) {
+        state.hintTimer = Math.max(0, state.hintTimer - dt);
+        if (state.hintTimer <= 0) state.hintIndices = [];
+      }
+      if (state.banner.timer > 0) state.banner.timer = Math.max(0, state.banner.timer - dt);
+
+      // Handle mismatch flip-back timer
+      if (state.lockBoardTimer > 0) {
+        state.lockBoardTimer -= dt;
+        if (state.lockBoardTimer <= 0) {
+          state.lockBoardTimer = 0;
+          state.flippedIndices.forEach((idx) => {
+            if (state.cards[idx] && !state.cards[idx].matched) {
+              state.cards[idx].flipped = false;
+            }
+          });
+          state.flippedIndices = [];
+          state.mismatchIndices = [];
+
+          // If in VS Neural AI mode, switch turn!
+          if (state.mode === "vs_ai") {
+            state.turn = state.turn === "player" ? "ai" : "player";
+            if (state.turn === "ai") {
+              state.aiThinkTimer = 0.65;
+              showBanner("🤖 C.A.I.N.E.-9000 AI TURN!", "Neural Opponent Scanning Short-Term Memory Buffer...");
+            } else {
+              showBanner("🧠 YOUR TURN!", "Flip Two Cards to Lock a Hologram Pair!");
+            }
+            updateHud();
+          }
+        }
+      }
+
+      // Mode 7: Autonomous Neural AI Turn Execution
+      if (state.mode === "vs_ai" && state.turn === "ai" && state.lockBoardTimer <= 0 && !state.victoryModal) {
+        state.aiThinkTimer -= dt;
+        if (state.aiThinkTimer <= 0) {
+          state.aiThinkTimer = 0.55;
+          executeAiFlipStep();
+        }
+      }
+
+      // Smooth 60fps 3D Flip Animation for every card
+      const flipSpeed = 6.2;
+      state.cards.forEach((c) => {
+        const target = c.flipped || c.matched || state.peekTimer > 0 ? 1 : 0;
+        if (c.flipProgress < target) {
+          c.flipProgress = Math.min(1, c.flipProgress + dt * flipSpeed);
+        } else if (c.flipProgress > target) {
+          c.flipProgress = Math.max(0, c.flipProgress - dt * flipSpeed);
+        }
+        c.pulsePhase += dt * 3.5;
+      });
+
+      // Update Arc Links, Particles & Floating Callouts
+      for (let i = state.arcLinks.length - 1; i >= 0; i--) {
+        state.arcLinks[i].life -= dt;
+        if (state.arcLinks[i].life <= 0) state.arcLinks.splice(i, 1);
+      }
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const p = state.particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += 210 * dt;
+        p.life -= dt;
+        if (p.life <= 0) state.particles.splice(i, 1);
+      }
+      for (let i = state.floatingTexts.length - 1; i >= 0; i--) {
+        const ft = state.floatingTexts[i];
+        ft.y -= 28 * dt;
+        ft.life -= dt;
+        if (ft.life <= 0) state.floatingTexts.splice(i, 1);
+      }
+    }
+
+    function executeAiFlipStep() {
+      const available = state.cards.filter((c) => !c.matched && !c.flipped && !c.isBomb);
+      if (available.length === 0) return;
+
+      // If AI hasn't flipped its first card yet, check if AI memory has two cards with the same pairId!
+      if (state.flippedIndices.length === 0) {
+        for (let i = 0; i < state.aiMemory.length; i++) {
+          for (let j = i + 1; j < state.aiMemory.length; j++) {
+            const m1 = state.aiMemory[i];
+            const m2 = state.aiMemory[j];
+            if (
+              m1.pairId === m2.pairId &&
+              !state.cards[m1.cardIdx]?.matched &&
+              !state.cards[m2.cardIdx]?.matched
+            ) {
+              flipCard(m1.cardIdx, true);
+              return;
+            }
+          }
+        }
+        const pick = available[Math.floor(Math.random() * available.length)];
+        flipCard(pick.idx, true);
+      } else {
+        // AI already flipped 1 card -> check if its match is in aiMemory!
+        const firstCard = state.cards[state.flippedIndices[0]];
+        const knownMatch = state.aiMemory.find(
+          (m) => m.pairId === firstCard.pairId && m.cardIdx !== firstCard.idx && !state.cards[m.cardIdx]?.matched
+        );
+        if (knownMatch) {
+          flipCard(knownMatch.cardIdx, true);
+        } else {
+          const pick = available[Math.floor(Math.random() * available.length)];
+          flipCard(pick.idx, true);
+        }
+      }
+    }
+
+    function renderStage() {
+      const W = canvas.width;
+      const H = canvas.height;
+
+      // 1. Deep Cyber-Casino Vault Velvet & Neon Grid Backdrop
+      const bgGrad = ctx.createRadialGradient(W * 0.5, H * 0.45, 40, W * 0.5, H * 0.5, W * 0.72);
+      bgGrad.addColorStop(0, "#17204a");
+      bgGrad.addColorStop(0.6, "#0b1026");
+      bgGrad.addColorStop(1, "#050712");
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.strokeStyle = state.freezeTimer > 0 ? "rgba(56, 189, 248, 0.16)" : "rgba(0, 245, 212, 0.07)";
+      ctx.lineWidth = 1;
+      for (let x = 0; x < W; x += 44) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, H);
+        ctx.stroke();
+      }
+      for (let y = 0; y < H; y += 44) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(W, y);
+        ctx.stroke();
+      }
+
+      // 2. Top Arena Status Banner
+      ctx.save();
+      const spec = getModeSpec(state.mode);
+      ctx.fillStyle = "rgba(10, 15, 36, 0.92)";
+      ctx.strokeStyle = state.freezeTimer > 0 ? "#38bdf8" : "rgba(0, 245, 212, 0.45)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(W * 0.5 - 310, 10, 620, 42, 10);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#fde047";
+      ctx.font = "900 12.5px 'Inter', system-ui";
+      ctx.fillText(state.banner.timer > 0 ? state.banner.title : spec.label, W * 0.5, 27);
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "700 10.5px 'Inter', system-ui";
+      ctx.fillText(
+        state.peekTimer > 0
+          ? `👁️ X-RAY HOLO-PEEK ACTIVE (${state.peekTimer.toFixed(1)}s) — MEMORIZE CARD POSITIONS!`
+          : state.banner.sub,
+        W * 0.5,
+        44
+      );
+      ctx.restore();
+
+      // 3. Render Every Card with Authentic 3D Y-Axis Perspective Rotation!
+      state.cards.forEach((card, idx) => {
+        const cx = card.x + card.w * 0.5;
+        const cy = card.y + card.h * 0.5;
+        // angle goes from 0 (face-down) to PI (face-up); Math.cos gives horizontal 3D foreshortening
+        const angle = card.flipProgress * Math.PI;
+        const scaleX = Math.max(0.06, Math.abs(Math.cos(angle)));
+        const showingFace = card.flipProgress >= 0.5;
+        const isHovered = idx === state.hoverIdx || idx === state.cursorIdx;
+        const isHinted = state.hintIndices.includes(idx);
+        const isMismatched = state.mismatchIndices.includes(idx);
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        // Subtle 3D lift when flipping or hovered
+        const lift = Math.sin(angle) * 8 + (isHovered && !card.matched ? 2.5 : 0);
+        ctx.translate(0, -lift);
+        ctx.scale(scaleX, 1);
+
+        const hw = card.w * 0.5;
+        const hh = card.h * 0.5;
+
+        if (!showingFace) {
+          // ===============================================================
+          // HOLOGRAPHIC CARD BACK (Royal Cyber-Vault Foil + Sacred Geometry)
+          // ===============================================================
+          const backGrad = ctx.createLinearGradient(-hw, -hh, hw, hh);
+          backGrad.addColorStop(0, "#1e1b4b");
+          backGrad.addColorStop(0.5, "#0f172a");
+          backGrad.addColorStop(1, "#311042");
+          ctx.fillStyle = backGrad;
+          ctx.strokeStyle = isHinted
+            ? "#fde047"
+            : isHovered
+            ? "#00f5d4"
+            : "rgba(0, 245, 212, 0.48)";
+          ctx.lineWidth = isHinted || isHovered ? 2.8 : 1.8;
+
+          ctx.beginPath();
+          ctx.roundRect(-hw, -hh, card.w, card.h, 11);
+          ctx.fill();
+          ctx.stroke();
+
+          // Inner Gold Foil Frame
+          ctx.strokeStyle = "rgba(250, 204, 21, 0.32)";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.roundRect(-hw + 6, -hh + 6, card.w - 12, card.h - 12, 7);
+          ctx.stroke();
+
+          // Center Sacred Cyber-Mandala Diamond
+          const r = Math.min(hw, hh) * 0.42;
+          ctx.strokeStyle = isHovered ? "#fde047" : "rgba(0, 245, 212, 0.55)";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(0, -r);
+          ctx.lineTo(r, 0);
+          ctx.lineTo(0, r);
+          ctx.lineTo(-r, 0);
+          ctx.closePath();
+          ctx.stroke();
+
+          ctx.fillStyle = isHinted ? "#fde047" : "rgba(0, 245, 212, 0.85)";
+          ctx.font = "900 13px 'Inter', system-ui";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(isHinted ? "★" : "❖", 0, 0);
+
+          // Memory Badge if player has already seen this card once!
+          if (card.seenCount > 0) {
+            ctx.fillStyle = "rgba(250, 204, 21, 0.85)";
+            ctx.font = "800 8.5px 'Inter', system-ui";
+            ctx.fillText("SEEN", 0, hh - 11);
+          }
+        } else {
+          // ===============================================================
+          // HOLOGRAPHIC CARD FACE (Bespoke Vector Halo + Crisp Icon + Title)
+          // ===============================================================
+          const faceGrad = ctx.createLinearGradient(-hw, -hh, hw, hh);
+          if (card.matched) {
+            faceGrad.addColorStop(0, "rgba(20, 42, 34, 0.96)");
+            faceGrad.addColorStop(1, "rgba(11, 25, 44, 0.96)");
+          } else if (isMismatched) {
+            faceGrad.addColorStop(0, "rgba(69, 10, 26, 0.96)");
+            faceGrad.addColorStop(1, "rgba(38, 8, 22, 0.96)");
+          } else {
+            faceGrad.addColorStop(0, "rgba(23, 31, 68, 0.98)");
+            faceGrad.addColorStop(1, "rgba(12, 17, 42, 0.98)");
+          }
+
+          ctx.fillStyle = faceGrad;
+          ctx.strokeStyle = card.matched
+            ? "#facc15"
+            : isMismatched
+            ? "#f43f5e"
+            : card.color;
+          ctx.lineWidth = card.matched ? 2.8 : 2.2;
+
+          ctx.beginPath();
+          ctx.roundRect(-hw, -hh, card.w, card.h, 11);
+          ctx.fill();
+          ctx.stroke();
+
+          // Glowing Radial Energy Aura behind Symbol
+          const auraR = Math.min(hw, hh) * 0.54;
+          const aura = ctx.createRadialGradient(0, -4, 3, 0, -4, auraR);
+          aura.addColorStop(0, `${card.color}55`);
+          aura.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = aura;
+          ctx.beginPath();
+          ctx.arc(0, -4, auraR, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Symbol Icon
+          const iconFontPx = state.rows >= 6 ? 24 : 32;
+          ctx.font = `${iconFontPx}px sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(card.icon, 0, state.rows >= 6 ? -5 : -8);
+
+          // Card Name Label
+          ctx.fillStyle = card.matched ? "#fde047" : "#f8fafc";
+          ctx.font = `800 ${state.cols >= 6 ? 9 : 10.5}px 'Inter', system-ui`;
+          ctx.fillText(card.name, 0, hh - (state.rows >= 6 ? 11 : 15));
+
+          // Locked Checkmark Badge on Matched Cards
+          if (card.matched) {
+            ctx.fillStyle = "#22c55e";
+            ctx.font = "900 10px 'Inter', system-ui";
+            ctx.fillText("✓ LOCKED", 0, -hh + 12);
+          }
+        }
+
+        ctx.restore();
+      });
+
+      // 4. Holographic Lightning Tether Arcs Connecting Newly Matched Pairs
+      state.arcLinks.forEach((arc) => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, arc.life / arc.maxLife);
+        ctx.strokeStyle = arc.color;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(arc.x1, arc.y1);
+        const mx = (arc.x1 + arc.x2) * 0.5;
+        const my = (arc.y1 + arc.y2) * 0.5 - 26;
+        ctx.quadraticCurveTo(mx, my, arc.x2, arc.y2);
+        ctx.stroke();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.restore();
+      });
+
+      // 5. Particles & Floating Combo Callouts
+      state.particles.forEach((p) => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      state.floatingTexts.forEach((ft) => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, ft.life / ft.maxLife);
+        ctx.textAlign = "center";
+        ctx.font = "900 14px 'Inter', system-ui";
+        ctx.strokeStyle = "#000000";
+        ctx.lineWidth = 3.5;
+        ctx.strokeText(ft.text, ft.x, ft.y);
+        ctx.fillStyle = ft.color;
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.restore();
+      });
+
+      // 6. Victory Overlay Modal when Board is 100% Cleared!
+      if (state.victoryModal) {
+        ctx.save();
+        ctx.fillStyle = "rgba(5, 8, 22, 0.84)";
+        ctx.fillRect(0, 0, W, H);
+
+        const bw = 460;
+        const bh = 230;
+        const bx = (W - bw) * 0.5;
+        const by = (H - bh) * 0.5;
+        ctx.fillStyle = "rgba(15, 23, 52, 0.97)";
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(bx, by, bw, bh, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#fde047";
+        ctx.font = "900 22px 'Inter', system-ui";
+        ctx.fillText("🏆 HOLO-VAULT CLEARED! ⭐⭐⭐", W * 0.5, by + 44);
+
+        const acc = state.moves > 0 ? Math.min(100, Math.round((state.totalGroups / state.moves) * 100)) : 100;
+        ctx.fillStyle = "#e2e8f0";
+        ctx.font = "700 13px 'Inter', system-ui";
+        ctx.fillText(
+          `Final Score: ${state.score.toLocaleString()}  •  Moves: ${state.moves} (${acc}% Accuracy)`,
+          W * 0.5,
+          by + 86
+        );
+        ctx.fillText(
+          `Peak Streak: x${state.bestStreak}  •  Vault Boards Cleared: ${state.boardsCleared}`,
+          W * 0.5,
+          by + 114
+        );
+
+        ctx.fillStyle = "#00f5d4";
+        ctx.beginPath();
+        ctx.roundRect(W * 0.5 - 145, by + 148, 290, 46, 10);
+        ctx.fill();
+        ctx.fillStyle = "#04101c";
+        ctx.font = "900 14px 'Inter', system-ui";
+        ctx.fillText("🔄 DEAL NEXT BOARD [CLICK / SPACE]", W * 0.5, by + 176);
+        ctx.restore();
+      }
+    }
+
+    // =========================================================================
+    // 8. HUD & COLLECTION DOCK UPDATERS
+    // =========================================================================
+    function renderCollectionDock() {
+      const grid = document.getElementById("matchedGrid");
+      const deck = DECK_THEMES[state.deckId] || DECK_THEMES.casino;
+      const items = [];
+      for (let p = 0; p < state.totalGroups; p++) {
+        const meta = deck[p % deck.length];
+        const unlocked = state.cards.some((c) => c.pairId === p && c.matched);
+        items.push(`
+          <div class="matched-chip ${unlocked ? "unlocked" : ""}">
+            <div style="font-size:15px;">${meta.icon}</div>
+            <div>${unlocked ? "LOCKED" : "VAULT"}</div>
+          </div>
+        `);
+      }
+      grid.innerHTML = items.join("");
+    }
+
+    function updateHud() {
+      document.getElementById("hudScore").textContent = state.score.toLocaleString();
+      document.getElementById("hudStreak").textContent = `x${state.streak} COMBO`;
+      document.getElementById("hudPairs").textContent = `${state.matchesFound} / ${state.totalGroups}`;
+
+      const acc = state.moves > 0 ? Math.min(100, Math.round((state.matchesFound / state.moves) * 100)) : 100;
+      document.getElementById("hudMoves").textContent = `${state.moves} (${acc}%)`;
+
+      const secVal = state.mode === "blitz_60s" ? Math.ceil(state.blitzRemaining) : Math.floor(state.timerSec);
+      const mins = String(Math.floor(secVal / 60)).padStart(2, "0");
+      const secs = String(secVal % 60).padStart(2, "0");
+      document.getElementById("hudTimer").textContent = `${mins}:${secs}`;
+
+      document.getElementById("soulChipsBadge").textContent = `🪙 ${state.soulChips.toLocaleString()} CHIPS`;
+      document.getElementById("cntPeek").textContent = `${state.powerups.peek} LEFT`;
+      document.getElementById("cntAuto").textContent = `${state.powerups.autoPair} LEFT`;
+      document.getElementById("cntFreeze").textContent = `${state.powerups.freeze} LEFT`;
+      document.getElementById("cntHint").textContent = `${state.powerups.hint} LEFT`;
+
+      document.getElementById("turnOwnerBadge").textContent =
+        state.mode === "vs_ai" ? (state.turn === "player" ? "YOUR TURN" : "AI THINKING") : "SOLO VAULT";
+      document.getElementById("statPlayerPairs").textContent = `${state.playerPairs} Pairs`;
+      document.getElementById("statAiPairs").textContent = `${state.aiPairs} Pairs`;
+      document.getElementById("statAiMemory").textContent = `${state.aiMemory.length} Cards Tracked`;
+
+      const pct = Math.round((state.matchesFound / Math.max(1, state.totalGroups)) * 100);
+      document.getElementById("collectionPctBadge").textContent = `${pct}% CLEAR`;
+
+      document.getElementById("hofHighScore").textContent = state.highScore.toLocaleString();
+      document.getElementById("hofBoards").textContent = String(state.boardsCleared);
+      document.getElementById("hofBestStreak").textContent = `x${state.bestStreak} STREAK`;
+      const iq = Math.min(185, 115 + state.bestStreak * 4 + Math.min(25, state.boardsCleared * 2));
+      document.getElementById("hofIqScore").textContent = `${iq} IQ`;
+    }
+
+    // =========================================================================
+    // 9. INPUT CONTROLLERS (CANVAS CLICK, HOVER, KEYBOARD & TOOLBAR)
+    // =========================================================================
+    canvas.addEventListener("pointermove", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = ((e.clientX - rect.left) / rect.width) * canvas.width;
+      const my = ((e.clientY - rect.top) / rect.height) * canvas.height;
+      state.hoverIdx = -1;
+      for (let i = 0; i < state.cards.length; i++) {
+        const c = state.cards[i];
+        if (mx >= c.x && mx <= c.x + c.w && my >= c.y && my <= c.y + c.h) {
+          state.hoverIdx = i;
+          state.cursorIdx = i;
+          break;
+        }
+      }
+    });
+
+    canvas.addEventListener("pointerdown", (e) => {
+      audio.init();
+      if (state.victoryModal) {
+        dealBoard(false);
+        return;
+      }
+      const rect = canvas.getBoundingClientRect();
+      const mx = ((e.clientX - rect.left) / rect.width) * canvas.width;
+      const my = ((e.clientY - rect.top) / rect.height) * canvas.height;
+      for (let i = 0; i < state.cards.length; i++) {
+        const c = state.cards[i];
+        if (mx >= c.x && mx <= c.x + c.w && my >= c.y && my <= c.y + c.h) {
+          state.cursorIdx = i;
+          flipCard(i);
+          return;
+        }
+      }
+    });
+
+    function setMode(mode) {
+      state.mode = mode;
+      document.querySelectorAll(".mode-tab").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-mode") === mode);
+      });
+      dealBoard(false);
+    }
+
+    function setDeck(deckId) {
+      state.deckId = deckId;
+      document.getElementById("deckSelect").value = deckId;
+      document.querySelectorAll(".deck-pill").forEach((el) => {
+        el.classList.toggle("active", el.getAttribute("data-deck") === deckId);
+      });
+      dealBoard(false);
+    }
+
+    document.querySelectorAll(".mode-tab").forEach((btn) => {
+      btn.addEventListener("click", () => setMode(btn.getAttribute("data-mode")));
+    });
+
+    document.getElementById("deckSelect").addEventListener("change", (e) => setDeck(e.target.value));
+    document.querySelectorAll(".deck-pill").forEach((el) => {
+      el.addEventListener("click", () => setDeck(el.getAttribute("data-deck")));
+    });
+
+    document.getElementById("btnPeekAll").addEventListener("click", triggerPeekPowerup);
+    document.getElementById("gadPeek").addEventListener("click", triggerPeekPowerup);
+    document.getElementById("btnAutoMatch").addEventListener("click", triggerAutoPairPowerup);
+    document.getElementById("gadAutoPair").addEventListener("click", triggerAutoPairPowerup);
+    document.getElementById("gadFreeze").addEventListener("click", triggerFreezePowerup);
+    document.getElementById("gadHint").addEventListener("click", triggerHintPowerup);
+    document.getElementById("btnNewDeal").addEventListener("click", () => dealBoard(false));
+
+    document.getElementById("btnAudio").addEventListener("click", (e) => {
+      audio.enabled = !audio.enabled;
+      e.currentTarget.textContent = audio.enabled ? "🔊 AUDIO: ON [M]" : "🔇 AUDIO: OFF [M]";
+    });
+
+    const MODE_LIST = [
+      "classic_4x4",
+      "grand_6x4",
+      "master_6x6",
+      "triad_match3",
+      "blitz_60s",
+      "minefield",
+      "vs_ai",
+      "simon_sequence",
+    ];
+
+    window.addEventListener("keydown", (e) => {
+      if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
+        e.preventDefault();
+      }
+      if (e.code === "ArrowRight" || e.code === "KeyD") {
+        state.cursorIdx = (state.cursorIdx + 1) % state.cards.length;
+      } else if (e.code === "ArrowLeft" || e.code === "KeyA") {
+        state.cursorIdx = (state.cursorIdx - 1 + state.cards.length) % state.cards.length;
+      } else if (e.code === "ArrowDown" || e.code === "KeyS") {
+        state.cursorIdx = (state.cursorIdx + state.cols) % state.cards.length;
+      } else if (e.code === "ArrowUp" || e.code === "KeyW") {
+        if (e.shiftKey) {
+          triggerAutoPairPowerup();
+        } else {
+          state.cursorIdx = (state.cursorIdx - state.cols + state.cards.length) % state.cards.length;
+        }
+      } else if (e.code === "Space" || e.code === "Enter") {
+        flipCard(state.cursorIdx);
+      } else if (e.code === "KeyQ") {
+        triggerPeekPowerup();
+      } else if (e.code === "KeyE") {
+        triggerFreezePowerup();
+      } else if (e.code === "KeyR") {
+        triggerHintPowerup();
+      } else if (e.code === "KeyN") {
+        dealBoard(false);
+      } else if (e.code === "KeyM") {
+        document.getElementById("btnAudio").click();
+      } else if (e.code.startsWith("Digit")) {
+        const n = Number(e.code.replace("Digit", ""));
+        if (n >= 1 && n <= 8) setMode(MODE_LIST[n - 1]);
+      }
+    });
+
+    // Boot Initial Board & 60fps Render Loop
+    dealBoard(true);
+    let lastTs = performance.now();
+    function loop(now) {
+      const dt = Math.min(0.05, (now - lastTs) / 1000);
+      lastTs = now;
+      stepSimulation(dt);
+      renderStage();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

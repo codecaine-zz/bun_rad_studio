@@ -1,0 +1,3275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine NightSavior: Bullet-Heaven &amp; Dark Force Odyssey</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    :root {
+      --bg-void: #07030f;
+      --bg-crypt: #110722;
+      --panel-bg: rgba(14, 7, 28, 0.94);
+      --panel-border: rgba(244, 63, 94, 0.36);
+      --crimson: #f43f5e;
+      --crimson-deep: #be123c;
+      --gold: #facc15;
+      --gold-glow: #fde047;
+      --cyan: #38bdf8;
+      --cyan-neon: #00f5d4;
+      --violet: #a855f7;
+      --emerald: #22c55e;
+      --text-main: #f8fafc;
+      --text-muted: #cbd5e1;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 25%, #240a37 0%, #0d051a 65%, #05020a 100%);
+      color: var(--text-main);
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Full-Width Gothic XP Bar Across Very Top */
+    .xp-top-ribbon {
+      position: relative;
+      width: 100%;
+      height: 16px;
+      background: #090414;
+      border-bottom: 1.5px solid rgba(250, 204, 21, 0.55);
+      overflow: hidden;
+      flex-shrink: 0;
+      z-index: 30;
+    }
+
+    .xp-top-fill {
+      height: 100%;
+      width: 68%;
+      background: linear-gradient(90deg, #1d4ed8 0%, #00f5d4 45%, #facc15 85%, #f43f5e 100%);
+      box-shadow: 0 0 16px rgba(0, 245, 212, 0.8);
+      transition: width 0.14s ease-out;
+    }
+
+    .xp-top-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: #ffffff;
+      text-shadow: 0 1px 4px #000, 0 0 8px rgba(0, 0, 0, 0.95);
+    }
+
+    /* Top Header HUD Bar */
+    header.top-hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      background: linear-gradient(180deg, rgba(22, 8, 38, 0.96) 0%, rgba(10, 4, 20, 0.96) 100%);
+      border-bottom: 1px solid var(--panel-border);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+      z-index: 25;
+      gap: 8px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .brand-badge-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 30%, #f43f5e, #881337 70%, #090314);
+      border: 1.5px solid var(--gold);
+      box-shadow: 0 0 14px rgba(244, 63, 94, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .brand-titles h1 {
+      font-size: 13.5px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffffff 0%, #fda4af 45%, #facc15 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-titles .subtitle {
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.25px;
+    }
+
+    .hud-kpis {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .kpi-pill {
+      background: rgba(18, 8, 34, 0.9);
+      border: 1px solid rgba(244, 63, 94, 0.32);
+      border-radius: 8px;
+      padding: 2px 9px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 68px;
+    }
+
+    .kpi-pill.gold-border {
+      border-color: rgba(250, 204, 21, 0.6);
+      box-shadow: 0 0 10px rgba(250, 204, 21, 0.18);
+    }
+
+    .kpi-pill.cyan-border {
+      border-color: rgba(0, 245, 212, 0.55);
+      box-shadow: 0 0 10px rgba(0, 245, 212, 0.18);
+    }
+
+    .kpi-label {
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: #cbd5e1;
+      font-weight: 800;
+    }
+
+    .kpi-val {
+      font-size: 13.5px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: #ffffff;
+    }
+
+    .kpi-val.gold {
+      color: var(--gold);
+      text-shadow: 0 0 8px rgba(250, 204, 21, 0.5);
+    }
+
+    .kpi-val.crimson {
+      color: #fb7185;
+      text-shadow: 0 0 8px rgba(244, 63, 94, 0.6);
+    }
+
+    .kpi-val.cyan {
+      color: var(--cyan-neon);
+      text-shadow: 0 0 8px rgba(0, 245, 212, 0.5);
+    }
+
+    .hud-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    select.hud-select,
+    button.hud-btn {
+      background: linear-gradient(180deg, rgba(36, 14, 58, 0.95) 0%, rgba(19, 7, 34, 0.95) 100%);
+      color: #f8fafc;
+      border: 1px solid rgba(244, 63, 94, 0.48);
+      border-radius: 7px;
+      padding: 5px 9px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    select.hud-select:hover,
+    button.hud-btn:hover {
+      border-color: var(--gold);
+      box-shadow: 0 0 10px rgba(250, 204, 21, 0.35);
+      transform: translateY(-1px);
+    }
+
+    button.hud-btn.crimson-cta {
+      background: linear-gradient(180deg, #e11d48 0%, #9f1239 100%);
+      border-color: #fda4af;
+      box-shadow: 0 0 12px rgba(225, 29, 72, 0.5);
+    }
+
+    button.hud-btn.gold-cta {
+      background: linear-gradient(180deg, #d97706 0%, #92400e 100%);
+      border-color: #fde047;
+      color: #fef9c3;
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.45);
+    }
+
+    button.hud-btn.violet-cta {
+      background: linear-gradient(180deg, #7e22ce 0%, #4c1d95 100%);
+      border-color: #d8b4fe;
+      box-shadow: 0 0 12px rgba(168, 85, 247, 0.55);
+    }
+
+    /* 8-Mode Pill Ribbon */
+    .mode-pill-bar {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      background: rgba(11, 4, 22, 0.94);
+      border-bottom: 1px solid rgba(244, 63, 94, 0.25);
+      overflow-x: auto;
+      flex-shrink: 0;
+      z-index: 22;
+    }
+
+    .mode-pill {
+      background: rgba(26, 11, 46, 0.85);
+      color: #cbd5e1;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 10.5px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.14s ease;
+    }
+
+    .mode-pill:hover {
+      border-color: #fb7185;
+      color: #ffffff;
+    }
+
+    .mode-pill.active {
+      background: linear-gradient(90deg, #be123c 0%, #7e22ce 100%);
+      color: #fef08a;
+      border-color: var(--gold);
+      box-shadow: 0 0 12px rgba(244, 63, 94, 0.55);
+    }
+
+    /* Main Workspace Layout */
+    .workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 270px 1fr 278px;
+      gap: 8px;
+      padding: 8px 10px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .side-dock {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 9px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      box-shadow: inset 0 0 24px rgba(244, 63, 94, 0.08), 0 8px 24px rgba(0, 0, 0, 0.65);
+    }
+
+    .dock-section {
+      background: rgba(20, 9, 38, 0.82);
+      border: 1px solid rgba(244, 63, 94, 0.22);
+      border-radius: 9px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .dock-title {
+      font-size: 10.5px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.75px;
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(250, 204, 21, 0.2);
+      padding-bottom: 4px;
+    }
+
+    /* Vampire Survivors 6 Weapon + 6 Passive HUD Matrix */
+    .slot-grid-6 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+    }
+
+    .equip-slot {
+      background: radial-gradient(circle at 50% 35%, rgba(45, 18, 78, 0.95), rgba(12, 5, 24, 0.95));
+      border: 1.5px solid rgba(148, 163, 184, 0.35);
+      border-radius: 8px;
+      padding: 5px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .equip-slot:hover {
+      border-color: var(--gold);
+      transform: translateY(-1px);
+    }
+
+    .equip-slot.evolved {
+      background: radial-gradient(circle at 50% 30%, rgba(190, 18, 60, 0.92), rgba(69, 10, 26, 0.96));
+      border-color: var(--gold);
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.45), inset 0 0 8px rgba(250, 204, 21, 0.35);
+    }
+
+    .equip-slot .slot-icon {
+      font-size: 17px;
+      line-height: 1.1;
+    }
+
+    .equip-slot .slot-name {
+      font-size: 9px;
+      font-weight: 800;
+      color: #f1f5f9;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    .equip-slot .slot-lvl {
+      font-size: 8.5px;
+      font-weight: 900;
+      color: var(--gold);
+      margin-top: 1px;
+    }
+
+    .equip-slot.evolved .slot-lvl {
+      color: #fde047;
+      text-shadow: 0 0 6px #f43f5e;
+    }
+
+    /* Dark Force Overdrive Gauge Box */
+    .darkforce-box {
+      background: linear-gradient(135deg, rgba(59, 7, 100, 0.9), rgba(136, 19, 55, 0.9));
+      border: 1.5px solid #f472b6;
+      border-radius: 9px;
+      padding: 8px;
+      box-shadow: 0 0 16px rgba(168, 85, 247, 0.35);
+    }
+
+    .df-meter-track {
+      width: 100%;
+      height: 12px;
+      background: rgba(9, 4, 20, 0.9);
+      border: 1px solid rgba(244, 114, 182, 0.55);
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 5px 0;
+    }
+
+    .df-meter-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #a855f7 0%, #ec4899 50%, #facc15 100%);
+      box-shadow: 0 0 12px #ec4899;
+      transition: width 0.12s ease;
+    }
+
+    /* Center Arena Viewport */
+    .arena-stage {
+      position: relative;
+      background: #06020c;
+      border: 1.5px solid rgba(244, 63, 94, 0.45);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 0 32px rgba(0, 0, 0, 0.9), inset 0 0 28px rgba(244, 63, 94, 0.18);
+      display: flex;
+      flex-direction: column;
+    }
+
+    #gameCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+
+    /* Quick Level-Up Draft Ribbon at Bottom of Canvas */
+    .quick-draft-overlay {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 10px;
+      background: linear-gradient(180deg, rgba(18, 7, 36, 0.95) 0%, rgba(9, 3, 20, 0.98) 100%);
+      border: 1.5px solid rgba(250, 204, 21, 0.75);
+      border-radius: 12px;
+      padding: 7px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.92), 0 0 18px rgba(250, 204, 21, 0.28);
+      z-index: 15;
+    }
+
+    .draft-cards-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+      flex: 1;
+    }
+
+    .draft-card {
+      background: linear-gradient(135deg, rgba(42, 16, 68, 0.95), rgba(20, 8, 38, 0.95));
+      border: 1.5px solid rgba(244, 63, 94, 0.45);
+      border-radius: 8px;
+      padding: 5px 8px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .draft-card:hover {
+      border-color: var(--gold);
+      background: linear-gradient(135deg, rgba(136, 19, 55, 0.95), rgba(59, 7, 100, 0.95));
+      transform: translateY(-2px);
+      box-shadow: 0 0 14px rgba(250, 204, 21, 0.45);
+    }
+
+    .draft-card-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .draft-card-info {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .draft-card-title {
+      font-size: 10.5px;
+      font-weight: 900;
+      color: #fef08a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .draft-card-desc {
+      font-size: 9px;
+      color: #cbd5e1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .draft-actions-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    /* Right Dock Cards */
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10.5px;
+      padding: 2px 0;
+      border-bottom: 1px dashed rgba(148, 163, 184, 0.14);
+    }
+
+    .stat-row span.val {
+      font-weight: 900;
+      color: var(--cyan-neon);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .arcana-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .arcana-card {
+      background: linear-gradient(90deg, rgba(59, 7, 100, 0.78), rgba(30, 10, 52, 0.85));
+      border: 1px solid rgba(216, 180, 254, 0.4);
+      border-radius: 7px;
+      padding: 5px 7px;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .arcana-card.active {
+      border-color: var(--gold);
+      box-shadow: 0 0 10px rgba(250, 204, 21, 0.35);
+      background: linear-gradient(90deg, rgba(136, 19, 55, 0.88), rgba(76, 29, 149, 0.9));
+    }
+
+    .arcana-card strong {
+      color: #fde047;
+      display: block;
+      font-size: 10.5px;
+    }
+
+    /* Evolution Grimoire Modal */
+    .grimoire-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 2, 12, 0.84);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+
+    .grimoire-modal.open {
+      display: flex;
+    }
+
+    .grimoire-dialog {
+      background: linear-gradient(180deg, #1a0933 0%, #0b0418 100%);
+      border: 2px solid var(--gold);
+      border-radius: 16px;
+      max-width: 820px;
+      width: 100%;
+      max-height: 86vh;
+      overflow-y: auto;
+      padding: 18px;
+      box-shadow: 0 0 50px rgba(244, 63, 94, 0.55);
+    }
+
+    .evo-recipe-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .evo-recipe-item {
+      background: rgba(30, 12, 54, 0.9);
+      border: 1px solid rgba(250, 204, 21, 0.35);
+      border-radius: 9px;
+      padding: 8px 10px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .evo-recipe-item b {
+      color: #fde047;
+    }
+  </style>
+</head>
+<body>
+  <!-- Full-Width Gothic XP Bar Across Top -->
+  <div class="xp-top-ribbon" id="xpRibbon">
+    <div class="xp-top-fill" id="xpBarFill"></div>
+    <div class="xp-top-label" id="xpBarText">LV. 14 NIGHT-SAVIOR — 2,840 / 3,400 XP (83%) • DARK FORCE READY [SPACE]</div>
+  </div>
+
+  <!-- Top HUD Header -->
+  <header class="top-hud">
+    <div class="brand-cluster">
+      <div class="brand-badge-icon">🧛</div>
+      <div class="brand-titles">
+        <h1>Codecaine NightSavior: Bullet-Heaven &amp; Dark Force</h1>
+        <div class="subtitle">Gothic Roguelike Weapon Evolutions × Vampire Savior Dark Force Overdrive</div>
+      </div>
+    </div>
+
+    <div class="hud-kpis">
+      <div class="kpi-pill gold-border">
+        <span class="kpi-label">SURVIVAL TIMER</span>
+        <span class="kpi-val gold" id="hudTimer">08:42</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">SLAY COUNT</span>
+        <span class="kpi-val crimson" id="hudKills">1,842</span>
+      </div>
+      <div class="kpi-pill cyan-border">
+        <span class="kpi-label">SOUL GOLD</span>
+        <span class="kpi-val cyan" id="hudGold">14,950</span>
+      </div>
+      <div class="kpi-pill gold-border">
+        <span class="kpi-label">DARK CHAIN</span>
+        <span class="kpi-val gold" id="hudCombo">64 HIT</span>
+      </div>
+    </div>
+
+    <div class="hud-controls">
+      <select id="lordSelect" class="hud-select" title="Select Playable Gothic Night-Lord">
+        <option value="demitri">🧛‍♂️ Demitri-Caine (Bloody Tear Whip + Midnight Bliss)</option>
+        <option value="morrigan">🦇 Morrigan-Vex (Soul Fist Swarm + Darkness Illusion)</option>
+        <option value="talbain">🐺 Talbain-X (Cyber Werewolf Claws + Dragon Cannon)</option>
+        <option value="donovan">🗡️ Donovan-Zero (Unholy Vespers + Dhampir Immortal)</option>
+        <option value="poe">🧄 Poe-Phantasm (Soul Eater Field + Garlic Nova)</option>
+        <option value="jedah">👑 Jedah-Omega (Death Spiral Scythes + Thunder Loop)</option>
+      </select>
+
+      <select id="vampireModeSelect" class="hud-select" title="Select Game Mode (Keys 1-8)">
+        <option value="mad_forest">🌲 1. Mad Neon Forest (Classic Bullet-Heaven)</option>
+        <option value="inlaid_library">📚 2. Inlaid Cyber-Library (Horizontal Swarm)</option>
+        <option value="gallo_tower">🗼 3. Gallo Blood Tower (Vertical Gauntlet)</option>
+        <option value="vampire_savior_duel">🥊 4. Vampire Savior 1v1 Duel (Fighting Arena)</option>
+        <option value="hyper_hurry">⚡ 5. Hyper Hurry Overdrive (2x Speed &amp; XP)</option>
+        <option value="arcana_sandbox">🃏 6. Arcana Tarot &amp; Limit Break Sandbox</option>
+        <option value="reaper_boss_rush">💀 7. Red Death Reaper Boss Rush</option>
+        <option value="auto_ai_tester">🤖 8. Auto-Survivor AI &amp; Build Tester</option>
+      </select>
+
+      <button class="hud-btn violet-cta" id="btnDarkForce" title="Activate Vampire Savior Dark Force Overdrive [SPACE / E]">
+        🌌 DARK FORCE [SPACE]
+      </button>
+      <button class="hud-btn gold-cta" id="btnOpenChest" title="Open Boss Treasure Chest &amp; Evolve Eligible Weapon [C]">
+        🎁 CHEST JACKPOT [C]
+      </button>
+      <button class="hud-btn crimson-cta" id="btnNewRun" title="Start Fresh Level 1 Progression Run [N]">
+        🔄 NEW LV.1 RUN [N]
+      </button>
+      <button class="hud-btn" id="btnGrimoire" title="Open Weapon Evolution Grimoire [V]">
+        📕 EVOLUTIONS [V]
+      </button>
+      <button class="hud-btn" id="btnAudio" title="Toggle Castlevania/Darkstalkers Organ Synth BGM [M]">
+        🔊 BGM: ON [M]
+      </button>
+    </div>
+  </header>
+
+  <!-- 8-Mode Pill Bar -->
+  <nav class="mode-pill-bar" id="modePillBar">
+    <button class="mode-pill active" data-mode="mad_forest">🌲 1. Mad Neon Forest</button>
+    <button class="mode-pill" data-mode="inlaid_library">📚 2. Inlaid Cyber-Library</button>
+    <button class="mode-pill" data-mode="gallo_tower">🗼 3. Gallo Blood Tower</button>
+    <button class="mode-pill" data-mode="vampire_savior_duel">🥊 4. Vampire Savior 1v1 Duel</button>
+    <button class="mode-pill" data-mode="hyper_hurry">⚡ 5. Hyper Hurry Overdrive</button>
+    <button class="mode-pill" data-mode="arcana_sandbox">🃏 6. Arcana Tarot &amp; Limit Break</button>
+    <button class="mode-pill" data-mode="reaper_boss_rush">💀 7. Red Death Reaper Rush</button>
+    <button class="mode-pill" data-mode="auto_ai_tester">🤖 8. Auto-Survivor AI Tester</button>
+  </nav>
+
+  <!-- Main 3-Column Workspace -->
+  <main class="workspace">
+    <!-- Left Dock: 6 Weapons + 6 Passives + Dark Force Gauge -->
+    <aside class="side-dock">
+      <div class="dock-section">
+        <div class="dock-title">
+          <span>⚔️ 6 WEAPON SLOTS (CLICK TO UPGRADE)</span>
+          <span id="evolvedCountBadge" style="color:#fb7185;">4 EVOLVED</span>
+        </div>
+        <div class="slot-grid-6" id="weaponSlotsGrid"></div>
+      </div>
+
+      <div class="dock-section">
+        <div class="dock-title">
+          <span>💍 6 PASSIVE RELIC SLOTS</span>
+          <span style="color:#38bdf8;">RELIC MATRIX</span>
+        </div>
+        <div class="slot-grid-6" id="passiveSlotsGrid"></div>
+      </div>
+
+      <div class="darkforce-box">
+        <div class="dock-title" style="border-bottom-color:rgba(244,114,182,0.35);">
+          <span>🌌 VAMPIRE SAVIOR DARK FORCE</span>
+          <span id="dfStateBadge" style="color:#fde047;">READY 100%</span>
+        </div>
+        <div class="df-meter-track">
+          <div class="df-meter-fill" id="dfMeterFill"></div>
+        </div>
+        <div style="font-size:9.5px; color:#f1f5f9; line-height:1.35; margin-bottom:6px;" id="lordSpecialDesc">
+          <strong>EX Ultimate:</strong> Summons Twin Shadow Clone + 2× Attack Speed + Screen-Cleaving Midnight Bliss!
+        </div>
+        <div style="display:flex; gap:5px;">
+          <button class="hud-btn violet-cta" style="flex:1; font-size:10px;" id="btnTriggerDFSide">⚡ OVERDRIVE [SPACE]</button>
+          <button class="hud-btn" style="flex:1; font-size:10px;" id="btnDashCancel">💨 DASH [SHIFT]</button>
+        </div>
+      </div>
+
+      <div class="dock-section">
+        <div class="dock-title">
+          <span>🧪 SANDBOX CHEATS &amp; WAVE SPAWNER</span>
+          <span>DEV</span>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px;">
+          <button class="hud-btn crimson-cta" id="btnEvolveAll" style="font-size:10px;">👑 EVOLVE ALL 6</button>
+          <button class="hud-btn gold-cta" id="btnMagnetAll" style="font-size:10px;">🧲 VACUUM GEMS</button>
+          <button class="hud-btn" id="btnSpawnBoss" style="font-size:10px;">💀 SPAWN REAPER</button>
+          <button class="hud-btn" id="btnRosaryNuke" style="font-size:10px;">✝️ ROSARY NUKE</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center Bullet-Heaven & Darkstalkers Arena Canvas -->
+    <section class="arena-stage">
+      <canvas id="gameCanvas" width="920" height="620"></canvas>
+
+      <!-- Interactive Level-Up Quick-Draft Bar ([1], [2], [3], Reroll [R], Banish [B]) -->
+      <div class="quick-draft-overlay" id="quickDraftBar">
+        <div style="display:flex; flex-direction:column; gap:2px; min-width:118px;">
+          <span style="font-size:10px; font-weight:900; color:#facc15; letter-spacing:0.6px;" id="draftTitleLabel">✨ LEVEL-UP DRAFT (2 READY)</span>
+          <span style="font-size:9px; color:#cbd5e1;" id="draftSubStatus">Keys [1] [2] [3] or Click Card</span>
+        </div>
+        <div class="draft-cards-row" id="draftCardsContainer"></div>
+        <div class="draft-actions-col">
+          <button class="hud-btn gold-cta" id="btnRerollDraft" style="padding:3px 8px; font-size:9.5px;">🎲 REROLL [R] (9)</button>
+          <button class="hud-btn" id="btnBanishDraft" style="padding:3px 8px; font-size:9.5px;">⏭️ BANISH [X] (5)</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Dock: Night-Lord Telemetry, Arcana Tarot Cards & Weapon DPS Meter -->
+    <aside class="side-dock">
+      <div class="dock-section">
+        <div class="dock-title">
+          <span>🩸 NIGHT-LORD COMBAT TELEMETRY</span>
+          <span id="heroBadgeName" style="color:#fb7185;">DEMITRI</span>
+        </div>
+        <div class="stat-row"><span>Vitality HP / Lifesteal</span><span class="val" id="statHp">240 / 240 HP</span></div>
+        <div class="stat-row"><span>Might (+Spinach / Limit)</span><span class="val" id="statMight">+185%</span></div>
+        <div class="stat-row"><span>Attack Cooldown (-Tome)</span><span class="val" id="statCooldown">-45%</span></div>
+        <div class="stat-row"><span>Area Radius (+Candelabrador)</span><span class="val" id="statArea">+160%</span></div>
+        <div class="stat-row"><span>Projectile Amount (+Duplicator)</span><span class="val" id="statAmount">+4 PROJ</span></div>
+        <div class="stat-row"><span>Magnet Vacuum (+AttractOrb)</span><span class="val" id="statMagnet">260 PX</span></div>
+      </div>
+
+      <div class="dock-section">
+        <div class="dock-title">
+          <span>🃏 ARCANA TAROT &amp; LIMIT BREAK</span>
+          <span>CLICK TO TOGGLE</span>
+        </div>
+        <div class="arcana-list" id="arcanaList">
+          <div class="arcana-card active" data-arcana="slash">
+            <strong>XVI - Slash &amp; Crimson Crit</strong>
+            Enables critical strikes (2.5× DMG) on Whip, Knife, Axe &amp; Heaven Sword.
+          </div>
+          <div class="arcana-card active" data-arcana="twilight">
+            <strong>II - Twilight Requiem</strong>
+            King Bible, Lightning Ring &amp; Soul Fist trigger secondary Dark Force explosions.
+          </div>
+          <div class="arcana-card active" data-arcana="sarabande">
+            <strong>VI - Sarabande of Healing</strong>
+            Bloody Tear &amp; Soul Eater lifesteal pulses deal double radial damage around you.
+          </div>
+        </div>
+      </div>
+
+      <div class="dock-section">
+        <div class="dock-title">
+          <span>📊 LIVE WEAPON DPS &amp; EVOLUTION LOG</span>
+          <span>REALTIME</span>
+        </div>
+        <div id="dpsMeterList" style="display:flex; flex-direction:column; gap:4px; font-size:10px;"></div>
+      </div>
+
+      <div class="dock-section">
+        <div class="dock-title">
+          <span>🎮 CONTROLS &amp; HOTKEYS</span>
+          <span>60 FPS</span>
+        </div>
+        <div style="font-size:9.5px; color:#cbd5e1; line-height:1.45;">
+          • <b>Move:</b> <code>WASD</code> / <code>Arrows</code> / Mouse Drag<br/>
+          • <b>Dark Force Overdrive:</b> <code>SPACE</code> or <code>E</code><br/>
+          • <b>Dash-Cancel (i-Frames):</b> <code>SHIFT</code><br/>
+          • <b>1v1 Duel Attacks:</b> <code>J</code> Light, <code>K</code> Heavy, <code>L</code> ES Special<br/>
+          • <b>Draft / Chest / Guide:</b> <code>1-3</code>, <code>R</code>, <code>C</code>, <code>V</code>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Weapon Evolution Grimoire Modal [V] -->
+  <div class="grimoire-modal" id="grimoireModal">
+    <div class="grimoire-dialog">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(250,204,21,0.35); padding-bottom:10px;">
+        <div>
+          <h2 style="font-size:16px; color:#fde047; text-transform:uppercase; letter-spacing:0.8px;">📕 Vampire Survivors × Dark Force Evolution Grimoire</h2>
+          <p style="font-size:11px; color:#cbd5e1;">Level any base weapon to Lv.5+ with its paired Passive Relic, then collect a Boss Treasure Chest (<code>🎁 [C]</code>) to awaken its Evolved Super Weapon!</p>
+        </div>
+        <button class="hud-btn crimson-cta" id="btnCloseGrimoire">✖ CLOSE [V]</button>
+      </div>
+      <div class="evo-recipe-grid" id="grimoireGrid"></div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. SAFE LOCALSTORAGE WRAPPER
+    // =========================================================================
+    const MEM_STORE = {};
+    function safeGetStorage(key, fallback = null) {
+      try {
+        const val = window.localStorage.getItem(key);
+        return val !== null ? val : (MEM_STORE[key] ?? fallback);
+      } catch (_) {
+        return MEM_STORE[key] ?? fallback;
+      }
+    }
+    function safeSetStorage(key, value) {
+      MEM_STORE[key] = String(value);
+      try {
+        window.localStorage.setItem(key, String(value));
+      } catch (_) {}
+    }
+
+    // =========================================================================
+    // 2. WEBAUDIO GOTHIC CASTLEVANIA / DARKSTALKERS ORGAN + SYNTHWAVE ENGINE
+    // =========================================================================
+    class NightSaviorAudio {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+        this.bgmTimer = null;
+        this.step = 0;
+      }
+      init() {
+        if (!this.ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) this.ctx = new AC();
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume().catch(() => {});
+        }
+      }
+      playTone(freq, dur = 0.12, type = "sawtooth", gainVal = 0.06, slideTo = null) {
+        if (!this.enabled) return;
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, now);
+          if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, now + dur);
+          gain.gain.setValueAtTime(gainVal, now);
+          gain.gain.exponentialRampToValueAtTime(0.0008, now + dur);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + dur);
+        } catch (_) {}
+      }
+      sfxGem(tier = 1) {
+        const base = tier === 3 ? 880 : tier === 2 ? 660 : 523.25;
+        this.playTone(base, 0.07, "triangle", 0.045, base * 1.25);
+      }
+      sfxLevelUp() {
+        [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+          setTimeout(() => this.playTone(f, 0.16, "triangle", 0.07), i * 55);
+        });
+      }
+      sfxChestJackpot() {
+        const fanfare = [440, 554.37, 659.25, 880, 1108.73, 1318.5];
+        fanfare.forEach((f, i) => {
+          setTimeout(() => this.playTone(f, 0.22, "sawtooth", 0.075), i * 65);
+        });
+      }
+      sfxDarkForce() {
+        [220, 329.63, 440, 659.25, 880].forEach((f, i) => {
+          setTimeout(() => this.playTone(f, 0.25, "sawtooth", 0.08, f * 1.15), i * 45);
+        });
+      }
+      startBgm() {
+        if (this.bgmTimer) return;
+        // Baroque D-Minor Toccata / Bloody Tears arpeggio sequence
+        const notes = [293.66, 349.23, 440.0, 587.33, 523.25, 440.0, 392.0, 329.63];
+        this.bgmTimer = setInterval(() => {
+          if (!this.enabled || !this.ctx || this.ctx.state !== "running") return;
+          const f = notes[this.step % notes.length];
+          this.playTone(f, 0.16, "sawtooth", 0.022);
+          if (this.step % 4 === 0) {
+            this.playTone(f * 0.5, 0.28, "triangle", 0.03);
+          }
+          this.step++;
+        }, 185);
+      }
+    }
+    const audio = new NightSaviorAudio();
+
+    // =========================================================================
+    // 3. 6 PLAYABLE GOTHIC NIGHT-LORDS & 10 WEAPON EVOLUTION CATALOG
+    // =========================================================================
+    const NIGHT_LORDS = {
+      demitri: {
+        id: "demitri",
+        name: "Demitri-Caine",
+        badge: "DEMITRI",
+        title: "Lord of Darkstalkers & Crimson Whip",
+        capeColor: "#be123c",
+        TrimColor: "#facc15",
+        auraColor: "#f43f5e",
+        starterWeapon: "whip",
+        exName: "Midnight Bliss & Demon Cradle",
+        exDesc: "Summons Twin Shadow Clone + 2× Attack Speed + Screen-Cleaving Crimson Bats!",
+      },
+      morrigan: {
+        id: "morrigan",
+        name: "Morrigan-Vex",
+        badge: "MORRIGAN",
+        title: "Succubus Queen of Soul Fist Barrage",
+        capeColor: "#7e22ce",
+        TrimColor: "#22c55e",
+        auraColor: "#a855f7",
+        starterWeapon: "wand",
+        exName: "Darkness Illusion Clone Swarm",
+        exDesc: "Summons Twin Succubus Illusion + Homing Soul FistEmerald Spiral!",
+      },
+      talbain: {
+        id: "talbain",
+        name: "Talbain-X",
+        badge: "TALBAIN",
+        title: "Cyber Werewolf Beast of Dragon Cannon",
+        capeColor: "#1d4ed8",
+        TrimColor: "#38bdf8",
+        auraColor: "#00f5d4",
+        starterWeapon: "knife",
+        exName: "Beast Cannon Flurry",
+        exDesc: "Unleashes Plasma Flame Dragon + 360° Thousand Edge Claw Barrage!",
+      },
+      donovan: {
+        id: "donovan",
+        name: "Donovan-Zero",
+        badge: "DONOVAN",
+        title: "Dhampir Blade Master & Anita Spirit",
+        capeColor: "#b45309",
+        TrimColor: "#fde047",
+        auraColor: "#f59e0b",
+        starterWeapon: "bible",
+        exName: "Change Immortal Dhampir Sword",
+        exDesc: "Summons 10 Orbiting Unholy Vespers + Elemental Lightning Pillar!",
+      },
+      poe: {
+        id: "poe",
+        name: "Poe-Phantasm",
+        badge: "POE-SAGE",
+        title: "Elder Alchemist of Soul Eater Field",
+        capeColor: "#047857",
+        TrimColor: "#a7f3d0",
+        auraColor: "#10b981",
+        starterWeapon: "garlic",
+        exName: "Supreme Crimson Soul Eater Field",
+        exDesc: "Expands Soul Eater Lifesteal Nova across the entire arena & heals 40 HP!",
+      },
+      jedah: {
+        id: "jedah",
+        name: "Jedah-Omega",
+        badge: "JEDAH",
+        title: "High Noble of Makai & Death Spiral",
+        capeColor: "#881337",
+        TrimColor: "#38bdf8",
+        auraColor: "#ec4899",
+        starterWeapon: "axe",
+        exName: "Finale Rosso Blood Contract",
+        exDesc: "Fires 12 Giant Death Spiral Scythes + Continuous Thunder Loop Chains!",
+      },
+    };
+
+    const WEAPON_CATALOG = [
+      {
+        id: "whip",
+        baseName: "Crimson Whip",
+        baseIcon: "🩸",
+        evolvedName: "Bloody Tear",
+        evolvedIcon: "🩸",
+        passiveReq: "tome",
+        passiveName: "Empty Tome",
+        color: "#f43f5e",
+        evoColor: "#fde047",
+        desc: "Horizontal lifesteal lash that crits & heals HP on hit.",
+      },
+      {
+        id: "bible",
+        baseName: "King Bible",
+        baseIcon: "📖",
+        evolvedName: "Unholy Vespers",
+        evolvedIcon: "📕",
+        passiveReq: "candelabrador",
+        passiveName: "Candelabrador",
+        color: "#facc15",
+        evoColor: "#ef4444",
+        desc: "Never-ending ring of orbiting gothic grimoires.",
+      },
+      {
+        id: "garlic",
+        baseName: "Garlic Aura",
+        baseIcon: "🧄",
+        evolvedName: "Soul Eater",
+        evolvedIcon: "🌌",
+        passiveReq: "attractorb",
+        passiveName: "AttractOrb",
+        color: "#a855f7",
+        evoColor: "#ec4899",
+        desc: "Pulsing dark-matter barrier that drains enemy vitality.",
+      },
+      {
+        id: "lightning",
+        baseName: "Lightning Ring",
+        baseIcon: "⚡",
+        evolvedName: "Thunder Loop",
+        evolvedIcon: "🌩️",
+        passiveReq: "duplicator",
+        passiveName: "Duplicator",
+        color: "#38bdf8",
+        evoColor: "#00f5d4",
+        desc: "Dual-strike heaven lightning bolts with chain arcs.",
+      },
+      {
+        id: "wand",
+        baseName: "Magic Wand",
+        baseIcon: "🪄",
+        evolvedName: "Holy Wand",
+        evolvedIcon: "🌟",
+        passiveReq: "tome",
+        passiveName: "Empty Tome",
+        color: "#60a5fa",
+        evoColor: "#22d3ee",
+        desc: "Fires zero-cooldown homing Soul Fist bolts at nearest foe.",
+      },
+      {
+        id: "water",
+        baseName: "Santa Water",
+        baseIcon: "💧",
+        evolvedName: "La Borra",
+        evolvedIcon: "🌊",
+        passiveReq: "attractorb",
+        passiveName: "AttractOrb",
+        color: "#0ea5e9",
+        evoColor: "#38bdf8",
+        desc: "Creeping hydro-sanctuary pools that converge around you.",
+      },
+      {
+        id: "knife",
+        baseName: "Throwing Knife",
+        baseIcon: "🗡️",
+        evolvedName: "Thousand Edge",
+        evolvedIcon: "🗡️",
+        passiveReq: "bracer",
+        passiveName: "Bracer",
+        color: "#e2e8f0",
+        evoColor: "#facc15",
+        desc: "Relentless machine-gun stream of silver dhampir blades.",
+      },
+      {
+        id: "axe",
+        baseName: "Execution Axe",
+        baseIcon: "🪓",
+        evolvedName: "Death Spiral",
+        evolvedIcon: "🪓",
+        passiveReq: "candelabrador",
+        passiveName: "Candelabrador",
+        color: "#fb923c",
+        evoColor: "#f43f5e",
+        desc: "Piercing radial Reaper scythes hurled in all directions.",
+      },
+      {
+        id: "cross",
+        baseName: "Sacred Cross",
+        baseIcon: "✝️",
+        evolvedName: "Heaven Sword",
+        evolvedIcon: "⚔️",
+        passiveReq: "spinach",
+        passiveName: "Spinach",
+        color: "#fef08a",
+        evoColor: "#facc15",
+        desc: "Boomerang celestial broadswords that cleave twice.",
+      },
+      {
+        id: "firewand",
+        baseName: "Fire Wand",
+        baseIcon: "🔥",
+        evolvedName: "Hellfire",
+        evolvedIcon: "☄️",
+        passiveReq: "spinach",
+        passiveName: "Spinach",
+        color: "#f97316",
+        evoColor: "#ef4444",
+        desc: "Massive piercing meteor fireballs that incinerate columns.",
+      },
+    ];
+
+    const PASSIVE_CATALOG = [
+      { id: "spinach", name: "Spinach", icon: "🥬", bonus: "+15% Might / Lv", maxLv: 5 },
+      { id: "tome", name: "Empty Tome", icon: "📖", bonus: "-8% Cooldown / Lv", maxLv: 5 },
+      { id: "candelabrador", name: "Candelabrador", icon: "🕯️", bonus: "+15% Area / Lv", maxLv: 5 },
+      { id: "bracer", name: "Bracer", icon: "🥊", bonus: "+15% Speed / Lv", maxLv: 5 },
+      { id: "attractorb", name: "AttractOrb", icon: "🧲", bonus: "+30% Magnet / Lv", maxLv: 5 },
+      { id: "duplicator", name: "Duplicator", icon: "💍", bonus: "+1 Projectile / Lv", maxLv: 2 },
+    ];
+
+    // =========================================================================
+    // 4. GAME STATE & INITIAL MID-RUN BULLET-HEAVEN SPECTACLE
+    // =========================================================================
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const state = {
+      mode: "mad_forest",
+      lordId: safeGetStorage("vs_lord", "demitri"),
+      level: 1,
+      xp: 0,
+      xpNext: 100,
+      pendingDrafts: 0,
+      timerSec: 0,
+      kills: 0,
+      gold: Number(safeGetStorage("vs_gold", 250)) || 250,
+      combo: 0,
+      rerolls: 5,
+      banishes: 3,
+      darkForceGauge: 35,
+      darkForceActiveTimer: 0,
+      dashTimer: 0,
+      hurtFlash: 0,
+      gameOver: false,
+      bannerTimer: 3.2,
+      bannerTitle: "🧛 NIGHTFALL SURVIVAL — LEVEL 1 CHALLENGE!",
+      bannerSub: "Slay the Undead Swarm, Collect XP Gems to Draft Weapons, and Avoid Contact Damage!",
+      limitBreak: { might: 0, area: 0, amount: 0, cooldown: 0 },
+      chestCeremony: null, // { timer, maxTimer, x, y, title, sub, items }
+      chestSpawnTimer: 0,
+      hero: {
+        x: 460,
+        y: 300,
+        vx: 0,
+        vy: 0,
+        facing: 1,
+        hp: 100,
+        maxHp: 100,
+        invulnTimer: 0,
+        orbitAngle: 0,
+      },
+      rival: {
+        active: false,
+        name: "👑 Jedah-Omega (Darkstalkers Boss)",
+        x: 680,
+        y: 300,
+        vx: -90,
+        vy: 65,
+        hp: 1500,
+        maxHp: 1500,
+        facing: -1,
+        attackCooldown: 0,
+      },
+      // Start at Level 1 with ONLY 1 Lv.1 Starter Weapon and 0 Passive Relics!
+      weapons: [
+        { id: "whip", level: 1, evolved: false, dmgDealt: 0 },
+      ],
+      passives: [],
+      arcanas: {
+        slash: true,
+        twilight: true,
+        sarabande: true,
+      },
+      enemies: [],
+      gems: [],
+      chests: [],
+      pickups: [], // Floor Chicken, Vacuum Orb, Rosary, Gold Bag
+      shockwaves: [], // Level-up & Chest radial rings
+      projectiles: [],
+      lightningBolts: [],
+      waterPools: [],
+      whipSlashes: [],
+      floatingTexts: [],
+      particles: [],
+      draftChoices: [],
+      keys: {},
+      mouseTarget: null,
+    };
+
+    // =========================================================================
+    // 5. INITIALIZE LEVEL 1 SURVIVAL ARENA
+    // =========================================================================
+    function seedMidRunSpectacle() {
+      startFreshLevel1Run();
+      renderGrimoireModal();
+    }
+
+    // =========================================================================
+    // 6. HUD RENDERERS (6 WEAPONS + 6 PASSIVES + DRAFT CARDS + DPS METER)
+    // =========================================================================
+    function getWeaponMeta(id) {
+      return WEAPON_CATALOG.find((w) => w.id === id) || WEAPON_CATALOG[0];
+    }
+    function getPassiveMeta(id) {
+      return PASSIVE_CATALOG.find((p) => p.id === id) || PASSIVE_CATALOG[0];
+    }
+
+    function renderEquipmentHud() {
+      const wGrid = document.getElementById("weaponSlotsGrid");
+      const pGrid = document.getElementById("passiveSlotsGrid");
+      const dpsList = document.getElementById("dpsMeterList");
+
+      let evolvedCount = 0;
+      const wSlotsHtml = [];
+      for (let idx = 0; idx < 6; idx++) {
+        const w = state.weapons[idx];
+        if (w) {
+          const meta = getWeaponMeta(w.id);
+          if (w.evolved) evolvedCount++;
+          const name = w.evolved ? meta.evolvedName : meta.baseName;
+          const icon = w.evolved ? meta.evolvedIcon : meta.baseIcon;
+          const lvlText = w.evolved ? "★ EVO MAX" : `LV. ${w.level}/8`;
+          wSlotsHtml.push(`
+            <div class="equip-slot ${w.evolved ? "evolved" : ""}" data-weapon-idx="${idx}" title="${name} (${lvlText})">
+              <span class="slot-icon">${icon}</span>
+              <span class="slot-name">${name}</span>
+              <span class="slot-lvl">${lvlText}</span>
+            </div>
+          `);
+        } else {
+          wSlotsHtml.push(`
+            <div class="equip-slot" style="opacity:0.48; border-style:dashed;" title="Draft a new weapon on Level-Up!">
+              <span class="slot-icon">🔒</span>
+              <span class="slot-name">Empty Weapon</span>
+              <span class="slot-lvl">SLOT ${idx + 1}/6</span>
+            </div>
+          `);
+        }
+      }
+      wGrid.innerHTML = wSlotsHtml.join("");
+
+      document.getElementById("evolvedCountBadge").textContent = `${evolvedCount}/6 EVOLVED`;
+
+      const pSlotsHtml = [];
+      for (let idx = 0; idx < 6; idx++) {
+        const p = state.passives[idx];
+        if (p) {
+          const meta = getPassiveMeta(p.id);
+          pSlotsHtml.push(`
+            <div class="equip-slot" data-passive-idx="${idx}" title="${meta.name}: ${meta.bonus}">
+              <span class="slot-icon">${meta.icon}</span>
+              <span class="slot-name">${meta.name}</span>
+              <span class="slot-lvl">LV. ${p.level}/${meta.maxLv}</span>
+            </div>
+          `);
+        } else {
+          pSlotsHtml.push(`
+            <div class="equip-slot" style="opacity:0.48; border-style:dashed;" title="Draft a Passive Relic on Level-Up!">
+              <span class="slot-icon">🔒</span>
+              <span class="slot-name">Empty Relic</span>
+              <span class="slot-lvl">SLOT ${idx + 1}/6</span>
+            </div>
+          `);
+        }
+      }
+      pGrid.innerHTML = pSlotsHtml.join("");
+
+      // In Arcana Sandbox mode only, allow clicking slots to test upgrades
+      wGrid.querySelectorAll(".equip-slot[data-weapon-idx]").forEach((el) => {
+        el.addEventListener("click", () => {
+          if (state.mode !== "arcana_sandbox") {
+            triggerBanner("⚔️ SURVIVAL RULES ACTIVE!", "Collect XP Gems to Level Up or Switch to [6] Arcana Sandbox to Edit Slots!");
+            return;
+          }
+          const idx = Number(el.getAttribute("data-weapon-idx"));
+          const w = state.weapons[idx];
+          if (!w) return;
+          if (w.level < 8) {
+            w.level++;
+          } else if (!w.evolved) {
+            w.evolved = true;
+            const meta = getWeaponMeta(w.id);
+            triggerBanner(`📕 ${meta.evolvedName.toUpperCase()} EVOLVED!`, meta.desc);
+          }
+          audio.sfxLevelUp();
+          renderEquipmentHud();
+        });
+      });
+
+      // Live DPS meter breakdown
+      const maxDmg = Math.max(1, ...state.weapons.map((w) => w.dmgDealt));
+      dpsList.innerHTML = state.weapons
+        .map((w) => {
+          const meta = getWeaponMeta(w.id);
+          const name = w.evolved ? meta.evolvedName : meta.baseName;
+          const pct = Math.min(100, Math.round((w.dmgDealt / maxDmg) * 100));
+          const barColor = w.evolved ? "#f43f5e" : "#38bdf8";
+          return `
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <div style="display:flex; justify-content:space-between;">
+                <span style="font-weight:800; color:${w.evolved ? "#fde047" : "#f1f5f9"};">${w.evolved ? meta.evolvedIcon : meta.baseIcon} ${name} (Lv.${w.level})</span>
+                <span style="color:#cbd5e1; font-variant-numeric:tabular-nums;">${w.dmgDealt.toLocaleString()} DMG</span>
+              </div>
+              <div style="height:5px; background:#090414; border-radius:99px; overflow:hidden;">
+                <div style="height:100%; width:${pct}%; background:${barColor};"></div>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+
+      updateTopKpis();
+    }
+
+    function computeLiveStats() {
+      const getPLv = (id) => state.passives.find((p) => p.id === id)?.level || 0;
+      const mightPct = 100 + getPLv("spinach") * 18 + state.limitBreak.might;
+      const cdRed = Math.min(68, getPLv("tome") * 9 + state.limitBreak.cooldown);
+      const areaPct = 100 + getPLv("candelabrador") * 18 + state.limitBreak.area;
+      const spdPct = 100 + getPLv("bracer") * 15;
+      const projBonus = getPLv("duplicator") + state.limitBreak.amount;
+      const magnetPx = 135 + getPLv("attractorb") * 32;
+      return {
+        mightMult: mightPct / 100,
+        mightPct,
+        cdMult: 1 - cdRed / 100,
+        cdRed,
+        areaMult: areaPct / 100,
+        areaPct,
+        spdMult: spdPct / 100,
+        projBonus,
+        magnetPx,
+      };
+    }
+
+    function startFreshLevel1Run() {
+      const lord = NIGHT_LORDS[state.lordId] || NIGHT_LORDS.demitri;
+      const W = canvas.width;
+      const H = canvas.height;
+      const hx = W * 0.5;
+      const hy = H * 0.48;
+
+      state.gameOver = false;
+      state.hurtFlash = 0;
+      state.level = 1;
+      state.xp = 0;
+      state.xpNext = 80;
+      state.pendingDrafts = 0;
+      state.timerSec = 0;
+      state.kills = 0;
+      state.combo = 0;
+      state.rerolls = 5;
+      state.banishes = 3;
+      state.darkForceGauge = 35;
+      state.darkForceActiveTimer = 0;
+      state.limitBreak = { might: 0, area: 0, amount: 0, cooldown: 0 };
+
+      state.hero.x = hx;
+      state.hero.y = hy;
+      state.hero.maxHp = 100;
+      state.hero.hp = 100;
+      state.hero.invulnTimer = 0.8;
+
+      // Authentic Level 1 Start: ONLY 1 Starter Weapon at Lv.1 and 0 Passive Relics!
+      state.weapons = [
+        { id: lord.starterWeapon || "whip", level: 1, evolved: false, dmgDealt: 0 },
+      ];
+      state.passives = [];
+
+      state.enemies = [];
+      state.gems = [];
+      state.chests = [];
+      state.pickups = [];
+      state.projectiles = [];
+      state.lightningBolts = [];
+      state.waterPools = [
+        { x: hx - 115, y: hy - 55, radius: 40, life: 3.5, maxLife: 3.5, phase: 0 },
+        { x: hx + 120, y: hy - 60, radius: 40, life: 3.5, maxLife: 3.5, phase: 1 },
+        { x: hx - 105, y: hy + 70, radius: 40, life: 3.5, maxLife: 3.5, phase: 2 },
+        { x: hx + 115, y: hy + 65, radius: 40, life: 3.5, maxLife: 3.5, phase: 3 },
+      ];
+      state.whipSlashes = [];
+      state.floatingTexts = [];
+      state.particles = [];
+      state.shockwaves = [];
+
+      // Spawn Wave 1 Perimeter Swarm (22 enemies closing in from outer ring so player has room to kite)
+      const wave1Types = ["bat", "skeleton", "ghoul", "stalker"];
+      for (let i = 0; i < 22; i++) {
+        const ang = (i / 22) * Math.PI * 2;
+        const ring = 210 + (i % 4) * 32;
+        const type = i === 0 ? "reaper_mini" : wave1Types[i % wave1Types.length];
+        const isElite = type === "reaper_mini";
+        state.enemies.push({
+          x: Math.max(36, Math.min(W - 36, hx + Math.cos(ang) * ring * 1.2)),
+          y: Math.max(40, Math.min(H - 85, hy + Math.sin(ang) * ring * 0.82)),
+          type,
+          hp: isElite ? 160 : 32,
+          maxHp: isElite ? 160 : 32,
+          radius: isElite ? 19 : 12,
+          speed: isElite ? 58 : 66 + (i % 14),
+          elite: isElite,
+          hitFlash: 0,
+          phase: i * 0.7,
+        });
+      }
+
+      // Scatter 24 starter XP Gems across the arena floor
+      for (let i = 0; i < 24; i++) {
+        const ang = (i * 137.5 * Math.PI) / 180;
+        const dist = 85 + ((i * 23) % 240);
+        const tier = i % 9 === 0 ? 2 : 1;
+        state.gems.push({
+          x: Math.max(28, Math.min(W - 28, hx + Math.cos(ang) * dist * 1.2)),
+          y: Math.max(32, Math.min(H - 88, hy + Math.sin(ang) * dist * 0.82)),
+          tier,
+          val: tier === 2 ? 32 : 16,
+          bob: i * 0.4,
+        });
+      }
+
+      // 1 Floor Chicken pickup on the map for emergency recovery
+      state.pickups = [
+        { x: hx + 165, y: hy - 95, kind: "chicken", icon: "🍗", label: "+40 HP" },
+      ];
+
+      rollDraftChoices();
+      renderEquipmentHud();
+      triggerBanner(`⚔️ LEVEL 1 SURVIVAL: ${lord.name.toUpperCase()}`, "Started with 1 Lv.1 Weapon — Slay Undead & Collect XP Gems to Level Up!");
+      audio.sfxLevelUp();
+    }
+
+    function rollDraftChoices() {
+      const pool = [];
+
+      // 1. Any equipped weapon at Lv.6+ that has its paired passive relic -> Offer Evolution!
+      state.weapons.forEach((w) => {
+        const meta = getWeaponMeta(w.id);
+        const hasPairedPassive = state.passives.some((p) => p.id === meta.passiveReq);
+        if (!w.evolved && (w.level >= 8 || (w.level >= 5 && hasPairedPassive))) {
+          pool.push({
+            key: `evo_${w.id}`,
+            title: `★ EVOLVE: ${meta.evolvedName}`,
+            desc: `Awakens Lv.8 Super Weapon (${meta.desc})`,
+            icon: meta.evolvedIcon,
+            apply: () => {
+              w.level = 8;
+              w.evolved = true;
+            },
+          });
+        }
+      });
+
+      // 2. Any equipped weapon < Lv.8 -> Offer Level-Up!
+      state.weapons.forEach((w) => {
+        if (w.level < 8) {
+          const meta = getWeaponMeta(w.id);
+          const nextLv = w.level + 1;
+          pool.push({
+            key: `up_w_${w.id}`,
+            title: `${meta.baseIcon} ${meta.baseName} (Lv.${nextLv}/8)`,
+            desc: `+25% Base DMG, +15% Area & Faster Cooldown`,
+            icon: meta.baseIcon,
+            apply: () => {
+              w.level = Math.min(8, w.level + 1);
+            },
+          });
+        }
+      });
+
+      // 3. New Unowned Base Weapons (if < 6 weapons equipped)
+      if (state.weapons.length < 6) {
+        WEAPON_CATALOG.forEach((meta) => {
+          if (!state.weapons.some((w) => w.id === meta.id)) {
+            pool.push({
+              key: `new_w_${meta.id}`,
+              title: `NEW: ${meta.baseIcon} ${meta.baseName} (Lv.1)`,
+              desc: meta.desc,
+              icon: meta.baseIcon,
+              apply: () => {
+                if (state.weapons.length < 6) {
+                  state.weapons.push({ id: meta.id, level: 1, evolved: false, dmgDealt: 0 });
+                }
+              },
+            });
+          }
+        });
+      }
+
+      // 4. Any equipped passive < maxLv -> Offer Passive Upgrade!
+      state.passives.forEach((p) => {
+        const meta = getPassiveMeta(p.id);
+        if (p.level < meta.maxLv) {
+          pool.push({
+            key: `up_p_${p.id}`,
+            title: `${meta.icon} ${meta.name} (Lv.${p.level + 1}/${meta.maxLv})`,
+            desc: meta.bonus,
+            icon: meta.icon,
+            apply: () => {
+              p.level = Math.min(meta.maxLv, p.level + 1);
+            },
+          });
+        }
+      });
+
+      // 5. New Unowned Passive Relics (if < 6 passives equipped)
+      if (state.passives.length < 6) {
+        PASSIVE_CATALOG.forEach((meta) => {
+          if (!state.passives.some((p) => p.id === meta.id)) {
+            pool.push({
+              key: `new_p_${meta.id}`,
+              title: `RELIC: ${meta.icon} ${meta.name} (Lv.1)`,
+              desc: meta.bonus,
+              icon: meta.icon,
+              apply: () => {
+                if (state.passives.length < 6) {
+                  state.passives.push({ id: meta.id, level: 1 });
+                }
+              },
+            });
+          }
+        });
+      }
+
+      // 6. Fallback Limit Break Overdrive options when all slots are maxed
+      if (pool.length < 3) {
+        pool.push(
+          {
+            key: "limit_might",
+            title: "🔥 Limit Break: +25% Might",
+            desc: "Permanent +25% Weapon Damage",
+            icon: "👑",
+            apply: () => {
+              state.limitBreak.might += 25;
+            },
+          },
+          {
+            key: "limit_proj",
+            title: "💍 Limit Break: +1 Projectile",
+            desc: "Every weapon fires +1 extra projectile",
+            icon: "💍",
+            apply: () => {
+              state.limitBreak.amount += 1;
+            },
+          },
+          {
+            key: "limit_heal",
+            title: "🍗 Limit Break: +35 HP Recovery",
+            desc: "Restores +35 Vitality HP",
+            icon: "🍗",
+            apply: () => {
+              state.hero.hp = Math.min(state.hero.maxHp, state.hero.hp + 35);
+            },
+          }
+        );
+      }
+
+      // Shuffle and pick 3 distinct choices
+      const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, 3);
+      state.draftChoices = shuffled;
+
+      const container = document.getElementById("draftCardsContainer");
+      container.innerHTML = shuffled
+        .map(
+          (c, i) => `
+          <div class="draft-card" data-draft-idx="${i}">
+            <span class="draft-card-icon">${c.icon}</span>
+            <div class="draft-card-info">
+              <span class="draft-card-title">[${i + 1}] ${c.title}</span>
+              <span class="draft-card-desc">${c.desc}</span>
+            </div>
+          </div>
+        `
+        )
+        .join("");
+
+      container.querySelectorAll(".draft-card").forEach((el) => {
+        el.addEventListener("click", () => {
+          const idx = Number(el.getAttribute("data-draft-idx"));
+          selectDraftChoice(idx);
+        });
+      });
+      updateDraftBannerState();
+    }
+
+    function updateDraftBannerState() {
+      const bar = document.getElementById("quickDraftBar");
+      const titleEl = document.getElementById("draftTitleLabel");
+      const subEl = document.getElementById("draftSubStatus");
+      if (!bar || !titleEl || !subEl) return;
+      if (state.pendingDrafts > 0) {
+        titleEl.textContent = `🎉 LEVEL UP! (${state.pendingDrafts} READY)`;
+        titleEl.style.color = "#fde047";
+        subEl.textContent = "Click Card or Press [1] [2] [3]";
+        bar.style.borderColor = "#fde047";
+        bar.style.boxShadow = "0 8px 28px rgba(0,0,0,0.92), 0 0 24px rgba(250, 204, 21, 0.65)";
+        bar.style.opacity = "1";
+      } else if (state.mode === "arcana_sandbox") {
+        titleEl.textContent = "🃏 SANDBOX FREE DRAFT";
+        titleEl.style.color = "#38bdf8";
+        subEl.textContent = "Sandbox Mode: Click Anytime";
+        bar.style.borderColor = "rgba(56, 189, 248, 0.55)";
+        bar.style.boxShadow = "0 8px 28px rgba(0,0,0,0.92)";
+        bar.style.opacity = "1";
+      } else {
+        titleEl.textContent = "💎 NEXT LEVEL-UP PREVIEW";
+        titleEl.style.color = "#94a3b8";
+        subEl.textContent = `Collect XP Gems (${state.xp}/${state.xpNext} XP)`;
+        bar.style.borderColor = "rgba(148, 163, 184, 0.35)";
+        bar.style.boxShadow = "0 8px 28px rgba(0,0,0,0.92)";
+        bar.style.opacity = "0.86";
+      }
+    }
+
+    function selectDraftChoice(idx) {
+      if (state.gameOver) return;
+      if (state.pendingDrafts <= 0 && state.mode !== "arcana_sandbox") {
+        triggerBanner("💎 COLLECT XP GEMS TO LEVEL UP FIRST!", `Need ${Math.max(0, state.xpNext - state.xp)} more XP to unlock your next Level-Up Draft!`);
+        audio.playTone(220, 0.1, "sawtooth", 0.05);
+        return;
+      }
+      const choice = state.draftChoices[idx];
+      if (!choice) return;
+      choice.apply();
+      if (state.pendingDrafts > 0) {
+        state.pendingDrafts--;
+      } else {
+        state.level++;
+      }
+      state.shockwaves.push({
+        x: state.hero.x,
+        y: state.hero.y,
+        r: 18,
+        maxR: 165,
+        color: "#fde047",
+        life: 0.45,
+        maxLife: 0.45,
+      });
+      audio.sfxLevelUp();
+      triggerBanner(`✨ UPGRADE CLAIMED: ${choice.title.toUpperCase()}`, choice.desc);
+      rollDraftChoices();
+      renderEquipmentHud();
+    }
+
+    function openBossTreasureChest(chestObj = null) {
+      const cx = chestObj ? chestObj.x : state.hero.x;
+      const cy = chestObj ? chestObj.y : state.hero.y;
+      const rewardedItems = [];
+
+      // 1. Evolve first unevolved weapon (or upgrade 3 items if all are already evolved!)
+      const unevolved = state.weapons.find((w) => !w.evolved);
+      let jackpotTitle = "";
+      let jackpotSub = "";
+      if (unevolved) {
+        unevolved.level = 8;
+        unevolved.evolved = true;
+        const meta = getWeaponMeta(unevolved.id);
+        rewardedItems.push({ icon: meta.evolvedIcon, name: meta.evolvedName, tag: "★ EVOLVED!" });
+        // Also level up up to 2 other weapons/passives for a 3-Beam / 5-Beam Jackpot!
+        state.weapons.forEach((w) => {
+          if (w !== unevolved && w.level < 8 && rewardedItems.length < 3) {
+            w.level = Math.min(8, w.level + 2);
+            const m = getWeaponMeta(w.id);
+            rewardedItems.push({ icon: m.baseIcon, name: `${m.baseName} Lv.${w.level}`, tag: "+2 LVL" });
+          }
+        });
+        jackpotTitle = `🎁 CHEST JACKPOT! ${meta.evolvedName.toUpperCase()} AWAKENED!`;
+        jackpotSub = `5-Beam Relic Chest Evolved ${meta.baseName} + +1,500 Soul Gold!`;
+      } else {
+        state.limitBreak.might += 25;
+        state.limitBreak.area += 20;
+        state.limitBreak.amount += 1;
+        rewardedItems.push(
+          { icon: "👑", name: "Limit Break Might +25%", tag: "SUPER" },
+          { icon: "🌌", name: "Limit Break Area +20%", tag: "SUPER" },
+          { icon: "💍", name: "Duplicator +1 Proj", tag: "SUPER" }
+        );
+        jackpotTitle = `🎁 5-BEAM SUPER PENTACLE JACKPOT! +2,000 GOLD!`;
+        jackpotSub = `Limit Break: +25% Might, +20% Area & +1 Projectile Applied!`;
+      }
+
+      const goldWon = unevolved ? 1500 : 2000;
+      state.gold += goldWon;
+      safeSetStorage("vs_gold", state.gold);
+      state.level++;
+      state.hero.hp = state.hero.maxHp;
+
+      // Launch 5-Beam Treasure Chest Light Show & Radial Shockwave on Canvas!
+      state.chestCeremony = {
+        timer: 2.4,
+        maxTimer: 2.4,
+        x: cx,
+        y: cy,
+        title: jackpotTitle,
+        sub: jackpotSub,
+        items: rewardedItems,
+      };
+      state.shockwaves.push({
+        x: cx,
+        y: cy,
+        r: 20,
+        maxR: 260,
+        color: "#facc15",
+        life: 0.65,
+        maxLife: 0.65,
+      });
+      for (let i = 0; i < 28; i++) {
+        const a = (i / 28) * Math.PI * 2;
+        const sp = 90 + Math.random() * 190;
+        state.particles.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(a) * sp,
+          vy: Math.sin(a) * sp - 40,
+          color: i % 2 === 0 ? "#fde047" : "#fb7185",
+          size: 4 + Math.random() * 3,
+          life: 0.9,
+          maxLife: 0.9,
+        });
+      }
+
+      triggerBanner(jackpotTitle, jackpotSub);
+      audio.sfxChestJackpot();
+      rollDraftChoices();
+      renderEquipmentHud();
+    }
+
+    function triggerDarkForceOverdrive() {
+      if (state.gameOver) {
+        startFreshLevel1Run();
+        return;
+      }
+      if (state.darkForceActiveTimer > 0) return;
+      if (state.darkForceGauge < 100 && state.mode !== "arcana_sandbox") {
+        triggerBanner("⚡ DARK FORCE GAUGE CHARGING!", `Slay Undead to Fill Gauge (${Math.round(state.darkForceGauge)}% / 100%)!`);
+        audio.playTone(190, 0.1, "sawtooth", 0.05);
+        return;
+      }
+      const lord = NIGHT_LORDS[state.lordId] || NIGHT_LORDS.demitri;
+      state.darkForceGauge = 0;
+      state.darkForceActiveTimer = 7.5;
+      state.hero.hp = Math.min(state.hero.maxHp, state.hero.hp + 20);
+      audio.sfxDarkForce();
+      triggerBanner(
+        `🌌 DARK FORCE OVERDRIVE: ${lord.exName.toUpperCase()}!`,
+        lord.exDesc
+      );
+
+      // Unleash a 16-projectile radial EX Ultimate burst + Lightning chain!
+      for (let i = 0; i < 16; i++) {
+        const ang = (i / 16) * Math.PI * 2;
+        state.projectiles.push({
+          x: state.hero.x,
+          y: state.hero.y,
+          vx: Math.cos(ang) * 320,
+          vy: Math.sin(ang) * 320,
+          type: "darkforce_ex",
+          radius: 18,
+          dmg: 140,
+          life: 1.6,
+          rot: ang,
+        });
+      }
+      state.enemies.forEach((e, idx) => {
+        if (idx % 2 === 0) {
+          e.hp -= 120;
+          e.hitFlash = 0.25;
+          state.lightningBolts.push({ x: e.x, y: e.y, life: 0.35, maxLife: 0.35 });
+        }
+      });
+      renderEquipmentHud();
+    }
+
+    function triggerBanner(title, sub) {
+      state.bannerTitle = title;
+      state.bannerSub = sub;
+      state.bannerTimer = 3.0;
+    }
+
+    function updateTopKpis() {
+      const mins = Math.floor(state.timerSec / 60);
+      const secs = Math.floor(state.timerSec % 60);
+      document.getElementById("hudTimer").textContent = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+      document.getElementById("hudKills").textContent = state.kills.toLocaleString();
+      document.getElementById("hudGold").textContent = state.gold.toLocaleString();
+      document.getElementById("hudCombo").textContent = `${state.combo} HIT`;
+
+      const pct = Math.min(100, Math.round((state.xp / state.xpNext) * 100));
+      document.getElementById("xpBarFill").style.width = `${pct}%`;
+      document.getElementById("xpBarText").textContent =
+        `LV. ${state.level} NIGHT-SAVIOR — ${state.xp.toLocaleString()} / ${state.xpNext.toLocaleString()} XP (${pct}%) • ${
+          state.pendingDrafts > 0
+            ? `🎉 ${state.pendingDrafts} LEVEL-UP DRAFT READY [1][2][3]!`
+            : state.darkForceActiveTimer > 0
+            ? "🌌 DARK FORCE OVERDRIVE ACTIVE!"
+            : "WALK OVER GOLDEN CHESTS [🎁] OR PRESS [SPACE]"
+        }`;
+
+      const dfPct = state.darkForceActiveTimer > 0
+        ? Math.min(100, Math.round((state.darkForceActiveTimer / 8.0) * 100))
+        : Math.round(state.darkForceGauge);
+      document.getElementById("dfMeterFill").style.width = `${dfPct}%`;
+      document.getElementById("dfStateBadge").textContent =
+        state.darkForceActiveTimer > 0 ? `ACTIVE ${state.darkForceActiveTimer.toFixed(1)}s` : `READY ${dfPct}%`;
+
+      const lord = NIGHT_LORDS[state.lordId] || NIGHT_LORDS.demitri;
+      const stats = computeLiveStats();
+      document.getElementById("heroBadgeName").textContent = lord.badge;
+      document.getElementById("statHp").textContent = `${Math.round(state.hero.hp)} / ${state.hero.maxHp} HP`;
+      document.getElementById("statMight").textContent = `+${stats.mightPct}%`;
+      document.getElementById("statCooldown").textContent = `-${stats.cdRed}%`;
+      document.getElementById("statArea").textContent = `+${stats.areaPct}%`;
+      document.getElementById("statAmount").textContent = `+${stats.projBonus} PROJ`;
+      document.getElementById("statMagnet").textContent = `${stats.magnetPx} PX`;
+      document.getElementById("lordSpecialDesc").innerHTML = `<strong>${lord.exName}:</strong> ${lord.exDesc}`;
+      updateDraftBannerState();
+    }
+
+    function renderGrimoireModal() {
+      const grid = document.getElementById("grimoireGrid");
+      grid.innerHTML = WEAPON_CATALOG.map(
+        (w) => `
+          <div class="evo-recipe-item">
+            <div>
+              <div><b>${w.baseIcon} ${w.baseName}</b> + <span>${w.passiveName}</span> ➔ <b style="color:#fb7185;">${w.evolvedIcon} ${w.evolvedName}</b></div>
+              <div style="font-size:10px; color:#cbd5e1; margin-top:2px;">${w.desc}</div>
+            </div>
+            <button class="hud-btn crimson-cta" data-awaken-id="${w.id}" style="font-size:9.5px; white-space:nowrap;">⚡ AWAKEN</button>
+          </div>
+        `
+      ).join("");
+
+      grid.querySelectorAll("[data-awaken-id]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-awaken-id");
+          const existing = state.weapons.find((x) => x.id === id);
+          if (existing) {
+            existing.level = 8;
+            existing.evolved = true;
+          } else {
+            state.weapons[state.weapons.length - 1] = {
+              id,
+              level: 8,
+              evolved: true,
+              dmgDealt: 110000,
+            };
+          }
+          const meta = getWeaponMeta(id);
+          triggerBanner(`📕 GRIMOIRE AWAKENED: ${meta.evolvedName.toUpperCase()}!`, meta.desc);
+          audio.sfxChestJackpot();
+          renderEquipmentHud();
+          document.getElementById("grimoireModal").classList.remove("open");
+        });
+      });
+    }
+
+    // =========================================================================
+    // 7. SIMULATION & WEAPON AUTO-BATTLER ENGINE
+    // =========================================================================
+    let fireAccum = {
+      whip: 0,
+      lightning: 0,
+      scythe: 0,
+      wand: 0,
+      water: 0,
+      garlic: 0,
+      knife: 0,
+      cross: 0,
+      firewand: 0,
+    };
+
+    function stepSimulation(dt) {
+      if (state.gameOver) return;
+      const stats = computeLiveStats();
+      const speedMult = state.mode === "hyper_hurry" ? 1.85 : 1.0;
+      const simDt = dt * speedMult;
+      state.timerSec += simDt;
+
+      const W = canvas.width;
+      const H = canvas.height - 62; // reserve bottom strip for quick-draft bar
+      const hero = state.hero;
+
+      if (state.darkForceActiveTimer > 0) {
+        state.darkForceActiveTimer = Math.max(0, state.darkForceActiveTimer - dt);
+      } else {
+        state.darkForceGauge = Math.min(100, state.darkForceGauge + dt * 4.5);
+      }
+      if (state.dashTimer > 0) state.dashTimer = Math.max(0, state.dashTimer - dt);
+      if (state.hurtFlash > 0) state.hurtFlash = Math.max(0, state.hurtFlash - dt);
+      if (state.bannerTimer > 0) state.bannerTimer = Math.max(0, state.bannerTimer - dt);
+      if (hero.invulnTimer > 0) hero.invulnTimer = Math.max(0, hero.invulnTimer - dt);
+      if (state.chestCeremony) {
+        state.chestCeremony.timer -= dt;
+        if (state.chestCeremony.timer <= 0) state.chestCeremony = null;
+      }
+
+      // Hero Movement: Keyboard WASD/Arrows, Mouse Drag, or AI Auto-Survivor steering
+      let mx = 0;
+      let my = 0;
+      if (state.keys["KeyW"] || state.keys["ArrowUp"]) my -= 1;
+      if (state.keys["KeyS"] || state.keys["ArrowDown"]) my += 1;
+      if (state.keys["KeyA"] || state.keys["ArrowLeft"]) mx -= 1;
+      if (state.keys["KeyD"] || state.keys["ArrowRight"]) mx += 1;
+
+      if (mx === 0 && my === 0 && state.mouseTarget) {
+        const dx = state.mouseTarget.x - hero.x;
+        const dy = state.mouseTarget.y - hero.y;
+        const d = Math.hypot(dx, dy);
+        if (d > 10) {
+          mx = dx / d;
+          my = dy / d;
+        }
+      } else if (mx === 0 && my === 0 && state.mode === "auto_ai_tester") {
+        // Smart AI seeks nearest Floor Chest first, otherwise orbits arena
+        if (state.chests.length > 0) {
+          const c = state.chests[0];
+          const d = Math.hypot(c.x - hero.x, c.y - hero.y) || 1;
+          mx = (c.x - hero.x) / d;
+          my = (c.y - hero.y) / d;
+        } else {
+          const t = performance.now() * 0.0012;
+          mx = Math.cos(t) * 0.7;
+          my = Math.sin(t * 1.3) * 0.7;
+        }
+        if (state.pendingDrafts > 0 && Math.random() < 0.08) {
+          selectDraftChoice(0);
+        }
+      }
+
+      if (mx !== 0 || my !== 0) {
+        const len = Math.hypot(mx, my) || 1;
+        const moveSpd = (state.dashTimer > 0 ? 410 : 195 * stats.spdMult) * (state.darkForceActiveTimer > 0 ? 1.2 : 1);
+        hero.x = Math.max(42, Math.min(W - 42, hero.x + (mx / len) * moveSpd * dt));
+        hero.y = Math.max(48, Math.min(H - 28, hero.y + (my / len) * moveSpd * dt));
+        if (mx !== 0) hero.facing = mx > 0 ? 1 : -1;
+      }
+
+      // Weapon Cooldown & Might Scaling
+      const dfRate = (state.darkForceActiveTimer > 0 ? 1.65 : 1.0) / Math.max(0.32, stats.cdMult);
+      hero.orbitAngle += dt * 3.4 * (state.darkForceActiveTimer > 0 ? 1.5 : 1.0);
+
+      const hasW = (id) => state.weapons.find((w) => w.id === id);
+
+      // 1. Soul Eater / Garlic Aura continuous damage pulse
+      const wGarlic = hasW("garlic");
+      if (wGarlic) {
+        fireAccum.garlic += dt * dfRate;
+        if (fireAccum.garlic >= 0.34) {
+          fireAccum.garlic = 0;
+          const auraRadius = (wGarlic.evolved ? 98 : 74) * stats.areaMult;
+          const dmg = Math.round((wGarlic.evolved ? 28 : 14 + wGarlic.level * 2) * stats.mightMult);
+          state.enemies.forEach((e) => {
+            if (Math.hypot(e.x - hero.x, e.y - hero.y) <= auraRadius + e.radius) {
+              damageEnemy(e, dmg, "garlic", "#ec4899");
+              if (wGarlic.evolved) hero.hp = Math.min(hero.maxHp, hero.hp + 0.5);
+            }
+          });
+        }
+      }
+
+      // 2. Orbiting Unholy Vespers / King Bible
+      const wBible = hasW("bible");
+      if (wBible) {
+        const vesperCount = (wBible.evolved ? 6 : 3 + Math.floor(wBible.level / 2)) + stats.projBonus;
+        const vesperRadius = 112 * Math.min(1.45, stats.areaMult);
+        const dmg = Math.round((wBible.evolved ? 46 : 22 + wBible.level * 3) * stats.mightMult);
+        for (let b = 0; b < vesperCount; b++) {
+          const ang = hero.orbitAngle + (b / vesperCount) * Math.PI * 2;
+          const bx = hero.x + Math.cos(ang) * vesperRadius;
+          const by = hero.y + Math.sin(ang) * vesperRadius;
+          state.enemies.forEach((e) => {
+            if (Math.hypot(e.x - bx, e.y - by) < e.radius + 17 && e.hitFlash <= 0) {
+              damageEnemy(e, dmg, "bible", "#facc15");
+            }
+          });
+        }
+      }
+
+      // 3. Bloody Tear / Crimson Whip Slashes
+      const wWhip = hasW("whip");
+      if (wWhip) {
+        fireAccum.whip += dt * dfRate;
+        if (fireAccum.whip >= 0.82) {
+          fireAccum.whip = 0;
+          const dmg = Math.round((wWhip.evolved ? 74 : 34 + wWhip.level * 5) * stats.mightMult);
+          state.whipSlashes.push(
+            { x: hero.x + 84, y: hero.y - 8, dir: 1, life: 0.3, maxLife: 0.3, evolved: wWhip.evolved },
+            { x: hero.x - 84, y: hero.y + 10, dir: -1, life: 0.3, maxLife: 0.3, evolved: wWhip.evolved }
+          );
+          state.enemies.forEach((e) => {
+            if (Math.abs(e.y - hero.y) < 52 * stats.areaMult && Math.abs(e.x - hero.x) < 160 * stats.areaMult) {
+              damageEnemy(e, dmg, "whip", "#fb7185");
+              if (wWhip.evolved) hero.hp = Math.min(hero.maxHp, hero.hp + 3);
+            }
+          });
+        }
+      }
+
+      // 4. Thunder Loop / Lightning Ring Strikes
+      const wLight = hasW("lightning");
+      if (wLight) {
+        fireAccum.lightning += dt * dfRate;
+        if (fireAccum.lightning >= 1.0 && state.enemies.length > 0) {
+          fireAccum.lightning = 0;
+          const strikes = (wLight.evolved ? 3 : 2) + Math.min(3, stats.projBonus);
+          const dmg = Math.round((wLight.evolved ? 96 : 45 + wLight.level * 6) * stats.mightMult);
+          for (let k = 0; k < strikes; k++) {
+            const target = state.enemies[Math.floor(Math.random() * state.enemies.length)];
+            if (target) {
+              state.lightningBolts.push({ x: target.x, y: target.y, life: 0.38, maxLife: 0.38 });
+              damageEnemy(target, dmg, "lightning", "#00f5d4");
+            }
+          }
+        }
+      }
+
+      // 5. Death Spiral Scythes / Execution Axe
+      const wAxe = hasW("axe");
+      if (wAxe) {
+        fireAccum.scythe += dt * dfRate;
+        if (fireAccum.scythe >= 1.3) {
+          fireAccum.scythe = 0;
+          const count = (wAxe.evolved ? 6 : 3) + stats.projBonus;
+          const dmg = Math.round((wAxe.evolved ? 68 : 38 + wAxe.level * 4) * stats.mightMult);
+          for (let i = 0; i < count; i++) {
+            const a = hero.orbitAngle + (i / count) * Math.PI * 2;
+            state.projectiles.push({
+              x: hero.x,
+              y: hero.y,
+              vx: Math.cos(a) * 240,
+              vy: Math.sin(a) * 240,
+              type: "scythe",
+              weaponId: "axe",
+              radius: 15,
+              dmg,
+              life: 1.5,
+              rot: a,
+            });
+          }
+        }
+      }
+
+      // 6. Holy Wand / Homing Soul Fist Bolts
+      const wWand = hasW("wand");
+      if (wWand) {
+        fireAccum.wand += dt * dfRate;
+        if (fireAccum.wand >= (wWand.evolved ? 0.38 : 0.65) && state.enemies.length > 0) {
+          fireAccum.wand = 0;
+          const target = state.enemies[0];
+          const a = Math.atan2(target.y - hero.y, target.x - hero.x);
+          state.projectiles.push({
+            x: hero.x,
+            y: hero.y,
+            vx: Math.cos(a) * 330,
+            vy: Math.sin(a) * 330,
+            type: "wand",
+            weaponId: "wand",
+            radius: 11,
+            dmg: Math.round((wWand.evolved ? 56 : 28 + wWand.level * 4) * stats.mightMult),
+            life: 1.2,
+            rot: a,
+          });
+        }
+      }
+
+      // 7. Thousand Edge / Throwing Knife Stream
+      const wKnife = hasW("knife");
+      if (wKnife) {
+        fireAccum.knife += dt * dfRate;
+        if (fireAccum.knife >= (wKnife.evolved ? 0.25 : 0.55)) {
+          fireAccum.knife = 0;
+          state.projectiles.push({
+            x: hero.x,
+            y: hero.y + (Math.random() - 0.5) * 18,
+            vx: hero.facing * 390,
+            vy: (Math.random() - 0.5) * 40,
+            type: "knife",
+            weaponId: "knife",
+            radius: 10,
+            dmg: Math.round((wKnife.evolved ? 48 : 24 + wKnife.level * 3) * stats.mightMult),
+            life: 1.0,
+            rot: hero.facing > 0 ? 0 : Math.PI,
+          });
+        }
+      }
+
+      // 8. Heaven Sword / Cross & Hellfire / Fire Wand
+      const wCross = hasW("cross") || hasW("firewand");
+      if (wCross) {
+        fireAccum.cross += dt * dfRate;
+        if (fireAccum.cross >= 1.1) {
+          fireAccum.cross = 0;
+          const a = Math.random() * Math.PI * 2;
+          state.projectiles.push({
+            x: hero.x,
+            y: hero.y,
+            vx: Math.cos(a) * 260,
+            vy: Math.sin(a) * 260,
+            type: "darkforce_ex",
+            weaponId: wCross.id,
+            radius: 16,
+            dmg: Math.round(78 * stats.mightMult),
+            life: 1.4,
+            rot: a,
+          });
+        }
+      }
+
+      // 9. Update Water Pools (La Borra / Santa Water) + deal pool damage
+      const wWater = hasW("water");
+      fireAccum.water += dt * dfRate;
+      const shouldPulseWater = fireAccum.water >= 0.45;
+      if (shouldPulseWater) fireAccum.water = 0;
+      state.waterPools.forEach((pool, idx) => {
+        const orbitA = hero.orbitAngle * 0.45 + idx * (Math.PI * 0.5);
+        pool.x = hero.x + Math.cos(orbitA) * 142;
+        pool.y = hero.y + Math.sin(orbitA) * 86;
+        pool.radius = (wWater?.evolved ? 52 : 42) * Math.min(1.35, stats.areaMult);
+        if (wWater && shouldPulseWater) {
+          const dmg = Math.round((wWater.evolved ? 38 : 20 + wWater.level * 3) * stats.mightMult);
+          state.enemies.forEach((e) => {
+            if (Math.hypot(e.x - pool.x, e.y - pool.y) <= pool.radius + e.radius) {
+              damageEnemy(e, dmg, "water", "#38bdf8");
+            }
+          });
+        }
+      });
+
+      // Update Projectiles
+      for (let i = state.projectiles.length - 1; i >= 0; i--) {
+        const p = state.projectiles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.rot += dt * 9;
+        p.life -= dt;
+        for (let j = state.enemies.length - 1; j >= 0; j--) {
+          const e = state.enemies[j];
+          if (Math.hypot(e.x - p.x, e.y - p.y) < e.radius + p.radius) {
+            damageEnemy(e, p.dmg, p.weaponId || "axe", "#fde047");
+            break;
+          }
+        }
+        if (p.life <= 0 || p.x < -30 || p.x > W + 30 || p.y < -30 || p.y > H + 30) {
+          state.projectiles.splice(i, 1);
+        }
+      }
+
+      // Update Enemies, Active Pursuit & Contact Combat
+      for (let i = state.enemies.length - 1; i >= 0; i--) {
+        const e = state.enemies[i];
+        if (e.hitFlash > 0) e.hitFlash = Math.max(0, e.hitFlash - dt);
+        const dx = hero.x - e.x;
+        const dy = hero.y - e.y;
+        const d = Math.hypot(dx, dy) || 1;
+        e.x += (dx / d) * e.speed * dt;
+        e.y += (dy / d) * e.speed * dt;
+        e.phase += dt * 5;
+
+        // Contact with Hero -> Deal REAL Contact Damage & Trigger Game Over if HP hits 0!
+        if (d < e.radius + 16) {
+          e.x -= (dx / d) * 14;
+          e.y -= (dy / d) * 14;
+          if (hero.invulnTimer <= 0 && state.dashTimer <= 0) {
+            const waveScale = 1 + Math.floor(state.timerSec / 45) * 0.25;
+            const rawDmg = e.elite ? 24 : e.type === "stalker" || e.type === "ghoul" ? 15 : 11;
+            const dmgTaken = Math.round(rawDmg * waveScale);
+            hero.hp = Math.max(0, hero.hp - dmgTaken);
+            hero.invulnTimer = 0.42;
+            state.hurtFlash = 0.38;
+            state.combo = 0;
+            audio.playTone(110, 0.14, "sawtooth", 0.08, 55);
+            state.floatingTexts.push({
+              x: hero.x + (Math.random() - 0.5) * 20,
+              y: hero.y - 22,
+              text: `-${dmgTaken} HP!`,
+              color: "#ef4444",
+              life: 0.9,
+              maxLife: 0.9,
+            });
+            if (hero.hp <= 0) {
+              hero.hp = 0;
+              state.gameOver = true;
+              triggerBanner("💀 YOU DIED — THE NIGHT CLAIMED YOUR SOUL!", "Click the Arena or Press [SPACE] / [N] to Rise Again at Level 1!");
+              [220, 196, 164.81, 130.81].forEach((f, idx) => {
+                setTimeout(() => audio.playTone(f, 0.32, "sawtooth", 0.08), idx * 110);
+              });
+              updateTopKpis();
+              return;
+            }
+          }
+        }
+
+        if (e.hp <= 0) {
+          state.kills++;
+          state.combo++;
+          state.darkForceGauge = Math.min(100, state.darkForceGauge + (e.elite ? 15 : 2.5));
+          state.gold += e.elite ? 55 : 8;
+          state.gems.push({
+            x: e.x,
+            y: e.y,
+            tier: e.elite ? 3 : Math.random() < 0.3 ? 2 : 1,
+            val: e.elite ? 140 : 28,
+            bob: Math.random() * 3,
+          });
+          // Elite / Mini-Reaper kills drop a Golden Boss Treasure Chest right on the spot!
+          if (e.elite && state.chests.length < 3) {
+            state.chests.push({ x: e.x, y: e.y, bob: 0, tier: 3 });
+            state.floatingTexts.push({
+              x: e.x,
+              y: e.y - 18,
+              text: "🎁 BOSS CHEST DROPPED!",
+              color: "#fde047",
+              life: 1.4,
+              maxLife: 1.4,
+            });
+          } else if (state.pickups.length < 3 && Math.random() < 0.025) {
+            const pTypes = [
+              { kind: "chicken", icon: "🍗", label: "+40 HP" },
+              { kind: "vacuum", icon: "🧲", label: "VACUUM GEMS" },
+              { kind: "gold", icon: "💰", label: "+500 GOLD" },
+            ];
+            const pick = pTypes[Math.floor(Math.random() * pTypes.length)];
+            state.pickups.push({ x: e.x, y: e.y, ...pick });
+          }
+          state.enemies.splice(i, 1);
+        }
+      }
+
+      // Escalating Undead Swarm: Starts at 22 enemies at Level 1 and scales up to 48 as survival time & level grow!
+      const targetSwarmSize = Math.min(48, 22 + Math.floor(state.timerSec / 12) * 2 + (state.level - 1) * 2);
+      const waveHpMult = 1 + state.timerSec / 90 + (state.level - 1) * 0.12;
+      const waveSpdBonus = Math.min(35, Math.floor(state.timerSec / 15) * 3);
+      while (state.enemies.length < targetSwarmSize) {
+        const ang = Math.random() * Math.PI * 2;
+        const ring = 240 + Math.random() * 110;
+        const types = ["bat", "skeleton", "ghoul", "mummy", "stalker"];
+        const type = (state.mode === "reaper_boss_rush" && Math.random() < 0.25) || Math.random() < 0.06
+          ? "reaper_mini"
+          : types[Math.floor(Math.random() * types.length)];
+        const isElite = type === "reaper_mini";
+        const baseHp = isElite ? Math.round(180 * waveHpMult) : Math.round(34 * waveHpMult);
+        state.enemies.push({
+          x: Math.max(32, Math.min(W - 32, hero.x + Math.cos(ang) * ring * 1.2)),
+          y: Math.max(38, Math.min(H - 36, hero.y + Math.sin(ang) * ring * 0.82)),
+          type,
+          hp: baseHp,
+          maxHp: baseHp,
+          radius: isElite ? 20 : 13,
+          speed: (isElite ? 60 : 70) + waveSpdBonus,
+          elite: isElite,
+          hitFlash: 0,
+          phase: Math.random() * 6,
+        });
+      }
+
+      // TREASURE CHEST MAGNETIC PULL & WALK-OVER COLLECTION!
+      for (let i = state.chests.length - 1; i >= 0; i--) {
+        const c = state.chests[i];
+        const dx = hero.x - c.x;
+        const dy = hero.y - c.y;
+        const d = Math.hypot(dx, dy);
+        // Magnetic pull when within 150px so walking near a chest pulls it right into you!
+        if (d < 150) {
+          c.x += (dx / (d || 1)) * 220 * dt;
+          c.y += (dy / (d || 1)) * 220 * dt;
+        }
+        if (d < 46) {
+          const collected = state.chests.splice(i, 1)[0];
+          openBossTreasureChest(collected);
+        }
+      }
+
+      // Spawn a Boss Chest every 25 seconds if none are on the floor
+      state.chestSpawnTimer += dt;
+      if (state.chests.length < 1 && state.chestSpawnTimer >= 25.0) {
+        state.chestSpawnTimer = 0;
+        const ang = Math.random() * Math.PI * 2;
+        const cx = Math.max(60, Math.min(W - 60, hero.x + Math.cos(ang) * 195));
+        const cy = Math.max(65, Math.min(H - 55, hero.y + Math.sin(ang) * 125));
+        state.chests.push({ x: cx, y: cy, bob: Math.random() * 3, tier: 3 });
+      }
+
+      // FLOOR PICKUPS (Wall Chicken, Vacuum Orb, Sacred Rosary, Rich Coin Bag)
+      for (let i = state.pickups.length - 1; i >= 0; i--) {
+        const pk = state.pickups[i];
+        const dx = hero.x - pk.x;
+        const dy = hero.y - pk.y;
+        const d = Math.hypot(dx, dy);
+        if (d < 130) {
+          pk.x += (dx / (d || 1)) * 250 * dt;
+          pk.y += (dy / (d || 1)) * 250 * dt;
+        }
+        if (d < 36) {
+          state.pickups.splice(i, 1);
+          if (pk.kind === "chicken") {
+            hero.hp = Math.min(hero.maxHp, hero.hp + 60);
+            triggerBanner("🍗 FLOOR WALL CHICKEN COLLECTED!", "Restored +60 Vitality HP!");
+          } else if (pk.kind === "vacuum") {
+            state.gems.forEach((g) => {
+              g.vacuumed = true;
+            });
+            triggerBanner("🧲 VACUUM MAGNET ORB!", "All Floor XP Gems Pulled to Night-Lord!");
+          } else if (pk.kind === "rosary") {
+            document.getElementById("btnRosaryNuke").click();
+          } else {
+            state.gold += 500;
+            safeSetStorage("vs_gold", state.gold);
+            triggerBanner("💰 RICH COIN BAG COLLECTED!", "+500 Soul Gold Added to Treasury!");
+          }
+          audio.sfxLevelUp();
+        }
+      }
+
+      // Magnetize nearby XP Gems & Level-Up Draft Trigger
+      for (let i = state.gems.length - 1; i >= 0; i--) {
+        const g = state.gems[i];
+        g.bob += dt * 4;
+        const dx = hero.x - g.x;
+        const dy = hero.y - g.y;
+        const d = Math.hypot(dx, dy);
+        if (g.vacuumed || d < stats.magnetPx) {
+          const pullSpd = g.vacuumed ? 520 : 340;
+          g.x += (dx / (d || 1)) * pullSpd * dt;
+          g.y += (dy / (d || 1)) * pullSpd * dt;
+          if (d < 26) {
+            state.xp += g.val;
+            if (state.xp >= state.xpNext) {
+              while (state.xp >= state.xpNext) {
+                state.xp -= state.xpNext;
+                state.level++;
+                state.xpNext = Math.floor(state.xpNext * 1.18);
+                state.pendingDrafts++;
+              }
+              hero.hp = Math.min(hero.maxHp, hero.hp + 30);
+              state.shockwaves.push({
+                x: hero.x,
+                y: hero.y,
+                r: 15,
+                maxR: 195,
+                color: "#00f5d4",
+                life: 0.5,
+                maxLife: 0.5,
+              });
+              // Push back nearby enemies on level up!
+              state.enemies.forEach((e) => {
+                const ed = Math.hypot(e.x - hero.x, e.y - hero.y) || 1;
+                if (ed < 180) {
+                  e.x += ((e.x - hero.x) / ed) * 45;
+                  e.y += ((e.y - hero.y) / ed) * 45;
+                  damageEnemy(e, 60, "bible", "#00f5d4");
+                }
+              });
+              rollDraftChoices();
+              triggerBanner(
+                `🎉 LEVEL ${state.level} REACHED! (${state.pendingDrafts} UPGRADE READY)`,
+                "Click a Draft Card below or press [1] [2] [3] to upgrade!"
+              );
+              audio.sfxLevelUp();
+            } else {
+              audio.sfxGem(g.tier);
+            }
+            state.gems.splice(i, 1);
+          }
+        }
+      }
+      while (state.gems.length < 75) {
+        const ang = Math.random() * Math.PI * 2;
+        const dist = 105 + Math.random() * 260;
+        const tier = Math.random() < 0.14 ? 3 : Math.random() < 0.38 ? 2 : 1;
+        state.gems.push({
+          x: Math.max(24, Math.min(W - 24, hero.x + Math.cos(ang) * dist * 1.2)),
+          y: Math.max(28, Math.min(H - 32, hero.y + Math.sin(ang) * dist * 0.8)),
+          tier,
+          val: tier === 3 ? 120 : tier === 2 ? 38 : 14,
+          bob: Math.random() * 4,
+        });
+      }
+
+      // Decay visual FX, shockwaves & particles
+      for (let i = state.whipSlashes.length - 1; i >= 0; i--) {
+        state.whipSlashes[i].life -= dt;
+        if (state.whipSlashes[i].life <= 0) state.whipSlashes.splice(i, 1);
+      }
+      for (let i = state.lightningBolts.length - 1; i >= 0; i--) {
+        state.lightningBolts[i].life -= dt;
+        if (state.lightningBolts[i].life <= 0) state.lightningBolts.splice(i, 1);
+      }
+      for (let i = state.shockwaves.length - 1; i >= 0; i--) {
+        const sw = state.shockwaves[i];
+        sw.life -= dt;
+        sw.r += (sw.maxR / sw.maxLife) * dt;
+        if (sw.life <= 0) state.shockwaves.splice(i, 1);
+      }
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const pt = state.particles[i];
+        pt.x += pt.vx * dt;
+        pt.y += pt.vy * dt;
+        pt.vy += 180 * dt;
+        pt.life -= dt;
+        if (pt.life <= 0) state.particles.splice(i, 1);
+      }
+      for (let i = state.floatingTexts.length - 1; i >= 0; i--) {
+        const ft = state.floatingTexts[i];
+        ft.y -= 28 * dt;
+        ft.life -= dt;
+        if (ft.life <= 0) state.floatingTexts.splice(i, 1);
+      }
+
+      updateTopKpis();
+    }
+
+    function damageEnemy(e, dmg, weaponId, color) {
+      e.hp -= dmg;
+      e.hitFlash = 0.16;
+      const w = state.weapons.find((x) => x.id === weaponId);
+      if (w) w.dmgDealt += dmg;
+      if (state.floatingTexts.length < 28 && Math.random() < 0.42) {
+        state.floatingTexts.push({
+          x: e.x + (Math.random() - 0.5) * 16,
+          y: e.y - 12,
+          text: `${dmg}!`,
+          color,
+          life: 0.75,
+          maxLife: 0.75,
+        });
+      }
+    }
+
+    // =========================================================================
+    // 8. HIGH-FPS 2D CANVAS GOTHIC CATHEDRAL & BULLET-HEAVEN RENDERER
+    // =========================================================================
+    function renderArena() {
+      const W = canvas.width;
+      const H = canvas.height;
+      const hero = state.hero;
+      const lord = NIGHT_LORDS[state.lordId] || NIGHT_LORDS.demitri;
+
+      // 1. Stage Backdrop (Mode-themed Gothic Cathedral / Neon Forest / Inlaid Library / Darkstalkers Fetus of God)
+      const bgGrad = ctx.createRadialGradient(hero.x, hero.y, 40, W * 0.5, H * 0.5, W * 0.75);
+      if (state.mode === "inlaid_library") {
+        bgGrad.addColorStop(0, "#2e1065");
+        bgGrad.addColorStop(0.6, "#170936");
+        bgGrad.addColorStop(1, "#070312");
+      } else if (state.mode === "vampire_savior_duel") {
+        bgGrad.addColorStop(0, "#4c0519");
+        bgGrad.addColorStop(0.6, "#1f0628");
+        bgGrad.addColorStop(1, "#08020f");
+      } else {
+        bgGrad.addColorStop(0, "#240a3d");
+        bgGrad.addColorStop(0.55, "#110622");
+        bgGrad.addColorStop(1, "#06020d");
+      }
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Gothic Cobblestone & Neon Pentagram Perspective Grid
+      ctx.save();
+      ctx.strokeStyle = state.darkForceActiveTimer > 0
+        ? "rgba(236, 72, 153, 0.22)"
+        : "rgba(148, 163, 184, 0.11)";
+      ctx.lineWidth = 1;
+      const gridStep = 48;
+      for (let x = 0; x < W; x += gridStep) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, H);
+        ctx.stroke();
+      }
+      for (let y = 0; y < H; y += gridStep) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(W, y);
+        ctx.stroke();
+      }
+
+      // Ornate Gothic Blood-Moon & Sacred Alchemy Circle on the Arena Floor
+      ctx.translate(hero.x, hero.y);
+      ctx.rotate(hero.orbitAngle * 0.15);
+      ctx.strokeStyle = "rgba(244, 63, 94, 0.26)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 175, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(250, 204, 21, 0.2)";
+      ctx.beginPath();
+      ctx.arc(0, 0, 112, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // 2. La Borra / Santa Water Glowing Sanctuary Pools (Only drawn when hero owns Santa Water!)
+      const ownedWater = state.weapons.find((w) => w.id === "water");
+      if (ownedWater) {
+        state.waterPools.forEach((pool) => {
+          ctx.save();
+          const g = ctx.createRadialGradient(pool.x, pool.y, 6, pool.x, pool.y, pool.radius);
+          g.addColorStop(0, "rgba(0, 245, 212, 0.48)");
+          g.addColorStop(0.65, "rgba(14, 165, 233, 0.28)");
+          g.addColorStop(1, "rgba(14, 165, 233, 0)");
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(pool.x, pool.y, pool.radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(56, 189, 248, 0.65)";
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          ctx.restore();
+        });
+      }
+
+      // 3. Soul Eater / Garlic Dark-Matter Lifesteal Field around Hero (Only drawn when hero owns Garlic!)
+      const ownedGarlic = state.weapons.find((w) => w.id === "garlic");
+      if (ownedGarlic) {
+        ctx.save();
+        const soulR = (ownedGarlic.evolved ? 96 : 72) + Math.sin(performance.now() * 0.008) * 4;
+        const soulGrad = ctx.createRadialGradient(hero.x, hero.y, 18, hero.x, hero.y, soulR);
+        soulGrad.addColorStop(0, "rgba(244, 63, 94, 0.08)");
+        soulGrad.addColorStop(0.7, "rgba(168, 85, 247, 0.24)");
+        soulGrad.addColorStop(1, "rgba(236, 72, 153, 0.52)");
+        ctx.fillStyle = soulGrad;
+        ctx.beginPath();
+        ctx.arc(hero.x, hero.y, soulR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = ownedGarlic.evolved ? "#f472b6" : "#a855f7";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 4. Glittering Diamond XP Gems (Blue, Green, Red/Gold)
+      state.gems.forEach((g) => {
+        ctx.save();
+        const by = g.y + Math.sin(g.bob) * 2.5;
+        ctx.translate(g.x, by);
+        const sz = g.tier === 3 ? 7.5 : g.tier === 2 ? 6 : 5;
+        ctx.fillStyle = g.tier === 3 ? "#f43f5e" : g.tier === 2 ? "#22c55e" : "#38bdf8";
+        ctx.strokeStyle = g.tier === 3 ? "#fde047" : "#ffffff";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(0, -sz);
+        ctx.lineTo(sz * 0.78, 0);
+        ctx.lineTo(0, sz);
+        ctx.lineTo(-sz * 0.78, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      });
+
+      // 5. Golden Boss Treasure Chests on Floor + Compass Guidance Line + Walk-Over Callout
+      state.chests.forEach((c, idx) => {
+        ctx.save();
+        // Subtle golden compass guide line from hero to nearest chest
+        if (idx === 0) {
+          ctx.strokeStyle = "rgba(250, 204, 21, 0.35)";
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([5, 5]);
+          ctx.beginPath();
+          ctx.moveTo(hero.x, hero.y);
+          ctx.lineTo(c.x, c.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        const cy = c.y + Math.sin(performance.now() * 0.005 + c.bob) * 3;
+        ctx.translate(c.x, cy);
+        // Pulsing Golden Halo
+        const haloR = 26 + Math.sin(performance.now() * 0.01) * 4;
+        ctx.fillStyle = "rgba(250, 204, 21, 0.28)";
+        ctx.beginPath();
+        ctx.arc(0, 0, haloR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#fde047";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        // Chest Box
+        ctx.fillStyle = "#b45309";
+        ctx.strokeStyle = "#fde047";
+        ctx.lineWidth = 2.2;
+        ctx.fillRect(-15, -11, 30, 22);
+        ctx.strokeRect(-15, -11, 30, 22);
+        ctx.fillStyle = "#facc15";
+        ctx.fillRect(-15, -2, 30, 4);
+        ctx.fillRect(-4, -5, 8, 10);
+        // Floating Label Above Chest
+        ctx.font = "900 9.5px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#fde047";
+        ctx.fillText("🎁 TOUCH / CLICK CHEST!", 0, -17);
+        ctx.restore();
+      });
+
+      // 5B. Collectible Floor Pickups (Wall Chicken, Vacuum Orb, Rosary, Coin Bag)
+      state.pickups.forEach((pk) => {
+        ctx.save();
+        const py = pk.y + Math.sin(performance.now() * 0.006) * 3;
+        ctx.translate(pk.x, py);
+        ctx.fillStyle = "rgba(0, 245, 212, 0.22)";
+        ctx.beginPath();
+        ctx.arc(0, 0, 18, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = "18px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(pk.icon, 0, 0);
+        ctx.font = "800 8.5px system-ui";
+        ctx.fillStyle = "#00f5d4";
+        ctx.fillText(pk.label, 0, -16);
+        ctx.restore();
+      });
+
+      // 6. Sculpted Gothic Enemy Swarm (Bats, Skeletons, Ghouls, Mini-Reapers)
+      state.enemies.forEach((e) => {
+        ctx.save();
+        ctx.translate(e.x, e.y);
+        const flash = e.hitFlash > 0;
+        if (e.type === "reaper_mini") {
+          // Hooded Crimson Reaper Elite
+          ctx.fillStyle = flash ? "#ffffff" : "#9f1239";
+          ctx.strokeStyle = "#fde047";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          // Skull face
+          ctx.fillStyle = "#fef2f2";
+          ctx.beginPath();
+          ctx.arc(0, -2, 8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#ef4444";
+          ctx.fillRect(-4, -4, 3, 3);
+          ctx.fillRect(1, -4, 3, 3);
+        } else if (e.type === "bat") {
+          const wing = Math.sin(e.phase) * 6;
+          ctx.fillStyle = flash ? "#ffffff" : "#7e22ce";
+          ctx.strokeStyle = "#f472b6";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(-14, -wing);
+          ctx.lineTo(0, 4);
+          ctx.lineTo(14, -wing);
+          ctx.lineTo(0, -6);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        } else if (e.type === "skeleton") {
+          ctx.fillStyle = flash ? "#ffffff" : "#e2e8f0";
+          ctx.strokeStyle = "#475569";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(0, 0, 11, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#0f172a";
+          ctx.fillRect(-5, -3, 3, 3);
+          ctx.fillRect(2, -3, 3, 3);
+        } else {
+          // Armored Ghoul / Stalker
+          ctx.fillStyle = flash ? "#ffffff" : "#047857";
+          ctx.strokeStyle = "#34d399";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(0, 0, 12, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#fde047";
+          ctx.fillRect(-5, -3, 3, 3);
+          ctx.fillRect(2, -3, 3, 3);
+        }
+        ctx.restore();
+      });
+
+      // 7. Orbiting Unholy Vespers / King Bible (Only drawn when hero owns King Bible!)
+      const ownedBible = state.weapons.find((w) => w.id === "bible");
+      if (ownedBible) {
+        const stats = computeLiveStats();
+        const vesperCount = (ownedBible.evolved ? 6 : 3 + Math.floor(ownedBible.level / 2)) + stats.projBonus;
+        const vesperRadius = 112 * Math.min(1.45, stats.areaMult);
+        for (let b = 0; b < vesperCount; b++) {
+          const ang = hero.orbitAngle + (b / vesperCount) * Math.PI * 2;
+          const bx = hero.x + Math.cos(ang) * vesperRadius;
+          const by = hero.y + Math.sin(ang) * vesperRadius;
+          ctx.save();
+          ctx.translate(bx, by);
+          ctx.rotate(ang + Math.PI * 0.5);
+          ctx.fillStyle = ownedBible.evolved ? "#dc2626" : "#1e3a8a";
+          ctx.strokeStyle = "#fde047";
+          ctx.lineWidth = 2;
+          ctx.fillRect(-9, -12, 18, 24);
+          ctx.strokeRect(-9, -12, 18, 24);
+          // Gold cross on grimoire cover
+          ctx.fillStyle = "#fde047";
+          ctx.fillRect(-2, -7, 4, 14);
+          ctx.fillRect(-5, -3, 10, 3);
+          ctx.restore();
+        }
+      }
+
+      // 8. Death Spiral Scythes & EX Projectiles
+      state.projectiles.forEach((p) => {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.strokeStyle = p.type === "darkforce_ex" ? "#00f5d4" : "#fde047";
+        ctx.fillStyle = p.type === "darkforce_ex" ? "#a855f7" : "#f43f5e";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, p.radius, 0, Math.PI * 1.35);
+        ctx.lineTo(0, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      });
+
+      // 9. Bloody Tear Crimson Whip Slashes
+      state.whipSlashes.forEach((s) => {
+        ctx.save();
+        const alpha = Math.max(0, s.life / s.maxLife);
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = "#f43f5e";
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y, 72, 18, 0, 0, Math.PI);
+        ctx.stroke();
+        ctx.strokeStyle = "#fde047";
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.restore();
+      });
+
+      // 10. Thunder Loop Chain Lightning Bolts
+      state.lightningBolts.forEach((bolt) => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, bolt.life / bolt.maxLife);
+        ctx.strokeStyle = "#00f5d4";
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.moveTo(bolt.x - 14, 0);
+        ctx.lineTo(bolt.x + 12, bolt.y * 0.35);
+        ctx.lineTo(bolt.x - 10, bolt.y * 0.7);
+        ctx.lineTo(bolt.x, bolt.y);
+        ctx.stroke();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.fillStyle = "rgba(0, 245, 212, 0.35)";
+        ctx.beginPath();
+        ctx.arc(bolt.x, bolt.y, 26, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // 11. Dark Force Twin Shadow Clone (Vampire Savior Overdrive!)
+      if (state.darkForceActiveTimer > 0) {
+        drawNightLordSprite(
+          hero.x - hero.facing * 42,
+          hero.y - 10,
+          hero.facing,
+          "#00f5d4",
+          "#a855f7",
+          true
+        );
+      }
+
+      // 12. Playable Night-Lord Hero Sprite at Center
+      drawNightLordSprite(hero.x, hero.y, hero.facing, lord.capeColor, lord.TrimColor, false);
+
+      // 13. Vampire Savior 1v1 Duel Mode Rival Boss & Dual Fighting Health Bars
+      if (state.mode === "vampire_savior_duel" || state.mode === "reaper_boss_rush") {
+        const rx = hero.x + 175;
+        const ry = hero.y - 12;
+        drawNightLordSprite(rx, ry, -1, "#881337", "#00f5d4", false);
+        // Fighting Game Top Duel Overlay
+        ctx.save();
+        ctx.fillStyle = "rgba(10, 4, 22, 0.88)";
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 1.5;
+        ctx.fillRect(W * 0.5 - 230, 12, 460, 32);
+        ctx.strokeRect(W * 0.5 - 230, 12, 460, 32);
+        ctx.fillStyle = "#22c55e";
+        ctx.fillRect(W * 0.5 - 224, 18, 190, 10);
+        ctx.fillStyle = "#f43f5e";
+        ctx.fillRect(W * 0.5 + 34, 18, 190, 10);
+        ctx.fillStyle = "#fde047";
+        ctx.font = "900 11px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillText("VS DARK FORCE DUEL", W * 0.5, 36);
+        ctx.restore();
+      }
+
+      // 14. Shockwaves, Particles & 5-Beam Treasure Chest Jackpot Ceremony
+      state.shockwaves.forEach((sw) => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, sw.life / sw.maxLife);
+        ctx.strokeStyle = sw.color;
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      });
+
+      state.particles.forEach((pt) => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, pt.life / pt.maxLife);
+        ctx.fillStyle = pt.color;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      if (state.chestCeremony) {
+        const cc = state.chestCeremony;
+        const alpha = Math.min(1, (cc.timer / cc.maxTimer) * 1.4);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        // 5 Rotating Golden/Crimson Light Pillars from Chest
+        const rayColors = ["#fde047", "#f43f5e", "#00f5d4", "#a855f7", "#22c55e"];
+        for (let r = 0; r < 5; r++) {
+          const ang = performance.now() * 0.003 + (r / 5) * Math.PI * 2;
+          ctx.save();
+          ctx.translate(cc.x, cc.y);
+          ctx.rotate(ang);
+          const grad = ctx.createLinearGradient(0, 0, 220, 0);
+          grad.addColorStop(0, rayColors[r]);
+          grad.addColorStop(1, "rgba(250, 204, 21, 0)");
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(220, -24);
+          ctx.lineTo(220, 24);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        }
+        // Floating Reward Badges over the Chest
+        cc.items.forEach((it, idx) => {
+          const ox = (idx - (cc.items.length - 1) * 0.5) * 135;
+          const bx = Math.max(85, Math.min(W - 85, cc.x + ox));
+          const by = Math.max(85, cc.y - 54);
+          ctx.fillStyle = "rgba(18, 6, 36, 0.95)";
+          ctx.strokeStyle = "#fde047";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(bx - 62, by - 22, 124, 44, 9);
+          ctx.fill();
+          ctx.stroke();
+          ctx.textAlign = "center";
+          ctx.font = "900 11px system-ui";
+          ctx.fillStyle = "#fde047";
+          ctx.fillText(`${it.icon} ${it.tag}`, bx, by - 4);
+          ctx.font = "800 9.5px system-ui";
+          ctx.fillStyle = "#ffffff";
+          ctx.fillText(it.name, bx, by + 13);
+        });
+        ctx.restore();
+      }
+
+      // 14B. Floating Crit & Lifesteal Damage Numbers
+      state.floatingTexts.forEach((ft) => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, ft.life / ft.maxLife);
+        ctx.font = "900 12.5px system-ui";
+        ctx.fillStyle = ft.color;
+        ctx.strokeStyle = "#000000";
+        ctx.lineWidth = 3;
+        ctx.strokeText(ft.text, ft.x, ft.y);
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.restore();
+      });
+
+      // 15. Top Arena Announcement Banner (Evolution / Dark Force Jackpot)
+      if (state.bannerTimer > 0) {
+        ctx.save();
+        const bw = 540;
+        const bh = 46;
+        const bx = (W - bw) * 0.5;
+        const by = 14;
+        ctx.fillStyle = "rgba(18, 6, 36, 0.92)";
+        ctx.strokeStyle = "#fde047";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(bx, by, bw, bh, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#fde047";
+        ctx.font = "900 13px system-ui";
+        ctx.fillText(state.bannerTitle, W * 0.5, by + 20);
+        ctx.fillStyle = "#f1f5f9";
+        ctx.font = "700 10.5px system-ui";
+        ctx.fillText(state.bannerSub, W * 0.5, by + 37);
+        ctx.restore();
+      }
+
+      // 16. Crimson Contact Damage Vignette Flash
+      if (state.hurtFlash > 0) {
+        ctx.save();
+        ctx.fillStyle = `rgba(225, 29, 72, ${Math.min(0.45, state.hurtFlash * 1.1)})`;
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+      }
+
+      // 17. Full-Stage Game Over Overlay when Hero HP hits 0!
+      if (state.gameOver) {
+        ctx.save();
+        ctx.fillStyle = "rgba(9, 2, 18, 0.86)";
+        ctx.fillRect(0, 0, W, H);
+
+        const cw = 480;
+        const ch = 250;
+        const cx = (W - cw) * 0.5;
+        const cy = (H - ch) * 0.44;
+        ctx.fillStyle = "rgba(24, 6, 38, 0.96)";
+        ctx.strokeStyle = "#f43f5e";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(cx, cy, cw, ch, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#f43f5e";
+        ctx.font = "900 26px system-ui";
+        ctx.fillText("💀 YOU DIED", W * 0.5, cy + 48);
+
+        ctx.fillStyle = "#fde047";
+        ctx.font = "800 13px system-ui";
+        ctx.fillText("THE UNDEAD HORDE OVERWHELMED YOUR NIGHT-LORD", W * 0.5, cy + 74);
+
+        const mins = String(Math.floor(state.timerSec / 60)).padStart(2, "0");
+        const secs = String(Math.floor(state.timerSec % 60)).padStart(2, "0");
+        ctx.fillStyle = "#e2e8f0";
+        ctx.font = "700 13px system-ui";
+        ctx.fillText(`Survived: ${mins}:${secs}  •  Level Reached: Lv.${state.level}  •  Undead Slain: ${state.kills.toLocaleString()}`, W * 0.5, cy + 114);
+        ctx.fillText(`Weapons Equipped: ${state.weapons.length}/6  •  Soul Gold Earned: ${state.gold.toLocaleString()}`, W * 0.5, cy + 140);
+
+        // Retry CTA Button
+        ctx.fillStyle = "#be123c";
+        ctx.strokeStyle = "#fde047";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(W * 0.5 - 165, cy + 172, 330, 48, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "900 14px system-ui";
+        ctx.fillText("🔄 RISE AGAIN FROM LV.1 [CLICK / SPACE / N]", W * 0.5, cy + 201);
+        ctx.restore();
+      }
+    }
+
+    function drawNightLordSprite(x, y, facing, capeColor, trimColor, isShadowClone) {
+      ctx.save();
+      ctx.translate(x, y);
+      if (isShadowClone) ctx.globalAlpha = 0.72;
+
+      // High-collar Gothic Vampire Cape
+      ctx.fillStyle = capeColor;
+      ctx.strokeStyle = trimColor;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, -22);
+      ctx.lineTo(-20, 18);
+      ctx.lineTo(20, 18);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Bat-wing shoulders
+      ctx.fillStyle = isShadowClone ? "#00f5d4" : "#1e1b4b";
+      ctx.beginPath();
+      ctx.arc(0, -6, 13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Glowing Vampire Eyes
+      ctx.fillStyle = "#fde047";
+      ctx.fillRect(facing * 2 - 5, -9, 4, 3);
+      ctx.fillRect(facing * 2 + 2, -9, 4, 3);
+
+      // Overhead HP Bar (for main hero)
+      if (!isShadowClone) {
+        ctx.fillStyle = "rgba(0,0,0,0.75)";
+        ctx.fillRect(-20, 23, 40, 5);
+        ctx.fillStyle = "#22c55e";
+        ctx.fillRect(-19, 24, 38 * (state.hero.hp / state.hero.maxHp), 3);
+      }
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // 9. EVENT LISTENERS, MODE SWITCHING & MAIN 60FPS LOOP
+    // =========================================================================
+    function setGameMode(mode) {
+      state.mode = mode;
+      const sel = document.getElementById("vampireModeSelect");
+      if (sel && sel.value !== mode) sel.value = mode;
+      document.querySelectorAll(".mode-pill").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-mode") === mode);
+      });
+
+      const modeLabels = {
+        mad_forest: "🌲 MAD NEON FOREST — CLASSIC BULLET-HEAVEN",
+        inlaid_library: "📚 INLAID CYBER-LIBRARY — HORIZONTAL SWARM CORRIDOR",
+        gallo_tower: "🗼 GALLO BLOOD TOWER — VERTICAL GAUNTLET",
+        vampire_savior_duel: "🥊 VAMPIRE SAVIOR 1V1 DUEL — DARKSTALKERS ARENA",
+        hyper_hurry: "⚡ HYPER HURRY OVERDRIVE — 2× SPEED & INSTANT EVOLUTIONS",
+        arcana_sandbox: "🃏 ARCANA TAROT & LIMIT BREAK SANDBOX",
+        reaper_boss_rush: "💀 RED DEATH REAPER BOSS RUSH",
+        auto_ai_tester: "🤖 AUTO-SURVIVOR AI & BUILD TESTER",
+      };
+      triggerBanner(
+        modeLabels[mode] || mode,
+        "All 6 Weapon Slots & Dark Force Overdrive Ready!"
+      );
+      audio.sfxLevelUp();
+    }
+
+    document.getElementById("vampireModeSelect").addEventListener("change", (e) => {
+      setGameMode(e.target.value);
+    });
+
+    document.querySelectorAll(".mode-pill").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        setGameMode(btn.getAttribute("data-mode"));
+      });
+    });
+
+    document.getElementById("lordSelect").addEventListener("change", (e) => {
+      state.lordId = e.target.value;
+      safeSetStorage("vs_lord", state.lordId);
+      startFreshLevel1Run();
+    });
+
+    document.getElementById("btnDarkForce").addEventListener("click", triggerDarkForceOverdrive);
+    document.getElementById("btnTriggerDFSide").addEventListener("click", triggerDarkForceOverdrive);
+    document.getElementById("btnOpenChest").addEventListener("click", () => {
+      if (state.chests.length > 0) {
+        openBossTreasureChest(state.chests.shift());
+      } else if (state.mode === "arcana_sandbox") {
+        openBossTreasureChest(null);
+      } else {
+        triggerBanner("🎁 NO BOSS CHEST ON ARENA FLOOR!", "Defeat a Hooded Crimson Elite Reaper to Drop a Boss Evolution Chest!");
+        audio.playTone(190, 0.1, "sawtooth", 0.05);
+      }
+    });
+    document.getElementById("btnNewRun")?.addEventListener("click", startFreshLevel1Run);
+
+    document.getElementById("btnDashCancel").addEventListener("click", () => {
+      state.dashTimer = 0.35;
+      audio.playTone(620, 0.09, "triangle", 0.05, 920);
+      triggerBanner("💨 DARKSTALKERS DASH-CANCEL!", "Invulnerability Frames Active + Speed Burst");
+    });
+
+    document.getElementById("btnGrimoire").addEventListener("click", () => {
+      document.getElementById("grimoireModal").classList.toggle("open");
+    });
+    document.getElementById("btnCloseGrimoire").addEventListener("click", () => {
+      document.getElementById("grimoireModal").classList.remove("open");
+    });
+
+    document.getElementById("btnAudio").addEventListener("click", (e) => {
+      audio.enabled = !audio.enabled;
+      if (audio.enabled) {
+        audio.init();
+        audio.startBgm();
+      }
+      e.currentTarget.textContent = audio.enabled ? "🔊 BGM: ON [M]" : "🔇 BGM: OFF [M]";
+    });
+
+    document.getElementById("btnRerollDraft").addEventListener("click", () => {
+      if (state.rerolls > 0) state.rerolls--;
+      document.getElementById("btnRerollDraft").textContent = `🎲 REROLL [R] (${state.rerolls})`;
+      rollDraftChoices();
+      audio.sfxGem(2);
+    });
+
+    document.getElementById("btnBanishDraft").addEventListener("click", () => {
+      if (state.banishes > 0) state.banishes--;
+      document.getElementById("btnBanishDraft").textContent = `⏭️ BANISH [X] (${state.banishes})`;
+      rollDraftChoices();
+      audio.sfxGem(1);
+    });
+
+    document.getElementById("btnEvolveAll").addEventListener("click", () => {
+      state.gameOver = false;
+      state.hero.hp = state.hero.maxHp;
+      state.weapons = [
+        { id: "bible", level: 8, evolved: true, dmgDealt: 148200 },
+        { id: "garlic", level: 8, evolved: true, dmgDealt: 96400 },
+        { id: "lightning", level: 8, evolved: true, dmgDealt: 182900 },
+        { id: "whip", level: 8, evolved: true, dmgDealt: 134500 },
+        { id: "water", level: 8, evolved: true, dmgDealt: 112000 },
+        { id: "axe", level: 8, evolved: true, dmgDealt: 98400 },
+      ];
+      state.passives = PASSIVE_CATALOG.map((p) => ({ id: p.id, level: p.maxLv }));
+      audio.sfxChestJackpot();
+      triggerBanner("👑 SANDBOX: ALL 6 WEAPONS EVOLVED TO MAX!", "Unholy Vespers + Soul Eater + Thunder Loop + Bloody Tear + La Borra + Death Spiral");
+      renderEquipmentHud();
+    });
+
+    document.getElementById("btnMagnetAll").addEventListener("click", () => {
+      state.gems.forEach((g) => {
+        g.x = state.hero.x + (Math.random() - 0.5) * 18;
+        g.y = state.hero.y + (Math.random() - 0.5) * 18;
+      });
+      audio.sfxLevelUp();
+      triggerBanner("🧲 VACUUM ORB ACTIVATED!", "All Floor XP Gems Pulled to Night-Lord!");
+    });
+
+    document.getElementById("btnSpawnBoss").addEventListener("click", () => {
+      state.enemies.push({
+        x: state.hero.x + 170,
+        y: state.hero.y,
+        type: "reaper_mini",
+        hp: 650,
+        maxHp: 650,
+        radius: 25,
+        speed: 62,
+        elite: true,
+        hitFlash: 0.2,
+        phase: 0,
+      });
+      triggerBanner("💀 RED DEATH REAPER ENTERED THE ARENA!", "Defeat the Stalking Reaper for a Golden Evolution Chest!");
+      audio.sfxDarkForce();
+    });
+
+    document.getElementById("btnRosaryNuke").addEventListener("click", () => {
+      state.enemies.forEach((e) => {
+        damageEnemy(e, 999, "lightning", "#fde047");
+        state.lightningBolts.push({ x: e.x, y: e.y, life: 0.45, maxLife: 0.45 });
+      });
+      audio.sfxChestJackpot();
+      triggerBanner("✝️ SACRED ROSARY SCREEN NUKE!", "All Undead Eliminated Instantly!");
+    });
+
+    document.querySelectorAll(".arcana-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        card.classList.toggle("active");
+        audio.sfxLevelUp();
+      });
+    });
+
+    canvas.addEventListener("pointerdown", (e) => {
+      audio.init();
+      audio.startBgm();
+      if (state.gameOver) {
+        startFreshLevel1Run();
+        return;
+      }
+      const rect = canvas.getBoundingClientRect();
+      const cx = ((e.clientX - rect.left) / rect.width) * canvas.width;
+      const cy = ((e.clientY - rect.top) / rect.height) * canvas.height;
+
+      // Did player click directly on a Floor Chest? Collect & open immediately!
+      for (let i = state.chests.length - 1; i >= 0; i--) {
+        const c = state.chests[i];
+        if (Math.hypot(cx - c.x, cy - c.y) < 42) {
+          const picked = state.chests.splice(i, 1)[0];
+          openBossTreasureChest(picked);
+          return;
+        }
+      }
+      // Did player click directly on a Floor Pickup?
+      for (let i = state.pickups.length - 1; i >= 0; i--) {
+        const pk = state.pickups[i];
+        if (Math.hypot(cx - pk.x, cy - pk.y) < 36) {
+          pk.x = state.hero.x;
+          pk.y = state.hero.y;
+          return;
+        }
+      }
+
+      state.mouseTarget = { x: cx, y: cy };
+    });
+    canvas.addEventListener("pointermove", (e) => {
+      if (e.buttons > 0) {
+        const rect = canvas.getBoundingClientRect();
+        state.mouseTarget = {
+          x: ((e.clientX - rect.left) / rect.width) * canvas.width,
+          y: ((e.clientY - rect.top) / rect.height) * canvas.height,
+        };
+      }
+    });
+    window.addEventListener("pointerup", () => {
+      state.mouseTarget = null;
+    });
+
+    const MODE_KEYS = [
+      "mad_forest",
+      "inlaid_library",
+      "gallo_tower",
+      "vampire_savior_duel",
+      "hyper_hurry",
+      "arcana_sandbox",
+      "reaper_boss_rush",
+      "auto_ai_tester",
+    ];
+
+    window.addEventListener("keydown", (e) => {
+      state.keys[e.code] = true;
+      if (e.code === "Space" || e.code === "KeyE") {
+        e.preventDefault();
+        triggerDarkForceOverdrive();
+      } else if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
+        state.dashTimer = 0.35;
+      } else if (e.code === "KeyC") {
+        openBossTreasureChest(state.chests.shift() || null);
+      } else if (e.code === "KeyN") {
+        startFreshLevel1Run();
+      } else if (e.code === "KeyV") {
+        document.getElementById("grimoireModal").classList.toggle("open");
+      } else if (e.code === "KeyR") {
+        document.getElementById("btnRerollDraft").click();
+      } else if (e.code === "KeyX" || e.code === "KeyB") {
+        document.getElementById("btnBanishDraft").click();
+      } else if (e.code.startsWith("Digit")) {
+        const num = Number(e.code.replace("Digit", ""));
+        if (e.altKey && num >= 1 && num <= 8) {
+          setGameMode(MODE_KEYS[num - 1]);
+        } else if (num >= 1 && num <= 3) {
+          selectDraftChoice(num - 1);
+        } else if (num >= 4 && num <= 8) {
+          setGameMode(MODE_KEYS[num - 1]);
+        }
+      } else if (e.code === "KeyM") {
+        document.getElementById("btnAudio").click();
+      }
+    });
+    window.addEventListener("keyup", (e) => {
+      state.keys[e.code] = false;
+    });
+
+    // Boot & Run 60fps Loop
+    seedMidRunSpectacle();
+    let lastTs = performance.now();
+    function loop(now) {
+      const dt = Math.min(0.05, (now - lastTs) / 1000);
+      lastTs = now;
+      stepSimulation(dt);
+      renderArena();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

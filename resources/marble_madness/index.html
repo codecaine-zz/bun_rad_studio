@@ -1,0 +1,2903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine CyberMarble Madness: Isometric Gravity Odyssey</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    :root {
+      --bg-void: #030613;
+      --bg-panel: rgba(8, 13, 28, 0.94);
+      --bg-card: rgba(13, 21, 42, 0.88);
+      --cyan: #00f5d4;
+      --blue: #38bdf8;
+      --gold: #facc15;
+      --magenta: #ec4899;
+      --crimson: #f43f5e;
+      --emerald: #22c55e;
+      --purple: #a855f7;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 25%, #111c3d 0%, #060a18 68%, #02040a 100%);
+      color: var(--text);
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* TOP HUD BAR */
+    header.hud-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 7px 14px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid rgba(0, 245, 212, 0.35);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.72);
+      z-index: 25;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 32% 30%, #00f5d4, #0284c7 55%, #ec4899 100%);
+      border: 1.5px solid #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 14px rgba(0, 245, 212, 0.55);
+    }
+
+    .brand-title h1 {
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffffff 0%, #00f5d4 48%, #facc15 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-title p {
+      font-size: 10.5px;
+      color: var(--muted);
+    }
+
+    .hud-controls {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .hud-select, .hud-btn {
+      background: rgba(15, 23, 42, 0.94);
+      color: var(--text);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 7px;
+      padding: 5px 9px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .hud-select:hover, .hud-btn:hover {
+      border-color: var(--cyan);
+      box-shadow: 0 0 10px rgba(0, 245, 212, 0.28);
+    }
+
+    .hud-btn.gold {
+      background: linear-gradient(135deg, #ca8a04, #eab308);
+      border-color: #fef08a;
+      color: #090d16;
+      font-weight: 900;
+    }
+
+    .hud-btn.cyan {
+      background: linear-gradient(135deg, #0284c7, #0d9488);
+      border-color: #5eead4;
+      color: #fff;
+    }
+
+    /* 8-MODE DOCK STRIP */
+    .mode-dock {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 5px;
+      padding: 5px 14px;
+      background: rgba(5, 9, 20, 0.96);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.25);
+      z-index: 20;
+    }
+
+    .mode-pill {
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 7px;
+      padding: 5px 6px;
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #cbd5e1;
+      text-align: center;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: all 0.15s ease;
+    }
+
+    .mode-pill:hover {
+      border-color: var(--blue);
+      color: #fff;
+    }
+
+    .mode-pill.active {
+      background: linear-gradient(135deg, rgba(0, 245, 212, 0.22), rgba(56, 189, 248, 0.18));
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 12px rgba(0, 245, 212, 0.25);
+    }
+
+    /* MAIN STAGE LAYOUT */
+    main.workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 270px 1fr 275px;
+      gap: 10px;
+      padding: 8px 14px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .side-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    .panel-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 11px;
+      padding: 10px 11px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    }
+
+    .panel-title {
+      font-size: 10.5px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--cyan);
+      margin-bottom: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* ARCADE TIMER & SCORE READOUT */
+    .clock-banner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .big-digit-box {
+      background: rgba(4, 8, 18, 0.92);
+      border: 1px solid rgba(0, 245, 212, 0.35);
+      border-radius: 8px;
+      padding: 6px 8px;
+      text-align: center;
+    }
+
+    .big-digit-box .lbl {
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .big-digit-box .val {
+      font-size: 21px;
+      font-weight: 900;
+      color: var(--gold);
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 10px rgba(250, 204, 21, 0.45);
+    }
+
+    .big-digit-box.danger .val {
+      color: var(--crimson);
+      text-shadow: 0 0 12px rgba(244, 63, 94, 0.7);
+    }
+
+    /* COURSE PROGRESS STEPS */
+    .race-ladder {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .race-step {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(7, 12, 24, 0.78);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .race-step:hover {
+      border-color: var(--blue);
+    }
+
+    .race-step.current {
+      border-color: var(--gold);
+      background: rgba(250, 204, 21, 0.14);
+      color: var(--gold);
+    }
+
+    .race-step.completed {
+      border-color: rgba(34, 197, 94, 0.45);
+      color: #86efac;
+    }
+
+    /* POWER-UP & BOOST METERS */
+    .meter-row {
+      margin-bottom: 7px;
+    }
+
+    .meter-hdr {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10.5px;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .meter-track {
+      height: 9px;
+      background: #050914;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      overflow: hidden;
+    }
+
+    .meter-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #00f5d4, #38bdf8, #ec4899);
+      transition: width 0.06s linear;
+    }
+
+    .powerup-slot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 9px;
+      border-radius: 8px;
+      background: rgba(6, 11, 24, 0.9);
+      border: 1px solid rgba(236, 72, 153, 0.45);
+      margin-top: 6px;
+    }
+
+    .powerup-name {
+      font-size: 11.5px;
+      font-weight: 800;
+      color: #f9a8d4;
+    }
+
+    /* CENTER ISOMETRIC CANVAS VIEWPORT */
+    .canvas-viewport {
+      position: relative;
+      background: radial-gradient(circle at 50% 35%, #111c3d 0%, #050814 72%, #020308 100%);
+      border: 1.5px solid rgba(0, 245, 212, 0.38);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.85), 0 10px 30px rgba(0, 0, 0, 0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas#marbleCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+
+    canvas#marbleCanvas:active {
+      cursor: grabbing;
+    }
+
+    .viewport-top-overlay {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .hud-chip {
+      background: rgba(5, 10, 22, 0.86);
+      border: 1px solid rgba(0, 245, 212, 0.36);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #e2e8f0;
+      backdrop-filter: blur(6px);
+    }
+
+    .hud-chip strong {
+      color: var(--gold);
+    }
+
+    .viewport-bottom-overlay {
+      position: absolute;
+      bottom: 10px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    /* CELEBRATION / STATUS BANNER */
+    .center-banner {
+      position: absolute;
+      top: 32%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.6);
+      opacity: 0;
+      pointer-events: none;
+      text-align: center;
+      padding: 14px 26px;
+      border-radius: 15px;
+      background: rgba(5, 9, 22, 0.94);
+      border: 2px solid var(--gold);
+      box-shadow: 0 0 40px rgba(250, 204, 21, 0.6);
+      transition: all 0.22s cubic-bezier(0.18, 1.3, 0.4, 1);
+      z-index: 30;
+    }
+
+    .center-banner.visible {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+
+    .center-banner .b-main {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #fef08a, #00f5d4, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .center-banner .b-sub {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-top: 3px;
+    }
+
+    /* BUBBLE LEVEL INCLINOMETER & TELEMETRY */
+    .inclinometer-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    canvas#tiltGaugeCanvas {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: #040814;
+      border: 1.5px solid rgba(56, 189, 248, 0.45);
+      flex-shrink: 0;
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+
+    .t-box {
+      background: rgba(6, 11, 23, 0.86);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 7px;
+      padding: 5px 7px;
+    }
+
+    .t-box .lbl {
+      font-size: 9.5px;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .t-box .val {
+      font-size: 12.5px;
+      font-weight: 900;
+      color: var(--text);
+      margin-top: 1px;
+    }
+
+    .feed-log {
+      font-size: 10.5px;
+      color: #cbd5e1;
+      line-height: 1.4;
+      max-height: 120px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .feed-item {
+      padding: 4px 7px;
+      border-radius: 5px;
+      background: rgba(7, 12, 24, 0.8);
+      border-left: 3px solid var(--cyan);
+    }
+
+    @media (max-width: 1120px) {
+      main.workspace {
+        grid-template-columns: 235px 1fr 235px;
+      }
+      .mode-dock {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- TOP HUD BAR -->
+  <header class="hud-bar">
+    <div class="brand">
+      <div class="brand-badge">🔮</div>
+      <div class="brand-title">
+        <h1>Codecaine CyberMarble Madness: Isometric Gravity Odyssey</h1>
+        <p>True 3D Isometric Heightmap • Slope Gradient Gravity • 8 Game Modes • Trackball &amp; Keyboard</p>
+      </div>
+    </div>
+
+    <div class="hud-controls">
+      <select id="modeSelect" class="hud-select" title="Select Game Mode (Keys 1-8)">
+        <option value="classic">1. 🏆 Classic 1984 6-Race Odyssey</option>
+        <option value="gemhunt">2. 💎 Marble Blast Gem Hunt</option>
+        <option value="procedural">3. 🏗️ Procedural Sky-Course Architect</option>
+        <option value="tilt">4. 📐 Tilt Labyrinth World (Board Tilt)</option>
+        <option value="sumo">5. 💥 Cyber Sumo Bumper Royale</option>
+        <option value="speedrun">6. ⏱️ Speedrun Time Trial + Ghost</option>
+        <option value="boss">7. 👁️ Boss Course: Obsidian Colossus</option>
+        <option value="versus">8. 👥 2-Player Dual-Marble Race</option>
+      </select>
+
+      <select id="marbleMaterialSelect" class="hud-select" title="Select Marble Chassis Physics">
+        <option value="glass">🔮 Cyber Glass (Balanced Grip &amp; Bounce)</option>
+        <option value="steel">⚙️ Heavy Chrome Steel (Smashes Hunters • Fall-Proof)</option>
+        <option value="rubber">🏀 Super-Rubber (+25% Jump • Shatter-Proof)</option>
+        <option value="plasma">❄️ Plasma Hover-Orb (Zero Friction • Max Speed)</option>
+      </select>
+
+      <select id="procDiffSelect" class="hud-select" title="Procedural Difficulty Tier">
+        <option value="novice">🟢 Tier: Novice</option>
+        <option value="tour" selected>🔵 Tier: Pro Tour</option>
+        <option value="expert">🟣 Tier: Expert Chasms</option>
+        <option value="insane">🔴 Tier: Insane Tightrope</option>
+      </select>
+
+      <button id="genCourseBtn" class="hud-btn cyan" title="Generate Fresh Procedural Sky-Course (G)">🎲 New Course [G]</button>
+      <button id="restartBtn" class="hud-btn gold" title="Restart Current Race (R)">🔄 Retry [R]</button>
+      <button id="audioBtn" class="hud-btn" title="Toggle Web Audio Synthesizer (M)">🔊 Synth: ON</button>
+    </div>
+  </header>
+
+  <!-- 8-MODE QUICK DOCK -->
+  <nav class="mode-dock" id="modeDock">
+    <button class="mode-pill active" data-mode="classic">[1] 🏆 6-Race Odyssey</button>
+    <button class="mode-pill" data-mode="gemhunt">[2] 💎 Gem Hunt</button>
+    <button class="mode-pill" data-mode="procedural">[3] 🏗️ Sky Architect</button>
+    <button class="mode-pill" data-mode="tilt">[4] 📐 Tilt Labyrinth</button>
+    <button class="mode-pill" data-mode="sumo">[5] 💥 Sumo Royale</button>
+    <button class="mode-pill" data-mode="speedrun">[6] ⏱️ Ghost Speedrun</button>
+    <button class="mode-pill" data-mode="boss">[7] 👁️ Obsidian Boss</button>
+    <button class="mode-pill" data-mode="versus">[8] 👥 2P Dual Race</button>
+  </nav>
+
+  <!-- MAIN 3-COLUMN WORKSPACE -->
+  <main class="workspace">
+    <!-- LEFT COLUMN: CLOCK, SCORE, 6-RACE ODYSSEY LADDER & POWER-UPS -->
+    <aside class="side-col">
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>⏱️ Race Clock &amp; Score</span>
+          <span id="stageBadgeLabel" style="color:var(--gold);">RACE 1 / 6</span>
+        </div>
+        <div class="clock-banner">
+          <div class="big-digit-box" id="timerBox">
+            <div class="lbl">TIME REMAINING</div>
+            <div class="val" id="clockValue">60.0s</div>
+          </div>
+          <div class="big-digit-box">
+            <div class="lbl">SCORE</div>
+            <div class="val" id="scoreValue" style="color:var(--cyan);">0</div>
+          </div>
+        </div>
+        <div class="meter-row">
+          <div class="meter-hdr">
+            <span>⚡ Turbo Overdrive Capacitor [Shift]</span>
+            <span id="boostPctLabel" style="color:var(--cyan);">100%</span>
+          </div>
+          <div class="meter-track">
+            <div class="meter-fill" id="boostBarFill" style="width:100%;"></div>
+          </div>
+        </div>
+        <div class="powerup-slot">
+          <div>
+            <div style="font-size:9.5px;color:var(--muted);font-weight:700;">EQUIPPED POWER-UP [E]</div>
+            <div class="powerup-name" id="powerupLabel">🚀 Super Jump Ready</div>
+          </div>
+          <button id="usePowerupBtn" class="hud-btn" style="padding:4px 8px;font-size:11px;">USE [E]</button>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>🗺️ 6-Race Odyssey Selector</span>
+          <span style="font-size:9.5px;color:var(--muted);">Click to Jump</span>
+        </div>
+        <div class="race-ladder" id="raceLadder"></div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>🕹️ Trackball &amp; Keyboard Controls</span>
+        </div>
+        <div style="font-size:10.5px;color:#cbd5e1;line-height:1.5;">
+          <div>• <strong>WASD / Arrows</strong>: Roll / Tilt Marble</div>
+          <div>• <strong>Mouse Drag on Canvas</strong>: Virtual Trackball</div>
+          <div>• <strong>[Space]</strong>: Gyro-Hop Jump Over Hazards</div>
+          <div>• <strong>[Shift]</strong>: Hold for Turbo Roll Boost</div>
+          <div>• <strong>[E]</strong>: Trigger Marble Blast Power-Up</div>
+          <div>• <strong>[G] / [R]</strong>: New Procedural Map / Retry</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER COLUMN: 3D ISOMETRIC HEIGHTMAP CANVAS -->
+    <section class="canvas-viewport">
+      <canvas id="marbleCanvas" width="960" height="720"></canvas>
+
+      <div class="viewport-top-overlay">
+        <div class="hud-chip" id="courseTitleChip">
+          🏁 <strong>Race 1: Practice Race</strong> • Follow the Isometric Chutes to the Goal Pad!
+        </div>
+        <div class="hud-chip" id="objectiveChip">
+          💎 Gems: <strong id="gemsCounter">0 / 5</strong> • Hazards: <strong id="hazardCounter">Active</strong>
+        </div>
+      </div>
+
+      <div class="viewport-bottom-overlay">
+        <div class="hud-chip" id="surfaceReadoutChip">
+          📐 Surface: <strong>Normal Grid</strong> • Elevation: <strong>14.0m</strong>
+        </div>
+        <div class="hud-chip" id="speedReadoutChip">
+          🔮 Velocity: <strong>0.0 m/s</strong> • Chassis: <strong>Cyber Glass</strong>
+        </div>
+      </div>
+
+      <div id="centerBanner" class="center-banner">
+        <div class="b-main" id="bannerMainText">RACE COMPLETE!</div>
+        <div class="b-sub" id="bannerSubText">+10,000 Time Bonus • Advancing to Next Race!</div>
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN: INCLINOMETER, SLOPE TELEMETRY & PLAY-BY-PLAY -->
+    <aside class="side-col">
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>📐 Gravity &amp; Tilt Inclinometer</span>
+          <span id="gravityModeBadge" style="color:var(--gold);">1.0G Downhill</span>
+        </div>
+        <div class="inclinometer-wrap">
+          <canvas id="tiltGaugeCanvas" width="76" height="76"></canvas>
+          <div style="flex:1;display:flex;flex-direction:column;gap:4px;font-size:11px;">
+            <div>Pitch X: <strong id="pitchDegVal" style="color:var(--cyan);">0.0°</strong></div>
+            <div>Roll Y: <strong id="rollDegVal" style="color:var(--cyan);">0.0°</strong></div>
+            <div>Airborne: <strong id="airHeightVal" style="color:var(--gold);">0.0m</strong></div>
+            <div style="font-size:9.5px;color:var(--muted);">Shows slope pull &amp; board tilt vector</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>📊 Telemetry &amp; Career Records</span>
+          <span id="careerTitleBadge" style="color:var(--cyan);">Marble Master</span>
+        </div>
+        <div class="telemetry-grid">
+          <div class="t-box">
+            <div class="lbl">High Score</div>
+            <div class="val" id="statHighScore" style="color:var(--gold);">0</div>
+          </div>
+          <div class="t-box">
+            <div class="lbl">Races Cleared</div>
+            <div class="val" id="statRacesWon">0</div>
+          </div>
+          <div class="t-box">
+            <div class="lbl">Gems Collected</div>
+            <div class="val" id="statTotalGems">0</div>
+          </div>
+          <div class="t-box">
+            <div class="lbl">Best Race 1</div>
+            <div class="val" id="statBestTime">--</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-card" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+        <div class="panel-title">
+          <span>🎙️ Arcade Telemetry Log</span>
+          <span style="font-size:9.5px;color:var(--muted);">Live Events</span>
+        </div>
+        <div class="feed-log" id="eventFeed"></div>
+      </div>
+    </aside>
+  </main>
+  <script>
+    "use strict";
+
+    /* ============================================================================
+     * 1. PROCEDURAL WEB AUDIO SYNTHESIZER (MarbleAudio)
+     * ============================================================================ */
+    class MarbleAudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume().catch(() => {});
+        }
+      }
+
+      toggleMute() {
+        this.muted = !this.muted;
+        return this.muted;
+      }
+
+      playTone(freq, dur = 0.14, type = "sine", vol = 0.14, slideTo = null) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        if (slideTo) {
+          osc.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), now + dur);
+        }
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.0008, now + dur);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + dur + 0.02);
+      }
+
+      playJump() {
+        this.playTone(260, 0.18, "sine", 0.16, 620);
+      }
+
+      playSpringPad() {
+        this.playTone(190, 0.28, "triangle", 0.2, 880);
+      }
+
+      playGemPickup(combo = 1) {
+        const base = 587.33 * Math.pow(1.06, Math.min(12, combo));
+        this.playTone(base, 0.12, "triangle", 0.15, base * 1.25);
+        setTimeout(() => this.playTone(base * 1.5, 0.16, "sine", 0.13), 55);
+      }
+
+      playBumperHit() {
+        this.playTone(150, 0.15, "sawtooth", 0.18, 55);
+      }
+
+      playShatter() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const freqs = [920, 1340, 1780, 640, 410];
+        freqs.forEach((f, idx) => {
+          setTimeout(() => {
+            this.playTone(f, 0.11, "sawtooth", 0.11, f * 0.55);
+          }, idx * 28);
+        });
+      }
+
+      playAbyssFall() {
+        this.playTone(480, 0.42, "sine", 0.16, 65);
+      }
+
+      playGoalFanfare() {
+        const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+        notes.forEach((n, idx) => {
+          setTimeout(() => this.playTone(n, 0.22, "triangle", 0.15), idx * 70);
+        });
+      }
+    }
+
+    const MarbleAudio = new MarbleAudioEngine();
+
+    /* ============================================================================
+     * 2. MARBLE PHYSICS CHASSIS & 6 CLASSIC ODYSSEY COURSE DEFINITIONS
+     * ============================================================================ */
+    const MARBLE_CHASSIS = {
+      glass: {
+        id: "glass",
+        name: "Cyber Glass",
+        mass: 1.0,
+        accel: 16.5,
+        friction: 2.35,
+        restitution: 0.62,
+        jumpImpulse: 8.6,
+        shatterHeight: 6.2,
+        primary: "#00f5d4",
+        secondary: "#0284c7",
+        stripe: "#facc15",
+      },
+      steel: {
+        id: "steel",
+        name: "Heavy Chrome Steel",
+        mass: 1.85,
+        accel: 14.5,
+        friction: 2.6,
+        restitution: 0.38,
+        jumpImpulse: 7.4,
+        shatterHeight: 14.0,
+        primary: "#e2e8f0",
+        secondary: "#475569",
+        stripe: "#38bdf8",
+      },
+      rubber: {
+        id: "rubber",
+        name: "Super-Rubber",
+        mass: 0.85,
+        accel: 17.2,
+        friction: 2.8,
+        restitution: 0.88,
+        jumpImpulse: 10.8,
+        shatterHeight: 99.0,
+        primary: "#f43f5e",
+        secondary: "#9f1239",
+        stripe: "#fef08a",
+      },
+      plasma: {
+        id: "plasma",
+        name: "Plasma Hover-Orb",
+        mass: 0.78,
+        accel: 19.5,
+        friction: 1.25,
+        restitution: 0.72,
+        jumpImpulse: 9.2,
+        shatterHeight: 9.5,
+        primary: "#c084fc",
+        secondary: "#581c87",
+        stripe: "#00f5d4",
+      },
+    };
+
+    const POWERUP_CATALOG = [
+      { id: "super_jump", label: "🚀 Super Jump (+14m Leap)" },
+      { id: "super_speed", label: "⚡ Overdrive Surge (5s)" },
+      { id: "gyrocopter", label: "🚁 Gyrocopter Air Glide (5s)" },
+      { id: "shockwave", label: "💥 Repulsor Shockwave Blast" },
+      { id: "time_freeze", label: "⏳ Chronos +6s Clock Bonus" },
+    ];
+
+    const CLASSIC_RACES = [
+      {
+        index: 0,
+        name: "Race 1: Practice Race",
+        subtitle: "Wide Isometric Chutes & Gentle Ramps",
+        timeBonus: 55,
+        powerup: "super_jump",
+      },
+      {
+        index: 1,
+        name: "Race 2: Beginner Race",
+        subtitle: "Black Steel Hunter Marbles & Acid Pools",
+        timeBonus: 50,
+        powerup: "shockwave",
+      },
+      {
+        index: 2,
+        name: "Race 3: Intermediate Race",
+        subtitle: "Tightrope Bridges & Thwomp Crushers",
+        timeBonus: 55,
+        powerup: "gyrocopter",
+      },
+      {
+        index: 3,
+        name: "Race 4: Aerial Race",
+        subtitle: "Springboard Catapults Across Sky Islands",
+        timeBonus: 55,
+        powerup: "super_jump",
+      },
+      {
+        index: 4,
+        name: "Race 5: Silly Race",
+        subtitle: "Reversed Uphill Gravity & Green Worms",
+        timeBonus: 60,
+        powerup: "super_speed",
+      },
+      {
+        index: 5,
+        name: "Race 6: Ultimate Race",
+        subtitle: "Undulating Sine-Wave Floor & Final Chasm",
+        timeBonus: 65,
+        powerup: "time_freeze",
+      },
+    ];
+
+    /* ============================================================================
+     * 3. 3D ISOMETRIC COURSE BUILDER (6 RACES + GEM HUNT + SUMO + BOSS + PROCEDURAL)
+     * ============================================================================ */
+    // Each course is stored as a Map of "tx,ty" -> Tile:
+    //   { tx, ty, z00, z10, z11, z01, baseZ00, baseZ10, baseZ11, baseZ01, type, dirX, dirY }
+    // Coordinate conventions:
+    //   tx increases Down-Right in isometric view
+    //   ty increases Down-Left in isometric view
+    //   z is vertical elevation (meters)
+    function createEmptyCourse() {
+      return {
+        tiles: new Map(),
+        start: { x: 2.5, y: 2.5 },
+        goal: { x: 11.5, y: 11.5 },
+        gems: [],
+        hunters: [],
+        worms: [],
+        crushers: [],
+        bumpers: [],
+        boss: null,
+      };
+    }
+
+    function setTile(course, tx, ty, z00, z10, z11, z01, type = "normal", extra = {}) {
+      const key = `${tx},${ty}`;
+      course.tiles.set(key, {
+        tx,
+        ty,
+        z00,
+        z10,
+        z11,
+        z01,
+        baseZ00: z00,
+        baseZ10: z10,
+        baseZ11: z11,
+        baseZ01: z01,
+        type,
+        dirX: extra.dirX || 0,
+        dirY: extra.dirY || 0,
+        phase: extra.phase || 0,
+      });
+    }
+
+    function fillFlatRect(course, x0, y0, x1, y1, z, type = "normal", extra = {}) {
+      for (let tx = x0; tx <= x1; tx++) {
+        for (let ty = y0; ty <= y1; ty++) {
+          setTile(course, tx, ty, z, z, z, z, type, extra);
+        }
+      }
+    }
+
+    // Ramp sloping along +X (from zStart at x0 to zEnd at x1+1)
+    function fillRampX(course, x0, y0, x1, y1, zStart, zEnd, type = "ramp") {
+      const span = Math.max(1, x1 - x0 + 1);
+      const dirX = zEnd < zStart ? 1 : -1;
+      for (let tx = x0; tx <= x1; tx++) {
+        const t0 = (tx - x0) / span;
+        const t1 = (tx + 1 - x0) / span;
+        const za = zStart + (zEnd - zStart) * t0;
+        const zb = zStart + (zEnd - zStart) * t1;
+        for (let ty = y0; ty <= y1; ty++) {
+          setTile(course, tx, ty, za, zb, zb, za, type, { dirX, dirY: 0 });
+        }
+      }
+    }
+
+    // Ramp sloping along +Y (from zStart at y0 to zEnd at y1+1)
+    function fillRampY(course, x0, y0, x1, y1, zStart, zEnd, type = "ramp") {
+      const span = Math.max(1, y1 - y0 + 1);
+      const dirY = zEnd < zStart ? 1 : -1;
+      for (let ty = y0; ty <= y1; ty++) {
+        const t0 = (ty - y0) / span;
+        const t1 = (ty + 1 - y0) / span;
+        const za = zStart + (zEnd - zStart) * t0;
+        const zb = zStart + (zEnd - zStart) * t1;
+        for (let tx = x0; tx <= x1; tx++) {
+          setTile(course, tx, ty, za, za, zb, zb, type, { dirX: 0, dirY });
+        }
+      }
+    }
+
+    function buildClassicCourse(raceIdx) {
+      const c = createEmptyCourse();
+
+      if (raceIdx === 0) {
+        // RACE 1: PRACTICE RACE — Iconic tiered plateau -> dual chute ramp -> ice turn -> final chute to Goal Pad
+        fillFlatRect(c, 1, 1, 4, 4, 14.0, "normal");
+        setTile(c, 2, 2, 14.0, 14.0, 14.0, 14.0, "start");
+        c.start = { x: 2.5, y: 2.5 };
+
+        // Downhill ramp along +X (x=5..8, y=1..4) from 14m down to 10m
+        fillRampX(c, 5, 1, 8, 4, 14.0, 10.0, "ramp");
+
+        // Mid landing terrace (x=9..12, y=1..5) at 10m with ice slick corner
+        fillFlatRect(c, 9, 1, 12, 5, 10.0, "normal");
+        fillFlatRect(c, 10, 2, 11, 3, 10.0, "ice");
+
+        // Downhill ramp along +Y (x=9..12, y=6..9) from 10m down to 6m
+        fillRampY(c, 9, 6, 12, 9, 10.0, 6.0, "ramp");
+
+        // Lower wide plaza (x=5..13, y=10..13) at 6m with springboard shortcut & Goal Pad
+        fillFlatRect(c, 5, 10, 13, 13, 6.0, "normal");
+        setTile(c, 9, 10, 6.0, 6.0, 6.0, 6.0, "spring");
+        setTile(c, 7, 12, 6.0, 6.0, 6.0, 6.0, "acid");
+        setTile(c, 12, 11, 6.0, 6.0, 6.0, 6.0, "goal");
+        c.goal = { x: 12.5, y: 11.5 };
+
+        // Floating Prism Gems along the optimal racing line
+        c.gems = [
+          { x: 4.5, y: 2.5, collected: false },
+          { x: 7.0, y: 2.5, collected: false },
+          { x: 10.5, y: 3.0, collected: false },
+          { x: 10.5, y: 7.5, collected: false },
+          { x: 10.5, y: 11.5, collected: false },
+        ];
+
+        // 1 Black Steel Hunter Marble patrolling the mid terrace
+        c.hunters = [
+          { x: 10.5, y: 4.2, vx: 0, vy: 0, homeX: 10.5, homeY: 4.2, radius: 0.36 },
+        ];
+        c.bumpers = [
+          { x: 8.5, y: 11.5, radius: 0.42 },
+        ];
+      } else if (raceIdx === 1) {
+        // RACE 2: BEGINNER RACE — Twin Hunter Alley & Acid Puddles
+        fillFlatRect(c, 1, 1, 4, 4, 15.0, "normal");
+        setTile(c, 2, 2, 15.0, 15.0, 15.0, 15.0, "start");
+        c.start = { x: 2.5, y: 2.5 };
+
+        fillRampY(c, 1, 5, 4, 8, 15.0, 11.0, "ramp");
+        fillFlatRect(c, 1, 9, 9, 12, 11.0, "normal");
+        setTile(c, 4, 10, 11.0, 11.0, 11.0, 11.0, "acid");
+        setTile(c, 6, 11, 11.0, 11.0, 11.0, 11.0, "acid");
+
+        fillRampX(c, 10, 9, 13, 12, 11.0, 7.0, "ramp");
+        fillFlatRect(c, 11, 3, 15, 12, 7.0, "normal");
+        setTile(c, 13, 8, 7.0, 7.0, 7.0, 7.0, "conveyor", { dirX: 0, dirY: -1 });
+        setTile(c, 13, 7, 7.0, 7.0, 7.0, 7.0, "conveyor", { dirX: 0, dirY: -1 });
+        setTile(c, 13, 4, 7.0, 7.0, 7.0, 7.0, "goal");
+        c.goal = { x: 13.5, y: 4.5 };
+
+        c.gems = [
+          { x: 2.5, y: 6.5, collected: false },
+          { x: 5.5, y: 10.5, collected: false },
+          { x: 8.5, y: 10.5, collected: false },
+          { x: 13.5, y: 10.5, collected: false },
+          { x: 13.5, y: 6.5, collected: false },
+        ];
+        c.hunters = [
+          { x: 5.5, y: 10.5, vx: 0, vy: 0, homeX: 5.5, homeY: 10.5, radius: 0.36 },
+          { x: 13.2, y: 8.5, vx: 0, vy: 0, homeX: 13.2, homeY: 8.5, radius: 0.36 },
+        ];
+      } else if (raceIdx === 2) {
+        // RACE 3: INTERMEDIATE RACE — Narrow Tightrope Catwalks & Thwomp Piston Crushers
+        fillFlatRect(c, 1, 1, 4, 4, 16.0, "normal");
+        setTile(c, 2, 2, 16.0, 16.0, 16.0, 16.0, "start");
+        c.start = { x: 2.5, y: 2.5 };
+
+        // Narrow 2-tile tightrope bridge along +X
+        fillRampX(c, 5, 2, 9, 3, 16.0, 12.0, "ramp");
+        fillFlatRect(c, 10, 1, 13, 5, 12.0, "normal");
+
+        // Narrow catwalk along +Y
+        fillFlatRect(c, 11, 6, 12, 10, 12.0, "ice");
+        fillRampY(c, 10, 11, 13, 13, 12.0, 8.0, "ramp");
+
+        fillFlatRect(c, 4, 11, 13, 14, 8.0, "normal");
+        setTile(c, 5, 12, 8.0, 8.0, 8.0, 8.0, "goal");
+        c.goal = { x: 5.5, y: 12.5 };
+
+        c.crushers = [
+          { x: 7.5, y: 2.8, z: 14.0, phase: 0.0 },
+          { x: 9.0, y: 12.5, z: 8.0, phase: 1.8 },
+        ];
+        c.gems = [
+          { x: 6.5, y: 2.8, collected: false },
+          { x: 11.5, y: 3.0, collected: false },
+          { x: 11.8, y: 8.0, collected: false },
+          { x: 11.5, y: 12.5, collected: false },
+          { x: 7.5, y: 12.5, collected: false },
+        ];
+        c.hunters = [
+          { x: 11.5, y: 3.5, vx: 0, vy: 0, homeX: 11.5, homeY: 3.5, radius: 0.36 },
+        ];
+      } else if (raceIdx === 3) {
+        // RACE 4: AERIAL RACE — Springboard Catapults Across Floating Sky Islands
+        fillFlatRect(c, 1, 1, 4, 4, 15.0, "normal");
+        setTile(c, 2, 2, 15.0, 15.0, 15.0, 15.0, "start");
+        c.start = { x: 2.5, y: 2.5 };
+
+        fillRampX(c, 5, 2, 6, 3, 15.0, 13.0, "ramp");
+        setTile(c, 7, 2, 13.0, 13.0, 13.0, 13.0, "spring");
+        setTile(c, 7, 3, 13.0, 13.0, 13.0, 13.0, "spring");
+        // Bridge tile so players who don't jump still have a narrow rail option
+        fillFlatRect(c, 8, 2, 8, 3, 12.0, "ice");
+
+        // Sky Island 2 (x=9..13, y=1..5)
+        fillFlatRect(c, 9, 1, 13, 5, 12.0, "normal");
+        setTile(c, 11, 5, 12.0, 12.0, 12.0, 12.0, "spring");
+        fillFlatRect(c, 11, 6, 11, 6, 10.0, "ice");
+
+        // Sky Island 3 (x=9..13, y=7..12)
+        fillFlatRect(c, 9, 7, 13, 12, 9.0, "normal");
+        setTile(c, 11, 10, 9.0, 9.0, 9.0, 9.0, "goal");
+        c.goal = { x: 11.5, y: 10.5 };
+
+        c.gems = [
+          { x: 6.5, y: 2.8, collected: false },
+          { x: 8.5, y: 2.8, collected: false },
+          { x: 11.5, y: 3.0, collected: false },
+          { x: 11.5, y: 6.5, collected: false },
+          { x: 11.5, y: 9.0, collected: false },
+        ];
+        c.hunters = [
+          { x: 11.5, y: 8.5, vx: 0, vy: 0, homeX: 11.5, homeY: 8.5, radius: 0.36 },
+        ];
+      } else if (raceIdx === 4) {
+        // RACE 5: SILLY RACE — Uphill Reversed-Gravity Ramps & Green Marble-Muncher Worms
+        fillFlatRect(c, 1, 1, 4, 4, 6.0, "normal");
+        setTile(c, 2, 2, 6.0, 6.0, 6.0, 6.0, "start");
+        c.start = { x: 2.5, y: 2.5 };
+
+        // Uphill reversed-gravity ramp from 6m UP to 12m!
+        fillRampX(c, 5, 1, 8, 4, 6.0, 12.0, "reverse_ramp");
+        fillFlatRect(c, 9, 1, 13, 5, 12.0, "normal");
+
+        // Second reversed-gravity ramp along +Y from 12m UP to 16m!
+        fillRampY(c, 9, 6, 13, 9, 12.0, 16.0, "reverse_ramp");
+        fillFlatRect(c, 7, 10, 13, 13, 16.0, "normal");
+        setTile(c, 8, 11, 16.0, 16.0, 16.0, 16.0, "goal");
+        c.goal = { x: 8.5, y: 11.5 };
+
+        c.worms = [
+          { x: 11.0, y: 3.2, dir: 1, range: 1.5, baseX: 11.0 },
+          { x: 10.5, y: 11.5, dir: -1, range: 1.5, baseX: 10.5 },
+        ];
+        c.gems = [
+          { x: 6.5, y: 2.5, collected: false },
+          { x: 11.0, y: 2.5, collected: false },
+          { x: 11.0, y: 7.5, collected: false },
+          { x: 11.0, y: 11.5, collected: false },
+          { x: 9.5, y: 11.5, collected: false },
+        ];
+      } else {
+        // RACE 6: ULTIMATE RACE — Undulating Sine-Wave Floor Tiles, Moving Elevators & Hunters
+        fillFlatRect(c, 1, 1, 4, 4, 16.0, "normal");
+        setTile(c, 2, 2, 16.0, 16.0, 16.0, 16.0, "start");
+        c.start = { x: 2.5, y: 2.5 };
+
+        // Undulating wave bridge along +X (x=5..10, y=1..4)
+        for (let tx = 5; tx <= 10; tx++) {
+          for (let ty = 1; ty <= 4; ty++) {
+            setTile(c, tx, ty, 15.0, 15.0, 15.0, 15.0, "wave", { phase: tx * 0.7 + ty * 0.4 });
+          }
+        }
+
+        fillFlatRect(c, 11, 1, 14, 5, 14.0, "normal");
+        fillRampY(c, 11, 6, 14, 9, 14.0, 9.0, "ramp");
+
+        fillFlatRect(c, 6, 10, 14, 13, 9.0, "normal");
+        setTile(c, 9, 11, 9.0, 9.0, 9.0, 9.0, "acid");
+        setTile(c, 11, 12, 9.0, 9.0, 9.0, 9.0, "spring");
+        setTile(c, 7, 11, 9.0, 9.0, 9.0, 9.0, "goal");
+        c.goal = { x: 7.5, y: 11.5 };
+
+        c.hunters = [
+          { x: 12.5, y: 3.2, vx: 0, vy: 0, homeX: 12.5, homeY: 3.2, radius: 0.36 },
+          { x: 10.5, y: 11.5, vx: 0, vy: 0, homeX: 10.5, homeY: 11.5, radius: 0.36 },
+        ];
+        c.crushers = [
+          { x: 12.5, y: 7.5, z: 11.5, phase: 0.5 },
+        ];
+        c.gems = [
+          { x: 6.5, y: 2.5, collected: false },
+          { x: 9.5, y: 2.5, collected: false },
+          { x: 12.5, y: 3.0, collected: false },
+          { x: 12.5, y: 8.0, collected: false },
+          { x: 9.0, y: 12.5, collected: false },
+        ];
+      }
+
+      return c;
+    }
+
+    // Mode 5: Cyber Sumo Bumper Royale Arena
+    function buildSumoArena() {
+      const c = createEmptyCourse();
+      for (let tx = 2; tx <= 12; tx++) {
+        for (let ty = 2; ty <= 12; ty++) {
+          const dist = Math.hypot(tx - 7, ty - 7);
+          if (dist <= 5.4) {
+            const rimIce = dist > 4.3;
+            setTile(c, tx, ty, 12.0, 12.0, 12.0, 12.0, rimIce ? "ice" : "normal");
+          }
+        }
+      }
+      setTile(c, 7, 7, 12.0, 12.0, 12.0, 12.0, "spring");
+      c.start = { x: 7.0, y: 9.5 };
+      c.goal = { x: 7.0, y: 7.0 };
+
+      c.bumpers = [
+        { x: 5.2, y: 5.2, radius: 0.48 },
+        { x: 9.2, y: 5.2, radius: 0.48 },
+        { x: 5.2, y: 9.2, radius: 0.48 },
+        { x: 9.2, y: 9.2, radius: 0.48 },
+      ];
+      c.hunters = [
+        { x: 5.0, y: 6.5, vx: 0, vy: 0, homeX: 5.0, homeY: 6.5, radius: 0.38 },
+        { x: 9.0, y: 6.5, vx: 0, vy: 0, homeX: 9.0, homeY: 6.5, radius: 0.38 },
+        { x: 7.0, y: 4.8, vx: 0, vy: 0, homeX: 7.0, homeY: 4.8, radius: 0.38 },
+        { x: 7.0, y: 8.2, vx: 0, vy: 0, homeX: 7.0, homeY: 8.2, radius: 0.38 },
+      ];
+      c.gems = [
+        { x: 7.0, y: 5.5, collected: false },
+        { x: 5.5, y: 7.0, collected: false },
+        { x: 8.5, y: 7.0, collected: false },
+        { x: 7.0, y: 8.8, collected: false },
+      ];
+      return c;
+    }
+
+    // Mode 7: Boss Course — The Obsidian Colossus
+    function buildBossArena() {
+      const c = createEmptyCourse();
+      fillFlatRect(c, 1, 8, 5, 12, 8.0, "normal");
+      setTile(c, 2, 10, 8.0, 8.0, 8.0, 8.0, "start");
+      c.start = { x: 2.5, y: 10.5 };
+
+      // Ascending spiral ramp up to the Obsidian Fortress citadel
+      fillRampX(c, 6, 9, 9, 12, 8.0, 12.0, "reverse_ramp");
+      fillFlatRect(c, 10, 2, 14, 12, 12.0, "normal");
+      fillFlatRect(c, 4, 2, 9, 6, 12.0, "normal");
+      setTile(c, 6, 4, 12.0, 12.0, 12.0, 12.0, "goal");
+      c.goal = { x: 6.5, y: 4.5 };
+
+      c.boss = {
+        x: 9.5,
+        y: 4.5,
+        z: 12.0,
+        hp: 3,
+        maxHp: 3,
+        shockRadius: 0,
+        shockTimer: 0,
+      };
+      c.gems = [
+        { x: 11.5, y: 9.5, collected: false, isBossNode: true },
+        { x: 11.5, y: 4.5, collected: false, isBossNode: true },
+        { x: 6.5, y: 4.5, collected: false, isBossNode: true },
+      ];
+      c.hunters = [
+        { x: 11.5, y: 7.0, vx: 0, vy: 0, homeX: 11.5, homeY: 7.0, radius: 0.38 },
+      ];
+      return c;
+    }
+
+    // Mode 3: Endless Procedural Sky-Course Architect
+    function buildProceduralCourse(diffKey = "tour") {
+      const c = createEmptyCourse();
+      const widthMap = { novice: 4, tour: 3, expert: 2, insane: 1 };
+      const halfW = widthMap[diffKey] || 3;
+
+      let curX = 2;
+      let curY = 2;
+      let curZ = 15.0;
+
+      fillFlatRect(c, curX - 1, curY - 1, curX + 2, curY + 2, curZ, "normal");
+      setTile(c, curX, curY, curZ, curZ, curZ, curZ, "start");
+      c.start = { x: curX + 0.5, y: curY + 0.5 };
+
+      const segments = 4;
+      for (let s = 0; s < segments; s++) {
+        const alongX = s % 2 === 0;
+        const len = 3 + Math.floor(Math.random() * 2);
+        const dropZ = Math.max(4.0, curZ - 2.5);
+
+        if (alongX) {
+          fillRampX(c, curX + 3, curY, curX + 2 + len, curY + Math.max(1, halfW - 1), curZ, dropZ, "ramp");
+          curX += 3 + len;
+          curZ = dropZ;
+          fillFlatRect(c, curX, curY, curX + 2, curY + 2, curZ, "normal");
+        } else {
+          fillRampY(c, curX, curY + 3, curX + Math.max(1, halfW - 1), curY + 2 + len, curZ, dropZ, "ramp");
+          curY += 3 + len;
+          curZ = dropZ;
+          fillFlatRect(c, curX, curY, curX + 2, curY + 2, curZ, "normal");
+        }
+
+        c.gems.push({ x: curX + 1.0, y: curY + 1.0, collected: false });
+        if (s === 1) {
+          c.hunters.push({
+            x: curX + 1.2,
+            y: curY + 1.2,
+            vx: 0,
+            vy: 0,
+            homeX: curX + 1.2,
+            homeY: curY + 1.2,
+            radius: 0.36,
+          });
+        }
+      }
+
+      setTile(c, curX + 1, curY + 1, curZ, curZ, curZ, curZ, "goal");
+      c.goal = { x: curX + 1.5, y: curY + 1.5 };
+      return c;
+    }
+
+    /* ============================================================================
+     * 4. BILINEAR HEIGHTMAP SAMPLER & GRADIENT ENGINE
+     * ============================================================================ */
+    function sampleSurface(course, wx, wy, elapsedTime) {
+      const tx = Math.floor(wx);
+      const ty = Math.floor(wy);
+      const tile = course.tiles.get(`${tx},${ty}`);
+      if (!tile) {
+        return { valid: false, z: -20, dzdx: 0, dzdy: 0, tile: null };
+      }
+
+      const u = Math.max(0, Math.min(1, wx - tx));
+      const v = Math.max(0, Math.min(1, wy - ty));
+
+      const z00 = tile.z00;
+      const z10 = tile.z10;
+      const z11 = tile.z11;
+      const z01 = tile.z01;
+
+      const zTop = z00 * (1 - u) + z10 * u;
+      const zBot = z01 * (1 - u) + z11 * u;
+      const z = zTop * (1 - v) + zBot * v;
+
+      // Exact bilinear partial derivatives (dz/dx and dz/dy)
+      const dzdx = (z10 - z00) * (1 - v) + (z11 - z01) * v;
+      const dzdy = (z01 - z00) * (1 - u) + (z11 - z10) * u;
+
+      return { valid: true, z, dzdx, dzdy, tile };
+    }
+
+    /* ============================================================================
+     * 5. GAME STATE, GHOST REPLAY & PERSISTENT CAREER STORAGE
+     * ============================================================================ */
+    const STORAGE_KEY = "codecaine_marble_madness_career_v1";
+    function loadCareer() {
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const p = JSON.parse(raw);
+          return {
+            highScore: Number(p.highScore) || 0,
+            racesWon: Number(p.racesWon) || 0,
+            totalGems: Number(p.totalGems) || 0,
+            bestRace1Time: p.bestRace1Time ? Number(p.bestRace1Time) : null,
+          };
+        }
+      } catch (_) {}
+      return { highScore: 0, racesWon: 0, totalGems: 0, bestRace1Time: null };
+    }
+
+    function saveCareer() {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state.career));
+      } catch (_) {}
+    }
+
+    const canvas = document.getElementById("marbleCanvas");
+    const ctx = canvas.getContext("2d");
+    const tiltCanvas = document.getElementById("tiltGaugeCanvas");
+    const tiltCtx = tiltCanvas.getContext("2d");
+
+    const state = {
+      mode: "classic", // classic | gemhunt | procedural | tilt | sumo | speedrun | boss | versus
+      material: "glass",
+      procDiff: "tour",
+      currentRaceIdx: 0,
+      completedRaces: new Set(),
+
+      timeRemaining: 55.0,
+      elapsedStageTime: 0,
+      score: 0,
+      boostEnergy: 100,
+      equippedPowerup: "super_jump",
+      gyroTimer: 0,
+      speedBoostTimer: 0,
+
+      worldTiltX: 0, // degrees (-16..+16)
+      worldTiltY: 0,
+
+      course: null,
+      player: {
+        x: 2.5,
+        y: 2.5,
+        z: 14.0,
+        vx: 0,
+        vy: 0,
+        vz: 0,
+        radius: 0.34,
+        groundZ: 14.0,
+        airborne: false,
+        peakAirZ: 14.0,
+        safeX: 2.5,
+        safeY: 2.5,
+        safeZ: 14.0,
+        respawnTimer: 0,
+        dizzyTimer: 0,
+        rotX: 0,
+        rotY: 0,
+        trail: [],
+      },
+
+      // Player 2 / Rival Marble for Mode 8 (2P Dual Race)
+      player2: {
+        active: false,
+        x: 3.2,
+        y: 2.5,
+        z: 14.0,
+        vx: 0,
+        vy: 0,
+        vz: 0,
+        radius: 0.34,
+        groundZ: 14.0,
+        rotX: 0,
+        rotY: 0,
+      },
+
+      // Ghost replay samples for Mode 6 (Speedrun)
+      ghostSamples: [],
+      bestGhostRun: [],
+
+      camera: { x: 7.0, y: 6.5, z: 10.0 },
+      particles: [],
+      shockwaves: [],
+
+      keys: new Set(),
+      trackball: { active: false, lastX: 0, lastY: 0, vx: 0, vy: 0 },
+      career: loadCareer(),
+    };
+
+    function addEventFeed(html, borderColor = "#00f5d4") {
+      const el = document.getElementById("eventFeed");
+      if (!el) return;
+      const item = document.createElement("div");
+      item.className = "feed-item";
+      item.style.borderLeftColor = borderColor;
+      item.innerHTML = html;
+      el.prepend(item);
+      while (el.children.length > 16) el.removeChild(el.lastChild);
+    }
+
+    function showBanner(mainText, subText, borderColor = "#facc15", ms = 2100) {
+      const b = document.getElementById("centerBanner");
+      const m = document.getElementById("bannerMainText");
+      const s = document.getElementById("bannerSubText");
+      if (!b || !m || !s) return;
+      m.textContent = mainText;
+      s.textContent = subText;
+      b.style.borderColor = borderColor;
+      b.classList.add("visible");
+      clearTimeout(showBanner._t);
+      showBanner._t = setTimeout(() => b.classList.remove("visible"), ms);
+    }
+
+    function spawnBurstParticles(x, y, z, color = "#00f5d4", count = 28) {
+      for (let i = 0; i < count; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const spd = 1.5 + Math.random() * 5.0;
+        state.particles.push({
+          x,
+          y,
+          z: z + 0.25,
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd,
+          vz: 2.5 + Math.random() * 5.5,
+          color,
+          life: 1.0,
+          size: 2.5 + Math.random() * 3.5,
+        });
+      }
+    }
+
+    /* ============================================================================
+     * 6. STAGE / MODE INITIALIZATION
+     * ============================================================================ */
+    function loadRaceOrMode(raceIdx = state.currentRaceIdx, keepClockBonus = false) {
+      state.currentRaceIdx = Math.max(0, Math.min(5, raceIdx));
+      const raceMeta = CLASSIC_RACES[state.currentRaceIdx];
+
+      if (state.mode === "sumo") {
+        state.course = buildSumoArena();
+        state.timeRemaining = 60.0;
+        state.equippedPowerup = "shockwave";
+      } else if (state.mode === "boss") {
+        state.course = buildBossArena();
+        state.timeRemaining = 75.0;
+        state.equippedPowerup = "shockwave";
+      } else if (state.mode === "procedural") {
+        state.course = buildProceduralCourse(state.procDiff);
+        state.timeRemaining = 65.0;
+        state.equippedPowerup = "super_jump";
+      } else {
+        state.course = buildClassicCourse(state.currentRaceIdx);
+        if (keepClockBonus) {
+          state.timeRemaining = Math.min(99, state.timeRemaining + raceMeta.timeBonus * 0.6);
+        } else {
+          state.timeRemaining = raceMeta.timeBonus;
+        }
+        state.equippedPowerup = raceMeta.powerup;
+      }
+
+      const startSample = sampleSurface(
+        state.course,
+        state.course.start.x,
+        state.course.start.y,
+        0
+      );
+      const startZ = startSample.valid ? startSample.z : 14.0;
+
+      const p = state.player;
+      p.x = state.course.start.x;
+      p.y = state.course.start.y;
+      p.z = startZ;
+      p.groundZ = startZ;
+      p.vx = 0;
+      p.vy = 0;
+      p.vz = 0;
+      p.airborne = false;
+      p.peakAirZ = startZ;
+      p.safeX = p.x;
+      p.safeY = p.y;
+      p.safeZ = startZ;
+      p.respawnTimer = 0;
+      p.dizzyTimer = 0;
+      p.trail = [];
+
+      // Player 2 setup for Mode 8
+      state.player2.active = state.mode === "versus";
+      state.player2.x = p.x + 0.85;
+      state.player2.y = p.y;
+      state.player2.z = startZ;
+      state.player2.groundZ = startZ;
+      state.player2.vx = 0;
+      state.player2.vy = 0;
+      state.player2.vz = 0;
+
+      state.camera.x = p.x + 3.2;
+      state.camera.y = p.y + 3.2;
+      state.camera.z = startZ - 2.0;
+
+      state.elapsedStageTime = 0;
+      state.ghostSamples = [];
+      state.shockwaves = [];
+      state.worldTiltX = 0;
+      state.worldTiltY = 0;
+
+      renderRaceLadderUI();
+      updateHUDLabels();
+    }
+
+    function activatePowerup() {
+      if (!state.equippedPowerup) {
+        addEventFeed(`⚠️ Power-up capacitor recharging — collect a Prism Gem to reload!`, "#facc15");
+        return;
+      }
+      const pw = state.equippedPowerup;
+      state.equippedPowerup = null;
+
+      if (pw === "super_jump") {
+        state.player.vz = 13.5;
+        state.player.airborne = true;
+        MarbleAudio.playSpringPad();
+        spawnBurstParticles(state.player.x, state.player.y, state.player.z, "#facc15", 32);
+        addEventFeed(`🚀 <strong>SUPER JUMP</strong> activated! Skyward launch!`, "#facc15");
+      } else if (pw === "super_speed") {
+        state.speedBoostTimer = 5.0;
+        state.boostEnergy = 100;
+        MarbleAudio.playSpringPad();
+        addEventFeed(`⚡ <strong>OVERDRIVE SURGE</strong> active for 5.0 seconds!`, "#00f5d4");
+      } else if (pw === "gyrocopter") {
+        state.gyroTimer = 5.0;
+        state.player.vz = Math.max(state.player.vz, 5.5);
+        state.player.airborne = true;
+        MarbleAudio.playJump();
+        addEventFeed(`🚁 <strong>GYROCOPTER BLADE</strong> deployed — low-gravity air glide!`, "#38bdf8");
+      } else if (pw === "shockwave") {
+        MarbleAudio.playBumperHit();
+        state.shockwaves.push({
+          x: state.player.x,
+          y: state.player.y,
+          z: state.player.z,
+          radius: 0.3,
+          maxRadius: 4.2,
+          color: "#00f5d4",
+        });
+        // Knock back all nearby hunters
+        for (const h of state.course.hunters) {
+          const dx = h.x - state.player.x;
+          const dy = h.y - state.player.y;
+          const d = Math.max(0.2, Math.hypot(dx, dy));
+          if (d < 4.5) {
+            h.vx += (dx / d) * 14.0;
+            h.vy += (dy / d) * 14.0;
+          }
+        }
+        addEventFeed(`💥 <strong>SHOCKWAVE REPULSOR</strong> blasted nearby Steel Hunters!`, "#ec4899");
+      } else if (pw === "time_freeze") {
+        state.timeRemaining += 6.0;
+        MarbleAudio.playGemPickup(6);
+        addEventFeed(`⏳ <strong>CHRONOS TIME TRAVEL</strong> added +6.0s to the Race Clock!`, "#a855f7");
+      }
+      updateHUDLabels();
+    }
+
+    /* ============================================================================
+     * 7. REAL-TIME 3D ISOMETRIC SLOPE & RIGID-BODY PHYSICS ENGINE
+     * ============================================================================ */
+    function updatePhysics(dt) {
+      state.elapsedStageTime += dt;
+      const chassis = MARBLE_CHASSIS[state.material] || MARBLE_CHASSIS.glass;
+      const p = state.player;
+
+      // Countdown clock
+      if (p.respawnTimer <= 0) {
+        state.timeRemaining = Math.max(0, state.timeRemaining - dt);
+        if (state.timeRemaining <= 0) {
+          MarbleAudio.playAbyssFall();
+          showBanner("TIME EXPIRED!", "Resetting Stage Clock — Keep Rolling!", "#f43f5e", 1800);
+          loadRaceOrMode(state.currentRaceIdx, false);
+          return;
+        }
+      }
+
+      if (state.gyroTimer > 0) state.gyroTimer = Math.max(0, state.gyroTimer - dt);
+      if (state.speedBoostTimer > 0) state.speedBoostTimer = Math.max(0, state.speedBoostTimer - dt);
+      if (p.dizzyTimer > 0) p.dizzyTimer = Math.max(0, p.dizzyTimer - dt);
+
+      // Dynamic Wave Floor Tiles (Race 6 Ultimate Race)
+      for (const tile of state.course.tiles.values()) {
+        if (tile.type === "wave") {
+          const w00 = Math.sin(state.elapsedStageTime * 2.6 + tile.tx * 0.8 + tile.ty * 0.5) * 0.55;
+          const w10 = Math.sin(state.elapsedStageTime * 2.6 + (tile.tx + 1) * 0.8 + tile.ty * 0.5) * 0.55;
+          const w11 = Math.sin(state.elapsedStageTime * 2.6 + (tile.tx + 1) * 0.8 + (tile.ty + 1) * 0.5) * 0.55;
+          const w01 = Math.sin(state.elapsedStageTime * 2.6 + tile.tx * 0.8 + (tile.ty + 1) * 0.5) * 0.55;
+          tile.z00 = tile.baseZ00 + w00;
+          tile.z10 = tile.baseZ10 + w10;
+          tile.z11 = tile.baseZ11 + w11;
+          tile.z01 = tile.baseZ01 + w01;
+        }
+      }
+
+      // Respawn sequence if shattered or rolled into the abyss
+      if (p.respawnTimer > 0) {
+        p.respawnTimer -= dt;
+        if (p.respawnTimer <= 0) {
+          p.x = p.safeX;
+          p.y = p.safeY;
+          p.z = p.safeZ + 0.5;
+          p.groundZ = p.safeZ;
+          p.vx = 0;
+          p.vy = 0;
+          p.vz = 0;
+          p.airborne = false;
+          p.peakAirZ = p.safeZ;
+        }
+        return;
+      }
+
+      // 1. Gather Player Directional Input (Isometric Screen-Space mapped to World X,Y)
+      // In Isometric projection:
+      //   Screen Up-Right = (-Y), Screen Down-Right = (+X), Screen Down-Left = (+Y), Screen Up-Left = (-X)
+      //   Screen Up = (-X, -Y), Screen Down = (+X, +Y), Screen Left = (-X, +Y), Screen Right = (+X, -Y)
+      let inScreenX = 0;
+      let inScreenY = 0;
+      if (state.keys.has("KeyW") || (state.mode !== "versus" && state.keys.has("ArrowUp"))) inScreenY -= 1;
+      if (state.keys.has("KeyS") || (state.mode !== "versus" && state.keys.has("ArrowDown"))) inScreenY += 1;
+      if (state.keys.has("KeyA") || (state.mode !== "versus" && state.keys.has("ArrowLeft"))) inScreenX -= 1;
+      if (state.keys.has("KeyD") || (state.mode !== "versus" && state.keys.has("ArrowRight"))) inScreenX += 1;
+
+      // Add virtual trackball mouse drag impulse
+      inScreenX += state.trackball.vx;
+      inScreenY += state.trackball.vy;
+      state.trackball.vx *= Math.pow(0.08, dt);
+      state.trackball.vy *= Math.pow(0.08, dt);
+
+      // Convert screen input vector to world (tx, ty) axes:
+      let worldInX = (inScreenX + inScreenY) * 0.7071;
+      let worldInY = (inScreenY - inScreenX) * 0.7071;
+      const inMag = Math.hypot(worldInX, worldInY);
+      if (inMag > 1.2) {
+        worldInX /= inMag;
+        worldInY /= inMag;
+      }
+
+      // Mode 4: Tilt Labyrinth World tilts the entire board
+      if (state.mode === "tilt") {
+        state.worldTiltX = Math.max(-16, Math.min(16, worldInX * 15));
+        state.worldTiltY = Math.max(-16, Math.min(16, worldInY * 15));
+      } else {
+        state.worldTiltX *= Math.pow(0.1, dt);
+        state.worldTiltY *= Math.pow(0.1, dt);
+      }
+
+      // Turbo Overdrive [Shift]
+      const shiftHeld = state.keys.has("ShiftLeft") || state.keys.has("ShiftRight") || state.speedBoostTimer > 0;
+      let boostMult = 1.0;
+      if (shiftHeld && state.boostEnergy > 2) {
+        boostMult = 1.55;
+        if (state.speedBoostTimer <= 0) {
+          state.boostEnergy = Math.max(0, state.boostEnergy - 32 * dt);
+        }
+      } else {
+        state.boostEnergy = Math.min(100, state.boostEnergy + 18 * dt);
+      }
+
+      // 2. Sample Surface Heightmap & Gradient Under Player Marble
+      const surf = sampleSurface(state.course, p.x, p.y, state.elapsedStageTime);
+      const GRAVITY = 22.0;
+
+      if (surf.valid) {
+        p.groundZ = surf.z;
+        const tileType = surf.tile.type;
+
+        // Save last safe checkpoint on flat/start tiles
+        if (!p.airborne && (tileType === "normal" || tileType === "start") && Math.hypot(p.vx, p.vy) < 6.0) {
+          const cx = Math.floor(p.x) + 0.5;
+          const cy = Math.floor(p.y) + 0.5;
+          p.safeX = cx;
+          p.safeY = cy;
+          p.safeZ = surf.z;
+        }
+
+        // Check if marble is touching or landing on surface
+        if (p.z <= surf.z + 0.06 && p.vz <= 0.5) {
+          // Check high-altitude impact shatter
+          const dropDist = p.peakAirZ - surf.z;
+          if (p.airborne && dropDist > chassis.shatterHeight && state.gyroTimer <= 0) {
+            MarbleAudio.playShatter();
+            spawnBurstParticles(p.x, p.y, surf.z, "#f43f5e", 42);
+            showBanner("MARBLE SHATTERED!", `Dropped ${dropDist.toFixed(1)}m — Respawning on Course!`, "#f43f5e", 1300);
+            addEventFeed(`💥 <strong>GLASS SHATTER!</strong> Excessive ${dropDist.toFixed(1)}m drop impact!`, "#f43f5e");
+            p.respawnTimer = 0.95;
+            return;
+          }
+
+          p.z = surf.z;
+          p.vz = 0;
+          p.airborne = false;
+          p.peakAirZ = surf.z;
+
+          // Surface-specific effects
+          if (tileType === "spring") {
+            p.vz = chassis.jumpImpulse * 1.48;
+            p.airborne = true;
+            MarbleAudio.playSpringPad();
+            spawnBurstParticles(p.x, p.y, p.z, "#facc15", 22);
+          } else if (tileType === "acid") {
+            MarbleAudio.playShatter();
+            spawnBurstParticles(p.x, p.y, p.z, "#22c55e", 34);
+            showBanner("DISSOLVED IN ACID!", "Jump over green acid pools with [SPACE]!", "#22c55e", 1300);
+            addEventFeed(`🧪 Dissolved in corrosive <strong>Acid Pool</strong>! Press <strong>[Space]</strong> to jump!`, "#22c55e");
+            p.respawnTimer = 0.9;
+            return;
+          } else if (tileType === "conveyor") {
+            p.vx += surf.tile.dirX * 12.0 * dt;
+            p.vy += surf.tile.dirY * 12.0 * dt;
+          }
+
+          // Downhill / Uphill Slope Gravity Force:
+          // On "reverse_ramp" (Silly Race), gravity pulls UPHILL!
+          const gravSign = tileType === "reverse_ramp" ? -1.15 : 1.0;
+          const slopeAx = -GRAVITY * surf.dzdx * 0.42 * gravSign;
+          const slopeAy = -GRAVITY * surf.dzdy * 0.42 * gravSign;
+
+          // Board tilt force (Mode 4)
+          const tiltAx = (state.worldTiltX / 16) * 9.5;
+          const tiltAy = (state.worldTiltY / 16) * 9.5;
+
+          const steerFactor = p.dizzyTimer > 0 ? 0.35 : 1.0;
+          p.vx += (worldInX * chassis.accel * boostMult * steerFactor + slopeAx + tiltAx) * dt;
+          p.vy += (worldInY * chassis.accel * boostMult * steerFactor + slopeAy + tiltAy) * dt;
+
+          // Surface rolling friction (Ice has minimal friction!)
+          const surfFriction = tileType === "ice" ? chassis.friction * 0.22 : chassis.friction;
+          p.vx *= Math.max(0, 1 - surfFriction * dt);
+          p.vy *= Math.max(0, 1 - surfFriction * dt);
+
+          // Update inclinometer readout from current surface gradient
+          const pitchDeg = (Math.atan(surf.dzdx) * 180) / Math.PI + state.worldTiltX;
+          const rollDeg = (Math.atan(surf.dzdy) * 180) / Math.PI + state.worldTiltY;
+          document.getElementById("pitchDegVal").textContent = `${pitchDeg.toFixed(1)}°`;
+          document.getElementById("rollDegVal").textContent = `${rollDeg.toFixed(1)}°`;
+          document.getElementById("surfaceReadoutChip").innerHTML =
+            `📐 Surface: <strong>${tileType.toUpperCase()}</strong> • Elevation: <strong>${p.z.toFixed(1)}m</strong>`;
+        } else {
+          // Airborne above valid tile
+          p.airborne = true;
+          const effGrav = state.gyroTimer > 0 ? GRAVITY * 0.28 : GRAVITY;
+          p.vz -= effGrav * dt;
+          p.z += p.vz * dt;
+          if (p.z > p.peakAirZ) p.peakAirZ = p.z;
+          // Air steering
+          p.vx += worldInX * chassis.accel * 0.45 * dt;
+          p.vy += worldInY * chassis.accel * 0.45 * dt;
+        }
+      } else {
+        // Rolled off the edge into the abyss!
+        p.airborne = true;
+        const effGrav = state.gyroTimer > 0 ? GRAVITY * 0.28 : GRAVITY;
+        p.vz -= effGrav * dt;
+        p.z += p.vz * dt;
+        p.vx += worldInX * chassis.accel * 0.35 * dt;
+        p.vy += worldInY * chassis.accel * 0.35 * dt;
+
+        if (p.z < p.safeZ - 7.5) {
+          MarbleAudio.playAbyssFall();
+          spawnBurstParticles(p.x, p.y, p.z, "#38bdf8", 30);
+          showBanner("FELL INTO ABYSS!", "Respawning on Last Safe Tile...", "#38bdf8", 1200);
+          addEventFeed(`🌌 Rolled off the isometric cliff edge — respawning on safe platform!`, "#38bdf8");
+          p.respawnTimer = 0.85;
+          return;
+        }
+      }
+
+      // Advance Player Position & Rolling Rotation
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.rotX += p.vx * dt * 3.2;
+      p.rotY += p.vy * dt * 3.2;
+
+      p.trail.push({ x: p.x, y: p.y, z: p.z });
+      if (p.trail.length > 28) p.trail.shift();
+
+      // Record Ghost sample in Speedrun mode
+      if (state.mode === "speedrun") {
+        state.ghostSamples.push({ t: state.elapsedStageTime, x: p.x, y: p.y, z: p.z });
+      }
+
+      // 3. Update Player 2 (Mode 8: 2-Player Dual-Marble Race)
+      if (state.player2.active) {
+        updatePlayer2Physics(dt);
+      }
+
+      // 4. Update Black Steel Hunter Marbles, Green Worms, Crushers & Boss
+      updateHazardsAndEnemies(dt, chassis);
+
+      // 5. Collect Floating 3D Prism Gems
+      for (const gem of state.course.gems) {
+        if (gem.collected) continue;
+        if (Math.hypot(p.x - gem.x, p.y - gem.y) < 0.72) {
+          gem.collected = true;
+          state.score += 750;
+          state.career.totalGems++;
+          saveCareer();
+          MarbleAudio.playGemPickup(state.course.gems.filter((g) => g.collected).length);
+          spawnBurstParticles(gem.x, gem.y, p.z + 0.4, "#00f5d4", 26);
+
+          // Reload a power-up if empty
+          if (!state.equippedPowerup) {
+            const pick = POWERUP_CATALOG[Math.floor(Math.random() * POWERUP_CATALOG.length)];
+            state.equippedPowerup = pick.id;
+          }
+
+          if (gem.isBossNode && state.course.boss) {
+            state.course.boss.hp = Math.max(0, state.course.boss.hp - 1);
+            addEventFeed(`⚡ <strong>BOSS POWER NODE SHATTERED!</strong> Colossus HP: ${state.course.boss.hp}/3`, "#facc15");
+            if (state.course.boss.hp === 0) {
+              triggerGoalVictory("OBSIDIAN COLOSSUS DEFEATED!");
+              return;
+            }
+          } else {
+            addEventFeed(`💎 Collected <strong>Prism Gem (+750 pts)</strong>!`, "#00f5d4");
+          }
+        }
+      }
+
+      // 6. Check Goal Pad Victory Condition
+      const distToGoal = Math.hypot(p.x - state.course.goal.x, p.y - state.course.goal.y);
+      if (!p.airborne && distToGoal < 0.78 && state.mode !== "sumo") {
+        const remainingGems = state.course.gems.filter((g) => !g.collected).length;
+        if (state.mode === "gemhunt" && remainingGems > 0) {
+          showBanner(`${remainingGems} GEMS LEFT!`, "Collect all Prism Gems to unlock the Goal Pad!", "#facc15", 1200);
+        } else {
+          triggerGoalVictory();
+          return;
+        }
+      }
+
+      // Smooth Camera Follow
+      const targetCamX = p.x + 2.2;
+      const targetCamY = p.y + 2.2;
+      const targetCamZ = p.groundZ - 1.5;
+      state.camera.x += (targetCamX - state.camera.x) * Math.min(1, 5.5 * dt);
+      state.camera.y += (targetCamY - state.camera.y) * Math.min(1, 5.5 * dt);
+      state.camera.z += (targetCamZ - state.camera.z) * Math.min(1, 5.5 * dt);
+
+      // Update Particles & Shockwaves
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const pt = state.particles[i];
+        pt.x += pt.vx * dt;
+        pt.y += pt.vy * dt;
+        pt.z += pt.vz * dt;
+        pt.vz -= 18 * dt;
+        pt.life -= dt * 1.1;
+        if (pt.life <= 0) state.particles.splice(i, 1);
+      }
+
+      for (let i = state.shockwaves.length - 1; i >= 0; i--) {
+        const sw = state.shockwaves[i];
+        sw.radius += 9.5 * dt;
+        if (sw.radius >= sw.maxRadius) state.shockwaves.splice(i, 1);
+      }
+
+      updateHUDLabels();
+    }
+
+    function updatePlayer2Physics(dt) {
+      const p2 = state.player2;
+      let sx = 0;
+      let sy = 0;
+      if (state.keys.has("ArrowUp")) sy -= 1;
+      if (state.keys.has("ArrowDown")) sy += 1;
+      if (state.keys.has("ArrowLeft")) sx -= 1;
+      if (state.keys.has("ArrowRight")) sx += 1;
+
+      // If no P2 arrow input, gentle AI pace towards next gem / goal so 2P mode is always lively
+      if (sx === 0 && sy === 0) {
+        const tx = state.course.goal.x - p2.x;
+        const ty = state.course.goal.y - p2.y;
+        const d = Math.max(0.1, Math.hypot(tx, ty));
+        p2.vx += (tx / d) * 6.5 * dt;
+        p2.vy += (ty / d) * 6.5 * dt;
+      } else {
+        const wx = (sx + sy) * 0.7071;
+        const wy = (sy - sx) * 0.7071;
+        p2.vx += wx * 15.5 * dt;
+        p2.vy += wy * 15.5 * dt;
+      }
+
+      const s2 = sampleSurface(state.course, p2.x, p2.y, state.elapsedStageTime);
+      if (s2.valid) {
+        p2.z = s2.z;
+        p2.vx += -10.0 * s2.dzdx * dt;
+        p2.vy += -10.0 * s2.dzdy * dt;
+        p2.vx *= 1 - 2.3 * dt;
+        p2.vy *= 1 - 2.3 * dt;
+        p2.x += p2.vx * dt;
+        p2.y += p2.vy * dt;
+      } else {
+        // Respawn P2 on start pad
+        p2.x = state.course.start.x + 0.7;
+        p2.y = state.course.start.y;
+        p2.vx = 0;
+        p2.vy = 0;
+      }
+
+      // Marble-to-Marble collision between P1 and P2
+      const p1 = state.player;
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const dist = Math.hypot(dx, dy);
+      const minDist = p1.radius + p2.radius;
+      if (dist < minDist && dist > 0.001) {
+        const nx = dx / dist;
+        const ny = dy / dist;
+        const impulse = 5.5;
+        p1.vx -= nx * impulse;
+        p1.vy -= ny * impulse;
+        p2.vx += nx * impulse;
+        p2.vy += ny * impulse;
+        MarbleAudio.playBumperHit();
+      }
+    }
+
+    function updateHazardsAndEnemies(dt, chassis) {
+      const p = state.player;
+
+      // 1. Black Steel Hunter Marbles
+      for (let i = state.course.hunters.length - 1; i >= 0; i--) {
+        const h = state.course.hunters[i];
+        const s = sampleSurface(state.course, h.x, h.y, state.elapsedStageTime);
+
+        if (!s.valid) {
+          if (state.mode === "sumo") {
+            // Knocked a rival off the Sumo Hex Plateau!
+            state.course.hunters.splice(i, 1);
+            state.score += 2000;
+            MarbleAudio.playGemPickup(8);
+            spawnBurstParticles(h.x, h.y, p.z, "#facc15", 35);
+            addEventFeed(`💥 <strong>RIVAL KNOCKED OUT! (+2,000 pts)</strong> ${state.course.hunters.length} remaining!`, "#facc15");
+            if (state.course.hunters.length === 0) {
+              triggerGoalVictory("SUMO ROYALE CHAMPION!");
+              return;
+            }
+            continue;
+          } else {
+            h.x = h.homeX;
+            h.y = h.homeY;
+            h.vx = 0;
+            h.vy = 0;
+            continue;
+          }
+        }
+
+        h.z = s.z;
+        const dx = p.x - h.x;
+        const dy = p.y - h.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist < 4.8 && dist > 0.01) {
+          h.vx += (dx / dist) * 8.5 * dt;
+          h.vy += (dy / dist) * 8.5 * dt;
+        }
+        h.vx *= 1 - 2.0 * dt;
+        h.vy *= 1 - 2.0 * dt;
+        h.x += h.vx * dt;
+        h.y += h.vy * dt;
+
+        // Collision with Player Marble
+        const minDist = p.radius + h.radius;
+        if (!p.airborne && dist < minDist && dist > 0.001) {
+          const nx = dx / dist;
+          const ny = dy / dist;
+          const playerPush = 8.5 / chassis.mass;
+          const hunterPush = 7.5 * chassis.mass;
+          p.vx += nx * playerPush;
+          p.vy += ny * playerPush;
+          h.vx -= nx * hunterPush;
+          h.vy -= ny * hunterPush;
+          MarbleAudio.playBumperHit();
+          spawnBurstParticles((p.x + h.x) * 0.5, (p.y + h.y) * 0.5, p.z, "#facc15", 16);
+        }
+      }
+
+      // 2. Pinball Bumpers
+      for (const b of state.course.bumpers) {
+        const dx = p.x - b.x;
+        const dy = p.y - b.y;
+        const dist = Math.hypot(dx, dy);
+        if (!p.airborne && dist < p.radius + b.radius && dist > 0.001) {
+          const nx = dx / dist;
+          const ny = dy / dist;
+          p.vx = nx * 10.5 * chassis.restitution;
+          p.vy = ny * 10.5 * chassis.restitution;
+          state.score += 150;
+          MarbleAudio.playBumperHit();
+          spawnBurstParticles(b.x, b.y, p.z, "#ec4899", 18);
+        }
+      }
+
+      // 3. Green Marble-Muncher Worms (Race 5 Silly Race)
+      for (const w of state.course.worms) {
+        w.x = w.baseX + Math.sin(state.elapsedStageTime * 2.2) * w.range;
+        if (!p.airborne && Math.hypot(p.x - w.x, p.y - w.y) < 0.65) {
+          MarbleAudio.playShatter();
+          showBanner("MUNCHED BY GREEN WORM!", "Hop over Marble-Munchers with [SPACE]!", "#22c55e", 1300);
+          p.respawnTimer = 0.85;
+          return;
+        }
+      }
+
+      // 4. Thwomp Piston Crushers (Race 3 & Race 6)
+      for (const cr of state.course.crushers) {
+        const cycle = (state.elapsedStageTime * 1.6 + cr.phase) % (Math.PI * 2);
+        cr.lift = Math.max(0, Math.sin(cycle) * 2.4);
+        if (cr.lift < 0.25 && !p.airborne && Math.hypot(p.x - cr.x, p.y - cr.y) < 0.68) {
+          MarbleAudio.playBumperHit();
+          p.dizzyTimer = 1.8;
+          p.vx *= -0.6;
+          p.vy *= -0.6;
+          showBanner("CRUSHED & DIZZY!", "Steering Reduced Briefly!", "#facc15", 1100);
+        }
+      }
+
+      // 5. Obsidian Colossus Boss Shockwaves (Mode 7)
+      if (state.course.boss) {
+        const boss = state.course.boss;
+        boss.shockTimer += dt;
+        if (boss.shockTimer >= 3.2) {
+          boss.shockTimer = 0;
+          state.shockwaves.push({
+            x: boss.x,
+            y: boss.y,
+            z: boss.z,
+            radius: 0.4,
+            maxRadius: 5.5,
+            color: "#f43f5e",
+            hostile: true,
+          });
+        }
+        for (const sw of state.shockwaves) {
+          if (!sw.hostile || p.airborne) continue;
+          const d = Math.hypot(p.x - sw.x, p.y - sw.y);
+          if (Math.abs(d - sw.radius) < 0.32) {
+            const nx = (p.x - sw.x) / Math.max(0.1, d);
+            const ny = (p.y - sw.y) / Math.max(0.1, d);
+            p.vx += nx * 9.0;
+            p.vy += ny * 9.0;
+          }
+        }
+      }
+    }
+
+    function triggerGoalVictory(customHeadline = null) {
+      MarbleAudio.playGoalFanfare();
+      const timeBonus = Math.round(state.timeRemaining * 250);
+      state.score += 3000 + timeBonus;
+
+      state.career.racesWon++;
+      if (state.score > state.career.highScore) {
+        state.career.highScore = state.score;
+      }
+      if (
+        state.currentRaceIdx === 0 &&
+        (!state.career.bestRace1Time || state.elapsedStageTime < state.career.bestRace1Time)
+      ) {
+        state.career.bestRace1Time = Number(state.elapsedStageTime.toFixed(2));
+      }
+      if (state.mode === "speedrun" && state.ghostSamples.length > 5) {
+        if (
+          state.bestGhostRun.length === 0 ||
+          state.elapsedStageTime < state.bestGhostRun[state.bestGhostRun.length - 1].t
+        ) {
+          state.bestGhostRun = [...state.ghostSamples];
+        }
+      }
+      saveCareer();
+
+      state.completedRaces.add(state.currentRaceIdx);
+      spawnBurstParticles(state.player.x, state.player.y, state.player.z, "#facc15", 65);
+
+      const title = customHeadline || `🏁 ${CLASSIC_RACES[state.currentRaceIdx].name.toUpperCase()} CLEAR!`;
+      showBanner(
+        title,
+        `+${timeBonus.toLocaleString()} Time Bonus • Advancing Course!`,
+        "#00f5d4",
+        2400
+      );
+      addEventFeed(
+        `🏆 <strong>${title}</strong> in <strong>${state.elapsedStageTime.toFixed(1)}s</strong> (+${timeBonus.toLocaleString()} Bonus)!`,
+        "#facc15"
+      );
+
+      if (state.mode === "classic" || state.mode === "gemhunt") {
+        const nextIdx = (state.currentRaceIdx + 1) % CLASSIC_RACES.length;
+        loadRaceOrMode(nextIdx, true);
+      } else {
+        loadRaceOrMode(state.currentRaceIdx, false);
+      }
+    }
+
+    /* ============================================================================
+     * 8. TRUE 3D ISOMETRIC HEIGHTMAP & MARBLE PAINTER'S ALGORITHM RENDERER
+     * ============================================================================ */
+    const TILE_HALF_W = 34;
+    const TILE_HALF_H = 17.5;
+    const ELEV_SCALE = 15.5;
+
+    function projectIso(wx, wy, wz, W, H) {
+      const dx = wx - state.camera.x;
+      const dy = wy - state.camera.y;
+      const dz = wz - state.camera.z;
+
+      const sx = W * 0.5 + (dx - dy) * TILE_HALF_W;
+      const sy = H * 0.54 + (dx + dy) * TILE_HALF_H - dz * ELEV_SCALE;
+      return { x: sx, y: sy };
+    }
+
+    function renderIsometricWorld() {
+      const W = canvas.width;
+      const H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+
+      // 1. Cyber Starfield & Isometric Horizon Backdrop
+      const bg = ctx.createRadialGradient(W * 0.5, H * 0.35, 30, W * 0.5, H * 0.5, W * 0.75);
+      bg.addColorStop(0, "#13204a");
+      bg.addColorStop(0.55, "#060b1d");
+      bg.addColorStop(1, "#02040a");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      // Subtle background grid lines in the void
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.06)";
+      ctx.lineWidth = 1;
+      for (let i = -12; i <= 24; i += 2) {
+        const a = projectIso(i, -6, 0, W, H);
+        const b = projectIso(i, 22, 0, W, H);
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+
+      // 2. Sort Tiles Back-to-Front by (tx + ty) Painter's Order
+      const sortedTiles = Array.from(state.course.tiles.values()).sort(
+        (a, b) => a.tx + a.ty - (b.tx + b.ty) || a.tx - b.tx
+      );
+
+      for (const tile of sortedTiles) {
+        drawIsometricTile(tile, W, H);
+      }
+
+      // 3. Shockwave Rings
+      for (const sw of state.shockwaves) {
+        ctx.save();
+        ctx.strokeStyle = sw.color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        for (let a = 0; a <= 32; a++) {
+          const ang = (a / 32) * Math.PI * 2;
+          const pt = projectIso(
+            sw.x + Math.cos(ang) * sw.radius,
+            sw.y + Math.sin(ang) * sw.radius,
+            sw.z + 0.1,
+            W,
+            H
+          );
+          if (a === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 4. Player Marble Neon Motion Trail
+      if (state.player.trail.length > 1 && state.player.respawnTimer <= 0) {
+        ctx.save();
+        for (let i = 1; i < state.player.trail.length; i++) {
+          const t0 = state.player.trail[i - 1];
+          const t1 = state.player.trail[i];
+          const p0 = projectIso(t0.x, t0.y, t0.z + 0.15, W, H);
+          const p1 = projectIso(t1.x, t1.y, t1.z + 0.15, W, H);
+          const alpha = (i / state.player.trail.length) * 0.65;
+          ctx.strokeStyle = `rgba(0, 245, 212, ${alpha})`;
+          ctx.lineWidth = (i / state.player.trail.length) * 5.0;
+          ctx.beginPath();
+          ctx.moveTo(p0.x, p0.y);
+          ctx.lineTo(p1.x, p1.y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // 5. Depth-Sorted 3D Entities (Gems, Bumpers, Worms, Crushers, Hunters, Boss, Ghost, P2, Player)
+      const entities = [];
+
+      for (const gem of state.course.gems) {
+        if (!gem.collected) {
+          const s = sampleSurface(state.course, gem.x, gem.y, state.elapsedStageTime);
+          entities.push({ kind: "gem", depth: gem.x + gem.y, obj: gem, z: s.valid ? s.z : 10 });
+        }
+      }
+      for (const b of state.course.bumpers) {
+        const s = sampleSurface(state.course, b.x, b.y, state.elapsedStageTime);
+        entities.push({ kind: "bumper", depth: b.x + b.y, obj: b, z: s.valid ? s.z : 10 });
+      }
+      for (const w of state.course.worms) {
+        const s = sampleSurface(state.course, w.x, w.y, state.elapsedStageTime);
+        entities.push({ kind: "worm", depth: w.x + w.y, obj: w, z: s.valid ? s.z : 12 });
+      }
+      for (const cr of state.course.crushers) {
+        entities.push({ kind: "crusher", depth: cr.x + cr.y, obj: cr, z: cr.z });
+      }
+      for (const h of state.course.hunters) {
+        entities.push({ kind: "hunter", depth: h.x + h.y, obj: h, z: h.z || 10 });
+      }
+      if (state.course.boss) {
+        entities.push({
+          kind: "boss",
+          depth: state.course.boss.x + state.course.boss.y,
+          obj: state.course.boss,
+          z: state.course.boss.z,
+        });
+      }
+      if (state.mode === "speedrun" && state.bestGhostRun.length > 0) {
+        const gPt = state.bestGhostRun.find((s) => s.t >= state.elapsedStageTime) ||
+          state.bestGhostRun[state.bestGhostRun.length - 1];
+        if (gPt) {
+          entities.push({ kind: "ghost", depth: gPt.x + gPt.y, obj: gPt, z: gPt.z });
+        }
+      }
+      if (state.player2.active) {
+        entities.push({
+          kind: "player2",
+          depth: state.player2.x + state.player2.y,
+          obj: state.player2,
+          z: state.player2.z,
+        });
+      }
+      if (state.player.respawnTimer <= 0) {
+        entities.push({
+          kind: "player",
+          depth: state.player.x + state.player.y,
+          obj: state.player,
+          z: state.player.z,
+        });
+      }
+
+      entities.sort((a, b) => a.depth - b.depth);
+
+      for (const ent of entities) {
+        if (ent.kind === "gem") drawPrismGem3D(ent.obj, ent.z, W, H);
+        else if (ent.kind === "bumper") drawPinballBumper3D(ent.obj, ent.z, W, H);
+        else if (ent.kind === "worm") drawGreenWorm3D(ent.obj, ent.z, W, H);
+        else if (ent.kind === "crusher") drawPistonCrusher3D(ent.obj, ent.z, W, H);
+        else if (ent.kind === "hunter") drawHunterMarble3D(ent.obj, ent.z, W, H);
+        else if (ent.kind === "boss") drawObsidianBoss3D(ent.obj, W, H);
+        else if (ent.kind === "ghost") drawGhostMarble3D(ent.obj, W, H);
+        else if (ent.kind === "player2") drawRivalPlayer2Marble3D(ent.obj, W, H);
+        else if (ent.kind === "player") drawPlayerMarble3D(ent.obj, W, H);
+      }
+
+      // 6. Burst Particles
+      for (const pt of state.particles) {
+        const p = projectIso(pt.x, pt.y, pt.z, W, H);
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, pt.life);
+        ctx.fillStyle = pt.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, pt.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function drawIsometricTile(tile, W, H) {
+      const { tx, ty, z00, z10, z11, z01, type } = tile;
+      const p00 = projectIso(tx, ty, z00, W, H);
+      const p10 = projectIso(tx + 1, ty, z10, W, H);
+      const p11 = projectIso(tx + 1, ty + 1, z11, W, H);
+      const p01 = projectIso(tx, ty + 1, z01, W, H);
+
+      const cliffDepth = 4.2;
+      const b10 = projectIso(tx + 1, ty, z10 - cliffDepth, W, H);
+      const b11 = projectIso(tx + 1, ty + 1, z11 - cliffDepth, W, H);
+      const b01 = projectIso(tx, ty + 1, z01 - cliffDepth, W, H);
+
+      // 1. Left Cliff Wall (p01 -> p11 -> b11 -> b01)
+      ctx.fillStyle = "#0b1736";
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.25)";
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(p01.x, p01.y);
+      ctx.lineTo(p11.x, p11.y);
+      ctx.lineTo(b11.x, b11.y);
+      ctx.lineTo(b01.x, b01.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // 2. Right Cliff Wall (p11 -> p10 -> b10 -> b11)
+      ctx.fillStyle = "#060d21";
+      ctx.beginPath();
+      ctx.moveTo(p11.x, p11.y);
+      ctx.lineTo(p10.x, p10.y);
+      ctx.lineTo(b10.x, b10.y);
+      ctx.lineTo(b11.x, b11.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // 3. Top Surface Polygon Shading
+      const isCheckerEven = (tx + ty) % 2 === 0;
+      const slopeShade = (z00 - z11) * 8;
+      let fillStyle = isCheckerEven ? "#1d4ed8" : "#1e3a8a";
+      let strokeStyle = "rgba(125, 211, 252, 0.58)";
+
+      if (type === "ramp") {
+        fillStyle = isCheckerEven ? "#0284c7" : "#0369a1";
+        strokeStyle = "#38bdf8";
+      } else if (type === "reverse_ramp") {
+        fillStyle = isCheckerEven ? "#9333ea" : "#7e22ce";
+        strokeStyle = "#f0abfc";
+      } else if (type === "ice") {
+        fillStyle = isCheckerEven ? "#67e8f9" : "#22d3ee";
+        strokeStyle = "#ffffff";
+      } else if (type === "acid") {
+        fillStyle = "#16a34a";
+        strokeStyle = "#86efac";
+      } else if (type === "spring") {
+        fillStyle = "#eab308";
+        strokeStyle = "#fef08a";
+      } else if (type === "conveyor") {
+        fillStyle = "#475569";
+        strokeStyle = "#facc15";
+      } else if (type === "wave") {
+        fillStyle = isCheckerEven ? "#0d9488" : "#115e59";
+        strokeStyle = "#5eead4";
+      } else if (type === "start") {
+        fillStyle = "#059669";
+        strokeStyle = "#6ee7b7";
+      } else if (type === "goal") {
+        const pulse = 0.5 + 0.5 * Math.sin(state.elapsedStageTime * 6);
+        fillStyle = pulse > 0.5 ? "#ec4899" : "#db2777";
+        strokeStyle = "#fef08a";
+      }
+
+      ctx.fillStyle = fillStyle;
+      ctx.strokeStyle = strokeStyle;
+      ctx.lineWidth = type === "goal" ? 2.2 : 1.1;
+      ctx.beginPath();
+      ctx.moveTo(p00.x, p00.y);
+      ctx.lineTo(p10.x, p10.y);
+      ctx.lineTo(p11.x, p11.y);
+      ctx.lineTo(p01.x, p01.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // 4. Special Tile Markings (Directional Chevrons, Goal Target, Spring Rings)
+      const center = projectIso(
+        tx + 0.5,
+        ty + 0.5,
+        (z00 + z10 + z11 + z01) * 0.25,
+        W,
+        H
+      );
+
+      if (type === "ramp" || type === "reverse_ramp" || type === "conveyor") {
+        const tip = projectIso(
+          tx + 0.5 + tile.dirX * 0.28,
+          ty + 0.5 + tile.dirY * 0.28,
+          (z00 + z10 + z11 + z01) * 0.25 + 0.05,
+          W,
+          H
+        );
+        ctx.strokeStyle = type === "reverse_ramp" ? "#fef08a" : "rgba(255,255,255,0.75)";
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(center.x, center.y);
+        ctx.lineTo(tip.x, tip.y);
+        ctx.stroke();
+      } else if (type === "goal") {
+        ctx.fillStyle = "#fef08a";
+        ctx.font = "900 10px 'Segoe UI', sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("GOAL", center.x, center.y + 3);
+      } else if (type === "start") {
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "900 9px 'Segoe UI', sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("START", center.x, center.y + 3);
+      }
+    }
+
+    function drawPrismGem3D(gem, groundZ, W, H) {
+      const bob = Math.sin(state.elapsedStageTime * 4 + gem.x + gem.y) * 0.22;
+      const p = projectIso(gem.x, gem.y, groundZ + 0.65 + bob, W, H);
+      const sh = projectIso(gem.x, gem.y, groundZ + 0.03, W, H);
+
+      ctx.save();
+      ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+      ctx.beginPath();
+      ctx.ellipse(sh.x, sh.y, 7, 3.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Octahedron glowing prism gem
+      ctx.translate(p.x, p.y);
+      ctx.fillStyle = gem.isBossNode ? "#facc15" : "#00f5d4";
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.moveTo(0, -11);
+      ctx.lineTo(9, 0);
+      ctx.lineTo(0, 11);
+      ctx.lineTo(-9, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawPinballBumper3D(bumper, groundZ, W, H) {
+      const p = projectIso(bumper.x, bumper.y, groundZ + 0.35, W, H);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.fillStyle = "#ec4899";
+      ctx.strokeStyle = "#fef08a";
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 15, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawGreenWorm3D(worm, groundZ, W, H) {
+      for (let seg = 0; seg < 3; seg++) {
+        const sx = worm.x - seg * 0.22;
+        const p = projectIso(sx, worm.y, groundZ + 0.28, W, H);
+        ctx.save();
+        ctx.fillStyle = seg === 0 ? "#4ade80" : "#16a34a";
+        ctx.strokeStyle = "#052e16";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 9 - seg * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function drawPistonCrusher3D(crusher, groundZ, W, H) {
+      const lift = crusher.lift || 0;
+      const sh = projectIso(crusher.x, crusher.y, groundZ + 0.04, W, H);
+      const p = projectIso(crusher.x, crusher.y, groundZ + 0.55 + lift, W, H);
+
+      ctx.save();
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.beginPath();
+      ctx.ellipse(sh.x, sh.y, 13, 6.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#f97316";
+      ctx.strokeStyle = "#fef08a";
+      ctx.lineWidth = 1.5;
+      ctx.fillRect(p.x - 13, p.y - 16, 26, 22);
+      ctx.strokeRect(p.x - 13, p.y - 16, 26, 22);
+      ctx.restore();
+    }
+
+    function drawHunterMarble3D(hunter, groundZ, W, H) {
+      const sh = projectIso(hunter.x, hunter.y, groundZ + 0.03, W, H);
+      const p = projectIso(hunter.x, hunter.y, groundZ + hunter.radius, W, H);
+      const r = 13;
+
+      ctx.save();
+      ctx.fillStyle = "rgba(0, 0, 0, 0.58)";
+      ctx.beginPath();
+      ctx.ellipse(sh.x, sh.y, r * 0.9, r * 0.45, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const g = ctx.createRadialGradient(p.x - 4, p.y - 4, 2, p.x, p.y, r);
+      g.addColorStop(0, "#94a3b8");
+      g.addColorStop(0.45, "#1e293b");
+      g.addColorStop(1, "#020617");
+      ctx.fillStyle = g;
+      ctx.strokeStyle = "#f43f5e";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawObsidianBoss3D(boss, W, H) {
+      const p = projectIso(boss.x, boss.y, boss.z + 1.1, W, H);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      const g = ctx.createRadialGradient(-8, -8, 4, 0, 0, 28);
+      g.addColorStop(0, "#f43f5e");
+      g.addColorStop(0.5, "#4c0519");
+      g.addColorStop(1, "#090d16");
+      ctx.fillStyle = g;
+      ctx.strokeStyle = "#facc15";
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.arc(0, 0, 26, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 10px 'Segoe UI', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(`BOSS ${boss.hp}/3`, 0, 4);
+      ctx.restore();
+    }
+
+    function drawGhostMarble3D(ghostPt, W, H) {
+      const p = projectIso(ghostPt.x, ghostPt.y, ghostPt.z + 0.34, W, H);
+      ctx.save();
+      ctx.globalAlpha = 0.42;
+      ctx.fillStyle = "#00f5d4";
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawRivalPlayer2Marble3D(p2, W, H) {
+      const sh = projectIso(p2.x, p2.y, p2.z + 0.03, W, H);
+      const pos = projectIso(p2.x, p2.y, p2.z + p2.radius, W, H);
+      const r = 13.5;
+
+      ctx.save();
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.beginPath();
+      ctx.ellipse(sh.x, sh.y, r * 0.9, r * 0.45, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const g = ctx.createRadialGradient(pos.x - 4, pos.y - 4, 2, pos.x, pos.y, r);
+      g.addColorStop(0, "#ffffff");
+      g.addColorStop(0.3, "#f43f5e");
+      g.addColorStop(1, "#881337");
+      ctx.fillStyle = g;
+      ctx.strokeStyle = "#fef08a";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawPlayerMarble3D(p, W, H) {
+      const chassis = MARBLE_CHASSIS[state.material] || MARBLE_CHASSIS.glass;
+      const sh = projectIso(p.x, p.y, p.groundZ + 0.03, W, H);
+      const pos = projectIso(p.x, p.y, p.z + p.radius, W, H);
+      const r = 14.5;
+
+      ctx.save();
+
+      // Dynamic Ground Drop Shadow (shrinks slightly as marble rises airborne)
+      const airGap = Math.max(0, p.z - p.groundZ);
+      const shadowScale = Math.max(0.42, 1 - airGap * 0.12);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.62)";
+      ctx.beginPath();
+      ctx.ellipse(sh.x, sh.y, r * 0.95 * shadowScale, r * 0.48 * shadowScale, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Vertical altitude tether guide when airborne
+      if (airGap > 0.25) {
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = "rgba(0, 245, 212, 0.55)";
+        ctx.beginPath();
+        ctx.moveTo(sh.x, sh.y);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      ctx.translate(pos.x, pos.y);
+
+      // 3D Glass / Chrome / Rubber / Plasma Sphere Gradient
+      const grad = ctx.createRadialGradient(-r * 0.34, -r * 0.34, r * 0.1, 0, 0, r);
+      grad.addColorStop(0, "#ffffff");
+      grad.addColorStop(0.25, chassis.primary);
+      grad.addColorStop(0.75, chassis.secondary);
+      grad.addColorStop(1, "#020617");
+
+      ctx.fillStyle = grad;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Rotating Internal Latitude/Longitude Ribbon Stripes (shows physical roll!)
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(0, 0, r - 1, 0, Math.PI * 2);
+      ctx.clip();
+
+      const phaseX = Math.sin(p.rotX) * r * 0.55;
+      const phaseY = Math.cos(p.rotY) * r * 0.55;
+      ctx.strokeStyle = chassis.stripe;
+      ctx.lineWidth = 2.4;
+      ctx.globalAlpha = 0.82;
+      ctx.beginPath();
+      ctx.ellipse(phaseX * 0.3, phaseY * 0.3, r * 0.78, r * 0.36, p.rotX * 0.35, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Specular Glass Highlight
+      ctx.fillStyle = "rgba(255, 255, 255, 0.78)";
+      ctx.beginPath();
+      ctx.ellipse(-r * 0.32, -r * 0.34, r * 0.28, r * 0.15, -0.45, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Gyrocopter Blade visual when active
+      if (state.gyroTimer > 0) {
+        const bladeSpan = Math.sin(state.elapsedStageTime * 28) * 18;
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-bladeSpan, -r - 6);
+        ctx.lineTo(bladeSpan, -r - 6);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function renderTiltInclinometer() {
+      const W = tiltCanvas.width;
+      const H = tiltCanvas.height;
+      const cx = W * 0.5;
+      const cy = H * 0.5;
+      tiltCtx.clearRect(0, 0, W, H);
+
+      tiltCtx.strokeStyle = "rgba(56, 189, 248, 0.3)";
+      tiltCtx.lineWidth = 1;
+      tiltCtx.beginPath();
+      tiltCtx.arc(cx, cy, 26, 0, Math.PI * 2);
+      tiltCtx.moveTo(cx - 32, cy);
+      tiltCtx.lineTo(cx + 32, cy);
+      tiltCtx.moveTo(cx, cy - 32);
+      tiltCtx.lineTo(cx, cy + 32);
+      tiltCtx.stroke();
+
+      const surf = sampleSurface(state.course, state.player.x, state.player.y, state.elapsedStageTime);
+      const gx = (surf.valid ? surf.dzdx * 12 : 0) + state.worldTiltX * 1.1;
+      const gy = (surf.valid ? surf.dzdy * 12 : 0) + state.worldTiltY * 1.1;
+
+      const bx = Math.max(10, Math.min(W - 10, cx + gx));
+      const by = Math.max(10, Math.min(H - 10, cy + gy));
+
+      tiltCtx.fillStyle = "#00f5d4";
+      tiltCtx.beginPath();
+      tiltCtx.arc(bx, by, 6, 0, Math.PI * 2);
+      tiltCtx.fill();
+    }
+
+    /* ============================================================================
+     * 9. UI SYNCHRONIZATION & EVENT HANDLERS
+     * ============================================================================ */
+    function renderRaceLadderUI() {
+      const container = document.getElementById("raceLadder");
+      if (!container) return;
+      container.innerHTML = "";
+
+      CLASSIC_RACES.forEach((race) => {
+        const isCurrent = race.index === state.currentRaceIdx;
+        const isDone = state.completedRaces.has(race.index);
+        const item = document.createElement("div");
+        item.className =
+          "race-step" + (isCurrent ? " current" : "") + (isDone ? " completed" : "");
+        item.innerHTML = `
+          <span>${isDone ? "✅ " : isCurrent ? "▶ " : ""}${race.name}</span>
+          <span style="font-size:10px;color:var(--muted);">${race.timeBonus}s</span>
+        `;
+        item.addEventListener("click", () => {
+          loadRaceOrMode(race.index, false);
+        });
+        container.appendChild(item);
+      });
+    }
+
+    function updateHUDLabels() {
+      const clockEl = document.getElementById("clockValue");
+      const timerBox = document.getElementById("timerBox");
+      if (clockEl) clockEl.textContent = `${state.timeRemaining.toFixed(1)}s`;
+      if (timerBox) timerBox.classList.toggle("danger", state.timeRemaining < 12);
+
+      document.getElementById("scoreValue").textContent = state.score.toLocaleString();
+      document.getElementById("stageBadgeLabel").textContent = `RACE ${state.currentRaceIdx + 1} / 6`;
+
+      const boostPct = Math.round(state.boostEnergy);
+      document.getElementById("boostPctLabel").textContent = `${boostPct}%`;
+      document.getElementById("boostBarFill").style.width = `${boostPct}%`;
+
+      const pwObj = POWERUP_CATALOG.find((p) => p.id === state.equippedPowerup);
+      document.getElementById("powerupLabel").textContent = pwObj
+        ? pwObj.label
+        : "Collect Gem to Reload";
+
+      const raceMeta = CLASSIC_RACES[state.currentRaceIdx];
+      document.getElementById("courseTitleChip").innerHTML =
+        `🏁 <strong>${raceMeta.name}</strong> • ${raceMeta.subtitle}`;
+
+      const totalGems = state.course.gems.length;
+      const gotGems = state.course.gems.filter((g) => g.collected).length;
+      document.getElementById("gemsCounter").textContent = `${gotGems} / ${totalGems}`;
+      document.getElementById("hazardCounter").textContent =
+        state.mode === "sumo"
+          ? `${state.course.hunters.length} Rivals`
+          : state.mode === "boss" && state.course.boss
+            ? `Boss ${state.course.boss.hp}/3 HP`
+            : `${state.course.hunters.length} Hunters`;
+
+      const spd = Math.hypot(state.player.vx, state.player.vy);
+      const chassis = MARBLE_CHASSIS[state.material];
+      document.getElementById("speedReadoutChip").innerHTML =
+        `🔮 Velocity: <strong>${spd.toFixed(1)} m/s</strong> • Chassis: <strong>${chassis.name}</strong>`;
+
+      const airGap = Math.max(0, state.player.z - state.player.groundZ);
+      document.getElementById("airHeightVal").textContent = `${airGap.toFixed(1)}m`;
+
+      document.getElementById("statHighScore").textContent = state.career.highScore.toLocaleString();
+      document.getElementById("statRacesWon").textContent = String(state.career.racesWon);
+      document.getElementById("statTotalGems").textContent = String(state.career.totalGems);
+      document.getElementById("statBestTime").textContent = state.career.bestRace1Time
+        ? `${state.career.bestRace1Time}s`
+        : "--";
+    }
+
+    function setGameMode(modeKey) {
+      state.mode = modeKey;
+      document.getElementById("modeSelect").value = modeKey;
+      document.querySelectorAll(".mode-pill").forEach((b) => {
+        b.classList.toggle("active", b.dataset.mode === modeKey);
+      });
+      loadRaceOrMode(state.currentRaceIdx, false);
+      addEventFeed(`🎮 Switched mode to <strong>${modeKey.toUpperCase()}</strong>!`, "#38bdf8");
+    }
+
+    document.getElementById("modeSelect").addEventListener("change", (e) => {
+      setGameMode(e.target.value);
+    });
+
+    document.querySelectorAll(".mode-pill").forEach((pill) => {
+      pill.addEventListener("click", () => setGameMode(pill.dataset.mode));
+    });
+
+    document.getElementById("marbleMaterialSelect").addEventListener("change", (e) => {
+      state.material = e.target.value;
+      updateHUDLabels();
+      addEventFeed(`⚙️ Equipped <strong>${MARBLE_CHASSIS[state.material].name}</strong> chassis!`, "#facc15");
+    });
+
+    document.getElementById("procDiffSelect").addEventListener("change", (e) => {
+      state.procDiff = e.target.value;
+      if (state.mode === "procedural") loadRaceOrMode(state.currentRaceIdx, false);
+    });
+
+    document.getElementById("genCourseBtn").addEventListener("click", () => {
+      setGameMode("procedural");
+    });
+
+    document.getElementById("restartBtn").addEventListener("click", () => {
+      loadRaceOrMode(state.currentRaceIdx, false);
+      addEventFeed(`🔄 Stage reset — fresh clock started!`, "#facc15");
+    });
+
+    document.getElementById("audioBtn").addEventListener("click", (e) => {
+      const m = MarbleAudio.toggleMute();
+      e.currentTarget.textContent = m ? "🔇 Synth: MUTED" : "🔊 Synth: ON";
+    });
+
+    document.getElementById("usePowerupBtn").addEventListener("click", () => {
+      activatePowerup();
+    });
+
+    // Virtual Trackball Mouse Drag on Canvas
+    canvas.addEventListener("pointerdown", (e) => {
+      state.trackball.active = true;
+      state.trackball.lastX = e.clientX;
+      state.trackball.lastY = e.clientY;
+    });
+
+    window.addEventListener("pointermove", (e) => {
+      if (!state.trackball.active) return;
+      const dx = e.clientX - state.trackball.lastX;
+      const dy = e.clientY - state.trackball.lastY;
+      state.trackball.lastX = e.clientX;
+      state.trackball.lastY = e.clientY;
+      state.trackball.vx = Math.max(-2.5, Math.min(2.5, dx * 0.08));
+      state.trackball.vy = Math.max(-2.5, Math.min(2.5, dy * 0.08));
+    });
+
+    window.addEventListener("pointerup", () => {
+      state.trackball.active = false;
+    });
+
+    // Keyboard Controls
+    window.addEventListener("keydown", (e) => {
+      if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "SELECT")) {
+        if (e.code !== "Space") return;
+      }
+      state.keys.add(e.code);
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (!state.player.airborne && state.player.respawnTimer <= 0) {
+          const chassis = MARBLE_CHASSIS[state.material] || MARBLE_CHASSIS.glass;
+          state.player.vz = chassis.jumpImpulse;
+          state.player.airborne = true;
+          MarbleAudio.playJump();
+        }
+      } else if (e.code === "KeyE") {
+        activatePowerup();
+      } else if (e.code === "KeyR") {
+        loadRaceOrMode(state.currentRaceIdx, false);
+      } else if (e.code === "KeyG") {
+        setGameMode("procedural");
+      } else if (e.code === "KeyM") {
+        document.getElementById("audioBtn").click();
+      } else if (e.code.startsWith("Digit")) {
+        const num = parseInt(e.code.replace("Digit", ""), 10);
+        const modes = ["classic", "gemhunt", "procedural", "tilt", "sumo", "speedrun", "boss", "versus"];
+        if (num >= 1 && num <= 8) setGameMode(modes[num - 1]);
+      }
+    });
+
+    window.addEventListener("keyup", (e) => {
+      state.keys.delete(e.code);
+    });
+
+    /* ============================================================================
+     * 10. MAIN 60FPS ANIMATION LOOP & INITIAL STAGE BOOTSTRAP
+     * ============================================================================ */
+    let lastFrameTime = performance.now();
+    function animationLoop(now) {
+      const dt = Math.min(0.05, Math.max(0.001, (now - lastFrameTime) / 1000));
+      lastFrameTime = now;
+
+      updatePhysics(dt);
+      renderIsometricWorld();
+      renderTiltInclinometer();
+      requestAnimationFrame(animationLoop);
+    }
+
+    loadRaceOrMode(0, false);
+    addEventFeed(
+      `🔮 <strong>Race 1: Practice Race</strong> active! Roll with <strong>WASD / Arrows</strong> or drag on the canvas!`,
+      "#00f5d4"
+    );
+    requestAnimationFrame(animationLoop);
+  </script>
+</body>
+</html>

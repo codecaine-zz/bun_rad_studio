@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#030510"/>
+      <stop offset="100%" stop-color="#0b1528"/>
+    </linearGradient>
+    <linearGradient id="hull" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00f5ff"/>
+      <stop offset="100%" stop-color="#0088ff"/>
+    </linearGradient>
+    <linearGradient id="flame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="45%" stop-color="#ffcc00"/>
+      <stop offset="100%" stop-color="#ff0055"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)" stroke="#00f5ff" stroke-width="2" stroke-opacity="0.5"/>
+  <!-- Mountain terrain & Landing Pad -->
+  <polyline points="4,56 14,44 22,52 42,52 50,42 60,56" fill="none" stroke="#00f5ff" stroke-width="2" stroke-linejoin="round" opacity="0.6"/>
+  <line x1="22" y1="52" x2="42" y2="52" stroke="#00ff88" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- Thruster Flame -->
+  <polygon points="27,36 37,36 32,50" fill="url(#flame)"/>
+  <!-- Lander Module -->
+  <polygon points="24,14 40,14 44,26 20,26" fill="#061224" stroke="url(#hull)" stroke-width="2.5" stroke-linejoin="round"/>
+  <rect x="22" y="26" width="20" height="7" rx="1.5" fill="#0a1e38" stroke="#00f5ff" stroke-width="2"/>
+  <!-- Landing Legs -->
+  <line x1="22" y1="31" x2="15" y2="41" stroke="#00f5ff" stroke-width="2.2" stroke-linecap="round"/>
+  <line x1="12" y1="41" x2="18" y2="41" stroke="#00ff88" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="42" y1="31" x2="49" y2="41" stroke="#00f5ff" stroke-width="2.2" stroke-linecap="round"/>
+  <line x1="46" y1="41" x2="52" y2="41" stroke="#00ff88" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Cockpit Window -->
+  <polygon points="28,17 36,17 38,23 26,23" fill="#00f5ff" opacity="0.85"/>
+</svg>

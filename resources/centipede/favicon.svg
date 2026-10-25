@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#030914"/>
+      <stop offset="100%" stop-color="#091d2b"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)" stroke="#00ff88" stroke-width="2" stroke-opacity="0.6"/>
+  <!-- Centipede segments -->
+  <circle cx="16" cy="20" r="6" fill="#00ff88" stroke="#ffffff" stroke-width="1"/>
+  <circle cx="27" cy="20" r="6" fill="#00ff88" stroke="#ffffff" stroke-width="1"/>
+  <circle cx="38" cy="22" r="6" fill="#00ff88" stroke="#ffffff" stroke-width="1"/>
+  <!-- Centipede Head -->
+  <circle cx="48" cy="26" r="7.5" fill="#ff0055" stroke="#ffcc00" stroke-width="1.5"/>
+  <circle cx="51" cy="24" r="2" fill="#ffffff"/>
+  <!-- Cyber-Spore Mushroom -->
+  <path d="M18 42 C18 35, 30 35, 30 42 Z" fill="#b829ff" stroke="#00f5ff" stroke-width="1.2"/>
+  <rect x="22" y="42" width="4" height="5" fill="#00f5ff"/>
+  <!-- Player Ship & Laser -->
+  <line x1="44" y1="36" x2="44" y2="46" stroke="#00f5ff" stroke-width="2.5" stroke-linecap="round"/>
+  <polygon points="44,48 37,58 44,55 51,58" fill="#00f5ff" stroke="#ffffff" stroke-width="1"/>
+</svg>

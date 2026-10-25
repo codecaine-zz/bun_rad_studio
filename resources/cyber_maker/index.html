@@ -1,0 +1,5402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Codecaine CyberMaker Studio: OS Kernel World Architect</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+  :root {
+    --bg-deep: #070b19;
+    --bg-panel: #0d1428;
+    --bg-card: #172140;
+    --border-cyan: rgba(56, 189, 248, 0.35);
+    --border-gold: rgba(250, 204, 21, 0.55);
+    --accent-cyan: #38bdf8;
+    --accent-gold: #facc15;
+    --accent-pink: #f43f5e;
+    --accent-green: #22c55e;
+    --accent-purple: #a855f7;
+    --text-main: #f8fafc;
+    --text-dim: #94a3b8;
+    --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  html, body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg-deep);
+    color: var(--text-main);
+    font-family: var(--font-ui);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Top Command Header */
+  #topHeader {
+    min-height: 44px;
+    background: linear-gradient(90deg, #090e22 0%, #131c3d 50%, #090e22 100%);
+    border-bottom: 1px solid var(--border-cyan);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 8px;
+    gap: 5px;
+    z-index: 30;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .brand-cluster {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .hub-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    background: #1e293b;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    color: #e2e8f0;
+    text-decoration: none;
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .hub-btn:hover {
+    border-color: var(--accent-cyan);
+    color: #fff;
+  }
+
+  .brand-title {
+    display: flex;
+    flex-direction: column;
+    white-space: nowrap;
+  }
+  .brand-title h1 {
+    font-size: 11.5px;
+    font-weight: 900;
+    letter-spacing: 0.2px;
+    background: linear-gradient(90deg, #fde047, #38bdf8, #f43f5e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .brand-sub {
+    font-size: 8.5px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+  }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: nowrap;
+  }
+
+  .mode-toggle-btn {
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    cursor: pointer;
+    border: 2px solid #facc15;
+    background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+    color: #090d16;
+  }
+  .mode-toggle-btn.playing {
+    background: linear-gradient(135deg, #22c55e 0%, #059669 100%);
+    border-color: #86efac;
+    color: #052e16;
+  }
+
+  .studio-select {
+    background: #0f172a;
+    color: #f8fafc;
+    border: 1px solid var(--border-cyan);
+    border-radius: 6px;
+    padding: 4px 4px;
+    font-size: 9.5px;
+    font-weight: 700;
+    max-width: 118px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .hdr-btn {
+    background: #1e293b;
+    color: #e2e8f0;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 6px;
+    padding: 4px 5px;
+    font-size: 9.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .hdr-btn:hover {
+    border-color: var(--accent-cyan);
+    color: #fff;
+  }
+  .hdr-btn.ai-btn {
+    background: linear-gradient(135deg, #7c3aed, #db2777);
+    border-color: #f472b6;
+    color: #fff;
+  }
+  .hdr-btn.active-toggle {
+    border-color: var(--accent-gold);
+    background: rgba(250, 204, 21, 0.22);
+    color: #fef08a;
+  }
+
+  /* Secondary Pro Editor Toolbar & Modifier Bar */
+  #editorSubBar {
+    min-height: 36px;
+    background: #0b1122;
+    border-bottom: 1px solid rgba(56, 189, 248, 0.22);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 8px;
+    gap: 4px;
+    z-index: 25;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .tool-group, .modifier-group, .telemetry-group {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+
+  .group-label {
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    margin-right: 1px;
+  }
+
+  .tool-pill, .mod-pill {
+    padding: 3px 5px;
+    border-radius: 5px;
+    background: #1e293b;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    color: #cbd5e1;
+    font-size: 9px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .tool-pill:hover, .mod-pill:hover {
+    border-color: var(--accent-cyan);
+    color: #fff;
+  }
+  .tool-pill.active {
+    background: rgba(56, 189, 248, 0.26);
+    border-color: var(--accent-cyan);
+    color: #fff;
+  }
+  .mod-pill.active {
+    background: rgba(250, 204, 21, 0.24);
+    border-color: var(--accent-gold);
+    color: #fef08a;
+  }
+
+  .hud-stat {
+    background: #0f172a;
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-radius: 5px;
+    padding: 2px 4px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    color: #e2e8f0;
+    white-space: nowrap;
+  }
+  .hud-stat span {
+    color: var(--accent-gold);
+  }
+
+  /* Main Workspace Split */
+  #mainWorkspace {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    position: relative;
+  }
+
+  /* Left Object Palette Dock */
+  #paletteDock {
+    width: 276px;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border-cyan);
+    display: flex;
+    flex-direction: column;
+    z-index: 20;
+  }
+
+  .cat-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+    padding: 7px;
+    border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+    background: #070b19;
+  }
+
+  .cat-tab {
+    padding: 5px 6px;
+    border-radius: 6px;
+    background: #1e293b;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: #cbd5e1;
+    font-size: 10.5px;
+    font-weight: 800;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cat-tab.active {
+    background: #1e3a8a;
+    border-color: var(--accent-cyan);
+    color: #fff;
+  }
+
+  #paletteGrid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 7px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    align-content: start;
+  }
+
+  .item-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 8px;
+    padding: 6px 7px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    position: relative;
+  }
+  .item-card:hover {
+    border-color: var(--accent-cyan);
+  }
+  .item-card.selected {
+    border: 2px solid var(--accent-gold);
+    background: rgba(250, 204, 21, 0.14);
+  }
+  .item-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .item-preview-wrap {
+    width: 34px;
+    height: 34px;
+    border-radius: 7px;
+    background: radial-gradient(circle at 50% 40%, rgba(56, 189, 248, 0.2), rgba(7, 11, 25, 0.92));
+    border: 1px solid rgba(56, 189, 248, 0.32);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6);
+  }
+  .item-preview-can {
+    width: 30px;
+    height: 30px;
+    display: block;
+  }
+  .item-badge {
+    font-size: 9px;
+    font-family: var(--font-mono);
+    padding: 2px 5px;
+    border-radius: 4px;
+    background: #0f172a;
+    border: 1px solid rgba(56, 189, 248, 0.22);
+    color: var(--accent-cyan);
+  }
+  .item-name {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: #f1f5f9;
+    line-height: 1.2;
+  }
+  .item-desc {
+    font-size: 9px;
+    color: #94a3b8;
+    line-height: 1.2;
+  }
+
+  #selectedInspector {
+    padding: 8px 10px;
+    border-top: 1px solid rgba(56, 189, 248, 0.25);
+    background: #080c1c;
+    font-size: 11px;
+  }
+  #selectedInspector .insp-title {
+    font-weight: 900;
+    color: var(--accent-gold);
+    margin-bottom: 3px;
+  }
+  #selectedInspector .insp-desc {
+    color: #cbd5e1;
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  /* Center Viewport & Canvas */
+  #canvasContainer {
+    flex: 1;
+    position: relative;
+    background: #050814;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #gameCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: crosshair;
+  }
+
+  /* Floating Playtest Banner & Boss HP Overlay (NO backdrop-filter blur over canvas!) */
+  #floatingOverlay {
+    position: absolute;
+    top: 10px;
+    left: 14px;
+    right: 14px;
+    pointer-events: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    z-index: 15;
+  }
+
+  .banner-pill {
+    background: rgba(9, 14, 30, 0.94);
+    border: 1px solid var(--border-cyan);
+    border-radius: 9px;
+    padding: 6px 12px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #f8fafc;
+  }
+
+  #bossHudBox {
+    display: none;
+    background: rgba(40, 8, 18, 0.95);
+    border: 2px solid #f43f5e;
+    border-radius: 10px;
+    padding: 6px 14px;
+    min-width: 240px;
+  }
+  #bossHudTitle {
+    font-size: 11px;
+    font-weight: 900;
+    color: #fda4af;
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+  }
+  .boss-hp-track {
+    width: 100%;
+    height: 8px;
+    background: #1f0910;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  #bossHpFill {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #ef4444, #f59e0b);
+  }
+
+  /* Bottom Minimap Scrubber & Controls Footer */
+  #bottomFooter {
+    height: 52px;
+    background: #090e1e;
+    border-top: 1px solid var(--border-cyan);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    gap: 12px;
+    z-index: 25;
+  }
+
+  .minimap-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    max-width: 680px;
+  }
+
+  #minimapCanvas {
+    flex: 1;
+    height: 36px;
+    background: #050814;
+    border: 1px solid var(--border-cyan);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .controls-legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    white-space: nowrap;
+  }
+  .key-cap {
+    background: #1e293b;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: #fde047;
+    font-weight: 700;
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(3, 6, 16, 0.88);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .modal-backdrop.open {
+    display: flex;
+  }
+  .modal-card {
+    width: 580px;
+    max-width: 92vw;
+    background: #0f172a;
+    border: 2px solid var(--accent-cyan);
+    border-radius: 14px;
+    padding: 18px;
+  }
+  .modal-card h2 {
+    font-size: 16px;
+    color: var(--accent-gold);
+    margin-bottom: 8px;
+  }
+  .modal-card textarea {
+    width: 100%;
+    height: 190px;
+    background: #060a17;
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    border-radius: 8px;
+    padding: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    margin: 8px 0 12px;
+    resize: none;
+  }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+</style>
+</head>
+<body>
+
+  <!-- TOP COMMAND HEADER -->
+  <header id="topHeader">
+    <div class="brand-cluster">
+      <a href="/" class="hub-btn" title="Return to Codecaine Studio Hub">🏠 Hub</a>
+      <div class="brand-title">
+        <h1>🏗️ CODECAINE CYBERMAKER STUDIO</h1>
+        <span class="brand-sub">OS Kernel Architect • 120 FPS Atlas • 5 OS Heroes</span>
+      </div>
+    </div>
+
+    <div class="header-controls">
+      <button id="btnToggleMode" class="mode-toggle-btn" title="Switch between Level Editor and Live Playtest [P / Tab]">
+        🎬 PLAYTEST [P]
+      </button>
+
+      <select id="heroSelect" class="studio-select" title="Select Playable OS Mascot Hero & Special Ability">
+        <option value="tux" selected>🐧 Hero: Tux (Ice Slide + Cryo Snowballs)</option>
+        <option value="bsd">😈 Hero: Beastie (Double-Jump + 3-Way Trident)</option>
+        <option value="clarus">🍎 Hero: Clarus Dogcow (Auto-Spin + Aqua Laser)</option>
+        <option value="clippy">📎 Hero: Clippy Mech (Hover + Mid-Air Lift Pad)</option>
+        <option value="bao">🥟 Hero: Bao Speedster (1.25x Speed + Hyper-Dash)</option>
+      </select>
+
+      <select id="courseSelect" class="studio-select" title="Select Built-In Showcase Course">
+        <option value="0">1. OS Kernel Grand Tour (All 4 OS Showcase)</option>
+        <option value="1">2. Linux Penguin Belly-Slide Run</option>
+        <option value="2">3. macOS Beachball &amp; Dock Kaizo</option>
+        <option value="3">4. FreeBSD Citadel &amp; Mecha-Beastie Boss</option>
+        <option value="4">5. Windows 95 BSOD Thwomp Factory</option>
+        <option value="5">6. ON/OFF Switch Rhythm Lab</option>
+        <option value="6">7. Metroidvania Sudo Puzzle</option>
+        <option value="7">8. Procedural AI Course Architect</option>
+      </select>
+
+      <select id="osThemeSelect" class="studio-select" title="Switch OS Kernel World Visual &amp; Physics Theme">
+        <option value="linux">🐧 Linux Kernel Tundra (/boot/vmlinuz)</option>
+        <option value="macos">🍎 macOS Aqua &amp; Cupertino Glass (Darwin XNU)</option>
+        <option value="bsd">😈 FreeBSD / OpenBSD Daemon Citadel (/usr/src/sys)</option>
+        <option value="win95">🪟 Windows 95 / NT Vaporwave Desktop (C:\WINDOWS)</option>
+        <option value="bun">🥟 Bun &amp; Codecaine Cyber-Core (bun:jsc Neon)</option>
+      </select>
+
+      <button id="btnAiBot" class="hdr-btn" title="Toggle Autonomous AI Speedrunner Bot [V]">
+        🤖 AI BOT: OFF [V]
+      </button>
+
+      <select id="aiDifficultySelect" class="studio-select" title="Select AI Course Architect Difficulty Tier">
+        <option value="easy">🌱 AI: Easy (Boot Sandbox)</option>
+        <option value="medium" selected>⚡ AI: Medium (Daemon Run)</option>
+        <option value="hard">🔥 AI: Hard (Ring-0 Gauntlet)</option>
+        <option value="extreme">💀 AI: Extreme (Kaizo Kernel)</option>
+      </select>
+
+      <button id="btnGenerateCourse" class="hdr-btn ai-btn" title="Procedural AI Course Architect [G]">
+        🎲 AI GENERATE [G]
+      </button>
+
+      <button id="btnUndo" class="hdr-btn" title="Undo [Ctrl+Z]">↩️ Undo</button>
+      <button id="btnRedo" class="hdr-btn" title="Redo [Ctrl+Y]">↪️ Redo</button>
+      <button id="btnSaveSlot" class="hdr-btn" title="Save Course to Local Slot">💾 Save</button>
+      <button id="btnShareJson" class="hdr-btn" title="Export or Import Course JSON">📦 JSON</button>
+      <button id="btnAudioToggle" class="hdr-btn active-toggle" title="Toggle Chiptune Synth &amp; SFX [M]">🔊 Synth ON</button>
+    </div>
+  </header>
+
+  <!-- SECONDARY PRO EDITOR TOOLBAR & MODIFIER PILLS -->
+  <section id="editorSubBar">
+    <div class="tool-group" id="toolPalette">
+      <span class="group-label">Tools:</span>
+      <button class="tool-pill active" data-tool="brush" title="Paint Tiles &amp; Objects [B]">✏️ Brush</button>
+      <button class="tool-pill" data-tool="line" title="Draw Straight Line [L]">📏 Line</button>
+      <button class="tool-pill" data-tool="rect" title="Draw Rectangular Box Fill [R]">⬛ Box Fill</button>
+      <button class="tool-pill" data-tool="bucket" title="Flood Fill Connected Region [K]">🪣 Bucket</button>
+      <button class="tool-pill" data-tool="rail" title="Paint Guided Rail Tracks [T]">🛤️ Rail Track</button>
+      <button class="tool-pill" data-tool="wire" title="Link Switch/Sensor to Door/Trap/Firewall [W]">🔌 Logic Wire</button>
+      <button class="tool-pill" data-tool="eyedropper" title="Pick Object from Canvas [I]">💧 Eyedropper</button>
+      <button class="tool-pill" data-tool="eraser" title="Erase Tile or Object [X / Right-Click]">🧽 Eraser</button>
+      <button class="mod-pill" id="btnBrushSize" title="Cycle Brush Stamp Size (1x1 / 2x2 / 3x3)">🖌️ Size: 1×1</button>
+      <button class="mod-pill" id="btnClearCourse" title="Clear Course Grid (With Undo Support)">🗑️ Clear</button>
+    </div>
+
+    <div class="modifier-group" id="modifierBar">
+      <span class="group-label">Mods:</span>
+      <button class="mod-pill" id="modWings" title="Attach Wings (Object flies/bobs in sine wave)">🪽 Wings</button>
+      <button class="mod-pill" id="modParachute" title="Attach Parachute (Slow descent)">🪂 Parachute</button>
+      <button class="mod-pill" id="modGiant" title="2x Giant Scale Modifier">👑 Giant 2x</button>
+      <button class="mod-pill" id="modPayload" title="Embed Power-Up Payload inside ? Block">📦 Payload: Tux Suit</button>
+      <button class="mod-pill active" id="btnOnionTrail" title="Toggle Onion-Skin Playtest Jump Trajectory">👻 Trail</button>
+    </div>
+
+    <div class="telemetry-group">
+      <div class="hud-stat">⚡ FPS: <span id="hudFps" style="color:#4ade80;">60</span></div>
+      <div class="hud-stat">HERO: <span id="hudHeroForm">🐧 TUX ICE</span></div>
+      <div class="hud-stat">COINS: <span id="hudCoins">00</span></div>
+      <div class="hud-stat">SWITCH: <span id="hudSwitchState" style="color:#f87171;">ON (RED)</span></div>
+      <div class="hud-stat">TIME: <span id="hudTimer">300</span></div>
+    </div>
+  </section>
+
+  <!-- MAIN WORKSPACE -->
+  <main id="mainWorkspace">
+    <aside id="paletteDock">
+      <div class="cat-tabs" id="categoryTabs">
+        <button class="cat-tab active" data-cat="all">🌟 Showcase (All)</button>
+        <button class="cat-tab" data-cat="terrain">🧱 Terrain &amp; Gizmos</button>
+        <button class="cat-tab" data-cat="linux">🐧 Linux Kernel</button>
+        <button class="cat-tab" data-cat="macos">🍎 macOS Darwin</button>
+        <button class="cat-tab" data-cat="bsd">😈 BSD Citadel</button>
+        <button class="cat-tab" data-cat="win95">🪟 Windows NT</button>
+      </div>
+
+      <div id="paletteGrid"></div>
+
+      <div id="selectedInspector">
+        <div class="insp-title" id="inspTitle">❓ Mystery Block (Payload Container)</div>
+        <div class="insp-desc" id="inspDesc">Bump from below or strike with Tarball/Trident to eject embedded OS Power-Ups or Coins.</div>
+      </div>
+    </aside>
+
+    <section id="canvasContainer">
+      <canvas id="gameCanvas" width="1160" height="640"></canvas>
+
+      <div id="floatingOverlay">
+        <div class="banner-pill" id="statusBanner">
+          🛠️ <strong>EDIT STUDIO ACTIVE</strong> — Left-Click: Place • Right-Click: Erase • Drag Minimap to Scrub • Press <strong>[P]</strong> to Playtest or <strong>[V]</strong> for AI Bot!
+        </div>
+
+        <div id="bossHudBox">
+          <div id="bossHudTitle">👹 MECHA-BEASTIE DAEMON KING (/usr/sbin/daemon)</div>
+          <div class="boss-hp-track">
+            <div id="bossHpFill"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- BOTTOM MINIMAP SCRUBBER & HOTKEY FOOTER -->
+  <footer id="bottomFooter">
+    <div class="minimap-wrap">
+      <span class="group-label">🗺️ COURSE MAP (120×20):</span>
+      <canvas id="minimapCanvas" width="520" height="36"></canvas>
+    </div>
+
+    <div class="controls-legend">
+      <span><span class="key-cap">WASD / Arrows</span> Move, Wall-Jump &amp; Ground-Pound</span>
+      <span><span class="key-cap">Space / Z</span> Jump</span>
+      <span><span class="key-cap">C</span> Spin-Jump</span>
+      <span><span class="key-cap">F</span> Hero Weapon</span>
+      <span><span class="key-cap">V</span> AI Speedrunner</span>
+      <span><span class="key-cap">Q</span> Rewind</span>
+      <span><span class="key-cap">P / Tab</span> Edit ↔ Play</span>
+    </div>
+  </footer>
+
+  <!-- JSON SHARE / EXPORT MODAL -->
+  <div class="modal-backdrop" id="shareModal">
+    <div class="modal-card">
+      <h2>📦 Codecaine CyberMaker Course JSON Blueprint</h2>
+      <p style="font-size:12px;color:#94a3b8;">Copy this JSON blueprint to share your custom OS course, or paste a blueprint below and click Load Blueprint.</p>
+      <textarea id="jsonTextarea" spellcheck="false"></textarea>
+      <div class="modal-actions">
+        <button class="hdr-btn" id="btnCopyJson">📋 Copy JSON</button>
+        <button class="hdr-btn ai-btn" id="btnImportJson">🚀 Load Blueprint</button>
+        <button class="hdr-btn" id="btnCloseModal">✖ Close</button>
+      </div>
+    </div>
+  </div>
+<script>
+(() => {
+  "use strict";
+
+  // ============================================================================
+  // 1. GRID CONSTANTS & 38 OS KERNEL OBJECT CATALOG
+  // ============================================================================
+  const TILE = 32;
+  const GRID_W = 120;
+  const GRID_H = 20;
+
+  const PAYLOAD_CYCLE = ["tux_suit", "bsd_trident", "sudo_star", "timemachine_orb", "tarball_bomb", "coin"];
+  const PAYLOAD_NAMES = {
+    tux_suit: "🐧 Tux Suit",
+    bsd_trident: "🔱 BSD Trident",
+    sudo_star: "👑 Sudo Star",
+    timemachine_orb: "⏪ Rewind Orb",
+    tarball_bomb: "📦 Tarball",
+    coin: "🪙 Bit-Coin"
+  };
+
+  const HERO_META = {
+    tux:    { name: "🐧 TUX PENGUIN", color: "#0f172a", trim: "#f97316", desc: "Ice Belly-Slide + Cryo Snowballs [F]" },
+    bsd:    { name: "😈 BEASTIE DAEMON", color: "#dc2626", trim: "#fde047", desc: "Mid-Air Double Jump + 3-Way Tridents [F]" },
+    clarus: { name: "🍎 CLARUS DOGCOW", color: "#f8fafc", trim: "#38bdf8", desc: "Auto Spin-Bounce + Aqua Laser [F]" },
+    clippy: { name: "📎 CLIPPY MECH", color: "#94a3b8", trim: "#facc15", desc: "Hover Glide + Mid-Air Lift Pad [F]" },
+    bao:    { name: "🥟 BAO SPEEDSTER", color: "#fef08a", trim: "#f43f5e", desc: "1.25x Overclocked + Hyper-Dash [F]" }
+  };
+
+  const ITEMS = [
+    // Terrain & Core Maker Gizmos
+    { id: "brick", name: "Kernel Brick", icon: "🧱", cat: "terrain", badge: "SOLID", solid: true, desc: "Core OS memory brick. Smashable via Tux Belly-Slide, Ground-Pound, or Tarball Bomb." },
+    { id: "pkg_block", name: "Package Block", icon: "📦", cat: "terrain", badge: "BREAK", solid: true, desc: "Breakable apt/pkg dependency crate that bursts into golden bits when struck." },
+    { id: "mystery", name: "❓ Mystery Block", icon: "❓", cat: "terrain", badge: "ITEM", solid: true, desc: "Hit from below to spawn its embedded OS Power-Up, Tarball, or Bit-Coin." },
+    { id: "onoff_switch", name: "❗ ON/OFF Switch", icon: "❗", cat: "terrain", badge: "LOGIC", solid: true, desc: "Hit from below or strike with a projectile to toggle Red/Blue blocks, conveyors & PF Firewalls!" },
+    { id: "red_block", name: "🟥 Red Dotted (ON)", icon: "🟥", cat: "terrain", badge: "ON", solid: true, desc: "Solid when global switch state is ON (Red); turns into intangible dotted outline when OFF." },
+    { id: "blue_block", name: "🟦 Blue Dotted (OFF)", icon: "🟦", cat: "terrain", badge: "OFF", solid: true, desc: "Solid when global switch state is OFF (Blue); intangible dotted outline when ON." },
+    { id: "semisolid", name: "☁️ Semisolid Window", icon: "🪟", cat: "terrain", badge: "1-WAY", semisolid: true, desc: "Jump up through the window titlebar from below and stand securely on top." },
+    { id: "donut", name: "🍩 Donut Lift", icon: "🍩", cat: "terrain", badge: "DROP", semisolid: true, desc: "Shakes and falls downward 0.65s after the hero stands on top of it." },
+    { id: "note_block", name: "🎵 Note Spring", icon: "🎵", cat: "terrain", badge: "BOUNCE", solid: true, desc: "Musical synthesizer block that bounces the hero high into the sky." },
+    { id: "conveyor", name: "⚡ Conveyor Belt", icon: "⏩", cat: "terrain", badge: "BELT", solid: true, desc: "High-speed motorized data bus belt. Reverses direction when ON/OFF Switch flips!" },
+    { id: "warp_pipe", name: "🟢 Warp Pipe", icon: "🟢", cat: "terrain", badge: "PIPE", solid: true, desc: "Iconic Unix pipeline (|). Press Down/S on top to warp to the next Warp Pipe!" },
+    { id: "spawn_pad", name: "🟢 Spawn Point", icon: "🎯", cat: "terrain", badge: "START", trigger: true, desc: "Custom course start pad! Moves the hero's initial spawn position here." },
+    { id: "checkpoint", name: "🚩 Git Checkpoint", icon: "🚩", cat: "terrain", badge: "SAVE", trigger: true, desc: "git commit -m 'checkpoint': Saves mid-course respawn coordinates." },
+    { id: "goal_gate", name: "🏁 Kernel Goal Gate", icon: "🏁", cat: "terrain", badge: "GOAL", trigger: true, desc: "Touch the rotating Golden Kernel Build tape to clear the course!" },
+    { id: "coin", name: "🪙 Bit-Coin Packet", icon: "🪙", cat: "terrain", badge: "COIN", trigger: true, desc: "Floating Golden Kernel Packet worth +100 score." },
+
+    // Linux Kernel Arsenal & Hazards
+    { id: "tux_suit", name: "🐧 Tux Ice Suit", icon: "🐧", cat: "linux", badge: "POWER", powerup: true, desc: "Grants Linux Penguin Suit! Hold Down/S + Move to Belly-Slide and press [F] for Cryo Snowballs!" },
+    { id: "sudo_star", name: "👑 Sudo Root Star", icon: "👑", cat: "linux", badge: "ROOT", powerup: true, desc: "sudo su — Grants 10 seconds of rainbow Root invincibility and 1.35x speed!" },
+    { id: "tarball_bomb", name: "📦 Tarball Bomb", icon: "💣", cat: "linux", badge: "THROW", entity: true, desc: "tar -xzf archive bomb! Press [F] to hurl and blast bricks, firewalls, and bosses." },
+    { id: "cron_block", name: "⚙️ Cron Beat Block", icon: "⚙️", cat: "linux", badge: "2.0s", solid: true, desc: "crontab */2: Alternates between solid steel and ghost wireframe every 2 seconds." },
+    { id: "zombie_proc", name: "👾 Zombie <defunct>", icon: "👾", cat: "linux", badge: "ENEMY", enemy: true, desc: "Patrols with gravity & wall turn-around. Stomping flattens it; purge with Trident/Slide!" },
+    { id: "oom_reaper", name: "💀 OOM Killer Drone", icon: "💀", cat: "linux", badge: "GHOST", enemy: true, desc: "Out-Of-Memory Kernel Reaper that phases through walls when you look away." },
+
+    // macOS Aqua & Cupertino Glass Arsenal & Hazards
+    { id: "macos_dock", name: "🚀 macOS Dock Spring", icon: "🚀", cat: "macos", badge: "2.5x", solid: true, desc: "Magnifies smoothly with spring physics as you approach and launches 2.5x higher!" },
+    { id: "beachball", name: "🌈 Spinning Beachball", icon: "🌈", cat: "macos", badge: "KAIZO", enemy: true, desc: "Spinning Wait Cursor sawblade! Normal touch hurts, but Spin-Jump [C] bounces safely off top!" },
+    { id: "spotlight_turret", name: "🔍 Spotlight Turret", icon: "🔍", cat: "macos", badge: "LASER", solid: true, desc: "Fires periodic cyan optical index laser beams across the course." },
+    { id: "timemachine_orb", name: "⏪ Time Machine Orb", icon: "⏪", cat: "macos", badge: "REWIND", powerup: true, desc: "Collect or press [Q] to rewind your hero's position and health 3 seconds back in time!" },
+
+    // FreeBSD / OpenBSD Daemon Citadel Arsenal & Hazards
+    { id: "bsd_trident", name: "🔱 Beastie Pitchfork", icon: "🔱", cat: "bsd", badge: "POWER", powerup: true, desc: "Grants FreeBSD Daemon Horns & Double-Jump! Press [F] to hurl 3-way flaming red tridents!" },
+    { id: "puffy_fish", name: "🐡 Puffy Spike-Fish", icon: "🐡", cat: "bsd", badge: "ENEMY", enemy: true, desc: "OpenBSD mascot! Spiky blowfish hazard that can be spin-jumped [C] over pits." },
+    { id: "pf_firewall", name: "🔥 PF Firewall Laser", icon: "🔥", cat: "bsd", badge: "GATE", hazard: true, desc: "Vertical packet-filter laser barrier. Deactivate via ON/OFF switch or Logic Wire!" },
+    { id: "boss_beastie", name: "👹 Mecha-Beastie Boss", icon: "👹", cat: "bsd", badge: "BOSS", enemy: true, boss: true, desc: "10-HP Daemon Citadel King! Leaps across arenas, throws tridents, and drops a Goal Key." },
+
+    // Windows 95 / NT Vaporwave Arsenal & Hazards
+    { id: "bsod_thwomp", name: "🟦 BSOD Thwomp", icon: "🟦", cat: "win95", badge: "SLAM", enemy: true, desc: "KERNEL_DATA_INPAGE_ERROR! Slams down with heavy screen-shake when you pass underneath!" },
+    { id: "clippy_helper", name: "📎 Clippy Lift Helper", icon: "📎", cat: "win95", badge: "ALLY", semisolid: true, desc: "Pops up a solid yellow speech bubble ('Need a lift?') that you can stand on over pits!" },
+    { id: "minesweeper_tile", name: "💣 Minesweeper Tile", icon: "🔢", cat: "win95", badge: "1.2s", solid: true, desc: "Reveals 1 / 2 / 3 proximity digits when stepped on and detonates 1.2s later!" },
+    { id: "hourglass_zone", name: "⏳ Hourglass Lag Zone", icon: "⏳", cat: "win95", badge: "SLOW", trigger: true, desc: "Win95 Wait Cursor field that slows gravity & hazards into precision bullet-time." },
+
+    // Bun & Extra Cyber Objects
+    { id: "bun_booster", name: "🥟 Bun Turbo Pad", icon: "🥟", cat: "terrain", badge: "BOOST", trigger: true, desc: "bun:jsc hyper-accelerator pad that launches your horizontal velocity!" },
+    { id: "kernel_spike", name: "🔺 Kernel Panic Spike", icon: "🔺", cat: "terrain", badge: "HAZARD", hazard: true, desc: "Razor-sharp segfault spike trap." }
+  ];
+
+  const ITEM_MAP = Object.fromEntries(ITEMS.map(it => [it.id, it]));
+
+  // ============================================================================
+  // 2. OS KERNEL WORLD THEMES
+  // ============================================================================
+  const OS_THEMES = {
+    linux: {
+      name: "🐧 Linux Kernel Tundra (/boot/vmlinuz)",
+      skyTop: "#06101e",
+      skyBot: "#122b43",
+      accent: "#38bdf8",
+      gridColor: "rgba(56, 189, 248, 0.11)",
+      groundTop: "#38bdf8",
+      groundFill: "#1e293b",
+      friction: 0.84,
+      gravity: 0.52,
+      banner: "🐧 Linux Kernel Tundra — Low-friction icy kernel pipelines & terminal aurora"
+    },
+    macos: {
+      name: "🍎 macOS Aqua & Cupertino Glass (Darwin XNU)",
+      skyTop: "#0f172a",
+      skyBot: "#1e1b4b",
+      accent: "#c084fc",
+      gridColor: "rgba(192, 132, 252, 0.11)",
+      groundTop: "#e879f9",
+      groundFill: "#312e81",
+      friction: 0.88,
+      gravity: 0.50,
+      banner: "🍎 macOS Aqua Glass — Translucent Vibrancy panels, Dock Springboards & Rainbow Beachballs"
+    },
+    bsd: {
+      name: "😈 FreeBSD / OpenBSD Daemon Citadel (/usr/src/sys)",
+      skyTop: "#1a050d",
+      skyBot: "#3b0a1e",
+      accent: "#f43f5e",
+      gridColor: "rgba(244, 63, 94, 0.12)",
+      groundTop: "#fb7185",
+      groundFill: "#4c0519",
+      friction: 0.87,
+      gravity: 0.53,
+      banner: "😈 FreeBSD Daemon Citadel — Volcanic packet-filter bastions & Mecha-Beastie Bosses"
+    },
+    win95: {
+      name: "🪟 Windows 95 / NT Vaporwave Desktop (C:\\WINDOWS)",
+      skyTop: "#004e4e",
+      skyBot: "#008080",
+      accent: "#facc15",
+      gridColor: "rgba(255, 255, 255, 0.12)",
+      groundTop: "#c0c0c0",
+      groundFill: "#475569",
+      friction: 0.88,
+      gravity: 0.52,
+      banner: "🪟 Windows 95 Vaporwave — Teal #008080 desktop, BSOD Thwomps, Minesweeper & Clippy lifts"
+    },
+    bun: {
+      name: "🥟 Bun & Codecaine Cyber-Core (bun:jsc Neon)",
+      skyTop: "#090618",
+      skyBot: "#1e1035",
+      accent: "#fde047",
+      gridColor: "rgba(253, 224, 71, 0.11)",
+      groundTop: "#facc15",
+      groundFill: "#1f1638",
+      friction: 0.89,
+      gravity: 0.49,
+      banner: "🥟 Bun & Codecaine Cyber-Core — Overclocked 1.15x speed neon grid & turbo pads"
+    }
+  };
+
+  // ============================================================================
+  // 3. WEB AUDIO CHIPTUNE & SFX SYNTHESIZER
+  // ============================================================================
+  let audioCtx = null;
+  let audioEnabled = true;
+
+  function playSfx(type) {
+    if (!audioEnabled) return;
+    try {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        audioCtx = new AC();
+      }
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === "jump") {
+        osc.type = "square";
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(620, now + 0.14);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.linearRampToValueAtTime(0.001, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      } else if (type === "spin") {
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(340, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.18);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.linearRampToValueAtTime(0.001, now + 0.18);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      } else if (type === "coin") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(987.77, now);
+        osc.frequency.setValueAtTime(1318.51, now + 0.06);
+        gain.gain.setValueAtTime(0.09, now);
+        gain.gain.linearRampToValueAtTime(0.001, now + 0.22);
+        osc.start(now);
+        osc.stop(now + 0.22);
+      } else if (type === "switch") {
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.setValueAtTime(390, now + 0.07);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.linearRampToValueAtTime(0.001, now + 0.16);
+        osc.start(now);
+        osc.stop(now + 0.16);
+      } else if (type === "powerup" || type === "warp") {
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(type === "warp" ? 660 : 330, now);
+        osc.frequency.exponentialRampToValueAtTime(type === "warp" ? 220 : 990, now + 0.28);
+        gain.gain.setValueAtTime(0.11, now);
+        gain.gain.linearRampToValueAtTime(0.001, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } else if (type === "thwomp") {
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(130, now);
+        osc.frequency.exponentialRampToValueAtTime(38, now + 0.25);
+        gain.gain.setValueAtTime(0.14, now);
+        gain.gain.linearRampToValueAtTime(0.001, now + 0.26);
+        osc.start(now);
+        osc.stop(now + 0.26);
+      } else if (type === "place") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(640, now);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.linearRampToValueAtTime(0.001, now + 0.06);
+        osc.start(now);
+        osc.stop(now + 0.06);
+      }
+    } catch (_) {}
+  }
+
+  // ============================================================================
+  // 4. PRE-BAKED 2X RETINA SPRITE ATLAS & PANORAMIC PARALLAX WORLD CACHE
+  // ============================================================================
+  // On macOS Apple Silicon WKWebView, CoreText emoji fillText costs ~1.5ms/call.
+  // Pre-baking 2x Retina 3D-shaded sprites and 1280x640 panoramic parallax backdrops
+  // into offscreen canvases gives breathtaking HD visuals at <0.005ms Metal blits!
+  const spriteCache = new Map();
+  const bgCache = new Map();
+
+  function getCachedParallaxWorld(themeKey) {
+    let can = bgCache.get(themeKey);
+    if (can) return can;
+
+    const W = 1280;
+    const H = 640;
+    can = document.createElement("canvas");
+    can.width = W;
+    can.height = H;
+    const g = can.getContext("2d");
+    const theme = OS_THEMES[themeKey] || OS_THEMES.linux;
+
+    // 1. Multi-Stop Deep Atmospheric Sky Gradient
+    const sky = g.createLinearGradient(0, 0, 0, H);
+    if (themeKey === "linux") {
+      sky.addColorStop(0, "#030712");
+      sky.addColorStop(0.45, "#0c2444");
+      sky.addColorStop(0.8, "#0f3f68");
+      sky.addColorStop(1, "#09192f");
+    } else if (themeKey === "macos") {
+      sky.addColorStop(0, "#051329");
+      sky.addColorStop(0.48, "#0b3b69");
+      sky.addColorStop(0.82, "#155e95");
+      sky.addColorStop(1, "#0a2540");
+    } else if (themeKey === "bsd") {
+      sky.addColorStop(0, "#120309");
+      sky.addColorStop(0.5, "#3b0718");
+      sky.addColorStop(0.85, "#6b0f24");
+      sky.addColorStop(1, "#2a050d");
+    } else if (themeKey === "win95") {
+      sky.addColorStop(0, "#022c2e");
+      sky.addColorStop(0.45, "#065f63");
+      sky.addColorStop(0.8, "#0e7490");
+      sky.addColorStop(1, "#083344");
+    } else {
+      sky.addColorStop(0, "#070312");
+      sky.addColorStop(0.45, "#1e0b3b");
+      sky.addColorStop(0.82, "#3b0764");
+      sky.addColorStop(1, "#14052b");
+    }
+    g.fillStyle = sky;
+    g.fillRect(0, 0, W, H);
+
+    // 2. Celestial Nebula / Synthwave Sun / Aurora Ribbons + Starfield
+    for (let i = 0; i < 95; i++) {
+      const sx = (i * 137.5) % W;
+      const sy = (i * 73.1) % (H * 0.58);
+      const r = (i % 3 === 0) ? 1.8 : 1.0;
+      g.fillStyle = i % 5 === 0 ? theme.groundTop : "rgba(255,255,255,0.55)";
+      g.beginPath();
+      g.arc(sx, sy, r, 0, Math.PI * 2);
+      g.fill();
+    }
+
+    // Glowing Synth Sun / Orbital Core
+    const sunX = 920;
+    const sunY = 175;
+    const sunGrad = g.createRadialGradient(sunX, sunY, 10, sunX, sunY, 130);
+    if (themeKey === "bsd") {
+      sunGrad.addColorStop(0, "rgba(253, 224, 71, 0.75)");
+      sunGrad.addColorStop(0.45, "rgba(244, 63, 94, 0.45)");
+      sunGrad.addColorStop(1, "rgba(244, 63, 94, 0)");
+    } else if (themeKey === "bun" || themeKey === "win95") {
+      sunGrad.addColorStop(0, "rgba(250, 204, 21, 0.72)");
+      sunGrad.addColorStop(0.5, "rgba(236, 72, 153, 0.38)");
+      sunGrad.addColorStop(1, "rgba(236, 72, 153, 0)");
+    } else {
+      sunGrad.addColorStop(0, "rgba(125, 211, 252, 0.65)");
+      sunGrad.addColorStop(0.5, "rgba(56, 189, 248, 0.25)");
+      sunGrad.addColorStop(1, "rgba(56, 189, 248, 0)");
+    }
+    g.fillStyle = sunGrad;
+    g.beginPath();
+    g.arc(sunX, sunY, 130, 0, Math.PI * 2);
+    g.fill();
+
+    // Aurora Wave Ribbon across upper sky
+    g.save();
+    g.strokeStyle = theme.groundTop;
+    g.globalAlpha = 0.16;
+    g.lineWidth = 22;
+    g.beginPath();
+    for (let x = 0; x <= W; x += 32) {
+      const y = 115 + Math.sin((x / W) * Math.PI * 4) * 28 + Math.cos((x / W) * Math.PI * 2) * 14;
+      if (x === 0) g.moveTo(x, y);
+      else g.lineTo(x, y);
+    }
+    g.stroke();
+    g.restore();
+
+    // 3. Far Silhouette Mountain Range / Gothic Spires / Wireframe Pyramids (Seamless Tileable)
+    g.save();
+    const farColor = themeKey === "bsd" ? "rgba(45, 6, 18, 0.85)"
+      : themeKey === "win95" ? "rgba(4, 47, 46, 0.82)"
+      : themeKey === "bun" ? "rgba(24, 8, 48, 0.85)"
+      : "rgba(7, 20, 42, 0.82)";
+    g.fillStyle = farColor;
+    g.strokeStyle = theme.groundTop;
+    g.lineWidth = 1.5;
+    g.beginPath();
+    g.moveTo(0, H);
+    const peaks = [
+      [0, 390], [110, 285], [220, 360], [340, 240], [470, 355],
+      [590, 265], [720, 370], [850, 235], [980, 345], [1120, 270], [1280, 390]
+    ];
+    for (const [px, py] of peaks) g.lineTo(px, py);
+    g.lineTo(W, H);
+    g.closePath();
+    g.fill();
+    g.globalAlpha = 0.35;
+    g.stroke();
+    g.restore();
+
+    // 4. Midground Cyber-Citadel Skyline / Server Racks & Translucent OS Terminal Windows
+    const winTitle = themeKey === "linux" ? "root@kernel:~# uname -a && dmesg"
+      : themeKey === "macos" ? "Darwin XNU 24.0 • Aqua Quartz Compositor"
+      : themeKey === "bsd" ? "FreeBSD /usr/src/sys/kern/init_main.c"
+      : themeKey === "win95" ? "C:\\WINDOWS\\SYSTEM32\\KERNEL32.DLL"
+      : "bun:jsc • Zig + WebKit FTL Turbo JIT";
+
+    for (let i = 0; i < 4; i++) {
+      const wx = 55 + i * 320;
+      const wy = 155 + (i % 2) * 38;
+      const ww = 230;
+      const wh = 128;
+
+      // Server tower pillar below window
+      g.fillStyle = "rgba(8, 14, 30, 0.55)";
+      g.fillRect(wx + 24, wy + wh, ww - 48, H - (wy + wh));
+      g.strokeStyle = "rgba(56, 189, 248, 0.14)";
+      g.strokeRect(wx + 24, wy + wh, ww - 48, H - (wy + wh));
+
+      // Holographic OS Terminal Window
+      g.fillStyle = "rgba(10, 18, 38, 0.62)";
+      g.strokeStyle = "rgba(125, 211, 252, 0.26)";
+      g.lineWidth = 1.5;
+      g.beginPath();
+      g.roundRect(wx, wy, ww, wh, 8);
+      g.fill();
+      g.stroke();
+
+      // Window Titlebar
+      g.fillStyle = "rgba(56, 189, 248, 0.18)";
+      g.beginPath();
+      g.roundRect(wx, wy, ww, 22, [8, 8, 0, 0]);
+      g.fill();
+
+      // Traffic light window buttons
+      const dots = ["#ef4444", "#facc15", "#22c55e"];
+      for (let d = 0; d < 3; d++) {
+        g.fillStyle = dots[d];
+        g.beginPath();
+        g.arc(wx + 12 + d * 11, wy + 11, 3.2, 0, Math.PI * 2);
+        g.fill();
+      }
+
+      g.fillStyle = "rgba(226, 232, 240, 0.65)";
+      g.font = "bold 9px monospace";
+      g.fillText(winTitle.slice(0, 28), wx + 48, wy + 14);
+
+      // Simulated syntax-highlighted code lines inside window
+      for (let row = 0; row < 5; row++) {
+        const ly = wy + 34 + row * 16;
+        g.fillStyle = row % 2 === 0 ? "rgba(56, 189, 248, 0.28)" : "rgba(250, 204, 21, 0.25)";
+        g.fillRect(wx + 14, ly, 36 + ((i * 19 + row * 29) % 50), 5);
+        g.fillStyle = "rgba(148, 163, 184, 0.22)";
+        g.fillRect(wx + 64 + ((row * 17) % 30), ly, 70 + ((row * 23) % 60), 5);
+      }
+    }
+
+    bgCache.set(themeKey, can);
+    return can;
+  }
+
+  function renderSpriteToCtx(g, id, size, theme, stateFlags = {}) {
+    g.save();
+    const s = size;
+
+    if (id === "brick") {
+      // 3D Beveled Cyber-Masonry Block with Top Neon Grass/Ice/Circuit Cap
+      const grad = g.createLinearGradient(0, 0, 0, s);
+      grad.addColorStop(0, theme.groundFill);
+      grad.addColorStop(1, "#090f1f");
+      g.fillStyle = grad;
+      g.fillRect(0, 0, s, s);
+
+      // Outer 3D bevel highlight & shadow
+      g.fillStyle = "rgba(255,255,255,0.16)";
+      g.fillRect(0, 0, s, 2);
+      g.fillRect(0, 0, 2, s);
+      g.fillStyle = "rgba(0,0,0,0.45)";
+      g.fillRect(0, s - 2, s, 2);
+      g.fillRect(s - 2, 0, 2, s);
+
+      // Brick masonry courses & mortar joints
+      g.fillStyle = "rgba(0,0,0,0.38)";
+      g.fillRect(0, 12, s, 2);
+      g.fillRect(0, 22, s, 2);
+      g.fillRect(15, 6, 2, 6);
+      g.fillRect(8, 14, 2, 8);
+      g.fillRect(23, 14, 2, 8);
+      g.fillRect(15, 24, 2, 8);
+
+      // Brick course specular highlights
+      g.fillStyle = "rgba(255,255,255,0.12)";
+      g.fillRect(2, 14, s - 4, 1.5);
+      g.fillRect(2, 24, s - 4, 1.5);
+
+      // Top Glowing Neon Turf / Cryo / Circuit Cap (6px rim + teeth overhangs)
+      g.fillStyle = theme.groundTop;
+      g.fillRect(0, 0, s, 6);
+      g.fillRect(3, 6, 5, 2);
+      g.fillRect(14, 6, 6, 2.5);
+      g.fillRect(24, 6, 5, 2);
+      g.fillStyle = "rgba(255,255,255,0.55)";
+      g.fillRect(1, 1, s - 2, 2);
+    } else if (id === "pkg_block") {
+      // 3D Amber Cargo Crate with Wood/Carbon Slats, Diagonal Brace & Corner Rivets
+      const grad = g.createLinearGradient(0, 0, s, s);
+      grad.addColorStop(0, "#d97706");
+      grad.addColorStop(0.5, "#b45309");
+      grad.addColorStop(1, "#78350f");
+      g.fillStyle = grad;
+      g.beginPath();
+      g.roundRect(1, 1, s - 2, s - 2, 4);
+      g.fill();
+
+      // Inner recessed panel
+      g.fillStyle = "#92400e";
+      g.fillRect(5, 5, s - 10, s - 10);
+
+      // Diagonal cross-brace
+      g.strokeStyle = "#b45309";
+      g.lineWidth = 3;
+      g.beginPath();
+      g.moveTo(5, 5);
+      g.lineTo(s - 5, s - 5);
+      g.moveTo(s - 5, 5);
+      g.lineTo(5, s - 5);
+      g.stroke();
+
+      // Golden frame border
+      g.strokeStyle = "#fde047";
+      g.lineWidth = 1.8;
+      g.strokeRect(2, 2, s - 4, s - 4);
+
+      // 4 Corner Rivets
+      g.fillStyle = "#fef08a";
+      for (const [rx, ry] of [[4.5, 4.5], [s - 4.5, 4.5], [4.5, s - 4.5], [s - 4.5, s - 4.5]]) {
+        g.beginPath();
+        g.arc(rx, ry, 1.6, 0, Math.PI * 2);
+        g.fill();
+      }
+
+      // Crisp PKG plate
+      g.fillStyle = "rgba(9, 13, 22, 0.82)";
+      g.fillRect(5, 11, s - 10, 10);
+      g.fillStyle = "#fde047";
+      g.font = "900 8.5px monospace";
+      g.fillText("PKG", 8, 19);
+    } else if (id === "mystery") {
+      // Radiant Golden 3D Question Block with Corner Rivets & Extruded '?'
+      const hit = !!stateFlags.hit;
+      const grad = g.createLinearGradient(0, 0, 0, s);
+      if (hit) {
+        grad.addColorStop(0, "#64748b");
+        grad.addColorStop(1, "#334155");
+      } else {
+        grad.addColorStop(0, "#fde047");
+        grad.addColorStop(0.55, "#f59e0b");
+        grad.addColorStop(1, "#b45309");
+      }
+      g.fillStyle = grad;
+      g.beginPath();
+      g.roundRect(1, 1, s - 2, s - 2, 5);
+      g.fill();
+
+      // Specular top bevel
+      g.fillStyle = hit ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.55)";
+      g.fillRect(3, 2, s - 6, 2.5);
+
+      g.strokeStyle = hit ? "#94a3b8" : "#fef08a";
+      g.lineWidth = 1.8;
+      g.strokeRect(2, 2, s - 4, s - 4);
+
+      // 4 Corner Rivets
+      g.fillStyle = hit ? "#1e293b" : "#78350f";
+      for (const [rx, ry] of [[5, 5], [s - 5, 5], [5, s - 5], [s - 5, s - 5]]) {
+        g.beginPath();
+        g.arc(rx, ry, 1.7, 0, Math.PI * 2);
+        g.fill();
+      }
+
+      if (!hit) {
+        // 3D drop-shadow + bright '?'
+        g.fillStyle = "#78350f";
+        g.font = "900 19px monospace";
+        g.fillText("?", 11, 24);
+        g.fillStyle = "#ffffff";
+        g.fillText("?", 9.5, 22.5);
+      }
+    } else if (id === "onoff_switch") {
+      const on = stateFlags.on !== false;
+      const grad = g.createLinearGradient(0, 0, 0, s);
+      if (on) {
+        grad.addColorStop(0, "#f87171");
+        grad.addColorStop(0.5, "#dc2626");
+        grad.addColorStop(1, "#7f1d1d");
+      } else {
+        grad.addColorStop(0, "#60a5fa");
+        grad.addColorStop(0.5, "#2563eb");
+        grad.addColorStop(1, "#1e3a8a");
+      }
+      g.fillStyle = grad;
+      g.beginPath();
+      g.roundRect(1, 1, s - 2, s - 2, 5);
+      g.fill();
+      g.strokeStyle = "#ffffff";
+      g.lineWidth = 2;
+      g.strokeRect(2.5, 2.5, s - 5, s - 5);
+
+      g.fillStyle = "rgba(0,0,0,0.45)";
+      g.font = "900 10px monospace";
+      g.fillText(on ? "ON!" : "OFF", 6, 20.5);
+      g.fillStyle = "#ffffff";
+      g.fillText(on ? "ON!" : "OFF", 5, 19.5);
+    } else if (id === "red_block" || id === "blue_block") {
+      const isRed = id === "red_block";
+      const active = stateFlags.active !== false;
+      const color = isRed ? "#ef4444" : "#38bdf8";
+      const dark = isRed ? "#991b1b" : "#0369a1";
+      if (active) {
+        const grad = g.createLinearGradient(0, 0, 0, s);
+        grad.addColorStop(0, color);
+        grad.addColorStop(1, dark);
+        g.fillStyle = grad;
+        g.beginPath();
+        g.roundRect(1.5, 1.5, s - 3, s - 3, 4);
+        g.fill();
+        g.strokeStyle = "#ffffff";
+        g.lineWidth = 1.5;
+        g.strokeRect(4, 4, s - 8, s - 8);
+      } else {
+        g.strokeStyle = color;
+        g.lineWidth = 2;
+        g.setLineDash([4, 3]);
+        g.strokeRect(3, 3, s - 6, s - 6);
+        g.setLineDash([]);
+      }
+    } else if (id === "semisolid") {
+      // Frosted OS Window Titlebar Platform
+      const grad = g.createLinearGradient(0, 0, 0, s);
+      grad.addColorStop(0, "rgba(30, 41, 59, 0.95)");
+      grad.addColorStop(1, "rgba(15, 23, 42, 0.72)");
+      g.fillStyle = grad;
+      g.fillRect(0, 0, s, s);
+
+      const barGrad = g.createLinearGradient(0, 0, 0, 10);
+      barGrad.addColorStop(0, "#7dd3fc");
+      barGrad.addColorStop(1, "#0284c7");
+      g.fillStyle = barGrad;
+      g.fillRect(0, 0, s, 9);
+
+      g.fillStyle = "#ef4444";
+      g.beginPath();
+      g.arc(5, 4.5, 2.2, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#facc15";
+      g.beginPath();
+      g.arc(11, 4.5, 2.2, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#22c55e";
+      g.beginPath();
+      g.arc(17, 4.5, 2.2, 0, Math.PI * 2);
+      g.fill();
+    } else if (id === "donut") {
+      const grad = g.createRadialGradient(s / 2, s / 2 - 2, 3, s / 2, s / 2, 15);
+      grad.addColorStop(0, "#fef08a");
+      grad.addColorStop(0.55, "#f59e0b");
+      grad.addColorStop(1, "#b45309");
+      g.fillStyle = grad;
+      g.beginPath();
+      g.roundRect(2, 4, s - 4, s - 8, 9);
+      g.fill();
+      g.strokeStyle = "#fde047";
+      g.lineWidth = 2;
+      g.stroke();
+      g.fillStyle = "#070b19";
+      g.beginPath();
+      g.arc(s / 2, s / 2, 5.5, 0, Math.PI * 2);
+      g.fill();
+    } else if (id === "note_block") {
+      const grad = g.createLinearGradient(0, 0, 0, s);
+      grad.addColorStop(0, "#f472b6");
+      grad.addColorStop(1, "#be185d");
+      g.fillStyle = grad;
+      g.beginPath();
+      g.roundRect(1, 1, s - 2, s - 2, 5);
+      g.fill();
+      g.strokeStyle = "#fbcfe8";
+      g.lineWidth = 2;
+      g.strokeRect(3, 3, s - 6, s - 6);
+      // Musical Eighth Note Vector Icon
+      g.fillStyle = "#ffffff";
+      g.beginPath();
+      g.arc(12, 21, 3.8, 0, Math.PI * 2);
+      g.arc(21, 19, 3.8, 0, Math.PI * 2);
+      g.fill();
+      g.fillRect(14, 9, 2.2, 12);
+      g.fillRect(23, 7, 2.2, 12);
+      g.fillRect(14, 7, 11, 3);
+    } else if (id === "conveyor") {
+      g.fillStyle = "#1e293b";
+      g.beginPath();
+      g.roundRect(0, 4, s, s - 8, 5);
+      g.fill();
+      g.strokeStyle = "#facc15";
+      g.lineWidth = 2;
+      g.strokeRect(1, 5, s - 2, s - 10);
+      g.fillStyle = "#38bdf8";
+      g.font = "900 11px monospace";
+      g.fillText(stateFlags.on !== false ? ">>>" : "<<<", 4.5, 20);
+    } else if (id === "warp_pipe") {
+      // Cylindrical 3D Metallic Green Unix Pipe with Specular Band & Lipped Collar
+      const bodyGrad = g.createLinearGradient(2, 0, s - 2, 0);
+      bodyGrad.addColorStop(0, "#064e3b");
+      bodyGrad.addColorStop(0.28, "#4ade80");
+      bodyGrad.addColorStop(0.55, "#16a34a");
+      bodyGrad.addColorStop(1, "#052e16");
+      g.fillStyle = bodyGrad;
+      g.fillRect(3, 9, s - 6, s - 9);
+
+      const rimGrad = g.createLinearGradient(0, 0, s, 0);
+      rimGrad.addColorStop(0, "#065f46");
+      rimGrad.addColorStop(0.25, "#86efac");
+      rimGrad.addColorStop(0.55, "#22c55e");
+      rimGrad.addColorStop(1, "#052e16");
+      g.fillStyle = rimGrad;
+      g.beginPath();
+      g.roundRect(0.5, 0.5, s - 1, 10, 3);
+      g.fill();
+
+      g.strokeStyle = "#022c22";
+      g.lineWidth = 1.5;
+      g.strokeRect(0.5, 0.5, s - 1, 10);
+      g.strokeRect(3, 10, s - 6, s - 10.5);
+    } else if (id === "spawn_pad") {
+      // Glowing Teleport Spawn Pad
+      const glow = g.createRadialGradient(s / 2, s - 6, 2, s / 2, s - 6, 16);
+      glow.addColorStop(0, "rgba(74, 222, 128, 0.65)");
+      glow.addColorStop(1, "rgba(74, 222, 128, 0)");
+      g.fillStyle = glow;
+      g.beginPath();
+      g.arc(s / 2, s - 6, 16, 0, Math.PI * 2);
+      g.fill();
+
+      g.fillStyle = "#16a34a";
+      g.beginPath();
+      g.roundRect(2, s - 8, s - 4, 7, 3);
+      g.fill();
+      g.strokeStyle = "#86efac";
+      g.lineWidth = 1.8;
+      g.stroke();
+
+      g.fillStyle = "#fde047";
+      g.font = "900 7.5px monospace";
+      g.fillText("INIT", 6, 15);
+    } else if (id === "checkpoint") {
+      g.fillStyle = "#cbd5e1";
+      g.fillRect(6, 3, 3.5, s - 3);
+      g.fillStyle = "#fde047";
+      g.beginPath();
+      g.arc(7.7, 3, 2.8, 0, Math.PI * 2);
+      g.fill();
+
+      const flagGrad = g.createLinearGradient(9, 4, 29, 14);
+      flagGrad.addColorStop(0, "#4ade80");
+      flagGrad.addColorStop(1, "#15803d");
+      g.fillStyle = flagGrad;
+      g.beginPath();
+      g.moveTo(9.5, 4);
+      g.lineTo(29, 11);
+      g.lineTo(9.5, 18);
+      g.closePath();
+      g.fill();
+      g.fillStyle = "#ffffff";
+      g.font = "900 7px monospace";
+      g.fillText("GIT", 11, 13.5);
+    } else if (id === "goal_gate") {
+      // Twin Metallic Goal Pillars + Glowing Checkered Victory Tape
+      const pGrad = g.createLinearGradient(0, 0, 0, s);
+      pGrad.addColorStop(0, "#f8fafc");
+      pGrad.addColorStop(0.5, "#94a3b8");
+      pGrad.addColorStop(1, "#475569");
+      g.fillStyle = pGrad;
+      g.fillRect(3, 0, 5, s);
+      g.fillRect(s - 8, 0, 5, s);
+
+      g.fillStyle = "#facc15";
+      g.fillRect(8, 7, s - 16, 12);
+      g.strokeStyle = "#fef08a";
+      g.lineWidth = 1.5;
+      g.strokeRect(8, 7, s - 16, 12);
+      g.fillStyle = "#090d16";
+      g.font = "900 6.5px monospace";
+      g.fillText("GOAL", 8.5, 15);
+    } else if (id === "coin") {
+      const cGrad = g.createRadialGradient(s / 2 - 3, s / 2 - 3, 2, s / 2, s / 2, 11);
+      cGrad.addColorStop(0, "#fef9c3");
+      cGrad.addColorStop(0.45, "#facc15");
+      cGrad.addColorStop(1, "#b45309");
+      g.fillStyle = cGrad;
+      g.beginPath();
+      g.arc(s / 2, s / 2, 10.5, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = "#fef08a";
+      g.lineWidth = 1.8;
+      g.stroke();
+      g.fillStyle = "#78350f";
+      g.fillRect(s / 2 - 2, s / 2 - 5.5, 4, 11);
+      g.fillStyle = "#fef9c3";
+      g.fillRect(s / 2 - 1, s / 2 - 4.5, 1.5, 9);
+    } else if (id === "tux_suit") {
+      // Full Sculpted Linux Penguin Silhouette + Glowing Ice-Crystal Aura
+      const aura = g.createRadialGradient(s / 2, s / 2, 3, s / 2, s / 2, s * 0.48);
+      aura.addColorStop(0, "rgba(56, 189, 248, 0.45)");
+      aura.addColorStop(1, "rgba(56, 189, 248, 0)");
+      g.fillStyle = aura;
+      g.beginPath();
+      g.arc(s / 2, s / 2, s * 0.48, 0, Math.PI * 2);
+      g.fill();
+
+      // Webbed Orange Feet
+      g.fillStyle = "#f97316";
+      g.beginPath();
+      g.ellipse(s * 0.34, s - 3.5, 4.5, 2.4, -0.2, 0, Math.PI * 2);
+      g.ellipse(s * 0.66, s - 3.5, 4.5, 2.4, 0.2, 0, Math.PI * 2);
+      g.fill();
+
+      // Spread Flippers
+      g.fillStyle = "#0f172a";
+      g.strokeStyle = "#38bdf8";
+      g.lineWidth = 1.2;
+      g.beginPath();
+      g.ellipse(5, s * 0.56, 3.2, 7.5, 0.42, 0, Math.PI * 2);
+      g.ellipse(s - 5, s * 0.56, 3.2, 7.5, -0.42, 0, Math.PI * 2);
+      g.fill();
+      g.stroke();
+
+      // Plump Penguin Torso & Head
+      const bodyGrad = g.createLinearGradient(0, 3, 0, s - 3);
+      bodyGrad.addColorStop(0, "#334155");
+      bodyGrad.addColorStop(0.4, "#0f172a");
+      bodyGrad.addColorStop(1, "#020617");
+      g.fillStyle = bodyGrad;
+      g.beginPath();
+      g.ellipse(s / 2, s * 0.57, 9.5, 11, 0, 0, Math.PI * 2);
+      g.arc(s / 2, s * 0.3, 7.5, 0, Math.PI * 2);
+      g.fill();
+
+      // Snow-White Oval Belly
+      g.fillStyle = "#f8fafc";
+      g.beginPath();
+      g.ellipse(s / 2, s * 0.61, 6.2, 7.8, 0, 0, Math.PI * 2);
+      g.fill();
+
+      // Cyan Cryo Goggles & Specular Eyes
+      g.fillStyle = "#38bdf8";
+      g.beginPath();
+      g.roundRect(s / 2 - 6.5, s * 0.22, 5.8, 4.5, 2);
+      g.roundRect(s / 2 + 0.7, s * 0.22, 5.8, 4.5, 2);
+      g.fill();
+      g.fillStyle = "#ffffff";
+      g.fillRect(s / 2 - 5, s * 0.24, 2, 2);
+      g.fillRect(s / 2 + 2, s * 0.24, 2, 2);
+
+      // Sculpted 3D Orange Diamond Beak
+      g.fillStyle = "#fb923c";
+      g.beginPath();
+      g.moveTo(s / 2 - 4, s * 0.34);
+      g.lineTo(s / 2 + 4, s * 0.34);
+      g.lineTo(s / 2, s * 0.45);
+      g.closePath();
+      g.fill();
+    } else if (id === "sudo_star") {
+      // Faceted 5-Pointed Golden Star + Inner Ruby Core + 3D Royal Root Crown on Top!
+      const cx = s / 2;
+      const cy = s / 2 + 2.5;
+      const sGrad = g.createRadialGradient(cx - 2, cy - 3, 2, cx, cy, 13);
+      sGrad.addColorStop(0, "#fef9c3");
+      sGrad.addColorStop(0.55, "#facc15");
+      sGrad.addColorStop(1, "#ca8a04");
+      g.fillStyle = sGrad;
+      g.strokeStyle = "#fef08a";
+      g.lineWidth = 1.6;
+      g.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const r = i % 2 === 0 ? 12.5 : 5.8;
+        const a = (i * Math.PI) / 5 - Math.PI / 2;
+        const px = cx + Math.cos(a) * r;
+        const py = cy + Math.sin(a) * r;
+        if (i === 0) g.moveTo(px, py);
+        else g.lineTo(px, py);
+      }
+      g.closePath();
+      g.fill();
+      g.stroke();
+
+      // Inner Faceted Ruby Power Core
+      g.fillStyle = "#f43f5e";
+      g.beginPath();
+      g.arc(cx, cy + 0.5, 4.2, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#fecdd3";
+      g.beginPath();
+      g.arc(cx - 1.2, cy - 0.8, 1.5, 0, Math.PI * 2);
+      g.fill();
+
+      // 3D Royal Root Crown Perched at Top
+      g.fillStyle = "#fde047";
+      g.strokeStyle = "#b45309";
+      g.lineWidth = 1.2;
+      g.beginPath();
+      g.moveTo(cx - 7, 9);
+      g.lineTo(cx - 8, 2.5);
+      g.lineTo(cx - 3.5, 6);
+      g.lineTo(cx, 1.5);
+      g.lineTo(cx + 3.5, 6);
+      g.lineTo(cx + 8, 2.5);
+      g.lineTo(cx + 7, 9);
+      g.closePath();
+      g.fill();
+      g.stroke();
+    } else if (id === "tarball_bomb") {
+      // Spiked Black-Iron Naval Mine / Bomb Sphere + Hazard Band + Burning Star Fuse!
+      const cx = s / 2;
+      const cy = s / 2 + 2.5;
+
+      // 6 Protruding Metallic Conical Studs around Perimeter
+      g.fillStyle = "#94a3b8";
+      g.strokeStyle = "#0f172a";
+      g.lineWidth = 1;
+      for (let i = 0; i < 6; i++) {
+        const a = (i * Math.PI) / 3 + 0.5;
+        const bx = cx + Math.cos(a) * 9.5;
+        const by = cy + Math.sin(a) * 9.5;
+        const tx = cx + Math.cos(a) * 14;
+        const ty = cy + Math.sin(a) * 14;
+        g.beginPath();
+        g.moveTo(bx - Math.sin(a) * 2.5, by + Math.cos(a) * 2.5);
+        g.lineTo(tx, ty);
+        g.lineTo(bx + Math.sin(a) * 2.5, by - Math.cos(a) * 2.5);
+        g.closePath();
+        g.fill();
+        g.stroke();
+      }
+
+      // 3D Cast-Iron Bomb Sphere
+      const bGrad = g.createRadialGradient(cx - 3.5, cy - 3.5, 1.5, cx, cy, 10.5);
+      bGrad.addColorStop(0, "#64748b");
+      bGrad.addColorStop(0.55, "#1e293b");
+      bGrad.addColorStop(1, "#020617");
+      g.fillStyle = bGrad;
+      g.beginPath();
+      g.arc(cx, cy, 10.2, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = "#475569";
+      g.lineWidth = 1.5;
+      g.stroke();
+
+      // Golden Hazard Equator Belt & Rivets
+      g.strokeStyle = "#f59e0b";
+      g.lineWidth = 2.4;
+      g.beginPath();
+      g.arc(cx, cy, 9.6, 0.25, Math.PI - 0.25);
+      g.stroke();
+
+      // Brass Fuse Collar + Curved Rope Fuse + Multi-Point Spark
+      g.fillStyle = "#d97706";
+      g.fillRect(cx - 3, cy - 12, 6, 3);
+      g.strokeStyle = "#fcd34d";
+      g.lineWidth = 2;
+      g.beginPath();
+      g.moveTo(cx, cy - 12);
+      g.quadraticCurveTo(cx + 4, 2, cx + 8, 4);
+      g.stroke();
+
+      // Bright Fuse Spark Star
+      g.fillStyle = "#fef08a";
+      g.beginPath();
+      g.arc(cx + 8, 4, 3, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#ef4444";
+      g.beginPath();
+      g.arc(cx + 8, 4, 1.5, 0, Math.PI * 2);
+      g.fill();
+    } else if (id === "cron_block") {
+      // 12-Tooth Metallic Clockwork Gear / Cogwheel with Inner Clock Dial & Hands!
+      const cx = s / 2;
+      const cy = s / 2;
+      const active = stateFlags.active !== false;
+
+      g.beginPath();
+      const teeth = 12;
+      for (let i = 0; i < teeth * 2; i++) {
+        const r = i % 2 === 0 ? s * 0.47 : s * 0.37;
+        const a = (i * Math.PI) / teeth;
+        const px = cx + Math.cos(a) * r;
+        const py = cy + Math.sin(a) * r;
+        if (i === 0) g.moveTo(px, py);
+        else g.lineTo(px, py);
+      }
+      g.closePath();
+
+      if (active) {
+        const gearGrad = g.createLinearGradient(0, 0, s, s);
+        gearGrad.addColorStop(0, "#94a3b8");
+        gearGrad.addColorStop(0.5, "#475569");
+        gearGrad.addColorStop(1, "#1e293b");
+        g.fillStyle = gearGrad;
+        g.fill();
+        g.strokeStyle = "#38bdf8";
+        g.lineWidth = 1.5;
+        g.stroke();
+
+        // Inner Dark Clock Face
+        g.fillStyle = "#090d16";
+        g.beginPath();
+        g.arc(cx, cy, s * 0.28, 0, Math.PI * 2);
+        g.fill();
+        g.strokeStyle = "#7dd3fc";
+        g.lineWidth = 1.2;
+        g.stroke();
+
+        // Golden Clock Hands (10:10 position)
+        g.strokeStyle = "#fde047";
+        g.lineWidth = 2;
+        g.beginPath();
+        g.moveTo(cx, cy);
+        g.lineTo(cx, cy - 6.5);
+        g.moveTo(cx, cy);
+        g.lineTo(cx + 5.5, cy + 2);
+        g.stroke();
+      } else {
+        g.strokeStyle = "rgba(56, 189, 248, 0.55)";
+        g.lineWidth = 1.6;
+        g.setLineDash([3, 2]);
+        g.stroke();
+        g.setLineDash([]);
+      }
+    } else if (id === "zombie_proc") {
+      // Undead Cyberpunk Monster Head with Glowing Green Brain Dome & Neck Bolts!
+      // Frankenstein Metallic Neck Bolts
+      g.fillStyle = "#94a3b8";
+      g.fillRect(1, s - 11, 4, 4);
+      g.fillRect(s - 5, s - 11, 4, 4);
+      g.fillStyle = "#cbd5e1";
+      g.fillRect(0, s - 12, 2, 6);
+      g.fillRect(s - 2, s - 12, 2, 6);
+
+      // Exposed Glowing Toxic-Green Brain Dome at Top
+      const brainGrad = g.createRadialGradient(s / 2, 8, 1, s / 2, 9, 10);
+      brainGrad.addColorStop(0, "#bbf7d0");
+      brainGrad.addColorStop(0.5, "#4ade80");
+      brainGrad.addColorStop(1, "#15803d");
+      g.fillStyle = brainGrad;
+      g.beginPath();
+      g.arc(s / 2, 10, 9.5, Math.PI, 0);
+      g.fill();
+      g.strokeStyle = "#166534";
+      g.lineWidth = 1.2;
+      g.beginPath();
+      g.arc(s / 2 - 3, 7, 3, 0, Math.PI);
+      g.arc(s / 2 + 3, 7, 3, 0, Math.PI);
+      g.stroke();
+
+      // Undead Purple Cyber-Jaw & Skull
+      const zGrad = g.createLinearGradient(0, 9, 0, s);
+      zGrad.addColorStop(0, "#7e22ce");
+      zGrad.addColorStop(1, "#3b0764");
+      g.fillStyle = zGrad;
+      g.beginPath();
+      g.roundRect(4, 9, s - 8, s - 10, [3, 3, 6, 6]);
+      g.fill();
+      g.strokeStyle = "#c084fc";
+      g.lineWidth = 1.4;
+      g.stroke();
+
+      // Asymmetric Cyber-Visor Eye (Left) & Crazy Glowing Eye (Right)
+      g.fillStyle = "#ef4444";
+      g.fillRect(6, 12, 9, 5);
+      g.fillStyle = "#fef08a";
+      g.beginPath();
+      g.arc(s - 10, 14.5, 3.2, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#090d16";
+      g.fillRect(s - 10.5, 13.5, 1.8, 1.8);
+
+      // Stitched Undead Grin
+      g.strokeStyle = "#e2e8f0";
+      g.lineWidth = 1.3;
+      g.beginPath();
+      g.moveTo(8, s - 6);
+      g.lineTo(s - 8, s - 6);
+      for (let sx = 10; sx <= s - 10; sx += 4) {
+        g.moveTo(sx, s - 8);
+        g.lineTo(sx, s - 4);
+      }
+      g.stroke();
+    } else if (id === "oom_reaper") {
+      // Hooded Grim Reaper Phantom + Curved Silver/Crimson Scythe Blade!
+      // Curved Scythe Shaft & Razor Blade Sweeping Over Top
+      g.strokeStyle = "#b45309";
+      g.lineWidth = 2.4;
+      g.beginPath();
+      g.moveTo(6, s - 3);
+      g.lineTo(s - 6, 4);
+      g.stroke();
+
+      const bladeGrad = g.createLinearGradient(4, 2, s - 2, 10);
+      bladeGrad.addColorStop(0, "#f8fafc");
+      bladeGrad.addColorStop(0.65, "#94a3b8");
+      bladeGrad.addColorStop(1, "#f43f5e");
+      g.fillStyle = bladeGrad;
+      g.beginPath();
+      g.moveTo(s - 6, 4);
+      g.quadraticCurveTo(12, 0, 3, 10);
+      g.quadraticCurveTo(13, 5, s - 5, 8);
+      g.closePath();
+      g.fill();
+
+      // Tattered Dark-Matter Hood & Cloak Silhouette
+      const cloak = g.createLinearGradient(0, 6, 0, s);
+      cloak.addColorStop(0, "#312e81");
+      cloak.addColorStop(0.5, "#0f172a");
+      cloak.addColorStop(1, "#020617");
+      g.fillStyle = cloak;
+      g.strokeStyle = "#6366f1";
+      g.lineWidth = 1.3;
+      g.beginPath();
+      g.moveTo(s / 2, 5);
+      g.quadraticCurveTo(s - 3, 9, s - 4, s - 3);
+      g.lineTo(s - 9, s - 6);
+      g.lineTo(s / 2, s - 2);
+      g.lineTo(9, s - 6);
+      g.lineTo(4, s - 3);
+      g.quadraticCurveTo(3, 9, s / 2, 5);
+      g.closePath();
+      g.fill();
+      g.stroke();
+
+      // Inner Bone Skull & Glowing Crimson Reaper Eyes
+      g.fillStyle = "#e2e8f0";
+      g.beginPath();
+      g.arc(s / 2, 15, 5.8, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#ef4444";
+      g.beginPath();
+      g.arc(s / 2 - 2.3, 14.5, 1.8, 0, Math.PI * 2);
+      g.arc(s / 2 + 2.3, 14.5, 1.8, 0, Math.PI * 2);
+      g.fill();
+    } else if (id === "macos_dock") {
+      // Frosted Aqua Glass Springboard Deck + Mini App Icons + Glowing Coil Spring
+      g.strokeStyle = "#38bdf8";
+      g.lineWidth = 2.5;
+      g.beginPath();
+      g.moveTo(8, s - 2);
+      g.lineTo(s - 8, s - 6);
+      g.lineTo(8, s - 10);
+      g.lineTo(s - 8, 14);
+      g.stroke();
+
+      const dGrad = g.createLinearGradient(0, 3, 0, 15);
+      dGrad.addColorStop(0, "rgba(186, 230, 253, 0.92)");
+      dGrad.addColorStop(1, "rgba(2, 132, 199, 0.88)");
+      g.fillStyle = dGrad;
+      g.beginPath();
+      g.roundRect(1, 3, s - 2, 12, 4);
+      g.fill();
+      g.strokeStyle = "#ffffff";
+      g.lineWidth = 1.2;
+      g.stroke();
+
+      const ic = ["#ef4444", "#facc15", "#22c55e", "#a855f7"];
+      for (let i = 0; i < 4; i++) {
+        g.fillStyle = ic[i];
+        g.beginPath();
+        g.roundRect(4 + i * 6.5, 6, 4.5, 5.5, 1.2);
+        g.fill();
+      }
+    } else if (id === "beachball") {
+      // 6-Slice Rainbow Wait-Cursor Pinwheel with Specular Gloss Dome
+      const cx = s / 2;
+      const cy = s / 2;
+      const r = s / 2 - 2;
+      const colors = ["#ef4444", "#f59e0b", "#fde047", "#22c55e", "#38bdf8", "#a855f7"];
+      for (let seg = 0; seg < 6; seg++) {
+        g.beginPath();
+        g.moveTo(cx, cy);
+        const a0 = (seg * Math.PI) / 3;
+        g.arc(cx, cy, r, a0, a0 + Math.PI / 3);
+        g.closePath();
+        g.fillStyle = colors[seg];
+        g.fill();
+      }
+      g.strokeStyle = "#ffffff";
+      g.lineWidth = 1.8;
+      g.beginPath();
+      g.arc(cx, cy, r, 0, Math.PI * 2);
+      g.stroke();
+      g.fillStyle = "rgba(255,255,255,0.45)";
+      g.beginPath();
+      g.ellipse(cx - 2, cy - 4, 6, 3, -0.3, 0, Math.PI * 2);
+      g.fill();
+    } else if (id === "spotlight_turret") {
+      // Articulated Metallic Laser Cannon on Tripod Base + Sapphire Optical Barrel
+      // Tripod Pedestal Base
+      g.fillStyle = "#334155";
+      g.beginPath();
+      g.moveTo(6, s - 1);
+      g.lineTo(11, s - 10);
+      g.lineTo(s - 11, s - 10);
+      g.lineTo(s - 6, s - 1);
+      g.closePath();
+      g.fill();
+      g.strokeStyle = "#94a3b8";
+      g.lineWidth = 1.2;
+      g.stroke();
+
+      // Protruding Left Cannon Barrel
+      g.fillStyle = "#0284c7";
+      g.fillRect(1, 9, 10, 8);
+      g.fillStyle = "#38bdf8";
+      g.fillRect(0, 8, 3, 10);
+
+      // Armored Swivel Turret Pod
+      const podGrad = g.createLinearGradient(8, 4, s - 2, 22);
+      podGrad.addColorStop(0, "#475569");
+      podGrad.addColorStop(0.5, "#1e293b");
+      podGrad.addColorStop(1, "#0f172a");
+      g.fillStyle = podGrad;
+      g.beginPath();
+      g.roundRect(7, 4, s - 9, 18, 6);
+      g.fill();
+      g.strokeStyle = "#38bdf8";
+      g.lineWidth = 1.6;
+      g.stroke();
+
+      // Glowing Sapphire Optical Core
+      const lens = g.createRadialGradient(16, 13, 1, 16, 13, 6.5);
+      lens.addColorStop(0, "#ffffff");
+      lens.addColorStop(0.45, "#38bdf8");
+      lens.addColorStop(1, "#0369a1");
+      g.fillStyle = lens;
+      g.beginPath();
+      g.arc(16, 13, 6, 0, Math.PI * 2);
+      g.fill();
+    } else if (id === "timemachine_orb") {
+      // Ornate Celestial Astrolabe & Intersecting Golden Gyroscopic Rings!
+      const cx = s / 2;
+      const cy = s / 2;
+
+      // Outer & Inner Tilted Golden Gyroscopic Rings
+      g.strokeStyle = "#facc15";
+      g.lineWidth = 2;
+      g.beginPath();
+      g.ellipse(cx, cy, 13.5, 6.2, 0.58, 0, Math.PI * 2);
+      g.stroke();
+
+      g.strokeStyle = "#38bdf8";
+      g.lineWidth = 1.8;
+      g.beginPath();
+      g.ellipse(cx, cy, 13.5, 6.2, -0.58, 0, Math.PI * 2);
+      g.stroke();
+
+      // Outer Compass Bezel
+      g.strokeStyle = "rgba(253, 224, 71, 0.7)";
+      g.lineWidth = 1.4;
+      g.beginPath();
+      g.arc(cx, cy, 13, 0, Math.PI * 2);
+      g.stroke();
+
+      // Central Temporal Singularity Crystal
+      const core = g.createRadialGradient(cx - 1.5, cy - 1.5, 1, cx, cy, 6.5);
+      core.addColorStop(0, "#ffffff");
+      core.addColorStop(0.5, "#38bdf8");
+      core.addColorStop(1, "#1d4ed8");
+      g.fillStyle = core;
+      g.beginPath();
+      g.moveTo(cx, cy - 7);
+      g.lineTo(cx + 6, cy);
+      g.lineTo(cx, cy + 7);
+      g.lineTo(cx - 6, cy);
+      g.closePath();
+      g.fill();
+    } else if (id === "bsd_trident") {
+      // Diagonal Flaming 3-Pronged Devil Pitchfork (Corner-to-Corner Silhouette!)
+      const aura = g.createRadialGradient(s * 0.62, s * 0.38, 2, s * 0.55, s * 0.45, 14);
+      aura.addColorStop(0, "rgba(251, 146, 60, 0.55)");
+      aura.addColorStop(1, "rgba(244, 63, 94, 0)");
+      g.fillStyle = aura;
+      g.beginPath();
+      g.arc(s * 0.55, s * 0.45, 14, 0, Math.PI * 2);
+      g.fill();
+
+      g.save();
+      g.translate(s / 2, s / 2);
+      g.rotate(Math.PI / 4);
+
+      // Spiraled Dark-Crimson & Gold Shaft
+      g.strokeStyle = "#b91c1c";
+      g.lineWidth = 3.2;
+      g.beginPath();
+      g.moveTo(0, -4);
+      g.lineTo(0, 14);
+      g.stroke();
+
+      // Curved Horned Crossguard + 3 Barbed Golden-Crimson Prongs
+      const tGrad = g.createLinearGradient(0, -14, 0, 2);
+      tGrad.addColorStop(0, "#fef08a");
+      tGrad.addColorStop(0.5, "#f97316");
+      tGrad.addColorStop(1, "#ef4444");
+      g.strokeStyle = tGrad;
+      g.fillStyle = tGrad;
+      g.lineWidth = 2.4;
+
+      g.beginPath();
+      // Center prong
+      g.moveTo(0, 2);
+      g.lineTo(0, -13);
+      // Curved crossguard
+      g.moveTo(-7.5, -3);
+      g.quadraticCurveTo(0, 2, 7.5, -3);
+      // Left & Right outer prongs
+      g.moveTo(-7.5, -3);
+      g.lineTo(-7.5, -11);
+      g.moveTo(7.5, -3);
+      g.lineTo(7.5, -11);
+      g.stroke();
+
+      // Barbed Spear Tips on All 3 Prongs
+      for (const [px, py] of [[0, -14.5], [-7.5, -12.5], [7.5, -12.5]]) {
+        g.beginPath();
+        g.moveTo(px, py);
+        g.lineTo(px - 2.6, py + 4);
+        g.lineTo(px + 2.6, py + 4);
+        g.closePath();
+        g.fill();
+      }
+      g.restore();
+    } else if (id === "puffy_fish") {
+      // Detailed OpenBSD Puffy Blowfish with 16 Spines, Fins, Belly & Expressive Eyes!
+      const cx = s / 2 - 1;
+      const cy = s / 2 + 1;
+
+      // Tail Fin on Right
+      g.fillStyle = "#f59e0b";
+      g.beginPath();
+      g.moveTo(cx + 9, cy);
+      g.lineTo(s - 1, cy - 6);
+      g.lineTo(s - 2, cy);
+      g.lineTo(s - 1, cy + 6);
+      g.closePath();
+      g.fill();
+
+      // 16 Sharp Two-Tone Golden Spines
+      const fGrad = g.createRadialGradient(cx - 2, cy - 3, 2, cx, cy, s * 0.44);
+      fGrad.addColorStop(0, "#fef08a");
+      fGrad.addColorStop(0.65, "#facc15");
+      fGrad.addColorStop(1, "#d97706");
+      g.fillStyle = fGrad;
+      g.strokeStyle = "#92400e";
+      g.lineWidth = 1.3;
+      g.beginPath();
+      for (let i = 0; i < 16; i++) {
+        const r = i % 2 === 0 ? s * 0.44 : s * 0.29;
+        const a = (i * Math.PI) / 8;
+        const px = cx + Math.cos(a) * r;
+        const py = cy + Math.sin(a) * r;
+        if (i === 0) g.moveTo(px, py);
+        else g.lineTo(px, py);
+      }
+      g.closePath();
+      g.fill();
+      g.stroke();
+
+      // Cream Lower Belly
+      g.fillStyle = "#fef9c3";
+      g.beginPath();
+      g.arc(cx, cy + 2, s * 0.22, 0.15, Math.PI - 0.15);
+      g.fill();
+
+      // Big Expressive Eyes & Pouty Mouth
+      g.fillStyle = "#ffffff";
+      g.beginPath();
+      g.arc(cx - 4, cy - 2, 3, 0, Math.PI * 2);
+      g.arc(cx + 2.5, cy - 2, 3, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#090d16";
+      g.beginPath();
+      g.arc(cx - 4.3, cy - 2, 1.5, 0, Math.PI * 2);
+      g.arc(cx + 2.2, cy - 2, 1.5, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#ef4444";
+      g.beginPath();
+      g.ellipse(cx - 1, cy + 3, 2.2, 1.4, 0, 0, Math.PI * 2);
+      g.fill();
+    } else if (id === "pf_firewall") {
+      // Top & Bottom Emitter Coils + Crackling Laser Beam Core
+      g.fillStyle = "#334155";
+      g.fillRect(6, 0, s - 12, 5);
+      g.fillRect(6, s - 5, s - 12, 5);
+      g.fillStyle = "rgba(244, 63, 94, 0.85)";
+      g.fillRect(9, 5, s - 18, s - 10);
+      g.fillStyle = "#fde047";
+      g.fillRect(13, 5, s - 26, s - 10);
+    } else if (id === "boss_beastie") {
+      // Giant Armored Mecha-Beastie Daemon King with Bat Wings, Reactor Core & Trident!
+      // Spread Crimson/Obsidian Bat Wings
+      g.fillStyle = "#7f1d1d";
+      g.strokeStyle = "#f43f5e";
+      g.lineWidth = 1.5;
+      g.beginPath();
+      g.moveTo(s * 0.2, s * 0.45);
+      g.lineTo(1, s * 0.2);
+      g.lineTo(3, s * 0.55);
+      g.lineTo(1, s * 0.78);
+      g.lineTo(s * 0.22, s * 0.7);
+      g.moveTo(s * 0.8, s * 0.45);
+      g.lineTo(s - 1, s * 0.2);
+      g.lineTo(s - 3, s * 0.55);
+      g.lineTo(s - 1, s * 0.78);
+      g.lineTo(s * 0.78, s * 0.7);
+      g.fill();
+      g.stroke();
+
+      // Armored Mech Torso & Head
+      const bGrad = g.createLinearGradient(0, 6, 0, s);
+      bGrad.addColorStop(0, "#ef4444");
+      bGrad.addColorStop(0.55, "#b91c1c");
+      bGrad.addColorStop(1, "#450a0a");
+      g.fillStyle = bGrad;
+      g.beginPath();
+      g.roundRect(s * 0.16, s * 0.2, s * 0.68, s * 0.74, 7);
+      g.fill();
+      g.strokeStyle = "#fde047";
+      g.lineWidth = 2.2;
+      g.stroke();
+
+      // Curved Golden Daemon Horns
+      g.fillStyle = "#fde047";
+      g.beginPath();
+      g.moveTo(s * 0.22, s * 0.22);
+      g.quadraticCurveTo(s * 0.05, s * 0.04, s * 0.12, 1);
+      g.lineTo(s * 0.36, s * 0.2);
+      g.moveTo(s * 0.78, s * 0.22);
+      g.quadraticCurveTo(s * 0.95, s * 0.04, s * 0.88, 1);
+      g.lineTo(s * 0.64, s * 0.2);
+      g.fill();
+
+      // Menacing Angled Cyber-Visor Eyes
+      g.fillStyle = "#fef08a";
+      g.beginPath();
+      g.moveTo(s * 0.24, s * 0.34);
+      g.lineTo(s * 0.44, s * 0.39);
+      g.lineTo(s * 0.24, s * 0.43);
+      g.moveTo(s * 0.76, s * 0.34);
+      g.lineTo(s * 0.56, s * 0.39);
+      g.lineTo(s * 0.76, s * 0.43);
+      g.fill();
+
+      // Glowing Cyan Chest Fusion Reactor Core + Fangs
+      g.fillStyle = "#38bdf8";
+      g.beginPath();
+      g.arc(s / 2, s * 0.68, s * 0.13, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = "#e0f2fe";
+      g.lineWidth = 1.5;
+      g.stroke();
+    } else if (id === "bsod_thwomp") {
+      // Heavy Spiked Fortress Crusher with 12 Perimeter Spikes + Recessed BSOD CRT!
+      // 12 Sharp Metallic Perimeter Spikes (3 on each side)
+      g.fillStyle = "#cbd5e1";
+      g.strokeStyle = "#334155";
+      g.lineWidth = 1;
+      const step = s / 4;
+      for (let i = 1; i <= 3; i++) {
+        const p = i * step;
+        g.beginPath();
+        // Top spikes
+        g.moveTo(p - 3, 4); g.lineTo(p, 0); g.lineTo(p + 3, 4);
+        // Bottom spikes
+        g.moveTo(p - 3, s - 4); g.lineTo(p, s); g.lineTo(p + 3, s - 4);
+        // Left spikes
+        g.moveTo(4, p - 3); g.lineTo(0, p); g.lineTo(4, p + 3);
+        // Right spikes
+        g.moveTo(s - 4, p - 3); g.lineTo(s, p); g.lineTo(s - 4, p + 3);
+        g.fill();
+        g.stroke();
+      }
+
+      // Outer Armored Granite Bevel Frame
+      g.fillStyle = "#475569";
+      g.beginPath();
+      g.roundRect(3, 3, s - 6, s - 6, 3);
+      g.fill();
+      g.strokeStyle = "#94a3b8";
+      g.lineWidth = 1.8;
+      g.stroke();
+
+      // Recessed #0000AA Blue CRT Monitor
+      const crt = g.createLinearGradient(0, 6, 0, s - 6);
+      crt.addColorStop(0, "#1d4ed8");
+      crt.addColorStop(1, "#172554");
+      g.fillStyle = crt;
+      g.fillRect(6, 6, s - 12, s - 12);
+      g.strokeStyle = "#60a5fa";
+      g.lineWidth = 1.2;
+      g.strokeRect(6, 6, s - 12, s - 12);
+
+      // Sad Face & Hex Crash Bars
+      g.fillStyle = "#ffffff";
+      g.font = `900 ${Math.max(10, Math.round(s * 0.28))}px monospace`;
+      g.fillText(":(", s * 0.22, s * 0.46);
+      g.fillStyle = "#93c5fd";
+      g.fillRect(s * 0.22, s * 0.58, s * 0.56, Math.max(2, s * 0.06));
+      g.fillStyle = "#f87171";
+      g.fillRect(s * 0.22, s * 0.7, s * 0.42, Math.max(2, s * 0.06));
+    } else if (id === "clippy_helper") {
+      // Wide Golden 3D Beveled Hover-Platform + Cute Clippy Paperclip Mascot with Eyes!
+      const pGrad = g.createLinearGradient(0, 0, 0, 14);
+      pGrad.addColorStop(0, "#fef08a");
+      pGrad.addColorStop(1, "#ca8a04");
+      g.fillStyle = pGrad;
+      g.beginPath();
+      g.roundRect(0.5, 0.5, s - 1, 13, 4);
+      g.fill();
+      g.strokeStyle = "#78350f";
+      g.lineWidth = 1.2;
+      g.stroke();
+
+      g.fillStyle = "#0f172a";
+      g.font = "900 7.5px monospace";
+      g.fillText("LIFT", 6, 9.5);
+
+      // Metallic Paperclip Loop + Expressive Eyes underneath
+      g.strokeStyle = "#cbd5e1";
+      g.lineWidth = 2.4;
+      g.beginPath();
+      g.roundRect(9, 14, 14, 15, 6);
+      g.stroke();
+      g.fillStyle = "#ffffff";
+      g.beginPath();
+      g.arc(13, 19, 2.6, 0, Math.PI * 2);
+      g.arc(19, 19, 2.6, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#090d16";
+      g.beginPath();
+      g.arc(13.5, 19, 1.2, 0, Math.PI * 2);
+      g.arc(19.5, 19, 1.2, 0, Math.PI * 2);
+      g.fill();
+    } else if (id === "minesweeper_tile") {
+      g.fillStyle = "#cbd5e1";
+      g.fillRect(1, 1, s - 2, s - 2);
+      g.fillStyle = "#ffffff";
+      g.fillRect(1, 1, s - 2, 3);
+      g.fillRect(1, 1, 3, s - 2);
+      g.fillStyle = "#64748b";
+      g.fillRect(1, s - 4, s - 2, 3);
+      g.fillRect(s - 4, 1, 3, s - 2);
+
+      g.fillStyle = stateFlags.armed ? "#dc2626" : "#1d4ed8";
+      g.font = "900 15px monospace";
+      g.fillText(stateFlags.armed ? "3!" : "1", 8.5, 22);
+    } else if (id === "hourglass_zone") {
+      // Sculpted 3D Golden Hourglass in a Swirling Time-Dilation Vortex!
+      const cx = s / 2;
+      const cy = s / 2;
+
+      // Swirling Vortex Aura
+      g.strokeStyle = "rgba(192, 132, 252, 0.55)";
+      g.lineWidth = 1.5;
+      g.beginPath();
+      g.arc(cx, cy, 13.5, 0, Math.PI * 2);
+      g.stroke();
+
+      // Top & Bottom Ornate Gold End-Caps
+      g.fillStyle = "#facc15";
+      g.fillRect(6, 3, s - 12, 3.5);
+      g.fillRect(6, s - 6.5, s - 12, 3.5);
+
+      // Upper & Lower Blown-Glass Bulbs
+      g.fillStyle = "rgba(125, 211, 252, 0.32)";
+      g.strokeStyle = "#e0f2fe";
+      g.lineWidth = 1.4;
+      g.beginPath();
+      g.moveTo(8, 6.5);
+      g.lineTo(s - 8, 6.5);
+      g.lineTo(cx + 2, cy);
+      g.lineTo(s - 8, s - 6.5);
+      g.lineTo(8, s - 6.5);
+      g.lineTo(cx - 2, cy);
+      g.closePath();
+      g.fill();
+      g.stroke();
+
+      // Trickling Golden Sand in Upper & Lower Bulbs
+      g.fillStyle = "#fde047";
+      g.beginPath();
+      g.moveTo(10, 10);
+      g.lineTo(s - 10, 10);
+      g.lineTo(cx, cy - 1);
+      g.closePath();
+      g.moveTo(cx, cy + 1);
+      g.lineTo(s - 9, s - 6.5);
+      g.lineTo(9, s - 6.5);
+      g.closePath();
+      g.fill();
+    } else if (id === "bun_booster") {
+      // Sleek Angled Neon Speed-Pad + Cute Steamed Bao Bun Mascot on Top!
+      // Bottom Neon Boost Ramp with Triple Plasma Chevrons
+      const bGrad = g.createLinearGradient(0, 0, s, 0);
+      bGrad.addColorStop(0, "#ec4899");
+      bGrad.addColorStop(0.5, "#f59e0b");
+      bGrad.addColorStop(1, "#fde047");
+      g.fillStyle = bGrad;
+      g.beginPath();
+      g.roundRect(1, s - 9, s - 2, 8, 3);
+      g.fill();
+
+      g.strokeStyle = "#090d16";
+      g.lineWidth = 2;
+      for (let ox = 6; ox <= 22; ox += 7) {
+        g.beginPath();
+        g.moveTo(ox, s - 8);
+        g.lineTo(ox + 4, s - 5);
+        g.lineTo(ox, s - 2);
+        g.stroke();
+      }
+
+      // Sculpted Plump White Steamed Bao Bun Mascot
+      const baoGrad = g.createRadialGradient(s / 2 - 2, 12, 2, s / 2, 14, 11);
+      baoGrad.addColorStop(0, "#ffffff");
+      baoGrad.addColorStop(0.75, "#fef3c7");
+      baoGrad.addColorStop(1, "#fde68a");
+      g.fillStyle = baoGrad;
+      g.strokeStyle = "#d97706";
+      g.lineWidth = 1.3;
+      g.beginPath();
+      g.ellipse(s / 2, 15, 10.5, 8, 0, 0, Math.PI * 2);
+      g.fill();
+      g.stroke();
+
+      // Top Bao Dough Pleat Swirl
+      g.beginPath();
+      g.moveTo(s / 2 - 3, 9);
+      g.lineTo(s / 2, 6);
+      g.lineTo(s / 2 + 3, 9);
+      g.stroke();
+
+      // Kawaii Eyes & Rosy Cheeks
+      g.fillStyle = "#090d16";
+      g.beginPath();
+      g.arc(s / 2 - 4, 15, 1.5, 0, Math.PI * 2);
+      g.arc(s / 2 + 4, 15, 1.5, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#fb7185";
+      g.beginPath();
+      g.ellipse(s / 2 - 6.5, 16.5, 2, 1.1, 0, 0, Math.PI * 2);
+      g.ellipse(s / 2 + 6.5, 16.5, 2, 1.1, 0, 0, Math.PI * 2);
+      g.fill();
+    } else if (id === "kernel_spike") {
+      // 3 Jagged Obsidian & Crimson Crystal Stalagmites with Glowing Energy Veins!
+      const peaks = [
+        [1, s, 6, 8, 12, s],
+        [9, s, s * 0.5, 3, s - 9, s],
+        [s - 12, s, s - 6, 8, s - 1, s]
+      ];
+      for (const [x1, y1, px, py, x2, y2] of peaks) {
+        // Left dark-obsidian facet
+        g.fillStyle = "#881337";
+        g.beginPath();
+        g.moveTo(x1, y1);
+        g.lineTo(px, py);
+        g.lineTo(px, y2);
+        g.closePath();
+        g.fill();
+
+        // Right bright-crimson facet
+        g.fillStyle = "#fb7185";
+        g.beginPath();
+        g.moveTo(px, py);
+        g.lineTo(x2, y2);
+        g.lineTo(px, y2);
+        g.closePath();
+        g.fill();
+
+        g.strokeStyle = "#fecdd3";
+        g.lineWidth = 0.9;
+        g.beginPath();
+        g.moveTo(x1, y1);
+        g.lineTo(px, py);
+        g.lineTo(x2, y2);
+        g.stroke();
+      }
+    } else {
+      g.fillStyle = "#1e293b";
+      g.fillRect(2, 2, s - 4, s - 4);
+      g.strokeStyle = "#38bdf8";
+      g.strokeRect(2, 2, s - 4, s - 4);
+    }
+
+    g.restore();
+  }
+
+  function getCachedSprite(id, size, themeKey, variantKey = "") {
+    const key = `${id}|${size}|${themeKey}|${variantKey}`;
+    let can = spriteCache.get(key);
+    if (!can) {
+      // 2x Retina Supersampled Offscreen Canvas (64x64 for 32x32 tile!)
+      can = document.createElement("canvas");
+      can.width = size * 2;
+      can.height = size * 2;
+      const g = can.getContext("2d");
+      g.scale(2, 2);
+      renderSpriteToCtx(g, id, size, OS_THEMES[themeKey] || OS_THEMES.linux, {
+        hit: variantKey === "hit",
+        on: variantKey !== "off",
+        active: variantKey !== "inactive",
+        armed: variantKey === "armed"
+      });
+      spriteCache.set(key, can);
+    }
+    return can;
+  }
+
+  // ============================================================================
+  // 5. EDITOR & PLAYTEST STATE + DIRTY-FLAG MINIMAP BUFFER
+  // ============================================================================
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+  const miniCanvas = document.getElementById("minimapCanvas");
+  const miniCtx = miniCanvas.getContext("2d");
+
+  const minimapBuffer = document.createElement("canvas");
+  minimapBuffer.width = 520;
+  minimapBuffer.height = 36;
+  const minimapBufCtx = minimapBuffer.getContext("2d");
+  let minimapDirty = true;
+
+  // Cached Sky Gradient
+  let cachedSkyGrad = null;
+  let cachedSkyKey = "";
+
+  // Pixel-Exact Responsive Canvas Sizing (Fixes Mouse Offset Bug!)
+  function syncCanvasAspect() {
+    const container = document.getElementById("canvasContainer");
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      const targetW = Math.max(640, Math.round(rect.width * (640 / rect.height)));
+      if (canvas.width !== targetW || canvas.height !== 640) {
+        canvas.width = targetW;
+        canvas.height = 640;
+        cachedSkyKey = "";
+      }
+    }
+  }
+  window.addEventListener("resize", syncCanvasAspect);
+  if (typeof ResizeObserver !== "undefined") {
+    new ResizeObserver(syncCanvasAspect).observe(document.getElementById("canvasContainer"));
+  }
+  setTimeout(syncCanvasAspect, 0);
+
+  let mode = "edit";
+  let currentTheme = "linux";
+  let selectedHero = "tux";
+  let selectedItem = "mystery";
+  let activeTool = "brush";
+  let activeCat = "all";
+  let brushSize = 1; // 1, 2, or 3
+  let aiBotEnabled = false;
+
+  // Modifiers
+  let modWings = false;
+  let modParachute = false;
+  let modGiant = false;
+  let payloadIdx = 0;
+  let showOnionTrail = true;
+
+  let cells = createEmptyGrid();
+  let rails = new Set();
+  let wires = [];
+  let undoStack = [];
+  let redoStack = [];
+
+  let camX = 0;
+  let mouseX = 0;
+  let mouseY = 0;
+  let gridMouseX = 0;
+  let gridMouseY = 0;
+  let isDragging = false;
+  let dragButton = 0;
+  let dragStartGrid = null;
+
+  let onOffState = true;
+  let cronSolid = true;
+  let globalTick = 0;
+  let screenShake = 0;
+  let courseTimer = 300;
+  let lastSecondTime = performance.now();
+
+  // FPS Telemetry
+  let fpsFrameCount = 0;
+  let fpsLastStamp = performance.now();
+  let lastFrameCostMs = 0.4;
+
+  let onionTrail = [];
+  let deathMarker = null;
+
+  let player = createDefaultPlayer();
+  let entities = [];
+  let projectiles = [];
+  let particles = [];
+  let floatingTexts = [];
+  let rewindHistory = [];
+
+  function createEmptyGrid() {
+    const g = [];
+    for (let y = 0; y < GRID_H; y++) {
+      g.push(new Array(GRID_W).fill(null));
+    }
+    return g;
+  }
+
+  function findSpawnCoordinates() {
+    let sx = 3 * TILE;
+    let sy = 14 * TILE;
+    for (let y = 0; y < GRID_H; y++) {
+      for (let x = 0; x < GRID_W; x++) {
+        if (cells[y][x] && cells[y][x].id === "spawn_pad") {
+          sx = x * TILE;
+          sy = y * TILE;
+        }
+      }
+    }
+    // Un-Stuck Spawn Safety: lift hero upward if spawn tile is inside solid blocks!
+    let gx = Math.floor(sx / TILE);
+    let gy = Math.floor(sy / TILE);
+    while (gy > 1 && cells[gy] && cells[gy][gx] && ITEM_MAP[cells[gy][gx].id] && ITEM_MAP[cells[gy][gx].id].solid) {
+      gy--;
+    }
+    return { x: gx * TILE, y: gy * TILE };
+  }
+
+  function createDefaultPlayer() {
+    return {
+      x: 3 * TILE,
+      y: 14 * TILE,
+      vx: 0,
+      vy: 0,
+      w: 24,
+      h: 28,
+      dir: 1,
+      grounded: false,
+      coyoteTimer: 0,
+      jumpBuffer: 0,
+      doubleJumpUsed: false,
+      wallSlideDir: 0,
+      groundPounding: false,
+      dashTimer: 0,
+      form: selectedHero || "tux",
+      sudoTimer: 0,
+      bellySliding: false,
+      spinJumping: false,
+      coins: 12,
+      score: 2450,
+      checkpointX: 3 * TILE,
+      checkpointY: 14 * TILE,
+      invuln: 0,
+      warpCooldown: 0
+    };
+  }
+
+  function cloneCourseState() {
+    return JSON.stringify({
+      theme: currentTheme,
+      cells,
+      rails: Array.from(rails),
+      wires
+    });
+  }
+
+  function pushUndo() {
+    undoStack.push(cloneCourseState());
+    if (undoStack.length > 30) undoStack.shift();
+    redoStack.length = 0;
+  }
+
+  function restoreCourseState(serialized) {
+    try {
+      const data = JSON.parse(serialized);
+      currentTheme = data.theme || "linux";
+      document.getElementById("osThemeSelect").value = currentTheme;
+      cells = data.cells || createEmptyGrid();
+      rails = new Set(data.rails || []);
+      wires = data.wires || [];
+      minimapDirty = true;
+      syncEntitiesFromGrid();
+    } catch (_) {}
+  }
+
+  function setCell(x, y, id, opts = {}) {
+    if (x < 0 || x >= GRID_W || y < 0 || y >= GRID_H) return;
+    minimapDirty = true;
+    if (!id) {
+      cells[y][x] = null;
+      return;
+    }
+    cells[y][x] = {
+      id,
+      wings: !!opts.wings,
+      parachute: !!opts.parachute,
+      giant: !!opts.giant,
+      payload: opts.payload || PAYLOAD_CYCLE[payloadIdx]
+    };
+  }
+
+  function buildGroundFloor(floorId = "brick", gaps = []) {
+    const gapSet = new Set(gaps);
+    for (let x = 0; x < GRID_W; x++) {
+      if (gapSet.has(x)) continue;
+      setCell(x, 18, floorId);
+      setCell(x, 19, floorId);
+    }
+  }
+
+  function addCoinArc(centerX, peakY = 13, halfSpan = 2) {
+    for (let dx = -halfSpan; dx <= halfSpan; dx++) {
+      const cy = peakY + Math.min(2, Math.abs(dx));
+      if (!cells[cy] || !cells[cy][centerX + dx]) {
+        setCell(centerX + dx, cy, "coin");
+      }
+    }
+  }
+
+  function addBridgeSpan(x1, x2, y, id = "semisolid") {
+    for (let x = x1; x <= x2; x++) {
+      setCell(x, y, id);
+    }
+  }
+
+  function addStaircase(startX, steps = 3, dir = 1, blockId = "brick") {
+    for (let s = 0; s < steps; s++) {
+      const x = dir > 0 ? startX + s : startX + (steps - 1 - s);
+      for (let h = 0; h <= s; h++) {
+        setCell(x, 17 - h, blockId);
+      }
+    }
+  }
+
+  function addFirewallGate(fwX, switchOffsetLeft = 4) {
+    const swX = fwX - switchOffsetLeft;
+    setCell(swX, 14, "onoff_switch");
+    setCell(fwX, 14, "brick");
+    for (let y = 15; y <= 17; y++) {
+      setCell(fwX, y, "pf_firewall");
+      wires.push({ x1: swX, y1: 14, x2: fwX, y2: y });
+    }
+  }
+
+  function addGoalMonument(goalX) {
+    // Ensure solid ground beneath staircase & goal gate
+    for (let x = goalX - 8; x <= Math.min(GRID_W - 1, goalX + 6); x++) {
+      setCell(x, 18, "brick");
+      setCell(x, 19, "brick");
+    }
+    addStaircase(goalX - 6, 3, 1, "brick");
+    addCoinArc(goalX - 2, 12, 2);
+    setCell(goalX, 16, "goal_gate");
+    setCell(goalX, 17, "goal_gate");
+  }
+
+  function loadBuiltInCourse(index) {
+    cells = createEmptyGrid();
+    rails = new Set();
+    wires = [];
+    onOffState = true;
+    camX = 0;
+    minimapDirty = true;
+    player = createDefaultPlayer();
+
+    if (index === 0) {
+      // 1. OS Kernel Grand Tour (All 4 OS Showcase — Multi-Route & 100% Beatable)
+      currentTheme = "linux";
+      buildGroundFloor("brick", [15, 16, 17, 36, 37, 38, 61, 62, 63]);
+      setCell(3, 17, "spawn_pad");
+
+      // Opening Power-Up Pavilion + Upper Bonus Sky-Deck
+      setCell(6, 14, "mystery", { payload: "tux_suit" });
+      setCell(7, 14, "pkg_block");
+      setCell(8, 14, "mystery", { payload: "bsd_trident" });
+      setCell(9, 14, "pkg_block");
+      setCell(10, 14, "mystery", { payload: "sudo_star" });
+      addBridgeSpan(6, 10, 10, "semisolid");
+      setCell(7, 9, "coin");
+      setCell(8, 9, "tux_suit", { wings: true });
+      setCell(9, 9, "coin");
+
+      // Gap 1 (x=15..17): Springboard + Lower Bridge + Upper Rail Pinwheel + Coin Guide Arc
+      setCell(13, 17, "macos_dock");
+      addBridgeSpan(15, 17, 15, "semisolid");
+      addCoinArc(16, 11, 2);
+      for (let rx = 14; rx <= 19; rx++) rails.add(`${rx},8`);
+      setCell(16, 8, "beachball", { wings: true });
+
+      // Section 2: Reachable ON/OFF Switch & PF Firewall Gate + Thwomp Bypass
+      setCell(19, 17, "zombie_proc");
+      addFirewallGate(24, 3); // Switch at (21, 14) opens Firewall at (24, 15..17)
+      setCell(26, 14, "red_block");
+      setCell(27, 14, "red_block");
+      setCell(28, 14, "blue_block");
+      setCell(29, 14, "blue_block");
+
+      // BSOD Thwomp with safe ground sprint & upper Semisolid window bypass
+      setCell(31, 7, "bsod_thwomp", { giant: true });
+      addBridgeSpan(29, 33, 11, "semisolid");
+      addCoinArc(31, 9, 2);
+
+      // Gap 2 (x=36..38): Guided Rail Clippy Hover-Lift + Coin Arc
+      for (let rx = 35; rx <= 39; rx++) rails.add(`${rx},16`);
+      setCell(36, 16, "clippy_helper");
+      addCoinArc(37, 12, 2);
+
+      // Section 3: Checkpoint, Paired Warp Pipes & Conveyor/Cron Skybridge
+      setCell(41, 17, "checkpoint");
+      setCell(43, 17, "warp_pipe");
+      setCell(46, 15, "conveyor");
+      setCell(47, 15, "conveyor");
+      setCell(48, 15, "conveyor");
+      setCell(50, 13, "cron_block");
+      setCell(51, 13, "cron_block");
+      addCoinArc(50, 10, 2);
+      setCell(54, 17, "warp_pipe");
+      setCell(56, 17, "tarball_bomb");
+      setCell(58, 14, "timemachine_orb");
+
+      // Gap 3 (x=61..63): Bun Booster Launch + Safety Semisolid Bridge
+      setCell(59, 17, "bun_booster");
+      addBridgeSpan(61, 63, 16, "semisolid");
+      addCoinArc(62, 12, 2);
+
+      // Section 4: Pre-Boss Armory & Multi-Deck Mecha-Beastie Boss Citadel
+      setCell(66, 14, "mystery", { payload: "bsd_trident" });
+      setCell(68, 14, "mystery", { payload: "sudo_star" });
+      addBridgeSpan(70, 77, 12, "semisolid");
+      addCoinArc(73, 9, 2);
+      setCell(74, 15, "boss_beastie", { giant: true });
+
+      addGoalMonument(85);
+
+      onionTrail = [
+        { x: 108, y: 540, jump: true },
+        { x: 145, y: 490 },
+        { x: 185, y: 445 },
+        { x: 230, y: 418, jump: true },
+        { x: 280, y: 375 },
+        { x: 335, y: 410 },
+        { x: 390, y: 495 },
+        { x: 428, y: 525, jump: true },
+        { x: 475, y: 390 },
+        { x: 525, y: 340, spin: true },
+        { x: 580, y: 385 },
+        { x: 640, y: 430, jump: true },
+        { x: 705, y: 395 },
+        { x: 775, y: 460 }
+      ];
+      deathMarker = { x: 842, y: 518 };
+    } else if (index === 1) {
+      // 2. Linux Penguin Belly-Slide Run (Cryo Speedrun & Package Block Shatter)
+      currentTheme = "linux";
+      buildGroundFloor("brick", [23, 24, 45, 46]);
+      setCell(3, 17, "spawn_pad");
+      setCell(5, 14, "mystery", { payload: "tux_suit" });
+      setCell(6, 17, "tux_suit");
+      setCell(8, 17, "bun_booster");
+
+      // Package Block & Zombie Process Shatter Alley + Upper Semisolid Overpass
+      addBridgeSpan(10, 20, 13, "semisolid");
+      for (let x = 11; x <= 19; x += 2) {
+        setCell(x, 17, "pkg_block");
+        setCell(x + 1, 17, "zombie_proc");
+        setCell(x, 11, "coin");
+      }
+
+      // Gap 1 (x=23..24)
+      setCell(21, 17, "bun_booster");
+      addCoinArc(23, 13, 2);
+      setCell(27, 17, "checkpoint");
+
+      // Cron Block Rhythm Section (Full ground beneath + high bonus coins)
+      for (let x = 29; x <= 41; x += 3) {
+        setCell(x, 14, "cron_block");
+        setCell(x + 1, 14, "cron_block");
+        setCell(x, 11, "coin");
+        if (x % 6 === 2) setCell(x + 1, 10, "oom_reaper", { wings: true });
+      }
+
+      // Gap 2 (x=45..46) with Guided Rail Lift + Sudo Star Finale
+      for (let rx = 44; rx <= 47; rx++) rails.add(`${rx},16`);
+      setCell(45, 16, "clippy_helper");
+      addCoinArc(45, 12, 2);
+      setCell(49, 14, "mystery", { payload: "sudo_star" });
+      setCell(51, 17, "sudo_star");
+      for (let x = 53; x <= 57; x++) setCell(x, 17, "zombie_proc");
+
+      addGoalMonument(64);
+    } else if (index === 2) {
+      // 3. macOS Beachball & Dock Kaizo (Springboard Skyways & Safety Bridges)
+      currentTheme = "macos";
+      buildGroundFloor("brick", [13, 14, 15, 28, 29, 30, 42, 43]);
+      setCell(3, 17, "spawn_pad");
+      setCell(6, 14, "mystery", { payload: "tux_suit" });
+      setCell(8, 14, "mystery", { payload: "bsd_trident" });
+
+      // Gap 1 (x=13..15): Dock Springboard + Safety Bridge + Upper Window Deck
+      setCell(11, 17, "macos_dock");
+      addBridgeSpan(13, 15, 16, "semisolid");
+      addBridgeSpan(12, 24, 11, "semisolid");
+      addCoinArc(14, 9, 2);
+
+      // Guided Rail Beachballs above the upper deck
+      for (let rx = 14; rx <= 24; rx++) rails.add(`${rx},7`);
+      setCell(16, 7, "beachball", { wings: true });
+      setCell(21, 7, "beachball", { wings: true });
+      setCell(22, 15, "timemachine_orb");
+
+      // Gap 2 (x=28..30): Dock Launch + Moving Rail Clippy Lift
+      setCell(26, 17, "macos_dock");
+      for (let rx = 27; rx <= 31; rx++) rails.add(`${rx},16`);
+      setCell(28, 16, "clippy_helper");
+      addCoinArc(29, 11, 2);
+      setCell(33, 17, "checkpoint");
+
+      // Spotlight Turret Terrace with upper bypass bridge
+      addBridgeSpan(35, 40, 13, "semisolid");
+      setCell(38, 16, "spotlight_turret");
+      addCoinArc(37, 10, 2);
+
+      // Gap 3 (x=42..43)
+      setCell(41, 17, "note_block");
+      addCoinArc(42, 12, 2);
+
+      addGoalMonument(52);
+    } else if (index === 3) {
+      // 4. FreeBSD Citadel & Mecha-Beastie Boss (Firewall Gates & Multi-Deck Arena)
+      currentTheme = "bsd";
+      buildGroundFloor("brick", [14, 15, 28, 29]);
+      setCell(3, 17, "spawn_pad");
+      setCell(6, 14, "mystery", { payload: "bsd_trident" });
+      setCell(8, 17, "bsd_trident");
+      setCell(11, 16, "puffy_fish", { wings: true });
+
+      // Gap 1 (x=14..15) with Coin Arc & Semisolid Bridge
+      addBridgeSpan(14, 15, 16, "semisolid");
+      addCoinArc(14, 12, 2);
+
+      // Firewall Gate 1: Switch at (18, 14) opens PF Firewall at (22, 15..17)
+      addFirewallGate(22, 4);
+      setCell(25, 17, "checkpoint");
+      setCell(26, 14, "mystery", { payload: "sudo_star" });
+
+      // Gap 2 (x=28..29)
+      addBridgeSpan(28, 29, 16, "donut");
+      addCoinArc(28, 12, 2);
+
+      // Multi-Deck Boss Arena (Easy to fight or vault over Mecha-Beastie!)
+      addBridgeSpan(33, 41, 12, "semisolid");
+      addBridgeSpan(35, 39, 8, "semisolid");
+      setCell(36, 7, "sudo_star");
+      addCoinArc(37, 10, 2);
+      setCell(38, 15, "boss_beastie", { giant: true });
+
+      addGoalMonument(50);
+    } else if (index === 4) {
+      // 5. Windows 95 BSOD Thwomp Factory (Upper Window Walkways & Clippy Lifts)
+      currentTheme = "win95";
+      buildGroundFloor("brick", [22, 23, 24]);
+      setCell(3, 17, "spawn_pad");
+      setCell(6, 14, "mystery", { payload: "tux_suit" });
+      setCell(8, 17, "bun_booster");
+
+      // Thwomp Bay 1 & 2 with safe Brick Floor + Upper Semisolid Window Overpass
+      for (const tx of [12, 18, 30, 36]) {
+        setCell(tx, 7, "bsod_thwomp", { giant: true });
+        addBridgeSpan(tx - 1, tx + 2, 12, "semisolid");
+        setCell(tx, 10, "coin");
+        setCell(tx + 1, 10, "coin");
+      }
+
+      // Gap (x=22..24): Guided Rail Clippy Lift + Coin Arc
+      for (let rx = 21; rx <= 25; rx++) rails.add(`${rx},15`);
+      setCell(22, 15, "clippy_helper");
+      addCoinArc(23, 11, 2);
+      setCell(27, 17, "checkpoint");
+      setCell(33, 15, "hourglass_zone");
+      setCell(40, 14, "mystery", { payload: "sudo_star" });
+
+      addGoalMonument(50);
+    } else if (index === 5) {
+      // 6. ON/OFF Switch Rhythm Lab (Alternating Red/Blue Bridges & Firewall Vaults)
+      currentTheme = "bun";
+      buildGroundFloor("brick", [14, 15, 30, 31]);
+      setCell(3, 17, "spawn_pad");
+      setCell(6, 14, "mystery", { payload: "tux_suit" });
+
+      // Rhythm Station 1
+      setCell(10, 14, "onoff_switch");
+      addBridgeSpan(13, 14, 16, "red_block");
+      addBridgeSpan(15, 16, 16, "blue_block");
+      addBridgeSpan(14, 15, 12, "semisolid");
+      addCoinArc(14, 10, 2);
+
+      // Rhythm Firewall Gate 1 (Switch at 19 opens Firewall at 23)
+      addFirewallGate(23, 4);
+      setCell(26, 17, "checkpoint");
+
+      // Gap 2 (x=30..31) with Red/Blue Bridges & Semisolid Skyway
+      setCell(28, 14, "onoff_switch");
+      addBridgeSpan(30, 31, 16, "blue_block");
+      addBridgeSpan(30, 31, 13, "semisolid");
+      addCoinArc(30, 10, 2);
+
+      // Rhythm Firewall Gate 2 (Switch at 35 opens Firewall at 39)
+      addFirewallGate(39, 4);
+      setCell(41, 17, "bun_booster");
+
+      addGoalMonument(50);
+    } else if (index === 6) {
+      // 7. Metroidvania Sudo Puzzle (3 Solutions: Bomb, Belly-Slide, or Dock Skybridge!)
+      currentTheme = "linux";
+      buildGroundFloor("brick", []);
+      setCell(3, 17, "spawn_pad");
+      setCell(6, 14, "mystery", { payload: "tux_suit" });
+      setCell(8, 14, "mystery", { payload: "tarball_bomb" });
+      setCell(10, 14, "mystery", { payload: "bsd_trident" });
+
+      // Multi-Solution Package Wall at x=20 (Belly-slide, Tarball Bomb, OR Dock Overpass!)
+      setCell(14, 17, "tarball_bomb");
+      setCell(16, 17, "bun_booster");
+      setCell(17, 17, "macos_dock");
+      addBridgeSpan(18, 22, 11, "semisolid");
+      addCoinArc(20, 9, 2);
+      for (let y = 12; y <= 17; y++) setCell(20, y, "pkg_block");
+
+      // Firewall Vault: Switch at (25, 14) opens Firewall at (29, 15..17)
+      addFirewallGate(29, 4);
+      setCell(32, 17, "sudo_star");
+
+      addGoalMonument(42);
+    } else {
+      generateProceduralAiCourse();
+      return;
+    }
+
+    document.getElementById("osThemeSelect").value = currentTheme;
+    syncEntitiesFromGrid();
+    updateHud();
+  }
+
+  let aiGoldenPath = [];
+
+  // ============================================================================
+  // 5B. 100% BEATABLE FORWARD-KINEMATIC COURSE VERIFIER & AUTO-REPAIR ENGINE
+  // ============================================================================
+  function verifyAndRepairCourse() {
+    aiGoldenPath = [];
+
+    // 1. Ensure Spawn Pad at x=3..4 and clear 3x3 air headroom around Spawn
+    let spawnX = 3;
+    let spawnY = 17;
+    for (let y = 0; y < GRID_H; y++) {
+      for (let x = 0; x < GRID_W; x++) {
+        if (cells[y][x] && cells[y][x].id === "spawn_pad") {
+          spawnX = x;
+          spawnY = y;
+        }
+      }
+    }
+    setCell(spawnX, 18, "brick");
+    setCell(spawnX, 19, "brick");
+    setCell(spawnX + 1, 18, "brick");
+    setCell(spawnX + 1, 19, "brick");
+
+    // Find Goal Gate column
+    let goalX = 80;
+    for (let x = GRID_W - 1; x >= 10; x--) {
+      for (let y = 0; y < GRID_H; y++) {
+        if (cells[y][x] && cells[y][x].id === "goal_gate") {
+          goalX = x;
+          break;
+        }
+      }
+      if (goalX !== 80) break;
+    }
+
+    // 2. Scan left-to-right from spawnX to goalX, verifying surface reachability & headroom
+    let lastSafeX = spawnX;
+    let lastSafeY = 17;
+    aiGoldenPath.push({ c: spawnX, r: 17, x: spawnX * TILE + 16, y: 17 * TILE + 16 });
+
+    for (let x = spawnX + 1; x <= goalX; x++) {
+      // Check if column x has a standable surface (solid or semisolid or rail lift)
+      let surfaceRow = -1;
+      for (let y = 6; y <= 18; y++) {
+        const cell = cells[y][x];
+        if (!cell) continue;
+        const meta = ITEM_MAP[cell.id];
+        if (meta && (meta.solid || meta.semisolid)) {
+          surfaceRow = y - 1;
+          break;
+        }
+      }
+
+      // Check if a PF Firewall blocks this column and ensure a wired ON/OFF switch exists to its left!
+      for (let y = 12; y <= 17; y++) {
+        if (cells[y][x] && cells[y][x].id === "pf_firewall") {
+          const hasWiredSwitch = wires.some(w => w.x2 === x && cells[w.y1] && cells[w.y1][w.x1] && cells[w.y1][w.x1].id === "onoff_switch");
+          if (!hasWiredSwitch) {
+            const swX = Math.max(spawnX + 2, x - 4);
+            setCell(swX, 14, "onoff_switch");
+            setCell(swX, 18, "brick");
+            setCell(swX, 19, "brick");
+            wires.push({ x1: swX, y1: 14, x2: x, y2: y });
+          }
+        }
+      }
+
+      if (surfaceRow !== -1) {
+        const dc = x - lastSafeX;
+        const dr = lastSafeY - surfaceRow; // Positive if climbing upward
+
+        // Auto-Repair 1: If horizontal gap > 4 tiles without a bridge/rail, inject a rescue Semisolid + Dock ferry!
+        if (dc > 4) {
+          const midX = Math.floor((lastSafeX + x) / 2);
+          const bridgeY = Math.min(16, Math.max(11, Math.round((lastSafeY + surfaceRow) / 2) + 1));
+          addBridgeSpan(midX - 1, midX + 1, bridgeY, "semisolid");
+          setCell(lastSafeX, lastSafeY, "macos_dock");
+          addCoinArc(midX, bridgeY - 3, 2);
+          aiGoldenPath.push({ c: midX, r: bridgeY - 1, x: midX * TILE + 16, y: (bridgeY - 1) * TILE + 16, jump: true });
+        }
+
+        // Auto-Repair 2: If vertical climb > 3 tiles without a springboard, place a macOS Dock Springboard!
+        if (dr > 3) {
+          const launchX = Math.max(spawnX + 1, x - 1);
+          setCell(launchX, lastSafeY, "macos_dock");
+          setCell(launchX, lastSafeY + 1, "brick");
+        }
+
+        // Auto-Repair 3: Carve 2-tile-tall headroom above the landing surface (unless mystery/switch block at y-3)
+        for (let hy = Math.max(2, surfaceRow - 1); hy <= surfaceRow; hy++) {
+          const hc = cells[hy][x];
+          if (hc && (hc.id === "brick" || hc.id === "kernel_spike")) {
+            cells[hy][x] = null;
+          }
+        }
+
+        if (x % 3 === 0 || dc > 1 || Math.abs(dr) > 1) {
+          aiGoldenPath.push({
+            c: x,
+            r: surfaceRow,
+            x: x * TILE + 16,
+            y: surfaceRow * TILE + 16,
+            jump: dc > 1 || dr > 1
+          });
+        }
+        lastSafeX = x;
+        lastSafeY = surfaceRow;
+      } else if (x - lastSafeX >= 3) {
+        // Auto-Repair 4: Never allow an unbridged pit wider than 3 tiles!
+        setCell(x, 16, "semisolid");
+        setCell(x, 13, "coin");
+        aiGoldenPath.push({ c: x, r: 15, x: x * TILE + 16, y: 15 * TILE + 16, jump: true });
+        lastSafeX = x;
+        lastSafeY = 15;
+      }
+    }
+
+    aiGoldenPath.push({ c: goalX, r: 16, x: goalX * TILE + 16, y: 16 * TILE + 16 });
+    onionTrail = aiGoldenPath.map(pt => ({ x: pt.x, y: pt.y, jump: !!pt.jump }));
+    minimapDirty = true;
+    return { valid: true, waypoints: aiGoldenPath.length, goalX };
+  }
+
+  // ============================================================================
+  // 5C. 4-TIER PROCEDURAL AI COURSE ARCHITECT (TRUE RANDOMIZED SET-PIECE ENGINE)
+  // ============================================================================
+  let lastAiCourseSignature = "";
+  let aiCourseGenCounter = 0;
+
+  function randInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function randChoice(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function clearFloorGap(x1, x2) {
+    for (let x = Math.max(5, x1); x <= Math.min(GRID_W - 8, x2); x++) {
+      cells[18][x] = null;
+      cells[19][x] = null;
+    }
+  }
+
+  function generateProceduralAiCourse(diffOpt) {
+    pushUndo();
+    aiCourseGenCounter++;
+    const diffSelect = document.getElementById("aiDifficultySelect");
+    const difficulty = (typeof diffOpt === "string" && diffOpt)
+      ? diffOpt.toLowerCase()
+      : (diffSelect ? diffSelect.value : "medium");
+    if (diffSelect && diffSelect.value !== difficulty) {
+      diffSelect.value = difficulty;
+    }
+
+    // Rotate & randomize across all 5 OS themes so every roll feels fresh
+    const allThemes = Object.keys(OS_THEMES);
+    const otherThemes = allThemes.filter(t => t !== currentTheme);
+    currentTheme = Math.random() < 0.78 ? randChoice(otherThemes) : randChoice(allThemes);
+    document.getElementById("osThemeSelect").value = currentTheme;
+    cachedSkyKey = "";
+
+    cells = createEmptyGrid();
+    rails = new Set();
+    wires = [];
+    onOffState = Math.random() < 0.5;
+    camX = 0;
+    minimapDirty = true;
+
+    const seedHex = Math.floor(0x1000 + Math.random() * 0xEFFF).toString(16).toUpperCase();
+    const powerPayloads = ["tux_suit", "bsd_trident", "sudo_star", "tarball_bomb"];
+    const baseFloorBlock = randChoice(["brick", "brick", "tux_ice"]);
+
+    // 1. Start with continuous floor; individual set-pieces carve dynamic gaps & elevations
+    buildGroundFloor(baseFloorBlock === "tux_ice" && difficulty === "easy" ? "brick" : baseFloorBlock, []);
+    setCell(3, 17, "spawn_pad");
+
+    // 2. Randomized Opening Power-Up Pavilion (x = 5..11)
+    const openStyle = randInt(0, 3);
+    const firstPayload = randChoice(["tux_suit", "bsd_trident"]);
+    const secondPayload = randChoice(powerPayloads);
+    if (openStyle === 0) {
+      setCell(6, 14, "mystery", { payload: firstPayload });
+      setCell(7, 14, "pkg_block");
+      setCell(8, 14, "mystery", { payload: secondPayload });
+      setCell(9, 14, "pkg_block");
+      setCell(10, 14, "mystery", { payload: "sudo_star" });
+      addBridgeSpan(6, 10, 10, "semisolid");
+      addCoinArc(8, 8, 2);
+    } else if (openStyle === 1) {
+      addStaircase(6, 3, 1, "brick");
+      setCell(9, 13, "mystery", { payload: firstPayload });
+      setCell(10, 13, "mystery", { payload: secondPayload });
+      addBridgeSpan(7, 11, 9, "semisolid");
+      setCell(9, 8, firstPayload, { wings: difficulty === "easy" });
+      addCoinArc(9, 7, 2);
+    } else if (openStyle === 2) {
+      setCell(5, 17, "macos_dock");
+      addBridgeSpan(6, 11, 12, "semisolid");
+      setCell(7, 11, firstPayload);
+      setCell(9, 9, "mystery", { payload: secondPayload });
+      addCoinArc(8, 10, 2);
+      if (difficulty !== "extreme") setCell(10, 17, "bun_booster");
+    } else {
+      setCell(6, 14, "mystery", { payload: firstPayload });
+      setCell(8, 17, "note_block");
+      setCell(9, 17, "note_block");
+      addBridgeSpan(7, 11, 11, "semisolid");
+      setCell(9, 10, secondPayload);
+      addCoinArc(9, 8, 2);
+    }
+
+    // 3. Configure Difficulty Parameters & Module Pool
+    const diffCfg = {
+      easy: {
+        numChunks: randInt(4, 5),
+        maxGap: 2,
+        enemyDensity: 0.35,
+        safetyBridgeChance: 1.0,
+        checkpoints: 2,
+        modules: [
+          "spring_skyway",
+          "rail_coaster_ferry",
+          "cryo_slide_shatter",
+          "warp_pipe_conduit",
+          "cron_beat_terrace",
+          "sky_island_chain",
+          "conveyor_momentum_launch",
+          "tarball_demolition_wall"
+        ]
+      },
+      medium: {
+        numChunks: randInt(5, 6),
+        maxGap: 3,
+        enemyDensity: 0.65,
+        safetyBridgeChance: 0.85,
+        checkpoints: 2,
+        modules: [
+          "spring_skyway",
+          "rail_coaster_ferry",
+          "firewall_logic_vault",
+          "warp_pipe_conduit",
+          "cron_beat_terrace",
+          "cryo_slide_shatter",
+          "turret_siege_terrace",
+          "sky_island_chain",
+          "conveyor_momentum_launch",
+          "tarball_demolition_wall",
+          "onoff_rhythm_bridge"
+        ]
+      },
+      hard: {
+        numChunks: randInt(6, 7),
+        maxGap: 3,
+        enemyDensity: 0.9,
+        safetyBridgeChance: 0.75,
+        checkpoints: 2,
+        modules: [
+          "spring_skyway",
+          "rail_coaster_ferry",
+          "firewall_logic_vault",
+          "thwomp_crusher_bay",
+          "onoff_rhythm_bridge",
+          "warp_pipe_conduit",
+          "cron_beat_terrace",
+          "turret_siege_terrace",
+          "sky_island_chain",
+          "conveyor_momentum_launch",
+          "tarball_demolition_wall"
+        ]
+      },
+      extreme: {
+        numChunks: randInt(6, 8),
+        maxGap: 4,
+        enemyDensity: 1.15,
+        safetyBridgeChance: 0.7,
+        checkpoints: 2,
+        modules: [
+          "sky_island_chain",
+          "thwomp_crusher_bay",
+          "onoff_rhythm_bridge",
+          "firewall_logic_vault",
+          "rail_coaster_ferry",
+          "turret_siege_terrace",
+          "conveyor_momentum_launch",
+          "cron_beat_terrace",
+          "spring_skyway"
+        ]
+      }
+    }[difficulty] || {
+      numChunks: 5,
+      maxGap: 3,
+      enemyDensity: 0.65,
+      safetyBridgeChance: 0.85,
+      checkpoints: 2,
+      modules: ["spring_skyway", "rail_coaster_ferry", "firewall_logic_vault", "warp_pipe_conduit", "sky_island_chain"]
+    };
+
+    // 4. Construct Randomized Set-Piece Sequence (Ensuring non-repeating consecutive modules & unique course signature)
+    let chosenModules = [];
+    for (let attempt = 0; attempt < 6; attempt++) {
+      chosenModules = [];
+      let prevMod = "";
+      for (let i = 0; i < diffCfg.numChunks; i++) {
+        const candidates = diffCfg.modules.filter(m => m !== prevMod);
+        const pick = randChoice(candidates);
+        chosenModules.push(pick);
+        prevMod = pick;
+      }
+      const sig = `${difficulty}:${currentTheme}:${chosenModules.join("-")}:${openStyle}`;
+      if (sig !== lastAiCourseSignature) {
+        lastAiCourseSignature = sig;
+        break;
+      }
+    }
+
+    let cursorX = 13;
+    const checkpointStep1 = Math.max(1, Math.floor(diffCfg.numChunks * 0.38));
+    const checkpointStep2 = Math.max(2, Math.floor(diffCfg.numChunks * 0.75));
+
+    for (let idx = 0; idx < chosenModules.length; idx++) {
+      if (cursorX > GRID_W - 28) break;
+      const mod = chosenModules[idx];
+      const gapW = randInt(1, diffCfg.maxGap);
+      const deckY = randInt(10, 13);
+
+      if (mod === "spring_skyway") {
+        // Springboard or Note-Block Launch across randomized gap + multi-tier sky-decks
+        const launcher = randChoice(["macos_dock", "note_block"]);
+        setCell(cursorX, 17, launcher);
+        clearFloorGap(cursorX + 2, cursorX + 1 + gapW);
+        if (Math.random() <= diffCfg.safetyBridgeChance) {
+          addBridgeSpan(cursorX + 2, cursorX + 1 + gapW, randInt(15, 16), difficulty === "easy" ? "semisolid" : randChoice(["semisolid", "donut"]));
+        }
+        const skySpan = randInt(5, 8);
+        addBridgeSpan(cursorX + 1, cursorX + 1 + skySpan, deckY, "semisolid");
+        addCoinArc(cursorX + 2 + Math.floor(skySpan / 2), deckY - 2, 2);
+        if (Math.random() < 0.65) {
+          setCell(cursorX + 2 + Math.floor(skySpan / 2), deckY - 3, "mystery", { payload: randChoice(powerPayloads) });
+        }
+        if (Math.random() < diffCfg.enemyDensity) {
+          const enemyId = randChoice(["zombie_proc", "puffy_fish", "oom_reaper"]);
+          setCell(cursorX + skySpan, enemyId === "zombie_proc" ? 17 : deckY - 1, enemyId, { wings: enemyId !== "zombie_proc" });
+        }
+        cursorX += skySpan + 4;
+
+      } else if (mod === "rail_coaster_ferry") {
+        // Guided Rail Track with moving Clippy Lift + optional upper pinwheel hazard rail
+        const railLen = randInt(4, 6);
+        const railY = randInt(14, 16);
+        clearFloorGap(cursorX + 1, cursorX + Math.min(gapW + 1, railLen - 1));
+        for (let rx = cursorX; rx <= cursorX + railLen; rx++) {
+          rails.add(`${rx},${railY}`);
+        }
+        setCell(cursorX + 1, railY, "clippy_helper");
+        addCoinArc(cursorX + Math.floor(railLen / 2), railY - 4, 2);
+        if (difficulty === "easy" || Math.random() < 0.5) {
+          addBridgeSpan(cursorX + 1, cursorX + railLen - 1, 17, "semisolid");
+        }
+        if (difficulty === "hard" || difficulty === "extreme") {
+          const upperRailY = randInt(7, 9);
+          for (let rx = cursorX + 1; rx <= cursorX + railLen - 1; rx++) rails.add(`${rx},${upperRailY}`);
+          setCell(cursorX + Math.floor(railLen / 2), upperRailY, randChoice(["beachball", "oom_reaper"]), { wings: true });
+        }
+        cursorX += railLen + 3;
+
+      } else if (mod === "firewall_logic_vault") {
+        // Wired ON/OFF Switch -> PF Firewall Laser Gate + Guard & Reward Mystery Block
+        const swOffset = randInt(3, 5);
+        const fwX = cursorX + swOffset + 2;
+        addFirewallGate(fwX, swOffset);
+        setCell(cursorX + 1, 14, "mystery", { payload: randChoice(powerPayloads) });
+        addBridgeSpan(cursorX + 1, fwX + 2, randInt(10, 11), "semisolid");
+        addCoinArc(fwX - 1, 8, 2);
+        if (Math.random() < diffCfg.enemyDensity) {
+          setCell(fwX - 2, 17, randChoice(["zombie_proc", "tarball_bomb"]));
+        }
+        cursorX = fwX + 4;
+
+      } else if (mod === "thwomp_crusher_bay") {
+        // 1 or 2 Giant BSOD Thwomps with both fast ground sprint & upper Semisolid window bypass!
+        const numThwomps = (difficulty === "extreme" && Math.random() < 0.65) ? 2 : 1;
+        setCell(cursorX, 17, randChoice(["bun_booster", "macos_dock"]));
+        for (let t = 0; t < numThwomps; t++) {
+          const tx = cursorX + 3 + t * 5;
+          setCell(tx, randInt(6, 8), "bsod_thwomp", { giant: true });
+          addBridgeSpan(tx - 1, tx + 2, randInt(11, 12), "semisolid");
+          setCell(tx, 10, "coin");
+          setCell(tx + 1, 10, "coin");
+        }
+        if (Math.random() < 0.7) {
+          setCell(cursorX + 5, 15, randChoice(["hourglass_zone", "timemachine_orb"]));
+        }
+        cursorX += numThwomps * 5 + 4;
+
+      } else if (mod === "onoff_rhythm_bridge") {
+        // Alternating Red/Blue Phase Bridges with ON/OFF Switch + Overhead Safety Window
+        const span = randInt(4, 6);
+        setCell(cursorX + 1, 14, "onoff_switch");
+        clearFloorGap(cursorX + 3, cursorX + 2 + span);
+        for (let bx = 0; bx < span; bx++) {
+          const blockId = bx % 2 === 0 ? "red_block" : "blue_block";
+          setCell(cursorX + 3 + bx, 16, blockId);
+        }
+        // Overhead Semisolid Skyway guarantees 100% passability in either switch state
+        addBridgeSpan(cursorX + 2, cursorX + 3 + span, randInt(11, 13), "semisolid");
+        addCoinArc(cursorX + 3 + Math.floor(span / 2), 9, 2);
+        cursorX += span + 5;
+
+      } else if (mod === "warp_pipe_conduit") {
+        // Paired Green Warp Pipes flanking a Conveyor / Cron / Bomb courtyard
+        const midSpan = randInt(5, 7);
+        setCell(cursorX + 1, 17, "warp_pipe");
+        addBridgeSpan(cursorX + 3, cursorX + midSpan, randInt(13, 15), randChoice(["conveyor", "semisolid"]));
+        addCoinArc(cursorX + 2 + Math.floor(midSpan / 2), 10, 2);
+        if (Math.random() < diffCfg.enemyDensity) {
+          setCell(cursorX + 3 + Math.floor(midSpan / 2), 17, randChoice(["zombie_proc", "tarball_bomb", "puffy_fish"]));
+        }
+        setCell(cursorX + midSpan + 2, 17, "warp_pipe");
+        cursorX += midSpan + 5;
+
+      } else if (mod === "cron_beat_terrace") {
+        // Staggered Clockwork Cron Blocks + Safety Deck & Hourglass/Reaper
+        const steps = randInt(3, 4);
+        for (let s = 0; s < steps; s++) {
+          const cx = cursorX + 2 + s * 3;
+          const cy = 15 - (s % 2) * 2;
+          setCell(cx, cy, "cron_block");
+          setCell(cx + 1, cy, "cron_block");
+          setCell(cx, cy - 2, "coin");
+        }
+        if (Math.random() < 0.65) {
+          setCell(cursorX + 4, 15, "hourglass_zone");
+        }
+        if (Math.random() < diffCfg.enemyDensity) {
+          setCell(cursorX + steps * 3, 11, "oom_reaper", { wings: true });
+        }
+        cursorX += steps * 3 + 3;
+
+      } else if (mod === "cryo_slide_shatter") {
+        // Bun Booster + Package Block & Zombie Process Shatter Alley + Overpass
+        const alleyLen = randInt(6, 9);
+        setCell(cursorX, 17, "bun_booster");
+        addBridgeSpan(cursorX + 2, cursorX + alleyLen, randInt(12, 13), "semisolid");
+        for (let ax = cursorX + 2; ax <= cursorX + alleyLen; ax += 2) {
+          setCell(ax, 17, "pkg_block");
+          if (Math.random() < diffCfg.enemyDensity) {
+            setCell(ax + 1, 17, "zombie_proc");
+          }
+          setCell(ax, 10, "coin");
+        }
+        cursorX += alleyLen + 3;
+
+      } else if (mod === "turret_siege_terrace") {
+        // Elevated Spotlight Laser Turret Pod(s) + Armory Block & Canopy Bypass
+        const turretCount = (difficulty === "extreme" && Math.random() < 0.6) ? 2 : 1;
+        setCell(cursorX + 1, 14, "mystery", { payload: randChoice(["bsd_trident", "tux_suit", "sudo_star"]) });
+        addBridgeSpan(cursorX + 2, cursorX + 6 + turretCount * 3, randInt(11, 12), "semisolid");
+        for (let t = 0; t < turretCount; t++) {
+          const tx = cursorX + 4 + t * 4;
+          setCell(tx, 16, "spotlight_turret");
+          setCell(tx, 17, "brick");
+        }
+        addCoinArc(cursorX + 5, 9, 2);
+        cursorX += 7 + turretCount * 3;
+
+      } else if (mod === "sky_island_chain") {
+        // Multi-Tier Ascending & Descending Sky Islands with Springboards & Safety Net
+        const island1Y = randInt(13, 14);
+        const island2Y = randInt(9, 11);
+        setCell(cursorX, 17, "macos_dock");
+        clearFloorGap(cursorX + 2, cursorX + 3 + gapW);
+        addBridgeSpan(cursorX + 2, cursorX + 4, 16, randChoice(["semisolid", "donut"]));
+        addBridgeSpan(cursorX + 2, cursorX + 5, island1Y, "semisolid");
+        setCell(cursorX + 4, island1Y - 1, randChoice(["note_block", "macos_dock"]));
+        addBridgeSpan(cursorX + 6, cursorX + 10, island2Y, "semisolid");
+        addCoinArc(cursorX + 8, island2Y - 2, 2);
+        if (Math.random() < 0.75) {
+          setCell(cursorX + 8, island2Y - 1, randChoice(["timemachine_orb", "tux_suit", "bsd_trident"]));
+        }
+        if (Math.random() < diffCfg.enemyDensity) {
+          setCell(cursorX + 7, island2Y - 2, randChoice(["puffy_fish", "beachball"]), { wings: true });
+        }
+        cursorX += 12;
+
+      } else if (mod === "conveyor_momentum_launch") {
+        // Fast Conveyor Ramp + Bun Booster Launch across gap onto Semisolid Landing Deck
+        addBridgeSpan(cursorX + 1, cursorX + 4, 15, "conveyor");
+        setCell(cursorX + 4, 17, "bun_booster");
+        clearFloorGap(cursorX + 5, cursorX + 5 + gapW);
+        addBridgeSpan(cursorX + 5, cursorX + 6 + gapW, 16, "semisolid");
+        addCoinArc(cursorX + 5 + Math.floor(gapW / 2), 11, 2);
+        cursorX += 8 + gapW;
+
+      } else {
+        // tarball_demolition_wall: Breakable Package Wall with Bomb, Booster & Dock Overpass
+        setCell(cursorX + 1, 17, "tarball_bomb");
+        setCell(cursorX + 2, 17, "bun_booster");
+        setCell(cursorX + 3, 17, "macos_dock");
+        const wallX = cursorX + 5;
+        for (let wy = 13; wy <= 17; wy++) setCell(wallX, wy, "pkg_block");
+        addBridgeSpan(wallX - 1, wallX + 2, 11, "semisolid");
+        addCoinArc(wallX, 9, 2);
+        cursorX += 9;
+      }
+
+      // Inject Mid-Course Checkpoints & Refill Mystery Blocks
+      if (idx === checkpointStep1 || (diffCfg.checkpoints >= 2 && idx === checkpointStep2)) {
+        setCell(cursorX, 18, "brick");
+        setCell(cursorX, 19, "brick");
+        setCell(cursorX, 17, "checkpoint");
+        setCell(cursorX + 2, 14, "mystery", { payload: randChoice(["tux_suit", "bsd_trident", "sudo_star"]) });
+        cursorX += 4;
+      }
+    }
+
+    // 5. Randomized Boss Citadel & Goal Monument Finale
+    const bossStart = Math.min(GRID_W - 22, Math.max(cursorX + 2, 52));
+    for (let x = bossStart - 2; x < GRID_W; x++) {
+      setCell(x, 18, "brick");
+      setCell(x, 19, "brick");
+    }
+    setCell(bossStart, 14, "mystery", { payload: randChoice(["bsd_trident", "sudo_star"]) });
+    setCell(bossStart + 2, 17, "macos_dock");
+    const bossDeckY = randInt(11, 12);
+    addBridgeSpan(bossStart + 3, bossStart + 11, bossDeckY, "semisolid");
+    addCoinArc(bossStart + 7, bossDeckY - 3, 2);
+
+    if (difficulty === "extreme" || (difficulty === "hard" && Math.random() < 0.5)) {
+      addBridgeSpan(bossStart + 5, bossStart + 9, 8, "semisolid");
+      setCell(bossStart + 7, 7, randChoice(["sudo_star", "bsd_trident"]));
+    }
+    setCell(bossStart + 6, 15, "boss_beastie", { giant: true });
+    if (difficulty === "extreme") {
+      setCell(bossStart + 10, 15, "boss_beastie", { giant: true });
+    }
+
+    const goalCol = Math.min(GRID_W - 6, bossStart + 16);
+    addGoalMonument(goalCol);
+
+    // 6. Run 100% Beatable Kinematic Verifier & Auto-Repair Pass
+    verifyAndRepairCourse();
+    syncEntitiesFromGrid();
+    renderPalette();
+    updateHud();
+    playSfx("powerup");
+    spawnFloatingText(
+      player.x,
+      player.y - 24,
+      `🎲 AI ${difficulty.toUpperCase()} #${seedHex} (${chosenModules.length} MODULES)!`,
+      "#fde047"
+    );
+  }
+
+  const generateAiLevel = generateProceduralAiCourse;
+
+  // ============================================================================
+  // 6. PALETTE UI & INSPECTOR BINDINGS (WITH LIVE 2X RETINA SPRITE PREVIEWS!)
+  // ============================================================================
+  function renderPalette() {
+    const grid = document.getElementById("paletteGrid");
+    grid.innerHTML = "";
+    const filtered = activeCat === "all" ? ITEMS : ITEMS.filter(i => i.cat === activeCat);
+
+    for (const item of filtered) {
+      const card = document.createElement("div");
+      card.className = "item-card" + (selectedItem === item.id ? " selected" : "");
+      card.innerHTML = `
+        <div class="item-card-top">
+          <div class="item-preview-wrap">
+            <canvas class="item-preview-can" width="64" height="64"></canvas>
+          </div>
+          <span class="item-badge">${item.badge}</span>
+        </div>
+        <div class="item-name">${item.name}</div>
+        <div class="item-desc">${item.desc.slice(0, 48)}...</div>
+      `;
+      const prevCan = card.querySelector(".item-preview-can");
+      if (prevCan) {
+        const pCtx = prevCan.getContext("2d");
+        const spr = getCachedSprite(item.id, 32, currentTheme, "");
+        pCtx.drawImage(spr, 0, 0, 64, 64);
+      }
+      card.addEventListener("click", () => {
+        selectedItem = item.id;
+        if (activeTool === "eraser" || activeTool === "eyedropper") {
+          setActiveTool("brush");
+        }
+        updateInspector(item);
+        renderPalette();
+      });
+      grid.appendChild(card);
+    }
+  }
+
+  function updateInspector(item) {
+    if (!item) return;
+    document.getElementById("inspTitle").textContent = `${item.icon} ${item.name} [${item.badge}]`;
+    document.getElementById("inspDesc").textContent = item.desc;
+  }
+
+  function setActiveTool(toolName) {
+    activeTool = toolName;
+    document.querySelectorAll("#toolPalette .tool-pill").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.tool === toolName);
+    });
+  }
+
+  document.querySelectorAll("#categoryTabs .cat-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      activeCat = tab.dataset.cat;
+      document.querySelectorAll("#categoryTabs .cat-tab").forEach(t => t.classList.toggle("active", t === tab));
+      renderPalette();
+    });
+  });
+
+  document.querySelectorAll("#toolPalette .tool-pill").forEach(btn => {
+    btn.addEventListener("click", () => setActiveTool(btn.dataset.tool));
+  });
+
+  document.getElementById("btnBrushSize").addEventListener("click", e => {
+    brushSize = brushSize === 1 ? 2 : (brushSize === 2 ? 3 : 1);
+    e.currentTarget.textContent = `🖌️ Size: ${brushSize}×${brushSize}`;
+    e.currentTarget.classList.toggle("active", brushSize > 1);
+  });
+
+  document.getElementById("btnClearCourse").addEventListener("click", () => {
+    pushUndo();
+    cells = createEmptyGrid();
+    rails = new Set();
+    wires = [];
+    buildGroundFloor("brick", []);
+    setCell(3, 17, "spawn_pad");
+    setCell(40, 16, "goal_gate");
+    minimapDirty = true;
+    syncEntitiesFromGrid();
+    playSfx("thwomp");
+  });
+
+  document.getElementById("modWings").addEventListener("click", e => {
+    modWings = !modWings;
+    e.currentTarget.classList.toggle("active", modWings);
+  });
+  document.getElementById("modParachute").addEventListener("click", e => {
+    modParachute = !modParachute;
+    e.currentTarget.classList.toggle("active", modParachute);
+  });
+  document.getElementById("modGiant").addEventListener("click", e => {
+    modGiant = !modGiant;
+    e.currentTarget.classList.toggle("active", modGiant);
+  });
+  document.getElementById("modPayload").addEventListener("click", e => {
+    payloadIdx = (payloadIdx + 1) % PAYLOAD_CYCLE.length;
+    const key = PAYLOAD_CYCLE[payloadIdx];
+    e.currentTarget.textContent = `📦 Payload: ${PAYLOAD_NAMES[key]}`;
+    e.currentTarget.classList.add("active");
+  });
+  document.getElementById("btnOnionTrail").addEventListener("click", e => {
+    showOnionTrail = !showOnionTrail;
+    e.currentTarget.classList.toggle("active", showOnionTrail);
+  });
+
+  // Hero Selector & AI Speedrunner Bot Toggle
+  document.getElementById("heroSelect").addEventListener("change", e => {
+    selectedHero = e.target.value;
+    player.form = selectedHero;
+    updateHud();
+    spawnFloatingText(player.x, player.y - 20, `${HERO_META[selectedHero].name}`, "#fde047");
+  });
+
+  function toggleAiSpeedrunnerBot() {
+    aiBotEnabled = !aiBotEnabled;
+    const btn = document.getElementById("btnAiBot");
+    btn.textContent = aiBotEnabled ? "🤖 AI BOT: ON [V]" : "🤖 AI BOT: OFF [V]";
+    btn.classList.toggle("active-toggle", aiBotEnabled);
+    if (aiBotEnabled && mode === "edit") {
+      togglePlayMode();
+    }
+    spawnFloatingText(player.x, player.y - 24, aiBotEnabled ? "🤖 AI SPEEDRUNNER ENGAGED!" : "🤖 AI BOT DISENGAGED", "#38bdf8");
+  }
+
+  document.getElementById("btnAiBot").addEventListener("click", toggleAiSpeedrunnerBot);
+
+  document.getElementById("courseSelect").addEventListener("change", e => {
+    loadBuiltInCourse(parseInt(e.target.value, 10));
+  });
+
+  document.getElementById("osThemeSelect").addEventListener("change", e => {
+    currentTheme = e.target.value;
+    cachedSkyKey = "";
+    minimapDirty = true;
+    renderPalette();
+  });
+
+  document.getElementById("aiDifficultySelect").addEventListener("change", e => {
+    generateProceduralAiCourse(e.target.value);
+  });
+
+  document.getElementById("btnGenerateCourse").addEventListener("click", () => {
+    generateProceduralAiCourse();
+  });
+
+  document.getElementById("btnUndo").addEventListener("click", () => {
+    if (!undoStack.length) return;
+    redoStack.push(cloneCourseState());
+    restoreCourseState(undoStack.pop());
+  });
+
+  document.getElementById("btnRedo").addEventListener("click", () => {
+    if (!redoStack.length) return;
+    undoStack.push(cloneCourseState());
+    restoreCourseState(redoStack.pop());
+  });
+
+  document.getElementById("btnSaveSlot").addEventListener("click", () => {
+    window.localStorage.setItem("cyber_maker_saved_course_v1", cloneCourseState());
+    spawnFloatingText(player.x, player.y - 24, "💾 SAVED TO SLOT!", "#22c55e");
+    playSfx("coin");
+  });
+
+  document.getElementById("btnShareJson").addEventListener("click", () => {
+    document.getElementById("jsonTextarea").value = cloneCourseState();
+    document.getElementById("shareModal").classList.add("open");
+  });
+  document.getElementById("btnCloseModal").addEventListener("click", () => {
+    document.getElementById("shareModal").classList.remove("open");
+  });
+  document.getElementById("btnCopyJson").addEventListener("click", () => {
+    const ta = document.getElementById("jsonTextarea");
+    ta.select();
+    try { navigator.clipboard.writeText(ta.value); } catch (_) {}
+  });
+  document.getElementById("btnImportJson").addEventListener("click", () => {
+    pushUndo();
+    restoreCourseState(document.getElementById("jsonTextarea").value);
+    document.getElementById("shareModal").classList.remove("open");
+  });
+
+  document.getElementById("btnAudioToggle").addEventListener("click", e => {
+    audioEnabled = !audioEnabled;
+    e.currentTarget.textContent = audioEnabled ? "🔊 Synth ON" : "🔇 Synth OFF";
+    e.currentTarget.classList.toggle("active-toggle", audioEnabled);
+  });
+
+  // ============================================================================
+  // 7. MODE SWITCHING (EDIT STUDIO <-> PLAYTEST ARENA)
+  // ============================================================================
+  const savedBlueprintBeforePlay = { data: null };
+
+  function togglePlayMode() {
+    const btn = document.getElementById("btnToggleMode");
+    const banner = document.getElementById("statusBanner");
+
+    if (mode === "edit") {
+      savedBlueprintBeforePlay.data = cloneCourseState();
+      mode = "play";
+      btn.textContent = "🛠️ RETURN TO EDITOR [P]";
+      btn.classList.add("playing");
+      banner.innerHTML = `🎬 <strong>PLAYTEST ARENA ACTIVE</strong> — ${OS_THEMES[currentTheme].banner}`;
+      onionTrail = [];
+      rewindHistory = [];
+      courseTimer = 300;
+      const sp = findSpawnCoordinates();
+      player = createDefaultPlayer();
+      player.x = sp.x;
+      player.y = sp.y;
+      player.checkpointX = sp.x;
+      player.checkpointY = sp.y;
+      syncEntitiesFromGrid();
+      playSfx("powerup");
+    } else {
+      mode = "edit";
+      btn.textContent = "🎬 PLAYTEST COURSE [P]";
+      btn.classList.remove("playing");
+      banner.innerHTML = `🛠️ <strong>EDIT STUDIO ACTIVE</strong> — Left-Click: Place • Right-Click: Erase • Drag Minimap to Scrub • Press <strong>[P]</strong> to Playtest!`;
+      document.getElementById("bossHudBox").style.display = "none";
+      if (savedBlueprintBeforePlay.data) {
+        restoreCourseState(savedBlueprintBeforePlay.data);
+      }
+      const sp = findSpawnCoordinates();
+      player.x = sp.x;
+      player.y = sp.y;
+    }
+  }
+
+  document.getElementById("btnToggleMode").addEventListener("click", togglePlayMode);
+
+  // ============================================================================
+  // 8. ENTITY SYNCHRONIZATION & RAIL-TRACK / PLATFORM / TURRET SANDBOX
+  // ============================================================================
+  function syncEntitiesFromGrid() {
+    entities = [];
+    projectiles = [];
+    particles = [];
+    for (let y = 0; y < GRID_H; y++) {
+      for (let x = 0; x < GRID_W; x++) {
+        const c = cells[y][x];
+        if (!c) continue;
+        const meta = ITEM_MAP[c.id];
+        if (!meta) continue;
+        const onRail = rails.has(`${x},${y}`);
+        // Spawn dynamic entity if it's an enemy, powerup, throwable, OR any platform placed on a Guided Rail Track!
+        if (meta.enemy || meta.powerup || meta.entity || (onRail && (meta.solid || meta.semisolid))) {
+          entities.push({
+            id: c.id,
+            gridX: x,
+            gridY: y,
+            x: x * TILE,
+            y: y * TILE,
+            baseY: y * TILE,
+            vx: meta.enemy ? -1.15 : (onRail ? 1.5 : 0),
+            vy: 0,
+            railDirX: 1,
+            railDirY: 0,
+            onRail,
+            isPlatform: !!(meta.solid || meta.semisolid),
+            wings: !!c.wings,
+            parachute: !!c.parachute,
+            giant: !!c.giant,
+            frozenTimer: 0,
+            hp: c.id === "boss_beastie" ? 10 : 1,
+            maxHp: c.id === "boss_beastie" ? 10 : 1,
+            state: "active",
+            timer: 0
+          });
+        }
+      }
+    }
+    const sp = findSpawnCoordinates();
+    if (mode === "edit") {
+      player.x = sp.x;
+      player.y = sp.y;
+    }
+  }
+
+  function spawnFloatingText(x, y, text, color = "#fde047") {
+    floatingTexts.push({ x, y, text, color, life: 48 });
+  }
+
+  function spawnParticles(x, y, color, count = 10) {
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x,
+        y,
+        vx: (Math.random() - 0.5) * 6,
+        vy: (Math.random() - 0.7) * 6,
+        color,
+        life: 20 + Math.floor(Math.random() * 14)
+      });
+    }
+  }
+
+  function triggerOnOffSwitch(sourceX, sourceY) {
+    onOffState = !onOffState;
+    minimapDirty = true;
+    playSfx("switch");
+    spawnFloatingText(
+      sourceX * TILE,
+      sourceY * TILE - 12,
+      onOffState ? "❗ SWITCH: RED ON" : "❗ SWITCH: BLUE OFF",
+      onOffState ? "#f87171" : "#38bdf8"
+    );
+
+    for (const w of wires) {
+      if (w.x1 === sourceX && w.y1 === sourceY) {
+        const target = cells[w.y2] && cells[w.y2][w.x2];
+        if (target && target.id === "pf_firewall") {
+          target.disabled = !onOffState;
+        }
+      }
+    }
+    updateHud();
+  }
+
+  function updateHud() {
+    const heroInfo = HERO_META[player.form] || HERO_META.tux;
+    document.getElementById("hudHeroForm").textContent =
+      player.sudoTimer > 0 ? "👑 SUDO ROOT" : heroInfo.name;
+    document.getElementById("hudCoins").textContent = String(player.coins).padStart(2, "0");
+    const swEl = document.getElementById("hudSwitchState");
+    swEl.textContent = onOffState ? "ON (RED)" : "OFF (BLUE)";
+    swEl.style.color = onOffState ? "#f87171" : "#38bdf8";
+    document.getElementById("hudTimer").textContent = String(Math.max(0, courseTimer));
+  }
+
+  // ============================================================================
+  // 9. KEYBOARD & MOUSE / CANVAS EDITOR INTERACTION
+  // ============================================================================
+  const keys = {};
+
+  window.addEventListener("keydown", e => {
+    if (e.target && (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT" || e.target.tagName === "SELECT")) return;
+    const k = e.key.toLowerCase();
+    keys[k] = true;
+
+    if (k === "p" || e.key === "Tab") {
+      e.preventDefault();
+      togglePlayMode();
+      return;
+    }
+    if (k === "v") {
+      toggleAiSpeedrunnerBot();
+      return;
+    }
+    if (k === "g" && mode === "edit") {
+      generateProceduralAiCourse();
+      return;
+    }
+    if (k === "m") {
+      document.getElementById("btnAudioToggle").click();
+      return;
+    }
+    if ((e.metaKey || e.ctrlKey) && k === "z") {
+      e.preventDefault();
+      document.getElementById("btnUndo").click();
+      return;
+    }
+    if ((e.metaKey || e.ctrlKey) && k === "y") {
+      e.preventDefault();
+      document.getElementById("btnRedo").click();
+      return;
+    }
+
+    if (mode === "edit") {
+      if (k === "b") setActiveTool("brush");
+      if (k === "l") setActiveTool("line");
+      if (k === "r") setActiveTool("rect");
+      if (k === "k") setActiveTool("bucket");
+      if (k === "t") setActiveTool("rail");
+      if (k === "w") setActiveTool("wire");
+      if (k === "i") setActiveTool("eyedropper");
+      if (k === "x") setActiveTool("eraser");
+    } else {
+      // Jump Input Buffering + Wall-Jump + Beastie Double-Jump
+      if (k === " " || k === "z" || k === "w" || k === "arrowup") {
+        player.jumpBuffer = 6;
+        if (!player.grounded && player.coyoteTimer <= 0) {
+          if (player.wallSlideDir !== 0) {
+            player.vy = -11.2;
+            player.vx = -player.wallSlideDir * 6.8;
+            player.dir = -player.wallSlideDir;
+            player.wallSlideDir = 0;
+            playSfx("jump");
+            spawnFloatingText(player.x, player.y, "⚡ WALL JUMP!", "#38bdf8");
+          } else if (player.form === "bsd" && !player.doubleJumpUsed) {
+            player.doubleJumpUsed = true;
+            player.vy = -10.8;
+            playSfx("spin");
+            spawnParticles(player.x + 12, player.y + 24, "#f43f5e", 10);
+            spawnFloatingText(player.x, player.y, "😈 DAEMON DOUBLE-JUMP!", "#f43f5e");
+          }
+        }
+      }
+      if (k === "c") {
+        if (player.grounded || player.coyoteTimer > 0) {
+          player.vy = -11.0;
+          player.grounded = false;
+          player.coyoteTimer = 0;
+          player.spinJumping = true;
+          playSfx("spin");
+          onionTrail.push({ x: player.x + 12, y: player.y + 14, spin: true });
+        }
+      }
+      if ((k === "s" || k === "arrowdown") && !player.grounded && player.vy > -2) {
+        player.groundPounding = true;
+        player.vy = 13.5;
+        playSfx("thwomp");
+      }
+      if (k === "f" || k === "shift") {
+        firePlayerWeapon();
+      }
+      if (k === "q") {
+        triggerTimeMachineRewind();
+      }
+    }
+  });
+
+  window.addEventListener("keyup", e => {
+    const k = e.key.toLowerCase();
+    keys[k] = false;
+    // Variable Jump Height: releasing Jump early cuts upward velocity
+    if ((k === " " || k === "z" || k === "w" || k === "arrowup") && player.vy < -4.5) {
+      player.vy *= 0.55;
+    }
+  });
+
+  function firePlayerWeapon() {
+    playSfx("jump");
+    if (player.form === "bsd") {
+      // Beastie 3-Way Flaming Pitchfork Tridents
+      [-1.8, 0, 1.8].forEach(vySpread => {
+        projectiles.push({
+          type: "trident",
+          x: player.x + (player.dir > 0 ? 24 : -8),
+          y: player.y + 10,
+          vx: player.dir * 8.5,
+          vy: vySpread,
+          life: 75
+        });
+      });
+    } else if (player.form === "tux") {
+      // Tux Cryo Snowball (freezes enemies into solid ice blocks!)
+      projectiles.push({
+        type: "cryo",
+        x: player.x + (player.dir > 0 ? 22 : -8),
+        y: player.y + 10,
+        vx: player.dir * 8.2,
+        vy: -1.2,
+        life: 80
+      });
+    } else if (player.form === "clarus") {
+      // Clarus Aqua Laser Beam
+      projectiles.push({
+        type: "laser",
+        x: player.x + (player.dir > 0 ? 24 : -12),
+        y: player.y + 12,
+        vx: player.dir * 12.5,
+        vy: 0,
+        life: 55
+      });
+    } else if (player.form === "clippy") {
+      // Clippy spawns a temporary solid speech-bubble lift beneath your feet!
+      const gx = Math.max(0, Math.min(GRID_W - 1, Math.floor((player.x + 12) / TILE)));
+      const gy = Math.max(1, Math.min(GRID_H - 1, Math.floor((player.y + player.h + 2) / TILE)));
+      if (!cells[gy][gx]) {
+        setCell(gx, gy, "clippy_helper");
+        player.vy = -4.5;
+        spawnFloatingText(gx * TILE, gy * TILE - 10, '📎 "Need a lift?"', "#fde047");
+      }
+    } else if (player.form === "bao") {
+      // Bao Hyper-Dash
+      player.dashTimer = 16;
+      player.vx = player.dir * 12.5;
+      player.vy = 0;
+      spawnParticles(player.x + 12, player.y + 14, "#fde047", 14);
+      spawnFloatingText(player.x, player.y - 12, "🥟 BUN HYPER-DASH!", "#fde047");
+    } else {
+      projectiles.push({
+        type: "tarball",
+        x: player.x + (player.dir > 0 ? 22 : -8),
+        y: player.y + 6,
+        vx: player.dir * 6.8,
+        vy: -4.5,
+        life: 90
+      });
+    }
+  }
+
+  function triggerTimeMachineRewind() {
+    if (rewindHistory.length > 10) {
+      const snap = rewindHistory[0];
+      player.x = snap.x;
+      player.y = snap.y;
+      player.vx = 0;
+      player.vy = 0;
+      rewindHistory.length = 0;
+      spawnParticles(player.x + 12, player.y + 14, "#38bdf8", 16);
+      spawnFloatingText(player.x, player.y - 16, "⏪ TIME MACHINE REWIND (-3.0s)", "#38bdf8");
+      playSfx("powerup");
+    }
+  }
+
+  function updateMouseCoords(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    mouseX = (e.clientX - rect.left) * scaleX;
+    mouseY = (e.clientY - rect.top) * scaleY;
+    gridMouseX = Math.max(0, Math.min(GRID_W - 1, Math.floor((mouseX + camX) / TILE)));
+    gridMouseY = Math.max(0, Math.min(GRID_H - 1, Math.floor(mouseY / TILE)));
+  }
+
+  canvas.addEventListener("contextmenu", e => e.preventDefault());
+
+  canvas.addEventListener("mousedown", e => {
+    updateMouseCoords(e);
+    if (mode !== "edit") return;
+    isDragging = true;
+    dragButton = e.button;
+    dragStartGrid = { x: gridMouseX, y: gridMouseY };
+
+    if (e.button === 2 || activeTool === "eraser") {
+      pushUndo();
+      eraseAt(gridMouseX, gridMouseY);
+      return;
+    }
+
+    if (activeTool === "eyedropper") {
+      const cell = cells[gridMouseY][gridMouseX];
+      if (cell) {
+        selectedItem = cell.id;
+        setActiveTool("brush");
+        updateInspector(ITEM_MAP[selectedItem]);
+        renderPalette();
+      }
+      return;
+    }
+
+    if (activeTool === "bucket") {
+      pushUndo();
+      floodFill(gridMouseX, gridMouseY, selectedItem);
+      syncEntitiesFromGrid();
+      playSfx("place");
+      return;
+    }
+
+    if (activeTool === "brush" || activeTool === "rail") {
+      pushUndo();
+      applyBrushAt(gridMouseX, gridMouseY);
+    }
+  });
+
+  canvas.addEventListener("mousemove", e => {
+    updateMouseCoords(e);
+    if (!isDragging || mode !== "edit") return;
+    if (dragButton === 2 || activeTool === "eraser") {
+      eraseAt(gridMouseX, gridMouseY);
+    } else if (activeTool === "brush" || activeTool === "rail") {
+      applyBrushAt(gridMouseX, gridMouseY);
+    }
+  });
+
+  window.addEventListener("mouseup", () => {
+    if (!isDragging || mode !== "edit") return;
+    if (dragStartGrid && dragButton === 0) {
+      if (activeTool === "line") {
+        pushUndo();
+        drawLineCells(dragStartGrid.x, dragStartGrid.y, gridMouseX, gridMouseY);
+        syncEntitiesFromGrid();
+        playSfx("place");
+      } else if (activeTool === "rect") {
+        pushUndo();
+        drawRectCells(dragStartGrid.x, dragStartGrid.y, gridMouseX, gridMouseY);
+        syncEntitiesFromGrid();
+        playSfx("place");
+      } else if (activeTool === "wire") {
+        if (dragStartGrid.x !== gridMouseX || dragStartGrid.y !== gridMouseY) {
+          pushUndo();
+          wires.push({ x1: dragStartGrid.x, y1: dragStartGrid.y, x2: gridMouseX, y2: gridMouseY });
+          playSfx("switch");
+        }
+      }
+    }
+    isDragging = false;
+    dragStartGrid = null;
+  });
+
+  function applyBrushAt(gx, gy) {
+    if (activeTool === "rail") {
+      rails.add(`${gx},${gy}`);
+      syncEntitiesFromGrid();
+      playSfx("place");
+      return;
+    }
+    for (let dy = 0; dy < brushSize; dy++) {
+      for (let dx = 0; dx < brushSize; dx++) {
+        setCell(gx + dx, gy + dy, selectedItem, {
+          wings: modWings,
+          parachute: modParachute,
+          giant: modGiant,
+          payload: PAYLOAD_CYCLE[payloadIdx]
+        });
+      }
+    }
+    syncEntitiesFromGrid();
+    playSfx("place");
+  }
+
+  function eraseAt(gx, gy) {
+    for (let dy = 0; dy < brushSize; dy++) {
+      for (let dx = 0; dx < brushSize; dx++) {
+        const tx = gx + dx;
+        const ty = gy + dy;
+        if (tx >= 0 && tx < GRID_W && ty >= 0 && ty < GRID_H) {
+          cells[ty][tx] = null;
+          rails.delete(`${tx},${ty}`);
+          wires = wires.filter(w => !((w.x1 === tx && w.y1 === ty) || (w.x2 === tx && w.y2 === ty)));
+        }
+      }
+    }
+    minimapDirty = true;
+    syncEntitiesFromGrid();
+  }
+
+  function drawLineCells(x0, y0, x1, y1) {
+    const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+    for (let i = 0; i <= steps; i++) {
+      const x = Math.round(x0 + (x1 - x0) * (i / steps));
+      const y = Math.round(y0 + (y1 - y0) * (i / steps));
+      setCell(x, y, selectedItem, { wings: modWings, parachute: modParachute, giant: modGiant });
+    }
+  }
+
+  function drawRectCells(x0, y0, x1, y1) {
+    const minX = Math.min(x0, x1), maxX = Math.max(x0, x1);
+    const minY = Math.min(y0, y1), maxY = Math.max(y0, y1);
+    for (let y = minY; y <= maxY; y++) {
+      for (let x = minX; x <= maxX; x++) {
+        setCell(x, y, selectedItem, { wings: modWings, parachute: modParachute, giant: modGiant });
+      }
+    }
+  }
+
+  function floodFill(startX, startY, newId) {
+    const startCell = cells[startY][startX];
+    const targetId = startCell ? startCell.id : null;
+    if (targetId === newId) return;
+    const queue = [[startX, startY]];
+    const visited = new Set();
+    let count = 0;
+    while (queue.length > 0 && count < 260) {
+      const [x, y] = queue.shift();
+      const key = `${x},${y}`;
+      if (visited.has(key)) continue;
+      visited.add(key);
+      if (x < 0 || x >= GRID_W || y < 0 || y >= GRID_H) continue;
+      const cur = cells[y][x] ? cells[y][x].id : null;
+      if (cur !== targetId) continue;
+      setCell(x, y, newId, { wings: modWings, parachute: modParachute, giant: modGiant });
+      count++;
+      queue.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+    }
+  }
+
+  let scrubbingMini = false;
+  function scrubMinimap(e) {
+    const rect = miniCanvas.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const maxCam = Math.max(0, GRID_W * TILE - canvas.width);
+    camX = Math.round(ratio * maxCam);
+  }
+  miniCanvas.addEventListener("mousedown", e => {
+    scrubbingMini = true;
+    scrubMinimap(e);
+  });
+  window.addEventListener("mousemove", e => {
+    if (scrubbingMini) scrubMinimap(e);
+  });
+  window.addEventListener("mouseup", () => {
+    scrubbingMini = false;
+  });
+
+  // ============================================================================
+  // 10. AUTONOMOUS AI SPEEDRUNNER BOT & LIVE PLAYTEST PHYSICS
+  // ============================================================================
+  function isCellSolid(gx, gy) {
+    if (gx < 0 || gx >= GRID_W || gy < 0 || gy >= GRID_H) return false;
+    const c = cells[gy][gx];
+    if (!c) return false;
+    const onRail = rails.has(`${gx},${gy}`);
+    if (onRail) return false; // Handled by live rail-riding platform entity!
+    if (c.id === "red_block") return onOffState;
+    if (c.id === "blue_block") return !onOffState;
+    if (c.id === "cron_block") return cronSolid;
+    const meta = ITEM_MAP[c.id];
+    return !!(meta && meta.solid);
+  }
+
+  function isCellSemisolid(gx, gy) {
+    if (gx < 0 || gx >= GRID_W || gy < 0 || gy >= GRID_H) return false;
+    const c = cells[gy][gx];
+    if (!c || rails.has(`${gx},${gy}`)) return false;
+    const meta = ITEM_MAP[c.id];
+    return !!(meta && meta.semisolid);
+  }
+
+  function stepAiSpeedrunner() {
+    if (!aiBotEnabled) return;
+    keys["d"] = true;
+    keys["a"] = false;
+    keys["s"] = false;
+
+    const gx = Math.floor((player.x + player.w * 0.5) / TILE);
+    const gy = Math.floor((player.y + player.h) / TILE);
+
+    // 1. Check overhead ON/OFF switch (bump when ON/RED to open PF Firewalls!) or unhit Mystery Block
+    let overheadTarget = false;
+    for (let dx = 0; dx <= 1; dx++) {
+      for (let ty = Math.max(0, gy - 5); ty <= gy - 2; ty++) {
+        const c = cells[ty] && cells[ty][gx + dx];
+        if (!c) continue;
+        if (c.id === "onoff_switch" && onOffState) overheadTarget = true;
+        if (c.id === "mystery" && !c.hit) overheadTarget = true;
+      }
+    }
+
+    // 2. Check Package Block tunnel ahead -> Belly-Slide or Fire Weapon!
+    const pkgAhead =
+      (cells[gy - 1] && cells[gy - 1][gx + 1] && cells[gy - 1][gx + 1].id === "pkg_block") ||
+      (cells[gy - 1] && cells[gy - 1][gx + 2] && cells[gy - 1][gx + 2].id === "pkg_block");
+    if (pkgAhead && player.form === "tux" && player.grounded) {
+      keys["s"] = true;
+    }
+
+    // 3. Check pit, wall, active firewall, minesweeper, or spike 1..2 tiles ahead
+    const wallAhead = isCellSolid(gx + 1, gy - 1) || isCellSolid(gx + 1, gy - 2);
+    const pitAhead =
+      (!isCellSolid(gx + 1, gy) && !isCellSemisolid(gx + 1, gy) && !isCellSolid(gx + 1, 18)) ||
+      (!isCellSolid(gx + 2, gy) && !isCellSemisolid(gx + 2, gy) && !isCellSolid(gx + 2, 18) && player.vx > 3.5);
+    const hazardAhead = [1, 2].some(dx => {
+      const c1 = cells[gy - 1] && cells[gy - 1][gx + dx];
+      const c0 = cells[gy] && cells[gy][gx + dx];
+      return (
+        (c1 && (c1.id === "kernel_spike" || (c1.id === "pf_firewall" && onOffState && !c1.disabled))) ||
+        (c0 && c0.id === "minesweeper_tile")
+      );
+    });
+
+    const enemyNear = entities.some(
+      e => !e.isPlatform && e.x > player.x - 10 && e.x < player.x + 105 && Math.abs(e.y - player.y) < 64
+    );
+
+    if ((overheadTarget || wallAhead || pitAhead || hazardAhead || enemyNear) && (player.grounded || player.coyoteTimer > 0)) {
+      player.jumpBuffer = 5;
+      player.spinJumping = true;
+    }
+
+    // Mid-air rescue jump / wall-jump if airborne over a pit or against a wall
+    if (!player.grounded && (player.wallSlideDir !== 0 || (!isCellSolid(gx, 18) && player.vy > 1.2))) {
+      if (player.wallSlideDir !== 0) {
+        player.vy = -11.2;
+        player.vx = -player.wallSlideDir * 6.8;
+        player.wallSlideDir = 0;
+      } else if (!player.doubleJumpUsed) {
+        player.doubleJumpUsed = true;
+        player.vy = -10.6;
+      }
+    }
+
+    if (globalTick % 32 === 0 && (pkgAhead || entities.some(e => !e.isPlatform && e.x > player.x && e.x < player.x + 250))) {
+      firePlayerWeapon();
+    }
+  }
+
+  function stepPlaytestPhysics() {
+    stepAiSpeedrunner();
+
+    const theme = OS_THEMES[currentTheme];
+    const now = performance.now();
+    if (now - lastSecondTime >= 1000) {
+      lastSecondTime = now;
+      courseTimer = Math.max(0, courseTimer - 1);
+      updateHud();
+    }
+
+    if (globalTick % 4 === 0) {
+      rewindHistory.push({ x: player.x, y: player.y });
+      if (rewindHistory.length > 45) rewindHistory.shift();
+    }
+    if (globalTick % 6 === 0) {
+      onionTrail.push({ x: player.x + 12, y: player.y + 14 });
+      if (onionTrail.length > 90) onionTrail.shift();
+    }
+
+    if (player.sudoTimer > 0) player.sudoTimer--;
+    if (player.invuln > 0) player.invuln--;
+    if (player.warpCooldown > 0) player.warpCooldown--;
+    if (player.dashTimer > 0) player.dashTimer--;
+
+    const pgx = Math.floor((player.x + 12) / TILE);
+    const pgy = Math.floor((player.y + 14) / TILE);
+    const curCell = (cells[pgy] && cells[pgy][pgx]) ? cells[pgy][pgx] : null;
+    const heroSpeedMult = player.form === "bao" ? 1.25 : 1.0;
+    const timeScale =
+      ((curCell && curCell.id === "hourglass_zone") ? 0.45 : (currentTheme === "bun" ? 1.12 : 1.0)) *
+      heroSpeedMult;
+
+    // Step Live Entities first so moving rail platforms carry the player smoothly
+    stepEntities(timeScale);
+    stepProjectiles();
+
+    const moveLeft = keys["a"] || keys["arrowleft"];
+    const moveRight = keys["d"] || keys["arrowright"];
+    const crouchKey = keys["s"] || keys["arrowdown"];
+
+    player.bellySliding = crouchKey && player.grounded && player.form === "tux" && Math.abs(player.vx) > 1.0;
+    const accel = (player.bellySliding ? 0.95 : 0.68) * (player.sudoTimer > 0 ? 1.28 : 1.0) * timeScale;
+    const maxSpeed = (player.bellySliding ? 7.8 : 5.4) * (player.sudoTimer > 0 ? 1.25 : 1.0) * timeScale;
+
+    if (player.dashTimer <= 0) {
+      if (moveLeft) {
+        player.vx = Math.max(player.vx - accel, -maxSpeed);
+        player.dir = -1;
+      } else if (moveRight) {
+        player.vx = Math.min(player.vx + accel, maxSpeed);
+        player.dir = 1;
+      } else {
+        player.vx *= theme.friction;
+        if (Math.abs(player.vx) < 0.08) player.vx = 0;
+      }
+    }
+
+    // Coyote Time & Jump Input Buffer
+    if (player.grounded) {
+      player.coyoteTimer = 6;
+      player.doubleJumpUsed = false;
+      player.groundPounding = false;
+    } else if (player.coyoteTimer > 0) {
+      player.coyoteTimer--;
+    }
+
+    if (player.jumpBuffer > 0) {
+      player.jumpBuffer--;
+      if (player.grounded || player.coyoteTimer > 0) {
+        player.vy = -11.4;
+        player.grounded = false;
+        player.coyoteTimer = 0;
+        player.jumpBuffer = 0;
+        playSfx("jump");
+        onionTrail.push({ x: player.x + 12, y: player.y + 14, jump: true });
+      }
+    }
+
+    // Horizontal Movement & Wall-Slide Detection
+    player.x += player.vx;
+    player.wallSlideDir = 0;
+    const leftTile = Math.floor(player.x / TILE);
+    const rightTile = Math.floor((player.x + player.w) / TILE);
+    const topTile = Math.floor((player.y + 4) / TILE);
+    const botTile = Math.floor((player.y + player.h - 4) / TILE);
+
+    for (let ty = topTile; ty <= botTile; ty++) {
+      for (let tx = leftTile; tx <= rightTile; tx++) {
+        const c = cells[ty] && cells[ty][tx];
+        if (!c) continue;
+        if (c.id === "pf_firewall" && !c.disabled && onOffState && player.dashTimer <= 0) {
+          hurtPlayer("🔥 Blocked by PF Firewall!");
+        }
+        if (isCellSolid(tx, ty)) {
+          if ((player.bellySliding || player.dashTimer > 0) && (c.id === "pkg_block" || c.id === "brick")) {
+            cells[ty][tx] = null;
+            minimapDirty = true;
+            spawnParticles(tx * TILE + 16, ty * TILE + 16, "#fde047", 12);
+            playSfx("thwomp");
+            continue;
+          }
+          if (player.vx > 0) {
+            player.x = tx * TILE - player.w - 0.05;
+            if (!player.grounded && moveRight) player.wallSlideDir = 1;
+          } else if (player.vx < 0) {
+            player.x = (tx + 1) * TILE + 0.05;
+            if (!player.grounded && moveLeft) player.wallSlideDir = -1;
+          }
+          player.vx = 0;
+        }
+      }
+    }
+
+    // Vertical Gravity (Clippy Hover Glide & Wall-Slide slow descent!)
+    let grav = theme.gravity * timeScale;
+    if (player.form === "clippy" && (keys[" "] || keys["z"] || keys["w"] || keys["arrowup"]) && player.vy > 0) {
+      grav *= 0.25;
+      player.vy = Math.min(player.vy, 1.8);
+    } else if (player.wallSlideDir !== 0 && player.vy > 0) {
+      player.vy = Math.min(player.vy, 2.2);
+    }
+
+    player.vy = Math.min(13.5, player.vy + grav);
+    const prevBottom = player.y + player.h;
+    player.y += player.vy;
+    player.grounded = false;
+
+    const vLeft = Math.floor((player.x + 3) / TILE);
+    const vRight = Math.floor((player.x + player.w - 3) / TILE);
+
+    if (player.vy >= 0) {
+      const footTile = Math.floor((player.y + player.h) / TILE);
+      for (let tx = vLeft; tx <= vRight; tx++) {
+        const solid = isCellSolid(tx, footTile);
+        const semi = isCellSemisolid(tx, footTile) && prevBottom <= footTile * TILE + 10;
+        if (solid || semi) {
+          const floorCell = cells[footTile][tx];
+          // Ground-Pound shatters Bricks & Package Blocks below!
+          if (player.groundPounding && floorCell && (floorCell.id === "pkg_block" || floorCell.id === "brick")) {
+            cells[footTile][tx] = null;
+            minimapDirty = true;
+            spawnParticles(tx * TILE + 16, footTile * TILE + 16, "#fde047", 14);
+            playSfx("thwomp");
+            continue;
+          }
+          player.y = footTile * TILE - player.h;
+          player.vy = 0;
+          player.grounded = true;
+          if (floorCell) handleStandingOnCell(tx, footTile, floorCell, crouchKey);
+        }
+      }
+
+      // Check standing on moving Rail Platforms or Frozen Ice Enemies!
+      for (const e of entities) {
+        if (e.isPlatform || e.frozenTimer > 0) {
+          const ew = e.giant ? TILE * 2 : TILE;
+          if (
+            player.x + player.w > e.x + 2 &&
+            player.x < e.x + ew - 2 &&
+            prevBottom <= e.y + 10 &&
+            player.y + player.h >= e.y
+          ) {
+            player.y = e.y - player.h;
+            player.vy = 0;
+            player.grounded = true;
+            player.x += e.vx;
+          }
+        }
+      }
+    } else {
+      const headTile = Math.floor(player.y / TILE);
+      for (let tx = vLeft; tx <= vRight; tx++) {
+        if (isCellSolid(tx, headTile)) {
+          player.y = (headTile + 1) * TILE;
+          player.vy = 1.5;
+          handleBumpBlock(tx, headTile);
+        }
+      }
+    }
+
+    // Trigger cells
+    if (curCell) {
+      if (curCell.id === "coin") {
+        cells[pgy][pgx] = null;
+        minimapDirty = true;
+        player.coins++;
+        player.score += 100;
+        playSfx("coin");
+        spawnFloatingText(pgx * TILE, pgy * TILE, "+100", "#fde047");
+        updateHud();
+      } else if (curCell.id === "checkpoint") {
+        player.checkpointX = pgx * TILE;
+        player.checkpointY = pgy * TILE;
+        spawnFloatingText(pgx * TILE, pgy * TILE - 16, "🚩 GIT CHECKPOINT SAVED!", "#22c55e");
+      } else if (curCell.id === "bun_booster") {
+        player.vx = player.dir * 10.5;
+        spawnParticles(player.x, player.y + 20, "#fde047", 10);
+        playSfx("spin");
+      } else if (curCell.id === "goal_gate") {
+        spawnParticles(player.x, player.y, "#fde047", 35);
+        spawnFloatingText(player.x - 30, player.y - 30, "🏆 KERNEL BUILD SUCCEEDED! COURSE CLEAR!", "#fde047");
+        playSfx("powerup");
+        player.x = player.checkpointX;
+        player.y = player.checkpointY;
+      } else if (curCell.id === "kernel_spike") {
+        if (player.form === "clarus") {
+          player.vy = -10.5;
+          playSfx("spin");
+        } else {
+          hurtPlayer("🔺 Kernel Panic Spike!");
+        }
+      }
+    }
+
+    if (player.y > GRID_H * TILE + 40) {
+      hurtPlayer("💥 Kernel Stack Overflow Pit!");
+    }
+
+    const targetCam = Math.max(0, Math.min(GRID_W * TILE - canvas.width, player.x - canvas.width * 0.36));
+    camX += (targetCam - camX) * 0.16;
+  }
+
+  function handleStandingOnCell(tx, ty, cell, crouchKey) {
+    if (cell.id === "macos_dock") {
+      player.vy = -15.5;
+      player.grounded = false;
+      playSfx("spin");
+      spawnFloatingText(tx * TILE, ty * TILE - 16, "🚀 DOCK LAUNCH 2.5x!", "#38bdf8");
+    } else if (cell.id === "note_block") {
+      player.vy = -12.8;
+      player.grounded = false;
+      playSfx("jump");
+    } else if (cell.id === "conveyor") {
+      player.x += onOffState ? 2.4 : -2.4;
+    } else if (cell.id === "warp_pipe" && crouchKey && player.warpCooldown <= 0) {
+      // Find next Warp Pipe in course and teleport!
+      const pipes = [];
+      for (let y = 0; y < GRID_H; y++) {
+        for (let x = 0; x < GRID_W; x++) {
+          if (cells[y][x] && cells[y][x].id === "warp_pipe") {
+            // Only top rim of pipe
+            if (y === 0 || !cells[y - 1][x] || cells[y - 1][x].id !== "warp_pipe") {
+              pipes.push({ x, y });
+            }
+          }
+        }
+      }
+      if (pipes.length > 1) {
+        const curIdx = pipes.findIndex(p => Math.abs(p.x - tx) <= 1);
+        const dest = pipes[(curIdx + 1) % pipes.length];
+        if (dest) {
+          player.x = dest.x * TILE;
+          player.y = (dest.y - 1) * TILE;
+          player.warpCooldown = 45;
+          playSfx("warp");
+          spawnParticles(player.x + 12, player.y + 14, "#4ade80", 18);
+          spawnFloatingText(player.x, player.y - 16, "🟢 UNIX PIPE WARP (|)!", "#4ade80");
+        }
+      }
+    } else if (cell.id === "donut") {
+      cell.timer = (cell.timer || 0) + 1;
+      if (cell.timer > 35) {
+        cells[ty][tx] = null;
+        minimapDirty = true;
+        spawnParticles(tx * TILE + 16, ty * TILE + 16, "#f59e0b", 8);
+      }
+    } else if (cell.id === "minesweeper_tile") {
+      cell.armed = true;
+      cell.timer = (cell.timer || 0) + 1;
+      if (cell.timer > 55) {
+        cells[ty][tx] = null;
+        minimapDirty = true;
+        screenShake = 12;
+        spawnParticles(tx * TILE + 16, ty * TILE + 16, "#ef4444", 22);
+        playSfx("thwomp");
+        hurtPlayer("💣 Minesweeper Tile Detonated!");
+      }
+    }
+  }
+
+  function handleBumpBlock(tx, ty) {
+    const cell = cells[ty][tx];
+    if (!cell) return;
+    if (cell.id === "onoff_switch") {
+      triggerOnOffSwitch(tx, ty);
+    } else if (cell.id === "mystery" && !cell.hit) {
+      cell.hit = true;
+      const pay = cell.payload || "tux_suit";
+      playSfx("powerup");
+      if (pay === "coin") {
+        player.coins++;
+        updateHud();
+        spawnFloatingText(tx * TILE, (ty - 1) * TILE, "🪙 +1 BIT-COIN!", "#fde047");
+      } else {
+        entities.push({
+          id: pay,
+          gridX: tx,
+          gridY: ty - 1,
+          x: tx * TILE,
+          y: (ty - 1) * TILE,
+          baseY: (ty - 1) * TILE,
+          vx: 0.8,
+          vy: -3,
+          state: "active",
+          frozenTimer: 0,
+          hp: 1,
+          maxHp: 1
+        });
+        spawnFloatingText(tx * TILE, (ty - 1) * TILE, `🎁 ${PAYLOAD_NAMES[pay] || pay}!`, "#38bdf8");
+      }
+    } else if (cell.id === "pkg_block") {
+      cells[ty][tx] = null;
+      minimapDirty = true;
+      spawnParticles(tx * TILE + 16, ty * TILE + 16, "#f59e0b", 12);
+      playSfx("thwomp");
+    }
+  }
+
+  function hurtPlayer(reason) {
+    if (player.sudoTimer > 0 || player.invuln > 0 || player.dashTimer > 0) return;
+    deathMarker = { x: player.x + 12, y: player.y + 14 };
+    screenShake = 10;
+    playSfx("thwomp");
+    spawnFloatingText(player.x, player.y - 20, reason, "#ef4444");
+    player.x = player.checkpointX;
+    player.y = player.checkpointY;
+    player.vx = 0;
+    player.vy = 0;
+    player.invuln = 50;
+    updateHud();
+  }
+
+  function stepRailFollower(e, timeScale) {
+    const speed = 2.0 * timeScale;
+    e.x += e.railDirX * speed;
+    e.y += e.railDirY * speed;
+    e.vx = e.railDirX * speed;
+    e.vy = e.railDirY * speed;
+
+    const gx = Math.round(e.x / TILE);
+    const gy = Math.round(e.y / TILE);
+    if (Math.hypot(e.x - gx * TILE, e.y - gy * TILE) < speed * 1.1) {
+      const nextX = gx + e.railDirX;
+      const nextY = gy + e.railDirY;
+      if (!rails.has(`${nextX},${nextY}`)) {
+        // Check perpendicular or reverse rail neighbors
+        const dirs = [
+          [e.railDirY, e.railDirX],
+          [-e.railDirY, -e.railDirX],
+          [-e.railDirX, -e.railDirY]
+        ];
+        for (const [dx, dy] of dirs) {
+          if (rails.has(`${gx + dx},${gy + dy}`)) {
+            e.railDirX = dx;
+            e.railDirY = dy;
+            e.x = gx * TILE;
+            e.y = gy * TILE;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  function stepEntities(timeScale) {
+    let activeBoss = null;
+
+    // Periodic Spotlight Turret optical laser pulses
+    if (globalTick % 110 === 0) {
+      for (let y = 0; y < GRID_H; y++) {
+        for (let x = 0; x < GRID_W; x++) {
+          if (cells[y][x] && cells[y][x].id === "spotlight_turret") {
+            projectiles.push({
+              type: "turret_laser",
+              x: x * TILE - 6,
+              y: y * TILE + 12,
+              vx: -6.5,
+              vy: 0,
+              life: 85
+            });
+          }
+        }
+      }
+    }
+
+    for (let i = entities.length - 1; i >= 0; i--) {
+      const e = entities[i];
+      const size = e.giant ? 56 : 30;
+
+      if (e.id === "boss_beastie") activeBoss = e;
+
+      if (e.frozenTimer > 0) {
+        e.frozenTimer--;
+        e.vx = 0;
+        continue;
+      }
+
+      if (e.onRail) {
+        stepRailFollower(e, timeScale);
+      } else if (e.id === "bsod_thwomp") {
+        if (Math.abs((player.x + 12) - (e.x + size / 2)) < 75 && e.y <= e.baseY + 8) {
+          e.vy = 9.5;
+        }
+        e.y += e.vy * timeScale;
+        const footY = Math.floor((e.y + size) / TILE);
+        const gx = Math.floor((e.x + size / 2) / TILE);
+        if (e.vy > 0 && isCellSolid(gx, footY)) {
+          e.y = footY * TILE - size;
+          e.vy = -2.2;
+          screenShake = 11;
+          playSfx("thwomp");
+          spawnParticles(e.x + size / 2, e.y + size, "#38bdf8", 14);
+        } else if (e.vy < 0 && e.y <= e.baseY) {
+          e.y = e.baseY;
+          e.vy = 0;
+        }
+      } else if (e.id === "oom_reaper") {
+        const facingToward = (player.dir > 0 && e.x > player.x) || (player.dir < 0 && e.x < player.x);
+        if (!facingToward) {
+          e.x += Math.sign(player.x - e.x) * 1.45 * timeScale;
+          e.y += Math.sign(player.y - e.y) * 1.05 * timeScale;
+        }
+      } else if (e.id === "zombie_proc" && e.state === "stomped") {
+        e.timer++;
+        if (e.timer > 180) {
+          e.state = "active";
+          spawnFloatingText(e.x, e.y - 10, "👾 <defunct> PID REVIVED!", "#a855f7");
+        }
+      } else if (e.wings) {
+        e.x += e.vx * timeScale;
+        e.y = e.baseY + Math.sin(globalTick * 0.07 + i) * 24;
+        if (Math.abs(e.x - e.gridX * TILE) > 96) e.vx *= -1;
+      } else {
+        // Ground patrol with vertical gravity + wall & ledge turn-around!
+        e.vy = Math.min(10, (e.vy || 0) + 0.45 * timeScale);
+        e.y += e.vy;
+        const footTile = Math.floor((e.y + size) / TILE);
+        const midX = Math.floor((e.x + size * 0.5) / TILE);
+        if (isCellSolid(midX, footTile) || isCellSemisolid(midX, footTile)) {
+          e.y = footTile * TILE - size;
+          e.vy = 0;
+        }
+
+        e.x += e.vx * timeScale;
+        const aheadX = Math.floor((e.vx > 0 ? e.x + size + 2 : e.x - 2) / TILE);
+        const bodyY = Math.floor((e.y + size * 0.5) / TILE);
+        const groundAhead = isCellSolid(aheadX, footTile) || isCellSemisolid(aheadX, footTile);
+        if (isCellSolid(aheadX, bodyY) || (!groundAhead && e.vy === 0)) {
+          e.vx *= -1;
+        }
+      }
+
+      if (e.id === "boss_beastie" && globalTick % 95 === 0) {
+        projectiles.push({
+          type: "enemy_trident",
+          x: e.x,
+          y: e.y + 22,
+          vx: -5.5,
+          vy: 0,
+          life: 90
+        });
+      }
+
+      if (e.isPlatform) continue;
+
+      if (
+        player.x + player.w > e.x &&
+        player.x < e.x + size &&
+        player.y + player.h > e.y &&
+        player.y < e.y + size
+      ) {
+        const meta = ITEM_MAP[e.id] || {};
+        if (meta.powerup) {
+          if (e.id === "tux_suit") player.form = "tux";
+          else if (e.id === "bsd_trident") player.form = "bsd";
+          else if (e.id === "sudo_star") player.sudoTimer = 600;
+          else if (e.id === "timemachine_orb") triggerTimeMachineRewind();
+          playSfx("powerup");
+          spawnFloatingText(e.x, e.y - 12, `⚡ EQUIPPED: ${meta.name}!`, "#fde047");
+          entities.splice(i, 1);
+          updateHud();
+          continue;
+        }
+
+        if (e.id === "tarball_bomb") {
+          projectiles.push({
+            type: "tarball",
+            x: e.x,
+            y: e.y,
+            vx: player.dir * 7.5,
+            vy: -4.5,
+            life: 80
+          });
+          entities.splice(i, 1);
+          playSfx("jump");
+          continue;
+        }
+
+        if (player.sudoTimer > 0 || player.bellySliding || player.dashTimer > 0) {
+          e.hp -= 3;
+          if (e.hp <= 0) {
+            spawnParticles(e.x + 16, e.y + 16, "#f43f5e", 16);
+            entities.splice(i, 1);
+          }
+          playSfx("coin");
+          continue;
+        }
+
+        const fromAbove = player.vy > 0 && player.y + player.h - player.vy <= e.y + 18;
+        if (fromAbove) {
+          if (e.id === "beachball" || e.id === "puffy_fish") {
+            if (player.spinJumping || player.form === "clarus") {
+              player.vy = -11.5;
+              playSfx("spin");
+              spawnFloatingText(e.x, e.y - 12, "🌈 KAIZO SPIN BOUNCE!", "#38bdf8");
+            } else {
+              hurtPlayer(`💥 Sliced by ${meta.name}! Use Spin-Jump [C]!`);
+            }
+          } else if (e.id === "zombie_proc") {
+            e.state = "stomped";
+            e.timer = 0;
+            player.vy = -9.5;
+            playSfx("jump");
+            spawnFloatingText(e.x, e.y - 10, "👾 PID <defunct>", "#cbd5e1");
+          } else if (e.id === "boss_beastie") {
+            e.hp--;
+            player.vy = -11;
+            player.x -= 28;
+            playSfx("thwomp");
+            if (e.hp <= 0) {
+              spawnParticles(e.x + 28, e.y + 28, "#fde047", 35);
+              spawnFloatingText(e.x, e.y, "👑 MECHA-BEASTIE DEFEATED!", "#fde047");
+              entities.splice(i, 1);
+            }
+          } else if (e.id !== "bsod_thwomp") {
+            spawnParticles(e.x + 16, e.y + 16, "#22c55e", 12);
+            entities.splice(i, 1);
+            player.vy = -9.5;
+            playSfx("coin");
+          }
+        } else if (e.state !== "stomped") {
+          hurtPlayer(`💥 Hit by ${meta.name}!`);
+        }
+      }
+    }
+
+    const bossBox = document.getElementById("bossHudBox");
+    if (activeBoss && mode === "play") {
+      bossBox.style.display = "block";
+      document.getElementById("bossHpFill").style.width = `${Math.max(0, (activeBoss.hp / activeBoss.maxHp) * 100)}%`;
+    } else {
+      bossBox.style.display = "none";
+    }
+  }
+
+  function stepProjectiles() {
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+      const p = projectiles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.type === "tarball") p.vy += 0.32;
+      p.life--;
+
+      const gx = Math.floor(p.x / TILE);
+      const gy = Math.floor(p.y / TILE);
+      const cell = cells[gy] && cells[gy][gx];
+      if (cell && cell.id === "onoff_switch") {
+        triggerOnOffSwitch(gx, gy);
+        projectiles.splice(i, 1);
+        continue;
+      }
+      if ((p.type === "tarball" || p.type === "laser") && cell && (cell.id === "pkg_block" || cell.id === "brick")) {
+        cells[gy][gx] = null;
+        minimapDirty = true;
+        spawnParticles(gx * TILE + 16, gy * TILE + 16, "#f59e0b", 16);
+        playSfx("thwomp");
+        projectiles.splice(i, 1);
+        continue;
+      }
+
+      if (p.type !== "enemy_trident" && p.type !== "turret_laser") {
+        for (let j = entities.length - 1; j >= 0; j--) {
+          const e = entities[j];
+          if (e.isPlatform) continue;
+          const sz = e.giant ? 56 : 30;
+          if (p.x > e.x && p.x < e.x + sz && p.y > e.y && p.y < e.y + sz) {
+            if (p.type === "cryo") {
+              e.frozenTimer = 240;
+              spawnParticles(e.x + 16, e.y + 16, "#38bdf8", 14);
+              spawnFloatingText(e.x, e.y - 10, "❄️ FROZEN SOLID!", "#38bdf8");
+              projectiles.splice(i, 1);
+              break;
+            }
+            e.hp--;
+            if (e.hp <= 0) {
+              spawnParticles(e.x + 16, e.y + 16, "#f43f5e", 16);
+              spawnFloatingText(e.x, e.y - 10, "🔥 SIGKILL -9!", "#f43f5e");
+              entities.splice(j, 1);
+            }
+            projectiles.splice(i, 1);
+            break;
+          }
+        }
+      } else if (
+        p.x > player.x && p.x < player.x + player.w &&
+        p.y > player.y && p.y < player.y + player.h
+      ) {
+        hurtPlayer(p.type === "turret_laser" ? "🔍 Spotlight Laser Hit!" : "🔱 Struck by Beastie Pitchfork!");
+        projectiles.splice(i, 1);
+        continue;
+      }
+
+      if (p.life <= 0) projectiles.splice(i, 1);
+    }
+  }
+
+  // ============================================================================
+  // 11. 120-FPS METAL SPRITE ATLAS & SINGLE-PATH BATCHED RENDERER
+  // ============================================================================
+  function renderScene(nowStamp) {
+    const t0 = performance.now();
+    globalTick++;
+    if (globalTick % 120 === 0) cronSolid = !cronSolid;
+
+    if (mode === "play") {
+      stepPlaytestPhysics();
+    } else {
+      if (keys["arrowleft"] || keys["a"]) camX = Math.max(0, camX - 10);
+      if (keys["arrowright"] || keys["d"]) camX = Math.min(Math.max(0, GRID_W * TILE - canvas.width), camX + 10);
+    }
+
+    const theme = OS_THEMES[currentTheme] || OS_THEMES.linux;
+    ctx.save();
+    if (screenShake > 0) {
+      ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
+      screenShake *= 0.85;
+      if (screenShake < 0.5) screenShake = 0;
+    }
+
+    // 1. Pre-Baked Panoramic Parallax World Canvas (2 Metal blits = <0.02ms!)
+    drawParallaxBackdrop();
+
+    // 2. Single-Path Batched Blueprint Grid (1 beginPath + 1 stroke!)
+    if (mode === "edit" || currentTheme === "bun") {
+      ctx.strokeStyle = theme.gridColor;
+      ctx.lineWidth = 1;
+      const offsetX = -(camX % TILE);
+      ctx.beginPath();
+      for (let x = offsetX; x < canvas.width; x += TILE) {
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+      }
+      for (let y = 0; y < canvas.height; y += TILE) {
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+      }
+      ctx.stroke();
+    }
+
+    ctx.save();
+    ctx.translate(-camX, 0);
+
+    // 3. Single-Path Batched Guided Rail Tracks
+    if (rails.size > 0) {
+      ctx.strokeStyle = "#94a3b8";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      rails.forEach(key => {
+        const [rx, ry] = key.split(",").map(Number);
+        const cx = rx * TILE + 16;
+        const cy = ry * TILE + 16;
+        ctx.moveTo(cx + 3, cy);
+        ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+        if (rails.has(`${rx + 1},${ry}`)) {
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + TILE, cy);
+        }
+        if (rails.has(`${rx},${ry + 1}`)) {
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx, cy + TILE);
+        }
+      });
+      ctx.stroke();
+    }
+
+    // 4. Logic Wires
+    if (wires.length > 0) {
+      ctx.save();
+      ctx.strokeStyle = onOffState ? "#f43f5e" : "#38bdf8";
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([6, 4]);
+      ctx.lineDashOffset = -globalTick * 0.6;
+      ctx.beginPath();
+      for (const w of wires) {
+        ctx.moveTo(w.x1 * TILE + 16, w.y1 * TILE + 16);
+        ctx.lineTo(w.x2 * TILE + 16, w.y2 * TILE + 16);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 5. Render Visible Course Tiles via 2x Retina Offscreen Sprite Atlas + Animated Pit Plasma Floor
+    const startCol = Math.max(0, Math.floor(camX / TILE) - 1);
+    const endCol = Math.min(GRID_W - 1, Math.ceil((camX + canvas.width) / TILE) + 1);
+
+    // Animated Kernel Panic Plasma / Lava Floor inside Pits (Row 19 where empty)
+    for (let x = startCol; x <= endCol; x++) {
+      if (!cells[19][x]) {
+        const px = x * TILE;
+        const py = 19 * TILE + 10;
+        const wave = Math.sin(globalTick * 0.12 + x * 0.9) * 3;
+        ctx.fillStyle = "rgba(244, 63, 94, 0.78)";
+        ctx.fillRect(px, py + wave, TILE, TILE - 10 - wave);
+        ctx.fillStyle = "#fde047";
+        ctx.fillRect(px, py + wave, TILE, 3.5);
+      }
+    }
+
+    for (let y = 0; y < GRID_H; y++) {
+      for (let x = startCol; x <= endCol; x++) {
+        const cell = cells[y][x];
+        if (!cell) continue;
+        const meta = ITEM_MAP[cell.id];
+        const onRail = rails.has(`${x},${y}`);
+        if (mode === "play" && meta && (meta.enemy || meta.powerup || meta.entity || (onRail && (meta.solid || meta.semisolid)))) {
+          continue;
+        }
+        drawCourseObjectFast(ctx, cell.id, x * TILE, y * TILE, cell);
+      }
+    }
+
+    // 6. Render Live Entities
+    if (mode === "play") {
+      for (const e of entities) {
+        drawCourseObjectFast(ctx, e.id, e.x, e.y, e);
+        if (e.frozenTimer > 0) {
+          const sz = e.giant ? 56 : 32;
+          ctx.fillStyle = "rgba(56, 189, 248, 0.45)";
+          ctx.fillRect(e.x, e.y, sz, sz);
+          ctx.strokeStyle = "#e0f2fe";
+          ctx.strokeRect(e.x, e.y, sz, sz);
+        }
+      }
+    }
+
+    // 7. Onion-Skin Playtest Jump Trajectory Overlay (Zero emoji calls!)
+    if (showOnionTrail && onionTrail.length > 1) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.55)";
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      onionTrail.forEach((pt, idx) => {
+        if (idx === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      for (const pt of onionTrail) {
+        ctx.fillStyle = pt.spin ? "#e879f9" : (pt.jump ? "#fde047" : "rgba(56, 189, 248, 0.65)");
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, pt.jump || pt.spin ? 5 : 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      if (deathMarker) {
+        ctx.strokeStyle = "#f43f5e";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(deathMarker.x - 6, deathMarker.y - 6);
+        ctx.lineTo(deathMarker.x + 6, deathMarker.y + 6);
+        ctx.moveTo(deathMarker.x + 6, deathMarker.y - 6);
+        ctx.lineTo(deathMarker.x - 6, deathMarker.y + 6);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // 8. Render Player Hero
+    drawPlayerHero(ctx, player);
+
+    // 9. Projectiles, Particles & Floating Texts (Pure Vector!)
+    for (const p of projectiles) {
+      ctx.save();
+      if (p.type === "trident" || p.type === "enemy_trident") {
+        ctx.strokeStyle = "#ef4444";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(p.x - 8, p.y);
+        ctx.lineTo(p.x + 8, p.y);
+        ctx.moveTo(p.x + 4, p.y - 5);
+        ctx.lineTo(p.x + 10, p.y);
+        ctx.lineTo(p.x + 4, p.y + 5);
+        ctx.stroke();
+      } else if (p.type === "cryo") {
+        ctx.fillStyle = "#38bdf8";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.type === "laser" || p.type === "turret_laser") {
+        ctx.fillStyle = "#00f5d4";
+        ctx.fillRect(p.x - 10, p.y - 2, 20, 4);
+      } else {
+        ctx.fillStyle = "#f59e0b";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const pt = particles[i];
+      pt.x += pt.vx;
+      pt.y += pt.vy;
+      pt.life--;
+      ctx.fillStyle = pt.color;
+      ctx.fillRect(pt.x, pt.y, 4, 4);
+      if (pt.life <= 0) particles.splice(i, 1);
+    }
+
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+      const ft = floatingTexts[i];
+      ft.y -= 0.7;
+      ft.life--;
+      ctx.font = "900 11px monospace";
+      ctx.fillStyle = ft.color;
+      ctx.fillText(ft.text.replace(/[^\x20-\x7E]/g, ""), ft.x, ft.y);
+      if (ft.life <= 0) floatingTexts.splice(i, 1);
+    }
+
+    // 10. Editor Hover Brush Preview
+    if (mode === "edit") {
+      const hx = gridMouseX * TILE;
+      const hy = gridMouseY * TILE;
+      ctx.strokeStyle = "#fde047";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(hx + 1, hy + 1, TILE * brushSize - 2, TILE * brushSize - 2);
+
+      if (isDragging && dragStartGrid && (activeTool === "line" || activeTool === "rect" || activeTool === "wire")) {
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(dragStartGrid.x * TILE + 16, dragStartGrid.y * TILE + 16);
+        ctx.lineTo(hx + 16, hy + 16);
+        ctx.stroke();
+      }
+    }
+
+    ctx.restore();
+    ctx.restore();
+
+    renderMinimap(theme);
+
+    // Live FPS & Frame Cost Telemetry
+    const frameCost = performance.now() - t0;
+    lastFrameCostMs = lastFrameCostMs * 0.9 + frameCost * 0.1;
+    fpsFrameCount++;
+    if (t0 - fpsLastStamp >= 500) {
+      const fps = Math.min(120, Math.round((fpsFrameCount * 1000) / (t0 - fpsLastStamp)));
+      const fpsEl = document.getElementById("hudFps");
+      if (fpsEl) {
+        fpsEl.textContent = `${fps} (${lastFrameCostMs.toFixed(1)}ms)`;
+      }
+      fpsFrameCount = 0;
+      fpsLastStamp = t0;
+    }
+
+    requestAnimationFrame(renderScene);
+  }
+
+  function drawParallaxBackdrop() {
+    const bgCan = getCachedParallaxWorld(currentTheme);
+    const W = bgCan.width;
+    const shift = Math.floor((camX * 0.22) % W);
+    ctx.drawImage(bgCan, -shift, 0);
+    ctx.drawImage(bgCan, W - shift, 0);
+    if (canvas.width > W * 2 - shift) {
+      ctx.drawImage(bgCan, W * 2 - shift, 0);
+    }
+  }
+
+  function drawCourseObjectFast(ctx, id, x, y, opts) {
+    const size = opts && opts.giant ? TILE * 2 : TILE;
+    const isPowerup = id === "tux_suit" || id === "bsd_trident" || id === "sudo_star" || id === "timemachine_orb";
+    const bobY = isPowerup ? Math.sin(globalTick * 0.08 + x * 0.05) * 2.8 : 0;
+    const dy = y + bobY;
+
+    if (id === "beachball") {
+      // Animated Rotating 6-Color Pinwheel
+      const cx = x + size / 2;
+      const cy = dy + size / 2;
+      const r = size / 2 - 2;
+      const colors = ["#ef4444", "#f59e0b", "#fde047", "#22c55e", "#38bdf8", "#a855f7"];
+      for (let s = 0; s < 6; s++) {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        const a0 = globalTick * 0.12 + (s * Math.PI) / 3;
+        ctx.arc(cx, cy, r, a0, a0 + Math.PI / 3);
+        ctx.closePath();
+        ctx.fillStyle = colors[s];
+        ctx.fill();
+      }
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (id === "pf_firewall") {
+      if (onOffState && !(opts && opts.disabled)) {
+        // Emitter caps + crackling animated zig-zag electric plasma beam!
+        ctx.fillStyle = "rgba(244, 63, 94, 0.82)";
+        ctx.fillRect(x + 8, y, 16, TILE);
+        ctx.strokeStyle = "#fef08a";
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        const j1 = Math.sin(globalTick * 0.45 + y) * 3.5;
+        const j2 = Math.cos(globalTick * 0.55 + y) * 3.5;
+        ctx.moveTo(x + 16, y);
+        ctx.lineTo(x + 16 + j1, y + 11);
+        ctx.lineTo(x + 16 + j2, y + 21);
+        ctx.lineTo(x + 16, y + TILE);
+        ctx.stroke();
+      } else {
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.35)";
+        ctx.strokeRect(x + 10, y, 12, TILE);
+      }
+    } else {
+      // Fast hardware-accelerated 2x Retina Sprite Atlas blit!
+      let variant = "";
+      if (id === "mystery" && opts && opts.hit) variant = "hit";
+      else if ((id === "onoff_switch" || id === "conveyor") && !onOffState) variant = "off";
+      else if (id === "red_block" && !onOffState) variant = "inactive";
+      else if (id === "blue_block" && onOffState) variant = "inactive";
+      else if (id === "cron_block" && !cronSolid) variant = "inactive";
+      else if (id === "minesweeper_tile" && opts && opts.armed) variant = "armed";
+
+      const sprite = getCachedSprite(id, size, currentTheme, variant);
+      ctx.drawImage(sprite, x, dy, size, size);
+
+      // Lightweight Live Animated Per-Item Visual Effects (<0.03ms total!)
+      if (isPowerup) {
+        // Pulsing energy halo + 2 orbiting sparkle motes
+        const cx = x + size / 2;
+        const cy = dy + size / 2;
+        const ang = globalTick * 0.09 + x * 0.04;
+        ctx.strokeStyle = id === "bsd_trident" ? "rgba(244, 63, 94, 0.55)"
+          : id === "sudo_star" ? "rgba(250, 204, 21, 0.6)"
+          : "rgba(56, 189, 248, 0.55)";
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.arc(cx, cy, size * 0.44 + Math.sin(ang * 2) * 1.5, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(cx + Math.cos(ang) * 13 - 1.5, cy + Math.sin(ang) * 13 - 1.5, 3, 3);
+        ctx.fillRect(cx - Math.cos(ang) * 13 - 1.2, cy - Math.sin(ang) * 13 - 1.2, 2.4, 2.4);
+      } else if (id === "coin") {
+        // Animated horizontal shimmer bar across the coin face
+        const shimX = x + 10 + ((globalTick * 0.45 + x) % 12);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.72)";
+        ctx.fillRect(shimX, y + 9, 2, 14);
+      } else if (id === "tarball_bomb") {
+        // Flickering orange/yellow spark at tip of the fuse
+        const sx = x + size / 2 + 8;
+        const sy = y + 4;
+        const r = 2 + (globalTick % 4);
+        ctx.fillStyle = (globalTick & 2) ? "#fef08a" : "#f97316";
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (id === "cron_block" && cronSolid) {
+        // Rotating live second-hand inside the gear clock face
+        const cx = x + size / 2;
+        const cy = y + size / 2;
+        const a = (globalTick % 120) * ((Math.PI * 2) / 120) - Math.PI / 2;
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(a) * 7, cy + Math.sin(a) * 7);
+        ctx.stroke();
+      } else if (id === "spotlight_turret") {
+        // Pulsing sapphire charge glow at the cannon aperture
+        const pulse = (Math.sin(globalTick * 0.14) + 1) * 0.5;
+        ctx.fillStyle = `rgba(56, 189, 248, ${0.35 + pulse * 0.5})`;
+        ctx.beginPath();
+        ctx.arc(x + 2, y + 13, 3 + pulse * 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (id === "oom_reaper" || id === "zombie_proc") {
+        // Hovering phantom / bio-aura wisp
+        const wx = x + 6 + ((globalTick + x) % 20);
+        const wy = y + 2 - ((globalTick * 0.4) % 8);
+        ctx.fillStyle = id === "oom_reaper" ? "rgba(244, 63, 94, 0.65)" : "rgba(74, 222, 128, 0.65)";
+        ctx.fillRect(wx, wy, 2.5, 2.5);
+      } else if (id === "bun_booster") {
+        // Scrolling neon speed chevron pulse
+        const bx = x + 4 + ((globalTick * 0.8) % 20);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(bx, y + size - 7, 3, 4);
+      } else if (id === "goal_gate") {
+        // Vertically oscillating golden victory tape + rising star motes
+        const tapeY = y + 6 + Math.sin(globalTick * 0.08) * 6;
+        ctx.fillStyle = "#fde047";
+        ctx.fillRect(x + 8, tapeY, size - 16, 4);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(x + 10 + ((globalTick * 0.5) % 12), y + 22 - ((globalTick * 0.6) % 20), 2.5, 2.5);
+      }
+    }
+
+    if (opts && opts.wings) {
+      const flap = Math.sin(globalTick * 0.2) * 4;
+      ctx.fillStyle = "#f8fafc";
+      ctx.beginPath();
+      ctx.ellipse(x - 3, dy + 10 + flap, 7, 4, -0.4, 0, Math.PI * 2);
+      ctx.ellipse(x + size + 3, dy + 10 + flap, 7, 4, 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (opts && opts.parachute) {
+      ctx.strokeStyle = "#fde047";
+      ctx.beginPath();
+      ctx.arc(x + size / 2, dy - 6, 11, Math.PI, 0);
+      ctx.stroke();
+    }
+  }
+
+  function drawPlayerHero(ctx, p) {
+    ctx.save();
+    const px = p.x;
+    const py = p.y;
+    const meta = HERO_META[p.form] || HERO_META.tux;
+
+    if (p.sudoTimer > 0 || p.dashTimer > 0) {
+      ctx.strokeStyle = `hsl(${(globalTick * 14) % 360}, 95%, 60%)`;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(px - 4, py - 4, p.w + 8, p.h + 8);
+    }
+
+    // 3D Rounded Hero Body
+    ctx.fillStyle = meta.color;
+    ctx.beginPath();
+    if (p.bellySliding) {
+      ctx.roundRect(px - 4, py + 12, p.w + 8, p.h - 12, 6);
+    } else {
+      ctx.roundRect(px, py, p.w, p.h, 7);
+    }
+    ctx.fill();
+    ctx.strokeStyle = meta.trim;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Bright Chest Plate / Belly
+    ctx.fillStyle = "#f8fafc";
+    ctx.beginPath();
+    ctx.roundRect(px + 4, py + 8, p.w - 8, p.h - 11, 4);
+    ctx.fill();
+
+    // Eyes / Cyber Visor
+    const eyeX = p.dir > 0 ? px + p.w - 9 : px + 3;
+    ctx.fillStyle = "#090d16";
+    ctx.fillRect(eyeX, py + 4, 5, 4);
+    ctx.fillStyle = "#38bdf8";
+    ctx.fillRect(eyeX + (p.dir > 0 ? 2 : 0), py + 5, 2.5, 2);
+
+    if (p.form === "bsd") {
+      ctx.fillStyle = "#ef4444";
+      ctx.beginPath();
+      ctx.moveTo(px + 2, py);
+      ctx.lineTo(px - 3, py - 8);
+      ctx.lineTo(px + 8, py);
+      ctx.moveTo(px + p.w - 2, py);
+      ctx.lineTo(px + p.w + 3, py - 8);
+      ctx.lineTo(px + p.w - 8, py);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = meta.trim;
+      ctx.beginPath();
+      ctx.roundRect(px - 2, py - 4, p.w + 4, 5, 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = meta.trim;
+    const beakX = p.dir > 0 ? px + p.w - 2 : px - 5;
+    ctx.fillRect(beakX, py + 9, 7, 4);
+    const stepOff = Math.abs(p.vx) > 0.3 ? Math.sin(globalTick * 0.4) * 2.5 : 0;
+    ctx.fillRect(px + 2, py + p.h - 3 + stepOff, 6, 3);
+    ctx.fillRect(px + p.w - 8, py + p.h - 3 - stepOff, 6, 3);
+    ctx.restore();
+  }
+
+  function renderMinimap(theme) {
+    if (minimapDirty) {
+      minimapBufCtx.fillStyle = "#050814";
+      minimapBufCtx.fillRect(0, 0, minimapBuffer.width, minimapBuffer.height);
+      const sx = minimapBuffer.width / GRID_W;
+      const sy = minimapBuffer.height / GRID_H;
+      for (let y = 0; y < GRID_H; y++) {
+        for (let x = 0; x < GRID_W; x++) {
+          const c = cells[y][x];
+          if (!c) continue;
+          minimapBufCtx.fillStyle = c.id === "brick" ? theme.groundTop
+            : c.id === "goal_gate" ? "#22c55e"
+            : c.id === "boss_beastie" ? "#f43f5e"
+            : "#fde047";
+          minimapBufCtx.fillRect(x * sx, y * sy, Math.ceil(sx), Math.ceil(sy));
+        }
+      }
+      minimapDirty = false;
+    }
+
+    miniCtx.drawImage(minimapBuffer, 0, 0);
+
+    const sx = miniCanvas.width / GRID_W;
+    const sy = miniCanvas.height / GRID_H;
+    miniCtx.fillStyle = "#38bdf8";
+    miniCtx.fillRect((player.x / TILE) * sx - 2, (player.y / TILE) * sy - 2, 4, 4);
+
+    const vx = (camX / (GRID_W * TILE)) * miniCanvas.width;
+    const vw = (canvas.width / (GRID_W * TILE)) * miniCanvas.width;
+    miniCtx.strokeStyle = "#fde047";
+    miniCtx.lineWidth = 1.5;
+    miniCtx.strokeRect(vx, 1, vw, miniCanvas.height - 2);
+  }
+
+  // Expose Studio API for inspection/automation
+  window.generateAiLevel = generateProceduralAiCourse;
+  window.verifyAndRepairCourse = verifyAndRepairCourse;
+  window.CyberMakerApp = {
+    getMode: () => mode,
+    togglePlayMode,
+    toggleAiSpeedrunnerBot,
+    loadBuiltInCourse,
+    generateProceduralAiCourse,
+    generateAiLevel,
+    verifyAndRepairCourse,
+    getGoldenPath: () => aiGoldenPath,
+    spriteCache
+  };
+
+  renderPalette();
+  updateInspector(ITEM_MAP[selectedItem]);
+  loadBuiltInCourse(0);
+  requestAnimationFrame(renderScene);
+})();
+</script>
+</body>
+</html>

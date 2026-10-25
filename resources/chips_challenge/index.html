@@ -1,0 +1,2176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🔑 Codecaine CyberChip: Logic Tile Gauntlet</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <style>
+    :root {
+      --bg-void: #04100d;
+      --bg-panel: rgba(7, 24, 20, 0.94);
+      --border-emerald: rgba(16, 185, 129, 0.38);
+      --emerald: #10b981;
+      --emerald-bright: #34d399;
+      --cyan: #22d3ee;
+      --gold: #facc15;
+      --amber: #f97316;
+      --crimson: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --text-main: #ecfdf5;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 20%, #06372c 0%, #041914 60%, #020b09 100%);
+      color: var(--text-main);
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header.top-hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 14px;
+      background: linear-gradient(180deg, rgba(6, 32, 26, 0.97) 0%, rgba(3, 17, 14, 0.97) 100%);
+      border-bottom: 1px solid var(--border-emerald);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.72);
+      gap: 10px;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: radial-gradient(circle at 30% 30%, #10b981, #047857 70%, #022c22);
+      border: 1.5px solid #facc15;
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .brand-titles h1 {
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffffff 0%, #6ee7b7 50%, #facc15 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-titles .subtitle {
+      font-size: 10.5px;
+      color: var(--text-muted);
+    }
+
+    .hud-kpis {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .kpi-pill {
+      background: rgba(4, 24, 19, 0.92);
+      border: 1px solid rgba(52, 211, 153, 0.32);
+      border-radius: 8px;
+      padding: 3px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 74px;
+    }
+
+    .kpi-pill.chips-border {
+      border-color: rgba(250, 204, 21, 0.75);
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.22);
+    }
+
+    .kpi-label {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      color: #6ee7b7;
+    }
+
+    .kpi-val {
+      font-family: "JetBrains Mono", "Consolas", monospace;
+      font-size: 15px;
+      font-weight: 900;
+      color: #ffffff;
+    }
+
+    .kpi-pill.chips-border .kpi-val {
+      color: var(--gold);
+    }
+
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    select.hud-select, button.hud-btn, a.hud-btn {
+      background: rgba(6, 36, 29, 0.95);
+      color: var(--text-main);
+      border: 1px solid rgba(52, 211, 153, 0.42);
+      border-radius: 7px;
+      padding: 5px 9px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.14s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    select.hud-select:hover, button.hud-btn:hover, a.hud-btn:hover {
+      border-color: var(--gold);
+      background: rgba(16, 65, 52, 0.95);
+      transform: translateY(-1px);
+    }
+
+    button.hud-btn.accent-gold {
+      background: linear-gradient(135deg, #ca8a04, #eab308);
+      color: #04130f;
+      border-color: #fef08a;
+    }
+
+    button.hud-btn.accent-cyan {
+      background: linear-gradient(135deg, #0891b2, #06b6d4);
+      color: #021318;
+      border-color: #a5f3fc;
+    }
+
+    .workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 296px;
+      gap: 10px;
+      padding: 10px 14px;
+      min-height: 0;
+    }
+
+    .arena-column {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+      min-width: 0;
+    }
+
+    .canvas-shell {
+      flex: 1;
+      position: relative;
+      background: #03110e;
+      border: 2px solid rgba(52, 211, 153, 0.45);
+      border-radius: 12px;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.8), inset 0 0 30px rgba(16, 185, 129, 0.14);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    canvas#chipCanvas {
+      max-width: 100%;
+      max-height: 100%;
+      aspect-ratio: 912 / 624;
+      display: block;
+      cursor: pointer;
+      image-rendering: crisp-edges;
+    }
+
+    /* Tactical Hint & Status Banner */
+    .hint-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 7px 14px;
+      background: linear-gradient(90deg, rgba(6, 40, 32, 0.94), rgba(8, 28, 38, 0.94));
+      border: 1px solid rgba(52, 211, 153, 0.36);
+      border-radius: 9px;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .hint-text {
+      color: #fef08a;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .status-toast {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11.5px;
+      color: #6ee7b7;
+      font-weight: 700;
+    }
+
+    /* Right Sidebar HUD: Footwear, Keys, Tile Editor, Telemetry */
+    aside.side-hud {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      min-height: 0;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .hud-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-emerald);
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+    }
+
+    .hud-card-title {
+      font-size: 10.5px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      color: var(--emerald-bright);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(52, 211, 153, 0.2);
+      padding-bottom: 4px;
+    }
+
+    .inventory-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .inv-slot {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: rgba(2, 14, 11, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      opacity: 0.42;
+      transition: all 0.16s ease;
+    }
+
+    .inv-slot.active {
+      opacity: 1;
+      border-color: var(--gold);
+      background: rgba(16, 68, 52, 0.75);
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.26);
+    }
+
+    .inv-icon {
+      font-size: 18px;
+    }
+
+    .inv-meta {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .inv-name {
+      font-size: 11px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .inv-sub {
+      font-size: 9.5px;
+      color: #94a3b8;
+    }
+
+    .keys-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .key-pill {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 6px 4px;
+      border-radius: 8px;
+      background: rgba(2, 14, 11, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      opacity: 0.45;
+      transition: all 0.15s ease;
+    }
+
+    .key-pill.has-key {
+      opacity: 1;
+      border-color: #ffffff;
+      box-shadow: 0 0 10px rgba(52, 211, 153, 0.35);
+    }
+
+    .key-pill .key-count {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+      font-weight: 900;
+      margin-top: 2px;
+    }
+
+    /* Tile Editor Palette */
+    .palette-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+    }
+
+    .palette-btn {
+      background: rgba(4, 22, 18, 0.9);
+      border: 1px solid rgba(52, 211, 153, 0.25);
+      border-radius: 6px;
+      padding: 4px 2px;
+      color: var(--text-main);
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+    }
+
+    .palette-btn.selected {
+      border-color: var(--gold);
+      background: rgba(20, 83, 65, 0.92);
+      box-shadow: 0 0 8px rgba(250, 204, 21, 0.4);
+    }
+
+    /* D-Pad & Quick Actions */
+    .dpad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      max-width: 170px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .dpad-btn {
+      background: rgba(12, 48, 39, 0.92);
+      border: 1px solid rgba(52, 211, 153, 0.45);
+      border-radius: 7px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 900;
+      padding: 6px 0;
+      cursor: pointer;
+    }
+
+    .dpad-btn:active {
+      transform: scale(0.95);
+      background: var(--emerald);
+    }
+
+    /* Modal Overlay for Bummer / Victory */
+    .overlay-banner {
+      position: absolute;
+      inset: 0;
+      background: rgba(2, 10, 8, 0.82);
+      backdrop-filter: blur(4px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      z-index: 15;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .overlay-banner.visible {
+      display: flex;
+    }
+
+    .overlay-card {
+      background: linear-gradient(180deg, rgba(8, 38, 30, 0.98), rgba(4, 18, 15, 0.98));
+      border: 2px solid var(--gold);
+      border-radius: 14px;
+      padding: 22px 30px;
+      max-width: 440px;
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.85);
+    }
+
+    .overlay-title {
+      font-size: 24px;
+      font-weight: 900;
+      margin-bottom: 6px;
+      color: var(--gold);
+    }
+
+    .overlay-msg {
+      font-size: 13.5px;
+      color: #d1fae5;
+      margin-bottom: 14px;
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+  <header class="top-hud">
+    <div class="brand-cluster">
+      <div class="brand-icon">🔑</div>
+      <div class="brand-titles">
+        <h1>Codecaine CyberChip: Logic Tile Gauntlet</h1>
+        <div class="subtitle">19×13 Tile Logic Engine • 4 Footwear Gears • 4 Color Keys • Ice &amp; Force-Floor Physics</div>
+      </div>
+    </div>
+
+    <div class="hud-kpis">
+      <div class="kpi-pill chips-border">
+        <span class="kpi-label">💾 CHIPS LEFT</span>
+        <span class="kpi-val" id="chipsLeftVal">0</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">⏱️ TIME LEFT</span>
+        <span class="kpi-val" id="timeLeftVal">200</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">👣 STEPS</span>
+        <span class="kpi-val" id="stepsVal">0</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">🏆 SCORE</span>
+        <span class="kpi-val" id="scoreVal">0</span>
+      </div>
+      <div class="kpi-pill">
+        <span class="kpi-label">👑 HI-SCORE</span>
+        <span class="kpi-val" id="bestScoreVal">0</span>
+      </div>
+    </div>
+
+    <div class="toolbar-actions">
+      <select id="chipModeSelect" class="hud-select" title="Select Game Mode">
+        <option value="campaign">1. 🏆 Classic 15-Stage Campaign</option>
+        <option value="ice_lab">2. 🧊 Ice &amp; Corner Slide Lab</option>
+        <option value="sokoban_mud">3. 📦 Sokoban Dirt-Bridge Puzzles</option>
+        <option value="footwear_vault">4. 🔥 Footwear &amp; Thief Vault</option>
+        <option value="force_teleport">5. ⚡ Force-Floor &amp; Teleport Maze</option>
+        <option value="enemy_evasion">6. 🐸 Teeth &amp; Bug Evasion</option>
+        <option value="editor">7. 🏗️ Custom Level Editor</option>
+        <option value="procedural">8. 🎲 Procedural Winnable Gauntlet [G]</option>
+      </select>
+
+      <select id="stageSelect" class="hud-select" title="Select Stage"></select>
+
+      <button class="hud-btn accent-cyan" id="btnHintPath" title="AI BFS Path Solver [H]">💡 AI Path Solver [H]</button>
+      <button class="hud-btn accent-gold" id="btnProcGen" title="Generate Winnable Gauntlet [G]">🎲 Gauntlet [G]</button>
+      <button class="hud-btn" id="btnUndo" title="Undo Move [Z]">↩️ Undo [Z]</button>
+      <button class="hud-btn" id="btnRestart" title="Restart Level [R]">🔄 Retry [R]</button>
+      <button class="hud-btn" id="btnAudio" title="Toggle Synth Audio [M]">🔊 Synth</button>
+      <a href="/" class="hud-btn" id="btnHub" title="Return to Codecaine Hub">🏠 Hub</a>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="arena-column">
+      <div class="canvas-shell">
+        <canvas id="chipCanvas" width="912" height="624"></canvas>
+
+        <div class="overlay-banner" id="overlayModal">
+          <div class="overlay-card">
+            <div class="overlay-title" id="overlayTitle">BUMMER!</div>
+            <div class="overlay-msg" id="overlayMsg">Chip stepped into water without Flippers!</div>
+            <div style="display:flex;gap:8px;justify-content:center;">
+              <button class="hud-btn accent-gold" id="btnOverlayPrimary">🔄 Try Again [SPACE]</button>
+              <button class="hud-btn accent-cyan" id="btnOverlayUndo">↩️ Undo Last Step [Z]</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hint-banner">
+        <div class="hint-text" id="hintBannerText">
+          ❓ <span>TACTICAL HINT: Collect all 💾 IC Microchips to unlock the 🔌 Microchip Socket and reach the 🌀 Exit Portal!</span>
+        </div>
+        <div class="status-toast" id="statusToast">STAGE 1 / 15 • READY</div>
+      </div>
+    </section>
+
+    <aside class="side-hud">
+      <!-- Footwear Inventory -->
+      <div class="hud-card">
+        <div class="hud-card-title">
+          <span>🥾 4 Footwear Gear Slots</span>
+          <span id="footwearCountLabel">0 / 4</span>
+        </div>
+        <div class="inventory-grid">
+          <div class="inv-slot" id="bootFlippers">
+            <span class="inv-icon">🤿</span>
+            <div class="inv-meta">
+              <span class="inv-name">Flippers</span>
+              <span class="inv-sub">Walk on 🌊 Water</span>
+            </div>
+          </div>
+          <div class="inv-slot" id="bootFire">
+            <span class="inv-icon">🥾</span>
+            <div class="inv-meta">
+              <span class="inv-name">Fire Boots</span>
+              <span class="inv-sub">Walk on 🔥 Fire</span>
+            </div>
+          </div>
+          <div class="inv-slot" id="bootSkates">
+            <span class="inv-icon">⛸️</span>
+            <div class="inv-meta">
+              <span class="inv-name">Ice Skates</span>
+              <span class="inv-sub">Grip 🧊 Ice &amp; Corners</span>
+            </div>
+          </div>
+          <div class="inv-slot" id="bootSuction">
+            <span class="inv-icon">🧲</span>
+            <div class="inv-meta">
+              <span class="inv-name">Suction Boots</span>
+              <span class="inv-sub">Resist ▲▼◄► Force</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 Color Keys -->
+      <div class="hud-card">
+        <div class="hud-card-title">
+          <span>🔑 Security Keycards</span>
+          <span style="font-size:9.5px;color:#86efac;">🟢 Green = Reusable</span>
+        </div>
+        <div class="keys-row">
+          <div class="key-pill" id="keyRedPill">
+            <span>🔴 Red</span>
+            <span class="key-count" id="keyRedVal">0</span>
+          </div>
+          <div class="key-pill" id="keyBluePill">
+            <span>🔵 Blue</span>
+            <span class="key-count" id="keyBlueVal">0</span>
+          </div>
+          <div class="key-pill" id="keyYellowPill">
+            <span>🟡 Yellow</span>
+            <span class="key-count" id="keyYellowVal">0</span>
+          </div>
+          <div class="key-pill" id="keyGreenPill">
+            <span>🟢 Green</span>
+            <span class="key-count" id="keyGreenVal">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- On-Screen Tactile D-Pad -->
+      <div class="hud-card">
+        <div class="hud-card-title">
+          <span>🕹️ Tactical Step Controls</span>
+          <span>WASD / Arrows</span>
+        </div>
+        <div class="dpad-grid">
+          <div></div>
+          <button class="dpad-btn" data-dir="0,-1">▲</button>
+          <div></div>
+          <button class="dpad-btn" data-dir="-1,0">◄</button>
+          <button class="dpad-btn" id="btnWaitStep" title="Wait 1 Tick [Space]">⏱️</button>
+          <button class="dpad-btn" data-dir="1,0">►</button>
+          <div></div>
+          <button class="dpad-btn" data-dir="0,1">▼</button>
+          <div></div>
+        </div>
+      </div>
+
+      <!-- Level Editor Brush Palette -->
+      <div class="hud-card">
+        <div class="hud-card-title">
+          <span>🏗️ Tile Architect Brush</span>
+          <span id="editorActiveBadge" style="color:#facc15;">Click Canvas in Mode 7</span>
+        </div>
+        <div class="palette-grid" id="editorPalette"></div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    (function() {
+      "use strict";
+
+      // Safe Storage helper
+      const SafeStore = {
+        get(k, fallback) {
+          try {
+            const v = window.localStorage.getItem(k);
+            return v !== null ? v : fallback;
+          } catch (_) {
+            return fallback;
+          }
+        },
+        set(k, v) {
+          try {
+            window.localStorage.setItem(k, String(v));
+          } catch (_) {}
+        }
+      };
+
+      // Nostalgic MIDI / Chiptune WebAudio Engine
+      const CyberChipAudio = {
+        ctx: null,
+        muted: false,
+        init() {
+          if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) this.ctx = new AC();
+          }
+          if (this.ctx && this.ctx.state === "suspended") {
+            this.ctx.resume().catch(() => {});
+          }
+        },
+        tone(freq, dur, type = "square", gainVal = 0.08, delay = 0) {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+          try {
+            const t = this.ctx.currentTime + delay;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(gainVal, t);
+            gain.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(t);
+            osc.stop(t + dur);
+          } catch (_) {}
+        },
+        step() { this.tone(240, 0.04, "triangle", 0.05); },
+        chip() {
+          this.tone(587.33, 0.07, "square", 0.08, 0);
+          this.tone(880, 0.11, "square", 0.09, 0.05);
+        },
+        key() {
+          this.tone(659.25, 0.06, "sine", 0.09, 0);
+          this.tone(987.77, 0.08, "sine", 0.09, 0.05);
+          this.tone(1318.5, 0.12, "triangle", 0.09, 0.10);
+        },
+        door() {
+          this.tone(330, 0.06, "sawtooth", 0.07, 0);
+          this.tone(493.88, 0.10, "sawtooth", 0.08, 0.05);
+        },
+        splash() {
+          this.tone(190, 0.14, "sine", 0.09, 0);
+          this.tone(135, 0.18, "triangle", 0.08, 0.06);
+        },
+        toggle() {
+          this.tone(440, 0.05, "square", 0.07, 0);
+          this.tone(554.37, 0.06, "square", 0.07, 0.04);
+        },
+        teleport() {
+          [440, 660, 880, 1174].forEach((f, i) => this.tone(f, 0.06, "sine", 0.07, i * 0.03));
+        },
+        thief() {
+          this.tone(420, 0.09, "sawtooth", 0.09, 0);
+          this.tone(290, 0.14, "sawtooth", 0.09, 0.08);
+        },
+        bummer() {
+          // Iconic descending "Bummer!" brass chord
+          [349.23, 311.13, 277.18, 233.08].forEach((f, i) => {
+            this.tone(f, 0.18, "sawtooth", 0.10, i * 0.11);
+          });
+        },
+        fanfare() {
+          const notes = [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5];
+          const durs = [0.09, 0.09, 0.09, 0.18, 0.09, 0.28];
+          let d = 0;
+          notes.forEach((n, i) => {
+            this.tone(n, durs[i], "square", 0.09, d);
+            d += durs[i];
+          });
+        }
+      };
+
+      // Grid & Tile Constants (19x13 viewport at 48x48 px per tile = 912x624)
+      const COLS = 19;
+      const ROWS = 13;
+      const TILE = 48;
+
+      const T = {
+        FLOOR: ".",
+        WALL: "#",
+        CHIP: "C",
+        SOCKET: "S",
+        EXIT: "E",
+        WATER: "W",
+        MUD: "m",
+        FIRE: "F",
+        ICE: "I",
+        ICE_NW: "1", // ◤ bounces East or South
+        ICE_NE: "2", // ◥ bounces West or South
+        ICE_SW: "3", // ◣ bounces East or North
+        ICE_SE: "4", // ◢ bounces West or North
+        FORCE_N: "^",
+        FORCE_S: "v",
+        FORCE_W: "<",
+        FORCE_E: ">",
+        DIRT_BLOCK: "B",
+        BOMB: "X",
+        KEY_RED: "r",
+        KEY_BLUE: "b",
+        KEY_YELLOW: "y",
+        KEY_GREEN: "g",
+        DOOR_RED: "R",
+        DOOR_BLUE: "D",
+        DOOR_YELLOW: "Y",
+        DOOR_GREEN: "G",
+        BOOT_FLIPPERS: "f",
+        BOOT_FIRE: "i",
+        BOOT_SKATES: "k",
+        BOOT_SUCTION: "u",
+        TOGGLE_BTN: "t",
+        TOGGLE_CLOSED: "T",
+        TOGGLE_OPEN: "o",
+        TANK_BTN: "p",
+        TELEPORT: "O",
+        THIEF: "$",
+        HINT: "?",
+      };
+
+      const EDITOR_BRUSHES = [
+        { code: ".", icon: "⬛", label: "Floor" },
+        { code: "#", icon: "🧱", label: "Wall" },
+        { code: "C", icon: "💾", label: "IC Chip" },
+        { code: "S", icon: "🔌", label: "Socket" },
+        { code: "E", icon: "🌀", label: "Exit" },
+        { code: "W", icon: "🌊", label: "Water" },
+        { code: "F", icon: "🔥", label: "Fire" },
+        { code: "I", icon: "🧊", label: "Ice" },
+        { code: "1", icon: "◤", label: "Ice NW" },
+        { code: "2", icon: "◥", label: "Ice NE" },
+        { code: "3", icon: "◣", label: "Ice SW" },
+        { code: "4", icon: "◢", label: "Ice SE" },
+        { code: "^", icon: "▲", label: "Force N" },
+        { code: "v", icon: "▼", label: "Force S" },
+        { code: "<", icon: "◄", label: "Force W" },
+        { code: ">", icon: "►", label: "Force E" },
+        { code: "B", icon: "📦", label: "Block" },
+        { code: "X", icon: "💣", label: "Bomb" },
+        { code: "r", icon: "🔴", label: "Red Key" },
+        { code: "R", icon: "🚪", label: "Red Door" },
+        { code: "b", icon: "🔵", label: "Blue Key" },
+        { code: "D", icon: "🟦", label: "Blue Door" },
+        { code: "y", icon: "🟡", label: "Yel Key" },
+        { code: "Y", icon: "🟨", label: "Yel Door" },
+        { code: "g", icon: "🟢", label: "Grn Key" },
+        { code: "G", icon: "🟩", label: "Grn Door" },
+        { code: "f", icon: "🤿", label: "Flippers" },
+        { code: "i", icon: "🥾", label: "FireBoot" },
+        { code: "k", icon: "⛸️", label: "Skates" },
+        { code: "u", icon: "🧲", label: "Suction" },
+        { code: "t", icon: "🟢", label: "Tog Btn" },
+        { code: "T", icon: "🚧", label: "Tog Wall" },
+        { code: "O", icon: "🌌", label: "Teleport" },
+        { code: "$", icon: "🕵️", label: "Thief" },
+        { code: "?", icon: "❓", label: "Hint" },
+        { code: "@", icon: "🤖", label: "Chip Start" }
+      ];
+
+      // 15 Authentic Handcrafted Campaign Levels (19x13 each)
+      const CAMPAIGN_LEVELS = [
+        {
+          name: "Lesson 1: Cyber Boot Camp",
+          modeTag: "campaign",
+          time: 150,
+          hint: "Collect all 4 Color Keys (🟢 Green Key is reusable!), gather every 💾 Microchip, open the 🔌 Socket, and enter 🌀 Exit!",
+          map: [
+            "###################",
+            "#C..#...R...#....C#",
+            "#.r.#...C...#.b...#",
+            "#...#####.#####...#",
+            "###.....#.#.....###",
+            "#C..D...#.#...Y..C#",
+            "#.y.#...?.@...#.g.#",
+            "#...#####.#####...#",
+            "###.....G.G.....###",
+            "#C......#.#......C#",
+            "#######.#.#.#######",
+            "#.......#.S.E.....#",
+            "###################"
+          ],
+          enemies: []
+        },
+        {
+          name: "Lesson 2: Sokoban Mud Bridge",
+          modeTag: "sokoban_mud",
+          time: 160,
+          hint: "Push 📦 Dirt Blocks into 🌊 Water to build solid Mud Bridges! Step on Mud to pack it into solid floor.",
+          map: [
+            "###################",
+            "#@..B..W...W..B..C#",
+            "#......W.C.W......#",
+            "#####..W...W..#####",
+            "#C..B..WWWWW..B..C#",
+            "#.................#",
+            "#####..WWWWW..#####",
+            "#...B....W....B...#",
+            "#.C....B.W.B....C.#",
+            "#####..WWWWW..#####",
+            "#....?........S..E#",
+            "#...C.........#####",
+            "###################"
+          ],
+          enemies: []
+        },
+        {
+          name: "Lesson 3: Gliding On Ice Corners",
+          modeTag: "ice_lab",
+          time: 160,
+          hint: "Slide across 🧊 Ice and ricochet off ◤◥◣◢ Ice Corners! Grab the ⛸️ Ice Skates to walk freely across any ice sheet.",
+          map: [
+            "###################",
+            "#@..1IIIIIIII2....#",
+            "#...I########I....#",
+            "#...I#C....k#I....#",
+            "#...I#.######I....#",
+            "#...3II4....1I2...#",
+            "#####.......I.I...#",
+            "#1IIIIIIIIII4.3II2#",
+            "#I...............I#",
+            "#3IIIIII2.?..C...I#",
+            "#.......3IIIIIIII4#",
+            "#..C..........S..E#",
+            "###################"
+          ],
+          enemies: []
+        },
+        {
+          name: "Lesson 4: Elemental Footwear & Thief Vault",
+          modeTag: "footwear_vault",
+          time: 180,
+          hint: "Equip 🤿 Flippers for Water and 🥾 Fire Boots for Fire — but beware the 🕵️ Thief Tile who strips all your boots!",
+          map: [
+            "###################",
+            "#@..f..WWWWWWW..C.#",
+            "#####..W..i..W..###",
+            "#C..W..WWWWWWW....#",
+            "#...W.............#",
+            "#########FFF#######",
+            "#C..F....F.F....F.#",
+            "#...F..C.FFF.C..F.#",
+            "#####...........###",
+            "#....?....$.......#",
+            "#..C..........S..E#",
+            "#.................#",
+            "###################"
+          ],
+          enemies: []
+        },
+        {
+          name: "Lesson 5: Force-Floor & Suction Conduit",
+          modeTag: "force_teleport",
+          time: 170,
+          hint: "▲▼◄► Force Floors hurl you at high speed! Grab the 🧲 Suction Boots to walk against the conveyor current.",
+          map: [
+            "###################",
+            "#@>>>>>>>>>>>>>>>v#",
+            "#################v#",
+            "#v<<<<<<<<<<<<<<<v#",
+            "#v#################",
+            "#v>>>>>>u>>>>>>>>v#",
+            "#################v#",
+            "#C..<<<<<C<<<<<<<v#",
+            "#...###############",
+            "#...?...^>>>C>>>>v#",
+            "#..C....^........v#",
+            "########^.....S..E#",
+            "###################"
+          ],
+          enemies: []
+        },
+        {
+          name: "Lesson 6: Green Toggle Wall Matrix",
+          modeTag: "campaign",
+          time: 175,
+          hint: "Step on 🟢 Green Toggle Buttons (or push a 📦 Block onto them!) to flip all 🚧 Toggle Doors open and shut.",
+          map: [
+            "###################",
+            "#@..t..T..C..o..C.#",
+            "#####..T.....o..###",
+            "#C..o..#######..T.#",
+            "#...o.....B.....T.#",
+            "#####..t.....t..###",
+            "#C..T...........oC#",
+            "#...T.....?.....o.#",
+            "#####..T#####o..###",
+            "#......T..C..o....#",
+            "#..C...T.....o.S.E#",
+            "#.................#",
+            "###################"
+          ],
+          enemies: []
+        },
+        {
+          name: "Lesson 7: Quantum Teleporter Ring",
+          modeTag: "force_teleport",
+          time: 180,
+          hint: "Step into 🌌 Teleport Pads to warp to the next Teleporter in reading order while keeping your momentum!",
+          map: [
+            "###################",
+            "#@..O..#..O..C..#E#",
+            "#..C...#........#S#",
+            "########..#######.#",
+            "#..O...#..#..O..#.#",
+            "#..C...#..#..C..#.#",
+            "########..#######.#",
+            "#......?..........#",
+            "########..#########",
+            "#..O..C#..#C..O...#",
+            "#......#..#.......#",
+            "#......#..#.......#",
+            "###################"
+          ],
+          enemies: []
+        },
+        {
+          name: "Lesson 8: Bug & Fireball Patrol",
+          modeTag: "enemy_evasion",
+          time: 180,
+          hint: "🐞 Bugs hug the left wall; 🔥 Fireballs turn right on impact! Time your steps through the patrol loops.",
+          map: [
+            "###################",
+            "#@..?.............#",
+            "###.#####.#####.###",
+            "#C..#...#.#...#..C#",
+            "#...#.C.#.#.C.#...#",
+            "#...#...#.#...#...#",
+            "###.#####.#####.###",
+            "#........C........#",
+            "###.#####.#####.###",
+            "#C..#...#.#...#..C#",
+            "#...#...#.#...#...#",
+            "#.............S..E#",
+            "###################"
+          ],
+          enemies: [
+            { x: 2, y: 5, dx: 0, dy: -1, type: "bug" },
+            { x: 16, y: 5, dx: 0, dy: 1, type: "fireball" },
+            { x: 9, y: 7, dx: 1, dy: 0, type: "glider" }
+          ]
+        },
+        {
+          name: "Lesson 9: Teeth Chaser Labyrinth",
+          modeTag: "enemy_evasion",
+          time: 190,
+          hint: "🐸 Teeth monsters hunt you every other step! Lure them behind walls or trap them with 📦 Dirt Blocks.",
+          map: [
+            "###################",
+            "#@..B....#....C...#",
+            "#...#....#....#...#",
+            "#C..#....?....#..C#",
+            "#........#........#",
+            "####.#########.####",
+            "#C.......B.......C#",
+            "####.#########.####",
+            "#........#........#",
+            "#C..#.........#..C#",
+            "#...#....#....#...#",
+            "#........#....S..E#",
+            "###################"
+          ],
+          enemies: [
+            { x: 9, y: 1, dx: 0, dy: 1, type: "teeth" },
+            { x: 9, y: 10, dx: 0, dy: -1, type: "teeth" }
+          ]
+        },
+        {
+          name: "Lesson 10: Bomb Defusal Protocol",
+          modeTag: "sokoban_mud",
+          time: 180,
+          hint: "Never step on a 💣 Bomb! Push a 📦 Dirt Block into a Bomb to detonate both safely and clear the corridor.",
+          map: [
+            "###################",
+            "#@..B...X...C..r..#",
+            "#########.........#",
+            "#C..X...B...B..X.C#",
+            "#...#####...#####.#",
+            "#...#...B...B...#.#",
+            "#...?...X.C.X...#.#",
+            "#####...#####...#.#",
+            "#C..B...X...X..B.C#",
+            "#############.....#",
+            "#.......R.....S..E#",
+            "#..C..............#",
+            "###################"
+          ],
+          enemies: []
+        },
+        {
+          name: "Lesson 11: Glider Waterway & Tank Switch",
+          modeTag: "enemy_evasion",
+          time: 190,
+          hint: "🛸 Gliders skim effortlessly across 🌊 Water! Grab 🤿 Flippers and dodge their flight lanes.",
+          map: [
+            "###################",
+            "#@..f...WWWWWWW..C#",
+            "#.......W..C..W...#",
+            "#####...W.....W.###",
+            "#C..W...WWWWWWW..C#",
+            "#...W......?......#",
+            "#...WWWWWWWWWWWWW.#",
+            "#C..W...C.....C.W.#",
+            "#####...........W.#",
+            "#.......WWWWWWWWW.#",
+            "#..C..........S..E#",
+            "#.................#",
+            "###################"
+          ],
+          enemies: [
+            { x: 9, y: 1, dx: 1, dy: 0, type: "glider" },
+            { x: 5, y: 6, dx: 1, dy: 0, type: "glider" },
+            { x: 14, y: 9, dx: -1, dy: 0, type: "glider" }
+          ]
+        },
+        {
+          name: "Lesson 12: Ice Ricochet Pinball",
+          modeTag: "ice_lab",
+          time: 185,
+          hint: "Launch into the 🧊 Ice Corner loops in the right entry direction to harvest every 💾 Chip along the slide!",
+          map: [
+            "###################",
+            "#@..1IIIIIII2..1I2#",
+            "#...I...C...I..I.I#",
+            "#...I.1III2.I..I.I#",
+            "#...I.I.C.I.I..I.I#",
+            "#...I.3III4.3II4.I#",
+            "#...I............I#",
+            "#...3IIIIIIIIIIII4#",
+            "#..?..............#",
+            "#..1IIIIIIIIIIII2.#",
+            "#..3IIII4.C..S..E.#",
+            "#.................#",
+            "###################"
+          ],
+          enemies: []
+        },
+        {
+          name: "Lesson 13: The Thief's Gauntlet",
+          modeTag: "footwear_vault",
+          time: 200,
+          hint: "Use your boots in the exact room order before crossing the mandatory 🕵️ Thief Checkpoint to the Exit!",
+          map: [
+            "###################",
+            "#@..f..WWW..i..FFF#",
+            "#####..WCW..#..FCF#",
+            "#k..I..WWW..#..FFF#",
+            "#I..I.......#.....#",
+            "#3II4..#########.##",
+            "#..C...#u.>>>>>v.##",
+            "#########.#####v.##",
+            "#C........#...Cv.##",
+            "###########.#####.#",
+            "#....?....$...S..E#",
+            "#.................#",
+            "###################"
+          ],
+          enemies: []
+        },
+        {
+          name: "Lesson 14: Quad-Key Security Vault",
+          modeTag: "campaign",
+          time: 210,
+          hint: "Red, Blue, and Yellow Keys are consumed on use — save the right key for the inner vault!",
+          map: [
+            "###################",
+            "#@..r..R..C..b..D.#",
+            "#####..#.....#..###",
+            "#y..#..#..g..#..#C#",
+            "#...Y..G..C..G..D.#",
+            "#####..#.....#..###",
+            "#C..G..#######..G.#",
+            "#...#.....?.....#.#",
+            "#..r#..R..C..Y..#y#",
+            "#####..#######..###",
+            "#..C...G.....G.S.E#",
+            "#.................#",
+            "###################"
+          ],
+          enemies: []
+        },
+        {
+          name: "Lesson 15: Grandmaster Chip Gauntlet",
+          modeTag: "campaign",
+          time: 240,
+          hint: "Combine Mud Bridges, Ice Corners, Footwear, Toggle Walls, and Enemy Evasion in the ultimate finale!",
+          map: [
+            "###################",
+            "#@..B.W.C.f.WWW..r#",
+            "#####.W.....WCW.###",
+            "#i..F.WWWWWWWWW.R.#",
+            "#...F.....?.....#.#",
+            "#####FF#######..#.#",
+            "#k..1II2..t..T..C.#",
+            "#...I..I.....T..###",
+            "#...3II4..C..o..u.#",
+            "###########..######",
+            "#C..<<<<<<<..$..SE#",
+            "#.................#",
+            "###################"
+          ],
+          enemies: [
+            { x: 10, y: 4, dx: 1, dy: 0, type: "bug" },
+            { x: 6, y: 11, dx: 1, dy: 0, type: "fireball" }
+          ]
+        }
+      ];
+
+      // Game State
+      const state = {
+        mode: "campaign",
+        levelIdx: 0,
+        grid: [],
+        player: { x: 1, y: 1, dir: "S" },
+        enemies: [],
+        chipsLeft: 0,
+        timeLeft: 200,
+        steps: 0,
+        score: 0,
+        bestScore: Number(SafeStore.get("cyberchip_best_score", 0)) || 0,
+        boots: { flippers: false, fire: false, skates: false, suction: false },
+        keys: { red: 0, blue: 0, yellow: 0, green: 0 },
+        sliding: false,
+        slideDir: { dx: 0, dy: 0 },
+        gameOver: false,
+        victory: false,
+        hintText: "",
+        defaultHint: "",
+        solverPath: [],
+        undoStack: [],
+        editorBrush: "#",
+        animTick: 0
+      };
+
+      const canvas = document.getElementById("chipCanvas");
+      const ctx = canvas.getContext("2d");
+
+      // Populate stage selector
+      const stageSelect = document.getElementById("stageSelect");
+      function rebuildStageDropdown() {
+        stageSelect.innerHTML = "";
+        CAMPAIGN_LEVELS.forEach((lvl, idx) => {
+          const opt = document.createElement("option");
+          opt.value = String(idx);
+          opt.textContent = `${idx + 1}. ${lvl.name}`;
+          stageSelect.appendChild(opt);
+        });
+        stageSelect.value = String(state.levelIdx);
+      }
+
+      // Populate editor palette
+      const paletteEl = document.getElementById("editorPalette");
+      function renderPalette() {
+        paletteEl.innerHTML = "";
+        EDITOR_BRUSHES.forEach((b) => {
+          const btn = document.createElement("button");
+          btn.className = "palette-btn" + (state.editorBrush === b.code ? " selected" : "");
+          btn.innerHTML = `<span style="font-size:13px">${b.icon}</span><span>${b.label}</span>`;
+          btn.addEventListener("click", () => {
+            state.editorBrush = b.code;
+            renderPalette();
+          });
+          paletteEl.appendChild(btn);
+        });
+      }
+
+      function cloneSnapshot() {
+        return {
+          grid: state.grid.map((r) => r.slice()),
+          player: { ...state.player },
+          enemies: state.enemies.map((e) => ({ ...e })),
+          chipsLeft: state.chipsLeft,
+          steps: state.steps,
+          score: state.score,
+          boots: { ...state.boots },
+          keys: { ...state.keys }
+        };
+      }
+
+      function restoreSnapshot(snap) {
+        if (!snap) return;
+        state.grid = snap.grid.map((r) => r.slice());
+        state.player = { ...snap.player };
+        state.enemies = snap.enemies.map((e) => ({ ...e }));
+        state.chipsLeft = snap.chipsLeft;
+        state.steps = snap.steps;
+        state.score = snap.score;
+        state.boots = { ...snap.boots };
+        state.keys = { ...snap.keys };
+        state.sliding = false;
+        state.gameOver = false;
+        state.victory = false;
+        state.solverPath = [];
+        hideOverlay();
+        updateHud();
+      }
+
+      function loadLevel(idx, customData = null) {
+        state.levelIdx = ((idx % CAMPAIGN_LEVELS.length) + CAMPAIGN_LEVELS.length) % CAMPAIGN_LEVELS.length;
+        stageSelect.value = String(state.levelIdx);
+        const src = customData || CAMPAIGN_LEVELS[state.levelIdx];
+
+        state.grid = [];
+        state.chipsLeft = 0;
+        state.player = { x: 1, y: 1, dir: "S" };
+
+        for (let r = 0; r < ROWS; r++) {
+          const rowStr = (src.map[r] || "").padEnd(COLS, "#");
+          const rowArr = [];
+          for (let c = 0; c < COLS; c++) {
+            let ch = rowStr[c];
+            if (ch === "@") {
+              state.player = { x: c, y: r, dir: "S" };
+              ch = T.FLOOR;
+            }
+            if (ch === T.CHIP) state.chipsLeft++;
+            rowArr.push(ch);
+          }
+          state.grid.push(rowArr);
+        }
+
+        state.enemies = (src.enemies || []).map((e) => ({ ...e }));
+        state.timeLeft = src.time || 200;
+        state.steps = 0;
+        state.boots = { flippers: false, fire: false, skates: false, suction: false };
+        state.keys = { red: 0, blue: 0, yellow: 0, green: 0 };
+        state.sliding = false;
+        state.gameOver = false;
+        state.victory = false;
+        state.defaultHint = src.hint || "Collect all 💾 IC Microchips to open the 🔌 Socket and reach the 🌀 Exit!";
+        state.hintText = state.defaultHint;
+        state.solverPath = [];
+        state.undoStack = [];
+        hideOverlay();
+        updateHud();
+      }
+
+      // Procedural Winnable Gauntlet Generator [G]
+      function generateProceduralGauntlet() {
+        const map = Array.from({ length: ROWS }, (_, r) =>
+          Array.from({ length: COLS }, (_, c) =>
+            r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1 ? "#" : "."
+          )
+        );
+
+        // Place internal pillars
+        for (let r = 2; r < ROWS - 2; r += 2) {
+          for (let c = 2; c < COLS - 2; c += 3) {
+            if (Math.random() < 0.55) map[r][c] = "#";
+          }
+        }
+
+        // Player at (1,1), Exit at (COLS-2, ROWS-2), Socket at (COLS-3, ROWS-2)
+        map[1][1] = "@";
+        map[1][2] = ".";
+        map[2][1] = ".";
+        map[ROWS - 2][COLS - 2] = "E";
+        map[ROWS - 2][COLS - 3] = "S";
+        map[ROWS - 2][COLS - 4] = ".";
+        map[ROWS - 3][COLS - 2] = "#";
+
+        // Give Flippers & Fire Boots near start so any water/fire hazard is 100% passable
+        map[1][3] = "f";
+        map[2][3] = "i";
+        map[1][4] = "k";
+        map[2][4] = "u";
+        map[1][5] = "?";
+
+        // Scatter 8 Microchips, Water, Fire, Ice, Force Floors, Dirt Blocks
+        let placedChips = 0;
+        while (placedChips < 8) {
+          const rx = 2 + Math.floor(Math.random() * (COLS - 5));
+          const ry = 2 + Math.floor(Math.random() * (ROWS - 4));
+          if (map[ry][rx] === ".") {
+            map[ry][rx] = "C";
+            placedChips++;
+          }
+        }
+
+        const hazardPool = ["W", "F", "I", ">", "^", "B", "t", "T"];
+        for (let i = 0; i < 18; i++) {
+          const rx = 3 + Math.floor(Math.random() * (COLS - 7));
+          const ry = 2 + Math.floor(Math.random() * (ROWS - 4));
+          if (map[ry][rx] === ".") {
+            map[ry][rx] = hazardPool[i % hazardPool.length];
+          }
+        }
+
+        const enemies = [
+          { x: Math.floor(COLS / 2), y: 2, dx: 1, dy: 0, type: "bug" },
+          { x: Math.floor(COLS / 2), y: ROWS - 3, dx: -1, dy: 0, type: "fireball" }
+        ];
+        map[2][Math.floor(COLS / 2)] = ".";
+        map[ROWS - 3][Math.floor(COLS / 2)] = ".";
+
+        loadLevel(state.levelIdx, {
+          name: "Procedural CyberChip Gauntlet",
+          time: 200,
+          hint: "Procedural Gauntlet: Grab the 4 Footwear Gears at top-left to traverse Water, Fire, Ice & Force Floors!",
+          map: map.map((r) => r.join("")),
+          enemies
+        });
+        document.getElementById("statusToast").textContent = "PROCEDURAL GAUNTLET GENERATED";
+      }
+
+      // Check if a tile is walkable for Chip
+      function canPlayerEnter(nx, ny, dx, dy) {
+        if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) return false;
+        const tile = state.grid[ny][nx];
+        if (tile === T.WALL || tile === T.TOGGLE_CLOSED) return false;
+        if (tile === T.SOCKET && state.chipsLeft > 0) return false;
+        if (tile === T.DOOR_RED && state.keys.red <= 0) return false;
+        if (tile === T.DOOR_BLUE && state.keys.blue <= 0) return false;
+        if (tile === T.DOOR_YELLOW && state.keys.yellow <= 0) return false;
+        if (tile === T.DOOR_GREEN && state.keys.green <= 0) return false;
+
+        // Dirt Block push check
+        if (tile === T.DIRT_BLOCK) {
+          const bx = nx + dx;
+          const by = ny + dy;
+          if (bx < 0 || bx >= COLS || by < 0 || by >= ROWS) return false;
+          const dest = state.grid[by][bx];
+          if (dest === T.FLOOR || dest === T.WATER || dest === T.BOMB || dest === T.TOGGLE_BTN) {
+            return true;
+          }
+          return false;
+        }
+        return true;
+      }
+
+      function flipAllToggleWalls() {
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (state.grid[r][c] === T.TOGGLE_CLOSED) state.grid[r][c] = T.TOGGLE_OPEN;
+            else if (state.grid[r][c] === T.TOGGLE_OPEN) state.grid[r][c] = T.TOGGLE_CLOSED;
+          }
+        }
+        CyberChipAudio.toggle();
+      }
+
+      function findNextTeleport(tx, ty) {
+        const pads = [];
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (state.grid[r][c] === T.TELEPORT) pads.push({ x: c, y: r });
+          }
+        }
+        if (pads.length <= 1) return { x: tx, y: ty };
+        const idx = pads.findIndex((p) => p.x === tx && p.y === ty);
+        return pads[(idx + 1) % pads.length];
+      }
+
+      function triggerBummer(reason) {
+        state.gameOver = true;
+        state.sliding = false;
+        CyberChipAudio.bummer();
+        showOverlay("💀 BUMMER!", reason, "🔄 Retry Level [SPACE]");
+      }
+
+      function triggerVictory() {
+        state.victory = true;
+        state.sliding = false;
+        const timeBonus = state.timeLeft * 15;
+        const stageBonus = 1000;
+        state.score += timeBonus + stageBonus;
+        if (state.score > state.bestScore) {
+          state.bestScore = state.score;
+          SafeStore.set("cyberchip_best_score", state.bestScore);
+        }
+        CyberChipAudio.fanfare();
+        if (window.CodecaineGameMaster && window.CodecaineGameMaster.triggerVictoryFireworks) {
+          window.CodecaineGameMaster.triggerVictoryFireworks();
+        }
+        updateHud();
+        showOverlay(
+          "🌀 STAGE CLEARED!",
+          `Level Complete! Time Bonus: +${timeBonus} pts • Stage Bonus: +${stageBonus} pts`,
+          "▶️ Next Stage [SPACE]"
+        );
+      }
+
+      function movePlayer(dx, dy, fromSlide = false) {
+        if (state.gameOver || state.victory) return;
+        if (!fromSlide) {
+          state.undoStack.push(cloneSnapshot());
+          if (state.undoStack.length > 40) state.undoStack.shift();
+        }
+
+        if (dx === 0 && dy === -1) state.player.dir = "N";
+        else if (dx === 0 && dy === 1) state.player.dir = "S";
+        else if (dx === -1 && dy === 0) state.player.dir = "W";
+        else if (dx === 1 && dy === 0) state.player.dir = "E";
+
+        const nx = state.player.x + dx;
+        const ny = state.player.y + dy;
+
+        if (!canPlayerEnter(nx, ny, dx, dy)) {
+          if (fromSlide) {
+            // Bounce back on ice if blocked
+            state.sliding = false;
+          }
+          return;
+        }
+
+        const targetTile = state.grid[ny][nx];
+
+        // Handle pushing Dirt Block
+        if (targetTile === T.DIRT_BLOCK) {
+          const bx = nx + dx;
+          const by = ny + dy;
+          const destTile = state.grid[by][bx];
+          state.grid[ny][nx] = T.FLOOR;
+          if (destTile === T.WATER) {
+            state.grid[by][bx] = T.MUD;
+            CyberChipAudio.splash();
+          } else if (destTile === T.BOMB) {
+            state.grid[by][bx] = T.FLOOR;
+            CyberChipAudio.bummer();
+          } else if (destTile === T.TOGGLE_BTN) {
+            state.grid[by][bx] = T.DIRT_BLOCK;
+            flipAllToggleWalls();
+          } else {
+            state.grid[by][bx] = T.DIRT_BLOCK;
+          }
+        }
+
+        // Move Chip
+        state.player.x = nx;
+        state.player.y = ny;
+        state.steps++;
+        state.solverPath = [];
+        CyberChipAudio.step();
+
+        const stepped = state.grid[ny][nx];
+
+        // Collectibles & Doors
+        if (stepped === T.CHIP) {
+          state.grid[ny][nx] = T.FLOOR;
+          state.chipsLeft = Math.max(0, state.chipsLeft - 1);
+          state.score += 250;
+          CyberChipAudio.chip();
+        } else if (stepped === T.SOCKET) {
+          state.grid[ny][nx] = T.FLOOR;
+          state.score += 500;
+          CyberChipAudio.door();
+        } else if (stepped === T.MUD) {
+          state.grid[ny][nx] = T.FLOOR;
+        } else if (stepped === T.KEY_RED) {
+          state.grid[ny][nx] = T.FLOOR;
+          state.keys.red++;
+          CyberChipAudio.key();
+        } else if (stepped === T.KEY_BLUE) {
+          state.grid[ny][nx] = T.FLOOR;
+          state.keys.blue++;
+          CyberChipAudio.key();
+        } else if (stepped === T.KEY_YELLOW) {
+          state.grid[ny][nx] = T.FLOOR;
+          state.keys.yellow++;
+          CyberChipAudio.key();
+        } else if (stepped === T.KEY_GREEN) {
+          state.grid[ny][nx] = T.FLOOR;
+          state.keys.green++;
+          CyberChipAudio.key();
+        } else if (stepped === T.DOOR_RED) {
+          state.grid[ny][nx] = T.FLOOR;
+          state.keys.red--;
+          CyberChipAudio.door();
+        } else if (stepped === T.DOOR_BLUE) {
+          state.grid[ny][nx] = T.FLOOR;
+          state.keys.blue--;
+          CyberChipAudio.door();
+        } else if (stepped === T.DOOR_YELLOW) {
+          state.grid[ny][nx] = T.FLOOR;
+          state.keys.yellow--;
+          CyberChipAudio.door();
+        } else if (stepped === T.DOOR_GREEN) {
+          state.grid[ny][nx] = T.FLOOR;
+          // Green key is reusable!
+          CyberChipAudio.door();
+        } else if (stepped === T.BOOT_FLIPPERS) {
+          state.grid[ny][nx] = T.FLOOR;
+          state.boots.flippers = true;
+          CyberChipAudio.key();
+        } else if (stepped === T.BOOT_FIRE) {
+          state.grid[ny][nx] = T.FLOOR;
+          state.boots.fire = true;
+          CyberChipAudio.key();
+        } else if (stepped === T.BOOT_SKATES) {
+          state.grid[ny][nx] = T.FLOOR;
+          state.boots.skates = true;
+          CyberChipAudio.key();
+        } else if (stepped === T.BOOT_SUCTION) {
+          state.grid[ny][nx] = T.FLOOR;
+          state.boots.suction = true;
+          CyberChipAudio.key();
+        } else if (stepped === T.TOGGLE_BTN) {
+          flipAllToggleWalls();
+        } else if (stepped === T.TANK_BTN) {
+          state.enemies.forEach((e) => {
+            e.dx = -e.dx;
+            e.dy = -e.dy;
+          });
+          CyberChipAudio.toggle();
+        } else if (stepped === T.THIEF) {
+          state.boots = { flippers: false, fire: false, skates: false, suction: false };
+          CyberChipAudio.thief();
+          state.hintText = "🕵️ THIEF ALERT: All Footwear Gears have been confiscated!";
+        } else if (stepped === T.TELEPORT) {
+          const dest = findNextTeleport(nx, ny);
+          state.player.x = dest.x;
+          state.player.y = dest.y;
+          CyberChipAudio.teleport();
+        }
+
+        if (stepped === T.HINT) {
+          state.hintText = "❓ SECRET HINT: " + state.defaultHint;
+        }
+
+        // Hazards check
+        const curTile = state.grid[state.player.y][state.player.x];
+        if (curTile === T.WATER && !state.boots.flippers) {
+          updateHud();
+          triggerBummer("Chip can't swim without 🤿 Flippers!");
+          return;
+        }
+        if (curTile === T.FIRE && !state.boots.fire) {
+          updateHud();
+          triggerBummer("Chip stepped into 🔥 Fire without Fire Boots!");
+          return;
+        }
+        if (curTile === T.BOMB) {
+          updateHud();
+          triggerBummer("Chip stepped on a live 💣 Cyber-Bomb!");
+          return;
+        }
+        if (curTile === T.EXIT) {
+          triggerVictory();
+          return;
+        }
+
+        // Check Ice & Force Floor sliding
+        evaluateSlideState(curTile, dx, dy);
+
+        // Step enemies if not mid-slide
+        if (!state.sliding) {
+          tickEnemies();
+        }
+        checkEnemyCollision();
+        updateHud();
+      }
+
+      function evaluateSlideState(tile, inDx, inDy) {
+        // Ice & Ice Corners
+        if (!state.boots.skates) {
+          if (tile === T.ICE) {
+            state.sliding = true;
+            state.slideDir = { dx: inDx, dy: inDy };
+            return;
+          }
+          if (tile === T.ICE_NW) {
+            // ◤ top-left wall: coming West (-1,0) -> South (0,1); coming North (0,-1) -> East (1,0)
+            state.sliding = true;
+            state.slideDir = inDx === -1 ? { dx: 0, dy: 1 } : { dx: 1, dy: 0 };
+            return;
+          }
+          if (tile === T.ICE_NE) {
+            // ◥ top-right wall: coming East (1,0) -> South (0,1); coming North (0,-1) -> West (-1,0)
+            state.sliding = true;
+            state.slideDir = inDx === 1 ? { dx: 0, dy: 1 } : { dx: -1, dy: 0 };
+            return;
+          }
+          if (tile === T.ICE_SW) {
+            // ◣ bottom-left wall: coming West (-1,0) -> North (0,-1); coming South (0,1) -> East (1,0)
+            state.sliding = true;
+            state.slideDir = inDx === -1 ? { dx: 0, dy: -1 } : { dx: 1, dy: 0 };
+            return;
+          }
+          if (tile === T.ICE_SE) {
+            // ◢ bottom-right wall: coming East (1,0) -> North (0,-1); coming South (0,1) -> West (-1,0)
+            state.sliding = true;
+            state.slideDir = inDx === 1 ? { dx: 0, dy: -1 } : { dx: -1, dy: 0 };
+            return;
+          }
+        }
+
+        // Force Floors
+        if (!state.boots.suction) {
+          if (tile === T.FORCE_N) { state.sliding = true; state.slideDir = { dx: 0, dy: -1 }; return; }
+          if (tile === T.FORCE_S) { state.sliding = true; state.slideDir = { dx: 0, dy: 1 }; return; }
+          if (tile === T.FORCE_W) { state.sliding = true; state.slideDir = { dx: -1, dy: 0 }; return; }
+          if (tile === T.FORCE_E) { state.sliding = true; state.slideDir = { dx: 1, dy: 0 }; return; }
+        }
+
+        state.sliding = false;
+      }
+
+      function canEnemyEnter(e, nx, ny) {
+        if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) return false;
+        const t = state.grid[ny][nx];
+        if (t === T.FLOOR || t === T.TOGGLE_OPEN) return true;
+        if (e.type === "glider" && t === T.WATER) return true;
+        if (e.type === "fireball" && t === T.FIRE) return true;
+        return false;
+      }
+
+      function tickEnemies() {
+        state.enemies.forEach((e) => {
+          if (e.type === "teeth") {
+            // Teeth chases player every other step
+            if (state.steps % 2 === 1) return;
+            const ddx = Math.sign(state.player.x - e.x);
+            const ddy = Math.sign(state.player.y - e.y);
+            if (ddx !== 0 && canEnemyEnter(e, e.x + ddx, e.y)) {
+              e.x += ddx;
+            } else if (ddy !== 0 && canEnemyEnter(e, e.x, e.y + ddy)) {
+              e.y += ddy;
+            }
+            return;
+          }
+
+          // Bug, Fireball, Glider
+          if (canEnemyEnter(e, e.x + e.dx, e.y + e.dy)) {
+            e.x += e.dx;
+            e.y += e.dy;
+          } else {
+            // Turn right or left or reverse
+            const right = { dx: -e.dy, dy: e.dx };
+            const left = { dx: e.dy, dy: -e.dx };
+            const first = e.type === "glider" ? left : right;
+            const second = e.type === "glider" ? right : left;
+            if (canEnemyEnter(e, e.x + first.dx, e.y + first.dy)) {
+              e.dx = first.dx;
+              e.dy = first.dy;
+              e.x += e.dx;
+              e.y += e.dy;
+            } else if (canEnemyEnter(e, e.x + second.dx, e.y + second.dy)) {
+              e.dx = second.dx;
+              e.dy = second.dy;
+              e.x += e.dx;
+              e.y += e.dy;
+            } else {
+              e.dx = -e.dx;
+              e.dy = -e.dy;
+            }
+          }
+        });
+      }
+
+      function checkEnemyCollision() {
+        for (const e of state.enemies) {
+          if (e.x === state.player.x && e.y === state.player.y) {
+            const label =
+              e.type === "bug" ? "🐞 Cyber-Bug" :
+              e.type === "fireball" ? "🔥 Fireball" :
+              e.type === "glider" ? "🛸 Glider" : "🐸 Teeth Monster";
+            triggerBummer(`Chip was intercepted by a ${label}!`);
+            return;
+          }
+        }
+      }
+
+      // AI BFS Path Solver [H] — finds shortest walkable path to nearest Chip, Key, Boot, Socket, or Exit
+      function runAiPathSolver() {
+        const startKey = `${state.player.x},${state.player.y}`;
+        const queue = [{ x: state.player.x, y: state.player.y, path: [] }];
+        const visited = new Set([startKey]);
+        const dirs = [
+          { dx: 0, dy: -1 },
+          { dx: 1, dy: 0 },
+          { dx: 0, dy: 1 },
+          { dx: -1, dy: 0 }
+        ];
+
+        while (queue.length > 0) {
+          const cur = queue.shift();
+          const t = state.grid[cur.y][cur.x];
+          if (cur.path.length > 0) {
+            if (
+              t === T.CHIP ||
+              (state.chipsLeft === 0 && (t === T.SOCKET || t === T.EXIT)) ||
+              t === T.KEY_RED || t === T.KEY_BLUE || t === T.KEY_YELLOW || t === T.KEY_GREEN ||
+              t === T.BOOT_FLIPPERS || t === T.BOOT_FIRE || t === T.BOOT_SKATES || t === T.BOOT_SUCTION
+            ) {
+              state.solverPath = cur.path;
+              document.getElementById("statusToast").textContent = `AI SOLVER: ${cur.path.length}-STEP PATH FOUND`;
+              return;
+            }
+          }
+
+          for (const d of dirs) {
+            const nx = cur.x + d.dx;
+            const ny = cur.y + d.dy;
+            const k = `${nx},${ny}`;
+            if (visited.has(k)) continue;
+            if (!canPlayerEnter(nx, ny, d.dx, d.dy)) continue;
+            const nt = state.grid[ny][nx];
+            if (nt === T.WATER && !state.boots.flippers) continue;
+            if (nt === T.FIRE && !state.boots.fire) continue;
+            if (nt === T.BOMB) continue;
+            visited.add(k);
+            queue.push({ x: nx, y: ny, path: [...cur.path, { x: nx, y: ny }] });
+          }
+        }
+        document.getElementById("statusToast").textContent = "AI SOLVER: PUSH A BLOCK OR TOGGLE SWITCH FIRST";
+      }
+
+      function showOverlay(title, msg, btnLabel) {
+        document.getElementById("overlayTitle").textContent = title;
+        document.getElementById("overlayMsg").textContent = msg;
+        document.getElementById("btnOverlayPrimary").textContent = btnLabel;
+        document.getElementById("overlayModal").classList.add("visible");
+      }
+
+      function hideOverlay() {
+        document.getElementById("overlayModal").classList.remove("visible");
+      }
+
+      function updateHud() {
+        document.getElementById("chipsLeftVal").textContent = String(state.chipsLeft);
+        document.getElementById("timeLeftVal").textContent = String(state.timeLeft);
+        document.getElementById("stepsVal").textContent = String(state.steps);
+        document.getElementById("scoreVal").textContent = String(state.score);
+        document.getElementById("bestScoreVal").textContent = String(state.bestScore);
+
+        document.getElementById("bootFlippers").classList.toggle("active", state.boots.flippers);
+        document.getElementById("bootFire").classList.toggle("active", state.boots.fire);
+        document.getElementById("bootSkates").classList.toggle("active", state.boots.skates);
+        document.getElementById("bootSuction").classList.toggle("active", state.boots.suction);
+
+        const bootCount =
+          (state.boots.flippers ? 1 : 0) +
+          (state.boots.fire ? 1 : 0) +
+          (state.boots.skates ? 1 : 0) +
+          (state.boots.suction ? 1 : 0);
+        document.getElementById("footwearCountLabel").textContent = `${bootCount} / 4`;
+
+        document.getElementById("keyRedVal").textContent = String(state.keys.red);
+        document.getElementById("keyBlueVal").textContent = String(state.keys.blue);
+        document.getElementById("keyYellowVal").textContent = String(state.keys.yellow);
+        document.getElementById("keyGreenVal").textContent = String(state.keys.green);
+
+        document.getElementById("keyRedPill").classList.toggle("has-key", state.keys.red > 0);
+        document.getElementById("keyBluePill").classList.toggle("has-key", state.keys.blue > 0);
+        document.getElementById("keyYellowPill").classList.toggle("has-key", state.keys.yellow > 0);
+        document.getElementById("keyGreenPill").classList.toggle("has-key", state.keys.green > 0);
+
+        document.getElementById("hintBannerText").innerHTML = `❓ <span>${state.hintText}</span>`;
+      }
+
+      // Render 3D-shaded vector tiles onto 912x624 canvas
+      function renderArena() {
+        state.animTick++;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            const x = c * TILE;
+            const y = r * TILE;
+            const t = state.grid[r][c];
+
+            // Base floor bevel
+            ctx.fillStyle = (r + c) % 2 === 0 ? "#0d2620" : "#0a1f1a";
+            ctx.fillRect(x, y, TILE, TILE);
+            ctx.strokeStyle = "rgba(52, 211, 153, 0.08)";
+            ctx.strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
+
+            if (t === T.WALL) {
+              // 3D beveled cyber wall block
+              ctx.fillStyle = "#1e3a34";
+              ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
+              ctx.fillStyle = "#34d399";
+              ctx.fillRect(x + 2, y + 2, TILE - 4, 3);
+              ctx.fillRect(x + 2, y + 2, 3, TILE - 4);
+              ctx.fillStyle = "#061411";
+              ctx.fillRect(x + 2, y + TILE - 5, TILE - 4, 3);
+              ctx.fillRect(x + TILE - 5, y + 2, 3, TILE - 4);
+              ctx.fillStyle = "#112822";
+              ctx.fillRect(x + 7, y + 7, TILE - 14, TILE - 14);
+            } else if (t === T.WATER) {
+              const wave = Math.sin(state.animTick * 0.08 + c + r) * 2;
+              ctx.fillStyle = "#0284c7";
+              ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
+              ctx.strokeStyle = "#7dd3fc";
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.moveTo(x + 8, y + 18 + wave);
+              ctx.quadraticCurveTo(x + 24, y + 12 - wave, x + 40, y + 18 + wave);
+              ctx.moveTo(x + 8, y + 32 - wave);
+              ctx.quadraticCurveTo(x + 24, y + 26 + wave, x + 40, y + 32 - wave);
+              ctx.stroke();
+            } else if (t === T.MUD) {
+              ctx.fillStyle = "#78350f";
+              ctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
+              ctx.strokeStyle = "#b45309";
+              ctx.strokeRect(x + 5, y + 5, TILE - 10, TILE - 10);
+            } else if (t === T.FIRE) {
+              ctx.fillStyle = "#7f1d1d";
+              ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
+              drawIcon("🔥", x + 24, y + 26, 24);
+            } else if (t === T.ICE || t === T.ICE_NW || t === T.ICE_NE || t === T.ICE_SW || t === T.ICE_SE) {
+              ctx.fillStyle = "#67e8f9";
+              ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
+              ctx.strokeStyle = "#ecfeff";
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.moveTo(x + 8, y + 38);
+              ctx.lineTo(x + 38, y + 8);
+              ctx.stroke();
+
+              // Draw corner bumpers
+              ctx.fillStyle = "#0f172a";
+              if (t === T.ICE_NW) {
+                ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + TILE, y); ctx.lineTo(x, y + TILE); ctx.fill();
+              } else if (t === T.ICE_NE) {
+                ctx.beginPath(); ctx.moveTo(x + TILE, y); ctx.lineTo(x + TILE, y + TILE); ctx.lineTo(x, y); ctx.fill();
+              } else if (t === T.ICE_SW) {
+                ctx.beginPath(); ctx.moveTo(x, y + TILE); ctx.lineTo(x + TILE, y + TILE); ctx.lineTo(x, y); ctx.fill();
+              } else if (t === T.ICE_SE) {
+                ctx.beginPath(); ctx.moveTo(x + TILE, y + TILE); ctx.lineTo(x, y + TILE); ctx.lineTo(x + TILE, y); ctx.fill();
+              }
+            } else if (t === T.FORCE_N || t === T.FORCE_S || t === T.FORCE_W || t === T.FORCE_E) {
+              ctx.fillStyle = "#064e3b";
+              ctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
+              const arrow = t === T.FORCE_N ? "▲" : t === T.FORCE_S ? "▼" : t === T.FORCE_W ? "◄" : "►";
+              ctx.fillStyle = "#34d399";
+              ctx.font = "900 22px sans-serif";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText(arrow, x + 24, y + 24);
+            } else if (t === T.DIRT_BLOCK) {
+              ctx.fillStyle = "#b45309";
+              ctx.fillRect(x + 4, y + 4, TILE - 8, TILE - 8);
+              ctx.strokeStyle = "#fde68a";
+              ctx.lineWidth = 2;
+              ctx.strokeRect(x + 6, y + 6, TILE - 12, TILE - 12);
+              drawIcon("📦", x + 24, y + 25, 21);
+            } else if (t === T.CHIP) {
+              drawIcon("💾", x + 24, y + 25, 24);
+            } else if (t === T.SOCKET) {
+              ctx.fillStyle = state.chipsLeft === 0 ? "#065f46" : "#451a03";
+              ctx.fillRect(x + 3, y + 3, TILE - 6, TILE - 6);
+              ctx.strokeStyle = "#facc15";
+              ctx.lineWidth = 2;
+              ctx.strokeRect(x + 4, y + 4, TILE - 8, TILE - 8);
+              drawIcon("🔌", x + 24, y + 25, 23);
+            } else if (t === T.EXIT) {
+              const pulse = 3 + Math.sin(state.animTick * 0.12) * 2;
+              ctx.fillStyle = "#022c22";
+              ctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
+              ctx.strokeStyle = "#22d3ee";
+              ctx.lineWidth = pulse;
+              ctx.strokeRect(x + 5, y + 5, TILE - 10, TILE - 10);
+              drawIcon("🌀", x + 24, y + 25, 25);
+            } else if (t === T.BOMB) {
+              drawIcon("💣", x + 24, y + 25, 23);
+            } else if (t === T.KEY_RED) {
+              drawKeyIcon(x, y, "#ef4444");
+            } else if (t === T.KEY_BLUE) {
+              drawKeyIcon(x, y, "#3b82f6");
+            } else if (t === T.KEY_YELLOW) {
+              drawKeyIcon(x, y, "#facc15");
+            } else if (t === T.KEY_GREEN) {
+              drawKeyIcon(x, y, "#22c55e");
+            } else if (t === T.DOOR_RED) {
+              drawDoorTile(x, y, "#ef4444");
+            } else if (t === T.DOOR_BLUE) {
+              drawDoorTile(x, y, "#3b82f6");
+            } else if (t === T.DOOR_YELLOW) {
+              drawDoorTile(x, y, "#facc15");
+            } else if (t === T.DOOR_GREEN) {
+              drawDoorTile(x, y, "#22c55e");
+            } else if (t === T.BOOT_FLIPPERS) {
+              drawIcon("🤿", x + 24, y + 25, 23);
+            } else if (t === T.BOOT_FIRE) {
+              drawIcon("🥾", x + 24, y + 25, 23);
+            } else if (t === T.BOOT_SKATES) {
+              drawIcon("⛸️", x + 24, y + 25, 23);
+            } else if (t === T.BOOT_SUCTION) {
+              drawIcon("🧲", x + 24, y + 25, 23);
+            } else if (t === T.TOGGLE_BTN) {
+              ctx.fillStyle = "#22c55e";
+              ctx.beginPath();
+              ctx.arc(x + 24, y + 24, 13, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.strokeStyle = "#dcfce7";
+              ctx.lineWidth = 2;
+              ctx.stroke();
+            } else if (t === T.TOGGLE_CLOSED) {
+              ctx.fillStyle = "#14532d";
+              ctx.fillRect(x + 3, y + 3, TILE - 6, TILE - 6);
+              ctx.strokeStyle = "#4ade80";
+              ctx.lineWidth = 3;
+              ctx.strokeRect(x + 5, y + 5, TILE - 10, TILE - 10);
+            } else if (t === T.TOGGLE_OPEN) {
+              ctx.strokeStyle = "rgba(74, 222, 128, 0.45)";
+              ctx.setLineDash([4, 4]);
+              ctx.lineWidth = 2;
+              ctx.strokeRect(x + 6, y + 6, TILE - 12, TILE - 12);
+              ctx.setLineDash([]);
+            } else if (t === T.TELEPORT) {
+              ctx.strokeStyle = "#a855f7";
+              ctx.lineWidth = 3;
+              ctx.beginPath();
+              ctx.arc(x + 24, y + 24, 16, 0, Math.PI * 2);
+              ctx.stroke();
+              drawIcon("🌌", x + 24, y + 25, 20);
+            } else if (t === T.THIEF) {
+              ctx.fillStyle = "#3b0764";
+              ctx.fillRect(x + 3, y + 3, TILE - 6, TILE - 6);
+              drawIcon("🕵️", x + 24, y + 25, 23);
+            } else if (t === T.HINT) {
+              ctx.fillStyle = "#083344";
+              ctx.fillRect(x + 4, y + 4, TILE - 8, TILE - 8);
+              drawIcon("❓", x + 24, y + 25, 22);
+            }
+          }
+        }
+
+        // Draw AI Solver Path if active
+        if (state.solverPath.length > 0) {
+          ctx.strokeStyle = "#facc15";
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(state.player.x * TILE + 24, state.player.y * TILE + 24);
+          state.solverPath.forEach((pt) => {
+            ctx.lineTo(pt.x * TILE + 24, pt.y * TILE + 24);
+          });
+          ctx.stroke();
+        }
+
+        // Draw Patrolling Enemies
+        state.enemies.forEach((e) => {
+          const ex = e.x * TILE + 24;
+          const ey = e.y * TILE + 25;
+          const icon =
+            e.type === "bug" ? "🐞" :
+            e.type === "fireball" ? "🔥" :
+            e.type === "glider" ? "🛸" : "🐸";
+          drawIcon(icon, ex, ey, 25);
+        });
+
+        // Draw Player (Chip McCallahan Cyber Avatar)
+        const px = state.player.x * TILE;
+        const py = state.player.y * TILE;
+        ctx.fillStyle = "rgba(16, 185, 129, 0.28)";
+        ctx.beginPath();
+        ctx.arc(px + 24, py + 24, 19, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        drawIcon("🤖", px + 24, py + 25, 26);
+
+        requestAnimationFrame(renderArena);
+      }
+
+      function drawIcon(emoji, cx, cy, size) {
+        ctx.font = `${size}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(emoji, cx, cy);
+      }
+
+      function drawKeyIcon(x, y, color) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x + 18, y + 24, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(x + 24, y + 21, 14, 5);
+        ctx.fillRect(x + 32, y + 26, 4, 5);
+      }
+
+      function drawDoorTile(x, y, color) {
+        ctx.fillStyle = color;
+        ctx.fillRect(x + 3, y + 3, TILE - 6, TILE - 6);
+        ctx.fillStyle = "#04130f";
+        ctx.beginPath();
+        ctx.arc(x + 24, y + 21, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(x + 21, y + 24, 6, 9);
+      }
+
+      // Continuous Slide & Countdown Loops
+      setInterval(() => {
+        if (state.sliding && !state.gameOver && !state.victory) {
+          movePlayer(state.slideDir.dx, state.slideDir.dy, true);
+        }
+      }, 95);
+
+      setInterval(() => {
+        if (!state.gameOver && !state.victory && state.mode !== "editor") {
+          state.timeLeft = Math.max(0, state.timeLeft - 1);
+          document.getElementById("timeLeftVal").textContent = String(state.timeLeft);
+          if (state.timeLeft === 0) {
+            triggerBummer("Time expired! You ran out of clock cycles.");
+          }
+        }
+      }, 1000);
+
+      // Keyboard Controls
+      window.addEventListener("keydown", (e) => {
+        if (e.target && (e.target.tagName === "SELECT" || e.target.tagName === "INPUT")) return;
+        const k = e.key.toLowerCase();
+
+        if (state.gameOver || state.victory) {
+          if (k === " " || k === "enter") {
+            e.preventDefault();
+            if (state.victory) {
+              loadLevel(state.levelIdx + 1);
+            } else {
+              loadLevel(state.levelIdx);
+            }
+            return;
+          }
+        }
+
+        if (k === "arrowup" || k === "w") { e.preventDefault(); movePlayer(0, -1); }
+        else if (k === "arrowdown" || k === "s") { e.preventDefault(); movePlayer(0, 1); }
+        else if (k === "arrowleft" || k === "a") { e.preventDefault(); movePlayer(-1, 0); }
+        else if (k === "arrowright" || k === "d") { e.preventDefault(); movePlayer(1, 0); }
+        else if (k === "z") { e.preventDefault(); restoreSnapshot(state.undoStack.pop()); }
+        else if (k === "r") { e.preventDefault(); loadLevel(state.levelIdx); }
+        else if (k === "h") { e.preventDefault(); runAiPathSolver(); }
+        else if (k === "g") { e.preventDefault(); generateProceduralGauntlet(); }
+        else if (k === "m") {
+          CyberChipAudio.muted = !CyberChipAudio.muted;
+          document.getElementById("btnAudio").textContent = CyberChipAudio.muted ? "🔇 Muted" : "🔊 Synth";
+        }
+      });
+
+      // Canvas click: paint in Editor mode OR step toward clicked tile
+      canvas.addEventListener("mousedown", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const cx = Math.floor(((e.clientX - rect.left) / rect.width) * COLS);
+        const cy = Math.floor(((e.clientY - rect.top) / rect.height) * ROWS);
+        if (cx < 0 || cx >= COLS || cy < 0 || cy >= ROWS) return;
+
+        if (state.mode === "editor" || e.shiftKey) {
+          if (state.editorBrush === "@") {
+            state.player.x = cx;
+            state.player.y = cy;
+          } else {
+            state.grid[cy][cx] = state.editorBrush;
+          }
+          // Recount chips
+          let cCount = 0;
+          for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+              if (state.grid[r][c] === T.CHIP) cCount++;
+            }
+          }
+          state.chipsLeft = cCount;
+          updateHud();
+        } else {
+          const dx = Math.sign(cx - state.player.x);
+          const dy = Math.sign(cy - state.player.y);
+          if (Math.abs(cx - state.player.x) >= Math.abs(cy - state.player.y) && dx !== 0) {
+            movePlayer(dx, 0);
+          } else if (dy !== 0) {
+            movePlayer(0, dy);
+          }
+        }
+      });
+
+      // UI Button Listeners
+      document.querySelectorAll(".dpad-btn[data-dir]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const [dx, dy] = btn.getAttribute("data-dir").split(",").map(Number);
+          movePlayer(dx, dy);
+        });
+      });
+
+      document.getElementById("btnWaitStep").addEventListener("click", () => {
+        tickEnemies();
+        checkEnemyCollision();
+      });
+
+      document.getElementById("btnHintPath").addEventListener("click", runAiPathSolver);
+      document.getElementById("btnProcGen").addEventListener("click", generateProceduralGauntlet);
+      document.getElementById("btnUndo").addEventListener("click", () => restoreSnapshot(state.undoStack.pop()));
+      document.getElementById("btnRestart").addEventListener("click", () => loadLevel(state.levelIdx));
+      document.getElementById("btnAudio").addEventListener("click", () => {
+        CyberChipAudio.muted = !CyberChipAudio.muted;
+        document.getElementById("btnAudio").textContent = CyberChipAudio.muted ? "🔇 Muted" : "🔊 Synth";
+      });
+
+      document.getElementById("btnOverlayPrimary").addEventListener("click", () => {
+        if (state.victory) loadLevel(state.levelIdx + 1);
+        else loadLevel(state.levelIdx);
+      });
+      document.getElementById("btnOverlayUndo").addEventListener("click", () => {
+        restoreSnapshot(state.undoStack.pop());
+      });
+
+      stageSelect.addEventListener("change", () => {
+        loadLevel(Number(stageSelect.value) || 0);
+      });
+
+      document.getElementById("chipModeSelect").addEventListener("change", (e) => {
+        state.mode = e.target.value;
+        if (state.mode === "procedural") {
+          generateProceduralGauntlet();
+          return;
+        }
+        const modeMap = {
+          campaign: 0,
+          ice_lab: 2,
+          sokoban_mud: 1,
+          footwear_vault: 3,
+          force_teleport: 4,
+          enemy_evasion: 7,
+          editor: 0
+        };
+        loadLevel(modeMap[state.mode] ?? 0);
+        document.getElementById("statusToast").textContent =
+          state.mode === "editor" ? "EDITOR ACTIVE • CLICK TILES TO PAINT" : `MODE: ${state.mode.toUpperCase()}`;
+      });
+
+      rebuildStageDropdown();
+      renderPalette();
+      loadLevel(0);
+      requestAnimationFrame(renderArena);
+    })();
+  </script>
+</body>
+</html>

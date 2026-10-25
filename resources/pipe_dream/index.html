@@ -1,0 +1,2207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var k="__t__";window.localStorage.setItem(k,"1");window.localStorage.removeItem(k)}catch(e){var m={};try{Object.defineProperty(window,"localStorage",{value:{getItem:function(k){return m.hasOwnProperty(k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}}},writable:true,configurable:true})}catch(_){}}})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codecaine CyberPipe Flow Deluxe — 8-Mode Industrial Conduit Suite</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    :root {
+      --bg-deep: #030710;
+      --bg-panel: rgba(9, 19, 38, 0.92);
+      --cyan: #00f5d4;
+      --green: #38ef7d;
+      --magenta: #ff2a85;
+      --gold: #fee440;
+      --blue: #3a86ff;
+      --copper: #f77f00;
+      --text: #e6f3ff;
+      --muted: #829ab8;
+    }
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at 50% 18%, #0c213d 0%, #030710 80%);
+      color: var(--text);
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 7px 14px;
+      background: linear-gradient(180deg, rgba(12, 26, 50, 0.97), rgba(5, 11, 24, 0.95));
+      border-bottom: 1px solid rgba(0, 245, 212, 0.35);
+      box-shadow: 0 4px 20px rgba(0, 245, 212, 0.14);
+      z-index: 12;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-icon {
+      width: 34px; height: 34px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(56,239,125,0.24), rgba(0,245,212,0.24));
+      border: 1px solid var(--cyan);
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      box-shadow: 0 0 12px rgba(56, 239, 125, 0.45);
+    }
+    .brand-title {
+      font-weight: 900;
+      font-size: 15px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #38ef7d, #00f5d4, #fee440);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-sub { font-size: 10.5px; color: var(--muted); }
+    .hud-stats { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .stat-pill {
+      background: rgba(4, 10, 22, 0.9);
+      border: 1px solid rgba(0, 245, 212, 0.28);
+      border-radius: 7px;
+      padding: 3px 9px;
+      min-width: 72px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .stat-label { font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.75px; color: var(--muted); }
+    .stat-value { font-size: 13.5px; font-weight: 800; color: var(--cyan); font-variant-numeric: tabular-nums; }
+    .stat-value.green { color: var(--green); text-shadow: 0 0 8px rgba(56, 239, 125, 0.4); }
+    .stat-value.gold { color: var(--gold); text-shadow: 0 0 8px rgba(254, 228, 64, 0.4); }
+    .stat-value.pink { color: var(--magenta); text-shadow: 0 0 8px rgba(255, 42, 133, 0.4); }
+
+    .controls-bar { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    button, select {
+      background: rgba(11, 24, 46, 0.92);
+      color: var(--text);
+      border: 1px solid rgba(0, 245, 212, 0.4);
+      border-radius: 6px;
+      padding: 5px 9px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+    button:hover, select:hover {
+      background: rgba(0, 245, 212, 0.18);
+      border-color: var(--cyan);
+      box-shadow: 0 0 10px rgba(0, 245, 212, 0.35);
+      transform: translateY(-1px);
+    }
+    button.active-toggle {
+      background: rgba(56, 239, 125, 0.24);
+      border-color: var(--green);
+      color: var(--green);
+      box-shadow: 0 0 12px rgba(56, 239, 125, 0.5);
+    }
+    button.cryo-active {
+      background: rgba(58, 134, 255, 0.28);
+      border-color: #60efff;
+      color: #60efff;
+      box-shadow: 0 0 12px rgba(96, 239, 255, 0.6);
+    }
+    button.wrench-active {
+      background: rgba(255, 42, 133, 0.26);
+      border-color: var(--magenta);
+      color: #ff85b3;
+      box-shadow: 0 0 12px rgba(255, 42, 133, 0.5);
+    }
+
+    /* Sub-header Mode Dock + Engineer Toolkit Bar */
+    .sub-dock {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 5px 14px;
+      background: rgba(6, 13, 28, 0.94);
+      border-bottom: 1px solid rgba(0, 245, 212, 0.22);
+      z-index: 11;
+    }
+    .mode-tabs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .mode-tab {
+      padding: 4px 8px;
+      font-size: 11px;
+      border-radius: 5px;
+      background: rgba(9, 19, 38, 0.85);
+      border: 1px solid rgba(0, 245, 212, 0.22);
+      color: var(--muted);
+    }
+    .mode-tab.active {
+      background: linear-gradient(135deg, rgba(0, 245, 212, 0.22), rgba(56, 239, 125, 0.18));
+      border-color: var(--cyan);
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(0, 245, 212, 0.3);
+    }
+    .toolkit-bar {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .toolkit-label {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.7px;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-right: 2px;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      overflow: hidden;
+    }
+    .canvas-shell {
+      padding: 6px;
+      border-radius: 12px;
+      background: rgba(5, 11, 24, 0.9);
+      border: 1px solid rgba(0, 245, 212, 0.42);
+      box-shadow: 0 0 36px rgba(0, 245, 212, 0.15), inset 0 0 24px rgba(0, 245, 212, 0.06);
+    }
+    canvas { display: block; border-radius: 8px; background: #040914; cursor: pointer; }
+    .footer-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 16px;
+      font-size: 11px;
+      color: var(--muted);
+      background: rgba(4, 9, 20, 0.95);
+      border-top: 1px solid rgba(0, 245, 212, 0.2);
+    }
+    .kbd {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(0, 245, 212, 0.12);
+      border: 1px solid rgba(0, 245, 212, 0.35);
+      color: var(--cyan);
+      font-family: monospace;
+      font-size: 10px;
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 5, 14, 0.84);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-card {
+      background: linear-gradient(165deg, #0c1b36 0%, #050a18 100%);
+      border: 1px solid var(--cyan);
+      border-radius: 14px;
+      padding: 22px 26px;
+      max-width: 580px;
+      width: 94%;
+      box-shadow: 0 0 40px rgba(0, 245, 212, 0.32);
+      text-align: center;
+    }
+    .modal-card h2 { margin: 0 0 8px; color: var(--cyan); text-transform: uppercase; letter-spacing: 0.8px; }
+    .modal-card p { color: #bdd1f0; font-size: 13px; line-height: 1.5; margin: 6px 0; }
+    .help-grid {
+      text-align: left;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 6px 12px;
+      margin: 12px 0;
+      padding: 11px;
+      border-radius: 8px;
+      background: rgba(3, 8, 20, 0.68);
+      border: 1px solid rgba(0, 245, 212, 0.22);
+      font-size: 12px;
+      max-height: 310px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🔧</div>
+      <div>
+        <div class="brand-title">Codecaine CyberPipe Flow Deluxe</div>
+        <div class="brand-sub" id="modeSubtitle">Mode 1: Classic 1989 Pipe Mania (Quota + Exit Drain)</div>
+      </div>
+    </div>
+
+    <div class="hud-stats">
+      <div class="stat-pill">
+        <span class="stat-label">Score</span>
+        <span class="stat-value" id="hudScore">0</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">High Score</span>
+        <span class="stat-value gold" id="hudHigh">0</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">Sector</span>
+        <span class="stat-value" id="hudLevel">L1</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label" id="hudDistLabel">Flow Quota</span>
+        <span class="stat-value green" id="hudDist">0 / 12</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label" id="hudTimerLabel">Valve Timer</span>
+        <span class="stat-value pink" id="hudTimer">14.0s</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label" id="hudSpecialLabel">Cross / Drain</span>
+        <span class="stat-value gold" id="hudLoops">0 ╋</span>
+      </div>
+    </div>
+
+    <div class="controls-bar">
+      <select id="modeSelect" title="Select Pipe Engineering Game Mode ([1]-[8])">
+        <option value="classic">1. Classic 1989 Pipe Mania (Quota + Drain)</option>
+        <option value="plumber_rotate">2. Plumber's Rotate-All Logic Grid (100 Levels)</option>
+        <option value="dual_color">3. Chromatic Dual-Stream Mixing (Cyan+Gold)</option>
+        <option value="reactor_boss">4. Reactor Meltdown Rescue (4 Core Vents)</option>
+        <option value="bomb_arcade">5. Master Arcade (Reservoirs, Boosters &amp; Omni)</option>
+        <option value="architect">6. Budget Blueprint Architect ($2,500 Economy)</option>
+        <option value="zen">7. Zen Endless Flow (Free Rotate + No Stress)</option>
+        <option value="versus_2p">8. 2-Plumber Co-Op / Versus Grid (WASD + Mouse)</option>
+      </select>
+      <button id="btnNew" title="Start Fresh Sector Run (N)">⚡ New</button>
+      <button id="btnPause" title="Pause / Resume Simulation (P)">⏸️ Pause</button>
+      <button id="btnMute" title="Toggle Synth Audio (M)">🔊 Audio</button>
+      <button id="btnHelp" title="Engineering Manual (?)">❓ Help</button>
+    </div>
+  </header>
+
+  <!-- 8-Mode Selector Tabs + Modern Engineer Toolkit Bar -->
+  <div class="sub-dock">
+    <div class="mode-tabs" id="modeTabs">
+      <button class="mode-tab active" data-mode="classic" title="Key [1]">1️⃣ Classic</button>
+      <button class="mode-tab" data-mode="plumber_rotate" title="Key [2]">2️⃣ Rotate-All</button>
+      <button class="mode-tab" data-mode="dual_color" title="Key [3]">3️⃣ Dual-Mix</button>
+      <button class="mode-tab" data-mode="reactor_boss" title="Key [4]">4️⃣ Reactor</button>
+      <button class="mode-tab" data-mode="bomb_arcade" title="Key [5]">5️⃣ Arcade+</button>
+      <button class="mode-tab" data-mode="architect" title="Key [6]">6️⃣ Architect</button>
+      <button class="mode-tab" data-mode="zen" title="Key [7]">7️⃣ Zen</button>
+      <button class="mode-tab" data-mode="versus_2p" title="Key [8]">8️⃣ 2P Co-Op</button>
+    </div>
+
+    <div class="toolkit-bar">
+      <span class="toolkit-label">🧰 Toolkit:</span>
+      <button id="btnHold" title="Swap Next Pipe with Hold Slot [H]">📦 Hold [H]</button>
+      <button id="btnRotate" title="Rotate Next Dispenser Pipe 90° Clockwise [R]">🔄 Rotate [R]</button>
+      <button id="btnCryo" title="Cryo-Freeze Coolant Flow for 5.0s [C]">❄️ Cryo [C]: <span id="cryoCount">2</span></button>
+      <button id="btnWrench" title="Instant Wrench: Remove Misplaced Dry Pipe Without Delay [X]">🧨 Wrench [X]</button>
+      <button id="btnFast" title="Surge / Release Flow 5× Speed [F]">⏩ Surge Flow [F]</button>
+    </div>
+  </div>
+
+  <main id="viewportMain">
+    <div class="canvas-shell">
+      <canvas id="gameCanvas" width="1040" height="588"></canvas>
+    </div>
+  </main>
+
+  <div class="footer-bar">
+    <div>
+      <span class="kbd">Click</span> / <span class="kbd">Space</span> Place/Rotate &nbsp;•&nbsp;
+      <span class="kbd">R</span> Rotate Pipe &nbsp;•&nbsp;
+      <span class="kbd">H</span> Hold Slot &nbsp;•&nbsp;
+      <span class="kbd">C</span> Cryo-Freeze (5s) &nbsp;•&nbsp;
+      <span class="kbd">X</span> Instant Wrench &nbsp;•&nbsp;
+      <span class="kbd">F</span> Surge Flow &nbsp;•&nbsp;
+      <span class="kbd">1–8</span> Modes
+    </div>
+    <div id="statusTicker">ENGINEER WORKSTATION READY — Ghost Preview shows ✔ PORT MATCH when aligned!</div>
+  </div>
+
+  <!-- Result Modal -->
+  <div class="modal-backdrop" id="stateModal">
+    <div class="modal-card">
+      <h2 id="modalTitle">SECTOR PIPELINE COMPLETE!</h2>
+      <p id="modalDesc">Pressurized plasma delivered without rupture.</p>
+      <div id="modalStats" style="margin:14px 0; font-weight:700; color:var(--gold); line-height:1.6;"></div>
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:12px;">
+        <button id="btnModalRetry" style="padding:8px 16px;">🔄 Replay Sector</button>
+        <button id="btnModalPrimary" style="padding:8px 20px; font-size:13.5px;">🚀 Next Sector</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <div class="modal-backdrop" id="helpModal">
+    <div class="modal-card">
+      <h2>🔧 CyberPipe Flow Deluxe — 8-Mode Engineering Manual</h2>
+      <p>Master 8 distinct industrial conduit modes with the <strong>Engineer Toolkit</strong> and <strong>3D Pressurized Fluid Engine</strong>.</p>
+      <div class="help-grid">
+        <span class="kbd">1. Classic Mania</span><span>Meet the flow quota from <strong>🟢 START</strong> and connect into <strong>🎯 DRAIN</strong> for a <strong>+5,000 PTS</strong> bonus!</span>
+        <span class="kbd">2. Rotate-All</span><span>All cells start pre-filled! Click any cell (or press <strong>R / Space</strong>) to rotate it 90° and link Start → Nodes → Drain!</span>
+        <span class="kbd">3. Dual-Stream</span><span>Route simultaneous <strong>🔵 Cyan</strong> &amp; <strong>🟡 Gold</strong> streams, or merge them inside the <strong>⚗️ Mixer</strong> into Emerald Coolant!</span>
+        <span class="kbd">4. Reactor Rescue</span><span>Route coolant through all <strong>4 Reactor Cooling Vents (❄️ V1–V4)</strong> before core temperature hits 1,200°C!</span>
+        <span class="kbd">5. Master Arcade</span><span>Features <strong>⏳ Reservoir Tanks</strong> (4s delay), <strong>🚀 Booster Valves</strong>, <strong>▶ One-Way Check Valves</strong>, and <strong>🌈 Omni-Hubs</strong>!</span>
+        <span class="kbd">6. Architect</span><span>Manage a <strong>$2,500 Credit Budget</strong> (Straight $50, Elbow $75, Cross $150) and harvest <strong>💎 +$400 Gem Veins</strong>!</span>
+        <span class="kbd">7. Zen Endless</span><span>Zero pressure! Free rotation on placed dry pipes, manual flow release (<strong>[F]</strong>), and free Instant Wrench!</span>
+        <span class="kbd">8. 2P Co-Op/Vs</span><span>Dual cursors &amp; dual pumps! <strong>P1: WASD + Space (Q Rotate)</strong> and <strong>P2: Mouse / Arrows + Enter</strong>.</span>
+        <span class="kbd">📦 Hold [H]</span><span>Swap the active dispenser pipe with your dedicated Hold Slot (like Tetris Hold).</span>
+        <span class="kbd">🔄 Rotate [R]</span><span>Rotate the active next pipe 90° clockwise before placing it!</span>
+        <span class="kbd">❄️ Cryo [C]</span><span>Freezes advancing coolant for <strong>5.0 seconds</strong> (recharges +1 every 6 pipes flowed).</span>
+        <span class="kbd">🧨 Wrench [X]</span><span>Instantly removes a dry pipe at your cursor with zero jackhammer delay!</span>
+      </div>
+      <button id="btnCloseHelp" style="padding:8px 22px;">Got It — Resume Engineering</button>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      // Built-in fallback for GameMasterFX
+      if (!window.GameMasterFX) {
+        window.GameMasterFX = {
+          burst() {},
+          triggerShake() {},
+        };
+      }
+
+      const COLS = 10;
+      const ROWS = 7;
+      const QUEUE_COLS = 2.4; // Left engineer sidebar width in cell units
+      const TOTAL_W_UNITS = COLS + QUEUE_COLS;
+      const STORAGE_KEY = "codecaine_pipe_dream_high_v2";
+
+      // Directions: 0 = N, 1 = E, 2 = S, 3 = W
+      const DX = [0, 1, 0, -1];
+      const DY = [-1, 0, 1, 0];
+      const OPP = [2, 3, 0, 1];
+
+      const ROTATE_MAP = {
+        H: "V",
+        V: "H",
+        SE: "SW",
+        SW: "NW",
+        NW: "NE",
+        NE: "SE",
+        X: "X",
+        OMNI: "OMNI",
+        RES_H: "RES_V",
+        RES_V: "RES_H",
+        BOOST_H: "BOOST_V",
+        BOOST_V: "BOOST_H",
+        ONEWAY_N: "ONEWAY_E",
+        ONEWAY_E: "ONEWAY_S",
+        ONEWAY_S: "ONEWAY_W",
+        ONEWAY_W: "ONEWAY_N",
+      };
+
+      const PIPE_COSTS = {
+        H: 50,
+        V: 50,
+        SE: 75,
+        SW: 75,
+        NE: 75,
+        NW: 75,
+        X: 150,
+        RES_H: 120,
+        RES_V: 120,
+        BOOST_H: 110,
+        BOOST_V: 110,
+        ONEWAY_N: 90,
+        ONEWAY_E: 90,
+        ONEWAY_S: 90,
+        ONEWAY_W: 90,
+        OMNI: 200,
+      };
+
+      const MODE_META = {
+        classic: {
+          title: "Mode 1: Classic 1989 Pipe Mania (Quota + Exit Drain)",
+          desc: "Meet the pipe quota from 🟢 START and link into 🎯 DRAIN for +5,000 bonus points!",
+        },
+        plumber_rotate: {
+          title: "Mode 2: Plumber's Rotate-All Logic Grid (100 Solvable Levels)",
+          desc: "Click any pre-filled pipe (or press R/Space) to rotate it 90°! Link 🟢 START through all ❄️ NODES to 🎯 DRAIN!",
+        },
+        dual_color: {
+          title: "Mode 3: Chromatic Dual-Stream Mixing (Cyan + Gold → Emerald)",
+          desc: "Route simultaneous 🔵 Cyan & 🟡 Gold streams — or merge them inside the ⚗️ MIXER chamber!",
+        },
+        reactor_boss: {
+          title: "Mode 4: Reactor Meltdown Rescue (4 Core Vents)",
+          desc: "Route coolant through all 4 ❄️ REACTOR VENTS before Core Temperature reaches 1,200°C!",
+        },
+        bomb_arcade: {
+          title: "Mode 5: Master Arcade (Reservoirs, Boosters, Check Valves & Omni-Hub)",
+          desc: "Deploy ⏳ 4s Reservoirs, 🚀 Booster Valves, ▶ Check Valves, and 🌈 Omni-Hubs!",
+        },
+        architect: {
+          title: "Mode 6: Budget Blueprint Architect ($2,500 Economy)",
+          desc: "Build within your $2,500 Credit Budget, harvest 💎 +$400 Gem Veins, and reach 🎯 DRAIN!",
+        },
+        zen: {
+          title: "Mode 7: Zen Endless Flow (Free Rotate + Manual Release)",
+          desc: "Zero stress! Click placed dry pipes to rotate them freely, and press [F] whenever you're ready to flow!",
+        },
+        versus_2p: {
+          title: "Mode 8: 2-Plumber Co-Op / Versus Grid (WASD+Space + Mouse/Arrows)",
+          desc: "P1 (WASD+Space, Q Rotate) & P2 (Mouse/Arrows+Enter) build dual pipelines simultaneously!",
+        },
+      };
+
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+
+      // --- Web Audio Synthesizer ---
+      class PipeAudio {
+        constructor() { this.ctx = null; this.muted = false; }
+        init() {
+          if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) this.ctx = new AC();
+          }
+          if (this.ctx && this.ctx.state === "suspended") this.ctx.resume().catch(() => {});
+        }
+        tone(freq, type = "sine", dur = 0.1, gainVal = 0.12, slide = null) {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, now);
+            if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(30, slide), now + dur);
+            g.gain.setValueAtTime(gainVal, now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+            osc.connect(g);
+            g.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + dur);
+          } catch {}
+        }
+        place() { this.tone(440, "triangle", 0.075, 0.13, 660); }
+        rotate() { this.tone(560, "sine", 0.055, 0.1, 760); }
+        hold() { this.tone(380, "sine", 0.08, 0.11, 540); }
+        wrench() { this.tone(310, "sawtooth", 0.09, 0.12, 180); }
+        cryo() { this.tone(880, "sine", 0.32, 0.15, 240); }
+        flowStep() { this.tone(340, "sine", 0.1, 0.09, 490); }
+        crossLoop() {
+          [523.25, 659.25, 783.99, 1046.5].forEach((f, i) =>
+            setTimeout(() => this.tone(f, "triangle", 0.16, 0.15), i * 55)
+          );
+        }
+        spill() {
+          this.tone(150, "sawtooth", 0.35, 0.2, 42);
+          setTimeout(() => this.tone(110, "square", 0.3, 0.18, 35), 70);
+        }
+        win() {
+          [440, 554.37, 659.25, 880, 1046.5].forEach((f, i) =>
+            setTimeout(() => this.tone(f, "triangle", 0.22, 0.18), i * 75)
+          );
+        }
+      }
+
+      const sfx = new PipeAudio();
+
+      // --- State ---
+      let cellSize = 78;
+      let gameMode = "classic";
+      let grid = [];
+      let nextQueue = []; // 5 pieces; index 0 is NEXT to place
+      let holdPiece = null;
+      let wrenchMode = false;
+
+      // Cursors (P1 / Primary + P2 for versus_2p)
+      let hoverC = 4;
+      let hoverR = 3;
+      let p1C = 2;
+      let p1R = 3;
+
+      let level = 1;
+      let score = 0;
+      let highScore = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10) || 0;
+      let targetDist = 12;
+      let filledDist = 0;
+      let pipesSinceCryo = 0;
+      let crossLoops = 0;
+      let drainReached = false;
+      let ventsCooled = 0;
+      let totalVents = 4;
+      let reactorTemp = 420; // °C (meltdown at 1200°C)
+      let budget = 2500;
+      let gemsCollected = 0;
+
+      let valveTimer = 14.0;
+      let flowStarted = false;
+      let fastForward = false;
+      let cryoCharges = 2;
+      let cryoTimer = 0;
+      let paused = false;
+      let roundEnded = false;
+      let roundWon = false;
+      let animClock = 0;
+
+      // Active fluid streams (supports 1 or 2 simultaneous streams!)
+      let activeStreams = []; // [{ id, c, r, inDir, outDir, progress, color, finished }]
+      let particles = [];
+      let bubbles = [];
+      let shakeTimer = 0;
+
+      function resizeCanvas() {
+        const main = document.getElementById("viewportMain");
+        const availW = Math.max(620, main.clientWidth - 24);
+        const availH = Math.max(380, main.clientHeight - 24);
+        cellSize = Math.max(46, Math.min(Math.floor(availW / TOTAL_W_UNITS), Math.floor(availH / ROWS)));
+        canvas.width = Math.round(TOTAL_W_UNITS * cellSize);
+        canvas.height = ROWS * cellSize;
+      }
+      window.addEventListener("resize", resizeCanvas);
+      resizeCanvas();
+
+      function randomPipeForMode() {
+        const base = ["H", "H", "V", "V", "SE", "SW", "NE", "NW", "X", "X"];
+        if (gameMode === "bomb_arcade") {
+          const special = ["RES_H", "RES_V", "BOOST_H", "BOOST_V", "ONEWAY_E", "ONEWAY_S", "OMNI"];
+          if (Math.random() < 0.34) {
+            return special[Math.floor(Math.random() * special.length)];
+          }
+        } else if (gameMode === "reactor_boss" || gameMode === "dual_color") {
+          if (Math.random() < 0.14) return "OMNI";
+        }
+        return base[Math.floor(Math.random() * base.length)];
+      }
+
+      function makeEmptyCell() {
+        return {
+          type: null,
+          // Types: 'H','V','SE','SW','NE','NW','X','START','DRAIN','RES_H','RES_V','BOOST_H','BOOST_V',
+          //        'ONEWAY_N','ONEWAY_E','ONEWAY_S','ONEWAY_W','OMNI','MIXER','VENT','NODE','ROCK'
+          startDir: 1,
+          drainDir: 3, // port facing incoming pipe
+          streamColor: "#38ef7d",
+          gemValue: 0,
+          ventId: 0,
+          filled: false,
+          filledH: false,
+          filledV: false,
+          connectedPreview: false,
+          flowSegments: [], // [{ inDir, outDir, progress, color }]
+          demolishTimer: 0,
+          pendingType: null,
+        };
+      }
+
+      // --- Pipe Port Helpers ---
+      function getOpenPorts(type, startDir = 1, drainDir = 3) {
+        switch (type) {
+          case "H":
+          case "RES_H":
+          case "BOOST_H":
+            return [3, 1];
+          case "V":
+          case "RES_V":
+          case "BOOST_V":
+            return [0, 2];
+          case "SE":
+            return [2, 1];
+          case "SW":
+            return [2, 3];
+          case "NE":
+            return [0, 1];
+          case "NW":
+            return [0, 3];
+          case "X":
+          case "OMNI":
+          case "MIXER":
+          case "VENT":
+          case "NODE":
+            return [0, 1, 2, 3];
+          case "ONEWAY_N":
+            return [2, 0];
+          case "ONEWAY_E":
+            return [3, 1];
+          case "ONEWAY_S":
+            return [0, 2];
+          case "ONEWAY_W":
+            return [1, 3];
+          case "START":
+            return [startDir];
+          case "DRAIN":
+            return [drainDir];
+          default:
+            return [];
+        }
+      }
+
+      function pipeTypeForStep(inDir, outDir) {
+        const pair = [inDir, outDir].sort((a, b) => a - b).join(",");
+        if (pair === "1,3") return "H";
+        if (pair === "0,2") return "V";
+        if (pair === "1,2") return "SE";
+        if (pair === "2,3") return "SW";
+        if (pair === "0,1") return "NE";
+        if (pair === "0,3") return "NW";
+        return "X";
+      }
+
+      function buildPlumberRotateGrid() {
+        // Carve a guaranteed solvable path from (1, sr) to (8, dr) visiting 2 cooling nodes
+        const sr = 1 + ((level * 2) % (ROWS - 2));
+        const dr = 1 + ((level * 3 + 2) % (ROWS - 2));
+        const path = [];
+        const visited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+
+        let c = 1;
+        let r = sr;
+        path.push({ c, r });
+        visited[r][c] = true;
+
+        // Waypoints to make interesting winding paths
+        const midR1 = r <= 3 ? ROWS - 2 : 1;
+        const midR2 = midR1 === 1 ? ROWS - 2 : 1;
+        const targets = [
+          { c: 3, r: midR1 },
+          { c: 6, r: midR2 },
+          { c: 8, r: dr },
+        ];
+
+        for (const t of targets) {
+          while (c !== t.c || r !== t.r) {
+            if (c < t.c && (!visited[r][c + 1] || c === t.c - 1)) {
+              c++;
+            } else if (r !== t.r) {
+              r += r < t.r ? 1 : -1;
+            } else if (c < t.c) {
+              c++;
+            }
+            if (!visited[r][c]) {
+              visited[r][c] = true;
+              path.push({ c, r });
+            }
+          }
+        }
+
+        // Set START at path[0] and DRAIN at path[last]
+        const startNode = path[0];
+        const secondNode = path[1];
+        let sDir = 1;
+        for (let d = 0; d < 4; d++) {
+          if (startNode.c + DX[d] === secondNode.c && startNode.r + DY[d] === secondNode.r) sDir = d;
+        }
+        grid[startNode.r][startNode.c].type = "START";
+        grid[startNode.r][startNode.c].startDir = sDir;
+        grid[startNode.r][startNode.c].streamColor = "#00f5d4";
+
+        const lastIdx = path.length - 1;
+        const endNode = path[lastIdx];
+        const prevNode = path[lastIdx - 1];
+        let dDir = 3;
+        for (let d = 0; d < 4; d++) {
+          if (endNode.c + DX[d] === prevNode.c && endNode.r + DY[d] === prevNode.r) dDir = d;
+        }
+        grid[endNode.r][endNode.c].type = "DRAIN";
+        grid[endNode.r][endNode.c].drainDir = dDir;
+
+        // Place correct pipe types along interior path, then scramble rotations!
+        for (let i = 1; i < lastIdx; i++) {
+          const prev = path[i - 1];
+          const cur = path[i];
+          const next = path[i + 1];
+          let inD = 0;
+          let outD = 0;
+          for (let d = 0; d < 4; d++) {
+            if (cur.c + DX[d] === prev.c && cur.r + DY[d] === prev.r) inD = d;
+            if (cur.c + DX[d] === next.c && cur.r + DY[d] === next.r) outD = d;
+          }
+          let pType = pipeTypeForStep(inD, outD);
+          // Scramble 1 to 3 rotations
+          const turns = 1 + ((i + level) % 3);
+          for (let t = 0; t < turns; t++) {
+            pType = ROTATE_MAP[pType] || pType;
+          }
+          grid[cur.r][cur.c].type = pType;
+          if (i === Math.floor(lastIdx / 3) || i === Math.floor((lastIdx * 2) / 3)) {
+            grid[cur.r][cur.c].ventId = i; // Highlighted cooling checkpoint
+          }
+        }
+
+        // Fill all remaining empty cells with rotatable pipes
+        const fillers = ["H", "V", "SE", "SW", "NE", "NW", "X"];
+        for (let rr = 0; rr < ROWS; rr++) {
+          for (let cc = 0; cc < COLS; cc++) {
+            if (!grid[rr][cc].type) {
+              grid[rr][cc].type = fillers[(rr * 7 + cc * 3 + level) % fillers.length];
+            }
+          }
+        }
+
+        targetDist = lastIdx - 1;
+        activeStreams = [
+          {
+            id: 0,
+            c: startNode.c,
+            r: startNode.r,
+            inDir: null,
+            outDir: sDir,
+            progress: 0,
+            color: "#00f5d4",
+            finished: false,
+          },
+        ];
+        updateConnectivityPreview();
+      }
+
+      function updateConnectivityPreview() {
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            grid[r][c].connectedPreview = false;
+          }
+        }
+        if (!activeStreams.length) return;
+        const queue = [];
+        for (const st of activeStreams) {
+          if (grid[st.r] && grid[st.r][st.c]) {
+            grid[st.r][st.c].connectedPreview = true;
+            queue.push({ c: st.c, r: st.r });
+          }
+        }
+        while (queue.length > 0) {
+          const cur = queue.shift();
+          const cell = grid[cur.r][cur.c];
+          const ports = getOpenPorts(cell.type, cell.startDir, cell.drainDir);
+          for (const d of ports) {
+            const nc = cur.c + DX[d];
+            const nr = cur.r + DY[d];
+            if (nc < 0 || nc >= COLS || nr < 0 || nr >= ROWS) continue;
+            const nCell = grid[nr][nc];
+            if (!nCell.type || nCell.connectedPreview) continue;
+            const nPorts = getOpenPorts(nCell.type, nCell.startDir, nCell.drainDir);
+            if (nPorts.includes(OPP[d])) {
+              nCell.connectedPreview = true;
+              queue.push({ c: nc, r: nr });
+            }
+          }
+        }
+      }
+
+      function startLevel(lvl, fullReset = false) {
+        if (fullReset) {
+          level = 1;
+          score = 0;
+          crossLoops = 0;
+          cryoCharges = 2;
+          pipesSinceCryo = 0;
+          holdPiece = null;
+        } else {
+          level = lvl;
+          cryoCharges = Math.min(5, cryoCharges + 1);
+        }
+
+        wrenchMode = false;
+        document.getElementById("btnWrench").classList.remove("wrench-active");
+        filledDist = 0;
+        drainReached = false;
+        ventsCooled = 0;
+        reactorTemp = 420;
+        budget = 2500 + (level - 1) * 250;
+        gemsCollected = 0;
+        cryoTimer = 0;
+        flowStarted = false;
+        fastForward = false;
+        paused = false;
+        roundEnded = false;
+        roundWon = false;
+
+        document.getElementById("stateModal").classList.remove("open");
+        document.getElementById("btnFast").classList.remove("active-toggle");
+        document.getElementById("btnCryo").classList.remove("cryo-active");
+
+        grid = Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => makeEmptyCell()));
+        nextQueue = Array.from({ length: 5 }, () => randomPipeForMode());
+        activeStreams = [];
+        bubbles = [];
+
+        // Configure mode-specific board layout
+        if (gameMode === "plumber_rotate") {
+          valveTimer = Math.max(18.0, 32.0 - (level - 1) * 0.8);
+          buildPlumberRotateGrid();
+        } else if (gameMode === "dual_color") {
+          targetDist = 12 + level * 2;
+          valveTimer = Math.max(10.0, 16.0 - (level - 1) * 0.5);
+          // Pump 1: Cyan (top-left)
+          grid[1][1].type = "START";
+          grid[1][1].startDir = 1;
+          grid[1][1].streamColor = "#00f5d4";
+          // Pump 2: Gold (bottom-left)
+          grid[5][1].type = "START";
+          grid[5][1].startDir = 1;
+          grid[5][1].streamColor = "#fee440";
+          // Central Chromatic Mixer Chamber
+          grid[3][5].type = "MIXER";
+          // Exit Drains on right
+          grid[1][8].type = "DRAIN";
+          grid[1][8].drainDir = 3;
+          grid[1][8].streamColor = "#00f5d4";
+          grid[5][8].type = "DRAIN";
+          grid[5][8].drainDir = 3;
+          grid[5][8].streamColor = "#fee440";
+
+          activeStreams = [
+            { id: 0, c: 1, r: 1, inDir: null, outDir: 1, progress: 0, color: "#00f5d4", finished: false },
+            { id: 1, c: 1, r: 5, inDir: null, outDir: 1, progress: 0, color: "#fee440", finished: false },
+          ];
+        } else if (gameMode === "reactor_boss") {
+          targetDist = 12 + level * 2;
+          valveTimer = 12.0;
+          totalVents = 4;
+          // Start top-left
+          grid[3][1].type = "START";
+          grid[3][1].startDir = 1;
+          grid[3][1].streamColor = "#00f5d4";
+          // Central Reactor Core obstacle
+          grid[3][5].type = "ROCK";
+          // 4 Cooling Vents around the reactor
+          const ventCoords = [
+            { c: 4, r: 1, id: 1 },
+            { c: 7, r: 1, id: 2 },
+            { c: 4, r: 5, id: 3 },
+            { c: 7, r: 5, id: 4 },
+          ];
+          for (const v of ventCoords) {
+            grid[v.r][v.c].type = "VENT";
+            grid[v.r][v.c].ventId = v.id;
+          }
+          grid[3][8].type = "DRAIN";
+          grid[3][8].drainDir = 3;
+          activeStreams = [
+            { id: 0, c: 1, r: 3, inDir: null, outDir: 1, progress: 0, color: "#00f5d4", finished: false },
+          ];
+        } else if (gameMode === "versus_2p") {
+          targetDist = 14 + level * 2;
+          valveTimer = 14.0;
+          grid[1][1].type = "START";
+          grid[1][1].startDir = 1;
+          grid[1][1].streamColor = "#00f5d4";
+          grid[5][1].type = "START";
+          grid[5][1].startDir = 1;
+          grid[5][1].streamColor = "#fee440";
+          grid[3][8].type = "DRAIN";
+          grid[3][8].drainDir = 3;
+          p1C = 2; p1R = 1;
+          hoverC = 2; hoverR = 5;
+          activeStreams = [
+            { id: 0, c: 1, r: 1, inDir: null, outDir: 1, progress: 0, color: "#00f5d4", finished: false },
+            { id: 1, c: 1, r: 5, inDir: null, outDir: 1, progress: 0, color: "#fee440", finished: false },
+          ];
+        } else {
+          // classic, bomb_arcade, architect, zen
+          targetDist = 10 + level * 2;
+          valveTimer = gameMode === "zen" ? 999.0 : Math.max(8.5, 14.5 - (level - 1) * 0.6);
+
+          const sc = 1;
+          const sr = 1 + ((level * 2) % (ROWS - 2));
+          grid[sr][sc].type = "START";
+          grid[sr][sc].startDir = 1;
+          grid[sr][sc].streamColor = "#38ef7d";
+
+          // Place Exit Drain on the right side
+          const dr = 1 + ((sr + 2 + level) % (ROWS - 2));
+          grid[dr][8].type = "DRAIN";
+          grid[dr][8].drainDir = 3;
+
+          activeStreams = [
+            { id: 0, c: sc, r: sr, inDir: null, outDir: 1, progress: 0, color: "#38ef7d", finished: false },
+          ];
+
+          // Pre-place Reservoir Slow-Tanks
+          const resCount = gameMode === "bomb_arcade" ? 2 : 1;
+          for (let i = 0; i < resCount; i++) {
+            const rc = 3 + ((i * 3 + level) % 4);
+            const rr = 1 + ((i * 2 + level) % (ROWS - 2));
+            if (!grid[rr][rc].type && !(rr === sr && rc === sc + 1)) {
+              grid[rr][rc].type = i % 2 === 0 ? "RES_H" : "RES_V";
+            }
+          }
+
+          // Architect Mode: scatter Bonus Gem Veins (💎 +$400)
+          if (gameMode === "architect") {
+            for (let g = 0; g < 5; g++) {
+              const gc = 2 + ((g * 2 + level) % 6);
+              const gr = (g * 3 + level) % ROWS;
+              if (!grid[gr][gc].type) {
+                grid[gr][gc].gemValue = 400;
+              }
+            }
+          }
+
+          // Place Bulkhead Rocks (except in Zen)
+          if (gameMode !== "zen") {
+            const rockCount = Math.min(4, level - 1);
+            for (let k = 0; k < rockCount; k++) {
+              const rc = 3 + ((k * 3 + level) % 5);
+              const rr = (k * 2 + level + 1) % ROWS;
+              if (!grid[rr][rc].type && !(rr === sr && rc <= sc + 2)) {
+                grid[rr][rc].type = "ROCK";
+              }
+            }
+          }
+
+          hoverC = sc + 1;
+          hoverR = sr;
+        }
+
+        updateConnectivityPreview();
+        updateHUD();
+        document.getElementById("modeSubtitle").textContent = MODE_META[gameMode].title;
+        setStatus(MODE_META[gameMode].desc);
+      }
+
+      function setStatus(msg) {
+        document.getElementById("statusTicker").textContent = msg;
+      }
+
+      function spawnBurst(c, r, color, count = 24) {
+        const px = (QUEUE_COLS + c + 0.5) * cellSize;
+        const py = (r + 0.5) * cellSize;
+        for (let i = 0; i < count; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const s = 45 + Math.random() * 185;
+          particles.push({
+            x: px,
+            y: py,
+            vx: Math.cos(a) * s,
+            vy: Math.sin(a) * s,
+            life: 0.45 + Math.random() * 0.35,
+            maxLife: 0.8,
+            color,
+            size: 3 + Math.random() * 3.5,
+          });
+        }
+        const rect = canvas.getBoundingClientRect();
+        window.GameMasterFX?.burst?.(rect.left + px, rect.top + py, color, count);
+      }
+
+      function updateHUD() {
+        if (score > highScore) {
+          highScore = score;
+          try { localStorage.setItem(STORAGE_KEY, String(highScore)); } catch {}
+        }
+        document.getElementById("hudScore").textContent = score.toLocaleString();
+        document.getElementById("hudHigh").textContent = highScore.toLocaleString();
+        document.getElementById("hudLevel").textContent = `L${level}`;
+
+        if (gameMode === "reactor_boss") {
+          document.getElementById("hudDistLabel").textContent = "Vents Cooled";
+          document.getElementById("hudDist").textContent = `${ventsCooled} / ${totalVents} ❄️`;
+          document.getElementById("hudSpecialLabel").textContent = "Core Temp";
+          document.getElementById("hudLoops").textContent = `${Math.round(reactorTemp)}°C`;
+        } else if (gameMode === "architect") {
+          document.getElementById("hudDistLabel").textContent = "Flow / Quota";
+          document.getElementById("hudDist").textContent = `${filledDist} / ${targetDist}`;
+          document.getElementById("hudSpecialLabel").textContent = "Credits Budget";
+          document.getElementById("hudLoops").textContent = `$${budget.toLocaleString()}`;
+        } else {
+          document.getElementById("hudDistLabel").textContent = "Flow Quota";
+          document.getElementById("hudDist").textContent = `${filledDist} / ${targetDist}`;
+          document.getElementById("hudSpecialLabel").textContent = "Cross / Drain";
+          document.getElementById("hudLoops").textContent = `${crossLoops}╋ ${drainReached ? "🎯" : ""}`;
+        }
+
+        if (cryoTimer > 0) {
+          document.getElementById("hudTimer").textContent = `❄️ ${cryoTimer.toFixed(1)}s`;
+        } else if (flowStarted) {
+          document.getElementById("hudTimer").textContent = fastForward ? "⏩ SURGE" : "FLOWING";
+        } else if (gameMode === "zen") {
+          document.getElementById("hudTimer").textContent = "ZEN [F]";
+        } else {
+          document.getElementById("hudTimer").textContent = `${valveTimer.toFixed(1)}s`;
+        }
+
+        document.getElementById("cryoCount").textContent = cryoTimer > 0 ? `${cryoTimer.toFixed(1)}s` : String(cryoCharges);
+        document.getElementById("btnCryo").classList.toggle("cryo-active", cryoTimer > 0);
+      }
+
+      // --- Toolkit Actions ---
+      function rotateNextPipe() {
+        if (paused || roundEnded) return;
+        if (gameMode === "plumber_rotate") {
+          rotateCellPipeAt(hoverC, hoverR);
+          return;
+        }
+        nextQueue[0] = ROTATE_MAP[nextQueue[0]] || nextQueue[0];
+        sfx.rotate();
+        setStatus(`🔄 Rotated next dispenser conduit to ${nextQueue[0]}.`);
+      }
+
+      function holdCurrentPipe() {
+        if (paused || roundEnded || gameMode === "plumber_rotate") return;
+        if (holdPiece === null) {
+          holdPiece = nextQueue.shift();
+          nextQueue.push(randomPipeForMode());
+          setStatus(`📦 Stored ${holdPiece} in Hold Bay!`);
+        } else {
+          const tmp = nextQueue[0];
+          nextQueue[0] = holdPiece;
+          holdPiece = tmp;
+          setStatus(`📦 Swapped Hold Bay: ${nextQueue[0]} is now active!`);
+        }
+        sfx.hold();
+      }
+
+      function activateCryoFreeze() {
+        if (paused || roundEnded) return;
+        if (cryoTimer > 0) return;
+        if (cryoCharges <= 0) {
+          setStatus("❄️ No Cryo-Freeze charges left! Flow 6 conduits to recharge +1.");
+          return;
+        }
+        cryoCharges--;
+        cryoTimer = 5.0;
+        sfx.cryo();
+        setStatus("❄️ CRYO-FREEZE ENGAGED — Coolant streams suspended for 5.0 seconds!");
+        updateHUD();
+      }
+
+      function useInstantWrenchAt(c, r) {
+        if (paused || roundEnded || gameMode === "plumber_rotate") return false;
+        if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false;
+        const cell = grid[r][c];
+        if (!cell.type || ["START", "DRAIN", "ROCK", "MIXER", "VENT", "RES_H", "RES_V"].includes(cell.type)) {
+          return false;
+        }
+        if (cell.filled || cell.filledH || cell.filledV || cell.flowSegments.length > 0) {
+          setStatus("Cannot wrench a pipe that already contains pressurized plasma!");
+          return false;
+        }
+        if (gameMode === "architect") {
+          budget += Math.floor((PIPE_COSTS[cell.type] || 50) * 0.5);
+        }
+        cell.type = null;
+        cell.demolishTimer = 0;
+        cell.pendingType = null;
+        sfx.wrench();
+        spawnBurst(c, r, "#00f5d4", 12);
+        updateConnectivityPreview();
+        updateHUD();
+        setStatus("🧨 Instant Wrench removed dry conduit cleanly with zero delay!");
+        return true;
+      }
+
+      function rotateCellPipeAt(c, r) {
+        if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false;
+        const cell = grid[r][c];
+        if (!cell.type || cell.filled || cell.filledH || cell.filledV || cell.flowSegments.length > 0) return false;
+        if (!ROTATE_MAP[cell.type]) return false;
+        cell.type = ROTATE_MAP[cell.type];
+        sfx.rotate();
+        updateConnectivityPreview();
+        return true;
+      }
+
+      function placePipeAt(c, r) {
+        if (paused || roundEnded) return;
+        if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return;
+
+        if (wrenchMode) {
+          useInstantWrenchAt(c, r);
+          wrenchMode = false;
+          document.getElementById("btnWrench").classList.remove("wrench-active");
+          return;
+        }
+
+        if (gameMode === "plumber_rotate") {
+          rotateCellPipeAt(c, r);
+          return;
+        }
+
+        const cell = grid[r][c];
+        if (["START", "DRAIN", "ROCK", "MIXER", "VENT", "RES_H", "RES_V"].includes(cell.type)) {
+          setStatus("Cannot overwrite fixed industrial reactor hardware!");
+          return;
+        }
+        if (cell.filled || cell.filledH || cell.filledV || cell.flowSegments.length > 0) {
+          setStatus("Cannot modify a conduit that already contains pressurized plasma!");
+          return;
+        }
+
+        // In Zen mode, clicking an existing dry pipe rotates it in place!
+        if (gameMode === "zen" && cell.type) {
+          rotateCellPipeAt(c, r);
+          setStatus("🔄 Zen Rotate: rotated placed conduit 90° clockwise.");
+          return;
+        }
+
+        if (cell.demolishTimer > 0) return;
+
+        const nextPiece = nextQueue[0];
+        const cost = PIPE_COSTS[nextPiece] || 50;
+        if (gameMode === "architect" && budget < cost) {
+          setStatus(`⚠️ Insufficient Engineering Credits ($${budget} < $${cost})! Route flow or use Wrench [X].`);
+          return;
+        }
+
+        nextQueue.shift();
+        nextQueue.push(randomPipeForMode());
+
+        if (gameMode === "architect") {
+          budget -= cost;
+        }
+
+        if (cell.type) {
+          cell.demolishTimer = 0.35;
+          cell.pendingType = nextPiece;
+          score = Math.max(0, score - 50);
+          sfx.wrench();
+          spawnBurst(c, r, "#ff2a85", 10);
+          setStatus("🔧 Overwriting dry pipe (0.35s laser weld)...");
+        } else {
+          cell.type = nextPiece;
+          sfx.place();
+        }
+        updateConnectivityPreview();
+        updateHUD();
+      }
+
+      // --- Ghost Preview Port-Match Check ---
+      function checkGhostPortMatch(c, r, pipeType) {
+        if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false;
+        const ports = getOpenPorts(pipeType);
+        for (const d of ports) {
+          const nc = c + DX[d];
+          const nr = r + DY[d];
+          if (nc < 0 || nc >= COLS || nr < 0 || nr >= ROWS) continue;
+          const nCell = grid[nr][nc];
+          if (!nCell || !nCell.type) continue;
+          const nPorts = getOpenPorts(nCell.type, nCell.startDir, nCell.drainDir);
+          if (nPorts.includes(OPP[d])) return true;
+        }
+        return false;
+      }
+
+      // --- Fluid Routing Resolution ---
+      function resolveOutDir(cell, inDir, c, r) {
+        if (!cell || !cell.type || cell.demolishTimer > 0) return null;
+        const t = cell.type;
+
+        if (t === "DRAIN") {
+          if (inDir === cell.drainDir) return "DRAIN_OK";
+          return null;
+        }
+        if (t === "H" || t === "RES_H" || t === "BOOST_H") {
+          if (cell.filled) return null;
+          if (inDir === 3) return 1;
+          if (inDir === 1) return 3;
+          return null;
+        }
+        if (t === "V" || t === "RES_V" || t === "BOOST_V") {
+          if (cell.filled) return null;
+          if (inDir === 0) return 2;
+          if (inDir === 2) return 0;
+          return null;
+        }
+        if (t === "SE") {
+          if (cell.filled) return null;
+          if (inDir === 2) return 1;
+          if (inDir === 1) return 2;
+          return null;
+        }
+        if (t === "SW") {
+          if (cell.filled) return null;
+          if (inDir === 2) return 3;
+          if (inDir === 3) return 2;
+          return null;
+        }
+        if (t === "NE") {
+          if (cell.filled) return null;
+          if (inDir === 0) return 1;
+          if (inDir === 1) return 0;
+          return null;
+        }
+        if (t === "NW") {
+          if (cell.filled) return null;
+          if (inDir === 0) return 3;
+          if (inDir === 3) return 0;
+          return null;
+        }
+        if (t === "ONEWAY_N") return !cell.filled && inDir === 2 ? 0 : null;
+        if (t === "ONEWAY_E") return !cell.filled && inDir === 3 ? 1 : null;
+        if (t === "ONEWAY_S") return !cell.filled && inDir === 0 ? 2 : null;
+        if (t === "ONEWAY_W") return !cell.filled && inDir === 1 ? 3 : null;
+
+        if (t === "X" || t === "MIXER" || t === "VENT") {
+          if (inDir === 3 || inDir === 1) {
+            if (cell.filledH) return null;
+            return inDir === 3 ? 1 : 3;
+          }
+          if (inDir === 0 || inDir === 2) {
+            if (cell.filledV) return null;
+            return inDir === 0 ? 2 : 0;
+          }
+        }
+        if (t === "OMNI") {
+          if (cell.filled) return null;
+          // Prefer straight across if connected, otherwise pick any connected neighbor!
+          const straight = OPP[inDir];
+          const tryOrder = [straight, (inDir + 1) % 4, (inDir + 3) % 4];
+          for (const cand of tryOrder) {
+            const nc = c + DX[cand];
+            const nr = r + DY[cand];
+            if (nc >= 0 && nc < COLS && nr >= 0 && nr < ROWS) {
+              const nCell = grid[nr][nc];
+              if (nCell && nCell.type) {
+                const nPorts = getOpenPorts(nCell.type, nCell.startDir, nCell.drainDir);
+                if (nPorts.includes(OPP[cand])) return cand;
+              }
+            }
+          }
+          return straight;
+        }
+        return null;
+      }
+
+      function finishRound(forceWin = false) {
+        if (roundEnded) return;
+        roundEnded = true;
+
+        let won = forceWin || drainReached || filledDist >= targetDist;
+        if (gameMode === "reactor_boss") {
+          won = ventsCooled >= totalVents || (drainReached && ventsCooled >= 2);
+        }
+
+        if (won) {
+          roundWon = true;
+          sfx.win();
+          const extra = Math.max(0, filledDist - targetDist) * 150;
+          const drainBonus = drainReached ? 5000 : 0;
+          const archBonus = gameMode === "architect" ? budget : 0;
+          const bonus = level * 800 + extra + drainBonus + archBonus;
+          score += bonus;
+          updateHUD();
+
+          document.getElementById("modalTitle").textContent = `⚡ SECTOR ${level} PIPELINE COMPLETE!`;
+          document.getElementById("modalDesc").textContent = drainReached
+            ? "🎯 EXIT DRAIN SEALED! Pressurized coolant delivered with +5,000 Drain Bonus!"
+            : `Pressurized plasma routed through ${filledDist} conduits (Quota: ${targetDist}).`;
+          document.getElementById("modalStats").innerHTML =
+            `Conduits Filled: ${filledDist} / ${targetDist} • Cross-Loops: ${crossLoops}<br/>` +
+            (drainReached ? `Exit Drain Bonus: +5,000 PTS<br/>` : "") +
+            (gameMode === "architect" ? `Remaining Credits Profit: +$${budget.toLocaleString()}<br/>` : "") +
+            `Total Score: ${score.toLocaleString()}`;
+          document.getElementById("btnModalPrimary").textContent = `🚀 Advance to Sector ${level + 1}`;
+          document.getElementById("stateModal").classList.add("open");
+        } else {
+          roundWon = false;
+          sfx.spill();
+          shakeTimer = 0.35;
+          window.GameMasterFX?.triggerShake?.(14);
+
+          document.getElementById("modalTitle").textContent = "💥 COOLANT RUPTURE — CONTAINMENT FAILURE";
+          document.getElementById("modalDesc").textContent =
+            gameMode === "reactor_boss" && reactorTemp >= 1200
+              ? `☢️ Reactor Core reached critical 1,200°C meltdown (${ventsCooled}/${totalVents} vents cooled)!`
+              : `Pipeline ruptured at ${filledDist} / ${targetDist} required segments.`;
+          document.getElementById("modalStats").innerHTML = `Final Score: ${score.toLocaleString()} • High Score: ${highScore.toLocaleString()}`;
+          document.getElementById("btnModalPrimary").textContent = "🔄 Reboot Sector 1";
+          document.getElementById("stateModal").classList.add("open");
+        }
+      }
+
+      function updateSimulation(dt) {
+        animClock += dt;
+        if (paused || roundEnded) return;
+
+        if (shakeTimer > 0) shakeTimer = Math.max(0, shakeTimer - dt);
+        if (cryoTimer > 0) {
+          cryoTimer = Math.max(0, cryoTimer - dt);
+          updateHUD();
+        }
+
+        // Reactor Boss core heat climb
+        if (gameMode === "reactor_boss" && flowStarted && cryoTimer <= 0) {
+          reactorTemp = Math.min(1200, reactorTemp + 24 * dt);
+          if (reactorTemp >= 1200) {
+            updateHUD();
+            finishRound(false);
+            return;
+          }
+        }
+
+        // Update demolish timers
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            const cell = grid[r][c];
+            if (cell.demolishTimer > 0) {
+              cell.demolishTimer = Math.max(0, cell.demolishTimer - dt);
+              if (cell.demolishTimer === 0 && cell.pendingType) {
+                cell.type = cell.pendingType;
+                cell.pendingType = null;
+                sfx.place();
+                updateConnectivityPreview();
+              }
+            }
+          }
+        }
+
+        // Valve countdown
+        if (!flowStarted) {
+          if (fastForward) {
+            valveTimer = 0;
+          } else if (gameMode !== "zen" && cryoTimer <= 0) {
+            valveTimer = Math.max(0, valveTimer - dt);
+          }
+          if (valveTimer <= 0) {
+            flowStarted = true;
+            for (const st of activeStreams) {
+              const startCell = grid[st.r][st.c];
+              startCell.flowSegments.push({
+                inDir: null,
+                outDir: st.outDir,
+                progress: 0,
+                color: st.color,
+              });
+            }
+            setStatus("🟢 PRESSURIZED PLASMA VALVE OPEN — Coolant flowing through conduit matrix!");
+          }
+          updateHUD();
+        }
+
+        // Advance active plasma streams
+        if (flowStarted && cryoTimer <= 0) {
+          let allFinished = true;
+
+          for (const st of activeStreams) {
+            if (st.finished) continue;
+            allFinished = false;
+
+            const curCell = grid[st.r][st.c];
+            const isReservoir = curCell.type === "RES_H" || curCell.type === "RES_V";
+            const isBooster = curCell.type === "BOOST_H" || curCell.type === "BOOST_V";
+            const baseRate = (0.38 + (level - 1) * 0.03) * (isReservoir ? 0.25 : isBooster ? 1.85 : 1.0);
+            const rate = fastForward ? baseRate * 5.0 : baseRate;
+
+            st.progress += rate * dt;
+            const seg = curCell.flowSegments[curCell.flowSegments.length - 1];
+            if (seg) seg.progress = Math.min(1, st.progress);
+
+            // Spawn micro-bubbles inside flowing segment
+            if (Math.random() < 0.35) {
+              bubbles.push({
+                c: st.c,
+                r: st.r,
+                ox: (Math.random() - 0.5) * 0.22,
+                oy: (Math.random() - 0.5) * 0.22,
+                life: 0.6 + Math.random() * 0.5,
+              });
+            }
+
+            if (st.progress >= 1.0) {
+              // Cell finished filling
+              if (curCell.type !== "START") {
+                filledDist++;
+                pipesSinceCryo++;
+                if (pipesSinceCryo >= 6) {
+                  pipesSinceCryo = 0;
+                  cryoCharges = Math.min(5, cryoCharges + 1);
+                }
+
+                // Gem Vein collection in Architect Mode
+                if (curCell.gemValue > 0) {
+                  budget += curCell.gemValue;
+                  score += curCell.gemValue;
+                  gemsCollected++;
+                  curCell.gemValue = 0;
+                  spawnBurst(st.c, st.r, "#fee440", 20);
+                  setStatus("💎 Harvested Bonus Gem Vein (+$400 Engineering Credits)!");
+                }
+
+                if (curCell.type === "X" || curCell.type === "MIXER" || curCell.type === "VENT") {
+                  if (st.inDir === 3 || st.inDir === 1) curCell.filledH = true;
+                  else curCell.filledV = true;
+
+                  if (curCell.type === "VENT" && !curCell.filled) {
+                    curCell.filled = true;
+                    ventsCooled++;
+                    reactorTemp = Math.max(280, reactorTemp - 250);
+                    score += 1000;
+                    sfx.crossLoop();
+                    spawnBurst(st.c, st.r, "#00f5d4", 28);
+                    setStatus(`❄️ REACTOR VENT #${curCell.ventId} COOLED! Core Temp dropped to ${Math.round(reactorTemp)}°C!`);
+                    if (ventsCooled >= totalVents) {
+                      updateHUD();
+                      finishRound(true);
+                      return;
+                    }
+                  } else if (curCell.type === "MIXER") {
+                    st.color = "#38ef7d"; // Synthesize Emerald coolant!
+                    score += 750;
+                    sfx.crossLoop();
+                    spawnBurst(st.c, st.r, "#38ef7d", 26);
+                    setStatus("⚗️ CHROMATIC MIXER SYNTHESIZED EMERALD HYPER-COOLANT (+750 PTS)!");
+                  } else if (curCell.filledH && curCell.filledV) {
+                    crossLoops++;
+                    score += 500;
+                    sfx.crossLoop();
+                    spawnBurst(st.c, st.r, "#fee440", 30);
+                    setStatus("⚡ CROSS-JUNCTION LOOP BONUS! +500 PTS!");
+                  } else {
+                    score += 100;
+                    sfx.flowStep();
+                  }
+                } else if (isReservoir) {
+                  curCell.filled = true;
+                  score += 400;
+                  sfx.flowStep();
+                  spawnBurst(st.c, st.r, "#00f5d4", 22);
+                  setStatus("⏳ RESERVOIR TANK FILLED (4s Delay Complete) — +400 PTS!");
+                } else if (isBooster) {
+                  curCell.filled = true;
+                  score += 350;
+                  sfx.crossLoop();
+                  spawnBurst(st.c, st.r, "#f77f00", 20);
+                  setStatus("🚀 BOOSTER VALVE SURGE — +350 PTS!");
+                } else if (curCell.type === "OMNI") {
+                  curCell.filled = true;
+                  score += 500;
+                  sfx.crossLoop();
+                  spawnBurst(st.c, st.r, "#ff2a85", 22);
+                  setStatus("🌈 OMNI-HUB UNIVERSAL ROUTING — +500 PTS!");
+                } else {
+                  curCell.filled = true;
+                  score += 100;
+                  sfx.flowStep();
+                }
+              }
+
+              // Transition to next cell in outDir
+              const nc = st.c + DX[st.outDir];
+              const nr = st.r + DY[st.outDir];
+              const nextInDir = OPP[st.outDir];
+
+              if (nc < 0 || nc >= COLS || nr < 0 || nr >= ROWS) {
+                st.finished = true;
+                spawnBurst(st.c, st.r, "#ff2a85", 24);
+                continue;
+              }
+              const nextCell = grid[nr][nc];
+              const nextOutDir = resolveOutDir(nextCell, nextInDir, nc, nr);
+
+              if (nextOutDir === "DRAIN_OK") {
+                drainReached = true;
+                filledDist++;
+                score += 5000;
+                st.finished = true;
+                sfx.win();
+                spawnBurst(nc, nr, "#38ef7d", 42);
+                setStatus("🎯 EXIT DRAIN CONNECTED! +5,000 DRAIN BONUS!");
+                updateHUD();
+                if (activeStreams.every((s) => s.finished)) {
+                  finishRound(true);
+                  return;
+                }
+                continue;
+              }
+
+              if (nextOutDir === null) {
+                st.finished = true;
+                spawnBurst(st.c, st.r, "#ff2a85", 24);
+                continue;
+              }
+
+              st.c = nc;
+              st.r = nr;
+              st.inDir = nextInDir;
+              st.outDir = nextOutDir;
+              st.progress = 0;
+              nextCell.flowSegments.push({
+                inDir: nextInDir,
+                outDir: nextOutDir,
+                progress: 0,
+                color: st.color,
+              });
+              updateHUD();
+            }
+          }
+
+          if (allFinished || activeStreams.every((s) => s.finished)) {
+            finishRound(false);
+            return;
+          }
+        }
+
+        // Update bubbles & particles
+        for (let i = bubbles.length - 1; i >= 0; i--) {
+          bubbles[i].life -= dt;
+          bubbles[i].oy -= 0.18 * dt;
+          if (bubbles[i].life <= 0) bubbles.splice(i, 1);
+        }
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.life -= dt;
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+      }
+
+      // --- 3D Cylindrical Metallic Pipe & Fluid Renderer ---
+      function getPortOffset(dir, size) {
+        const half = size / 2;
+        if (dir === 0) return { x: half, y: 0 };
+        if (dir === 1) return { x: size, y: half };
+        if (dir === 2) return { x: half, y: size };
+        return { x: 0, y: half };
+      }
+
+      function drawBoltedFlange(x, y, dir, size, pipeW, highlightCol = "#6488a8") {
+        const p = getPortOffset(dir, size);
+        const fx = x + p.x;
+        const fy = y + p.y;
+        const fw = pipeW * 1.26;
+        const fh = Math.max(5, size * 0.09);
+
+        ctx.save();
+        ctx.fillStyle = "#2b4463";
+        ctx.strokeStyle = highlightCol;
+        ctx.lineWidth = 1.4;
+        if (dir === 0 || dir === 2) {
+          const oy = dir === 0 ? fy + 1 : fy - fh - 1;
+          ctx.fillRect(fx - fw / 2, oy, fw, fh);
+          ctx.strokeRect(fx - fw / 2, oy, fw, fh);
+          // Rivet bolts
+          ctx.fillStyle = "#d0e4f7";
+          ctx.fillRect(fx - fw * 0.36, oy + 1.5, 2.5, 2.5);
+          ctx.fillRect(fx + fw * 0.28, oy + 1.5, 2.5, 2.5);
+        } else {
+          const ox = dir === 3 ? fx + 1 : fx - fh - 1;
+          ctx.fillRect(ox, fy - fw / 2, fh, fw);
+          ctx.strokeRect(ox, fy - fw / 2, fh, fw);
+          ctx.fillStyle = "#d0e4f7";
+          ctx.fillRect(ox + 1.5, fy - fw * 0.36, 2.5, 2.5);
+          ctx.fillRect(ox + 1.5, fy + fw * 0.28, 2.5, 2.5);
+        }
+        ctx.restore();
+      }
+
+      function drawPipeGraphic(x, y, size, type, cellObj = null, isGhost = false, ghostMatched = false) {
+        const cx = x + size / 2;
+        const cy = y + size / 2;
+        const pipeW = Math.max(14, size * 0.38);
+        const startDir = cellObj?.startDir ?? 1;
+        const drainDir = cellObj?.drainDir ?? 3;
+        const flowSegments = cellObj?.flowSegments ?? [];
+        const demolishTimer = cellObj?.demolishTimer ?? 0;
+
+        ctx.save();
+        if (isGhost) {
+          ctx.globalAlpha = 0.62;
+        }
+
+        if (type === "ROCK") {
+          const g = ctx.createLinearGradient(x, y, x + size, y + size);
+          g.addColorStop(0, "#1d293d");
+          g.addColorStop(1, "#0d1321");
+          ctx.fillStyle = g;
+          ctx.fillRect(x + 4, y + 4, size - 8, size - 8);
+          ctx.strokeStyle = gameMode === "reactor_boss" ? "#ff2a85" : "#4a6282";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x + 5, y + 5, size - 10, size - 10);
+          ctx.fillStyle = "#ff2a85";
+          ctx.font = `bold ${Math.floor(size * 0.36)}px sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(gameMode === "reactor_boss" ? "☢️" : "⛔", cx, cy);
+          ctx.restore();
+          return;
+        }
+
+        // Special chamber housing backdrops
+        const isRes = type === "RES_H" || type === "RES_V";
+        const isBoost = type === "BOOST_H" || type === "BOOST_V";
+        if (isRes || isBoost || type === "MIXER" || type === "VENT" || type === "OMNI") {
+          const chamberCol = isRes
+            ? "rgba(0, 245, 212, 0.16)"
+            : isBoost
+            ? "rgba(247, 127, 0, 0.2)"
+            : type === "VENT"
+            ? "rgba(96, 239, 255, 0.22)"
+            : "rgba(255, 42, 133, 0.18)";
+          ctx.fillStyle = chamberCol;
+          ctx.fillRect(x + 5, y + 5, size - 10, size - 10);
+          ctx.strokeStyle = isRes ? "#00f5d4" : isBoost ? "#f77f00" : type === "VENT" ? "#60efff" : "#ff2a85";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x + 5, y + 5, size - 10, size - 10);
+        }
+
+        const draw3DChannel = (d1, d2) => {
+          const p1 = getPortOffset(d1, size);
+          const p2 = getPortOffset(d2, size);
+
+          // 1. Outer dark titanium shadow casing
+          ctx.strokeStyle = isGhost ? (ghostMatched ? "#38ef7d" : "#fee440") : "#162942";
+          ctx.lineWidth = pipeW;
+          ctx.lineCap = "butt";
+          ctx.lineJoin = "round";
+          ctx.beginPath();
+          ctx.moveTo(x + p1.x, y + p1.y);
+          ctx.lineTo(cx, cy);
+          ctx.lineTo(x + p2.x, y + p2.y);
+          ctx.stroke();
+
+          // 2. Brushed metallic cylinder body
+          ctx.strokeStyle = isGhost
+            ? ghostMatched
+              ? "rgba(56, 239, 125, 0.45)"
+              : "rgba(254, 228, 64, 0.45)"
+            : isBoost
+            ? "#8a4b14"
+            : "#335275";
+          ctx.lineWidth = pipeW * 0.82;
+          ctx.stroke();
+
+          // 3. Specular metallic highlight ridge
+          ctx.strokeStyle = isGhost ? "#ffffff" : "#7fa9d1";
+          ctx.lineWidth = pipeW * 0.62;
+          ctx.stroke();
+
+          // 4. Inner dark sight-window bore channel
+          ctx.strokeStyle = "#071020";
+          ctx.lineWidth = pipeW * 0.48;
+          ctx.stroke();
+        };
+
+        const pairs = [];
+        if (type === "H" || type === "RES_H" || type === "BOOST_H" || type === "ONEWAY_E" || type === "ONEWAY_W") {
+          pairs.push([3, 1]);
+        } else if (type === "V" || type === "RES_V" || type === "BOOST_V" || type === "ONEWAY_N" || type === "ONEWAY_S") {
+          pairs.push([0, 2]);
+        } else if (type === "SE") pairs.push([2, 1]);
+        else if (type === "SW") pairs.push([2, 3]);
+        else if (type === "NE") pairs.push([0, 1]);
+        else if (type === "NW") pairs.push([0, 3]);
+        else if (type === "X" || type === "OMNI" || type === "MIXER" || type === "VENT") {
+          pairs.push([3, 1]);
+          pairs.push([0, 2]);
+        } else if (type === "START") {
+          const pOut = getPortOffset(startDir, size);
+          ctx.strokeStyle = "#2b4c70";
+          ctx.lineWidth = pipeW;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(x + pOut.x, y + pOut.y);
+          ctx.stroke();
+          ctx.strokeStyle = "#071020";
+          ctx.lineWidth = pipeW * 0.48;
+          ctx.stroke();
+
+          ctx.fillStyle = "#122a44";
+          ctx.beginPath();
+          ctx.arc(cx, cy, size * 0.32, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = cellObj?.streamColor || "#38ef7d";
+          ctx.lineWidth = 3;
+          ctx.stroke();
+        } else if (type === "DRAIN") {
+          const pIn = getPortOffset(drainDir, size);
+          ctx.strokeStyle = "#2b4c70";
+          ctx.lineWidth = pipeW;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(x + pIn.x, y + pIn.y);
+          ctx.stroke();
+
+          ctx.fillStyle = "#0e2238";
+          ctx.beginPath();
+          ctx.arc(cx, cy, size * 0.33, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "#fee440";
+          ctx.lineWidth = 3;
+          ctx.stroke();
+        }
+
+        for (const [d1, d2] of pairs) {
+          draw3DChannel(d1, d2);
+        }
+
+        // Draw bolted circular flanges on every open port
+        const openPorts = getOpenPorts(type, startDir, drainDir);
+        const flangeCol = cellObj?.connectedPreview ? "#38ef7d" : "#6488a8";
+        for (const d of openPorts) {
+          drawBoltedFlange(x, y, d, size, pipeW, flangeCol);
+        }
+
+        // Draw pressurized glowing liquid inside segments
+        for (const seg of flowSegments) {
+          ctx.save();
+          const fluidCol = cryoTimer > 0 ? "#60efff" : seg.color || "#38ef7d";
+          ctx.strokeStyle = fluidCol;
+          ctx.shadowColor = fluidCol;
+          ctx.shadowBlur = 12;
+          ctx.lineWidth = pipeW * 0.44;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+
+          const prog = seg.progress;
+          const pOut = getPortOffset(seg.outDir, size);
+          let headX = cx;
+          let headY = cy;
+
+          ctx.beginPath();
+          if (seg.inDir === null) {
+            ctx.moveTo(cx, cy);
+            headX = cx + (x + pOut.x - cx) * prog;
+            headY = cy + (y + pOut.y - cy) * prog;
+            ctx.lineTo(headX, headY);
+          } else {
+            const pIn = getPortOffset(seg.inDir, size);
+            ctx.moveTo(x + pIn.x, y + pIn.y);
+            if (prog <= 0.5) {
+              const t = prog * 2;
+              headX = x + pIn.x + (cx - (x + pIn.x)) * t;
+              headY = y + pIn.y + (cy - (y + pIn.y)) * t;
+              ctx.lineTo(headX, headY);
+            } else {
+              const t = (prog - 0.5) * 2;
+              ctx.lineTo(cx, cy);
+              headX = cx + (x + pOut.x - cx) * t;
+              headY = cy + (y + pOut.y - cy) * t;
+              ctx.lineTo(headX, headY);
+            }
+          }
+          ctx.stroke();
+
+          // Bright pressurized inner core line
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = pipeW * 0.14;
+          ctx.stroke();
+
+          // Foaming pressurized leading fluid head
+          if (prog > 0 && prog < 1.0) {
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc(headX, headY, pipeW * 0.24, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+
+        // Center industrial badges / sight glass overlays
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        if (type === "START") {
+          ctx.fillStyle = "#ffffff";
+          ctx.font = `bold ${Math.floor(size * 0.17)}px sans-serif`;
+          ctx.fillText("PUMP", cx, cy);
+        } else if (type === "DRAIN") {
+          ctx.fillStyle = "#fee440";
+          ctx.font = `bold ${Math.floor(size * 0.17)}px sans-serif`;
+          ctx.fillText("DRAIN", cx, cy);
+        } else if (isRes) {
+          ctx.fillStyle = "#00f5d4";
+          ctx.font = `bold ${Math.floor(size * 0.22)}px sans-serif`;
+          ctx.fillText("⏳", cx, cy);
+        } else if (isBoost) {
+          ctx.fillStyle = "#fee440";
+          ctx.font = `bold ${Math.floor(size * 0.24)}px sans-serif`;
+          ctx.fillText("🚀", cx, cy);
+        } else if (type === "OMNI") {
+          ctx.fillStyle = "#ffffff";
+          ctx.font = `bold ${Math.floor(size * 0.24)}px sans-serif`;
+          ctx.fillText("🌈", cx, cy);
+        } else if (type === "MIXER") {
+          ctx.fillStyle = "#ffffff";
+          ctx.font = `bold ${Math.floor(size * 0.26)}px sans-serif`;
+          ctx.fillText("⚗️", cx, cy);
+        } else if (type === "VENT") {
+          ctx.fillStyle = "#60efff";
+          ctx.font = `bold ${Math.floor(size * 0.2)}px sans-serif`;
+          ctx.fillText(`❄️V${cellObj?.ventId || 1}`, cx, cy);
+        } else if (type && type.startsWith("ONEWAY_")) {
+          const arrowMap = { ONEWAY_N: "▲", ONEWAY_E: "▶", ONEWAY_S: "▼", ONEWAY_W: "◀" };
+          ctx.fillStyle = "#fee440";
+          ctx.font = `bold ${Math.floor(size * 0.24)}px sans-serif`;
+          ctx.fillText(arrowMap[type], cx, cy);
+        }
+
+        if (demolishTimer > 0) {
+          ctx.fillStyle = "rgba(255, 42, 133, 0.5)";
+          ctx.fillRect(x + 2, y + 2, size - 4, size - 4);
+        }
+
+        ctx.restore();
+      }
+
+      function drawPressureGauge(cx, cy, radius) {
+        ctx.save();
+        ctx.fillStyle = "#071124";
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#00f5d4";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Colored pressure arc
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#38ef7d";
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius * 0.78, Math.PI * 0.8, Math.PI * 1.5);
+        ctx.stroke();
+        ctx.strokeStyle = "#fee440";
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius * 0.78, Math.PI * 1.5, Math.PI * 1.9);
+        ctx.stroke();
+        ctx.strokeStyle = "#ff2a85";
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius * 0.78, Math.PI * 1.9, Math.PI * 2.2);
+        ctx.stroke();
+
+        // Sweeping needle
+        const pressureRatio = flowStarted
+          ? Math.min(1, 0.55 + (fastForward ? 0.38 : 0.15) + Math.sin(animClock * 8) * 0.05)
+          : Math.max(0.08, 1 - valveTimer / 15);
+        const angle = Math.PI * 0.8 + pressureRatio * (Math.PI * 1.4);
+        ctx.strokeStyle = "#ff2a85";
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(angle) * radius * 0.72, cy + Math.sin(angle) * radius * 0.72);
+        ctx.stroke();
+
+        ctx.fillStyle = "#e6f3ff";
+        ctx.font = `bold ${Math.max(8, Math.floor(radius * 0.34))}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText(`${Math.round(pressureRatio * 120)} PSI`, cx, cy + radius * 0.55);
+        ctx.restore();
+      }
+
+      function render() {
+        ctx.save();
+        if (shakeTimer > 0) {
+          ctx.translate((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10);
+        }
+
+        ctx.fillStyle = "#040914";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const queueW = QUEUE_COLS * cellSize;
+
+        // 1. Render Left Engineer Sidebar (Hold Bay + 5-Piece Queue + Pressure Gauge)
+        ctx.fillStyle = "#071124";
+        ctx.fillRect(0, 0, queueW, canvas.height);
+        ctx.strokeStyle = "rgba(0, 245, 212, 0.38)";
+        ctx.beginPath();
+        ctx.moveTo(queueW, 0);
+        ctx.lineTo(queueW, canvas.height);
+        ctx.stroke();
+
+        const slotSize = cellSize * 0.78;
+        const slotX = (queueW - slotSize) / 2;
+
+        // Hold Slot Box at top-left
+        ctx.fillStyle = "#fee440";
+        ctx.font = `bold ${Math.floor(cellSize * 0.15)}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText("HOLD BAY [H]", queueW / 2, cellSize * 0.22);
+
+        const holdY = cellSize * 0.28;
+        ctx.fillStyle = "rgba(254, 228, 64, 0.1)";
+        ctx.fillRect(slotX, holdY, slotSize, slotSize);
+        ctx.strokeStyle = "#fee440";
+        ctx.lineWidth = 1.8;
+        ctx.strokeRect(slotX, holdY, slotSize, slotSize);
+        if (holdPiece) {
+          drawPipeGraphic(slotX, holdY, slotSize, holdPiece);
+        } else {
+          ctx.fillStyle = "rgba(254, 228, 64, 0.4)";
+          ctx.font = `bold ${Math.floor(cellSize * 0.14)}px sans-serif`;
+          ctx.fillText("EMPTY", queueW / 2, holdY + slotSize / 2);
+        }
+
+        // Next 5 Queue
+        ctx.fillStyle = "#00f5d4";
+        ctx.font = `bold ${Math.floor(cellSize * 0.15)}px sans-serif`;
+        ctx.fillText("DISPENSER [R]", queueW / 2, cellSize * 1.28);
+
+        for (let i = 0; i < 5; i++) {
+          const piece = nextQueue[4 - i]; // i=4 is bottom NEXT piece
+          const isNext = i === 4;
+          const sy = cellSize * 1.35 + i * (slotSize * 1.04);
+
+          ctx.fillStyle = isNext ? "rgba(56, 239, 125, 0.16)" : "#0a1730";
+          ctx.fillRect(slotX, sy, slotSize, slotSize);
+          ctx.strokeStyle = isNext ? "#38ef7d" : "rgba(0, 245, 212, 0.22)";
+          ctx.lineWidth = isNext ? 2.4 : 1;
+          ctx.strokeRect(slotX, sy, slotSize, slotSize);
+
+          drawPipeGraphic(slotX, sy, slotSize, piece);
+        }
+
+        // Live Analog Flow Pressure Gauge at bottom of sidebar
+        drawPressureGauge(queueW / 2, canvas.height - cellSize * 0.58, cellSize * 0.44);
+
+        // 2. Render 10x7 Industrial Conduit Grid
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            const x = queueW + c * cellSize;
+            const y = r * cellSize;
+            const cell = grid[r][c];
+
+            ctx.fillStyle = cell.connectedPreview ? "rgba(0, 245, 212, 0.07)" : "#081224";
+            ctx.fillRect(x, y, cellSize, cellSize);
+            ctx.strokeStyle = cell.connectedPreview ? "rgba(56, 239, 125, 0.24)" : "rgba(0, 245, 212, 0.12)";
+            ctx.strokeRect(x, y, cellSize, cellSize);
+
+            // Bonus Gem Vein in Architect Mode
+            if (cell.gemValue > 0) {
+              ctx.fillStyle = "#fee440";
+              ctx.font = `${Math.floor(cellSize * 0.34)}px sans-serif`;
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText("💎", x + cellSize / 2, y + cellSize / 2);
+            }
+
+            if (cell.type) {
+              drawPipeGraphic(x, y, cellSize, cell.type, cell);
+            }
+          }
+        }
+
+        // Animated rising micro-bubbles inside filled pipes
+        ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+        for (const b of bubbles) {
+          const bx = queueW + (b.c + 0.5 + b.ox) * cellSize;
+          const by = (b.r + 0.5 + b.oy) * cellSize;
+          ctx.beginPath();
+          ctx.arc(bx, by, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // 3. Hover Ghost Preview & Cursor Reticles
+        if (!paused && !roundEnded && hoverC >= 0 && hoverC < COLS && hoverR >= 0 && hoverR < ROWS) {
+          const hx = queueW + hoverC * cellSize;
+          const hy = hoverR * cellSize;
+          const hCell = grid[hoverR][hoverC];
+
+          if (
+            gameMode !== "plumber_rotate" &&
+            !wrenchMode &&
+            (!hCell.type || (!hCell.filled && !hCell.filledH && !hCell.filledV && !["START", "DRAIN", "ROCK", "MIXER", "VENT"].includes(hCell.type)))
+          ) {
+            const ghostType = nextQueue[0];
+            const matched = checkGhostPortMatch(hoverC, hoverR, ghostType);
+            drawPipeGraphic(hx, hy, cellSize, ghostType, null, true, matched);
+
+            // Port Match status badge
+            ctx.fillStyle = matched ? "#38ef7d" : "#fee440";
+            ctx.font = `bold ${Math.max(9, Math.floor(cellSize * 0.15))}px sans-serif`;
+            ctx.textAlign = "center";
+            ctx.fillText(matched ? "✔ MATCH" : "⚠ OPEN", hx + cellSize / 2, hy + cellSize - 6);
+          }
+
+          ctx.strokeStyle = wrenchMode ? "#ff2a85" : "#fee440";
+          ctx.lineWidth = 2.5;
+          ctx.strokeRect(hx + 2, hy + 2, cellSize - 4, cellSize - 4);
+        }
+
+        // Second Plumber Cursor in 2P Mode
+        if (gameMode === "versus_2p" && !paused && !roundEnded) {
+          const p1x = queueW + p1C * cellSize;
+          const p1y = p1R * cellSize;
+          ctx.strokeStyle = "#00f5d4";
+          ctx.lineWidth = 2.5;
+          ctx.strokeRect(p1x + 4, p1y + 4, cellSize - 8, cellSize - 8);
+          ctx.fillStyle = "#00f5d4";
+          ctx.font = "bold 10px sans-serif";
+          ctx.fillText("P1", p1x + 12, p1y + 14);
+        }
+
+        // Particles
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+        }
+        ctx.globalAlpha = 1;
+
+        ctx.restore();
+      }
+
+      // --- Mode Switching ---
+      function switchMode(newMode) {
+        if (!MODE_META[newMode]) return;
+        gameMode = newMode;
+        document.getElementById("modeSelect").value = newMode;
+        document.querySelectorAll(".mode-tab").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.mode === newMode);
+        });
+        startLevel(1, true);
+      }
+
+      // --- Input Events ---
+      canvas.addEventListener("mousemove", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const ux = ((e.clientX - rect.left) / rect.width) * TOTAL_W_UNITS;
+        const uy = ((e.clientY - rect.top) / rect.height) * ROWS;
+        const c = Math.floor(ux - QUEUE_COLS);
+        const r = Math.floor(uy);
+        if (c >= 0 && c < COLS && r >= 0 && r < ROWS) {
+          hoverC = c;
+          hoverR = r;
+        }
+      });
+
+      canvas.addEventListener("mousedown", (e) => {
+        if (e.button === 2) {
+          e.preventDefault();
+          rotateNextPipe();
+          return;
+        }
+        if (e.button === 0) {
+          const rect = canvas.getBoundingClientRect();
+          const ux = ((e.clientX - rect.left) / rect.width) * TOTAL_W_UNITS;
+          const uy = ((e.clientY - rect.top) / rect.height) * ROWS;
+          if (ux < QUEUE_COLS) {
+            // Clicked sidebar: top is Hold, middle is Rotate
+            if (uy < 1.2) holdCurrentPipe();
+            else rotateNextPipe();
+            return;
+          }
+          const c = Math.floor(ux - QUEUE_COLS);
+          const r = Math.floor(uy);
+          if (c >= 0 && c < COLS && r >= 0 && r < ROWS) {
+            hoverC = c;
+            hoverR = r;
+            placePipeAt(c, r);
+          }
+        }
+      });
+
+      canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+      window.addEventListener("keydown", (e) => {
+        if (e.altKey || e.ctrlKey || e.metaKey) return;
+        const k = e.key.toLowerCase();
+
+        // Mode hotkeys [1]-[8]
+        const modeKeys = {
+          "1": "classic",
+          "2": "plumber_rotate",
+          "3": "dual_color",
+          "4": "reactor_boss",
+          "5": "bomb_arcade",
+          "6": "architect",
+          "7": "zen",
+          "8": "versus_2p",
+        };
+        if (modeKeys[k]) {
+          switchMode(modeKeys[k]);
+          return;
+        }
+
+        if (gameMode === "versus_2p") {
+          if (k === "a") p1C = Math.max(0, p1C - 1);
+          else if (k === "d") p1C = Math.min(COLS - 1, p1C + 1);
+          else if (k === "w") p1R = Math.max(0, p1R - 1);
+          else if (k === "s") p1R = Math.min(ROWS - 1, p1R + 1);
+          else if (k === " ") { e.preventDefault(); placePipeAt(p1C, p1R); return; }
+          else if (k === "q") { rotateNextPipe(); return; }
+        }
+
+        if (e.key === "ArrowLeft" || (k === "a" && gameMode !== "versus_2p")) hoverC = Math.max(0, hoverC - 1);
+        else if (e.key === "ArrowRight" || (k === "d" && gameMode !== "versus_2p")) hoverC = Math.min(COLS - 1, hoverC + 1);
+        else if (e.key === "ArrowUp" || (k === "w" && gameMode !== "versus_2p")) hoverR = Math.max(0, hoverR - 1);
+        else if (e.key === "ArrowDown" || (k === "s" && gameMode !== "versus_2p")) hoverR = Math.min(ROWS - 1, hoverR + 1);
+        else if (k === " " || e.key === "Enter") {
+          e.preventDefault();
+          placePipeAt(hoverC, hoverR);
+        } else if (k === "r") {
+          rotateNextPipe();
+        } else if (k === "h") {
+          holdCurrentPipe();
+        } else if (k === "c") {
+          activateCryoFreeze();
+        } else if (k === "x" || e.key === "Backspace") {
+          e.preventDefault();
+          useInstantWrenchAt(hoverC, hoverR);
+        } else if (k === "f") {
+          fastForward = !fastForward;
+          document.getElementById("btnFast").classList.toggle("active-toggle", fastForward);
+        } else if (k === "p") {
+          paused = !paused;
+        } else if (k === "n") {
+          startLevel(1, true);
+        } else if (k === "m") {
+          sfx.muted = !sfx.muted;
+          document.getElementById("btnMute").textContent = sfx.muted ? "🔇 Muted" : "🔊 Audio";
+        } else if (k === "?") {
+          document.getElementById("helpModal").classList.toggle("open");
+        }
+      });
+
+      // UI Listeners
+      document.getElementById("modeSelect").addEventListener("change", (e) => switchMode(e.target.value));
+      document.querySelectorAll(".mode-tab").forEach((btn) => {
+        btn.addEventListener("click", () => switchMode(btn.dataset.mode));
+      });
+      document.getElementById("btnHold").addEventListener("click", holdCurrentPipe);
+      document.getElementById("btnRotate").addEventListener("click", rotateNextPipe);
+      document.getElementById("btnCryo").addEventListener("click", activateCryoFreeze);
+      document.getElementById("btnWrench").addEventListener("click", () => {
+        if (!useInstantWrenchAt(hoverC, hoverR)) {
+          wrenchMode = !wrenchMode;
+          document.getElementById("btnWrench").classList.toggle("wrench-active", wrenchMode);
+          setStatus(wrenchMode ? "🧨 WRENCH ARMED — Click any dry pipe on the grid to remove it instantly!" : "Wrench disarmed.");
+        }
+      });
+      document.getElementById("btnFast").addEventListener("click", () => {
+        fastForward = !fastForward;
+        document.getElementById("btnFast").classList.toggle("active-toggle", fastForward);
+      });
+      document.getElementById("btnNew").addEventListener("click", () => startLevel(1, true));
+      document.getElementById("btnPause").addEventListener("click", () => { paused = !paused; });
+      document.getElementById("btnMute").addEventListener("click", () => {
+        sfx.muted = !sfx.muted;
+        document.getElementById("btnMute").textContent = sfx.muted ? "🔇 Muted" : "🔊 Audio";
+      });
+      document.getElementById("btnHelp").addEventListener("click", () => document.getElementById("helpModal").classList.add("open"));
+      document.getElementById("btnCloseHelp").addEventListener("click", () => document.getElementById("helpModal").classList.remove("open"));
+      document.getElementById("btnModalRetry").addEventListener("click", () => startLevel(level, false));
+      document.getElementById("btnModalPrimary").addEventListener("click", () => {
+        if (roundWon) startLevel(level + 1, false);
+        else startLevel(1, true);
+      });
+
+      let lastTime = performance.now();
+      function loop(now) {
+        const dt = Math.min(0.05, (now - lastTime) / 1000);
+        lastTime = now;
+        updateSimulation(dt);
+        render();
+        requestAnimationFrame(loop);
+      }
+
+      startLevel(1, true);
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

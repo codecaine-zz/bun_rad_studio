@@ -787,6 +787,79 @@
         .stats-table td { padding: 5px 6px; border-bottom: 1px solid rgba(27, 38, 59, 0.6); }
         .stats-table td:not(:first-child), .stats-table th:not(:first-child) { text-align: right; }
         @media (max-width: 560px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
+
+        /* ---- 8-Mode Modern Word Search Suite & Lexical Gadgets ---- */
+        .ws-mode-ribbon {
+            width: 100%;
+            max-width: 760px;
+            display: grid;
+            grid-template-columns: repeat(8, minmax(0, 1fr));
+            gap: 3px;
+            margin-bottom: 3px;
+            flex-shrink: 0;
+        }
+        @media (max-width: 720px) {
+            .ws-mode-ribbon {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+        }
+        .ws-mode-pill {
+            background: rgba(17, 23, 36, 0.88);
+            border: 1px solid var(--border-color);
+            color: #94a3b8;
+            border-radius: 5px;
+            padding: 3px 4px;
+            font-family: var(--font-hud);
+            font-size: 0.68rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: all 0.15s ease;
+        }
+        .ws-mode-pill:hover {
+            color: #fff;
+            border-color: var(--neon-cyan);
+        }
+        .ws-mode-pill.active {
+            color: #05070c;
+            background: var(--neon-cyan);
+            border-color: var(--neon-cyan);
+            font-weight: 800;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.45);
+        }
+        .word-info-banner {
+            width: 100%;
+            max-width: 760px;
+            background: rgba(11, 16, 24, 0.88);
+            border: 1px solid rgba(0, 240, 255, 0.28);
+            border-radius: 6px;
+            padding: 3px 8px;
+            font-family: var(--font-hud);
+            font-size: 0.74rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .grid-cell.decoy-dimmed:not(.found-cell):not(.active-drag) {
+            opacity: 0.24;
+        }
+        .grid-cell.fog-shrouded:not(.found-cell):not(.active-drag):not(.hint-pulse) {
+            color: transparent !important;
+            text-shadow: none !important;
+            background: rgba(2, 6, 14, 0.92);
+        }
+        .grid-cell.ai-found-cell {
+            color: #ff0077 !important;
+            font-weight: 900;
+            text-shadow: 0 0 8px #ff0077;
+        }
     </style>
 </head>
 <body>
@@ -803,11 +876,24 @@
         <div style="display:flex; align-items:center; gap:6px;">
             <div class="brand-title">
                 NEON<span>_SEARCH</span>
-                <span class="brand-tag">v2.5</span>
+                <span class="brand-tag">8-MODE v2.5</span>
             </div>
+            <select id="gameModeSelect" class="select-field" style="font-size:12px; padding:2px 6px; max-width:175px;" aria-label="Word Search Mode">
+                <option value="classic">1. 🏆 Classic Labyrinth</option>
+                <option value="boggle_snake">2. 🐍 Snaking Trail (Strands)</option>
+                <option value="cryptic_clues">3. 🕵️ Cryptic Trivia Clues</option>
+                <option value="anagram_scramble">4. 🔀 Scrambled Anagrams</option>
+                <option value="hidden_message">5. 🔐 Secret Cipher Quote</option>
+                <option value="fog_flashlight">6. 🔦 Fog-of-War Flashlight</option>
+                <option value="blitz_attack">7. ⚡ 90s Lexical Blitz</option>
+                <option value="ai_duel">8. 🤖 Vs. LexiBot AI Duel</option>
+            </select>
         </div>
 
         <div style="display:flex; align-items:center; gap:4px;">
+            <button type="button" class="nav-btn" id="customPuzzleBtn" title="Create Custom Word Search">
+                <span>✏️</span> <span class="btn-label">Custom</span>
+            </button>
             <button type="button" class="nav-btn" id="droneToggle" title="Ambient Synth Drone">
                 <span>🎵</span> <span class="btn-label" id="droneText">BGM</span>
             </button>
@@ -831,8 +917,20 @@
 
     <!-- Main Game Stage -->
     <main class="stage-wrapper" id="stageWrapper">
+        <!-- 8-Mode Interactive Selector Ribbon -->
+        <div class="ws-mode-ribbon" id="wsModeRibbon">
+            <button type="button" class="ws-mode-pill active" data-wsmode="classic" title="1. Classic 8-Way Labyrinth">1. 🏆 Classic</button>
+            <button type="button" class="ws-mode-pill" data-wsmode="boggle_snake" title="2. Snaking Path / Winding Trail">2. 🐍 Snaking</button>
+            <button type="button" class="ws-mode-pill" data-wsmode="cryptic_clues" title="3. Cryptic Definitions & Riddles">3. 🕵️ Cryptic</button>
+            <button type="button" class="ws-mode-pill" data-wsmode="anagram_scramble" title="4. Scrambled Anagram Bank">4. 🔀 Anagrams</button>
+            <button type="button" class="ws-mode-pill" data-wsmode="hidden_message" title="5. Secret Leftover Cipher Quote">5. 🔐 Cipher</button>
+            <button type="button" class="ws-mode-pill" data-wsmode="fog_flashlight" title="6. Fog-of-War Cyber Flashlight">6. 🔦 Flashlight</button>
+            <button type="button" class="ws-mode-pill" data-wsmode="blitz_attack" title="7. 90-Second Lexical Blitz">7. ⚡ 90s Blitz</button>
+            <button type="button" class="ws-mode-pill" data-wsmode="ai_duel" title="8. Vs. LexiBot AI Race">8. 🤖 Vs. AI</button>
+        </div>
+
         <!-- HUD Telemetry Bar -->
-        <div class="hud-bar" id="hudBar">
+        <div class="hud-bar" id="hudBar" style="max-width:760px;">
             <div class="hud-stat">
                 <span class="stat-label">FOUND</span>
                 <span class="stat-val highlight" id="foundVal">0 / 0</span>
@@ -901,15 +999,25 @@
         </div>
 
         <!-- Bottom Words Tray & Action Bar -->
-        <div class="bottom-section" id="bottomSection">
-            <div class="words-tray" id="wordsTray" title="Tap any word to use a Hint!"></div>
+        <div class="bottom-section" id="bottomSection" style="max-width:760px;">
+            <div class="word-info-banner" id="wordInfoBanner">
+                <span id="wordInfoText">📖 <b>Lexical Scanner Ready:</b> Swipe across letters in 8 directions or switch among all <b>8 Playable Modes [1–8]</b>!</span>
+                <span id="wordInfoBadge" style="color:var(--neon-cyan); font-family:var(--font-title); font-size:0.65rem;">CLASSIC</span>
+            </div>
+            <div class="words-tray" id="wordsTray" title="Tap any word to use a Compass Hint!"></div>
             
-            <div class="actions-row">
+            <div class="actions-row" style="flex-wrap:wrap;">
                 <button type="button" class="action-btn primary" id="newGameBtn">
                     <span>⚡</span> New Game
                 </button>
-                <button type="button" class="action-btn" id="hintBtn" title="Reveal the start of an unfound word">
+                <button type="button" class="action-btn" id="hintBtn" title="Compass Hint: Beacon first letter & direction arrow (H)">
                     <span>💡</span> Hint
+                </button>
+                <button type="button" class="action-btn" id="laserRevealBtn" title="Laser Reveal: Zap and highlight an entire unfound word (E)">
+                    <span>🔦</span> Laser
+                </button>
+                <button type="button" class="action-btn" id="decoyScrubBtn" title="Decoy Scrub: Dim 35% of non-word filler letters (F)">
+                    <span>📡</span> Scrub
                 </button>
                 <button type="button" class="action-btn" id="replayBtn" title="Restart this same puzzle (R)">
                     <span>🔁</span> Replay
@@ -938,18 +1046,24 @@
                 <button type="button" class="modal-close" id="settingsClose">&times;</button>
             </div>
             <div class="setting-row">
-                <span class="setting-label">Word Category</span>
+                <span class="setting-label">Word Category (16)</span>
                 <select id="categorySelect" class="select-field" aria-label="Word Category">
-                    <option value="cyber" selected>Cyber & Tech</option>
-                    <option value="cosmos">Cosmos & Sci-Fi</option>
-                    <option value="arcade">Arcade & Gaming</option>
-                    <option value="nature">Nature & Elements</option>
-                    <option value="animals">Animals & Wildlife</option>
-                    <option value="food">Food & Kitchen</option>
+                    <option value="cyber" selected>Cyber &amp; Tech</option>
+                    <option value="cosmos">Cosmos &amp; Sci-Fi</option>
+                    <option value="arcade">Arcade &amp; Gaming</option>
+                    <option value="nature">Nature &amp; Elements</option>
+                    <option value="animals">Animals &amp; Wildlife</option>
+                    <option value="food">Food &amp; Kitchen</option>
                     <option value="geography">World Geography</option>
-                    <option value="science">Science & Lab</option>
-                    <option value="music">Music & Sound</option>
-                    <option value="sports">Sports & Games</option>
+                    <option value="science">Science &amp; Lab</option>
+                    <option value="music">Music &amp; Sound</option>
+                    <option value="sports">Sports &amp; Games</option>
+                    <option value="linux">Linux &amp; Unix Kernel</option>
+                    <option value="macos">macOS &amp; BSD Darwin</option>
+                    <option value="programming">Programming &amp; CS</option>
+                    <option value="cryptography">Cryptography &amp; Sec</option>
+                    <option value="ai_neural">AI &amp; Neural Nets</option>
+                    <option value="mythology">Ancient Mythology</option>
                 </select>
             </div>
             <div class="setting-row">
@@ -1018,13 +1132,29 @@
                 <button type="button" class="modal-close" id="helpClose">&times;</button>
             </div>
             <div class="help-list">
-                <div><kbd>DRAG</kbd> Touch/click and drag across any word in any of the 8 directions (Horizontal, Vertical, Diagonal)</div>
-                <div><kbd>HARP</kbd> Enjoy the melodic musical arpeggios as you drag across letters</div>
-                <div><kbd>HINT</kbd> Tap any word in the list or click the Hint button to beacon its first letter</div>
-                <div><kbd>STREAK</kbd> Finding words in quick succession multiplies your score bonus</div>
-                <div><kbd>FULL</kbd> Tap Fullscreen for immersive edge-to-edge gameplay</div>
-                <div><kbd>N</kbd> New game &nbsp; <kbd>R</kbd> Replay same puzzle &nbsp; <kbd>D</kbd> Daily puzzle</div>
-                <div><kbd>H</kbd> Hint &nbsp; <kbd>P</kbd> Pause &nbsp; <kbd>G</kbd> Give up &nbsp; <kbd>M</kbd> Mute &nbsp; <kbd>T</kbd> Stats &nbsp; <kbd>?</kbd> Help &nbsp; <kbd>Esc</kbd> Close</div>
+                <div><kbd>1–8</kbd> Switch between all <b>8 Playable Word Search Modes</b> (Classic, Snaking Trail, Cryptic Clues, Scrambled Anagrams, Secret Cipher Quote, Fog Flashlight, 90s Blitz, Vs. LexiBot AI)</div>
+                <div><kbd>DRAG</kbd> Touch/click and drag across any word in 8 directions (or winding snaking paths in Mode 2)</div>
+                <div><kbd>H / E / F</kbd> <kbd>H</kbd> Compass Hint with direction arrow &nbsp; <kbd>E</kbd> Laser Word Reveal &nbsp; <kbd>F</kbd> Decoy Scrub</div>
+                <div><kbd>N / R / D</kbd> <kbd>N</kbd> New game &nbsp; <kbd>R</kbd> Replay same puzzle &nbsp; <kbd>D</kbd> Daily puzzle</div>
+                <div><kbd>P / G / M / T</kbd> <kbd>P</kbd> Pause &nbsp; <kbd>G</kbd> Give up &nbsp; <kbd>M</kbd> Mute &nbsp; <kbd>T</kbd> Stats &nbsp; <kbd>?</kbd> Help &nbsp; <kbd>Esc</kbd> Close</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Word Search Creator Modal -->
+    <div class="modal-backdrop" id="customPuzzleModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">✏️ CUSTOM WORD LABYRINTH CREATOR</div>
+                <button type="button" class="modal-close" id="customPuzzleClose">&times;</button>
+            </div>
+            <p style="font-size:0.8rem; color:#cbd5e1; margin-bottom:8px;">
+                Enter 6 to 20 custom words (3–12 letters, separated by commas or spaces) to generate a custom board:
+            </p>
+            <textarea id="customWordsInput" rows="4" style="width:100%; background:var(--surface-card); color:#fff; border:1px solid var(--border-color); border-radius:6px; padding:8px; font-family:var(--font-hud); font-size:0.9rem; margin-bottom:10px;">CODECAINE, TYPESCRIPT, WEBKIT, SYNTHWAVE, QUANTUM, CYBERPUNK, TERMINAL, KERNEL, MATRIX, NEBULA, VECTOR, SHADER</textarea>
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="action-btn" id="customPuzzleCancel">Cancel</button>
+                <button type="button" class="action-btn primary" id="customPuzzleApply">⚡ Build Custom Board</button>
             </div>
         </div>
     </div>
@@ -1259,15 +1389,57 @@
         let currentTheme = 'cyber';
         let currentSeed = '';
         let currentMode = 'random';                 // 'random' | 'daily'
+        let labyrinthMode = 'classic';              // 8-mode suite: 'classic' | 'boggle_snake' | 'cryptic_clues' | 'anagram_scramble' | 'hidden_message' | 'fog_flashlight' | 'blitz_attack' | 'ai_duel'
         let puzzle = null;
 
         let grid = [];
         let placedWords = [];
         let foundWords = new Set();
         let revealedWords = new Set();
+        let aiWordsFound = new Set();
+        let aiScore = 0;
+        let aiTimer = null;
+        let blitzRemainingMs = 90000;
+        let laserUsesLeft = 1;
+        let decoyScrubUsesLeft = 1;
+        let customWordList = null;
+        let currentHiddenQuote = 'DECODE THE NEON LABYRINTH MATRIX';
         let wordColors = {};
         let activePalette = THEMES.cyber.palette;
         let themeAccent = '#00f0ff';
+
+        const LABYRINTH_MODES = {
+            classic:          { label: '🔍 Classic Search',   badge: 'CLASSIC',  desc: 'Trace straight lines in 8 compass directions to capture hidden words.' },
+            boggle_snake:     { label: '🐍 Boggle Snake',     badge: 'SNAKE',    desc: 'Words can bend and snake through any adjacent letters! Drag cell-by-cell.' },
+            cryptic_clues:    { label: '🕵️ Cryptic Clues',    badge: 'CRYPTIC',  desc: 'Word bank masks middle letters (e.g. C _ _ P T O [6]) until discovered!' },
+            anagram_scramble: { label: '🔀 Anagram Scramble', badge: 'ANAGRAM',  desc: 'Word bank shows scrambled anagrams! Unscramble them and locate the true word.' },
+            hidden_message:   { label: '📜 Hidden Message',   badge: 'CIPHER',   desc: 'Each word you find decodes a segment of the encrypted cyber transmission!' },
+            fog_flashlight:   { label: '🔦 Fog of War',       badge: 'FOG 3×3',  desc: 'Grid is shrouded in fog! Move your cursor/finger to illuminate a 3×3 radius.' },
+            blitz_attack:     { label: '⚡ Blitz Time Attack', badge: 'BLITZ 90s', desc: 'Beat the 90-second countdown clock! Every word found grants +5s bonus time.' },
+            ai_duel:          { label: '🤖 vs AI LexiBot',    badge: 'AI DUEL',  desc: 'Race against LexiBot! Claim more words before the board is cleared.' }
+        };
+
+        const HIDDEN_QUOTES = [
+            'KNOWLEDGE IS POWER IN THE NEON GRID',
+            'DECODE THE MATRIX ONE WORD AT A TIME',
+            'TRUST THE ALGORITHM AND FOLLOW THE SIGNAL',
+            'EXPLORE THE COSMOS BEYOND THE EVENT HORIZON',
+            'CYBERNETIC SYNTHESIS UNLOCKS HIDDEN TRUTHS',
+            'QUANTUM ENTANGLEMENT CONNECTS EVERY LETTER'
+        ];
+
+        const WORD_DEFINITIONS = {
+            ALGORITHM: 'Step-by-step computational procedure for solving a problem.',
+            ENCRYPTION: 'Cryptographic transformation of data into secret ciphertext.',
+            QUANTUM: 'Discrete packet of energy or matter at subatomic scale.',
+            NEBULA: 'Interstellar cloud of ionized gas and cosmic dust.',
+            SUPERNOVA: 'Cataclysmic stellar explosion outshining an entire galaxy.',
+            SYNTHWAVE: 'Retro-futuristic electronic music inspired by 1980s soundtracks.',
+            KERNEL: 'Core operating system component managing hardware and processes.',
+            COMPILER: 'Translator converting high-level source code into machine instructions.',
+            TRANSFORMER: 'Deep learning architecture powered by multi-head self-attention.',
+            LABYRINTH: 'Intricate network of winding passages and hidden pathways.'
+        };
 
         let score = 0;
         let streak = 0;
@@ -1383,6 +1555,19 @@
         const pauseOverlay = document.getElementById('pauseOverlay');
         const resBest = document.getElementById('resBest');
         const wsToast = document.getElementById('wsToast');
+        const gameModeSelect = document.getElementById('gameModeSelect');
+        const wsModeRibbon = document.getElementById('wsModeRibbon');
+        const wordInfoBanner = document.getElementById('wordInfoBanner');
+        const wordInfoText = document.getElementById('wordInfoText');
+        const wordInfoBadge = document.getElementById('wordInfoBadge');
+        const laserRevealBtn = document.getElementById('laserRevealBtn');
+        const decoyScrubBtn = document.getElementById('decoyScrubBtn');
+        const customPuzzleBtn = document.getElementById('customPuzzleBtn');
+        const customPuzzleModal = document.getElementById('customPuzzleModal');
+        const customPuzzleClose = document.getElementById('customPuzzleClose');
+        const customPuzzleCancel = document.getElementById('customPuzzleCancel');
+        const customPuzzleApply = document.getElementById('customPuzzleApply');
+        const customWordsInput = document.getElementById('customWordsInput');
 
         let toastTimer = null;
         function showToast(msg) {
@@ -1452,10 +1637,20 @@
         function getElapsed() { return accumulatedMs + (runningSince ? Date.now() - runningSince : 0); }
         function tickTimer() {
             elapsedTime = getElapsed();
-            timerVal.textContent = WS.formatTime(elapsedTime);
+            if (labyrinthMode === 'blitz_attack') {
+                const rem = Math.max(0, blitzRemainingMs - elapsedTime);
+                timerVal.textContent = WS.formatTime(rem);
+                if (rem <= 0 && gameActive && !gameWon) {
+                    showToast('⚡ Time up! Blitz round finished.');
+                    giveUpArmedUntil = Date.now() + 5000;
+                    giveUp();
+                }
+            } else {
+                timerVal.textContent = WS.formatTime(elapsedTime);
+            }
         }
         function anyModalOpen() {
-            return [settingsModal, helpModal, statsModal].some(m => m.style.display === 'flex');
+            return [settingsModal, helpModal, statsModal, customPuzzleModal].filter(Boolean).some(m => m.style.display === 'flex');
         }
         function updatePauseUI() {
             const showOverlay = gameActive && !gameWon && (pauseReasons.has('user') || pauseReasons.has('hidden'));
@@ -1483,14 +1678,163 @@
             runningSince = 0;
             pauseReasons.clear();
             clearInterval(timerInterval);
+            clearInterval(aiTimer);
             timerVal.textContent = WS.formatTime(elapsedTime);
+        }
+
+        function scrambleWordDeterministic(word) {
+            const arr = word.split('');
+            if (arr.length <= 2) return word;
+            for (let i = 1; i < arr.length - 1; i += 2) {
+                const tmp = arr[i];
+                arr[i] = arr[i + 1];
+                arr[i + 1] = tmp;
+            }
+            const res = arr.join('');
+            return res === word ? arr.reverse().join('') : res;
+        }
+
+        function formatChipLabel(word, isFound) {
+            if (isFound) return word;
+            if (labyrinthMode === 'cryptic_clues') {
+                const mid = Array.from({ length: Math.max(1, word.length - 2) }, () => '_').join(' ');
+                return `${word[0]} ${mid} ${word[word.length - 1]} [${word.length}]`;
+            }
+            if (labyrinthMode === 'anagram_scramble') {
+                return `${scrambleWordDeterministic(word)} [${word.length}]`;
+            }
+            return word;
+        }
+
+        function updateWordInfoBanner(customMsg = null, customBadge = null) {
+            if (!wordInfoText || !wordInfoBadge) return;
+            const mInfo = LABYRINTH_MODES[labyrinthMode] || LABYRINTH_MODES.classic;
+            if (customMsg) {
+                wordInfoText.textContent = customMsg;
+                wordInfoBadge.textContent = customBadge || mInfo.badge;
+                return;
+            }
+            if (labyrinthMode === 'hidden_message') {
+                const ratio = placedWords.length ? (foundWords.size / placedWords.length) : 0;
+                const revealCount = Math.floor(currentHiddenQuote.length * ratio);
+                const decoded = currentHiddenQuote.split('').map((ch, idx) => (ch === ' ' || idx < revealCount) ? ch : '•').join('');
+                wordInfoText.textContent = `📜 Cipher Quote: "${decoded}"`;
+                wordInfoBadge.textContent = `CIPHER ${Math.round(ratio * 100)}%`;
+            } else if (labyrinthMode === 'ai_duel') {
+                const playerWords = Math.max(0, foundWords.size - aiWordsFound.size);
+                wordInfoText.textContent = `🤖 AI Duel — You: ${playerWords} words (${score} pts)  vs  LexiBot: ${aiWordsFound.size} words (${aiScore} pts)`;
+                wordInfoBadge.textContent = 'AI DUEL';
+            } else {
+                wordInfoText.textContent = mInfo.desc;
+                wordInfoBadge.textContent = mInfo.badge;
+            }
+        }
+
+        function selectLabyrinthMode(mode) {
+            if (!LABYRINTH_MODES[mode]) mode = 'classic';
+            labyrinthMode = mode;
+            if (gameModeSelect) gameModeSelect.value = mode;
+            if (wsModeRibbon) {
+                wsModeRibbon.querySelectorAll('.ws-mode-pill').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.wsmode === mode);
+                });
+            }
+            customWordList = null;
+            initNewGame();
+            showToast(`Mode: ${LABYRINTH_MODES[mode].label}`);
+        }
+
+        function buildCustomPuzzle(words, size) {
+            const cleanWords = words
+                .map(w => w.toUpperCase().replace(/[^A-Z]/g, ''))
+                .filter(w => w.length >= 3 && w.length <= size);
+            const base = WS.generatePuzzle({ category: settings.category, size, difficulty: settings.difficulty, seed: 'custom-' + Date.now() });
+            if (cleanWords.length < 3) return base;
+
+            const emptyGrid = Array.from({ length: size }, () => Array(size).fill(''));
+            const placed = [];
+            const dirs = [
+                { dr: 0, dc: 1 }, { dr: 1, dc: 0 }, { dr: 1, dc: 1 }, { dr: -1, dc: 1 },
+                { dr: 0, dc: -1 }, { dr: -1, dc: 0 }, { dr: -1, dc: -1 }, { dr: 1, dc: -1 }
+            ];
+            const sortedWords = [...new Set(cleanWords)].slice(0, 16).sort((a, b) => b.length - a.length);
+            for (const word of sortedWords) {
+                let isPlaced = false;
+                for (let attempt = 0; attempt < 180 && !isPlaced; attempt++) {
+                    const dir = dirs[attempt % dirs.length];
+                    const r0 = Math.floor(Math.random() * size);
+                    const c0 = Math.floor(Math.random() * size);
+                    const rEnd = r0 + dir.dr * (word.length - 1);
+                    const cEnd = c0 + dir.dc * (word.length - 1);
+                    if (rEnd < 0 || rEnd >= size || cEnd < 0 || cEnd >= size) continue;
+                    let ok = true;
+                    const cells = [];
+                    for (let i = 0; i < word.length; i++) {
+                        const nr = r0 + dir.dr * i;
+                        const nc = c0 + dir.dc * i;
+                        const cur = emptyGrid[nr][nc];
+                        if (cur !== '' && cur !== word[i]) { ok = false; break; }
+                        cells.push({ r: nr, c: nc });
+                    }
+                    if (ok) {
+                        cells.forEach((cell, idx) => { emptyGrid[cell.r][cell.c] = word[idx]; });
+                        placed.push({ word, cells });
+                        isPlaced = true;
+                    }
+                }
+            }
+            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (!emptyGrid[r][c]) emptyGrid[r][c] = alphabet[Math.floor(Math.random() * alphabet.length)];
+                }
+            }
+            return {
+                category: settings.category,
+                size,
+                difficulty: settings.difficulty,
+                seed: 'custom-' + Date.now(),
+                grid: emptyGrid,
+                placed: placed.length ? placed : base.placed
+            };
+        }
+
+        function stepAiLexiBot() {
+            if (!gameActive || gameWon || pauseReasons.size > 0 || labyrinthMode !== 'ai_duel') return;
+            const unfound = placedWords.filter(pw => !foundWords.has(pw.word));
+            if (!unfound.length) return;
+            const pick = unfound[Math.floor(Math.random() * unfound.length)];
+            foundWords.add(pick.word);
+            aiWordsFound.add(pick.word);
+            aiScore += pick.word.length * 100;
+            wordColors[pick.word] = '#f43f5e';
+            const chip = document.getElementById(`chip-${pick.word}`);
+            if (chip) {
+                chip.innerHTML = `<span>🤖</span> ${pick.word}`;
+                chip.classList.add('found', 'ai-claimed');
+            }
+            pick.cells.forEach(c => {
+                const el = wordGrid.querySelector(`.grid-cell[data-r="${c.r}"][data-c="${c.c}"]`);
+                if (el) {
+                    el.classList.add('found-cell');
+                    el.style.color = '#f43f5e';
+                }
+            });
+            updateHUD();
+            updateWordInfoBanner();
+            showToast(`🤖 LexiBot claimed "${pick.word}"!`);
+            if (foundWords.size === placedWords.length) {
+                setTimeout(handleVictory, 400);
+            }
         }
 
         // ---- starting puzzles
         function startPuzzle(cfg, mode) {
             currentMode = mode;
             currentSeed = cfg.seed;
-            puzzle = WS.generatePuzzle(cfg);
+            puzzle = (customWordList && customWordList.length >= 3)
+                ? buildCustomPuzzle(customWordList, cfg.size || settings.size)
+                : WS.generatePuzzle(cfg);
             currentCategory = puzzle.category;
             gridSize = puzzle.size;
             difficulty = puzzle.difficulty;
@@ -1498,6 +1842,12 @@
             placedWords = puzzle.placed;
             foundWords.clear();
             revealedWords.clear();
+            aiWordsFound.clear();
+            aiScore = 0;
+            blitzRemainingMs = 90000;
+            laserUsesLeft = 1;
+            decoyScrubUsesLeft = 1;
+            currentHiddenQuote = HIDDEN_QUOTES[Math.floor(Math.random() * HIDDEN_QUOTES.length)];
             wordColors = {};
             placedWords.forEach((pw, i) => { wordColors[pw.word] = activePalette[i % activePalette.length]; });
 
@@ -1514,7 +1864,11 @@
             accumulatedMs = 0;
             runningSince = Date.now();
             clearInterval(timerInterval);
+            clearInterval(aiTimer);
             timerInterval = setInterval(tickTimer, 250);
+            if (labyrinthMode === 'ai_duel') {
+                aiTimer = setInterval(stepAiLexiBot, 6500);
+            }
             if (anyModalOpen()) setPauseReason('modal', true);
             if (document.hidden) setPauseReason('hidden', true);
             tickTimer();
@@ -1523,6 +1877,7 @@
             renderDOMGrid();
             renderWordsTray();
             updateHUD();
+            updateWordInfoBanner();
             updatePauseUI();
             setupGridDimensions();
         }
@@ -1574,7 +1929,7 @@
             syncModalPause();
         }
         function closeModals() {
-            [settingsModal, helpModal, statsModal].forEach(m => { m.style.display = 'none'; });
+            [settingsModal, helpModal, statsModal, customPuzzleModal].filter(Boolean).forEach(m => { m.style.display = 'none'; });
             syncModalPause();
         }
         function recordFinishedGame(won) {
@@ -1595,13 +1950,29 @@
             for (let r = 0; r < gridSize; r++) {
                 for (let c = 0; c < gridSize; c++) {
                     const cell = document.createElement('div');
-                    cell.className = 'grid-cell';
+                    cell.className = 'grid-cell' + (labyrinthMode === 'fog_flashlight' ? ' fog-hidden' : '');
                     cell.dataset.r = r;
                     cell.dataset.c = c;
                     cell.textContent = grid[r][c];
                     wordGrid.appendChild(cell);
                 }
             }
+        }
+
+        function updateFogFlashlight(centerCell) {
+            if (labyrinthMode !== 'fog_flashlight') return;
+            wordGrid.querySelectorAll('.grid-cell').forEach(el => {
+                const r = parseInt(el.dataset.r, 10);
+                const c = parseInt(el.dataset.c, 10);
+                const near = centerCell && Math.abs(r - centerCell.r) <= 1 && Math.abs(c - centerCell.c) <= 1;
+                if (near || el.classList.contains('found-cell')) {
+                    el.classList.remove('fog-hidden');
+                    el.classList.add('fog-lit');
+                } else {
+                    el.classList.remove('fog-lit');
+                    el.classList.add('fog-hidden');
+                }
+            });
         }
 
         function renderWordsTray() {
@@ -1612,7 +1983,7 @@
                 const chip = document.createElement('div');
                 chip.className = 'word-chip';
                 chip.id = `chip-${pw.word}`;
-                chip.innerHTML = `<span>●</span> ${pw.word}`;
+                chip.innerHTML = `<span>●</span> ${formatChipLabel(pw.word, foundWords.has(pw.word))}`;
 
                 // Tapping a word chip reveals a hint
                 chip.addEventListener('click', () => triggerHintForWord(pw));
@@ -1688,14 +2059,37 @@
             isDragging = true;
             dragStart = cell;
             currentDragCells = [cell];
+            updateFogFlashlight(cell);
             SFX.letterTick(0);
             updateCellActiveClasses();
         }
 
         function moveDrag(clientX, clientY) {
-            if (!isDragging || !dragStart) return;
-            const cell = getCellCoordsFromClientXY(clientX, clientY);
-            if (!cell) return;
+            const hoverCell = getCellCoordsFromClientXY(clientX, clientY);
+            if (hoverCell) updateFogFlashlight(hoverCell);
+            if (!isDragging || !dragStart || !hoverCell) return;
+            const cell = hoverCell;
+
+            if (labyrinthMode === 'boggle_snake') {
+                const last = currentDragCells[currentDragCells.length - 1];
+                if (cell.r === last.r && cell.c === last.c) return;
+                if (currentDragCells.length >= 2) {
+                    const prev = currentDragCells[currentDragCells.length - 2];
+                    if (cell.r === prev.r && cell.c === prev.c) {
+                        currentDragCells.pop();
+                        updateCellActiveClasses();
+                        return;
+                    }
+                }
+                const adj = Math.abs(cell.r - last.r) <= 1 && Math.abs(cell.c - last.c) <= 1;
+                const alreadyIn = currentDragCells.some(c => c.r === cell.r && c.c === cell.c);
+                if (adj && !alreadyIn) {
+                    currentDragCells.push(cell);
+                    updateCellActiveClasses();
+                    SFX.letterTick(currentDragCells.length - 1);
+                }
+                return;
+            }
 
             const newLine = computeLineCells(dragStart, cell);
             if (newLine.length !== currentDragCells.length || 
@@ -1765,15 +2159,19 @@
 
             const points = WS.pointsForWord(pw.word.length, streak);
             score += points;
+            if (labyrinthMode === 'blitz_attack') {
+                blitzRemainingMs += 5000;
+            }
 
             const centerCell = pw.cells[Math.floor(pw.cells.length / 2)];
-            spawnFloatingScore(centerCell.r, centerCell.c, `+${points}${streak > 1 ? ' (x' + streak + ')' : ''}`);
+            spawnFloatingScore(centerCell.r, centerCell.c, `+${points}${streak > 1 ? ' (x' + streak + ')' : ''}${labyrinthMode === 'blitz_attack' ? ' +5s' : ''}`);
 
             const color = wordColors[pw.word] || themeAccent;
             pw.cells.forEach(c => spawnCellParticles(c.r, c.c, color));
 
             const chip = document.getElementById(`chip-${pw.word}`);
             if (chip) {
+                chip.innerHTML = `<span>●</span> ${pw.word}`;
                 chip.classList.add('found');
                 chip.style.color = color;
                 chip.style.borderColor = color;
@@ -1783,12 +2181,19 @@
             pw.cells.forEach(c => {
                 const el = wordGrid.querySelector(`.grid-cell[data-r="${c.r}"][data-c="${c.c}"]`);
                 if (el) {
+                    el.classList.remove('fog-hidden');
                     el.classList.add('found-cell');
                     el.style.color = color;
                 }
             });
 
             updateHUD();
+            if (labyrinthMode === 'hidden_message' || labyrinthMode === 'ai_duel') {
+                updateWordInfoBanner();
+            } else {
+                const def = WORD_DEFINITIONS[pw.word] || `Captured "${pw.word}" (${pw.word.length} letters, +${points} pts, streak x${streak}).`;
+                updateWordInfoBanner(`✨ ${pw.word}: ${def}`, `+${points} PTS`);
+            }
 
             if (foundWords.size === placedWords.length) {
                 setTimeout(handleVictory, 400);
@@ -1838,10 +2243,16 @@
                 if (foundWords.has(pw.word)) return;
                 revealedWords.add(pw.word);
                 const chip = document.getElementById(`chip-${pw.word}`);
-                if (chip) chip.classList.add('revealed');
+                if (chip) {
+                    chip.innerHTML = `<span>●</span> ${pw.word}`;
+                    chip.classList.add('revealed');
+                }
                 pw.cells.forEach(c => {
                     const el = wordGrid.querySelector(`.grid-cell[data-r="${c.r}"][data-c="${c.c}"]`);
-                    if (el) el.classList.add('revealed-cell');
+                    if (el) {
+                        el.classList.remove('fog-hidden');
+                        el.classList.add('revealed-cell');
+                    }
                 });
             });
             giveUpText.textContent = 'Give Up';
@@ -1851,7 +2262,18 @@
             showToast('Board revealed. Press N for a new puzzle');
         }
 
-        // Hint Logic
+        function compassArrowForCells(cells) {
+            if (!cells || cells.length < 2) return '→';
+            const dr = Math.sign(cells[1].r - cells[0].r);
+            const dc = Math.sign(cells[1].c - cells[0].c);
+            const map = {
+                '0,1': '→ (E)', '1,1': '↘ (SE)', '1,0': '↓ (S)', '1,-1': '↙ (SW)',
+                '0,-1': '← (W)', '-1,-1': '↖ (NW)', '-1,0': '↑ (N)', '-1,1': '↗ (NE)'
+            };
+            return map[`${dr},${dc}`] || '→';
+        }
+
+        // Hint Logic (with Compass Direction Beacon)
         function triggerHintForWord(targetPw = null) {
             if (!gameActive || gameWon || pauseReasons.size) return;
             if (hintsLeft <= 0) { showToast('No hints left this puzzle'); return; }
@@ -1871,6 +2293,7 @@
             const firstCell = target.cells[0];
             const cellEl = wordGrid.querySelector(`.grid-cell[data-r="${firstCell.r}"][data-c="${firstCell.c}"]`);
             if (cellEl) {
+                cellEl.classList.remove('fog-hidden');
                 cellEl.classList.add('hint-pulse');
                 setTimeout(() => cellEl.classList.remove('hint-pulse'), 3500);
             }
@@ -1881,6 +2304,54 @@
                 chip.classList.add('hinted');
                 setTimeout(() => chip.classList.remove('hinted'), 3500);
             }
+
+            const arrow = compassArrowForCells(target.cells);
+            updateWordInfoBanner(`🧭 Compass Hint: "${target.word}" starts at Row ${firstCell.r + 1}, Col ${firstCell.c + 1} heading ${arrow}`, 'COMPASS');
+        }
+
+        // Lexical Gadget 1: Laser Row/Column Scanner
+        function triggerLaserReveal() {
+            if (!gameActive || gameWon || pauseReasons.size) return;
+            if (laserUsesLeft <= 0) { showToast('No Laser Scans remaining this puzzle'); return; }
+            const unfound = placedWords.filter(pw => !foundWords.has(pw.word));
+            if (!unfound.length) return;
+            laserUsesLeft--;
+            const target = unfound[Math.floor(Math.random() * unfound.length)];
+            const start = target.cells[0];
+            SFX.hint();
+            wordGrid.querySelectorAll('.grid-cell').forEach(el => {
+                const r = parseInt(el.dataset.r, 10);
+                const c = parseInt(el.dataset.c, 10);
+                if (r === start.r || c === start.c) {
+                    el.classList.remove('fog-hidden');
+                    el.classList.add('laser-flash');
+                    setTimeout(() => el.classList.remove('laser-flash'), 1800);
+                }
+            });
+            updateWordInfoBanner(`🔦 Laser Crosshair: "${target.word}" intersects Row ${start.r + 1} & Col ${start.c + 1}!`, 'LASER SCAN');
+            showToast(`🔦 Laser scanned Row ${start.r + 1} / Col ${start.c + 1}`);
+        }
+
+        // Lexical Gadget 2: Decoy Cell Scrubber
+        function triggerDecoyScrub() {
+            if (!gameActive || gameWon || pauseReasons.size) return;
+            if (decoyScrubUsesLeft <= 0) { showToast('Decoy Scrubber already used this puzzle'); return; }
+            decoyScrubUsesLeft--;
+            const usedCoords = new Set();
+            placedWords.forEach(pw => pw.cells.forEach(c => usedCoords.add(`${c.r},${c.c}`)));
+            const decoys = [];
+            wordGrid.querySelectorAll('.grid-cell').forEach(el => {
+                const key = `${el.dataset.r},${el.dataset.c}`;
+                if (!usedCoords.has(key) && !el.classList.contains('decoy-dimmed')) {
+                    decoys.push(el);
+                }
+            });
+            decoys.sort(() => Math.random() - 0.5);
+            const scrubCount = Math.max(4, Math.floor(decoys.length * 0.35));
+            decoys.slice(0, scrubCount).forEach(el => el.classList.add('decoy-dimmed'));
+            SFX.hint();
+            updateWordInfoBanner(`📡 Decoy Scrubber dimmed ${Math.min(scrubCount, decoys.length)} non-word filler tiles!`, 'SCRUBBED');
+            showToast(`📡 Scrubbed ${Math.min(scrubCount, decoys.length)} decoy letters`);
         }
 
         // Visual FX: Floating score text
@@ -1929,6 +2400,10 @@
 
         window.addEventListener('mousemove', (e) => {
             if (isDragging) moveDrag(e.clientX, e.clientY);
+            else if (labyrinthMode === 'fog_flashlight') {
+                const hc = getCellCoordsFromClientXY(e.clientX, e.clientY);
+                if (hc) updateFogFlashlight(hc);
+            }
         });
 
         window.addEventListener('mouseup', () => {
@@ -2018,11 +2493,6 @@
 
         function drawWordCapsule(cells, cellSize, color, alpha, pulsing = false) {
             if (cells.length < 1) return;
-            const startX = (cells[0].c + 0.5) * cellSize;
-            const startY = (cells[0].r + 0.5) * cellSize;
-            const endX = (cells[cells.length - 1].c + 0.5) * cellSize;
-            const endY = (cells[cells.length - 1].r + 0.5) * cellSize;
-
             const radius = cellSize * 0.44;
 
             vCtx.save();
@@ -2037,8 +2507,10 @@
             }
 
             vCtx.beginPath();
-            vCtx.moveTo(startX, startY);
-            vCtx.lineTo(endX, endY);
+            vCtx.moveTo((cells[0].c + 0.5) * cellSize, (cells[0].r + 0.5) * cellSize);
+            for (let i = 1; i < cells.length; i++) {
+                vCtx.lineTo((cells[i].c + 0.5) * cellSize, (cells[i].r + 0.5) * cellSize);
+            }
             vCtx.stroke();
 
             // Inner bright core
@@ -2104,9 +2576,11 @@
         // =====================================================
         // 11. CONTROLS, FULLSCREEN, & MODALS
         // =====================================================
-        newGameBtn.addEventListener('click', initNewGame);
-        nextGameBtn.addEventListener('click', initNewGame);
+        newGameBtn.addEventListener('click', () => { customWordList = null; initNewGame(); });
+        nextGameBtn.addEventListener('click', () => { customWordList = null; initNewGame(); });
         hintBtn.addEventListener('click', () => triggerHintForWord());
+        if (laserRevealBtn) laserRevealBtn.addEventListener('click', triggerLaserReveal);
+        if (decoyScrubBtn) decoyScrubBtn.addEventListener('click', triggerDecoyScrub);
         exportBtn.addEventListener('click', exportPuzzlePNG);
         replayBtn.addEventListener('click', replayGame);
         dailyBtn.addEventListener('click', startDaily);
@@ -2116,6 +2590,49 @@
         statsBtn.addEventListener('click', toggleStats);
         statsClose.addEventListener('click', toggleStats);
         statsModal.addEventListener('click', (e) => { if (e.target === statsModal) toggleStats(); });
+
+        if (gameModeSelect) {
+            gameModeSelect.addEventListener('change', () => {
+                selectLabyrinthMode(gameModeSelect.value);
+                gameModeSelect.blur();
+            });
+        }
+        if (wsModeRibbon) {
+            wsModeRibbon.querySelectorAll('.ws-mode-pill').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    selectLabyrinthMode(btn.dataset.wsmode);
+                });
+            });
+        }
+
+        function toggleCustomPuzzleModal() {
+            if (!customPuzzleModal) return;
+            customPuzzleModal.style.display = customPuzzleModal.style.display === 'flex' ? 'none' : 'flex';
+            syncModalPause();
+        }
+        if (customPuzzleBtn) customPuzzleBtn.addEventListener('click', toggleCustomPuzzleModal);
+        if (customPuzzleClose) customPuzzleClose.addEventListener('click', toggleCustomPuzzleModal);
+        if (customPuzzleCancel) customPuzzleCancel.addEventListener('click', toggleCustomPuzzleModal);
+        if (customPuzzleModal) {
+            customPuzzleModal.addEventListener('click', (e) => {
+                if (e.target === customPuzzleModal) toggleCustomPuzzleModal();
+            });
+        }
+        if (customPuzzleApply) {
+            customPuzzleApply.addEventListener('click', () => {
+                const raw = (customWordsInput ? customWordsInput.value : '') || '';
+                const words = raw.split(/[\s,;\n]+/).map(w => w.trim().toUpperCase().replace(/[^A-Z]/g, '')).filter(w => w.length >= 3);
+                if (words.length < 3) {
+                    showToast('Enter at least 3 valid words (3+ letters each)');
+                    return;
+                }
+                customWordList = words;
+                customPuzzleModal.style.display = 'none';
+                syncModalPause();
+                initNewGame();
+                showToast(`✏️ Custom puzzle generated with ${words.length} words!`);
+            });
+        }
 
         let resetArmedUntil = 0;
         resetStatsBtn.addEventListener('click', () => {
@@ -2134,6 +2651,7 @@
         });
 
         categoryQuickBtn.addEventListener('click', () => {
+            customWordList = null;
             const keys = Object.keys(CATEGORIES);
             settings.category = keys[(keys.indexOf(settings.category) + 1) % keys.length];
             categorySelect.value = settings.category;
@@ -2142,6 +2660,7 @@
         });
 
         categorySelect.addEventListener('change', () => {
+            customWordList = null;
             settings.category = categorySelect.value;
             persist();
             initNewGame();
@@ -2186,16 +2705,25 @@
         document.addEventListener('visibilitychange', () => setPauseReason('hidden', document.hidden));
 
         // Keyboard shortcuts (plain keys only; never while typing in a control)
+        const MODE_KEYS = ['classic', 'boggle_snake', 'cryptic_clues', 'anagram_scramble', 'hidden_message', 'fog_flashlight', 'blitz_attack', 'ai_duel'];
         document.addEventListener('keydown', (e) => {
             if (e.metaKey || e.ctrlKey || e.altKey) return;
             const tag = (e.target && e.target.tagName) || '';
             if (tag === 'SELECT' || tag === 'INPUT' || tag === 'TEXTAREA') return;
             const k = (e.key || '').toLowerCase();
             if (e.key === 'Escape') { closeModals(); return; }
-            if (k === 'n') initNewGame();
+            if (k >= '1' && k <= '8') {
+                selectLabyrinthMode(MODE_KEYS[parseInt(k, 10) - 1]);
+                e.preventDefault();
+                return;
+            }
+            if (k === 'n') { customWordList = null; initNewGame(); }
             else if (k === 'r') replayGame();
             else if (k === 'd') startDaily();
             else if (k === 'h') triggerHintForWord();
+            else if (k === 'e') triggerLaserReveal();
+            else if (k === 'f') triggerDecoyScrub();
+            else if (k === 'c') toggleCustomPuzzleModal();
             else if (k === 'p') togglePause();
             else if (k === 'g') giveUp();
             else if (k === 'm') soundToggle.click();
