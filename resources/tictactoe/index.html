@@ -441,6 +441,44 @@
             z-index: 999;
         }
 
+        .cell {
+            translate: 0px 0px;
+            rotate: 0deg;
+            scale: 1;
+        }
+
+        .cell:hover:not(.taken) {
+            scale: 1.04;
+        }
+
+        .cell.decaying-mark {
+            border-color: var(--neon-yellow) !important;
+            box-shadow: 0 0 18px rgba(255, 212, 59, 0.55), inset 0 0 12px rgba(255, 212, 59, 0.25);
+            animation: decayPulse 0.9s ease-in-out infinite alternate;
+        }
+
+        @keyframes decayPulse {
+            from { opacity: 0.92; scale: 0.98; }
+            to { opacity: 0.48; scale: 0.92; }
+        }
+
+        .glyph-svg {
+            width: 58%;
+            height: 58%;
+            overflow: visible;
+            pointer-events: none;
+        }
+
+        .glyph-svg path, .glyph-svg circle {
+            stroke-dasharray: 220;
+            stroke-dashoffset: 220;
+            animation: glyphDraw 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes glyphDraw {
+            to { stroke-dashoffset: 0; }
+        }
+
         /* Responsive */
         @media (max-width: 420px) {
             .board-grid {
@@ -509,6 +547,14 @@
                     <option value="O">O (Pink)</option>
                 </select>
             </div>
+
+            <div class="setting-item">
+                <span class="setting-label">Rules:</span>
+                <select id="variantSelect" class="select-field" aria-label="Game Rules Variant">
+                    <option value="classic" selected>Classic 3x3</option>
+                    <option value="infinity">⚡ Infinity Decay (No Draws)</option>
+                </select>
+            </div>
         </div>
 
         <!-- Scoreboard -->
@@ -518,7 +564,7 @@
                 <span class="score-number" id="scoreX">0</span>
             </div>
             <div class="score-card" id="cardDraw">
-                <span class="score-title draw">DRAWS</span>
+                <span class="score-title draw">DRAWS · 🔥<span id="streakCount">0</span></span>
                 <span class="score-number" id="scoreDraw">0</span>
             </div>
             <div class="score-card" id="cardO">
@@ -625,16 +671,38 @@
         function launchConfetti() {
             confettiParticles = [];
             const colors = ['#00f0ff', '#ff0077', '#00ff9d', '#ffd43b', '#ffffff'];
-            for (let i = 0; i < 70; i++) {
+            for (let i = 0; i < 85; i++) {
                 confettiParticles.push({
                     x: window.innerWidth / 2,
                     y: window.innerHeight / 2,
-                    vx: (Math.random() - 0.5) * 14,
-                    vy: (Math.random() - 0.5) * 14 - 3,
+                    vx: (Math.random() - 0.5) * 15,
+                    vy: (Math.random() - 0.5) * 15 - 3.5,
                     size: 4 + Math.random() * 6,
                     color: colors[Math.floor(Math.random() * colors.length)],
                     alpha: 1,
-                    decay: 0.012 + Math.random() * 0.01
+                    decay: 0.011 + Math.random() * 0.01
+                });
+            }
+            if (!confettiAnimId) animateConfetti();
+        }
+
+        function spawnCellSparks(cellEl, color) {
+            if (!cellEl || !cellEl.getBoundingClientRect) return;
+            const rect = cellEl.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            for (let i = 0; i < 20; i++) {
+                const angle = (Math.PI * 2 * i) / 20 + (Math.random() - 0.5) * 0.3;
+                const speed = 1.5 + Math.random() * 5.5;
+                confettiParticles.push({
+                    x: cx,
+                    y: cy,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    size: 3 + Math.random() * 3.5,
+                    color,
+                    alpha: 1,
+                    decay: 0.025 + Math.random() * 0.015
                 });
             }
             if (!confettiAnimId) animateConfetti();
@@ -687,6 +755,9 @@
         let aiSymbol = 'O';
         let gameMode = 'ai'; // 'ai' or 'pvp'
         let aiDifficulty = 'medium'; // 'easy', 'medium', 'master'
+        let gameVariant = 'classic'; // 'classic' or 'infinity'
+        let moveQueues = { X: [], O: [] };
+        let winStreak = 0;
         let gameActive = true;
 
         let scores = {
@@ -767,16 +838,51 @@
             }
         }
 
+        function renderCellGlyph(cell, player) {
+            if (player === 'X') {
+                cell.innerHTML = `<svg class="glyph-svg" viewBox="0 0 64 64" aria-label="X"><path d="M12 12 L52 52 M52 12 L12 52" stroke="var(--neon-blue)" stroke-width="8" stroke-linecap="round" fill="none" style="filter:drop-shadow(0 0 8px var(--neon-blue));"/></svg>`;
+            } else if (player === 'O') {
+                cell.innerHTML = `<svg class="glyph-svg" viewBox="0 0 64 64" aria-label="O"><circle cx="32" cy="32" r="20" stroke="var(--neon-pink)" stroke-width="8" fill="none" style="filter:drop-shadow(0 0 8px var(--neon-pink));"/></svg>`;
+            } else {
+                cell.textContent = '';
+            }
+        }
+
+        function refreshDecayWarnings() {
+            cells.forEach(c => c.classList.remove('decaying-mark'));
+            if (gameVariant !== 'infinity' || !gameActive) return;
+            const q = moveQueues[currentPlayer];
+            if (q && q.length >= 3) {
+                const oldestIdx = q[0];
+                if (cells[oldestIdx]) cells[oldestIdx].classList.add('decaying-mark');
+            }
+        }
+
         function makeMove(idx, player) {
             if (board[idx] !== '' || !gameActive) return false;
 
+            // In Infinity Decay mode, if player already has 3 marks, vaporize the oldest mark!
+            if (gameVariant === 'infinity' && moveQueues[player].length >= 3) {
+                const expiredIdx = moveQueues[player].shift();
+                board[expiredIdx] = '';
+                const oldCell = cells[expiredIdx];
+                if (oldCell) {
+                    spawnCellSparks(oldCell, '#ffd43b');
+                    oldCell.innerHTML = '';
+                    oldCell.className = 'cell';
+                }
+            }
+
             board[idx] = player;
+            moveQueues[player].push(idx);
             const cell = cells[idx];
-            cell.textContent = player;
+            renderCellGlyph(cell, player);
             cell.classList.add('taken', player.toLowerCase());
+            spawnCellSparks(cell, player === 'X' ? '#00f0ff' : '#ff0077');
 
             const winResult = checkWinner(board);
             if (winResult) {
+                cells.forEach(c => c.classList.remove('decaying-mark'));
                 endRound(winResult);
                 return true;
             }
@@ -787,6 +893,7 @@
             }
 
             currentPlayer = (player === 'X') ? 'O' : 'X';
+            refreshDecayWarnings();
             updateStatusUI();
 
             if (gameMode === 'ai' && currentPlayer === aiSymbol && gameActive) {
@@ -857,15 +964,19 @@
 
                 const isHumanWin = (gameMode === 'pvp') || (winner === humanSymbol);
                 if (isHumanWin) {
+                    winStreak++;
                     SFX.win();
                     launchConfetti();
                     statusText.textContent = gameMode === 'pvp' ? `Player ${winner} Victorious!` : `Victory! You Win!`;
                     statusDot.style.background = 'var(--neon-green)';
                 } else {
+                    winStreak = 0;
                     SFX.draw();
                     statusText.textContent = `Neon AI Claims Victory!`;
                     statusDot.style.background = 'var(--neon-pink)';
                 }
+                const streakEl = document.getElementById('streakCount');
+                if (streakEl) streakEl.textContent = String(winStreak);
             }
 
             updateScoreboardUI();
@@ -986,15 +1097,17 @@
         // --- Restart & Reset ---
         function resetRound() {
             board = Array(9).fill('');
+            moveQueues = { X: [], O: [] };
             gameActive = true;
             winningSvg.style.display = 'none';
 
             cells.forEach(c => {
-                c.textContent = '';
+                c.innerHTML = '';
                 c.className = 'cell';
             });
 
             currentPlayer = 'X';
+            refreshDecayWarnings();
             updateStatusUI();
 
             if (gameMode === 'ai' && currentPlayer === aiSymbol) {
@@ -1047,6 +1160,14 @@
             updateScoreboardUI();
             resetRound();
         });
+
+        const variantSelect = document.getElementById('variantSelect');
+        if (variantSelect) {
+            variantSelect.addEventListener('change', () => {
+                gameVariant = variantSelect.value;
+                resetRound();
+            });
+        }
 
         soundToggle.addEventListener('click', () => {
             soundEnabled = !soundEnabled;

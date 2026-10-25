@@ -16,6 +16,7 @@ import { existsSync, promises as fsp, readFileSync, realpathSync } from "fs";
 import * as nodePath from "path";
 import { gunzip } from "zlib";
 import { guardLocalRequest, readClipboardTextSync, writeClipboardSync } from "../../localGuard";
+import { injectGameMasterFx } from "../../shared/gameMasterFx";
 import { absolutePath, createContext, pathApi, type FmContext, type FmContextOptions, type FmHandler } from "./fmCore";
 import { codeOperations } from "./fmCodeOps";
 import { checkOperations } from "./fmCheckOps";
@@ -595,7 +596,9 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
       }
       const at = html.lastIndexOf("</head>");
       const styleTweak = `<style>${app.hideCss}</style>`;
-      return new Response(at >= 0 ? html.slice(0, at) + styleTweak + html.slice(at) : html + styleTweak, { headers });
+      let finalHtml = at >= 0 ? html.slice(0, at) + styleTweak + html.slice(at) : html + styleTweak;
+      finalHtml = injectGameMasterFx(finalHtml);
+      return new Response(finalHtml, { headers });
     }
     return new Response(Bun.file(realFile), { headers });
   }

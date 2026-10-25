@@ -1270,7 +1270,16 @@
     }
 
     function shatterBrick(b) {
-      const count = 12;
+      if (!window._breakoutShockwaves) window._breakoutShockwaves = [];
+      window._breakoutShockwaves.push({
+        x: b.x + b.w / 2,
+        y: b.y + b.h / 2,
+        r: 6,
+        maxR: b.isExplosive ? 115 : 48,
+        alpha: 0.85,
+        color: b.isExplosive ? "#f97316" : b.color
+      });
+      const count = 14;
       for (let i = 0; i < count; i++) {
         particles.push({
           x: b.x + Math.random() * b.w,
@@ -1620,6 +1629,36 @@
 
         ctx.restore();
       });
+
+      // Draw Shockwave Rings & Combo Fever Rim
+      if (comboMultiplier >= 5) {
+        ctx.save();
+        ctx.strokeStyle = comboMultiplier >= 10 ? "rgba(250, 204, 21, 0.45)" : "rgba(236, 72, 153, 0.35)";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(2, 2, W - 4, H - 4);
+        ctx.restore();
+      }
+      if (window._breakoutShockwaves) {
+        for (let i = window._breakoutShockwaves.length - 1; i >= 0; i--) {
+          const sw = window._breakoutShockwaves[i];
+          sw.r += (sw.maxR - sw.r) * 0.18 + 1.5;
+          sw.alpha *= 0.87;
+          if (sw.alpha <= 0.03) {
+            window._breakoutShockwaves.splice(i, 1);
+            continue;
+          }
+          ctx.save();
+          ctx.globalAlpha = sw.alpha;
+          ctx.strokeStyle = sw.color;
+          ctx.lineWidth = 2.2;
+          ctx.shadowColor = sw.color;
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
 
       // Draw Particles
       particles.forEach(p => {

@@ -22,7 +22,16 @@ export function guardLocalRequest(req: Request): Response | null {
   }
   const fetchSite = (req.headers.get("sec-fetch-site") || "").toLowerCase();
   if (fetchSite === "cross-site") {
-    return new Response("Forbidden: cross-site request blocked", { status: 403 });
+    let pathname = "";
+    try {
+      pathname = new URL(req.url).pathname;
+    } catch {}
+    const isEmbeddedAppRoute = pathname.startsWith("/app/");
+    const isSafePageOrStaticGet =
+      (req.method === "GET" || req.method === "HEAD") && !pathname.startsWith("/api/");
+    if (!isEmbeddedAppRoute && !isSafePageOrStaticGet) {
+      return new Response("Forbidden: cross-site request blocked", { status: 403 });
+    }
   }
   return null;
 }

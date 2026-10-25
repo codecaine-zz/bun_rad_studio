@@ -462,6 +462,24 @@
                     <option value="11">First to 11</option>
                 </select>
             </div>
+
+            <div class="panel-group">
+                <span class="panel-label">Arena:</span>
+                <select id="arenaThemeSelect" class="select-pill" aria-label="Arena Visual Theme">
+                    <option value="cyber" selected>⚡ Cyber Neon</option>
+                    <option value="synthwave">🌆 Synthwave Sunset</option>
+                    <option value="matrix">🟢 Matrix Grid</option>
+                    <option value="solar">🔥 Solar Reactor</option>
+                </select>
+            </div>
+
+            <div class="panel-group">
+                <span class="panel-label">Mutators:</span>
+                <select id="powerupsToggleSelect" class="select-pill" aria-label="Arena Power-Ups">
+                    <option value="on" selected>⚡ Power-Ups ON</option>
+                    <option value="off">Classic Pure</option>
+                </select>
+            </div>
         </div>
 
         <!-- Scoreboard -->
@@ -471,7 +489,10 @@
                 <span class="score-val" id="player1Score">0</span>
             </div>
 
-            <div class="score-divider">VS</div>
+            <div class="score-divider">
+                <div>VS</div>
+                <div id="rallyBadge" style="font-size:0.68rem;color:#00f0ff;letter-spacing:0.08em;margin-top:2px;">RALLY: <span id="rallyCount">0</span> · <span id="ballSpeedVal">100%</span></div>
+            </div>
 
             <div class="score-side">
                 <span class="player-label p2" id="p2Label">NEON AI</span>
@@ -633,23 +654,72 @@
             trail: []
         };
 
-        // Particles System
+        // Particles, Shockwaves & Power-Ups System
         let particles = [];
+        let shockwaves = [];
+        let powerUpOrbs = [];
+        let floatingTexts = [];
+        let arenaTheme = 'cyber';
+        let powerUpsEnabled = true;
+        let rallyHits = 0;
+        let maxRallyHits = 0;
+        let screenShake = 0;
+        let lastHitter = 1;
+        let reactorAngle = 0;
+
+        const ARENA_THEMES = {
+            cyber: { bgTop: '#050712', bgBot: '#090d1e', grid: 'rgba(0, 240, 255, 0.07)', net: 'rgba(0, 240, 255, 0.38)', p1: '#00f0ff', p2: '#ff0077' },
+            synthwave: { bgTop: '#160524', bgBot: '#290936', grid: 'rgba(255, 0, 128, 0.11)', net: 'rgba(255, 190, 11, 0.45)', p1: '#00f5d4', p2: '#ff007f' },
+            matrix: { bgTop: '#020f06', bgBot: '#041b0b', grid: 'rgba(0, 255, 102, 0.09)', net: 'rgba(0, 255, 102, 0.4)', p1: '#00ff66', p2: '#a3ff00' },
+            solar: { bgTop: '#180702', bgBot: '#260b04', grid: 'rgba(255, 145, 0, 0.09)', net: 'rgba(255, 200, 0, 0.42)', p1: '#ffaa00', p2: '#ff0055' }
+        };
+
+        const rallyCountEl = document.getElementById('rallyCount');
+        const ballSpeedValEl = document.getElementById('ballSpeedVal');
+        const arenaThemeSelect = document.getElementById('arenaThemeSelect');
+        const powerupsToggleSelect = document.getElementById('powerupsToggleSelect');
+
         function createSparks(x, y, color, count = 16) {
             for (let i = 0; i < count; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const speed = 1 + Math.random() * 5;
+                const speed = 1 + Math.random() * 5.8;
                 particles.push({
                     x,
                     y,
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed,
-                    size: 2 + Math.random() * 3,
+                    size: 2 + Math.random() * 3.5,
                     color: color,
                     alpha: 1,
-                    life: 18 + Math.floor(Math.random() * 15)
+                    life: 18 + Math.floor(Math.random() * 18)
                 });
             }
+        }
+
+        function createShockwave(x, y, color, maxR = 65) {
+            shockwaves.push({ x, y, r: 6, maxR, alpha: 0.85, color });
+        }
+
+        function spawnFloatingText(text, x, y, color = '#00f0ff') {
+            floatingTexts.push({ text, x, y, vy: -1.3, alpha: 1, color });
+        }
+
+        function maybeSpawnPowerUpOrb() {
+            if (!powerUpsEnabled || powerUpOrbs.length >= 2) return;
+            const types = [
+                { type: 'mega', label: '🛡️ MEGA PADDLE', color: '#00f0ff', symbol: '🛡️' },
+                { type: 'fireball', label: '🔥 FIREBALL SMASH', color: '#ff5500', symbol: '🔥' },
+                { type: 'curve', label: '🌀 PLASMA CURVE', color: '#c77dff', symbol: '🌀' },
+                { type: 'surge', label: '⚡ OVERCLOCK', color: '#ffd700', symbol: '⚡' }
+            ];
+            const pick = types[Math.floor(Math.random() * types.length)];
+            powerUpOrbs.push({
+                x: BASE_WIDTH * (0.35 + Math.random() * 0.3),
+                y: 65 + Math.random() * (BASE_HEIGHT - 130),
+                r: 16,
+                pulse: 0,
+                ...pick
+            });
         }
 
         // Input Tracking
@@ -736,12 +806,26 @@
             ball.x = BASE_WIDTH / 2;
             ball.y = BASE_HEIGHT / 2;
             ball.speed = 6.5;
+            ball.fireball = false;
+            ball.curveSpin = 0;
+            rallyHits = 0;
+            p1.h = paddleHeight;
+            p2.h = paddleHeight;
+            updateRallyHud();
 
             // Random initial launch angle (-35 to +35 degrees)
             const angle = (Math.random() * 0.8 - 0.4) * Math.PI / 2;
             ball.vx = direction * ball.speed * Math.cos(angle);
             ball.vy = ball.speed * Math.sin(angle);
             ball.trail = [];
+        }
+
+        function updateRallyHud() {
+            if (rallyCountEl) rallyCountEl.textContent = String(rallyHits);
+            if (ballSpeedValEl) {
+                const pct = Math.round((ball.speed / 6.5) * 100);
+                ballSpeedValEl.textContent = pct + '%';
+            }
         }
 
         // AI Logic
@@ -812,65 +896,132 @@
             }
 
             // Ball Trail
-            ball.trail.push({ x: ball.x, y: ball.y });
-            if (ball.trail.length > 8) ball.trail.shift();
+            ball.trail.push({ x: ball.x, y: ball.y, speed: ball.speed, fireball: !!ball.fireball });
+            if (ball.trail.length > 14) ball.trail.shift();
+
+            // Curve spin physics
+            if (ball.curveSpin) {
+                ball.vy += ball.curveSpin;
+            }
 
             // Ball Movement
             ball.x += ball.vx;
             ball.y += ball.vy;
+            reactorAngle += 0.02 + (ball.speed - 6.5) * 0.004;
+            if (screenShake > 0) screenShake *= 0.84;
+            if (screenShake < 0.2) screenShake = 0;
+
+            // Spawn power-ups periodically during active rallies
+            if (powerUpsEnabled && Math.random() < 0.0045) {
+                maybeSpawnPowerUpOrb();
+            }
+
+            // Check Power-Up Orb Collection
+            for (let i = powerUpOrbs.length - 1; i >= 0; i--) {
+                const orb = powerUpOrbs[i];
+                orb.pulse += 0.08;
+                const dx = ball.x - orb.x;
+                const dy = ball.y - orb.y;
+                if (Math.hypot(dx, dy) <= ball.r + orb.r) {
+                    const owner = lastHitter === 1 ? p1 : p2;
+                    createSparks(orb.x, orb.y, orb.color, 26);
+                    createShockwave(orb.x, orb.y, orb.color, 85);
+                    spawnFloatingText(orb.label, orb.x, orb.y - 12, orb.color);
+                    playSynthTone(880, 'sine', 0.14, 0.2);
+                    if (orb.type === 'mega') {
+                        owner.h = Math.min(135, owner.h + 36);
+                        clampPaddle(owner);
+                    } else if (orb.type === 'fireball') {
+                        ball.fireball = true;
+                        ball.speed = Math.min(15.5, ball.speed + 1.8);
+                        ball.vx = Math.sign(ball.vx) * ball.speed;
+                        screenShake = 6;
+                    } else if (orb.type === 'curve') {
+                        ball.curveSpin = (Math.random() > 0.5 ? 1 : -1) * 0.16;
+                    } else if (orb.type === 'surge') {
+                        ball.speed = Math.min(15, ball.speed + 1.2);
+                        ball.vx *= 1.15;
+                    }
+                    updateRallyHud();
+                    powerUpOrbs.splice(i, 1);
+                }
+            }
 
             // Wall Collision (Top / Bottom)
             if (ball.y - ball.r <= 0) {
                 ball.y = ball.r;
                 ball.vy = -ball.vy;
                 SFX.wallBounce();
-                createSparks(ball.x, ball.y, '#ffffff', 8);
+                createSparks(ball.x, ball.y, '#ffffff', 10);
+                createShockwave(ball.x, ball.y, '#00f0ff', 36);
             } else if (ball.y + ball.r >= BASE_HEIGHT) {
                 ball.y = BASE_HEIGHT - ball.r;
                 ball.vy = -ball.vy;
                 SFX.wallBounce();
-                createSparks(ball.x, ball.y, '#ffffff', 8);
+                createSparks(ball.x, ball.y, '#ffffff', 10);
+                createShockwave(ball.x, ball.y, '#00f0ff', 36);
             }
 
             // Paddle 1 Collision
             if (ball.vx < 0 && checkPaddleCollision(ball, p1)) {
-                // Calculate impact point (-1 to 1)
                 const impact = (ball.y - (p1.y + p1.h / 2)) / (p1.h / 2);
-                const angle = impact * (Math.PI / 3); // Max 60 deg angle
-                ball.speed = Math.min(ball.speed + 0.35, 14);
+                const angle = impact * (Math.PI / 3);
+                ball.speed = Math.min(ball.speed + 0.38, 15);
                 ball.vx = Math.abs(ball.speed * Math.cos(angle));
                 ball.vy = ball.speed * Math.sin(angle);
                 ball.x = p1.x + p1.w + ball.r;
+                ball.curveSpin = impact * 0.08;
+                lastHitter = 1;
+                rallyHits++;
+                if (rallyHits > maxRallyHits) maxRallyHits = rallyHits;
+                updateRallyHud();
                 SFX.paddleHit();
-                createSparks(ball.x, ball.y, p1.color, 14);
+                createSparks(ball.x, ball.y, p1.color, 18);
+                createShockwave(ball.x, ball.y, p1.color, 55);
+                screenShake = Math.min(7, 2 + (ball.speed - 6.5) * 0.5);
+                if (rallyHits > 0 && rallyHits % 5 === 0) {
+                    spawnFloatingText(`⚡ ${rallyHits} HIT COMBO!`, BASE_WIDTH / 2, 60, '#ffd700');
+                }
             }
 
             // Paddle 2 Collision
             if (ball.vx > 0 && checkPaddleCollision(ball, p2)) {
                 const impact = (ball.y - (p2.y + p2.h / 2)) / (p2.h / 2);
                 const angle = impact * (Math.PI / 3);
-                ball.speed = Math.min(ball.speed + 0.35, 14);
+                ball.speed = Math.min(ball.speed + 0.38, 15);
                 ball.vx = -Math.abs(ball.speed * Math.cos(angle));
                 ball.vy = ball.speed * Math.sin(angle);
                 ball.x = p2.x - ball.r;
+                ball.curveSpin = impact * 0.08;
+                lastHitter = 2;
+                rallyHits++;
+                if (rallyHits > maxRallyHits) maxRallyHits = rallyHits;
+                updateRallyHud();
                 SFX.paddleHit();
-                createSparks(ball.x, ball.y, p2.color, 14);
+                createSparks(ball.x, ball.y, p2.color, 18);
+                createShockwave(ball.x, ball.y, p2.color, 55);
+                screenShake = Math.min(7, 2 + (ball.speed - 6.5) * 0.5);
+                if (rallyHits > 0 && rallyHits % 5 === 0) {
+                    spawnFloatingText(`⚡ ${rallyHits} HIT COMBO!`, BASE_WIDTH / 2, 60, '#ffd700');
+                }
             }
 
             // Scoring
             if (ball.x - ball.r < 0) {
-                // P2 scores
                 p2.score++;
                 p2ScoreEl.textContent = p2.score;
                 SFX.scorePoint();
-                createSparks(p1.x, ball.y, p2.color, 24);
+                createSparks(p1.x, ball.y, p2.color, 32);
+                createShockwave(p1.x + 10, ball.y, p2.color, 110);
+                screenShake = 9;
                 checkMatchEnd(-1);
             } else if (ball.x + ball.r > BASE_WIDTH) {
-                // P1 scores
                 p1.score++;
                 p1ScoreEl.textContent = p1.score;
                 SFX.scorePoint();
-                createSparks(p2.x, ball.y, p1.color, 24);
+                createSparks(p2.x, ball.y, p1.color, 32);
+                createShockwave(p2.x - 10, ball.y, p1.color, 110);
+                screenShake = 9;
                 checkMatchEnd(1);
             }
 
@@ -881,6 +1032,18 @@
                 p.y += p.vy;
                 p.alpha -= 1 / p.life;
                 if (p.alpha <= 0) particles.splice(i, 1);
+            }
+            for (let i = shockwaves.length - 1; i >= 0; i--) {
+                const sw = shockwaves[i];
+                sw.r += (sw.maxR - sw.r) * 0.18 + 1.5;
+                sw.alpha *= 0.87;
+                if (sw.alpha <= 0.03) shockwaves.splice(i, 1);
+            }
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                const ft = floatingTexts[i];
+                ft.y += ft.vy;
+                ft.alpha -= 0.02;
+                if (ft.alpha <= 0) floatingTexts.splice(i, 1);
             }
         }
 
@@ -908,12 +1071,24 @@
 
         // Rendering Engine
         function render() {
-            // Clear Stage
-            ctx.fillStyle = '#07080d';
+            const theme = ARENA_THEMES[arenaTheme] || ARENA_THEMES.cyber;
+            p1.color = theme.p1;
+            p2.color = theme.p2;
+
+            ctx.save();
+            if (screenShake > 0) {
+                ctx.translate((Math.random() - 0.5) * screenShake * 2, (Math.random() - 0.5) * screenShake * 2);
+            }
+
+            // Clear Stage with themed gradient
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, BASE_HEIGHT);
+            bgGrad.addColorStop(0, theme.bgTop);
+            bgGrad.addColorStop(1, theme.bgBot);
+            ctx.fillStyle = bgGrad;
             ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
 
-            // Subtle Grid lines
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            // Perspective Cyber Grid lines
+            ctx.strokeStyle = theme.grid;
             ctx.lineWidth = 1;
             const gridSize = 40;
             for (let x = 0; x < BASE_WIDTH; x += gridSize) {
@@ -929,8 +1104,21 @@
                 ctx.stroke();
             }
 
+            // Center Reactor Ring
+            ctx.save();
+            ctx.translate(BASE_WIDTH / 2, BASE_HEIGHT / 2);
+            ctx.rotate(reactorAngle);
+            ctx.strokeStyle = theme.net;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([14, 10]);
+            ctx.beginPath();
+            ctx.arc(0, 0, 58, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+
             // Center Net
-            ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
+            ctx.strokeStyle = theme.net;
             ctx.lineWidth = 3;
             ctx.setLineDash([8, 12]);
             ctx.beginPath();
@@ -939,34 +1127,87 @@
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // Ball Trail
-            for (let i = 0; i < ball.trail.length; i++) {
-                const pt = ball.trail[i];
-                const alpha = (i + 1) / ball.trail.length * 0.35;
-                ctx.fillStyle = `rgba(0, 255, 157, ${alpha})`;
+            // Power-Up Orbs
+            for (const orb of powerUpOrbs) {
+                const pulseR = orb.r + Math.sin(orb.pulse) * 3;
+                ctx.save();
+                ctx.shadowBlur = 18;
+                ctx.shadowColor = orb.color;
+                ctx.strokeStyle = orb.color;
+                ctx.lineWidth = 2.5;
                 ctx.beginPath();
-                ctx.arc(pt.x, pt.y, ball.r * (0.4 + 0.6 * (i / ball.trail.length)), 0, Math.PI * 2);
+                ctx.arc(orb.x, orb.y, pulseR, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(10, 15, 30, 0.85)';
                 ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(orb.symbol, orb.x, orb.y + 1);
+                ctx.restore();
             }
 
-            // Ball
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = ball.color;
+            // Shockwave Rings
+            for (const sw of shockwaves) {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, sw.alpha);
+                ctx.strokeStyle = sw.color;
+                ctx.lineWidth = 2.5;
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = sw.color;
+                ctx.beginPath();
+                ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Speed-reactive Ball Color
+            const activeBallColor = ball.fireball
+                ? '#ff5500'
+                : ball.speed > 11.5
+                ? '#ffd700'
+                : ball.speed > 9
+                ? '#00f0ff'
+                : '#00ff9d';
+
+            // Comet Ribbon Ball Trail
+            for (let i = 0; i < ball.trail.length; i++) {
+                const pt = ball.trail[i];
+                const ratio = (i + 1) / ball.trail.length;
+                ctx.save();
+                ctx.globalAlpha = ratio * 0.48;
+                ctx.fillStyle = pt.fireball ? '#ff5500' : activeBallColor;
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, ball.r * (0.3 + 0.7 * ratio), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // Ball with Plasma Halo
+            ctx.save();
+            ctx.shadowBlur = ball.fireball ? 26 : 18;
+            ctx.shadowColor = activeBallColor;
+            ctx.fillStyle = activeBallColor;
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.r + 1.5, 0, Math.PI * 2);
+            ctx.fill();
             ctx.fillStyle = '#ffffff';
             ctx.beginPath();
-            ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+            ctx.arc(ball.x, ball.y, ball.r * 0.65, 0, Math.PI * 2);
             ctx.fill();
+            ctx.restore();
 
-            // Paddle 1 (Cyan)
-            ctx.shadowBlur = 18;
+            // Paddle 1 (Player 1)
+            ctx.shadowBlur = 20;
             ctx.shadowColor = p1.color;
             ctx.fillStyle = p1.color;
             ctx.fillRect(p1.x, p1.y, p1.w, p1.h);
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(p1.x + 2, p1.y + 4, p1.w - 4, p1.h - 8);
 
-            // Paddle 2 (Magenta)
-            ctx.shadowBlur = 18;
+            // Paddle 2 (Player 2 / AI)
+            ctx.shadowBlur = 20;
             ctx.shadowColor = p2.color;
             ctx.fillStyle = p2.color;
             ctx.fillRect(p2.x, p2.y, p2.w, p2.h);
@@ -983,6 +1224,21 @@
                 ctx.fill();
             }
             ctx.globalAlpha = 1;
+
+            // Floating Callouts
+            for (const ft of floatingTexts) {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, ft.alpha);
+                ctx.font = 'bold 13px Orbitron, sans-serif';
+                ctx.fillStyle = ft.color;
+                ctx.textAlign = 'center';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = ft.color;
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+            }
+
+            ctx.restore();
         }
 
         function gameLoop() {
@@ -1052,6 +1308,20 @@
         scoreTargetSelect.addEventListener('change', () => {
             targetScore = parseInt(scoreTargetSelect.value);
         });
+
+        if (arenaThemeSelect) {
+            arenaThemeSelect.addEventListener('change', () => {
+                arenaTheme = arenaThemeSelect.value;
+                render();
+            });
+        }
+
+        if (powerupsToggleSelect) {
+            powerupsToggleSelect.addEventListener('change', () => {
+                powerUpsEnabled = powerupsToggleSelect.value === 'on';
+                if (!powerUpsEnabled) powerUpOrbs = [];
+            });
+        }
 
         soundToggle.addEventListener('click', () => {
             soundEnabled = !soundEnabled;

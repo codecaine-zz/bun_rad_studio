@@ -217,6 +217,31 @@ registerPowerTab({
     let activeGame = CODECAINE_GAMES[0];
     let selectedCategory = "All";
     let mode = "catalog"; // "catalog" | "play"
+    let activeShader = "cyber_bloom";
+    const favSet = new Set();
+    let recentIds = [];
+
+    try {
+      const savedFavs = JSON.parse(localStorage.getItem("codecaine_games_favorites") || "[]");
+      if (Array.isArray(savedFavs)) savedFavs.forEach((id) => favSet.add(String(id)));
+      const savedRec = JSON.parse(localStorage.getItem("codecaine_games_recent") || "[]");
+      if (Array.isArray(savedRec)) recentIds = savedRec.map(String).slice(0, 6);
+    } catch {
+      /* storage unavailable */
+    }
+
+    function saveFavorites() {
+      try {
+        localStorage.setItem("codecaine_games_favorites", JSON.stringify([...favSet]));
+      } catch {}
+    }
+
+    function recordRecent(gameId) {
+      recentIds = [gameId, ...recentIds.filter((id) => id !== gameId)].slice(0, 6);
+      try {
+        localStorage.setItem("codecaine_games_recent", JSON.stringify(recentIds));
+      } catch {}
+    }
 
     const picker = h(
       "select",
@@ -253,6 +278,41 @@ registerPowerTab({
         onclick: () => setMode("play"),
       },
       "▶ Play Active Game",
+    );
+
+    const randomGameBtn = h(
+      "button",
+      {
+        type: "button",
+        id: "games-random-btn",
+        class: "pw-btn",
+        title: "Arcade Roulette: Pick and launch a random Codecaine game",
+        onclick: () => {
+          const pool = CODECAINE_GAMES.filter((g) => g.id !== activeGame.id);
+          const pick = pool[Math.floor(Math.random() * pool.length)] || CODECAINE_GAMES[0];
+          playGame(pick);
+        },
+      },
+      "🎲 Random Game",
+    );
+
+    const shaderPicker = h(
+      "select",
+      {
+        id: "games-fx-shader",
+        "aria-label": "Game Master FX Shader Preset",
+        title: "Choose live Game Master post-processing shader preset",
+        onchange: () => {
+          activeShader = shaderPicker.value;
+          syncFrameShader();
+        },
+      },
+      h("option", { value: "cyber_bloom" }, "⚡ Cyber Bloom"),
+      h("option", { value: "crt_arcade" }, "📺 CRT 1984"),
+      h("option", { value: "synthwave" }, "🌆 Synthwave"),
+      h("option", { value: "matrix" }, "🟢 Matrix Grid"),
+      h("option", { value: "golden_vip" }, "👑 Golden VIP"),
+      h("option", { value: "clean" }, "🎯 Esports Raw"),
     );
 
     const closeGameBtn = h(
@@ -310,8 +370,10 @@ registerPowerTab({
       { class: "pw-row embed-bar games-topbar" },
       catalogBtn,
       playBtn,
+      randomGameBtn,
       closeGameBtn,
       h("label", {}, "Active game:", picker),
+      h("label", {}, "FX Shader:", shaderPicker),
       expandBtn,
       windowBtn,
       browserBtn,
@@ -393,8 +455,17 @@ registerPowerTab({
       }
     }
 
+    function syncFrameShader() {
+      try {
+        frame.contentWindow?.postMessage?.({ fmGameMasterFx: activeShader }, "*");
+      } catch {
+        /* frame not ready */
+      }
+    }
+
     frame.addEventListener("load", () => {
       syncFrameTheme(frame);
+      syncFrameShader();
       focusAndResizeFrame();
       if (typeof requestAnimationFrame === "function") {
         requestAnimationFrame(() => focusAndResizeFrame());
@@ -464,12 +535,14 @@ registerPowerTab({
         stopGameFrame();
       }
       activeGame = game;
+      recordRecent(game.id);
       updateActiveButtons();
+      renderCatalog();
       setMode("play");
     }
 
     function renderCategories() {
-      const cats = ["All", "Arcade & Action", "Puzzle & Logic", "Card & Casino", "Word & Skill"];
+      const cats = ["All", "⭐ Favorites", "🕒 Recent", "Arcade & Action", "Puzzle & Logic", "Card & Casino", "Word & Skill"];
       categoryBar.replaceChildren(
         ...cats.map((cat) =>
           h(
@@ -491,6 +564,8 @@ registerPowerTab({
     }
 
     function renderCard(game) {
+      const isFav = favSet.has(game.id);
+      const isRecent = recentIds.includes(game.id);
       return h(
         "article",
         {
@@ -502,7 +577,30 @@ registerPowerTab({
           "div",
           { class: "pw-row game-card-head" },
           h("strong", {}, `${game.icon} ${game.title}`),
-          h("span", { class: "code-badge code-badge-quiet" }, game.category),
+          h(
+            "div",
+            { class: "game-card-badges" },
+            isRecent ? h("span", { class: "game-recent-pill", title: "Recently Played" }, "🕒 Recent") : null,
+            h("span", { class: "code-badge code-badge-quiet" }, game.category),
+            h(
+              "button",
+              {
+                type: "button",
+                class: `game-fav-btn${isFav ? " is-fav" : ""}`,
+                title: isFav ? "Remove from Favorites" : "Add to Favorites",
+                "aria-label": `Favorite ${game.title}`,
+                "aria-pressed": String(isFav),
+                onclick: (e) => {
+                  e.stopPropagation();
+                  if (favSet.has(game.id)) favSet.delete(game.id);
+                  else favSet.add(game.id);
+                  saveFavorites();
+                  renderCatalog();
+                },
+              },
+              isFav ? "★" : "☆",
+            ),
+          ),
         ),
         h("p", { class: "pw-hint" }, game.note),
         h("p", { class: "pw-hint pw-mono game-card-controls" }, `🎮 ${game.controls}`),
@@ -545,7 +643,9 @@ registerPowerTab({
     function renderCatalog() {
       const q = (searchInput.value || "").trim().toLowerCase();
       const filtered = CODECAINE_GAMES.filter((g) => {
-        if (selectedCategory !== "All" && g.category !== selectedCategory) return false;
+        if (selectedCategory === "⭐ Favorites" && !favSet.has(g.id)) return false;
+        if (selectedCategory === "🕒 Recent" && !recentIds.includes(g.id)) return false;
+        if (selectedCategory !== "All" && selectedCategory !== "⭐ Favorites" && selectedCategory !== "🕒 Recent" && g.category !== selectedCategory) return false;
         if (!q) return true;
         return `${g.title} ${g.id} ${g.category} ${g.note} ${g.controls}`.toLowerCase().includes(q);
       });

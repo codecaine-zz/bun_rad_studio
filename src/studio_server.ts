@@ -13,6 +13,7 @@
 import { existsSync } from "fs";
 import { join } from "path";
 import { guardLocalRequest } from "./localGuard";
+import { injectGameMasterFx } from "./shared/gameMasterFx";
 
 export interface StudioServerOptions {
   /** 0 (the default) lets the system pick a free port. */
@@ -59,7 +60,7 @@ export function startStaticStudioServer(config: StaticStudioConfig, options: Stu
       }
 
       if (pathname === "/" || pathname === "/index.html") {
-        return new Response(config.generateHtml(), {
+        return new Response(injectGameMasterFx(config.generateHtml()), {
           headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
         });
       }

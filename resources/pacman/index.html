@@ -1287,6 +1287,15 @@
             if (pacman.x < -8) pacman.x = COLS * TILE_SIZE + 4;
             if (pacman.x > COLS * TILE_SIZE + 8) pacman.x = -4;
 
+            // Record luminous motion trail
+            if (!window._pacTrail) window._pacTrail = [];
+            if (!window._chompParticles) window._chompParticles = [];
+            if (!window._pacShockwaves) window._pacShockwaves = [];
+            if (pacman.dirX !== 0 || pacman.dirY !== 0) {
+                window._pacTrail.push({ x: pacman.x, y: pacman.y, r: pacman.radius * 0.72, alpha: 0.42 });
+                if (window._pacTrail.length > 7) window._pacTrail.shift();
+            }
+
             // Eating dots
             const curTileX = Math.floor(pacman.x / TILE_SIZE);
             const curTileY = Math.floor(pacman.y / TILE_SIZE);
@@ -1297,6 +1306,15 @@
                     score += 10;
                     dotsEaten++;
                     SFX.waka();
+                    for (let s = 0; s < 5; s++) {
+                        const a = Math.random() * Math.PI * 2;
+                        window._chompParticles.push({
+                            x: pacman.x, y: pacman.y,
+                            vx: Math.cos(a) * (1.2 + Math.random() * 1.8),
+                            vy: Math.sin(a) * (1.2 + Math.random() * 1.8),
+                            color: '#ffd43b', alpha: 0.9
+                        });
+                    }
                     updateHUD();
                     checkFruitSpawn();
                     checkLevelClear();
@@ -1305,6 +1323,16 @@
                     score += 50;
                     dotsEaten++;
                     SFX.powerPellet();
+                    window._pacShockwaves.push({ x: pacman.x, y: pacman.y, r: 4, maxR: 95, alpha: 0.9, color: '#00f0ff' });
+                    for (let s = 0; s < 16; s++) {
+                        const a = (Math.PI * 2 * s) / 16;
+                        window._chompParticles.push({
+                            x: pacman.x, y: pacman.y,
+                            vx: Math.cos(a) * 2.8,
+                            vy: Math.sin(a) * 2.8,
+                            color: s % 2 === 0 ? '#00f0ff' : '#ffd43b', alpha: 1
+                        });
+                    }
                     frightenGhosts();
                     updateHUD();
                     checkFruitSpawn();
@@ -1682,9 +1710,12 @@
                     const y = r * TILE_SIZE;
 
                     if (tile === 1) {
+                        const wallStroke = (gameState === 'LEVEL_CLEAR' && Math.floor(levelClearTick / 8) % 2 === 0)
+                            ? '#00ff9d'
+                            : (frightenedTimer > 0 ? '#38bdf8' : '#00f0ff');
                         ctx.fillStyle = 'rgba(0, 240, 255, 0.08)';
                         ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-                        ctx.strokeStyle = '#00f0ff';
+                        ctx.strokeStyle = wallStroke;
                         ctx.strokeRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
                     } else if (tile === 4) {
                         ctx.fillStyle = 'rgba(255, 119, 204, 0.6)';
@@ -1704,6 +1735,77 @@
                         ctx.fill();
                         ctx.shadowBlur = 0;
                     }
+                }
+            }
+
+            // Warp Tunnel Neon Vortex Portals (Row 14 Left & Right Edges)
+            const portalPulse = Math.sin(Date.now() / 140) * 2.5;
+            const portalY = 14 * TILE_SIZE + TILE_SIZE / 2;
+            ctx.save();
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = '#ff0077';
+            ctx.strokeStyle = '#ff0077';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(4, portalY, 7 + portalPulse, -Math.PI / 2, Math.PI / 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(COLS * TILE_SIZE - 4, portalY, 7 + portalPulse, Math.PI / 2, Math.PI * 1.5);
+            ctx.stroke();
+            ctx.restore();
+
+            // Render Power-Pellet Shockwave Rings & Chomp Sparks
+            if (window._pacShockwaves) {
+                for (let i = window._pacShockwaves.length - 1; i >= 0; i--) {
+                    const sw = window._pacShockwaves[i];
+                    sw.r += (sw.maxR - sw.r) * 0.16 + 1.4;
+                    sw.alpha *= 0.88;
+                    if (sw.alpha <= 0.03) {
+                        window._pacShockwaves.splice(i, 1);
+                        continue;
+                    }
+                    ctx.save();
+                    ctx.globalAlpha = sw.alpha;
+                    ctx.strokeStyle = sw.color;
+                    ctx.lineWidth = 2.2;
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = sw.color;
+                    ctx.beginPath();
+                    ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+            if (window._chompParticles) {
+                for (let i = window._chompParticles.length - 1; i >= 0; i--) {
+                    const cp = window._chompParticles[i];
+                    cp.x += cp.vx;
+                    cp.y += cp.vy;
+                    cp.alpha -= 0.045;
+                    if (cp.alpha <= 0.02) {
+                        window._chompParticles.splice(i, 1);
+                        continue;
+                    }
+                    ctx.save();
+                    ctx.globalAlpha = cp.alpha;
+                    ctx.fillStyle = cp.color;
+                    ctx.beginPath();
+                    ctx.arc(cp.x, cp.y, 1.8, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+            if (window._pacTrail && gameState === 'PLAYING') {
+                for (let i = 0; i < window._pacTrail.length; i++) {
+                    const tr = window._pacTrail[i];
+                    const ratio = (i + 1) / window._pacTrail.length;
+                    ctx.save();
+                    ctx.globalAlpha = ratio * 0.24;
+                    ctx.fillStyle = '#ffd43b';
+                    ctx.beginPath();
+                    ctx.arc(tr.x, tr.y, tr.r * ratio, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
                 }
             }
 

@@ -435,6 +435,43 @@
             animation: winPulse 1s infinite alternate;
         }
 
+        .disc {
+            translate: 0px 0px;
+            rotate: 0deg;
+            scale: 1;
+            position: relative;
+        }
+
+        .disc::after {
+            content: '';
+            position: absolute;
+            inset: 22%;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.55);
+            box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.45);
+            pointer-events: none;
+        }
+
+        .board-column.laser-target {
+            background: linear-gradient(180deg, rgba(0, 240, 255, 0.16) 0%, rgba(0, 240, 255, 0.04) 100%);
+            box-shadow: inset 0 0 14px rgba(0, 240, 255, 0.22);
+        }
+
+        .board-cell.landing-preview {
+            box-shadow: inset 0 0 16px rgba(0, 240, 255, 0.72), 0 0 12px rgba(0, 240, 255, 0.45) !important;
+            border-color: rgba(0, 240, 255, 0.85) !important;
+        }
+
+        body[data-c4-theme="synthwave"] {
+            --neon-cyan: #ff007f;
+            --neon-yellow: #00f5d4;
+        }
+
+        body[data-c4-theme="matrix"] {
+            --neon-cyan: #00ff66;
+            --neon-yellow: #ff3366;
+        }
+
         @keyframes winPulse {
             0% { transform: scale(1); filter: brightness(1.1); }
             100% { transform: scale(1.08); filter: brightness(1.4); }
@@ -558,6 +595,15 @@
                     <option value="2">Yellow (P2 - Second)</option>
                 </select>
             </div>
+
+            <div class="setting-item">
+                <span class="setting-label">Theme:</span>
+                <select id="boardThemeSelect" class="select-field" aria-label="Board Theme">
+                    <option value="cyber" selected>⚡ Cyber Cyan/Gold</option>
+                    <option value="synthwave">🌆 Synthwave Pink/Cyan</option>
+                    <option value="matrix">🟢 Matrix Emerald/Red</option>
+                </select>
+            </div>
         </div>
 
         <!-- Scoreboard -->
@@ -567,7 +613,7 @@
                 <span class="score-number" id="scoreP1">0</span>
             </div>
             <div class="score-card" id="cardDraw">
-                <span class="score-title draw">DRAWS</span>
+                <span class="score-title draw">DRAWS · 🔥<span id="streakCount">0</span></span>
                 <span class="score-number" id="scoreDraw">0</span>
             </div>
             <div class="score-card" id="cardP2">
@@ -604,6 +650,7 @@
         <!-- Actions -->
         <div class="bottom-actions">
             <button type="button" class="action-btn" id="restartBtn">NEW ROUND</button>
+            <button type="button" class="action-btn secondary" id="undoMoveBtn" title="Undo Last Move">↩ UNDO</button>
             <button type="button" class="action-btn secondary" id="resetScoresBtn">RESET SCORES</button>
         </div>
     </main>
@@ -675,7 +722,7 @@
         function launchConfetti() {
             confetti = [];
             const colors = ['#00f0ff', '#ffd43b', '#ff0077', '#00ff9d', '#ffffff'];
-            for (let i = 0; i < 80; i++) {
+            for (let i = 0; i < 90; i++) {
                 confetti.push({
                     x: window.innerWidth / 2,
                     y: window.innerHeight / 2,
@@ -684,7 +731,30 @@
                     size: 4 + Math.random() * 6,
                     color: colors[Math.floor(Math.random() * colors.length)],
                     alpha: 1,
-                    decay: 0.012 + Math.random() * 0.008
+                    decay: 0.011 + Math.random() * 0.008
+                });
+            }
+            if (!confettiAnim) animateConfetti();
+        }
+
+        function spawnDiscImpactSparks(cellEl, player) {
+            if (!cellEl || !cellEl.getBoundingClientRect) return;
+            const rect = cellEl.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const color = player === 1 ? '#00f0ff' : '#ffd43b';
+            for (let i = 0; i < 18; i++) {
+                const angle = (Math.PI * 2 * i) / 18 + (Math.random() - 0.5) * 0.35;
+                const speed = 1.6 + Math.random() * 5.2;
+                confetti.push({
+                    x: cx,
+                    y: cy,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 0.8,
+                    size: 3 + Math.random() * 3.5,
+                    color,
+                    alpha: 1,
+                    decay: 0.026 + Math.random() * 0.015
                 });
             }
             if (!confettiAnim) animateConfetti();
@@ -720,6 +790,8 @@
         const COLS = 7;
 
         let grid = []; // 6 rows x 7 cols (0 empty, 1 Player 1 Cyan, 2 Player 2 Yellow)
+        let moveHistory = [];
+        let winStreak = 0;
         let currentPlayer = 1; // 1 or 2
         let humanPlayer = 1;
         let aiPlayer = 2;
@@ -815,15 +887,30 @@
             if (lowest === -1) return;
 
             ghostDiscs.forEach(g => g.classList.remove('visible', 'p1', 'p2'));
+            columnEls.forEach(c => c.classList.remove('laser-target'));
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (cellEls[r] && cellEls[r][c]) cellEls[r][c].classList.remove('landing-preview');
+                }
+            }
+
             const g = ghostDiscs[col];
             if (g) {
                 g.classList.add('visible', currentPlayer === 1 ? 'p1' : 'p2');
+            }
+            if (columnEls[col]) columnEls[col].classList.add('laser-target');
+            if (cellEls[lowest] && cellEls[lowest][col]) {
+                cellEls[lowest][col].classList.add('landing-preview');
             }
         }
 
         function hideGhost(col) {
             if (ghostDiscs[col]) {
                 ghostDiscs[col].classList.remove('visible');
+            }
+            if (columnEls[col]) columnEls[col].classList.remove('laser-target');
+            for (let r = 0; r < ROWS; r++) {
+                if (cellEls[r] && cellEls[r][col]) cellEls[r][col].classList.remove('landing-preview');
             }
         }
 
@@ -895,13 +982,16 @@
 
         function executeMove(row, col, player) {
             grid[row][col] = player;
+            moveHistory.push({ row, col, player });
             SFX.drop();
 
             // Render disc
             const cell = cellEls[row][col];
+            cell.classList.remove('landing-preview');
             const disc = document.createElement('div');
             disc.className = `disc ${player === 1 ? 'p1' : 'p2'} dropping`;
             cell.appendChild(disc);
+            setTimeout(() => spawnDiscImpactSparks(cell, player), 210);
 
             // Update column full style
             if (grid[0][col] !== 0) {
@@ -989,15 +1079,19 @@
 
                 const isHumanWin = (gameMode === 'pvp') || (winner === humanPlayer);
                 if (isHumanWin) {
+                    winStreak++;
                     SFX.win();
                     launchConfetti();
                     statusText.textContent = gameMode === 'pvp' ? `Player ${winner} Claims Victory!` : `Victory! You Connected 4!`;
                     statusDot.style.background = 'var(--neon-green)';
                 } else {
+                    winStreak = 0;
                     SFX.draw();
                     statusText.textContent = `Neon AI Connects 4!`;
                     statusDot.style.background = 'var(--neon-yellow)';
                 }
+                const streakEl = document.getElementById('streakCount');
+                if (streakEl) streakEl.textContent = String(winStreak);
             }
 
             updateScoreboardUI();
@@ -1177,6 +1271,7 @@
         // --- Round Reset ---
         function resetRound() {
             grid = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
+            moveHistory = [];
             gameActive = true;
             currentPlayer = 1; // Cyan starts
 
@@ -1188,6 +1283,21 @@
             if (gameMode === 'ai' && currentPlayer === aiPlayer) {
                 setTimeout(runAIMove, 600);
             }
+        }
+
+        function undoLastMove() {
+            if (!gameActive || moveHistory.length === 0) return;
+            const stepsToUndo = (gameMode === 'ai' && moveHistory.length >= 2 && currentPlayer === humanPlayer) ? 2 : 1;
+            for (let i = 0; i < stepsToUndo; i++) {
+                const last = moveHistory.pop();
+                if (!last) break;
+                grid[last.row][last.col] = 0;
+                const cell = cellEls[last.row][last.col];
+                if (cell) cell.innerHTML = '';
+                columnEls[last.col].classList.remove('column-full');
+                currentPlayer = last.player;
+            }
+            updateStatusUI();
         }
 
         function resetAllScores() {
@@ -1249,6 +1359,14 @@
 
         restartBtn.addEventListener('click', resetRound);
         resetScoresBtn.addEventListener('click', resetAllScores);
+        const undoMoveBtn = document.getElementById('undoMoveBtn');
+        if (undoMoveBtn) undoMoveBtn.addEventListener('click', undoLastMove);
+        const boardThemeSelect = document.getElementById('boardThemeSelect');
+        if (boardThemeSelect) {
+            boardThemeSelect.addEventListener('change', () => {
+                document.body.setAttribute('data-c4-theme', boardThemeSelect.value);
+            });
+        }
 
         // Initialize Board
         buildBoardDOM();

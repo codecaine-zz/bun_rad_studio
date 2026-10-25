@@ -13,6 +13,7 @@ import type { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
 import { existsSync, readFileSync, writeFileSync, renameSync } from "fs";
 import { guardLocalRequest } from "../src/localGuard";
+import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 import {
   setAlwaysOnTopNative,
   setWindowPositionNative,
@@ -188,7 +189,7 @@ ${getWindowShortcutsScript()}
     html += desktopHooks;
   }
 
-  return html;
+  return injectGameMasterFx(html);
 }
 
 /**

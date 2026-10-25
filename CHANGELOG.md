@@ -6,12 +6,18 @@ All notable changes. Version 1.5.1 is the twentieth release (1.0.0, 1.1.0, 1.2.0
 
 ### Added
 
+- **Codecaine Game Master FX & Post-Processing Engine (`src/shared/gameMasterFx.ts`, `Alt+G`).** Add a universal GPU post-processing & particle FX layer across all 24 Codecaine Arcade studios and embedded File Manager games featuring 6 live post-processing shader presets (*Cyber Neon Bloom*, *1989 CRT Scanlines*, *Synthwave Outrun*, *Matrix Phosphor*, *24K Golden VIP*, and *Clean 120Hz*), interactive pointer spark bursts & expanding shockwave rings, ambient floating cyber-dust particles, automatic score/combo floating callouts, screen shake, victory firework cannons, and a collapsible `🕹️ FX` HUD dock (`Alt+G`).
 - **18 New Icon Packs (67 total).** Classic OS (Win95 / Mac OS 9 / Workbench), Game Boy & NES, Art Deco, Bauhaus, Memphis 80s, Neo-Brutalist, Ukiyo-e, Pop-Art Comic, Chalkboard Sketch, Soft Clay 3D, Origami Papercraft, Low-Poly Isometric, Thin Line Duotone, High-Contrast Monochrome / E-Ink, Terminal ASCII TUI, Deep-Sea Bioluminescence, Desert Sandstone and Cottagecore Botanical. Each is wired into the picker, theme editor, settings and theme-pack validation (`scripts/add_icon_packs_batch2.ts`).
 
 ### Improved
 
+- **Deep Per-Game Graphics, Special Effects & Gameplay Upgrades + File Manager Arcade Hub Controls.** Upgrade *Neon Paddle Pro* (4 Arena Themes, collectible Power-Up Orbs, rotating center reactor ring, impact shockwaves, speed-reactive comet trail, live Rally & Ball Speed HUD), *Tic-Tac-Toe Neon* (`⚡ Infinity Decay` no-draw mode, animated SVG vector glyphs with radial spark bursts, live Win Streak badge), *4-in-a-Row Neon Grid* (3 Board Themes, `↩ UNDO` move button, laser target column beam & landing preview ring, 3D reactor-core discs), *CyberChomp Arcade* (chomp sparks, power-pellet shockwave rings, luminous motion trail, warp tunnel neon vortex portals), *Neon Brick Breaker* (shatter & TNT shockwave rings, combo fever rim glow), and the File Manager Games Hub (`🎲 Random Game`, `⭐ Favorites` & `🕒 Recent` filters/badges, and live `FX Shader` selector).
 - **24-Game Codecaine Arcade Rebranding & Trademark-Free Original Titles.** Rebrand all 24 built-in arcade, puzzle, card, and typing studios under original Codecaine titles (*Typing Codecaine Edition*, *CyberChomp Arcade*, *TetroGrid Ultra Deluxe*, *CyberMunch Math Deluxe*, *Yacht Dice Royale*, *Adventures of Caine*, *Neon Paddle Pro*, *Neon Brick Breaker*, *Cyber Flap Deluxe*, *Alpine Cyber Ski*, *Cyber Cat Trap*, *4-in-a-Row Neon Grid*, *Joker Deck Studio*, *21 Neon Casino*, *Texas Hold'em Neon*, and *Caine's World Deluxe*) across standalone studios, launchers, desktop icons, and File Manager Arcade hubs.
 - **Better text contrast in the Commodore 64 and Synthwave '84 themes, and a readable Charcoal accent.** Text now meets 4.5:1 against its background while keeping each theme's hues.
+
+### Fixed
+
+- **Embedded Arcade Games Cross-Site Request Guard (`src/localGuard.ts`).** Allow `Sec-Fetch-Site: cross-site` on `/app/<gameId>/` embedded game routes and non-`/api/` `GET`/`HEAD` page and asset requests so embedded games launched inside the File Manager (`127.0.0.1` embedding `localhost`) never trigger `"Forbidden: cross-site request blocked"`, while continuing to block cross-site `/api/` and `POST` requests.
 
 ## 1.5.0 (19 October 2026)
 
