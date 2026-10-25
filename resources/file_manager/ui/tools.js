@@ -397,7 +397,7 @@ async function poll() {
 
 /** Starts showing a job that was just started. */
 export function trackJob(job) {
-  lastState.set(job.id, job.state);
+  lastState.set(job.id, "running");
   dismissed.delete(job.id);
   poll();
 }

@@ -68,15 +68,23 @@ async function readIndex(ctx: FmContext): Promise<TrashRecord[]> {
 
 async function writeIndex(ctx: FmContext, records: TrashRecord[]): Promise<void> {
   await fsp.mkdir(ctx.trashRoot, { recursive: true });
+  const data = JSON.stringify(records, null, 2);
   const tmp = `${indexFile(ctx)}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
-  await fsp.writeFile(tmp, JSON.stringify(records, null, 2), { mode: 0o600 });
-  await fsp.rename(tmp, indexFile(ctx));
+  await fsp.writeFile(tmp, data, { mode: 0o600 });
+  try {
+    await fsp.rename(tmp, indexFile(ctx));
+  } catch {
+    await fsp.writeFile(indexFile(ctx), data, { mode: 0o600 });
+    await fsp.rm(tmp, { force: true }).catch(() => {});
+  }
 }
 
 export async function listTrash(ctx: FmContext): Promise<{ items: TrashRecord[]; count: number }> {
-  const items = await readIndex(ctx);
-  items.sort((a, b) => b.deletedAt.localeCompare(a.deletedAt));
-  return { items, count: items.length };
+  return serialized(ctx, async () => {
+    const items = await readIndex(ctx);
+    items.sort((a, b) => b.deletedAt.localeCompare(a.deletedAt));
+    return { items, count: items.length };
+  });
 }
 
 export interface TrashResult {

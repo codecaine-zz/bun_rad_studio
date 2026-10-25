@@ -75,7 +75,7 @@ export function runView({ task, kind, onDone }) {
       if (t.state !== "running") {
         stopped = true;
         cancel.hidden = true;
-        const final = (await call("vault/status", { id: task.id })).task;
+        const final = t.unchanged ? (await call("vault/status", { id: task.id })).task : t;
         render(final);
         onDone(final);
         return;

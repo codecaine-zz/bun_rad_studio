@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, mock, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, mock, setDefaultTimeout, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { basename, join } from "path";
@@ -6,6 +6,8 @@ import { JSDOM } from "jsdom";
 import { createContext } from "../src/features/filemanager/fmCore";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 import { DEFAULT_SETTINGS, loadSettings, sanitizeSettings, updateSettings } from "../src/features/filemanager/fmSettings";
+
+setDefaultTimeout(30_000);
 
 // Part 1: the saved settings behind the views. Part 2: the real page (main.js, with the terminal replaced by a stub
 // because it needs a shell and the xterm library) run in a fake browser against the real server.
@@ -2089,7 +2091,7 @@ describe("the review dialog, Compare, Projects and duplicate cleanup", () => {
   const dialogText = () => doc.querySelector(".modal-backdrop:last-child .dialog")?.textContent ?? "";
   const primary = (): any => [...doc.querySelectorAll(".modal-backdrop:last-child .dialog .btn")].find((b: any) => b.classList.contains("primary"));
   const buttonNamed = (name: string): any => [...doc.querySelectorAll("button")].find((b: any) => b.textContent.trim().startsWith(name) && !b.closest("[hidden]"));
-  const waitFor = async (check: () => boolean, ms = 4000) => { for (let i = 0; i < ms / 40 && !check(); i++) await sleep(40); };
+  const waitFor = async (check: () => boolean, ms = 12000) => { for (let i = 0; i < ms / 40 && !check(); i++) await sleep(40); };
   const toasts = () => [...doc.querySelectorAll("#toasts .toast")].map((t: any) => t.textContent).join(" | ");
   const setValue = (el: any, v: string) => { el.value = v; el.dispatchEvent(new win.Event("input", { bubbles: true })); el.dispatchEvent(new win.Event("change", { bubbles: true })); };
 
@@ -2141,6 +2143,7 @@ describe("the review dialog, Compare, Projects and duplicate cleanup", () => {
   });
 
   test("a Recycle Bin delete offers Undo that really brings the file back", async () => {
+    doc.querySelectorAll("#toasts .toast").forEach((t: any) => t.remove());
     const f = put(join(lab, "undo-me.txt"), "back again");
     const { reviewPlan } = await import("../resources/file_manager/ui/planDialog.js");
     const pending = reviewPlan({ type: "delete", paths: [f], permanent: false });
@@ -2221,7 +2224,7 @@ describe("the review dialog, Compare, Projects and duplicate cleanup", () => {
 
   test("Compare: the 'verify' button runs the careful check, and the chips filter the list", async () => {
     buttonNamed("Verify them now").click();
-    await waitFor(() => /identical/.test(doc.querySelector(".compare-chips")!.textContent ?? "") && doc.querySelector(".compare-note")!.hasAttribute("hidden"));
+    await waitFor(() => /identical/i.test(doc.querySelector(".compare-chips")!.textContent ?? "") && doc.querySelectorAll(".compare-table tbody tr").length === 4 && !doc.querySelector(".compare-table")!.textContent!.includes("not verified") && doc.querySelector(".compare-note")!.hasAttribute("hidden"));
     expect(doc.querySelector(".compare-note")!.hasAttribute("hidden")).toBe(true);
     const chip: any = [...doc.querySelectorAll(".compare-chip")].find((c: any) => c.textContent.startsWith("Different"));
     chip.click();

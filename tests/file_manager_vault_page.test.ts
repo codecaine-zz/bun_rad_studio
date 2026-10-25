@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, mock, test } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, mock, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { JSDOM } from "jsdom";
@@ -83,6 +83,10 @@ beforeAll(async () => {
   state.sep = process.platform === "win32" ? "\\" : "/";
   state.platform = process.platform;
   state.location = { kind: "folder", path: work };
+});
+
+afterEach(() => {
+  closeAll();
 });
 
 afterAll(() => {
@@ -334,7 +338,7 @@ describe("the Decrypt dialog", () => {
     type(folder, out);
     type(pw, "this is not the password");
     button("Decrypt").click();
-    await until(() => dialog().textContent.includes("Wrong password, or the file is damaged or has been changed."));
+    await until(() => dialog().textContent.includes("Wrong password, or the file is damaged or has been changed.") && !!button("Try again"));
     expect(pw.value).toBe("");
     expect(readdirSync(out)).toEqual([]);
     button("Try again").click();

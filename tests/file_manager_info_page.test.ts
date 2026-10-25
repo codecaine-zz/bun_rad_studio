@@ -139,7 +139,7 @@ beforeAll(async () => {
   state.drives = [];
   state.platform = process.platform === "darwin" ? "darwin" : "linux";
   state.settings = (await (api.call as any)("settings")).settings;
-  state.settings.showInfoPanel = true;
+  await nav.saveSettings({ showInfoPanel: true });
   keys.wireKeys();
   await nav.goTo(pics);
 });
@@ -634,7 +634,8 @@ describe("the Details panel photo strip", () => {
     await closeAll();
     await sleep(400);
     await nav.goTo(pics);
-    await sleep(200);
+    await sleep(700);
+    await nav.saveSettings({ showInfoPanel: true });
   });
 
   test("a photo shows its size, camera, date and exposure, and a “Has location” badge", async () => {
@@ -655,13 +656,14 @@ describe("the Details panel photo strip", () => {
     selection.selectKeys([plain]);
     state.settings.showInfoPanel = true;
     await info.renderInfo();
-    await sleep(300);
+    await waitFor(() => q(".info-name", q("#info"))?.textContent === "flat.png", 3000, "flat.png in info panel");
     expect(q(".info-name", q("#info")).textContent).toBe("flat.png");
     expect(q(".fi-photo", q("#info"))).toBeNull();
     expect(q(".fi-badge", q("#info"))).toBeNull();
     selection.selectKeys([join(pics, "crlf.txt")]);
+    state.settings.showInfoPanel = true;
     await info.renderInfo();
-    await sleep(100);
+    await waitFor(() => q(".info-name", q("#info"))?.textContent === "crlf.txt", 3000, "crlf.txt in info panel");
     expect(q(".info-name", q("#info")).textContent).toBe("crlf.txt");
     expect(q(".fi-photo", q("#info"))).toBeNull();
   });
