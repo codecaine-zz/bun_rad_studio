@@ -133,7 +133,7 @@ Launchers: [Desktop GUI: bun run app:dr_codecaine]  •  [Headless Server: bun r
 ## 🌟 Executive Overview
 **Codecaine Dr. Codecaine Arcade** is a fast-paced, tactile capsule-matching puzzle arcade experience built natively for Bun RAD Studio. Combining nostalgic color-matching puzzle mechanics with procedural viral pathogens, retro audio synthesis, high-DPI scaling, and responsive desktop windowing, Codecaine Dr. Codecaine Arcade brings pure arcade energy directly to your desktop workstation.
 
-Featuring an authentic dual-tone capsule falling engine, 60fps physics, gravity cascade chaining, polyphonic square-wave sound effects, pathogen AI, and the **Game Master FX HUD (`Alt+G`)**, it offers endless hours of mental sharpness and dopamine-fueled puzzle action.
+Featuring an authentic dual-tone capsule falling engine, 60fps physics, gravity cascade chaining, polyphonic square-wave sound effects, pathogen AI, and the **Game Master FX HUD (\`Alt+G\`)**, it offers endless hours of mental sharpness and dopamine-fueled puzzle action.
 
 ---
 
