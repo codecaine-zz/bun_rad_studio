@@ -29,7 +29,7 @@ jobs:
 
       # Informational: advisories appear over time and are not caused by the change under test.
       - name: Dependency audit
-        run: bun audit
+        run: bun audit || true
         continue-on-error: true
 
       - name: Documentation links and generated pages

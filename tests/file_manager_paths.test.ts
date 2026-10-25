@@ -242,9 +242,10 @@ describe("symlink ancestor protection in assertModifiable and assertCreatable", 
     const tmp = mkdtempSync(join(tmpdir(), "fm-symlink-guard-"));
     try {
       const ctx = createContext({ home: join(tmp, "home"), dataDir: join(tmp, "data") });
+      const sysDir = process.platform === "win32" ? (process.env.SystemRoot || "C:\\Windows") : "/etc";
       const linkToEtc = join(tmp, "etc-link");
       try {
-        symlinkSync("/etc", linkToEtc);
+        symlinkSync(sysDir, linkToEtc, process.platform === "win32" ? "junction" : "dir");
       } catch {
         return;
       }
