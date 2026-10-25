@@ -1156,7 +1156,8 @@ describe("the theme editor in the page", () => {
     expect(editorMod.THEME_HACK_MUTATORS.length).toBeGreaterThanOrEqual(7);
 
     void editorMod.openThemeEditor({ seedKey: "ef5_debris_tornado" });
-    await sleep(300);
+    for (let i = 0; i < 60 && !doc.querySelector(".theme-hacker-studio"); i++) await sleep(40);
+    await sleep(60);
     expect(doc.querySelector(".theme-hacker-studio")).toBeTruthy();
 
     // Click the "🐧 90s Linux / CDE / BeOS Chisel" nostalgic mutator
@@ -1759,7 +1760,8 @@ describe("the theme editor in the page", () => {
     // 16. Apple-Style Live Custom Theme Preview Stage & Section Focus / View Mover in Theme Editor
     closeDialogs();
     void editorMod.openThemeEditor({ from: "dracula" });
-    await sleep(120);
+    for (let i = 0; i < 60 && !doc.querySelector('[data-editor-live-preview="true"]'); i++) await sleep(40);
+    await sleep(60);
 
     const livePreviewStage = doc.querySelector('[data-editor-live-preview="true"]') as any;
     expect(livePreviewStage).toBeTruthy();
@@ -1845,6 +1847,7 @@ describe("the theme editor in the page", () => {
     expect(photonicKit.uiElementFx).toBe("godmode_photonic_crystal");
     expect(photonicKit.iconPackStyle).toBe("godmode_photonic");
 
+    closeDialogs();
     // A slow runner can still be finishing the previous test's palette change; apply again until this one is what shows.
     for (let attempt = 0; attempt < 20; attempt++) {
       await themes.applyPalette("omega_point_singularity");
@@ -1853,7 +1856,11 @@ describe("the theme editor in the page", () => {
         iconPackStyle: "godmode_celestial",
       });
       await sleep(40);
-      if (doc.documentElement.getAttribute("data-palette") === "omega_point_singularity") break;
+      if (
+        doc.documentElement.getAttribute("data-palette") === "omega_point_singularity" &&
+        doc.documentElement.getAttribute("data-ui-fx") === "godmode_omega_halo" &&
+        doc.documentElement.getAttribute("data-icon-pack") === "godmode_celestial"
+      ) break;
     }
     expect(doc.documentElement.getAttribute("data-palette")).toBe("omega_point_singularity");
     expect(doc.documentElement.getAttribute("data-ui-fx")).toBe("godmode_omega_halo");
@@ -2150,7 +2157,8 @@ describe("the theme editor in the page", () => {
 
     // 4. Theme Editor: Starting from a 40-char built-in theme clamps name, keeps Identity Bar visible on all tabs, and saves cleanly
     void themeEditorMod.openEditor({});
-    await sleep(300);
+    for (let i = 0; i < 60 && !doc.querySelector('[data-editor-identity-bar="true"]'); i++) await sleep(40);
+    await sleep(60);
     const identityBar = doc.querySelector('[data-editor-identity-bar="true"]') as any;
     expect(identityBar).toBeTruthy();
     const nameInput = doc.querySelector('.theme-editor [aria-label="Theme name"]') as any;
@@ -2443,7 +2451,8 @@ describe("the theme editor in the page", () => {
     // 4. Verify Theme Editor also has "🔒 Lock Current FX (Swap Colors Only)" and "🌈 Random Colors (Keep FX)"
     const { emit } = await import("../resources/file_manager/ui/state.js");
     emit("theme-editor", { from: "mac_studio_m4_ultra" });
-    await sleep(150);
+    for (let i = 0; i < 60 && !doc.querySelector('[data-editor-keep-fx-lock="true"]'); i++) await sleep(40);
+    await sleep(60);
     const editorLockBtn = doc.querySelector('[data-editor-keep-fx-lock="true"]') as any;
     const editorRollColorsBtn = doc.querySelector('[data-editor-roll-colors-keep-fx="true"]') as any;
     expect(editorLockBtn).toBeTruthy();

@@ -42,10 +42,16 @@ export function helpIdOf(html: string): string | null {
 
 /** Apps that are games, which do not get help tooltips. Every other `applications/*_studio.ts` must have a dictionary. */
 export const GAME_APPS = new Set([
-  "balatro_studio", "blackjack_studio", "breakout_studio", "codecaine_bros_studio", "connect4_studio", "dr_codecaine_studio", "flappy_bird_studio",
-  "frogger_studio", "lolo_studio", "math_munchers_studio", "maze_generator_studio", "minesweeper_studio", "pacman_studio", "poker_studio",
-  "pong_studio", "rat_screw_studio", "rodents_revenge_studio", "skifree_studio", "snake_studio", "tetris_studio", "tictactoe_studio",
-  "typing_studio", "word_search_studio", "yahtzee_studio",
+  "artillery_studio", "asteroids_studio", "balatro_studio", "balloon_fight_studio", "bejeweled_studio", "blackjack_studio",
+  "bomberman_studio", "bowling_studio", "breakout_studio", "centipede_studio", "chips_challenge_studio", "chuchu_rocket_studio",
+  "codecaine_bros_studio", "connect4_studio", "cyber2048_studio", "cyber_maker_studio", "darts_studio", "dr_codecaine_studio",
+  "flappy_bird_studio", "frogger_studio", "game_show_studio", "jezzball_studio", "lemmings_studio", "lode_runner_studio",
+  "lolo_studio", "lunar_lander_studio", "magical_drop_studio", "mappy_studio", "marble_madness_studio", "math_munchers_studio",
+  "maze_generator_studio", "memory_match_studio", "minesweeper_studio", "missile_command_studio", "pacman_studio", "peggle_studio",
+  "pinball_studio", "pipe_dream_studio", "poker_studio", "pong_studio", "pool_studio", "qbert_studio",
+  "qix_studio", "rampart_studio", "rat_screw_studio", "reversi_checkers_studio", "rodents_revenge_studio", "skifree_studio",
+  "slots_studio", "snake_studio", "sokoban_studio", "solitaire_studio", "space_invaders_studio", "tetris_studio",
+  "tictactoe_studio", "typing_studio", "uno_studio", "vampire_survivors_studio", "word_search_studio", "yahtzee_studio",
 ]);
 
 /** Apps with their own page and tooltips, outside this system (the File Manager serves a locked-down page and has its own). */
