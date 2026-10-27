@@ -507,9 +507,19 @@ tags = ["sql", "bun"]
   });
 
   // 38. globutils (Bun.Glob)
-  it("globutils > performs pattern matching, async and sync glob scans", async () => {
+  it("globutils > performs pattern matching, extglob, brace ranges, async and sync glob scans", async () => {
     expect(rad.globutils.globMatch("*.ts", "index.ts")).toBe(true);
     expect(rad.globutils.globMatch("*.ts", "index.js")).toBe(false);
+
+    // Bun v1.4.4 extglob & brace-range patterns
+    expect(rad.globutils.globMatch("!(*.test).ts", "app.ts")).toBe(true);
+    expect(rad.globutils.globMatch("!(*.test).ts", "app.test.ts")).toBe(false);
+    expect(rad.globutils.globMatch("@(src|lib)/*.ts", "src/main.ts")).toBe(true);
+    expect(rad.globutils.globMatch("file{1..3}.ts", "file2.ts")).toBe(true);
+    expect(rad.globutils.globMatch("file{1..3}.ts", "file4.ts")).toBe(false);
+    expect(rad.globutils.globFilter("!(*.test).ts", ["a.ts", "a.test.ts", "b.ts"])).toEqual(["a.ts", "b.ts"]);
+    expect(rad.globutils.globMatchAny(["*.ts", "*.json"], "package.json")).toBe(true);
+    expect(rad.globutils.globMatchAll(["src/**", "**/!(*.test).ts"], "src/index.ts")).toBe(true);
 
     const asyncMatches = await rad.globutils.globScan("*.json", { cwd: "." });
     expect(asyncMatches.length).toBeGreaterThan(0);

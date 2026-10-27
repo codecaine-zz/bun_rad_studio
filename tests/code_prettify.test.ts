@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { startCodeStudioServer } from "../applications/code_studio.ts";
-import { extensionOf, isBuiltIn, minify, prettify, tidyWhitespace } from "../src/shared/code_prettify";
+import { extensionOf, formatWithBunFmt, isBuiltIn, minify, prettify, tidyWhitespace } from "../src/shared/code_prettify";
 import { codeOperations } from "../src/features/filemanager/fmCodeOps";
 
 const ok = async (path: string, text: string, extra: Record<string, unknown> = {}) => {
@@ -49,6 +49,22 @@ describe("built-in formatters", () => {
     const sql = await ok("a.sql", "select a,b from t where x=1 order by a");
     expect(sql.engine).toBe("sql-formatter");
     expect(sql.text).toBe("SELECT\n  a,\n  b\nFROM\n  t\nWHERE\n  x = 1\nORDER BY\n  a");
+  });
+  test("TOML, Svelte, MDX and Handlebars via Bun v1.4.4 built-in bun fmt", async () => {
+    expect(isBuiltIn("toml")).toBe(true);
+    expect(isBuiltIn("svelte")).toBe(true);
+    expect(isBuiltIn("mdx")).toBe(true);
+    expect(isBuiltIn("hbs")).toBe(true);
+    const toml = await ok("bunfig.toml", '[install]\ncache =   true\nexact=false\n');
+    expect(toml.engine).toBe("bun fmt");
+    expect(toml.text).toContain('cache = true\nexact = false\n');
+    const svelte = await ok("App.svelte", "<script>let count=0;</script><button>{count}</button>");
+    expect(svelte.engine).toBe("bun fmt");
+    expect(svelte.text).toContain("let count = 0;");
+    const sorted = await formatWithBunFmt('import { z } from "z";\nimport { a } from "a";\nexport const x = [a, z];\n', "index.ts", { sortImports: true });
+    expect(sorted.ok).toBe(true);
+    expect(sorted.engine).toBe("bun fmt");
+    expect(sorted.text!.indexOf('"a"')).toBeLessThan(sorted.text!.indexOf('"z"'));
   });
   test("a file with no name is read by the editor's language", async () => {
     expect((await ok("", "let   a=1", { lang: "javascript" })).text).toBe("let a = 1;\n");

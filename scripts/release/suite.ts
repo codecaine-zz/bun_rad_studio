@@ -131,16 +131,19 @@ export async function bundleApps(apps: SourceApp[], outRoot = BUNDLE_DIR, jobs =
 
 const STUB = `// A runtime: with BUN_BE_BUN=1 this executable behaves exactly like the \`bun\` command.\nconsole.log("Bun RAD Studio runtime");\n`;
 
-/** The runtime for a target: a compiled stub, cached between runs. */
+/** The runtime for a target: a compiled stub, cached between runs and invalidated whenever Bun.version changes. */
 export async function buildRuntime(target: Target): Promise<string> {
   mkdirSync(CACHE_DIR, { recursive: true });
   const exe = target.os === "windows" ? ".exe" : "";
   const out = join(CACHE_DIR, `runtime-${target.id}${exe}`);
-  if (existsSync(out)) return out;
+  const stamp = join(CACHE_DIR, `runtime-${target.id}.bun-version`);
+  if (existsSync(out) && existsSync(stamp) && readFileSync(stamp, "utf8").trim() === Bun.version) return out;
+  rmSync(out, { force: true });
   const stub = join(CACHE_DIR, "runtime-stub.ts");
   writeFileAtomic(stub, STUB);
   await run(["bun", "build", "--compile", "--minify", `--target=${target.bunTarget}`, `--outfile=${out}`, stub]);
   if (target.os === "windows") embedWindowsIcon(out, desktopInfo("rad-studio").ico);
+  writeFileAtomic(stamp, `${Bun.version}\n`);
   return out;
 }
 

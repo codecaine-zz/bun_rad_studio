@@ -132,7 +132,8 @@ export class SqliteAdapter extends BaseAdapter {
       const stmt = this.conn.query(text);
       const bound = params.map((x) => decodeParam(x, "sqlite")) as SQLQueryBindings[];
       const columns = stmt.columnNames;
-      if (columns.length > 0) {
+      const isReader = typeof stmt.reader === "boolean" ? stmt.reader : columns.length > 0;
+      if (isReader || columns.length > 0) {
         const rows = stmt.all(...bound) as Record<string, unknown>[];
         const max = options?.maxRows;
         const truncated = max !== undefined && rows.length > max;

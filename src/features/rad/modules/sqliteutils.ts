@@ -586,6 +586,112 @@ export function dbSizeBytes(db: Database): number {
   return pages * size;
 }
 
+export interface SqliteFunctionOptions {
+  deterministic?: boolean;
+  directOnly?: boolean;
+  varargs?: boolean;
+}
+
+/**
+ * Register a scalar SQL function in SQLite using Bun v1.4.4's `db.function()`.
+ * Pass `null` as `fn` to unregister an existing function.
+ * @example
+ * ```ts
+ * sqliteutils.registerFunction(db, "double_val", (x: number) => x * 2, { deterministic: true });
+ * sqliteutils.queryValue(db, "SELECT double_val(21);"); // 42
+ * ```
+ */
+export function registerFunction(
+  db: Database,
+  name: string,
+  fn: ((...args: any[]) => any) | null,
+  options?: SqliteFunctionOptions
+): void {
+  if (fn === null) {
+    (db as any).function(name, null);
+  } else if (options) {
+    db.function(name, options, fn);
+  } else {
+    db.function(name, fn);
+  }
+}
+
+export interface SqliteAggregateOptions<TAcc = any> {
+  start: TAcc | (() => TAcc);
+  step: (acc: TAcc, ...args: any[]) => TAcc;
+  result?: (acc: TAcc) => any;
+  final?: (acc: TAcc) => any;
+  inverse?: (acc: TAcc, ...args: any[]) => TAcc;
+  value?: (acc: TAcc) => any;
+  deterministic?: boolean;
+  directOnly?: boolean;
+  varargs?: boolean;
+}
+
+/**
+ * Register a custom aggregate or window function in SQLite using Bun v1.4.4's `db.aggregate()`.
+ * @example
+ * ```ts
+ * sqliteutils.registerAggregate(db, "str_join", {
+ *   start: () => [] as string[],
+ *   step: (acc, val) => [...acc, String(val)],
+ *   result: (acc) => acc.join(","),
+ * });
+ * ```
+ */
+export function registerAggregate<TAcc = any>(db: Database, name: string, options: SqliteAggregateOptions<TAcc>): void {
+  const { final, ...rest } = options;
+  db.aggregate(name, { ...rest, ...(final && !rest.result ? { result: final } : {}) } as any);
+}
+
+export type SqliteRowChangeCallback = (database: any, table: string, rowid: number | bigint) => void;
+
+export interface SqliteChangeHooks {
+  onInsert?: SqliteRowChangeCallback | null;
+  onUpdate?: SqliteRowChangeCallback | null;
+  onDelete?: SqliteRowChangeCallback | null;
+}
+
+/**
+ * Subscribe to SQLite row-level `INSERT`, `UPDATE`, and `DELETE` events using Bun v1.4.4's
+ * `db.onInsert`, `db.onUpdate`, and `db.onDelete` hooks.
+ * @returns An `off()` function that clears the registered hooks.
+ */
+export function onDatabaseChange(db: Database, hooks: SqliteChangeHooks): () => void {
+  if (hooks.onInsert !== undefined) db.onInsert = hooks.onInsert;
+  if (hooks.onUpdate !== undefined) db.onUpdate = hooks.onUpdate;
+  if (hooks.onDelete !== undefined) db.onDelete = hooks.onDelete;
+  return () => {
+    if (hooks.onInsert !== undefined) db.onInsert = null;
+    if (hooks.onUpdate !== undefined) db.onUpdate = null;
+    if (hooks.onDelete !== undefined) db.onDelete = null;
+  };
+}
+
+export interface SqliteStatementInfo {
+  reader: boolean;
+  readonly: boolean;
+  columnNames: string[];
+  paramsCount: number;
+}
+
+/**
+ * Inspect a SQL statement's metadata using Bun v1.4.4's `stmt.reader` and `stmt.readonly` properties.
+ */
+export function statementInfo(db: Database, sql: string): SqliteStatementInfo {
+  const stmt = db.prepare(sql);
+  try {
+    return {
+      reader: Boolean(stmt.reader),
+      readonly: Boolean(stmt.readonly),
+      columnNames: [...stmt.columnNames],
+      paramsCount: stmt.paramsCount,
+    };
+  } finally {
+    stmt.finalize();
+  }
+}
+
 export const sqliteutils = {
   quoteIdent,
   openDb,
@@ -630,4 +736,8 @@ export const sqliteutils = {
   checkpointWal,
   backupDb,
   dbSizeBytes,
+  registerFunction,
+  registerAggregate,
+  onDatabaseChange,
+  statementInfo,
 };

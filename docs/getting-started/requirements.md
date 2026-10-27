@@ -7,8 +7,8 @@ This page lists what you need before installing, and what was actually checked. 
 | Item | Value |
 |---|---|
 | Computer | Apple silicon Mac (macOS) |
-| Bun | 1.4.2 |
-| Date | 13 October 2026 |
+| Bun | 1.4.4 |
+| Date | 27 October 2026 |
 | Checked from | a fresh `git clone` of the repository |
 
 ## Operating systems
@@ -32,7 +32,7 @@ Command-line tools (the 79 tools whose names end in `_cli`) need no window syste
 bun --version
 ```
 
-Expected result: a version number such as `1.4.2`. If the terminal says `command not found`, install Bun from <https://bun.sh>. The **minimum** supported Bun version is **unknown**: the project does not state one; 1.4.2 is the version tested here.
+Expected result: a version number such as `1.4.4`. If the terminal says `command not found`, install Bun from <https://bun.sh>. The **minimum** supported Bun version is **unknown**: the project does not state one; 1.4.4 is the version tested here.
 
 ### Git (to download the project)
 

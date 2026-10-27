@@ -91,6 +91,36 @@ describe("RAD Batch 1 — File & Storage (enhanced)", () => {
       })
     ).toThrow("boom");
     expect(sqliteutils.countRows(db, "users")).toBe(2);
+
+    // Bun v1.4.4: user-defined functions, aggregates, update hooks, and statement metadata
+    sqliteutils.registerFunction(db, "double_num", (x: number) => x * 2, { deterministic: true });
+    expect(sqliteutils.queryValue<number>(db, "SELECT double_num(21);")).toBe(42);
+
+    sqliteutils.registerAggregate(db, "pipe_join", {
+      start: () => [] as string[],
+      step: (acc, val) => [...acc, String(val)],
+      final: (acc) => acc.join("|"),
+    });
+    expect(sqliteutils.queryValue<string>(db, "SELECT pipe_join(name) FROM (SELECT name FROM users ORDER BY id);")).toBe("Ada|B");
+
+    const changes: string[] = [];
+    const offHooks = sqliteutils.onDatabaseChange(db, {
+      onInsert: (_dbName, table, rowid) => changes.push(`insert:${table}:${rowid}`),
+      onUpdate: (_dbName, table, rowid) => changes.push(`update:${table}:${rowid}`),
+      onDelete: (_dbName, table, rowid) => changes.push(`delete:${table}:${rowid}`),
+    });
+    const newId = sqliteutils.insertRow(db, "users", { email: "hook@x", name: "Hook" });
+    sqliteutils.updateRows(db, "users", { name: "Hooked" }, "id = ?", [newId]);
+    sqliteutils.deleteRows(db, "users", "id = ?", [newId]);
+    offHooks();
+    sqliteutils.insertRow(db, "users", { email: "after@x", name: "After" });
+    expect(changes).toEqual([`insert:users:${newId}`, `update:users:${newId}`, `delete:users:${newId}`]);
+
+    const selectInfo = sqliteutils.statementInfo(db, "SELECT id, email FROM users WHERE id = ?");
+    expect(selectInfo).toEqual({ reader: true, readonly: true, columnNames: ["id", "email"], paramsCount: 1 });
+    const updateInfo = sqliteutils.statementInfo(db, "UPDATE users SET name = ? WHERE id = ?");
+    expect(updateInfo).toEqual({ reader: false, readonly: false, columnNames: [], paramsCount: 2 });
+
     sqliteutils.closeDb(db);
   });
 

@@ -89,10 +89,13 @@ export abstract class BunSqlAdapter extends BaseAdapter {
     const truncated = maxRows !== undefined && all.length > maxRows;
     const rows = (truncated ? all.slice(0, maxRows) : all).map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, toWire(v)])) as Record<string, WireValue>);
     const write = WRITE_KEYWORDS.has(kw);
-    const count = this.engine === "mysql" ? raw?.affectedRows : raw?.count;
+    const count = raw?.affectedRows ?? raw?.count;
     const lastId = this.engine === "mysql" && write ? raw?.lastInsertRowid : null;
+    const serverCols = Array.isArray(raw?.columns)
+      ? raw.columns.map((c: any) => (typeof c === "string" ? c : String(c?.name ?? ""))).filter(Boolean)
+      : [];
     return {
-      columns: rows[0] ? Object.keys(rows[0]) : [],
+      columns: rows[0] ? Object.keys(rows[0]) : serverCols,
       rows,
       rowCount: rows.length,
       affectedRows: write && count !== undefined && count !== null ? Number(count) : null,
@@ -151,6 +154,7 @@ export abstract class BunSqlAdapter extends BaseAdapter {
     let inTx = false;
     let released = false;
     let backendId: string | null = null;
+    let activeQuery: { cancel?: () => unknown } | null = null;
     const timeout = this.config.statementTimeoutMs ?? 0;
     try {
       if (this.readOnly) for (const s of this.prepareReadOnlyConnection()) await conn.unsafe(s);
@@ -169,9 +173,12 @@ export abstract class BunSqlAdapter extends BaseAdapter {
         const guard = self.readOnly && !inTx;
         if (guard) await conn.unsafe(self.beginReadOnlySql);
         try {
-          const raw = await conn.unsafe(text, decodeParams(params, self.engine));
+          const q = conn.unsafe(text, decodeParams(params, self.engine));
+          activeQuery = q as unknown as { cancel?: () => unknown };
+          const raw = await q;
           return self.toResult(raw, leadingKeyword(text), started, options?.maxRows);
         } finally {
+          activeQuery = null;
           if (guard) await conn.unsafe("ROLLBACK").catch(() => {});
         }
       } catch (e) {
@@ -205,12 +212,19 @@ export abstract class BunSqlAdapter extends BaseAdapter {
         inTx = false;
       },
       async cancel() {
-        if (!backendId) return false;
+        let canceledNative = false;
+        if (activeQuery && typeof activeQuery.cancel === "function") {
+          try {
+            await activeQuery.cancel();
+            canceledNative = true;
+          } catch {}
+        }
+        if (!backendId) return canceledNative;
         try {
           await self.p.unsafe(self.cancelSql(backendId));
           return true;
         } catch {
-          return false;
+          return canceledNative;
         }
       },
       async close() {

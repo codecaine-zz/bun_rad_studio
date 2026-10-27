@@ -23,6 +23,7 @@ const FM = join(RELEASE, "file-manager");
 const args = process.argv.slice(2);
 const dry = args.includes("--dry-run");
 const draft = args.includes("--draft");
+const update = args.includes("--update");
 const mb = (n: number) => `${(n / 1024 / 1024).toFixed(0)} MB`;
 
 async function repoSlug(): Promise<string> {
@@ -125,7 +126,12 @@ async function main() {
 
   // One checksum file for everything, and a download page whose buttons come from the release.
   const sums: string[] = [];
-  for (const f of files) sums.push(`${await sha256File(f.path)}  ${f.name}`);
+  const hashByName = new Map<string, string>();
+  for (const f of files) {
+    const h = await sha256File(f.path);
+    hashByName.set(f.name, h);
+    sums.push(`${h}  ${f.name}`);
+  }
   const sumsPath = join(RELEASE, "SHA256SUMS.txt");
   writeFileSync(sumsPath, sums.join("\n") + "\n");
   const body = notes(files, repo, changelogHighlights(existsSync(join(ROOT, "CHANGELOG.md")) ? readFileSync(join(ROOT, "CHANGELOG.md"), "utf8") : ""));
@@ -140,7 +146,26 @@ async function main() {
     return;
   }
   const exists = await run(["gh", "release", "view", tag, "--repo", repo], { cwd: ROOT }).then(() => true, () => false);
-  if (exists) throw new Error(`The release ${tag} already exists on GitHub. Delete it first (gh release delete ${tag}) or raise the version in package.json.`);
+  if (exists && !update) throw new Error(`The release ${tag} already exists on GitHub. Delete it first (gh release delete ${tag}), pass --update, or raise the version in package.json.`);
+  if (exists && update) {
+    const remoteDigests = new Map<string, string>();
+    try {
+      const rawJson = await run(["gh", "release", "view", tag, "--repo", repo, "--json", "assets"], { cwd: ROOT });
+      const parsed = JSON.parse(rawJson) as { assets?: Array<{ name: string; digest?: string }> };
+      for (const a of parsed.assets ?? []) {
+        if (a.name && a.digest) remoteDigests.set(a.name, a.digest.replace(/^sha256:/, ""));
+      }
+    } catch {}
+    const toUpload = files.filter((f) => remoteDigests.get(f.name) !== hashByName.get(f.name));
+    log("🔄", `Updating existing release ${tag} (${toUpload.length} changed/new archive(s) + SHA256SUMS.txt, ${files.length - toUpload.length} unchanged skipped)…`);
+    const editProc = Bun.spawn(["gh", "release", "edit", tag, "--repo", repo, "--title", `Bun RAD Studio ${tag}`, "--notes-file", notesPath], { cwd: ROOT, stdout: "inherit", stderr: "inherit" });
+    if ((await editProc.exited) !== 0) throw new Error("gh release edit failed.");
+    const upProc = Bun.spawn(["gh", "release", "upload", tag, "--repo", repo, "--clobber", ...toUpload.map((f) => f.path), sumsPath], { cwd: ROOT, stdout: "inherit", stderr: "inherit" });
+    const upCode = await upProc.exited;
+    if (upCode !== 0) throw new Error(`gh release upload failed (${upCode}).`);
+    log("🎉", `Updated: https://github.com/${repo}/releases/tag/${tag}`);
+    return;
+  }
   log("🚀", `Creating release ${tag}${draft ? " (draft)" : ""} and uploading ${files.length + 1} files. This can take a while…`);
   const cmd = ["gh", "release", "create", tag, "--repo", repo, "--title", `Bun RAD Studio ${tag}`, "--notes-file", notesPath, "--target", "main", ...(draft ? ["--draft"] : []), ...files.map((f) => f.path), sumsPath];
   const proc = Bun.spawn(cmd, { cwd: ROOT, stdout: "inherit", stderr: "inherit" });

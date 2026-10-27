@@ -27,6 +27,9 @@
     "win:gui": "powershell -ExecutionPolicy Bypass -File ./run.ps1 -Gui",
     "test": "bun test --timeout 30000",
     "typecheck": "bun run scripts/typecheck_ratchet.ts",
+    "check": "bun check --no-script",
+    "fmt": "bun fmt",
+    "fmt:check": "bun fmt --check",
     "workbench": "bun run src/db/workbench_server.ts",
     "ide:build": "bun run scripts/build_ide.ts",
     "ide:check": "bun run scripts/build_ide.ts --check",
@@ -271,5 +274,8 @@
     "sql-formatter": "^15.9.0",
     "systeminformation": "^5.33.12",
     "webview-bun": "^2.4.0"
+  },
+  "patchedDependencies": {
+    "webview-bun@2.4.0": "patches/webview-bun@2.4.0.patch"
   }
 }

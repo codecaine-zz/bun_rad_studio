@@ -1,0 +1,15 @@
+diff --git a/src/webview.ts b/src/webview.ts
+index f2b59283454d38a71e9f75f1a752ab44152d409c..8a3665ccf729ab55d0245a6347d426a305078a96 100644
+--- a/src/webview.ts
++++ b/src/webview.ts
+@@ -145,8 +145,8 @@ export class Webview {
+   ) {
+     this.#handle =
+       typeof debugOrHandle === "bigint" || typeof debugOrHandle === "number"
+-        ? debugOrHandle
+-        : lib.symbols.webview_create(Number(debugOrHandle), window);
++        ? (debugOrHandle as Pointer)
++        : (lib.symbols.webview_create(Number(debugOrHandle), window) as Pointer | null);
+     if (size !== undefined) this.size = size;
+     instances.push(this);
+   }

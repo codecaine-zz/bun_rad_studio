@@ -2,10 +2,16 @@
 
 All notable changes. Version 1.5.2 is the twenty-first release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.4.5, 1.4.6, 1.4.7, 1.4.8, 1.4.9, 1.5.0 and 1.5.1 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
 
-## 1.5.2 (25 October 2026)
+## 1.5.2 (27 October 2026)
 
 ### Added
 
+- **Bun v1.4.4 Runtime, Type Definitions & Built-In Formatter (`bun fmt`) / Typechecker (`bun check`) Integration.**
+  - Upgrade `@types/bun` and `bun-types` to `1.4.4`, update `.github/workflows/ci.yml` to `bun-version: 1.4.4`, and add `bun run check` (`bun check --no-script`), `bun run fmt` (`bun fmt`), and `bun run fmt:check` (`bun fmt --check`) scripts.
+  - Extend `src/shared/code_prettify.ts` with `formatWithBunFmt()` and built-in `bun fmt` support for `.toml`, `.svelte`, `.mdx`, `.hbs`/`.handlebars`, and `.mjml` files (plus `--sort-imports`, `--sort-package-json`, and `--jsdoc`).
+  - Extend `src/features/rad/modules/sqliteutils.ts` with Bun v1.4.4 `bun:sqlite` helpers: `registerFunction` (`db.function`), `registerAggregate` (`db.aggregate`), `onDatabaseChange` (`db.onInsert`, `db.onUpdate`, `db.onDelete`), and `statementInfo` (`stmt.reader`, `stmt.readonly`).
+  - Upgrade `src/db/adapters/bunsql.ts` and `src/db/adapters/sqlite.ts` to use Bun v1.4.4's `Bun.SQL` `result.columns` metadata on zero-row queries, unified `affectedRows`, native `query.cancel()` in `openSession()`, and `stmt.reader` detection in `bun:sqlite`.
+  - Extend `src/features/rad/modules/globutils.ts` (`globFilter`, `globMatchAny`, `globMatchAll` with Bun v1.4.4 extglob `!(...)`/`@(...)` and brace-range `{1..10}` support) and `src/features/rad/modules/serverutils.ts` (`websocket.error(error, ws)` callback in `createWsHub`).
 - **60-Game Codecaine Arcade Suite (+36 New Flagship Arcade, Casino, Puzzle, Sports & Retro Studios).** Expand the built-in Codecaine Arcade Suite from 24 to **60 standalone desktop studios & embedded File Manager games**, including *Codecaine CyberRecall Royale: Holo-Vault Memory Match* (`memory_match_studio`), *Codecaine Vegas Slots Royale: 777 Mega Jackpot Casino* (`slots_studio`), *Codecaine Mr. Game Show Royale: Trivia, Wheel & Vault* (`game_show_studio`), *Codecaine NightSavior: Vampire Survivors & Dark Force* (`vampire_survivors_studio`), *Codecaine CyberMappy: Mansion Heist & Trampoline Police* (`mappy_studio`), *Codecaine 8-Ball Pool Royale* (`pool_studio`), *Codecaine CyberStrike Bowling* (`bowling_studio`), *Codecaine CyberDarts 501 Royale* (`darts_studio`), *Codecaine CyberGems 12-Mode Deluxe* (`bejeweled_studio`), *Codecaine CyberBalloon Fight* (`balloon_fight_studio`), *Codecaine CyberUNO Royale* (`uno_studio`), *Codecaine CyberMaker Studio* (`cyber_maker_studio`), *Codecaine CyberLemmings*, *Codecaine CyberRunner*, *Codecaine CyberRocket*, *Codecaine CyberRampart*, *Codecaine CyberQix*, *Codecaine CyberDrop*, *Codecaine CyberChip*, *Codecaine CyberPeggle*, and 16 Windows/Arcade classics.
 - **Universal Arcade Attract-Mode Start Overlay (`src/shared/gameMasterFx.ts`).** Add a universal Start Menu overlay across all 60 games that freezes `requestAnimationFrame` delta-time progression and `setInterval` gameplay loops until the player clicks **`▶ PRESS START TO PLAY`** (or presses `Enter` / `Space`), preventing games from running before the player is ready.
 

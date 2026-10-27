@@ -166,6 +166,7 @@ export interface WsHubOptions {
   /** Defaults to "127.0.0.1"; pass "0.0.0.0" to accept connections from other machines. */
   hostname?: string;
   onMessage?: (ws: ServerWebSocket<any>, message: string | Buffer) => void;
+  onError?: (ws: ServerWebSocket<any>, error: Error) => void;
 }
 
 export interface WebSocketHub {
@@ -201,6 +202,11 @@ export function createWsHub(options: WsHubOptions = {}): WebSocketHub {
       close(ws) {
         const data = ws.data;
         ws.unsubscribe(data.topic);
+      },
+      error(error, ws) {
+        if (options.onError) {
+          options.onError(ws, error);
+        }
       },
     },
   });

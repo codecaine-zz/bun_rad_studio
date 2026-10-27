@@ -132,7 +132,7 @@ export function findSecrets(lines: string[]): { line: number; what: string }[] {
 /** Placeholders that are written on purpose in examples and are not real scripts or files. */
 // `build-app` is a script of the separate bun_webview repository that the README tells you to clone.
 const COMMAND_PLACEHOLDERS = new Set(["app.ts", "./path", "app:", "build-app"]);
-const BUILT_IN_BUN_COMMANDS = new Set(["start", "test", "build"]);
+const BUILT_IN_BUN_COMMANDS = new Set(["start", "test", "build", "fmt", "check"]);
 
 /**
  * Finds `bun run <name>` examples whose script is not in package.json or whose file does not exist, so a renamed

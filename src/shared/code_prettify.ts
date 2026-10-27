@@ -56,9 +56,13 @@ const PRETTIER_PARSER: Record<string, { parser: string; plugins: string[] }> = {
   graphql: { parser: "graphql", plugins: ["graphql"] }, gql: { parser: "graphql", plugins: ["graphql"] },
 };
 
+/** Formats supported natively by Bun v1.4.4's built-in `bun fmt` without external plugins. */
+const BUN_FMT_EXTS = new Set(["toml", "svelte", "mdx", "hbs", "handlebars", "mjml"]);
+
 /** The editor's language ids that name one language by themselves (when there is no file name to look at). */
 const LANG_EXT: Record<string, string> = {
   javascript: "js", typescript: "ts", json: "json", css: "css", html: "html", markdown: "md", yaml: "yaml", sql: "sql",
+  toml: "toml", svelte: "svelte", mdx: "mdx", handlebars: "hbs", mjml: "mjml",
   python: "py", go: "go", rust: "rs", c: "c", cpp: "cpp", java: "java", csharp: "cs", shell: "sh", zig: "zig", lua: "lua", xml: "xml",
   php: "php", kotlin: "kt", swift: "swift", ruby: "rb", v: "v",
 };
@@ -92,10 +96,51 @@ export function extensionOf(path = "", lang = ""): string {
 
 /** Is there anything better than a whitespace tidy for this file, with the tools that are installed or built in? */
 export function isBuiltIn(ext: string): boolean {
-  return ext in PRETTIER_PARSER || ext === "sql";
+  return ext in PRETTIER_PARSER || BUN_FMT_EXTS.has(ext) || ext === "sql";
 }
 
-function runTool(command: string, args: string[], input: string, timeoutMs: number): Promise<{ code: number | null; stdout: string; stderr: string; missing: boolean; timedOut: boolean }> {
+export interface BunFmtOptions {
+  tabWidth?: number;
+  useTabs?: boolean;
+  printWidth?: number;
+  sortImports?: boolean;
+  sortPackageJson?: boolean;
+  jsdoc?: boolean;
+}
+
+/**
+ * Formats source code using Bun v1.4.4's built-in `bun fmt --stdin-filepath=<filepath>`.
+ */
+export async function formatWithBunFmt(text: string, filepath: string, options: BunFmtOptions = {}): Promise<PrettifyResult> {
+  const tab = Math.min(16, Math.max(1, Math.round(options.tabWidth ?? 2)));
+  const args = ["fmt", `--stdin-filepath=${filepath}`, `--tab-width=${tab}`];
+  if (options.useTabs) args.push("--use-tabs");
+  if (options.printWidth && options.printWidth > 0) args.push(`--print-width=${Math.round(options.printWidth)}`);
+  if (options.sortImports) args.push("--sort-imports");
+  if (options.sortPackageJson) args.push("--sort-package-json");
+  if (options.jsdoc) args.push("--jsdoc");
+
+  const r = await runTool(process.execPath, args, text, TOOL_TIMEOUT_MS, { BUN_BE_BUN: "1" });
+  if (r.missing) {
+    return { ok: false, error: { message: "bun fmt is not available in this runtime." } };
+  }
+  if (r.timedOut) {
+    return { ok: false, error: { message: `bun fmt took longer than ${Math.round(TOOL_TIMEOUT_MS / 1000)} seconds and was stopped.` } };
+  }
+  if (r.code !== 0) {
+    const clean = (r.stderr || r.stdout).replaceAll(/\u001b\[[0-9;]*m/g, "").trim();
+    const locMatch = /:(\d+):(\d+)\b/.exec(clean) ?? /\bline\s+(\d+)/i.exec(clean);
+    const line = locMatch?.[1] ? Number(locMatch[1]) : 1;
+    const col = locMatch?.[2] ? Number(locMatch[2]) : undefined;
+    const first = clean.split("\n")[0] || "This code has a syntax error that bun fmt couldn't get past.";
+    return { ok: false, error: { message: first, line, col } };
+  }
+  const hasCrlf = text.includes("\r\n");
+  const formatted = hasCrlf && !r.stdout.includes("\r\n") ? r.stdout.replace(/\n/g, "\r\n") : r.stdout;
+  return { ok: true, text: formatted, engine: "bun fmt" };
+}
+
+function runTool(command: string, args: string[], input: string, timeoutMs: number, extraEnv?: Record<string, string>): Promise<{ code: number | null; stdout: string; stderr: string; missing: boolean; timedOut: boolean }> {
   return new Promise((resolve) => {
     let stdout = "";
     let stderr = "";
@@ -109,7 +154,7 @@ function runTool(command: string, args: string[], input: string, timeoutMs: numb
     };
     let child;
     try {
-      child = spawn(command, args, { stdio: ["pipe", "pipe", "pipe"], windowsHide: true, env: { ...process.env, NO_COLOR: "1" } });
+      child = spawn(command, args, { stdio: ["pipe", "pipe", "pipe"], windowsHide: true, env: { ...process.env, NO_COLOR: "1", ...extraEnv } });
     } catch {
       return finish(null, true);
     }
@@ -192,6 +237,7 @@ export async function prettify(input: PrettifyInput, tools: Record<string, Tool[
     return second.ok ? second : { ok: false, error: r.error };
   }
   if (ext in PRETTIER_PARSER) return await withPrettier(text, ext, o);
+  if (BUN_FMT_EXTS.has(ext)) return await formatWithBunFmt(text, `file.${ext}`, { tabWidth: tab, useTabs: tabs });
   if (ext === "sql") return await withSql(text, o);
   if (ext === "xml" || ext === "svg" || ext === "xsl" || ext === "plist") {
     const r = local.formatCode("xml", text, tabs ? "\t" : " ".repeat(tab));

@@ -15,10 +15,26 @@ export function createGlob(pattern: string): Glob {
   return new Glob(pattern);
 }
 
-// Doer: Test if a single path matches a glob pattern
+// Doer: Test if a single path matches a glob pattern (supports Bun v1.4.4 extglob `!(...)`, `@(...)`, `+(...)`, `?(...)`, `*(...)` and brace ranges `{1..10}`, `{a..z}`)
 export function globMatch(pattern: string, path: string): boolean {
   const glob = new Glob(pattern);
   return glob.match(path);
+}
+
+// Doer: Filter an array of paths using a single compiled Bun.Glob instance (supports extglob & brace ranges)
+export function globFilter(pattern: string, paths: readonly string[]): string[] {
+  const glob = new Glob(pattern);
+  return paths.filter((p) => glob.match(p));
+}
+
+// Doer: Check if a path matches any of the provided glob patterns
+export function globMatchAny(patterns: readonly string[], path: string): boolean {
+  return patterns.some((pattern) => new Glob(pattern).match(path));
+}
+
+// Doer: Check if a path matches all of the provided glob patterns
+export function globMatchAll(patterns: readonly string[], path: string): boolean {
+  return patterns.every((pattern) => new Glob(pattern).match(path));
 }
 
 // Coordinator: Scan directory asynchronously for all matching paths
@@ -71,6 +87,9 @@ export const globutils = {
   createGlob,
   glob: globScan,
   globMatch,
+  globFilter,
+  globMatchAny,
+  globMatchAll,
   globScan,
   globScanSync,
   findFiles,
