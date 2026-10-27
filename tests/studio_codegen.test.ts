@@ -1,8 +1,9 @@
 import { describe, it, expect, afterAll } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync, existsSync } from "fs";
+import { mkdtempSync, writeFileSync, existsSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { Database } from "bun:sqlite";
+import { rmDir } from "./helpers/rm";
 
 const storeDir = mkdtempSync(join(tmpdir(), "codegen-store-"));
 process.env.STUDIO_MACRO_STORE_DIR = storeDir;
@@ -17,8 +18,8 @@ const { generatePostgresStudioHtml } = await import("../applications/postgres_st
 
 const work = mkdtempSync(join(tmpdir(), "codegen-run-"));
 afterAll(() => {
-  rmSync(work, { recursive: true, force: true });
-  rmSync(storeDir, { recursive: true, force: true });
+  rmDir(work);
+  rmDir(storeDir);
 });
 
 const step = (id: string, action: string, parameters: any, extra: any = {}) => ({ id, action, enabled: true, parameters, ...extra });
@@ -151,7 +152,9 @@ describe("Generated programs run on native SQLite", () => {
       const file = join(work, `fail_${target}.${ext}`);
       writeFileSync(file, g.code);
       const db = join(work, `fail_${target}.db`);
-      new Database(db, { create: true }).exec("CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT)");
+      const d = new Database(db, { create: true });
+      d.exec("CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT)");
+      d.close();
       const r = run([...cmd, file, "--db", db]);
       expect(r.code).toBe(1);
       expect(r.err).toContain("rolled back");
@@ -164,7 +167,9 @@ describe("Generated programs run on native SQLite", () => {
       const bin = join(work, "fail_v");
       expect(run(["v", "-o", bin, file]).err).not.toContain("error:");
       const db = join(work, "fail_v.db");
-      new Database(db, { create: true }).exec("CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT)");
+      const d = new Database(db, { create: true });
+      d.exec("CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT)");
+      d.close();
       expect(run([bin, "--db", db]).code).toBe(1);
       expect(readDb(db, "SELECT COUNT(*) c FROM t")[0].c).toBe(0);
     }

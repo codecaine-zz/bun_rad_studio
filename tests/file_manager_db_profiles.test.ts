@@ -133,7 +133,7 @@ describe("saved connections", () => {
       made.push(r.profile);
     }
     const sqlite = join(c.dir, "books.sqlite");
-    new Database(sqlite).run("create table t(x)");
+    { const db = new Database(sqlite); db.run("create table t(x)"); db.close(); }
     const lite = (await c.ok("db/profile/save", { profile: { engine: "sqlite", name: "Books", path: sqlite, sqliteMode: "readonly" } })).profile;
     expect(lite.readOnly).toBe(true);
 
@@ -231,7 +231,7 @@ describe("saved connections", () => {
     const dir = join(c.dir, "dbs");
     mkdirSync(dir);
     const real = join(dir, "real.sqlite");
-    new Database(real).run("create table t(x)");
+    { const db = new Database(real); db.run("create table t(x)"); db.close(); }
     const notDb = join(dir, "notes.db");
     writeFileSync(notDb, "this is just text, not a database");
     const empty = join(dir, "empty.db");
@@ -251,7 +251,7 @@ describe("saved connections", () => {
     expect(mem.json.profile).toMatchObject({ path: ":memory:", sqliteMode: "memory" });
     // a read-only file may be opened read-only
     const locked = join(dir, "locked.sqlite");
-    new Database(locked).run("create table t(x)");
+    { const db = new Database(locked); db.run("create table t(x)"); db.close(); }
     chmodSync(locked, 0o444);
     expect((await save({ path: locked, sqliteMode: "readonly" })).status).toBe(200);
   });

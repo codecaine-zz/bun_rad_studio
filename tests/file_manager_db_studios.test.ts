@@ -263,7 +263,7 @@ describe("running studios (real child processes standing in for the studios)", (
     const calls: Array<{ command: string[]; env: Record<string, string>; cwd: string }> = [];
     const c = computer({ hooks: { spawnWindow: async (command, o) => (calls.push({ command, ...o }), { ok: true }) } });
     const file = join(c.dir, "w.sqlite");
-    new Database(file).run("create table t(x)");
+    { const db = new Database(file); db.run("create table t(x)"); db.close(); }
     const id = (await c.ok("db/profile/save", { profile: { engine: "sqlite", name: "w", path: file } })).profile.id;
     await c.ok("db/studio/window", { profileId: id });
     expect(calls[0]!.command.slice(-2)).toEqual([FAKE_STUDIO, file]);
@@ -290,7 +290,7 @@ describe("running studios (real child processes standing in for the studios)", (
     const calls: Array<{ command: string[] }> = [];
     const c = computer({ hooks: { spawnWindow: async (command) => (calls.push({ command }), { ok: true }) } });
     const file = join(c.dir, "s.sqlite");
-    new Database(file).run("create table t(x)");
+    { const db = new Database(file); db.run("create table t(x)"); db.close(); }
     await c.ok("db/profile/save", { profile: { engine: "mysql", name: "shop", host: "h", database: "shop", favorite: true }, password: "pw-for-shortcut-1" });
     const list = (await c.ok("db/shortcuts")).shortcuts;
     expect(list.map((s: any) => [s.name, s.label, s.studioAvailable])).toEqual([["shop", "MySQL / MariaDB", true]]);
@@ -408,7 +408,7 @@ describe("the real SQLite Studio, started by the File Manager (no stand-in)", ()
       await gone(pid);
     } finally {
       c.remove();
-      rmSync(dir, { recursive: true, force: true });
+      try { rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); } catch {}
     }
   });
 
@@ -420,6 +420,6 @@ describe("the real SQLite Studio, started by the File Manager (no stand-in)", ()
     const r = await c.api("db/studio/start", { engine: "sqlite", path: file });
     expect(r.json.error.code).toBe("NOT_SQLITE");
     expect((await c.ok("db/studio/list")).studios).toEqual([]);
-    rmSync(dir, { recursive: true, force: true });
+    try { rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); } catch {}
   });
 });

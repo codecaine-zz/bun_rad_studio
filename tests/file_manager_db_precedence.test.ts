@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "fs";
+import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { Database } from "bun:sqlite";
@@ -8,6 +8,7 @@ import { buildEnvView } from "../src/features/filemanager/fmDbEnvView";
 import { defaultSettings } from "../src/features/filemanager/fmDbStore";
 import { DB_ENGINES, isAnyConnectionVariable } from "../src/features/filemanager/fmDbModel";
 import { dbComputer, FAKE_STUDIO, type DbComputer } from "./helpers/db_fm";
+import { rmDir } from "./helpers/rm";
 
 /**
  * "A connection saved in the File Manager replaces environment variables." Each test starts the stand-in studio
@@ -19,8 +20,8 @@ const computers: DbComputer[] = [];
 afterAll(() => computers.forEach((c) => c.remove()));
 
 const sqliteFile = join(mkdtempSync(join(tmpdir(), "fm-db-prec-")), "p.sqlite");
-new Database(sqliteFile).run("create table t(x)");
-afterAll(() => rmSync(join(sqliteFile, ".."), { recursive: true, force: true }));
+{ const db = new Database(sqliteFile); db.run("create table t(x)"); db.close(); }
+afterAll(() => rmDir(join(sqliteFile, "..")));
 
 /** Variables that point every studio somewhere wrong. */
 const hostile = (): Record<string, string> => ({
@@ -274,7 +275,7 @@ describe("the resolution itself (no processes)", () => {
       expect(sees(["--no-env-file"])).toBe("none");
       expect(FAKE_STUDIO.endsWith("fake_studio.ts")).toBe(true);
     } finally {
-      rmSync(dir, { recursive: true, force: true });
+      rmDir(dir);
     }
   });
 });
