@@ -1,6 +1,7 @@
 // Right-click menus and the View menu items (shared by the toolbar, the menus and the keyboard).
 import { isStudioPicture } from "./imageStudio.js";
 import { isStudioMedia } from "./mediaStudio.js";
+import { canReadWithPhonon } from "./phonon.js";
 import { isPlayableOrPlaylist } from "./mediacore.js";
 import { openInMediaDeck } from "./playerDeck.js";
 import { showMenu } from "./menus.js";
@@ -148,6 +149,7 @@ function entryItems(entries) {
     one && searching ? { label: "Open containing folder", icon: "📁", action: () => ops.goToContaining(e) } : null,
     ...studioMenuItems(entries),
     one && !e.isDir && e.kind === "image" ? { label: "Read QR code", icon: "🔳", tip: "Look for a QR code in this picture and show what it says.", action: () => openPower("qr", { read: e.path, name: e.name }) } : null,
+    one && !e.isDir && canReadWithPhonon(e) ? { label: "Read out loud in Voice Reader", icon: "🗣️", tip: "Convert this file to plain text, read it out loud with your default Ollama Phonon voice, or save it as an audio file.", action: () => openPower("phonon", { path: e.path, autoPlay: true }) } : null,
     one && !e.isDir && looksLikeText(e.name) && e.size <= 20000 ? { label: "Make a QR code from this text", icon: "🔳", tip: "Put the text of this file in a QR code (up to a few thousand characters).", action: () => openPower("qr", { makeFromFile: e.path }) } : null,
     one && !e.isDir && looksLikeText(e.name) ? { label: "Edit in Code editor", icon: "📝", shortcut: labelOf("file.editInCode"), action: () => openInCode(e.path) } : null,
     one && !e.isDir && looksLikeText(e.name) ? { label: "Open in your editor", icon: "🧑‍💻", tip: "Open this file in the code editor chosen in Settings (VS Code, Sublime Text, WebStorm or IntelliJ IDEA).", action: () => openInEditor(e) } : null,

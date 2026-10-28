@@ -12,7 +12,7 @@ import { emit, state } from "./state.js";
 
 /** The groups the tab strip is arranged in, in this order. A tab can name one with `group`. */
 const GROUPS = [["files", "Files and text"], ["data", "Databases"], ["media", "Pictures and media"], ["automate", "Automate"], ["security", "Security"], ["network", "Network"], ["handy", "Handy"], ["more", "More"]];
-const DEFAULT_GROUP = { find: "files", compare: "files", projects: "files", sd: "files", code: "files", dev: "files", databases: "data", paint: "media", watch: "automate", actions: "automate", serve: "automate", crypto: "security", vault: "security", ip: "network", net: "network", calc: "handy", timer: "handy", qr: "handy" };
+const DEFAULT_GROUP = { find: "files", compare: "files", projects: "files", sd: "files", code: "files", dev: "files", databases: "data", paint: "media", phonon: "media", watch: "automate", actions: "automate", serve: "automate", crypto: "security", vault: "security", ip: "network", net: "network", calc: "handy", timer: "handy", qr: "handy" };
 const EMBEDDED_IDS = new Set([
   "calc", "timer", "paint",
   "balatro", "blackjack", "breakout", "codecaine_bros", "connect4",
@@ -38,7 +38,7 @@ let host = null;
 const groupOf = (t) => (GROUPS.some(([g]) => g === t.group) ? t.group : DEFAULT_GROUP[t.id] ?? "more");
 
 /** The tools in the order the tab strip shows them within a group; a tool not listed comes after these. */
-const TOOL_ORDER = ["find", "compare", "sd", "code", "dev", "projects", "bundler", "watch", "actions", "serve", "crypto", "vault", "env", "ip", "net", "subs", "downloads", "api", "calc", "timer", "qr", "imagestudio", "paint", "player", "mediastudio", "databases", "tasks", "sysinfo", "games"];
+const TOOL_ORDER = ["find", "compare", "sd", "code", "dev", "projects", "bundler", "watch", "actions", "serve", "crypto", "vault", "env", "ip", "net", "subs", "downloads", "api", "calc", "timer", "qr", "imagestudio", "paint", "player", "mediastudio", "phonon", "databases", "tasks", "sysinfo", "games"];
 
 /** The tabs in the order they are shown: grouped, then in a steady order within a group. */
 function orderedTabs() {

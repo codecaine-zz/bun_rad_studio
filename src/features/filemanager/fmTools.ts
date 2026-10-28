@@ -17,7 +17,7 @@ import { splitName, uniqueName } from "./fmPaths";
 
 export type ToolId =
   | "ffmpeg" | "imagemagick" | "pandoc"
-  | "ghostscript" | "libreoffice" | "calibre" | "tesseract" | "fonttools" | "woff2" | "sevenzip" | "unar" | "bsdtar" | "qpdf" | "poppler" | "exiftool";
+  | "ghostscript" | "libreoffice" | "calibre" | "tesseract" | "fonttools" | "woff2" | "sevenzip" | "unar" | "bsdtar" | "qpdf" | "poppler" | "exiftool" | "ollama";
 export type ManagerId = "brew" | "winget" | "scoop" | "choco" | "apt" | "dnf" | "pacman";
 
 export interface ToolDef {
@@ -146,6 +146,17 @@ export const TOOLS: Record<ToolId, ToolDef> = {
     executables: ["exiftool"], versionArgs: ["-ver"], website: "https://exiftool.org/install.html",
     brew: "exiftool", winget: "OliverBetz.ExifTool", scoop: "exiftool", choco: "exiftool", apt: "libimage-exiftool-perl", dnf: "perl-Image-ExifTool", pacman: "perl-image-exiftool", optional: true,
     dirs: { win32: ["{LOCAL}\\Programs\\ExifTool", "{PF}\\ExifTool", "{PF86}\\ExifTool"] },
+  },
+  ollama: {
+    id: "ollama", name: "Ollama", what: "Runs local speech and AI models on your computer (including Phonon text-to-speech).",
+    executables: ["ollama"], versionArgs: ["--version"], website: "https://ollama.com/download",
+    brew: "ollama", winget: "Ollama.Ollama", scoop: "ollama", choco: "ollama", apt: "", dnf: "", pacman: "ollama",
+    optional: true, versionMatch: /ollama/i,
+    dirs: {
+      darwin: ["/Applications/Ollama.app/Contents/Resources", "{HOME}/Applications/Ollama.app/Contents/Resources"],
+      linux: ["/usr/local/bin", "/usr/bin"],
+      win32: ["{LOCAL}\\Programs\\Ollama", "{PF}\\Ollama"],
+    },
   },
 };
 

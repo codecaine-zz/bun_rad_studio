@@ -49,6 +49,7 @@ import { downloadOperations } from "./fmDownloadOps";
 import { cliUtilsDir, cliUtilsOperations, ensureCliUtilsFolder, findCliSourceRoot } from "./fmCliUtils";
 import { taskManagerOperations } from "./fmTaskManagerOps";
 import { sysinfoOperations } from "./fmSysinfoOps";
+import { PHONON_OPS, getCachedAudioFile } from "./fmPhonon";
 import type { HostedPeer, HostedSession } from "../../simplegui_host";
 import { dbState } from "./fmDbState";
 import { watchOperations } from "./fmWatchOps";
@@ -559,7 +560,7 @@ Object.assign(operations, hostedStudioOperations);
 // Fast, resumable downloads split over several connections.
 Object.assign(operations, downloadOperations);
 // Built-in RAD Studio command-line utilities folder and catalog.
-Object.assign(operations, cliUtilsOperations, taskManagerOperations, sysinfoOperations);
+Object.assign(operations, cliUtilsOperations, taskManagerOperations, sysinfoOperations, PHONON_OPS);
 
 export const API_OPERATIONS = Object.keys(operations);
 
@@ -810,6 +811,16 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
 
         if (req.method === "GET" && path === "/api/health") {
           return json(200, { status: "ok", app: APP_ID, name: APP_NAME, version: APP_VERSION, platform: ctx.platform, timestamp: Date.now() });
+        }
+
+        if (req.method === "GET" && path === "/api/phonon/audio") {
+          if (!tokenMatches(url.searchParams.get("token"), token)) return json(401, { ok: false, error: { code: "NO_TOKEN", message: "Not allowed." } });
+          const audioId = url.searchParams.get("id") ?? "";
+          const wavFile = getCachedAudioFile(ctx, audioId);
+          if (!wavFile) return json(404, { ok: false, error: { code: "NOT_FOUND", message: "Audio chunk expired or not found." } });
+          const st = await fsp.stat(wavFile).catch(() => null);
+          if (!st?.isFile()) return json(404, { ok: false, error: { code: "NOT_FOUND", message: "Audio chunk not found." } });
+          return fileResponse(req, wavFile, st.size, secureHeaders({ "Content-Type": "audio/wav", "Cache-Control": "private, max-age=600" }));
         }
 
         if (req.method === "GET" && path === "/api/raw") {

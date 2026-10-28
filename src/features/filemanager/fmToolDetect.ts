@@ -124,6 +124,11 @@ async function capabilitiesOf(ctx: FmContext, id: ToolId, path: string, env: Rec
     const asked = await capture([path, "--list-langs"], env, 15000);
     return asked.code === 0 && asked.text.trim() ? tesseractCapabilities(asked.text) : null;
   }
+  if (id === "ollama") {
+    const asked = await capture([path, "list"], env, 3500);
+    if (asked.code !== 0) return [];
+    return /\bphonon\b/i.test(asked.text) ? ["daemon", "model-phonon"] : ["daemon"];
+  }
   if (!["ffmpeg", "imagemagick", "pandoc", "fonttools"].includes(id)) return [];
   const key = `${id}|${fileKey(path)}`;
   const cached = id === "pandoc" ? undefined : capabilityCache.get(key);
@@ -222,6 +227,11 @@ export function explainFailure(tool: ToolId | "builtin", text: string, code: num
   if (tool === "sevenzip" || tool === "unar" || tool === "bsdtar") {
     if (/password|encrypted|wrong password/i.test(t)) return "This archive is protected by a password, which isn't supported here.";
     if (/Can not open|Unrecognized archive|not an archive|Couldn't recognize|not a valid|Unsupported|Cannot find archive|format/i.test(t)) return "This program can't open this archive. It may be damaged or an unsupported kind.";
+  }
+  if (tool === "ollama") {
+    if (/could not connect to a running Ollama|connection refused|server not responding/i.test(t)) return "Ollama is installed, but its background service isn't running yet. Start Ollama or click Start & Pull Phonon.";
+    if (/model .* not found|pull .* first/i.test(t)) return "The Phonon voice model isn't downloaded yet. Click Pull Phonon Model to download it.";
+    if (/requires a newer version/i.test(t)) return "Phonon needs Ollama 0.40.9 or newer. Update Ollama and try again.";
   }
   return generic;
 }

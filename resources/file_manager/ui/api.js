@@ -2,7 +2,7 @@
 
 const meta = (name) => (typeof document === "undefined" ? "" : document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") ?? "");
 const INITIAL_TOKEN = meta("fm-token");
-const getToken = () => INITIAL_TOKEN || meta("fm-token");
+export const getToken = () => INITIAL_TOKEN || meta("fm-token");
 export const platform = meta("fm-platform") || "linux";
 
 export class ApiError extends Error {

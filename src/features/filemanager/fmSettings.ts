@@ -185,7 +185,20 @@ export interface Settings {
   tags: Record<string, TagColor>;
   /** Whether the collapsible Folder Tree section in the sidebar is expanded. */
   treeExpanded: boolean;
+  /** Default Ollama Phonon voice name used when reading text aloud or exporting audio. */
+  phononVoice: string;
+  /** Default audio output format for Ollama Phonon speech export ("wav" | "mp3" | "m4a" | "aac" | "flac" | "ogg" | "opus" | "aiff" | "wma"). */
+  phononFormat: PhononAudioFormat;
+  /** Default playback / synthesis tempo multiplier for Ollama Phonon (0.5..2.5, default 1). */
+  phononSpeed: number;
+  /** Whether Ollama Phonon automatically normalizes and strips markup/code/noise when converting text to plain text for speech. */
+  phononCleanText: boolean;
+  /** Silence gap in milliseconds inserted between paragraphs when synthesizing multi-chunk speech (0..2000, default 200). */
+  phononPauseMs: number;
 }
+
+export const PHONON_AUDIO_FORMATS = ["wav", "mp3", "m4a", "aac", "flac", "ogg", "opus", "aiff", "wma"] as const;
+export type PhononAudioFormat = (typeof PHONON_AUDIO_FORMATS)[number];
 
 export const EXTRA_COLUMNS = ["permissions", "ext"] as const;
 export type ExtraColumn = (typeof EXTRA_COLUMNS)[number];
@@ -378,6 +391,11 @@ export const DEFAULT_SETTINGS: Settings = {
   rowDensity: "comfortable",
   tags: {},
   treeExpanded: false,
+  phononVoice: "Zoey",
+  phononFormat: "wav",
+  phononSpeed: 1,
+  phononCleanText: true,
+  phononPauseMs: 200,
 };
 
 export const MAX_FAVORITES = 100;
@@ -536,6 +554,11 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     rowDensity: oneOf(r.rowDensity, ROW_DENSITIES, DEFAULT_SETTINGS.rowDensity),
     tags,
     treeExpanded: typeof r.treeExpanded === "boolean" ? r.treeExpanded : DEFAULT_SETTINGS.treeExpanded,
+    phononVoice: typeof r.phononVoice === "string" && /^[A-Za-z0-9 _-]{1,48}$/.test(r.phononVoice.trim()) ? r.phononVoice.trim() : DEFAULT_SETTINGS.phononVoice,
+    phononFormat: oneOf(r.phononFormat, PHONON_AUDIO_FORMATS, DEFAULT_SETTINGS.phononFormat),
+    phononSpeed: typeof r.phononSpeed === "number" && isFinite(r.phononSpeed) ? Math.round(Math.min(2.5, Math.max(0.5, r.phononSpeed)) * 100) / 100 : DEFAULT_SETTINGS.phononSpeed,
+    phononCleanText: typeof r.phononCleanText === "boolean" ? r.phononCleanText : DEFAULT_SETTINGS.phononCleanText,
+    phononPauseMs: typeof r.phononPauseMs === "number" && isFinite(r.phononPauseMs) ? Math.round(Math.min(2000, Math.max(0, r.phononPauseMs))) : DEFAULT_SETTINGS.phononPauseMs,
   };
 }
 

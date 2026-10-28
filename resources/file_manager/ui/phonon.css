@@ -1,0 +1,369 @@
+/* Ollama Phonon Voice Reader & Multi-Format Audio Studio */
+.phonon-studio-root {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 0.9rem 1.1rem 1.6rem;
+  overflow-y: auto;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.phonon-banner-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.95rem;
+  border-radius: 10px;
+  border: 1px solid var(--border, rgba(128, 128, 128, 0.25));
+  background: var(--panel, rgba(30, 34, 44, 0.65));
+}
+
+.phonon-banner-card.is-ready {
+  border-color: color-mix(in srgb, var(--accent, #3b82f6) 45%, var(--border, #444));
+}
+
+.phonon-banner-card.needs-setup {
+  border-color: #f59e0b;
+}
+
+.phonon-banner-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1 1 360px;
+}
+
+.phonon-banner-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.phonon-status-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.phonon-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid var(--border, rgba(128, 128, 128, 0.25));
+  background: var(--bg, rgba(0, 0, 0, 0.2));
+}
+
+.phonon-pill.ok {
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.38);
+}
+
+.phonon-pill.warn {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.phonon-pill.muted {
+  color: var(--muted, #9ca3af);
+}
+
+.phonon-cli-badge {
+  font-size: 0.76rem;
+  padding: 0.16rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--border, rgba(128, 128, 128, 0.2));
+}
+
+.phonon-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.phonon-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border, rgba(128, 128, 128, 0.22));
+  background: var(--panel, rgba(30, 34, 44, 0.5));
+}
+
+.phonon-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.phonon-card-title {
+  margin: 0;
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.phonon-head-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.phonon-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.58rem;
+  border-radius: 999px;
+  font-size: 0.77rem;
+  font-weight: 600;
+  border: 1px solid var(--border, rgba(128, 128, 128, 0.28));
+  background: var(--bg, rgba(0, 0, 0, 0.2));
+}
+
+.phonon-badge-accent {
+  color: var(--accent, #38bdf8);
+  border-color: color-mix(in srgb, var(--accent, #38bdf8) 45%, transparent);
+}
+
+.phonon-badge-muted {
+  color: var(--muted, #9ca3af);
+}
+
+.phonon-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 0.75rem;
+}
+
+.phonon-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.75rem;
+}
+
+.phonon-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+}
+
+.phonon-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.phonon-metric-val {
+  font-variant-numeric: tabular-nums;
+  color: var(--accent, #38bdf8);
+}
+
+.phonon-inline-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.phonon-inline-row > .input,
+.phonon-inline-row > .phonon-select {
+  flex: 1 1 190px;
+}
+
+.phonon-path-input {
+  flex: 1 1 280px;
+}
+
+.phonon-cleanup-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  background: var(--bg, rgba(0, 0, 0, 0.16));
+  border: 1px solid var(--border, rgba(128, 128, 128, 0.18));
+}
+
+.phonon-cleanup-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted, #9ca3af);
+  margin-right: 0.2rem;
+}
+
+.phonon-check-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.79rem;
+  padding: 0.16rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid var(--border, rgba(128, 128, 128, 0.2));
+}
+
+.phonon-textarea {
+  width: 100%;
+  min-height: 145px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+  padding: 0.65rem 0.75rem;
+  box-sizing: border-box;
+}
+
+.phonon-player-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  background: var(--bg, rgba(0, 0, 0, 0.2));
+  border: 1px solid var(--border, rgba(128, 128, 128, 0.2));
+}
+
+.phonon-transport-btns {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.phonon-native-audio {
+  height: 34px;
+  flex: 1 1 240px;
+  max-width: 420px;
+}
+
+.phonon-now-playing {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--accent, #38bdf8);
+  padding: 0.15rem 0.2rem;
+}
+
+.phonon-export-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--border, rgba(128, 128, 128, 0.2));
+  background: var(--bg, rgba(0, 0, 0, 0.14));
+}
+
+.phonon-export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.phonon-chunks-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.phonon-chunks-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.84rem;
+}
+
+.phonon-chunk-pager {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.phonon-chunk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 290px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.phonon-chunk-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem 0.68rem;
+  border-radius: 8px;
+  border: 1px solid var(--border, rgba(128, 128, 128, 0.2));
+  background: var(--bg, rgba(0, 0, 0, 0.15));
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.phonon-chunk-item:hover {
+  border-color: var(--accent, #38bdf8);
+}
+
+.phonon-chunk-item.is-active {
+  border-color: var(--accent, #38bdf8);
+  background: color-mix(in srgb, var(--accent, #38bdf8) 14%, var(--bg, rgba(0, 0, 0, 0.2)));
+}
+
+.phonon-chunk-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--muted, #9ca3af);
+}
+
+.phonon-chunk-num {
+  font-weight: 700;
+  color: var(--fg, inherit);
+}
+
+.phonon-chunk-state {
+  font-weight: 600;
+  color: var(--accent, #38bdf8);
+}
+
+.phonon-chunk-text {
+  font-size: 0.84rem;
+  line-height: 1.42;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.phonon-empty-chunks {
+  padding: 0.9rem;
+  text-align: center;
+  color: var(--muted, #9ca3af);
+  font-size: 0.84rem;
+}
+
+.phonon-sm-btn {
+  padding: 0.26rem 0.58rem;
+  font-size: 0.79rem;
+}

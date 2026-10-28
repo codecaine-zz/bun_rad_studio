@@ -76,6 +76,7 @@ export const TOOL_WINDOW_APPS: Record<string, ToolWindowInfo> = {
   cliutils: { id: "cliutils", title: "CLI Utilities", script: "file_manager_studio", args: ["--tool", "cliutils", "--max"] },
   imagestudio: { id: "imagestudio", title: "Picture Tools", script: "file_manager_studio", args: ["--tool", "imagestudio", "--max"] },
   mediastudio: { id: "mediastudio", title: "Audio & Video", script: "file_manager_studio", args: ["--tool", "mediastudio", "--max"] },
+  phonon: { id: "phonon", title: "Voice Reader", script: "file_manager_studio", args: ["--tool", "phonon", "--max"] },
   compare: { id: "compare", title: "Compare Folders", script: "file_manager_studio", args: ["--tool", "compare", "--max"] },
   projects: { id: "projects", title: "Projects", script: "file_manager_studio", args: ["--tool", "projects", "--max"] },
   actions: { id: "actions", title: "Batch Convert", script: "file_manager_studio", args: ["--tool", "actions", "--max"] },
