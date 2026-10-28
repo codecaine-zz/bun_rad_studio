@@ -1,6 +1,25 @@
 # Changelog
 
-All notable changes. Version 1.5.2 is the twenty-first release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.4.5, 1.4.6, 1.4.7, 1.4.8, 1.4.9, 1.5.0 and 1.5.1 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.5.3 is the twenty-second release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.4.5, 1.4.6, 1.4.7, 1.4.8, 1.4.9, 1.5.0, 1.5.1 and 1.5.2 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+
+## 1.5.3 (28 October 2026)
+
+### Fixed
+
+- **Native Desktop WebView Window by Default Across All Platforms — Never Auto-Open a Web Browser (`applications/file_manager_studio.ts`, `scripts/fix_windows_webview_runtime.ts`, `run.ps1`).**
+  - Remove the unsolicited `openUrlInSystemBrowser(url)` fallback on native WebView launch so `bun run app:files` always opens in its native desktop window unless the user explicitly passes `--browser` (`-b` or `FM_OPEN_BROWSER=1`).
+  - Add PE COFF machine-header (`0x8664` AMD64) verification (`getPeMachineType`, `isPeX64`) to `scripts/fix_windows_webview_runtime.ts` (`postinstall` hook) so stale or wrong-architecture (`0xaa64` ARM64 or `0x014c` x86) `WebView2Loader.dll` files in `webview-bun/build` are automatically purged and replaced with the verified 64-bit x64 loader.
+  - Automatically provision and re-execute under `bun-windows-x64-baseline` (`~/.bun_rad_studio/runtime/bun-x64/bun.exe`) when `bun run app:files` is invoked from an ARM64 `bun.exe` on Windows 11 ARM64 (`ensureWindowsX64Bun`), and initialize COM Single-Threaded Apartment (`CoInitializeEx(null, COINIT_APARTMENTTHREADED)`) before `new Webview()` on Windows (`initWindowsComSta`).
+- **Apple Silicon Mac (`darwin` `arm64` MLX) Exclusive Platform Gating for Ollama Phonon Voice Reader (`src/features/filemanager/fmPhonon.ts`, `src/features/filemanager/fmSetup.ts`, `src/features/filemanager/fmToolDetect.ts`, `resources/file_manager/ui/phonon.js`).**
+  - Because the `phonon` model on Ollama (`ollama.com/library/phonon`) requires Apple's MLX runtime (`darwin/arm64` only) and fails with `Error: this model requires MLX support, but the MLX runtime is not available` on Windows and Linux, add `isPhononSupportedPlatform(platform, arch)` and gate all Phonon Voice Reader UI surfaces (Sidebar, Toolbar, Command Palette, Context Menu, Helper Programs setup dialog, and first-launch setup banner) exclusively to macOS Apple Silicon (`darwin` `arm64`) so Windows and Linux builds never display unsupported MLX voice model prompts.
+
+### Improved
+
+- **OS-Aware Theme & Holiday Atmosphere FX Hardware Optimization (`src/theme.ts`, `src/theme_fx.ts`, `resources/file_manager/ui/atmosphereFx.js`, `resources/file_manager/ui/themes.js`).**
+  - Add per-OS rendering profiles (`detectOsThemeProfile`, `resolveOsThemeRenderBudget`, `buildThemeCss(theme, osTarget)`) tailored for **macOS Metal / WKWebView** (`120 fps`, `1.0×` particles), **Windows 11 DWM / WebView2 DirectComposition** (`60 fps`, `0.55×` particles, zero `feDisplacementMap` SVG filters), **Windows 11 ARM64 / Hypervisor VM** (`60 fps`, `0.38×` particles, single-stop `drop-shadow`, `backdrop-filter: blur(8px)` cap), and **Linux WebKitGTK / X11 / Wayland** (`60 fps`, `0.35×` particles, solid high-contrast surfaces).
+  - Optimize the Holiday & Atmospheric Canvas FX engine (`resources/file_manager/ui/atmosphereFx.js`) with pre-rendered offscreen sprite caches (`getGlowSprite`, `getEmojiSprite`) eliminating per-frame `createRadialGradient()`, `shadowBlur`, and `fillText()` rasterization during snow, confetti, firework, lantern, and shamrock animations.
+- **Cross-Platform Release Refresh (`v1.5.3`) & Live `ollama run phonon --voice Zoey` YouTube Short + Widescreen Video (`scripts/build_phonon_voice_reader_short.ts`).**
+  - Recompile and package all standalone Codecaine File Manager archives, full suite archives, and macOS `.app` bundles for `v1.5.3`, and produce both the 9:16 YouTube Short (`youtube_production/codecaine-file-manager-phonon-voice-reader-short.mp4`) and 16:9 widescreen video (`youtube_production/file_manager_phonon_voice_reader_demo.mp4`) narrated live from macOS using `ollama run phonon --voice Zoey`.
 
 ## 1.5.2 (27 October 2026)
 

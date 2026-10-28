@@ -4,8 +4,9 @@
  * AND companion 1920x1080 widescreen demo video for the Codecaine File Manager
  * Phonon Voice Reader (`ollama run phonon`) Studio.
  *
- * Every scene is narrated by a real local `ollama run phonon` neural voice (`Zoey`, `Easton`,
- * `Freya`, `Hugh`, `Imogen`, `Master Aldric`) so viewers hear Phonon's actual neural speech engine live!
+ * Every scene is narrated live by `ollama run phonon --voice Zoey` so viewers hear
+ * Phonon's actual natural AI voice (`Zoey`) explaining how the File Manager converts
+ * files and massive texts into speech with ultra-low resource usage!
  *
  * Outputs:
  *   - youtube_production/codecaine-file-manager-phonon-voice-reader-short.mp4 (1080x1920 9:16 Short)
@@ -157,17 +158,17 @@ const sceneSpecs: SceneSpec[] = [
   {
     id: "01_intro_and_autoinstall",
     voice: "Zoey",
-    voiceDesc: "Zoey (Conversational · Default)",
-    badge: "01 / 06 · OLLAMA PHONON TTS (APPLE SILICON MLX)",
-    title: "LOCAL AI VOICE READER\nFOR APPLE SILICON MAC.",
-    label: "🍎 APPLE SILICON MAC (MLX) · 38 VOICES · 1-CLICK INSTALL",
-    extra: "Narrated Live by Phonon Voice: Zoey · Powered by Apple MLX on M1–M4 Macs",
+    voiceDesc: "Zoey (Narrating This Video Live from Mac)",
+    badge: "01 / 06 · NARRATED BY ZOEY FROM THIS MAC (LOW RESOURCES)",
+    title: "NARRATED BY ZOEY ON MAC.\nAI VOICE FOR ALL FILES.",
+    label: "🎙️ THIS VIDEO IS NARRATED ON MAC BY: OLLAMA RUN PHONON --VOICE ZOEY",
+    extra: "🎙️ You are hearing Zoey right now — generated live on this Mac (112 MB MLX Model)",
     bullets: [
-      "🍎 Apple Silicon Mac Exclusive (MLX Framework)",
-      "⚡ 1-Click Auto-Install Ollama + Phonon TTS",
-      "🔊 24 kHz Neural Speech · Zero Cloud Fees",
+      "🎙️ This Video Is Narrated on Mac by `phonon --voice Zoey`",
+      "🪶 Ultra-Low Resources: Compact 112 MB Local MLX Model",
+      "⚡ 1-Click Auto-Install Ollama + Phonon · Zero Cloud Fees",
     ],
-    say: "Meet the new Phonon Voice Reader built right into the Codecaine File Manager, powered by ollama run phonon. Because the Phonon model currently runs on Apple's M L X framework, it is built exclusively for Apple Silicon Macs—and you can auto-install Ollama and Phonon in a single click!",
+    say: "Hi! Please note that I am Zoey—and my voice is being used right now to narrate and create this entire video directly from this Apple Silicon Mac using ollama run phonon dash dash voice Zoey! Inside the Codecaine File Manager, you can turn any file or document into natural twenty-four kilohertz AI speech with ultra-low resource usage, powered by a compact one-hundred-twelve megabyte local M L X model that runs one hundred percent offline.",
     record: async (c) => {
       await c.eval(`(async () => {
         const { closePower } = await import('/ui/power.js');
@@ -175,9 +176,9 @@ const sceneSpecs: SceneSpec[] = [
       })()`);
       await showKeynoteHud(
         c,
-        "🍎 Apple Silicon Mac Exclusive (MLX): Ollama + Phonon 1-Click Setup",
-        "Phonon runs on Apple MLX (M1/M2/M3/M4 ARM64 Macs) with 1-click auto-install",
-        "🎙️ VOICE: ZOEY",
+        "🎙️ This Video Is Narrated Live on This Mac by `ollama run phonon --voice Zoey`",
+        "Compact 112 MB Apple MLX model · Low RAM & CPU · 1-Click Auto-Install · 100% Offline",
+        "🎙️ ZOEY ON THIS MAC",
       );
       await sleep(350);
       await c.eval(`(async () => {
@@ -203,27 +204,27 @@ const sceneSpecs: SceneSpec[] = [
       })()`);
       await showKeynoteHud(
         c,
-        "🟢 Apple Silicon MLX Ready — 38 Neural Voices · 8,192-Token Context",
+        "🟢 Narrated from This Mac by Zoey (`--voice Zoey`) — 112 MB Low-Resource MLX Model",
         "1-Click Install Ollama & Phonon right inside the File Manager studio banner",
-        "🎙️ VOICE: ZOEY",
+        "🎙️ ZOEY ON THIS MAC",
       );
       await sleep(1500);
     },
   },
   {
     id: "02_38_voices_and_default",
-    voice: "Easton",
-    voiceDesc: "Easton (Conversational)",
-    badge: "02 / 06 · 38 NEURAL VOICES & DEFAULT VOICE",
-    title: "38 NEURAL VOICES.\nSET YOUR DEFAULT.",
-    label: "🗣️ CONVERSATIONAL · NARRATOR · CHARACTER · DEFAULT VOICE",
-    extra: "Narrated Live by Phonon Voice: Easton · Persistent Voice Settings",
+    voice: "Zoey",
+    voiceDesc: "Zoey (--voice Zoey · Default Natural Voice)",
+    badge: "02 / 06 · NATURAL AI VOICES & DEFAULT VOICE",
+    title: "38 NATURAL AI VOICES.\nSET ZOEY AS DEFAULT.",
+    label: "🗣️ --VOICE ZOEY DEFAULT · 38 NEURAL VOICES · SPEED & PAUSE CONTROLS",
+    extra: "Narrated Live by ollama run phonon --voice Zoey · Persistent Voice & Pacing Settings",
     bullets: [
-      "🗣️ 38 Expressive Conversational & Story Voices",
-      "⭐ Save Your Default Voice in 1 Click",
-      "🎚️ Live Playback Speed & Pause Controls",
+      "🗣️ 38 Built-In Conversational, Narrator & Character Voices",
+      "⭐ Save `Zoey` or Any Voice as Your Persistent Default",
+      "🎚️ Fine-Tune Speaking Speed (0.5×–2.0×) & Paragraph Pauses",
     ],
-    say: "Choose from thirty-eight expressive neural voices, including Zoey, Easton, Freya, Hugh, Imogen, and Master Aldric. Click Set Default Voice to persist your favorite voice across the entire File Manager, and fine-tune playback speed and pause duration.",
+    say: "Choose from thirty-eight built-in neural voices discovered directly from the Phonon model, including my default conversational voice Zoey, plus narrators and character voices. Click Set Default Voice to lock in your favorite voice across the entire File Manager, and dial in your exact speaking speed and paragraph pause timing.",
     record: async (c) => {
       await c.eval(`(async () => {
         const { openPower, setPowerExpanded } = await import('/ui/power.js');
@@ -232,9 +233,9 @@ const sceneSpecs: SceneSpec[] = [
       })()`);
       await showKeynoteHud(
         c,
-        "🗣️ 38 Built-In Neural Voices Discovered from ollama show phonon",
-        "Select any voice, preview it live, and click ⭐ Set Default Voice",
-        "🎙️ VOICE: EASTON",
+        "🗣️ 38 Built-In Neural Voices + 1-Click Default (`ollama run phonon --voice Zoey`)",
+        "Switch between Conversational, Narrator & Character voices and tune speed/pauses",
+        "🎙️ --VOICE ZOEY",
       );
       await sleep(500);
       for (const v of ["Easton", "Freya", "Hugh", "Imogen", "Master Aldric", "Zoey"]) {
@@ -268,24 +269,24 @@ const sceneSpecs: SceneSpec[] = [
   },
   {
     id: "03_convert_formats_to_plaintext",
-    voice: "Freya",
-    voiceDesc: "Freya (Narrator)",
-    badge: "03 / 06 · CONVERT ANY FORMAT TO PLAIN TEXT",
-    title: "CONVERT ANY FILE\nTO PLAIN TEXT.",
-    label: "📄 PDF · DOCX · EPUB · HTML · MD · SRT · CSV · JSON → .TXT",
-    extra: "Narrated Live by Phonon Voice: Freya · Smart Speech Cleanup",
+    voice: "Zoey",
+    voiceDesc: "Zoey (--voice Zoey · File-to-Speech)",
+    badge: "03 / 06 · CONVERT 25+ FILE FORMATS TO SPEECH & .TXT",
+    title: "READ ANY FILE FORMAT\nOR SAVE AS PLAIN TEXT.",
+    label: "📄 PDF · DOCX · EPUB · HTML · MD · SRT · CSV · JSON · CODE → SPEECH",
+    extra: "Narrated Live by ollama run phonon --voice Zoey · Smart Speech Cleanup Filters",
     bullets: [
-      "📄 Extract Text from 25+ Document Formats",
-      "🧹 Strip Markdown, HTML, URLs & Timestamps",
-      "💾 1-Click Save Clean Plain Text as .TXT",
+      "📄 Extract Speech-Ready Text from 25+ Document Formats",
+      "🧹 Auto-Strip Markdown, HTML Tags, Code, URLs & Timestamps",
+      "💾 Read Out Loud Instantly or 1-Click Save Clean .TXT",
     ],
-    say: "Convert any document format into clean, speech-ready plain text. Select Markdown, H T M L, subtitles, spreadsheets, P D Fs, or e-books, strip out markup and timestamps automatically, and save the converted plain text directly as a dot T X T file.",
+    say: "Select any file in your workspace—P D Fs, Word documents, e-books, Markdown notes, H T M L pages, S R T subtitles, C S V spreadsheets, J S O N, or source code—and convert it into clean, speech-ready plain text. Six smart cleanup filters strip away markup, timestamps, and U R Ls so every sentence sounds completely natural, and you can save the cleaned text as a dot T X T file in one click.",
     record: async (c) => {
       await showKeynoteHud(
         c,
-        "📄 Multi-Format Plain Text Extractor + 6 Smart Cleanup Filters",
-        "Strips HTML tags, Markdown syntax, code blocks, URLs & SRT timestamps",
-        "🎙️ VOICE: FREYA",
+        "📄 25+ File Formats to Speech or Clean .TXT (PDF, DOCX, EPUB, HTML, MD, SRT, CSV)",
+        "Automatically strips HTML tags, Markdown syntax, code blocks, URLs & subtitle timestamps",
+        "🎙️ --VOICE ZOEY",
       );
       await c.eval(`(async () => {
         const { left } = await import('/ui/pane.js');
@@ -307,24 +308,24 @@ const sceneSpecs: SceneSpec[] = [
   },
   {
     id: "04_extreme_large_text_chunking",
-    voice: "Hugh",
-    voiceDesc: "Hugh (Documentary Narrator)",
-    badge: "04 / 06 · EXTREME LARGE-TEXT OPTIMIZATION",
-    title: "UNLIMITED BOOK SIZE.\nZERO CONTEXT OVERFLOW.",
-    label: "📚 8,192-TOKEN SAFE SPLITTER · O(N) SENTENCE CHUNKING",
-    extra: "Narrated Live by Phonon Voice: Hugh · Handles Full-Length Books",
+    voice: "Zoey",
+    voiceDesc: "Zoey (--voice Zoey · Large-Text Engine)",
+    badge: "04 / 06 · HANDLE MASSIVE TEXTS WITH O(1) MEMORY",
+    title: "HANDLE MASSIVE BOOKS.\nLOW MEMORY & ZERO CUTOFF.",
+    label: "📚 8,192-TOKEN SAFE SPLITTER · O(N) CHUNKER · O(1) DISK STREAMING",
+    extra: "Narrated Live by ollama run phonon --voice Zoey · Unlimited Document & Book Length",
     bullets: [
-      "📚 Splits Massive Texts Beyond 8,192 Tokens",
-      "✂️ Natural Paragraph, Sentence & Clause Cuts",
-      "⚡ O(1) Memory Disk-Streaming PCM Stitcher",
+      "📚 Handles Multi-Chapter Books Beyond 8,192 Tokens",
+      "✂️ O(N) Paragraph, Sentence & Clause Boundary Chunker",
+      "🪶 O(1) Constant-Memory Disk PCM Audio Stitching",
     ],
-    say: "What if your book or document is way past Phonon's eight-thousand-token context limit? Our hierarchical splitter automatically divides massive texts along natural paragraph and sentence boundaries, so you can read or export entire books without ever hitting a context limit.",
+    say: "Need to synthesize a massive technical manual or an entire twenty-four chapter book? Phonon has an eight-thousand-one-hundred-ninety-two token context window, so our hierarchical O of N splitter automatically divides huge texts along natural paragraph, sentence, and clause boundaries while stitching twenty-four kilohertz P C M audio directly on disk in constant O of one memory.",
     record: async (c) => {
       await showKeynoteHud(
         c,
-        "📚 Extreme Large-Text Engine: 24-Chapter Book Loaded (24+ Chunks)",
-        "Every chunk stays safely inside Phonon's 8,192-token window with zero truncation",
-        "🎙️ VOICE: HUGH",
+        "📚 Massive-Text Engine: 24-Chapter Book Split Into Context-Safe Segments",
+        "O(N) sentence chunker + O(1) disk PCM stitcher keeps RAM usage tiny on huge books",
+        "🎙️ --VOICE ZOEY",
       );
       await c.eval(`(async () => {
         const { left } = await import('/ui/pane.js');
@@ -353,24 +354,24 @@ const sceneSpecs: SceneSpec[] = [
   },
   {
     id: "05_live_read_out_loud",
-    voice: "Imogen",
-    voiceDesc: "Imogen (Literary Narrator)",
-    badge: "05 / 06 · READ OUT LOUD & LOOKAHEAD STREAMING",
-    title: "READ OUT LOUD WITH\nLOOKAHEAD PREFETCH.",
-    label: "▶️ LIVE STREAMING · 2-CHUNK PREFETCH · INTERACTIVE QUEUE",
-    extra: "Narrated Live by Phonon Voice: Imogen · Zero-Gap Transitions",
+    voice: "Zoey",
+    voiceDesc: "Zoey (--voice Zoey · Lookahead Streaming)",
+    badge: "05 / 06 · READ OUT LOUD & 2-CHUNK PREFETCHING",
+    title: "ZERO-GAP STREAMING.\n2-CHUNK LOOKAHEAD.",
+    label: "▶️ LIVE READ OUT LOUD · BACKGROUND PREFETCH · INTERACTIVE QUEUE",
+    extra: "Narrated Live by ollama run phonon --voice Zoey · Instant Segment Jump & Caching",
     bullets: [
-      "▶️ Read Out Loud, Pause, Stop, Prev & Next",
-      "⚡ 2-Chunk Background Lookahead Prefetch",
-      "🖱️ Click Any Segment in the Queue to Jump",
+      "▶️ Instant Read Out Loud, Pause, Stop, Prev & Next",
+      "⚡ 2-Chunk Background Lookahead Prefetch (Zero Gaps)",
+      "🖱️ Click Any Segment in the Queue to Jump Immediately",
     ],
-    say: "Click Read Out Loud for instant streaming playback. While Phonon speaks the current paragraph, the studio prefetches the next two chunks in the background for seamless transitions, and you can click any chunk in the queue to jump right to it.",
+    say: "Click Read Out Loud for instant streaming playback. While I speak the active paragraph, the File Manager prefetches the next two chunks in the background so transitions between paragraphs are completely seamless with zero lag—and you can click any segment in the queue to jump right to that chapter.",
     record: async (c) => {
       await showKeynoteHud(
         c,
-        "▶️ Live Streaming Read Out Loud + 2-Chunk Lookahead Prefetching",
-        "Interactive queue highlights the active paragraph as Phonon speaks",
-        "🎙️ VOICE: IMOGEN",
+        "▶️ Live Read Out Loud (`--voice Zoey`) + 2-Chunk Background Lookahead Prefetch",
+        "Interactive segment queue caches upcoming paragraphs for zero-gap transitions",
+        "🎙️ --VOICE ZOEY",
       );
       await c.eval(`(() => {
         const qList = document.querySelector('.phonon-chunk-list');
@@ -381,7 +382,7 @@ const sceneSpecs: SceneSpec[] = [
           el.classList.toggle('is-cached', idx === 1 || idx === 2);
         });
         const st = document.querySelector('.phonon-now-playing');
-        if (st) st.textContent = '🔊 Speaking chunk 1 of ' + (items.length || 24) + ' (Imogen, 24 kHz WAV)…';
+        if (st) st.textContent = '🔊 Speaking chunk 1 of ' + (items.length || 24) + ' (Zoey, 24 kHz WAV)…';
       })()`);
       await sleep(950);
       await c.eval(`(() => {
@@ -408,24 +409,24 @@ const sceneSpecs: SceneSpec[] = [
   },
   {
     id: "06_export_any_audio_format",
-    voice: "Master Aldric",
-    voiceDesc: "Master Aldric (Character Voice)",
-    badge: "06 / 06 · SAVE AS ANY AUDIO FILE FORMAT",
-    title: "SAVE AS WAV, MP3, FLAC,\nM4A, OGG, OPUS & AIFF.",
-    label: "🎵 9 AUDIO FORMATS · APPLE SILICON MAC (MLX) EXCLUSIVE",
-    extra: "Narrated Live by Phonon Voice: Master Aldric · Apple Silicon M1–M4 Macs",
+    voice: "Zoey",
+    voiceDesc: "Zoey (--voice Zoey · 9-Format Audio Export)",
+    badge: "06 / 06 · EXPORT FILES TO 9 AUDIO FORMATS",
+    title: "EXPORT TO WAV, MP3, FLAC,\nM4A, OGG, OPUS & AIFF.",
+    label: "🎵 9 AUDIO FORMATS · SINGLE OR BATCH FILE-TO-AUDIO CONVERTER",
+    extra: "Narrated Live by ollama run phonon --voice Zoey · Free & Open Source on GitHub",
     bullets: [
       "🎵 WAV, MP3, M4A, AAC, FLAC, OGG, OPUS, AIFF & WMA",
-      "📦 Batch Convert Selected Files to Audio",
-      "🍎 For Apple Silicon Macs (M1/M2/M3/M4 · MLX)",
+      "📦 Batch-Convert Entire Folders of Files to Audiobooks",
+      "🍎 Free & Open Source for Apple Silicon Macs (M1–M4)",
     ],
-    say: "Finally, save your spoken text as any audio file format you want: W A V, M P 3, M 4 A, A A C, F L A C, O G G, Opus, A I F F, or W M A—or batch-convert an entire folder of documents into audiobooks on your Apple Silicon Mac in one click!",
+    say: "Every word of narration in this video was generated right on this Mac using ollama run phonon dash dash voice Zoey! When you're ready to export your own files, save your spoken text as W A V, M P 3, M 4 A, A A C, F L A C, O G G, Opus, A I F F, or W M A—or batch-convert an entire folder of documents into audiobooks in one click.",
     record: async (c) => {
       await showKeynoteHud(
         c,
-        "🎵 Save as Any Audio Format: WAV, MP3, M4A, AAC, FLAC, OGG, OPUS, AIFF, WMA",
-        "Apple Silicon Mac (MLX) Exclusive · Single or Batch File-to-Audio Export",
-        "🎙️ VOICE: MASTER ALDRIC",
+        "🎵 Export Single or Batch Files to WAV, MP3, M4A, AAC, FLAC, OGG, OPUS, AIFF, WMA",
+        "Narrated by `ollama run phonon --voice Zoey` · 100% Local & Free on Apple Silicon Mac",
+        "🎙️ --VOICE ZOEY",
       );
       await c.eval(`(() => {
         const p = document.querySelector('#power-body');
@@ -521,8 +522,8 @@ body{
 </style>
 <div class="top">
   <div class="hw-strip">
-    <span class="apple-chip"> APPLE SILICON MAC ONLY (M1–M4 · MLX)</span>
-    <span>VOICE: ${esc(scene.voice.toUpperCase())} · 24KHZ NEURAL</span>
+    <span class="apple-chip"> CREATED ON MAC WITH: OLLAMA RUN PHONON --VOICE ZOEY</span>
+    <span>112MB MLX · 24KHZ NEURAL</span>
   </div>
   <div class="badge">${esc(scene.badge)}</div>
   <div class="title">${esc(scene.title)}</div>
@@ -552,7 +553,7 @@ body{width:1920px;height:1080px;background:transparent;font-family:-apple-system
 .right{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
 .rig{color:#0f172a;font-size:13.5px;font-weight:800;letter-spacing:.01em;background:#fef3c7;border:1.5px solid #f59e0b;padding:4px 12px;border-radius:8px;white-space:nowrap}
 .n{flex:none;color:#bae6fd;font-size:16px;font-weight:800;background:rgba(56,189,248,0.15);border:1.5px solid rgba(56,189,248,0.45);padding:5px 14px;border-radius:10px}
-</style></head><body><div class="strip"><div class="badge">${esc(scene.badge)}</div><div class="col"><div class="title">${esc(scene.label)}</div><div class="cap">${esc(scene.bullets.join("  ·  "))}</div></div><div class="right"><div class="rig">🍎 Apple Silicon MLX · Voice: ${esc(scene.voiceDesc)}</div><div class="n">Scene ${index + 1} of ${totalScenes}</div></div></body></html>`;
+</style></head><body><div class="strip"><div class="badge">${esc(scene.badge)}</div><div class="col"><div class="title">${esc(scene.label)}</div><div class="cap">${esc(scene.bullets.join("  ·  "))}</div></div><div class="right"><div class="rig">🎙️ Video Narrated on Mac by: phonon --voice Zoey</div><div class="n">Scene ${index + 1} of ${totalScenes}</div></div></body></html>`;
 }
 
 function notesMarkdown(seconds: number, tempo: number, sceneMarks: Array<{ at: number; scene: SceneSpec }>): string {
@@ -561,9 +562,9 @@ function notesMarkdown(seconds: number, tempo: number, sceneMarks: Array<{ at: n
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
   const stamps = sceneMarks.map((m, i) => `${fmt(i === 0 ? 0 : m.at)} ${m.scene.label} (Voice: ${m.scene.voice})`).join("\n");
-  return `# Codecaine File Manager — Ollama Phonon AI Voice Reader (\`ollama run phonon\` · Apple Silicon Mac MLX) YouTube Short & Demo (${fmt(seconds)})
+  return `# Codecaine File Manager — Ollama Phonon AI Voice Reader (\`ollama run phonon --voice Zoey\` · Apple Silicon Mac MLX) YouTube Short & Demo (${fmt(seconds)})
 
-## Video Files (100% Live-Recorded & Narrated by 6 Local \`ollama run phonon\` Neural Voices)
+## Video Files (100% Live-Recorded & Narrated Live by \`ollama run phonon --voice Zoey\`)
 
 - **YouTube Short MP4 (9:16 Vertical, 1080×1920)**: \`youtube_production/codecaine-file-manager-phonon-voice-reader-short.mp4\` (${seconds.toFixed(1)}s, 30 fps, CRF 14, 256k AAC)
 - **Widescreen Demo MP4 (16:9 Horizontal, 1920×1080)**: \`youtube_production/file_manager_phonon_voice_reader_demo.mp4\` (${seconds.toFixed(1)}s, 30 fps, CRF 14, 256k AAC)
@@ -572,14 +573,14 @@ function notesMarkdown(seconds: number, tempo: number, sceneMarks: Array<{ at: n
 
 ## High-CTR Mass-Outreach YouTube Titles (Under 100 Characters — Copy & Paste)
 
-### Option 1 — Best Overall Apple Silicon Mac + Local AI Hook (97 chars)
+### Option 1 — Best Overall AI Natural Voice + Low Resources + Large Text Hook (97 chars)
 \`\`\`text
-Turn Any Document or Book Into an AI Audiobook on Mac! (Ollama Phonon MLX · 38 Voices) #Shorts
+Read Any File or Massive Book with Local AI Voice Zoey! (Ollama Phonon · 112MB Low RAM) #Shorts
 \`\`\`
 
 ### Option 2 — Developer / Apple MLX Hook (98 chars)
 \`\`\`text
-We Built a Local AI Voice Reader Inside a File Manager (\`ollama run phonon\` · Apple Silicon MLX)
+We Built a Local AI Voice Reader Inside a File Manager (\`ollama run phonon --voice Zoey\` · MLX)
 \`\`\`
 
 ### Option 3 — Productivity / Zero-Subscription Hook (96 chars)
@@ -589,7 +590,7 @@ Free Offline AI Voice Reader for Apple Silicon Mac: 38 Voices + 9 Audio Formats 
 
 ### Option 4 — Widescreen / Full Video Title (99 chars)
 \`\`\`text
-Ollama Phonon Local AI Text-to-Speech on Apple Silicon Mac (MLX): Read Books & Export MP3/WAV/FLAC
+Ollama Phonon Local AI Text-to-Speech on Mac (Voice Zoey): Low Resources, Huge Books & 9 Formats
 \`\`\`
 
 ---
@@ -597,32 +598,32 @@ Ollama Phonon Local AI Text-to-Speech on Apple Silicon Mac (MLX): Read Books & E
 ## Mass-Outreach YouTube Description (Copy & Paste)
 
 \`\`\`text
-Turn any PDF, e-book, Word doc, Markdown file, webpage, subtitle track, or massive 1,000-page book into natural, studio-grade 24 kHz neural speech on your Apple Silicon Mac — 100% locally and offline with ZERO cloud subscriptions! 🎙️🍎📚
+Turn any PDF, e-book, Word doc, Markdown file, webpage, subtitle track, spreadsheet, or massive 1,000-page book into natural, studio-grade 24 kHz neural speech on your Apple Silicon Mac — 100% locally and offline with ultra-low resource usage and ZERO cloud subscriptions! 🎙️🍎📚
 
 🍎 PLATFORM REQUIREMENT (APPLE SILICON MAC · MLX):
-Because Ollama's \`phonon\` model (Gradium Phonon Neural TTS) is accelerated by Apple's MLX framework, this built-in Voice Reader feature is currently supported on Apple Silicon Macs (M1, M2, M3, and M4 — macOS ARM64) only.
+Because Ollama's \`phonon\` model (Gradium Phonon Neural TTS) is accelerated by Apple's MLX framework, this built-in Voice Reader feature is supported exclusively on Apple Silicon Macs (M1, M2, M3, and M4 — macOS ARM64).
 
-In this live demo, we showcase the built-in Phonon Voice Reader Studio inside the free & open-source Codecaine File Manager, powered by \`ollama run phonon\`. Every scene in this video is narrated live by 6 different local Phonon voices (Zoey, Easton, Freya, Hugh, Imogen, and Master Aldric)!
+In this live demo, we showcase the built-in Phonon Voice Reader Studio inside the free & open-source Codecaine File Manager, narrated start-to-finish by \`ollama run phonon --voice Zoey\`!
 
 ⬇️ FREE & OPEN SOURCE DOWNLOAD:
 ${REPO}/releases/latest
 ⭐ GitHub Source Code (MIT License):
 ${REPO}
 
-🔥 WHAT YOU CAN DO WITH THE BUILT-IN OLLAMA PHONON VOICE READER (APPLE SILICON MAC):
-• ⚡ 1-Click Auto-Install: Don’t have Ollama or the Phonon voice model yet? Click once in the Helper Programs setup dialog or the Voice Reader banner and the File Manager installs Ollama, starts the local daemon, and runs \`ollama pull phonon\` automatically.
-• 🗣️ 38 Expressive Neural Voices + Default Voice: Choose from 38 built-in Conversational, Audiobook Narrator, and Character voices (Zoey, Easton, Freya, Hugh, Imogen, Master Aldric, Elodie-Rose, Edwin, Juniper, Captain Silas Blackwater, The Snow Queen, and more). Preview any voice live and save your persistent default voice in 1 click.
-• 📄 Convert Any File Format to Speech-Ready Plain Text: Extract clean text from 25+ formats — PDF, DOCX, ODT, RTF, EPUB, FB2, PPTX, XLSX, CSV, HTML, Markdown, JSON, YAML, Jupyter Notebooks (.ipynb), Subtitles (SRT/VTT/LRC), OCR images, and source code. Includes 1-click cleanup toggles to strip Markdown, HTML tags, code blocks, URLs, and timestamps, plus instant Save as .TXT!
-• 📚 Optimized for Extremely Large Books (Zero Context Overflow): Phonon has an 8,192-token context limit — so we engineered an O(N) hierarchical paragraph/sentence/clause splitter that divides huge books into context-safe segments automatically, streams live playback with 2-chunk background lookahead prefetching, and stitches 24 kHz 16-bit PCM audio frames directly on disk in O(1) memory.
+🔥 WHY THE BUILT-IN OLLAMA PHONON VOICE READER (\`--voice Zoey\`) STANDS OUT:
+• 🪶 Ultra-Low Resource Footprint: Powered by a compact 112 MB local MLX model with minimal CPU/RAM overhead, O(1) constant-memory disk PCM stitching, and 1-click auto-install for Ollama + Phonon.
+• 🗣️ Natural AI Voice \`Zoey\` + 38 Expressive Neural Voices: Narrated live by \`ollama run phonon --voice Zoey\`. Choose from 38 built-in Conversational, Audiobook Narrator, and Character voices, preview any voice live, and save your persistent default voice in 1 click.
+• 📄 Convert 25+ File Formats to Speech or Clean Plain Text: Extract clean text from PDF, DOCX, ODT, RTF, EPUB, FB2, PPTX, XLSX, CSV, HTML, Markdown, JSON, YAML, Jupyter Notebooks (.ipynb), Subtitles (SRT/VTT/LRC), OCR images, and source code. Includes 6 smart cleanup filters to strip Markdown, HTML tags, code blocks, URLs, and timestamps, plus instant Save as .TXT!
+• 📚 Handles Massive Texts & Full-Length Books with Low Memory: Phonon has an 8,192-token context limit — so our O(N) hierarchical paragraph/sentence/clause splitter divides huge books into context-safe segments automatically, streams live playback with 2-chunk background lookahead prefetching, and stitches 24 kHz 16-bit PCM audio frames directly on disk in O(1) memory.
 • 🎵 Save as Any Audio File Format (Single or Batch): Export synthesized speech as WAV (native 24 kHz PCM), MP3, M4A, AAC, FLAC, OGG, OPUS, AIFF, or WMA — or select an entire folder of documents and batch-convert them into audiobooks in one click!
 
-⏱️ CHAPTERS & LIVE PHONON VOICES
+⏱️ CHAPTERS (NARRATED BY \`ollama run phonon --voice Zoey\`)
 ${stamps}
 
 🖥️ RECORDING WORKSTATION
 🍎 Apple Mac Studio (M4 Ultra · 32-Core CPU · 80-Core GPU · 192GB Unified Memory)
 🖥️ Apple Pro Display XDR 6K @ 120Hz ProMotion
-🔊 Local Neural TTS Engine: \`ollama run phonon\` (Apple MLX · 24,000 Hz 16-bit PCM)
+🔊 Local Neural TTS Engine: \`ollama run phonon --voice Zoey\` (Apple MLX · 112 MB · 24,000 Hz 16-bit PCM)
 
 #Ollama #AppleSilicon #MLX #TextToSpeech #LocalAI #OpenSource #Audiobook #MacStudio #M4Ultra #FileManager #BunJS #TypeScript #OfflineAI #Shorts
 \`\`\`
@@ -789,6 +790,10 @@ async function main() {
       console.log(`🎥 Recording live scene ${scene.id} (${(item.seconds / tempo).toFixed(1)}s)...`);
       await recBrowser.startRecording();
       await scene.record(recBrowser);
+      if (scene.id === "04_extreme_large_text_chunking") {
+        const uiShot = await recBrowser.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
+        writeFileSync(join(PROD, "phonon_voice_reader_zoey_studio.png"), Buffer.from(uiShot.data, "base64"));
+      }
       await sleep(350);
       await recBrowser.stopRecording(clipPath, join(WORK, `frames_${scene.id}`), item.seconds / tempo);
       rawClips.set(scene.id, clipPath);
