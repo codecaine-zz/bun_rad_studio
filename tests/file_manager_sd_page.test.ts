@@ -1,9 +1,10 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { JSDOM } from "jsdom";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
+import { rmDir } from "./helpers/rm";
 
 // The Replace tab, run for real in a fake browser (jsdom) against the real server. The fake browser's globals are
 // removed again in afterAll so that other test files are not affected.
@@ -25,9 +26,14 @@ const type = (el: any, value: string) => {
   el.value = value;
   el.dispatchEvent(new doc.defaultView.Event("input", { bubbles: true }));
 };
+const waitIdle = async (minMs = 150) => {
+  await sleep(minMs);
+  for (let i = 0; i < 80 && button("Count matches")?.disabled; i++) await sleep(50);
+  await sleep(50);
+};
 const click = async (text: string, wait = 400) => {
   button(text).click();
-  await sleep(wait);
+  await waitIdle(wait);
 };
 const rows = () => [...pane().querySelectorAll(".sd-table tbody tr")];
 const dialogButton = (text: string): any => [...doc.querySelectorAll(".modal-backdrop button")].find((b: any) => b.textContent.trim() === text);
@@ -52,7 +58,8 @@ beforeAll(async () => {
   await import("../resources/file_manager/ui/sd.js");
   power.wirePower();
   power.openPower("sd", { targets: [work] });
-  await sleep(300);
+  for (let i = 0; i < 60 && !button("Count matches"); i++) await sleep(50);
+  await sleep(100);
 });
 
 afterAll(() => {
@@ -63,7 +70,7 @@ afterAll(() => {
     else delete g[key];
   }
   server.stop(true);
-  rmSync(root, { recursive: true, force: true });
+  rmDir(root);
 });
 
 describe("the Replace tab in a browser-like page", () => {
@@ -152,7 +159,7 @@ describe("the Replace tab in a browser-like page", () => {
     expect(read("a.txt")).toContain("foo here");
     await click("Replace in ticked", 100);
     dialogButton("Replace").click();
-    await sleep(500);
+    await waitIdle(300);
     expect(read("a.txt")).toBe("one\nbar here\nthree\n");
     expect(read("b.txt")).toBe("foo foo\n");
     expect(rows()[0].children[4].textContent).toContain("Replaced");
@@ -163,7 +170,7 @@ describe("the Replace tab in a browser-like page", () => {
     await click("Undo last replace", 100);
     expect(doc.querySelector(".modal-backdrop").textContent).toContain("Undo the last replace?");
     dialogButton("Undo").click();
-    await sleep(500);
+    await waitIdle(300);
     expect(read("a.txt")).toBe("one\nfoo here\nthree\n");
     expect(rows()[0].children[4].textContent).toContain("Restored");
     expect(button("Undo").disabled).toBe(true);
@@ -176,7 +183,7 @@ describe("the Replace tab in a browser-like page", () => {
     await click("Replace in ticked", 100);
     expect(doc.querySelector(".modal-backdrop").textContent).toContain("saved next to it");
     dialogButton("Replace").click();
-    await sleep(500);
+    await waitIdle(300);
     expect(read("a.txt.bak")).toBe("one\nfoo here\nthree\n");
     expect(read("a.txt")).toContain("bar here");
     expect(read("b.txt")).toBe("foo foo, edited\n");
