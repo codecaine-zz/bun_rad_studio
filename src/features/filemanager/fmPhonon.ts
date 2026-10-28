@@ -1096,6 +1096,7 @@ export async function ensureOllamaDaemon(ctx: FmContext, ollamaExe: string): Pro
 }
 
 export interface PhononStatusReport {
+  supported: boolean;
   ollamaInstalled: boolean;
   ollamaPath: string | null;
   ollamaVersion: string | null;
@@ -1121,7 +1122,16 @@ export interface PhononStatusReport {
   };
 }
 
+/**
+ * Ollama's `phonon` (`gradium_phonon_tts`) model requires Apple's MLX framework and is only supported on
+ * Apple Silicon Macs (`darwin` + `arm64`). Windows, Linux, and Intel macOS builds hide the feature to avoid confusion.
+ */
+export function isPhononSupportedPlatform(platform: string = process.platform, arch: string = process.arch): boolean {
+  return platform === "darwin" && arch === "arm64";
+}
+
 export async function getPhononStatus(ctx: FmContext): Promise<PhononStatusReport> {
+  const supported = isPhononSupportedPlatform(ctx.platform, process.arch);
   const settings = await loadSettings(ctx);
   const managers = detectManagers(ctx);
   const plan = installPlan(ctx.platform, "ollama", managers);
@@ -1161,13 +1171,14 @@ export async function getPhononStatus(ctx: FmContext): Promise<PhononStatusRepor
   }
 
   return {
+    supported,
     ollamaInstalled: !!ollamaExe,
     ollamaPath: ollamaExe,
     ollamaVersion,
     daemonRunning,
     modelInstalled,
     ffmpegInstalled: !!ffmpegExe,
-    ready: !!ollamaExe && modelInstalled,
+    ready: supported && !!ollamaExe && modelInstalled,
     voices: [...voiceMap.values()],
     audioFormats: AUDIO_FORMAT_INFO,
     settings: {
@@ -1178,18 +1189,20 @@ export async function getPhononStatus(ctx: FmContext): Promise<PhononStatusRepor
       pauseMs: settings.phononPauseMs ?? 200,
     },
     install: {
-      canAutoInstallOllama: true,
+      canAutoInstallOllama: supported,
       method: plan.method ?? "official-installer",
       displayCommand: !ollamaExe
-        ? plan.display || (ctx.platform === "win32" ? "winget install Ollama.Ollama && ollama pull phonon" : "curl -fsSL https://ollama.com/install.sh | sh && ollama pull phonon")
+        ? plan.display || "brew install ollama && ollama pull phonon"
         : "ollama pull phonon",
-      note: !ollamaExe
-        ? plan.auto
-          ? `${plan.note} Then automatically downloads the Phonon voice model (112 MB).`
-          : "Installs Ollama into your user profile (no administrator password required) and downloads the Phonon voice model (112 MB)."
-        : modelInstalled
-          ? "Ollama and the Phonon voice model are installed and ready."
-          : "Ollama is installed. Click once to download the Phonon voice model (112 MB).",
+      note: !supported
+        ? "Ollama Phonon text-to-speech requires Apple's MLX framework and is only supported on Apple Silicon Macs (macOS ARM64)."
+        : !ollamaExe
+          ? plan.auto
+            ? `${plan.note} Then automatically downloads the Phonon voice model (112 MB).`
+            : "Installs Ollama into your user profile (no administrator password required) and downloads the Phonon voice model (112 MB)."
+          : modelInstalled
+            ? "Ollama and the Phonon voice model are installed and ready (Apple Silicon Mac · MLX Framework)."
+            : "Ollama is installed. Click once to download the Phonon voice model (112 MB, Apple Silicon MLX).",
       website: TOOLS.ollama.website,
     },
   };

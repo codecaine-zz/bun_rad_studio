@@ -158,16 +158,16 @@ const sceneSpecs: SceneSpec[] = [
     id: "01_intro_and_autoinstall",
     voice: "Zoey",
     voiceDesc: "Zoey (Conversational · Default)",
-    badge: "01 / 06 · OLLAMA RUN PHONON VOICE STUDIO",
-    title: "LOCAL AI VOICE READER\n+ 1-CLICK INSTALL.",
-    label: "🎙️ OLLAMA RUN PHONON · 38 VOICES · 1-CLICK AUTO-INSTALL",
-    extra: "Narrated Live by Phonon Voice: Zoey · 100% Offline Neural TTS",
+    badge: "01 / 06 · OLLAMA PHONON TTS (APPLE SILICON MLX)",
+    title: "LOCAL AI VOICE READER\nFOR APPLE SILICON MAC.",
+    label: "🍎 APPLE SILICON MAC (MLX) · 38 VOICES · 1-CLICK INSTALL",
+    extra: "Narrated Live by Phonon Voice: Zoey · Powered by Apple MLX on M1–M4 Macs",
     bullets: [
-      "🎙️ Built-In Ollama Phonon Voice Studio",
-      "⚡ 1-Click Auto-Install in Setup & Studio",
+      "🍎 Apple Silicon Mac Exclusive (MLX Framework)",
+      "⚡ 1-Click Auto-Install Ollama + Phonon TTS",
       "🔊 24 kHz Neural Speech · Zero Cloud Fees",
     ],
-    say: "Meet the new Phonon Voice Reader built right into the Codecaine File Manager, powered by ollama run phonon. Just like every external app in our Helper Programs setup, you can auto-install Ollama and the Phonon model in a single click!",
+    say: "Meet the new Phonon Voice Reader built right into the Codecaine File Manager, powered by ollama run phonon. Because the Phonon model currently runs on Apple's M L X framework, it is built exclusively for Apple Silicon Macs—and you can auto-install Ollama and Phonon in a single click!",
     record: async (c) => {
       await c.eval(`(async () => {
         const { closePower } = await import('/ui/power.js');
@@ -175,8 +175,8 @@ const sceneSpecs: SceneSpec[] = [
       })()`);
       await showKeynoteHud(
         c,
-        "📦 One-Click Setup Catalog: Ollama + Phonon TTS Added",
-        "Single-click auto-install alongside FFmpeg, Pandoc, Poppler & LibreOffice",
+        "🍎 Apple Silicon Mac Exclusive (MLX): Ollama + Phonon 1-Click Setup",
+        "Phonon runs on Apple MLX (M1/M2/M3/M4 ARM64 Macs) with 1-click auto-install",
         "🎙️ VOICE: ZOEY",
       );
       await sleep(350);
@@ -203,8 +203,8 @@ const sceneSpecs: SceneSpec[] = [
       })()`);
       await showKeynoteHud(
         c,
-        "🟢 Ollama + Phonon Ready — 38 Neural Voices · 8,192-Token Context",
-        "Includes 1-Click Install Ollama & Phonon button right inside the studio banner",
+        "🟢 Apple Silicon MLX Ready — 38 Neural Voices · 8,192-Token Context",
+        "1-Click Install Ollama & Phonon right inside the File Manager studio banner",
         "🎙️ VOICE: ZOEY",
       );
       await sleep(1500);
@@ -412,19 +412,19 @@ const sceneSpecs: SceneSpec[] = [
     voiceDesc: "Master Aldric (Character Voice)",
     badge: "06 / 06 · SAVE AS ANY AUDIO FILE FORMAT",
     title: "SAVE AS WAV, MP3, FLAC,\nM4A, OGG, OPUS & AIFF.",
-    label: "🎵 9 AUDIO FORMATS · SINGLE & BATCH FILE-TO-AUDIO EXPORT",
-    extra: "Narrated Live by Phonon Voice: Master Aldric · Free & Open Source",
+    label: "🎵 9 AUDIO FORMATS · APPLE SILICON MAC (MLX) EXCLUSIVE",
+    extra: "Narrated Live by Phonon Voice: Master Aldric · Apple Silicon M1–M4 Macs",
     bullets: [
       "🎵 WAV, MP3, M4A, AAC, FLAC, OGG, OPUS, AIFF & WMA",
       "📦 Batch Convert Selected Files to Audio",
-      "⬇️ Free Download for Mac, Windows & Linux",
+      "🍎 For Apple Silicon Macs (M1/M2/M3/M4 · MLX)",
     ],
-    say: "Finally, save your spoken text as any audio file format you want: W A V, M P 3, M 4 A, A A C, F L A C, O G G, Opus, A I F F, or W M A—or batch-convert an entire folder of documents into audiobooks in one click!",
+    say: "Finally, save your spoken text as any audio file format you want: W A V, M P 3, M 4 A, A A C, F L A C, O G G, Opus, A I F F, or W M A—or batch-convert an entire folder of documents into audiobooks on your Apple Silicon Mac in one click!",
     record: async (c) => {
       await showKeynoteHud(
         c,
         "🎵 Save as Any Audio Format: WAV, MP3, M4A, AAC, FLAC, OGG, OPUS, AIFF, WMA",
-        "Single export or Batch Convert Selected Files to Audio with O(1) disk stitching",
+        "Apple Silicon Mac (MLX) Exclusive · Single or Batch File-to-Audio Export",
         "🎙️ VOICE: MASTER ALDRIC",
       );
       await c.eval(`(() => {
@@ -521,7 +521,7 @@ body{
 </style>
 <div class="top">
   <div class="hw-strip">
-    <span class="apple-chip"> MAC STUDIO M4 ULTRA · OLLAMA RUN PHONON</span>
+    <span class="apple-chip"> APPLE SILICON MAC ONLY (M1–M4 · MLX)</span>
     <span>VOICE: ${esc(scene.voice.toUpperCase())} · 24KHZ NEURAL</span>
   </div>
   <div class="badge">${esc(scene.badge)}</div>
@@ -535,8 +535,8 @@ body{
 </div>
 ${
   isLast
-    ? `<div class="cta"><strong>▶ FREE &amp; OPEN SOURCE DOWNLOAD (MAC, WIN &amp; LINUX)</strong><p>Ollama Phonon Voice Reader · 38 Voices · 9 Audio Formats · Large-Text Engine</p><p class="sub">${esc(REPO)}</p></div>`
-    : `<div class="cta"><strong>▶ CODECAINE FILE MANAGER — PHONON VOICE STUDIO</strong><p>🎙️ Read Out Loud · Convert Any File to Plain Text · Save as Any Audio Format</p><p class="sub">${esc(REPO)} · 100% Local &amp; Offline</p></div>`
+    ? `<div class="cta"><strong>▶ FREE DOWNLOAD — APPLE SILICON MAC (M1–M4 · MLX)</strong><p>Ollama Phonon Voice Reader · 38 Voices · 9 Audio Formats · Large-Text Engine</p><p class="sub">${esc(REPO)} · ARM64 macOS MLX Exclusive</p></div>`
+    : `<div class="cta"><strong>▶ CODECAINE FILE MANAGER — PHONON VOICE STUDIO</strong><p>🍎 Apple Silicon Mac Exclusive (MLX) · Read Out Loud · 9 Audio Formats</p><p class="sub">${esc(REPO)} · 100% Local &amp; Offline</p></div>`
 }`;
 }
 
@@ -552,7 +552,7 @@ body{width:1920px;height:1080px;background:transparent;font-family:-apple-system
 .right{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
 .rig{color:#0f172a;font-size:13.5px;font-weight:800;letter-spacing:.01em;background:#fef3c7;border:1.5px solid #f59e0b;padding:4px 12px;border-radius:8px;white-space:nowrap}
 .n{flex:none;color:#bae6fd;font-size:16px;font-weight:800;background:rgba(56,189,248,0.15);border:1.5px solid rgba(56,189,248,0.45);padding:5px 14px;border-radius:10px}
-</style></head><body><div class="strip"><div class="badge">${esc(scene.badge)}</div><div class="col"><div class="title">${esc(scene.label)}</div><div class="cap">${esc(scene.bullets.join("  ·  "))}</div></div><div class="right"><div class="rig">🎙️ Narrated by Phonon Voice: ${esc(scene.voiceDesc)}</div><div class="n">Scene ${index + 1} of ${totalScenes}</div></div></body></html>`;
+</style></head><body><div class="strip"><div class="badge">${esc(scene.badge)}</div><div class="col"><div class="title">${esc(scene.label)}</div><div class="cap">${esc(scene.bullets.join("  ·  "))}</div></div><div class="right"><div class="rig">🍎 Apple Silicon MLX · Voice: ${esc(scene.voiceDesc)}</div><div class="n">Scene ${index + 1} of ${totalScenes}</div></div></body></html>`;
 }
 
 function notesMarkdown(seconds: number, tempo: number, sceneMarks: Array<{ at: number; scene: SceneSpec }>): string {
@@ -561,40 +561,78 @@ function notesMarkdown(seconds: number, tempo: number, sceneMarks: Array<{ at: n
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
   const stamps = sceneMarks.map((m, i) => `${fmt(i === 0 ? 0 : m.at)} ${m.scene.label} (Voice: ${m.scene.voice})`).join("\n");
-  return `# Codecaine File Manager — Phonon Voice Reader (\`ollama run phonon\`) YouTube Short & Demo (${fmt(seconds)})
+  return `# Codecaine File Manager — Ollama Phonon AI Voice Reader (\`ollama run phonon\` · Apple Silicon Mac MLX) YouTube Short & Demo (${fmt(seconds)})
 
 ## Video Files (100% Live-Recorded & Narrated by 6 Local \`ollama run phonon\` Neural Voices)
 
 - **YouTube Short MP4 (9:16 Vertical, 1080×1920)**: \`youtube_production/codecaine-file-manager-phonon-voice-reader-short.mp4\` (${seconds.toFixed(1)}s, 30 fps, CRF 14, 256k AAC)
 - **Widescreen Demo MP4 (16:9 Horizontal, 1920×1080)**: \`youtube_production/file_manager_phonon_voice_reader_demo.mp4\` (${seconds.toFixed(1)}s, 30 fps, CRF 14, 256k AAC)
 
-## YouTube Short Titles (Pick One)
+---
 
-1. **We Built a Local AI Voice Reader Inside a File Manager with \`ollama run phonon\`! (38 Voices) 🎙️ #Shorts**
-2. **Read Any Document Out Loud & Convert Books to Audiobooks Locally (\`ollama run phonon\`) #Shorts**
-3. **1-Click Ollama Phonon TTS Studio: 38 Voices, Plain-Text Converter & 9 Audio Formats #Shorts**
+## High-CTR Mass-Outreach YouTube Titles (Under 100 Characters — Copy & Paste)
 
-## YouTube Short Description (Copy & Paste)
+### Option 1 — Best Overall Apple Silicon Mac + Local AI Hook (97 chars)
+\`\`\`text
+Turn Any Document or Book Into an AI Audiobook on Mac! (Ollama Phonon MLX · 38 Voices) #Shorts
+\`\`\`
+
+### Option 2 — Developer / Apple MLX Hook (98 chars)
+\`\`\`text
+We Built a Local AI Voice Reader Inside a File Manager (\`ollama run phonon\` · Apple Silicon MLX)
+\`\`\`
+
+### Option 3 — Productivity / Zero-Subscription Hook (96 chars)
+\`\`\`text
+Free Offline AI Voice Reader for Apple Silicon Mac: 38 Voices + 9 Audio Formats (MLX) #Shorts
+\`\`\`
+
+### Option 4 — Widescreen / Full Video Title (99 chars)
+\`\`\`text
+Ollama Phonon Local AI Text-to-Speech on Apple Silicon Mac (MLX): Read Books & Export MP3/WAV/FLAC
+\`\`\`
+
+---
+
+## Mass-Outreach YouTube Description (Copy & Paste)
 
 \`\`\`text
-Meet the built-in Phonon Voice Reader Studio in the Codecaine File Manager — powered 100% locally by \`ollama run phonon\` (Gradium Phonon 24 kHz Neural TTS) and narrated live in this video by 6 different Phonon voices (Zoey, Easton, Freya, Hugh, Imogen, and Master Aldric)!
+Turn any PDF, e-book, Word doc, Markdown file, webpage, subtitle track, or massive 1,000-page book into natural, studio-grade 24 kHz neural speech on your Apple Silicon Mac — 100% locally and offline with ZERO cloud subscriptions! 🎙️🍎📚
 
-🎙️ KEY FEATURES SHOWN IN THIS DEMO:
-• ⚡ 1-Click Auto-Install: Install Ollama and pull the \`phonon\` model in one click from the Helper Programs setup dialog or directly inside the Voice Reader banner.
-• 🗣️ 38 Expressive Neural Voices + Default Voice: Choose from 38 Conversational, Narrator, and Character voices, preview live, and save your persistent default voice.
-• 📄 Convert Any File Format to Speech-Ready Plain Text: Extract clean text from PDF, DOCX, ODT, RTF, EPUB, HTML, Markdown, Subtitles (SRT/VTT/LRC), JSON, CSV/XLSX, and source code — with 1-click cleanup filters and Save as .TXT.
-• 📚 Extreme Large-Text Optimization (Out of Phonon's 8,192-Token Limit): Hierarchical paragraph/sentence/clause chunker splits full-length books into context-safe segments with 2-chunk lookahead prefetching and O(1) memory disk-streaming PCM stitching.
-• 🎵 Save as Any Audio File Format: Export synthesized speech as WAV, MP3, M4A, AAC, FLAC, OGG, OPUS, AIFF, or WMA — including batch file-to-audio conversion!
+🍎 PLATFORM REQUIREMENT (APPLE SILICON MAC · MLX):
+Because Ollama's \`phonon\` model (Gradium Phonon Neural TTS) is accelerated by Apple's MLX framework, this built-in Voice Reader feature is currently supported on Apple Silicon Macs (M1, M2, M3, and M4 — macOS ARM64) only.
 
-⬇️ Free & Open Source Download (macOS, Windows & Linux):
+In this live demo, we showcase the built-in Phonon Voice Reader Studio inside the free & open-source Codecaine File Manager, powered by \`ollama run phonon\`. Every scene in this video is narrated live by 6 different local Phonon voices (Zoey, Easton, Freya, Hugh, Imogen, and Master Aldric)!
+
+⬇️ FREE & OPEN SOURCE DOWNLOAD:
 ${REPO}/releases/latest
-⭐ Source Code (MIT):
+⭐ GitHub Source Code (MIT License):
 ${REPO}
 
-TIMESTAMPS & PHONON VOICES
+🔥 WHAT YOU CAN DO WITH THE BUILT-IN OLLAMA PHONON VOICE READER (APPLE SILICON MAC):
+• ⚡ 1-Click Auto-Install: Don’t have Ollama or the Phonon voice model yet? Click once in the Helper Programs setup dialog or the Voice Reader banner and the File Manager installs Ollama, starts the local daemon, and runs \`ollama pull phonon\` automatically.
+• 🗣️ 38 Expressive Neural Voices + Default Voice: Choose from 38 built-in Conversational, Audiobook Narrator, and Character voices (Zoey, Easton, Freya, Hugh, Imogen, Master Aldric, Elodie-Rose, Edwin, Juniper, Captain Silas Blackwater, The Snow Queen, and more). Preview any voice live and save your persistent default voice in 1 click.
+• 📄 Convert Any File Format to Speech-Ready Plain Text: Extract clean text from 25+ formats — PDF, DOCX, ODT, RTF, EPUB, FB2, PPTX, XLSX, CSV, HTML, Markdown, JSON, YAML, Jupyter Notebooks (.ipynb), Subtitles (SRT/VTT/LRC), OCR images, and source code. Includes 1-click cleanup toggles to strip Markdown, HTML tags, code blocks, URLs, and timestamps, plus instant Save as .TXT!
+• 📚 Optimized for Extremely Large Books (Zero Context Overflow): Phonon has an 8,192-token context limit — so we engineered an O(N) hierarchical paragraph/sentence/clause splitter that divides huge books into context-safe segments automatically, streams live playback with 2-chunk background lookahead prefetching, and stitches 24 kHz 16-bit PCM audio frames directly on disk in O(1) memory.
+• 🎵 Save as Any Audio File Format (Single or Batch): Export synthesized speech as WAV (native 24 kHz PCM), MP3, M4A, AAC, FLAC, OGG, OPUS, AIFF, or WMA — or select an entire folder of documents and batch-convert them into audiobooks in one click!
+
+⏱️ CHAPTERS & LIVE PHONON VOICES
 ${stamps}
 
-#Ollama #Phonon #TextToSpeech #LocalAI #FileManager #MacStudio #M4Ultra #Audiobook #OpenSource #Bun #TypeScript #Shorts
+🖥️ RECORDING WORKSTATION
+🍎 Apple Mac Studio (M4 Ultra · 32-Core CPU · 80-Core GPU · 192GB Unified Memory)
+🖥️ Apple Pro Display XDR 6K @ 120Hz ProMotion
+🔊 Local Neural TTS Engine: \`ollama run phonon\` (Apple MLX · 24,000 Hz 16-bit PCM)
+
+#Ollama #AppleSilicon #MLX #TextToSpeech #LocalAI #OpenSource #Audiobook #MacStudio #M4Ultra #FileManager #BunJS #TypeScript #OfflineAI #Shorts
+\`\`\`
+
+---
+
+## YouTube Studio Tags (Comma-Separated, 492 Characters — Under YouTube's 500-Char Limit, Copy & Paste)
+
+\`\`\`text
+ollama,ollama run phonon,phonon tts,apple silicon mlx,apple mlx tts,local text to speech mac,free ai voice generator,offline text to speech,open source tts,convert pdf to audiobook,read text out loud mac,ebook to audiobook converter,gradium phonon,ai audiobook maker,document to mp3 converter,text to wav mp3 flac,codecaine file manager,bun rad studio,mac studio m4 ultra,apple silicon local ai,free elevenlabs alternative,tts large text,ai voice reader,neural tts
 \`\`\`
 `;
 }

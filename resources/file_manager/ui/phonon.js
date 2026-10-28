@@ -1,5 +1,5 @@
 // Ollama Phonon Voice Reader, Plain-Text Format Converter, Large-Text Streaming Reader & Multi-Format Audio Exporter.
-import { ApiError, call, getToken } from "./api.js";
+import { ApiError, call, getToken, phononSupported } from "./api.js";
 import { announce, clear, h } from "./dom.js";
 import { toast } from "./menus.js";
 import { goTo, refresh, saveSettings } from "./nav.js";
@@ -9,6 +9,8 @@ import { selectKeys, selectedEntries } from "./selection.js";
 import { emit, on, state } from "./state.js";
 import { showToolsDialog } from "./tools.js";
 import { baseName, extensionOf } from "./util.js";
+
+export const isPhononSupported = () => phononSupported;
 
 function stemOf(name) {
   const dot = name.lastIndexOf(".");
@@ -30,6 +32,7 @@ const READABLE_EXTS = new Set([
 ]);
 
 export function canReadWithPhonon(entry) {
+  if (!phononSupported) return false;
   if (!entry || entry.isDir) return false;
   const ext = extensionOf(entry.name);
   if (READABLE_EXTS.has(ext)) return true;
@@ -234,6 +237,7 @@ function mountPhononStudio(root, payload) {
     const ffOk = status.ffmpegInstalled;
 
     const pills = h("div", { class: "phonon-status-pills" },
+      h("span", { class: `phonon-pill ${status.supported !== false ? "ok" : "warn"}` }, status.supported !== false ? "🍎 Apple Silicon MLX (macOS ARM64)" : "⚠ Requires Apple Silicon Mac (MLX)"),
       h("span", { class: `phonon-pill ${ollamaOk ? "ok" : "warn"}` }, ollamaOk ? `✔ Ollama (${status.ollamaVersion || "installed"})` : "✖ Ollama not installed"),
       h("span", { class: `phonon-pill ${modelOk ? "ok" : "warn"}` }, modelOk ? "✔ Phonon TTS Model (38 voices)" : "✖ Phonon model not pulled"),
       h("span", { class: `phonon-pill ${ffOk ? "ok" : "muted"}` }, ffOk ? "✔ ffmpeg (All audio formats)" : "ℹ WAV & AIFF ready (install ffmpeg for MP3/M4A/FLAC)"),
@@ -1099,11 +1103,13 @@ function mountPhononStudio(root, payload) {
   };
 }
 
-registerPowerTab({
-  id: "phonon",
-  label: "Voice Reader",
-  icon: "🗣️",
-  tip: "Read text and documents out loud with Ollama Phonon, convert formats to plain text, set your default voice, and save as any audio file.",
-  group: "media",
-  mount: mountPhononStudio,
-});
+if (phononSupported) {
+  registerPowerTab({
+    id: "phonon",
+    label: "Voice Reader",
+    icon: "🗣️",
+    tip: "Read text and documents out loud with Ollama Phonon, convert formats to plain text, set your default voice, and save as any audio file.",
+    group: "media",
+    mount: mountPhononStudio,
+  });
+}
