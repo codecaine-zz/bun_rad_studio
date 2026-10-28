@@ -844,10 +844,14 @@ export function applyUiImmersionProfiles(overrides = {}) {
     root.dataset.holidayTheme = "active";
     root.dataset.holidayCrest = holidaySpec.crest;
     root.dataset.holidayBadge = holidaySpec.badge;
+    root.dataset.osHolidayOptimized = (root.dataset.platform === "windows" || root.dataset.platform === "linux")
+      ? "zero_readback"
+      : "metal_xdr";
   } else {
     delete root.dataset.holidayTheme;
     delete root.dataset.holidayCrest;
     delete root.dataset.holidayBadge;
+    delete root.dataset.osHolidayOptimized;
   }
 
   // Sync Computer Icon Material Finish (`data-icon-finish`)
@@ -1086,11 +1090,23 @@ function clearEffects() {
 
 function syncRootPlatform(root, platform) {
   if (!root || !platform) return;
+  const hw = probeClientHardware();
   root.dataset.platform = platform;
+  root.dataset.arch = hw.arch || "x64";
+  root.dataset.compositor = platform === "macos"
+    ? "metal_promotion_120hz"
+    : platform === "windows"
+      ? (hw.arch === "arm64" ? "directcomposition_arm64" : "directcomposition_dx12")
+      : (hw.arch === "arm64" ? "webkitgtk_arm64" : "webkitgtk_gl");
   if (root.classList) {
     root.classList.toggle("rad-linux", platform === "linux");
     root.classList.toggle("rad-windows", platform === "windows");
     root.classList.toggle("rad-macos", platform === "macos");
+    root.classList.toggle("rad-win-arm64", platform === "windows" && hw.arch === "arm64");
+    root.classList.toggle("rad-linux-arm64", platform === "linux" && hw.arch === "arm64");
+  }
+  if (root.dataset.holidayTheme === "active" || (root.dataset.palette || "").startsWith("holiday_")) {
+    root.dataset.osHolidayOptimized = (platform === "windows" || platform === "linux") ? "zero_readback" : "metal_xdr";
   }
 }
 
@@ -1111,17 +1127,19 @@ function clearPalette() {
 
 let cachedHw = null;
 
-/** Probes client OS platform (macOS / Windows / Linux), VM renderer (Parallels / VirtIO / Hyper-V / VMware), GPU, display gamut/HDR, and accessibility constraints once per session. */
-export function probeClientHardware() {
-  if (cachedHw) return cachedHw;
-  const nav = typeof navigator !== "undefined" ? navigator : {};
+/** Probes client OS platform (macOS / Windows / Linux), CPU architecture (ARM64 Apple Silicon M4 Pro vs x64), VM renderer (Parallels / VirtIO / Hyper-V / VMware), GPU, display gamut/HDR, and accessibility constraints. */
+export function probeClientHardware(navOverride, winOverride) {
+  const hasOverride = Boolean(navOverride || winOverride);
+  if (!hasOverride && cachedHw) return cachedHw;
+  const nav = navOverride || (typeof navigator !== "undefined" ? navigator : {});
+  const win = winOverride || (typeof window !== "undefined" ? window : {});
   const mm = (q) => {
-    try { return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia(q).matches; }
+    try { return typeof win.matchMedia === "function" && win.matchMedia(q).matches; }
     catch { return false; }
   };
   let gpu = "";
   try {
-    if (typeof document !== "undefined" && !/jsdom/i.test(nav.userAgent || "")) {
+    if (!hasOverride && typeof document !== "undefined" && !/jsdom/i.test(nav.userAgent || "")) {
       const c = document.createElement("canvas");
       const gl = c.getContext("webgl") || c.getContext("experimental-webgl");
       if (gl) {
@@ -1130,18 +1148,24 @@ export function probeClientHardware() {
       }
     }
   } catch {}
-  const rawUa = `${nav.userAgent || ""} ${nav.platform || ""} ${nav.userAgentData?.platform || ""}`.toLowerCase();
+  const rawUa = `${nav.userAgent || ""} ${nav.platform || ""} ${nav.userAgentData?.architecture || ""} ${nav.userAgentData?.platform || ""}`.toLowerCase();
   const cleanUa = rawUa.replace(/like\s+android/g, "");
-  const metaPlatform = typeof document !== "undefined" ? (document.querySelector('meta[name="fm-platform"]')?.content || "").toLowerCase() : "";
+  const metaPlatform = !hasOverride && typeof document !== "undefined" ? (document.querySelector('meta[name="fm-platform"]')?.content || "").toLowerCase() : "";
   const platform = metaPlatform === "linux" || (/\blinux\b|\bx11\b|\bwayland\b|\bubuntu\b/.test(cleanUa) && !/\bandroid\b/.test(cleanUa))
     ? "linux"
-    : metaPlatform === "win32" || metaPlatform === "windows" || /\bwin(dows|32|64)\b/.test(cleanUa)
+    : metaPlatform === "win32" || metaPlatform === "windows" || /\bwin(dows|32|64|nt)\b/.test(cleanUa)
       ? "windows"
       : "macos";
-  const isVm = /parallels|virtio|virgl|vmware|virtualbox|vbox|hyper-v|qemu|qxl|llvmpipe|softpipe/i.test(`${gpu} ${cleanUa}`);
   const cores = typeof nav.hardwareConcurrency === "number" ? nav.hardwareConcurrency : 8;
   const mem = typeof nav.deviceMemory === "number" ? nav.deviceMemory : 8;
-  const dpr = typeof window !== "undefined" && typeof window.devicePixelRatio === "number" ? window.devicePixelRatio : 1;
+  const dpr = typeof win.devicePixelRatio === "number" ? win.devicePixelRatio : 1;
+  const arch = /\b(arm64|aarch64|apple\s*m[1-9]|apple\s*silicon)\b/.test(`${cleanUa} ${gpu.toLowerCase()}`) || (platform === "macos" && dpr >= 2 && cores >= 6)
+    ? "arm64"
+    : "x64";
+  const isVm = /parallels|virtio|virgl|vmware|virtualbox|vbox|hyper-v|qemu|qxl|llvmpipe|softpipe/i.test(`${gpu} ${cleanUa}`);
+  const isWindowsArm = platform === "windows" && arch === "arm64";
+  const isLinuxArm = platform === "linux" && arch === "arm64";
+  const isAppleSiliconHost = (platform === "macos" && arch === "arm64") || ((isWindowsArm || isLinuxArm) && (isVm || cores >= 8 || mem >= 16));
   const p3 = mm("(color-gamut: p3)");
   const hdr = mm("(dynamic-range: high)");
   const reducedMotion = mm("(prefers-reduced-motion: reduce)");
@@ -1151,9 +1175,27 @@ export function probeClientHardware() {
   const swGpu = /basic render driver|microsoft basic|\bwarp\b|d3d11 warp|gdi generic|rdpudd|citrix/i.test(gpu);
   const shouldFallback = forcedColors || reducedTransparency || saveData || swGpu || (cores > 0 && cores <= 2) || (mem > 0 && mem <= 2);
   const ultra = !shouldFallback && (/apple\s+m[1-9]|apple\s+silicon|apple\s+gpu|parallels\s+display|virgl|virtio[\s-]*gpu|venus|mesa.*(radv|nvk|iris|anv|radeonsi)|rtx\s*[2345]\d{2,3}|radeon\s+rx\s+[6789]\d{2,3}|intel.*arc\s+[ab]\d{3}|adreno\s+x1|snapdragon\s+x/i.test(gpu) || (p3 && hdr && cores >= 8) || (platform === "macos" && cores >= 6) || (platform === "linux" && cores >= 6) || (platform === "windows" && cores >= 6));
-  cachedHw = {
+  const compositor = platform === "macos"
+    ? "metal_promotion_120hz"
+    : platform === "windows"
+      ? (isWindowsArm ? "directcomposition_arm64" : "directcomposition_dx12")
+      : (isLinuxArm ? "webkitgtk_arm64" : "webkitgtk_gl");
+  const recommendedAtmoTier = shouldFallback
+    ? "low"
+    : platform === "macos"
+      ? (ultra ? "ultra" : "high")
+      : platform === "windows"
+        ? (cores <= 4 ? "medium" : "high")
+        : (cores <= 4 ? "low" : "medium");
+  const result = {
     platform,
+    arch,
     isVm,
+    isWindowsArm,
+    isLinuxArm,
+    isAppleSiliconHost,
+    compositor,
+    recommendedAtmoTier,
     tier: shouldFallback ? "low" : ultra ? "ultra" : (cores >= 6 || p3 || dpr >= 1.5) ? "high" : "balanced",
     fxMode: (forcedColors || swGpu) ? "off" : (shouldFallback || reducedMotion) ? "reduced" : "on",
     shouldFallback,
@@ -1161,12 +1203,13 @@ export function probeClientHardware() {
     p3,
     hdr,
   };
-  return cachedHw;
+  if (!hasOverride) cachedHw = result;
+  return result;
 }
 
 /**
  * 1-Click Cross-Platform Hardware Optimization Presets for macOS (Apple Silicon Metal / ProMotion XDR),
- * Windows 11/10 (DirectX 12 / DirectComposition WebView2), and Linux / Ubuntu (WebKitGTK & Parallels Desktop VM).
+ * Windows 11/10 & Windows ARM64 on M4 Pro (DirectX 12 / DirectComposition WebView2), and Linux / Ubuntu (WebKitGTK & Parallels Desktop VM).
  */
 export const OPTIMIZE_PLATFORM_PRESETS = [
   {
@@ -1174,18 +1217,27 @@ export const OPTIMIZE_PLATFORM_PRESETS = [
     label: "🍎 Optimize for Mac",
     title: "Optimize for macOS Apple Silicon M1–M4 Pro/Max/Ultra (Metal 3 Zero-Readback Compositor · 120Hz ProMotion & Display-P3 XDR)",
     atmosphereTier: "ultra",
+    compositor: "metal_promotion_120hz",
+    holidayFastPath: "metal_xdr",
+    canvasBlendMode: "screen",
   },
   {
     id: "windows",
     label: "🪟 Optimize for Windows",
-    title: "Optimize for Windows 11/10 & Parallels Desktop (DirectX 12 · DirectComposition WebView2 Zero-Readback Compositor · 60–120 FPS Locked)",
+    title: "Optimize for Windows 11/10 & Windows ARM64 on Apple Silicon M4 Pro / Parallels (DirectX 12 · DirectComposition WebView2 Zero-Readback Compositor · 60–120 FPS Locked)",
     atmosphereTier: "high",
+    compositor: "directcomposition_dx12",
+    holidayFastPath: "zero_readback",
+    canvasBlendMode: "source-over",
   },
   {
     id: "linux",
     label: "🐧 Optimize for Linux / VM",
-    title: "Optimize for Ubuntu Linux & Parallels Desktop VM (WebKitGTK Zero-Readback Compositor · 60 FPS Locked)",
+    title: "Optimize for Ubuntu Linux, Wayland/X11 & Parallels/VirtIO VM (WebKitGTK Zero-Readback Compositor · 60 FPS Locked)",
     atmosphereTier: "medium",
+    compositor: "webkitgtk_gl",
+    holidayFastPath: "zero_readback",
+    canvasBlendMode: "source-over",
   },
 ];
 
@@ -2575,7 +2627,9 @@ export function triggerHolidayCelebrationBurst(holidayKeyOrOpts = {}) {
     ? holidayKeyOrOpts
     : (holidayKeyOrOpts?.key || (typeof document !== "undefined" ? document.documentElement?.dataset?.palette : "") || "holiday_christmas_nutcracker_hearth");
   const spec = HOLIDAY_THEME_CRESTS[rawKey] || HOLIDAY_THEME_CRESTS.holiday_christmas_nutcracker_hearth;
-  const count = Math.max(8, Math.min(36, Number(holidayKeyOrOpts?.count) || 18));
+  const isWinOrLinux = typeof document !== "undefined" && (document.documentElement?.dataset?.platform === "windows" || document.documentElement?.dataset?.platform === "linux");
+  const defaultCount = isWinOrLinux ? 12 : 18;
+  const count = Math.max(8, Math.min(36, Number(holidayKeyOrOpts?.count) || defaultCount));
   if (typeof document !== "undefined" && document.body) {
     document.getElementById("fm-holiday-celebration-burst")?.remove();
     const container = h("div", {

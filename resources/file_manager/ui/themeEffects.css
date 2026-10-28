@@ -364,7 +364,6 @@
   position: absolute;
   border-radius: 50%;
   pointer-events: none;
-  will-change: transform;
 }
 .fm-atmosphere-layer[data-effect="smoke"] .fm-smoke-plume,
 .fm-atmosphere-layer[data-mist="true"] .fm-smoke-plume {
@@ -6077,10 +6076,10 @@ html[data-icon-finish="holiday_grand_celebration"] .row.is-folder .c-icon {
    ============================================================================ */
 @keyframes fm-holiday-garland-twinkle {
   0%, 100% {
-    filter: brightness(1) drop-shadow(0 0 5px rgba(250, 204, 21, 0.55));
+    opacity: 0.76;
   }
   50% {
-    filter: brightness(1.22) drop-shadow(0 0 10px rgba(244, 63, 94, 0.72));
+    opacity: 1;
   }
 }
 
@@ -6147,6 +6146,7 @@ html:is([data-holiday-theme="active"], [data-palette^="holiday_"]) .toolbar::aft
     #38bdf8 54px 64px,
     transparent 64px 72px
   );
+  box-shadow: 0 0 8px rgba(250, 204, 21, 0.45);
   animation: fm-holiday-garland-twinkle 2.4s ease-in-out infinite;
 }
 
@@ -6162,7 +6162,7 @@ html:is([data-holiday-theme="active"], [data-palette^="holiday_"]) .toolbar::aft
   font-size: 13px;
   line-height: 1;
   pointer-events: none;
-  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.78));
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.82);
   translate: 0px 0px;
   rotate: 0deg;
   scale: 1;
@@ -6563,6 +6563,82 @@ html[data-wallpaper-scene="holiday_winter_village"] body {
   background-attachment: scroll !important;
 }
 
+/* ============================================================================
+   🪟 WINDOWS 11 DIRECTX 12, WINDOWS ARM64 (APPLE SILICON M4 PRO / PARALLELS)
+   & LINUX ZERO-LAG HOLIDAY & FX COMPOSITOR ENGINE
+   Eliminates DirectComposition / ANGLE D3D11 / Parallels WDDM / WebKitGTK
+   per-frame Gaussian `drop-shadow` readbacks and caps concurrent infinite
+   3D row animations so Holiday & FX themes run at locked 60–120 FPS.
+   ============================================================================ */
+
+/* 1. Windows Zero-Readback Icon, Folder, Holiday Crest & Particle Shaders:
+ *    Replace per-frame `filter: drop-shadow(...)` alpha-mask convolution with
+ *    GPU glyph-atlas `text-shadow` on DirectComposition / WebView2 / Parallels WDDM. */
+:is(:root[data-platform="windows"], html.rad-windows):is([data-icon-anim], [data-fx-icon-anim]):not([data-icon-anim="off"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon], .row.is-folder .c-icon, .card.is-folder .c-icon),
+:is(:root[data-platform="windows"], html.rad-windows):is([data-ui-fx="spinning_3d_holo_folders"], [data-fx-element="spinning_3d_holo_folders"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon),
+:is(:root[data-platform="windows"], html.rad-windows)[data-folder-spring]:not([data-folder-spring="off"]) .row.is-folder:hover .c-icon,
+:is(:root[data-platform="windows"], html.rad-windows) .row.is-folder[data-holiday-crest] .c-icon::after,
+:is(:root[data-platform="windows"], html.rad-windows) .row[data-holiday-badge] .c-icon::after,
+:is(:root[data-platform="windows"], html.rad-windows) .fm-holiday-burst-particle,
+:is(:root[data-platform="windows"], html.rad-windows) .fm-cursor-trail-particle {
+  filter: none !important;
+  text-shadow: 0 0 8px var(--fx-glow-color, var(--accent, #38bdf8));
+}
+
+:is(:root[data-platform="windows"], html.rad-windows):is([data-holiday-theme="active"], [data-palette^="holiday_"]) .toolbar::after {
+  filter: none !important;
+}
+
+/* 2. Windows Root Screen Filters:
+ *    Keep fast DirectComposition color-matrix LUT grading and strip full-viewport `drop-shadow(...)`. */
+:is(html[data-platform="windows"], html.rad-windows)[data-screen-filter="vhs_arcade_crt_curvature"] {
+  filter: contrast(1.22) saturate(1.38) brightness(1.06);
+}
+:is(html[data-platform="windows"], html.rad-windows):is([data-screen-filter="vhs_camcorder_1994"], [data-screen-filter="vhs_tracking_glitch"]) {
+  filter: contrast(1.08) saturate(1.32) hue-rotate(-6deg);
+}
+:is(html[data-platform="windows"], html.rad-windows)[data-screen-filter="arcane_painterly_brushwork"] {
+  filter: contrast(1.24) saturate(1.48) brightness(1.03);
+}
+:is(html[data-platform="windows"], html.rad-windows)[data-screen-filter="halftone_comic_spiderverse"] {
+  filter: contrast(1.26) saturate(1.52);
+}
+:is(html[data-platform="windows"], html.rad-windows)[data-screen-filter="cyberpunk_chromatic_rgb"] {
+  filter: contrast(1.16) saturate(1.42);
+}
+:is(html[data-platform="windows"], html.rad-windows)[data-screen-filter="dreamcore_bloom_soft"] {
+  filter: contrast(0.95) saturate(1.32) brightness(1.06);
+}
+
+/* 3. Windows 3D Stage Modes, Cursor Spotlight & 8K Desktop Wallpaper Backplates:
+ *    Prevent software box-reflection passes, full-viewport blend-mode readback, and fixed-background scroll repaints. */
+:is(html[data-platform="windows"], html.rad-windows)[data-stage-mode="coverflow_3d_reflection"] .row.is-folder .c-icon {
+  -webkit-box-reflect: none !important;
+}
+
+:is(:root[data-platform="windows"], html.rad-windows) .fm-cursor-spotlight-layer::before {
+  mix-blend-mode: normal;
+}
+
+:is(html[data-platform="windows"], html.rad-windows)[data-wallpaper-scene]:not([data-wallpaper-scene="off"]) body {
+  background-attachment: scroll !important;
+}
+
+/* 4. Windows & Linux Idle-Row Compositor Governor (Holiday & Heavy 3D FX Themes):
+ *    Prevents 200+ idle unhovered file/folder rows from running concurrent infinite
+ *    3D perspective keyframes simultaneously on DirectComposition / Parallels WDDM / WebKitGTK.
+ *    Hovered, selected, and focused rows—plus the Theme Studio Live Preview Stage—animate at full 60–120Hz! */
+:is(:root[data-platform="windows"], html.rad-windows, :root[data-platform="linux"], html.rad-linux) :is(#list, #dual-list) .row {
+  contain: layout style;
+}
+
+:is(:root[data-platform="windows"], html.rad-windows, :root[data-platform="linux"], html.rad-linux) :is(#list, #dual-list) .row:not(:hover):not(.selected):not(:focus-within) :is(.c-icon, .c-icon::after),
+:is(:root[data-platform="windows"], html.rad-windows, :root[data-platform="linux"], html.rad-linux) #tree .tree-row:not(:hover):not(.active):not(:focus-within) .t-icon,
+:is(:root[data-platform="windows"], html.rad-windows, :root[data-platform="linux"], html.rad-linux) :is(#list, #dual-list) .row.is-folder:not(:hover):not(.selected):not(:focus-within) {
+  animation: none !important;
+  transform-style: flat !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fm-cursor-spotlight-layer,
   .fm-cursor-trail-particle,
@@ -6810,7 +6886,7 @@ html[data-zero-watt-paused="true"] *::after {
   box-shadow: none !important;
   font-size: 19px;
   line-height: 1;
-  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.85));
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.85);
   animation: fm-holiday-crest-bob 2.6s ease-in-out infinite;
   z-index: 4;
 }
@@ -6828,7 +6904,7 @@ html[data-zero-watt-paused="true"] *::after {
   box-shadow: none !important;
   font-size: 16px;
   line-height: 1;
-  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.85));
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.85);
   animation: fm-holiday-crest-bob 2.6s ease-in-out infinite;
   z-index: 4;
 }

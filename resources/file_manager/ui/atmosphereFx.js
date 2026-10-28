@@ -184,7 +184,7 @@ let spriteBank = null;
 let lastSpriteColorKey = "";
 const pointer = { x: -9999, y: -9999, vx: 0, vy: 0, active: false };
 
-/** Detects the machine's graphics tier (`"low" | "medium" | "high" | "ultra"`), recognizing Apple Silicon, Windows DirectX 12, and Linux / VM systems. */
+/** Detects the machine's graphics tier (`"low" | "medium" | "high" | "ultra"`), recognizing Apple Silicon, Windows DirectX 12 / ARM64 (Parallels M4 Pro), and Linux / VM systems. */
 export function detectHardwareTier(navOverride, winOverride) {
   try {
     const nav = navOverride || (typeof navigator !== "undefined" ? navigator : {});
@@ -195,14 +195,24 @@ export function detectHardwareTier(navOverride, winOverride) {
     const rawUa = `${nav.userAgent || ""} ${nav.platform || ""} ${nav.userAgentData?.architecture || ""} ${nav.userAgentData?.platform || ""}`.toLowerCase();
     const ua = rawUa.replace(/like\s+android/g, "");
     const isLinux = /\blinux\b|\bx11\b|\bwayland\b|\bubuntu\b/.test(ua) && !/\bandroid\b/.test(ua);
-    const isAppleSilicon = (!isLinux && (/mac/.test(ua) && (/arm|aarch64|apple\s*m[1-9]|apple\s*gpu/.test(ua) || (dpr >= 2 && cores >= 6)))) || (!isLinux && /\b(arm64|aarch64)\b/.test(ua));
+    const isWindows = !isLinux && /\bwin(?:dows|32|64|nt)\b/.test(ua);
+    const isMac = !isLinux && !isWindows && /\bmac(?:intosh|\s*os)\b/.test(ua);
+    const isAppleSilicon = isMac && (/arm|aarch64|apple\s*m[1-9]|apple\s*gpu/.test(ua) || (dpr >= 2 && cores >= 6));
     if (isAppleSilicon && cores >= 6) return "ultra";
-    if (!isLinux && (cores >= 12 || (cores >= 8 && dpr >= 2 && mem >= 8))) return "ultra";
+    if (isWindows) {
+      if (cores <= 2) return "low";
+      if (cores <= 4) return "medium";
+      // Windows 11 ARM64 (e.g., Apple Silicon M4 Pro 48GB RAM / Parallels Desktop / Snapdragon X)
+      // and Windows x64 DirectX 12 target "high" (60 FPS locked, 1.0x density) by default to avoid
+      // multi-layer canvas overdraw & WDDM compositor readback stalls on 3-layer Holiday themes.
+      return "high";
+    }
     if (isLinux) {
       if (cores <= 2) return "low";
       if (cores <= 6) return "medium";
       return dpr >= 2 && cores >= 12 ? "ultra" : "high";
     }
+    if (cores >= 12 || (cores >= 8 && dpr >= 2 && mem >= 8)) return "ultra";
     if (cores >= 6 || mem >= 8) return "high";
     if (cores >= 4) return "medium";
     return "low";
@@ -570,9 +580,10 @@ function syncCanvasSize() {
   if (!canvas) return { w: 1120, h: 700, dpr: 1 };
   const platform = typeof document !== "undefined" ? (document.documentElement?.dataset?.platform || "") : "";
   const isLinux = platform === "linux";
+  const isWindows = platform === "windows";
   const dprScale = 1;
-  const maxW = isLinux ? 960 : MAX_CANVAS_W;
-  const maxH = isLinux ? 600 : MAX_CANVAS_H;
+  const maxW = isLinux ? 960 : isWindows ? 1024 : MAX_CANVAS_W;
+  const maxH = isLinux ? 600 : isWindows ? 640 : MAX_CANVAS_H;
   const rawW = Math.max(320, Math.round((window.innerWidth || 1280) * dprScale));
   const rawH = Math.max(240, Math.round((window.innerHeight || 800) * dprScale));
   const w = Math.min(maxW, rawW);
@@ -1024,7 +1035,9 @@ function seedSingleLayer(opt, w, h, baseDensity) {
 
 function seedAllLayers(layerIds, w, h, scale) {
   const profile = TIER_PROFILES[activeTier] || TIER_PROFILES.medium;
-  const multiBalance = layerIds.length > 1 ? 1 / Math.pow(layerIds.length, 0.5) : 1;
+  const platform = typeof document !== "undefined" ? (document.documentElement?.dataset?.platform || "") : "";
+  const multiExp = (platform === "windows" || platform === "linux") ? 0.85 : 0.5;
+  const multiBalance = layerIds.length > 1 ? 1 / Math.pow(layerIds.length, multiExp) : 1;
   const baseDensity = scale * profile.density * multiBalance;
   const defs = layerIds
     .map((id) => ATMOSPHERE_BY_ID.get(id))
@@ -2838,9 +2851,11 @@ function drawFrame(tickStep = 1) {
   const reactiveMul = computeReactiveMultiplier(frameTick);
   const scale = (activeIntensity / 60) * reactiveMul;
   const { isDark } = cachedColors;
+  const platform = typeof document !== "undefined" ? (document.documentElement?.dataset?.platform || "") : "";
+  const allowScreenBlend = isDark && profile.bloom && platform !== "windows" && platform !== "linux";
 
   ctx.clearRect(0, 0, w, h);
-  ctx.globalCompositeOperation = isDark && profile.bloom ? "screen" : "source-over";
+  ctx.globalCompositeOperation = allowScreenBlend ? "screen" : "source-over";
 
   for (const layer of activeLayers) {
     drawSingleLayer(ctx, layer, w, h, scale, profile);

@@ -3051,6 +3051,83 @@ describe("the theme editor in the page", () => {
     await themes.disableAllThemeAnimations({ quiet: true });
     await themes.applyPalette("");
   });
+
+  test("OS-Specific Compositor & Holiday Zero-Lag Optimization: Windows 11 ARM64 (M4 Pro 48GB RAM), Windows x64, Linux WebKitGTK & macOS Metal", async () => {
+    const atmo = await import("../resources/file_manager/ui/atmosphereFx.js") as any;
+    const cssText = await Bun.file(new URL("../resources/file_manager/ui/themeEffects.css", import.meta.url)).text();
+
+    // 1. Verify Windows 11 ARM64 running on an Apple Silicon M4 Pro 48GB RAM MacBook Pro
+    //    is accurately identified as Windows ARM64 (NOT misclassified as macOS "ultra" tier)
+    const winArmNav = {
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; ARM64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0",
+      hardwareConcurrency: 14,
+      deviceMemory: 48,
+      userAgentData: { platform: "Windows", architecture: "arm64" },
+    };
+    const winArmWin = { devicePixelRatio: 2 };
+    expect(atmo.detectHardwareTier(winArmNav, winArmWin)).toBe("high");
+
+    const winArmProbe = (themes as any).probeClientHardware(winArmNav, winArmWin);
+    expect(winArmProbe.platform).toBe("windows");
+    expect(winArmProbe.arch).toBe("arm64");
+    expect(winArmProbe.isWindowsArm).toBe(true);
+    expect(winArmProbe.isAppleSiliconHost).toBe(true);
+    expect(winArmProbe.compositor).toBe("directcomposition_arm64");
+    expect(winArmProbe.recommendedAtmoTier).toBe("high");
+
+    // 2. Verify Linux ARM64 & Linux x64 hardware probing
+    const linuxArmProbe = (themes as any).probeClientHardware(
+      { userAgent: "Mozilla/5.0 (X11; Ubuntu; Linux aarch64; rv:130.0)", hardwareConcurrency: 10, deviceMemory: 16 },
+      { devicePixelRatio: 2 },
+    );
+    expect(linuxArmProbe.platform).toBe("linux");
+    expect(linuxArmProbe.arch).toBe("arm64");
+    expect(linuxArmProbe.isLinuxArm).toBe(true);
+    expect(linuxArmProbe.compositor).toBe("webkitgtk_arm64");
+    expect(linuxArmProbe.recommendedAtmoTier).toBe("medium");
+
+    // 3. Verify macOS Apple Silicon M4 Pro hardware probing
+    const macM4Probe = (themes as any).probeClientHardware(
+      { userAgent: "Mozilla/5.0 (Macintosh; ARM Mac OS X 14_6) Apple M4 Pro", hardwareConcurrency: 14, deviceMemory: 48 },
+      { devicePixelRatio: 2 },
+    );
+    expect(macM4Probe.platform).toBe("macos");
+    expect(macM4Probe.arch).toBe("arm64");
+    expect(macM4Probe.isWindowsArm).toBe(false);
+    expect(macM4Probe.compositor).toBe("metal_promotion_120hz");
+    expect(macM4Probe.recommendedAtmoTier).toBe("ultra");
+
+    // 4. Verify Holiday Themes activate OS-specific zero-readback mode on Windows & Linux and Metal XDR on macOS
+    await (themes as any).applyPlatformOptimizationPreset("windows", { quiet: true });
+    await (themes as any).applyHolidayCelebrationTheme("holiday_christmas_nutcracker_hearth", { quiet: true, burst: false });
+    expect(doc.documentElement.dataset.platform).toBe("windows");
+    expect(doc.documentElement.classList.contains("rad-windows")).toBe(true);
+    expect(doc.documentElement.dataset.holidayTheme).toBe("active");
+    expect(doc.documentElement.dataset.osHolidayOptimized).toBe("zero_readback");
+
+    // Holiday burst defaults to 12 lightweight particles on Windows/Linux
+    const winBurst = (themes as any).triggerHolidayCelebrationBurst("holiday_christmas_nutcracker_hearth");
+    expect(winBurst.particleCount).toBe(12);
+
+    await (themes as any).applyPlatformOptimizationPreset("linux", { quiet: true });
+    expect(doc.documentElement.dataset.platform).toBe("linux");
+    expect(doc.documentElement.classList.contains("rad-linux")).toBe(true);
+    expect(doc.documentElement.dataset.osHolidayOptimized).toBe("zero_readback");
+
+    await (themes as any).applyPlatformOptimizationPreset("macos", { quiet: true });
+    expect(doc.documentElement.dataset.platform).toBe("macos");
+    expect(doc.documentElement.classList.contains("rad-macos")).toBe(true);
+    expect(doc.documentElement.dataset.osHolidayOptimized).toBe("metal_xdr");
+
+    // 5. Verify CSS contains Windows & Linux zero-readback rules and the Idle-Row Compositor Governor
+    expect(cssText).toContain("WINDOWS 11 DIRECTX 12, WINDOWS ARM64 (APPLE SILICON M4 PRO / PARALLELS)");
+    expect(cssText).toContain(':is(:root[data-platform="windows"], html.rad-windows):is([data-icon-anim], [data-fx-icon-anim])');
+    expect(cssText).toContain(':is(:root[data-platform="windows"], html.rad-windows, :root[data-platform="linux"], html.rad-linux) :is(#list, #dual-list) .row:not(:hover):not(.selected):not(:focus-within)');
+
+    closeDialogs();
+    await themes.disableAllThemeAnimations({ quiet: true });
+    await themes.applyPalette("");
+  });
 });
 
 
