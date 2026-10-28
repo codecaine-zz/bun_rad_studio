@@ -49,7 +49,7 @@ import { downloadOperations } from "./fmDownloadOps";
 import { cliUtilsDir, cliUtilsOperations, ensureCliUtilsFolder, findCliSourceRoot } from "./fmCliUtils";
 import { taskManagerOperations } from "./fmTaskManagerOps";
 import { sysinfoOperations } from "./fmSysinfoOps";
-import { PHONON_OPS, getCachedAudioFile } from "./fmPhonon";
+import { PHONON_OPS, getCachedAudioFile, isPhononSupportedPlatform } from "./fmPhonon";
 import type { HostedPeer, HostedSession } from "../../simplegui_host";
 import { dbState } from "./fmDbState";
 import { watchOperations } from "./fmWatchOps";
@@ -772,6 +772,8 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
             cachedIndexTemplate = rawHtml
               .replaceAll("__FM_TOKEN__", token)
               .replaceAll("__FM_PLATFORM__", ctx.platform)
+              .replaceAll("__FM_ARCH__", process.arch)
+              .replaceAll("__FM_PHONON__", isPhononSupportedPlatform(ctx.platform, process.arch) ? "1" : "0")
               .replaceAll("__FM_START__", startEncoded);
             cachedIndexMtime = st.mtimeMs;
           }

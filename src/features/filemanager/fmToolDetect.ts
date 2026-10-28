@@ -229,6 +229,7 @@ export function explainFailure(tool: ToolId | "builtin", text: string, code: num
     if (/Can not open|Unrecognized archive|not an archive|Couldn't recognize|not a valid|Unsupported|Cannot find archive|format/i.test(t)) return "This program can't open this archive. It may be damaged or an unsupported kind.";
   }
   if (tool === "ollama") {
+    if (/requires MLX support|MLX runtime is not available/i.test(t)) return "Ollama's Phonon voice model requires Apple's MLX runtime and is only supported on Apple Silicon Macs (macOS ARM64).";
     if (/could not connect to a running Ollama|connection refused|server not responding/i.test(t)) return "Ollama is installed, but its background service isn't running yet. Start Ollama or click Start & Pull Phonon.";
     if (/model .* not found|pull .* first/i.test(t)) return "The Phonon voice model isn't downloaded yet. Click Pull Phonon Model to download it.";
     if (/requires a newer version/i.test(t)) return "Phonon needs Ollama 0.40.9 or newer. Update Ollama and try again.";

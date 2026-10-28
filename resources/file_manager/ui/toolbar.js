@@ -7,7 +7,7 @@ import { showFavoritesMenu } from "./favorites.js";
 import { showRecentsMenu } from "./recents.js";
 import { showToolsDialog } from "./tools.js";
 import { openPower, togglePower } from "./power.js";
-import { canReadWithPhonon } from "./phonon.js";
+import { canReadWithPhonon, isPhononSupported } from "./phonon.js";
 import { lockSelection } from "./vault.js";
 import { showOperationHistory } from "./opHistory.js";
 import { $, buttonIconFor, clear, h } from "./dom.js";
@@ -74,7 +74,7 @@ function buttonSpecs() {
       { id: "recent", icon: "🕘", label: "Recent", get tip() { return `Open a file you used lately, or turn recent files on, off or clear them${hintOf("nav.recents")}`; }, run: (btn) => showRecentsMenu(btn), enabled: () => true, menu: true },
       { id: "info", icon: "ℹ️", label: "Details", get tip() { return `Show or hide the details panel${hintOf("view.info")}`; }, run: () => emit("toggle-info"), enabled: () => true, toggle: () => state.settings.showInfoPanel },
       { id: "lock", icon: "🔒", label: "Lock", get tip() { return `Protect the selected files or folders with a password (encrypt), or unlock a selected .radenc file. A lost password can't be recovered.${hintOf("file.lock")}`; }, run: lockSelection, enabled: () => sel() > 0, hide: inTrash },
-      { id: "phonon", icon: "🗣️", label: "Ollama TTS", tip: "Open Ollama Text-to-Speech (Phonon Voice Reader): read text & documents out loud, convert to plain text, set default voice, and save as any audio file", run: () => { const readable = selectedEntries().filter((e) => !e.isDir && canReadWithPhonon(e)); openPower("phonon", readable.length ? { paths: readable.map((e) => e.path) } : undefined); }, enabled: () => true },
+      ...(isPhononSupported() ? [{ id: "phonon", icon: "🗣️", label: "Ollama TTS", tip: "Open Ollama Text-to-Speech (Phonon Voice Reader): read text & documents out loud, convert to plain text, set default voice, and save as any audio file", run: () => { const readable = selectedEntries().filter((e) => !e.isDir && canReadWithPhonon(e)); openPower("phonon", readable.length ? { paths: readable.map((e) => e.path) } : undefined); }, enabled: () => true }] : []),
       { id: "tools", icon: "🧰", label: "Convert", get tip() { return `Convert, shrink or combine pictures, video, sound and documents, and set up the helper programs${hintOf("file.convert")}`; }, run: showToolsDialog, enabled: () => !inTrash() },
       { id: "power", icon: "🔎", label: "Find & more", get tip() { return `Power tools: advanced find, watch folders and run commands, hashes and encryption, IP lookup and network checks${hintOf("nav.findTool")}`; }, run: () => togglePower(), enabled: () => true, toggle: () => state.powerOpen === true },
       { id: "databases", icon: "🗄️", label: "Databases", tip: "Open the Databases tool: saved connections and the SQLite, MySQL, PostgreSQL and Redis studios", run: () => openPower("databases"), enabled: () => true },
@@ -354,10 +354,18 @@ export function wireToolbar() {
   buildToolbar();
   wireAddress();
   wireSearch();
-  $("#viewbar-phonon")?.addEventListener("click", () => {
-    const readable = selectedEntries().filter((e) => !e.isDir && canReadWithPhonon(e));
-    openPower("phonon", readable.length ? { paths: readable.map((e) => e.path) } : undefined);
-  });
+  const vbPhonon = $("#viewbar-phonon");
+  if (vbPhonon) {
+    if (!isPhononSupported()) {
+      vbPhonon.hidden = true;
+      vbPhonon.remove();
+    } else {
+      vbPhonon.addEventListener("click", () => {
+        const readable = selectedEntries().filter((e) => !e.isDir && canReadWithPhonon(e));
+        openPower("phonon", readable.length ? { paths: readable.map((e) => e.path) } : undefined);
+      });
+    }
+  }
   const refreshAll = () => {
     updateToolbar();
   };

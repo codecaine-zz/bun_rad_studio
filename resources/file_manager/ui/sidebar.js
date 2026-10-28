@@ -10,7 +10,7 @@ import { goTo, showTrash } from "./nav.js";
 import * as ops from "./ops.js";
 import { openPower } from "./power.js";
 import { selectedEntries } from "./selection.js";
-import { canReadWithPhonon } from "./phonon.js";
+import { canReadWithPhonon, isPhononSupported } from "./phonon.js";
 import { emit, inTrash, on, state } from "./state.js";
 import { driveFor, formatSize, plural } from "./util.js";
 
@@ -68,17 +68,19 @@ export function renderSidebar() {
         { label: "Browse CLI Utilities catalog…", icon: "🛠️", action: () => emit("open-cliutils-tool") },
       ], { ...pt, label: "CLI Utilities" }),
     }));
-    places.push(sideItem({
-      icon: "🗣️",
-      label: "Ollama TTS",
-      placeId: "phonon",
-      title: "Ollama Phonon Voice Reader — Read text & documents out loud, convert to plain text, set default voice, and save as any audio file",
-      active: state.powerOpen && state.powerTab === "phonon",
-      onClick: () => {
-        const readable = selectedEntries().filter((e) => !e.isDir && canReadWithPhonon(e));
-        openPower("phonon", readable.length ? { paths: readable.map((e) => e.path) } : undefined);
-      },
-    }));
+    if (isPhononSupported()) {
+      places.push(sideItem({
+        icon: "🗣️",
+        label: "Ollama TTS",
+        placeId: "phonon",
+        title: "Ollama Phonon Voice Reader — Read text & documents out loud, convert to plain text, set default voice, and save as any audio file",
+        active: state.powerOpen && state.powerTab === "phonon",
+        onClick: () => {
+          const readable = selectedEntries().filter((e) => !e.isDir && canReadWithPhonon(e));
+          openPower("phonon", readable.length ? { paths: readable.map((e) => e.path) } : undefined);
+        },
+      }));
+    }
   }
   const activeDrive = here ? driveFor(here, state.drives, state.sep) : null;
   const placeMatch = here !== null && [...state.places, ...(state.cliUtilsDir ? [{ path: state.cliUtilsDir }] : []), ...state.settings.favorites.map((path) => ({ path }))].some((p) => same(p.path));

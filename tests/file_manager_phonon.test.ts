@@ -11,6 +11,7 @@ import {
   DEFAULT_PHONON_VOICES,
   extractPlainTextFromFile,
   getPhononStatus,
+  isPhononSupportedPlatform,
   parseVoicesFromModelfile,
   parseWavPcm,
   PHONON_HARD_MAX_CHUNK_CHARS,
@@ -36,6 +37,14 @@ describe("Ollama & Phonon tool registration and 38 voices catalog", () => {
     });
     expect(installPlan("win32", "ollama", { winget: "C:\\winget.exe" }).auto).toBe(true);
     expect(installPlan("win32", "ollama", { scoop: "C:\\scoop.cmd" }).auto).toBe(true);
+
+    // Phonon requires Apple's MLX runtime and is enabled only on macOS ARM64 (hidden on Windows, Linux, and Intel macOS)
+    expect(isPhononSupportedPlatform("darwin", "arm64")).toBe(true);
+    expect(isPhononSupportedPlatform("darwin", "x64")).toBe(false);
+    expect(isPhononSupportedPlatform("win32", "x64")).toBe(false);
+    expect(isPhononSupportedPlatform("win32", "arm64")).toBe(false);
+    expect(isPhononSupportedPlatform("linux", "x64")).toBe(false);
+    expect(isPhononSupportedPlatform("linux", "arm64")).toBe(false);
   });
 
   test("all 38 built-in Phonon voices are present and Modelfile voice output is parsed", () => {

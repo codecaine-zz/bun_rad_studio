@@ -1,7 +1,7 @@
 // "Convert & process": turn the selected files into something else. The window asks "What do you want to turn these
 // into?", shows only what applies, collects the options, previews the new files, and shows progress in the tasks tray.
 // It also helps install the helper programs some conversions use.
-import { call, ApiError } from "./api.js";
+import { call, ApiError, phononSupported } from "./api.js";
 import { $, announce, debounce, h } from "./dom.js";
 import { openDialog } from "./dialogs.js";
 import { toast } from "./menus.js";
@@ -102,9 +102,10 @@ function toolBlock(tool, close, startInstall) {
 
 /** The list of helper programs: the three main ones first, the rest (needed only for some conversions) after. */
 function helperPrograms(data, close, install, recheck) {
-  const main = data.tools.filter((t) => !t.optional);
-  const more = data.tools.filter((t) => t.optional);
-  const missingAll = data.tools.filter((t) => !t.installed);
+  const visibleTools = data.tools.filter((t) => t.id !== "ollama" || phononSupported);
+  const main = visibleTools.filter((t) => !t.optional);
+  const more = visibleTools.filter((t) => t.optional);
+  const missingAll = visibleTools.filter((t) => !t.installed);
   const parts = [
     h("p", { class: "hint" }, "These free programs do the work. They are installed once and then used by the File Manager. Nothing is installed unless you press its button."),
   ];
@@ -167,7 +168,7 @@ export async function showToolsDialog() {
     if (!data.actions.length) box.append(h("p", { class: "hint" }, "Nothing can be made from these items. Try other files, or choose several of the same kind."));
     box.append(h("div", { class: "tool-row-buttons" },
       h("button", { type: "button", class: "btn", title: "Install or check the programs that do the work", onclick: showHelpers }, "Helper programs…"),
-      h("button", { type: "button", class: "btn", title: "Open Ollama Text-to-Speech (Phonon Voice Reader) to read text out loud or export audiobooks", onclick: () => { dlg.close(); openPower("phonon", paths.length ? { paths } : undefined); } }, "🗣️ Ollama Text-to-Speech…"),
+      ...(phononSupported ? [h("button", { type: "button", class: "btn", title: "Open Ollama Text-to-Speech (Phonon Voice Reader) to read text out loud or export audiobooks", onclick: () => { dlg.close(); openPower("phonon", paths.length ? { paths } : undefined); } }, "🗣️ Ollama Text-to-Speech…")] : []),
     ));
     view.focus();
   }

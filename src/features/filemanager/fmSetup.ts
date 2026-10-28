@@ -173,7 +173,8 @@ export async function planSetup(ctx: FmContext, input: { tools?: unknown; manage
   const choice = input.manager === undefined || input.manager === null || input.manager === "" ? choices[0]! : choices.find((c) => c.id === input.manager);
   if (!choice) throw new FmError("BAD_REQUEST", `That package manager isn't available here. Choose one of: ${choices.map((c) => c.name).join(", ")}.`);
   const manager = choice.id;
-  const asked = input.tools === undefined || input.tools === "all" ? TOOL_IDS : (Array.isArray(input.tools) ? input.tools : [input.tools]).filter((t): t is ToolId => typeof t === "string" && (TOOL_IDS as string[]).includes(t));
+  const defaultTools = ctx.platform === "darwin" && process.arch === "arm64" ? TOOL_IDS : TOOL_IDS.filter((id) => id !== "ollama");
+  const asked = input.tools === undefined || input.tools === "all" ? defaultTools : (Array.isArray(input.tools) ? input.tools : [input.tools]).filter((t): t is ToolId => typeof t === "string" && (TOOL_IDS as string[]).includes(t));
   if (!asked.length) throw new FmError("UNKNOWN_TOOL", "Choose at least one program to install.");
   const items: Array<{ name: string; packages: string[]; cask?: boolean }> = [];
   const tools: SetupPlan["tools"] = [];

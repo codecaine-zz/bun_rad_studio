@@ -12,6 +12,7 @@ import { calculateFolderSizes, goTo, saveSettings, showTrash, visibleEntries } f
 import { showOperationHistory } from "./opHistory.js";
 import * as ops from "./ops.js";
 import { activePane, currentPath, left } from "./pane.js";
+import { isPhononSupported } from "./phonon.js";
 import { listPowerTabs, openPower } from "./power.js";
 import { KIND_CHIP_DEFS, RAD_FILE_TEMPLATES, focusQuickFilter, newFromTemplate, setKindFilter, showNewTemplateDialog, showSelectByPatternDialog } from "./quickbar.js";
 import { invertSelection, selectAll, selectOnly, selectSameKindOrExt } from "./selection.js";
@@ -72,7 +73,9 @@ export function buildPaletteCatalog() {
   add({ id: "act.copyFolderPath", category: "actions", icon: "🔗", title: "Copy current folder path", subtitle: currentPath() || "", shortcut: labelOf("file.copyPath"), keywords: "copy path clipboard address pwd", run: () => { const p = currentPath(); if (p) void ops.copyPathOf([{ path: p }]); } });
   add({ id: "act.copyNames", category: "actions", icon: "🏷️", title: "Copy selected filenames only", subtitle: "Copy only the base file/folder names without directory paths", shortcut: labelOf("file.copyNames"), keywords: "copy filename name base clipboard", run: () => inFiles(() => ops.copyNamesOf()) });
   add({ id: "act.convert", category: "actions", icon: "🧰", title: "Convert or batch process files…", subtitle: "Convert pictures, audio, video, and documents", shortcut: labelOf("file.convert"), keywords: "convert batch ffmpeg imagemagick shrink resize", run: () => showToolsDialog() });
-  add({ id: "act.phononTts", category: "actions", icon: "🗣️", title: "Ollama Text-to-Speech & Voice Reader (Phonon)", subtitle: "Read files out loud, convert documents to plain text, set default voice, and export MP3/WAV/FLAC/M4A/Opus audio", keywords: "ollama phonon tts text to speech voice reader read out loud audio mp3 wav flac audiobook", run: () => openPower("phonon") });
+  if (isPhononSupported()) {
+    add({ id: "act.phononTts", category: "actions", icon: "🗣️", title: "Ollama Text-to-Speech & Voice Reader (Phonon)", subtitle: "Read files out loud, convert documents to plain text, set default voice, and export MP3/WAV/FLAC/M4A/Opus audio", keywords: "ollama phonon tts text to speech voice reader read out loud audio mp3 wav flac audiobook", run: () => openPower("phonon") });
+  }
   add({ id: "act.lock", category: "actions", icon: "🔒", title: "Encrypt or decrypt selected items (Lock)", subtitle: "Password-protect files or unlock .radenc files", shortcut: labelOf("file.lock"), keywords: "encrypt decrypt lock password vault security", run: () => void lockSelection() });
   add({ id: "act.rename", category: "actions", icon: "✏️", title: "Rename / Bulk Rename selection", subtitle: "Rename one item inline or batch rename multiple items with preview", shortcut: labelOf("file.rename"), keywords: "rename batch bulk", run: () => void ops.renameSelection() });
   add({ id: "act.zip", category: "actions", icon: "🗜️", title: "Compress selection to .zip", subtitle: "Create a zip archive from the selected items", shortcut: labelOf("file.zip"), keywords: "zip archive compress pack", run: () => void ops.zipSelection() });

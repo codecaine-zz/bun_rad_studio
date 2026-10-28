@@ -4,6 +4,11 @@ const meta = (name) => (typeof document === "undefined" ? "" : document.querySel
 const INITIAL_TOKEN = meta("fm-token");
 export const getToken = () => INITIAL_TOKEN || meta("fm-token");
 export const platform = meta("fm-platform") || "linux";
+export const arch = meta("fm-arch") || "";
+/** Ollama Phonon TTS uses Apple's MLX framework and is only enabled on macOS ARM64 (Apple Silicon). */
+export const phononSupported =
+  platform === "darwin" &&
+  (meta("fm-phonon") === "1" || arch === "arm64" || (!arch && !meta("fm-phonon")));
 
 export class ApiError extends Error {
   /** @param {string} message @param {string} code @param {number} status @param {any} [details] extra facts the server sent with the error */
