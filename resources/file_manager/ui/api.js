@@ -6,8 +6,8 @@ const meta = (name) => {
 };
 const INITIAL_TOKEN = meta("fm-token");
 export const getToken = () => INITIAL_TOKEN || meta("fm-token");
-export const platform = meta("fm-platform") || "linux";
-export const arch = meta("fm-arch") || "";
+export const platform = meta("fm-platform") || (typeof process !== "undefined" ? process.platform : "linux");
+export const arch = meta("fm-arch") || (typeof process !== "undefined" ? process.arch : "");
 /** Ollama Phonon TTS uses Apple's MLX framework and is only enabled on macOS ARM64 (Apple Silicon). */
 export const phononSupported =
   platform === "darwin" &&
