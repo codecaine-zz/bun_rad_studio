@@ -1,5 +1,5 @@
 // Ollama Phonon Voice Reader, Plain-Text Format Converter, Large-Text Streaming Reader & Multi-Format Audio Exporter.
-import { ApiError, call, getToken, isPhononSupported, phononSupported } from "./api.js";
+import { ApiError, call, getToken, isPhononSupported } from "./api.js";
 import { announce, clear, h } from "./dom.js";
 import { toast } from "./menus.js";
 import { goTo, refresh, saveSettings } from "./nav.js";
