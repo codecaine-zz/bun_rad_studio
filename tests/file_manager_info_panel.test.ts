@@ -46,7 +46,7 @@ beforeAll(async () => {
   info = await import("../resources/file_manager/ui/info.js");
   state.home = home;
   state.sep = "/";
-  state.settings = { ...(await api.call("settings")).settings, showInfoPanel: true };
+  state.settings = (await api.call("settings", { set: { showInfoPanel: true } })).settings;
   await nav.goTo(home, { push: false });
 });
 

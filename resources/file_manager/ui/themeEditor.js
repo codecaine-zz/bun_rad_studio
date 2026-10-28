@@ -2460,6 +2460,7 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
   startSelect.addEventListener("change", async () => {
     try {
       const loaded = await loadStart(startSelect.value);
+      if (closed) return;
       if (keepCurrentFxOnColorSwap) {
         applyTemplateColorsKeepingDraftFx(loaded, loaded.name || startSelect.value);
       } else {
@@ -2485,6 +2486,7 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
     startSelect.value = picked.key;
     try {
       const loaded = await loadStart(picked.key);
+      if (closed) return;
       if (keepCurrentFxOnColorSwap && mode !== "fx") {
         applyTemplateColorsKeepingDraftFx(loaded, picked.name);
       } else {
@@ -2503,6 +2505,7 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
     startSelect.value = picked.key;
     try {
       const loaded = await loadStart(picked.key);
+      if (closed) return;
       applyTemplateColorsKeepingDraftFx(loaded, picked.name);
     } catch (err) {
       toast(err?.message || "Couldn't load random color palette.", { kind: "error" });

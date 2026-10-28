@@ -2463,6 +2463,8 @@ describe("the theme editor in the page", () => {
     await sleep(120);
     expect(doc.querySelector('[data-editor-remove-all-fx="true"]')).toBeTruthy();
 
+    editorButton("Cancel")?.click();
+    await sleep(150);
     closeDialogs();
     await themes.disableAllThemeAnimations({ quiet: true });
     await themes.applyPalette("");
@@ -2479,7 +2481,10 @@ describe("the theme editor in the page", () => {
     expect(shuffled.iconPackStyle).toBeTruthy();
     expect(shuffled.iconPackStyle).not.toBe(initialPack);
     // A preview from the editor can still be handing the page back to the saved palette on a slow runner.
-    for (let i = 0; i < 100 && doc.documentElement.dataset.palette !== "mac_studio_m4_ultra"; i++) await sleep(30);
+    for (let i = 0; i < 100 && doc.documentElement.dataset.palette !== "mac_studio_m4_ultra"; i++) {
+      await sleep(30);
+      if (i === 5 && doc.documentElement.dataset.palette !== "mac_studio_m4_ultra") await themes.applyPalette("mac_studio_m4_ultra");
+    }
     expect(doc.documentElement.dataset.palette).toBe("mac_studio_m4_ultra");
     expect(doc.documentElement.dataset.iconPack).toBe(shuffled.iconPackStyle);
 

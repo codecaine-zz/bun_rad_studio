@@ -1,6 +1,9 @@
 // Talking to the File Manager server. Every call carries this session's secret token (put in the page by the server).
 
-const meta = (name) => (typeof document === "undefined" ? "" : document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") ?? "");
+const meta = (name) => {
+  const v = typeof document === "undefined" ? "" : document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") ?? "";
+  return /^__FM_.*__$/.test(v) ? "" : v;
+};
 const INITIAL_TOKEN = meta("fm-token");
 export const getToken = () => INITIAL_TOKEN || meta("fm-token");
 export const platform = meta("fm-platform") || "linux";

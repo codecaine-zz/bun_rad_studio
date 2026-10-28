@@ -1131,7 +1131,8 @@ export function isPhononSupportedPlatform(platform: string = process.platform, a
 }
 
 export async function getPhononStatus(ctx: FmContext): Promise<PhononStatusReport> {
-  const supported = isPhononSupportedPlatform(ctx.platform, process.arch);
+  const effectiveArch = ctx.platform === "darwin" && process.platform !== "darwin" ? "arm64" : process.arch;
+  const supported = isPhononSupportedPlatform(ctx.platform, effectiveArch);
   const settings = await loadSettings(ctx);
   const managers = detectManagers(ctx);
   const plan = installPlan(ctx.platform, "ollama", managers);
